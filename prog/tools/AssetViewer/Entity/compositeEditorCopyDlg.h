@@ -1,7 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-#include <propPanel2/comWnd/dialog_window.h>
 
-class CompositeEditorCopyDlg : CDialogWindow
+#include <propPanel/commonWindow/dialogWindow.h>
+
+class CompositeEditorCopyDlg : private PropPanel::DialogWindow
 {
 public:
   CompositeEditorCopyDlg();

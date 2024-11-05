@@ -3,6 +3,9 @@ _WIN_SDK_BIN = $(_WIN_SDK)/bin ;
 _WIN_SDK_INC = $(_WIN_SDK)/Include ;
 _WIN_SDK_LIB = $(_WIN_SDK)/lib ;
 
+if ! [ GLOB $(_VC_DIR) : * ] { exit FATAL\: _VC_DIR \"$(_VC_DIR)\" not found!  Please, update DEVTOOLS ; }
+if ! [ GLOB $(_WIN_SDK) : * ] { exit FATAL\: _WIN_SDK \"$(_WIN_SDK)\" not found!  Please, update DEVTOOLS ; }
+
 if $(WinSdkVer) = win.sdk.81 {
   _WIN_SDK_TARGET_SUFFIX ?= x86 ;
   local include_subdir = shared um winrt ;
@@ -10,19 +13,31 @@ if $(WinSdkVer) = win.sdk.81 {
   _WIN_SDK_LIB = $(_WIN_SDK_LIB)/winv6.3/um ;
 }
 if $(WinSdkVer) = win.sdk.100 {
+  WinSdkUpdateVer ?= 19041 ;
+  local _inc = $(_DEVTOOL)/win.sdk.100/include/10.0.$(WinSdkUpdateVer).0 ;
+  local _lib = $(_DEVTOOL)/win.sdk.100/lib/10.0.$(WinSdkUpdateVer).0 ;
+  if ! [ GLOB $(_inc) : * ] { exit FATAL\: WinSDK \"$(_inc)\" not found!  Please, update DEVTOOLS ; }
+
+  if [ GLOB $(_WIN_SDK_BIN) : 10.0.$(WinSdkUpdateVer).0 ] { _WIN_SDK_BIN = $(_WIN_SDK_BIN)/10.0.$(WinSdkUpdateVer).0 ; }
+
   _WIN_SDK_TARGET_SUFFIX ?= x86 ;
-  if [ GLOB $(_WIN_SDK_BIN) : 10.0.19041.0 ] { _WIN_SDK_BIN = $(_WIN_SDK_BIN)/10.0.19041.0 ; }
-  _WIN_SDK_INC = $(_DEVTOOL)/win.sdk.100/include/10.0.19041.0/um $(_DEVTOOL)/win.sdk.100/include/10.0.19041.0/shared ;
-  _WIN_SDK_LIB = $(_DEVTOOL)/win.sdk.100/lib/10.0.19041.0/um ;
+  local include_subdir = um shared ;
+  _WIN_SDK_INC = $(_inc)/$(include_subdir) ;
+  _WIN_SDK_LIB = $(_lib)/um ;
+
+  _UCRT_INC = $(_inc)/ucrt ;
+  _UM_LIB   = $(_lib)/um/$(_WIN_SDK_TARGET_SUFFIX) ;
+  _UCRT_LIB = $(_lib)/ucrt/$(_WIN_SDK_TARGET_SUFFIX) ;
 }
 if $(_WIN_SDK_TARGET_SUFFIX) {
-  _WIN_SDK_BIN = $(_WIN_SDK_BIN)/$(_WIN_SDK_TARGET_SUFFIX) ;
+  _WIN_SDK_BIN = $(_WIN_SDK_BIN)/x64 ;
   _WIN_SDK_LIB = $(_WIN_SDK_LIB)/$(_WIN_SDK_TARGET_SUFFIX) ;
 }
 
 actions together quietly compile_pch_sync
 {
   $(VC_START_SHOW_INCLUDES_FILTER)
+  echo PCH: $(pch:D=)
   set_filter $(1:S=.d) /$(VC_SHOW_INCLUDES_FILTER_PREFIX)(.+)/d1 $(1:G=:D=): $1
   del $(pch)
   call_filtered $(_CPP_COMPILER) $(pre_opt) $(_CPP_BASE_INCLUDES) $(cpp_opt) /Fp$(pch) -showIncludes #\(-Fo$(1) $(2:G=))\#
@@ -34,6 +49,5 @@ actions together quietly compile_pch_sync
   :end
 
   clr_filters
-  $(CODE_CHECK) -x $(1) $(2)
 }
 

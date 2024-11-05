@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/xcsm.h>
 #include <math/dag_bounds3.h>
 #include <math/dag_math3d.h>

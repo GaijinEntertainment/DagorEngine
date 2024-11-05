@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include "assetStats.h"
 #include <EditorCore/ec_ViewportWindow.h>
 
@@ -14,8 +16,8 @@ private:
   virtual void load(const DataBlock &blk) override;
   virtual void save(DataBlock &blk) const override;
   virtual void paint(int w, int h) override;
-  virtual void fillStatSettingsDialog(PropertyContainerControlBase &tab_panel) override;
-  virtual void handleStatSettingsDialogChange(int pcb_id) override;
+  virtual void fillStatSettingsDialog(ViewportWindowStatSettingsDialog &dialog) override;
+  virtual void handleStatSettingsDialogChange(int pcb_id, bool value) override;
 
   int getAssetStatByIndex(int index);
   static int getAssetStatIndexByName(const char *name);

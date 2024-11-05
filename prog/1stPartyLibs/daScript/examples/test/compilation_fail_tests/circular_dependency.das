@@ -1,4 +1,4 @@
-expect 30101:2
+expect 30101:1
 
 // this one creates circular dependency
 struct Foo
@@ -8,7 +8,7 @@ struct Foo
 struct Node
     left, right : Node?
 
-// this one has fancy circular dependency
+// this one is not circular dependency. sizeof(array<Bar>) does not deppend on Bar
 struct Bar
     a : array<Bar>
 

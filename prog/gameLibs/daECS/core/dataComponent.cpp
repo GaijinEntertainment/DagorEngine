@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_debug.h>
 #include <memory/dag_framemem.h>
 #include <daECS/core/dataComponent.h>

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "blk_shared.h"
 #include <math/integer/dag_IPoint2.h>
 #include <math/integer/dag_IPoint3.h>
@@ -110,7 +112,7 @@ bool DataBlock::writeText(IGenSave &cb, int level, int *max_lines, int max_level
     bool isCIdent = true;
     const char *keyName = getName(p.nameId);
     if (!keyName)
-      keyName = "";
+      keyName = "@null";
     if (!*keyName)
       isCIdent = false;
     for (const char *c = keyName; *c && isCIdent; ++c)
@@ -224,6 +226,8 @@ bool DataBlock::writeText(IGenSave &cb, int level, int *max_lines, int max_level
     const DataBlock &b = *getBlock(i);
     bool isCIdent = true;
     const char *blkName = b.getName(b.getNameId());
+    if (!blkName)
+      blkName = "@null";
     if (DAGOR_UNLIKELY(CHECK_COMMENT_PREFIX(blkName)))
     {
       if (DAGOR_LIKELY(!DataBlock::parseCommentsAsParams))
@@ -314,14 +318,14 @@ bool DataBlock::writeText(IGenSave &cb, int level, int *max_lines, int max_level
 bool DataBlock::saveToTextStreamCompact(IGenSave &cwr) const
 {
   DAGOR_TRY { writeText<false>(cwr, -1, nullptr, 0); }
-  DAGOR_CATCH(IGenSave::SaveException) { return false; }
+  DAGOR_CATCH(const IGenSave::SaveException &) { return false; }
   return true;
 }
 
 bool DataBlock::saveToTextStream(IGenSave &cwr) const
 {
   DAGOR_TRY { writeText<false>(cwr, 0, nullptr, 0); }
-  DAGOR_CATCH(IGenSave::SaveException) { return false; }
+  DAGOR_CATCH(const IGenSave::SaveException &) { return false; }
   return true;
 }
 
@@ -453,7 +457,7 @@ bool dblk::write_names_base(IGenSave &cwr, const DBNameMapBase &names, uint64_t 
       }
     }
   }
-  DAGOR_CATCH(IGenSave::SaveException) { return false; }
+  DAGOR_CATCH(const IGenSave::SaveException &) { return false; }
   return true;
 }
 bool dblk::write_names(IGenSave &cwr, const DBNameMap &names, uint64_t *names_hash)
@@ -507,7 +511,7 @@ bool dblk::read_names_base(IGenLoad &cr, DBNameMapBase &names, uint64_t *names_h
         {
           if (memcmp(name, names.getStringDataUnsafe(current), len) != 0)
           {
-            names.noCollisions() = 0;
+            names.hasCollisions() = 1;
             current = -1;
           }
           else
@@ -527,7 +531,7 @@ bool dblk::read_names_base(IGenLoad &cr, DBNameMapBase &names, uint64_t *names_h
     names.shrink_to_fit();
   }
 
-  DAGOR_CATCH(IGenSave::SaveException) { return false; }
+  DAGOR_CATCH(const IGenSave::SaveException &) { return false; }
   return true;
 }
 bool dblk::read_names(IGenLoad &cr, DBNameMap &names, uint64_t *names_hash) { return read_names_base(cr, names, names_hash); }
@@ -754,7 +758,7 @@ bool DataBlock::saveDumpToBinStream(IGenSave &cwr, const DBNameMap *ro) const
     dblk::write_names_base(cwr, dbShared->rw, NULL);
     saveToBinStreamWithoutNames(*dbShared, cwr);
   }
-  DAGOR_CATCH(IGenSave::SaveException) { return false; }
+  DAGOR_CATCH(const IGenSave::SaveException &) { return false; }
 
   return true;
 }
@@ -849,7 +853,7 @@ static bool dblk::save_to_text_file_ex(const DataBlock &blk, const char *filenam
 
 #endif
   }
-  DAGOR_CATCH(IGenSave::SaveException)
+  DAGOR_CATCH(const IGenSave::SaveException &)
   {
     ::df_close(h);
     return false;
@@ -878,7 +882,7 @@ bool dblk::print_to_text_stream_limited(const DataBlock &blk, IGenSave &cwr, int
       return false;
     }
   }
-  DAGOR_CATCH(IGenSave::SaveException) { return false; }
+  DAGOR_CATCH(const IGenSave::SaveException &) { return false; }
   return true;
 }
 
@@ -889,7 +893,7 @@ bool dblk::save_to_binary_file(const DataBlock &blk, const char *filename)
     return false;
 
   DAGOR_TRY { blk.saveToStream(cwr); }
-  DAGOR_CATCH(IGenSave::SaveException) { return false; }
+  DAGOR_CATCH(const IGenSave::SaveException &) { return false; }
 
   return true;
 }

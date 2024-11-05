@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "splineClassMgr.h"
 #include <math/dag_mesh.h>
 #include <math/dag_bezierPrec.h>
@@ -35,7 +37,8 @@ static inline float get_ht(const Point3 &p, float above_ht, bool place_on_collis
 static void buildSegment(const BezierSplinePrecInt3d &bezie_point, float min_step, float max_step, float curvature_strength,
   float max_h_err, float max_hill_h_err, Tab<SegData> &seg_data, int seg_n, float seg_len, bool is_end_segment,
   bool place_on_collision, bool gnd_based_shape, float above_ht, bool follow_hills, bool follow_hollows, float ht_test_step,
-  Attr start_scale, Attr end_scale, const Point2 &opacity_mul)
+  Attr start_scale, Attr end_scale, const Point2 &opacity_mul, //
+  float zero_opac_fore_end, float zero_opac_back_end, float start_margin, float end_margin)
 {
   union
   {
@@ -57,11 +60,20 @@ static void buildSegment(const BezierSplinePrecInt3d &bezie_point, float min_ste
     follow_hills = (start_scale.followOverride & 1) ? true : false;
     follow_hollows = (start_scale.followOverride & 2) ? true : false;
   }
+
+  if (seg_len < min_step)
+  {
+    if (zero_opac_fore_end > 0 && zero_opac_fore_end < min_step)
+      min_step = zero_opac_fore_end;
+    if (zero_opac_back_end > 0 && zero_opac_back_end < min_step)
+      min_step = zero_opac_back_end;
+  }
+
   if (seg_len < min_step)
   {
     append_items(seg_data, 1);
     seg_data.back().segN = seg_n;
-    seg_data.back().offset = 0.f;
+    seg_data.back().offset = start_margin > 0 ? bezie_point.getTFromS(start_margin) : 0.f;
     seg_data.back().y = get_ht(bezie_point.point(0), above_ht, place_on_collision, follow_hills, follow_hollows);
     seg_data.back().attr = start_scale;
 
@@ -78,7 +90,7 @@ static void buildSegment(const BezierSplinePrecInt3d &bezie_point, float min_ste
 
     append_items(seg_data, 1);
     seg_data.back().segN = seg_n;
-    seg_data.back().offset = 1.f;
+    seg_data.back().offset = end_margin > 0 ? bezie_point.getTFromS(seg_len - end_margin) : 1.f;
     seg_data.back().y = get_ht(bezie_point.point(1), above_ht, place_on_collision, follow_hills, follow_hollows);
     seg_data.back().attr = end_scale;
     return;
@@ -97,7 +109,7 @@ static void buildSegment(const BezierSplinePrecInt3d &bezie_point, float min_ste
 
   append_items(seg_data, 1);
   seg_data.back().segN = seg_n;
-  seg_data.back().offset = 0;
+  seg_data.back().offset = start_margin > 0 ? bezie_point.getTFromS(start_margin) : 0.f;
   seg_data.back().attr = start_scale;
   seg_data.back().attr.opacity =
     clamp(seg_data.back().attr.opacity * (opacity_mul[0] + opacity_mul[1] * _srnd(opacity_seed)), 0.f, 1.f);
@@ -117,9 +129,15 @@ static void buildSegment(const BezierSplinePrecInt3d &bezie_point, float min_ste
   }
 
 #define SET_INTERP_ATTR(X) seg_data.back().attr.X = start_scale.X + s * (end_scale.X - start_scale.X) / seg_len
+  float prev_s = 0;
   if (place_on_collision | follow_hills | follow_hollows)
-    for (float s = step; s < seg_len; s += step) //-V1034
+    for (float s = start_margin > 0 ? start_margin : step; s < (end_margin > 0 ? seg_len - end_margin : seg_len); s += step) //-V1034
     {
+      bool force_using_pt = false;
+      if (zero_opac_fore_end > 0 && s >= zero_opac_fore_end && prev_s < zero_opac_fore_end)
+        s = zero_opac_fore_end, force_using_pt = true;
+      if (zero_opac_back_end > 0 && s >= seg_len - zero_opac_back_end && prev_s < seg_len - zero_opac_back_end)
+        s = seg_len - zero_opac_back_end, force_using_pt = true;
       const float curT = bezie_point.getTFromS(s);
       Point3 current = bezie_point.point(curT);
       Point3 tang = bezie_point.tang(curT);
@@ -145,7 +163,7 @@ static void buildSegment(const BezierSplinePrecInt3d &bezie_point, float min_ste
       else if (lastTgA < MAX_REAL && fabs(current.y - (lastPt.y + lastTgA * targetLength)) > max_he)
         curvatureStop = 1;
 
-      if (targetLength >= max_step || (curvatureStop && targetLength >= min_step))
+      if (targetLength >= max_step || (curvatureStop && targetLength >= min_step) || force_using_pt)
       {
         append_items(seg_data, 1);
         seg_data.back().segN = seg_n;
@@ -165,10 +183,16 @@ static void buildSegment(const BezierSplinePrecInt3d &bezie_point, float min_ste
 
         curvatureStop = false;
       }
+      prev_s = s;
     }
   else
-    for (float s = step; s < seg_len; s += step) //-V1034
+    for (float s = start_margin > 0 ? start_margin : step; s < (end_margin > 0 ? seg_len - end_margin : seg_len); s += step) //-V1034
     {
+      bool force_using_pt = false;
+      if (zero_opac_fore_end > 0 && s >= zero_opac_fore_end && prev_s < zero_opac_fore_end)
+        s = zero_opac_fore_end, force_using_pt = true;
+      if (zero_opac_back_end > 0 && s >= seg_len - zero_opac_back_end && prev_s < seg_len - zero_opac_back_end)
+        s = seg_len - zero_opac_back_end, force_using_pt = true;
       const float curT = bezie_point.getTFromS(s);
       Point3 current = bezie_point.point(curT);
       const Point3 tang = normalize(bezie_point.tang(curT));
@@ -181,7 +205,7 @@ static void buildSegment(const BezierSplinePrecInt3d &bezie_point, float min_ste
       if (cosn < min_cosn)
         curvatureStop = 1;
 
-      if (targetLength >= max_step || (curvatureStop && targetLength >= min_step))
+      if (targetLength >= max_step || (curvatureStop && targetLength >= min_step) || force_using_pt)
       {
         append_items(seg_data, 1);
         seg_data.back().segN = seg_n;
@@ -200,14 +224,15 @@ static void buildSegment(const BezierSplinePrecInt3d &bezie_point, float min_ste
 
         curvatureStop = false;
       }
+      prev_s = s;
     }
 #undef SET_INTERP_ATTR
 
-  if (is_end_segment)
+  if (is_end_segment || end_margin)
   {
     append_items(seg_data, 1);
     seg_data.back().segN = seg_n;
-    seg_data.back().offset = 1.f;
+    seg_data.back().offset = end_margin > 0 ? bezie_point.getTFromS(seg_len - end_margin) : 1.f;
     seg_data.back().y = get_ht(bezie_point.point(1), above_ht, place_on_collision, follow_hills, follow_hollows);
     seg_data.back().attr = end_scale;
     seg_data.back().attr.opacity =
@@ -215,7 +240,7 @@ static void buildSegment(const BezierSplinePrecInt3d &bezie_point, float min_ste
   }
 }
 
-static void refineRoadSegments(Tab<SegData> &seg_data, int st_idx, const BezierSplinePrec3d &path, float above_ht, bool road_bhv,
+static void refineRoadSegments(dag::Span<SegData> seg_data, int st_idx, const BezierSplinePrec3d &path, float above_ht, bool road_bhv,
   float max_up_ang, float road_test_wd)
 {
   if (seg_data.size() < 2)
@@ -405,7 +430,7 @@ void SplineClassAssetMgr::createLoftMesh(Mesh &mesh, const splineclass::LoftGeom
   int end_idx, float min_step, float max_step, float curvature, float max_h_err, float max_hill_h_err, bool a_follow_hills,
   bool a_follow_hollows, float ht_test_step, bool road_bhv, float road_max_abs_ang, float road_max_inter_ang, float road_test_wd,
   float scale_tc_along, int select_mat, dag::ConstSpan<Attr> splineScales, float zero_opac_fore_end, float zero_opac_back_end,
-  Tab<SegData> *out_loftSeg)
+  float path_margin_s, float path_margin_e, Tab<SegData> *out_loftSeg)
 {
   // precompute TC scales
   float newuSize = loft.uSize * scale_tc_along;
@@ -458,12 +483,32 @@ void SplineClassAssetMgr::createLoftMesh(Mesh &mesh, const splineclass::LoftGeom
   };
   rnd_val = segCnt ? path.segs[start_idx].point(0).x - path.segs[start_idx].point(0).z : 0;
 
+  float seg_s0 = 0, full_len = 0, slen = 0;
   for (int i = 0; i < segCnt; i++)
-    buildSegment(path.segs[i + start_idx], min_step, max_step, curvature, max_h_err, max_hill_h_err, segData, i,
-      path.segs[i + start_idx].len, i == lastSgN, place_on_collision, gnd_based_shape, above_ht, follow_hills, follow_hollows,
-      ht_test_step, splineScales[i], splineScales[i + 1], loft.randomOpacityMulAlong);
+    full_len += path.segs[i + start_idx].len;
+  float zo0_pos = zero_opac_fore_end > 0 ? path_margin_s + zero_opac_fore_end : 0.f;
+  float zo1_pos = zero_opac_back_end > 0 ? full_len - path_margin_e - zero_opac_back_end : 0.f;
+  float m1_pos = path_margin_e > 0 ? full_len - path_margin_e : 0.f;
 
-  refineRoadSegments(segData, start_idx, path, above_ht, road_bhv, DEG_TO_RAD * road_max_abs_ang, road_test_wd);
+  for (int i = 0; i < segCnt; i++, seg_s0 += slen)
+  {
+    slen = path.segs[i + start_idx].len;
+    if (path_margin_s > 0 && seg_s0 + slen < path_margin_s)
+      continue;
+    if (path_margin_e > 0 && seg_s0 + path_margin_e > full_len)
+      break;
+
+    float eff_zo0_end = zo0_pos > 0 && zo0_pos > seg_s0 && zo0_pos < seg_s0 + slen ? zo0_pos - seg_s0 : 0.f;
+    float eff_zo1_end = zo1_pos > 0 && zo1_pos > seg_s0 && zo1_pos < seg_s0 + slen ? seg_s0 + slen - zo1_pos : 0.f;
+    float eff_m0 = path_margin_s > 0 && path_margin_s > seg_s0 && path_margin_s < seg_s0 + slen ? path_margin_s - seg_s0 : 0.f;
+    float eff_m1 = path_margin_e > 0 && m1_pos > seg_s0 && m1_pos < seg_s0 + slen ? seg_s0 + slen - m1_pos : 0.f;
+
+    buildSegment(path.segs[i + start_idx], min_step, max_step, curvature, max_h_err, max_hill_h_err, segData, i, slen, i == lastSgN,
+      place_on_collision, gnd_based_shape, above_ht, follow_hills, follow_hollows, ht_test_step, splineScales[i], splineScales[i + 1],
+      loft.randomOpacityMulAlong, eff_zo0_end, eff_zo1_end, eff_m0, eff_m1);
+  }
+
+  refineRoadSegments(make_span(segData), start_idx, path, above_ht, road_bhv, DEG_TO_RAD * road_max_abs_ang, road_test_wd);
 
   if (out_loftSeg)
     *out_loftSeg = segData;
@@ -479,7 +524,7 @@ void SplineClassAssetMgr::createLoftMesh(Mesh &mesh, const splineclass::LoftGeom
 
   if (shape.isClosed())
     totalShapePoints--;
-  // debug_ctx("faces: %d path =%d * shape=%d  verts = %d",
+  // DEBUG_CTX("faces: %d path =%d * shape=%d  verts = %d",
   //   faceCount, totalPathPoints, totalShapePoints, totalPathPoints * totalShapePoints);
   int startVert = append_items(mesh.vert, totalPathPoints * totalShapePoints);
   int startTVert = append_items(mesh.tvert[0], totalPathPoints * (totalShapePoints + 1));
@@ -575,11 +620,11 @@ void SplineClassAssetMgr::createLoftMesh(Mesh &mesh, const splineclass::LoftGeom
     int shapeSmoothGroup = 1;
     int start_vi = vi;
     const Attr &cur_attr = segData[pathi].attr;
-    float opacity_sclale = 1.0f;
-    if (zero_opac_fore_end > 0 && atPath < zero_opac_fore_end)
-      opacity_sclale = atPath / zero_opac_fore_end;
-    if (zero_opac_back_end > 0 && atPath > fullPathLen - zero_opac_back_end)
-      opacity_sclale *= (fullPathLen - atPath) / zero_opac_back_end;
+    float opacity_scale = 1.0f;
+    if (zero_opac_fore_end > 0 && atPath < path_margin_s + zero_opac_fore_end)
+      opacity_scale = (atPath - path_margin_s) / zero_opac_fore_end;
+    if (zero_opac_back_end > 0 && atPath > full_len - path_margin_e - zero_opac_back_end)
+      opacity_scale *= (full_len - path_margin_e - atPath) / zero_opac_back_end;
 
     for (int shapei = 0; shapei < totalShapePoints; ++shapei, vi++, tvi++)
     {
@@ -602,7 +647,7 @@ void SplineClassAssetMgr::createLoftMesh(Mesh &mesh, const splineclass::LoftGeom
       verts[vi] = pos + ctm * Point3(ofs.x * cur_attr.scale_w, ofs.y * cur_attr.scale_h, 0);
       tverts0[tvi] = Point2(atPath, v);
       tverts1[tvi] = Point2(
-        opacity_sclale *
+        opacity_scale *
           clamp(cur_attr.opacity * (loft.randomOpacityMulAcross[0] + loft.randomOpacityMulAcross[1] * _srnd(opacity_seed)), 0.f, 1.f),
         atPath / fullPathLen);
       tverts2[tvi] =
@@ -706,7 +751,7 @@ void SplineClassAssetMgr::createLoftMesh(Mesh &mesh, const splineclass::LoftGeom
     {
       tverts0[tvi] = Point2(atPath, 1.0);
       tverts1[tvi] = Point2(
-        opacity_sclale *
+        opacity_scale *
           clamp(cur_attr.opacity * (loft.randomOpacityMulAcross[0] + loft.randomOpacityMulAcross[1] * _srnd(opacity_seed)), 0.f, 1.f),
         atPath / fullPathLen);
       tverts2[tvi] = Point2(0, pt_attr.size() ? pt_attr[0].attr : 0);

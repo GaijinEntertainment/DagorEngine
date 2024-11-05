@@ -12,64 +12,85 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_56() {
-// from D:\Work\libclang\include\llvm-c/LLJIT.h:74:24
-	addExtern< LLVMOrcOpaqueLLJITBuilder * (*)() , LLVMOrcCreateLLJITBuilder >(*this,lib,"LLVMOrcCreateLLJITBuilder",SideEffects::worstDefault,"LLVMOrcCreateLLJITBuilder");
-// from D:\Work\libclang\include\llvm-c/LLJIT.h:81:6
-	addExtern< void (*)(LLVMOrcOpaqueLLJITBuilder *) , LLVMOrcDisposeLLJITBuilder >(*this,lib,"LLVMOrcDisposeLLJITBuilder",SideEffects::worstDefault,"LLVMOrcDisposeLLJITBuilder")
-		->args({"Builder"});
-// from D:\Work\libclang\include\llvm-c/LLJIT.h:92:6
-	addExtern< void (*)(LLVMOrcOpaqueLLJITBuilder *,LLVMOrcOpaqueJITTargetMachineBuilder *) , LLVMOrcLLJITBuilderSetJITTargetMachineBuilder >(*this,lib,"LLVMOrcLLJITBuilderSetJITTargetMachineBuilder",SideEffects::worstDefault,"LLVMOrcLLJITBuilderSetJITTargetMachineBuilder")
-		->args({"Builder","JTMB"});
-// from D:\Work\libclang\include\llvm-c/LLJIT.h:116:14
-	addExtern< LLVMOpaqueError * (*)(LLVMOrcOpaqueLLJIT **,LLVMOrcOpaqueLLJITBuilder *) , LLVMOrcCreateLLJIT >(*this,lib,"LLVMOrcCreateLLJIT",SideEffects::worstDefault,"LLVMOrcCreateLLJIT")
-		->args({"Result","Builder"});
-// from D:\Work\libclang\include\llvm-c/LLJIT.h:122:14
-	addExtern< LLVMOpaqueError * (*)(LLVMOrcOpaqueLLJIT *) , LLVMOrcDisposeLLJIT >(*this,lib,"LLVMOrcDisposeLLJIT",SideEffects::worstDefault,"LLVMOrcDisposeLLJIT")
-		->args({"J"});
-// from D:\Work\libclang\include\llvm-c/LLJIT.h:130:28
-	addExtern< LLVMOrcOpaqueExecutionSession * (*)(LLVMOrcOpaqueLLJIT *) , LLVMOrcLLJITGetExecutionSession >(*this,lib,"LLVMOrcLLJITGetExecutionSession",SideEffects::worstDefault,"LLVMOrcLLJITGetExecutionSession")
-		->args({"J"});
-// from D:\Work\libclang\include\llvm-c/LLJIT.h:138:20
-	addExtern< LLVMOrcOpaqueJITDylib * (*)(LLVMOrcOpaqueLLJIT *) , LLVMOrcLLJITGetMainJITDylib >(*this,lib,"LLVMOrcLLJITGetMainJITDylib",SideEffects::worstDefault,"LLVMOrcLLJITGetMainJITDylib")
-		->args({"J"});
-// from D:\Work\libclang\include\llvm-c/LLJIT.h:144:13
-	addExtern< const char * (*)(LLVMOrcOpaqueLLJIT *) , LLVMOrcLLJITGetTripleString >(*this,lib,"LLVMOrcLLJITGetTripleString",SideEffects::worstDefault,"LLVMOrcLLJITGetTripleString")
-		->args({"J"});
-// from D:\Work\libclang\include\llvm-c/LLJIT.h:149:6
-	addExtern< char (*)(LLVMOrcOpaqueLLJIT *) , LLVMOrcLLJITGetGlobalPrefix >(*this,lib,"LLVMOrcLLJITGetGlobalPrefix",SideEffects::worstDefault,"LLVMOrcLLJITGetGlobalPrefix")
-		->args({"J"});
-// from D:\Work\libclang\include\llvm-c/LLJIT.h:159:1
-	addExtern< LLVMOrcOpaqueSymbolStringPoolEntry * (*)(LLVMOrcOpaqueLLJIT *,const char *) , LLVMOrcLLJITMangleAndIntern >(*this,lib,"LLVMOrcLLJITMangleAndIntern",SideEffects::worstDefault,"LLVMOrcLLJITMangleAndIntern")
-		->args({"J","UnmangledName"});
-// from D:\Work\libclang\include\llvm-c/LLJIT.h:170:14
-	addExtern< LLVMOpaqueError * (*)(LLVMOrcOpaqueLLJIT *,LLVMOrcOpaqueJITDylib *,LLVMOpaqueMemoryBuffer *) , LLVMOrcLLJITAddObjectFile >(*this,lib,"LLVMOrcLLJITAddObjectFile",SideEffects::worstDefault,"LLVMOrcLLJITAddObjectFile")
-		->args({"J","JD","ObjBuffer"});
-// from D:\Work\libclang\include\llvm-c/LLJIT.h:182:14
-	addExtern< LLVMOpaqueError * (*)(LLVMOrcOpaqueLLJIT *,LLVMOrcOpaqueResourceTracker *,LLVMOpaqueMemoryBuffer *) , LLVMOrcLLJITAddObjectFileWithRT >(*this,lib,"LLVMOrcLLJITAddObjectFileWithRT",SideEffects::worstDefault,"LLVMOrcLLJITAddObjectFileWithRT")
-		->args({"J","RT","ObjBuffer"});
-// from D:\Work\libclang\include\llvm-c/LLJIT.h:195:14
-	addExtern< LLVMOpaqueError * (*)(LLVMOrcOpaqueLLJIT *,LLVMOrcOpaqueJITDylib *,LLVMOrcOpaqueThreadSafeModule *) , LLVMOrcLLJITAddLLVMIRModule >(*this,lib,"LLVMOrcLLJITAddLLVMIRModule",SideEffects::worstDefault,"LLVMOrcLLJITAddLLVMIRModule")
-		->args({"J","JD","TSM"});
-// from D:\Work\libclang\include\llvm-c/LLJIT.h:208:14
-	addExtern< LLVMOpaqueError * (*)(LLVMOrcOpaqueLLJIT *,LLVMOrcOpaqueResourceTracker *,LLVMOrcOpaqueThreadSafeModule *) , LLVMOrcLLJITAddLLVMIRModuleWithRT >(*this,lib,"LLVMOrcLLJITAddLLVMIRModuleWithRT",SideEffects::worstDefault,"LLVMOrcLLJITAddLLVMIRModuleWithRT")
-		->args({"J","JD","TSM"});
-// from D:\Work\libclang\include\llvm-c/LLJIT.h:217:14
-	addExtern< LLVMOpaqueError * (*)(LLVMOrcOpaqueLLJIT *,unsigned long long *,const char *) , LLVMOrcLLJITLookup >(*this,lib,"LLVMOrcLLJITLookup",SideEffects::worstDefault,"LLVMOrcLLJITLookup")
-		->args({"J","Result","Name"});
-// from D:\Work\libclang\include\llvm-c/LLJIT.h:224:23
-	addExtern< LLVMOrcOpaqueObjectLayer * (*)(LLVMOrcOpaqueLLJIT *) , LLVMOrcLLJITGetObjLinkingLayer >(*this,lib,"LLVMOrcLLJITGetObjLinkingLayer",SideEffects::worstDefault,"LLVMOrcLLJITGetObjLinkingLayer")
-		->args({"J"});
-// from D:\Work\libclang\include\llvm-c/LLJIT.h:230:1
-	addExtern< LLVMOrcOpaqueObjectTransformLayer * (*)(LLVMOrcOpaqueLLJIT *) , LLVMOrcLLJITGetObjTransformLayer >(*this,lib,"LLVMOrcLLJITGetObjTransformLayer",SideEffects::worstDefault,"LLVMOrcLLJITGetObjTransformLayer")
-		->args({"J"});
-// from D:\Work\libclang\include\llvm-c/LLJIT.h:235:28
-	addExtern< LLVMOrcOpaqueIRTransformLayer * (*)(LLVMOrcOpaqueLLJIT *) , LLVMOrcLLJITGetIRTransformLayer >(*this,lib,"LLVMOrcLLJITGetIRTransformLayer",SideEffects::worstDefault,"LLVMOrcLLJITGetIRTransformLayer")
-		->args({"J"});
-// from D:\Work\libclang\include\llvm-c/LLJIT.h:243:13
-	addExtern< const char * (*)(LLVMOrcOpaqueLLJIT *) , LLVMOrcLLJITGetDataLayoutStr >(*this,lib,"LLVMOrcLLJITGetDataLayoutStr",SideEffects::worstDefault,"LLVMOrcLLJITGetDataLayoutStr")
-		->args({"J"});
-// from D:\Work\libclang\include\llvm-c/lto.h:111:1
-	addExtern< const char * (*)() , lto_get_version >(*this,lib,"lto_get_version",SideEffects::worstDefault,"lto_get_version");
+// from D:\Work\libclang\include\llvm-c/lto.h:618:20
+	makeExtern< LLVMOpaqueLTOInput * (*)(const void *,size_t,const char *) , lto_input_create , SimNode_ExtFuncCall >(lib,"lto_input_create","lto_input_create")
+		->args({"buffer","buffer_size","path"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/lto.h:628:13
+	makeExtern< void (*)(LLVMOpaqueLTOInput *) , lto_input_dispose , SimNode_ExtFuncCall >(lib,"lto_input_dispose","lto_input_dispose")
+		->args({"input"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/lto.h:636:17
+	makeExtern< unsigned int (*)(LLVMOpaqueLTOInput *) , lto_input_get_num_dependent_libraries , SimNode_ExtFuncCall >(lib,"lto_input_get_num_dependent_libraries","lto_input_get_num_dependent_libraries")
+		->args({"input"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/lto.h:645:21
+	makeExtern< const char * (*)(LLVMOpaqueLTOInput *,size_t,size_t *) , lto_input_get_dependent_library , SimNode_ExtFuncCall >(lib,"lto_input_get_dependent_library","lto_input_get_dependent_library")
+		->args({"input","index","size"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/lto.h:655:27
+	makeExtern< const char *const * (*)(size_t *) , lto_runtime_lib_symbols_list , SimNode_ExtFuncCall >(lib,"lto_runtime_lib_symbols_list","lto_runtime_lib_symbols_list")
+		->args({"size"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/lto.h:687:27
+	makeExtern< LLVMOpaqueThinLTOCodeGenerator * (*)() , thinlto_create_codegen , SimNode_ExtFuncCall >(lib,"thinlto_create_codegen","thinlto_create_codegen")
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/lto.h:695:13
+	makeExtern< void (*)(LLVMOpaqueThinLTOCodeGenerator *) , thinlto_codegen_dispose , SimNode_ExtFuncCall >(lib,"thinlto_codegen_dispose","thinlto_codegen_dispose")
+		->args({"cg"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/lto.h:708:13
+	makeExtern< void (*)(LLVMOpaqueThinLTOCodeGenerator *,const char *,const char *,int) , thinlto_codegen_add_module , SimNode_ExtFuncCall >(lib,"thinlto_codegen_add_module","thinlto_codegen_add_module")
+		->args({"cg","identifier","data","length"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/lto.h:718:13
+	makeExtern< void (*)(LLVMOpaqueThinLTOCodeGenerator *) , thinlto_codegen_process , SimNode_ExtFuncCall >(lib,"thinlto_codegen_process","thinlto_codegen_process")
+		->args({"cg"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/lto.h:729:21
+	makeExtern< unsigned int (*)(LLVMOpaqueThinLTOCodeGenerator *) , thinlto_module_get_num_objects , SimNode_ExtFuncCall >(lib,"thinlto_module_get_num_objects","thinlto_module_get_num_objects")
+		->args({"cg"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/lto.h:740:24
+	makeExtern< LTOObjectBuffer (*)(LLVMOpaqueThinLTOCodeGenerator *,unsigned int) , thinlto_module_get_object , SimNode_ExtFuncCallAndCopyOrMove >(lib,"thinlto_module_get_object","thinlto_module_get_object")
+		->args({"cg","index"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/lto.h:752:14
+	makeExtern< unsigned int (*)(LLVMOpaqueThinLTOCodeGenerator *) , thinlto_module_get_num_object_files , SimNode_ExtFuncCall >(lib,"thinlto_module_get_num_object_files","thinlto_module_get_num_object_files")
+		->args({"cg"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/lto.h:763:13
+	makeExtern< const char * (*)(LLVMOpaqueThinLTOCodeGenerator *,unsigned int) , thinlto_module_get_object_file , SimNode_ExtFuncCall >(lib,"thinlto_module_get_object_file","thinlto_module_get_object_file")
+		->args({"cg","index"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/lto.h:772:19
+	makeExtern< bool (*)(LLVMOpaqueThinLTOCodeGenerator *,lto_codegen_model) , thinlto_codegen_set_pic_model , SimNode_ExtFuncCall >(lib,"thinlto_codegen_set_pic_model","thinlto_codegen_set_pic_model")
+		->args({"cg",""})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/lto.h:782:13
+	makeExtern< void (*)(LLVMOpaqueThinLTOCodeGenerator *,const char *) , thinlto_codegen_set_savetemps_dir , SimNode_ExtFuncCall >(lib,"thinlto_codegen_set_savetemps_dir","thinlto_codegen_set_savetemps_dir")
+		->args({"cg","save_temps_dir"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/lto.h:793:6
+	makeExtern< void (*)(LLVMOpaqueThinLTOCodeGenerator *,const char *) , thinlto_set_generated_objects_dir , SimNode_ExtFuncCall >(lib,"thinlto_set_generated_objects_dir","thinlto_set_generated_objects_dir")
+		->args({"cg","save_temps_dir"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/lto.h:801:13
+	makeExtern< void (*)(LLVMOpaqueThinLTOCodeGenerator *,const char *) , thinlto_codegen_set_cpu , SimNode_ExtFuncCall >(lib,"thinlto_codegen_set_cpu","thinlto_codegen_set_cpu")
+		->args({"cg","cpu"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/lto.h:809:13
+	makeExtern< void (*)(LLVMOpaqueThinLTOCodeGenerator *,bool) , thinlto_codegen_disable_codegen , SimNode_ExtFuncCall >(lib,"thinlto_codegen_disable_codegen","thinlto_codegen_disable_codegen")
+		->args({"cg","disable"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/lto.h:817:13
+	makeExtern< void (*)(LLVMOpaqueThinLTOCodeGenerator *,bool) , thinlto_codegen_set_codegen_only , SimNode_ExtFuncCall >(lib,"thinlto_codegen_set_codegen_only","thinlto_codegen_set_codegen_only")
+		->args({"cg","codegen_only"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/lto.h:825:13
+	makeExtern< void (*)(const char *const *,int) , thinlto_debug_options , SimNode_ExtFuncCall >(lib,"thinlto_debug_options","thinlto_debug_options")
+		->args({"options","number"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

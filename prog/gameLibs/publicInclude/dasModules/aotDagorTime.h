@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -21,20 +20,23 @@ inline uint64_t iso8601_parse_sec(const char *v)
   return (timeMsec / 1000LL);
 }
 
-inline char *iso8601_format_msec(uint64_t timeMSec, das::Context *ctx)
+inline char *iso8601_format_msec(uint64_t timeMSec, das::Context *ctx, das::LineInfoArg *at)
 {
   char buffer[64];
   iso8601_format(timeMSec, buffer, sizeof(buffer));
-  return ctx->stringHeap->allocateString(buffer, strlen(buffer));
+  return ctx->allocateString(buffer, strlen(buffer), at);
 }
 
-inline char *iso8601_format_sec(uint64_t timeSec, das::Context *ctx) { return iso8601_format_msec(timeSec * 1000LL, ctx); }
+inline char *iso8601_format_sec(uint64_t timeSec, das::Context *ctx, das::LineInfoArg *at)
+{
+  return iso8601_format_msec(timeSec * 1000LL, ctx, at);
+}
 
-inline das::int3 get_local_time()
+inline das::int4 get_local_time()
 {
   DagorDateTime st;
   ::get_local_time(&st);
-  return das::int3(st.hour, st.minute, st.second);
+  return das::int4(st.hour, st.minute, st.second, st.microsecond);
 }
 
 } // namespace bind_dascript

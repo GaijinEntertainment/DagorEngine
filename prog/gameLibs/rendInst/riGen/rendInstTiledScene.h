@@ -1,8 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "riGen/riExtraPool.h"
 #include <scene/dag_tiledScene.h>
 #include <util/dag_delayedAction.h>
+#include <math/dag_mathUtils.h>
 
 
 namespace rendinst
@@ -28,8 +30,10 @@ public:
     DRAFT_DEPTH = 1 << 12,
     VISIBLE_IN_LANDMASK = 1 << 13,
     NEEDS_CHECK_IN_SHADOW = 1 << 14,
+    HAS_PER_INSTANCE_RENDER_DATA = 1 << 15,
   };
   using SimpleScene::calcNodeBox;
+  using SimpleScene::calcNodeBoxFromSphere;
   using SimpleScene::getNode;
   using SimpleScene::getNodeFlags;
   using SimpleScene::getNodePool;
@@ -44,7 +48,10 @@ public:
   using TiledScene::frustumCullOneTile;
   using TiledScene::frustumCullTilesPass;
   using TiledScene::getNodeIndexInternal; // for faster visibility in dev
+  using TiledScene::getNodesAliveCount;
   using TiledScene::getNodesCount;
+  using TiledScene::getPoolBbox;
+  using TiledScene::getTileCountInBox;
   using TiledScene::getTileSize;
   using TiledScene::lockForRead;
   using TiledScene::setFlags;
@@ -61,6 +68,8 @@ public:
   using SimpleScene::begin;
   using SimpleScene::end;
 
+  using TiledScene::nodesInRange;
+
   enum
   {
     ADDED = 0,
@@ -71,7 +80,8 @@ public:
     SET_UDATA,
     COMPARE_AND_SWAP_UDATA,
     INVALIDATE_SHADOW_DIST,
-    SET_FLAGS_IN_BOX
+    SET_FLAGS_IN_BOX,
+    SET_PER_INSTANCE_OFFSET,
   };
   enum
   {
@@ -123,14 +133,13 @@ public:
     G_ASSERT(dw_cnt * 4 + 4 <= sizeof(mat44f));
     G_ASSERTF_AND_DO(user_cmd < DeferredCommand::SET_USER_DATA, user_cmd = DeferredCommand::SET_USER_DATA - 1, "user_cmd=0x%X",
       user_cmd);
-    size_t idx = mDeferredCommand.size();
-    mDeferredCommand.resize(idx + 1);
 
-    DeferredCommand &cmd = mDeferredCommand[idx];
-    cmd.command = DeferredCommand::Cmd(cmd.SET_USER_DATA + user_cmd);
-    cmd.node = node;
-    memcpy(&cmd.transformCommand, dw_data, dw_cnt * 4);
-    ((int *)&cmd.transformCommand.col3)[3] = dw_cnt;
+    mDeferredCommand.addCmd([&](DeferredCommand &cmd) {
+      cmd.command = DeferredCommand::Cmd(cmd.SET_USER_DATA + user_cmd);
+      cmd.node = node;
+      memcpy(&cmd.transformCommand, dw_data, dw_cnt * 4);
+      ((int *)(char *)&cmd.transformCommand.col3)[3] = dw_cnt;
+    });
   }
 
   template <typename ImmediatePerform = DoNothing>
@@ -141,10 +150,10 @@ public:
     G_ASSERTF_AND_DO(user_cmd < DeferredCommand::SET_USER_DATA, user_cmd = DeferredCommand::SET_USER_DATA - 1, "user_cmd=0x%X",
       user_cmd);
     std::lock_guard<std::mutex> scopedLock(mDeferredSetTransformMutex);
-    if (isInWritingThread() && !mDeferredCommand.size())
+    if (isInWritingThread() && mDeferredCommand.empty())
     {
       WriteLockRAII lock(*this);
-      if (!mDeferredCommand.size())
+      if (mDeferredCommand.empty())
       {
         int32_t data[16];
         memcpy(data, dw_data, dw_cnt * 4);
@@ -212,7 +221,42 @@ public:
     eastl::swap(nodeUserData, new_data);
     userDataWordCount = new_word_cnt;
   }
-  void setDirFromSun(const Point3 &nd);
+
+  uint32_t getPerInstanceRenderDataOffset(scene::node_index ni) const
+  {
+    eastl::vector_map<scene::node_index, uint32_t>::const_iterator it = perInstanceRenderDataOffset.find(ni);
+    if (it != perInstanceRenderDataOffset.end())
+      return it->second;
+    return 0;
+  }
+
+  void setPerInstanceRenderDataOffsetImm(scene::node_index ni, uint32_t offset)
+  {
+    G_ASSERT_RETURN(isInWritingThread(), );
+    if (offset)
+    {
+      setFlagsImm(ni, HAS_PER_INSTANCE_RENDER_DATA);
+      perInstanceRenderDataOffset[ni] = offset;
+    }
+    else
+    {
+      if (getNodeFlags(ni) & HAS_PER_INSTANCE_RENDER_DATA)
+      {
+        unsetFlagsImm(ni, HAS_PER_INSTANCE_RENDER_DATA);
+        perInstanceRenderDataOffset.erase(ni);
+      }
+    }
+  }
+
+  void clearPerInstanceRenderDataOffsets()
+  {
+    G_ASSERT_RETURN(isInWritingThread(), );
+    for (auto &it : perInstanceRenderDataOffset)
+      unsetFlagsImm(it.first, HAS_PER_INSTANCE_RENDER_DATA);
+    perInstanceRenderDataOffset.clear();
+  }
+
+  void onDirFromSunChanged(const Point3 &nd);
 
 protected:
   void invalidateShadowDist()
@@ -226,15 +270,16 @@ protected:
   friend class TiledScenesGroup;
   mutable eastl::vector<uint8_t> distance;
   eastl::vector<int32_t> nodeUserData;
+  eastl::vector_map<scene::node_index, uint32_t> perInstanceRenderDataOffset;
   int userDataWordCount = 0;
-  Point3 dirFromSunForShadows = {0, 0, 0};
+  Point3 dirFromSunOnPrevDistInvalidation = {0, 0, 0};
 };
 
 
 struct TiledScenePoolInfo
 {
   float distSqLOD[RiExtraPool::MAX_LODS];
-  uint32_t lodLimits;
+  uint32_t lodLimits, poolIdx;
   uint16_t boxOccluder, quadOccluder;
   bool isDynamic;
 };

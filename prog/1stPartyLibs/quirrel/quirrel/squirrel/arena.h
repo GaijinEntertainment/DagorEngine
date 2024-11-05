@@ -227,6 +227,8 @@ public:
 template<typename T>
 class ArenaVector {
 public:
+    using size_type = uint32_t;
+
     ArenaVector(Arena *arena) :
     _arena(arena),
     _vals(NULL),
@@ -247,13 +249,13 @@ public:
     }
 
     T& top() const { return _vals[_size - 1]; }
-    inline SQUnsignedInteger size() const { return _size; }
+    inline size_type size() const { return _size; }
     bool empty() const { return (_size <= 0); }
 
     inline T &back() const { return _vals[_size - 1]; }
-    inline T& operator[](SQUnsignedInteger pos) const { return _vals[pos]; }
+    inline T& operator[](size_type pos) const { return _vals[pos]; }
 
-    void insert(SQUnsignedInteger pos, T v) {
+    void insert(size_type pos, T v) {
       assert(pos <= _size);
       if (_size + 1 > _allocated) resize(_size + 1);
       memmove(&_vals[pos + 1], &_vals[pos], (_size - pos) * sizeof(T));
@@ -269,14 +271,14 @@ public:
     iterator end() { return &_vals[_size]; }
     const_iterator end() const { return &_vals[_size]; }
 
-    void resize(size_t newSize) {
+    void resize(size_type newSize) {
       if (newSize < _allocated) return;
       _realloc(newSize);
     }
 
 private:
 
-    void _realloc(SQUnsignedInteger newsize)
+    void _realloc(size_type newsize)
     {
         newsize = (newsize > 0) ? newsize : 4;
         T *newPtr = (T *)_arena->allocate(newsize * sizeof(T));
@@ -289,8 +291,8 @@ private:
 
     T *_vals;
 
-    size_t _size;
-    size_t _allocated;
+    size_type _size;
+    size_type _allocated;
 };
 
 template <typename T>

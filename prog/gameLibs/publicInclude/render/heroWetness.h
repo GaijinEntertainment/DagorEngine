@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -10,7 +9,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <generic/dag_carray.h>
 #include <math/dag_Point2.h>
-#include <3d/dag_drv3dConsts.h>
+#include <drv/3d/dag_consts.h>
 
 class HeroWetness
 {
@@ -28,6 +27,7 @@ public:
     wetnessParamsGroundVehicle.drySpeed = dry_speed;
   }
   Point2 getDrySpeed() const { return wetnessParams.drySpeed; }
+  Point2 getDrySpeedGroundVehicle() const { return wetnessParamsGroundVehicle.drySpeed; }
 
   bool isInSleep() const;
   void afterReset() { fillVertexBuffer(getVbSize()); }

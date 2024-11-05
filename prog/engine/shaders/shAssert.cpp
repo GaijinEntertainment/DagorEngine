@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "shAssert.h"
 #include <math/dag_hlsl_floatx.h>
 #include <shaders/assert.hlsli>
@@ -9,6 +11,7 @@
 #include <EASTL/vector.h>
 #include <EASTL/vector_set.h>
 #include <EASTL/array.h>
+#include <util/dag_console.h>
 
 namespace shader_assert
 {
@@ -17,6 +20,8 @@ namespace shader_assert
 void init() {}
 void close() {}
 void readback() {}
+
+static void reset() {}
 
 ScopedShaderAssert::ScopedShaderAssert(const shaderbindump::ShaderClass &) : mShaderClassId(0) {}
 ScopedShaderAssert::~ScopedShaderAssert() = default;
@@ -41,13 +46,17 @@ using stacks_on_frame_t = eastl::vector<stack_t>;
 
 eastl::array<stacks_on_frame_t, RING_BUFFER_SIZE> g_stacks_on_frames;
 uint32_t g_current_frame = 0;
+uint32_t g_last_observed_bindump_gen = uint32_t(-1);
 
 static ScriptedShadersBinDumpV2 *get_dump_v2() { return shBinDumpOwner().getDumpV2(); }
 
 void init()
 {
-  if (!get_dump_v2() || !VariableMap::isVariablePresent(shader_class_id.shadervarId))
+  if (!get_dump_v2() || !VariableMap::isVariablePresent(assertion_buffer_slot.shadervarId))
     return;
+
+  G_ASSERT(VariableMap::isVariablePresent(shader_class_id.shadervarId));
+  G_ASSERT(VariableMap::isVariablePresent(stack_id.shadervarId));
 
   g_failed_by_class.clear();
   g_stacks_on_frames.fill({});
@@ -56,19 +65,35 @@ void init()
     SBCF_UA_STRUCTURED_READBACK, 0, false);
   g_assertion_buffer = dag::buffers::create_ua_sr_structured(sizeof(AssertEntry), shBinDump().classes.size(), "assertion_buffer",
     dag::buffers::Init::Zero);
+  g_last_observed_bindump_gen = shaderbindump::get_generation();
   debug("shaders::assert is inited");
 }
 
 void close()
 {
+  g_assertion_ring_buffer.reset();
   g_assertion_ring_buffer.close();
   g_assertion_buffer.close();
+}
+
+static void reset()
+{
+  close();
+  init();
 }
 
 void readback()
 {
   if (!g_assertion_buffer)
     return;
+
+  uint32_t bindump_gen = shaderbindump::get_generation();
+  if (g_last_observed_bindump_gen != bindump_gen)
+  {
+    reset();
+    return;
+  }
+  g_last_observed_bindump_gen = bindump_gen;
 
   int stride;
   uint32_t frame;
@@ -156,6 +181,7 @@ ScopedShaderAssert::ScopedShaderAssert(const shaderbindump::ShaderClass &sh_clas
 
   int slot = ShaderGlobal::get_int(assertion_buffer_slot.shadervarId);
   d3d::set_rwbuffer(ShaderStage::STAGE_PS, slot, g_assertion_buffer.getBuf());
+  d3d::set_rwbuffer(ShaderStage::STAGE_VS, slot, g_assertion_buffer.getBuf());
   d3d::set_rwbuffer(ShaderStage::STAGE_CS, slot, g_assertion_buffer.getBuf());
   ShaderGlobal::set_int(shader_class_id.shadervarId, mShaderClassId);
   ShaderGlobal::set_int(stack_id.shadervarId, (int)g_stacks_on_frames[g_current_frame].size());
@@ -176,3 +202,18 @@ ScopedShaderAssert::~ScopedShaderAssert()
 #endif
 
 } // namespace shader_assert
+
+static bool shader_assert_console_handler(const char *argv[], int argc) // move it somewhere else
+{
+  if (argc < 1)
+    return false;
+  int found = 0;
+  // clang-format off
+  CONSOLE_CHECK_NAME("shader_assert", "reset", 1, 1)
+  {
+    shader_assert::reset();
+  }
+  // clang-format on
+  return found;
+}
+REGISTER_CONSOLE_HANDLER(shader_assert_console_handler);

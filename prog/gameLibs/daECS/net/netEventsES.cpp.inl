@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/net/netEvents.h>
 #include <daECS/net/object.h>
 

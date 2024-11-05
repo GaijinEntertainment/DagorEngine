@@ -1,0 +1,216 @@
+include "shader_global.dshl"
+include "sq_clouds_shadow.dshl"
+include "static_shadow.dshl"
+include "viewVecVS.dshl"
+include "gbuffer.dshl"
+include "postfx_inc.dshl"
+include "refraction.dshl"
+include "roughToMip.dshl"
+include "use_gi.dshl"
+
+texture frame_tex;
+texture downsampled_depth;
+
+texture screen_effect_tex0;
+texture screen_effect_tex1;
+texture screen_effect_tex2;
+texture screen_effect_tex3;
+texture screen_effect_tex4;//limited by MAX_SCREEN_EFFECTS
+
+buffer screen_effects_buffer;
+int screen_effects_count;
+shader screen_effect
+{
+  supports global_const_block;
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  SQ_INIT_CLOUDS_SHADOW(vs)
+  SQ_CLOUDS_SHADOW(vs)
+
+  INIT_STATIC_SHADOW_VS()
+  USE_STATIC_SHADOW_VS()
+  USE_AND_INIT_VIEW_VEC_VS()
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  INIT_IN_FRUSTUM_GI_DIFFUSE(vs)
+  USE_IN_FRUSTUM_GI_DIFFUSE(vs)
+  INIT_SKY_DIFFUSE_BASE(vs)
+  USE_SKY_DIFFUSE_BASE(vs)
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 uv : TEXCOORD0;
+      float3 view_vec : TEXCOORD1;
+      nointerpolation float3 ambient : TEXCOORD2;
+      nointerpolation float4 screen_normal_shadow : TEXCOORD3;
+    };
+  }
+
+  (vs) {
+    world_view_pos@f3 = world_view_pos;
+  }
+
+  hlsl(vs) {
+
+    VsOutput screen_frost_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 inpos = getPostfxVertexPositionById(vertexId);
+
+      output.pos = float4(inpos,0,1);
+      output.uv = screen_to_texcoords(inpos);
+      output.view_vec = get_view_vec_by_vertex_id(vertexId);
+      output.screen_normal_shadow.xyz = normalize(view_vecLT + view_vecRT + view_vecLB + view_vecRB);
+      output.screen_normal_shadow.w = min(getStaticShadow(world_view_pos.xyz), clouds_shadow(world_view_pos.xyz));
+      output.ambient = GetSkySHDiffuseSimple(output.screen_normal_shadow.xyz);
+      get_directional_ambient(output.ambient, world_view_pos.xyz, output.uv, 0, world_view_pos.xyz, output.screen_normal_shadow.xyz, 0,0,0);
+      return output;
+    }
+  }
+
+  INIT_ZNZFAR()
+  USE_DECODE_DEPTH()
+  INIT_READ_DEPTH_GBUFFER()
+  ENABLE_ASSERT(ps)
+
+  (ps) {
+    frame_tex@smp2d = frame_tex;
+    downsampled_depth@smp2d = downsampled_depth;
+    screen_effect_tex0@smp2d = screen_effect_tex0;
+    screen_effect_tex1@smp2d = screen_effect_tex1;
+    screen_effect_tex2@smp2d = screen_effect_tex2;
+    screen_effect_tex3@smp2d = screen_effect_tex3;
+    screen_effect_tex4@smp2d = screen_effect_tex4;
+
+    screen_effects_count@i1 = (screen_effects_count);
+    input_resolution@f2 = get_dimensions(frame_tex, 0);
+
+    screen_effects_buffer_buf@cbuf = screen_effects_buffer hlsl {
+      cbuffer screen_effects_buffer_buf@cbuf
+      {
+        #include <screen_effect.hlsli>
+        ScreenEffect screen_effects_buffer[MAX_SCREEN_EFFECTS];
+      };
+    };
+  }
+
+
+  INIT_HDR(ps)
+  INIT_FETCH_REFRACTED_PIXEL()
+  USE_FETCH_REFRACTED_PIXEL()
+  USE_ROUGH_TO_MIP()
+
+  hlsl(ps) {
+
+    #include <psh_tangent.hlsl>
+    #include <normaldetail.hlsl>
+    #include <BRDF.hlsl>
+    #include <noise/Perlin2D.hlsl>
+
+    // this can be replaced with physically correct dendritic crystal growth on speedy systems
+    float growthFunc(float local_intensity, float2 uv, float border_offset, float border_saturation)
+    {
+      const float halfDiagLen = sqrt(2.0) / 2.0;
+      float distFromCenter = length(uv - 0.5) / halfDiagLen; // now it is from 0 to 1
+      return smoothstep(1.0 - border_offset, 1.0 - border_offset + border_saturation, distFromCenter + local_intensity);
+    }
+
+    void sample_effects(float4 tex, int i, float2 uv,
+                        inout float3 diffuse,
+                        inout float ggx_alpha,
+                        inout float thickness,
+                        inout float opaqueness,
+                        inout float4 texValue)
+    {
+      float weight = screen_effects_buffer[i].weight;
+      diffuse += screen_effects_buffer[i].diffuse.rgb * weight;
+      float effect_ggx_alpha = screen_effects_buffer[i].roughness;
+      float effect_opaqueness = screen_effects_buffer[i].opacity;
+
+      texValue += tex * weight;//incorrect blending packed normal map
+
+      float growthStage = saturate(growthFunc(screen_effects_buffer[i].intensity * tex.r, uv,
+                                              screen_effects_buffer[i].border_offset,
+                                              screen_effects_buffer[i].border_saturation));
+      float effect_thickness = (1 - tex.b) * growthStage * weight;
+      thickness += effect_thickness;
+      effect_thickness *= growthStage;
+      opaqueness += effect_opaqueness * effect_thickness;
+      ggx_alpha += effect_ggx_alpha * effect_thickness;
+    }
+
+    half3 screen_frost_ps(VsOutput input) : SV_Target
+    {
+
+      const float3 screenNormal = input.screen_normal_shadow.xyz;
+      const float shadow = input.screen_normal_shadow.w;
+
+      const float ior = 1.309; // IOR of ice according to https://pixelandpoly.com/ior.html
+      float3 diffuse = 0;
+      float ggx_alpha = 0;
+      float thickness = 0;
+      float opaqueness = 0;
+      float4 texValue = 0;
+      #define SAMPLE_EFFECT(i)\
+      if (i < screen_effects_count)\
+        sample_effects(tex2Dlod(screen_effect_tex##i, float4(input.uv * screen_effects_buffer[i].uv_scale * input_resolution, 0, 0)),\
+        i, input.uv, diffuse, ggx_alpha, thickness, opaqueness, texValue);
+
+      SAMPLE_EFFECT(0)
+      SAMPLE_EFFECT(1)
+      SAMPLE_EFFECT(2)
+      SAMPLE_EFFECT(3)
+      SAMPLE_EFFECT(4)
+      opaqueness = saturate(opaqueness);
+      ggx_alpha = saturate(ggx_alpha);
+
+      float linearRoughness = sqrt(ggx_alpha);
+      half3 normalMap = -unpack_ag_normal(texValue);
+      half3 iceNormal = perturb_normal_precise(normalMap, screenNormal, input.view_vec, input.uv);
+
+      // see EFFICIENT RENDERING OF MULTIPLE REFRACTIONS AND REFLECTIONS IN NATURAL OBJECTS from Seipel et al.
+      // link: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.100.4732&rep=rep1&type=pdf
+      half3 resultingNormal = normalize(iceNormal - screenNormal);
+      half3 viewDir = normalize(input.view_vec);
+      half3 refractedRayDirection = refract(viewDir, resultingNormal, 1/ior);
+
+      float distToPoint = length(input.view_vec) * (linearize_z(tex2D(downsampled_depth, input.uv).x, zn_zfar.zw) - 1);
+
+      float NdotV = dot(viewDir, resultingNormal);
+      float NoV = abs(NdotV)+1e-5;
+
+      half3 lightDir = from_sun_direction.xyz;
+      float3 H = normalize(viewDir + lightDir);
+      float NoH = saturate(dot(resultingNormal, H));
+      float VoH = saturate(dot(viewDir, H));
+      float NoL = dot(lightDir, resultingNormal);
+      float shadowedNoL = shadow*NoL;
+      float G = BRDF_geometricVisibility(ggx_alpha, NoV, NoL, VoH);
+      float D = BRDF_distribution(ggx_alpha, NoH);
+
+      const float r0 = pow2((ior-1)/(ior+1));
+      float F = BRDF_fresnel(r0, VoH).g;
+      float3 diffuseTerm = thickness * diffuse * saturate(shadowedNoL) * sun_color_0.xyz;
+      float3 specularTerm = shadowedNoL > 0 ? (D*G*F*shadowedNoL) * sun_color_0.xyz : 0;
+      float roughnessMip = ComputeReflectionCaptureMipFromRoughness(linearRoughness);
+
+      float3 refractionLight = diffuse * fetchRefractedPixel(input.uv, input.view_vec, refractedRayDirection, distToPoint, roughnessMip).rgb;
+
+      float enviBRDF = EnvBRDFApproxNonmetal(linearRoughness, NoV);
+
+      diffuseTerm += (1-enviBRDF) * diffuse * input.ambient;
+      diffuseTerm = lerp(refractionLight, diffuseTerm, opaqueness);
+
+      half3 frame = tex2Dlod(frame_tex, float4(input.uv, 0, 0)).rgb;
+      return lerp(frame, diffuseTerm + specularTerm, smoothstep(0.0, 0.1, thickness));
+    }
+  }
+
+  compile("target_vs", "screen_frost_vs");
+  compile("target_ps", "screen_frost_ps");
+}

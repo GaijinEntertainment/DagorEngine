@@ -11,7 +11,7 @@ shader dafx_sparks_ps_emission, dafx_sparks_ps_simulation
 {
   ENABLE_ASSERT(cs)
   DAFXEX_USE_DEPTH_FOR_COLLISION(cs)
-  USE_DAFX_SYSTEM_COMMON()
+  USE_SPARKFX_SYSTEM_COMMON()
 
   hlsl(cs)
   {
@@ -41,6 +41,15 @@ shader sparks_ps, sparks_thermal
     #include "dafxSparks_decl.hlsl"
     #include "fx_thermals.hlsl"
     #include "dafx_globals.hlsli"
+  }
+
+  if (shader == sparks_ps)
+  {
+    hlsl
+    {
+      #undef DAFXEX_USE_REACTIVE_MASK
+      #define DAFXEX_USE_REACTIVE_MASK 1 // sparks are usually highres and have low overdraw, so we can always output fsr mask
+    }
   }
 
   DAFX_SCREEN_POS_TO_TC()
@@ -75,7 +84,24 @@ shader sparks_ps, sparks_thermal
     #define IS_ADDITIVE (input.psize_dista_hdr_blend.w == 0)
     #define IS_ABLEND (input.psize_dista_hdr_blend.w > 0)
 
-    float4 sparks_fx_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    struct PsOutput
+    {
+      float4 color : SV_Target0;
+  #if DAFXEX_USE_REACTIVE_MASK
+      float reactive : SV_Target1;
+  #endif
+    };
+    PsOutput encode_output(float4 color)
+    {
+      PsOutput output;
+      output.color = color;
+  #if DAFXEX_USE_REACTIVE_MASK
+      output.reactive = color.a;
+  #endif
+      return output;
+    }
+
+    PsOutput sparks_fx_ps(VsOutput input HW_USE_SCREEN_POS)
     {
       GlobalData gdata = global_data_load();
 
@@ -101,7 +127,7 @@ shader sparks_ps, sparks_thermal
       float4 viewport_tc = float4(get_viewport_tc(pixel_pos.xy), pixel_pos.zw);
       half depthMask = dafx_get_hard_depth_mask(viewport_tc, gdata);
       float4 res = float4(color.rgb, color.a * borderAA * input.psize_dista_hdr_blend.y * depthMask);
-      if (res.a <= 0)
+      if (any(isnan(res)) || res.a <= 0) // TODO: find out why the color.rgb can be nan here
         discard;
 
 ##if shader == sparks_ps
@@ -117,9 +143,9 @@ shader sparks_ps, sparks_thermal
 ##endif
 ##if shader == sparks_thermal
       res.rgb *= res.a;
-      res.a = 1;
+      res.a = 0;
 ##endif
-      return res;
+      return encode_output(res);
     }
   }
 
@@ -129,29 +155,38 @@ shader sparks_ps, sparks_thermal
     #define PIX_BORDER_AA 6
     #define SUN_BACKLIGHT 0.2
 
-    VsOutput sparks_fx_vs(uint vertexId: SV_VertexID, uint instance_id: SV_InstanceID)
+    VsOutput sparks_fx_vs(uint vertexId: SV_VertexID, uint instance_id: SV_InstanceID, uint draw_call_id : TEXCOORD0)
     {
       GlobalData gparams = global_data_load();
 
       uint gid;
       uint data_ofs;
       uint parent_ofs;
-      dafx_gen_render_data(instance_id, gid, data_ofs, parent_ofs);
+      dafx_gen_render_data(instance_id, vertexId, draw_call_id, gid, data_ofs, parent_ofs);
 
       RenData p = unpack_ren_data( 0, data_ofs );
       ParentRenData ps = unpack_parent_ren_data( 0, parent_ofs );
 
-      float3 wpos = float3(
-        dot(float4(p.pos, 1), ps.fxTm[0]),
-        dot(float4(p.pos, 1), ps.fxTm[1]),
-        dot(float4(p.pos, 1), ps.fxTm[2]));
+#if SIM_MODULE_WIDTH_MODIFIER
+      p.width *= p.widthModifier;
+#endif
+
+      float3 wpos = p.pos;
+      if (ps.localSpaceFlag)
+      {
+        wpos = float3(
+          dot(float4(p.pos, 1), ps.tm[0]),
+          dot(float4(p.pos, 1), ps.tm[1]),
+          dot(float4(p.pos, 1), ps.tm[2]));
+
+        p.velocity = float3(
+          dot(float4(p.velocity, 0), ps.tm[0]),
+          dot(float4(p.velocity, 0), ps.tm[1]),
+          dot(float4(p.velocity, 0), ps.tm[2]));
+      }
+
       // offset for depth buffer collision
       wpos += float3(0, 1, 0) * p.width * 0.5;
-
-      p.velocity = float3(
-        dot(float4(p.velocity, 0), ps.fxTm[0]),
-        dot(float4(p.velocity, 0), ps.fxTm[1]),
-        dot(float4(p.velocity, 0), ps.fxTm[2]));
 
       uint vPosId = vertexId % 4;
       float2 vPos = float2(vPosId == 0 || vPosId == 1 ? -0.5 : 0.5, vPosId == 0 || vPosId == 3 ? -0.5 : 0.5);
@@ -166,7 +201,7 @@ shader sparks_ps, sparks_thermal
       float pixWorldSize = gparams.target_size_rcp.y * eyeDist * rcp(gparams.proj_hk);
       float pixBorderSize = pixWorldSize * PIX_BORDER_AA;
       float ySize = max(p.width, pixBorderSize);
-      float xSize = max(ySize, ps.motionScale * velLen * velDot);
+      float xSize = max(ySize, min(ps.motionScaleMax, ps.motionScale * velLen) * velDot);
       float3 worldPos = wpos + sideVec * vPos.x * xSize + upVec * vPos.y * ySize;
 
       float4 projPos = mul(float4(worldPos, 1.0), gparams.globtm);

@@ -1,11 +1,15 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <3d/dag_texMgr.h>
 #include <3d/dag_resPtr.h>
 #include <generic/dag_carray.h>
-#include <3d/dag_drv3dConsts.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_consts.h>
 #include <math/dag_Point3.h>
 #include <math/dag_TMatrix4.h>
-#include <3d/dag_tex3d.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_driver.h>
 #include <math/dag_TMatrix4D.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_shaders.h>
@@ -13,8 +17,7 @@
 #include <render/viewVecs.h>
 #include <render/bigLightsShadows.h>
 #include <render/set_reprojection.h>
-#include <3d/dag_drv3dCmd.h>
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_resetDevice.h>
 
 #define MAX_COUNT 4
 #define GLOBAL_VARS_LIST        \
@@ -32,7 +35,7 @@ static int big_light_posVarIds[MAX_COUNT] = {-1, -1, -1, -1};
 class BigLightsShadows
 {
 public:
-  TMatrix4 prevGlobTm;
+  TMatrix4 prevGlobTm = TMatrix4::IDENT, prevProjTm = TMatrix4::IDENT;
   Point4 prevViewVecLT;
   Point4 prevViewVecRT;
   Point4 prevViewVecLB;
@@ -82,7 +85,8 @@ void BigLightsShadows::init(int w_, int h_, unsigned int maxCnt_, const char *pr
 
   render_big_light_shadows.init("render_big_light_shadows");
   temporal_big_light_shadows.init("temporal_big_light_shadows");
-  prevGlobTm = TMatrix4(0);
+  prevGlobTm = TMatrix4::IDENT;
+  prevProjTm = TMatrix4::IDENT;
   prevViewVecLT = Point4(0, 0, 0, 0);
   prevViewVecRT = Point4(0, 0, 0, 0);
   prevViewVecLB = Point4(0, 0, 0, 0);
@@ -120,7 +124,8 @@ void BigLightsShadows::render(const DPoint3 *world_pos, const Point4 *pos_rad, u
   TMatrix4 projTm;
   d3d::gettm(TM_VIEW, viewTm);
   d3d::gettm(TM_PROJ, &projTm);
-  set_reprojection(viewTm, projTm, prevWorldPos, prevGlobTm, prevViewVecLT, prevViewVecRT, prevViewVecLB, prevViewVecRB, world_pos);
+  set_reprojection(viewTm, projTm, prevProjTm, prevWorldPos, prevGlobTm, prevViewVecLT, prevViewVecRT, prevViewVecLB, prevViewVecRB,
+    world_pos);
   if (cnt == 0)
   {
     d3d::set_render_target(targetTex[current].getTex2D(), 0);

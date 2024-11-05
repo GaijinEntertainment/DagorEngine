@@ -1,0 +1,24 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/deviceResetTelemetry ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/deviceResetTelemetry.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/dagorInclude
+;
+
+Sources =
+  deviceResetTelemetry.cpp
+;
+
+UseProgLibs +=
+  engine/lib3d
+  gameLibs/statsd
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

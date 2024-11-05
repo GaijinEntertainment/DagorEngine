@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -10,13 +9,17 @@
 extern "C"
 {
 #endif
+#if !defined(_M_ARM64)
   unsigned int __popcnt(unsigned int);
+#endif
   unsigned char _BitScanForward(unsigned long *_Index, unsigned long _Mask);
   unsigned char _BitScanReverse(unsigned long *_Index, unsigned long _Mask);
 #ifdef __cplusplus
 }
 #endif
+#if !defined(_M_ARM64)
 #pragma intrinsic(__popcnt)
+#endif
 #pragma intrinsic(_BitScanForward)
 #pragma intrinsic(_BitScanReverse)
 #endif
@@ -39,7 +42,7 @@ inline int __popcount(unsigned v) { return __builtin_popcount(v); }
 #else
 inline int __popcount(unsigned v)
 {
-#if defined(_MSC_VER) && _TARGET_64BIT
+#if defined(_MSC_VER) && _TARGET_64BIT && !defined(_M_ARM64)
   return __popcnt(v);
 #else // sw implementation
   v = v - ((v >> 1) & 0x55555555);                       // reuse input as temporary
@@ -50,9 +53,9 @@ inline int __popcount(unsigned v)
 #endif
 
 
-#if _TARGET_SIMD_SSE || defined(__GNUC__)
+#if _TARGET_SIMD_SSE || defined(__GNUC__) || (_TARGET_SIMD_NEON && defined(_MSC_VER))
 #define HAS_BIT_SCAN_FORWARD 1
-#if defined(__GNUC__)
+#if defined(__GNUC__) || defined(__clang__)
 
 inline unsigned __bsf(int v) { return v ? __builtin_ctz(v) : 32; }
 
@@ -61,7 +64,7 @@ inline unsigned __bsf_unsafe(int v) // undefined for 0
   return __builtin_ctz(v);
 }
 
-inline int __bit_scan_forward(unsigned int &index, unsigned int val)
+inline int __bit_scan_forward(unsigned long &index, unsigned int val)
 {
   if (!val)
     return 0;
@@ -76,7 +79,7 @@ inline unsigned __bsr_unsafe(int v) // undefined for 0
   return 31 - __builtin_clz(v);
 }
 
-inline int __bit_scan_reverse(unsigned int &index, unsigned int val)
+inline int __bit_scan_reverse(unsigned long &index, unsigned int val)
 {
   if (!val)
     return 0;

@@ -1,5 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "joy_classdrv.h"
-#include <humanInput/dag_hiCreate.h>
+#include <drv/hid/dag_hiCreate.h>
 #include <debug/dag_debug.h>
 using namespace HumanInput;
 

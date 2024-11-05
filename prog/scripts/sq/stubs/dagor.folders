@@ -1,0 +1,9 @@
+return {
+    get_exe_dir = @ () ""
+    get_game_dir = @ () ""
+    get_temp_dir = @ () ""
+    get_gamedata_dir = @ () ""
+    get_local_appdata_dir = @ () ""
+    get_common_appdata_dir = @ () ""
+    get_downloads_dir = @ () ""
+}

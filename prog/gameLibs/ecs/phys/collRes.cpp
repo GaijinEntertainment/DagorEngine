@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ecs/core/entityManager.h>
 #include <gameRes/dag_collisionResource.h>
 #include <gameRes/dag_gameResources.h>
@@ -7,30 +9,6 @@
 
 CollisionResource *get_collres_from_riextra(ecs::EntityManager &mgr, ecs::EntityId eid);
 CollisionResource *create_collres_from_ecs_object(ecs::EntityManager &mgr, ecs::EntityId eid);
-
-Point2 get_collres_slice_mean_and_dispersion(const CollisionResource &collres, float min_height, float max_height)
-{
-  float mean = 0, meanSq = 0, disp = 0;
-  size_t pointsSize = 0;
-  for (const CollisionNode *meshNode = collres.meshNodesHead; meshNode; meshNode = meshNode->nextNode)
-  {
-    for (unsigned int indexNo = 0; indexNo < meshNode->indices.size(); indexNo += 3)
-    {
-      float height = meshNode->vertices[meshNode->indices[indexNo]][1];
-      if (height < min_height || height > max_height)
-        continue;
-      ++pointsSize;
-      Point2 point = {meshNode->vertices[meshNode->indices[indexNo]][0], meshNode->vertices[meshNode->indices[indexNo]][2]};
-      float distSq = lengthSq(point);
-      mean += sqrtf(distSq);
-      meanSq += distSq;
-    }
-  }
-  mean = safediv(mean, pointsSize);
-  disp = safediv(meanSq, pointsSize) - mean * mean;
-
-  return Point2(mean, disp);
-}
 
 class CollResCTM final : public ecs::ComponentTypeManager
 {
@@ -51,15 +29,23 @@ public:
 
   void requestResources(const char *, const ecs::resource_request_cb_t &res_cb) override
   {
-    if (const ecs::string *res = res_cb.getNullable<ecs::string>(ECS_HASH("collres__res")))
-      res_cb(!res->empty() ? res->c_str() : "<missing_collres>", CollisionGameResClassId);
+    ecs::string emptyStr;
+    ecs::Object emptyObj;
+    if (auto &res = res_cb.getOr(ECS_HASH("collres__res"), emptyStr); !res.empty())
+      return res_cb(res.c_str(), CollisionGameResClassId);
+    else if (auto &desc = res_cb.getOr(ECS_HASH("collres__desc"), emptyObj); !desc.empty())
+      return;
+    res_cb("<missing_collres>", CollisionGameResClassId);
   }
 
   void create(void *d, ecs::EntityManager &mgr, ecs::EntityId eid, const ecs::ComponentsMap &, ecs::component_index_t) override
   {
     *(ecs::PtrComponentType<CollisionResource>::ptr_type(d)) = nullptr; // just in case
-    const char *collResName = mgr.getOr(eid, ECS_HASH("collres__res"), "");
-    GameResHandle crhandle = collResName[0] ? GAMERES_HANDLE_FROM_STRING(collResName) : nullptr;
+    const char *collResName = mgr.getOr(eid, ECS_HASH("collres__res"), ecs::nullstr);
+    GameResHandle crhandle = collResName ? GAMERES_HANDLE_FROM_STRING(collResName) : nullptr;
+    if (DAGOR_UNLIKELY(collResName && !is_game_resource_loaded(crhandle, CollisionGameResClassId)))
+      logerr("<%s> is expected to be loaded in %s while creating %d<%s>", collResName, __FUNCTION__, (ecs::entity_id_t)eid,
+        mgr.getEntityTemplateName(eid)); // Note: `requestResources` shall ensure that
     auto collRes = crhandle ? (CollisionResource *)get_game_resource_ex(crhandle, CollisionGameResClassId) : nullptr; // automatically
                                                                                                                       // add ref
     if (!collRes)

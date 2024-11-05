@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "mat_util.h"
 
 #include <obsolete/dag_cfg.h>

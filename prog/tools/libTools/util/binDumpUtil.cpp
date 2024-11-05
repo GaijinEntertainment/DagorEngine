@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/util/binDumpUtil.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_Point2.h>

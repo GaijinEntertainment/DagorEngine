@@ -3,10 +3,9 @@ include "psh_tangent.dshl"
 include "normaldetail.dshl"
 include "gbuffer.dshl"
 include "static_shadow.dshl"
-include "dagi_scene_common_write.dshl"
-include "dagi_scene_25d_common_write.dshl"
-include "dagi_volmap_common_25d.dshl"
 include "giHelpers/voxelize_gs.dshl"
+
+include "world_sdf_rasterize_sdf_common.dshl"
 
 macro SET_WORLD_VIEW_POS()
   (ps) { world_view_pos@f3 = world_view_pos; }
@@ -14,33 +13,26 @@ macro SET_WORLD_VIEW_POS()
 endmacro
 
 int scene_mode = 0;
-interval scene_mode: normal<1, voxelize<2, voxelize_albedo;
+interval scene_mode: normal<1, voxelize_albedo<2, voxelize_sdf;
 int voxelize_axis;
 
 shader sponza, simple_aces
 {
 
-
-
-  if (two_sided || scene_mode != normal)
-  //if (two_sided || scene_mode == voxelize)
+  if (two_sided)
   {
-    cull_mode = none;
+    (ps) { is_two_sided@i1 = (1,0,0,0); }
+  } else
+  {
+    (ps) { is_two_sided@i1 = (0,0,0,0); }
   }
   if (scene_mode != normal)
-  //if (two_sided || scene_mode == voxelize)
   {
     hlsl {
+      //#undef SUPPORT_LATE_INTERPOLATION
       #define VOXELIZE_CENTROID centroid
     }
-    (vs) {voxelize_axis@f1 = (voxelize_axis);}
-    if (two_sided)
-    {
-      (ps) { is_two_sided@f1 = (1,0,0,0); }
-    } else
-    {
-      (ps) { is_two_sided@f1 = (0,0,0,0); }
-    }
+    (vs) {voxelize_axis@i1 = (voxelize_axis);}
   } else
   {
     hlsl {
@@ -62,26 +54,20 @@ shader sponza, simple_aces
     z_write = false;
     z_test = false;
   }
-
-  if (scene_mode == voxelize)
+  if (scene_mode == voxelize_sdf)
   {
-    INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(ps)
-    SAMPLE_INIT_VOLMAP_25D(ps)
-    SAMPLE_VOLMAP_25D(ps)
-    INIT_STATIC_SHADOW()
-    USE_STATIC_SHADOW()
-    (ps) {
-      from_sun_direction@f3 = from_sun_direction;
-      sun_color_0@f3 = sun_color_0;
+    if (supports_sh_6_1 == on)
+    {
+      hlsl {
+        #define RASTERIZE_PRIMS 1
+        #define SUPPORT_LATE_INTERPOLATION 1
+      }
     }
-    SSGE_SCENE_COMMON_INIT_WRITE_PS()
-    SSGE_SCENE_COMMON_WRITE_PS()
   }
+
   if (scene_mode == voxelize_albedo)
   {
-    INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(ps)
-    SSGE_SCENE_25D_COMMON_INIT_WRITE_PS()
-    SSGE_SCENE_25D_COMMON_WRITE_PS()
+    DAGI_ALBEDO_WRITE(ps)
   }
 
   //blend_src = one; blend_dst = zero;
@@ -93,16 +79,29 @@ shader sponza, simple_aces
     {
       VS_OUT_POSITION(pos)
       float2 diffuseTexcoord              : TEXCOORD0;
-      VOXELIZE_CENTROID float3 pointToEye          : TEXCOORD2;
       float3 normal                       : TEXCOORD5;
+      ##if (scene_mode != normal)
+      nointerpolation int axis:TEXCOORD1;
+      VOXELIZE_CENTROID float3 worldPos            : TEXCOORD2;
+      #if RASTERIZE_PRIMS
+      nointerpolation float3 vertexWorldPos: TEXCOORD3;
+      #endif
+      ##else
+      VOXELIZE_CENTROID float3 pointToEye          : TEXCOORD2;
+      ##endif
     };
+  }
+
+  if (scene_mode == voxelize_sdf)
+  {
+    INIT_RASTERIZE_SDF()
+    PROJECT_WORLD_SDF_RASTERIZE(ps)
   }
 
   if (scene_mode != normal)
   {
     TO_VOXELIZE_SPACE(vs)
-    //INIT_VOXELIZE_GS()
-    //VOXELIZE_GS(0, 1)
+    USE_VOXELIZE_SPACE(vs)
   }
 
   (ps) { diffuse_tex@static = tex; }
@@ -138,7 +137,7 @@ shader sponza, simple_aces
   //fsh_const[3] = (atest / 255.0, 0, 0, 0);
 
   hlsl(ps) {
-    ##if scene_mode == voxelize
+    ##if scene_mode == voxelize_sdf
       void main_ps_simple_aces(VsOutput input INPUT_VFACE)
       {
         float2 texCoord = input.diffuseTexcoord;
@@ -153,26 +152,21 @@ shader sponza, simple_aces
             clip_alpha(diffuseColor.a);
           ##endif
         ##endif
+        WorldSDFInterpolant sdfI = (WorldSDFInterpolant)0;
+        sdfI.worldPos = input.worldPos;
+        sdfI.axis = input.axis;
+        #if RASTERIZE_PRIMS
+        sdfI.va = GetAttributeAtVertex(input.vertexWorldPos, 0);
+        sdfI.vc = GetAttributeAtVertex(input.vertexWorldPos, 1);
+        sdfI.vb = GetAttributeAtVertex(input.vertexWorldPos, 2);
+        #else
+        SET_IF_IS_BACK_FACE(sdfI.isBackFace, true);
+        #endif
+        sdfI.isTwoSided = get_is_two_sided();//false
 
-
+        write_world_sdf(sdfI);
         half3 worldNormal = normalize(input.normal);
-        worldNormal = get_is_two_sided() ? MUL_VFACE(worldNormal) : worldNormal;
-
-        float3 worldPos = world_view_pos - input.pointToEye;
-        float3 lightDir = -from_sun_direction;
-        half3 lightColor = sun_color_0;
-
-        float shadow = getStaticShadow(worldPos);
-        //float3 voxelCenterWP = floor(worldPos/VOXEL_SIZE)*VOXEL_SIZE + 0.5*VOXEL_SIZE.xzy;
-        float3 voxelCenterWP = worldPos;
-        shadow += getStaticShadow(voxelCenterWP);shadow *= 0.5;
-
-        //diffuseColor.rgb = 0.15;
-        half3 ambient = 0.01;
-        float ambinet25dAmount = sample_25d_volmap(worldPos, worldNormal, ambient);
-        half3 litColor = diffuseColor.rgb*(lightColor*(saturate(dot(lightDir, worldNormal))*shadow + ambient));
-        //half3 litColor = diffuseColor.rgb*lightColor*getStaticShadow(float4(worldPos,1));
-        writeSceneVoxelDataSafe(worldPos, litColor.rgb, 1);
+        project_world_sdf_rasterize_albedo(sdfI, worldNormal, true, diffuseColor.xyz);
       }
     ##elif scene_mode == voxelize_albedo
       void main_ps_simple_aces(VsOutput input)
@@ -190,12 +184,11 @@ shader sponza, simple_aces
           ##endif
         ##endif
 
-        float3 worldPos = world_view_pos - input.pointToEye;
-        writeScene25dVoxelDataSafe(worldPos, diffuseColor.rgb, 0, 0);
-
+        float3 worldPos = input.worldPos;
+        dagi_write_updated_albedo_legacy(worldPos, diffuseColor.rgb, 0.5);
       }
     ##elif scene_mode == normal
-      GBUFFER_OUTPUT main_ps_simple_aces(VsOutput input INPUT_VFACE)
+      GBUFFER_OUTPUT main_ps_simple_aces(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
       {
         float3 worldPos = world_view_pos - input.pointToEye;
         float2 texCoord = input.diffuseTexcoord;
@@ -240,9 +233,8 @@ shader sponza, simple_aces
 
         UnpackedGbuffer gbuffer;
         init_gbuffer(gbuffer);
-        ##if (two_sided)
-        worldNormal = MUL_VFACE(worldNormal);
-        ##endif
+        if (get_is_two_sided())
+          worldNormal = MUL_VFACE(worldNormal);
         //float3 worldPos = world_view_pos-input.pointToEye;
         //diffuseColor.rgb = frac(worldPos.xzz*0.1+0.01);
         init_albedo(gbuffer, diffuseColor.rgb);
@@ -258,11 +250,17 @@ shader sponza, simple_aces
         init_ao(gbuffer, ao);
         init_shadow(gbuffer, shadow);
 
-        return encode_gbuffer(gbuffer, input.pointToEye);
+        return encode_gbuffer(gbuffer, input.pointToEye, input.pointToEye);
       }
     ##endif
   }
-  compile("target_ps", "main_ps_simple_aces");
+  if (scene_mode == voxelize_sdf && supports_sh_6_1 == on)
+  {
+    compile("ps_6_1", "main_ps_simple_aces");
+  } else
+  {
+    compile("target_ps", "main_ps_simple_aces");
+  }
 
 
   channel float3 pos=pos;
@@ -309,30 +307,19 @@ shader sponza, simple_aces
 ##endif
       ##if scene_mode == normal
       output.pos = mul(float4(input.pos,1), globtm);
+      output.pointToEye = world_view_pos.xyz - worldPos.xyz;
       ##else
       //float3 boxPos = (((worldPos-voxelize_box0)*voxelize_box1)*2-1)*voxelize_aspect_ratio;
-      float3 boxPos = worldPos*voxelize_world_to_rasterize_space_mul + voxelize_world_to_rasterize_space_add;
-      int angle = voxelize_axis;
-      //const float yScale = (1./(floor(float(VOXEL_RESOLUTION_X)/VOXEL_RESOLUTION_Y)));//since it's y resolution is 2x smaller
-      //since we rasterize to quad it is always of a bigger size (i.e. 128x128)
-      //so when we put worldY axis to x - we can safely scale it
-      //unfortunately that results in incorrect clipping in rasterizing (basically in Y axis we will rasterize more pixels) but
-      //* they will be discarded during actual write, so it is safe
-      //* y-axis is less populated
-      // ~saves us 30% on GPU (2 renders are twice faster)
+      output.pos = worldPosToVoxelSpace(worldPos, voxelize_axis);
 
-      //boxPos.y *= yScale;
-      output.pos.xyz = boxPos.yzx;
-      if (angle == 1)
-        output.pos.xyz = boxPos.xyz;
-      if (angle == 2)
-        output.pos.xyz = boxPos.xzy;
-      //output.pos.z = output.pos.z*0.5+0.5;output.pos.w = 1;
-      output.pos.zw = float2(0.5,1);
+      #if RASTERIZE_PRIMS
+      output.vertexWorldPos = worldPos;
+      #endif
+      output.axis = voxelize_axis;
+      output.worldPos = worldPos.xyz;
       ##endif
 
       output.diffuseTexcoord.xy = input.diffuseTexcoord;
-      output.pointToEye = world_view_pos.xyz - worldPos.xyz;
 
       output.normal = worldNormal;
       return output;
@@ -344,7 +331,6 @@ shader sponza, simple_aces
 
 shader gi_black
 {
-
 
   cull_mode = none;
   SET_WORLD_VIEW_POS()
@@ -359,16 +345,15 @@ shader gi_black
     z_test = false;
   }
 
-  if (scene_mode == voxelize)
+  if (scene_mode == voxelize_sdf)
   {
-    SSGE_SCENE_COMMON_INIT_WRITE_PS()
-    SSGE_SCENE_COMMON_WRITE_PS()
-  }
-  if (scene_mode == voxelize_albedo)
+    hlsl(ps) {
+      RWTexture3D<float> world_sdf_clipmap : register(u0);
+    }
+    (vs) {voxelize_axis@i1 = (voxelize_axis);}
+  } else if (scene_mode == voxelize_albedo)
   {
-    INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(ps)
-    SSGE_SCENE_25D_COMMON_INIT_WRITE_PS()
-    SSGE_SCENE_25D_COMMON_WRITE_PS()
+    DAGI_ALBEDO_WRITE(ps)
   }
 
 
@@ -381,16 +366,26 @@ shader gi_black
     {
       VS_OUT_POSITION(pos)
       float3 worldPos                   : TEXCOORD2;
+      ##if scene_mode == voxelize_sdf
+      nointerpolation int axis:TEXCOORD1;
+      ##endif
     };
+  }
+  if (scene_mode == voxelize_sdf)
+  {
+    INIT_RASTERIZE_SDF()
   }
 
   hlsl(ps) {
     void main_ps_simple_aces(VsOutput input)
     {
-      ##if scene_mode == voxelize_albedo
-      writeScene25dVoxelDataSafe(input.worldPos,0,0,0);
-      ##else
-      writeSceneVoxelDataSafe(input.worldPos,0,1);
+      ##if scene_mode == voxelize_sdf
+        WorldSDFInterpolant sdfI;
+        sdfI.worldPos = input.worldPos;
+        sdfI.axis = input.axis;
+      write_world_sdf(sdfI);
+      ##elif scene_mode == voxelize_albedo
+      dagi_write_updated_albedo(input.worldPos, 0);
       ##endif
       //half3 litColor = diffuseColor.rgb*lightColor*getStaticShadow(float4(worldPos,1));
     }
@@ -432,6 +427,9 @@ shader gi_black
       output.pos = mul(input.pos, globtm);
 
       output.worldPos = worldPos.xyz;
+      ##if scene_mode == voxelize_sdf
+      output.axis = voxelize_axis;
+      ##endif
 
       return output;
     }

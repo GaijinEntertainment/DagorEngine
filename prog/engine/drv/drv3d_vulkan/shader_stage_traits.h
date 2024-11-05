@@ -1,4 +1,14 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+#include "vulkan_api.h"
+
+// NOTE: compiled_meta_data includes vulkan.h directly, which is wrong,
+// we should always go through our vlukan_api.h wrapper to get consistent
+// preprocessor state
+#include <drv/shadersMetaData/spirv/compiled_meta_data.h>
+
+#include "drvCommonConsts.h"
 
 namespace drv3d_vulkan
 {
@@ -18,7 +28,7 @@ struct ShaderStageTraits<VK_SHADER_STAGE_COMPUTE_BIT>
 template <>
 struct ShaderStageTraits<VK_SHADER_STAGE_VERTEX_BIT>
 {
-  static const uint32_t min_register_count = MAX_VS_CONSTS_BONES;
+  static const uint32_t min_register_count = DEF_VS_CONSTS;
   static const uint32_t max_register_count = 4096;
   static const uint32_t register_index = spirv::graphics::vertex::REGISTERS_SET_INDEX;
   static const VkPipelineBindPoint pipeline_bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS;

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "basetexture.h"
 
 
@@ -66,16 +68,23 @@ int BaseTextureImpl::getinfo(TextureInfo &ti, int level) const
   return 1;
 }
 
-uint32_t auto_mip_levels_count(uint32_t w, uint32_t h, uint32_t min_size)
+uint32_t auto_mip_levels_count(uint32_t w, uint32_t min_size)
 {
   uint32_t lev = 1;
-  uint32_t minExtend = min(w, h);
+  uint32_t minExtend = w;
   while (minExtend > min_size)
   {
     lev++;
     minExtend >>= 1;
   }
   return lev;
+}
+
+uint32_t auto_mip_levels_count(uint32_t w, uint32_t h, uint32_t min_size) { return auto_mip_levels_count(min(w, h), min_size); }
+
+uint32_t auto_mip_levels_count(uint32_t w, uint32_t h, uint32_t d, uint32_t min_size)
+{
+  return auto_mip_levels_count(min(min(w, h), d), min_size);
 }
 
 int count_mips_if_needed(int w, int h, int32_t flg, int levels)

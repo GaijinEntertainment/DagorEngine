@@ -21,5 +21,6 @@ UseProgLibs +=
   engine/heightMapLand
   gameLibs/frustumCulling
 ;
+if $(BuildingTools) = yes { Target = $(Target:S=~t.lib) ; CPPopt = -D_TARGET_PC_TOOLS_BUILD ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

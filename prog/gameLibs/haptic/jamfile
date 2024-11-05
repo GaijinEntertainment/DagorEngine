@@ -6,6 +6,7 @@ Target      = gameLibs/haptic.lib ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/gameLibs/publicInclude/haptic
 ;
 

@@ -1,3 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 #include <stdint.h>
 #include <osApiWrappers/dag_atomic.h>
 #include "daProfilerDefines.h"
@@ -16,7 +19,7 @@ static constexpr uint32_t default_mode = 0; // off in all slow modes
 #elif !_TARGET_STATIC_LIB
 static constexpr uint32_t default_mode = 0;
 #elif DAPROFILER_DEBUGLEVEL == 1 && _TARGET_PC_WIN
-static constexpr uint32_t default_mode = EVENTS | SAMPLING | TAGS | SAVE_SPIKES;
+static constexpr uint32_t default_mode = UNIQUE_EVENTS | EVENTS | SAMPLING | TAGS | SAVE_SPIKES;
 #elif DAPROFILER_DEBUGLEVEL == 1
 static constexpr uint32_t default_mode = SAMPLING | TAGS | SAVE_SPIKES; // globally is off on non-PC by default. Unlike PC everyone
                                                                         // else can not /should not save files, so there is no

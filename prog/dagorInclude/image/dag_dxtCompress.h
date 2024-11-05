@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -32,7 +31,7 @@ enum
 };
 
 /// Compresses image into provided pointer.
-void ManualDXT(int mode, TexPixel32 *pImage, int width, int height, int dxt_pitch, char *pCompressed,
+void ManualDXT(int mode, const TexPixel32 *pImage, int width, int height, int dxt_pitch, char *pCompressed,
   int algorithm = DXT_ALGORITHM_QUICK);
 
 /// Compresses image.
@@ -40,7 +39,8 @@ void ManualDXT(int mode, TexPixel32 *pImage, int width, int height, int dxt_pitc
 void *CompressDXT(int mode, TexPixel32 *image, int stride_bytes, int width, int height, int levels, int *len,
   int algorithm = DXT_ALGORITHM_PRECISE, int zlib_lev = 0);
 
-void CompressBC4(unsigned char *image, int width, int height, int dxt_pitch, char *pCompressed, int row_stride, int pixel_stride);
+void CompressBC4(const unsigned char *image, int width, int height, int dxt_pitch, char *pCompressed, int row_stride,
+  int pixel_stride);
 void CompressBC5(unsigned char *image, int width, int height, int dxt_pitch, char *pCompressed, int pixel_stride, int pixel_offset);
 
 void decompress_dxt(unsigned char *decompressedData, int lw, int lh, int row_pitch, unsigned char *src_data, bool is_dxt1);

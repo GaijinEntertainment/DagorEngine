@@ -36,9 +36,9 @@ UseProgLibs =
   3rdPartyLibs/eastl
 ;
 
-BundleCopyMasks += @$(_DEVTOOL)/astcenc-4.6.1/$(Platform) ../.. astcenc* ;
+BundleCopyMasks += @$(_DEVTOOL)/astcenc-4.6.1/$(LegacyPlatformSuffix) ../.. astcenc* ;
 
-if $(Platform) = linux64 && $(LinuxArch) = e2k {
+if $(PlatformArch) = e2k {
   CPPopt += -DTEX_CANNOT_USE_ISPC ;
 } else {
   AddIncludes += $(Root)/prog/3rdPartyLibs/convert/ispc_texcomp ;

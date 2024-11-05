@@ -1,3 +1,4 @@
+// DEP_DOMAIN skyquake/prog
 outDir:t=".storage"
 indexFile:t="downloadable_decals.blk"
 type:t="decal"

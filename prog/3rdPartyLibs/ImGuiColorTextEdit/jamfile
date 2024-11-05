@@ -1,0 +1,27 @@
+Root ?= ../../.. ;
+Location = prog/3rdPartyLibs/ImGuiColorTextEdit ;
+
+TargetType = lib ;
+Target  = 3rdPartyLibs/ImGuiColorTextEdit.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/$(Location)
+  $(Root)/prog/3rdPartyLibs/imgui
+  $(Root)/prog/3rdPartyLibs/eastl/include
+;
+
+Sources =
+  FileTextEdit.cpp
+  FontManager.cpp
+  ImGuiDebugPanel.cpp
+  LanguageDefinitions.cpp
+  TextEditor.cpp
+;
+
+UseProgLibs +=
+  3rdPartyLibs/imgui
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

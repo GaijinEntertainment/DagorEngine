@@ -1,8 +1,15 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <perfMon/dag_cpuFreq.h>
 #include <debug/dag_log.h>
 #include <util/dag_stdint.h>
 #include <perfMon/dag_perfTimer.h>
 #include <osApiWrappers/dag_miscApi.h>
+
+#define USE_NEON_TICKS_SCALE (_TARGET_SIMD_NEON && !(_TARGET_PC_WIN | _TARGET_C3))
+#if USE_NEON_TICKS_SCALE
+uint32_t profiler_ticks_scale = 1;
+#endif
 
 #if NATIVE_PROFILE_TICKS
 
@@ -36,6 +43,9 @@ static bool verify_profile_timer()
 
     uint64_t fq;
     asm volatile("mrs %0, cntfrq_el0" : "=r"(fq));
+#if USE_NEON_TICKS_SCALE
+    fq *= profiler_ticks_scale;
+#endif
 
     uint64_t dt = now - profileRef;
     uint64_t dtUs = profile_usec_from_ticks_delta(dt);
@@ -59,6 +69,34 @@ static bool verify_profile_timer()
 
 #endif
 
+void adjust_freq_for_precise_ticks_to_us()
+{
+#if USE_NEON_TICKS_SCALE
+  // some devices have freq that does not convert to us as int multiplier (1.92Mhz for ex.)
+  // find that case and adjust scale to avoid precision issues
+  uint32_t ticksToUsU;
+  float ticksToUsF;
+  float precDlt;
+
+  auto recalc = [&]() {
+    ticksToUsU = profiler_ticks_frequency / 1000000;
+    ticksToUsF = profiler_ticks_frequency / 1000000.0f;
+    precDlt = ticksToUsF - ticksToUsU;
+    if (precDlt > 0.01)
+      logwarn("profile timer ticks to us non precise should be %f instead of %u (%f dlt)", ticksToUsF, ticksToUsU, precDlt);
+    return precDlt > 0.01;
+  };
+
+  // iterate with scale limited with something reasonable
+  while (recalc() && (profiler_ticks_scale < 1000))
+  {
+    profiler_ticks_scale *= 10;
+    profiler_ticks_frequency *= 10;
+  }
+#endif
+  profiler_ticks_to_us = profiler_ticks_frequency / 1000000; // from 1Mhz to 50Mhz. M1 has 24 Mhz
+}
+
 void init_profile_timer()
 {
   static bool inited = false;
@@ -78,7 +116,7 @@ void init_profile_timer()
 #elif _TARGET_SIMD_NEON
   {
     asm volatile("mrs %0, cntfrq_el0" : "=r"(profiler_ticks_frequency));
-    profiler_ticks_to_us = profiler_ticks_frequency / 1000000; // from 1Mhz to 50Mhz. M1 has 24 Mhz
+    adjust_freq_for_precise_ticks_to_us();
     if (profiler_ticks_to_us && verify_profile_timer())
       return;
     else
@@ -90,6 +128,10 @@ void init_profile_timer()
 
 static void measure_profile_timer()
 {
+#if USE_NEON_TICKS_SCALE
+  // reset scale if any was generated, to recalculate it with new results more precisely
+  profiler_ticks_scale = 1;
+#endif
   measure_cpu_freq();
   const int64_t reft = ref_time_ticks();
   const uint64_t profileRef = profile_ref_ticks();
@@ -100,6 +142,7 @@ static void measure_profile_timer()
   const double profFreq = double(int64_t(nowt) - int64_t(profileRef)) / ref_time_passed_seconds;
   profiler_ticks_frequency = uint64_t(profFreq);
   profiler_ticks_to_us = uint32_t(profFreq / 1000000.0);
+  adjust_freq_for_precise_ticks_to_us();
   if (profiler_ticks_to_us < 1)
     profiler_ticks_to_us = 1;
   if (profiler_ticks_frequency < 1)

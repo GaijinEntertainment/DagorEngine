@@ -1,0 +1,544 @@
+
+hlsl{
+  #include <tsr_inc.hlsli>
+}
+
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "reprojected_motion_vectors.dshl"
+include "taa_inc.dshl"
+include "tonemapHelpers/lottesSCurve.dshl"
+
+include "tsr.inc.dshl"
+include "tsr_game.dshl"
+
+macro TSR_INCLUDES(code)
+
+  INIT_ZNZFAR_STAGE(code)
+
+  INIT_READ_DEPTH_GBUFFER_BASE(code)
+  USE_READ_DEPTH_GBUFFER_BASE(code)
+
+  INIT_READ_MOTION_BUFFER_BASE(code)
+  USE_READ_MOTION_BUFFER_BASE(code)
+
+  local float4 tsr_input_color_dimensions = get_dimensions(tsr_input_color, 0);
+  (code)
+  {
+    inputColorTex@smp2d = tsr_input_color;
+    inputColorDimensions@f4 = (tsr_input_color_dimensions.xy, 1.0 / tsr_input_color_dimensions.xy);
+
+    historyColorTex@smp2d = tsr_history_color;
+    historyConfidenceTex@smp2d = tsr_history_confidence;
+    jitterOffset@f2 = (tsr_jitter_offset.x, tsr_jitter_offset.y, 0, 0);
+    outputResolution@f4 = (tsr_output_resolution.x, tsr_output_resolution.y, 1/tsr_output_resolution.x, 1/tsr_output_resolution.y);
+
+    uv_transform@f4 = tsr_uv_transform;
+
+    tsrParams@f4 = (tsr_should_restart, tsr_debug_update_override, 1.0/tsr_input_sampling_sigma, tsr_sharpening);
+    tsrParams2@f4 = (1.0/tsr_resampling_loss_sigma, 1.0/tsr_depth_overhang_sigma, tsr_process_loss, 0);
+    tsrParams3@f4 = (tsr_scale_base, tsr_scale_motion_steepness, tsr_scale_motion_max, tonemapMidOut/tonemapMidIn);
+  }
+
+  if (tsr_vrs_mask != NULL)
+  {
+    local float4 tsr_vrs_mask_dimensions = get_dimensions(tsr_vrs_mask, 0);
+    (code)
+    {
+      vrsMask@tex2d = tsr_vrs_mask;
+      vrsMaskDimensions@f4 = (tsr_vrs_mask_dimensions.xy, 1.0 / tsr_vrs_mask_dimensions.xy);
+    }
+  }
+
+  if (tsr_is_upsampling == yes || tsr_vrs_mask != NULL)
+  {
+    (code)
+    {
+      inputResolution@f4 = (tsr_input_resolution.x, tsr_input_resolution.y, 1/tsr_input_resolution.x, 1/tsr_input_resolution.y);
+      upsamplingRatio@f2 = (tsr_output_resolution.x/tsr_input_resolution.x, tsr_output_resolution.y/tsr_input_resolution.y, 0, 0);
+      upsamplingRatioInv@f2 = (tsr_input_resolution.x/tsr_output_resolution.x, tsr_input_resolution.y/tsr_output_resolution.y, 0, 0);
+    }
+  }
+  else
+  {
+    (code)
+    {
+      inputResamplingFilter0@f4 = tsr_input_resampling_filter_0;
+      inputResamplingFilter1@f4 = tsr_input_resampling_filter_1;
+      inputResamplingFilter2@f2 = tsr_input_resampling_filter_2;
+    }
+    hlsl(code)
+    {
+      #define inputResolution outputResolution
+      #define upsamplingRatio 1
+      #define upsamplingRatioInv 1
+    }
+  }
+
+  TSR_GAME(cs)
+
+  hlsl(code)
+  {
+    #include <pixelPacking/yCoCgSpace.hlsl>
+    #include <tex2d_bicubic.hlsl>
+
+    static const float EPS = 1e-9;
+
+    static const int2 reconstructionTexelOffsetsInt[] =
+    {
+      int2( 0,  0),
+      int2(-1,  0),
+      int2( 0, -1),
+      int2( 1,  0),
+      int2( 0,  1),
+      int2(-1, -1),
+      int2( 1, -1),
+      int2(-1,  1),
+      int2( 1,  1)
+    };
+
+##if tsr_is_upsampling == no && tsr_vrs_mask == NULL
+    struct FilterParams
+    {
+      float coeffs[9];
+      float confidence;
+    };
+    static const FilterParams inputResamplingFilter =
+    {
+      {
+        inputResamplingFilter0.x,
+        inputResamplingFilter0.y,
+        inputResamplingFilter0.z,
+        inputResamplingFilter0.w,
+        inputResamplingFilter1.x,
+        inputResamplingFilter1.y,
+        inputResamplingFilter1.z,
+        inputResamplingFilter1.w,
+        inputResamplingFilter2.x
+      },
+      inputResamplingFilter2.y
+    };
+##endif
+
+    #ifndef USE_CACHE_OPTIMIZATIONS
+    #define USE_CACHE_OPTIMIZATIONS 0
+    #endif
+
+    #ifndef DEBUG_SHOW_OUT_OF_BOUNDS
+    #define DEBUG_SHOW_OUT_OF_BOUNDS 0
+    #endif
+
+
+    float gaussianKernel(float2 delta, float2 inv_sigma)
+    {
+      float2 exponentTerm = delta * inv_sigma;
+      return exp(-0.5 * dot(exponentTerm, exponentTerm));
+    }
+
+
+    float3 tonemap(float3 color, float exposure)
+    {
+      color *= exposure;
+      return color * rcp(abs(color.x) + 1);
+    }
+    float4 tonemap(float4 color, float exposure) { return float4(tonemap(color.rgb, exposure), color.a); }
+
+    float3 tonemap_inv(float3 color, float exposure)
+    {
+      return color * rcp(max(EPS, 1 - abs(color.x))) * rcp(exposure);
+    }
+    float4 tonemap_inv(float4 color, float exposure) { return float4(tonemap_inv(color.rgb, exposure), color.a); }
+
+
+#if USE_CACHE_OPTIMIZATIONS
+    #define BORDERED_RESULT_WARP_SIZE (TSR_CS_WORKGROUP_SIZE+2)
+
+    groupshared float3 tonemappedInputColorCache[BORDERED_RESULT_WARP_SIZE*BORDERED_RESULT_WARP_SIZE];
+
+    #define get_flat_bordered_index(pos) ((pos).y*BORDERED_RESULT_WARP_SIZE+(pos).x)
+
+    static const int reconstructionTexelFlatOffsets[] =
+    {
+      get_flat_bordered_index(reconstructionTexelOffsetsInt[0]),
+      get_flat_bordered_index(reconstructionTexelOffsetsInt[1]),
+      get_flat_bordered_index(reconstructionTexelOffsetsInt[2]),
+      get_flat_bordered_index(reconstructionTexelOffsetsInt[3]),
+      get_flat_bordered_index(reconstructionTexelOffsetsInt[4]),
+      get_flat_bordered_index(reconstructionTexelOffsetsInt[5]),
+      get_flat_bordered_index(reconstructionTexelOffsetsInt[6]),
+      get_flat_bordered_index(reconstructionTexelOffsetsInt[7]),
+      get_flat_bordered_index(reconstructionTexelOffsetsInt[8]),
+    };
+
+    struct CacheParams
+    {
+      float2 prefetchScreenTc;
+      bool prefetchIsValid;
+      uint prefetchIndexBase;
+      int flatCacheIndexOffset;
+    };
+
+    CacheParams calcCacheParams(uint2 thread_id, float2 global_offset, float2 input_texel_coord)
+    {
+      CacheParams cacheParams = (CacheParams)0;
+
+      // with high upsampling not all of these are actually valid, but calculating the correct last valid thread (or tc) is slower
+      cacheParams.prefetchIsValid = all(thread_id < (TSR_CS_WORKGROUP_SIZE/2+1));
+
+      int2 borderedThreadId = (int2)(input_texel_coord - global_offset);
+  #if DEBUG_SHOW_OUT_OF_BOUNDS
+      if (any(borderedThreadId < 1 || borderedThreadId >= (BORDERED_RESULT_WARP_SIZE - 1)))
+        borderedThreadId = BORDERED_RESULT_WARP_SIZE; // just out of bounds, great for testing if index is valid
+  #endif
+      cacheParams.flatCacheIndexOffset = get_flat_bordered_index(borderedThreadId);
+
+      FLATTEN if (cacheParams.prefetchIsValid)
+      {
+        uint2 offset = thread_id * 2;
+        cacheParams.prefetchIndexBase = get_flat_bordered_index(offset);
+        cacheParams.prefetchScreenTc = (global_offset + (float2)offset + 0.5)*inputResolution.zw;
+      }
+      else
+      {
+        // for cache coherence
+        cacheParams.prefetchScreenTc = (global_offset + (float2)0 + 0.5)*inputResolution.zw;
+      }
+      cacheParams.prefetchScreenTc = cacheParams.prefetchScreenTc * uv_transform.xy + uv_transform.zw;
+      return cacheParams;
+    }
+
+    void prefetchCacheColor(inout CacheParams cache_params, float2 input_texel_coord)
+    {
+      // no branch for texture fetch as it makes it actually slower
+      float4 colorR = inputColorTex.GatherRed(inputColorTex_samplerstate, cache_params.prefetchScreenTc);
+      float4 colorG = inputColorTex.GatherGreen(inputColorTex_samplerstate, cache_params.prefetchScreenTc);
+      float4 colorB = inputColorTex.GatherBlue(inputColorTex_samplerstate, cache_params.prefetchScreenTc);
+
+      float4 Y, Co, Cg;
+      PackToYCoCg(colorR, colorG, colorB, Y, Co, Cg);
+
+      BRANCH if (cache_params.prefetchIsValid)
+      {
+        uint4 prefetchIndex4 = cache_params.prefetchIndexBase + uint4(
+          get_flat_bordered_index(uint2(0, 1)),
+          get_flat_bordered_index(uint2(1, 1)),
+          get_flat_bordered_index(uint2(1, 0)),
+          get_flat_bordered_index(uint2(0, 0))
+        );
+        tonemappedInputColorCache[prefetchIndex4.x] = tonemap(float3(Y.x, Co.x, Cg.x), tsrParams3.w);
+        tonemappedInputColorCache[prefetchIndex4.y] = tonemap(float3(Y.y, Co.y, Cg.y), tsrParams3.w);
+        tonemappedInputColorCache[prefetchIndex4.z] = tonemap(float3(Y.z, Co.z, Cg.z), tsrParams3.w);
+        tonemappedInputColorCache[prefetchIndex4.w] = tonemap(float3(Y.w, Co.w, Cg.w), tsrParams3.w);
+      }
+    }
+#endif
+
+
+#if USE_CACHE_OPTIMIZATIONS
+    float3 reconstructInput(in const CacheParams cache_params, float2 sigma_inv, out float confidence, out float3 mean, out float3 variance)
+#else
+    float3 reconstructInput(float2 input_texel_coord, float2 sigma_inv, out float confidence, out float3 mean, out float3 variance)
+#endif
+    {
+##if tsr_is_upsampling == yes || tsr_vrs_mask != NULL
+      float sumWeights = EPS;
+##endif
+      float3 result = 0;
+      float3 firstMoment = 0;
+      float3 secondMoment = 0;
+
+  #if !USE_CACHE_OPTIMIZATIONS
+      float2 texelCenter = floor(input_texel_coord) + 0.5;
+      float2 texelCoordDiffMul = (input_texel_coord - texelCenter) * upsamplingRatio;
+      float2 texelCenterMul = texelCenter * inputResolution.zw;
+  #endif
+      UNROLL
+      for(uint i = 0; i < 9; i++)
+      {
+#if !USE_CACHE_OPTIMIZATIONS
+        float2 tapUV = reconstructionTexelOffsetsInt[i] * inputResolution.zw + texelCenterMul;
+        tapUV = tapUV * uv_transform.xy + uv_transform.zw;
+#endif
+
+##if tsr_is_upsampling == yes || tsr_vrs_mask != NULL
+        float2 deltaOnDisplay = (-(float2)reconstructionTexelOffsetsInt[i]) * upsamplingRatio + texelCoordDiffMul;
+  ##if tsr_vrs_mask != NULL
+        static const float centers[] = {0.f, 0.5f, 1.5f}; // tile centers by log(tileSize) without .5 offset
+        uint vrsMaskValue = asuint(texelFetch(vrsMask, tapUV * vrsMaskDimensions.xy, 0).x);
+        uint2 logTileSize = uint2((vrsMaskValue>>2)&3, vrsMaskValue&3);
+        float2 center = float2(centers[logTileSize.x], centers[logTileSize.y]);
+        uint2 transformedInputCoord = floor(tapUV * inputColorDimensions.xy);
+        uint2 tileSize = uint2(1,1) << logTileSize;
+        deltaOnDisplay += float2(transformedInputCoord & (tileSize - 1)) - center;
+        float weight = gaussianKernel(deltaOnDisplay, sigma_inv * rcp(tileSize));
+  ##else
+        float weight = gaussianKernel(deltaOnDisplay, sigma_inv);
+  ##endif
+##else
+        float weight = inputResamplingFilter.coeffs[i];
+##endif
+#if USE_CACHE_OPTIMIZATIONS
+        float3 color = tonemappedInputColorCache[cache_params.flatCacheIndexOffset + reconstructionTexelFlatOffsets[i]];
+#else
+        float3 color = tonemap(PackToYCoCg(tex2Dlod(inputColorTex, float4(tapUV, 0, 0)).rgb), tsrParams3.w);
+#endif
+##if tsr_is_upsampling == yes || tsr_vrs_mask != NULL
+        sumWeights += weight;
+##endif
+        result += weight * color;
+        firstMoment += color;
+##if tsr_vrs_mask != NULL
+        secondMoment += color * color * tileSize.x * tileSize.y;
+##else
+        secondMoment += color * color;
+##endif
+      }
+
+##if tsr_is_upsampling == yes || tsr_vrs_mask != NULL
+      confidence = 1 - rcp(sumWeights + 1);
+      result /= sumWeights;
+##else
+      confidence = inputResamplingFilter.confidence;
+##endif
+      firstMoment /= 9;
+      mean = firstMoment;
+      variance = max(EPS, secondMoment / 9 - firstMoment * firstMoment);
+
+      return result;
+    }
+
+    struct DepthStatistics
+    {
+      float depth;
+      float closestDepth;
+      float farthestDepth;
+      float2 closestUv;
+    };
+
+    DepthStatistics getDepthStatistics(float2 texelCoord)
+    {
+      DepthStatistics result;
+
+      result.farthestDepth = 1;
+      result.closestDepth = 0;
+
+      float2 texelCenterTc = (floor(texelCoord) + 0.5) * inputResolution.zw;
+      result.closestUv = texelCenterTc;
+
+      UNROLL
+      for(uint i = 0; i < 9; i++)
+      {
+        float2 tapUV = ((float2)reconstructionTexelOffsetsInt[i]) * inputResolution.zw + texelCenterTc;
+        float currentDepth = readGbufferDepth(tapUV);
+
+        if (i == 0)
+          result.depth = currentDepth;
+
+        FLATTEN
+        if (currentDepth > result.closestDepth)
+        {
+          result.closestDepth = currentDepth;
+          result.closestUv = tapUV;
+        }
+
+        result.farthestDepth = min(currentDepth, result.farthestDepth);
+      }
+
+      return result;
+    }
+
+    // calculates the loss term of the current sample being some subpixel distance away from the pixel's mid point
+    // which will cause a loss of confidence
+    float calculateResamplingLoss(float2 uv)
+    {
+      float sigmaInv = tsrParams2.x;
+      return gaussianKernel(frac(uv * outputResolution.xy) - 0.5, sigmaInv);
+    }
+
+    float4 reconstructHistory(float2 history_tc, out float confidence, out uint is_dynamic)
+    {
+      float4 result = tex2Dlod(historyColorTex, float4(history_tc, 0, 0));
+
+      confidence = max(EPS, tex2Dlod(historyConfidenceTex, float4(history_tc, 0, 0)).x);
+      is_dynamic = confidence > 0.5;
+      confidence = (confidence - is_dynamic * 0.5) * 2.0;
+
+      // the quality of the sample used should result in a loss of confidence
+      confidence *= calculateResamplingLoss(history_tc);
+
+      // even if there is no movement (resampling is perfect) there has to be some loss
+      float processLoss = tsrParams2.z;
+      confidence *= processLoss;
+
+      return tonemap(PackToYCoCgAlpha(result), tsrParams3.w);
+    }
+
+    // calculates rejection based on min/max values with having an exponential decay above the min/max threshold
+    float calculateDepthVarianceRejection(float expected_depth, float min_depth, float max_depth)
+    {
+      float sigmaInv = tsrParams2.y;
+      float overhang = max3(0, expected_depth - max_depth, min_depth - expected_depth);
+      return gaussianKernel(overhang, sigmaInv);
+    }
+
+    float calculateStaticDynamicMismatchRejection(uint current_is_dynamic, uint history_is_dynamic)
+    {
+      return !(!!current_is_dynamic ^ !!history_is_dynamic);
+    }
+
+    float3 clipHistory(float3 history, float3 current, float3 mean, float3 variance)
+    {
+      float3 boxExtents = sqrt(variance) * 3.0;
+
+      float3 rayDir = current - history;
+      float3 rayOrg = history - mean;
+
+      float clipLength = 1.0;
+
+      if (dot(rayDir, rayDir) > 1e-12)
+      {
+        // Intersection using slabs
+        float3 rcpDir = rcp(rayDir);
+        float3 tNeg = ( boxExtents - rayOrg) * rcpDir;
+        float3 tPos = (-boxExtents - rayOrg) * rcpDir;
+        clipLength = saturate(max(max(min(tNeg.x, tPos.x), min(tNeg.y, tPos.y)), min(tNeg.z, tPos.z)));
+      }
+
+      return lerp(history, current, clipLength);
+    }
+
+
+    struct TemporalSuperResolutionOutput
+    {
+      float4 color: SV_Target0;
+      float  confidence: SV_Target1;
+    ##if tsr_debug == on
+      float3 debug: SV_Target2;
+    ##endif
+    };
+
+    bool is_valid(float4 x) { return isfinite(dot(x, 1)); }
+    bool is_valid(float3 x) { return isfinite(dot(x, 1)); }
+    bool is_valid(float2 x) { return isfinite(dot(x, 1)); }
+    bool is_valid(float x) { return isfinite(x); }
+
+    TemporalSuperResolutionOutput calcResult(float4 input_color_depth, float input_confidence, float4 history_color_depth, float history_confidence, float rejection, uint is_dynamic)
+    {
+      // the update function is s_next = (s_prev * w_prev + s_cur * w_cur) / (w_prev + w_cur)
+      // and the weight update is w_next = w_prev + w_cur
+      // using c = w/(w+1) to map the [0;inf] range of accumulated weights to [0;1]
+      // after solving the above update equation for c it becomes the code below
+      // this is the theoretical optimal accumulation of a stationary scene
+
+      float c1 = input_confidence * (history_confidence - 1);
+      float c2 = history_confidence * (input_confidence - 1);
+      float c3 = history_confidence * input_confidence - 1;
+
+      TemporalSuperResolutionOutput result;
+      result.color = UnpackFromYCoCgAlpha(tonemap_inv(lerp(history_color_depth, input_color_depth, (c1 / (c1 + c2)) * tsrParams.y), tsrParams3.w));
+      result.confidence = ((c1 + c2) / c3) * 0.5 + is_dynamic * 0.5;
+    ##if tsr_debug == on
+      result.debug = is_dynamic;
+    ##endif
+
+      bool isValid = is_valid(result.color + result.confidence); // the sum is valid <=> both are valid
+      result.confidence = isValid ? result.confidence : 0;
+      result.color = isValid ? result.color : 0;
+      return result;
+    }
+
+    void validateHistory(float2 historyUV, inout float4 history_color_depth, inout float history_confidence, inout float rejection)
+    {
+      FLATTEN
+      if (any(!is_valid(historyUV) || historyUV >= 1.0 || historyUV <= 0.0) || tsrParams.x > 0)
+      {
+        history_color_depth = 0;
+        history_confidence = EPS;
+        rejection = 0;
+      }
+    }
+  }
+endmacro
+
+shader tsr_vr_cs
+{
+  hlsl(cs)
+  {
+    #define USE_CACHE_OPTIMIZATIONS 0
+    #define DEBUG_SHOW_OUT_OF_BOUNDS 0
+  }
+
+  TSR_INCLUDES(cs)
+
+  ENABLE_ASSERT(cs)
+  hlsl(cs)
+  {
+    RWTexture2D<float4> outColor : register(u7);
+    RWTexture2D<float> outConfidence : register(u6);
+##if tsr_debug == on
+    RWTexture2D<float3> outDebug : register(u5);
+##endif
+
+    [numthreads( TSR_CS_WORKGROUP_SIZE, TSR_CS_WORKGROUP_SIZE, 1)]
+    void tsr_cs(uint2 dtId : SV_DispatchThreadID, uint2 tid : SV_GroupThreadID, uint2 gId : SV_GroupID, uint flatTid : SV_GroupIndex)
+    {
+#if !USE_CACHE_OPTIMIZATIONS
+      if (any(dtId >= uint2(outputResolution.xy)))
+        return;
+#endif
+
+      float2 screenTc = (dtId+0.5)*outputResolution.zw;
+      float2 jitteredInputTexelCoord = screenTc * inputResolution.xy + jitterOffset;
+
+#if USE_CACHE_OPTIMIZATIONS
+      float2 globalOffset = floor(((float2)gId * TSR_CS_WORKGROUP_SIZE + 0.5) * upsamplingRatioInv + jitterOffset - 1); // top-left bordered corner: tid==0 case -1
+      CacheParams cacheParams = calcCacheParams(tid, globalOffset, jitteredInputTexelCoord);
+#endif
+
+      DepthStatistics depthStats = getDepthStatistics(jitteredInputTexelCoord);
+
+      uint currentIsDynamic;
+      float3 motionVector = fetchMotionVector(depthStats.closestDepth, depthStats.closestUv, currentIsDynamic);
+      float2 historyUV = screenTc + motionVector.xy;
+
+      float historyConfidence;
+      uint historyIsDynamic;
+      float4 historyColorDepth = reconstructHistory(historyUV, historyConfidence, historyIsDynamic);
+
+      float rejection = calculateDepthVarianceRejection(historyColorDepth.a - motionVector.z, depthStats.farthestDepth, depthStats.closestDepth);
+      rejection *= calculateStaticDynamicMismatchRejection(currentIsDynamic, historyIsDynamic);
+      historyConfidence *= rejection;
+
+      validateHistory(historyUV, historyColorDepth, historyConfidence, rejection);
+
+      float2 sigmaInv = tsrParams.z;
+
+#if USE_CACHE_OPTIMIZATIONS
+      prefetchCacheColor(cacheParams, jitteredInputTexelCoord);
+      GroupMemoryBarrierWithGroupSync();
+      if (any(dtId >= uint2(outputResolution.xy)))
+        return;
+#endif
+
+      float inputConfidence;
+      float3 inputMean;
+      float3 inputVariance;
+#if USE_CACHE_OPTIMIZATIONS
+      float3 inputColor = reconstructInput(cacheParams, sigmaInv, inputConfidence, inputMean, inputVariance);
+#else
+      float3 inputColor = reconstructInput(jitteredInputTexelCoord, sigmaInv, inputConfidence, inputMean, inputVariance);
+#endif
+
+      historyColorDepth.rgb = clipHistory(historyColorDepth.rgb, inputColor, inputMean, inputVariance);
+
+      TemporalSuperResolutionOutput result = calcResult(float4(inputColor, depthStats.closestDepth), inputConfidence, historyColorDepth, historyConfidence, rejection, currentIsDynamic);
+      outColor[dtId] = result.color;
+      outConfidence[dtId] = result.confidence;
+    ##if tsr_debug == on
+      outDebug[dtId] = rejection;
+    ##endif
+    }
+  }
+
+  compile("target_cs", "tsr_cs");
+}

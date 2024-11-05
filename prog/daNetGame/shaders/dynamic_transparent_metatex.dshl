@@ -1,0 +1,167 @@
+include "dynamic_trans_inc.dshl"
+include "normaldetail.dshl"
+include "glass.dshl"
+
+include "indoor_light_probes.dshl"
+include "metatex_inc.dshl"
+
+include "dynamic_metatex_inc.dshl"
+
+int render_to_icon = 0;
+interval render_to_icon : no < 1, yes;
+float background_alpha = 0;
+float4 icon_silhouette_color = (0,0,0,2);
+
+shader dynamic_refraction_metatex
+{
+  ENABLE_ASSERT(ps)
+  hlsl {
+    #define IS_DYNAMIC_GLASS 1
+  }
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    dont_render;
+  }
+
+  DYNAMIC_BLOCK_TRANS()
+  INIT_REFRACTION_GLASS()
+
+  if (render_to_icon != yes && gi_quality != off)
+  {
+    USE_IN_FRUSTUM_GI(ps)
+    hlsl {
+      #define GLASS_USE_GI 1
+    }
+  }
+  USE_BRUNETON_FOG()
+  REFRACTION_USE()
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+
+  if (num_bones != no_bones)
+  {
+    channel color8 tc[4] = extra[0];
+    channel color8 tc[5] = extra[1];
+  }
+  INIT_OPTIONAL_SKINNING()
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float3 pos                  : POSITION;
+      float4 normal               : NORMAL;
+      float2 texcoord             : TEXCOORD0;
+      INIT_BONES_VSINPUT(TEXCOORD4, TEXCOORD5)
+    };
+  }
+  OPTIONAL_SKINNING_SHADER()
+
+
+  (ps)
+  {
+    background_alpha@f1 = (background_alpha);
+    icon_silhouette_color@f4 = icon_silhouette_color;
+  }
+  if (render_to_icon == yes)
+  {
+    hlsl { #define ICON_RENDER 1 }
+  }
+  else
+  {
+    hlsl { #define ICON_RENDER 0 }
+  }
+  hlsl(vs) {
+    VsOutput glass_vs(VsInput input )
+    {
+      VsOutput output;
+
+      // unpack texcoord0
+      // Skinning.
+
+      float3 eyeToPoint;
+      float3 worldDu;
+      float3 worldDv;
+      float3 worldNormal;
+      float3 localNormal = input.normal.xyz;
+
+      float3 localDu = float3(1,0,0), localDv = float3(1,0,0);
+      instance_skinning(
+        input,
+        input.pos,
+        localNormal,
+        localDu,
+        localDv,
+        eyeToPoint,
+        output.pos,
+        worldNormal,
+        worldDu,
+        worldDv);
+
+      worldNormal = normalize(worldNormal);
+      float3 pointToEye = -eyeToPoint;
+
+      output.texcoord.xy = input.texcoord;
+      output.pointToEye.xyz = pointToEye;
+      output.normal.xyz = worldNormal;
+
+      half3 fogMul, fogAdd;
+      ##if render_to_icon == no
+        get_fog(pointToEye, fogMul, fogAdd);
+      ##else
+        fogMul = 1;
+        fogAdd = 0;
+      ##endif
+      get_fog(pointToEye, fogMul, fogAdd);
+      output.clipPos = output.pos;
+      output.fogMul = fogMul;
+      output.fogAdd = fogAdd;
+
+      return output;
+    }
+  }
+  compile("target_vs", "glass_vs");
+
+  if (render_to_icon == no)
+  {
+    USE_CSM_SHADOW_DEF_NUM()
+    hlsl (ps) {
+      #define USE_CSM_SHADOWS 1
+      float getCSMShadow(float3 pointToEye)
+      {
+        return get_csm_shadow(pointToEye).x;
+      }
+    }
+  }
+
+  INIT_METATEX_REFRACTIVE()
+
+  DYNAMIC_SIMPLE_SHARED_DECL(ps) // needed for dynmat metadata
+  SET_DYNMAT_METATEX_PARAM_GETTERS()
+
+  INIT_GLASS_TRANSP()
+  USE_GLASS()
+  APPLY_METATEX()
+
+  hlsl(ps) {
+    float4 glass_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE):SV_Target0
+    {
+      float3 color;
+      half3 normalMap;
+      float smoothness;
+      float opacity;
+      half metalness;
+      half thickness;
+      unpack_metatex(input.texcoord, color, normalMap, smoothness, opacity, metalness, thickness);
+
+      input.normal.xyz = MUL_VFACE(input.normal.xyz);
+      half3 worldNormal = perturb_normal_precise(normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.texcoord.xy);
+      float4 diffuseColor = float4(color, opacity * get_transparency_mul());
+
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      half4 result = apply_glass_base(input, screenpos, diffuseColor, worldNormal, thickness, smoothness);
+      return float4(pack_hdr(result.rgb), result.a);
+    }
+  }
+  compile("target_ps", "glass_ps");
+}

@@ -146,7 +146,13 @@ SQRESULT sqstd_format(HSQUIRRELVM v,SQInteger nformatstringidx,SQInteger *outlen
             switch(valtype) {
             case 's': i += scsprintf(&dest[i],allocated,fmt,ts); break;
             case 'i': i += scsprintf(&dest[i],allocated,fmt,ti); break;
-            case 'f': i += scsprintf(&dest[i],allocated,fmt,tf); break;
+            case 'f': {
+                int len = scsprintf(&dest[i], allocated, fmt, tf);
+                for (; len > 0; len--, i++)
+                    if (dest[i] == ',')
+                        dest[i] = '.';
+                break;
+                }
             };
             nparam ++;
         }

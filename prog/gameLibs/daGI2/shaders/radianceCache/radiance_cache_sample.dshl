@@ -1,0 +1,95 @@
+include "radiance_cache_common.dshl"
+texture current_radiance_cache;
+texture current_radiance_cache_hit_distance;
+
+macro SAMPLE_RADIANCE_CACHE_CODE(code)
+  hlsl(code) {
+    #include <radiance_cache_common_math.hlsl>
+    float3 load_radiance_cache_radiance_load(uint2 targetCoord)
+    {
+      return radiance_cache_decode_texture_radiance(texture2DAt(current_radiance_cache, targetCoord).xyz);
+    }
+    float3 get_radiance_cache_radiance(uint radianceCacheProbeIndex, uint2 octCoord, float2 octTC, float3 worldPos, float3 rayDir)
+    {
+      //fixme: add parallax correction
+      uint2 atlasCoord = uint2(radianceCacheProbeIndex%get_radiance_cache_atlas_dim().x, radianceCacheProbeIndex/get_radiance_cache_atlas_dim().x);
+      #if HW_SAMPLE_RADIANCE_CACHE
+      return radiance_cache_decode_texture_radiance(tex2Dlod(current_radiance_cache, float4((atlasCoord + octTC)/uint2(get_radiance_cache_atlas_dim()), 0,0)).xyz);//fixme:replace with mul
+      #else
+      return load_radiance_cache_radiance_load(atlasCoord*RADIANCE_CACHE_RADIANCE_RES + octCoord);
+      #endif
+    }
+    //todo: implement occlusion weightening
+    float3 sample_trilinear_radiance_cache_unsafe(uint4 probeIndices0, uint4 probeIndices1, float3 probeW0, uint2 octCoord, float3 worldPos, float3 rayDir)
+    {
+      float2 octTC = clamp(radiance_cache_dir_encode(rayDir)*0.5 + 0.5, 0.5 / RADIANCE_CACHE_RADIANCE_RES, 1 - 0.5/RADIANCE_CACHE_RADIANCE_RES);
+      return lerp(
+                lerp( lerp(get_radiance_cache_radiance(probeIndices0.x, octCoord, octTC, worldPos, rayDir), get_radiance_cache_radiance(probeIndices0.y, octCoord, octTC, worldPos, rayDir), probeW0.x),
+                      lerp(get_radiance_cache_radiance(probeIndices0.z, octCoord, octTC, worldPos, rayDir), get_radiance_cache_radiance(probeIndices0.w, octCoord, octTC, worldPos, rayDir), probeW0.x), probeW0.y),
+                lerp( lerp(get_radiance_cache_radiance(probeIndices1.x, octCoord, octTC, worldPos, rayDir), get_radiance_cache_radiance(probeIndices1.y, octCoord, octTC, worldPos, rayDir), probeW0.x),
+                      lerp(get_radiance_cache_radiance(probeIndices1.z, octCoord, octTC, worldPos, rayDir), get_radiance_cache_radiance(probeIndices1.w, octCoord, octTC, worldPos, rayDir), probeW0.x), probeW0.y),
+                probeW0.z);
+    }
+    void add_radiance_cache(uint radianceCacheProbeIndex, float w, uint2 octCoord, float2 octTC, float3 worldPos, float3 rayDir, inout float3 totalRadiance, inout float totalW)
+    {
+      if (radianceCacheProbeIndex != INVALID_RADIANCE_CACHE_PROBE_INDEX)
+      {
+        totalRadiance += w*get_radiance_cache_radiance(radianceCacheProbeIndex, octCoord, octTC, worldPos, rayDir);
+        totalW += w;
+      }
+    }
+    float3 sample_trilinear_radiance_cache_safe(uint4 probeIndices0, uint4 probeIndices1, float3 probeW0, uint2 octCoord, float3 worldPos, float3 rayDir)
+    {
+      float2 octTC = clamp(radiance_cache_dir_encode(rayDir)*0.5 + 0.5, 0.5 / RADIANCE_CACHE_RADIANCE_RES, 1 - 0.5/RADIANCE_CACHE_RADIANCE_RES);
+      float4 bWeights = float4(probeW0.xy, 1-probeW0.xy);
+      float4 bilWeights = float4(bWeights.zx*bWeights.w, bWeights.zx*bWeights.y);
+      float3 totalRadiance = 0; float totalW = 0;
+      float4 bilWeights0 = max(1e-4f, bilWeights*(1-probeW0.z));
+      add_radiance_cache(probeIndices0.x, bilWeights0.x, octCoord, octTC, worldPos, rayDir, totalRadiance, totalW);
+      add_radiance_cache(probeIndices0.y, bilWeights0.y, octCoord, octTC, worldPos, rayDir, totalRadiance, totalW);
+      add_radiance_cache(probeIndices0.z, bilWeights0.z, octCoord, octTC, worldPos, rayDir, totalRadiance, totalW);
+      add_radiance_cache(probeIndices0.w, bilWeights0.w, octCoord, octTC, worldPos, rayDir, totalRadiance, totalW);
+      float4 bilWeights1 = max(1e-4f, bilWeights*probeW0.z);
+      add_radiance_cache(probeIndices1.x, bilWeights1.x, octCoord, octTC, worldPos, rayDir, totalRadiance, totalW);
+      add_radiance_cache(probeIndices1.y, bilWeights1.y, octCoord, octTC, worldPos, rayDir, totalRadiance, totalW);
+      add_radiance_cache(probeIndices1.z, bilWeights1.z, octCoord, octTC, worldPos, rayDir, totalRadiance, totalW);
+      add_radiance_cache(probeIndices1.w, bilWeights1.w, octCoord, octTC, worldPos, rayDir, totalRadiance, totalW);
+      return totalRadiance/totalW;
+    }
+    void add_radiance_cache_weighted(uint radianceCacheProbeIndex, float w, uint2 octCoord, float2 octTC, float3 worldPos, float3 rayDir, inout float3 totalRadiance, inout float totalW)
+    {
+      if (w != 0)
+      {
+        totalRadiance += w*get_radiance_cache_radiance(radianceCacheProbeIndex, octCoord, octTC, worldPos, rayDir);
+        totalW += w;
+      }
+    }
+    float3 sample_trilinear_radiance_cache_safe_weighted(uint4 probeIndices0, uint4 probeIndices1, float4 bilWeights0, float4 bilWeights1, uint2 octCoord, float3 worldPos, float3 rayDir)
+    {
+      float2 octTC = clamp(radiance_cache_dir_encode(rayDir)*0.5 + 0.5, 0.5 / RADIANCE_CACHE_RADIANCE_RES, 1 - 0.5/RADIANCE_CACHE_RADIANCE_RES);
+      float3 totalRadiance = 0; float totalW = 0;
+      add_radiance_cache_weighted(probeIndices0.x, bilWeights0.x, octCoord, octTC, worldPos, rayDir, totalRadiance, totalW);
+      add_radiance_cache_weighted(probeIndices0.y, bilWeights0.y, octCoord, octTC, worldPos, rayDir, totalRadiance, totalW);
+      add_radiance_cache_weighted(probeIndices0.z, bilWeights0.z, octCoord, octTC, worldPos, rayDir, totalRadiance, totalW);
+      add_radiance_cache_weighted(probeIndices0.w, bilWeights0.w, octCoord, octTC, worldPos, rayDir, totalRadiance, totalW);
+
+      add_radiance_cache_weighted(probeIndices1.x, bilWeights1.x, octCoord, octTC, worldPos, rayDir, totalRadiance, totalW);
+      add_radiance_cache_weighted(probeIndices1.y, bilWeights1.y, octCoord, octTC, worldPos, rayDir, totalRadiance, totalW);
+      add_radiance_cache_weighted(probeIndices1.z, bilWeights1.z, octCoord, octTC, worldPos, rayDir, totalRadiance, totalW);
+      add_radiance_cache_weighted(probeIndices1.w, bilWeights1.w, octCoord, octTC, worldPos, rayDir, totalRadiance, totalW);
+      return totalRadiance/totalW;
+    }
+  }
+endmacro
+
+macro SAMPLE_RADIANCE_CACHE_SAMPLER(code)
+  (code) {
+    current_radiance_cache@smp2d = current_radiance_cache;
+  }
+  hlsl(code) {
+    #ifndef HW_SAMPLE_RADIANCE_CACHE
+    #define HW_SAMPLE_RADIANCE_CACHE 1
+    #endif
+  }
+  SAMPLE_RADIANCE_CACHE_CODE(code)
+endmacro

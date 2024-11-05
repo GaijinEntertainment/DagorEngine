@@ -1,0 +1,108 @@
+include "shader_global.dshl"
+include "postfx_inc.dshl"
+include "gbuffer.dshl"
+
+float max_screenshot_depth_distance = 50.;
+int sub_pixels = 1;
+int super_pixels = 1;
+float4 interleave_pixels;
+texture super_screenshot_tex;
+
+shader screenshot_composer
+{
+  cull_mode=none;
+  z_write=false;
+  z_test=false;
+  POSTFX_VS_TEXCOORD(1, texcoord)
+  INIT_ZNZFAR()
+  USE_DECODE_DEPTH()
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+
+  (ps)
+  {
+    max_distance@f1 = (max_screenshot_depth_distance);
+    sub_pixels_scale@f1 = (1.0/(sub_pixels *sub_pixels),0,0,0);
+  }
+
+  hlsl (ps)
+  {
+    Texture2D frame_tex:register(t1);
+    SamplerState frame_tex_samplerstate:register(s1);
+
+    //TODO Depth isn't actually saved to either png nor jpg.
+    float get_depth_scaled(float2 tc)
+    {
+      float rawDepth = readGbufferDepth(tc);
+      BRANCH
+      if (rawDepth == 0)
+        return 1;
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+      return min(sqrt(w/max_distance), 254./255.);
+    }
+    float3 get_color(float2 tc)
+    {
+      return tex2Dlod(frame_tex, float4(tc, 0, 0)).rgb;
+    }
+    float4 screenshot_composer_ps(VsOutput input) : SV_Target
+    {
+      return float4(get_color(input.texcoord), get_depth_scaled(input.texcoord)) * sub_pixels_scale;
+    }
+  }
+  compile("target_ps", "screenshot_composer_ps");
+}
+
+shader interleave_samples_renderer
+{
+  cull_mode=none;
+  z_write=false;
+  z_test=false;
+  POSTFX_VS_TEXCOORD(1, texcoord)
+
+  (ps) {  interleave_pixels@f4 = interleave_pixels; }
+  hlsl(ps) {
+    Texture2D frame_tex:register(t0);
+    SamplerState frame_tex_samplerstate:register(s0);
+    float4 postfx_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      float4 pos = GET_SCREEN_POS(input.pos);
+      uint2 tc = floor(pos.xy);
+      if (any(tc%uint(interleave_pixels.z) != uint2(interleave_pixels.xy)))
+        discard;
+      return tex2Dlod(frame_tex, float4(input.texcoord,0,0));
+    }
+  }
+
+  compile("target_ps", "postfx_ps");
+}
+
+shader downscale_superres_screenshot
+{
+  cull_mode=none;
+  z_write=false;
+  z_test=false;
+  POSTFX_VS(1)
+  (ps)
+  {
+    super_pixels@i1 = (super_pixels);
+    super_pixels_scale@f1 = (1.0/(super_pixels*super_pixels),0,0,0);
+    super_screenshot_tex@tex2d = super_screenshot_tex;
+  }
+  hlsl(ps)
+  {
+    float4 postfx_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      int2 pos = floor(GET_SCREEN_POS(input.pos).xy) * super_pixels;
+      float4 result = 0;
+      for (int j = 0; j < super_pixels; j++)
+      {
+        for (int i = 0; i < super_pixels; i++)
+        {
+          result += super_screenshot_tex[pos + int2(i,j)];
+        }
+      }
+      return result * super_pixels_scale;
+    }
+  }
+  compile("target_ps", "postfx_ps");
+}

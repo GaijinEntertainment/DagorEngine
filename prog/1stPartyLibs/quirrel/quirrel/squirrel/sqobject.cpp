@@ -46,6 +46,11 @@ const SQChar *GetTypeName(const SQObjectPtr &obj1)
     return IdType2Name(sq_type(obj1));
 }
 
+SQObjectPtr::SQObjectPtr(SQVM *vm, const SQChar *str, SQInteger len)
+    : SQObjectPtr(SQString::Create(vm->_sharedstate, str, len))
+{
+}
+
 SQString *SQString::Create(SQSharedState *ss,const SQChar *s,SQInteger len)
 {
     SQString *str=ADD_STRING(ss,s,len);
@@ -100,7 +105,7 @@ void SQWeakRef::Release() {
 
 bool SQDelegable::GetMetaMethod(SQVM *v,SQMetaMethod mm,SQObjectPtr &res) {
     if(_delegate) {
-        return _delegate->Get((*_ss(v)->_metamethods)[mm],res);
+        return _delegate->Get((*_ss(v)->_metamethodnames)[mm],res);
     }
     return false;
 }
@@ -203,6 +208,18 @@ void SQArray::Extend(const SQArray *a){
             Append(a->_values[i]);
 }
 
+bool SQArray::IsBinaryEqual(const SQArray *o)
+{
+    if (this == o)
+        return true;
+    if (_values.size() != o->_values.size())
+        return false;
+    if (_values.size() == 0)
+        return true;
+
+    return memcmp(_values._vals, o->_values._vals, _values.size() * sizeof(SQObjectPtr)) == 0;
+}
+
 const SQChar* SQFunctionProto::GetLocal(SQVM *vm,SQUnsignedInteger stackbase,SQUnsignedInteger nseq,SQUnsignedInteger nop)
 {
     SQUnsignedInteger nvars=_nlocalvarinfos;
@@ -224,19 +241,39 @@ const SQChar* SQFunctionProto::GetLocal(SQVM *vm,SQUnsignedInteger stackbase,SQU
 }
 
 
-SQInteger SQFunctionProto::GetLine(SQInstruction *curr)
+SQInteger SQFunctionProto::GetLine(SQInstruction *curr, int *hint, bool *is_line_op)
 {
-    SQInteger op = (SQInteger)(curr-_instructions);
-    SQInteger line=_lineinfos[0]._line;
-    SQInteger low = 0;
-    SQInteger high = _nlineinfos - 1;
-    SQInteger mid = 0;
+    int op = (int)(curr-_instructions);
+    int high = _nlineinfos - 1;
+
+    if (hint && *hint < high) {
+        int pos = *hint;
+        if (op > _lineinfos[pos]._op && op <= _lineinfos[pos + 1]._op) {
+            if (is_line_op)
+                *is_line_op = _lineinfos[pos]._is_line_op;
+            return _lineinfos[pos]._line;
+        }
+        if (op == _lineinfos[pos + 1]._op + 1) {
+            *hint = ++pos;
+            if (is_line_op)
+                *is_line_op = _lineinfos[pos]._is_line_op;
+            return _lineinfos[pos]._line;
+        }
+        if (!op) {
+            if (is_line_op)
+                *is_line_op = _lineinfos[pos]._is_line_op;
+            return _lineinfos[0]._line;
+        }
+    }
+
+    int line = 0;
+    int low = 0;
+    int mid = 0;
     while(low <= high)
     {
         mid = low + ((high - low) >> 1);
-        SQInteger curop = _lineinfos[mid]._op;
-        if(curop > op)
-        {
+        int curop = _lineinfos[mid]._op;
+        if(curop > op) {
             high = mid - 1;
         }
         else if(curop < op) {
@@ -254,6 +291,12 @@ SQInteger SQFunctionProto::GetLine(SQInstruction *curr)
     while(mid > 0 && _lineinfos[mid]._op >= op) mid--;
 
     line = _lineinfos[mid]._line;
+
+    if (is_line_op)
+        *is_line_op = _lineinfos[mid]._is_line_op;
+
+    if (hint)
+        *hint = mid;
 
     return line;
 }
@@ -599,7 +642,7 @@ void SQClass::Mark(SQCollectable **chain)
         for(SQUnsignedInteger j =0; j< _methods.size(); j++) {
             SQSharedState::MarkObject(_methods[j].val, chain);
         }
-        for(SQUnsignedInteger k =0; k< MT_LAST; k++) {
+        for(SQUnsignedInteger k =0; k< MT_NUM_METHODS; k++) {
             SQSharedState::MarkObject(_metamethods[k], chain);
         }
     END_MARK()

@@ -1,0 +1,25 @@
+include "rendinst_inc.dshl"
+include "sky_shader_global.dshl"
+include "static_shadow.dshl"
+include "clouds_vars.dshl"
+include "sq_clouds_shadow.dshl"
+include "refraction.dshl"
+include "heightmap_common.dshl"
+include "use_gi.dshl"
+
+block(scene) rendinst_trans_scene
+{
+  supports __static_cbuf;
+
+  (vs) { tess_quality@f1 = (tess_quality); }
+
+  RENDINST_SCENE_COMMON()
+
+  REFRACTION_INIT()
+  INIT_IN_FRUSTUM_GI(ps)
+}
+
+macro RENDINST_TRANS_BLOCK()
+  supports rendinst_trans_scene;
+  REFRACTION_USE()
+endmacro

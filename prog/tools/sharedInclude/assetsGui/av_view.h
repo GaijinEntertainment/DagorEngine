@@ -2,15 +2,19 @@
 
 
 #include <assetsGui/av_client.h>
-#include <propPanel2/comWnd/treeview_panel.h>
+#include <propPanel/commonWindow/treeviewPanel.h>
 #include <generic/dag_tab.h>
 
+namespace PropPanel
+{
+class IMenu;
+}
 class DagorAssetMgr;
 class IMenuEventHandler;
 
 struct AssetTreeRec
 {
-  TLeafHandle handle;
+  PropPanel::TLeafHandle handle;
   int index;
 };
 
@@ -18,7 +22,7 @@ struct AssetTreeRec
 // AssetBaseView
 //==============================================================================
 
-class AssetBaseView : public ITreeViewEventHandler
+class AssetBaseView : public PropPanel::ITreeViewEventHandler
 {
 public:
   AssetBaseView(IAssetBaseViewClient *client, IMenuEventHandler *menu_event_handler, void *handle, int l, int t, int w, int h);
@@ -39,8 +43,6 @@ public:
   void getTreeNodesExpand(Tab<bool> &exps);
   void setTreeNodesExpand(dag::ConstSpan<bool> exps);
 
-  void resize(unsigned w, unsigned h);
-
   // call this function BEFORE connectToLib()
   inline void setFilter(int type)
   {
@@ -52,40 +54,43 @@ public:
   inline bool checkFiltersEq(dag::ConstSpan<int> types) { return types.size() == filter.size() && mem_eq(types, filter.data()); }
   inline void showEmptyGroups(bool show = true) { doShowEmptyGroups = show; }
   void setFilterStr(const char *str) { mTreeList->setFilterStr(str); }
-  const char *getFilterStr() const { return mTreeList->getFilterStr(); }
+  SimpleString getFilterStr() const { return mTreeList->getFilterStr(); }
   dag::ConstSpan<int> getCurFilter() const { return curFilter; }
 
   // ITreeViewEventHandler
 
-  virtual void onTvSelectionChange(TreeBaseWindow &tree, TLeafHandle new_sel);
-  virtual void onTvListSelection(TreeBaseWindow &tree, int index);
-  virtual void onTvListDClick(TreeBaseWindow &tree, int index);
-  virtual void onTvAssetTypeChange(TreeBaseWindow &tree, const Tab<String> &vals);
-  virtual bool onTvContextMenu(TreeBaseWindow &tree, TLeafHandle under_mouse, IMenu &menu) { return true; };
-  virtual bool onTvListContextMenu(TreeBaseWindow &tree, int index, IMenu &menu) override;
+  virtual void onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle new_sel) override;
+  virtual void onTvListSelection(PropPanel::TreeBaseWindow &tree, int index) override;
+  virtual void onTvListDClick(PropPanel::TreeBaseWindow &tree, int index) override;
+  virtual void onTvAssetTypeChange(PropPanel::TreeBaseWindow &tree, const Tab<String> &vals) override;
+  virtual bool onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree) override { return true; }
+  virtual bool onTvListContextMenu(PropPanel::TreeBaseWindow &tree, PropPanel::IListBoxInterface &list_box) override;
 
-  static void addCommonMenuItems(IMenu &menu);
+  // If control_height is 0 then it will use the entire available height.
+  void updateImgui(float control_height = 0.0f);
+
+  static void addCommonMenuItems(PropPanel::IMenu &menu);
 
 private:
   Tab<int> filter;
   Tab<int> curFilter;
   Tab<AssetTreeRec> mAssetList;
 
-  TLeafHandle addAsset(const char *name, TLeafHandle parent, int idx);
+  PropPanel::TLeafHandle addAsset(const char *name, PropPanel::TLeafHandle parent, int idx);
 
   IAssetBaseViewClient *eh;
   IMenuEventHandler *menuEventHandler;
   DagorAssetMgr *curMgr;
 
-  TreeListWindow *mTreeList;
+  PropPanel::TreeListWindow *mTreeList;
 
   bool canNotifySelChange;
   bool doShowEmptyGroups;
 
   void fill(dag::ConstSpan<int> types);
-  void fillGroups(TLeafHandle parent, int folder_idx, dag::ConstSpan<int> only_folders);
+  void fillGroups(PropPanel::TLeafHandle parent, int folder_idx, dag::ConstSpan<int> only_folders);
 
-  void fillObjects(TLeafHandle parent);
+  void fillObjects(PropPanel::TLeafHandle parent);
 
   char mSelBuf[64];
 };

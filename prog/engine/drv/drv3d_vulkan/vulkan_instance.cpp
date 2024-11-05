@@ -1,8 +1,14 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "vulkan_instance.h"
-#include "vulkan_loader.h"
+
 #include <EASTL/algorithm.h>
 #include <EASTL/sort.h>
 #include <ioSys/dag_dataBlock.h>
+#include <drv/3d/dag_info.h>
+#include <generic/dag_staticTab.h>
+
+#include "vulkan_loader.h"
 
 using namespace drv3d_vulkan;
 
@@ -97,8 +103,8 @@ bool drv3d_vulkan::has_all_required_instance_extension(dag::ConstSpan<const char
 
 int drv3d_vulkan::remove_mutual_exclusive_instance_extensions(dag::Span<const char *> ext_list)
 {
-  eastl::sort(begin(ext_list), end(ext_list));
-  uint32_t count = eastl::unique(begin(ext_list), end(ext_list)) - begin(ext_list);
+  eastl::sort(eastl::begin(ext_list), eastl::end(ext_list));
+  uint32_t count = eastl::unique(eastl::begin(ext_list), eastl::end(ext_list)) - eastl::begin(ext_list);
   count = WindowingSystemSurfaceExtension::filter(ext_list.data(), count);
   count = WindowingSystemSpecificExtensions::filter(ext_list.data(), count);
   count = DebugExtensions::filter(ext_list.data(), count);
@@ -144,13 +150,25 @@ bool drv3d_vulkan::instance_has_all_required_extensions(VulkanInstance &instance
 Tab<const char *> drv3d_vulkan::build_instance_extension_list(VulkanLoader &loader, const DataBlock *extension_list_names,
   int debug_level, Driver3dInitCallback *cb)
 {
-  debug("vulkan: Querying Instance Extensions...");
   auto extensionList = loader.getExtensions();
-  for (auto &&ext : extensionList)
   {
-    debug("vulkan: ...%s v %u...", ext.extensionName, ext.specVersion);
+    size_t extMaxLen = 0;
+    for (auto &&ext : extensionList)
+      extMaxLen = max(strlen(ext.extensionName), extMaxLen);
+    const size_t iterTail = 16;
+    const size_t headSz = 32;
+    const size_t itemsPerLine = LOG_DUMP_STR_SIZE / extMaxLen;
+    const size_t avgExtLen = extMaxLen + iterTail;
+    String extListDump(avgExtLen * extensionList.size() + headSz, "vulkan: instance ext dump\n");
+    int extCnt = 0;
+    for (auto &&ext : extensionList)
+    {
+      ++extCnt;
+      extListDump.aprintf(avgExtLen, "%s%*s v%02u%s", (extCnt - 1) % itemsPerLine ? "" : "vulkan: ", extMaxLen, ext.extensionName,
+        ext.specVersion, extCnt % itemsPerLine ? " " : "\n");
+    }
+    debug(extListDump);
   }
-  debug("vulkan: ...%u instance extensions found...", extensionList.size());
 
   auto instanceExtensionSet = get_all_supported_extension_names(extensionList);
   if (debug_level < 1)
@@ -206,7 +224,6 @@ Tab<const char *> drv3d_vulkan::build_instance_extension_list(VulkanLoader &load
 eastl::vector<VkLayerProperties> drv3d_vulkan::build_instance_layer_list(VulkanLoader &loader, const DataBlock *layer_list,
   int debug_level, bool enable_render_doc_layer)
 {
-  debug("vulkan: Query Instance Layers...");
   auto layerList = loader.getLayers();
   Tab<const char *> layerWhiteList;
 
@@ -231,90 +248,19 @@ eastl::vector<VkLayerProperties> drv3d_vulkan::build_instance_layer_list(VulkanL
     layerWhiteList.push_back("VK_LAYER_RENDERDOC_Capture");
   }
 
+  String layersDump(4096, "vulkan: layers config\n");
   auto newEnd = eastl::remove_if(begin(layerList), end(layerList), [&](const VkLayerProperties &layer) {
     auto whiteRef = eastl::find_if(layerWhiteList.cbegin(), layerWhiteList.cend(),
       [&](const char *name) { return 0 == strcmp(name, layer.layerName); });
-    if (whiteRef != layerWhiteList.cend())
-    {
-      debug("vulkan: ...using %s v%u: %s...", layer.layerName, layer.implementationVersion, layer.description);
-      return false;
-    }
-    else
-    {
-      debug("vulkan: ...ignoring %s v%u: %s...", layer.layerName, layer.implementationVersion, layer.description);
-      return true;
-    }
+    layersDump.aprintf(64, "vulkan: [%s] %s v%u: %s\n", whiteRef != layerWhiteList.cend() ? "*" : " ", layer.layerName,
+      layer.implementationVersion, layer.description);
+    return whiteRef == layerWhiteList.cend();
   });
+  layersDump.pop_back();
+  debug(layersDump);
   layerList.erase(newEnd, end(layerList));
   return layerList;
 }
-
-#if VK_EXT_debug_report
-VulkanDebugReportCallbackEXTHandle drv3d_vulkan::create_debug_sink(VulkanInstance &instance, int debug_level,
-  PFN_vkDebugReportCallbackEXT clb, void *data)
-{
-  if (instance.hasExtension<DebugReport>() && debug_level > 0)
-  {
-    VkDebugReportCallbackCreateInfoEXT drcci;
-    drcci.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
-    drcci.pNext = nullptr;
-    drcci.pfnCallback = clb;
-    drcci.pUserData = data;
-    drcci.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT;
-
-    if (debug_level > 1)
-      drcci.flags |= VK_DEBUG_REPORT_WARNING_BIT_EXT;
-    if (debug_level > 2)
-      drcci.flags |= VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
-    if (debug_level > 3)
-      drcci.flags |= VK_DEBUG_REPORT_INFORMATION_BIT_EXT;
-    if (debug_level > 4)
-      drcci.flags |= VK_DEBUG_REPORT_DEBUG_BIT_EXT;
-
-    VulkanDebugReportCallbackEXTHandle result;
-    VULKAN_LOG_CALL(instance.vkCreateDebugReportCallbackEXT(instance.get(), &drcci, nullptr, ptr(result)));
-    return result;
-  }
-  return {};
-}
-#endif
-
-#if VK_EXT_debug_utils
-VulkanDebugUtilsMessengerEXTHandle drv3d_vulkan::create_debug_sink_2(VulkanInstance &instance, int debug_level,
-  PFN_vkDebugUtilsMessengerCallbackEXT clb, void *data)
-{
-  if (instance.hasExtension<DebugUtilsEXT>() && debug_level > 0)
-  {
-    VkDebugUtilsMessengerCreateInfoEXT dumci{VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
-    dumci.flags = 0;
-    dumci.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    dumci.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
-    dumci.pfnUserCallback = clb;
-    dumci.pUserData = data;
-    if (debug_level > 1)
-    {
-      dumci.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
-    }
-    if (debug_level > 2)
-    {
-      dumci.messageType |= VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    }
-    if (debug_level > 3)
-    {
-      dumci.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
-    }
-    if (debug_level > 4)
-    {
-      dumci.messageType |= VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
-      dumci.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
-    }
-    VulkanDebugUtilsMessengerEXTHandle result;
-    VULKAN_LOG_CALL(instance.vkCreateDebugUtilsMessengerEXT(instance.get(), &dumci, nullptr, ptr(result)));
-    return result;
-  }
-  return {};
-}
-#endif
 
 VkFormat drv3d_vulkan::get_default_depth_stencil_format(VulkanInstance &instance, VulkanPhysicalDeviceHandle device)
 {

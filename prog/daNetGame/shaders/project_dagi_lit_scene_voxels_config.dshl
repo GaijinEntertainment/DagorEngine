@@ -1,0 +1,14 @@
+macro PROJECT_DAGI_VOXEL_LIT_SCENE_ANISOTROPY(code)
+  hlsl(code) {
+    #include <dagi_lit_scene_voxels_consts.hlsli>
+    //fixme:
+    //!! DAGI_VOXEL_LIT_SCENE_ANISOTROPY should be defined only if it matches settings in cpp (anisotropy of voxels scene)
+    //!! otherwise keep it not defined (macro not implemented)
+
+    //this probably should be DAGI_VOXEL_LIT_SCENE_ANISOTROPY_ON for NextGen and DAGI_VOXEL_LIT_SCENE_ANISOTROPY_OFF on prevgen
+    //or DAGI_VOXEL_LIT_SCENE_ANISOTROPY_ON on gi_quality == screen_probes & DAGI_VOXEL_LIT_SCENE_ANISOTROPY_OFF otherwise
+    //should be tested!!!
+    //as for now, performance is slightly better with define (and settings are always on anyway)
+    #define DAGI_VOXEL_LIT_SCENE_ANISOTROPY DAGI_VOXEL_LIT_SCENE_ANISOTROPY_ON
+ }
+endmacro

@@ -1,0 +1,5 @@
+local R = prog/daNetGameLibs/package_physobj ;
+Sources +=
+  $(R)/dasModules/physObj.cpp
+  $(R)/_aot/stub_physobj.cpp
+;

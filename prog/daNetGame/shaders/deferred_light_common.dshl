@@ -1,0 +1,291 @@
+include "sky_shader_global.dshl"
+include "pbr.dshl"
+include "gbuffer.dshl"
+include "monteCarlo.dshl"
+include "roughToMip.dshl"
+
+include "ssr_use.dshl"
+include "ssr_inc.dshl"
+
+include "normaldetail.dshl"
+include "viewVecVS.dshl"
+include "clouds_vars.dshl"
+include "indoor_light_probes.dshl"
+include "vr_reprojection.dshl"
+include "custom_probe_inc.dshl"
+
+include "world_sdf.dshl"
+include "use_gi.dshl"
+include "rtr_use.dshl"
+
+int shadow_frame = 0;
+
+texture perlin_noise3d;
+
+float4 depth_bounds = float4(0, 1, 0, 0);
+float4 hero_cockpit_camera_to_point = (0, 0, 0, 0);
+
+macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
+  INIT_ZNZFAR_STAGE(code)
+  USE_ROUGH_TO_MIP()
+
+  /*INIT_UPSCALE_SAMPLING_BASE(code)
+  USE_UPSCALE_SAMPLING_BASE(code)
+  hlsl(code) {
+    #define SSR_UPSCALE_MODE SSR_UPSCALE_MISS_HIT_AWARE
+  }
+  USING_SSR_BASE(code)*/
+
+  INIT_VR_REPROJECTION(code)
+  USE_VR_REPROJECTION(code)
+
+  INIT_LOCAL_SPECULAR_BASE(code)
+
+  INIT_SKYLIGHT_PARAMS(code)
+  USE_SKYLIGHT_PARAMS(code)
+  INIT_SKY_DIFFUSE_BASE(code)
+  USE_SKY_DIFFUSE_BASE(code)
+  INIT_ENVI_SPECULAR_SAMPLE(code)
+  USE_ENVI_SPECULAR_SAMPLE(code)
+  USE_INDOOR_LIGHT_PROBES(code, false)
+  USE_CUSTOM_PROBE(code)
+  USE_HDR(code)
+  INIT_HDR(code)
+  USING_RTR(code)
+
+  (code) {
+    hero_cockpit_camera_to_point@f3 = hero_cockpit_camera_to_point;
+  }
+
+  if (gi_quality != off)
+  {
+    if (gi_quality == only_ao)
+    {
+      DAGI_SKY_VIS_SAMPLE(code)
+    } else if (gi_quality == colored)
+    {
+      hlsl {
+        #define DAGI_IRRADIANCE_GRID_TYPE DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE
+      }
+      DAGI_IRRADIANCE_GRID_SAMPLE(code)
+      DAGI_RAD_GRID_SAMPLE(code)
+    } else
+    {
+      SAMPLE_IRRADIANCE_SPECULAR_SP(code)
+    }
+
+    hlsl(code) {
+      #include <interleavedGradientNoise.hlsl>
+    }
+  }
+
+  hlsl(code) {
+      #include <diffuse_brdf.hlsl>
+      #include <specular_brdf.hlsl>
+
+##if gi_quality > off
+      #define HAS_AMBIENT_TARGET 1
+##endif
+
+      void ComputeDeferredLight(ProcessedGbuffer gbuffer, float3 worldPos, float rawDepth, float2 viewTexcoord, float2 viewPixcoord,
+                                float3 pointToEye, out float3 outSpecular, out float3 outAmbient)
+      {
+        ##if gi_quality != screen_probes
+        // this is incorrect even with other GI algorithms.
+        // we should not change worldPos, unles gun IS intersecting wall AT ALL
+        // but with screen_probes it becomes ugly (bilinear filtering is broken)
+        if (gbuffer.isHeroCockpit)
+          worldPos = world_view_pos.xyz + hero_cockpit_camera_to_point;
+        ##endif
+
+        float distSq = dot(pointToEye,pointToEye);
+        float invRsqrt = rsqrt(distSq);
+        float3 view  = pointToEye*invRsqrt;
+        float dist = rcp(invRsqrt);
+        float NdotV = dot(gbuffer.normal, view);
+        float saturated_NdotV = saturate(NdotV);
+        float3 reflectionVec = 2 * NdotV * gbuffer.normal - view;
+        float NoV = abs( NdotV ) + 1e-5;
+        float ggx_alpha = gbuffer.ggx_alpha;
+        float3 filteredWorldPos = worldPos;
+
+        const float3 noise_speed = float3(0.02,0.03,0.025);
+        const float noise_strength = 0.05;
+        float3 noise = 0;
+        if (gbuffer.isLandscape)
+        {
+          float3 noisePos = (worldPos + noise_speed * current_time);
+          noise = noise_strength*(1 - 2*tex3Dlod(perlin_noise3d, float4(noisePos, 0)).xyz);
+        }
+
+        float3 lightProbeReflectionVec = reflectionVec + noise;
+        float3 roughR = normalize(getRoughReflectionVec(lightProbeReflectionVec.xyz, gbuffer.normal, ggx_alpha));// we have to normalize it, as it is used for parallax in envi probes
+        //fixme:- whole calculation is not needed is linearRoughness < threshold
+        //is it faster to be branch...?
+        float roughMip = max(0,ComputeReflectionCaptureMipFromRoughness(gbuffer.linearRoughness));
+
+        float4 indoorRefl__localWeight = should_use_custom_probe(worldPos) ?
+          use_custom_probe(worldPos, roughR, roughMip) :
+          use_indoor_probes(worldPos, gbuffer.normal, roughR, roughMip, dist);
+
+        float3 enviProbe = 0;
+        BRANCH
+        if (indoorRefl__localWeight.w > 0)
+          enviProbe = sample_envi_probe(float4(roughR, roughMip)).rgb;
+        half3 environmentAmbientReflection = indoorRefl__localWeight.xyz + enviProbe * indoorRefl__localWeight.w;
+
+        #if HAS_AMBIENT_TARGET
+
+          float3 normal = gbuffer.normal;
+          float3 enviLightingNormal = normalize(getDiffuseDominantDir(normal, view, saturated_NdotV, ggx_alpha));
+
+          half3 enviLight = GetSkySHDiffuse(enviLightingNormal);
+          half3 ambient = enviLight;
+          half3 giSpecular = environmentAmbientReflection;
+          {
+            ambient = enviLight;
+            //fixme: to be measured! we probably should not sample enviProbes at all if smoothness is < threshold (since we don't use it!)
+            ##if gi_quality == screen_probes
+            {
+              sample_bilinear_specular_irradiance_with_normal(roughR, enviLightingNormal, linearize_z(rawDepth, zn_zfar.zw), worldPos, gbuffer.normal, viewPixcoord.xy, giSpecular, ambient);
+              #define HAS_SPECULAR 1
+              #define HAS_CONST_SPECULAR 1
+              #define HACK_SPECULAR_BRIGHTNESS 1
+              #define HACK_SPECULAR_BRIGHTNESS_LIMITED 1
+              #define HACK_ROUGH_SPECULAR_TO_IRRADIANCE 1
+            }
+            ##elif (gi_quality == colored)
+              float ofs = max(dist*0.04, 0.25*dagi_irrad_grid_probe_size(0));
+              float3 filteredWorldPos = worldPos + view*ofs;
+              dagi_irrad_grid_diffuse_biased_smooth(world_view_pos.xyz, filteredWorldPos, enviLightingNormal, view, max(0, dist-ofs), gbuffer.normal, interleavedGradientNoise( viewPixcoord.xy ), ambient);
+
+              bool HAS_SPECULAR = 0;
+              uint radGridCascade = dagi_rad_grid_get_best_enclosing_clip_border(worldPos, 0, 1);
+              if (radGridCascade < DAGI_MAX_RAD_GRID_CLIPS)
+              {
+                float probeSize = dagi_rad_grid_probe_size(radGridCascade);
+                float ofs = 0.5*sqrt(3)*probeSize;
+                float vOfs = min(dist, ofs);
+                float3 filtWorldPos = worldPos.xyz + ofs*gbuffer.normal + view*vOfs;
+                giSpecular = dagi_trilinear_sample_radiance_grid_cascade_unsafe(radGridCascade, roughR, filtWorldPos);
+                HAS_SPECULAR = 1;
+              }
+              #define HAS_CONST_SPECULAR 1
+              #define HACK_SPECULAR_BRIGHTNESS 1
+              #define HACK_ROUGH_SPECULAR_TO_IRRADIANCE 1
+              //ambient = volumetric_gi_calc_diffuse_uvw(input.texcoord.xy, 0.95*w, enviLightingNormal);
+            ##elif (gi_quality == only_ao)
+              float ofs = max(dist*0.04, 0.25*dagi_sky_vis_probe_size(0));
+              float3 filteredWorldPos = worldPos + view*ofs;
+              float4 sh1 = dagi_get_sky_visibility_smooth_sh1(world_view_pos.xyz, filteredWorldPos, view, max(0, dist-ofs), normal, interleavedGradientNoise( viewPixcoord.xy ) );
+              if (all(sh1 != 1))
+                ambient = GetSHFunctionValueSimple(enviLightingNormal, enviSPH0*sh1.wyzx, enviSPH1*sh1.wyzx, enviSPH2*sh1.wyzx);
+              #define HAS_SPECULAR 0
+              #define HACK_SPECULAR_BRIGHTNESS 1
+            ##endif
+            ambient *= skylight_gi_weight_atten;
+            giSpecular *= skylight_gi_weight_atten;
+            #if HAS_CONST_SPECULAR
+            if (HAS_SPECULAR)
+            {
+              //fixme: if ssr.a == 1, we shouldnt do all that (and it is happening on all smooth surfaces on high ssr quality
+              FLATTEN
+              if (gbuffer.linearRoughness < 0.5)
+              {
+                float blurredMip = 5;
+                float4 indoorRefl__localWeightBlurred = indoorRefl__localWeight;
+                half3 enviProbeBlurred = 0;
+                if (indoorRefl__localWeightBlurred.w < 0.99)//skip indoor probes sampling if we are not near them
+                {
+                  indoorRefl__localWeightBlurred = should_use_custom_probe(worldPos) ?
+                    use_custom_probe(worldPos, roughR, blurredMip) :
+                    use_indoor_probes(worldPos, gbuffer.normal, roughR, blurredMip, dist);
+                }
+                BRANCH
+                if (indoorRefl__localWeightBlurred.w > 0)
+                {
+                  enviProbeBlurred = sample_envi_probe(float4(roughR, blurredMip)).rgb;//fixme: we need preintegrated octahedral of same resolution!
+                  //enviProbeBlurred = tex2Dlod(dagi_octahedral_envi, float4(dagi_dir_oct_encode(roughR)*0.5 + 0.5, 0, 0)).xyz;
+                }
+                half3 environmentAmbientReflectionBlurred = indoorRefl__localWeightBlurred.xyz + enviProbeBlurred * indoorRefl__localWeightBlurred.w;
+                environmentAmbientReflectionBlurred = max(0, environmentAmbientReflectionBlurred);
+                float enviBlurredLuma = luminance(environmentAmbientReflectionBlurred), giSpecularLuma = luminance(giSpecular);
+                half3 adjustment = lerp(1, min(4, (1e-3 + giSpecular)/(1e-3 + environmentAmbientReflectionBlurred)), (saturate(0.25*max(giSpecularLuma, enviBlurredLuma)/(1e-3 + min(giSpecularLuma, enviBlurredLuma)) - 0.25)));
+
+                environmentAmbientReflection = lerp(giSpecular, environmentAmbientReflection*adjustment, 1 - gbuffer.linearRoughness*2);
+              } else
+                environmentAmbientReflection = giSpecular;
+            }
+            #endif
+            #if HACK_SPECULAR_BRIGHTNESS
+            {
+              //fixme: we can and probably should use sh1 for SkyVis and radiance grid for colored GI
+              //another (much faster) fake from Volumetric Global Illumination at Treyarch
+              float mipForTrick = gbuffer.linearRoughness*NUM_PROBE_MIPS;
+              float maximumSpecValue = max3(
+              ##if gi_quality == screen_probes
+                4.0,
+              ##else
+                1.26816,
+              ##endif
+                9.13681 * exp2( 6.85741 - 2 * mipForTrick ) * NdotV,
+                9.70809 * exp2( 7.085 - mipForTrick - 0.403181 * pow2(mipForTrick)) * NdotV );
+              maximumSpecValue = min(maximumSpecValue, 32);//to be removed with envi light probes in rooms
+              float3 adjustedMaxSpec = ambient * maximumSpecValue;
+              float3 reflection = environmentAmbientReflection * (adjustedMaxSpec / ( adjustedMaxSpec + environmentAmbientReflection + 0.001));//avoid nans
+              #if HACK_SPECULAR_BRIGHTNESS_LIMITED
+              //only apply hack to ratehr rough surfaces
+              const float maxRoughnessToUseRadianceHack = 0.8;
+              const float minRoughnessToUseIrradianceHack = 0.9;
+              const float roughnessToIrradianceHackA = rcp(minRoughnessToUseIrradianceHack - maxRoughnessToUseRadianceHack),
+                          roughnessToIrradianceHackB = -maxRoughnessToUseRadianceHack*roughnessToIrradianceHackA;
+              environmentAmbientReflection = lerp(environmentAmbientReflection, reflection, saturate(gbuffer.linearRoughness*roughnessToIrradianceHackA + roughnessToIrradianceHackB));
+              #else
+              environmentAmbientReflection = reflection;
+              #endif
+            }
+            #endif
+            #if HACK_ROUGH_SPECULAR_TO_IRRADIANCE
+              const float maxRoughnessToUseRadiance = 0.95;
+              const float minRoughnessToUseIrradiance = 0.99;
+              //todo: do not even sample radiance from probes on pixels where roughness >= minRoughnessToUseIrradiance, or roughness < use_smooth_specular_roughness
+              const float roughnessToIrradianceA = rcp(minRoughnessToUseIrradiance - maxRoughnessToUseRadiance),
+                          roughnessToIrradianceB = -maxRoughnessToUseRadiance*roughnessToIrradianceA;
+              environmentAmbientReflection = lerp(environmentAmbientReflection, ambient, saturate(gbuffer.linearRoughness*roughnessToIrradianceA + roughnessToIrradianceB));
+            #endif
+          }
+          float exposureScale = 1;
+
+          outAmbient = ambient;
+        #else
+          outAmbient = float3(0, 0, 0);
+        #endif
+
+        half3 totalReflection = environmentAmbientReflection;
+
+        /*#if HAS_RTR
+          // TODO make a variant for this to avoid calculating with SSR at all
+          if (isRTREnabled())
+          {
+            totalReflection = getRTR(viewPixcoord.xy);
+          }
+          else
+        #endif
+          {
+            half4 ssrReflections = getSSR(gbuffer.linearRoughness, vr_reproject(viewTexcoord, rawDepth), viewPixcoord);
+            half enviSSR = (1-ssrReflections.a);
+
+            half specularAOcclusion = 1;//?
+            float hmapCoverage = 1;
+              //BRANCH
+              //if (enviSSR > 0)// this branch makes it slower..
+            {
+              totalReflection = enviSSR*environmentAmbientReflection+ssrReflections.rgb;//enviBRDF is multiplied in source shader
+            }
+          }
+        */
+        outSpecular = pack_hdr(totalReflection);
+        outAmbient = pack_hdr(outAmbient);
+      }
+  }
+endmacro

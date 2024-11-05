@@ -1,19 +1,16 @@
-WARNING: w288 (param-count) Function '(w288.nut:2)' is called with the wrong number of parameters.
-testData/static_analyzer/w288.nut:5:7
+WARNING: w288 (param-count) Function '(w288.nut:5)' (2..2147483647 parameters) is called with the wrong number of arguments (1).
+testData/static_analyzer/w288.nut:8:7
 
 local b = 1;
 return fn(b);
        ^----
 
 
+HINT: h314 (see-other) You can find the function here.
+testData/static_analyzer/w288.nut:5:11
 
-AN ERROR HAS OCCURRED [wrong number of parameters passed to '(w288.nut:2)' testData/static_analyzer/w288.nut:2 (2 passed, at least 3 required)]
+//expect:w288
+local fn = function (aaa_x, bbb, ...) {return aaa_x + bbb}
+           ^
 
-CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w288.nut line [5]
 
-LOCALS
-[b] 1
-[fn] CLOSURE=FN:(w288.nut:2)
-[vargv] ARRAY=[]
-[this] TABLE={}

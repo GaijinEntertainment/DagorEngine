@@ -1,9 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <generic/dag_fixedVectorMap.h>
+#include <shaders/dag_overrideStates.h>
 
-#include <render/daBfg/bfg.h>
-#include <render/daBfg/externalResources.h>
+#include <render/daBfg/detail/bfg.h>
 
 #include <common/autoResolutionData.h>
 #include <common/bindingType.h>
@@ -37,6 +38,14 @@ struct VirtualSubresourceRef
   uint32_t layer = 0;
 };
 
+struct DynamicPassParameter
+{
+  ResNameId resource = ResNameId::Invalid;
+
+  ResourceSubtypeTag projectedTag = ResourceSubtypeTag::Invalid;
+  detail::TypeErasedProjector projector = +[](const void *data) { return data; };
+};
+
 struct VirtualPassRequirements
 {
   // Also known as "multiple render targets" -- correspond to pixel
@@ -44,6 +53,11 @@ struct VirtualPassRequirements
   dag::RelocatableFixedVector<VirtualSubresourceRef, 8> colorAttachments;
   VirtualSubresourceRef depthAttachment;
   bool depthReadOnly = true;
+  dag::FixedVectorMap<ResNameId, eastl::variant<ResourceClearValue, DynamicPassParameter>, 9> clears;
+  // Mapping of a color/depth attachment to a resource that they should
+  // be (MSAA) resolved to
+  dag::FixedVectorMap<ResNameId, ResNameId, 2> resolves;
+  VirtualSubresourceRef vrsRateAttachment;
 };
 
 struct ShaderBlockLayersInfo
@@ -55,11 +69,10 @@ struct ShaderBlockLayersInfo
 
 struct VrsStateRequirements
 {
-  uint32_t rateX;
-  uint32_t rateY;
-  ResNameId rateTextureResId;
-  VariableRateShadingCombiner vertexCombiner;
-  VariableRateShadingCombiner pixelCombiner;
+  uint32_t rateX = 1;
+  uint32_t rateY = 1;
+  VariableRateShadingCombiner vertexCombiner = VariableRateShadingCombiner::VRS_PASSTHROUGH;
+  VariableRateShadingCombiner pixelCombiner = VariableRateShadingCombiner::VRS_PASSTHROUGH;
 };
 
 struct NodeStateRequirements
@@ -69,7 +82,7 @@ struct NodeStateRequirements
   bool supportsWireframe = false;
 
   // Toggles VRS
-  eastl::optional<VrsStateRequirements> vrsState = {};
+  VrsStateRequirements vrsState = {};
 
   // Toggles C++ overrides for rendering pipeline state
   // (which is usually configured in dagor shader code)
@@ -95,6 +108,7 @@ struct NodeData
   SideEffects sideEffect = SideEffects::Internal;
   // For debug purposes only
   bool enabled = true;
+  bool allowAsyncPipelines = false;
 
   // Keeps track of how many times the node was recreated
   uint16_t generation{0};
@@ -129,11 +143,19 @@ struct NodeData
   BindingsMap bindings;
   ShaderBlockLayersInfo shaderBlockLayers;
 
+#if DAGOR_DBGLEVEL > 0
+  uint32_t dapToken = 0;
+#endif
+
   // For debug purposes only. Source location where this node was defined.
   eastl::string nodeSource;
 };
 
-using ResourceCreationInfo = eastl::variant<eastl::monostate, ResourceDescription, BlobDescription, ExternalResourceProvider>;
+struct DriverDeferredTexture
+{};
+
+using ResourceCreationInfo =
+  eastl::variant<eastl::monostate, ResourceDescription, BlobDescription, ExternalResourceProvider, DriverDeferredTexture>;
 
 struct ResourceData
 {
@@ -143,10 +165,19 @@ struct ResourceData
   History history = History::No;
 };
 
-struct AutoResType
+template <class T>
+struct ResolutionValues
 {
-  IPoint2 staticResolution{};
-  IPoint2 dynamicResolution{};
+  T staticResolution{};
+  T dynamicResolution{};
+  T lastAppliedDynamicResolution{};
+};
+
+struct AutoResTypeData
+{
+  // Initially is monostate, then switches to 3d or 2d ONCE and is not
+  // allowed to be changed again (use different names instead).
+  eastl::variant<eastl::monostate, ResolutionValues<IPoint2>, ResolutionValues<IPoint3>> values;
   // This counts down the frames we need to fully change the dynamic resolution.
   // Only non-history physical resources are resized on each frame, so 2 are needed
   // to change everything.
@@ -165,7 +196,7 @@ struct InternalRegistry
 
   IdIndexedMapping<ResNameId, ResourceData> resources;
   IdIndexedMapping<NodeNameId, NodeData> nodes;
-  IdIndexedMapping<AutoResTypeNameId, AutoResType> autoResTypes;
+  IdIndexedMapping<AutoResTypeNameId, AutoResTypeData> autoResTypes;
   IdIndexedMapping<ResNameId, eastl::optional<SlotData>> resourceSlots;
 
   // Set of external resources that are considered to be sinks and are

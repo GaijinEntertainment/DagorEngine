@@ -1,0 +1,30 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = volfog_mask ;
+Location = prog/daNetGameLibs/$(Module) ;
+local DasModule = daNetGameLibs_volfog_mask_DAS_pull_AOT ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+;
+
+local AllSrcFolder_ES = ;
+local AllSrcFolder_CPP = ;
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_CPP +=
+    dasModules
+  ;
+  AllSrcFolder_DAS +=
+    test
+  ;
+  AllSrcFolder_ES +=
+    render
+  ;
+}
+
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

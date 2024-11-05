@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <memoryProfiler/dag_memoryStat.h>
 
 #if MEM_STAT_ENABLED

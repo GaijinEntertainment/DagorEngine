@@ -1,0 +1,237 @@
+int4 dagi_media_scene_clipmap_sizei;
+int4 dagi_media_scene_clipmap_sizei_np2;
+int4 dagi_media_scene_update_lt_coord;
+int4 dagi_media_scene_update_sz_coord;
+int4 dagi_media_scene_clipmap_lt_coord_0;
+int4 dagi_media_scene_clipmap_lt_coord_1;
+int4 dagi_media_scene_clipmap_lt_coord_2;
+int4 dagi_media_scene_clipmap_lt_coord_3;
+float4 dagi_media_scene_atlas_decode;
+
+texture dagi_media_scene;
+
+macro DAGI_MEDIA_SCENE_CLIPMAP_MATH(code)
+  (code) {
+    dagi_media_scene_clipmap_sizei@i4 = dagi_media_scene_clipmap_sizei;
+    dagi_media_scene_clipmap_sizei_np2@i4 = dagi_media_scene_clipmap_sizei_np2;
+    dagi_media_scene_clipmap_lt_coord@i4[] = {dagi_media_scene_clipmap_lt_coord_0, dagi_media_scene_clipmap_lt_coord_1, dagi_media_scene_clipmap_lt_coord_2, dagi_media_scene_clipmap_lt_coord_3};
+  }
+  hlsl (code) {
+    #include "dagi_media_scene.hlsli"
+    uint2 dagi_media_scene_get_clip_size() {return uint2(dagi_media_scene_clipmap_sizei.xy);}
+    uint dagi_media_scene_get_clip_count() {return dagi_media_scene_clipmap_sizei.z;}
+    uint dagi_media_scene_get_clip_size_with_border() {return dagi_media_scene_clipmap_sizei.w;}
+
+    #define sample_dagi_media_scene_clipmap_lt_coord(clip) _sample_dagi_media_scene_clipmap_lt_coord(clip, _FILE_, __LINE__)
+    int4 _sample_dagi_media_scene_clipmap_lt_coord(uint clip, int file, int ln)
+    {
+      // 4 is hardcoded currently. TODO: support array size in preshader for such checks.
+      ##assert(clip < 4, "[%s:%.f] Out of bounds: Buffer 'dagi_media_scene_clipmap_lt_coord' has size 4, but access to (%.f)", file, ln, clip);
+      return dagi_media_scene_clipmap_lt_coord[clip];
+    }
+
+    int3 dagi_media_scene_abs_coord_lt(uint clip) {return sample_dagi_media_scene_clipmap_lt_coord(clip).xyz;}
+    float dagi_media_scene_voxel_size(uint clip) {return asfloat(sample_dagi_media_scene_clipmap_lt_coord(clip).w);}
+
+    float3 dagi_media_scene_world_pos_to_abs_coord(float3 worldPos, uint clip)
+    {
+      return worldPos.xzy/dagi_media_scene_voxel_size(clip);
+    }
+
+    uint3 dagi_media_scene_wrapped_coord_from_abs_coord(int3 abs_coord)
+    {
+      #if DAGI_MEDIA_SCENE_ALLOW_NON_POW2
+      //non-pow2
+      return uint3(dagi_media_scene_clipmap_sizei_np2.zzw + abs_coord)%uint3(dagi_media_scene_clipmap_sizei_np2.xxy);
+      #endif
+      //pow2
+      return uint3(abs_coord)%dagi_media_scene_get_clip_size().xxy;
+    }
+
+    int3 dagi_media_scene_abs_coord_from_wrapped_coord(uint3 wrapped, int3 clip_lt)
+    {
+      #if DAGI_MEDIA_SCENE_ALLOW_NON_POW2
+      //non-pow2
+      return clip_lt + int3(uint3(int3(wrapped) - clip_lt.xyz + dagi_media_scene_clipmap_sizei_np2.zzw)%uint3(dagi_media_scene_clipmap_sizei_np2.xxy));
+      #endif
+      //pow2
+      return clip_lt + int3(uint3(int3(wrapped) - clip_lt.xyz)%dagi_media_scene_get_clip_size().xxy);
+    }
+
+    int3 dagi_media_scene_abs_coord_from_wrapped_coord(uint3 wrapped, uint clip)
+    {
+      return dagi_media_scene_abs_coord_from_wrapped_coord(wrapped, sample_dagi_media_scene_clipmap_lt_coord(clip).xyz);
+    }
+
+    uint dagi_media_scene_get_best_enclosing_clip(float3 worldPos, uint start = 0)
+    {
+      uint i = start;
+      LOOP
+      do {
+        int4 lt = sample_dagi_media_scene_clipmap_lt_coord(i);
+        float3 coordF = worldPos.xzy/asfloat(lt.w);
+        int3 coord = floor(coordF);
+        if (all(uint3(coord - lt.xyz) < dagi_media_scene_get_clip_size().xxy))
+          return i;
+        ++i;// moving that to while () causes invalid sahder compilation on dx11
+      } while (i < dagi_media_scene_get_clip_count());
+      return DAGI_MAX_MEDIA_SCENE_CLIPS;
+    }
+    uint dagi_media_scene_ray_get_best_enclosing_clip(float3 worldPos, float rayDist, uint start = 0)
+    {
+      uint i = start;
+      LOOP
+      do {
+        int4 lt = sample_dagi_media_scene_clipmap_lt_coord(i);
+        float3 coordF = worldPos.xzy/asfloat(lt.w);
+        int3 coord = floor(coordF);
+        if (all(uint3(coord - lt.xyz) < uint3(dagi_media_scene_get_clip_size().xxy - rayDist/asfloat(lt.w))))
+          return i;
+        ++i;// moving that to while () causes invalid sahder compilation on dx11
+      } while (i < dagi_media_scene_get_clip_count());
+      return DAGI_MAX_MEDIA_SCENE_CLIPS;
+    }
+  }
+endmacro
+
+
+macro DAGI_MEDIA_SCENE_SRV(code)
+  (code) {
+    dagi_media_scene@smp3d = dagi_media_scene;
+  }
+endmacro
+
+macro DAGI_MEDIA_SCENE_ATLAS(code)
+  (code) {
+    dagi_media_scene_atlas_decode@f3 = dagi_media_scene_atlas_decode;
+  }
+  hlsl(code) {
+    float3 dagi_get_media_scene_wrapped_tc_from_clamped_world_coord(float3 coordF, uint clip)
+    {
+      int4 lt = sample_dagi_media_scene_clipmap_lt_coord(clip);
+      coordF = clamp(coordF, lt.xyz, lt.xyz + dagi_media_scene_get_clip_size().xxy);
+      float3 worldTc = coordF/dagi_media_scene_get_clip_size().xxy;
+      worldTc.z = frac(worldTc.z)*dagi_media_scene_atlas_decode.x + clip*dagi_media_scene_atlas_decode.y + dagi_media_scene_atlas_decode.z;
+      return worldTc;
+    }
+    float3 dagi_get_media_scene_wrapped_tc_from_clamped_world_pos(float3 worldPos, uint clip)
+    {
+      return dagi_get_media_scene_wrapped_tc_from_clamped_world_coord(dagi_media_scene_world_pos_to_abs_coord(worldPos, clip), clip);
+    }
+    float3 dagi_get_media_scene_wrapped_tc(float3 worldPos, uint clip)
+    {
+      float3 worldTc = worldPos.xzy/(dagi_media_scene_voxel_size(clip)*dagi_media_scene_get_clip_size().xxy);
+      worldTc.z = frac(worldTc.z)*dagi_media_scene_atlas_decode.x + clip*dagi_media_scene_atlas_decode.y + dagi_media_scene_atlas_decode.z;
+      return worldTc;
+    }
+  }
+endmacro
+
+macro DAGI_MEDIA_SCENE_SAMPLE_ON_NO_SRV(code)
+  DAGI_MEDIA_SCENE_CLIPMAP_MATH(code)
+  DAGI_MEDIA_SCENE_ATLAS(code)
+  hlsl(code) {
+    //#define DAGI_MEDIA_OVERDARKEN 1
+    half4 dagi_get_media_scene(float3 worldPos)
+    {
+      uint clip = dagi_media_scene_get_best_enclosing_clip(worldPos, 0);
+      if (clip >= DAGI_MAX_MEDIA_SCENE_CLIPS)
+        return 0;
+      return tex3Dlod(dagi_media_scene, float4(dagi_get_media_scene_wrapped_tc(worldPos, clip),0));
+    }
+    void dagi_trace_media_scene_cascade_unsafe(uint cascade, float voxelSize, float3 worldPos, float3 rayDir, float maxT, inout half4 light_transmittance)
+    {
+      uint steps = ceil(maxT/voxelSize);
+      float delta = -maxT/steps;//negative step size in meters
+      float3 invCascadeSizeMeters = rcp(voxelSize*dagi_media_scene_get_clip_size().xyx);
+      float3 stepTc = delta*(rayDir*invCascadeSizeMeters).xzy;
+      float3 startTc = (worldPos*invCascadeSizeMeters).xzy - 0.5*stepTc;//half step ofs
+
+      float2 cascadeZ = float2(dagi_media_scene_atlas_decode.x, cascade*dagi_media_scene_atlas_decode.y + dagi_media_scene_atlas_decode.z);
+      for (uint i = 0; i < steps; ++i)
+      {
+        half4 media = tex3Dlod(dagi_media_scene, float4(startTc.xy, frac(startTc.z)*cascadeZ.x + cascadeZ.y,0));
+        float3 S = media.xyz;// incoming light
+        #if DAGI_MEDIA_OVERDARKEN
+        light_transmittance.w *= exp2(media.w * delta);
+        light_transmittance.rgb += media.rgb * light_transmittance.w;
+        #else
+        float sigmaE = max(1e-6, media.w);
+        float stepTransmittance = exp2(sigmaE * delta);
+        float3 Sint = (S - S * stepTransmittance) / sigmaE;   // integrate along the current step segment
+        light_transmittance.rgb += light_transmittance.w * Sint; // accumulate and also take into account the transmittance from previous steps
+        light_transmittance.w *= stepTransmittance;
+        #endif
+        startTc -= stepTc;
+      }
+    }
+    #include <ray_box_intersect.hlsl>
+    float2 dagi_trace_media_scene_cascade_box(int3 lt, float voxelSize, float3 wpos, float3 wdir)
+    {
+      float3 boxExt = 0.5*voxelSize*dagi_media_scene_get_clip_size().xyx;
+      float3 boxO = lt.xzy*voxelSize + boxExt;
+      return rayBoxIntersect(boxExt, wpos - boxO, wdir);
+    }
+
+    half4 dagi_trace_media_scene(float3 worldPos, float3 rayDir, float maxT)
+    {
+      if (dagi_media_scene_get_clip_count() == 0)
+        return half4(0,0,0,1);
+      half4 light_transmittance = half4(0,0,0,1);
+      for (uint cascade = dagi_media_scene_get_best_enclosing_clip(worldPos);
+                cascade < dagi_media_scene_get_clip_count();
+                ++cascade)
+      {
+        int4 lt = sample_dagi_media_scene_clipmap_lt_coord(cascade);
+        float voxelSize = asfloat(lt.w);
+        float2 startEnd = dagi_trace_media_scene_cascade_box(lt.xyz, voxelSize, worldPos, rayDir);
+        if (startEnd.y <= startEnd.x || startEnd.x > 0)
+          continue;
+        float till = min(startEnd.y, maxT);
+        dagi_trace_media_scene_cascade_unsafe(cascade, asfloat(lt.w), worldPos, rayDir, till, light_transmittance);
+        maxT -= till;
+        if (maxT <= 0 || light_transmittance.w < 1e-6)
+          break;
+        worldPos = worldPos + rayDir*till;
+      }
+      return light_transmittance;
+    }
+
+    void dagi_trace_media_scene_short_apply(float3 worldPos, float3 rayDir, float maxT, inout half3 radiance)
+    {
+      if (dagi_media_scene_get_clip_count() == 0)
+        return;
+      uint cascade = dagi_media_scene_ray_get_best_enclosing_clip(worldPos, maxT);//in any direction, to ensure no divergence between threads
+      if (cascade >= dagi_media_scene_get_clip_count())
+        return;
+      half4 light_transmittance = half4(0,0,0,1);
+      dagi_trace_media_scene_cascade_unsafe(cascade, dagi_media_scene_voxel_size(cascade), worldPos, rayDir, maxT, light_transmittance);
+      radiance = radiance.xyz*light_transmittance.w + light_transmittance.xyz;
+    }
+  }
+endmacro
+
+macro DAGI_MEDIA_SCENE_SAMPLE_ON(code)
+  DAGI_MEDIA_SCENE_SRV(code)
+  DAGI_MEDIA_SCENE_SAMPLE_ON_NO_SRV(code)
+endmacro
+
+macro DAGI_MEDIA_SCENE_SAMPLE_OFF(code)//if we know that project doesn't have media always
+  hlsl(code) {
+    half4 dagi_get_media_scene(float3 worldPos) { return 0; }
+    half4 dagi_trace_media_scene(float3 worldPos, float3 rayDir, float maxT) { return half4(0,0,0,1); }
+    void dagi_trace_media_scene_short_apply(float3 worldPos, float3 rayDir, float maxT, inout half3) {}
+  }
+endmacro
+
+macro DAGI_MEDIA_SCENE_SAMPLE(code)
+  DAGI_MEDIA_SCENE_SAMPLE_ON(code)
+endmacro
+
+macro DAGI_MEDIA_SCENE_UAV(code)
+  (code) {
+    dagi_media_scene@uav = dagi_media_scene hlsl {
+      RWTexture3D<float4> dagi_media_scene@uav;
+    };
+  }
+endmacro

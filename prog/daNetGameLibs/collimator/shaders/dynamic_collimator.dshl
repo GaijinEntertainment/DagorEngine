@@ -1,0 +1,339 @@
+include "dynamic_trans_inc.dshl"
+
+float4 collimator_color_multiplier = (2.5, 1.5, 0.5, 0.);
+
+float4 collimator_u = (1, 0, 0, 1);
+float4 collimator_v = (0, 1, 0, 1);
+float4 gyro_sight_u = (0, 0, 0, 0);
+float4 gyro_sight_v = (0, 0, 0, 0);
+
+shader dynamic_collimator
+{
+  ENABLE_ASSERT(ps)
+  DYNAMIC_BLOCK_TRANS()
+  texture tex = material.texture.diffuse;
+  render_trans;
+  z_write = false;
+
+
+  blend_src = 1; blend_dst=isa;
+
+//---------------------------------------------------
+// PS stuff.
+//---------------------------------------------------
+
+  USE_HDR(ps)
+  INIT_NO_SKINNING()
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    dont_render;
+  }
+  SUPPORT_MULTIDRAW(false)
+  (ps){ diffuse_tex@static = tex; }
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+
+
+  channel float3 pos=pos;
+  channel color8 norm=norm unsigned_pack;
+  channel short2 tc[0]=tc[0] mul_4k;
+
+
+  USE_DIFFUSE_TC()
+
+  hlsl {
+
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2  diffuseTexcoord : TEXCOORD0;
+      float4 CSP : TEXCOORD3;
+      float3 pointToEye                       : TEXCOORD6;
+      float3 normal                           : TEXCOORD7;
+      #if SET_UP_MULTIDRAW
+      VSOUT_DRAW_ID
+      #endif
+    };
+  }
+
+
+//---------------------------------------------------
+// VS stuff.
+//---------------------------------------------------
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float3 pos                  : POSITION;   // W defaults to 1.
+      float4 normal               : NORMAL;
+      int2  diffuseTexcoord      : TEXCOORD0;
+    };
+  }
+
+  DECL_POSTFX_TC_VS_RT()
+  USE_FLOAT_POS_PACKING()
+  NO_SKINNING_VS()
+
+  hlsl(vs) {
+    VsOutput dynamic_simple_vs(VsInput input HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(get_draw_id() & MATERIAL_OFFSET_MASK);
+      #endif
+
+      // unpack positions using dynmodel bbox
+      input.pos.xyz = unpack_pos(input.pos);
+
+      // unpack texcoord0
+      float2 diffuseTexcoord = input.diffuseTexcoord / 4096.;
+
+      // Skinning.
+
+      float3 eyeToPoint;
+      float3 worldDu;
+      float3 worldDv;
+      float3 worldNormal;
+      float3 localNormal = normalize(input.normal.xyz);
+
+      float3 localDu = float3(1,0,0), localDv = float3(1,0,0);
+      instance_skinning(
+        input,
+        input.pos,
+        localNormal,
+        localDu,
+        localDv,
+        eyeToPoint,
+        output.pos,
+        worldNormal,
+        worldDu,
+        worldDv);
+      //to be removed
+
+      float4 unpackedOutputPos = output.pos;
+      worldNormal = normalize(worldNormal);
+
+      output.diffuseTexcoord.xy = diffuseTexcoord;
+      output.CSP = output.pos;
+      output.pointToEye.xyz = -eyeToPoint;
+      output.normal.xyz = worldNormal;
+
+      return output;
+    }
+  }
+  compile("target_vs", "dynamic_simple_vs");
+
+  hlsl(ps) {
+
+    float4 dynamic_simple_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    {
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(input);
+        SET_DRAW_CALL_ID(GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK);
+      #endif
+
+      float4 scrpos = GET_SCREEN_POS(input.pos);
+      half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy);
+      diffuseColor.rgb*=diffuseColor.a;//sa isa blending
+      float3 scaleX = ddx(input.pointToEye.xyz);
+      float3 scaleY = ddy(input.pointToEye.xyz);
+      float3 geomNormal = normalize(cross(scaleX, scaleY));
+      float3 collimatorCoord;
+      collimatorCoord = mulPointTm(float3(- input.pointToEye.xyz - geomNormal*50), viewProjectionMatrixNoOfs).xyw;
+
+      float2 ofs = collimatorCoord.xy/collimatorCoord.z - input.CSP.xy/input.CSP.w;
+      float dist = dot(ofs, ofs);
+      float scale = max(dot(scaleX, scaleX), dot(scaleY, scaleY))+1.e-6f;
+      diffuseColor.r += (collimatorCoord.z > 0 && input.CSP.w>0) ? 3*(1-pow16(saturate(dist*scale*pow2(262144))))*(1-diffuseColor.a) : 0;
+      return float4(pack_hdr(diffuseColor.rgb), diffuseColor.a);
+    }
+  }
+  compile("target_ps", "dynamic_simple_ps");
+}
+
+shader collimator, gyro_sight {
+  ENABLE_ASSERT(ps)
+  DYNAMIC_BLOCK_TRANS()
+  supports global_const_block;
+
+  texture collimator_tex = material.texture[1];
+
+  if (shader == gyro_sight)
+  {
+    texture gyro_sight_tex = material.texture[2];
+  }
+
+  render_trans;
+  z_write = false;
+  USE_ATEST_1()
+
+  blend_src = sa; blend_dst = one;
+  blend_asrc = zero; blend_adst = one;
+
+//---------------------------------------------------
+// PS stuff.
+//---------------------------------------------------
+
+  USE_HDR(ps)
+  INIT_NO_SKINNING()
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    dont_render;
+  }
+  SUPPORT_MULTIDRAW(false)
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+
+
+  channel float3 pos=pos;
+  channel color8 norm=norm unsigned_pack;
+  channel short2 tc[0]=tc[0] mul_4k;
+
+
+  USE_DIFFUSE_TC()
+
+  hlsl {
+    struct VsOutput {
+      VS_OUT_POSITION(pos)
+      float3 normal                           : TEXCOORD0;
+      float2 diffuseTexcoord                  : TEXCOORD1;
+      float3 pointToEye                       : TEXCOORD2;
+      float4 collimatorTexcoord               : TEXCOORD3;
+##if shader == gyro_sight
+      float4 gyroSightTexcoord                : TEXCOORD4;
+##endif
+      #if SET_UP_MULTIDRAW
+      VSOUT_DRAW_ID
+      #endif
+    };
+  }
+
+
+//---------------------------------------------------
+// VS stuff.
+//---------------------------------------------------
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float3 pos                  : POSITION;   // W defaults to 1.
+      float4 normal               : NORMAL;
+      int2  diffuseTexcoord      : TEXCOORD0;
+    };
+  }
+
+  if (shader == collimator)
+  {
+    (vs) {
+      collimator_u@f4 = collimator_u;
+      collimator_v@f4 = collimator_v;
+    }
+  }
+  else
+  {
+    (vs) {
+      collimator_u@f4 = collimator_u;
+      collimator_v@f4 = collimator_v;
+      gyro_sight_u@f4 = gyro_sight_u;
+      gyro_sight_v@f4 = gyro_sight_v;
+    }
+  }
+
+  DECL_POSTFX_TC_VS_RT()
+  USE_FLOAT_POS_PACKING()
+  NO_SKINNING_VS()
+
+  hlsl(vs) {
+    VsOutput dynamic_simple_vs(VsInput input HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(get_draw_id() & MATERIAL_OFFSET_MASK);
+      #endif
+
+      // unpack positions using dynmodel bbox
+      input.pos.xyz = unpack_pos(input.pos);
+
+      // unpack texcoord0
+      float2 diffuseTexcoord = input.diffuseTexcoord / 4096.;
+
+      // Skinning.
+
+      float3 eyeToPoint;
+      float3 worldDu;
+      float3 worldDv;
+      float3 worldNormal;
+      float3 localNormal = normalize(input.normal.xyz);
+
+      float3 localDu = float3(1,0,0), localDv = float3(1,0,0);
+      instance_skinning(
+        input,
+        input.pos,
+        localNormal,
+        localDu,
+        localDv,
+        eyeToPoint,
+        output.pos,
+        worldNormal,
+        worldDu,
+        worldDv);
+      //to be removed
+
+      float4 unpackedOutputPos = output.pos;
+
+      output.diffuseTexcoord.xy = diffuseTexcoord;
+      output.collimatorTexcoord = float4(
+        dot(unpackedOutputPos, collimator_u),
+        dot(unpackedOutputPos, collimator_v),
+        unpackedOutputPos.zw);
+##if shader == gyro_sight
+      output.gyroSightTexcoord = float4(
+        dot(unpackedOutputPos, gyro_sight_u),
+        dot(unpackedOutputPos, gyro_sight_v),
+        unpackedOutputPos.zw);
+##endif
+      return output;
+    }
+  }
+  compile("target_vs", "dynamic_simple_vs");
+
+  if (shader == gyro_sight)
+  {
+    (ps) { gyro_sight_tex@static = gyro_sight_tex; }
+  }
+
+  (ps) {
+    collimator_tex@static = collimator_tex;
+    // brightness function with clamping between 0.05 and 1 like in WT from dag_color.h
+    // sRGB to intensity with NTSC Weights: r=.299 g=.587 b=.114
+    collimator_lighting_intensity@f1 = max(0.05, min(1.0, (sun_color_0.x * 0.299 + sun_color_0.y * 0.587 + sun_color_0.z * 0.114) + 2.0 * (sky_color.x * 0.299 + sky_color.y * 0.587 + sky_color.z * 0.114)));
+    collimator_color_multiplier@f4 = (collimator_color_multiplier);
+  }
+
+  hlsl(ps) {
+
+    float4 dynamic_simple_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    {
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(input);
+        SET_DRAW_CALL_ID(GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK);
+      #endif
+
+      half alpha = tex2DBindless(get_collimator_tex(), input.diffuseTexcoord.xy).a;
+      clip_alpha(alpha);
+      half3 color = tex2DprojBindless(get_collimator_tex(), input.collimatorTexcoord).rgb;
+##if shader == gyro_sight
+      color += tex2DprojBindless(get_gyro_sight_tex(), input.gyroSightTexcoord).rgb;
+##endif
+      color.rgb = pack_hdr(pow(color, 1 / (1 + collimator_lighting_intensity)) * collimator_color_multiplier.rgb);
+      return float4(color, alpha);
+    }
+  }
+  compile("target_ps", "dynamic_simple_ps");
+}

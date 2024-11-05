@@ -1,11 +1,20 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <rendInst/impostorTextureMgr.h>
 #include "render/genRender.h"
 #include "riGen/riRotationPalette.h"
 
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
-#include <3d/dag_drv3dConsts.h>
-#include <3d/dag_drvDecl.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_renderPass.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_consts.h>
 #include <math/dag_TMatrix4.h>
 #include <math/dag_e3dColor.h>
 #include <math/dag_mathBase.h>
@@ -28,21 +37,22 @@
 static int globalFrameBlockId = -1;
 static int rendinstSceneBlockId = -1;
 
-#define GLOBAL_VARS_LIST
+#define GLOBAL_VARS_LIST VAR(treeCrown_buf_slot)
 
-#define GLOBAL_OPTIONAL_VARS_LIST \
-  VAR(impostor_bounding_sphere)   \
-  VAR(impostor_shadow_texture)    \
-  VAR(impostor_data_offset)       \
-  VAR(rendinst_render_pass)       \
-  VAR(impostor_atlas_mask)        \
-  VAR(impostor_shadow_x)          \
-  VAR(impostor_shadow_y)          \
-  VAR(impostor_shadow_z)          \
-  VAR(impostor_options)           \
-  VAR(impostor_shadow)            \
-  VAR(impostor_scale)             \
-  VAR(impostor_slice)             \
+#define GLOBAL_OPTIONAL_VARS_LIST       \
+  VAR(impostor_bounding_sphere)         \
+  VAR(impostor_shadow_texture)          \
+  VAR(impostor_data_offset)             \
+  VAR(rendinst_render_pass)             \
+  VAR(impostor_atlas_mask)              \
+  VAR(impostor_atlas_mask_samplerstate) \
+  VAR(impostor_shadow_x)                \
+  VAR(impostor_shadow_y)                \
+  VAR(impostor_shadow_z)                \
+  VAR(impostor_options)                 \
+  VAR(impostor_shadow)                  \
+  VAR(impostor_scale)                   \
+  VAR(impostor_slice)                   \
   VAR(texture_size)
 
 #define VAR(a) static int a##VarId = -1;
@@ -103,6 +113,8 @@ ImpostorTextureManager::ImpostorTextureManager()
 #define VAR(a) a##VarId = get_shader_variable_id(#a, true);
   GLOBAL_OPTIONAL_VARS_LIST
 #undef VAR
+
+  treeCrownBufSlot = ShaderGlobal::get_int(treeCrown_buf_slotVarId);
 
   ::init_rendinst_impostor_shader();
 
@@ -185,6 +197,7 @@ ImpostorTextureManager::GenerationData ImpostorTextureManager::load_data(const D
   genData.rotationPaletteSize = blk->getInt("rotationPaletteSize", genData.rotationPaletteSize);
   genData.tiltLimit = blk->getPoint3("tiltLimit", genData.tiltLimit * RAD_TO_DEG) * DEG_TO_RAD;
   genData.preshadowEnabled = blk->getBool("preshadowEnabled", default_preshadows_enabled);
+  genData.bottomGradient = blk->getReal("bottomGradient", genData.bottomGradient);
   genData.mipOffsets_hq_mq_lq = blk->getIPoint3("mipOffsets_hq_mq_lq", default_mip_offsets_hq_mq_lq);
   genData.mobileMipOffsets_hq_mq_lq = blk->getIPoint3("mobileMipOffsets_hq_mq_lq", default_mobile_mip_offsets_hq_mq_lq);
 
@@ -300,9 +313,10 @@ Point3 ImpostorTextureManager::get_point_to_eye_octahedral(uint32_t h, uint32_t 
 }
 
 void ImpostorTextureManager::render(const Point3 &point_to_eye, const TMatrix &view_to_content, RenderableInstanceLodsResource *res,
-  int block_id) const
+  int block_id, int lod) const
 {
-  int lod = res->getQlMinAllowedLod();
+  if (lod < 0)
+    lod = res->getQlMinAllowedLod();
   G_ASSERT(lod >= res->getQlBestLod());
   TIME_D3D_PROFILE(RenderImpostor);
 
@@ -364,19 +378,27 @@ void ImpostorTextureManager::render(const Point3 &point_to_eye, const TMatrix &v
     rendinst::render::RiShaderConstBuffers cb;
     cb.setOpacity(0, 1);
     cb.setCrossDissolveRange(0);
-    cb.setBoundingSphere(0, 0, 1, 1, 0);
+    const Point3 &sphereCenter = res->bsphCenter;
+    float sphereRadius = res->bsphRad + sqrtf(sphereCenter.x * sphereCenter.x + sphereCenter.z * sphereCenter.z);
+    // sphere radius is needed for ellipsoid normal
+    cb.setBoundingSphere(0, 0, sphereRadius, 1, 0);
     cb.setRandomColors(defaultColors);
-    cb.setInstancing(0, 3, 0);
+    cb.setInstancing(0, 3, 0, 0);
     cb.flushPerDraw();
 
-    d3d::set_buffer(STAGE_PS, rendinst::render::TREECROWN_TEXREG, treeCrownDataBuf);
+    // We update rendinst::render::perDrawCB inside cb.flushPerDraw() if it's not null.
+    // It causes split of renderpass in Vulkan cause of stage change.
+    // Just have to accept it unless we allocate multiple buffers and update them in advance.
+    d3d::allow_render_pass_target_load();
+
+    d3d::set_buffer(STAGE_PS, treeCrownBufSlot, treeCrownDataBuf);
     ImpostorGenRenderWrapperControl rwc;
     res->lods[lod].scene->render(TMatrix(1), rwc);
     res->lods[lod].scene->renderTrans(TMatrix(1), rwc);
-#if !_TARGET_ANDROID
-    d3d::driver_command(DRV3D_COMMAND_D3D_FLUSH, nullptr, nullptr, nullptr);
-#endif
-    d3d::set_buffer(STAGE_PS, rendinst::render::TREECROWN_TEXREG, nullptr);
+    // vulkan can process queued work properly without flush command
+    if (!d3d::get_driver_code().is(d3d::vulkan))
+      d3d::driver_command(Drv3dCommand::D3D_FLUSH);
+    d3d::set_buffer(STAGE_PS, treeCrownBufSlot, nullptr);
   }
 }
 
@@ -397,6 +419,21 @@ void ImpostorTextureManager::start_rendering_slices(DeferredRenderTarget *rt)
   d3d::set_immediate_const(STAGE_VS, ZERO_PTR<uint32_t>(), 1);
 }
 
+void ImpostorTextureManager::start_rendering_branches(Texture *rt)
+{
+  G_ASSERT(rt);
+  G_ASSERT(VariableMap::isGlobVariablePresent(texture_sizeVarId));
+  shaders::overrides::set(impostorShaderState);
+  ShaderGlobal::set_int(rendinst_render_passVarId, eastl::to_underlying(rendinst::RenderPass::ImpostorColor));
+  ShaderGlobal::setBlock(rendinst::render::globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
+
+  d3d::set_render_target({nullptr, 0}, DepthAccess::SampledRO, {{rt, 0}});
+  d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL | CLEAR_TARGET, E3DCOLOR(255, 255, 255, 255), 0, 0);
+  rendinst::render::setCoordType(rendinst::render::COORD_TYPE_TM);
+  rendinst::render::startRenderInstancing();
+  d3d::set_immediate_const(STAGE_VS, ZERO_PTR<uint32_t>(), 1);
+}
+
 void ImpostorTextureManager::end_rendering_slices()
 {
   rendinst::render::endRenderInstancing();
@@ -411,14 +448,14 @@ void ImpostorTextureManager::end_rendering_slices()
 }
 
 void ImpostorTextureManager::generate_mask(const Point3 &point_to_eye, RenderableInstanceLodsResource *res, DeferredRenderTarget *rt,
-  Texture *mask_tex)
+  Texture *mask_tex, int lod)
 {
   G_ASSERT(impostorMaskShader.getElem());
   SCOPE_RENDER_TARGET;
   start_rendering_slices(rt);
   TMatrix postView;
   postView.identity();
-  render(point_to_eye, postView, res, rendinst::render::rendinstSceneBlockId);
+  render(point_to_eye, postView, res, rendinst::render::rendinstSceneBlockId, lod);
   end_rendering_slices();
   TextureInfo info;
   rt->getRt(0)->getinfo(info, 0);
@@ -443,27 +480,27 @@ void ImpostorTextureManager::generate_mask(const Point3 &point_to_eye, Renderabl
 }
 
 void ImpostorTextureManager::render_slice_octahedral(uint32_t h, uint32_t v, const TMatrix &view_to_content,
-  const GenerationData &gen_data, RenderableInstanceLodsResource *res, int block_id)
+  const GenerationData &gen_data, RenderableInstanceLodsResource *res, int block_id, int lod)
 {
-  render(get_point_to_eye_octahedral(h, v, gen_data), view_to_content, res, block_id);
+  render(get_point_to_eye_octahedral(h, v, gen_data), view_to_content, res, block_id, lod);
 }
 
 void ImpostorTextureManager::render_slice_billboard(uint32_t sliceId, const TMatrix &view_to_content,
-  RenderableInstanceLodsResource *res, int block_id)
+  RenderableInstanceLodsResource *res, int block_id, int lod)
 {
-  render(get_point_to_eye_billboard(sliceId), view_to_content, res, block_id);
+  render(get_point_to_eye_billboard(sliceId), view_to_content, res, block_id, lod);
 }
 
 void ImpostorTextureManager::generate_mask_billboard(uint32_t sliceId, RenderableInstanceLodsResource *res, DeferredRenderTarget *rt,
-  Texture *mask_tex)
+  Texture *mask_tex, int lod)
 {
-  generate_mask(get_point_to_eye_billboard(sliceId), res, rt, mask_tex);
+  generate_mask(get_point_to_eye_billboard(sliceId), res, rt, mask_tex, lod);
 }
 
 void ImpostorTextureManager::generate_mask_octahedral(uint32_t h, uint32_t v, const GenerationData &gen_data,
-  RenderableInstanceLodsResource *res, DeferredRenderTarget *rt, Texture *mask_tex)
+  RenderableInstanceLodsResource *res, DeferredRenderTarget *rt, Texture *mask_tex, int lod)
 {
-  generate_mask(get_point_to_eye_octahedral(h, v, gen_data), res, rt, mask_tex);
+  generate_mask(get_point_to_eye_octahedral(h, v, gen_data), res, rt, mask_tex, lod);
 }
 
 UniqueTex ImpostorTextureManager::renderDepthAtlasForShadow(RenderableInstanceLodsResource *res)
@@ -476,7 +513,13 @@ UniqueTex ImpostorTextureManager::renderDepthAtlasForShadow(RenderableInstanceLo
   // TODO Reduce the number of creation and destruction of this texture. Currently it's created once for each asset with impostor
   UniqueTex impostorDepthBuffer =
     dag::create_tex(nullptr, info.w, info.h, TEXFMT_DEPTH16 | TEXCF_RTARGET, 1, "tmp_impostor_depth_atlas");
-  impostorDepthBuffer->texfilter(TEXFILTER_POINT);
+  G_ASSERT_RETURN(impostorDepthBuffer, {});
+  impostorDepthBuffer->disableSampler();
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    ShaderGlobal::set_sampler(get_shader_variable_id("impostor_shadow_texture_samplerstate", true), d3d::request_sampler(smpInfo));
+  }
 
   // start_rendering_slices with depth only but assuming that instancing has already been set up
   SCOPE_RESET_SHADER_BLOCKS;
@@ -498,7 +541,7 @@ UniqueTex ImpostorTextureManager::renderDepthAtlasForShadow(RenderableInstanceLo
     {
       TMatrix viewToContent = tranform_point4_to_view_to_content_matrix(params.perSliceParams[sliceId].sliceTm);
 
-      get_impostor_texture_mgr()->render_slice_billboard(sliceId, viewToContent, res, rendinst::render::rendinstDepthSceneBlockId);
+      get_impostor_texture_mgr()->render_slice_billboard(sliceId, viewToContent, res, rendinst::render::rendinstDepthSceneBlockId, -1);
     }
   }
 
@@ -549,11 +592,21 @@ bool ImpostorTextureManager::update_shadow(RenderableInstanceLodsResource *res, 
     targetTex = impostorCompressionBuffer.getTex2D();
     targetSlice = 0;
   }
+  if (!targetTex)
+    return false;
   {
     G_ASSERT(impostorShadowShader.getElem());
     SCOPE_RENDER_TARGET;
     const auto &params = res->getImpostorParams();
     ShaderGlobal::set_texture(impostor_atlas_maskVarId, res->getImpostorTextures().albedo_alpha);
+    {
+      d3d::SamplerInfo smpInfo;
+      smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+      smpInfo.anisotropic_max = 1;
+      smpInfo.filter_mode = d3d::FilterMode::Default;
+      smpInfo.mip_map_bias = 0;
+      ShaderGlobal::set_sampler(impostor_atlas_mask_samplerstateVarId, d3d::request_sampler(smpInfo));
+    }
     ShaderGlobal::set_color4(impostor_optionsVarId, params.horizontalSamples, params.verticalSamples, 0, 0);
     ShaderGlobal::set_color4(impostor_scaleVarId, Color4(params.scale.x, params.scale.y, 0, 0));
     ShaderGlobal::set_color4(impostor_bounding_sphereVarId,

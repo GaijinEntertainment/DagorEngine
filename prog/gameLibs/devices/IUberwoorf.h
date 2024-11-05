@@ -1,5 +1,5 @@
-﻿#ifndef __IUBERURF_INTERFACE_DEFINED__
-#define __IUBERURF_INTERFACE_DEFINED__
+﻿// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #include "unknwn.h"
 
@@ -125,6 +125,3 @@ DEFINE_GUID(IID_IUberwoorf, 0xac11ae4, 0xc1f7, 0x4fa8, 0xb8, 0x5b, 0x37, 0x89, 0
 
 // {22420DBA-2927-4d71-B6B8-028982A62B72}
 DEFINE_GUID(CLSID_Uberwoorf, 0x22420dba, 0x2927, 0x4d71, 0xb6, 0xb8, 0x2, 0x89, 0x82, 0xa6, 0x2b, 0x72);
-
-
-#endif // __IUBERURF_INTERFACE_DEFINED__

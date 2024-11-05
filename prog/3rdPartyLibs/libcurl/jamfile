@@ -11,13 +11,13 @@ AddIncludes =
   $(Root)/$(Location)/lib
   $(Root)/$(Location)/include
   $(Root)/prog/3rdPartyLibs/arc/zlib-$(UseZlibVer)
-  $(Root)/prog/3rdPartyLibs/arc/zstd-1.4.5
+  $(Root)/prog/3rdPartyLibs/arc/zstd-$(ZstdVer)
   $(Root)/prog/3rdPartyLibs/arc/brotli/include
 ;
 
 UseProgLibs +=
   3rdPartyLibs/arc/zlib-$(UseZlibVer)
-  3rdPartyLibs/arc/zstd-1.4.5
+  3rdPartyLibs/arc/zstd-$(ZstdVer)
   3rdPartyLibs/arc/brotli
 ;
 
@@ -26,11 +26,11 @@ if $(Platform) in ps4 ps5 {
   AddIncludes += $(Root)/prog/3rdPartyLibs/posix/include/ps4 ;
 }
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   AddLibs += Ws2_32.lib crypt32.lib ;
 }
 
-if $(Platform) = macosx {
+if $(Platform) = macOS {
   CPPopt += -Wno-deprecated-declarations ;
 }
 
@@ -59,7 +59,7 @@ Copt =
   -DHAVE_ZLIB_H=1
 ;
 
-if $(Platform) in macosx iOS tvOS linux64 android ps4 ps5 { CPPopt += -DHAVE_CONFIG_H ; }
+if $(Platform) in macOS iOS tvOS linux android ps4 ps5 { CPPopt += -DHAVE_CONFIG_H ; }
 
 if $(UseSystemLibcurl) = yes {
   Exit Custom libcurl should not be included in build when UseSystemLibcurl setted to yes ;
@@ -69,8 +69,8 @@ if $(Platform) = nswitch {
   Exit Nintendo switch platform doesn't allow custom libcurl library. Look for UseSystemLibcurl option ;
 }
 
-if $(Platform) in xboxOne scarlett {
-  exit Can't use libcurl on xbox platforms. Use gameLibs/asyncHTTPClient or XCurl instead. ;
+if $(UseGDK) != no {
+  exit Can't use libcurl with GDK. Use gameLibs/asyncHTTPClient or XCurl instead. ;
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

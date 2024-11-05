@@ -1,6 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/hdrRender.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_commands.h>
 #include <3d/dag_resPtr.h>
 #include <perfMon/dag_statDrv.h>
 #include <EASTL/unique_ptr.h>
@@ -29,23 +32,23 @@ GLOBAL_VARS_LIST
 #undef VAR
 
 // Same as in render_options.nut
-constexpr float MIN_PAPER_WHITE_NITS = 100;
+constexpr float MIN_PAPER_WHITE_NITS = 50;
 constexpr float MAX_PAPER_WHITE_NITS = 1000;
 
 static UniqueTexHolder float_rt_tex;
 eastl::unique_ptr<PostFxRenderer> encode_hdr_renderer;
 
-bool hdrrender::is_hdr_enabled() { return !!d3d::driver_command(DRV3D_COMMAND_IS_HDR_ENABLED, NULL, NULL, NULL); }
+bool hdrrender::is_hdr_enabled() { return !!d3d::driver_command(Drv3dCommand::IS_HDR_ENABLED); }
 
-bool hdrrender::int10_hdr_buffer() { return d3d::driver_command(DRV3D_COMMAND_INT10_HDR_BUFFER, NULL, NULL, NULL); }
+bool hdrrender::int10_hdr_buffer() { return d3d::driver_command(Drv3dCommand::INT10_HDR_BUFFER); }
 
-bool hdrrender::is_hdr_available() { return d3d::driver_command(DRV3D_COMMAND_IS_HDR_AVAILABLE, NULL, NULL, NULL); }
+bool hdrrender::is_hdr_available() { return d3d::driver_command(Drv3dCommand::IS_HDR_AVAILABLE); }
 
 bool hdrrender::is_active() { return !!encode_hdr_renderer; }
 
 HdrOutputMode hdrrender::get_hdr_output_mode()
 {
-  return static_cast<HdrOutputMode>(d3d::driver_command(DRV3D_COMMAND_HDR_OUTPUT_MODE, NULL, NULL, NULL));
+  return static_cast<HdrOutputMode>(d3d::driver_command(Drv3dCommand::HDR_OUTPUT_MODE));
 }
 
 void hdrrender::init_globals(const DataBlock &videoCfg)
@@ -59,8 +62,6 @@ void hdrrender::init_globals(const DataBlock &videoCfg)
   float paper_white_nits = videoCfg.getInt("paperWhiteNits", int(defaults::paper_white_nits));
   float hdr_brightness = videoCfg.getReal("hdr_brightness", defaults::hdr_brightness);
   float hdr_shadows = videoCfg.getReal("hdr_shadows", defaults::hdr_shadows);
-
-  paper_white_nits = eastl::clamp(paper_white_nits, MIN_PAPER_WHITE_NITS, MAX_PAPER_WHITE_NITS);
 
   update_paper_white_nits(paper_white_nits);
   update_hdr_brightness(hdr_brightness);
@@ -168,15 +169,33 @@ bool hdrrender::encode(int x_offset, int y_offset)
 
 void hdrrender::update_globals()
 {
-  int outputMode = d3d::driver_command(DRV3D_COMMAND_HDR_OUTPUT_MODE, NULL, NULL, NULL);
+  int outputMode = d3d::driver_command(Drv3dCommand::HDR_OUTPUT_MODE);
   ShaderGlobal::set_int(hdr_ps_output_modeVarId, outputMode);
 }
 
-void hdrrender::update_paper_white_nits(float value) { ShaderGlobal::set_real(paper_white_nitsVarId, value); }
+void hdrrender::update_paper_white_nits(float value)
+{
+  if (value < MIN_PAPER_WHITE_NITS || value > MAX_PAPER_WHITE_NITS)
+    logerr("Invalid paper white nits value: %f. Clamping it!", value);
+  value = eastl::clamp(value, MIN_PAPER_WHITE_NITS, MAX_PAPER_WHITE_NITS);
+  ShaderGlobal::set_real(paper_white_nitsVarId, value);
+}
 
-void hdrrender::update_hdr_brightness(float value) { ShaderGlobal::set_real(hdr_brightnessVarId, value); }
+void hdrrender::update_hdr_brightness(float value)
+{
+  if (value < 0.5f || value > 2.0f)
+    logerr("Invalid HDR brightness value: %f. Clamping it!", value);
+  value = eastl::clamp(value, 0.5f, 2.0f);
+  ShaderGlobal::set_real(hdr_brightnessVarId, value);
+}
 
-void hdrrender::update_hdr_shadows(float value) { ShaderGlobal::set_real(hdr_shadowsVarId, value); }
+void hdrrender::update_hdr_shadows(float value)
+{
+  if (value < 0.0f || value > 2.0f)
+    logerr("Invalid HDR shadows value: %f. Clamping it!", value);
+  value = eastl::clamp(value, 0.0f, 2.0f);
+  ShaderGlobal::set_real(hdr_shadowsVarId, value);
+}
 
 float hdrrender::get_default_paper_white_nits() { return defaults::paper_white_nits; }
 

@@ -1,11 +1,10 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 #include <util/dag_stdint.h>
 #include <windows.h>
 #include <dbghelp.h>
@@ -36,7 +35,10 @@ struct MinidumpThreadData
 
   void setRegisters(const CONTEXT &ctx)
   {
-#if _TARGET_64BIT
+#if _TARGET_64BIT && _M_ARM64
+    stackPtr = ctx.Pc;
+    const int64_t *regsSrc = (int64_t *)&ctx.X0;
+#elif _TARGET_64BIT
     stackPtr = ctx.Rsp;
     const int64_t *regsSrc = (int64_t *)&ctx.Rax;
 #else
@@ -68,10 +70,13 @@ struct MinidumpExceptionData
   MemoryRange memAddQueue[16];
   uint32_t memRemoveQueueSize = 0;
   MemoryRange memRemoveQueue[128];
+  bool memCallbackCalled = false;
 };
 
 KRNLIMP BOOL CALLBACK minidump_callback(PVOID callback_param, const PMINIDUMP_CALLBACK_INPUT callback_input,
   PMINIDUMP_CALLBACK_OUTPUT callback_output);
+KRNLIMP int CALLBACK write_minidump_fallback(HANDLE hProcess, DWORD dwProcessId, HANDLE hDumpFile, EXCEPTION_POINTERS *eptr,
+  MINIDUMP_USER_STREAM_INFORMATION *user_streams);
 } // namespace DagorHwException
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

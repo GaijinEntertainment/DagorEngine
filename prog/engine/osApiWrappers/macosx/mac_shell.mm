@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #import <AppKit/NSRunningApplication.h>
 #import <AppKit/NSWorkspace.h>
 #import <Foundation/NSString.h>

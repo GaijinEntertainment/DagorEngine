@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "component_replication_filters.h"
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <EASTL/string.h>

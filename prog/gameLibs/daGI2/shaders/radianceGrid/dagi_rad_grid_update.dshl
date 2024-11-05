@@ -1,0 +1,413 @@
+include "shader_global.dshl"
+include "world_sdf.dshl"
+include "dagi_rad_grid_common.dshl"
+include "project_light_point.dshl"
+include "frustum.dshl"
+include "gpu_occlusion.dshl"
+include "dagi_rad_grid_trace_common.dshl"
+include "dagi_irrad_grid_sample.dshl"
+include "dagi_warp64.dshl"
+
+hlsl(cs) {
+  #define MAX_DIST 128. //fixme:param
+}
+macro INIT_RAD_GRID_PROBES_AGE_UAV(code)
+  (code) {
+    dagi_radiance_grid_probes_age@uav = dagi_radiance_grid_probes_age hlsl {
+      RWTexture3D<float> dagi_radiance_grid_probes_age@uav;
+    };
+  }
+endmacro
+
+shader dagi_radiance_grid_toroidal_movement_cs
+{
+  ENABLE_ASSERT(cs)
+  DAGI_RAD_GRID_UAV(cs)
+  DAGI_RAD_GRID_CLIPMAP_MATH(cs)
+  RADIANCE_GRID_TRACE_PROBE(cs)
+  INIT_RAD_GRID_PROBES_AGE_UAV(cs)
+  (cs) {
+    dagi_rad_grid_update_lt_coord@i4 = dagi_rad_grid_update_lt_coord;
+    dagi_rad_grid_update_sz_coord@i4 = dagi_rad_grid_update_sz_coord;
+  }
+  hlsl(cs) {
+    #include <sh1.hlsl>
+    #include <octahedral_common.hlsl>
+    [numthreads(DAGI_RAD_GRID_OCT_RES, DAGI_RAD_GRID_OCT_RES, 1)]
+    void dagi_radiance_grid_toroidal_movement_cs(uint tid:SV_GroupIndex, uint2 gtid : SV_GroupThreadID, uint3 gId : SV_GroupID)
+    {
+      //todo: support any radiance res
+      //todo: support proximity quality
+      int3 absCoord = int3(gId) + dagi_rad_grid_update_lt_coord.xyz;
+
+      uint clip = dagi_rad_grid_update_lt_coord.w;
+      float encoded_dist;
+      float biasK = 0;//0 means faster, but more light leaking. Keep it faster on toroidal movement
+      uint startSDF = 0; // todo: depending on proximity can be +1 to sdf
+      float3 radiance = radiance_grid_trace_probe(startSDF, absCoord, clip, gtid, 0, DAGI_RAD_GRID_OCT_RES, encoded_dist, MAX_DIST, biasK);
+      radiance = select(isfinite(radiance), radiance, float3(0,0,0));
+      float probeSize = asfloat(dagi_rad_grid_update_sz_coord.w);
+      uint3 targetProbeCoord = dagi_rad_grid_wrapped_coord_from_abs_coord(absCoord);
+      if (tid == 0)
+        texture3DAt(dagi_radiance_grid_probes_age, targetProbeCoord + uint3(0,0,clip*dagi_rad_grid_get_clip_size().y)) = 0;
+
+      uint3 targetCoord = uint3(targetProbeCoord.xy*DAGI_RAD_GRID_OCT_RES + gtid, targetProbeCoord.z);
+      texture3DAt(dagi_radiance_grid, targetCoord + uint3(0,0,clip*dagi_rad_grid_get_clip_size().y)) = radiance;
+    }
+  }
+  compile("target_cs", "dagi_radiance_grid_toroidal_movement_cs");
+}
+
+int4 dagi_rad_grid_temporal_size;
+int4 dagi_rad_grid_temporal;
+int4 dagi_rad_grid_temporal_indirect;
+int dagi_rad_grid_temporal_frames_sparse_for_invisible = 16;// update invisible probes once in this amount of frames
+int dagi_rad_grid_temporal_frames_sparse_for_air = 16;// update "air" probes once in this amount of frames
+
+buffer dagi_radiance_grid_selected_probes;
+
+hlsl {
+  #include <dagi_rad_grid_temporal.hlsl>
+}
+
+shader dagi_radiance_grid_select_temporal_cs
+{
+  ENABLE_ASSERT(cs)
+  DAGI_RAD_GRID_SAMPLE(cs)
+  INIT_AND_USE_FRUSTUM_CHECK_BASE(cs)
+  READ_WORLD_SDF(cs)
+  (cs)
+  {
+    dagi_radiance_grid_probes_age@tex = dagi_radiance_grid_probes_age hlsl {
+      Texture3D<float> dagi_radiance_grid_probes_age@tex;
+    };
+    dagi_rad_grid_temporal_size@i4 = dagi_rad_grid_temporal_size;
+    dagi_rad_grid_temporal@i4 = dagi_rad_grid_temporal;
+    dagi_rad_grid_temporal_frames_skip@i2 = (dagi_rad_grid_temporal_frames_sparse_for_invisible, dagi_rad_grid_temporal_frames_sparse_for_air, 0,0);
+    dagi_rad_grid_temporal_indirect@i3 = dagi_rad_grid_temporal_indirect;
+  }
+  GPU_OCCLUSION(cs)
+  hlsl(cs) {
+    #include <pcg_hash.hlsl>
+    RWByteAddressBuffer dagi_radiance_grid_selected_probes:register(u0);
+
+    [numthreads(64, 1, 1)]
+    void dagi_radiance_grid_select_temporal_cs(uint dtid : SV_DispatchThreadID)
+    {
+      uint clipFrame = dagi_rad_grid_temporal.y;
+      uint clip = dagi_rad_grid_temporal.z;
+
+      uint totalClipSize = dagi_rad_grid_temporal_indirect.x;
+
+      //todo: we can make sparse update.
+      // probeI = ((dtid+start_batch)*37)%totalClipSize;//so we decrease amount of probes tested per each frame
+      // or just probeI = dtid+start_batch;
+      uint probeI = ((dtid + dagi_rad_grid_temporal.w)*37)%totalClipSize; //shuffle a bit, so hard to read
+      uint2 clipSize = dagi_rad_grid_temporal_size.zw;
+
+      uint3 targetCoord = uint3(probeI%clipSize.x, (probeI/clipSize.x)%clipSize.x, probeI/(clipSize.x*clipSize.x));
+      if (targetCoord.z >= clipSize.y)
+        return;
+
+      int3 absCoord = dagi_rad_grid_abs_coord_from_wrapped_coord(targetCoord, clip);//fixme:
+
+      uint4 random = pcg4d_hash_16bit(uint4(absCoord, clipFrame));
+      uint updateRandomThreshold = dagi_rad_grid_temporal.x*4;//typically we see less than 0.25, due to frustum culling
+      uint probability64k = loadBuffer(dagi_radiance_grid_selected_probes, dagi_rad_grid_temporal_indirect.y);
+      if ((random.x&RAD_GRID_PROBABILITY_MUL) > probability64k)
+        return;
+
+      float probeSize = dagi_rad_grid_probe_size(clip);//fixme:
+      const float traceDist = 2.f; // this is actually dagi_screen_probe_trace_dist!
+      float traceDistAndProbe = (traceDist+1.f)*probeSize;
+      float3 center = (absCoord.xzy+0.5)*probeSize;
+      BRANCH
+      if (random.y%uint(dagi_rad_grid_temporal_frames_skip.x) != 0) //rarely update out of screen probes
+      {
+        float extent = traceDistAndProbe;//1.*probeSize is correct, we use extended probe size as we will hit out of frustum probes when tracing
+        BRANCH
+        if (!testBoxExtentB(center, extent))
+          return;
+
+        //check occlusion
+        float4 sbox;
+        float2 minMaxBoxRawDepth;
+        BRANCH
+        if (!check_box_occl_visible_base(center - extent, center + extent, sbox, minMaxBoxRawDepth))
+          return;
+      }
+      bool sceneProximity = world_sdf_closer_to_nearest_surface_than_threshold(center, traceDistAndProbe);
+      BRANCH
+      if ((random.y>>8)%uint(dagi_rad_grid_temporal_frames_skip.y) != 0 && !sceneProximity)
+        return;
+      uint encodedProbe = probeI;
+      encodedProbe |= sceneProximity ? RAD_GRID_TEMPORAL_SCENE_PROXIMITY_BIT : 0;
+      /*float threshold = probeSize*0.5*sqrt(3);// accurate participation in tri-linear filtering
+      threshold = 2*probeSize;//however, since SDF is not 100% accurate increase a bit
+      uint sdfClip = world_sdf_find_clip(center, 0.5);
+      bool sceneProximity = sdfClip < MAX_WORLD_SDF_CLIPS ? world_sdf_closer_to_nearest_surface_than_threshold(center, threshold, sdfClip) : false;
+      //find if we are in close enough proximity
+      BRANCH
+      if ((random.y>>8)%uint(dagi_rad_grid_temporal_frames_skip.y) != 0 && !sceneProximity)
+        return;
+      */
+      uint at;
+      dagi_radiance_grid_selected_probes.InterlockedAdd(0, 1, at);
+      if (at >= uint(dagi_rad_grid_temporal_size.x))
+        return;
+      //instead of InterlockedAdd, use Load/Store, so we can limit age
+      uint3 atlasAgeCoord = targetCoord + uint3(0,0,clip*dagi_rad_grid_get_clip_size().y);
+      uint age = min(texture3DAt(dagi_radiance_grid_probes_age, atlasAgeCoord) * 255, RAD_GRID_TEMPORAL_MAX_AGE);
+
+      storeBuffer(dagi_radiance_grid_selected_probes, at*4 + RAD_GRID_TEMPORAL_DATA_OFFSET, encodedProbe|(age<<RAD_GRID_TEMPORAL_AGE_SHIFT));
+    }
+  }
+  compile("target_cs", "dagi_radiance_grid_select_temporal_cs");
+}
+
+shader dagi_radiance_grid_create_indirect_cs
+{
+  ENABLE_ASSERT(cs)
+  DAGI_RAD_GRID_CLIPMAP_MATH(cs)
+  (cs)
+  {
+    dagi_rad_grid_temporal_indirect@i3 = dagi_rad_grid_temporal_indirect;
+  }
+  hlsl(cs) {
+    RWByteAddressBuffer dagi_radiance_grid_selected_probes:register(u0);
+    RWByteAddressBuffer dagi_rad_grid_indirect_buffer:register(u1);
+    #include <dagi_rad_grid.hlsli>
+    [numthreads(1, 1, 1)]
+    void dagi_radiance_grid_create_indirect_cs(uint dtid : SV_DispatchThreadID)
+    {
+      uint count = loadBuffer(dagi_radiance_grid_selected_probes, 0);
+      storeBuffer3(dagi_rad_grid_indirect_buffer, 0, uint3(min(uint(dagi_rad_grid_temporal_indirect.z), count), 1, 1));
+
+      const uint count_fixed_point = 32;//5 bit for fractional part of fixed point. we use fixed point to avoid nans, etc
+      uint totalClipSize = dagi_rad_grid_temporal_indirect.x;
+      uint offset = dagi_rad_grid_temporal_indirect.y;
+      uint2 oldProbabCount = loadBuffer2(dagi_radiance_grid_selected_probes, offset);
+      uint oldCount = clamp(oldProbabCount.y, 1, totalClipSize*count_fixed_point);
+      float oldProbability = clamp(oldProbabCount.x, 1, RAD_GRID_PROBABILITY_MUL)*(1.f/RAD_GRID_PROBABILITY_MUL);
+
+      float newCount = lerp(oldCount*(1.f/count_fixed_point), float(count), 0.07);//moving average
+      float newProbability = saturate(oldProbability*dagi_rad_grid_temporal_indirect.z/max(newCount, 1.f));
+      storeBuffer2(dagi_radiance_grid_selected_probes, offset, uint2(clamp(uint(newProbability*RAD_GRID_PROBABILITY_MUL + 0.5), 1, RAD_GRID_PROBABILITY_MUL), clamp(uint(newCount*count_fixed_point + 0.5f/count_fixed_point), 1, totalClipSize*count_fixed_point)) );
+      storeBuffer(dagi_radiance_grid_selected_probes, 0, 0);
+    }
+  }
+  compile("target_cs", "dagi_radiance_grid_create_indirect_cs");
+}
+
+shader dagi_radiance_grid_clear_temporal_cs
+{
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    RWByteAddressBuffer dagi_radiance_grid_selected_probes:register(u0);
+    #include <dagi_rad_grid_temporal.hlsl>
+    [numthreads(RAD_GRID_TEMPORAL_DATA_OFFSET/4, 1, 1)]
+    void dagi_radiance_grid_clear_temporal_cs(uint tid:SV_GroupIndex)
+    {
+      if (tid < RAD_GRID_TEMPORAL_DATA_OFFSET/4)
+        storeBuffer(dagi_radiance_grid_selected_probes, 0, 0);
+    }
+  }
+  compile("target_cs", "dagi_radiance_grid_clear_temporal_cs");
+}
+
+shader dagi_radiance_grid_calc_temporal_cs
+{
+  ENABLE_ASSERT(cs)
+  INIT_RAD_GRID_PROBES_AGE_UAV(cs)
+  DAGI_RAD_GRID_UAV(cs)
+  DAGI_RAD_GRID_CLIPMAP_MATH(cs)
+  RADIANCE_GRID_TRACE_PROBE(cs)
+  (cs)
+  {
+    dagi_radiance_grid_selected_probes@buf = dagi_radiance_grid_selected_probes hlsl {
+      ByteAddressBuffer dagi_radiance_grid_selected_probes@buf;
+    }
+    dagi_rad_grid_temporal@i4 = dagi_rad_grid_temporal;
+    dagi_rad_grid_temporal_size@i4 = dagi_rad_grid_temporal_size;
+  }
+  hlsl(cs) {
+    groupshared uint shared_probe;
+    [numthreads(DAGI_RAD_GRID_OCT_RES, DAGI_RAD_GRID_OCT_RES, 1)]
+    void dagi_radiance_grid_calc_temporal_cs(uint tid:SV_GroupIndex, uint2 gtid : SV_GroupThreadID, uint gId : SV_GroupID)
+    {
+      if (tid == 0)
+      {
+        shared_probe = loadBuffer(dagi_radiance_grid_selected_probes, gId*4 + RAD_GRID_TEMPORAL_DATA_OFFSET);
+      }
+      GroupMemoryBarrierWithGroupSync();
+      uint probeI = shared_probe;
+      bool proximity = probeI&RAD_GRID_TEMPORAL_SCENE_PROXIMITY_BIT;
+      uint probeAge = (probeI>>RAD_GRID_TEMPORAL_AGE_SHIFT);
+      probeI &= RAD_GRID_TEMPORAL_PROBE_MASK;
+      uint clipFrame = dagi_rad_grid_temporal.y;
+      //uint random2 = pcg2d(uint2(clipFrame,gId)).x;
+      //probeI = random2%(dagi_rad_grid_get_clip_size().x*dagi_rad_grid_get_clip_size().x*dagi_rad_grid_get_clip_size().y);
+      uint clip = dagi_rad_grid_temporal.z;
+      uint2 clipSize = dagi_rad_grid_temporal_size.zw;
+
+      uint3 targetProbeCoord = uint3(probeI%clipSize.x, (probeI/clipSize.x)%clipSize.x, probeI/(clipSize.x*clipSize.x));
+      if (tid == 0)
+      {
+        uint3 atlasAgeCoord = targetProbeCoord + uint3(0,0,clip*dagi_rad_grid_get_clip_size().y);
+        texture3DAt(dagi_radiance_grid_probes_age, atlasAgeCoord) = (min(probeAge + 1, RAD_GRID_TEMPORAL_MAX_AGE)+0.5)/255.;//limit age
+      }
+      int3 absCoord = dagi_rad_grid_abs_coord_from_wrapped_coord(targetProbeCoord, clip);
+      uint3 targetCoord = uint3(targetProbeCoord.xy*DAGI_RAD_GRID_OCT_RES + gtid, targetProbeCoord.z);
+      float3 oldRadiance = texture3DAt(dagi_radiance_grid, targetCoord + uint3(0,0,clip*dagi_rad_grid_get_clip_size().y)).xyz;
+      float new_encoded_dist;
+      float biasK = 1.;//0..1. 0 is faster, but more light leaking
+      uint startSDF = 0; // todo: depending on proximity can be +1 to sdf
+      float3 traceRadiance = radiance_grid_trace_probe(startSDF, absCoord, clip, gtid, clipFrame, DAGI_RAD_GRID_OCT_RES, new_encoded_dist, MAX_DIST, biasK);
+      //fixme: if typed uav is unsupported, we should load from selected_probes array
+      float newW = 1.f/(2 + probeAge);
+      float3 radiance = lerp(oldRadiance, traceRadiance, newW);
+      radiance = select(isfinite(radiance), radiance, float3(0,0,0));
+      //radiance = float3(f16tof32((f32tof16(radiance) + 8) & 0x7FE0));
+      texture3DAt(dagi_radiance_grid, targetCoord + uint3(0,0,clip*dagi_rad_grid_get_clip_size().y)) = radiance;
+    }
+  }
+  compile("target_cs", "dagi_radiance_grid_calc_temporal_cs");
+}
+int dagi_rad_oct_resi = 8;
+
+//direct radiance grid to irradiance mapping
+macro DAGI_RADIANCE_GRID_IRRADIANCE(code)
+  DAGI_RAD_GRID_SRV(code)
+  DAGI_RAD_GRID_CLIPMAP_MATH(code)
+  DAGI_IRRAD_GRID_CLIPMAP_MATH(code)
+  local float dagi_rad_oct_res = dagi_rad_oct_resi;
+  (code) {
+    dagi_irradiance_grid_sph0@uav = dagi_irradiance_grid_sph0 hlsl {
+      RWTexture3D<float3> dagi_irradiance_grid_sph0@uav;
+    };
+    dagi_irradiance_grid_sph1@uav = dagi_irradiance_grid_sph1 hlsl {
+      RWTexture3D<float4> dagi_irradiance_grid_sph1@uav;
+    };
+    normalized_solid_angle@f1 = (4./(dagi_rad_oct_res*dagi_rad_oct_res),0,0,0);
+  }
+  hlsl(code) {
+    #include <octahedral_common.hlsl>
+    #include <dagi_rad_grid_math.hlsl>
+    ##if dagi_warp64_irradiance == on
+    #define DAGI_IRRADIANCE_ONE_WARP 1
+    ##endif
+    #include <dagi_irradiance_shared.hlsl>
+    SH1 calc_rd_probe_irradiance_shared(uint tid, uint radiance_res, uint2 gtid, int3 absCoord, uint3 targetProbeCoord, uint clip)
+    {
+      float4 radiance = texture3DAt(dagi_radiance_grid, uint3(targetProbeCoord.xy*radiance_res + gtid, targetProbeCoord.z) + uint3(0,0,clip*dagi_rad_grid_get_clip_size().y));
+      float2 octUV = (gtid + 0.5)/radiance_res;
+      #if !DAGI_USE_EQUAL_AREA_OCTAHEDRAL
+      radiance *= (dagi_octahedral_solid_angle_fast(octUV, 1./radiance_res)*(1./PI));
+      #else
+      radiance *= normalized_solid_angle;
+      #endif
+
+      return dagi_calc_irradiance_shared(tid, radiance_res*radiance_res, radiance_grid_dir_decode(octUV*2-1), radiance.xyz);
+    }
+  }
+endmacro
+
+shader dagi_radiance_grid_toroidal_movement_irradiance_cs
+{
+  (cs) {
+    dagi_rad_grid_update_lt_coord@i4 = dagi_rad_grid_update_lt_coord;
+    dagi_rad_grid_update_sz_coord@i4 = dagi_rad_grid_update_sz_coord;
+  }
+
+  ENABLE_ASSERT(cs)
+  DAGI_RADIANCE_GRID_IRRADIANCE(cs)
+
+  hlsl(cs) {
+    [numthreads(DAGI_RAD_GRID_OCT_RES, DAGI_RAD_GRID_OCT_RES, 1)]//has to be radiance_res for effeciency
+    void dagi_radiance_grid_toroidal_movement_cs(uint tid:SV_GroupIndex, uint2 gtid : SV_GroupThreadID, uint3 gId : SV_GroupID)
+    {
+      int3 absCoord = int3(gId) + dagi_rad_grid_update_lt_coord.xyz;
+      uint clip = dagi_rad_grid_update_lt_coord.w;
+      uint3 targetProbeCoord = dagi_rad_grid_wrapped_coord_from_abs_coord(absCoord);
+      SH1 shLighting = calc_rd_probe_irradiance_shared(tid, DAGI_RAD_GRID_OCT_RES, gtid, absCoord, targetProbeCoord, clip);
+
+      if (tid == 0)
+      {
+        half3 ambient; half4 directional;
+        encode_sh1_luminance(shLighting, ambient, directional);//ambient and directional can be negative
+
+        texture3DAt(dagi_irradiance_grid_sph0, targetProbeCoord + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border())) = ambient;
+        texture3DAt(dagi_irradiance_grid_sph1, targetProbeCoord + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border())) = directional;
+        if (targetProbeCoord.z == 0 || targetProbeCoord.z == dagi_irrad_grid_get_clip_size().y - 1)//write border
+        {
+          texture3DAt(dagi_irradiance_grid_sph0, uint3(targetProbeCoord.xy, targetProbeCoord.z ? 0 : dagi_irrad_grid_get_clip_size().y+1) + uint3(0,0,clip*dagi_irrad_grid_get_clip_size_with_border())) = ambient;
+          texture3DAt(dagi_irradiance_grid_sph1, uint3(targetProbeCoord.xy, targetProbeCoord.z ? 0 : dagi_irrad_grid_get_clip_size().y+1) + uint3(0,0,clip*dagi_irrad_grid_get_clip_size_with_border())) = directional;
+        }
+      }
+    }
+  }
+  compile("target_cs", "dagi_radiance_grid_toroidal_movement_cs");
+}
+
+shader dagi_radiance_grid_calc_temporal_irradiance_cs
+{
+  ENABLE_ASSERT(cs)
+  DAGI_RADIANCE_GRID_IRRADIANCE(cs)
+  (cs)
+  {
+    dagi_radiance_grid_selected_probes@buf = dagi_radiance_grid_selected_probes hlsl {
+      ByteAddressBuffer dagi_radiance_grid_selected_probes@buf;
+    }
+    dagi_rad_grid_temporal@i4 = dagi_rad_grid_temporal;
+  }
+  hlsl(cs) {
+    groupshared uint shared_probe;
+    [numthreads(DAGI_RAD_GRID_OCT_RES, DAGI_RAD_GRID_OCT_RES, 1)]
+    void dagi_radiance_grid_calc_temporal_irradiance_cs(uint tid:SV_GroupIndex, uint2 gtid : SV_GroupThreadID, uint gId : SV_GroupID)
+    {
+      if (tid == 0)
+      {
+        shared_probe = loadBuffer(dagi_radiance_grid_selected_probes, gId*4 + RAD_GRID_TEMPORAL_DATA_OFFSET);
+      }
+      GroupMemoryBarrierWithGroupSync();
+      uint probeI = shared_probe;
+      //uint sdfClip = (probeI>>27)&15;
+      //uint proximity = probeI>>31;
+      uint probeAge = (probeI>>RAD_GRID_TEMPORAL_AGE_SHIFT);
+      uint proximity = probeI&RAD_GRID_TEMPORAL_SCENE_PROXIMITY_BIT;
+      probeI &= RAD_GRID_TEMPORAL_PROBE_MASK;
+      uint clipFrame = dagi_rad_grid_temporal.y;
+      uint clip = dagi_rad_grid_temporal.z;
+
+      uint3 targetProbeCoord = uint3(probeI%dagi_rad_grid_get_clip_size().x, (probeI/dagi_rad_grid_get_clip_size().x)%dagi_rad_grid_get_clip_size().x, probeI/(dagi_rad_grid_get_clip_size().x*dagi_rad_grid_get_clip_size().x));
+      int3 absCoord = dagi_rad_grid_abs_coord_from_wrapped_coord(targetProbeCoord, clip);
+      SH1 shLighting = calc_rd_probe_irradiance_shared(tid, DAGI_RAD_GRID_OCT_RES, gtid, absCoord, targetProbeCoord, clip);
+
+      if (tid == 0)
+      {
+        half3 ambient; half4 directional;
+        encode_sh1_luminance(shLighting, ambient, directional);//ambient and directional can be negative
+        //fixme: todo: support missing typed uav load
+        float3 oldAmbient = texture3DAt(dagi_irradiance_grid_sph0, targetProbeCoord + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border()));
+        float4 oldDirectional = texture3DAt(dagi_irradiance_grid_sph1, targetProbeCoord + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border()));
+
+        //we don't need to use age, we don't even need to lerp irradiance with old one, if typed UAV is not supported
+        //that's because radiance is already temporal!
+        //however, it makes just a bit more stable
+        //fixme: if no typed uav - just not temporal sph1 at all, almost no difference
+        float newW = max(0.25, 1.f/(1 + probeAge));//this is intentionally not 2 + probeAge. On second update of probe we still assume it is as good as new for irradiance.
+        ambient = lerp(oldAmbient, ambient, newW);
+        directional = lerp(oldDirectional, directional, newW);
+
+        texture3DAt(dagi_irradiance_grid_sph0, targetProbeCoord + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border())) = ambient;
+        texture3DAt(dagi_irradiance_grid_sph1, targetProbeCoord + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border())) = directional;
+        if (targetProbeCoord.z == 0 || targetProbeCoord.z == dagi_irrad_grid_get_clip_size().y - 1)//write border
+        {
+          texture3DAt(dagi_irradiance_grid_sph0, uint3(targetProbeCoord.xy, targetProbeCoord.z ? 0 : dagi_irrad_grid_get_clip_size().y+1) + uint3(0,0,clip*dagi_irrad_grid_get_clip_size_with_border())) = ambient;
+          texture3DAt(dagi_irradiance_grid_sph1, uint3(targetProbeCoord.xy, targetProbeCoord.z ? 0 : dagi_irrad_grid_get_clip_size().y+1) + uint3(0,0,clip*dagi_irrad_grid_get_clip_size_with_border())) = directional;
+        }
+      }
+    }
+  }
+  compile("target_cs", "dagi_radiance_grid_calc_temporal_irradiance_cs");
+}

@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <gui/dag_stdGuiRender.h>
@@ -30,6 +31,7 @@ struct RenderCanvasContext
   void renderFillInversePoly(const Sqrat::Array &cmd) const;
   void renderLineDashed(const Sqrat::Array &cmd) const;
   void renderQuads(const Sqrat::Array &cmd) const;
+  inline void convertToScreenCoordinates(Point2 *points, int count) const;
 
   void bind_delegate_to_handle(HSQUIRRELVM vm);
 

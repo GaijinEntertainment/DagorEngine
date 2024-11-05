@@ -1,4 +1,5 @@
 require darg
+require DagorStdGuiRender
 require math
 require DagorMath
 

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 // #define _DEBUG_TAB_
 #include <de3_interface.h>
 #include <de3_objEntity.h>
@@ -31,7 +33,7 @@
 #include <math/poly2tri/poly2tri.h>
 #include <math/dag_math2d.h>
 #include <math/random/dag_random.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
 #include <math/dag_TMatrix.h>
@@ -1406,7 +1408,7 @@ public:
             Mesh *mesh = new Mesh;
 
             if (!assetSrv->createLoftMesh(*mesh, adata->genGeom, i, path, 0, segCnt, true, 1.0f, materialNo, splineScales, NULL,
-                  splClsNm, 0, 0))
+                  splClsNm, 0, 0, 0, 0))
             {
               delete mesh;
               continue;
@@ -1552,7 +1554,7 @@ public:
             Mesh *mesh = new Mesh;
 
             if (!assetSrv->createLoftMesh(*mesh, adata->genGeom, i, path, 0, segCnt, true, 1.0f, materialNo, splineScales, NULL,
-                  splClsNm, 0, 0))
+                  splClsNm, 0, 0, 0, 0))
             {
               delete mesh;
               continue;
@@ -1666,7 +1668,7 @@ public:
           Mesh *mesh = new Mesh;
 
           if (!assetSrv->createLoftMesh(*mesh, adata->genGeom, i, path, 0, segCnt, true, 1.0f, materialNo, splineScales, NULL,
-                splClsNm, 0, 0))
+                splClsNm, 0, 0, 0, 0))
           {
             delete mesh;
             continue;
@@ -2050,7 +2052,7 @@ void init_csg_mgr_service()
 {
   if (!IDaEditor3Engine::get().checkVersion())
   {
-    debug_ctx("Incorrect version!");
+    DEBUG_CTX("Incorrect version!");
     return;
   }
 

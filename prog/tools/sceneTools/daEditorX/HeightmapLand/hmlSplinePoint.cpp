@@ -1,11 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hmlSplinePoint.h"
 #include "hmlSplineObject.h"
 #include "hmlPlugin.h"
 #include "hmlSplineUndoRedo.h"
 
-#include <dllPluginCore/core.h>
+#include <EditorCore/ec_IEditorCore.h>
 #include <EditorCore/ec_ObjectEditor.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 
 #include <libTools/util/strUtil.h>
 #include <sepGui/wndGlobal.h>
@@ -14,9 +16,13 @@
 #include "common.h"
 #include <de3_genObjAlongSpline.h>
 
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/control/container.h>
 
 #include <winGuiWrapper/wgw_input.h>
+
+using editorcore_extapi::dagGeom;
+using editorcore_extapi::dagRender;
+using editorcore_extapi::make_full_start_path;
 
 class HmapLandObjectEditor;
 
@@ -182,7 +188,7 @@ bool SplinePointObject::getWorldBox(BBox3 &box) const
   return true;
 }
 
-void SplinePointObject::fillProps(PropertyContainerControlBase &op, DClassID for_class_id,
+void SplinePointObject::fillProps(PropPanel::ContainerPropertyControl &op, DClassID for_class_id,
   dag::ConstSpan<RenderableEditableObject *> objects)
 {
   ppanel_ptr = &op;
@@ -231,7 +237,7 @@ void SplinePointObject::fillProps(PropertyContainerControlBase &op, DClassID for
     {
       op.createIndent();
 
-      PropertyContainerControlBase &followGrp = *op.createRadioGroup(PID_FOLLOW, "Follow type override");
+      PropPanel::ContainerPropertyControl &followGrp = *op.createRadioGroup(PID_FOLLOW, "Follow type override");
       followGrp.createRadio(-1, "Default (as in asset)");
       followGrp.createRadio(0, "No follow");
       followGrp.createRadio(1, "Follow hills");
@@ -239,7 +245,7 @@ void SplinePointObject::fillProps(PropertyContainerControlBase &op, DClassID for
       followGrp.createRadio(3, "Follow landscape");
       op.setInt(PID_FOLLOW, props.attr.followOverride);
 
-      PropertyContainerControlBase &roadGrp = *op.createRadioGroup(PID_ROADBHV, "Road behavior override");
+      PropPanel::ContainerPropertyControl &roadGrp = *op.createRadioGroup(PID_ROADBHV, "Road behavior override");
       roadGrp.createRadio(-1, "Default (as in asset)");
       roadGrp.createRadio(0, "Not a road");
       roadGrp.createRadio(1, "Follow as road");
@@ -262,7 +268,7 @@ void SplinePointObject::fillProps(PropertyContainerControlBase &op, DClassID for
     }
 
     op.createSeparator(0);
-    PropertyContainerControlBase &cornerGrp = *op.createRadioGroup(PID_CORNER_TYPE, "Corner type");
+    PropPanel::ContainerPropertyControl &cornerGrp = *op.createRadioGroup(PID_CORNER_TYPE, "Corner type");
     cornerGrp.createRadio(-2, "As spline (default)");
     cornerGrp.createRadio(-1, "Corner");
     cornerGrp.createRadio(0, "Smooth tangent");
@@ -299,7 +305,8 @@ void SplinePointObject::fillProps(PropertyContainerControlBase &op, DClassID for
   }
 }
 
-void SplinePointObject::onPPChange(int pid, bool edit_finished, PropPanel2 &panel, dag::ConstSpan<RenderableEditableObject *> objects)
+void SplinePointObject::onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
+  dag::ConstSpan<RenderableEditableObject *> objects)
 {
   if (!edit_finished)
     return;
@@ -399,7 +406,8 @@ void SplinePointObject::onPPChange(int pid, bool edit_finished, PropPanel2 &pane
     }
   }
 }
-void SplinePointObject::onPPBtnPressed(int pid, PropPanel2 &panel, dag::ConstSpan<RenderableEditableObject *> objects)
+void SplinePointObject::onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel,
+  dag::ConstSpan<RenderableEditableObject *> objects)
 {
   if (pid == PID_GENBLKNAME || pid == PID_EFFECTIVE_ASSET)
   {
@@ -474,7 +482,7 @@ void SplinePointObject::onPPBtnPressed(int pid, PropPanel2 &panel, dag::ConstSpa
   }
 }
 
-void SplinePointObject::onPPClose(PropertyContainerControlBase &panel, dag::ConstSpan<RenderableEditableObject *> objects)
+void SplinePointObject::onPPClose(PropPanel::ContainerPropertyControl &panel, dag::ConstSpan<RenderableEditableObject *> objects)
 {
   ppanel_ptr = NULL;
 }

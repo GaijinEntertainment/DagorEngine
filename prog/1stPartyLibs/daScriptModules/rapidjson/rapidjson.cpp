@@ -130,7 +130,7 @@ struct GenericJsonArrayAnnotation : public das::ManagedStructureAnnotation<TJson
     {
       Array *pValue = (Array *) value->evalPtr(context);
       uint32_t idx = das::cast<uint32_t>::to(index->eval(context));
-      if (EASTL_LIKELY(idx < pValue->Size()))
+      if (DAGOR_LIKELY(idx < pValue->Size()))
         return ((char *)(&(*pValue)[idx])) + offset;
       context.throw_error_at(debugInfo, "Array index %d out of range %d", idx, pValue->Size());
       return nullptr;
@@ -151,7 +151,7 @@ struct GenericJsonArrayAnnotation : public das::ManagedStructureAnnotation<TJson
   template <class Array>
   struct DasArrayIterator : das::Iterator
   {
-    DasArrayIterator(Array *ar) : array(ar) {}
+    DasArrayIterator(Array *ar, das::LineInfo *at) : das::Iterator(at), array(ar) {}
     virtual bool first(das::Context &, char* _value) override
     {
       if (!array->Size())
@@ -174,7 +174,7 @@ struct GenericJsonArrayAnnotation : public das::ManagedStructureAnnotation<TJson
         iterator_type *value = (iterator_type *) _value;
         *value = nullptr;
       }
-      context.heap->free((char *)this, sizeof(DasArrayIterator<Array>));
+      context.freeIterator((char *)this, debugInfo);
     }
     Array *array = nullptr; // Can be unioned with end
     typedef decltype(array->begin()) iterator_type;

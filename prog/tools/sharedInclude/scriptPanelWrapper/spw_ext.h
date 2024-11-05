@@ -1,7 +1,6 @@
 //
 // Dagor Tech 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -16,9 +15,9 @@ public:
 
   virtual void updateParams();
 
-  virtual void onChange(int pid, PropPanel2 &panel);
-  virtual void onClick(int pid, PropPanel2 &panel);
-  virtual void onPostEvent(int pid, PropPanel2 &panel);
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel);
+  virtual void onClick(int pid, PropPanel::ContainerPropertyControl &panel);
+  virtual void onPostEvent(int pid, PropPanel::ContainerPropertyControl &panel);
 
   virtual void save(DataBlock &blk);
   virtual void load(const DataBlock &blk);
@@ -36,7 +35,7 @@ protected:
   virtual void setEnabled(bool enabled);
   void saveExt(DataBlock &blk);
 
-  bool scriptExtFactory(PropPanel2 *panel, int &pid, SquirrelObject param);
+  bool scriptExtFactory(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject param);
   int searchPidIndex(int pid);
   void setDefValues(SquirrelObject so);
 

@@ -1,25 +1,27 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/mobile_ssao.h>
 
-#include <3d/dag_drv3d_multi.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_driver.h>
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderBlock.h>
+#include <render/viewVecs.h>
 
 #include <math/dag_mathUtils.h>
+#include <math/dag_TMatrix4D.h>
 
-
-#define GLOBAL_VARS_LIST \
-  VAR(ssao_frame_no)     \
-  VAR(ssao_tex)          \
-  VAR(ssao_radius_factor)
+#define GLOBAL_VARS_LIST  \
+  VAR(ssao_tex)           \
+  VAR(ssao_radius_factor) \
+  VAR(ssao_texel_offset)  \
+  VAR(ssao_gbuf_prev_globtm_no_ofs_psf)
 
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_VARS_LIST
 #undef VAR
-
-static int ssaoBlurTexelOffsetVarId = -1;
 
 MobileSSAORenderer::MobileSSAORenderer(int w, int h, int, uint32_t flags)
 {
@@ -30,7 +32,7 @@ MobileSSAORenderer::MobileSSAORenderer(int w, int h, int, uint32_t flags)
   aoWidth = w;
   aoHeight = h;
 
-  uint32_t format = ssao_detail::creation_flags_to_format(flags);
+  uint32_t format = ssao_detail::creation_flags_to_format(ssao_detail::consider_shader_assumes(flags));
 
   int viewCounter = 0;
   for (int i = 0; i < ssaoTex.size(); ++i)
@@ -40,8 +42,6 @@ MobileSSAORenderer::MobileSSAORenderer(int w, int h, int, uint32_t flags)
     ssaoTex[i].getTex2D()->texbordercolor(0xFFFFFFFF);
     ssaoTex[i].getTex2D()->texaddr(TEXADDR_CLAMP);
   }
-
-  ssaoBlurTexelOffsetVarId = get_shader_variable_id("texelOffset");
 
   aoRenderer.reset(create_postfx_renderer(ssao_sh_name));
   ssaoBlurRenderer.reset(create_postfx_renderer(blur_sh_name));
@@ -82,13 +82,13 @@ void MobileSSAORenderer::renderSSAO(BaseTexture * /*depth_to_use*/)
   aoRenderer->render();
 }
 
-void MobileSSAORenderer::setFrameNo() { ShaderGlobal::set_color4(ssao_frame_noVarId, 0, 0, 0, 0); }
+void MobileSSAORenderer::setFrameNo() {}
 
 void MobileSSAORenderer::applyBlur()
 {
-  Color4 texelOffset(0.5 + HALF_TEXEL_OFSF / aoWidth, 0.5 + HALF_TEXEL_OFSF / aoHeight, 1.f / aoWidth, 1.f / aoHeight);
+  Color4 texelOffset(0.5, 0.5, 1.f / aoWidth, 1.f / aoHeight);
 
-  ssaoBlurRenderer->getMat()->set_color4_param(ssaoBlurTexelOffsetVarId, texelOffset);
+  ssaoBlurRenderer->getMat()->set_color4_param(ssao_texel_offsetVarId, texelOffset);
 
   d3d::set_render_target(ssaoTex[blurId].getTex2D(), 0);
   d3d::clearview(CLEAR_DISCARD, 0, 0, 0);
@@ -97,8 +97,48 @@ void MobileSSAORenderer::applyBlur()
   ssaoBlurRenderer->render();
 }
 
-void MobileSSAORenderer::render(const TMatrix &, const TMatrix4 &, BaseTexture *ssaoDepthTexUse, const ManagedTex *ssao_tex,
-  const ManagedTex *prev_ssao_tex, const ManagedTex *tmp_tex, const DPoint3 *, SubFrameSample)
+void set_shadervars_for_reprojection(const TMatrix4 &prev_glob_tm, const DPoint3 &prev_world_pos, const DPoint3 &world_pos)
+{
+  const DPoint3 move = world_pos - prev_world_pos;
+
+  double reprojected_world_pos_d[4] = {(double)prev_glob_tm[0][0] * move.x + (double)prev_glob_tm[0][1] * move.y +
+                                         (double)prev_glob_tm[0][2] * move.z + (double)prev_glob_tm[0][3],
+    prev_glob_tm[1][0] * move.x + (double)prev_glob_tm[1][1] * move.y + (double)prev_glob_tm[1][2] * move.z +
+      (double)prev_glob_tm[1][3],
+    prev_glob_tm[2][0] * move.x + (double)prev_glob_tm[2][1] * move.y + (double)prev_glob_tm[2][2] * move.z +
+      (double)prev_glob_tm[2][3],
+    prev_glob_tm[3][0] * move.x + (double)prev_glob_tm[3][1] * move.y + (double)prev_glob_tm[3][2] * move.z +
+      (double)prev_glob_tm[3][3]};
+
+  float reprojected_world_pos[4] = {(float)reprojected_world_pos_d[0], (float)reprojected_world_pos_d[1],
+    (float)reprojected_world_pos_d[2], (float)reprojected_world_pos_d[3]};
+
+  TMatrix4 prev_glob_tm_ofs = prev_glob_tm;
+  prev_glob_tm_ofs.setcol(3, reprojected_world_pos[0], reprojected_world_pos[1], reprojected_world_pos[2], reprojected_world_pos[3]);
+
+  ShaderGlobal::set_float4x4(ssao_gbuf_prev_globtm_no_ofs_psfVarId, prev_glob_tm_ofs);
+}
+
+void MobileSSAORenderer::setReprojection(const TMatrix &view_tm, const TMatrix4 &proj_tm)
+{
+  TMatrix4 viewRot = TMatrix4(view_tm);
+
+  TMatrix4D viewRotInv;
+  double det;
+  inverse44(TMatrix4D(viewRot), viewRotInv, det);
+  const DPoint3 worldPos = DPoint3(viewRotInv.m[3][0], viewRotInv.m[3][1], viewRotInv.m[3][2]);
+
+  set_shadervars_for_reprojection(reprojectionData.prevGlobTm, reprojectionData.prevWorldPos, worldPos);
+
+  viewRot.setrow(3, 0.0f, 0.0f, 0.0f, 1.0f);
+  const TMatrix4 globTm = (viewRot * proj_tm).transpose();
+
+  reprojectionData.prevGlobTm = globTm;
+  reprojectionData.prevWorldPos = worldPos;
+}
+
+void MobileSSAORenderer::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *ssaoDepthTexUse,
+  const ManagedTex *ssao_tex, const ManagedTex *prev_ssao_tex, const ManagedTex *tmp_tex, const DPoint3 *, SubFrameSample)
 {
   TIME_D3D_PROFILE(SSAO_total)
   SCOPE_RENDER_TARGET;
@@ -114,6 +154,8 @@ void MobileSSAORenderer::render(const TMatrix &, const TMatrix4 &, BaseTexture *
   G_ASSERT(ssaoDepthTexUse);
 
   setFrameNo();
+
+  set_viewvecs_to_shader(view_tm, proj_tm);
 
   {
     TIME_D3D_PROFILE(SSAO_render)
@@ -133,6 +175,8 @@ void MobileSSAORenderer::render(const TMatrix &, const TMatrix4 &, BaseTexture *
 
   // Restore state
   ShaderGlobal::set_texture(ssao_texVarId, ssaoTex[g_ssao_blur ? blurId : renderId]);
+
+  setReprojection(view_tm, proj_tm);
 }
 
 Texture *MobileSSAORenderer::getSSAOTex()

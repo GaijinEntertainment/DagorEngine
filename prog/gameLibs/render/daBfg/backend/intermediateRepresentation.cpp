@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "intermediateRepresentation.h"
 
 #include <memory/dag_framemem.h>
@@ -35,7 +37,7 @@ void Graph::choseSubgraph(eastl::span<const NodeIndex> old_to_new_index_mapping)
 
 
   const auto choseSoa = [](auto &old_data, size_t new_count, const auto &mapping, const auto unmappedSentinel) {
-    using Mapping = std::decay_t<decltype(old_data)>;
+    using Mapping = eastl::decay_t<decltype(old_data)>;
     IdIndexedMapping<typename Mapping::index_type, typename Mapping::value_type, framemem_allocator> newData;
     newData.resize(new_count);
     for (auto [i, data] : old_data.enumerate())
@@ -48,7 +50,8 @@ void Graph::choseSubgraph(eastl::span<const NodeIndex> old_to_new_index_mapping)
 
   choseSoa(nodes, newNodeCount, old_to_new_index_mapping, NODE_NOT_MAPPED);
   choseSoa(nodeStates, newNodeCount, old_to_new_index_mapping, NODE_NOT_MAPPED);
-  choseSoa(nodeNames, newNodeCount, old_to_new_index_mapping, NODE_NOT_MAPPED);
+  if (!nodeNames.empty())
+    choseSoa(nodeNames, newNodeCount, old_to_new_index_mapping, NODE_NOT_MAPPED);
 
   // We need to fixup all node -> node references
   for (auto [i, node] : nodes.enumerate())
@@ -79,7 +82,8 @@ void Graph::choseSubgraph(eastl::span<const NodeIndex> old_to_new_index_mapping)
     eastl::move(newResources.begin(), newResources.end(), resources.begin());
   }
 
-  choseSoa(resourceNames, resources.size(), resourceMapping, RESOURCE_NOT_MAPPED);
+  if (!resourceNames.empty())
+    choseSoa(resourceNames, resources.size(), resourceMapping, RESOURCE_NOT_MAPPED);
 
   const auto updateResourceIndex = [&resourceMapping](ResourceIndex &index) {
     G_ASSERT(resourceMapping[index] != RESOURCE_NOT_MAPPED);
@@ -89,9 +93,6 @@ void Graph::choseSubgraph(eastl::span<const NodeIndex> old_to_new_index_mapping)
   // We also need to fix up node -> resource references
   for (auto &state : nodeStates)
   {
-    if (state.vrs)
-      updateResourceIndex(state.vrs->rateTexture);
-
     for (const auto &[id, binding] : state.bindings)
       if (binding.resource.has_value())
       {
@@ -104,9 +105,28 @@ void Graph::choseSubgraph(eastl::span<const NodeIndex> old_to_new_index_mapping)
     {
       if (state.pass->depthAttachment.has_value())
         updateResourceIndex(state.pass->depthAttachment->resource);
+      if (state.pass->vrsRateAttachment.has_value())
+        updateResourceIndex(state.pass->vrsRateAttachment->resource);
       for (auto &color : state.pass->colorAttachments)
         if (color.has_value())
           updateResourceIndex(color->resource);
+      const auto oldClears = eastl::move(state.pass->clears);
+      state.pass->clears.clear();
+      for (const auto &[res, color] : oldClears)
+      {
+        G_ASSERT(resourceMapping[res] != RESOURCE_NOT_MAPPED);
+        auto &clear = state.pass->clears.insert({resourceMapping[res], color}).first->second;
+        if (auto dynClearColor = eastl::get_if<DynamicPassParameter>(&clear))
+          updateResourceIndex(dynClearColor->resource);
+      }
+      const auto oldResolves = eastl::move(state.pass->resolves);
+      state.pass->resolves.clear();
+      for (const auto &[src, dst] : oldResolves)
+      {
+        G_ASSERT(resourceMapping[src] != RESOURCE_NOT_MAPPED);
+        G_ASSERT(resourceMapping[dst] != RESOURCE_NOT_MAPPED);
+        state.pass->resolves.insert({resourceMapping[src], resourceMapping[dst]});
+      }
     }
   }
 }
@@ -121,7 +141,8 @@ Mapping Graph::calculateMapping()
   for (const auto &node : nodes)
   {
     multiIdxExtents.update(node.multiplexingIndex);
-    nodeNameIdExtents.update(node.frontendNode);
+    if (node.frontendNode)
+      nodeNameIdExtents.update(*node.frontendNode);
   }
 
   IdExtentsFinder<ResNameId> resNameIdExtents;
@@ -139,7 +160,8 @@ Mapping Graph::calculateMapping()
       result.mapRes(resNameId, res.multiplexingIndex) = i;
 
   for (auto [i, node] : nodes.enumerate())
-    result.mapNode(node.frontendNode, node.multiplexingIndex) = i;
+    if (node.frontendNode)
+      result.mapNode(*node.frontendNode, node.multiplexingIndex) = i;
 
   // NOTE: This is a bit fragile. The frontend multiplexing code has to
   // guarantee that in case of undermultiplexed nodes/resources each
@@ -196,9 +218,6 @@ void Graph::validate() const
         nodeNames[nodeIdx]);
     };
 
-    if (state.vrs.has_value())
-      validateRes(state.vrs->rateTexture);
-
     for (const auto &[_, binding] : state.bindings)
       if (binding.resource.has_value())
         validateRes(*binding.resource);
@@ -207,11 +226,22 @@ void Graph::validate() const
     {
       if (state.pass->depthAttachment.has_value())
         validateRes(state.pass->depthAttachment->resource);
+      if (state.pass->vrsRateAttachment.has_value())
+        validateRes(state.pass->vrsRateAttachment->resource);
       for (const auto &color : state.pass->colorAttachments)
         if (color.has_value())
           validateRes(color->resource);
+      for (const auto &[res, color] : state.pass->clears)
+      {
+        validateRes(res);
+        if (auto dynClearColor = eastl::get_if<DynamicPassParameter>(&color))
+          validateRes(dynClearColor->resource);
+      }
     }
   }
+
+  for (auto [resIdx, res] : resources.enumerate())
+    G_ASSERT(!res.frontendResources.empty());
 #endif
 }
 

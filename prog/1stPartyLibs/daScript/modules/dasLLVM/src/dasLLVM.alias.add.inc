@@ -1,6 +1,41 @@
 // this file is generated via daScript automatic C++ binder
 // all user modifications will be lost after this file is re-generated
 
+// from C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\inttypes.h:35:18
+auto alias_imaxdiv_t = typeFactory<_Lldiv_t>::make(lib);
+alias_imaxdiv_t->alias = "imaxdiv_t";
+addAlias(alias_imaxdiv_t);
+
+// from C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\sys/types.h:19:28
+auto alias__ino_t = typeFactory<unsigned short>::make(lib);
+alias__ino_t->alias = "_ino_t";
+addAlias(alias__ino_t);
+
+// from C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\sys/types.h:22:24
+auto alias_ino_t = typeFactory<unsigned short>::make(lib);
+alias_ino_t->alias = "ino_t";
+addAlias(alias_ino_t);
+
+// from C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\sys/types.h:31:26
+auto alias__dev_t = typeFactory<unsigned int>::make(lib);
+alias__dev_t->alias = "_dev_t";
+addAlias(alias__dev_t);
+
+// from C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\sys/types.h:34:24
+auto alias_dev_t = typeFactory<unsigned int>::make(lib);
+alias_dev_t->alias = "dev_t";
+addAlias(alias_dev_t);
+
+// from C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\sys/types.h:43:18
+auto alias__off_t = typeFactory<long>::make(lib);
+alias__off_t->alias = "_off_t";
+addAlias(alias__off_t);
+
+// from C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\sys/types.h:46:24
+auto alias_off_t = typeFactory<long>::make(lib);
+alias_off_t->alias = "off_t";
+addAlias(alias_off_t);
+
 // from D:\Work\libclang\include\llvm-c/DataTypes.h:62:24
 auto alias_ssize_t = typeFactory<long long>::make(lib);
 alias_ssize_t->alias = "ssize_t";
@@ -121,27 +156,27 @@ auto alias_LLVMFatalErrorHandler = typeFactory<void (*)(const char *)>::make(lib
 alias_LLVMFatalErrorHandler->alias = "LLVMFatalErrorHandler";
 addAlias(alias_LLVMFatalErrorHandler);
 
-// from D:\Work\libclang\include\llvm-c/Core.h:469:18
+// from D:\Work\libclang\include\llvm-c/Core.h:471:18
 auto alias_LLVMAttributeIndex = typeFactory<unsigned int>::make(lib);
 alias_LLVMAttributeIndex->alias = "LLVMAttributeIndex";
 addAlias(alias_LLVMAttributeIndex);
 
-// from D:\Work\libclang\include\llvm-c/Core.h:499:16
+// from D:\Work\libclang\include\llvm-c/Core.h:511:16
 auto alias_LLVMDiagnosticHandler = typeFactory<void (*)(LLVMOpaqueDiagnosticInfo *, void *)>::make(lib);
 alias_LLVMDiagnosticHandler->alias = "LLVMDiagnosticHandler";
 addAlias(alias_LLVMDiagnosticHandler);
 
-// from D:\Work\libclang\include\llvm-c/Core.h:500:16
+// from D:\Work\libclang\include\llvm-c/Core.h:512:16
 auto alias_LLVMYieldCallback = typeFactory<void (*)(LLVMOpaqueContext *, void *)>::make(lib);
 alias_LLVMYieldCallback->alias = "LLVMYieldCallback";
 addAlias(alias_LLVMYieldCallback);
 
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:174:18
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:184:18
 auto alias_LLVMMetadataKind = typeFactory<unsigned int>::make(lib);
 alias_LLVMMetadataKind->alias = "LLVMMetadataKind";
 addAlias(alias_LLVMMetadataKind);
 
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:179:18
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:189:18
 auto alias_LLVMDWARFTypeEncoding = typeFactory<unsigned int>::make(lib);
 alias_LLVMDWARFTypeEncoding->alias = "LLVMDWARFTypeEncoding";
 addAlias(alias_LLVMDWARFTypeEncoding);
@@ -485,6 +520,16 @@ addAlias(alias_LLVMRelocationIteratorRef);
 auto alias_LLVMObjectFileRef = typeFactory<LLVMOpaqueObjectFile *>::make(lib);
 alias_LLVMObjectFileRef->alias = "LLVMObjectFileRef";
 addAlias(alias_LLVMObjectFileRef);
+
+// from D:\Work\libclang\include\llvm-c/OrcEE.h:35:17
+auto alias_LLVMMemoryManagerCreateContextCallback = typeFactory<void *(*)(void *)>::make(lib);
+alias_LLVMMemoryManagerCreateContextCallback->alias = "LLVMMemoryManagerCreateContextCallback";
+addAlias(alias_LLVMMemoryManagerCreateContextCallback);
+
+// from D:\Work\libclang\include\llvm-c/OrcEE.h:36:16
+auto alias_LLVMMemoryManagerNotifyTerminatingCallback = typeFactory<void (*)(void *)>::make(lib);
+alias_LLVMMemoryManagerNotifyTerminatingCallback->alias = "LLVMMemoryManagerNotifyTerminatingCallback";
+addAlias(alias_LLVMMemoryManagerNotifyTerminatingCallback);
 
 // from D:\Work\libclang\include\llvm-c/Remarks.h:57:40
 auto alias_LLVMRemarkStringRef = typeFactory<LLVMRemarkOpaqueString *>::make(lib);

@@ -1,5 +1,10 @@
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <perfMon/dag_statDrv.h>
 #include <math/dag_TMatrix4.h>
 #include <math/dag_frustum.h>
@@ -15,9 +20,13 @@
 #include "dag_occlusionRenderer.h"
 #include <EASTL/unique_ptr.h>
 #include <math/integer/dag_IPoint2.h>
-#include <memory/dag_blockMemcopy.h>
+#include <util/dag_convar.h>
 
-#define LOGLEVEL_DEBUG _MAKE4C('OCCL')
+#define debug(...) logmessage(_MAKE4C('OCCL'), __VA_ARGS__)
+
+#if DAGOR_DBGLEVEL > 0
+CONSOLE_BOOL_VAL("occlusion", debug_reprojection, false);
+#endif
 
 class OcclusionSystemImpl final : public OcclusionSystem
 {
@@ -34,7 +43,9 @@ public:
   void clear() override;                                                        // performs reprojection of latest GPU frame
   void buildMips() override;
   void prepareDebug() override;
-  void prepareNextFrame(vec3f viewPos, mat44f_cref view, mat44f_cref proj, mat44f_cref viewProj, float zn, float zf,
+  void prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
+    TextureIDPair mipped_depth, Texture *depth) override;
+  void prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
     TextureIDPair mipped_depth, Texture *depth, StereoIndex stereo_index) override;
   void setReprojectionUseCameraTranslatedSpace(bool enabled) override;
   bool getReprojectionUseCameraTranslatedSpace() const override;
@@ -59,6 +70,10 @@ public:
   }
 
 protected:
+  template <bool ignoreVr>
+  void prepareNextFrameImpl(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
+    TextureIDPair mipped_depth, Texture *depth, StereoIndex stereo_index);
+
   void initVrRes();
   bool process(float *destData, uint32_t &frame);
   SmallTab<float, MidmemAlloc> lastHWdepth; // we need that in case next frame is not ready
@@ -92,6 +107,7 @@ protected:
 
   Texture *currentTarget = nullptr;
   TEXTUREID currentTargetId = BAD_TEXTUREID;
+  d3d::SamplerHandle clampPointSampler = d3d::INVALID_SAMPLER_HANDLE;
 };
 
 OcclusionSystem *OcclusionSystem::create() { return new OcclusionSystemImpl; }
@@ -143,8 +159,15 @@ void OcclusionSystemImpl::init()
     downsample.init("downsample_depth_hzb");
     ringTextures.init(width, height, 3, "hzb",
       TEXCF_LINEAR_LAYOUT | TEXFMT_R32F | TEXCF_RTARGET | TEXCF_CPU_CACHED_MEMORY | TEXCF_UNORDERED);
+    ringTextures.texaddr(TEXADDR_CLAMP);
     clear_and_resize(lastHWdepth, width * height);
     debug("use Coverage buffer/GPU HZB occlusion");
+  }
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    clampPointSampler = d3d::request_sampler(smpInfo);
   }
 }
 
@@ -156,7 +179,6 @@ void OcclusionSystemImpl::reset()
 }
 
 static const uint16_t box_indices[] = {
-
   1,
   3,
   2, // index for top
@@ -307,18 +329,31 @@ void OcclusionSystemImpl::startRasterization(float zn)
   moc->ClearBuffer();
 }
 
-void OcclusionSystemImpl::prepareNextFrame(vec3f viewPos, mat44f_cref view, mat44f_cref proj, mat44f_cref viewProj, float zn, float zf,
-  TextureIDPair depth, Texture *base_depth, StereoIndex stereo_index)
+void OcclusionSystemImpl::prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn,
+  float zf, TextureIDPair depth, Texture *base_depth)
+{
+  prepareNextFrameImpl<true>(view_pos, view, proj, view_proj, zn, zf, depth, base_depth, StereoIndex::Mono);
+}
+
+void OcclusionSystemImpl::prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn,
+  float zf, TextureIDPair depth, Texture *base_depth, StereoIndex stereo_index)
+{
+  prepareNextFrameImpl<false>(view_pos, view, proj, view_proj, zn, zf, depth, base_depth, stereo_index);
+}
+
+template <bool ignoreVr>
+void OcclusionSystemImpl::prepareNextFrameImpl(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn,
+  float zf, TextureIDPair depth, Texture *base_depth, StereoIndex stereo_index)
 {
   G_ASSERT_RETURN(depth.getTex2D(), );
-  if (stereo_index != StereoIndex::Right)
+  if (ignoreVr || stereo_index != StereoIndex::Right)
     currentTarget = ringTextures.getNewTargetAndId(lastRenderedFrame, currentTargetId);
-  if (stereo_index != StereoIndex::Left)
+  if (ignoreVr || stereo_index != StereoIndex::Left)
     nextFramePrepared = !!currentTarget;
   if (!currentTarget)
     return;
 
-  if (stereo_index == StereoIndex::Mono)
+  if (ignoreVr || stereo_index == StereoIndex::Mono)
   {
     TIME_D3D_PROFILE(downsample_hzb);
     SCOPE_RENDER_TARGET;
@@ -332,9 +367,6 @@ void OcclusionSystemImpl::prepareNextFrame(vec3f viewPos, mat44f_cref view, mat4
     int lod = 0;
     while (((w >> (lod + 1)) > width || (h >> (lod + 1)) > height) && lod < depth.getTex2D()->level_count() - 1)
       lod++;
-
-    depth.getTex2D()->texfilter(TEXFILTER_POINT);
-    depth.getTex2D()->texaddr(TEXADDR_CLAMP);
 
     static int depthSourceSzVarId = get_shader_variable_id("depth_source_sz", true);
     static int depthTargetSzVarId = get_shader_variable_id("depth_target_sz", true);
@@ -353,57 +385,62 @@ void OcclusionSystemImpl::prepareNextFrame(vec3f viewPos, mat44f_cref view, mat4
       base_depth->getinfo(base_tinfo, 0);
       G_ASSERTF((base_tinfo.w / 2 == tinfo.w && base_tinfo.h / 2 == tinfo.h) || (!tinfo.mipLevels && d3d::is_stub_driver()),
         "base_tinfo=%dx%d,L%d tinfo=%dx%d,L%d", base_tinfo.w, base_tinfo.h, base_tinfo.mipLevels, tinfo.w, tinfo.h, tinfo.mipLevels);
-      base_depth->texfilter(TEXFILTER_POINT);
-      base_depth->texaddr(TEXADDR_CLAMP);
+
+      Texture *sourceTex = base_depth;
+      int srcSizeW = base_tinfo.w, srcSizeH = base_tinfo.h;
       bool finalRendered = false;
-      for (int i = -1, e = depth.getTex2D()->level_count(); i < e;) // current lod
+      for (int i = 0, e = depth.getTex2D()->level_count();; i++) // current lod
       {
-        int srcSizeW = base_tinfo.w, srcSizeH = base_tinfo.h;
-        if (i == -1)
-        {
-          d3d::settex(source_tex_const_no, base_depth);
-        }
-        else
-        {
-          srcSizeW = tinfo.w >> i;
-          srcSizeH = tinfo.h >> i;
-          depth.getTex2D()->texmiplevel(i, i);
-          d3d::resource_barrier({depth.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, unsigned(i), 1});
-          d3d::settex(source_tex_const_no, depth.getTex2D());
-        }
         int targetW = srcSizeW >> 1, targetH = srcSizeH >> 1;
-        bool downsample4X = false;
+        int downsampleTypeId = 0;                    // 0 = final2x2, 1 = final4x4, 2 = down2x2, 3 = down4x4
         if ((targetW > width) || (targetH > height)) // we can skip one mip, by downsample 4x4.
         {
-          downsample4X = true;
+          downsampleTypeId = 0b01;
           targetW >>= 1;
           targetH >>= 1;
         }
-        G_ASSERT(srcSizeW == (base_tinfo.w >> (i + 1)) && srcSizeH == (base_tinfo.h >> (i + 1)));
-        const bool final = (targetW <= width && targetH <= height) || (i == e - 1);
+
+        G_ASSERT(srcSizeW == (base_tinfo.w >> i) && srcSizeH == (base_tinfo.h >> i));
+        Texture *targetTex;
+        int renderTargetLod = 0;
+        const bool final = (targetW <= width && targetH <= height) || (i == e);
         if (final) // we found final target
         {
+          i = e;
           targetW = width;
           targetH = height;
-          d3d::set_render_target(currentTarget, 0);
+          targetTex = currentTarget;
           finalRendered = true;
-          i = e;
         }
         else
         {
-          const int renderTargetLod = i + (downsample4X ? 2 : 1);
+          i += downsampleTypeId;
+          downsampleTypeId |= 0b10;
+          targetTex = depth.getTex2D();
+          renderTargetLod = i;
           G_ASSERT((tinfo.w >> renderTargetLod) == targetW && (tinfo.h >> renderTargetLod) == targetH);
-          d3d::set_render_target(depth.getTex2D(), renderTargetLod);
-          i = renderTargetLod;
         }
+        d3d::set_render_target(targetTex, renderTargetLod);
+        d3d::settex(source_tex_const_no, sourceTex);
+        d3d::set_sampler(STAGE_PS, source_tex_const_no, clampPointSampler);
+        sourceTex = depth.getTex2D();
 
-        ShaderGlobal::set_int(downsampleTypeIdVarId, final ? (downsample4X ? 1 : 0) : (downsample4X ? 3 : 2));
+        ShaderGlobal::set_int(downsampleTypeIdVarId, downsampleTypeId);
 
         ShaderGlobal::set_color4(depthTargetSzVarId, targetW, targetH, 0, 0);
         ShaderGlobal::set_color4(depthSourceSzVarId, srcSizeW, srcSizeH, 0, 0);
 
         downsample.render();
+
+        if (i >= e)
+          break;
+
+        srcSizeW = tinfo.w >> i;
+        srcSizeH = tinfo.h >> i;
+        depth.getTex2D()->texmiplevel(i, i);
+        d3d::resource_barrier({depth.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, unsigned(i), 1});
       }
+
       G_ASSERT(finalRendered == true);
 
       ShaderGlobal::set_int(downsampleTypeIdVarId, 0);
@@ -416,6 +453,7 @@ void OcclusionSystemImpl::prepareNextFrame(vec3f viewPos, mat44f_cref view, mat4
 
       depth.getTex2D()->texmiplevel(lod, lod);
       d3d::settex(source_tex_const_no, depth.getTex2D());
+      d3d::set_sampler(STAGE_PS, source_tex_const_no, clampPointSampler);
       d3d::set_render_target(currentTarget, 0);
 
       downsample.render();
@@ -460,7 +498,7 @@ void OcclusionSystemImpl::prepareNextFrame(vec3f viewPos, mat44f_cref view, mat4
     }
   }
 
-  if (stereo_index != StereoIndex::Left)
+  if (ignoreVr || stereo_index != StereoIndex::Left)
   {
     TIME_D3D_PROFILE(start_cpu_copy_hzb);
     ringTextures.startCPUCopy();
@@ -472,9 +510,9 @@ void OcclusionSystemImpl::prepareNextFrame(vec3f viewPos, mat44f_cref view, mat4
       v_mat44_mul(globtmHistory[lastRenderedFrame % globtmHistory.size()].viewproj, proj, viewTm);
     }
     else
-      globtmHistory[lastRenderedFrame % globtmHistory.size()].viewproj = viewProj;
+      globtmHistory[lastRenderedFrame % globtmHistory.size()].viewproj = view_proj;
 
-    globtmHistory[lastRenderedFrame % globtmHistory.size()].pos = viewPos;
+    globtmHistory[lastRenderedFrame % globtmHistory.size()].pos = view_pos;
     globtmHistory[lastRenderedFrame % globtmHistory.size()].zn = zn;
     globtmHistory[lastRenderedFrame % globtmHistory.size()].zf = zf;
   }
@@ -497,14 +535,16 @@ bool OcclusionSystemImpl::process(float *destData, uint32_t &frame)
 {
   TIME_D3D_PROFILE(readback_hzb);
   int stride;
-  uint8_t *data = ringTextures.lock(stride, frame);
+  const uint8_t *data = ringTextures.lock(stride, frame);
   if (!data)
     return false;
   {
-    const uint32_t BLOCK_SIZE = 32;
     TIME_PROFILE_DEV(cpu_copy_hzb);
-    for (int y = 0; y < height; ++y, destData += width, data += stride)
-      block_memcopy<BLOCK_SIZE * sizeof(float)>((uint8_t *)destData, data, width * sizeof(float));
+    if (DAGOR_LIKELY(stride == width * sizeof(float)))
+      memcpy(destData, data, height * stride);
+    else
+      for (int y = 0; y < height; ++y, destData += width, data += stride)
+        memcpy(destData, data, width * sizeof(float));
   }
   ringTextures.unlock();
   return true;
@@ -607,9 +647,16 @@ void OcclusionSystemImpl::prepareDebug()
     if (reprojected.getTex2D()->lockimg((void **)&data, stride, mip, TEXLOCK_UPDATEFROMSYSTEX | TEXLOCK_RWMASK | TEXLOCK_SYSTEXLOCK))
     {
       const float *zbuffer = OcclusionTest<WIDTH, HEIGHT>::getZbuffer(mip);
-
-      for (int i = 0; i < (height >> mip); ++i, data += stride)
-        memcpy(data, zbuffer + i * (width >> mip), (width >> mip) * sizeof(float));
+      if (mip == 0 && debug_reprojection.get())
+      {
+        for (int i = 0; i < height; ++i, data += stride)
+          memcpy(data, OcclusionRenderer<WIDTH, HEIGHT>::reprojectionDebug + i * width, width * sizeof(float));
+      }
+      else
+      {
+        for (int i = 0; i < (height >> mip); ++i, data += stride)
+          memcpy(data, zbuffer + i * (width >> mip), (width >> mip) * sizeof(float));
+      }
       reprojected.getTex2D()->unlockimg();
     }
 #endif

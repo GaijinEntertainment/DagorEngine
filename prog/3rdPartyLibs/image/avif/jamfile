@@ -43,6 +43,6 @@ AddIncludes =
 ;
 
 
-CPPopt = -D__B_CORE -DAVIF_CODEC_DAV1D=1 ;
+CPPopt = -DAVIF_CODEC_DAV1D=1 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

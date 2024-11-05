@@ -1,9 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 /************************************************************************
   global variables - semantic
 /************************************************************************/
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef __GLOBVARSEM_H
-#define __GLOBVARSEM_H
 
 #include "varTypes.h"
 #include "parser/base_par.h"
@@ -23,7 +23,7 @@ class ShaderSyntaxParser;
 
 namespace ShaderParser
 {
-void error(const char *msg, BaseParNamespace::Terminal *t, ShaderTerminal::ShaderSyntaxParser &parser);
+void error(const char *msg, BaseParNamespace::Symbol *s, ShaderTerminal::ShaderSyntaxParser &parser);
 
 // add a new global variable to a global variable list
 void add_global_var(ShaderTerminal::global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &parser);
@@ -45,6 +45,3 @@ void add_global_assume(ShaderTerminal::assume_stat &assume, ShaderTerminal::Shad
 void add_assume_to_blk(const char *block_name, const IntervalList &intervals, ShaderTerminal::assume_stat &assume,
   ShaderTerminal::ShaderSyntaxParser &parser);
 }; // namespace ShaderParser
-
-
-#endif //__GLOBVARSEM_H

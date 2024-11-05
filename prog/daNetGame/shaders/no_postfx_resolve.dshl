@@ -1,0 +1,34 @@
+include "shader_global.dshl"
+
+texture source_tex;
+shader deferred_no_postfx_resolve
+{
+  supports global_frame;
+
+  no_ablend;
+  cull_mode=none;
+  z_test=false;
+  z_write=false;
+
+  (ps) { tex@smp2d =source_tex; }
+  INIT_HDR(ps)
+  USE_HDR(ps)
+
+  hlsl {
+    #define USE_TEXCOORD tc
+  }
+  POSTFX_VS(1)
+  ENABLE_ASSERT(ps)
+
+  hlsl(ps) {
+    #include <pixelPacking/ColorSpaceUtility.hlsl>
+    float4 deferred_no_postfx_resolve_ps(VsOutput input): SV_Target
+    {
+      half3 r0;
+      r0.rgb = unpack_hdr(h4tex2D(tex, input.tc).xyz);
+      r0.rgb = ApplySRGBCurve(r0.rgb);
+      return float4(r0, luminance(r0));
+    }
+  }
+  compile("target_ps", "deferred_no_postfx_resolve_ps");
+}

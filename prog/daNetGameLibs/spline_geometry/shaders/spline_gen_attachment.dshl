@@ -1,0 +1,134 @@
+include "spline_gen_inc.dshl"
+
+buffer spline_gen_attachment_data;
+buffer spline_gen_prev_attachment_data;
+
+shader dynamic_spline_attachment
+{
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+
+  USING_ATEST_HALF()
+
+  DYNAMIC_SPLINE_GEN_VS_COMMON()
+
+  if (in_editor_assume == no)
+  {
+    INIT_SPLINE_GEN_ATTACHMENT_BATCHES(vs)
+    (vs)
+    {
+      spline_gen_attachment_data@buf = spline_gen_attachment_data hlsl {
+        #include "spline_gen_attachment.hlsl"
+        StructuredBuffer<AttachmentData> spline_gen_attachment_data@buf;
+      };
+      spline_gen_prev_attachment_data@buf = spline_gen_prev_attachment_data hlsl {
+        #include "spline_gen_attachment.hlsl"
+        StructuredBuffer<AttachmentData> spline_gen_prev_attachment_data@buf;
+      };
+    }
+  }
+
+  channel float3 pos=pos;
+  channel float2 tc[0]=tc[0];
+  channel float3 norm=norm;
+
+  hlsl (vs)
+  {
+    struct VsInput
+    {
+      float3 position : POSITION;
+      float2 texcoord : TEXCOORD0;
+      float3 normal : NORMAL;
+    };
+
+    VsOutput spline_gen_attachment_vs(VsInput input, uint attachment_instance_id : SV_InstanceID)
+    {
+      ##if in_editor_assume == no
+        uint hardwareInstanceId = attachment_instance_id / spline_gen_attachment_max_no;
+        InstanceId instanceId = spline_gen_culled_buffer[hardwareInstanceId];
+        SplineGenInstance instanceData = spline_gen_instancing_buffer[instanceId];
+        uint objectId = attachment_instance_id % spline_gen_attachment_max_no;
+        BRANCH
+        if (objectId >= instanceData.objCount)
+        {
+          VsOutput offscreenOutput = (VsOutput)0;
+          offscreenOutput.pos = float4(NaN,NaN,NaN, 1);
+          return offscreenOutput;
+        }
+
+        uint objBatchId = spline_gen_obj_batch_id_buffer[instanceData.batchIdsStart + objectId / spline_gen_attachment_batch_size];
+        uint idInBatch = objectId % spline_gen_attachment_batch_size;
+        uint dataIndex = objBatchId * spline_gen_attachment_batch_size + idInBatch;
+        AttachmentData currData = spline_gen_attachment_data[dataIndex];
+        float3x3 currRotScaleMat;
+        float3 currBaseWorldPos;
+        unpack_tm(currData, currRotScaleMat, currBaseWorldPos);
+        float3 currWorldPos = mul(input.position, currRotScaleMat) + currBaseWorldPos;
+        float3 currNormal = normalize(mul(input.normal, currRotScaleMat));
+      ##else
+        float3 currWorldPos = input.position;
+        float3 currNormal = input.normal;
+      ##endif
+
+      VsOutput output;
+      output.pos = mul(float4(currWorldPos, 1), viewProjTm);
+      output.pointToEye = world_view_pos - currWorldPos;
+      output.texcoord = input.texcoord;
+      output.normal = currNormal;
+      #ifdef MOTION_VECTORS_ENABLED
+        output.out_pos =  output.pos;
+        float3 prevPos = currWorldPos;
+        if ((instanceData.flags & PREV_ATTACHMENT_DATA_VALID))
+        {
+          AttachmentData prevData = spline_gen_prev_attachment_data[dataIndex];
+          float3x3 prevRotScaleMat;
+          float3 prevBaseWorldPos;
+          unpack_tm(prevData, prevRotScaleMat, prevBaseWorldPos);
+          prevPos = mul(input.position, prevRotScaleMat) + prevBaseWorldPos;
+        }
+        output.out_prev_pos = mul(float4(prevPos, 1), prevOrigoRelativeViewProjTm);
+      #endif
+      return output;
+    }
+  }
+  compile("target_vs", "spline_gen_attachment_vs");
+
+  texture tex = material.texture.diffuse;
+
+  texture normal = material.texture[2];
+
+  (ps)
+  {
+    diffuse_tex@static = tex;
+    normal_tex@static = normal;
+  }
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    DYNAMIC_SPLINE_GEN_PS_COMMON()
+    hlsl (ps)
+    {
+      GBUFFER_OUTPUT spline_gen_attachment_ps(VsOutput input HW_USE_SCREEN_POS)
+      {
+        float4 packedDiffuse = tex2DBindless(get_diffuse_tex(), input.texcoord);
+        float4 packedNormalMap = tex2DBindless(get_normal_tex(), input.texcoord);
+        return spline_gen_ps_base_impl(input, packedDiffuse, packedNormalMap, GET_SCREEN_POS(input.pos));
+      }
+    }
+  }
+  else
+  {
+    hlsl (ps)
+    {
+      void spline_gen_attachment_ps(VsOutput input)
+      {
+        float4 packedDiffuse = tex2DBindless(get_diffuse_tex(), input.texcoord);
+        float alpha = packedDiffuse.a;
+        clip_alpha(alpha);
+      }
+    }
+  }
+  compile("target_ps", "spline_gen_attachment_ps");
+}

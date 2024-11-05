@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "include_dinput.h"
 #include "joy_ff_effects.h"
-#include <humanInput/dag_hiDInput.h>
+#include <drv/hid/dag_hiDInput.h>
 #include <math/dag_mathBase.h>
 #include <debug/dag_debug.h>
 using namespace HumanInput;
@@ -45,10 +47,7 @@ void Di8GenJoyEffect::fxDownload()
   {
     hr = eff->Download();
     if (FAILED(hr))
-    {
-      debug_ctx_("eff[%p]->Download = %X ", eff, hr);
-      HumanInput::printHResult(hr);
-    }
+      HumanInput::printHResult(__FILE__, __LINE__, "eff->Download", hr);
   }
 }
 bool Di8GenJoyEffect::fxStart(int count, bool solo)
@@ -59,8 +58,7 @@ bool Di8GenJoyEffect::fxStart(int count, bool solo)
     hr = eff->Start(count > 0 ? count : INFINITE, solo ? DIES_SOLO : 0);
     if (FAILED(hr))
     {
-      debug_ctx_("eff[%p]->Start = %X ", eff, hr);
-      HumanInput::printHResult(hr);
+      HumanInput::printHResult(__FILE__, __LINE__, "eff->Start", hr);
       return false;
     }
     state.isStarted = count == 0; //== for now works only for continous play
@@ -79,8 +77,7 @@ bool Di8GenJoyEffect::fxIsPlaying()
     hr = eff->GetEffectStatus(&dw);
     if (FAILED(hr))
     {
-      debug_ctx_("eff[%p]->GetEffectStatus = %X ", eff, hr);
-      HumanInput::printHResult(hr);
+      HumanInput::printHResult(__FILE__, __LINE__, "eff->GetEffectStatus", hr);
       return false;
     }
     return dw & (DIEGES_PLAYING | DIEGES_EMULATED);
@@ -94,10 +91,7 @@ void Di8GenJoyEffect::fxStop()
   {
     hr = eff->Stop();
     if (FAILED(hr))
-    {
-      debug_ctx_("eff[%p]->Stop = %X ", eff, hr);
-      HumanInput::printHResult(hr);
-    }
+      HumanInput::printHResult(__FILE__, __LINE__, "eff->Stop", hr);
     state.isStarted = false;
   }
 }
@@ -118,9 +112,8 @@ void Di8GenJoyEffect::fxSetParameters(DIEFFECT *diEffect, int flags)
       device->acquire();
       hr = eff->SetParameters(diEffect, flags);
     }
-    debug_ctx_("SetParameters = %X ", hr);
     G_ASSERT(hr != E_INVALIDARG);
-    HumanInput::printHResult(hr);
+    HumanInput::printHResult(__FILE__, __LINE__, "SetParameters", hr);
     return;
   }
 }
@@ -218,8 +211,7 @@ bool DiJoyConditionFx::create(int condfx_type, JoyCookedCreateParams &cp)
     hr = device->getDev()->CreateEffect(guid, &diEffect, &eff, NULL);
     if (!eff || FAILED(hr))
     {
-      debug_ctx_("CreateEffect = %X ", hr);
-      HumanInput::printHResult(hr);
+      HumanInput::printHResult(__FILE__, __LINE__, "CreateEffect", hr);
       return false;
     }
   }
@@ -301,8 +293,7 @@ bool DiJoyConstantForceFx::create(JoyCookedCreateParams &cp, float force)
   hr = device->getDev()->CreateEffect(GUID_ConstantForce, &diEffect, &eff, NULL);
   if (!eff || FAILED(hr))
   {
-    debug_ctx_("CreateEffect = %X ", hr);
-    HumanInput::printHResult(hr);
+    HumanInput::printHResult(__FILE__, __LINE__, "CreateEffect", hr);
     return false;
   }
 
@@ -371,8 +362,7 @@ bool DiJoyPeriodicFx::create(int periodfx_type, JoyCookedCreateParams &cp)
   hr = device->getDev()->CreateEffect(guid, &diEffect, &eff, NULL);
   if (!eff || FAILED(hr))
   {
-    debug_ctx_("CreateEffect = %X ", hr);
-    HumanInput::printHResult(hr);
+    HumanInput::printHResult(__FILE__, __LINE__, "CreateEffect", hr);
     return false;
   }
 
@@ -440,8 +430,7 @@ bool DiJoyRampForceFx::create(JoyCookedCreateParams &cp, float start_f, float en
   hr = device->getDev()->CreateEffect(GUID_RampForce, &diEffect, &eff, NULL);
   if (!eff || FAILED(hr))
   {
-    debug_ctx_("CreateEffect = %X ", hr);
-    HumanInput::printHResult(hr);
+    HumanInput::printHResult(__FILE__, __LINE__, "CreateEffect", hr);
     return false;
   }
   return true;

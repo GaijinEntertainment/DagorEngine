@@ -37,7 +37,7 @@ folder {
 
 folder {
   path:t="gamebase/samples_prog"
-  dest_path:t="samples"
+  dest_path:t="samples_prog"
   scan_folder:b=true
   scan_subfolders:b=true
   wildcard:t=*

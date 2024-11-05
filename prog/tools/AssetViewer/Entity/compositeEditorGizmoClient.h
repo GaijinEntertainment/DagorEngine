@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <EditorCore/ec_interface.h>
 #include <math/dag_TMatrix.h>
 

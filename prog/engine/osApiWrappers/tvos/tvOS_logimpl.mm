@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #import <Foundation/Foundation.h>
 #include <debug/dag_debug.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -80,7 +82,7 @@ void debug_log_tvos(const char *data)
   {
     advance_previous_logs();
 
-    //!!! BE AWARE/TVOS SPECIFIC !!!
+    //BE AWARE/TVOS SPECIFIC !!!
     //find the current cache directory, we use caches directory because OS
     //saves files here some time after application die, instead tmp directory
     //will clear once it close. But caches dir not guaranted that logs will be

@@ -38,6 +38,12 @@ Type aliases
 +-----------------+---+-----+
 +needMacroModule  +5  +32   +
 +-----------------+---+-----+
++promoteToBuiltin +6  +64   +
++-----------------+---+-----+
++isDependency     +7  +128  +
++-----------------+---+-----+
++macroException   +8  +256  +
++-----------------+---+-----+
 
 
 |typedef-rtti-ProgramFlags|
@@ -111,6 +117,8 @@ Type aliases
 +stringHeapGC    +14 +16384+
 +----------------+---+-----+
 +lockCheck       +15 +32768+
++----------------+---+-----+
++isPrivate       +16 +65536+
 +----------------+---+-----+
 
 
@@ -202,7 +210,7 @@ Type aliases
 
 .. _alias-FileAccessPtr:
 
-.. das:attribute:: FileAccessPtr = smart_ptr<rtti::FileAccess>
+.. das:attribute:: FileAccessPtr = smart_ptr<FileAccess>
 
 |typedef-rtti-FileAccessPtr|
 
@@ -478,93 +486,99 @@ Enumerations
 +--------------+--+
 +option        +3 +
 +--------------+--+
-+fakeContext   +4 +
++typeDecl      +4 +
 +--------------+--+
-+fakeLineInfo  +5 +
++typeMacro     +5 +
 +--------------+--+
-+anyArgument   +6 +
++fakeContext   +6 +
 +--------------+--+
-+tVoid         +7 +
++fakeLineInfo  +7 +
 +--------------+--+
-+tBool         +8 +
++anyArgument   +8 +
 +--------------+--+
-+tInt64        +13+
++tVoid         +9 +
 +--------------+--+
-+tUInt64       +14+
++tBool         +10+
 +--------------+--+
-+tInt          +15+
++tInt8         +11+
 +--------------+--+
-+tInt2         +16+
++tUInt8        +12+
 +--------------+--+
-+tInt3         +17+
++tInt16        +13+
 +--------------+--+
-+tInt4         +18+
++tUInt16       +14+
 +--------------+--+
-+tUInt         +19+
++tInt64        +15+
 +--------------+--+
-+tUInt2        +20+
++tUInt64       +16+
 +--------------+--+
-+tUInt3        +21+
++tInt          +17+
 +--------------+--+
-+tUInt4        +22+
++tInt2         +18+
 +--------------+--+
-+tFloat        +23+
++tInt3         +19+
 +--------------+--+
-+tFloat2       +24+
++tInt4         +20+
 +--------------+--+
-+tFloat3       +25+
++tUInt         +21+
 +--------------+--+
-+tFloat4       +26+
++tUInt2        +22+
 +--------------+--+
-+tDouble       +27+
++tUInt3        +23+
 +--------------+--+
-+tRange        +28+
++tUInt4        +24+
 +--------------+--+
-+tURange       +29+
++tFloat        +25+
 +--------------+--+
-+tRange64      +30+
++tFloat2       +26+
 +--------------+--+
-+tURange64     +31+
++tFloat3       +27+
 +--------------+--+
-+tString       +32+
++tFloat4       +28+
 +--------------+--+
-+tStructure    +33+
++tDouble       +29+
 +--------------+--+
-+tHandle       +34+
++tRange        +30+
 +--------------+--+
-+tEnumeration  +35+
++tURange       +31+
 +--------------+--+
-+tPointer      +39+
++tRange64      +32+
 +--------------+--+
-+tFunction     +40+
++tURange64     +33+
 +--------------+--+
-+tLambda       +41+
++tString       +34+
 +--------------+--+
-+tIterator     +42+
++tStructure    +35+
 +--------------+--+
-+tArray        +43+
++tHandle       +36+
 +--------------+--+
-+tTable        +44+
++tEnumeration  +37+
 +--------------+--+
-+tBlock        +45+
++tEnumeration8 +38+
 +--------------+--+
-+tInt8         +9 +
++tEnumeration16+39+
 +--------------+--+
-+tUInt8        +10+
++tEnumeration64+40+
 +--------------+--+
-+tInt16        +11+
++tBitfield     +41+
 +--------------+--+
-+tUInt16       +12+
++tPointer      +42+
 +--------------+--+
-+tTuple        +46+
++tFunction     +43+
 +--------------+--+
-+tEnumeration8 +36+
++tLambda       +44+
 +--------------+--+
-+tEnumeration16+37+
++tIterator     +45+
 +--------------+--+
-+tVariant      +47+
++tArray        +46+
 +--------------+--+
-+tBitfield     +38+
++tTable        +47+
++--------------+--+
++tBlock        +48+
++--------------+--+
++tTuple        +49+
++--------------+--+
++tVariant      +50+
 +--------------+--+
 
 
@@ -662,11 +676,13 @@ Context fields are
 +--------------------------+--------------------------------------------------------------+
 +category                  + :ref:`context_category_flags <alias-context_category_flags>` +
 +--------------------------+--------------------------------------------------------------+
++alwaysErrorOnException    +bool                                                          +
++--------------------------+--------------------------------------------------------------+
 +alwaysStackWalkOnException+bool                                                          +
 +--------------------------+--------------------------------------------------------------+
-+last_exception            +string const                                                  +
-+--------------------------+--------------------------------------------------------------+
 +contextMutex              + :ref:`rtti::recursive_mutex <handle-rtti-recursive_mutex>` ? +
++--------------------------+--------------------------------------------------------------+
++last_exception            +string const                                                  +
 +--------------------------+--------------------------------------------------------------+
 +name                      + :ref:`builtin::das_string <handle-builtin-das_string>`       +
 +--------------------------+--------------------------------------------------------------+
@@ -941,15 +957,17 @@ EnumValueInfo fields are
 
 EnumInfo fields are
 
-+-----------+------------+
-+count      +uint        +
-+-----------+------------+
-+name       +string const+
-+-----------+------------+
-+module_name+string const+
-+-----------+------------+
-+hash       +uint64      +
-+-----------+------------+
++-----------+----------------------------------------------------------+
++count      +uint                                                      +
++-----------+----------------------------------------------------------+
++name       +string const                                              +
++-----------+----------------------------------------------------------+
++module_name+string const                                              +
++-----------+----------------------------------------------------------+
++hash       +uint64                                                    +
++-----------+----------------------------------------------------------+
++fields     + :ref:`rtti::EnumValueInfo <handle-rtti-EnumValueInfo>` ??+
++-----------+----------------------------------------------------------+
 
 
 |structure_annotation-rtti-EnumInfo|
@@ -960,21 +978,25 @@ EnumInfo fields are
 
 StructInfo fields are
 
-+-----------+------------------------------------------------+
-+init_mnh   +uint64                                          +
-+-----------+------------------------------------------------+
-+size       +uint                                            +
-+-----------+------------------------------------------------+
-+count      +uint                                            +
-+-----------+------------------------------------------------+
-+name       +string const                                    +
-+-----------+------------------------------------------------+
-+module_name+string const                                    +
-+-----------+------------------------------------------------+
-+hash       +uint64                                          +
-+-----------+------------------------------------------------+
-+flags      + :ref:`StructInfoFlags <alias-StructInfoFlags>` +
-+-----------+------------------------------------------------+
++------------+------------------------------------------------+
++init_mnh    +uint64                                          +
++------------+------------------------------------------------+
++size        +uint                                            +
++------------+------------------------------------------------+
++count       +uint                                            +
++------------+------------------------------------------------+
++name        +string const                                    +
++------------+------------------------------------------------+
++module_name +string const                                    +
++------------+------------------------------------------------+
++hash        +uint64                                          +
++------------+------------------------------------------------+
++firstGcField+uint                                            +
++------------+------------------------------------------------+
++flags       + :ref:`StructInfoFlags <alias-StructInfoFlags>` +
++------------+------------------------------------------------+
++fields      + :ref:`rtti::VarInfo <handle-rtti-VarInfo>` ??  +
++------------+------------------------------------------------+
 
 
 |structure_annotation-rtti-StructInfo|
@@ -1055,6 +1077,8 @@ VarInfo fields are
 +secondType          + :ref:`rtti::TypeInfo <handle-rtti-TypeInfo>` ?                                  +
 +--------------------+---------------------------------------------------------------------------------+
 +dimSize             +uint                                                                             +
++--------------------+---------------------------------------------------------------------------------+
++nextGcField         +uint                                                                             +
 +--------------------+---------------------------------------------------------------------------------+
 +name                +string const                                                                     +
 +--------------------+---------------------------------------------------------------------------------+
@@ -1195,6 +1219,10 @@ CodeOfPolicies fields are
 +----------------------------------+--------------------------------------------------------+
 +jit                               +bool                                                    +
 +----------------------------------+--------------------------------------------------------+
++report_invisible_functions        +bool                                                    +
++----------------------------------+--------------------------------------------------------+
++no_members_functions_in_struct    +bool                                                    +
++----------------------------------+--------------------------------------------------------+
 +fail_on_lack_of_aot_export        +bool                                                    +
 +----------------------------------+--------------------------------------------------------+
 +profiler                          +bool                                                    +
@@ -1209,6 +1237,8 @@ CodeOfPolicies fields are
 +----------------------------------+--------------------------------------------------------+
 +rtti                              +bool                                                    +
 +----------------------------------+--------------------------------------------------------+
++max_heap_allocated                +uint64                                                  +
++----------------------------------+--------------------------------------------------------+
 +ignore_shared_modules             +bool                                                    +
 +----------------------------------+--------------------------------------------------------+
 +no_deprecated                     +bool                                                    +
@@ -1216,6 +1246,8 @@ CodeOfPolicies fields are
 +aot                               +bool                                                    +
 +----------------------------------+--------------------------------------------------------+
 +allow_shared_lambda               +bool                                                    +
++----------------------------------+--------------------------------------------------------+
++max_static_variables_size         +uint64                                                  +
 +----------------------------------+--------------------------------------------------------+
 +allow_local_variable_shadowing    +bool                                                    +
 +----------------------------------+--------------------------------------------------------+
@@ -1251,6 +1283,10 @@ CodeOfPolicies fields are
 +----------------------------------+--------------------------------------------------------+
 +solid_context                     +bool                                                    +
 +----------------------------------+--------------------------------------------------------+
++max_string_heap_allocated         +uint64                                                  +
++----------------------------------+--------------------------------------------------------+
++no_local_class_members            +bool                                                    +
++----------------------------------+--------------------------------------------------------+
 +no_global_variables               +bool                                                    +
 +----------------------------------+--------------------------------------------------------+
 +completion                        +bool                                                    +
@@ -1259,15 +1295,23 @@ CodeOfPolicies fields are
 +----------------------------------+--------------------------------------------------------+
 +macro_context_persistent_heap     +bool                                                    +
 +----------------------------------+--------------------------------------------------------+
++strict_properties                 +bool                                                    +
++----------------------------------+--------------------------------------------------------+
 +no_unsafe                         +bool                                                    +
++----------------------------------+--------------------------------------------------------+
++jit_module                        + :ref:`builtin::das_string <handle-builtin-das_string>` +
 +----------------------------------+--------------------------------------------------------+
 +local_ref_is_unsafe               +bool                                                    +
 +----------------------------------+--------------------------------------------------------+
 +no_aliasing                       +bool                                                    +
 +----------------------------------+--------------------------------------------------------+
++report_private_functions          +bool                                                    +
++----------------------------------+--------------------------------------------------------+
 +no_global_variables_at_all        +bool                                                    +
 +----------------------------------+--------------------------------------------------------+
 +strict_smart_pointers             +bool                                                    +
++----------------------------------+--------------------------------------------------------+
++no_fast_call                      +bool                                                    +
 +----------------------------------+--------------------------------------------------------+
 +only_fast_aot                     +bool                                                    +
 +----------------------------------+--------------------------------------------------------+
@@ -1323,27 +1367,27 @@ Handled types
 Initialization and finalization
 +++++++++++++++++++++++++++++++
 
-  *  :ref:`LineInfo () : rtti::LineInfo <function-_at_rtti_c__c_LineInfo>`
-  *  :ref:`LineInfo (arg0:rtti::FileInfo? const implicit;arg1:int const;arg2:int const;arg3:int const;arg4:int const) : rtti::LineInfo <function-_at_rtti_c__c_LineInfo_CI1_ls_H_ls_rtti_c__c_FileInfo_gr__gr_?_Ci_Ci_Ci_Ci>`
-  *  :ref:`using (arg0:block\<(var arg0:rtti::recursive_mutex explicit):void\> const implicit) : void <function-_at_rtti_c__c_using_CI0_ls_XH_ls_rtti_c__c_recursive_mutex_gr__gr_1_ls_v_gr__builtin_>`
-  *  :ref:`CodeOfPolicies () : rtti::CodeOfPolicies <function-_at_rtti_c__c_CodeOfPolicies>`
-  *  :ref:`using (arg0:block\<(var arg0:rtti::CodeOfPolicies explicit):void\> const implicit) : void <function-_at_rtti_c__c_using_CI0_ls_XH_ls_rtti_c__c_CodeOfPolicies_gr__gr_1_ls_v_gr__builtin_>`
-  *  :ref:`using (arg0:block\<(var arg0:rtti::ModuleGroup explicit):void\> const implicit) : void <function-_at_rtti_c__c_using_CI0_ls_XH_ls_rtti_c__c_ModuleGroup_gr__gr_1_ls_v_gr__builtin_>`
-  *  :ref:`RttiValue_nothing () : auto <function-_at_rtti_c__c_RttiValue_nothing>`
+  *  :ref:`LineInfo () : rtti::LineInfo <function-_at_rtti_c__c_LineInfo>` 
+  *  :ref:`LineInfo (arg0:rtti::FileInfo? const implicit;arg1:int const;arg2:int const;arg3:int const;arg4:int const) : rtti::LineInfo <function-_at_rtti_c__c_LineInfo_CI1_ls_H_ls_rtti_c__c_FileInfo_gr__gr__qm__Ci_Ci_Ci_Ci>` 
+  *  :ref:`using (arg0:block\<(var arg0:rtti::recursive_mutex explicit):void\> const implicit) : void <function-_at_rtti_c__c_using_CI0_ls_XH_ls_rtti_c__c_recursive_mutex_gr__gr_1_ls_v_gr__builtin_>` 
+  *  :ref:`CodeOfPolicies () : rtti::CodeOfPolicies <function-_at_rtti_c__c_CodeOfPolicies>` 
+  *  :ref:`using (arg0:block\<(var arg0:rtti::CodeOfPolicies explicit):void\> const implicit) : void <function-_at_rtti_c__c_using_CI0_ls_XH_ls_rtti_c__c_CodeOfPolicies_gr__gr_1_ls_v_gr__builtin_>` 
+  *  :ref:`using (arg0:block\<(var arg0:rtti::ModuleGroup explicit):void\> const implicit) : void <function-_at_rtti_c__c_using_CI0_ls_XH_ls_rtti_c__c_ModuleGroup_gr__gr_1_ls_v_gr__builtin_>` 
+  *  :ref:`RttiValue_nothing () : auto <function-_at_rtti_c__c_RttiValue_nothing>` 
 
 .. _function-_at_rtti_c__c_LineInfo:
 
 .. das:function:: LineInfo()
 
-LineInfo returns  :ref:`rtti::LineInfo <handle-rtti-LineInfo>`
+LineInfo returns  :ref:`rtti::LineInfo <handle-rtti-LineInfo>` 
 
 |function-rtti-LineInfo|
 
-.. _function-_at_rtti_c__c_LineInfo_CI1_ls_H_ls_rtti_c__c_FileInfo_gr__gr_?_Ci_Ci_Ci_Ci:
+.. _function-_at_rtti_c__c_LineInfo_CI1_ls_H_ls_rtti_c__c_FileInfo_gr__gr__qm__Ci_Ci_Ci_Ci:
 
-.. das:function:: LineInfo(arg0: rtti::FileInfo? const implicit; arg1: int const; arg2: int const; arg3: int const; arg4: int const)
+.. das:function:: LineInfo(arg0: FileInfo? const implicit; arg1: int const; arg2: int const; arg3: int const; arg4: int const)
 
-LineInfo returns  :ref:`rtti::LineInfo <handle-rtti-LineInfo>`
+LineInfo returns  :ref:`rtti::LineInfo <handle-rtti-LineInfo>` 
 
 +--------+--------------------------------------------------------------+
 +argument+argument type                                                 +
@@ -1364,7 +1408,7 @@ LineInfo returns  :ref:`rtti::LineInfo <handle-rtti-LineInfo>`
 
 .. _function-_at_rtti_c__c_using_CI0_ls_XH_ls_rtti_c__c_recursive_mutex_gr__gr_1_ls_v_gr__builtin_:
 
-.. das:function:: using(arg0: block<(var arg0:rtti::recursive_mutex explicit):void> const implicit)
+.. das:function:: using(arg0: block<(var arg0:recursive_mutex):void> const implicit)
 
 +--------+-----------------------------------------------------------------------------------------+
 +argument+argument type                                                                            +
@@ -1379,13 +1423,13 @@ LineInfo returns  :ref:`rtti::LineInfo <handle-rtti-LineInfo>`
 
 .. das:function:: CodeOfPolicies()
 
-CodeOfPolicies returns  :ref:`rtti::CodeOfPolicies <handle-rtti-CodeOfPolicies>`
+CodeOfPolicies returns  :ref:`rtti::CodeOfPolicies <handle-rtti-CodeOfPolicies>` 
 
 |function-rtti-CodeOfPolicies|
 
 .. _function-_at_rtti_c__c_using_CI0_ls_XH_ls_rtti_c__c_CodeOfPolicies_gr__gr_1_ls_v_gr__builtin_:
 
-.. das:function:: using(arg0: block<(var arg0:rtti::CodeOfPolicies explicit):void> const implicit)
+.. das:function:: using(arg0: block<(var arg0:CodeOfPolicies):void> const implicit)
 
 +--------+---------------------------------------------------------------------------------------+
 +argument+argument type                                                                          +
@@ -1398,7 +1442,7 @@ CodeOfPolicies returns  :ref:`rtti::CodeOfPolicies <handle-rtti-CodeOfPolicies>`
 
 .. _function-_at_rtti_c__c_using_CI0_ls_XH_ls_rtti_c__c_ModuleGroup_gr__gr_1_ls_v_gr__builtin_:
 
-.. das:function:: using(arg0: block<(var arg0:rtti::ModuleGroup explicit):void> const implicit)
+.. das:function:: using(arg0: block<(var arg0:ModuleGroup):void> const implicit)
 
 +--------+---------------------------------------------------------------------------------+
 +argument+argument type                                                                    +
@@ -1421,21 +1465,21 @@ RttiValue_nothing returns auto
 Type access
 +++++++++++
 
-  *  :ref:`get_dim (typeinfo:rtti::TypeInfo const implicit;index:int const;context:__context const;at:__lineInfo const) : int <function-_at_rtti_c__c_get_dim_CIH_ls_rtti_c__c_TypeInfo_gr__Ci_C_c_C_l>`
-  *  :ref:`get_dim (typeinfo:rtti::VarInfo const implicit;index:int const;context:__context const;at:__lineInfo const) : int <function-_at_rtti_c__c_get_dim_CIH_ls_rtti_c__c_VarInfo_gr__Ci_C_c_C_l>`
-  *  :ref:`builtin_is_same_type (a:rtti::TypeInfo const? const implicit;b:rtti::TypeInfo const? const implicit;refMatters:rtti::RefMatters const;cosntMatters:rtti::ConstMatters const;tempMatters:rtti::TemporaryMatters const;topLevel:bool const) : bool <function-_at_rtti_c__c_builtin_is_same_type_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr_?_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr_?_CE_ls_rtti_c__c_RefMatters_gr__CE_ls_rtti_c__c_ConstMatters_gr__CE_ls_rtti_c__c_TemporaryMatters_gr__Cb>`
-  *  :ref:`get_type_size (type:rtti::TypeInfo? const implicit) : int <function-_at_rtti_c__c_get_type_size_CI1_ls_H_ls_rtti_c__c_TypeInfo_gr__gr_?>`
-  *  :ref:`get_type_align (type:rtti::TypeInfo? const implicit) : int <function-_at_rtti_c__c_get_type_align_CI1_ls_H_ls_rtti_c__c_TypeInfo_gr__gr_?>`
-  *  :ref:`is_compatible_cast (from:rtti::StructInfo const? const implicit;to:rtti::StructInfo const? const implicit) : bool <function-_at_rtti_c__c_is_compatible_cast_CI1_ls_CH_ls_rtti_c__c_StructInfo_gr__gr_?_CI1_ls_CH_ls_rtti_c__c_StructInfo_gr__gr_?>`
-  *  :ref:`get_das_type_name (type:rtti::Type const;context:__context const) : string <function-_at_rtti_c__c_get_das_type_name_CE_ls_rtti_c__c_Type_gr__C_c>`
-  *  :ref:`is_same_type (a:rtti::TypeInfo const;b:rtti::TypeInfo const;refMatters:rtti::RefMatters const;constMatters:rtti::ConstMatters const;temporaryMatters:rtti::TemporaryMatters const;topLevel:bool const) : auto <function-_at_rtti_c__c_is_same_type_CH_ls_rtti_c__c_TypeInfo_gr__CH_ls_rtti_c__c_TypeInfo_gr__CE_ls_rtti_c__c_RefMatters_gr__CE_ls_rtti_c__c_ConstMatters_gr__CE_ls_rtti_c__c_TemporaryMatters_gr__Cb>`
-  *  :ref:`is_compatible_cast (a:rtti::StructInfo const;b:rtti::StructInfo const) : auto <function-_at_rtti_c__c_is_compatible_cast_CH_ls_rtti_c__c_StructInfo_gr__CH_ls_rtti_c__c_StructInfo_gr_>`
-  *  :ref:`each_dim (info:rtti::TypeInfo const) : auto <function-_at_rtti_c__c_each_dim_CH_ls_rtti_c__c_TypeInfo_gr_>`
-  *  :ref:`each_dim (info:rtti::VarInfo const) : auto <function-_at_rtti_c__c_each_dim_CH_ls_rtti_c__c_VarInfo_gr_>`
-  *  :ref:`arg_types (info:rtti::TypeInfo const) : auto <function-_at_rtti_c__c_arg_types_CH_ls_rtti_c__c_TypeInfo_gr_>`
-  *  :ref:`arg_types (info:rtti::VarInfo const) : auto <function-_at_rtti_c__c_arg_types_CH_ls_rtti_c__c_VarInfo_gr_>`
-  *  :ref:`arg_names (info:rtti::TypeInfo const) : auto <function-_at_rtti_c__c_arg_names_CH_ls_rtti_c__c_TypeInfo_gr_>`
-  *  :ref:`arg_names (info:rtti::VarInfo const) : auto <function-_at_rtti_c__c_arg_names_CH_ls_rtti_c__c_VarInfo_gr_>`
+  *  :ref:`get_dim (typeinfo:rtti::TypeInfo const implicit;index:int const;context:__context const;at:__lineInfo const) : int <function-_at_rtti_c__c_get_dim_CIH_ls_rtti_c__c_TypeInfo_gr__Ci_C_c_C_l>` 
+  *  :ref:`get_dim (typeinfo:rtti::VarInfo const implicit;index:int const;context:__context const;at:__lineInfo const) : int <function-_at_rtti_c__c_get_dim_CIH_ls_rtti_c__c_VarInfo_gr__Ci_C_c_C_l>` 
+  *  :ref:`builtin_is_same_type (a:rtti::TypeInfo const? const implicit;b:rtti::TypeInfo const? const implicit;refMatters:rtti::RefMatters const;cosntMatters:rtti::ConstMatters const;tempMatters:rtti::TemporaryMatters const;topLevel:bool const) : bool <function-_at_rtti_c__c_builtin_is_same_type_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr__qm__CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr__qm__CE_ls_rtti_c__c_RefMatters_gr__CE_ls_rtti_c__c_ConstMatters_gr__CE_ls_rtti_c__c_TemporaryMatters_gr__Cb>` 
+  *  :ref:`get_type_size (type:rtti::TypeInfo? const implicit) : int <function-_at_rtti_c__c_get_type_size_CI1_ls_H_ls_rtti_c__c_TypeInfo_gr__gr__qm_>` 
+  *  :ref:`get_type_align (type:rtti::TypeInfo? const implicit) : int <function-_at_rtti_c__c_get_type_align_CI1_ls_H_ls_rtti_c__c_TypeInfo_gr__gr__qm_>` 
+  *  :ref:`is_compatible_cast (from:rtti::StructInfo const? const implicit;to:rtti::StructInfo const? const implicit) : bool <function-_at_rtti_c__c_is_compatible_cast_CI1_ls_CH_ls_rtti_c__c_StructInfo_gr__gr__qm__CI1_ls_CH_ls_rtti_c__c_StructInfo_gr__gr__qm_>` 
+  *  :ref:`get_das_type_name (type:rtti::Type const;context:__context const;at:__lineInfo const) : string <function-_at_rtti_c__c_get_das_type_name_CE_ls_rtti_c__c_Type_gr__C_c_C_l>` 
+  *  :ref:`is_same_type (a:rtti::TypeInfo const;b:rtti::TypeInfo const;refMatters:rtti::RefMatters const;constMatters:rtti::ConstMatters const;temporaryMatters:rtti::TemporaryMatters const;topLevel:bool const) : auto <function-_at_rtti_c__c_is_same_type_CH_ls_rtti_c__c_TypeInfo_gr__CH_ls_rtti_c__c_TypeInfo_gr__CE_ls_rtti_c__c_RefMatters_gr__CE_ls_rtti_c__c_ConstMatters_gr__CE_ls_rtti_c__c_TemporaryMatters_gr__Cb>` 
+  *  :ref:`is_compatible_cast (a:rtti::StructInfo const;b:rtti::StructInfo const) : auto <function-_at_rtti_c__c_is_compatible_cast_CH_ls_rtti_c__c_StructInfo_gr__CH_ls_rtti_c__c_StructInfo_gr_>` 
+  *  :ref:`each_dim (info:rtti::TypeInfo const) : auto <function-_at_rtti_c__c_each_dim_CH_ls_rtti_c__c_TypeInfo_gr_>` 
+  *  :ref:`each_dim (info:rtti::VarInfo const) : auto <function-_at_rtti_c__c_each_dim_CH_ls_rtti_c__c_VarInfo_gr_>` 
+  *  :ref:`arg_types (info:rtti::TypeInfo const) : auto <function-_at_rtti_c__c_arg_types_CH_ls_rtti_c__c_TypeInfo_gr_>` 
+  *  :ref:`arg_types (info:rtti::VarInfo const) : auto <function-_at_rtti_c__c_arg_types_CH_ls_rtti_c__c_VarInfo_gr_>` 
+  *  :ref:`arg_names (info:rtti::TypeInfo const) : auto <function-_at_rtti_c__c_arg_names_CH_ls_rtti_c__c_TypeInfo_gr_>` 
+  *  :ref:`arg_names (info:rtti::VarInfo const) : auto <function-_at_rtti_c__c_arg_names_CH_ls_rtti_c__c_VarInfo_gr_>` 
 
 .. _function-_at_rtti_c__c_get_dim_CIH_ls_rtti_c__c_TypeInfo_gr__Ci_C_c_C_l:
 
@@ -1471,9 +1515,9 @@ get_dim returns int
 
 |function-rtti-get_dim|
 
-.. _function-_at_rtti_c__c_builtin_is_same_type_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr_?_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr_?_CE_ls_rtti_c__c_RefMatters_gr__CE_ls_rtti_c__c_ConstMatters_gr__CE_ls_rtti_c__c_TemporaryMatters_gr__Cb:
+.. _function-_at_rtti_c__c_builtin_is_same_type_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr__qm__CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr__qm__CE_ls_rtti_c__c_RefMatters_gr__CE_ls_rtti_c__c_ConstMatters_gr__CE_ls_rtti_c__c_TemporaryMatters_gr__Cb:
 
-.. das:function:: builtin_is_same_type(a: rtti::TypeInfo const? const implicit; b: rtti::TypeInfo const? const implicit; refMatters: RefMatters const; cosntMatters: ConstMatters const; tempMatters: TemporaryMatters const; topLevel: bool const)
+.. das:function:: builtin_is_same_type(a: TypeInfo const? const implicit; b: TypeInfo const? const implicit; refMatters: RefMatters const; cosntMatters: ConstMatters const; tempMatters: TemporaryMatters const; topLevel: bool const)
 
 builtin_is_same_type returns bool
 
@@ -1496,9 +1540,9 @@ builtin_is_same_type returns bool
 
 |function-rtti-builtin_is_same_type|
 
-.. _function-_at_rtti_c__c_get_type_size_CI1_ls_H_ls_rtti_c__c_TypeInfo_gr__gr_?:
+.. _function-_at_rtti_c__c_get_type_size_CI1_ls_H_ls_rtti_c__c_TypeInfo_gr__gr__qm_:
 
-.. das:function:: get_type_size(type: rtti::TypeInfo? const implicit)
+.. das:function:: get_type_size(type: TypeInfo? const implicit)
 
 get_type_size returns int
 
@@ -1511,9 +1555,9 @@ get_type_size returns int
 
 |function-rtti-get_type_size|
 
-.. _function-_at_rtti_c__c_get_type_align_CI1_ls_H_ls_rtti_c__c_TypeInfo_gr__gr_?:
+.. _function-_at_rtti_c__c_get_type_align_CI1_ls_H_ls_rtti_c__c_TypeInfo_gr__gr__qm_:
 
-.. das:function:: get_type_align(type: rtti::TypeInfo? const implicit)
+.. das:function:: get_type_align(type: TypeInfo? const implicit)
 
 get_type_align returns int
 
@@ -1526,9 +1570,9 @@ get_type_align returns int
 
 |function-rtti-get_type_align|
 
-.. _function-_at_rtti_c__c_is_compatible_cast_CI1_ls_CH_ls_rtti_c__c_StructInfo_gr__gr_?_CI1_ls_CH_ls_rtti_c__c_StructInfo_gr__gr_?:
+.. _function-_at_rtti_c__c_is_compatible_cast_CI1_ls_CH_ls_rtti_c__c_StructInfo_gr__gr__qm__CI1_ls_CH_ls_rtti_c__c_StructInfo_gr__gr__qm_:
 
-.. das:function:: is_compatible_cast(from: rtti::StructInfo const? const implicit; to: rtti::StructInfo const? const implicit)
+.. das:function:: is_compatible_cast(from: StructInfo const? const implicit; to: StructInfo const? const implicit)
 
 is_compatible_cast returns bool
 
@@ -1543,7 +1587,7 @@ is_compatible_cast returns bool
 
 |function-rtti-is_compatible_cast|
 
-.. _function-_at_rtti_c__c_get_das_type_name_CE_ls_rtti_c__c_Type_gr__C_c:
+.. _function-_at_rtti_c__c_get_das_type_name_CE_ls_rtti_c__c_Type_gr__C_c_C_l:
 
 .. das:function:: get_das_type_name(type: Type const)
 
@@ -1694,21 +1738,21 @@ arg_names returns auto
 Rtti context access
 +++++++++++++++++++
 
-  *  :ref:`get_total_functions (context:rtti::Context implicit) : int <function-_at_rtti_c__c_get_total_functions_IH_ls_rtti_c__c_Context_gr_>`
-  *  :ref:`get_total_variables (context:rtti::Context implicit) : int <function-_at_rtti_c__c_get_total_variables_IH_ls_rtti_c__c_Context_gr_>`
-  *  :ref:`get_function_info (context:any;index:int const) : rtti::FuncInfo const& <function-_at_rtti_c__c_get_function_info_*_Ci>`
-  *  :ref:`get_variable_info (context:any;index:int const) : rtti::VarInfo const& <function-_at_rtti_c__c_get_variable_info_*_Ci>`
-  *  :ref:`get_variable_value (varInfo:rtti::VarInfo const implicit) : variant\<tBool:bool;tInt:int;tUInt:uint;tInt64:int64;tUInt64:uint64;tFloat:float;tDouble:double;tString:string;nothing:any\> <function-_at_rtti_c__c_get_variable_value_CIH_ls_rtti_c__c_VarInfo_gr_>`
-  *  :ref:`get_function_info (context:rtti::Context implicit;function:function\<\> const) : rtti::FuncInfo const? const <function-_at_rtti_c__c_get_function_info_IH_ls_rtti_c__c_Context_gr__C_at__at_>`
-  *  :ref:`get_function_by_mnh (context:rtti::Context implicit;MNH:uint64 const) : function\<\> <function-_at_rtti_c__c_get_function_by_mnh_IH_ls_rtti_c__c_Context_gr__Cu64>`
-  *  :ref:`get_line_info (line:__lineInfo const) : rtti::LineInfo <function-_at_rtti_c__c_get_line_info_C_l>`
-  *  :ref:`get_line_info (depth:int const;context:__context const;line:__lineInfo const) : rtti::LineInfo <function-_at_rtti_c__c_get_line_info_Ci_C_c_C_l>`
-  *  :ref:`this_context (context:__context const) : rtti::Context& <function-_at_rtti_c__c_this_context_C_c>`
-  *  :ref:`context_for_each_function (blk:block\<(info:rtti::FuncInfo const):void\> const) : auto <function-_at_rtti_c__c_context_for_each_function_CN_ls_info_gr_0_ls_CH_ls_rtti_c__c_FuncInfo_gr__gr_1_ls_v_gr__builtin_>`
-  *  :ref:`context_for_each_variable (blk:block\<(info:rtti::VarInfo const):void\> const) : auto <function-_at_rtti_c__c_context_for_each_variable_CN_ls_info_gr_0_ls_CH_ls_rtti_c__c_VarInfo_gr__gr_1_ls_v_gr__builtin_>`
-  *  :ref:`class_info (cl:auto const) : rtti::StructInfo const? <function-_at_rtti_c__c_class_info_C.>`
-  *  :ref:`type_info (vinfo:rtti::LocalVariableInfo const) : rtti::TypeInfo const? <function-_at_rtti_c__c_type_info_CH_ls_rtti_c__c_LocalVariableInfo_gr_>`
-  *  :ref:`type_info (vinfo:rtti::VarInfo const) : rtti::TypeInfo const? <function-_at_rtti_c__c_type_info_CH_ls_rtti_c__c_VarInfo_gr_>`
+  *  :ref:`get_total_functions (context:rtti::Context implicit) : int <function-_at_rtti_c__c_get_total_functions_IH_ls_rtti_c__c_Context_gr_>` 
+  *  :ref:`get_total_variables (context:rtti::Context implicit) : int <function-_at_rtti_c__c_get_total_variables_IH_ls_rtti_c__c_Context_gr_>` 
+  *  :ref:`get_function_info (context:any;index:int const) : rtti::FuncInfo const& <function-_at_rtti_c__c_get_function_info_*_Ci>` 
+  *  :ref:`get_variable_info (context:any;index:int const) : rtti::VarInfo const& <function-_at_rtti_c__c_get_variable_info_*_Ci>` 
+  *  :ref:`get_variable_value (varInfo:rtti::VarInfo const implicit) : variant\<tBool:bool;tInt:int;tUInt:uint;tInt64:int64;tUInt64:uint64;tFloat:float;tDouble:double;tString:string;nothing:any\> <function-_at_rtti_c__c_get_variable_value_CIH_ls_rtti_c__c_VarInfo_gr_>` 
+  *  :ref:`get_function_info (context:rtti::Context implicit;function:function\<\> const) : rtti::FuncInfo const? const <function-_at_rtti_c__c_get_function_info_IH_ls_rtti_c__c_Context_gr__C_at__at_>` 
+  *  :ref:`get_function_by_mnh (context:rtti::Context implicit;MNH:uint64 const) : function\<\> <function-_at_rtti_c__c_get_function_by_mnh_IH_ls_rtti_c__c_Context_gr__Cu64>` 
+  *  :ref:`get_line_info (line:__lineInfo const) : rtti::LineInfo <function-_at_rtti_c__c_get_line_info_C_l>` 
+  *  :ref:`get_line_info (depth:int const;context:__context const;line:__lineInfo const) : rtti::LineInfo <function-_at_rtti_c__c_get_line_info_Ci_C_c_C_l>` 
+  *  :ref:`this_context (context:__context const) : rtti::Context& <function-_at_rtti_c__c_this_context_C_c>` 
+  *  :ref:`context_for_each_function (blk:block\<(info:rtti::FuncInfo const):void\> const) : auto <function-_at_rtti_c__c_context_for_each_function_CN_ls_info_gr_0_ls_CH_ls_rtti_c__c_FuncInfo_gr__gr_1_ls_v_gr__builtin_>` 
+  *  :ref:`context_for_each_variable (blk:block\<(info:rtti::VarInfo const):void\> const) : auto <function-_at_rtti_c__c_context_for_each_variable_CN_ls_info_gr_0_ls_CH_ls_rtti_c__c_VarInfo_gr__gr_1_ls_v_gr__builtin_>` 
+  *  :ref:`class_info (cl:auto const) : rtti::StructInfo const? <function-_at_rtti_c__c_class_info_C.>` 
+  *  :ref:`type_info (vinfo:rtti::LocalVariableInfo const) : rtti::TypeInfo const? <function-_at_rtti_c__c_type_info_CH_ls_rtti_c__c_LocalVariableInfo_gr_>` 
+  *  :ref:`type_info (vinfo:rtti::VarInfo const) : rtti::TypeInfo const? <function-_at_rtti_c__c_type_info_CH_ls_rtti_c__c_VarInfo_gr_>` 
 
 .. _function-_at_rtti_c__c_get_total_functions_IH_ls_rtti_c__c_Context_gr_:
 
@@ -1778,7 +1822,7 @@ get_variable_info returns  :ref:`rtti::VarInfo <handle-rtti-VarInfo>`  const&
 
 .. das:function:: get_variable_value(varInfo: VarInfo const implicit)
 
-get_variable_value returns  :ref:`RttiValue <alias-RttiValue>`
+get_variable_value returns  :ref:`RttiValue <alias-RttiValue>` 
 
 +--------+-----------------------------------------------------------+
 +argument+argument type                                              +
@@ -1827,7 +1871,7 @@ get_function_by_mnh returns function<>
 
 .. das:function:: get_line_info()
 
-get_line_info returns  :ref:`rtti::LineInfo <handle-rtti-LineInfo>`
+get_line_info returns  :ref:`rtti::LineInfo <handle-rtti-LineInfo>` 
 
 |function-rtti-get_line_info|
 
@@ -1835,7 +1879,7 @@ get_line_info returns  :ref:`rtti::LineInfo <handle-rtti-LineInfo>`
 
 .. das:function:: get_line_info(depth: int const)
 
-get_line_info returns  :ref:`rtti::LineInfo <handle-rtti-LineInfo>`
+get_line_info returns  :ref:`rtti::LineInfo <handle-rtti-LineInfo>` 
 
 +--------+-------------+
 +argument+argument type+
@@ -1856,7 +1900,7 @@ this_context returns  :ref:`rtti::Context <handle-rtti-Context>` &
 
 .. _function-_at_rtti_c__c_context_for_each_function_CN_ls_info_gr_0_ls_CH_ls_rtti_c__c_FuncInfo_gr__gr_1_ls_v_gr__builtin_:
 
-.. das:function:: context_for_each_function(blk: block<(info:rtti::FuncInfo const):void> const)
+.. das:function:: context_for_each_function(blk: block<(info:FuncInfo const):void> const)
 
 context_for_each_function returns auto
 
@@ -1871,7 +1915,7 @@ context_for_each_function returns auto
 
 .. _function-_at_rtti_c__c_context_for_each_variable_CN_ls_info_gr_0_ls_CH_ls_rtti_c__c_VarInfo_gr__gr_1_ls_v_gr__builtin_:
 
-.. das:function:: context_for_each_variable(blk: block<(info:rtti::VarInfo const):void> const)
+.. das:function:: context_for_each_variable(blk: block<(info:VarInfo const):void> const)
 
 context_for_each_variable returns auto
 
@@ -1933,14 +1977,14 @@ type_info returns  :ref:`rtti::TypeInfo <handle-rtti-TypeInfo>`  const?
 Program access
 ++++++++++++++
 
-  *  :ref:`get_this_module (program:smart_ptr\<rtti::Program\> const implicit) : rtti::Module? <function-_at_rtti_c__c_get_this_module_CI1_ls_H_ls_rtti_c__c_Program_gr__gr_?M>`
-  *  :ref:`get_module (name:string const implicit) : rtti::Module? <function-_at_rtti_c__c_get_module_CIs>`
-  *  :ref:`program_for_each_module (program:smart_ptr\<rtti::Program\> const implicit;block:block\<(var arg0:rtti::Module?):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_program_for_each_module_CI1_ls_H_ls_rtti_c__c_Program_gr__gr_?M_CI0_ls_1_ls_H_ls_rtti_c__c_Module_gr__gr_?_gr_1_ls_v_gr__builtin__C_c_C_l>`
-  *  :ref:`program_for_each_registered_module (block:block\<(var arg0:rtti::Module?):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_program_for_each_registered_module_CI0_ls_1_ls_H_ls_rtti_c__c_Module_gr__gr_?_gr_1_ls_v_gr__builtin__C_c_C_l>`
+  *  :ref:`get_this_module (program:smart_ptr\<rtti::Program\> const implicit) : rtti::Module? <function-_at_rtti_c__c_get_this_module_CI1_ls_H_ls_rtti_c__c_Program_gr__gr__qm_M>` 
+  *  :ref:`get_module (name:string const implicit) : rtti::Module? <function-_at_rtti_c__c_get_module_CIs>` 
+  *  :ref:`program_for_each_module (program:smart_ptr\<rtti::Program\> const implicit;block:block\<(var arg0:rtti::Module?):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_program_for_each_module_CI1_ls_H_ls_rtti_c__c_Program_gr__gr__qm_M_CI0_ls_1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__gr_1_ls_v_gr__builtin__C_c_C_l>` 
+  *  :ref:`program_for_each_registered_module (block:block\<(var arg0:rtti::Module?):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_program_for_each_registered_module_CI0_ls_1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__gr_1_ls_v_gr__builtin__C_c_C_l>` 
 
-.. _function-_at_rtti_c__c_get_this_module_CI1_ls_H_ls_rtti_c__c_Program_gr__gr_?M:
+.. _function-_at_rtti_c__c_get_this_module_CI1_ls_H_ls_rtti_c__c_Program_gr__gr__qm_M:
 
-.. das:function:: get_this_module(program: smart_ptr<rtti::Program> const implicit)
+.. das:function:: get_this_module(program: smart_ptr<Program> const implicit)
 
 get_this_module returns  :ref:`rtti::Module <handle-rtti-Module>` ?
 
@@ -1968,9 +2012,9 @@ get_module returns  :ref:`rtti::Module <handle-rtti-Module>` ?
 
 |function-rtti-get_module|
 
-.. _function-_at_rtti_c__c_program_for_each_module_CI1_ls_H_ls_rtti_c__c_Program_gr__gr_?M_CI0_ls_1_ls_H_ls_rtti_c__c_Module_gr__gr_?_gr_1_ls_v_gr__builtin__C_c_C_l:
+.. _function-_at_rtti_c__c_program_for_each_module_CI1_ls_H_ls_rtti_c__c_Program_gr__gr__qm_M_CI0_ls_1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__gr_1_ls_v_gr__builtin__C_c_C_l:
 
-.. das:function:: program_for_each_module(program: smart_ptr<rtti::Program> const implicit; block: block<(var arg0:rtti::Module?):void> const implicit)
+.. das:function:: program_for_each_module(program: smart_ptr<Program> const implicit; block: block<(var arg0:Module?):void> const implicit)
 
 +--------+------------------------------------------------------------------------+
 +argument+argument type                                                           +
@@ -1983,9 +2027,9 @@ get_module returns  :ref:`rtti::Module <handle-rtti-Module>` ?
 
 |function-rtti-program_for_each_module|
 
-.. _function-_at_rtti_c__c_program_for_each_registered_module_CI0_ls_1_ls_H_ls_rtti_c__c_Module_gr__gr_?_gr_1_ls_v_gr__builtin__C_c_C_l:
+.. _function-_at_rtti_c__c_program_for_each_registered_module_CI0_ls_1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__gr_1_ls_v_gr__builtin__C_c_C_l:
 
-.. das:function:: program_for_each_registered_module(block: block<(var arg0:rtti::Module?):void> const implicit)
+.. das:function:: program_for_each_registered_module(block: block<(var arg0:Module?):void> const implicit)
 
 +--------+------------------------------------------------------------------------+
 +argument+argument type                                                           +
@@ -2000,16 +2044,16 @@ get_module returns  :ref:`rtti::Module <handle-rtti-Module>` ?
 Module access
 +++++++++++++
 
-  *  :ref:`module_for_each_structure (module:rtti::Module? const implicit;block:block\<(arg0:rtti::StructInfo const):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_module_for_each_structure_CI1_ls_H_ls_rtti_c__c_Module_gr__gr_?_CI0_ls_CH_ls_rtti_c__c_StructInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l>`
-  *  :ref:`module_for_each_enumeration (module:rtti::Module? const implicit;block:block\<(arg0:rtti::EnumInfo const):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_module_for_each_enumeration_CI1_ls_H_ls_rtti_c__c_Module_gr__gr_?_CI0_ls_CH_ls_rtti_c__c_EnumInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l>`
-  *  :ref:`module_for_each_function (module:rtti::Module? const implicit;block:block\<(arg0:rtti::FuncInfo const):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_module_for_each_function_CI1_ls_H_ls_rtti_c__c_Module_gr__gr_?_CI0_ls_CH_ls_rtti_c__c_FuncInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l>`
-  *  :ref:`module_for_each_generic (module:rtti::Module? const implicit;block:block\<(arg0:rtti::FuncInfo const):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_module_for_each_generic_CI1_ls_H_ls_rtti_c__c_Module_gr__gr_?_CI0_ls_CH_ls_rtti_c__c_FuncInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l>`
-  *  :ref:`module_for_each_global (module:rtti::Module? const implicit;block:block\<(arg0:rtti::VarInfo const):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_module_for_each_global_CI1_ls_H_ls_rtti_c__c_Module_gr__gr_?_CI0_ls_CH_ls_rtti_c__c_VarInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l>`
-  *  :ref:`module_for_each_annotation (module:rtti::Module? const implicit;block:block\<(arg0:rtti::Annotation const):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_module_for_each_annotation_CI1_ls_H_ls_rtti_c__c_Module_gr__gr_?_CI0_ls_CH_ls_rtti_c__c_Annotation_gr__gr_1_ls_v_gr__builtin__C_c_C_l>`
+  *  :ref:`module_for_each_structure (module:rtti::Module? const implicit;block:block\<(arg0:rtti::StructInfo const):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_module_for_each_structure_CI1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__CI0_ls_CH_ls_rtti_c__c_StructInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l>` 
+  *  :ref:`module_for_each_enumeration (module:rtti::Module? const implicit;block:block\<(arg0:rtti::EnumInfo const):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_module_for_each_enumeration_CI1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__CI0_ls_CH_ls_rtti_c__c_EnumInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l>` 
+  *  :ref:`module_for_each_function (module:rtti::Module? const implicit;block:block\<(arg0:rtti::FuncInfo const):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_module_for_each_function_CI1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__CI0_ls_CH_ls_rtti_c__c_FuncInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l>` 
+  *  :ref:`module_for_each_generic (module:rtti::Module? const implicit;block:block\<(arg0:rtti::FuncInfo const):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_module_for_each_generic_CI1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__CI0_ls_CH_ls_rtti_c__c_FuncInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l>` 
+  *  :ref:`module_for_each_global (module:rtti::Module? const implicit;block:block\<(arg0:rtti::VarInfo const):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_module_for_each_global_CI1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__CI0_ls_CH_ls_rtti_c__c_VarInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l>` 
+  *  :ref:`module_for_each_annotation (module:rtti::Module? const implicit;block:block\<(arg0:rtti::Annotation const):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_module_for_each_annotation_CI1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__CI0_ls_CH_ls_rtti_c__c_Annotation_gr__gr_1_ls_v_gr__builtin__C_c_C_l>` 
 
-.. _function-_at_rtti_c__c_module_for_each_structure_CI1_ls_H_ls_rtti_c__c_Module_gr__gr_?_CI0_ls_CH_ls_rtti_c__c_StructInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
+.. _function-_at_rtti_c__c_module_for_each_structure_CI1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__CI0_ls_CH_ls_rtti_c__c_StructInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
 
-.. das:function:: module_for_each_structure(module: rtti::Module? const implicit; block: block<(arg0:rtti::StructInfo const):void> const implicit)
+.. das:function:: module_for_each_structure(module: Module? const implicit; block: block<(arg0:StructInfo const):void> const implicit)
 
 +--------+-------------------------------------------------------------------------------------+
 +argument+argument type                                                                        +
@@ -2022,9 +2066,9 @@ Module access
 
 |function-rtti-module_for_each_structure|
 
-.. _function-_at_rtti_c__c_module_for_each_enumeration_CI1_ls_H_ls_rtti_c__c_Module_gr__gr_?_CI0_ls_CH_ls_rtti_c__c_EnumInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
+.. _function-_at_rtti_c__c_module_for_each_enumeration_CI1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__CI0_ls_CH_ls_rtti_c__c_EnumInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
 
-.. das:function:: module_for_each_enumeration(module: rtti::Module? const implicit; block: block<(arg0:rtti::EnumInfo const):void> const implicit)
+.. das:function:: module_for_each_enumeration(module: Module? const implicit; block: block<(arg0:EnumInfo const):void> const implicit)
 
 +--------+---------------------------------------------------------------------------------+
 +argument+argument type                                                                    +
@@ -2037,9 +2081,9 @@ Module access
 
 |function-rtti-module_for_each_enumeration|
 
-.. _function-_at_rtti_c__c_module_for_each_function_CI1_ls_H_ls_rtti_c__c_Module_gr__gr_?_CI0_ls_CH_ls_rtti_c__c_FuncInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
+.. _function-_at_rtti_c__c_module_for_each_function_CI1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__CI0_ls_CH_ls_rtti_c__c_FuncInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
 
-.. das:function:: module_for_each_function(module: rtti::Module? const implicit; block: block<(arg0:rtti::FuncInfo const):void> const implicit)
+.. das:function:: module_for_each_function(module: Module? const implicit; block: block<(arg0:FuncInfo const):void> const implicit)
 
 +--------+---------------------------------------------------------------------------------+
 +argument+argument type                                                                    +
@@ -2052,9 +2096,9 @@ Module access
 
 |function-rtti-module_for_each_function|
 
-.. _function-_at_rtti_c__c_module_for_each_generic_CI1_ls_H_ls_rtti_c__c_Module_gr__gr_?_CI0_ls_CH_ls_rtti_c__c_FuncInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
+.. _function-_at_rtti_c__c_module_for_each_generic_CI1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__CI0_ls_CH_ls_rtti_c__c_FuncInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
 
-.. das:function:: module_for_each_generic(module: rtti::Module? const implicit; block: block<(arg0:rtti::FuncInfo const):void> const implicit)
+.. das:function:: module_for_each_generic(module: Module? const implicit; block: block<(arg0:FuncInfo const):void> const implicit)
 
 +--------+---------------------------------------------------------------------------------+
 +argument+argument type                                                                    +
@@ -2067,9 +2111,9 @@ Module access
 
 |function-rtti-module_for_each_generic|
 
-.. _function-_at_rtti_c__c_module_for_each_global_CI1_ls_H_ls_rtti_c__c_Module_gr__gr_?_CI0_ls_CH_ls_rtti_c__c_VarInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
+.. _function-_at_rtti_c__c_module_for_each_global_CI1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__CI0_ls_CH_ls_rtti_c__c_VarInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
 
-.. das:function:: module_for_each_global(module: rtti::Module? const implicit; block: block<(arg0:rtti::VarInfo const):void> const implicit)
+.. das:function:: module_for_each_global(module: Module? const implicit; block: block<(arg0:VarInfo const):void> const implicit)
 
 +--------+-------------------------------------------------------------------------------+
 +argument+argument type                                                                  +
@@ -2082,9 +2126,9 @@ Module access
 
 |function-rtti-module_for_each_global|
 
-.. _function-_at_rtti_c__c_module_for_each_annotation_CI1_ls_H_ls_rtti_c__c_Module_gr__gr_?_CI0_ls_CH_ls_rtti_c__c_Annotation_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
+.. _function-_at_rtti_c__c_module_for_each_annotation_CI1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__CI0_ls_CH_ls_rtti_c__c_Annotation_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
 
-.. das:function:: module_for_each_annotation(module: rtti::Module? const implicit; block: block<(arg0:rtti::Annotation const):void> const implicit)
+.. das:function:: module_for_each_annotation(module: Module? const implicit; block: block<(arg0:Annotation const):void> const implicit)
 
 +--------+-------------------------------------------------------------------------------------+
 +argument+argument type                                                                        +
@@ -2101,14 +2145,14 @@ Module access
 Annotation access
 +++++++++++++++++
 
-  *  :ref:`get_annotation_argument_value (info:rtti::AnnotationArgument const implicit;context:__context const) : variant\<tBool:bool;tInt:int;tUInt:uint;tInt64:int64;tUInt64:uint64;tFloat:float;tDouble:double;tString:string;nothing:any\> <function-_at_rtti_c__c_get_annotation_argument_value_CIH_ls_rtti_c__c_AnnotationArgument_gr__C_c>`
-  *  :ref:`add_annotation_argument (annotation:rtti::AnnotationArgumentList implicit;name:string const implicit) : int <function-_at_rtti_c__c_add_annotation_argument_IH_ls_rtti_c__c_AnnotationArgumentList_gr__CIs>`
+  *  :ref:`get_annotation_argument_value (info:rtti::AnnotationArgument const implicit;context:__context const;at:__lineInfo const) : variant\<tBool:bool;tInt:int;tUInt:uint;tInt64:int64;tUInt64:uint64;tFloat:float;tDouble:double;tString:string;nothing:any\> <function-_at_rtti_c__c_get_annotation_argument_value_CIH_ls_rtti_c__c_AnnotationArgument_gr__C_c_C_l>` 
+  *  :ref:`add_annotation_argument (annotation:rtti::AnnotationArgumentList implicit;name:string const implicit) : int <function-_at_rtti_c__c_add_annotation_argument_IH_ls_rtti_c__c_AnnotationArgumentList_gr__CIs>` 
 
-.. _function-_at_rtti_c__c_get_annotation_argument_value_CIH_ls_rtti_c__c_AnnotationArgument_gr__C_c:
+.. _function-_at_rtti_c__c_get_annotation_argument_value_CIH_ls_rtti_c__c_AnnotationArgument_gr__C_c_C_l:
 
 .. das:function:: get_annotation_argument_value(info: AnnotationArgument const implicit)
 
-get_annotation_argument_value returns  :ref:`RttiValue <alias-RttiValue>`
+get_annotation_argument_value returns  :ref:`RttiValue <alias-RttiValue>` 
 
 +--------+---------------------------------------------------------------------------------+
 +argument+argument type                                                                    +
@@ -2140,16 +2184,16 @@ add_annotation_argument returns int
 Compilation and simulation
 ++++++++++++++++++++++++++
 
-  *  :ref:`compile (module_name:string const implicit;codeText:string const implicit;codeOfPolicies:rtti::CodeOfPolicies const implicit;block:block\<(var arg0:bool;var arg1:smart_ptr\<rtti::Program\>;arg2:$::das_string const):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_compile_CIs_CIs_CIH_ls_rtti_c__c_CodeOfPolicies_gr__CI0_ls_b;1_ls_H_ls_rtti_c__c_Program_gr__gr_?W;CH_ls__builtin__c__c_das_string_gr__gr_1_ls_v_gr__builtin__C_c_C_l>`
-  *  :ref:`compile (module_name:string const implicit;codeText:string const implicit;codeOfPolicies:rtti::CodeOfPolicies const implicit;exportAll:bool const;block:block\<(var arg0:bool;var arg1:smart_ptr\<rtti::Program\>;arg2:$::das_string const):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_compile_CIs_CIs_CIH_ls_rtti_c__c_CodeOfPolicies_gr__Cb_CI0_ls_b;1_ls_H_ls_rtti_c__c_Program_gr__gr_?W;CH_ls__builtin__c__c_das_string_gr__gr_1_ls_v_gr__builtin__C_c_C_l>`
-  *  :ref:`compile_file (module_name:string const implicit;fileAccess:smart_ptr\<rtti::FileAccess\> const implicit;moduleGroup:rtti::ModuleGroup? const implicit;codeOfPolicies:rtti::CodeOfPolicies const implicit;block:block\<(var arg0:bool;var arg1:smart_ptr\<rtti::Program\>;arg2:$::das_string const):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_compile_file_CIs_CI1_ls_H_ls_rtti_c__c_FileAccess_gr__gr_?W_CI1_ls_H_ls_rtti_c__c_ModuleGroup_gr__gr_?_CIH_ls_rtti_c__c_CodeOfPolicies_gr__CI0_ls_b;1_ls_H_ls_rtti_c__c_Program_gr__gr_?W;CH_ls__builtin__c__c_das_string_gr__gr_1_ls_v_gr__builtin__C_c_C_l>`
-  *  :ref:`for_each_expected_error (program:smart_ptr\<rtti::Program\> const implicit;block:block\<(var arg0:rtti::CompilationError;var arg1:int):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_for_each_expected_error_CI1_ls_H_ls_rtti_c__c_Program_gr__gr_?W_CI0_ls_E_ls_rtti_c__c_CompilationError_gr_;i_gr_1_ls_v_gr__builtin__C_c_C_l>`
-  *  :ref:`for_each_require_declaration (program:smart_ptr\<rtti::Program\> const implicit;block:block\<(var arg0:rtti::Module?;arg1:string const#;arg2:string const#;var arg3:bool;arg4:rtti::LineInfo const&):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_for_each_require_declaration_CI1_ls_H_ls_rtti_c__c_Program_gr__gr_?W_CI0_ls_1_ls_H_ls_rtti_c__c_Module_gr__gr_?;C_hh_s;C_hh_s;b;C&H_ls_rtti_c__c_LineInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l>`
-  *  :ref:`simulate (program:smart_ptr\<rtti::Program\> const& implicit;block:block\<(var arg0:bool;var arg1:smart_ptr\<rtti::Context\>;var arg2:$::das_string):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_simulate_C&I1_ls_H_ls_rtti_c__c_Program_gr__gr_?W_CI0_ls_b;1_ls_H_ls_rtti_c__c_Context_gr__gr_?W;H_ls__builtin__c__c_das_string_gr__gr_1_ls_v_gr__builtin__C_c_C_l>`
+  *  :ref:`compile (module_name:string const implicit;codeText:string const implicit;codeOfPolicies:rtti::CodeOfPolicies const implicit;block:block\<(var arg0:bool;var arg1:smart_ptr\<rtti::Program\>;arg2:$::das_string const):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_compile_CIs_CIs_CIH_ls_rtti_c__c_CodeOfPolicies_gr__CI0_ls_b;1_ls_H_ls_rtti_c__c_Program_gr__gr__qm_W;CH_ls__builtin__c__c_das_string_gr__gr_1_ls_v_gr__builtin__C_c_C_l>` 
+  *  :ref:`compile (module_name:string const implicit;codeText:string const implicit;codeOfPolicies:rtti::CodeOfPolicies const implicit;exportAll:bool const;block:block\<(var arg0:bool;var arg1:smart_ptr\<rtti::Program\>;arg2:$::das_string const):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_compile_CIs_CIs_CIH_ls_rtti_c__c_CodeOfPolicies_gr__Cb_CI0_ls_b;1_ls_H_ls_rtti_c__c_Program_gr__gr__qm_W;CH_ls__builtin__c__c_das_string_gr__gr_1_ls_v_gr__builtin__C_c_C_l>` 
+  *  :ref:`compile_file (module_name:string const implicit;fileAccess:smart_ptr\<rtti::FileAccess\> const implicit;moduleGroup:rtti::ModuleGroup? const implicit;codeOfPolicies:rtti::CodeOfPolicies const implicit;block:block\<(var arg0:bool;var arg1:smart_ptr\<rtti::Program\>;arg2:$::das_string const):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_compile_file_CIs_CI1_ls_H_ls_rtti_c__c_FileAccess_gr__gr__qm_W_CI1_ls_H_ls_rtti_c__c_ModuleGroup_gr__gr__qm__CIH_ls_rtti_c__c_CodeOfPolicies_gr__CI0_ls_b;1_ls_H_ls_rtti_c__c_Program_gr__gr__qm_W;CH_ls__builtin__c__c_das_string_gr__gr_1_ls_v_gr__builtin__C_c_C_l>` 
+  *  :ref:`for_each_expected_error (program:smart_ptr\<rtti::Program\> const implicit;block:block\<(var arg0:rtti::CompilationError;var arg1:int):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_for_each_expected_error_CI1_ls_H_ls_rtti_c__c_Program_gr__gr__qm_W_CI0_ls_E_ls_rtti_c__c_CompilationError_gr_;i_gr_1_ls_v_gr__builtin__C_c_C_l>` 
+  *  :ref:`for_each_require_declaration (program:smart_ptr\<rtti::Program\> const implicit;block:block\<(var arg0:rtti::Module?;arg1:string const#;arg2:string const#;var arg3:bool;arg4:rtti::LineInfo const&):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_for_each_require_declaration_CI1_ls_H_ls_rtti_c__c_Program_gr__gr__qm_W_CI0_ls_1_ls_H_ls_rtti_c__c_Module_gr__gr__qm_;C_hh_s;C_hh_s;b;C&H_ls_rtti_c__c_LineInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l>` 
+  *  :ref:`simulate (program:smart_ptr\<rtti::Program\> const& implicit;block:block\<(var arg0:bool;var arg1:smart_ptr\<rtti::Context\>;var arg2:$::das_string):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_simulate_C&I1_ls_H_ls_rtti_c__c_Program_gr__gr__qm_W_CI0_ls_b;1_ls_H_ls_rtti_c__c_Context_gr__gr__qm_W;H_ls__builtin__c__c_das_string_gr__gr_1_ls_v_gr__builtin__C_c_C_l>` 
 
-.. _function-_at_rtti_c__c_compile_CIs_CIs_CIH_ls_rtti_c__c_CodeOfPolicies_gr__CI0_ls_b;1_ls_H_ls_rtti_c__c_Program_gr__gr_?W;CH_ls__builtin__c__c_das_string_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
+.. _function-_at_rtti_c__c_compile_CIs_CIs_CIH_ls_rtti_c__c_CodeOfPolicies_gr__CI0_ls_b;1_ls_H_ls_rtti_c__c_Program_gr__gr__qm_W;CH_ls__builtin__c__c_das_string_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
 
-.. das:function:: compile(module_name: string const implicit; codeText: string const implicit; codeOfPolicies: CodeOfPolicies const implicit; block: block<(var arg0:bool;var arg1:smart_ptr<rtti::Program>;arg2:das_string const):void> const implicit)
+.. das:function:: compile(module_name: string const implicit; codeText: string const implicit; codeOfPolicies: CodeOfPolicies const implicit; block: block<(var arg0:bool;var arg1:smart_ptr<Program>;arg2:das_string const):void> const implicit)
 
 +--------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
 +argument      +argument type                                                                                                                                           +
@@ -2166,9 +2210,9 @@ Compilation and simulation
 
 |function-rtti-compile|
 
-.. _function-_at_rtti_c__c_compile_CIs_CIs_CIH_ls_rtti_c__c_CodeOfPolicies_gr__Cb_CI0_ls_b;1_ls_H_ls_rtti_c__c_Program_gr__gr_?W;CH_ls__builtin__c__c_das_string_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
+.. _function-_at_rtti_c__c_compile_CIs_CIs_CIH_ls_rtti_c__c_CodeOfPolicies_gr__Cb_CI0_ls_b;1_ls_H_ls_rtti_c__c_Program_gr__gr__qm_W;CH_ls__builtin__c__c_das_string_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
 
-.. das:function:: compile(module_name: string const implicit; codeText: string const implicit; codeOfPolicies: CodeOfPolicies const implicit; exportAll: bool const; block: block<(var arg0:bool;var arg1:smart_ptr<rtti::Program>;arg2:das_string const):void> const implicit)
+.. das:function:: compile(module_name: string const implicit; codeText: string const implicit; codeOfPolicies: CodeOfPolicies const implicit; exportAll: bool const; block: block<(var arg0:bool;var arg1:smart_ptr<Program>;arg2:das_string const):void> const implicit)
 
 +--------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
 +argument      +argument type                                                                                                                                           +
@@ -2187,9 +2231,9 @@ Compilation and simulation
 
 |function-rtti-compile|
 
-.. _function-_at_rtti_c__c_compile_file_CIs_CI1_ls_H_ls_rtti_c__c_FileAccess_gr__gr_?W_CI1_ls_H_ls_rtti_c__c_ModuleGroup_gr__gr_?_CIH_ls_rtti_c__c_CodeOfPolicies_gr__CI0_ls_b;1_ls_H_ls_rtti_c__c_Program_gr__gr_?W;CH_ls__builtin__c__c_das_string_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
+.. _function-_at_rtti_c__c_compile_file_CIs_CI1_ls_H_ls_rtti_c__c_FileAccess_gr__gr__qm_W_CI1_ls_H_ls_rtti_c__c_ModuleGroup_gr__gr__qm__CIH_ls_rtti_c__c_CodeOfPolicies_gr__CI0_ls_b;1_ls_H_ls_rtti_c__c_Program_gr__gr__qm_W;CH_ls__builtin__c__c_das_string_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
 
-.. das:function:: compile_file(module_name: string const implicit; fileAccess: smart_ptr<rtti::FileAccess> const implicit; moduleGroup: rtti::ModuleGroup? const implicit; codeOfPolicies: CodeOfPolicies const implicit; block: block<(var arg0:bool;var arg1:smart_ptr<rtti::Program>;arg2:das_string const):void> const implicit)
+.. das:function:: compile_file(module_name: string const implicit; fileAccess: smart_ptr<FileAccess> const implicit; moduleGroup: ModuleGroup? const implicit; codeOfPolicies: CodeOfPolicies const implicit; block: block<(var arg0:bool;var arg1:smart_ptr<Program>;arg2:das_string const):void> const implicit)
 
 +--------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
 +argument      +argument type                                                                                                                                           +
@@ -2208,9 +2252,9 @@ Compilation and simulation
 
 |function-rtti-compile_file|
 
-.. _function-_at_rtti_c__c_for_each_expected_error_CI1_ls_H_ls_rtti_c__c_Program_gr__gr_?W_CI0_ls_E_ls_rtti_c__c_CompilationError_gr_;i_gr_1_ls_v_gr__builtin__C_c_C_l:
+.. _function-_at_rtti_c__c_for_each_expected_error_CI1_ls_H_ls_rtti_c__c_Program_gr__gr__qm_W_CI0_ls_E_ls_rtti_c__c_CompilationError_gr_;i_gr_1_ls_v_gr__builtin__C_c_C_l:
 
-.. das:function:: for_each_expected_error(program: smart_ptr<rtti::Program> const implicit; block: block<(var arg0:rtti::CompilationError;var arg1:int):void> const implicit)
+.. das:function:: for_each_expected_error(program: smart_ptr<Program> const implicit; block: block<(var arg0:CompilationError;var arg1:int):void> const implicit)
 
 +--------+---------------------------------------------------------------------------------------------+
 +argument+argument type                                                                                +
@@ -2223,9 +2267,9 @@ Compilation and simulation
 
 |function-rtti-for_each_expected_error|
 
-.. _function-_at_rtti_c__c_for_each_require_declaration_CI1_ls_H_ls_rtti_c__c_Program_gr__gr_?W_CI0_ls_1_ls_H_ls_rtti_c__c_Module_gr__gr_?;C_hh_s;C_hh_s;b;C&H_ls_rtti_c__c_LineInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
+.. _function-_at_rtti_c__c_for_each_require_declaration_CI1_ls_H_ls_rtti_c__c_Program_gr__gr__qm_W_CI0_ls_1_ls_H_ls_rtti_c__c_Module_gr__gr__qm_;C_hh_s;C_hh_s;b;C&H_ls_rtti_c__c_LineInfo_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
 
-.. das:function:: for_each_require_declaration(program: smart_ptr<rtti::Program> const implicit; block: block<(var arg0:rtti::Module?;arg1:string const#;arg2:string const#;var arg3:bool;arg4:rtti::LineInfo const&):void> const implicit)
+.. das:function:: for_each_require_declaration(program: smart_ptr<Program> const implicit; block: block<(var arg0:Module?;arg1:string const#;arg2:string const#;var arg3:bool;arg4:LineInfo const&):void> const implicit)
 
 +--------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
 +argument+argument type                                                                                                                                                  +
@@ -2238,9 +2282,9 @@ Compilation and simulation
 
 |function-rtti-for_each_require_declaration|
 
-.. _function-_at_rtti_c__c_simulate_C&I1_ls_H_ls_rtti_c__c_Program_gr__gr_?W_CI0_ls_b;1_ls_H_ls_rtti_c__c_Context_gr__gr_?W;H_ls__builtin__c__c_das_string_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
+.. _function-_at_rtti_c__c_simulate_C&I1_ls_H_ls_rtti_c__c_Program_gr__gr__qm_W_CI0_ls_b;1_ls_H_ls_rtti_c__c_Context_gr__gr__qm_W;H_ls__builtin__c__c_das_string_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
 
-.. das:function:: simulate(program: smart_ptr<rtti::Program> const& implicit; block: block<(var arg0:bool;var arg1:smart_ptr<rtti::Context>;var arg2:das_string):void> const implicit)
+.. das:function:: simulate(program: smart_ptr<Program> const& implicit; block: block<(var arg0:bool;var arg1:smart_ptr<Context>;var arg2:das_string):void> const implicit)
 
 +--------+--------------------------------------------------------------------------------------------------------------------------------------------------+
 +argument+argument type                                                                                                                                     +
@@ -2257,9 +2301,9 @@ Compilation and simulation
 File access
 +++++++++++
 
-  *  :ref:`make_file_access (project:string const implicit;context:__context const;at:__lineInfo const) : smart_ptr\<rtti::FileAccess\> <function-_at_rtti_c__c_make_file_access_CIs_C_c_C_l>`
-  *  :ref:`set_file_source (access:smart_ptr\<rtti::FileAccess\> const implicit;fileName:string const implicit;text:string const implicit;context:__context const;line:__lineInfo const) : bool <function-_at_rtti_c__c_set_file_source_CI1_ls_H_ls_rtti_c__c_FileAccess_gr__gr_?M_CIs_CIs_C_c_C_l>`
-  *  :ref:`add_file_access_root (access:smart_ptr\<rtti::FileAccess\> const implicit;mod:string const implicit;path:string const implicit) : bool <function-_at_rtti_c__c_add_file_access_root_CI1_ls_H_ls_rtti_c__c_FileAccess_gr__gr_?W_CIs_CIs>`
+  *  :ref:`make_file_access (project:string const implicit;context:__context const;at:__lineInfo const) : smart_ptr\<rtti::FileAccess\> <function-_at_rtti_c__c_make_file_access_CIs_C_c_C_l>` 
+  *  :ref:`set_file_source (access:smart_ptr\<rtti::FileAccess\> const implicit;fileName:string const implicit;text:string const implicit;context:__context const;line:__lineInfo const) : bool <function-_at_rtti_c__c_set_file_source_CI1_ls_H_ls_rtti_c__c_FileAccess_gr__gr__qm_M_CIs_CIs_C_c_C_l>` 
+  *  :ref:`add_file_access_root (access:smart_ptr\<rtti::FileAccess\> const implicit;mod:string const implicit;path:string const implicit) : bool <function-_at_rtti_c__c_add_file_access_root_CI1_ls_H_ls_rtti_c__c_FileAccess_gr__gr__qm_W_CIs_CIs>` 
 
 .. _function-_at_rtti_c__c_make_file_access_CIs_C_c_C_l:
 
@@ -2276,9 +2320,9 @@ make_file_access returns smart_ptr< :ref:`rtti::FileAccess <handle-rtti-FileAcce
 
 |function-rtti-make_file_access|
 
-.. _function-_at_rtti_c__c_set_file_source_CI1_ls_H_ls_rtti_c__c_FileAccess_gr__gr_?M_CIs_CIs_C_c_C_l:
+.. _function-_at_rtti_c__c_set_file_source_CI1_ls_H_ls_rtti_c__c_FileAccess_gr__gr__qm_M_CIs_CIs_C_c_C_l:
 
-.. das:function:: set_file_source(access: smart_ptr<rtti::FileAccess> const implicit; fileName: string const implicit; text: string const implicit)
+.. das:function:: set_file_source(access: smart_ptr<FileAccess> const implicit; fileName: string const implicit; text: string const implicit)
 
 set_file_source returns bool
 
@@ -2295,9 +2339,9 @@ set_file_source returns bool
 
 |function-rtti-set_file_source|
 
-.. _function-_at_rtti_c__c_add_file_access_root_CI1_ls_H_ls_rtti_c__c_FileAccess_gr__gr_?W_CIs_CIs:
+.. _function-_at_rtti_c__c_add_file_access_root_CI1_ls_H_ls_rtti_c__c_FileAccess_gr__gr__qm_W_CIs_CIs:
 
-.. das:function:: add_file_access_root(access: smart_ptr<rtti::FileAccess> const implicit; mod: string const implicit; path: string const implicit)
+.. das:function:: add_file_access_root(access: smart_ptr<FileAccess> const implicit; mod: string const implicit; path: string const implicit)
 
 add_file_access_root returns bool
 
@@ -2318,10 +2362,10 @@ add_file_access_root returns bool
 Structure access
 ++++++++++++++++
 
-  *  :ref:`rtti_builtin_structure_for_each_annotation (struct:rtti::StructInfo const implicit;block:block\<\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_rtti_builtin_structure_for_each_annotation_CIH_ls_rtti_c__c_StructInfo_gr__CI_builtin__C_c_C_l>`
-  *  :ref:`basic_struct_for_each_field (annotation:rtti::BasicStructureAnnotation const implicit;block:block\<(var arg0:string;var arg1:string;arg2:rtti::TypeInfo const;var arg3:uint):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_basic_struct_for_each_field_CIH_ls_rtti_c__c_BasicStructureAnnotation_gr__CI0_ls_s;s;CH_ls_rtti_c__c_TypeInfo_gr_;u_gr_1_ls_v_gr__builtin__C_c_C_l>`
-  *  :ref:`basic_struct_for_each_parent (annotation:rtti::BasicStructureAnnotation const implicit;block:block\<(var arg0:rtti::Annotation?):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_basic_struct_for_each_parent_CIH_ls_rtti_c__c_BasicStructureAnnotation_gr__CI0_ls_1_ls_H_ls_rtti_c__c_Annotation_gr__gr_?_gr_1_ls_v_gr__builtin__C_c_C_l>`
-  *  :ref:`structure_for_each_annotation (st:rtti::StructInfo const;subexpr:block\<(ann:rtti::Annotation const;args:rtti::AnnotationArguments const):void\> const) : auto <function-_at_rtti_c__c_structure_for_each_annotation_CH_ls_rtti_c__c_StructInfo_gr__CN_ls_ann;args_gr_0_ls_CH_ls_rtti_c__c_Annotation_gr_;CH_ls_rtti_c__c_AnnotationArguments_gr__gr_1_ls_v_gr__builtin_>`
+  *  :ref:`rtti_builtin_structure_for_each_annotation (struct:rtti::StructInfo const implicit;block:block\<\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_rtti_builtin_structure_for_each_annotation_CIH_ls_rtti_c__c_StructInfo_gr__CI_builtin__C_c_C_l>` 
+  *  :ref:`basic_struct_for_each_field (annotation:rtti::BasicStructureAnnotation const implicit;block:block\<(var arg0:string;var arg1:string;arg2:rtti::TypeInfo const;var arg3:uint):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_basic_struct_for_each_field_CIH_ls_rtti_c__c_BasicStructureAnnotation_gr__CI0_ls_s;s;CH_ls_rtti_c__c_TypeInfo_gr_;u_gr_1_ls_v_gr__builtin__C_c_C_l>` 
+  *  :ref:`basic_struct_for_each_parent (annotation:rtti::BasicStructureAnnotation const implicit;block:block\<(var arg0:rtti::Annotation?):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_basic_struct_for_each_parent_CIH_ls_rtti_c__c_BasicStructureAnnotation_gr__CI0_ls_1_ls_H_ls_rtti_c__c_Annotation_gr__gr__qm__gr_1_ls_v_gr__builtin__C_c_C_l>` 
+  *  :ref:`structure_for_each_annotation (st:rtti::StructInfo const;subexpr:block\<(ann:rtti::Annotation const;args:rtti::AnnotationArguments const):void\> const) : auto <function-_at_rtti_c__c_structure_for_each_annotation_CH_ls_rtti_c__c_StructInfo_gr__CN_ls_ann;args_gr_0_ls_CH_ls_rtti_c__c_Annotation_gr_;CH_ls_rtti_c__c_AnnotationArguments_gr__gr_1_ls_v_gr__builtin_>` 
 
 .. _function-_at_rtti_c__c_rtti_builtin_structure_for_each_annotation_CIH_ls_rtti_c__c_StructInfo_gr__CI_builtin__C_c_C_l:
 
@@ -2340,7 +2384,7 @@ Structure access
 
 .. _function-_at_rtti_c__c_basic_struct_for_each_field_CIH_ls_rtti_c__c_BasicStructureAnnotation_gr__CI0_ls_s;s;CH_ls_rtti_c__c_TypeInfo_gr_;u_gr_1_ls_v_gr__builtin__C_c_C_l:
 
-.. das:function:: basic_struct_for_each_field(annotation: BasicStructureAnnotation const implicit; block: block<(var arg0:string;var arg1:string;arg2:rtti::TypeInfo const;var arg3:uint):void> const implicit)
+.. das:function:: basic_struct_for_each_field(annotation: BasicStructureAnnotation const implicit; block: block<(var arg0:string;var arg1:string;arg2:TypeInfo const;var arg3:uint):void> const implicit)
 
 +----------+----------------------------------------------------------------------------------------------------+
 +argument  +argument type                                                                                       +
@@ -2353,9 +2397,9 @@ Structure access
 
 |function-rtti-basic_struct_for_each_field|
 
-.. _function-_at_rtti_c__c_basic_struct_for_each_parent_CIH_ls_rtti_c__c_BasicStructureAnnotation_gr__CI0_ls_1_ls_H_ls_rtti_c__c_Annotation_gr__gr_?_gr_1_ls_v_gr__builtin__C_c_C_l:
+.. _function-_at_rtti_c__c_basic_struct_for_each_parent_CIH_ls_rtti_c__c_BasicStructureAnnotation_gr__CI0_ls_1_ls_H_ls_rtti_c__c_Annotation_gr__gr__qm__gr_1_ls_v_gr__builtin__C_c_C_l:
 
-.. das:function:: basic_struct_for_each_parent(annotation: BasicStructureAnnotation const implicit; block: block<(var arg0:rtti::Annotation?):void> const implicit)
+.. das:function:: basic_struct_for_each_parent(annotation: BasicStructureAnnotation const implicit; block: block<(var arg0:Annotation?):void> const implicit)
 
 +----------+---------------------------------------------------------------------------------------------+
 +argument  +argument type                                                                                +
@@ -2370,7 +2414,7 @@ Structure access
 
 .. _function-_at_rtti_c__c_structure_for_each_annotation_CH_ls_rtti_c__c_StructInfo_gr__CN_ls_ann;args_gr_0_ls_CH_ls_rtti_c__c_Annotation_gr_;CH_ls_rtti_c__c_AnnotationArguments_gr__gr_1_ls_v_gr__builtin_:
 
-.. das:function:: structure_for_each_annotation(st: StructInfo const; subexpr: block<(ann:rtti::Annotation const;args:rtti::AnnotationArguments const):void> const)
+.. das:function:: structure_for_each_annotation(st: StructInfo const; subexpr: block<(ann:Annotation const;args:AnnotationArguments const):void> const)
 
 structure_for_each_annotation returns auto
 
@@ -2389,15 +2433,15 @@ structure_for_each_annotation returns auto
 Data walking and printing
 +++++++++++++++++++++++++
 
-  *  :ref:`sprint_data (data:void? const implicit;type:rtti::TypeInfo const? const implicit;flags:bitfield const;context:__context const) : string <function-_at_rtti_c__c_sprint_data_CI?_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr_?_Ct_C_c>`
-  *  :ref:`sprint_data (data:float4 const;type:rtti::TypeInfo const? const implicit;flags:bitfield const;context:__context const) : string <function-_at_rtti_c__c_sprint_data_Cf4_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr_?_Ct_C_c>`
-  *  :ref:`describe (type:rtti::TypeInfo const? const implicit;context:__context const) : string <function-_at_rtti_c__c_describe_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr_?_C_c>`
-  *  :ref:`describe (lineinfo:rtti::LineInfo const implicit;fully:bool const;context:__context const) : string <function-_at_rtti_c__c_describe_CIH_ls_rtti_c__c_LineInfo_gr__Cb_C_c>`
-  *  :ref:`get_mangled_name (type:rtti::TypeInfo const? const implicit;context:__context const) : string <function-_at_rtti_c__c_get_mangled_name_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr_?_C_c>`
+  *  :ref:`sprint_data (data:void? const implicit;type:rtti::TypeInfo const? const implicit;flags:bitfield const;context:__context const;at:__lineInfo const) : string <function-_at_rtti_c__c_sprint_data_CI_qm__CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr__qm__Ct_C_c_C_l>` 
+  *  :ref:`sprint_data (data:float4 const;type:rtti::TypeInfo const? const implicit;flags:bitfield const;context:__context const;at:__lineInfo const) : string <function-_at_rtti_c__c_sprint_data_Cf4_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr__qm__Ct_C_c_C_l>` 
+  *  :ref:`describe (type:rtti::TypeInfo const? const implicit;context:__context const;at:__lineInfo const) : string <function-_at_rtti_c__c_describe_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr__qm__C_c_C_l>` 
+  *  :ref:`describe (lineinfo:rtti::LineInfo const implicit;fully:bool const;context:__context const;at:__lineInfo const) : string <function-_at_rtti_c__c_describe_CIH_ls_rtti_c__c_LineInfo_gr__Cb_C_c_C_l>` 
+  *  :ref:`get_mangled_name (type:rtti::TypeInfo const? const implicit;context:__context const;at:__lineInfo const) : string <function-_at_rtti_c__c_get_mangled_name_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr__qm__C_c_C_l>` 
 
-.. _function-_at_rtti_c__c_sprint_data_CI?_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr_?_Ct_C_c:
+.. _function-_at_rtti_c__c_sprint_data_CI_qm__CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr__qm__Ct_C_c_C_l:
 
-.. das:function:: sprint_data(data: void? const implicit; type: rtti::TypeInfo const? const implicit; flags: bitfield const)
+.. das:function:: sprint_data(data: void? const implicit; type: TypeInfo const? const implicit; flags: bitfield const)
 
 sprint_data returns string
 
@@ -2414,9 +2458,9 @@ sprint_data returns string
 
 |function-rtti-sprint_data|
 
-.. _function-_at_rtti_c__c_sprint_data_Cf4_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr_?_Ct_C_c:
+.. _function-_at_rtti_c__c_sprint_data_Cf4_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr__qm__Ct_C_c_C_l:
 
-.. das:function:: sprint_data(data: float4 const; type: rtti::TypeInfo const? const implicit; flags: bitfield const)
+.. das:function:: sprint_data(data: float4 const; type: TypeInfo const? const implicit; flags: bitfield const)
 
 sprint_data returns string
 
@@ -2433,9 +2477,9 @@ sprint_data returns string
 
 |function-rtti-sprint_data|
 
-.. _function-_at_rtti_c__c_describe_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr_?_C_c:
+.. _function-_at_rtti_c__c_describe_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr__qm__C_c_C_l:
 
-.. das:function:: describe(type: rtti::TypeInfo const? const implicit)
+.. das:function:: describe(type: TypeInfo const? const implicit)
 
 describe returns string
 
@@ -2448,7 +2492,7 @@ describe returns string
 
 |function-rtti-describe|
 
-.. _function-_at_rtti_c__c_describe_CIH_ls_rtti_c__c_LineInfo_gr__Cb_C_c:
+.. _function-_at_rtti_c__c_describe_CIH_ls_rtti_c__c_LineInfo_gr__Cb_C_c_C_l:
 
 .. das:function:: describe(lineinfo: LineInfo const implicit; fully: bool const)
 
@@ -2465,9 +2509,9 @@ describe returns string
 
 |function-rtti-describe|
 
-.. _function-_at_rtti_c__c_get_mangled_name_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr_?_C_c:
+.. _function-_at_rtti_c__c_get_mangled_name_CI1_ls_CH_ls_rtti_c__c_TypeInfo_gr__gr__qm__C_c_C_l:
 
-.. das:function:: get_mangled_name(type: rtti::TypeInfo const? const implicit)
+.. das:function:: get_mangled_name(type: TypeInfo const? const implicit)
 
 get_mangled_name returns string
 
@@ -2484,10 +2528,10 @@ get_mangled_name returns string
 Function and mangled name hash
 ++++++++++++++++++++++++++++++
 
-  *  :ref:`get_function_by_mangled_name_hash (src:uint64 const;context:__context const) : function\<\> <function-_at_rtti_c__c_get_function_by_mangled_name_hash_Cu64_C_c>`
-  *  :ref:`get_function_by_mangled_name_hash (src:uint64 const;context:rtti::Context implicit) : function\<\> <function-_at_rtti_c__c_get_function_by_mangled_name_hash_Cu64_IH_ls_rtti_c__c_Context_gr_>`
-  *  :ref:`get_function_mangled_name_hash (src:function\<\> const;context:__context const) : uint64 <function-_at_rtti_c__c_get_function_mangled_name_hash_C_at__at__C_c>`
-  *  :ref:`get_function_address (MNH:uint64 const;at:rtti::Context implicit) : uint64 <function-_at_rtti_c__c_get_function_address_Cu64_IH_ls_rtti_c__c_Context_gr_>`
+  *  :ref:`get_function_by_mangled_name_hash (src:uint64 const;context:__context const) : function\<\> <function-_at_rtti_c__c_get_function_by_mangled_name_hash_Cu64_C_c>` 
+  *  :ref:`get_function_by_mangled_name_hash (src:uint64 const;context:rtti::Context implicit) : function\<\> <function-_at_rtti_c__c_get_function_by_mangled_name_hash_Cu64_IH_ls_rtti_c__c_Context_gr_>` 
+  *  :ref:`get_function_mangled_name_hash (src:function\<\> const;context:__context const) : uint64 <function-_at_rtti_c__c_get_function_mangled_name_hash_C_at__at__C_c>` 
+  *  :ref:`get_function_address (MNH:uint64 const;at:rtti::Context implicit) : uint64 <function-_at_rtti_c__c_get_function_address_Cu64_IH_ls_rtti_c__c_Context_gr_>` 
 
 .. _function-_at_rtti_c__c_get_function_by_mangled_name_hash_Cu64_C_c:
 
@@ -2557,9 +2601,9 @@ get_function_address returns uint64
 Context and mutex locking
 +++++++++++++++++++++++++
 
-  *  :ref:`lock_this_context (block:block\<void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_lock_this_context_CI1_ls_v_gr__builtin__C_c_C_l>`
-  *  :ref:`lock_context (lock_context:rtti::Context implicit;block:block\<void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_lock_context_IH_ls_rtti_c__c_Context_gr__CI1_ls_v_gr__builtin__C_c_C_l>`
-  *  :ref:`lock_mutex (mutex:rtti::recursive_mutex implicit;block:block\<void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_lock_mutex_IH_ls_rtti_c__c_recursive_mutex_gr__CI1_ls_v_gr__builtin__C_c_C_l>`
+  *  :ref:`lock_this_context (block:block\<void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_lock_this_context_CI1_ls_v_gr__builtin__C_c_C_l>` 
+  *  :ref:`lock_context (lock_context:rtti::Context implicit;block:block\<void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_lock_context_IH_ls_rtti_c__c_Context_gr__CI1_ls_v_gr__builtin__C_c_C_l>` 
+  *  :ref:`lock_mutex (mutex:rtti::recursive_mutex implicit;block:block\<void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_rtti_c__c_lock_mutex_IH_ls_rtti_c__c_recursive_mutex_gr__CI1_ls_v_gr__builtin__C_c_C_l>` 
 
 .. _function-_at_rtti_c__c_lock_this_context_CI1_ls_v_gr__builtin__C_c_C_l:
 
@@ -2608,9 +2652,9 @@ Context and mutex locking
 Runtime data access
 +++++++++++++++++++
 
-  *  :ref:`get_table_key_index (table:void? const implicit;key:any;baseType:rtti::Type const;valueTypeSize:int const;context:__context const;at:__lineInfo const) : int <function-_at_rtti_c__c_get_table_key_index_CI?_*_CE_ls_rtti_c__c_Type_gr__Ci_C_c_C_l>`
+  *  :ref:`get_table_key_index (table:void? const implicit;key:any;baseType:rtti::Type const;valueTypeSize:int const;context:__context const;at:__lineInfo const) : int <function-_at_rtti_c__c_get_table_key_index_CI_qm__*_CE_ls_rtti_c__c_Type_gr__Ci_C_c_C_l>` 
 
-.. _function-_at_rtti_c__c_get_table_key_index_CI?_*_CE_ls_rtti_c__c_Type_gr__Ci_C_c_C_l:
+.. _function-_at_rtti_c__c_get_table_key_index_CI_qm__*_CE_ls_rtti_c__c_Type_gr__Ci_C_c_C_l:
 
 .. das:function:: get_table_key_index(table: void? const implicit; key: any; baseType: Type const; valueTypeSize: int const)
 
@@ -2635,24 +2679,24 @@ get_table_key_index returns int
 Uncategorized
 +++++++++++++
 
-.. _function-_at_rtti_c__c_with_program_serialized_CI0_ls_1_ls_H_ls_rtti_c__c_Program_gr__gr_?W_gr_1_ls_v_gr__builtin__CI1_ls_H_ls_rtti_c__c_Program_gr__gr_?W_C_c_C_l:
+.. _function-_at_rtti_c__c_module_for_each_dependency_CI1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__CI0_ls_1_ls_H_ls_rtti_c__c_Module_gr__gr__qm_;b_gr_1_ls_v_gr__builtin__C_c_C_l:
 
-.. das:function:: with_program_serialized(program: block<(var arg0:smart_ptr<rtti::Program>):void> const implicit; block: smart_ptr<rtti::Program> const implicit)
+.. das:function:: module_for_each_dependency(module: Module? const implicit; block: block<(var arg0:Module?;var arg1:bool):void> const implicit)
 
-+--------+------------------------------------------------------------------------------------+
-+argument+argument type                                                                       +
-+========+====================================================================================+
-+program +block<(smart_ptr< :ref:`rtti::Program <handle-rtti-Program>` >):void> const implicit+
-+--------+------------------------------------------------------------------------------------+
-+block   +smart_ptr< :ref:`rtti::Program <handle-rtti-Program>` > const implicit              +
-+--------+------------------------------------------------------------------------------------+
++--------+-----------------------------------------------------------------------------+
++argument+argument type                                                                +
++========+=============================================================================+
++module  + :ref:`rtti::Module <handle-rtti-Module>` ? const implicit                   +
++--------+-----------------------------------------------------------------------------+
++block   +block<( :ref:`rtti::Module <handle-rtti-Module>` ?;bool):void> const implicit+
++--------+-----------------------------------------------------------------------------+
 
 
-|function-rtti-with_program_serialized|
+|function-rtti-module_for_each_dependency|
 
-.. _function-_at_rtti_c__c_get_tuple_field_offset_CI1_ls_H_ls_rtti_c__c_TypeInfo_gr__gr_?_Ci:
+.. _function-_at_rtti_c__c_get_tuple_field_offset_CI1_ls_H_ls_rtti_c__c_TypeInfo_gr__gr__qm__Ci:
 
-.. das:function:: get_tuple_field_offset(type: rtti::TypeInfo? const implicit; index: int const)
+.. das:function:: get_tuple_field_offset(type: TypeInfo? const implicit; index: int const)
 
 get_tuple_field_offset returns int
 
@@ -2667,9 +2711,9 @@ get_tuple_field_offset returns int
 
 |function-rtti-get_tuple_field_offset|
 
-.. _function-_at_rtti_c__c_get_variant_field_offset_CI1_ls_H_ls_rtti_c__c_TypeInfo_gr__gr_?_Ci:
+.. _function-_at_rtti_c__c_get_variant_field_offset_CI1_ls_H_ls_rtti_c__c_TypeInfo_gr__gr__qm__Ci:
 
-.. das:function:: get_variant_field_offset(type: rtti::TypeInfo? const implicit; index: int const)
+.. das:function:: get_variant_field_offset(type: TypeInfo? const implicit; index: int const)
 
 get_variant_field_offset returns int
 
@@ -2684,11 +2728,11 @@ get_variant_field_offset returns int
 
 |function-rtti-get_variant_field_offset|
 
-.. _function-_at_rtti_c__c_each_I_eq_H_ls_rtti_c__c_FuncInfo_gr__C_c:
+.. _function-_at_rtti_c__c_each_I_eq_H_ls_rtti_c__c_FuncInfo_gr__C_c_C_l:
 
 .. das:function:: each(info: FuncInfo implicit ==const)
 
-each returns iterator< :ref:`rtti::VarInfo <handle-rtti-VarInfo>` >
+each returns iterator< :ref:`rtti::VarInfo <handle-rtti-VarInfo>` &>
 
 +--------+--------------------------------------------------------+
 +argument+argument type                                           +
@@ -2699,11 +2743,11 @@ each returns iterator< :ref:`rtti::VarInfo <handle-rtti-VarInfo>` >
 
 |function-rtti-each|
 
-.. _function-_at_rtti_c__c_each_CI_eq_H_ls_rtti_c__c_FuncInfo_gr__C_c:
+.. _function-_at_rtti_c__c_each_CI_eq_H_ls_rtti_c__c_FuncInfo_gr__C_c_C_l:
 
 .. das:function:: each(info: FuncInfo const implicit ==const)
 
-each returns iterator< :ref:`rtti::VarInfo <handle-rtti-VarInfo>`  const>
+each returns iterator< :ref:`rtti::VarInfo <handle-rtti-VarInfo>`  const&>
 
 +--------+--------------------------------------------------------------+
 +argument+argument type                                                 +
@@ -2714,11 +2758,11 @@ each returns iterator< :ref:`rtti::VarInfo <handle-rtti-VarInfo>`  const>
 
 |function-rtti-each|
 
-.. _function-_at_rtti_c__c_each_I_eq_H_ls_rtti_c__c_StructInfo_gr__C_c:
+.. _function-_at_rtti_c__c_each_I_eq_H_ls_rtti_c__c_StructInfo_gr__C_c_C_l:
 
 .. das:function:: each(info: StructInfo implicit ==const)
 
-each returns iterator< :ref:`rtti::VarInfo <handle-rtti-VarInfo>` >
+each returns iterator< :ref:`rtti::VarInfo <handle-rtti-VarInfo>` &>
 
 +--------+------------------------------------------------------------+
 +argument+argument type                                               +
@@ -2729,11 +2773,11 @@ each returns iterator< :ref:`rtti::VarInfo <handle-rtti-VarInfo>` >
 
 |function-rtti-each|
 
-.. _function-_at_rtti_c__c_each_CI_eq_H_ls_rtti_c__c_StructInfo_gr__C_c:
+.. _function-_at_rtti_c__c_each_CI_eq_H_ls_rtti_c__c_StructInfo_gr__C_c_C_l:
 
 .. das:function:: each(info: StructInfo const implicit ==const)
 
-each returns iterator< :ref:`rtti::VarInfo <handle-rtti-VarInfo>`  const>
+each returns iterator< :ref:`rtti::VarInfo <handle-rtti-VarInfo>`  const&>
 
 +--------+------------------------------------------------------------------+
 +argument+argument type                                                     +
@@ -2744,11 +2788,11 @@ each returns iterator< :ref:`rtti::VarInfo <handle-rtti-VarInfo>`  const>
 
 |function-rtti-each|
 
-.. _function-_at_rtti_c__c_each_I_eq_H_ls_rtti_c__c_EnumInfo_gr__C_c:
+.. _function-_at_rtti_c__c_each_I_eq_H_ls_rtti_c__c_EnumInfo_gr__C_c_C_l:
 
 .. das:function:: each(info: EnumInfo implicit ==const)
 
-each returns iterator< :ref:`rtti::EnumValueInfo <handle-rtti-EnumValueInfo>` >
+each returns iterator< :ref:`rtti::EnumValueInfo <handle-rtti-EnumValueInfo>` &>
 
 +--------+--------------------------------------------------------+
 +argument+argument type                                           +
@@ -2759,11 +2803,11 @@ each returns iterator< :ref:`rtti::EnumValueInfo <handle-rtti-EnumValueInfo>` >
 
 |function-rtti-each|
 
-.. _function-_at_rtti_c__c_each_CI_eq_H_ls_rtti_c__c_EnumInfo_gr__C_c:
+.. _function-_at_rtti_c__c_each_CI_eq_H_ls_rtti_c__c_EnumInfo_gr__C_c_C_l:
 
 .. das:function:: each(info: EnumInfo const implicit ==const)
 
-each returns iterator< :ref:`rtti::EnumValueInfo <handle-rtti-EnumValueInfo>`  const>
+each returns iterator< :ref:`rtti::EnumValueInfo <handle-rtti-EnumValueInfo>`  const&>
 
 +--------+--------------------------------------------------------------+
 +argument+argument type                                                 +

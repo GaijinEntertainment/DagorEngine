@@ -1,14 +1,13 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <generic/dag_tab.h>
 #include <generic/dag_smallTab.h>
+#include <daECS/core/componentsMap.h>
 #include <memory/dag_genMemAlloc.h>
-#include <daECS/core/entityManager.h>
 #include <EASTL/type_traits.h>
 #include <EASTL/hash_set.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
@@ -18,7 +17,7 @@
 #include <EASTL/vector_map.h>
 #include <EASTL/fixed_vector.h>
 #include <EASTL/unique_ptr.h>
-#include <EASTL/functional.h>
+#include <EASTL/fixed_function.h>
 #include "object.h" // for CompVersMap
 #include "sequence.h"
 #include "connid.h"
@@ -33,7 +32,10 @@ class BitStream;
 namespace ecs
 {
 class Template;
-}
+class EntityManager;
+// To consider: extract this typedef in separate header?
+typedef eastl::function<void(EntityId)> create_entity_async_cb_t;
+} // namespace ecs
 
 namespace net
 {
@@ -57,18 +59,19 @@ struct PendingReplicationPacketInfo;
 class Connection : public IConnection
 {
 public:
-  typedef eastl::function<void(Connection &conn, ecs::entity_id_t serverEid)> on_object_constructed_cb_t;
+  typedef eastl::fixed_function<sizeof(void *) * 2, void(Connection &conn, ecs::entity_id_t serverEid)> on_object_constructed_cb_t;
 
-  Connection(ConnectionId id_, scope_query_cb_t &&scope_query = scope_query_cb_t());
+  Connection(ecs::EntityManager &mgr, ConnectionId id_, scope_query_cb_t &&scope_query = scope_query_cb_t());
   ~Connection();
 
   void setEncryptionCtx(EncryptionCtx *ectx) { encryptionCtx = ectx; }
 
-  ObjectReplica *addObjectInScope(Object &obj); // Note: there is no 'remove' operation, objects removed from scope automatically on
-                                                // each update (unless 'setObjectInScopeAlways' is called)
+  ObjectReplica *addObjectInScope(Object &obj);         // Note: objects removed from scope automatically on
+                                                        // each replication (unless 'setObjectInScopeAlways' is called)
   ecs::entity_id_t setObjectInScopeAlways(Object &obj); // returns serverId of added object (or 0/invalid if addition failed)
   bool setEntityInScopeAlways(ecs::EntityId eid) override final;
   void clearObjectInScopeAlways(Object &obj);
+  void clearObjectInScope(Object &obj);
 
   void setReplicatingFrom(); // whether replicas get transmitted from this side of connection (typically called on server for client's
                              // connections)
@@ -87,6 +90,7 @@ public:
   int prepareWritePackets();
   bool readReplayKeyFrame(const danet::BitStream &bs, const on_object_constructed_cb_t &obj_constructed_cb);
   void writeReplayKeyFrame(danet::BitStream &bs, danet::BitStream &tmpbs);
+  void writeClientReplayKeyFrame(danet::BitStream &bs, danet::BitStream &tmpbs, dag::ConstSpan<ecs::EntityId> eids);
   bool writeConstructionPacket(danet::BitStream &bs, danet::BitStream &tmpbs, int limit_bytes);
   bool writeDestructionPacket(danet::BitStream &bs, danet::BitStream &tmpbs, int limit_bytes);
   bool writeReplicationPacket(danet::BitStream &bs, danet::BitStream &tmpbs, int limit_bytes); // return true if something usefull was
@@ -119,14 +123,12 @@ public:
   ObjectReplica *getReplicaByObj(const Object &obj);
   const ObjectReplica *getReplicaByObj(const Object &obj) const;
 
-  void killReplicaConfirmed(ecs::entity_id_t server_id);
-
   static void collapseDirtyObjects();
 
   void setEncryptionKey(dag::ConstSpan<uint8_t> ekey, EncryptionKeyBits ebits) override;
 
 private:
-  void killObjectReplica(ObjectReplica *repl, net::Object &obj);
+  void killObjectReplica(ObjectReplica *repl, net::Object *obj);
   void applyDelayedAttrsUpdate(ecs::entity_id_t server_eid);
 
   void pushToDirty(ObjectReplica *repl);
@@ -144,6 +146,7 @@ protected:
   bool isFiltering = true; // this connection is filtering components. That is used for debug (when we want client to have all
                            // infornation) and for replay connection
 private:
+  ecs::EntityManager &mgr;
   bool connected = true; // might be false when disconnect requested, but not confirmed yet
   ConnectionId id;
   mutable InternedStrings objectKeys;
@@ -171,6 +174,8 @@ private:
   bool serializeComponentReplication(ecs::EntityId eid, const ecs::EntityComponentRef &attr, danet::BitStream &bs) const;
   bool deserializeComponentReplication(ecs::EntityId eid, const danet::BitStream &bs);
 
+  void doClearObjectInScope(Object &obj, uint8_t flag);
+
   const char *deserializeTemplate(const danet::BitStream &bs, ecs::template_t &server_template_id, bool &tpl_deserialized);
   bool syncReadComponent(ecs::component_index_t serverCidx, const danet::BitStream &bs, ecs::template_t templateId,
     bool produce_errors);
@@ -183,6 +188,8 @@ private:
   };
   void serializeConstruction(ecs::EntityId eid, danet::BitStream &bs, CanSkipInitial canSkipInitial = CanSkipInitial::Yes);
   void serializeTemplate(danet::BitStream &bs, ecs::template_t templateId, eastl::bitvector<> &componentsSyncedTmp) const;
+  void serializeTemplateForClientReplay(danet::BitStream &bs, ecs::template_t templateId,
+    eastl::bitvector<> &componentsSyncedTmp) const;
   ecs::EntityId deserializeConstruction(const danet::BitStream &bs, ecs::entity_id_t serverId, uint32_t sz, float cratio,
     ecs::create_entity_async_cb_t &&cb);
   bool deserializeComponentConstruction(ecs::template_t server_template, const danet::BitStream &bs, ecs::ComponentsInitializer &init,

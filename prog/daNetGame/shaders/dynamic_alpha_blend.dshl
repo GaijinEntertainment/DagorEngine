@@ -1,0 +1,137 @@
+include "dynamic_trans_inc.dshl"
+include "cloud_mask.dshl"
+
+shader dynamic_alpha_blend
+{
+  ENABLE_ASSERT(ps)
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    dont_render;
+  }
+  SUPPORT_MULTIDRAW(false)
+  DYNAMIC_BLOCK_TRANS()
+
+  texture tex = material.texture.diffuse;
+  (ps) { diffuse_tex@static = tex; }
+
+  render_trans;
+  z_bias = 0;
+
+  static int atest = 0;
+  interval atest : atestOff < 1, atestOn;
+
+  if (atest == atestOn)
+  {
+    USE_ATEST_DYNAMIC_VALUE(atest)
+    SET_ATEST_IS_ON_DEFINE()
+  }
+  else
+  {
+    NO_ATEST()
+  }
+
+  blend_src = sa; blend_dst = isa;
+  blend_asrc = zero; blend_adst = one;
+
+  z_write = false;
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+  supports global_const_block;
+
+  hlsl {
+    #define DYNAMIC_SIMPLE_CUSTOM_VSOUTPUT 1
+    #define NEED_TC 1
+    #define NEED_POINT_TO_EYE 1
+
+    struct VsOutput
+    {
+        VS_OUT_POSITION(pos)
+        float3 normal                           : TEXCOORD0;
+        float2 diffuseTexcoord                  : TEXCOORD1;
+        float3 pointToEye                       : TEXCOORD2;
+        float3 lighting                         : TEXCOORD3;
+        float4 screenTexcoord                   : TEXCOORD4;
+        float3 fogMul                           : TEXCOORD5;
+        float3 fogAdd                           : TEXCOORD6;
+        float4 clipPos                          : TEXCOORD7;
+        #if SET_UP_MULTIDRAW
+        VSOUT_DRAW_ID
+        #endif
+    };
+  }
+
+  DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+  BASE_USE_BRUNETON_FOG(vs)
+
+  hlsl(vs) {
+
+    void vs_post_function(VsInput input, inout VsOutput output)
+    {
+      output.screenTexcoord = float4(
+        output.pos.xy * RT_SCALE_HALF + float2(0.5, 0.5) * output.pos.w,
+        output.pos.z, output.pos.w);
+      half3 fogMul, fogAdd;
+      get_fog(output.pointToEye, fogMul, fogAdd);
+      output.clipPos = output.pos;
+      output.fogMul = fogMul;
+      output.fogAdd = fogAdd;
+
+      //division by PI omitted intentionally, lightColor is divided by Pi
+      float3 sun01lighting = (saturate(dot(output.normal.xyz, -from_sun_direction.xyz))) * sun_color_0.xyz;
+      output.lighting = sun01lighting + sky_color;
+    }
+  }
+
+  DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
+
+  USE_HDR(ps)
+  BASE_USE_BRUNETON_FOG(ps)
+  GET_CLOUD_VOLUME_MASK()
+
+  if (mobile_render == off && in_editor_assume == no)
+  {
+    USE_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
+  }
+
+  hlsl(ps) {
+    float4 dynamic_simple_ps(VsOutput input) : SV_Target
+    {
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(input);
+        SET_DRAW_CALL_ID(GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK);
+      #endif
+
+      half4 resultColor;
+
+      // Get diffuse.
+      half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy);
+      clip_alpha(diffuseColor.a);
+
+      resultColor.rgb = diffuseColor.rgb * input.lighting;
+      resultColor.a = diffuseColor.a;
+      resultColor.a *= get_cloud_volume_mask(input.screenTexcoord);
+
+      half3 pointToEyeDir = normalize(input.pointToEye.xyz);
+      float2 screenUV = input.clipPos.xy / input.clipPos.w*float2(0.5, -0.5) + 0.5;
+
+      ##if mobile_render == off && in_editor_assume == no
+      #if APPLY_BRUNETON_FOG
+        get_volfog_with_precalculated_scattering(
+          screenUV,
+          screenUV,
+          -pointToEyeDir,
+          length(input.pointToEye),
+          input.clipPos.w,
+          input.fogMul,
+          input.fogAdd);
+      #endif
+      resultColor.rgb = resultColor.rgb * input.fogMul + input.fogAdd;
+      ##endif
+
+      resultColor.rgb = pack_hdr(resultColor.rgb);
+      return resultColor;
+    }
+  }
+  compile("target_ps", "dynamic_simple_ps");
+}

@@ -1,5 +1,15 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "PixelPerfectSelection.h"
 #include <3d/dag_lockTexture.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_lock.h>
 #include <EditorCore/ec_interface.h>
 #include <image/dag_texPixel.h>
 #include <render/dynModelRenderer.h>
@@ -85,7 +95,7 @@ void PixelPerfectSelection::renderLodResource(const RenderableInstanceLodsResour
   cb.setBBoxZero();
   cb.setOpacity(0, 1);
   cb.setBoundingSphere(0, 0, 1, 1, 0);
-  cb.setInstancing(hasImpostor ? 3 : 0, hasImpostor ? 1 : 3, impostorBufferOffset);
+  cb.setInstancing(hasImpostor ? 3 : 0, hasImpostor ? 1 : 3, 0, impostorBufferOffset);
   cb.flushPerDraw();
   d3d::set_immediate_const(STAGE_VS, ZERO_PTR<uint32_t>(), 1);
 
@@ -108,6 +118,8 @@ void PixelPerfectSelection::getHitsAt(IGenViewportWnd &wnd, int pickX, int pickY
 
   if (!isInited())
     init();
+
+  d3d::GpuAutoLock gpuLock;
 
   Driver3dRenderTarget prevRT;
   d3d::get_render_target(prevRT);

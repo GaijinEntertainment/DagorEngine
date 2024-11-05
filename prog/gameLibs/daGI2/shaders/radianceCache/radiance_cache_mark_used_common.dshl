@@ -1,0 +1,81 @@
+//include "shader_global.dshl"
+include "radiance_cache_common.dshl"
+
+macro RADIANCE_CACHE_MARK_PROBES(code)
+  RADIANCE_CACHE_CLIPMAP_MATH(code)
+  RADIANCE_CACHE_ATLAS_MATH(code)
+  (code) {
+    radiance_cache_indirection_clipmap@buf = radiance_cache_indirection_clipmap hlsl {
+      StructuredBuffer<uint> radiance_cache_indirection_clipmap@buf;
+    }
+    radiance_cache_current_frame@i1 = radiance_cache_current_frame;
+  }
+
+  hlsl (code) {
+    #include <waveUtils.hlsl>
+
+    RWByteAddressBuffer new_radiance_cache_probes_needed: register(u0);
+    RWByteAddressBuffer radiance_cache_used_mask: register(u1);
+    RWByteAddressBuffer radiance_cache_age: register(u2);
+
+    void radiance_cache_mark_clipmap(int3 worldCoord, uint clip)
+    {
+      uint wrappedAddr = get_radiance_cache_buffer_addr(radiance_cache_wrapped_coord_from_abs_coord(worldCoord), clip);
+      uint originalMask;
+      uint addMask = 1u<<(wrappedAddr&31);
+      radiance_cache_used_mask.InterlockedOr((wrappedAddr>>5)*4, addMask, originalMask);
+      if (!(addMask & originalMask))
+      {
+        uint atlasProbeId = structuredBufferAt(radiance_cache_indirection_clipmap, wrappedAddr);
+        if (atlasProbeId == ~0u)// wasn't present
+        {
+          uint newIndexAt;
+          WaveInterlockedAddRawUintOriginal(new_radiance_cache_probes_needed, 0, 1, newIndexAt);
+          //new_radiance_cache_probes_needed.InterlockedAdd(0, 1, newIndexAt);
+          if (newIndexAt < get_radiance_cache_total_atlas_size())
+          {
+            storeBuffer(new_radiance_cache_probes_needed, newIndexAt*4 + 4, wrappedAddr);
+          }
+        } else
+        {
+          //change LRU frame age
+          storeBuffer(radiance_cache_age, atlasProbeId*4, radiance_cache_current_frame);
+        }
+      }
+    }
+    void radiance_cache_mark_trilinear(int3 absCoord, uint clip)
+    {
+      radiance_cache_mark_clipmap(absCoord + int3(0, 0, 0), clip);
+      radiance_cache_mark_clipmap(absCoord + int3(1, 0, 0), clip);
+      radiance_cache_mark_clipmap(absCoord + int3(0, 1, 0), clip);
+      radiance_cache_mark_clipmap(absCoord + int3(1, 1, 0), clip);
+      radiance_cache_mark_clipmap(absCoord + int3(0, 0, 1), clip);
+      radiance_cache_mark_clipmap(absCoord + int3(1, 0, 1), clip);
+      radiance_cache_mark_clipmap(absCoord + int3(0, 1, 1), clip);
+      radiance_cache_mark_clipmap(absCoord + int3(1, 1, 1), clip);
+    }
+
+    void radiance_cache_mark_world_pos(float3 worldPos, bool mark_additional_bigger_clip = false, uint start_clip = 0)
+    {
+      int3 worldCoord;
+      uint clip = radiance_cache_find_clip_trilinear(worldCoord, worldPos, start_clip);
+      if (clip >= MAX_RADIANCE_CACHE_CLIPS)
+        return;
+      radiance_cache_mark_trilinear(worldCoord, clip);//fixme: radiance_cache_find_clip_trilinear finds needed abs coord as well
+      if (!mark_additional_bigger_clip)
+        return;
+      //mark one additional clip (helps with quality)
+      for (;;)
+      {
+        ++clip;
+        if (clip >= MAX_RADIANCE_CACHE_CLIPS)
+          return;
+        clip = radiance_cache_find_clip_trilinear(worldCoord, worldPos, clip);
+        if (clip >= MAX_RADIANCE_CACHE_CLIPS)
+          return;
+        radiance_cache_mark_trilinear(worldCoord, clip);
+        break;
+      }
+    }
+  }
+endmacro

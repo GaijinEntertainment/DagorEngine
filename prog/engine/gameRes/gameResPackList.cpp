@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gameRes/dag_gameResSystem.h>
 #include <3d/dag_texPackMgr2.h>
 #include <ioSys/dag_dataBlock.h>
@@ -11,7 +13,7 @@
 #include "grpData.h"
 #include <perfMon/dag_perfTimer.h>
 
-#define LOGLEVEL_DEBUG _MAKE4C('GRSS')
+#define debug(...) logmessage(_MAKE4C('GRSS'), __VA_ARGS__)
 
 namespace gameresprivate
 {
@@ -95,14 +97,15 @@ void load_res_packs_from_list_blk(const DataBlock &blk, const char *pack_list_bl
     {
       _snprintf(tempBuf, sizeof(tempBuf), "%s%s", buf, b->getStr(i));
       tempBuf[sizeof(tempBuf) - 1] = 0;
+
+      gameresprivate::scanGameResPack(tempBuf);
+      num++;
+
       if (opt_res_per_file && !dd_file_exists(tempBuf))
       {
         strcat(tempBuf, "cache.bin");
         gameresprivate::registerOptionalGameResPack(tempBuf);
-        continue;
       }
-      gameresprivate::scanGameResPack(tempBuf);
-      num++;
     }
   gameresprivate::curRelFnOfs = 0;
 #if !(_TARGET_PC && !_TARGET_STATIC_LIB)

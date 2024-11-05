@@ -1,6 +1,10 @@
-#include "device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "render_pass_resource.h"
 #include <perfMon/dag_statDrv.h>
+#include "front_render_pass_state.h"
+#include "globals.h"
+#include "driver_config.h"
 
 using namespace drv3d_vulkan;
 
@@ -11,7 +15,7 @@ VulkanFramebufferHandle RenderPassResource::compileOrGetFB()
   // be aware of quite memory hungry linear search here!
   constexpr uint32_t maxArraySizeForLinearSearch = 10;
   if (compiledFBs.size() >= maxArraySizeForLinearSearch)
-    logerr("vulkan: too much FB variations for RP %p[%p]<%s>, reduce them or redo search", this, getBaseHandle(), getDebugName());
+    D3D_ERROR("vulkan: too much FB variations for RP %p[%p]<%s>, reduce them or redo search", this, getBaseHandle(), getDebugName());
 
   VulkanFramebufferHandle ret;
   uint32_t lastFreeFB = -1;
@@ -32,7 +36,7 @@ VulkanFramebufferHandle RenderPassResource::compileOrGetFB()
         fit &= (state->targets.data[j].layer == (att.mipLayer & 0xFFFF));
         fit &= (state->targets.data[j].mipLevel == ((att.mipLayer >> 16) & 0xFF));
 
-        if (get_device().hasImagelessFramebuffer())
+        if (Globals::cfg.has.imagelessFramebuffer)
         {
 #if VK_KHR_imageless_framebuffer
           fit &= bakedAttachments->infos[j].width == att.imageless.width;
@@ -64,7 +68,7 @@ VulkanFramebufferHandle RenderPassResource::compileOrGetFB()
       const StateFieldRenderPassTarget &tgt = state->targets.data[i];
       G_ASSERTF(tgt.image != nullptr, "vulkan: attachment %u of RP %p[%p]<%s> is not specified (null)", i, this, getBaseHandle(),
         getDebugName());
-      if (get_device().hasImagelessFramebuffer())
+      if (Globals::cfg.has.imagelessFramebuffer)
       {
         newFB.atts[i].imageless.width = bakedAttachments->infos[i].width;
         newFB.atts[i].imageless.height = bakedAttachments->infos[i].height;
@@ -80,12 +84,12 @@ VulkanFramebufferHandle RenderPassResource::compileOrGetFB()
       // verify various stuff
 
       bool formatsCompatible = false;
-      FormatStore expectedFormat = FormatStore::fromCreateFlags(desc.targetCFlags[i]);
+      FormatStore expectedFormat = desc.targetFormats[i];
       VkFormat expectedVkFormat = expectedFormat.asVkFormat();
       VkFormat attVkFormat = tgt.image->getFormat().asVkFormat();
       const auto &formatList = bakedAttachments->formatLists[i];
 
-      if (get_device().hasImagelessFramebuffer())
+      if (Globals::cfg.has.imagelessFramebuffer)
       {
         for (uint32_t j = 0; j < formatList.size(); ++j)
           formatsCompatible |= expectedVkFormat == formatList[j];
@@ -96,7 +100,7 @@ VulkanFramebufferHandle RenderPassResource::compileOrGetFB()
       if (!formatsCompatible)
       {
         String actualFormats("[");
-        if (get_device().hasImagelessFramebuffer())
+        if (Globals::cfg.has.imagelessFramebuffer)
         {
           for (uint32_t j = 0; j < formatList.size(); ++j)
           {
@@ -122,10 +126,10 @@ VulkanFramebufferHandle RenderPassResource::compileOrGetFB()
 
 void RenderPassResource::destroyFBsWithImage(const Image *img)
 {
-  if (get_device().hasImagelessFramebuffer())
+  if (Globals::cfg.has.imagelessFramebuffer)
     return; // with this extension image is not bound to framebuffer
 
-  VulkanDevice &device = get_device().getVkDevice();
+  VulkanDevice &device = Globals::VK::dev;
   for (uint32_t i = 0; i < compiledFBs.size(); ++i)
   {
     if (is_null(compiledFBs[i].handle))
@@ -167,7 +171,7 @@ VulkanFramebufferHandle RenderPassResource::compileFB()
 
 #if VK_KHR_imageless_framebuffer
   VkFramebufferAttachmentsCreateInfoKHR fbaci = {VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO_KHR, nullptr};
-  if (get_device().hasImagelessFramebuffer())
+  if (Globals::cfg.has.imagelessFramebuffer)
   {
     fbci.flags |= VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT_KHR;
     for (uint32_t i = 0; i < desc.targetCount; ++i)
@@ -186,7 +190,7 @@ VulkanFramebufferHandle RenderPassResource::compileFB()
 #endif
     fbci.pAttachments = ary(&bakedAttachments->views[0]);
 
-  VulkanDevice &device = get_device().getVkDevice();
+  VulkanDevice &device = Globals::VK::dev;
   VulkanFramebufferHandle fbh;
   VULKAN_EXIT_ON_FAIL(device.vkCreateFramebuffer(device.get(), &fbci, nullptr, ptr(fbh)));
   return fbh;

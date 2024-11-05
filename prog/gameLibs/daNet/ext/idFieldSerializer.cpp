@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <daNet/idFieldSerializer.h>
 #include <daNet/bitStream.h>

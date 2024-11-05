@@ -83,6 +83,11 @@ void RackAndPinionConstraint::SetupVelocityConstraint(float inDeltaTime)
 	CalculateConstraintProperties(rotation1, rotation2);
 }
 
+void RackAndPinionConstraint::ResetWarmStart()
+{
+	mRackAndPinionConstraintPart.Deactivate();
+}
+
 void RackAndPinionConstraint::WarmStartVelocityConstraint(float inWarmStartImpulseRatio)
 {
 	// Warm starting: Apply previous frame impulse
@@ -102,7 +107,7 @@ bool RackAndPinionConstraint::SolvePositionConstraint(float inDeltaTime, float i
 	float rotation;
 	if (mPinionConstraint->GetSubType() == EConstraintSubType::Hinge)
 	{
-		rotation = static_cast<const HingeConstraint *>(mPinionConstraint.GetPtr())->GetCurrentAngle();
+		rotation = StaticCast<HingeConstraint>(mPinionConstraint)->GetCurrentAngle();
 	}
 	else
 	{
@@ -113,7 +118,7 @@ bool RackAndPinionConstraint::SolvePositionConstraint(float inDeltaTime, float i
 	float translation;
 	if (mRackConstraint->GetSubType() == EConstraintSubType::Slider)
 	{
-		translation = static_cast<const SliderConstraint *>(mRackConstraint.GetPtr())->GetCurrentPosition();
+		translation = StaticCast<SliderConstraint>(mRackConstraint)->GetCurrentPosition();
 	}
 	else
 	{

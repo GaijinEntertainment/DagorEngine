@@ -1,4 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+#include <generic/dag_carray.h>
+#include <drv/3d/dag_decl.h>
+
 #include "driver.h"
 
 namespace drv3d_vulkan
@@ -30,6 +35,8 @@ struct GraphicsPipelineCompileScratchData
   int varIdx;
   int varTotal;
   bool allocated;
+  bool nonDrawCompile;
+  bool failIfNotCached;
   RenderPassResource *nativeRP;
 
   // for actual create pipe API

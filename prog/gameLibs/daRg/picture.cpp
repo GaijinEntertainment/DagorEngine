@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daRg/dag_picture.h>
 #include "guiScene.h"
 #include "picAsyncLoad.h"
@@ -90,7 +92,6 @@ bool Picture::load(const char *name)
     loadReq = nullptr;
   }
 
-
   PICTUREID prevPicId = pic.pic;
   TEXTUREID prevTexId = pic.tex;
   PICTUREID picId = BAD_PICTUREID;
@@ -98,23 +99,23 @@ bool Picture::load(const char *name)
 
   AsyncLoadRequest *req = PicAsyncLoad::make_request(this);
 
-  bool sync = PictureManager::get_picture_ex(name, picId, texId, &req->tcLt, &req->tcRb, &req->picSize,
+  bool sync = PictureManager::get_picture_ex(name, picId, texId, &req->tcLt, &req->tcRb, /*picSize*/ nullptr,
     PicAsyncLoad::pic_mgr_async_load_cb, req);
 
   pic.pic = picId;
   pic.tex = texId;
-  pic.tcLt = req->tcLt;
-  pic.tcRb = req->tcRb;
   darg::free_texture(prevTexId, prevPicId);
 
   if (sync)
   {
+    pic.tcLt = req->tcLt;
+    pic.tcRb = req->tcRb;
     delete req;
     return true;
   }
   else
   {
-    PicAsyncLoad::wait_for_load(req);
+    PicAsyncLoad::insert_pending(req);
     loadReq = req;
     return false;
   }

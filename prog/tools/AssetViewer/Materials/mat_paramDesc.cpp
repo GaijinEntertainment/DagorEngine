@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "mat_paramDesc.h"
 
 #include <ioSys/dag_dataBlock.h>

@@ -1,11 +1,10 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include "compiled_meta_data.h"
+#include <drv/shadersMetaData/spirv/compiled_meta_data.h>
 
 #include <glslang/Public/ShaderLang.h>
 #include <EASTL/vector.h>
@@ -62,7 +61,9 @@ enum class CompileFlags : uint32_t
   // forces descriptor set indices based on resource type
   OVERWRITE_DESCRIPTOR_SETS = 1 << 4,
   // force relaxed precision be converted to float16
-  ENABLE_HALFS = 1 << 5
+  ENABLE_HALFS = 1 << 5,
+  // enable wave intrisics which require vulkan 1.1
+  ENABLE_WAVE_INTRINSICS = 1 << 6
 };
 inline CompileFlags &operator|=(CompileFlags &self, CompileFlags o)
 {

@@ -1,12 +1,16 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <obsolete/dag_cfg.h>
 #include <coolConsole/coolConsole.h>
-#include <dllPluginCore/core.h>
+#include <EditorCore/ec_IEditorCore.h>
 #include "hmlPlugin.h"
 #include "landMeshMap.h"
 #include "libTools/math/gouraud.h"
 #include "renderLandNormals.h"
 #include <util/dag_bitArray.h>
 #include <debug/dag_debug.h>
+
+using editorcore_extapi::dagGeom;
 
 float *NormalFrameBuffer::start_ht = 0;
 
@@ -129,7 +133,8 @@ bool create_lmesh_normal_map(LandMeshMap &land, NormalFrameBuffer map, float sx,
     {
       //==fixme: name could be moved to application.blk
       bool iscombined = false;
-      if (strstr(node->mesh->mats[mi]->className.str(), "land_mesh") && !strstr(node->mesh->mats[mi]->className.str(), "decal"))
+      if (strstr(node->mesh->mats[mi]->className.str(), "land_mesh") && !strstr(node->mesh->mats[mi]->className.str(), "decal") &&
+          !strstr(node->mesh->mats[mi]->className.str(), "land_mesh_clipmap"))
       {
         CfgReader c;
         c.getdiv_text(String(128, "[q]\r\n%s\r\n", node->mesh->mats[mi]->scriptText.str()), "q");

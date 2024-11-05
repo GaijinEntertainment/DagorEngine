@@ -21,12 +21,16 @@ let mkRow = @(cellSize, y, colsNum){
   children = array(colsNum).map(@(_, x) mkCell(cellSize, x, y))
   gap
 }
-function mkTable(colsNum, rowsNum, width=sh(50), height=null) {
+function mkTable(colsNumState, rowsNumState, widthState=null, height=null) {
+  let colsNum = colsNumState.get()
+  let rowsNum = rowsNumState.get()
+  let width = widthState.get() ?? sh(50)
   height = height ?? width
   let cellSize = [(width-(colsNum-1)*gap)/colsNum, (height-(rowsNum-1*gap))/rowsNum]
   return {
     flow = FLOW_VERTICAL
     gap
+    watch = [colsNumState, rowsNumState, widthState]
     children = array(rowsNum).map(@(_, y) mkRow(cellSize, y, colsNum))
   }
 }
@@ -50,12 +54,11 @@ let tableWidth = Watched(sh(50))
 let tableCols = Watched(11)
 let vectorCmd = Computed(@() [].extend(state.value.map(@(v) v.tofloat()*100/(tableCols.value-1))))
 
-let show = comp(
-  Watch(state)
-  Button
-  OnClick(@() dlog(state.value) ?? set_clipboard_text(", ".join(["VECTOR_POLY"].extend(vectorCmd.value))))
-  @() txt(", ".join(state.value))
-)
+let show = @() {
+  watch = state
+  onClick = @() dlog(state.value) ?? set_clipboard_text(", ".join(["VECTOR_POLY"].extend(vectorCmd.value)))
+  children = @() txt(", ".join(state.value))
+}.__update(Button.value)
 
 let polygon = function(){
   return {
@@ -78,8 +81,7 @@ return {
     show
     clearBtn
     comp(
-      Watch(tableCols)
-      @() mkTable(tableCols.value, tableCols.value, tableWidth.value)
+      @() mkTable(tableCols, tableCols, tableWidth)
       polygon
     )
   ]

@@ -128,35 +128,9 @@ MaskedOcclusionCulling *CreateMaskedOcclusionCulling(pfnAlignedAlloc alignedAllo
 
 MaskedOcclusionCulling *MaskedOcclusionCulling::Create()
 {
-  auto aligned_alloc = [](size_t alignment, size_t size) {
-    G_ASSERT(alignment > sizeof(void *));
-    const size_t space = size + (alignment - 1);
+  auto aligned_alloc = [](size_t alignment, size_t size) { return defaultmem->allocAligned(size, alignment); };
 
-    void *ptr = memalloc(space + sizeof(void *));
-    if (!ptr)
-      return ptr;
-    void *original_ptr = ptr;
-
-    char *ptr_bytes = static_cast<char *>(ptr);
-    ptr_bytes += sizeof(void *);
-
-    size_t off = static_cast<size_t>(reinterpret_cast<uintptr_t>(ptr_bytes) % alignment);
-    if (off)
-      off = alignment - off;
-    ptr_bytes += off;
-
-    ptr = static_cast<void *>(ptr_bytes);
-    ptr_bytes -= sizeof(void *);
-
-    memcpy(ptr_bytes, &original_ptr, sizeof(void *));
-
-    return ptr;
-  };
-
-  auto aligned_free = [](void *p) {
-    if (p)
-      memfree_anywhere(static_cast<void **>(p)[-1]);
-  };
+  auto aligned_free = [](void *p) { defaultmem->freeAligned(p); };
 
 #if _TARGET_SIMD_NEON
   return masked_occlusion_culling_neon::CreateMaskedOcclusionCulling(aligned_alloc, aligned_free);

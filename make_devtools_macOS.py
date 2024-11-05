@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import sys
 
-if sys.version_info.major < 3:
-  print("\nERROR: Python 3 or a higher version is required to run this script.")
+if not (sys.version_info.major >= 3 and sys.version_info.minor >= 8):
+  print("\nERROR: Python 3.8 or a higher version is required to run this script.")
   exit(1)
 if not sys.platform.startswith('darwin'):
   print("\nERROR: script is expected to be run on macOS.")
@@ -167,26 +167,26 @@ else:
     run('chmod 755 '+dest_dir+'/astcenc-4.6.1/macosx/astcenc*')
     print('+++ ASTC encoder 4.6.1 installed at {0}'.format(astcenc_dest_folder))
 
-# ispc-v1.22.0
-ispc_dest_folder = dest_dir+'/ispc-v1.22.0-macOS.x86_64'
+# ispc-v1.23.0
+ispc_dest_folder = dest_dir+'/ispc-v1.23.0-macOS.x86_64'
 if pathlib.Path(ispc_dest_folder).exists():
-  print('=== ISPC v1.22.0 {0}, skipping setup'.format(ispc_dest_folder))
+  print('=== ISPC v1.23.0 {0}, skipping setup'.format(ispc_dest_folder))
 else:
-  download_url('https://github.com/ispc/ispc/releases/download/v1.22.0/ispc-v1.22.0-macOS.x86_64.tar.gz')
-  with tarfile.open(os.path.normpath(dest_dir+'/.packages/ispc-v1.22.0-macOS.x86_64.tar.gz'), 'r:gz') as tar_file:
+  download_url('https://github.com/ispc/ispc/releases/download/v1.23.0/ispc-v1.23.0-macOS.universal.tar.gz')
+  with tarfile.open(os.path.normpath(dest_dir+'/.packages/ispc-v1.23.0-macOS.universal.tar.gz'), 'r:gz') as tar_file:
     tar_file.extractall(dest_dir)
     tar_file.close()
-    print('+++ ISPC v1.22.0 installed at {0}'.format(ispc_dest_folder))
+    print('+++ ISPC v1.23.0 installed at {0}'.format(ispc_dest_folder))
 
 
 try:
   subprocess.run(["jam", "-v"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 except FileNotFoundError:
   print("jam not found, installing jam...")
-  jam_zip = 'jam-macOS-11.0-arm64.zip' if mac_proc_arm else 'jam-macOS-10.9-x64.zip'
-  download_url('https://github.com/GaijinEntertainment/jam-G8/releases/download/2.5-G8-1.2-2023%2F05%2F04/'+jam_zip)
-  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/'+jam_zip), 'r') as zip_file:
-    zip_file.extractall(dest_dir)
+  jam_zip = 'jam-macOS-11.0-arm64.tar.gz' if mac_proc_arm else 'jam-macOS-10.9-x64_86.tar.gz'
+  download_url('https://github.com/GaijinEntertainment/jam-G8/releases/download/2.5-G8-1.3-2024%2F04%2F01/'+jam_zip)
+  with tarfile.open(os.path.normpath(dest_dir+'/.packages/'+jam_zip), 'r:gz') as tar_file:
+    tar_file.extractall(dest_dir)
     run('chmod 755 '+dest_dir+'/jam')
     print('--- will copy jam to /usr/local/bin using sudo:')
     run('sudo cp '+dest_dir+'/jam /usr/local/bin/jam')
@@ -197,6 +197,8 @@ if pathlib.Path("prog").exists():
     fd.write('_DEVTOOL = {0} ;\n'.format(dest_dir))
     if pathlib.Path(fmod_dest_folder+'/LICENSE.TXT').exists():
       fd.write('FmodStudio = 2.xx.xx ;\n')
+    else:
+      fd.write('FmodStudio = none ;\n')
     fd.close()
   print('--- will prepare {0}/mac folder using jamfile:'.format(dest_dir))
   run('sudo jam -sRoot=. -f prog/engine/kernel/jamfile mkdevtools');

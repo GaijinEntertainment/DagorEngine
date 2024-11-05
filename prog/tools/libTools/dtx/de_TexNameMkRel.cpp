@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/util/de_TextureName.h>
 #include <debug/dag_debug.h>
 

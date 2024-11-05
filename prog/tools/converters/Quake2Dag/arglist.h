@@ -1,5 +1,5 @@
-#ifndef ARGLIST_H
-#define ARGLIST_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #include "stl.h"
 
@@ -50,5 +50,3 @@ protected:
   void Copy(const ArgList &copy);
   StringVector mArgs;
 };
-
-#endif // ARGLIST_H

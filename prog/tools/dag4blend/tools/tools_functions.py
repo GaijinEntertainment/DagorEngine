@@ -1,4 +1,27 @@
-import bpy, bmesh
+import bpy
+from bpy.utils  import register_class, unregister_class, user_resource
+import bmesh
+from math import dist
+
+from ..helpers.version      import get_blender_version
+from ..helpers.map_range    import map_range
+from ..helpers.texts        import log
+
+
+DYNAMIC_DEFORMED_DEFAULTS ={"diffuse_tex_scale":1.0,
+                            "normals_tex_scale":1.0,
+                            "diffuse_power":    1.0,
+                            "normals_power":    1.0,
+                            "springback":       0.05,
+                            "expand_atten":     0.5,
+                            "expand_atten_pow": 0.5,
+                            "noise_scale":      1.0,
+                            "noise_power":      1.3,
+                            "crumple_rnd":      0.5,
+                            "crumple_force":    0.1,
+                            "crumple_dist":     0.5,
+                            }
+
 
 #returns gi_black material if exists or creates new
 def get_gi_black():
@@ -8,6 +31,20 @@ def get_gi_black():
     mat = bpy.data.materials.new('gi_black')
     mat.dagormat.shader_class = 'gi_black'
     return mat
+
+# makes sure that all vcol stored in face corner instead of vertices
+def color_attributes_fix_domain(object):
+    with bpy.context.temp_override(object = object):
+        attr_names = [attr.name for attr in object.data.attributes]
+        for name in attr_names:
+            attr = object.data.attributes.get(name)
+            if attr.domain == 'CORNER':
+                continue
+            if attr.data_type not in ['FLOAT_COLOR', 'BYTE_COLOR']:
+                continue
+            object.data.attributes.active = attr
+            bpy.ops.geometry.attribute_convert(domain='CORNER', data_type = attr.data_type)
+    return
 
 #MESHCHECK
 #checks if mesh has degenerated triangles
@@ -75,7 +112,11 @@ def triangulate(mesh):
         mod = temp_obj.modifiers.new("", 'TRIANGULATE')
         mod.quad_method = 'BEAUTY'
         mod.ngon_method = 'BEAUTY'
-        mod.keep_custom_normals = True
+        try:
+            # 4.2 does not have this parameter and always keeps EXISTING normals, 4.2.1 was reversed for some reason
+            mod.keep_custom_normals = True
+        except:
+            pass
         with bpy.context.temp_override(object = temp_obj):
             bpy.ops.object.modifier_apply(modifier=mod.name)
     #returning our mesh to its owners after triangulation
@@ -109,26 +150,83 @@ def is_matrix_ok(matrix):
         return msg
     return True
 
-#sort uvs alphabetically
-def reorder_uv_layers(mesh):
-    uvs = mesh.uv_layers
-    og_uvs = []
-    #in case object has UVs with non-standart name
-    for name in ['UVMap','UVMap.001', 'UVMap.002']:
-        if uvs.get(name) is not None:
-            og_uvs.append(name)
-    #every other UV layer placed after coorect three, but also sorted
-    names = uvs.keys()
-    names.sort()
-    for name in names:
-        if name not in og_uvs:
-            og_uvs.append(name)
-    #changing order
-    for name in og_uvs:
-        old = uvs.get(name)
-        uvs.active = old
-        new = uvs.new()
-        uvs.remove(uvs[name])
-        new.name = name
-    print(og_uvs)
+# stores vert offsets of first shape key into color attribute named "DEFORM"
+# writes multiplier value to the shader
+def shapekey_to_color_attribute(object, configure_shaders = False, preview_deformation = False):
+    log_message = ""
+    mesh = object.data
+    max_dist = 0
+    coords_base = [vert.co for vert in mesh.vertices]
+
+    shape_key = mesh.shape_keys.key_blocks[1]
+
+    coords_moved = [vert.co for vert in shape_key.data]
+    coords_offset = [[0, 0, 0, 1] for i in range(mesh.vertices.__len__())]
+    for i in range(coords_base.__len__()):
+
+        cur_distance = dist(coords_base[i], coords_moved[i])
+
+        x_diff = coords_base[i][0] - coords_moved[i][0]
+        y_diff = coords_base[i][1] - coords_moved[i][1]
+        z_diff = coords_base[i][2] - coords_moved[i][2]
+
+        coords_offset[i] = (x_diff, y_diff, z_diff)
+
+        x_diff = abs(x_diff)
+        y_diff = abs(y_diff)
+        z_diff = abs(z_diff)
+
+        if cur_distance > max_dist:
+            max_dist = cur_distance
+
+    if mesh.attributes.get("DEFORM") is not None:
+        mesh.attributes.remove(mesh.attributes["DEFORM"])
+    raw_color = mesh.attributes.new("DEFORM", 'FLOAT_COLOR', 'POINT')
+    for i in range(mesh.vertices.__len__()):
+        raw_color.data[i].color[0] = map_range(coords_offset[i][0],  -max_dist,max_dist,  0.0,1.0)
+        raw_color.data[i].color[1] = map_range(coords_offset[i][1],  -max_dist,max_dist,  0.0,1.0)
+        raw_color.data[i].color[2] = map_range(coords_offset[i][2],  -max_dist,max_dist,  0.0,1.0)
+
+    mesh.color_attributes.active_color = mesh.color_attributes[0]
+
+    message = f'\n\tObject "{object.name}" processed. "max_height" is {max_dist*2}\n'
+    log(message, type = "INFO")
+    if configure_shaders:
+        new_mat = bpy.data.materials.new("")
+        if mesh.materials.__len__() == 0:
+            mesh.materials.append(new_mat)
+            message = f'Object "{object.name}" have no material to configure! Creating new...\n'
+            log(message, type = 'WARNING', show = True)
+
+        for slot in object.material_slots:
+            if slot.material is None:
+                slot.material = new_mat
+            material = slot.material
+            material.dagormat.shader_class = "dynamic_deformed"
+            material.dagormat.optional['max_height'] = max_dist * 2
+            for key in DYNAMIC_DEFORMED_DEFAULTS.keys():
+                material.dagormat.optional[key] = DYNAMIC_DEFORMED_DEFAULTS[key]
+            message = f'Material(s) of "{object.name}" successfully pre-configured\n'
+            log(message, type = 'INFO')
+        if new_mat.users == 0:
+            bpy.data.materials.remove(new_mat)
+    if preview_deformation:
+        shape_key.value = 0.0
+        modifier = object.modifiers.new("GN_dynamic_deformed_preview", 'NODES')
+        modifier.node_group = get_preview_node()
+        modifier['Socket_2_use_attribute'] = True
+        modifier['Socket_2_attribute_name'] = 'DEFORM'
+        modifier["Socket_3"] = max_dist * 2
     return
+
+def get_preview_node():
+    group_name = 'GN_dynamic_deformed_preview'
+    node_group = bpy.data.node_groups.get(group_name)
+    if node_group is not None:
+        return node_group
+    lib_path = user_resource('SCRIPTS') + f'\\addons\\dag4blend\\extras\\library.blend\\NodeTree'
+    file = lib_path+f"\\{group_name}"
+    bpy.ops.wm.append(filepath = file, directory = lib_path,filename = group_name, do_reuse_local_id = True)
+    #if nodegroup not found in library it still be a None
+    node_group = bpy.data.node_groups.get(group_name)
+    return node_group

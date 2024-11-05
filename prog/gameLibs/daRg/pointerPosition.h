@@ -1,7 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <math/dag_math2d.h>
-#include <humanInput/dag_hiDecl.h>
+#include <drv/hid/dag_hiDecl.h>
 
 namespace StdGuiRender
 {

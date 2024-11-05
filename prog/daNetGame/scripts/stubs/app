@@ -1,0 +1,41 @@
+//this is stub for native module for csq (console squirrel intepreter)
+let {get_arg_value_by_name} = require("dagor.system") //for game_name stub below below
+let DataBlock = require("DataBlock") //for game_name stub below below
+
+
+return {
+  get_circuit_conf = function() {return DataBlock()}
+  get_session_id = @() 12345678
+  get_game_name = @() get_arg_value_by_name("game")
+  get_circuit = @() "moon"
+  get_build_number = @() "-1"
+  get_exe_version = @() "0.0.0.0"
+  get_app_id = @() 1154
+  set_fps_limit = @(_limit) null
+  launch_network_session = @(_params) null
+
+  exit_game = @() null
+  circuit_name = get_arg_value_by_name("circuit")
+  set_timespeed = @(_speed) null
+  get_timespeed = @() 1.0
+  get_dir = @(_location) ""
+
+  encode_uri_component = @(v) v
+  switch_scene = @(_scene_name, _imports=null, _modInfo=null) null
+  switch_scene_and_update = @(_scene_name) null
+  connect_to_session= @(_connectParams, _modInfo=null) null
+  local_storage = {
+    hidden = {
+      get_value = @(_val) null
+      set_value = @(_tgt, _val) null
+    }
+  }
+  reload_ui_scripts = @() null
+  reload_overlay_ui_scripts = @() null
+  get_matching_invite_data = @() null
+  set_matching_invite_data = @(v) v
+  is_user_game_mod = @() false
+  load_replay_meta_info = @(v) v
+  replay_play = @(_path, _start_time, _mod_info, _scene) null
+  replay_get_play_file = @() ""
+}

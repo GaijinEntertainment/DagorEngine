@@ -1,8 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef _DE2_PLUGIN_ROADS_ROADBUILDERIFACE_H_
-#define _DE2_PLUGIN_ROADS_ROADBUILDERIFACE_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 namespace roadbuildertool
 {
@@ -298,5 +295,3 @@ public:
   virtual int __stdcall getErrorMessages() = 0;
 };
 } // namespace roadbuildertool
-
-#endif

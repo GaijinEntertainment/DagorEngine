@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/aotDagorMath.h>
 #include <dasModules/dasModulesCommon.h>
 
@@ -194,6 +196,7 @@ public:
     das::addExtern<DAS_BIND_FUN(make_uint4)>(*this, lib, "uint4", das::SideEffects::none, "bind_dascript::make_uint4");
     das::addExtern<DAS_BIND_FUN(cast_to_uint)>(*this, lib, "uint", das::SideEffects::none, "bind_dascript::cast_to_uint");
     das::addExtern<DAS_BIND_FUN(cast_from_uint)>(*this, lib, "E3DCOLOR", das::SideEffects::none, "bind_dascript::cast_from_uint");
+    das::addExtern<DAS_BIND_FUN(e3dcolor_lerp)>(*this, lib, "e3dcolor_lerp", das::SideEffects::none, "e3dcolor_lerp");
     das::addExtern<DAS_BIND_FUN(make_color3), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "Color3", das::SideEffects::none,
       "bind_dascript::make_color3");
     das::addExtern<DAS_BIND_FUN(from_color3)>(*this, lib, "float3", das::SideEffects::none, "bind_dascript::from_color3");
@@ -217,6 +220,8 @@ public:
       "bind_dascript::bbox3_inflate");
     das::addExtern<DAS_BIND_FUN(bbox3_inflateXZ)>(*this, lib, "bbox3_inflateXZ", das::SideEffects::modifyArgument,
       "bind_dascript::bbox3_inflateXZ");
+    das::addExtern<DAS_BIND_FUN(bbox3_scale)>(*this, lib, "bbox3_scale", das::SideEffects::modifyArgument,
+      "bind_dascript::bbox3_scale");
     das::addExtern<DAS_BIND_FUN(bbox3_intersect_point)>(*this, lib, "&", das::SideEffects::none,
       "bind_dascript::bbox3_intersect_point");
     das::addExtern<DAS_BIND_FUN(bbox3_intersect_bbox3)>(*this, lib, "&", das::SideEffects::none,
@@ -237,6 +242,10 @@ public:
       "bind_dascript::make_empty_bbox3");
     das::addExtern<DAS_BIND_FUN(make_bbox3), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "BBox3", das::SideEffects::none,
       "bind_dascript::make_bbox3");
+    das::addExtern<DAS_BIND_FUN(make_empty_bbox2), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "BBox2", das::SideEffects::none,
+      "bind_dascript::make_empty_bbox2");
+    das::addExtern<DAS_BIND_FUN(make_bbox2), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "BBox2", das::SideEffects::none,
+      "bind_dascript::make_bbox2");
     das::addExtern<DAS_BIND_FUN(make_bbox_from_bsphere), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "BBox3",
       das::SideEffects::none, "bind_dascript::make_bbox_from_bsphere");
     das::addExtern<DAS_BIND_FUN(v_stu_bbox3)>(*this, lib, "bbox3f_to_scalar_bbox3", das::SideEffects::modifyArgument, "v_stu_bbox3");
@@ -405,6 +414,9 @@ public:
       "bind_dascript::v_distance_sq_to_bbox");
     das::addExtern<DAS_BIND_FUN(bind_dascript::v_test_segment_box_intersection)>(*this, lib, "v_test_segment_box_intersection",
       das::SideEffects::none, "bind_dascript::v_test_segment_box_intersection");
+
+    das::addExtern<DAS_BIND_FUN(bind_dascript::triangulate_poly)>(*this, lib, "triangulate_poly", das::SideEffects::accessExternal,
+      "bind_dascript::triangulate_poly");
 
     compileBuiltinModule("dagorMath.das", (unsigned char *)dagorMath_das, sizeof(dagorMath_das));
     verifyAotReady();

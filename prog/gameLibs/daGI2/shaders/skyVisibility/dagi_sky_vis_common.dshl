@@ -1,0 +1,292 @@
+int4 dagi_sky_vis_clipmap_sizei;
+int4 dagi_sky_vis_clipmap_sizei_np2;
+int4 dagi_sky_vis_update_lt_coord;
+int4 dagi_sky_vis_update_sz_coord;
+int4 dagi_sky_vis_clipmap_lt_coord_0;
+int4 dagi_sky_vis_clipmap_lt_coord_1;
+int4 dagi_sky_vis_clipmap_lt_coord_2;
+int4 dagi_sky_vis_clipmap_lt_coord_3;
+int4 dagi_sky_vis_clipmap_lt_coord_4;
+int4 dagi_sky_vis_clipmap_lt_coord_5;
+int4 dagi_sky_vis_clipmap_lt_coord_6;
+int4 dagi_sky_vis_clipmap_lt_coord_7;
+int4 dagi_sky_vis_clipmap_lt_invalid = (-100000, 100000, 100000, 1315859240);
+texture dagi_sky_visibility_sph;
+
+macro DAGI_SKY_VIS_CLIPMAP_MATH_INIT(code)
+  (code) {
+    dagi_sky_vis_clipmap_sizei@i4 = dagi_sky_vis_clipmap_sizei;
+    dagi_sky_vis_clipmap_sizei_np2@i4 = dagi_sky_vis_clipmap_sizei_np2;
+    dagi_sky_vis_clipmap_lt_coord@i4[] = {dagi_sky_vis_clipmap_lt_coord_0, dagi_sky_vis_clipmap_lt_coord_1, dagi_sky_vis_clipmap_lt_coord_2, dagi_sky_vis_clipmap_lt_coord_3, dagi_sky_vis_clipmap_lt_coord_4, dagi_sky_vis_clipmap_lt_coord_5, dagi_sky_vis_clipmap_lt_coord_6, dagi_sky_vis_clipmap_lt_coord_7, dagi_sky_vis_clipmap_lt_invalid};
+  }
+endmacro
+macro DAGI_SKY_VIS_CLIPMAP_MATH_USE(code)
+  hlsl (code) {
+    #include "dagi_sky_vis.hlsli"
+    uint2 dagi_sky_vis_get_clip_size() {return uint2(dagi_sky_vis_clipmap_sizei.xy);}
+    uint dagi_sky_vis_get_clip_count() {return dagi_sky_vis_clipmap_sizei.z;}
+    uint dagi_sky_vis_get_clip_size_with_border() {return dagi_sky_vis_clipmap_sizei.w;}
+
+    #define sample_dagi_sky_vis_clipmap_lt_coord(clip) _sample_dagi_sky_vis_clipmap_lt_coord(clip, _FILE_, __LINE__)
+    int4 _sample_dagi_sky_vis_clipmap_lt_coord(uint clip, int file, int ln)
+    {
+      // 9 is hardcoded currently. TODO: support array size in preshader for such checks.
+      ##assert(clip < 9, "[%s:%.f] Out of bounds: Buffer 'dagi_sky_vis_clipmap_lt_coord' has size 9, but access to (%.f)", file, ln, clip);
+      return dagi_sky_vis_clipmap_lt_coord[clip];
+    }
+
+    int3 dagi_sky_vis_abs_coord_lt(uint clip) {return sample_dagi_sky_vis_clipmap_lt_coord(clip).xyz;}
+    float dagi_sky_vis_probe_size(uint clip) {return asfloat(sample_dagi_sky_vis_clipmap_lt_coord(clip).w);}
+
+    float3 dagi_sky_vis_world_pos_to_abs_coord(float3 worldPos, uint clip)
+    {
+      return worldPos.xzy/dagi_sky_vis_probe_size(clip);
+    }
+
+    uint3 dagi_sky_vis_wrapped_coord_from_abs_coord(int3 abs_coord)
+    {
+      #if DAGI_SKY_VIS_ALLOW_NON_POW2
+      //non-pow2
+      return uint3(dagi_sky_vis_clipmap_sizei_np2.zzw + abs_coord)%uint3(dagi_sky_vis_clipmap_sizei_np2.xxy);
+      #endif
+      //pow2
+      return uint3(abs_coord)%dagi_sky_vis_get_clip_size().xxy;
+    }
+
+    int3 dagi_sky_vis_abs_coord_from_wrapped_coord(uint3 wrapped, int3 clip_lt)
+    {
+      #if DAGI_SKY_VIS_ALLOW_NON_POW2
+      //non-pow2
+      return clip_lt + int3(uint3(int3(wrapped) - clip_lt.xyz + dagi_sky_vis_clipmap_sizei_np2.zzw)%uint3(dagi_sky_vis_clipmap_sizei_np2.xxy));
+      #endif
+      //pow2
+      return clip_lt + int3(uint3(int3(wrapped) - clip_lt.xyz)%dagi_sky_vis_get_clip_size().xxy);
+    }
+
+    int3 dagi_sky_vis_abs_coord_from_wrapped_coord(uint3 wrapped, uint clip)
+    {
+      return dagi_sky_vis_abs_coord_from_wrapped_coord(wrapped, sample_dagi_sky_vis_clipmap_lt_coord(clip).xyz);
+    }
+
+    uint dagi_sky_vis_get_best_enclosing_clip(float3 worldPos, uint start = 0)
+    {
+      uint i = start;
+      LOOP
+      do {
+        int4 lt = sample_dagi_sky_vis_clipmap_lt_coord(i);
+        float3 coordF = worldPos.xzy/asfloat(lt.w);
+        int3 coord = floor(coordF);
+        if (all(uint3(coord - lt.xyz) < dagi_sky_vis_get_clip_size().xxy))
+          return i;
+        ++i;// moving that to while () causes invalid sahder compilation on dx11
+      } while (i < dagi_sky_vis_get_clip_count());
+      return DAGI_MAX_SKY_VIS_CLIPS;
+    }
+    uint dagi_sky_vis_get_best_enclosing_clip_border(float3 worldPos, out float3 coordF, out int4 lt, uint start, float border)
+    {
+      uint i = start;
+      LOOP
+      do {
+        lt = sample_dagi_sky_vis_clipmap_lt_coord(i);
+        coordF = worldPos.xzy/asfloat(lt.w);
+        float3 coordLt = coordF - lt.xyz;
+        if (all(and(coordLt >= border, coordLt < float3(dagi_sky_vis_get_clip_size().xxy)-border)))
+          return i;
+        ++i;// moving that to while () causes invalid shader compilation on dx11
+      } while (i < dagi_sky_vis_get_clip_count());
+      return DAGI_MAX_SKY_VIS_CLIPS;
+    }
+    uint dagi_sky_vis_get_best_enclosing_clip_border(float3 worldPos, uint start = 0, float border = 0.5)
+    {
+      uint i = start;
+      LOOP
+      do {
+        int4 lt = sample_dagi_sky_vis_clipmap_lt_coord(i);
+        float3 coordF = worldPos.xzy/asfloat(lt.w) - lt.xyz;//fixme: can be one madd
+        if (all(and(coordF > border, coordF < float3(dagi_sky_vis_get_clip_size().xxy) - border)))
+          return i;
+        ++i;// moving that to while () causes invalid sahder compilation on dx11
+      } while (i < dagi_sky_vis_get_clip_count());
+      return DAGI_MAX_SKY_VIS_CLIPS;
+    }
+  }
+endmacro
+
+macro DAGI_SKY_VIS_CLIPMAP_MATH(code)
+  DAGI_SKY_VIS_CLIPMAP_MATH_INIT(code)
+  DAGI_SKY_VIS_CLIPMAP_MATH_USE(code)
+endmacro
+
+
+macro DAGI_SKY_VIS_SRV(code)
+  (code) {
+    dagi_sky_visibility_sph@smp3d = dagi_sky_visibility_sph;
+  }
+endmacro
+
+float4 dagi_sky_vis_atlas_decode;
+float4 dagi_sky_vis_sizef;
+macro DAGI_SKY_VIS_ATLAS_INIT(code)
+  (code) {
+    dagi_sky_vis_atlas_decode@f3 = dagi_sky_vis_atlas_decode;
+    dagi_sky_vis_sizef@f4 = dagi_sky_vis_sizef;
+  }
+endmacro
+
+macro DAGI_SKY_VIS_ATLAS_USE(code)
+  hlsl(code) {
+    float2 dagi_get_sky_visibility_abs_coord_to_atlas_tc_z(uint clip) {return float2(dagi_sky_vis_atlas_decode.x, clip*dagi_sky_vis_atlas_decode.y + dagi_sky_vis_atlas_decode.z);}
+    float3 dagi_get_sky_visibility_abs_coord_to_atlas_tc(uint clip, float3 coordF)
+    {
+      float3 worldTc = coordF*dagi_sky_vis_sizef.zzw;
+      worldTc.z = frac(worldTc.z)*dagi_sky_vis_atlas_decode.x + clip*dagi_sky_vis_atlas_decode.y + dagi_sky_vis_atlas_decode.z;
+      return worldTc;
+    }
+    float3 dagi_get_sky_visibility_wrapped_tc(float3 worldPos, uint clip)
+    {
+      float3 worldTc = worldPos.xzy/(dagi_sky_vis_probe_size(clip)*dagi_sky_vis_sizef.xxy);
+      worldTc.z = frac(worldTc.z)*dagi_sky_vis_atlas_decode.x + clip*dagi_sky_vis_atlas_decode.y + dagi_sky_vis_atlas_decode.z;
+      return worldTc;
+    }
+  }
+endmacro
+
+macro DAGI_SKY_VIS_ATLAS(code)
+  DAGI_SKY_VIS_ATLAS_INIT(code)
+  DAGI_SKY_VIS_ATLAS_USE(code)
+endmacro
+
+macro DAGI_SKY_VIS_SAMPLE_INIT(code)
+  DAGI_SKY_VIS_SRV(code);
+  DAGI_SKY_VIS_CLIPMAP_MATH_INIT(code)
+  DAGI_SKY_VIS_ATLAS_INIT(code)
+endmacro
+
+macro DAGI_SKY_VIS_SAMPLE_USE(code)
+  DAGI_SKY_VIS_CLIPMAP_MATH_USE(code)
+  DAGI_SKY_VIS_ATLAS_USE(code)
+  hlsl(code) {
+    float4 dagi_get_sky_visibility_sh1_uvw(float3 atlasUVW)
+    {
+      return tex3Dlod(dagi_sky_visibility_sph, float4(atlasUVW, 0));
+    }
+    float4 dagi_get_sky_visibility_smooth_sh1(float3 worldViewPos, float3 worldPos, float3 toCameraDir, float maxCameraDist, float3 bias_normal, float dither, float4 sh1 = 1)
+    {
+      float3 coordF;
+      int4 lt;
+      // absolutely safe border would be 0.5 + sqrt(3) (0.5 for trilinear filtering) + normal offsetting = sqrt(3)
+      // as normal offsetting can move up to 0.5*sqrt(3) * offsetProbeSize which is probeSize*(1+vignette), vignette < 1,
+      // so, altogether no more than 0.5*sqrt(3)*2 = sqrt(3)
+      // second offsetting, moving towards camera, CAN NOT move out of cascade in normal circumstances
+      // now, normal offsetting will typically move INSIDE of cascade (towards camera), as usually normals are not facing in the opposite direction!
+      // ofc, we can be delayed with updating cascade, and so causing some of discrepancies (which is safe due to clamping ofc)
+      float border = 0.5;
+      uint cascade = dagi_sky_vis_get_best_enclosing_clip_border(worldPos, coordF, lt, 0, border);
+      if (cascade == DAGI_MAX_SKY_VIS_CLIPS)
+        return sh1;
+      float probeSize = asfloat(lt.w);
+      //float3 fromC = abs((worldPos.xzy-worldViewPos.xzy)*rcp(0.5*dagi_irrad_grid_get_clip_size().xxy*probeSize));
+      float3 fromC = abs((coordF - worldViewPos.xzy/probeSize)*rcp(0.5*dagi_sky_vis_get_clip_size().xxy-(1+DAGI_SKY_VIS_MOVE_THRESHOLD+border)));
+      bool lastCascade = cascade + 1 == dagi_sky_vis_get_clip_count();
+      FLATTEN
+      if (lastCascade)
+        dither = 0;
+      float3 ditherMul = float3(3, 0.125, 2 + 0.125);
+      float3 sz = saturate(fromC*(ditherMul.x + ditherMul.y*dither) - ditherMul.z);
+      float vignette = saturate(dot(sz,sz));
+      if (vignette == 1 && lastCascade)
+        return sh1;
+      FLATTEN
+      if (vignette == 1)
+      {
+        cascade = cascade + 1;
+        lt = sample_dagi_sky_vis_clipmap_lt_coord(cascade);
+        probeSize = asfloat(lt.w);
+        fromC *= 0.5;
+        sz = saturate(fromC*(ditherMul.x + ditherMul.y*dither) - ditherMul.z);
+        vignette = saturate(dot(sz,sz));
+      }
+
+      float offsetProbeSize = probeSize + probeSize*vignette;
+
+      worldPos += bias_normal*(0.5*sqrt(3)*offsetProbeSize);
+      worldPos += toCameraDir*min(maxCameraDist, (0.5*sqrt(3)*offsetProbeSize));
+      coordF = worldPos.xzy/probeSize;
+      //clamp to cascade, for safety
+      coordF = clamp(coordF, lt.xyz+0.5, (lt.xyz + int3(dagi_sky_vis_get_clip_size().xxy)) - 0.5);
+      float4 nextSH1 = sh1;
+
+      //optimize me
+      sh1 = dagi_get_sky_visibility_sh1_uvw(dagi_get_sky_visibility_abs_coord_to_atlas_tc(cascade, coordF));
+
+      FLATTEN
+      if (cascade + 1u < dagi_sky_vis_get_clip_count())
+        nextSH1 = sh1;
+      float3 nextLt = dagi_sky_vis_abs_coord_lt(cascade + 1u);
+      coordF = coordF*0.5 - nextLt;
+      BRANCH
+      if (all(and(coordF > 0, coordF < dagi_sky_vis_get_clip_size().xxy)) && vignette > 0)
+        nextSH1 = dagi_get_sky_visibility_sh1_uvw(dagi_get_sky_visibility_abs_coord_to_atlas_tc(cascade+1, nextLt + clamp(coordF, 0.5, dagi_sky_vis_get_clip_size().xxy - 0.5)));
+      return lerp(sh1, nextSH1, vignette);
+    }
+
+    float4 dagi_get_sky_visibility_sh1(float3 worldPos, float3 worldNormalForBias, float dither = 0, float4 default_sh1 = 1)
+    {
+      worldNormalForBias *= 0.5*sqrt(3);
+      float3 coordF;
+      int4 lt;
+      uint clip = dagi_sky_vis_get_best_enclosing_clip_border(worldPos, coordF, lt, 0, 0.5);
+
+      coordF += worldNormalForBias.xzy*asfloat(lt.w);
+      coordF = clamp(coordF, lt.xyz+0.5, (lt.xyz + int3(dagi_sky_vis_get_clip_size().xxy)) - 0.5);
+      if (clip >= DAGI_MAX_SKY_VIS_CLIPS)
+        return default_sh1;
+      return dagi_get_sky_visibility_sh1_uvw(dagi_get_sky_visibility_wrapped_tc(worldPos, clip));
+    }
+    float dagi_get_sky_visibility(float3 worldPos, float3 worldDir, float3 worldNormalForBias, float dither = 0)
+    {
+      return saturate(dot(dagi_get_sky_visibility_sh1(worldPos, worldNormalForBias, dither), float4(1, worldDir.yzx)));
+    }
+    float4 dagi_get_sky_visibility_sh1(float3 worldViewPos, float3 worldPos, float3 toCameraDir, float maxCameraDist, float3 bias_normal, float dither, float4 sh1 = 1)
+    {
+      float3 coordF;
+      int4 lt;
+      uint cascade = dagi_sky_vis_get_best_enclosing_clip_border(worldPos, coordF, lt, 0, 0.5);
+      float probeSize = asfloat(lt.w);
+      coordF += bias_normal.xzy*((sqrt(3)*0.5));
+      coordF += toCameraDir.xzy*min(maxCameraDist/probeSize, (sqrt(3)*0.5));
+      coordF = clamp(coordF, lt.xyz+0.5, (lt.xyz + int3(dagi_sky_vis_get_clip_size().xxy)) - 0.5);
+      if (cascade == DAGI_MAX_SKY_VIS_CLIPS)
+        return sh1;
+      return dagi_get_sky_visibility_sh1_uvw(dagi_get_sky_visibility_abs_coord_to_atlas_tc(cascade, coordF));
+    }
+    float4 dagi_get_sky_visibility_sh1(uint startClip, float3 worldPos, float4 default_sh1 = 1)
+    {
+      uint clip = dagi_sky_vis_get_best_enclosing_clip_border(worldPos, startClip, 0);
+      if (clip >= DAGI_MAX_SKY_VIS_CLIPS)
+        return default_sh1;
+      return dagi_get_sky_visibility_sh1_uvw(dagi_get_sky_visibility_wrapped_tc(worldPos, clip));
+    }
+    float dagi_get_sky_visibility(uint startClip, float3 worldPos, float3 worldDir)
+    {
+      return saturate(dot(dagi_get_sky_visibility_sh1(startClip, worldPos), float4(1, worldDir.yzx)));
+    }
+    //float dagi_get_sky_visibility_smooth(float3 worldViewPos, float3 worldPos, float3 worldDir, float3 worldNormalForBias, float dither = 0)
+    //{
+    //  return saturate(dot(dagi_get_sky_visibility_smooth_sh1(worldViewPos, worldPos, worldNormalForBias, dither), float4(1, worldDir.yzx)));
+    //}
+  }
+endmacro
+
+macro DAGI_SKY_VIS_SAMPLE(code)
+  DAGI_SKY_VIS_SAMPLE_INIT(code)
+  DAGI_SKY_VIS_SAMPLE_USE(code)
+endmacro
+
+macro DAGI_SKY_VIS_UAV(code)
+  (code) {
+    dagi_sky_visibility_sph@uav = dagi_sky_visibility_sph hlsl {
+      RWTexture3D<float4> dagi_sky_visibility_sph@uav;
+    };
+  }
+endmacro

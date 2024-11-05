@@ -10,8 +10,13 @@ UvWithDerivates make_uv_with_derivates(float2 uv)
 {
   UvWithDerivates result;
   result.uv = uv;
-  result.uv_ddx = ddx(uv);
-  result.uv_ddy = ddy(uv);
+  #if NO_GRADIENTS_IN_SHADER
+    result.uv_ddx = 0;
+    result.uv_ddy = 0;
+  #else
+    result.uv_ddx = ddx(uv);
+    result.uv_ddy = ddy(uv);
+  #endif
   return result;
 }
 

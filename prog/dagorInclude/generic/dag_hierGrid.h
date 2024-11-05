@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -65,7 +64,7 @@ protected:
         for (int i = 0; i < 4; ++i)
           if (n.leaf_linear[i])
           {
-            if (leaf_linear[i])
+            if (!leaf_linear[i])
               leaf_linear[i] = new Leaf(*n.leaf_linear[i]);
             else
               *leaf_linear[i] = *n.leaf_linear[i];

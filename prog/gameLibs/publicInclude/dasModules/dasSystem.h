@@ -1,18 +1,16 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <osApiWrappers/dag_miscApi.h>
 #include <daScript/simulate/bind_enum.h>
-#include <vecmath/dag_vecMathDecl.h>
 #include <startup/dag_globalSettings.h>
 #include <workCycle/dag_workCycle.h>
-#include <osApiWrappers/dag_clipboard.h>
 #include <dasModules/dasDataBlock.h>
 #include <daECS/core/internal/typesAndLimits.h>
+#include <util/dag_hash.h>
 
 DAS_BIND_ENUM_CAST(ConsoleModel);
 
@@ -24,6 +22,11 @@ void set_das_exit_function_ptr(DasExitFunctionPtr func);
 inline void fatal_func(const char *a) { DAG_FATAL("Fatal: %s", a); }
 
 void exit_func(int exit_code);
+
+#if _TARGET_PC_LINUX
+// system memory getter can take 2-10ms, caller does not expect it, override with with_crt = false
+int get_memory_allocated_kb_linux(bool use_crt);
+#endif
 
 inline void logmsg_func(int a, const char *s, das::LineInfoArg *at)
 {
@@ -48,11 +51,36 @@ inline void logerr_func(const char *s, das::Context *context, das::LineInfoArg *
   debug("%s", context->getStackWalk(at, false, false).c_str());
   if (at && at->fileInfo)
   {
-    logerr("das:%s:%d: %s", at->fileInfo->name.c_str(), at->line, s);
+    __log_set_ctx_hash(str_hash_fnv1(s));
+    logerr("%s:%d: %s", at->fileInfo->name.c_str(), at->line, s);
+    __log_set_ctx_hash(0);
     return;
   }
 #endif
-  logerr("das:%s", s);
+  // note: it's important here that we pass s directly, and not something like "%s", s
+  // otherwise log message hash will be calculated for the format string "%s" and not the actual string
+  logerr(s);
+}
+inline void logerr_func_hash(const char *s, uint32_t hash, das::Context *context, das::LineInfoArg *at)
+{
+  G_UNUSED(s);
+  G_UNUSED(hash);
+  G_UNUSED(context);
+  G_UNUSED(at);
+
+#if DAGOR_DBGLEVEL > 0
+  debug("%s", context->getStackWalk(at, false, false).c_str());
+  if (at && at->fileInfo)
+  {
+    __log_set_ctx_hash(hash);
+    logerr("%s:%d: %s", at->fileInfo->name.c_str(), at->line, s);
+    __log_set_ctx_hash(0);
+    return;
+  }
+#endif
+  __log_set_ctx_hash(hash);
+  logerr(s);
+  __log_set_ctx_hash(0);
 }
 inline void logwarn_func(const char *s, das::LineInfoArg *at)
 {

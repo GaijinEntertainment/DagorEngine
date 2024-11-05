@@ -1,11 +1,10 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <3d/dag_resId.h>
+#include <drv/3d/dag_resId.h>
 #include <generic/dag_tabFwd.h>
 
 enum

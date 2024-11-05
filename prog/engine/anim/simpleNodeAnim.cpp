@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <anim/dag_simpleNodeAnim.h>
 #include <anim/dag_animKeyInterp.h>
 #include <math/dag_quatInterp.h>
@@ -62,7 +64,7 @@ void SimpleNodeAnim::calcAnimTm(TMatrix &tm, int t, int d_keys_no_blend /* = -1*
   }
 
   if (kpos)
-    p = (tpos != 0.f) ? AnimV20Math::interp_key(kpos[0], v_splat4(&tpos)) : kpos->p;
+    p = (tpos != 0.f) ? AnimV20Math::interp_key(kpos[0], v_splats(tpos)) : kpos->p;
   else
     p = v_zero();
 
@@ -72,7 +74,7 @@ void SimpleNodeAnim::calcAnimTm(TMatrix &tm, int t, int d_keys_no_blend /* = -1*
     r = v_zero();
 
   if (kscl)
-    s = (tscl != 0.f) ? AnimV20Math::interp_key(kscl[0], v_splat4(&tscl)) : kscl->p;
+    s = (tscl != 0.f) ? AnimV20Math::interp_key(kscl[0], v_splats(tscl)) : kscl->p;
   else
     s = V_C_ONE;
 

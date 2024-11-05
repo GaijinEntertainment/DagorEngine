@@ -1,14 +1,22 @@
-// replay work that is executed in worker thread
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include "query_pools.h"
-#include "device_context_cmd.h"
-#include "util/variant_vector.h"
-#include "cleanup_queue.h"
+// replay work that is executed in worker thread
+
 #include <EASTL/array.h>
 #include <EASTL/stack.h>
 #include <EASTL/string.h>
+#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
+#include <fsr_args.h>
+
+#include "query_pools.h"
+#include "timestamp_queries.h"
+#include "device_context_cmd.h"
+#include "util/variant_vector.h"
+#include "cleanup_queue.h"
 #include "util/fault_report.h"
+#include "globals.h"
+#include "driver_config.h"
 
 namespace drv3d_vulkan
 {
@@ -48,6 +56,13 @@ struct BindlessTexUpdateInfo
   ImageViewState viewState;
 };
 
+struct BindlessBufUpdateInfo
+{
+  uint32_t index;
+  uint32_t count;
+  BufferRef bref;
+};
+
 struct BindlessSamplerUpdateInfo
 {
   uint32_t index;
@@ -63,18 +78,45 @@ struct RaytraceBLASBufferRefs
   Buffer *index;
   uint32_t indexOffset;
   uint32_t indexSize;
+
+  Buffer *transform;
+  uint32_t transformOffset;
 };
 
-struct ContextBackend;
+#if D3D_HAS_RAY_TRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query) || 1
+struct RaytraceStructureBuildData
+{
+  VkAccelerationStructureTypeKHR type;
+  VkBuildAccelerationStructureFlagsKHR flags;
+  VkBool32 update;
+  RaytraceAccelerationStructure *dst;
+  BufferRef scratchBuf;
+  union
+  {
+    struct
+    {
+      uint32_t instanceCount;
+      BufferRef instanceBuffer;
+    } tlas;
+    struct
+    {
+      uint32_t geometryCount;
+      uint32_t firstGeometry;
+      BufferRef compactionSizeBuffer;
+    } blas;
+  };
+};
+#endif
+
 class ExecutionContext;
 struct RenderWork
 {
-  static bool recordCommandCallers;
   static bool cleanUpMemoryEveryWorkItem;
 
   CleanupQueue cleanups;
 
   size_t id = 0;
+  uint32_t frontFrameIndex = 0;
 
   eastl::vector<BufferCopyInfo> bufferUploads;
   eastl::vector<VkBufferCopy> bufferUploadCopies;
@@ -95,17 +137,21 @@ struct RenderWork
   eastl::vector<CmdCopyImage> unorderedImageCopies;
   eastl::vector<CmdClearColorTexture> unorderedImageColorClears;
   eastl::vector<CmdClearDepthStencilTexture> unorderedImageDepthStencilClears;
-  eastl::vector<Image *> imagesToFillEmptySubresources;
   eastl::vector<BindlessTexUpdateInfo> bindlessTexUpdates;
+  eastl::vector<BindlessBufUpdateInfo> bindlessBufUpdates;
   eastl::vector<BindlessSamplerUpdateInfo> bindlessSamplerUpdates;
+  eastl::vector<uint32_t> nativeRPDrawCounter;
 
 #if D3D_HAS_RAY_TRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
   eastl::vector<VkAccelerationStructureBuildRangeInfoKHR> raytraceBuildRangeInfoKHRStore;
   eastl::vector<VkAccelerationStructureGeometryKHR> raytraceGeometryKHRStore;
   eastl::vector<RaytraceBLASBufferRefs> raytraceBLASBufferRefsStore;
+  eastl::vector<RaytraceStructureBuildData> raytraceStructureBuildStore;
 #endif
   eastl::vector<ShaderModuleUse> shaderModuleUses;
   AnyCommandStore commandStream;
+
+  TimestampQueryBlock *timestampQueryBlock = nullptr;
 
   bool generateFaultReport = false;
 
@@ -129,13 +175,15 @@ struct RenderWork
     size += CALC_VEC_BYTES(unorderedImageCopies);
     size += CALC_VEC_BYTES(unorderedImageColorClears);
     size += CALC_VEC_BYTES(unorderedImageDepthStencilClears);
-    size += CALC_VEC_BYTES(imagesToFillEmptySubresources);
     size += CALC_VEC_BYTES(bindlessTexUpdates);
+    size += CALC_VEC_BYTES(bindlessBufUpdates);
     size += CALC_VEC_BYTES(bindlessSamplerUpdates);
+    size += CALC_VEC_BYTES(nativeRPDrawCounter);
 #if D3D_HAS_RAY_TRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
     size += CALC_VEC_BYTES(raytraceBuildRangeInfoKHRStore);
     size += CALC_VEC_BYTES(raytraceGeometryKHRStore);
     size += CALC_VEC_BYTES(raytraceBLASBufferRefsStore);
+    size += CALC_VEC_BYTES(raytraceStructureBuildStore);
 #endif
     size += CALC_VEC_BYTES(shaderModuleUses);
 #undef CALC_VEC_BYTES
@@ -155,7 +203,7 @@ struct RenderWork
   eastl::vector<uint64_t> commandCallers;
   void recordCommandCaller()
   {
-    if (recordCommandCallers)
+    if (Globals::cfg.bits.recordCommandCaller)
       commandCallers.push_back(backtrace::get_hash(1));
   }
 #else

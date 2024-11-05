@@ -1,0 +1,75 @@
+include "sky_shader_global.dshl"
+include "screenspace_probes_common.dshl"
+
+texture gi_froxels_sph0;
+texture gi_froxels_sph1;
+int4 gi_froxels_temporal_frame;
+int4 gi_froxels_sizei;
+float4 gi_froxels_dist;
+int4 gi_froxels_atlas_sizei;
+
+macro GI_VOLUMETRIC_COMMON_INIT(code)
+  (code) {
+    gi_froxels_temporal_frame@i4 = gi_froxels_temporal_frame;
+    gi_froxels_sizei@i4 = gi_froxels_sizei;
+    gi_froxels_dist@f4 = gi_froxels_dist;
+  }
+endmacro
+
+macro GI_VOLUMETRIC_COMMON_USE(code)
+  hlsl (code) {
+    float volumetric_gi_get_linear_w(float coord)
+    {
+      return max(1e-5, (exp2(coord / gi_froxels_dist.z) - gi_froxels_dist.y) / gi_froxels_dist.x);
+    }
+    float volumetric_gi_get_tcz(float linearDepth)
+    {
+      return saturate(log2(linearDepth * gi_froxels_dist.x + gi_froxels_dist.y) * gi_froxels_dist.w);
+    }
+  }
+endmacro
+
+macro GI_VOLUMETRIC_COMMON(code)
+  GI_VOLUMETRIC_COMMON_INIT(code)
+  GI_VOLUMETRIC_COMMON_USE(code)
+endmacro
+
+macro GI_VOLUMETRIC_IRRADIANCE_INIT(code)
+  GI_VOLUMETRIC_COMMON_INIT(code)
+  (code) {
+    gi_froxels_sph0@tex = gi_froxels_sph0 hlsl {
+      Texture3D<float3> gi_froxels_sph0@tex;
+    };
+    gi_froxels_sph1@smp3d = gi_froxels_sph1;
+    //sp_globtm@f44 = sp_globtm;
+  }
+endmacro
+
+macro GI_VOLUMETRIC_IRRADIANCE_USE(code)
+  GI_VOLUMETRIC_COMMON_USE(code)
+  hlsl (code) {
+    #define gi_froxels_sph0_samplerstate gi_froxels_sph1_samplerstate
+    #include <sh1.hlsl>
+    SH1 get_volumetric_gi_get_irradiance_uvw(float3 uvw)
+    {
+      half3 ambient = half3(tex3Dlod(gi_froxels_sph0, float4(uvw, 0)).xyz);
+      half4 directional = half4(tex3Dlod(gi_froxels_sph1, float4(uvw, 0)));
+      return decode_sh1_luminance(ambient, directional);
+    }
+
+    SH1 volumetric_gi_get_irradiance(float2 uv, float linearDepth)
+    {
+      return get_volumetric_gi_get_irradiance_uvw(float3(uv, volumetric_gi_get_tcz(linearDepth)));
+    }
+
+    half3 volumetric_gi_calc_diffuse_uvw(float2 uv, float linearDepth, half3 worldDir)
+    {
+      return sh1_premul_exp1_irradiance(volumetric_gi_get_irradiance(uv, linearDepth), worldDir);
+    }
+
+    half3 volumetric_gi_calc_diffuse_uvw_undirectional(float2 uv, float linearDepth)
+    {
+      return sh1_premul_exp1_ambient(volumetric_gi_get_irradiance(uv, linearDepth));
+    }
+  }
+endmacro

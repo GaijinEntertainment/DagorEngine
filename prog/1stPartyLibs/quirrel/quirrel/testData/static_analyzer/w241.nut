@@ -1,3 +1,6 @@
+if (__name__ == "__analysis__")
+  return
+
 //expect:w241
 
 local str1 = require("string")

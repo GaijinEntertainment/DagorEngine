@@ -1,4 +1,4 @@
-#pragma once
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <render/capsulesAO.h>
 #include <math/dag_TMatrix.h>
@@ -12,7 +12,7 @@
 #include <EASTL/vector.h>
 #include <memory/dag_framemem.h>
 #include <math/dag_hlsl_floatx.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <shaders/dag_shaders.h>
 
 struct CapsulesAOHolder

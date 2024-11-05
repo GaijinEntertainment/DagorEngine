@@ -1,0 +1,44 @@
+.aiLogContainer {
+  display: flex;
+}
+
+.aiLogContainer > div {
+  flex: 1;
+  padding: 2px;
+}
+
+.runningNode {
+  background-color: #FAD02C;
+}
+
+.succededNode {
+  background-color: #b8d6b8;
+}
+
+.failedNode {
+  background-color: rgb(255, 198, 188);
+}
+
+.exitNode {
+  background-color: rgb(172, 172, 172);
+}
+
+.lastRunningNode {
+  font-weight: bolder;
+  text-decoration: underline;
+}
+/* tree overrides */
+.tree-node .tree-content {
+  padding: 0px 0px 0px 3px;
+}
+.tree-node .tree-arrow {
+  height: 24px;
+}
+.tree-content .tree-anchor {
+  padding: 0px;
+}
+
+.templateName {
+  max-width: 320px;
+  word-wrap: break-word;
+}

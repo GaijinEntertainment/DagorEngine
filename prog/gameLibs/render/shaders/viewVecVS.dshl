@@ -46,6 +46,27 @@ macro VIEW_VEC_OPTIMIZED(code)
   }
 endmacro
 
+macro VIEW_VEC_SCREENPOS(code)
+  local float4 screenpos_to_viewport_tc = (1. / get_viewport().zw, -(get_viewport().xy / get_viewport().zw));
+  local float4 view_vecRT_minus_view_vecLT = (view_vecRT-view_vecLT);
+  local float4 view_vecLB_minus_view_vecLT = (view_vecLB-view_vecLT);
+  (code) {
+    view_vecLT_biased@f3 = view_vecLT + (view_vecRT_minus_view_vecLT * screenpos_to_viewport_tc.z + view_vecLB_minus_view_vecLT * screenpos_to_viewport_tc.w);
+    view_vecRT_minus_view_vecLT_scaled@f3 = (view_vecRT_minus_view_vecLT*screenpos_to_viewport_tc.x);
+    view_vecLB_minus_view_vecLT_scaled@f3 = (view_vecLB_minus_view_vecLT*screenpos_to_viewport_tc.y);
+  }
+  hlsl(code) {
+      float3 getViewVecScreenpos(float2 pixel_pos)
+      {
+        return view_vecLT_biased + view_vecRT_minus_view_vecLT_scaled*pixel_pos.x + view_vecLB_minus_view_vecLT_scaled*pixel_pos.y;
+      }
+      float3 getPointToEye(float2 pixel_pos, float linear_depth)
+      {
+        return -getViewVecScreenpos(pixel_pos) * linear_depth;
+      }
+    }
+endmacro
+
 macro USE_VIEW_VEC_VS()
   USE_VIEW_VEC_STAGE(vs)
 endmacro

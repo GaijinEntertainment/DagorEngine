@@ -1,5 +1,4 @@
-#ifndef __GAIJIN_DE_ABOUT_DLG__
-#define __GAIJIN_DE_ABOUT_DLG__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <libTools/util/hdpiUtil.h>
@@ -36,6 +35,3 @@ private:
   const int TEXT_WIDTH = (CLIENT_WIDTH - TEXT_LEFT - HOR_INDENT);
   const int SCROLL_HEIGHT = (DIALOG_HEIGHT - SCROLL_TOP - BUTTON_HEIGHT * 3);
 };
-
-
-#endif //__GAIJIN_DE_ABOUT_DLG__

@@ -1,11 +1,10 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <3d/dag_resId.h>
+#include <drv/3d/dag_resId.h>
 #include <util/dag_oaHashNameMap.h>
 
 namespace eastl
@@ -155,6 +154,13 @@ enum ReqResListOpt
 bool set_required_res_list_restriction(const FastNameMap &list, ReqResListOpt opt = RRL_setOnly);
 bool set_required_res_list_restriction(const eastl::basic_string<char, eastl::allocator> *begin,
   const eastl::basic_string<char, eastl::allocator> *end, ReqResListOpt opt = RRL_setOnly, size_t str_stride = 0);
+
+// ! calls set_required_res_list_restriction, then loads all resources into out_resources list,
+// ! in the same order their names were present in input list, then resets restriction list (RRL_setAndPreloadAndReset)
+// ! NOTE: out_resources must be same size as input list, caller must release all loaded resources manually
+bool load_game_resource_list(const FastNameMap &list, dag::Span<GameResource *> out_resources);
+bool load_game_resource_list(const eastl::basic_string<char, eastl::allocator> *begin,
+  const eastl::basic_string<char, eastl::allocator> *end, size_t str_stride, dag::Span<GameResource *> out_resources);
 
 //! resets list of required resources, so any resource in GRP will be loaded during GRP loading
 //! initially, gameResSys doesn't have restriction list, so this function will effectively reset to default state

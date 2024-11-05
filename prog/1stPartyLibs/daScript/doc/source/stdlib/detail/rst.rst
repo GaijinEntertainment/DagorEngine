@@ -6,3 +6,4 @@
 
 .. |function-rst-document| replace:: to be documented in |function-rst-document|.rst
 
+.. |function-rst-function_file_name| replace:: to be documented in |function-rst-function_file_name|.rst

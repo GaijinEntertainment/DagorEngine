@@ -1,0 +1,63 @@
+include "shader_global.dshl"
+texture prev_frame_tex;
+texture prev_downsampled_far_depth_tex;
+
+define_macro_if_not_defined PROJECT_PREV_FRAME_SAMPLE_REPROJECT(code)
+  INIT_HDR(code)
+  USE_HDR(code)
+  (code) {
+    prev_frame_tex@smp2d = prev_frame_tex;
+    prev_downsampled_far_depth_tex@smp2d = prev_downsampled_far_depth_tex;
+  }
+  hlsl(code) {
+    #define HAS_PREV_FRAME_RADIANCE 1
+    half3 sample_prev_frame_radiance_unsafe(float2 uv)
+    {
+      return unpack_hdr(tex2Dlod(prev_frame_tex, float4(uv,0,0)).xyz);//as it is called before new adaptation applied, we just use current exposure
+    }
+
+    bool sample_prev_frame_radiance(float3 prevUVW, float3 currentUVW, float3 camPos, bool allow_uncertaincy, inout float3 radiance)
+    {
+      bool canReproject = all(abs(prevUVW.xy*2 - 1) < 1);
+      if (canReproject)
+      {
+        if (allow_uncertaincy)
+        {
+         //check certaincy using previous depth and compare with prevUVW.z
+          float history_linear_depth = linearize_z(tex2Dlod(prev_downsampled_far_depth_tex, float4(prevUVW.xy, 0, 0)).r, sp_prev_zn_zfar.zw);//fixme : prev
+          if (abs(prevUVW.z - history_linear_depth) > 0.1*min(prevUVW.z, history_linear_depth))
+            return false;
+        }
+        radiance = sample_prev_frame_radiance_unsafe(prevUVW.xy);
+        return true;
+      } else
+      {
+        /*
+        //this code allows sample current gbuffer data and current direct light data to add more reasonable bounce
+        // it has a cost of three samples and some math (combined_shadow, gbuffer.albedo & gbuffer.normal)
+        // this makes it is approximately 4 times slower than just reprojection
+        float3 albedo = 0.08;//fixme: use gbuffer albedo add some skyLighting, combined_shadow and NoL from sun
+        float3 worldNormal = 0;//fixme: from gbuffer
+        float irradiance = 0.01/prev_exposure; // add some ambient, not brighter than 1% of prev frame average
+        radiance = get_on_screen_simple_sun_lighting(worldPos, currentUVW.xy, albedo, worldNormal) + irradiance*albedo;
+
+        //code below adds sampling previous GI data as well. it is too slow to be used in real life, for just a case of wrong reprojection
+        //float4 cornerW;
+        //uint4 encodedProbes;
+        //uint2 probe_coords[4];
+        //if (sample_bilinear_prev_radiance_info(worldPos, worldNormal, prevUVW.z, prevUVW.xy, prevUVW.z, cornerW, probe_coords, encodedProbes, -1000, 0.01))
+        //{
+        //  float3 irradiance = 0;
+        //  sample_bilinear_irradiance_weights(irradiance, worldNormal, cornerW, probe_coords);
+        //  radiance += ambient*irradiance;
+        //}
+        //*/
+        if (allow_uncertaincy)
+          return false;
+        radiance = pack_hdr(0.01);
+        return true;
+      }
+    }
+  }
+endmacro
+

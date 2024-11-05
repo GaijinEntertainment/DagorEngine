@@ -120,14 +120,6 @@ SQGETTHREAD sq_set_thread_id_function(HSQUIRRELVM v, SQGETTHREAD func)
     return res;
 }
 
-void sq_setcompilecheckmode(HSQUIRRELVM v, SQBool on)
-{
-    if (on)
-        _ss(v)->defaultLangFeatures |= LF_TOOLS_COMPILE_CHECK;
-    else
-        _ss(v)->defaultLangFeatures &= ~LF_TOOLS_COMPILE_CHECK;
-}
-
 void sq_forbidglobalconstrewrite(HSQUIRRELVM v, SQBool on)
 {
     if (on)
@@ -152,6 +144,13 @@ void sq_setdebughook(HSQUIRRELVM v)
         v->_debughook = !sq_isnull(o);
         v->Pop();
     }
+}
+
+SQCOMPILELINEHOOK sq_set_compile_line_hook(HSQUIRRELVM v, SQCOMPILELINEHOOK hook)
+{
+    SQCOMPILELINEHOOK res = v->_compile_line_hook;
+    v->_compile_line_hook = hook;
+    return res;
 }
 
 void sq_close(HSQUIRRELVM v)
@@ -371,10 +370,14 @@ SQRESULT sq_newclass(HSQUIRRELVM v,SQBool hasbase)
             return sq_throwerror(v,_SC("invalid base type"));
         baseclass = _class(base);
     }
-    SQClass *newclass = SQClass::Create(_ss(v), baseclass);
+    SQClass *newclass = SQClass::Create(v, baseclass);
     if(baseclass) v->Pop();
-    v->Push(newclass);
-    return SQ_OK;
+    if (newclass) {
+        v->Push(newclass);
+        return SQ_OK;
+    }
+    else
+        return SQ_ERROR; // propagate the raised error
 }
 
 SQBool sq_instanceof(HSQUIRRELVM v)
@@ -599,12 +602,12 @@ SQRESULT sq_getclosurename(HSQUIRRELVM v,SQInteger idx)
 }
 
 
-SQRESULT sq_clear(HSQUIRRELVM v,SQInteger idx)
+SQRESULT sq_clear(HSQUIRRELVM v,SQInteger idx, SQBool freemem)
 {
     SQObject &o=stack_get(v,idx);
     switch(sq_type(o)) {
-        case OT_TABLE: _table(o)->Clear();  break;
-        case OT_ARRAY: _array(o)->Resize(0); break;
+        case OT_TABLE: _table(o)->Clear(freemem);  break;
+        case OT_ARRAY: _array(o)->Resize(0, freemem); break;
         default:
             return sq_throwerror(v, _SC("clear only works on table and array"));
         break;
@@ -1297,8 +1300,15 @@ SQRESULT sq_resume(HSQUIRRELVM v,SQBool retval,SQBool invoke_err_handler)
     if (sq_type(v->GetUp(-1)) == OT_GENERATOR)
     {
         v->PushNull(); //retval
-        if (!v->Execute(v->GetUp(-2), 0, v->_top, v->GetUp(-1), invoke_err_handler, SQVM::ET_RESUME_GENERATOR))
-        {v->Raise_Error(v->_lasterror); return SQ_ERROR;}
+        bool res = v->_debughook ?
+            v->Execute<true>(v->GetUp(-2), 0, v->_top, v->GetUp(-1), invoke_err_handler, SQVM::ET_RESUME_GENERATOR) :
+            v->Execute<false>(v->GetUp(-2), 0, v->_top, v->GetUp(-1), invoke_err_handler, SQVM::ET_RESUME_GENERATOR);
+
+        if (!res)
+        {
+            v->Raise_Error(v->_lasterror);
+            return SQ_ERROR;
+        }
         if(!retval)
             v->Pop();
         return SQ_OK;
@@ -1361,9 +1371,14 @@ SQRESULT sq_wakeupvm(HSQUIRRELVM v,SQBool wakeupret,SQBool retval,SQBool invoke_
         v->Pop();
     } else if(target != -1) { v->GetAt(v->_stackbase+v->_suspended_target).Null(); }
     SQObjectPtr dummy;
-    if(!v->Execute(dummy,-1,-1,ret,invoke_err_handler,throwerror?SQVM::ET_RESUME_THROW_VM : SQVM::ET_RESUME_VM)) {
+
+    bool res = v->_debughook ?
+        v->Execute<true>(dummy,-1,-1,ret,invoke_err_handler,throwerror?SQVM::ET_RESUME_THROW_VM : SQVM::ET_RESUME_VM) :
+        v->Execute<false>(dummy,-1,-1,ret,invoke_err_handler,throwerror?SQVM::ET_RESUME_THROW_VM : SQVM::ET_RESUME_VM);
+
+    if(!res)
         return SQ_ERROR;
-    }
+
     if(retval)
         v->Push(ret);
     return SQ_OK;
@@ -1619,7 +1634,10 @@ SQRESULT sq_createinstance(HSQUIRRELVM v,SQInteger idx)
 {
     SQObjectPtr *o = NULL;
     _GETSAFE_OBJ(v, idx, OT_CLASS,o);
-    v->Push(_class(*o)->CreateInstance());
+    SQInstance *inst = _class(*o)->CreateInstance(v);
+    if (!inst)
+        return SQ_ERROR;
+    v->Push(inst);
     return SQ_OK;
 }
 
@@ -1679,36 +1697,6 @@ SQRESULT sq_next(HSQUIRRELVM v,SQInteger idx)
     return SQ_ERROR;
 }
 
-struct BufState{
-    const SQChar *buf;
-    SQInteger ptr;
-    SQInteger size;
-};
-
-SQInteger buf_lexfeed(SQUserPointer file)
-{
-    BufState *buf=(BufState*)file;
-    if(buf->size<(buf->ptr+1))
-        return 0;
-    return buf->buf[buf->ptr++];
-}
-
-SQRESULT sq_compilebuffer(HSQUIRRELVM v,const SQChar *s,SQInteger size,const SQChar *sourcename,SQBool raiseerror,const HSQOBJECT *bindings) {
-    return sq_compile(v, s, size, sourcename, raiseerror, bindings);
-}
-
-SQRESULT sq_compilewithast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror, SQBool debugInfo, const HSQOBJECT *bindings) {
-    SQCompilation::SqASTData *astData = sq_parsetoast(v, s, size, sourcename, false, raiseerror);
-
-    if (!astData)
-        return SQ_ERROR;
-
-    SQRESULT r = sq_translateasttobytecode(v, astData, bindings, s, size, raiseerror, debugInfo);
-
-    sq_releaseASTData(v, astData);
-
-    return r;
-}
 
 SQRESULT sq_translatebinaryasttobytecode(HSQUIRRELVM v, const uint8_t *buffer, size_t size, const HSQOBJECT *bindings, SQBool raiseerror) {
     SQObjectPtr o;
@@ -1717,12 +1705,6 @@ SQRESULT sq_translatebinaryasttobytecode(HSQUIRRELVM v, const uint8_t *buffer, s
         return SQ_OK;
     }
     return SQ_ERROR;
-}
-
-void sq_oncompilefile(HSQUIRRELVM v, const SQChar *sourcename)
-{
-  if (v->_on_compile_file)
-    v->_on_compile_file(v, sourcename);
 }
 
 SQRESULT sq_parsetobinaryast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, OutputStream *ostream, SQBool raiseerror) {
@@ -1777,6 +1759,9 @@ void sq_checktrailingspaces(HSQUIRRELVM v, const SQChar *sourceName, const SQCha
 
 void sq_releaseASTData(HSQUIRRELVM v, SQCompilation::SqASTData *astData)
 {
+  if (!astData)
+    return;
+
   Comments *comments = astData->comments;
   if (comments)
   {
@@ -1867,6 +1852,11 @@ SQRESULT sq_limitthreadaccess(HSQUIRRELVM vm, int64_t tid)
 {
     vm->check_thread_access = tid;
     return SQ_OK;
+}
+
+bool sq_canaccessfromthisthread(HSQUIRRELVM vm)
+{
+    return vm->CanAccessFromThisThread();
 }
 
 void sq_resetanalyzerconfig() {

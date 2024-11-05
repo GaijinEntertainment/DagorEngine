@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <assets/daBuildExpPluginChain.h>
 #include <assets/assetPlugin.h>
 #include <assets/assetExporter.h>
@@ -412,6 +414,13 @@ public:
       }
     }
     BSphere3 boundingSphere = mesh_bounding_sphere(pointsList.data(), pointsList.size());
+    if (lengthSq(boundingSphere.c) > sqr(1e9f) || boundingSphere.r2 > sqr(1e9f))
+    {
+      log.addMessage(log.ERROR, "%s: has invalid geometry loaded from %s", a.getName(), fpath);
+      log.addMessage(log.ERROR, "Calculated from vertices bounding sphere: c=" FMT_P3 " r=%f", P3D(boundingSphere.c),
+        boundingSphere.r);
+      return false;
+    }
 
     if (boundingSphere.isempty())
     {
@@ -549,6 +558,11 @@ public:
         else
           bbox += verts[vertexNo];
       }
+
+      // if bbox is a cube, capsule should collapse into a sphere, so override it (to avoid invalid capsule)
+      if (type == COLLISION_NODE_TYPE_CAPSULE &&
+          (abs(bbox.width().z - bbox.width().x) <= 0.01f || abs(bbox.width().z - bbox.width().y) <= 0.01f))
+        collisionObjectProps.objectCollisionType = type = COLLISION_NODE_TYPE_SPHERE;
       if (tree_capsule)
       {
         float tree_rad = dagNodeScriptBlk.getReal("tree_radius", 0.1);
@@ -1000,11 +1014,11 @@ public:
                 n.vertices.size(), m.vert.size(), n.indices.size() / 3, m.face.size(), weld_eps);
 
             if (n.vertices.size() != m.vert.size())
-              n.resetVertices({memalloc_typed<Point3_vec4>(m.vert.size(), midmem), m.vert.size()});
+              n.resetVertices({memalloc_typed<Point3_vec4>(m.vert.size(), midmem), (int)m.vert.size()});
             for (unsigned i = 0; i < m.vert.size(); i++)
               n.vertices[i] = m.vert[i], n.vertices[i].resv = 1.0f;
             if (n.indices.size() != m.face.size() * 3)
-              n.resetIndices({memalloc_typed<uint16_t>(m.face.size() * 3, midmem), m.face.size() * 3});
+              n.resetIndices({memalloc_typed<uint16_t>(m.face.size() * 3, midmem), (int)m.face.size() * 3});
             for (unsigned i = 0; i < m.face.size(); i++)
               for (unsigned fi = 0; fi < 3; fi++)
                 n.indices[i * 3 + fi] = m.face[i].v[fi];

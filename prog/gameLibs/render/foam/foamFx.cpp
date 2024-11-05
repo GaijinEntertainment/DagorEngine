@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "render/foam/foamFx.h"
 
 #include <perfMon/dag_statDrv.h>
@@ -9,6 +11,7 @@
 #include <render/viewVecs.h>
 #include <sstream>
 #include <dag/dag_vectorMap.h>
+#include <drv/3d/dag_renderTarget.h>
 
 enum class FoamTexture
 {
@@ -53,26 +56,32 @@ static const char *debugTextures2[] = {
   "wfx_normals",
 };
 
-#define GLOBAL_VARS_LIST        \
-  VAR(foam_mask)                \
-  VAR(foam_mask_depth)          \
-  VAR(foam_overfoam_tex)        \
-  VAR(foam_underfoam_tex)       \
-  VAR(tex)                      \
-  VAR(texsz)                    \
-  VAR(foam_tile_uv_scale)       \
-  VAR(foam_distortion_scale)    \
-  VAR(foam_normal_scale)        \
-  VAR(foam_pattern_gamma)       \
-  VAR(foam_mask_gamma)          \
-  VAR(foam_gradient_gamma)      \
-  VAR(foam_underfoam_threshold) \
-  VAR(foam_overfoam_threshold)  \
-  VAR(foam_underfoam_weight)    \
-  VAR(foam_overfoam_weight)     \
-  VAR(foam_underfoam_color)     \
-  VAR(foam_overfoam_color)      \
-  VAR(foam_reflectivity)
+#define GLOBAL_VARS_LIST                \
+  VAR(foam_mask)                        \
+  VAR(foam_mask_samplerstate)           \
+  VAR(foam_mask_depth)                  \
+  VAR(foam_mask_depth_samplerstate)     \
+  VAR(foam_overfoam_tex)                \
+  VAR(foam_overfoam_tex_samplerstate)   \
+  VAR(foam_underfoam_tex)               \
+  VAR(foam_underfoam_tex_samplerstate)  \
+  VAR(tex)                              \
+  VAR(texsz)                            \
+  VAR(foam_tile_uv_scale)               \
+  VAR(foam_distortion_scale)            \
+  VAR(foam_normal_scale)                \
+  VAR(foam_pattern_gamma)               \
+  VAR(foam_mask_gamma)                  \
+  VAR(foam_gradient_gamma)              \
+  VAR(foam_underfoam_threshold)         \
+  VAR(foam_overfoam_threshold)          \
+  VAR(foam_underfoam_weight)            \
+  VAR(foam_overfoam_weight)             \
+  VAR(foam_underfoam_color)             \
+  VAR(foam_overfoam_color)              \
+  VAR(foam_reflectivity)                \
+  VAR(foam_generator_tile_samplerstate) \
+  VAR(foam_generator_gradient_samplerstate)
 
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_VARS_LIST
@@ -106,6 +115,17 @@ FoamFx::FoamFx(int _width, int _height) : width(_width), height(_height)
 #define VAR(a) a##VarId = get_shader_variable_id(#a);
   GLOBAL_VARS_LIST
 #undef VAR
+
+  d3d::SamplerHandle sampler = d3d::request_sampler({});
+  ShaderGlobal::set_sampler(foam_mask_samplerstateVarId, sampler);
+  ShaderGlobal::set_sampler(foam_mask_depth_samplerstateVarId, sampler);
+  ShaderGlobal::set_sampler(foam_generator_tile_samplerstateVarId, sampler);
+  ShaderGlobal::set_sampler(foam_overfoam_tex_samplerstateVarId, sampler);
+  ShaderGlobal::set_sampler(foam_underfoam_tex_samplerstateVarId, sampler);
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+  sampler = d3d::request_sampler(smpInfo);
+  ShaderGlobal::set_sampler(foam_generator_gradient_samplerstateVarId, sampler);
 }
 
 FoamFx::~FoamFx() {}
@@ -132,9 +152,6 @@ void FoamFx::setParams(const FoamFxParams &params)
   foamGeneratorGradientTex.close();
   foamGeneratorGradientTex = SharedTexHolder(dag::get_tex_gameres(params.gradientTex), "foam_generator_gradient");
   G_ASSERT(foamGeneratorGradientTex);
-
-  if (foamGeneratorGradientTex.getBaseTex())
-    foamGeneratorGradientTex.getBaseTex()->texaddr(TEXADDR_CLAMP);
 
   debugTextures[FoamTexture::TILE] = foamGeneratorTileTex.getBaseTex();
   debugTextures[FoamTexture::GRADIENT] = foamGeneratorGradientTex.getBaseTex();

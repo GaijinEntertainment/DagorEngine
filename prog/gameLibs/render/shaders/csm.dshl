@@ -25,6 +25,8 @@ interval assume_downsampled_shadows: off<1, on;
 int num_of_cascades = 4;
 interval num_of_cascades:one<2, two<3, three<4, four;
 
+float4 csm_culling_near_planes;
+
 texture downsampled_shadows;
 macro INIT_ESM_SHADOW(stage)
 if (assume_downsampled_shadows == on)
@@ -41,7 +43,7 @@ macro USE_ESM_SHADOW(code)
     #define HAS_DOWNSAMPLED_SHADOWS 1
     half get_downsampled_shadows(float3 uv_z)
     {
-      return shadow2D(downsampled_shadows, uv_z);
+      return half(shadow2D(downsampled_shadows, uv_z));
     }
     ##else
     half get_downsampled_shadows(float3 uv_z){return 1;}
@@ -171,13 +173,13 @@ macro USE_CSM_SHADOW_INTERNAL(code, num_cascades)
       float2( -0.1768, -0.1768),
       float2(  0.1250,  0.0000)
     };
-    half get_csm_shadow_8_tap(float3 depthShadowTC, float dither)
+    half get_csm_shadow_8_tap(float3 depthShadowTC, float dither, float radius_scale = 4)
     {
       float2 rotation;
       sincos((2.0f*PI)*dither, rotation.x, rotation.y);
       float2x2 rotationMatrix = {rotation.x, rotation.y, -rotation.y, rotation.x};
       const int NUM_SAMPLES = NUM_CSM_SHADOW_SAMPLES;
-      float radius = csm_pcf_lerp.x*4;
+      float radius = csm_pcf_lerp.x*radius_scale;
       rotationMatrix *= radius;
       half shadow = 0;
       UNROLL
@@ -191,24 +193,27 @@ macro USE_CSM_SHADOW_INTERNAL(code, num_cascades)
     }
     #define get_pcf_csm_shadow(a) get_pcf_csm_shadow_fxaa(a)
 
-    half2 get_csm_shadow(float3 pointToEye, float w)
+    half2 get_csm_shadow_cascade_id(float3 pointToEye, out uint cascade_id)
     {
-      uint cascade_id;
       float shadowEffect = 0;
       float3 t = get_csm_shadow_tc(pointToEye, cascade_id, shadowEffect);
       FLATTEN
       if (t.z < 1)
         return half2(get_pcf_csm_shadow(t), 0);
       return half2( 1, 1 );
-      //todo: blend with weights?
     }
-    half2 get_csm_shadow_dithered(float3 pointToEye, float dither, out uint cascade_id, out float3 shadow_tc)
+    half2 get_csm_shadow(float3 pointToEye)
+    {
+      uint cascade_id;
+      return get_csm_shadow_cascade_id( pointToEye, cascade_id);
+    }
+    half2 get_csm_shadow_dithered(float3 pointToEye, float dither, out uint cascade_id, out float3 shadow_tc, float radiusScale = 4)
     {
       float csmEffect = 1;
       shadow_tc = get_csm_shadow_tc_scaled(pointToEye, cascade_id, csmEffect, 1.0 + dither*0.1);
       FLATTEN
       if (shadow_tc.z<1)
-        return half2(get_csm_shadow_8_tap(shadow_tc, dither), saturate(csmEffect*10-9));//saturate(csmEffect*10-9));//saturate(csmEffect*10-9));
+        return half2(get_csm_shadow_8_tap(shadow_tc, dither, radiusScale), saturate(csmEffect*10-9));//saturate(csmEffect*10-9));//saturate(csmEffect*10-9));
       return half2( 1, 1 );
     }
     half2 get_csm_shadow_dithered(float3 pointToEye, float dither)
@@ -248,3 +253,23 @@ macro USE_CSM_SHADOW_DEF_NUM()
   BASE_USE_CSM_SHADOW_DEF_NUM(ps)
 endmacro
 
+macro INIT_CSM_OFFSET_TO_CULLING_NEAR_PLANE(code)
+  (code)
+  {
+    csm_culling_near_planes@f4 = csm_culling_near_planes;
+  }
+endmacro
+
+macro USE_CSM_OFFSET_TO_CULLING_NEAR_PLANE(code)
+  hlsl(code)
+  {
+    // requires from_sun_direction included from before
+    float3 projectToShadowFrustumNearPlane(float3 worldPos, uint csmCascadeId)
+    {
+      float nearPlaneDot = csm_culling_near_planes[csmCascadeId];
+      float pixelDot = dot(worldPos, from_sun_direction);
+      float3 offset = (nearPlaneDot - pixelDot) * from_sun_direction;
+      return worldPos + offset;
+    }
+  }
+endmacro

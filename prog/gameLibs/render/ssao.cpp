@@ -1,6 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_TMatrix4.h>
-#include <3d/dag_tex3d.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_lockSbuffer.h>
 #include <math/dag_TMatrix4D.h>
 #include <shaders/dag_postFxRenderer.h>
@@ -10,7 +13,7 @@
 #include <render/viewVecs.h>
 #include <render/ssao.h>
 #include <render/set_reprojection.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_lock.h>
 #include <poisson/poisson_buffer_helper.h>
 
 #define PATTERN_SIZE 3
@@ -36,20 +39,19 @@ static int ssaoBlurTexelOffsetVarId = -1;
 // enable or disable SSAO blur
 bool g_ssao_blur = true;
 
-SSAORenderer::SSAORenderer(int w, int h, int num_views, uint32_t flags, bool use_own_textures)
+SSAORenderer::SSAORenderer(int w, int h, int num_views, uint32_t flags, bool use_own_textures, const char *tag) : tag(tag)
 {
-
   aoWidth = w;
   aoHeight = h;
   useOwnTextures = use_own_textures;
 
   if (useOwnTextures)
   {
-    uint32_t format = ssao_detail::creation_flags_to_format(flags);
+    uint32_t format = ssao_detail::creation_flags_to_format(ssao_detail::consider_shader_assumes(flags));
     viewSpecific.forTheFirstN(num_views, [&](ViewSpecific &view, int view_ix) {
       for (int i = 0; i < (ssao_prev_texVarId >= 0 ? 3 : 2); ++i)
       {
-        String name(128, "ssao_tex_%d_%d", view_ix, i);
+        String name(128, "%sssao_tex_%d_%d", tag, view_ix, i);
         view.ssaoTex[i] = dag::create_tex(nullptr, aoWidth, aoHeight, format | TEXCF_RTARGET, 1, name.c_str());
         view.ssaoTex[i].getTex2D()->texbordercolor(0xFFFFFFFF);
         view.ssaoTex[i].getTex2D()->texaddr(TEXADDR_CLAMP);
@@ -61,27 +63,34 @@ SSAORenderer::SSAORenderer(int w, int h, int num_views, uint32_t flags, bool use
   aoRenderer.reset(create_postfx_renderer(ssao_sh_name));
   ssaoBlurRenderer.reset(create_postfx_renderer(blur_sh_name));
 
-  if ((flags & SSAO_IMMEDIATE) != 0)
+  if (!(flags & SSAO_SKIP_POISSON_POINTS_GENERATION))
   {
-    ShaderGlobal::set_int(ssao_modeVarId, 0);
-    generatePoissionPoints(16, 1);
-  }
-  else
-  {
-    ShaderGlobal::set_int(ssao_modeVarId, 1);
-    generatePoissionPoints(4, 8);
+    if ((flags & SSAO_IMMEDIATE) != 0)
+    {
+      ShaderGlobal::set_int(ssao_modeVarId, 0);
+      generatePoissionPoints(16, 1);
+    }
+    else
+    {
+      ShaderGlobal::set_int(ssao_modeVarId, 1);
+      generatePoissionPoints(4, 8);
+    }
   }
 
   reset();
 
-  initRandomPattern();
+  if (!(flags & SSAO_SKIP_RANDOM_PATTERN_GENERATION))
+    initRandomPattern();
 }
 
 void SSAORenderer::initRandomPattern()
 {
+  String name(128, "%srandom_pattern_tex", tag);
+
   randomPatternTex.close();
-  randomPatternTex =
-    dag::create_tex(nullptr, PATTERN_SIZE * PATTERN_SIZE, SAMPLE_COUNT, TEXCF_RTARGET | TEXFMT_A16B16G16R16F, 1, "random_pattern_tex");
+  randomPatternTex = UniqueTexHolder(
+    dag::create_tex(nullptr, PATTERN_SIZE * PATTERN_SIZE, SAMPLE_COUNT, TEXCF_RTARGET | TEXFMT_A16B16G16R16F, 1, name.data()),
+    "random_pattern_tex");
   randomPatternTex.getTex2D()->texfilter(TEXFILTER_POINT);
   renderRandomPattern();
 }
@@ -101,7 +110,8 @@ void SSAORenderer::renderRandomPattern()
 
 void SSAORenderer::generatePoissionPoints(int num_samples, int num_frames)
 {
-  generate_poission_points(poissonPoints, 1984183168U, num_samples * num_frames, "ssao_poisson_samples");
+  String name(128, "%s_ssao_poisson_samples", tag);
+  generate_poission_points(poissonPoints, 1984183168U, num_samples * num_frames, name, "ssao_poisson_samples");
 
   ShaderGlobal::set_int(ssao_poisson_sample_countVarId, num_samples);
   ShaderGlobal::set_int(ssao_poisson_frame_countVarId, num_frames);
@@ -113,6 +123,7 @@ void SSAORenderer::reset()
 {
   viewSpecific.forEach([&](ViewSpecific &view) {
     view.prevGlobTm = TMatrix4(0);
+    view.prevProjTm = matrix_perspective_reverse(1, 1, 0.1, 1000);
     view.prevViewVecLT = Point4(0, 0, 0, 0);
     view.prevViewVecRT = Point4(0, 0, 0, 0);
     view.prevViewVecLB = Point4(0, 0, 0, 0);
@@ -146,18 +157,18 @@ SSAORenderer::~SSAORenderer()
 
 void SSAORenderer::renderSSAO(BaseTexture *depth_to_use, const ManagedTex &ssaoTex, const ManagedTex &prevSsaoTex)
 {
+  G_UNUSED(depth_to_use);
   ShaderGlobal::set_texture(ssao_prev_texVarId, prevSsaoTex);
   d3d::set_render_target(ssaoTex.getTex2D(), 0);
   d3d::clearview(CLEAR_DISCARD, 0xFFFFFFFF, 1.0, 0);
 
-  depth_to_use->texfilter(TEXFILTER_POINT);
   aoRenderer->render();
 }
 
 void SSAORenderer::updateViewSpecific(const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 *world_pos)
 {
-  set_reprojection(view_tm, proj_tm, viewSpecific->prevWorldPos, viewSpecific->prevGlobTm, viewSpecific->prevViewVecLT,
-    viewSpecific->prevViewVecRT, viewSpecific->prevViewVecLB, viewSpecific->prevViewVecRB, world_pos);
+  set_reprojection(view_tm, proj_tm, viewSpecific->prevProjTm, viewSpecific->prevWorldPos, viewSpecific->prevGlobTm,
+    viewSpecific->prevViewVecLT, viewSpecific->prevViewVecRT, viewSpecific->prevViewVecLB, viewSpecific->prevViewVecRB, world_pos);
 }
 
 void SSAORenderer::updateFrameNo()
@@ -170,7 +181,7 @@ void SSAORenderer::updateFrameNo()
 
 void SSAORenderer::applyBlur(const ManagedTex &ssaoTex, const ManagedTex &tmpTex)
 {
-  Color4 texelOffset(0.5 + HALF_TEXEL_OFSF / aoWidth, 0.5 + HALF_TEXEL_OFSF / aoHeight, 1.f / aoWidth, 1.f / aoHeight);
+  Color4 texelOffset(0.5, 0.5, 1.f / aoWidth, 1.f / aoHeight);
 
   ssaoBlurRenderer->getMat()->set_color4_param(ssaoBlurTexelOffsetVarId, texelOffset);
 

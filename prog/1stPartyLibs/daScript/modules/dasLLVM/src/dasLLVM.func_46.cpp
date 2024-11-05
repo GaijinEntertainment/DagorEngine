@@ -12,46 +12,85 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_46() {
-// from D:\Work\libclang\include\llvm/Config/AsmParsers.def:27:1
-	addExtern< void (*)() , LLVMInitializeAArch64AsmParser >(*this,lib,"LLVMInitializeAArch64AsmParser",SideEffects::worstDefault,"LLVMInitializeAArch64AsmParser");
-// from D:\Work\libclang\include\llvm/Config/AsmParsers.def:28:1
-	addExtern< void (*)() , LLVMInitializeAMDGPUAsmParser >(*this,lib,"LLVMInitializeAMDGPUAsmParser",SideEffects::worstDefault,"LLVMInitializeAMDGPUAsmParser");
-// from D:\Work\libclang\include\llvm/Config/AsmParsers.def:29:1
-	addExtern< void (*)() , LLVMInitializeARMAsmParser >(*this,lib,"LLVMInitializeARMAsmParser",SideEffects::worstDefault,"LLVMInitializeARMAsmParser");
-// from D:\Work\libclang\include\llvm/Config/AsmParsers.def:30:1
-	addExtern< void (*)() , LLVMInitializeAVRAsmParser >(*this,lib,"LLVMInitializeAVRAsmParser",SideEffects::worstDefault,"LLVMInitializeAVRAsmParser");
-// from D:\Work\libclang\include\llvm/Config/AsmParsers.def:31:1
-	addExtern< void (*)() , LLVMInitializeBPFAsmParser >(*this,lib,"LLVMInitializeBPFAsmParser",SideEffects::worstDefault,"LLVMInitializeBPFAsmParser");
-// from D:\Work\libclang\include\llvm/Config/AsmParsers.def:32:1
-	addExtern< void (*)() , LLVMInitializeHexagonAsmParser >(*this,lib,"LLVMInitializeHexagonAsmParser",SideEffects::worstDefault,"LLVMInitializeHexagonAsmParser");
-// from D:\Work\libclang\include\llvm/Config/AsmParsers.def:33:1
-	addExtern< void (*)() , LLVMInitializeLanaiAsmParser >(*this,lib,"LLVMInitializeLanaiAsmParser",SideEffects::worstDefault,"LLVMInitializeLanaiAsmParser");
-// from D:\Work\libclang\include\llvm/Config/AsmParsers.def:34:1
-	addExtern< void (*)() , LLVMInitializeMipsAsmParser >(*this,lib,"LLVMInitializeMipsAsmParser",SideEffects::worstDefault,"LLVMInitializeMipsAsmParser");
-// from D:\Work\libclang\include\llvm/Config/AsmParsers.def:35:1
-	addExtern< void (*)() , LLVMInitializeMSP430AsmParser >(*this,lib,"LLVMInitializeMSP430AsmParser",SideEffects::worstDefault,"LLVMInitializeMSP430AsmParser");
-// from D:\Work\libclang\include\llvm/Config/AsmParsers.def:36:1
-	addExtern< void (*)() , LLVMInitializePowerPCAsmParser >(*this,lib,"LLVMInitializePowerPCAsmParser",SideEffects::worstDefault,"LLVMInitializePowerPCAsmParser");
-// from D:\Work\libclang\include\llvm/Config/AsmParsers.def:37:1
-	addExtern< void (*)() , LLVMInitializeRISCVAsmParser >(*this,lib,"LLVMInitializeRISCVAsmParser",SideEffects::worstDefault,"LLVMInitializeRISCVAsmParser");
-// from D:\Work\libclang\include\llvm/Config/AsmParsers.def:38:1
-	addExtern< void (*)() , LLVMInitializeSparcAsmParser >(*this,lib,"LLVMInitializeSparcAsmParser",SideEffects::worstDefault,"LLVMInitializeSparcAsmParser");
-// from D:\Work\libclang\include\llvm/Config/AsmParsers.def:39:1
-	addExtern< void (*)() , LLVMInitializeSystemZAsmParser >(*this,lib,"LLVMInitializeSystemZAsmParser",SideEffects::worstDefault,"LLVMInitializeSystemZAsmParser");
-// from D:\Work\libclang\include\llvm/Config/AsmParsers.def:40:1
-	addExtern< void (*)() , LLVMInitializeVEAsmParser >(*this,lib,"LLVMInitializeVEAsmParser",SideEffects::worstDefault,"LLVMInitializeVEAsmParser");
-// from D:\Work\libclang\include\llvm/Config/AsmParsers.def:41:1
-	addExtern< void (*)() , LLVMInitializeWebAssemblyAsmParser >(*this,lib,"LLVMInitializeWebAssemblyAsmParser",SideEffects::worstDefault,"LLVMInitializeWebAssemblyAsmParser");
-// from D:\Work\libclang\include\llvm/Config/AsmParsers.def:42:1
-	addExtern< void (*)() , LLVMInitializeX86AsmParser >(*this,lib,"LLVMInitializeX86AsmParser",SideEffects::worstDefault,"LLVMInitializeX86AsmParser");
-// from D:\Work\libclang\include\llvm/Config/Disassemblers.def:27:1
-	addExtern< void (*)() , LLVMInitializeAArch64Disassembler >(*this,lib,"LLVMInitializeAArch64Disassembler",SideEffects::worstDefault,"LLVMInitializeAArch64Disassembler");
-// from D:\Work\libclang\include\llvm/Config/Disassemblers.def:28:1
-	addExtern< void (*)() , LLVMInitializeAMDGPUDisassembler >(*this,lib,"LLVMInitializeAMDGPUDisassembler",SideEffects::worstDefault,"LLVMInitializeAMDGPUDisassembler");
-// from D:\Work\libclang\include\llvm/Config/Disassemblers.def:29:1
-	addExtern< void (*)() , LLVMInitializeARMDisassembler >(*this,lib,"LLVMInitializeARMDisassembler",SideEffects::worstDefault,"LLVMInitializeARMDisassembler");
-// from D:\Work\libclang\include\llvm/Config/Disassemblers.def:30:1
-	addExtern< void (*)() , LLVMInitializeAVRDisassembler >(*this,lib,"LLVMInitializeAVRDisassembler",SideEffects::worstDefault,"LLVMInitializeAVRDisassembler");
+// from D:\Work\libclang\include\llvm-c/Target.h:273:10
+	makeExtern< unsigned int (*)(LLVMOpaqueTargetData *,LLVMOpaqueValue *) , LLVMPreferredAlignmentOfGlobal , SimNode_ExtFuncCall >(lib,"LLVMPreferredAlignmentOfGlobal","LLVMPreferredAlignmentOfGlobal")
+		->args({"TD","GlobalVar"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Target.h:278:10
+	makeExtern< unsigned int (*)(LLVMOpaqueTargetData *,LLVMOpaqueType *,unsigned long long) , LLVMElementAtOffset , SimNode_ExtFuncCall >(lib,"LLVMElementAtOffset","LLVMElementAtOffset")
+		->args({"TD","StructTy","Offset"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Target.h:283:20
+	makeExtern< unsigned long long (*)(LLVMOpaqueTargetData *,LLVMOpaqueType *,unsigned int) , LLVMOffsetOfElement , SimNode_ExtFuncCall >(lib,"LLVMOffsetOfElement","LLVMOffsetOfElement")
+		->args({"TD","StructTy","Element"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/TargetMachine.h:70:15
+	makeExtern< LLVMTarget * (*)() , LLVMGetFirstTarget , SimNode_ExtFuncCall >(lib,"LLVMGetFirstTarget","LLVMGetFirstTarget")
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/TargetMachine.h:72:15
+	makeExtern< LLVMTarget * (*)(LLVMTarget *) , LLVMGetNextTarget , SimNode_ExtFuncCall >(lib,"LLVMGetNextTarget","LLVMGetNextTarget")
+		->args({"T"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/TargetMachine.h:77:15
+	makeExtern< LLVMTarget * (*)(const char *) , LLVMGetTargetFromName , SimNode_ExtFuncCall >(lib,"LLVMGetTargetFromName","LLVMGetTargetFromName")
+		->args({"Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/TargetMachine.h:82:10
+	makeExtern< int (*)(const char *,LLVMTarget **,char **) , LLVMGetTargetFromTriple , SimNode_ExtFuncCall >(lib,"LLVMGetTargetFromTriple","LLVMGetTargetFromTriple")
+		->args({"Triple","T","ErrorMessage"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/TargetMachine.h:86:13
+	makeExtern< const char * (*)(LLVMTarget *) , LLVMGetTargetName , SimNode_ExtFuncCall >(lib,"LLVMGetTargetName","LLVMGetTargetName")
+		->args({"T"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/TargetMachine.h:89:13
+	makeExtern< const char * (*)(LLVMTarget *) , LLVMGetTargetDescription , SimNode_ExtFuncCall >(lib,"LLVMGetTargetDescription","LLVMGetTargetDescription")
+		->args({"T"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/TargetMachine.h:92:10
+	makeExtern< int (*)(LLVMTarget *) , LLVMTargetHasJIT , SimNode_ExtFuncCall >(lib,"LLVMTargetHasJIT","LLVMTargetHasJIT")
+		->args({"T"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/TargetMachine.h:95:10
+	makeExtern< int (*)(LLVMTarget *) , LLVMTargetHasTargetMachine , SimNode_ExtFuncCall >(lib,"LLVMTargetHasTargetMachine","LLVMTargetHasTargetMachine")
+		->args({"T"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/TargetMachine.h:98:10
+	makeExtern< int (*)(LLVMTarget *) , LLVMTargetHasAsmBackend , SimNode_ExtFuncCall >(lib,"LLVMTargetHasAsmBackend","LLVMTargetHasAsmBackend")
+		->args({"T"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/TargetMachine.h:102:22
+	makeExtern< LLVMOpaqueTargetMachine * (*)(LLVMTarget *,const char *,const char *,const char *,LLVMCodeGenOptLevel,LLVMRelocMode,LLVMCodeModel) , LLVMCreateTargetMachine , SimNode_ExtFuncCall >(lib,"LLVMCreateTargetMachine","LLVMCreateTargetMachine")
+		->args({"T","Triple","CPU","Features","Level","Reloc","CodeModel"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/TargetMachine.h:108:6
+	makeExtern< void (*)(LLVMOpaqueTargetMachine *) , LLVMDisposeTargetMachine , SimNode_ExtFuncCall >(lib,"LLVMDisposeTargetMachine","LLVMDisposeTargetMachine")
+		->args({"T"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/TargetMachine.h:111:15
+	makeExtern< LLVMTarget * (*)(LLVMOpaqueTargetMachine *) , LLVMGetTargetMachineTarget , SimNode_ExtFuncCall >(lib,"LLVMGetTargetMachineTarget","LLVMGetTargetMachineTarget")
+		->args({"T"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/TargetMachine.h:116:7
+	makeExtern< char * (*)(LLVMOpaqueTargetMachine *) , LLVMGetTargetMachineTriple , SimNode_ExtFuncCall >(lib,"LLVMGetTargetMachineTriple","LLVMGetTargetMachineTriple")
+		->args({"T"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/TargetMachine.h:121:7
+	makeExtern< char * (*)(LLVMOpaqueTargetMachine *) , LLVMGetTargetMachineCPU , SimNode_ExtFuncCall >(lib,"LLVMGetTargetMachineCPU","LLVMGetTargetMachineCPU")
+		->args({"T"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/TargetMachine.h:126:7
+	makeExtern< char * (*)(LLVMOpaqueTargetMachine *) , LLVMGetTargetMachineFeatureString , SimNode_ExtFuncCall >(lib,"LLVMGetTargetMachineFeatureString","LLVMGetTargetMachineFeatureString")
+		->args({"T"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/TargetMachine.h:129:19
+	makeExtern< LLVMOpaqueTargetData * (*)(LLVMOpaqueTargetMachine *) , LLVMCreateTargetDataLayout , SimNode_ExtFuncCall >(lib,"LLVMCreateTargetDataLayout","LLVMCreateTargetDataLayout")
+		->args({"T"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/TargetMachine.h:132:6
+	makeExtern< void (*)(LLVMOpaqueTargetMachine *,int) , LLVMSetTargetMachineAsmVerbosity , SimNode_ExtFuncCall >(lib,"LLVMSetTargetMachineAsmVerbosity","LLVMSetTargetMachineAsmVerbosity")
+		->args({"T","VerboseAsm"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

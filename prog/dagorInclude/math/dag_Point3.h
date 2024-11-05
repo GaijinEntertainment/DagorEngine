@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -43,6 +42,7 @@ public:
     z = p[2];
   }
   INLINE explicit Point3(const DPoint3 &p);
+  Point3 &operator=(const Point3 &) = default;
 
   static const Point3 ZERO;
   static const Point3 ONE;
@@ -521,6 +521,7 @@ INLINE DPoint3 normalize(const DPoint3 &a) { return a * safeinv(length(a)); }
 
 INLINE DPoint3 mul(const DPoint3 &a, const DPoint3 &b) { return DPoint3(a.x * b.x, a.y * b.y, a.z * b.z); }
 
+INLINE DPoint3 abs(const DPoint3 &a) { return DPoint3(fabs(a.x), fabs(a.y), fabs(a.z)); }
 INLINE DPoint3 max(const DPoint3 &a, const DPoint3 &b) { return DPoint3(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z)); }
 INLINE DPoint3 min(const DPoint3 &a, const DPoint3 &b) { return DPoint3(min(a.x, b.x), min(a.y, b.y), min(a.z, b.z)); }
 template <>

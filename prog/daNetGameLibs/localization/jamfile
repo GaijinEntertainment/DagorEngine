@@ -1,0 +1,20 @@
+Module = localization ;
+Root    ?= ../../.. ;
+Location = prog/daNetGameLibs/$(Module) ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/daNetGame
+  $(Root)/prog/daNetGameLibs
+  $(Root)/prog/1stPartyLibs/daScript/include
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+  $(Root)/prog/1stPartyLibs/rapidJsonUtils/include
+  $(Root)/prog/3rdPartyLibs/libb64/include
+;
+
+local AllSrcFolder_CPP = . dasModules ;
+local AllSrcFolder_ES = . ;
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

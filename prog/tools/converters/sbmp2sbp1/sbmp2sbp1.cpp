@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/util/makeBindump.h>
 #include <libTools/util/binDumpReader.h>
 #include <libTools/dtx/ddsxPlugin.h>

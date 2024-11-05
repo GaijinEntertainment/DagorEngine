@@ -1,12 +1,12 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <physMap/physMatSwRenderer.h>
 #include <image/dag_texPixel.h>
+#include <drv/3d/dag_texture.h>
 
 template <int Width, int Height>
 class RenderDecalMaterialsWithRT : public RenderDecalMaterials<Width, Height>

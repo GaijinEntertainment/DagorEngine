@@ -12,24 +12,17 @@ enum SQOuterType {
 enum SQLangFeature {
     // parsing stage
     LF_FORBID_ROOT_TABLE = 0x000001,
-    LF_FORBID_EXTENDS_KW = 0x000002,
     LF_FORBID_DELETE_OP = 0x000004,
     LF_FORBID_CLONE_OP = 0x000008,
     LF_FORBID_SWITCH_STMT = 0x000010,
 
     // code generation stage
-    LF_TOOLS_COMPILE_CHECK = 0x000100,
     LF_DISABLE_OPTIMIZER = 0x000200,
     LF_FORBID_GLOBAL_CONST_REWRITE = 0x000400,
     LF_FORBID_IMPLICIT_DEF_DELEGATE = 0x000800,
 
-    // runtime stage
-    LF_STRICT_BOOL = 0x010000,
-    LF_NO_PLUS_CONCAT = 0x020000,
-
-    LF_STRICT = LF_STRICT_BOOL |
-                LF_NO_PLUS_CONCAT |
-                LF_FORBID_ROOT_TABLE
+    LF_STRICT = LF_FORBID_ROOT_TABLE |
+                LF_FORBID_DELETE_OP
 };
 
 struct SQOuterVar
@@ -67,13 +60,18 @@ struct SQLocalVarInfo
         _assignable=lvi._assignable;
     }
     SQObjectPtr _name;
-    SQUnsignedInteger _start_op;
-    SQUnsignedInteger _end_op;
-    SQUnsignedInteger _pos;
+    uint32_t _start_op;
+    uint32_t _end_op;
+    uint32_t _pos;
     bool _assignable;
 };
 
-struct SQLineInfo { SQInteger _line;SQInteger _op; };
+struct SQLineInfo
+{
+    int32_t _op;
+    unsigned _line: 31;
+    unsigned _is_line_op: 1;
+};
 
 typedef sqvector<SQOuterVar> SQOuterVarVec;
 typedef sqvector<SQLocalVarInfo> SQLocalVarInfoVec;
@@ -146,7 +144,7 @@ public:
     }
 
     const SQChar* GetLocal(SQVM *v,SQUnsignedInteger stackbase,SQUnsignedInteger nseq,SQUnsignedInteger nop);
-    SQInteger GetLine(SQInstruction *curr);
+    SQInteger GetLine(SQInstruction *curr, int *hint = nullptr, bool *is_line_op = nullptr);
     bool Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write);
     static bool Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr &ret);
 #ifndef NO_GARBAGE_COLLECTOR

@@ -1,0 +1,158 @@
+include "shader_global.dshl"
+include "globtm.dshl"
+include "world_sdf_rasterize_sdf_common.dshl"
+include "world_sdf_collision_buffers_common.dshl"
+include "giHelpers/common_collision_render.dshl"
+include "giHelpers/voxelize_gs.dshl"
+
+int gi_voxelize_with_instancing;
+interval gi_voxelize_with_instancing:instancing<2, primitives;
+
+shader world_sdf_collision_rasterize
+{
+  ENABLE_ASSERT(ps)
+  supports none;
+  supports global_frame;
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+  COMMON_COLLISION_BASE_RENDER()
+  if (gi_voxelize_with_instancing == primitives && supports_sh_6_1 == on)
+  {
+    dont_render;
+  }
+
+  if (gi_voxelize_with_instancing == primitives && supports_sh_6_1 == off)
+  {
+    INIT_LOAD_COLLISION_PRIMITIVES(vs)
+    USE_LOAD_COLLISION_PRIMITIVES(vs)
+    (vs) { immediate_dword_count = 3; }
+    hlsl {
+      #define RASTERIZE_PRIMS 1
+      #undef SUPPORT_LATE_INTERPOLATION
+    }
+  } else
+  {
+    if (supports_sh_6_1 == on)
+    {
+      hlsl {
+        #define SUPPORT_LATE_INTERPOLATION 1
+        #define RASTERIZE_PRIMS 1
+      }
+    }
+    COMMON_COLLISION_RENDER_RASTERIZE()
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      centroid VS_OUT_POSITION(pos)
+      noperspective centroid float3 worldPos    : TEXCOORD0;
+      nointerpolation int axis:TEXCOORD1;
+      #if RASTERIZE_PRIMS
+      #if SUPPORT_LATE_INTERPOLATION
+      nointerpolation float3 vertexWorldPos : TEXCOORD2;
+      #else
+      nointerpolation float3 va : TEXCOORD2;
+      nointerpolation float3 vb : TEXCOORD3;
+      nointerpolation float3 vc : TEXCOORD4;
+      #endif
+      #endif
+    };
+  }
+  INIT_RASTERIZE_SDF()
+  PROJECT_WORLD_SDF_RASTERIZE(ps)
+
+  hlsl(ps) {
+    void gi_collision_ps(VsOutput input INPUT_VFACE)
+    {
+      WorldSDFInterpolant sdfI = (WorldSDFInterpolant)0;
+      sdfI.worldPos = input.worldPos;
+      sdfI.axis = input.axis;
+      sdfI.isTwoSided = false;
+      #if RASTERIZE_PRIMS
+        #if SUPPORT_LATE_INTERPOLATION
+        sdfI.va = GetAttributeAtVertex(input.vertexWorldPos, 0);
+        sdfI.vb = GetAttributeAtVertex(input.vertexWorldPos, 2);
+        sdfI.vc = GetAttributeAtVertex(input.vertexWorldPos, 1);
+        #else
+        sdfI.va = input.va;
+        sdfI.vb = input.vb;
+        sdfI.vc = input.vc;
+        #endif
+      #else
+      SET_IF_IS_BACK_FACE(sdfI.isBackFace, true);
+      #endif
+
+      write_world_sdf(sdfI);
+      project_world_sdf_rasterize(sdfI);
+    }
+  }
+
+  TO_VOXELIZE_SPACE(vs)
+  USE_VOXELIZE_SPACE(vs)
+  hlsl(vs) {
+    #if RASTERIZE_PRIMS && !SUPPORT_LATE_INTERPOLATION
+    VsOutput gi_collision_vs(uint vid : SV_VertexID, uint id : SV_InstanceID)
+    #else
+    VsOutput gi_collision_vs(VsInput input, uint id : SV_InstanceID)
+    #endif
+    {
+      VsOutput output;
+      float3 diffuseColor = 0.06;
+
+      #if RASTERIZE_PRIMS && !SUPPORT_LATE_INTERPOLATION
+      float3 va,vb,vc;
+      uint triId = vid/3, triVert = vid - triId*3;
+      getTriangle(get_immediate_dword_1() + triId*3, get_immediate_dword_2(), va, vb, vc);
+      float3 localPos = triVert == 0 ? va : triVert == 1 ? vb : vc;
+      #else
+      float3 localPos = input.pos;
+      #endif
+      uint inst = id;
+      #if USE_MULTI_DRAW
+        inst = input.id;
+      #endif
+      uint baseInst = get_immediate_dword_0();
+      uint finalInstId = baseInst + inst;
+      uint matrixOffset = finalInstId;
+      uint angle = (finalInstId%3);
+      matrixOffset -= angle;
+
+      float3 worldLocalX = float3(structuredBufferAt(matrices, matrixOffset).x, structuredBufferAt(matrices, matrixOffset + 1).x, structuredBufferAt(matrices, matrixOffset + 2).x);
+      float3 worldLocalY = float3(structuredBufferAt(matrices, matrixOffset).y, structuredBufferAt(matrices, matrixOffset + 1).y, structuredBufferAt(matrices, matrixOffset + 2).y);
+      float3 worldLocalZ = float3(structuredBufferAt(matrices, matrixOffset).z, structuredBufferAt(matrices, matrixOffset + 1).z, structuredBufferAt(matrices, matrixOffset + 2).z);
+      float3 worldLocalPos = float3(structuredBufferAt(matrices, matrixOffset).w, structuredBufferAt(matrices, matrixOffset + 1).w, structuredBufferAt(matrices, matrixOffset + 2).w);
+      float3 worldPos = localPos.x * worldLocalX + localPos.y * worldLocalY + localPos.z * worldLocalZ + worldLocalPos;
+      output.pos = worldPosToVoxelSpace(worldPos, angle);
+
+      #if RASTERIZE_PRIMS
+        #if SUPPORT_LATE_INTERPOLATION
+        output.vertexWorldPos = worldPos;
+        #else
+        output.va = va.x * worldLocalX + va.y * worldLocalY + va.z * worldLocalZ + worldLocalPos;
+        output.vb = vb.x * worldLocalX + vb.y * worldLocalY + vb.z * worldLocalZ + worldLocalPos;
+        output.vc = vc.x * worldLocalX + vc.y * worldLocalY + vc.z * worldLocalZ + worldLocalPos;
+        //early out of pixel shader
+        float3 bmin = min(output.va, min(output.vb, output.vc))*voxelize_world_to_rasterize_space_mul  + voxelize_world_to_rasterize_space_add;
+        float3 bmax = max(output.va, max(output.vb, output.vc))*voxelize_world_to_rasterize_space_mul  + voxelize_world_to_rasterize_space_add;
+        if (any(bmin > 1 || bmax < -1))
+          output.pos = NaN;
+        #endif
+      #endif
+
+      output.worldPos = worldPos;
+      output.axis = angle;
+
+      return output;
+    }
+  }
+  if (supports_sh_6_1 == on)
+  {
+    compile("ps_6_1", "gi_collision_ps");
+  } else
+  {
+    compile("target_ps", "gi_collision_ps");
+  }
+  compile("target_vs", "gi_collision_vs");
+}

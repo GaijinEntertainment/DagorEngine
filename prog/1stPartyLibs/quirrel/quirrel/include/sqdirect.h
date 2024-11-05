@@ -22,6 +22,9 @@ SQUIRREL_API SQRESULT sq_direct_get(HSQUIRRELVM v, const HSQOBJECT *obj, const H
 SQUIRREL_API SQBool sq_direct_tobool(const HSQOBJECT *o);
 
 SQUIRREL_API SQBool sq_direct_cmp(HSQUIRRELVM v, const HSQOBJECT *a, const HSQOBJECT *b, SQInteger *res);
+SQUIRREL_API bool sq_direct_is_equal(HSQUIRRELVM v, const HSQOBJECT *a, const HSQOBJECT *b);
+
+SQUIRREL_API bool sq_fast_equal_by_value_deep(const HSQOBJECT *a, const HSQOBJECT *b, int depth);
 
 SQUIRREL_API SQRESULT sq_direct_getuserdata(const HSQOBJECT *obj, SQUserPointer *p, SQUserPointer *typetag=NULL);
 

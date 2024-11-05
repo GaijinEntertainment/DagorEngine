@@ -111,6 +111,10 @@ void das_modulegroup_release ( das_module_group * group ) {
     if ( group ) delete (ModuleGroup *) group;
 }
 
+void das_modulegroup_add_module ( das_module_group* lib, das_module* mod ) {
+    ((ModuleGroup*)lib)->addModule((Module*)mod);
+}
+
 das_file_access * das_fileaccess_make_default (  ) {
     auto access = get_file_access(nullptr);
     return (das_file_access *) access.orphan();

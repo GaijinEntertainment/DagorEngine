@@ -1,7 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "collisionNodesSettings.h"
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/control/container.h>
 
 class KdopProcessing
 {
@@ -14,7 +15,7 @@ public:
   bool showKdopFaces = false;
   bool showKdopDirs = false;
 
-  void init(CollisionResource *collision_res, PropertyContainerControlBase *prop_panel);
+  void init(CollisionResource *collision_res, PropPanel::ContainerPropertyControl *prop_panel);
   void calcSelectedKdop();
   void calcKdop(const KdopSettings &settings);
   void setSelectedNodesSettings(SelectedNodesSettings &&selected_nodes);
@@ -25,7 +26,7 @@ public:
   void fillKdopPanel();
 
 private:
-  PropertyContainerControlBase *panel = nullptr;
+  PropPanel::ContainerPropertyControl *panel = nullptr;
   CollisionResource *collisionRes = nullptr;
   void switchSlidersByPreset();
 };

@@ -1,1 +1,1 @@
-returns temporary pointer to the given expression
+returns temporary pointer to the given expressio

@@ -43,8 +43,10 @@ struct EventCircularBuffer
     constexpr unsigned alignment = alignment_ == 0 ? unsigned(1) : alignment_; // this is to avoid potential mod by zero
     uint32_t alignDiff = (alignment_ != 0) ? ((alignment - (writeAt + header_size) % alignment) % alignment) : 0;
     sz += alignDiff + header_size;
-    if (EASTL_LIKELY(eastl::max(writeIndex(), size()) + sz <= capacity))
+    if (DAGOR_LIKELY(eastl::max(writeIndex(), size()) + sz <= capacity))
       return true;
+    // Not enough space to write from current position. We can try to reuse already processed space at beginning or allocate new
+    // buffer. It requires to fill buffer end by dummy event to make next masked read/write position set to zero.
     return fillEndAndCanWrite(sz);
   }
   RESTRICT_FUN uint8_t *__restrict push(EntityId eid, uint32_t sz)
@@ -82,12 +84,14 @@ struct EventCircularBuffer
   {
     if (!canWrite(sz)) // not enough space at all!
       return false;
+    if (mask(*alreadyRead) < sz) // not enough continuous space at beginning, finish that buffer
+      return false;
     const uint32_t excess = capacity - writeIndex();
     DAECS_EXT_FAST_ASSERT(sz >= sizeof(EntityId) + sizeof(Event) // otherwise we writing not EntityId+Event
                           && excess >= sizeof(EntityId)          // we require all Events to be aligned on 4 bytes
                           && excess < sz);                       // we can't be in this function unless excess >= sz
     uint8_t *fillAt = data.get() + writeIndex();
-    memset(fillAt, 0xFFFFFFFF, 4);           // invalid entityId
+    memset(fillAt, 0xFFFFFFFF, 4);           // invalid entityId with EntityState::Dead (not processed)
     memset(fillAt + 4, 0, sizeof(uint32_t)); // type
     G_STATIC_ASSERT(sizeof(Event) == sizeof(uint32_t) + sizeof(uint32_t));
 #if defined(__clang__)
@@ -101,7 +105,7 @@ struct EventCircularBuffer
 #undef OFFSETOF
     new (fillAt + 4 + 4, _NEW_INPLACE) uint32_t(excess - sizeof(EntityId)); // assume length are lowest bits
     writeAt += excess;
-    return canWrite(sz);
+    return true;
   }
 };
 
@@ -122,7 +126,7 @@ struct DeferredEventsStorage
     G_STATIC_ASSERT(Event::max_event_size + sizeof(EntityId) <= EventsBuffer::capacity);
     G_STATIC_ASSERT(sizeof(T) + sizeof(EntityId) <= EventsBuffer::capacity);
     constexpr uint32_t eventSize = sizeof(T);
-    if (EASTL_UNLIKELY(!(active.template alignTo<(align_event_on_emplace ? alignof(T) : 0)>(eventSize)))) //-V562,547
+    if (DAGOR_UNLIKELY(!(active.template alignTo<(align_event_on_emplace ? alignof(T) : 0)>(eventSize)))) //-V562,547
       pushNewBuffer();
     G_STATIC_ASSERT(!align_event_on_emplace || alignof(T) == EVENT_ALIGNMENT);
     G_STATIC_ASSERT(eventSize % sizeof(EntityId) == 0); // all events should be at least 4 bytes aligned, regardless
@@ -139,7 +143,7 @@ struct DeferredEventsStorage
   {
     // we can't send untyped events that require non-trivial move (not relocatable)
     // currently just assume it is same as non-trivial destruction.
-    if (EASTL_UNLIKELY(!(active.template alignTo<(align_event_on_emplace ? EVENT_ALIGNMENT : 0)>(eventSize)))) //-V562,547
+    if (DAGOR_UNLIKELY(!(active.template alignTo<(align_event_on_emplace ? EVENT_ALIGNMENT : 0)>(eventSize)))) //-V562,547
       pushNewBuffer();
     DAECS_EXT_FAST_ASSERT(eventSize <= EventsBuffer::capacity);
     DAECS_EXT_ASSERT(!align_event_on_emplace || (active.writeIndex() % EVENT_ALIGNMENT == 0));

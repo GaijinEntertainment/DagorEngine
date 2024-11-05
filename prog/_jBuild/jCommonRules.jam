@@ -79,6 +79,40 @@ rule SimplifyComposedPath
   return $(prefix)/$(suffix) ;
 }
 
+# concatenates (prefix : suffix) if suffix starts with ".." and simplifies path
+# This function is designed to create absolute path.
+# First argument is usually $(JAM_CWD), seconds argument is a path which is usually starting from "../" or "..\"
+# The function does not add prefix path for:
+# a) system libs like "ws2_32.lib", "advapi32.lib", ...
+# b) absolute paths to external libs like: "/home/bs/devtools/oodle.2.7/lib/liboo2corelinux64.a"
+# The function is useful for MSVC because it allows to get shorter paths than <CWD>/<RELATIVE_PATH>
+rule MakePathAbsolute prefix : suffix
+{
+  switch $(suffix) {
+    case ..* : return [ SimplifyComposedPath $(prefix) : $(suffix) ] ;
+  }
+  return $(suffix) ;
+}
+
+# concatenates (prefix : suffixList) if suffix starts with ".." and simplifies path
+# This function is designed to create absolute path lists.
+# First argument is usually $(JAM_CWD), seconds argument is a list of paths
+# which are usually starting from "../" or "..\"
+# The function does not add prefix path for:
+# a) system libs like "ws2_32.lib", "advapi32.lib", ...
+# b) absolute paths to external libs like: "/home/bs/devtools/oodle.2.7/lib/liboo2corelinux64.a"
+# The function is useful for MSVC because it allows to get shorter paths than <CWD>/<RELATIVE_PATH>
+rule MakePathListAbsolute prefix : suffixList
+{
+  local result = ;
+  local suffix = ;
+
+  for suffix in $(suffixList) {
+    result += [ MakePathAbsolute $(prefix) : $(suffix) ] ;
+  }
+  return $(result) ;
+}
+
 # converts source file to C string constant using python script
 # dst : [target] 
 rule GenESSourceFile
@@ -113,20 +147,17 @@ rule GenESSourceFile
 
   ForceGenES ?= no ;
   if $(ForceGenES) = no {
-    if ! $(Platform) in win32 win64 linux64 { return ; }
+    if ! $(Platform) in windows linux { return ; }
   }
   if ! $(PYTHON_EXE) { Exit Unsupported HOST\: $(OS) ; }
 
   if $(CheckCodeGen) != yes { Depends $(dst) : $(src) ; }
 
-  if $(GLOBAL_DependOnJam) {
-    Depends $(dst) :
-      $(Root)/prog/_jBuild/_scripts/gen_es.py
-      $(Root)/prog/_jBuild/_scripts/gen_es30.py
-      $(Root)/prog/_jBuild/_scripts/clang_ecs_parser.py
-      $(Root)/prog/_jBuild/jCommonRules.jam
-    ;
-  }
+  Depends $(dst) :
+    $(Root)/prog/_jBuild/_scripts/gen_es.py
+    $(Root)/prog/_jBuild/_scripts/gen_es30.py
+    $(Root)/prog/_jBuild/_scripts/clang_ecs_parser.py
+  ;
   target on $(dst) = [ MakeEffectiveTarget $(tgt) ] ;
   es_opt on $(dst) = $(EcsGenOpt) ;
   generate_es $(dst) : $(src) ;
@@ -177,16 +208,19 @@ rule StringifySourceFile
 
 rule BuildValidJamString
 {
-  local spec_sym = ";=\"{}#():\\" ;
+  if $(1[2-]) { exit BuildValidJamString accepts single-string list only, use :J=\ if needed ; }
+  if $(1) in ":" "{" "}" "(" ")" "#" "=" ";" "||" "&&" { return \\$(1) ; }
+  local spec_sym = "\#\"\\\ " ;
   local match_str = ([^$(spec_sym)]*)([$(spec_sym)])(.*) ;
 
-  local split = [ MATCH $(match_str) : $(1:J=\ ) ] ;
-  if ! $(split) { return $(1:J=\ ) ; }
+  local split = [ MATCH $(match_str) : $(1) ] ;
+  if ! $(split) { return $(1) ; }
 
   local result = $(split[1]) ;
   while $(split[2]) {
     result += \\$(split[2]) ;
-    split = [ MATCH $(match_str) : $(split[3]) ] ;
+    local s2 = [ MATCH $(match_str) : $(split[3]) ] ;
+    if $(s2) { split = $(s2) ; } else { split = $(split[3]) ; }
     result += $(split[1]) ;
   }
   return $(result:J) ;
@@ -223,7 +257,7 @@ if $(OS) = NT {
   {
     echo * copy file to:   $(file)
     set_filter nul /1 file\(s\) copied/
-    call_filtered $(ComSpec) /C copy /Y /B /V #\( $(2) $(1) )\#
+    call_filtered $(ComSpec) /C copy /Y /B /V #\( "$(2)" "$(1)" )\#
     clr_filters
     if not exist $(1) set errorlevel=13
   }
@@ -235,6 +269,14 @@ if $(OS) = NT {
     $(post_copy_cmd)
     if not exist $(1) set errorlevel=13
   }
+}
+
+# get absolute path from location-based path (allows @ prefix to denote already absolude path)
+rule LocationBasedToAbsPath
+{
+  local split = [ MATCH @(.+) : $(1) ] ;
+  if $(split) { return $(split) ; }
+  return $(Root)/$(Location)/$(1) ;
 }
 
 rule BundleCopyFile
@@ -249,7 +291,7 @@ rule BundleCopyFile
   raw_copy_file $(dest) : $(src) ;
 }
 
-if ! $(Platform) in macosx android nswitch iOS tvOS {
+if ! $(Platform) in macOS android nswitch iOS tvOS {
   rule ProcessBundleCopy
   {
     BundleCopyFile $(OutDir)/$(Target) : $(1[2]) : $(1[1]) ;

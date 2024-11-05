@@ -1,5 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 template <typename H, H NullValue, typename T>
 class TaggedHandle

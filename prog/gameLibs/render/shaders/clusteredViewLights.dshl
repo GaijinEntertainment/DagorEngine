@@ -11,6 +11,7 @@ macro INIT_CLUSTERED_VIEW_LIGHTS(code)
   INIT_LIGHT_SHADOWS(code)
   INIT_COMMON_LIGHTS_SHADOWS_CB(code)
   INIT_LIGHTS_CLUSTERED_CB(code)
+  INIT_POINT_LIGHTS_AO(code)
 endmacro
 
 macro USE_CLUSTERED_VIEW_LIGHTS(code)
@@ -42,12 +43,16 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
     {
       half3 result = 0;
       ##if (dynamic_lights_count != lights_off)
+        #if DYNAMIC_LIGHTS_SPECULAR
         half dynamicLightsSpecularStrength = gbuffer.extracted_albedo_ao;
+        #else
+        half dynamicLightsSpecularStrength = 0;
+        #endif
         //BRANCH
         //if (all( abs(lights_box_center_count.xyz-worldPos.xyz) < lights_box_extent))
         {
+          float3 contactStartCameraToPoint = -w*view;
           #if OMNI_CONTACT_SHADOWS && defined(shadow_frame)
-          float3 contactStartCameraToPoint = view*(w*-0.9999+0.01);
           float dither = interleavedGradientNoiseFramed(screenpos, shadow_frame);//if we have temporal aa
           #define OMNI_CONTACT_SHADOWS_CALC \
             BRANCH\
@@ -56,11 +61,24 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
               float2 hitUV;\
               float contactShadow = contactShadowRayCast(downsampled_far_depth_tex, downsampled_far_depth_tex_samplerstate,
                 contactStartCameraToPoint, normalize(pos_and_radius.xyz-worldPos.xyz),\
-                w*0.1, 8, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, float2(3,2));\
+                w*0.2, 8, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, float2(3,2));\
               omniLight *= contactShadow;\
             }
           #else
-           #define OMNI_CONTACT_SHADOWS_CALC
+            #define OMNI_CONTACT_SHADOWS_CALC
+          #endif
+          #if SPOT_CONTACT_SHADOWS
+            #define SPOT_CONTACT_SHADOWS_CALC \
+              BRANCH\
+              if (needsContactShadows)\
+              {\
+                float2 hitUV;\
+                float contactShadow = contactShadowRayCast(downsampled_far_depth_tex, downsampled_far_depth_tex_samplerstate, contactStartCameraToPoint, normalize(lightPosRadius.xyz-worldPos.xyz),\
+                  w*0.2, 8, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, float2(3,2));\
+                spotShadow *= contactShadow;\
+              }
+          #else
+            #define SPOT_CONTACT_SHADOWS_CALC
           #endif
           half3 dynamicLighting = 0;
           uint sliceId = min(getSliceAtDepth(w, depthSliceScale, depthSliceBias), CLUSTERS_D);
@@ -129,9 +147,9 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
               RenderSpotLight sl = spot_lights_cb[spot_light_index];
               float4 lightPosRadius = sl.lightPosRadius;
               float4 lightColor = sl.lightColorAngleScale;
-              lightColor.w = abs(lightColor.w);
               float4 lightDirection = sl.lightDirectionAngleOffset;
-              float2 texId_scale = sl.texId_scale.xy;
+              float2 texId_scale = sl.texId_scale_shadow_contactshadow.xy;
+              bool needsContactShadows = sl.texId_scale_shadow_contactshadow.w != 0;
 
               #define EXIT_STATEMENT continue
               #ifndef SPOT_SHADOWS
@@ -142,7 +160,7 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
             }
           }
           //dynamicLighting += ((clusterGrid[clusterIndex].counts>>8)&0xFF)/8.0;
-          half pointLightsFinalAO = (enviAO*0.5+0.5);//we use ssao, since we use it in point_lights.dshl (works slow, but not much lights are there)
+          half pointLightsFinalAO = (enviAO*point_lights_ao_effect.x + point_lights_ao_effect.y);//we use ssao, since we use it in point_lights.dshl (works slow, but not much lights are there)
           result += dynamicLighting*pointLightsFinalAO;
         }
       ##endif

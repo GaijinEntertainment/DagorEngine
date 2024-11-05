@@ -1,0 +1,1 @@
+include %daslib/is_local.das

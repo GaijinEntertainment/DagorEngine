@@ -1,6 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <shaders/dag_dynShaderBuf.h>
 #include <3d/dag_ringDynBuf.h>
 #include <3d/dag_quadIndexBuffer.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
 
 //
 // Dynamic VB/IB for mesh rendering with arbitrary shader

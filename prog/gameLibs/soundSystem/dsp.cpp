@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_critSec.h>
 #include <fmod_studio.hpp>
 #include <fmod_studio_common.h>

@@ -1,5 +1,11 @@
-#include "device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_adjpow2.h>
+#include "globals.h"
+#include "device_memory.h"
+#include "device_memory_pages.h"
+#include "buffer_resource.h"
+#include "resource_manager.h"
 
 using namespace drv3d_vulkan;
 
@@ -73,8 +79,7 @@ uint32_t DeviceMemoryPage::getCatIdx(uint32_t allocator_idx) { return allocator_
 
 bool DeviceMemoryPage::init(AbstractAllocator *allocator, SubAllocationMethod suballoc_method, VkDeviceSize in_size)
 {
-  Device &drvDev = get_device();
-  VulkanDevice &vkDev = drvDev.getVkDevice();
+  VulkanDevice &vkDev = Globals::VK::dev;
   subType = suballoc_method;
   VkDeviceSize correctedSize = in_size;
 
@@ -86,7 +91,7 @@ bool DeviceMemoryPage::init(AbstractAllocator *allocator, SubAllocationMethod su
     bci.pNext = NULL;
     bci.flags = 0;
     bci.size = in_size;
-    bci.usage = Buffer::getUsage(vkDev, drvDev.memory->isDeviceLocalMemoryType(allocator->getMemType())
+    bci.usage = Buffer::getUsage(vkDev, Globals::Mem::pool.isDeviceLocalMemoryType(allocator->getMemType())
                                           ? DeviceMemoryClass::DEVICE_RESIDENT_BUFFER
                                           : DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER);
     bci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -109,7 +114,7 @@ bool DeviceMemoryPage::init(AbstractAllocator *allocator, SubAllocationMethod su
   devMemDsc.typeIndex = allocator->getMemType();
   devMemDsc.size = correctedSize;
 
-  mem = drvDev.memory->allocate(devMemDsc);
+  mem = Globals::Mem::pool.allocate(devMemDsc);
   if (is_null(mem))
     return false;
 
@@ -130,11 +135,11 @@ void DeviceMemoryPage::shutdown()
 {
   if (buffer)
   {
-    VulkanDevice &vkDev = get_device().getVkDevice();
+    VulkanDevice &vkDev = Globals::VK::dev;
     vkDev.vkDestroyBuffer(vkDev.get(), buffer, nullptr);
     buffer = VulkanNullHandle();
   }
-  get_device().memory->free(mem);
+  Globals::Mem::pool.free(mem);
   mem.memory = VulkanNullHandle();
 }
 

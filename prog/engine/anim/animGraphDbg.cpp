@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <anim/dag_animBlend.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_geomTree.h>
@@ -168,7 +170,7 @@ const DataBlock *AnimV20::AnimationGraph::getDebugBlenderState(AnimV20::AnimDbgC
   mem_set_0(ctx->abnWt);
   IAnimBlendNode::BlendCtx bctx(st, tlsCtx, true);
   bctx.abnWt = ctx->abnWt.data();
-  root->buildBlendingList(bctx, 1.0);
+  root->buildBlendingList(bctx, 1.0f);
 
   int ord = 0;
   ctx->abnActive->setStr("root", getBlendNodeName(root));

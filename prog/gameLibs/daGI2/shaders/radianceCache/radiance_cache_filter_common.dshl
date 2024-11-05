@@ -1,0 +1,98 @@
+include "radiance_cache_trace_common.dshl"
+include "radiance_cache_sample.dshl"
+include "radiance_cache_recalc_common.dshl"
+
+macro GET_SPATIAL_FILTERED_RADIANCE_CACHE(code)
+  RADIANCE_CACHE_CLIPMAP_ATLAS_MATH(code)
+  RADIANCE_CACHE_POSITIONS_SRV(code)
+  RADIANCE_CACHE_POSITIONS_READ(code)
+
+  RADIANCE_CACHE_AGE_SRV(code)
+  RADIANCE_CACHE_AGE_READ(code)
+  RADIANCE_CACHE_INDIRECTION_SRV(code)
+  SAMPLE_RADIANCE_CACHE_CODE(cs)
+
+  (code)
+  {
+    //radiance_cache_current_frame@i1 = radiance_cache_current_frame;
+    //radiance_cache_temporal_recalc_params@i4 = radiance_cache_temporal_recalc_params;
+    //radiance_cache_temporal_recalc_params2@i4 = radiance_cache_temporal_recalc_params2;
+    current_radiance_cache_hit_distance@smp2d = current_radiance_cache_hit_distance;
+  }
+  hlsl(code) {
+    #include <fast_shader_trig.hlsl>
+    void add_spatial_radiance(float3 worldPos, float3 rayDir, int3 baseWorldCoord, int3 ofs, uint radianceCacheClip, float probeSize, uint2 atlasProbeCoord, uint2 octCoord, inout float3 radiance, inout float totalW, float cW = 1)
+    {
+      int3 probeWorldCoordClip = baseWorldCoord + ofs;
+      if (any(uint3(probeWorldCoordClip - sample_radiance_cache_clipmap_lt_coord(radianceCacheClip).xyz) >= get_radiance_cache_clip_size().xxy))
+        return;
+      uint radianceCacheProbeIndex = radiance_cache_indirection_from_clip_addr(radiance_cache_indirection_clipmap, get_radiance_cache_buffer_addr(radiance_cache_wrapped_coord_from_abs_coord(probeWorldCoordClip), radianceCacheClip));
+      if (radianceCacheProbeIndex == INVALID_RADIANCE_CACHE_PROBE_INDEX)
+        return;
+      uint2 atlasCoord = uint2(radianceCacheProbeIndex%get_radiance_cache_atlas_dim().x, radianceCacheProbeIndex/get_radiance_cache_atlas_dim().x);
+      uint2 targetCoord = atlasCoord*RADIANCE_CACHE_RADIANCE_RES + octCoord;
+
+      float3 probeWorldPos = radiance_cache_probe_world_pos_from_abs_coord(probeWorldCoordClip.xyz, radianceCacheClip);
+      float neighboorHitDist = RADIANCE_CACHE_MAX_ENCODED_DIST * texture2DAt(current_radiance_cache_hit_distance, targetCoord).x;
+      float3 neighborHitPos = probeWorldPos + rayDir * neighboorHitDist;
+      float neighborAngle = acosFast4(dot(normalize(neighborHitPos - worldPos), rayDir));
+      float invSpatialAngleWeight = 1./4;
+      float angleWeight = 1.0f - saturate(neighborAngle * invSpatialAngleWeight);
+      float3 neighborHitDir = neighborHitPos - worldPos;
+      float pointDist = length(neighborHitDir);neighborHitDir /= max(1e-6, pointDist);
+      float2 hitTc = clamp(radiance_cache_dir_encode(neighborHitDir)*0.5 + 0.5, 0.5/RADIANCE_CACHE_RADIANCE_RES, 1 - 0.5/RADIANCE_CACHE_RADIANCE_RES);
+      float probeOccluderDist = tex2Dlod(current_radiance_cache_hit_distance, float4((hitTc + atlasProbeCoord)/get_radiance_cache_atlas_dim().xy, 0, 0)).x;
+      //add occlusion weight of neighborHitPos from our probe
+      float biasOcclusionScale = 3;
+      probeOccluderDist *= RADIANCE_CACHE_MAX_ENCODED_DIST*biasOcclusionScale;
+      float occW = saturate(exp2(2*min(0, pow2(probeOccluderDist) - pow2(pointDist))));
+      //occW = 1;
+      //angleWeight = 1;
+      angleWeight *= occW*cW;
+      if (angleWeight == 0)
+        return;
+
+      float3 neighboorRadiance = load_radiance_cache_radiance_load(targetCoord);
+      radiance += angleWeight*get_radiance_cache_radiance(radianceCacheProbeIndex, octCoord, 0, worldPos, rayDir);
+      totalW += angleWeight;
+    }
+    float3 get_spatial_filtered_radiance(uint radianceCacheProbeIndex, uint2 octCoord, out uint2 targetCoord)
+    {
+      uint2 radianceCacheAtlasProbeCoord = uint2(radianceCacheProbeIndex%get_radiance_cache_atlas_dim().x, radianceCacheProbeIndex/get_radiance_cache_atlas_dim().x);
+      uint4 probeWrappedPosId = radiance_cache_get_wrapped_coord(radianceCacheProbeIndex);//fixme: may be remove and encode in same selected_temporal_probes ?
+
+      uint radianceCacheClip = uint(probeWrappedPosId.w);
+      //end of per group operations
+
+      int3 probeWorldCoordClip = radiance_cache_abs_coord_from_wrapped_coord(probeWrappedPosId.xyz, radianceCacheClip);
+      float3 worldPos = radiance_cache_probe_world_pos_from_abs_coord(probeWorldCoordClip, radianceCacheClip);
+
+      targetCoord = radianceCacheAtlasProbeCoord*RADIANCE_CACHE_RADIANCE_RES + octCoord;
+      //return load_radiance_cache_radiance_load(targetCoord);
+      float totalW = 1;
+      float3 radiance = totalW*load_radiance_cache_radiance_load(targetCoord);
+      float probeSize = radiance_cache_probe_world_size(radianceCacheClip);
+      //float currentDistance = RADIANCE_CACHE_MAX_ENCODED_DIST*current_radiance_cache_hit_distance[targetCoord].x;
+      float2 octC = ((octCoord + 0.5)/RADIANCE_CACHE_RADIANCE_RES)*2-1;//fixme: one madd
+      float3 rayDir = radiance_cache_dir_decode(octC);
+      /*UNROLL
+      for (uint i = 0; i < 27; ++i)
+        if (i != 1 + 1*3 + 1*9)
+        {
+          int3 ofs = int3(i%3,(i/3)%3,i/9) - 1;
+          float w = exp2(-2*dot(ofs, ofs));
+          add_spatial_radiance(worldPos, rayDir, probeWorldCoordClip, ofs, radianceCacheClip, probeSize, radianceCacheAtlasProbeCoord, octCoord, radiance, totalW, w);
+        }
+      return radiance/totalW;*/
+
+      float cw = 1./6;
+      add_spatial_radiance(worldPos, rayDir, probeWorldCoordClip, int3(-1,0,0), radianceCacheClip, probeSize, radianceCacheAtlasProbeCoord, octCoord, radiance, totalW, cw);
+      add_spatial_radiance(worldPos, rayDir, probeWorldCoordClip, int3(+1,0,0), radianceCacheClip, probeSize, radianceCacheAtlasProbeCoord, octCoord, radiance, totalW, cw);
+      add_spatial_radiance(worldPos, rayDir, probeWorldCoordClip, int3(0,-1,0), radianceCacheClip, probeSize, radianceCacheAtlasProbeCoord, octCoord, radiance, totalW, cw);
+      add_spatial_radiance(worldPos, rayDir, probeWorldCoordClip, int3(0,+1,0), radianceCacheClip, probeSize, radianceCacheAtlasProbeCoord, octCoord, radiance, totalW, cw);
+      add_spatial_radiance(worldPos, rayDir, probeWorldCoordClip, int3(0,0,-1), radianceCacheClip, probeSize, radianceCacheAtlasProbeCoord, octCoord, radiance, totalW, cw);
+      add_spatial_radiance(worldPos, rayDir, probeWorldCoordClip, int3(0,0,+1), radianceCacheClip, probeSize, radianceCacheAtlasProbeCoord, octCoord, radiance, totalW, cw);
+      return radiance/totalW;
+    }
+  }
+endmacro

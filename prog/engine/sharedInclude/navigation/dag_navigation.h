@@ -1,6 +1,5 @@
-
-#ifndef _NAV_H_
-#define _NAV_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #include <navigation/dag_navInterface.h>
 #include <generic/dag_tab.h>
@@ -328,6 +327,3 @@ public:
 private:
   Tab<T> items;
 };
-
-
-#endif // _NAV_H_

@@ -1,12 +1,19 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <generic/dag_tabWithLock.h>
 #include <render/clipmapDecals.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/random/dag_random.h>
 #include <shaders/dag_shaders.h>
+#include <shaders/dag_overrideStates.h>
 #include <generic/dag_range.h>
 #include <debug/dag_log.h>
 #include <debug/dag_debug.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <3d/dag_render.h>
 #include <3d/dag_materialData.h>
 #include <math/dag_bounds2.h>
@@ -23,6 +30,7 @@
 #include <math/dag_bounds2.h>
 #include <3d/dag_quadIndexBuffer.h>
 #include <util/dag_console.h>
+#include <debug/dag_debug3d.h>
 
 static const char *clipmap_decals_config_filename = "gamedata/clipmap_decals.blk";
 
@@ -87,6 +95,10 @@ void ClipmapDecals::init(bool stub_render_mode, const char *shader_name)
     DataBlock paramsBlk(clipmap_decals_config_filename);
     initDecalTypes(paramsBlk);
   }
+  d3d::SamplerHandle defaultSampler = d3d::request_sampler({});
+  ShaderGlobal::set_sampler(::get_shader_variable_id("clipmap_decal_diffuse_tex_samplerstate", true), defaultSampler);
+  ShaderGlobal::set_sampler(::get_shader_variable_id("clipmap_decal_normal_tex_samplerstate", true), defaultSampler);
+  ShaderGlobal::set_sampler(::get_shader_variable_id("clipmap_decal_material_tex_samplerstate", true), defaultSampler);
 }
 
 // release system
@@ -387,7 +399,6 @@ void ClipmapDecals::createDecal(int decalType, const Point2 &pos, float rot, con
   decal.pos = pos;
   decal.localX = size.x * Point2(cos(rot), sin(rot));
   decal.localY = size.y * Point2(-sin(rot), cos(rot));
-  decal.lifetime = 100;
 
   // bbox for clipmap update
   Point2 cornersOfs = Point2(abs(decal.localX.x) + abs(decal.localY.x), abs(decal.localX.y) + abs(decal.localY.y));
@@ -569,6 +580,60 @@ void ClipmapDecals::clear_updated_regions()
   }
 }
 
+#if DAGOR_DBGLEVEL > 0
+void ClipmapDecals::drawDebug(HeightFunction height_map_cb)
+{
+  if (inited && needDrawDebug)
+  {
+    for (int i = 0; i < typesCount; ++i)
+    {
+      ClipmapDecalType &decalType = *decalTypes[i];
+      for (int j = 0; j < decalType.activeCount; ++j)
+      {
+        float height = height_map_cb(decalType.decals[j].pos);
+        Point3 position = Point3::xVy<Point2>(decalType.decals[j].pos, height);
+
+        Point3 lim0 = position + Point3(decalType.decals[j].localX.x, 0, decalType.decals[j].localX.y) +
+                      Point3(decalType.decals[j].localY.x, 0, decalType.decals[j].localY.y);
+        height = height_map_cb(Point2(lim0.x, lim0.z));
+        lim0.y = height + 1.0f;
+        Point3 lim1 = position + Point3(decalType.decals[j].localX.x, 0, decalType.decals[j].localX.y) -
+                      Point3(decalType.decals[j].localY.x, 0, decalType.decals[j].localY.y);
+        height = height_map_cb(Point2(lim1.x, lim1.z));
+        lim1.y = height + 1.0f;
+
+        Point3 lim2 = position - Point3(decalType.decals[j].localX.x, 0, decalType.decals[j].localX.y) -
+                      Point3(decalType.decals[j].localY.x, 0, decalType.decals[j].localY.y);
+        height = height_map_cb(Point2(lim2.x, lim2.z));
+        lim2.y = height + 1.0f;
+        Point3 lim3 = position - Point3(decalType.decals[j].localX.x, 0, decalType.decals[j].localX.y) +
+                      Point3(decalType.decals[j].localY.x, 0, decalType.decals[j].localY.y);
+        height = height_map_cb(Point2(lim3.x, lim3.z));
+        lim3.y = height + 1.0f;
+
+        float highestPoint = max(lim0.y, max(lim1.y, max(lim2.y, lim3.y)));
+
+        // fake legs for decals (link it to ground)
+        draw_debug_line_buffered(Point3::xVz<Point3>(lim0, highestPoint), Point3::xVz<Point3>(lim0, lim0.y - 2.0f),
+          E3DCOLOR_MAKE(255, 255, 255, 255), 1u);
+        draw_debug_line_buffered(Point3::xVz<Point3>(lim1, highestPoint), Point3::xVz<Point3>(lim1, lim1.y - 2.0f),
+          E3DCOLOR_MAKE(255, 255, 255, 255), 1u);
+        draw_debug_line_buffered(Point3::xVz<Point3>(lim2, highestPoint), Point3::xVz<Point3>(lim2, lim2.y - 2.0f),
+          E3DCOLOR_MAKE(255, 255, 255, 255), 1u);
+        draw_debug_line_buffered(Point3::xVz<Point3>(lim3, highestPoint), Point3::xVz<Point3>(lim3, lim3.y - 2.0f),
+          E3DCOLOR_MAKE(255, 255, 255, 255), 1u);
+
+        lim0.y = lim1.y = lim2.y = lim3.y = highestPoint;
+        draw_debug_line_buffered(lim0, lim1, E3DCOLOR_MAKE(255, 255, 255, 255), 1u);
+        draw_debug_line_buffered(lim1, lim2, E3DCOLOR_MAKE(255, 255, 255, 255), 1u);
+        draw_debug_line_buffered(lim2, lim3, E3DCOLOR_MAKE(255, 255, 255, 255), 1u);
+        draw_debug_line_buffered(lim3, lim0, E3DCOLOR_MAKE(255, 255, 255, 255), 1u);
+      }
+    }
+  }
+}
+#endif
+
 int ClipmapDecals::getDecalTypeIdByName(const char *decal_type_name)
 {
   auto iter = decalTypesByName.find(decal_type_name);
@@ -680,6 +745,13 @@ void set_camera_position(Point3 pos)
   if (clipmapDecals)
     clipmapDecals->setCameraPosition(pos);
 }
+#if DAGOR_DBGLEVEL > 0
+void draw_debug(HeightFunction height_map_cb)
+{
+  if (clipmapDecals)
+    clipmapDecals->drawDebug(height_map_cb);
+}
+#endif
 } // namespace clipmap_decals_mgr
 
 
@@ -695,6 +767,17 @@ static bool clipmap_decals_console_handler(const char *argv[], int argc)
     }
     clipmap_decals_mgr::clipmapDecals->initDecalTypes(DataBlock(clipmap_decals_config_filename));
     clipmap_decals_mgr::clipmapDecals->updated_regions.push_back(BBox2(Point2(0.0, 0.0), 10000.0));
+  }
+  CONSOLE_CHECK_NAME("clipmap_decals", "debug", 1, 2)
+  {
+    if (argc == 1)
+    {
+      clipmap_decals_mgr::clipmapDecals->setNeedDrawDebug(!clipmap_decals_mgr::clipmapDecals->getNeedDrawDebug());
+    }
+    else
+    {
+      clipmap_decals_mgr::clipmapDecals->setNeedDrawDebug(atoi(argv[1]) != 0);
+    }
   }
   return found;
 }

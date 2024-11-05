@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <util/dag_globDef.h>
@@ -33,7 +35,7 @@ int debug_internal::append_files_stage = 0;
 
 #if DAGOR_DBGLEVEL > 0 || DAGOR_FORCE_LOGS
 static int logimpl_ctors_inited = 0;
-debug_log_callback_t debug_internal::log_callback = NULL;
+volatile debug_log_callback_t debug_internal::log_callback = NULL;
 
 thread_local debug_internal::Context debug_internal::dbg_ctx;
 bool debug_internal::timestampEnabled = true;
@@ -60,7 +62,7 @@ static struct CritSecGlobal : public CritSecStorage
   CritSecGlobal() { create_critical_section(this); }
 } writeCS; // never destroyed b/c it can be used really late (after all static dtors) (TODO: do noop locking in this case)
 
-#if DAGOR_FORCE_LOGS && _TARGET_ANDROID
+#if DAGOR_FORCE_LOGS && (_TARGET_ANDROID || _TARGET_IOS)
 #define CRYPT_LOG_AVAILABLE 1
 #else
 #define CRYPT_LOG_AVAILABLE 0
@@ -122,7 +124,8 @@ int uncrypt_out_str(unsigned char *, size_t, int) { return 0; }
 extern char ios_global_log_fname[];
 static FILE *ios_global_fp = NULL;
 #elif _TARGET_XBOX
-static file_ptr_t xbox_debug_file = NULL;
+static FILE *xbox_debug_file = NULL;
+static bool file_was_created_this_launch = false;
 #endif
 
 #define PFUN(fmt, ...)                                                                 \
@@ -200,15 +203,32 @@ static const char *xbox_get_log_fn()
 }
 #endif
 
-static void log_write(const char *data, size_t len)
+static void log_write(char *data, size_t len)
 {
+#if CRYPT_LOG_AVAILABLE
+  WinAutoLock lock(writeCS);
+
+  PUT_TO_TAIL_BUF(data, len);
+
+  const int keyOffset = cryptLog.cur;
+  crypt_out_str((unsigned char *)data, len);
+#endif
+
 #if _TARGET_C1 || _TARGET_C2 || _TARGET_C3
 
 #elif _TARGET_XBOX
   if (!xbox_debug_file)
-    xbox_debug_file = df_open(xbox_get_log_fn(), DF_WRITE | DF_CREATE);
+  {
+    const char *mode = file_was_created_this_launch ? "at" : "wt";
+    xbox_debug_file = fopen(xbox_get_log_fn(), mode);
+    if (xbox_debug_file)
+      file_was_created_this_launch = true;
+  }
   if (xbox_debug_file)
-    df_write(xbox_debug_file, data, len);
+  {
+    fwrite(data, 1, len, xbox_debug_file);
+    fflush(xbox_debug_file);
+  }
   out_debug_str(data); // There is no XR-008 anymore.
 
 #elif _TARGET_IOS | _TARGET_TVOS
@@ -227,19 +247,30 @@ static void log_write(const char *data, size_t len)
       }
     }
     if (ios_global_fp)
-      fprintf(ios_global_fp, "%s", data);
+    {
+      fwrite(data, 1, len, ios_global_fp);
+      fflush(ios_global_fp);
+    }
   }
-  else
+  if (is_enabled_copy_debug_to_ios_console() || !is_debug_console_ios_file_output())
 #endif
   {
     static aslclient client = asl_open(NULL, "com.apple.console", 0);
-    asl_log(client, NULL, ASL_LEVEL_NOTICE, "%s", data);
+#if CRYPT_LOG_AVAILABLE
+    if (cryptLog)
+    {
+      uncrypt_out_str((unsigned char *)data, len, keyOffset);
+
+      asl_log(client, NULL, ASL_LEVEL_NOTICE, "%s", data);
+    }
+    else
+#endif
+      asl_log(client, NULL, ASL_LEVEL_NOTICE, "%s", data);
 #if _TARGET_TVOS
     debug_internal::debug_log_tvos(data);
 #endif
   }
 #elif CRYPT_LOG_AVAILABLE
-  WinAutoLock lock(writeCS);
   if (!cryptLog)
   {
     out_debug_str(data);
@@ -334,15 +365,6 @@ void debug_internal::vlog(int tag, const char *format, const void *arg, int anum
         *pos = '*';
 #endif
 
-#if CRYPT_LOG_AVAILABLE
-    PUT_TO_TAIL_BUF(buf, bufLen + (int)addSlashN);
-
-    {
-      WinAutoLock lock(writeCS);
-      crypt_out_str((unsigned char *)buf, bufLen + (int)addSlashN);
-    }
-#endif
-
     log_write(buf, bufLen + (int)addSlashN);
     buf[0] = 0;
   }
@@ -384,6 +406,8 @@ void __log_set_ctx(const char *fn, int ln, int, bool new_ln)
   (&debug_internal::dbg_ctx)->holdLine = !new_ln;
 }
 void __log_set_ctx_ln(bool new_ln) { (&debug_internal::dbg_ctx)->holdLine = !new_ln; }
+void __log_set_ctx_hash(unsigned int new_hash) { (&debug_internal::dbg_ctx)->hash = new_hash; }
+unsigned int __log_get_ctx_hash() { return (&debug_internal::dbg_ctx)->hash; }
 
 void __debug_cp(const char *fn, int ln)
 {
@@ -445,8 +469,8 @@ ret_l:
   if (r && dgs_on_promoted_log_tag && feq(tag, promoted_tags, countof(promoted_tags)))
     (*dgs_on_promoted_log_tag)(tag, fmt, arg, anum);
 
-  if (debug_internal::log_callback)
-    r = debug_internal::log_callback(tag, fmt, arg, anum, (&dbg_ctx)->file, (&dbg_ctx)->line) > 0;
+  if (debug_log_callback_t cb = interlocked_relaxed_load_ptr(debug_internal::log_callback))
+    r = cb(tag, fmt, arg, anum, (&dbg_ctx)->file, (&dbg_ctx)->line) > 0;
   return r;
 }
 
@@ -589,13 +613,13 @@ void force_debug_flush(bool) {}
 void flush_debug_file()
 {
   if (xbox_debug_file)
-    df_flush(xbox_debug_file);
+    fflush(xbox_debug_file);
 }
 
 void debug_flush(bool)
 {
   if (xbox_debug_file)
-    df_flush(xbox_debug_file);
+    fflush(xbox_debug_file);
 }
 
 void force_debug_flush(bool) {}
@@ -603,7 +627,7 @@ void force_debug_flush(bool) {}
 void close_debug_files()
 {
   if (xbox_debug_file)
-    df_close(xbox_debug_file);
+    fclose(xbox_debug_file);
   xbox_debug_file = NULL;
 }
 
@@ -637,8 +661,7 @@ const char *get_log_filename()
 
 debug_log_callback_t debug_set_log_callback(debug_log_callback_t cb)
 {
-  debug_log_callback_t prev = debug_internal::log_callback;
-  debug_internal::log_callback = cb;
+  debug_log_callback_t prev = interlocked_exchange_ptr(debug_internal::log_callback, cb);
   return prev;
 }
 #endif // DAGOR_DBGLEVEL > 0 || DAGOR_FORCE_LOGS

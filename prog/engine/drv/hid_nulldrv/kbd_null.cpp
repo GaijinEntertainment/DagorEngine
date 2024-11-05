@@ -1,6 +1,8 @@
-#include <humanInput/dag_hiKeyboard.h>
-#include <humanInput/dag_hiGlobals.h>
-#include <humanInput/dag_hiCreate.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/hid/dag_hiKeyboard.h>
+#include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiCreate.h>
 #include <string.h>
 
 using namespace HumanInput;
@@ -37,3 +39,5 @@ IGenKeyboardClassDrv *HumanInput::createNullKeyboardClassDriver()
   memset(&raw_state_kbd, 0, sizeof(raw_state_kbd));
   return &drv;
 }
+
+bool HumanInput::keyboard_has_ime_layout() { return false; }

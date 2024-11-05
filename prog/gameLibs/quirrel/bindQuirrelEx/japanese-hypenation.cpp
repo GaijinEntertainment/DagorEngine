@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hypenation.h"
 #include <stdio.h>
 #include <signal.h>
@@ -49,7 +51,7 @@ static const unsigned short cannot_be_at_end[] = {
 #define IS_WESTERN(x)   (IS_WESTERN_1(x) || IS_WESTERN_2(x) || IS_WESTERN_3(x) || IS_WESTERN_4(x))
 
 
-static bool can_break(unsigned short first, unsigned short second)
+static bool can_break(unsigned int first, unsigned int second)
 {
   if (first == '\t' || first == L'\u200B')
     return false;
@@ -82,13 +84,10 @@ static bool can_break(unsigned short first, unsigned short second)
   return false;
 }
 
-unsigned short read_utf8(const char *&ptr)
+unsigned int read_utf8(const char *&ptr)
 {
-  unsigned short ret = 0;
+  unsigned int ret = 0;
   unsigned char c = *ptr++;
-
-  if ((c & 0xF0) == 0xF0)
-    DAG_FATAL("can't process more than 3-byte UTF8");
 
   if ((c & 0x80) == 0)
     ret = c;
@@ -97,16 +96,23 @@ unsigned short read_utf8(const char *&ptr)
     unsigned char c2 = *ptr++;
     ret = ((c & 0x1F) << 6) + (c2 & 0x3F);
   }
-  else
+  else if ((c & 0xF0) == 0xE0)
   {
     unsigned char c2 = *ptr++;
     unsigned char c3 = *ptr++;
     ret = ((c & 0x0F) << 12) + ((c2 & 0x3F) << 6) + (c3 & 0x3F);
   }
+  else
+  {
+    unsigned char c2 = *ptr++;
+    unsigned char c3 = *ptr++;
+    unsigned char c4 = *ptr++;
+    ret = ((c & 0x07) << 18) + ((c2 & 0x3F) << 12) + ((c3 & 0x3F) << 6) + (c4 & 0x3F);
+  }
   return ret;
 }
 
-void write_utf8(unsigned short val, char *&ptr)
+void write_utf8(unsigned int val, char *&ptr)
 {
   if (val < 0x0080)
   {
@@ -117,11 +123,18 @@ void write_utf8(unsigned short val, char *&ptr)
     *ptr++ = 0xC0 + (val >> 6);
     *ptr++ = 0x80 + (val & 0x3F);
   }
-  else
+  else if (val < 0x10000)
   {
     *ptr++ = 0xE0 + ((val >> 12) & 0x0F);
     *ptr++ = 0x80 + ((val >> 6) & 0x3F);
-    *ptr++ = 0x80 + ((val)&0x3F);
+    *ptr++ = 0x80 + (val & 0x3F);
+  }
+  else
+  {
+    *ptr++ = 0xF0 + ((val >> 18) & 0x07);
+    *ptr++ = 0x80 + ((val >> 12) & 0x3F);
+    *ptr++ = 0x80 + ((val >> 6) & 0x3F);
+    *ptr++ = 0x80 + (val & 0x3F);
   }
 }
 

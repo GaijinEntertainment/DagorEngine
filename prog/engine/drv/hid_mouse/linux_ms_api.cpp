@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/setProgGlobals.h>
 #include "api_wrappers.h"
 #include <debug/dag_debug.h>
@@ -92,10 +94,18 @@ void mouse_api_ClipCursorToAppWindow()
   Window *window = (Window *)win32_get_main_wnd();
 
   if (window)
+  {
     XSetInputFocus(display, *window, RevertToParent, CurrentTime);
+    XGrabPointer(display, *window, 0, ButtonPressMask | ButtonReleaseMask | PointerMotionMask | ButtonMotionMask, GrabModeAsync,
+      GrabModeAsync, *window, None, CurrentTime);
+  }
 }
 
-void mouse_api_UnclipCursor() {}
+void mouse_api_UnclipCursor()
+{
+  Display *display = workcycle_internal::get_root_display();
+  XUngrabPointer(display, CurrentTime);
+}
 
 void mouse_api_SetCapture(void *wnd) { G_UNREFERENCED(wnd); }
 

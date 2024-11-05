@@ -146,7 +146,7 @@ void MotorcycleController::PreCollide(float inDeltaTime, PhysicsSystem &inPhysic
 	// TurnRadius = WheelBase / (Sin(SteerAngle) * Cos(CasterAngle))
 	// => SteerAngle = ASin(WheelBase * Tan(LeanAngle) * Gravity / (Velocity^2 * Cos(CasterAngle))
 	// The caster angle is different for each wheel so we can only calculate part of the equation here
-	float max_steer_angle_factor = wheel_base * Tan(mMaxLeanAngle) * inPhysicsSystem.GetGravity().Length();
+	float max_steer_angle_factor = wheel_base * Tan(mMaxLeanAngle) * (mConstraint.IsGravityOverridden()? mConstraint.GetGravityOverride() : inPhysicsSystem.GetGravity()).Length();
 
 	// Calculate forward velocity
 	float velocity = body->GetLinearVelocity().Dot(forward);
@@ -171,7 +171,8 @@ void MotorcycleController::PreCollide(float inDeltaTime, PhysicsSystem &inPhysic
 			float steer_angle = steer_strength * w->GetSettings()->mMaxSteerAngle;
 
 			// Clamp to max steering angle
-			if (velocity_sq > 1.0e-6f && cos_caster_angle > 1.0e-6f)
+			if (mEnableLeanSteeringLimit
+				&& velocity_sq > 1.0e-6f && cos_caster_angle > 1.0e-6f)
 			{
 				float max_steer_angle = ASin(max_steer_angle_factor / (velocity_sq * cos_caster_angle));
 				steer_angle = min(steer_angle, max_steer_angle);
@@ -259,14 +260,14 @@ bool MotorcycleController::SolveLongitudinalAndLateralConstraints(float inDeltaT
 	return impulse;
 }
 
-void MotorcycleController::SaveState(StateRecorder& inStream) const
+void MotorcycleController::SaveState(StateRecorder &inStream) const
 {
 	WheeledVehicleController::SaveState(inStream);
 
 	inStream.Write(mTargetLean);
 }
 
-void MotorcycleController::RestoreState(StateRecorder& inStream)
+void MotorcycleController::RestoreState(StateRecorder &inStream)
 {
 	WheeledVehicleController::RestoreState(inStream);
 

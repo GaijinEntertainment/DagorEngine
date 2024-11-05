@@ -1,11 +1,14 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <workCycle/dag_startupModules.h>
 #include <startup/dag_restart.h>
-#include <humanInput/dag_hiCreate.h>
-#include <humanInput/dag_hiPointing.h>
+#include <drv/hid/dag_hiCreate.h>
+#include <drv/hid/dag_hiPointing.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <generic/dag_initOnDemand.h>
 #include "workCyclePriv.h"
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_driver.h>
 
 class MouseRestartProcWnd : public SRestartProc
 {

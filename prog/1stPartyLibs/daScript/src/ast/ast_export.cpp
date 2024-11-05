@@ -157,11 +157,18 @@ namespace das {
             func->useFunctions.clear();
             func->useGlobalVariables.clear();
             func->used = false;
+            func->callCaptureString = false;
+            func->hasStringBuilder = false;
             DAS_ASSERTF(!func->builtIn, "visitor should never call 'visit' on builtin function at top level.");
         }
         virtual FunctionPtr visit(Function * that) override {
             func.reset();
             return Visitor::visit(that);
+        }
+        // string builder
+        virtual void preVisit ( ExprStringBuilder * expr ) override {
+            Visitor::preVisit(expr);
+            if (func) func->hasStringBuilder = true;
         }
         // variable
         virtual void preVisit(ExprVar * expr) override {
@@ -191,6 +198,9 @@ namespace das {
         virtual void preVisit(ExprCall * call) override {
             Visitor::preVisit(call);
             if ( !call->func ) return;
+            if ( func && call->func->captureString ) {
+                func->callCaptureString = true;
+            }
             if (builtInDependencies || !call->func->builtIn) {
                 if (func) {
                     func->useFunctions.insert(call->func);
@@ -210,6 +220,16 @@ namespace das {
                     } else if (gVar) {
                         gVar->useFunctions.insert(call->func);
                     }
+                }
+            }
+        }
+        virtual void preVisit(ExprMakeStruct * call) override {
+            Visitor::preVisit(call);
+            if ( call->constructor ) {
+                if (func) {
+                    func->useFunctions.insert(call->constructor);
+                } else if (gVar) {
+                    gVar->useFunctions.insert(call->constructor);
                 }
             }
         }
@@ -324,7 +344,7 @@ namespace das {
         for (auto & pm : library.modules) {
             for ( auto & var : pm->globals.each() ) {
                 if ( var->used ) {
-                    logs << "let " << var->module->name << "::" << var->name << " : " << var->type->describe() << "\n";
+                    logs << "let " << var->module->name << "::" << var->name << ": " << var->type->describe() << "\n";
                 }
             }
             for ( auto & func : pm->functions.each() ) {

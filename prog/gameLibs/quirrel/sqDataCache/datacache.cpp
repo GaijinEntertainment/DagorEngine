@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_dataBlock.h>
 #include <memory/dag_framemem.h>
 #include <datacache/datacache.h>
@@ -6,6 +8,8 @@
 #include <sqEventBus/sqEventBus.h>
 #include <sqModules/sqModules.h>
 #include <sqDataCache/datacache.h>
+#include <util/dag_delayedAction.h>
+
 
 namespace bindquirrel
 {
@@ -22,7 +26,7 @@ static void send_evbus_resp_headers(const char *entry_key, streamio::StringMap c
     const eastl::string data(header.second.begin(), header.second.end());
     msg[key.c_str()] = data.c_str();
   }
-  sqeventbus::send_event(eventName.c_str(), msg);
+  run_action_on_main_thread([eventName, msg]() { sqeventbus::send_event(eventName.c_str(), msg); });
 }
 
 static void send_evbus_error(const char *entry_key, const char *err, datacache::ErrorCode error_code)
@@ -31,7 +35,7 @@ static void send_evbus_error(const char *entry_key, const char *err, datacache::
   Json::Value msg;
   msg["error"] = err;
   msg["error_code"] = error_code;
-  sqeventbus::send_event(eventName.c_str(), msg);
+  run_action_on_main_thread([eventName, msg]() { sqeventbus::send_event(eventName.c_str(), msg); });
   send_evbus_resp_headers(entry_key, streamio::StringMap{}); // send empty header for unsubscribe
 }
 
@@ -42,7 +46,7 @@ static void send_evbus_entry_info(const char *entry_key, datacache::Entry *entry
   msg["key"] = entry->getKey();
   msg["path"] = entry->getPath();
   msg["size"] = entry->getDataSize();
-  sqeventbus::send_event(eventName.c_str(), msg);
+  run_action_on_main_thread([eventName, msg]() { sqeventbus::send_event(eventName.c_str(), msg); });
   send_evbus_resp_headers(entry_key, streamio::StringMap{}); // send empty header for unsubscribe
 }
 
@@ -159,7 +163,8 @@ void bind_datacache(SqModules *module_mgr)
 {
   Sqrat::Table nsTbl(module_mgr->getVM());
   ///@module datacache
-  nsTbl.Func("init_cache", init_cache)
+  nsTbl //
+    .Func("init_cache", init_cache)
     .Func("request_entry", request_entry)
     .Func("abort_requests", abort_requests)
     .Func("del_entry", del_entry)
@@ -169,7 +174,8 @@ void bind_datacache(SqModules *module_mgr)
     .SetValue("ERR_PENDING", (SQInteger)datacache::ERR_PENDING)
     .SetValue("ERR_IO", (SQInteger)datacache::ERR_IO)
     .SetValue("ERR_ABORTED", (SQInteger)datacache::ERR_ABORTED)
-    .SetValue("ERR_MEMORY_LIMIT", (SQInteger)datacache::ERR_MEMORY_LIMIT);
+    .SetValue("ERR_MEMORY_LIMIT", (SQInteger)datacache::ERR_MEMORY_LIMIT)
+    /**/;
   module_mgr->addNativeModule("datacache", nsTbl);
 }
 

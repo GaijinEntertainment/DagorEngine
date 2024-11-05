@@ -1,6 +1,10 @@
 #pragma once
 
 #include <dag_noise/dag_uint_noise.h>
+#if (__clang_major__ < 12 || (__clang_major__ >= 17 && __clang_major__ <= 18)) && defined(__clang__) && defined(__FAST_MATH__)
+#include <cstring> // memcpy
+#include <cmath> // INFINITY
+#endif
 
 namespace das {
     __forceinline unsigned int uint_noise2D_int2(das::int2 pos, unsigned int seed)
@@ -56,9 +60,9 @@ namespace das {
     __forceinline vec4f normalize2(vec4f a){return v_norm2(a); }
     __forceinline vec4f normalize3(vec4f a){return v_norm3(a); }
     __forceinline vec4f normalize4(vec4f a){return v_norm4(a); }
-    __forceinline vec4f safe_normalize2(vec4f a){return v_norm2_safe(a);}
-    __forceinline vec4f safe_normalize3(vec4f a){return v_norm3_safe(a); }
-    __forceinline vec4f safe_normalize4(vec4f a){return v_norm4_safe(a); }
+    __forceinline vec4f safe_normalize2(vec4f a){return v_norm2_safe(a, v_make_vec4f(0.0f, 0.0f, 0.0f, 0.0f));}
+    __forceinline vec4f safe_normalize3(vec4f a){return v_norm3_safe(a, v_make_vec4f(0.0f, 0.0f, 0.0f, 0.0f));}
+    __forceinline vec4f safe_normalize4(vec4f a){return v_norm4_safe(a, v_make_vec4f(0.0f, 0.0f, 0.0f, 0.0f));}
 
     __forceinline vec4f cross3(vec4f a, vec4f b){vec4f v = v_cross3(a,b); return v;}
 
@@ -74,16 +78,34 @@ namespace das {
 #pragma float_control(push)
 #pragma float_control(precise, on)
 #endif
-#if __clang_major__ < 12 && defined(__clang__) && defined(__FAST_MATH__)
-    //unfortunately older clang versions do not work with float_control
+#if (__clang_major__ < 12 || (__clang_major__ >= 17 && __clang_major__ <= 18)) && defined(__clang__) && defined(__FAST_MATH__)
+    //unfortunately older clang versions do not work with float_control, and in clang 17-18.1 it's broken
     __forceinline DAS_FINITE_MATH bool   fisnan(float  a) { volatile float b = a; return b != a; }
     __forceinline DAS_FINITE_MATH bool   disnan(double  a) { volatile double b = a; return b != a; }
+    __forceinline DAS_FINITE_MATH bool   fisfinite(float a)
+    {
+      uint32_t i;
+      memcpy(&i, &a, sizeof(a));
+      i &= ~(1 << 31);
+      memcpy(&a, &i, sizeof(a));
+      static volatile float inf = INFINITY;
+      return a != inf;
+    }
+    __forceinline DAS_FINITE_MATH bool   disfinite(double a)
+    {
+      uint64_t i;
+      memcpy(&i, &a, sizeof(a));
+      i &= ~(1ull << 63);
+      memcpy(&a, &i, sizeof(a));
+      static volatile double inf = INFINITY;
+      return a != inf;
+    }
 #else
     ___noinline DAS_FINITE_MATH inline bool   fisnan(float  a) { return __builtin_isnan(a); }
     ___noinline DAS_FINITE_MATH inline bool   disnan(double  a) { return __builtin_isnan(a); }
-#endif
     ___noinline DAS_FINITE_MATH inline bool   fisfinite(float  a) { return __builtin_isfinite(a); }
     ___noinline DAS_FINITE_MATH inline bool   disfinite(double  a) { return __builtin_isfinite(a); }
+#endif
 #undef DAS_FINITE_MATH
 #if defined(__clang__) && !defined(__arm64__) && !defined(_TARGET_C3)
 #pragma float_control(pop)
@@ -113,6 +135,20 @@ namespace das {
     __forceinline double dtan  (double a){return tan(a);}
     __forceinline double datan (double a){return atan(a);}
     __forceinline double datan2(double a,double b){return atan2(a,b);}
+
+    __forceinline float fasin (float a){return asin(a);}
+    __forceinline float facos (float a){return acos(a);}
+    __forceinline float fatan (float a){return atan(a);}
+    __forceinline float fatan_est (float a){return v_extract_x(v_atan_est_x(v_set_x(a)));}
+    __forceinline float fatan2(float a,float b){return atan2(a,b);}
+    __forceinline float fatan2_est(float a,float b){return v_extract_x(v_atan2_est_x(v_set_x(a), v_set_x(b)));}
+
+    __forceinline vec4f vasin(vec4f a){return v_asin(a);}
+    __forceinline vec4f vacos(vec4f a){return v_acos(a);}
+    __forceinline vec4f vatan(vec4f a){return v_atan(a);}
+    __forceinline vec4f vatan_est(vec4f a){return v_atan_est(a);}
+    __forceinline vec4f vatan2(vec4f a, vec4f b){return v_atan2(a,b);}
+    __forceinline vec4f vatan2_est(vec4f a, vec4f b){return v_atan2_est(a,b);}
 
     __forceinline void sincosF ( float a, float & sv, float & cv ) {
         vec4f s,c;

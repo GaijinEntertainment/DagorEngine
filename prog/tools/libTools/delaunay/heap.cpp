@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "heap.h"
 #include <assert.h>
 #include <iostream>

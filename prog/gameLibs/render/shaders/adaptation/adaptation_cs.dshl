@@ -1,0 +1,224 @@
+include "shader_global.dshl"
+
+texture albedo_gbuf;
+buffer ExposureOut;
+buffer RawHistogram;
+buffer Histogram;
+buffer ExposureIn;
+float adaptation_albedo_color_average = 0.3183098861837907;//1/pi
+float adaptation_albedo_color_min = 0.75;//in averages. Should be around 0.25, but due to very dark normandy forests, and just one adaptation_albedo_color_average for everything we have to limit it
+float adaptation_luminance_weight = 0.5;
+
+hlsl {
+  half encodeBaseColorLuma(half l) {return sqrt(l);}
+  half decodeBaseColorLuma(half l) {return (l*l);}
+}
+
+macro CALC_ALBEDO_LUMA(code)
+  INIT_RENDERING_RESOLUTION(code)
+  (code) {
+    albedo_gbuf@smp2d = albedo_gbuf;
+    downsampled_close_depth_tex@smp2d = downsampled_close_depth_tex;
+    adaptation_albedo_color_average@f3=(adaptation_albedo_color_average, max(adaptation_albedo_color_average*adaptation_albedo_color_min, 0.04), adaptation_luminance_weight,0);
+  }
+  hlsl(code) {
+    #define AVERAGE_BASE_COLOR_LUMA (adaptation_albedo_color_average.x)
+    half sampleLuma(float2 tc) {return luminance(tex2Dlod(albedo_gbuf, float4(tc,0,0)).rgb);}
+    half sampleLumaNonSky(float2 tc)
+    {
+      half l = sampleLuma(tc); return l == 0 ? AVERAGE_BASE_COLOR_LUMA : max(l, adaptation_albedo_color_average.y);
+    }
+    half getBaseColorLuma(float2 tc)
+    {
+      float2 ofs = rendering_res.zw;
+      half baseColorLum = AVERAGE_BASE_COLOR_LUMA;
+      ##if hardware.ps4 || hardware.ps5
+      float depth = tex2Dlod(downsampled_close_depth_tex, float4(tc, 0, 0));//1 mip is to get 1/4 resolution, and +2 - as we just choose 1/4 of points anyway
+      bool isSky = depth == 0;
+      if (!isSky)
+      {
+        baseColorLum  = sampleLuma(tc-ofs);
+        baseColorLum += sampleLuma(tc + float2(+ofs.x,-ofs.y));
+        baseColorLum += sampleLuma(tc + float2(-ofs.x,+ofs.y));
+        baseColorLum += sampleLuma(tc + float2(+ofs.x,+ofs.y));
+        baseColorLum *= 0.25;
+        baseColorLum = max(baseColorLum, adaptation_albedo_color_average.y);//not less than makes physical sense
+      }
+      //downsampled_close_depth_tex - has to be point filtered!
+      ##else
+        baseColorLum  = sampleLumaNonSky(tc-ofs);
+        baseColorLum += sampleLumaNonSky(tc + float2(+ofs.x,-ofs.y));
+        baseColorLum += sampleLumaNonSky(tc + float2(-ofs.x,+ofs.y));
+        baseColorLum += sampleLumaNonSky(tc + float2(+ofs.x,+ofs.y));
+        baseColorLum *= 0.25;
+      ##endif
+
+      return lerp(AVERAGE_BASE_COLOR_LUMA, baseColorLum, adaptation_albedo_color_average.z);//simplest sRGB-like gamma
+    }
+  }
+endmacro
+
+macro USE_ALBEDO_LUMA(code)
+  (code) {
+    inv_adaptation_albedo_color_average@f1 = (1./adaptation_albedo_color_average,0,0,0);
+  }
+  hlsl(code) {
+    #include <adaptation.hlsli>
+    #define USE_ALBEDO_LUMA 1
+    half processLumaPosWithBaseColor(half baseColorLum, half lumaPos)
+    {
+      baseColorLum*=inv_adaptation_albedo_color_average;
+      float logRange = ADAPTATION_LOG_RANGE;
+      lumaPos = lumaPos - log2(baseColorLum) / logRange;
+      lumaPos = max(0.5/255.0f, lumaPos);
+      return lumaPos;
+    }
+  }
+endmacro
+
+float adaptation_cw_samples_count;
+texture frame_tex;
+texture no_effects_frame_tex;
+int use_albedo_luma_adaptation;
+interval use_albedo_luma_adaptation:off<1, on;
+float adaptation_effects_weight = 0.05;
+float adaptation_center_weighted_param = 0.7;
+
+shader GenerateHistogramCenterWeightedFromSourceCS
+{
+  (cs)
+  {
+    frame_tex@smp2d = frame_tex;
+    if (compatibility_mode == compatibility_mode_off && mobile_render == off)
+    {
+      no_effects_frame_tex@smp2d = no_effects_frame_tex;
+      adaptation_effects_weight@f1 = adaptation_effects_weight;
+    }
+  }
+  (cs) {
+    adaptation_center_weighted_param@f1 = adaptation_center_weighted_param;
+    adaptation_cw_samples_count@f1 = (adaptation_cw_samples_count);
+    Exposure@buf = ExposureIn hlsl {
+      StructuredBuffer<float> Exposure@buf;
+    };
+    Histogram@uav = RawHistogram hlsl {
+      RWStructuredBuffer<uint> Histogram@uav;
+    };
+  }
+  if (use_albedo_luma_adaptation == on)
+  {
+    CALC_ALBEDO_LUMA(cs)
+    USE_ALBEDO_LUMA(cs)
+  }
+  ENABLE_ASSERT(cs)
+  INIT_HDR(cs)
+  USE_HDR(cs)
+  hlsl(cs) {
+    float GetLuminance(float3 v)
+    {
+      float3 bt709 = float3(0.2126, 0.7152, 0.0722);
+      return dot(unpack_hdr(v), bt709);
+    }
+    #include <tonemapHelpers/centerWeighted.hlsli>
+
+    [numthreads( 64, 1, 1 )]
+    void main( uint gId : SV_GroupIndex, uint grId : SV_GroupID, uint Index : SV_DispatchThreadID )
+    {
+      float2 tc = getCenterWeightedTc(Index, adaptation_cw_samples_count, adaptation_center_weighted_param);
+      ##if mobile_render == off || use_postfx == on
+        float luma = GetLuminance(tex2Dlod(frame_tex, float4(tc,0,0)).xyz);
+        ##if mobile_render == off && compatibility_mode == compatibility_mode_off && no_effects_frame_tex != NULL
+          float lumaNoFx = GetLuminance(tex2Dlod(no_effects_frame_tex, float4(tc,0,0)).xyz);
+          luma = lerp(lumaNoFx, luma, adaptation_effects_weight);
+        ##endif
+      ##else
+        float luma = tex2Dlod(frame_tex, float4(tc,0,0)).w / FORWARD_ADAPTATION_LUMA_SCALE;
+      ##endif
+      const float MinLog = Exposure[4];
+      const float RcpLogRange = Exposure[7];
+      float logLuma = saturate((log2(luma) - MinLog) * RcpLogRange);  // Rescale to [0.0, 1.0]
+      float lumaPos = luma > 0 ? logLuma * 254.0/255.0 + 1./255.0 : 0;
+      #if USE_ALBEDO_LUMA
+      if (lumaPos>0)
+      {
+        half albedoLuma = getBaseColorLuma(tc);
+        lumaPos = processLumaPosWithBaseColor(albedoLuma, lumaPos);
+      }
+      #endif
+      uint QuantizedLogLuma = uint(lumaPos*255);
+      //QuantizedLogLuma = Exposure[7]*255;
+      //float depth = texelFetch(downsampled_close_depth_tex, DTid.xy, 1);//to find out if it is sky
+      InterlockedAdd(structuredBufferAt(Histogram, (gId&31)*256 + min(255, QuantizedLogLuma)), 1 );
+    }
+  }
+
+  compile("target_cs", "main");
+}
+
+shader accumulate_hist_cs
+{
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    RawHistogram@buf = RawHistogram hlsl {
+      StructuredBuffer<uint> RawHistogram@buf;
+    };
+    Histogram@uav = Histogram hlsl {
+      RWStructuredBuffer<uint> Histogram@uav;
+    };
+  }
+
+  hlsl(cs) {
+    //groupshared uint g_TileHistogram[256];
+
+    //[RootSignature(PostEffects_RootSig)]
+    [numthreads( 256, 1, 1 )]
+    void main( uint GI : SV_GroupIndex)
+    {
+        // Loop 24 times until the entire column has been processed
+        uint v = 0;
+        UNROLL
+        for (uint i = 0; i < 32; i++)
+        {
+          uint id = 256*i + GI;
+          v += structuredBufferAt(RawHistogram, id);
+        }
+        structuredBufferAt(Histogram, GI) = v;
+    }
+  }
+
+  compile("target_cs", "main");
+}
+
+// [0] .x:ExposureLowPercent/100, .y:EyeAdaptationHighPercent/100, .z:EyeAdaptationMin, .w:EyeAdaptationMax
+// [1] .x:exp2(ExposureOffset), .y:DeltaWorldTime, .zw: EyeAdaptionSpeedUp/Down
+// [2] .x:Histogram multiply, .y:Histogram add, .z: total pixels .w:unused
+// [3] .x: linear coef of percepted brightness (0.8), .y:power of percepted brightness(0.8), zw unused
+float4 EyeAdaptationParams_0;
+float4 EyeAdaptationParams_1;
+float4 EyeAdaptationParams_2;
+float4 EyeAdaptationParams_3;
+
+shader AdaptExposureCS
+{
+  (cs) {
+    EyeAdaptationParams@f4[] = {
+      EyeAdaptationParams_0,
+      EyeAdaptationParams_1,
+      EyeAdaptationParams_2,
+      EyeAdaptationParams_3
+    };
+    Exposure@uav = ExposureOut hlsl {
+      RWStructuredBuffer<float> Exposure@uav;
+    };
+    Histogram@buf = Histogram hlsl {
+      StructuredBuffer<uint> Histogram@buf;
+    };
+  }
+  hlsl(cs) {
+    #include <adaptation.hlsli>
+    #include <exposure/AdaptExposureCS.hlsl>
+  }
+
+  compile("target_cs", "main");
+}

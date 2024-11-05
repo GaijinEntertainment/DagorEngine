@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_debug.h>
 #include <math/dag_mathBase.h>
 #include <osApiWrappers/dag_critSec.h>
@@ -35,19 +37,19 @@ constexpr int mic_buf_duration_ms = 100;
 
 #define CHECK_FMOD(res, message) \
   if (res != FMOD_OK)            \
-    logwarn_ctx("[VC] %s %s: %s", __FUNCTION__, message, FMOD_ErrorString(res));
+    LOGWARN_CTX("[VC] %s %s: %s", __FUNCTION__, message, FMOD_ErrorString(res));
 
 #define CHECK_FMOD_RETURN(res, message)                                           \
   if (res != FMOD_OK)                                                             \
   {                                                                               \
-    logwarn_ctx("[VC] %s: %s: %s", __FUNCTION__, message, FMOD_ErrorString(res)); \
+    LOGWARN_CTX("[VC] %s: %s: %s", __FUNCTION__, message, FMOD_ErrorString(res)); \
     return;                                                                       \
   }
 
 #define CHECK_FMOD_RETURN_VAL(res, message, ret)                                  \
   if (res != FMOD_OK)                                                             \
   {                                                                               \
-    logwarn_ctx("[VC] %s: %s: %s", __FUNCTION__, message, FMOD_ErrorString(res)); \
+    LOGWARN_CTX("[VC] %s: %s: %s", __FUNCTION__, message, FMOD_ErrorString(res)); \
     return ret;                                                                   \
   }
 

@@ -11,19 +11,22 @@ struct SQOptimizer
     void optimize();
 
 private:
-    bool isUnsafeRange(int start, int count);
+    bool isUnsafeRange(int start, int count) const;
+    bool isUnsafeJumpRange(int start, int count) const;
+    bool isLocalVarInstructions(int start, int count) const;
     void cutRange(int start, int old_count, int new_count);
 
     void optimizeConstFolding();
     void optimizeJumpFolding();
     void optimizeEmptyJumps();
-
+    enum class JumpArg : uint8_t {JUMP_ARG1, JUMP_ARG0};
     struct Jump {
         int originalInstructionIndex;
         int instructionIndex;
         int originalJumpTo;
         int jumpTo;
         bool modified;
+        JumpArg jumpArg;
     };
     sqvector<Jump> jumps;
     SQFuncState * fs;

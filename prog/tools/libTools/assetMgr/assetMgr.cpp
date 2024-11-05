@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
 #include <ioSys/dag_fileIo.h>
@@ -21,6 +23,7 @@
 #include <util/dag_globDef.h>
 #include <math/dag_e3dColor.h>
 #include <memory/dag_memStat.h>
+#include <perfMon/dag_statDrv.h>
 // #include <debug/dag_debug.h>
 
 static FastIntList tempList;
@@ -147,6 +150,8 @@ void DagorAssetMgr::setupAllowedTypes(const DataBlock &blk, const DataBlock *exp
 
 bool DagorAssetMgr::loadAssetsBase(const char *assets_folder, const char *name_space)
 {
+  TIME_PROFILE(loadAssetsBase);
+  int64_t startTime = profile_ref_ticks();
   int nsid = nspaceNames.addNameId(name_space);
   size_t old_ptrs = dagor_memory_stat::get_memchunk_count(true);
   size_t old_mem = dagor_memory_stat::get_memory_allocated(true);
@@ -189,15 +194,16 @@ bool DagorAssetMgr::loadAssetsBase(const char *assets_folder, const char *name_s
 
   int err_count = msgPipe->getErrorCount();
   int s_assets = assets.size();
-  loadAssets(0, assets_folder, nsid);
+  {
+    TIME_PROFILE(loadAssets);
+    loadAssets(0, assets_folder, nsid);
+  }
 
   updateGlobUniqueFlags();
 
+  bool loaded_ok = true;
   if (msgPipe->getErrorCount() > err_count)
-  {
-    post_error(*msgPipe, "loaded with errors");
-    return false;
-  }
+    loaded_ok = false;
 
   tmpPath.printf(260, "%s/.tex-hier.blk", assets_folder);
   dd_simplify_fname_c(tmpPath);
@@ -240,10 +246,7 @@ bool DagorAssetMgr::loadAssetsBase(const char *assets_folder, const char *name_s
         }
   }
   if (msgPipe->getErrorCount() > err_count)
-  {
-    post_error(*msgPipe, "loaded with errors");
-    return false;
-  }
+    loaded_ok = false;
 
   if (texAssetType >= 0 && dd_file_exist(tmpPath))
   {
@@ -553,14 +556,15 @@ bool DagorAssetMgr::loadAssetsBase(const char *assets_folder, const char *name_s
         err_cnt++;
       }
     if (err_cnt)
-      return false;
+      loaded_ok = false;
   }
 
   size_t new_ptrs = dagor_memory_stat::get_memchunk_count(true);
   size_t new_mem = dagor_memory_stat::get_memory_allocated(true);
-  post_msg(*msgPipe, msgPipe->NOTE, "loaded without errors, %d assets  [allocated %dM in %dK chunks]", assets.size() - s_assets,
-    (new_mem - old_mem + (1 << 19)) >> 20, (new_ptrs - old_ptrs + (1 << 9)) >> 10);
-  return true;
+  post_msg(*msgPipe, loaded_ok ? msgPipe->NOTE : msgPipe->ERROR,
+    "loaded with%s errors, %d assets  [allocated %dM in %dK chunks] in %.3fs", loaded_ok ? "out" : "", assets.size() - s_assets,
+    (new_mem - old_mem + (1 << 19)) >> 20, (new_ptrs - old_ptrs + (1 << 9)) >> 10, ((float)profile_time_usec(startTime)) / 1e6f);
+  return loaded_ok;
 }
 
 bool DagorAssetMgr::startMountAssetsDirect(const char *folder_name, int parent_folder_idx)

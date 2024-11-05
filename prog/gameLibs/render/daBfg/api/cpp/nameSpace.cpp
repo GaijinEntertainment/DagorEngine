@@ -1,9 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/daBfg/nameSpace.h>
 
 #include <EASTL/fixed_string.h>
 
 #include <debug/dag_assert.h>
 #include <runtime/runtime.h>
+#include <common/genericPoint.h>
 
 
 namespace dabfg
@@ -18,21 +21,37 @@ NameSpace NameSpace::operator/(const char *child_name) const
   return {Runtime::get().getInternalRegistry().knownNames.addNameId<NameSpaceNameId>(nameId, child_name)};
 }
 
-void NameSpace::setResolution(const char *type_name, IPoint2 value)
+template <class T>
+void NameSpace::setResolution(const char *type_name, T value)
 {
   auto &registry = Runtime::get().getInternalRegistry();
 
   const auto id = registry.knownNames.addNameId<AutoResTypeNameId>(nameId, type_name);
-  const AutoResType newResolution = AutoResType{value, value};
-  if (!registry.autoResTypes.isMapped(id) || registry.autoResTypes[id].staticResolution != newResolution.staticResolution ||
-      registry.autoResTypes[id].dynamicResolution != newResolution.dynamicResolution)
+
+  AutoResTypeData &resData = registry.autoResTypes.get(id);
+
+  if (!eastl::holds_alternative<eastl::monostate>(resData.values) && !eastl::holds_alternative<ResolutionValues<T>>(resData.values))
   {
-    Runtime::get().markStageDirty(CompilationStage::REQUIRES_RESOURCE_SCHEDULING);
-    registry.autoResTypes.set(id, newResolution);
+    // Very unlikely to actually happen, so this message is enough
+    logerr("daBfg: attempted to set auto-resolution '%s' to a value of a different type! Ignoring this set!", type_name);
+    return;
   }
+
+  // No-op, skip
+  if (auto values = eastl::get_if<ResolutionValues<T>>(&resData.values);
+      values && values->staticResolution == value && values->dynamicResolution == value)
+    return;
+
+  Runtime::get().markStageDirty(CompilationStage::REQUIRES_RESOURCE_SCHEDULING);
+  resData.values = ResolutionValues<T>{value, value, value};
+  resData.dynamicResolutionCountdown = 0;
 }
 
-void NameSpace::setDynamicResolution(const char *type_name, IPoint2 value)
+template void NameSpace::setResolution<IPoint2>(const char *, IPoint2);
+template void NameSpace::setResolution<IPoint3>(const char *, IPoint3);
+
+template <class T>
+void NameSpace::setDynamicResolution(const char *type_name, T value)
 {
   auto &registry = Runtime::get().getInternalRegistry();
 
@@ -45,31 +64,41 @@ void NameSpace::setDynamicResolution(const char *type_name, IPoint2 value)
     return;
   }
 
-  auto &autoResType = registry.autoResTypes[id];
+  auto &resData = registry.autoResTypes[id];
+  if (!eastl::holds_alternative<ResolutionValues<T>>(resData.values))
+  {
+    // Very unlikely to actually happen, so this message is enough
+    logerr("daBfg: attempted to set dynamic auto-resolution '%s' to a value of a different type! Ignoring this set!", type_name);
+    return;
+  }
+  auto &values = eastl::get<ResolutionValues<T>>(resData.values);
 
-  if (DAGOR_UNLIKELY(autoResType.staticResolution.x < value.x || autoResType.staticResolution.y < value.y))
+  if (DAGOR_UNLIKELY(any_greater(value, values.staticResolution)))
   {
     logerr("daBfg: Tried to set dynamic resolution '%s' to %@, which is bigger than the static resolution %@!", type_name, value,
-      autoResType.staticResolution);
+      values.staticResolution);
     return;
   }
 
-  if (DAGOR_UNLIKELY(value.x <= 0 || value.y <= 0))
+  if (DAGOR_UNLIKELY(!all_greater(value, 0)))
   {
     logerr("daBfg: Tried to set dynamic resolution '%s' to %@, which is invalid!", type_name, value);
     return;
   }
 
   // Noop, no need to update the countdown and run more useless code.
-  if (autoResType.dynamicResolution == value)
+  if (values.dynamicResolution == value)
     return;
 
-  autoResType.dynamicResolution = value;
+  values.dynamicResolution = value;
   // We can't immediately change resolution for all textures because history textures will lose
   // their data. So update counter here and decrease it by one when change resolution only for
   // current frame textures.
-  autoResType.dynamicResolutionCountdown = ResourceScheduler::SCHEDULE_FRAME_WINDOW;
+  resData.dynamicResolutionCountdown = ResourceScheduler::SCHEDULE_FRAME_WINDOW;
 }
+
+template void NameSpace::setDynamicResolution<IPoint2>(const char *, IPoint2);
+template void NameSpace::setDynamicResolution<IPoint3>(const char *, IPoint3);
 
 void NameSpace::fillSlot(NamedSlot slot, NameSpace res_name_space, const char *res_name)
 {

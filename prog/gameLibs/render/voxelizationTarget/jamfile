@@ -1,0 +1,23 @@
+Root    ?= ../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/voxelizationTarget ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/voxelizationTarget.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  voxelizationTarget.cpp
+;
+
+UseProgLibs +=
+  engine/lib3d
+  engine/baseUtil
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

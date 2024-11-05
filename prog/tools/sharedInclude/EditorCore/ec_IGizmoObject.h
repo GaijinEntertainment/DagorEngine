@@ -1,7 +1,5 @@
-#ifndef __GAIJIN_IGIZMO_OBJECT__
-#define __GAIJIN_IGIZMO_OBJECT__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <EditorCore/ec_gizmofilter.h>
 
@@ -25,6 +23,3 @@ public:
   // get axis which object can be midified
   virtual int getAvailableAxis() const { return GizmoEventFilter::AXIS_X | GizmoEventFilter::AXIS_Y | GizmoEventFilter::AXIS_Z; }
 };
-
-
-#endif //__GAIJIN_IGIZMO_OBJECT__

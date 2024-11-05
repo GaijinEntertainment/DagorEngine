@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <api/das/frameGraphModule.h>
 #include <api/das/bindingHelper.h>
 
@@ -21,6 +23,7 @@ struct VirtualPassRequirementsAnnotation final : das::ManagedStructureAnnotation
     addField<DAS_BIND_MANAGED_FIELD(colorAttachments)>("colorAttachments");
     addField<DAS_BIND_MANAGED_FIELD(depthAttachment)>("depthAttachment");
     addField<DAS_BIND_MANAGED_FIELD(depthReadOnly)>("depthReadOnly");
+    addField<DAS_BIND_MANAGED_FIELD(vrsRateAttachment)>("vrsRateAttachment");
   }
 };
 
@@ -53,7 +56,7 @@ namespace bind_dascript
 
 void setNodeSource(dabfg::NodeData &node, const char *source) { node.nodeSource = source; }
 
-void DaBfgModule::addNodeDataAnnotation(das::ModuleLibrary &lib)
+void DaBfgCoreModule::addNodeDataAnnotation(das::ModuleLibrary &lib)
 {
   addAnnotation(das::make_smart<NodeStateRequirementsAnnotation>(lib));
   addAnnotation(das::make_smart<VirtualPassRequirementsAnnotation>(lib));

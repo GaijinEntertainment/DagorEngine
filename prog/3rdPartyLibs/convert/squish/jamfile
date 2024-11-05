@@ -20,7 +20,7 @@ Sources =
 
 AddIncludes = $(Root)/prog/3rdPartyLibs/convert/squish ;
 
-if $(Platform) in win32 win64 macosx linux64 {
+if $(Platform) in windows macOS linux {
   CPPopt += -DSQUISH_USE_SSE=2 ;
 }
 

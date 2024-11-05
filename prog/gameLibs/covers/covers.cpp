@@ -1,7 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <covers/covers.h>
 #include <ioSys/dag_lzmaIo.h>
 #include <ioSys/dag_zstdIo.h>
 #include <debug/dag_debug3d.h>
+#include <supp/dag_alloca.h>
 
 namespace covers
 {
@@ -42,12 +45,12 @@ bool load(IGenLoad &crd, Tab<Cover> &covers_out)
 
   if (dataSize % sizeof(Cover))
   {
-    logerr_ctx("Could not load covers: broken data: data size = %d, cover size = %d", dataSize, sizeof(Cover));
+    LOGERR_CTX("Could not load covers: broken data: data size = %d, cover size = %d", dataSize, sizeof(Cover));
     return false;
   }
   if (!dataSize)
   {
-    logerr_ctx("Could not load covers: empty data");
+    LOGERR_CTX("Could not load covers: empty data");
     return false;
   }
 
@@ -82,7 +85,7 @@ bool build(float max_tile_size, uint32_t split, const Tab<Cover> &covers, scene:
     scene::node_index idx = scene_out.allocate(m, 0 /*pool*/, 0 /*flags*/);
     if (scene_out.getNodeIndex(idx) != i)
     {
-      logerr_ctx("Could not build covers: node_index %d(%d) != index %d", scene_out.getNodeIndex(idx), idx, i);
+      LOGERR_CTX("Could not build covers: node_index %d(%d) != index %d", scene_out.getNodeIndex(idx), idx, i);
       scene_out.destroy(idx);
       return false;
     }

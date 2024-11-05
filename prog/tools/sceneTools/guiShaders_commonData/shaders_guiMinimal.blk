@@ -1,0 +1,16 @@
+shader_root_dir:t="."
+packBin:b=yes
+
+incDir:t="../../../../prog/engine/imgui"
+incDir:t="../../../../prog/gameLibs/render/shaders"
+
+source
+{
+  file:t = "gui_default.dshl"
+  file:t = "imgui.dshl"
+}
+
+Compile
+{
+  fsh:t = 4.0
+}

@@ -1,7 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <3d/dag_nvLowLatency.h>
 #include "nvLowLatency.h"
 
-void nvlowlatency::init(void * /*device*/, bool /*deferred_render_submission*/) {}
+void nvlowlatency::init() {}
+
+void nvlowlatency::start_frame(uint32_t frame_id) {}
 
 void nvlowlatency::close() {}
 

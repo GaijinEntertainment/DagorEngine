@@ -1,7 +1,9 @@
-#include <humanInput/dag_hiComposite.h>
-#include <humanInput/dag_hiGlobals.h>
-#include <humanInput/dag_hiJoyFF.h>
-#include <humanInput/dag_hiCreate.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/hid/dag_hiComposite.h>
+#include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiJoyFF.h>
+#include <drv/hid/dag_hiCreate.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <ioSys/dag_dataBlock.h>
 #include <debug/dag_debug.h>
@@ -778,14 +780,16 @@ void CompositeJoystickClassDriver::updateDevices()
   int dt = get_time_usec(prevUpdateRefTime) / 1000;
   prevUpdateRefTime = ::ref_time_ticks();
 
+  bool isMainThread = is_main_thread();
   deviceConfigChanged = false;
   for (int classDrvNo = 0; classDrvNo < MAX_CLASSDRV; classDrvNo++)
   {
     IGenJoystickClassDrv *classDrv = classDrvs[classDrvNo].drv;
     if (classDrv)
     {
-      classDrv->updateDevices();
-      if (classDrv->isDeviceConfigChanged() && is_main_thread())
+      if (updateDevicesInMainThread || !isMainThread)
+        classDrv->updateDevices();
+      if (classDrv->isDeviceConfigChanged() && isMainThread)
       {
         if (ffClient)
           ffClient->fxShutdown();
@@ -802,8 +806,9 @@ void CompositeJoystickClassDriver::updateDevices()
     }
   }
 
-  if (deviceConfigChanged && is_main_thread())
+  if (deviceConfigChanged && isMainThread)
     refreshCompositeDevicesList();
+
   compositeDevice->updateState(dt);
 }
 
@@ -980,6 +985,13 @@ float CompositeJoystickClassDriver::getStickDeadZoneAbs(int stick_idx, bool main
         if (!classDrv->getDeviceCount())
           return classDrv->getStickDeadZoneAbs(stick_idx, main_gamepad, nullptr);
   return 0;
+}
+
+void CompositeJoystickClassDriver::enableGyroscope(bool enable, bool main_dev)
+{
+  for (int i = 0; i < MAX_CLASSDRV; i++)
+    if (classDrvs[i].drv)
+      classDrvs[i].drv->enableGyroscope(enable, main_dev);
 }
 
 void CompositeJoystickClassDriver::refreshCompositeDevicesList()

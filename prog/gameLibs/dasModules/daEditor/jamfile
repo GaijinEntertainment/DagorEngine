@@ -18,10 +18,7 @@ AddIncludes =
 local AllSources = [ GLOB $(Root)/$(Location) : *.cpp ] ;
 Sources = $(AllSources:D=) ;
 
-CPPopt = -D__B_CORE ;
-Copt   = -D__B_CORE ;
-
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   CPPopt += /wd4548 ; # devtools\win.sdk.100\Include\10.0.10586.0\ucrt\malloc.h(160): warning C4548: expression before comma has no effect; expected expression with side-effect
 }
 

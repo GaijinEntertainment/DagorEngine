@@ -1,7 +1,7 @@
 WARNING: w204 (bitwise-apply-to-bool) The '&' or '|' operator is applied to boolean type. You've probably forgotten to include parentheses or intended to use the '&&' or '||' operator.
 testData/static_analyzer/w204.nut:4:6
 
-let function foo(x){ //-declared-never-used
+function foo(x){ //-declared-never-used
   if (x & 15 == 8)
       ^----------
     ::print("ok")

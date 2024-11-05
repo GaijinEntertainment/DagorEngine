@@ -13,7 +13,7 @@ shader dynamic_simple, dynamic_simple_atest, dynamic_simple_paint, dynamic_simpl
   no_ablend;
 
   channel float3 pos = pos;
-  channel float3 norm = norm;
+  channel color8 norm = norm unsigned_pack;
 
   if (shader == dynamic_simple_paint)
   {
@@ -62,7 +62,7 @@ shader dynamic_simple, dynamic_simple_atest, dynamic_simple_paint, dynamic_simpl
       float3 pos = input.pos;
       output.pos = mul(float4(pos, 1), globtm);
       output.p2e = world_view_pos-pos;
-      float3 vertexNormal = input.norm;
+      float3 vertexNormal = normalize(input.norm * 2 - 1);
       output.norm = vertexNormal;
     ##if shader != dynamic_simple_paint
       output.tc.xy  = input.tc;
@@ -132,7 +132,7 @@ shader dynamic_simple, dynamic_simple_atest, dynamic_simple_paint, dynamic_simpl
       init_metalness(result, metallness);
       init_ao(result, 0.6+0.4*albedo.a*albedo.a);
       init_material(result, 0);
-      return encode_gbuffer(result, screenpos);
+      return encode_gbuffer(result, input.pointToEye, screenpos);
     }
   }
 

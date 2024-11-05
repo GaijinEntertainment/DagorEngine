@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "bhvRecalcHandler.h"
 #include "scriptUtil.h"
 #include "guiScene.h"

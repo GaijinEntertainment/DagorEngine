@@ -1,13 +1,13 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <math/integer/dag_IPoint2.h>
+#include <math/integer/dag_IPoint3.h>
 #include <EASTL/variant.h>
-#include <3d/dag_drv3d_buffers.h>
+#include <drv/3d/dag_buffers.h>
 
 #include <render/daBfg/autoResolutionRequest.h>
 
@@ -36,7 +36,7 @@ inline constexpr int AUTO_MIP_COUNT = 0;
 
 /**
  * \brief Specifies the creation parameters for a 2D texture.
- * Note that resources will ALWAYS contain garbage right after they've
+ * \note Resources will ALWAYS contain garbage right after they've
  * been created. Use virtual passes to clear them if you need to,
  * or write explicit clears.
  */
@@ -44,8 +44,21 @@ struct Texture2dCreateInfo
 {
   /// Use TEXCF_ prefixed flags
   uint32_t creationFlags = 0;
-  /// Resolution for this texture. May either be hard-coded or automatic, see \ref AutoResolutionRequest
-  eastl::variant<IPoint2, AutoResolutionRequest> resolution;
+  /// Resolution for this texture. May either be hard-coded or automatic, see \ref AutoResolutionRequest.
+  eastl::variant<IPoint2, AutoResolutionRequest<2>> resolution;
+  /// Use 0 for automatic mip levels
+  uint32_t mipLevels = 1;
+};
+
+/**
+ * \brief Specifies the creation parameters for a 3D volumetric texture.
+ */
+struct Texture3dCreateInfo
+{
+  /// Use TEXCF_ prefixed flags
+  uint32_t creationFlags = 0;
+  /// Resolution for this texture. May either be hard-coded or automatic, see \ref AutoResolutionRequest.
+  eastl::variant<IPoint3, AutoResolutionRequest<3>> resolution;
   /// Use 0 for automatic mip levels
   uint32_t mipLevels = 1;
 };

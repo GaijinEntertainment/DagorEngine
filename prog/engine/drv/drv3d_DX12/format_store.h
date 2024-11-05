@@ -1,6 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_tex3d.h>
 #include <util/dag_globDef.h>
 
 #include "driver.h"
@@ -89,7 +90,6 @@ BEGIN_BITFIELD_TYPE(FormatStore, uint8_t)
       case TEXFMT_DXT1 >> CREATE_FLAGS_FORMAT_SHIFT:
       case TEXFMT_DXT3 >> CREATE_FLAGS_FORMAT_SHIFT:
       case TEXFMT_DXT5 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_V16U16 >> CREATE_FLAGS_FORMAT_SHIFT:
       case TEXFMT_L16 >> CREATE_FLAGS_FORMAT_SHIFT:
       case TEXFMT_A8 >> CREATE_FLAGS_FORMAT_SHIFT:
       case TEXFMT_R8 >> CREATE_FLAGS_FORMAT_SHIFT:

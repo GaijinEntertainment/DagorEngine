@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <texConverter/textureConverterDlg.h>
 
 #include <EditorCore/ec_interface.h>
@@ -9,7 +11,7 @@
 #include <image/dag_loadImage.h>
 #include <image/dag_texPixel.h>
 
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/control/container.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 
 namespace ddstexture
@@ -104,7 +106,7 @@ enum
 //  DDS Converter Dialog
 //==============================================================================
 ConverterDlg::ConverterDlg() :
-  CDialogWindow(NULL, hdpi::_pxScaled(300), hdpi::_pxScaled(580), "Texture Importer"),
+  DialogWindow(NULL, hdpi::_pxScaled(300), hdpi::_pxScaled(580), "Texture Importer"),
   specificType((ddstexture::Converter::TextureType)-1),
   noChangeName(false)
 {
@@ -223,7 +225,7 @@ DDSPathName ConverterDlg::convert(const char *src_name, const char *dst_name, bo
       return "";
   }
 
-  if (showDialog() == DIALOG_ID_OK)
+  if (showDialog() == PropPanel::DIALOG_ID_OK)
   {
     if (dstFilename == "")
     {
@@ -392,7 +394,7 @@ void ConverterDlg::updateDstFilename()
 }
 
 
-void ConverterDlg::onClick(int pcb_id, PropertyContainerControlBase *panel)
+void ConverterDlg::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   switch (pcb_id)
   {
@@ -426,7 +428,7 @@ void ConverterDlg::onClick(int pcb_id, PropertyContainerControlBase *panel)
   };
 }
 
-void ConverterDlg::onChange(int pcb_id, PropertyContainerControlBase *panel)
+void ConverterDlg::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   switch (pcb_id)
   {

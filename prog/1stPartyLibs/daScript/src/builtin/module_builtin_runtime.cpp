@@ -93,6 +93,14 @@ namespace das
         };
     };
 
+    struct RequestNoDiscardFunctionAnnotation : MarkFunctionAnnotation {
+        RequestNoDiscardFunctionAnnotation() : MarkFunctionAnnotation("nodiscard") { }
+        virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string &) override {
+            func->nodiscard = true;
+            return true;
+        };
+    };
+
     struct DeprecatedFunctionAnnotation : MarkFunctionAnnotation {
         DeprecatedFunctionAnnotation() : MarkFunctionAnnotation("deprecated") { }
         virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string &) override {
@@ -109,6 +117,26 @@ namespace das
             return true;
         }
     };
+
+    struct TypeFunctionFunctionAnnotation : MarkFunctionAnnotation {
+        TypeFunctionFunctionAnnotation() : MarkFunctionAnnotation("type_function") { }
+        virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string & error) override {
+            if ( !daScriptEnvironment::bound->g_Program->thisModule->addTypeFunction(func->name, true) ) {
+                error = "can't add type function. type function " + func->name + " already exists?";
+                return false;
+            }
+            return true;
+        };
+    };
+
+    FunctionPtr Function::setDeprecated(const string & message) {
+        deprecated = true; // this is instead of apply above
+        AnnotationDeclarationPtr decl = make_smart<AnnotationDeclaration>();
+        decl->arguments.push_back(AnnotationArgument("message",message));
+        decl->annotation = make_smart<DeprecatedFunctionAnnotation>();
+        annotations.push_back(decl);
+        return this;
+    }
 
     struct NeverAliasCMRESFunctionAnnotation : MarkFunctionAnnotation {
         NeverAliasCMRESFunctionAnnotation() : MarkFunctionAnnotation("never_alias_cmres") { }
@@ -141,6 +169,18 @@ namespace das
         }
         virtual bool finalize(const FunctionPtr &, ModuleGroup &, const AnnotationArgumentList &, const AnnotationArgumentList &, string &) override {
             return true;
+        }
+    };
+
+    struct MakeFunctionUnsafeCallMacro : CallMacro {
+        MakeFunctionUnsafeCallMacro() : CallMacro("make_function_unsafe") { }
+        virtual ExpressionPtr visit (  Program * prog, Module *, ExprCallMacro * call ) override {
+            if ( !call->inFunction ) {
+                prog->error("make_function_unsafe can only be used inside a function", "", "", call->at);
+                return nullptr;
+            }
+            call->inFunction->unsafeOperation = true;
+            return make_smart<ExprConstBool>(call->at, true);
         }
     };
 
@@ -330,6 +370,38 @@ namespace das
         }
     };
 
+    struct IsDimAnnotation : MarkFunctionAnnotation {
+        IsDimAnnotation() : MarkFunctionAnnotation("expect_dim") {}
+        virtual bool isSpecialized() const override { return true; }
+        virtual bool isCompatible ( const FunctionPtr & fn, const vector<TypeDeclPtr> & types,
+                const AnnotationDeclaration & decl, string & err  ) const override {
+            size_t maxIndex = min(types.size(), fn->arguments.size());
+            for ( size_t ai=0; ai!=maxIndex; ++ ai) {
+                if ( decl.arguments.find(fn->arguments[ai]->name, Type::tBool) ) {
+                    const auto & argT = types[ai];
+                    if ( argT->dim.size() == 0 ) {
+                        err = "argument " + fn->arguments[ai]->name + " is expected to be a dim []";
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        virtual bool apply(const FunctionPtr & fn, ModuleGroup &, const AnnotationArgumentList & decl, string & err) override {
+            for ( const auto & arg : decl ) {
+                if ( arg.type!=Type::tBool ) {
+                    err = "expecting names only";
+                    return false;
+                }
+                if ( !fn->findArgument(arg.name) ) {
+                    err = "unknown argument " + arg.name;
+                    return false;
+                }
+            }
+            return true;
+        }
+    };
+
     // totally dummy annotation, needed for comments
     struct CommentAnnotation : StructureAnnotation {
         CommentAnnotation() : StructureAnnotation("comment") {}
@@ -393,6 +465,19 @@ namespace das
         }
     };
 
+    struct SafeWhenUninitializedAnnotation : StructureAnnotation {
+        SafeWhenUninitializedAnnotation() : StructureAnnotation("safe_when_uninitialized") {}
+        virtual bool touch(const StructurePtr & ps, ModuleGroup &,
+                           const AnnotationArgumentList & args, string & ) override {
+            ps->safeWhenUninitialized = true;
+            return true;
+        }
+        virtual bool look ( const StructurePtr &, ModuleGroup &,
+                           const AnnotationArgumentList &, string & ) override {
+            return true;
+        }
+    };
+
     struct LocalOnlyFunctionAnnotation : FunctionAnnotation {
         LocalOnlyFunctionAnnotation() : FunctionAnnotation("local_only") { }
         virtual bool apply ( ExprBlock *, ModuleGroup &, const AnnotationArgumentList &, string & err ) override {
@@ -448,7 +533,7 @@ namespace das
                 for ( const auto & field : st->fields ) {
                     if ( !field.type->isPod() ) {
                         allPod = false;
-                        errors += "\t" + field.name + " : " + field.type->describe() + " is not a pod\n";
+                        errors += "\t'" + field.name + ": " + field.type->describe() + "' is not a POD\n";
                     }
                 }
             }
@@ -591,7 +676,7 @@ namespace das
 
     template <typename intT>
     struct EnumIterator : Iterator {
-        EnumIterator ( EnumInfo * ei ) : info(ei) {}
+        EnumIterator ( EnumInfo * ei, LineInfo * at ) : Iterator(at), info(ei) {}
         virtual bool first ( Context &, char * _value ) override {
             count = 0;
             range_to = int32_t(info->count);
@@ -613,7 +698,7 @@ namespace das
             }
         }
         virtual void close ( Context & context, char * ) override {
-            context.heap->free((char *)this, sizeof(EnumIterator<intT>));
+            context.freeIterator((char *)this, debugInfo);
         }
         EnumInfo *  info = nullptr;
         int32_t     count = 0;
@@ -621,7 +706,7 @@ namespace das
     };
 
     struct CountIterator : Iterator {
-        CountIterator ( int32_t _start, int32_t _step ) : start(_start), step(_step) {};
+        CountIterator ( int32_t _start, int32_t _step, LineInfo * at ) : Iterator(at), start(_start), step(_step) {}
         virtual bool first ( Context &, char * _value ) override {
             int32_t * value = (int32_t *) _value;
             *value = start;
@@ -633,23 +718,23 @@ namespace das
             return true;
         }
         virtual void close ( Context & context, char * ) override {
-            context.heap->free((char *)this, sizeof(CountIterator));
+            context.freeIterator((char *)this, debugInfo);
         }
         int32_t start = 0;
         int32_t step = 0;
     };
 
-    TSequence<int32_t> builtin_count ( int32_t start, int32_t step, Context * context ) {
-        char * iter = context->heap->allocate(sizeof(CountIterator));
-        context->heap->mark_comment(iter, "count iterator");
-        new (iter) CountIterator(start, step);
+    TSequence<int32_t> builtin_count ( int32_t start, int32_t step, Context * context, LineInfoArg * at ) {
+        char * iter = context->allocateIterator(sizeof(CountIterator), "count iterator", at);
+        if ( !iter ) context->throw_out_of_memory(false, sizeof(CountIterator)+16, at);
+        new (iter) CountIterator(start, step, at);
         return TSequence<int>((Iterator *)iter);
     }
 
-    TSequence<uint32_t> builtin_ucount ( uint32_t start, uint32_t step, Context * context ) {
-        char * iter = context->heap->allocate(sizeof(CountIterator));
-        context->heap->mark_comment(iter, "ucount iterator");
-        new (iter) CountIterator(start, step);
+    TSequence<uint32_t> builtin_ucount ( uint32_t start, uint32_t step, Context * context, LineInfoArg * at ) {
+        char * iter = context->allocateIterator(sizeof(CountIterator), "ucount iterator", at);
+        if ( !iter ) context->throw_out_of_memory(false, sizeof(CountIterator)+16, at);
+        new (iter) CountIterator(start, step, at);
         return TSequence<int>((Iterator *)iter);
     }
 
@@ -708,6 +793,22 @@ namespace das
         bytes[1] = ctx.stringHeap->bytesAllocated();
     }
 
+    urange64 heap_allocation_stats ( Context * context ) {
+        return urange64 ( context->heap->getTotalBytesAllocated(), context->heap->getTotalBytesDeleted() );
+    }
+
+    uint64_t heap_allocation_count ( Context * context ) {
+        return context->heap->getTotalAllocations();
+    }
+
+    urange64 string_heap_allocation_stats ( Context * context ) {
+        return urange64 ( context->stringHeap->getTotalBytesAllocated(), context->stringHeap->getTotalBytesDeleted() );
+    }
+
+    uint64_t string_heap_allocation_count ( Context * context ) {
+        return context->stringHeap->getTotalAllocations();
+    }
+
     uint64_t heap_bytes_allocated ( Context * context ) {
         return context->heap->bytesAllocated();
     }
@@ -722,10 +823,6 @@ namespace das
 
     int32_t string_heap_depth ( Context * context ) {
         return (int32_t) context->stringHeap->depth();
-    }
-
-    void string_heap_collect ( bool validate, Context * context, LineInfoArg * info ) {
-        context->collectStringHeap(info,validate);
     }
 
     void string_heap_report ( Context * context, LineInfoArg * info ) {
@@ -816,24 +913,24 @@ namespace das
         }
     }
 
-    void builtin_make_good_array_iterator ( Sequence & result, const Array & arr, int stride, Context * context ) {
-        char * iter = context->heap->allocate(sizeof(GoodArrayIterator));
-        context->heap->mark_comment(iter, "array<> iterator");
-        new (iter) GoodArrayIterator((Array *)&arr, stride);
+    void builtin_make_good_array_iterator ( Sequence & result, const Array & arr, int stride, Context * context, LineInfoArg * at ) {
+        char * iter = context->allocateIterator(sizeof(GoodArrayIterator), "array<> iterator", at);
+        if ( !iter ) context->throw_out_of_memory(false, sizeof(GoodArrayIterator)+16, at);
+        new (iter) GoodArrayIterator((Array *)&arr, stride, at);
         result = { (Iterator *) iter };
     }
 
-    void builtin_make_fixed_array_iterator ( Sequence & result, void * data, int size, int stride, Context * context ) {
-        char * iter = context->heap->allocate(sizeof(FixedArrayIterator));
-        context->heap->mark_comment(iter, "fixed array iterator");
-        new (iter) FixedArrayIterator((char *)data, size, stride);
+    void builtin_make_fixed_array_iterator ( Sequence & result, void * data, int size, int stride, Context * context, LineInfoArg * at ) {
+        char * iter = context->allocateIterator(sizeof(FixedArrayIterator), "fixed array iterator", at);
+        if ( !iter ) context->throw_out_of_memory(false, sizeof(FixedArrayIterator)+16, at);
+        new (iter) FixedArrayIterator((char *)data, size, stride, at);
         result = { (Iterator *) iter };
     }
 
-    void builtin_make_range_iterator ( Sequence & result, range rng, Context * context ) {
-        char * iter = context->heap->allocate(sizeof(RangeIterator<range>));
-        context->heap->mark_comment(iter, "range iterator");
-        new (iter) RangeIterator<range>(rng);
+    void builtin_make_range_iterator ( Sequence & result, range rng, Context * context, LineInfoArg * at ) {
+        char * iter = context->allocateIterator(sizeof(RangeIterator<range>), "range iterator", at);
+        if ( !iter ) context->throw_out_of_memory(false, sizeof(RangeIterator<range>)+16, at);
+        new (iter) RangeIterator<range>(rng, at);
         result = { (Iterator *) iter };
     }
 
@@ -844,7 +941,7 @@ namespace das
         auto tinfo = itinfo->firstType;
         if ( !tinfo ) context.throw_error_at(call->debugInfo, "missing iterator type info");
         if ( tinfo->type!=Type::tEnumeration && tinfo->type!=Type::tEnumeration8
-            && tinfo->type!=Type::tEnumeration16 ) {
+            && tinfo->type!=Type::tEnumeration16 && tinfo->type!=Type::tEnumeration64 ) {
             context.throw_error_at(call->debugInfo, "not an iterator of enumeration");
         }
         auto einfo = tinfo->enumType;
@@ -852,19 +949,24 @@ namespace das
         char * iter = nullptr;
         switch ( tinfo->type ) {
         case Type::tEnumeration:
-            iter = context.heap->allocate(sizeof(EnumIterator<int32_t>));
-            context.heap->mark_comment(iter, "enum iterator");
-            new (iter) EnumIterator<int32_t>(einfo);
+            iter = context.allocateIterator(sizeof(EnumIterator<int32_t>), "enum iterator", &call->debugInfo);
+            if ( !iter ) context.throw_out_of_memory(false, sizeof(EnumIterator<int32_t>)+16, &call->debugInfo);
+            new (iter) EnumIterator<int32_t>(einfo, &call->debugInfo);
             break;
         case Type::tEnumeration8:
-            iter = context.heap->allocate(sizeof(EnumIterator<int8_t>));
-            context.heap->mark_comment(iter, "enum8 iterator");
-            new (iter) EnumIterator<int8_t>(einfo);
+            iter = context.allocateIterator(sizeof(EnumIterator<int8_t>), "enum8 iterator", &call->debugInfo);
+            if ( !iter ) context.throw_out_of_memory(false, sizeof(EnumIterator<int8_t>)+16, &call->debugInfo);
+            new (iter) EnumIterator<int8_t>(einfo, &call->debugInfo);
             break;
         case Type::tEnumeration16:
-            iter = context.heap->allocate(sizeof(EnumIterator<int16_t>));
-            context.heap->mark_comment(iter, "enum16 iterator");
-            new (iter) EnumIterator<int16_t>(einfo);
+            iter = context.allocateIterator(sizeof(EnumIterator<int16_t>), "enum16 iterator", &call->debugInfo);
+            if ( !iter ) context.throw_out_of_memory(false, sizeof(EnumIterator<int16_t>)+16, &call->debugInfo);
+            new (iter) EnumIterator<int16_t>(einfo, &call->debugInfo);
+            break;
+        case Type::tEnumeration64:
+            iter = context.allocateIterator(sizeof(EnumIterator<int64_t>), "enum64 iterator", &call->debugInfo);
+            if ( !iter ) context.throw_out_of_memory(false, sizeof(EnumIterator<int64_t>)+16, &call->debugInfo);
+            new (iter) EnumIterator<int64_t>(einfo, &call->debugInfo);
             break;
         default:
             DAS_ASSERT(0 && "how???");
@@ -874,31 +976,32 @@ namespace das
         return v_zero();
     }
 
-    void builtin_make_string_iterator ( Sequence & result, char * str, Context * context ) {
-        char * iter = context->heap->allocate(sizeof(StringIterator));
-        context->heap->mark_comment(iter, "string iterator");
-        new (iter) StringIterator(str);
+    void builtin_make_string_iterator ( Sequence & result, char * str, Context * context, LineInfoArg * at ) {
+        char * iter = context->allocateIterator(sizeof(StringIterator), "string iterator", at);
+        if ( !iter ) context->throw_out_of_memory(false, sizeof(StringIterator)+16, at);
+        new (iter) StringIterator(str, at);
         result = { (Iterator *) iter };
     }
 
     struct NilIterator : Iterator {
+        NilIterator(LineInfo * at) : Iterator(at) {}
         virtual bool first ( Context &, char * ) override { return false; }
         virtual bool next  ( Context &, char * ) override { return false; }
         virtual void close ( Context & context, char * ) override {
-            context.heap->free((char *)this, sizeof(NilIterator));
+            context.freeIterator((char *)this, debugInfo);
         }
     };
 
-    void builtin_make_nil_iterator ( Sequence & result, Context * context ) {
-        char * iter = context->heap->allocate(sizeof(NilIterator));
-        context->heap->mark_comment(iter, "nil iterator");
-        new (iter) NilIterator();
+    void builtin_make_nil_iterator ( Sequence & result, Context * context, LineInfoArg * at ) {
+        char * iter = context->allocateIterator(sizeof(NilIterator), "nil iterator", at);
+        if ( !iter ) context->throw_out_of_memory(false, sizeof(NilIterator)+16);
+        new (iter) NilIterator(at);
         result = { (Iterator *) iter };
     }
 
     struct LambdaIterator : Iterator {
         using lambdaFunc = bool (*) (Context *,void*, char*);
-        LambdaIterator ( Context & context, const Lambda & ll, int st ) : lambda(ll), stride(st) {
+        LambdaIterator ( Context & context, const Lambda & ll, int st, LineInfo * at ) : Iterator(at), lambda(ll), stride(st) {
             SimFunction ** fnMnh = (SimFunction **) lambda.capture;
             if (!fnMnh) context.throw_error("invoke null lambda");
             simFunc = *fnMnh;
@@ -933,7 +1036,7 @@ namespace das
             };
             auto flags = context.stopFlags; // need to save stop flags, we can be in the middle of some return or something
             context.call(finFunc, argValues, 0);
-            context.heap->free((char *)this, sizeof(LambdaIterator));
+            context.freeIterator((char *)this, debugInfo);
             context.stopFlags = flags;
         }
         virtual void walk ( DataWalker & walker ) override {
@@ -947,10 +1050,10 @@ namespace das
         int             stride = 0;
     };
 
-    void builtin_make_lambda_iterator ( Sequence & result, const Lambda lambda, int stride, Context * context ) {
-        char * iter = context->heap->allocate(sizeof(LambdaIterator));
-        context->heap->mark_comment(iter, "lambda iterator");
-        new (iter) LambdaIterator(*context, lambda, stride);
+    void builtin_make_lambda_iterator ( Sequence & result, const Lambda lambda, int stride, Context * context, LineInfoArg * at ) {
+        char * iter = context->allocateIterator(sizeof(LambdaIterator), "lambda iterator", at);
+        if ( !iter ) context->throw_out_of_memory(false, sizeof(LambdaIterator)+16);
+        new (iter) LambdaIterator(*context, lambda, stride, at);
         result = { (Iterator *) iter };
     }
 
@@ -963,17 +1066,17 @@ namespace das
         context->collectProfileInfo(tp);
     }
 
-    char * collectProfileInfo( Context * context ) {
+    char * collectProfileInfo( Context * context, LineInfoArg * at ) {
         TextWriter tout;
         context->collectProfileInfo(tout);
-        return context->stringHeap->allocateString(tout.str());
+        return context->allocateString(tout.str(), at);
     }
 
     void builtin_array_free ( Array & dim, int szt, Context * __context__, LineInfoArg * at ) {
         if ( dim.data ) {
             if ( !dim.lock || dim.hopeless ) {
                 uint32_t oldSize = dim.capacity*szt;
-                __context__->heap->free(dim.data, oldSize);
+                __context__->free(dim.data, oldSize, at);
             } else {
                 __context__->throw_error_at(at, "can't delete locked array");
             }
@@ -989,8 +1092,8 @@ namespace das
     void builtin_table_free ( Table & tab, int szk, int szv, Context * __context__, LineInfoArg * at ) {
         if ( tab.data ) {
             if ( !tab.lock || tab.hopeless ) {
-                uint32_t oldSize = tab.capacity*(szk+szv+sizeof(uint64_t));
-                __context__->heap->free(tab.data, oldSize);
+                uint32_t oldSize = tab.capacity*(szk+szv+sizeof(TableHashKey));
+                __context__->free(tab.data, oldSize, at);
             } else {
                 __context__->throw_error_at(at, "can't delete locked table");
             }
@@ -1163,21 +1266,26 @@ namespace das
         ptr = (char*) ptr - stride;
     }
 
-    __forceinline void * i_das_ptr_add ( void * ptr, int value, int stride ) {
-        return (char*) ptr + value * stride;
-    }
-
-    __forceinline void * i_das_ptr_sub ( void * & ptr, int value, int stride ) {
-        return (char*) ptr - value * stride;
-    }
-
-    __forceinline void i_das_ptr_set_add ( void * & ptr, int value, int stride ) {
-        ptr = (char*) ptr + value * stride;
-    }
-
-    __forceinline void i_das_ptr_set_sub ( void * & ptr, int value, int stride ) {
-        ptr = (char*) ptr + value * stride;
-    }
+    // int32_t
+    __forceinline void * i_das_ptr_add_int32 ( void * ptr, int32_t value, int32_t stride )     { return (char*) ptr + value * stride; }
+    __forceinline void * i_das_ptr_sub_int32 ( void * & ptr, int32_t value, int32_t stride )   { return (char*) ptr - value * stride; }
+    __forceinline void i_das_ptr_set_add_int32 ( void * & ptr, int32_t value, int32_t stride ) { ptr = (char*) ptr + value * stride; }
+    __forceinline void i_das_ptr_set_sub_int32 ( void * & ptr, int32_t value, int32_t stride ) { ptr = (char*) ptr - value * stride; }
+    // int64_t
+    __forceinline void * i_das_ptr_add_int64 ( void * ptr, int64_t value, int32_t stride )     { return (char*) ptr + value * stride; }
+    __forceinline void * i_das_ptr_sub_int64 ( void * & ptr, int64_t value, int32_t stride )   { return (char*) ptr - value * stride; }
+    __forceinline void i_das_ptr_set_add_int64 ( void * & ptr, int64_t value, int32_t stride ) { ptr = (char*) ptr + value * stride; }
+    __forceinline void i_das_ptr_set_sub_int64 ( void * & ptr, int64_t value, int32_t stride ) { ptr = (char*) ptr - value * stride; }
+    // uint32_t
+    __forceinline void * i_das_ptr_add_uint32 ( void * ptr, uint32_t value, int32_t stride )     { return (char*) ptr + value * stride; }
+    __forceinline void * i_das_ptr_sub_uint32 ( void * & ptr, uint32_t value, int32_t stride )   { return (char*) ptr - value * stride; }
+    __forceinline void i_das_ptr_set_add_uint32 ( void * & ptr, uint32_t value, int32_t stride ) { ptr = (char*) ptr + value * stride; }
+    __forceinline void i_das_ptr_set_sub_uint32 ( void * & ptr, uint32_t value, int32_t stride ) { ptr = (char*) ptr - value * stride; }
+    // uint64_t
+    __forceinline void * i_das_ptr_add_uint64 ( void * ptr, uint64_t value, int32_t stride )     { return (char*) ptr + value * stride; }
+    __forceinline void * i_das_ptr_sub_uint64 ( void * & ptr, uint64_t value, int32_t stride )   { return (char*) ptr - value * stride; }
+    __forceinline void i_das_ptr_set_add_uint64 ( void * & ptr, uint64_t value, int32_t stride ) { ptr = (char*) ptr + value * stride; }
+    __forceinline void i_das_ptr_set_sub_uint64 ( void * & ptr, uint64_t value, int32_t stride ) { ptr = (char*) ptr - value * stride; }
 
     Module_BuiltIn::~Module_BuiltIn() {
         gc0_reset();
@@ -1206,7 +1314,7 @@ namespace das
     TypeDeclPtr makePrintFlags() {
         auto ft = make_smart<TypeDecl>(Type::tBitfield);
         ft->alias = "print_flags";
-        ft->argNames = { "escapeString", "namesAndDimensions", "typeQualifiers", "refAddresses", "humanReadable", "singleLine" };
+        ft->argNames = { "escapeString", "namesAndDimensions", "typeQualifiers", "refAddresses", "singleLine", "fixedPoint" };
         return ft;
     }
 
@@ -1223,7 +1331,7 @@ namespace das
         auto res = args[0];
         auto flags = cast<uint32_t>::to(args[1]);
         ssw << debug_type(typeInfo) << " = " << debug_value(res, typeInfo, PrintFlags(flags));
-        auto sres = context.stringHeap->allocateString(ssw.str());
+        auto sres = context.allocateString(ssw.str(),&call->debugInfo);
         return cast<char *>::from(sres);
     }
 
@@ -1232,7 +1340,7 @@ namespace das
         auto res = args[0];
         auto humanReadable = cast<bool>::to(args[1]);
         auto ssw = debug_json_value(res, typeInfo, humanReadable);
-        auto sres = context.stringHeap->allocateString(ssw);
+        auto sres = context.allocateString(ssw,&call->debugInfo);
         return cast<char *>::from(sres);
     }
 
@@ -1250,24 +1358,29 @@ namespace das
         arr = g_CommandLineArguments;
     }
 
-    char * builtin_das_root ( Context * context ) {
-        return context->stringHeap->allocateString(getDasRoot());
+    char * builtin_das_root ( Context * context, LineInfoArg * at ) {
+        return context->allocateString(getDasRoot(), at);
     }
 
-    char * to_das_string(const string & str, Context * ctx) {
-        return ctx->stringHeap->allocateString(str);
+    char * to_das_string(const string & str, Context * ctx, LineInfoArg * at) {
+        return ctx->allocateString(str, at);
     }
 
     char * pass_string(char * str) {
         return str;
     }
 
+    char * clone_pass_string(char * str, Context * ctx, LineInfoArg * at ) {
+        if ( !str ) return nullptr;
+        return ctx->allocateString(str, at);
+    }
+
     void set_das_string(string & str, const char * bs) {
         str = bs ? bs : "";
     }
 
-    void set_string_das(char * & bs, const string & str, Context * ctx ) {
-        bs = ctx->stringHeap->allocateString(str);
+    void set_string_das(char * & bs, const string & str, Context * ctx, LineInfoArg * at ) {
+        bs = ctx->allocateString(str, at);
     }
 
     void peek_das_string(const string & str, const TBlock<void,TTemporary<const char *>> & block, Context * context, LineInfoArg * at) {
@@ -1276,11 +1389,11 @@ namespace das
         context->invoke(block, args, nullptr, at);
     }
 
-    char * builtin_string_clone ( const char *str, Context * context ) {
+    char * builtin_string_clone ( const char *str, Context * context, LineInfoArg * at ) {
         const uint32_t strLen = stringLengthSafe ( *context, str );
         if (!strLen)
             return nullptr;
-        return context->stringHeap->allocateString(str, strLen);
+        return context->allocateString(str, strLen, at);
     }
 
     void builtin_temp_array ( void * data, int size, const Block & block, Context * context, LineInfoArg * at ) {
@@ -1352,7 +1465,7 @@ namespace das
             emscripten_cancel_main_loop();
         }
     }
-#endif TRY_MAIN_LOOP
+#endif
 #endif
 
     void builtin_main_loop ( const TBlock<bool> & block, Context * context, LineInfoArg * at ) {
@@ -1379,9 +1492,20 @@ namespace das
         return context->thisProgram->policies.jit;
     }
 
+    bool das_aot_enabled ( Context * context, LineInfoArg * at ) {
+        if ( !context->thisProgram ) context->throw_error_at(at, "can only query for jit during compilation");
+        return context->thisProgram->policies.aot;
+    }
+
 #define STR_DSTR_REG(OPNAME,EXPR) \
     addExtern<DAS_BIND_FUN(OPNAME##_str_dstr)>(*this, lib, #EXPR, SideEffects::none, DAS_TOSTRING(OPNAME##_str_dstr)); \
     addExtern<DAS_BIND_FUN(OPNAME##_dstr_str)>(*this, lib, #EXPR, SideEffects::none, DAS_TOSTRING(OPNAME##_dstr_str));
+
+    void PointerOp ( const FunctionPtr & idpi ) {
+        idpi->unsafeOperation = true;
+        idpi->firstArgReturnType = true;
+        idpi->noPointerCast = true;
+    }
 
     void Module_BuiltIn::addRuntime(ModuleLibrary & lib) {
         // printer flags
@@ -1394,12 +1518,14 @@ namespace das
         addAnnotation(make_smart<SkipLockCheckStructureAnnotation>());
         addAnnotation(make_smart<MarkFunctionOrBlockAnnotation>());
         addAnnotation(make_smart<CppAlignmentAnnotation>());
+        addAnnotation(make_smart<SafeWhenUninitializedAnnotation>());
         addAnnotation(make_smart<GenericFunctionAnnotation>());
         addAnnotation(make_smart<MacroFunctionAnnotation>());
         addAnnotation(make_smart<MacroFnFunctionAnnotation>());
         addAnnotation(make_smart<HintFunctionAnnotation>());
         addAnnotation(make_smart<RequestJitFunctionAnnotation>());
         addAnnotation(make_smart<RequestNoJitFunctionAnnotation>());
+        addAnnotation(make_smart<RequestNoDiscardFunctionAnnotation>());
         addAnnotation(make_smart<DeprecatedFunctionAnnotation>());
         addAnnotation(make_smart<AliasCMRESFunctionAnnotation>());
         addAnnotation(make_smart<NeverAliasCMRESFunctionAnnotation>());
@@ -1420,13 +1546,27 @@ namespace das
         addAnnotation(make_smart<LocalOnlyFunctionAnnotation>());
         addAnnotation(make_smart<PersistentStructureAnnotation>());
         addAnnotation(make_smart<IsYetAnotherVectorTemplateAnnotation>());
+        addAnnotation(make_smart<IsDimAnnotation>());
         addAnnotation(make_smart<HashBuilderAnnotation>(lib));
+        addAnnotation(make_smart<TypeFunctionFunctionAnnotation>());
+        // and call macro
+        {
+            CallMacroPtr newM = make_smart<MakeFunctionUnsafeCallMacro>();
+            addCallMacro(newM->name, [=](const LineInfo & at) -> ExprLooksLikeCall * {
+                auto ecm = new ExprCallMacro(at, newM->name);
+                ecm->macro = newM.get();
+                newM->module = this;
+                return ecm;
+            });
+        }
+        // string
+        addAnnotation(make_smart<DasStringTypeAnnotation>());
         // typeinfo macros
         addTypeInfoMacro(make_smart<ClassInfoMacro>());
         // command line arguments
         addExtern<DAS_BIND_FUN(builtin_das_root)>(*this, lib, "get_das_root",
             SideEffects::accessExternal,"builtin_das_root")
-                ->arg("context");
+                ->args({"context","at"});
         addExtern<DAS_BIND_FUN(getCommandLineArguments)>(*this, lib, "builtin_get_command_line_arguments",
             SideEffects::accessExternal,"getCommandLineArguments")
                 ->arg("arguments");
@@ -1462,33 +1602,33 @@ namespace das
         // count and ucount iterators
         auto fnCount = addExtern<DAS_BIND_FUN(builtin_count),SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "count",
             SideEffects::modifyExternal, "builtin_count")
-                ->args({"start","step","context"});
+                ->args({"start","step","context","at"})->setNoDiscard();
         fnCount->arguments[0]->init = make_smart<ExprConstInt>(0);  // start=0
         fnCount->arguments[1]->init = make_smart<ExprConstInt>(1);  // step=0
         auto fnuCount = addExtern<DAS_BIND_FUN(builtin_ucount),SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "ucount",
             SideEffects::none, "builtin_ucount")
-                ->args({"start","step","context"});
+                ->args({"start","step","context","at"})->setNoDiscard();
         fnuCount->arguments[0]->init = make_smart<ExprConstUInt>(0);  // start=0
         fnuCount->arguments[1]->init = make_smart<ExprConstUInt>(1);  // step=0
         // make-iterator functions
         addExtern<DAS_BIND_FUN(builtin_make_good_array_iterator)>(*this, lib,  "_builtin_make_good_array_iterator",
             SideEffects::modifyArgumentAndExternal, "builtin_make_good_array_iterator")
-                ->args({"iterator","array","stride","context"});
+                ->args({"iterator","array","stride","context","at"});
         addExtern<DAS_BIND_FUN(builtin_make_fixed_array_iterator)>(*this, lib,  "_builtin_make_fixed_array_iterator",
             SideEffects::modifyArgumentAndExternal, "builtin_make_fixed_array_iterator")
-                ->args({"iterator","data","size","stride","context"});;
+                ->args({"iterator","data","size","stride","context","at"});
         addExtern<DAS_BIND_FUN(builtin_make_range_iterator)>(*this, lib,  "_builtin_make_range_iterator",
             SideEffects::modifyArgumentAndExternal, "builtin_make_range_iterator")
-                ->args({"iterator","range","context"});;
+                ->args({"iterator","range","context","at"});
         addExtern<DAS_BIND_FUN(builtin_make_string_iterator)>(*this, lib,  "_builtin_make_string_iterator",
             SideEffects::modifyArgumentAndExternal, "builtin_make_string_iterator")
-                ->args({"iterator","string","context"});
+                ->args({"iterator","string","context","at"})->setCaptureString();
         addExtern<DAS_BIND_FUN(builtin_make_nil_iterator)>(*this, lib,  "_builtin_make_nil_iterator",
             SideEffects::modifyArgumentAndExternal, "builtin_make_nil_iterator")
-                ->args({"iterator","context"});;
+                ->args({"iterator","context", "at"});
         addExtern<DAS_BIND_FUN(builtin_make_lambda_iterator)>(*this, lib,  "_builtin_make_lambda_iterator",
             SideEffects::modifyArgumentAndExternal, "builtin_make_lambda_iterator")
-                ->args({"iterator","lambda","stride","context"});
+                ->args({"iterator","lambda","stride","context","at"});
         addInterop<builtin_make_enum_iterator,void,vec4f>(*this, lib, "_builtin_make_enum_iterator",
             SideEffects::modifyArgumentAndExternal, "builtin_make_enum_iterator")
                 ->arg("iterator");
@@ -1527,13 +1667,25 @@ namespace das
                 ->arg("context");
         addExtern<DAS_BIND_FUN(collectProfileInfo)>(*this, lib, "collect_profile_info",
             SideEffects::modifyExternal, "collectProfileInfo")
-                ->arg("context");
+                ->args({"context","at"});
         // variant
         addExtern<DAS_BIND_FUN(variant_index)>(*this, lib, "variant_index", SideEffects::none, "variant_index");
         addExtern<DAS_BIND_FUN(set_variant_index)>(*this, lib, "set_variant_index",
             SideEffects::modifyArgument, "set_variant_index")
                 ->args({"variant","index"})->unsafeOperation = true;
         // heap
+        addExtern<DAS_BIND_FUN(heap_allocation_stats)>(*this, lib, "heap_allocation_stats",
+            SideEffects::modifyExternal, "heap_allocation_stats")
+                ->arg("context");
+        addExtern<DAS_BIND_FUN(heap_allocation_count)>(*this, lib, "heap_allocation_count",
+            SideEffects::modifyExternal, "heap_allocation_count")
+                ->arg("context");
+        addExtern<DAS_BIND_FUN(string_heap_allocation_stats)>(*this, lib, "string_heap_allocation_stats",
+            SideEffects::modifyExternal, "string_heap_allocation_stats")
+                ->arg("context");
+        addExtern<DAS_BIND_FUN(string_heap_allocation_count)>(*this, lib, "string_heap_allocation_count",
+            SideEffects::modifyExternal, "string_heap_allocation_count")
+                ->arg("context");
         addExtern<DAS_BIND_FUN(heap_bytes_allocated)>(*this, lib, "heap_bytes_allocated",
             SideEffects::modifyExternal, "heap_bytes_allocated")
                 ->arg("context");
@@ -1546,11 +1698,6 @@ namespace das
         addExtern<DAS_BIND_FUN(string_heap_depth)>(*this, lib, "string_heap_depth",
             SideEffects::modifyExternal, "string_heap_depth")
                 ->arg("context");
-        auto shcol = addExtern<DAS_BIND_FUN(string_heap_collect)>(*this, lib, "string_heap_collect",
-            SideEffects::modifyExternal, "string_heap_collect")
-                ->args({"validate","context","at"});
-        shcol->unsafeOperation = true;
-        shcol->arguments[0]->init = make_smart<ExprConstBool>(false);
         auto hcol = addExtern<DAS_BIND_FUN(heap_collect)>(*this, lib, "heap_collect",
                 SideEffects::modifyExternal, "heap_collect")
                     ->args({"string_heap","validate","context","at"});
@@ -1584,18 +1731,20 @@ namespace das
         addCall<ExprDebug>          ("debug");
         addCall<ExprMemZero>        ("memzero");
         // hash
-        addInterop<_builtin_hash,uint64_t,vec4f>(*this, lib, "hash",
-            SideEffects::none, "_builtin_hash")
-                ->arg("data");
-        addExtern<DAS_BIND_FUN(hash64z)>(*this, lib, "hash",
-            SideEffects::none, "hash64z")
-                ->arg("data");
-        // hash builder
-        addExtern<DAS_BIND_FUN(builtin_build_hash)>(*this, lib, "build_hash",
-                SideEffects::modifyExternal,"builtin_build_hash_T")->args({"block","context","lineinfo"})->setAotTemplate();
-        using method_hashBuilder_writeStr = DAS_CALL_MEMBER(HashBuilder::writeStr);
-        addExtern< DAS_CALL_METHOD(method_hashBuilder_writeStr) >(*this, lib, "write", SideEffects::modifyArgument,
-            DAS_CALL_MEMBER_CPP(HashBuilder::writeStr));
+        addInterop<_builtin_hash,uint64_t,vec4f>(*this, lib, "hash", SideEffects::none, "_builtin_hash")->arg("data");
+        addExtern<DAS_BIND_FUN(hash64z)>(*this, lib, "hash", SideEffects::none, "hash64z")->arg("data");
+        addExtern<DAS_BIND_FUN(_builtin_hash_int8)>(*this, lib, "hash", SideEffects::none, "_builtin_hash_int8")->arg("value");
+        addExtern<DAS_BIND_FUN(_builtin_hash_uint8)>(*this, lib, "hash", SideEffects::none, "_builtin_hash_uint8")->arg("value");
+        addExtern<DAS_BIND_FUN(_builtin_hash_int16)>(*this, lib, "hash", SideEffects::none, "_builtin_hash_int16")->arg("value");
+        addExtern<DAS_BIND_FUN(_builtin_hash_uint16)>(*this, lib, "hash", SideEffects::none, "_builtin_hash_uint16")->arg("value");
+        addExtern<DAS_BIND_FUN(_builtin_hash_int32)>(*this, lib, "hash", SideEffects::none, "_builtin_hash_int32")->arg("value");
+        addExtern<DAS_BIND_FUN(_builtin_hash_uint32)>(*this, lib, "hash", SideEffects::none, "_builtin_hash_uint32")->arg("value");
+        addExtern<DAS_BIND_FUN(_builtin_hash_int64)>(*this, lib, "hash", SideEffects::none, "_builtin_hash_int64")->arg("value");
+        addExtern<DAS_BIND_FUN(_builtin_hash_uint64)>(*this, lib, "hash", SideEffects::none, "_builtin_hash_uint64")->arg("value");
+        addExtern<DAS_BIND_FUN(_builtin_hash_ptr)>(*this, lib, "hash", SideEffects::none, "_builtin_hash_ptr")->arg("value");
+        addExtern<DAS_BIND_FUN(_builtin_hash_float)>(*this, lib, "hash", SideEffects::none, "_builtin_hash_float")->arg("value");
+        addExtern<DAS_BIND_FUN(_builtin_hash_double)>(*this, lib, "hash", SideEffects::none, "_builtin_hash_double")->arg("value");
+        addExtern<DAS_BIND_FUN(_builtin_hash_das_string)>(*this, lib, "hash", SideEffects::none, "_builtin_hash_string")->arg("value");
         // locks
         addInterop<builtin_verify_locks,void,vec4f>(*this, lib, "_builtin_verify_locks",
             SideEffects::modifyArgumentAndExternal, "builtin_verify_locks")
@@ -1630,10 +1779,10 @@ namespace das
                 ->args({"table","context"});
         addExtern<DAS_BIND_FUN(builtin_table_keys)>(*this, lib, "__builtin_table_keys",
             SideEffects::modifyArgumentAndExternal, "builtin_table_keys")
-                ->args({"iterator","table","stride","context"});
+                ->args({"iterator","table","stride","context","at"});
         addExtern<DAS_BIND_FUN(builtin_table_values)>(*this, lib, "__builtin_table_values",
             SideEffects::modifyArgumentAndExternal, "builtin_table_values")
-                ->args({"iterator","table","stride","context"});
+                ->args({"iterator","table","stride","context","at"});
         // array and table free
         addExtern<DAS_BIND_FUN(builtin_array_free)>(*this, lib, "__builtin_array_free",
             SideEffects::modifyArgumentAndExternal, "builtin_array_free")
@@ -1723,30 +1872,29 @@ namespace das
             SideEffects::none, "das_aligned_memsize")
                 ->args({"ptr"})->unsafeOperation = true;
         // pointer ari
-        auto idpi = addExtern<DAS_BIND_FUN(i_das_ptr_inc)>(*this, lib, "i_das_ptr_inc", SideEffects::modifyArgument, "das_ptr_inc");
-        idpi->unsafeOperation = true;
-        idpi->firstArgReturnType = true;
-        idpi->noPointerCast = true;
-        auto idpd = addExtern<DAS_BIND_FUN(i_das_ptr_dec)>(*this, lib, "i_das_ptr_dec", SideEffects::modifyArgument, "das_ptr_dec");
-        idpd->unsafeOperation = true;
-        idpd->firstArgReturnType = true;
-        idpd->noPointerCast = true;
-        auto idpa = addExtern<DAS_BIND_FUN(i_das_ptr_add)>(*this, lib, "i_das_ptr_add", SideEffects::none, "das_ptr_add");
-        idpa->unsafeOperation = true;
-        idpa->firstArgReturnType = true;
-        idpa->noPointerCast = true;
-        auto idps = addExtern<DAS_BIND_FUN(i_das_ptr_sub)>(*this, lib, "i_das_ptr_sub", SideEffects::none, "das_ptr_sub");
-        idps->unsafeOperation = true;
-        idps->firstArgReturnType = true;
-        idps->noPointerCast = true;
-        auto idpsa = addExtern<DAS_BIND_FUN(i_das_ptr_set_add)>(*this, lib, "i_das_ptr_set_add", SideEffects::modifyArgument, "das_ptr_set_add");
-        idpsa->unsafeOperation = true;
-        idpsa->firstArgReturnType = true;
-        idpsa->noPointerCast = true;
-        auto idpss = addExtern<DAS_BIND_FUN(i_das_ptr_set_sub)>(*this, lib, "i_das_ptr_set_sub", SideEffects::modifyArgument, "das_ptr_set_sub");
-        idpss->unsafeOperation = true;
-        idpss->firstArgReturnType = true;
-        idpss->noPointerCast = true;
+        PointerOp(addExtern<DAS_BIND_FUN(i_das_ptr_inc)>(*this, lib, "i_das_ptr_inc", SideEffects::modifyArgument, "das_ptr_inc"));
+        PointerOp(addExtern<DAS_BIND_FUN(i_das_ptr_dec)>(*this, lib, "i_das_ptr_dec", SideEffects::modifyArgument, "das_ptr_dec"));
+        // int32
+        PointerOp(addExtern<DAS_BIND_FUN(i_das_ptr_add_int32)>(*this, lib, "i_das_ptr_add", SideEffects::none, "das_ptr_add_int32"));
+        PointerOp(addExtern<DAS_BIND_FUN(i_das_ptr_sub_int32)>(*this, lib, "i_das_ptr_sub", SideEffects::none, "das_ptr_sub_int32"));
+        PointerOp(addExtern<DAS_BIND_FUN(i_das_ptr_set_add_int32)>(*this, lib, "i_das_ptr_set_add", SideEffects::modifyArgument, "das_ptr_set_add_int32"));
+        PointerOp(addExtern<DAS_BIND_FUN(i_das_ptr_set_sub_int32)>(*this, lib, "i_das_ptr_set_sub", SideEffects::modifyArgument, "das_ptr_set_sub_int32"));
+        // int64
+        PointerOp(addExtern<DAS_BIND_FUN(i_das_ptr_add_int64)>(*this, lib, "i_das_ptr_add", SideEffects::none, "das_ptr_add_int64"));
+        PointerOp(addExtern<DAS_BIND_FUN(i_das_ptr_sub_int64)>(*this, lib, "i_das_ptr_sub", SideEffects::none, "das_ptr_sub_int64"));
+        PointerOp(addExtern<DAS_BIND_FUN(i_das_ptr_set_add_int64)>(*this, lib, "i_das_ptr_set_add", SideEffects::modifyArgument, "das_ptr_set_add_int64"));
+        PointerOp(addExtern<DAS_BIND_FUN(i_das_ptr_set_sub_int64)>(*this, lib, "i_das_ptr_set_sub", SideEffects::modifyArgument, "das_ptr_set_sub_int64"));
+        // uint32
+        PointerOp(addExtern<DAS_BIND_FUN(i_das_ptr_add_uint32)>(*this, lib, "i_das_ptr_add", SideEffects::none, "das_ptr_add_uint32"));
+        PointerOp(addExtern<DAS_BIND_FUN(i_das_ptr_sub_uint32)>(*this, lib, "i_das_ptr_sub", SideEffects::none, "das_ptr_sub_uint32"));
+        PointerOp(addExtern<DAS_BIND_FUN(i_das_ptr_set_add_uint32)>(*this, lib, "i_das_ptr_set_add", SideEffects::modifyArgument, "das_ptr_set_add_uint32"));
+        PointerOp(addExtern<DAS_BIND_FUN(i_das_ptr_set_sub_uint32)>(*this, lib, "i_das_ptr_set_sub", SideEffects::modifyArgument, "das_ptr_set_sub_uint32"));
+        // uint64
+        PointerOp(addExtern<DAS_BIND_FUN(i_das_ptr_add_uint64)>(*this, lib, "i_das_ptr_add", SideEffects::none, "das_ptr_add_uint64"));
+        PointerOp(addExtern<DAS_BIND_FUN(i_das_ptr_sub_uint64)>(*this, lib, "i_das_ptr_sub", SideEffects::none, "das_ptr_sub_uint64"));
+        PointerOp(addExtern<DAS_BIND_FUN(i_das_ptr_set_add_uint64)>(*this, lib, "i_das_ptr_set_add", SideEffects::modifyArgument, "das_ptr_set_add_uint64"));
+        PointerOp(addExtern<DAS_BIND_FUN(i_das_ptr_set_sub_uint64)>(*this, lib, "i_das_ptr_set_sub", SideEffects::modifyArgument, "das_ptr_set_sub_uint64"));
+        // diff
         addExtern<DAS_BIND_FUN(i_das_ptr_diff)>(*this, lib, "i_das_ptr_diff", SideEffects::none, "i_das_ptr_diff");
         // rtti
         addExtern<DAS_BIND_FUN(class_rtti_size)>(*this, lib, "class_rtti_size",
@@ -1757,25 +1905,27 @@ namespace das
             SideEffects::modifyExternal, "builtin_profile")
                 ->args({"count","category","block","context","line"});
         // das string binding
-        addAnnotation(make_smart<DasStringTypeAnnotation>());
         addExtern<DAS_BIND_FUN(to_das_string)>(*this, lib, "string",
             SideEffects::none, "to_das_string")
-                ->args({"source","context"});
+                ->args({"source","context","at"});
         addExtern<DAS_BIND_FUN(pass_string)>(*this, lib, "string",
-            SideEffects::none, "pass_string")
-                ->args({"source"});
+            SideEffects::none, "pass_string", permanentArgFn())
+                ->args({"source"})->setCaptureString();
+        addExtern<DAS_BIND_FUN(clone_pass_string)>(*this, lib, "string",
+            SideEffects::none, "clone_pass_string", temporaryArgFn())
+                ->args({"source","context","at"});
         addExtern<DAS_BIND_FUN(set_das_string)>(*this, lib, "clone",
             SideEffects::modifyArgument,"set_das_string")
                 ->args({"target","src"});
         addExtern<DAS_BIND_FUN(set_string_das)>(*this, lib, "clone",
             SideEffects::modifyArgument,"set_string_das")
-                ->args({"target","src","context"});
+                ->args({"target","src","context","at"});
         addExtern<DAS_BIND_FUN(peek_das_string)>(*this, lib, "peek",
             SideEffects::modifyExternal,"peek_das_string_T")
                 ->args({"src","block","context","line"})->setAotTemplate();
         addExtern<DAS_BIND_FUN(builtin_string_clone)>(*this, lib, "clone_string",
             SideEffects::none, "builtin_string_clone")
-                ->args({"src","context"});
+                ->args({"src","context","at"});
         // das-string
         addExtern<DAS_BIND_FUN(das_str_equ)>(*this, lib, "==", SideEffects::none, "das_str_equ");
         addExtern<DAS_BIND_FUN(das_str_nequ)>(*this, lib, "!=", SideEffects::none, "das_str_nequ");
@@ -1824,13 +1974,15 @@ namespace das
         addConstant<int>(*this, "LOG_TRACE",    LogLevel::trace);
         // separators
         addConstant(*this, "VEC_SEP",   DAS_PRINT_VEC_SEPARATROR);
-        // clz, ctz, popcnt
+        // clz, ctz, popcnt. mul
         addExtern<DAS_BIND_FUN(uint32_clz)>(*this, lib, "clz", SideEffects::none, "uint32_clz")->arg("bits");
         addExtern<DAS_BIND_FUN(uint64_clz)>(*this, lib, "clz", SideEffects::none, "uint64_clz")->arg("bits");
         addExtern<DAS_BIND_FUN(uint32_ctz)>(*this, lib, "ctz", SideEffects::none, "uint32_ctz")->arg("bits");
         addExtern<DAS_BIND_FUN(uint64_ctz)>(*this, lib, "ctz", SideEffects::none, "uint64_ctz")->arg("bits");
         addExtern<DAS_BIND_FUN(uint32_popcount)>(*this, lib, "popcnt", SideEffects::none, "uint32_popcount")->arg("bits");
         addExtern<DAS_BIND_FUN(uint64_popcount)>(*this, lib, "popcnt", SideEffects::none, "uint64_popcount")->arg("bits");
+        addExtern<DAS_BIND_FUN(mul_u64_u64)>(*this, lib, "mul128", SideEffects::none, "mul_u64_u64")->args({"a","b"});
+        // string using
         addUsing<das::string>(*this, lib, "das::string");
         // try-recover
         addExtern<DAS_BIND_FUN(builtin_try_recover)>(*this, lib, "builtin_try_recover",
@@ -1843,6 +1995,10 @@ namespace das
         // jit
         addExtern<DAS_BIND_FUN(das_jit_enabled)>(*this, lib, "jit_enabled",
             SideEffects::none, "das_jit_enabled")
+                ->args({"context","at"});
+        // aot
+        addExtern<DAS_BIND_FUN(das_aot_enabled)>(*this, lib, "aot_enabled",
+            SideEffects::none, "das_aot_enabled")
                 ->args({"context","at"});
     }
 }

@@ -1,10 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_Point2.h>
 #include <math/dag_Point3.h>
 #include <math/dag_hlsl_floatx.h>
 #include <daFx/dafx.h>
 #include <daFx/dafx_def.hlsli>
 #include <dafx_globals.hlsli>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_info.h>
 #include <3d/dag_texMgr.h>
 #include <daFx/dafx_loaders.hlsli>
 #include <daFx/dafx_packers.hlsli>
@@ -15,6 +18,7 @@
 #include "modfx/modfx_curve.hlsli"
 #include <math/integer/dag_IBBox2.h>
 #include <dafxEmitterDebug.h>
+#include <daFx/dafx_gravity_zone.hlsli>
 
 
 namespace dafx
@@ -46,6 +50,7 @@ enum
   SPAWN_FIXED = 3,
 };
 
+
 enum
 {
   RGROUP_LOWRES = 0,
@@ -63,8 +68,7 @@ enum
   RSHADER_BBOARD_VOLSHAPE = 3,
   RSHADER_BBOARD_RAIN = 4,
   RSHADER_BBOARD_RAIN_DISTORTION = 5,
-  RSHADER_BBOARD_ABOVE_DEPTH_PLACEMENT = 6,
-  RSHADER_BBOARD_VOLFOG_INJECTION = 7,
+  RSHADER_BBOARD_VOLFOG_INJECTION = 6,
 };
 
 enum
@@ -266,7 +270,7 @@ int push_prebake_grad(eastl::vector<unsigned char> &out, const GradientBoxSample
 bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *load_cb, dafx::ContextId ctx, dafx::SystemDesc &sdesc,
   dafx_ex::SystemInfo &sinfo, dafx_ex::EmitterDebug *&emitter_debug)
 {
-  CHECK_FX_VERSION(ptr, len, 12);
+  CHECK_FX_VERSION(ptr, len, 13);
 
   FxSpawn parSpawn;
   parSpawn.load(ptr, len, load_cb);
@@ -288,6 +292,9 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
 
   FxVelocity parVelocity;
   parVelocity.load(ptr, len, load_cb);
+
+  FxPlacement parPlacement;
+  parPlacement.load(ptr, len, load_cb);
 
   FxTexture parTex;
   parTex.load(ptr, len, load_cb);
@@ -340,6 +347,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   GDATA(view_dir_y);
   GDATA(view_dir_z);
   GDATA(world_view_pos);
+  GDATA(gravity_zone_count);
   GDATA(target_size);
   GDATA(target_size_rcp);
   GDATA(depth_size);
@@ -355,6 +363,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   GDATA(wind_scroll);
   GDATA(depth_size_for_collision);
   GDATA(depth_size_rcp_for_collision);
+  GDATA(camera_velocity);
 
 #undef GDATA
 
@@ -394,6 +403,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     ddesc.emitterData.distanceBasedData.distance = parSpawn.distance_based.distance;
     ddesc.emitterData.distanceBasedData.lifeLimit = parLife.part_life_max;
     ddesc.emitterData.distanceBasedData.idlePeriod = parSpawn.distance_based.idle_period;
+    ddesc.specialFlags |= dafx::SystemDesc::FLAG_DISABLE_SIM_LODS; // distance based fx are very sensitive for skipped frames
   }
   else if (parSpawn.type == SPAWN_FIXED)
   {
@@ -414,8 +424,8 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   ddesc.emitterData.delay = max(parLife.inst_life_delay, 0.f);
 
   // param validation
-  parPos.gpu_placement.enabled &=
-    (parPos.gpu_placement.use_hmap || parPos.gpu_placement.use_depth_above || parPos.gpu_placement.use_water);
+  parPos.gpu_placement.enabled &= (parPos.gpu_placement.use_hmap || parPos.gpu_placement.use_depth_above ||
+                                   parPos.gpu_placement.use_water || parPos.gpu_placement.use_water_flowmap);
 
   // validate gpu-only features and quality
   if (parPos.enabled && parPos.gpu_placement.enabled)
@@ -476,6 +486,9 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     return true;
   };
 
+  // TODO The shader only exist with DX12 for now
+  bool useBVH = d3d::get_driver_code().is(d3d::dx12) && (rtag == dafx_ex::RTAG_LOWRES || rtag == dafx_ex::RTAG_HIGHRES);
+
   if (parRenderShader.shader == RSHADER_DEFAULT)
   {
     if (parRenderShape.type == RSHAPE_TYPE_RIBBON)
@@ -484,10 +497,18 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       else
         ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_ribbon_render"});
     else
+    {
       ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_bboard_render"});
+      if (useBVH)
+        ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_BVH], "dafx_modfx_bvh"});
+    }
   }
   else if (parRenderShader.shader == RSHADER_BBOARD_ATEST && logerr_if_ribbon("modfx_bboard_atest"))
+  {
     ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_bboard_render_atest"});
+    if (useBVH)
+      ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_BVH], "dafx_modfx_bvh"});
+  }
   else if (parRenderShader.shader == RSHADER_DISTORTION)
   {
     if (parRenderShape.type == RSHAPE_TYPE_RIBBON)
@@ -502,14 +523,12 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_bboard_rain"});
   else if (parRenderShader.shader == RSHADER_BBOARD_RAIN_DISTORTION && logerr_if_ribbon("modfx_bboard_rain_distortion"))
     ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_bboard_rain_distortion"});
-  else if (parRenderShader.shader == RSHADER_BBOARD_ABOVE_DEPTH_PLACEMENT && logerr_if_ribbon("modfx_bboard_above_depth_placement"))
-    ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_bboard_above_depth_placement"});
   else if (parRenderShader.shader == RSHADER_BBOARD_VOLSHAPE && logerr_if_ribbon("modfx_vol_shape"))
   {
     ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_volshape_render"});
     ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_VOL_WBOIT], "dafx_modfx_volshape_wboit_render"});
-    // ddesc.renderDescs.push_back( { dafx_ex::renderTags[dafx_ex::RTAG_VOL_DEPTH], "dafx_modfx_volshape_depth" } );
-    // ddesc.customDepth = true;
+    if (useBVH)
+      ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_BVH], "dafx_modfx_bvh"});
   }
   else
     logerr("fx: modfx: Could not find proper render shader.");
@@ -712,6 +731,8 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       pp.height_threshold = max(parPos.gpu_placement.placement_threshold, 0.f);
       simOffsets[MODFX_SMOD_POS_INIT_GPU_PLACEMENT] = push_system_data(simulationData, pp);
       ENABLE_MOD(smods, MODFX_SMOD_POS_INIT_GPU_PLACEMENT);
+      if (parPos.gpu_placement.use_water_flowmap)
+        ENABLE_FLAG(sflags, MODFX_SFLAG_WATER_FLOWMAP);
     }
   }
 
@@ -820,6 +841,38 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       push_prebake_curve(simulationData, parColor.curve_over_part_idx.curve);
       ENABLE_MOD(smods, MODFX_SMOD_COLOR_OVER_PART_IDX_CURVE);
     }
+
+    if (parColor.alpha_by_velocity.enabled)
+    {
+      ENABLE_DECL(sdecl, MODFX_SDECL_VELOCITY);
+      ModfxDeclAlphaByVelocity pp;
+
+      float vel_diff = parColor.alpha_by_velocity.vel_max - parColor.alpha_by_velocity.vel_min;
+      pp.vel_max = parColor.alpha_by_velocity.vel_max;
+      pp.vel_min = parColor.alpha_by_velocity.vel_min;
+
+      if (parColor.alpha_by_velocity.use_emitter_velocity)
+        ENABLE_FLAG(sflags, MODFX_SFLAG_ALPHA_BY_EMITTER_VELOCITY);
+
+      pp.inv_vel_diff = 1.f / vel_diff;
+      pp.neg_minvel_div_by_diff = -parColor.alpha_by_velocity.vel_min * pp.inv_vel_diff;
+
+      if (vel_diff > FLT_EPSILON)
+      {
+        simOffsets[MODFX_SMOD_ALPHA_BY_VELOCITY] = push_system_data(simulationData, pp);
+        ENABLE_MOD(smods, MODFX_SMOD_ALPHA_BY_VELOCITY);
+
+        if (parColor.alpha_by_velocity.velocity_alpha_curve.enabled)
+        {
+          simOffsets[MODFX_SMOD_ALPHA_BY_VELOCITY_CURVE] =
+            push_prebake_curve(simulationData, parColor.alpha_by_velocity.velocity_alpha_curve.curve);
+          ENABLE_MOD(smods, MODFX_SMOD_ALPHA_BY_VELOCITY_CURVE);
+        }
+      }
+    }
+
+    if (parColor.gamma_correction)
+      ENABLE_FLAG(rflags, MODFX_RFLAG_GAMMA_CORRECTION);
   }
 
   // emission
@@ -967,6 +1020,24 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
         ENABLE_SOFS(VAL_LOCAL_GRAVITY_VEC, ofs);
       }
     }
+
+#if DAFX_USE_GRAVITY_ZONE
+    if (parVelocity.gravity_zone == GRAVITY_ZONE_DEFAULT || parVelocity.gravity_zone == GRAVITY_ZONE_PER_EMITTER)
+    {
+      ENABLE_DECL(sdecl, MODFX_SDECL_VELOCITY);
+      ENABLE_FLAG(sflags, MODFX_SFLAG_GRAVITY_ZONE_PER_EMITTER);
+      int ofs = push_system_data(simulationData, Matrix3::IDENT);
+      simOffsets[MODFX_SMOD_GRAVITY_TM] = ofs;
+      ENABLE_MOD(smods, MODFX_SMOD_GRAVITY_TM);
+      ENABLE_SOFS(VAL_GRAVITY_ZONE_TM, ofs);
+    }
+
+    if (parVelocity.gravity_zone == GRAVITY_ZONE_PER_PARTICLE)
+    {
+      ENABLE_DECL(sdecl, MODFX_SDECL_VELOCITY);
+      ENABLE_FLAG(sflags, MODFX_SFLAG_GRAVITY_ZONE_PER_PARTICLE);
+    }
+#endif
 
     if (parVelocity.apply_parent_velocity)
     {
@@ -1159,6 +1230,14 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       pp.reflect_energy = 1.f - saturate(parVelocity.collision.energy_loss);
       pp.reflect_power = saturate(parVelocity.collision.reflect_power);
       pp.emitter_deadzone = max(parVelocity.collision.emitter_deadzone * parVelocity.collision.emitter_deadzone, 0.f);
+      pp.collide_flags = MODFX_COLLIDE_WITH_DEPTH * parVelocity.collision.collide_with_depth |
+                         MODFX_COLLIDE_WITH_DEPTH_ABOVE * parVelocity.collision.collide_with_depth_above |
+                         MODFX_COLLIDE_WITH_HMAP * parVelocity.collision.collide_with_hmap |
+                         MODFX_COLLIDE_WITH_WATER * parVelocity.collision.collide_with_water |
+                         MODFX_STOP_ROTATION_ON_COLLISION * parVelocity.collision.stop_rotation_on_collision;
+      pp.fadeout_radius_min = parVelocity.collision.collision_fadeout_radius_min;
+      pp.fadeout_radius_max = parVelocity.collision.collision_fadeout_radius_max;
+
 
       simOffsets[MODFX_SMOD_VELOCITY_SCENE_COLLISION] = push_system_data(simulationData, pp);
       ENABLE_MOD(smods, MODFX_SMOD_VELOCITY_SCENE_COLLISION);
@@ -1191,13 +1270,24 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
                            ? parVelocity.wind.impulse_wind_force
                            : 0;
 
-      simOffsets[MODFX_SMOD_VELOCITY_WIND] = push_system_data(simulationData, pp);
+      int ofs = push_system_data(simulationData, pp);
+      simOffsets[MODFX_SMOD_VELOCITY_WIND] = ofs;
+      ENABLE_SOFS(VAL_VELOCITY_WIND_COEFF, ofs);
       ENABLE_MOD(smods, MODFX_SMOD_VELOCITY_WIND);
       if (parVelocity.wind.atten.enabled)
       {
         simOffsets[MODFX_SMOD_VELOCITY_WIND_ATTEN] = push_prebake_curve(simulationData, parVelocity.wind.atten.curve);
         ENABLE_MOD(smods, MODFX_SMOD_VELOCITY_WIND_ATTEN);
       }
+    }
+
+    if (parVelocity.camera_velocity.enabled)
+    {
+      ENABLE_DECL(sdecl, MODFX_SDECL_VELOCITY);
+      ModfxDeclCameraVelocity pp;
+      pp.velocity_weight = -parVelocity.camera_velocity.velocity_weight;
+      simOffsets[MODFX_SMOD_CAMERA_VELOCITY] = push_system_data(simulationData, pp);
+      ENABLE_MOD(smods, MODFX_SMOD_CAMERA_VELOCITY);
     }
   }
 
@@ -1214,6 +1304,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
 #endif
   }
 
+  ddesc.maxTextureSlotsAllocated = 2; // potential limits - diffuse and normals
   if (parTex.enabled && parTex.frames_x > 0 && parTex.frames_y > 0)
   {
     ddesc.texturesPs.clear();
@@ -1226,12 +1317,12 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       {
         TEXTUREID tex0 = (TEXTUREID)(uintptr_t)parTex.tex_0;
         boundaryOffset = dafx::acquire_frame_boundary(ctx, tex0, IPoint2(parTex.frames_x, parTex.frames_y));
-        texture->texfilter(TEXFILTER_SMOOTH);
+        texture->texfilter(TEXFILTER_LINEAR);
         if (parTex.enable_aniso)
         {
           texture->setAnisotropy(::dgs_tex_anisotropy);
         }
-        ddesc.texturesPs.push_back(tex0);
+        ddesc.texturesPs.push_back({tex0, parTex.enable_aniso});
         release_managed_tex(tex0);
       }
     }
@@ -1242,8 +1333,8 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       if (texture)
       {
         TEXTUREID tex1 = (TEXTUREID)(uintptr_t)parTex.tex_1;
-        texture->texfilter(TEXFILTER_SMOOTH);
-        ddesc.texturesPs.push_back(tex1);
+        texture->texfilter(TEXFILTER_LINEAR);
+        ddesc.texturesPs.push_back({tex1, false});
         release_managed_tex(tex1);
       }
     }
@@ -1262,6 +1353,12 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     finit.start_frame_min = clamp(parTex.start_frame_min, 0, fc - 1);
     finit.start_frame_max = clamp(parTex.start_frame_max, 0, fc - 1);
     finit.flags = 0;
+
+    if (parTex.flip_x)
+      finit.flags |= MODFX_FRAME_FLAGS_FLIP_X;
+
+    if (parTex.flip_y)
+      finit.flags |= MODFX_FRAME_FLAGS_FLIP_Y;
 
     if (parTex.random_flip_x)
       finit.flags |= MODFX_FRAME_FLAGS_RANDOM_FLIP_X;
@@ -1574,6 +1671,9 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   if (parRenderShader.reverse_part_order)
     ENABLE_FLAG(rflags, MODFX_RFLAG_REVERSE_ORDER);
 
+  if (!parRenderShader.allow_screen_proj_discard)
+    ddesc.specialFlags |= dafx::SystemDesc::FLAG_SKIP_SCREEN_PROJ_CULL_DISCARD;
+
   if (parRenderShader.shader == RSHADER_DISTORTION || parRenderShader.shader == RSHADER_BBOARD_RAIN_DISTORTION)
   {
     float strength = parRenderShader.shader == RSHADER_DISTORTION
@@ -1605,11 +1705,16 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     ENABLE_MOD(rmods, MODFX_RMOD_VOLSHAPE_PARAMS);
   }
 
-  if (parRenderShader.shader == RSHADER_BBOARD_ABOVE_DEPTH_PLACEMENT)
+  parPlacement.enabled &= parPlacement.use_hmap || parPlacement.use_depth_above;
+
+  if (parPlacement.enabled)
   {
     ModfxDeclRenderPlacementParams pp;
-    pp.terrain_only = parRenderShader.modfx_bboard_above_depth_placement.terrain_only ? 1 : 0;
-    pp.placement_threshold = parRenderShader.modfx_bboard_above_depth_placement.placement_threshold;
+    pp.flags = 0;
+    pp.flags |= parPlacement.use_hmap ? MODFX_GPU_PLACEMENT_HMAP : 0;
+    pp.flags |= parPlacement.use_depth_above ? MODFX_GPU_PLACEMENT_DEPTH_ABOVE : 0;
+    pp.align_normals_offset = parPlacement.align_normals_offset;
+    pp.placement_threshold = parPlacement.placement_threshold;
     renOffsets[MODFX_RMOD_RENDER_PLACEMENT_PARAMS] = push_system_data(renderData, pp);
     ENABLE_MOD(rmods, MODFX_RMOD_RENDER_PLACEMENT_PARAMS);
   }

@@ -1,8 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/string_view.h>
 #include <ioSys/dag_dataBlock.h>
-
+#include <startup/dag_globalSettings.h>
 
 namespace drv3d_dx12::debug
 {
@@ -20,6 +21,7 @@ union Configuration
     bool enableDagorGPUTrace : 1;
     bool enableCPUValidation : 1;
     bool enableGPUValidation : 1;
+    bool enableAgsTrace : 1;
   };
 
   bool anyValidation() const { return enableGPUValidation || enableCPUValidation; }
@@ -39,6 +41,7 @@ union Configuration
   {
     loadPIXCapturer = false;
     enableAftermath = true;
+    enableAgsTrace = false;
     enableDagorGPUTrace = false;
     trackPageFaults = false;
     enableShaderErrorReporting = false;
@@ -52,8 +55,10 @@ union Configuration
 
   void applyDevDefaults()
   {
-    loadPIXCapturer = true;
+    auto gfx = dgs_get_settings()->getBlockByNameEx("graphics");
+    loadPIXCapturer = !gfx->getBool("enableBVH", false) && stricmp(gfx->getStr("bvhMode", "off"), "off") == 0;
     enableAftermath = true;
+    enableAgsTrace = false;
     enableDagorGPUTrace = true;
     trackPageFaults = true;
     enableShaderErrorReporting = false;
@@ -67,8 +72,10 @@ union Configuration
 
   void applyDebugDefaults()
   {
-    loadPIXCapturer = true;
+    auto gfx = dgs_get_settings()->getBlockByNameEx("graphics");
+    loadPIXCapturer = !gfx->getBool("enableBVH", false) && stricmp(gfx->getStr("bvhMode", "off"), "off") == 0;
     enableAftermath = true;
+    enableAgsTrace = false;
     enableDagorGPUTrace = true;
     trackPageFaults = true;
     enableShaderErrorReporting = true;
@@ -102,6 +109,7 @@ union Configuration
   void applyTraceProfile()
   {
     enableAftermath = true;
+    enableAgsTrace = true;
     enableDagorGPUTrace = true;
     trackPageFaults = true;
     enableShaderErrorReporting = true;
@@ -115,6 +123,7 @@ union Configuration
   void applyAftermathProfile()
   {
     enableAftermath = true;
+    enableAgsTrace = false;
     enableDagorGPUTrace = false;
     trackPageFaults = true;
     enableShaderErrorReporting = true;
@@ -128,6 +137,7 @@ union Configuration
   void applyDREDProfile()
   {
     enableAftermath = false;
+    enableAgsTrace = false;
     enableDagorGPUTrace = false;
     trackPageFaults = true;
     enableDRED = true;
@@ -138,7 +148,19 @@ union Configuration
   void applyDagorTraceProfile()
   {
     enableAftermath = false;
+    enableAgsTrace = false;
     enableDagorGPUTrace = true;
+    trackPageFaults = true;
+    enableDRED = false;
+    ignoreDREDAvailability = false;
+    enableGPUDumps = false;
+  }
+
+  void applyAgsProfile()
+  {
+    enableAftermath = false;
+    enableAgsTrace = true;
+    enableDagorGPUTrace = false;
     trackPageFaults = true;
     enableDRED = false;
     ignoreDREDAvailability = false;
@@ -187,6 +209,10 @@ union Configuration
     {
       applyTraceProfile();
     }
+    else if (0 == profile.compare("ags"))
+    {
+      applyAgsProfile();
+    }
     else if (0 == profile.compare("postmortem"))
     {
       applyTraceProfile();
@@ -234,6 +260,7 @@ union Configuration
 
     int debugLevel = modernSettings->getInt("level", 0);
     enableAftermath = modernSettings->getBool("aftermath", enableAftermath);
+    enableAgsTrace = modernSettings->getBool("agsTrace", enableAgsTrace);
     trackPageFaults = modernSettings->getBool("pageFaults", trackPageFaults || debugLevel > 0 || enableAftermath);
     enableDRED = modernSettings->getBool("DRED", enableDRED);
     loadPIXCapturer = modernSettings->getBool("loadPixCapturer", loadPIXCapturer);

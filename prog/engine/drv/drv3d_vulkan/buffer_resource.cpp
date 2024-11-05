@@ -1,6 +1,13 @@
-#include "device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "pipeline.h"
-#include <3d/tql.h>
+#include "globals.h"
+#include "device_memory.h"
+#include "resource_manager.h"
+#include "buffer_alignment.h"
+#include "backend.h"
+#include "execution_context.h"
+#include "bindless.h"
 
 using namespace drv3d_vulkan;
 
@@ -42,34 +49,27 @@ VkBufferUsageFlags Buffer::getUsage(VulkanDevice &device, DeviceMemoryClass memC
 #if VK_KHR_buffer_device_address
 VkDeviceAddress Buffer::getDeviceAddress(VulkanDevice &device) const
 {
+  G_ASSERTF(desc.memoryClass == DeviceMemoryClass::DEVICE_RESIDENT_BUFFER,
+    "vulkan: trying to get device address for non device resident buffer %p:%s", this, getDebugName());
   VkBufferDeviceAddressInfo info = {VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
   info.buffer = getHandle();
   return device.vkGetBufferDeviceAddressKHR(device.get(), &info);
 }
 
-VkDeviceAddress Buffer::devOffsetAbs(VkDeviceSize ofs) const
-{
-  return getDeviceAddress(get_device().getVkDevice()) + sharedOffset + ofs;
-}
+VkDeviceAddress Buffer::devOffsetAbs(VkDeviceSize ofs) const { return getDeviceAddress(Globals::VK::dev) + sharedOffset + ofs; }
 
 #endif
 
-void Buffer::reportToTQL(bool is_allocating)
-{
-  int kbz = tql::sizeInKb(getMemory().size);
-  tql::on_buf_changed(is_allocating, is_allocating ? kbz : -kbz);
-}
-
 void Buffer::destroyVulkanObject()
 {
-  G_ASSERT(getMemory().isDeviceMemory());
   G_ASSERT(!isHandleShared());
 
-  Device &drvDev = get_device();
-  VulkanDevice &dev = drvDev.getVkDevice();
+  VulkanDevice &dev = Globals::VK::dev;
 
-  reportToTQL(false);
-  get_device().getVkDevice().vkDestroyBuffer(dev.get(), getHandle(), nullptr);
+  if (isManaged())
+    reportToTQL(false);
+
+  Globals::VK::dev.vkDestroyBuffer(dev.get(), getHandle(), nullptr);
   setHandle(generalize(Handle()));
 }
 
@@ -77,24 +77,40 @@ namespace drv3d_vulkan
 {
 
 template <>
+void Buffer::onDelayedCleanupBackend<Buffer::CLEANUP_DESTROY>()
+{
+  for (uint32_t i : bindlessSlots)
+    Backend::bindless.cleanupBindlessBuffer(i, this);
+  bindlessSlots.clear();
+}
+
+template <>
 void Buffer::onDelayedCleanupFinish<Buffer::CLEANUP_DESTROY>()
 {
-  Device &drvDev = get_device();
-  drvDev.resources.free(this);
+  G_ASSERTF(!isFrameMemReferencedAtRemoval(), "vulkan: framemem buffer %p:%s is still referenced (%u refs) while being destroyed",
+    this, getDebugName(), discardIndex);
+
+  if (desc.memFlags & BufferMemoryFlags::IN_PLACED_HEAP)
+  {
+    destroyVulkanObject();
+    freeMemory();
+    releaseHeap();
+  }
+
+  Globals::Mem::res.free(this);
 }
 
 } // namespace drv3d_vulkan
 
 void Buffer::createVulkanObject()
 {
-  Device &drvDev = get_device();
-  VulkanDevice &dev = drvDev.getVkDevice();
+  VulkanDevice &dev = Globals::VK::dev;
 
   VkBufferCreateInfo bci;
   bci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
   bci.pNext = NULL;
   bci.flags = 0;
-  bci.size = desc.blockSize * desc.discardCount;
+  bci.size = desc.blockSize * desc.discardBlocks;
   bci.usage = getUsage(dev, desc.memoryClass);
   bci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
   bci.queueFamilyIndexCount = 0;
@@ -109,8 +125,7 @@ MemoryRequirementInfo Buffer::getMemoryReq()
 {
   G_ASSERT(getBaseHandle());
 
-  Device &drvDev = get_device();
-  VulkanDevice &dev = drvDev.getVkDevice();
+  VulkanDevice &dev = Globals::VK::dev;
 
   // TODO: can be moved from vulkan device here
   MemoryRequirementInfo ret = get_memory_requirements(dev, getHandle());
@@ -122,20 +137,19 @@ MemoryRequirementInfo Buffer::getMemoryReq()
 
 VkMemoryRequirements Buffer::getSharedHandleMemoryReq()
 {
-  Device &drvDev = get_device();
-  VulkanDevice &vkDev = drvDev.getVkDevice();
+  VulkanDevice &vkDev = Globals::VK::dev;
 
   VkMemoryRequirements ret;
-  ret.alignment = drvDev.getBufferAligmentForUsageAndFlags(0, Buffer::getUsage(vkDev, desc.memoryClass));
+  ret.alignment = Globals::VK::bufAlign.getForUsageAndFlags(0, Buffer::getUsage(vkDev, desc.memoryClass));
   ret.size = ret.alignment > 0 ? getTotalSize() : 0;
-  ret.memoryTypeBits = drvDev.memory->getMemoryTypeMaskForClass(desc.memoryClass);
+  ret.memoryTypeBits = Globals::Mem::pool.getMemoryTypeMaskForClass(desc.memoryClass);
 #if VULKAN_MAPPED_BUFFER_OVERRUN_WRITE_CHECK > 0
   ret.size *= 2;
 #endif
   return ret;
 }
 
-void Buffer::bindMemory()
+void Buffer::bindAssignedMemoryId()
 {
   G_ASSERT(getBaseHandle());
   G_ASSERT(getMemoryId() != -1);
@@ -147,10 +161,21 @@ void Buffer::bindMemory()
   fillPointers(mem);
 
   // we are binding object to memory offset
-  VulkanDevice &dev = get_device().getVkDevice();
+  VulkanDevice &dev = Globals::VK::dev;
   VULKAN_EXIT_ON_FAIL(dev.vkBindBufferMemory(dev.get(), getHandle(), mem.deviceMemory(), mem.offset));
+}
 
+void Buffer::bindMemory()
+{
+  bindAssignedMemoryId();
   reportToTQL(true);
+}
+
+void Buffer::bindMemoryFromHeap(MemoryHeapResource *in_heap, ResourceMemoryId heap_mem_id)
+{
+  setMemoryId(heap_mem_id);
+  bindAssignedMemoryId();
+  setHeap(in_heap);
 }
 
 void Buffer::reuseHandle()
@@ -186,7 +211,10 @@ void Buffer::fillPointers(const ResourceMemory &mem)
     memset(mappedPtr + mem.size / 2, buffer_tail_filler, mem.size / 2);
 #endif
   }
-  if (!get_device().isCoherencyAllowedFor(mem.memType))
+  else
+    // surely avoid corrupting other buffer memory / force crash if buffer usages/creation are broken
+    mappedPtr = nullptr;
+  if (!Globals::cfg.bits.useCoherentMemory || !Globals::Mem::pool.isCoherentMemoryType(mem.memType))
     nonCoherentMemoryHandle = mem.isDeviceMemory() ? mem.deviceMemory() : mem.deviceMemorySlow();
 }
 
@@ -202,12 +230,11 @@ bool Buffer::isEvictable() { return false; }
 
 void Buffer::shutdown()
 {
-  Device &drvDev = get_device();
-  VulkanDevice &dev = drvDev.getVkDevice();
+  VulkanDevice &dev = Globals::VK::dev;
 
   if (views)
   {
-    for (uint32_t i = 0; i < desc.discardCount; ++i)
+    for (uint32_t i = 0; i < desc.discardBlocks; ++i)
       dev.vkDestroyBufferView(dev.get(), views[i], nullptr);
     views.reset();
   }
@@ -220,16 +247,37 @@ void Buffer::shutdown()
     for (int i = 0; i < mem.size / 2; ++i)
     {
       if (*tailPtr != buffer_tail_filler)
-        logerr("buffer is corrupted at shutdown: name %s pos %u", getDebugName(), i);
+        D3D_ERROR("buffer is corrupted at shutdown: name %s pos %u", getDebugName(), i);
       ++tailPtr;
     }
   }
 #endif
-
-  discardAvailableFrames.reset();
 }
 
 bool Buffer::hasMappedMemory() const { return mappedPtr != nullptr; }
+
+bool Buffer::isFakeFrameMem() { return Globals::cfg.bits.debugFrameMemUsage > 0; }
+
+void Buffer::verifyFrameMem()
+{
+  ExecutionContext &ctx = Backend::State::exec.getExecutionContext();
+  uint32_t discardedAt = interlocked_relaxed_load(lastDiscardFrame);
+  bool passing = false;
+  if (Globals::cfg.bits.debugFrameMemUsage)
+    // with debug, we using normal discard approach, index may go over current frame for every frame discard
+    // may fail to detect edge-error cases, but gives resilence for wast amount of false triggers
+    passing = discardedAt >= ctx.data.frontFrameIndex;
+  else
+    passing = discardedAt == ctx.data.frontFrameIndex;
+
+  if (!passing)
+  {
+    // enable Globals::cfg.bits.debugFrameMemUsage to see proper buffer name
+    // but framemem logic will be not used to full extent!
+    D3D_ERROR("vulkan: missed discard on framemem buffer %p:%s, expected frame %u got %u at %s", this, getDebugName(),
+      ctx.data.frontFrameIndex, discardedAt, Backend::State::exec.getExecutionContext().getCurrentCmdCaller());
+  }
+}
 
 void Buffer::markNonCoherentRangeLoc(uint32_t offset, uint32_t size, bool flush)
 {
@@ -242,8 +290,7 @@ void Buffer::markNonCoherentRangeAbs(uint32_t offset, uint32_t size, bool flush)
   if (is_null(nonCoherentMemoryHandle))
     return;
 
-  Device &drvDev = get_device();
-  VulkanDevice &dev = drvDev.getVkDevice();
+  VulkanDevice &dev = Globals::VK::dev;
 
   VkMappedMemoryRange range = {VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, nullptr};
   range.memory = nonCoherentMemoryHandle;
@@ -252,7 +299,7 @@ void Buffer::markNonCoherentRangeAbs(uint32_t offset, uint32_t size, bool flush)
 
   // Conform it to VUID-VkMappedMemoryRange-size-01390
   // Assume that the underlying buffer memory is properly aligned.
-  VkDeviceSize alignmentMask = get_device().getMinimalBufferAlignment() - 1;
+  VkDeviceSize alignmentMask = Globals::VK::bufAlign.minimal - 1;
   range.size += range.offset & alignmentMask;
   range.offset = range.offset & ~alignmentMask;
   range.size = (range.size + alignmentMask) & ~alignmentMask;
@@ -273,9 +320,60 @@ void Buffer::Description::fillAllocationDesc(AllocationDesc &alloc_desc) const
   bool noSuballoc = (memFlags & BufferMemoryFlags::DEDICATED) != 0;
   alloc_desc.canUseSharedHandle = !noSuballoc;
   alloc_desc.forceDedicated = noSuballoc;
-  alloc_desc.reqs.requirements.alignment = get_device().getMinimalBufferAlignment();
-  alloc_desc.reqs.requirements.size = blockSize * discardCount;
+  alloc_desc.reqs.requirements.alignment = Globals::VK::bufAlign.minimal;
+  alloc_desc.reqs.requirements.size = blockSize * discardBlocks;
   alloc_desc.memClass = memoryClass;
   alloc_desc.temporary = (memFlags & BufferMemoryFlags::TEMP) != 0;
   alloc_desc.objectBaked = 0;
+}
+
+Buffer *Buffer::create(uint32_t size, DeviceMemoryClass memory_class, uint32_t discard_count, BufferMemoryFlags mem_flags)
+{
+  G_ASSERTF(discard_count > 0, "discard count has to be at least one");
+  uint32_t blockSize = Globals::VK::bufAlign.alignSize(size);
+
+  WinAutoLock lk(Globals::Mem::mutex);
+  return Globals::Mem::res.alloc<Buffer>({blockSize, memory_class, discard_count, mem_flags}, true);
+}
+
+void Buffer::addBufferView(FormatStore format)
+{
+  G_ASSERTF((getBlockSize() % format.getBytesPerPixelBlock()) == 0,
+    "invalid view of buffer, buffer has a size of %u, format (%s) element size is %u"
+    " which leaves %u dangling bytes",
+    getBlockSize(), format.getNameString(), format.getBytesPerPixelBlock(), getBlockSize() % format.getBytesPerPixelBlock());
+
+  uint32_t viewCount = desc.discardBlocks;
+  views.reset(new VulkanBufferViewHandle[viewCount]);
+
+  VkBufferViewCreateInfo bvci;
+  bvci.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
+  bvci.pNext = NULL;
+  bvci.flags = 0;
+  bvci.buffer = getHandle();
+  bvci.format = format.asVkFormat();
+  bvci.range = getBlockSize();
+
+  {
+    uint64_t sizeLimit = Globals::VK::phy.properties.limits.maxStorageBufferRange;
+    sizeLimit = min(sizeLimit, (uint64_t)Globals::VK::phy.properties.limits.maxTexelBufferElements * format.getBytesPerPixelBlock());
+
+    // should be assert, but some GPUs have broken limit values, working fine with bigger buffers
+    if (sizeLimit < bvci.range)
+    {
+      debug("maxStorageBufferRange=%d, maxTexelBufferElements=%d, getBytesPerPixelBlock=%d",
+        Globals::VK::phy.properties.limits.maxStorageBufferRange, Globals::VK::phy.properties.limits.maxTexelBufferElements,
+        format.getBytesPerPixelBlock());
+      D3D_ERROR("vulkan: too big buffer view (%llu bytes max while asking for %u) for %llX:%s", sizeLimit, bvci.range,
+        generalize(getHandle()), getDebugName());
+      bvci.range = VK_WHOLE_SIZE;
+    }
+  }
+
+  for (uint32_t d = 0; d < viewCount; ++d)
+  {
+    bvci.offset = bufOffsetAbs(d * getBlockSize());
+
+    VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkCreateBufferView(Globals::VK::dev.get(), &bvci, NULL, ptr(views[d])));
+  }
 }

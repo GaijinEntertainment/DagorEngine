@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -28,7 +27,7 @@ public:
       char *evtData = (char *)evt;
       constexpr ecs::event_type_t eventType = First::staticType();
       ecs::EventsDB::event_id_t eventId = g_entity_mgr->getEventsDb().findEvent(eventType);
-      if (EASTL_UNLIKELY(eventId == ecs::EventsDB::invalid_event_id))
+      if (DAGOR_UNLIKELY(eventId == ecs::EventsDB::invalid_event_id))
         return sq_throwerror(vm, "unknown event");
       if (!g_entity_mgr->getEventsDb().hasEventScheme(eventId))
         return sq_throwerror(vm, "event without event scheme");

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "plugIn.h"
 
 #include <oldEditor/de_interface.h>
@@ -7,7 +9,7 @@
 #include <de3_occludersFromGeom.h>
 #include <de3_entityFilter.h>
 
-#include <dllPluginCore/core.h>
+#include <EditorCore/ec_IEditorCore.h>
 
 #include <sepGui/wndPublic.h>
 
@@ -26,12 +28,16 @@
 // #include <texConverter/TextureConverterDlg.h>
 #include <debug/dag_debug.h>
 
+#include <propPanel/control/menu.h>
 #include <winGuiWrapper/wgw_input.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 
 
 #define DAG_FILENAME "single.dag"
 
+using editorcore_extapi::dagConsole;
+using editorcore_extapi::dagGeom;
+using editorcore_extapi::dagRender;
 
 static int dagFileNameId = -1;
 static unsigned collisionSubtypeMask = 0, rendEntGeomMask = 0;
@@ -83,7 +89,7 @@ bool StaticGeometryPlugin::begin(int toolbar_id, unsigned menu_id)
 {
   // menu
 
-  IMenu *mainMenu = DAGORED2->getWndManager()->getMainMenu();
+  PropPanel::IMenu *mainMenu = DAGORED2->getMainMenu();
 
   mainMenu->addItem(menu_id, CM_IMPORT_WITHOUT_TEX, "Import DAG...\tCtrl+O");
   mainMenu->addItem(menu_id, CM_DAG_OPTIMIZE, "Optimize DAG");
@@ -91,11 +97,11 @@ bool StaticGeometryPlugin::begin(int toolbar_id, unsigned menu_id)
   mainMenu->addItem(menu_id, CM_RESET_GEOMETRY, "Erase geometry");
 
   // toolbar
-  PropertyContainerControlBase *toolbar = DAGORED2->getCustomPanel(toolbar_id);
+  PropPanel::ContainerPropertyControl *toolbar = DAGORED2->getCustomPanel(toolbar_id);
   G_ASSERT(toolbar);
   toolbar->setEventHandler(this);
 
-  PropertyContainerControlBase *tool = toolbar->createToolbarPanel(CM_TOOL, "");
+  PropPanel::ContainerPropertyControl *tool = toolbar->createToolbarPanel(CM_TOOL, "");
 
   tool->createButton(CM_IMPORT_WITHOUT_TEX, "Import DAG (Ctrl+O)");
   tool->setButtonPictures(CM_IMPORT_WITHOUT_TEX, "import_dag");
@@ -236,7 +242,7 @@ void StaticGeometryPlugin::importDag()
 
 //==============================================================================
 
-void StaticGeometryPlugin::onClick(int pcb_id, PropPanel2 *panel) { onPluginMenuClick(pcb_id); }
+void StaticGeometryPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) { onPluginMenuClick(pcb_id); }
 
 
 bool StaticGeometryPlugin::onPluginMenuClick(unsigned id)
@@ -533,6 +539,7 @@ void StaticGeometryPlugin::unregistered()
 }
 
 
+#if !_TARGET_STATIC_LIB
 // back-loop
 void set_cached_debug_lines_wtm(const TMatrix &tm) { dagRender->setLinesTm(tm); }
 
@@ -549,3 +556,4 @@ void draw_cached_debug_sphere(const Point3 &center, real rad, E3DCOLOR col, int 
 }
 
 void draw_cached_debug_capsule_w(const Capsule &cap, E3DCOLOR c) { dagRender->renderCapsuleW(cap, c); }
+#endif

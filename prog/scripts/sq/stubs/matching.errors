@@ -100,5 +100,7 @@ return {
   CLIENT_ERROR_ALREADY_CONNECTED =           0x8000200D
   CLIENT_ERROR_OPERATION_NOT_SUPPORTED =     0x8000200E
 
-  error_string = @(_string) ""
+  error_string = @(_string) "" //depreacted
+  matching_error_string = @(_string) ""
+  is_matching_error = @(_code) false
 }

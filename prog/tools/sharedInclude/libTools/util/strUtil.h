@@ -1,7 +1,6 @@
 //
 // Dagor Tech 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -125,3 +124,16 @@ void cvt_pathname_to_valid_filename(String &inout_name);
 
 // generate words list by string. Example: in: "p1 p2", out: "p1", "p2"
 void string_to_words(const String &str, Tab<String> &list);
+
+// Returns if text contains a wildcard character ('*' or '?').
+bool str_has_wildcard_character(const char *text);
+
+// Returns true if text matches the specified wildcard pattern.
+//
+// * matches zero or more characters
+// ? matches exactly one character
+//
+// For example:
+// test* is matched by test and test_something but not Atest
+// test? is matched by test1 but not test or test11
+bool str_matches_wildcard_pattern(const char *text, const char *pattern);

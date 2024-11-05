@@ -1,24 +1,30 @@
-// this file is generated via daScript automatic C++ binder
+// this file is generated via Daslang automatic C++ binder
 // all user modifications will be lost after this file is re-generated
 
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImDrawListSharedData,ImDrawListSharedData);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImFontBuilderIO,ImFontBuilderIO);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiContext,ImGuiContext);
+IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiTableSortSpecs,ImGuiTableSortSpecs);
+IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiTableColumnSortSpecs,ImGuiTableColumnSortSpecs);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImNewWrapper,ImNewWrapper);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiStyle,ImGuiStyle);
+IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiKeyData,ImGuiKeyData);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiIO,ImGuiIO);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiInputTextCallbackData,ImGuiInputTextCallbackData);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiSizeCallbackData,ImGuiSizeCallbackData);
+IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiWindowClass,ImGuiWindowClass);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiPayload,ImGuiPayload);
-IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiTableColumnSortSpecs,ImGuiTableColumnSortSpecs);
-IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiTableSortSpecs,ImGuiTableSortSpecs);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiOnceUponAFrame,ImGuiOnceUponAFrame);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiTextFilter,ImGuiTextFilter);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiTextRange,ImGuiTextFilter::ImGuiTextRange);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiTextBuffer,ImGuiTextBuffer);
+IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiStoragePair,ImGuiStoragePair);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiStorage,ImGuiStorage);
-IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiStoragePair,ImGuiStorage::ImGuiStoragePair);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiListClipper,ImGuiListClipper);
+IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiMultiSelectIO,ImGuiMultiSelectIO);
+IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiSelectionRequest,ImGuiSelectionRequest);
+IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiSelectionBasicStorage,ImGuiSelectionBasicStorage);
+IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiSelectionExternalStorage,ImGuiSelectionExternalStorage);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImDrawCmd,ImDrawCmd);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImDrawVert,ImDrawVert);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImDrawCmdHeader,ImDrawCmdHeader);
@@ -33,3 +39,6 @@ IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImFontAtlasCustomRect,ImFontAtlasCustomRect);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImFontAtlas,ImFontAtlas);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImFont,ImFont);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiViewport,ImGuiViewport);
+IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiPlatformIO,ImGuiPlatformIO);
+IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiPlatformMonitor,ImGuiPlatformMonitor);
+IMPLEMENT_EXTERNAL_TYPE_FACTORY(ImGuiPlatformImeData,ImGuiPlatformImeData);

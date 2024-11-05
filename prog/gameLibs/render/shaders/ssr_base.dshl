@@ -1,0 +1,263 @@
+include "shader_global.dshl"
+include "reprojected_motion_vectors.dshl"
+include "gbuffer.dshl"
+include "viewVecVS.dshl"
+include "monteCarlo.dshl"
+include "ssr_common.dshl"
+include "frustum.dshl"
+include "alternate_reflections.dshl"
+include "ssr_inc.dshl"
+include "force_ignore_history.dshl"
+include "hero_matrix_inc.dshl"
+include "halfres_close_depth_with_normals.dshl"
+include "motion_vectors_type.dshl"
+include_optional "ssr_env_resolve.dshl"
+
+int ssr_quality = 1;
+interval ssr_quality : low<1, medium<2, high<3, highest;
+
+int ssr_alternate_reflections = 0;
+interval ssr_alternate_reflections : no<1, yes;
+
+texture ssr_target;
+texture ssr_prev_target;
+texture prev_downsampled_close_depth_tex;
+texture prev_downsampled_normals;
+
+float ssr_clamping_gamma = 1.0;
+float ssr_neighborhood_bias_tight = 0.0;
+float ssr_neighborhood_bias_wide = 0.05;
+float ssr_neighborhood_velocity_difference_scale = 100;
+
+float4 analytic_light_sphere_pos_r=(0,0,0,0);
+float4 analytic_light_sphere_color=(1,0,0,1);
+
+define_macro_if_not_defined SSR_ENV_RESOLVE(code)
+  dont_render;
+endmacro
+
+define_macro_if_not_defined GET_TRANSLUCENT_ALTERNATE_REFLECTIONS(code)
+  hlsl(code) {
+    float4 get_translucent_alternate_reflections(float3 cameraToPoint, float3 R, float reflectionDistance) {return 0;}
+  }
+endmacro
+
+macro INIT_TEXTURES(code)
+  if (ssr_resolution == halfres) {
+    INIT_HALF_RES_CLOSE_DEPTH(code)
+    INIT_HALF_RES_CLOSE_DEPTH_NORMALS_TEX(code)
+    hlsl(code) {
+      #define src_depth_tex half_res_close_depth
+      #define src_depth_tex_samplerstate half_res_close_depth_samplerstate
+      #define src_normals_tex half_res_close_depth_normals
+
+      #define ssr_depth half_res_close_depth
+      #define ssr_depth_samplerstate half_res_close_depth_samplerstate
+
+      #define downsampled_close_depth_tex half_res_close_depth
+      #define downsampled_close_depth_tex_samplerstate half_res_close_depth_samplerstate
+    }
+  } else {
+    (code) { normal_gbuf_read@tex2d = normal_gbuf; }
+    INIT_READ_DEPTH_GBUFFER_BASE(code)
+    hlsl(code) {
+      #define src_depth_tex depth_gbuf_read
+      #define src_depth_tex_samplerstate depth_gbuf_read_samplerstate
+      #define src_normals_tex normal_gbuf_read
+
+      #define ssr_depth depth_gbuf_read
+      #define ssr_depth_samplerstate depth_gbuf_read_samplerstate
+
+      #define downsampled_close_depth_tex depth_gbuf_read
+      #define downsampled_close_depth_tex_samplerstate depth_gbuf_read_samplerstate
+    }
+  }
+  hlsl(code) {
+    void unpack_material(uint2 texcoord, out half3 normal, out half linear_roughness, out half smoothness)
+    {
+      half4 normal_smoothness = texture2DAt(src_normals_tex, texcoord);
+      normal = normalize(normal_smoothness.xyz * 2 - 1);
+##if ssr_resolution == halfres
+      smoothness = normal_smoothness.w;
+##else
+      smoothness = (half)texture2DAt(material_gbuf_read, texcoord).x;
+##endif
+      linear_roughness = linearSmoothnessToLinearRoughness(smoothness);
+    }
+  }
+endmacro
+
+float4 prev_zn_zfar;
+float4 move_world_view_pos;
+float ssr_camera_move_scale_for_miss_reprojection = 200.0;
+float static_pixel_miss_reprojection_weight = 0.5;
+
+macro SSR_BASE(code)
+  (code) {
+    prev_globtm_no_ofs_psf@f44 = { prev_globtm_no_ofs_psf_0, prev_globtm_no_ofs_psf_1, prev_globtm_no_ofs_psf_2, prev_globtm_no_ofs_psf_3 };
+    world_view_pos@f4 = world_view_pos;
+    ssr_world_view_pos@f4 = ssr_world_view_pos;
+    SSRParams@f4 = (SSRParams.x, SSRParams.y, ssr_frameNo.z, ssr_frameNo.y);
+    ssr_target_size@f4 = ssr_target_size;
+  }
+endmacro
+
+macro SSR_REPROJECTION(code)
+  hlsl(code) {
+    ##if prev_downsampled_close_depth_tex != NULL
+      #define USE_PREV_DOWNSAMPLED_CLOSE_DEPTH 1
+      ##if prev_downsampled_normals != NULL
+        #define USE_PREV_DOWNSAMPLED_NORMALS 1
+      ##endif
+    ##endif
+  }
+  //VIEW_VEC_OPTIMIZED(code)
+  INIT_HERO_MATRIX(code)
+  USE_HERO_MATRIX(code)
+  INIT_REPROJECTED_MOTION_VECTORS(code)
+  USE_REPROJECTED_MOTION_VECTORS(code)
+  MOTION_VECTORS_TYPE(code)
+  USE_IGNORE_HISTORY(code)
+  local float4 downsampled_close_depth_tex_dim = get_dimensions(downsampled_close_depth_tex, 0);
+  local float4 prev_downsampled_close_depth_tex_dim = get_dimensions(prev_downsampled_close_depth_tex, 0);
+
+  (code) {
+    ssr_prev_target@smp2d = ssr_prev_target;
+
+    //prev_zn_zfar@f4 = (prev_zn_zfar.x, prev_zn_zfar.y, prev_zn_zfar.x/(prev_zn_zfar.x * prev_zn_zfar.y), (prev_zn_zfar.y-prev_zn_zfar.x)/(prev_zn_zfar.x * prev_zn_zfar.y));
+    prev_zn_zfar@f4 = (zn_zfar.x, zn_zfar.y, zn_zfar.x/(zn_zfar.x * zn_zfar.y), (zn_zfar.y-zn_zfar.x)/(zn_zfar.x * zn_zfar.y));
+    prev_camera_translation@f1 = (move_world_view_pos.w);
+
+    prev_downsampled_close_depth_tex@smp2d = prev_downsampled_close_depth_tex;
+    prev_downsampled_normals@tex2d = prev_downsampled_normals;
+    prev_downsampled_close_depth_tex_target_size@f4 = (prev_downsampled_close_depth_tex_dim.x, prev_downsampled_close_depth_tex_dim.y, 1/max(1, prev_downsampled_close_depth_tex_dim.x), 1/max(1, prev_downsampled_close_depth_tex_dim.y));
+    scaled_prev_camera_translation@f1 = (move_world_view_pos.w * ssr_camera_move_scale_for_miss_reprojection);
+    static_pixel_miss_reprojection_weight@f2 = (static_pixel_miss_reprojection_weight, 1.0 - static_pixel_miss_reprojection_weight);
+  }
+  hlsl(code) {
+    #ifndef MOTION_VECTORS_TEXTURE
+      #define MOTION_VECTORS_TEXTURE motion_gbuf
+    #endif
+    #ifndef CHECK_VALID_MOTION_VECTOR
+      #define CHECK_VALID_MOTION_VECTOR(a) (a.x != 0)
+    #endif
+  }
+endmacro
+
+macro SSR_COMMON(code)
+  ENABLE_ASSERT(code)
+  SETUP_SSR(code)
+  VIEW_VEC_OPTIMIZED(code)
+  INIT_TEXTURES(code)
+  SSR_BASE(code)
+  SSR_REPROJECTION(code)
+
+  (code) {
+    prev_frame_tex@smp2d = prev_frame_tex;
+
+    //prev_zn_zfar@f4 = (prev_zn_zfar.x, prev_zn_zfar.y, prev_zn_zfar.x/(prev_zn_zfar.x * prev_zn_zfar.y), (prev_zn_zfar.y-prev_zn_zfar.x)/(prev_zn_zfar.x * prev_zn_zfar.y));
+    globtm_no_ofs_psf@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
+
+    water_level@f1 = water_level;
+
+    encode_depth@f4 = (-zn_zfar.x/(zn_zfar.y-zn_zfar.x), zn_zfar.x * zn_zfar.y/(zn_zfar.y-zn_zfar.x),
+                      zn_zfar.x/(zn_zfar.x * zn_zfar.y), (zn_zfar.y-zn_zfar.x)/(zn_zfar.x * zn_zfar.y));
+
+    analytic_light_sphere_pos_r@f4 = analytic_light_sphere_pos_r;
+    analytic_light_sphere_color@f4 = analytic_light_sphere_color;
+    downsampled_depth_mip_count@f1 = (downsampled_close_depth_tex_dim.w);
+    lowres_rt_params@f2 = downsampled_close_depth_tex_dim; //Far and Close depth are the same size
+  }
+
+  hlsl(code) {
+    ##if ssr_quality == highest
+      #define SSR_QUALITY 3
+    ##elif ssr_quality == high
+      #define SSR_QUALITY 2
+    ##else
+      #define SSR_QUALITY 1
+    ##endif
+
+    ##if ssr_quality != low
+      #define SSR_FFX
+      #define FFX_SSSR_INVERTED_DEPTH_RANGE
+      #include "../../../3rdPartyLibs/ssr/ffx_sssr.h"
+    ##endif
+
+    #define PREV_HERO_SPHERE 1
+  }
+endmacro
+
+macro SSR_DISOCCLUSION(code)
+  hlsl(code) {
+    half4 unpack_normal_roughness(half4 packed_normal)
+    {
+      packed_normal.xyz = (packed_normal.xyz*2 - 1);
+      packed_normal.xyz = normalize(packed_normal.xyz);
+      packed_normal.w = 1 - linearSmoothnessToLinearRoughness(packed_normal.w);
+      return packed_normal;
+    }
+    half historyNormalWeight(half4 sample_normal_smoothness, half3 normal, half roughness)
+    {
+      half smoothness = 1-roughness;
+      //we can use higher smoothness history in lower smoothness (to a certain degree), but not visa verse
+      return (dot(normal, sample_normal_smoothness.xyz))*pow2(saturate(1.02 + (sample_normal_smoothness.w - smoothness)));
+    }
+    half4 historyNormalWeights(half4 normalW, half roughness)
+    {
+      float sigma = lerp(0, -100, (1 - roughness));
+      half4 w = exp2(sigma*saturate(1.0 - normalW));
+      const float threshold = 0.2;
+      return saturate(w*(1./(1-threshold)) - threshold*(1./(1-threshold)));
+    }
+    bool get_ssr_disocclusion_weight_sample(half3 current_normal, half current_roughness, float2 historyUV, float prev_linear_depth, bool validate_normal, inout half4 historySample)
+    {
+      bool weight = all(abs(historyUV*2-1) < 1);
+      #if USE_PREV_DOWNSAMPLED_CLOSE_DEPTH
+        // instead of exact uv = floor(historyCrdf)/prev_downsampled_close_depth_tex_target_size.xy
+        // we rely on prev_downsampled_close_depth_tex_samplerstate being point sample
+        float2 uv = historyUV;
+        float2 historyCrdf = historyUV*prev_downsampled_close_depth_tex_target_size.xy - 0.5;
+        uv = (floor(historyCrdf) + 0.5)*prev_downsampled_close_depth_tex_target_size.zw;//todo: one madd
+        float4 depths = prev_downsampled_close_depth_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, historyUV).wzxy;
+        float4 linearDepths = linearize_z4(depths, prev_zn_zfar.zw);
+        float4 depthDiff = abs(linearDepths - prev_linear_depth);
+        float threshold = 0.1*prev_linear_depth;
+        half4 weights = depthDiff < threshold;
+        #if USE_PREV_DOWNSAMPLED_NORMALS
+          if (validate_normal)
+          {
+            half4 normalslt = unpack_normal_roughness(prev_downsampled_normals.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, 0));
+            half4 normalsrt = unpack_normal_roughness(prev_downsampled_normals.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, 0, int2(1,0)));
+            half4 normalslb = unpack_normal_roughness(prev_downsampled_normals.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, 0, int2(0,1)));
+            half4 normalsrb = unpack_normal_roughness(prev_downsampled_normals.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, 0, int2(1,1)));
+            half4 normalW = half4(historyNormalWeight(normalslt, current_normal, current_roughness), historyNormalWeight(normalsrt, current_normal, current_roughness), historyNormalWeight(normalslb, current_normal, current_roughness), historyNormalWeight(normalsrb, current_normal, current_roughness));
+            normalW = historyNormalWeights(normalW, current_roughness);
+            weights *= normalW;
+          }
+        #endif
+        if (all(weights)) // bilinear filtering is valid
+        {
+          historySample = tex2Dlod(ssr_prev_target, float4(historyUV, 0, 0));
+        } else
+        {
+          float4 bil = float4(frac(historyCrdf), 1-frac(historyCrdf));
+          weights *= float4(bil.zx*bil.w, bil.zx*bil.y) + 1e-4;
+          //weights = float4(bil.zx*bil.w, bil.zx*bil.y);
+          float sumW = dot(weights, 1);
+          weight = weight && sumW >= 0.0001;
+          weights *= rcp(max(1e-6, sumW));
+          half4 lt = ssr_prev_target.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, 0);
+          half4 rt = ssr_prev_target.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, 0, int2(1,0));
+          half4 lb = ssr_prev_target.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, 0, int2(0,1));
+          half4 rb = ssr_prev_target.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, 0, int2(1,1));
+          historySample = lt*weights.x + rt*weights.y + lb*weights.z + rb*weights.w;
+        }
+      #else
+        historySample = tex2Dlod(ssr_prev_target, float4(historyUV, 0, 0));
+      #endif
+      return weight;
+    }
+  }
+endmacro
+

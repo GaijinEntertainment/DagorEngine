@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "collisionNodesSettings.h"
 #include <util/dag_lookup.h>
 

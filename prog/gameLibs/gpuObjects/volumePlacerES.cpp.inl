@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_Point3.h>
 #include <math/dag_Point4.h>
 #include <math/dag_TMatrix.h>
@@ -7,8 +9,14 @@
 #include <daECS/core/componentTypes.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/coreEvents.h>
+#include <shaders/dag_rendInstRes.h>
 #include <shaders/dag_computeShaders.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_lockSbuffer.h>
 #include <shaders/dag_shaders.h>
 #include <rendInst/riShaderConstBuffers.h>
@@ -16,12 +24,25 @@
 #include <rendInst/rendInstExtraAccess.h>
 #include <perfMon/dag_statDrv.h>
 #include <3d/dag_lockSbuffer.h>
+#include <ecs/rendInst/riExtra.h>
+#include <ecs/core/entityManager.h>
 
 #include <gpuObjects/volumePlacer.h>
 #include <math/dag_hlsl_floatx.h>
 #include <gpuObjects/gpu_objects_const.hlsli>
 
+#include <util/dag_console.h>
+
 using namespace ecs;
+
+namespace rendinst::gpuobjects
+{
+void init_r(); // Defined in rendInst/render/gpuObjects.cpp
+}
+
+ECS_DECLARE_RELOCATABLE_TYPE(gpu_objects::riex_handles);
+ECS_REGISTER_RELOCATABLE_TYPE(gpu_objects::riex_handles, nullptr);
+ECS_AUTO_REGISTER_COMPONENT(gpu_objects::riex_handles, "gpu_object_placer__surface_riex_handles", nullptr, 0);
 
 namespace gpu_objects
 {
@@ -58,7 +79,9 @@ namespace gpu_objects
   VAR(gpu_objects_distance_to_rotation_pow)             \
   VAR(gpu_objects_distance_out_of_range)                \
   VAR(gpu_objects_distance_emitter__range)              \
-  VAR(gpu_objects_distance_emitter__position)
+  VAR(gpu_objects_distance_emitter__position)           \
+  VAR(gpu_objects_remove_box_min)                       \
+  VAR(gpu_objects_remove_box_max)
 
 
 #define VAR(a) static int a##VarId = -1;
@@ -98,6 +121,8 @@ VolumePlacer::VolumePlacer()
     dag::create_sbuffer(sizeof(int), COUNTERS_NUM, SBCF_UA_BYTE_ADDRESS_READBACK | SBCF_BIND_SHADER_RES, 0, "gpu_objects_counter");
   updateMatrices.reset(new_compute_shader("gpu_objects_update_matrices_cs", true));
   counterReadbackFence.reset(d3d::create_event_query());
+  objectRemover.reset(new_compute_shader("gpu_objects_remove_objects_cs", true));
+  readbackPending = false;
 #define VAR(a) a##VarId = get_shader_variable_id(#a, true);
   GLOBAL_VARS_LIST
 #undef VAR
@@ -143,6 +168,8 @@ template <class T>
 inline void gpu_object_placer_get_current_distance_emitter_position_ecs_query(ecs::EntityId id, T b);
 template <class T>
 inline void gpu_object_placer_select_closest_distance_emitter_ecs_query(T b);
+template <class T>
+inline void gpu_object_placer_remove_ecs_query(T b);
 
 void VolumePlacer::performPlacing(const Point3 &camera_pos)
 {
@@ -166,92 +193,129 @@ void VolumePlacer::performPlacing(const Point3 &camera_pos)
       float gpu_object_placer__distance_to_rotation_to, const Point3 &gpu_object_placer__distance_to_scale_pow,
       float gpu_object_placer__distance_to_rotation_pow, bool gpu_object_placer__use_distance_emitter,
       bool gpu_object_placer__distance_affect_decals, bool gpu_object_placer__distance_out_of_range,
-      const TMatrix &transform ECS_REQUIRE(ecs::Tag box_zone)) {
+      riex_handles &gpu_object_placer__surface_riex_handles, const TMatrix &transform ECS_REQUIRE(ecs::Tag box_zone)) {
       G_ASSERT(!(gpu_object_placer__filled && gpu_object_placer__buffer_offset == -1));
 
       float currentDistanceSq = lengthSq(transform.getcol(3) - camera_pos);
       gpu_object_placer__current_distance_squared = currentDistanceSq;
-      if (currentDistanceSq < gpu_object_placer__visible_distance_squared)
-      {
-        if (gpu_object_placer__filled || gpu_object_placer__buffer_size == 0)
-        {
-          if (gpu_object_placer__distance_emitter_is_dirty && gpu_object_placer__buffer_size > 0)
-            updateDistanceEmitterMatrix(gpu_object_placer__buffer_offset, gpu_object_placer__distance_emitter_buffer_size,
-              gpu_object_placer__buffer_size, gpu_object_placer__distance_emitter_eid, gpu_object_placer__distance_to_scale_from,
-              gpu_object_placer__distance_to_scale_to, gpu_object_placer__distance_to_rotation_from,
-              gpu_object_placer__distance_to_rotation_to, gpu_object_placer__distance_to_scale_pow,
-              gpu_object_placer__distance_to_rotation_pow, gpu_object_placer__use_distance_emitter,
-              gpu_object_placer__distance_affect_decals, gpu_object_placer__distance_out_of_range);
-          gpu_object_placer__distance_emitter_is_dirty = false;
-          return;
-        }
-        gpu_object_placer__distance_emitter_is_dirty = false;
-        bool needGeometryGather = gpu_object_placer__place_on_geometry;
-        if (gpu_object_placer__buffer_size == -1)
-        {
-          int objCount = calculateObjectCount(eid, gpu_object_placer__object_density, transform, gpu_object_placer__place_on_geometry,
-            gpu_object_placer__min_gathered_triangle_size, gpu_object_placer__object_up_vector_threshold,
-            gpu_object_placer__object_max_count, gpu_object_placer__on_rendinst_geometry_count,
-            gpu_object_placer__on_terrain_geometry_count);
 
-          if (objCount <= 0)
-          {
-            gpu_object_placer__on_rendinst_geometry_count = 0;
-            gpu_object_placer__on_terrain_geometry_count = 0;
-          }
-          else
-          {
-            G_ASSERT(gpu_object_placer__on_rendinst_geometry_count >= 0);
-            G_ASSERT(gpu_object_placer__on_terrain_geometry_count >= 0);
-            G_ASSERT(objCount <= gpu_object_placer__object_max_count);
-            G_ASSERT(!gpu_object_placer__place_on_geometry ||
-                     objCount == (gpu_object_placer__on_rendinst_geometry_count + gpu_object_placer__on_terrain_geometry_count));
-          }
-
-          gpu_object_placer__buffer_size = objCount;
-          if (gpu_object_placer__buffer_size <= 0)
-            return;
-          needGeometryGather = false; // already gathered in calculateObjectCount
-        }
-
-        gpu_object_placer__distance_emitter_buffer_size =
-          gpu_object_placer__use_distance_emitter && gpu_object_placer__distance_emitter_eid != INVALID_ENTITY_ID
-            ? gpu_object_placer__buffer_size
-            : 0;
-        gpu_object_placer__distance_emitter_decal_buffer_size = gpu_object_placer__use_distance_emitter &&
-                                                                    gpu_object_placer__distance_emitter_eid != INVALID_ENTITY_ID &&
-                                                                    gpu_object_placer__distance_affect_decals
-                                                                  ? gpu_object_placer__buffer_size
-                                                                  : 0;
-
-        if (!matricesBuffer.getBufferOffset(gpu_object_placer__buffer_size + gpu_object_placer__distance_emitter_buffer_size +
-                                              gpu_object_placer__distance_emitter_decal_buffer_size,
-              gpu_object_placer__buffer_offset))
-          return;
-        gpu_object_placer__filled =
-          placeInBox(gpu_object_placer__buffer_size, gpu_object_placer__ri_asset_idx, gpu_object_placer__buffer_offset, transform,
-            gpu_object_placer__object_scale_range, gpu_object_placer__object_up_vector_threshold,
-            gpu_object_placer__distance_based_scale, gpu_object_placer__min_scale_radius, gpu_object_placer__place_on_geometry,
-            gpu_object_placer__min_gathered_triangle_size, gpu_object_placer__on_rendinst_geometry_count,
-            gpu_object_placer__on_terrain_geometry_count, gpu_object_placer__object_density, needGeometryGather);
-        updateDistanceEmitterMatrix(gpu_object_placer__buffer_offset, gpu_object_placer__distance_emitter_buffer_size,
-          gpu_object_placer__buffer_size, gpu_object_placer__distance_emitter_eid, gpu_object_placer__distance_to_scale_from,
-          gpu_object_placer__distance_to_scale_to, gpu_object_placer__distance_to_rotation_from,
-          gpu_object_placer__distance_to_rotation_to, gpu_object_placer__distance_to_scale_pow,
-          gpu_object_placer__distance_to_rotation_pow, gpu_object_placer__use_distance_emitter,
-          gpu_object_placer__distance_affect_decals, gpu_object_placer__distance_out_of_range);
-      }
-      else
+      if (currentDistanceSq >= gpu_object_placer__visible_distance_squared)
       {
         if (gpu_object_placer__buffer_offset != -1)
+        {
           matricesBuffer.releaseBufferOffset(gpu_object_placer__buffer_size,
             gpu_object_placer__distance_emitter_buffer_size + gpu_object_placer__distance_emitter_decal_buffer_size,
             gpu_object_placer__buffer_offset);
+        }
         resetReadbackEntity(eid);
         gpu_object_placer__filled = false;
+
+        return;
       }
+
+      if (gpu_object_placer__filled || gpu_object_placer__buffer_size == 0)
+      {
+        if (gpu_object_placer__distance_emitter_is_dirty && gpu_object_placer__buffer_size > 0)
+          updateDistanceEmitterMatrix(gpu_object_placer__buffer_offset, gpu_object_placer__distance_emitter_buffer_size,
+            gpu_object_placer__buffer_size, gpu_object_placer__distance_emitter_eid, gpu_object_placer__distance_to_scale_from,
+            gpu_object_placer__distance_to_scale_to, gpu_object_placer__distance_to_rotation_from,
+            gpu_object_placer__distance_to_rotation_to, gpu_object_placer__distance_to_scale_pow,
+            gpu_object_placer__distance_to_rotation_pow, gpu_object_placer__use_distance_emitter,
+            gpu_object_placer__distance_affect_decals, gpu_object_placer__distance_out_of_range);
+
+        gpu_object_placer__distance_emitter_is_dirty = false;
+        return;
+      }
+
+      gpu_object_placer__distance_emitter_is_dirty = false;
+      bool needGeometryGather = gpu_object_placer__place_on_geometry;
+
+      if (gpu_object_placer__buffer_size == -1)
+      {
+        int objCount = calculateObjectCount(eid, gpu_object_placer__object_density, transform, gpu_object_placer__place_on_geometry,
+          gpu_object_placer__min_gathered_triangle_size, gpu_object_placer__object_up_vector_threshold,
+          gpu_object_placer__object_max_count, gpu_object_placer__on_rendinst_geometry_count,
+          gpu_object_placer__on_terrain_geometry_count, gpu_object_placer__surface_riex_handles);
+
+        if (objCount <= 0)
+        {
+          gpu_object_placer__on_rendinst_geometry_count = 0;
+          gpu_object_placer__on_terrain_geometry_count = 0;
+        }
+        else
+        {
+          G_ASSERT(gpu_object_placer__on_rendinst_geometry_count >= 0);
+          G_ASSERT(gpu_object_placer__on_terrain_geometry_count >= 0);
+          G_ASSERT(objCount <= gpu_object_placer__object_max_count);
+          G_ASSERT(!gpu_object_placer__place_on_geometry ||
+                   objCount == (gpu_object_placer__on_rendinst_geometry_count + gpu_object_placer__on_terrain_geometry_count));
+        }
+
+        gpu_object_placer__buffer_size = objCount;
+        if (gpu_object_placer__buffer_size <= 0)
+          return;
+        needGeometryGather = false; // already gathered in calculateObjectCount
+      }
+
+      gpu_object_placer__distance_emitter_buffer_size =
+        gpu_object_placer__use_distance_emitter && gpu_object_placer__distance_emitter_eid != INVALID_ENTITY_ID
+          ? gpu_object_placer__buffer_size
+          : 0;
+      gpu_object_placer__distance_emitter_decal_buffer_size = gpu_object_placer__use_distance_emitter &&
+                                                                  gpu_object_placer__distance_emitter_eid != INVALID_ENTITY_ID &&
+                                                                  gpu_object_placer__distance_affect_decals
+                                                                ? gpu_object_placer__buffer_size
+                                                                : 0;
+
+      if (!matricesBuffer.getBufferOffset(gpu_object_placer__buffer_size + gpu_object_placer__distance_emitter_buffer_size +
+                                            gpu_object_placer__distance_emitter_decal_buffer_size,
+            gpu_object_placer__buffer_offset))
+        return;
+
+      gpu_object_placer__filled = placeInBox(gpu_object_placer__buffer_size, gpu_object_placer__ri_asset_idx,
+        gpu_object_placer__buffer_offset, transform, gpu_object_placer__object_scale_range,
+        gpu_object_placer__object_up_vector_threshold, gpu_object_placer__distance_based_scale, gpu_object_placer__min_scale_radius,
+        gpu_object_placer__place_on_geometry, gpu_object_placer__min_gathered_triangle_size,
+        gpu_object_placer__on_rendinst_geometry_count, gpu_object_placer__on_terrain_geometry_count, gpu_object_placer__object_density,
+        gpu_object_placer__surface_riex_handles, needGeometryGather);
+      updateDistanceEmitterMatrix(gpu_object_placer__buffer_offset, gpu_object_placer__distance_emitter_buffer_size,
+        gpu_object_placer__buffer_size, gpu_object_placer__distance_emitter_eid, gpu_object_placer__distance_to_scale_from,
+        gpu_object_placer__distance_to_scale_to, gpu_object_placer__distance_to_rotation_from,
+        gpu_object_placer__distance_to_rotation_to, gpu_object_placer__distance_to_scale_pow,
+        gpu_object_placer__distance_to_rotation_pow, gpu_object_placer__use_distance_emitter,
+        gpu_object_placer__distance_affect_decals, gpu_object_placer__distance_out_of_range);
     });
+
+  if (!removeBoxList.empty())
+  {
+    gpu_object_placer_remove_ecs_query(
+      [&](int &gpu_object_placer__buffer_offset, int &gpu_object_placer__buffer_size,
+        int &gpu_object_placer__on_rendinst_geometry_count, int &gpu_object_placer__on_terrain_geometry_count,
+        const TMatrix &transform ECS_REQUIRE(ecs::Tag box_zone)) {
+        STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), matricesBuffer.getBuf());
+        ShaderGlobal::set_int(gpu_objects_buffer_offsetVarId, gpu_object_placer__buffer_offset);
+        ShaderGlobal::set_int(gpu_objects_matrices_countVarId, gpu_object_placer__buffer_size);
+        ShaderGlobal::set_int(gpu_objects_on_rendinst_geometry_matrices_countVarId, gpu_object_placer__on_rendinst_geometry_count);
+        ShaderGlobal::set_int(gpu_objects_on_terrain_geometry_matrices_countVarId, gpu_object_placer__on_terrain_geometry_count);
+
+        // We expect very few erase boxes here.
+        for (auto &box : removeBoxList)
+        {
+          d3d::resource_barrier({matricesBuffer.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
+          ShaderGlobal::set_color4(gpu_objects_remove_box_minVarId, box.lim[0]);
+          ShaderGlobal::set_color4(gpu_objects_remove_box_maxVarId, box.lim[1]);
+          objectRemover->dispatchThreads(
+            (gpu_object_placer__on_rendinst_geometry_count + gpu_object_placer__on_terrain_geometry_count), 1, 1);
+        }
+
+        G_UNREFERENCED(transform);
+      });
+
+    removeBoxList.clear();
+  }
 }
+
+void VolumePlacer::addEraseBox(const Point3 &box_min, const Point3 &box_max) { removeBoxList.emplace_back(box_min, box_max); }
 
 bool VolumePlacer::RingBuffer::getBufferOffset(int count, int &buf_offset)
 {
@@ -389,11 +453,12 @@ static void set_placer_transform(const TMatrix4 &transform)
 
 bool VolumePlacer::placeInBox(int count, int ri_idx, int buf_offset, const TMatrix &transform, const Point2 &scale_range,
   const Point4 &up_vector_threshold, const Point2 &distance_based_scale, float min_scale_radius, bool on_geometry,
-  float min_triangle_size, int on_rendinst_geometry_count, int on_terrain_geometry_count, float density, bool need_geometry_gather)
+  float min_triangle_size, int on_rendinst_geometry_count, int on_terrain_geometry_count, float density,
+  riex_handles &surface_riex_handles, bool need_geometry_gather)
 {
   if (on_geometry && need_geometry_gather)
   {
-    if (!gatherGeometryInBox(transform, min_triangle_size, up_vector_threshold, density))
+    if (!gatherGeometryInBox(transform, min_triangle_size, up_vector_threshold, density, surface_riex_handles))
       return false;
   }
   if (on_geometry)
@@ -462,7 +527,7 @@ int VolumePlacer::getMaxTerrainObjectsCount(const TMatrix &transform, float dens
 }
 
 bool VolumePlacer::gatherGeometryInBox(const TMatrix &transform, float min_triangle_size, const Point4 &up_vector_threshold,
-  float density)
+  float density, riex_handles &surface_riex_handles)
 {
   if (waitReadbackEntity)
     return false;
@@ -471,6 +536,7 @@ bool VolumePlacer::gatherGeometryInBox(const TMatrix &transform, float min_trian
   v_mat44_make_from_43cu_unsafe(tm, transform.array);
   v_bbox3_init(bbox, tm, {v_neg(V_C_HALF), V_C_HALF});
   const float minGeometrySize = 1.0;
+  surface_riex_handles.clear();
   rendinst::riex_collidable_t out_handles;
   rendinst::gatherRIGenExtraCollidableMin(out_handles, bbox, minGeometrySize);
 
@@ -485,7 +551,7 @@ bool VolumePlacer::gatherGeometryInBox(const TMatrix &transform, float min_trian
     int materialId;
     BBox3 bbox; // only for extreme parameter check
   };
-  eastl::vector<MeshInfo> geometryMeshes;
+  dag::Vector<MeshInfo, framemem_allocator> geometryMeshes;
   if (!out_handles.empty())
   {
     int numFaces = 0;
@@ -495,6 +561,7 @@ bool VolumePlacer::gatherGeometryInBox(const TMatrix &transform, float min_trian
       int riResIdx = rendinst::handle_to_ri_type(handle);
       if (rendinst::isRIGenExtraDynamic(riResIdx))
         continue;
+      surface_riex_handles.push_back(handle);
       RenderableInstanceLodsResource *riLodsRes = rendinst::getRIGenExtraRes(riResIdx);
       RenderableInstanceResource *riRes = riLodsRes->lods[riLodsRes->getQlBestLod()].scene;
       dag::ConstSpan<ShaderMesh::RElem> elems = riRes->getMesh()->getMesh()->getMesh()->getElems(ShaderMesh::STG_opaque);
@@ -563,15 +630,17 @@ bool VolumePlacer::gatherGeometryInBox(const TMatrix &transform, float min_trian
 
   unsigned int zeros[4] = {0};
   d3d::clear_rwbufi(counterBuffer.getBuf(), zeros);
-  STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), gatheredTrianglesBuffer.getBuf());
   STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 1, VALUE), counterBuffer.getBuf());
 
-  ShaderGlobal::set_int(gpu_objects_max_trianglesVarId, gatheredTrianglesBufferSize);
   ShaderGlobal::set_real(gpu_objects_min_gathered_triangle_sizeVarId, min_triangle_size);
   ShaderGlobal::set_color4(gpu_objects_up_vectorVarId, Color4::xyzw(up_vector_threshold));
   set_placer_transform(TMatrix4(transform));
 
+  if (!geometryMeshes.empty())
   {
+    STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), gatheredTrianglesBuffer.getBuf());
+    ShaderGlobal::set_int(gpu_objects_max_trianglesVarId, gatheredTrianglesBufferSize);
+
     TIME_D3D_PROFILE(VolumePlacer_gatherTriangles)
     for (auto it = geometryMeshes.begin(), end = geometryMeshes.end(); it < end;)
     {
@@ -584,9 +653,9 @@ bool VolumePlacer::gatherGeometryInBox(const TMatrix &transform, float min_trian
       STATE_GUARD_NULLPTR(d3d::set_buffer(STAGE_CS, 15, VALUE), vb);
       gatherTriangles->dispatch(it - geometryMeshes.begin() - startNo, 1, 1);
     }
+    d3d::resource_barrier({gatheredTrianglesBuffer.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
   }
 
-  d3d::resource_barrier({gatheredTrianglesBuffer.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
   d3d::resource_barrier({counterBuffer.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
 
   {
@@ -609,7 +678,7 @@ Point2 VolumePlacer::getBboxYMinMax(const TMatrix &transform) const
 
 int VolumePlacer::calculateObjectCount(ecs::EntityId eid, float density, const TMatrix &transform, bool on_geometry,
   float min_triangle_size, const Point4 &up_vector_threshold, int object_max_count, int &on_rendinst_geometry_count,
-  int &on_terrain_geometry_count)
+  int &on_terrain_geometry_count, riex_handles &surface_riex_handles)
 {
   if (!on_geometry)
   {
@@ -620,6 +689,7 @@ int VolumePlacer::calculateObjectCount(ecs::EntityId eid, float density, const T
   if (eid == waitReadbackEntity && d3d::get_event_query_status(counterReadbackFence.get(), false))
   {
     waitReadbackEntity.reset();
+    readbackPending = false;
     if (auto locked = lock_sbuffer<const uint>(counterBuffer.getBuf(), 0, COUNTERS_NUM, 0))
     {
       on_rendinst_geometry_count = density * (locked[TRIANGLES_AREA_SUM] / (TRIANGLE_AREA_MULTIPLIER * 2.0));
@@ -637,10 +707,18 @@ int VolumePlacer::calculateObjectCount(ecs::EntityId eid, float density, const T
   }
   if (!waitReadbackEntity)
   {
-    if (!gatherGeometryInBox(transform, min_triangle_size, up_vector_threshold, density))
+    if (readbackPending)
+    {
+      if (!d3d::get_event_query_status(counterReadbackFence.get(), false))
+        return -1;
+      auto readbackFinish = lock_sbuffer<const uint>(counterBuffer.getBuf(), 0, COUNTERS_NUM, 0);
+      readbackPending = false;
+    }
+    if (!gatherGeometryInBox(transform, min_triangle_size, up_vector_threshold, density, surface_riex_handles))
       return 0;
     if (counterBuffer->lock(0, 0, static_cast<void **>(nullptr), VBLOCK_READONLY))
       counterBuffer->unlock();
+    readbackPending = true;
     d3d::issue_event_query(counterReadbackFence.get());
     waitReadbackEntity = eid;
   }
@@ -654,9 +732,9 @@ void VolumePlacer::resetReadbackEntity(ecs::EntityId eid)
 }
 
 void VolumePlacer::drawDebugGeometry(const TMatrix &transform, float min_triangle_size, const Point4 &up_vector_threshold,
-  float density)
+  float density, riex_handles &surface_riex_handles)
 {
-  if (!gatherGeometryInBox(transform, min_triangle_size, up_vector_threshold, density))
+  if (!gatherGeometryInBox(transform, min_triangle_size, up_vector_threshold, density, surface_riex_handles))
     return;
   if (!debugGatheredTrianglesRenderer.shader)
   {
@@ -777,15 +855,17 @@ void VolumePlacer::RingBuffer::invalidate()
   dataLastUsed = 0;
 }
 
-static int load_ri_asset(const ecs::string ri_asset_name)
+static int load_ri_asset(const ecs::string &ri_asset_name)
 {
+  using namespace rendinst;
   const char *name = ri_asset_name.c_str();
-  int id = rendinst::getRIGenExtraResIdx(name);
-  if (id == -1)
+  int id = getRIGenExtraResIdx(name);
+  if (id < 0)
   {
-    debug("GPUObjects: auto adding <%s> as riExtra.", name);
-    id = addRIGenExtraResIdx(name, -1, -1, rendinst::AddRIFlag::UseShadow);
-    if (id == -1)
+    debug("GPUObjectsPlacer: auto adding <%s> as riExtra.", name);
+    auto riaddf = AddRIFlag::UseShadow | AddRIFlag::GameresPreLoaded; // Expected to be preloaded by `GpuObjectRiResourcePreload`
+    id = addRIGenExtraResIdx(name, -1, -1, riaddf);
+    if (id < 0)
       logerr("loading <%s> riExtra failed", name);
   }
   return id;
@@ -981,6 +1061,10 @@ static __forceinline void gpu_object_placer_create_es_event_handler(const ecs::E
   bool gpu_object_placer__opaque, bool gpu_object_placer__decal, bool gpu_object_placer__distorsion, const TMatrix &transform,
   Point4 &gpu_object_placer__object_up_vector_threshold)
 {
+#if _TARGET_C1
+
+
+#endif
   gpu_object_placer__filled = false;
   gpu_object_placer__buffer_offset = -1;
   gpu_object_placer__distance_emitter_decal_buffer_size = 0;
@@ -1000,6 +1084,7 @@ static __forceinline void gpu_object_placer_create_es_event_handler(const ecs::E
   gpu_object_placer__object_up_vector_threshold = Point4::xyzV(upVector, gpu_object_placer__object_up_vector_threshold.w);
 
   gpu_object_placer__ri_asset_idx = load_ri_asset(ri_gpu_object__name);
+  rendinst::gpuobjects::init_r(); // Implicitly depends on it
   if (!volume_placer_mgr)
     init_volume_placer_mgr();
   gpu_object_placers_count++;
@@ -1011,6 +1096,10 @@ static __forceinline void gpu_object_placer_destroy_es_event_handler(const ecs::
   int gpu_object_placer__buffer_size, int gpu_object_placer__buffer_offset, int gpu_object_placer__distance_emitter_buffer_size,
   int gpu_object_placer__distance_emitter_decal_buffer_size)
 {
+#if _TARGET_C1
+
+
+#endif
   G_ASSERT(volume_placer_mgr);
   volume_placer_mgr->resetReadbackEntity(eid);
   if (gpu_object_placer__buffer_offset != -1)
@@ -1035,12 +1124,51 @@ ECS_NO_ORDER
 ECS_REQUIRE(ecs::Tag box_zone, eastl::true_type gpu_object_placer__show_geometry)
 static __forceinline void gpu_object_placer_draw_debug_geometry_es(const ecs::UpdateStageInfoRenderDebug &,
   float gpu_object_placer__min_gathered_triangle_size, const Point4 &gpu_object_placer__object_up_vector_threshold,
-  const TMatrix &transform, float gpu_object_placer__object_density)
+  const TMatrix &transform, float gpu_object_placer__object_density,
+  gpu_objects::riex_handles &gpu_object_placer__surface_riex_handles)
 {
   G_ASSERT(gpu_objects::volume_placer_mgr);
   gpu_objects::volume_placer_mgr->drawDebugGeometry(transform, gpu_object_placer__min_gathered_triangle_size,
-    gpu_object_placer__object_up_vector_threshold, gpu_object_placer__object_density);
+    gpu_object_placer__object_up_vector_threshold, gpu_object_placer__object_density, gpu_object_placer__surface_riex_handles);
 }
 
-#include <3d/dag_drv3dReset.h>
+ECS_TAG(render)
+static __forceinline void gpu_object_placer_remove_objects_es_event_handler(const EventOnRendinstDamage &evt,
+  gpu_objects::riex_handles &gpu_object_placer__surface_riex_handles)
+{
+  rendinst::riex_handle_t riex_handle = evt.get<0>();
+  auto handle =
+    eastl::find(gpu_object_placer__surface_riex_handles.begin(), gpu_object_placer__surface_riex_handles.end(), riex_handle);
+  if (handle != gpu_object_placer__surface_riex_handles.end())
+  {
+    const auto &bbox = evt.get<2>();
+    const auto &tm = evt.get<1>();
+
+    auto min = bbox.lim[0] * tm;
+    auto max = bbox.lim[1] * tm;
+
+    gpu_objects::volume_placer_mgr->addEraseBox(min, max);
+  }
+}
+
+using namespace console;
+
+static bool volume_placer_console_handler(const char *argv[], int argc)
+{
+  if (argc < 1)
+    return false;
+  int found = 0;
+
+  CONSOLE_CHECK_NAME_EX("volume_placer", "removeInBox", 7, 7, "Removes volume placer gpu objects in a box",
+    "[bbox_min_x] [bbox_min_y] [bbox_min_z] [bbox_max_x] [bbox_max_y] [bbox_max_z]")
+  {
+    gpu_objects::get_volume_placer_mgr()->addEraseBox(Point3(atof(argv[1]), atof(argv[2]), atof(argv[3])),
+      Point3(atof(argv[4]), atof(argv[5]), atof(argv[6])));
+  }
+  return found;
+}
+
+REGISTER_CONSOLE_HANDLER(volume_placer_console_handler);
+
+#include <drv/3d/dag_resetDevice.h>
 REGISTER_D3D_AFTER_RESET_FUNC(gpu_objects::volume_placer_after_reset);

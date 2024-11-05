@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "shadersBinaryData.h"
 #include "shStateBlock.h"
 #include <shaders/dag_shaderCommon.h>
@@ -152,6 +154,7 @@ void shaderbindump::dumpVar(const shaderbindump::VarList &vars, int i)
     }
     case SHVT_TEXTURE: debug_("tex(%d)\n", vars.getTex(i).texId); break;
     case SHVT_BUFFER: debug_("buf(%d)\n", vars.getBuf(i).bufId); break;
+    case SHVT_TLAS: debug_("tlas(%d)\n", vars.getBuf(i).bufId); break;
     case SHVT_INT4:
     {
       const IPoint4 &i4 = vars.get<IPoint4>(i);
@@ -185,8 +188,9 @@ void shaderbindump::dumpShaderInfo(const shaderbindump::ShaderClass &cls, bool d
   }
 
   debug("--- shader[%d] %s dump (%d passes, %d unique passes):\n"
+        " timestamp(%lld)\n"
         " local vars(%d):",
-    cls.nameId, (const char *)cls.name, total_passes, total_unique_shaders, cls.localVars.v.size());
+    cls.nameId, (const char *)cls.name, total_passes, total_unique_shaders, cls.getTimestamp(), cls.localVars.v.size());
   shaderbindump::dumpVars(cls.localVars);
 
   debug_("\n static init(%d):\n", cls.initCode.size() / 2);

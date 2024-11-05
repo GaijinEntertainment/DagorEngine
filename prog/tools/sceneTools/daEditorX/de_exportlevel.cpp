@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "de_appwnd.h"
 #include "de_ExportToDagDlg.h"
 #include "de_batch_log.h"
@@ -227,7 +229,7 @@ bool TextureRemapHelper::saveTextures(mkbindump::BinDumpSaveCB &cwr, const char 
       {
         cwr.writeInt32e(b.len);
         cwr.writeRaw(b.ptr, b.len);
-        // debug_ctx ( "DDS(%d)->DDSx(%d)= +%d b", len, b.len, b.len-len);
+        // DEBUG_CTX("DDS(%d)->DDSx(%d)= +%d b", len, b.len, b.len-len);
         b.free();
       }
       else
@@ -403,13 +405,13 @@ void add_built_scene_textures(const char *scene_dir, ITextureNumerator &tn)
   FullFileLoadCB crd(fn);
   if (!crd.fileHandle)
   {
-    debug_ctx("can't open scene file '%s'", (char *)fn);
+    DEBUG_CTX("can't open scene file '%s'", (char *)fn);
     return;
   }
 
   if (crd.readInt() != _MAKE4C('scnf'))
   {
-    debug_ctx("no scnf label: %s", (char *)fn);
+    DEBUG_CTX("no scnf label: %s", (char *)fn);
     return;
   }
 
@@ -508,7 +510,7 @@ bool check_built_scene_data(const char *scene_dir, int target_code)
     DAEDITOR3.conWarning("obsolete %s (ltmap fmt=%c%c%c%c with count=0), please re-receive light", fn.str(),
       _DUMP4C(shdr.ltmapFormat));
 
-  debug_ctx("ltmap: num=%d format=%p", shdr.ltmapNum, shdr.ltmapFormat);
+  DEBUG_CTX("ltmap: num=%d format=%p", shdr.ltmapNum, shdr.ltmapFormat);
   if (shdr.ltmapNum && shdr.ltmapFormat != _MAKE4C('DUAL') && shdr.ltmapFormat != _MAKE4C('HDR') &&
       shdr.ltmapFormat != _MAKE4C('DDS') && shdr.ltmapFormat != _MAKE4C('TGA') && shdr.ltmapFormat != _MAKE4C('BUMP') &&
       shdr.ltmapFormat != _MAKE4C('SB2'))
@@ -540,7 +542,7 @@ void store_built_scene_data(const char *scene_dir, mkbindump::BinDumpSaveCB &cwr
   FullFileLoadCB crd(fn);
   if (!crd.fileHandle)
   {
-    debug_ctx("can't open scene file '%s'\n", (char *)fn);
+    DEBUG_CTX("can't open scene file '%s'\n", (char *)fn);
     return;
   }
 
@@ -613,12 +615,12 @@ void store_built_scene_data(const char *scene_dir, mkbindump::BinDumpSaveCB &cwr
 
 bool DagorEdAppWindow::showPluginDlg(Tab<IGenEditorPlugin *> &build_plugin, Tab<bool *> &do_export, Tab<bool *> &is_external)
 {
-  class ExportPanelClient : public CDialogWindow // IPropertyPanelDlgClient
+  class ExportPanelClient : public PropPanel::DialogWindow // IPropertyPanelDlgClient
   {
   public:
     ExportPanelClient(const Tab<IGenEditorPlugin *> &build_plugin, const Tab<bool *> &do_export, const Tab<bool *> &is_external,
       const Tab<IGenEditorPlugin *> &filter_plugin, const Tab<bool *> &use_filter) :
-      CDialogWindow(NULL, _pxScaled(300), _pxScaled(600), "Plugins to export"), exportData(tmpmem), filterPlugs(tmpmem)
+      DialogWindow(NULL, _pxScaled(300), _pxScaled(600), "Plugins to export"), exportData(tmpmem), filterPlugs(tmpmem)
     {
       G_ASSERT(build_plugin.size() == do_export.size());
       G_ASSERT(build_plugin.size() == is_external.size());
@@ -661,7 +663,7 @@ bool DagorEdAppWindow::showPluginDlg(Tab<IGenEditorPlugin *> &build_plugin, Tab<
 
       if (filterPlugs.size())
       {
-        PropertyContainerControlBase *maxGrp = mPanel->createGroup(PID_FILTER_LIST_GRP, "Filters");
+        PropPanel::ContainerPropertyControl *maxGrp = mPanel->createGroup(PID_FILTER_LIST_GRP, "Filters");
 
         for (int i = 0; i < filterPlugs.size(); ++i)
           maxGrp->createCheckBox(PID_FILTER_LIST_START + i, filterPlugs[i].filter->getMenuCommandName(),
@@ -670,7 +672,7 @@ bool DagorEdAppWindow::showPluginDlg(Tab<IGenEditorPlugin *> &build_plugin, Tab<
       }
 
 
-      PropertyContainerControlBase *maxGrp = mPanel->createGroup(PID_EXTERNAL_LIST_GRP, "External plugins");
+      PropPanel::ContainerPropertyControl *maxGrp = mPanel->createGroup(PID_EXTERNAL_LIST_GRP, "External plugins");
 
       if (maxGrp)
         for (i = 0; i < exportData.size(); ++i)
@@ -724,7 +726,7 @@ bool DagorEdAppWindow::showPluginDlg(Tab<IGenEditorPlugin *> &build_plugin, Tab<
     Tab<ExportPluginRec> exportData;
     Tab<ExportFiltersPlgRec> filterPlugs;
 
-    PropertyContainerControlBase *mPanel;
+    PropPanel::ContainerPropertyControl *mPanel;
 
     static int sortPluginsToExport(const ExportPluginRec *rec1, const ExportPluginRec *rec2)
     {
@@ -746,7 +748,7 @@ bool DagorEdAppWindow::showPluginDlg(Tab<IGenEditorPlugin *> &build_plugin, Tab<
     exportPanelDlg.onOk();
     return true;
   }
-  return exportPanelDlg.showDialog() == DIALOG_ID_OK;
+  return exportPanelDlg.showDialog() == PropPanel::DIALOG_ID_OK;
 
   // int height = build_plugin.size() * 30 + 70;
   // PropertyPanelDlg dlg(client, this, 240, height, "Plugins to export");
@@ -1127,13 +1129,13 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
   if (!exportPath)
     return;
 
-  class ExportPPClient : public CDialogWindow // IPropertyPanelDlgClient
+  class ExportPPClient : public PropPanel::DialogWindow // IPropertyPanelDlgClient
   {
   public:
-    DynMap<IBinaryDataBuilder *, PropertyContainerControlBase *> pluginParams;
+    DynMap<IBinaryDataBuilder *, PropPanel::ContainerPropertyControl *> pluginParams;
 
     ExportPPClient(const Tab<IBinaryDataBuilder *> &plugins, const Tab<const char *> &names) :
-      CDialogWindow(NULL, _pxScaled(500), _pxScaled(550), "Export plugins parameters"),
+      DialogWindow(NULL, _pxScaled(500), _pxScaled(550), "Export plugins parameters"),
       exporters(plugins),
       exportNames(names),
       pluginParams(tmpmem)
@@ -1154,7 +1156,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
           const char *caption = exportNames[i];
           uid.printf(64, "%sExportGrp", caption);
 
-          PropertyContainerControlBase *grp = mPanel->createGroup(i, caption);
+          PropPanel::ContainerPropertyControl *grp = mPanel->createGroup(i, caption);
 
           if (grp)
             exporters[i]->fillExportPanel(*grp);
@@ -1168,7 +1170,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
       {
         if (exporters[i]->useExportParameters())
         {
-          PropertyContainerControlBase *plugPanel = mPanel->getById(i)->getContainer();
+          PropPanel::ContainerPropertyControl *plugPanel = mPanel->getById(i)->getContainer();
 
           if (plugPanel)
             pluginParams.add(exporters[i], plugPanel);
@@ -1184,7 +1186,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
     const Tab<IBinaryDataBuilder *> &exporters;
     const Tab<const char *> &exportNames;
 
-    PropertyContainerControlBase *mPanel;
+    PropPanel::ContainerPropertyControl *mPanel;
   };
 
 
@@ -1233,7 +1235,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
   {
     if (mNeedSuppress)
       dialogPanelClient.onOk();
-    else if (dialogPanelClient.showDialog() != DIALOG_ID_OK)
+    else if (dialogPanelClient.showDialog() != PropPanel::DIALOG_ID_OK)
       return;
   }
 
@@ -1300,7 +1302,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
   int validateStart = ::get_time_msec();
   for (i = 0; i < exporters.size(); ++i)
   {
-    PropertyContainerControlBase *params;
+    PropPanel::ContainerPropertyControl *params;
     if (!dialogPanelClient.pluginParams.get(exporters[i], params))
       params = NULL;
 
@@ -1582,7 +1584,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
           String includeName = binFName + includeSuffic;
           mkbindump::BinDumpSaveCB cwrInclude(128 << 20, target_code, write_be);
 
-          PropertyContainerControlBase *params;
+          PropPanel::ContainerPropertyControl *params;
           if (!dialogPanelClient.pluginParams.get(iface, params))
             params = NULL;
 
@@ -1624,7 +1626,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
         else
         {
 
-          PropertyContainerControlBase *params;
+          PropPanel::ContainerPropertyControl *params;
           if (!dialogPanelClient.pluginParams.get(iface, params))
             params = NULL;
 
@@ -1661,7 +1663,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
     cwr.beginTaggedBlock(_MAKE4C('END'));
     cwr.endBlock();
   }
-  DAGOR_CATCH(IGenSave::SaveException)
+  DAGOR_CATCH(const IGenSave::SaveException &)
   {
     dd_erase(binFName);
     console->endProgress();
@@ -1782,7 +1784,7 @@ void DagorEdAppWindow::exportLevelToDag(bool visual)
 {
   ExportToDagDlg dlg(toDagPlugNames, visual, visual ? "Plugins for visual geom" : "Plugins for collision geom");
 
-  if (dlg.showDialog() == DIALOG_ID_OK)
+  if (dlg.showDialog() == PropPanel::DIALOG_ID_OK)
   {
     Tab<int> selPlugs(tmpmem);
     dlg.getSelPlugins(selPlugs);

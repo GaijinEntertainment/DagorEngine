@@ -48,7 +48,7 @@ Sources +=
   [ CollectC ssl/statem ]
 ;
 
-if $(Platform) in win32 win64 xboxOne scarlett {
+if $(Platform) in windows xboxOne scarlett {
   Sources += providers/implementations/rands/seeding/rand_win.c ;
 }
 else if $(Platform) = nswitch {
@@ -68,8 +68,10 @@ if $(PlatformSpec) = gcc {
   }
 }
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   AddLibs += Ws2_32.lib Advapi32.lib ;
+} else if $(Platform) in macOS {
+  opt on ssl/ssl_lib.c = -Wno-deprecated-declarations ;
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

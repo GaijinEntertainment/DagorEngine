@@ -1,8 +1,8 @@
-
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_commands.h>
 
 #import <Metal/Metal.h>
 #import <simd/simd.h>

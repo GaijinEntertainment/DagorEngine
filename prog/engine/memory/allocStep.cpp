@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "allocStep.h"
 
 #if _TARGET_64BIT && !_TARGET_STATIC_LIB

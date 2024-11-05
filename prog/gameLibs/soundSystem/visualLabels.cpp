@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EASTL/vector.h>
 #include <EASTL/array.h>
 #include <EASTL/fixed_string.h>

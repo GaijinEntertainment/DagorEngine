@@ -14,7 +14,7 @@ It is well known and there are lot info on this in the Internet.
 Squirrel has not only C++ like syntax (which is helpful for C++ programmers sometimes), but also has type system much closer to C\C++ code.
 It also has safer syntax and semantic.
 However during heavy usage we found that some features of language are not used in our real codebase of millions of LoC in 20+ projects on 10+ platforms.
-Some language features were also not very safe, or inconsistent. We needed stricter language with tools to easier refactor and support.
+Some language features were also not very safe, or inconsistent. We needed stricter language with tools for easier refactor and support.
 And of course in game-development any extra performance is always welcome.
 Basically in any doubt we used 'Zen of Python'.
 
@@ -44,6 +44,7 @@ New features
 * Compiler directives for stricter and thus safer language (some of them can be used to test upcoming or planned language changes)
 * Added C APIs not using stack pushes/pops
 * Variable change tracking
+* Function 'freeze()' for instances, tables, arrays. Make object immutable. Can be checked with 'is_frozen' method
 
 
 ----------------
@@ -56,6 +57,7 @@ Removed features
 * # single line comments removed (as There should be one -- and preferably only one -- obvious way to do it.)
 * Support for post-initializer syntax removed (was ambiguous, especially because of optional comma)
 * Removed support for octal numbers (error-prone)
+* 
 
 ----------------
 Changes
@@ -70,14 +72,17 @@ Changes
 * getinfos() renamed to getfuncinfos() and now can be applied to callable objects (instances, tables)
 * array.append() can take multiple arguments
 * changed arguments order for array.filter() to unify with other functions
+* syntax for type methods call (for tables) (table.$rawdelete("rawdelete") will work for table {rawdelete=@() null})
+* compiler is now AST based with some optimizations (like closure hoisting) and checks. Analyzer works on the same AST.
+* Use Python style for extends (let Baz = class(Bar) //(instead of Baz = class extends Bar)
+* Remove 'delete' operator (use table.rawdelete() or table.$rawdelete() instead). Optional behavior specified with pragma #forbid-delete-operator #allow-delete-operator
+* lots of methods moved to standard library from global namespaces
+* setroottable() removed. Can be done with 2 lines of code (let root=getroottable(); root.each(@(_, k) root.rawdelete(k)); root.__update(newroot))
+* setconsttable() removed. It can break things. The only safe way to use it - to set const tables before for script evaluation (which can be done for compilestring()).
 
 --------------------------------
 Possible future changes
 --------------------------------
 
-* adding operator\syntax for type methods call (for tables) and remove default delegates (remove ambiguity in {__update = @(...) null}.__update({}) and gain some performance)
-* remove + for string concatenation
-* don't accept non-boolean values in logical operation ({} && 0 || null || "foo", {} ? 1 : 2, if ("foo") print(a))
-* add typedef and typehinting for analyzer like Python does (function (var: Int):Int{}. @(v:String):String v.tostring())
-* change compiler to AST base (source->ast->IL->bytecode) with optimizations
+See RFCs page
 

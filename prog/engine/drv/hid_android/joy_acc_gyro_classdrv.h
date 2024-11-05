@@ -1,7 +1,7 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <humanInput/dag_hiJoystick.h>
+#include <drv/hid/dag_hiJoystick.h>
 #include <perfMon/dag_cpuFreq.h>
 
 namespace HumanInput

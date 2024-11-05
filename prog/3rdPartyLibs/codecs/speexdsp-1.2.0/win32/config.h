@@ -1,4 +1,5 @@
 // Microsoft version of 'inline'
+#include <stdint.h>
 #define inline __inline
 
 // In Visual Studio, _M_IX86_FP=1 means /arch:SSE was used, likewise

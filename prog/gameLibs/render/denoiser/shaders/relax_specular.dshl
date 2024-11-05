@@ -1,0 +1,78 @@
+hlsl(cs) {
+  #include "NRDEncoding.hlsli"
+
+  #pragma hlsl2021
+}
+
+// This one is used by all relax shaders
+shader nrd_relax_classify_tiles
+{
+  hlsl (cs) {
+    #include "RELAX_ClassifyTiles.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_relax_specular_prepass
+{
+  hlsl(cs) {
+    #include "RELAX_Specular_PrePass.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_relax_specular_temporal_accumulation
+{
+  hlsl(cs) {
+    #include "RELAX_Specular_TemporalAccumulation.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_relax_specular_history_fix
+{
+  hlsl(cs) {
+    #include "RELAX_Specular_HistoryFix.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_relax_specular_history_clamping
+{
+  hlsl(cs) {
+    #include "RELAX_Specular_HistoryClamping.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_relax_specular_atorus_smem
+{
+  hlsl(cs) {
+    #include "RELAX_Specular_AtrousSmem.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_relax_specular_atorus
+{
+  hlsl(cs) {
+    #include "RELAX_Specular_Atrous.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_relax_validation
+{
+  hlsl (cs) {
+    #include "RELAX_Validation.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}

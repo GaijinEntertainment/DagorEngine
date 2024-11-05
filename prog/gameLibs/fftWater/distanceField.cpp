@@ -1,6 +1,10 @@
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
-#include <3d/dag_tex3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_tex3d.h>
 #include <perfMon/dag_statDrv.h>
 #include <3d/dag_textureIDHolder.h>
 #include <shaders/dag_shaders.h>
@@ -12,7 +16,7 @@ namespace fft_water
 {
 
 void build_distance_field(UniqueTexHolder &distField, int textureSize, int heightmapTextureSize, float detect_rivers_width,
-  RiverRendererCB *riversCB)
+  RiverRendererCB *riversCB, bool high_precision_distance_field)
 {
   distField.close();
   Color4 world_to_heightmap = ShaderGlobal::get_color4_fast(get_shader_variable_id("world_to_heightmap", true));
@@ -21,10 +25,14 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
   UniqueTex tempDistField[2]; //|TEXFMT_L8
   tempDistField[0] = dag::create_tex(NULL, textureSize, textureSize, TEXCF_RTARGET | TEXFMT_G16R16, 1, "shore_sdf_t0");
   tempDistField[1] = dag::create_tex(NULL, textureSize, textureSize, TEXCF_RTARGET | TEXFMT_G16R16, 1, "shore_sdf_t1");
-  tempDistField[0].getTex2D()->texaddr(TEXADDR_CLAMP);
-  tempDistField[1].getTex2D()->texaddr(TEXADDR_CLAMP);
-  tempDistField[0].getTex2D()->texfilter(TEXFILTER_POINT);
-  tempDistField[1].getTex2D()->texfilter(TEXFILTER_POINT);
+  tempDistField[0].getTex2D()->disableSampler();
+  tempDistField[1].getTex2D()->disableSampler();
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    ShaderGlobal::set_sampler(get_shader_variable_id("sdf_temp_tex_samplerstate"), d3d::request_sampler(smpInfo));
+  }
 
   ShaderGlobal::set_int(get_shader_variable_id("distance_field_texture_size"), textureSize);
   ShaderGlobal::set_int(get_shader_variable_id("height_texture_size"), heightmapTextureSize);
@@ -32,7 +40,7 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
   PostFxRenderer distanceFieldBuilder;
   distanceFieldBuilder.init("water_distance_field");
   Driver3dRenderTarget prevRt;
-  d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, NULL, NULL, NULL);
+  d3d::GpuAutoLock gpuLock;
   d3d::get_render_target(prevRt);
   d3d::set_render_target();
   int frameId = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
@@ -45,6 +53,7 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
     int sdf_temp_texVarId = get_shader_variable_id("sdf_temp_tex");
     ShaderGlobal::set_int(sdf_stageVarId, -1);
     d3d::set_render_target(tempDistField[0].getTex2D(), 0);
+    d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
     distanceFieldBuilder.render();
     // save_rt_image_as_tga(tempDistField[0].getTex2D(), "temp.tga");
 
@@ -57,6 +66,7 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
       ShaderGlobal::set_texture(sdf_temp_texVarId, tempDistField[1 - currentTemp]);
       d3d::resource_barrier({tempDistField[1 - currentTemp].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
       d3d::set_render_target(tempDistField[currentTemp].getTex2D(), 0);
+      d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
       distanceFieldBuilder.render();
       // save_rt_image_as_tga(tempDistField[currentTemp].getTex2D(), String(128, "temp%d.tga", i));
     }
@@ -73,10 +83,16 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
       if (!river_mask.getTex2D())
         river_mask = dag::create_tex(NULL, textureSize, textureSize, TEXCF_RTARGET | TEXFMT_A8R8G8B8, river_levels, "temp_river_mask");
       d3d_err(river_mask.getTex2D());
-      river_mask.getTex2D()->texaddr(TEXADDR_CLAMP);
+      river_mask.getTex2D()->disableSampler();
+      {
+        d3d::SamplerInfo smpInfo;
+        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+        ShaderGlobal::set_sampler(get_shader_variable_id("temp_river_mask_samplerstate"), d3d::request_sampler(smpInfo));
+      }
       d3d::set_render_target(river_mask.getTex2D(), 0);
       if (detect_rivers_width > 0)
       {
+        d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
         ShaderGlobal::set_real(get_shader_variable_id("max_river_width", true), detect_rivers_width);
         PostFxRenderer riverBuilder;
         riverBuilder.init("build_river");
@@ -93,6 +109,7 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
       for (int i = 1; i < river_levels; ++i)
       {
         d3d::set_render_target(river_mask.getTex2D(), i);
+        d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
         river_mask.getTex2D()->texmiplevel(i - 1, i - 1);
         ShaderGlobal::set_int(current_mip_sizeVarId, max(1, textureSize >> i));
         riverBuilderMip.render();
@@ -102,10 +119,13 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
     }
 
     // build sdf
-    distField = dag::create_tex(NULL, textureSize, textureSize, TEXCF_RTARGET, 1, "shore_distance_field_tex");
+    high_precision_distance_field &= d3d::check_texformat(TEXFMT_A16B16G16R16);
+    distField = dag::create_tex(NULL, textureSize, textureSize,
+      TEXCF_RTARGET | (high_precision_distance_field ? TEXFMT_A16B16G16R16 : TEXFMT_A8R8G8B8), 1, "shore_distance_field_tex");
 
-    distField.getTex2D()->texaddr(TEXADDR_CLAMP);
+    distField.getTex2D()->disableSampler();
     d3d::set_render_target(distField.getTex2D(), 0);
+    d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
     PostFxRenderer distanceGradientBuilder;
     distanceGradientBuilder.init("water_gradient_field");
 
@@ -127,16 +147,16 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
     d3d::set_render_target(tempDistField, 0, false);
 
     void * query = 0;
-    d3d::driver_command(DRV3D_COMMAND_GETVISIBILITYBEGIN, &query, 0, 0);
+    d3d::driver_command(Drv3dCommand::GETVISIBILITYBEGIN, &query);
     countTiles.render();
-    d3d::driver_command(DRV3D_COMMAND_GETVISIBILITYEND, query, 0, 0);
+    d3d::driver_command(Drv3dCommand::GETVISIBILITYEND, query);
     int pixelCount = -1;
     while (pixelCount==-1)
     {
-      pixelCount = d3d::driver_command(DRV3D_COMMAND_GETVISIBILITYCOUNT, query, (void*)true, 0);
+      pixelCount = d3d::driver_command(Drv3dCommand::GETVISIBILITYCOUNT, query, (void*)true);
       dagor_idle_cycle();
     };
-    d3d::driver_command(DRV3D_COMMAND_RELEASE_QUERY, &query, (void*)true, 0);
+    d3d::driver_command(Drv3dCommand::RELEASE_QUERY, &query, (void*)true);
     debug("pixelCount = %d out of %d (%dx%d)", pixelCount,
       shoreDistanceFieldTexSize*shoreDistanceFieldTexSize/256, shoreDistanceFieldTexSize, shoreDistanceFieldTexSize);
     */
@@ -148,8 +168,6 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
     ShaderGlobal::setBlock(frameId, ShaderGlobal::LAYER_FRAME);
   if (sceneId >= 0)
     ShaderGlobal::setBlock(sceneId, ShaderGlobal::LAYER_SCENE);
-
-  d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL);
 }
 
 } // namespace fft_water

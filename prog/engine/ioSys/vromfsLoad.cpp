@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_vromfs.h>
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
@@ -8,7 +10,6 @@
 #include <hash/md5.h>
 #include <util/dag_globDef.h>
 #include <debug/dag_debug.h>
-#include <supp/dag_starForce.h>
 #include <memory/dag_mem.h>
 #include <stddef.h> // offsetof
 #include <supp/dag_zstdObfuscate.h>

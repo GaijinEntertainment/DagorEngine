@@ -13,3 +13,5 @@ def main
 
     print("lba(5)={lba} lbb(5)={lbb}\n")
 
+    let lba2 = lower_bound ( b, 5 ) <| $(x, y: int) { return x < y; }
+    print("lba2(5)={lba2}\n")

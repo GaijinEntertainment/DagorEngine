@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "asmShaderHLSL2MetalGlslang.h"
 
 #include <algorithm>
@@ -490,15 +492,13 @@ static bool HasResource(const spirv_cross::SmallVector<spirv_cross::Resource> &r
   return false;
 }
 
-CompileResult compileShaderMetalGlslang(const char *source, const char *profile, const char *entry, bool need_disasm,
-  bool skipValidation, bool optimize, int max_constants_no, int bones_const_used, const char *shader_name, bool use_ios_token,
-  bool use_binary_msl, uint64_t shader_variant_hash)
+CompileResult compileShaderMetalGlslang(const char *source, const char *profile, const char *entry, bool need_disasm, bool enable_fp16,
+  bool skipValidation, bool optimize, int max_constants_no, const char *shader_name, bool use_ios_token, bool use_binary_msl,
+  uint64_t shader_variant_hash)
 {
   CompileResult compile_result;
 
   eastl::vector<spirv::ReflectionInfo> resourceMap;
-
-  bool is_half = dd_stricmp("ps_5_0_half", profile) == 0 || dd_stricmp("vs_5_0_half", profile) == 0;
 
   int cx = 1, cy = 1, cz = 1;
 
@@ -514,29 +514,29 @@ CompileResult compileShaderMetalGlslang(const char *source, const char *profile,
   GLSLToSpirVResult finalSpirV;
 
   EShMessages SourceLangRules =
-    is_half ? EShMessages(EShMsgSpvRules | EShMsgVulkanRules | EShMsgReadHlsl | EShMsgHlslOffsets | EShMsgHlslEnable16BitTypes)
-            : EShMessages(EShMsgSpvRules | EShMsgVulkanRules | EShMsgReadHlsl | EShMsgHlslOffsets);
+    enable_fp16 ? EShMessages(EShMsgSpvRules | EShMsgVulkanRules | EShMsgReadHlsl | EShMsgHlslOffsets | EShMsgHlslEnable16BitTypes)
+                : EShMessages(EShMsgSpvRules | EShMsgVulkanRules | EShMsgReadHlsl | EShMsgHlslOffsets);
 
-  const char *defines = is_half ? "#define HW_VERTEX_ID uint vertexId: SV_VertexID;\n"
-                                  "#define HW_BASE_VERTEX_ID error! not supported on this compiler/API\n"
-                                  "#define HW_BASE_VERTEX_ID_OPTIONAL  \n"
-                                  "#define USE_VERTEX_ID_WITHOUT_BASE_OFFSET(input_struct)  \n"
-                                  "#define half min16float\n"
-                                  "#define half1 min16float1\n"
-                                  "#define half2 min16float2\n"
-                                  "#define half3 min16float3\n"
-                                  "#define half4 min16float4\n"
-                                  "#define HALF_PRECISION 1\n"
+  const char *defines = enable_fp16 ? "#define HW_VERTEX_ID uint vertexId: SV_VertexID;\n"
+                                      "#define HW_BASE_VERTEX_ID error! not supported on this compiler/API\n"
+                                      "#define HW_BASE_VERTEX_ID_OPTIONAL  \n"
+                                      "#define USE_VERTEX_ID_WITHOUT_BASE_OFFSET(input_struct)  \n"
+                                      "#define half min16float\n"
+                                      "#define half1 min16float1\n"
+                                      "#define half2 min16float2\n"
+                                      "#define half3 min16float3\n"
+                                      "#define half4 min16float4\n"
+                                      "#define HALF_PRECISION 1\n"
 
-                                : "#define HW_VERTEX_ID uint vertexId: SV_VertexID;\n"
-                                  "#define HW_BASE_VERTEX_ID error! not supported on this compiler/API\n"
-                                  "#define HW_BASE_VERTEX_ID_OPTIONAL  \n"
-                                  "#define USE_VERTEX_ID_WITHOUT_BASE_OFFSET(input_struct)  \n"
-                                  "#define half float\n"
-                                  "#define half1 float1\n"
-                                  "#define half2 float2\n"
-                                  "#define half3 float3\n"
-                                  "#define half4 float4\n";
+                                    : "#define HW_VERTEX_ID uint vertexId: SV_VertexID;\n"
+                                      "#define HW_BASE_VERTEX_ID error! not supported on this compiler/API\n"
+                                      "#define HW_BASE_VERTEX_ID_OPTIONAL  \n"
+                                      "#define USE_VERTEX_ID_WITHOUT_BASE_OFFSET(input_struct)  \n"
+                                      "#define half float\n"
+                                      "#define half1 float1\n"
+                                      "#define half2 float2\n"
+                                      "#define half3 float3\n"
+                                      "#define half4 float4\n";
 
   GLSLToSpirVResult result = {};
   // needs to be on the heap or it may corrupt the stack
@@ -645,7 +645,7 @@ CompileResult compileShaderMetalGlslang(const char *source, const char *profile,
         ;
       });
 
-    if (is_half)
+    if (enable_fp16)
     {
       optimizer.RegisterPass(spvtools::CreateConvertRelaxedToHalfPass());
     }

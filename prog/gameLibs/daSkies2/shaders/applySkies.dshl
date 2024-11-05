@@ -4,12 +4,54 @@ include "skies_special_vision.dshl"
 include "vr_reprojection.dshl"
 
 texture lowres_sky;
+texture apply_sky_src_depth;
+
+int blend_apply_skies = 0;
+interval blend_apply_skies: no < 1, yes;
+float sky_blendup_range = 0.0000005;
+
 shader applySkies
 {
   cull_mode = none;
 
   z_write = false;
-  z_test = true;
+
+  if (blend_apply_skies == yes)
+  {
+    z_test = false;
+    blend_src = sa;
+    blend_dst = isa;
+
+    INIT_ZNZFAR()
+
+    (ps) {
+      sky_blendup_range@f1 = (sky_blendup_range);
+    }
+
+    if (apply_sky_src_depth == NULL)
+    {
+      USE_SUBPASS_LOADS()
+
+      hlsl(ps) {
+        #ifndef APPLY_SKIES_DEPTH_REGISTER
+          #define APPLY_SKIES_DEPTH_REGISTER t2
+        #endif
+        #ifndef APPLY_SKIES_DEPTH_IA
+          #define APPLY_SKIES_DEPTH_IA 2
+        #endif
+
+        SUBPASS_RESOURCE(subpass_depth_tex, APPLY_SKIES_DEPTH_REGISTER, APPLY_SKIES_DEPTH_IA)
+      }
+    }
+    else
+    {
+      (ps) { src_depth_tex@smp2d = apply_sky_src_depth; }
+    }
+  }
+  else
+  {
+    z_test = true;
+  }
 
   POSTFX_VS_TEXCOORD(0, texcoord)
 
@@ -24,8 +66,29 @@ shader applySkies
 ##if use_bounding_vr_reprojection == on
       tc = vr_bounding_view_reproject_tc(tc,0);
 ##endif
+
+##if blend_apply_skies == yes
+  ##if apply_sky_src_depth == NULL
+      float depth = SUBPASS_LOAD(subpass_depth_tex, tc).r;
+  ##else
+      float depth = tex2Dlod(src_depth_tex, float4(tc,0,0)).r;
+  ##endif
+      // should be blended only for distant horizon
+      BRANCH
+      if (depth > sky_blendup_range)
+      {
+        return 0;
+      }
+
+      //fake distant fog/lightning
+      float distCoef = (sky_blendup_range - depth) / sky_blendup_range;
+      float alpha = saturate(distCoef);
+##else
+      float alpha = 0;
+##endif
+
       float4 sky = tex2Dlod(lowres_sky, float4(tc,0,0));
-      sky.a = 0;
+      sky.a = alpha;
       return sky;
     }
   }

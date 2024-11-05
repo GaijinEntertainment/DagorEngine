@@ -1,8 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EditorCore/ec_genappwnd.h>
 #include <EditorCore/ec_gizmofilter.h>
 #include <EditorCore/ec_cm.h>
 #include <EditorCore/ec_brushfilter.h>
 #include <EditorCore/ec_startDlg.h>
+#include <EditorCore/ec_startup.h>
+#include <EditorCore/ec_interface_ex.h>
 
 #include <libTools/util/undo.h>
 #include <libTools/util/strUtil.h>
@@ -31,8 +35,17 @@
 #include <image/dag_texPixel.h>
 #include <shaders/dag_shaderBlock.h>
 #include <math/dag_cube_matrix.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_info.h>
 #include <3d/dag_render.h>
+#include <propPanel/commonWindow/dialogWindow.h>
+#include <propPanel/control/container.h>
+#include <propPanel/control/menu.h>
 #include <render/dag_cur_view.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <sepGui/wndGlobal.h>
@@ -44,7 +57,7 @@
 #include <windows.h>
 #undef ERROR
 
-extern void update_visibility_finder();
+extern void update_visibility_finder(VisibilityFinder &vf);
 
 #define MIN_CUBE_2_POWER 5
 #define MAX_CUBE_2_POWER 11
@@ -73,12 +86,12 @@ enum
 
 using hdpi::_pxScaled;
 
-class OrthogonalScreenshotDlg : public CDialogWindow
+class OrthogonalScreenshotDlg : public PropPanel::DialogWindow
 {
 public:
   OrthogonalScreenshotDlg(const char caption[], GenericEditorAppWindow::OrtMultiScrData &scr_data,
     GenericEditorAppWindow::OrtScrCells &scr_cells, int max_rt_size, bool map2d_avail = false) :
-    CDialogWindow(IEditorCoreEngine::get()->getWndManager()->getMainWindow(), _pxScaled(DIALOG_WIDTH), _pxScaled(DIALOG_HEIGHT),
+    DialogWindow(IEditorCoreEngine::get()->getWndManager()->getMainWindow(), _pxScaled(DIALOG_WIDTH), _pxScaled(DIALOG_HEIGHT),
       caption),
 
     mScrData(&scr_data),
@@ -96,9 +109,9 @@ public:
     shotSz = tex_sizes[startTsInd];
   }
 
-  virtual void show()
+  virtual int showDialog() override
   {
-    PropertyContainerControlBase *_panel = getPanel();
+    PropPanel::ContainerPropertyControl *_panel = getPanel();
     G_ASSERT(_panel && "No panel in GenericEditorAppWindow::OrthogonalScreenshotDlg");
 
     _panel->createEditFloat(MIN_X_ID, "Min. X", mScrData->mapPos.x);
@@ -117,11 +130,11 @@ public:
 
     updateScreenPrewiew(_panel);
     updateMipmapLevels(_panel);
-    CDialogWindow::show();
     updateScreenPrewiew(_panel);
+    return DialogWindow::showDialog();
   }
 
-  virtual void onChange(int pcb_id, PropPanel2 *panel)
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
   {
     switch (pcb_id)
     {
@@ -160,13 +173,12 @@ public:
       updateMipmapLevels(panel);
   }
 
-  void fillMultiPP(PropPanel2 &panel)
+  void fillMultiPP(PropPanel::ContainerPropertyControl &panel)
   {
     if (multiScreenShot && !panel.getById(MULTI_GRP_ID))
     {
-      resizeWindow(_pxScaled(DIALOG_WIDTH), _pxScaled(DIALOG_FULL_HEIGHT));
       panel.removeById(MULTI_TILE_SIZE_ID);
-      PropPanel2 *grp = panel.createGroupBox(MULTI_GRP_ID, "Map2D screenshot params:");
+      PropPanel::ContainerPropertyControl *grp = panel.createGroupBox(MULTI_GRP_ID, "Map2D screenshot params:");
 
       int sel = 0;
       for (int i = startTsInd; i < TEX_SIZES_CNT; ++i)
@@ -195,13 +207,12 @@ public:
           break;
         }
       panel.createCombo(MULTI_TILE_SIZE_ID, "Resolution:", resLines, sel);
-      resizeWindow(_pxScaled(DIALOG_WIDTH), _pxScaled(DIALOG_HEIGHT));
     }
   }
 
   virtual bool onOk()
   {
-    PropertyContainerControlBase *_panel = getPanel();
+    PropPanel::ContainerPropertyControl *_panel = getPanel();
     G_ASSERT(_panel && "No panel in GenericEditorAppWindow::OrthogonalScreenshotDlg");
     mScrData->mapPos = Point2(_panel->getFloat(MIN_X_ID), _panel->getFloat(MIN_Z_ID));
     mScrData->mapSize = Point2(_panel->getFloat(SZ_X_ID), _panel->getFloat(SZ_Z_ID));
@@ -219,7 +230,7 @@ public:
     return true;
   }
 
-  void updateMipmapLevels(PropPanel2 *panel)
+  void updateMipmapLevels(PropPanel::ContainerPropertyControl *panel)
   {
     int max_size = max(mScrCells->sizeInTiles.x, mScrCells->sizeInTiles.y);
     int mipmax = (max_size == 0) ? 0 : ceil(log(1.0 * max_size) / log(2.0));
@@ -230,7 +241,7 @@ public:
     panel->setEnabledById(MULTI_TILE_MIPS, mipmax != 0);
   }
 
-  void updateScreenPrewiew(PropPanel2 *panel)
+  void updateScreenPrewiew(PropPanel::ContainerPropertyControl *panel)
   {
     IGenViewportWnd *viewport = EDITORCORE->getCurrentViewport();
 
@@ -265,13 +276,9 @@ public:
     viewport->getViewportSize(w, h);
     viewport->setOrthogonalZoom(min(w / (w_x1 - w_x0) / 1.05, h / (w_z1 - w_z0) / 1.05));
     viewport->invalidateCache();
-    dagor_work_cycle_flush_pending_frame();
-    dagor_draw_scene_and_gui(true, true);
-    d3d::update_screen();
-    ::dagor_idle_cycle();
   }
 
-  int getTexSize(PropPanel2 *panel)
+  int getTexSize(PropPanel::ContainerPropertyControl *panel)
   {
     if (startTsInd < TEX_SIZES_CNT)
       return tex_sizes[startTsInd + panel->getInt(MULTI_TILE_SIZE_ID)];
@@ -405,6 +412,7 @@ GenericEditorAppWindow::GenericEditorAppWindow(const char *open_fname, IWndManag
     shouldLoadFile = true;
   }
 
+  mainMenu.reset(PropPanel::create_menu());
   getMainMenu()->setEventHandler(this);
 
   console = new CoolConsole("console", (HWND)mManager->getMainWindow());
@@ -424,18 +432,16 @@ GenericEditorAppWindow::~GenericEditorAppWindow()
 }
 
 
-IMenu *GenericEditorAppWindow::getMainMenu()
+PropPanel::IMenu *GenericEditorAppWindow::getMainMenu()
 {
-  IMenu *menu = mManager->getMainMenu();
-  G_ASSERT(menu && "GenericEditorAppWindow::getMenu(): menu == NULL!");
-
-  return menu;
+  G_ASSERT(mainMenu);
+  return mainMenu.get();
 }
 
 
-void GenericEditorAppWindow::fillMenu(IMenu *menu) { addExitCommand(menu); }
+void GenericEditorAppWindow::fillMenu(PropPanel::IMenu *menu) { addExitCommand(menu); }
 
-void GenericEditorAppWindow::addExitCommand(IMenu *menu) { menu->addItem(ROOT_MENU_ITEM, CM_EXIT, "Exit"); }
+void GenericEditorAppWindow::addExitCommand(PropPanel::IMenu *menu) { menu->addItem(ROOT_MENU_ITEM, CM_EXIT, "Exit"); }
 
 
 void GenericEditorAppWindow::init()
@@ -458,6 +464,7 @@ void GenericEditorAppWindow::startWith()
   // load last workspace
 
   const char *last = NULL;
+  bool startupSceneSet = false;
 
   // process start dialog
 
@@ -488,20 +495,26 @@ void GenericEditorAppWindow::startWith()
     {
       int variant = -1;
 
-      // show dialog
+      if (!startupSceneSet)
+      {
+        startupSceneSet = true;
+        startup_editor_core_select_startup_scene();
+      }
 
-      EditorStartDialog esd(mManager->getMainWindow(), "Select workspace", getWorkspace(),
-        ::make_full_path(sgg::get_exe_path(), "../workspace.blk"), last);
+      EditorStartDialog esd("Select workspace", getWorkspace(), ::make_full_path(sgg::get_exe_path(), "../.local/workspace.blk"),
+        last);
 
       variant = esd.showDialog();
+
+      startup_editor_core_force_startup_scene_draw();
 
       // process dialog result
 
       switch (variant)
       {
-        case DIALOG_ID_OK:
+        case PropPanel::DIALOG_ID_OK:
         {
-          PropertyContainerControlBase *_panel = esd.getPanel();
+          PropPanel::ContainerPropertyControl *_panel = esd.getPanel();
           if (_panel->getInt(ID_START_DIALOG_COMBO) > -1)
           {
             SimpleString buf(_panel->getText(ID_START_DIALOG_COMBO));
@@ -517,7 +530,7 @@ void GenericEditorAppWindow::startWith()
           break;
         }
 
-        case DIALOG_ID_CANCEL: mManager->close(); return;
+        case PropPanel::DIALOG_ID_CANCEL: mManager->close(); return;
 
         default: handled = true;
       }
@@ -526,7 +539,7 @@ void GenericEditorAppWindow::startWith()
 }
 
 
-void GenericEditorAppWindow::fillCommonToolbar(PropertyContainerControlBase &tb)
+void GenericEditorAppWindow::fillCommonToolbar(PropPanel::ContainerPropertyControl &tb)
 {
   tb.createButton(CM_ZOOM_AND_CENTER, "Zoom and center (Ctrl+Shift+Z)");
   tb.setButtonPictures(CM_ZOOM_AND_CENTER, "zoom_and_center");
@@ -889,12 +902,12 @@ bool GenericEditorAppWindow::canCloseScene(const char *title)
 bool GenericEditorAppWindow::canClose() { return (canCloseScene("Exit")); }
 
 
-class GenericEditorAppWindow::FovDlg : public CDialogWindow
+class GenericEditorAppWindow::FovDlg : public PropPanel::DialogWindow
 {
 public:
-  FovDlg(void *phandle, const char *caption, float curFov) : CDialogWindow(phandle, _pxScaled(200), _pxScaled(100), caption)
+  FovDlg(void *phandle, const char *caption, float curFov) : DialogWindow(phandle, _pxScaled(200), _pxScaled(100), caption)
   {
-    PropertyContainerControlBase *_panel = getPanel();
+    PropPanel::ContainerPropertyControl *_panel = getPanel();
     G_ASSERT(_panel && "No panel in GenericEditorAppWindow::FovDlg");
 
     _panel->createEditFloat(ID_FOV_EDIT, "FoV (deg)", curFov);
@@ -903,7 +916,7 @@ public:
 
   float getFov()
   {
-    PropertyContainerControlBase *_panel = getPanel();
+    PropPanel::ContainerPropertyControl *_panel = getPanel();
     G_ASSERT(_panel && "No panel in GenericEditorAppWindow::FovDlg:getFov()");
 
     return _panel->getFloat(ID_FOV_EDIT);
@@ -925,7 +938,7 @@ void GenericEditorAppWindow::onChangeFov()
 
   FovDlg dlg(mManager->getMainWindow(), "Set Field-of-View", viewport->getFov() * RAD_TO_DEG);
 
-  if (dlg.showDialog() == DIALOG_ID_OK)
+  if (dlg.showDialog() == PropPanel::DIALOG_ID_OK)
     viewport->setFov(dlg.getFov() * DEG_TO_RAD);
   viewport->activate();
 }
@@ -944,7 +957,7 @@ void GenericEditorAppWindow::onShowConsole()
 
 void GenericEditorAppWindow::setScreenshotOptions()
 {
-  class ScreenshotOptionsClient : public CDialogWindow
+  class ScreenshotOptionsClient : public PropPanel::DialogWindow
   {
   public:
     int scrnW;
@@ -968,14 +981,14 @@ void GenericEditorAppWindow::setScreenshotOptions()
     };
 
 
-    ScreenshotOptionsClient() : CDialogWindow(0, _pxScaled(305), _pxScaled(370), "Screenshot settings") {}
+    ScreenshotOptionsClient() : DialogWindow(0, _pxScaled(305), _pxScaled(370), "Screenshot settings") {}
 
     void fill()
     {
-      PropertyContainerControlBase *_panel = getPanel();
+      PropPanel::ContainerPropertyControl *_panel = getPanel();
       G_ASSERT(_panel && "No panel in ScreenshotOptionsClient");
 
-      PropertyContainerControlBase *_grp = _panel->createGroupBox(PID_SCRN_GROUP, "Screenshot");
+      PropPanel::ContainerPropertyControl *_grp = _panel->createGroupBox(PID_SCRN_GROUP, "Screenshot");
       {
         _grp->createEditInt(PID_SCRN_W, "Screenshot width:", scrnW);
         _grp->createEditInt(PID_SCRN_H, "Screenshot height:", scrnH);
@@ -1007,7 +1020,7 @@ void GenericEditorAppWindow::setScreenshotOptions()
 
     bool onOk()
     {
-      PropertyContainerControlBase *_panel = getPanel();
+      PropPanel::ContainerPropertyControl *_panel = getPanel();
       G_ASSERT(_panel && "No panel in ScreenshotOptionsClient");
 
       scrnW = _panel->getInt(PID_SCRN_W);
@@ -1024,7 +1037,7 @@ void GenericEditorAppWindow::setScreenshotOptions()
       return true;
     }
 
-    void onChange(int pcb_id, PropertyContainerControlBase *panel)
+    void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
     {
       if (pcb_id == PID_SCRN_W || pcb_id == PID_SCRN_H)
       {
@@ -1059,7 +1072,7 @@ void GenericEditorAppWindow::setScreenshotOptions()
   client.cubeSize = cubeSize;
   client.fill();
 
-  if (client.showDialog() == DIALOG_ID_OK)
+  if (client.showDialog() == PropPanel::DIALOG_ID_OK)
   {
     screenshotSize.x = client.scrnW;
     screenshotSize.y = client.scrnH;
@@ -1115,6 +1128,8 @@ Texture *GenericEditorAppWindow::renderInTex(int w, int h, const TMatrix *tm, bo
 
   if (!viewport)
     return NULL;
+
+  d3d::GpuAutoLock gpuLock;
 
   Driver3dRenderTarget old;
   d3d::get_render_target(old);
@@ -1189,7 +1204,7 @@ Texture *GenericEditorAppWindow::renderInTex(int w, int h, const TMatrix *tm, bo
 
     screenshotRender();
 
-    update_visibility_finder();
+    update_visibility_finder(EDITORCORE->queryEditorInterface<IVisibilityFinderProvider>()->getVisibilityFinder());
     ::ec_cached_viewports->endRender();
   }
 
@@ -1394,7 +1409,7 @@ void GenericEditorAppWindow::createOrthogonalScreenshot(const char *dest_folder,
     sz = dlg.getResolution();
     mScrCells.reset();
 
-    if (res != DIALOG_ID_OK)
+    if (res != PropPanel::DIALOG_ID_OK)
     {
       if (sv)
       {

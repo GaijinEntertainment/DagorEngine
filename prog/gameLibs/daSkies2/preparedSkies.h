@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <daSkies2/daScattering.h>
 #include <math/dag_TMatrix4.h>
 #include <3d/dag_resPtr.h>
@@ -18,7 +20,8 @@ struct PreparedSkies
 
   UniqueTex preparedLoss;
 
-  carray<UniqueTex, 2> scatteringVolume;            //-V730_NOINIT
+  carray<UniqueTex, 2> scatteringVolume; //-V730_NOINIT
+  d3d::SamplerHandle scatteringVolumeSampler = d3d::INVALID_SAMPLER_HANDLE;
   carray<UniqueTex, 2> skiesLutTex, skiesLutMieTex; //-V730_NOINIT
   uint32_t frame = 0;
   uint32_t lastSkiesPrepareFrame = 0;
@@ -30,5 +33,6 @@ struct PreparedSkies
   Color4 prevSkiesParams = {0, 0, 0, -1};
   DPoint3 prevWorldPos = {0, 0, 0};
   TMatrix4 prevGlobTm = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  TMatrix4 prevProjTm = TMatrix4::IDENT;
   Point4 prevViewVecLT = {0, 0, 0, 0}, prevViewVecRT = {0, 0, 0, 0}, prevViewVecLB = {0, 0, 0, 0}, prevViewVecRB = {0, 0, 0, 0};
 };

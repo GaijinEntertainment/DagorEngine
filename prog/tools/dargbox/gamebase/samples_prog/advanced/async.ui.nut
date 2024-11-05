@@ -58,7 +58,7 @@ function checkHttpTask(){
 /* Super solution
   //Idea: we create declarative executaion order, that will check correctness of access of results
   // and launch when required results ready
-  let storage = persist("storage", Watched({}))
+  let storage = mkWatched(persist, "storage"{})
   let loginActions = mkAsyncTasks(
     storage
     [ //array means that we should finish all this tasks before going next

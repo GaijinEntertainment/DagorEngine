@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <pathFinder/tileCache.h>
 #include <pathFinder/tileCacheRI.h>
 #include <pathFinder/pathFinder.h>
@@ -10,6 +12,14 @@ void tilecache_init(dtTileCache *tc, const ska::flat_hash_set<uint32_t> &obstacl
 {
   G_UNUSED(obstacle_res_name_hashes);
   tileCache = tc;
+}
+
+bool tilecache_is_working() { return false; }
+
+bool tilecache_is_blocking(rendinst::riex_handle_t riex_handle)
+{
+  G_UNUSED(riex_handle);
+  return false;
 }
 
 void tilecache_stop() {}
@@ -44,17 +54,21 @@ void tilecache_update(float dt) { G_UNUSED(dt); }
 
 void tilecache_render_debug(const Frustum *frustum) { G_UNUSED(frustum); }
 
-obstacle_handle_t tilecache_obstacle_add(const TMatrix &tm, const BBox3 &oobb, const Point2 &padding, bool skip_rebuild, bool sync)
+obstacle_handle_t tilecache_obstacle_add(const TMatrix &tm, const BBox3 &oobb, const Point2 &padding, bool block, bool skip_rebuild,
+  bool sync)
 {
   G_UNUSED(tm);
   G_UNUSED(oobb);
   G_UNUSED(padding);
+  G_UNUSED(block);
   G_UNUSED(skip_rebuild);
   G_UNUSED(sync);
   return 0;
 }
 
 void rebuildNavMesh_init() {}
+
+void rebuildNavMesh_setup(const char *, const Point2 &) {}
 
 void rebuildNavMesh_setup(const char *, float) {}
 
@@ -84,11 +98,13 @@ const Tab<uint32_t> &get_removed_rebuild_tile_cache_tiles()
   return temp;
 }
 
-void tilecache_obstacle_move(obstacle_handle_t obstacle_handle, const TMatrix &tm, const BBox3 &oobb, const Point2 &padding, bool sync)
+void tilecache_obstacle_move(obstacle_handle_t obstacle_handle, const TMatrix &tm, const BBox3 &oobb, const Point2 &padding,
+  bool block, bool sync)
 {
   G_UNUSED(obstacle_handle);
   G_UNUSED(tm);
   G_UNUSED(oobb);
+  G_UNUSED(block);
   G_UNUSED(padding);
   G_UNUSED(sync);
 }
@@ -100,29 +116,28 @@ bool tilecache_obstacle_remove(obstacle_handle_t obstacle_handle, bool sync)
   return false;
 }
 
-void tilecache_ri_init_obstacles(const char *obstacle_settings_path, obstacle_paddings_t &obstacle_paddings)
+bool tilecache_ri_is_blocking(rendinst::riex_handle_t ri_handle)
 {
-  G_UNUSED(obstacle_settings_path);
-  G_UNUSED(obstacle_paddings);
+  G_UNUSED(ri_handle);
+  return false;
 }
 
 void tilecache_ri_start(const ska::flat_hash_set<uint32_t> &res_name_hashes, float cell_size, float walkable_climb,
-  const obstacle_paddings_t &obstacle_paddings, const Point2 &padding, tile_check_cb_t tile_check_cb)
+  const rendinst::obstacle_settings_t &obstacle_settings, const Point2 &padding, tile_check_cb_t tile_check_cb)
 {
   G_UNUSED(res_name_hashes);
   G_UNUSED(cell_size);
   G_UNUSED(walkable_climb);
-  G_UNUSED(obstacle_paddings);
+  G_UNUSED(obstacle_settings);
   G_UNUSED(padding);
   G_UNUSED(tile_check_cb);
 }
 
-void tilecache_ri_start_add(const ska::flat_hash_set<uint32_t> &res_name_hashes, float walkable_climb,
-  const obstacle_paddings_t &obstacle_paddings, rendinst::riex_handle_t handle, tile_check_cb_t tile_check_cb)
+void tilecache_ri_start_add(const ska::flat_hash_set<uint32_t> &res_name_hashes, float walkable_climb, rendinst::riex_handle_t handle,
+  tile_check_cb_t tile_check_cb)
 {
   G_UNUSED(res_name_hashes);
   G_UNUSED(walkable_climb);
-  G_UNUSED(obstacle_paddings);
   G_UNUSED(handle);
   G_UNUSED(tile_check_cb);
 }

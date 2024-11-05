@@ -1,7 +1,6 @@
 //
-// Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Dagor Engine 6.5 - 1st party libs
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -42,6 +41,9 @@
 #else
   DECL_VEC_CONST vec4f_const V_C_INF = { REPLICATE(INFINITY) };
 #endif
+
+  #define DECL_VECFLOAT4(X,Y,Z,W) {X,Y,Z,W}
+  #define DECL_VECUINT4(X,Y,Z,W)  {X,Y,Z,W}
 
   DECL_VEC_CONST vec4i_const V_CI_SIGN_MASK = { REPLICATE(0x80000000) };
   DECL_VEC_CONST vec4i_const V_CI_INV_SIGN_MASK = { REPLICATE(0x7FFFFFFF) };
@@ -94,7 +96,6 @@
   #define V_C_MIN_VAL         vdupq_n_f32(-1e32f)
   #define V_C_EPS_VAL         vdupq_n_f32(1.192092896e-07f)
   #define V_C_VERY_SMALL_VAL  vdupq_n_f32(4e-19f)              // ~sqrt(FLT_MIN), safe threshold for passing argument to rcp(x)
-  #define V_C_INF             vdupq_n_f32(__builtin_inff())
 
   #define V_CI_SIGN_MASK      vdupq_n_s32(0x80000000)
   #define V_CI_INV_SIGN_MASK  vdupq_n_s32(0x7FFFFFFF)
@@ -110,34 +111,62 @@
   #define V_CI_3              vdupq_n_s32(3)
   #define V_CI_4              vdupq_n_s32(4)
 
-  #define DECL_VECFLOAT4      (float32x4_t)
-  #define DECL_VECUINT4       (int32x4_t)
+#if defined(__clang__) || defined(__GNUC__)
+  #define V_C_INF             vdupq_n_f32(__builtin_inff())
 
-  #define V_CI2_MASK10        (int32x2_t) { -1, 0 }
-  #define V_CI2_MASK01        (int32x2_t) { 0, -1 }
+  #define DECL_VECFLOAT4(X,Y,Z,W) (float32x4_t){X,Y,Z,W}
+  #define DECL_VECUINT4(X,Y,Z,W)  (int32x4_t){(int)X,(int)Y,(int)Z,(int)W}
+#elif defined(_MSC_VER)
+  #define V_C_INF             vdupq_n_f32(INFINITY)
 
-  #define V_C_UNIT_1000       DECL_VECFLOAT4{ 1.0f, 0.0f, 0.0f, 0.0f }
-  #define V_C_UNIT_0100       DECL_VECFLOAT4{ 0.0f, 1.0f, 0.0f, 0.0f }
-  #define V_C_UNIT_0010       DECL_VECFLOAT4{ 0.0f, 0.0f, 1.0f, 0.0f }
-  #define V_C_UNIT_0001       DECL_VECFLOAT4{ 0.0f, 0.0f, 0.0f, 1.0f }
-  #define V_C_UNIT_1110       DECL_VECFLOAT4{ 1.0f, 1.0f, 1.0f, 0.0f }
-  #define V_C_UNIT_0011       DECL_VECFLOAT4{ 0.0f, 0.0f, 1.0f, 1.0f }
+  constexpr struct vec4f_const_hlp
+  {
+    constexpr vec4f_const_hlp(float x, float y, float z, float w)
+    {
+      v.n128_f32[0] = x;
+      v.n128_f32[1] = y;
+      v.n128_f32[2] = z;
+      v.n128_f32[3] = w;
+    }
+    __n128 v;
+  };
+  constexpr struct vec4i_const_hlp
+  {
+    constexpr vec4i_const_hlp(int x, int y, int z, int w)
+    {
+      v.n128_i32[0] = x;
+      v.n128_i32[1] = y;
+      v.n128_i32[2] = z;
+      v.n128_i32[3] = w;
+    }
+    __n128 v;
+  };
+  #define DECL_VECFLOAT4(X,Y,Z,W) vec4f_const_hlp(X,Y,Z,W).v
+  #define DECL_VECUINT4(X,Y,Z,W)  vec4i_const_hlp((int)X,(int)Y,(int)Z,(int)W).v
+#endif
+
+  #define V_C_UNIT_1000       DECL_VECFLOAT4( 1.0f, 0.0f, 0.0f, 0.0f )
+  #define V_C_UNIT_0100       DECL_VECFLOAT4( 0.0f, 1.0f, 0.0f, 0.0f )
+  #define V_C_UNIT_0010       DECL_VECFLOAT4( 0.0f, 0.0f, 1.0f, 0.0f )
+  #define V_C_UNIT_0001       DECL_VECFLOAT4( 0.0f, 0.0f, 0.0f, 1.0f )
+  #define V_C_UNIT_1110       DECL_VECFLOAT4( 1.0f, 1.0f, 1.0f, 0.0f )
+  #define V_C_UNIT_0011       DECL_VECFLOAT4( 0.0f, 0.0f, 1.0f, 1.0f )
 
   #define V_CI_MASK0000       vdupq_n_s32(0)
-  #define V_CI_MASK1000       DECL_VECUINT4{ -1, 0, 0, 0 }
-  #define V_CI_MASK0100       DECL_VECUINT4{ 0, -1, 0, 0 }
-  #define V_CI_MASK0010       DECL_VECUINT4{ 0, 0, -1, 0 }
-  #define V_CI_MASK0001       DECL_VECUINT4{ 0, 0, 0, -1 }
-  #define V_CI_MASK1100       DECL_VECUINT4{ -1, -1, 0, 0 }
-  #define V_CI_MASK0110       DECL_VECUINT4{ 0, -1, -1, 0 }
-  #define V_CI_MASK0011       DECL_VECUINT4{ 0, 0, -1, -1 }
-  #define V_CI_MASK1010       DECL_VECUINT4{ -1, 0, -1, 0 }
-  #define V_CI_MASK0101       DECL_VECUINT4{ 0, -1, 0, -1 }
-  #define V_CI_MASK1110       DECL_VECUINT4{ -1, -1, -1, 0 }
-  #define V_CI_MASK1101       DECL_VECUINT4{ -1, -1, 0, -1 }
-  #define V_CI_MASK1011       DECL_VECUINT4{ -1, 0, -1, -1 }
-  #define V_CI_MASK0111       DECL_VECUINT4{ 0, -1, -1, -1 }
-  #define V_CI_MASK1111       DECL_VECUINT4{ -1, -1, -1, -1 }
+  #define V_CI_MASK1000       DECL_VECUINT4( -1, 0, 0, 0 )
+  #define V_CI_MASK0100       DECL_VECUINT4( 0, -1, 0, 0 )
+  #define V_CI_MASK0010       DECL_VECUINT4( 0, 0, -1, 0 )
+  #define V_CI_MASK0001       DECL_VECUINT4( 0, 0, 0, -1 )
+  #define V_CI_MASK1100       DECL_VECUINT4( -1, -1, 0, 0 )
+  #define V_CI_MASK0110       DECL_VECUINT4( 0, -1, -1, 0 )
+  #define V_CI_MASK0011       DECL_VECUINT4( 0, 0, -1, -1 )
+  #define V_CI_MASK1010       DECL_VECUINT4( -1, 0, -1, 0 )
+  #define V_CI_MASK0101       DECL_VECUINT4( 0, -1, 0, -1 )
+  #define V_CI_MASK1110       DECL_VECUINT4( -1, -1, -1, 0 )
+  #define V_CI_MASK1101       DECL_VECUINT4( -1, -1, 0, -1 )
+  #define V_CI_MASK1011       DECL_VECUINT4( -1, 0, -1, -1 )
+  #define V_CI_MASK0111       DECL_VECUINT4( 0, -1, -1, -1 )
+  #define V_CI_MASK1111       DECL_VECUINT4( -1, -1, -1, -1 )
 #endif
 
 #undef REPLICATE

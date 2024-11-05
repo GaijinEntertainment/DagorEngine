@@ -1,6 +1,5 @@
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #pragma once
 
@@ -13,7 +12,10 @@ void win_hide_splash_screen() {}
 
 #else
 
+#include <util/dag_globDef.h>
+
 #include <windows.h>
+#include <objidl.h>
 
 // GDI+ for PNG support
 #pragma comment(lib, "gdiplus.lib")
@@ -21,17 +23,14 @@ void win_hide_splash_screen() {}
 #include <gdiplus.h>
 #pragma warning(pop)
 
-#include <util/dag_globDef.h>
 #include <osApiWrappers/dag_progGlobals.h>
 
-static HBITMAP splash_image_bitmap = NULL;
-static HWND splash_hwnd = NULL;
 #ifdef UNICODE
-static const wchar_t *splash_window_class = L"SplashWindow";
-static const wchar_t *splash_window_icon = L"WindowIcon";
+inline constexpr const wchar_t *splash_window_class = L"SplashWindow";
+inline constexpr const wchar_t *splash_window_icon = L"WindowIcon";
 #else
-static const char *splash_window_class = "SplashWindow";
-static const char *splash_window_icon = "WindowIcon";
+inline constexpr const char *splash_window_class = "SplashWindow";
+inline constexpr const char *splash_window_icon = "WindowIcon";
 #endif
 
 static HBITMAP load_splash_bitmap(const wchar_t *path)
@@ -120,7 +119,7 @@ static void set_splash_image(HWND splash_window, HBITMAP splash_bitmap)
 
   // use the source image's alpha channel for blending
   BLENDFUNCTION blend = {0};
-  blend.BlendOp = AC_SRC_OVER;
+  blend.BlendOp = AC_SRC_OVER; // -V1048
   blend.SourceConstantAlpha = 255;
   blend.AlphaFormat = AC_SRC_ALPHA;
 
@@ -133,27 +132,55 @@ static void set_splash_image(HWND splash_window, HBITMAP splash_bitmap)
   ReleaseDC(NULL, hdcScreen);
 }
 
+class SplashWindow final : public DaThread
+{
+public:
+  SplashWindow(const wchar_t *splash_image_path) : splashImagePath{splash_image_path} {}
+
+  void execute() override
+  {
+    debug("WinSplash: win_show_splash_screen");
+
+    HBITMAP splash_image_bitmap = load_splash_bitmap(splashImagePath.c_str());
+    if (splash_image_bitmap == NULL)
+    {
+      debug("WinSplash: missing image");
+      return;
+    }
+
+    register_splash_window_class();
+    HWND splash_hwnd = create_splash_window();
+    set_splash_image(splash_hwnd, splash_image_bitmap);
+
+    while (!isThreadTerminating())
+    {
+      Sleep(1);
+    }
+
+    debug("WinSplash: win_hide_splash_screen");
+
+    DestroyWindow(splash_hwnd);
+    DeleteObject(splash_image_bitmap);
+  }
+
+  eastl::wstring splashImagePath;
+};
+
+static InitOnDemand<SplashWindow> splash_window_thread;
+
 void win_show_splash_screen(const wchar_t *splash_image_path)
 {
-  debug("WinSplash: win_show_splash_screen");
-  G_ASSERT_RETURN(splash_image_bitmap == NULL, );
-
-  splash_image_bitmap = load_splash_bitmap(splash_image_path);
-  if (splash_image_bitmap == NULL)
-    return;
-
-  register_splash_window_class();
-  splash_hwnd = create_splash_window();
-  set_splash_image(splash_hwnd, splash_image_bitmap);
+  if (!splash_window_thread)
+  {
+    splash_window_thread.demandInit(splash_image_path);
+    splash_window_thread->start();
+  }
 }
 
 void win_hide_splash_screen()
 {
-  debug("WinSplash: win_hide_splash_screen");
-
-  DestroyWindow(splash_hwnd);
-  DeleteObject(splash_image_bitmap);
-  splash_image_bitmap = NULL;
+  if (splash_window_thread)
+    splash_window_thread->terminate(false);
 }
 
 #endif

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -111,7 +110,7 @@ public:
                        !hasPolicy(RRP::HasUsageType, "ERROR: Please, don't call .useAs(usage type) before .bindToShaderVar(...)!")))
   VirtualResourceRequest<Res, flipPolicy(RRP::HasUsageType)> bindToShaderVar(const char *shader_var_name = nullptr) &&
   {
-    Base::bindToShaderVar(shader_var_name, tag_for<Res>());
+    Base::bindToShaderVar(shader_var_name, tag_for<Res>(), detail::identity_projector);
     return {resUid, nodeId, registry};
   }
 
@@ -120,16 +119,15 @@ public:
    * variable with the specified name.
    *
    * \tparam projector A function to extract the value to bind from
-   *   the blob. Can be a pointer-to-member, i.e. `&BlobType::field`.
+   *   the blob. Can be a pointer-to-member, i.e. `&BlobType::field`
+   *   or a (pure) function pointer.
    * \param shader_var_name The name of the shader variable to bind.
    *   If not specified, the name of the resource will be used.
    */
   template <auto projector, REQUIRE_IMPL(!is_gpu && eastl::is_invocable_v<decltype(projector), Res>)>
   VirtualResourceRequest<Res, policy> bindToShaderVar(const char *shader_var_name = nullptr) &&
   {
-    using InvokeResult = eastl::invoke_result_t<decltype(projector), const Res &>;
-    static_assert(detail::is_const_lvalue_reference<InvokeResult>, "Invoking a projector must return a const lvalue reference!");
-    using ProjectedType = eastl::remove_cvref_t<InvokeResult>;
+    using ProjectedType = detail::ProjectedType<projector>;
     Base::bindToShaderVar(shader_var_name, tag_for<ProjectedType>(), detail::erase_projector_type<projector, Res>());
     return {resUid, nodeId, registry};
   }
@@ -141,7 +139,7 @@ public:
   REQUIRE(!is_gpu)
   VirtualResourceRequest<Res, policy> bindAsView() &&
   {
-    Base::bindAsView(tag_for<Res>());
+    Base::bindAsView(tag_for<Res>(), detail::identity_projector);
     return {resUid, nodeId, registry};
   }
 
@@ -150,14 +148,13 @@ public:
    * as the current view matrix.
    *
    * \tparam projector A function to extract the value to bind from
-   *   the blob. Can be a pointer-to-member, i.e. `&BlobType::field`.
+   *   the blob. Can be a pointer-to-member, i.e. `&BlobType::field`
+   *   or a (pure) function pointer.
    */
   template <auto projector, REQUIRE_IMPL(!is_gpu && eastl::is_invocable_v<decltype(projector), Res>)>
   VirtualResourceRequest<Res, policy> bindAsView() &&
   {
-    using InvokeResult = eastl::invoke_result_t<decltype(projector), const Res &>;
-    static_assert(detail::is_const_lvalue_reference<InvokeResult>, "Invoking a projector must return a const lvalue reference!");
-    using ProjectedType = eastl::remove_cvref_t<InvokeResult>;
+    using ProjectedType = detail::ProjectedType<projector>;
     Base::bindAsView(tag_for<ProjectedType>(), detail::erase_projector_type<projector, Res>());
     return {resUid, nodeId, registry};
   }
@@ -169,7 +166,7 @@ public:
   REQUIRE(!is_gpu)
   VirtualResourceRequest<Res, policy> bindAsProj() &&
   {
-    Base::bindAsProj(tag_for<Res>());
+    Base::bindAsProj(tag_for<Res>(), detail::identity_projector);
     return {resUid, nodeId, registry};
   }
 
@@ -178,14 +175,13 @@ public:
    * as the current projection matrix.
    *
    * \tparam projector A function to extract the value to bind from
-   *   the blob. Can be a pointer-to-member, i.e. `&BlobType::field`.
+   *   the blob. Can be a pointer-to-member, i.e. `&BlobType::field`
+   *   or a (pure) function pointer.
    */
   template <auto projector, REQUIRE_IMPL(!is_gpu && eastl::is_invocable_v<decltype(projector), const Res &>)>
   VirtualResourceRequest<Res, policy> bindAsProj() &&
   {
-    using InvokeResult = eastl::invoke_result_t<decltype(projector), const Res &>;
-    static_assert(detail::is_const_lvalue_reference<InvokeResult>, "Invoking a projector must return a const lvalue reference!");
-    using ProjectedType = eastl::remove_cvref_t<InvokeResult>;
+    using ProjectedType = detail::ProjectedType<projector>;
     Base::bindAsProj(tag_for<ProjectedType>(), detail::erase_projector_type<projector, Res>());
     return {resUid, nodeId, registry};
   }
@@ -222,7 +218,7 @@ public:
    */
   REQUIRE(!is_gpu || (hasPolicy(RRP::HasUsageStage, "ERROR: Please, call .atStage(usage stage) before .handle()!") &&
                        hasPolicy(RRP::HasUsageType, "ERROR: Please, call .useAs(usage type) before .handle()!")))
-  HandleType handle() && { return {resUid, Base::provider()}; }
+  [[nodiscard]] HandleType handle() && { return {resUid, Base::provider()}; }
 };
 
 #undef REQUIRE_IMPL

@@ -1,0 +1,333 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "frustum.dshl"
+include "postfx_inc.dshl"
+include "projectiveDecals/projective_decals_common.dshl"
+include "static_shadow.dshl"
+
+interval special_vision : special_vision_off<1, thermal_vision;
+
+int blood_decals_debug_mode = 0;
+interval blood_decals_debug_mode: off<1, boxes<2, depth_cmp;
+
+texture blood_decals_diff_tex;
+texture blood_decals_depth_atlas_tex;
+texture perlin_noise3d;
+
+buffer blood_decals_traces_result;
+
+float4 blood_begin_color = (0.157, 0.012, 0.000, 1.000);
+float4 blood_end_color = (0.086, 0.024, 0.020, 0.960);
+float4 blood_decal_timings = (10, 1, 40, 0);
+
+shader blood_projective_decal_cull
+{
+  ENABLE_ASSERT(cs)
+  INIT_AND_USE_FRUSTUM_CHECK_CS()
+  hlsl(cs) {
+    #include "projectiveDecals/blood_decals_const.hlsli"
+
+    uint4 numDecals:register(c10);
+    RWStructuredBuffer<ProjectiveDecalInstance> original : register( u0 );
+    RWStructuredBuffer<ProjectiveDecalInstance> target : register( u1 );
+    RWByteAddressBuffer count : register(u2);
+
+    [numthreads( DECALS_MAX_CULL_X, 1, 1 )]
+    void main(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint id = dtId.x;
+      if (id >= numDecals.x || structuredBufferAt(original, id).pos_size.w == 0)
+        return;
+
+      float3 normal, du;
+      decode_normal_up(structuredBufferAt(original, id).normal_du_id_matrixId, normal, du);
+
+      float decalSize = structuredBufferAt(original, id).pos_size.w;
+      float radius = (4*decalSize*decalSize + (2*MAX_SPLASH_DISTANCE*MAX_SPLASH_DISTANCE)) / (4*MAX_SPLASH_DISTANCE);
+      float3 center = structuredBufferAt(original, id).pos_size.xyz - normal * radius;
+      if (!testSphereB(center, radius))
+        return;
+
+      uint at;
+      count.InterlockedAdd(1 * 4, 1u, at);
+      structuredBufferAt(target, at) = structuredBufferAt(original, id);
+    }
+  }
+  compile("target_cs", "main");
+}
+
+shader blood_projective_decal_decals
+{
+  supports global_frame;
+  z_write = false;
+  cull_mode = ccw;
+
+  USE_ATEST_1()
+  blend_src = sa; blend_dst = isa;
+  blend_asrc = 0; blend_adst = 1;
+
+  (vs) {
+    globtm@f44 = globtm;
+    current_time@f1 = (time_phase(0, 0));
+  }
+  (ps) {
+    blood_decals_diff_tex@smp2d = blood_decals_diff_tex;
+    perlin_noise3d@smp3d = perlin_noise3d;
+    blood_decal_begin_color@f4 = blood_begin_color;
+    blood_decal_end_color@f4 = blood_end_color;
+    blood_decal_timings@f4 = blood_decal_timings;
+    blood_decals_depth_atlas_tex@shd = blood_decals_depth_atlas_tex;
+  }
+
+  hlsl {
+    #define BLEND_GBUFFER 1
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      nointerpolation float4 normal : NORMAL;
+      nointerpolation float4 atlasPos_linearTime_frameNo : TEXCOORD0;
+      nointerpolation float4 patchCenter__inv_size : TEXCOORD1;
+      nointerpolation float4 tang_id : TEXCOORD2;
+    };
+  }
+
+
+  POJECTIVE_DECALS_VS_COMMON()
+  USE_POSTFX_VERTEX_POSITIONS()
+
+  (vs) {
+    decals@buf = decal_buffer hlsl {
+      #include "projectiveDecals/projective_decals.hlsli"
+      StructuredBuffer<ProjectiveDecalInstance> decals@buf;
+    }
+  }
+
+  hlsl(vs) {
+    #include "projectiveDecals/blood_decals_const.hlsli"
+    #include "projectiveDecals/projective_decals_const.hlsli"
+
+    VsOutput projective_decals_vs(uint decalId : SV_InstanceID, uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+
+      float4 params = decode_float4(decals[decalId].params);
+
+      float3 decalPos = decals[decalId].pos_size.xyz;
+      float decalSize = params.z;
+      uint2 normal_du_id_matrixId = decals[decalId].normal_du_id_matrixId;
+      decalSize = abs(decalSize);
+      float width = MAX_SPLASH_DISTANCE;
+      float3 normal, du;
+      decode_normal_up(normal_du_id_matrixId, normal, du);
+      uint id = (normal_du_id_matrixId.y>>16)&127, matrixId = (normal_du_id_matrixId.y>>(16+7))&511;
+
+      ProjectiveDecalData decal;
+      decal.pos_size = float4(decalPos, decalSize);
+      decal.normal_width = float4(normal, width);
+      decal.tang_bias = float4(du, 0);
+      decal.matrixId = matrixId;
+
+      float3 worldDu, worldNormal, worldPos, worldDecalPos;
+      calc_world_values(decal, vertexId, 1.0, //input
+                        worldDu, worldNormal, worldPos, worldDecalPos); //output
+
+      params.z = decals[decalId].pos_size.w;
+      params.z = current_time - params.z;
+
+      // Draw fullscreen triangle if we are inside the pyramid.
+      float3 decalTC = get_decal_tex_coord_from_world_pos(world_view_pos, worldDecalPos, worldNormal, worldDu);
+      decalTC *= float3(1.0 / decalSize.xx, 1.0f/MAX_SPLASH_DISTANCE);
+      decalTC.xy /= decalTC.z;
+      if (all(decalTC < 1 + INSIDE_CHECK_EPSILON) &&
+          all(decalTC > float3(-1, -1, 0) - INSIDE_CHECK_EPSILON))
+      {
+        output.pos = float4(getPostfxVertexPositionById(clamp(vertexId, 0, 2)), 1, 1);
+      }
+      else
+      {
+        // Make pyramid from box
+        if ((vertexId % 2) == 0)
+          worldPos = worldDecalPos;
+        output.pos = mulPointTm(worldPos, globtm);
+      }
+
+      output.tang_id = float4(worldDu, id);
+      output.normal.xyz = worldNormal;
+      output.normal.w = output.pos.w;
+      output.atlasPos_linearTime_frameNo = params;
+      output.patchCenter__inv_size.xyz = worldDecalPos;
+      output.patchCenter__inv_size.w = 1.0 / decalSize;
+
+      return output;
+    }
+  }
+
+  INIT_STATIC_SHADOW_PS()
+  REDUCE_GBUFFER_MRT_MOBILE()
+  WRITE_GBUFFER()
+  POJECTIVE_DECALS_PS_COMMON()
+  ENABLE_ASSERT(ps)
+
+  hlsl(ps) {
+    #include "projectiveDecals/blood_decals_const.hlsli"
+
+    GBUFFER_OUTPUT projective_decals_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      float4 screen = GET_SCREEN_POS(input.pos);
+    ##if mobile_render == deferred
+      clip_by_static_opaque_mask(screen.xy);
+    ##endif
+
+      float3 worldPos = get_decal_world_pos(screen);
+      float3 sceneNormal = normalize(cross(ddx(worldPos), ddy(worldPos)));
+
+      float3 splashDir = normalize(input.patchCenter__inv_size.xyz - worldPos);
+      float splashDirdotN = dot(splashDir, sceneNormal);
+      float orthoMapping = 1 - saturate((splashDirdotN - ORTHO_MAP_ANGLE_COS) * 10);  //indicates that texture maps on surface, whose normal is almost orthogonal to splash dir
+      half alpha = smoothstep(0,1,(splashDirdotN - ANGLE_FADE_OFFSET)/ANGLE_FADE_RANGE);
+
+      ##if blood_decals_debug_mode != boxes
+        clip_alpha(alpha);
+      ##endif
+
+      float3 decalTC = get_decal_tex_coord_from_world_pos(worldPos, input.patchCenter__inv_size.xyz, input.normal.xyz, input.tang_id.xyz);
+
+      decalTC *= float3(input.patchCenter__inv_size.ww, 1.0f/MAX_SPLASH_DISTANCE);
+      decalTC.xy /= decalTC.z;
+      alpha *= saturate((1-decalTC.z) * (1-decalTC.z)/ lerp(Z_FADE_RANGE, ORTHO_MAP_Z_FADE, orthoMapping)); // z fade
+      decalTC = 0.5f * (decalTC + 1.0f);
+
+      ##if blood_decals_debug_mode != boxes
+        clip(decalTC);
+        clip(1 - decalTC);
+      ##endif
+
+      float2 invAtlasGridSize = 1.0f / float2(DECAL_ATLAS_ROWS, DECAL_ATLAS_COLUMNS);
+      float2 decalTcOnAtlas = decalTC.xy * invAtlasGridSize;
+      uint frameNo = input.atlasPos_linearTime_frameNo.w;
+      decalTcOnAtlas += float2(frameNo % DECAL_ATLAS_COLUMNS, frameNo / DECAL_ATLAS_COLUMNS) * invAtlasGridSize;
+
+      float4 bloodParams = tex2D(blood_decals_diff_tex, decalTcOnAtlas);
+      float flowValue = bloodParams.r;
+      float linearTime = input.atlasPos_linearTime_frameNo.z;
+      float sizeTime = saturate(linearTime * blood_decal_timings.x + 0.4);
+
+      float sceneDepth = length(worldPos - input.patchCenter__inv_size.xyz);
+      float depthTime = saturate(linearTime * BLOOD_SPEED / sceneDepth);
+
+      float timeThreshold = (1 - depthTime) * (1 - sizeTime);
+
+      ##if blood_decals_debug_mode == off
+        if (timeThreshold >= flowValue - 0.05)
+          discard;
+      ##endif
+
+      // clamp to edge texel middle to simulate clamped uv wrapping
+      float2 relativeTexelPos = clamp(decalTC.xy * DEPTH_TEX_SIZE, 0.5, DEPTH_TEX_SIZE - 0.5);
+      float2 depthUV = (input.atlasPos_linearTime_frameNo.xy + relativeTexelPos) / DEPTH_ATLAS_SIZE;
+      float cmpValue = (sceneDepth - DEPTH_BIAS) / MAX_SPLASH_DISTANCE;
+      float depthCmp = shadow2D(blood_decals_depth_atlas_tex, float3(depthUV, cmpValue));
+      alpha *= saturate(depthCmp * DEPTH_CMP_SCALE); // to reduce huge softness caused by low res depth map and PCF sampling
+
+      ##if blood_decals_debug_mode == off
+        clip_alpha(alpha);
+      ##endif
+
+      float3 normalMap = unpack_ag_normal(bloodParams);
+      float3 du = input.tang_id.xyz;
+      float3 dv = normalize(cross(input.normal.xyz, du));
+      float3 normal = normalize(normalMap.x * du + normalMap.y * dv + normalMap.z * sceneNormal);
+      float edgeCorrection = ((flowValue - timeThreshold - 0.05) * 8);
+      float3 vecToEdge = ddx(flowValue) * (view_vecLT + view_vecLB) + ddy(flowValue) * (view_vecLT + view_vecRT);
+      if (fwidth(flowValue) > 0.5 / 255)
+        normal = lerp((normal + normalize(vecToEdge)) * 0.5, normal, saturate(edgeCorrection));
+
+      float3 noise = abs(tex3D(perlin_noise3d, worldPos * BLOOD_DIFFUSE_NOISE_FREQUENCY_SCALE).xyz);
+      float dryingTime = saturate((linearTime + blood_decal_timings.y) * blood_decal_timings.z);
+      float3 diffuse = lerp(blood_decal_begin_color.xyz, blood_decal_end_color.xyz, dryingTime) * bloodParams.b;
+      diffuse *= (1 - BLOOD_DIFFUSE_NOISE_SCALE * noise);
+      float smoothness = lerp(0.4, 0.2, dryingTime * bloodParams.b);
+
+      alpha = lerp(alpha, saturate(4.f * (alpha - 0.7f)), orthoMapping); //reduces softness
+      float borderNoise = saturate(2.f * (saturate(ORTHO_MAP_NOISE_INTENSITY * (alpha + noise.x - ORTHO_MAP_NOISE_SIZE)) - 0.3));
+      alpha = lerp(alpha, borderNoise, orthoMapping * float(alpha > 0));
+
+      ##if blood_decals_debug_mode != off
+        smoothness = 0;
+        normal = float3(0, 1, 0);
+      ##endif
+      ##if blood_decals_debug_mode == boxes
+        diffuse = float3(1, 0, 0);
+        alpha = 0.5;
+      ##elif blood_decals_debug_mode == depth_cmp
+        diffuse = depthCmp * DEPTH_CMP_SCALE;
+        alpha = 1;
+      ##endif
+
+      UnpackedGbuffer result;
+      init_gbuffer(result);
+      init_albedo(result, diffuse);
+      init_smoothness(result, smoothness);
+      init_normal(result, normal);
+      init_metalness(result, 0);
+
+      ##if special_vision == thermal_vision
+        init_material(result, SHADING_SELFILLUM);
+        init_emission(result, MAX_EMISSION);
+        init_emission_color(result, half4(255, 255, 255, 255.0f));
+        result.smoothness = 0;
+      ##endif
+
+      GBUFFER_OUTPUT gbuf = encode_gbuffer_alpha(result, alpha, world_view_pos-worldPos, GET_SCREEN_POS(input.pos));
+
+      ##if blood_decals_debug_mode == off && compatibility_mode == compatibility_mode_off
+        gbuf.albedo_ao.w = alpha * lerp(blood_decal_begin_color.w, blood_decal_end_color.w, dryingTime) *
+          saturate(((flowValue - timeThreshold - 0.05) * 8) + 1 - dryingTime);
+        gbuf.normal_material.w = 0.9 * alpha * lerp(1, 0.1, dryingTime);
+        gbuf.smoothness_reflectance_metallTranslucency_shadow.w = alpha * lerp(1, 0.3, dryingTime);
+      ##endif
+
+      return gbuf;
+    }
+  }
+
+  compile("target_vs", "projective_decals_vs");
+  compile("target_ps", "projective_decals_ps");
+}
+
+
+shader blood_decals_render_depth
+{
+  //supports global_frame;
+
+  cull_mode = none;
+  no_ablend;
+  color_write = 0;
+
+  POSTFX_VS_TEXCOORD(0, uv)
+  (ps) {
+    blood_decals_traces@cbuf = blood_decals_traces_result hlsl {
+      cbuffer blood_decals_traces@cbuf
+      {
+        #include <projectiveDecals/blood_decals_const.hlsli>
+        float4 traceResult[(TRACE_RESULT_BUFFER_SIZE + 3) / 4];
+      }
+    }
+  }
+  hlsl(ps) {
+
+    float main_ps(VsOutput i) : SV_Depth
+    {
+      uint2 pixPos = i.uv * DEPTH_TEX_SIZE;
+      uint idx = pixPos.y * DEPTH_TEX_SIZE + pixPos.x;
+
+      // https://geidav.wordpress.com/2013/03/05/hidden-hlsl-performance-hit-accessing-unpadded-arrays-in-constant-buffers/
+      uint subIdx = idx % 4;
+      float4 traceRes4 = traceResult[idx / 4];
+      float traceRes = subIdx == 0 ? traceRes4.x : (subIdx == 1 ? traceRes4.y : (subIdx == 2 ? traceRes4.z : traceRes4.w));
+      return traceRes / MAX_SPLASH_DISTANCE;
+    }
+  }
+
+  compile("target_ps", "main_ps");
+}

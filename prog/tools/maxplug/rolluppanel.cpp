@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "rolluppanel.h"
 #include "datablk.h"
 #include "resource.h"

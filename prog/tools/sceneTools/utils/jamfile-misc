@@ -5,18 +5,13 @@ ConsoleExe = yes ;
 Config = rel ;
 
 TargetType  = exe ;
-
-include $(Root)/prog/_jBuild/defaults.jam ;
-
-OutDir = $(Root)/tools/dagor3_cdk/util ;
-if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
-if $(Platform) in linux64 macosx { OutDir = $(OutDir)-$(Platform) ; }
+include $(Root)/prog/tools/tools_setup_outdir_util.jam ;
 
 MultiTarget =
   tools/sceneTools/blk2robin
   tools/sceneTools/utf8ranges
 ;
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   MultiTarget +=
     tools/sceneTools/blkDiff
   ;
@@ -38,7 +33,7 @@ UseProgLibs =
   engine/math
   tools/libTools/util
 ;
-if $(Platform) = linux64 { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
-if $(Platform) = macosx { UseProgLibs += engine/perfMon/daProfilerStub ; }
+if $(Platform) = linux { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
+if $(Platform) = macOS { UseProgLibs += engine/perfMon/daProfilerStub ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

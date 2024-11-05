@@ -64,10 +64,6 @@
               "Command": "-config:video/driver:t=dx12"
             },
             {
-              "Id": "a80e233d-e3d3-42c4-8824-2e448509e476",
-              "Command": "-config:dx12/sdkVersion:i=611"
-            },
-            {
               "Id": "36dba3e1-73d0-4dad-99f2-4c1ff0f30b4a",
               "Command": "Features",
               "Items": [

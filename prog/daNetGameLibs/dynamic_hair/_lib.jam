@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_dynamic_hair_pull ;
+  UseProgLibs += daNetGameLibs/dynamic_hair ;
+}

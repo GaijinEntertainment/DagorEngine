@@ -1,7 +1,15 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+#include <generic/dag_relocatableFixedVector.h>
+#include <drv/3d/dag_renderPass.h>
+#include <osApiWrappers/dag_critSec.h>
+#include <atomic>
+
 #include "device_resource.h"
 #include "subpass_dependency.h"
 #include "image_resource.h"
+#include "image_view_state.h"
 
 namespace drv3d_vulkan
 {
@@ -16,29 +24,33 @@ struct PipelineStageStateBase;
 struct RenderPassDescription
 {
   const RenderPassDesc *externDesc;
+  static constexpr int USUAL_MAX_SUBPASSES = 8;
+  static constexpr int USUAL_MAX_ATTACHMENTS = 8;
+  static constexpr int USUAL_MAX_REFS = 16;
+  static constexpr int USUAL_MAX_ASYNC_CREATIONS = 8;
 
   struct SubpassAttachmentsInfo
   {
-    bool hasDSBind;
+    int32_t depthStencilAttachment;
     uint32_t colorWriteMask;
     VkSampleCountFlagBits msaaSamples;
   };
 
   uint32_t targetCount;
   uint32_t subpasses;
-  Tab<unsigned> targetCFlags;
-  Tab<SubpassAttachmentsInfo> subpassAttachmentsInfos;
-  Tab<VkSubpassDependency> selfDeps;
-  Tab<Tab<uint32_t>> inputAttachments;
-  Tab<Tab<VkImageLayout>> attImageLayouts;
-  enum
-  {
-    EXTERNAL_OP_START = 0,
-    EXTERNAL_OP_END = 1,
-    EXTERNAL_OP_CNT = 2
-  };
-  Tab<SubpassDep::BarrierScope> attImageExtrenalOperations[EXTERNAL_OP_CNT];
+  dag::RelocatableFixedVector<FormatStore, USUAL_MAX_ATTACHMENTS> targetFormats;
+  dag::RelocatableFixedVector<SubpassAttachmentsInfo, USUAL_MAX_SUBPASSES> subpassAttachmentsInfos;
+  dag::RelocatableFixedVector<VkSubpassDependency, USUAL_MAX_SUBPASSES> selfDeps;
+  dag::RelocatableFixedVector<dag::RelocatableFixedVector<uint32_t, USUAL_MAX_ATTACHMENTS>, USUAL_MAX_SUBPASSES> inputAttachments;
+  dag::RelocatableFixedVector<dag::RelocatableFixedVector<VkImageLayout, USUAL_MAX_ATTACHMENTS>, USUAL_MAX_SUBPASSES> attImageLayouts;
+
+  using PerAttachmentOps = dag::RelocatableFixedVector<SubpassDep::BarrierScope, USUAL_MAX_ATTACHMENTS>;
+  using PerSubpassOps = dag::RelocatableFixedVector<PerAttachmentOps, USUAL_MAX_SUBPASSES>;
+  PerSubpassOps attachmentOperations;
+  dag::RelocatableFixedVector<bool, USUAL_MAX_ATTACHMENTS> attachmentContentLoaded;
+
   uint64_t hash;
+  bool noOpWithoutDraws;
 
   void fillAllocationDesc(AllocationDesc &alloc_desc) const;
 };
@@ -70,7 +82,7 @@ public:
   void makeSysCopy(ExecutionContext &ctx);
 
   template <int Tag>
-  void onDelayedCleanupBackend(ContextBackend &){};
+  void onDelayedCleanupBackend(){};
 
   template <int Tag>
   void onDelayedCleanupFrontend(){};
@@ -113,13 +125,6 @@ public:
     };
   };
 
-  enum ImageLayoutSync
-  {
-    START_EDGE,
-    INNER,
-    END_EDGE
-  };
-
 private:
   struct SubpassExtensions
   {
@@ -127,14 +132,36 @@ private:
     // -1 means that no depthStencilResolve struct should be chained
     int depthStencilResolveAttachmentIdx = -1;
   };
+  struct RenderPassConvertTempData
+  {
+    Tab<VkSubpassDependency> deps;
+    Tab<VkSubpassDependency> depsR;
+    Tab<VkSubpassDescription> subpasses;
+    Tab<VkAttachmentReference> refs;
+    Tab<uint32_t> preserves;
+    Tab<VkAttachmentDescription> attachments;
+    Tab<SubpassExtensions> subpass_extensions;
+    void clear()
+    {
+      deps.clear();
+      depsR.clear();
+      subpasses.clear();
+      refs.clear();
+      preserves.clear();
+      attachments.clear();
+      subpass_extensions.clear();
+    }
+  };
+  static Tab<RenderPassConvertTempData> tempDataCache;
+  static Tab<int> tempDataCacheIndexes;
+  static WinCritSec tempDataCritSec;
   //
   // converters
   //
   static uint32_t findSubpassCount(const RenderPassDesc &rp_desc);
-  static void fillSubpassDeps(const RenderPassDesc &rp_desc, Tab<VkSubpassDependency> &deps);
-  static void fillSubpassDescs(const RenderPassDesc &rp_desc, Tab<VkAttachmentReference> &target_refs, Tab<uint32_t> &target_preserves,
-    Tab<VkSubpassDescription> &descs, Tab<SubpassExtensions> &subpass_extensions);
-  static void fillAttachmentDescription(const RenderPassDesc &rp_desc, Tab<VkAttachmentDescription> &descs);
+  static void fillSubpassDeps(const RenderPassDesc &rp_desc, RenderPassConvertTempData &temp);
+  static void fillSubpassDescs(const RenderPassDesc &rp_desc, RenderPassConvertTempData &temp);
+  static void fillAttachmentDescription(const RenderPassDesc &rp_desc, RenderPassConvertTempData &temp);
   static void fillVkDependencyFromDriver(const RenderPassBind &next_bind, const RenderPassBind &prev_bind, VkSubpassDependency &dst,
     const RenderPassDesc &rp_desc, bool ro_ds_input_attachment);
   static void addStoreDependencyFromOverallAttachmentUsage(SubpassDep &dep, const RenderPassDesc &rp_desc, int32_t target);
@@ -147,7 +174,7 @@ private:
   //
 
   // we need to know some target creation flags for FB bindings
-  void storeTargetCFlags();
+  void storeTargetFormats();
   // info to keep image states consistent to current RP subpass
   void storeImageStates(const Tab<VkSubpassDescription> &subpasses, const Tab<VkAttachmentDescription> &attachments);
   // subpass summary attachment info needed for pipeline creations
@@ -159,6 +186,10 @@ private:
   // full desc hash for pipeline variations
   void storeHash();
 
+  //
+  // checkers
+  //
+  bool verifyMSAAResolveUsage(const RenderPassDesc &rp_desc, RenderPassConvertTempData &temp);
 
   // link to external states, to avoid copy and support possible MT buildup
   static const FrontRenderPassStateStorage *state;
@@ -167,7 +198,6 @@ private:
   uint32_t activeSubpass;
   void advanceSubpass(ExecutionContext &ctx);
 
-  void setFrameImageLayout(ExecutionContext &ctx, uint32_t att_index, VkImageLayout new_state, ImageLayoutSync sync_type);
   void updateImageStatesForCurrentSubpass(ExecutionContext &ctx);
 
   void performSelfDepsForSubpass(uint32_t subpass, VulkanCommandBufferHandle cmd_b);
@@ -217,7 +247,13 @@ public:
   uint32_t getTargetsCount();
   uint32_t getCurrentSubpass();
   uint64_t getHash() { return desc.hash; }
+  bool isNoOpWithoutDraws() { return desc.noOpWithoutDraws; }
   bool hasDepthAtSubpass(uint32_t subpass);
+  bool isDepthAtSubpassRO(uint32_t subpass);
+  bool hasDepthAtCurrentSubpass();
+  bool isCurrentDepthRO();
+  Image *getCurrentDepth();
+  bool isCurrentDepthROAttachment(const Image *img, ImageViewState ivs) const;
   uint32_t getColorWriteMaskAtSubpass(uint32_t subpass);
   VkSampleCountFlagBits getMSAASamples(uint32_t subpass);
 

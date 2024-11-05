@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/dasModulesCommon.h>
 #include <dasModules/aotEcsUtils.h>
 #include <dasModules/aotEcs.h>
@@ -218,15 +220,15 @@ public:
 
     using method_insert_empty_entity_record = DAS_CALL_MEMBER(::ecs::Scene::insertEmptyEntityRecord);
     das::addExtern<DAS_CALL_METHOD(method_insert_empty_entity_record)>(*this, lib, "scene_insert_empty_entity_record",
-      das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(Scene::insertEmptyEntityRecord));
+      das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(::ecs::Scene::insertEmptyEntityRecord));
 
     using method_insert_entity_record = DAS_CALL_MEMBER(::ecs::Scene::insertEntityRecord);
     das::addExtern<DAS_CALL_METHOD(method_insert_entity_record)>(*this, lib, "scene_insert_entity_record",
-      das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(Scene::insertEntityRecord));
+      das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(::ecs::Scene::insertEntityRecord));
 
     using method_erase_entity_record = DAS_CALL_MEMBER(::ecs::Scene::eraseEntityRecord);
     das::addExtern<DAS_CALL_METHOD(method_erase_entity_record)>(*this, lib, "scene_erase_entity_record",
-      das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(Scene::eraseEntityRecord));
+      das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(::ecs::Scene::eraseEntityRecord));
 
     using method_findType = DAS_CALL_MEMBER(ecs::ComponentTypes::findType);
     das::addExtern<DAS_CALL_METHOD(method_findType)>(*this, lib, "component_types_findType", das::SideEffects::none,
@@ -291,8 +293,8 @@ public:
     das::addExtern<DAS_BIND_FUN(bind_dascript::das_get_underlying_ecs_type)>(*this, lib, "get_underlying_ecs_type",
       das::SideEffects::accessExternal, "bind_dascript::das_get_underlying_ecs_type");
 
-    das::addExtern<DAS_BIND_FUN(ecs::load_comp_list_from_blk)>(*this, lib, "load_comp_list_from_blk", das::SideEffects::modifyArgument,
-      "::ecs::load_comp_list_from_blk");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::load_comp_list_from_blk)>(*this, lib, "load_comp_list_from_blk",
+      das::SideEffects::modifyArgument, "::bind_dascript::load_comp_list_from_blk");
 
     das::addExtern<DAS_BIND_FUN(find_templateDB)>(*this, lib, "find_templateDB", das::SideEffects::accessExternal,
       "bind_dascript::find_templateDB");

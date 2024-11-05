@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -110,8 +109,11 @@ struct Loc // point and orientation (quaternion with angles)
 public:
   Loc() : P(0.0, 0.0, 0.0) { G_STATIC_ASSERT(sizeof(Loc) == 56); }
   Loc(const Loc &loc) = default;
+  Loc(Loc &&) = default;
   Loc(const SimpleLoc &loc);
   Loc(float x, float y, float z, float a, float t, float k) : P(x, y, z) { O.setYPR(-a, -t, k); }
+  Loc &operator=(const Loc &) = default;
+  Loc &operator=(Loc &&) = default;
 
   bool operator==(const Loc &rhs) const { return P == rhs.P && O == rhs.O; }
 
@@ -160,6 +162,7 @@ struct SimpleLoc // point and quaternion without angles
     LocalOrient(const Quat &q) : quat(q) {}
 
     LocalOrient(const LocalOrient &loc) = default;
+    LocalOrient &operator=(const LocalOrient &loc) = default;
 
     LocalOrient(const Orient &orient) : quat(orient.getQuat()) {}
 
@@ -190,7 +193,10 @@ struct SimpleLoc // point and quaternion without angles
 public:
   SimpleLoc() : P(0, 0, 0) { G_STATIC_ASSERT(sizeof(SimpleLoc) == 40); }
   SimpleLoc(const SimpleLoc &loc) = default;
+  SimpleLoc(SimpleLoc &&) = default;
   SimpleLoc(const Loc &loc) : P(loc.P), O(loc.O.getQuat()) {}
+  SimpleLoc &operator=(const SimpleLoc &) = default;
+  SimpleLoc &operator=(SimpleLoc &&) = default;
 
   Point3 getFwd() const { return O.quat.getForward(); }
 

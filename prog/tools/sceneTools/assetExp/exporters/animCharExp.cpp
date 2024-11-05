@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <assets/daBuildExpPluginChain.h>
 #include <assets/assetExporter.h>
 #include <libTools/pageAsg/asg_sysHelper.h>

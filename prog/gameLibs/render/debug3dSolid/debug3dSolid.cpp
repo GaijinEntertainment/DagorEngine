@@ -1,5 +1,10 @@
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dReset.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <render/primitiveObjects.h>
 #include <math/dag_bounds3.h>
 #include <math/dag_color.h>
@@ -9,6 +14,7 @@
 #include <math/dag_mathUtils.h>
 #include <3d/dag_materialData.h>
 #include <shaders/dag_shaders.h>
+#include <shaders/dag_overrideStates.h>
 #include <render/debug3dSolid.h>
 
 #include <ioSys/dag_dataBlock.h>
@@ -194,6 +200,23 @@ static void create_shape_relem(dynrender::RElem &relem, SHAPE_TYPE shape)
   relem.vDecl = dynrender::addShaderVdecl(chan, sizeof(chan) / sizeof(chan[0]));
   relem.ib = ib;
   relem.vb = vb;
+}
+
+void init_debug_solid()
+{
+  debug("debug3dSolid: init_debug_solid");
+
+  if (sphereElem.vb == NULL)
+    create_shape_relem(sphereElem, SHAPE_SPHERE);
+  G_ASSERT(sphereElem.vb);
+
+  if (capsuleCapElem.vb == NULL)
+    create_shape_relem(capsuleCapElem, SHAPE_HEMISPHERE);
+  G_ASSERT(capsuleCapElem.vb);
+
+  if (capsuleCylElem.vb == NULL)
+    create_shape_relem(capsuleCylElem, SHAPE_CYLINDER);
+  G_ASSERT(capsuleCylElem.vb);
 }
 
 void draw_debug_solid_sphere(const Point3 &sphere_c, float sphere_r, const TMatrix &instance_tm, const Color4 &color, bool shaded)

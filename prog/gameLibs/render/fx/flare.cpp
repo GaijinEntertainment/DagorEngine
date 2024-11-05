@@ -1,6 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/fx/flare.h>
 #include <perfMon/dag_statDrv.h>
 #include <ioSys/dag_dataBlock.h>
+#include <drv/3d/dag_renderTarget.h>
 
 #define GLOBAL_VARS_LIST  \
   VAR(flare_enabled)      \
@@ -42,7 +45,7 @@ void Flare::init(const Point2 low_res_size, const char *lense_covering_tex_name,
     if (!flareTex[fi])
       flareTex[fi] = dag::create_tex(NULL, flareWidth, flareHeight, TEXFMT_A8R8G8B8 | TEXCF_RTARGET, 1, flareTexName);
     flareTex[fi]->texaddr(TEXADDR_WRAP);
-    flareTex[fi]->texfilter(TEXFILTER_SMOOTH);
+    flareTex[fi]->texfilter(TEXFILTER_LINEAR);
   }
   flareDownsample = new PostFxRenderer();
   flareDownsample->init("flare_downsample");
@@ -82,8 +85,7 @@ void Flare::apply(Texture *src_tex, TEXTUREID src_id)
 
     // compute texel offset
     d3d::get_target_size(targetWidth, targetHeight);
-    texelOffset =
-      Color4(0.5f + HALF_TEXEL_OFSF / targetWidth, 0.5f + HALF_TEXEL_OFSF / targetHeight, 1.f / targetWidth, 1.f / targetHeight);
+    texelOffset = Color4(0.5f, 0.5f, 1.f / targetWidth, 1.f / targetHeight);
 
     // texture is same size, don't need to downsample
 

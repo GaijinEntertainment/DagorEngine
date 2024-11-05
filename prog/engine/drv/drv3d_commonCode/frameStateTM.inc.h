@@ -1,7 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_globDef.h>
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
 
 namespace framestateflags
 {

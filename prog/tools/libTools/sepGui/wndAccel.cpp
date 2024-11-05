@@ -1,4 +1,4 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 // #define _WIN32_WINNT 0x500
 
@@ -24,7 +24,28 @@ void WinManager::addAcceleratorUp(unsigned cmd_id, unsigned v_key, bool ctrl, bo
 }
 
 
+void WinManager::addViewportAccelerator(unsigned cmd_id, unsigned v_key, bool ctrl, bool alt, bool shift, bool allow_repeat)
+{
+  G_ASSERT(false);
+}
+
 void WinManager::clearAccelerators() { mAccels.clear(); }
+
+unsigned WinManager::processImguiAccelerator()
+{
+  G_ASSERT(false);
+  return 0;
+}
+
+unsigned WinManager::processImguiViewportAccelerator()
+{
+  G_ASSERT(false);
+  return 0;
+}
+
+void WinManager::initCustomMouseCursors(const char *path) { G_ASSERT(false); }
+
+void WinManager::updateImguiMouseCursor() { G_ASSERT(false); }
 
 //-----------------------------------------------------------------------------
 // accels

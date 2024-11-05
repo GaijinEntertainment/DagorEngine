@@ -1,7 +1,5 @@
-#ifndef __GAIJIN_ISTATIC_GEOM_RESOURCES_SERVICE__
-#define __GAIJIN_ISTATIC_GEOM_RESOURCES_SERVICE__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 class TMatrix;
 
@@ -15,6 +13,3 @@ public:
   virtual void deleteResource(Resource res) = 0;
   virtual void setResourceTm(Resource res, const TMatrix &tm) = 0;
 };
-
-
-#endif //__GAIJIN_ISTATIC_GEOM_RESOURCES_SERVICE__

@@ -1,7 +1,4 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef __SH_VARS_H
-#define __SH_VARS_H
-
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 namespace shglobvars
@@ -15,5 +12,3 @@ extern int dynamic_pos_unpack_reg;
 
 extern void init_varids_loaded();
 } // namespace shglobvars
-
-#endif

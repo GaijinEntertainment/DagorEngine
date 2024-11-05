@@ -12,66 +12,86 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_15() {
-// from D:\Work\libclang\include\llvm-c/Core.h:1779:6
-	addExtern< void (*)(LLVMOpaqueValue *,const char *) , LLVMSetValueName >(*this,lib,"LLVMSetValueName",SideEffects::worstDefault,"LLVMSetValueName")
-		->args({"Val","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1808:12
-	addExtern< LLVMOpaqueUse * (*)(LLVMOpaqueValue *) , LLVMGetFirstUse >(*this,lib,"LLVMGetFirstUse",SideEffects::worstDefault,"LLVMGetFirstUse")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1816:12
-	addExtern< LLVMOpaqueUse * (*)(LLVMOpaqueUse *) , LLVMGetNextUse >(*this,lib,"LLVMGetNextUse",SideEffects::worstDefault,"LLVMGetNextUse")
-		->args({"U"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1825:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueUse *) , LLVMGetUser >(*this,lib,"LLVMGetUser",SideEffects::worstDefault,"LLVMGetUser")
-		->args({"U"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1832:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueUse *) , LLVMGetUsedValue >(*this,lib,"LLVMGetUsedValue",SideEffects::worstDefault,"LLVMGetUsedValue")
-		->args({"U"});
+// from D:\Work\libclang\include\llvm-c/Core.h:1795:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAMDString , SimNode_ExtFuncCall >(lib,"LLVMIsAMDString","LLVMIsAMDString")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1798:13
+	makeExtern< const char * (*)(LLVMOpaqueValue *) , LLVMGetValueName , SimNode_ExtFuncCall >(lib,"LLVMGetValueName","LLVMGetValueName")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1800:6
+	makeExtern< void (*)(LLVMOpaqueValue *,const char *) , LLVMSetValueName , SimNode_ExtFuncCall >(lib,"LLVMSetValueName","LLVMSetValueName")
+		->args({"Val","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1829:12
+	makeExtern< LLVMOpaqueUse * (*)(LLVMOpaqueValue *) , LLVMGetFirstUse , SimNode_ExtFuncCall >(lib,"LLVMGetFirstUse","LLVMGetFirstUse")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1837:12
+	makeExtern< LLVMOpaqueUse * (*)(LLVMOpaqueUse *) , LLVMGetNextUse , SimNode_ExtFuncCall >(lib,"LLVMGetNextUse","LLVMGetNextUse")
+		->args({"U"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1846:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueUse *) , LLVMGetUser , SimNode_ExtFuncCall >(lib,"LLVMGetUser","LLVMGetUser")
+		->args({"U"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Core.h:1853:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,unsigned int) , LLVMGetOperand >(*this,lib,"LLVMGetOperand",SideEffects::worstDefault,"LLVMGetOperand")
-		->args({"Val","Index"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1860:12
-	addExtern< LLVMOpaqueUse * (*)(LLVMOpaqueValue *,unsigned int) , LLVMGetOperandUse >(*this,lib,"LLVMGetOperandUse",SideEffects::worstDefault,"LLVMGetOperandUse")
-		->args({"Val","Index"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1867:6
-	addExtern< void (*)(LLVMOpaqueValue *,unsigned int,LLVMOpaqueValue *) , LLVMSetOperand >(*this,lib,"LLVMSetOperand",SideEffects::worstDefault,"LLVMSetOperand")
-		->args({"User","Index","Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1874:5
-	addExtern< int (*)(LLVMOpaqueValue *) , LLVMGetNumOperands >(*this,lib,"LLVMGetNumOperands",SideEffects::worstDefault,"LLVMGetNumOperands")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1897:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *) , LLVMConstNull >(*this,lib,"LLVMConstNull",SideEffects::worstDefault,"LLVMConstNull")
-		->args({"Ty"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1907:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *) , LLVMConstAllOnes >(*this,lib,"LLVMConstAllOnes",SideEffects::worstDefault,"LLVMConstAllOnes")
-		->args({"Ty"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1914:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *) , LLVMGetUndef >(*this,lib,"LLVMGetUndef",SideEffects::worstDefault,"LLVMGetUndef")
-		->args({"Ty"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1921:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *) , LLVMGetPoison >(*this,lib,"LLVMGetPoison",SideEffects::worstDefault,"LLVMGetPoison")
-		->args({"Ty"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1928:10
-	addExtern< int (*)(LLVMOpaqueValue *) , LLVMIsNull >(*this,lib,"LLVMIsNull",SideEffects::worstDefault,"LLVMIsNull")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1934:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *) , LLVMConstPointerNull >(*this,lib,"LLVMConstPointerNull",SideEffects::worstDefault,"LLVMConstPointerNull")
-		->args({"Ty"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1963:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,unsigned long long,int) , LLVMConstInt >(*this,lib,"LLVMConstInt",SideEffects::worstDefault,"LLVMConstInt")
-		->args({"IntTy","N","SignExtend"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1971:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,unsigned int,const unsigned long long[]) , LLVMConstIntOfArbitraryPrecision >(*this,lib,"LLVMConstIntOfArbitraryPrecision",SideEffects::worstDefault,"LLVMConstIntOfArbitraryPrecision")
-		->args({"IntTy","NumWords","Words"});
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueUse *) , LLVMGetUsedValue , SimNode_ExtFuncCall >(lib,"LLVMGetUsedValue","LLVMGetUsedValue")
+		->args({"U"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1874:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,unsigned int) , LLVMGetOperand , SimNode_ExtFuncCall >(lib,"LLVMGetOperand","LLVMGetOperand")
+		->args({"Val","Index"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1881:12
+	makeExtern< LLVMOpaqueUse * (*)(LLVMOpaqueValue *,unsigned int) , LLVMGetOperandUse , SimNode_ExtFuncCall >(lib,"LLVMGetOperandUse","LLVMGetOperandUse")
+		->args({"Val","Index"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1888:6
+	makeExtern< void (*)(LLVMOpaqueValue *,unsigned int,LLVMOpaqueValue *) , LLVMSetOperand , SimNode_ExtFuncCall >(lib,"LLVMSetOperand","LLVMSetOperand")
+		->args({"User","Index","Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1895:5
+	makeExtern< int (*)(LLVMOpaqueValue *) , LLVMGetNumOperands , SimNode_ExtFuncCall >(lib,"LLVMGetNumOperands","LLVMGetNumOperands")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1918:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *) , LLVMConstNull , SimNode_ExtFuncCall >(lib,"LLVMConstNull","LLVMConstNull")
+		->args({"Ty"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1928:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *) , LLVMConstAllOnes , SimNode_ExtFuncCall >(lib,"LLVMConstAllOnes","LLVMConstAllOnes")
+		->args({"Ty"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1935:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *) , LLVMGetUndef , SimNode_ExtFuncCall >(lib,"LLVMGetUndef","LLVMGetUndef")
+		->args({"Ty"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1942:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *) , LLVMGetPoison , SimNode_ExtFuncCall >(lib,"LLVMGetPoison","LLVMGetPoison")
+		->args({"Ty"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1949:10
+	makeExtern< int (*)(LLVMOpaqueValue *) , LLVMIsNull , SimNode_ExtFuncCall >(lib,"LLVMIsNull","LLVMIsNull")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1955:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *) , LLVMConstPointerNull , SimNode_ExtFuncCall >(lib,"LLVMConstPointerNull","LLVMConstPointerNull")
+		->args({"Ty"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Core.h:1984:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,const char *,unsigned char) , LLVMConstIntOfString >(*this,lib,"LLVMConstIntOfString",SideEffects::worstDefault,"LLVMConstIntOfString")
-		->args({"IntTy","Text","Radix"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1993:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,const char *,unsigned int,unsigned char) , LLVMConstIntOfStringAndSize >(*this,lib,"LLVMConstIntOfStringAndSize",SideEffects::worstDefault,"LLVMConstIntOfStringAndSize")
-		->args({"IntTy","Text","SLen","Radix"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1999:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,double) , LLVMConstReal >(*this,lib,"LLVMConstReal",SideEffects::worstDefault,"LLVMConstReal")
-		->args({"RealTy","N"});
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,unsigned long long,int) , LLVMConstInt , SimNode_ExtFuncCall >(lib,"LLVMConstInt","LLVMConstInt")
+		->args({"IntTy","N","SignExtend"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1992:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,unsigned int,const unsigned long long[]) , LLVMConstIntOfArbitraryPrecision , SimNode_ExtFuncCall >(lib,"LLVMConstIntOfArbitraryPrecision","LLVMConstIntOfArbitraryPrecision")
+		->args({"IntTy","NumWords","Words"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2005:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,const char *,unsigned char) , LLVMConstIntOfString , SimNode_ExtFuncCall >(lib,"LLVMConstIntOfString","LLVMConstIntOfString")
+		->args({"IntTy","Text","Radix"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

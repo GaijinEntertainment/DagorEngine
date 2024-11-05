@@ -1,0 +1,4 @@
+return {
+  VehicleCrosshair = "VehicleCrosshair"
+  VehicleDirection = "VehicleDirection"
+}

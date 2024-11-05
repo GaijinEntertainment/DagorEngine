@@ -1,12 +1,12 @@
-  float lightAngleScale = lightColor.a;
-  float lightAngleOffset = lightDirection.a;
+  half lightAngleScale = lightColor.a;
+  half lightAngleOffset = lightDirection.a;
 
-  half geomAttenuation; float3 dirFromLight, point2light;//point2light - not normalized
+  half geomAttenuation; half3 dirFromLight, point2light;//point2light - not normalized
   spot_light_params(worldPos.xyz, lightPosRadius, lightDirection.xyz, lightAngleScale, lightAngleOffset, geomAttenuation, dirFromLight, point2light);
 
-  float NoL = dot(gbuffer.normal, dirFromLight);
+  half NoL = dot(half3(gbuffer.normal), dirFromLight);
   half attenuation = calc_micro_shadow(NoL, gbuffer.ao)*geomAttenuation;
-  float ggx_alpha = max(1e-4, gbuffer.linearRoughness*gbuffer.linearRoughness);
+  half ggx_alpha = max(1e-4, gbuffer.linearRoughness*gbuffer.linearRoughness);
 
   #if DYNAMIC_LIGHTS_EARLY_EXIT
     #if DYNAMIC_LIGHTS_SSS
@@ -28,7 +28,7 @@
   #endif
 
   half spotShadow = 1;
-  #if SPOT_SHADOWS || defined(SPOT_CONTACT_SHADOWS_CALC)
+  #if !RT_DYNAMIC_LIGHTS && (SPOT_SHADOWS || defined(SPOT_CONTACT_SHADOWS_CALC))
     float zbias = shadowZBias + shadowSlopeZBias / (abs(NoL)+0.1);
     float4x4 spotLightTm = getSpotLightTm(spot_light_index);
     float4 lightShadowTC = mul(spotLightTm, float4(worldPos.xyz+(point2light+dirFromLight)*zbias, 1));
@@ -54,7 +54,8 @@
 
   #if DYNAMIC_LIGHTS_SSS
     NoL = saturate(NoL);
-    half3 lightBRDF = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, dynamicLightsSpecularStrength, dirFromLight, view, gbuffer.normal, gbuffer.translucencyColor, gbuffer.translucency);
+
+    half3 lightBRDF = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, dynamicLightsSpecularStrength, dirFromLight, view, gbuffer.normal, gbuffer.translucencyColor, gbuffer.sheen);
 
     #if USE_SSSS && SPOT_SHADOWS
       BRANCH if (gbuffer.material == SHADING_SUBSURFACE)
@@ -81,7 +82,11 @@
         lightBRDF += (foliageSSS(NoL, view, dirFromLight)*gbuffer.ao) * gbuffer.translucencyColor;//can make gbuffer.ao*gbuffer.translucencyColor only once for all lights
     }
   #else
-    half3 lightBRDF = standardBRDF_NO_NOL( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, dynamicLightsSpecularStrength, dirFromLight, view, gbuffer.normal);
+    #if SHEEN_SPECULAR
+      half3 lightBRDF = standardBRDF_NO_NOL( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, dynamicLightsSpecularStrength, dirFromLight, view, gbuffer.normal, gbuffer.translucencyColor, gbuffer.sheen);
+    #else
+      half3 lightBRDF = standardBRDF_NO_NOL( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, dynamicLightsSpecularStrength, dirFromLight, view, gbuffer.normal);
+    #endif
   #endif
     attenuation = applyPhotometryIntensity(-dirFromLight, lightDirection.xyz, texId_scale.x,
                                             texId_scale.y, attenuation);

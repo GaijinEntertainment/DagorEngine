@@ -1,7 +1,0 @@
-ERROR: malformed number
-testData/diagnostics/assign_and_crash.nut:1:28
-
-1*5*5*2?2?.v.v:=22?.v.v:=3.*5w5*2?2?.v.v:=2*;
-                            ^
-
-

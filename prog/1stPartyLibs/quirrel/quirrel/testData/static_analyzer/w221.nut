@@ -1,6 +1,6 @@
 //expect:w221
 local z
-let function foo(y){ //-declared-never-used
+function foo(y){ //-declared-never-used
     ++z
     z--
     ::x == y

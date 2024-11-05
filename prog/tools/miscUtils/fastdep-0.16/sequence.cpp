@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "sequence.h"
 
 Sequence::Sequence(FileStructure *aStructure) : Element(aStructure) {}

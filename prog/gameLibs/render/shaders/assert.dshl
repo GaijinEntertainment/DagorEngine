@@ -42,18 +42,6 @@ hlsl {
               float v12 = 0, float v13 = 0, float v14 = 0, float v15 = 0);
 }
 
-macro DISABLE_ASSERT_STAGE(stage)
-  BEGIN_ONCE(disable_assert)
-  hlsl(stage) {
-    void _assert(bool e, uint id,
-                float v0, float v1, float v2, float v3,
-                float v4, float v5, float v6, float v7,
-                float v8, float v9, float v10, float v11,
-                float v12, float v13, float v14, float v15) {}
-  }
-  END_ONCE()
-endmacro
-
 macro ENABLE_ASSERT_STAGE(stage)
   if (DEBUG) {
     (stage) {
@@ -99,8 +87,6 @@ macro ENABLE_ASSERT_STAGE(stage)
         assertion_buffer[shader_id].variables[15] = var15;
       }
     }
-  } else {
-    DISABLE_ASSERT_STAGE(stage)
   }
 endmacro
 
@@ -114,9 +100,7 @@ macro ENABLE_ASSERT(stage)
     assume assert_enabled_for_stage = stage;
     if (assert_enabled_for_stage == ps) {
       ENABLE_ASSERT_STAGE(ps)
-
-      // Currently we don't support @uav in a vertex shader
-      DISABLE_ASSERT_STAGE(vs)
+      ENABLE_ASSERT_STAGE(vs)
     } else if (assert_enabled_for_stage == cs) {
       ENABLE_ASSERT_STAGE(cs)
     } else {

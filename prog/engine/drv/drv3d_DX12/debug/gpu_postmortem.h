@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "call_stack.h"
@@ -17,10 +18,11 @@
 #endif
 #include "gpu_postmortem_dagor_trace.h"
 #include "gpu_postmortem_microsoft_dred.h"
+#if HAS_AMD_GPU_SERVICES
+#include "gpu_postmortem_ags_trace.h"
+#endif
 
-namespace drv3d_dx12
-{
-namespace debug
+namespace drv3d_dx12::debug
 {
 namespace detail
 {
@@ -86,11 +88,16 @@ private:
 
 class GpuPostmortem
 {
-  using TracerTableType = detail::TracerSet<gpu_postmortem::NullTrace,
+  using TracerTableType = detail::TracerSet< //
+    gpu_postmortem::NullTrace,
 #if HAS_GF_AFTERMATH
     gpu_postmortem::nvidia::Aftermath,
 #endif
-    gpu_postmortem::microsoft::DeviceRemovedExtendedData, gpu_postmortem::dagor::Trace>;
+#if HAS_AMD_GPU_SERVICES
+    gpu_postmortem::ags::AgsTrace,
+#endif
+    gpu_postmortem::microsoft::DeviceRemovedExtendedData, //
+    gpu_postmortem::dagor::Trace>;
 
   TracerTableType::StorageType tracer = TracerTableType::DefaultType{};
 
@@ -120,14 +127,14 @@ public:
       eastl::visit([=](auto &tracer) { tracer.endCommandBuffer(cmd); }, tracer);
     }
   }
-  void beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text, eastl::span<const char> full_path)
+  void beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text, const eastl::string &full_path)
   {
     if (isAnyActive())
     {
       eastl::visit([=](auto &tracer) { tracer.beginEvent(cmd, text, full_path); }, tracer);
     }
   }
-  void endEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> full_path)
+  void endEvent(ID3D12GraphicsCommandList *cmd, const eastl::string &full_path)
   {
     if (isAnyActive())
     {
@@ -141,7 +148,7 @@ public:
       eastl::visit([=](auto &tracer) { tracer.marker(cmd, text); }, tracer);
     }
   }
-  void draw(const call_stack::CommandData &debug_info, ID3D12GraphicsCommandList2 *cmd, const PipelineStageStateBase &vs,
+  void draw(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
     const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t count, uint32_t instance_count,
     uint32_t start, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
   {
@@ -154,7 +161,7 @@ public:
         tracer);
     }
   }
-  void drawIndexed(const call_stack::CommandData &debug_info, ID3D12GraphicsCommandList2 *cmd, const PipelineStageStateBase &vs,
+  void drawIndexed(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
     const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t count, uint32_t instance_count,
     uint32_t index_start, int32_t vertex_base, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
   {
@@ -168,7 +175,7 @@ public:
         tracer);
     }
   }
-  void drawIndirect(const call_stack::CommandData &debug_info, ID3D12GraphicsCommandList2 *cmd, const PipelineStageStateBase &vs,
+  void drawIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
     const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, BufferResourceReferenceAndOffset buffer)
   {
     if (isAnyActive())
@@ -176,9 +183,8 @@ public:
       eastl::visit([&](auto &tracer) { tracer.drawIndirect(debug_info, cmd, vs, ps, pipeline_base, pipeline, buffer); }, tracer);
     }
   }
-  void drawIndexedIndirect(const call_stack::CommandData &debug_info, ID3D12GraphicsCommandList2 *cmd,
-    const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-    BufferResourceReferenceAndOffset buffer)
+  void drawIndexedIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
+    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, BufferResourceReferenceAndOffset buffer)
   {
     if (isAnyActive())
     {
@@ -186,15 +192,15 @@ public:
         tracer);
     }
   }
-  void dispatchIndirect(const call_stack::CommandData &debug_info, ID3D12GraphicsCommandList2 *cmd,
-    const PipelineStageStateBase &state, ComputePipeline &pipeline, BufferResourceReferenceAndOffset buffer)
+  void dispatchIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &state,
+    ComputePipeline &pipeline, BufferResourceReferenceAndOffset buffer)
   {
     if (isAnyActive())
     {
       eastl::visit([&](auto &tracer) { tracer.dispatchIndirect(debug_info, cmd, state, pipeline, buffer); }, tracer);
     }
   }
-  void dispatch(const call_stack::CommandData &debug_info, ID3D12GraphicsCommandList2 *cmd, const PipelineStageStateBase &stage,
+  void dispatch(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &stage,
     ComputePipeline &pipeline, uint32_t x, uint32_t y, uint32_t z)
   {
     if (isAnyActive())
@@ -221,7 +227,7 @@ public:
         tracer);
     }
   }
-  void blit(const call_stack::CommandData &debug_info, ID3D12GraphicsCommandList2 *cmd)
+  void blit(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd)
   {
     if (isAnyActive())
     {
@@ -239,10 +245,13 @@ public:
   {
     return eastl::holds_alternative<T>(tracer);
   }
+  bool tryCreateDevice(IUnknown *adapter, D3D_FEATURE_LEVEL minimum_feature_level, void **ptr)
+  {
+    return eastl::visit([=](auto &tracer) { return tracer.tryCreateDevice(adapter, minimum_feature_level, ptr); }, tracer);
+  }
   bool sendGPUCrashDump(const char *type, const void *data, uintptr_t size)
   {
     return eastl::visit([=](auto &tracer) { return tracer.sendGPUCrashDump(type, data, size); }, tracer);
   }
 };
-} // namespace debug
-} // namespace drv3d_dx12
+} // namespace drv3d_dx12::debug

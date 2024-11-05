@@ -43,7 +43,7 @@ enum GRADSPREAD {
 function mkLinearGradSvgTxtImpl(points, width, height, x1=0, y1=0, x2=null, y2=0, spreadMethod=GRADSPREAD.PAD, transform=null){
   x2 = x2 ?? width
   assert(type(points)=="array", "points should be array of objects with color=[r,g,b,optional alpha] and optional offset. If offset is missing points are evenly distributed")
-  assert(width>1 && height>1 && width+height > 15, "gradient should be created with some reasonable sizes")
+  assert(width>1 && height>1 && width+height > 7, "gradient should be created with some reasonable sizes")
   spreadMethod=spreadMethod ?? GRADSPREAD.PAD
   if (transform != null)
     transform = " ".join(transform.reduce(function(prev, v, k) {prev.append($"{k}({v}))"); return prev;}, []))

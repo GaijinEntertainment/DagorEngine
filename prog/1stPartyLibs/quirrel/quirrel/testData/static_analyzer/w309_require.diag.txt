@@ -1,0 +1,7 @@
+WARNING: w309 (missing-destructured-value) No value for 'bar' in destructured declaration.
+testData/static_analyzer/w309_require.nut:4:10
+
+let { foo bar } = require("testData/static_analyzer/foo.nut")
+          ^----
+
+

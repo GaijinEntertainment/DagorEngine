@@ -1,12 +1,12 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <osApiWrappers/dag_lockProfiler.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <osApiWrappers/dag_threadSafety.h>
 #include <debug/dag_assert.h>
 
 #if _TARGET_PC_WIN | _TARGET_XBOX
@@ -25,7 +25,7 @@ extern "C" __declspec(dllimport) int __stdcall TlsFree(unsigned long dwTlsIndex)
 typedef pthread_rwlock_t os_rwlock_t;
 #endif
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 KRNLIMP void os_rwlock_init(os_rwlock_t &);
 KRNLIMP void os_rwlock_destroy(os_rwlock_t &);
@@ -38,7 +38,7 @@ KRNLIMP void os_rwlock_release_write_lock(os_rwlock_t &);
 
 // Warn: not reentrant (recursive), use OSReentrantReadWriteLock if you need it
 // This is faster version and should be considered default choice.
-class OSReadWriteLock
+class DAG_TS_CAPABILITY("mutex") OSReadWriteLock
 {
   os_rwlock_t lock;
   // Windows SRW Locks can't be read locked recursively (but doesn't deadlock when doing so unless writer also present)
@@ -77,26 +77,26 @@ public:
   OSReadWriteLock(const OSReadWriteLock &) = delete;
   OSReadWriteLock &operator=(const OSReadWriteLock &) = delete;
 
-  void lockWrite(::da_profiler::desc_id_t profile_token = ::da_profiler::DescWriteLock)
+  void lockWrite(::da_profiler::desc_id_t profile_token = ::da_profiler::DescWriteLock) DAG_TS_ACQUIRE()
   {
     ScopeLockProfiler<da_profiler::NoDesc> lp(profile_token);
     os_rwlock_acquire_write_lock(lock);
   }
-  bool tryLockWrite() { return os_rwlock_try_acquire_write_lock(lock); }
-  void unlockWrite() { os_rwlock_release_write_lock(lock); }
+  bool tryLockWrite() DAG_TS_TRY_ACQUIRE(true) { return os_rwlock_try_acquire_write_lock(lock); }
+  void unlockWrite() DAG_TS_RELEASE() { os_rwlock_release_write_lock(lock); }
 
-  void lockRead(::da_profiler::desc_id_t profile_token = ::da_profiler::DescReadLock)
+  void lockRead(::da_profiler::desc_id_t profile_token = ::da_profiler::DescReadLock) DAG_TS_ACQUIRE_SHARED()
   {
     debugVerifyNoCurThreadReadLocked();
     ScopeLockProfiler<da_profiler::NoDesc> lp(profile_token);
     os_rwlock_acquire_read_lock(lock);
   }
-  bool tryLockRead()
+  bool tryLockRead() DAG_TS_TRY_ACQUIRE_SHARED(true)
   {
     debugVerifyNoCurThreadReadLocked();
     return os_rwlock_try_acquire_read_lock(lock);
   }
-  void unlockRead()
+  void unlockRead() DAG_TS_RELEASE_SHARED()
   {
     debugSetNoCurThreadReadLocked();
     os_rwlock_release_read_lock(lock);
@@ -106,7 +106,7 @@ public:
 // Note: it's slower then OSReadWriteLock, both read & write reentrancy (recursion) supported,
 // but intermixing different kind of locks isn't
 // On Windows/Xbox max number of instances is limited by number of TLS slots (~1088)
-class OSReentrantReadWriteLock
+class DAG_TS_CAPABILITY("mutex") OSReentrantReadWriteLock
 {
   os_rwlock_t lock;
 #if _TARGET_PC_WIN | _TARGET_XBOX
@@ -171,7 +171,7 @@ public:
   OSReentrantReadWriteLock(const OSReentrantReadWriteLock &) = delete;
   OSReentrantReadWriteLock &operator=(const OSReentrantReadWriteLock &) = delete;
 
-  void lockWrite(::da_profiler::desc_id_t profile_token = ::da_profiler::DescWriteLock)
+  void lockWrite(::da_profiler::desc_id_t profile_token = ::da_profiler::DescWriteLock) DAG_TS_ACQUIRE()
   {
     ScopeLockProfiler<da_profiler::NoDesc> lp(profile_token);
     decltype(wtid) ctid = get_current_thread_id();
@@ -182,7 +182,7 @@ public:
     }
     ++wcount;
   }
-  bool tryLockWrite()
+  bool tryLockWrite() DAG_TS_TRY_ACQUIRE(true)
   {
     decltype(wtid) ctid = get_current_thread_id();
     if (getWriteThreadId() != ctid)
@@ -195,7 +195,7 @@ public:
     ++wcount;
     return true;
   }
-  void unlockWrite()
+  void unlockWrite() DAG_TS_RELEASE()
   {
     G_FAST_ASSERT(wcount > 0 && getWriteThreadId() == get_current_thread_id()); // if triggered then it's attempt to unlock unowned
                                                                                 // lock
@@ -206,7 +206,7 @@ public:
     }
   }
 
-  void lockRead(::da_profiler::desc_id_t profile_token = ::da_profiler::DescReadLock)
+  void lockRead(::da_profiler::desc_id_t profile_token = ::da_profiler::DescReadLock) DAG_TS_ACQUIRE_SHARED()
   {
     ScopeLockProfiler<da_profiler::NoDesc> lp(profile_token);
     size_t rcount = rtlsGet();
@@ -214,7 +214,7 @@ public:
       os_rwlock_acquire_read_lock(lock);
     rtlsSet(++rcount);
   }
-  bool tryLockRead()
+  bool tryLockRead() DAG_TS_TRY_ACQUIRE_SHARED(true)
   {
     size_t rcount = rtlsGet();
     if (!rcount && !os_rwlock_try_acquire_read_lock(lock))
@@ -222,7 +222,7 @@ public:
     rtlsSet(++rcount);
     return true;
   }
-  void unlockRead()
+  void unlockRead() DAG_TS_RELEASE_SHARED()
   {
     size_t rcount = rtlsGet(1);
     G_FAST_ASSERT(rcount != 0); // if triggered then it's attempt to unlock not locked for read (by this thread) lock (or lock/unlock
@@ -240,20 +240,24 @@ using SmartReadWriteLock = ReadWriteLock;
 using SmartReadWriteFifoLock = ReadWriteLock;
 
 template <typename Lock>
-struct ScopedLockReadTemplate
+struct DAG_TS_SCOPED_CAPABILITY ScopedLockReadTemplate
 {
-  ScopedLockReadTemplate(Lock &lock, ::da_profiler::desc_id_t profile_token = ::da_profiler::DescReadLock) : savedLock(&lock)
+  ScopedLockReadTemplate(Lock &lock, ::da_profiler::desc_id_t profile_token = ::da_profiler::DescReadLock)
+    DAG_TS_ACQUIRE_SHARED(lock) :
+    savedLock(&lock)
   {
     savedLock->lockRead(profile_token);
   }
 
-  ScopedLockReadTemplate(Lock *lock, ::da_profiler::desc_id_t profile_token = ::da_profiler::DescReadLock) : savedLock(lock)
+  ScopedLockReadTemplate(Lock *lock, ::da_profiler::desc_id_t profile_token = ::da_profiler::DescReadLock)
+    DAG_TS_ACQUIRE_SHARED(lock) :
+    savedLock(lock)
   {
     if (savedLock)
       savedLock->lockRead(profile_token);
   }
 
-  ~ScopedLockReadTemplate()
+  ~ScopedLockReadTemplate() DAG_TS_RELEASE() // NOTE: not a typo!
   {
     if (savedLock)
       savedLock->unlockRead();
@@ -267,20 +271,22 @@ private:
 };
 
 template <typename Lock>
-struct ScopedLockWriteTemplate
+struct DAG_TS_SCOPED_CAPABILITY ScopedLockWriteTemplate
 {
-  ScopedLockWriteTemplate(Lock &lock, ::da_profiler::desc_id_t profile_token = ::da_profiler::DescWriteLock) : savedLock(&lock)
+  ScopedLockWriteTemplate(Lock &lock, ::da_profiler::desc_id_t profile_token = ::da_profiler::DescWriteLock) DAG_TS_ACQUIRE(lock) :
+    savedLock(&lock)
   {
     savedLock->lockWrite(profile_token);
   }
 
-  ScopedLockWriteTemplate(Lock *lock, ::da_profiler::desc_id_t profile_token = ::da_profiler::DescWriteLock) : savedLock(lock)
+  ScopedLockWriteTemplate(Lock *lock, ::da_profiler::desc_id_t profile_token = ::da_profiler::DescWriteLock) DAG_TS_ACQUIRE(lock) :
+    savedLock(lock)
   {
     if (savedLock)
       savedLock->lockWrite(profile_token);
   }
 
-  ~ScopedLockWriteTemplate()
+  ~ScopedLockWriteTemplate() DAG_TS_RELEASE()
   {
     if (savedLock)
       savedLock->unlockWrite();
@@ -296,4 +302,4 @@ private:
 typedef ScopedLockReadTemplate<SmartReadWriteFifoLock> ScopedLockRead;
 typedef ScopedLockWriteTemplate<SmartReadWriteFifoLock> ScopedLockWrite;
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

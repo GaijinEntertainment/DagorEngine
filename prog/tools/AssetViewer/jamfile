@@ -1,12 +1,16 @@
 Root    ?= ../../.. ;
 Location = prog/tools/AssetViewer ;
-DriverLinkage = dynamic ;
+KernelLinkage = dynamic ;
+BuildingTools = yes ;
 include $(Root)/prog/tools/tools_setup.jam ;
 
-Platform ?= win64 ;
 UseD3DMulti = yes ;
 UseD3DMultiList = DX11 stub ;
 UseQuirrel = sq3r+ ;
+
+VRDeviceSupport = yes ;
+VRDeviceOptional = yes ;
+ToolsHaveVR ?= yes ;
 
 DagorAnim_MEASURE_PERF = 1 ;
 DagorMath_MEASURE_PERF = 1 ;
@@ -16,12 +20,15 @@ DagorAnim_MEASURE_PERF_FRAMES = 1000 ;
 DagorMath_MEASURE_PERF_FRAMES = 1000 ;
 DagorFastPhys_MEASURE_PERF_FRAMES = 1000 ;
 
+DafxGravityZone ?= yes ;
+
 TargetType  = exe ;
 Target      = tools/assetViewer2.exe ;
+include $(Root)/prog/tools/tools_setup_outdir_bin.jam ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
-OutDir      = $(Root)/tools/dagor3_cdk/bin ;
-if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+
+if $(Platform)-$(PlatformArch) = windows-arm64 { VRDeviceSupport = no ; }
 
 AddIncludes =
   $(Root)/prog/tools/sharedInclude
@@ -30,6 +37,7 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/tools/sceneTools/impostorBaker
+  $(Root)/prog/tools/sceneTools/pointCloudGen/generator
   $(Root)/prog/gameLibs/rendInst
 ;
 
@@ -104,6 +112,7 @@ UseProgLibs =
   tools/libTools/staticGeomUi
   tools/libTools/scriptPanelWrapper
   tools/libTools/math
+  tools/libTools/grsCurView
 
   tools/sceneTools/daEditorX/services/dynRenderSrv
   tools/sceneTools/daEditorX/services/wind
@@ -134,10 +143,13 @@ UseProgLibs =
   tools/sceneTools/daEditorX/services/ecsInput
   tools/sceneTools/daEditorX/services/imguiMgr
   tools/sceneTools/daEditorX/services/dasMgr
+  tools/sceneTools/daEditorX/services/visibilityFinderSrv
 
   tools/sceneTools/impostorBaker/impostorUtil
 
-  tools/libTools/propPanel2
+  tools/sceneTools/pointCloudGen/generator
+
+  tools/libTools/propPanel
   tools/libTools/sepGui
   tools/libTools/dagFileRW
 
@@ -151,10 +163,10 @@ UseProgLibs =
   gameLibs/textureUtil
   gameLibs/render/dof
   gameLibs/render/wind
+  gameLibs/render/volumetricLights/stub
   gameLibs/render/nodeBasedShader/stub
   gameLibs/nodeBasedShaderManager/stub
   gameLibs/ecs/rendInst/stub
-  gameLibs/ecs/anim
   gameLibs/ecs/delayedAct
 
   gameLibs/quirrel/bindQuirrelEx
@@ -192,19 +204,18 @@ gamePulls =
   game_pulls                 #second line is name of var
 ;
 
-if [ GLOB $(Root)/prog/daNetGameLibs/motion_matching : * ] {
-  UseProgLibs +=
-    daNetGameLibs/motion_matching
-  ;
-  gamePulls +=
-    daNetGameLibs_motion_matching_DAS_pull_AOT
-    framework_motion_matching_pull
+if $(VRDeviceSupport) = yes {
+  BundleCopy +=
+    @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/openxr_loader.dll openxr_loader.dll
+    @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/openxr_loader.pdb openxr_loader.pdb
   ;
 }
 
-if [ GLOB $(Root)/skyquake/prog/tools : * ] {
+if [ GLOB $(Root)/prog/gameLibs/damageModel : * ] { UseProgLibs += gameLibs/damageModel/stub ; }
+
+if [ GLOB $(Root)/skyquake/prog/tools : * ] { # FIXME_BROKEN_DEP
   UseRootLibs =
-    skyquake/prog/tools/wtUnit_av2
+    skyquake/prog/tools/wtUnit_av2 # FIXME_BROKEN_DEP
   ;
   CPPopt += -DHAS_PLUGIN_WT_UNIT ;
 }

@@ -1,0 +1,60 @@
+ModuleDependsOnVars = HaveRenderer HaveAssetManager PhysName ;
+HaveRenderer ?= yes ;
+HaveAssetManager ?= yes ;
+
+Root    ?= ../../.. ;
+Module = assets_import ;
+Location = prog/daNetGameLibs/$(Module) ;
+include $(Root)/prog/_jBuild/defPlatform.jam ;
+
+local DasModule = daNetGameLibs_assets_import_DAS_pull_AOT ;
+
+AddIncludes =
+  $(Root)/$(Location)
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/tools/sharedInclude # FIXME_BROKEN_DEP
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+local AllSrcFolder_CPP = ;
+local AllSrcFolder_ES = ;
+local AllSrcFolder_DAS = ;
+
+if $(HaveRenderer) = yes {
+
+  if $(Platform) in windows && $(HaveAssetManager) = yes {
+    AllSrcFolder_CPP +=
+      dasModules
+    ;
+
+    AllSrcFolder_DAS +=
+      main
+      das_includes
+    ;
+    AllSrcFolder_ES +=
+      main
+    ;
+
+    if $(Config) != rel {
+      AllSrcFolder_DAS += debug_ui ;
+    }
+
+    DabuildEmbeddedInGame = yes ;
+    ShadersAllowAltBindump = yes ;
+
+    UseProgLibs =
+      tools/libTools/assetMgr
+      tools/libTools/assetMgrHlp
+      tools/libTools/dtx
+      1stPartyLibs/daScript/modules/dasStdDlg
+    ;
+    Dependencies += $(Root)/prog/tools/sceneTools/assetExp/jamfile-lib.jam ; # FIXME_BROKEN_DEP
+  }
+  else #we support asset importing only for windows, because daBuild works only on that.
+  {
+    AllSrcFolder_ES += stub ;
+  }
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

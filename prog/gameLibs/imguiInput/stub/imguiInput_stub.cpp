@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "imgui/imguiInput.h"
 #include <math/integer/dag_IPoint2.h>
 

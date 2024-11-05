@@ -2,27 +2,27 @@ return {
   function getCurrentLanguage() {
     return "English"
   }
+  function getForceLanguage() {
+    return ""
+  }
+  function setLanguageToSettings(_lang) {}
   function loc(key, ...) {
-    assert(["string", "null"].contains(type(key)), @() $"type of argument should be one of: 'string' 'null'")
-    return key
+    assert(key == null || type(key) == "string", @() $"type of 'key' argument should be string")
+    assert(vargv.len() <= 2)
+    let def = vargv.findvalue(@(v) type(v)=="string")
+    let params = vargv.findvalue(@(v) type(v)=="table")
+    assert(def==null || type(def) == "string", @() $"type of 'def' argument should be string or null")
+    assert(params==null || type(params) == "table", @() $"type of 'params' argument should be table")
+    return def ?? key
   }
   function doesLocTextExist(key) {
-    assert(["string"].contains(type(key)), @() $"type of argument should be one of: 'string'")
+    assert("string" == type(key), @() $"type of argument should be one of: 'string'")
     return false
   }
-  function getLocTextForLang(key, _lang) {
+  function getLocTextForLang(key, lang) {
+    assert("string" == type(key), @() $"type of argument should be one of: 'string'")
+    assert("string" == type(lang), @() $"type of argument should be one of: 'string'")
     return key
-  }
-  function getLocTextExCI(a, ...) {
-    assert(["string"].contains(type(a)), @() $"type of argument should be one of: 'string'")
-    return a
-  }
-  function getLocTextEx(a, ...) {
-    assert(["string"].contains(type(a)), @() $"type of argument should be one of: 'string'")
-    return a
-  }
-  function getLocText(a) {
-    return a
   }
   function initLocalization(a, b = "") {
     assert(["instance"].contains(type(a)), @() $"type of argument should be one of: 'instance'")

@@ -1,0 +1,12 @@
+
+return {
+  startFBSignIn = function() {}
+  isFBLogined = function() {return false}
+  getFBToken = function() {return ""}
+  logoutFB = function() {}
+  logEventFB = function(_) {}
+  logEventDoubleFB = function(_,__) {}
+  FB_RESULT_OK = 1
+  FB_RESULT_CANCEL = 2
+  FB_RESULT_ERROR = 3
+}

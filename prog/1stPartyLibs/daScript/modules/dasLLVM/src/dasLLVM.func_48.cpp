@@ -12,63 +12,86 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_48() {
-// from D:\Work\libclang\include\llvm-c/Target.h:146:24
-	addExtern< int (*)() , LLVMInitializeNativeAsmParser >(*this,lib,"LLVMInitializeNativeAsmParser",SideEffects::worstDefault,"LLVMInitializeNativeAsmParser");
-// from D:\Work\libclang\include\llvm-c/Target.h:158:24
-	addExtern< int (*)() , LLVMInitializeNativeAsmPrinter >(*this,lib,"LLVMInitializeNativeAsmPrinter",SideEffects::worstDefault,"LLVMInitializeNativeAsmPrinter");
-// from D:\Work\libclang\include\llvm-c/Target.h:170:24
-	addExtern< int (*)() , LLVMInitializeNativeDisassembler >(*this,lib,"LLVMInitializeNativeDisassembler",SideEffects::worstDefault,"LLVMInitializeNativeDisassembler");
-// from D:\Work\libclang\include\llvm-c/Target.h:186:19
-	addExtern< LLVMOpaqueTargetData * (*)(LLVMOpaqueModule *) , LLVMGetModuleDataLayout >(*this,lib,"LLVMGetModuleDataLayout",SideEffects::worstDefault,"LLVMGetModuleDataLayout")
-		->args({"M"});
-// from D:\Work\libclang\include\llvm-c/Target.h:193:6
-	addExtern< void (*)(LLVMOpaqueModule *,LLVMOpaqueTargetData *) , LLVMSetModuleDataLayout >(*this,lib,"LLVMSetModuleDataLayout",SideEffects::worstDefault,"LLVMSetModuleDataLayout")
-		->args({"M","DL"});
-// from D:\Work\libclang\include\llvm-c/Target.h:197:19
-	addExtern< LLVMOpaqueTargetData * (*)(const char *) , LLVMCreateTargetData >(*this,lib,"LLVMCreateTargetData",SideEffects::worstDefault,"LLVMCreateTargetData")
-		->args({"StringRep"});
-// from D:\Work\libclang\include\llvm-c/Target.h:201:6
-	addExtern< void (*)(LLVMOpaqueTargetData *) , LLVMDisposeTargetData >(*this,lib,"LLVMDisposeTargetData",SideEffects::worstDefault,"LLVMDisposeTargetData")
-		->args({"TD"});
-// from D:\Work\libclang\include\llvm-c/Target.h:206:6
-	addExtern< void (*)(LLVMOpaqueTargetLibraryInfotData *,LLVMOpaquePassManager *) , LLVMAddTargetLibraryInfo >(*this,lib,"LLVMAddTargetLibraryInfo",SideEffects::worstDefault,"LLVMAddTargetLibraryInfo")
-		->args({"TLI","PM"});
-// from D:\Work\libclang\include\llvm-c/Target.h:212:7
-	addExtern< char * (*)(LLVMOpaqueTargetData *) , LLVMCopyStringRepOfTargetData >(*this,lib,"LLVMCopyStringRepOfTargetData",SideEffects::worstDefault,"LLVMCopyStringRepOfTargetData")
-		->args({"TD"});
-// from D:\Work\libclang\include\llvm-c/Target.h:217:23
-	addExtern< LLVMByteOrdering (*)(LLVMOpaqueTargetData *) , LLVMByteOrder >(*this,lib,"LLVMByteOrder",SideEffects::worstDefault,"LLVMByteOrder")
-		->args({"TD"});
-// from D:\Work\libclang\include\llvm-c/Target.h:221:10
-	addExtern< unsigned int (*)(LLVMOpaqueTargetData *) , LLVMPointerSize >(*this,lib,"LLVMPointerSize",SideEffects::worstDefault,"LLVMPointerSize")
-		->args({"TD"});
-// from D:\Work\libclang\include\llvm-c/Target.h:226:10
-	addExtern< unsigned int (*)(LLVMOpaqueTargetData *,unsigned int) , LLVMPointerSizeForAS >(*this,lib,"LLVMPointerSizeForAS",SideEffects::worstDefault,"LLVMPointerSizeForAS")
-		->args({"TD","AS"});
-// from D:\Work\libclang\include\llvm-c/Target.h:230:13
-	addExtern< LLVMOpaqueType * (*)(LLVMOpaqueTargetData *) , LLVMIntPtrType >(*this,lib,"LLVMIntPtrType",SideEffects::worstDefault,"LLVMIntPtrType")
-		->args({"TD"});
-// from D:\Work\libclang\include\llvm-c/Target.h:235:13
-	addExtern< LLVMOpaqueType * (*)(LLVMOpaqueTargetData *,unsigned int) , LLVMIntPtrTypeForAS >(*this,lib,"LLVMIntPtrTypeForAS",SideEffects::worstDefault,"LLVMIntPtrTypeForAS")
-		->args({"TD","AS"});
-// from D:\Work\libclang\include\llvm-c/Target.h:239:13
-	addExtern< LLVMOpaqueType * (*)(LLVMOpaqueContext *,LLVMOpaqueTargetData *) , LLVMIntPtrTypeInContext >(*this,lib,"LLVMIntPtrTypeInContext",SideEffects::worstDefault,"LLVMIntPtrTypeInContext")
-		->args({"C","TD"});
-// from D:\Work\libclang\include\llvm-c/Target.h:244:13
-	addExtern< LLVMOpaqueType * (*)(LLVMOpaqueContext *,LLVMOpaqueTargetData *,unsigned int) , LLVMIntPtrTypeForASInContext >(*this,lib,"LLVMIntPtrTypeForASInContext",SideEffects::worstDefault,"LLVMIntPtrTypeForASInContext")
-		->args({"C","TD","AS"});
-// from D:\Work\libclang\include\llvm-c/Target.h:249:20
-	addExtern< unsigned long long (*)(LLVMOpaqueTargetData *,LLVMOpaqueType *) , LLVMSizeOfTypeInBits >(*this,lib,"LLVMSizeOfTypeInBits",SideEffects::worstDefault,"LLVMSizeOfTypeInBits")
-		->args({"TD","Ty"});
-// from D:\Work\libclang\include\llvm-c/Target.h:253:20
-	addExtern< unsigned long long (*)(LLVMOpaqueTargetData *,LLVMOpaqueType *) , LLVMStoreSizeOfType >(*this,lib,"LLVMStoreSizeOfType",SideEffects::worstDefault,"LLVMStoreSizeOfType")
-		->args({"TD","Ty"});
-// from D:\Work\libclang\include\llvm-c/Target.h:257:20
-	addExtern< unsigned long long (*)(LLVMOpaqueTargetData *,LLVMOpaqueType *) , LLVMABISizeOfType >(*this,lib,"LLVMABISizeOfType",SideEffects::worstDefault,"LLVMABISizeOfType")
-		->args({"TD","Ty"});
-// from D:\Work\libclang\include\llvm-c/Target.h:261:10
-	addExtern< unsigned int (*)(LLVMOpaqueTargetData *,LLVMOpaqueType *) , LLVMABIAlignmentOfType >(*this,lib,"LLVMABIAlignmentOfType",SideEffects::worstDefault,"LLVMABIAlignmentOfType")
-		->args({"TD","Ty"});
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:87:6
+	makeExtern< void (*)(LLVMMCJITCompilerOptions *,size_t) , LLVMInitializeMCJITCompilerOptions , SimNode_ExtFuncCall >(lib,"LLVMInitializeMCJITCompilerOptions","LLVMInitializeMCJITCompilerOptions")
+		->args({"Options","SizeOfOptions"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:107:10
+	makeExtern< int (*)(LLVMOpaqueExecutionEngine **,LLVMOpaqueModule *,LLVMMCJITCompilerOptions *,size_t,char **) , LLVMCreateMCJITCompilerForModule , SimNode_ExtFuncCall >(lib,"LLVMCreateMCJITCompilerForModule","LLVMCreateMCJITCompilerForModule")
+		->args({"OutJIT","M","Options","SizeOfOptions","OutError"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:112:6
+	makeExtern< void (*)(LLVMOpaqueExecutionEngine *) , LLVMDisposeExecutionEngine , SimNode_ExtFuncCall >(lib,"LLVMDisposeExecutionEngine","LLVMDisposeExecutionEngine")
+		->args({"EE"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:114:6
+	makeExtern< void (*)(LLVMOpaqueExecutionEngine *) , LLVMRunStaticConstructors , SimNode_ExtFuncCall >(lib,"LLVMRunStaticConstructors","LLVMRunStaticConstructors")
+		->args({"EE"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:116:6
+	makeExtern< void (*)(LLVMOpaqueExecutionEngine *) , LLVMRunStaticDestructors , SimNode_ExtFuncCall >(lib,"LLVMRunStaticDestructors","LLVMRunStaticDestructors")
+		->args({"EE"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:118:5
+	makeExtern< int (*)(LLVMOpaqueExecutionEngine *,LLVMOpaqueValue *,unsigned int,const char *const *,const char *const *) , LLVMRunFunctionAsMain , SimNode_ExtFuncCall >(lib,"LLVMRunFunctionAsMain","LLVMRunFunctionAsMain")
+		->args({"EE","F","ArgC","ArgV","EnvP"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:122:21
+	makeExtern< LLVMOpaqueGenericValue * (*)(LLVMOpaqueExecutionEngine *,LLVMOpaqueValue *,unsigned int,LLVMOpaqueGenericValue **) , LLVMRunFunction , SimNode_ExtFuncCall >(lib,"LLVMRunFunction","LLVMRunFunction")
+		->args({"EE","F","NumArgs","Args"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:126:6
+	makeExtern< void (*)(LLVMOpaqueExecutionEngine *,LLVMOpaqueValue *) , LLVMFreeMachineCodeForFunction , SimNode_ExtFuncCall >(lib,"LLVMFreeMachineCodeForFunction","LLVMFreeMachineCodeForFunction")
+		->args({"EE","F"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:128:6
+	makeExtern< void (*)(LLVMOpaqueExecutionEngine *,LLVMOpaqueModule *) , LLVMAddModule , SimNode_ExtFuncCall >(lib,"LLVMAddModule","LLVMAddModule")
+		->args({"EE","M"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:130:10
+	makeExtern< int (*)(LLVMOpaqueExecutionEngine *,LLVMOpaqueModule *,LLVMOpaqueModule **,char **) , LLVMRemoveModule , SimNode_ExtFuncCall >(lib,"LLVMRemoveModule","LLVMRemoveModule")
+		->args({"EE","M","OutMod","OutError"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:133:10
+	makeExtern< int (*)(LLVMOpaqueExecutionEngine *,const char *,LLVMOpaqueValue **) , LLVMFindFunction , SimNode_ExtFuncCall >(lib,"LLVMFindFunction","LLVMFindFunction")
+		->args({"EE","Name","OutFn"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:136:7
+	makeExtern< void * (*)(LLVMOpaqueExecutionEngine *,LLVMOpaqueValue *) , LLVMRecompileAndRelinkFunction , SimNode_ExtFuncCall >(lib,"LLVMRecompileAndRelinkFunction","LLVMRecompileAndRelinkFunction")
+		->args({"EE","Fn"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:139:19
+	makeExtern< LLVMOpaqueTargetData * (*)(LLVMOpaqueExecutionEngine *) , LLVMGetExecutionEngineTargetData , SimNode_ExtFuncCall >(lib,"LLVMGetExecutionEngineTargetData","LLVMGetExecutionEngineTargetData")
+		->args({"EE"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:141:1
+	makeExtern< LLVMOpaqueTargetMachine * (*)(LLVMOpaqueExecutionEngine *) , LLVMGetExecutionEngineTargetMachine , SimNode_ExtFuncCall >(lib,"LLVMGetExecutionEngineTargetMachine","LLVMGetExecutionEngineTargetMachine")
+		->args({"EE"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:143:6
+	makeExtern< void (*)(LLVMOpaqueExecutionEngine *,LLVMOpaqueValue *,void *) , LLVMAddGlobalMapping , SimNode_ExtFuncCall >(lib,"LLVMAddGlobalMapping","LLVMAddGlobalMapping")
+		->args({"EE","Global","Addr"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:146:7
+	makeExtern< void * (*)(LLVMOpaqueExecutionEngine *,LLVMOpaqueValue *) , LLVMGetPointerToGlobal , SimNode_ExtFuncCall >(lib,"LLVMGetPointerToGlobal","LLVMGetPointerToGlobal")
+		->args({"EE","Global"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:148:10
+	makeExtern< uint64_t (*)(LLVMOpaqueExecutionEngine *,const char *) , LLVMGetGlobalValueAddress , SimNode_ExtFuncCall >(lib,"LLVMGetGlobalValueAddress","LLVMGetGlobalValueAddress")
+		->args({"EE","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:150:10
+	makeExtern< uint64_t (*)(LLVMOpaqueExecutionEngine *,const char *) , LLVMGetFunctionAddress , SimNode_ExtFuncCall >(lib,"LLVMGetFunctionAddress","LLVMGetFunctionAddress")
+		->args({"EE","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:154:10
+	makeExtern< int (*)(LLVMOpaqueExecutionEngine *,char **) , LLVMExecutionEngineGetErrMsg , SimNode_ExtFuncCall >(lib,"LLVMExecutionEngineGetErrMsg","LLVMExecutionEngineGetErrMsg")
+		->args({"EE","OutError"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:187:6
+	makeExtern< void (*)(LLVMOpaqueMCJITMemoryManager *) , LLVMDisposeMCJITMemoryManager , SimNode_ExtFuncCall >(lib,"LLVMDisposeMCJITMemoryManager","LLVMDisposeMCJITMemoryManager")
+		->args({"MM"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

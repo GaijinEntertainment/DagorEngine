@@ -15,20 +15,31 @@ namespace das {
     }
 #endif
 
+    char * AnyHeapAllocator::impl_allocateIterator ( uint32_t size, const char * name, const LineInfo * info ) {
+        char * data = impl_allocate(size + 16);
+        if ( !data ) return nullptr;
+        *((uint32_t *)data) = size;
+        mark_comment(data, name);
+        if ( info ) mark_location(data,info);
+        return (data + 16);
+    }
+
+    void AnyHeapAllocator::impl_freeIterator ( char * ptr ) {
+        ptr -= 16;
+        uint32_t size = *((uint32_t *)ptr);
+        impl_free(ptr, size + 16);
+    }
+
     char * AnyHeapAllocator::allocateName ( const string & name ) {
         if (!name.empty()) {
             auto length = uint32_t(name.length());
-            if (auto str = (char *)allocate(length + 1)) {
+            if (auto str = (char *)impl_allocate(length + 1)) {
                 memcpy(str, name.c_str(), length);
                 str[length] = 0;
                 return str;
             }
         }
         return nullptr;
-    }
-
-    char * StringHeapAllocator::allocateString ( const string & str ) {
-        return allocateString ( str.c_str(), uint32_t(str.length()) );
     }
 
     bool PersistentHeapAllocator::mark() {
@@ -187,7 +198,7 @@ namespace das {
         swap(internMap, dummy);
     }
 
-    char * ConstStringAllocator::allocateString ( const char * text, uint32_t length ) {
+    char * ConstStringAllocator::impl_allocateString ( const char * text, uint32_t length ) {
         if ( length ) {
             if ( text ) {
                 auto it = internMap.find(StrHashEntry(text,length));
@@ -205,7 +216,7 @@ namespace das {
         return nullptr;
     }
 
-    char * StringHeapAllocator::allocateString ( const char * text, uint32_t length ) {
+    char * StringHeapAllocator::impl_allocateString ( Context * context, const char * text, uint32_t length, const LineInfo * at ) {
         if ( length ) {
             if ( needIntern && text ) {
                 auto it = internMap.find(StrHashEntry(text,length));
@@ -213,7 +224,7 @@ namespace das {
                     return (char *) it->ptr;
                 }
             }
-            if ( auto str = (char *)allocate(length + 1) ) {
+            if ( auto str = (char *)impl_allocate(length + 1) ) {
 #if DAS_TRACK_ALLOCATIONS
                 if ( g_tracker_string==g_breakpoint_string ) os_debug_break();
 #endif
@@ -221,14 +232,16 @@ namespace das {
                 str[length] = 0;
                 if ( needIntern && text ) internMap.insert(StrHashEntry(str,length));
                 return str;
+            } else if ( context ) {
+                context->throw_out_of_memory(true, length + 1, at);
             }
         }
         return nullptr;
     }
 
-    void StringHeapAllocator::freeString ( char * text, uint32_t length ) {
+    void StringHeapAllocator::impl_freeString ( char * text, uint32_t length ) {
         if ( needIntern ) internMap.erase(StrHashEntry(text,length));
-        free ( text, length + 1 );
+        impl_free ( text, length + 1 );
     }
 
     char * presentStr ( char * buf, char * ch, int size ) {

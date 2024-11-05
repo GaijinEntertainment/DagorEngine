@@ -10,10 +10,12 @@
 
 
 
-SQClass::SQClass(SQSharedState *ss,SQClass *base) :
-    _defaultvalues(ss->_alloc_ctx),
-    _methods(ss->_alloc_ctx)
+SQClass::SQClass(SQVM *v, SQClass *base) :
+    _defaultvalues(_ss(v)->_alloc_ctx),
+    _methods(_ss(v)->_alloc_ctx)
 {
+    SQSharedState *ss = _ss(v);
+
     _base = base;
     _typetag = 0;
     _hook = NULL;
@@ -25,7 +27,7 @@ SQClass::SQClass(SQSharedState *ss,SQClass *base) :
         _udsize = _base->_udsize;
         _defaultvalues.copy(base->_defaultvalues);
         _methods.copy(base->_methods);
-        _COPY_VECTOR(_metamethods,base->_metamethods,MT_LAST);
+        _COPY_VECTOR(_metamethods,base->_metamethods,MT_NUM_METHODS);
         __ObjAddRef(_base);
     }
     _members = base?base->_members->Clone() : SQTable::Create(ss,0);
@@ -38,7 +40,7 @@ SQClass::SQClass(SQSharedState *ss,SQClass *base) :
 void SQClass::Finalize() {
     _NULL_SQOBJECT_VECTOR(_defaultvalues,_defaultvalues.size());
     _methods.resize(0);
-    _NULL_SQOBJECT_VECTOR(_metamethods,MT_LAST);
+    _NULL_SQOBJECT_VECTOR(_metamethods,MT_NUM_METHODS);
     __ObjRelease(_members);
     if(_base) {
         __ObjRelease(_base);
@@ -50,6 +52,20 @@ SQClass::~SQClass()
     REMOVE_FROM_CHAIN(&_sharedstate->_gc_chain, this);
     Finalize();
 }
+
+
+SQClass* SQClass::Create(SQVM *v,SQClass *base)
+{
+    if (base && !base->isLocked()) {
+        if (!base->Lock(v))
+            return nullptr;
+    }
+
+    SQClass *newclass = (SQClass *)SQ_MALLOC(_ss(v)->_alloc_ctx, sizeof(SQClass));
+    new (newclass) SQClass(v, base);
+    return newclass;
+}
+
 
 bool SQClass::NewSlot(SQSharedState *ss,const SQObjectPtr &key,const SQObjectPtr &val,bool bstatic)
 {
@@ -102,9 +118,12 @@ bool SQClass::NewSlot(SQSharedState *ss,const SQObjectPtr &key,const SQObjectPtr
     return true;
 }
 
-SQInstance *SQClass::CreateInstance()
+SQInstance *SQClass::CreateInstance(SQVM *v)
 {
-    if(!isLocked()) Lock();
+    if (!isLocked()) {
+        if (!Lock(v))
+            return nullptr;
+    }
     return SQInstance::Create(_opt_ss(this),this);
 }
 
@@ -124,6 +143,31 @@ SQInteger SQClass::Next(const SQObjectPtr &refpos, SQObjectPtr &outkey, SQObject
     return idx;
 }
 
+
+bool SQClass::Lock(SQVM *v)
+{
+    if (isLocked())
+        return true;
+
+    if (_base) {
+        if (!_base->Lock(v))
+            return false;
+    }
+
+    bool success = true;
+
+    if (sq_type(_metamethods[MT_LOCK]) != OT_NULL) {
+        SQInteger prevTop = v->_top;
+        SQObjectPtr res;
+        v->Push(SQObjectPtr(this));
+        success = v->Call(_metamethods[MT_LOCK], 1, v->_top-1, res, true);
+        v->_top = prevTop;
+    }
+
+    _lockedTypeId = currentHint();
+
+    return success;
+}
 
 ///////////////////////////////////////////////////////////////////////
 void SQInstance::Init(SQSharedState *ss)

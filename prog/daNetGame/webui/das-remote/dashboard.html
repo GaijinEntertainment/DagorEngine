@@ -1,0 +1,190 @@
+<html>
+<meta charset="utf-8"/>
+<script src="./src/vendor/simple-jsonrpc-js.js"></script>
+<script src="./src/vendor/jsonrpc.js"></script>
+<script src="./src/vendor/vue.js"></script>
+
+
+<link rel="stylesheet" href="./src/dashboard.css?version=1">
+
+<body>
+
+  <div id="app">
+    <div class="dashboardList">
+      <div>Name</div>
+      <div v-on:click="toggleMuteCol('col_value')">value</div>
+      <div v-on:click="toggleMuteCol('col_smooth1')">smooth 0.1</div>
+      <div v-on:click="toggleMuteCol('col_smooth2')">smooth 1</div>
+      <div v-on:click="toggleMuteCol('col_max2')">max</div>
+      <div v-on:click="toggleMuteCol('col_min2')">min</div>
+    </div>
+    <div class="dashboardList" v-for="(entry) in entries">
+      <div :class="getCellClass(entry, 'name', false)">{{entry.name}}</div>
+      <div :class="getCellClass(entry, 'value', false, true)" v-on:click="toggleMute(entry, 'value')">{{displayValue(entry, entry.value, 3, true)}}</div>
+      <div v-if="entryIsNumber(entry)" :class="getCellClass(entry, 'smooth1')" v-on:click="toggleMute(entry, 'smooth1')">
+        {{displayValue(entry, entry.smooth1, 3, true)}}</div>
+      <div v-if="entryIsNumber(entry)" :class="getCellClass(entry, 'smooth2')" v-on:click="toggleMute(entry, 'smooth2')">
+        {{displayValue(entry, entry.smooth2, 2, true)}}</div>
+      <div v-if="entryIsNumber(entry)" :class="getCellClass(entry, 'max2')" v-on:click="toggleMute(entry, 'max2')">
+        {{displayValue(entry, entry.max2, 3, true)}}</div>
+      <div v-if="entryIsNumber(entry)" :class="getCellClass(entry, 'min2')" v-on:click="toggleMute(entry, 'min2')">
+        {{displayValue(entry, entry.min2, 3, true)}}</div>
+    </div>
+  </div>
+
+  <script>
+    let HISTORY_SIZE = 150
+    let SMOOTH_TIME1 = 100
+    let SMOOTH_TIME2 = 1000
+    let MIN_UPDATE_DELTA = HISTORY_SIZE / 2
+    let LOCATION = "_dashboard"
+    let E_TYPE_NUMBER = 0
+    let E_TYPE_STR = 1
+
+
+    let g_mutes = {}
+
+    let app = new Vue({
+      el: '#app',
+      data: {
+        entries : [],
+        muteCounter:0
+      },
+      watch: {
+      },
+      computed: {
+      },
+      mounted() {
+        jrpc.on("dashboard.set_value", this.handleSetNotif)
+        jrpc.on("dashboard.set_string", this.handleSetNotif)
+
+        let localData = JSON.parse(localStorage.getItem(LOCATION) ?? "{}")
+        g_mutes = localData['mutes'] ?? {}
+      },
+      methods: {
+        handleSetNotif(name, value, priority = -1) {
+          let entry = this.entries.find(e => e.name == name)
+          if (!entry) {
+            entry = {
+              name:name,
+              type:typeof(value) == "number" ? E_TYPE_NUMBER : E_TYPE_STR,
+              addedAt:this.entries.length,
+              history:[],
+              historyCursor:0,
+              smooth1:0,
+              smooth2:0,
+              max2:0,
+              min2:0,
+              isActive:true
+            }
+            this.entries.push(entry)
+          }
+          else if (entry.type == E_TYPE_NUMBER) {
+            entry.history[entry.historyCursor] = {value:entry.value, stamp:entry.stamp}
+            entry.historyCursor = (entry.historyCursor + 1) % HISTORY_SIZE
+          }
+          entry.value = value
+          entry.priority = priority
+          entry.stamp = Date.now()
+          this.entries.sort((a, b) => {
+            if (a.priority != b.priority)
+              return a.priority > b.priority ? 1 : -1
+            return a.addedAt > b.addedAt ? -1 : 1
+          })
+        },
+        formatValue(val, precision, always_show = false) {
+          return val >= Math.pow(10, precision) ? val.toFixed(0) : val.toPrecision(precision)
+        },
+        displayValue(entry, value, precision, always_show = false) {
+          if (entry.type == E_TYPE_NUMBER)
+            return this.formatValue(value, precision)
+          else if (always_show)
+            return value
+          else
+            return ""
+        },
+        saveSettings() {
+          let data = {
+            mutes : g_mutes,
+          }
+        localStorage.setItem(LOCATION, JSON.stringify(data));
+        },
+        toggleMute(entry, col=null) {
+          let mutes = g_mutes[entry.name] ?? {}
+          let mute = mutes ? mutes[col] : false
+          mutes[col] = !mute
+          g_mutes[entry.name] = mutes
+          this.muteCounter++
+          this.saveSettings()
+        },
+        toggleMuteCol(col) {
+          let mute = g_mutes[col] ?? false
+          g_mutes[col] = !mute
+          this.muteCounter++
+          this.saveSettings()
+        },
+        entryIsNumber(entry) {
+          return entry.type==E_TYPE_NUMBER
+        },
+        getCellClass(entry, col, mute_by_type = true, apply_text_BG = false) {
+          let counter = this.muteCounter //hack to update mutes
+          let col_mute = g_mutes["col_" + col] ?? false
+          let mutes = g_mutes[entry.name]
+          let mute = col_mute || (mutes ? mutes[col] : false)
+          let isNumber = entry.type == E_TYPE_NUMBER
+          return {
+            inactiveBG: !mute && !entry.isActive,
+            activeBG: !mute && entry.isActive,
+            muteBG: mute || (mute_by_type && !isNumber),
+            textBG: !isNumber && apply_text_BG
+          }
+        }
+      }
+  })
+
+  let lastUpdate = 0
+  function updateVals(stamp) {
+      window.requestAnimationFrame(updateVals)
+    let now = Date.now()
+    if (now - lastUpdate < MIN_UPDATE_DELTA)
+      return
+    lastUpdate = now
+
+    app.entries.forEach(e => {
+      e.isActive = now - e.stamp < MIN_UPDATE_DELTA
+      if (e.type != E_TYPE_NUMBER)
+        return
+      let count1 = 1
+      let count2 = 1
+      e.smooth1 = e.value
+      e.smooth2 = e.value
+      e.max2 = e.value
+      e.min2 = e.value
+      for (i = 0; i < e.history.length; i++) {
+        let cursor = (e.historyCursor - 1 - i + e.history.length) % e.history.length
+        let v = e.history[cursor]
+        let delta = now - v.stamp
+        if (delta < SMOOTH_TIME2) {
+          let weight = delta / SMOOTH_TIME2
+          e.smooth2 += v.value * weight
+          count2 += weight
+          e.max2 = Math.max(e.max2, v.value)
+          e.min2 = Math.min(e.min2, v.value)
+          if (delta < SMOOTH_TIME1) {
+            weight = delta / SMOOTH_TIME1
+            e.smooth1 += v.value * weight
+            count1 += weight
+          }
+        }
+      }
+      e.smooth1 /= count1
+      e.smooth2 /= count2
+    });
+  }
+  window.requestAnimationFrame(updateVals)
+  createSocket(/*reconnect*/true)
+  </script>
+</body>
+
+
+</html>

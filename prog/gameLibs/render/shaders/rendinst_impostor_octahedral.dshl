@@ -201,9 +201,6 @@ shader rendinst_impostor_octahedral
         float3 forward = impostorPos - world_view_pos;
         distToInstance = length(forward);
         forward /= distToInstance;
-         ##if rendinst_dissolve == rendinst_dissolve_inout
-          opacity = saturate(distToInstance * rendinst_opacity.z + rendinst_opacity.w);
-        ##endif
         opacity *= saturate(distToInstance * rendinst_opacity.x + rendinst_opacity.y);
       ##endif
       output.colorMul_opacity.w = opacity;
@@ -547,7 +544,7 @@ shader rendinst_impostor_octahedral
         init_ao(result, ao);
         init_material(result, translucency > 0.5 ? SHADING_FOLIAGE : SHADING_NORMAL);
 
-        return encode_gbuffer(result, screenpos.xyz);
+        return encode_gbuffer(result, screenpos.xyz, GET_SCREEN_POS(input.pos));
       }
     ##endif
   }

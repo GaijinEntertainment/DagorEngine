@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -26,6 +25,7 @@ uint32_t get_riextra_instance_seed(riex_handle_t);
 void set_riextra_instance_seed(riex_handle_t, int32_t data);
 
 const mat43f &getRIGenExtra43(riex_handle_t id);
+const mat43f &getRIGenExtra43(riex_handle_t id, uint32_t &seed);
 void getRIGenExtra44(riex_handle_t id, mat44f &out_tm);
 
 void getRIExtraCollInfo(riex_handle_t id, CollisionResource **out_collision, BSphere3 *out_bsphere);
@@ -51,11 +51,12 @@ bool isKillsNearEffects(riex_handle_t id);
 
 const char *getRIGenExtraName(uint32_t res_idx);
 int getRIGenExtraPreferrableLod(uint32_t res_idx, float squared_distance);
+int getRIGenExtraPreferrableLod(uint32_t res_idx, float squared_distance, bool &over_max_lod, int &last_lod);
 bool isRIExtraGenPosInst(uint32_t res_idx);
 bool updateRiExtraReqLod(uint32_t res_idx, unsigned lod);
 
 bbox3f riex_get_lbb(int res_idx);
-float ries_get_bsph_rad(int res_idx);
+float riex_get_bsph_rad(int res_idx);
 
 void setRiGenResMatId(uint32_t res_idx, int matId);
 void setRiGenResHp(uint32_t res_idx, float hp);

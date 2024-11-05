@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "compositeEditorPanel.h"
 #include "../av_appwnd.h"
 #include "../av_cm.h"
@@ -9,14 +11,13 @@
 #include <libTools/util/blkUtil.h>
 #include <math/dag_mathAng.h>
 #include <osApiWrappers/dag_clipboard.h>
-#include <propPanel2/comWnd/list_dialog.h>
+#include <propPanel/commonWindow/multiListDialog.h>
 
 using hdpi::_pxActual;
 using hdpi::_pxScaled;
 
-CompositeEditorPanel::CompositeEditorPanel(ControlEventHandler *event_handler, void *phandle, int x, int y, unsigned w, unsigned h,
-  const char caption[]) :
-  CPanelWindow(event_handler, phandle, x, y, _pxActual(w), _pxActual(h), caption)
+CompositeEditorPanel::CompositeEditorPanel(PropPanel::ControlEventHandler *event_handler, int x, int y, unsigned w, unsigned h) :
+  PropPanel::ContainerPropertyControl(0, event_handler, nullptr, x, y, _pxActual(w), _pxActual(h))
 {
   supportedNodeParameters.addInt("place_type", ICompositObj::Props::PT_none);
   supportedNodeParameters.addPoint2("rot_x", Point2::ZERO);
@@ -30,17 +31,17 @@ CompositeEditorPanel::CompositeEditorPanel(ControlEventHandler *event_handler, v
   supportedNodeParameters.addReal("aboveHt", 0);
 }
 
-void CompositeEditorPanel::fillEntityGroup(PropertyContainerControlBase &group, const CompositeEditorTreeDataNode &treeDataNode)
+void CompositeEditorPanel::fillEntityGroup(PropPanel::ContainerPropertyControl &group, const CompositeEditorTreeDataNode &treeDataNode)
 {
-  PropertyContainerControlBase *extensible = group.createExtensible(ID_COMPOSITE_EDITOR_ENTITY_ACTIONS);
-  extensible->setIntValue(1 << EXT_BUTTON_REMOVE);
+  PropPanel::ContainerPropertyControl *extensible = group.createExtensible(ID_COMPOSITE_EDITOR_ENTITY_ACTIONS);
+  extensible->setIntValue(1 << PropPanel::EXT_BUTTON_REMOVE);
 
   extensible->createButton(ID_COMPOSITE_EDITOR_ENTITY_SELECTOR, treeDataNode.getName());
   group.createEditFloat(ID_COMPOSITE_EDITOR_ENTITY_WEIGHT, "Weight", treeDataNode.getWeight());
 }
 
-void CompositeEditorPanel::fillEntitiesGroup(PropertyContainerControlBase &group, const CompositeEditorTreeDataNode &treeDataNode,
-  bool canEditEntities)
+void CompositeEditorPanel::fillEntitiesGroup(PropPanel::ContainerPropertyControl &group,
+  const CompositeEditorTreeDataNode &treeDataNode, bool canEditEntities)
 {
   int nodesToDisplay = canEditEntities ? treeDataNode.nodes.size() : 0;
   const bool limitReached = nodesToDisplay > MAX_COMPOSITE_ENTITY_COUNT;
@@ -60,9 +61,10 @@ void CompositeEditorPanel::fillEntitiesGroup(PropertyContainerControlBase &group
     if (!treeDataSubNode.isEntBlock())
       continue;
 
-    PropertyContainerControlBase *extensible = group.createExtensible(ID_COMPOSITE_EDITOR_ENTITIES_ENTITY_ACTIONS_FIRST + nodeIndex);
+    PropPanel::ContainerPropertyControl *extensible =
+      group.createExtensible(ID_COMPOSITE_EDITOR_ENTITIES_ENTITY_ACTIONS_FIRST + nodeIndex);
     // We allow insertion even if the display limit is reached because the new entity is inserted before the selected one.
-    extensible->setIntValue((1 << EXT_BUTTON_INSERT) | (1 << EXT_BUTTON_REMOVE));
+    extensible->setIntValue((1 << PropPanel::EXT_BUTTON_INSERT) | (1 << PropPanel::EXT_BUTTON_REMOVE));
 
     const char *name = treeDataSubNode.getName();
     extensible->createButton(ID_COMPOSITE_EDITOR_ENTITIES_ENTITY_SELECTOR_FIRST + nodeIndex, name);
@@ -76,8 +78,8 @@ void CompositeEditorPanel::fillEntitiesGroup(PropertyContainerControlBase &group
   group.createButton(ID_COMPOSITE_EDITOR_ENTITIES_ADD, "+", canEditEntities && !limitReached);
 }
 
-void CompositeEditorPanel::fillChildrenGroup(PropertyContainerControlBase &group, const CompositeEditorTreeDataNode &treeDataNode,
-  bool canEditChildren)
+void CompositeEditorPanel::fillChildrenGroup(PropPanel::ContainerPropertyControl &group,
+  const CompositeEditorTreeDataNode &treeDataNode, bool canEditChildren)
 {
   int nodesToDisplay = canEditChildren ? treeDataNode.nodes.size() : 0;
   const bool limitReached = nodesToDisplay > MAX_COMPOSITE_ENTITY_COUNT;
@@ -97,9 +99,10 @@ void CompositeEditorPanel::fillChildrenGroup(PropertyContainerControlBase &group
     if (treeDataSubNode.isEntBlock())
       continue;
 
-    PropertyContainerControlBase *extensible = group.createExtensible(ID_COMPOSITE_EDITOR_CHILDREN_ENTITY_ACTIONS_FIRST + nodeIndex);
+    PropPanel::ContainerPropertyControl *extensible =
+      group.createExtensible(ID_COMPOSITE_EDITOR_CHILDREN_ENTITY_ACTIONS_FIRST + nodeIndex);
     // We allow insertion even if the display limit is reached because the new node is inserted before the selected one.
-    extensible->setIntValue((1 << EXT_BUTTON_INSERT) | (1 << EXT_BUTTON_REMOVE));
+    extensible->setIntValue((1 << PropPanel::EXT_BUTTON_INSERT) | (1 << PropPanel::EXT_BUTTON_REMOVE));
 
     const char *name = treeDataSubNode.getName();
     const bool canEditAssetName = treeDataSubNode.canEditAssetName(/*isRootNode = */ false);
@@ -109,8 +112,8 @@ void CompositeEditorPanel::fillChildrenGroup(PropertyContainerControlBase &group
   group.createButton(ID_COMPOSITE_EDITOR_CHILDREN_ADD, "+", canEditChildren && !limitReached);
 }
 
-void CompositeEditorPanel::fillParametersGroup(PropertyContainerControlBase &group, const CompositeEditorTreeDataNode &treeDataNode,
-  bool canEditParameters)
+void CompositeEditorPanel::fillParametersGroup(PropPanel::ContainerPropertyControl &group,
+  const CompositeEditorTreeDataNode &treeDataNode, bool canEditParameters)
 {
   if (canEditParameters)
   {
@@ -133,8 +136,8 @@ void CompositeEditorPanel::fillParametersGroup(PropertyContainerControlBase &gro
       rotation.y = RadToDeg(rotation.y);
       rotation.z = RadToDeg(rotation.z);
 
-      group.createPoint3(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_TM_ROTATION, "Rotation, deg", rotation);
       group.createPoint3(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_TM_LOCATION, "Location", position);
+      group.createPoint3(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_TM_ROTATION, "Rotation, deg", rotation);
       group.createPoint3(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_TM_SCALE, "Scale", scale);
       group.createSeparator();
     }
@@ -166,7 +169,8 @@ void CompositeEditorPanel::fillParametersGroup(PropertyContainerControlBase &gro
       {
         if (useTransformationMatrix)
         {
-          PropertyContainerControlBase *grpWarning = group.createGroupBox(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_WARNING_GRP, "WARNING");
+          PropPanel::ContainerPropertyControl *grpWarning =
+            group.createGroupBox(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_WARNING_GRP, "WARNING");
 
           if (grpWarning)
           {
@@ -180,7 +184,7 @@ void CompositeEditorPanel::fillParametersGroup(PropertyContainerControlBase &gro
     const int placeTypeParamIndex = treeDataNode.params.findParam("place_type");
     if (placeTypeParamIndex >= 0 && treeDataNode.params.getParamType(placeTypeParamIndex) == DataBlock::TYPE_INT)
     {
-      PropertyContainerControlBase &placeGrp =
+      PropPanel::ContainerPropertyControl &placeGrp =
         *group.createRadioGroup(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_PLACE_TYPE, "Place on collision");
 
       placeGrp.createRadio(ICompositObj::Props::PT_none, "-- no --");
@@ -215,29 +219,29 @@ void CompositeEditorPanel::fillInternal(const CompositeEditorTreeDataNode &treeD
 {
   if (treeDataNode.isEntBlock())
   {
-    PropertyContainerControlBase *grpEntity = createGroup(ID_COMPOSITE_EDITOR_ENTITY_GRP, "Entity");
+    PropPanel::ContainerPropertyControl *grpEntity = createGroup(ID_COMPOSITE_EDITOR_ENTITY_GRP, "Entity");
     if (grpEntity)
       fillEntityGroup(*grpEntity, treeDataNode);
   }
   else
   {
-    PropertyContainerControlBase *grpEntities = createGroup(ID_COMPOSITE_EDITOR_ENTITIES_GRP, "Entities");
+    PropPanel::ContainerPropertyControl *grpEntities = createGroup(ID_COMPOSITE_EDITOR_ENTITIES_GRP, "Entities");
     if (grpEntities)
       fillEntitiesGroup(*grpEntities, treeDataNode, treeDataNode.canEditRandomEntities(isRootNode));
   }
 
-  PropertyContainerControlBase *grpChildren = createGroup(ID_COMPOSITE_EDITOR_CHILDREN_GRP, "Children");
+  PropPanel::ContainerPropertyControl *grpChildren = createGroup(ID_COMPOSITE_EDITOR_CHILDREN_GRP, "Children");
   if (grpChildren)
     fillChildrenGroup(*grpChildren, treeDataNode, treeDataNode.canEditChildren());
 
-  PropertyContainerControlBase *grpParameters = createGroup(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_GRP, "Node parameters");
+  PropPanel::ContainerPropertyControl *grpParameters = createGroup(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_GRP, "Node parameters");
   if (grpParameters)
   {
     const bool canEditParameters = !isRootNode && !treeDataNode.isEntBlock();
     fillParametersGroup(*grpParameters, treeDataNode, canEditParameters);
   }
 
-  PropertyContainerControlBase *grpComposit = createGroup(ID_COMPOSITE_EDITOR_COMPOSIT_GRP, "Composit");
+  PropPanel::ContainerPropertyControl *grpComposit = createGroup(ID_COMPOSITE_EDITOR_COMPOSIT_GRP, "Composit");
   if (grpComposit)
   {
     grpComposit->createButton(ID_COMPOSITE_EDITOR_COMPOSIT_SAVE_CHANGES, "Save changes");
@@ -252,7 +256,6 @@ void CompositeEditorPanel::fill(const CompositeEditorTreeData &treeData, const C
   panelState.reset();
   saveState(panelState);
 
-  showPanel(false);
   clear();
 
   if (treeData.isComposite && selectedTreeDataNode)
@@ -261,7 +264,6 @@ void CompositeEditorPanel::fill(const CompositeEditorTreeData &treeData, const C
     fillInternal(*selectedTreeDataNode, isRootNode);
   }
 
-  showPanel(true);
   loadState(panelState);
 }
 
@@ -303,8 +305,8 @@ CompositeEditorRefreshType CompositeEditorPanel::onAddNodeParametersClicked(Comp
       availableVars.push_back(String(supportedNodeParameters.getParamName(i)));
 
   Tab<String> selectedVars;
-  MultiListDialog selectVars("Parameters to add", _pxScaled(300), _pxScaled(400), availableVars, selectedVars);
-  if (selectVars.showDialog() != DIALOG_ID_OK || selectedVars.size() == 0)
+  PropPanel::MultiListDialog selectVars("Parameters to add", _pxScaled(300), _pxScaled(400), availableVars, selectedVars);
+  if (selectVars.showDialog() != PropPanel::DIALOG_ID_OK || selectedVars.size() == 0)
     return CompositeEditorRefreshType::Nothing;
 
   makeUndoForPropertyEditing();
@@ -331,8 +333,8 @@ CompositeEditorRefreshType CompositeEditorPanel::onRemoveNodeParametersClicked(C
   }
 
   Tab<String> selectedVars;
-  MultiListDialog selectVars("Parameters to remove", _pxScaled(300), _pxScaled(400), availableVars, selectedVars);
-  if (selectVars.showDialog() != DIALOG_ID_OK || selectedVars.size() == 0)
+  PropPanel::MultiListDialog selectVars("Parameters to remove", _pxScaled(300), _pxScaled(400), availableVars, selectedVars);
+  if (selectVars.showDialog() != PropPanel::DIALOG_ID_OK || selectedVars.size() == 0)
     return CompositeEditorRefreshType::Nothing;
 
   makeUndoForPropertyEditing();
@@ -515,12 +517,12 @@ CompositeEditorRefreshType CompositeEditorPanel::onClick(CompositeEditorTreeData
     const int entityIndex = pcb_id - ID_COMPOSITE_EDITOR_ENTITIES_ENTITY_ACTIONS_FIRST;
 
     const int action = getInt(pcb_id);
-    if (action == EXT_BUTTON_INSERT)
+    if (action == PropPanel::EXT_BUTTON_INSERT)
     {
       makeUndoForPropertyEditing();
       treeDataNode.insertEntBlock(entityIndex);
     }
-    else if (action == EXT_BUTTON_REMOVE)
+    else if (action == PropPanel::EXT_BUTTON_REMOVE)
     {
       makeUndoForPropertyEditing();
       treeDataNode.nodes.erase(treeDataNode.nodes.begin() + entityIndex);
@@ -559,12 +561,12 @@ CompositeEditorRefreshType CompositeEditorPanel::onClick(CompositeEditorTreeData
     const int entityIndex = pcb_id - ID_COMPOSITE_EDITOR_CHILDREN_ENTITY_ACTIONS_FIRST;
 
     const int action = getInt(pcb_id);
-    if (action == EXT_BUTTON_INSERT)
+    if (action == PropPanel::EXT_BUTTON_INSERT)
     {
       makeUndoForPropertyEditing();
       treeDataNode.insertNodeBlock(entityIndex);
     }
-    else if (action == EXT_BUTTON_REMOVE)
+    else if (action == PropPanel::EXT_BUTTON_REMOVE)
     {
       makeUndoForPropertyEditing();
       treeDataNode.nodes.erase(treeDataNode.nodes.begin() + entityIndex);

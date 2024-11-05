@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "frameBoundaryBufferManager.h"
 #include "common.h"
 #include <vecmath/dag_vecMath.h>
@@ -5,12 +7,18 @@
 #include <osApiWrappers/dag_critSec.h>
 #include <perfMon/dag_statDrv.h>
 #include <util/dag_convar.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_info.h>
 
 #include <util/dag_console.h>
 #include <gui/dag_imgui.h>
 #include <imgui/imgui.h>
+#include <ioSys/dag_dataBlock.h>
 
 
+CONSOLE_BOOL_VAL("dafx_frameboundary", disable_frameboundary, false);
 CONSOLE_BOOL_VAL("dafx_frameboundary", use_optimized_boundary_calc, true);
 CONSOLE_BOOL_VAL("dafx_frameboundary", use_experimental_boundary_calc, true);
 
@@ -75,40 +83,6 @@ FrameBoundaryBufferManager::FrameBoundaryBufferManager()
   WinAutoLock lock(g_frame_boundary_cs);
 
   managers.push_back(this);
-
-  isSupported = checkHWSupport();
-
-  fillBoundaryLegacyCs = new_compute_shader("fill_fx_keyframe_boundary_legacy", true);
-  isSupported = isSupported && fillBoundaryLegacyCs;
-
-  fillBoundaryOptCs = new_compute_shader("fill_fx_keyframe_boundary_opt", true);
-  isSupported = isSupported && fillBoundaryOptCs;
-
-  fillBoundaryOptStartCs = new_compute_shader("fill_fx_keyframe_boundary_opt_start", true);
-  isSupported = isSupported && fillBoundaryOptStartCs;
-
-  fillBoundaryOptEndCs = new_compute_shader("fill_fx_keyframe_boundary_opt_end", true);
-  isSupported = isSupported && fillBoundaryOptEndCs;
-
-  clearBoundaryCs = new_compute_shader("clear_fx_keyframe_boundary", true);
-  isSupported = isSupported && clearBoundaryCs;
-
-  updateDebugTexCs = new_compute_shader("frame_boundary_debug_update", true);
-  isSupported = isSupported && updateDebugTexCs;
-
-  if (isSupported)
-  {
-    debug("dafx: frameboundary init, success");
-
-    init_shader_vars();
-    ShaderGlobal::set_int(dafx_frame_boundary_buffer_enabledVarId, 1);
-  }
-  else
-  {
-    debug("dafx: frameboundary init, not supported");
-    ShaderGlobal::set_int(dafx_frame_boundary_buffer_enabledVarId, 0);
-    ShaderGlobal::set_buffer(::get_shader_variable_id("dafx_frame_boundary_buffer", true), BAD_D3DRESID);
-  }
 }
 FrameBoundaryBufferManager::~FrameBoundaryBufferManager()
 {
@@ -144,6 +118,47 @@ FrameBoundaryBufferManager::FrameBoundaryBufferManager(FrameBoundaryBufferManage
   fillBoundaryOptEndCs = eastl::move(rhs.fillBoundaryOptEndCs);
   clearBoundaryCs = eastl::move(rhs.clearBoundaryCs);
   updateDebugTexCs = eastl::move(rhs.updateDebugTexCs);
+}
+
+void FrameBoundaryBufferManager::init(bool use_sbuffer)
+{
+  WinAutoLock lock(g_frame_boundary_cs);
+
+  isSupported = use_sbuffer && checkHWSupport();
+
+  fillBoundaryLegacyCs = new_compute_shader("fill_fx_keyframe_boundary_legacy", true);
+  isSupported = isSupported && fillBoundaryLegacyCs;
+
+  fillBoundaryOptCs = new_compute_shader("fill_fx_keyframe_boundary_opt", true);
+  isSupported = isSupported && fillBoundaryOptCs;
+
+  fillBoundaryOptStartCs = new_compute_shader("fill_fx_keyframe_boundary_opt_start", true);
+  isSupported = isSupported && fillBoundaryOptStartCs;
+
+  fillBoundaryOptEndCs = new_compute_shader("fill_fx_keyframe_boundary_opt_end", true);
+  isSupported = isSupported && fillBoundaryOptEndCs;
+
+  clearBoundaryCs = new_compute_shader("clear_fx_keyframe_boundary", true);
+  isSupported = isSupported && clearBoundaryCs;
+
+  updateDebugTexCs = new_compute_shader("frame_boundary_debug_update", true);
+  isSupported = isSupported && updateDebugTexCs;
+
+  if (isSupported)
+  {
+    debug("dafx: frameboundary init, success");
+
+    init_shader_vars();
+
+    frameBoundaryBufferInitialSize = ::dgs_get_settings()->getBlockByNameEx("graphics")->getInt("frameBoundaryBufferInitialSize", 0);
+    if (frameBoundaryBufferInitialSize)
+      frameBoundaryAllocator.resize(frameBoundaryBufferInitialSize);
+  }
+  else
+  {
+    debug("dafx: frameboundary init, not supported");
+    ShaderGlobal::set_buffer(::get_shader_variable_id("dafx_frame_boundary_buffer", true), BAD_D3DRESID);
+  }
 }
 
 int FrameBoundaryBufferManager::acquireFrameBoundary(TEXTUREID texture_id, IPoint2 frame_dim)
@@ -196,6 +211,8 @@ void FrameBoundaryBufferManager::update(unsigned int current_frame)
   if (!isSupported)
     return;
 
+  ShaderGlobal::set_int(dafx_frame_boundary_buffer_enabledVarId, isSupported && !disable_frameboundary); //-V560
+
   int maxTargetCapacity = frameBoundaryAllocator.getHeapSize();
   if (bufferElemCnt == 0 || bufferElemCnt < maxTargetCapacity)
   {
@@ -231,6 +248,11 @@ void FrameBoundaryBufferManager::resizeIncrement(size_t min_size_increment)
 {
   int sizeIncrement = frameBoundaryAllocator.getHeapSize() / 2; // +50% capcacity
   int newCapacity = frameBoundaryAllocator.getHeapSize() + max<int>(min_size_increment, sizeIncrement);
+
+  if (frameBoundaryBufferInitialSize)
+    logwarn("FrameBoundaryBufferManager: frameBoundaryAllocator resize from %d to %d", frameBoundaryAllocator.getHeapSize(),
+      newCapacity);
+
   frameBoundaryAllocator.resize(newCapacity);
 }
 

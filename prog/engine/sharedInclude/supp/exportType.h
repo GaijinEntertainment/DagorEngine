@@ -1,6 +1,4 @@
-#ifndef _GAIJIN_EXPTYPE_H
-#define _GAIJIN_EXPTYPE_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #define __EXPTYPE __cdecl
-
-#endif

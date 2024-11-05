@@ -7,6 +7,7 @@ include "distanceToClouds2.dshl"
 include "vr_reprojection.dshl"
 include "use_custom_fog_sky.dshl"
 include "flexible_scale_rasterization.dshl"
+include "cloud_volume_mask.dshl"
 
 float min_ground_offset;
 texture clouds_color;
@@ -19,13 +20,25 @@ float4 clouds2_resolution;
 int clouds_has_close_sequence = 1;
 int clouds_apply_simple_ztest = 1;
 
+texture dynamic_bit_texture;
+
+int clouds_use_blur_apply = 0;
+interval clouds_use_blur_apply: no < 1, yes;
+
 shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
 {
   blend_src = 1; blend_dst = isa;
   cull_mode=none;
   z_write=false;
-  //z_test=false;
-  z_test=true; //fastest, but requires clouds to be far, than anything
+  if (dynamic_bit_texture == NULL)
+  {
+    z_test=true;
+  }
+  else
+  {
+    z_test=false;
+  }
+
   if (clouds_depth_gbuf == NULL)
   {
     hlsl {
@@ -35,10 +48,13 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
   USE_CLOUDS_DISTANCE(ps)
   USE_CLOUDS_DISTANCE_STUB(ps)
   USE_SPECIAL_VISION()
-  SKY_HDR()
+  INIT_HDR(ps)
+  USE_HDR(ps)
 
   INIT_BOUNDING_VIEW_REPROJECTION(ps)
   USE_BOUNDING_VIEW_REPROJECTION(ps)
+
+  CLOUD_VOLUME_MASK()
 
   USE_CUSTOM_FOG_SKY(ps)
 
@@ -96,10 +112,12 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
 
     clouds_color@smp2d = clouds_color;
     clouds_color_close@smp2d = clouds_color_close;
-    clouds2_far_res@f2 = (clouds2_resolution.xy,0,0);
+    clouds2_far_res@f4 = (clouds2_resolution.xy, 1/clouds2_resolution.xy);
     clouds2_far_res_minus_1@f2 = (clouds2_resolution.x - 1, clouds2_resolution.y - 1);
     clouds2_close_res@f2 = (clouds2_resolution.zw,0,0);
     clouds_has_close_sequence@f1 = (clouds_has_close_sequence);
+
+    dynamic_bit_texture@smp2d = dynamic_bit_texture;
   }
   INIT_ZNZFAR()
   DISTANCE_TO_CLOUDS2(ps)
@@ -132,9 +150,16 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
     {
       return rcp( 0.00001 + abs( lowResLinearZ - hiResLinearZ ) );
     }
-    float4 linearize_z4(float4 raw4, float2 decode_depth)
+
+    uint getDynamic(float2 uv)
     {
-      return rcp(decode_depth.xxxx + decode_depth.y * raw4);
+      ##if dynamic_bit_texture == NULL
+        return 0;
+      ##else
+        uv = uv * fullres_depth_gbuf_transform.xy + fullres_depth_gbuf_transform.zw;
+        half shadowPacked = tex2Dlod(dynamic_bit_texture, float4(uv,0,0)).w;
+        return shadowPacked > 0.5;
+      ##endif
     }
 
     #include <tex2d_bicubic.hlsl>
@@ -154,12 +179,11 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
       if (isFullRayBelowClouds && rawDepth != 0)
         return half4(0,0,0,0);
 
-##if clouds_use_fullres == yes
+##if clouds_use_fullres == yes || clouds_use_blur_apply == yes
       return tex2Dlod(clouds_color, float4(texcoord,0,0));
-##endif
-
+##else
       #define GET_LOWRES_COORD(ofs, tc)\
-        float2 lowResCoords = tc*clouds2_far_res - ofs;\
+        float2 lowResCoords = tc*clouds2_far_res.xy - ofs;\
         int4 lowResCoordsI;\
         lowResCoordsI.xy = int2(lowResCoords);\
         lowResCoordsI.zw = min(lowResCoordsI.xy+int2(1,1), (int2)clouds2_far_res_minus_1);
@@ -193,6 +217,13 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
              clouds_color[lowResCoordsI.zy]*linearLowResWeights.y+
              clouds_color[lowResCoordsI.xw]*linearLowResWeights.z+
              clouds_color[lowResCoordsI.zw]*linearLowResWeights.w;
+##endif
+    }
+
+    half4 blend_result(half4 close_plane, half4 dist_plane, half alpha_mask = 0)
+    {
+      half4 clouds = half4(TAA_BRIGHTNESS_SCALE*(dist_plane.rgb*(1-close_plane.a) + close_plane.rgb), 1-(1-close_plane.a)*(1-dist_plane.a));
+      return lerp(clouds, 0, alpha_mask);
     }
 
     half4 apply_clouds_ps_main(VsOutput input, float4 screenpos, out float raw_depth)
@@ -213,13 +244,25 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
       ##endif
 
       float2 texcoord = input.tc;
+      bool isDynamic = getDynamic(getLinearTc(input.pos.xy, input.tc));
+
       ##if use_bounding_vr_reprojection == on
-        texcoord = vr_bounding_view_reproject_tc(texcoord,0);
+        texcoord = vr_bounding_view_reproject_tc(texcoord, raw_depth);
       ##endif
+
+      if (isDynamic)
+      {
+        float linearDepth = linearize_z(raw_depth, zn_zfar.zw);
+        float mask = get_screen_cloud_volume_mask(texcoord, linearDepth);
+
+        half4 distPlane = tex2Dlod(clouds_color, float4(texcoord,0,0));
+        half4 closePlane = getBicubicClose(texcoord);
+        return blend_result(closePlane, distPlane, mask);
+      }
 
       #if SIMPLE_APPLY
         half4 distPlane = 0;
-        if (HAS_EMPTY_TILES==0 || !tile_is_empty(uint2(texcoord.xy*clouds2_far_res)))
+        if (HAS_EMPTY_TILES==0 || !tile_is_empty(uint2(texcoord.xy*clouds2_far_res.xy)))
           distPlane = tex2Dlod(clouds_color, float4(texcoord,0,0));
         return half4(TAA_BRIGHTNESS_SCALE*distPlane.rgb, distPlane.a);
       #else
@@ -251,7 +294,13 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
         half4 closePlane = 0;
         BRANCH
         if (!close_layer_should_early_exit())
+        {
+          #if SIMPLER_CLOSE_CLOUDS_APPLY
+          closePlane = tex2Dlod(clouds_color_close, float4(texcoord,0,0));
+          #else
           closePlane = getBicubicClose(texcoord);
+          #endif
+        }
         float closeSequenceEndDist = clouds_has_close_sequence ? closeSequenceStepSize*(closeSequenceSteps-4) : 0;
         #if CHECK_DIST_TO_CLOUDS
         //can happen only when we are above/below clouds layer
@@ -261,10 +310,10 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
         } else
         #endif
         {
-          if (linearDist > closeSequenceEndDist && (HAS_EMPTY_TILES==0 || !tile_is_empty(uint2(texcoord.xy*clouds2_far_res))))
+          if (linearDist > closeSequenceEndDist && (HAS_EMPTY_TILES==0 || !tile_is_empty(uint2(texcoord.xy*clouds2_far_res.xy))))
             distPlane = bilateral_get(input.viewVect, texcoord, depth_texcoord, linearDepth, raw_depth);
         }
-        return half4(TAA_BRIGHTNESS_SCALE*(distPlane.rgb*(1-closePlane.a) + closePlane.rgb), 1-(1-closePlane.a)*(1-distPlane.a));
+        return blend_result(closePlane, distPlane);
       #endif
     }
 
@@ -335,4 +384,108 @@ shader clouds_create_indirect
     }
   }
   compile("cs_5_0", "cs_main");
+}
+
+macro CLOUD_BLUR(stage)
+  (stage){
+    clouds_color@smp2d = clouds_color;
+    clouds2_far_res@f4 = (clouds2_resolution.xy, 1/clouds2_resolution.xy);
+  }
+
+  hlsl(stage) {
+    float4 get_simple_blur(float2 texcoord)
+    {
+      float2 scaledOffsets = clouds2_far_res.zw;
+      float2 offsets[8] = {
+        -scaledOffsets, // top-left
+        float2( 0.0, -scaledOffsets.y), // top-center
+        float2( scaledOffsets.x, -scaledOffsets.y), // top-right
+        float2(-scaledOffsets.x,  0.0), // mid-left
+        float2( scaledOffsets.x,  0.0), // mid-right
+        float2(-scaledOffsets.x,  scaledOffsets.y), // bottom-left
+        float2( 0.0,  scaledOffsets.y), // bottom-center
+        scaledOffsets  // bottom-right
+      };
+
+      float offsetsWeights[8]= {
+        0.3678, // exp(-1)
+        0.6065, // exp(-0.5)
+        0.3678,
+        0.6065,
+        0.6065,
+        0.3678,
+        0.6065,
+        0.3678
+      };
+
+      float4 outputColor = float4(0.0, 0.0, 0.0, 0.0);
+      UNROLL
+      for (int i = 0; i < 8; i++) {
+        outputColor += tex2Dlod(clouds_color, float4(texcoord + offsets[i], 0, 0)) * offsetsWeights[i];
+      }
+
+      outputColor /= 3.8972; // sum of weights
+      return outputColor;
+    }
+  }
+endmacro
+
+shader clouds2_apply_blur_cs
+{
+  CLOUD_BLUR(cs)
+
+  hlsl(cs) {
+    #include "cloud_settings.hlsli"
+    RWTexture2D<float4> target0: register(u0);
+
+    [numthreads(CLOUD_TRACE_WARP_X, CLOUD_TRACE_WARP_Y, 1)]
+    void cs_main(uint2 dtid : SV_DispatchThreadID)
+    {
+      if (any(dtid >= clouds2_far_res.xy))
+        return;
+      float2 texcoord = dtid*clouds2_far_res.zw + 0.5*clouds2_far_res.zw;
+      target0[dtid] = get_simple_blur(texcoord);
+    }
+  }
+  compile("cs_5_0", "cs_main");
+}
+
+shader clouds2_apply_blur_ps
+{
+  cull_mode=none;
+  z_write=false;
+  z_test=false;
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  CLOUD_BLUR(ps)
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 tc : TEXCOORD0;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput blur_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4(pos.xy, 0, 1);
+      output.tc = screen_to_texcoords(pos);
+
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    float4 blur_ps(VsOutput IN) : SV_Target
+    {
+      return get_simple_blur(IN.tc);
+    }
+  }
+
+  compile("target_vs", "blur_vs");
+  compile("target_ps", "blur_ps");
 }

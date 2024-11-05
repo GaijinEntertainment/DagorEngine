@@ -1,0 +1,170 @@
+include "shader_global.dshl"
+include "lights_cb.dshl"
+
+int oof_clear_grid_size;
+shader clear_out_of_frustum_grid_cs
+{
+  ENABLE_ASSERT(cs)
+  (cs) {
+    oof_clear_grid_size@i1 = oof_clear_grid_size;
+  }
+  hlsl(cs) {
+    RWByteAddressBuffer oof_lights_full_grid: register(u0);
+    [numthreads(64, 1, 1)]
+    void clear_out_of_frustum_grid_cs(uint dtId : SV_DispatchThreadID)
+    {
+      if (dtId < oof_clear_grid_size)
+        storeBuffer4(oof_lights_full_grid, dtId * 16, uint4(0,0,0,0));
+    }
+  }
+  compile("target_cs", "clear_out_of_frustum_grid_cs");
+}
+
+hlsl(cs) {
+  float length3_sq(float3 x) {return dot(x,x);}
+  bool bbox_test_sph_intersect(float3 box_bmin, float3 box_bmax, float3 bsph_center, float bsph_r2_x)
+  {
+    float distSq = length3_sq(max(box_bmin - bsph_center, 0) + max(bsph_center - box_bmax, 0)); // Dist from sph center to bounding box squared
+    return distSq - bsph_r2_x <= 0;
+  }
+  //returns .x = radius, .y = offset
+  float2 get_bounding_sphere_description(float sin_half_angle, float cos_half_angle)
+  {
+    const float COS_PI_4 = 0.70710678118654752440084436210485;
+    float angleBelow45Radius = 1. / (2.f * cos_half_angle);
+    // angle/2 < 45 degrees:
+    //   use circumcircle of the spot light cone
+    //   the light position is on the surface of the bounding sphere
+
+    // else only consider the spherical sector
+    // the light position is inside of the bounding sphere
+    return ((cos_half_angle > COS_PI_4) ? float2(angleBelow45Radius, angleBelow45Radius) : float2(sin_half_angle, cos_half_angle));
+  }
+  float4 getBoundingSphere(float3 position, float3 direction, float lightRadius, float sinHalfAngle, float cosHalfAngle)
+  {
+    // TODO: further vectorize this (incl getCosHalfAngle()/get_bounding_sphere_description())
+    float2 boundingDesc = lightRadius*get_bounding_sphere_description(sinHalfAngle, cosHalfAngle);
+    return float4(direction*boundingDesc.y + position, boundingDesc.x);
+  }
+
+}
+
+float4 out_of_frustum_grid_cull_box[4];//box_bmin + halfGridCellSz, halfGridCellSz
+shader cull_out_of_frustum_lights_cs
+{
+  ENABLE_ASSERT(cs)
+  INIT_OMNI_LIGHTS_CB(cs)
+  INIT_SPOT_LIGHTS_CB(cs)
+  (cs) {
+    out_of_frustum_grid_cull_box@f4[] = out_of_frustum_grid_cull_box;
+  }
+  hlsl(cs) {
+    float4 v_make_plane_dir(float3 p0, float3 dir0, float3 dir1)
+    {
+      float3 n = cross(dir0, dir1);
+      return float4(n, -dot(p0, n));
+    }
+    bool is_box_visible(float3 center, float3 extent, float4x4 plane03_XYZW)
+    {
+      float4 res03;
+      res03 = (center.xxxx + (extent.x * sign(plane03_XYZW[0]))) * plane03_XYZW[0] + plane03_XYZW[3];
+      res03 = (center.yyyy + (extent.y * sign(plane03_XYZW[1]))) * plane03_XYZW[1] + res03;
+      res03 = (center.zzzz + (extent.z * sign(plane03_XYZW[2]))) * plane03_XYZW[2] + res03;
+      return all(bool4(res03 >= 0));
+    }
+    RWByteAddressBuffer oof_lights_full_grid : register(u0);
+    [numthreads(8, 8, 1)]
+    void cull_out_of_frustum_lights_cs(uint3 dtId:SV_DispatchThreadID, uint3 gtId:SV_GroupThreadID, uint3 gid:SV_GroupID, uint tid:SV_GroupIndex)
+    {
+      uint3 gridPos = uint3(dtId.xy, gid.z%OOF_GRID_VERT);
+      uint lightId = gid.z/OOF_GRID_VERT;
+      if (lightId >= spot_lights_count.x+omni_lights_count.x || any(gridPos.xy >= OOF_GRID_W))
+        return;
+      uint lightBitFinalIndex; uint lightGridFinalIndex;
+      if (lightId < omni_lights_count.x)
+      {
+        float4 posRadius = omni_lights_cb[lightId].posRadius;
+        float3 gridCellHalfSz = out_of_frustum_grid_cull_box[1].xyz;
+        float3 gridPosCenter = out_of_frustum_grid_cull_box[0].xyz + (gridPos.xzy*2)*gridCellHalfSz;
+        //if (any(abs(posRadius.xyz - gridPosCenter) > gridCellSz*0.5 + posRadius.w))
+        //  return;
+        //if (!bbox_test_sph_intersect(gridPosCenter-gridCellHalfSz, gridPosCenter+gridCellHalfSz, posRadius.xyz, posRadius.w*posRadius.w))
+        //  return;
+        uint gridCellIndex = (gridPos.z*OOF_GRID_W + gridPos.y)*OOF_GRID_W + gridPos.x;
+        uint lightWordIndex = lightId>>5;
+        ##assert(lightWordIndex < omni_lights_count.y, "[%s:%.f] Out of bounds: omni words count is (%.f), but access to (%.f)", _FILE_, __LINE__, omni_lights_count.y, lightWordIndex);
+        lightBitFinalIndex = lightId&31u;
+
+        uint omniOffset = asuint(out_of_frustum_grid_cull_box[1].w);
+        uint wordsPerOmni = uint(spot_lights_count.y);
+        lightGridFinalIndex = gridCellIndex*wordsPerOmni + lightWordIndex + omniOffset;
+      } else
+      {
+        lightId -= omni_lights_count.x;
+        float4 posRadius = spot_lights_cb[lightId].lightPosRadius;
+        float4 lightDirectionAngleOffset = spot_lights_cb[lightId].lightDirectionAngleOffset;
+        float cosHalfAngle = -lightDirectionAngleOffset.w/spot_lights_cb[lightId].lightColorAngleScale.w;
+        float sinHalfAngle = sqrt(saturate(1 - cosHalfAngle*cosHalfAngle));
+        float4 bounding = getBoundingSphere(posRadius.xyz, lightDirectionAngleOffset.xyz, posRadius.w, sinHalfAngle, cosHalfAngle);
+
+        float3 gridCellHalfSz = out_of_frustum_grid_cull_box[3].xyz;
+        float3 gridPosCenter = out_of_frustum_grid_cull_box[2].xyz + (gridPos.xzy*2)*gridCellHalfSz;
+        //if (any(abs(posRadius.xyz - gridPosCenter) > gridCellSz*0.5 + posRadius.w))
+        //  return;
+        if (!bbox_test_sph_intersect(gridPosCenter-gridCellHalfSz, gridPosCenter+gridCellHalfSz, bounding.xyz, bounding.w*bounding.w))
+          return;
+        float gridCellRadius = length(gridCellHalfSz);//fixme!
+
+        float tanHalf = sinHalfAngle/max(1e-6, cosHalfAngle);
+
+        float3 up0 = abs(lightDirectionAngleOffset.z) > 0.999 ? float3(1,0,0) : float3(0,0,1);
+
+        float3 left = normalize(cross(up0, lightDirectionAngleOffset.xyz)), up = cross(lightDirectionAngleOffset.xyz, left);
+        float3 vFar2 = tanHalf * (left + up), vFar1 = tanHalf * (left - up), vFar3 = -vFar1, vFar0 = -vFar2;
+        float3 leftrot = vFar2 * 0.7071067811865476f, uprot = vFar1 * 0.7071067811865476f;
+        vFar0 = (vFar0 + lightDirectionAngleOffset.xyz);
+        vFar1 = (vFar1 + lightDirectionAngleOffset.xyz);
+        vFar2 = (vFar2 + lightDirectionAngleOffset.xyz);
+        vFar3 = (vFar3 + lightDirectionAngleOffset.xyz);
+        float4x4 plane03;
+        plane03[0] = v_make_plane_dir(posRadius.xyz, vFar0, vFar1);
+        plane03[1] = v_make_plane_dir(posRadius.xyz, vFar1, vFar2);
+        plane03[2] = v_make_plane_dir(posRadius.xyz, vFar2, vFar3);
+        plane03[3] = v_make_plane_dir(posRadius.xyz, vFar3, vFar0);
+        plane03 = transpose(plane03);
+        if (!is_box_visible(gridPosCenter, gridCellHalfSz, plane03))
+          return;
+
+        float4x4 plane47;
+        plane47[0] = float4(lightDirectionAngleOffset.xyz, -dot(lightDirectionAngleOffset.xyz, posRadius.xyz));
+        plane47[1] = float4(-lightDirectionAngleOffset.xyz, posRadius.w - plane47[0].w);
+
+        vFar2 = leftrot + uprot;
+        vFar1 = leftrot - uprot;
+        vFar0 = (lightDirectionAngleOffset.xyz - vFar2);
+        vFar1 = (vFar1 + lightDirectionAngleOffset.xyz);
+        vFar2 = (vFar2 + lightDirectionAngleOffset.xyz);
+        plane47[2] = v_make_plane_dir(posRadius.xyz, vFar1, vFar0);
+        plane47[3] = v_make_plane_dir(posRadius.xyz, vFar2, vFar1);
+        plane47 = transpose(plane47);
+        if (!is_box_visible(gridPosCenter, gridCellHalfSz, plane47))
+          return;
+
+        uint gridCellIndex = (gridPos.z*OOF_GRID_W + gridPos.y)*OOF_GRID_W + gridPos.x;
+        uint lightWordIndex = lightId>>5;
+        ##assert(lightWordIndex < spot_lights_count.y, "[%s:%.f] Out of bounds: spot words count is (%.f), but access to (%.f)", _FILE_, __LINE__, spot_lights_count.y, lightWordIndex);
+        lightBitFinalIndex = lightId&31u;
+
+        uint spotOffset = asuint(out_of_frustum_grid_cull_box[3].w);//uint(omni_lights_count.y)*OOF_GRID_SIZE;//
+        uint wordsPerSpot = uint(spot_lights_count.y);
+        lightGridFinalIndex = gridCellIndex*wordsPerSpot + lightWordIndex + spotOffset;
+      }
+      #if DEBUG_ENABLE_BOUNDS_CHECKS
+      uint dim; oof_lights_full_grid.GetDimensions(dim);
+      checkBufferBounds(lightGridFinalIndex, dim, _FILE_, __LINE__, -1);
+      #endif
+      oof_lights_full_grid.InterlockedOr(lightGridFinalIndex*4, 1u<<lightBitFinalIndex);
+    }
+  }
+  compile("target_cs", "cull_out_of_frustum_lights_cs");
+}

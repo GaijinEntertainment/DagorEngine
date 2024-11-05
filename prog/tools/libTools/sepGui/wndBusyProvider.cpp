@@ -1,4 +1,4 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #define _WIN32_WINNT 0x500
 

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -21,10 +20,10 @@ class AssetData;
 }
 
 typedef HierBitMap2d<HierConstSizeBitMap2d<4, ConstSizeBitMap2d<5>>> EditableHugeBitmask;
-typedef void (*rigen_gather_pos_t)(Tab<Point4> &dest, Tab<int> &dest_per_inst_data, int idx, int pregen_id, float x0, float z0,
-  float x1, float z1);
-typedef void (*rigen_gather_tm_t)(Tab<TMatrix> &dest, Tab<int> &dest_per_inst_data, int idx, int pregen_id, float x0, float z0,
-  float x1, float z1);
+typedef void (*rigen_gather_pos_t)(Tab<Point4> &dest, Tab<int> &dest_per_inst_data, bool add_per_inst_data, int idx, int pregen_id,
+  float x0, float z0, float x1, float z1);
+typedef void (*rigen_gather_tm_t)(Tab<TMatrix> &dest, Tab<int> &dest_per_inst_data, bool add_per_inst_data, int idx, int pregen_id,
+  float x0, float z0, float x1, float z1);
 typedef void (*rigen_calculate_mapping_t)(Tab<int> &indices, int flg, unsigned riPoolBitsMask);
 typedef void (*rigen_prepare_pools_t)(bool begin);
 

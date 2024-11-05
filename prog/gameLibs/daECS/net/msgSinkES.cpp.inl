@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/net/msgSink.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
@@ -10,8 +12,9 @@ namespace net
 
 ecs::EntityId msg_sink_eid = ecs::INVALID_ENTITY_ID;
 static ska::flat_hash_map<uint32_t, net::msg_handler_t, ska::power_of_two_std_hash<uint32_t>> msg_handlers;
-static void (*on_msg_sink_created_cb)(ecs::EntityId) = nullptr;
-void set_msg_sink_created_cb(void (*cb)(ecs::EntityId eid)) { on_msg_sink_created_cb = cb; }
+
+msg_sink_created_cb_t on_msg_sink_created_cb;
+void set_msg_sink_created_cb(msg_sink_created_cb_t cb) { on_msg_sink_created_cb = eastl::move(cb); }
 
 ecs::EntityId get_msg_sink() { return msg_sink_eid; }
 

@@ -1,4 +1,4 @@
-let class A {
+class A {
   function _get(key) {
     println("begin A._get() call")
     throw "I am an error!"
@@ -6,12 +6,12 @@ let class A {
   }
 }
 
-let function testField() {
+function testField() {
   let a = A()
   println($"a.foo = {a?.foo}")
 }
 
-let function testIndex() {
+function testIndex() {
   let a = A()
   println($"a[10] = {a?[10]}")
 }

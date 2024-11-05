@@ -20,7 +20,7 @@ if $(Platform) = nswitch {
   UseProgLibs = 3rdPartyLibs/posix ;
 }
 
-if $(Platform) = linux64 && $(Sanitize) = thread {
+if $(Platform) = linux && $(Sanitize) = thread {
   Copt += -Wno-tsan ;
 }
 

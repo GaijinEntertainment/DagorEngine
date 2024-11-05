@@ -1,7 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "ringbuf.h"
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_query.h>
+#include <drv/3d/dag_info.h>
 #include <shaders/dag_shaderVar.h>
 
 struct VideoPlaybackData
@@ -67,7 +70,7 @@ public:
     if (avoid_tex_update)
     {
       tex_flags &= ~TEXCF_SYSMEM;
-      debug_ctx("avoid using tex->update() - use direct buffering");
+      DEBUG_CTX("avoid using tex->update() - use direct buffering");
     }
 
     for (int i = 0; i < vBuf.getDepth(); i++)
@@ -76,13 +79,13 @@ public:
       b.texY = d3d::create_tex(NULL, w, h, tex_flags, 1, "videoSysTexY");
       if (!b.texY)
       {
-        debug_ctx("can't create Y tex %d: w=%d, h=%d, tex_flags=0x%p", i, w, h, tex_flags);
+        DEBUG_CTX("can't create Y tex %d: w=%d, h=%d, tex_flags=0x%p", i, w, h, tex_flags);
         return false;
       }
       d3d_err(b.texY->getinfo(ti));
       if (ti.w < wd || ti.h < ht)
       {
-        debug_ctx("bad tex sz %dx%d < %dx%d", ti.w, ti.h, wd, ht);
+        DEBUG_CTX("bad tex sz %dx%d < %dx%d", ti.w, ti.h, wd, ht);
         return false;
       }
 
@@ -90,7 +93,7 @@ public:
       b.texV = d3d::create_tex(NULL, w / 2, h / 2, tex_flags, 1, "videoSysTexV");
       if (!b.texU || !b.texV)
       {
-        debug_ctx("can't create UV tex %d: w=%d, h=%d, tex_flags=0x%p", i, w / 2, h / 2, tex_flags);
+        DEBUG_CTX("can't create UV tex %d: w=%d, h=%d, tex_flags=0x%p", i, w / 2, h / 2, tex_flags);
         return false;
       }
       if (avoid_tex_update)
@@ -110,8 +113,6 @@ public:
       }
       else
         b.texIdY = b.texIdU = b.texIdV = BAD_TEXTUREID;
-
-      b.ev = d3d::create_event_query();
     }
     if (avoid_tex_update)
       return true;
@@ -125,14 +126,14 @@ public:
       b.texY = d3d::create_tex(NULL, w, h, tex_flags, 1, "videoBufTexY");
       if (!b.texY)
       {
-        debug_ctx("can't create tex: w=%d, h=%d, tex_flags=0x%p", w, h, tex_flags);
+        DEBUG_CTX("can't create tex: w=%d, h=%d, tex_flags=0x%p", w, h, tex_flags);
         return false;
       }
 
       d3d_err(b.texY->getinfo(ti));
       if (ti.w < wd || ti.h < ht)
       {
-        debug_ctx("bad tex sz %dx%d < %dx%d", ti.w, ti.h, wd, ht);
+        DEBUG_CTX("bad tex sz %dx%d < %dx%d", ti.w, ti.h, wd, ht);
         return false;
       }
 
@@ -143,7 +144,7 @@ public:
       b.texV = d3d::create_tex(NULL, w / 2, h / 2, tex_flags, 1, "videoBufTexV");
       if (!b.texU || !b.texV)
       {
-        debug_ctx("can't create uv tex: w=%d, h=%d, tex_flags=0x%p", w / 2, h / 2, tex_flags);
+        DEBUG_CTX("can't create uv tex: w=%d, h=%d, tex_flags=0x%p", w / 2, h / 2, tex_flags);
         return false;
       }
 
@@ -186,7 +187,8 @@ public:
       del_d3dres(b.texY);
       del_d3dres(b.texU);
       del_d3dres(b.texV);
-      d3d::release_event_query(b.ev);
+      if (b.ev)
+        d3d::release_event_query(b.ev);
     }
 
     currentVideoFrame = 0;

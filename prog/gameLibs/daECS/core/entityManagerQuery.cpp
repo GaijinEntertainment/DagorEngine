@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EASTL/utility.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/componentTypes.h>
@@ -13,7 +15,6 @@
 #include <generic/dag_carray.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_atomic.h>
-#include <daECS/core/internal/trackComponentAccess.h>
 #include <math/dag_bits.h>
 #include "ecsPerformQueryInline.h"
 
@@ -23,13 +24,14 @@ static constexpr int max_query_components_count = 256;
 #define VALIDATE_QUERY_THOROUGHLY (DAGOR_DBGLEVEL > 1) // very expensive check
 namespace ecs
 {
-template <>
-MTLinkedList<QueryStackData>::Node *MTLinkedList<QueryStackData>::head = nullptr;
-template <>
-thread_local MTLinkedList<QueryStackData>::Node *MTLinkedList<QueryStackData>::thread_data = nullptr;
-
 G_STATIC_ASSERT(sizeof(ArchetypesQuery) <= 64);
 static constexpr int MAX_ES_JOBS = MAX_POSSIBLE_WORKERS_COUNT;
+
+void QueryStackData::collapse()
+{
+  componentData.collapse();
+  chunkEntitiesCnt.collapse();
+}
 
 // all JobInfo fits in one cache line, if there is only one chunk
 struct JobInfo //-V730
@@ -41,7 +43,7 @@ struct JobInfo //-V730
   const query_cb_t &__restrict fun;
   void *__restrict userData;
   int quant;
-  eastl::fixed_vector<uint32_t, 32, true, framemem_allocator> starts;
+  dag::RelocatableFixedVector<uint32_t, 32, true, framemem_allocator, uint32_t, false> starts;
   JobInfo(EntityManager &mgr, const Query &__restrict query, const query_cb_t &__restrict fun, void *__restrict userData, int quant) :
     mgr(mgr), query(query), fun(fun), userData(userData), quant(quant)
   {}
@@ -71,19 +73,19 @@ public:
     TIME_PROFILE_DEV(perform_fun);
     // QueryView jobView = query.getView(user_data, chunk);//still can happen that query is already dead, if all work is done!!
 
-    int currentChunk = 0;
+    int currentChunk = 0, nprocessed = 0, nsteps = 0;
     for (;;)
     {
       const int minQuant = info->quant;
       int totalStart = info->work_started.fetch_add(minQuant);
-      int totalCount = min<int>(totalSize - totalStart, minQuant);
+      const int totalCount = min<int>(totalSize - totalStart, minQuant);
       // we can use query Only after this line, so we won't start working on already dead pointer.
       //  if info->work_finished became zero, work is finished, and job won't be 'waited' upon, code will leave, &query will become
       //  dead, but thread can just 'sleep' that can happen only before this line (or after info->work_finished.fetch_sub)
       // thread will be 'finalized' sometime.
       //'info', unlike 'query', have SAME lifetime as thread
       if (totalCount <= 0)
-        return;
+        break;
       // if we are here, query is valid pointer
       // debug("%d:we start at %d do %d out of %d",threadId, totalStart, totalCount, query.totalSize);
       const uint32_t *__restrict starts = startsPtr + currentChunk;
@@ -116,7 +118,16 @@ public:
         workLeft -= chunkWork;
         totalStart += chunkWork;
       }
+
+#if TIME_PROFILER_ENABLED
+      nprocessed += totalCount;
+      nsteps++;
+#endif
     }
+
+    DA_PROFILE_TAG(perform_fun, "nproc=%d nsteps=%d quant=%d", nprocessed, nsteps, info->quant); // To consider: fun name?
+    G_UNUSED(nprocessed);
+    G_UNUSED(nsteps);
   }
   static uint32_t getChunkSize(const Query &q, int ci) { return q.chunkEntitiesCnt[ci]; }
 
@@ -128,11 +139,11 @@ static constexpr int num_jobs_to_wake_up_all = 2; // it is faster to wake up 2 t
 static __forceinline void parallel_for(int num_jobs, EntityManager &mgr, const query_cb_t &fun, const Query &pQuery, void *user_data,
   int min_quant, threadpool::JobPriority tpprio)
 {
+  TIME_PROFILE(ecs_parallel_for_query);
   // debug("start working on %p[%d] == %d(%d)", &pQuery, chunk, cnt);
   alignas(ESJob) char jobStorage[MAX_ES_JOBS * sizeof(ESJob)];
   ESJob *jobs = (ESJob *)jobStorage;
   JobInfo info(mgr, pQuery, fun, user_data, min_quant);
-  TIME_PROFILE(ecs_parallel_for_query);
   const uint32_t chunksCount = pQuery.chunksCount();
   info.starts.resize(chunksCount + 1);
   uint32_t querySize = 0;
@@ -377,8 +388,9 @@ static T *add_to_fixed_container(T *ft, Cnt &__restrict cnt, const T *__restrict
 {
   if (size == 0)
     return ft;
-  const size_t nextSize = cnt + size;
-  DAECS_EXT_ASSERT(nextSize <= eastl::numeric_limits<Cnt>::max());
+  DAECS_EXT_ASSERT(cnt + size <= eastl::numeric_limits<Cnt>::max());
+  const size_t nextSize = min<size_t>(size_t(cnt) + size, eastl::numeric_limits<Cnt>::max());
+
   if (!ft || !memresizeinplace_default(ft, nextSize * sizeof(T)))
   {
     T *next = (T *)memrealloc_default(ft, nextSize * sizeof(T));
@@ -493,8 +505,8 @@ bool EntityManager::makeArchetypesQuery(archetype_t first_archetype, uint32_t in
 
   DAECS_EXT_ASSERT(archetypes.generation() == archetypes.size()); // todo: otherwise we can't incrementally update queries
 
-  eastl::fixed_vector<archetype_t, 4, true, framemem_allocator> queries;
-  eastl::fixed_vector<ArchetypesQuery::offset_type_t, 16, true, framemem_allocator> allComponentsArchOffsets;
+  dag::RelocatableFixedVector<archetype_t, 4, true, framemem_allocator> queries;
+  dag::RelocatableFixedVector<ArchetypesQuery::offset_type_t, 16, true, framemem_allocator, uint32_t, false> allComponentsArchOffsets;
 
   DEBUG_VERBOSE_QUERY("adding %d archetypes to query %d", archetypesCount - first_archetype,
     &query >= archetypeQueries.begin() && &query < archetypeQueries.end() ? &query - archetypeQueries.begin() : -1);
@@ -542,7 +554,7 @@ bool EntityManager::makeArchetypesQuery(archetype_t first_archetype, uint32_t in
     const uint32_t oldOffsets = allComponentsArchOffsets.size();
 
     allComponentsArchOffsets.resize(oldOffsets + totalDataComponentsCount);
-    archetype_component_id *__restrict id = tempIds;
+    const archetype_component_id *__restrict id = tempIds;
     auto archOffsetsOfs = archetypes.getArchetypeComponentOfsUnsafe(ai);
     for (auto oi = allComponentsArchOffsets.data() + oldOffsets, oe = oi + totalDataComponentsCount; oi != oe; ++oi, ++id)
       *oi = *id == INVALID_ARCHETYPE_COMPONENT_ID ? ArchetypesQuery::INVALID_OFFSET
@@ -558,7 +570,10 @@ bool EntityManager::makeArchetypesQuery(archetype_t first_archetype, uint32_t in
   DAECS_EXT_ASSERTF_RETURN(totalDataComponentsCount == resDesc.getRO().cnt + resDesc.getRW().cnt, false, "%d",
     totalDataComponentsCount);
 
-  const size_t oldQueriesCount = query.getQueriesCount(), newQueriesCount = oldQueriesCount + queries.size();
+  const size_t oldQueriesCount = query.getQueriesCount(),
+               newQueriesCount =
+                 min<size_t>(eastl::numeric_limits<decltype(ArchetypesQuery::queriesCount)>::max(), oldQueriesCount + queries.size());
+  DAECS_EXT_ASSERT(oldQueriesCount + queries.size() < eastl::numeric_limits<archetype_t>::max());
   size_t oldOfsCount = oldQueriesCount * totalDataComponentsCount, newOfsCount = newQueriesCount * totalDataComponentsCount;
 
   if (query.isInplaceOffsets(newOfsCount))
@@ -598,31 +613,15 @@ bool EntityManager::makeArchetypesQuery(archetype_t first_archetype, uint32_t in
     }
     query.queries = add_to_fixed_container(query.queries, query.queriesCount, queries.data(), queries.size());
   }
-
+  query.lastArch = queries.back();
   if (oldQueriesCount == 0)
     query.firstArch = *query.queriesBegin();
 
-  G_ASSERT(query.getQueriesCount() < eastl::numeric_limits<archetype_t>::max());
-
-  // todo: only needed for eid queries. Not all queries are used in eid queries!
-  const uint32_t newSubQueriesCount = uint32_t(query.queriesBegin()[newQueriesCount - 1] - query.firstArch) + 1;
-  const uint32_t oldSubQueriesCount = oldQueriesCount ? uint32_t(query.queriesBegin()[oldQueriesCount - 1] - query.firstArch) + 1 : 0;
-  query.archSubQueriesCount = newSubQueriesCount;
-
-  archSubQueriesWasted += oldSubQueriesCount;
-  const uint32_t archSubQueriesAtNew = archSubQueriesContainer.size();
-  archSubQueriesContainer.append_default(newSubQueriesCount);
-  ;
-  auto archSubQueriesNew = archSubQueriesContainer.data() + archSubQueriesAtNew;
-  memcpy(archSubQueriesNew, archSubQueriesContainer.data() + queryEid.archSubQueriesAt, oldSubQueriesCount * sizeof(archetype_t));
-  memset(archSubQueriesNew + oldSubQueriesCount, 0xFF, (newSubQueriesCount - oldSubQueriesCount) * sizeof(archetype_t));
-  for (size_t i = oldQueriesCount, e = query.getQueriesCount(); i != e; ++i)
-    archSubQueriesNew[query.queriesBegin()[i] - query.firstArch] = i;
-  queryEid.archSubQueriesAt = archSubQueriesAtNew;
+  DAECS_EXT_ASSERT(query.getQueriesCount() < eastl::numeric_limits<archetype_t>::max());
 
   if (query.rwCount && query.getArchetypesRelated()) // query write something
   {
-    eastl::fixed_vector<eastl::pair<component_index_t, component_index_t>, 8, true, framemem_allocator> trackedRw;
+    dag::RelocatableFixedVector<eastl::pair<component_index_t, component_index_t>, 8, true, framemem_allocator> trackedRw;
     for (int i = 0, rwE = resDesc.getRW().cnt; i < rwE; ++i)
     {
       component_index_t cidx = resDesc.getComponents()[resDesc.getRW().start + i];
@@ -633,7 +632,7 @@ bool EntityManager::makeArchetypesQuery(archetype_t first_archetype, uint32_t in
     }
     if (trackedRw.size())
     {
-      eastl::fixed_vector<ScheduledArchetypeComponentTrack, 8, true, framemem_allocator> trackedChanges;
+      dag::RelocatableFixedVector<ScheduledArchetypeComponentTrack, 8, true, framemem_allocator> trackedChanges;
       // everything earlier than that, is already scheduled in previous updates
       for (auto aqi = query.queriesBegin() + oldQueriesCount, aqe = query.queriesBegin() + query.getQueriesCount(); aqi != aqe; ++aqi)
       {
@@ -702,8 +701,6 @@ void EntityManager::invalidatePersistentQueries()
     archetypeQueries[i].reset();
     archetypeEidQueries[i].reset();
   }
-  archSubQueriesContainer.clear();
-  archSubQueriesWasted = 0;
   archComponentsSizeContainers.clear();
   memset(resolvedQueryStatus.data(), 0, resolvedQueryStatus.capacity() * sizeof(resolvedQueryStatus[0]));
   for (auto &vl : archetypesES)
@@ -717,7 +714,7 @@ void EntityManager::clearQueries()
 {
   currentQueryGen++;
   invalidatePersistentQueries();
-  MTLinkedList<QueryStackData>::free_all();
+  queryStack.freeAll();
 }
 
 uint32_t EntityManager::addOneQuery()
@@ -813,7 +810,7 @@ inline void EntityManager::CopyQueryDesc::init(const EntityManager &mgr, const c
 #else
   auto getNameStr = [&](const ComponentDesc &cd) { return mgr.getDataComponents().findComponentName(cd.name); };
 #endif
-  typedef eastl::fixed_vector<component_t, 64, true, framemem_allocator> fixed_vector_components_t;
+  typedef dag::RelocatableFixedVector<component_t, 64, true, framemem_allocator> fixed_vector_components_t;
   eastl::vector_set<component_t, eastl::less<component_t>, framemem_allocator, fixed_vector_components_t> requiredComponentsSet;
   for (const auto &cd : d.componentsRQ)
   {
@@ -921,7 +918,6 @@ void EntityManager::destroyQuery(QueryId h)
     queryMap.erase(queryMap.find(query_components_hash_calc(queryDescs[idx].getDesc()))); // todo: store hashes to avoid re-calculation
                                                                                           // of hashes
     resetQueryStatus(idx);
-    archSubQueriesWasted += archetypeQueries[idx].archSubQueriesCount;
     if (DAGOR_UNLIKELY(idx == queriesReferences.size() - 1))
     {
       // specially optimize create/destroy in pairs. that's happening in inspection, and pollutes queriesReferences with unused queries
@@ -952,7 +948,7 @@ QueryCbResult EntityManager::performQueryStoppable(QueryId h, const stoppable_qu
   auto &archDesc = archetypeQueries[h.index()];
   if (!archDesc.getQueriesCount())
     return QueryCbResult::Continue;
-  QueryContainer ctx;
+  QueryContainer ctx(queryStack.getData());
   uint32_t totalSize;
   if ((totalSize = fillQuery(archDesc, ctx)) == 0)
   {
@@ -961,7 +957,7 @@ QueryCbResult EntityManager::performQueryStoppable(QueryId h, const stoppable_qu
     return QueryCbResult::Continue;
   }
   auto query = commitQuery(h, ctx, archDesc, totalSize);
-  ecsdebug::track_ecs_component(queryDescs[index].getDesc(), queryDescs[index].getName());
+  trackComponent(queryDescs[index].getDesc(), queryDescs[index].getName());
   ScopedQueryingArchetypesCheck scopedCheck(index, *this);
   return performQueryStoppable(query, fun, user_data);
 }
@@ -974,7 +970,7 @@ void EntityManager::performQuery(QueryId h, const query_cb_t &fun, void *user_da
 
   if (!archDesc.getQueriesCount())
     return;
-  QueryContainer ctx;
+  QueryContainer ctx(queryStack.getData());
   uint32_t totalSize;
   if ((totalSize = fillQuery(archDesc, ctx)) == 0)
   {
@@ -983,7 +979,7 @@ void EntityManager::performQuery(QueryId h, const query_cb_t &fun, void *user_da
     return;
   }
   auto query = commitQuery(h, ctx, archDesc, totalSize);
-  ecsdebug::track_ecs_component(queryDescs[index].getDesc(), queryDescs[index].getName());
+  trackComponent(queryDescs[index].getDesc(), queryDescs[index].getName());
   ScopedQueryingArchetypesCheck scopedCheck(index, *this);
   performQuery(query, fun, user_data, min_quant);
 }
@@ -999,7 +995,7 @@ struct DataComponentsManagerAccess
     {
       // debug("comp %d offs = %d", compI, archetypeOffsets[compI]);
       auto archOfs = *archetypeOffsets;
-      if (EASTL_LIKELY(archOfs != ArchetypesQuery::INVALID_OFFSET))
+      if (DAGOR_LIKELY(archOfs != ArchetypesQuery::INVALID_OFFSET))
         *componentData = (QueryView::ComponentsData)(chunk.getCompDataUnsafe(archOfs) + idInChunk * uint32_t(componentsSize[compI]));
       // we check for optional
       else
@@ -1017,7 +1013,7 @@ __forceinline void EntityManager::schedule_tracked_changes(const ScheduledArchet
   // it will also be faster on all 'big' queries (more than 8 tracked components for all archs),
   // as it is just one cache miss, though for big query we will at least miss cache twice (in binary search)
   // however, it is guaranteed cache-miss for all queries (even small)
-  if (EASTL_LIKELY(trackedChangesCount <= 64)) // heurestics. On smaller arrays linear search is faster then binary search
+  if (DAGOR_LIKELY(trackedChangesCount <= 64)) // heurestics. On smaller arrays linear search is faster then binary search
   {
     do // same as find_if but with do_while
     {
@@ -1035,7 +1031,7 @@ __forceinline void EntityManager::schedule_tracked_changes(const ScheduledArchet
   if (trackedI == trackedE || trackedI->archetype != archetype)
     return;
 
-  ScopedMTMutexT<OSSpinlock> lock(isConstrainedMTMode(), eidTrackingMutex);
+  ScopedMTMutexT<OSSpinlock> lock(isConstrainedMTMode(), ownerThreadId, eidTrackingMutex);
   do
   {
     DAECS_EXT_ASSERT(archetypes.getArchetypeComponentId(archetype, trackedI->cidx) != INVALID_ARCHETYPE_COMPONENT_ID);
@@ -1049,25 +1045,35 @@ bool EntityManager::fillEidQueryView(ecs::EntityId eid, EntityDesc entDesc, Quer
   DAECS_EXT_ASSERT(isQueryValid(h));
   const uint32_t qIndex = h.index();
   auto &__restrict archDesc = archetypeQueries[qIndex];
-  if (!archDesc.archSubQueriesCount)
-    return false;
-  auto &__restrict archEidDesc = archetypeEidQueries[qIndex];
+  const auto lastArch = archDesc.lastArch;
   auto archetype = entDesc.archetype;
+  if (DAGOR_LIKELY(archetype > lastArch))
+    return false;
+  const auto queriesCount = archDesc.getQueriesCount();
+  const auto firstArch = archDesc.firstArch;
+
+  int itId = int(archetype) - int(firstArch);
+  const auto archEidDesc = archetypeEidQueries[qIndex];
+  if (DAGOR_UNLIKELY(itId > 0 && lastArch + 1 != queriesCount + firstArch)) // non sequential
+  {
+    if (DAGOR_LIKELY(archDesc.isInplaceQueries(queriesCount)))
+    {
+      // linear search inside inplace queries. that is likely be to quiet often case, and this data is already inside cache line
+      itId = eastl::find(archDesc.queriesInplace(), archDesc.queriesInplace() + queriesCount, archetype) - archDesc.queriesInplace();
+    }
+    else
+    {
+      // binary search otherwise
+      if (lastArch == archetype) // no cache miss comparison
+        itId = queriesCount - 1;
+      else
+        itId = eastl::binary_search_i(archDesc.queries, archDesc.queries + queriesCount, archetype) - archDesc.queries;
+    }
+  }
+  if (DAGOR_LIKELY(uint32_t(itId) >= queriesCount))
+    return false;
   uint32_t idInChunk = entDesc.idInChunk;
   uint32_t chunkId = entDesc.chunkId;
-  const uint32_t archSubQueryId = uint32_t(archetype) - uint32_t(archDesc.firstArch);
-  archetype_t itId;
-  if (archSubQueryId == 0) // around 2% of all queries has one archetype, so avoid cache miss in this case with a cost of branch
-    itId = 0;
-  else
-  {
-    if (archSubQueryId >= archDesc.archSubQueriesCount)
-      return false;
-
-    itId = archSubQueriesContainer[archEidDesc.archSubQueriesAt + archSubQueryId]; // cache miss
-    if (itId == INVALID_ARCHETYPE)
-      return false;
-  }
   // up to this it is doesEsApplyToArch, and we know for sure for coreevents, that it always passes.
   // todo: split function into two, and replace core events from fillEidQueryView into two: (itId to be part of the list)
   qv.chunkEntitiesStart = 0;
@@ -1076,7 +1082,8 @@ bool EntityManager::fillEidQueryView(ecs::EntityId eid, EntityDesc entDesc, Quer
   qv.id = h;
   const uint32_t totalComponentsCount = archDesc.getComponentsCount();
   const auto trackedChangesCount = archDesc.trackedChangesCount;
-  DAECS_EXT_ASSERT(totalComponentsCount < MAX_ONE_EID_QUERY_COMPONENTS); // if ever happen, we can change that constant in header
+  DAECS_EXT_ASSERT(archDesc.getComponentsCount() < MAX_ONE_EID_QUERY_COMPONENTS); // if ever happen, we can change that constant in
+                                                                                  // header
   // const ArchetypesQuery::offset_type_t * __restrict archetypeOffsets = archDesc.getArchetypeOffsetsPtr() +
   // totalComponentsCount*itId;
 
@@ -1088,7 +1095,10 @@ bool EntityManager::fillEidQueryView(ecs::EntityId eid, EntityDesc entDesc, Quer
     manager.getChunk(chunkId), idInChunk, archComponentsSizeContainers.data() + archEidDesc.componentsSizesAt);
 
   if (trackedChangesCount) // todo:can be also made template. We know for issue our core events do not have RW components
+  {
+    DAECS_EXT_ASSERT(archDesc.trackedBegin());
     schedule_tracked_changes(archDesc.trackedBegin(), trackedChangesCount, eid, archetype);
+  }
   return true;
 }
 
@@ -1099,43 +1109,8 @@ int EntityManager::getQuerySize(QueryId h)
   auto &archDesc = archetypeQueries[h.index()];
   if (!archDesc.getQueriesCount())
     return 0;
-  QueryContainer ctx;
+  QueryContainer ctx(queryStack.getData());
   return fillQuery(archDesc, ctx); // todo: we can make a more optimized implementation, as we need only count
-}
-
-void EntityManager::defragmentArchetypeSubQueries()
-{
-  const bool changedOnTick = archSubLastTickSize != archSubQueriesContainer.size();
-  archSubLastTickSize = archSubQueriesContainer.size();
-  // avoid defragmentation on same tick that caused instantiation. instantiation is already slow, so reduce spike
-  const uint32_t wasteThreshold = archSubQueriesContainer.size() / (changedOnTick ? 2 : 4);
-  if (archSubQueriesWasted <= wasteThreshold)
-    return;
-  TIME_PROFILE_DEV(defragmentArchetypeSubQueries);
-  const uint32_t nextSz = archSubQueriesContainer.size() - archSubQueriesWasted;
-  const uint32_t nextCapacity = (nextSz + archSubQueriesWasted * 3 / 2 + 127) & ~127;
-  decltype(archSubQueriesContainer) newContainer;
-  DAECS_EXT_ASSERTF(archSubQueriesWasted < archSubQueriesContainer.size(), "%d < %d", archSubQueriesWasted,
-    archSubQueriesContainer.size());
-  newContainer.reserve(nextCapacity);
-  newContainer.resize(nextSz);
-  auto dest = newContainer.data(), src = archSubQueriesContainer.data();
-  for (uint32_t cat = 0, index = 0, e = queriesReferences.size(); index < e; ++index)
-  {
-    if (queriesReferences[index])
-    {
-      const uint32_t subQCnt = archetypeQueries[index].archSubQueriesCount;
-      if (subQCnt)
-      {
-        auto &qAt = archetypeEidQueries[index].archSubQueriesAt;
-        memcpy(dest + cat, src + qAt, sizeof(archetype_t) * subQCnt);
-        qAt = cat;
-        cat += subQCnt;
-      }
-    }
-  }
-  newContainer.swap(archSubQueriesContainer);
-  archSubQueriesWasted = 0;
 }
 
 void EntityManager::updateAllQueriesInternal()
@@ -1243,7 +1218,7 @@ void EntityManager::maintainQuery(uint32_t index)
 {
   if (!queriesReferences.size())
     return;
-  MTLinkedList<QueryStackData>::collapse_all();
+  queryStack.collapseAll();
   index = index % queriesReferences.size();
   if (!queriesReferences[index])
     return;

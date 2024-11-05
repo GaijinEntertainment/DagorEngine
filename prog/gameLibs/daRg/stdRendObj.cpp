@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "stdRendObj.h"
 #include <memory/dag_framemem.h>
 #include <daRg/dag_element.h>
@@ -27,11 +29,10 @@
 
 #include <utf8/utf8.h>
 #include <osApiWrappers/dag_unicode.h>
-#if _TARGET_PC_WIN
-#include <malloc.h>
-#elif defined(__GNUC__)
-#include <stdlib.h>
-#endif
+#include <supp/dag_alloca.h>
+
+#include "behaviors/bhvTextAreaEdit.h"
+#include "editableText.h"
 
 
 namespace darg
@@ -58,12 +59,16 @@ static KeepAspectMode resolve_keep_aspect(const Sqrat::Object &val)
   return KEEP_ASPECT_NONE;
 }
 
-bool RobjParamsColorOnly::load(const Element *elem)
+const E3DCOLOR RobjParamsColorOnly::defColor = E3DCOLOR(255, 255, 255, 255);
+
+bool RobjParamsColorOnly::load(const Element *elem, E3DCOLOR def_color)
 {
-  color = elem->props.getColor(elem->csk->color);
+  color = elem->props.getColor(elem->csk->color, def_color);
   brightness = elem->props.getFloat(elem->csk->brightness, 1.0f);
   return true;
 }
+
+bool RobjParamsColorOnly::load(const Element *elem) { return load(elem, RobjParamsColorOnly::defColor); }
 
 
 bool RobjParamsColorOnly::getAnimColor(AnimProp prop, E3DCOLOR **ptr)
@@ -88,7 +93,7 @@ bool RobjParamsColorOnly::getAnimFloat(AnimProp prop, float **ptr)
 }
 
 
-void RenderObjectSolid::renderCustom(StdGuiRender::GuiContext &ctx, const Element *, const ElemRenderData *rdata,
+void RenderObjectSolid::render(StdGuiRender::GuiContext &ctx, const Element *, const ElemRenderData *rdata,
   const RenderState &render_state)
 {
   RobjParamsColorOnly *params = static_cast<RobjParamsColorOnly *>(rdata->params);
@@ -99,12 +104,12 @@ void RenderObjectSolid::renderCustom(StdGuiRender::GuiContext &ctx, const Elemen
   E3DCOLOR color = color_apply_mods(params->color, render_state.opacity, params->brightness);
 
   ctx.set_color(color);
-  ctx.set_texture(BAD_TEXTUREID);
+  ctx.reset_textures();
   ctx.render_rect(rdata->pos, rdata->pos + rdata->size);
 }
 
 
-void RenderObjectDebug::renderCustom(StdGuiRender::GuiContext &ctx, const Element *, const ElemRenderData *rdata,
+void RenderObjectDebug::render(StdGuiRender::GuiContext &ctx, const Element *, const ElemRenderData *rdata,
   const RenderState &render_state)
 {
   RobjParamsColorOnly *params = static_cast<RobjParamsColorOnly *>(rdata->params);
@@ -115,7 +120,7 @@ void RenderObjectDebug::renderCustom(StdGuiRender::GuiContext &ctx, const Elemen
   E3DCOLOR color = color_apply_mods(params->color, render_state.opacity, params->brightness);
 
   ctx.set_color(color);
-  ctx.set_texture(BAD_TEXTUREID);
+  ctx.reset_textures();
 
   Point2 lt = rdata->pos;
   Point2 rb = lt + rdata->size;
@@ -129,7 +134,7 @@ bool RobjParamsText::load(const Element *elem)
 {
   const Properties &props = elem->props;
 
-  color = props.getColor(elem->csk->color);
+  color = props.getColor(elem->csk->color, elem->etree->guiScene->config.defTextColor);
   brightness = props.getFloat(elem->csk->brightness, 1.0f);
 
   passChar = 0;
@@ -194,7 +199,8 @@ bool RobjParamsText::getAnimFloat(AnimProp prop, float **ptr)
 
 bool RobjParamsTextArea::load(const Element *elem)
 {
-  RobjParamsColorOnly::load(elem);
+  RobjParamsColorOnly::load(elem, elem->etree->guiScene->config.defTextColor);
+
   const Properties &props = elem->props;
 
   overflowY = props.getInt<TextOverflow>(elem->csk->textOverflowY, TOVERFLOW_CLIP);
@@ -211,7 +217,7 @@ bool RobjParamsTextArea::load(const Element *elem)
 }
 
 
-void RenderObjectText::renderCustom(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
+void RenderObjectText::render(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
   const RenderState &render_state)
 {
   AutoProfileScope pfl(GuiScene::get_from_elem(elem)->getProfiler(), M_RENDER_TEXT);
@@ -227,7 +233,7 @@ void RenderObjectText::renderCustom(StdGuiRender::GuiContext &ctx, const Element
   scenerender::setTransformedViewPort(ctx, sc.screenPos, sc.screenPos + sc.size, render_state);
 
   ctx.set_color(color);
-  ctx.set_texture(BAD_TEXTUREID);
+  ctx.reset_textures();
 
   const float SCALE = 1.0f;
 
@@ -245,8 +251,10 @@ void RenderObjectText::renderCustom(StdGuiRender::GuiContext &ctx, const Element
     ctx.set_draw_str_attr(params->fontFx, params->fxOffsX, params->fxOffsY,
       color_apply_mods(params->fxColor, render_state.opacity, params->brightness), params->fxFactor);
 
+  // TODO: Use actual sampler IDs
   if (params->fontTex && params->fontTex->getPic().tex != BAD_TEXTUREID)
-    ctx.set_draw_str_texture(params->fontTex->getPic().tex, params->fontTexSu, params->fontTexSv, params->fontTexBov);
+    ctx.set_draw_str_texture(params->fontTex->getPic().tex, d3d::INVALID_SAMPLER_HANDLE, params->fontTexSu, params->fontTexSv,
+      params->fontTexBov);
 
   float strHeight = (ascent + descent);
   bool all_glyphs_ready = true;
@@ -376,7 +384,7 @@ bool RobjParamsInscription::load(const Element *elem)
 {
   const Properties &props = elem->props;
 
-  color = props.getColor(elem->csk->color);
+  color = props.getColor(elem->csk->color, elem->etree->guiScene->config.defTextColor);
   brightness = props.getFloat(elem->csk->brightness, 1.0f);
   fontId = props.getFontId();
 
@@ -430,7 +438,7 @@ bool RobjParamsInscription::getAnimFloat(AnimProp prop, float **ptr)
 }
 
 
-void RenderObjectInscription::renderCustom(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
+void RenderObjectInscription::render(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
   const RenderState &render_state)
 {
   AutoProfileScope pfl(GuiScene::get_from_elem(elem)->getProfiler(), M_RENDER_TEXT);
@@ -476,7 +484,7 @@ void RenderObjectInscription::renderCustom(StdGuiRender::GuiContext &ctx, const 
 
   Point2 startPos(floorf(startPosX), floorf(startPosY));
 
-  ctx.set_texture(BAD_TEXTUREID);
+  ctx.reset_textures();
 
 #if 0
   ctx.set_color(200, 20, 20, 180);
@@ -490,8 +498,10 @@ void RenderObjectInscription::renderCustom(StdGuiRender::GuiContext &ctx, const 
     ctx.set_draw_str_attr(params->fontFx, params->fxOffsX, params->fxOffsY,
       color_apply_mods(params->fxColor, render_state.opacity, params->brightness), params->fxFactor);
 
+  // TODO: Use actual sampler IDs
   if (params->fontTex && params->fontTex->getPic().tex != BAD_TEXTUREID)
-    ctx.set_draw_str_texture(params->fontTex->getPic().tex, params->fontTexSu, params->fontTexSv, params->fontTexBov);
+    ctx.set_draw_str_texture(params->fontTex->getPic().tex, d3d::INVALID_SAMPLER_HANDLE, params->fontTexSu, params->fontTexSv,
+      params->fontTexBov);
 
   ctx.goto_xy(startPos);
   ctx.draw_inscription(params->inscription);
@@ -631,7 +641,7 @@ static void adjust_coord_for_image_aspect(Point2 &posLt, Point2 &posRb, Point2 &
   }
 }
 
-void RenderObjectImage::renderCustom(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
+void RenderObjectImage::render(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
   const RenderState &render_state)
 {
   G_UNUSED(elem);
@@ -664,7 +674,7 @@ void RenderObjectImage::renderCustom(StdGuiRender::GuiContext &ctx, const Elemen
   if (params->saturateFactor != 1.0f)
     ctx.set_picquad_color_matrix_saturate(params->saturateFactor);
 
-  ctx.set_texture(pic.tex);
+  ctx.set_texture(pic.tex, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
   ctx.set_alpha_blend(image->getBlendMode());
 
   pic.updateTc();
@@ -742,7 +752,7 @@ bool RobjParamsVectorCanvas::getAnimColor(AnimProp prop, E3DCOLOR **ptr)
 }
 
 
-void RenderObjectVectorCanvas::renderCustom(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
+void RenderObjectVectorCanvas::render(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
   const RenderState &render_state)
 {
   RobjParamsVectorCanvas *params = static_cast<RobjParamsVectorCanvas *>(rdata->params);
@@ -756,7 +766,7 @@ void RenderObjectVectorCanvas::renderCustom(StdGuiRender::GuiContext &ctx, const
     return;
   }
 
-  ctx.set_texture(BAD_TEXTUREID);
+  ctx.reset_textures();
   ctx.set_alpha_blend(PREMULTIPLIED);
 
   RenderCanvasContext rctx;
@@ -1011,7 +1021,7 @@ public:
 };
 
 
-void RenderObject9rect::renderCustom(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
+void RenderObject9rect::render(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
   const RenderState &render_state)
 {
   const ScreenCoord &sc = elem->screenCoord;
@@ -1036,7 +1046,7 @@ void RenderObject9rect::renderCustom(StdGuiRender::GuiContext &ctx, const Elemen
 
   if (!params->image || params->image->getPic().pic == BAD_PICTUREID)
   {
-    ctx.set_texture(BAD_TEXTUREID);
+    ctx.reset_textures();
     ctx.render_box(sc.screenPos, sc.screenPos + sc.size);
     return;
   }
@@ -1046,7 +1056,7 @@ void RenderObject9rect::renderCustom(StdGuiRender::GuiContext &ctx, const Elemen
 
   const PictureManager::PicDesc &pic = params->image->getPic();
 
-  ctx.set_texture(pic.tex);
+  ctx.set_texture(pic.tex, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
   ctx.set_alpha_blend(params->image->getBlendMode());
 
   const float *texOffs = params->texOffs;
@@ -1191,7 +1201,7 @@ public:
 };
 
 
-void RenderObjectProgressLinear::renderCustom(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
+void RenderObjectProgressLinear::render(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
   const RenderState &render_state)
 {
   RobjParamsProgressLinear *params = static_cast<RobjParamsProgressLinear *>(rdata->params);
@@ -1233,7 +1243,7 @@ void RenderObjectProgressLinear::drawRect(StdGuiRender::GuiContext &ctx, const E
     pos.x += elem->screenCoord.size.x - size.x;
 
   ctx.set_color(color);
-  ctx.set_texture(BAD_TEXTUREID);
+  ctx.reset_textures();
   ctx.render_rect(pos, pos + size);
 }
 
@@ -1284,7 +1294,7 @@ public:
 };
 
 
-void RenderObjectProgressCircular::renderCustom(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
+void RenderObjectProgressCircular::render(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
   const RenderState &render_state)
 {
   RobjParamsProgressCircular *params = static_cast<RobjParamsProgressCircular *>(rdata->params);
@@ -1354,7 +1364,7 @@ void RenderObjectProgressCircular::renderProgress(StdGuiRender::GuiContext &ctx,
   }
 
   ctx.set_color(255, 255, 255);
-  ctx.set_texture(texId);
+  ctx.set_texture(texId, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
   ctx.set_alpha_blend(blendMode);
 
   ctx.start_raw_layer();
@@ -1421,7 +1431,7 @@ void RenderObjectProgressCircular::renderProgress(StdGuiRender::GuiContext &ctx,
 }
 
 
-void RenderObjectTextArea::renderCustom(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
+void RenderObjectTextArea::render(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
   const RenderState &render_state)
 {
   RobjParamsTextArea *params = static_cast<RobjParamsTextArea *>(rdata->params);
@@ -1429,8 +1439,14 @@ void RenderObjectTextArea::renderCustom(StdGuiRender::GuiContext &ctx, const Ele
   if (!params)
     return;
 
-  textlayout::FormattedText *fmtText =
-    elem->props.storage.RawGetSlotValue<textlayout::FormattedText *>(elem->csk->formattedText, nullptr);
+  textlayout::FormattedText *fmtText = nullptr;
+
+  EditableText *etext = elem->props.storage.RawGetSlotValue<EditableText *>(elem->csk->editableText, nullptr);
+  if (etext)
+    fmtText = &etext->fmtText;
+  else
+    fmtText = elem->props.storage.RawGetSlotValue<textlayout::FormattedText *>(elem->csk->formattedText, nullptr);
+
   if (!fmtText)
     return;
 
@@ -1459,7 +1475,7 @@ void RenderObjectTextArea::renderCustom(StdGuiRender::GuiContext &ctx, const Ele
   scenerender::setTransformedViewPort(ctx, sc.screenPos, sc.screenPos + sc.size, render_state);
 
   ctx.set_color(color);
-  ctx.set_texture(BAD_TEXTUREID);
+  ctx.reset_textures();
   if (params->fontFx != FFT_NONE)
     ctx.set_draw_str_attr(params->fontFx, params->fxOffsX, params->fxOffsY,
       color_apply_mods(params->fxColor, render_state.opacity, params->brightness), params->fxFactor);
@@ -1556,12 +1572,16 @@ void RenderObjectTextArea::renderCustom(StdGuiRender::GuiContext &ctx, const Ele
         float y = block->position.y + fmtText->yOffset + line.baseLineY;
 
 #if 0 // debug blocks
-      int ascent = StdGuiRender::get_font_ascent(block->fontId, block->fontHt);
-      ctx.render_frame(sc.screenPos.x - sc.scrollOffs.x + x, sc.screenPos.y - sc.scrollOffs.y + y - ascent,
-        sc.screenPos.x - sc.scrollOffs.x + x + block->size.x, sc.screenPos.y - sc.scrollOffs.y + y - ascent + block->size.y, 1);
+        ctx.set_color(color_apply_mods(color, 0.5, 1.0));
+
+        int ascent = StdGuiRender::get_font_ascent(block->fontId, block->fontHt);
+        ctx.render_frame(sc.screenPos.x - sc.scrollOffs.x + x, sc.screenPos.y - sc.scrollOffs.y + y - ascent,
+          sc.screenPos.x - sc.scrollOffs.x + x + block->size.x, sc.screenPos.y - sc.scrollOffs.y + y - ascent + block->size.y, 1);
+
+        ctx.set_color(color);
 #endif
 
-        if (block->type == textlayout::TextBlock::TBT_SPACE) // don't neeed to draw anything
+        if (block->type != textlayout::TextBlock::TBT_TEXT) // otherwise don't neeed to draw anything
           continue;
 
         if (block->useCustomColor)
@@ -1590,7 +1610,7 @@ void RenderObjectTextArea::renderCustom(StdGuiRender::GuiContext &ctx, const Ele
         if (!guiText.isReady())
         {
           tmpU16.resize(block->text.length() + 1);
-          tmpU16.resize(utf8_to_wcs_ex(block->text, tmpU16.size() - 1, tmpU16.data(), tmpU16.size()));
+          tmpU16.resize(utf8_to_wcs_ex(block->text.c_str(), tmpU16.size() - 1, tmpU16.data(), tmpU16.size()));
           all_glyphs_ready =
             ctx.draw_str_scaled_u_buf(guiText.v, guiText.c, StdGuiRender::DSBFLAG_rel, 1.0f, tmpU16.data(), tmpU16.size());
         }
@@ -1619,7 +1639,68 @@ void RenderObjectTextArea::renderCustom(StdGuiRender::GuiContext &ctx, const Ele
   }
 
   ctx.reset_draw_str_attr();
+
+  // draw cursor
+  bool hasFocus = ((elem->getStateFlags() & Element::S_KB_FOCUS) != 0);
+  if (hasFocus && etext)
+  {
+    textlayout::FormatParams fmtParams = {};
+    BhvTextAreaEdit::fill_format_params(elem, elem->screenCoord.size, fmtParams);
+
+    StdGuiFontContext fctx;
+    StdGuiRender::get_font_context(fctx, fmtParams.defFontId, fmtParams.spacing, fmtParams.monoWidth, fmtParams.defFontHt);
+    int ascent = StdGuiRender::get_font_ascent(fctx);
+    int descent = StdGuiRender::get_font_descent(fctx);
+
+    int relPos = -1;
+    int curBlockIdx = BhvTextAreaEdit::find_block_left(fmtText, etext->cursorPos, relPos);
+
+    float screenX = 0, screenY = 0;
+    if (curBlockIdx >= 0)
+    {
+      float inBlockPixelPos = 0;
+      textlayout::TextBlock *curBlock = fmtText->blocks[curBlockIdx];
+      if (curBlock->type == textlayout::TextBlock::TBT_TEXT)
+      {
+        int relPosBytes = utf_calc_bytes_for_symbols(curBlock->text.c_str(), curBlock->text.length(), relPos);
+        BBox2 bbox = StdGuiRender::get_str_bbox(curBlock->text.c_str(), relPosBytes, fctx);
+        inBlockPixelPos = (bbox.isempty() ? 0 : bbox.right()) + fmtParams.spacing * 0.5f;
+      }
+      else
+      {
+        inBlockPixelPos = curBlock->size.x;
+      }
+
+      // TODO: padding? per-line baseline?
+      screenX = floorf(sc.screenPos.x + curBlock->position.x + inBlockPixelPos - sc.scrollOffs.x);
+      screenY = floorf(sc.screenPos.y + curBlock->position.y + fmtText->yOffset - sc.scrollOffs.y);
+    }
+    else
+    {
+      screenX = floorf(sc.screenPos.x + 1 - sc.scrollOffs.x);
+      screenY = floorf(sc.screenPos.y + fmtText->yOffset - sc.scrollOffs.y);
+    }
+
+    ctx.set_color(params->color);
+    ctx.draw_line(screenX, screenY, screenX, screenY + ascent + descent, 2);
+  }
+
   scenerender::restoreTransformedViewPort(ctx);
+
+#if 0 // debug internal state
+  {
+    if (etext)
+    {
+      String msg(0, "cursor pos: %d", etext->cursorPos);
+      ctx.set_font(0);
+      BBox2 box = StdGuiRender::get_str_bbox(msg.c_str(), msg.length(), ctx.curRenderFont);
+      Point2 screenSize = StdGuiRender::screen_size();
+      ctx.set_color(200, 200, 0, 200);
+      ctx.goto_xy(screenSize.x - box.width().x - 10, 30 + 2 * StdGuiRender::get_font_ascent(0));
+      ctx.draw_str(msg.c_str(), msg.length());
+    }
+  }
+#endif
 }
 
 
@@ -1684,7 +1765,7 @@ public:
 };
 
 
-void RenderObjectFrame::renderCustom(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
+void RenderObjectFrame::render(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
   const RenderState &render_state)
 {
   G_UNUSED(elem);
@@ -1696,7 +1777,7 @@ void RenderObjectFrame::renderCustom(StdGuiRender::GuiContext &ctx, const Elemen
   E3DCOLOR color = color_apply_mods(params->color, render_state.opacity, params->brightness);
 
   ctx.set_color(color);
-  ctx.set_texture(BAD_TEXTUREID);
+  ctx.reset_textures();
 
   Point2 lt = rdata->pos;
   Point2 rb = lt + rdata->size;
@@ -1729,7 +1810,7 @@ void RenderObjectFrame::renderCustom(StdGuiRender::GuiContext &ctx, const Elemen
       E3DCOLOR fillColor = color_apply_mods(params->fillColor, render_state.opacity, params->brightness);
 
       ctx.set_color(fillColor);
-      ctx.set_texture(BAD_TEXTUREID);
+      ctx.reset_textures();
       ctx.render_box(lt.x + borderWidth[L], lt.y + borderWidth[T], rb.x - borderWidth[R], rb.y - borderWidth[B]);
     }
   }
@@ -1843,7 +1924,7 @@ void RenderObjectBox::renderNoRadius(StdGuiRender::GuiContext &ctx, const Elemen
     if (params->borderColor.u || ctx.get_alpha_blend() == NO_BLEND)
     {
       ctx.set_color(borderColor);
-      ctx.set_texture(BAD_TEXTUREID);
+      ctx.reset_textures();
       ctx.render_box(lt, rb);
     }
   }
@@ -1852,7 +1933,7 @@ void RenderObjectBox::renderNoRadius(StdGuiRender::GuiContext &ctx, const Elemen
     if (params->borderColor.u || ctx.get_alpha_blend() == NO_BLEND)
     {
       ctx.set_color(borderColor);
-      ctx.set_texture(BAD_TEXTUREID);
+      ctx.reset_textures();
       if (borderWidth[T] > 0)
         ctx.render_box(lt.x, lt.y, rb.x, lt.y + borderWidth[T]);
       if (borderWidth[B] > 0)
@@ -1875,7 +1956,7 @@ void RenderObjectBox::renderNoRadius(StdGuiRender::GuiContext &ctx, const Elemen
           image = params->fallbackImage;
         const PictureManager::PicDesc &pic = image->getPic();
         pic.updateTc();
-        ctx.set_texture(pic.tex);
+        ctx.set_texture(pic.tex, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
         ctx.set_alpha_blend(image->getBlendMode());
         if (params->saturateFactor != 1.0f)
           ctx.set_picquad_color_matrix_saturate(params->saturateFactor);
@@ -1892,7 +1973,7 @@ void RenderObjectBox::renderNoRadius(StdGuiRender::GuiContext &ctx, const Elemen
       }
       else
       {
-        ctx.set_texture(BAD_TEXTUREID);
+        ctx.reset_textures();
         ctx.render_box(lt.x + borderWidth[L], lt.y + borderWidth[T], rb.x - borderWidth[R], rb.y - borderWidth[B]);
       }
     }
@@ -1915,7 +1996,7 @@ static bool has_radius(const Point4 &border_radius)
 }
 
 
-void RenderObjectBox::renderCustom(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
+void RenderObjectBox::render(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
   const RenderState &render_state)
 {
   RobjParamsBox *params = static_cast<RobjParamsBox *>(rdata->params);
@@ -1957,7 +2038,7 @@ void RenderObjectBox::renderCustom(StdGuiRender::GuiContext &ctx, const Element 
     const PictureManager::PicDesc &pic = image->getPic();
 
     pic.updateTc();
-    ctx.set_texture(pic.tex);
+    ctx.set_texture(pic.tex, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
     ctx.set_alpha_blend(image->getBlendMode() == NO_BLEND ? PREMULTIPLIED : image->getBlendMode());
     Point2 picLt = lt, picRb = rb, picLtTc = pic.tcLt, picRbTc = pic.tcRb;
 
@@ -1982,13 +2063,13 @@ void RenderObjectBox::renderCustom(StdGuiRender::GuiContext &ctx, const Element 
 
     ctx.render_rounded_image(picLt, picRb, picLtTc, picRbTc, fillColor, radius);
 
-    ctx.set_texture(BAD_TEXTUREID);
+    ctx.reset_textures();
     ctx.set_alpha_blend(PREMULTIPLIED);
     ctx.render_rounded_frame(lt, rb, borderColor, radius, thickness);
   }
   else
   {
-    ctx.set_texture(BAD_TEXTUREID);
+    ctx.reset_textures();
     ctx.set_alpha_blend(PREMULTIPLIED);
     ctx.render_rounded_box(lt, rb, fillColor, borderColor, radius, thickness);
   }
@@ -2032,7 +2113,7 @@ bool RobjParamsMovie::getAnimFloat(AnimProp prop, float **ptr)
 }
 
 
-void RenderObjectMovie::renderCustom(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
+void RenderObjectMovie::render(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
   const RenderState &render_state)
 {
   G_UNUSED(ctx);
@@ -2068,12 +2149,18 @@ void RenderObjectMovie::renderCustom(StdGuiRender::GuiContext &ctx, const Elemen
       yuvRenderer.startRender(ctx, &ownRender);
       yuvRenderer.render(ctx, texIdY, texIdU, texIdV, lt.x, lt.y, rb.x, rb.y, tcLt, tcRb, color,
         color.a == 255 ? NO_BLEND : PREMULTIPLIED, params->saturateFactor);
+      ctx.execCommand(
+        5309, ZERO<Point2>(), ZERO<Point2>(),
+        +[](StdGuiRender::CallBackState &cbs) {
+          G_FAST_ASSERT(cbs.command == 5309);
+          ((IGenVideoPlayer *)cbs.data)->onCurrentFrameDispatched();
+        },
+        uintptr_t(player));
       yuvRenderer.endRender(ctx, ownRender);
-      player->onCurrentFrameDispatched();
     }
   }
   else if (!player->isFinished())
-    logwarn_ctx("getFrame()=false, ids=%d,%d,%d", texIdY, texIdU, texIdV);
+    LOGWARN_CTX("getFrame()=false, ids=%d,%d,%d", texIdY, texIdU, texIdV);
 }
 
 

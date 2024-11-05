@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <daFx/dafx.h>
 #include <fx/dag_baseFxClasses.h>
 #include <dafxEmitter_decl.h>
@@ -47,6 +49,19 @@ struct DafxEmitterInfo
       em.linearData.countMin = par.count;
       em.linearData.countMax = par.count;
       em.linearData.lifeLimit = par.life;
+    }
+    else if (par.type == 3) // distance based
+    {
+      em.type = dafx::EmitterType::DISTANCE_BASED;
+      em.distanceBasedData.elemLimit = max(par.distance_based.elem_limit, 1);
+      em.distanceBasedData.distance = par.distance_based.distance;
+      em.distanceBasedData.lifeLimit = par.life;
+      em.distanceBasedData.idlePeriod = par.distance_based.idle_period;
+    }
+    else
+    {
+      logerr("dafx::emitter, unknown type");
+      return false;
     }
 
     em.delay = par.delay;

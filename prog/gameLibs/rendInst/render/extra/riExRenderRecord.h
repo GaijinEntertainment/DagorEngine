@@ -1,6 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "render/drawOrder.h"
+
 #include <shaders/dag_shaders.h>
+#include <shaders/dag_shaderState.h>
 #include <shaders/dag_renderStateId.h>
 #include <math/integer/dag_IPoint2.h>
 
@@ -15,29 +19,28 @@ struct RIExRenderRecord
     DISABLE_OPTIMIZATION_BIT_STATE = 0x80000000
   };
   uint32_t state;
-  uint32_t tstate;
-  uint32_t cstate;
+  shaders::TexStateIdx tstate;
+  shaders::ConstStateIdx cstate;
   uint16_t cv;
   uint16_t poolOrder;
   uint16_t vstride;
-  uint8_t vbIdx, drawOrder_stage;
+  uint8_t vbIdx;
+  PackedDrawOrder drawOrder_stage;
+  uint8_t primitive;
+  uint8_t elemOrder;
   IPoint2 ofsAndCnt;
-  int si, numf, bv;
+  int si, sv, numv, numf, bv;
   uint16_t texLevel;
-  uint8_t isTree : 1, isTessellated : 1;
-  enum
-  {
-    STAGE_BITS = 6,
-    STAGE_MASK = (1 << STAGE_BITS) - 1
-  };
+  uint8_t isTree : 1, isTessellated : 1, isSWVertexFetch : 1;
 #if DAGOR_DBGLEVEL > 0
   uint8_t lod;
 #else
   static constexpr uint8_t lod = 0;
 #endif
   RIExRenderRecord(const ShaderElement *curShader, int cv, uint32_t prog, uint32_t state_, shaders::RenderStateId rstate,
-    uint32_t tstate, uint32_t cstate, uint16_t poolOrder, uint16_t vstride, uint8_t vbIdx, uint16_t drawOrder_stage, IPoint2 ofsAndCnt,
-    int si, int numf, int bv, int texLevel, int isTree, int isTessellated
+    shaders::TexStateIdx tstate, shaders::ConstStateIdx cstate, uint16_t poolOrder, uint16_t vstride, uint8_t vbIdx,
+    PackedDrawOrder drawOrder_stage, uint8_t elem_order, uint8_t primitive, IPoint2 ofsAndCnt, int si, int sv, int numv, int numf,
+    int bv, int texLevel, int isTree, int isTessellated
 #if DAGOR_DBGLEVEL > 0
     ,
     uint8_t lod
@@ -54,13 +57,18 @@ struct RIExRenderRecord
     vstride(vstride),
     vbIdx(vbIdx),
     drawOrder_stage(drawOrder_stage),
+    primitive(primitive),
     ofsAndCnt(ofsAndCnt),
     si(si),
+    sv(sv),
+    numv(numv),
     numf(numf),
     bv(bv),
     texLevel(texLevel),
     isTree(isTree),
-    isTessellated(isTessellated)
+    isTessellated(isTessellated),
+    isSWVertexFetch(false),
+    elemOrder(elem_order)
 #if DAGOR_DBGLEVEL > 0
     ,
     lod(lod)

@@ -1,0 +1,22 @@
+
+AgilitySdkDest ?= /D3D12 ;
+
+if $(Platform) in windows && ( DX12 in $(UseD3DMultiList) || $(UseD3DMultiList) = D3D_ALL || $(UseD3DMultiList) in null ) {
+  local AgilitySdkDir = $(_DEVTOOL)/Agility.SDK.$(AgilitySdkVer) ;
+
+  if $(PlatformArch) in x86_64 arm64 {
+    if ! [ GLOB $(AgilitySdkDir) : * ] { exit FATAL\: \"$(AgilitySdkDir)\" not found!  Please, update DEVTOOLS ; }
+  }
+
+  if $(PlatformArch) = x86_64 {
+    BundleCopy +=
+      @$(AgilitySdkDir)/bin/x64/D3D12Core.dll       $(AgilitySdkDest)/D3D12Core.dll
+      @$(AgilitySdkDir)/bin/x64/d3d12SDKLayers.dll  $(AgilitySdkDest)/d3d12SDKLayers.dll
+    ;
+  } else if $(PlatformArch) = arm64 {
+    BundleCopy +=
+      @$(AgilitySdkDir)/bin/arm64/D3D12Core.dll       $(AgilitySdkDest)/D3D12Core.dll
+      @$(AgilitySdkDir)/bin/arm64/d3d12SDKLayers.dll  $(AgilitySdkDest)/d3d12SDKLayers.dll
+    ;
+  }
+}

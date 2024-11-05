@@ -12,66 +12,86 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_33() {
-// from D:\Work\libclang\include\llvm-c/Core.h:3930:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueType *,LLVMOpaqueValue *,const char *) , LLVMBuildLoad2 >(*this,lib,"LLVMBuildLoad2",SideEffects::worstDefault,"LLVMBuildLoad2")
-		->args({"","Ty","PointerVal","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3932:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMBuildStore >(*this,lib,"LLVMBuildStore",SideEffects::worstDefault,"LLVMBuildStore")
-		->args({"","Val","Ptr"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3934:18
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue **,unsigned int,const char *) , LLVMBuildGEP >(*this,lib,"LLVMBuildGEP",SideEffects::worstDefault,"LLVMBuildGEP")
-		->args({"B","Pointer","Indices","NumIndices","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3939:18
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue **,unsigned int,const char *) , LLVMBuildInBoundsGEP >(*this,lib,"LLVMBuildInBoundsGEP",SideEffects::worstDefault,"LLVMBuildInBoundsGEP")
-		->args({"B","Pointer","Indices","NumIndices","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3944:18
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,unsigned int,const char *) , LLVMBuildStructGEP >(*this,lib,"LLVMBuildStructGEP",SideEffects::worstDefault,"LLVMBuildStructGEP")
-		->args({"B","Pointer","Idx","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3947:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueType *,LLVMOpaqueValue *,LLVMOpaqueValue **,unsigned int,const char *) , LLVMBuildGEP2 >(*this,lib,"LLVMBuildGEP2",SideEffects::worstDefault,"LLVMBuildGEP2")
-		->args({"B","Ty","Pointer","Indices","NumIndices","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3950:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueType *,LLVMOpaqueValue *,LLVMOpaqueValue **,unsigned int,const char *) , LLVMBuildInBoundsGEP2 >(*this,lib,"LLVMBuildInBoundsGEP2",SideEffects::worstDefault,"LLVMBuildInBoundsGEP2")
-		->args({"B","Ty","Pointer","Indices","NumIndices","Name"});
+// from D:\Work\libclang\include\llvm-c/Core.h:3934:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueType *,LLVMOpaqueValue *,unsigned int,const char *) , LLVMBuildStructGEP2 , SimNode_ExtFuncCall >(lib,"LLVMBuildStructGEP2","LLVMBuildStructGEP2")
+		->args({"B","Ty","Pointer","Idx","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3937:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,const char *,const char *) , LLVMBuildGlobalString , SimNode_ExtFuncCall >(lib,"LLVMBuildGlobalString","LLVMBuildGlobalString")
+		->args({"B","Str","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3939:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,const char *,const char *) , LLVMBuildGlobalStringPtr , SimNode_ExtFuncCall >(lib,"LLVMBuildGlobalStringPtr","LLVMBuildGlobalStringPtr")
+		->args({"B","Str","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3941:10
+	makeExtern< int (*)(LLVMOpaqueValue *) , LLVMGetVolatile , SimNode_ExtFuncCall >(lib,"LLVMGetVolatile","LLVMGetVolatile")
+		->args({"MemoryAccessInst"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3942:6
+	makeExtern< void (*)(LLVMOpaqueValue *,int) , LLVMSetVolatile , SimNode_ExtFuncCall >(lib,"LLVMSetVolatile","LLVMSetVolatile")
+		->args({"MemoryAccessInst","IsVolatile"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3943:10
+	makeExtern< int (*)(LLVMOpaqueValue *) , LLVMGetWeak , SimNode_ExtFuncCall >(lib,"LLVMGetWeak","LLVMGetWeak")
+		->args({"CmpXchgInst"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3944:6
+	makeExtern< void (*)(LLVMOpaqueValue *,int) , LLVMSetWeak , SimNode_ExtFuncCall >(lib,"LLVMSetWeak","LLVMSetWeak")
+		->args({"CmpXchgInst","IsWeak"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3945:20
+	makeExtern< LLVMAtomicOrdering (*)(LLVMOpaqueValue *) , LLVMGetOrdering , SimNode_ExtFuncCall >(lib,"LLVMGetOrdering","LLVMGetOrdering")
+		->args({"MemoryAccessInst"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3946:6
+	makeExtern< void (*)(LLVMOpaqueValue *,LLVMAtomicOrdering) , LLVMSetOrdering , SimNode_ExtFuncCall >(lib,"LLVMSetOrdering","LLVMSetOrdering")
+		->args({"MemoryAccessInst","Ordering"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3947:20
+	makeExtern< LLVMAtomicRMWBinOp (*)(LLVMOpaqueValue *) , LLVMGetAtomicRMWBinOp , SimNode_ExtFuncCall >(lib,"LLVMGetAtomicRMWBinOp","LLVMGetAtomicRMWBinOp")
+		->args({"AtomicRMWInst"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3948:6
+	makeExtern< void (*)(LLVMOpaqueValue *,LLVMAtomicRMWBinOp) , LLVMSetAtomicRMWBinOp , SimNode_ExtFuncCall >(lib,"LLVMSetAtomicRMWBinOp","LLVMSetAtomicRMWBinOp")
+		->args({"AtomicRMWInst","BinOp"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3951:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueType *,const char *) , LLVMBuildTrunc , SimNode_ExtFuncCall >(lib,"LLVMBuildTrunc","LLVMBuildTrunc")
+		->args({"","Val","DestTy","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Core.h:3953:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueType *,LLVMOpaqueValue *,unsigned int,const char *) , LLVMBuildStructGEP2 >(*this,lib,"LLVMBuildStructGEP2",SideEffects::worstDefault,"LLVMBuildStructGEP2")
-		->args({"B","Ty","Pointer","Idx","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3956:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,const char *,const char *) , LLVMBuildGlobalString >(*this,lib,"LLVMBuildGlobalString",SideEffects::worstDefault,"LLVMBuildGlobalString")
-		->args({"B","Str","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3958:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,const char *,const char *) , LLVMBuildGlobalStringPtr >(*this,lib,"LLVMBuildGlobalStringPtr",SideEffects::worstDefault,"LLVMBuildGlobalStringPtr")
-		->args({"B","Str","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3960:10
-	addExtern< int (*)(LLVMOpaqueValue *) , LLVMGetVolatile >(*this,lib,"LLVMGetVolatile",SideEffects::worstDefault,"LLVMGetVolatile")
-		->args({"MemoryAccessInst"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3961:6
-	addExtern< void (*)(LLVMOpaqueValue *,int) , LLVMSetVolatile >(*this,lib,"LLVMSetVolatile",SideEffects::worstDefault,"LLVMSetVolatile")
-		->args({"MemoryAccessInst","IsVolatile"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3962:10
-	addExtern< int (*)(LLVMOpaqueValue *) , LLVMGetWeak >(*this,lib,"LLVMGetWeak",SideEffects::worstDefault,"LLVMGetWeak")
-		->args({"CmpXchgInst"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3963:6
-	addExtern< void (*)(LLVMOpaqueValue *,int) , LLVMSetWeak >(*this,lib,"LLVMSetWeak",SideEffects::worstDefault,"LLVMSetWeak")
-		->args({"CmpXchgInst","IsWeak"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3964:20
-	addExtern< LLVMAtomicOrdering (*)(LLVMOpaqueValue *) , LLVMGetOrdering >(*this,lib,"LLVMGetOrdering",SideEffects::worstDefault,"LLVMGetOrdering")
-		->args({"MemoryAccessInst"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3965:6
-	addExtern< void (*)(LLVMOpaqueValue *,LLVMAtomicOrdering) , LLVMSetOrdering >(*this,lib,"LLVMSetOrdering",SideEffects::worstDefault,"LLVMSetOrdering")
-		->args({"MemoryAccessInst","Ordering"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3966:20
-	addExtern< LLVMAtomicRMWBinOp (*)(LLVMOpaqueValue *) , LLVMGetAtomicRMWBinOp >(*this,lib,"LLVMGetAtomicRMWBinOp",SideEffects::worstDefault,"LLVMGetAtomicRMWBinOp")
-		->args({"AtomicRMWInst"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3967:6
-	addExtern< void (*)(LLVMOpaqueValue *,LLVMAtomicRMWBinOp) , LLVMSetAtomicRMWBinOp >(*this,lib,"LLVMSetAtomicRMWBinOp",SideEffects::worstDefault,"LLVMSetAtomicRMWBinOp")
-		->args({"AtomicRMWInst","BinOp"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3970:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueType *,const char *) , LLVMBuildTrunc >(*this,lib,"LLVMBuildTrunc",SideEffects::worstDefault,"LLVMBuildTrunc")
-		->args({"","Val","DestTy","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3972:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueType *,const char *) , LLVMBuildZExt >(*this,lib,"LLVMBuildZExt",SideEffects::worstDefault,"LLVMBuildZExt")
-		->args({"","Val","DestTy","Name"});
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueType *,const char *) , LLVMBuildZExt , SimNode_ExtFuncCall >(lib,"LLVMBuildZExt","LLVMBuildZExt")
+		->args({"","Val","DestTy","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3955:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueType *,const char *) , LLVMBuildSExt , SimNode_ExtFuncCall >(lib,"LLVMBuildSExt","LLVMBuildSExt")
+		->args({"","Val","DestTy","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3957:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueType *,const char *) , LLVMBuildFPToUI , SimNode_ExtFuncCall >(lib,"LLVMBuildFPToUI","LLVMBuildFPToUI")
+		->args({"","Val","DestTy","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3959:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueType *,const char *) , LLVMBuildFPToSI , SimNode_ExtFuncCall >(lib,"LLVMBuildFPToSI","LLVMBuildFPToSI")
+		->args({"","Val","DestTy","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3961:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueType *,const char *) , LLVMBuildUIToFP , SimNode_ExtFuncCall >(lib,"LLVMBuildUIToFP","LLVMBuildUIToFP")
+		->args({"","Val","DestTy","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3963:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueType *,const char *) , LLVMBuildSIToFP , SimNode_ExtFuncCall >(lib,"LLVMBuildSIToFP","LLVMBuildSIToFP")
+		->args({"","Val","DestTy","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3965:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueType *,const char *) , LLVMBuildFPTrunc , SimNode_ExtFuncCall >(lib,"LLVMBuildFPTrunc","LLVMBuildFPTrunc")
+		->args({"","Val","DestTy","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3967:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueType *,const char *) , LLVMBuildFPExt , SimNode_ExtFuncCall >(lib,"LLVMBuildFPExt","LLVMBuildFPExt")
+		->args({"","Val","DestTy","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

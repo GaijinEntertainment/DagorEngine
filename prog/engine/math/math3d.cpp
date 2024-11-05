@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_math3d.h>
 #include <math/dag_noise.h>
 #include <math/dag_plane3.h>
@@ -33,6 +35,7 @@ const double doubleSNaN = bitwise_cast<double, int64_t>(SNaNint64);
 const Matrix3 Matrix3::IDENT(1.f), Matrix3::ZERO(0.f);
 const TMatrix TMatrix::IDENT(1), TMatrix::ZERO(0);
 const TMatrix4 TMatrix4::IDENT(1), TMatrix4::ZERO(0);
+const TMatrix4D TMatrix4D::IDENT(1.0), TMatrix4D::ZERO(0.0);
 const BBox3 BBox3::IDENT(Point3(), 1.f);
 
 const IPoint2 IPoint2::ZERO = IPoint2(0, 0);
@@ -62,7 +65,7 @@ void init_math()
   _mm_setcsr((_mm_getcsr() & ~_MM_ROUND_MASK) | _MM_FLUSH_ZERO_MASK | _MM_ROUND_NEAREST | 0x40); // 0x40 - denorms are zero.
   // it is helpful to have 0x40 - denorms are zero - flag, for performance reasons.
   // it should not matter for our math, since we do have _MM_FLUSH_ZERO_MASK (flush-to-zero), but if we load thrash from memory, which
-  // we won't use anyway (consider .w in vertex position), it will affect performance! debug_ctx("set DAZ and RN flags");
+  // we won't use anyway (consider .w in vertex position), it will affect performance! DEBUG_CTX("set DAZ and RN flags");
 #endif
 }
 

@@ -1,0 +1,95 @@
+include "radiance_cache_common.dshl"
+texture radiance_cache_irradiance;
+
+macro RADIANCE_CACHE_SAMPLE_JUST_IRRADIANCE(code)
+  (code) {
+    radiance_cache_irradiance@smp2d = radiance_cache_irradiance;
+  }
+
+  hlsl (code) {
+    #include <radiance_cache_consts.hlsl>
+    #include <radiance_cache_common_math.hlsl>
+    float3 get_radiance_cache_irradiance(uint radianceCacheProbeIndex, float2 octIrradianceUV, float3 worldPos, float3 rayDir)
+    {
+      uint2 atlasCoord = uint2(radianceCacheProbeIndex%get_radiance_cache_atlas_dim().x, radianceCacheProbeIndex/get_radiance_cache_atlas_dim().x);
+      float2 samplePosUV = atlasCoord/float2(get_radiance_cache_atlas_dim().xy) + octIrradianceUV;
+      return tex2Dlod(radiance_cache_irradiance, float4(samplePosUV, 0,0)).xyz;
+    }
+    //todo: implement occlusion weightening
+    void radiance_cache_add_irradiance(uint radianceCacheProbeIndex, float w, float2 octTC, float3 worldPos, float3 rayDir, inout float3 totalIrradiance, inout float totalW)
+    {
+      if (radianceCacheProbeIndex == INVALID_RADIANCE_CACHE_PROBE_INDEX)
+        return;
+      totalIrradiance += w*get_radiance_cache_irradiance(radianceCacheProbeIndex, octTC, worldPos, rayDir);
+      totalW += w;
+    }
+    float3 sample_trilinear_irradiance_cache_safe(uint4 probeIndices0, uint4 probeIndices1, float3 probeW0, float3 worldPos, float3 worldDir)
+    {
+      float2 octTC = radiance_cache_dir_encode(worldDir)*0.5 + 0.5;
+      float2 octIrradianceUV = octTC * float(RADIANCE_CACHE_IRRADIANCE_RES)/RADIANCE_CACHE_IRRADIANCE_RES_WITH_BORDER + 1./RADIANCE_CACHE_IRRADIANCE_RES_WITH_BORDER;
+      octIrradianceUV /= float2(get_radiance_cache_atlas_dim().xy);
+
+      float4 bWeights = float4(probeW0.xy, 1-probeW0.xy);
+      float4 bilWeights = float4(bWeights.zx*bWeights.w, bWeights.zx*bWeights.y);
+      float3 totalIrradiance = 0; float totalW = 0;
+      float4 bilWeights0 = max(1e-4f, bilWeights*(1-probeW0.z));
+      radiance_cache_add_irradiance(probeIndices0.x, bilWeights0.x, octIrradianceUV, worldPos, worldDir, totalIrradiance, totalW);
+      radiance_cache_add_irradiance(probeIndices0.y, bilWeights0.y, octIrradianceUV, worldPos, worldDir, totalIrradiance, totalW);
+      radiance_cache_add_irradiance(probeIndices0.z, bilWeights0.z, octIrradianceUV, worldPos, worldDir, totalIrradiance, totalW);
+      radiance_cache_add_irradiance(probeIndices0.w, bilWeights0.w, octIrradianceUV, worldPos, worldDir, totalIrradiance, totalW);
+      float4 bilWeights1 = max(1e-4f, bilWeights*probeW0.z);
+      radiance_cache_add_irradiance(probeIndices1.x, bilWeights1.x, octIrradianceUV, worldPos, worldDir, totalIrradiance, totalW);
+      radiance_cache_add_irradiance(probeIndices1.y, bilWeights1.y, octIrradianceUV, worldPos, worldDir, totalIrradiance, totalW);
+      radiance_cache_add_irradiance(probeIndices1.z, bilWeights1.z, octIrradianceUV, worldPos, worldDir, totalIrradiance, totalW);
+      radiance_cache_add_irradiance(probeIndices1.w, bilWeights1.w, octIrradianceUV, worldPos, worldDir, totalIrradiance, totalW);
+      return totalIrradiance/totalW;
+    }
+
+    bool sample_irradiance_from_radiance_cache(float3 worldPos, float3 worldDir, inout half3 lighting, uint startClip)
+    {
+      uint4 probeIndices0, probeIndices1;
+      float3 probeW0;
+      int3 baseWorldCoordI;
+      uint clip = radiance_cache_find_clip_for_sample(radiance_cache_indirection_clipmap, worldPos, probeIndices0, probeIndices1, probeW0, baseWorldCoordI, 0, get_radiance_cache_clip_count(), 0.5);
+      if (clip >= MAX_RADIANCE_CACHE_CLIPS)
+        return false;
+      lighting = sample_trilinear_irradiance_cache_safe(probeIndices0, probeIndices1, probeW0, worldPos, worldDir);
+      return true;
+    }
+    #define MAX_IRRADIANCE_CACHE_CLIPS MAX_RADIANCE_CACHE_CLIPS
+  }
+endmacro
+
+macro RADIANCE_CACHE_SAMPLE_IRRADIANCE(code)
+  RADIANCE_CACHE_CLIPMAP_MATH(code)
+  RADIANCE_CACHE_INDIRECTION_SRV(code)
+  RADIANCE_CACHE_ATLAS_MATH(code)
+  RADIANCE_CACHE_SAMPLE_JUST_IRRADIANCE(code)
+endmacro
+
+macro RADIANCE_CACHE_SAMPLE_IRRADIANCE_GRID(code)
+  RADIANCE_CACHE_CLIPMAP_MATH(code)
+  (code) {
+    radiance_cache_irradiance_sph0@smp3d = radiance_cache_irradiance_sph0;
+    radiance_cache_irradiance_sph1@smp3d = radiance_cache_irradiance_sph1;
+  }
+
+  hlsl (code) {
+    #include <sh1.hlsl>
+    #define MAX_IRRADIANCE_CACHE_CLIPS 1//MAX_RADIANCE_CACHE_CLIPS
+    bool sample_irradiance_from_radiance_cache_grid(float3 worldPos, float3 worldDir, inout half3 lighting, uint startClip)
+    {
+      float3 worldCoordF;
+      uint clip = radiance_cache_find_clip(worldCoordF, worldPos, 0.5, startClip);
+      if (clip >= MAX_IRRADIANCE_CACHE_CLIPS)
+        return false;
+      float3 tc = worldCoordF/get_radiance_cache_clip_size().xxy; //fixme: mul float
+      tc.z = (frac(tc.z)*get_radiance_cache_clip_size().y + 1.)/(get_radiance_cache_clip_size().y+2.);//fixme one madd
+      tc.z = (tc.z+clip)/get_radiance_cache_clip_count();//fixme: could be same one madd
+      float3 ambient = tex3Dlod(radiance_cache_irradiance_sph0, float4(tc, 0)).xyz;
+      float4 directional = tex3Dlod(radiance_cache_irradiance_sph1, float4(tc, 0));
+      lighting = max(dot_sh1(decode_sh1_luminance(ambient, directional), diffuse_transfer_sh1(worldDir)), 0);
+      return true;
+    }
+  }
+endmacro

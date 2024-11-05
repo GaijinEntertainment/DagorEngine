@@ -1,5 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_dataBlock.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_tex3d.h>
 #include <3d/dag_texMgr.h>
 #include <3d/dag_render.h>
 #include <generic/dag_tab.h>
@@ -17,7 +19,7 @@ TEXTUREID load_texture_array_immediate(const char *name, const char *param_name,
     return id;
   ArrayTexture *array = (ArrayTexture *)::acquire_managed_tex(id);
   if (array)
-    array->setAnisotropy(::dgs_tex_anisotropy); // fixme: should be done by engine!
+    array->disableSampler();
   count = names.size();
 
   return id;

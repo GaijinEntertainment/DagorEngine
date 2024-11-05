@@ -1,0 +1,30 @@
+outline_renderer{
+  outline_blur_width:r=1.5
+  outline_brightness:r=5
+  "outline_renderer:OutlineRenderer"{ }
+  "outline_prepare_node:dabfg::NodeHandle"{ }
+  "outline_apply_node:dabfg::NodeHandle"{ }
+  _singleton:b=yes
+  _tags:t="render"
+}
+
+outlined_item{
+  item_outline__recalcColorAt:r=-1
+  item_outline__recalcColorTimer:r=0.2
+  outline__chosenColor:c=177, 184, 199, 255
+  outline__enabled:b=yes
+  outline__always_visible:b=no
+  outline__isOccluded:b=yes
+  outline__color:c=177, 184, 199, 0
+  outline__baseColor:c=177, 184, 199, 255
+  outline__usefulColor:c=138, 43, 226, 255
+  outline__overweightColor:c=200, 0, 0, 255
+  item__rarityColor:c=138, 43, 226, 255
+
+  "outlinedItem:tag"{}
+}
+
+outline{
+  outline__enabled:b=no
+  outline__color:c=255, 255, 255, 255
+}

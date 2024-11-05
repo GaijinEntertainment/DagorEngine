@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "genVisibility.h"
 #include <rendInst/visibility.h>
 #include <rendInst/gpuObjects.h>
@@ -83,11 +85,22 @@ bool rendinst::prepareRIGenVisibility(const Frustum &frustum, const Point3 &vpos
 }
 
 void rendinst::sortRIGenVisibility(RiGenVisibility *visibility, const Point3 &viewPos, const Point3 &viewDir, float vertivalFov,
-  float horizontalFov, float areaThreshold)
+  float horizontalFov, float areaThreshold, unsigned renderMaskO)
 {
   G_ASSERT(visibility);
-  FOR_EACH_RG_LAYER_RENDER (rgl, rgRenderMaskO)
+  FOR_EACH_RG_LAYER_RENDER_EX (rgl, renderMaskO, rendinst::rgLayer)
     rgl->sortRIGenVisibility(visibility[_layer], viewPos, viewDir, vertivalFov, horizontalFov, areaThreshold);
+}
+
+Point3_vec4 rendinst::dir_from_sun{0, -1, 0}; // fixme it should be initialized to most glancing angle
+
+void rendinst::setDirFromSun(const Point3 &d)
+{
+  dir_from_sun = d;
+  if (!riExTiledScenes.size())
+    return;
+  for (auto &scene : riExTiledScenes.scenes(STATIC_SCENES_START, riExTiledScenes.size() - STATIC_SCENES_START))
+    scene.onDirFromSunChanged(d);
 }
 
 struct SortByY
@@ -255,7 +268,7 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
       v_tree_max = rtData->riResBb[ri_idx].bmax;
       shortAlpha = false;
     }
-    // unsigned int stride = RIGEN_STRIDE_B(rtData->riPosInst[ri_idx], perInstDataDwords);
+    // unsigned int stride = RIGEN_STRIDE_B(rtData->riPosInst[ri_idx], rtData->riZeroInstSeeds[ri_idx], perInstDataDwords);
     int lodCnt = rtData->riResLodCount(ri_idx);
     int farLodNo = lodCnt - 1;
     int alphaFarLodNo = farLodNo + 1;
@@ -330,7 +343,8 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
     float distanceToCheckPerInstanceSq = hasImpostor ? max(32.f * 32.f, lodDistancesSq_perInst[visibility.PI_IMPOSTOR_LOD])
                                                      : max(32.f * 32.f, lodDistancesSq_perInst[visibility.PI_LAST_MESH_LOD]);
 
-    visibility.stride = RIGEN_STRIDE_B(pool.hasImpostor(), perInstDataDwords); // rtData->riPosInst[ri_idx]
+    visibility.stride =
+      RIGEN_STRIDE_B(pool.hasImpostor(), rtData->riZeroInstSeeds[ri_idx], perInstDataDwords); // rtData->riPosInst[ri_idx]
     visibility.startRenderRange(ri_idx);
     carray<int, RiGenVisibility::PER_INSTANCE_LODS> perInstanceData;
     mem_set_ff(perInstanceData);
@@ -444,14 +458,14 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
             {
               if (subCellDistSq < distanceToCheckPerInstanceSq)
               {
-                for (int16_t *data = (int16_t *)(crt.sysMemData + sc.ofs), *data_e = data + sc.sz / 2; data < data_e; data += 4)
+                for (int16_t *data = (int16_t *)(crt.sysMemData.get() + sc.ofs), *data_e = data + sc.sz / 2; data < data_e; data += 4)
                 {
-                  if (rendinst::is_pos_rendinst_data_destroyed(data))
-                    continue;
                   bool palette_rotation = rtData->riPaletteRotation[ri_idx];
                   vec4f v_pos, v_scale;
                   vec4i v_palette_id;
-                  rendinst::gen::unpack_tm_pos(v_pos, v_scale, data, v_cell_add[vi], v_cell_mul[vi], palette_rotation, &v_palette_id);
+                  if (!rendinst::gen::unpack_tm_pos(v_pos, v_scale, data, v_cell_add[vi], v_cell_mul[vi], palette_rotation,
+                        &v_palette_id))
+                    continue;
                   bbox3f treeBBox;
                   if (palette_rotation)
                   {
@@ -470,30 +484,6 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
                   }
                   if (frustum.testBoxExtentB(v_add(treeBBox.bmax, treeBBox.bmin), v_sub(treeBBox.bmax, treeBBox.bmin)))
                   {
-                    if (use_occlusion)
-                    {
-                      vec3f occBmin = treeBBox.bmin, occBmax = treeBBox.bmax;
-                      if (forShadow)
-                      {
-                        const float maxLightDistForTreeShadow = 20.0f;
-                        vec3f lightDist = v_mul(v_splats((maxLightDistForTreeShadow * 2.0)),
-                          reinterpret_cast<vec4f &>(rendinst::render::dir_from_sun));
-                        vec3f far_point = v_mul(v_add(v_add(treeBBox.bmax, treeBBox.bmin), lightDist), V_C_HALF);
-                        occBmin = v_min(occBmin, far_point);
-                        occBmax = v_max(occBmax, far_point);
-                      }
-
-                      if (pool.hasImpostor())
-                      {
-                        // impostor is offsetted by cylinder_radius in vshader so check sphere occlusion instead
-                        vec3f sphCenter = v_add(v_pos, v_make_vec4f(0.0f, pool.sphCenterY, 0.0f, 0.0f));
-                        vec4f radius = v_mul(v_splats(pool.sphereRadius), v_scale);
-                        if (use_occlusion->isOccludedSphere(sphCenter, radius))
-                          continue;
-                      }
-                      else if (use_occlusion->isOccludedBox(occBmin, occBmax))
-                        continue;
-                    }
                     int instanceLod;
                     float instance_dist2 = pool.hasTransitionLod()
                                              ? v_extract_x(v_length3_sq_x(v_sub(v_pos, curViewPos)))
@@ -502,6 +492,31 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
                     for (instanceLod = visibility.PI_ALPHA_LOD; instanceLod > 0; --instanceLod) // alphaFarLodNo!
                       if (instance_dist2 > lodDistancesSq_perInst[instanceLod])
                         break;
+
+                    if (use_occlusion)
+                    {
+                      vec3f occBmin = treeBBox.bmin, occBmax = treeBBox.bmax;
+                      if (forShadow)
+                      {
+                        const float maxLightDistForTreeShadow = 20.0f;
+                        vec3f lightDist =
+                          v_mul(v_splats((maxLightDistForTreeShadow * 2.0)), reinterpret_cast<const vec4f &>(rendinst::dir_from_sun));
+                        vec3f far_point = v_mul(v_add(v_add(treeBBox.bmax, treeBBox.bmin), lightDist), V_C_HALF);
+                        occBmin = v_min(occBmin, far_point);
+                        occBmax = v_max(occBmax, far_point);
+                      }
+
+                      if (pool.hasImpostor() && instanceLod == visibility.PI_IMPOSTOR_LOD)
+                      {
+                        // impostor is offsetted by cylinder_radius in vshader so check sphere occlusion instead
+                        vec3f sphCenter = v_add(v_pos, v_mul(v_scale, v_make_vec4f(0.0f, pool.sphCenterY, 0.0f, 0.0f)));
+                        vec4f radius = v_mul(v_splats(pool.sphereRadius), v_scale);
+                        if (use_occlusion->isOccludedSphere(sphCenter, radius))
+                          continue;
+                      }
+                      else if (use_occlusion->isOccludedBox(occBmin, occBmax))
+                        continue;
+                    }
                     rtData->riRes[ri_idx]->updateReqLod(min<int>(instanceLod, rtData->riRes[ri_idx]->lods.size() - 1));
                     if (instanceLod < rtData->riRes[ri_idx]->getQlBestLod())
                       instanceLod = rtData->riRes[ri_idx]->getQlBestLod();
@@ -514,7 +529,7 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
                       int distance = bitwise_cast<int, float>(instance_dist2);
 
                       if (forShadow) // we shall sort from front to back
-                        distance = v_extract_xi(v_cvt_vec4i(v_dot3(((vec4f &)rendinst::render::dir_from_sun), v_pos)));
+                        distance = v_extract_xi(v_cvt_vec4i(v_dot3(reinterpret_cast<const vec4f &>(rendinst::dir_from_sun), v_pos)));
 
                       perInstanceDistance[instanceLod][perInstanceDistanceCnt[instanceLod]] =
                         IPoint2(perInstanceDistanceCnt[instanceLod], distance);
@@ -523,7 +538,7 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
                     else
                       visibility.addTreeInstance(ri_idx, perInstanceData[instanceLod], v_packed_data, instanceLod);
 
-                    visibility.instNumberCounter[instanceLod]++;
+                    visibility.instNumberCounter[max(0, instanceLod - lodTranslation)]++;
                     if (instanceLod == visibility.PI_ALPHA_LOD) // PI_ALPHA_LOD also requires an impostor texture.
                       riRenderRanges[ri_idx].vismask |= VIS_HAS_IMPOSTOR;
                   }

@@ -1,0 +1,6 @@
+#ifndef TSR_INC_HLSL_INCLUDED
+#define TSR_INC_HLSL_INCLUDED
+
+#define TSR_CS_WORKGROUP_SIZE 8
+
+#endif

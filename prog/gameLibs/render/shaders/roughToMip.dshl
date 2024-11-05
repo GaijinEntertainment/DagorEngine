@@ -2,6 +2,8 @@ int num_probe_mips = 7 always_referenced;
 
 macro USE_ROUGH_TO_MIP()
 hlsl {
+#ifndef ROUGH_TO_MIP
+#define ROUGH_TO_MIP
 
 #define ROUGHEST_MIP 0.5h
 #define ROUGHNESS_MIP_SCALE 1.2h
@@ -20,6 +22,8 @@ float ComputeReflectionCaptureRoughnessFromMip( float Mip )
   float LevelFrom1x1 = NUM_PROBE_MIPS - 1.0 - Mip;
   return exp2( ROUGHEST_MIP * rcp(ROUGHNESS_MIP_SCALE) - LevelFrom1x1 * rcp(ROUGHNESS_MIP_SCALE)  );
 }
+
+#endif
 
 }
 endmacro

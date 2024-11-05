@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <3d/dag_materialData.h>
 #include <shaders/dag_DynamicShaderHelper.h>
 

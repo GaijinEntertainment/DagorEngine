@@ -46,6 +46,9 @@ float foam_tiling = 0.1013;
 float angle_to_roughness_scale = 0.1;
 float sun_roughness_for_water_to_cube = 0;
 
+// Reflection coefficient for light incoming parallel to the normal (F0 or fresnel bias)
+float4 water_fresnel_reflectance = (0.02, 0.5, 0.5, 0); // specular intensity, ambient reflection, Fresnel reflection
+
 float4 object_reflection_offset = (0, 0.01, 0, 0);
 float water_reflection_margin_inv = 1;
 
@@ -117,6 +120,7 @@ block(frame) water3d_block
     sun_color_0__shadow_intens@f3 = (sun_color_0.r, sun_color_0.g, sun_color_0.b, cloud_shadow_intensity);
     sky_color@f3 = sky_color;
     foam_tiling_bdamp_srough@f4 = (foam_tiling/(height_tiling+1), water_depth_hardness*(2-height_tiling), 1.0 / bump_dist_damp, sun_roughness_for_water_to_cube);
+    water_fresnel_reflectance@f4 = water_fresnel_reflectance;
     depth_tex@smp2d = depth_tex;
   }
   INIT_HDR_STCODE()
@@ -143,7 +147,7 @@ block(frame) water3d_block
   }
 
   FOG_PS_STCODE()
-  INIT_WATER_GRADIENTS()
+  INIT_WATER_GRADIENTS(ps)
 }
 
 
@@ -234,7 +238,7 @@ shader water_nv2/*, water3d_compatibility, water_3d_decal*/
     }
   }
 
-  USE_SAMPLE_BICUBIC()
+  USE_SAMPLE_BICUBIC(ps)
 
   if (shader == water_nv2)
   {
@@ -277,7 +281,8 @@ shader water_nv2/*, water3d_compatibility, water_3d_decal*/
     }
   }
 
-  USE_HDR()
+  INIT_HDR(ps)
+  USE_HDR(ps)
   USE_SUN()
   FOG_PS_NO_STCODE()
   SQ_CLOUDS_SHADOW()
@@ -472,7 +477,7 @@ shader water_nv2/*, water3d_compatibility, water_3d_decal*/
   INIT_WAKE()
   USE_WAKE()
   //USE_CUBE_RAIN_DROPLETS(0) there are not enough registers now, turn on when at least one sampler will be available
-  USE_WATER_GRADIENTS(1)
+  USE_WATER_GRADIENTS(ps, 1)
   USE_WATER_CASCADES_ROUGHNESS()
   USE_SUN_DISK_SPECULAR()
   if (compatibility_mode == compatibility_mode_off)
@@ -540,8 +545,6 @@ shader water_nv2/*, water3d_compatibility, water_3d_decal*/
 ##endif
 
   #define FOAM_COLOR half3(1, 1, 1)
-  // Reflection coefficient for light incoming parallel to the normal (F0 or fresnel bias)
-  #define FRESNEL_REFLECTANCE 0.02
 
 #if DEBUG_WATER
   #define DEBUG_WATER_MASK(m_no, reg) (water_mask##m_no.reg == false)
@@ -804,7 +807,7 @@ shader water_nv2/*, water3d_compatibility, water_3d_decal*/
     vd.NoV = abs(vd.NdotV)+1e-5;
     vd.NoL = dot(to_sun_direction.xyz, vd.worldNormal);
     float Fc = pow5(1.- vd.NoV);
-    vd.fresnelView = Fc+FRESNEL_REFLECTANCE*(1-Fc);
+    vd.fresnelView = Fc+water_fresnel_reflectance.x*(1-Fc);
   }
 
   void getShadows(ViewData vd, out ShadowsData shadowsData)
@@ -1024,7 +1027,7 @@ shader water_nv2/*, water3d_compatibility, water_3d_decal*/
     float D = 0, G = 0;
     float3 F;
     if (vd.NoV > 0)
-      sunDiskSpecular( FRESNEL_REFLECTANCE, vd.NoV, sun_roughness, to_sun_direction.xyz, vd.view, vd.worldNormal, D, G, F );
+      sunDiskSpecular(water_fresnel_reflectance.x, vd.NoV, sun_roughness, to_sun_direction.xyz, vd.view, vd.worldNormal, D, G, F);
     G = 1;
 
     //float D = BRDF_distribution( sun_roughness, vd.vd.NoH );
@@ -1065,7 +1068,7 @@ shader water_nv2/*, water3d_compatibility, water_3d_decal*/
     }
 #endif
 
-    half enviBRDF = saturate(EnvBRDFApprox( FRESNEL_REFLECTANCE, vd.roughness, vd.NoV).x);//fixme: optimize for water
+    half enviBRDF = saturate(EnvBRDFApprox(water_fresnel_reflectance.x, vd.roughness, vd.NoV).x);//fixme: optimize for water
     reflectionsData.reflectionColor = (envReflections.enviReflection * (1 - planarReflections.objectReflection.a) + planarReflections.objectReflection.rgb)*enviBRDF;
 
     half3 sunReflFinal = lerp(sunReflections.sunReflection, float3(0, 0, 0), saturate(foamData.foamFactor * 10));    // Remove specular from slightly foamed water.

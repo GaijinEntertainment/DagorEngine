@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <util/dag_globDef.h>
 #include <math/dag_Point4.h>
 #include <vecmath/dag_vecMath.h>

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "collision_panel.h"
 #include "clippingPlugin.h"
 
@@ -64,7 +66,7 @@ bool CollisionPropPanelClient::showPropPanel(bool show)
     if (show)
       EDITORCORE->addPropPanel(PROPBAR_EDITOR_WTYPE, hdpi::_pxScaled(PROPBAR_WIDTH));
     else
-      EDITORCORE->removePropPanel(mPanelWindow->getParentWindowHandle());
+      EDITORCORE->removePropPanel(mPanelWindow);
   }
 
   return true;
@@ -77,7 +79,7 @@ void CollisionPropPanelClient::setCollisionParams()
 
   dag::Span<PhysMat::MaterialData> info_mats = PhysMat::getMaterials();
 
-  PropertyContainerControlBase *maxGroup = mPanelWindow->createGroup(CM_PID_EDITOR_GRP, "Collision parameters");
+  PropPanel::ContainerPropertyControl *maxGroup = mPanelWindow->createGroup(CM_PID_EDITOR_GRP, "Collision parameters");
 
   maxGroup->createEditFloat(CM_PID_EDITOR_VCM_RAD, "Visibility radius:", get_vcm_rad());
   maxGroup->createStatic(0, "Preview");
@@ -122,7 +124,7 @@ void CollisionPropPanelClient::setCollisionParams()
 void CollisionPropPanelClient::fillPanel() { setCollisionParams(); }
 
 
-void CollisionPropPanelClient::onChange(int pcb_id, PropPanel2 *panel)
+void CollisionPropPanelClient::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   bool changed = false;
 

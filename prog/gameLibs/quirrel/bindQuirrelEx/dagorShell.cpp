@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <quirrel/sqModules/sqModules.h>
 #include <quirrel/bindQuirrelEx/bindQuirrelEx.h>
 #include <osApiWrappers/dag_shellExecute.h>

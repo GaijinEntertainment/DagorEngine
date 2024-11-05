@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -49,14 +48,22 @@ class ParticlePhysSystem
   Tab<ParticlePoint *> particles;
   Tab<Constraint *> constraints;
 
+  typedef Tab<int> ParticleGroupIds;
+  Tab<ParticleGroupIds> particleGroups;
+
   void loadData(const DataBlock *blk, const GeomNodeTree *tree);
 
 public:
+  ParticlePhysSystem() = default;
+  ParticlePhysSystem(ParticlePhysSystem &&) = default;
   ~ParticlePhysSystem();
 
   ParticlePoint *findParticle(dag::Index16 gn_node_id) const;
   int findParticleId(dag::Index16 gn_node_id) const;
   ParticlePoint *getParticle(int particle_id) const;
+
+  int particleGroupsCount() const { return particleGroups.size(); }
+  dag::ConstSpan<const int> getParticleGroupIds(int group_id) const { return particleGroups[group_id]; }
 
   void loadFromBlk(const DataBlock *blk, const GeomNodeTree *tree);
 

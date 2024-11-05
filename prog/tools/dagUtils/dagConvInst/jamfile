@@ -1,6 +1,5 @@
 Root    ?= ../../../.. ;
 Location = prog/tools/dagUtils/DagConvInst ;
-DriverLinkage   = static ;
 ConsoleExe      = yes ;
 
 TargetType  = exe ;

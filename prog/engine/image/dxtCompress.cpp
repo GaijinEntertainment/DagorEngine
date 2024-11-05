@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_stdint.h>
 #include <stdio.h>
 
@@ -34,7 +36,7 @@ typedef void *LPVOID;
 #define CV4(v) v.r, v.g, v.b, v.a
 #define INLINE __forceinline
 
-#define LOGLEVEL_DEBUG _MAKE4C('DXTC')
+#define debug(...) logmessage(_MAKE4C('DXTC'), __VA_ARGS__)
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -48,7 +50,7 @@ void GenNextLevelMipMap(TexPixel32 *pSrc, int srcW, int srcH, TexPixel32 *pDst)
 {
   int dstW = srcW > 4 ? srcW / 2 : 4;
   int dstH = srcH > 4 ? srcH / 2 : 4;
-  uint8_t *dst = (uint8_t *)pDst;
+  uint8_t *dst = reinterpret_cast<uint8_t *>(pDst);
 
   int iSumColor[4];
   for (int dstX = 0; dstX < dstW; dstX++)
@@ -57,10 +59,10 @@ void GenNextLevelMipMap(TexPixel32 *pSrc, int srcW, int srcH, TexPixel32 *pDst)
     {
       memset(iSumColor, 0, 4 * sizeof(int));
 
-      AddColor(iSumColor, (char *)&pSrc[(dstY * srcH / dstH) * srcW + dstX * srcW / dstW]);
-      AddColor(iSumColor, (char *)&pSrc[((dstY * srcH + 1) / dstH) * srcW + dstX * srcW / dstW]);
-      AddColor(iSumColor, (char *)&pSrc[(dstY * srcH / dstH) * srcW + (dstX * srcW + 1) / dstW]);
-      AddColor(iSumColor, (char *)&pSrc[((dstY * srcH + 1) / dstH) * srcW + (dstX * srcW + 1) / dstW]);
+      AddColor(iSumColor, reinterpret_cast<char *>(&pSrc[(dstY * srcH / dstH) * srcW + dstX * srcW / dstW]));
+      AddColor(iSumColor, reinterpret_cast<char *>(&pSrc[((dstY * srcH + 1) / dstH) * srcW + dstX * srcW / dstW]));
+      AddColor(iSumColor, reinterpret_cast<char *>(&pSrc[(dstY * srcH / dstH) * srcW + (dstX * srcW + 1) / dstW]));
+      AddColor(iSumColor, reinterpret_cast<char *>(&pSrc[((dstY * srcH + 1) / dstH) * srcW + (dstX * srcW + 1) / dstW]));
 
       uint8_t *p = dst + (dstY * dstW + dstX) * 4;
       p[0] = iSumColor[0] / 4;
@@ -71,7 +73,7 @@ void GenNextLevelMipMap(TexPixel32 *pSrc, int srcW, int srcH, TexPixel32 *pDst)
   }
 }
 
-void ManualDXT(int mode, TexPixel32 *pImage, int iWidth, int iHeight, int dxt_pitch, char *pCompressed, int algorithm)
+void ManualDXT(int mode, const TexPixel32 *pImage, int iWidth, int iHeight, int dxt_pitch, char *pCompressed, int algorithm)
 {
   if (algorithm != DXT_ALGORITHM_QUICK && mode != MODE_DXT5Alpha)
   {
@@ -79,40 +81,49 @@ void ManualDXT(int mode, TexPixel32 *pImage, int iWidth, int iHeight, int dxt_pi
                  ? rygDXT::STB_DXT_FAST
                  : (algorithm == DXT_ALGORITHM_PRODUCTION ? rygDXT::STB_DXT_NORMAL : rygDXT::STB_DXT_HIGHQUAL);
     if (mode == MODE_DXT1)
-      rygDXT::CompressImageDXT1((const unsigned char *)pImage, (unsigned char *)pCompressed, iWidth, iHeight, algo, dxt_pitch);
+      rygDXT::CompressImageDXT1(reinterpret_cast<const unsigned char *>(pImage), reinterpret_cast<unsigned char *>(pCompressed),
+        iWidth, iHeight, algo, dxt_pitch);
     else if (mode == MODE_DXT5)
-      rygDXT::CompressImageDXT5((const unsigned char *)pImage, (unsigned char *)pCompressed, iWidth, iHeight, algo, dxt_pitch);
+      rygDXT::CompressImageDXT5(reinterpret_cast<const unsigned char *>(pImage), reinterpret_cast<unsigned char *>(pCompressed),
+        iWidth, iHeight, algo, dxt_pitch);
     else
-      rygDXT::CompressImageDXT3((const unsigned char *)pImage, (unsigned char *)pCompressed, iWidth, iHeight, algo, dxt_pitch);
+      rygDXT::CompressImageDXT3(reinterpret_cast<const unsigned char *>(pImage), reinterpret_cast<unsigned char *>(pCompressed),
+        iWidth, iHeight, algo, dxt_pitch);
     return;
   }
   G_ASSERT(is_pow_of2(iWidth) && is_pow_of2(iHeight));
   switch (mode)
   {
     case MODE_DXT1:
-      fastDXT::CompressImageDXT1((const unsigned char *)pImage, (unsigned char *)pCompressed, iWidth, iHeight, dxt_pitch);
+      fastDXT::CompressImageDXT1(reinterpret_cast<const unsigned char *>(pImage), reinterpret_cast<unsigned char *>(pCompressed),
+        iWidth, iHeight, dxt_pitch);
       break;
     case MODE_DXT5:
-      fastDXT::CompressImageDXT5((const unsigned char *)pImage, (unsigned char *)pCompressed, iWidth, iHeight, dxt_pitch);
+      fastDXT::CompressImageDXT5(reinterpret_cast<const unsigned char *>(pImage), reinterpret_cast<unsigned char *>(pCompressed),
+        iWidth, iHeight, dxt_pitch);
       break;
     case MODE_DXT5Alpha:
-      fastDXT::CompressImageDXT5Alpha((const unsigned char *)pImage, (unsigned char *)pCompressed, iWidth, iHeight, dxt_pitch);
+      fastDXT::CompressImageDXT5Alpha(reinterpret_cast<const unsigned char *>(pImage), reinterpret_cast<unsigned char *>(pCompressed),
+        iWidth, iHeight, dxt_pitch);
       break;
     case MODE_DXT3:
-      rygDXT::CompressImageDXT3((const unsigned char *)pImage, (unsigned char *)pCompressed, iWidth, iHeight, rygDXT::STB_DXT_NORMAL,
-        dxt_pitch);
+      rygDXT::CompressImageDXT3(reinterpret_cast<const unsigned char *>(pImage), reinterpret_cast<unsigned char *>(pCompressed),
+        iWidth, iHeight, rygDXT::STB_DXT_NORMAL, dxt_pitch);
       break;
   }
 }
 
-void CompressBC4(unsigned char *image, int width, int height, int dxt_pitch, char *pCompressed, int pixel_stride, int pixel_offset)
+void CompressBC4(const unsigned char *image, int width, int height, int dxt_pitch, char *pCompressed, int pixel_stride,
+  int pixel_offset)
 {
-  fastDXT::CompressImageBC4(image, (unsigned char *)pCompressed, width, height, dxt_pitch, pixel_stride, pixel_offset);
+  fastDXT::CompressImageBC4(image, reinterpret_cast<unsigned char *>(pCompressed), width, height, dxt_pitch, pixel_stride,
+    pixel_offset);
 }
 
 void CompressBC5(unsigned char *image, int width, int height, int dxt_pitch, char *pCompressed, int pixel_stride, int pixel_offset)
 {
-  fastDXT::CompressImageBC5(image, (unsigned char *)pCompressed, width, height, dxt_pitch, pixel_stride, pixel_offset);
+  fastDXT::CompressImageBC5(image, reinterpret_cast<unsigned char *>(pCompressed), width, height, dxt_pitch, pixel_stride,
+    pixel_offset);
 }
 
 void *CompressDXT(int mode, TexPixel32 *image, int /*stride_bytes*/, int width, int height, int levels, int *len, int /*algorithm*/,
@@ -161,7 +172,7 @@ void *CompressDXT(int mode, TexPixel32 *image, int /*stride_bytes*/, int width, 
   int iResultLen = sizeof(ddsx::Header) + iCompressedSize;
 
   // Compressed data
-  char *pData = (char *)memalloc(iResultLen, tmpmem);
+  char *pData = reinterpret_cast<char *>(memalloc(iResultLen, tmpmem));
 
   if (!pData)
     return NULL;
@@ -169,7 +180,7 @@ void *CompressDXT(int mode, TexPixel32 *image, int /*stride_bytes*/, int width, 
   //--- Fill in DDSx header ------------------
   int dataStartOffs = sizeof(ddsx::Header);
 
-  ddsx::Header *hdr = (ddsx::Header *)pData;
+  ddsx::Header *hdr = reinterpret_cast<ddsx::Header *>(pData);
   memset(hdr, 0, sizeof(ddsx::Header));
   hdr->label = _MAKE4C('DDSx');
   hdr->flags = ddsx::Header::FLG_CONTIGUOUS_MIP | 0x11;
@@ -206,7 +217,7 @@ void *CompressDXT(int mode, TexPixel32 *image, int /*stride_bytes*/, int width, 
   // Mipmaps and their compression -----------------------------------------------
   if (levels > 1)
   {
-    TexPixel32 *pMipMapBuf = (TexPixel32 *)memalloc(width * height * 4, tmpmem);
+    TexPixel32 *pMipMapBuf = reinterpret_cast<TexPixel32 *>(memalloc(width * height * 4, tmpmem));
 
     int iCurW = width;
     int iCurH = height;
@@ -270,7 +281,7 @@ void *CompressDXT(int mode, TexPixel32 *image, int /*stride_bytes*/, int width, 
   if (hdr->packedSz)
   {
     *len = hdr->packedSz + sizeof(ddsx::Header);
-    pData = (char *)tmpmem->realloc(pData, *len);
+    pData = reinterpret_cast<char *>(tmpmem->realloc(pData, *len));
   }
   else
     *len = hdr->memSz + sizeof(ddsx::Header);

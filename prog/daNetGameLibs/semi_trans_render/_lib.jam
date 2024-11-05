@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_semi_trans_render_pull ;
+  UseProgLibs += daNetGameLibs/semi_trans_render ;
+}

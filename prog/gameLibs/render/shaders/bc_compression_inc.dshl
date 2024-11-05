@@ -1,3 +1,4 @@
+include "shader_global.dshl"
 
 macro INIT_BC_COMPRESSION()
 
@@ -48,8 +49,14 @@ macro INIT_BC_COMPRESSION()
 
   hlsl(ps)
   {
-    #include "get_cubemap_vector.hlsl"
     #include "bc_compression.hlsl"
+  }
+endmacro
+
+macro INIT_BC_COMPRESSION_GET_HELPER()
+  hlsl(ps)
+  {
+    #include "get_cubemap_vector.hlsl"
 
     // 4x4 lookup
 #ifdef BC_COMPRESSION_FOR_CUBE
@@ -470,6 +477,7 @@ macro COMMON_BC_SHADER(rg_channels, srgb)
   }
 
   INIT_BC_COMPRESSION()
+  INIT_BC_COMPRESSION_GET_HELPER()
 
 
   if (rg_channels)
@@ -500,7 +508,7 @@ macro COMMON_BC_SHADER(rg_channels, srgb)
 
 ##if srgb
       for ( int i = 0; i < 16; ++i )
-        texels[i].rgb = accurateLinearToSRGB( texels[i].rgb );
+        texels[i].rgb = ApplySRGBCurve( texels[i].rgb );
 ##endif
 
       return compress( texels, min_color, max_color );

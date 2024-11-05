@@ -1,0 +1,4 @@
+if $(HaveSoundNet) = yes {
+  gamePulls += framework_sound_utils_net_pull daNetGameLibs_sound_utils_net_DAS_pull_AOT ;
+  UseProgLibs += daNetGameLibs/sound/sound_utils_net ;
+}

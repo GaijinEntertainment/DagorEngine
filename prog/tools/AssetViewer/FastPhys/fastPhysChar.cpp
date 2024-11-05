@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_debug3d.h>
 #include <animChar/dag_animCharacter2.h>
 #include "fastPhysChar.h"

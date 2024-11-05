@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -101,9 +100,9 @@ private:
   vec4f offsetV, numCellsV, invCellSizeV;
   vec4f offsetVXZ, numCellsVXZ;
   bbox3f boxV;
+#if _TARGET_PC && _TARGET_SIMD_SSE
   static void packVerts(Vertex *packed, const Point3 *verts, int vertCount, vec4f &scale, vec4f &ofs)
   {
-#if _TARGET_PC && _TARGET_SIMD_SSE
     bbox3f box;
     v_bbox3_init_empty(box);
     for (int i = 0; i < vertCount; ++i)
@@ -141,8 +140,8 @@ private:
       //__m128i verti16 = _mm_packus_epi32(verti, verti);
       //_mm_storel_epi64((__m128i*)(packed+i), verti16);
     }
-#endif
   }
+#endif
   __forceinline int getCellFaceCount(int ci) const // returns number of face indices count, i.e. faces*3!
   {
     return (((ci < cells.size() - 1) ? cells[ci + 1].faces : allFaces.data() + allFaces.size()) - cells[ci].faces);
@@ -473,38 +472,28 @@ public:
   template <bool get_max_height, bool use_normal>
   bool traceDownFaceVec(const Point3 &pos3, float &ht_ret, Point3 *normal)
   {
-    if (!get_max_height)
-      if (ht_ret > bbox[1].y)
-        return false;
-    vec4f gridPosV = v_ldu(&pos3.x);
-    vec4f offsetedGridPos = v_sub(gridPosV, offsetV);
-    offsetedGridPos = v_mul(offsetedGridPos, invCellSizeV);
-    vec4i flooredOfsGridPosi = v_cvt_vec4i(offsetedGridPos);
-    vec4f flooredOfsGridPos = v_cvt_vec4f(flooredOfsGridPosi);
-    // vec4i offsetedGridPosi = v_cvt_vec4i(offsetedGridPos);
-    vec4f inside = v_and(v_cmp_ge(offsetedGridPos, v_zero()), v_cmp_gt(numCellsV, flooredOfsGridPos));
-    inside = v_and(inside, v_cmp_gt(boxV.bmax, offsetedGridPos));
-    vec4f part = v_sub(offsetedGridPos, flooredOfsGridPos);
-    DECL_ALIGN16(float, cellOfs[4]);
-    v_st(cellOfs, part);
-#if _TARGET_SIMD_SSE
-    if ((_mm_movemask_ps(inside) & 0x5) != 0x5)
+    if (!get_max_height && ht_ret > bbox[1].y)
       return false;
-#else
-    if (v_test_vec_x_eqi_0(v_and(v_splat_x(inside), v_splat_z(inside))))
+
+    vec4f offsetedPos = v_sub(v_ldu(&pos3.x), offsetV);
+    vec4f cellCoord = v_mul(offsetedPos, invCellSizeV);
+    vec4f cellCoordFloored = v_floor(cellCoord);
+    vec4f inside = v_and(v_cmp_ge(offsetedPos, v_zero()), v_cmp_lt(cellCoordFloored, numCellsV));
+    inside = v_and(inside, v_cmp_gt(boxV.bmax, cellCoord));
+    if ((v_signmask(inside) & 0b101) != 0b101)
       return false;
-#endif
-    int ci = v_extract_xi(v_cvt_vec4i(v_add_x(v_mul_x(numCellsV, v_splat_z(flooredOfsGridPos)), flooredOfsGridPos)));
-    Point2 gridPos;
-    gridPos.x = cellOfs[0], gridPos.y = cellOfs[2];
 
-
+    vec4i cellIndices = v_cvt_vec4i(cellCoordFloored);
+    int ci = v_extract_zi(cellIndices) * numCellsX + v_extract_xi(cellIndices);
     const LandRayCell &cell = cells[ci];
-
     uint32_t gridSize = cell.fistart_gridsize & GRIDSIZE_MASK;
     if (!gridSize)
       return false;
-    uint32_t gridX = (uint32_t)(floorf(gridPos.x * gridSize)), gridY = (uint32_t)(floorf(gridPos.y * gridSize));
+
+    vec4f cellPart = v_sub(cellCoord, cellCoordFloored);
+    vec4i gridCoord = v_cvt_floori(v_mul(cellPart, v_splats(gridSize)));
+    uint32_t gridX = v_extract_xi(gridCoord);
+    uint32_t gridY = v_extract_zi(gridCoord);
     uint32_t gi = gridX + gridY * gridSize;
     vec4f pkScale = cell.scale, pkOfs = cell.ofs;
     vec4f maxht;
@@ -525,7 +514,7 @@ public:
 #if DAGOR_DBGLEVEL > 0
     G_ASSERTF(((uint32_t)(efi - sfi)) < (1 << 20), "%s infinite loop", __FUNCTION__);
 #endif
-    gridPosV = v_div(v_sub(gridPosV, pkOfs), pkScale);
+    vec4f gridPosV = v_div(v_sub(v_ldu(&pos3.x), pkOfs), pkScale);
 #define VERT(I, J) v_cvt_vec4f(v_lduush(cell.verts[cell.faces[fi[I] + (J)]].v))
 
     for (uint32_t i = sfi; i < efi; i += 4)
@@ -617,13 +606,11 @@ public:
   }
   float calcHighestHorizon(vec3f v_pos)
   {
-    vec4f offsetedGridPos = v_sub(v_pos, offsetV);
-    offsetedGridPos = v_mul(offsetedGridPos, invCellSizeV);
-    offsetedGridPos = v_min(v_max(offsetedGridPos, v_zero()), v_sub(numCellsV, V_C_HALF));
-
-    vec4i flooredOfsGridPosi = v_cvt_vec4i(offsetedGridPos);
-    vec4f flooredOfsGridPos = v_cvt_vec4f(flooredOfsGridPosi);
-    int startCell = v_extract_xi(v_cvt_vec4i(v_add_x(v_mul_x(numCellsV, v_splat_z(flooredOfsGridPos)), flooredOfsGridPos)));
+    vec4f cellCoord = v_mul(v_pos, invCellSizeV);
+    vec4f cellCoordFloored = v_floor(cellCoord);
+    vec4f cellCoordClamped = v_clamp(cellCoordFloored, v_zero(), v_sub(numCellsV, V_C_ONE));
+    vec4i cellIndices = v_cvt_vec4i(cellCoordClamped);
+    int startCell = v_extract_zi(cellIndices) * numCellsX + v_extract_xi(cellIndices);
 
     vec4f high = v_neg(V_C_ONE);
 
@@ -770,15 +757,14 @@ public:
     vec4f worldBboxXZ = v_perm_xzac(worldBBox.bmin, worldBBox.bmax);
     vec4f regionV = v_sub(worldBboxXZ, offsetVXZ);
     regionV = v_mul(regionV, invCellSizeV);
-    regionV = v_max(regionV, v_zero());
-    regionV = v_min(regionV, numCellsVXZ);
-    vec4i regionI = v_cvt_vec4i(regionV);
+    regionV = v_clamp(regionV, v_zero(), numCellsVXZ);
+    vec4f flooredOfsGridPos1 = v_floor(regionV);
+    vec4i regionI = v_cvt_vec4i(flooredOfsGridPos1);
 
-    vec4f flooredOfsGridPos1 = v_cvt_vec4f(regionI);
     vec4f inside = v_cmp_eq(flooredOfsGridPos1, v_perm_zwxy(flooredOfsGridPos1));
 
     vec4f vCellOfs = v_sub(regionV, flooredOfsGridPos1);
-    int ci = v_extract_xi(v_cvt_vec4i(v_add_x(v_mul_x(numCellsV, v_splat_y(flooredOfsGridPos1)), flooredOfsGridPos1)));
+    int ci = v_extract_yi(regionI) * numCellsX + v_extract_xi(regionI);
 
     const LandRayCell &cell = cells[ci];
     int gridSize = cell.fistart_gridsize & GRIDSIZE_MASK;
@@ -926,11 +912,10 @@ public:
     vec4f worldBboxXZ = v_perm_xzac(worldBBox.bmin, worldBBox.bmax);
     vec4f regionV = v_sub(worldBboxXZ, offsetVXZ);
     regionV = v_mul(regionV, invCellSizeV);
-    regionV = v_max(regionV, v_zero());
-    regionV = v_min(regionV, numCellsVXZ);
-    vec4i regionI = v_cvt_vec4i(regionV);
+    regionV = v_clamp(regionV, v_zero(), numCellsVXZ);
+    vec4f flooredOfsGridPos1 = v_floor(regionV);
+    vec4i regionI = v_cvt_vec4i(flooredOfsGridPos1);
 
-    vec4f flooredOfsGridPos1 = v_cvt_vec4f(regionI);
     vec4f inside = v_cmp_eq(flooredOfsGridPos1, v_perm_zwxy(flooredOfsGridPos1));
 #if _TARGET_SIMD_SSE
     if ((_mm_movemask_ps(inside) & 0x3) == 0x3)
@@ -939,7 +924,7 @@ public:
 #endif
     {
       ///*
-      int ci = v_extract_xi(v_cvt_vec4i(v_add_x(v_mul_x(numCellsV, v_splat_y(flooredOfsGridPos1)), flooredOfsGridPos1)));
+      int ci = v_extract_yi(regionI) * numCellsX + v_extract_xi(regionI);
       const LandRayCell &cell = cells[ci];
       if (minY > cell.maxHt)
         return false;
@@ -1009,9 +994,7 @@ public:
       bool ret = traceRayVec<true>(startOfs, ddir, mint, normalV);
       if (!ret)
         return false;
-      Point3_vec4 norm;
-      v_st(&norm.x, v_norm3(normalV));
-      *normal = norm;
+      v_stu_p3(&normal->x, v_norm3(normalV));
       return true;
     }
     return traceRayVec<false>(startOfs, ddir, mint, normalV);
@@ -1063,8 +1046,10 @@ public:
   void load(void *dump, int sz);
   void initFromDump();
   void save(IGenSave &cb);
+#if _TARGET_PC && _TARGET_SIMD_SSE
   bool build(uint32_t cellsX, uint32_t cellsY, float cellSz, const Point3 &ofs, const BBox3 &box, dag::ConstSpan<Mesh *> meshes,
     dag::ConstSpan<Mesh *> combined_meshes, uint32_t min_grid_index, uint32_t max_grid_index, bool optimize_for_cache);
+#endif
 
 protected:
   template <bool use_normal>

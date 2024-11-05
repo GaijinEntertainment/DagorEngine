@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <sqModules/sqModules.h>
 #include <sqStackChecker.h>
 
@@ -29,6 +31,8 @@ using namespace sqimportparser;
 
 const char *SqModules::__main__ = "__main__";
 const char *SqModules::__fn__ = nullptr;
+const char *SqModules::__analysis__ = "__analysis__";
+
 #if _TARGET_PC
 bool SqModules::tryOpenFilesFromRealFS = true; // by default we allow loading from fs on PC.
 #else
@@ -277,25 +281,22 @@ bool SqModules::readFile(const String &resolved_fn, const char *requested_fn, Ta
   return true;
 }
 
-struct ASTDataGuard
+
+bool SqModules::compileScriptImpl(const dag::ConstSpan<char> &buf, const char *resolved_fn, const HSQOBJECT *bindings,
+  SQCompilation::SqASTData **return_ast)
 {
-  SQCompilation::SqASTData *data;
-  HSQUIRRELVM vm;
+  if (onCompileFile_cb)
+    onCompileFile_cb(sqvm, resolved_fn);
 
-  ASTDataGuard(HSQUIRRELVM vm_, SQCompilation::SqASTData *astData) : vm(vm_), data(astData) {}
-
-  ~ASTDataGuard() { sq_releaseASTData(vm, data); }
-};
-
-bool SqModules::compileScriptImpl(const dag::ConstSpan<char> &buf, const char *resolved_fn, const HSQOBJECT *bindings)
-{
-  sq_oncompilefile(sqvm, resolved_fn);
-
-  auto *ast =
+  SQCompilation::SqASTData *ast =
     sq_parsetoast(sqvm, buf.data(), buf.size(), resolved_fn, compilationOptions.doStaticAnalysis, compilationOptions.raiseError);
+
+  if (return_ast)
+    *return_ast = ast;
+
   if (!ast)
   {
-    return true;
+    return false;
   }
   else
   {
@@ -303,15 +304,16 @@ bool SqModules::compileScriptImpl(const dag::ConstSpan<char> &buf, const char *r
       onAST_cb(sqvm, ast, up_data);
   }
 
-  ASTDataGuard g(sqvm, ast);
-
   if (SQ_FAILED(sq_translateasttobytecode(sqvm, ast, bindings, &buf[0], buf.size(), compilationOptions.raiseError,
         compilationOptions.debugInfo)))
   {
-    return true;
+    sq_releaseASTData(sqvm, ast);
+    if (return_ast)
+      *return_ast = nullptr;
+    return false;
   }
 
-  if (compilationOptions.doStaticAnalysis)
+  if (compilationOptions.doStaticAnalysis && !return_ast)
   {
     sq_analyzeast(sqvm, ast, bindings, &buf[0], buf.size());
   }
@@ -323,11 +325,14 @@ bool SqModules::compileScriptImpl(const dag::ConstSpan<char> &buf, const char *r
     onBytecode_cb(sqvm, func, up_data);
   }
 
-  return false;
+  if (!return_ast)
+    sq_releaseASTData(sqvm, ast);
+  return true;
 }
 
+
 bool SqModules::compileScript(dag::ConstSpan<char> buf, const String &resolved_fn, const char *requested_fn, const HSQOBJECT *bindings,
-  Sqrat::Object &script_closure, String &out_err_msg)
+  Sqrat::Object &script_closure, String &out_err_msg, SQCompilation::SqASTData **return_ast)
 {
   SqStackChecker stackCheck(sqvm);
 
@@ -348,7 +353,7 @@ bool SqModules::compileScript(dag::ConstSpan<char> buf, const String &resolved_f
     }
   }
 
-  if (compileScriptImpl(buf, filePath, bindings))
+  if (!compileScriptImpl(buf, filePath, bindings, return_ast))
   {
     out_err_msg.printf(128, "Failed to compile file %s (%s)", requested_fn, resolved_fn.str());
     return false;
@@ -447,6 +452,10 @@ void SqModules::bindModuleApi(HSQOBJECT bindings, Sqrat::Table &state_storage, S
   sq_pushstring(vm, __filename__, -1);
   SQRAT_VERIFY(SQ_SUCCEEDED(sq_rawset(vm, -3)));
 
+  sq_pushstring(vm, "__static_analysis__", 19);
+  sq_pushbool(vm, compilationOptions.doStaticAnalysis);
+  SQRAT_VERIFY(SQ_SUCCEEDED(sq_rawset(vm, -3)));
+
   stackCheck.check(1); // bindings table
   stackCheck.restore();
 }
@@ -499,7 +508,7 @@ bool SqModules::importModules(const char *resolved_fn, Sqrat::Table &bindings_de
   runningScripts.emplace_back(resolved_fn);
 
   bool success = true;
-  String mergeError;
+  String mergeErrorMsg, requireErrorMsg;
 
   // printf("@#@ %d imports\n", int(imports.size()));
   for (const ModuleImport &import : imports)
@@ -517,8 +526,9 @@ bool SqModules::importModules(const char *resolved_fn, Sqrat::Table &bindings_de
     auto nativeIt = nativeModules.find(import.moduleName);
     if (nativeIt != nativeModules.end())
       exports = nativeIt->second;
-    else if (!requireModule(moduleFnStr.c_str(), true, __fn__, exports, out_err_msg))
+    else if (!requireModule(moduleFnStr.c_str(), true, __fn__, exports, requireErrorMsg))
     {
+      out_err_msg.printf(0, "Import error at %s:%d:%d: %s", resolved_fn, import.line, import.column, requireErrorMsg.c_str());
       success = false;
       break;
     }
@@ -527,10 +537,10 @@ bool SqModules::importModules(const char *resolved_fn, Sqrat::Table &bindings_de
     {
       // printf("* Module %s as %s\n", string(import.moduleFn).c_str(), string(import.moduleIdentifier).c_str());
       Sqrat::Object key(import.moduleIdentifier.c_str(), sqvm);
-      if (!mergeBindings(bindings_dest, key, exports, mergeError))
+      if (!mergeBindings(bindings_dest, key, exports, mergeErrorMsg))
       {
         success = false;
-        out_err_msg.printf(0, "%s:%d:%d: %s", resolved_fn, import.line, import.column, mergeError.c_str());
+        out_err_msg.printf(0, "%s:%d:%d: %s", resolved_fn, import.line, import.column, mergeErrorMsg.c_str());
       }
     }
     else if (import.slots.size() == 1 && import.slots[0].path.size() == 1 && import.slots[0].path[0] == "*") // import all fields
@@ -545,10 +555,10 @@ bool SqModules::importModules(const char *resolved_fn, Sqrat::Table &bindings_de
       else
       {
         Sqrat::Table exportsTbl(exports);
-        if (!mergeBindings(bindings_dest, exportsTbl, mergeError))
+        if (!mergeBindings(bindings_dest, exportsTbl, mergeErrorMsg))
         {
           success = false;
-          out_err_msg.printf(0, "%s:%d: %s", resolved_fn, import.line, mergeError.c_str());
+          out_err_msg.printf(0, "%s:%d: %s", resolved_fn, import.line, mergeErrorMsg.c_str());
         }
       }
     }
@@ -579,10 +589,10 @@ bool SqModules::importModules(const char *resolved_fn, Sqrat::Table &bindings_de
         {
           Sqrat::Object destKey(slot.importAsIdentifier.c_str(), sqvm);
           Sqrat::Object val = exports.GetSlot(srcKey);
-          if (!mergeBindings(bindings_dest, destKey, val, mergeError))
+          if (!mergeBindings(bindings_dest, destKey, val, mergeErrorMsg))
           {
             success = false;
-            out_err_msg.printf(0, "%s:%d:%d: %s", resolved_fn, slot.line, slot.column, mergeError.c_str());
+            out_err_msg.printf(0, "%s:%d:%d: %s", resolved_fn, slot.line, slot.column, mergeErrorMsg.c_str());
             break;
           }
         }
@@ -642,11 +652,6 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
   if (!readOk)
     return !must_exist;
 
-  if (compilationOptions.doStaticAnalysis)
-  {
-    sq_checktrailingspaces(sqvm, resolvedFn, fileContents.data(), fileContents.size());
-  }
-
   string importErrMsg;
   ImportParser importParser(import_parser_error_cb, &importErrMsg);
   const char *importPtr = fileContents.data();
@@ -656,7 +661,7 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
   eastl::vector<eastl::pair<const char *, const char *>> keepRanges;
   if (!importParser.parse(&importPtr, importEndLine, importEndCol, imports, &directives, &keepRanges))
   {
-    out_err_msg = importErrMsg.c_str();
+    out_err_msg.printf(0, "%s: %s", requested_fn, importErrMsg.c_str());
     return false;
   }
 
@@ -677,6 +682,9 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
   bindModuleApi(hBindings, stateStorage, refHolder, __name__, resolvedFn.c_str());
   bindRequireApi(hBindings);
 
+  if (compilationOptions.doStaticAnalysis)
+    sq_checktrailingspaces(vm, resolvedFn, fileContents.data(), fileContents.size());
+
   if (!importModules(resolvedFn, bindingsTbl, imports, out_err_msg))
     return false;
 
@@ -685,10 +693,17 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
   Sqrat::Object scriptClosure;
   dag::Span<char> sourceCode = skip_bom(make_span(fileContents));
 
+  SQCompilation::SqASTData *astData = nullptr;
+
   hBindings._flags = SQOBJ_FLAG_IMMUTABLE;
-  bool compileRes = compileScript(sourceCode, resolvedFn, requested_fn, &hBindings, scriptClosure, out_err_msg);
+  bool compileRes = compileScript(sourceCode, resolvedFn, requested_fn, &hBindings, scriptClosure, out_err_msg,
+    compilationOptions.doStaticAnalysis ? &astData : nullptr);
+
   if (!compileRes)
+  {
+    sq_releaseASTData(vm, astData);
     return false;
+  }
 
   stackCheck.check();
 
@@ -697,22 +712,20 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
 
 
   sq_pushobject(vm, scriptClosure.GetObject());
-  sq_newtable(vm);
-  HSQOBJECT hThis;
-  SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, -1, &hThis)));
-  SQRAT_ASSERTF(sq_gettype(vm, -1) == OT_TABLE, "Type = %X", sq_gettype(vm, -1));
-  Sqrat::Object objThis(hThis, vm);
+  sq_pushnull(vm); // module 'this'
 
   SQRESULT callRes = sq_call(vm, 1, true, true);
 
   G_UNUSED(rsIdx);
-  SQRAT_ASSERT(runningScripts.size() == rsIdx + 1);
-  runningScripts.pop_back();
 
   if (SQ_FAILED(callRes))
   {
+    SQRAT_ASSERT(runningScripts.size() == rsIdx + 1);
+    runningScripts.pop_back();
+
     out_err_msg.printf(128, "Failed to run script %s (%s)", requested_fn, resolvedFn.c_str());
     sq_pop(vm, 1); // clojure, no return value on error
+    sq_releaseASTData(vm, astData);
     return false;
   }
 
@@ -728,12 +741,18 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
   module.exports = exports;
   module.fn = resolvedFn;
   module.stateStorage = stateStorage;
-  module.moduleThis = objThis;
   module.refHolder = refHolder;
   module.__name__ = __name__;
 
   modules.push_back(module);
 
+  if (compilationOptions.doStaticAnalysis && astData)
+    sq_analyzeast(vm, astData, &hBindings, sourceCode.data(), sourceCode.size());
+
+  SQRAT_ASSERT(runningScripts.size() == rsIdx + 1);
+  runningScripts.pop_back();
+
+  sq_releaseASTData(vm, astData);
   return true;
 }
 

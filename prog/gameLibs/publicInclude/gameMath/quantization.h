@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -229,9 +228,10 @@ typedef PitchPacked<uint16_t, 16> PitchPacked16;
 template <size_t XBits, size_t YBits, size_t ZBits, class XScale, class YScale, class ZScale>
 struct QuantizedPos
 {
-  typedef typename eastl::type_select<((XBits + YBits + ZBits) > 32), uint64_t, uint32_t>::type PosType;
+  static constexpr size_t XYZBits = XBits + YBits + ZBits;
+  typedef typename eastl::type_select<(XYZBits > 32), uint64_t, uint32_t>::type PosType;
   PosType qpos = 0;
-  G_STATIC_ASSERT((XBits + YBits + ZBits) <= sizeof(PosType) * CHAR_BIT);
+  G_STATIC_ASSERT(XYZBits <= sizeof(PosType) * CHAR_BIT);
 
   QuantizedPos() = default;
   QuantizedPos(const QuantizedPos &) = default;
@@ -245,12 +245,16 @@ struct QuantizedPos
     qpos = posPacked;
   }
 
+  PosType getPackedX() const { return qpos & PosType((1ull << XBits) - 1); }
+  PosType getPackedY() const { return (qpos >> (XBits + ZBits)) & PosType((1ull << YBits) - 1); }
+  PosType getPackedZ() const { return (qpos >> XBits) & PosType((1ull << ZBits) - 1); }
+
   Point3 unpackPos() const
   {
     Point3 posP3;
-    posP3.x = FValQuantizer<XBits, XScale>::unpackSigned(qpos & PosType((1ull << XBits) - 1));
-    posP3.z = FValQuantizer<ZBits, ZScale>::unpackSigned((qpos >> XBits) & PosType((1ull << ZBits) - 1));
-    posP3.y = FValQuantizer<YBits, YScale>::unpackSigned((qpos >> (XBits + ZBits)) & PosType((1ull << YBits) - 1));
+    posP3.x = FValQuantizer<XBits, XScale>::unpackSigned(getPackedX());
+    posP3.z = FValQuantizer<ZBits, ZScale>::unpackSigned(getPackedZ());
+    posP3.y = FValQuantizer<YBits, YScale>::unpackSigned(getPackedY());
     return posP3;
   }
 

@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <visualConsole/dag_visualConsole.h>
 #include <util/dag_localization.h>
-#include <humanInput/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiKeybIds.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <startup/dag_globalSettings.h>
 #include <gui/dag_stdGuiRender.h>
@@ -8,11 +10,12 @@
 #include <memory/dag_framemem.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <math/dag_bounds2.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderBlock.h>
 #include <EASTL/unique_ptr.h>
 #include <stdio.h>
+#include <EASTL/array.h>
 
 static eastl::unique_ptr<console::IVisualConsoleDriver> visual_console_driver;
 console::IVisualConsoleDriver *setup_visual_console_driver()
@@ -48,10 +51,43 @@ void VisualConsoleDriver::getCommandList(console::CommandList &out_list) { Defau
 
 void VisualConsoleDriver::set_cur_height(float ht) { screenLines = (StdGuiRender::screen_height() * ht / lineHeight); }
 
+void VisualConsoleDriver::renderPinnedItems()
+{
+  const auto &pinnedCommands = console::get_pinned_command_list();
+  if (pinnedCommands.empty())
+    return;
+  StdGuiRender::set_color(E3DCOLOR(0xFF808080));
+  StdGuiRender::set_color(E3DCOLOR(console::pinned_commands_background_color));
+  StdGuiRender::render_rect(0.0f, screenLines * lineHeight, StdGuiRender::screen_width(), lineHeight * (screenLines + 1));
+  StdGuiRender::set_color(E3DCOLOR(0xFF808080));
+  StdGuiRender::draw_line(Point2(0, (screenLines)*lineHeight), Point2(StdGuiRender::screen_width(), (screenLines)*lineHeight), 1.0f);
+  StdGuiRender::draw_line(Point2(0, (screenLines + 1) * lineHeight),
+    Point2(StdGuiRender::screen_width(), (screenLines + 1) * lineHeight), 1.0f);
+  StdGuiRender::set_color(E3DCOLOR(0xFFFFFFFF));
+  int xOffset = 8;
+  for (int i = 0; i < pinnedCommands.size(); ++i)
+  {
+    if (pinnedCommands[i].empty())
+      continue;
+    auto msg = String(0, "%d: %s", i, pinnedCommands[i].c_str());
+    for (int offset = 1; offset != -1; offset--)
+    {
+      StdGuiRender::goto_xy(offset + xOffset, int((screenLines + 1 - 0.2f) * lineHeight) + offset);
+      StdGuiRender::set_color(offset == 1 ? E3DCOLOR(0, 0, 0) : E3DCOLOR(255, 255, 255));
+      StdGuiRender::draw_str(msg);
+    }
+    for (const char &c : msg)
+      xOffset += StdGuiRender::get_char_width_u(c);
+    xOffset += 16;
+  }
+}
+
 bool VisualConsoleDriver::renderTips()
 {
+  int line_offset = console::get_pinned_command_count() == 0 ? 0 : 1;
+  int displayedLines = screenLines + line_offset;
   if (linesLeft < 0)
-    linesLeft = (StdGuiRender::screen_height() / lineHeight) - screenLines;
+    linesLeft = (StdGuiRender::screen_height() / lineHeight) - displayedLines;
 
   if (linesLeft <= 1 || editText.empty())
     return false;
@@ -115,7 +151,7 @@ bool VisualConsoleDriver::renderTips()
 
       for (int offset = 1; offset != -1; offset--)
       {
-        StdGuiRender::goto_xy(offset, int((screenLines + 1 + i - tipsScrollPos - 0.3f) * lineHeight) + offset);
+        StdGuiRender::goto_xy(offset, int((displayedLines + 1 + i - tipsScrollPos - 0.3f) * lineHeight) + offset);
         StdGuiRender::set_color(offset == 1 ? E3DCOLOR(0, 0, 0) : E3DCOLOR(255, 255, 255));
         StdGuiRender::draw_str(cmdText.str());
       }
@@ -178,16 +214,17 @@ void VisualConsoleDriver::render()
     StdGuiRender::set_ablend(true);
     StdGuiRender::set_draw_str_attr(FFT_NONE, 0, 0, E3DCOLOR(255, 255, 255), 32);
     StdGuiRender::set_color(E3DCOLOR(console::main_background_color));
-    StdGuiRender::set_texture(BAD_TEXTUREID);
+    StdGuiRender::reset_textures();
     StdGuiRender::set_alpha_blend(NONPREMULTIPLIED);
     StdGuiRender::render_rect(Point2(0.f, 0.f), Point2(StdGuiRender::screen_width(), screenLines * lineHeight));
 
     if (maxTipsCount > 0)
     {
+      int line_offset = console::get_pinned_command_count() == 0 ? 0 : 1;
       int renderTipsCount = min(maxTipsCount - tipsScrollPos, console::max_tips + 1);
       StdGuiRender::set_color(E3DCOLOR(console::tips_background_color));
-      StdGuiRender::render_rect(0.0f, screenLines * lineHeight, StdGuiRender::screen_width(),
-        min(float(StdGuiRender::screen_height()), lineHeight * (renderTipsCount + screenLines + 0.5f)));
+      StdGuiRender::render_rect(0.0f, (screenLines + line_offset) * lineHeight, StdGuiRender::screen_width(),
+        min(float(StdGuiRender::screen_height()), lineHeight * (renderTipsCount + (screenLines + line_offset) + 0.5f)));
 
       if (tipsOutOfScreen > 0)
       {
@@ -255,7 +292,7 @@ void VisualConsoleDriver::render()
       const int errorY = float(scrollBarMaxY) * (1.0f - float(line) / (int(linesList.size()) + 1)) + scrollBarScreenEdgeYOffset;
 
       StdGuiRender::set_color(235, 140, 82);
-      StdGuiRender::set_texture(BAD_TEXTUREID);
+      StdGuiRender::reset_textures();
       StdGuiRender::render_rect(StdGuiRender::screen_width() - 4, errorY, StdGuiRender::screen_width() - 2, errorY + errorHeight);
     }
 
@@ -268,7 +305,7 @@ void VisualConsoleDriver::render()
         scrollBarScreenEdgeYOffset;
 
       StdGuiRender::set_color(90, 90, 90, 180);
-      StdGuiRender::set_texture(BAD_TEXTUREID);
+      StdGuiRender::reset_textures();
       StdGuiRender::render_rect(StdGuiRender::screen_width() - 6, scrollBarY, StdGuiRender::screen_width() - 2,
         scrollBarY + scrollBarHeight);
     }
@@ -279,6 +316,7 @@ void VisualConsoleDriver::render()
     maxTipsCount = 0;
     tipsOutOfScreen = 0;
 
+    renderPinnedItems();
     renderTips();
     if (tipsScrollPos > maxTipsCount - 1)
       tipsScrollPos = max(maxTipsCount - 1, 0);

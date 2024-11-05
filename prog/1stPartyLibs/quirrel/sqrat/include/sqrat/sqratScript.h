@@ -68,7 +68,7 @@ public:
             sq_resetobject(&obj);
         }
 
-        if(SQ_FAILED(sq_compilebuffer(vm, script.data(), static_cast<SQInteger>(script.size() /** sizeof(SQChar)*/), name.data(), true, bindings))) {
+        if(SQ_FAILED(sq_compile(vm, script.data(), static_cast<SQInteger>(script.size() /** sizeof(SQChar)*/), name.data(), true, bindings))) {
             errMsg = LastErrorString(vm);
             return false;
         }

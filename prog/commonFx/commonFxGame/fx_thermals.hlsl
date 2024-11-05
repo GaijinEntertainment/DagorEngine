@@ -4,7 +4,7 @@
 
 float4 fx_thermals_apply_additive( float4 c )
 {
-  c.g = FX_TEMPERATURE.w * dot(c.rgb, float3(0.4, 0.3, 0.3));
+  c.g = FX_TEMPERATURE.w * 0.02f * dot(c.rgb, float3(1, 1, 1));
   c.rb = 0;
   return c;
 }

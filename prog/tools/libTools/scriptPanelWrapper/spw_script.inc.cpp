@@ -1,4 +1,4 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 static const char *defScript = "\
 ::getControl <- function getControl(full_name) \r\n\

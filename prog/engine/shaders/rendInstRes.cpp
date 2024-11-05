@@ -1,11 +1,15 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <shaders/dag_rendInstRes.h>
 #include <gameRes/dag_stdGameResId.h>
 #include <ioSys/dag_dataBlock.h>
 #include <shaders/dag_IRenderWrapperControl.h>
 #include <3d/dag_render.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_resMgr.h>
-#include <3d/dag_resId.h>
+#include <drv/3d/dag_resId.h>
 #include <ioSys/dag_genIo.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_bounds3.h>
@@ -16,6 +20,7 @@
 #include <startup/dag_globalSettings.h>
 
 using namespace shglobvars;
+static constexpr unsigned VDATA_MT_RENDINST = 2;
 
 int (*RenderableInstanceLodsResource::get_skip_first_lods_count)(const char *name, bool has_impostors, int total_lods) = NULL;
 void (*RenderableInstanceLodsResource::on_higher_lod_required)(RenderableInstanceLodsResource *res, unsigned req_lod,
@@ -186,12 +191,12 @@ RenderableInstanceLodsResource *RenderableInstanceLodsResource::loadResource(IGe
       res->delRef(); // effectively deletes DObject
       return nullptr;
     }
-    res->smvd = ShaderMatVdata::create(texBlk->paramCount(), matBlk->blockCount(), tmp[2], tmp[3]);
+    res->smvd = ShaderMatVdata::create(texBlk->paramCount(), matBlk->blockCount(), tmp[2], tmp[3], VDATA_MT_RENDINST);
     res->smvd->makeTexAndMat(*texBlk, *matBlk);
   }
   else
   {
-    res->smvd = ShaderMatVdata::create(tmp[0], tmp[1], tmp[2], tmp[3]);
+    res->smvd = ShaderMatVdata::create(tmp[0], tmp[1], tmp[2], tmp[3], VDATA_MT_RENDINST);
     res->smvd->loadTexStr(crd, flags & SRLOAD_SYMTEX);
   }
   unsigned vdataFlags = 0;
@@ -271,6 +276,13 @@ RenderableInstanceLodsResource *RenderableInstanceLodsResource::makeStubRes(cons
   return new (memalloc(sz, midmem), _NEW_INPLACE) StubRendInst(b);
 }
 
+static RenderableInstanceLodsResource::ImpostorTextureCallback impostor_texture_callback = nullptr;
+
+void RenderableInstanceLodsResource::setImpostorTextureCallback(ImpostorTextureCallback callback)
+{
+  impostor_texture_callback = callback;
+}
+
 bool RenderableInstanceLodsResource::isBakedImpostor() const { return getImpostorParams().hasBakedTexture(); }
 
 bool RenderableInstanceLodsResource::setImpostorVars(ShaderMaterial *mat) const
@@ -291,6 +303,9 @@ bool RenderableInstanceLodsResource::setImpostorVars(ShaderMaterial *mat) const
   if (isBakedImpostor())
     G_ASSERT(impostorTextures.albedo_alpha != BAD_TEXTUREID && impostorTextures.normal_translucency != BAD_TEXTUREID &&
              impostorTextures.ao_smoothness != BAD_TEXTUREID);
+
+  if (impostor_texture_callback)
+    impostor_texture_callback(this);
 
   return res;
 }
@@ -367,6 +382,7 @@ void RenderableInstanceLodsResource::loadImpostorData(const char *name)
         Point2 scale = impostorBlk->getPoint2("scale", Point2{0, 0});
 
         params.preshadowEnabled = impostorBlk->getBool("preshadowEnabled", true);
+        params.bottomGradient = impostorBlk->getReal("bottomGradient", 0.0);
         params.scale = Point4(scale.x, scale.y, 1.0f / scale.x, 1.0f / scale.y);
         params.boundingSphere = Point4(bsphCenter.x, bsphCenter.y, bsphCenter.z, bsphRad);
         params.vertexOffsets[0] = impostorBlk->getPoint4("vertexOffsets1_2", Point4(1, 1, 1, 1));
@@ -495,12 +511,9 @@ void RenderableInstanceLodsResource::prepareTextures(const char *name, uint32_t 
     {
       if (BaseTexture *tex = D3dResManagerData::getD3dTex<RES3D_TEX>(impostorTextures.albedo_alpha))
       {
-        tex->texaddr(TEXADDR_CLAMP);
         static const bool compatibilityMode = ::dgs_get_settings()->getBlockByNameEx("video")->getBool("compatibilityMode", false);
-        tex->setAnisotropy(1);
         add_anisotropy_exception(impostorTextures.albedo_alpha);
-        tex->texlod(0);
-        tex->texfilter(TEXFILTER_DEFAULT);
+        tex->disableSampler();
         TextureInfo texInfo;
         tex->getinfo(texInfo);
         impostorTextures.height = texInfo.h;
@@ -583,6 +596,8 @@ RenderableInstanceLodsResource::RenderableInstanceLodsResource(const RenderableI
   void *new_base = &lods;
   const void *old_base = &from.lods;
 
+  bvhId = from.bvhId;
+
   memcpy(new_base, old_base, resSize);
   lods.rebase(new_base, old_base);
   if (hasImpostor())
@@ -608,7 +623,9 @@ RenderableInstanceLodsResource *RenderableInstanceLodsResource::clone() const
 {
   unsigned sz = dumpStartOfs() + getResSize() + (hasImpostor() ? (int)sizeof(ImpostorRtData) : 0);
   void *mem = memalloc(max(sz, unsigned(sizeof(*this))), midmem);
-  return new (mem, _NEW_INPLACE) RenderableInstanceLodsResource(*this);
+  auto copy = new (mem, _NEW_INPLACE) RenderableInstanceLodsResource(*this);
+  copy->bvhId = 0;
+  return copy;
 }
 
 void RenderableInstanceLodsResource::clearData()

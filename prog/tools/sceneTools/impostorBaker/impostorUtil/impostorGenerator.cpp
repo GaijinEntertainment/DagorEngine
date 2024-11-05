@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "impostorGenerator.h"
 
 #include <gameRes/dag_gameResSystem.h>
@@ -20,6 +22,7 @@
 #include <sepGui/wndGlobal.h>
 #include <osApiWrappers/dag_files.h>
 
+#include <libTools/shaderResBuilder/processMat.h>
 #include <libTools/shaderResBuilder/shaderMeshData.h>
 
 #include <assets/asset.h>
@@ -36,6 +39,12 @@
   "Albedo Baked, Normal Similarity, Normal Baked, AO Similarity, AO Baked\n"
 
 volatile bool ImpostorGenerator::interrupted = false;
+
+#define GLOBAL_VARS_LIST VAR(impostor_normal_mip)
+
+#define VAR(a) static ShaderVariableInfo a##VarId(#a);
+GLOBAL_VARS_LIST
+#undef VAR
 
 static struct Context
 {
@@ -65,6 +74,11 @@ void ImpostorGenerator::loadCharacterMicroDetails(const DataBlock *micro)
   int microDetailCount = 0;
   characterMicrodetailsId = load_texture_array_immediate("character_micro_details*", "micro_detail", *micro, microDetailCount);
   ShaderGlobal::set_texture(get_shader_variable_id("character_micro_details"), characterMicrodetailsId);
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.anisotropic_max = ::dgs_tex_anisotropy;
+    ShaderGlobal::set_sampler(get_shader_variable_id("character_micro_details_samplerstate", true), d3d::request_sampler(smpInfo));
+  }
   ShaderGlobal::set_int(get_shader_variable_id("character_micro_details_count", true), microDetailCount);
 }
 
@@ -260,22 +274,23 @@ void ImpostorGenerator::cleanUp(const ImpostorOptions &options)
   saveImpostorData();
 }
 
-dag::Vector<DagorAsset *> ImpostorGenerator::gatherListForBaking()
+dag::Vector<DagorAsset *> ImpostorGenerator::gatherListForBaking(bool forceRebake)
 {
   dag::ConstSpan<DagorAsset *> assets = assetManager->getAssets();
   dag::Vector<DagorAsset *> assetsForBaking = {};
   for (auto &asset : assets)
-    if (impostorBaker.isSupported(asset) && hasAssetChanged(asset))
+    if (impostorBaker.isSupported(asset) && (hasAssetChanged(asset) || forceRebake))
       assetsForBaking.push_back(asset);
   return assetsForBaking;
 }
 
-dag::Vector<DagorAsset *> ImpostorGenerator::gatherListForBakingWithPacks(const eastl::set<eastl::string> &packs)
+dag::Vector<DagorAsset *> ImpostorGenerator::gatherListForBakingWithPacks(const eastl::set<eastl::string> &packs, bool forceRebake)
 {
   dag::ConstSpan<DagorAsset *> assets = assetManager->getAssets();
   dag::Vector<DagorAsset *> assetsForBaking = {};
   for (auto &asset : assets)
-    if (impostorBaker.isSupported(asset) && packs.count(eastl::string{asset->getDestPackName()}) > 0 && hasAssetChanged(asset))
+    if (impostorBaker.isSupported(asset) && packs.count(eastl::string{asset->getDestPackName()}) > 0 &&
+        (hasAssetChanged(asset) || forceRebake))
       assetsForBaking.push_back(asset);
   return assetsForBaking;
 }
@@ -337,6 +352,11 @@ bool ImpostorGenerator::run(const ImpostorOptions &options)
       case GenerateResponse::PROCESS: break;
     }
     DataBlock *impostorBlk = impostorDataBlk.addBlock(asset->getName());
+    DataBlock *assetImpostorBlock = asset->props.getBlockByName("impostor");
+    int impostorNormalMipNumber = 0;
+    if (assetImpostorBlock->paramExists("impostorNormalMip"))
+      impostorNormalMipNumber = assetImpostorBlock->getInt("impostorNormalMip");
+    ShaderGlobal::set_int(impostor_normal_mipVarId, impostorNormalMipNumber);
     TexturePackingProfilingInfo quality = impostorBaker.exportImpostor(asset, options, impostorBlk->addBlock("content"));
     if (!quality)
     {
@@ -357,12 +377,12 @@ bool ImpostorGenerator::run(const ImpostorOptions &options)
   {
     eastl::set<eastl::string> packs;
     eastl::copy(eastl::begin(options.packsToBuild), eastl::end(options.packsToBuild), eastl::inserter(packs, eastl::end(packs)));
-    assets = gatherListForBakingWithPacks(packs);
+    assets = gatherListForBakingWithPacks(packs, options.forceRebake);
   }
 
   if (options.assetsToBuild.size() == 0 && options.packsToBuild.size() == 0)
   {
-    assets = gatherListForBaking();
+    assets = gatherListForBaking(options.forceRebake);
   }
   impostorBaker.conlog("Total number assets for baking: %d", assets.size());
   count = assets.size();
@@ -487,6 +507,43 @@ bool ImpostorGenerator::generateQualitySummary(const char *filename) const noexc
 
 bool ImpostorGenerator::saveImpostorData() { return impostorDataBlk.saveToTextFile(impostorDataFile.c_str()); }
 
+void ImpostorGenerator::addProxyMatTextureSourceFiles(const char *src_file_path, const char *owner_asset_name,
+  eastl::set<String, ImpostorBaker::StrLess> &files) const
+{
+  static const int proxyMatTypeId = assetManager->getAssetTypeId("proxymat");
+  static const int texTypeId = assetManager->getTexAssetTypeId();
+
+  const String srcAssetName = DagorAsset::fpath2asset(src_file_path);
+  if (!srcAssetName.suffix(".proxymat"))
+    return;
+
+  const String proxyMatName = srcAssetName.mk_sub_str(srcAssetName.begin(), srcAssetName.end() - 9);
+  if (proxyMatName.empty())
+    return;
+
+  const DagorAsset *proxyMatAsset = assetManager->findAsset(proxyMatName, proxyMatTypeId);
+  if (!proxyMatAsset)
+  {
+    impostorBaker.conwarning("Proxymat asset \"%s\" cannot be found.", proxyMatName.c_str());
+    return;
+  }
+
+  dag::Vector<String> textureAssetNames;
+  get_textures_used_by_proxymat(proxyMatAsset->props, owner_asset_name, textureAssetNames);
+
+  for (const String &textureAssetName : textureAssetNames)
+  {
+    DagorAsset *textureAsset = context.assetMgr->findAsset(textureAssetName, texTypeId);
+    if (!textureAsset)
+    {
+      impostorBaker.conwarning("Texture asset \"%s\" cannot be found.", textureAssetName.c_str());
+      continue;
+    }
+
+    files.insert(textureAsset->getSrcFilePath());
+  }
+}
+
 void ImpostorGenerator::gatherSourceFiles(DagorAsset *asset, eastl::set<String, ImpostorBaker::StrLess> &files) const
 {
   if (!asset)
@@ -500,6 +557,9 @@ void ImpostorGenerator::gatherSourceFiles(DagorAsset *asset, eastl::set<String, 
   e->gatherSrcDataFiles(*asset, srcFiles);
   for (int i = 0; i < srcFiles.size(); ++i)
     files.insert(String(srcFiles[i]));
+
+  for (const SimpleString &srcFilePath : srcFiles)
+    addProxyMatTextureSourceFiles(srcFilePath, asset->getName(), files);
 }
 
 static void combine_hash(unsigned char target[AssetExportCache::HASH_SZ], const unsigned char hash[AssetExportCache::HASH_SZ])

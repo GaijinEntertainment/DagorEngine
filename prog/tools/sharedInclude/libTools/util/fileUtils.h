@@ -1,7 +1,6 @@
 //
 // Dagor Tech 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -18,9 +17,6 @@ int dag_get_file_size(const char *fname);
 
 bool dag_copy_file(const char *src, const char *dest, bool overwrite = true);
 bool dag_copy_folder_content(const char *src, const char *dest, const Tab<String> &ignore, bool copy_subfolders = true);
-
-// removes folder and all its content including subfolders
-bool dag_rmtree(const char *path);
 
 // compare pathes
 int dag_path_compare(const char *path1, const char *path2);

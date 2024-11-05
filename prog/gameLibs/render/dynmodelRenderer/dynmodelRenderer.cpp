@@ -1,9 +1,14 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/dynmodelRenderer.h>
 
-#include <3d/dag_drv3dCmd.h>
 #include <3d/dag_resPtr.h>
 #include <3d/dag_ringDynBuf.h>
 #include <3d/dag_sbufferIDHolder.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_info.h>
 #include <EASTL/array.h>
 #include <EASTL/set.h>
 #include <EASTL/string.h>
@@ -19,11 +24,13 @@
 #include <shaders/dag_shaderMesh.h>
 #include <shaders/dag_dynSceneRes.h>
 #include <shaders/dag_shaderBlock.h>
+#include <shaders/dag_overrideStates.h>
 #include <startup/dag_globalSettings.h>
 #include <util/dag_convar.h>
 #include <memory/dag_framemem.h>
 #include <generic/dag_smallTab.h>
 #include <ioSys/dag_dataBlock.h>
+#include <gameRes/dag_resourceNameResolve.h>
 
 
 namespace dynrend
@@ -36,6 +43,8 @@ struct InstanceData
   int indexToCustomProjtm;
   int indexToPerInstanceRenderData;
   int indexToAllNodesVisibility;
+  int baseOffsetRenderData;
+  int instanceLod;
 
   InstanceData() {} //-V730
 };
@@ -54,6 +63,7 @@ struct DipChunk
   GlobalVertexData *vertexData;
   shaders::OverrideStateId overrideStateId;
   bool mergeOverrideState;
+  D3DRESID constDataBuf; // For now one per instance.
 
   int numPasses;
   int forcedOrder;
@@ -93,7 +103,7 @@ struct DipChunk
 
 struct InstanceChunk
 {
-  Point4 posMul; // xyz
+  Point4 posMul;
   Point4 posOfs__paramsCount;
 };
 
@@ -104,7 +114,7 @@ struct NodeChunk
   mat44f prevNodeGlobTm;
   float nodeOpacity;
   float instanceChunkOffset; // Relative to this chunk.
-  float padding[2];
+  NodeExtraData extraData;
 
   vec4f initialNodeTm0; // Optional.
   vec4f initialNodeTm1;
@@ -112,10 +122,12 @@ struct NodeChunk
 
   // Bones follow.
 };
+static_assert(sizeof(NodeExtraData) == 2 * sizeof(float), "NodeExtraData must be exactly the size of 2 floats.");
 
 const int bigNodeChunkVecs = sizeof(NodeChunk) / sizeof(vec4f);
 const int smallNodeChunkVecs = bigNodeChunkVecs - 3;
 
+static ShaderElement *replacement_shader = nullptr;
 
 #if _TARGET_C1 | _TARGET_C2
 
@@ -131,7 +143,9 @@ static const int DEFAULT_INITIAL_MAIN_RING_BUFFER_SIZE = 100 << 10;
 #endif
 static int initialRingBufferSize = 0;
 static int initialMainRingBufferSize = 0;
+static int instanceDataBufferVarId = -1;
 
+ShaderVariableInfo instance_const_data_bufferVarId("instance_const_data_buffer", true);
 
 struct ContextGpuData
 {
@@ -150,6 +164,7 @@ struct ContextData
   Tab<TMatrix4> customProjTms;
   float minElemRadius = 0.f;
   bool renderSkinned = true;
+  bool ringBufferVarSet = false;
   int statNodes = 0;
   int statBones = 0;
   int statPreMerged = 0;
@@ -161,7 +176,6 @@ struct ContextData
 
   Tab<char> renderDataBuffer;
   RingDynamicSB *ringBuffer = NULL;
-  D3DRESID ringBufferId = BAD_D3DRESID;
   uint32_t ringBufferSizeInVecs = 0;
   uint32_t prevDiscardOnFrame = 0;
   int ringBufferPos = 0;
@@ -185,7 +199,13 @@ struct ContextData
   void recreateRingBuffer(int new_size_in_vecs, int index)
   {
     if (ringBuffer)
-      ShaderGlobal::reset_from_vars_and_release_managed_tex(ringBufferId);
+    {
+      if (ringBufferVarSet) // do not reset if it was not set in the first place, prevent thread race
+      {
+        ShaderGlobal::set_buffer(instanceDataBufferVarId, BAD_D3DRESID); // avoid reset_from_vars, since it can lead to thread race
+        ringBufferVarSet = false;
+      }
+    }
     del_it(ringBuffer);
 
     ringBufferSizeInVecs = new_size_in_vecs;
@@ -194,7 +214,6 @@ struct ContextData
       ringBuffer = new RingDynamicSB();
       String bufName(0, "per_chunk_render_data%d_%s", index, name.c_str());
       ringBuffer->init(ringBufferSizeInVecs, sizeof(vec4f), sizeof(vec4f), SBCF_BIND_SHADER_RES, TEXFMT_A32B32G32R32F, bufName.str());
-      ringBufferId = register_managed_res(bufName.str(), ringBuffer->takeRenderBuf());
     }
   }
 };
@@ -276,6 +295,8 @@ void init()
 
   contextGpuDataBuffer = dag::buffers::create_one_frame_cb(dag::buffers::cb_struct_reg_count<ContextGpuData>(), "context_gpu_data");
   d3d_err(contextGpuDataBuffer.getBuf());
+
+  instanceDataBufferVarId = ::get_shader_variable_id("instance_data_buffer", true);
 }
 
 
@@ -315,6 +336,8 @@ void set_reduced_render(ContextId context_id, float min_elem_radius, bool render
   ctx.renderSkinned = render_skinned;
 }
 
+static bool check_shader_names = false;
+void set_check_shader_names(bool check) { check_shader_names = check; }
 
 void add(ContextId context_id, const DynamicRenderableSceneInstance *instance, const InitialNodes *optional_initial_nodes,
   const dynrend::PerInstanceRenderData *optional_render_data, dag::Span<int> *node_list, const TMatrix4 *customProj)
@@ -342,6 +365,33 @@ void add(ContextId context_id, const DynamicRenderableSceneInstance *instance, c
 
   ContextData &ctx = contexts[(int)context_id];
 
+#if DAGOR_DBGLEVEL > 0
+  if (check_shader_names)
+  {
+    auto checkName = [&](dag::ConstSpan<ShaderMesh::RElem> elems) {
+      for (auto &elem : elems)
+        if (auto name = elem.mat->getShaderClassName())
+          if (strstr(name, "rendinst_") == name)
+          {
+            String name;
+            if (resolve_game_resource_name(name, instance->getLodsResource()))
+              logerr("Rendinst shader used in dynrend: %s", name.data());
+            else
+              logerr("Rendinst shader used in dynrend: unknown");
+          }
+    };
+
+    sceneRes->getMeshes(
+      [&](const ShaderMesh *mesh, int, float, int) {
+        if (mesh)
+          checkName(mesh->getAllElems());
+      },
+      [&](const ShaderSkinnedMesh *mesh, int, int) {
+        if (mesh)
+          checkName(mesh->getShaderMesh().getAllElems());
+      });
+  }
+#endif
 
   // Get nodes visibility.
 
@@ -385,6 +435,7 @@ void add(ContextId context_id, const DynamicRenderableSceneInstance *instance, c
   instanceData.sceneRes = sceneRes;
   instanceData.initialNodes = optional_initial_nodes;
   instanceData.indexToCustomProjtm = -1;
+  instanceData.instanceLod = instance->getCurrentLodNo();
   if (customProj)
   {
     instanceData.indexToCustomProjtm = ctx.customProjTms.size();
@@ -406,13 +457,13 @@ void add(ContextId context_id, const DynamicRenderableSceneInstance *instance, c
     {
       G_ASSERT(interval.varId > 0); // 0 is correct but unlikely value.
       G_ASSERT(interval.instNodeId >= INVALID_INST_NODE_ID && interval.instNodeId < 100000);
-      G_ASSERT(interval.setValue >= -100 && interval.setValue <= 100);
-      G_ASSERT(interval.unsetValue >= -100 && interval.unsetValue <= 100);
     }
 #endif
   }
   else
+  {
     instanceData.indexToPerInstanceRenderData = 0;
+  }
 }
 
 // returns one of hints if any can be considered a more precise result of (lhs-rhs)
@@ -449,6 +500,8 @@ static void instanceToChunks(ContextData &ctx, const InstanceData &instance_data
 #endif
 
   const DynamicRenderableSceneInstance *instance = instance_data.instance;
+  if (instance_data.instance->getLodsResource() == nullptr)
+    return;
   const DynamicRenderableSceneResource *sceneRes = instance_data.sceneRes;
   PerInstanceRenderData *perInstanceRenderData = &ctx.perInstanceRenderData[instance_data.indexToPerInstanceRenderData];
 
@@ -499,8 +552,10 @@ static void instanceToChunks(ContextData &ctx, const InstanceData &instance_data
 
   const float *opacityArray = instance->opacity_ptr();
 
-  int lod = instance->getCurrentLodNo();
-  int desiredTexLevel = lod >= 0 ? texCtx.getTexLevel(instance->getLodsResource()->getTexScale(lod), instance->getDistSq()) : 5;
+  int desiredTexLevel =
+    instance_data.instanceLod >= 0
+      ? texCtx.getTexLevel(instance->getLodsResource()->getTexScale(instance_data.instanceLod), instance->getDistSq())
+      : 5;
   // InstanceChunk
 
   int instanceChunkOffset = ctx.renderDataBuffer.size() / sizeof(vec4f);
@@ -538,7 +593,7 @@ static void instanceToChunks(ContextData &ctx, const InstanceData &instance_data
     dip_chunk.si = elem.si;
     dip_chunk.numf = elem.numf;
     dip_chunk.baseVertex = elem.baseVertex;
-    dip_chunk.shader = elem.e;
+    dip_chunk.shader = replacement_shader ? replacement_shader : elem.e.get();
     dip_chunk.numPasses = 0;
     dip_chunk.shaderName = dip_chunk.shader->getShaderClassName();
     dip_chunk.vertexData = elem.vertexData;
@@ -547,6 +602,7 @@ static void instanceToChunks(ContextData &ctx, const InstanceData &instance_data
     else
       dip_chunk.overrideStateId = shaders::OverrideStateId();
     dip_chunk.mergeOverrideState = perInstanceRenderData->flags & MERGE_OVERRIDE_STATE;
+    dip_chunk.constDataBuf = perInstanceRenderData->constDataBuf;
 
     dip_chunk.texLevel = desiredTexLevel;
 
@@ -588,11 +644,19 @@ static void instanceToChunks(ContextData &ctx, const InstanceData &instance_data
 
       if (instance_data.initialNodes)
       {
-        mat44f initialNodeTm = instance_data.initialNodes->nodesModelTm[node_id];
-        v_mat44_transpose(initialNodeTm, initialNodeTm);
-        nodeChunk.initialNodeTm0 = initialNodeTm.col0;
-        nodeChunk.initialNodeTm1 = initialNodeTm.col1;
-        nodeChunk.initialNodeTm2 = initialNodeTm.col2;
+        if (!instance_data.initialNodes->nodesModelTm.empty())
+        {
+          mat44f initialNodeTm = instance_data.initialNodes->nodesModelTm[node_id];
+          v_mat44_transpose(initialNodeTm, initialNodeTm);
+          nodeChunk.initialNodeTm0 = initialNodeTm.col0;
+          nodeChunk.initialNodeTm1 = initialNodeTm.col1;
+          nodeChunk.initialNodeTm2 = initialNodeTm.col2;
+        }
+
+        if (!instance_data.initialNodes->extraData.empty())
+          nodeChunk.extraData = instance_data.initialNodes->extraData[node_id];
+        else
+          nodeChunk.extraData.flt[0] = nodeChunk.extraData.flt[1] = 0.f;
       }
 
       for (auto &&shaderMeshStages : shaderMeshStagesList)
@@ -626,7 +690,7 @@ static void instanceToChunks(ContextData &ctx, const InstanceData &instance_data
       }
       ctx.statNodes++;
     },
-    [&](const ShaderSkinnedMesh *mesh, int node_id) {
+    [&](const ShaderSkinnedMesh *mesh, int node_id, int) {
       G_ASSERT(mesh);
       G_ASSERT(node_id >= 0);
       G_ASSERT(instance_data.indexToAllNodesVisibility + node_id < ctx.allNodesVisibility.size());
@@ -648,6 +712,8 @@ static void instanceToChunks(ContextData &ctx, const InstanceData &instance_data
       initNodeChunk(nodeChunk, node_id, baseOffsetRenderData);
       nodeChunk.nodeGlobTm = viewProjTmRelToOrigin;
       nodeChunk.prevNodeGlobTm = prevViewProjTmRelToOrigin;
+      if (instance_data.initialNodes && !instance_data.initialNodes->extraData.empty())
+        nodeChunk.extraData = instance_data.initialNodes->extraData[node_id];
 
       ctx.statBones += mesh->bonesCount();
       vec4f *bones = (vec4f *)(&nodeChunk) + smallNodeChunkVecs;
@@ -709,11 +775,17 @@ public:
     if (a.intervals != b.intervals)
       return a.intervals < b.intervals;
 
+    if (a.constDataBuf != b.constDataBuf)
+      return a.constDataBuf < b.constDataBuf;
+
     if (a.shaderName != b.shaderName)
       return a.shaderName < b.shaderName;
 
     if (a.shader != b.shader)
       return a.shader < b.shader;
+
+    if (a.texLevel != b.texLevel)
+      return a.texLevel > b.texLevel; // We want instances with higher levels to come first to not do extra state changes.
 
     if (a.instanceNo != b.instanceNo)
       return a.instanceNo < b.instanceNo;
@@ -740,11 +812,15 @@ void prepare_render(ContextId context_id, const TMatrix4 &view, const TMatrix4 &
   if (ctx.instances.empty())
     return;
 
-  TMatrix4 worldToProjTm = view * proj;
-  float det;
-  inverse44(worldToProjTm, ctx.gpuData.projToWorldTm, det);
-  inverse44(proj, ctx.gpuData.projToViewTm, det);
+  {
+    TMatrix4 relativeViewTm = view;
+    relativeViewTm.setrow(3, 0, 0, 0, 1.f);
 
+    TMatrix4 worldToProjTm = relativeViewTm * proj;
+    float det;
+    inverse44(worldToProjTm, ctx.gpuData.projToWorldTm, det);
+    inverse44(proj, ctx.gpuData.projToViewTm, det);
+  }
 
   // Instances to chunks.
 
@@ -755,9 +831,10 @@ void prepare_render(ContextId context_id, const TMatrix4 &view, const TMatrix4 &
     instanceContextData->contextId = ContextId(-1);
     instanceContextData->baseOffsetRenderData = -1;
   }
-  for (const InstanceData &instanceData : ctx.instances)
+  for (InstanceData &instanceData : ctx.instances)
   {
     instanceToChunks(ctx, instanceData, view, proj, prevViewTm, prevProjTm, offset_to_origin, texCtx, baseOffsetRenderData);
+    instanceData.baseOffsetRenderData = baseOffsetRenderData;
     if (instanceContextData && instanceContextData->instance == instanceData.instance)
     {
       instanceContextData->contextId = context_id;
@@ -914,14 +991,11 @@ static void set_override(shaders::OverrideStateId id, shaders::OverrideStateId &
     shaders::overrides::set(initial_id);
 }
 
-static eastl::fixed_vector<ContextId, eastl::to_underlying(ContextId::COUNT)> updatedContexts{};
-
 void update_reprojection_data(ContextId contextId)
 {
   ContextData &ctx = contexts[(int)contextId];
   if (!ctx.renderSkinned)
     return;
-  updatedContexts.push_back(contextId);
   contextGpuDataBuffer->updateDataWithLock(0, sizeof(ContextGpuData), &ctx.gpuData, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
 }
 
@@ -939,8 +1013,8 @@ bool set_instance_data_buffer(unsigned stage, ContextId contextId, int baseOffse
   static int dynamicInstancingTypeVarId = get_shader_variable_id("dynamic_instancing_type", true);
   ShaderGlobal::set_int(dynamicInstancingTypeVarId, 1);
 
-  static int instanceDataBufferVarId = get_shader_variable_id("instance_data_buffer", true);
-  ShaderGlobal::set_buffer(instanceDataBufferVarId, ctx.ringBufferId);
+  ShaderGlobal::set_buffer(instanceDataBufferVarId, ctx.ringBuffer->getBufId());
+  ctx.ringBufferVarSet = true;
 
   uint32_t offset = ctx.ringBufferPos + baseOffsetRenderData;
   uint32_t offsetAndSize = (offset << 8) | smallNodeChunkVecs;
@@ -948,6 +1022,18 @@ bool set_instance_data_buffer(unsigned stage, ContextId contextId, int baseOffse
   d3d::set_immediate_const(stage, &offsetAndSize, 1);
 
   return true;
+}
+
+const Point4 *get_per_instance_render_data(ContextId contextId, int indexToPerInstanceRenderData)
+{
+  G_ASSERT(is_main_thread());
+
+  if ((int)contextId < 0)
+    return nullptr;
+
+  ContextData &ctx = contexts[(int)contextId];
+
+  return ctx.perInstanceRenderData[indexToPerInstanceRenderData].params.data();
 }
 
 void render(ContextId context_id, int shader_mesh_stage)
@@ -968,14 +1054,10 @@ void render(ContextId context_id, int shader_mesh_stage)
   static int dynamicInstancingTypeVarId = get_shader_variable_id("dynamic_instancing_type", true);
   ShaderGlobal::set_int(dynamicInstancingTypeVarId, 1);
 
-  static int instanceDataBufferVarId = get_shader_variable_id("instance_data_buffer", true);
-  ShaderGlobal::set_buffer(instanceDataBufferVarId, ctx.ringBufferId);
+  ShaderGlobal::set_buffer(instanceDataBufferVarId, ctx.ringBuffer->getBufId());
+  ctx.ringBufferVarSet = true;
 
-  const auto search = eastl::find(updatedContexts.begin(), updatedContexts.end(), context_id);
-  if (search == updatedContexts.end()) // if wasn't updated by update_reprojection_data
-    contextGpuDataBuffer->updateDataWithLock(0, sizeof(ContextGpuData), &ctx.gpuData, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
-  else
-    updatedContexts.erase(search);
+  contextGpuDataBuffer->updateDataWithLock(0, sizeof(ContextGpuData), &ctx.gpuData, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
 
   int sceneBlock = ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE);
   ShaderGlobal::setBlock(sceneBlock, ShaderGlobal::LAYER_SCENE); // Update buffer var.
@@ -989,6 +1071,7 @@ void render(ContextId context_id, int shader_mesh_stage)
   int statDip = 0;
   int statTriangles = 0;
   int statIntervals = 0;
+  int statConstData = 0;
   int statOverrides = 0;
 
   {
@@ -1002,6 +1085,7 @@ void render(ContextId context_id, int shader_mesh_stage)
     shaders::OverrideStateId currentOverrideOfInitialOverrideStateId = shaders::OverrideStateId();
     bool currentMergeOverrideState = false;
     uint32_t currentOffsetAndSize = 0x80000000;
+    D3DRESID currentConstDataBuf = BAD_D3DRESID;
 
     for (int chunkNo : ctx.dipChunksOrderByStage[shader_mesh_stage])
     {
@@ -1019,6 +1103,15 @@ void render(ContextId context_id, int shader_mesh_stage)
         statIntervals++;
       }
 
+      D3DRESID dipChunkConstDataBuf = dipChunk.constDataBuf;
+      if (dipChunkConstDataBuf != currentConstDataBuf)
+      {
+        ShaderGlobal::set_buffer(instance_const_data_bufferVarId, dipChunkConstDataBuf);
+        currentConstDataBuf = dipChunkConstDataBuf;
+        currentShader = NULL;
+        statConstData++;
+      }
+
       if (dipChunk.overrideStateId != currentOverrideOfInitialOverrideStateId ||
           dipChunk.mergeOverrideState != currentMergeOverrideState)
       {
@@ -1029,12 +1122,13 @@ void render(ContextId context_id, int shader_mesh_stage)
         statOverrides++;
       }
 
-      dipChunk.shader->setReqTexLevel(dipChunk.texLevel);
-      if (dipChunk.shader != currentShader)
+      bool shaderChanged = dipChunk.shader != currentShader;
+      bool texLevelIncreased = dipChunk.shader->setReqTexLevel(dipChunk.texLevel);
+      if (shaderChanged || texLevelIncreased)
       {
-        if (currentShader)
+        if (shaderChanged && currentShader)
           currentShader->setReqTexLevel();
-        currentShaderValid = dipChunk.shader->setStates(0, true);
+        currentShaderValid = dipChunk.shader->setStates(0, true); //-V522 (we don't add dipChunk if shader is null)
         currentShader = dipChunk.shader;
         statShader++;
       }
@@ -1089,14 +1183,16 @@ void render(ContextId context_id, int shader_mesh_stage)
   }
 
   if (dynrendLog.get() && ::dagor_frame_no() % 100 == 0)
-    debug("%d     render[%d] %s: chunks=%d, Shader=%d, VertexData=%d, Invalid=%d, intervals=%d, overrides=%d, tris=%d",
+    debug("%d     render[%d] %s: chunks=%d, Shader=%d, VertexData=%d, Invalid=%d, intervals=%d, constData=%d, overrides=%d, tris=%d",
       ::dagor_frame_no(), shader_mesh_stage, ctx.name.c_str(), ctx.dipChunksOrderByStage[shader_mesh_stage].size(), statShader,
-      statVertexData, statInvalid, statIntervals, statOverrides, statTriangles);
+      statVertexData, statInvalid, statIntervals, statConstData, statOverrides, statTriangles);
 
   // End render.
   ShaderGlobal::set_buffer(instanceDataBufferVarId, BAD_D3DRESID); // avoid race if prepare happens in multiple threads
+  ShaderGlobal::set_buffer(instance_const_data_bufferVarId, BAD_D3DRESID);
   ShaderGlobal::set_int(dynamicInstancingTypeVarId, 0);
   d3d::set_immediate_const(STAGE_VS, NULL, 0);
+  ctx.ringBufferVarSet = false;
 }
 
 
@@ -1113,7 +1209,6 @@ void clear_all_contexts()
 {
   for (ContextData &ctx : contexts)
     ctx.clear();
-  updatedContexts.clear();
 }
 
 
@@ -1136,6 +1231,7 @@ void set_local_offset_hint(const Point3 &hint) { localOffsetHint = hint; }
 
 void enable_separate_atest_pass(bool enable) { separateAtestPass = enable; }
 
+void replace_shader(ShaderElement *element) { replacement_shader = element; }
 
 void render_one_instance(const DynamicRenderableSceneInstance *instance, RenderMode mode, TexStreamingContext texCtx,
   const InitialNodes *optional_initial_nodes, const dynrend::PerInstanceRenderData *optional_render_data)
@@ -1228,6 +1324,18 @@ Statistics &get_statistics() { return statistics; }
 
 void reset_statistics() { memset(&statistics, 0, sizeof(statistics)); }
 
+void iterate_instances(dynrend::ContextId context_id, InstanceIterator iter, void *user_data)
+{
+  ContextData &ctx = contexts[(int)context_id];
+  for (auto &instanceData : ctx.instances)
+  {
+    auto &instance = *instanceData.instance;
+    auto &sceneRes = *instanceData.sceneRes;
+    int nodeChunkVecs = instanceData.initialNodes ? bigNodeChunkVecs : smallNodeChunkVecs;
+    iter(context_id, sceneRes, instance, ctx.allNodesVisibility, instanceData.indexToAllNodesVisibility, ctx.minElemRadius,
+      instanceData.baseOffsetRenderData, instanceData.indexToPerInstanceRenderData, nodeChunkVecs, user_data);
+  }
+}
 
 //============================================================================
 

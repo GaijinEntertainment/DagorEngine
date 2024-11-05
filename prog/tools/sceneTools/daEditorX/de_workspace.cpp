@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <oldEditor/de_workspace.h>
 
 #include <assetsGui/av_globalState.h>
@@ -11,7 +13,7 @@
 #include <libTools/containers/dag_TabOps.h>
 #include <libTools/containers/tab_sort.h>
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_info.h>
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
 
@@ -155,12 +157,6 @@ bool DeWorkspace::loadAppSpecific(const DataBlock &blk)
 
 bool DeWorkspace::loadSpecific(const DataBlock &blk)
 {
-  const String graphiteDir = ::make_full_path(sgg::get_exe_path_full(), "graphite/");
-
-  params.graphiteDir = blk.getStr("graphite_dir", graphiteDir);
-  if (!params.graphiteDir.length() || !::dd_dir_exist(params.graphiteDir))
-    params.graphiteDir = graphiteDir;
-
   const DataBlock *exportIgnoreBlk = blk.getBlockByName("export_ignore_def");
 
   if (exportIgnoreBlk)
@@ -194,9 +190,6 @@ bool DeWorkspace::loadSpecific(const DataBlock &blk)
 
 bool DeWorkspace::saveSpecific(DataBlock &blk)
 {
-  simplify_fname(params.graphiteDir);
-  blk.setStr("graphite_dir", params.graphiteDir);
-
   DataBlock *exportIgnoreBlk = blk.addBlock("export_ignore_def");
 
   if (exportIgnoreBlk)

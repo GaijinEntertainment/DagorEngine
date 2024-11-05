@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -93,11 +92,11 @@ class DebugPrinter final : public das::TextWriter
 public:
   virtual void output() override
   {
-    const int newPos = tellp();
+    uint64_t newPos = tellp();
     if (newPos != pos)
     {
-      int len = newPos - pos;
-      debug("%.*s", len, data.data() + pos);
+      auto len = newPos - pos;
+      debug("%.*s", len, data() + pos);
       pos = newPos;
     }
   }
@@ -201,8 +200,8 @@ struct DasScripts
   ska::flat_hash_map<eastl::string, TLoadedScript> scripts;
   struct ScriptMemory
   {
-    uint64_t heapSize;
-    uint64_t stringHeapSize;
+    uint64_t heapSizeThreshold;
+    uint64_t stringHeapSizeThreshold;
     uint64_t nextGcMsec;
   };
   ska::flat_hash_map<eastl::string, ScriptMemory> scriptsMemory;
@@ -218,8 +217,6 @@ struct DasScripts
   bool loadDebugCode = true;
   bool loadEvents = true;
   bool profileLoading = false;
-
-  bool warnOnPersistentHeap = true;
 
   das::atomic<uint32_t> linkAotErrorsCount{0};
   das::atomic<int> compileErrorsCount{0}; //-1 if this value is unknown
@@ -441,5 +438,20 @@ struct DasScripts
 
 template <typename TLoadedScript, typename TContext>
 das::recursive_mutex DasScripts<TLoadedScript, TContext>::mutex;
+
+struct FileSerializationStorage : das::SerializationStorage
+{
+  file_ptr_t file;
+  das::string fileName;
+
+  FileSerializationStorage(file_ptr_t file_, const das::string &name) : file(file_), fileName(name) {}
+  virtual size_t writingSize() const override;
+  virtual bool readOverflow(void *data, size_t size) override;
+  virtual void write(const void *data, size_t size) override;
+  virtual ~FileSerializationStorage() override;
+};
+
+das::SerializationStorage *create_file_read_serialization_storage(file_ptr_t file, const das::string &name);
+das::SerializationStorage *create_file_write_serialization_storage(file_ptr_t file, const das::string &name);
 
 } // namespace bind_dascript

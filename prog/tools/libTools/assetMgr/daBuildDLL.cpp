@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <assets/daBuildInterface.h>
 #include <osApiWrappers/dag_symHlp.h>
 #include <osApiWrappers/dag_dynLib.h>
@@ -11,7 +13,7 @@ IDaBuildInterface *get_dabuild(const char *dll_fname)
   if (dabuild)
     return dabuild;
 
-  dllHandle = os_dll_load(dll_fname);
+  dllHandle = os_dll_load_deep_bind(dll_fname);
 
   if (!dllHandle)
   {

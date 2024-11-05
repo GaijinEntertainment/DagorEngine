@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_bitMaskMgr.h>
 #include <oldEditor/de_interface.h>
 #include <image/tiff-4.4.0/tiffio.h>

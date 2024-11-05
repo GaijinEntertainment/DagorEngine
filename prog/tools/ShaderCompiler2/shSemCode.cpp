@@ -1,4 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "shSemCode.h"
 #include <shaders/shInternalTypes.h>
 #include "shaderVariant.h"
@@ -9,11 +10,12 @@
 #include <generic/dag_carray.h>
 #include <debug/dag_debug.h>
 #include <EASTL/numeric.h>
-#include <osApiWrappers/dag_cpuJobs.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <math/random/dag_random.h>
 #include "linkShaders.h"
 #include "shCompiler.h"
+
+#include <osApiWrappers/dag_stackHlp.h>
 
 #if _CROSS_TARGET_DX12
 #include "dx12/asmShaderDXIL.h"
@@ -47,7 +49,7 @@ ShaderSemCode::ShaderSemCode() :
   rm_alloc(4 << 20, 4 << 20)
 {}
 
-ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableSrc &dynVariants) const
+ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableSrc &dynVariants, StcodeShader &cppcode)
 {
   ShaderCode *code = new (midmem) ShaderCode();
 
@@ -126,7 +128,7 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
       if (otherPasses->pass)
       {
         ShaderCode::Pass p;
-        convert_passes(*otherPasses->pass, p, cvar);
+        convert_passes(*otherPasses->pass, p, cvar, cppcode);
 
         int found = -1;
         for (int j = 0; j < all_passid.size(); j++)
@@ -146,6 +148,8 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
     }
   }
 
+  cppcode.addStaticVarLocations(eastl::move(staticVarRegs));
+
   code->allPasses = all_passid;
   clear_and_shrink(all_passid);
 
@@ -161,7 +165,7 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
   return code;
 }
 
-void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar) const
+void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar, StcodeRegisters &static_regs)
 {
   for (int i = 0; i < cod.size(); i++)
   {
@@ -183,12 +187,14 @@ void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar) const
       case SHCOD_REG_BINDLESS:
       case SHCOD_BUFFER:
       case SHCOD_CONST_BUFFER:
+      case SHCOD_TLAS:
       case SHCOD_RWTEX:
       case SHCOD_RWBUF:
       case SHCOD_GET_GINT:
       case SHCOD_GET_GREAL:
       case SHCOD_GET_GTEX:
       case SHCOD_GET_GBUF:
+      case SHCOD_GET_GTLAS:
       case SHCOD_GET_GVEC:
       case SHCOD_GET_GMAT44:
       case SHCOD_ADD_REAL:
@@ -200,6 +206,7 @@ void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar) const
       case SHCOD_MUL_VEC:
       case SHCOD_DIV_VEC:
       case SHCOD_GET_GINT_TOREAL:
+      case SHCOD_GET_GIVEC_TOREAL:
       case SHCOD_IMM_REAL1:
       case SHCOD_IMM_SVEC1:
       case SHCOD_COPY_REAL:
@@ -216,21 +223,16 @@ void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar) const
         break;
 
       case SHCOD_GET_TEX:
-      {
-        int vi = shaderopcode::getOp2p2s(cod[i]);
-        G_ASSERT(vi >= 0);
-        cod[i] = shaderopcode::patchOp2p2(cod[i], cvar[vi]); // replace var id with var offset
-      }
-      break;
-
       case SHCOD_GET_INT:
       case SHCOD_GET_REAL:
       case SHCOD_GET_VEC:
       case SHCOD_GET_INT_TOREAL:
+      case SHCOD_GET_IVEC_TOREAL:
       {
         int vi = shaderopcode::getOp2p2s(cod[i]);
         G_ASSERT(vi >= 0);
         cod[i] = shaderopcode::patchOp2p2(cod[i], cvar[vi]); // replace var id with var offset
+        static_regs.patch(vi, cvar[vi]);
       }
       break;
 
@@ -239,7 +241,7 @@ void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar) const
   }
 }
 
-void ShaderSemCode::convert_passes(ShaderSemCode::Pass &semP, ShaderCode::Pass &p, Tab<int> &cvar) const
+void ShaderSemCode::convert_passes(ShaderSemCode::Pass &semP, ShaderCode::Pass &p, Tab<int> &cvar, StcodeShader &cppcode)
 {
   if (semP.cs.size())
   {
@@ -249,9 +251,9 @@ void ShaderSemCode::convert_passes(ShaderSemCode::Pass &semP, ShaderCode::Pass &
   else
   {
 #if _CROSS_TARGET_DX12
-    if (targetPlatform != dx12::dxil::Platform::PC)
+    if (use_two_phase_compilation(targetPlatform))
     {
-      auto idents = add_phase_one_progs(semP.vpr, semP.hs, semP.ds, semP.gs, semP.fsh);
+      auto idents = add_phase_one_progs(semP.vpr, semP.hs, semP.ds, semP.gs, semP.fsh, semP.enableFp16);
       p.vprog = idents.vprog;
       p.fsh = idents.fsh;
     }
@@ -269,15 +271,23 @@ void ShaderSemCode::convert_passes(ShaderSemCode::Pass &semP, ShaderCode::Pass &
   // convert state code
   static Tab<int> stblkcode(tmpmem);
   stblkcode = semP.stblkcode;
-  convert_stcode(make_span(stblkcode), cvar);
-  p.stblkcodeNo = add_stcode(stblkcode);
+  convert_stcode(make_span(stblkcode), cvar, staticVarRegs);
+
+  auto [blkcodeId, blkcodeIsNew] = add_stcode(stblkcode);
+  p.stblkcodeNo = blkcodeId;
+  if (blkcodeIsNew)
+    cppcode.addCode(eastl::move(semP.cppStblkcode), p.stblkcodeNo);
 
   static Tab<int> stcode(tmpmem);
   stcode = semP.stcode;
-  convert_stcode(make_span(stcode), cvar);
-  p.stcodeNo = add_stcode(stcode);
+  convert_stcode(make_span(stcode), cvar, staticVarRegs);
+  auto [stcodeId, stcodeIsNew] = add_stcode(stcode);
+  p.stcodeNo = stcodeId;
+  if (stcodeIsNew)
+    cppcode.addCode(eastl::move(semP.cppStcode), p.stcodeNo);
   p.renderStateNo = add_render_state(semP);
   p.threadGroupSizes = semP.threadGroupSizes;
+  p.scarlettWave32 = semP.scarlettWave32;
 
   //  if (isDump)
   //  {
@@ -294,6 +304,9 @@ void ShaderSemCode::Pass::reset_code()
 {
   curStcode.clear();
   curStblkcode.clear();
+
+  curCppStcode.reset();
+  curCppStblkcode.reset();
 }
 void ShaderSemCode::Pass::finish_pass(bool accept)
 {
@@ -301,6 +314,9 @@ void ShaderSemCode::Pass::finish_pass(bool accept)
   {
     stcode = find_shared_stcode(curStcode, true);
     stblkcode = find_shared_stcode(curStblkcode, false);
+
+    cppStcode = eastl::move(curCppStcode);
+    cppStblkcode = eastl::move(curCppStblkcode);
   }
   reset_code();
 }
@@ -310,6 +326,9 @@ static Tab<TabStcode> stblkcode_cache(tmpmem_ptr());
 
 Tab<int> ShaderSemCode::Pass::curStcode(tmpmem_ptr());
 Tab<int> ShaderSemCode::Pass::curStblkcode(tmpmem_ptr());
+
+StcodeRoutine ShaderSemCode::Pass::curCppStcode(StcodeRoutine::Type::DYNSTCODE);
+StcodeRoutine ShaderSemCode::Pass::curCppStblkcode(StcodeRoutine::Type::STBLKCODE);
 
 dag::ConstSpan<int> ShaderSemCode::Pass::find_shared_stcode(Tab<int> &code, bool dyn)
 {

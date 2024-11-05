@@ -117,11 +117,13 @@ namespace das {
         debug_hash("\n%s\n", fun->name.c_str());
         SimFnHashVisitor hashV(context);
         // append return type and result type
-        string resT = fun->result->describe();
-        hashV.write(resT.c_str(), uint32_t(resT.length()));
+        uint64_t resT = fun->result->getSemanticHash();
+        hashV.write(&resT, sizeof(uint64_t));
+        debug_hash("\nresult = %llx\n", resT);
         for ( auto & arg : fun->arguments ) {
-            string argT = arg->type->describe();
-            hashV.write(argT.c_str(), uint32_t(argT.length()));
+            uint64_t argT = arg->type->getSemanticHash();
+            hashV.write(&argT, sizeof(argT));
+            debug_hash("arg %s = %llx\n", arg->name.c_str(), argT);
         }
         // append code
         node->visit(hashV);

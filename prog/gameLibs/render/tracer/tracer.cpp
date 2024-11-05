@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #if !_TARGET_PC
 #undef _DEBUG_TAB_
 #endif
@@ -6,11 +8,15 @@
 #include <gameRes/dag_gameResources.h>
 #include <math/dag_noise.h>
 #include <math/random/dag_random.h>
-#include <3d/dag_drv3dCmd.h>
 #include <3d/dag_render.h>
-#include <3d/dag_drv3d_platform.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_platform.h>
 #include <3d/dag_materialData.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <debug/dag_debug.h>
 #include <util/dag_oaHashNameMap.h>
 #include <supp/dag_prefetch.h>
@@ -58,7 +64,6 @@ struct TrailType
 };
 
 #define TRACER_UNITIALIZED          0x501502f9
-#define LOGLEVEL_DEBUG              _MAKE4C('[R] ')
 #define RESERVE_FOR_PLAYER_FRACTION 0.15f
 
 CONSOLE_BOOL_VAL("render", oldTracers, false);
@@ -113,7 +118,7 @@ struct TracerMgrThreadGuard
 
 Tracer::Tracer(TracerManager *in_owner, uint32_t in_idx, const Point3 &start_pos, const Point3 &in_speed, int type_no,
   unsigned int mesh_no, float tail_particle_half_size_from, float tail_particle_half_size_to, float tail_deviation,
-  const Color4 &tail_color, float in_caliber, float spawn_time) :
+  const Color4 &tail_color, float in_caliber, float spawn_time, float amplify_scale) :
   owner(in_owner),
   idx(in_idx),
   startPos(start_pos),
@@ -130,6 +135,7 @@ Tracer::Tracer(TracerManager *in_owner, uint32_t in_idx, const Point3 &start_pos
   tailParticleHalfSizeTo(tail_particle_half_size_to),
   tailDeviation(tail_deviation),
   tailColor(tail_color),
+  amplifyScale(amplify_scale),
   segments(),
   partCount(0),
   firstSegment(0),
@@ -220,6 +226,7 @@ void Tracer::appendToTracerBuffer(uint32_t tracer_id)
 {
   GPUFxTracer tracer;
   tracer.tailColor.set_rgba(tailColor);
+  tracer.tailColor = mul(tracer.tailColor, Point4(amplifyScale, amplifyScale, amplifyScale, 1.0f));
   tracer.tailParticleHalfSize = Point2(tailParticleHalfSizeTo, tailParticleHalfSizeFrom);
   tracer.tailDeviation = tailDeviation;
   TracerMgrThreadGuard guard(owner);
@@ -423,22 +430,48 @@ TracerManager::TracerManager(const DataBlock *blk) :
   viewItm(TMatrix::IDENT)
 {
   tracerBlockId = ShaderGlobal::getBlockId("tracer_frame");
+  tracerBeamTimeVarId = ::get_shader_variable_id("tracer_beam_time");
+  tracerPrimTypeVarId = ::get_shader_variable_id("tracer_prim_type");
+  headShapeParamsVarId = ::get_shader_variable_id("head_shape_params");
 
+  computeAndBaseVertexSupported = (d3d::get_driver_desc().shaderModel >= 5.0_sm) && d3d::get_driver_desc().caps.hasBaseVertexSupport;
+  multiDrawIndirectSupported = computeAndBaseVertexSupported && d3d::get_driver_desc().caps.hasWellSupportedIndirect;
+  instanceIdSupported = d3d::get_driver_desc().caps.hasInstanceID;
+
+  ShaderGlobal::set_int(::get_shader_variable_id("fx_instancing_type", true),
+    computeAndBaseVertexSupported ? FX_INSTANCING_SBUF : FX_INSTANCING_CONSTS);
+
+  if (computeAndBaseVertexSupported)
+    createCmdCs = new_compute_shader("fx_create_cmd_cs");
+
+  readBlk(blk);
+
+  initHeads();
+  initTrails();
+
+  clear();
+}
+
+TracerManager::~TracerManager()
+{
+  releaseRes();
+  del_it(createCmdCs);
+}
+
+void TracerManager::readBlk(const DataBlock *blk)
+{
   // Get settings.
 
   const DataBlock *tracersBlk = blk->getBlockByNameEx("tracers");
   headFadeTime = tracersBlk->getReal("headFadeTime", 1.f);
   headSpeedScale = tracersBlk->getPoint4("headSpeedScale", Point4(300.0f, 900.0f, 0.33f, 1.0f));
 
-  tracerBeamTimeVarId = ::get_shader_variable_id("tracer_beam_time");
   headVibratingRate = tracersBlk->getReal("headVibratingRate", 30.0f);
-  tracerPrimTypeVarId = ::get_shader_variable_id("tracer_prim_type");
 
   ShaderGlobal::set_color4(::get_shader_variable_id("head_noise_params"),
     Color4(tracersBlk->getReal("headNoiseFreq", 0.3f), tracersBlk->getReal("headNoiseScale", 0.03f),
       tracersBlk->getReal("headNoiseViewScale", 50.0f), tracersBlk->getReal("headBorderPixelRadius", 1.0f)));
 
-  headShapeParamsVarId = ::get_shader_variable_id("head_shape_params");
   headShapeParams = Point4(tracersBlk->getReal("headArrowLen", 0.05f), tracersBlk->getReal("headHdrMultiplierCompatibility", 2.0f),
     tracersBlk->getReal("headFadeLenInv", 2.0f), tracersBlk->getReal("headHdrMultiplier", 25.0f));
   ShaderGlobal::set_color4(headShapeParamsVarId, Color4::xyzw(headShapeParams));
@@ -471,7 +504,7 @@ TracerManager::TracerManager(const DataBlock *blk) :
   for (unsigned int blockNo = 0; blockNo < tracerColorsBlk->blockCount(); blockNo++)
   {
     const DataBlock *tracerColorBlk = tracerColorsBlk->getBlock(blockNo);
-    TracerType &tracerType = tracerTypes.push_back();
+    TracerType &tracerType = (blockNo < tracerTypes.size()) ? tracerTypes[blockNo] : tracerTypes.push_back();
     tracerType.name = tracerColorBlk->getBlockName();
     tracerType.halfSize = tracerColorBlk->getReal("halfSize", 2.f);
     tracerType.radius = tracerColorBlk->getReal("radius", 0.01f);
@@ -482,8 +515,10 @@ TracerManager::TracerManager(const DataBlock *blk) :
     tracerType.startTime = tracerColorBlk->getReal("startTime", 0.0f);
     tracerType.hdrK = tracerColorBlk->getReal("hdrK", 1.0f);
     tracerType.beam = tracerColorBlk->getBool("beam", false);
-    tracerType.minPixelSize = tracerColorBlk->getReal("minPixelSize", 0.0f);
+    tracerType.minPixelSize = tracerColorBlk->getReal("minPixelSize", 0.25f);
     tracerType.fxName = tracerColorBlk->getStr("tracerFxType", "");
+    tracerType.amplifyScale = tracerColorBlk->getReal("amplifyScale", 1.0f);
+    tracerType.headTaper = tracerColorBlk->getReal("headTaper", 1.0f);
 
     float distScaleStart = tracerColorBlk->getReal("distScaleStart", 0.f);
     float distScaleEnd = tracerColorBlk->getReal("distScaleEnd", 1.f);
@@ -499,34 +534,13 @@ TracerManager::TracerManager(const DataBlock *blk) :
   for (unsigned int blockNo = 0; blockNo < tracerTrailsBlk->blockCount(); blockNo++)
   {
     const DataBlock *tracerTrailBlk = tracerTrailsBlk->getBlock(blockNo);
-    TrailType &trailType = trailTypes.push_back();
+    TrailType &trailType = (blockNo < trailTypes.size()) ? trailTypes[blockNo] : trailTypes.push_back();
     trailType.name = tracerTrailBlk->getBlockName();
     trailType.particleHalfSizeFrom = tracerTrailBlk->getReal("particleHalfSizeFrom", 0.2f);
     trailType.particleHalfSizeTo = tracerTrailBlk->getReal("particleHalfSizeTo", 1.f);
     trailType.deviation = tracerTrailBlk->getReal("deviation", 2.f);
     trailType.color = tracerTrailBlk->getE3dcolor("color", 0xFFFFFFFF);
   }
-
-  computeSupported = d3d::get_driver_desc().shaderModel >= 5.0_sm;
-  multiDrawIndirectSupported = computeSupported && d3d::get_driver_desc().caps.hasWellSupportedIndirect;
-  instanceIdSupported = d3d::get_driver_desc().caps.hasInstanceID;
-
-  ShaderGlobal::set_int(::get_shader_variable_id("fx_instancing_type", true),
-    computeSupported ? FX_INSTANCING_SBUF : FX_INSTANCING_CONSTS);
-
-  if (computeSupported)
-    createCmdCs = new_compute_shader("fx_create_cmd_cs");
-
-  initHeads();
-  initTrails();
-
-  clear();
-}
-
-TracerManager::~TracerManager()
-{
-  releaseRes();
-  del_it(createCmdCs);
 }
 
 void TracerManager::clear()
@@ -707,6 +721,7 @@ void TracerManager::doJob()
     int firstPartCount = tracer->segments[tracer->firstSegment].partNum;
     tracerDynamic.partCountSegmentId = (tailPartCount + firstPartCount * FX_TRACER_BITS_PART_COUNT) +
                                        (tracer->lastSegment + tracer->firstSegment * FX_TRACER_BITS_SEGMENT) * FX_TRACER_PACK_BIT;
+    tracerDynamic.amplifyScale = tracer->amplifyScale;
 
     tracer->wasPrepared = true;
   }
@@ -737,7 +752,7 @@ void TracerManager::initTrails()
   tailMat->addRef();
   matNull = NULL;
 
-  bool instancingSBufSupported = computeSupported;
+  bool instancingSBufSupported = computeAndBaseVertexSupported;
 
   CompiledShaderChannelId *curChan = NULL;
   uint32_t numChanElements = 0;
@@ -1003,7 +1018,7 @@ void TracerManager::initHeads()
 
   headRendElem.shElem = headMat->make_elem();
 
-  bool instancingSBufSupported = computeSupported;
+  bool instancingSBufSupported = computeAndBaseVertexSupported;
   tracerTypeBuffer.create(instancingSBufSupported, sizeof(GPUFXTracerType), 0, tracerTypes.size(),
     SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0, "tracerTypeBuffer");
   GPUFXTracerType *tracerTypeData = NULL;
@@ -1023,6 +1038,7 @@ void TracerManager::initHeads()
       tracerType.tracerStartTime = tracerData.startTime;
       tracerType.tracerHeadColor1 = mul(Point4::rgba(color4(tracerData.color1)), hdrK);
       tracerType.tracerHeadColor2 = mul(Point3::rgb(color3(tracerData.color2)), Point3::xyz(hdrK));
+      tracerType.tracerHeadTaper = tracerData.headTaper;
     }
   tracerTypeBuffer.unlock();
 }
@@ -1218,7 +1234,7 @@ void TracerManager::finishPreparingIfNecessary()
 }
 
 Tracer *TracerManager::createTracer(const Point3 &start_pos, const Point3 &speed, int tracerType, int trailType, float caliber,
-  bool force, bool forceNoTrail, float cur_life_time)
+  bool force, bool forceNoTrail, float cur_life_time, bool amplify)
 {
   TracerMgrThreadGuard guard(this);
   G_ASSERT(!preparing);
@@ -1276,9 +1292,10 @@ space_found_:
   float tailDeviation = trailTypes[trailType].deviation;
   maxTracerNo = numTracers == 1 ? fi : max(fi, maxTracerNo);
 
-  Tracer *tracer = new (&tracers[fi], _NEW_INPLACE) Tracer(this, fi, start_pos, speed, tracerType, grnd(),
-    forceNoTrail ? 0.f : trailTypes[trailType].particleHalfSizeFrom, forceNoTrail ? 0.f : trailTypes[trailType].particleHalfSizeTo,
-    tailDeviation, color4(trailTypes[trailType].color), caliber, curTime - cur_life_time);
+  Tracer *tracer = new (&tracers[fi], _NEW_INPLACE)
+    Tracer(this, fi, start_pos, speed, tracerType, grnd(), forceNoTrail ? 0.f : trailTypes[trailType].particleHalfSizeFrom,
+      forceNoTrail ? 0.f : trailTypes[trailType].particleHalfSizeTo, tailDeviation, color4(trailTypes[trailType].color), caliber,
+      curTime - cur_life_time, amplify ? tracerTypes[tracerType].amplifyScale : 1.0f);
   return tracer;
 }
 

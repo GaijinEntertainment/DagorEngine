@@ -1,12 +1,12 @@
 Root    ?= ../../../../../.. ;
 BreakpadRoot = prog/3rdPartyLibs/breakpad ;
 Location = $(BreakpadRoot)/tools/linux/md2core ;
-Platform ?= linux64 ;
+Platform ?= linux ;
 
 TargetType  = exe ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
-if $(Platform) in linux64 {
+if $(Platform) in linux {
   Target      = 3rdPartyLibs/breakpad/tools/linux/minidump-2-core ;
 
   AddIncludes += $(Root)/$(BreakpadRoot) ;

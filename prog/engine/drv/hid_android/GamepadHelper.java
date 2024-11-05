@@ -23,7 +23,7 @@ class GamepadListener implements InputManager.InputDeviceListener {
       int id = deviceIds[i];
       if (isGamepad(id)) {
         mCurrentDeviceId = id;
-        DagorLogger.logDebug("GamepadListener: started with gamepad=" + mCurrentDeviceId);
+        DagorLogger.logDebug("gamepad: started with gamepad=" + mCurrentDeviceId);
         break;
       }
     }
@@ -46,7 +46,7 @@ class GamepadListener implements InputManager.InputDeviceListener {
   private static native void nativeOnChangeCurrentInputDevice();
 
   private void changeCurrentDevice(int deviceId, String src) {
-    DagorLogger.logDebug("GamepadListener: changing gamepad: new=" + deviceId + " old=" + mCurrentDeviceId + " context:" + src);
+    DagorLogger.logDebug("gamepad: changing gamepad: new=" + deviceId + " old=" + mCurrentDeviceId + " context:" + src);
     mDeviceChanged = true;
     mCurrentDeviceId = deviceId;
 
@@ -55,7 +55,7 @@ class GamepadListener implements InputManager.InputDeviceListener {
 
   public void onInputDeviceAdded(int deviceId) {
     if (isGamepad(deviceId)) {
-      DagorLogger.logDebug("GamepadListener: os added gamepad, id=" + deviceId);
+      DagorLogger.logDebug("gamepad: os added gamepad, id=" + deviceId);
       if (mCurrentDeviceId != deviceId)
         changeCurrentDevice(deviceId, "[device added]");
     }
@@ -63,7 +63,7 @@ class GamepadListener implements InputManager.InputDeviceListener {
 
   public void onInputDeviceChanged(int deviceId) {
     if (isGamepad(deviceId)) {
-      DagorLogger.logDebug("GamepadListener: os changed gamepad, id=" + deviceId);
+      DagorLogger.logDebug("gamepad: os changed gamepad, id=" + deviceId);
       if (mCurrentDeviceId != deviceId)
         changeCurrentDevice(deviceId, "[device changed]");
     }
@@ -87,6 +87,11 @@ class GamepadListener implements InputManager.InputDeviceListener {
   public int getConnectedGamepadVendorId() {
     return isGamepadConnected() ?
             InputDevice.getDevice(mCurrentDeviceId).getVendorId() :
+            UNKNOWN_ID;
+  }
+  public int getConnectedGamepadProductId() {
+    return isGamepadConnected() ?
+            InputDevice.getDevice(mCurrentDeviceId).getProductId() :
             UNKNOWN_ID;
   }
 }
@@ -130,6 +135,11 @@ public class GamepadHelper {
     public static int getConnectedGamepadVendorId() {
       return gamepadListener != null ?
               gamepadListener.getConnectedGamepadVendorId() :
+              GamepadListener.UNKNOWN_ID;
+    }
+    public static int getConnectedGamepadProductId() {
+      return gamepadListener != null ?
+              gamepadListener.getConnectedGamepadProductId() :
               GamepadListener.UNKNOWN_ID;
     }
 

@@ -7,19 +7,13 @@
 #include "daScript/simulate/aot_builtin_rtti.h"
 
 DAS_BASE_BIND_ENUM(das::Type, Type,
-    none,           autoinfer,      alias,          option,
-    fakeContext,    fakeLineInfo,
-    anyArgument,    tVoid,          tBool,          tInt64,
-    tUInt64,        tInt,           tInt2,          tInt3,
-    tInt4,          tUInt,          tUInt2,         tUInt3,
-    tUInt4,         tFloat,         tFloat2,        tFloat3,
-    tFloat4,        tDouble,        tRange,         tURange,
-    tRange64,       tURange64,
-    tString,        tStructure,     tHandle,        tEnumeration,
-    tPointer,       tFunction,      tLambda,        tIterator,
-    tArray,         tTable,         tBlock,         tInt8,
-    tUInt8,         tInt16,         tUInt16,        tTuple,
-    tEnumeration8,  tEnumeration16, tVariant,       tBitfield
+    none,    autoinfer,    alias,    option, typeDecl, typeMacro, fakeContext,    fakeLineInfo,
+    anyArgument,    tVoid,    tBool,    tInt8,    tUInt8,    tInt16,    tUInt16,
+    tInt64,    tUInt64,    tInt,    tInt2,    tInt3,    tInt4,    tUInt,
+    tUInt2,    tUInt3,    tUInt4,    tFloat,    tFloat2,    tFloat3,    tFloat4,
+    tDouble,    tRange,    tURange,    tRange64,    tURange64,    tString,    tStructure,
+    tHandle,    tEnumeration,    tEnumeration8,    tEnumeration16,    tEnumeration64,    tBitfield,    tPointer,    tFunction,
+    tLambda,    tIterator,    tArray,    tTable,    tBlock,    tTuple,    tVariant
 )
 
 DAS_BASE_BIND_ENUM(das::RefMatters,   RefMatters,   no, yes)

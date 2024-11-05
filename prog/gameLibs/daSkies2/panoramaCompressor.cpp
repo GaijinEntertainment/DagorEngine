@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <panoramaCompressor.h>
 
 #define GLOBAL_VARS_LIST            \

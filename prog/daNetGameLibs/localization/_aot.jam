@@ -1,0 +1,4 @@
+local R = prog/daNetGameLibs/localization ;
+Sources +=
+  $(R)/dasModules/localization.cpp
+;

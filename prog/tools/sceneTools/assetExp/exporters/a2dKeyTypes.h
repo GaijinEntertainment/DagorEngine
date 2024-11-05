@@ -1,11 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <math/dag_Point3.h>
 #include <math/dag_Quat.h>
-#include <vecmath/dag_vecMathDecl.h>
+#include <vecmath/dag_vecMath.h>
 #include <generic/dag_tab.h>
 #include <dag/dag_vector.h>
 #include <util/dag_globDef.h>
+#include <anim/dag_animKeys.h>
 
 
 struct OldAnimKeyReal
@@ -15,12 +17,31 @@ struct OldAnimKeyReal
 struct OldAnimKeyPoint3
 {
   Point3 p, k1, k2, k3;
+
+  inline operator AnimV20::AnimKeyPoint3()
+  {
+    AnimV20::AnimKeyPoint3 k;
+    k.p = v_ldu_p3(&p.x);
+    k.k1 = v_ldu_p3(&k1.x);
+    k.k2 = v_ldu_p3(&k2.x);
+    k.k3 = v_ldu_p3(&k3.x);
+    return k;
+  }
 };
 struct OldAnimKeyQuat
 {
   real pw, bw;
   real sinpw, sinbw;
   Quat p, b0, b1;
+
+  inline operator AnimV20::AnimKeyQuat()
+  {
+    AnimV20::AnimKeyQuat k;
+    k.p = v_ldu(&p.x);
+    k.b0 = v_ldu(&b0.x);
+    k.b1 = v_ldu(&b1.x);
+    return k;
+  }
 };
 
 struct ChannelData

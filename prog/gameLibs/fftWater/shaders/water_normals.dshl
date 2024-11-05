@@ -34,8 +34,8 @@ shader water_normals
     }
   }
 
-  INIT_WATER_GRADIENTS()
-  USE_WATER_GRADIENTS(0)
+  INIT_WATER_GRADIENTS(ps)
+  USE_WATER_GRADIENTS(ps, 0)
 
   (ps) { water_normals_cascade_no@f1 = float4(water_normals_cascade_no, 0, 0, 0); }
 

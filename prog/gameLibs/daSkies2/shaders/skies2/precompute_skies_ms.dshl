@@ -31,10 +31,10 @@ shader skies_generate_transmittance_ps//very first call
   WRITE_TO_TEX2D()
   TRANSMITTANCE(ps)
   hlsl(ps) {
-    float3 skies_gen_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    float4 skies_gen_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
     {
       float4 sp = GET_SCREEN_POS(input.pos);
-      return saturate(ComputeTransmittanceToTopAtmosphereBoundaryTexture2(theAtmosphere, sp.xy));
+      return float4(saturate(ComputeTransmittanceToTopAtmosphereBoundaryTexture2(theAtmosphere, sp.xy)), 0.0);
     }
   }
   compile("target_ps", "skies_gen_ps")
@@ -197,7 +197,7 @@ shader skies_approximate_ms_lut_ps
   MS_APPROXIMATE(ps)
   WRITE_TO_TEX2D_TC()
   hlsl(ps) {
-    float3 skies_gen_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    float4 skies_gen_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target0
     {
       float4 sp = GET_SCREEN_POS(input.pos); 
       float2 uv = sp.xy / SKIES_MULTIPLE_SCATTERING_APPROX;
@@ -216,7 +216,7 @@ shader skies_approximate_ms_lut_ps
       const float3 SumOfAllMultiScatteringEventsContribution = 1.0f / (1.0 - r);
       float3 MS = summedInScatteredLuminance * SumOfAllMultiScatteringEventsContribution;// Equation 10 Psi_ms
 
-      return theAtmosphere.multiple_scattering_factor * MS;
+      return float4(theAtmosphere.multiple_scattering_factor * MS, 0.0);
     }
 
   }
@@ -235,11 +235,12 @@ shader indirect_irradiance_ms
   }
 
   hlsl(ps){
-    float3 indirect_irradiance_ms(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    float4 indirect_irradiance_ms(VsOutput input HW_USE_SCREEN_POS): SV_Target0
     {
-      float4 sp = GET_SCREEN_POS(input.pos); 
-      return ComputeIndirectIrradianceTextureMS(theAtmosphere, SamplerTexture2DFromName(skies_transmittance_texture),
+      float4 sp = GET_SCREEN_POS(input.pos);
+      float3 indirect_irradiance = ComputeIndirectIrradianceTextureMS(theAtmosphere, SamplerTexture2DFromName(skies_transmittance_texture),
         SamplerTexture2DFromName(skies_ms_texture), sp.xy);
+      return float4(indirect_irradiance, 0.0);
     }
   }
   compile("target_ps", "indirect_irradiance_ms")

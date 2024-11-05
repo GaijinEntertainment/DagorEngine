@@ -1,5 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "ec_stat3d.h"
-#include "ec_ViewportWindowStatSettingsDialog.h"
+#include <EditorCore/ec_ViewportWindowStatSettingsDialog.h>
 #include <EditorCore/ec_ViewportWindow.h>
 #include <EditorCore/ec_cm.h>
 #include <perfMon/dag_graphStat.h>
@@ -10,8 +12,8 @@
 #include <libTools/renderViewports/renderViewport.h>
 #include <libTools/renderViewports/cachedViewports.h>
 
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_query.h>
 #include <3d/dag_render.h>
 #include <3d/dag_texMgr.h>
 
@@ -260,21 +262,21 @@ void ViewportWindow::drawStat3d()
 }
 
 
-void ViewportWindow::fillStat3dStatSettings(PropertyContainerControlBase &tab_panel)
+void ViewportWindow::fillStat3dStatSettings(ViewportWindowStatSettingsDialog &dialog)
 {
   G_STATIC_ASSERT((CM_STATS_SETTINGS_STAT3D_ITEM_LAST + 1 - CM_STATS_SETTINGS_STAT3D_ITEM0) >= stat_count);
 
-  PropertyContainerControlBase *tabPage = tab_panel.createTabPage(CM_STATS_SETTINGS_STAT3D_PAGE, "Stat 3d");
+  PropPanel::TLeafHandle statGroup = dialog.addGroup(CM_STATS_SETTINGS_STAT3D_GROUP, "Stat 3d", calcStat3d);
 
   for (int i = 0; i < stat_count; ++i)
-    tabPage->createCheckBox(CM_STATS_SETTINGS_STAT3D_ITEM0 + i, stat_names[i], displayed_stats[i]);
+    dialog.addOption(statGroup, CM_STATS_SETTINGS_STAT3D_ITEM0 + i, stat_names[i], displayed_stats[i]);
 }
 
-void ViewportWindow::handleStat3dStatSettingsDialogChange(int pcb_id)
+void ViewportWindow::handleStat3dStatSettingsDialogChange(int pcb_id, bool value)
 {
   if (pcb_id >= CM_STATS_SETTINGS_STAT3D_ITEM0 && pcb_id < (CM_STATS_SETTINGS_STAT3D_ITEM0 + stat_count))
   {
     const int statIndex = pcb_id - CM_STATS_SETTINGS_STAT3D_ITEM0;
-    displayed_stats[statIndex] = !displayed_stats[statIndex];
+    displayed_stats[statIndex] = value;
   }
 }

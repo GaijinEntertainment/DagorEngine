@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "callbacks.h"
 #include <breakpad/binder.h>
 #include "context.h"
@@ -93,6 +95,8 @@ static void run_uploader(const Context *ctx, const char *dump_path, const char *
     {
       PUSH_CLI_ARG(i, "--ProductName", ctx->product.name.str())
     }
+    PUSH_CLI_ARG(i, "--D3DDriver", ctx->configuration.d3dDriver.c_str());
+    PUSH_CLI_ARG(i, "--GPUVendor", ctx->configuration.gpuVendor.c_str());
     PUSH_CLI_ARG(i, "--BuildID", ctx->product.build.str())
     PUSH_CLI_ARG(i, "--StartupTime", ctx->product.started.str())
     PUSH_CLI_ARG(i, "--ReleaseChannel", ctx->product.channel.str())
@@ -255,6 +259,8 @@ wchar_t *prepare_args(const Context *ctx, const wchar_t *path, const wchar_t *id
     CONVWRITE("ProductName", ctx->product.name.str());
   if (!ctx->configuration.productTitle.empty())
     CONVWRITE("ProductTitle", ctx->configuration.productTitle.c_str());
+  CONVWRITE("D3DDriver", ctx->configuration.d3dDriver.c_str());
+  CONVWRITE("GPUVendor", ctx->configuration.gpuVendor.c_str());
   CONVWRITE("BuildID", ctx->product.build.str());
   CONVWRITE("StartupTime", ctx->product.started.str());
   CONVWRITE("ReleaseChannel", ctx->product.channel.str());

@@ -1,0 +1,4 @@
+return {
+  is_fully_covering = @() false
+  set_fully_covering = @(value) assert(type(value)==type(true))
+}

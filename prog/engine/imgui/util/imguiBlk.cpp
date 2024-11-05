@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gui/dag_imguiUtil.h>
 #include <util/dag_string.h>
 #include <math/dag_Point2.h>

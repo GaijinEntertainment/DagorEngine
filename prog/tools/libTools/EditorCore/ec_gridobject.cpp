@@ -1,18 +1,39 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EditorCore/ec_gridobject.h>
 #include <EditorCore/ec_interface.h>
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
+#include <3d/dag_quadIndexBuffer.h>
 #include <debug/dag_debug3d.h>
 #include <debug/dag_debug.h>
 #include <ioSys/dag_dataBlock.h>
+#include <perfMon/dag_statDrv.h>
+#include <render/viewVecs.h>
+#include <shaders/dag_shaders.h>
 
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/control/container.h>
 
 #define MAJOR_LINE_COLOR E3DCOLOR(0, 0, 0, 255)
 
+static int infinite_grid_major_line_colorVarId = -1;
+static int infinite_grid_minor_line_colorVarId = -1;
+static int infinite_grid_major_line_widthVarId = -1;
+static int infinite_grid_minor_line_widthVarId = -1;
+static int infinite_grid_major_subdivisionsVarId = -1;
+static int infinite_grid_view_projVarId = -1;
+static int infinite_grid_y_positionVarId = -1;
 
-GridObject::GridObject() { resetToDefault(); }
+GridObject::GridObject() : infiniteGridInitialized(false) { resetToDefault(); }
 
+GridObject::~GridObject()
+{
+  if (infiniteGridInitialized)
+    index_buffer::release_quads_16bit();
+}
 
 void GridObject::resetToDefault()
 {
@@ -25,8 +46,71 @@ void GridObject::resetToDefault()
   isRotateSnap = false;
   isScaleSnap = false;
   isDrawMajorLines = true;
+
+  isUseInfiniteGrid = true;
+  infiniteGridMajorLineColor = E3DCOLOR(0, 0, 0);
+  infiniteGridMinorLineColor = E3DCOLOR(150, 150, 150);
+  infiniteGridMajorLineWidth = 0.05f;
+  infiniteGridMinorLineWidth = 0.01f;
+  infiniteGridMajorSubdivisions = 5;
 }
 
+void GridObject::renderInfiniteGrid()
+{
+  if (!infiniteGridInitialized)
+  {
+    infiniteGridInitialized = true;
+
+    infinite_grid_major_line_colorVarId = get_shader_variable_id("infinite_grid_major_line_color", true);
+    infinite_grid_minor_line_colorVarId = get_shader_variable_id("infinite_grid_minor_line_color", true);
+    infinite_grid_major_line_widthVarId = get_shader_variable_id("infinite_grid_major_line_width", true);
+    infinite_grid_minor_line_widthVarId = get_shader_variable_id("infinite_grid_minor_line_width", true);
+    infinite_grid_major_subdivisionsVarId = get_shader_variable_id("infinite_grid_major_subdivisions", true);
+    infinite_grid_view_projVarId = get_shader_variable_id("infinite_grid_view_proj", true);
+    infinite_grid_y_positionVarId = get_shader_variable_id("infinite_grid_y_position", true);
+
+    index_buffer::init_quads_16bit();
+
+    const char *shaderName = "infinite_grid";
+    infiniteGridShaderMaterial = new_shader_material_by_name_optional(shaderName, nullptr);
+    if (infiniteGridShaderMaterial.get())
+      infiniteGridShaderElement = infiniteGridShaderMaterial->make_elem();
+
+    if (!infiniteGridShaderElement)
+      logwarn("Shader \"%s\" not found. The infinite grid will not render.", shaderName);
+  }
+
+  if (!infiniteGridShaderElement)
+    return;
+
+  TIME_D3D_PROFILE(infiniteGrid);
+
+  TMatrix viewTm;
+  TMatrix4 projTm;
+  d3d::gettm(TM_VIEW, viewTm);
+  d3d::gettm(TM_PROJ, &projTm);
+
+  const TMatrix4 viewProj = TMatrix4(viewTm) * projTm;
+  const bool drawMajorLines = isDrawMajorLines && infiniteGridMajorSubdivisions > 1;
+
+  ShaderGlobal::set_color4(infinite_grid_major_line_colorVarId,
+    drawMajorLines ? infiniteGridMajorLineColor : infiniteGridMinorLineColor);
+  ShaderGlobal::set_color4(infinite_grid_minor_line_colorVarId, infiniteGridMinorLineColor);
+  ShaderGlobal::set_real(infinite_grid_major_line_widthVarId,
+    drawMajorLines ? infiniteGridMajorLineWidth : infiniteGridMinorLineWidth);
+  ShaderGlobal::set_real(infinite_grid_minor_line_widthVarId, infiniteGridMinorLineWidth);
+  ShaderGlobal::set_real(infinite_grid_major_subdivisionsVarId, drawMajorLines ? infiniteGridMajorSubdivisions : 1);
+  ShaderGlobal::set_float4x4(infinite_grid_view_projVarId, viewProj);
+  ShaderGlobal::set_real(infinite_grid_y_positionVarId, gridHeight);
+  set_viewvecs_to_shader(viewTm, projTm);
+
+  if (!infiniteGridShaderElement->setStates(0, true))
+    return;
+
+  index_buffer::use_quads_16bit();
+  d3d::setvsrc(0, 0, 0);
+  d3d::drawind_instanced(PRIM_TRILIST, 0, 2, 0, 1);
+}
 
 void GridObject::render(Point3 *pt, Point3 *dirs, real zoom, int index, bool test_z, bool write_z)
 {
@@ -46,6 +130,12 @@ void GridObject::render(Point3 *pt, Point3 *dirs, real zoom, int index, bool tes
 
   if (!visible[index])
     return;
+
+  if (isUseInfiniteGrid)
+  {
+    renderInfiniteGrid();
+    return;
+  }
 
   float move_snap = step;
   E3DCOLOR lc = MAJOR_LINE_COLOR, lc2 = MAJOR_LINE_COLOR;
@@ -129,6 +219,15 @@ void GridObject::save(DataBlock &blk)
   gridBlk.setBool("rotate_snap_on", isRotateSnap);
   gridBlk.setBool("scale_snap_on", isScaleSnap);
   gridBlk.setBool("draw_major_lines", isDrawMajorLines);
+
+  DataBlock *infiniteGridBlk = gridBlk.addBlock("infinite_grid");
+  infiniteGridBlk->clearData();
+  infiniteGridBlk->setBool("use_infinite_grid", isUseInfiniteGrid);
+  infiniteGridBlk->setE3dcolor("major_line_color", infiniteGridMajorLineColor);
+  infiniteGridBlk->setE3dcolor("minor_line_color", infiniteGridMinorLineColor);
+  infiniteGridBlk->setReal("major_line_width", infiniteGridMajorLineWidth);
+  infiniteGridBlk->setReal("minor_line_width", infiniteGridMinorLineWidth);
+  infiniteGridBlk->setInt("major_subdivisions", infiniteGridMajorSubdivisions);
 }
 
 
@@ -151,6 +250,17 @@ void GridObject::load(const DataBlock &blk)
   isRotateSnap = gridBlk.getBool("rotate_snap_on", true);
   isScaleSnap = gridBlk.getBool("scale_snap_on", true);
   isDrawMajorLines = gridBlk.getBool("draw_major_lines", true);
+
+  const DataBlock *infiniteGridBlk = gridBlk.getBlockByName("infinite_grid");
+  if (infiniteGridBlk)
+  {
+    isUseInfiniteGrid = infiniteGridBlk->getBool("use_infinite_grid", isUseInfiniteGrid);
+    infiniteGridMajorLineColor = infiniteGridBlk->getE3dcolor("major_line_color", infiniteGridMajorLineColor);
+    infiniteGridMinorLineColor = infiniteGridBlk->getE3dcolor("minor_line_color", infiniteGridMinorLineColor);
+    infiniteGridMajorLineWidth = infiniteGridBlk->getReal("major_line_width", infiniteGridMajorLineWidth);
+    infiniteGridMinorLineWidth = infiniteGridBlk->getReal("minor_line_width", infiniteGridMinorLineWidth);
+    infiniteGridMajorSubdivisions = infiniteGridBlk->getInt("major_subdivisions", infiniteGridMajorSubdivisions);
+  }
 }
 
 
@@ -191,20 +301,44 @@ enum
 
   ID_DRAW_MAJOR_LINES,
   ID_GRID_HEIGHT,
+
+  ID_USE_INFINITE_GRID,
+  ID_INFINITE_GRID_MAJOR_LINE_COLOR,
+  ID_INFINITE_GRID_MINOR_LINE_COLOR,
+  ID_INFINITE_GRID_MAJOR_LINE_WIDTH,
+  ID_INFINITE_GRID_MINOR_LINE_WIDTH,
+  ID_INFINITE_GRID_MAJOR_SUBDIVISIONS,
 };
 
 
-GridEditDialog::GridEditDialog(void *phandle, GridObject &grid, const char *caption, int view_port_index) :
-  CDialogWindow(phandle, hdpi::_pxScaled(300), hdpi::_pxScaled(300), caption), mGrid(grid), index(view_port_index)
+GridEditDialog::GridEditDialog(void *phandle, GridObject &grid, const char *caption) :
+  DialogWindow(phandle, hdpi::_pxScaled(300), hdpi::_pxScaled(300), caption), mGrid(grid)
 {
   G_ASSERT(&mGrid);
   fillPanel();
+
+  PropPanel::ContainerPropertyControl *buttonsContainer = buttonsPanel->getContainer();
+  buttonsContainer->removeById(PropPanel::DIALOG_ID_CANCEL);
 }
 
 
-bool GridEditDialog::onOk()
+void GridEditDialog::showGridEditDialog(int viewport_index)
 {
-  PropertyContainerControlBase *panel = getPanel();
+  G_ASSERT(viewport_index >= 0);
+  index = viewport_index;
+
+  updateShowGridDialogControl();
+
+  autoSize(autoCenter);
+  autoCenter = false;
+
+  show();
+}
+
+
+void GridEditDialog::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+{
+  G_ASSERT(index >= 0);
 
   mGrid.setVisible(panel->getBool(ID_SHOW_VIEWPORT_CHECKBOX), index);
   mGrid.setStep(panel->getFloat(ID_MOVE_SNAP_EDIT));
@@ -216,16 +350,20 @@ bool GridEditDialog::onOk()
   mGrid.setRotateSnap(panel->getBool(ID_ROTATE_SNAP_CHK));
   mGrid.setScaleSnap(panel->getBool(ID_SCALE_SNAP_CHK));
 
-  return true;
+  mGrid.setUseInfiniteGrid(panel->getBool(ID_USE_INFINITE_GRID));
+  mGrid.setInfiniteGridMajorLineColor(panel->getColor(ID_INFINITE_GRID_MAJOR_LINE_COLOR));
+  mGrid.setInfiniteGridMinorLineColor(panel->getColor(ID_INFINITE_GRID_MINOR_LINE_COLOR));
+  mGrid.setInfiniteGridMajorLineWidth(panel->getFloat(ID_INFINITE_GRID_MAJOR_LINE_WIDTH));
+  mGrid.setInfiniteGridMinorLineWidth(panel->getFloat(ID_INFINITE_GRID_MINOR_LINE_WIDTH));
+  mGrid.setInfiniteGridMajorSubdivisions(panel->getInt(ID_INFINITE_GRID_MAJOR_SUBDIVISIONS));
 }
 
 
 void GridEditDialog::fillPanel()
 {
-  PropertyContainerControlBase *panel = getPanel();
+  PropPanel::ContainerPropertyControl *panel = getPanel();
 
-  String str(64, "Show grid in viewport #%d", index);
-  panel->createCheckBox(ID_SHOW_VIEWPORT_CHECKBOX, str, mGrid.isVisible(index));
+  panel->createCheckBox(ID_SHOW_VIEWPORT_CHECKBOX, "Show grid in viewport");
 
   panel->createCheckBox(ID_MOVE_SNAP_CHK, "Move snap, m", mGrid.getMoveSnap());
   panel->createEditFloat(ID_MOVE_SNAP_EDIT, "", mGrid.getStep(), 3, true, false);
@@ -238,4 +376,32 @@ void GridEditDialog::fillPanel()
 
   panel->createCheckBox(ID_DRAW_MAJOR_LINES, "Draw major lines", mGrid.getDrawMajorLines());
   panel->createEditFloat(ID_GRID_HEIGHT, "Grid height", mGrid.getGridHeight());
+
+  panel->createSeparator();
+  panel->createCheckBox(ID_USE_INFINITE_GRID, "Use infinite grid", mGrid.getUseInfiniteGrid());
+  panel->createSimpleColor(ID_INFINITE_GRID_MAJOR_LINE_COLOR, "Major line color", mGrid.getInfiniteGridMajorLineColor());
+  panel->createSimpleColor(ID_INFINITE_GRID_MINOR_LINE_COLOR, "Minor line color", mGrid.getInfiniteGridMinorLineColor());
+  panel->createEditFloat(ID_INFINITE_GRID_MAJOR_LINE_WIDTH, "Major line width", mGrid.getInfiniteGridMajorLineWidth());
+  panel->createEditFloat(ID_INFINITE_GRID_MINOR_LINE_WIDTH, "Minor line width", mGrid.getInfiniteGridMinorLineWidth());
+  panel->createEditInt(ID_INFINITE_GRID_MAJOR_SUBDIVISIONS, "Major subdivisions", mGrid.getInfiniteGridMajorSubdivisions());
+}
+
+
+void GridEditDialog::updateShowGridDialogControl()
+{
+  G_ASSERT(index >= 0);
+
+  PropPanel::ContainerPropertyControl *panel = getPanel();
+  G_ASSERT(panel->getById(ID_SHOW_VIEWPORT_CHECKBOX));
+  panel->setCaption(ID_SHOW_VIEWPORT_CHECKBOX, String(64, "Show grid in viewport #%d", index));
+  panel->setBool(ID_SHOW_VIEWPORT_CHECKBOX, mGrid.isVisible(index));
+}
+
+
+void GridEditDialog::onGridVisibilityChanged(int viewport_index)
+{
+  if (viewport_index != index)
+    return;
+
+  updateShowGridDialogControl();
 }

@@ -1,8 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include "common.h"
 #include "buffers.h"
 #include "shaders.h"
-#include <3d/dag_drv3dCmd.h>
 #include <3d/dag_eventQueryHolder.h>
 #include <util/dag_generationReferencedData.h>
 
@@ -20,6 +21,7 @@ struct CullingState
   eastl::array<int, Config::max_render_tags> remapTags;
   eastl::array<int, Config::max_render_tags> vrsRemapTags;
   eastl::array<int, Config::max_render_tags> shadingRates;
+  eastl::array<float, Config::max_render_tags> discardThreshold;
 };
 using CullingStates = GenerationReferencedData<CullingId, CullingState>;
 
@@ -30,7 +32,8 @@ struct CullingGpuFeedback
   bool readbackIssued = false;
   GpuResourcePtr gpuRes;
   EventQueryHolder eventQuery;
-  eastl::vector<int> frameWorkers; // workers for that specific frame (might be 1..5 frames old)
+  eastl::vector<int> frameWorkers;    // workers for that specific frame (might be 1..5 frames old)
+  eastl::vector<uint32_t> frameFlags; // saved instances flags for that frame
 };
 
 struct Culling

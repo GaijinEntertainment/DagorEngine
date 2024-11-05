@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 namespace rendinst::gen
 {
 extern bool custom_get_height(Point3 &pos, Point3 *out_norm = NULL);

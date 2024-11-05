@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <quirrel/frp/dag_frp.h>

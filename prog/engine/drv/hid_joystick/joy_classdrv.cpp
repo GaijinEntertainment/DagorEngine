@@ -1,8 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "include_dinput.h"
 #include "joy_classdrv.h"
 #include "joy_device.h"
-#include <humanInput/dag_hiDInput.h>
-#include <humanInput/dag_hiGlobals.h>
+#include <drv/hid/dag_hiDInput.h>
+#include <drv/hid/dag_hiGlobals.h>
 #include <osApiWrappers/dag_progGlobals.h>
 #include <debug/dag_hwExcept.h>
 #include <debug/dag_except.h>
@@ -103,7 +105,9 @@ class Di8JoystickClassDriver::AsyncDeviceListChecker : public DaThread
   Di8JoystickClassDriver &driver;
 
 public:
-  AsyncDeviceListChecker(HumanInput::Di8JoystickClassDriver &drv) : DaThread("AsyncDeviceListChecker"), driver(drv) {}
+  AsyncDeviceListChecker(HumanInput::Di8JoystickClassDriver &drv) :
+    DaThread("AsyncDeviceListChecker", DEFAULT_STACK_SZ, 0, WORKER_THREADS_AFFINITY_MASK), driver(drv)
+  {}
 
   virtual void execute()
   {

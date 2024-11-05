@@ -1,10 +1,16 @@
-// generalized delayed cleanup impl
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+// generalized delayed cleanup impl
+
 #include <dag/dag_vector.h>
+#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
+
 #include "driver.h"
 #include "buffer_resource.h"
 #include "image_resource.h"
 #include "sampler_resource.h"
+#include "memory_heap_resource.h"
 #include "async_completion_state.h"
 #if D3D_HAS_RAY_TRACING
 #include "raytrace_as_resource.h"
@@ -20,11 +26,9 @@ class Buffer;
 class Image;
 class RenderPassResource;
 class RaytraceAccelerationStructure;
-class AsyncCompletionState;
 class VariatedGraphicsPipeline;
 class ComputePipeline;
 class RaytracePipeline;
-struct ContextBackend;
 
 class CleanupQueue
 {
@@ -34,13 +38,12 @@ class CleanupQueue
     T *ptr;
     static int getTag() { return Tag; }
     void frontendCleanup() { ptr->template onDelayedCleanupFrontend<Tag>(); }
-    void backendCleanup(ContextBackend &back) { ptr->template onDelayedCleanupBackend<Tag>(back); }
+    void backendCleanup() { ptr->template onDelayedCleanupBackend<Tag>(); }
     void backendFinish() { ptr->template onDelayedCleanupFinish<Tag>(); }
   };
 
   Tab<DelayedCleanup<Buffer, Buffer::CLEANUP_DESTROY>> bufferDestructions;
   Tab<DelayedCleanup<Image, Image::CLEANUP_DESTROY>> imageDestructions;
-  Tab<DelayedCleanup<AsyncCompletionState, AsyncCompletionState::CLEANUP_DESTROY>> asyncCompletionStateDestructions;
 #if D3D_HAS_RAY_TRACING
   Tab<DelayedCleanup<RaytraceAccelerationStructure, RaytraceAccelerationStructure::CLEANUP_DESTROY_TOP>> rtASTopDestructions;
   Tab<DelayedCleanup<RaytraceAccelerationStructure, RaytraceAccelerationStructure::CLEANUP_DESTROY_BOTTOM>> rtASBottomDestructions;
@@ -52,7 +55,7 @@ class CleanupQueue
   Tab<DelayedCleanup<RaytracePipeline, RaytracePipeline::CLEANUP_DESTROY>> raytracePipelineDestructions;
 #endif
   Tab<DelayedCleanup<RenderPassResource, RenderPassResource::CLEANUP_DESTROY>> renderPassDestructions;
-  Tab<DelayedCleanup<SamplerResource, SamplerResource::CLEANUP_DESTROY>> samplerDestructions;
+  Tab<DelayedCleanup<MemoryHeapResource, MemoryHeapResource::CLEANUP_DESTROY>> heapDestructions;
 
   template <typename T>
   T getQueue();
@@ -62,7 +65,6 @@ class CleanupQueue
   {
     cb(bufferDestructions);
     cb(imageDestructions);
-    cb(asyncCompletionStateDestructions);
 #if D3D_HAS_RAY_TRACING
     cb(rtASTopDestructions);
     cb(rtASBottomDestructions);
@@ -74,6 +76,7 @@ class CleanupQueue
     cb(raytracePipelineDestructions);
 #endif
     cb(renderPassDestructions);
+    cb(heapDestructions);
   }
 
   template <typename Cb>
@@ -81,7 +84,6 @@ class CleanupQueue
   {
     cb(bufferDestructions);
     cb(imageDestructions);
-    cb(asyncCompletionStateDestructions);
 #if D3D_HAS_RAY_TRACING
     cb(rtASTopDestructions);
     cb(rtASBottomDestructions);
@@ -93,6 +95,7 @@ class CleanupQueue
     cb(raytracePipelineDestructions);
 #endif
     cb(renderPassDestructions);
+    cb(heapDestructions);
   }
 
 #if DAGOR_DBGLEVEL > 0
@@ -130,9 +133,9 @@ public:
     enqueueFromBackend<0, T>(obj);
   }
 
-  void backendAfterReplayCleanup(ContextBackend &back);
-  void backendAfterGPUCleanup(ContextBackend &back);
-  void backendAfterFrameSubmitCleanup(ContextBackend &back);
+  void backendAfterReplayCleanup();
+  void backendAfterGPUCleanup();
+  void backendAfterFrameSubmitCleanup();
 
   void dumpData(FaultReportDump &dump) const;
   size_t capacity() const;

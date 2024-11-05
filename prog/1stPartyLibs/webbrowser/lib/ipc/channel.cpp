@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "channel.h"
 
 #include <assert.h>
@@ -22,12 +24,6 @@ Channel::~Channel()
 {
   DBG("%s: sent %d", __FUNCTION__, this->sent);
   this->shutdown();
-}
-
-bool Channel::create(const Socket& s)
-{
-  this->sock = s;
-  return this->sock.isValid();
 }
 
 

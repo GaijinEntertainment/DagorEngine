@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
 #include <ioSys/dag_fileIo.h>
@@ -207,7 +209,8 @@ public:
       {
         snprintf(buf, sizeof(buf), "%llu\n", (unsigned long long)thread.threadId);
         cb.write(buf, strlen(buf));
-        const char *name = the_profiler.descriptions.get(thread.description);
+        uint32_t cf;
+        const char *name = the_profiler.descriptions.get(thread.description, cf);
         snprintf(buf, sizeof(buf), "%s\n", name ? name : "-");
         cb.write(buf, strlen(buf));
       }

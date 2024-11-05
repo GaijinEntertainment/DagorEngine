@@ -1,10 +1,36 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_sampler.h>
+#include "driver.h"
 #include "sampler.h"
+#include "texture.h"
 
 using namespace drv3d_dx11;
 
-SamplerState::Key SamplerStateObject::makeKey(const d3d::SamplerInfo &sampler_info)
+namespace drv3d_dx11
 {
-  SamplerState::Key key;
+
+dag::RelocatableFixedVector<SamplerKey, SAMPLER_KEYS_INPLACE_COUNT> g_sampler_keys;
+WinCritSec g_sampler_keys_cs;
+
+void close_samplers()
+{
+  if (!resetting_device_now)
+    g_sampler_keys.clear();
+}
+
+} // namespace drv3d_dx11
+
+SamplerKey::SamplerKey(const BaseTex *tex)
+{
+  borderColor = tex->borderColor;
+  lodBias = tex->lodBias;
+  k = tex->key & BaseTextureImpl::SAMPLER_KEY_MASK;
+}
+
+static SamplerKey makeKey(const d3d::SamplerInfo &sampler_info)
+{
+  SamplerKey key;
   memset(&key, 0, sizeof(key));
 
   key.borderColor = sampler_info.border_color;
@@ -21,37 +47,29 @@ SamplerState::Key SamplerStateObject::makeKey(const d3d::SamplerInfo &sampler_in
   return key;
 }
 
-
-void remove_sampler_from_states(SamplerStateObject *smp)
+d3d::SamplerHandle d3d::request_sampler(const d3d::SamplerInfo &sampler_info)
 {
-  ResAutoLock resLock; // Thredsafe state.resources access
+  SamplerKey samplerKey = makeKey(sampler_info);
+  SamplerKey *ptr = nullptr;
 
-  TextureFetchState &state = g_render_state.texFetchState;
-
-  // Remove references to deleted sampler from all states to avoid confusion with invalid pointers
-  for (auto &stage : state.resources)
-  {
-    for (auto &resource : stage.resources)
+  SamplerKeysAutoLock lock;
+  for (auto &key : g_sampler_keys)
+    if (key == samplerKey)
     {
-      if (resource.sampler == smp)
-      {
-        resource.setSampler(nullptr);
-      }
+      ptr = &key;
+      break;
+    }
+
+  if (!ptr)
+  {
+    ptr = &g_sampler_keys.push_back(samplerKey);
+    if (DAGOR_UNLIKELY(g_sampler_keys.size() == SAMPLER_KEYS_INPLACE_COUNT))
+    {
+      // We don't expect the number of unique samplers to be large. It is technically supported, but should not happen with real-world
+      // use, unless there's some bug.
+      logerr("DX11: created %" PRIu32 " unique samplers. This probably indicates a problem.", g_sampler_keys.size());
     }
   }
-}
 
-d3d::SamplerHandle d3d::create_sampler(const d3d::SamplerInfo &sampler_info)
-{
-  auto *samplerObject = new SamplerStateObject(sampler_info);
-  return reinterpret_cast<SamplerHandle>(samplerObject);
-}
-
-void d3d::destroy_sampler(d3d::SamplerHandle sampler)
-{
-  auto *samplerObject = reinterpret_cast<SamplerStateObject *>(sampler);
-
-  remove_sampler_from_states(samplerObject);
-
-  delete samplerObject;
+  return SamplerHandle(ptr - g_sampler_keys.begin() + 1);
 }

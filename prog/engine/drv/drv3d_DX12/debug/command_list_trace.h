@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <debug/dag_log.h>
@@ -112,7 +113,7 @@ class CommandListTrace : public CommandListTraceBase
 
     static constexpr D3D12_AUTO_BREADCRUMB_OP OpCode = D3D12_AUTO_BREADCRUMB_OP_BEGINEVENT;
 
-    void report(call_stack::Reporter &, CompletionStatus status) const { logdbg("DX12: %s <%s>", prefix(status), path); }
+    void report(call_stack::Reporter &, CompletionStatus status) const { logdbg("DX12: %s BeginEvent <%s>", prefix(status), path); }
   };
 
   struct EndEventTrace : EventTraceBase
@@ -121,7 +122,7 @@ class CommandListTrace : public CommandListTraceBase
 
     static constexpr D3D12_AUTO_BREADCRUMB_OP OpCode = D3D12_AUTO_BREADCRUMB_OP_ENDEVENT;
 
-    void report(call_stack::Reporter &, CompletionStatus status) const { logdbg("DX12: %s <%s>", prefix(status), path); }
+    void report(call_stack::Reporter &, CompletionStatus status) const { logdbg("DX12: %s EndEvent <%s>", prefix(status), path); }
   };
 
   struct MarkerTrace : EventTraceBase
@@ -350,7 +351,7 @@ class CommandListTrace : public CommandListTraceBase
     eastl::variant<NullTrace, BeginEventTrace, EndEventTrace, MarkerTrace, DrawTrace, DrawIndexedTrace, DrawIndirectTrace,
       DrawIndexedIndirectTrace, DispatchIndirectTrace, DispatchTrace, DispatchMeshTrace, DispatchMeshIndirectTrace, BlitTrace>;
 
-  eastl::vector<AnyTraceEvent> traces;
+  dag::Vector<AnyTraceEvent> traces;
 
   static bool isTracedOp(D3D12_AUTO_BREADCRUMB_OP op)
   {

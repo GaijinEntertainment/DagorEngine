@@ -8,9 +8,11 @@ namespace das {
     char * ast_describe_typedecl_cpp ( smart_ptr_raw<TypeDecl> t, bool d_substitureRef, bool d_skipRef, bool d_skipConst, bool d_redundantConst, Context * context, LineInfoArg * at );
     char * ast_describe_expression ( smart_ptr_raw<Expression> t, Context * context, LineInfoArg * at );
     char * ast_describe_function ( smart_ptr_raw<Function> t, Context * context, LineInfoArg * at );
-    char * ast_das_to_string ( Type bt, Context * context );
+    char * ast_das_to_string ( Type bt, Context * context, LineInfoArg * at );
     char * ast_find_bitfield_name ( smart_ptr_raw<TypeDecl> bft, Bitfield value, Context * context, LineInfoArg * at );
+    char * ast_find_enum_name ( Enumeration * enu, int64_t value, Context * context, LineInfoArg * at );
     int64_t ast_find_enum_value ( EnumerationPtr enu, const char * value );
+    int64_t ast_find_enum_value_ex ( Enumeration * enu, const char * value );
 
     int32_t any_array_size ( void * _arr );
     int32_t any_table_size ( void * _tab );
@@ -59,6 +61,8 @@ namespace das {
     void addModuleForLoopMacro ( Module * module, ForLoopMacroPtr & _newM, Context * );
     CaptureMacroPtr makeCaptureMacro ( const char * name, const void * pClass, const StructInfo * info, Context * context );
     void addModuleCaptureMacro ( Module * module, CaptureMacroPtr & _newM, Context * );
+    TypeMacroPtr makeTypeMacro ( const char * name, const void * pClass, const StructInfo * info, Context * context );
+    void addModuleTypeMacro ( Module * module, TypeMacroPtr & _newM, Context *, LineInfoArg * );
     SimulateMacroPtr makeSimulateMacro ( const char * name, const void * pClass, const StructInfo * info, Context * context );
     void addModuleSimulateMacro ( Module * module, SimulateMacroPtr & _newM, Context * );
     void addModuleFunctionAnnotation ( Module * module, FunctionAnnotationPtr & ann, Context * context, LineInfoArg * at );
@@ -75,6 +79,7 @@ namespace das {
     bool addModuleGeneric ( Module * module, FunctionPtr & func, Context * context, LineInfoArg * lineInfo );
     bool addModuleVariable ( Module * module, VariablePtr & var, Context * context, LineInfoArg * lineInfo );
     bool addModuleKeyword ( Module * module, char * kwd, bool needOxfordComma, Context * context, LineInfoArg * lineInfo );
+    bool addModuleTypeFunction ( Module * module, char * kwd, Context * context, LineInfoArg * lineInfo );
     VariablePtr findModuleVariable ( Module * module, const char * name );
     bool removeModuleStructure ( Module * module, StructurePtr & _stru );
     bool addModuleStructure ( Module * module, StructurePtr & stru );
@@ -141,7 +146,13 @@ namespace das {
     uint32_t getHandledTypeFieldOffset ( smart_ptr_raw<TypeAnnotation> type, char * name, Context * context, LineInfoArg * at );
     TypeInfo * getHandledTypeFieldType ( smart_ptr_raw<TypeAnnotation> annotation, char * name, Context * context, LineInfoArg * at );
     TypeDeclPtr getHandledTypeFieldTypeDecl ( smart_ptr_raw<TypeAnnotation> annotation, char * name, bool isConst, Context * context, LineInfoArg * at );
-    void addModuleRequrie ( Module * module, Module * reqModule, bool publ );
+    bool addModuleRequire ( Module * module, Module * reqModule, bool publ );
+    void findMatchingVariable ( Program * program, Function * func, const char * _name, bool seePrivate,
+        const TBlock<void,TTemporary<TArray<VariablePtr>>> & block, Context * context, LineInfoArg * arg );
+    Module * getCurrentSearchModule(Program * program, Function * func, const char * _moduleName);
+    bool canAccessGlobalVariable ( const VariablePtr & pVar, Module * mod, Module * thisMod );
+    TypeDeclPtr inferGenericTypeEx ( smart_ptr_raw<TypeDecl> type, smart_ptr_raw<TypeDecl> passType, bool topLevel, bool isPassType );
+    void updateAliasMapEx ( smart_ptr_raw<Program> program, smart_ptr_raw<TypeDecl> argType, smart_ptr_raw<TypeDecl> passType, Context * context, LineInfoArg * at );
 
     template <>
     struct das_iterator <AnnotationArgumentList> : das_iterator<vector<AnnotationArgument>> {

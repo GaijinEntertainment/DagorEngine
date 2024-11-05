@@ -1,10 +1,22 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
 
 #include "driver.h"
 #include "device_memory.h"
 #include "device_resource.h"
 #include "device_memory_pages.h"
+#if D3D_HAS_RAY_TRACING
+#include "raytrace_as_resource.h"
+#endif
+#include "sampler_resource.h"
+#include "render_pass_resource.h"
+#include "memory_heap_resource.h"
 #include <atomic>
+#include <generic/dag_objectPool.h>
+#include "physical_device_set.h"
+#include "buffer_resource.h"
 
 namespace drv3d_vulkan
 {
@@ -37,6 +49,7 @@ enum class AllocationMethodName
   BUFFER_SHARED_RINGED,
 
   COUNT,
+  USER_MEMORY_HEAP,
   INVALID
 };
 
@@ -76,7 +89,11 @@ struct ResourceMemory
 
   VulkanDeviceMemoryHandle deviceMemorySlow() const;
 
-  bool isDeviceMemory() const { return allocator < AllocationMethodName::BUFFER_SHARED_SMALL_POW2_ALIGNED_PAGES; }
+  bool isDeviceMemory() const
+  {
+    return (allocator < AllocationMethodName::BUFFER_SHARED_SMALL_POW2_ALIGNED_PAGES) ||
+           (allocator == AllocationMethodName::USER_MEMORY_HEAP);
+  }
 
   uint8_t *mappedPtrOffset(uint32_t ofs) const { return mappedPointer + offset + ofs; }
 
@@ -88,6 +105,68 @@ struct ResourceMemory
     debug("vulkan: size %016llX offset %016llX original size %016llX", size, offset, originalSize);
     debug("vulkan: mapped address %p", mappedPointer);
   }
+
+  bool intersects(const ResourceMemory &obj) const
+  {
+    if (isDeviceMemory() ^ obj.isDeviceMemory())
+      return false;
+    if (handle != obj.handle)
+      return false;
+
+    VkDeviceSize le = offset + size;
+    VkDeviceSize re = obj.offset + obj.size;
+    return (offset < re) && (le > obj.offset);
+  }
+};
+
+// reduced struct for fast access in backend at alias sync tracking
+struct AliasedResourceMemory
+{
+  bool deviceMemory;
+  VulkanHandle handle;
+  VkDeviceSize offset;
+  VkDeviceSize size;
+
+  AliasedResourceMemory() //-V730
+  {}
+
+  AliasedResourceMemory(const ResourceMemory &src_mem)
+  {
+    handle = src_mem.handle;
+    offset = src_mem.offset;
+    size = src_mem.size;
+    deviceMemory = src_mem.isDeviceMemory();
+  }
+
+  bool intersects(const AliasedResourceMemory &obj) const
+  {
+    if (deviceMemory ^ obj.deviceMemory)
+      return false;
+    if (handle != obj.handle)
+      return false;
+
+    VkDeviceSize le = offset + size;
+    VkDeviceSize re = obj.offset + obj.size;
+    return (offset < re) && (le > obj.offset);
+  }
+};
+
+class AliasedMemoryStorage
+{
+  Tab<AliasedResourceMemory> data;
+
+public:
+  AliasedMemoryStorage() = default;
+  ~AliasedMemoryStorage() {}
+
+  void update(ResourceMemoryId id, const AliasedResourceMemory &content)
+  {
+    if (data.size() <= id)
+      data.resize(id + 1);
+    data[id] = content;
+  }
+  const AliasedResourceMemory &get(ResourceMemoryId id) const { return data[id]; }
+  void shutdown() { clear_and_shrink(data); }
 };
 
 class AbstractAllocator
@@ -318,7 +397,8 @@ class SuballocRingedAllocator final : public AbstractAllocator
   int64_t lastGoodAllocTime;
   uint32_t allocFailures;
 
-  static const int64_t failureTimeoutUsec = 60 * 1000;
+  // may stuck for quite a long time when app is under heavy load
+  static const int64_t failureTimeoutUsec = 60 * 1000 * 1000;
 #endif
 
 public:
@@ -378,13 +458,14 @@ class ResourceManager
 
   bool allowMixedPages;
   bool allowBufferSuballoc;
+  bool allowAligmentTailOverlap;
   AllocationMethodPriorityList getAllocationMethods(const AllocationDesc &desc);
 
   Tab<MethodsArray> perMemoryTypeMethods;
   Tab<ResourceMemory> resAllocationsPool;
   Tab<ResourceMemoryId> freeMemPool;
 
-  static const uint32_t hotMemPoolCount = FRAME_FRAME_BACKLOG_LENGTH;
+  static const uint32_t hotMemPoolCount = GPU_TIMELINE_HISTORY_SIZE;
   Tab<ResourceMemoryId> hotMemPools[hotMemPoolCount];
   uint32_t hotMemPushIdx;
   uint32_t hotMemClearIdx();
@@ -393,6 +474,7 @@ class ResourceManager
   ResourceMemoryId allocFromHotMem(const AllocationDesc &desc, const AllocationMethodPriorityList &prio);
   bool allocMemoryIter(const AllocationDesc &desc, const AllocationMethodPriorityList &list, ResourceMemory &mem,
     const DeviceMemoryTypeRange &mem_types);
+  ResourceMemoryId getUnusedMemoryId();
 
   std::atomic<uint32_t> outOfMemorySignal;
 
@@ -407,14 +489,11 @@ class ResourceManager
     ObjectPool<Buffer> buffer;
     ObjectPool<RenderPassResource> renderPass;
     ObjectPool<SamplerResource> sampler;
+    ObjectPool<MemoryHeapResource> heap;
 #if D3D_HAS_RAY_TRACING
     ObjectPool<RaytraceAccelerationStructure> as;
 #endif
   } resPools;
-
-  // extern guard
-  friend class SharedGuardedObjectAutoLock;
-  WinCritSec *sharedGuard;
 
 public:
   bool evictResourcesFor(ExecutionContext &ctx, VkDeviceSize desired_size, bool evict_used);
@@ -422,10 +501,13 @@ public:
 
   //////////
 
-  void init(WinCritSec *memory_lock, const PhysicalDeviceSet &dev_set);
+  void init(const PhysicalDeviceSet &dev_set);
   void shutdown();
 
-  ResourceMemoryId allocMemory(const AllocationDesc &desc);
+  ResourceMemoryId allocAliasedMemory(ResourceMemoryId src_memory_id, VkDeviceSize size, VkDeviceSize offset);
+  void freeAliasedMemory(ResourceMemoryId memory_id);
+
+  ResourceMemoryId allocMemory(AllocationDesc desc);
   void freeMemory(ResourceMemoryId memory_id);
   const ResourceMemory &getMemory(ResourceMemoryId memory_id);
   VulkanDeviceMemoryHandle getDeviceMemoryHandle(ResourceMemoryId memory_id);
@@ -462,6 +544,18 @@ public:
   void iterateAllocated(CbType cb)
   {
     resPool<ResType>().iterateAllocated(cb);
+  }
+
+  template <typename ResType, typename CbType>
+  void iterateAllocatedBreakable(CbType cb)
+  {
+    resPool<ResType>().iterateAllocatedBreakable(cb);
+  }
+
+  template <typename ResType>
+  size_t sizeAllocated()
+  {
+    return resPool<ResType>().size();
   }
 
   void onBackFrameEnd();

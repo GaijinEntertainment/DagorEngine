@@ -7,6 +7,10 @@
 #define MAX_NATIVE_CALLS 100
 #define MIN_STACK_OVERHEAD 15
 
+// keep 256 stack slots reserved for locals and function arguments,
+// and another 256 slots for stack operations from native code
+#define STACK_GROW_THRESHOLD (256 * 2)
+
 #define SQ_SUSPEND_FLAG -666
 #define SQ_TAILCALL_FLAG -777
 #define DONT_FALL_BACK 666 // Non-zero value
@@ -15,7 +19,7 @@
 #define GET_FLAG_RAW                0x00000001
 #define GET_FLAG_DO_NOT_RAISE_ERROR 0x00000002
 #define GET_FLAG_NO_DEF_DELEGATE    0x00000004
-#define GET_FLAG_DEF_DELEGATE_ONLY  0x00000008
+#define GET_FLAG_TYPE_METHODS_ONLY  0x00000008
 
 //base lib
 void sq_base_register(HSQUIRRELVM v);
@@ -24,6 +28,7 @@ struct SQExceptionTrap{
     SQExceptionTrap() {}
     SQExceptionTrap(SQInteger ss, SQInteger stackbase,SQInstruction *ip, SQInteger ex_target){ _stacksize = ss; _stackbase = stackbase; _ip = ip; _extarget = ex_target;}
     SQExceptionTrap(const SQExceptionTrap &et) { (*this) = et;  }
+    SQExceptionTrap &operator=(const SQExceptionTrap &et) = default;
     SQInteger _stackbase;
     SQInteger _stacksize;
     SQInstruction *_ip;
@@ -33,8 +38,6 @@ struct SQExceptionTrap{
 #define _SQ_INLINE
 
 typedef sqvector<SQExceptionTrap> ExceptionsTraps;
-
-typedef void (* SQOnCompileFileCb)(HSQUIRRELVM, const SQChar *);
 
 struct SQVM : public CHAINABLE_OBJ
 {
@@ -60,11 +63,15 @@ public:
     SQVM(SQSharedState *ss);
     ~SQVM();
     bool Init(SQVM *friendvm, SQInteger stacksize);
+
+    template <bool debughookPresent>
     bool Execute(SQObjectPtr &func, SQInteger nargs, SQInteger stackbase, SQObjectPtr &outres, SQBool invoke_err_handler, ExecutionType et = ET_CALL);
+
     //starts a native call return when the NATIVE closure returns
     bool CallNative(SQNativeClosure *nclosure, SQInteger nargs, SQInteger newbase, SQObjectPtr &retval, SQInt32 target, bool &suspend,bool &tailcall);
     bool TailCall(SQClosure *closure, SQInteger firstparam, SQInteger nparams);
     //starts a SQUIRREL call in the same "Execution loop"
+    template <bool debughookPresent>
     bool StartCall(SQClosure *closure, SQInteger target, SQInteger nargs, SQInteger stackbase, bool tailcall);
     bool CreateClassInstance(SQClass *theclass, SQObjectPtr &inst, SQObjectPtr &constructor);
     //call a generic closure pure SQUIRREL or NATIVE
@@ -72,7 +79,6 @@ public:
     SQRESULT Suspend();
 
     bool GetVarTrace(const SQObjectPtr &self, const SQObjectPtr &key, SQChar * buf, int buf_size);
-    SQInt32 GetMemoryAllocated() { return _memory_allocated; }
 
     void CallDebugHook(SQInteger type,SQInteger forcedline=0);
     void CallErrorHandler(SQObjectPtr &e);
@@ -105,12 +111,18 @@ public:
     bool TypeOf(const SQObjectPtr &obj1, SQObjectPtr &dest);
     bool CallMetaMethod(SQObjectPtr &closure, SQMetaMethod mm, SQInteger nparams, SQObjectPtr &outres);
     bool ArithMetaMethod(SQInteger op, const SQObjectPtr &o1, const SQObjectPtr &o2, SQObjectPtr &dest);
+    template <bool debughookPresent>
     bool Return(SQInteger _arg0, SQInteger _arg1, SQObjectPtr &retval);
     //new stuff
     _SQ_INLINE bool ARITH_OP(SQUnsignedInteger op,SQObjectPtr &trg,const SQObjectPtr &o1,const SQObjectPtr &o2);
     _SQ_INLINE bool BW_OP(SQUnsignedInteger op,SQObjectPtr &trg,const SQObjectPtr &o1,const SQObjectPtr &o2);
     _SQ_INLINE bool NEG_OP(SQObjectPtr &trg,const SQObjectPtr &o1);
     _SQ_INLINE bool CMP_OP(CmpOP op, const SQObjectPtr &o1,const SQObjectPtr &o2,SQObjectPtr &res);
+    _SQ_INLINE bool CMP_OP_RES(CmpOP op, const SQObjectPtr &o1,const SQObjectPtr &o2,int &res);
+    _SQ_INLINE bool CMP_OP_RESI(CmpOP op, const SQObjectPtr &o1,const SQInteger o2,int &res);
+    _SQ_INLINE bool CMP_OP_RESF(CmpOP op, const SQObjectPtr &o1,const SQFloat o2,int &res);
+    _SQ_INLINE bool ObjCmpI(const SQObjectPtr &o1, const SQInteger o2,SQInteger &res);
+    _SQ_INLINE bool ObjCmpF(const SQObjectPtr &o1, const SQFloat o2,SQInteger &res);
     bool CLOSURE_OP(SQObjectPtr &target, SQFunctionProto *func);
     bool CLASS_OP(SQObjectPtr &target,SQInteger base);
     //return true if the loop is finished
@@ -142,10 +154,6 @@ public:
     void Remove(SQInteger n);
 
     static bool IsFalse(const SQObjectPtr &o);
-    enum BooleanResult {BOOL_FALSE = 0, LEGACY_FALSE = 1, BOOL_TRUE = 2, LEGACY_TRUE = 3};
-    static BooleanResult ResolveBooleanResult(const SQObjectPtr &o);
-    static bool IsBooleanResultFalse(BooleanResult r){return r <= LEGACY_FALSE;}
-    static bool IsBooleanResultLegacy(BooleanResult r){return ((unsigned)r) & 1;}
 
     void Pop();
     void Pop(SQInteger n);
@@ -164,6 +172,14 @@ public:
     inline void ValidateThreadAccess() {}
     #endif
 
+    inline bool CanAccessFromThisThread() {
+        #if SQ_CHECK_THREAD >= SQ_CHECK_THREAD_LEVEL_FAST
+        if (_nnativecalls && _get_current_thread_id_func)
+            return _get_current_thread_id_func() == _current_thread;
+        #endif
+        return true;
+    }
+
     SQObjectPtrVec _stack;
 
     SQInteger _top;
@@ -178,6 +194,7 @@ public:
     SQObjectPtr _debughook_closure;
     SQInteger _current_thread;
     SQGETTHREAD _get_current_thread_id_func;
+    SQCOMPILELINEHOOK _compile_line_hook;
 
     SQObjectPtr temp_reg;
 
@@ -201,12 +218,7 @@ public:
     SQInteger _suspended_target;
     SQInteger _suspended_traps;
 
-    SQOnCompileFileCb _on_compile_file;
-
     int64_t check_thread_access = 0;
-
-private:
-    SQInt32 _memory_allocated;
 };
 
 struct AutoDec{

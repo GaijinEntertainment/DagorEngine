@@ -1,0 +1,17 @@
+let {get_arg_value_by_name, DBGLEVEL} = require("dagor.system")
+let is_win = DBGLEVEL>0 ? ["win32", "win64"].contains(get_arg_value_by_name("platform") ?? "stub") : false
+return is_win ? {
+  regKeyExists = function regKeyExists(_a, _b) { }
+  regValueExists = function regValueExists(_a, _b, _c) { }
+  getRegString =  @(_a, _b, _c, _d) ""
+  getRegInt = @(_a, _b, _c, _d) 0
+  deleteRegKey  = function(_a, _b) { }
+  deleteRegValue = function deleteRegValue(_a, _b, _c) { }
+  setRegString = @(_a, _b, _c, _d) null
+  setRegInt = @(_a, _b, _c, _d) null
+  HKEY_CLASSES_ROOT = 0
+  HKEY_CURRENT_CONFIG = 1
+  HKEY_CURRENT_USER = 2
+  HKEY_LOCAL_MACHINE = 3
+  HKEY_USERS = 4
+} : null

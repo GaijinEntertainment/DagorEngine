@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #if !_TARGET_PC_WIN
 #undef _DEBUG_TAB_
 #endif
@@ -6,7 +8,7 @@
 #include <gameRes/dag_grpMgr.h>
 #include <gameRes/dag_stdGameResId.h>
 #include <gameRes/dag_gameResHooks.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_lock.h>
 #include <3d/dag_texMgr.h>
 #include <3d/dag_texPackMgr2.h>
 #include <generic/dag_tab.h>
@@ -15,6 +17,7 @@
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_dbgStr.h>
 #include <osApiWrappers/dag_critSec.h>
+#include <osApiWrappers/dag_stackHlp.h>
 #include <osApiWrappers/dag_vromfs.h>
 #include <ioSys/dag_fileIo.h>
 #include <ioSys/dag_fastSeqRead.h>
@@ -33,9 +36,10 @@
 #include <stdio.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <ioSys/dag_dataBlock.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <startup/dag_globalSettings.h>
+#include <EASTL/vector_set.h>
 #include <EASTL/string.h>
 
 #include <debug/dag_log.h>
@@ -52,8 +56,8 @@ extern "C" __declspec(dllimport) unsigned long /*DWORD*/ __stdcall /*WINAPI*/ Ge
 #define TRACE_RES_MANAGEMENT 0
 
 #if TRACE_RES_MANAGEMENT
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_commands.h>
 #include <memory/dag_memStat.h>
 #define TRACE debug
 
@@ -62,7 +66,7 @@ static inline void TRACE(const char *, ...) {}
 
 #endif
 
-#define LOGLEVEL_DEBUG _MAKE4C('GRSS')
+#define debug(...) logmessage(_MAKE4C('GRSS'), __VA_ARGS__)
 
 // ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
 
@@ -338,7 +342,7 @@ static int gameResHandleToId(GameResHandle handle, unsigned class_id)
     if (!info || grMap[info->grMapIdx].id.classId != class_id)
       return -1;
   }
-  // debug_ctx("handle <%s> -> id=%d", (const char*)handle, id);
+  // DEBUG_CTX("handle <%s> -> id=%d", (const char*)handle, id);
   return id;
 }
 
@@ -394,7 +398,7 @@ static int addGameRes(unsigned class_id, int res_id, int pack_id)
 
 static void addGameResInfo(int res_id, unsigned class_id, int pack_id, int ref_base, int ref_num)
 {
-  // debug_ctx("add GR <%s> id=%d", resNameMap.getName(res_id), res_id);
+  // DEBUG_CTX("add GR <%s> id=%d", resNameMap.getName(res_id), res_id);
   int i = res_id < resId_to_grInfo.size() ? resId_to_grInfo[res_id] : -1;
   if (i < 0)
   {
@@ -453,20 +457,13 @@ void patch_res_pack_paths(const char *prefix_path)
 void gameresprivate::scanGameResPack(const char *filename)
 {
   using namespace gamerespackbin;
-  //  debug_ctx("  scanning pack %s", filename);
+  //  DEBUG_CTX("  scanning pack %s", filename);
 
   if (avail_res_files && avail_res_files->getNameId(filename) < 0)
   {
     logwarn("Skip missing GRP: %s", filename);
     return;
   }
-#if _TARGET_ANDROID | _TARGET_IOS | _TARGET_TVOS
-  if (!dd_file_exists(filename))
-  {
-    logwarn("Skip scanning missing GRP: %s", filename);
-    return;
-  }
-#endif
 
   String cache_fname(0, "%scache.bin", filename);
   VromReadHandle dump_data = ::vromfs_get_file_data(cache_fname);
@@ -576,7 +573,7 @@ void gameresprivate::scanGameResPack(const char *filename)
     }
     memfree(gdata, tmpmem);
   }
-  DAGOR_CATCH(IGenLoad::LoadException)
+  DAGOR_CATCH(const IGenLoad::LoadException &)
   {
     debug("Error reading GameResPack file %s", filename);
 #if DAGOR_DBGLEVEL <= 0
@@ -684,7 +681,7 @@ bool GameResPackInfo::processGrData()
     return false;
 
   fatal_context_push(fileName);
-  debug_ctx("processing data from GRP %s", (char *)fileName);
+  DEBUG_CTX("processing data from GRP %s", (char *)fileName);
   int this_packId = this - packInfo.data();
 
   const ResData *rd = grData->resData.data(), *rd_end = rd + grData->resData.size();
@@ -742,7 +739,7 @@ bool GameResPackInfo::processGrData()
     }
   }
 
-  debug_ctx("processed data from GRP %s", (char *)fileName);
+  DEBUG_CTX("processed data from GRP %s", (char *)fileName);
   fatal_context_pop();
 
   return true;
@@ -800,12 +797,11 @@ void GameResPackInfo::loadPack()
     DAG_FATAL("Can't open GameResPack file '%s', error %d(%s), cwd '%s'", fileName.str(), errn, errs, cwd);
     return;
   }
-  debug_ctx("loading GRP %s", (char *)fileName);
+  DEBUG_CTX("loading GRP %s", (char *)fileName);
   int file_sz = vrom_data.data() ? data_size(vrom_data) : seq_cb.getSize();
 
 #if TRACE_RES_MANAGEMENT
   size_t sys_mem = dagor_memory_stat::get_memory_allocated();
-  size_t gpu_mem = d3d::driver_command(DRV3D_COMMAND_GETTEXTUREMEM, 0, 0, 0);
 #endif
   static constexpr int RANGES_BUF_SZ = 64;
   FastSeqReader::Range rangesBuf[RANGES_BUF_SZ];
@@ -947,20 +943,19 @@ void GameResPackInfo::loadPack()
       }
     }
 
-    // debug_ctx("loaded real-res from GRP %s", (char*)fileName);
+    // DEBUG_CTX("loaded real-res from GRP %s", (char*)fileName);
   end_load:;
   }
-  DAGOR_CATCH(IGenLoad::LoadException) { debug("Error reading GameResPack file %s", fileName.str()); }
+  DAGOR_CATCH(const IGenLoad::LoadException &) { debug("Error reading GameResPack file %s", fileName.str()); }
   if (!vrom_data.data())
     seq_cb.close();
 
-  // debug_ctx("loaded GRP %s", (char*)fileName);
+  // DEBUG_CTX("loaded GRP %s", (char*)fileName);
 
   int t0 = profile_time_usec(reft);
 #if TRACE_RES_MANAGEMENT
-  TRACE("+++ loaded GRP %s, %d usec, %6.2f Mb/s, used sysmem: %zuK, dxmem: %dK\n", fileName.str(), t0,
-    double(cb.getSize()) / (t0 ? t0 : 1), (dagor_memory_stat::get_memory_allocated() - sys_mem) >> 10,
-    (gpu_mem - d3d::driver_command(DRV3D_COMMAND_GETTEXTUREMEM, 0, 0, 0)) >> 10);
+  TRACE("+++ loaded GRP %s, %d usec, %6.2f Mb/s, used sysmem: %zuK\n", fileName.str(), t0, double(cb.getSize()) / (t0 ? t0 : 1),
+    (dagor_memory_stat::get_memory_allocated() - sys_mem) >> 10);
 #else
   if (vrom_data.data())
     debug("loaded GRP %s (from VROMFS), %d usec (%dK in %d res), %6.2f Mb/s", fileName.str(), t0, data_size >> 10, res_cnt,
@@ -1053,7 +1048,7 @@ GameResource *get_game_resource(int res_id)
 {
   if (res_id == NULL_GAMERES_ID)
     return NULL;
-  // debug_ctx("get game-res %d", res_id);
+  // DEBUG_CTX("get game-res %d", res_id);
   if (gamereshooks::on_get_game_resource)
   {
     GameResource *gr = NULL;
@@ -1116,7 +1111,7 @@ void load_game_resource_pack(int res_id)
   LoadResPackEntryCnt entry_count_check;
   G_ASSERTF_RETURN(entry_count_check.entryCount() < 64, , "%s: reentry=%d RRL.size=%d", __FUNCTION__, entry_count_check.entryCount(),
     resRestrictionList.size());
-  // debug_ctx("load pack for game-res %d", res_id);
+  // DEBUG_CTX("load pack for game-res %d", res_id);
   if (gamereshooks::on_load_game_resource_pack && gamereshooks::on_load_game_resource_pack(res_id, make_span(factories)))
     return;
 
@@ -1357,7 +1352,6 @@ static bool free_unused_game_resources(bool forced, bool once = false)
 #if TRACE_RES_MANAGEMENT
   bool was_released = false;
   size_t sys_mem = dagor_memory_stat::get_memory_allocated();
-  size_t gpu_mem = d3d::driver_command(DRV3D_COMMAND_GETTEXTUREMEM, 0, 0, 0);
 #endif
 
   // check first whether unloadable packs present
@@ -1394,8 +1388,7 @@ static bool free_unused_game_resources(bool forced, bool once = false)
 
 #if TRACE_RES_MANAGEMENT
   if (was_released)
-    TRACE("free_unused_game_resources, freed sysmem: %zuK, dxmem: %uzK\n", (sys_mem - dagor_memory_stat::get_memory_allocated()) >> 10,
-      (d3d::driver_command(DRV3D_COMMAND_GETTEXTUREMEM, 0, 0, 0) - gpu_mem) >> 10);
+    TRACE("free_unused_game_resources, freed sysmem: %zuK\n", (sys_mem - dagor_memory_stat::get_memory_allocated()) >> 10);
   else
     TRACE("free_unused_game_resources, void run\n");
 #endif
@@ -1496,6 +1489,26 @@ GameResource *get_one_game_resource_ex(GameResHandle handle, unsigned type_id)
   if (res_id < 0)
     return NULL;
 
+#if _TARGET_STATIC_LIB
+  // FIXME: assume that non zero hooks are stub ones which isn't handling `is_game_resource_loaded` correctly
+  if (is_main_thread() && !gamereshooks::on_get_game_resource)
+  {
+    int ll = LOGLEVEL_WARN;
+#if DAGOR_DBGLEVEL > 0
+    static eastl::vector_set<uint64_t> hashesReported;
+    stackhelp::CallStackCaptureStore<48> callstack;
+    callstack.capture(/*skip*/ 1);
+    if (hashesReported.insert(wyhash(callstack.store, sizeof(callstack.store[0]) * callstack.storeSize, 37)).second)
+      ll = LOGLEVEL_ERR;
+#elif _TARGET_PC
+    // Note: assume dedicated & ingame editor here
+#else
+    ll = LOGLEVEL_ERR;
+#endif
+    logmessage(ll, "Attempt to load game resource '%s' of type %#x in main thread", (const char *)handle, type_id);
+  }
+#endif
+
   lock.unlockFinal();
 
   WinAutoLock lock_load(gameres_load_cs);
@@ -1516,17 +1529,17 @@ GameResource *get_one_game_resource_ex(GameResHandle handle, unsigned type_id)
 
 bool is_game_resource_loaded_nolock(GameResHandle handle, unsigned type_id)
 {
-  int res_id = ::gameResHandleToId(handle, type_id);
-  GameResInfo *info = getGameResInfo(res_id);
-  if (!info)
-    return false;
+  const int res_id = ::gameResHandleToId(handle, type_id);
+  const int class_id = get_game_res_class_id(res_id);
   if (type_id != NULL_GAMERES_CLASS_ID)
   {
-    if (grMap[info->grMapIdx].id.classId != type_id)
+    if (class_id != type_id)
       return false;
     GameResourceFactory *fac = ::getFactoryByClassId(type_id);
     return fac && fac->isResLoaded(res_id);
   }
+  if (class_id == 0) // no resource was found
+    return false;
   for (GameResourceFactory *fac : factories)
     if (fac->isResLoaded(res_id))
       return true;
@@ -1584,7 +1597,7 @@ void scan_for_game_resources(const char *path, bool scan_subdirs, bool scan_dxp,
   };
 
 
-  //  debug_ctx("scanning for GRP in %s", path);
+  //  DEBUG_CTX("scanning for GRP in %s", path);
   gameresprivate::curRelFnOfs = i_strlen(path);
   gameresprivate::gameResPatchInProgress = allow_override;
 
@@ -1717,7 +1730,7 @@ int get_game_resource_pack_id_by_name(const char *fname)
   for (int i = 0; i < packInfo.size(); ++i)
     if (dd_stricmp(dd_get_fname(packInfo[i].fileName), fname) == 0)
       return i;
-  debug_ctx("GRP not found: <%s>", fname);
+  DEBUG_CTX("GRP not found: <%s>", fname);
   return -1;
 }
 const char *get_game_resource_pack_fname(int res_pack_id)
@@ -1982,18 +1995,40 @@ static void add_rendinst_implicit_ref(int res_id, Bitarray &restr_list, FastIntL
   }
 }
 
-static Bitarray restr_list_temp;
-static FastIntList req_list_temp;
+// receives list of ids, loads resources and fills list with pointers
+static bool load_resource_list_impl(dag::Span<GameResource *> in_out_list)
+{
+  bool ok = true;
+  for (int i = 0; i < in_out_list.size(); i++)
+  {
+    const int id = int(intptr_t(in_out_list[i]));
+    in_out_list[i] = get_game_resource(id);
+    if (!in_out_list[i])
+    {
+      ok = false;
+      LOGWARN_CTX("cannot preload res: <%s>", resNameMap.getName(id));
+    }
+  }
+  return ok;
+}
 
 template <typename GetListElement>
-inline bool set_required_res_list_restriction(GetListElement list, int count, ReqResListOpt opt)
+inline bool set_required_res_list_restriction(GetListElement list, int count, ReqResListOpt opt,
+  dag::Span<GameResource *> out_resource_list)
 {
   bool ret = true;
   WinAutoLock lock(gameres_cs);
 
-  restr_list_temp.resize(resNameMap.nameCount());
-  restr_list_temp.reset();
-  req_list_temp.reset();
+  Bitarray restrictionListTemp;
+  FastIntList requiredListTemp;
+  restrictionListTemp.resize(int(resNameMap.nameCount()));
+  restrictionListTemp.reset();
+  requiredListTemp.reset();
+  requiredListTemp.reserve(int(resNameMap.nameCount()));
+
+  G_ASSERT_AND_DO(out_resource_list.empty() || int(out_resource_list.size()) == count, { out_resource_list = {}; });
+  if (!out_resource_list.empty())
+    mem_set_ff(out_resource_list); // fill with -1
 
   for (int i = 0; i < count; i++)
   {
@@ -2004,32 +2039,44 @@ inline bool set_required_res_list_restriction(GetListElement list, int count, Re
     if (res_id < 0)
     {
       if (loggingMissingResources)
-        logwarn_ctx("missing req res <%s>", name);
+        LOGWARN_CTX("missing req res <%s>", name);
       ret = false;
     }
     else
     {
-      if (res_id < restr_list_temp.size())
-        restr_list_temp.set(res_id);
-      if (!addReqResListReferences(res_id, restr_list_temp, req_list_temp))
+      if (res_id < restrictionListTemp.size())
+        restrictionListTemp.set(res_id);
+      if (!addReqResListReferences(res_id, restrictionListTemp, requiredListTemp))
       {
-        if (res_id < restr_list_temp.size())
-          restr_list_temp.reset(res_id);
+        if (res_id < restrictionListTemp.size())
+          restrictionListTemp.reset(res_id);
         if (loggingMissingResources)
-          logwarn_ctx("one or more missing refs for req res <%s>", name);
+          LOGWARN_CTX("one or more missing refs for req res <%s>", name);
         ret = false;
       }
       else
-        req_list_temp.addInt(res_id);
+      {
+        requiredListTemp.addInt(res_id);
+        // use output span as pointers to write required ids in order and load them later, see load_resource_list_impl
+        if (!out_resource_list.empty())
+          out_resource_list[i] = reinterpret_cast<GameResource *>(intptr_t(res_id));
+      }
     }
   }
   lock.unlock();
 
   WinAutoLock lock_load(gameres_load_cs);
   lock.lock();
-  resRestrictionList = restr_list_temp;
-  requiredResList = req_list_temp;
-  if (opt == RRL_setAndPreload || opt == RRL_setAndPreloadAndReset)
+  eastl::swap(resRestrictionList, restrictionListTemp);
+  eastl::swap(requiredResList, requiredListTemp);
+
+  if (!out_resource_list.empty())
+  {
+    load_resource_list_impl(out_resource_list);
+    eastl::swap(resRestrictionList, restrictionListTemp);
+    eastl::swap(requiredResList, requiredListTemp);
+  }
+  else if (opt == RRL_setAndPreload || opt == RRL_setAndPreloadAndReset)
   {
     preload_all_required_res();
     if (opt == RRL_setAndPreloadAndReset)
@@ -2040,7 +2087,7 @@ inline bool set_required_res_list_restriction(GetListElement list, int count, Re
 
 bool set_required_res_list_restriction(const FastNameMap &list, ReqResListOpt opt)
 {
-  return set_required_res_list_restriction([&list](int i) { return list.getName(i); }, list.nameCount(), opt);
+  return set_required_res_list_restriction([&list](int i) { return list.getName(i); }, list.nameCount(), opt, {});
 }
 
 bool set_required_res_list_restriction(const eastl::string *begin, const eastl::string *end, ReqResListOpt opt, size_t str_stride)
@@ -2050,7 +2097,25 @@ bool set_required_res_list_restriction(const eastl::string *begin, const eastl::
   size_t sz = (ptrdiff_t(end) - ptrdiff_t(begin)) / str_stride;
   return set_required_res_list_restriction(
     [begin, str_stride](int i) { return reinterpret_cast<const eastl::string *>((char *)begin + (str_stride * i))->c_str(); }, (int)sz,
-    opt);
+    opt, {});
+}
+
+bool load_game_resource_list(const FastNameMap &list, dag::Span<GameResource *> out_resources)
+{
+  return set_required_res_list_restriction([&list](int i) { return list.getStringDataUnsafe(i); }, list.nameCount(),
+    RRL_setAndPreloadAndReset, out_resources);
+}
+
+bool load_game_resource_list(const eastl::basic_string<char, eastl::allocator> *begin,
+  const eastl::basic_string<char, eastl::allocator> *end, size_t str_stride, dag::Span<GameResource *> out_resources)
+{
+  if (str_stride == 0)
+    str_stride = sizeof(eastl::string);
+  const size_t sz = (ptrdiff_t(end) - ptrdiff_t(begin)) / str_stride;
+  const char *data = reinterpret_cast<const char *>(begin);
+  return set_required_res_list_restriction(
+    [data, str_stride](int i) { return reinterpret_cast<const eastl::string *>(data + (str_stride * i))->c_str(); }, int(sz),
+    RRL_setAndPreloadAndReset, out_resources);
 }
 
 void reset_required_res_list_restriction()
@@ -2063,23 +2128,18 @@ void reset_required_res_list_restriction()
 bool preload_all_required_res()
 {
   WinAutoLock lock_load(gameres_load_cs);
-  Tab<int> l;
-  l = requiredResList.getList();
-
   bool ok = true;
-
-  for (int i = 0; i < l.size(); i++)
+  for (const int id : requiredResList.getList())
   {
-    GameResource *r = get_game_resource(l[i]);
+    GameResource *r = get_game_resource(id);
     if (r)
       release_game_resource(r);
     else
     {
       ok = false;
-      logwarn_ctx("cannot preload res: <%s>", resNameMap.getName(l[i]));
+      LOGWARN_CTX("cannot preload res: <%s>", resNameMap.getName(id));
     }
   }
-
   return ok;
 }
 

@@ -13,11 +13,16 @@ AddIncludes =
 Sources =
   ec_genappwnd.cpp
   ec_genapp_ehfilter.cpp
+  ec_viewportAxis.cpp
   ec_viewportwindow.cpp
   ec_ViewportWindowStatSettingsDialog.cpp
   ec_camera_elem.cpp
   ec_camera_dlg.cpp
   ec_geneditordata.cpp
+  ec_imguiInitialization.cpp
+  ec_mainWindow.cpp
+  ec_outliner.cpp
+  ec_outlinerModel.cpp
   ec_workspace.cpp
   ec_startDlg.cpp
   ec_gridobject.cpp

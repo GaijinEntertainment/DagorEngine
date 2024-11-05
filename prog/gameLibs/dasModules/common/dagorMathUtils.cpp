@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/aotDagorMathUtils.h>
 
 namespace bind_dascript
@@ -30,6 +32,8 @@ public:
       "::basis_aware_dir_to_angles");
     das::addExtern<DAS_BIND_FUN(basis_aware_angles_to_dir)>(*this, lib, "basis_aware_angles_to_dir", das::SideEffects::none,
       "::basis_aware_angles_to_dir");
+    das::addExtern<DAS_BIND_FUN(basis_aware_clamp_angles_by_dir)>(*this, lib, "basis_aware_clamp_angles_by_dir",
+      das::SideEffects::none, "::basis_aware_clamp_angles_by_dir");
     das::addExtern<DAS_BIND_FUN(basis_aware_xVz)>(*this, lib, "basis_aware_xVz", das::SideEffects::none, "::basis_aware_xVz");
     das::addExtern<DAS_BIND_FUN(basis_aware_x0z)>(*this, lib, "basis_aware_x0z", das::SideEffects::none, "::basis_aware_x0z");
     das::addExtern<DAS_BIND_FUN(relative_2d_dir_to_absolute_3d_dir)>(*this, lib, "relative_2d_dir_to_absolute_3d_dir",

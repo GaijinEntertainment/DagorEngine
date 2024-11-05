@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "splashScreen.h"
 #include <oldEditor/de_interface.h>
 #include <startup/dag_globalSettings.h>

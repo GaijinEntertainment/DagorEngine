@@ -1,0 +1,10 @@
+
+return {
+  addLocalNotification = function(_timesec,_,_title,_text,_data,_channel) { return false }
+  cancelLocalNotification = function(_id) { return false }
+  clearAndCancelAllLocalNotifications = function() { }
+  clearReceivedLocalNotifications = function() { }
+  getNotificationsCount = function() { return 0}
+  isNotificationsEnabled = function() { return false}
+  requestNotificationsAccess = function() { }
+}

@@ -59,7 +59,7 @@ public:
     SQInteger Next(const SQObjectPtr &refpos, SQObjectPtr &outkey, SQObjectPtr &outval);
     void Release();
     SQSharedState *_sharedstate;
-    SQString *_link; //chain for the string table
+    SQString *_next; //chain for the string table
     SQInteger _len;
     SQHash _hash;
     SQChar _val[1];

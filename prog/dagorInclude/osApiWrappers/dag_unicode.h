@@ -1,14 +1,13 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <util/dag_stdint.h>
 #include <generic/dag_tabFwd.h>
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 KRNLIMP wchar_t *utf8_to_wcs(const char *utf8_str, wchar_t *wcs_buf, int wcs_buf_len);
 KRNLIMP int utf8_to_wcs_ex(const char *utf8_str, int utf8_len, wchar_t *wcs_buf, int wcs_buf_len);
@@ -40,4 +39,4 @@ KRNLIMP char *acp_to_utf8(char *in_str, Tab<char> &out_str, int dir = 1);
 
 KRNLIMP int utf8_to_utf16(const char *src, int src_len, uint16_t *dst, int dst_len);
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

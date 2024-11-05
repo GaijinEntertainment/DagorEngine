@@ -45,15 +45,11 @@ UseProgLibs +=
   3rdPartyLibs/eastl
 ;
 
-CPPopt = -D__B_CORE ;
-
 if $(PlatformSpec) = clang {
   CPPopt += -Wno-undefined-bool-conversion ;
 }
 
-if $(Platform) = macosx && $(MacOSXArch) != x86_64 {
-} else if $(Platform) in iOS tvOS android nswitch win32 {
-} else if $(PlatformSpec) in clang clang64 gcc {
+if $(PlatformSpec) in clang gcc && $(PlatformArch) in x86 x86_64 {
   for s in $(Sources) {
     switch $(s) {
       case *_avx512.c* : opt on $(s) = -mavx -mavx2 -mavx512f ;
@@ -62,7 +58,7 @@ if $(Platform) = macosx && $(MacOSXArch) != x86_64 {
       case *_sse.c*    : opt on $(s) = -msse -msse2 -msse3 ;
     }
   }
-} else if $(PlatformSpec) in vc15 vc16 vc17 {
+} else if $(PlatformSpec) in vc15 vc16 vc17 && $(PlatformArch) in x86_64 {
   for s in $(Sources) {
     switch $(s) {
       case *_avx512.c* : opt on $(s) = /arch:AVX512 ;

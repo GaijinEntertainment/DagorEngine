@@ -295,6 +295,20 @@ inline std::string convert_to_string(double t, char locale_radix_point)
 	return buf;
 }
 
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+
+class FloatFormatter
+{
+public:
+	virtual ~FloatFormatter() = default;
+	virtual std::string format_float(float value) = 0;
+	virtual std::string format_double(double value) = 0;
+};
+
 template <typename T>
 struct ValueSaver
 {
@@ -317,12 +331,6 @@ struct ValueSaver
 	T &current;
 	T saved;
 };
-
-#if defined(__clang__) || defined(__GNUC__)
-#pragma GCC diagnostic pop
-#elif defined(_MSC_VER)
-#pragma warning(pop)
-#endif
 
 struct Instruction
 {
@@ -540,6 +548,9 @@ struct SPIRType : IVariant
 		type = TypeType
 	};
 
+	spv::Op op = spv::Op::OpNop;
+	explicit SPIRType(spv::Op op_) : op(op_) {}
+
 	enum BaseType
 	{
 		Unknown,
@@ -610,7 +621,7 @@ struct SPIRType : IVariant
 		uint32_t sampled;
 		spv::ImageFormat format;
 		spv::AccessQualifier access;
-	} image;
+	} image = {};
 
 	// Structs can be declared multiple times if they are used as part of interface blocks.
 	// We want to detect this so that we only emit the struct definition once.
@@ -643,7 +654,9 @@ struct SPIRExtension : IVariant
 		SPV_AMD_shader_explicit_vertex_parameter,
 		SPV_AMD_shader_trinary_minmax,
 		SPV_AMD_gcn_shader,
-		NonSemanticDebugPrintf
+		NonSemanticDebugPrintf,
+		NonSemanticShaderDebugInfo,
+		NonSemanticGeneric
 	};
 
 	explicit SPIRExtension(Extension ext_)
@@ -682,6 +695,7 @@ struct SPIREntryPoint
 	} workgroup_size;
 	uint32_t invocations = 0;
 	uint32_t output_vertices = 0;
+	uint32_t output_primitives = 0;
 	spv::ExecutionModel model = spv::ExecutionModelMax;
 	bool geometry_passthrough = false;
 };
@@ -725,6 +739,9 @@ struct SPIRExpression : IVariant
 
 	// Whether or not this is an access chain expression.
 	bool access_chain = false;
+
+	// Whether or not gl_MeshVerticesEXT[].gl_Position (as a whole or .y) is referenced
+	bool access_meshlet_position_y = false;
 
 	// A list of expressions which this expression depends on.
 	SmallVector<ID> expression_dependencies;
@@ -776,7 +793,8 @@ struct SPIRBlock : IVariant
 		Unreachable, // Noop
 		Kill, // Discard
 		IgnoreIntersection, // Ray Tracing
-		TerminateRay // Ray Tracing
+		TerminateRay, // Ray Tracing
+		EmitMeshTasks // Mesh shaders
 	};
 
 	enum Merge
@@ -837,6 +855,13 @@ struct SPIRBlock : IVariant
 	BlockID true_block = 0;
 	BlockID false_block = 0;
 	BlockID default_block = 0;
+
+	// If terminator is EmitMeshTasksEXT.
+	struct
+	{
+		ID groups[3];
+		ID payload;
+	} mesh = {};
 
 	SmallVector<Instruction> ops;
 
@@ -1569,6 +1594,7 @@ struct AccessChainMeta
 	bool storage_is_invariant = false;
 	bool flattened_struct = false;
 	bool relaxed_precision = false;
+	bool access_meshlet_position_y = false;
 };
 
 enum ExtendedDecorations
@@ -1636,6 +1662,12 @@ enum ExtendedDecorations
 	// results of interpolation can.
 	SPIRVCrossDecorationInterpolantComponentExpr,
 
+	// Apply to any struct type that is used in the Workgroup storage class.
+	// This causes matrices in MSL prior to Metal 3.0 to be emitted using a special
+	// class that is convertible to the standard matrix type, to work around the
+	// lack of constructors in the 'threadgroup' address space.
+	SPIRVCrossDecorationWorkgroupStruct,
+
 	SPIRVCrossDecorationCount
 };
 
@@ -1646,6 +1678,7 @@ struct Meta
 		std::string alias;
 		std::string qualified_alias;
 		std::string hlsl_semantic;
+		std::string user_type;
 		Bitset decoration_flags;
 		spv::BuiltIn builtin_type = spv::BuiltInMax;
 		uint32_t location = 0;
@@ -1774,6 +1807,33 @@ static inline bool opcode_is_sign_invariant(spv::Op opcode)
 	case spv::OpBitwiseOr:
 	case spv::OpBitwiseXor:
 	case spv::OpBitwiseAnd:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+static inline bool opcode_can_promote_integer_implicitly(spv::Op opcode)
+{
+	switch (opcode)
+	{
+	case spv::OpSNegate:
+	case spv::OpNot:
+	case spv::OpBitwiseAnd:
+	case spv::OpBitwiseOr:
+	case spv::OpBitwiseXor:
+	case spv::OpShiftLeftLogical:
+	case spv::OpShiftRightLogical:
+	case spv::OpShiftRightArithmetic:
+	case spv::OpIAdd:
+	case spv::OpISub:
+	case spv::OpIMul:
+	case spv::OpSDiv:
+	case spv::OpUDiv:
+	case spv::OpSRem:
+	case spv::OpUMod:
+	case spv::OpSMod:
 		return true;
 
 	default:

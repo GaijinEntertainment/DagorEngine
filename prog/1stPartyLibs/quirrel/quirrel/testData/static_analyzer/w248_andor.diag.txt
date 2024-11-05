@@ -9,7 +9,7 @@ testData/static_analyzer/w248_andor.nut:4:28
 WARNING: w228 (declared-never-used) let 'riIsEmptyGroup' was declared but never used.
 testData/static_analyzer/w248_andor.nut:1:0
 
-let function riIsEmptyGroup(x) {
+function riIsEmptyGroup(x) {
 ^--
     let list = x?.list
 

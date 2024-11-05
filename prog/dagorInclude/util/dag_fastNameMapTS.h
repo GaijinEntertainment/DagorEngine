@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -10,22 +9,25 @@
 #include <osApiWrappers/dag_atomic.h>
 
 // thread safe FastNameMap (with read-write lock)
-template <bool case_insensitive = false>
+template <bool case_insensitive = false, typename RWLockMutexClass = OSReadWriteLock>
 struct FastNameMapTS : protected OAHashNameMap<case_insensitive>
 {
 protected:
   uint32_t namesCount = 0;
   typedef OAHashNameMap<case_insensitive> BaseNameMap;
-  mutable OSReadWriteLock lock; // Note: non reentrant
+  mutable RWLockMutexClass lock; // Note: non reentrant
 
 public:
-  int getNameId(const char *name, size_t name_len) const
+  int getNameId(const char *name, size_t name_len, typename BaseNameMap::hash_t hash) const
   {
-    const typename BaseNameMap::hash_t hash = BaseNameMap::string_hash(name, name_len); // calc hash outside lock
     lockRd();
     int id = BaseNameMap::getNameId(name, name_len, hash);
     unlockRd();
     return id;
+  }
+  int getNameId(const char *name, size_t name_len) const
+  {
+    return getNameId(name, name_len, BaseNameMap::string_hash(name, name_len));
   }
   int getNameId(const char *name) const { return getNameId(name, strlen(name)); }
   int addNameId(const char *name, size_t name_len, typename BaseNameMap::hash_t hash) // optimized version. addNameId doesn't call for
@@ -52,7 +54,7 @@ public:
     {
       lockWr();
       if (foundCollision)
-        BaseNameMap::noCollisions() = 0;
+        BaseNameMap::hasCollisions() = 1;
       uint32_t id = BaseNameMap::addString(name, name_len);
       BaseNameMap::hashToStringId.emplace(hash, eastl::move(id));
       interlocked_increment(namesCount);
@@ -92,7 +94,7 @@ public:
     {
       lockWr();
       if (foundCollision)
-        BaseNameMap::noCollisions() = 0;
+        BaseNameMap::hasCollisions() = 1;
       uint32_t id = BaseNameMap::addString(name, name_len);
       BaseNameMap::hashToStringId.emplace(hash, eastl::move(id));
       name = BaseNameMap::getName(id);
@@ -149,8 +151,8 @@ public:
   }
 
 private:
-  void lockRd() const { lock.lockRead(); }
-  void unlockRd() const { lock.unlockRead(); }
-  void lockWr() const { lock.lockWrite(); }
-  void unlockWr() const { lock.unlockWrite(); }
+  void lockRd() const DAG_TS_ACQUIRE_SHARED(lock) { lock.lockRead(); }
+  void unlockRd() const DAG_TS_RELEASE_SHARED(lock) { lock.unlockRead(); }
+  void lockWr() const DAG_TS_ACQUIRE(lock) { lock.lockWrite(); }
+  void unlockWr() const DAG_TS_RELEASE(lock) { lock.unlockWrite(); }
 };

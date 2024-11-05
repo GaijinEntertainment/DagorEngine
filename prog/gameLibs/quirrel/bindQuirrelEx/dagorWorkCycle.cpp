@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <sqModules/sqModules.h>
 #include <util/dag_delayedAction.h>
@@ -8,6 +10,7 @@
 
 #include <sqrat.h>
 #include <EASTL/vector_map.h>
+#include <EASTL/string.h>
 #include <EASTL/vector_multimap.h>
 #include <generic/dag_relocatableFixedVector.h>
 
@@ -16,11 +19,7 @@ namespace bindquirrel
 {
 
 
-static bool are_sq_obj_equal(HSQUIRRELVM vm, const HSQOBJECT &a, const HSQOBJECT &b)
-{
-  SQInteger res = 0;
-  return sq_direct_cmp(vm, &a, &b, &res) && (res == 0);
-}
+static bool are_sq_obj_equal(HSQUIRRELVM vm, const HSQOBJECT &a, const HSQOBJECT &b) { return sq_direct_is_equal(vm, &a, &b); }
 
 
 // Note using framemem allocator may for unknown reason lead to crash
@@ -49,9 +48,9 @@ struct Timer
     handler = handler_;
   }
 
-  bool isLooped() { return period > 0; }
+  bool isLooped() const { return period > 0; }
 
-  bool isFinished() { return !isLooped() && (timeout <= 0.0f); }
+  bool isFinished() const { return !isLooped() && (timeout <= 0.0f); }
 
   void update(float dt, TimerCallbackQueue &cb_queue)
   {
@@ -71,6 +70,22 @@ struct Timer
 
 struct VmData
 {
+  VmData() = default;
+  VmData(const VmData &) = default;
+  VmData &operator=(const VmData &) = default;
+  VmData(VmData &&) = default;
+  VmData &operator=(VmData &&) = default;
+
+  ~VmData()
+  {
+    if (!name.empty()) // name is empty for the move operation source
+    {
+      debug("workcycle VmData::dtor(%p), name = '%s', %d deferred calls, %d timers", this, name.c_str(), int(deferredCalls.size()),
+        int(timers.size()));
+    }
+  }
+
+  eastl::string name;
   bool autoUpdateFromIdleCycle = false;
 
   eastl::vector<Sqrat::Function> deferredCalls;
@@ -91,50 +106,23 @@ static void register_perform_cycle_actions_once()
   }
 }
 
-using TaggedFunc = eastl::pair<eastl::string, Sqrat::Function>;
-
-static eastl::vector_multimap<HSQUIRRELVM, TaggedFunc> cycle_actions;
-
-static void remove_cycle_action(const char *tag, HSQUIRRELVM vm)
-{
-  auto vmActions = cycle_actions.equal_range(vm);
-  for (auto it = vmActions.first; it != vmActions.second; ++it)
-  {
-    if (it->second.first == tag)
-    {
-      cycle_actions.erase(it);
-      break;
-    }
-  }
-}
-
-static void add_cycle_action(const char *tag, Sqrat::Function func)
-{
-  static bool deprecation_warning_shown = false;
-  if (!deprecation_warning_shown)
-  {
-    logwarn("SQ: dagor.workcycle: add_cycle_action() will not work correctly with multiple VMs in different threads");
-    deprecation_warning_shown = true;
-  }
-
-  register_perform_cycle_actions_once();
-
-  remove_cycle_action(tag, func.GetVM());
-  cycle_actions.insert(eastl::make_pair(func.GetVM(), eastl::make_pair(tag, func)));
-}
-
 
 static SQInteger defer(HSQUIRRELVM vm)
 {
   SQInteger nparams = 0, nfreevars = 0;
   if (SQ_FAILED(sq_getclosureinfo(vm, 2, &nparams, &nfreevars)))
-    return sq_throwerror(vm, "Internal error");
+    return SQ_ERROR;
+
   if (nparams > 1)
     return sq_throwerror(vm, "Deferred function must not require arguments");
 
   register_perform_cycle_actions_once();
 
-  VmData &v = vms[vm];
+  auto it = vms.find(vm);
+  if (it == vms.end())
+    return sq_throwerror(vm, "VM is not registered");
+
+  VmData &v = it->second;
 
   Sqrat::Var<Sqrat::Object> func(vm, 2);
 
@@ -148,13 +136,18 @@ static SQInteger deferOnce(HSQUIRRELVM vm)
 {
   SQInteger nparams = 0, nfreevars = 0;
   if (SQ_FAILED(sq_getclosureinfo(vm, 2, &nparams, &nfreevars)))
-    return sq_throwerror(vm, "Internal error");
+    return SQ_ERROR;
+
   if (nparams > 1)
     return sq_throwerror(vm, "Deferred function must not require arguments");
 
   register_perform_cycle_actions_once();
 
-  VmData &v = vms[vm];
+  auto it = vms.find(vm);
+  if (it == vms.end())
+    return sq_throwerror(vm, "VM is not registered");
+
+  VmData &v = it->second;
 
   Sqrat::Var<Sqrat::Object> func(vm, 2);
 
@@ -173,7 +166,11 @@ static SQInteger set_timer(HSQUIRRELVM vm, bool periodic, bool reuse)
 {
   register_perform_cycle_actions_once();
 
-  VmData &v = vms[vm];
+  auto it = vms.find(vm);
+  if (it == vms.end())
+    return sq_throwerror(vm, "VM is not registered");
+
+  VmData &v = it->second;
 
   float dt;
   sq_getfloat(vm, 2, &dt);
@@ -301,20 +298,17 @@ static void perform_cycle_actions(void *)
 {
   TIME_PROFILE(sq_cycle_actions);
 
-  for (auto &actElem : cycle_actions)
-    actElem.second.second.Execute();
-
   for (auto it = vms.begin(); it != vms.end(); ++it)
     if (it->second.autoUpdateFromIdleCycle)
       vm_update(it->second);
 }
 
-void bind_dagor_workcycle(SqModules *module_mgr, bool auto_update_from_idle_cycle)
+
+void bind_dagor_workcycle(SqModules *module_mgr, bool auto_update_from_idle_cycle, const char *vm_name)
 {
   HSQUIRRELVM vm = module_mgr->getVM();
   Sqrat::Table nsTbl(vm);
-  nsTbl.Func("add_cycle_action", add_cycle_action)
-    .Func("remove_cycle_action", [vm](const char *tag) { remove_cycle_action(tag, vm); })
+  nsTbl //
     .SquirrelFunc("defer", defer, 2, ".c")
     .SquirrelFunc("deferOnce", deferOnce, 2, ".c")
     .SquirrelFunc(
@@ -344,19 +338,21 @@ void bind_dagor_workcycle(SqModules *module_mgr, bool auto_update_from_idle_cycl
     @param func c : function to be called on time
     @param id . null : optional id of timer. If not provided closure 'func' is used as id
     */
-    .Func("clearTimer", clear_timer);
+    .Func("clearTimer", clear_timer)
+    /**/;
 
   module_mgr->addNativeModule("dagor.workcycle", nsTbl);
 
-  if (is_main_thread())
-    vms[vm].autoUpdateFromIdleCycle = auto_update_from_idle_cycle;
-  else
-    delayed_call([vm, au = auto_update_from_idle_cycle] { vms[vm].autoUpdateFromIdleCycle = au; });
+  eastl::string vmNameStr((vm_name && *vm_name) ? vm_name : "<unknown>");
+  run_action_on_main_thread([vm, au = auto_update_from_idle_cycle, name = vmNameStr] {
+    VmData &v = vms[vm];
+    v.autoUpdateFromIdleCycle = au;
+    v.name = name;
+  });
 }
 
 void clear_workcycle_actions(HSQUIRRELVM vm)
 {
-  cycle_actions.erase(vm);
   auto it = vms.find(vm);
   if (it != vms.end())
   {
@@ -365,10 +361,6 @@ void clear_workcycle_actions(HSQUIRRELVM vm)
   }
 }
 
-void cleanup_dagor_workcycle_module(HSQUIRRELVM vm)
-{
-  cycle_actions.erase(vm);
-  vms.erase(vm);
-}
+void cleanup_dagor_workcycle_module(HSQUIRRELVM vm) { vms.erase(vm); }
 
 } // namespace bindquirrel

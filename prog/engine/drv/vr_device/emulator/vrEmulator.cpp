@@ -1,21 +1,28 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "vrEmulator.h"
 
-#include <3d/dag_drv3d.h>
-#include <3d/dag_tex3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_commands.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_shaders.h>
+#include <shaders/dag_overrideStates.h>
 #include <debug/dag_log.h>
 #include <util/dag_string.h>
 #include <EASTL/string.h>
-#include <3d/dag_drvDecl.h>
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_decl.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <EASTL/algorithm.h>
 #include <EASTL/shared_ptr.h>
 #include <util/dag_convar.h>
 #include <math/dag_Point2.h>
 #include <math/dag_Point3.h>
 #include <math/dag_Quat.h>
+#include <perfMon/dag_perfTimer.h>
+#include <perfMon/dag_sleepPrecise.h>
+#include <perfMon/dag_statDrv.h>
 #include <atomic>
 
 #if _TARGET_PC_WIN
@@ -66,7 +73,10 @@ VRDevice *create_emulator()
 
 VREmulatorDevice::VREmulatorDevice(const char *profile)
 {
-  isHmdOn = ::dgs_get_settings()->getBlockByNameEx("xr")->getBool("emulatorHmdOnAtStart", true);
+  auto xrBlock = ::dgs_get_settings()->getBlockByNameEx("xr");
+  isHmdOn = xrBlock->getBool("emulatorHmdOnAtStart", true);
+  fpsLimit = xrBlock->getInt("emulatorFpsLimit", 140);
+  isHmdWorn = isHmdOn;
   callFirstHmdOn = isHmdOn;
 
 #if !_TARGET_C2
@@ -162,6 +172,7 @@ void VREmulatorDevice::tick(const SessionCallback &cb)
   bool isMoveLeft = false;
   bool isMoveRight = false;
   bool isSwapPressed = false;
+  bool isWearingStatusTogglePressed = false;
   bool isTiltLeft = false;
   bool isTiltRight = false;
 #if _TARGET_PC_WIN
@@ -178,6 +189,7 @@ void VREmulatorDevice::tick(const SessionCallback &cb)
   isMoveLeft = (GetAsyncKeyState(VK_NUMPAD4) & 0x8000) && !isCtrl;
   isMoveRight = (GetAsyncKeyState(VK_NUMPAD6) & 0x8000) && !isCtrl;
   isSwapPressed = GetAsyncKeyState(VK_MULTIPLY) & 0x8000;
+  isWearingStatusTogglePressed = GetAsyncKeyState(VK_DIVIDE) & 0x8000;
   isTiltLeft = (GetAsyncKeyState(VK_DECIMAL) & 0x8000) && isCtrl;
   isTiltRight = (GetAsyncKeyState(VK_DECIMAL) & 0x8000) && !isCtrl;
   LARGE_INTEGER qpf, qpc;
@@ -282,6 +294,21 @@ void VREmulatorDevice::tick(const SessionCallback &cb)
   else
     zeroLocked = false;
 
+  static bool wearingStatusLocked = false;
+  if (isWearingStatusTogglePressed)
+  {
+    if (!wearingStatusLocked)
+    {
+      isHmdWorn = !isHmdWorn;
+      wearingStatusLocked = true;
+
+      if (isHmdOn)
+        changeState(isHmdWorn ? State::Focused : State::Idle);
+    }
+  }
+  else
+    wearingStatusLocked = false;
+
   if (callSessionStartedCallbackIfAvailable && callSessionEndedCallbackIfAvailable)
     callSessionStartedCallbackIfAvailable = callSessionEndedCallbackIfAvailable = false;
 
@@ -290,6 +317,7 @@ void VREmulatorDevice::tick(const SessionCallback &cb)
     inHmdStateTransition = true;
     if (cb(Session::Start))
     {
+      changeState(State::Stopping);
       callSessionStartedCallbackIfAvailable = false;
       callFirstHmdOn = false;
     }
@@ -298,7 +326,10 @@ void VREmulatorDevice::tick(const SessionCallback &cb)
   {
     inHmdStateTransition = true;
     if (cb(Session::End))
+    {
+      changeState(isHmdWorn ? State::Focused : State::Idle);
       callSessionEndedCallbackIfAvailable = false;
+    }
   }
 }
 
@@ -307,13 +338,30 @@ bool VREmulatorDevice::prepareFrame(FrameData &frameData, float zNear, float zFa
   if (!isHmdOn)
     return false;
 
+  if (fpsLimit > 0)
+  {
+    static int64_t startRefTicks = profile_ref_ticks();
+
+    TIME_PROFILE(wait_for_fps_limit);
+    const unsigned targetFrameTimeUs = 1e6 / fpsLimit;
+    const unsigned frameTimeUs = (unsigned)profile_time_usec(startRefTicks);
+    int sleepUs = targetFrameTimeUs - frameTimeUs;
+    if (sleepUs > 0 && sleepUs < 1e5)
+      sleep_precise_usec(sleepUs);
+
+    startRefTicks = profile_ref_ticks();
+  }
+
   int w, h;
   getViewResolution(w, h);
 
   if (!renderer)
   {
     TextureInfo info;
-    d3d::get_backbuffer_tex()->getinfo(info);
+    Texture *bb = d3d::get_backbuffer_tex();
+    if (bb)
+      bb->getinfo(info);
+    // info.cflg is inited to TEXFMT_DEFAULT no need to init it when bb is nullptr
 
     if (isHDR())
     {
@@ -439,8 +487,8 @@ void VREmulatorDevice::beginFrame(FrameData &frameData)
 
   const bool useFront = true;
 
-  d3d::driver_command(DRV3D_COMMAND_REGISTER_ONE_TIME_FRAME_EXECUTION_EVENT_CALLBACKS, new FrameEventCallbacks(this, frameData),
-    reinterpret_cast<void *>(static_cast<intptr_t>(useFront)), nullptr);
+  d3d::driver_command(Drv3dCommand::REGISTER_ONE_TIME_FRAME_EXECUTION_EVENT_CALLBACKS, new FrameEventCallbacks(this, frameData),
+    reinterpret_cast<void *>(static_cast<intptr_t>(useFront)));
 }
 
 void VREmulatorDevice::beginRender(FrameData &) {}

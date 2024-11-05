@@ -1,8 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef _DE2_PLUGIN_ROADS_MATERIALMGR_H_
-#define _DE2_PLUGIN_ROADS_MATERIALMGR_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <generic/dag_tab.h>
 #include <util/dag_simpleString.h>
@@ -28,5 +25,3 @@ public:
 protected:
   Tab<SimpleString> mat;
 };
-
-#endif

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/shaderResBuilder/validateLods.h>
 #include <libTools/util/iLogWriter.h>
 #include <ioSys/dag_dataBlock.h>

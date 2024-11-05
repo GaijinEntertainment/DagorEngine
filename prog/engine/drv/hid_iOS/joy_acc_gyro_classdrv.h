@@ -1,10 +1,7 @@
-
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef _DAGOR_IOS_JOYSTICK_CLASS_DRIVER_H_
-#define _DAGOR_IOS_JOYSTICK_CLASS_DRIVER_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <humanInput/dag_hiJoystick.h>
+#include <drv/hid/dag_hiJoystick.h>
 #include "joy_acc_gyro_device.h"
 
 @protocol iOSInputDeviceUpdate
@@ -123,5 +120,3 @@ private:
 
   bool isEnabled = false;
 };
-
-#endif //_DAGOR_IOS_JOYSTICK_CLASS_DRIVER_H_

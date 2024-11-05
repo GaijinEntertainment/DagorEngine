@@ -1,4 +1,12 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <generic/dag_tab.h>
 #include <math/dag_hlsl_floatx.h>
 #include <math/dag_vecMathCompatibility.h>

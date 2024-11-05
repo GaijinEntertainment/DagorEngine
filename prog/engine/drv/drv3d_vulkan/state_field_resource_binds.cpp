@@ -1,9 +1,15 @@
-#include "device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "state_field_resource_binds.h"
 #include "buffer.h"
 #include "texture.h"
 #include "util/backtrace.h"
 #include "device_context.h"
+#include "sampler_cache.h"
+#include "buffer_alignment.h"
+#include <drv/3d/dag_renderTarget.h>
+#include "backend.h"
+#include "execution_context.h"
 
 namespace drv3d_vulkan
 {
@@ -15,14 +21,13 @@ VULKAN_TRACKED_STATE_FIELD_REF(StateFieldSRegisterSet, sRegs, StateFieldResource
 VULKAN_TRACKED_STATE_FIELD_REF(StateFieldImmediateConst, immConst, StateFieldResourceBindsStorage);
 VULKAN_TRACKED_STATE_FIELD_REF(StateFieldGlobalConstBuffer, globalConstBuf, StateFieldResourceBindsStorage);
 
-bool isConstDepthStencilTargetForNativeRP(Image *img)
+bool isConstDepthStencilTargetForNativeRP(Image *img, ImageViewState view, RenderPassResource *rp)
 {
   // avoid checking if image is not depth usable
   if (0 == ((VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)&img->getUsage()))
     return false;
 
-  // check only state, as it should be properly setted up ahead of this method
-  return img->layout.get(0, 0) == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+  return rp->isCurrentDepthROAttachment(img, view);
 }
 
 bool isConstDepthStencilTarget(Image *img, ImageViewState view)
@@ -30,8 +35,7 @@ bool isConstDepthStencilTarget(Image *img, ImageViewState view)
   if (0 == ((VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)&img->getUsage()))
     return false;
 
-  ContextBackend &back = get_device().getContext().getBackend();
-  FramebufferState &fbs = back.executionState.get<BackGraphicsState, BackGraphicsState>().framebufferState;
+  FramebufferState &fbs = Backend::State::exec.get<BackGraphicsState, BackGraphicsState>().framebufferState;
 
   if (fbs.renderPassClass.hasRoDepth())
   {
@@ -68,11 +72,13 @@ void StateFieldURegister::transit(uint32_t index, StateFieldResourceBindsStorage
 template <>
 void StateFieldURegister::applyTo(uint32_t index, StateFieldResourceBindsStorage &state, ExecutionState &target) const
 {
-  Device &drvDev = get_device();
   PipelineStageStateBase &sts = target.getResBinds(state.stage);
 
   if (data.buffer)
+  {
+    target.getExecutionContext().verifyResident(data.buffer.buffer);
     sts.setUbuffer(index, data.buffer);
+  }
   else if (data.image)
   {
     VulkanImageViewHandle ivh;
@@ -80,7 +86,7 @@ void StateFieldURegister::applyTo(uint32_t index, StateFieldResourceBindsStorage
 
     target.getExecutionContext().verifyResident(data.image);
 
-    ivh = drvDev.getImageView(data.image, data.imageView);
+    ivh = data.image->getImageView(data.imageView);
     actualImage = data.image;
 
     sts.setUtexture(index, actualImage, data.imageView, ivh);
@@ -112,7 +118,10 @@ void StateFieldBRegister::applyTo(uint32_t index, StateFieldResourceBindsStorage
     if (!data.buffer)
     {
       if (state.globalConstBuf.data)
+      {
+        target.getExecutionContext().verifyResident(state.globalConstBuf.data.buffer);
         sts.setBbuffer(index, state.globalConstBuf.data);
+      }
       else
         sts.setBempty(index);
       sts.bGCBActive = true;
@@ -122,7 +131,10 @@ void StateFieldBRegister::applyTo(uint32_t index, StateFieldResourceBindsStorage
   }
 
   if (data.buffer)
+  {
+    target.getExecutionContext().verifyResident(data.buffer);
     sts.setBbuffer(index, data);
+  }
   else
     sts.setBempty(index);
 }
@@ -152,59 +164,34 @@ void StateFieldTRegister::transit(uint32_t index, StateFieldResourceBindsStorage
 template <>
 void StateFieldTRegister::applyTo(uint32_t index, StateFieldResourceBindsStorage &state, ExecutionState &target) const
 {
-  Device &drvDev = get_device();
   PipelineStageStateBase &sts = target.getResBinds(state.stage);
 
   if (data.type == TRegister::TYPE_BUF)
+  {
+    target.getExecutionContext().verifyResident(data.buf.buffer);
     sts.setTbuffer(index, data.buf);
+  }
   else if (data.type == TRegister::TYPE_IMG)
   {
-    if (data.isSwapchainColor)
+
+    // very rare branch, will trigger if texture without stub is used before being loaded with contents
+    if (DAGOR_UNLIKELY(!data.img.ptr))
     {
-      auto image = drvDev.swapchain.getColorImage();
-
-      // need to update to the actual format of the swapchain as the proxy texture might has
-      // not the right one (a format that can not be represented by TEXFMT_)
-      auto patchedView = data.img.view;
-      auto reqFormat = data.img.view.getFormat();
-      auto replacementFormat = image->getFormat();
-      replacementFormat.isSrgb = reqFormat.isSrgb && replacementFormat.isSrgbCapableFormatType();
-      patchedView.setFormat(replacementFormat);
-      auto iv = drvDev.getImageView(image, patchedView);
-
-      sts.setTtexture(index, image, patchedView, false, iv);
+      D3D_ERROR("vulkan: used broken texture at slot %s:%u, check stub config for it and usage at caller site:\n%s",
+        formatShaderStage(state.stage), index, target.getExecutionContext().getCurrentCmdCaller());
+      return sts.setTempty(index);
     }
-    else if (data.isSwapchainDepth)
-    {
-      Swapchain &swapchain = drvDev.swapchain;
-      auto image = swapchain.getDepthStencilImageForExtent(swapchain.getActiveMode().extent,
-        get_device().getContext().getBackend().contextState.frame.get());
-      auto iv = drvDev.getImageView(image, data.img.view);
+    target.getExecutionContext().verifyResident(data.img.ptr);
 
-      bool isConstDs = isConstDepthStencilTarget(image, data.img.view) && (state.stage != STAGE_CS);
-      sts.setTtexture(index, image, data.img.view, isConstDs, iv);
-    }
+    VulkanImageViewHandle ivh = data.img.ptr->getImageView(data.img.view);
+    bool isConstDs = false;
+    RenderPassResource *rpRes = target.getRO<StateFieldRenderPassResource, RenderPassResource *, BackGraphicsState>();
+    if (rpRes)
+      isConstDs = isConstDepthStencilTargetForNativeRP(data.img.ptr, data.img.view, rpRes);
     else
-    {
-      // very rare branch, will trigger if texture without stub is used before being loaded with contents
-      if (DAGOR_UNLIKELY(!data.img.ptr))
-      {
-        logerr("vulkan: used broken texture at slot %s:%u, check stub config for it and usage at caller site:\n%s",
-          formatShaderStage(state.stage), index, target.getExecutionContext().getCurrentCmdCaller());
-        return sts.setTempty(index);
-      }
-      target.getExecutionContext().verifyResident(data.img.ptr);
+      isConstDs = (state.stage != STAGE_CS) && isConstDepthStencilTarget(data.img.ptr, data.img.view);
 
-      VulkanImageViewHandle ivh = drvDev.getImageView(data.img.ptr, data.img.view);
-      bool isConstDs = false;
-      RenderPassResource *rpRes = target.getRO<StateFieldRenderPassResource, RenderPassResource *, BackGraphicsState>();
-      if (rpRes)
-        isConstDs = isConstDepthStencilTargetForNativeRP(data.img.ptr);
-      else
-        isConstDs = (state.stage != STAGE_CS) && isConstDepthStencilTarget(data.img.ptr, data.img.view);
-
-      sts.setTtexture(index, data.img.ptr, data.img.view, isConstDs, ivh);
-    }
+    sts.setTtexture(index, data.img.ptr, data.img.view, isConstDs, ivh);
   }
 #if D3D_HAS_RAY_TRACING
   else if (data.type == TRegister::TYPE_AS)
@@ -255,11 +242,11 @@ void StateFieldSRegister::applyTo(uint32_t index, StateFieldResourceBindsStorage
   {
     G_ASSERTF(data.type == SRegister::TYPE_STATE, "vulkan: unknown sampler type %u", data.type);
     TRegister &tReg = state.tRegs.data[index].data;
-    // use cached sampler only for normal images
-    if ((tReg.type == TRegister::TYPE_IMG) && tReg.isSwapchainColor == 0 && tReg.isSwapchainDepth == 0)
+    // use cached sampler only when image is available
+    if (tReg.type == TRegister::TYPE_IMG)
       splInfo = tReg.img.ptr->getSampler(data.state);
     else
-      splInfo = get_device().getSampler(data.state);
+      splInfo = Globals::samplers.get(data.state);
   }
   sts.setSSampler(index, splInfo);
 }
@@ -301,6 +288,55 @@ bool StateFieldResourceBinds::handleObjectRemoval(Buffer *object)
       ret |= true;
     }
   }
+  return ret;
+}
+
+template <>
+bool StateFieldResourceBinds::replaceResource(BufferRef old_obj, const BufferRef &new_obj, uint32_t flags)
+{
+  bool ret = false;
+  if (SBCF_BIND_CONSTANT & flags)
+  {
+    StateFieldBRegister *bRegs = &get<StateFieldBRegisterSet, StateFieldBRegister>();
+    const BufferRef bReg = new_obj;
+
+    for (uint32_t j = 0; j < spirv::B_REGISTER_INDEX_MAX; ++j)
+      if (bRegs[j].data == old_obj)
+      {
+        set<StateFieldBRegisterSet, StateFieldBRegister::Indexed>({j, bReg});
+        ret |= true;
+      }
+  }
+
+  if (SBCF_BIND_SHADER_RES & flags)
+  {
+    StateFieldTRegister *tRegs = &get<StateFieldTRegisterSet, StateFieldTRegister>();
+    TRegister tReg;
+    tReg.buf = new_obj;
+    tReg.type = TRegister::TYPE_BUF;
+
+    for (uint32_t j = 0; j < spirv::T_REGISTER_INDEX_MAX; ++j)
+      if (tRegs[j].data.type == TRegister::TYPE_BUF && tRegs[j].data.buf == old_obj)
+      {
+        set<StateFieldTRegisterSet, StateFieldTRegister::Indexed>({j, tReg});
+        ret |= true;
+      }
+  }
+
+  if (SBCF_BIND_UNORDERED & flags)
+  {
+    StateFieldURegister *uRegs = &get<StateFieldURegisterSet, StateFieldURegister>();
+    URegister uReg;
+    uReg.buffer = new_obj;
+
+    for (uint32_t j = 0; j < spirv::U_REGISTER_INDEX_MAX; ++j)
+      if (uRegs[j].data.buffer == old_obj)
+      {
+        set<StateFieldURegisterSet, StateFieldURegister::Indexed>({j, uReg});
+        ret |= true;
+      }
+  }
+
   return ret;
 }
 
@@ -463,8 +499,7 @@ void StateFieldImmediateConst::applyTo(StateFieldResourceBindsStorage &state, Ex
   if (!enabled)
     return;
 
-  ContextBackend &back = get_device().getContext().getBackend();
-  ImmediateConstBuffer &icb = back.immediateConstBuffers[state.stage];
+  ImmediateConstBuffer &icb = Backend::immediateConstBuffers[state.stage];
   PipelineStageStateBase &sts = target.getResBinds(state.stage);
 
   sts.setBbuffer(IMMEDAITE_CB_REGISTER_NO, icb.push(&data[0]));
@@ -493,7 +528,10 @@ void StateFieldGlobalConstBuffer::applyTo(StateFieldResourceBindsStorage &state,
 {
   PipelineStageStateBase &sts = target.getResBinds(state.stage);
   if (data && sts.bGCBActive)
+  {
+    target.getExecutionContext().verifyResident(data.buffer);
     sts.setBbuffer(sts.GCBSlot, data);
+  }
 }
 
 template <>
@@ -514,36 +552,36 @@ void ImmediateConstBuffer::flushWrites()
     Buffer *buf = ring[ringIdx];
     G_ASSERTF(buf, "vulkan: ImmediateConstBuffer: buffer or offset changed independently to each other");
 
-    VkDeviceSize absOffset = (offset - 1) * blockSize;
-    buf->markNonCoherentRangeLoc(0, absOffset, true);
+    buf->markNonCoherentRangeLoc(0, offset - alignedElementSize, true);
   }
 }
+
+void ImmediateConstBuffer::init() { alignedElementSize = Globals::VK::bufAlign.alignSize(element_size); }
 
 BufferRef ImmediateConstBuffer::push(const uint32_t *data)
 {
   Buffer *buf = ring[ringIdx];
 
-  if (!buf || offset >= buf->getMaxDiscardLimit())
+  if (!buf || offset >= buf->getBlockSize())
   {
     if (buf)
     {
       flushWrites();
-      get_device().getContext().getBackend().contextState.frame.get().cleanups.enqueueFromBackend<Buffer::CLEANUP_DESTROY>(*buf);
+      Backend::gpuJob.get().cleanups.enqueueFromBackend<Buffer::CLEANUP_DESTROY>(*buf);
     }
 
-    buf = get_device().createBuffer(element_size, DeviceMemoryClass::DEVICE_RESIDENT_HOST_WRITE_ONLY_BUFFER, initial_blocks,
+    buf = Buffer::create(alignedElementSize * initial_blocks, DeviceMemoryClass::DEVICE_RESIDENT_HOST_WRITE_ONLY_BUFFER, 1,
       BufferMemoryFlags::NONE);
-    blockSize = buf->getBlockSize();
     offset = 0;
     ring[ringIdx] = buf;
   }
 
-  VkDeviceSize absOffset = offset * blockSize;
-  memcpy(buf->ptrOffsetLoc(absOffset), data, element_size);
+  memcpy(buf->ptrOffsetLoc(offset), data, element_size);
 
   BufferRef ret(buf);
-  ret.discardIndex = offset;
-  ++offset;
+  ret.offset = offset;
+  ret.visibleDataSize = alignedElementSize;
+  offset += alignedElementSize;
   return ret;
 }
 
@@ -555,15 +593,15 @@ void ImmediateConstBuffer::onFlush()
   offset = 0;
 }
 
-void ImmediateConstBuffer::shutdown(ExecutionContext &ctx)
+void ImmediateConstBuffer::shutdown()
 {
   for (Buffer *i : ring)
   {
     if (i)
     {
-      G_ASSERTF(ctx.back.pipelineStatePendingCleanups.removeWithReferenceCheck(i, ctx.back.pipelineState),
+      G_ASSERTF(Backend::State::pendingCleanups.removeWithReferenceCheck(i, Backend::State::pipe),
         "vulkan: immediate cb is still bound");
-      ctx.back.contextState.frame.get().cleanups.enqueueFromBackend<Buffer::CLEANUP_DESTROY>(*i);
+      Backend::gpuJob.get().cleanups.enqueueFromBackend<Buffer::CLEANUP_DESTROY>(*i);
     }
   }
 }
@@ -594,7 +632,10 @@ TRegister::TRegister(Sbuffer *sb) : type(TYPE_NULL) //-V730
   if (!sb)
     return;
 
-  buf = BufferRef{((GenericBufferInterface *)sb)->getDeviceBuffer()};
+  GenericBufferInterface *gb = (GenericBufferInterface *)sb;
+  buf = gb->getBufferRef();
+  if (!buf)
+    buf = gb->fillFrameMemWithDummyData();
   type = TYPE_BUF;
 }
 
@@ -603,11 +644,10 @@ TRegister::TRegister(BaseTex *texture) : type(TYPE_NULL) //-V1077
   if (!texture)
     return;
 
-  img.ptr = texture->getDeviceImage(false);
+  img.ptr = texture->getDeviceImage();
   img.view = texture->getViewInfo();
 
-  isSwapchainColor = (texture == d3d::get_backbuffer_tex()) ? 1 : 0;
-  isSwapchainDepth = (texture == d3d::get_backbuffer_tex_depth()) ? 1 : 0;
+  G_ASSERTF(img.ptr, "vulkan: trying to bind texture %p:%s without underlying image", texture, texture->getResName());
   type = TYPE_IMG;
 }
 
@@ -632,15 +672,20 @@ URegister::URegister(BaseTexture *tex, uint32_t face, uint32_t mip_level, bool a
   BaseTex *texture = cast_to_texture_base(tex);
   if (texture)
   {
-    image = texture->getDeviceImage(true);
+    image = texture->getDeviceImage();
     imageView = texture->getViewInfoUAV(mip_level, face, as_uint);
   }
 }
 
 URegister::URegister(Sbuffer *sb)
 {
-  if (sb)
-    buffer = BufferRef{((GenericBufferInterface *)sb)->getDeviceBuffer()};
+  if (!sb)
+    return;
+
+  GenericBufferInterface *gb = (GenericBufferInterface *)sb;
+  buffer = gb->getBufferRef();
+  if (!buffer)
+    buffer = gb->fillFrameMemWithDummyData();
 }
 
 // bool StateFieldTRegister::diff(const BufferRef& new_buf) const

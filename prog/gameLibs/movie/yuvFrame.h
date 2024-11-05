@@ -1,11 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <gui/dag_stdGuiRender.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderBlock.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_materialData.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <math/dag_bounds2.h>
@@ -76,7 +75,7 @@ static void render(TEXTUREID texIdY, TEXTUREID texIdU, TEXTUREID texIdV)
   shader.material->set_texture_param(textureVVarId, texIdV);
   StdGuiRender::set_shader(&shader);
   StdGuiRender::set_color(0xFFFFFFFF);
-  StdGuiRender::set_texture(texIdY);
+  StdGuiRender::set_texture(texIdY, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
   StdGuiRender::render_rect(l, t, r, b);
   StdGuiRender::reset_shader();
 }

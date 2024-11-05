@@ -1,0 +1,418 @@
+include "sky_shader_global.dshl"
+include "character_micro_detail.dshl"
+include "skinning_inc2.dshl"
+include "wetness.dshl"
+include "outline_xray_inc.dshl"
+include "taa_inc.dshl"
+include "paint_details_inc.dshl"
+
+hlsl {
+  #define VERTEX_TANGENT 0
+}
+
+int dyn_model_render_pass = 0;
+interval dyn_model_render_pass : render_pass_normal < 1, render_to_depth < 2, render_to_deform_hmap;
+
+macro NO_DEFORM_HMAP()
+  if (dyn_model_render_pass == render_to_deform_hmap)  { dont_render; }
+endmacro
+
+macro SUPPORT_MULTIDRAW(use_drawid_vs_only)
+  if (hardware.dx12 || hardware.ps4 || hardware.ps5)
+  {
+    supports __static_multidraw_cbuf;
+    hlsl {
+      #include "dynModelsPackedMultidrawParams.hlsli"
+      #define SET_UP_MULTIDRAW 1
+      #define DYNAMIC_SHADER_MULTIDRAW 1
+      #define SET_UP_MULTIDRAW_VS 1
+      #define INST_OFFSET_GETTER ((get_draw_id() >> MATERIAL_OFFSET_BITS) + get_immediate_dword_0())
+      #ifndef GET_MATERIAL_OFFSET
+        #define GET_MATERIAL_OFFSET(input) (GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK)
+      #endif
+      #if DEBUG_ENABLE_BOUNDS_CHECKS && defined(MATERIAL_PROPS_SIZE)
+        #define SET_DRAW_CALL_ID(draw_call_id) {                                      \
+          checkBufferBounds(draw_call_id, MATERIAL_PROPS_SIZE, _FILE_, __LINE__, -1); \
+          DRAW_CALL_ID = draw_call_id; }
+      #else
+        #define SET_DRAW_CALL_ID(draw_call_id) DRAW_CALL_ID = draw_call_id;
+      #endif
+    }
+  }
+  if (hardware.dx12)
+  {
+    hlsl {
+      #define VSOUT_DRAW_ID
+    }
+    supports __draw_id;
+    hlsl(vs) {
+      #define INIT_MULTIDRAW(vsoutput)
+    }
+    hlsl(ps) {
+      #define INIT_MULTIDRAW(vsoutput)
+      #define GET_DRAW_ID(psinput) get_draw_id()
+    }
+  }
+  if (hardware.ps4 || hardware.ps5)
+  {
+    USE_INDIRECT_DRAW()
+    hlsl {
+##if use_drawid_vs_only
+      #define VSOUT_DRAW_ID
+##else
+      #define VSOUT_DRAW_ID nointerpolation uint drawId : TEXCOORD15;
+##endif
+      static uint g_draw_id = ~0u;
+      uint get_draw_id() { return g_draw_id; }
+    }
+
+    hlsl(vs) {
+##if use_drawid_vs_only
+      #define INIT_PS_INPUT(vsoutput)
+##else
+      #define INIT_PS_INPUT(vsoutput)  vsoutput.drawId = instance_offset_id
+##endif
+
+      #define INIT_MULTIDRAW(vsoutput)\
+        instance_id -= instance_offset_id;\
+        instance_offset_id = WaveReadFirstLane(instance_offset_id);\
+        g_draw_id = instance_offset_id; \
+        INIT_PS_INPUT(vsoutput)
+    }
+
+    hlsl(ps) {
+      #define INIT_MULTIDRAW(psinput) \
+        g_draw_id = WaveReadFirstLane(psinput.drawId)
+
+      #define GET_DRAW_ID(psinput) get_draw_id()
+    }
+  }
+endmacro
+
+float4 prevViewProjTm0;
+float4 prevViewProjTm1;
+float4 prevViewProjTm2;
+float4 prevViewProjTm3;
+
+macro USE_FLOAT_POS_PACKING()
+  hlsl(vs){
+    float3 unpack_pos(float3 pos) { return pos; }
+  }
+endmacro
+
+macro USE_DIFFUSE_TC()
+  hlsl {
+    #define DIFFUSE_TC(type, name, tc) type name: tc;
+  }
+  hlsl(vs){
+    #define SET_DIFFUSETC(outtc, intc) outtc = intc;
+  }
+endmacro
+
+macro DYNAMIC_SIMPLE_VS_INPUT()
+  channel float3 pos=pos;
+  channel color8 norm=norm unsigned_pack;
+  channel short2 tc[0]=tc[0] mul_4k;
+
+  if (num_bones != no_bones)
+  {
+    channel color8 tc[4] = extra[0];
+    channel color8 tc[5] = extra[1];
+    hlsl {
+      #define HAS_SKINNING 1
+    }
+  }
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float3 pos                  : POSITION;   // W defaults to 1.
+      float4 normal               : NORMAL;
+      #if NEED_TC
+      int2  diffuseTexcoord      : TEXCOORD0;
+      #endif
+      #if NEED_VCOL_MASK
+      float3 vcolMask            : COLOR0;
+      #endif
+      #if VERTEX_TANGENT
+      float4 packedDu             : TEXCOORD2;
+      float4 packedDv             : TEXCOORD3;
+      #endif
+      INIT_BONES_VSINPUT(TEXCOORD4, TEXCOORD5)
+    };
+  }
+endmacro
+
+macro DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+
+  USE_DIFFUSE_TC()
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    hlsl {
+      #if ATEST_IS_ON || SUPPORT_DEFORM_INFO
+      #define NEED_TC 1
+      struct VsOutput
+      {
+        PRECISE VS_OUT_POSITION(pos)
+        DIFFUSE_TC(float2, diffuseTexcoord, TEXCOORD0)
+        #if HAS_TORN_WOUNDS
+        //splash strength, start fade from, discard pixel to, discard tex uv scale
+        float4 tornWoundParams                  : TEXCOORD3;
+        float3 fragPos                          : TEXCOORD4;
+        float3 fragNormal                       : TEXCOORD5;
+        #endif
+        #if HAS_BURNING
+        float burnedEffect                      : TEXCOORD6;
+        #endif
+        #if NEED_POINT_TO_EYE
+        float3 pointToEye                       : TEXCOORD7;
+        #endif
+        #if HAS_TORN_WOUNDS_DEBUG
+        float4 debugColor                       : TEXCOORD12;
+        #endif
+        #if SET_UP_MULTIDRAW
+        VSOUT_DRAW_ID
+        #endif
+      };
+      #endif
+    }
+    hlsl(vs) {
+      #if !(ATEST_IS_ON || SUPPORT_DEFORM_INFO)
+      struct VsOutput
+      {
+        PRECISE VS_OUT_POSITION(pos)
+        #if NEED_POINT_TO_EYE
+        float3 pointToEye                       : TEXCOORD2;
+        #endif
+        #if SET_UP_MULTIDRAW
+        VSOUT_DRAW_ID
+        #endif
+      };
+      #endif
+    }
+  } else
+  {
+
+    hlsl {
+      #ifndef DYNAMIC_SIMPLE_CUSTOM_VSOUTPUT
+      #define NEED_TC 1
+      struct VsOutput
+      {
+        PRECISE VS_OUT_POSITION(pos)
+        DIFFUSE_TC(float2, diffuseTexcoord, TEXCOORD0)
+        #if COLOR_NEEDED
+        float3 colorMul                         : TEXCOORD3;
+        #endif
+        float3 pointToEye                       : TEXCOORD1;
+        float3 normal                           : TEXCOORD2;
+        #if HAS_BLOOD_DECAL
+        float4 bloodDecalTC                     : TEXCOORD6;
+        nointerpolation float  textureIndexTime : TEXCOORD7;
+        #endif
+        #if HAS_TORN_WOUNDS
+        float4 tornWoundParams                  : TEXCOORD8;
+        #endif
+        #if HAS_BURNING
+        float burnedEffect                      : TEXCOORD9;
+        #endif
+        #if NEED_FRAG_POS_NORM
+        float3 fragPos                          : TEXCOORD10;
+        float3 fragNormal                       : TEXCOORD11;
+        #endif
+        #if NEED_CLOTH_WIND
+        float3 localPos                         : TEXCOORD12;
+        float2 windNormalBlendParams            : TEXCOORD13;
+        #endif
+        #ifdef MOTION_VECTORS_ENABLED
+        float4 out_pos                          : TEXCOORD4;
+        float4 out_pos_prev                     : TEXCOORD5;
+        #endif
+        #if HAS_TORN_WOUNDS_DEBUG
+        float4 debugColor                       : TEXCOORD14;
+        #endif
+        #if SET_UP_MULTIDRAW
+        VSOUT_DRAW_ID
+        #endif
+      };
+      #endif
+    }
+  }
+
+
+//---------------------------------------------------
+// VS stuff.
+//---------------------------------------------------
+
+
+  DECL_POSTFX_TC_VS_RT()
+  //USE_SHORT_POS_PACKING()
+  USE_FLOAT_POS_PACKING()
+
+  INIT_OPTIONAL_SKINNING()
+  DYNAMIC_SIMPLE_VS_INPUT()
+  OPTIONAL_SKINNING_SHADER()
+
+endmacro
+
+macro DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    USE_MOTION_VECTORS()
+    USE_MOTION_VEC_ENCODE(ps)
+  }
+
+  hlsl(vs) {
+
+    VsOutput dynamic_simple_vs(VsInput input HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(get_draw_id() & MATERIAL_OFFSET_MASK);
+      #endif
+      // unpack positions using dynmodel bbox
+      input.pos.xyz = unpack_pos(input.pos);
+
+      // unpack texcoord0
+      #if NEED_TC
+      float2 diffuseTexcoord = input.diffuseTexcoord / 4096.;
+      #endif
+
+      // Skinning.
+
+      float3 eyeToPoint;
+      float3 worldDu;
+      float3 worldDv;
+      float3 worldNormal;
+      ##if dyn_model_render_pass == render_pass_normal
+      float3 localNormal = BGR_SWIZZLE(input.normal.rgb)*2-1;
+      ##else
+      float3 localNormal = 1;
+      ##endif
+
+      #if VERTEX_TANGENT
+      float3 localDu = BGR_SWIZZLE(input.packedDu)*2-1;
+      float3 localDv = BGR_SWIZZLE(input.packedDv)*2-1;
+      #else
+      float3 localDu = float3(1,0,0), localDv = float3(1,0,0);
+      #endif
+      #if HAS_VS_PREV_FUNCTION
+      vs_prev_function(input);
+      #endif
+      #if HAS_BURNING
+      output.burnedEffect = getBurnedEffect();
+      #endif
+      instance_skinning(
+        input,
+        input.pos,
+        localNormal,
+        localDu,
+        localDv,
+        eyeToPoint,
+        output.pos,
+        worldNormal,
+        worldDu,
+        worldDv);
+
+      float4 unpackedOutputPos = output.pos;
+      #if NEED_TC
+      SET_DIFFUSETC(output.diffuseTexcoord.xy, diffuseTexcoord);
+      #if RANDOMIZE_TC
+        float4 initialTm0;
+        float4 initialTm1;
+        float4 initialTm2;
+        float4 hashval;
+        ##if in_editor_assume == yes
+          initialTm0 = float4(1, 0, 0, 0);
+          initialTm1 = float4(0, 1, 0, 0);
+          initialTm2 = float4(0, 0, 1, 0);
+        ##else
+          get_per_instance_data(initialTm2, 2);
+          get_per_instance_data(initialTm1, 3);
+          get_per_instance_data(initialTm0, 4);
+        ##endif
+        float3 localPos = float3(initialTm0.x, initialTm1.y, initialTm2.z);
+        output.diffuseTexcoord.xy = uv_apply_random(output.diffuseTexcoord.xy, localPos);
+      #endif
+      #endif
+//##endif
+
+    // We can't process eyeToPoint in vs_post_function().
+    // So, if there is depth pass and we need pointToEye, it's solution.
+    #if NEED_POINT_TO_EYE
+      output.pointToEye.xyz = -eyeToPoint;
+    #endif
+
+##if dyn_model_render_pass == render_pass_normal
+
+     worldNormal = normalize(worldNormal);
+    #ifndef NEED_POINT_TO_EYE
+      output.pointToEye.xyz = -eyeToPoint;
+    #endif
+      output.normal.xyz = worldNormal;
+    #ifdef MOTION_VECTORS_ENABLED
+      output.out_pos_prev = get_prevframe_output_pos(input, input.pos);
+      output.out_pos = output.pos;
+    #endif
+
+##endif //renderModelForShadow != renderModelForShadowMask
+      vs_post_function(input, output);
+      return output;
+    }
+  }
+  compile("target_vs", "dynamic_simple_vs");
+
+endmacro
+
+macro DYNAMIC_SIMPLE_VS_BASE()
+DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+hlsl(vs) {
+  void vs_post_function(VsInput input, inout VsOutput output)
+  {
+
+  }
+}
+
+DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
+endmacro
+
+macro DYNAMIC_SIMPLE_VS_ATEST_USE()
+  SET_ATEST_IS_ON_DEFINE()
+  DYNAMIC_SIMPLE_VS_BASE()
+endmacro
+
+macro DYNAMIC_SIMPLE_VS_NOATEST()
+  DYNAMIC_SIMPLE_VS_BASE()
+endmacro
+
+macro DYNAMIC_SIMPLE_SHARED_DECL(code)
+
+  if (small_sampled_buffers == no)
+  {
+    (code) {
+      instance_data_buffer@buf = instance_data_buffer hlsl { Buffer<float4> instance_data_buffer@buf; }
+    }
+  } else
+  {
+    (code) {
+      instance_data_buffer@buf = instance_data_buffer hlsl { StructuredBuffer<float4> instance_data_buffer@buf; }
+    }
+  }
+
+endmacro
+
+macro DYNAMIC_SIMPLE_VS_SHARED_DECL()
+  supports global_frame;
+  DYNAMIC_SIMPLE_SHARED_DECL(vs)
+  (vs) {
+    viewProjTm@f44 = viewprojtm;
+    matrices_stride@i1 = (matrices_stride);
+  }
+endmacro

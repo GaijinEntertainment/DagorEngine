@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_globDef.h>
 #include <libTools/util/undo.h>
 #include <memory/dag_mem.h>

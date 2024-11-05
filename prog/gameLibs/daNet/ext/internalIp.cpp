@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daNet/internalIp.h>
 
 #include <osApiWrappers/dag_miscApi.h>

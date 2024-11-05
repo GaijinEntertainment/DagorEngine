@@ -206,4 +206,8 @@
 
 .. |class-ast_boost-SetupContractAnnotation| replace:: This is base class for contract annotation setup.
 
+.. |structure_macro-ast_boost-type_macro| replace:: Turns AstTypeMacro into a macro with the specified `name`.
+
+.. |class-ast_boost-SetupTypeMacro| replace:: This is base class for type macro setup.
+
 

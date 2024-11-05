@@ -258,8 +258,8 @@
     // Fake reprojected motion vectors, but shaders that declare themselves dynamic to gbuffer has to provide
     // motion vectors too
     float2 screenUv = GET_SCREEN_POS(input.pos).xy * gbuf_texel_size;
-    float2 motionInUvSpace = get_reprojected_motion_vector(screenUv, -input.pointToEye.xyz, prevViewProjTm);
-    init_motion_vector(gbuffer, encode_motion_vector(motionInUvSpace));
+    float3 motionInUvSpace = get_reprojected_motion_vector(float3(screenUv, input.pos.w), -input.pointToEye.xyz, prevViewProjTm);
+    init_motion_vector(gbuffer, motionInUvSpace);
   #endif
     init_material(gbuffer, SHADING_SUBSURFACE);
     init_dynamic(gbuffer, 1);
@@ -269,7 +269,7 @@
     init_reflectance(gbuffer, 0.2);
     init_normal(gbuffer, worldNormal);
     init_albedo(gbuffer, result.rgb);
-    return encode_gbuffer(gbuffer, planeNormal);
+    return encode_gbuffer(gbuffer, planeNormal, GET_SCREEN_POS(input.pos));
   }
 #endif
 
@@ -403,7 +403,6 @@
 #endif
 
 #if FX_SHADER_VOLMEDIA && FX_PS
-  DECLARE_INITIAL_MEDIA;
 
   void fx_ps(VsOutput input)
   {
@@ -417,7 +416,7 @@
     uint3 id = clamp(uint3(float3(scrTC.xy, sqrt(tcZ_sq))*view_inscatter_volume_resolution.xyz + float3(0,0,0.5)), 0u, uint3(view_inscatter_volume_resolution.xyz - 1));
     result.a = result.a*exp2(4*result.a);//this is just emprical multiplier.
     result.rgb *= 2*result.a;//this is just emprical multiplier.
-    initial_media[id] = result;
+    volfog_ff_initial_media_rw[id] = result;
   }
 #endif
 
@@ -578,10 +577,7 @@
       input.light_color = 0;
     #endif
 
-    half3 ambient = amb_color * amb_phase;
-    float3 ambientDir = viewDirNorm;
-    float giAmount = get_ambient3d(worldPos, ambientDir, ambient, ambient);//no filtering
-    ambient = lerp(amb_color * amb_phase, ambient, giAmount);
+    half3 ambient = get_undirectional_volumetric_ambient(world_view_pos.xyz, output.pos.xy/max(1e-6, output.pos.w)*float2(0.5, -0.5) + 0.5, output.pos.w, worldPos, normalize(pointToEye), length(pointToEye));
     float3 lighting =
         sun_color_0.rgb * shadow * (lerp(viewDot * saturate(dot(worldNormal, -from_sun_direction.xyz)), 1, fx_sun_backlight)) + ambient +
         atten * input.light_color.xyz;

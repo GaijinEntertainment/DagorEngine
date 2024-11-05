@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <SPIRV/GlslangToSpv.h>
 #include <spirv/compiler.h>
 #include <memory>
@@ -474,9 +476,7 @@ protected:
     }
     else if (type.getQualifier().storage == glslang::EvqBuffer)
     {
-      if (hasAtomicCounter(type))
-        return spirv::U_BUFFER_WITH_COUNTER_OFFSET;
-      else if (!type.getQualifier().readonly)
+      if (!type.getQualifier().readonly)
         return spirv::U_BUFFER_OFFSET;
       else
         return spirv::T_BUFFER_OFFSET;
@@ -638,7 +638,6 @@ protected:
       case spirv::T_BUFFER_SAMPLED_IMAGE_OFFSET: header.bufferViewCheckIndices[header.bufferViewCount++] = header.registerCount; break;
       case spirv::T_BUFFER_OFFSET:
       case spirv::U_BUFFER_OFFSET:
-      case spirv::U_BUFFER_WITH_COUNTER_OFFSET: header.bufferCheckIndices[header.bufferCount++] = header.registerCount; break;
       case spirv::B_CONST_BUFFER_OFFSET: header.constBufferCheckIndices[header.constBufferCount++] = header.registerCount; break;
     }
 
@@ -711,7 +710,6 @@ protected:
         header.missingTableIndex[header.registerCount] = spirv::MISSING_STORAGE_BUFFER_SAMPLED_IMAGE_INDEX;
         break;
       case spirv::U_BUFFER_OFFSET: header.missingTableIndex[header.registerCount] = spirv::MISSING_STORAGE_BUFFER_INDEX; break;
-      case spirv::U_BUFFER_WITH_COUNTER_OFFSET: header.missingTableIndex[header.registerCount] = spirv::MISSING_IS_FATAL_INDEX; break;
       case spirv::B_CONST_BUFFER_OFFSET:
         header.missingTableIndex[header.registerCount] =
           (0 == bindingIndex) ? spirv::FALLBACK_TO_C_GLOBAL_BUFFER : spirv::MISSING_CONST_BUFFER_INDEX;
@@ -817,7 +815,7 @@ public:
     // sort first, so that the meta data of shaders with the same layout is exactly the
     // same
     sort(begin(compiled), end(compiled),
-      [=, this](const glslang::TType *l, const glslang::TType *r) //
+      [this](const glslang::TType *l, const glslang::TType *r) //
       {
         const auto li = static_cast<uint32_t>(getSourceRegisterType(*l));
         const auto ri = static_cast<uint32_t>(getSourceRegisterType(*r));

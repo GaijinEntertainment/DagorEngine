@@ -1,4 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_console.h>
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_direct.h>
@@ -13,6 +14,7 @@ void init()
   registerBaseConProc();
 
   clear_and_shrink(commandHistory);
+  clear_and_shrink(pinnedCommands);
 
   historyPtr = -1;
 
@@ -23,14 +25,23 @@ void init()
   DataBlock blk;
   blk.load("console_cmd.blk");
   int nid = blk.getNameId("cmd");
+  int pinnedNameId = blk.getNameId("pinned");
 
   for (int i = 0; i < blk.paramCount(); i++)
+  {
     if (blk.getParamNameId(i) == nid && blk.getParamType(i) == DataBlock::TYPE_STRING)
     {
       commandHistory.push_back(SimpleString(blk.getStr(i)));
       if (commandHistory.size() >= MAX_HISTORY_COMMANDS)
         break;
     }
+    if (blk.getParamNameId(i) == pinnedNameId && blk.getParamType(i) == DataBlock::TYPE_STRING)
+    {
+      pinnedCommands.push_back(SimpleString(blk.getStr(i)));
+      if (pinnedCommands.size() >= MAX_PINNED_COMMANDS)
+        break;
+    }
+  }
   conHeight = blk.getReal("cur_height", 0.33);
 #endif
 }

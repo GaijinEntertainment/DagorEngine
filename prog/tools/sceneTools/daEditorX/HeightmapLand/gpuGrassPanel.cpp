@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "gpuGrassPanel.h"
 #include "hmlCm.h"
 #include "de3_gpuGrassService.h"
@@ -5,7 +7,7 @@
 #include "GPUGrassTypePID.h"
 #include "GPUGrassDecalPID.h"
 #include <winGuiWrapper/wgw_dialogs.h>
-#include <propPanel2/comWnd/dialog_window.h>
+#include <propPanel/commonWindow/dialogWindow.h>
 #include <libTools/util/strUtil.h>
 #include <coolConsole/coolConsole.h>
 #include <oldEditor/de_interface.h>
@@ -35,7 +37,7 @@ void removeDecalType(GPUGrassDecal &decal, const char *name, DataBlock *blk)
   decalBlk->removeParam(name);
 }
 } // namespace
-void GPUGrassPanel::fillPanel(IGPUGrassService *service, DataBlock *grass_blk, PropPanel2 &panel)
+void GPUGrassPanel::fillPanel(IGPUGrassService *service, DataBlock *grass_blk, PropPanel::ContainerPropertyControl &panel)
 {
   G_ASSERT_RETURN(service, );
   G_ASSERT_RETURN(grass_blk, );
@@ -62,7 +64,7 @@ void GPUGrassPanel::fillPanel(IGPUGrassService *service, DataBlock *grass_blk, P
     if (type.name == "nograss")
       continue;
     int basePID = PID_GPU_GRASS_TYPE_START + i * (int)GPUGrassTypePID::COUNT;
-    PropertyContainerControlBase *typePanel = grassPanel->createGroup(basePID + (int)GPUGrassTypePID::NAME, type.name.c_str());
+    PropPanel::ContainerPropertyControl *typePanel = grassPanel->createGroup(basePID + (int)GPUGrassTypePID::NAME, type.name.c_str());
     typePanel->createFileButton(basePID + (int)GPUGrassTypePID::DIFFUSE, "Diffuse", type.diffuse.c_str());
     typePanel->createFileButton(basePID + (int)GPUGrassTypePID::NORMAL, "Normal", type.normal.c_str());
     typePanel->createEditInt(basePID + (int)GPUGrassTypePID::VARIATIONS, "Variations", type.variations);
@@ -105,7 +107,8 @@ void GPUGrassPanel::fillPanel(IGPUGrassService *service, DataBlock *grass_blk, P
   {
     GPUGrassDecal &decal = srv->getDecal(i);
     int basePID = PID_GPU_GRASS_DECAL_START + i * (int)GPUGrassDecalPID::COUNT;
-    PropertyContainerControlBase *decalPanel = grassPanel->createGroup(basePID + (int)GPUGrassDecalPID::NAME, decal.name.c_str());
+    PropPanel::ContainerPropertyControl *decalPanel =
+      grassPanel->createGroup(basePID + (int)GPUGrassDecalPID::NAME, decal.name.c_str());
     decalPanel->createEditInt(basePID + (int)GPUGrassDecalPID::ID, "Id", decal.id);
     decalPanel->createButton(basePID + (int)GPUGrassDecalPID::ADD_TYPE, "Add...", decal.channels.size() < MAX_TYPES_PER_CHANNEL);
     decalPanel->createButton(basePID + (int)GPUGrassDecalPID::REMOVE_TYPE, "Remove...", !decal.channels.empty(), false);
@@ -121,7 +124,7 @@ void GPUGrassPanel::fillPanel(IGPUGrassService *service, DataBlock *grass_blk, P
 
 bool GPUGrassPanel::isGrassValid() const
 {
-  if (srv->getTypeCount() == 0 || (srv->getTypeCount() == 1 && srv->getType(0).name == "nograss"))
+  if (!srv || srv->getTypeCount() == 0 || (srv->getTypeCount() == 1 && srv->getType(0).name == "nograss"))
     return false;
   for (int i = 0; i < srv->getDecalCount(); ++i)
   {
@@ -150,7 +153,7 @@ void GPUGrassPanel::reload()
     srv->closeGrass();
 }
 
-void GPUGrassPanel::onChange(int pcb_id, PropPanel2 *panel)
+void GPUGrassPanel::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   switch (pcb_id)
   {
@@ -297,8 +300,8 @@ void GPUGrassPanel::onChange(int pcb_id, PropPanel2 *panel)
   }
 }
 
-void GPUGrassPanel::onClick(int pcb_id, PropPanel2 *panel, const eastl::function<void()> &loadGPUGrassFromLevelBlk,
-  const eastl::function<void()> &fillPanel)
+void GPUGrassPanel::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel,
+  const eastl::function<void()> &loadGPUGrassFromLevelBlk, const eastl::function<void()> &fillPanel)
 {
   switch (pcb_id)
   {
@@ -549,9 +552,9 @@ void GPUGrassPanel::addGrassDecal(const GPUGrassDecal &decal)
 
 bool GPUGrassPanel::showNameDialog(const char *title, eastl::string &res, const eastl::function<bool(const char *)> &findName)
 {
-  eastl::unique_ptr<CDialogWindow> dialog(DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), title));
-  dialog->setInitialFocus(DIALOG_ID_NONE);
-  PropPanel2 *dlgPanel = dialog->getPanel();
+  eastl::unique_ptr<PropPanel::DialogWindow> dialog(DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), title));
+  dialog->setInitialFocus(PropPanel::DIALOG_ID_NONE);
+  PropPanel::ContainerPropertyControl *dlgPanel = dialog->getPanel();
   enum
   {
     PCB_EDIT,
@@ -562,7 +565,7 @@ bool GPUGrassPanel::showNameDialog(const char *title, eastl::string &res, const 
   while (true)
   {
     int ret = dialog->showDialog();
-    if (ret == DIALOG_ID_OK)
+    if (ret == PropPanel::DIALOG_ID_OK)
     {
       SimpleString name = dlgPanel->getText(PCB_EDIT);
       if (name.empty())
@@ -583,15 +586,15 @@ bool GPUGrassPanel::showNameDialog(const char *title, eastl::string &res, const 
 
 bool GPUGrassPanel::showMultiListDialog(const char *title, const Tab<String> &entries, Tab<int> &res)
 {
-  eastl::unique_ptr<CDialogWindow> dialog(DAGORED2->createDialog(_pxScaled(250), _pxScaled(620), title));
-  PropPanel2 *dlgPanel = dialog->getPanel();
+  eastl::unique_ptr<PropPanel::DialogWindow> dialog(DAGORED2->createDialog(_pxScaled(250), _pxScaled(620), title));
+  PropPanel::ContainerPropertyControl *dlgPanel = dialog->getPanel();
   enum
   {
     PCB_LIST,
   };
   clear_and_shrink(res);
   dlgPanel->createMultiSelectList(PCB_LIST, entries, _pxScaled(600));
-  if (dialog->showDialog() == DIALOG_ID_OK)
+  if (dialog->showDialog() == PropPanel::DIALOG_ID_OK)
   {
     dlgPanel->getSelection(PCB_LIST, res);
     return true;
@@ -601,15 +604,15 @@ bool GPUGrassPanel::showMultiListDialog(const char *title, const Tab<String> &en
 
 bool GPUGrassPanel::showListDialog(const char *title, const Tab<String> &entries, int &res)
 {
-  eastl::unique_ptr<CDialogWindow> dialog(DAGORED2->createDialog(_pxScaled(250), _pxScaled(200), title));
-  PropPanel2 *dlgPanel = dialog->getPanel();
+  eastl::unique_ptr<PropPanel::DialogWindow> dialog(DAGORED2->createDialog(_pxScaled(250), _pxScaled(200), title));
+  PropPanel::ContainerPropertyControl *dlgPanel = dialog->getPanel();
   enum
   {
     PCB_LIST,
   };
   res = -1;
   dlgPanel->createList(PCB_LIST, "Name", entries, 0);
-  if (dialog->showDialog() == DIALOG_ID_OK)
+  if (dialog->showDialog() == PropPanel::DIALOG_ID_OK)
   {
     res = dlgPanel->getInt(PCB_LIST);
     return true;

@@ -1,52 +1,74 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include "frameGraphModule.h"
+
+#include <render/daBfg/ecs/frameGraphNode.h>
+
 #include <shaders/dag_shaderVar.h>
 #include <dasModules/aotEcsContainer.h>
 #include <dasModules/dasMacro.h>
 #include <dasModules/dagorTexture3d.h>
+#include <dasModules/dasDagorResPtr.h>
 #include <dasModules/dasShaders.h>
 #include <daScript/src/builtin/module_builtin_rtti.h>
 
 #include <frontend/internalRegistry.h>
 #include <runtime/runtime.h>
-
 #include <api/das/frameGraphModule.h>
-#include <api/das/nodeEcsRegistration.h>
 #include <api/das/bindingHelper.h>
-#include <render/daBfg/ecs/frameGraphNode.h>
+#include <render/daBfg/das/registerBlobType.h>
 
 
 namespace bind_dascript
 {
 
-ManagedTexView getTexView(const dabfg::ResourceProvider &provider, dabfg::ResNameId resId, bool history)
+// Das script reloading is multithreaded, so we need to protect our runtime
+// Reloading of scripts happens between frames, so we shouldn't
+// synchronize reloading and main threads.
+das::mutex dabfgRuntimeMutex;
+
+bool is_dabfg_runtime_initialized() { return dabfg::Runtime::isInitialized(); }
+
+ManagedTexView getTexView(const dabfg::ResourceProvider *provider, dabfg::ResNameId resId, bool history)
 {
-  auto &storage = history ? provider.providedHistoryResources : provider.providedResources;
+  G_ASSERT(provider);
+  auto &storage = history ? provider->providedHistoryResources : provider->providedResources;
   if (auto it = storage.find(resId); it != storage.end())
     return eastl::get<ManagedTexView>(it->second);
   else
     return {};
 }
 
-ManagedBufView getBufView(const dabfg::ResourceProvider &provider, dabfg::ResNameId resId, bool history)
+ManagedBufView getBufView(const dabfg::ResourceProvider *provider, dabfg::ResNameId resId, bool history)
 {
-  auto &storage = history ? provider.providedHistoryResources : provider.providedResources;
+  G_ASSERT(provider);
+  auto &storage = history ? provider->providedHistoryResources : provider->providedResources;
   if (auto it = storage.find(resId); it != storage.end())
     return eastl::get<ManagedBufView>(it->second);
   else
     return {};
 }
 
-IPoint2 getResolution(const dabfg::ResourceProvider &provider, dabfg::AutoResTypeNameId resId) { return provider.resolutions[resId]; }
+IPoint2 getResolution2(const dabfg::ResourceProvider *provider, dabfg::AutoResTypeNameId resId)
+{
+  G_ASSERT(provider);
+  return eastl::get<IPoint2>(provider->resolutions[resId]);
+}
 
-const dabfg::ResourceProvider &getProvider(dabfg::InternalRegistry *registry)
+IPoint3 getResolution3(const dabfg::ResourceProvider *provider, dabfg::AutoResTypeNameId resId)
+{
+  G_ASSERT(provider);
+  return eastl::get<IPoint3>(provider->resolutions[resId]);
+}
+
+const dabfg::ResourceProvider *getProvider(dabfg::InternalRegistry *registry)
 {
   G_ASSERT(registry);
-  return registry->resourceProviderReference;
+  return &registry->resourceProviderReference;
 }
 
 dabfg::NodeTracker &getTracker() { return dabfg::Runtime::get().getNodeTracker(); }
-dabfg::InternalRegistry &getRegistry() { return dabfg::Runtime::get().getInternalRegistry(); }
-
-int getShaderVariableId(const char *name) { return VariableMap::getVariableId(name); }
+dabfg::InternalRegistry *getRegistry() { return &dabfg::Runtime::get().getInternalRegistry(); }
 
 void registerNode(dabfg::NodeTracker &node_tracker, dabfg::NodeNameId nodeId, das::Context *context)
 {
@@ -78,11 +100,11 @@ void fillSlot(dabfg::NameSpaceNameId ns, const char *slot, dabfg::NameSpaceNameI
 void registerNodeDeclaration(dabfg::NodeData &node_data, dabfg::NameSpaceNameId ns_id, DasDeclarationCallBack declaration_callback,
   das::Context *context)
 {
-  node_data.declare = [context, declCb = das::GcRootLambda(eastl::move(declaration_callback), context), ns_id] //
+  G_UNUSED(ns_id);
+  node_data.declare = [context, declCb = das::GcRootLambda(eastl::move(declaration_callback), context)] //
     (dabfg::NodeNameId nodeId, dabfg::InternalRegistry * r) {
-      DasRegistry registry{ns_id, nodeId, r};
-      const auto invokeDeclCb = [context, &declCb, &registry]() {
-        return das::das_invoke_lambda<DasExecutionCallback>::invoke<DasRegistry &>(context, nullptr, declCb, registry);
+      const auto invokeDeclCb = [context, &declCb]() {
+        return das::das_invoke_lambda<DasExecutionCallback>::invoke<>(context, nullptr, declCb);
       };
       r->nodes[nodeId].nodeSource = context->name;
       auto executionCallback = callDasFunction(context, invokeDeclCb);
@@ -105,7 +127,10 @@ struct ResourceProviderAnnotation final : das::ManagedStructureAnnotation<dabfg:
 
 struct NodeHandleAnnotation final : das::ManagedStructureAnnotation<dabfg::NodeHandle>
 {
-  NodeHandleAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("NodeHandle", ml, "dabfg::NodeHandle") {}
+  NodeHandleAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("NodeHandle", ml, "dabfg::NodeHandle")
+  {
+    addProperty<DAS_BIND_MANAGED_PROP(valid)>("valid", "valid");
+  }
   bool canMove() const override { return true; }
   bool canCopy() const override { return false; }
 };
@@ -125,37 +150,11 @@ struct InternalRegistryAnnotation final : das::ManagedStructureAnnotation<dabfg:
   }
 };
 
-struct DasNameSpaceRequestAnnotation final : das::ManagedStructureAnnotation<DasNameSpaceRequest>
-{
-  DasNameSpaceRequestAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("NameSpaceRequest", ml, "DasNameSpaceRequest")
-  {
-    addField<DAS_BIND_MANAGED_FIELD(nameSpaceId)>("nameSpaceId");
-    addField<DAS_BIND_MANAGED_FIELD(nodeId)>("nodeId");
-    addField<DAS_BIND_MANAGED_FIELD(registry)>("registry");
-  }
-};
-
-struct DasRegistryAnnotation final : das::ManagedStructureAnnotation<DasRegistry>
-{
-  DasRegistryAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("Registry", ml, "DasRegistry")
-  {
-    addField<DAS_BIND_MANAGED_FIELD(nameSpaceId)>("nameSpaceId");
-    addField<DAS_BIND_MANAGED_FIELD(nodeId)>("nodeId");
-    addField<DAS_BIND_MANAGED_FIELD(registry)>("registry");
-  }
-};
-
-static char frameGraphNodes_das[] =
-#include "frameGraphModule.das.inl"
-  ;
 
 namespace bind_dascript
 {
 
-// Das script reloading is multithreaded, so we need to protect our runtime
-das::mutex dabfgRuntimeMutex;
-
-DaBfgModule::DaBfgModule() : das::Module("daBfg")
+DaBfgCoreModule::DaBfgCoreModule() : das::Module("daBfgCore")
 {
   das::ModuleLibrary lib(this);
 
@@ -171,26 +170,26 @@ DaBfgModule::DaBfgModule() : das::Module("daBfg")
     // One could make a fancy refcount system, but it's not worth it.
     if (!dabfg::Runtime::isInitialized())
       return;
-    dabfg::Runtime::get().getNodeTracker().wipeContextNodes(ctx);
+    auto &rt = dabfg::Runtime::get();
+    auto resIdsToWipe = rt.getNodeTracker().wipeContextNodes(ctx);
+    if (resIdsToWipe.has_value())
+    {
+      // Note that with this mechanism we wipe more than we need to: even
+      // non das-native blobs will get emergency wiped, but we are OK with that.
+      rt.wipeBlobsBetweenFrames(*resIdsToWipe);
+      debug("daBfg: Wiped nodes and blobs managed by context %p", ctx);
+    }
   });
-
-  addBuiltinDependency(lib, das::Module::require("DagorResPtr"), true);
-  addBuiltinDependency(lib, das::Module::require("DagorDriver3D"), true);
-  addBuiltinDependency(lib, das::Module::require("DagorShaders"), true);
 
   addEnumerations(lib);
 
   addStructureAnnotations(lib);
   addNodeDataAnnotation(lib);
 
-  addAnnotation(das::make_smart<NodeEcsRegistrationAnnotation>(dabfgRuntimeMutex));
   addAnnotation(das::make_smart<ResourceProviderAnnotation>(lib));
   addAnnotation(das::make_smart<InternalRegistryAnnotation>(lib));
   addAnnotation(das::make_smart<NodeTrackerAnnotation>(lib));
 
-  addAnnotation(das::make_smart<DasNameSpaceRequestAnnotation>(lib));
-  addAnnotation(das::make_smart<DasRegistryAnnotation>(lib));
-  das::setParents(lib.getThisModule(), "Registry", {"NameSpaceRequest"});
   addAnnotation(das::make_smart<NodeHandleAnnotation>(lib));
 
   das::addUsing<TextureResourceDescription>(*this, lib, "TextureResourceDescription");
@@ -204,19 +203,17 @@ DaBfgModule::DaBfgModule() : das::Module("daBfg")
   CLASS_MEMBER_SIGNATURE(dabfg::NodeTracker::unregisterNode, "unregisterNode", das::SideEffects::modifyArgumentAndExternal,
     void(dabfg::NodeTracker::*)(dabfg::NodeNameId, uint16_t));
 
-  BIND_FUNCTION(bind_dascript::getShaderVariableId, "get_shader_variable_id", das::SideEffects::accessExternal);
   BIND_FUNCTION(bind_dascript::getTexView, "getTexView", das::SideEffects::accessExternal)
   BIND_FUNCTION(bind_dascript::getBufView, "getBufView", das::SideEffects::accessExternal)
+  BIND_FUNCTION(bind_dascript::getResolution2, "getResolution`2", das::SideEffects::accessExternal)
+  BIND_FUNCTION(bind_dascript::getResolution3, "getResolution`3", das::SideEffects::accessExternal)
   BIND_FUNCTION(bind_dascript::fillSlot, "fill_slot", das::SideEffects::modifyExternal)
   BIND_FUNCTION(bind_dascript::resetNode, "resetNode", das::SideEffects::modifyArgument)
-  BIND_FUNCTION(bind_dascript::getResolution, "getResolution", das::SideEffects::accessExternal)
 
   das::addExtern<DAS_BIND_FUN(bind_dascript::getTracker), das::SimNode_ExtFuncCallRef>(*this, lib, "getTracker",
     das::SideEffects::accessExternal, "bind_dascript::getTracker");
-  das::addExtern<DAS_BIND_FUN(bind_dascript::getRegistry), das::SimNode_ExtFuncCallRef>(*this, lib, "getRegistry",
-    das::SideEffects::accessExternal, "bind_dascript::getRegistry");
-  das::addExtern<DAS_BIND_FUN(bind_dascript::getProvider), das::SimNode_ExtFuncCallRef>(*this, lib, "getResourceProvider",
-    das::SideEffects::accessExternal, "bind_dascript::getProvider");
+  BIND_FUNCTION(bind_dascript::getRegistry, "getRegistry", das::SideEffects::accessExternal)
+  BIND_FUNCTION(bind_dascript::getProvider, "getProvider", das::SideEffects::accessExternal)
   das::addExtern<DAS_BIND_FUN(dabfg::register_external_node), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib,
     "register_external_node", das::SideEffects::none, "dabfg::register_external_node");
   das::addExtern<DAS_BIND_FUN(bind_dascript::setEcsNodeHandleHint)>(*this, lib, "set", das::SideEffects::modifyArgument,
@@ -226,16 +223,19 @@ DaBfgModule::DaBfgModule() : das::Module("daBfg")
     ->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1>>()));
   das::addExtern<DAS_BIND_FUN(bind_dascript::registerNodeDeclaration)>(*this, lib, "registerNodeDeclaration",
     das::SideEffects::modifyArgumentAndExternal, "bind_dascript::registerNodeDeclaration");
+  das::addExtern<DAS_BIND_FUN(bind_dascript::is_dabfg_runtime_initialized)>(*this, lib, "is_dabfg_runtime_initialized",
+    das::SideEffects::accessExternal, "bind_dascript::is_dabfg_runtime_initialized");
 
   das::typeFactory<NodeHandleVector>::make(lib);
+  dabfg::das::register_external_interop_type<d3d::SamplerHandle>(lib);
 
-  compileBuiltinModule("frameGraphModule.das", (unsigned char *)frameGraphNodes_das, sizeof(frameGraphNodes_das));
+  addBlobBindings(lib);
+
   verifyAotReady();
 }
 
-das::ModuleAotType DaBfgModule::aotRequire(das::TextWriter &tw) const
+das::ModuleAotType DaBfgCoreModule::aotRequire(das::TextWriter &tw) const
 {
-  tw << "#include <api/das/nodeEcsRegistration.h>\n";
   tw << "#include <api/das/frameGraphModule.h>\n";
   tw << "#include <render/daBfg/ecs/frameGraphNode.h>\n";
   return das::ModuleAotType::cpp;
@@ -243,4 +243,4 @@ das::ModuleAotType DaBfgModule::aotRequire(das::TextWriter &tw) const
 
 } // namespace bind_dascript
 
-REGISTER_MODULE_IN_NAMESPACE(DaBfgModule, bind_dascript);
+REGISTER_MODULE_IN_NAMESPACE(DaBfgCoreModule, bind_dascript);

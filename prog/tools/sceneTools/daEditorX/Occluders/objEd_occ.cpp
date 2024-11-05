@@ -1,21 +1,28 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "objEd_occ.h"
 #include "plugin_occ.h"
 #include "occluder.h"
 
-#include <dllPluginCore/core.h>
+#include <EditorCore/ec_IEditorCore.h>
 #include <EditorCore/ec_ObjectCreator.h>
 #include <coolConsole/coolConsole.h>
 #include <oldEditor/de_cm.h>
 #include <de3_editorEvents.h>
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 
 #include <winGuiWrapper/wgw_input.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 
-#include <propPanel2/comWnd/dialog_window.h>
+#include <propPanel/commonWindow/dialogWindow.h>
 
 #include <debug/dag_debug.h>
+
+using editorcore_extapi::dagConsole;
+using editorcore_extapi::dagGeom;
+using editorcore_extapi::dagRender;
 
 enum
 {
@@ -41,16 +48,16 @@ occplugin::ObjEd::ObjEd() : cloneMode(false), objCreator(NULL)
 occplugin::ObjEd::~ObjEd() { dagRender->deleteDynRenderBuffer(ptDynBuf); }
 
 
-void occplugin::ObjEd::fillToolBar(PropertyContainerControlBase *toolbar)
+void occplugin::ObjEd::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
 {
-  PropertyContainerControlBase *tb1 = toolbar->createToolbarPanel(0, "");
+  PropPanel::ContainerPropertyControl *tb1 = toolbar->createToolbarPanel(0, "");
 
   addButton(tb1, CM_CREATE_OCCLUDER_BOX, "create_box", "Create box Occluder (1)", true);
   addButton(tb1, CM_CREATE_OCCLUDER_QUAD, "create_plane", "Create quad Occluder (2)", true);
 
   ObjectEditor::fillToolBar(toolbar);
 
-  PropertyContainerControlBase *tb2 = toolbar->createToolbarPanel(0, "");
+  PropPanel::ContainerPropertyControl *tb2 = toolbar->createToolbarPanel(0, "");
 
   addButton(tb2, CM_SHOW_LOCAL_OCCLUDERS, "show_loc_occ", "Show local occluders (Ctrl-1)", true);
   addButton(tb2, CM_SHOW_ALL_OCCLUDERS, "show_occ", "Show all occluders (Ctrl-2)", true);
@@ -61,7 +68,7 @@ void occplugin::ObjEd::fillToolBar(PropertyContainerControlBase *toolbar)
 }
 
 
-void occplugin::ObjEd::addButton(PropertyContainerControlBase *tb, int id, const char *bmp_name, const char *hint, bool check)
+void occplugin::ObjEd::addButton(PropPanel::ContainerPropertyControl *tb, int id, const char *bmp_name, const char *hint, bool check)
 {
   if (id == CM_OBJED_DROP || id == CM_OBJED_MODE_SURF_MOVE)
     return;
@@ -479,7 +486,7 @@ void occplugin::ObjEd::handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif)
 }
 
 
-void occplugin::ObjEd::onClick(int pcb_id, PropPanel2 *panel)
+void occplugin::ObjEd::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   switch (pcb_id)
   {
@@ -519,11 +526,11 @@ void occplugin::ObjEd::onClick(int pcb_id, PropPanel2 *panel)
 
     case CM_GATHER_OCCLUDERS:
     {
-      CDialogWindow *myDlg = DAGORED2->createDialog(hdpi::_pxScaled(240), hdpi::_pxScaled(480), "Gather occluders");
-      PropertyContainerControlBase *myPanel = myDlg->getPanel();
+      PropPanel::DialogWindow *myDlg = DAGORED2->createDialog(hdpi::_pxScaled(240), hdpi::_pxScaled(480), "Gather occluders");
+      PropPanel::ContainerPropertyControl *myPanel = myDlg->getPanel();
       Plugin::self->fillExportPanel(*myPanel);
 
-      if (myDlg->showDialog() != DIALOG_ID_OK)
+      if (myDlg->showDialog() != PropPanel::DIALOG_ID_OK)
         dagConsole->showConsole(DAGORED2->getConsole(), true);
       else if (!Plugin::self->validateBuild(_MAKE4C('PC'), DAGORED2->getConsole(), myPanel))
         wingw::message_box(wingw::MBS_EXCL, "Gather failed", "Errors during occluders gathering\nSee console for details.");

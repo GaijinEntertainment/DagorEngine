@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_outline_pull OutlineModule_pull ;
+  UseProgLibs += daNetGameLibs/outline ;
+}

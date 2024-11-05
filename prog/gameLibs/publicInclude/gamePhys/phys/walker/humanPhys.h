@@ -1,13 +1,13 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <gamePhys/phys/commonPhysBase.h>
 #include <EASTL/unique_ptr.h>
 #include <gamePhys/collision/collisionObject.h>
+#include <gamePhys/collision/contactData.h>
 #include <generic/dag_carray.h>
 #include <util/dag_simpleString.h>
 #include <gamePhys/collision/collisionLinks.h>
@@ -32,6 +32,7 @@ struct CollisionContactData;
 
 class GeomNodeTree;
 struct PrecomputedWeaponPositions;
+class ECSCustomPhysStateSyncer;
 
 enum HUMoveState : uint8_t
 {
@@ -54,8 +55,9 @@ enum HUStandState : uint8_t
   ESS_SWIM_UNDERWATER,
   ESS_CLIMB,
   ESS_CLIMB_THROUGH,
-  ESS_EXTERNAL_CONTROLLED,
   ESS_CLIMB_OVER,
+  ESS_CLIMB_LADDER,
+  ESS_EXTERNALLY_CONTROLLED,
   ESS_NUM,
 };
 
@@ -66,9 +68,8 @@ struct HumanDmgState
   HumanDmgState() : legsHitTimer(0.f) {}
 };
 
-struct HumanSerializableState
+struct HumanSerializableState //-V730
 {
-  HumanSerializableState() {} //-V730
   int32_t atTick = -1;
   bool canBeCheckedForSync;
 
@@ -133,6 +134,7 @@ struct HumanSerializableState
   float jumpSpeedMult = 1.f;
   float climbingSpeedMult = 1.f;
   float staminaSprintDrainMult = 1.f;
+  float staminaClimbDrainMult = 1.f;
   float accelerationMult = 1.f;
   float maxStaminaMult = 1.f;
   float restoreStaminaMult = 1.f;
@@ -163,6 +165,7 @@ struct HumanSerializableState
   uint16_t isUnderwater : 1;
   uint16_t isHoldBreath : 1;
   uint16_t attachedToLadder : 1;
+  uint16_t pulledToLadder : 1;
   uint16_t blockSprint : 1;
   uint16_t climbThrough : 1;
   uint16_t isClimbingOverObstacle : 1;
@@ -230,12 +233,6 @@ struct HumanSerializableState
 
 struct HumanPhysState : public HumanSerializableState
 {
-// Disable tail padding optimization for das aot compiler when building for non MS consoles on windows since win build doesn't have it
-#if !_TARGET_PC && !defined(_MSC_VER)
-private:
-  char _no_tail_padding[4]; //-V730_NOINIT
-public:
-#endif
   int lastAppliedControlsForTick = -2; // < atTick
 
   Point3 omega;
@@ -247,16 +244,20 @@ public:
   int lastCcdCollisionTick = -1;
 
   float ladderAttachProgress = 0.f;
-  bool guidedByLadder = false;
   uint16_t ladderNumSteps = 0;
+  bool guidedByLadder = false;
 
   bool isControllable = true;
+  bool isWishToMove = false; // I.e. if moving by controls
 
   Point3 torsoCollisionTmPos = Point3(0.f, 0.f, 0.f);
 
   int walkMatId = 0;
   int torsoContactMatId = PHYSMAT_INVALID;
-  int torsoContactRendinstPool = -1;
+  int16_t torsoContactRendinstPool = -1;
+  // TODO: replace to StaticTab<> after fixing it's `is_trivially_destructible` trait
+  uint16_t numTorsoContacts = 0;
+  carray<gamephys::CollisionContactDataMin, 2> torsoContacts;
 
   HumanPhysState();
 
@@ -329,7 +330,7 @@ public:
   HUStandState getStandState() const
   {
     if (externalControlled)
-      return ESS_EXTERNAL_CONTROLLED;
+      return ESS_EXTERNALLY_CONTROLLED;
     if (isClimbing)
       return climbThrough ? ESS_CLIMB_THROUGH : isClimbingOverObstacle ? ESS_CLIMB_OVER : ESS_CLIMB;
     if (isSwimming)
@@ -340,9 +341,13 @@ public:
       return ESS_CRAWL;
     if (isCrouch())
       return ESS_CROUCH;
+    if (attachedToLadder || pulledToLadder)
+      return ESS_CLIMB_LADDER;
     return ESS_STAND;
   }
 };
+DAG_DECLARE_RELOCATABLE(HumanPhysState);
+
 #if !_TARGET_PC && !defined(_MSC_VER)
 G_STATIC_ASSERT(offsetof(HumanPhysState, lastAppliedControlsForTick) % alignof(HumanSerializableState) == 0);
 // Add HumanPhysState::_no_tail_padding if this assertion fails
@@ -363,8 +368,11 @@ struct ClimbQueryResults
   Point3 climbDir = Point3(0.f, 1.f, 0.f);
 };
 
-class HumanPhys final : public PhysicsBase<HumanPhysState, HumanControlState, CommonPhysPartialState, false, false>
+class HumanPhys final : public PhysicsBase<HumanPhysState, HumanControlState, CommonPhysPartialState>
 {
+  using BaseType = PhysicsBase<HumanPhysState, HumanControlState, CommonPhysPartialState>;
+
+  DPoint3 ccdMove = {0.0, 0.0, 0.0};
   carray<carray<float, EMS_NUM>, ESS_NUM> walkSpeeds;
   carray<float, ESS_NUM> rotateSpeeds;
   carray<float, ESS_NUM> alignSpeeds;
@@ -397,11 +405,15 @@ class HumanPhys final : public PhysicsBase<HumanPhysState, HumanControlState, Co
   bool canWallJump = false;
   bool climber = false;
   bool isInertMovement = false;
+  bool canStartSprintWithResistance = false;
+  bool additionalHeightCheck = false;
 
   float ladderClimbSpeed = 1.f;
   float ladderQuickMoveUpSpeedMult = -1.0f;
   float ladderQuickMoveDownSpeedMult = -1.0f;
   float ladderCheckClimbHeight = 1.9f;
+  float ladderZeroVelocityHeight = 1.7f;
+  float ladderMaxOverHeight = 0.1f;
 
   float stepAccel = 8.f;
 
@@ -411,6 +423,9 @@ class HumanPhys final : public PhysicsBase<HumanPhysState, HumanControlState, Co
   float maxStepOverHeight = 0.0f;
   float maxCrawlObstacleHeight = 0.5f;
   float maxObstacleDownReach = 0.1f;
+
+  Point2 forceDownReachDists = Point2(-1.0f, 0.0f);
+  float forceDownReachVel = 0.f;
 
   float turnSpeedStill = TWOPI;
   float turnSpeedWalk = 1.5f * PI;
@@ -486,10 +501,6 @@ class HumanPhys final : public PhysicsBase<HumanPhysState, HumanControlState, Co
   float climbOverMinHeightBehindObstacle = 0.5f;
   float climbOverStaticVelocity = 2.f;
 
-  float maxWalkSpeedLimitChangeSpeed = 4.f;
-  float maxWalkSpeedLimitRestoreSpeed = 4.f;
-
-  CollisionObject feetCollision;
   CollisionObject torsoCollision;
   CollisionObject climberCollision;
 
@@ -573,6 +584,7 @@ class HumanPhys final : public PhysicsBase<HumanPhysState, HumanControlState, Co
     bool isSliding = true;
     bool haveContact = false;
     int torsoContactMatId = PHYSMAT_INVALID;
+    StaticTab<gamephys::CollisionContactData, 2> torsoContacts;
     int rendinstPool = -1;
   };
   TorsoCollisionResults processTorsoCollision(TMatrix &tm, int num_iter, float speed_coll_hardness, float at_time);
@@ -631,6 +643,7 @@ public:
   bool hasGuns = true; // TODO: as above, move to a separate thing when we'll separate it into ecsphys
   bool hasExternalHeight = true;
   bool canFinishClimbing = true;
+  bool canMove = true; // It differs from controllable in that when set to false, it disables _only_ movement
 
   bool allowWeaponSwitchOnSprint = false;
   float airStaminaRestoreMult = 0.5f;
@@ -650,11 +663,22 @@ public:
   void updatePhysInWorld(const TMatrix &tm) override;
   int getCollisionMatId() const { return humanCollision->collObjUd.matId; }
   void setCollisionMatId(int mat_id) { humanCollision->collObjUd.matId = mat_id; }
+  HumanPhysState *getAuthorityApprovedState() const { return authorityApprovedState.get(); }
   void updateHeadDir(float dt);
   void updateAimPos(float dt, bool is_aiming);
   virtual dag::ConstSpan<CollisionObject> getCollisionObjects() const override;
   TMatrix getCollisionObjectsMatrix() const override;
   uint64_t getActiveCollisionObjectsBitMask() const override { return isTorsoInWorld ? ALL_COLLISION_OBJECTS : 0ull; }
+  void applyPseudoVelOmegaDelta(const DPoint3 &add_pos, const DPoint3 &add_ori) override final
+  {
+    applyPseudoVelOmegaDeltaImpl(add_pos, add_ori, &ccdMove);
+  }
+  gamephys::Loc lerpVisualLoc(const PhysStateBase &prevState, const PhysStateBase &curState, float time_step,
+    float at_time) override final
+  {
+    // Note: human's velocity is unreliable in case of collision
+    return lerpVisualLocImpl(prevState, curState, time_step, at_time, /*lerp_vel*/ false);
+  }
 
   bool processCcdOffset(TMatrix &tm, const Point3 &to_pos, const Point3 &offset, float collision_margin, float speed_hardness,
     bool secondary_ccd, const Point3 &ccd_pos);
@@ -668,7 +692,6 @@ public:
 
   Point3 calcCcdPos() const;
   virtual void setTmRough(TMatrix tm) override final;
-  virtual void setOrientationRough(gamephys::Orient orient) override final;
 
   virtual void applyOffset(const Point3 &offset) override;
 
@@ -706,7 +729,6 @@ public:
 
   void drawDebug();
 
-  void setWeaponOffs(const Point3 &offs, const Point3 &crouch_offs, int slot_id = -1);
   void setWeaponLen(float len, int slot_id = -1);
 
   void setStateFlag(HumanPhysState::StateFlag flag, bool enable);
@@ -715,14 +737,16 @@ public:
 
   TraceMeshFaces *getTraceHandle() const override { return &humanCollision->cachedTraceMeshFaces; }
   float getWalkSpeed(HUStandState ss, HUMoveState ms) const { return walkSpeeds[ss][ms]; }
+  void setWalkSpeed(HUStandState ss, HUMoveState ms, float value) { walkSpeeds[ss][ms] = value; }
   float getWishVertJumpSpeed(HUStandState ss, HUMoveState ms) const { return wishVertJumpSpeed[ss][ms]; }
 
   inline float getMaxObstacleHeight() const { return maxObstacleHeight; }
 
-  const CollisionObject &getFeetCollision() const { return feetCollision; }
   const CollisionObject &getTorsoCollision() const { return torsoCollision; }
   const CollisionObject &getClimberCollision() const { return climberCollision; }
   const CollisionObject &getWallJumpCollision() const { return wallJumpCollision; }
+
+  float getLadderClimbSpeed() const { return ladderClimbSpeed; }
 };
 
-extern template class PhysicsBase<HumanPhysState, HumanControlState, CommonPhysPartialState, false, false>;
+extern template class PhysicsBase<HumanPhysState, HumanControlState, CommonPhysPartialState>;

@@ -1,0 +1,114 @@
+include "world_sdf_update_common.dshl"
+include "world_sdf_project_common.dshl"
+int supports_sh_6_1;
+interval supports_sh_6_1: off<1, on;
+
+macro INIT_RASTERIZE_SDF()
+  WORLD_SDF_RES_MATH(ps)
+  WSDF_COORD_UPDATE(ps)
+  hlsl(ps) {
+    #include <world_sdf_dist.hlsl>
+    #include <world_sdf.hlsli>
+    #include <point_distance.hlsl>
+    #include <world_sdf_interpolant.hlsl>
+    RWByteAddressBuffer world_sdf_clipmap_rasterize : register(u2);
+    void writeVoxel(int3 coord, WorldSDFInterpolant input)
+    {
+      uint3 rasterCoord = world_sdf_raster_target_coord_from_world(coord);
+      if (any(rasterCoord >= world_sdf_raster_width()))//that's just faster to skip
+        return;
+      float3 worldPos = input.worldPos;
+      //we clamp instead of early exit. That allows us to safely write best possible distance at edge
+      //coord = clamp(coord, world_sdf_raster_begin(), world_sdf_raster_end()-1);
+      //uint3 rasterCoord = world_sdf_raster_target_coord_from_world(coord);
+      float voxelSize = world_sdf_raster_voxel_size();
+      float maxEncodedDistance = MAX_WORLD_SDF_VOXELS_BAND*voxelSize;
+      float3 voxelCenter = (coord.xzy + 0.5)*voxelSize;
+
+      float minDistance = length(voxelCenter - worldPos); // with GS we could pass triangle and calc exact distance
+      #if RASTERIZE_PRIMS
+        //worldPos = closestPointOnTriangleBarycentric(voxelCenter, input.va, input.vb, input.vc);
+        //minDistance = length(voxelCenter - worldPos);
+        //todo: remove sqrt
+        minDistance = pointTriangleSignedDistance(voxelCenter, input.va, input.vb, input.vc);
+        //minDistance = sqrt(pointTriangleDistanceSq(voxelCenter, input.va, input.vb, input.vc));
+      #endif
+      float writeDist = minDistance/maxEncodedDistance;
+      //float writeDist = (minDistance/maxEncodedDistance*0.5 + 0.5);
+      //minDistance /= maxEncodedDistance;
+      if (abs(writeDist) < 1)
+        world_sdf_clipmap_rasterize.InterlockedMin(4*world_sdf_raster_index(rasterCoord), encode_world_sdf(writeDist));
+    }
+    void write_world_sdf(WorldSDFInterpolant input)
+    {
+      //return;
+      float3 worldPos = input.worldPos;
+      uint axis = input.axis;
+      int3 unwrappedCoordBase = floor(worldPos.xzy*world_sdf_raster_inv_voxel_size());
+      //return;
+      bool full_around = true;
+      uint N = WORLD_SDF_RASTERIZE_VOXELS_DIST;
+      N = 1;
+      //N = 2;
+      int3 axisVec = axis == 0 ? int3(1,0,0) : axis == 1 ? int3(0,0,1) : int3(0,1,0);
+      //axisVec = 1;
+      int3 unwrappedCoordLt, unwrappedCoordRb;
+      if (!full_around)
+      {
+        unwrappedCoordLt = unwrappedCoordBase - axisVec*N;
+        unwrappedCoordRb = unwrappedCoordBase + axisVec*N;
+      } else
+      {
+        unwrappedCoordLt = unwrappedCoordBase - N;
+        unwrappedCoordRb = unwrappedCoordBase + N;
+      }
+      if (!(any(unwrappedCoordRb < world_sdf_raster_begin()-1 || unwrappedCoordLt > world_sdf_raster_end())))//that's just faster
+      {
+        writeVoxel(unwrappedCoordBase, input); // to increase chances of writing closest distance, write that first and latest
+        int3 roundCoord = floor(worldPos.xzy*world_sdf_raster_inv_voxel_size() + 0.5);
+        uint distRoundToExact = dot(uint3(abs(unwrappedCoordBase-roundCoord)), 1u);
+        if (distRoundToExact > 1)
+          writeVoxel(roundCoord, input); // to increase chances of writing closest distance, write that first and latest
+        if (full_around)
+        {
+          #if 1
+          //super optimized version
+          int i = 1;
+          //UNROLL
+          //for (int i = 1; i <= N; ++i)
+          {
+          writeVoxel(unwrappedCoordBase + int3(-i,0,0), input);
+          writeVoxel(unwrappedCoordBase + int3(+i,0,0), input);
+          writeVoxel(unwrappedCoordBase + int3(0,-i,0), input);
+          writeVoxel(unwrappedCoordBase + int3(0,+i,0), input);
+          writeVoxel(unwrappedCoordBase + int3(0,0,-i), input);
+          writeVoxel(unwrappedCoordBase + int3(0,0,+i), input);
+          }
+          #else
+          UNROLL
+          for (int j = 1; j <= N; ++j)
+          {
+          UNROLL
+          for (uint i = 0; i < 27; ++i)
+          {
+            if (i == 1 + 1*3 + 1*9)//13, center
+              continue;
+            int3 ofs = int3(i%3, (i/3)%3, i/9) - 1;
+            writeVoxel(unwrappedCoordBase + ofs*j, worldPos, input);
+          }
+          }
+          #endif
+        } else
+        {
+          UNROLL
+          for (uint i = 1; i <= N; ++i)
+          {
+            writeVoxel(unwrappedCoordBase - axisVec*i, input);
+            writeVoxel(unwrappedCoordBase + axisVec*i, input);
+          }
+        }
+        //writeVoxel(unwrappedCoordBase, worldPos); // to increase chances of writing closest distance, write that latest
+      }
+    }
+  }
+endmacro

@@ -1,7 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <fx/dag_commonFx.h>
 #include <3d/dag_texMgr.h>
 #include <3d/dag_texMgrTags.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_tex3d.h>
 #include <startup/dag_globalSettings.h>
 #include <generic/dag_tab.h>
 #include <debug/dag_debug.h>
@@ -40,7 +42,7 @@ void update_and_prefetch_fx_textures_used()
     return;
 
   prefetch_managed_textures(active_fx_tex);
-  mark_managed_textures_important(active_fx_tex, 1);
+  mark_managed_textures_important(active_fx_tex, 1, 10);
   for (TEXTUREID tid : active_fx_tex)
     mark_managed_tex_lfu(tid);
 }

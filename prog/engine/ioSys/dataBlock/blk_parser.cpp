@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "blk_shared.h"
 #include <generic/dag_tab.h>
 #include <osApiWrappers/dag_direct.h>
@@ -956,6 +958,9 @@ bool DataBlockParser::parse(DataBlock &blk, bool isTop)
 
     if (endOfText())
       SYNTAX_ERROR("unexpected EOF");
+    bool name_not_null = true;
+    if (strcmp(name, "@null") == 0)
+      name_not_null = false, name[0] = '\0';
 
     if (*curp == '{')
     {
@@ -972,7 +977,7 @@ bool DataBlockParser::parse(DataBlock &blk, bool isTop)
       {
         if (DAGOR_UNLIKELY(blk.blockCount() == eastl::numeric_limits<decltype(DataBlock::blocksCount)>::max()))
           SYNTAX_ERROR("blocks count exceeds maximum value");
-        nb = blk.addNewBlock(name);
+        nb = blk.addNewBlock(name_not_null ? name.c_str() : (const char *)nullptr);
       }
       else if (DataBlock::parseOverridesIgnored)
         ; // do nothing
@@ -1214,7 +1219,7 @@ bool DataBlockParser::parse(DataBlock &blk, bool isTop)
           if (!getValue(value))
             return false;
 
-          ADD_PARAM_CHECKED(name.c_str(), type, value);
+          ADD_PARAM_CHECKED(name_not_null ? name.c_str() : (const char *)nullptr, type, value);
         }
         wasNewlineAfterStatement = false;
         lastStatement = 0;
@@ -1227,7 +1232,7 @@ bool DataBlockParser::parse(DataBlock &blk, bool isTop)
 
       if (name[0] != '@' || DataBlock::parseOverridesNotApply)
       {
-        ADD_PARAM_CHECKED(name.c_str(), type, value);
+        ADD_PARAM_CHECKED(name_not_null ? name.c_str() : (const char *)nullptr, type, value);
       }
       else if (DataBlock::parseOverridesIgnored)
         ; // do nothing
@@ -1355,7 +1360,7 @@ bool DataBlockParser::parse(DataBlock &blk, bool isTop)
 
       if (name[0] != '@' || DataBlock::parseOverridesNotApply)
       {
-        ADD_PARAM_CHECKED(name.c_str(), DataBlock::TYPE_STRING, value);
+        ADD_PARAM_CHECKED(name_not_null ? name.c_str() : (const char *)nullptr, DataBlock::TYPE_STRING, value);
       }
       else if (DataBlock::parseOverridesIgnored)
         ; // do nothing
@@ -1823,6 +1828,8 @@ void DataBlock::setRootIncludeResolver(const char *root)
   gen_root_inc_resv.root = root && root[0] ? root : ".";
   setIncludeResolver(&gen_root_inc_resv);
 }
+
+bool DataBlock::resolveIncludePath(String &inout_fname) { return fresolve->resolveIncludeFile(inout_fname); }
 
 #define EXPORT_PULL dll_pull_iosys_datablock_parser
 #include <supp/exportPull.h>

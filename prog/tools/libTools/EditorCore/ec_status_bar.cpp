@@ -1,9 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EditorCore/ec_status_bar.h>
 #include <EditorCore/ec_cm.h>
 #include <EditorCore/ec_gridobject.h>
 #include <EditorCore/ec_camera_elem.h>
 
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/control/container.h>
 
 #include <debug/dag_debug.h>
 
@@ -42,14 +44,15 @@ ToolBarManager::ToolBarManager() :
 void ToolBarManager::init(int toolbar_id)
 {
   tbId = toolbar_id;
-  PropertyContainerControlBase *tool = EDITORCORE->getCustomPanel(tbId);
+  PropPanel::ContainerPropertyControl *tool = EDITORCORE->getCustomPanel(tbId);
   G_ASSERT(tool);
 
-  Tab<String> temp(tmpmem);
-  tool->createCombo(CM_GIZMO_BASIS, "", temp, 0);
-  tool->createCombo(CM_GIZMO_CENTER, "", temp, 0);
+  PropPanel::ContainerPropertyControl *tb1 = tool->createToolbarPanel(0, "");
 
-  PropertyContainerControlBase *tb1 = tool->createToolbarPanel(0, "");
+  Tab<String> temp(tmpmem);
+  tb1->createCombo(CM_GIZMO_BASIS, "", temp, 0);
+  tb1->createCombo(CM_GIZMO_CENTER, "", temp, 0);
+
   tb1->createSeparator();
 
   tb1->createCheckBox(CM_ROTATE_CENTER_AND_OBJ, "Rotate");
@@ -57,18 +60,18 @@ void ToolBarManager::init(int toolbar_id)
   tb1->setBool(CM_ROTATE_CENTER_AND_OBJ, true);
   tb1->createSeparator();
 
-  tool->createEditFloat(CM_GIZMO_X, "x :");
-  tool->createEditFloat(CM_GIZMO_Y, "y :");
-  tool->createEditFloat(CM_GIZMO_Z, "z :");
+  tb1->createEditFloat(CM_GIZMO_X, "x :");
+  tb1->createEditFloat(CM_GIZMO_Y, "y :");
+  tb1->createEditFloat(CM_GIZMO_Z, "z :");
 
-  PropertyContainerControlBase *tb2 = tool->createToolbarPanel(0, "");
+  PropPanel::ContainerPropertyControl *tb2 = tool->createToolbarPanel(0, "");
   tb2->createSeparator();
 
-  tb2->createButton(CM_VIEW_GRID_MOVE_SNAP, "Move snap (S)");
+  tb2->createCheckBox(CM_VIEW_GRID_MOVE_SNAP, "Move snap (S)");
   tb2->setButtonPictures(CM_VIEW_GRID_MOVE_SNAP, "snap_move");
-  tb2->createButton(CM_VIEW_GRID_ANGLE_SNAP, "Rotate snap (A)");
+  tb2->createCheckBox(CM_VIEW_GRID_ANGLE_SNAP, "Rotate snap (A)");
   tb2->setButtonPictures(CM_VIEW_GRID_ANGLE_SNAP, "snap_rotate");
-  tb2->createButton(CM_VIEW_GRID_SCALE_SNAP, "Scale snap (Shift + 5)");
+  tb2->createCheckBox(CM_VIEW_GRID_SCALE_SNAP, "Scale snap (Shift + 5)");
   tb2->setButtonPictures(CM_VIEW_GRID_SCALE_SNAP, "snap_scale");
   tb2->createSeparator();
 
@@ -128,7 +131,7 @@ void ToolBarManager::init(int toolbar_id)
 //==============================================================================
 void ToolBarManager::setEnabled(bool enable)
 {
-  PropertyContainerControlBase *tool = EDITORCORE->getCustomPanel(tbId);
+  PropPanel::ContainerPropertyControl *tool = EDITORCORE->getCustomPanel(tbId);
   if (!tool)
     return;
 
@@ -279,7 +282,7 @@ void ToolBarManager::act()
   if (!controlsInserted)
     return;
 
-  PropertyContainerControlBase *tb = EDITORCORE->getCustomPanel(tbId);
+  PropPanel::ContainerPropertyControl *tb = EDITORCORE->getCustomPanel(tbId);
   if (!tb)
     return;
 
@@ -358,7 +361,7 @@ void ToolBarManager::setMoveSnap()
 
   grid.setMoveSnap(press);
 
-  PropertyContainerControlBase *tb = EDITORCORE->getCustomPanel(tbId);
+  PropPanel::ContainerPropertyControl *tb = EDITORCORE->getCustomPanel(tbId);
   if (tb)
     tb->setBool(CM_VIEW_GRID_MOVE_SNAP, press);
 }
@@ -371,7 +374,7 @@ void ToolBarManager::setScaleSnap()
 
   grid.setScaleSnap(press);
 
-  PropertyContainerControlBase *tb = EDITORCORE->getCustomPanel(tbId);
+  PropPanel::ContainerPropertyControl *tb = EDITORCORE->getCustomPanel(tbId);
   if (tb)
     tb->setBool(CM_VIEW_GRID_SCALE_SNAP, press);
 }
@@ -384,7 +387,7 @@ void ToolBarManager::setRotateSnap()
 
   grid.setRotateSnap(press);
 
-  PropertyContainerControlBase *tb = EDITORCORE->getCustomPanel(tbId);
+  PropPanel::ContainerPropertyControl *tb = EDITORCORE->getCustomPanel(tbId);
   if (tb)
     tb->setBool(CM_VIEW_GRID_ANGLE_SNAP, press);
 }
@@ -393,7 +396,7 @@ void ToolBarManager::setRotateSnap()
 //==============================================================================
 void ToolBarManager::refillTypes()
 {
-  PropertyContainerControlBase *tb = EDITORCORE->getCustomPanel(tbId);
+  PropPanel::ContainerPropertyControl *tb = EDITORCORE->getCustomPanel(tbId);
   if (!tb || !controlsInserted)
     return;
 
@@ -432,7 +435,7 @@ void ToolBarManager::refillTypes()
 //==============================================================================
 void ToolBarManager::setGizmoBasisAndCenter(int basis, int center)
 {
-  PropertyContainerControlBase *tb = EDITORCORE->getCustomPanel(tbId);
+  PropPanel::ContainerPropertyControl *tb = EDITORCORE->getCustomPanel(tbId);
   if (!tb)
     return;
 
@@ -585,7 +588,7 @@ Point3 ToolBarManager::getClientGizmoValue()
 
 void ToolBarManager::setGizmoToToolbar(Point3 value)
 {
-  PropertyContainerControlBase *tb = EDITORCORE->getCustomPanel(tbId);
+  PropPanel::ContainerPropertyControl *tb = EDITORCORE->getCustomPanel(tbId);
   if (!tb)
     return;
 
@@ -598,7 +601,7 @@ void ToolBarManager::setGizmoToToolbar(Point3 value)
 }
 
 
-bool ToolBarManager::onChange(int pcb_id, PropertyContainerControlBase *panel)
+bool ToolBarManager::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   switch (pcb_id)
   {

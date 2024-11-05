@@ -1,0 +1,206 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "world_sdf_update_common.dshl"
+include "object_sdf.dshl"
+include "postfx_inc.dshl"
+include "globtm.dshl"
+include "world_sdf_project_common.dshl"
+include "world_sdf_typed_load.dshl"
+
+
+hlsl {
+  #include <point_distance.hlsl>
+  #include <world_sdf.hlsli>
+}
+
+shader world_sdf_clear_cs
+{
+  ENABLE_ASSERT(cs)
+  READ_WORLD_SDF_MATH(cs)
+  WSDF_COORD_UPDATE(cs)
+  PROJECT_WORLD_SDF(cs)
+  PROJECT_WORLD_SDF_CLEAR(cs)
+
+  hlsl(cs) {
+    RWByteAddressBuffer world_sdf_clipmap_rasterize : register(u2);
+    #include <world_sdf_dist.hlsl>
+
+    [numthreads(64, 1, 1)]
+    void world_sdf_clear_cs( uint dtId : SV_DispatchThreadID, uint threadIndex : SV_GroupIndex)
+    {
+      uint3 targetRasterCoord = uint3(dtId%world_sdf_raster_width().x, (dtId/world_sdf_raster_width().x)%world_sdf_raster_width().y, dtId/(world_sdf_raster_width().x*world_sdf_raster_width().y));
+      if (targetRasterCoord.z >= world_sdf_raster_width().z)
+        return;
+
+      int3 world_coord = world_sdf_world_coord_from_raster_target_coord(targetRasterCoord);
+      float voxelSize = world_sdf_raster_voxel_size();
+      float maxEncodedDistance = MAX_WORLD_SDF_VOXELS_BAND*voxelSize;
+      float3 worldPos = (world_coord.xzy + 0.5)*voxelSize;
+      float minDistance = get_project_world_sdf(worldPos, maxEncodedDistance);
+      minDistance /= maxEncodedDistance;
+      float3 radiance = 0; float alpha = 0;
+
+      #if PROJECT_SDF_HAS_RADIANCE
+      BRANCH
+      if (abs(minDistance) < 1)
+        get_project_world_sdf_radiance(worldPos, radiance, alpha);
+      #endif
+
+      project_world_sdf_clear(world_coord, world_sdf_update_mip, radiance, alpha);
+
+      storeBuffer(world_sdf_clipmap_rasterize, 4*world_sdf_raster_index(targetRasterCoord), encode_world_sdf(minDistance));
+    }
+  }
+  compile("cs_5_0", "world_sdf_clear_cs");
+}
+
+buffer world_sdf_clipmap_rasterize;
+
+shader world_sdf_copy_slice_cs
+{
+  ENABLE_ASSERT(cs)
+  READ_WORLD_SDF_MATH(cs)
+  WSDF_COORD_UPDATE(cs)
+  PROJECT_WORLD_SDF_COPY_SLICE(cs)
+  (cs)
+  {
+    world_sdf_clipmap_rasterize@buf = world_sdf_clipmap_rasterize hlsl { ByteAddressBuffer world_sdf_clipmap_rasterize@buf; }
+  }
+
+  hlsl(cs) {
+    #include <world_sdf_dist.hlsl>
+    RWTexture3D<unorm float> world_sdf_clipmap: register(u0);
+
+    //fixme: underutilization, on AMD we have 64 warpsize, and use only 32
+    //use division instead (%)
+    [numthreads(4, 4, 2)]
+    void world_sdf_copy_slice_cs( uint2 dtId : SV_DispatchThreadID, uint3 gId : SV_GroupThreadID)
+    {
+      //update toroidal slice for bilinear filtering
+      int3 src_world_coord = int3(world_sdf_update_lt_coord.xy + dtId, 0);
+      uint3 src_targetCoord = target_coord_from_world_sdf(src_world_coord);
+      src_targetCoord.z = (gId.z ? 0 : world_sdf_res.y-1);
+      int3 dst_targetCoord = int3(src_targetCoord.xy, gId.z ? world_sdf_res.y : -1);
+      float newDist;
+      #if TYPED_UAV_LOAD
+      //dx12
+      newDist = texture3DAt(world_sdf_clipmap, src_targetCoord + get_world_sdf_coord_current_cascade_offset());
+      project_world_sdf_copy_slice(src_world_coord.xy, world_sdf_update_mip, gId.z);
+      #else
+      //dx11:
+      src_world_coord.z = world_sdf_coord_from_target_coord(world_sdf_update_mip, src_targetCoord).z;
+      uint3 rasterCoord = world_sdf_raster_target_coord_from_world(src_world_coord);
+      if (rasterCoord.z >= world_sdf_raster_width().z)
+        return;
+      newDist = decode_world_sdf(loadBuffer(world_sdf_clipmap_rasterize, 4*world_sdf_raster_index(rasterCoord)))*0.5+0.5;
+      //project_world_sdf_copy_slice(src_world_coord.xy, world_sdf_update_mip, gId.z);
+      //todo: we should implement copy slice for typed uav load missing, however, there is no currently support for medium+ gi quality anyway
+      #endif
+      texture3DAt(world_sdf_clipmap, uint3(dst_targetCoord + int3(get_world_sdf_coord_current_cascade_offset()))) = newDist;
+    }
+  }
+
+  compile("cs_5_0", "world_sdf_copy_slice_cs");
+}
+
+int4 world_sdf_update_old;
+shader world_sdf_ping_pong_cs, world_sdf_ping_pong_final_cs
+{
+  ENABLE_ASSERT(cs)
+  READ_WORLD_SDF_MATH(cs)
+  WSDF_COORD_UPDATE(cs)
+  if (shader == world_sdf_ping_pong_final_cs)
+  {
+    hlsl(cs) {
+      RWTexture3D<unorm float> world_sdf_clipmap: register(u0);
+      #define WRITE_FINAL_SDF 1
+    }
+  } else
+  {
+    (cs){world_sdf_clipmap@tex3d = world_sdf_clipmap;}
+  }
+  (cs) {world_sdf_update_old@i4 = world_sdf_update_old;}
+
+  hlsl(cs) {
+    #include <world_sdf_dist.hlsl>
+    RWByteAddressBuffer world_sdf_clipmap_rasterize : register(u2);
+
+    [numthreads(4, 4, 4)]
+    void world_sdf_ping_pong_cs( uint3 dtId : SV_DispatchThreadID, uint threadIndex : SV_GroupIndex)
+    {
+      int4 coordVoxel = sample_world_sdf_coord_lt(world_sdf_update_mip);
+      float voxelSize = asfloat(coordVoxel.w);
+      int3 base_lt_world_coord = coordVoxel.xyz;
+      int3 world_coord = world_sdf_update_lt_coord + int3(dtId);
+      if (any(dtId >= uint3(world_sdf_update_sz_coord.xyz)))
+        return;
+      int3 rbCoord = world_sdf_update_lt_coord.xyz + world_sdf_update_sz_coord.xyz;
+      //uint3 targetCoord = target_coord_from_world_sdf(world_coord);
+      float maxEncodedDistance = MAX_WORLD_SDF_VOXELS_BAND*voxelSize;
+      // gather
+      float minDist = 1e6f;
+      UNROLL
+      for (uint i = 0; i < 27; ++i)
+      {
+        int3 ofs = int3(i%3, (i/3)%3, i/9) - 1;
+        if (all(ofs) == 0)
+          continue;
+        //two ways
+        // 1: clamp to update sz. if we render to separate texure - makes sense
+        //int3 coord = clamp(world_coord + ofs, world_sdf_update_lt_coord.xyz, maxCoord);
+        // 2: do not clamp - just calc offset correctly. makes sense if typed load
+        //int3 coord = world_coord_from_target_coord(world_sdf_update_mip, uint3(int3(targetCoord) + ofs)%uint3(world_sdf_res.xxy));
+        //ofs = int3(coord) - world_coord;
+        int3 coord = world_coord + ofs;
+        float toCoordDist = length(float3(ofs)); // conservative  + 0.5*sqrt(3.)
+        float toCoordEncodedDistOfs = toCoordDist*(0.5/MAX_WORLD_SDF_VOXELS_BAND);
+        uint3 rasterTargetCoord = world_sdf_raster_target_coord_from_world(coord);
+        #if (TYPED_UAV_LOAD || !WRITE_FINAL_SDF)
+          if (all(
+                  uint3(coord - world_sdf_update_old.xyz) < uint3(world_sdf_res.xyz) &&
+                  uint3(coord - world_sdf_raster_begin() - WORLD_SDF_RASTERIZE_VOXELS_DIST) >= uint3(world_sdf_raster_width().xyz - 2*WORLD_SDF_RASTERIZE_VOXELS_DIST)))
+          {
+            //only if inside valid part of already rendered clip!
+            uint3 otherTargetCoord = target_coord_from_world_sdf(coord);
+            float voxelEncodedSDF = abs(texture3DAt(world_sdf_clipmap, otherTargetCoord + get_world_sdf_coord_current_cascade_offset()).x*2 - 1);
+            float conservativeEncodedDist = voxelEncodedSDF + toCoordEncodedDistOfs;
+            minDist = min(conservativeEncodedDist, minDist);
+          }
+        #endif
+
+        //if (all(rasterTargetCoord < world_sdf_raster_width()))//should not be needed as long as raster coords are at least +1
+        {
+          uint distEnc = loadBuffer(world_sdf_clipmap_rasterize, 4*world_sdf_raster_index(rasterTargetCoord));
+          //with 64 bit we could store matrix Id and tri Id in lower bits to check actual distance to triangle
+          float voxelEncodedSDF = abs(decode_world_sdf(distEnc));
+          float conservativeEncodedDist = voxelEncodedSDF + toCoordEncodedDistOfs;
+          minDist = min(conservativeEncodedDist, minDist);
+        }
+      }
+      uint oldDist, newDist = encode_world_sdf(minDist);
+      ##if shader != world_sdf_ping_pong_final_cs
+      #define UPDATE_MIN 1
+      ##else
+        #if TYPED_UAV_LOAD
+	      #define UPDATE_MIN 0 // we update extended slices with target buffer
+        #else
+	      #define UPDATE_MIN 1 // we update extended slices with rasterized buffer
+        #endif
+      ##endif
+
+      uint rasterIndex = world_sdf_raster_index(world_sdf_raster_target_coord_from_world(world_coord));
+      #if UPDATE_MIN
+      //this interlockedmin is not required for final stage IF we can do typedUAV load in copyslice
+      world_sdf_clipmap_rasterize.InterlockedMin(4*rasterIndex, newDist, oldDist);
+      #else
+      //no need to change interlockedly in last iteration, as we can copy slice from final
+      oldDist = loadBuffer(world_sdf_clipmap_rasterize, 4*rasterIndex);
+      #endif
+
+      #if WRITE_FINAL_SDF
+      texture3DAt(world_sdf_clipmap, target_coord_from_world_sdf(world_coord) + get_world_sdf_coord_current_cascade_offset()) = decode_world_sdf(min(oldDist, newDist))*0.5 + 0.5;
+      #endif
+    }
+  }
+  compile("cs_5_0", "world_sdf_ping_pong_cs");
+}

@@ -18,7 +18,7 @@ AddIncludes =
 
 Sources = sqEventDispatch.cpp ;
 
-if $(Platform) in win32 win64 && $(Dedicated) != yes {
+if $(Platform) in windows && $(Dedicated) != yes {
   Sources += webBrowser.cpp ;
   UseProgLibs += 1stPartyLibs/webbrowser ;
 } else {

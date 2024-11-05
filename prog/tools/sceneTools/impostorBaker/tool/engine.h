@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <debug/dag_assert.h>
@@ -7,6 +8,7 @@
 #include <de3_interface.h>
 #include <libTools/util/conLogWriter.h>
 #include <util/dag_globDef.h>
+#include <util/dag_string.h>
 
 #define DUMMY_IMPL              G_ASSERTF(false, "Unimplemented")
 #define DUMMY_IMPL_VALUE(value) G_ASSERTF_RETURN(false, value, "Unimplemented")
@@ -56,7 +58,7 @@ public:
   DaEditor3Engine();
   ~DaEditor3Engine();
 
-  dag::ConstSpan<DagorAsset *> DaEditor3Engine::getAssets() const;
+  dag::ConstSpan<DagorAsset *> getAssets() const;
 
   const char *getBuildString() override { return "1.0"; }
 
@@ -86,6 +88,9 @@ public:
 
   DagorAsset *getAssetByName(const char *asset_name, int asset_type = -1) override;
   DagorAsset *getAssetByName(const char *asset_name, dag::ConstSpan<int> asset_types) override;
+  const DataBlock *getAssetProps(const DagorAsset &asset) override { DUMMY_IMPL_0; }
+  String getAssetTargetFilePath(const DagorAsset &asset) override { DUMMY_IMPL_VALUE(String()); }
+  const char *getAssetParentFolderName(const DagorAsset &asset) override { DUMMY_IMPL_0; }
   const char *resolveTexAsset(const char *tex_asset_name) override { DUMMY_IMPL_0; }
 
   const char *selectAsset(const char *asset, const char *caption, dag::ConstSpan<int> types, const char *filter_str = nullptr,
@@ -123,6 +128,16 @@ public:
   const DagorAssetMgr &getAssetManager() const;
 
   ConsoleLogWriter *getConsoleLogWriter() { return &console; }
+
+  void imguiBegin(const char *name, bool *open, unsigned window_flags) override {}
+  void imguiBegin(PropPanel::PanelWindowPropertyControl &panel_window, bool *open, unsigned window_flags) override {}
+  void imguiEnd() override {}
+
+  virtual Outliner::OutlinerWindow *createOutlinerWindow() override
+  {
+    G_ASSERT(false);
+    return nullptr;
+  }
 
 private:
   ConsoleLogWriter console;

@@ -129,14 +129,6 @@ namespace das {
     }
 
     template <typename TT>
-    SimNode * SimNode_LexicalCast<TT>::visit ( SimVisitor & vis ) {
-        V_BEGIN();
-        V_OP_TT(LexicalCast);
-        V_SUB(arguments[0]);
-        V_END();
-    }
-
-    template <typename TT>
     SimNode * SimNode_AtR2V<TT>::visit ( SimVisitor & vis ) {
         V_BEGIN();
         V_OP_TT(AtR2V);
@@ -145,6 +137,28 @@ namespace das {
         V_ARG(stride);
         V_ARG(offset);
         V_ARG(range);
+        V_END();
+    }
+
+    template <typename TT>
+    SimNode * SimNode_PtrAt<TT>::visit ( SimVisitor & vis ) {
+        V_BEGIN();
+        V_OP_TT(PtrAt);
+        V_SUB_THIS(value);
+        V_SUB_THIS(index);
+        V_ARG_THIS(stride);
+        V_ARG_THIS(offset);
+        V_END();
+    }
+
+    template <typename IDXT,typename TT>
+    SimNode * SimNode_PtrAtR2V<IDXT,TT>::visit ( SimVisitor & vis ) {
+        V_BEGIN();
+        V_OP_TT(PtrAtR2V);
+        V_SUB_THIS(value);
+        V_SUB_THIS(index);
+        V_ARG_THIS(stride);
+        V_ARG_THIS(offset);
         V_END();
     }
 

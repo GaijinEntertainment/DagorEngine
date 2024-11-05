@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_waterProjFxSrv.h>
 #include <de3_interface.h>
 #include <oldEditor/de_interface.h>
@@ -10,9 +12,8 @@
 #include <shaders/dag_shaders.h>
 #include <sepGui/wndGlobal.h>
 #include <oldEditor/de_util.h>
-#include <dllPluginCore/core.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drvDecl.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 
 #include <render/waterProjFx.h>
 

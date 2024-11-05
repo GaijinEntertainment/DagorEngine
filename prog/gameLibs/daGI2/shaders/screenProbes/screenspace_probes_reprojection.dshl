@@ -1,0 +1,172 @@
+include "screenspace_probes_common.dshl"
+
+float4x4 sp_prev_globtm;
+float4x4 sp_prev_globtm_from_current_campos;
+float4 sp_prev_camera_pos_movement;
+float4 sp_prev_zn_zfar = (1,10,0,0);
+float4 sp_prev_world_view_pos;
+float4 sp_prev_view_z;
+float4 sp_prev_view_vecLT;
+float4 sp_prev_view_vecRT;
+float4 sp_prev_view_vecLB;
+float4 sp_prev_view_vecRB;
+
+macro SP_INIT_PREV_ZNZFAR_STAGE(code)
+  (code) { sp_prev_zn_zfar@f4 = (sp_prev_zn_zfar.x, sp_prev_zn_zfar.y, 1/(sp_prev_zn_zfar.y), (sp_prev_zn_zfar.y-sp_prev_zn_zfar.x)/(sp_prev_zn_zfar.x * sp_prev_zn_zfar.y)); }
+endmacro
+
+macro SP_PREV_VIEW_VEC_OPTIMIZED(code)
+  (code) {
+    sp_prev_world_view_pos@f3 = sp_prev_world_view_pos;
+    sp_prev_view_vecLT@f3 = sp_prev_view_vecLT;
+    sp_prev_view_vecRT_minus_view_vecLT@f3 = (sp_prev_view_vecRT-sp_prev_view_vecLT);
+    sp_prev_view_vecLB_minus_view_vecLT@f3 = (sp_prev_view_vecLB-sp_prev_view_vecLT);
+  }
+  hlsl(code) {
+    float3 sp_getPrevViewVecOptimized(float2 tc) {return sp_prev_view_vecLT + sp_prev_view_vecRT_minus_view_vecLT*tc.x + sp_prev_view_vecLB_minus_view_vecLT*tc.y;}
+  }
+endmacro
+
+buffer prev_screenspace_probe_pos;
+macro PREV_SCREENSPACE_PROBES_POSITIONS(code)
+  SP_INIT_PREV_ZNZFAR_STAGE(code)
+  SP_PREV_VIEW_VEC_OPTIMIZED(code)
+  SREENSPACE_PROBES_OCTAHEDRAL(code)
+  (code) {
+    prev_screenspace_probe_pos@buf = prev_screenspace_probe_pos hlsl {
+      ByteAddressBuffer prev_screenspace_probe_pos@buf;
+    }
+  }
+endmacro
+
+macro SP_REPROJECT_MATH(code)
+  (code) {
+    sp_prev_globtm@f44 = sp_prev_globtm;
+    sp_prev_globtm_from_current_campos@f44 = sp_prev_globtm_from_current_campos;
+    sp_prev_camera_pos_movement@f3 = sp_prev_camera_pos_movement;
+  }
+  hlsl(code) {
+    float3 get_screen_probe_campos_history_ndc(float3 cameraToPoint)
+    {
+      float4 prevClip = mul(float4(cameraToPoint,1), sp_prev_globtm_from_current_campos);
+      float2 prevScreen = prevClip.w > 0 ? prevClip.xy*rcp(prevClip.w) : float2(2,2);
+      return float3(prevScreen, prevClip.w);
+    }
+  }
+endmacro
+
+macro HISTORY_ONLY_PROBE(code)
+  (code){
+    screenspace_probes_temporal@i3 = screenspace_probes_temporal;
+  }
+  hlsl(code) {
+    #include <pcg_hash.hlsl>
+    uint is_history_only_probe(uint altas_probe_index, uint frame, uint probability_64k)
+    {
+      return (pcg2d(uint2(altas_probe_index, frame)).x&65535) >= probability_64k;
+    }
+    bool sp_is_valid_history() {return screenspace_probes_temporal.x;}
+    bool sp_history_only_probe(uint altas_probe_index)
+    {
+      return is_history_only_probe(altas_probe_index, screenspace_probes_temporal.y, screenspace_probes_temporal.z);
+    }
+  }
+endmacro
+
+int4 prev_screenspace_probe_res = (0,0,1,1);
+int4 prev_screenspace_probes_count__added__total;
+float4 prev_screenspace_probe_screen_res = (1,1,1,1);
+float4 prev_screenspace_probe_atlas_size;
+
+macro SP_REPROJECT(code)
+  SP_REPROJECT_MATH(code)
+  (code) {
+    prev_screenspace_probe_resf@f4 = prev_screenspace_probe_res;
+    prev_screenspace_probe_res@i4 = prev_screenspace_probe_res;
+    prev_screenspace_probe_screen_res@f4 = prev_screenspace_probe_screen_res;
+    prev_screenspace_probe_atlas_size@f4 = prev_screenspace_probe_atlas_size;
+    prev_tile_center_to_screen_uv@f4 = (prev_screenspace_probe_res.z, prev_screenspace_probe_res.z,
+                                   0.5*prev_screenspace_probe_res.z+0.5,
+                                   0.5*prev_screenspace_probe_res.z+0.5)*
+                                  (prev_screenspace_probe_screen_res.z, prev_screenspace_probe_screen_res.w, prev_screenspace_probe_screen_res.z, prev_screenspace_probe_screen_res.w);
+    prev_screenspace_probe_screen_coord_to_probe_coord@f2 = (1./prev_screenspace_probe_res.z, -0.5 - 0.5/prev_screenspace_probe_res.z,0,0);
+    prev_screenspace_probe_screen_limit@f4 = (1-0.5*prev_screenspace_probe_screen_res.z, 1-0.5*prev_screenspace_probe_screen_res.w, prev_screenspace_probe_screen_res.x-0.5, prev_screenspace_probe_screen_res.y-0.5);
+    prev_screenspace_probes_count__added__total@i4 = prev_screenspace_probes_count__added__total;
+  }
+  hlsl(code) {
+    bool reproject_probe_uv_campos(float3 camPos, out float3 uv_w)
+    {
+      float3 ndc = get_screen_probe_campos_history_ndc(camPos);
+      uv_w.xy = ndc.xy*float2(0.5,-0.5) + float2(0.5,0.5);
+      uv_w.z = ndc.z;
+      return max(abs(ndc.x), abs(ndc.y)) < 1;
+    }
+    uint sp_getPrevRadianceRes() {return prev_screenspace_probe_res.w;}
+    uint sp_getPrevNumScreenProbes() {return prev_screenspace_probes_count__added__total.x;}
+    uint sp_getPrevNumAdaptiveProbes() {return prev_screenspace_probes_count__added__total.y;}
+    uint sp_getPrevNumTotalProbes() {return prev_screenspace_probes_count__added__total.z;}
+  }
+endmacro
+
+macro REPROJECT_SP_WEIGHTS(code)
+  SP_REPROJECT(code)
+  PREV_SCREENSPACE_PROBES_POSITIONS(code)
+  SP_CALC_UPSAMPLE_WEIGHTS(code)
+  hlsl(code) {
+    #ifndef PROBES_THRESHOLD
+      #define PROBES_THRESHOLD 0.01
+    #endif
+    bool sample_bilinear_prev_radiance_info(float3 prevCamPos, float3 worldNormal, float linearW, float2 history_uv, float history_w, out float4 cornerW, out uint2 probe_coords[4], out uint4 encodedProbes, float depth_exp = SP_DEFAULT_BILINEAR_DEPTH_EXP, float threshold = 0.25)
+    {
+      float2 screenCoord = history_uv*prev_screenspace_probe_screen_res.xy;
+      UpsamplePointInfo pointInfo;
+      pointInfo.camPos = prevCamPos; // convert to prev camPos
+      pointInfo.worldNormal = worldNormal;
+      pointInfo.sceneLinearDepth = linearW;//max(1e-3, history_w);//linearW;
+      pointInfo.screenCoord = screenCoord;
+      pointInfo.bilinearExpand = 0;
+      ViewInfo vInfo;
+      vInfo.lt = sp_prev_view_vecLT*sp_prev_zn_zfar.y;
+      vInfo.hor = sp_prev_view_vecRT_minus_view_vecLT*sp_prev_zn_zfar.y;
+      vInfo.ver = sp_prev_view_vecLB_minus_view_vecLT*sp_prev_zn_zfar.y;
+
+      vInfo.screenspace_probe_res = prev_screenspace_probe_res;
+      vInfo.zn_zfar = sp_prev_zn_zfar;
+      vInfo.tile_to_center = prev_tile_center_to_screen_uv;
+      vInfo.screen_limit = prev_screenspace_probe_screen_limit.xy;
+      vInfo.screenspace_probe_screen_coord_to_probe_coord = prev_screenspace_probe_screen_coord_to_probe_coord;
+      vInfo.screenspace_probes_count__added__total = prev_screenspace_probes_count__added__total;
+
+      struct SRVBufferInfo srvInfo;
+      srvInfo.posBuffer = prev_screenspace_probe_pos;
+      UpsampleCornerWeights corners = calc_upsample_weights(srvInfo, vInfo, pointInfo, depth_exp);
+      cornerW = select(corners.depthWeights < threshold, float4(0,0,0,0), corners.cornerDepthBilWeights);//corners.sampleBilWeights;
+      probe_coords = corners.atlasSampleProbeCoord;
+      encodedProbes = select(cornerW > 0, corners.encodedProbes, uint4(0,0,0,0));
+      float bestW = dot(cornerW, 1);
+      cornerW /= max(1e-6f, bestW);
+      return bestW >= 0.01;
+      //return bestW >= 0.01;
+    }
+  }
+endmacro
+
+
+macro SAMPLE_PREV_AGE_SP(code)
+  REPROJECT_SP_WEIGHTS(code)
+  hlsl(code) {
+    uint sample_history_rev_age(float sceneLinearDepth, float3 curCamPos, float3 sceneNormal)
+    {
+      float3 oldUv_w;
+      if (!reproject_probe_uv_campos(curCamPos, oldUv_w))
+        return SP_TAG_BORN_HISTORY_AGE;
+      float4 cornerW; uint2 probe_coords[4]; uint4 encodedProbes;
+      if (!sample_bilinear_prev_radiance_info(curCamPos + sp_prev_camera_pos_movement, sceneNormal, sceneLinearDepth, oldUv_w.xy, oldUv_w.z, cornerW, probe_coords, encodedProbes))
+        return SP_TAG_BORN_HISTORY_AGE;
+      //youngest used
+      float4 revAge4 = encodedProbes>>(SP_TAG_BITS_SHIFT + SP_TAG_AGE_SHIFT);
+      return uint(dot(revAge4, cornerW) + 0.4999);//round
+    }
+  }
+endmacro
+

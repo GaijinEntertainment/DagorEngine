@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 // truetypefont.cpp : Defines the entry point for the DLL application.
 //
 

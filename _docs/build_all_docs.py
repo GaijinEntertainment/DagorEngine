@@ -9,8 +9,8 @@ def shell(cmd):
 def main():
   prevd = os.getcwd()
   os.chdir(os.path.join(_DIR, ".."))
-  shell(["python3", "_docs/qdoc_main.py", "-o", "_docs/source/quirrel-modules", "-c", ".quirrel_modules.qdox", "-t", "Quirrel Modules Docs"])
-  shell(["python3", "_docs/qdoc_main.py", "-o", "_docs/source/dagor-engine-docs", "-c", ".engine.qdox", "-t", "Engine Libraries Docs"])
+  shell(["python3", "_docs/qdoc_main.py", "-o", "_docs/source/api-references/quirrel-modules", "-c", ".quirrel_modules.qdox", "-t", "Quirrel Modules Docs"])
+  shell(["python3", "_docs/qdoc_main.py", "-o", "_docs/source/api-references/dagor-engine-docs", "-c", ".engine.qdox", "-t", "Engine Libraries Docs"])
   os.chdir(prevd)
 
 if __name__ == "__main__":

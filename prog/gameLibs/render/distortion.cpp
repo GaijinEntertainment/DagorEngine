@@ -1,8 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/distortion.h>
 
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
 #include <shaders/dag_shaderVar.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_postFxRenderer.h>
@@ -10,10 +14,7 @@
 #include <shaders/dag_shaderMesh.h>
 #include <fx/dag_hdrRender.h>
 
-static inline Color4 calc_texsz_consts(int w, int h)
-{
-  return Color4(0.5f, -0.5f, 0.5f + HALF_TEXEL_OFSF / w, 0.5f + HALF_TEXEL_OFSF / h);
-}
+static inline Color4 texsz_consts(0.5f, -0.5f, 0.5f, 0.5f);
 
 
 DistortionRenderer *distortionRenderer = NULL;
@@ -47,8 +48,7 @@ DistortionRenderer::DistortionRenderer(int screenWidth, int screenHeight, bool _
 
   distortionFxRenderer = new PostFxRenderer;
   distortionFxRenderer->init("apply_distortion");
-  distortionFxRenderer->getMat()->set_color4_param(::get_shader_variable_id("texsz_consts"),
-    calc_texsz_consts(screenWidth, screenHeight));
+  distortionFxRenderer->getMat()->set_color4_param(::get_shader_variable_id("texsz_consts"), texsz_consts);
 
   sourceTexVarId = ::get_shader_variable_id("source_tex");
   // mistEnableVarId=::get_shader_glob_var_id("mist_enable");

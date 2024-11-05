@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EASTL/sort.h>
 #include "module_nodes.h"
 #include <spirv/module_builder.h>
@@ -513,6 +515,20 @@ bool validateLayout(ModuleBuilder &builder, NodePointer<NodeVariable> var, Struc
   auto valueType = as<NodeTypedef>(ptrType->type);
   // first we need to know if we validate a const buffer or a structure buffer
   auto bufferKind = get_buffer_kind(var);
+
+  if (!is<NodeOpTypeStruct>(valueType))
+  {
+    // try to resolve bindless nested array once
+    if (is<NodeOpTypeRuntimeArray>(valueType))
+      valueType = as<NodeOpTypeRuntimeArray>(valueType)->elementType;
+
+    if (!is<NodeOpTypeStruct>(valueType))
+    {
+      e_handler.onFatalError("validateLayout: buffer type pointer is not structure, probably extra nested array handling is needed");
+      return false;
+    }
+  }
+
   if (BufferKind::Uniform == bufferKind)
   {
     return validateStructureLayout(valueType, rules, e_handler, true, 0);

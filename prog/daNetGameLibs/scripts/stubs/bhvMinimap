@@ -1,0 +1,3 @@
+return {
+  EventMinimapZoomed = class { name = "EventMinimapZoomed" }
+}

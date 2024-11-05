@@ -1,11 +1,11 @@
 {
   local z = 0
-  let foo = FUNCTION foo(this, x, y) {
-    let f1 = FUNCTION f1(this, a) {
-      let $ch0 = FUNCTION f3(this, c) {
+  let foo = FUNCTION foo(x, y) {
+    let f1 = FUNCTION f1(a) {
+      let $ch0 = FUNCTION f3(c) {
         RETURN a + c
       }
-      let f2 = FUNCTION f2(this, x) {
+      let f2 = FUNCTION f2(x) {
         let f3 = $ch0
         RETURN x + y
       }

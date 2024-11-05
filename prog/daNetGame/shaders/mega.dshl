@@ -1,0 +1,147 @@
+macro GET_MEGA_BASE_PS()
+hlsl(ps) {
+  void get_mega(out half height, out half3 diffuseColor, out half2 normal_xy, out half smoothness, out half ao, out half reflectance, out half detailNo, out half colormapA, 
+                float2 diffuseTc, float2 detailtc, float4 gradients, float4 detailMul, float4 bump_scale)
+  {
+    // land_mesh_combined.
+    float2 tc1 = detailtc*detailMul.x, tc2 = detailtc*detailMul.y, tc3 = detailtc*detailMul.z, tc4 = detailtc*detailMul.w;
+
+    half4 colormap  = tex2D(colormapTex, diffuseTc.xy);
+    //half4 origColormap = colormap;
+    half3 detailmap = h3tex2D(detailmapTex, diffuseTc.xy);
+    //half3 weights = half3(detailmap.rg, saturate(1-dot(detailmap.rg,1)));
+    //detailmap.rg/=(dot(detailmap.rg,1)+0.0001);
+    half weightsDot = dot(detailmap, 1);
+    half4 weights;
+    weights.xyz = weightsDot > 1 ? detailmap*rcp(weightsDot) : detailmap;
+    weights.w = saturate(1-weightsDot);
+    half4 baseWeights = weights;
+    
+    float4 detailArraySlicesUse = detailArraySlices;
+    half4 detail1,detail2, detail3, detail4;
+    detail1 = tex3D(detailAlbedoTex, float3(tc1, detailArraySlicesUse.x));
+    detail2 = tex3D(detailAlbedoTex, float3(tc2, detailArraySlicesUse.y));
+    detail3 = tex3D(detailAlbedoTex, float3(tc3, detailArraySlicesUse.z));
+    detail4 = tex3D(detailAlbedoTex, float3(tc4, detailArraySlicesUse.w));
+    half4 height14;
+    half4 initialHeight = half4(detail1.a,detail2.a,detail3.a,detail4.a);
+    height14 = initialHeight*weights+weights*0.0001;
+    //height14 = initialHeight;
+    ///*
+    half2 maxheight14 = max(height14.xy,height14.zw);
+    half maxheight = max(maxheight14.x,maxheight14.y);
+    half invHeightsSum;
+    //height14 = initialHeight+weights*1.5;
+    invHeightsSum = rcp(dot(height14, 1));
+    height14 *= invHeightsSum;
+    //height14 = pow32_vec4(height14);
+    height14 = pow16_vec4(height14);
+    height14 = saturate(height14 - 0.0000000002f);//0.25^16/2 is maximum!
+    invHeightsSum = rcp(dot(height14, 1));
+    weights = height14*invHeightsSum;
+
+    //weights = pow8_vec4(baseWeights);
+    //weights *= rcp(dot(weights, 1));
+
+    half4 combinedDiffuse;
+    colormap.rgb*=4.59479341998814;
+    combinedDiffuse = weights.x *half4(lerp(colormap.rgb, half3(1,1,1), saturate(detail1.a*1.5-1))*detail1.rgb, detail1.a)+
+                      weights.y *half4(lerp(colormap.rgb, half3(1,1,1), saturate(detail2.a*1.5-1))*detail2.rgb, detail2.a)+
+                      weights.z *half4(lerp(colormap.rgb, half3(1,1,1), saturate(detail3.a*1.5-1))*detail3.rgb, detail3.a)+
+                      weights.w *half4(lerp(colormap.rgb, half3(1,1,1), saturate(detail4.a*1.5-1))*detail4.rgb, detail4.a);
+
+    half4 bumpScales = half4(2,0.5,1,1);
+    half bumpScale = dot(bumpScales, baseWeights);
+    half4 heightsWeighted = baseWeights+half4(detail1.a, detail2.a, detail3.a, detail4.a);
+    height = max(max(heightsWeighted.x, heightsWeighted.y), max(heightsWeighted.z, heightsWeighted.w));
+    //combinedDiffuse.rgb = height == heightsWeighted.x ?1 : 0;
+    height -= max(max(baseWeights.x, baseWeights.y), max(baseWeights.z, baseWeights.w));
+    height *= bumpScale;
+    height = height*(0.5)+(0.25);
+    //height = 0;
+    //detail3.a -=0.25;
+    //height = weights.x *detail1.a + weights.y *detail2.a+weights.z *detail3.a +weights.w *detail4.a;
+
+    #if MEGA
+      half2 combinedNormalMap;
+      half4 combinedReflectance;
+      combinedNormalMap = 0; combinedReflectance = 0;
+
+      UNROLL
+      for (int i = 0; i<4;++i)
+      {
+        float weight = weights[i];
+        float slice = detailArraySlicesUse[i];
+        float detMul = detailMul[i];
+        BRANCH
+        if (weight > 0)
+        {
+          float2 tc = detailtc*detMul;
+          float4 tcgrad = gradients*detMul;
+          half2 detailN = tex3Dgrad(detailNormalTex, float3(tc, slice), tcgrad.xy, tcgrad.zw).xy;
+          half4 detailR = tex3Dgrad(detailReflectanceTex, float3(tc, slice), tcgrad.xy, tcgrad.zw);
+          //half2 detailN = tex3D(detailNormalTex, float3(tc, slice)).xy;
+          //half4 detailR = tex3D(detailReflectanceTex, float3(tc, slice));
+          combinedNormalMap += detailN*weight;
+          combinedReflectance += detailR*weight;
+        }
+      }
+
+      /*
+      half2 detail1N, detail2N, detail3N, detail4N;
+      half4 detail1R, detail2R, detail3R, detail4R;
+      detail1N = tex3D(detailNormalTex, float3(tc1, detailArraySlicesUse.x)).xy;
+      detail2N = tex3D(detailNormalTex, float3(tc2, detailArraySlicesUse.y)).xy;
+      detail3N = tex3D(detailNormalTex, float3(tc3, detailArraySlicesUse.z)).xy;
+      detail4N = tex3D(detailNormalTex, float3(tc4, detailArraySlicesUse.w)).xy;
+      combinedNormalMap=weights.x*detail1N+
+                        weights.y*detail2N+
+                        weights.z*detail3N+
+                        weights.w*detail4N;
+
+      detail1R = tex3D(detailReflectanceTex, float3(tc1, detailArraySlicesUse.x));
+      detail2R = tex3D(detailReflectanceTex, float3(tc2, detailArraySlicesUse.y));
+      detail3R = tex3D(detailReflectanceTex, float3(tc3, detailArraySlicesUse.z));
+      detail4R = tex3D(detailReflectanceTex, float3(tc4, detailArraySlicesUse.w));
+      combinedReflectance = weights.x*detail1R+weights.y*detail2R+weights.z*detail3R+weights.w*detail4R;
+      */
+      reflectance = combinedReflectance.x;
+      ao = combinedReflectance.y;
+      detailNo = combinedReflectance.z;
+      smoothness = combinedReflectance.w;
+      normal_xy = combinedNormalMap.xy;
+    #else
+
+      half4 bumpheights = initialHeight*bump_scale;
+      reflectance = 0.5;
+      ao = 1;
+      smoothness = 0;
+      detailNo = 0;
+      half4 dBs, dBt;
+      dBs.x = tex3D(detailAlbedoTex, float3(tc1 + ddx(tc1), detailArraySlicesUse.x)).a *bump_scale.x - bumpheights.x;
+      dBt.x = tex3D(detailAlbedoTex, float3(tc1 + ddy(tc1), detailArraySlicesUse.x)).a *bump_scale.x - bumpheights.x;
+      dBs.y = tex3D(detailAlbedoTex, float3(tc2 + ddx(tc2), detailArraySlicesUse.y)).a *bump_scale.x - bumpheights.x;
+      dBt.y = tex3D(detailAlbedoTex, float3(tc2 + ddy(tc2), detailArraySlicesUse.y)).a *bump_scale.x - bumpheights.x;
+      dBs.z = tex3D(detailAlbedoTex, float3(tc3 + ddx(tc3), detailArraySlicesUse.z)).a *bump_scale.x - bumpheights.x;
+      dBt.z = tex3D(detailAlbedoTex, float3(tc3 + ddy(tc3), detailArraySlicesUse.z)).a *bump_scale.x - bumpheights.x;
+      dBs.w = tex3D(detailAlbedoTex, float3(tc4 + ddx(tc4), detailArraySlicesUse.w)).a *bump_scale.x - bumpheights.x;
+      dBt.w = tex3D(detailAlbedoTex, float3(tc4 + ddy(tc4), detailArraySlicesUse.w)).a *bump_scale.x - bumpheights.x;
+      half3 combinedNormal = 
+                          weights.x*perturb_normal_height2d(tc1, dBs.x, dBt.x).xzy+
+                          weights.y*perturb_normal_height2d(tc2, dBs.y, dBt.y).xzy+//diffuseTc
+                          weights.z*perturb_normal_height2d(tc3, dBs.z, dBt.z).xzy+
+                          weights.w*perturb_normal_height2d(tc4, dBs.w, dBt.w).xzy;
+      normal_xy = combinedNormal.xy*0.5+0.5;
+    #endif
+
+    //normal.xzy = RNM_ndetail_normalized(normal.xzy, combinedNormal);
+    //diffuseColor = combinedDiffuse.rgb*colormap.rgb*4.59479341998814;
+    diffuseColor = combinedDiffuse.rgb;
+    //half cnt = dot(weights > 0.00, 1);
+    //diffuseColor = cnt == 1 ? half3(1,0,0) : cnt == 2 ? half3(0,1,0) : cnt == 3 ? half3(0,0,1) : cnt == 4 ? 1 : 0;
+    //diffuseColor = weights;
+    //height = maxheight;
+    colormapA = colormap.a;
+  }
+}
+endmacro

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <unwrapMapping/autoUnwrap.h>
 #include <math/dag_mesh.h>
 #include <generic/dag_qsort.h>
@@ -924,8 +926,8 @@ struct Lightmap
     lmp.resize(1);
     lmp[0] = new (midmem) LightmapPart;
     lmp[0]->init_main();
-    // debug ( "creating lightmap mapping" );
-    // mt_debug_ctx ( "memory used=%d", get_max_mem_used());
+    // debug("creating lightmap mapping");
+    // DEBUG_CTX("memory used=%d", get_max_mem_used());
   }
   Lightmap(Lightmap *lm) : state_stack(tmpmem), lmp(tmpmem)
   {
@@ -1450,7 +1452,7 @@ static bool LightMapMapper::dagor_unwrap_faces(Face *face, int fnum, Point3 *ver
 static void LightMapMapper::unwrap_faces(Face *face, int fnum, Point3 *vert, int vnum, Tab<FaceGroup *> &fgrps)
 {
   bool ret = dagor_unwrap_faces(face, fnum, vert, vnum, fgrps);
-  mt_debug_ctx("memory used=%d", get_max_mem_used());
+  DEBUG_CTX("memory used=%d", get_max_mem_used());
 }
 void AutoUnwrapMapping::set_graphite_folder(const char *) {}
 
@@ -1736,13 +1738,13 @@ static void LightMapMapper::unwrap_faces(Face *face, int fnum, Point3 *vert, int
         for (int j = 0; j < g.uv.size(); j++)
           g.uv[j] = (g.uv[j] - fgbb.lim[0]) * lin_ratio;
 
-        debug_ctx("facegroup %d: %d faces, ratio=%.5f (lin %.5f)", i, g.faces.size(), world_area / tex_area, lin_ratio);
+        DEBUG_CTX("facegroup %d: %d faces, ratio=%.5f (lin %.5f)", i, g.faces.size(), world_area / tex_area, lin_ratio);
       }
     }
     else
     {
     grafite_fails:
-      debug_ctx("could not read results, using internal unwrapper");
+      DEBUG_CTX("could not read results, using internal unwrapper");
       dagor_unwrap_faces(face, fnum, vert, vnum, fgrps);
     }
 

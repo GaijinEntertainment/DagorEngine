@@ -1,0 +1,306 @@
+if ! $(Root) { Exit Root must be defined before including setup.jam ; }
+
+# !!!WARNING!!!! PLATFORM IS NOT DEFINED HERE !!!WARNING!!!
+# do not use Platform variable until defPlatform is included
+
+UseQuirrel = sq3r ;
+PhysName  ?= Jolt ;
+
+StrictCompile ?= yes ;
+WError ?= yes ; # treat all warnings as errors
+Exceptions ?= no ;
+Config ?= dev ;
+NeedDasAotCompile ?= no ;
+HaveAssetManager ?= no ;
+Dedicated ?= no ;
+
+if $(UseWholeOpt) != yes {
+  UseLLDLink ?= yes ;
+}
+
+HaveEmbeddedBrowser ?= no ;
+
+if $(Dedicated) = yes { ContentUpdater ?= no ; }
+else { ContentUpdater ?= yes ; }
+
+SkipFlowAnCompoundPS = yes ;
+
+if $(Dedicated) != yes {
+  IsHeadless ?= no ;
+  HaveRenderer ?= yes ;
+  HaveFx ?= yes ;
+  CamStub ?= no ;
+} else {
+  IsHeadless = yes ;
+  HaveRenderer ?= no ;
+  if $(OS) = LINUX { # before inclusion of 'defaults.jam' $(Platform) is not defined unless passed in command line
+    NetPeerAuth ?= yes ; # TODO: move this default to project builds
+    if $(Sanitize) != address {
+      CheckedContainers ?= no ;
+      SqDebugFloats ?= no ;
+      StackProtection ?= no ;
+      SqVarTrace ?= no ;
+    }
+    UseSystemOpenSSL ?= yes ;
+  }
+  if $(NetPeerAuth) = yes {
+    if $(Platform) = windows {
+      opt on net/dedicated/netded.cpp = -DNET_PEER_AUTH=1 /Y- ; # Exclude from PCH
+    } else {
+      opt on net/dedicated/netded.cpp = -DNET_PEER_AUTH=1 ;
+    }
+  }
+}
+
+if $(IsHeadless) = no {
+  LinuxUseX11 = yes ;
+} else
+{
+  LinuxUseX11 = no ;
+}
+
+if $(Config) = rel {
+  ForceLogs = yes ;
+}
+
+# END OF !!!WARNING!!!! PLATFORM IS NOT DEFINED HERE !!!WARNING!!!
+
+include $(Root)/prog/_jBuild/defPlatform.jam ; # Note - $(Platform) is not defined before this line unless passed in command line
+
+if $(Platform) in windows linux macOS {
+  UseD3DMulti ?= yes ;
+  if $(IsHeadless) != yes {
+    local list ;
+    if $(Config) != rel { list += stub ; }
+    switch $(Platform) {
+      case windows : list += DX11 vulkan ;  if $(PlatformArch) != x86 { list += DX12 ; }
+      case linux :   list += vulkan ;
+      case macOS :   list += Metal ;
+    }
+    UseD3DMultiList ?= $(list) ;
+  }
+  else {
+    UseD3DMultiList = stub ;
+  }
+}
+
+if $(Platform)-$(PlatformArch) != windows-x86 {
+  SSEVersion ?= 4 ;
+} else if $(Config) in dev dbg && $(PlatformSpec) != clang {
+  SSEVersion ?= 0 ; # x87 FPU for FPEs
+} else {
+  SSEVersion ?= 2 ;
+}
+
+# Note: we are still using MSVC in win32 dev (default) mode for x87 support (to catch FPEs)
+if $(Platform)-$(PlatformArch) = windows-x86_64 {
+  PlatformSpec ?= clang ;
+}
+
+if $(Platform) in windows && $(PlatformSpec) != clang {
+  PlatformSpec ?= vc16 ;
+}
+
+# both clang & msvc gerenate bugggy code in win32 (mostly das/das-aot related) which we workaround with out-of-line
+if $(UseWholeOpt) = yes && $(Platform)-$(PlatformArch) = windows-x86 {
+   UseWholeOpt = no ;
+}
+
+if $(PlatformSpec) = clang {
+  CPPopt += -Werror=unused-variable ;
+}
+
+if $(Platform) && $(Platform) in ps4 ps5 xboxOne scarlett nswitch { # too slow for consoles
+  CheckedContainers ?= no ;
+} else {
+  CheckedContainers ?= yes ;
+}
+
+if $(Platform)-$(PlatformArch) = linux-x86_64 { # same build cfg as linux dedicated (to be able share build output)
+  SSEVersion = 4 ;
+  MArch ?= haswell ; # MOVBE,MMX,SSE,SSE2,SSE3,SSSE3,SSE4.1,SSE4.2,POPCNT,CX16,SAHF,FXSR,AVX,XSAVE,PCLMUL,FSGSBASE,RDRND,F16C,AVX2,BMI,BMI2,LZCNT,FMA,MOVBE,HLE
+  if ! -march=$(MArch) in $(GlobalCPPopt) { GlobalCPPopt += -march=$(MArch) ; }
+}
+
+FmodStudio ?= 2.01.06 ;
+if $(Platform) in windows ps4 xboxOne linux macOS ps5 scarlett && [ GLOB $(Root)/prog/3rdPartyLibs/fmodStudio : jamfile ] {
+  FmodStudio = src ;
+}
+
+XessEnabled ?= yes ;
+DlssEnabled ?= yes ;
+Fsr2Enabled ?= yes ;
+
+if $(Platform) = android {
+  AndroidApiMinVer ?= 29 ;
+}
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+if $(FmodStudio) = none { HaveSound = no ; }
+if $(HaveSound) = no {
+} else if $(FmodStudio) != src && ! [ GLOB $(_DEVTOOL)/fmod-studio-$(FmodStudio)/core/$(LegacyPlatformSuffix)/inc : * ] {
+  echo missing (or empty) $(_DEVTOOL)/fmod-studio-$(FmodStudio)/core/$(LegacyPlatformSuffix)/inc so forcing HaveSound \= no ;
+  HaveSound = no ;
+} else if $(FmodStudio)  = src && ! [ GLOB $(Root)/prog/3rdPartyLibs/fmodStudio : jamfile ] {
+  echo missing (or empty) $(Root)/prog/3rdPartyLibs/fmodStudio, so forcing HaveSound \= no ;
+  HaveSound = no ;
+}
+
+if $(NeedDasAotCompile) = yes && $(AotCompilerBaseName) {
+  local host_platform = ;
+  local host_arch = $(PlatformArch) ;
+  local jam = $(AotJamfile) ;
+  if ! $(jam) { Exit AotJamfile not defined for NeedDasAotCompile\=yes ; }
+
+  if $(Platform) in ps4 ps5 xboxOne scarlett android nswitch ||
+     $(Platform)-$(PlatformArch) in windows-x86_64 windows-arm64 { host_platform = windows ; host_arch = x86_64 ; }
+  else if $(Platform)-$(PlatformArch) = windows-x86 { host_platform = windows ; }
+  else if $(Platform) in linux { host_platform = linux ; }
+  else if $(Platform) in macOS iOS tvOS { host_platform = macOS ; }
+
+  # build das AOT with no strict aliasing to prevent Undefined Behaviour in generated c++ code with default arguments in queries
+  # if $(Platform) != windows || $(PlatformSpec) = clang {
+  #   DAS_AOT_CPP_OPT = -fno-strict-aliasing ;
+  # }
+
+  if $(host_platform) {
+    SetupOutputDir ;
+    local DasAotFusion = ;
+    # if $(Config) = rel && $(PlatformArch) != x86 && $(Platform) in windows ps4 ps5 xboxOne linux macOS android nswitch { DasAotFusion = yes ; } # fusion was switched off here https://cvs1.gaijin.lan/c/dagor4/+/221318
+    BuildJams = $(jam) ;
+    platform on $(jam:G=JAM) = -sPlatform=$(host_platform) -sPlatformArch=$(host_arch) ;
+    config on $(jam:G=JAM) = -sConfig=dev ;
+    if $(host_platform) = linux { config on $(jam:G=JAM) += -sPlatformOutputDir=$(PlatformOutputDir) ; }
+    platform_spec on $(jam:G=JAM) = \  ;
+    platform_spec_xx on $(jam:G=JAM) = \  ;
+    nopdb on $(jam:G=JAM) = \  ;
+    checkonly on $(jam:G=JAM) = \  ;
+    DAS_AOT_COMPILER = $(AotCompilerBaseName)-$(host_platform)-$(host_arch)-c-dev ;
+    if $(Platform) = macOS { config on $(jam:G=JAM) += -sMacOSXMinVer=$(MacOSXMinVer) ; }
+    config on $(jam:G=JAM) += -sOutDir=$(AotCompilerBaseName:D) -sTarget=$(AotCompilerBaseName:B) -sCheckedContainers=yes ;
+    config on $(jam:G=JAM) += -sProjectLocation=$(Location) ;
+    DAS_AOT_COMPILER_OPT ?= -- --config aot_compiler_config.blk -sConfig $(Config) ;
+    if $(OS) = NT { DAS_AOT_COMPILER = $(DAS_AOT_COMPILER).exe ; }
+  } else {
+    NeedDasAotCompile = ;
+  }
+  AotCompilerBaseName = ; # clear to prevent unwanted second processing from libs
+}
+
+# nintendo switch base params
+if $(Platform) in nswitch {
+  UseSystemLibcurl = yes ;
+  EnableBreakpad = no ;
+}
+
+if $(UseGDK) != no {
+  UseSystemLibcurl = yes ;
+  Yuplay2NoCurlInit = yes ;
+}
+
+if $(Config) = rel {
+  HaveWebui ?= no ;
+}
+
+if $(Dedicated) = yes && $(Platform) = linux {
+  HaveWebui ?= no ;
+}  else {
+  HaveWebui ?= yes ;
+}
+
+if $(Config) != rel || $(Platform)-$(PlatformArch) = windows-x86_64
+{
+  HaveConsole ?= yes ;
+}
+
+if $(Dedicated) = yes {
+  if $(Platform) = linux {
+    GlobalCPPopt += -DTIME_PROFILER_ENABLED=0 ;
+  }
+
+  if $(Platform) in windows linux macOS xboxOne scarlett ps4 ps5 android iOS tvOS nswitch {
+    HaveSoundNet ?= yes ;
+  }
+  HaveSound ?= no ;
+  HaveSoundNet ?= no ;
+} else {
+  if $(Platform) in windows linux macOS && $(Config) != rel { HaveEditor ?= yes ; }
+
+  if $(Platform) in windows linux macOS xboxOne scarlett ps4 ps5 android iOS tvOS nswitch {
+    HaveSound ?= yes ;
+    HaveSoundNet ?= yes ;
+    HaveTamVoice ?= $(HaveSound) ;
+  }
+}
+
+if $(HaveEmbeddedBrowser) = yes && ( ! $(Platform) in windows || $(Dedicated) = yes ) {
+  HaveEmbeddedBrowser = no ;
+}
+
+if $(Platform) in windows && ( $(Config) in rel irel || $(UseWholeOpt) = yes ) {
+  ExportOptimus ?= yes ; # warn: this adds 1-2 seconds to link time
+} else {
+  ExportOptimus ?= no ;
+}
+
+
+if $(Config) != rel && $(Config) != irel && $(Platform) in windows macOS linux {
+  DargWithSqDebugger ?= yes ;
+  SqDebugFloats ?= yes ;
+}
+
+
+EnableBreakpadSubmission ?= no ;
+if $(Dedicated) = no && $(Platform) in windows linux && $(Config) = rel {
+  ForceLogs = yes ;
+  if $(EnableCrashpad) != yes { EnableBreakpad ?= yes ; }
+} else {
+  EnableBreakpad ?= no ;
+}
+if $(EnableBreakpadSubmission) = yes {
+  EnableBreakpad = yes ;
+}
+
+if $(HaveWebui) = yes && $(Platform) in windows {
+  NodeBasedManagerSupportCompiliation = yes ;
+}
+
+AddIncludes =
+  $(Root)/prog/daNetGame
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/commonFx/commonFxGame
+  $(Root)/prog/3rdPartyLibs/Detour/Include
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+  $(Root)/prog/1stPartyLibs/rapidJsonUtils/include
+  $(Root)/prog/3rdPartyLibs/arc/zlib-$(UseZlibVer)
+  $(Root)/prog/3rdPartyLibs/arc/zstd-$(ZstdVer) # xxhash
+  $(Root)/prog/3rdPartyLibs/libb64/include
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+  $(Root)/prog/1stPartyLibs/daScript/include
+  $(Root)/prog/1stPartyLibs/daScript/modules/dasQuirrel/src
+;
+
+if $(UseSystemLibcurl) != yes {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/libcurl/include ;
+}
+
+
+if $(HaveRenderer) = yes && $(Platform) in windows {
+  LowLatencyFrameworkCompilation ?= yes ;
+}
+if $(HaveRenderer) = yes && $(Config) != rel {
+  ProfilerTrackerCompilation ?= yes ;
+}
+
+if $(WError) = yes {
+  if $(Platform) in windows xboxOne scarlett {
+    if ! /WX in $(GlobalCPPopt) { GlobalCPPopt += /WX ; }
+  } else {
+    if ! -Werror in $(GlobalCPPopt) { GlobalCPPopt += -Werror ; }
+  }
+}
+
+include $(Root)/prog/daNetGame/autoscan.jam ;
+include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ;

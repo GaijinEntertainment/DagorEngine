@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "gamepad_device.h"
 #include <math/dag_mathUtils.h>
-#include <humanInput/dag_hiGlobals.h>
+#include <drv/hid/dag_hiGlobals.h>
 #include <supp/_platform.h>
 #include "emu_hooks.h"
 #if _TARGET_PC_WIN
@@ -32,7 +34,7 @@ HumanInput::Xbox360GamepadDevice::Xbox360GamepadDevice(int gamepad_no, const cha
   isVirtual = is_virtual;
   xStPktId = 0xFFFFFFFF;
 
-  debug_ctx("inited gamepad %s", _name);
+  DEBUG_CTX("inited gamepad %s", _name);
   name = _name;
   memset(&state, 0, sizeof(state));
   for (int i = 0; i < JoystickRawState::MAX_POV_HATS; i++)
@@ -176,66 +178,25 @@ bool HumanInput::Xbox360GamepadDevice::updateState(int dt_msec, bool def, bool h
 
     // Virtual keys
 
-    bool is_l3_centered = true;
-    bool is_r3_centered = true;
-
     if (st.Gamepad.sThumbLX > MAXSHORT * VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-    {
-      is_l3_centered = false;
       state.buttons.orWord0(JOY_XINPUT_REAL_MASK_L_THUMB_RIGHT);
-    }
     else if (st.Gamepad.sThumbLX < MAXSHORT * -VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-    {
-      is_l3_centered = false;
       state.buttons.orWord0(JOY_XINPUT_REAL_MASK_L_THUMB_LEFT);
-    }
 
     if (st.Gamepad.sThumbLY > MAXSHORT * VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-    {
-      is_l3_centered = false;
       state.buttons.orWord0(JOY_XINPUT_REAL_MASK_L_THUMB_UP);
-    }
     else if (st.Gamepad.sThumbLY < MAXSHORT * -VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-    {
-      is_l3_centered = false;
       state.buttons.orWord0(JOY_XINPUT_REAL_MASK_L_THUMB_DOWN);
-    }
 
     if (st.Gamepad.sThumbRX > MAXSHORT * VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-    {
-      is_r3_centered = false;
       state.buttons.orWord0(JOY_XINPUT_REAL_MASK_R_THUMB_RIGHT);
-    }
     else if (st.Gamepad.sThumbRX < MAXSHORT * -VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-    {
-      is_r3_centered = false;
       state.buttons.orWord0(JOY_XINPUT_REAL_MASK_R_THUMB_LEFT);
-    }
 
     if (st.Gamepad.sThumbRY > MAXSHORT * VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-    {
-      is_r3_centered = false;
       state.buttons.orWord0(JOY_XINPUT_REAL_MASK_R_THUMB_UP);
-    }
     else if (st.Gamepad.sThumbRY < MAXSHORT * -VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-    {
-      is_r3_centered = false;
       state.buttons.orWord0(JOY_XINPUT_REAL_MASK_R_THUMB_DOWN);
-    }
-
-    if (state.buttons.get(JOY_XINPUT_REAL_BTN_L_THUMB) && ((is_l3_centered && !state.buttonsPrev.get(JOY_XINPUT_REAL_BTN_L_THUMB)) ||
-                                                            (state.buttonsPrev.getWord0() & JOY_XINPUT_REAL_MASK_L_THUMB_CENTER)))
-    {
-      state.buttons.clr(JOY_XINPUT_REAL_BTN_L_THUMB);
-      state.buttons.orWord0(JOY_XINPUT_REAL_MASK_L_THUMB_CENTER);
-    }
-
-    if (state.buttons.get(JOY_XINPUT_REAL_BTN_R_THUMB) && ((is_r3_centered && !state.buttonsPrev.get(JOY_XINPUT_REAL_BTN_R_THUMB)) ||
-                                                            (state.buttonsPrev.getWord0() & JOY_XINPUT_REAL_MASK_R_THUMB_CENTER)))
-    {
-      state.buttons.clr(JOY_XINPUT_REAL_BTN_R_THUMB);
-      state.buttons.orWord0(JOY_XINPUT_REAL_MASK_R_THUMB_CENTER);
-    }
   }
 
   if (state.getKeysPressed().hasAny()) // Little trick to avoid new static bool isFirstTimePressed

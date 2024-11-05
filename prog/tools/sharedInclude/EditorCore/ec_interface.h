@@ -1,16 +1,24 @@
-#ifndef __GAIJIN_EDITORCORE_EC_INTERFACE_H__
-#define __GAIJIN_EDITORCORE_EC_INTERFACE_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <generic/dag_tab.h>
 #include <math/dag_math3d.h>
-#include <3d/dag_resId.h>
+#include <drv/3d/dag_resId.h>
 
 #include <EditorCore/ec_decl.h>
 #include <sepGui/wndCommon.h>
 #include <libTools/util/hdpiUtil.h>
 
 // forward declarations for external classes
+namespace PropPanel
+{
+class ContainerPropertyControl;
+class ControlEventHandler;
+class DialogWindow;
+class IMenu;
+class PanelWindowPropertyControl;
+} // namespace PropPanel
+
 struct EcRect;
 struct Capsule;
 class DataBlock;
@@ -20,11 +28,6 @@ class Brush;
 class CoolConsole;
 class GridObject;
 class IWndManager;
-class CPanelWindow;
-class CToolWindow;
-class CDialogWindow;
-class PropertyContainerControlBase;
-class ControlEventHandler;
 class IDagorEdCustomCollider;
 class EditorWorkspace;
 class BBox3;
@@ -219,10 +222,14 @@ public:
   virtual bool endRectangularSelection(EcRect *result, int *type) = 0;
   //@}
 
+  /// Draw statistics/debug texts in the viewport area.
+  /// @param x - the horizontal viewport draw coordinate.
+  /// @param y - the vertical viewport draw coordinate.
+  /// @param text - the statistics/debug text to draw.
+  virtual void drawText(int x, int y, const String &text) = 0;
 
-  /// Get pointer to underlying window of a viewport
-  /// @return pointer to EcWindow of a viewport
-  virtual class EcWindow *getEcWindow() = 0;
+  virtual void captureMouse() = 0;
+  virtual void releaseMouse() = 0;
 };
 
 
@@ -566,26 +573,23 @@ public:
   virtual IWndManager *getWndManager() const = 0;
 
   /// Get custom panel (property/toolbar/etc)
-  virtual PropertyContainerControlBase *getCustomPanel(int id) const = 0;
-
-  /// Create new toolbar
-  virtual void *addToolbar(hdpi::Px height) = 0;
-  virtual CToolWindow *createToolbar(ControlEventHandler *eh, void *hwnd) = 0;
+  virtual PropPanel::ContainerPropertyControl *getCustomPanel(int id) const = 0;
 
   /// Create new property panel
   virtual void addPropPanel(int type, hdpi::Px width) = 0;
   virtual void removePropPanel(void *hwnd) = 0;
   virtual void managePropPanels() = 0;
   virtual void skipManagePropPanels(bool skip) = 0;
-  virtual CPanelWindow *createPropPanel(ControlEventHandler *eh, void *hwnd) = 0;
+  virtual PropPanel::PanelWindowPropertyControl *createPropPanel(PropPanel::ControlEventHandler *eh, const char *caption) = 0;
+  virtual PropPanel::IMenu *getMainMenu() = 0;
 
   /// Delete custom panel
-  virtual void deleteCustomPanel(PropertyContainerControlBase *panel) = 0;
+  virtual void deleteCustomPanel(PropPanel::ContainerPropertyControl *panel) = 0;
 
   /// Create dialog with property panel
-  virtual CDialogWindow *createDialog(hdpi::Px w, hdpi::Px h, const char *caption) = 0;
+  virtual PropPanel::DialogWindow *createDialog(hdpi::Px w, hdpi::Px h, const char *title) = 0;
   /// Delete dialog
-  virtual void deleteDialog(CDialogWindow *dlg) = 0;
+  virtual void deleteDialog(PropPanel::DialogWindow *dlg) = 0;
   //@}
 
 
@@ -873,6 +877,9 @@ public:
   virtual float getMaxTraceDistance() const = 0;
   virtual const EditorWorkspace &getBaseWorkspace() = 0;
 
+  virtual void setShowMessageAt(int x, int y, const SimpleString &msg) = 0;
+  virtual void showMessageAt() = 0;
+
 private:
   int interfaceVer;
 
@@ -901,6 +908,4 @@ public:
 #define RETURN_INTERFACE(huid, T) \
   if ((unsigned)huid == T::HUID)  \
   return static_cast<T *>(this)
-#endif
-
 #endif

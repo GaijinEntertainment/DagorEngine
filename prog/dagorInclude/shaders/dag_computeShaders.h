@@ -1,11 +1,10 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <3d/dag_drv3dConsts.h>
+#include <drv/3d/dag_consts.h>
 #include <3d/dag_texMgr.h>
 #include <generic/dag_DObject.h>
 #include <memory/dag_mem.h>
@@ -45,6 +44,7 @@ public:
   bool dispatch(int tgx, int tgy, int tgz, GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS, bool set_states = true) const;
   bool dispatchThreads(int threads_x, int threads_y, int threads_z, GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS,
     bool set_states = true) const;
+  uint32_t getWaveSize() const;
   bool dispatch(GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS, bool set_states = true) const
   {
     return dispatch(1, 1, 1, gpu_pipeline, set_states);
@@ -71,4 +71,6 @@ public:
   {
     return elem->dispatchThreads(threads_x, threads_y, threads_z);
   }
+  bool dispatchGroups(int groups_x, int groups_y, int groups_z) const { return elem->dispatch(groups_x, groups_y, groups_z); }
+  bool dispatchIndirect(Sbuffer *args, int ofs) const { return elem->dispatch_indirect(args, ofs); }
 };

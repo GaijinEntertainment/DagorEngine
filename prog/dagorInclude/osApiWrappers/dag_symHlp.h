@@ -1,12 +1,11 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <util/dag_stdint.h>
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 //! initializes symbolic debug info module
 KRNLIMP bool symhlp_init(bool in = false);
@@ -28,4 +27,4 @@ KRNLIMP bool symhlp_unload(const char *pe_img_name, uintptr_t base_addr = 0);
 //! closes symbolic debug info
 KRNLIMP void symhlp_close();
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

@@ -1,5 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 #include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
+#include <dag/dag_vector.h>
 
 namespace dafx
 {
@@ -59,6 +63,16 @@ struct CommandQueue
     int dstOffset;
   };
 
+  struct InstanceValueFromSystemScaled
+  {
+    InstanceId iid;
+    SystemId sysid;
+    int subIdx;
+    int size;
+    int vecOffset;
+    int dstOffset;
+  };
+
   eastl::vector<CreateInstance> createInstance;
   eastl::vector<InstanceId> destroyInstance;
   eastl::vector<InstanceId> resetInstance;
@@ -70,7 +84,8 @@ struct CommandQueue
   eastl::vector<InstanceEmissionRate> instanceEmissionRate;
   eastl::vector<InstanceValue> instanceValue;
   eastl::vector<InstanceValueDirect> instanceValueDirect;
+  eastl::vector<InstanceValueFromSystemScaled> instanceValueFromSystemScaled;
 
-  eastl::vector<unsigned char> instanceValueData;
+  dag::Vector<unsigned char, EASTLAllocatorType, /*init*/ false> instanceValueData;
 };
 } // namespace dafx

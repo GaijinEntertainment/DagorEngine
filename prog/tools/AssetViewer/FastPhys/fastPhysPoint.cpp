@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/fastPhysData/fp_edpoint.h>
 
 #include <debug/dag_debug3d.h>
@@ -87,7 +89,7 @@ public:
 FPObjectPoint::FPObjectPoint(FpdObject *obj, FastPhysEditor &editor) : IFPObject(obj, editor) { IFPObject::setPos(obj->getPos()); }
 
 
-void FPObjectPoint::refillPanel(PropPanel2 *panel)
+void FPObjectPoint::refillPanel(PropPanel::ContainerPropertyControl *panel)
 {
   FpdPoint *pointObject = (FpdPoint *)getObject();
   G_ASSERT(pointObject);
@@ -127,7 +129,7 @@ void FPObjectPoint::refillPanel(PropPanel2 *panel)
 }
 
 
-void FPObjectPoint::onChange(int pcb_id, PropPanel2 *panel)
+void FPObjectPoint::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   FpdPoint *pointObject = (FpdPoint *)getObject();
   G_ASSERT(pointObject);

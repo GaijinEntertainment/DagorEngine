@@ -1,3 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 /************************************************************************
   gather variants
 /************************************************************************/
@@ -77,8 +80,8 @@ public:
   virtual ShVarBool eval_bool_value(bool_value &e);
   virtual int eval_interval_value(const char *ival_name);
 
-  void error(const char *msg, Terminal *t);
-  void warning(const char *msg, Terminal *t);
+  void error(const char *msg, Symbol *s);
+  void warning(const char *msg, Symbol *s);
 
   virtual void eval_hlsl_compile(hlsl_compile_class &hlsl_compile) {}
   virtual void eval_hlsl_decl(hlsl_local_decl_class &hlsl_compile);

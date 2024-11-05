@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/aotRiDestr.h>
 
 
@@ -26,6 +28,8 @@ public:
       "rendinstdestr::remove_ri_without_collision_in_radius");
     das::addExtern<DAS_BIND_FUN(destroyRendinstSimple)>(*this, lib, "destroyRendinst", das::SideEffects::modifyArgumentAndExternal,
       "bind_dascript::destroyRendinstSimple");
+    das::addExtern<DAS_BIND_FUN(destroyRendinstForce)>(*this, lib, "destroyRendinstForce", das::SideEffects::modifyArgumentAndExternal,
+      "bind_dascript::destroyRendinstForce");
     das::addExtern<DAS_BIND_FUN(destroyRendinst)>(*this, lib, "destroyRendinst", das::SideEffects::modifyArgumentAndExternal,
       "bind_dascript::destroyRendinst");
     das::addExtern<DAS_BIND_FUN(apply_impulse_to_riextra)>(*this, lib, "apply_impulse_to_riextra", das::SideEffects::modifyExternal,

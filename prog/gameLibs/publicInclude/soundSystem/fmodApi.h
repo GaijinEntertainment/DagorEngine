@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -42,6 +41,7 @@ bool get_instance_cb_data(FMOD::Studio::EventInstance *event_instance, void *&cb
 
 FMOD::Studio::EventInstance *get_instance(EventHandle event_handle);
 FMOD::Studio::EventDescription *get_description(EventHandle event_handle);
+FMOD::Studio::EventDescription *get_description(const FMODGUID &event_id);
 FMOD::Studio::EventDescription *get_description(const char *name, const char *path);
 
 bool get_channel_group(EventHandle event_handle, FMOD::ChannelGroup *&group);

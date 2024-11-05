@@ -1,6 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/waterRipples.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_driver.h>
 #include <shaders/dag_shaders.h>
 #include <math/dag_Point3.h>
 #include <math/dag_Point4.h>
@@ -9,35 +12,77 @@ static const float STEP_DT = 1.0f / 60.0f;
 static const float STEP_HYSTERESIS = 0.75f;
 static const float STEP_0_HYSTERESIS = 0.9f;
 static const float STEP_1_HYSTERESIS = 0.75f;
-static const float MIN_JITTER_THRESHOLD = 0.1f;
 static const float MAX_STEPS_NUM = 2.0f;
-static const float MAX_DROPS_ALIVE_TIME = 10.0f;
-static const int MAX_DROPS_PER_BATCH = 53;
-static const int DROPS_REGISTER_NO = 21;
+static const float MAX_DROPS_ALIVE_TIME = 20.0f;
+static const int MAX_DROPS_PER_BATCH = 64;
 
 
-WaterRipples::WaterRipples(float world_size, int tex_size) :
-  worldSize(world_size), texSize(tex_size), steps(), texBuffers(), drops(midmem)
+WaterRipples::WaterRipples(float world_size, int simulation_tex_size, float water_displacement_max, bool use_flowmap) :
+  worldSize(world_size), texSize(simulation_tex_size), steps(), texBuffers(), drops(midmem)
 {
   drops.reserve(MAX_DROPS_PER_BATCH);
-  texBuffers[0] = dag::create_tex(NULL, texSize, texSize, TEXFMT_G16R16F | TEXCF_RTARGET, 1, "water_ripples_0");
-  texBuffers[1] = dag::create_tex(NULL, texSize, texSize, TEXFMT_G16R16F | TEXCF_RTARGET, 1, "water_ripples_1");
-  texBuffers[0]->texfilter(TEXFILTER_SMOOTH);
-  texBuffers[0]->texaddr(TEXADDR_CLAMP);
-  texBuffers[1]->texfilter(TEXFILTER_SMOOTH);
-  texBuffers[1]->texaddr(TEXADDR_CLAMP);
+  texBuffers[0] = dag::create_tex(NULL, texSize, texSize, TEXFMT_R16F | TEXCF_RTARGET, 1, "water_ripples_0");
+  texBuffers[1] = dag::create_tex(NULL, texSize, texSize, TEXFMT_R16F | TEXCF_RTARGET, 1, "water_ripples_1");
+  texBuffers[2] = dag::create_tex(NULL, texSize, texSize, TEXFMT_R16F | TEXCF_RTARGET, 1, "water_ripples_2");
+  for (auto &tex : texBuffers)
+    tex->disableSampler();
 
-  normalTexture = dag::create_tex(NULL, texSize, texSize, TEXFMT_R8G8 | TEXCF_RTARGET, 1, "water_ripples_normal");
-  normalTexture->texfilter(TEXFILTER_SMOOTH);
-  normalTexture->texaddr(TEXADDR_CLAMP);
+  // normal texture 2 times larger than solution texture
+  heightNormalTexture = dag::create_tex(NULL, texSize * 2, texSize * 2, TEXFMT_A2R10G10B10 | TEXCF_RTARGET, 1, "water_ripples_normal");
+  heightNormalTexture->disableSampler();
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    smpInfo.filter_mode = d3d::FilterMode::Linear;
+    ShaderGlobal::set_sampler(::get_shader_glob_var_id("water_ripples_normal_samplerstate"), d3d::request_sampler(smpInfo));
+  }
+
+  dropsBuf = dag::buffers::create_one_frame_cb(MAX_DROPS_PER_BATCH, "water_ripples_drops_buf");
+
+  lastStepOrigin[1] = Point2(0, 0);
+  lastStepOrigin[0] = Point2(0, 0);
 
   updateRenderer.init("water_ripples_update");
+  resolveRenderer.init("water_ripples_resolve");
+
+  texelSize = world_size / texSize;
+
+  useFlowmap = use_flowmap;
 
   waterRipplesOnVarId = ::get_shader_glob_var_id("water_ripples_on", true);
   ShaderGlobal::set_real(waterRipplesOnVarId, 0.0f);
 
+  waterRipplesDropCountVarId = ::get_shader_glob_var_id("water_ripples_drop_count");
+  waterRipplesOriginVarId = ::get_shader_glob_var_id("water_ripples_origin");
+  waterRipplesOriginDeltaVarId = ::get_shader_glob_var_id("water_ripples_origin_delta");
+  waterRipplesDisplaceMaxVarId = ::get_shader_glob_var_id("water_ripples_displace_max");
+
+  waterRipplesT1VarId = ::get_shader_glob_var_id("water_ripples_t1");
+  waterRipplesT1_samplerstateVarId = ::get_shader_glob_var_id("water_ripples_t1_samplerstate");
+  waterRipplesT2VarId = ::get_shader_glob_var_id("water_ripples_t2");
+  waterRipplesT2_samplerstateVarId = ::get_shader_glob_var_id("water_ripples_t2_samplerstate");
+  waterRipplesDropsVarId = ::get_shader_glob_var_id("water_ripples_drops");
+
+  waterRipplesFrameNoVarId = ::get_shader_glob_var_id("water_ripples_frame_no");
+  waterRipplesFlowmapFrameCountVarId = ::get_shader_glob_var_id("water_ripples_flowmap_frame_count");
+  waterRipplesFlowmapVarId = ::get_shader_glob_var_id("water_ripples_flowmap");
+
   ShaderGlobal::set_real(::get_shader_glob_var_id("water_ripples_pixel_size"), 1.0f / texSize);
   ShaderGlobal::set_real(::get_shader_glob_var_id("water_ripples_size"), worldSize);
+  ShaderGlobal::set_real(waterRipplesDisplaceMaxVarId, water_displacement_max);
+  ShaderGlobal::set_int(waterRipplesFlowmapFrameCountVarId, flowmapFrameCount);
+  ShaderGlobal::set_int(waterRipplesFlowmapVarId, useFlowmap ? 1 : 0);
+
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
+    smpInfo.filter_mode = d3d::FilterMode::Linear;
+    waterRipplesLinearSampler = d3d::request_sampler(smpInfo);
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    waterRipplesPointSampler = d3d::request_sampler(smpInfo);
+  }
+  ShaderGlobal::set_sampler(waterRipplesT1_samplerstateVarId, waterRipplesPointSampler);
+  ShaderGlobal::set_sampler(waterRipplesT2_samplerstateVarId, waterRipplesPointSampler);
 }
 
 WaterRipples::~WaterRipples() { ShaderGlobal::set_real(waterRipplesOnVarId, 0.0f); }
@@ -132,13 +177,13 @@ void WaterRipples::updateSteps(float dt)
   }
 }
 
-void WaterRipples::advance(float dt, const Point2 &origin)
+inline int get_buf_idx(int current, int layer) { return (current + (3 - layer)) % 3; }
+
+void WaterRipples::advance(float dt, const Point2 &origin_)
 {
-  static int waterRipplesInfoTextureVarId = ::get_shader_glob_var_id("water_ripples_info_texture");
-  static int waterRipplesDropCountVarId = ::get_shader_glob_var_id("water_ripples_drop_count");
-  static int waterRipplesOriginVarId = ::get_shader_glob_var_id("water_ripples_origin");
-  static int waterRipplesOriginDeltaVarId = ::get_shader_glob_var_id("water_ripples_origin_delta");
-  static int waterRipplesDisplaceMaxVarId = ::get_shader_glob_var_id("water_ripples_displace_max", true);
+  Point2 origin = origin_;
+  origin.x = texelSize * floor(origin.x / texelSize);
+  origin.y = texelSize * floor(origin.y / texelSize);
 
   const bool cleared = firstStep;
   if (firstStep)
@@ -167,49 +212,78 @@ void WaterRipples::advance(float dt, const Point2 &origin)
   }
   dropsAliveTime -= dt;
 
-  ShaderGlobal::set_color4(waterRipplesOriginVarId, Color4(origin.x, 0.0f, origin.y, 0.0f));
-  normalTexture.setVar();
+  heightNormalTexture.setVar();
 
   SCOPE_RENDER_TARGET;
 
+  curBuffer = get_buf_idx(curBuffer, 0);
+
   for (int stepNo = 0; stepNo < nextNumSteps; ++stepNo)
   {
-    Point2 originDelta(0.0f, 0.0f);
-    if (stepNo == 0)
+    Point2 originDelta1(0.0f, 0.0f);
+    Point2 originDelta2(0.0f, 0.0f);
     {
-      originDelta = (origin - lastStepOrigin) / worldSize;
-      lastStepOrigin = origin;
+      originDelta1 = (origin - lastStepOrigin[0]) / worldSize;
+      originDelta2 = (origin - lastStepOrigin[1]) / worldSize;
+      lastStepOrigin[1] = lastStepOrigin[0];
+      lastStepOrigin[0] = origin;
     }
 
     if (dropsInst.size() > 0)
     {
-      d3d::set_ps_const(DROPS_REGISTER_NO, (float *)drops.data(), dropsInst[0]);
+      dropsBuf->updateData(0, dropsInst[0] * sizeof(Point4), drops.data(), VBLOCK_DISCARD);
+      ShaderGlobal::set_buffer(waterRipplesDropsVarId, dropsBuf.getBufId());
       ShaderGlobal::set_int(waterRipplesDropCountVarId, dropsInst[0]);
       erase_items(drops, 0, dropsInst[0]);
       erase_items(dropsInst, 0, 1);
     }
     else
+    {
+      ShaderGlobal::set_buffer(waterRipplesDropsVarId, BAD_D3DRESID);
       ShaderGlobal::set_int(waterRipplesDropCountVarId, 0);
+    }
 
-    if (lengthSq(originDelta) < sqr(MIN_JITTER_THRESHOLD / texSize))
-      originDelta = Point2(0.25f, 0.25f) / texSize * (curBuffer ? 1.0f : -1.0f);
-    ShaderGlobal::set_color4(waterRipplesOriginDeltaVarId, Color4::xyz0(Point3::x0y(originDelta)));
+    ShaderGlobal::set_int(waterRipplesFrameNoVarId, frameNo);
 
-    texBuffers[curBuffer]->texaddr(TEXADDR_CLAMP);
-    ShaderGlobal::set_texture(waterRipplesInfoTextureVarId, texBuffers[curBuffer].getTexId());
+    ShaderGlobal::set_color4(waterRipplesOriginVarId, Color4(origin.x, 0.0f, origin.y, 0.0f));
+    ShaderGlobal::set_color4(waterRipplesOriginDeltaVarId, originDelta1.x, originDelta1.y, originDelta2.x, originDelta2.y);
 
-    d3d::set_render_target(0, texBuffers[1 - curBuffer].getTex2D(), 0);
-    d3d::set_render_target(1, normalTexture.getTex2D(), 0);
+    // if we using flowmap, on some steps we need smooth filtering of texture buffers
+    if (useFlowmap)
+    {
+      // N'th step has only reading with linear filtering
+      if (frameNo == 0)
+        ShaderGlobal::set_sampler(waterRipplesT1_samplerstateVarId, waterRipplesLinearSampler);
+      else
+        ShaderGlobal::set_sampler(waterRipplesT1_samplerstateVarId, waterRipplesPointSampler);
+
+      // (N-1)'th step has two readings with linear filtering
+      if (frameNo <= 1)
+        ShaderGlobal::set_sampler(waterRipplesT2_samplerstateVarId, waterRipplesLinearSampler);
+      else
+        ShaderGlobal::set_sampler(waterRipplesT2_samplerstateVarId, waterRipplesPointSampler);
+    }
+
+    ShaderGlobal::set_texture(waterRipplesT1VarId, texBuffers[get_buf_idx(curBuffer, 1)].getTexId());
+    ShaderGlobal::set_texture(waterRipplesT2VarId, texBuffers[get_buf_idx(curBuffer, 2)].getTexId());
+
+    d3d::set_render_target(texBuffers[curBuffer].getTex2D(), 0);
     updateRenderer.render();
-    d3d::resource_barrier({texBuffers[1 - curBuffer].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-    d3d::resource_barrier({normalTexture.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    d3d::resource_barrier({texBuffers[curBuffer].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
-    texBuffers[curBuffer]->texaddr(TEXADDR_BORDER);
-    texBuffers[curBuffer]->texbordercolor(0);
-    curBuffer = 1 - curBuffer;
+    if (stepNo == 0) // update normal texture only once per update cycle
+    {
+      d3d::set_render_target(heightNormalTexture.getTex2D(), 0);
+      ShaderGlobal::set_texture(waterRipplesT1VarId, texBuffers[get_buf_idx(curBuffer, 0)].getTexId());
+      ShaderGlobal::set_sampler(waterRipplesT1_samplerstateVarId, waterRipplesLinearSampler);
+      resolveRenderer.render();
+
+      d3d::resource_barrier({heightNormalTexture.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    }
+
+    curBuffer = get_buf_idx(curBuffer + 1, 0);
+    frameNo = (frameNo + 1) % flowmapFrameCount;
   }
-
-  ShaderGlobal::set_real(waterRipplesDisplaceMaxVarId, 0.125f);
 }
 
 void WaterRipples::addDropInst(int reg_num)
@@ -224,10 +298,13 @@ void WaterRipples::clearRts()
   SCOPE_RENDER_TARGET;
   d3d::set_render_target(0, texBuffers[0].getTex2D(), 0);
   d3d::set_render_target(1, texBuffers[1].getTex2D(), 0);
+  d3d::set_render_target(2, texBuffers[2].getTex2D(), 0);
   d3d::clearview(CLEAR_TARGET, 0, 0, 0);
-  d3d::set_render_target(normalTexture.getTex2D(), 0);
-  d3d::clearview(CLEAR_TARGET, E3DCOLOR(127, 127, 0), 0, 0);
+  d3d::set_render_target(heightNormalTexture.getTex2D(), 0);
+  d3d::clearview(CLEAR_TARGET, E3DCOLOR(127, 127, 127), 0, 0);
+
   d3d::resource_barrier({texBuffers[0].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   d3d::resource_barrier({texBuffers[1].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-  d3d::resource_barrier({normalTexture.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+  d3d::resource_barrier({texBuffers[2].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+  d3d::resource_barrier({heightNormalTexture.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 }

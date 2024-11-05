@@ -1,0 +1,50 @@
+include shader_compiler_config.blk
+include "raytracing.blk"
+
+outDumpName:t="../../game/compiledShaders/gameSpirV"
+
+shader_root_dir:t="."
+
+packBin:b=yes
+
+include common_inc_dirs.blk
+source
+{
+  file:t = "../../gameLibs/fftWater/shaders/fft_cs.dshl"
+  file:t = "../renderFullTonemapLUT.dshl"
+  file:t = "../renderGradedColorLUT.dshl"
+
+  include "../../../gameLibs/daGI2/shaders/shadersList.blk"
+  include "../../../gameLibs/daSDF/shaders/daSDFList.blk"
+  include shadersList.blk
+}
+
+common_valid_variants
+{
+  include variants.blk
+  invalid {hasTexture:i=4;}
+}
+
+common_assume_vars {}
+
+Compile
+{
+  fsh:t = SpirV-5.0
+  group_size_in_kb:i=1019
+  assume_vars {
+    include common_assumes.blk
+    supports_sh_6_1:i = 0
+    //gi_voxelize_use_multidraw:i=1
+    particles_buffer_id:i=8
+    static_shadows_custom_fxaa:i=0
+    grass_use_quads:i=0
+    impostor_per_pixel_depth:i=0
+    dagi_sp_has_exposure_assume:i=1
+  }
+}
+
+explicit_var_ref
+{
+  include common_var_ref.blk
+  include game_var_ref.blk
+}

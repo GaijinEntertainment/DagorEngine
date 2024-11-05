@@ -1,15 +1,17 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ecs/input/input.h>
 #include <ecs/input/message.h>
 #include <daECS/core/coreEvents.h>
 #include <workCycle/dag_startupModules.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <startup/dag_restart.h>
-#include <humanInput/dag_hiKeyboard.h>
-#include <humanInput/dag_hiPointing.h>
-#include <humanInput/dag_hiJoystick.h>
-#include <humanInput/dag_hiComposite.h>
-#include <humanInput/dag_hiDInput.h>
-#include <humanInput/dag_hiCreate.h>
+#include <drv/hid/dag_hiKeyboard.h>
+#include <drv/hid/dag_hiPointing.h>
+#include <drv/hid/dag_hiJoystick.h>
+#include <drv/hid/dag_hiComposite.h>
+#include <drv/hid/dag_hiDInput.h>
+#include <drv/hid/dag_hiCreate.h>
 #include <daInput/input_api.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <ioSys/dag_dataBlock.h>
@@ -156,22 +158,25 @@ class DaInputGamepadPollThread final : public DaThread
   int stepMsec = 0;
   void execute() override
   {
-    while (!interlocked_acquire_load(this->terminating))
+    while (!isThreadTerminating())
     {
       if (dainput::is_safe_to_sample_input())
       {
         global_cls_drv_update_cs.lock();
         if (::global_cls_drv_joy)
           ::global_cls_drv_joy->updateDevices();
-        dainput::tick_event_occurs(ref_time_delta_to_usec(ref_time_ticks()));
         global_cls_drv_update_cs.unlock();
+        dainput::tick_event_occurs(ref_time_delta_to_usec(ref_time_ticks()));
       }
       sleep_msec(stepMsec);
     }
   }
 
 public:
-  DaInputGamepadPollThread(int step) : DaThread("dainput::poll"), stepMsec(step) { stripStackInMinidump(); }
+  DaInputGamepadPollThread(int step) : DaThread("dainput::poll", DEFAULT_STACK_SZ, 0, WORKER_THREADS_AFFINITY_MASK), stepMsec(step)
+  {
+    stripStackInMinidump();
+  }
 };
 
 static eastl::unique_ptr<DaInputGamepadPollThread> poll_thread = nullptr;
@@ -182,7 +187,6 @@ static void start_poll_thread(int poll_thread_interval_msec)
   {
     poll_thread.reset(new DaInputGamepadPollThread(poll_thread_interval_msec));
     poll_thread->start();
-    poll_thread->setAffinity(WORKER_THREADS_AFFINITY_MASK);
   }
 }
 
@@ -210,81 +214,103 @@ static void on_action_triggered(dainput::action_handle_t action, bool term, int 
     g_entity_mgr->broadcastEventImmediate(EventDaInputActionTerminated(action, dur_ms));
 }
 
-void ecs::init_hid_drivers(int poll_thread_interval_msec)
+void ecs::init_hid_drivers(int poll_thread_interval_msec, int init_dev_type)
 {
 #if _TARGET_PC | _TARGET_IOS | _TARGET_ANDROID | _TARGET_C3
-  ::dagor_init_mouse_win();
-  ::dagor_init_keyboard_win();
+  if (init_dev_type & InitDeviceType::Pointing)
+    ::dagor_init_mouse_win();
+  if (init_dev_type & InitDeviceType::Keyboard)
+    ::dagor_init_keyboard_win();
 #elif _TARGET_XBOX
-  ::dagor_init_keyboard_win();
-  if (!::global_cls_drv_pnt)
-    ::global_cls_drv_pnt = HumanInput::createMouseEmuClassDriver();
-  enable_xbox_hw_mouse(true);
+  if (init_dev_type & InitDeviceType::Keyboard)
+    ::dagor_init_keyboard_win();
+  if (init_dev_type & InitDeviceType::Pointing)
+  {
+    if (!::global_cls_drv_pnt)
+      ::global_cls_drv_pnt = HumanInput::createMouseEmuClassDriver();
+    enable_xbox_hw_mouse(true);
+  }
 #elif _TARGET_C1 | _TARGET_C2
 
 
 
 
 #else
-  ::dagor_init_keyboard_null();
-  ::dagor_init_mouse_null();
+  if (init_dev_type & InitDeviceType::Keyboard)
+    ::dagor_init_keyboard_null();
+  if (init_dev_type & InitDeviceType::Pointing)
+    ::dagor_init_mouse_null();
 #endif
 
-
 #if !(_TARGET_PC | _TARGET_IOS | _TARGET_ANDROID | _TARGET_C1 | _TARGET_C2 | _TARGET_XBOX | _TARGET_C3)
-  ::dagor_init_joystick();
-  start_poll_thread(poll_thread_interval_msec);
+  if (init_dev_type & InitDeviceType::Joystick)
+  {
+    ::dagor_init_joystick();
+    start_poll_thread(poll_thread_interval_msec);
+  }
   return;
 #endif
 
 #if _TARGET_PC_WIN
-  HumanInput::startupDInput();
+  if (init_dev_type & InitDeviceType::Joystick)
+    HumanInput::startupDInput();
   ::startup_game(RESTART_ALL);
 #else
   ::startup_game(RESTART_INPUT);
 #endif
 
+  if (init_dev_type & InitDeviceType::Joystick)
+  {
 #if _TARGET_C1 | _TARGET_C2
 
-#elif !_TARGET_TVOS
-  ::global_cls_composite_drv_joy = HumanInput::CompositeJoystickClassDriver::create();
-#endif
 
-#if !_TARGET_TVOS
-  if (!::global_cls_composite_drv_joy)
-    ::global_cls_drv_joy = HumanInput::createJoystickClassDriver(/*exclude_xinput*/ true, /*remap_360*/ false);
-  else
+#elif !_TARGET_TVOS
+    ::global_cls_composite_drv_joy = HumanInput::CompositeJoystickClassDriver::create();
+#endif
+  }
+
+#if _TARGET_TVOS
+  if constexpr (0)
+#else
+  if (init_dev_type & InitDeviceType::Joystick)
+#endif
   {
+    if (!::global_cls_composite_drv_joy)
+      ::global_cls_drv_joy = HumanInput::createJoystickClassDriver(/*exclude_xinput*/ true, /*remap_360*/ false);
+    else
+    {
 #if _TARGET_PC_WIN
-    ::global_cls_composite_drv_joy->addClassDrv(::HumanInput::createXinputJoystickClassDriver(), /*is_xinput*/ true);
+      ::global_cls_composite_drv_joy->addClassDrv(::HumanInput::createXinputJoystickClassDriver(), /*is_xinput*/ true);
 #endif
 #if _TARGET_XBOX
-    ::global_cls_composite_drv_joy->addClassDrv(::HumanInput::createXinputJoystickClassDriver(true), /*is_xinput*/ true);
+      ::global_cls_composite_drv_joy->addClassDrv(::HumanInput::createXinputJoystickClassDriver(true), /*is_xinput*/ true);
 #endif
 #if _TARGET_PC_LINUX
-    ::global_cls_composite_drv_joy->addClassDrv(::HumanInput::createJoystickClassDriver(/*exclude_xinput*/ false, /*remap_360*/ true),
-      /*is_xinput*/ true);
+      ::global_cls_composite_drv_joy->addClassDrv(
+        ::HumanInput::createJoystickClassDriver(/*exclude_xinput*/ false, /*remap_360*/ true),
+        /*is_xinput*/ true);
 #endif
 #if _TARGET_PC | _TARGET_ANDROID | _TARGET_IOS
-    ::global_cls_composite_drv_joy->addClassDrv(::HumanInput::createJoystickClassDriver(/*exclude_xinput*/ true, /*remap_360*/ false),
-      /*is_xinput*/ false);
+      ::global_cls_composite_drv_joy->addClassDrv(
+        ::HumanInput::createJoystickClassDriver(/*exclude_xinput*/ true, /*remap_360*/ false),
+        /*is_xinput*/ false);
 #endif
-    ::global_cls_drv_joy = ::global_cls_composite_drv_joy;
+      ::global_cls_drv_joy = ::global_cls_composite_drv_joy;
+    }
   }
-#endif
-  if (::global_cls_drv_joy)
-    for (int i = 0; i < ::global_cls_drv_joy->getDeviceCount(); i++)
-      if (::global_cls_drv_joy->getDevice(i))
-      {
-        ::global_cls_drv_joy->getDevice(i)->enableSensorsTiltCorrection(true);
-        ::global_cls_drv_joy->getDevice(i)->reportGyroSensorsAngDelta(true);
-      }
+  for (int i = 0, n = global_cls_drv_joy ? ::global_cls_drv_joy->getDeviceCount() : 0; i < n; i++)
+    if (::global_cls_drv_joy->getDevice(i))
+    {
+      ::global_cls_drv_joy->getDevice(i)->enableSensorsTiltCorrection(true);
+      ::global_cls_drv_joy->getDevice(i)->reportGyroSensorsAngDelta(true);
+    }
 
   start_poll_thread(poll_thread_interval_msec);
 }
 void ecs::term_hid_drivers()
 {
   stop_poll_thread();
+  dainput_mgr.demandDestroy();
   if (::global_cls_composite_drv_joy)
   {
     ::global_cls_composite_drv_joy->destroy();
@@ -299,11 +325,17 @@ void ecs::term_hid_drivers()
   }
 }
 
-void ecs::init_input(const char *controls_config_fname) { ecs::init_input(DataBlock(controls_config_fname)); }
+void ecs::init_input(const char *controls_config_fname)
+{
+  DataBlock blk;
+  if (controls_config_fname && *controls_config_fname)
+    dblk::load(blk, controls_config_fname);
+  ecs::init_input(blk);
+}
 void ecs::init_input(const DataBlock &controls_config_blk)
 {
-  dainput::register_dev1_kbd(global_cls_drv_kbd->getDevice(0));
-  dainput::register_dev2_pnt(global_cls_drv_pnt->getDevice(0));
+  dainput::register_dev1_kbd(global_cls_drv_kbd ? global_cls_drv_kbd->getDevice(0) : nullptr);
+  dainput::register_dev2_pnt(global_cls_drv_pnt ? global_cls_drv_pnt->getDevice(0) : nullptr);
   dainput::register_dev3_gpad(global_cls_drv_joy ? global_cls_drv_joy->getDevice(0) : nullptr);
   dainput::init_actions(controls_config_blk);
   dainput::dump_action_sets();

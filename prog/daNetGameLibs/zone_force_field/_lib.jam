@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_zone_force_field_pull ;
+  UseProgLibs += daNetGameLibs/zone_force_field ;
+}

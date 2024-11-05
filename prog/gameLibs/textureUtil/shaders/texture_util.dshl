@@ -5,8 +5,6 @@ texture texture_util_source_texture;
 
 shader texture_util_rotate
 {
-  supports global_frame;
-
   z_write = false;
   z_test = false;
   cull_mode = none;

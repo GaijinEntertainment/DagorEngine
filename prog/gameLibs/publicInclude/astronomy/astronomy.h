@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -86,7 +85,7 @@ inline double julian_day(unsigned int year, unsigned int month, unsigned int day
 
 inline double julian_century(double jd) { return (jd - 2451545) / 36525; }
 
-inline double julian_set_time(double jd, double time) { return floor(jd) + (time - 12.0) / 24.0; }
+inline double julian_get_time(double jd, double time) { return floor(jd) + (time - 12.0) / 24.0; }
 
 
 inline double calc_lst_degrees(double jd, real longitude) // lontitude in degrees

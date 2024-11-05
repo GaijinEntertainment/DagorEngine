@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "intervals.h"
 #include "varMap.h"
 #include "shLog.h"

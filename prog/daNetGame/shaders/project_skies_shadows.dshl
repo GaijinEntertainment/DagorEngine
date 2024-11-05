@@ -1,0 +1,17 @@
+include "static_shadow.dshl"
+
+macro PROJECT_SKIES_SHADOWS(code)
+  hlsl{
+    #define FASTEST_STATIC_SHADOW_PCF 1
+    #define HAS_STATIC_SHADOW 1
+  }
+
+  INIT_STATIC_SHADOW_BASE(code)
+  USE_STATIC_SHADOW_BASE(code)
+  hlsl(code) {
+    float get_project_skies_shadows(float3 worldPos, float dist_in_km, float radius_in_km, float view_mu)
+    {
+      return getStaticShadow(worldPos);
+    }
+  }
+endmacro

@@ -1,14 +1,13 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <util/dag_stdint.h>
 #include <string.h>
 #include <generic/dag_tabFwd.h>
-#include <humanInput/dag_hiDecl.h>
+#include <drv/hid/dag_hiDecl.h>
 
 class DataBlock;
 class String;
@@ -205,6 +204,11 @@ typedef void (*actions_processed_t)(float dt_passed);
 
 namespace dainput
 {
+//! is controled by cur thread
+bool is_controled_by_cur_thread();
+//! set control thread id
+void set_control_thread_id(int64_t tid);
+
 //! register squirrel API
 void bind_sq_api(SqModules *moduleMgr);
 //! register daRg scene as consumer of input

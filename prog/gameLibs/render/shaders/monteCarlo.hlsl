@@ -141,11 +141,41 @@ float4 importance_sample_GGX_NDF( float2 E, float linear_roughness )
   return float4( H, PDF );
 }
 
+// Sampling Visible GGX Normals with Spherical Caps
+// https://arxiv.org/pdf/2306.05044
+float3 importanceSampleVNDF_Hemisphere(float2 u, float3 wi)
+{
+  // sample a spherical cap in (-wi.z, 1]
+  float phi = 2.0f * PI * u.x;
+  //original: fma((1.0f - u.y), (1.0f + wi.z), -wi.z), so:
+  // (1.0f + wi.z)*(1.0f - u.y) - wi.z
+  // (1.0f - u.y) - u.y*wi.z
+  // -wi.z*u.y + 1*(1-u.y) == lerp(-wi.z, 1, u.y)
+  float z = lerp(-wi.z, 1.0, u.y);
+  float sinTheta = sqrt(saturate(1.0f - z * z));
+  float x = sinTheta * cos(phi);
+  float y = sinTheta * sin(phi);
+  float3 c = float3(x, y, z);
+  // compute halfway direction;
+  float3 h = c + wi;
+  // return without normalization (as this is done later)
+  return h;
+}
+
+float3 importanceSampleVNDF_GGX_CAPPED(float2 u, float3 wi, float2 ggx_alpha)
+{
+  float3 wiStd = normalize(float3(wi.xy * ggx_alpha, wi.z));
+  float3 wmStd = importanceSampleVNDF_Hemisphere(u, wiStd);
+  return normalize(float3(wmStd.xy * ggx_alpha, wmStd.z));
+}
+
+#if 0
 // http://jcgt.org/published/0007/04/01/paper.pdf by Eric Heitz
 // Input Ve: view direction
 // Input alpha_x, alpha_y: ggxroughness parameters
 // Input U1, U2: uniform random numbers
 // Output Ne: normal sampled with PDF D_Ve(Ne) = G1(Ve) * max(0, dot(Ve, Ne)) * D(Ne) / Ve.z
+
 float3 SampleGGXVNDF(float3 Ve, float alpha_x, float alpha_y, float U1, float U2)
 {
   // Section 3.2: transforming the view direction to the hemisphere configuration
@@ -173,5 +203,11 @@ float3 importance_sample_GGX_VNDF( float2 E, float3 Ve, float linear_roughness )
   float ggx_alpha = max(1e-4, linear_roughness*linear_roughness);
   return SampleGGXVNDF(Ve, ggx_alpha, ggx_alpha, E.x, E.y);
 }
-
+#else
+float3 importance_sample_GGX_VNDF( float2 E, float3 Ve, float linear_roughness )
+{
+  float ggx_alpha = max(1e-4, linear_roughness*linear_roughness);
+  return importanceSampleVNDF_GGX_CAPPED(E, Ve, ggx_alpha);
+}
+#endif
 #endif

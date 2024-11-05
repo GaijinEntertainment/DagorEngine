@@ -1,5 +1,5 @@
 WARNING: w223 (compared-with-bool) Comparison with boolean.
-testData/static_analyzer/w305.nut:10:4
+testData/static_analyzer/w305.nut:13:4
 
 if (B == x > y)
     ^---------
@@ -7,23 +7,10 @@ if (B == x > y)
 
 
 WARNING: w305 (relative-bool-cmp) Relative comparison non-boolean with boolean. It is potential runtime error
-testData/static_analyzer/w305.nut:13:4
+testData/static_analyzer/w305.nut:16:4
 
 if ((B == x) > y)
     ^-----------
   ::print("a")
 
 
-
-AN ERROR HAS OCCURRED [comparison between 'bool' and '1']
-
-CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w305.nut line [13]
-
-LOCALS
-[b2] false
-[b1] true
-[y] 1
-[x] 1
-[vargv] ARRAY=[]
-[this] TABLE={}

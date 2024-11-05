@@ -1,8 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "namedConst.h"
 #include "shsyn.h"
 #include "shLog.h"
 #include "shsem.h"
 #include "linkShaders.h"
+#include "cppStcode.h"
+#include "const3d.h"
 #include <math/dag_mathBase.h>
 #include <shaders/shOpcodeFormat.h>
 #include <shaders/shOpcode.h>
@@ -11,6 +15,8 @@
 #include <debug/dag_debug.h>
 #include "hash.h"
 #include "fast_isalnum.h"
+#include <EASTL/bitvector.h>
+#include <EASTL/string_view.h>
 #include <algorithm>
 
 #if _CROSS_TARGET_DX12
@@ -21,7 +27,6 @@ extern dx12::dxil::Platform targetPlatform;
 static constexpr const char *EMPTY_BLOCK_NAME = "__empty_block__";
 
 static String tmpDigest;
-extern int hlsl_bones_base_reg;
 extern bool enableBindless;
 
 const char *NamedConstBlock::nameSpaceToStr(NamedConstSpace name_space)
@@ -34,7 +39,14 @@ const char *NamedConstBlock::nameSpaceToStr(NamedConstSpace name_space)
     case NamedConstSpace::smp: return "@smp";
     case NamedConstSpace::sampler: return "@sampler";
     case NamedConstSpace::csf: return "@csf";
-    case NamedConstSpace::uav: return "@uav";
+    case NamedConstSpace::uav:
+    case NamedConstSpace::vs_uav: return "@uav";
+    case NamedConstSpace::vs_buf: return "@vs_buf";
+    case NamedConstSpace::ps_buf: return "@ps_buf";
+    case NamedConstSpace::cs_buf: return "@cs_buf";
+    case NamedConstSpace::vs_cbuf: return "@vs_cbuf";
+    case NamedConstSpace::ps_cbuf: return "@ps_cbuf";
+    case NamedConstSpace::cs_cbuf: return "@cs_cbuf";
     default: return "?unk?";
   }
 }
@@ -68,6 +80,8 @@ static int translate_namespace(NamedConstSpace nc)
 
 int NamedConstBlock::addConst(int stage, const char *name, NamedConstSpace name_space, int sz, int hardcoded_reg, String &&hlsl_decl)
 {
+  G_ASSERT(sz > 0);
+
   auto &props = stage == STAGE_VS ? vertexProps : pixelProps;
   auto &xsn = props.sn;
   auto &xsc = props.sc;
@@ -109,6 +123,7 @@ void NamedConstBlock::markStatic(int id, NamedConstSpace name_space)
   {
     case NamedConstSpace::vsf:
     case NamedConstSpace::vsmp:
+    case NamedConstSpace::vs_uav:
       if (id >= 0 && id < vertexProps.sc.size())
         vertexProps.sc[id].isDynamic = false;
       break;
@@ -127,7 +142,6 @@ void NamedConstBlock::markStatic(int id, NamedConstSpace name_space)
 
 int NamedConstBlock::arrangeRegIndices(int base_reg, NamedConstSpace name_space, int *base_cblock_reg)
 {
-  int vpr_arr_id = -1;
   if (base_cblock_reg)
   {
     switch (name_space)
@@ -186,25 +200,21 @@ int NamedConstBlock::arrangeRegIndices(int base_reg, NamedConstSpace name_space,
     case NamedConstSpace::vsmp:
     case NamedConstSpace::vs_buf:
     case NamedConstSpace::vs_cbuf:
+    case NamedConstSpace::vs_uav:
       for (NamedConst &nc : vertexProps.sc)
       {
         if (nc.nameSpace == name_space && !nc.isDynamic && !(base_cblock_reg && nc.nameSpace == NamedConstSpace::vsf))
         {
-          if (nc.size > 0)
+          if (needShift && base_reg == 1)
+            base_reg++;
+
+          base_reg = find_first_free_reg(vertexProps.hardcoded_regs, nc.size);
+
+          if (nc.regIndex == -1)
           {
-            if (needShift && base_reg == 1)
-              base_reg++;
-
-            base_reg = find_first_free_reg(vertexProps.hardcoded_regs, nc.size);
-
-            if (nc.regIndex == -1)
-            {
-              nc.regIndex = remap_register(base_reg, nc.nameSpace);
-              base_reg += nc.size;
-            }
+            nc.regIndex = remap_register(base_reg, nc.nameSpace);
+            base_reg += nc.size;
           }
-          else
-            sh_debug(SHLOG_ERROR, "ICE: vpr_array marked as static?");
         }
       }
 
@@ -213,41 +223,17 @@ int NamedConstBlock::arrangeRegIndices(int base_reg, NamedConstSpace name_space,
         NamedConst &nc = vertexProps.sc[i];
         if (nc.nameSpace == name_space && nc.isDynamic)
         {
-          if (nc.size < 0)
-          {
-            if (vpr_arr_id != -1)
-              sh_debug(SHLOG_ERROR, "more than one vpr_array const");
-            vpr_arr_id = i;
-          }
-          else
-          {
-            if (needShift && base_reg == 1)
-              base_reg++;
+          if (needShift && base_reg == 1)
+            base_reg++;
 
-            base_reg = find_first_free_reg(vertexProps.hardcoded_regs, nc.size);
+          base_reg = find_first_free_reg(vertexProps.hardcoded_regs, nc.size);
 
-            if (nc.regIndex == -1)
-            {
-              nc.regIndex = remap_register(base_reg, nc.nameSpace);
-              base_reg += nc.size;
-            }
+          if (nc.regIndex == -1)
+          {
+            nc.regIndex = remap_register(base_reg, nc.nameSpace);
+            base_reg += nc.size;
           }
         }
-      }
-
-      if (vpr_arr_id != -1)
-      {
-        if (hlsl_bones_base_reg < 0)
-        {
-          vertexProps.sc[vpr_arr_id].regIndex = base_reg;
-          base_reg = 256;
-        }
-        else
-        {
-          vertexProps.sc[vpr_arr_id].regIndex = hlsl_bones_base_reg;
-        }
-        if (vertexProps.hardcoded_regs[translate_namespace(name_space)].count(vertexProps.sc[vpr_arr_id].regIndex))
-          sh_debug(SHLOG_ERROR, "The register '%i' is reserved and cannot be hardcoded", vertexProps.sc[vpr_arr_id].regIndex);
       }
       break;
 
@@ -279,7 +265,29 @@ int NamedConstBlock::arrangeRegIndices(int base_reg, NamedConstSpace name_space,
 
             if (nc.nameSpace == NamedConstSpace::smp && nc.regIndex > 15)
             {
-              sh_debug(SHLOG_ERROR, "More than 16 textures with samplers in shader are not allowed");
+              String listOfSamplers;
+
+              const auto dumpSamplers = [&listOfSamplers](RegisterProperties &props) {
+                for (int i = 0; i < props.sc.size(); i++)
+                {
+                  if (props.sc[i].nameSpace != NamedConstSpace::smp && props.sc[i].nameSpace != NamedConstSpace::sampler)
+                    continue;
+
+                  listOfSamplers.aprintf(0, "%02d: %s\n", props.sc[i].regIndex + 1, props.sn.getName(i));
+                }
+              };
+
+              for (auto sb : suppBlk)
+              {
+                listOfSamplers.aprintf(0, "Shader block [%s]:\n", sb->name);
+                dumpSamplers(sb->shConst.pixelProps);
+                listOfSamplers.append("\n");
+              }
+              listOfSamplers.aprintf(0, "Shader:\n");
+              dumpSamplers(pixelProps);
+
+              sh_debug(SHLOG_ERROR, "More than 16 textures with samplers in shader are not allowed! Dump of used samplers:\n%s",
+                listOfSamplers.c_str());
             }
             if (nc.nameSpace == NamedConstSpace::uav)
             {
@@ -300,7 +308,7 @@ int NamedConstBlock::arrangeRegIndices(int base_reg, NamedConstSpace name_space,
   return base_reg;
 }
 
-int NamedConstBlock::getHierConstValEx(const char *name_buf, const char *blk_name, NamedConstSpace ns, bool pixel_shader)
+int NamedConstBlock::getRegForNamedConstEx(const char *name_buf, const char *blk_name, NamedConstSpace ns, bool pixel_shader)
 {
   if (!blk_name[0])
   {
@@ -318,17 +326,17 @@ int NamedConstBlock::getHierConstValEx(const char *name_buf, const char *blk_nam
 
   for (int i = 0; i < suppBlk.size(); i++)
     if (suppBlk[i]->name == blk_name)
-      return suppBlk[i]->shConst.getHierConstVal(name_buf, ns, pixel_shader);
+      return suppBlk[i]->shConst.getRegForNamedConst(name_buf, ns, pixel_shader);
     else
     {
-      int reg = suppBlk[i]->shConst.getHierConstValEx(name_buf, blk_name, ns, pixel_shader);
+      int reg = suppBlk[i]->shConst.getRegForNamedConstEx(name_buf, blk_name, ns, pixel_shader);
       if (reg >= 0)
         return reg;
     }
   return -1;
 }
 
-int NamedConstBlock::getHierConstVal(const char *name_buf, NamedConstSpace ns, bool pixel_shader)
+int NamedConstBlock::getRegForNamedConst(const char *name_buf, NamedConstSpace ns, bool pixel_shader)
 {
   int id = pixel_shader ? pixelProps.sn.getNameId(name_buf) : vertexProps.sn.getNameId(name_buf);
   if (id == -1)
@@ -336,13 +344,13 @@ int NamedConstBlock::getHierConstVal(const char *name_buf, NamedConstSpace ns, b
     if (!suppBlk.size())
       return -1;
 
-    int reg = suppBlk[0]->shConst.getHierConstVal(name_buf, ns, pixel_shader);
+    int reg = suppBlk[0]->shConst.getRegForNamedConst(name_buf, ns, pixel_shader);
     if (reg < 0)
       return -1;
 
     for (int i = 1; i < suppBlk.size(); i++)
     {
-      int nreg = suppBlk[i]->shConst.getHierConstVal(name_buf, ns, pixel_shader);
+      int nreg = suppBlk[i]->shConst.getRegForNamedConst(name_buf, ns, pixel_shader);
       if (nreg != reg)
         return -1;
     }
@@ -357,7 +365,7 @@ int NamedConstBlock::getHierConstVal(const char *name_buf, NamedConstSpace ns, b
   return pixel_shader ? pixelProps.sc[id].regIndex : vertexProps.sc[id].regIndex;
 }
 
-CryptoHash NamedConstBlock::getDigest(bool ps_const, bool cs_const) const
+CryptoHash NamedConstBlock::getDigest(bool ps_const, bool cs_const, const MergedVariablesData &merged_vars) const
 {
   CryptoHasher hasher;
   hasher.update(suppBlk.size());
@@ -385,7 +393,7 @@ CryptoHash NamedConstBlock::getDigest(bool ps_const, bool cs_const) const
     SCFastNameMap added_names;
     buildDrawcallIdHlslDecl(res);
     if (hasStaticCbuf)
-      buildStaticConstBufHlslDecl(res);
+      buildStaticConstBufHlslDecl(res, merged_vars);
     buildHlslDeclText(res, ps_const, cs_const, added_names, hasStaticCbuf);
     hasher.update(res.data(), res.length());
   }
@@ -393,33 +401,179 @@ CryptoHash NamedConstBlock::getDigest(bool ps_const, bool cs_const) const
   return hasher.hash();
 }
 
-static void calc_final_idx(ShaderStateBlock::UsageIdx &f, ShaderStateBlock::UsageIdx &m, dag::ConstSpan<NamedConstBlock::NamedConst> n,
-  bool &bones_used, bool static_cbuf = false)
+enum class HlslNameSpace
 {
-#define CASE_ARRANGE_REG(X)                                                                             \
-  case NamedConstSpace::X:                                                                              \
-  {                                                                                                     \
-    if (static_cbuf && n[i].nameSpace == NamedConstSpace::psf && n[i].regIndex == 0xFF)                 \
-      break;                                                                                            \
-    if (n[i].size >= 0 || hlsl_bones_base_reg < 0)                                                      \
-      f.X = std::max(f.X, remap_register(n[i].regIndex, n[i].nameSpace) + std::max(0, (int)n[i].size)); \
-    if (n[i].size >= 0)                                                                                 \
-      m.X = std::max(m.X, remap_register(n[i].regIndex, n[i].nameSpace) + n[i].size);                   \
-    else                                                                                                \
-      bones_used = true;                                                                                \
-    break;                                                                                              \
+  t,
+  s,
+  c,
+  u,
+  b
+};
+
+#define HLSL_NS_SWITCH(switch_val, default_val) \
+  switch (switch_val)                           \
+  {                                             \
+    CASE(t)                                     \
+    CASE(s)                                     \
+    CASE(c)                                     \
+    CASE(u)                                     \
+    CASE(b)                                     \
+    default: G_ASSERT_RETURN(0, (default_val)); \
+  }
+
+static HlslNameSpace sym_to_hlsl_namespace(char sym)
+{
+#define CASE(symbol) \
+  case (*(#symbol)): return HlslNameSpace::symbol;
+
+  HLSL_NS_SWITCH(sym, HlslNameSpace::c)
+#undef CASE
+}
+
+static char hlsl_namespace_to_sym(HlslNameSpace hlslNs)
+{
+#define CASE(symbol) \
+  case HlslNameSpace::symbol: return (*(#symbol));
+
+  HLSL_NS_SWITCH(hlslNs, '\0')
+#undef CASE
+}
+
+static HlslNameSpace named_const_space_to_hlsl_namespace(NamedConstSpace name_space, bool is_sampler_in_pair = false)
+{
+  switch (name_space)
+  {
+    case NamedConstSpace::vsf:
+    case NamedConstSpace::psf:
+    case NamedConstSpace::csf: return HlslNameSpace::c;
+
+    case NamedConstSpace::smp:
+    case NamedConstSpace::vsmp: return is_sampler_in_pair ? HlslNameSpace::s : HlslNameSpace::t;
+
+    case NamedConstSpace::sampler: return HlslNameSpace::s;
+
+    case NamedConstSpace::uav:
+    case NamedConstSpace::vs_uav: return HlslNameSpace::u;
+
+    case NamedConstSpace::vs_buf:
+    case NamedConstSpace::ps_buf:
+    case NamedConstSpace::cs_buf: return HlslNameSpace::t;
+
+    case NamedConstSpace::vs_cbuf:
+    case NamedConstSpace::ps_cbuf:
+    case NamedConstSpace::cs_cbuf: return HlslNameSpace::b;
+
+    default: G_ASSERT_RETURN(0, HlslNameSpace::c);
+  }
+}
+
+class RegistersUsage
+{
+  struct RegSet : eastl::bitvector<>
+  {
+    RegSet(int cap) { reserve(cap); }
+  };
+
+  static constexpr int BASE_RESOURCE_REG_CAP = 32;
+  static constexpr int BASE_CONST_REG_CAP = 2048;
+
+public:
+  RegistersUsage() :
+    t(BASE_RESOURCE_REG_CAP), s(BASE_RESOURCE_REG_CAP), c(BASE_CONST_REG_CAP), u(BASE_RESOURCE_REG_CAP), b(BASE_RESOURCE_REG_CAP)
+  {}
+
+  void addReg(int base_reg, int num_regs, NamedConstSpace name_space)
+  {
+    addRegToSet(base_reg, num_regs, setForNamespace(name_space));
+    if (name_space == NamedConstSpace::smp || name_space == NamedConstSpace::vsmp)
+      addRegToSet(base_reg, num_regs, setForNamespace(name_space, true));
+  }
+  void addReg(int base_reg, int num_regs, HlslNameSpace hlsl_namespace)
+  {
+    addRegToSet(base_reg, num_regs, setForHlslNamespace(hlsl_namespace));
+  }
+
+  int regCap(NamedConstSpace name_space) const { return setForNamespace(name_space).size(); }
+  int regCap(HlslNameSpace hlsl_namepace) const { return setForHlslNamespace(hlsl_namepace).size(); }
+
+  bool containsReg(int reg, NamedConstSpace name_space) const
+  {
+    return reg >= regCap(name_space) ? false : setForNamespace(name_space)[reg];
+  }
+  bool containsReg(int reg, HlslNameSpace hlsl_namepace) const
+  {
+    return reg >= regCap(hlsl_namepace) ? false : setForHlslNamespace(hlsl_namepace)[reg];
+  }
+
+private:
+  RegSet t, s, c, u, b;
+
+  RegSet &setForHlslNamespace(HlslNameSpace hlsl_namespace)
+  {
+#define CASE(symbol) \
+  case (HlslNameSpace::symbol): return symbol;
+
+    HLSL_NS_SWITCH(hlsl_namespace, c)
+#undef CASE
+  }
+  const RegSet &setForHlslNamespace(HlslNameSpace hlsl_namespace) const
+  {
+#define CASE(symbol) \
+  case (HlslNameSpace::symbol): return symbol;
+
+    HLSL_NS_SWITCH(hlsl_namespace, c)
+#undef CASE
+  }
+
+  RegSet &setForNamespace(NamedConstSpace name_space, bool is_sampler_in_pair = false)
+  {
+    return setForHlslNamespace(named_const_space_to_hlsl_namespace(name_space, is_sampler_in_pair));
+  }
+  const RegSet &setForNamespace(NamedConstSpace name_space, bool is_sampler_in_pair = false) const
+  {
+    return setForHlslNamespace(named_const_space_to_hlsl_namespace(name_space, is_sampler_in_pair));
+  }
+
+  inline static void addRegToSet(int base_reg, int num_regs, RegSet &set)
+  {
+    G_ASSERT(num_regs > 0); // sanity check
+    int cap = base_reg + num_regs;
+    if (cap > set.size())
+      set.resize(cap, false);
+    for (int r = base_reg; r < base_reg + num_regs; ++r)
+      set[r] = true;
+  }
+};
+
+static void process_used_regs(RegistersUsage &used_regs, dag::ConstSpan<NamedConstBlock::NamedConst> n, bool static_cbuf = false)
+{
+#define CASE_ADD_USED_REG(X)                                                            \
+  case NamedConstSpace::X:                                                              \
+  {                                                                                     \
+    if (static_cbuf && n[i].nameSpace == NamedConstSpace::psf && n[i].regIndex == 0xFF) \
+      break;                                                                            \
+    used_regs.addReg(n[i].regIndex, n[i].size, n[i].nameSpace);                         \
+    break;                                                                              \
   }
   for (int i = 0; i < n.size(); i++)
     switch (n[i].nameSpace)
     {
-      CASE_ARRANGE_REG(vsf);
-      CASE_ARRANGE_REG(vsmp);
-      CASE_ARRANGE_REG(psf);
-      CASE_ARRANGE_REG(smp);
-      CASE_ARRANGE_REG(csf);
-      CASE_ARRANGE_REG(uav);
+      CASE_ADD_USED_REG(vsf)
+      CASE_ADD_USED_REG(psf)
+      CASE_ADD_USED_REG(csf)
+      CASE_ADD_USED_REG(smp)
+      CASE_ADD_USED_REG(vsmp)
+      CASE_ADD_USED_REG(sampler)
+      CASE_ADD_USED_REG(uav)
+      CASE_ADD_USED_REG(vs_uav)
+      CASE_ADD_USED_REG(ps_buf)
+      CASE_ADD_USED_REG(cs_buf)
+      CASE_ADD_USED_REG(vs_buf)
+      CASE_ADD_USED_REG(ps_cbuf)
+      CASE_ADD_USED_REG(cs_cbuf)
+      CASE_ADD_USED_REG(vs_cbuf)
     }
-#undef CASE_ARRANGE_REG
+#undef CASE_ADD_USED_REG
 }
 
 struct SamplerState
@@ -436,13 +590,14 @@ extern int hlsl_maximum_psf_allowed;
 static bool shall_remove_ns(NamedConstSpace ns, bool pixel_shader, bool compute_shader)
 {
   const bool vertex_shader = !compute_shader && !pixel_shader;
-  bool remove = (pixel_shader && (ns == NamedConstSpace::vsf || ns == NamedConstSpace::vsmp)) ||
-                (!pixel_shader && (ns == NamedConstSpace::psf || ns == NamedConstSpace::smp)) ||
-                (!compute_shader && (ns == NamedConstSpace::csf)) ||
-                (!pixel_shader && (ns == NamedConstSpace::ps_buf || ns == NamedConstSpace::ps_cbuf)) ||
-                (!compute_shader && (ns == NamedConstSpace::cs_buf || ns == NamedConstSpace::cs_cbuf)) ||
-                (!vertex_shader && (ns == NamedConstSpace::vs_buf || ns == NamedConstSpace::vs_cbuf)) ||
-                (vertex_shader && ns == NamedConstSpace::uav);
+  bool remove =
+    (pixel_shader && (ns == NamedConstSpace::vsf || ns == NamedConstSpace::vsmp || ns == NamedConstSpace::vs_uav)) ||
+    (!pixel_shader && (ns == NamedConstSpace::psf || ns == NamedConstSpace::smp)) ||
+    (!compute_shader && (ns == NamedConstSpace::csf)) ||
+    (!pixel_shader && (ns == NamedConstSpace::ps_buf || ns == NamedConstSpace::ps_cbuf)) ||
+    (!compute_shader && (ns == NamedConstSpace::cs_buf || ns == NamedConstSpace::cs_cbuf)) ||
+    (!vertex_shader && (ns == NamedConstSpace::vs_buf || ns == NamedConstSpace::vs_cbuf || ns == NamedConstSpace::vs_uav)) ||
+    (vertex_shader && ns == NamedConstSpace::uav);
   return remove;
 }
 static void add_lines_commented(String &out_text, const char *add_text)
@@ -457,37 +612,43 @@ static void add_lines_commented(String &out_text, const char *add_text)
     out_text += String(0, "%s%s\n", strnicmp(add_text, "#line ", 6) == 0 ? "" : "//", add_text);
 }
 
-static const char *get_hlsl_decl_end(const char *hlsl)
+static eastl::string_view get_hlsl_decl(const char *hlsl)
 {
   const char *p = strchr(hlsl, '\n');
   if (!p)
-    return hlsl;
+    return eastl::string_view(hlsl);
+
   if (const char *p1 = strchr(p + 1, ':'))
-    return p1;
+    return eastl::string_view(hlsl, p1 - hlsl);
   if (const char *p1 = strchr(p + 1, '@'))
-    return p1;
-  return hlsl;
+    return eastl::string_view(hlsl, p1 - hlsl);
+
+  return eastl::string_view(hlsl);
 }
 
 const char *MATERIAL_PROPS_NAME = "materialProps";
 
 template <enum NamedConstSpace TOKEN_TO_PROCESS>
 static void gather_static_consts(const NamedConstBlock::RegisterProperties &reg_props,
-  const NamedConstBlock::RegisterProperties *prev_props, String &out_hlsl, String &access_functions, int &our_regs_count)
+  const NamedConstBlock::RegisterProperties *prev_props, const ShaderParser::VariablesMerger &merged_vars, String &out_hlsl,
+  String &access_functions, int &our_regs_count)
 {
+  using MergedVarInfo = ShaderParser::VariablesMerger::MergedVarInfo;
+  using MergedVars = ShaderParser::VariablesMerger::MergedVars;
+
   for (int i = 0; i < reg_props.sc.size(); i++)
   {
-    const NamedConstBlock::NamedConst &nc = reg_props.sc[i];
-    const char *hlsl = nc.hlsl.c_str();
-    if (nc.nameSpace != TOKEN_TO_PROCESS || nc.isDynamic)
+    const NamedConstBlock::NamedConst &statConst = reg_props.sc[i];
+    if (statConst.nameSpace != TOKEN_TO_PROCESS || statConst.isDynamic)
       continue;
-    const char *nm = reg_props.sn.getName(i);
-    if (prev_props && prev_props->sn.getNameId(nm) >= 0) // skip duplicate VS/PS vars
+    const char *constName = reg_props.sn.getName(i);
+    if (prev_props && prev_props->sn.getNameId(constName) >= 0) // skip duplicate VS/PS vars
       continue;
-    const char *pe = get_hlsl_decl_end(hlsl);
-    G_ASSERTF(nc.regIndex == our_regs_count, "ICE: nc.regIndex=%d regIndex=%d", nc.regIndex, our_regs_count);
-    out_hlsl.aprintf(0, "  %.*s;", pe - hlsl, hlsl);
-    our_regs_count += nc.size;
+
+    const char *hlsl = statConst.hlsl.c_str();
+    eastl::string_view hlsl_decl = get_hlsl_decl(hlsl);
+    G_ASSERTF(statConst.regIndex == our_regs_count, "ICE: nc.regIndex=%d regIndex=%d", statConst.regIndex, our_regs_count);
+    our_regs_count += statConst.size;
     eastl::array<const char *, 13> TYPE_NAMES = {
       "float4x4 ",
       "float4 ",
@@ -503,31 +664,57 @@ static void gather_static_consts(const NamedConstBlock::RegisterProperties &reg_
       "int2 ",
       "int ",
     };
-    const char *typeNameBegin = nullptr;
+
+    eastl::string_view type_name;
     for (const char *type : TYPE_NAMES)
     {
-      typeNameBegin = strstr(hlsl, type);
-      if (typeNameBegin)
+      size_t found_pos = hlsl_decl.find(type);
+      if (found_pos != eastl::string_view::npos)
+      {
+        type_name = eastl::string_view(type, strlen(type) - 1); // without the space
         break;
+      }
     }
-    access_functions.aprintf(0, "%.*s get_%s() { return %s[DRAW_CALL_ID].%s; }\n", strchr(typeNameBegin, ' ') - typeNameBegin,
-      typeNameBegin, nm, MATERIAL_PROPS_NAME, nm);
-    if (!strstr(hlsl, "float4 ") && !strstr(hlsl, "float4x4 ") && !strstr(hlsl, "int4 ")) // partial vector, needs padding
+
+    // If this constant is a key in the merger's map, it means that it is not a normal constant, but a few constants
+    // packed together into one register. In this case, we have to define getters for each individual packed const
+    if (const MergedVars *originalVars = merged_vars.findOriginalVarsInfo(constName, false))
     {
-      if (const char *p = strstr(hlsl, "float "))
-        out_hlsl.aprintf(0, " float __pad1_%s, __pad2_%s, __pad3_%s;", nm, nm, nm);
-      else if (const char *p = strstr(hlsl, "float2 "))
-        out_hlsl.aprintf(0, " float2 __pad_%s;", nm);
-      else if (const char *p = strstr(hlsl, "uint2 "))
-        out_hlsl.aprintf(0, " float2 __pad_%s;", nm);
-      else if (const char *p = strstr(hlsl, "float3 "))
-        out_hlsl.aprintf(0, " float __pad_%s;", nm);
-      else if (const char *p = strstr(hlsl, "int "))
-        out_hlsl.aprintf(0, " int __pad1_%s, __pad2_%s, __pad3_%s;", nm, nm, nm);
-      else if (const char *p = strstr(hlsl, "int2 "))
-        out_hlsl.aprintf(0, " int2 __pad_%s;", nm);
-      else if (const char *p = strstr(hlsl, "int3 "))
-        out_hlsl.aprintf(0, " int __pad_%s;", nm);
+      for (const MergedVarInfo &varInfo : *originalVars)
+      {
+        out_hlsl.aprintf(0, " %s %s;", varInfo.getType(), varInfo.name);
+        access_functions.aprintf(0, "%s get_%s() { return %s[DRAW_CALL_ID].%s; }\n", varInfo.getType(), varInfo.name,
+          MATERIAL_PROPS_NAME, varInfo.name);
+      }
+    }
+    // Otherwise, this is a regular constant which is used as-is, and we just define the getter for the const itself.
+    else
+    {
+      out_hlsl.aprintf(0, "  %.*s;", hlsl_decl.length(), hlsl_decl);
+      access_functions.aprintf(0, "%.*s get_%s() { return %s[DRAW_CALL_ID].%s; }\n", type_name.length(), type_name, constName,
+        MATERIAL_PROPS_NAME, constName);
+    }
+
+    if (type_name.find('4') == eastl::string_view::npos) // not float4x4/float4/int4/uint4 partial vector, needs padding
+    {
+      if (type_name == "float")
+        out_hlsl.aprintf(0, " float __pad1_%s, __pad2_%s, __pad3_%s;", constName, constName, constName);
+      else if (type_name == "int")
+        out_hlsl.aprintf(0, " int __pad1_%s, __pad2_%s, __pad3_%s;", constName, constName, constName);
+      else if (type_name == "uint")
+        out_hlsl.aprintf(0, " uint __pad1_%s, __pad2_%s, __pad3_%s;", constName, constName, constName);
+      else if (type_name == "float2")
+        out_hlsl.aprintf(0, " float2 __pad_%s;", constName);
+      else if (type_name == "int2")
+        out_hlsl.aprintf(0, " int2 __pad_%s;", constName);
+      else if (type_name == "uint2")
+        out_hlsl.aprintf(0, " uint2 __pad_%s;", constName);
+      else if (type_name == "float3")
+        out_hlsl.aprintf(0, " float __pad_%s;", constName);
+      else if (type_name == "int3")
+        out_hlsl.aprintf(0, " int __pad_%s;", constName);
+      else if (type_name == "uint3")
+        out_hlsl.aprintf(0, " uint __pad_%s;", constName);
       else
         G_ASSERTF(0, "ICE: unexpected decl: %s", hlsl);
     }
@@ -543,7 +730,7 @@ void NamedConstBlock::buildDrawcallIdHlslDecl(String &out_text) const
   out_text = drawCallIdDeclaration;
 }
 
-void NamedConstBlock::buildStaticConstBufHlslDecl(String &out_text) const
+void NamedConstBlock::buildStaticConstBufHlslDecl(String &out_text, const MergedVariablesData &merged_vars) const
 {
   const bool shaderSupportsMultidraw = staticCbufType == StaticCbuf::ARRAY;
   const char *bindlessProlog = "";
@@ -561,6 +748,13 @@ void NamedConstBlock::buildStaticConstBufHlslDecl(String &out_text) const
                      "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] TextureCube static_textures_cube_array[];\n"
                      "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] TextureCube static_textures3d[];\n"
                      "[[vk::binding(0, BINDLESS_SAMPLER_SET_META_ID)]] SamplerState static_samplers[];\n";
+#elif _CROSS_TARGET_METAL
+    bindlessProlog = "Texture2D static_textures[];\n"
+                     "TextureCube static_textures_cube[];\n"
+                     "Texture2DArray static_textures_array[];\n"
+                     "TextureCube static_textures_cube_array[];\n"
+                     "TextureCube static_textures3d[];\n"
+                     "SamplerState static_samplers[];\n";
 #else
     bindlessProlog = "Texture2D static_textures[] : BINDLESS_REGISTER(t, 1);\n"
                      "SamplerState static_samplers[] : BINDLESS_REGISTER(s, 1);\n"
@@ -575,8 +769,10 @@ void NamedConstBlock::buildStaticConstBufHlslDecl(String &out_text) const
   int regIndex = 0;
   String constantAccessFunctions;
   String materialPropsStruct;
-  gather_static_consts<NamedConstSpace::vsf>(vertexProps, nullptr, materialPropsStruct, constantAccessFunctions, regIndex);
-  gather_static_consts<NamedConstSpace::psf>(pixelProps, &vertexProps, materialPropsStruct, constantAccessFunctions, regIndex);
+  gather_static_consts<NamedConstSpace::vsf>(vertexProps, nullptr, merged_vars, materialPropsStruct, constantAccessFunctions,
+    regIndex);
+  gather_static_consts<NamedConstSpace::psf>(pixelProps, &vertexProps, merged_vars, materialPropsStruct, constantAccessFunctions,
+    regIndex);
 
   const uint32_t MAX_CBUFFER_VECTORS = 4096;
   const uint32_t propSetsCount = shaderSupportsMultidraw ? MAX_CBUFFER_VECTORS / regIndex : 1;
@@ -584,16 +780,19 @@ void NamedConstBlock::buildStaticConstBufHlslDecl(String &out_text) const
   out_text.aprintf(0,
     "%s%s"
     "struct MaterialProperties\n{\n%s\n};\n\n"
-    "cbuffer shader_static_cbuf:register(b1) { MaterialProperties %s[%d]; };\n\n%s\n\n",
-    bindlessType, bindlessProlog, materialPropsStruct, MATERIAL_PROPS_NAME, propSetsCount, constantAccessFunctions);
+    "#define MATERIAL_PROPS_SIZE %d\n"
+    "cbuffer shader_static_cbuf:register(b1) { MaterialProperties %s[MATERIAL_PROPS_SIZE]; };\n\n%s\n\n",
+    bindlessType, bindlessProlog, materialPropsStruct, propSetsCount, MATERIAL_PROPS_NAME, constantAccessFunctions);
 }
 
 void NamedConstBlock::buildGlobalConstBufHlslDecl(String &out_text, bool pixel_shader, bool compute_shader,
   SCFastNameMap &added_names) const
 {
   String res;
+  String suppCode;
   bool hasAnyConst = false;
   int psfCount = 0;
+
   auto processXsc = [&](const SCFastNameMap &xsn, const Tab<NamedConst> &xsc, NamedConstSpace nameSpace) {
     int insertedCount = 0;
     for (int i = 0; i < xsc.size(); i++)
@@ -616,6 +815,10 @@ void NamedConstBlock::buildGlobalConstBufHlslDecl(String &out_text, bool pixel_s
                 res.aprintf(32, "\n%.*s : packoffset(c%d);", atPos - hlsl, hlsl, nc.regIndex + csfOffset);
                 insertedCount++;
                 hasAnyConst = true;
+
+                const char *supportCodeBegin = strchr(atPos, ';');
+                if (supportCodeBegin)
+                  suppCode.append(supportCodeBegin + 1);
               }
               added_names.addNameId(nm);
             }
@@ -638,6 +841,8 @@ void NamedConstBlock::buildGlobalConstBufHlslDecl(String &out_text, bool pixel_s
     out_text += "cbuffer global_const_block : register(b2) {";
     out_text += res;
     out_text += "\n};\n\n";
+    out_text += suppCode;
+    out_text += "\n\n";
   }
 }
 
@@ -691,18 +896,77 @@ void NamedConstBlock::buildHlslDeclText(String &out_text, bool pixel_shader, boo
     out_text += snippet.c_str();
 }
 
-extern String hlsl_defines;
-
-void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_shader, int &max_const_no_used, int &bones_const_no_used)
+template <typename TF> // TF: void(char regt_sym, int regt_id, eastl::string_view code_fragment)
+static void process_hardcoded_register_declarations(const char *hlsl_src, TF &&processor)
 {
-  bones_const_no_used = -1;
+  const char *text = hlsl_src, *p, *start = text;
+
+  while ((p = strstr(text, "register")) != NULL)
+  {
+    if (p <= start || fast_isalnum_or_(p[-1]) || fast_isalnum_or_(p[8]))
+    {
+      text = p + 8;
+      continue;
+    }
+    const char *fragment_start = p;
+    while (fragment_start > start && !strchr("\r\n", fragment_start[-1]))
+      fragment_start--;
+
+    p += 8;
+    while (strchr(" \t\v\n\r", *p))
+      p++;
+    if (*p != '(')
+    {
+      text = p;
+      continue;
+    }
+    p++;
+    while (strchr(" \t\v\n\r", *p))
+      p++;
+    if (!strchr("tcsub", *p))
+    {
+      text = p;
+      continue;
+    }
+    int regt_sym = *p;
+    int idx = atoi(p + 1);
+
+    p++;
+    while (isdigit(*p))
+      p++;
+    const char *fragment_end = p;
+    while (*fragment_end && !strchr("\r\n", *fragment_end))
+      fragment_end++;
+
+    processor(regt_sym, idx, eastl::string_view(fragment_start, fragment_end - fragment_start));
+
+    text = p;
+  }
+}
+
+#include "transcodeCommon.h"
+
+extern String hlsl_defines;
+// TODO: rename pixel_shader to pixel_or_compute_shader everywhere applicable in this file. Or just pass shader stage instead.
+void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_shader, const MergedVariablesData &merged_vars,
+  int &max_const_no_used)
+{
   max_const_no_used = -1;
-  int bones_base_reg = pixel_shader ? -1 : hlsl_bones_base_reg;
-  bool bones_used = false;
   static String res, name_buf, blk_name_buf;
   int name_prefix_len = 0;
   res.clear();
   const bool doesShaderGlobalExist = ShaderStateBlock::countBlock(ShaderStateBlock::LEV_GLOBAL_CONST) > 0;
+
+#if _CROSS_TARGET_C2
+
+#else
+  int psrSignaturePos = -1;
+#endif
+  if (psrSignaturePos != -1)
+  {
+    char *pp = &src.data()[psrSignaturePos];
+    memset(pp, 0x20, sizeof("INCLUDE_SONY_PSR_LIB") - 1);
+  }
 
   if (hlsl_defines.length())
     src.insert(0, hlsl_defines.c_str());
@@ -733,12 +997,22 @@ void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_sha
   if (predefines_str)
     src.insert(0, predefines_str);
 
+#if _CROSS_TARGET_C2
+
+
+
+
+
+
+
+#endif
+
   bool hasStaticCbuf = staticCbufType != StaticCbuf::NONE;
   {
     SCFastNameMap added_names;
     buildDrawcallIdHlslDecl(res);
     if (hasStaticCbuf)
-      buildStaticConstBufHlslDecl(res);
+      buildStaticConstBufHlslDecl(res, merged_vars);
     buildHlslDeclText(res, pixel_shader, compute_shader, added_names, hasStaticCbuf);
   }
   if (const char *p = strstr(src, "#line "))
@@ -748,178 +1022,168 @@ void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_sha
   clear_and_shrink(res);
   const char *text = src, *p, *start = text;
 
-  // scan for hardcoded constants, : register(c#)
-  ShaderStateBlock::UsageIdx final;
-  bool final_inited = false;
-  ShaderStateBlock::UsageIdx maximum;
-  while ((p = strstr(text, "register")) != NULL)
+  const RegisterProperties NamedConstBlock::*regPropsMember =
+    pixel_shader ? &NamedConstBlock::pixelProps : &NamedConstBlock::vertexProps;
+  const RegisterProperties &regProps = this->*regPropsMember;
+
+  const NamedConstSpace constNamespace =
+    compute_shader ? NamedConstSpace::csf : (pixel_shader ? NamedConstSpace::psf : NamedConstSpace::vsf);
+  const NamedConstSpace cbufNamespace =
+    compute_shader ? NamedConstSpace::cs_cbuf : (pixel_shader ? NamedConstSpace::ps_cbuf : NamedConstSpace::vs_cbuf);
+
+  // scan for hardcoded constants, : register(@#)
+  RegistersUsage allocatedRegs, allHardcodedRegs;
+
+  // First, collect hardcoded registers from predefines into a separate collection. This is made for correct validation:
+  //  In user-defined or auto-allocated registers we can't allocate past hard limits (MAX_T_REGISTERS, for example)
+  //  However, predefines are allowed to bypass this restricition for internal purposes (bindless tex/smp for ps4/5),
+  //  therefore we have to exclude them from this validation and trust the developers not to mess up with predefines.
+  RegistersUsage internalHardcodedRegs, userHardcodedRegs;
+
+  process_hardcoded_register_declarations(predefines_str,
+    [&allHardcodedRegs, &internalHardcodedRegs](char regt_sym, int regt_id, eastl::string_view) {
+      // @NOTE: this doesn't validate constants that take up >1 regs correctly.
+      //        However, this would require us to parse hlsl more seriously.
+      auto ns = sym_to_hlsl_namespace(regt_sym);
+      allHardcodedRegs.addReg(regt_id, 1, ns);
+      internalHardcodedRegs.addReg(regt_id, 1, sym_to_hlsl_namespace(regt_sym));
+    });
+
+  // Next, collect all data about automatically allocated registers
   {
-    if (p <= start || fast_isalnum_or_(p[-1]) || fast_isalnum_or_(p[8]))
-    {
-      text = p + 8;
-      continue;
-    }
-    const char *fragment_start = p;
-    while (fragment_start > start && !strchr("\r\n", fragment_start[-1]))
-      fragment_start--;
+    process_used_regs(allocatedRegs, regProps.sc, hasStaticCbuf);
+    for (int i = 0; i < suppBlk.size(); i++)
+      process_used_regs(allocatedRegs, (suppBlk[i]->shConst.*regPropsMember).sc);
+  }
 
-    p += 8;
-    while (strchr(" \t\v\n\r", *p))
-      p++;
-    if (*p != '(')
+  bool hasCbuf0Constants = eastl::any_of(regProps.sc.begin(), regProps.sc.end(),
+    [constNamespace](const NamedConst &nc) { return nc.isDynamic && nc.nameSpace == constNamespace; });
+  bool hardcodedCbuf0 = false;
+  eastl::string_view hardcodedCbuf0Decl;
+
+  // Finally, process all of the code for register collisions, and collect all data about hardcoded registers, including ones from
+  // predefines, because we still need to validate that they don't collide with anything.
+  process_hardcoded_register_declarations(src, [&](char regt_sym, int regt_id, eastl::string_view code_fragment) {
+    HlslNameSpace hlslNs = sym_to_hlsl_namespace(regt_sym);
+
+    const bool collidesWithNamed = allocatedRegs.containsReg(regt_id, hlslNs);
+    const bool collidesWithHardcoded = allHardcodedRegs.containsReg(regt_id, hlslNs);
+
+    // @NOTE: this doesn't validate constants that take up >1 regs correctly.
+    //        However, this would require us to parse hlsl more seriously.
+    allHardcodedRegs.addReg(regt_id, 1, hlslNs);
+    if (!internalHardcodedRegs.containsReg(regt_id, hlslNs))
+      userHardcodedRegs.addReg(regt_id, 1, hlslNs);
+
+    if (hlslNs == HlslNameSpace::b && regt_id == 0)
     {
-      text = p;
-      continue;
-    }
-    p++;
-    while (strchr(" \t\v\n\r", *p))
-      p++;
-#if _CROSS_TARGET_C1 | _CROSS_TARGET_C2 | _CROSS_TARGET_DX11 | _CROSS_TARGET_SPIRV | _CROSS_TARGET_METAL
-    if (!strchr("tcsu", *p))
-#else
-    if (!strchr("csu", *p))
-#endif
-    {
-      text = p;
-      continue;
-    }
-    int regt_sym = *p;
-    NamedConstSpace regt = NamedConstSpace::unknown;
-    int idx = atoi(p + 1);
-    int f_idx = 0;
-    bool overlaps = false;
-    switch (regt_sym)
-    {
-      case 'c': regt = compute_shader ? NamedConstSpace::csf : (pixel_shader ? NamedConstSpace::psf : NamedConstSpace::vsf); break;
-      case 's': regt = pixel_shader ? NamedConstSpace::smp : NamedConstSpace::vsmp; break;
-#if _CROSS_TARGET_C1 | _CROSS_TARGET_C2 | _CROSS_TARGET_DX11 | _CROSS_TARGET_SPIRV | _CROSS_TARGET_METAL
-      case 't': regt = pixel_shader ? NamedConstSpace::smp : NamedConstSpace::vsmp; break;
-#endif
-      case 'u': regt = NamedConstSpace::uav; break;
-      default: G_ASSERTF(false, "Unknown namespace %c", regt_sym);
-    }
-    if (!final_inited)
-    {
-      bool psh_bones_used;
-      memset(&final, 0, sizeof(final));
-      memset(&maximum, 0, sizeof(maximum));
-      calc_final_idx(final, maximum, pixelProps.sc, psh_bones_used, hasStaticCbuf);
-      calc_final_idx(final, maximum, vertexProps.sc, bones_used, hasStaticCbuf);
-      for (int i = 0; i < suppBlk.size(); i++)
-      {
-        calc_final_idx(final, maximum, suppBlk[i]->shConst.pixelProps.sc, psh_bones_used);
-        calc_final_idx(final, maximum, suppBlk[i]->shConst.vertexProps.sc, bones_used);
-      }
-      final_inited = true;
-    }
-    idx = remap_register(idx, regt);
-    switch (regt)
-    {
-#define CASE_TYPE(X)                    \
-  case NamedConstSpace::X:              \
-    overlaps = idx < (f_idx = final.X); \
-    if (idx != bones_base_reg)          \
-      maximum.X = max(maximum.X, idx);  \
-    else                                \
-      bones_used = true;                \
-    break
-      CASE_TYPE(vsf);
-      CASE_TYPE(vsmp);
-      CASE_TYPE(psf);
-      CASE_TYPE(smp);
-      CASE_TYPE(csf);
-      CASE_TYPE(uav);
-#undef CASE_TYPE
+      hardcodedCbuf0 = true;
+      hardcodedCbuf0Decl = code_fragment;
     }
 
-    p++;
-    while (isdigit(*p))
-      p++;
-    const char *fragment_end = p;
-    while (*fragment_end && !strchr("\r\n", *fragment_end))
-      fragment_end++;
+    if (collidesWithNamed)
+    {
+      sh_debug(SHLOG_ERROR, "hardcoded register constant collides with named ones");
+      sh_debug(SHLOG_ERROR, "found %c# at idx %d collides with named at HLSL code:\n\"%.*s\"\n", regt_sym, regt_id,
+        code_fragment.size(), code_fragment);
 
-    if (hlsl_maximum_vsf_allowed < maximum.vsf)
-    {
-      sh_debug(SHLOG_ERROR, "maximum register No used (%d) is bigger then allowed (%d)", maximum.vsf, hlsl_maximum_vsf_allowed);
-    }
-    if (hlsl_maximum_psf_allowed < maximum.psf)
-    {
-      sh_debug(SHLOG_ERROR, "maximum register No used (%d) is bigger then allowed (%d)", maximum.psf, hlsl_maximum_psf_allowed);
-    }
-    if (hlsl_maximum_psf_allowed < maximum.csf)
-    {
-      sh_debug(SHLOG_ERROR, "maximum register No used (%d) is bigger then allowed (%d)", maximum.csf, hlsl_maximum_psf_allowed);
-    }
+      debug("named consts map for hlsl nampespace %c#", regt_sym);
 
-    if (overlaps)
-    {
-      sh_debug(SHLOG_ERROR, "hardcoded register constant overlaps with named ones");
-      sh_debug(SHLOG_ERROR, "  %s: idx=%d, while named reserve upto %d", nameSpaceToStr(regt), remap_register(idx, regt), f_idx - 1);
-      sh_debug(SHLOG_ERROR, "found %s %d overlaps with named, final index=%d, at HLSL code:\n\"%.*s\"\n", nameSpaceToStr(regt),
-        remap_register(idx, regt), f_idx, fragment_end - fragment_start, fragment_start);
-      debug("named consts map %s", nameSpaceToStr(regt));
-      if (pixel_shader)
-      {
-        for (int j = 0; j < suppBlk.size(); j++)
-          for (int i = 0; i < suppBlk[j]->shConst.pixelProps.sc.size(); i++)
-            if (suppBlk[j]->shConst.pixelProps.sc[i].nameSpace == regt)
-              debug("  %s: %d (sz=%d)", suppBlk[j]->shConst.pixelProps.sn.getName(i), suppBlk[j]->shConst.pixelProps.sc[i].regIndex,
-                suppBlk[j]->shConst.pixelProps.sc[i].size);
-        for (int i = 0; i < pixelProps.sc.size(); i++)
-          if (pixelProps.sc[i].nameSpace == regt)
-            debug("  %s: %d (sz=%d)", pixelProps.sn.getName(i), pixelProps.sc[i].regIndex, pixelProps.sc[i].size);
-      }
-      else
-      {
-        for (int j = 0; j < suppBlk.size(); j++)
-          for (int i = 0; i < suppBlk[j]->shConst.vertexProps.sc.size(); i++)
-            if (suppBlk[j]->shConst.vertexProps.sc[i].nameSpace == regt)
-              debug("  %s: %d (sz=%d)", suppBlk[j]->shConst.vertexProps.sn.getName(i), suppBlk[j]->shConst.vertexProps.sc[i].regIndex,
-                suppBlk[j]->shConst.vertexProps.sc[i].size);
-        for (int i = 0; i < vertexProps.sc.size(); i++)
-          if (vertexProps.sc[i].nameSpace == regt)
-            debug("  %s: %d (sz=%d)", vertexProps.sn.getName(i), vertexProps.sc[i].regIndex, vertexProps.sc[i].size);
-      }
+      auto debugOutputNamedConsts = [regPropsMember, hlslNs](const NamedConstBlock &consts) {
+        const RegisterProperties &regProps = consts.*regPropsMember;
+
+        for (int i = 0; i < regProps.sc.size(); i++)
+        {
+          const NamedConst &nc = regProps.sc[i];
+          if (named_const_space_to_hlsl_namespace(nc.nameSpace) == hlslNs ||
+              named_const_space_to_hlsl_namespace(nc.nameSpace, true) == hlslNs)
+          {
+            debug("  %s%s: %d (sz=%d)", regProps.sn.getName(i), nameSpaceToStr(nc.nameSpace), nc.regIndex, nc.size);
+          }
+        }
+      };
+
+      for (const auto &blk : suppBlk)
+        debugOutputNamedConsts(blk->shConst);
+      debugOutputNamedConsts(*this);
       debug("");
     }
-    text = p;
-  }
-  if (!final_inited)
-  {
-    bool psh_bones_used;
-    memset(&final, 0, sizeof(final));
-    memset(&maximum, 0, sizeof(maximum));
-    calc_final_idx(final, maximum, pixelProps.sc, psh_bones_used, hasStaticCbuf);
-    calc_final_idx(final, maximum, vertexProps.sc, bones_used, hasStaticCbuf);
-    for (int i = 0; i < suppBlk.size(); i++)
+    else if (collidesWithHardcoded)
     {
-      calc_final_idx(final, maximum, suppBlk[i]->shConst.pixelProps.sc, psh_bones_used);
-      calc_final_idx(final, maximum, suppBlk[i]->shConst.vertexProps.sc, bones_used);
+      if (hasStaticCbuf && hlslNs == HlslNameSpace::b && regt_id == 1)
+        sh_debug(SHLOG_ERROR, "hardcoded register cbuf collides with static cbuf");
+      else if (doesShaderGlobalExist && hlslNs == HlslNameSpace::b && regt_id == 2)
+        sh_debug(SHLOG_ERROR, "hardcoded register cbuf collides with global block cbuf");
+      else
+      {
+        // @HACK Tricks with redefining hardcoded regs can be used in shader code,
+        // so only static cbuf and global block will be validated.
+        //
+        // For example, one can write (this is simplified dshl code)
+        // hlsl (cs) {
+        //   Texture2D tex1 : register(t0);
+        //   void compute_shader1() {
+        //     *do smth with tex1*
+        //   }
+        //
+        //   Texture2D tex2 : register(t0);
+        //   void compute_shader2() {
+        //     *do smth with tex2*
+        //   }
+        // }
+        //
+        // And then based on some interval values or conditions do
+        // compile("target_cs", "compute_shader1")
+        // or
+        // compile("target_cs", "compute_shader2")
+        // And it would work fine, because tex1 and tex2 act as aliases for the same bound resource.
+
+        // sh_debug(SHLOG_ERROR, "hardcoded register constant collides with another");
+        text = p;
+        return;
+      }
+
+      sh_debug(SHLOG_ERROR, "found %c# at idx %d collides with previously declared at HLSL code:\n\"%.*s\"\n", regt_sym, regt_id,
+        code_fragment.size(), code_fragment);
     }
-    final_inited = true;
-  }
-  if (compute_shader) // pixel & compute
-    max_const_no_used = maximum.csf;
-  else if (pixel_shader)
-    max_const_no_used = maximum.psf;
-  else
+  });
+
+  if (hasCbuf0Constants && hardcodedCbuf0)
   {
-    max_const_no_used = maximum.vsf;
-    bones_const_no_used = bones_used ? bones_base_reg : -1;
+    sh_debug(SHLOG_ERROR,
+      "Shader constants are used, but hardcoded register b0 collides with implicit constbuffer at HLSL code:\n\"%.*s\"\n",
+      hardcodedCbuf0Decl.length(), hardcodedCbuf0Decl.data());
   }
 
-#if _CROSS_TARGET_C1 | _CROSS_TARGET_C2 | _CROSS_TARGET_DX11 | _CROSS_TARGET_SPIRV | _CROSS_TARGET_METAL
+  auto regRangeCapAndLast = [&allocatedRegs](HlslNameSpace hlsl_ns, const RegistersUsage &hardcoded_regs) {
+    int cap = max<int>(allocatedRegs.regCap(hlsl_ns), hardcoded_regs.regCap(hlsl_ns));
+    return eastl::make_pair(cap, max<int>(cap - 1, 0));
+  };
+
+  const int maxAllowedConsts = pixel_shader ? hlsl_maximum_psf_allowed : hlsl_maximum_vsf_allowed;
+
+  // Since we use this for cbuf size in driver, we have to check against all registers
+  const auto [cRegRangeCap, cLastReg] = regRangeCapAndLast(HlslNameSpace::c, allHardcodedRegs);
+  // For t registers we just validate the user registers
+  const auto [tRegRangeCap, tLastReg] = regRangeCapAndLast(HlslNameSpace::t, userHardcodedRegs);
+
+  if (cRegRangeCap > maxAllowedConsts)
+    sh_debug(SHLOG_ERROR, "maximum register No used (%d) is bigger then allowed (%d)", cLastReg, maxAllowedConsts - 1);
+  if (tRegRangeCap > MAX_T_REGISTERS)
+    sh_debug(SHLOG_ERROR, "maximum T register No used (%d) is bigger than allowed (%d)", tLastReg, MAX_T_REGISTERS - 1);
+
+  // @TODO: validate other namespaces: s u b
+
+  max_const_no_used = cLastReg;
+
   Tab<SamplerState> samplersX[2];
-#endif
   text = src;
   while ((p = strchr(text, '@')) != NULL)
   {
     NamedConstSpace ns = NamedConstSpace::unknown;
     int mnemo_len = 0;
-#if _CROSS_TARGET_C1 | _CROSS_TARGET_C2 | _CROSS_TARGET_DX11 | _CROSS_TARGET_SPIRV | _CROSS_TARGET_METAL
     bool is_shadow = false;
-#endif
+
 #define HANDLE_NS_BASE(str, space)                 \
   if (strncmp(p + 1, #str, sizeof(#str) - 1) == 0) \
   ns = NamedConstSpace::space, mnemo_len = sizeof(#str)
@@ -936,20 +1200,26 @@ void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_sha
     else HANDLE_NS_BASE(ps_tex, ps_buf);
     else HANDLE_NS_BASE(vs_tex, vs_buf);
     else HANDLE_NS_BASE(cs_tex, cs_buf);
+    else HANDLE_NS_BASE(ps_tlas, ps_buf);
+    else HANDLE_NS_BASE(vs_tlas, vs_buf);
+    else HANDLE_NS_BASE(cs_tlas, cs_buf);
     else HANDLE_NS(ps_cbuf);
     else HANDLE_NS(vs_cbuf);
     else HANDLE_NS(cs_cbuf);
     else HANDLE_NS(uav);
+    else HANDLE_NS(vs_uav);
     else HANDLE_NS(sampler);
-#if _CROSS_TARGET_C1 | _CROSS_TARGET_C2 | _CROSS_TARGET_DX11 | _CROSS_TARGET_SPIRV | _CROSS_TARGET_METAL
     else if (strncmp(p + 1, "shd", 3) == 0)
     {
-      ns = (pixel_shader | compute_shader) ? NamedConstSpace::smp : NamedConstSpace::vsmp;
+      ns = pixel_shader ? NamedConstSpace::smp : NamedConstSpace::vsmp;
       is_shadow = true;
       mnemo_len = 4;
     }
-#endif
-    G_ASSERT(mnemo_len > 0);
+    if (mnemo_len <= 0)
+    {
+      sh_debug(SHLOG_ERROR, "Symbol @ is forbidden in hlsl and hlsli files.");
+      return;
+    }
     if (ns != NamedConstSpace::unknown && fast_isalnum_or_(p[mnemo_len]))
       ns = NamedConstSpace::unknown;
 
@@ -997,43 +1267,30 @@ void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_sha
       }
 
       if (!name_prefix_len)
-        regIndex = getHierConstVal(name_buf, ns, pixel_shader);
+        regIndex = getRegForNamedConst(name_buf, ns, pixel_shader);
       else
-        regIndex = getHierConstValEx(name_buf, blk_name_buf.str(), ns, pixel_shader);
+        regIndex = getRegForNamedConstEx(name_buf, blk_name_buf.str(), ns, pixel_shader);
 
       if (regIndex < 0)
         remove = true;
     }
     if (!remove)
     {
-      char csym = 'c';
-      if (ns == NamedConstSpace::smp)
-#if _CROSS_TARGET_C1 | _CROSS_TARGET_C2 | _CROSS_TARGET_DX11 | _CROSS_TARGET_SPIRV | _CROSS_TARGET_METAL
-        csym = is_shadow ? 's' : 't';
-#else
-        csym = 's';
-#endif
-      else if (ns == NamedConstSpace::vsmp)
-#if _CROSS_TARGET_C1 | _CROSS_TARGET_C2 | _CROSS_TARGET_DX11 | _CROSS_TARGET_SPIRV | _CROSS_TARGET_METAL
-        csym = is_shadow ? 's' : 't';
-#else
-        csym = 's';
-#endif
-      else if (ns == NamedConstSpace::sampler)
-        csym = 's';
-      else if (ns == NamedConstSpace::uav)
-        csym = 'u';
-      else if (ns == NamedConstSpace::ps_buf || ns == NamedConstSpace::vs_buf || ns == NamedConstSpace::cs_buf)
-        csym = 't';
-      else if (ns == NamedConstSpace::ps_cbuf || ns == NamedConstSpace::vs_cbuf || ns == NamedConstSpace::cs_cbuf)
+      HlslNameSpace hlslNs = named_const_space_to_hlsl_namespace(ns, is_shadow);
+      char nsSym = hlsl_namespace_to_sym(hlslNs);
+
+      if (hlslNs == HlslNameSpace::b)
       {
-        csym = 'b';
+        if (regIndex == 0)
+          sh_debug(SHLOG_FATAL, "Internal error! cbuf register b0 is allocated for %s, but it is reserved for implicit cbuf!",
+            name_buf);
+        if (hasStaticCbuf && regIndex == 1)
+          sh_debug(SHLOG_FATAL, "Internal error! cbuf register b1 is allocated for %s, but static cbuf exists!", name_buf);
         if (doesShaderGlobalExist && regIndex == 2)
-          sh_debug(SHLOG_ERROR, "cbuf register b2 is reserved (%s)!", name_buf);
+          sh_debug(SHLOG_FATAL, "Internal error! cbuf register b2 is allocated for %s, but global const block exists!", name_buf);
       }
 
-#if _CROSS_TARGET_C1 | _CROSS_TARGET_C2 | _CROSS_TARGET_DX11 | _CROSS_TARGET_SPIRV | _CROSS_TARGET_METAL
-      if (!remove && (ns == NamedConstSpace::smp || ns == NamedConstSpace::vsmp))
+      if (!remove && !is_shadow && (ns == NamedConstSpace::smp || ns == NamedConstSpace::vsmp))
       {
         Tab<SamplerState> &samplers = samplersX[(ns == NamedConstSpace::smp) ? 0 : 1];
         int i;
@@ -1043,16 +1300,15 @@ void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_sha
         if (i >= samplers.size())
           samplers.push_back(SamplerState(name_buf, regIndex));
       }
-#endif
 
       if (replaceType == '#')
         res.aprintf(32, "%.*s%d", name - 1 - text, text, regIndex);
       else if (replaceType == '$')
-        res.aprintf(32, "%.*s%c%d", name - 1 - text, text, csym, regIndex);
+        res.aprintf(32, "%.*s%c%d", name - 1 - text, text, nsSym, regIndex);
       else if (!name_prefix_len)
-        res.aprintf(32, "%.*s: register(%c%d)", p - text, text, csym, regIndex);
+        res.aprintf(32, "%.*s: register(%c%d)", p - text, text, nsSym, regIndex);
       else
-        res.aprintf(32, "%.*s%s: register(%c%d)", p - text - name_prefix_len, text, name_buf.str(), csym, regIndex);
+        res.aprintf(32, "%.*s%s: register(%c%d)", p - text - name_prefix_len, text, name_buf.str(), nsSym, regIndex);
       text = p + mnemo_len;
     }
     else if (!replaceType)
@@ -1130,7 +1386,6 @@ void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_sha
     }
   }
   res += text;
-#if _CROSS_TARGET_C1 | _CROSS_TARGET_C2 | _CROSS_TARGET_DX11 | _CROSS_TARGET_SPIRV | _CROSS_TARGET_METAL
   String ps4_samplerstates;
   Tab<SamplerState> &samplers = samplersX[pixel_shader ? 0 : 1];
   for (int i = 0; i < samplers.size(); ++i)
@@ -1146,12 +1401,9 @@ void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_sha
     src.printf(1024, "%s\n%s\n%s", predefines_str, ps4_samplerstates.str(), res.str() + strlen(predefines_str));
   else
     src.printf(1024, "%s%s", ps4_samplerstates.str(), res.str());
-#else
-  src = res;
-#endif
 }
 
-void NamedConstBlock::patchStcodeIndices(dag::Span<int> stcode, bool static_blk)
+void NamedConstBlock::patchStcodeIndices(dag::Span<int> stcode, StcodeRoutine &cpp_stcode, bool static_blk)
 {
   int id, base, dest;
   bool static_cbuf = static_blk && staticCbufType != StaticCbuf::NONE;
@@ -1169,12 +1421,16 @@ void NamedConstBlock::patchStcodeIndices(dag::Span<int> stcode, bool static_blk)
       case SHCOD_RWTEX:
       case SHCOD_RWBUF:
       case SHCOD_REG_BINDLESS:
+      {
         id = shaderopcode::getOp3p1(stcode[i]);
         base = shaderopcode::getOp3p2(stcode[i]);
         G_ASSERT(id < ((op == SHCOD_VPR_CONST || op == SHCOD_TEXTURE_VS) ? vertexProps.sc.size() : pixelProps.sc.size()));
 
-        dest =
-          (op == SHCOD_VPR_CONST || op == SHCOD_TEXTURE_VS) ? vertexProps.sc[id].regIndex + base : pixelProps.sc[id].regIndex + base;
+        bool isVs = (op == SHCOD_VPR_CONST || op == SHCOD_TEXTURE_VS);
+        dest = isVs ? vertexProps.sc[id].regIndex + base : pixelProps.sc[id].regIndex + base;
+
+        int destWithoutVprOffset = dest;
+
         if (static_cbuf && op == SHCOD_FSH_CONST && dest == 0xFF)
         {
           stcode[i] = shaderopcode::makeOp2_8_16(SHCOD_IMM_REAL1, shaderopcode::getOp3p3(stcode[i]), 0); // effectively NOP
@@ -1187,32 +1443,55 @@ void NamedConstBlock::patchStcodeIndices(dag::Span<int> stcode, bool static_blk)
         }
         if (static_cbuf && op == SHCOD_REG_BINDLESS)
           dest += 0x800;
+
+        // @NOTE: for matrices and arrays we want to patch only the base call
+        if (base == 0)
+          cpp_stcode.patchConstLocation(isVs ? STAGE_VS : STAGE_PS, id, destWithoutVprOffset);
         stcode[i] = shaderopcode::makeOp2(op, dest, shaderopcode::getOp3p3(stcode[i]));
-        break;
+      }
+      break;
       case SHCOD_SAMPLER:
-        id = shaderopcode::getOp2p1(stcode[i]);
-        G_ASSERT(id < pixelProps.sc.size());
-        dest = pixelProps.sc[id].regIndex;
-        stcode[i] = shaderopcode::makeOp2(op, dest, shaderopcode::getOp2p2(stcode[i]));
+      {
+        id = shaderopcode::getOpStageSlot_Slot(stcode[i]);
+        uint32_t stage = shaderopcode::getOpStageSlot_Stage(stcode[i]);
+        if (stage == STAGE_VS)
+        {
+          G_ASSERT(id < vertexProps.sc.size());
+          dest = vertexProps.sc[id].regIndex;
+        }
+        else
+        {
+          G_ASSERT(id < pixelProps.sc.size());
+          dest = pixelProps.sc[id].regIndex;
+        }
+        cpp_stcode.patchConstLocation((ShaderStage)stage, id, dest);
+        stcode[i] = shaderopcode::makeOpStageSlot(op, stage, dest, shaderopcode::getOpStageSlot_Reg(stcode[i]));
         break;
+      }
       case SHCOD_BUFFER:
       case SHCOD_CONST_BUFFER:
+      case SHCOD_TLAS:
       {
         const uint32_t stage = shaderopcode::getOpStageSlot_Stage(stcode[i]);
         uint32_t slot = shaderopcode::getOpStageSlot_Slot(stcode[i]);
         const uint32_t reg = shaderopcode::getOpStageSlot_Reg(stcode[i]);
-        slot = (stage == STAGE_VS) ? vertexProps.sc[slot].regIndex : pixelProps.sc[slot].regIndex;
-        stcode[i] = shaderopcode::makeOpStageSlot(op, stage, slot, reg);
+        uint32_t patchedSlot = (stage == STAGE_VS) ? vertexProps.sc[slot].regIndex : pixelProps.sc[slot].regIndex;
+        cpp_stcode.patchConstLocation((ShaderStage)stage, slot, patchedSlot);
+        stcode[i] = shaderopcode::makeOpStageSlot(op, stage, patchedSlot, reg);
       }
       break;
 
       case SHCOD_G_TM:
+      {
         id = shaderopcode::getOp2p1(stcode[i]) & 0x3FF;
         base = shaderopcode::getOp2p2(stcode[i]);
         G_ASSERT(id < vertexProps.sc.size());
-
-        stcode[i] = shaderopcode::makeOp2_8_16(op, shaderopcode::getOp2p1(stcode[i]) >> 10, vertexProps.sc[id].regIndex + base);
-        break;
+        int saveId = id + base;
+        int destId = vertexProps.sc[id].regIndex + base;
+        cpp_stcode.patchConstLocation(STAGE_VS, saveId, destId);
+        stcode[i] = shaderopcode::makeOp2_8_16(op, shaderopcode::getOp2p1(stcode[i]) >> 10, destId);
+      }
+      break;
 
       case SHCOD_INVERSE:
       case SHCOD_LVIEW:
@@ -1230,11 +1509,14 @@ void NamedConstBlock::patchStcodeIndices(dag::Span<int> stcode, bool static_blk)
       case SHCOD_GET_GINT:
       case SHCOD_GET_GTEX:
       case SHCOD_GET_GBUF:
+      case SHCOD_GET_GTLAS:
       case SHCOD_GET_GINT_TOREAL:
+      case SHCOD_GET_GIVEC_TOREAL:
       case SHCOD_GET_GVEC:
       case SHCOD_GET_GMAT44:
       case SHCOD_GET_GREAL:
       case SHCOD_GET_INT_TOREAL:
+      case SHCOD_GET_IVEC_TOREAL:
       case SHCOD_GET_REAL:
       case SHCOD_GET_VEC:
       case SHCOD_BLK_ICODE_LEN:
@@ -1260,8 +1542,8 @@ static FastNameMap blockNames;
 static Tab<ShaderStateBlock *> blocks(midmem);
 static bindump::Ptr<ShaderStateBlock> emptyBlk;
 
-ShaderStateBlock::ShaderStateBlock(const char *nm, int lev, const NamedConstBlock &ncb, dag::Span<int> stcode, int maxregsize,
-  StaticCbuf supp_static_cbuf) :
+ShaderStateBlock::ShaderStateBlock(const char *nm, int lev, const NamedConstBlock &ncb, dag::Span<int> stcode,
+  StcodeRoutine *cpp_stcode, int maxregsize, StaticCbuf supp_static_cbuf) :
   shConst(ncb), name(nm), nameId(-1), stcodeId(-1), layerLevel(lev), regSize(maxregsize)
 {
   memset(&start, 0, sizeof(start));
@@ -1281,6 +1563,7 @@ ShaderStateBlock::ShaderStateBlock(const char *nm, int lev, const NamedConstBloc
     GET_MAX(sampler);
     GET_MAX(csf);
     GET_MAX(uav);
+    GET_MAX(vs_uav);
     GET_MAX(cs_buf);
     GET_MAX(ps_buf);
     GET_MAX(vs_buf);
@@ -1378,6 +1661,7 @@ ShaderStateBlock::ShaderStateBlock(const char *nm, int lev, const NamedConstBloc
     shConst.staticCbufType != StaticCbuf::NONE ? &start_cbuf_reg : nullptr);
   ARRANGE_REG(csf);
   ARRANGE_REG(uav);
+  ARRANGE_REG(vs_uav);
   ARRANGE_REG(cs_buf);
   ARRANGE_REG(ps_buf);
   ARRANGE_REG(vs_buf);
@@ -1386,9 +1670,21 @@ ShaderStateBlock::ShaderStateBlock(const char *nm, int lev, const NamedConstBloc
   ARRANGE_REG(vs_cbuf);
 #undef ARRANGE_REG
 
-  shConst.patchStcodeIndices(stcode, false);
-  if (stcode.size())
-    stcodeId = add_stcode(stcode);
+  final.smp = final.sampler;
+
+  G_ASSERTF(stcode.empty() || cpp_stcode, "If you pass non-empty stcode for patching, also pass the cpp stcode!");
+
+  if (cpp_stcode)
+  {
+    shConst.patchStcodeIndices(stcode, *cpp_stcode, false);
+    if (stcode.size())
+    {
+      auto [id, isNew] = add_stcode(stcode);
+      stcodeId = id;
+      if (isNew)
+        g_cppstcode.addCode(eastl::move(*cpp_stcode), stcodeId);
+    }
+  }
 }
 int ShaderStateBlock::getVsNameId(const char *name)
 {

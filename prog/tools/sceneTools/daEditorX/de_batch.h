@@ -1,7 +1,5 @@
-#ifndef __GAIJIN_DAGORED_DE_BATCH__
-#define __GAIJIN_DAGORED_DE_BATCH__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <generic/dag_tab.h>
 #include <util/dag_string.h>
@@ -36,6 +34,3 @@ private:
   void removeSingleLineComment(char *str) const;
   char *checkMultilineComment(char *str);
 };
-
-
-#endif //__GAIJIN_DAGORED_DE_BATCH__

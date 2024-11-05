@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "bulletRayCar.h"
 #include <phys/dag_physics.h>
 #include <scene/dag_physMat.h>
@@ -199,9 +201,9 @@ void BulletRbRayCar::Wheel::processContactHandler(int pmid, const btVector3 &pos
     btVector3 slip = cpWorldVel - cpLocalVel;
     slip -= norm * (slip.dot(norm));
 
-    //    debug_ctx("wheel world vel = " FMT_P3 ", len = %f", P3D(cpWorldVel), cpWorldVel.magnitude());
-    //    debug_ctx("wheel local vel = " FMT_P3 ", len = %f", P3D(cpLocalVel), cpLocalVel.magnitude());
-    //    debug_ctx("slip = " FMT_P3 ", len = %f", P3D(slip), slip.magnitude());
+    //    DEBUG_CTX("wheel world vel = " FMT_P3 ", len = %f", P3D(cpWorldVel), cpWorldVel.magnitude());
+    //    DEBUG_CTX("wheel local vel = " FMT_P3 ", len = %f", P3D(cpLocalVel), cpLocalVel.magnitude());
+    //    DEBUG_CTX("slip = " FMT_P3 ", len = %f", P3D(slip), slip.magnitude());
 
     carVel.normalize();
     wheelContactCb->onWheelContact(wid, pmid, to_point3(pos), to_point3(norm), to_point3(carVel), wFwd, slip.length());
@@ -241,7 +243,7 @@ void BulletRbRayCar::Wheel::response()
     DAG_FATAL("invalid f_lat=%.3f or f_long=%.3f", f_lat, f_long);
   if (fabs(f_lat) > 1e6 || fabs(f_long) > 1e6)
     // DAG_FATAL("extra large f_lat=%.3f or f_long=%.3f", f_lat, f_long);
-    logerr_ctx("extra large f_lat=%.3f or f_long=%.3f", f_lat, f_long);
+    LOGERR_CTX("extra large f_lat=%.3f or f_long=%.3f", f_lat, f_long);
 #else
   if (check_nan(f_lat) || check_nan(f_long))
   {

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -26,4 +25,5 @@ void draw_debug_solid_capsule(const Capsule &capsule, const TMatrix &tm, const C
 void draw_debug_solid_cube(const BBox3 &cube, const TMatrix &tm, const Color4 &color, bool shaded = false);
 void draw_debug_solid_cone(const Point3 pos, Point3 norm, float radius, float height, int segments, const Color4 &color);
 
+void init_debug_solid();
 void close_debug_solid();

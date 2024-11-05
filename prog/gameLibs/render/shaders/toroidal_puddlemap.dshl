@@ -1,0 +1,125 @@
+float4 toroidalPuddles_world2uv_1 = (1, 1, 0, 0);
+float4 toroidalPuddles_world2uv_2 = (1, 1, 0, 0);
+float4 toroidalPuddles_world_offsets = (1, 1, 0, 0);
+
+texture toroidal_puddles_texarray;
+
+macro INIT_TOROIDAL_PUDDLES(code)
+  (code) {
+    toroidal_puddles_texarray@smpArray = toroidal_puddles_texarray;
+    toroidalPuddles_world2uv_1@f4 = toroidalPuddles_world2uv_1;
+    toroidalPuddles_world2uv_2@f4 = toroidalPuddles_world2uv_2;
+    toroidalPuddles_world_offsets@f4 = toroidalPuddles_world_offsets;
+  }
+
+  hlsl{
+    #define PUDDLE_DEFAULT 0.0f
+  }
+endmacro
+
+macro FALLBACK_TOROIDAL_PUDDLES(code)
+  hlsl(code)
+  {
+    half2 sample_tor_puddle(float2 worldXZ)
+    {
+      return 0.0;
+    }
+  }
+endmacro
+
+macro USE_TOROIDAL_PUDDLES(code)
+  hlsl(code)
+  {
+    half sample_tor_puddle(float2 world_xz)
+    {
+      //#define ONE_CASCADE 1
+      #if ONE_CASCADE
+      //sampling only one cascade is less than 2% faster, than choosing best out of two
+        float2 tc = world_xz * toroidalPuddles_world2uv_1.x + toroidalPuddles_world2uv_1.zw;
+        float3 torTc = float3(tc + toroidalPuddles_world_offsets.xy, 0);
+        tc = abs(2 * tc.xy - 1);
+        float weight = saturate(10 - 10 * max(tc.x, tc.y));
+      #else
+        float2 tc2 = world_xz * toroidalPuddles_world2uv_2.x + toroidalPuddles_world2uv_2.zw;
+        float3 torTc2 = float3(tc2 + toroidalPuddles_world_offsets.zw, 1);
+        tc2 = abs(2 * tc2.xy - 1);
+        float weight = saturate(10 - 10 * max(tc2.x, tc2.y));
+        //actually this weight can be set to always 1.
+        //in normal case displacement scale will be 0 outside invalid area.
+        //however, after teleportation that will work
+
+        float2 tc = world_xz * toroidalPuddles_world2uv_1.x + toroidalPuddles_world2uv_1.zw;
+        float3 torTc = float3(tc + toroidalPuddles_world_offsets.xy, 0);
+
+        FLATTEN
+        if (any(abs(tc*2-1)>=0.99))
+          torTc = torTc2;
+      #endif
+
+      float puddle = tex3Dlod (toroidal_puddles_texarray, float4(torTc, 0)).r;
+
+      return lerp(PUDDLE_DEFAULT, puddle, weight);
+    }
+  }
+endmacro
+
+macro USE_TOROIDAL_PUDDLES_LOWRES(code)
+  hlsl(code){
+    half sample_tor_puddle_lowres(float2 world_xz)
+    {
+      float puddle = 0;
+      float2 tc = world_xz * toroidalPuddles_world2uv_2.x + toroidalPuddles_world2uv_2.zw;
+      float2  torTc = tc + toroidalPuddles_world_offsets.zw;
+
+      tc = abs(2 * tc.xy - 1);
+
+      return lerp(PUDDLE_DEFAULT, tex3Dlod(toroidal_puddles_texarray, float4(torTc, 1, 0)).r, weight);
+    }
+  }
+endmacro
+
+// Toroidal displacement for heightmap
+
+macro USE_TOROIDAL_PUDDLES_BASE(code)
+
+    hlsl(code)
+    {
+      #define USE_DISPLACEMENT
+
+      half sample_tor_puddle_vs_2f(float2 world_xz)
+      {
+        //#define ONE_CASCADE 1
+        #if ONE_CASCADE
+          float2 tc = world_xz * toroidalPuddles_world2uv_1.x + toroidalPuddles_world2uv_1.zw;
+          float3 torTc = float3(tc + toroidalPuddles_world_offsets.xy, 0);
+          tc = abs(2 * tc.xy - 1);
+          float weight = saturate(10 - 10 * max(tc.x, tc.y));
+        #else
+          float2 tc2 = world_xz * toroidalPuddles_world2uv_2.x + toroidalPuddles_world2uv_2.zw;
+          float3 torTc2 = float3(tc2 + toroidalPuddles_world_offsets.zw, 1);
+          tc2 = abs(2 * tc2.xy - 1);
+          float weight = saturate(10 - 10 * max(tc2.x, tc2.y));
+
+          float2 tc = world_xz * toroidalPuddles_world2uv_1.x + toroidalPuddles_world2uv_1.zw;
+          float3 torTc = float3(tc + toroidalPuddles_world_offsets.xy, 0);
+
+          FLATTEN
+          if (any(abs(tc*2-1)>=0.99))
+            torTc = torTc2;
+        #endif
+
+        float puddle = tex3Dlod (toroidal_puddles_texarray, float4(torTc, 0)).r;
+
+        return lerp(PUDDLE_DEFAULT, puddle, weight);
+      }
+      half sample_tor_puddle_vs(float2 world_xz)
+      {
+        float weight;
+        return sample_tor_puddle_vs_2f(world_xz, weight).x;
+      }
+    }
+endmacro
+
+macro USE_TOROIDAL_PUDDLES_VS()
+  USE_TOROIDAL_PUDDLES_BASE(vs)
+endmacro

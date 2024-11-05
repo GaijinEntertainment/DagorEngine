@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "vulkan_device.h"
 #include <EASTL/algorithm.h>
 #include <EASTL/sort.h>
@@ -55,8 +57,8 @@ bool drv3d_vulkan::has_all_required_extension(dag::ConstSpan<const char *> ext_l
 
 int drv3d_vulkan::remove_mutual_exclusive_extensions(dag::Span<const char *> ext_list)
 {
-  eastl::sort(begin(ext_list), end(ext_list));
-  uint32_t count = eastl::unique(begin(ext_list), end(ext_list)) - begin(ext_list);
+  eastl::sort(eastl::begin(ext_list), eastl::end(ext_list));
+  uint32_t count = eastl::unique(eastl::begin(ext_list), eastl::end(ext_list)) - eastl::begin(ext_list);
   count = InvertedViewportExtensions::filter(ext_list.data(), count);
   count = DedicaltedAllocationExtensions::filter(ext_list.data(), count);
   count = MiscRequiredExtensions::filter(ext_list.data(), count);
@@ -82,62 +84,49 @@ bool drv3d_vulkan::device_has_all_required_extensions(VulkanDevice &device, void
   return hasAll;
 }
 
-StaticTab<const char *, VulkanDevice::ExtensionCount> drv3d_vulkan::get_enabled_device_extensions(const DataBlock *list)
-{
-  StaticTab<const char *, VulkanDevice::ExtensionCount> result;
-
-  result = make_span_const(VulkanDevice::ExtensionNames, VulkanDevice::ExtensionCount);
-  if (list)
-  {
-    auto newEnd = end(result);
-    for (int i = 0; i < list->paramCount(); ++i)
-    {
-      if (!list->getBool(i))
-      {
-        newEnd = eastl::remove_if(begin(result), newEnd,
-          [pName = list->getParamName(i)](const char *name) { return 0 == strcmp(pName, name); });
-      }
-    }
-    auto cnt = end(result) - newEnd;
-    erase_items(result, result.size() - cnt, cnt);
-  }
-
-  return result;
-}
-
-
 uint32_t drv3d_vulkan::fill_device_extension_list(Tab<const char *> &result,
   const StaticTab<const char *, VulkanDevice::ExtensionCount> &white_list,
   const eastl::vector<VkExtensionProperties> &device_extensions)
 {
   result.resize(VulkanDevice::ExtensionCount);
   uint32_t count = 0;
-  debug("vulkan: Device Extensions...");
+
+
+  size_t extMaxLen = 0;
+  for (auto &&ext : device_extensions)
+    extMaxLen = max(strlen(ext.extensionName), extMaxLen);
+  const size_t iterTail = 20;
+  const size_t headSz = 32;
+  const size_t itemsPerLine = LOG_DUMP_STR_SIZE / extMaxLen;
+  const size_t avgExtLen = extMaxLen + iterTail;
+  String extListDump(avgExtLen * device_extensions.size() + headSz, "vulkan: device ext dump\n");
+  int extCnt = 0;
   for (auto &&ext : device_extensions)
   {
-    auto extRef = eastl::find_if(begin(white_list), end(white_list),
+    auto extRef = eastl::find_if(eastl::begin(white_list), eastl::end(white_list),
       [&](const char *name) //
       { return 0 == strcmp(name, ext.extensionName); });
-    if (extRef != end(white_list))
-    {
-      debug("vulkan: ...recognized %s v %u...", ext.extensionName, ext.specVersion);
+    bool recognized = extRef != eastl::end(white_list);
+    if (recognized)
       result[count++] = ext.extensionName;
-    }
-    else
-    {
-      debug("vulkan: ...unrecognized %s v %u...", ext.extensionName, ext.specVersion);
-    }
+    ++extCnt;
+    extListDump.aprintf(avgExtLen, "%s%*s v%02u[%s]%s", (extCnt - 1) % itemsPerLine ? "" : "vulkan: ", extMaxLen, ext.extensionName,
+      ext.specVersion, recognized ? "*" : "?", extCnt % itemsPerLine ? " " : "\n");
   }
   auto list = make_span(result).first(count);
   // also display all extensions we support but not the device
   for (auto &&ext : white_list)
   {
-    auto extRef = eastl::find_if(begin(list), end(list), [=](const char *name) { return 0 == strcmp(name, ext); });
-    if (extRef == end(list))
-    {
-      debug("vulkan: ...missing %s...", ext);
-    }
+    auto extRef = eastl::find_if(eastl::begin(list), eastl::end(list), [=](const char *name) { return 0 == strcmp(name, ext); });
+    if (extRef != eastl::end(list))
+      continue;
+
+    ++extCnt;
+    extListDump.aprintf(avgExtLen, "%s%*s v--[-]%s", (extCnt - 1) % itemsPerLine ? "" : "vulkan: ", extMaxLen, ext,
+      extCnt % itemsPerLine ? " " : "\n");
   }
+  debug(extListDump);
+
   // some extensions are mutual exclusive, so we need to remove them first
   return remove_mutual_exclusive_extensions(list);
 }

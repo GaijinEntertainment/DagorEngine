@@ -1,0 +1,344 @@
+actions together quietly copy_signature_file
+{
+#sync
+  echo copying signature to $(1)
+  if not exist $(1:D) mkdir $(1:D)
+  copyfile $(2) $(1)
+  if not exist $(1) set errorlevel=13
+}
+
+actions together quietly raw_sym_link
+{
+  echo * make rel symlink:  $(1) <-- $(src)
+  call ln -fhs "$(src)" $(1)
+  if not exist $(1) set errorlevel=13
+}
+
+actions together quietly convert_png_file
+{
+  rem echo * convert PNG to: $(png)
+  rem call pngcrush -q $(2) $(1)
+  echo * copy PNG to: $(png)
+  copyfile $(2) $(1)
+  if not exist $(1) set errorlevel=13
+}
+
+actions together quietly convert_plist_file
+{
+  echo * build PLIST to: $(plist)
+  copyfile $(2) $(2).repl
+  del $(1)
+  call sed -i "" $(opt) $(2).repl
+  call plutil -convert binary1 -o $(1) $(2).repl
+  del $(2).repl
+  if not exist $(1) set errorlevel=13
+}
+
+actions together quietly convert_strings_file
+{
+  echo * converting loc strings: $(1)
+  mkdir $(1:D)
+  call plutil -convert binary1 -o $(1) $(2)
+  if not exist $(1) set errorlevel=13
+}
+
+actions together quietly make_lang_file
+{
+  echo * create lang:    $(lang)
+  mkdir $(1:D)
+  copyfile /dev/null $(1)
+  if not exist $(1) set errorlevel=13
+}
+
+actions together quietly sign_package
+{
+#sync
+  echo ------- signing package -------
+  call xattr -rc "$(dir)"
+  call /usr/bin/codesign $(opt) $(libs) "$(dir)"
+}
+
+actions together quietly sign_framework
+{
+#sync
+  echo ------- signing $(framework:D=)
+  call xattr -rc $(library) $(framework)
+  call /usr/bin/codesign -v $(opt) $(library)
+  call /usr/bin/codesign -v $(opt) $(framework)
+}
+
+actions together quietly sign_file
+{
+#sync
+  echo ------- signing $(file:D=)
+  call xattr -rc "$(file)"
+  call /usr/bin/codesign -v -s "$(identity)" $(opt) "$(file)" --file-list "$(1)"
+}
+
+actions together quietly convert_xib_file
+{
+  echo * compile XIB to: $(xib)
+  call ibtool $(2) --compile $(1)
+  if not exist $(1) set errorlevel=13
+}
+
+
+rule SignPackageRule
+{
+  SignTarget = $(OutDir)/../_CodeSignature/CodeResources ;
+
+  Depends $(SignTarget) : $(OutDir)/$(Target) ;
+  for t in $(CopyTo) { Depends $(t)/$(Target:G=:D=) : $(SignTarget) ; }
+  Depends all : $(SignTarget) ;
+  if $(Config) = rel && $(SignatureOpt) {
+    dir on $(SignTarget) = $(OutDir)/../.. ;
+    opt on $(SignTarget) = $(SignatureOpt) ;
+    libs on $(SignTarget) =
+      $(OutDir)/../Frameworks/$(UseSharedLibs:D=)
+      $(OutDir)/../Frameworks/$(UseFrameworkBundles:D=).framework/$(UseFrameworkBundles:D=)
+      $(OutDir)/../Frameworks/$(UseFrameworkBundles:D=).framework
+    ;
+    sign_package $(SignTarget) ;
+  }
+}
+
+rule SignArtifactRule
+{
+  SignTarget ?= $($(Target)__TmpDir)/codesign_result ;
+  erase_file $(SignTarget) ;
+  SignatureOpt ?= -f --ignore-resources ;
+
+  Depends $(SignTarget) : $(OutDir)/$(Target) ;
+  for t in $(CopyTo) {
+    Depends $(t)/$(Target:G=:D=) : $(SignTarget) ;
+  }
+  Depends all : $(SignTarget) ;
+  if $(Config) = rel && $(SignatureID) {
+    file on $(SignTarget) = $(OutDir)/$(Target) ;
+    opt on $(SignTarget) = $(SignatureOpt) ;
+    identity on $(SignTarget) = $(SignatureID:J=\ ) ;
+    sign_file $(SignTarget) ;
+  }
+}
+
+rule SignFrameworkBundle
+{
+  local framework_root = $(OutDir)/../Frameworks ;
+  local framework = $(framework_root)/$(1:D=).framework ;
+  local library = $(framework)/$(1:D=) ;
+  local signature = $(framework)/_CodeSignature ;
+
+  Depends $(signature) : $(OutDir)/$(Target) ;
+  for t in $(CopyTo) {
+    Depends $(t)/$(Target:G=:D=) : $(signature) ;
+  }
+  Depends all : $(signature) ;
+  if $(Config) = rel && $(SignatureOpt) {
+    library on $(signature) = $(library) ;
+    framework on $(signature) = $(framework) ;
+    opt on $(signature) = $(SignatureOpt) ;
+    sign_framework $(signature) ;
+  }
+}
+
+rule ProcessBundleCopy
+{
+  local src = [ LocationBasedToAbsPath $(1[1]) ] ;
+  local dest = $(1[2]) ;
+
+  MakeDirectory $(OutDir)/$(dest) : $(OutDir)/$(dest:D) ;
+  if $(SignTarget) { Depends $(SignTarget) : $(OutDir)/$(dest) ; } else { Depends all : $(OutDir)/$(dest) ; }
+  Depends $(OutDir)/$(dest) : $(src) ;
+  file on $(OutDir)/$(dest) = $(dest) ;
+  raw_copy_file $(OutDir)/$(dest) : $(src) ;
+
+  if $(1[3]) { ProcessBundleCopy $(1[3-]) ; }
+}
+
+rule ProcessBundleSymlink
+{
+  local dest = $(1[1]) ;
+  local rel_src = $(1[2]) ;
+
+  MakeDirectory all : $(OutDir)/$(dest:D) ;
+  Depends $(OutDir)/$(dest) : $(OutDir)/$(dest:D)/$(rel_src) ;
+  NOCARE $(OutDir)/$(dest:D)/$(rel_src) ;
+  Depends all : $(OutDir)/$(dest) ;
+  src on $(OutDir)/$(dest) = $(rel_src) ;
+  raw_sym_link $(OutDir)/$(dest) : $(OutDir)/$(dest:D)/$(rel_src) ;
+
+  if $(1[3]) { ProcessBundleSymlink $(1[3-]) ; }
+}
+
+rule ProcessBundlePng
+{
+  local src = [ LocationBasedToAbsPath $(1[1]) ] ;
+  local dest = $(1[2]) ;
+
+  MakeDirectory all : $(OutDir)/$(dest:D) ;
+  if $(SignTarget) { Depends $(SignTarget) : $(OutDir)/$(dest) ; }
+  Depends $(OutDir)/$(dest) : $(src) ;
+  png on $(OutDir)/$(dest) = $(dest) ;
+  convert_png_file $(OutDir)/$(dest) : $(src) ;
+
+  if $(1[3]) { ProcessBundlePng $(1[3-]) ; }
+}
+
+rule ProcessBundleCustomLang
+{
+  local src = [ LocationBasedToAbsPath $(1[1]) ] ;
+  local dest = $(1[2]) ;
+
+  MakeDirectory all : $(OutDir)/$(dest:D) ;
+  if $(SignTarget) { Depends $(SignTarget) : $(OutDir)/$(dest) ; }
+  Depends $(OutDir)/$(dest) : $(src) ;
+  lngs on $(OutDir)/$(dest) = $(dest) ;
+  convert_strings_file $(OutDir)/$(dest) : $(src) ;
+
+  if $(1[3]) { ProcessBundleCustomLang $(1[3-]) ; }
+}
+
+rule ProcessBundleXib
+{
+  local src = [ LocationBasedToAbsPath $(1[1]) ] ;
+  local dest = $(1[2]) ;
+
+  MakeDirectory all : $(OutDir)/$(dest:D) ;
+  if $(SignTarget) { Depends $(SignTarget) : $(OutDir)/$(dest) ; }
+  Depends $(OutDir)/$(dest) : $(src) ;
+  xib on $(OutDir)/$(dest) = $(dest) ;
+  convert_xib_file $(OutDir)/$(dest) : $(src) ;
+
+  if $(1[3]) { ProcessBundleXib $(1[3-]) ; }
+}
+
+rule ProcessBundlePlist
+{
+  local src = [ LocationBasedToAbsPath $(1[1]) ] ;
+  local dest = $(1[2]) ;
+
+  MakeDirectory all : $(OutDir)/$(dest:D) ;
+  if $(SignTarget) { Depends $(SignTarget) : $(OutDir)/$(dest) ; }
+  Depends $(OutDir)/$(dest) : $(src) ;
+  Depends $(OutDir)/$(dest) : $(OutDir)/$(Target) ;
+  plist on $(OutDir)/$(dest) = $(dest) ;
+  local icon = $(BundleIcon) ;
+  icon ?= $(Target:B) ;
+  local executable = $($(Target)-BundleExe) ;
+  executable ?= $(BundleExe) ;
+  executable ?= $(Target:B) ;
+  opt on $(OutDir)/$(dest) =
+    "-e "\"s|%MACOSX_VER%|$(MacOSXMinVer)|g\"
+    "-e "\"s|%BUNDLE_EXE%|$(executable)|g\"
+    "-e "\"s|%BUNDLE_ID%|$(BundleID)|g\"
+    "-e "\"s|%BUNDLE_NAME%|$(BundleName)|g\"
+    "-e "\"s|%BUNDLE_ICON%|$(icon)|g\"
+  ;
+  convert_plist_file $(OutDir)/$(dest) : $(src) ;
+  if $(Config) = rel {
+    for t in $(2) {
+      local plist = $(t)/info.plist-rel/Info.plist ;
+      Depends $(plist) : $(OutDir)/$(dest) ;
+      MakeDirectory $(plist) : $(plist:D) ;
+      copy_file $(plist) : $(OutDir)/$(dest) ;
+      Depends all : $(plist) ;
+    }
+  }
+
+  if $(1[3]) { ProcessBundlePlist $(1[3-]) ; }
+}
+
+rule ProcessBundleLang
+{
+  for t in $(1) {
+    local dest = $(OutDir)/$(t).lproj/InfoPlist.strings ;
+    if $(SignTarget) { Depends $(SignTarget) : $(dest) ; }
+    lang on $(dest) = $(t).lproj ;
+    make_lang_file $(dest) ;
+  }
+}
+
+rule CopySignatures
+{
+  if $(Config) = rel {
+    local sign_fn = $(2) ;
+    if $(3) { sign_fn = $(sign_fn)/$(3) ; }
+    sign_fn = $(sign_fn)/_CodeSignature/CodeResources ;
+    Depends $(sign_fn) : $(1) ;
+    Depends $(sign_fn) : $(1:D)/../_CodeSignature/CodeResources ;
+    copy_signature_file $(sign_fn) : $(1:D)/../_CodeSignature/CodeResources ;
+    __targets += $(sign_fn) ;
+
+    for lib in $(UseSharedLibs) {
+      local dest_lib = $(2) ;
+      local src_lib = $(1:D)/../Frameworks/$(lib:D=) ;
+      if $(4) { dest_lib = $(dest_lib)/$(4) ; }
+      dest_lib = $(dest_lib)/$(lib:D=) ;
+      Depends $(dest_lib) : $(SignTarget) ;
+      Depends $(dest_lib) : $(1) ;
+      copy_file $(dest_lib) : $(src_lib) ;
+      __targets += $(dest_lib) ;
+    }
+
+    if ! $(IsProgArtifact) {
+      local known_sign_files =
+        CodeDirectory
+        CodeRequirements
+        CodeRequirements-1
+        CodeResources
+        CodeSignature
+        ../Resources/Info.plist
+      ;
+
+      for f in $(UseFrameworkBundles) {
+        local src_root = $(1:D)/../Frameworks/$(f:D=).framework ;
+        local library = $(src_root)/$(f:D=) ;
+        local signature = $(src_root)/_CodeSignature ;
+        NotFile $(signature) ;
+
+        local dst_root = $(2) ;
+        if $(4) { dst_root = $(dst_root)/$(4) ; }
+        dst_root = $(dst_root)/$(f:D=).framework ;
+
+        local lib_dst = $(dst_root)/$(f:D=) ;
+        Depends $(lib_dst) : $(SignTarget) ;
+        Depends $(lib_dst) : $(1) ;
+
+        MakeDirectory $(lib_dst) : $(dst_root) ;
+        copy_file $(lib_dst) : $(library) ;
+        __targets += $(lib_dst) ;
+
+        for signature_file in $(known_sign_files) {
+          local sign_src = $(signature)/$(signature_file) ;
+          NotFile $(sign_src) ; # these files are side effects, not jamtargets
+          local sign_dst = $(dst_root)/_CodeSignature/$(signature_file) ;
+          Depends $(sign_dst) : $(sign_src) ;
+          Depends $(sign_dst) : $(SignTarget) ;
+          Depends $(sign_dst) : $(signature) ;
+          Depends $(sign_dst) : $(1) ;
+          copy_signature_file $(sign_dst) : $(sign_src) ;
+          __targets += $(sign_dst) ;
+        }
+      }
+    }
+
+    if $(BundleExe) {
+      local dest_exe = $(2)/$(BundleExe) ;
+      local src_exe  = $(1:D)/$(BundleExe) ;
+      Depends $(dest_exe) : $(SignTarget) ;
+      Depends $(dest_exe) : $(1) ;
+      copy_file $(dest_exe) : $(src_exe) ;
+      __targets += $(dest_exe) ;
+    }
+  }
+}
+
+rule CopyFrameworkBundle
+{
+  local src = $(1).framework ;
+  local dst = $(OutDir)/../Frameworks/$(1:D=).framework ;
+
+  CopyDepsRecursively $(OutDir)/$(Target) : $(src) $(dst) : ;
+}
+
+include $(Root)/prog/_jBuild/macOS/mkdevtools.jam ;

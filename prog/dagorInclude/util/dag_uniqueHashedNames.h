@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -155,4 +154,4 @@ struct UniqueHashedNames
   }
 };
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

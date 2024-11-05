@@ -1,7 +1,6 @@
 //
 // Dagor Tech 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -36,6 +35,21 @@ enum
 {
   MAXIMUM_PATH_LEN = 2048,
 };
+
+// Native dialogs and message boxes in winGuiWrapper use this interface to make it possible
+// to easily do something before and after showing a dialog or message box.
+class INativeModalDialogEventHandler
+{
+public:
+  // Called before a modal dialog or message box is shown.
+  virtual void beforeModalDialogShown() = 0;
+
+  // Called after a modal dialog or message box has been shown.
+  virtual void afterModalDialogShown() = 0;
+};
+
+// Internally it uses dakernel's named pointers, so the event handler will available from DLLs too.
+void set_native_modal_dialog_events(INativeModalDialogEventHandler *event_handler);
 
 String file_open_dlg(void *hwnd, const char caption[], const char filter[], const char def_ext[], const char init_path[] = "",
   const char init_fn[] = "");

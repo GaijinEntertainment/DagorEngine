@@ -1,6 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "driver.h"
+#include "vk_entry_points.h"
+#include "extension_utils.h"
 
 namespace drv3d_vulkan
 {

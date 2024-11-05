@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <consoleKeyBindings/consoleKeyBindings.h>
-#include <humanInput/dag_hiKeyboard.h>
-#include <humanInput/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiKeyboard.h>
+#include <drv/hid/dag_hiKeybIds.h>
 #include <ioSys/dag_dataBlockUtils.h>
 #include <osApiWrappers/dag_direct.h>
 #include <startup/dag_inpDevClsDrv.h>

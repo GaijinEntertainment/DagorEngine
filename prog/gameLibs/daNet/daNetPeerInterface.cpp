@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daNet/daNetPeerInterface.h>
 #include <daNet/getTime.h>
 #include <daNet/messageIdentifiers.h>
@@ -54,7 +56,7 @@ static DaNetTime get_ping_timeout()
 #define DANET_PACKET_FLAG_BROADCAST          (1 << 15)
 #define DANET_PACKET_FLAG_RELIABLE_UNORDERED (1 << 14)
 
-#define LOGLEVEL_DEBUG _MAKE4C('DNET')
+#define debug(...) logmessage(_MAKE4C('DNET'), __VA_ARGS__)
 
 eastl::optional<ENetAddress> get_enet_address(const char *new_host)
 {
@@ -205,7 +207,8 @@ static ENetPeer *get_peer_by_addr(const ENetHost *host, const SystemAddress &a)
 
 DaNetPeerInterface::DaNetPeerInterface(_ENetHost *ehost) :
   host(ehost),
-  DaThread("danet_thread", 128 << 10), // overcommit thread stack because unknown third-party software might hook socket functions
+  // Note: overcommit thread stack because unknown third-party software (e.g. "smart" net drivers) might hook socket functions
+  DaThread("danet_thread", 128 << 10),
   receivedPackets(DANET_MEM),
   packetsToSend(DANET_MEM),
   disconnectCommands(DANET_MEM),
@@ -525,7 +528,7 @@ void DaNetPeerInterface::sendPacketsInQueue(Tab<PacketToSend *> &packetsTmp, DaN
 #endif
     --pkt->referenceCount;
 
-    if (EASTL_LIKELY(!(pkt->flags & DANET_PACKET_FLAG_BROADCAST)))
+    if (DAGOR_LIKELY(!(pkt->flags & DANET_PACKET_FLAG_BROADCAST)))
     {
       ENetPeer *peer = pkt->getPeer();
       uint8_t chn = pkt->getChannel(peerResponsiveness[PEER2IDX(peer)].unordChannel, peer->channelCount);
@@ -700,10 +703,12 @@ void DaNetPeerInterface::updateEnet(DaNetTime cur_time)
 
 void DaNetPeerInterface::execute() // thread func
 {
+  if (IS_CLIENT_MODE)
+    DaThread::applyThisThreadAffinity(WORKER_THREADS_AFFINITY_USE);
   G_ASSERT(host);
   Tab<PacketToSend *> packetsTmp;
   DaNetTime curTime = enet_time_get(), prevTime;
-  while (!interlocked_acquire_load(terminating))
+  while (!isThreadTerminating())
   {
     int sendQSize = (int)packetsToSend.size();
     G_UNUSED(sendQSize);
@@ -856,7 +861,6 @@ bool DaNetPeerInterface::Connect(const char *hosta, uint16_t port, uint32_t conn
       host->intercept = client_update_last_server_receive_time_cb;
     host->totalReceivedPackets = host->totalReceivedData = 0;
     DaThread::start();
-    DaThread::setAffinity(WORKER_THREADS_AFFINITY_MASK);
     return true;
   }
   else

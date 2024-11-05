@@ -1,3 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 // #include <de3_grassSrv.h>
 #include <de3_gpuGrassService.h>
 #include <render/gpuGrass.h>
@@ -9,7 +12,7 @@ struct RandomGPUGrassRenderHelper : IRandomGrassRenderHelper
   BBox3 box;
   IRenderingService *hmap = nullptr;
 
-  virtual bool beginRender(const Point3 &center_pos, const BBox3 &box, const TMatrix4 &tm) override;
+  virtual bool beginRender(const Point3 &center_pos, const BBox3 &box, const TMatrix4 &glob_tm, const TMatrix4 &proj_tm) override;
   virtual void endRender() override;
   virtual void renderColor() override;
   virtual void renderMask() override;

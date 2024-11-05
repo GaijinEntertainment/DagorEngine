@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += daNetGameLibs_light_flicker_DAS_pull_AOT ;
+  UseProgLibs += daNetGameLibs/light_flicker ;
+}

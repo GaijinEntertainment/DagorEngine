@@ -12,66 +12,86 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_12() {
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsADbgInfoIntrinsic >(*this,lib,"LLVMIsADbgInfoIntrinsic",SideEffects::worstDefault,"LLVMIsADbgInfoIntrinsic")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsADbgVariableIntrinsic >(*this,lib,"LLVMIsADbgVariableIntrinsic",SideEffects::worstDefault,"LLVMIsADbgVariableIntrinsic")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsADbgDeclareInst >(*this,lib,"LLVMIsADbgDeclareInst",SideEffects::worstDefault,"LLVMIsADbgDeclareInst")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsADbgLabelInst >(*this,lib,"LLVMIsADbgLabelInst",SideEffects::worstDefault,"LLVMIsADbgLabelInst")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAMemIntrinsic >(*this,lib,"LLVMIsAMemIntrinsic",SideEffects::worstDefault,"LLVMIsAMemIntrinsic")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAMemCpyInst >(*this,lib,"LLVMIsAMemCpyInst",SideEffects::worstDefault,"LLVMIsAMemCpyInst")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAMemMoveInst >(*this,lib,"LLVMIsAMemMoveInst",SideEffects::worstDefault,"LLVMIsAMemMoveInst")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAMemSetInst >(*this,lib,"LLVMIsAMemSetInst",SideEffects::worstDefault,"LLVMIsAMemSetInst")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsACmpInst >(*this,lib,"LLVMIsACmpInst",SideEffects::worstDefault,"LLVMIsACmpInst")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAFCmpInst >(*this,lib,"LLVMIsAFCmpInst",SideEffects::worstDefault,"LLVMIsAFCmpInst")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAICmpInst >(*this,lib,"LLVMIsAICmpInst",SideEffects::worstDefault,"LLVMIsAICmpInst")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAExtractElementInst >(*this,lib,"LLVMIsAExtractElementInst",SideEffects::worstDefault,"LLVMIsAExtractElementInst")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAGetElementPtrInst >(*this,lib,"LLVMIsAGetElementPtrInst",SideEffects::worstDefault,"LLVMIsAGetElementPtrInst")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAInsertElementInst >(*this,lib,"LLVMIsAInsertElementInst",SideEffects::worstDefault,"LLVMIsAInsertElementInst")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAInsertValueInst >(*this,lib,"LLVMIsAInsertValueInst",SideEffects::worstDefault,"LLVMIsAInsertValueInst")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsALandingPadInst >(*this,lib,"LLVMIsALandingPadInst",SideEffects::worstDefault,"LLVMIsALandingPadInst")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAPHINode >(*this,lib,"LLVMIsAPHINode",SideEffects::worstDefault,"LLVMIsAPHINode")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsASelectInst >(*this,lib,"LLVMIsASelectInst",SideEffects::worstDefault,"LLVMIsASelectInst")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAShuffleVectorInst >(*this,lib,"LLVMIsAShuffleVectorInst",SideEffects::worstDefault,"LLVMIsAShuffleVectorInst")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1771:30
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAStoreInst >(*this,lib,"LLVMIsAStoreInst",SideEffects::worstDefault,"LLVMIsAStoreInst")
-		->args({"Val"});
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsACallInst , SimNode_ExtFuncCall >(lib,"LLVMIsACallInst","LLVMIsACallInst")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAIntrinsicInst , SimNode_ExtFuncCall >(lib,"LLVMIsAIntrinsicInst","LLVMIsAIntrinsicInst")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsADbgInfoIntrinsic , SimNode_ExtFuncCall >(lib,"LLVMIsADbgInfoIntrinsic","LLVMIsADbgInfoIntrinsic")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsADbgVariableIntrinsic , SimNode_ExtFuncCall >(lib,"LLVMIsADbgVariableIntrinsic","LLVMIsADbgVariableIntrinsic")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsADbgDeclareInst , SimNode_ExtFuncCall >(lib,"LLVMIsADbgDeclareInst","LLVMIsADbgDeclareInst")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsADbgLabelInst , SimNode_ExtFuncCall >(lib,"LLVMIsADbgLabelInst","LLVMIsADbgLabelInst")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAMemIntrinsic , SimNode_ExtFuncCall >(lib,"LLVMIsAMemIntrinsic","LLVMIsAMemIntrinsic")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAMemCpyInst , SimNode_ExtFuncCall >(lib,"LLVMIsAMemCpyInst","LLVMIsAMemCpyInst")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAMemMoveInst , SimNode_ExtFuncCall >(lib,"LLVMIsAMemMoveInst","LLVMIsAMemMoveInst")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAMemSetInst , SimNode_ExtFuncCall >(lib,"LLVMIsAMemSetInst","LLVMIsAMemSetInst")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsACmpInst , SimNode_ExtFuncCall >(lib,"LLVMIsACmpInst","LLVMIsACmpInst")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAFCmpInst , SimNode_ExtFuncCall >(lib,"LLVMIsAFCmpInst","LLVMIsAFCmpInst")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAICmpInst , SimNode_ExtFuncCall >(lib,"LLVMIsAICmpInst","LLVMIsAICmpInst")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAExtractElementInst , SimNode_ExtFuncCall >(lib,"LLVMIsAExtractElementInst","LLVMIsAExtractElementInst")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAGetElementPtrInst , SimNode_ExtFuncCall >(lib,"LLVMIsAGetElementPtrInst","LLVMIsAGetElementPtrInst")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAInsertElementInst , SimNode_ExtFuncCall >(lib,"LLVMIsAInsertElementInst","LLVMIsAInsertElementInst")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAInsertValueInst , SimNode_ExtFuncCall >(lib,"LLVMIsAInsertValueInst","LLVMIsAInsertValueInst")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsALandingPadInst , SimNode_ExtFuncCall >(lib,"LLVMIsALandingPadInst","LLVMIsALandingPadInst")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsAPHINode , SimNode_ExtFuncCall >(lib,"LLVMIsAPHINode","LLVMIsAPHINode")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1792:30
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMIsASelectInst , SimNode_ExtFuncCall >(lib,"LLVMIsASelectInst","LLVMIsASelectInst")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

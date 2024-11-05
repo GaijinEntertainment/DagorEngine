@@ -16,6 +16,7 @@ Sources =
   mass.cpp
   kinematics.cpp
   fixed_dt.cpp
+  chainIKSolver.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

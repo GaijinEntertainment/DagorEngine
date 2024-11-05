@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "codeBlocks.h"
 #include "condParser.h"
 #include "shsem.h"
@@ -62,6 +64,7 @@ struct CodeSourceBlocks::ParserContext
 public:
   ShaderParser::ShaderBoolEvalCB &evalCb;
   const char *stage = nullptr;
+  dag::Vector<eastl::string> errors;
 
 protected:
   struct Stack
@@ -360,22 +363,24 @@ bool CodeSourceBlocks::parseSourceCode(const char *stage, const char *src, Shade
         inc_lines(code_start, pp_start, pp_line);
         if (!ppDoInclude(fn, incl_code, fileNames.getName(fname_id), pp_line, ctx))
         {
-          sh_debug(SHLOG_ERROR, "failed to resolve include at %s,%d:\n    %.*s\n", fileNames.getName(fname_id), line_no,
-            fn_e - fn_line, fn_line);
-          return false;
+          ctx.errors.emplace_back(eastl::string::CtorSprintf{}, "failed to resolve include at %s,%d:\n    %.*s\n",
+            fileNames.getName(fname_id), line_no, fn_e - fn_line, fn_line);
         }
-        memcpy(dtext - 1, "//   inc", 8);
-        char *old_p = tmpSrc.str();
-        tmpSrc.insert(p - old_p, incl_code.data(), incl_code.size());
-        size_t diff = tmpSrc.str() - old_p;
-        p += diff;
-        src_end += diff + incl_code.size();
-        code_start += diff;
-        code_end += diff;
+        else
+        {
+          memcpy(dtext - 1, "//   inc", 8);
+          char *old_p = tmpSrc.str();
+          tmpSrc.insert(p - old_p, incl_code.data(), incl_code.size());
+          size_t diff = tmpSrc.str() - old_p;
+          p += diff;
+          src_end += diff + incl_code.size();
+          code_start += diff;
+          code_end += diff;
 
-        if (p[0] == '\n')
-          p++;
-        code_end = p;
+          if (p[0] == '\n')
+            p++;
+          code_end = p;
+        }
       }
       code_end = p;
     }
@@ -455,7 +460,10 @@ bool CodeSourceBlocks::parseSourceCode(const char *stage, const char *src, Shade
 void CodeSourceBlocks::ppSrcCode(char *s, int len, int fnameId, int line, ctx_t &ctx, char *start_comment, char *end_comment)
 {
   if (ctx.topCondEval() == ExprValue::ConstFalse)
+  {
+    ctx.errors.clear();
     return;
+  }
 
   char *p = s + len - 1;
   while (len > 0 && *p == '\n')
@@ -464,6 +472,7 @@ void CodeSourceBlocks::ppSrcCode(char *s, int len, int fnameId, int line, ctx_t 
     s++, len--, line++;
 
   Tab<CodeSourceBlocks::Fragment> &prg = ctx.topProg();
+  ublock_t &uncond = prg.push_back().uncond;
 
   char c = s[len];
   s[len] = '\0';
@@ -471,7 +480,10 @@ void CodeSourceBlocks::ppSrcCode(char *s, int len, int fnameId, int line, ctx_t 
   String st;
   if (start_comment)
     st.printf(128 + len, "//%s\n%s\n//%s", start_comment, s, end_comment);
-  addCodeBlock(prg.push_back().uncond, start_comment ? st.str() : s, fnameId, line);
+
+  addCodeBlock(uncond, start_comment ? st.str() : s, fnameId, line);
+  uncond.errors = eastl::move(ctx.errors);
+
   s[len] = c;
 
   // debug("code %s,%d [\n%.*s\n]", fileNames.getName(fnameId), line, len, s);
@@ -586,7 +598,7 @@ static ublock_t::Decl get_first_decl(fragment_t &frag)
   return get_first_decl(frag.cond->onIf.onTrue[0]);
 }
 
-static void eval_optional_to_branching(Tab<CodeSourceBlocks::Fragment> &prog, ShaderParser::ShaderBoolEvalCB &eval_cb)
+static void eval_optional_to_branching(Tab<CodeSourceBlocks::Fragment> &prog)
 {
   fragment_t &frag = prog.back();
   Tab<fragment_t> blocks;
@@ -752,7 +764,7 @@ bool CodeSourceBlocks::ppDirective(char *s, int len, char *dtext, int fnameId, i
     G_ASSERT(prg.size() > 0);
     if (optionalIntervalsAsBranches && pp_is_optional(prg.back(), ctx.evalCb))
     {
-      eval_optional_to_branching(prg, ctx.evalCb);
+      eval_optional_to_branching(prg);
       return true;
     }
     Condition *cond = prg.back().cond.get();
@@ -961,7 +973,13 @@ static void distill_code(dag::Span<CodeSourceBlocks::Fragment> p, ShaderParser::
     }
     else
     {
-      if (p[i].isDecl())
+      if (!p[i].uncond.errors.empty())
+      {
+        for (const auto &err : p[i].uncond.errors)
+          sh_debug(SHLOG_ERROR, "Parsing error in hlsl unconditional: %s", err.c_str());
+        continue;
+      }
+      else if (p[i].isDecl())
         p[i].decl().identValue = c.eval_interval_value(declIdents.getName(p[i].decl().identId));
       else if (p[i].isDeclBool())
       {

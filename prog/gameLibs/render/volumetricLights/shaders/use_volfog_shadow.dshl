@@ -1,4 +1,4 @@
-include "volume_light_common.dshl"
+include "volfog_common.dshl"
 
 
 texture volfog_shadow;

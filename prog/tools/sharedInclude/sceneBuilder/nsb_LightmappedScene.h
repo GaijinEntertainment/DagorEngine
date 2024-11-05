@@ -1,8 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef __GAIJIN_NSB_LIGHTMAPPEDSCENE_H__
-#define __GAIJIN_NSB_LIGHTMAPPEDSCENE_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <libTools/staticGeom/staticGeometry.h>
 #include <libTools/util/dagUuid.h>
@@ -185,6 +182,3 @@ bool build_scene(IGenLoad &in_lms1, IGenLoad &in_lto1, IGenLoad *in_ldiro1, cons
   float blur_sigma, bool dont_crop_lightmaps, bool make_reference, ILogWriter &log, IGenericProgressIndicator &pbar);
 
 }; // namespace StaticSceneBuilder
-
-
-#endif

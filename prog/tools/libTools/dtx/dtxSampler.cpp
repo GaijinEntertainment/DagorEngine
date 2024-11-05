@@ -1,7 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/dtx/dtxSampler.h>
 // #include <debug/dag_debug.h>
 #include "rgbe.h"
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_tex3d.h>
 #include <3d/ddsFormat.h>
 
 
@@ -76,7 +78,7 @@ static void mask_to_ofs(int mask, int &ofs, int &shift, int target_sz)
     shift = 0;
     return;
   }
-  DWORD o, s;
+  unsigned long o, s;
 #if _TARGET_64BIT
   o = s = 32;
   __bit_scan_forward(o, mask);

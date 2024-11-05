@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -99,6 +98,12 @@ public:
   }
   bool checkConsistency() const;
 
+  template <bool use_flags, typename VisibleNodesFunctor>
+  inline // VisibleNodesFunctor(scene::node_index, mat44f_cref, vec4f distsqScale)
+    void
+    nodesInRange(vec4f pos_distscale, uint32_t test_flags, uint32_t equal_flags, VisibleNodesFunctor visible_nodes,
+      int start_index = 0, int end_index = INT_MAX) const;
+
   template <bool use_flags, bool use_pools, bool use_occlusion, typename VisibleNodesFunctor>
   inline // VisibleNodesFunctor(scene::node_index, mat44f_cref, vec4f distsqScale)
     void
@@ -142,6 +147,7 @@ protected:
   inline bool isInvalidIndex(uint32_t index) const { return ((uint32_t *)(char *)&nodes.data()[index].col0)[3] == 0xFFFFFFFF; }
   inline bool isFreeIndex(uint32_t index) const { return index < firstAlive || index >= nodes.size() || isInvalidIndex(index); }
   inline bbox3f calcNodeBox(mat44f_cref m) const;
+  inline bbox3f calcNodeBoxFromSphere(mat44f_cref m) const;
   inline bbox3f_cref getPoolBboxInternal(pool_index pool) const { return poolBox.data()[pool]; }
 
   node_index allocateOne();
@@ -274,7 +280,7 @@ inline scene::SimpleScene::iterator scene::SimpleScene::iterator::operator++(int
 inline vec4f scene::SimpleScene::getNodeBSphere(node_index node) const
 {
   const uint32_t index = getNodeIndex(node);
-  if (index >= nodes.size())
+  if (isFreeIndex(index))
     return v_zero();
   return get_node_bsphere(nodes.data()[index]);
 }
@@ -287,17 +293,24 @@ inline bbox3f scene::SimpleScene::calcNodeBox(mat44f_cref m) const
     v_bbox3_init(box, m, getPoolBboxInternal(pool));
   else
   {
-    vec4f sphere = get_node_bsphere(m);
-    box.bmin = v_sub(sphere, v_splat_w(sphere));
-    box.bmax = v_add(sphere, v_splat_w(sphere));
+    box = calcNodeBoxFromSphere(m);
   }
+  return box;
+}
+
+inline bbox3f scene::SimpleScene::calcNodeBoxFromSphere(mat44f_cref m) const
+{
+  bbox3f box;
+  vec4f sphere = get_node_bsphere(m);
+  box.bmin = v_sub(sphere, v_splat_w(sphere));
+  box.bmax = v_add(sphere, v_splat_w(sphere));
   return box;
 }
 
 inline bbox3f scene::SimpleScene::calcNodeBox(node_index node) const
 {
   const uint32_t index = getNodeIndex(node);
-  if (index >= nodes.size())
+  if (isFreeIndex(index))
   {
     bbox3f box;
     v_bbox3_init_empty(box);
@@ -309,14 +322,14 @@ inline bbox3f scene::SimpleScene::calcNodeBox(node_index node) const
 inline scene::pool_index scene::SimpleScene::getNodePool(node_index node) const
 {
   uint32_t index = getNodeIndex(node);
-  if (index >= nodes.size())
+  if (isFreeIndex(index))
     return INVALID_POOL;
   return getIndexPool(index);
 }
 inline uint32_t scene::SimpleScene::getNodeFlags(node_index node) const
 {
   uint32_t index = getNodeIndex(node);
-  if (index >= nodes.size())
+  if (isFreeIndex(index))
     return 0;
   return getIndexFlags(index);
 }
@@ -327,6 +340,41 @@ inline scene::node_index scene::SimpleScene::allocate(const mat44f &transform, p
   node_index node = allocateOne();
   reallocate(node, transform, pool, flags);
   return node;
+}
+
+template <bool use_flags, typename VisibleNodesFunctor>
+void scene::SimpleScene::nodesInRange(vec4f pos_distscale, uint32_t test_flags, uint32_t equal_flags,
+  VisibleNodesFunctor visible_nodes, int start_index, int end_index) const
+{
+  test_flags <<= 16;
+  equal_flags <<= 16;
+  const bool hasFree = freeIndices.size() != 0;
+  for (int i = firstAlive, ei = (node_index)nodes.size(), localIndex = 0; i < ei; ++i)
+  {
+    if (hasFree && isInvalidIndex(i))
+      continue;
+    if (localIndex < start_index)
+    {
+      localIndex++;
+      continue;
+    }
+    if (localIndex >= end_index)
+      break;
+    localIndex++;
+
+    const mat44f &m = nodes.data()[i];
+
+    uint32_t poolFlags = get_node_pool_flags(m);
+    if (use_flags && ((test_flags & poolFlags) != equal_flags))
+      continue;
+
+    vec4f sphere = get_node_bsphere(m);
+    vec3f distToSphereSqScaled = v_mul_x(v_length3_sq_x(v_sub(pos_distscale, sphere)), v_splat_w(pos_distscale));
+    if (v_test_vec_x_lt(v_splat_w(m.col0), distToSphereSqScaled))
+      continue;
+
+    visible_nodes(getNodeFromIndex(i), m, distToSphereSqScaled);
+  }
 }
 
 template <bool use_flags, bool use_pools, bool use_occlusion, typename VisibleNodesFunctor> // CulledContainer has to have push_back

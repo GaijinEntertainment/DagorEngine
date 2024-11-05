@@ -12,66 +12,86 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_5() {
-// from D:\Work\libclang\include\llvm-c/Core.h:869:13
-	addExtern< const char * (*)(LLVMOpaqueModule *,size_t *) , LLVMGetModuleInlineAsm >(*this,lib,"LLVMGetModuleInlineAsm",SideEffects::worstDefault,"LLVMGetModuleInlineAsm")
-		->args({"M","Len"});
-// from D:\Work\libclang\include\llvm-c/Core.h:876:6
-	addExtern< void (*)(LLVMOpaqueModule *,const char *,size_t) , LLVMSetModuleInlineAsm2 >(*this,lib,"LLVMSetModuleInlineAsm2",SideEffects::worstDefault,"LLVMSetModuleInlineAsm2")
-		->args({"M","Asm","Len"});
-// from D:\Work\libclang\include\llvm-c/Core.h:883:6
-	addExtern< void (*)(LLVMOpaqueModule *,const char *,size_t) , LLVMAppendModuleInlineAsm >(*this,lib,"LLVMAppendModuleInlineAsm",SideEffects::worstDefault,"LLVMAppendModuleInlineAsm")
-		->args({"M","Asm","Len"});
-// from D:\Work\libclang\include\llvm-c/Core.h:890:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,char *,size_t,char *,size_t,int,int,LLVMInlineAsmDialect,int) , LLVMGetInlineAsm >(*this,lib,"LLVMGetInlineAsm",SideEffects::worstDefault,"LLVMGetInlineAsm")
-		->args({"Ty","AsmString","AsmStringSize","Constraints","ConstraintsSize","HasSideEffects","IsAlignStack","Dialect","CanThrow"});
-// from D:\Work\libclang\include\llvm-c/Core.h:901:16
-	addExtern< LLVMOpaqueContext * (*)(LLVMOpaqueModule *) , LLVMGetModuleContext >(*this,lib,"LLVMGetModuleContext",SideEffects::worstDefault,"LLVMGetModuleContext")
-		->args({"M"});
-// from D:\Work\libclang\include\llvm-c/Core.h:904:13
-	addExtern< LLVMOpaqueType * (*)(LLVMOpaqueModule *,const char *) , LLVMGetTypeByName >(*this,lib,"LLVMGetTypeByName",SideEffects::worstDefault,"LLVMGetTypeByName")
-		->args({"M","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:911:20
-	addExtern< LLVMOpaqueNamedMDNode * (*)(LLVMOpaqueModule *) , LLVMGetFirstNamedMetadata >(*this,lib,"LLVMGetFirstNamedMetadata",SideEffects::worstDefault,"LLVMGetFirstNamedMetadata")
-		->args({"M"});
-// from D:\Work\libclang\include\llvm-c/Core.h:918:20
-	addExtern< LLVMOpaqueNamedMDNode * (*)(LLVMOpaqueModule *) , LLVMGetLastNamedMetadata >(*this,lib,"LLVMGetLastNamedMetadata",SideEffects::worstDefault,"LLVMGetLastNamedMetadata")
-		->args({"M"});
-// from D:\Work\libclang\include\llvm-c/Core.h:926:20
-	addExtern< LLVMOpaqueNamedMDNode * (*)(LLVMOpaqueNamedMDNode *) , LLVMGetNextNamedMetadata >(*this,lib,"LLVMGetNextNamedMetadata",SideEffects::worstDefault,"LLVMGetNextNamedMetadata")
-		->args({"NamedMDNode"});
-// from D:\Work\libclang\include\llvm-c/Core.h:934:20
-	addExtern< LLVMOpaqueNamedMDNode * (*)(LLVMOpaqueNamedMDNode *) , LLVMGetPreviousNamedMetadata >(*this,lib,"LLVMGetPreviousNamedMetadata",SideEffects::worstDefault,"LLVMGetPreviousNamedMetadata")
-		->args({"NamedMDNode"});
-// from D:\Work\libclang\include\llvm-c/Core.h:942:20
-	addExtern< LLVMOpaqueNamedMDNode * (*)(LLVMOpaqueModule *,const char *,size_t) , LLVMGetNamedMetadata >(*this,lib,"LLVMGetNamedMetadata",SideEffects::worstDefault,"LLVMGetNamedMetadata")
-		->args({"M","Name","NameLen"});
-// from D:\Work\libclang\include\llvm-c/Core.h:951:20
-	addExtern< LLVMOpaqueNamedMDNode * (*)(LLVMOpaqueModule *,const char *,size_t) , LLVMGetOrInsertNamedMetadata >(*this,lib,"LLVMGetOrInsertNamedMetadata",SideEffects::worstDefault,"LLVMGetOrInsertNamedMetadata")
-		->args({"M","Name","NameLen"});
-// from D:\Work\libclang\include\llvm-c/Core.h:960:13
-	addExtern< const char * (*)(LLVMOpaqueNamedMDNode *,size_t *) , LLVMGetNamedMetadataName >(*this,lib,"LLVMGetNamedMetadataName",SideEffects::worstDefault,"LLVMGetNamedMetadataName")
-		->args({"NamedMD","NameLen"});
-// from D:\Work\libclang\include\llvm-c/Core.h:968:10
-	addExtern< unsigned int (*)(LLVMOpaqueModule *,const char *) , LLVMGetNamedMetadataNumOperands >(*this,lib,"LLVMGetNamedMetadataNumOperands",SideEffects::worstDefault,"LLVMGetNamedMetadataNumOperands")
-		->args({"M","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:981:6
-	addExtern< void (*)(LLVMOpaqueModule *,const char *,LLVMOpaqueValue **) , LLVMGetNamedMetadataOperands >(*this,lib,"LLVMGetNamedMetadataOperands",SideEffects::worstDefault,"LLVMGetNamedMetadataOperands")
-		->args({"M","Name","Dest"});
-// from D:\Work\libclang\include\llvm-c/Core.h:990:6
-	addExtern< void (*)(LLVMOpaqueModule *,const char *,LLVMOpaqueValue *) , LLVMAddNamedMetadataOperand >(*this,lib,"LLVMAddNamedMetadataOperand",SideEffects::worstDefault,"LLVMAddNamedMetadataOperand")
-		->args({"M","Name","Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1001:13
-	addExtern< const char * (*)(LLVMOpaqueValue *,unsigned int *) , LLVMGetDebugLocDirectory >(*this,lib,"LLVMGetDebugLocDirectory",SideEffects::worstDefault,"LLVMGetDebugLocDirectory")
-		->args({"Val","Length"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1011:13
-	addExtern< const char * (*)(LLVMOpaqueValue *,unsigned int *) , LLVMGetDebugLocFilename >(*this,lib,"LLVMGetDebugLocFilename",SideEffects::worstDefault,"LLVMGetDebugLocFilename")
-		->args({"Val","Length"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1021:10
-	addExtern< unsigned int (*)(LLVMOpaqueValue *) , LLVMGetDebugLocLine >(*this,lib,"LLVMGetDebugLocLine",SideEffects::worstDefault,"LLVMGetDebugLocLine")
-		->args({"Val"});
-// from D:\Work\libclang\include\llvm-c/Core.h:1029:10
-	addExtern< unsigned int (*)(LLVMOpaqueValue *) , LLVMGetDebugLocColumn >(*this,lib,"LLVMGetDebugLocColumn",SideEffects::worstDefault,"LLVMGetDebugLocColumn")
-		->args({"Val"});
+// from D:\Work\libclang\include\llvm-c/Core.h:874:7
+	makeExtern< char * (*)(LLVMOpaqueModule *) , LLVMPrintModuleToString , SimNode_ExtFuncCall >(lib,"LLVMPrintModuleToString","LLVMPrintModuleToString")
+		->args({"M"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:881:13
+	makeExtern< const char * (*)(LLVMOpaqueModule *,size_t *) , LLVMGetModuleInlineAsm , SimNode_ExtFuncCall >(lib,"LLVMGetModuleInlineAsm","LLVMGetModuleInlineAsm")
+		->args({"M","Len"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:888:6
+	makeExtern< void (*)(LLVMOpaqueModule *,const char *,size_t) , LLVMSetModuleInlineAsm2 , SimNode_ExtFuncCall >(lib,"LLVMSetModuleInlineAsm2","LLVMSetModuleInlineAsm2")
+		->args({"M","Asm","Len"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:895:6
+	makeExtern< void (*)(LLVMOpaqueModule *,const char *,size_t) , LLVMAppendModuleInlineAsm , SimNode_ExtFuncCall >(lib,"LLVMAppendModuleInlineAsm","LLVMAppendModuleInlineAsm")
+		->args({"M","Asm","Len"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:902:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,char *,size_t,char *,size_t,int,int,LLVMInlineAsmDialect,int) , LLVMGetInlineAsm , SimNode_ExtFuncCall >(lib,"LLVMGetInlineAsm","LLVMGetInlineAsm")
+		->args({"Ty","AsmString","AsmStringSize","Constraints","ConstraintsSize","HasSideEffects","IsAlignStack","Dialect","CanThrow"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:913:16
+	makeExtern< LLVMOpaqueContext * (*)(LLVMOpaqueModule *) , LLVMGetModuleContext , SimNode_ExtFuncCall >(lib,"LLVMGetModuleContext","LLVMGetModuleContext")
+		->args({"M"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:916:13
+	makeExtern< LLVMOpaqueType * (*)(LLVMOpaqueModule *,const char *) , LLVMGetTypeByName , SimNode_ExtFuncCall >(lib,"LLVMGetTypeByName","LLVMGetTypeByName")
+		->args({"M","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:923:20
+	makeExtern< LLVMOpaqueNamedMDNode * (*)(LLVMOpaqueModule *) , LLVMGetFirstNamedMetadata , SimNode_ExtFuncCall >(lib,"LLVMGetFirstNamedMetadata","LLVMGetFirstNamedMetadata")
+		->args({"M"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:930:20
+	makeExtern< LLVMOpaqueNamedMDNode * (*)(LLVMOpaqueModule *) , LLVMGetLastNamedMetadata , SimNode_ExtFuncCall >(lib,"LLVMGetLastNamedMetadata","LLVMGetLastNamedMetadata")
+		->args({"M"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:938:20
+	makeExtern< LLVMOpaqueNamedMDNode * (*)(LLVMOpaqueNamedMDNode *) , LLVMGetNextNamedMetadata , SimNode_ExtFuncCall >(lib,"LLVMGetNextNamedMetadata","LLVMGetNextNamedMetadata")
+		->args({"NamedMDNode"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:946:20
+	makeExtern< LLVMOpaqueNamedMDNode * (*)(LLVMOpaqueNamedMDNode *) , LLVMGetPreviousNamedMetadata , SimNode_ExtFuncCall >(lib,"LLVMGetPreviousNamedMetadata","LLVMGetPreviousNamedMetadata")
+		->args({"NamedMDNode"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:954:20
+	makeExtern< LLVMOpaqueNamedMDNode * (*)(LLVMOpaqueModule *,const char *,size_t) , LLVMGetNamedMetadata , SimNode_ExtFuncCall >(lib,"LLVMGetNamedMetadata","LLVMGetNamedMetadata")
+		->args({"M","Name","NameLen"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:963:20
+	makeExtern< LLVMOpaqueNamedMDNode * (*)(LLVMOpaqueModule *,const char *,size_t) , LLVMGetOrInsertNamedMetadata , SimNode_ExtFuncCall >(lib,"LLVMGetOrInsertNamedMetadata","LLVMGetOrInsertNamedMetadata")
+		->args({"M","Name","NameLen"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:972:13
+	makeExtern< const char * (*)(LLVMOpaqueNamedMDNode *,size_t *) , LLVMGetNamedMetadataName , SimNode_ExtFuncCall >(lib,"LLVMGetNamedMetadataName","LLVMGetNamedMetadataName")
+		->args({"NamedMD","NameLen"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:980:10
+	makeExtern< unsigned int (*)(LLVMOpaqueModule *,const char *) , LLVMGetNamedMetadataNumOperands , SimNode_ExtFuncCall >(lib,"LLVMGetNamedMetadataNumOperands","LLVMGetNamedMetadataNumOperands")
+		->args({"M","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:993:6
+	makeExtern< void (*)(LLVMOpaqueModule *,const char *,LLVMOpaqueValue **) , LLVMGetNamedMetadataOperands , SimNode_ExtFuncCall >(lib,"LLVMGetNamedMetadataOperands","LLVMGetNamedMetadataOperands")
+		->args({"M","Name","Dest"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1002:6
+	makeExtern< void (*)(LLVMOpaqueModule *,const char *,LLVMOpaqueValue *) , LLVMAddNamedMetadataOperand , SimNode_ExtFuncCall >(lib,"LLVMAddNamedMetadataOperand","LLVMAddNamedMetadataOperand")
+		->args({"M","Name","Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1013:13
+	makeExtern< const char * (*)(LLVMOpaqueValue *,unsigned int *) , LLVMGetDebugLocDirectory , SimNode_ExtFuncCall >(lib,"LLVMGetDebugLocDirectory","LLVMGetDebugLocDirectory")
+		->args({"Val","Length"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1023:13
+	makeExtern< const char * (*)(LLVMOpaqueValue *,unsigned int *) , LLVMGetDebugLocFilename , SimNode_ExtFuncCall >(lib,"LLVMGetDebugLocFilename","LLVMGetDebugLocFilename")
+		->args({"Val","Length"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:1033:10
+	makeExtern< unsigned int (*)(LLVMOpaqueValue *) , LLVMGetDebugLocLine , SimNode_ExtFuncCall >(lib,"LLVMGetDebugLocLine","LLVMGetDebugLocLine")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #if DAGOR_DBGLEVEL > 0
 
 #include <perfMon/dag_memoryReport.h>
@@ -122,7 +124,7 @@ void init()
 
   if (backend_ids)
   {
-    auto on_backend_id = [](const char *str, uint32_t n) {
+    auto on_backend_id = [](const char *str, uint32_t n) { //-V657
       auto it = BackendList::head;
       while (it)
       {

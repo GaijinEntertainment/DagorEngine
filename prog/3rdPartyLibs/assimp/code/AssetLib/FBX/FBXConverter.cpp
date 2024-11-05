@@ -3327,6 +3327,14 @@ FBXConverter::KeyFrameListList FBXConverter::GetKeyframeList(const eastl::vector
     return inputs; // pray for NRVO :-)
 }
 
+// dagor workaround for lerp euler angles which are more than 180
+// Clamp angle to range [-180, 180]
+static float NormalizeAngle(float angle)
+{
+    const float PI = 180.f;
+    return angle - 2.0f * PI * floor((angle + PI) / (2.0f * PI));
+}
+
 FBXConverter::KeyFrameListList FBXConverter::GetRotationKeyframeList(const eastl::vector<const AnimationCurveNode *> &nodes,
                                                                      int64_t start, int64_t stop) {
     KeyFrameListList inputs;
@@ -3364,12 +3372,12 @@ FBXConverter::KeyFrameListList FBXConverter::GetRotationKeyframeList(const eastl
             const size_t count = curve->GetKeys().size();
 
             int64_t tp = curve->GetKeys().at(0);
-            float vp = curve->GetValues().at(0);
+            float vp = NormalizeAngle(curve->GetValues().at(0));
             Keys->push_back(tp);
             Values->push_back(vp);
             if (count > 1) {
                 int64_t tc = curve->GetKeys().at(1);
-                float vc = curve->GetValues().at(1);
+                float vc = NormalizeAngle(curve->GetValues().at(1));
                 for (size_t n = 1; n < count; n++) {
                     while (abs(vc - vp) >= 180.0f) {
                         double step = floor(double(tc - tp) / abs(vc - vp) * 179.0f);
@@ -3394,7 +3402,7 @@ FBXConverter::KeyFrameListList FBXConverter::GetRotationKeyframeList(const eastl
                         tp = tc;
                         vp = vc;
                         tc = curve->GetKeys().at(n + 1);
-                        vc = curve->GetValues().at(n + 1);
+                        vc = NormalizeAngle(curve->GetValues().at(n + 1));
                     }
                 }
             }

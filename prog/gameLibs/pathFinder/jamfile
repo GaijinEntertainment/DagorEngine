@@ -9,6 +9,7 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 AddIncludes = 
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/3rdPartyLibs/Detour/Include
+  $(Root)/prog/3rdPartyLibs/arc/zstd-$(ZstdVer)
 ;
 
 Sources =
@@ -20,8 +21,9 @@ Sources =
 UseProgLibs +=
   3rdPartyLibs/Detour
   3rdPartyLibs/arc/fastlz
-  3rdPartyLibs/arc/zstd-1.4.5
+  3rdPartyLibs/arc/zstd-$(ZstdVer)
   gameLibs/gameMath
 ;
+if $(BuildingTools) = yes { Target = $(Target:S=~t.lib) ; CPPopt = -D_TARGET_PC_TOOLS_BUILD ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

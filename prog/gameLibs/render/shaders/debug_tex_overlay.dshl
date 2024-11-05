@@ -7,6 +7,7 @@ interval swizzled_texture_type : swizzled_texture_2d < 1, swizzled_texture_cube 
 texture swizzled_texture;
 float4 swizzled_texture_size;
 float4 swizzled_texture_face_mip;
+float4 swizzled_texture_tc_scale = (1, 1, 0, 0);
 
 float4 tex_swizzling_r = (1, 0, 0, 0);
 float4 tex_swizzling_g = (0, 1, 0, 0);
@@ -59,6 +60,7 @@ shader debug_tex_overlay
   (vs) {
     swizzled_texture_size@f4 = swizzled_texture_size;
     swizzled_texture_face_mip@f4 = swizzled_texture_face_mip;
+    swizzled_texture_tc_scale@f4 = swizzled_texture_tc_scale;
   }
 
   (ps) {
@@ -93,10 +95,17 @@ shader debug_tex_overlay
       float2 pos = getPostfxVertexPositionById(vertexId);
       VsOutput output;
       output.pos = float4(pos.x, pos.y, 1, 1);
-      output.pos.xy *= swizzled_texture_size.xy;
+      output.pos.xy *= abs(swizzled_texture_size.xy);
       output.pos.xy += swizzled_texture_size.zw;
 
       float2 tc = screen_to_texcoords(pos);
+      tc *=  swizzled_texture_tc_scale.xy;
+      tc += swizzled_texture_tc_scale.zw;
+
+      if (swizzled_texture_size.x < 0)
+        tc.x = 1.f - tc.x;
+      if (swizzled_texture_size.y < 0)
+        tc.y = 1.f - tc.y;
       ##if swizzled_texture_type == swizzled_texture_2d || swizzled_texture_type == swizzled_texture_2d_depth || swizzled_texture_type == swizzled_texture_array || swizzled_texture_type == swizzled_texture_3d
       output.texcoord = float4( tc, swizzled_texture_face_mip.xy );
       ##else

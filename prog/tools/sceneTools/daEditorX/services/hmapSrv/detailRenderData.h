@@ -1,6 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_shader.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_tex3d.h>
 #include <3d/dag_texMgr.h>
 #include <shaders/dag_shaderVar.h>
 #include <ioSys/dag_dataBlock.h>

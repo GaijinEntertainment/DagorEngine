@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <levelSplines/levelSplines.h>
 #include <memory/dag_framemem.h>
 

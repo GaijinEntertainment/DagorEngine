@@ -1,5 +1,5 @@
 shader_root_dir:t="."
-outDumpName:t="../../tools/common/compiledShaders/tools"
+outDumpName:t="../../tools/tools"
 packBin:b=yes
 
 include common_inc_dirs.blk
@@ -13,6 +13,8 @@ source
   include fftWaterList.blk
   include shadersList.blk
   include "../../../../prog/gameLibs/daSkies2/shaders/daSkiesList.blk"
+  file:t = "infinite_grid.dshl"
+  file:t = "simple_outline.dshl"
 }
 common_valid_variants {}
 
@@ -36,6 +38,9 @@ Compile
     compatibility_mode:i = 0
     mobile_render:i=0
     use_postfx:i = 1
+    ssr_denoiser_type:i=0
+    has_motion_vectors:i=0
+    ds_motion_vectors_with_z:i=0
   }
 }
 
@@ -44,4 +49,6 @@ explicit_var_ref
 {
   include common_var_ref.blk
   ref:t = in_editor
+  ref:t = lowres_tex_size
+  ref:t = impostor_normal_mip
 }

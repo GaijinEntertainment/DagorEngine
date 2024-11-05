@@ -1,0 +1,29 @@
+screen_frost_renderer{
+  _tags:t="render"
+  _singleton:b=yes
+  screen_frost__diffuse:p4=1, 1, 1, 1
+  screen_frost__corruption_diffuse:p4=0.1, 0.1, 0.1, 1
+  screen_frost__roughness:r=0.2
+  screen_frost__opacity:r=0.4
+
+  "frost_tex:SharedTexHolder"{}
+  frost_tex_res:t="frost_screen_tile_tex_n"
+  frost_tex_var:t="screen_frost_tile_tex"
+  "corruption_tex:SharedTexHolder"{}
+  corruption_tex_res:t="corruption_screen_tile_tex_n"
+  corruption_tex_var:t="screen_corruption_tile_tex"
+
+  "screenFrost:resource_slot::NodeHandleWithSlotsAccess"{}
+
+  "screen_frost__shader:PostFxRenderer"{}
+  screen_frost__shader_name:t="screen_frost"
+}
+
+screen_frost_effect{
+  _use:t="replicated_game_effect"
+  screen_frost__maxIntensity:r=1
+  screen_frost__intensity:r=0
+  screen_frost__rate:r=1
+
+  "screenFrostEffect:tag"{}
+}

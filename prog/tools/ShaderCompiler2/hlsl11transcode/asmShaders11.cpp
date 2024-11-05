@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "../fast_isalnum.h"
 #include "asmShaders11.h"
 
@@ -31,7 +33,7 @@ eastl::vector<uint8_t> get_blob_with_header_aligned(void *data, unsigned int dat
 }
 
 CompileResult compileShaderDX11(const char *shaderName, const char *source, const char **args, const char *profile, const char *entry,
-  bool need_disasm, DebugLevel hlsl_debug_level, bool skip_validation, unsigned flags, int max_constants_no, int bones_const_used)
+  bool need_disasm, DebugLevel hlsl_debug_level, bool skip_validation, bool embed_source, unsigned flags, int max_constants_no)
 {
   CompileResult result;
   ID3D10Blob *bytecode = nullptr;
@@ -46,6 +48,18 @@ CompileResult compileShaderDX11(const char *shaderName, const char *source, cons
 
   D3D_SHADER_MACRO *pMacros = NULL;
 
+  unsigned int d3dCompileFlags = 0;
+  if (skip_validation)
+    d3dCompileFlags |= D3DCOMPILE_SKIP_VALIDATION;
+  if (hlsl_debug_level == DebugLevel::FULL_DEBUG_INFO)
+    d3dCompileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+  else if (hlsl_debug_level == DebugLevel::BASIC)
+    d3dCompileFlags |= D3DCOMPILE_SKIP_OPTIMIZATION;
+  else
+    d3dCompileFlags |= flags; // not sure why flags is only applied in this case, but this is consistent with the original former
+  if (embed_source)
+    d3dCompileFlags |= D3DCOMPILE_DEBUG;
+
   HRESULT hr = D3DCompile(source, //_In_   LPCSTR pSrcData,
     strlen(source),               //  _In_   SIZE_T SrcDataLen,
     NULL,                         //  _In_   LPCSTR pFileName,
@@ -53,13 +67,10 @@ CompileResult compileShaderDX11(const char *shaderName, const char *source, cons
     NULL,                         //  _In_   LPD3D10INCLUDE pInclude,
     entry,                        //  _In_   LPCSTR pFunctionName,
     profile,                      //  _In_   LPCSTR pProfile, //vs_5_0
-    (skip_validation ? D3DCOMPILE_SKIP_VALIDATION : 0) |
-      (hlsl_debug_level == DebugLevel::FULL_DEBUG_INFO
-          ? D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION
-          : (hlsl_debug_level == DebugLevel::BASIC ? D3DCOMPILE_SKIP_OPTIMIZATION : flags)), //  _In_   UINT Flags1,
-    0,
-    &bytecode, //  _Out_  ID3D10Blob **ppShader,
-    &errors    //  _Out_  ID3D10Blob **ppErrorMsgs,
+    d3dCompileFlags,              //  _In_   UINT Flags1,
+    0,                            //  _In_   UINT Flags2
+    &bytecode,                    //  _Out_  ID3D10Blob **ppShader,
+    &errors                       //  _Out_  ID3D10Blob **ppErrorMsgs,
   );
 #if DBG_SHDR
   name[0] = 'f';
@@ -75,6 +86,9 @@ CompileResult compileShaderDX11(const char *shaderName, const char *source, cons
     }
     return result;
   }
+
+  if (errors)
+    errors->Release(); // should not be needed, however, for avoidance of mem leak if compiler returns warnings in errors
 
   if (profile[0] == 'c')
   {
@@ -118,7 +132,7 @@ CompileResult compileShaderDX11(const char *shaderName, const char *source, cons
   // memset(data, 0x00, extsize32 * sizeof(uint32_t)); //clean required bytes
   // memcpy(data+1, bytecodeMsg, bytecodeSz);
   //*data = bytecodeSz;
-  int header[2] = {max_constants_no, bones_const_used};
+  int header[2] = {max_constants_no, -1};
   if (strncmp(profile, "hs", 2) == 0)
   {
     ID3D10Blob *hs_disasm = nullptr;

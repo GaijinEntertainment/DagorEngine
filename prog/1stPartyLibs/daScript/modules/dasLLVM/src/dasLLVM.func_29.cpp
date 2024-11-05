@@ -12,66 +12,86 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_29() {
-// from D:\Work\libclang\include\llvm-c/Core.h:3657:17
-	addExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueBuilder *) , LLVMGetCurrentDebugLocation2 >(*this,lib,"LLVMGetCurrentDebugLocation2",SideEffects::worstDefault,"LLVMGetCurrentDebugLocation2")
-		->args({"Builder"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3666:6
-	addExtern< void (*)(LLVMOpaqueBuilder *,LLVMOpaqueMetadata *) , LLVMSetCurrentDebugLocation2 >(*this,lib,"LLVMSetCurrentDebugLocation2",SideEffects::worstDefault,"LLVMSetCurrentDebugLocation2")
-		->args({"Builder","Loc"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3678:6
-	addExtern< void (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *) , LLVMSetInstDebugLocation >(*this,lib,"LLVMSetInstDebugLocation",SideEffects::worstDefault,"LLVMSetInstDebugLocation")
-		->args({"Builder","Inst"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3685:6
-	addExtern< void (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *) , LLVMAddMetadataToInst >(*this,lib,"LLVMAddMetadataToInst",SideEffects::worstDefault,"LLVMAddMetadataToInst")
-		->args({"Builder","Inst"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3692:17
-	addExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueBuilder *) , LLVMBuilderGetDefaultFPMathTag >(*this,lib,"LLVMBuilderGetDefaultFPMathTag",SideEffects::worstDefault,"LLVMBuilderGetDefaultFPMathTag")
-		->args({"Builder"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3701:6
-	addExtern< void (*)(LLVMOpaqueBuilder *,LLVMOpaqueMetadata *) , LLVMBuilderSetDefaultFPMathTag >(*this,lib,"LLVMBuilderSetDefaultFPMathTag",SideEffects::worstDefault,"LLVMBuilderSetDefaultFPMathTag")
-		->args({"Builder","FPMathTag"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3708:6
-	addExtern< void (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *) , LLVMSetCurrentDebugLocation >(*this,lib,"LLVMSetCurrentDebugLocation",SideEffects::worstDefault,"LLVMSetCurrentDebugLocation")
-		->args({"Builder","L"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3713:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *) , LLVMGetCurrentDebugLocation >(*this,lib,"LLVMGetCurrentDebugLocation",SideEffects::worstDefault,"LLVMGetCurrentDebugLocation")
-		->args({"Builder"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3716:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *) , LLVMBuildRetVoid >(*this,lib,"LLVMBuildRetVoid",SideEffects::worstDefault,"LLVMBuildRetVoid")
-		->args({""});
-// from D:\Work\libclang\include\llvm-c/Core.h:3717:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *) , LLVMBuildRet >(*this,lib,"LLVMBuildRet",SideEffects::worstDefault,"LLVMBuildRet")
-		->args({"","V"});
+// from D:\Work\libclang\include\llvm-c/Core.h:3683:6
+	makeExtern< void (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *) , LLVMSetInstDebugLocation , SimNode_ExtFuncCall >(lib,"LLVMSetInstDebugLocation","LLVMSetInstDebugLocation")
+		->args({"Builder","Inst"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3690:6
+	makeExtern< void (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *) , LLVMAddMetadataToInst , SimNode_ExtFuncCall >(lib,"LLVMAddMetadataToInst","LLVMAddMetadataToInst")
+		->args({"Builder","Inst"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3697:17
+	makeExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueBuilder *) , LLVMBuilderGetDefaultFPMathTag , SimNode_ExtFuncCall >(lib,"LLVMBuilderGetDefaultFPMathTag","LLVMBuilderGetDefaultFPMathTag")
+		->args({"Builder"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3706:6
+	makeExtern< void (*)(LLVMOpaqueBuilder *,LLVMOpaqueMetadata *) , LLVMBuilderSetDefaultFPMathTag , SimNode_ExtFuncCall >(lib,"LLVMBuilderSetDefaultFPMathTag","LLVMBuilderSetDefaultFPMathTag")
+		->args({"Builder","FPMathTag"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3713:6
+	makeExtern< void (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *) , LLVMSetCurrentDebugLocation , SimNode_ExtFuncCall >(lib,"LLVMSetCurrentDebugLocation","LLVMSetCurrentDebugLocation")
+		->args({"Builder","L"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Core.h:3718:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue **,unsigned int) , LLVMBuildAggregateRet >(*this,lib,"LLVMBuildAggregateRet",SideEffects::worstDefault,"LLVMBuildAggregateRet")
-		->args({"","RetVals","N"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3720:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueBasicBlock *) , LLVMBuildBr >(*this,lib,"LLVMBuildBr",SideEffects::worstDefault,"LLVMBuildBr")
-		->args({"","Dest"});
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *) , LLVMGetCurrentDebugLocation , SimNode_ExtFuncCall >(lib,"LLVMGetCurrentDebugLocation","LLVMGetCurrentDebugLocation")
+		->args({"Builder"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Core.h:3721:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueBasicBlock *,LLVMOpaqueBasicBlock *) , LLVMBuildCondBr >(*this,lib,"LLVMBuildCondBr",SideEffects::worstDefault,"LLVMBuildCondBr")
-		->args({"","If","Then","Else"});
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *) , LLVMBuildRetVoid , SimNode_ExtFuncCall >(lib,"LLVMBuildRetVoid","LLVMBuildRetVoid")
+		->args({""})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3722:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *) , LLVMBuildRet , SimNode_ExtFuncCall >(lib,"LLVMBuildRet","LLVMBuildRet")
+		->args({"","V"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Core.h:3723:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueBasicBlock *,unsigned int) , LLVMBuildSwitch >(*this,lib,"LLVMBuildSwitch",SideEffects::worstDefault,"LLVMBuildSwitch")
-		->args({"","V","Else","NumCases"});
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue **,unsigned int) , LLVMBuildAggregateRet , SimNode_ExtFuncCall >(lib,"LLVMBuildAggregateRet","LLVMBuildAggregateRet")
+		->args({"","RetVals","N"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Core.h:3725:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,unsigned int) , LLVMBuildIndirectBr >(*this,lib,"LLVMBuildIndirectBr",SideEffects::worstDefault,"LLVMBuildIndirectBr")
-		->args({"B","Addr","NumDests"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3728:18
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue **,unsigned int,LLVMOpaqueBasicBlock *,LLVMOpaqueBasicBlock *,const char *) , LLVMBuildInvoke >(*this,lib,"LLVMBuildInvoke",SideEffects::worstDefault,"LLVMBuildInvoke")
-		->args({"","Fn","Args","NumArgs","Then","Catch","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3733:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueType *,LLVMOpaqueValue *,LLVMOpaqueValue **,unsigned int,LLVMOpaqueBasicBlock *,LLVMOpaqueBasicBlock *,const char *) , LLVMBuildInvoke2 >(*this,lib,"LLVMBuildInvoke2",SideEffects::worstDefault,"LLVMBuildInvoke2")
-		->args({"","Ty","Fn","Args","NumArgs","Then","Catch","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3737:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *) , LLVMBuildUnreachable >(*this,lib,"LLVMBuildUnreachable",SideEffects::worstDefault,"LLVMBuildUnreachable")
-		->args({""});
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueBasicBlock *) , LLVMBuildBr , SimNode_ExtFuncCall >(lib,"LLVMBuildBr","LLVMBuildBr")
+		->args({"","Dest"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3726:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueBasicBlock *,LLVMOpaqueBasicBlock *) , LLVMBuildCondBr , SimNode_ExtFuncCall >(lib,"LLVMBuildCondBr","LLVMBuildCondBr")
+		->args({"","If","Then","Else"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3728:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueBasicBlock *,unsigned int) , LLVMBuildSwitch , SimNode_ExtFuncCall >(lib,"LLVMBuildSwitch","LLVMBuildSwitch")
+		->args({"","V","Else","NumCases"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3730:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,unsigned int) , LLVMBuildIndirectBr , SimNode_ExtFuncCall >(lib,"LLVMBuildIndirectBr","LLVMBuildIndirectBr")
+		->args({"B","Addr","NumDests"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3732:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueType *,LLVMOpaqueValue *,LLVMOpaqueValue **,unsigned int,LLVMOpaqueBasicBlock *,LLVMOpaqueBasicBlock *,const char *) , LLVMBuildInvoke2 , SimNode_ExtFuncCall >(lib,"LLVMBuildInvoke2","LLVMBuildInvoke2")
+		->args({"","Ty","Fn","Args","NumArgs","Then","Catch","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3736:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *) , LLVMBuildUnreachable , SimNode_ExtFuncCall >(lib,"LLVMBuildUnreachable","LLVMBuildUnreachable")
+		->args({""})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3739:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *) , LLVMBuildResume , SimNode_ExtFuncCall >(lib,"LLVMBuildResume","LLVMBuildResume")
+		->args({"B","Exn"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Core.h:3740:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *) , LLVMBuildResume >(*this,lib,"LLVMBuildResume",SideEffects::worstDefault,"LLVMBuildResume")
-		->args({"B","Exn"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3741:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueType *,LLVMOpaqueValue *,unsigned int,const char *) , LLVMBuildLandingPad >(*this,lib,"LLVMBuildLandingPad",SideEffects::worstDefault,"LLVMBuildLandingPad")
-		->args({"B","Ty","PersFn","NumClauses","Name"});
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueType *,LLVMOpaqueValue *,unsigned int,const char *) , LLVMBuildLandingPad , SimNode_ExtFuncCall >(lib,"LLVMBuildLandingPad","LLVMBuildLandingPad")
+		->args({"B","Ty","PersFn","NumClauses","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3743:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueBasicBlock *) , LLVMBuildCleanupRet , SimNode_ExtFuncCall >(lib,"LLVMBuildCleanupRet","LLVMBuildCleanupRet")
+		->args({"B","CatchPad","BB"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3745:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueBasicBlock *) , LLVMBuildCatchRet , SimNode_ExtFuncCall >(lib,"LLVMBuildCatchRet","LLVMBuildCatchRet")
+		->args({"B","CatchPad","BB"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3747:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue **,unsigned int,const char *) , LLVMBuildCatchPad , SimNode_ExtFuncCall >(lib,"LLVMBuildCatchPad","LLVMBuildCatchPad")
+		->args({"B","ParentPad","Args","NumArgs","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

@@ -1,0 +1,80 @@
+movable_rendinst {
+  _tracked:t="transform"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  initialTransform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  ri_extra{}
+  "ri_extra__handle:u64"{
+    value:i64=-1
+  }
+
+  decals__useDecalMatrices:b=no
+  decals__bulletHoleMatrixId:i=0
+  decals__sprayMatrixId:i=0
+  decals__bloodPuddlesMatrixId:i=0
+}
+
+moved_rendinst {
+  _use:t="movable_rendinst"
+  _use:t="replicating"
+  "rendinst_phys_move__asleep:tag"{}
+}
+
+rendinst_phys_move_waiting_to_become_moved {
+  rendinst_phys_move__becomeMovedAt:r=-1
+}
+
+rendinst_phys {
+  collres{}
+  "grav_zones_affected:tag"{}
+
+  net__physId:i=-1
+
+  phys_obj_net_phys__blk:t=""
+  phys_obj_net_phys{}
+  base_net_phys_ptr{}
+  collision_physMatId:i=-1
+  phys_vars{}
+
+  grid_obj__gridType:t="loot"
+  grid_obj{}
+  "grid_obj__updateAlways:tag" {}
+
+  pair_collision__tag:t="collidableToPhysObj"
+  pair_collision__gridHolders{}
+  "pair_collision__gridNames:list<t>"{ h:t="humans"; h:t="vehicles"; h:t="loot" }
+  "collidableToPhysObj:tag"{}
+
+  "rendinst_phys_move__enabled:tag"{}
+  "rendinst_phys_move__heroList:list<eid>" {}
+}
+
+phys_moved_rendinst{
+  _use:t="movable_rendinst"
+  _use:t="replicating"
+  _use:t="rendinst_phys"
+}
+
+
+phys_moved_rendinst_hero{
+  // server controlled
+  phys_moved_rendinst_hero__lastCheckPos:p3=0,0,0
+  phys_moved_rendinst_hero__checkRad:r=10
+
+  // Same but just for client
+  client_phys_moved_rendinst_hero__lastCheckPos:p3=0,0,0
+  client_phys_moved_rendinst_hero__checkRad:r=10
+  "phys_moved_rendinst__riList:list<eid>" {}
+  "client_phys_moved_rendinst__riList:list<eid>" {}
+}
+
+phys_moved_rendinst_list{
+  _singleton:b=yes
+  _use:t="replicating"
+  "phys_moved_rendinst_list:object"{}
+  "client_phys_moved_rendinst_list:object"{}
+}
+
+syncable_ri_phys {
+  _use:t="phys_moved_rendinst"
+}
+

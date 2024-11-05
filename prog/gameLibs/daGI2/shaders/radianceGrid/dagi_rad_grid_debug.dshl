@@ -1,0 +1,82 @@
+include "shader_global.dshl"
+include "dagi_rad_grid_common.dshl"
+include "dagi_rad_grid_trace_common.dshl"
+include "frustum.dshl"
+
+int dagi_rad_grid_debug_type;
+
+shader dagi_rad_grid_draw_debug
+{
+  supports global_const_block;
+  supports global_frame;
+  supports none;
+  (vs) {
+    globtm@f44 = globtm;
+    dagi_rad_grid_debug_type@i1 = dagi_rad_grid_debug_type;
+  }
+  ENABLE_ASSERT(ps)
+  READ_WORLD_SDF(vs)
+  RADIANCE_GRID_STEP_OUT(vs)
+  DAGI_RAD_GRID_CLIPMAP_MATH(vs)
+  //DAGI_RAD_GRID_CLIPMAP_MATH(ps)
+  //DAGI_RAD_GRID_SRV(ps)
+  DAGI_RAD_GRID_SAMPLE(ps)
+  INIT_AND_USE_FRUSTUM_CHECK_BASE(vs)
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  hlsl {
+    #include "spheres_vertices.hlsl"
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 norm:  TEXCOORD1;
+      float3 center:  TEXCOORD3;
+      nointerpolation uint4 probeTarget : TEXCOORD2;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput test_vs(uint iId : SV_InstanceID, uint vertId : SV_VertexID)
+    {
+      VsOutput output = (VsOutput)0;
+      output.pos = NaN;
+      uint clip = dagi_rad_grid_debug_type;
+      uint3 targetCoord = uint3(iId%dagi_rad_grid_get_clip_size().x, (iId/dagi_rad_grid_get_clip_size().x)%dagi_rad_grid_get_clip_size().x, iId/(dagi_rad_grid_get_clip_size().x*dagi_rad_grid_get_clip_size().x));
+      int3 coord = dagi_rad_grid_abs_coord_from_wrapped_coord(targetCoord, clip);
+      float probeSize = dagi_rad_grid_probe_size(clip);
+
+      float3 center = (coord.xzy+0.5f)*probeSize;
+
+      float size_scale = 0.05*probeSize;
+      if (!testSphereB(center, size_scale))
+        return output;
+      float3 pos = get_sphere_vertex_pos_low(vertId);
+      float3 worldPos = center + pos * size_scale;
+
+      output.probeTarget = uint4(targetCoord, clip);
+      output.norm = pos;
+      output.pos = mul(float4(worldPos, 1), globtm);
+      output.center = center;
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    half3 test_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    {
+      float3 dir = normalize(input.norm);
+      uint radiance_res = dagi_rad_grid_get_radiance_res();//fixme: variable
+      uint2 totalAtlasSize = uint2(dagi_rad_grid_get_clip_size().x*radiance_res, dagi_rad_grid_clipmap_sizei.w);//fixme: constant
+
+      float2 octCrd = clamp((radiance_grid_dir_encode(input.norm)*0.5+0.5)*radiance_res, 0.5, radiance_res - 0.5);
+      float3 coord = float3(input.probeTarget.xy*radiance_res + octCrd, input.probeTarget.z + input.probeTarget.w*dagi_rad_grid_get_clip_size().y + 0.5);
+      float4 tc = float4(coord / totalAtlasSize.xxy, 0);
+      float3 rad = tex3Dlod(dagi_radiance_grid, tc).xyz;
+      //results in same, for validating this function is correct
+      //rad = dagi_trilinear_sample_radiance_grid_cascade_unsafe_oct(input.probeTarget.w, dir, input.center);
+      return pack_hdr(rad.xyz);
+    }
+  }
+  compile("target_vs", "test_vs");
+  compile("target_ps", "test_ps");
+}

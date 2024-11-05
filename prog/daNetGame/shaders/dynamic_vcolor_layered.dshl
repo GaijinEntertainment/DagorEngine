@@ -1,0 +1,97 @@
+include "dynamic_opaque_inc.dshl"
+include "gbuffer.dshl"
+include "normaldetail.dshl"
+include "paint_details_inc.dshl"
+include "vcolor_layered_inc.dshl"
+include "random_color.dshl"
+
+shader dynamic_vcolor_layered
+{
+  ENABLE_ASSERT(ps)
+  DYNAMIC_BLOCK()
+  INIT_VCOLOR_LAYERED()
+  INIT_RANDOMIZED_TC(vs)
+  if (in_editor_assume == no)
+  {
+    NO_DYNSTCODE()
+  }
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+
+  SETUP_CHARACTER_MICRODETAIL()
+
+  INIT_PAINT_DETAILS_STATIC()
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    USE_PAINT_DETAILS()
+    USE_MICRODETAIL_BASED_WETNESS()
+    hlsl {
+      #define MOTION_VECTORS_ENABLED
+      #define COLOR_NEEDED 1
+      #define DYNAMIC_SIMPLE_CUSTOM_VSOUTPUT 1
+      #define NEED_TC 1
+      #define USE_INITIAL_POS 1
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+        float4 pointToEye                       : TEXCOORD0;
+        float3 normal                           : TEXCOORD1;
+        float2 diffuseTexcoord                  : TEXCOORD2;
+        #if COLOR_NEEDED
+        nointerpolation float3 colorMul         : TEXCOORD3;
+        #endif
+        #ifdef MOTION_VECTORS_ENABLED
+        float4 out_pos                          : TEXCOORD4;
+        float4 out_pos_prev                     : TEXCOORD5;
+        #endif
+        float3 vcolMask                         : TEXCOORD6;
+      };
+    }
+  }
+
+  channel color8 vcol[0] = vcol;
+  hlsl(vs) {
+    #define NEED_VCOL_MASK 1
+  }
+  DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+
+  if (dyn_model_render_pass == render_pass_normal) {
+    USE_RANDOMIZED_TC(vs)
+
+    hlsl(vs) {
+      void vs_post_function(VsInput input, inout VsOutput output)
+      {
+        #if COLOR_NEEDED
+          float4 hashval;
+          get_per_instance_data(hashval, 1);
+          output.colorMul = getColorMul(asuint(hashval.x));
+        #endif
+        output.pointToEye.w = 1.0;
+        output.vcolMask = input.vcolMask;
+      }
+    }
+  }
+  else
+  {
+    hlsl(vs) {
+      void vs_post_function(VsInput input, inout VsOutput output) {}
+    }
+  }
+  DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
+
+  USE_VCOLOR_LAYERED(ps)
+
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    SPECIAL_RENDER_NOALPHATEST()
+  }
+  else
+  {
+    hlsl {
+      #define NORMAL_RENDER_PASS 1
+      #define IS_DYNAMIC 1
+    }
+    VCOLOR_LAYERED_PS(true, false)
+  }
+}

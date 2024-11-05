@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <quirrel/sqModules/sqModules.h>
 #include <quirrel/bindQuirrelEx/bindQuirrelEx.h>
 #include <startup/dag_globalSettings.h>
@@ -107,7 +109,7 @@ void register_dagor_system(SqModules *module_mgr)
 #define GUI_CONST(x) .SetValue(#x, GUI_##x)
 
   ///@module dagor.system
-  exports
+  exports //
     .Func("dgs_get_settings", dgs_get_settings)
     ///@return DataBlock : datablock with game settings
     .Func("exit", exit_func)
@@ -190,7 +192,8 @@ void register_dagor_system(SqModules *module_mgr)
     /// @const MB_BUTTON_2
     GUI_CONST(MB_BUTTON_2)
     /// @const MB_BUTTON_3
-    GUI_CONST(MB_BUTTON_3);
+    GUI_CONST(MB_BUTTON_3)
+    /**/;
 
 #undef GUI_CONST
 

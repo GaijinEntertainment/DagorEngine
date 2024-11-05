@@ -1,9 +1,14 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "riGen/riGenData.h"
 
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_shaderVar.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_lock.h>
 #include <math/dag_bounds2.h>
 #include <math/dag_TMatrix4.h>
 #include <image/dag_texPixel.h>
@@ -104,6 +109,7 @@ void ClipmapShadow::switchOff()
   img[0].w = img[0].h = 1;
   img[1].w = img[1].h = -1;
   clipmapShadowTex = dag::create_tex(img, 1, 1, TEXFMT_A8R8G8B8, 1, "clipmapShadowWhiteTex");
+  clipmapShadowSize = 0;
   d3d_err(clipmapShadowTex.getTex2D());
 
   clipmapShadowTexVarId = get_shader_variable_id("clipmap_shadow_tex", true);
@@ -116,15 +122,20 @@ void ClipmapShadow::reset()
 {
   if (clipmapShadowTex.getTex2D())
   {
-    d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, nullptr, nullptr, nullptr);
-    Driver3dRenderTarget prevRt;
-    d3d::get_render_target(prevRt);
-    d3d::set_render_target();
-    d3d::set_render_target(clipmapShadowTex.getTex2D(), 0);
-    d3d::clearview(CLEAR_TARGET, 0xFFFFFFFF, 1.f, 0);
-    d3d::set_render_target(prevRt);
-    d3d::resource_barrier({clipmapShadowTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-    d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, nullptr, nullptr, nullptr);
+    // If clipmap shadow is turned off, the texture is not a render target, but a white pixel
+    TextureInfo ti;
+    clipmapShadowTex->getinfo(ti);
+    if (ti.cflg & TEXCF_RTARGET)
+    {
+      d3d::GpuAutoLock gpuLock;
+      Driver3dRenderTarget prevRt;
+      d3d::get_render_target(prevRt);
+      d3d::set_render_target();
+      d3d::set_render_target(clipmapShadowTex.getTex2D(), 0);
+      d3d::clearview(CLEAR_TARGET, 0xFFFFFFFF, 1.f, 0);
+      d3d::set_render_target(prevRt);
+      d3d::resource_barrier({clipmapShadowTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    }
   }
   invalidate();
 }
@@ -140,7 +151,7 @@ void ClipmapShadow::invalidate()
 
 bool ClipmapShadow::getBBox(BBox2 &box) const
 {
-  if (!clipmapShadowTex.getTex2D())
+  if (!clipmapShadowTex.getTex2D() || !clipmapShadowSize)
     return false;
   float texelSize = clipmapShadowWorldSize[0] / (float)clipmapShadowSize;
   Point2 halfSize(0.5f * clipmapShadowWorldSize[0], 0.5f * clipmapShadowWorldSize[0]);
@@ -153,6 +164,11 @@ bool ClipmapShadow::getBBox(BBox2 &box) const
 bool ClipmapShadow::update(float min_height, float max_height, const Point3 &view_pos)
 {
   if (!clipmapShadowTex.getTex2D() || !RendInstGenData::renderResRequired)
+    return false;
+
+  TextureInfo ti;
+  clipmapShadowTex->getinfo(ti);
+  if (!(ti.cflg & TEXCF_RTARGET))
     return false;
 
   bool changed = false;
@@ -197,8 +213,7 @@ bool ClipmapShadow::update(float min_height, float max_height, const Point3 &vie
     Point2 worldSpaceOrigin = point2(torHelper.curOrigin) * texelSize;
 
     worldToToroidal[cascadeNo] = Color4(1.f / toroidalWorldSize, 1.f / toroidalWorldSize,
-      0.5f - worldSpaceOrigin.x / toroidalWorldSize + HALF_TEXEL_OFSF / toroidalWorldSize,
-      0.5f - worldSpaceOrigin.y / toroidalWorldSize + HALF_TEXEL_OFSF / toroidalWorldSize);
+      0.5f - worldSpaceOrigin.x / toroidalWorldSize, 0.5f - worldSpaceOrigin.y / toroidalWorldSize);
 
     ShaderGlobal::set_color4(worldToClipmapShadowVarId[cascadeNo], worldToToroidal[cascadeNo]);
 

@@ -1,0 +1,237 @@
+clips{
+  //default parameters
+  default_animation_mask:t="full_body"
+  default_tags:t="swim" //default tags is swim
+
+  swim_idle{
+    tags:t="swim,idle"
+    angular_velocity:r=0
+  }
+
+  swim_idle_turn_left{
+    angular_velocity:r=30
+  }
+
+  swim_idle_turn_right{
+    angular_velocity:r=-30
+  }
+
+  swim_0{
+    velocity_direction:r=0
+    velocity_magnitude:r=0.7
+  }
+
+  swim_45{
+    velocity_direction:r=45
+    velocity_magnitude:r=0.7
+  }
+
+  swim_90{
+    velocity_direction:r=90
+    velocity_magnitude:r=0.7
+  }
+
+  swim_135{
+    velocity_direction:r=135
+    velocity_magnitude:r=0.7
+  }
+
+  swim_180{
+    velocity_direction:r=180
+    velocity_magnitude:r=0.7
+  }
+
+  swim_225{
+    velocity_direction:r=225
+    velocity_magnitude:r=0.7
+  }
+
+  swim_270{
+    velocity_direction:r=270
+    velocity_magnitude:r=0.7
+  }
+
+  swim_315{
+    velocity_direction:r=315
+    velocity_magnitude:r=0.7
+  }
+  swim_circle_right{
+    angular_velocity:r=30
+    velocity_direction:r=0
+    velocity_magnitude:r=0.7
+  }
+  swim_circle_left{
+    angular_velocity:r=-30
+    velocity_direction:r=0
+    velocity_magnitude:r=0.7
+  }
+  swim_turn_left_45{
+    rotate_direction_delta:r=-45
+    velocity_direction:r=0
+    velocity_magnitude:r=0.7
+    nextClip:t="swim_315"
+  }
+  swim_turn_right_45{
+    rotate_direction_delta:r=45
+    velocity_direction:r=0
+    velocity_magnitude:r=0.7
+    nextClip:t="swim_45"
+  }
+  swim_turn_left_90{
+    rotate_direction_delta:r=-90
+    velocity_direction:r=0
+    velocity_magnitude:r=0.7
+    nextClip:t="swim_270"
+  }
+  swim_turn_right_90{
+    rotate_direction_delta:r=90
+    velocity_direction:r=0
+    velocity_magnitude:r=0.7
+    nextClip:t="swim_90"
+  }
+  swim_turn_0_to_180{
+    rotate_direction_delta:r=180
+    velocity_direction:r=0
+    velocity_magnitude:r=0.7
+    nextClip:t="swim_180"
+  }
+  swim_turn_180_to_0{
+    rotate_direction_delta:r=180
+    velocity_direction:r=180
+    velocity_magnitude:r=0.7
+    nextClip:t="swim_0"
+  }
+  swim_turn_left_90_to_135{
+    rotate_direction_delta:r=-45
+    velocity_direction:r=-90
+    velocity_magnitude:r=0.7
+    nextClip:t="swim_225"
+  }
+  swim_turn_right_90_to_135{
+    rotate_direction_delta:r=45
+    velocity_direction:r=90
+    velocity_magnitude:r=0.7
+    nextClip:t="swim_135"
+  }
+  swim_turn_left_90_to_180{
+    rotate_direction_delta:r=-90
+    velocity_direction:r=-90
+    velocity_magnitude:r=0.7
+    nextClip:t="swim_180"
+  }
+  swim_turn_right_90_to_180{
+    rotate_direction_delta:r=90
+    velocity_direction:r=90
+    velocity_magnitude:r=0.7
+    nextClip:t="swim_180"
+  }
+  swim_turn_idle_to_0{
+    rotate_direction_delta:r=0
+    velocity_direction:r=0
+    velocity_magnitude:r=0
+    velocity_magnitude_delta:r=0.7
+    nextClip:t="swim_0"
+  }
+  swim_turn_idle_to_right_45{
+    rotate_direction_delta:r=45
+    velocity_direction:r=0
+    velocity_magnitude:r=0
+    velocity_magnitude_delta:r=0.7
+    nextClip:t="swim_45"
+  }
+  swim_turn_idle_to_right_90{
+    rotate_direction_delta:r=90
+    velocity_direction:r=0
+    velocity_magnitude:r=0
+    velocity_magnitude_delta:r=0.7
+    nextClip:t="swim_90"
+  }
+  swim_turn_idle_to_right_135{
+    rotate_direction_delta:r=135
+    velocity_direction:r=0
+    velocity_magnitude:r=0
+    velocity_magnitude_delta:r=0.7
+    nextClip:t="swim_135"
+  }
+  swim_turn_idle_to_180{
+    rotate_direction_delta:r=180
+    velocity_direction:r=0
+    velocity_magnitude:r=0
+    velocity_magnitude_delta:r=0.7
+    nextClip:t="swim_180"
+  }
+  swim_turn_idle_to_left_225{
+    rotate_direction_delta:r=225
+    velocity_direction:r=0
+    velocity_magnitude:r=0
+    velocity_magnitude_delta:r=0.7
+    nextClip:t="swim_225"
+  }
+  swim_turn_idle_to_left_270{
+    rotate_direction_delta:r=270
+    velocity_direction:r=0
+    velocity_magnitude:r=0
+    velocity_magnitude_delta:r=0.7
+    nextClip:t="swim_270"
+  }
+  swim_turn_idle_to_left_315{
+    rotate_direction_delta:r=315
+    velocity_direction:r=0
+    velocity_magnitude:r=0
+    velocity_magnitude_delta:r=0.7
+    nextClip:t="swim_315"
+  }
+  swim_underwater{
+    tags:t="swim,idle"
+    tags:t="swim_underwater"
+    velocity_direction:r=0
+    velocity_magnitude:r=0
+  }
+  swim_underwater_0{
+    tags:t="swim_underwater"
+    velocity_direction:r=0
+    velocity_magnitude:r=0.7
+  }
+
+  swim_underwater_45{
+    tags:t="swim_underwater"
+    velocity_direction:r=45
+    velocity_magnitude:r=0.7
+  }
+
+  swim_underwater_90{
+    tags:t="swim_underwater"
+    velocity_direction:r=90
+    velocity_magnitude:r=0.7
+  }
+
+  swim_underwater_135{
+    tags:t="swim_underwater"
+    velocity_direction:r=135
+    velocity_magnitude:r=0.7
+  }
+
+  swim_underwater_180{
+    tags:t="swim_underwater"
+    velocity_direction:r=180
+    velocity_magnitude:r=0.7
+  }
+
+  swim_underwater_225{
+    tags:t="swim_underwater"
+    velocity_direction:r=225
+    velocity_magnitude:r=0.7
+  }
+
+  swim_underwater_270{
+    tags:t="swim_underwater"
+    velocity_direction:r=270
+    velocity_magnitude:r=0.7
+  }
+
+  swim_underwater_315{
+    tags:t="swim_underwater"
+    velocity_direction:r=315
+    velocity_magnitude:r=0.7
+  }
+}

@@ -1,36 +1,26 @@
 WARNING: w284 (can-be-simplified) Expression can be simplified.
-testData/static_analyzer/w284.nut:5:10
+testData/static_analyzer/w284.nut:8:10
 
 let _c1 = ::a > 2 || ::a > 100
           ^-------------------
 
 
 WARNING: w284 (can-be-simplified) Expression can be simplified.
-testData/static_analyzer/w284.nut:7:10
+testData/static_analyzer/w284.nut:10:10
 
 let _c2 = fn(1) != null ? fn(1) : null
           ^---------------------------
 
 
-
-AN ERROR HAS OCCURRED [the index 'a' does not exist]
-
-CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w284.nut line [5]
-
-LOCALS
-[fn] CLOSURE=FN:fn
-[vargv] ARRAY=[]
-[this] TABLE={}
 WARNING: w295 (undefined-global) Undefined global identifier 'a'.
-testData/static_analyzer/w284.nut:5:10
+testData/static_analyzer/w284.nut:8:10
 
 
 WARNING: w295 (undefined-global) Undefined global identifier 'a'.
-testData/static_analyzer/w284.nut:5:21
+testData/static_analyzer/w284.nut:8:21
 
 
 WARNING: w295 (undefined-global) Undefined global identifier 'y'.
-testData/static_analyzer/w284.nut:2:11
+testData/static_analyzer/w284.nut:5:11
 
 

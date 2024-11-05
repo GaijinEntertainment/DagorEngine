@@ -1,0 +1,257 @@
+include "shader_global.dshl"
+include "depth_mask.dshl"
+include "depth_above.dshl"
+include "skyLightParams.dshl"
+include "depth_above.dshl"
+include "heightmap_common.dshl"
+include "underwater_fog.dshl"
+include "flow_map_inc.dshl"
+include "dafx_blocks.dshl"
+
+
+int dafx_use_underwater_fog = 0;
+int dafx_is_water_proj = 0;
+
+float cockpit_radius = 0;
+
+int dafx_use_gravity_zone = 0; // should be assumed
+interval dafx_use_gravity_zone : no < 1, yes;
+buffer dafx_gravity_zone_buffer;
+
+hlsl
+{
+  #define DAFXEX_USE_REACTIVE_MASK 1
+}
+
+macro DAFXEX_USE_DEPTH(stage)
+  if ( in_editor_assume == no )
+  {
+    (stage) { fx_depth_tex@smp2d = effects_depth_tex; }
+  }
+  else
+  {
+    (stage) { fx_depth_tex@smp2d = downsampled_far_depth_tex; }
+  }
+
+  hlsl { #include "dafx_globals.hlsli" }
+
+  hlsl(stage)
+  {
+    #define DAFX_DEPTH_TEX fx_depth_tex
+    #include "dafx_render_funcs.hlsli"
+  }
+endmacro
+
+macro DAFXEX_USE_DEPTH_FOR_COLLISION(stage)
+  DAFXEX_USE_DEPTH(stage) // uses the same depth for render and collision
+endmacro
+
+macro DAFXEX_USE_DEPTH_MASK(stage)
+  GET_CLOUD_VOLUME_MASK()
+  if (shader != dafx_modfx_bboard_render_fom)
+  {
+    DAFXEX_USE_DEPTH(stage)
+  }
+endmacro
+
+macro DAFXEX_USE_SCENE_BLOCK()
+
+  if (shader == dafx_modfx_bboard_render_fom)
+  {
+    assume modfx_debug_render = off;
+    supports dynamic_scene_trans_fom;
+  }
+  else
+  {
+    supports dynamic_scene_trans;
+    supports global_const_block;
+  }
+
+endmacro
+
+macro DAFXEX_USE_HDR()
+  INIT_HDR(ps)
+  USE_HDR(ps)
+endmacro
+
+macro DAFXEX_USE_FOG()
+if (shader != dafx_modfx_bboard_render_fom)
+{
+  INIT_ZNZFAR_STAGE(vs) // needed for USE_VOLUMETRIC_LIGHT_VS
+  USE_BRUNETON_FOG_VS()
+  USE_BRUNETON_FOG()
+  USE_VOLUMETRIC_LIGHT_TRANSPARENT(vs)
+  USE_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
+
+  (ps)
+  {
+    river_density@f1 = river_density;
+    dafx_use_underwater_fog@i1 = dafx_use_underwater_fog;
+  }
+  (vs)
+  {
+    river_density@f1 = river_density;
+    dafx_use_underwater_fog@i1 = dafx_use_underwater_fog;
+  }
+
+  hlsl
+  {
+    #define DAFX_USE_UNDERWATER_FOG 1
+
+    void modify_underwater_fog(float dist, inout half3 fog_mul, inout half3 fog_add)
+    {
+      if (dafx_use_underwater_fog)
+      {
+        fog_add = 0.0;
+
+        // Calculate alpha as in shader underwater_fog.
+        // get_ocean_color(world_view_pos.xz, 0).w = -river_density
+        // We only need .w (alpha) component of ocean_color here. It's just `-river_density`.
+        float ocean_alpha = -river_density;
+
+        // Next lines was copied from shader underwater_fog.
+        float waterVolumeFog = exp2(ocean_alpha * dist);
+        fog_mul = pow(waterVolumeFog, 1/2.2);
+      }
+    }
+  }
+}
+endmacro
+
+macro DAFXEX_USE_SHADOW()
+if (shader != dafx_modfx_bboard_render_fom)
+{
+  hlsl
+  {
+    #if !MOBILE_DEVICE
+      #define MODFX_USE_SHADOW 1
+      #define HAS_STATIC_SHADOW 1
+    #endif
+  }
+  USE_STATIC_SHADOW_BASE_NUM(vs, 1)
+  USE_FOM_SHADOWS(vs)
+  SQ_CLOUDS_SHADOW(vs)
+}
+endmacro
+
+macro DAFXEX_USE_RAIN_CULLING()
+  (vs)
+  {
+    cockpit_radius@f1 = (cockpit_radius);
+  }
+  hlsl (vs)
+  {
+    bool cull_away_rain(float3 wpos)
+    {
+      float depthVignette = 0;
+      float depthAbove = getWorldBlurredDepth(wpos, depthVignette);
+      return depthAbove > wpos.y || wpos.y < water_level || length(wpos - world_view_pos) < cockpit_radius;
+    }
+  }
+endmacro
+
+macro DAFXEX_USE_GI()
+if (shader != dafx_modfx_bboard_render_fom)
+{
+  USING_SKYLIGHT_PARAMS(vs)
+  USE_VOLUMETRIC_GI(vs)
+  (ps) { dafx_is_water_proj@i1 = dafx_is_water_proj; }
+  hlsl
+  {
+    #define DO_NOT_FILTER_GI_AMBIENT_BY_NORMAL_WEIGHT 1
+    #define MODFX_USE_GI 1
+    #define MODFX_WATER_PROJ_IGNORES_LIGHTING 1
+  }
+  hlsl (vs)
+  {
+    float3 ambient_calculating(float3 wpos, float3 world_view_pos, float3 sky_color, float4 screenPos)
+    {
+      float3 pointToEye = world_view_pos - wpos;
+      float3 ambientDir = normalize(pointToEye);
+      float3 ambient =  get_directional_volumetric_ambient(world_view_pos, saturate(screenPos.xy/max(1e-6, screenPos.w) * float2(0.5,-0.5) + 0.5), max(0, screenPos.w), wpos, ambientDir, ambientDir, length(pointToEye));
+      ambient *= skylight_gi_weight_atten;
+      return ambient;
+    }
+  }
+}
+endmacro
+
+macro DAFXEX_USE_DEPTH_ABOVE(stage)
+  if (in_editor_assume == no)
+  {
+    hlsl(stage) { #define DAFX_USE_DEPTH_ABOVE 1 }
+    INIT_DEPTH_ABOVE(stage, depth_around_transparent)
+    USE_DEPTH_ABOVE(stage, depth_around_transparent)
+  }
+endmacro
+
+macro DAFXEX_USE_HMAP(stage)
+  if (in_editor_assume == no)
+  {
+    hlsl(stage) { #define NO_GRADIENTS_IN_SHADER 1 }
+    hlsl(stage) { #define DAFX_USE_HMAP 1 }
+    INIT_WORLD_HEIGHTMAP(stage)
+    USE_HEIGHTMAP_COMMON_BASE(stage)
+  }
+endmacro
+
+macro DAFXEX_USE_ABOVE_DEPTH_PLACEMENT()
+  (vs)
+  {
+    water_level@f1 = (water_level);
+  }
+  INIT_DEPTH_ABOVE(vs, depth_around_transparent)
+  USE_DEPTH_ABOVE(vs, depth_around_transparent)
+  DAFXEX_USE_HMAP(vs)
+  hlsl (vs)
+  {
+    bool place_fx_above(inout float3 wpos, float placement_threshold, bool terrain_only) // TODO: use flags directly
+    {
+#if DAFX_USE_HMAP
+      if (terrain_only)
+      {
+        wpos.y = getWorldHeight(float2(wpos.x, wpos.z));
+        return true;
+      }
+      else // ugly style due to spir-v compiler bug
+#endif
+      {
+
+      float defaultHeight = wpos.y;
+      float depthVignette = 0; // When depthVignette = 1 we sample depth as "clamp".
+      float suggestedHeight = getWorldBlurredDepth(float3(wpos.x, 0.0f, wpos.z), depthVignette);
+      float height = lerp(suggestedHeight, defaultHeight, depthVignette);
+      height = max(height, water_level);
+
+      FLATTEN if (placement_threshold <= 0 || (abs(height - defaultHeight) < placement_threshold)) // apply placement in threshold range
+      {
+        wpos.y = height;
+        return true;
+      }
+      return height > defaultHeight; // remove FX below -threshold, but keep placement above +threshold
+
+      }
+    }
+  }
+endmacro
+
+macro DAFXEX_USE_CFD_WIND(stage)
+endmacro
+
+macro DAFXEX_USE_WATER_FLOWMAP(stage)
+  FX_USE_WATER_FLOWMAP(stage)
+endmacro
+
+macro DAFXEX_COMPUTE_INIT()
+  if (dafx_use_gravity_zone == yes) {
+    hlsl(cs) {
+      #define DAFX_USE_GRAVITY_ZONE 1
+    }
+    (cs) {
+      dafx_gravity_zone_buffer@buf = dafx_gravity_zone_buffer hlsl {
+        #include <daFx/dafx_gravity_zone.hlsli>
+        StructuredBuffer<GravityZoneDescriptor> dafx_gravity_zone_buffer@buf;
+      }
+    }
+  }
+endmacro

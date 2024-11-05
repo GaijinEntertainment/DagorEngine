@@ -1,11 +1,15 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/dag_drv3dConsts.h>
+#include <drv/3d/dag_consts.h>
+#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
 
-#include "vulkan_device.h"
+#include "driver.h"
 
 namespace drv3d_vulkan
 {
+
+class DeviceContext;
 
 constexpr uint32_t program_type_bits = 2;
 constexpr uint32_t program_type_mask = 1 | 2;

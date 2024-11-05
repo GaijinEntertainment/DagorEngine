@@ -1,0 +1,40 @@
+
+macro GI_VOLUMETRIC_JITTER(code)
+  hlsl(code) {
+    #define SAMPLE_NUM 8
+    static const float POISSON_Z_SAMPLES[SAMPLE_NUM] =
+    {
+      0.0363777900792f,
+      0.535357845902f,
+      0.28433478804f,
+      0.782194955996f,
+      0.413117762656f,
+      0.912773671043f,
+      0.657693177748f,
+      0.159355512717f
+    };
+    static const float2 POISSON_SAMPLES[SAMPLE_NUM] =
+    {
+      float2(0.228132254148f, 0.67232428631f),
+      float2(0.848556554824f, 0.135723477704f),
+      float2(0.74820789575f, 0.63965073852f),
+      float2(0.472544801767f, 0.351474129111f),
+      float2(0.962881642535f, 0.387342871273f),
+      float2(0.0875977149838f, 0.896250211998f),
+      float2(0.203231652569f, 0.12436704431f),
+      float2(0.56452806916f, 0.974024350484f),
+    };
+    #include <pcg_hash.hlsl>
+    float3 gi_volumetric_jitter(uint3 coord, uint frame_id, out uint dir_jitter)
+    {
+      uint randhash = pcg3d_hash_16bit(coord).x;
+      dir_jitter = randhash>>10;//6 bit left
+      return float3(POISSON_SAMPLES[(randhash.x + frame_id) % SAMPLE_NUM], POISSON_Z_SAMPLES[((randhash.x>>3) + frame_id) % SAMPLE_NUM]);
+    }
+    float3 gi_volumetric_jittered_coord(uint3 coord, uint frame_id, out uint dir_jitter)
+    {
+      return coord + gi_volumetric_jitter(coord, frame_id, dir_jitter);
+    }
+  }
+endmacro
+

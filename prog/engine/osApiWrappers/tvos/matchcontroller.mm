@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_appstorekit.h>
 #include <startup/dag_tvosMainUi.h>
 #include <debug/dag_debug.h>

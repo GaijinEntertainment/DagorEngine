@@ -25,6 +25,4 @@ UseProgLibs =
   3rdPartyLibs/eastl
 ;
 
-CPPopt = -D__B_CORE ;
-
 include $(Root)/prog/_jBuild/build.jam ;

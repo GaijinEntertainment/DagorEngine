@@ -1,0 +1,216 @@
+include "water_3d_geometry.dshl"
+include "shader_global.dshl"
+include "panorama.dshl"
+include "underwater_fog.dshl"
+include "static_shadow.dshl"
+include "heightmap_common.dshl"
+
+shader water_nv2
+{
+  z_write = false;
+  if (mobile_render == deferred) {
+    z_test = false;
+  }
+
+  if (water_refraction_tex == NULL)
+  {
+    blend_src = 1; blend_dst = isa;
+  }
+
+  bool colorPass = true;
+  WATER_3D_COMMON()
+  hlsl(ps) {
+    #define to_sun_direction (-(from_sun_direction.xyz))
+  }
+  if (use_postfx == off)
+  {
+    FULL_TONEMAP_LUT_APPLY(ps)
+  }
+  if (clouds_panorama_mip != NULL)
+  {
+    (ps) {
+      clouds_panorama_mip@tex = clouds_panorama_mip hlsl{ Texture2D<float3>clouds_panorama_mip@tex; }
+      skylight_spec_brightness@f1 = (skylight_params.w);
+    }
+    hlsl(ps) {
+      #define clouds_panorama_mip_samplerstate clouds_alpha_panorama_tex_samplerstate
+    }
+    INIT_CLOUDS_ALPHA_PANORAMA()
+    USE_CLOUDS_ALPHA_PANORAMA()
+  }
+  INIT_UNDERWATER_FOG()
+  GET_UNDERWATER_FOG()
+  USE_WATER_CASCADES_ROUGHNESS()
+
+  INIT_STATIC_SHADOW()
+  USE_STATIC_SHADOW()
+
+  INIT_HDR(ps)
+  USE_HDR(ps)
+
+  (ps) {
+    gbuffer_sun_light_dir@f4 = (from_sun_direction.x, from_sun_direction.y, from_sun_direction.z, const_frame_exposure);
+    gbuffer_sun_light_col@f4 = (sun_color_0.r, sun_color_0.g, sun_color_0.b, skylight_params.w);
+    gbuffer_enviSPH0 @f4 = (enviSPH0*skylight_params.y);
+    gbuffer_enviSPH1 @f4 = (enviSPH1*skylight_params.y);
+    gbuffer_enviSPH2 @f4 = (enviSPH2*skylight_params.y);
+    air_fog_density@f1 = (air_fog_density);
+  }
+
+  hlsl(vs) {
+    PS_INPUT calc_ps_input_from_world_position(float3 worldPos, float distFade)
+    {
+      float3 eyeVec                = world_view_pos.xyz - worldPos.xyz;
+      float  worldPosDistance      = length(eyeVec);
+      float3 pos_world_undisplaced = worldPos.xzy;
+
+      float3 displacement;
+      float4 nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23, nvsf_tex_coord_cascade45;
+
+      PS_INPUT Output;
+
+      WaveWorks_GetDisplacedVertex(worldPos.xzy, worldPosDistance, float4(1, 1, 1, 1), float4(1, 1, 1, 1),
+        displacement, nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23, nvsf_tex_coord_cascade45);
+
+      Output.pos_world_undisplaced    = pos_world_undisplaced;
+
+      float3 pos_world = Output.pos_world_undisplaced;
+
+      Output.pos_clip = mul(float4(pos_world.xzy,1), globtm);
+      float2 half_clip_pos = Output.pos_clip.xy * float2(0.5, -0.5);
+
+      return Output;
+    }
+
+    PS_INPUT water_fw_vs(INPUT_VERTEXID_POSXZ USE_INSTANCE_ID)
+    {
+      DECODE_VERTEXID_POSXZ
+      float distFade;
+      bool useHeightmap;
+      float3 worldPos = float3(getWorldPosXZ(posXZ, distFade, useHeightmap USED_INSTANCE_ID), water_level_max_wave_height.x).xzy;
+      return calc_ps_input_from_world_position(worldPos, distFade);
+    }
+  }
+
+  if (mobile_render == deferred) {
+    USE_SUBPASS_LOADS()
+    INIT_SUBPASS_LOAD_DEPTH_GBUFFER(SP_PANORAMA_REG_DEPTH, SP_PANORAMA_IA_DEPTH)
+    USE_SUBPASS_LOAD_DEPTH_GBUFFER()
+  }
+
+  hlsl(ps) {
+    #include <sh3_function.hlsl>
+
+    half4 get_exp_fog(float distSq, half3 air_color)
+    {
+      half dist = sqrt(distSq);
+      half airFactor = exp2(dist * -air_fog_density);
+
+      return half4(air_color.rgb*(1-airFactor), airFactor);
+    }
+
+    half3 apply_fog(half3 color, half4 fogColor)
+    {
+      return color*fogColor.a+fogColor.rgb;
+    }
+
+    float4 water_fw_ps(PS_INPUT In INPUT_VFACE) : SV_Target0
+    {
+      float4 screenpos  = GET_SCREEN_POS(In.pos_clip);
+
+    ##if mobile_render == deferred
+      float depth = loadGbufferDepth(screenpos.xy);
+      if (depth >= In.pos_clip.z)
+        discard;
+    ##endif
+
+      float2 screenTc   = screen_pos_to_tc(screenpos.xy);
+      float3 pointToEye = getPointToEye(screenpos.xy, screenpos.w);
+      float3 worldPos   = world_view_pos.xyz - pointToEye.xyz;
+      float  distSq     = dot(pointToEye, pointToEye);
+      float  invDist    = rsqrt(distSq);
+      float  dist       = distSq * invDist;
+      float  distLog2   = log2(dist);
+      float  distToZfar = saturate(dist / zn_zfar.y);
+      float4 result;
+
+      pointToEye *= invDist;
+
+      CascadesTex csc;
+      ##if water_flowmap_tex == NULL || mobile_render != off
+        get_cascades(In.pos_world_undisplaced.xy, csc.nvsf_tex_coord_cascade01, csc.nvsf_tex_coord_cascade23, csc.nvsf_tex_coord_cascade45);
+      ##else
+        get_cascades(In.worldPosXZ_a, csc.nvsf_tex_coord_cascade01_a, csc.nvsf_tex_coord_cascade23_a, csc.nvsf_tex_coord_cascade45_a);
+        get_cascades(In.worldPosXZ_b, csc.nvsf_tex_coord_cascade01_b, csc.nvsf_tex_coord_cascade23_b, csc.nvsf_tex_coord_cascade45_b);
+      ##endif
+      float4 nvsf_blendfactors0123 = 1;
+      float4 nvsf_blendfactors4567 = 1;
+      GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES surfaceAttributes = GFSDK_WaveWorks_GetSurfaceAttributes(In, csc, nvsf_blendfactors0123,
+                                                                                                  nvsf_blendfactors4567, pointToEye);
+
+      half3 worldNormal = surfaceAttributes.normal.xzy;
+      worldNormal.y = MUL_VFACE(worldNormal.y);
+
+      float3 pointToEyeNormalized = pointToEye;
+      float3 reflectDirNormalized = reflect(-pointToEyeNormalized, worldNormal);
+
+      float3 reflectSampleDir = reflectDirNormalized;
+      reflectSampleDir.y = abs(reflectSampleDir.y);
+      FLATTEN
+      if (world_view_pos.y < water_level_max_wave_height.x)
+        reflectSampleDir.y = -reflectSampleDir.y;
+
+      ##if clouds_panorama_mip == NULL
+      half3  enviReflection = 0;
+      half   cloudsAlpha    = 0;
+      ##else
+      float2 sky_uv         = get_panorama_uv(worldPos, reflectSampleDir);
+      half3  enviReflection = tex2Dlod(clouds_panorama_mip, float4(sky_uv,0,0)).rgb * skylight_spec_brightness;
+      half   cloudsAlpha    = get_clouds_alpha_panorama_uv(sky_uv);
+      ##endif
+
+      float NdotV     = dot(worldNormal, pointToEyeNormalized);
+      float NoV       = abs(NdotV) + 1e-5;
+      float ggx_alpha = get_cascades_roughness(distLog2);
+      half3 enviBRDF  = EnvBRDFApprox(0.02, sqrt(ggx_alpha), NoV);
+
+      float sunSpec       = pow(saturate(dot(reflectDirNormalized, to_sun_direction)), 64);
+      float sunSpecOcc    = sunSpec * cloudsAlpha;
+      half3 sunReflection = sun_color_0 * sunSpecOcc;
+
+      // Getting water depth and opacity for blending
+      float fakeFloorZ = 4.0;
+      float realWaterDepth = fakeFloorZ - screenpos.w;
+      float waterDepth = abs(realWaterDepth);
+
+      float4 oceanColor = get_ocean_color(worldPos.xz, 0);
+      float waterVolumeFog = exp2(oceanColor.w*waterDepth);
+      float waterOpacity = saturate(1 - waterVolumeFog);
+      #if PBR_FORWARD_SHADING
+        half3 reflectionColor = pack_hdr(enviReflection * enviBRDF + sunReflection);
+
+        float3 viewSH = GetSHFunctionValueSimple(pointToEye, gbuffer_enviSPH0, gbuffer_enviSPH1, gbuffer_enviSPH2);
+        half4 fog = get_exp_fog(distSq, viewSH);
+        reflectionColor.rgb = apply_fog(reflectionColor, fog);
+
+        result.a = waterOpacity;
+        ##if use_postfx == off
+          result.a = GetLuminanceScaled(reflectionColor);
+          reflectionColor = performLUTTonemap(reflectionColor);
+        ##endif
+      #else
+        half3 reflectionColor = enviReflection * performLUTTonemap(enviBRDF) + sunReflection;
+        result.a = 1;
+      #endif
+
+      result.rgb = reflectionColor;
+
+      // No LUT mapping, as the water is based on the panorama color, which is already LUT mapped.
+
+      return result;
+    }
+  }
+
+  compile("target_vs", "water_fw_vs");
+  compile("target_ps", "water_fw_ps");
+}

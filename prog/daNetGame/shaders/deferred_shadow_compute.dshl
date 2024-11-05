@@ -1,0 +1,83 @@
+include "deferred_shadow_common.dshl"
+
+buffer tile_coordinates always_referenced;
+
+int tiled_invocation = 0;
+
+shader deferred_shadow_compute
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+
+  supports global_const_block;
+
+  COMMON_RESOLVE_EXTENDED(cs)
+
+  INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
+  INIT_LOAD_GBUFFER_BASE(cs)
+
+  USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+  USE_LOAD_GBUFFER_BASE(cs, 0)
+
+  INIT_RENDERING_RESOLUTION(cs)
+  VIEW_VEC_OPTIMIZED(cs)
+  USE_EMISSION_DECODE_COLOR_MAP(cs)
+
+  USE_DEFERRED_SHADOW_PER_SAMPLE(cs)
+
+  (cs) {
+    sun_color_1@f3 = sun_color_0;
+
+    world_view_pos@f4 = world_view_pos;
+    depth_bounds@f2 = depth_bounds;
+    tile_coordinates@buf = tile_coordinates hlsl { ByteAddressBuffer tile_coordinates@buf; };
+    tiled_invocation@i1 = (tiled_invocation);
+  }
+
+  hlsl(cs) {
+    #include <resolve_gbuffer_compute_inc.hlsli>
+
+    RWTexture2D<float3> g_output : register(u0);
+
+    [numthreads(RESOLVE_GBUFFER_TILE_SIZE, RESOLVE_GBUFFER_TILE_SIZE, 1)]
+    void deferred_shadow_cs( uint3 Groupid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID )
+    {
+      uint2 pix_coords;
+      BRANCH
+      if (tiled_invocation == 1)
+      {
+        uint tile_coords = loadBuffer(tile_coordinates, 4 * Groupid.x);
+
+        pix_coords = uint2(tile_coords & 0xFFFF, tile_coords >> 16);
+        pix_coords = pix_coords * RESOLVE_GBUFFER_TILE_SIZE + GTid.xy;
+      }
+      else
+      {
+        pix_coords = DTid.xy;
+      }
+
+      if (pix_coords.x >= uint(rendering_res.x) || pix_coords.y >= uint(rendering_res.y))
+        return;
+
+      float rawDepth = loadGbufferDepth(pix_coords);
+      BRANCH
+      if (rawDepth <= depth_bounds.x || rawDepth >= depth_bounds.y)
+      {
+        return;
+      }
+
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+
+      float2 screenCoordCenter = pix_coords + float2(0.5,0.5);
+      float2 curViewTc = saturate(screenCoordCenter * rendering_res.zw);
+      float3 viewVect = getViewVecOptimized(curViewTc);
+
+      float4 result = deferred_shadow_per_sample(screenCoordCenter, viewVect, curViewTc, w, loadProcessedGbuffer(pix_coords), rawDepth);
+      g_output[pix_coords] = result.xyz;
+    }
+  }
+
+  compile("cs_5_0", "deferred_shadow_cs");
+}

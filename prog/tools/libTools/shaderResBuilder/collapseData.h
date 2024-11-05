@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <libTools/dagFileRW/dagFileNode.h>
@@ -32,6 +33,8 @@ static void collapse_nodes(Node *n, Node *link_to, bool allow_sep_flags, bool al
   else if (link_nodes.getNameId(n->name) != -1)
     link_to = n;
   else if (all_animated)
+    link_to = n;
+  else if (blk.getBool("point_cloud", false))
     link_to = n;
   else if ((n->flags & NODEFLG_RENDERABLE) && n->mat && n->mat->subMatCount() && n->obj && n->obj->isSubOf(OCID_MESHHOLDER))
   {

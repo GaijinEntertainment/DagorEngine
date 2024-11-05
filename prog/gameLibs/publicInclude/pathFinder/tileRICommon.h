@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -10,15 +9,35 @@
 #include <gameRes/dag_collisionResource.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <util/dag_bitArray.h>
+#include <ioSys/dag_dataBlock.h>
+#include <rendInst/rendInstExtra.h>
+#include <rendInst/rendInstAccess.h>
+#include <EASTL/string.h>
 
 namespace rendinst
 {
+struct RiObstacleSetup
+{
+  bool overridePadding = false;
+  float overridePaddingValue = 0.f;
+  bool overrideType = false;
+  int overrideTypeValue = 0;
+};
+struct obstacle_settings_t
+{
+  eastl::vector<RiObstacleSetup> setups;
+  ska::flat_hash_map<uint32_t, int> mapPools;
+  ska::flat_hash_map<eastl::string, int> mapNames;
+  const RiObstacleSetup *find(int resIdx);
+};
+bool load_obstacle_settings(const char *obstacle_settings_path, rendinst::obstacle_settings_t &obstacle_settings);
+
 struct RendinstVertexDataCbBase : public rendinst::RendInstCollisionCB
 {
   Bitarray &pools;
   ska::flat_hash_map<int, uint32_t> &obstaclePools;
   ska::flat_hash_map<int, uint32_t> &materialPools;
-  ska::flat_hash_map<int, float> &navMeshOffsetPools;
+  rendinst::obstacle_settings_t &obstaclesSettings;
 
   Tab<Point3> &vertices;
   Tab<int> &indices;
@@ -130,13 +149,13 @@ struct RendinstVertexDataCbBase : public rendinst::RendInstCollisionCB
   Tab<rendinst::CollisionInfo> collCache;
 
   RendinstVertexDataCbBase(Tab<Point3> &verts, Tab<int> &inds, Bitarray &pools, ska::flat_hash_map<int, uint32_t> &obstaclePools,
-    ska::flat_hash_map<int, uint32_t> &materialPools, ska::flat_hash_map<int, float> &navMeshOffsetPools) :
+    ska::flat_hash_map<int, uint32_t> &materialPools, rendinst::obstacle_settings_t &obstaclesSettings) :
     vertices(verts),
     indices(inds),
     pools(pools),
     obstaclePools(obstaclePools),
     materialPools(materialPools),
-    navMeshOffsetPools(navMeshOffsetPools)
+    obstaclesSettings(obstaclesSettings)
   {}
   ~RendinstVertexDataCbBase() { clear_all_ptr_items(riCache); }
 
@@ -184,4 +203,86 @@ struct RendinstVertexDataCbBase : public rendinst::RendInstCollisionCB
   virtual void addCollisionCheck(const rendinst::CollisionInfo &coll_info) { pushCollision(coll_info); }
   virtual void addTreeCheck(const rendinst::CollisionInfo &coll_info) { pushCollision(coll_info); }
 };
+
+inline bool load_obstacle_settings(const char *obstacle_settings_path, rendinst::obstacle_settings_t &obstacle_settings)
+{
+  DataBlock obstacleSettingsBlk;
+  if (!dblk::load(obstacleSettingsBlk, obstacle_settings_path, dblk::ReadFlag::ROBUST))
+    return false;
+
+  obstacle_settings = rendinst::obstacle_settings_t();
+  const int reserveCount = obstacleSettingsBlk.blockCount();
+  obstacle_settings.setups.reserve(reserveCount);
+  obstacle_settings.mapPools.reserve(reserveCount);
+  obstacle_settings.mapNames.reserve(reserveCount);
+
+  for (int blkIt = 0; blkIt < obstacleSettingsBlk.blockCount(); blkIt++)
+  {
+    const DataBlock *blk = obstacleSettingsBlk.getBlock(blkIt);
+    const char *riName = blk->getBlockName();
+
+    rendinst::RiObstacleSetup setup;
+    bool hasOverrides = false;
+    int setupIdx = -1;
+
+    auto it = obstacle_settings.mapNames.find(riName);
+    if (it != obstacle_settings.mapNames.end())
+    {
+      setupIdx = it->second;
+      setup = obstacle_settings.setups[setupIdx];
+      hasOverrides = true;
+    }
+
+    if (blk->findParam("navMeshBoxOffset") >= 0)
+    {
+      setup.overridePadding = true;
+      setup.overridePaddingValue = blk->getReal("navMeshBoxOffset", 0.f);
+      hasOverrides = true;
+    }
+    if (blk->findParam("obstacleType") >= 0)
+    {
+      setup.overrideType = true;
+      setup.overrideTypeValue = blk->getInt("obstacleType", 0);
+      hasOverrides = true;
+    }
+
+    if (hasOverrides)
+    {
+      if (setupIdx < 0)
+      {
+        setupIdx = (int)obstacle_settings.setups.size();
+        obstacle_settings.setups.push_back(setup);
+        obstacle_settings.mapNames.emplace(riName, setupIdx);
+        const int resIdx = rendinst::getRIGenExtraResIdx(riName);
+        if (resIdx >= 0)
+          obstacle_settings.mapPools.emplace(resIdx, setupIdx);
+      }
+      else
+      {
+        obstacle_settings.setups[setupIdx] = setup;
+      }
+    }
+  }
+
+  return true;
+}
+
+inline const RiObstacleSetup *obstacle_settings_t::find(int resIdx)
+{
+  if (resIdx < 0)
+    return nullptr;
+  auto it = mapPools.find(resIdx);
+  if (it != mapPools.end())
+    return &setups[it->second];
+  rendinst::RendInstDesc desc(rendinst::make_handle(resIdx, 0));
+  const char *riName = rendinst::getRIGenResName(desc);
+  if (!riName || !*riName)
+    return nullptr;
+  auto it2 = mapNames.find(riName);
+  if (it2 == mapNames.end())
+    return nullptr;
+  const int setupIdx = it2->second;
+  mapPools.emplace(resIdx, setupIdx);
+  return &setups[setupIdx];
+}
 } // namespace rendinst

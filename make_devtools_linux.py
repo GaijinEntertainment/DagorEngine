@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import sys
 
-if sys.version_info.major < 3:
-  print("\nERROR: Python 3 or a higher version is required to run this script.")
+if not (sys.version_info.major >= 3 and sys.version_info.minor >= 8):
+  print("\nERROR: Python 3.8 or a higher version is required to run this script.")
   exit(1)
 if not sys.platform.startswith('linux'):
   print("\nERROR: script is expected to be run on linux.")
@@ -224,30 +224,36 @@ else:
     run('chmod 755 '+dest_dir+'/astcenc-4.6.1/linux64/astcenc*')
     print('+++ ASTC encoder 4.6.1 installed at {0}'.format(astcenc_dest_folder))
 
-# ispc-v1.22.0
-ispc_dest_folder = dest_dir+'/ispc-v1.22.0-linux'
+# ispc-v1.23.0
+ispc_dest_folder = dest_dir+'/ispc-v1.23.0-linux'
 if pathlib.Path(ispc_dest_folder).exists():
-  print('=== ISPC v1.22.0 {0}, skipping setup'.format(ispc_dest_folder))
+  print('=== ISPC v1.23.0 {0}, skipping setup'.format(ispc_dest_folder))
 elif linux_arch_type == 'e2k':
   pathlib.Path(ispc_dest_folder).mkdir(parents=True, exist_ok=True)
-  print('+++ ISPC v1.22.0 skipped (stub created at {0})'.format(ispc_dest_folder))
+  print('+++ ISPC v1.23.0 skipped (stub created at {0})'.format(ispc_dest_folder))
   print('!!! arch={0} differs from x86_64, you should rebuild {1}\n'
         '    for your arch and place result binary to {2}/bin/ispc\n\n'
         .format(linux_arch_type, 'https://github.com/ispc/ispc', ispc_dest_folder))
 else:
-  download_url('https://github.com/ispc/ispc/releases/download/v1.22.0/ispc-v1.22.0-linux.tar.gz')
-  with tarfile.open(os.path.normpath(dest_dir+'/.packages/ispc-v1.22.0-linux.tar.gz'), 'r:gz') as tar_file:
+  download_url('https://github.com/ispc/ispc/releases/download/v1.23.0/ispc-v1.23.0-linux-oneapi.tar.gz')
+  with tarfile.open(os.path.normpath(dest_dir+'/.packages/ispc-v1.23.0-linux-oneapi.tar.gz'), 'r:gz') as tar_file:
     tar_file.extractall(dest_dir)
     tar_file.close()
-    print('+++ ISPC v1.22.0 installed at {0}'.format(ispc_dest_folder))
+    print('+++ ISPC v1.23.0 installed at {0}'.format(ispc_dest_folder))
 
 
 try:
   subprocess.run(['jam', '-v'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 except FileNotFoundError:
   print("jam not found, installing jam...")
-  jam_zip = 'jam-centOS-7-x64.tar.gz'
-  download_url('https://github.com/GaijinEntertainment/jam-G8/releases/download/2.5-G8-1.2-2023%2F05%2F04/'+jam_zip)
+  jam_zip = 'jam-centOS-7-x86_64.tar.gz'
+  if linux_arch_type == 'e2k':
+    if is_altlinux:
+      jam_zip = 'jam-AltLinux-10-e2k-v3.tar.gz'
+    elif is_elbrus_linux:
+      jam_zip = 'jam-ElbrusLinux-8-e2k-v3.tar.gz'
+
+  download_url('https://github.com/GaijinEntertainment/jam-G8/releases/download/2.5-G8-1.3-2024%2F04%2F01/'+jam_zip)
   with tarfile.open(os.path.normpath(dest_dir+'/.packages/'+jam_zip), 'r:gz') as tar_file:
     tar_file.extractall(dest_dir)
     print('--- will copy jam to /usr/local/bin using sudo:')
@@ -259,11 +265,13 @@ if pathlib.Path("prog").exists():
     fd.write('_DEVTOOL = {0} ;\n'.format(dest_dir))
     if pathlib.Path(fmod_dest_folder+'/LICENSE.TXT').exists():
       fd.write('FmodStudio = 2.xx.xx ;\n')
+    else:
+      fd.write('FmodStudio = none ;\n')
     if linux_arch_type == 'e2k':
-      fd.write('LinuxArch = e2k ;\n')
+      fd.write('PlatformArch = e2k ;\n')
       fd.write('PlatformSpec = gcc ;\n')
       fd.write('WError = no ;\n')
-      fd.write('RemoveCompilerSwitches_linux64/gcc = -minline-all-stringops -fconserve-space ;\n')
+      fd.write('RemoveCompilerSwitches_linux/gcc = -mno-recip -minline-all-stringops -fconserve-space ;\n')
     if is_astra_linux:
       fd.write('PlatformSpec = clang ;\n')
     fd.close()

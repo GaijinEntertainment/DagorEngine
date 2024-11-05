@@ -1,12 +1,13 @@
 # setup for Intel(r) Implicit SPMD Program Compiler
-switch $(Platform) {
-  case win32   : _ISPC_COMPILER = $(_DEVTOOL)/ispc-v1.22.0-windows/bin/ispc.exe --arch=x86 ;
-  case win64   : _ISPC_COMPILER = $(_DEVTOOL)/ispc-v1.22.0-windows/bin/ispc.exe ;
-  case linux64 : _ISPC_COMPILER = $(_DEVTOOL)/ispc-v1.22.0-linux/bin/ispc ;
-  case macosx  : _ISPC_COMPILER = $(_DEVTOOL)/ispc-v1.22.0-macOS.x86_64/bin/ispc ;
+switch $(Platform)-$(PlatformArch) {
+  case windows-arm64 : _ISPC_COMPILER = $(_DEVTOOL)/ispc-v1.23.0-windows/bin/ispc.exe --arch=aarch64 ;
+  case windows-*     : _ISPC_COMPILER = $(_DEVTOOL)/ispc-v1.23.0-windows/bin/ispc.exe --arch=$(PlatformArch) ;
+  case linux-x86_64  : _ISPC_COMPILER = $(_DEVTOOL)/ispc-v1.23.0-linux/bin/ispc ;
+  case macOS-arm64   : _ISPC_COMPILER = $(_DEVTOOL)/ispc-v1.23.0-macOS.universal/bin/ispc --arch=aarch64 ;
+  case macOS-*       : _ISPC_COMPILER = $(_DEVTOOL)/ispc-v1.23.0-macOS.universal/bin/ispc --arch=$(PlatformArch) ;
 }
 if ! $(_ISPC_COMPILER) { # ISPC compilation is not supported for other platforms
-  rule CompileISPC { Exit ISPC not supported on Platform=$(Platform) for $(2) ; }
+  rule CompileISPC { Exit ISPC not supported on Platform=$(Platform) PlatformArch=$(PlatformArch) for $(2) ; }
   rule GatherISPCObjs { return ; }
   return ;
 }
@@ -20,7 +21,7 @@ actions together quietly compile_ispc
 {
 #async
   echo $(2:D=) [building for targets: $(target:J=,)]
-  call $(_ISPC_COMPILER) $(opt) --target=$(target:J=,) $(2:G=) -h $(2:G=:S=_ispc.h) -o $(1)
+  call $(_ISPC_COMPILER) $(opt) --target=$(target:J=,) $(2:G=) -h $(2:G=:D)/$(PlatformArch)/$(2:G=:D=:S=_ispc.h) -o $(1)
   if errorlevel 1 goto failed
   if not exist $(1) goto failed
   goto end
@@ -33,15 +34,17 @@ actions together quietly compile_ispc
 #   params: ( target_pathname : sources : target )
 rule CompileISPC
 {
+  local gen_h_dir = $(Root)/$(2:D)/$(PlatformArch) ;
   Depends $(1) : $(2) ;
   MakeDirectory $(1) : $(1:D) ;
+  MakeDirectory $(1) : $(gen_h_dir) ;
 
   LOCATE on $(2) = $(Root) ;
   opt    on $(1) = $(opt)  ;
   target on $(1) = $(target)  ;
 
   if $(GLOBAL_CacheDryRun) { return ; }
-  if ! [ GLOB $(Root)/$(2:D) : $(2:D=:S=_ispc.h) ] { ALWAYS $(1) ; }
+  if ! [ GLOB $(gen_h_dir) : $(2:D=:S=_ispc.h) ] { ALWAYS $(1) ; }
   if $(dependents) { Includes $(dependents) : $(1) ; }
   compile_ispc $(1) : $(2) ;
   on $(2) null_action $(1:S=)_$(target)$(_OBJ_SUFFIX) ;
@@ -49,5 +52,7 @@ rule CompileISPC
 
 # rule to gather OBJs for .ispc (main one and for each compiled target)
 rule GatherISPCObjs {
-  on $(1) return $(1:S=$(_OBJ_SUFFIX)) $(1:S=)_$(target)$(_OBJ_SUFFIX) ;
+  local objs = $(1:S=$(_OBJ_SUFFIX)) ;
+  on $(1) for t in $(target) { if ! $(t) in neon { objs += $(1:S=)_$(t)$(_OBJ_SUFFIX) ; } }
+  return $(objs) ;
 }

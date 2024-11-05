@@ -1,5 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <backend/resourceScheduling/packer.h>
-#include <vector>
+#include <dag/dag_vector.h>
 
 namespace dabfg
 {
@@ -11,10 +13,10 @@ public:
   {
     uint64_t offset = 0;
     offsets.resize(input.resources.size(), PackerOutput::NOT_ALLOCATED);
-    for (uint32_t i = 0; i < input.resources.size(); ++i)
+    for (uint32_t i = 0, ie = input.resources.size(); i < ie; ++i)
     {
       const auto resSize = input.resources[i].sizeWithPadding(offset);
-      if (EASTL_LIKELY(resSize <= input.maxHeapSize && offset <= input.maxHeapSize - resSize))
+      if (DAGOR_LIKELY(resSize <= input.maxHeapSize && offset <= input.maxHeapSize - resSize))
       {
         offsets[i] = input.resources[i].doAlign(offset);
         offset += resSize;
@@ -31,7 +33,7 @@ public:
   }
 
 private:
-  std::vector<uint64_t> offsets;
+  dag::Vector<uint64_t> offsets;
 };
 
 Packer make_baseline_packer() { return BaselinePacker(); }

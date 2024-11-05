@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <webui/shaderEditors.h>
 #include <util/dag_string.h>
 #include <generic/dag_tab.h>
@@ -14,8 +16,8 @@ String get_template_text_src_fog(uint32_t variant_id)
   templateNames.push_back(String("../../../render/shaders/pcg_hash.hlsl"));
   templateNames.push_back(String("../../../publicInclude/render/volumetricLights/heightFogNode.hlsli"));
   templateNames.push_back(String("../../../render/shaders/phase_functions.hlsl"));
-  templateNames.push_back(String("../../../render/volumetricLights/shaders/volume_lights_common_def.hlsli"));
-  templateNames.push_back(String("../../../render/volumetricLights/shaders/volume_lights_common.hlsl"));
+  templateNames.push_back(String("../../../render/volumetricLights/shaders/volfog_common_def.hlsli"));
+  templateNames.push_back(String("../../../render/volumetricLights/shaders/volfog_common.hlsl"));
   templateNames.push_back(String("../../../render/shaders/wind/sample_wind_common.hlsl"));
 
   switch (static_cast<NodeBasedShaderFogVariant>(variant_id))
@@ -23,11 +25,11 @@ String get_template_text_src_fog(uint32_t variant_id)
     case NodeBasedShaderFogVariant::Raymarch:
       templateNames.push_back(String("../../../render/shaders/static_shadow_int.hlsl"));
       templateNames.push_back(String("../../../render/shaders/static_shadow.hlsl"));
-      templateNames.push_back(String("../../../render/volumetricLights/shaders/volume_lights_distant_common.hlsl"));
+      templateNames.push_back(String("../../../render/volumetricLights/shaders/volfog_df_common.hlsl"));
       templateNames.push_back(String("raymarchFogShaderTemplateHeader.hlsl"));
       templateNames.push_back(String("fogCommon.hlsl"));
       templateNames.push_back(String("raymarchFogShaderTemplateFunctions.hlsl"));
-      templateNames.push_back(String("../../../render/volumetricLights/shaders/volume_lights_raymarch.hlsl"));
+      templateNames.push_back(String("../../../render/volumetricLights/shaders/volfog_df_raymarch.hlsl"));
       templateNames.push_back(String("raymarchFogShaderTemplateBody.hlsl"));
       break;
     case NodeBasedShaderFogVariant::Froxel:

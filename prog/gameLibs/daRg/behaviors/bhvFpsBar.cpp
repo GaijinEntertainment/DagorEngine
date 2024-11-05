@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daRg/bhvFpsBar.h>
 
 #include "stdRendObj.h"
@@ -43,6 +45,11 @@ void BhvFpsBar::onAttach(Element *elem)
     elem->robjParams->load(elem);
   elem->props.text.setStr(frameTimeMetrics->getFpsInfoString().c_str());
   discard_text_cache(elem->robjParams);
+}
+
+void BhvFpsBar::setRenderingResolution(const eastl::optional<IPoint2> &resolution)
+{
+  frameTimeMetrics->setRenderingResolution(resolution);
 }
 
 int BhvFpsBar::update(UpdateStage /*stage*/, darg::Element *elem, float /*dt*/)

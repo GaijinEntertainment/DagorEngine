@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_sharedMem.h>
 #if _TARGET_PC_WIN | _TARGET_XBOX
 #include <windows.h>
@@ -106,7 +108,14 @@ void mark_global_shared_mem_readonly(void *addr, size_t sz, bool read_only)
   DWORD old_prot;
   VirtualProtect(addr, sz, read_only ? PAGE_READONLY : PAGE_READWRITE, &old_prot);
 #elif _TARGET_APPLE | _TARGET_PC_LINUX
-  mprotect(addr, sz, read_only ? PROT_READ : PROT_READ | PROT_WRITE);
+  size_t pageMask = getpagesize() - 1;
+  if (sz > pageMask)
+  {
+    void *alignedAddr = (void *)(((uintptr_t)addr + pageMask) & ~pageMask);
+    size_t alignedSz = ((uintptr_t)addr + sz - (uintptr_t)alignedAddr) & ~pageMask;
+    if (alignedSz > 0)
+      mprotect(alignedAddr, alignedSz, read_only ? PROT_READ : PROT_READ | PROT_WRITE);
+  }
 #else
   (void)(addr);
   (void)(sz);

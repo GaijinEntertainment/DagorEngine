@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "shadervarGenerator.h"
 
 #if _TARGET_PC_WIN

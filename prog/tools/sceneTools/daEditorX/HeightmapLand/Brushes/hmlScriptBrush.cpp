@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hmlScriptBrush.h"
 #include "../hmlPlugin.h"
 #include "../hmlCm.h"
@@ -12,10 +14,13 @@ HmapLandBrush *getScriptBrush(IBrushClient *client, IHmapBrushImage &height_map)
 }; // namespace heightmap_land
 
 
-void HmapScriptBrush::fillParams(PropPanel2 &panel) { panel.createEditFloat(PID_BRUSH_RADIUS, "Brush radius:", radius); }
+void HmapScriptBrush::fillParams(PropPanel::ContainerPropertyControl &panel)
+{
+  panel.createEditFloat(PID_BRUSH_RADIUS, "Brush radius:", radius);
+}
 
 
-void HmapScriptBrush::updateToPanel(PropPanel2 &panel) { panel.setFloat(PID_BRUSH_RADIUS, radius); }
+void HmapScriptBrush::updateToPanel(PropPanel::ContainerPropertyControl &panel) { panel.setFloat(PID_BRUSH_RADIUS, radius); }
 
 
 void HmapScriptBrush::saveToBlk(DataBlock &blk) const { blk.addReal("radius", getRadius()); }
@@ -24,7 +29,7 @@ void HmapScriptBrush::saveToBlk(DataBlock &blk) const { blk.addReal("radius", ge
 void HmapScriptBrush::loadFromBlk(const DataBlock &blk) { setRadius(blk.getReal("radius", getRadius())); }
 
 
-bool HmapScriptBrush::updateFromPanelRef(PropPanel2 &panel, int pid)
+bool HmapScriptBrush::updateFromPanelRef(PropPanel::ContainerPropertyControl &panel, int pid)
 {
   if (pid == PID_BRUSH_RADIUS)
   {

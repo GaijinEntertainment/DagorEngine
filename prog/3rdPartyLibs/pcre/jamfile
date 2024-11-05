@@ -7,7 +7,7 @@ Target          = 3rdPartyLibs/pcre.lib ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 
-if $(Platform) in win32 win64 xboxOne scarlett
+if $(Platform) in windows xboxOne scarlett
 {
   AddIncludes = $(Root)/$(Location)/win32 ;
   Sources = win32/pcre_chartables.c ;
@@ -17,7 +17,7 @@ else if $(Platform) in android ps4 ps5
   AddIncludes = $(Root)/$(Location)/linux32 ;
   Sources = linux32/pcre_chartables.c ;
 }
-else if $(Platform) in linux64
+else if $(Platform) in linux
 {
   AddIncludes = $(Root)/$(Location)/linux64 ;
   Sources = linux64/pcre_chartables.c ;
@@ -27,7 +27,7 @@ else if $(Platform) in nswitch
   AddIncludes = $(Root)/$(Location)/linux64 ;
   Sources = linux64/pcre_chartables.c ;
 }
-else if $(Platform) in macosx iOS tvOS
+else if $(Platform) in macOS iOS tvOS
 {
   AddIncludes = $(Root)/$(Location)/macosx ;
   Sources = macosx/pcre_chartables.c ;

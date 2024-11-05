@@ -1,0 +1,5 @@
+return {
+  put_to_mq_raw = @(tubeName, _message) assert(typeof(tubeName)=="string")
+  put_to_mq = @(tubeName, _message) assert(typeof(tubeName)=="string")
+  mq_gen_transactid= @() 0
+}

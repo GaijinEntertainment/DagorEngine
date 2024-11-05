@@ -1,0 +1,8 @@
+#ifndef METATEX_CONST_INCLUDED
+#define METATEX_CONST_INCLUDED
+
+
+#define METATEX_PARAMS_COUNT 18
+
+
+#endif

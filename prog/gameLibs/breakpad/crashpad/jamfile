@@ -1,0 +1,27 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/breakpad/crashpad ;
+
+TargetType = lib ;
+Target = gameLibs/breakpad/crashpad.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+if ! $(Platform) in windows { # TODO
+  Exit FATAL: $(Target) is not supported for Platform\=$(Platform). Use stub library instead. ;
+}
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/crashpad
+  $(Root)/prog/3rdPartyLibs/crashpad/third_party/mini_chromium/mini_chromium
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  crashpad.cpp
+;
+
+if $(Platform) = windows {
+  UseProgLibs += 3rdPartyLibs/crashpad ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

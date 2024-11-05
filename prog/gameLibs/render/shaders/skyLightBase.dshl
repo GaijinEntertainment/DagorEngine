@@ -1,0 +1,123 @@
+texture envi_probe_specular;
+texture local_light_probe_tex;
+float4 enviSPH0;
+float4 enviSPH1;
+float4 enviSPH2;
+float4 enviSPH3;
+float4 enviSPH4;
+float4 enviSPH5;
+float4 enviSPH6;
+
+define_macro_if_not_defined INIT_SKY_DIFFUSE_BASE(code)
+  (code) {
+    enviSPH0 @f4 = enviSPH0;
+    enviSPH1 @f4 = enviSPH1;
+    enviSPH2 @f4 = enviSPH2;
+    enviSPH3 @f4 = enviSPH3;
+    enviSPH4 @f4 = enviSPH4;
+    enviSPH5 @f4 = enviSPH5;
+    enviSPH6 @f4 = enviSPH6;
+  }
+endmacro
+define_macro_if_not_defined INIT_SKY_DIFFUSE()
+  INIT_SKY_DIFFUSE_BASE(ps)
+endmacro
+
+define_macro_if_not_defined INIT_SIMPLE_AMBIENT(code)
+  (code) {
+    amb_color@f3 = (
+      enviSPH0.y + enviSPH0.w,
+      enviSPH1.y + enviSPH1.w,
+      enviSPH2.y + enviSPH2.w,
+      0);
+  }
+endmacro
+
+define_macro_if_not_defined INIT_ENVI_SPECULAR_BASE(code)
+  (code) { envi_probe_specular@smpCube = envi_probe_specular; }
+endmacro
+define_macro_if_not_defined INIT_LOCAL_SPECULAR_BASE(code)
+  (code) { envi_probe_specular@smpCube = local_light_probe_tex; }
+endmacro
+define_macro_if_not_defined INIT_SKY_UP_DIFFUSE_BASE(code)
+  (ps) { enviUp@f3 = (enviSPH0.y+enviSPH0.w, enviSPH1.y+enviSPH1.w, enviSPH2.y+enviSPH2.w, 0); }
+endmacro
+
+define_macro_if_not_defined INIT_ENVI_SPECULAR()
+  INIT_ENVI_SPECULAR_BASE(ps)
+endmacro
+define_macro_if_not_defined INIT_LOCAL_SPECULAR()
+  INIT_LOCAL_SPECULAR_BASE(ps)
+endmacro
+define_macro_if_not_defined INIT_SKY_UP_DIFFUSE()
+  INIT_SKY_UP_DIFFUSE_BASE(ps)
+endmacro
+define_macro_if_not_defined USE_SKY_UP_DIFFUSE()
+endmacro
+
+define_macro_if_not_defined INIT_SKY()
+  INIT_SKY_DIFFUSE()
+endmacro
+
+define_macro_if_not_defined INIT_ENVI_SPECULAR_SAMPLE(stage)
+endmacro
+
+define_macro_if_not_defined USE_ENVI_SPECULAR_SAMPLE(code)
+hlsl(code) {
+  half4 sample_envi_probe(half4 tc)
+  {
+    return texCUBElod(envi_probe_specular, tc);
+  }
+}
+endmacro
+
+define_macro_if_not_defined FROM_SUN_DIR_SOURCE_COMPAT()
+endmacro
+
+define_macro_if_not_defined INIT_SKY_COMPAT()
+endmacro
+
+define_macro_if_not_defined USE_SKY_DIFFUSE_BASE(code)
+hlsl(code){
+  #include <sh3_function.hlsl>
+  half3 GetSkySHDiffuse(half3 normal)
+  {
+    return GetSHFunctionValue(normal, enviSPH0, enviSPH1, enviSPH2, enviSPH3, enviSPH4, enviSPH5, enviSPH6);
+  }
+
+  half3 GetSkySHDiffuseSimple(half3 normal)
+  {
+    return GetSHFunctionValueSimple(normal, enviSPH0, enviSPH1, enviSPH2);
+  }
+}
+endmacro
+define_macro_if_not_defined USE_SKY_DIFFUSE()
+USE_SKY_DIFFUSE_BASE(ps)
+endmacro
+
+define_macro_if_not_defined USE_SKY_SPECULAR_BASE(code)
+hlsl(code) {
+#if !SPECULAR_DISABLED
+half3 getSkyReflectionMip(half mip, half linearRoughness, half3 roughReflection, half NoV, half3 specularColor)
+{
+  return half3(texCUBElod(envi_probe_specular, float4(roughReflection, mip)).rgb * EnvBRDFApprox(specularColor, linearRoughness, NoV));
+}
+
+half3 getSkyReflection(half linearRoughness, half3 roughReflection, half NoV, half3 specularColor)
+{
+  half mip = ComputeReflectionCaptureMipFromRoughness(linearRoughness);
+  return getSkyReflectionMip(mip, linearRoughness, roughReflection, NoV, specularColor);
+}
+#endif
+
+}
+endmacro
+
+define_macro_if_not_defined USE_SKY_SPECULAR()
+USE_SKY_SPECULAR_BASE(ps)
+endmacro
+
+define_macro_if_not_defined USE_SKY()
+USE_SKY_DIFFUSE()
+USE_SKY_SPECULAR()
+endmacro

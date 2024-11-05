@@ -1,0 +1,159 @@
+int num_detail_textures = 7;
+interval num_detail_textures : 
+   num_detail_textures_1 < 2, num_detail_textures_2 < 3, num_detail_textures_3 < 4, 
+  num_detail_textures_4 < 5, num_detail_textures_5 < 6, num_detail_textures_6 < 7, num_detail_textures_7;
+
+macro NUM_DETAIL_TEX()
+hlsl(ps) {
+  ##if num_detail_textures == num_detail_textures_1
+    #define num_tex_count 1
+  ##elif num_detail_textures == num_detail_textures_2
+    #define num_tex_count 2
+  ##elif num_detail_textures == num_detail_textures_3
+    #define num_tex_count 3
+  ##elif num_detail_textures == num_detail_textures_4
+    #define num_tex_count 4
+  ##elif num_detail_textures == num_detail_textures_5
+    #define num_tex_count 5
+  ##elif num_detail_textures == num_detail_textures_6
+    #define num_tex_count 6
+  ##elif num_detail_textures == num_detail_textures_7
+    #define num_tex_count 7
+  ##endif
+}
+endmacro
+
+macro GET_WEIGHTS()
+hlsl(ps) {
+  void get_weights(float2 detMapCoord, out half4 weight1, out half3 weight2)
+  {
+    weight1.xyzw = h4tex2D(land_detail_map_n0, detMapCoord);
+    #if (num_tex_count==0)
+      weight1 = half4(1,0,0,0);
+      weight2 = 0;
+    #elif (num_tex_count==1)
+      weight1 = half4(1,0,0,0);
+      weight2 = 0;
+    #else
+      #if (num_tex_count == 2)
+        weight1.x = saturate(1-weight1.y);
+        weight2 = 0;
+      #elif (num_tex_count == 3)
+        weight1.z = saturate(1-dot(weight1.xy,1));
+        weight2 = 0;
+      #elif (num_tex_count == 4)
+        weight1.z = saturate(1-dot(weight1.xyw,1));
+        weight2 = 0;
+      #endif
+      #if (num_tex_count > 5)
+        #if (num_tex_count > 6)
+          weight2.xy = h2tex2D(land_detail_map_n1, detMapCoord).xy;
+          weight2.z = saturate(1-dot(weight1,1)-weight2.x-weight2.y);
+        #elif (num_tex_count == 6)
+          weight2.y = h2tex2D(land_detail_map_n1, detMapCoord).y;
+          weight2.x = saturate(1-dot(weight1,1)-weight2.y);     
+          weight2.z = 0;
+        #endif
+      #elif (num_tex_count == 5)
+        weight2.x = saturate(1-dot(weight1,1));
+        weight2.yz = 0;
+      #endif
+    #endif
+  }
+}
+endmacro
+
+macro GET_DETAIL_TEX()
+hlsl(ps) {
+  half4 get_detail_tex(
+    float4 tiledtexcoord[4],
+    float2 detMapCoord)
+  {
+    #if (num_tex_count==0)
+      return 1;
+    #elif (num_tex_count==1)
+      return h4tex2D(land_detail_tex_n0, tiledtexcoord[0].xy);
+    #else
+      half4 weight1 = h4tex2D(land_detail_map_n0, detMapCoord);     // Blended tiled texture.
+      #if (num_tex_count == 2)
+        weight1.x = saturate(1-weight1.y);
+      #elif (num_tex_count == 3)
+        weight1.z = saturate(1-dot(weight1.xy,1));
+      #elif (num_tex_count == 4)
+        weight1.z = saturate(1-dot(weight1.xyw,1));
+      #endif
+      half3 weight2;
+      #if (num_tex_count > 5)
+        weight2.xy = h2tex2D(land_detail_map_n1, detMapCoord).xy;
+        #if (num_tex_count > 6)
+          weight2.z = saturate(1-dot(weight1,1)-weight2.x-weight2.y);
+        #elif (num_tex_count == 6)
+          weight2.x = saturate(1-dot(weight1,1)-weight2.y);     
+        #endif
+      #elif (num_tex_count == 5)
+        weight2.x = saturate(1-dot(weight1,1));
+      #endif
+
+      half4 det = weight1.x*h4tex2D(land_detail_tex_n0, tiledtexcoord[0].xy);
+ 
+      #define ADD_DETAIL_TEX(ti, weight, ttc) det += weight * (1e-7 + h4tex2D(land_detail_tex_n##ti, ttc))  // Touch NVidia drivers with the 1e-7 of magic.
+      ADD_DETAIL_TEX(1, weight1.y, tiledtexcoord[0].zw);
+      #if (num_tex_count>2)
+         ADD_DETAIL_TEX(2, weight1.z, tiledtexcoord[1].xy);
+      #endif
+      #if (num_tex_count>3)
+         ADD_DETAIL_TEX(3, weight1.w, tiledtexcoord[1].zw);
+      #endif
+      #if (num_tex_count>4)
+        ADD_DETAIL_TEX(4, weight2.x, tiledtexcoord[2].xy);
+      #endif
+      #if (num_tex_count>5)
+        ADD_DETAIL_TEX(5, weight2.y, tiledtexcoord[2].zw);
+      #endif
+      #if (num_tex_count>6)
+        ADD_DETAIL_TEX(6, weight2.z, tiledtexcoord[3].xy);
+      #endif
+      return det;
+    #endif
+  }
+}
+endmacro
+
+macro GET_DETAIL_TEX_WEIGHTED()
+hlsl(ps) {
+  half4 get_detail_tex(
+    float4 tiledtexcoord0,
+    float4 tiledtexcoord1,
+    float4 tiledtexcoord2,
+    float4 tiledtexcoord3,
+    half4 weight1, half3 weight2)
+  {
+    #if (num_tex_count==0)
+      return 1;
+    #elif (num_tex_count==1)
+      return h4tex2D(land_detail_tex_n0, tiledtexcoord0.xy);
+    #else
+      half4 det = weight1.x*h4tex2D(land_detail_tex_n0, tiledtexcoord0.xy);
+ 
+      #define ADD_DETAIL_TEX(ti, weight, ttc) det += weight * (1e-7 + h4tex2D(land_detail_tex_n##ti, ttc))  // Touch NVidia drivers with the 1e-7 of magic.
+      ADD_DETAIL_TEX(1, weight1.y, tiledtexcoord0.zw);
+      #if (num_tex_count>2)
+         ADD_DETAIL_TEX(2, weight1.z, tiledtexcoord1.xy);
+      #endif
+      #if (num_tex_count>3)
+         ADD_DETAIL_TEX(3, weight1.w, tiledtexcoord1.zw);
+      #endif
+      #if (num_tex_count>4)
+        ADD_DETAIL_TEX(4, weight2.x, tiledtexcoord2.xy);
+      #endif
+      #if (num_tex_count>5)
+        ADD_DETAIL_TEX(5, weight2.y, tiledtexcoord2.zw);
+      #endif
+      #if (num_tex_count>6)
+        ADD_DETAIL_TEX(6, weight2.z, tiledtexcoord3.xy);
+      #endif
+      return det;
+    #endif
+  }
+}
+endmacro

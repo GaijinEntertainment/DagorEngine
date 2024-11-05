@@ -23,6 +23,18 @@ namespace das {
     };
 
     struct VariableDeclaration {
+        VariableDeclaration ( vector<string> * n, const LineInfo & at, TypeDecl * t, Expression * i )
+            : pNameList(nullptr), pTypeDecl(t), pInit(i) {
+            pNameList = new vector<VariableNameAndPosition>;
+            TextWriter ss;
+            bool first = true;
+            for ( auto & name : *n ) {
+                if ( first ) first = false; else ss << "`";
+                ss << name;
+            }
+            pNameList->push_back({ss.str(), "", at, nullptr});
+            delete n;
+        }
         VariableDeclaration ( vector<VariableNameAndPosition> * n, TypeDecl * t, Expression * i )
             : pNameList(n), pTypeDecl(t), pInit(i) {}
         virtual ~VariableDeclaration () {
@@ -40,21 +52,27 @@ namespace das {
         bool                    sealed = false;
         bool                    isPrivate = false;
         bool                    isStatic = false;
+        bool                    isTupleExpansion = false;
         AnnotationArgumentList  *annotation = nullptr;
     };
 
     void das_yyerror ( yyscan_t scanner, const string & error, const LineInfo & at, CompilationError cerr );
+    void das2_yyerror ( yyscan_t scanner, const string & error, const LineInfo & at, CompilationError cerr );
     void das_checkName ( yyscan_t scanner, const string & name, const LineInfo &at );
 
     vector<ExpressionPtr> sequenceToList ( Expression * arguments );
+    vector<ExpressionPtr> typesAndSequenceToList  ( vector<Expression *> * declL, Expression * arguments );
+    Expression * sequenceToTuple ( Expression * arguments );
     ExprLooksLikeCall * parseFunctionArguments ( ExprLooksLikeCall * pCall, Expression * arguments );
     void deleteVariableDeclarationList ( vector<VariableDeclaration *> * list );
+    void deleteTypeDeclarationList ( vector<Expression *> * list );
     void varDeclToTypeDecl ( yyscan_t scanner, TypeDecl * pType, vector<VariableDeclaration*> * list, bool needNames = true );
     Annotation * findAnnotation ( yyscan_t scanner, const string & name, const LineInfo & at );
-    void runFunctionAnnotations ( yyscan_t scanner, Function * func, AnnotationList * annL, const LineInfo & at );
-
+    void runFunctionAnnotations ( yyscan_t scanner, DasParserState * extra, Function * func, AnnotationList * annL, const LineInfo & at );
+    void appendDimExpr ( TypeDecl * typeDecl, Expression * dimExpr );
+    void implAddGenericFunction ( yyscan_t scanner, Function * func );
     Expression * ast_arrayComprehension (yyscan_t scanner, const LineInfo & loc, vector<VariableNameAndPosition> * iters,
-        Expression * srcs, Expression * subexpr, Expression * where, const LineInfo & forend, bool genSyntax   );
+        Expression * srcs, Expression * subexpr, Expression * where, const LineInfo & forend, bool genSyntax, bool tableSyntax );
     Structure * ast_structureName ( yyscan_t scanner, bool sealed, string * name, const LineInfo & atName,
         string * parent, const LineInfo & atParent );
     void ast_structureDeclaration (  yyscan_t scanner, AnnotationList * annL, const LineInfo & loc, Structure * ps,
@@ -83,5 +101,6 @@ namespace das {
     Expression * ast_rpipe ( yyscan_t scanner, Expression * arg, Expression * fncall, const LineInfo & locAt );
     Expression * ast_makeGenerator ( yyscan_t scanner, TypeDecl * typeDecl, vector<CaptureEntry> * clist, Expression * subexpr, const LineInfo & locAt );
     ExprBlock * ast_wrapInBlock ( Expression * expr );
-
+    int skip_underscode ( char * tok, char * buf, char * bufend );
+    Expression * ast_makeStructToMakeVariant ( MakeStruct * decl, const LineInfo & locAt );
 }

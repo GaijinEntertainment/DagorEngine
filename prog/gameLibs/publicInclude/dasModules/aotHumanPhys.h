@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -19,7 +18,7 @@ DAS_BIND_ENUM_CAST_98(HUMoveState);
 DAS_BIND_ENUM_CAST_98(HUStandState);
 DAS_BIND_ENUM_CAST_98(HUWeaponSlots)
 DAS_BASE_BIND_ENUM_98(HUWeaponSlots, HUWeaponSlots, EWS_PRIMARY, EWS_SECONDARY, EWS_TERTIARY, EWS_MELEE, EWS_GRENADE, EWS_SPECIAL,
-  EWS_NUM)
+  EWS_UNARMED, EWS_QUATERNARY, EWS_NUM)
 DAS_BIND_ENUM_CAST_98(HUWeaponEquipState)
 DAS_BASE_BIND_ENUM_98(HUWeaponEquipState, HUWeaponEquipState, EES_EQUIPED, EES_HOLSTERING, EES_EQUIPING, EES_DOWN)
 DAS_BIND_ENUM_CAST_98(HumanPhysControlType)
@@ -258,4 +257,18 @@ inline void human_phys_state_set_isVisible(HumanPhysState &phys, bool value) { p
 inline void human_phys_state_set_isExternalControlled(HumanPhysState &phys, bool value) { phys.externalControlled = value; }
 
 inline TraceMeshFaces *human_phys_getTraceHandle(HumanPhys &phys) { return phys.getTraceHandle(); }
+
+inline void human_phys_state_get_torso_contacts(const HumanPhysState &state,
+  const das::TBlock<void, const das::TTemporary<const das::TArray<gamephys::CollisionContactDataMin>>> &block, das::Context *context,
+  das::LineInfoArg *at)
+{
+  das::Array arr;
+  arr.data = (char *)state.torsoContacts.data();
+  arr.size = state.numTorsoContacts;
+  arr.capacity = arr.size;
+  arr.lock = 1;
+  arr.flags = 0;
+  vec4f arg = das::cast<das::Array *>::from(&arr);
+  context->invoke(block, &arg, nullptr, at);
+}
 } // namespace bind_dascript

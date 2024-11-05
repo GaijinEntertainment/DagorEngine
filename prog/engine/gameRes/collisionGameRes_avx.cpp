@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gameRes/dag_collisionResource.h>
 #include <math/dag_traceRayTriangle.h>
 
@@ -14,7 +16,7 @@ VECTORCALL bool CollisionResource::traceRayMeshNodeLocalCullCCW_AVX256(const Col
   const uint32_t mainBatchSize = 8;
 
   uint32_t i;
-  for (i = 0; EASTL_LIKELY(int(i) < int(indicesSize - (mainBatchSize * 3 - 1))); i += mainBatchSize * 3)
+  for (i = 0; DAGOR_LIKELY(int(i) < int(indicesSize - (mainBatchSize * 3 - 1))); i += mainBatchSize * 3)
   {
     alignas(EA_CACHE_LINE_SIZE) vec4f vert[mainBatchSize][3];
     for (uint32_t j = 0; j < mainBatchSize; j++)
@@ -74,7 +76,7 @@ VECTORCALL bool CollisionResource::rayHitMeshNodeLocalCullCCW_AVX256(const Colli
   const uint32_t mainBatchSize = 8;
 
   uint32_t i;
-  for (i = 0; EASTL_LIKELY(int(i) < int(indicesSize - (mainBatchSize * 3 - 1))); i += mainBatchSize * 3)
+  for (i = 0; DAGOR_LIKELY(int(i) < int(indicesSize - (mainBatchSize * 3 - 1))); i += mainBatchSize * 3)
   {
     alignas(EA_CACHE_LINE_SIZE) vec4f vert[mainBatchSize][3];
     for (uint32_t j = 0; j < mainBatchSize; j++)
@@ -116,17 +118,17 @@ VECTORCALL bool CollisionResource::rayHitMeshNodeLocalCullCCW_AVX256(const Colli
 
 template <bool check_bounding>
 VECTORCALL bool CollisionResource::traceRayMeshNodeLocalAllHits_AVX256(const CollisionNode &node, const vec4f &v_local_from,
-  const vec4f &v_local_dir, float in_t, bool calc_normal, bool noCull, all_nodes_ret_t &ret_array)
+  const vec4f &v_local_dir, float in_t, bool calc_normal, bool force_no_cull, all_nodes_ret_t &ret_array)
 {
   const uint16_t *__restrict indices = node.indices.data();
   const Point3_vec4 *__restrict vertices = node.vertices.data();
   const uint32_t indicesSize = node.indices.size();
-  noCull |= node.checkBehaviorFlags(CollisionNode::SOLID);
+  bool noCull = force_no_cull || node.checkBehaviorFlags(CollisionNode::SOLID);
 
   constexpr uint32_t mainBatchSize = 8;
 
   uint32_t i;
-  for (i = 0; EASTL_LIKELY(int(i) < int(indicesSize - (mainBatchSize * 3 - 1))); i += mainBatchSize * 3)
+  for (i = 0; DAGOR_LIKELY(int(i) < int(indicesSize - (mainBatchSize * 3 - 1))); i += mainBatchSize * 3)
   {
     alignas(EA_CACHE_LINE_SIZE) vec4f vert[mainBatchSize][3];
 #if defined(__clang__) || defined(__GNUC__)
@@ -141,14 +143,14 @@ VECTORCALL bool CollisionResource::traceRayMeshNodeLocalAllHits_AVX256(const Col
 
     alignas(32) float outT[mainBatchSize];
     int ret = traceray8TrianglesMask<check_bounding>(v_local_from, v_local_dir, in_t, outT, vert, noCull);
-    if (EASTL_UNLIKELY(ret != 0))
+    if (DAGOR_UNLIKELY(ret != 0))
     {
 #if defined(__clang__) || defined(__GNUC__)
 #pragma unroll(1)
 #endif
       for (uint32_t j = 0; j < mainBatchSize; j++, ret >>= 1)
       {
-        if (EASTL_UNLIKELY(ret & 1u))
+        if (DAGOR_UNLIKELY(ret & 1u))
         {
           vec3f vNorm = v_zero();
           if (calc_normal)
@@ -183,7 +185,7 @@ VECTORCALL bool CollisionResource::traceRayMeshNodeLocalAllHits_AVX256(const Col
 
     vec4f vInOutT = v_splats(in_t);
     int ret = traceray4TrianglesMask(v_local_from, v_local_dir, vInOutT, vert, noCull);
-    if (EASTL_UNLIKELY(ret != 0))
+    if (DAGOR_UNLIKELY(ret != 0))
     {
       alignas(16) float outT[finalizeBatchSize];
       v_st(outT, vInOutT);
@@ -192,7 +194,7 @@ VECTORCALL bool CollisionResource::traceRayMeshNodeLocalAllHits_AVX256(const Col
 #endif
       for (uint32_t j = 0; j < count; j++, ret >>= 1)
       {
-        if (EASTL_UNLIKELY(ret & 1u))
+        if (DAGOR_UNLIKELY(ret & 1u))
         {
           vec3f vNorm = v_zero();
           if (calc_normal)

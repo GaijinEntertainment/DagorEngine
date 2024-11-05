@@ -4,7 +4,7 @@ ECS_DEF_PULL_VAR(riGpuObjects);
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc ri_gpu_object_create_es_event_handler_comps[] =
 {
-//start of 30 ro components at [0]
+//start of 29 ro components at [0]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("ri_gpu_object__name"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("ri_gpu_object__grid_tiling"), ecs::ComponentTypeInfo<int>()},
@@ -31,7 +31,6 @@ static constexpr ecs::ComponentDesc ri_gpu_object_create_es_event_handler_comps[
   {ECS_HASH("ri_gpu_object__transparent"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("ri_gpu_object__distorsion"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("ri_gpu_object__place_on_water"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("ri_gpu_object__enable_displacement"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("ri_gpu_object__render_into_shadows"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("ri_gpu_object__coast_range"), ecs::ComponentTypeInfo<Point2>()},
   {ECS_HASH("ri_gpu_object__face_coast"), ecs::ComponentTypeInfo<bool>()}
@@ -66,7 +65,6 @@ static void ri_gpu_object_create_es_event_handler_all_events(const ecs::Event &_
     , ECS_RO_COMP(ri_gpu_object_create_es_event_handler_comps, "ri_gpu_object__transparent", bool)
     , ECS_RO_COMP(ri_gpu_object_create_es_event_handler_comps, "ri_gpu_object__distorsion", bool)
     , ECS_RO_COMP(ri_gpu_object_create_es_event_handler_comps, "ri_gpu_object__place_on_water", bool)
-    , ECS_RO_COMP(ri_gpu_object_create_es_event_handler_comps, "ri_gpu_object__enable_displacement", bool)
     , ECS_RO_COMP(ri_gpu_object_create_es_event_handler_comps, "ri_gpu_object__render_into_shadows", bool)
     , ECS_RO_COMP(ri_gpu_object_create_es_event_handler_comps, "ri_gpu_object__coast_range", Point2)
     , ECS_RO_COMP(ri_gpu_object_create_es_event_handler_comps, "ri_gpu_object__face_coast", bool)
@@ -79,7 +77,7 @@ static ecs::EntitySystemDesc ri_gpu_object_create_es_event_handler_es_desc
   "prog/gameLibs/ecs/rendInst/./riGpuObjectsES.cpp.inl",
   ecs::EntitySystemOps(nullptr, ri_gpu_object_create_es_event_handler_all_events),
   empty_span(),
-  make_span(ri_gpu_object_create_es_event_handler_comps+0, 30)/*ro*/,
+  make_span(ri_gpu_object_create_es_event_handler_comps+0, 29)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
@@ -88,7 +86,7 @@ static ecs::EntitySystemDesc ri_gpu_object_create_es_event_handler_es_desc
 ,"render");
 static constexpr ecs::ComponentDesc ri_gpu_object_update_params_es_event_handler_comps[] =
 {
-//start of 26 ro components at [0]
+//start of 25 ro components at [0]
   {ECS_HASH("ri_gpu_object__name"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("ri_gpu_object__seed"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("ri_gpu_object__up_vector"), ecs::ComponentTypeInfo<Point3>()},
@@ -111,11 +109,10 @@ static constexpr ecs::ComponentDesc ri_gpu_object_update_params_es_event_handler
   {ECS_HASH("ri_gpu_object__transparent"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("ri_gpu_object__distorsion"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("ri_gpu_object__place_on_water"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("ri_gpu_object__enable_displacement"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("ri_gpu_object__render_into_shadows"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("ri_gpu_object__coast_range"), ecs::ComponentTypeInfo<Point2>()},
   {ECS_HASH("ri_gpu_object__face_coast"), ecs::ComponentTypeInfo<bool>()},
-//start of 1 no components at [26]
+//start of 1 no components at [25]
   {ECS_HASH("disabled"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static void ri_gpu_object_update_params_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -144,7 +141,6 @@ static void ri_gpu_object_update_params_es_event_handler_all_events(const ecs::E
     , ECS_RO_COMP(ri_gpu_object_update_params_es_event_handler_comps, "ri_gpu_object__transparent", bool)
     , ECS_RO_COMP(ri_gpu_object_update_params_es_event_handler_comps, "ri_gpu_object__distorsion", bool)
     , ECS_RO_COMP(ri_gpu_object_update_params_es_event_handler_comps, "ri_gpu_object__place_on_water", bool)
-    , ECS_RO_COMP(ri_gpu_object_update_params_es_event_handler_comps, "ri_gpu_object__enable_displacement", bool)
     , ECS_RO_COMP(ri_gpu_object_update_params_es_event_handler_comps, "ri_gpu_object__render_into_shadows", bool)
     , ECS_RO_COMP(ri_gpu_object_update_params_es_event_handler_comps, "ri_gpu_object__coast_range", Point2)
     , ECS_RO_COMP(ri_gpu_object_update_params_es_event_handler_comps, "ri_gpu_object__face_coast", bool)
@@ -157,9 +153,9 @@ static ecs::EntitySystemDesc ri_gpu_object_update_params_es_event_handler_es_des
   "prog/gameLibs/ecs/rendInst/./riGpuObjectsES.cpp.inl",
   ecs::EntitySystemOps(nullptr, ri_gpu_object_update_params_es_event_handler_all_events),
   empty_span(),
-  make_span(ri_gpu_object_update_params_es_event_handler_comps+0, 26)/*ro*/,
+  make_span(ri_gpu_object_update_params_es_event_handler_comps+0, 25)/*ro*/,
   empty_span(),
-  make_span(ri_gpu_object_update_params_es_event_handler_comps+26, 1)/*no*/,
+  make_span(ri_gpu_object_update_params_es_event_handler_comps+25, 1)/*no*/,
   ecs::EventSetBuilder<>::build(),
   0
 ,"render","*");

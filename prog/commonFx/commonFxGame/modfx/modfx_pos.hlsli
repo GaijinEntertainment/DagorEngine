@@ -227,6 +227,13 @@ bool modfx_pos_gpu_placement(ModfxParentSimData_cref parent_sdata, BufferData_cr
   o_pos.y += y_move;
   return (pp.height_threshold > 0) ? (fabsf(y_move) < pp.height_threshold) : true;
 }
+
+void modfx_pos_add_water_flowmap(float3_ref o_pos, float3 pos_offset, float dt)
+{
+#if DAFX_USE_WATER_FLOWMAP
+  o_pos += getWaterFlowmapVec(o_pos + pos_offset) * dt;
+#endif
+}
 #endif
 
 DAFX_INLINE

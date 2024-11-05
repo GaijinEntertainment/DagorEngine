@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #if !_TARGET_PC
 #undef _DEBUG_TAB_
 #endif
@@ -385,4 +387,31 @@ void GeomNodeTree::validateTm(dag::Index16 from_nodeid)
       }
       v_mat44_mul43(tm[i], p_iwtm, wtm[i]);
     }
+}
+
+void GeomNodeTree::verifyAllData() const
+{
+#if DAGOR_DBGLEVEL > 0
+  for (const mat44f &m : wtm)
+    G_ASSERTF(is_valid_tm(m), "Bad wtm[%i] " FMT_TM, int(&m - wtm.data()), VTMD(m));
+  for (const mat44f &m : tm)
+    G_ASSERTF(is_valid_tm(m), "Bad tm[%i] " FMT_TM, int(&m - tm.data()), VTMD(m));
+  G_ASSERTF(is_valid_pos(wofs), "Bad wofs " FMT_P3, V3D(wofs));
+#endif
+}
+
+void GeomNodeTree::verifyOnlyTmFast() const
+{
+#if DAGOR_DBGLEVEL > 0
+  vec3f res = v_zero();
+  for (mat44f m : tm)
+    res = v_add(res, m.col3);
+  if (!is_valid_pos(v_safediv(res, v_splats(tm.size()))))
+  {
+    debug("GeomNodeTree nodes tm dump:");
+    for (Index16 i(0), ie(nodeCount()); i != ie; ++i)
+      debug("\t%s " FMT_TM, getNodeName(i), VTMD(tm[i.index()]));
+    logerr("Invalid tm in GeomNodeTree. Nodes tm dumped to log.");
+  }
+#endif
 }

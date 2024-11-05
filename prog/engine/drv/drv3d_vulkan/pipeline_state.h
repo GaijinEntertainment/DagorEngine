@@ -1,5 +1,10 @@
-// defines full draw/dispatch ready state that can be applied to execution state
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+// defines full draw/dispatch ready state that can be applied to execution state
+
+#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
+
 #include "util/tracked_state.h"
 #include "compute_state.h"
 #include "raytrace_state.h"
@@ -57,7 +62,7 @@ public:
   template <typename T>
   bool isReferenced(T object) const;
 
-  bool processBufferDiscard(Buffer *old_buffer, const BufferRef &new_ref, uint32_t buf_flags);
+  bool processBufferDiscard(const BufferRef &old_buffer, const BufferRef &new_ref, uint32_t buf_flags);
 
   PipelineState();
   PipelineState(const PipelineState &from);

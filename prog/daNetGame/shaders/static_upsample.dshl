@@ -1,0 +1,67 @@
+include "shader_global.dshl"
+include "postfx_inc.dshl"
+
+int upsampling_quality = 1;
+interval upsampling_quality : bilinear<1, catmullrom<2, sharpen;
+texture upsampling_source_tex;
+float4 upsampling_source_size;
+float4 upsampling_target_size;
+
+shader static_upsample
+{
+  cull_mode=none;
+  z_write=false;
+  z_test=false;
+  POSTFX_VS_TEXCOORD(1, texcoord)
+
+  (ps)
+  {
+    upsampling_source_size@f4 = upsampling_source_size;
+    upsampling_target_size@f4 = upsampling_target_size;
+    upsampling_source_tex@smp2d = upsampling_source_tex;
+  }
+
+  hlsl (ps)
+  {
+    #include "tex2DCatmullRom.hlsl"
+
+    //Copy pasted from postfx.dshl
+    float4 blurred_source2(float2 tc, float2 offset, out float4 centerSample){
+      //Can be changed to tex2Dlod with mipmap filter
+      float4 c0 = tex2Dlod(upsampling_source_tex, half4(tc + float2(-1, -1) * offset, 0.0, 0.0));
+      float4 c1 = tex2Dlod(upsampling_source_tex, half4(tc + float2(0, -1) * offset, 0.0, 0.0));
+      float4 c2 = tex2Dlod(upsampling_source_tex, half4(tc + float2(1, -1) * offset, 0.0, 0.0));
+      float4 c3 = tex2Dlod(upsampling_source_tex, half4(tc + float2(-1, 0) * offset, 0.0, 0.0));
+      float4 c4 = tex2Dlod(upsampling_source_tex, half4(tc, 0.0, 0.0));
+      float4 c5 = tex2Dlod(upsampling_source_tex, half4(tc + float2(1, 0) * offset, 0.0, 0.0));
+      float4 c6 = tex2Dlod(upsampling_source_tex, half4(tc + float2(-1, 1) * offset, 0.0, 0.0));
+      float4 c7 = tex2Dlod(upsampling_source_tex, half4(tc + float2(0, 1) * offset, 0.0, 0.0));
+      float4 c8 = tex2Dlod(upsampling_source_tex, half4(tc + float2(1, 1) * offset, 0.0, 0.0));
+      centerSample = c4;
+      return 0.0625f * (c0 + 2 * c1 + c2 + 2 * c3 + 4 * c4 + 2 * c5 + c6 + 2 * c7 + c8);
+    }
+
+    float4 static_upsample_ps(VsOutput input) : SV_Target
+    {
+      ##if upsampling_quality == sharpen
+        #define UPSCALE_SHARPEN 2
+        float4 centerColor;
+        float4 blurred = blurred_source2(input.texcoord, upsampling_target_size.zw, centerColor);
+        float4 result = (centerColor + (centerColor - blurred) * UPSCALE_SHARPEN);
+        return result;
+      ##elif upsampling_quality == catmullrom
+        float2 fetchUVs[9];
+        float fetchWeights[9];
+        get_catmullrom_samples(input.texcoord, upsampling_source_size.xy, upsampling_source_size.zw, fetchUVs, fetchWeights);
+        float4 result = 0;
+        UNROLL
+        for (uint i = 0; i < 9; i++)
+          result += tex2Dlod(upsampling_source_tex, float4(fetchUVs[i],0,0)) * fetchWeights[i];
+        return result;
+      ##else
+        return tex2Dlod(upsampling_source_tex, float4(input.texcoord,0,0));
+      ##endif
+    }
+  }
+  compile("target_ps", "static_upsample_ps");
+}

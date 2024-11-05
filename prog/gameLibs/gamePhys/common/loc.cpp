@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gamePhys/common/loc.h>
 #include <math/dag_Quat.h>
 #include <math/dag_mathUtils.h>

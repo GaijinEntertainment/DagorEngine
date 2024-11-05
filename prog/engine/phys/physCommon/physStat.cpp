@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <phys/dag_physStat.h>
 
 int PhysCounters::rayCastObjCreated = 0;

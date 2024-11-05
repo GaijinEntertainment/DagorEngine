@@ -1,9 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "runtime.h"
 
 #include <EASTL/sort.h>
 #include <mutex> // std::lock_guard
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_heap.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 
 #include <perfMon/dag_statDrv.h>
 #include <util/dag_convar.h>
@@ -19,15 +23,6 @@
 #include <common/resourceUsage.h>
 #include <id/idRange.h>
 
-
-#if _TARGET_D3D_MULTI || _TARGET_C1 || _TARGET_C2
-#define PLATFORM_HAS_HEAPS d3d::get_driver_desc().caps.hasResourceHeaps
-#elif _TARGET_XBOX
-#define PLATFORM_HAS_HEAPS true
-#else
-#define PLATFORM_HAS_HEAPS false
-#endif
-
 CONSOLE_BOOL_VAL("dabfg", recompile_graph, false);
 CONSOLE_BOOL_VAL("dabfg", recompile_graph_every_frame, false);
 CONSOLE_BOOL_VAL("dabfg", debug_graph_generation, DAGOR_DBGLEVEL > 0);
@@ -36,11 +31,55 @@ CONSOLE_BOOL_VAL("dabfg", debug_graph_generation, DAGOR_DBGLEVEL > 0);
 namespace dabfg
 {
 
+static DynamicResolutions collect_dynamic_resolution_updates(const InternalRegistry &registry)
+{
+  DynamicResolutions dynResolutions;
+  for (auto [id, dynResType] : registry.autoResTypes.enumerate())
+    if (dynResType.dynamicResolutionCountdown > 0)
+    {
+      eastl::visit(
+        [&, id = id](const auto &values) {
+          if constexpr (!eastl::is_same_v<eastl::decay_t<decltype(values)>, eastl::monostate>)
+            dynResolutions.set(id, values.dynamicResolution);
+        },
+        dynResType.values);
+    }
+  return dynResolutions;
+}
+
+static void track_applied_dynamic_resolution_updates(InternalRegistry &registry, const DynamicResolutions &dyn_resolutions)
+{
+  for (auto [id, val] : dyn_resolutions.enumerate())
+    if (!eastl::holds_alternative<eastl::monostate>(val))
+    {
+      --registry.autoResTypes[id].dynamicResolutionCountdown;
+      eastl::visit(
+        [](auto &values) {
+          if constexpr (!eastl::is_same_v<eastl::decay_t<decltype(values)>, eastl::monostate>)
+            values.lastAppliedDynamicResolution = values.dynamicResolution;
+        },
+        registry.autoResTypes[id].values);
+    }
+}
+
+static DynamicResolutions collect_applied_dynamic_resolutions(const InternalRegistry &registry)
+{
+  DynamicResolutions dynResolutions;
+  for (auto [id, dynResType] : registry.autoResTypes.enumerate())
+    eastl::visit(
+      [&, id = id](const auto &values) {
+        if constexpr (!eastl::is_same_v<eastl::decay_t<decltype(values)>, eastl::monostate>)
+          dynResolutions.set(id, values.lastAppliedDynamicResolution);
+      },
+      dynResType.values);
+  return dynResolutions;
+}
+
 InitOnDemand<Runtime, false> Runtime::instance;
 
 Runtime::Runtime()
 {
-  if (PLATFORM_HAS_HEAPS)
+  if (d3d::get_driver_desc().caps.hasResourceHeaps)
     resourceScheduler.reset(new NativeResourceScheduler(nodeTracker));
   else
     resourceScheduler.reset(new PoolResourceScheduler(nodeTracker));
@@ -76,14 +115,33 @@ void Runtime::calculateDependencyData()
   TIME_PROFILE(calculateDependencyData);
   debug("daBfg: Calculating dependency data...");
   dependencyDataCalculator.recalculate();
+  currentStage = CompilationStage::REQUIRES_REGISTRY_VALIDATION;
+}
+
+void Runtime::validateRegistry()
+{
+  TIME_PROFILE(validateRegistry);
+  debug("daBfg: Validating the user graph as specified in the registry...");
+  registryValidator.validateRegistry();
   currentStage = CompilationStage::REQUIRES_IR_GRAPH_BUILD;
 }
+
 
 void Runtime::buildIrGraph()
 {
   TIME_PROFILE(buildIrGraph);
   debug("daBfg: Building IR graph...");
   intermediateGraph = irGraphBuilder.build(currentMultiplexingExtents);
+
+  currentStage = CompilationStage::REQUIRES_PASS_COLORING;
+}
+
+void Runtime::colorPasses()
+{
+  TIME_PROFILE(colorPasses);
+  debug("daBfg: Coloring nodes with speculative render passes...");
+
+  passColoring = perform_coloring(intermediateGraph);
 
   currentStage = CompilationStage::REQUIRES_NODE_SCHEDULING;
 }
@@ -93,28 +151,62 @@ void Runtime::scheduleNodes()
   TIME_PROFILE(scheduleNodes);
   debug("daBfg: Scheduling nodes...");
 
+
   {
     // old -> new index
-    auto newOrder = cullingScheduler.schedule(intermediateGraph);
+    auto newOrder = cullingScheduler.schedule(intermediateGraph, passColoring);
     intermediateGraph.choseSubgraph(newOrder);
     intermediateGraph.validate();
+
+    IdIndexedMapping<intermediate::NodeIndex, PassColor, framemem_allocator> oldPassColoring(passColoring.begin(), passColoring.end());
+    passColoring.clear();
+    for (auto [oldIdx, newIdx] : newOrder.enumerate())
+      passColoring.set(newIdx, oldPassColoring[oldIdx]);
   }
 
   irMapping = intermediateGraph.calculateMapping();
 
   if (debug_graph_generation.get())
   {
+    DebugPassColoration coloring;
+    coloring.reserve(registry.nodes.size());
+
     // Debug graph visualization works with not multiplexed nodes
     dag::Vector<NodeNameId, framemem_allocator> demultiplexedNodeExecutionOrder;
     demultiplexedNodeExecutionOrder.reserve(registry.nodes.size());
-    for (const intermediate::Node &irNode : intermediateGraph.nodes)
-      if (irNode.multiplexingIndex == 0)
-        demultiplexedNodeExecutionOrder.emplace_back(irNode.frontendNode);
+    for (auto [idx, irNode] : intermediateGraph.nodes.enumerate())
+      if (irNode.multiplexingIndex == 0 && irNode.frontendNode)
+      {
+        demultiplexedNodeExecutionOrder.emplace_back(*irNode.frontendNode);
+        coloring.set(*irNode.frontendNode, passColoring[idx]);
+      }
 
-    update_graph_visualization(registry, dependencyDataCalculator.depData, demultiplexedNodeExecutionOrder);
+    update_graph_visualization(registry, nameResolver, dependencyDataCalculator.depData, coloring, demultiplexedNodeExecutionOrder);
   }
 
   currentStage = CompilationStage::REQUIRES_STATE_DELTA_RECALCULATION;
+}
+
+void Runtime::scheduleBarriers()
+{
+  TIME_PROFILE(scheduleBarriers);
+  debug("daBfg: Scheduling barriers...");
+
+  // This has to go here, unfortunately, as it wipes out events stored
+  // by the barrier scheduler. To be refactored later.
+  if (debug_graph_generation.get())
+  {
+    dag::Vector<NodeNameId, framemem_allocator> frontendNodeExecutionOrder;
+    for (const intermediate::Node &irNode : intermediateGraph.nodes)
+      if (irNode.frontendNode)
+        frontendNodeExecutionOrder.emplace_back(*irNode.frontendNode);
+      else
+        frontendNodeExecutionOrder.emplace_back(NodeNameId::Invalid);
+
+    update_resource_visualization(registry, frontendNodeExecutionOrder);
+  }
+
+  allResourceEvents = barrierScheduler.scheduleEvents(intermediateGraph, passColoring);
 }
 
 void Runtime::recalculateStateDeltas()
@@ -122,7 +214,7 @@ void Runtime::recalculateStateDeltas()
   TIME_PROFILE(recalculateStateDeltas);
   debug("daBfg: Recalculating state deltas...");
 
-  perNodeStateDeltas = sd::calculate_per_node_state_deltas(intermediateGraph);
+  perNodeStateDeltas = sd::calculate_per_node_state_deltas(intermediateGraph, allResourceEvents);
 
   currentStage = CompilationStage::REQUIRES_RESOURCE_SCHEDULING;
 }
@@ -132,7 +224,7 @@ void Runtime::scheduleResources()
   TIME_PROFILE(scheduleResources);
   debug("daBfg: Scheduling resources...");
 
-  // Update automatic texture resolutions
+  // Update automatic texture resolutions (static ones)
   for (auto resIdx : IdRange<intermediate::ResourceIndex>(intermediateGraph.resources.size()))
   {
     if (!intermediateGraph.resources[resIdx].isScheduled())
@@ -141,32 +233,46 @@ void Runtime::scheduleResources()
     if (res.resourceType != ResourceType::Texture || !res.resolutionType.has_value())
       continue;
 
-    const auto [unresolvedId, mult] = *res.resolutionType;
+    const auto [id, mult] = *res.resolutionType;
 
     // Impossible situation, sanity check
-    G_ASSERT_CONTINUE(unresolvedId != AutoResTypeNameId::Invalid);
+    G_ASSERT_CONTINUE(id != AutoResTypeNameId::Invalid);
 
-    const auto id = nameResolver.resolve(unresolvedId);
-
-    auto &texDesc = eastl::get<ResourceDescription>(res.description).asTexRes;
-    texDesc.width = static_cast<uint32_t>(registry.autoResTypes[id].staticResolution.x * mult);
-    texDesc.height = static_cast<uint32_t>(registry.autoResTypes[id].staticResolution.y * mult);
+    auto &desc = eastl::get<ResourceDescription>(res.description);
+    switch (desc.resType)
+    {
+      case RES3D_TEX:
+      case RES3D_ARRTEX:
+      {
+        const auto &values = eastl::get<ResolutionValues<IPoint2>>(registry.autoResTypes[id].values);
+        desc.asTexRes.width = static_cast<uint32_t>(values.staticResolution.x * mult);
+        desc.asTexRes.height = static_cast<uint32_t>(values.staticResolution.y * mult);
+      }
+      break;
+      case RES3D_VOLTEX:
+      {
+        const auto &values = eastl::get<ResolutionValues<IPoint3>>(registry.autoResTypes[id].values);
+        desc.asVolTexRes.width = static_cast<uint32_t>(values.staticResolution.x * mult);
+        desc.asVolTexRes.height = static_cast<uint32_t>(values.staticResolution.y * mult);
+        desc.asVolTexRes.depth = static_cast<uint32_t>(values.staticResolution.z * mult);
+      }
+      break;
+      default: G_ASSERT_FAIL("Impossible situation!"); break;
+    }
   }
 
-  if (debug_graph_generation.get())
   {
-    dag::Vector<NodeNameId, framemem_allocator> frontendNodeExecutionOrder;
-    for (const intermediate::Node &irNode : intermediateGraph.nodes)
-      frontendNodeExecutionOrder.emplace_back(irNode.frontendNode);
+    // Resource scheduler needs to know which dynamic resolution is the current one
+    // to provide correctly sized resources after a recompilation.
+    // If a dynamic resolution change was requested on the same frame as a
+    // recompilation, then it is going to be applied in the normal way.
+    // Rescheduling operates as-if no new dynamic resolution change requests came.
+    const auto dynResolutions = collect_applied_dynamic_resolutions(registry);
 
-    update_resource_visualization(registry, frontendNodeExecutionOrder);
-  }
+    const auto deactivations = resourceScheduler->scheduleResources(frameIndex % ResourceScheduler::SCHEDULE_FRAME_WINDOW,
+      intermediateGraph, allResourceEvents, dynResolutions);
 
-  {
-    auto [events, deactivations] =
-      resourceScheduler->scheduleResources(frameIndex % ResourceScheduler::SCHEDULE_FRAME_WINDOW, intermediateGraph);
-
-    for (auto deactivation : deactivations)
+    for (const auto deactivation : deactivations)
       switch (deactivation.index())
       {
         case 0: d3d::deactivate_texture(eastl::get<0>(deactivation)); break;
@@ -176,17 +282,7 @@ void Runtime::scheduleResources()
           f(x);
           break;
       }
-
-    allResourceEvents = eastl::move(events);
   }
-
-  // After rescheduling resources are in default resolution, so update number of frames to
-  // resize textures on next nodes execution.
-  // NOTE: We anyway can't create textures in downscaled resolution because we need scheduling
-  // with max possible resolution. Otherwise texture regions will overlap when resolution is higher.
-  for (auto &[st, dyn, counter] : registry.autoResTypes)
-    if (st != dyn)
-      counter = ResourceScheduler::SCHEDULE_FRAME_WINDOW;
 
   currentStage = CompilationStage::REQUIRES_HISTORY_OF_NEW_RESOURCES_INITIALIZATION;
 }
@@ -237,13 +333,65 @@ void Runtime::initializeHistoryOfNewResources()
         if (resourceScheduler->isResourcePreserved(prevFrame, resIdx))
           continue;
 
+        // Map multiplexing index to previous extents, hopefully we preserved a resource there
+        auto historySourceResIdx = intermediate::RESOURCE_NOT_MAPPED;
+        {
+          auto sourceMultiIndex =
+            multiplexing_index_to_ir(clamp_and_wrap(multiplexing_index_from_ir(res.multiplexingIndex, currentMultiplexingExtents),
+                                       multiplexingExtentsOnPreviousCompilation),
+              currentMultiplexingExtents);
+
+          // Find a preserved resource if possible
+          for (int mi = int(eastl::to_underlying(sourceMultiIndex)); mi >= 0; mi--)
+          {
+            sourceMultiIndex = intermediate::MultiplexingIndex(mi);
+            if (!irMapping.wasResMapped(res.frontendResources.back(), sourceMultiIndex))
+              continue;
+
+            historySourceResIdx = irMapping.mapRes(res.frontendResources.back(), sourceMultiIndex);
+            if (historySourceResIdx == intermediate::RESOURCE_NOT_MAPPED)
+              continue;
+
+            if (resourceScheduler->isResourcePreserved(prevFrame, historySourceResIdx))
+              break;
+            historySourceResIdx = intermediate::RESOURCE_NOT_MAPPED;
+          }
+        }
+
+        // Discard resource contents if we're going to copy them from history
+        auto history = res.asScheduled().history;
+        if (historySourceResIdx != intermediate::RESOURCE_NOT_MAPPED && history != History::No)
+          history = History::DiscardOnFirstFrame;
+
         switch (res.getResType())
         {
           case ResourceType::Texture:
-            if (auto activation = get_activation_from_usage(res.asScheduled().history, usage, res.getResType()))
+            if (auto activation = get_activation_from_usage(history, usage, res.getResType()))
             {
-              auto tex = resourceScheduler->getTexture(prevFrame, resIdx).getTex2D();
+              auto tex = resourceScheduler->getTexture(prevFrame, resIdx).getBaseTex();
               d3d::activate_texture(tex, *activation, ResourceClearValue{});
+
+              if (historySourceResIdx != intermediate::RESOURCE_NOT_MAPPED)
+              {
+                TextureInfo texInfo = {};
+                tex->getinfo(texInfo);
+                BaseTexture *prevTex = resourceScheduler->getTexture(prevFrame, historySourceResIdx).getBaseTex();
+                d3d::resource_barrier({tex, RB_RW_COPY_DEST, 0, texInfo.mipLevels});
+                d3d::resource_barrier({prevTex, RB_RO_COPY_SOURCE, 0, texInfo.mipLevels});
+
+                for (int i = 0; i < texInfo.mipLevels; i++)
+                  if (!tex->updateSubRegion(prevTex, i, 0, 0, 0, texInfo.w >> i, texInfo.h >> i, texInfo.d, i, 0, 0, 0))
+                  {
+                    logerr("failed to copy historical texture data for '%s'",
+                      registry.knownNames.getName(res.frontendResources.back()));
+                    if (res.asScheduled().history == History::ClearZeroOnFirstFrame)
+                      if (auto clearActivation = get_activation_from_usage(res.asScheduled().history, usage, res.getResType()))
+                      {
+                        d3d::deactivate_texture(tex);
+                        d3d::activate_texture(tex, *clearActivation, ResourceClearValue{});
+                      }
+                  }
+              }
 
               // TODO: these barriers might be very wrong. Everything
               // about barriers is fubar and needs to be reworked ;(
@@ -253,10 +401,22 @@ void Runtime::initializeHistoryOfNewResources()
             break;
 
           case ResourceType::Buffer:
-            if (auto activation = get_activation_from_usage(res.asScheduled().history, usage, res.getResType()))
+            if (auto activation = get_activation_from_usage(history, usage, res.getResType()))
             {
               auto buf = resourceScheduler->getBuffer(prevFrame, resIdx).getBuf();
               d3d::activate_buffer(buf, *activation, ResourceClearValue{});
+
+              if (historySourceResIdx != intermediate::RESOURCE_NOT_MAPPED)
+                if (!resourceScheduler->getBuffer(prevFrame, historySourceResIdx).getBuf()->copyTo(buf))
+                {
+                  logerr("failed to copy historical buffer data for '%s'", registry.knownNames.getName(res.frontendResources.back()));
+                  if (res.asScheduled().history == History::ClearZeroOnFirstFrame)
+                    if (auto clearActivation = get_activation_from_usage(res.asScheduled().history, usage, res.getResType()))
+                    {
+                      d3d::deactivate_buffer(buf);
+                      d3d::activate_buffer(buf, *clearActivation, ResourceClearValue{});
+                    }
+                }
 
               if (auto barrier = barrier_for_transition({}, usage); barrier != RB_NONE)
                 d3d::resource_barrier({buf, barrier});
@@ -264,7 +424,7 @@ void Runtime::initializeHistoryOfNewResources()
             break;
 
           case ResourceType::Blob:
-            switch (res.asScheduled().history)
+            switch (history)
             {
               case History::No:
                 logerr("Encountered a CPU resource with history that"
@@ -274,7 +434,11 @@ void Runtime::initializeHistoryOfNewResources()
 
               case History::DiscardOnFirstFrame:
               case History::ClearZeroOnFirstFrame:
-                res.asScheduled().getCpuDescription().activate(resourceScheduler->getBlob(prevFrame, resIdx).data);
+                if (historySourceResIdx != intermediate::RESOURCE_NOT_MAPPED)
+                  res.asScheduled().getCpuDescription().copy(resourceScheduler->getBlob(prevFrame, resIdx).data,
+                    resourceScheduler->getBlob(prevFrame, historySourceResIdx).data);
+                else
+                  res.asScheduled().getCpuDescription().activate(resourceScheduler->getBlob(prevFrame, resIdx).data);
                 break;
             }
             break;
@@ -288,6 +452,7 @@ void Runtime::initializeHistoryOfNewResources()
       }
 
 
+  multiplexingExtentsOnPreviousCompilation = currentMultiplexingExtents;
   currentStage = CompilationStage::UP_TO_DATE;
 }
 
@@ -300,8 +465,33 @@ void Runtime::setMultiplexingExtents(multiplexing::Extents extents)
   }
 }
 
+void Runtime::updateDynamicResolution(int curr_frame)
+{
+  if (d3d::get_driver_desc().caps.hasResourceHeaps)
+  {
+    auto dynResolutions = collect_dynamic_resolution_updates(registry);
+
+    resourceScheduler->resizeAutoResTextures(curr_frame, dynResolutions);
+
+    track_applied_dynamic_resolution_updates(registry, dynResolutions);
+  }
+  else
+  {
+    for (auto [id, dynResType] : registry.autoResTypes.enumerate())
+      if (eastl::exchange(dynResType.dynamicResolutionCountdown, 0) > 0)
+        logerr("daBfg: Attempted to use dynamic resolution '%s' on a platform that does not support resource heaps!",
+          registry.knownNames.getName(id));
+  }
+}
+
 void Runtime::runNodes()
 {
+  if (d3d::device_lost(nullptr))
+  {
+    logwarn("daBfg: frame was skipped due to an ongoing device reset");
+    return;
+  }
+
   TIME_D3D_PROFILE(ExecuteFrameGraph);
   std::lock_guard<NodeTracker> lock(nodeTracker);
 
@@ -324,9 +514,15 @@ void Runtime::runNodes()
 
       case CompilationStage::REQUIRES_DEPENDENCY_DATA_CALCULATION: calculateDependencyData(); [[fallthrough]];
 
+      case CompilationStage::REQUIRES_REGISTRY_VALIDATION: validateRegistry(); [[fallthrough]];
+
       case CompilationStage::REQUIRES_IR_GRAPH_BUILD: buildIrGraph(); [[fallthrough]];
 
+      case CompilationStage::REQUIRES_PASS_COLORING: colorPasses(); [[fallthrough]];
+
       case CompilationStage::REQUIRES_NODE_SCHEDULING: scheduleNodes(); [[fallthrough]];
+
+      case CompilationStage::REQUIRES_BARRIER_SCHEDULING: scheduleBarriers(); [[fallthrough]];
 
       case CompilationStage::REQUIRES_STATE_DELTA_RECALCULATION: recalculateStateDeltas(); [[fallthrough]];
 
@@ -341,34 +537,28 @@ void Runtime::runNodes()
   const int prevFrame = (frameIndex % ResourceScheduler::SCHEDULE_FRAME_WINDOW);
   const int currFrame = (++frameIndex % ResourceScheduler::SCHEDULE_FRAME_WINDOW);
 
-  if (PLATFORM_HAS_HEAPS)
-  {
-    DynamicResolutions dynResolutions;
-    for (auto [id, dynResType] : registry.autoResTypes.enumerate())
-      if (dynResType.dynamicResolutionCountdown > 0)
-      {
-        dynResolutions.set(id, dynResType.dynamicResolution);
-        --dynResType.dynamicResolutionCountdown;
-      }
-    resourceScheduler->resizeAutoResTextures(currFrame, dynResolutions);
-  }
-  else
-  {
-    for (auto [id, dynResType] : registry.autoResTypes.enumerate())
-      if (eastl::exchange(dynResType.dynamicResolutionCountdown, 0) > 0)
-        logerr("daBfg: Attempted to use dynamic resolution '%s' on a platform that does not support resource heaps!",
-          registry.knownNames.getName(id));
-  }
+  updateDynamicResolution(currFrame);
 
   const auto &frameEvents = allResourceEvents[currFrame];
 
   nodeExec->execute(prevFrame, currFrame, currentMultiplexingExtents, frameEvents, perNodeStateDeltas);
 }
 
+void Runtime::invalidateHistory()
+{
+  resourceScheduler->invalidateTemporalResources();
+  markStageDirty(CompilationStage::REQUIRES_RESOURCE_SCHEDULING);
+}
+
 void Runtime::requestCompleteResourceRescheduling()
 {
   resourceScheduler->shutdown(frameIndex % ResourceScheduler::SCHEDULE_FRAME_WINDOW);
   markStageDirty(CompilationStage::REQUIRES_RESOURCE_SCHEDULING);
+}
+
+void Runtime::wipeBlobsBetweenFrames(eastl::span<ResNameId> resources)
+{
+  resourceScheduler->emergencyDeactivateBlobs(frameIndex % ResourceScheduler::SCHEDULE_FRAME_WINDOW, resources);
 }
 
 void before_reset(bool)
@@ -379,5 +569,5 @@ void before_reset(bool)
 
 } // namespace dabfg
 
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_resetDevice.h>
 REGISTER_D3D_BEFORE_RESET_FUNC(dabfg::before_reset);

@@ -1,4 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "shLocVar.h"
 #include "varMap.h"
 #include <generic/dag_tabUtils.h>
@@ -20,7 +21,7 @@ LocalVarTable::~LocalVarTable() { clear(); }
 void LocalVarTable::addBuiltinConstants()
 {
   int name_id = VarMap::addVarId("PI");
-  LocalVar pi(name_id, shexpr::VT_REAL);
+  LocalVar pi(name_id, shexpr::VT_REAL, false);
   pi.isConst = true;
   pi.cv.r = M_PI;
   addVariable(pi);

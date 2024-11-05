@@ -1,7 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <perfMon/gpuProfiler.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <perfMon/dag_graphStat.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_lock.h>
 #include <perfMon/dag_perfTimer.h>
 #include <atomic>
 #include <EASTL/unique_ptr.h>
@@ -54,7 +56,7 @@ bool init()
   if (inited.load())
     return true;
   uint64_t gpuFreq = 0;
-  d3d::driver_command(D3V3D_COMMAND_TIMESTAMPFREQ, &gpuFreq, 0, nullptr);
+  d3d::driver_command(Drv3dCommand::TIMESTAMPFREQ, &gpuFreq);
   if (!gpuFreq)
   {
     logwarn("gpu profiling is not possible, timestamps are not supported");
@@ -66,12 +68,30 @@ bool init()
   gpuStorage->gpuFreq = gpuFreq;
   for (uint32_t i = 0; i < GPU_MAX_QUERIES; ++i)
   {
-    d3d::driver_command(D3V3D_COMMAND_TIMESTAMPISSUE, &gpuStorage->queries[i], 0, 0);
+    d3d::driver_command(Drv3dCommand::TIMESTAMPISSUE, &gpuStorage->queries[i]);
     gpuStorage->queryResultsInternal[i] = ~0ULL;
     gpuStorage->queryResults[i] = &gpuStorage->queryResultsInternal[i];
   }
-  d3d::driver_command(D3V3D_COMMAND_TIMESTAMPISSUE, &gpuStorage->syncQuery, 0, 0);
+  d3d::driver_command(Drv3dCommand::TIMESTAMPISSUE, &gpuStorage->syncQuery);
   return true;
+}
+
+void resubmit_pending_timestamps()
+{
+  uint32_t id = gpuStorage->queryStart % GPU_MAX_QUERIES;
+  const uint32_t modQid = gpuStorage->queryCount.load() % GPU_MAX_QUERIES;
+  for (; id != modQid; id = (id + 1) % GPU_MAX_QUERIES)
+  {
+    d3d::driver_command(Drv3dCommand::TIMESTAMPISSUE, &gpuStorage->queries[id]);
+  }
+}
+
+void after_reset(bool)
+{
+  GPU_GUARD;
+  if (!inited.load())
+    return;
+  resubmit_pending_timestamps();
 }
 
 void shutdown()
@@ -81,9 +101,9 @@ void shutdown()
     return;
   for (uint32_t i = 0; i < GPU_MAX_QUERIES; ++i)
   {
-    d3d::driver_command(DRV3D_COMMAND_RELEASE_QUERY, &gpuStorage->queries[i], 0, 0);
+    d3d::driver_command(Drv3dCommand::RELEASE_QUERY, &gpuStorage->queries[i]);
   }
-  d3d::driver_command(DRV3D_COMMAND_RELEASE_QUERY, &gpuStorage->syncQuery, 0, 0);
+  d3d::driver_command(Drv3dCommand::RELEASE_QUERY, &gpuStorage->syncQuery);
   gpuStorage.reset();
   inited = false;
 }
@@ -93,7 +113,7 @@ static uint32_t insert_time_stamp_base()
   const uint32_t id = gpuStorage->queryCount.fetch_add(1) % GPU_MAX_QUERIES; // todo: we'd better return
   const uint32_t index = id % GPU_MAX_QUERIES;
   GPU_GUARD;
-  d3d::driver_command(D3V3D_COMMAND_TIMESTAMPISSUE, &gpuStorage->queries[index], 0, 0);
+  d3d::driver_command(Drv3dCommand::TIMESTAMPISSUE, &gpuStorage->queries[index]);
   return id;
 }
 
@@ -126,13 +146,13 @@ uint64_t ticks_per_second() { return gpuStorage ? gpuStorage->gpuFreq : 1; }
 
 int get_cpu_ticks_reference(int64_t *out_cpu, int64_t *out_gpu)
 {
-  return d3d::driver_command(D3V3D_COMMAND_TIMECLOCKCALIBRATION, out_cpu, out_gpu, NULL);
+  return d3d::driver_command(Drv3dCommand::TIMECLOCKCALIBRATION, out_cpu, out_gpu);
 }
 
 int get_profile_cpu_ticks_reference(int64_t &out_cpu, int64_t &out_gpu) // that all has to be done inside d3d abstraction layers!
 {
   int type = DRV3D_CPU_FREQ_TYPE_UNKNOWN;
-  const int ret = d3d::driver_command(D3V3D_COMMAND_TIMECLOCKCALIBRATION, &out_cpu, &out_gpu, &type);
+  const int ret = d3d::driver_command(Drv3dCommand::TIMECLOCKCALIBRATION, &out_cpu, &out_gpu, &type);
   const int64_t curProfileTicks = profile_ref_ticks();
   // we implicitly assume that DRV3D_CPU_FREQ_TYPE_QPC == DRV3D_CPU_FREQ_TYPE_REF on windows;
   const int64_t srcRefTicks = ref_time_ticks();
@@ -155,7 +175,7 @@ static void finish_queries_internal()
   uint32_t id = gpuStorage->queryStart % GPU_MAX_QUERIES, processed = 0;
   for (; id != modQid; id = (id + 1) % GPU_MAX_QUERIES, ++processed)
   {
-    if (!d3d::driver_command(D3V3D_COMMAND_TIMESTAMPGET, gpuStorage->queries[id], gpuStorage->queryResults[id], 0))
+    if (!d3d::driver_command(Drv3dCommand::TIMESTAMPGET, gpuStorage->queries[id], gpuStorage->queryResults[id]))
       break;
   }
   gpuStorage->queryStart += processed;
@@ -171,17 +191,22 @@ uint32_t flip(uint64_t *gpu_start)
 {
   if (!is_on())
     return 0;
-  d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, NULL, NULL, NULL);
-  const uint32_t ts = gpu_start ? insert_time_stamp(gpu_start) : insert_time_stamp(); // another spinlock is inside insert_time_stamp
-  d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL);
+
+  const uint32_t ts = [=] {
+    d3d::GpuAutoLock gpuLock;
+    return gpu_start ? insert_time_stamp(gpu_start) : insert_time_stamp(); // another spinlock is inside insert_time_stamp
+  }();
   GPU_GUARD; // has to follow insert_time_stamp
   finish_queries_internal();
 
   bool disjoint = false;
-  d3d::driver_command(D3V3D_COMMAND_TIMESTAMPFREQ, &gpuStorage->gpuFreq, &disjoint, nullptr);
+  d3d::driver_command(Drv3dCommand::TIMESTAMPFREQ, &gpuStorage->gpuFreq, &disjoint);
   return ts;
 }
 uint32_t flip() { return flip(NULL); }
 void begin_event(const char *name) { d3d::beginEvent(name); }
 void end_event() { d3d::endEvent(); }
 } // namespace gpu_profiler
+
+#include <drv/3d/dag_resetDevice.h>
+REGISTER_D3D_AFTER_RESET_FUNC(gpu_profiler::after_reset);

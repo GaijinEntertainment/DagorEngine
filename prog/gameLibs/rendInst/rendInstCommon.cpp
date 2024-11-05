@@ -1,8 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstAccess.h>
 #include "riGen/riGenData.h"
 #include "render/genRender.h"
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <EASTL/fixed_vector.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -37,7 +40,7 @@ void preloadTexturesToBuildRendinstShadows()
     if (RendInstGenData *rgl = (b & rmask) ? rgLayer[i] : nullptr)
     {
       auto texIds = rgl->rtData->riImpTexIds;
-      if (EASTL_LIKELY(i == 0 && tmpList.empty()))
+      if (DAGOR_LIKELY(i == 0 && tmpList.empty()))
         return prefetch_and_wait_managed_textures_loaded(texIds);
       else
         tmpList.insert(tmpList.end(), texIds.begin(), texIds.end());
@@ -70,7 +73,7 @@ static void onSettingsChanged(RendInstGenData *rgl, const Point3 &sun_dir_0)
       ShaderGlobal::reset_from_vars_and_release_managed_tex_verified(pool.rendinstClipmapShadowTexId, pool.rendinstClipmapShadowTex);
 
     if (!rendinstGlobalShadows && pool.rendinstGlobalShadowTex)
-      ShaderGlobal::reset_from_vars_and_release_managed_tex_verified(pool.rendinstGlobalShadowTexId, pool.rendinstGlobalShadowTex);
+      pool.rendinstGlobalShadowTex.close();
   }
 
   if (rendinstClipmapShadows && !hasClipShadows)
@@ -87,14 +90,24 @@ static void onSettingsChanged(RendInstGenData *rgl, const Point3 &sun_dir_0)
 void setRiExtraDistMul(float mul)
 {
   rendinst::riExtraLodDistSqMul = 1.0f / ((rendinst::render::riExtraMulScale > 0.0f ? rendinst::render::globalDistMul : 1.f) * mul);
+  float riExtraLodCullDistSqMul =
+    1.0f / ((rendinst::render::riExtraMulScale > 0.0f ? rendinst::render::globalLodCullDistMul : 1.f) * mul);
+
   rendinst::riExtraCullDistSqMul =
     1.0f / ((rendinst::render::riExtraMulScale > 0.0f ? rendinst::render::globalCullDistMul : 1.f) * mul);
 
   rendinst::riExtraLodDistSqMul *= rendinst::riExtraLodDistSqMul;
   rendinst::riExtraCullDistSqMul *= rendinst::riExtraCullDistSqMul;
+  riExtraLodCullDistSqMul *= riExtraLodCullDistSqMul;
 
+  // The distance used for LOD selection is already multiplied by riExtraCullDistSqMul.
+  // Here it's divided out so only the LOD specific multipliers are present when selecting LODs.
   rendinst::render::riExtraLodsShiftDistMul = rendinst::render::lodsShiftDistMul * rendinst::render::additionalRiExtraLodDistMul *
                                               rendinst::riExtraLodDistSqMul / rendinst::riExtraCullDistSqMul;
+
+  rendinst::render::riExtraLodsShiftDistMulForCulling = rendinst::render::lodsShiftDistMul *
+                                                        rendinst::render::additionalRiExtraLodDistMul * riExtraLodCullDistSqMul /
+                                                        rendinst::riExtraCullDistSqMul;
 }
 
 void setDistMul(float distMul, float distOfs, bool force_impostors_and_mul, float impostors_far_dist_additional_mul) // 0.2353, 0.0824
@@ -104,6 +117,14 @@ void setDistMul(float distMul, float distOfs, bool force_impostors_and_mul, floa
 {
   unitDistMul = distMul;
   unitDistOfs = distOfs;
+
+  // For LOD based culling we want to use the same mul as for lod selection, but with a minimum value
+  // It's supposed to be at least as much as the High graphics preset of settingsDistMul (1.0 in WT)
+  float settingsDistMulForLodCull = max(rendinst::render::settingsMinLodBasedCullDistMul, rendinst::render::settingsDistMul);
+  rendinst::render::globalLodCullDistMul =
+    clamp(unitDistMul * settingsDistMulForLodCull + unitDistOfs, MIN_EFFECTIVE_RENDINST_DIST_MUL, MAX_EFFECTIVE_RENDINST_DIST_MUL);
+
+  // But for LOD selection we can use the settings from the graphics preset directly
   rendinst::render::globalDistMul = clamp(unitDistMul * rendinst::render::settingsDistMul + unitDistOfs,
     MIN_EFFECTIVE_RENDINST_DIST_MUL, MAX_EFFECTIVE_RENDINST_DIST_MUL);
 
@@ -124,7 +145,9 @@ void setDistMul(float distMul, float distOfs, bool force_impostors_and_mul, floa
 
 void updateSettingsDistMul()
 {
-  updateSettingsDistMul(::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("rendinstDistMul", 1.f));
+  const DataBlock *graphicsSettings = ::dgs_get_settings()->getBlockByNameEx("graphics");
+  rendinst::render::settingsMinLodBasedCullDistMul = graphicsSettings->getReal("minLodBasedCullDistMul", 1.f);
+  updateSettingsDistMul(graphicsSettings->getReal("rendinstDistMul", 1.f));
 }
 
 void updateSettingsDistMul(float v)
@@ -132,6 +155,14 @@ void updateSettingsDistMul(float v)
   rendinst::render::settingsDistMul = clamp(v, MIN_SETTINGS_RENDINST_DIST_MUL, MAX_SETTINGS_RENDINST_DIST_MUL);
   setDistMul(unitDistMul, unitDistOfs);
 }
+
+void updateMinSettingsDistMul(float v) { MIN_SETTINGS_RENDINST_DIST_MUL = min(v, MAX_SETTINGS_RENDINST_DIST_MUL); }
+
+void updateMinEffectiveRendinstDistMul(float v) { MIN_EFFECTIVE_RENDINST_DIST_MUL = min(v, MAX_EFFECTIVE_RENDINST_DIST_MUL); }
+
+void updateMaxSettingsDistMul(float v) { MAX_SETTINGS_RENDINST_DIST_MUL = max(v, MIN_SETTINGS_RENDINST_DIST_MUL); }
+
+void updateMaxEffectiveRendinstDistMul(float v) { MAX_EFFECTIVE_RENDINST_DIST_MUL = max(v, MIN_EFFECTIVE_RENDINST_DIST_MUL); }
 
 float getSettingsDistMul() { return rendinst::render::settingsDistMul; }
 
@@ -180,6 +211,13 @@ void setImpostorsFarDistAddMul(float impostors_far_dist_additional_mul)
       rgl->rtData->setImpostorsFarDistAddMul(impostors_far_dist_additional_mul);
 }
 
+void setImpostorsMinRange(float impostors_min_range)
+{
+  FOR_EACH_RG_LAYER_DO (rgl)
+    if (rgl->rtData)
+      rgl->rtData->setImpostorsMinRange(impostors_min_range);
+}
+
 void onSettingsChanged(const Point3 &sun_dir_0)
 {
   updateSettingsDistMul();
@@ -212,6 +250,30 @@ const DestroyedPoolData *DestroyedCellData::getPool(uint16_t pool_idx) const
     if (destroyedPoolInfo[i].poolIdx == pool_idx)
       return &destroyedPoolInfo[i];
   return nullptr;
+}
+
+void debug_print_destrs(const Tab<rendinst::DestroyedCellData> &cellsNewDestrInfo)
+{
+  for (int i = 0; i < cellsNewDestrInfo.size(); ++i)
+  {
+    const rendinst::DestroyedCellData &cell = cellsNewDestrInfo[i];
+    if (cell.destroyedPoolInfo.empty())
+      continue;
+    logerr("  cell.cellId %i", cell.cellId);
+    for (int j = 0; j < cell.destroyedPoolInfo.size(); ++j)
+    {
+      const rendinst::DestroyedPoolData &pool = cell.destroyedPoolInfo[j];
+      if (pool.destroyedInstances.empty())
+        continue;
+      logerr("    pool.poolIdx %i", pool.poolIdx);
+      int stride = rendinst::getRIGenStride(0, cell.cellId, pool.poolIdx);
+      for (int k = 0; k < pool.destroyedInstances.size(); ++k)
+      {
+        const rendinst::DestroyedInstanceRange &range = pool.destroyedInstances[k];
+        logerr("      range %u elems %u", range.startOffs, (range.endOffs - range.startOffs) / stride);
+      }
+    }
+  }
 }
 } // namespace rendinst
 

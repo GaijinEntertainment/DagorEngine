@@ -1,0 +1,278 @@
+include "combine_shadows_common.dshl"
+include "screenspace_probes_common.dshl"
+include "dagi_irrad_grid_sample.dshl"
+include "dagi_common_ambient.dshl"
+include "clustered/gi_dynamic_lights.dshl"
+
+macro SUN_LIGHT_POINT_TRACE_HIT(code)//at trace hit when calculating probes
+  SQ_INIT_CLOUDS_SHADOW(code)
+  SQ_CLOUDS_SHADOW(code)
+  INIT_STATIC_SHADOW_BASE(code)
+  hlsl(code) {
+    #define HAS_STATIC_SHADOW 1
+    #define FASTEST_STATIC_SHADOW_PCF 1
+  }
+  USE_STATIC_SHADOW_BASE(code)
+  (code) {
+    csm_shadow_params@f2 = (csm_distance, clouds_shadow_influence, 0, 0);
+    tr_to_sun_direction@f3 = (-from_sun_direction.x, -from_sun_direction.y, -from_sun_direction.z, 0);
+    base_sun_color_0@f3 = (sun_color_0.r, sun_color_0.g, sun_color_0.b, 0);
+    current_world_view_pos@f3 = world_view_pos;
+    csm_world_view_pos@f3 = csm_world_view_pos;
+  }
+  hlsl(code) {
+    #define csm_distance csm_shadow_params.x
+    #define clouds_shadow_influence csm_shadow_params.y
+    float3 dagi_get_sun_color(float3 worldPos, float3 worldNormal, float shadow_offset = 0)
+    {
+      float NoL = saturate(dot(worldNormal, tr_to_sun_direction));
+      if (NoL <= 0)
+        return 0;
+      float cloudsShadow = saturate(pow(clouds_shadow(worldPos), clouds_shadow_influence));
+      float shadow = cloudsShadow;
+      float3 offsetedWorldPos = worldPos + shadow_offset*tr_to_sun_direction;
+      #ifdef NUM_CASCADES
+        //using CSM is only 5% slower than just use static cascade, but obviously more accurate
+        //todo: disable on prev-gen / bare minimum
+        #ifdef CSM_SHADOW_DYNAMIC_CASCADE
+          uint cascadeId;
+          shadow *= get_csm_shadow_cascade_id( csm_world_view_pos.xyz - offsetedWorldPos, cascadeId).x;
+          BRANCH
+          if (cascadeId > CSM_SHADOW_DYNAMIC_CASCADE)
+          {
+            shadow *= getStaticShadow(offsetedWorldPos);
+          }
+        #else
+          //we'd better keep only that branch, but with two static shadows cascades
+          shadow = getStaticShadow(offsetedWorldPos)*cloudsShadow;
+          BRANCH
+          if (shadow > 0.0)
+          {
+            uint cascdeId;
+            shadow *= get_csm_shadow_cascade_id( csm_world_view_pos.xyz - offsetedWorldPos, cascdeId ).x;
+          }
+        #endif
+      #else
+        shadow *= getStaticShadow(offsetedWorldPos);
+      #endif
+      return saturate(NoL*shadow)*base_sun_color_0;
+    }
+  }
+endmacro
+
+macro PROJECT_ADDITIONAL_SKY_VIS_TEMPORAL(code)
+  //only on temporal recalc we use csm shadows - for performance
+  SHADOWS_QUALITY_DEFINE(code)
+  INIT_CSM_SHADOW(code)
+  BASE_USE_CSM_SHADOW_DEF_NUM(code)
+endmacro
+
+macro PROJECT_ADDITIONAL_SKY_VIS(code)//at trace hit when calculating sky vis probes
+  //SHADOWS_QUALITY_DEFINE(code)
+  //INIT_CSM_SHADOW(code)
+  //BASE_USE_CSM_SHADOW_DEF_NUM(code)
+  SUN_LIGHT_POINT_TRACE_HIT(code)
+  DAGI_SKY_VIS_THROUGH(code)
+endmacro
+
+macro SUN_SKY_LIGHT_POINT_TRACE_HIT(code)//at trace hit when calculating probes (currently also used for initial voxelization. However, direct lights are different for that)
+  SUN_LIGHT_POINT_TRACE_HIT(code)
+  DAGI_GET_COMMON_VOXELIZATION_AMBIENT(code)
+  hlsl(code) {
+    float3 get_sun_sky_lit_color(float3 ambientWorldPos, float3 worldPos, float3 worldNormal, float3 albedo, float shadow_offset = 0, float ambient_loss = 1)
+    {
+      float3 ambient = dagi_get_common_offscreen_ambient(ambientWorldPos, worldNormal);
+      float3 litColor = (ambient*ambient_loss + dagi_get_sun_color(worldPos, worldNormal, shadow_offset))*albedo;
+      //fixme: add direct lights from camera
+      return litColor;
+    }
+    #define DAGI_LIGHT_TRANSLUCENT_SCENE 1
+    float3 get_sun_sky_lit_color_both(float3 ambientWorldPos, float3 worldPos, float3 worldNormal, float3 albedo, float3 translucencyColor, inout float3 ambient, inout float3 back_ambient, float shadow_offset = 0, float ambient_loss = 1)
+    {
+      dagi_get_common_offscreen_ambient_both(ambientWorldPos, worldNormal, ambient, back_ambient);
+      float3 litColor = (ambient_loss*ambient + dagi_get_sun_color(worldPos, worldNormal, shadow_offset))*albedo +
+                        (ambient_loss*back_ambient + dagi_get_sun_color(worldPos, -worldNormal, shadow_offset))*translucencyColor;
+      //fixme: add direct lights from camera
+      return litColor;
+    }
+  }
+endmacro
+
+texture combined_shadows;
+
+macro ON_SCREEN_SIMPLE_SUN_LIGHTING(code)
+  (code) {
+    combined_shadows@smp2d = combined_shadows;
+  }
+  hlsl(code) {
+    float dagi_get_on_screen_simple_sun_shadow(float2 uv)
+    {
+      return tex2Dlod(combined_shadows, float4(uv,0,0)).x;
+    }
+    float3 dagi_get_on_screen_simple_sun_light(float3 worldPos, float2 uv, float3 worldNormal)
+    {
+      float NoL = saturate(dot(worldNormal, tr_to_sun_direction));
+      if (NoL == 0)
+        return 0;
+      return (NoL*tex2Dlod(combined_shadows, float4(uv,0,0)).x)*base_sun_color_0;
+    }
+    float3 dagi_get_on_screen_simple_sun_light_with_shadow(float3 worldNormal, float shadow)
+    {
+      return saturate(dot(worldNormal, tr_to_sun_direction)*shadow)*base_sun_color_0;
+    }
+  }
+endmacro
+
+macro PROJECT_LIGHT_POINT_SCREEN_VOXEL(code) // when updating radiance from gbuf
+  DAGI_IRRADIANCE_GRID_SAMPLE(code)
+  SAMPLE_IRRADIANCE_SP(code)
+  (code) {
+    tr_to_sun_direction@f3 = (-from_sun_direction.x, -from_sun_direction.y, -from_sun_direction.z, 0.0)
+    base_sun_color_0@f3 = (sun_color_0.r, sun_color_0.g, sun_color_0.b, 0);
+    dagi_irradiance_world_view_pos@f3 = world_view_pos;
+  }
+  ON_SCREEN_SIMPLE_SUN_LIGHTING(code)
+  hlsl(code) {
+    float3 project_get_lit_color_at_screen_translucency(float2 tc, float2 screenpos, float linearDepth, float3 worldPos, ProcessedGbuffer gbuf, float depthW = -1000)
+    {
+      float3 ambientWorldPos = worldPos;//fixme!
+      float shadowBiasMeters = 0;
+      float3 ambient = 0, backAmbient = 0;
+      //we use screenprobes irradiance
+      bool noProbes = !sp_getNumScreenProbes();
+      BRANCH
+      if (!noProbes)
+        noProbes = !sample_bilinear_irradiance_envi_normal_both(gbuf.normal, linearDepth, worldPos, gbuf.normal, screenpos.xy, ambient, backAmbient, depthW);
+      BRANCH
+      if (noProbes)
+      {
+        //should not be happening normally...
+        float3 toCamera = dagi_irradiance_world_view_pos-worldPos;
+        float len = length(toCamera);
+        dagi_irrad_grid_diffuse_biased_both_dir(ambientWorldPos, gbuf.normal, toCamera/max(1e-9, len), len, gbuf.normal, ambient, backAmbient);
+      }
+      //add back light from foliage
+      //todo:
+      // * add SSAO for ambient?
+      float sunShadow = dagi_get_on_screen_simple_sun_shadow(tc);
+      float3 litColor = (ambient*gbuf.ao + dagi_get_on_screen_simple_sun_light_with_shadow(gbuf.normal, sunShadow))*gbuf.albedo +
+                        (backAmbient*gbuf.ao + dagi_get_on_screen_simple_sun_light_with_shadow(-gbuf.normal, sunShadow))*gbuf.translucencyColor;
+      //fixme: add direct lights from camera
+      return litColor;
+    }
+
+    float3 project_get_lit_color_at_screen(float2 tc, float2 screenpos, float linearDepth, float3 worldPos, ProcessedGbuffer gbuf, float depthW = -1000)
+    {
+      float3 ambientWorldPos = worldPos;//fixme!
+      float shadowBiasMeters = 0;
+      float3 ambient = 0;
+      //we use screenprobes irradiance
+      bool noProbes = !sp_getNumScreenProbes();
+      if (!noProbes)
+        noProbes = !sample_bilinear_irradiance(linearDepth, worldPos, gbuf.normal, screenpos.xy, ambient, depthW);
+      if (noProbes)
+      {
+        float3 toCamera = dagi_irradiance_world_view_pos-worldPos;
+        //should not be happening normally...
+        float len = length(toCamera);
+        dagi_irrad_grid_diffuse_biased(ambientWorldPos, gbuf.normal, toCamera/max(1e-9, len), len, gbuf.normal, ambient);
+      }
+      //todo:
+      // * add SSAO for ambient?
+      float3 litColor = (ambient*gbuf.ao + dagi_get_on_screen_simple_sun_light(worldPos, tc, gbuf.normal))*gbuf.albedo;
+      #if GI_HAS_DYNAMIC_LIGHTS
+        litColor += getGiDynamicLighting(gbuf, worldPos, screenpos, tc, linearDepth);
+      #endif
+      return litColor;
+    }
+  }
+endmacro
+
+macro PROJECT_LIGHT_POINT_TRACE_HIT(code)//at trace hit when calculating probes
+  SUN_SKY_LIGHT_POINT_TRACE_HIT(code)
+  //SHADOWS_QUALITY_DEFINE(code)
+  //INIT_CSM_SHADOW(code)
+  //BASE_USE_CSM_SHADOW_DEF_NUM(code)
+  hlsl(code) {
+    float3 project_get_lit_color_at_trace_hit(float3 worldPos, float3 worldNormal, float3 albedo)
+    {
+      float3 ambientWorldPos = worldPos;//fixme!
+      float shadowBiasMeters = 0;//fixme: we should add bias based on distance
+      return get_sun_sky_lit_color(ambientWorldPos, worldPos, worldNormal, albedo, shadowBiasMeters);
+    }
+  }
+endmacro
+
+macro PROJECT_LIGHT_POINT_VOXELIZE_NO_STEP_OUT(code) // when voxelizing radiance of radiance voxel scene
+  SHADOWS_QUALITY_DEFINE(code)
+  INIT_CSM_SHADOW(code)
+  BASE_USE_CSM_SHADOW_DEF_NUM(code)
+  SUN_SKY_LIGHT_POINT_TRACE_HIT(code)
+  hlsl(code) {
+    float3 project_get_lit_color_at_voxelize(float3 worldPos, float3 worldNormal, float3 albedo)
+    {
+      float halfVoxelSize = 0.5*world_sdf_raster_voxel_size();
+      float3 ambientWorldPos = current_world_view_pos.xyz + (worldPos - current_world_view_pos.xyz)*0.99;
+      #ifdef WORLD_SDF_STEP_OUT
+      uint stepOutMip = world_sdf_update_mip+1;
+      ambientWorldPos += worldNormal*halfVoxelSize;
+      if (stepOutMip < world_sdf_num_cascades())
+        world_sdf_step_out_clip_unsafe(ambientWorldPos, stepOutMip, 0, 1);
+      #endif
+      float3 litColor = get_sun_sky_lit_color(current_world_view_pos.xyz + (worldPos - current_world_view_pos.xyz)*0.99,
+        worldPos, worldNormal, albedo, halfVoxelSize, 0.5);
+      #if GI_HAS_DYNAMIC_LIGHTS
+        //UnpackedGbuffer gbufU;
+        //init_gbuffer(gbufU);
+        ProcessedGbuffer gbuf;
+        gbuf.diffuseColor = albedo;
+        gbuf.normal = worldNormal;
+        litColor += getGiDynamicLighting(gbuf, worldPos, 0, 0, 0);
+      #endif
+      return litColor;
+    }
+  }
+endmacro
+
+macro PROJECT_LIGHT_POINT_VOXELIZE(code) // when voxelizing radiance of radiance voxel scene
+  READ_WORLD_SDF_MATH_INIT(code)
+  READ_WORLD_SDF_MATH_USE(code)
+  READ_WORLD_SDF_INIT(code)
+  READ_WORLD_SDF_USE(code)
+  WORLD_SDF_STEP_OUT(code)
+  PROJECT_LIGHT_POINT_VOXELIZE_NO_STEP_OUT(code)
+endmacro
+
+macro PROJECT_LIGHT_POINT_VOXELIZE_OFF_SCREEN_VOXEL_LIT_SCENE(code)
+  GI_DYNLIGHTS_MIN_PROCESSED_GBUFFER(code)
+  GI_OUT_OF_SCREEN_VOXELIZE_LIGHT_HELPER(code)
+  PROJECT_LIGHT_POINT_VOXELIZE(code)
+endmacro
+
+
+macro PROJECT_LIGHT_POINT_SCREEN_VOXEL_LIT_SCENE(code)
+  PACK_UNPACK_GBUFFER_BASE(code)
+  GI_COMMON_SCREEN_DYNAMIC_LIGHTS(code)
+  PROJECT_LIGHT_POINT_SCREEN_VOXEL(code)
+endmacro
+
+macro PROJECT_GET_SKY_RADIANCE_AT(code)
+  (code) { envi_probe_specular@smpCube = envi_probe_specular; }//todo: use pre-averaged octahedral of a reasonable resolution!
+  hlsl(code) {
+    //when ray miss the scene
+    float3 dagi_get_sky_radiance_at(float3 worldPosAt, float3 rayDir)
+    {
+      float darkening = 1;
+      #if PROJECT_DAGI_USE_HMAP
+      BRANCH
+      if (worldPosAt.y < heightmap_scale.x+heightmap_scale.y)//if worldPosAt.y is lower than maximum height
+      {
+        darkening = exp2(min(0, 0.25*(worldPosAt.y-decode_height(getHeightLowLod(calcTcLow(worldPosAt.xz), 0)))));//twice darker each 4 meters
+        //todo: probably check holes? not really that needed, if holes are supposed to be small enough.
+      }
+      #endif
+
+      return darkening*texCUBElod(envi_probe_specular, float4(rayDir,3)).rgb;// todo: better use preintegrated octahedral!
+    }
+  }
+endmacro

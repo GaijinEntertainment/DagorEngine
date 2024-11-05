@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <scene/dag_buildVisTree.h>
 #include <math/dag_math3d.h>
 #include <util/dag_stlqsort.h>
@@ -78,7 +80,7 @@ static inline void set_bbox_sr2(bbox3f &b, vec4f sr2_x, vec4f msor2_w)
 
 void BuildVisTree::recursiveBuild(int node_id)
 {
-  static vec4f_const c16 = {16.0f, 16.0f, 16.0f, 16.0f};
+  static vec4f_const c16 = DECL_VECFLOAT4(16.0f, 16.0f, 16.0f, 16.0f);
   int depth = node_id >> 16;
   HierVisNode &node = buildList[node_id & 0xFFFF];
   int start = node.childFirst;

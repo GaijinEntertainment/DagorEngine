@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <EASTL/span.h>
 #include <EASTL/variant.h>
 
@@ -10,6 +12,8 @@
 #include <generic/dag_fixedVectorMap.h>
 #include <id/idIndexedFlags.h>
 #include <backend/intermediateRepresentation.h>
+#include <backend/resourceScheduling/barrierScheduler.h>
+#include <backend/passColoring.h>
 #include <common/graphDumper.h>
 
 
@@ -21,73 +25,27 @@ class framemem_allocator;
 namespace dabfg
 {
 
-using DynamicResolutions = IdIndexedMapping<AutoResTypeNameId, eastl::optional<IPoint2>, framemem_allocator>;
+using DynamicResolution = eastl::variant<eastl::monostate, IPoint2, IPoint3>;
+using DynamicResolutions = IdIndexedMapping<AutoResTypeNameId, DynamicResolution, framemem_allocator>;
 
 class ResourceScheduler
 {
 public:
-  struct Event
-  {
-    struct Activation
-    {
-      ResourceActivationAction action;
-      ResourceClearValue clearValue;
-    };
+  static constexpr int SCHEDULE_FRAME_WINDOW = BarrierScheduler::SCHEDULE_FRAME_WINDOW;
 
-    struct CpuActivation
-    {
-      TypeErasedCall func;
-    };
-
-    struct CpuDeactivation
-    {
-      TypeErasedCall func;
-    };
-
-    struct Barrier
-    {
-      ResourceBarrier barrier;
-    };
-
-    struct Deactivation
-    {};
-
-    intermediate::ResourceIndex resource;
-    uint32_t frameResourceProducedOn;
-
-    // NOTE: at each timepoint events are executed in order of their
-    // type, from last one to first one. Meaning deactivations happen
-    // before barriers, barriers before activations.
-    using Payload = eastl::variant<CpuActivation, Activation, Barrier, Deactivation, CpuDeactivation>;
-    Payload data;
-  };
-
-  static const int SCHEDULE_FRAME_WINDOW = 2; // even and odd frames
-
-  using NodeEventsRef = eastl::span<const Event>;
-  using FrameEventsRef = eastl::span<const NodeEventsRef>;
-  using EventsCollectionRef = eastl::array<FrameEventsRef, SCHEDULE_FRAME_WINDOW>;
-
-
-public:
   ResourceScheduler(IGraphDumper &dumper) : graphDumper{dumper} {}
 
   struct BlobDeactivationRequest
   {
-    void (*destructor)(void *);
+    TypeErasedCall destructor;
     void *blob;
   };
 
-  using ResourceDeactivationRequest = eastl::variant<Texture *, Sbuffer *, BlobDeactivationRequest>;
+  using ResourceDeactivationRequest = eastl::variant<BaseTexture *, Sbuffer *, BlobDeactivationRequest>;
+  using ResourceDeactivationRequestsFmem = dag::Vector<ResourceDeactivationRequest, framemem_allocator>;
 
-  struct SchedulingResult
-  {
-    EventsCollectionRef events;
-    dag::Vector<ResourceDeactivationRequest, framemem_allocator> deactivations;
-  };
-
-  // Returned spans are valid until the method gets called again
-  SchedulingResult scheduleResources(int prev_frame, const intermediate::Graph &graph);
+  ResourceDeactivationRequestsFmem scheduleResources(int prev_frame, const intermediate::Graph &graph,
+    const BarrierScheduler::EventsCollectionRef &events, const DynamicResolutions &dyn_resolutions);
 
   virtual void resizeAutoResTextures(int frame, const DynamicResolutions &resolutions) = 0;
 
@@ -97,7 +55,11 @@ public:
   const D3dResource *getD3dResource(int frame, intermediate::ResourceIndex res_idx) const;
   bool isResourcePreserved(int frame, intermediate::ResourceIndex res_idx) const;
 
+  void emergencyDeactivateBlobs(int frame, eastl::span<ResNameId> resources);
+
   void shutdown(int frame);
+
+  void invalidateTemporalResources();
 
   virtual ~ResourceScheduler() = default;
 
@@ -125,10 +87,6 @@ protected:
 
   ResourceProperties gatherResourceProperties(const intermediate::Graph &graph);
 
-
-  // Returns per node events for even and odd frames. Modifies eventStorage and returns views to it.
-  EventsCollectionRef scheduleEvents(const intermediate::Graph &graph);
-
   using PotentialResourceDeactivation = eastl::variant<eastl::monostate, BaseTexture *, Sbuffer *, BlobDeactivationRequest>;
   using PotentialDeactivationSet = IdIndexedMapping<intermediate::ResourceIndex, PotentialResourceDeactivation>;
 
@@ -136,16 +94,30 @@ protected:
 
 
   using IntermediateResources = IdIndexedMapping<intermediate::ResourceIndex, intermediate::Resource>;
-  using IntermediateRemapping = IdIndexedMapping<intermediate::ResourceIndex, intermediate::ResourceIndex, framemem_allocator>;
+  using IrHistoryPairing = IdIndexedMapping<intermediate::ResourceIndex, intermediate::ResourceIndex, framemem_allocator>;
 
-  // After recompiling, the resource index may change for the same resource.
-  // So we must map the new idx to the old idx in order to check the offset hints.
-  IntermediateRemapping remapResources(const IntermediateResources &resources) const;
+  // After recompiling, the IR graph might change drastically, so we have
+  // to use some tricks to figure out which resources we are supposed to
+  // reuse as history for the current frame
+  IrHistoryPairing pairPreviousHistory(const IntermediateResources &resources) const;
+
+  struct ResourceLocation
+  {
+    uint64_t offset;
+    uint64_t size;
+    uint32_t start;
+    uint32_t end;
+  };
+  using PerHeapPerFrameHistoryResourceLocations = dag::FixedVectorMap<intermediate::ResourceIndex, ResourceLocation, 32>;
+  using PerHeapHistoryResourceLocations = eastl::array<PerHeapPerFrameHistoryResourceLocations, SCHEDULE_FRAME_WINDOW>;
+  using HistoryResourceLocations = IdIndexedMapping<HeapIndex, PerHeapHistoryResourceLocations>;
+
 
   // Calculates a schedule of resource usage, i.e. where exactly in
   // each heap the resource will be allocated
   eastl::pair<AllocationLocations, HeapRequests> scheduleResourcesIntoHeaps(const ResourceProperties &resources,
-    const EventsCollectionRef &events, const IntermediateRemapping &cached_res_idx_remapping);
+    const BarrierScheduler::EventsCollectionRef &events, const IrHistoryPairing &history_pairing,
+    const HistoryResourceLocations &previous_temporal_resource_locations);
 
   // This lists the heaps that were either completely destroyed
   // or recreated with a larger size (and their resources hence died)
@@ -160,12 +132,12 @@ protected:
   // Note: this function does not deal with aliases, only with
   // representatives of alias groups.
   void placeResources(const intermediate::Graph &graph, const ResourceProperties &resource_properties,
-    const AllocationLocations &allocation_locations);
+    const AllocationLocations &allocation_locations, const DynamicResolutions &dyn_resolutions);
 
   void restoreResourceApiNames() const;
 
   virtual void placeResource(int frame, intermediate::ResourceIndex res_idx, HeapIndex heap_idx, const ResourceDescription &desc,
-    uint32_t offset, const ResourceAllocationProperties &properties) = 0;
+    uint32_t offset, const ResourceAllocationProperties &properties, const DynamicResolution &dyn_resolution) = 0;
 
   virtual ResourceAllocationProperties getResourceAllocationProperties(const ResourceDescription &desc,
     bool force_not_on_chip = false) = 0;
@@ -178,12 +150,6 @@ protected:
 protected:
   IGraphDumper &graphDumper;
 
-
-  // The following 2 fields are wiped and
-  // recalculated on each compilation
-
-  dag::Vector<Event> eventStorage;
-  eastl::array<dag::Vector<eastl::span<const Event>>, SCHEDULE_FRAME_WINDOW> eventRefStorage;
   eastl::array<IdIndexedMapping<intermediate::ResourceIndex, uint32_t>, SCHEDULE_FRAME_WINDOW> resourceIndexInCollection;
 
   static constexpr uint32_t UNSCHEDULED = eastl::numeric_limits<uint32_t>::max();
@@ -198,18 +164,15 @@ protected:
   // Caching of heaps to reduce memory reallocation. For simplicity,
   // heaps are never totally removed and heap IDs are never freed.
   HeapRequests allocatedHeaps;
-  // Offset hints and sizes for history resource per heap in case of rescheduling
-  struct HintedResource
-  {
-    uint64_t offsetHint;
-    uint64_t size;
-    uint32_t start;
-    uint32_t end;
-  };
-  IdIndexedMapping<HeapIndex,
-    eastl::array<dag::FixedVectorMap<intermediate::ResourceIndex, HintedResource, 32>, SCHEDULE_FRAME_WINDOW>>
-    hintedResources;
+
+  // Maps a (heapIdx, frame, resIdx) into the location where the resource is
+  // stored, if it has history enabled (i.e. it is a temporal resource).
+  HistoryResourceLocations temporalResourceLocations;
+
+  // Lists the resources whose history we managed to preserve and so don't
+  // need to wipe it clean.
   eastl::array<IdIndexedFlags<intermediate::ResourceIndex>, SCHEDULE_FRAME_WINDOW> preservedResources;
+
   // Keep track of history resource flags,
   // because their change invalidates the preservation mechanism.
   dag::FixedVectorMap<ResNameId, uint32_t, 32> historyResourceFlags;

@@ -1,0 +1,202 @@
+include "psh_derivate.dshl"
+include "normaldetail.dshl"
+include "dynamic_opaque_inc.dshl"
+include "mask_layered_inc.dshl"
+include "gbuffer.dshl"
+
+shader dynamic_layered
+{
+  ENABLE_ASSERT(ps)
+  if (in_editor_assume == yes)
+  {
+    (vs) {
+      world_local_pos@f3 = world_local_pos;
+    }
+  }
+  else
+  {
+    NO_DYNSTCODE()
+  }
+  DYNAMIC_BLOCK()
+  USE_FLOAT_POS_PACKING()
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+  if (num_bones != no_bones)
+  {
+    channel color8 tc[4] = extra[0];
+    channel color8 tc[5] = extra[1];
+    hlsl {
+      #define HAS_SKINNING 1
+    }
+  }
+
+  INIT_LAYERED_FULL()
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    USE_MICRODETAIL_BASED_WETNESS()
+  }
+  SETUP_CHARACTER_TWO_MICRODETAILS()
+  INIT_PAINT_DETAILS_STATIC()
+  if (paint_details_tex != NULL)
+  {
+    hlsl{
+      #define COLOR_NEEDED 1
+    }
+    if (dyn_model_render_pass == render_pass_normal)
+    {
+      (vs) {
+        paint_palette_row_index@f2 = (paint_details.w, palette_index, 0, 0);
+      }
+      USE_PAINT_DETAILS()
+    }
+  }
+
+  INIT_OPTIONAL_SKINNING()
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float3 pos                  : POSITION;
+      float4 normal               : NORMAL;
+      ##if (dyn_model_render_pass != render_to_depth)
+        int2 uv0                    : TEXCOORD0;
+        int2 uv1                    : TEXCOORD1;
+        int2 uv2                    : TEXCOORD2;
+      ##endif
+      INIT_BONES_VSINPUT(TEXCOORD4, TEXCOORD5)
+    };
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      PRECISE VS_OUT_POSITION(pos)
+      ##if (dyn_model_render_pass != render_to_depth)
+        float4 normal_transparency  : TEXCOORD0;
+        float4 uv0mask              : TEXCOORD1;
+        float4 uv_detail            : TEXCOORD2;
+        float4 uv12                 : TEXCOORD3;
+        float4 pointToEye           : TEXCOORD4;
+        #if COLOR_NEEDED
+          nointerpolation float3 colorMul : TEXCOORD5;
+        #endif
+      ##endif
+    };
+  }
+  OPTIONAL_SKINNING_SHADER()
+  LAYERED_VS_FUNCTIONS()
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    USE_MOTION_VECTORS()
+    USE_MOTION_VEC_ENCODE(ps)
+  }
+  hlsl(vs) {
+    VsOutput simple_vs(VsInput input HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+      // unpack positions using dynmodel bbox
+      input.pos.xyz = unpack_pos(input.pos);
+
+      // Skinning.
+
+      float3 eyeToPoint;
+      float3 worldDu;
+      float3 worldDv;
+      float3 worldNormal;
+      ##if dyn_model_render_pass == render_pass_normal
+        float3 localNormal = BGR_SWIZZLE(input.normal.rgb)*2-1;
+      ##else
+        float3 localNormal = 1;
+      ##endif
+
+      float3 localDu = float3(1,0,0), localDv = float3(1,0,0);
+      instance_skinning(
+        input,
+        input.pos,
+        localNormal,
+        localDu,
+        localDv,
+        eyeToPoint,
+        output.pos,
+        worldNormal,
+        worldDu,
+        worldDv);
+
+      float3 worldPos = eyeToPoint+world_view_pos;
+      float4 unpackedOutputPos = output.pos;
+      float opacity = 1;
+      ##if in_editor_assume == no
+        uint offset_id = get_immediate_dword_0();
+        offset_id += uint(input.normal.w*255.001953) * matrices_stride;
+        float4 r1 = bufferAt(instance_data_buffer, offset_id),r2 = bufferAt(instance_data_buffer, offset_id+1),r3 = bufferAt(instance_data_buffer, offset_id+2);
+        float3 world_local_pos = float3(r1.w,r2.w,r3.w);
+      ##endif
+      ##if dyn_model_render_pass == render_pass_normal
+        #ifdef MOTION_VECTORS_ENABLED
+          output.out_pos_prev = get_prevframe_output_pos(input, input.pos);
+          output.out_pos = output.pos;
+        #endif
+      ##endif
+
+      ##if (dyn_model_render_pass != render_to_depth)
+        output.uv0mask.xy = input.uv0 * (1. / 4096.0);
+        output.uv12 = float4(input.uv1, input.uv2)  * (1. / 4096.0);
+
+        //random for detail & mask uv's
+
+
+        output.uv0mask.zw = output.uv12.xy * get_maskTile__detail2Scroll().xy;
+        output.uv_detail = output.uv12.zwzw * get_detailTile();
+
+        output.pointToEye.xyz = -eyeToPoint;
+        output.pointToEye.w = 0.0;
+        float4 initialTm0;
+        float4 initialTm1;
+        float4 initialTm2;
+        ##if in_editor_assume == yes
+          initialTm0 = float4(1, 0, 0, 0);
+          initialTm1 = float4(0, 1, 0, 0);
+          initialTm2 = float4(0, 0, 1, 0);
+        ##else
+          get_per_instance_data(initialTm2, 2);
+          get_per_instance_data(initialTm1, 3);
+          get_per_instance_data(initialTm0, 4);
+        ##endif
+        float3 initInstancePos = float3(initialTm0.w, initialTm1.w, initialTm2.w);
+        layered_transform_uvs_with_random_offset(output, initInstancePos, output.uv0mask.zw, output.uv_detail, output.pointToEye.w);
+        apply_atlas_transform(initInstancePos, output.uv12.xy);
+        output.normal_transparency.xyz = normalize(worldNormal.xyz);
+        output.normal_transparency.w = opacity;
+
+        ##if (dyn_model_render_pass == render_pass_normal)
+          #if COLOR_NEEDED
+            float4 hashval;
+            get_per_instance_data(hashval, 1);
+            output.colorMul = getColorMul(asuint(hashval.x));
+          #endif
+        ##endif
+      ##endif
+      return output;
+    }
+  }
+
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    compile("ps_null", "dynamic_render_depth_black_ps");
+  }
+  else
+  {
+    WRITE_GBUFFER()
+    USE_CHARACTER_TWO_MICRODETAILS()
+
+    USE_LAYERED_PS()
+    (ps) {
+      mask_tex@static = mask_tex;
+      paint_details@f4 = paint_details;
+    }
+    USE_NORMAL_DETAIL()
+    LAYERED_PS(dyn_model_render_pass == render_pass_normal)
+    compile("target_ps", "simple_ps");
+  }
+  compile("target_vs", "simple_vs");
+}

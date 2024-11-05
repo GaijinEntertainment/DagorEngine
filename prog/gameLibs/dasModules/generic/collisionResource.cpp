@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/aotCollisionResource.h>
 #include <rendInst/rendInstExtra.h>
 
@@ -31,6 +33,7 @@ struct CollisionNodeAnnotation : das::ManagedStructureAnnotation<CollisionNode, 
     addField<DAS_BIND_MANAGED_FIELD(nodeIndex)>("nodeIndex");
     addField<DAS_BIND_MANAGED_FIELD(type)>("nodeType", "type");
     addField<DAS_BIND_MANAGED_FIELD(behaviorFlags)>("behaviorFlags");
+    addFieldEx("name", "name", offsetof(CollisionNode, name), das::makeType<char *>(ml));
   }
 };
 
@@ -74,6 +77,8 @@ public:
     addAnnotation(das::make_smart<CollisionResourceAnnotation>(lib));
     addAnnotation(das::make_smart<IntersectedNodeAnnotation>(lib));
     das::typeFactory<CollResIntersectionsType>::make(lib);
+    das::typeFactory<CollResHitNodesType>::make(lib);
+    das::addCtorAndUsing<CollResHitNodesType>(*this, lib, "CollResHitNodesType", "::CollResHitNodesType");
 
     addEnumeration(das::make_smart<EnumerationBehaviorFlag>());
     addEnumeration(das::make_smart<EnumerationCollisionNodeFlag>());
@@ -94,6 +99,8 @@ public:
       das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::collres_traceray_out_intersections2");
     das::addExtern<DAS_BIND_FUN(collres_traceCapsule_out_intersections)>(*this, lib, "collres_traceCapsule",
       das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::collres_traceCapsule_out_intersections");
+    das::addExtern<DAS_BIND_FUN(collres_capsuleHit_out_intersections)>(*this, lib, "collres_capsuleHit",
+      das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::collres_capsuleHit_out_intersections");
     das::addExtern<DAS_BIND_FUN(collres_rayhit)>(*this, lib, "collres_rayhit", das::SideEffects::accessExternal,
       "bind_dascript::collres_rayhit");
 

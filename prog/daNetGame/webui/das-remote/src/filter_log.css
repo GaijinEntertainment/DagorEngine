@@ -1,0 +1,161 @@
+
+div {
+  padding: 2px;
+  font-family: sans-serif;
+}
+body {
+  margin: 0px;
+  margin-left: 5px;
+}
+.logMsg {
+  padding-top: 65px;
+  font-size: 13px;
+  white-space: pre;
+  font-family: consolas;
+  white-space: pre-wrap;
+}
+
+.topPanel {
+  position:fixed;
+  display: flex;
+  background-color: rgb(233, 247, 228);
+  padding: 0px;
+  padding-left: 2px;
+  margin: 0px;
+  font-size: 16px;
+}
+
+.inactive {
+  background-color: rgb(247, 174, 105);
+}
+
+.spacer30 {
+  display:inline-block;
+  min-width: 30px;
+  width: 30px;
+  height: 1px;
+}
+
+
+.spacer70 {
+  display:inline-block;
+  min-width: 70px;
+  width: 70px;
+  height: 1px;
+}
+
+.disconnectedBG {
+  background-color: rgb(245, 242, 242);
+}
+
+.parsingErrorsBG {
+  background-color: rgb(243, 176, 176);
+}
+
+.tooltipContainer {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltipContainer > .tooltipContent {
+  visibility: hidden;
+  position: absolute;
+  z-index: 1;
+
+  background-color: rgb(225, 241, 220);
+  padding: 10px;
+
+  top: 100%;
+  left: 0%;
+}
+
+.tooltipContainer:hover .tooltipContent {
+  visibility: visible;
+}
+
+.settingsLabel {
+  text-decoration-style: dashed;
+  text-decoration-line: underline;
+}
+
+.gridContainer {
+  display: grid;
+  grid-template-columns: 120px 360px;
+  column-gap: 10px;
+  row-gap: 25px;
+}
+
+.highlighted {
+  background-color: khaki;
+}
+
+.shortInput {
+  width: 50px;
+}
+
+.includeInput {
+  width: 132px;
+}
+
+.excludeInput {
+  width: 80px;
+}
+
+.searchBox {
+  padding: 2px;
+  margin: 0px;
+}
+
+.collapseBtn {
+  padding: 0px;
+  margin: 0px;
+  position: absolute;
+  height: 100%;
+  left: -10px;
+  min-height: 30px;
+}
+
+.collapsedLogMsg {
+  padding-top: 0px;
+  font-size: 13px;
+  white-space: pre;
+  font-family: consolas;
+  white-space: pre-wrap;
+}
+
+.highlightedE {
+  color: red;
+}
+
+.highlightedW {
+  color: orange;
+}
+
+.eSReloadPanel {
+  position: fixed;
+  margin: auto;
+  right: 50px;
+  top: 20px;
+  background-color: rgb(231, 231, 231);
+  font-size: larger;
+  color: rgb(87, 87, 87);
+  padding: 10px;
+  border-color: gainsboro;
+  border-width: 2px;
+  border-style: solid;
+  border-radius: 5px;
+}
+
+.eSReloadVisible {
+  opacity: 1;
+}
+
+.eSReloadInvisible {
+  opacity: 0;
+  animation: fade 3s linear;
+}
+
+@keyframes fade {
+  0% { opacity: 1 }
+  100% { opacity: 0 }
+}

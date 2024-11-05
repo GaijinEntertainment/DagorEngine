@@ -1,13 +1,12 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <math/dag_bounds3.h>
 #include <math/dag_Point4.h>
-#include <3d/dag_drv3d.h>
+#include <shaders/dag_overrideStates.h>
 #include <3d/dag_resPtr.h>
 #include <EASTL/deque.h>
 #include <shaders/dag_DynamicShaderHelper.h>

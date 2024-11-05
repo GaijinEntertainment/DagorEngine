@@ -5,9 +5,17 @@ FullOOPEnabled = no ;
 
 CopyDxcLib = yes ;
 
-include $(Root)/$(Location)/jamfile-common ;
 
 Target = tools/dsc2-spirv ;
+if $(OS) = MACOSX {
+  if ! $(PlatformArch) {
+    Target = $(Target:B) ;
+    baseJam = jamfile-hlsl2spirv ;
+    include $(Root)/$(Location)/jamfile-universal-bin ;
+    return ;
+  }
+}
+include $(Root)/$(Location)/jamfile-common ;
 
 AddIncludes +=
   $(Root)/prog/3rdPartyLibs/vulkan/include
@@ -24,9 +32,9 @@ CPPopt += -D_CROSS_TARGET_SPIRV=1 -DBINDUMP_TARGET_BE=0 -D_CRT_SECURE_NO_DEPRECA
   #-D_HAS_ITERATOR_DEBUGGING=1
 ;
 
-if $(Platform) = macosx {
+if $(Platform) = macOS {
   CPPopt += -Wno-switch ;
-} else if $(Platform) = linux64 {
+} else if $(Platform) = linux {
   if $(PlatformSpec) = clang { CPPopt += -Wno-switch -Wno-sometimes-uninitialized ; }
 }
 

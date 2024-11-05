@@ -1,0 +1,50 @@
+include "shader_global.dshl"
+include "vr_reprojection.dshl"
+
+float4 depth_target_sz;
+float4 depth_source_sz;
+int depth_lod = 0;
+
+shader downsample_depth_hzb_vr
+{
+  if (hardware.metal)
+  {
+    dont_render;
+  }
+
+  (cs) {
+    depth_source_sz@f4 = (depth_source_sz.x, depth_source_sz.y, 1 / depth_source_sz.x, 1 / depth_source_sz.y);
+    depth_target_sz@f4 = (depth_target_sz.x, depth_target_sz.y, 1 / depth_target_sz.x, 1 / depth_target_sz.y);
+    binning_mul@f2 = (depth_target_sz.x / depth_source_sz.x, depth_target_sz.y / depth_source_sz.y, 0, 0);
+    depth_lod@i1 = (depth_lod, 0, 0, 0);
+  }
+
+  INIT_BOUNDING_VIEW_REPROJECTION(cs)
+  USE_BOUNDING_VIEW_REPROJECTION(cs)
+
+  INIT_ZNZFAR_STAGE(cs)
+  ENABLE_ASSERT(cs)
+
+  hlsl(cs) {
+    // Interlocked* operations only support uint, but floats are comparable as uint if positive
+    // we are going to read and write the float textures are uints
+    RWTexture2D<uint> target_depth : register(u0);
+    Texture2D<float> source_depth : register(t1);
+
+    [numthreads(16, 16, 1)]
+    void downsample_cs(uint3 dtId : SV_DispatchThreadID)
+    {
+      if (!all(dtId.xy < uint2(depth_source_sz.xy)))
+        return;
+      float depth = texelFetch(source_depth, dtId.xy, depth_lod);
+
+      float3 pos = vr_bounding_view_reproject((dtId.xy + 0.5) * depth_source_sz.zw, max(1e-9, depth));
+      depth = pos.z;
+      uint2 bin = pos.xy * depth_target_sz.xy;
+
+      InterlockedMin(texture2DAt(target_depth, bin), asuint(depth));
+    }
+  }
+
+  compile("target_cs", "downsample_cs");
+}

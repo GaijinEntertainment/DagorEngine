@@ -33,6 +33,7 @@ Sources =
   squirrel/sqtable.cpp
   squirrel/sqvm.cpp
   squirrel/memtrace.cpp
+  squirrel/sqdedupshrinker.cpp
   squirrel/sqstringlib.cpp
   squirrel/optimizations/closureHoisting.cpp
   squirrel/static_analyzer/analyzer.cpp
@@ -62,10 +63,11 @@ SqUseDefaultMemory ?= no ;
 if $(SqUseDefaultMemory) = yes {
   Sources += squirrel/sqmem.cpp ;
 } else {
+  if $(SqVarTrace) = yes {
+    CPPopt += -DENABLE_FIXED_ALLOC=1 ;
+  }
   Sources += squirrel/sqmemdagor.cpp ;
 }
-
-CPPopt = -D__B_CORE ;
 
 if $(SqVarTrace) = yes {
   CPPopt += -DSQ_VAR_TRACE_ENABLED=1 ;

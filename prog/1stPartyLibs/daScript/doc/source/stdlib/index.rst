@@ -1,10 +1,10 @@
 .. _stdlib:
 
 #################################
-  Daslang Standard Library 0.4
+  Daslang Standard Library 0.5
 #################################
 
-Copyright (c) 2018-2022 Gaijin Entertainment
+Copyright (c) 2018-2024 Gaijin Entertainment
 Authors: Anton Yudintsev, Boris Batkin
 
 The above copyright notice and this permission notice shall be included in

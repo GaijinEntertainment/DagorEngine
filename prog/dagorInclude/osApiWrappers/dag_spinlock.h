@@ -1,14 +1,14 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 typedef volatile int os_spinlock_t;
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 #include <perfMon/dag_daProfilerToken.h>
+#include <osApiWrappers/dag_threadSafety.h>
 
 KRNLIMP void os_spinlock_init(os_spinlock_t *lock);
 KRNLIMP void os_spinlock_destroy(os_spinlock_t *lock);
@@ -17,7 +17,7 @@ KRNLIMP void os_spinlock_lock(os_spinlock_t *lock, da_profiler::desc_id_t token 
 KRNLIMP bool os_spinlock_trylock(os_spinlock_t *lock);
 KRNLIMP void os_spinlock_unlock(os_spinlock_t *lock);
 
-class OSSpinlock
+class DAG_TS_CAPABILITY("mutex") OSSpinlock
 {
 public:
   OSSpinlock() { os_spinlock_init(&spinlock); }
@@ -26,16 +26,16 @@ public:
   OSSpinlock &operator=(const OSSpinlock &) = delete;
   OSSpinlock(OSSpinlock &&) = default;
   OSSpinlock &operator=(OSSpinlock &&) = default;
-  void lock(da_profiler::desc_id_t token = da_profiler::DescSpinlock) { os_spinlock_lock(&spinlock, token); }
-  bool tryLock() { return os_spinlock_trylock(&spinlock); }
-  void unlock() { os_spinlock_unlock(&spinlock); }
+  void lock(da_profiler::desc_id_t token = da_profiler::DescSpinlock) DAG_TS_ACQUIRE() { os_spinlock_lock(&spinlock, token); }
+  bool tryLock() DAG_TS_TRY_ACQUIRE(true) { return os_spinlock_trylock(&spinlock); }
+  void unlock() DAG_TS_RELEASE() { os_spinlock_unlock(&spinlock); }
 
 protected:
   friend class OSSpinlockScopedLock;
   os_spinlock_t spinlock;
 };
 
-class OSSpinlockScopedLock
+class DAG_TS_SCOPED_CAPABILITY OSSpinlockScopedLock
 {
   os_spinlock_t *mutex;
 
@@ -50,20 +50,20 @@ public:
     if (mutex)
       os_spinlock_lock(mutex, token);
   }
-  OSSpinlockScopedLock(OSSpinlock &mtx, da_profiler::desc_id_t token = da_profiler::DescSpinlock) :
+  OSSpinlockScopedLock(OSSpinlock &mtx, da_profiler::desc_id_t token = da_profiler::DescSpinlock) DAG_TS_ACQUIRE(mtx) :
     OSSpinlockScopedLock(mtx.spinlock, token)
   {}
-  OSSpinlockScopedLock(OSSpinlock *mtx, da_profiler::desc_id_t token = da_profiler::DescSpinlock) :
+  OSSpinlockScopedLock(OSSpinlock *mtx, da_profiler::desc_id_t token = da_profiler::DescSpinlock) DAG_TS_ACQUIRE(mtx) :
     OSSpinlockScopedLock(&mtx->spinlock, token)
   {}
-  ~OSSpinlockScopedLock()
+  ~OSSpinlockScopedLock() DAG_TS_RELEASE()
   {
     if (mutex)
       os_spinlock_unlock(mutex);
   }
 };
 
-class OSSpinlockUniqueLock
+class DAG_TS_SCOPED_CAPABILITY OSSpinlockUniqueLock
 {
   OSSpinlock &mutex;
   bool locked = false;
@@ -76,30 +76,31 @@ public:
   struct AdoptLock
   {};
 
-  OSSpinlockUniqueLock(OSSpinlock &mtx) : mutex{mtx}
+  OSSpinlockUniqueLock(OSSpinlock &mtx) DAG_TS_ACQUIRE(mtx) : mutex{mtx}
   {
     mutex.lock();
     locked = true;
   }
 
   // Does not lock the mutex
-  OSSpinlockUniqueLock(OSSpinlock &mtx, DeferLock) : mutex{mtx} {}
+  OSSpinlockUniqueLock(OSSpinlock &mtx, DeferLock) DAG_TS_EXCLUDES(mtx) : mutex{mtx} {}
 
   // Uses tryLock on success the this is in locked state on fail this is in unlocked state
-  OSSpinlockUniqueLock(OSSpinlock &mtx, TryToLock) : mutex{mtx} { locked = mutex.tryLock(); }
+  // NOTE: we lie about DAG_TS_ACQUIRE here because static analysis is not smart enough
+  OSSpinlockUniqueLock(OSSpinlock &mtx, TryToLock) DAG_TS_ACQUIRE(mtx) : mutex{mtx} { locked = mutex.tryLock(); }
 
   // Assumes mtx is locked already so this state will be in locked state
-  OSSpinlockUniqueLock(OSSpinlock &mtx, AdoptLock) : mutex{mtx}, locked{true} {}
+  OSSpinlockUniqueLock(OSSpinlock &mtx, AdoptLock) DAG_TS_REQUIRES(mtx) : mutex{mtx}, locked{true} {}
 
   OSSpinlockUniqueLock(OSSpinlockUniqueLock &&other) : mutex{other.mutex}, locked{other.locked} { other.locked = false; }
 
-  ~OSSpinlockUniqueLock()
+  ~OSSpinlockUniqueLock() DAG_TS_RELEASE()
   {
     if (locked)
       mutex.unlock();
   }
   // returns true if it had released the lock
-  bool unlock()
+  bool unlock() DAG_TS_RELEASE()
   {
     if (locked)
     {
@@ -110,7 +111,7 @@ public:
     return false;
   }
   // returns true if it had acquired the lock
-  bool lock()
+  bool lock() DAG_TS_ACQUIRE()
   {
     if (!locked)
     {
@@ -121,7 +122,7 @@ public:
     return false;
   }
 
-  bool tryLock()
+  bool tryLock() DAG_TS_TRY_ACQUIRE(true)
   {
     if (!locked)
     {
@@ -135,4 +136,4 @@ public:
   explicit operator bool() const { return ownsLock(); }
 };
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

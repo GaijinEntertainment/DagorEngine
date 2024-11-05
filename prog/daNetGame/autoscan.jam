@@ -1,0 +1,13 @@
+include $(Root)/prog/_jBuild/jCommonRules.jam ;
+
+rule AutoscanBuildListsAndPull
+{
+  local req_pull_name = [ Make_DAS_pull_AOT $(Target) ] ;
+  if $(2) != $(req_pull_name) { Exit Inconsistent pull name, required name $(req_pull_name), passed $(2) ; }
+  if $(DAS_AOT_COMPILER) {
+    AutoscanBuildLists $(1) : *.das : Sources ;
+  } else {
+    $(Target:B)_stub_das_aot_pull = size_t $(2) \= 0 \; ;
+    Sources += $(Target:B)_stub_das_aot_pull.jamvar ;
+  }
+}

@@ -1,0 +1,8 @@
+close_geometry_occlusion_data{
+  _singleton:b=yes
+  _tags:t="render"
+  close_geometry_prev_to_curr_frame_transform {}
+  close_geometry_prev_transform {}
+  close_geometry_bounding_radius:r=0
+  occlusion_available:b=no
+}

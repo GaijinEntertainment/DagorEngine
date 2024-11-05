@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ecs/core/entityManager.h>
 #include <ecs/core/attributeEx.h>
 #include <ecs/anim/anim.h>

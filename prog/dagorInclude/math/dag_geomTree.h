@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -63,6 +62,8 @@ public:
   void partialCalcWtm(Index16 upto_nodeid);
 
   void validateTm(Index16 from_nodeid = Index16(0));
+  void verifyAllData() const;
+  void verifyOnlyTmFast() const;
 
   void load(IGenLoad &cb);
 
@@ -123,7 +124,12 @@ public:
   const mat44f &getNodeTm(Index16 ni) const { return tm[ni.index()]; }
   mat44f &getNodeTm(Index16 ni) { return tm[ni.index()]; }
   void getNodeTmScalar(Index16 ni, TMatrix &out_tm) const { mat44f_to_TMatrix(getNodeTm(ni), out_tm); }
-  void setNodeTmScalar(Index16 ni, const TMatrix &m) { TMatrix_to_mat44f(m, getNodeTm(ni)); }
+  void setNodeTmScalar(Index16 ni, const TMatrix &m)
+  {
+    mat44f &n_tm = getNodeTm(ni);
+    TMatrix_to_mat44f(m, n_tm);
+    G_ASSERTF(is_valid_pos(n_tm.col3), "setNodeTmScalar: invalid col3 " FMT_P3, V3D(n_tm.col3));
+  }
   Point3 getNodeLposScalar(Index16 ni) const { return as_point3(&tm[ni.index()].col3); }
 
   const mat44f &getNodeWtmRel(Index16 ni) const { return wtm[ni.index()]; }
@@ -140,8 +146,9 @@ public:
   }
   void getNodeWtmScalar(Index16 ni, TMatrix &out_wtm) const
   {
-    getNodeWtmRelScalar(ni, out_wtm);
-    v_stu_p3(out_wtm.m[3], v_add(wtm[ni.index()].col3, wofs));
+    mat44f n_wtm;
+    getNodeWtm(ni, n_wtm);
+    v_mat_43cu_from_mat44(out_wtm.array, n_wtm);
   }
 
   void setNodeWtm(Index16 ni, const mat44f &m)
@@ -151,17 +158,20 @@ public:
     n_wtm.col1 = m.col1;
     n_wtm.col2 = m.col2;
     n_wtm.col3 = v_sub(m.col3, wofs);
+    G_ASSERTF(is_valid_pos(n_wtm.col3), "setNodeWtm: invalid col3 " FMT_P3, V3D(n_wtm.col3));
   }
   void setNodeWtmScalar(Index16 ni, const TMatrix &m)
   {
-    mat44f &n_wtm = getNodeWtmRel(ni);
-    vec4f mask = v_cast_vec4f(V_CI_MASK1110);
-    n_wtm.col0 = v_and(v_ldu(m.m[0]), mask);
-    n_wtm.col1 = v_and(v_ldu(m.m[1]), mask);
-    n_wtm.col2 = v_and(v_ldu(m.m[2]), mask);
-    n_wtm.col3 = v_sub(v_perm_xyzd(v_rot_1(v_ldu(&m.m[2][2])), V_C_UNIT_0001), wofs);
+    mat44f n_tm;
+    v_mat44_make_from_43cu(n_tm, m.array);
+    setNodeWtm(ni, n_tm);
   }
-  void setNodeWtmRelScalar(Index16 ni, const TMatrix &m) { TMatrix_to_mat44f(m, getNodeWtmRel(ni)); }
+  void setNodeWtmRelScalar(Index16 ni, const TMatrix &m)
+  {
+    mat44f &n_wtm = getNodeWtmRel(ni);
+    TMatrix_to_mat44f(m, n_wtm);
+    G_ASSERTF(is_valid_pos(n_wtm.col3), "setNodeWtmRelScalar: invalid col3 " FMT_P3, V3D(n_wtm.col3));
+  }
 
   vec3f nodeWtmMulVec3p(Index16 ni, vec3f p) const { return v_add(v_mat44_mul_vec3p(getNodeWtmRel(ni), p), wofs); }
 
@@ -170,17 +180,22 @@ public:
   Point3 getNodeWposRelScalar(Index16 ni) const { return as_point3(&wtm[ni.index()].col3); }
   Point3 getNodeWposScalar(Index16 ni) const
   {
-    Point3 ret;
-    v_stu_p3(&ret.x, v_add(wtm[ni.index()].col3, wofs));
+    Point3_vec4 ret;
+    v_st(&ret.x, v_add(wtm[ni.index()].col3, wofs));
     return ret;
   }
 
-  void setNodeWpos(Index16 ni, vec3f wpos) { wtm[ni.index()].col3 = v_sub(wpos, wofs); }
+  void setNodeWpos(Index16 ni, vec3f wpos)
+  {
+    wtm[ni.index()].col3 = v_sub(wpos, wofs);
+    G_ASSERTF(is_valid_pos(wtm[ni.index()].col3), "setNodeWpos: invalid col3 " FMT_P3, V3D(wtm[ni.index()].col3));
+  }
 
   void setWtmOfs(vec3f _wofs)
   {
     wofs = _wofs; /* to be removed later! ->*/
     *(vec3f *)data.data() = _wofs;
+    G_ASSERTF(is_valid_pos(_wofs), "setWtmOfs: invalid wofs " FMT_P3, V3D(_wofs));
   }
   vec3f getWtmOfs() const { return wofs; }
   const vec3f *getWtmOfsPtr() const { return &wofs; }
@@ -214,6 +229,7 @@ public:
       tm[0].col3 = v_sub(m.col3, wofs);
     }
     wtm[0] = tm[0];
+    G_ASSERTF(is_valid_tm(m), "setRootTm: invalid tm " FMT_TM, VTMD(m));
   }
   void setRootTm(const mat44f &rel_m, vec3f w_ofs)
   {
@@ -221,6 +237,7 @@ public:
       return;
     setWtmOfs(w_ofs);
     wtm[0] = tm[0] = rel_m;
+    G_ASSERTF(is_valid_tm(rel_m), "setRootTm: invalid tm " FMT_TM, VTMD(rel_m));
   }
 
   void changeRootPos(vec3f p, bool setup_wofs = false)
@@ -229,13 +246,13 @@ public:
       return;
     setWtmOfs(setup_wofs ? calc_optimal_wofs(p) : v_zero());
     tm[0].col3 = wtm[0].col3 = v_sub(p, wofs);
+    G_ASSERTF(is_valid_pos(tm[0].col3), "changeRootPos: invalid pos " FMT_P3, V3D(tm[0].col3));
   }
 
   static vec3f calc_optimal_wofs(vec3f pos)
   {
     // use wofs = (m.col3 round 8) to provide optimal accuracy
-    vec4f s8 = v_splats(8);
-    return v_and(v_mul(v_round(v_div(pos, s8)), s8), v_cast_vec4f(V_CI_MASK1110));
+    return v_and(v_mul(v_round(v_mul(pos, v_splats(1.f / 8.f))), v_splats(8.f)), v_cast_vec4f(V_CI_MASK1110));
   }
 
   static Point3 calc_optimal_wofs(const Point3 &pos)
@@ -250,6 +267,11 @@ public:
 
   static void mat44f_to_TMatrix(const mat44f &m, TMatrix &out_m) { v_mat_43cu_from_mat44(out_m.array, m); }
   static void TMatrix_to_mat44f(const TMatrix &m, mat44f &out_m) { v_mat44_make_from_43cu(out_m, m.array); }
+  static bool is_valid_pos(vec3f pos, float valid_world_rad = 1e6f)
+  {
+    return !v_test_xyz_nan(pos) && v_check_xyz_all_not_zeroi(v_cmp_lt(v_abs(pos), v_splats(valid_world_rad)));
+  }
+  static bool is_valid_tm(mat44f m) { return is_valid_pos(v_add(v_add(m.col0, m.col1), v_add(m.col2, m.col3)), 4 * 1e6f); }
 
 protected:
   struct ChildRef

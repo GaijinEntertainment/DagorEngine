@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "asg_cond_parser.h"
 #include <debug/dag_debug.h>
 #include <ctype.h>
@@ -72,12 +74,12 @@ void AsgConditionStringParser::parse(const char *cond_str)
     p3 = strchr(p2, ')');
     if (p3 < p2 + 3)
     {
-      debug_ctx("var usage error at %d in %s", p2 - cond_str, cond_str);
+      DEBUG_CTX("var usage error at %d in %s", p2 - cond_str, cond_str);
       return;
     }
     if (p2[1] != ':')
     {
-      debug_ctx("var usage format error at %d in %s", p2 - cond_str, cond_str);
+      DEBUG_CTX("var usage format error at %d in %s", p2 - cond_str, cond_str);
       return;
     }
 
@@ -96,7 +98,7 @@ void AsgConditionStringParser::parse(const char *cond_str)
         v.type = *p2;
         v.name.printf(p3 - p2, "%.*s", p3 - p2 - 2, p2 + 2);
         break;
-      default: debug_ctx("unknown var type \'%c\' at %d in %s", *p2, p2 - cond_str, cond_str); return;
+      default: DEBUG_CTX("unknown var type \'%c\' at %d in %s", *p2, p2 - cond_str, cond_str); return;
     }
 
     Piece pc;
@@ -123,7 +125,7 @@ void AsgConditionStringParser::addOtherCode(const char *str, int len)
 
 void AsgConditionStringParser::dump()
 {
-  debug_ctx("results of parsing");
+  DEBUG_CTX("results of parsing");
   for (int i = 0; i < order.size(); i++)
   {
     int idx = order[i].idx;
@@ -199,7 +201,7 @@ void AsgVarsList::implement_ParamIdInit(FILE *fp, const char *translator) const
       case AsgConditionStringParser::Var::TYPE_Int: fprintf(fp, "AnimV20::IPureAnimStateHolder::PT_ScalarParamInt"); break;
       case AsgConditionStringParser::Var::TYPE_Scalar: fprintf(fp, "AnimV20::IPureAnimStateHolder::PT_ScalarParam"); break;
       case AsgConditionStringParser::Var::TYPE_Timer: fprintf(fp, "AnimV20::IPureAnimStateHolder::PT_TimeParam"); break;
-      default: debug_ctx("unknown var type \'%c\'", varType[i]); return;
+      default: DEBUG_CTX("unknown var type \'%c\'", varType[i]); return;
     }
     fprintf(fp, ");\n");
   }
@@ -213,7 +215,7 @@ void AsgVarsList::implement_getParam(FILE *fp, int var_n) const
     case AsgConditionStringParser::Var::TYPE_Int: fprintf(fp, "st->getParamInt(paramId.%s)", varName.getName(var_n)); break;
     case AsgConditionStringParser::Var::TYPE_Scalar:
     case AsgConditionStringParser::Var::TYPE_Timer: fprintf(fp, "st->getParam(paramId.%s)", varName.getName(var_n)); break;
-    default: debug_ctx("unknown var type \'%c\'", varType[var_n]); return;
+    default: DEBUG_CTX("unknown var type \'%c\'", varType[var_n]); return;
   }
 }
 
@@ -266,7 +268,7 @@ bool AsgLocalVarsList::registerLocalName(const char *varname, int vartype, FILE 
       ln.localName = "t_";
       fprintf(fp, "%*sfloat ", indent, "");
       break;
-    default: debug_ctx("unknown var type \'%c\'", vartype); return false;
+    default: DEBUG_CTX("unknown var type \'%c\'", vartype); return false;
   }
   ln.localName += str_to_valid_id(varname);
 

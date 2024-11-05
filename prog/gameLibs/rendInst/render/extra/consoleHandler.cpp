@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "consoleHandler.h"
 #include "riGen/riGenData.h"
 #include "riGen/riGenExtra.h"
@@ -52,22 +54,23 @@ static bool rendinst_console_handler(const char *argv[], int argc)
         rendinst::rgLayer[i]->rtData->hiddenIdx.clear();
       }
       hidden_extra_object_ids.clear();
-      console::print_d("All rendinst shown.\nUsage: rendinst.hide_object <rendinst name>");
+      console::print_d("All rendinst shown.\nUsage: rendinst.hide_object <rendinst name> (* hides all)");
     }
     else
     {
+      const bool all = strcmp(argv[1], "*") == 0;
       for (int i = 0; i < rendinst::rgLayer.size(); ++i)
       {
         if (!rendinst::rgLayer[i] || !rendinst::rgLayer[i]->rtData)
           continue;
         rendinst::rgLayer[i]->rtData->hiddenIdx.clear();
         for (int j = 0; j < rendinst::rgLayer[i]->rtData->riResName.size(); ++j)
-          if (String(rendinst::rgLayer[i]->rtData->riResName[j]).prefix(argv[1]))
+          if (all || strstr(rendinst::rgLayer[i]->rtData->riResName[j], argv[1]) == rendinst::rgLayer[i]->rtData->riResName[j])
             rendinst::rgLayer[i]->rtData->hiddenIdx.emplace(j);
       }
       hidden_extra_object_ids.clear();
       iterate_names(rendinst::riExtraMap, [&](int id, const char *name) {
-        if (String(name).prefix(argv[1]))
+        if (all || strstr(name, argv[1]) == name)
           hidden_extra_object_ids.emplace(id);
       });
       console::print_d("All objects with prefix '%s' are hidden", argv[1]);
@@ -156,22 +159,21 @@ static bool rendinst_console_handler(const char *argv[], int argc)
       constexpr int MAX_LODS = rendinst::RiExtraPool::MAX_LODS;
       eastl::fixed_vector<LodInfo, MAX_LODS> lodsInfo;
       const auto &lods = pool.res->lods;
+      float triangleCountFactor = 0.1572f; // coefficient for adjusting the aggressiveness of the LOD shift depending on the number of
+                                           // triangles
+      float sizeFactor = 1.0f;             // coefficient, controls the importance of object size relative to LOD distance
+      int totalFacesL0 = lods[0].scene->getMesh()->getMesh()->getMesh()->calcTotalFaces(); // total faces of LOD 0
       for (uint32_t lod = 0; lod < lods.size(); lod++)
       {
         const auto mesh = lods[lod].scene->getMesh()->getMesh()->getMesh();
-
-        constexpr float screenWidth = 1920;      // usual resolution
-        constexpr float trainglesPerPixel = 0.1; // heuristic const
         int totalFaces = mesh->calcTotalFaces();
         int drawCalls = mesh->getAllElems().size();
         float lodDistance = lods[lod].range;
         float sizeScale = 2.f / (tg * lodDistance);
         // float spherePartOfScreen = bSphereRad * sizeScale;
         float boxPartOfScreen = maxBoxEdge * sizeScale;
-        float boxUsualPixelSquare = boxPartOfScreen * screenWidth;
-        boxUsualPixelSquare *= boxUsualPixelSquare;
-        float recomendedTriangleCount = boxUsualPixelSquare * trainglesPerPixel;
-        float recomendedDistance = lodDistance * (recomendedTriangleCount / totalFaces);
+        float recomendedDistance =
+          (sizeFactor / maxBoxEdge + triangleCountFactor * (sqrt(totalFacesL0) / log(totalFaces))) / sqrt(sizeScale);
         lodsInfo.emplace_back(LodInfo{drawCalls, totalFaces, lodDistance, recomendedDistance, boxPartOfScreen * 100});
       }
 #define DUMP(format, var_name)                  \

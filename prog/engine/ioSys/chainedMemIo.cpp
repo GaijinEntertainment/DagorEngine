@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_chainedMemIo.h>
 #include <stdio.h>
 

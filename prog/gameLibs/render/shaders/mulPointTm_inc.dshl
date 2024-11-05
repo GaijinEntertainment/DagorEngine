@@ -7,4 +7,11 @@ hlsl {
     return INVARIANT(pt.x*tm[0] + (pt.y*tm[1] + (pt.z*tm[2]+tm[3])));
 #endif
   }
+
+  float3 mulPointTm(float3 pt, float4 mx, float4 my, float4 mz)
+  {
+    return float3(dot(float4(pt, 1), mx),
+                  dot(float4(pt, 1), my),
+                  dot(float4(pt, 1), mz));
+  }
 }

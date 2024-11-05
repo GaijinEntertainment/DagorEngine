@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <movie/daGuiMovie.h>
 #include <daGUI/dag_IRenderElem.h>
 #include <daGUI/dag_IBehaviour.h>

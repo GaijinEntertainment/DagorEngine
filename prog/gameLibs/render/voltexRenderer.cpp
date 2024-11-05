@@ -1,6 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/computeShaderFallback/voltexRenderer.h>
-#include <3d/dag_drv3d_multi.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_tex3d.h>
 #include <3d/dag_textureIDHolder.h>
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_shaders.h>

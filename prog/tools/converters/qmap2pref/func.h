@@ -1,5 +1,4 @@
-#ifndef __GAIJIN_QMAP_FUNC__
-#define __GAIJIN_QMAP_FUNC__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <generic/dag_tab.h>
@@ -25,6 +24,3 @@ void init_dagor(const char *base_path);
 
 bool create_prefabs_list(const char *map, Tab<Prefab> &prefabs, bool check_models);
 bool generate_file(const char *path, const Tab<Prefab> &prefabs, const char *lib_path, bool show_debug);
-
-
-#endif //__GAIJIN_QMAP_FUNC__

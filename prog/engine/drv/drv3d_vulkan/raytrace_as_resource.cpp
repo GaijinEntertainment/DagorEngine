@@ -1,4 +1,11 @@
-#include "device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include "globals.h"
+#include "raytrace_scratch_buffer.h"
+#include "resource_manager.h"
+#include "buffer.h"
+#include "debug_naming.h"
+#include "driver_config.h"
 
 #if D3D_HAS_RAY_TRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
 
@@ -8,23 +15,100 @@ namespace drv3d_vulkan
 template <>
 void RaytraceAccelerationStructure::onDelayedCleanupFinish<RaytraceAccelerationStructure::CLEANUP_DESTROY_TOP>()
 {
-  get_device().resources.free(this);
+  Globals::Mem::res.free(this);
 }
 
 template <>
 void RaytraceAccelerationStructure::onDelayedCleanupFinish<RaytraceAccelerationStructure::CLEANUP_DESTROY_BOTTOM>()
 {
-  get_device().resources.free(this);
+  Globals::Mem::res.free(this);
 }
 
 } // namespace drv3d_vulkan
 
 using namespace drv3d_vulkan;
 
+namespace
+{
+VkGeometryFlagsKHR toGeometryFlagsKHR(RaytraceGeometryDescription::Flags flags)
+{
+  VkGeometryFlagsKHR result = 0;
+  if (RaytraceGeometryDescription::Flags::NONE != (flags & RaytraceGeometryDescription::Flags::IS_OPAQUE))
+  {
+    result |= VK_GEOMETRY_OPAQUE_BIT_KHR;
+  }
+  if (RaytraceGeometryDescription::Flags::NONE != (flags & RaytraceGeometryDescription::Flags::NO_DUPLICATE_ANY_HIT_INVOCATION))
+  {
+    result |= VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_KHR;
+  }
+  return result;
+}
+VkAccelerationStructureGeometryKHR RaytraceGeometryDescriptionToVkAccelerationStructureGeometryKHRAABBs(
+  const RaytraceGeometryDescription::AABBsInfo &info)
+{
+  auto buf = (GenericBufferInterface *)info.buffer;
+  BufferRef devBuf = buf->getBufferRef();
+  VkAccelerationStructureGeometryKHR result = {VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR};
+  result.pNext = nullptr;
+  result.geometryType = VK_GEOMETRY_TYPE_AABBS_KHR;
+  result.geometry.aabbs.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_AABBS_DATA_KHR;
+  result.geometry.aabbs.pNext = nullptr;
+  result.geometry.aabbs.data.deviceAddress = devBuf.devOffset(info.offset);
+  result.geometry.aabbs.stride = info.stride;
+  result.flags = toGeometryFlagsKHR(info.flags);
+  return result;
+}
+VkAccelerationStructureGeometryKHR RaytraceGeometryDescriptionToVkAccelerationStructureGeometryKHRTriangles(
+  const RaytraceGeometryDescription::TrianglesInfo &info)
+{
+  const BufferRef &devVbuf = ((GenericBufferInterface *)info.vertexBuffer)->getBufferRef();
+
+  VkAccelerationStructureGeometryKHR result = {VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR};
+  result.pNext = nullptr;
+  result.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
+  result.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
+  result.geometry.triangles.pNext = nullptr;
+  result.geometry.triangles.vertexData.deviceAddress =
+    devVbuf.devOffset(info.vertexOffset * info.vertexStride + info.vertexOffsetExtraBytes);
+  result.geometry.triangles.maxVertex = devVbuf.visibleDataSize / info.vertexStride - 1; // assume any vertex can be accessed
+  result.geometry.triangles.vertexStride = info.vertexStride;
+  result.geometry.triangles.vertexFormat = VSDTToVulkanFormat(info.vertexFormat);
+  if (info.indexBuffer)
+  {
+    auto ibuf = (GenericBufferInterface *)info.indexBuffer;
+    const BufferRef &devIbuf = ibuf->getBufferRef();
+    result.geometry.triangles.indexData.deviceAddress = devIbuf.devOffset(0);
+    result.geometry.triangles.indexType = ibuf->getIndexType();
+  }
+  if (info.transformBuffer)
+  {
+    auto tbuf = (GenericBufferInterface *)info.transformBuffer;
+    const BufferRef &devTbuf = tbuf->getBufferRef();
+    result.geometry.triangles.transformData.deviceAddress = devTbuf.devOffset(info.transformOffset * sizeof(float) * 3 * 4);
+  }
+  result.flags = toGeometryFlagsKHR(info.flags);
+  return result;
+}
+
+} // namespace
+
+VkAccelerationStructureGeometryKHR drv3d_vulkan::RaytraceGeometryDescriptionToVkAccelerationStructureGeometryKHR(
+  const RaytraceGeometryDescription &desc)
+{
+  switch (desc.type)
+  {
+    case RaytraceGeometryDescription::Type::TRIANGLES:
+      return RaytraceGeometryDescriptionToVkAccelerationStructureGeometryKHRTriangles(desc.data.triangles);
+    case RaytraceGeometryDescription::Type::AABBS:
+      return RaytraceGeometryDescriptionToVkAccelerationStructureGeometryKHRAABBs(desc.data.aabbs);
+  }
+  VkAccelerationStructureGeometryKHR def{};
+  return def;
+}
+
 void RaytraceAccelerationStructure::destroyVulkanObject()
 {
-  Device &drvDev = get_device();
-  VulkanDevice &dev = drvDev.getVkDevice();
+  VulkanDevice &dev = Globals::VK::dev;
   VULKAN_LOG_CALL(dev.vkDestroyBuffer(dev.get(), bufHandle, NULL));
   VULKAN_LOG_CALL(dev.vkDestroyAccelerationStructureKHR(dev.get(), getHandle(), NULL));
   setHandle(generalize(Handle()));
@@ -32,53 +116,15 @@ void RaytraceAccelerationStructure::destroyVulkanObject()
 
 void RaytraceAccelerationStructure::createVulkanObject()
 {
-  Device &drvDev = get_device();
-  VulkanDevice &dev = drvDev.getVkDevice();
-
-  eastl::vector<VkAccelerationStructureGeometryKHR> geometryDef;
-  eastl::vector<uint32_t> maxPrimCounts;
-  bool isTopAS = (desc.geometry == nullptr);
-  if (!isTopAS)
-  {
-    geometryDef.reserve(desc.count);
-    for (uint32_t i = 0; i < desc.count; ++i)
-    {
-      geometryDef.push_back(RaytraceGeometryDescriptionToVkAccelerationStructureGeometryKHR(dev, desc.geometry[i]));
-      maxPrimCounts.push_back(desc.geometry[i].data.triangles.indexCount / 3);
-    }
-  }
-  else
-  {
-    VkAccelerationStructureGeometryKHR &tlasGeo = geometryDef.emplace_back();
-    tlasGeo = {VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR};
-    tlasGeo.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
-    tlasGeo.geometry.instances.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
-    maxPrimCounts.push_back(desc.count);
-  }
-
-  VkAccelerationStructureBuildGeometryInfoKHR buildInfo = //
-    {VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR};
-  buildInfo.type = isTopAS ? VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR : VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-  buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
-  buildInfo.flags = ToVkBuildAccelerationStructureFlagsKHR(desc.flags);
-  buildInfo.geometryCount = uint32_t(geometryDef.size());
-  buildInfo.pGeometries = geometryDef.data();
-
-  VkAccelerationStructureBuildSizesInfoKHR size_info = //
-    {VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR};
-  dev.vkGetAccelerationStructureBuildSizesKHR(dev.get(), VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildInfo,
-    maxPrimCounts.data(), &size_info);
-
-  drvDev.ensureRoomForRaytraceBuildScratchBuffer(size_info.buildScratchSize);
+  VulkanDevice &dev = Globals::VK::dev;
 
   // TODO: sub-allocate from fewer buffers
-
   { // Create buffer
     VkBufferCreateInfo bci;
     bci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bci.pNext = NULL;
     bci.flags = 0;
-    bci.size = size_info.accelerationStructureSize;
+    bci.size = desc.size;
     bci.usage = Buffer::getUsage(dev, DeviceMemoryClass::DEVICE_RESIDENT_BUFFER);
     bci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     bci.queueFamilyIndexCount = 0;
@@ -108,20 +154,25 @@ void RaytraceAccelerationStructure::createVulkanObject()
 
   VkAccelerationStructureCreateInfoKHR asci = //
     {VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR};
-  asci.type = isTopAS ? VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR : VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+  asci.type = desc.isTopLevel ? VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR : VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
   asci.buffer = bufHandle;
   asci.offset = 0;
-  asci.size = size_info.accelerationStructureSize;
+  asci.size = desc.size;
 
   Handle ret;
   VULKAN_EXIT_ON_FAIL(dev.vkCreateAccelerationStructureKHR(dev.get(), &asci, nullptr, ptr(ret)));
   setHandle(generalize(ret));
+
+  if (Globals::cfg.debugLevel)
+    Globals::Dbg::naming.setAccelerationStructureName(this,
+      String(64, "RTAS %s from %s", desc.isTopLevel ? "top" : "bottom", backtrace::get_stack()));
 }
 
 MemoryRequirementInfo RaytraceAccelerationStructure::getMemoryReq()
 {
   MemoryRequirementInfo ret{};
   ret.requirements.alignment = 1;
+  ret.requirements.memoryTypeBits = 0xFFFFFFFF;
   return ret;
 }
 
@@ -170,6 +221,19 @@ void RaytraceAccelerationStructure::Description::fillAllocationDesc(AllocationDe
   alloc_desc.memClass = DeviceMemoryClass::DEVICE_RESIDENT_BUFFER;
   alloc_desc.temporary = 0;
   alloc_desc.objectBaked = 1;
+}
+
+RaytraceAccelerationStructure *RaytraceAccelerationStructure::create(bool top_level, VkDeviceSize size)
+{
+#if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
+  WinAutoLock lk(Globals::Mem::mutex);
+  return Globals::Mem::res.alloc<RaytraceAccelerationStructure>({top_level, size});
+#else
+  G_UNUSED(desc);
+  G_UNUSED(count);
+  G_UNUSED(flags);
+  return nullptr;
+#endif
 }
 
 #endif // D3D_HAS_RAY_TRACING

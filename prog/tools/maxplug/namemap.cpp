@@ -1,6 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-// #include "globdef.h"
-// #include "saveload.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "namemap.h"
 #include "debug.h"
 
@@ -8,7 +7,7 @@
 BaseNameMap::BaseNameMap()
 {
   /*
-    debug_ctx ( "NameMap::NameMap=%p from:", this );
+    DEBUG_CTX("NameMap::NameMap=%p from:", this);
 
     static String s(inimem_ptr());
     s.reserve(5000);

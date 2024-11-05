@@ -18,3 +18,6 @@ dynamic_mask_layered:rendinst_layered
 dynamic_mask_layered_uv:rendinst_mask_layered_uv
 
 dynamic_simple_painted:rendinst_simple_painted
+
+rendinst_layered_hmap_blend:rendinst_layered
+rendinst_layered_hmap_blend_uv:rendinst_layered_uv

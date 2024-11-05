@@ -1,0 +1,326 @@
+include "use_tiled_lights.dshl"
+
+float4 glass_specular_color = (1, 1, 1, 0);
+
+int glass_dynamic_light = 0;
+interval glass_dynamic_light: no < 1, yes;
+
+interval special_vision : special_vision_off<1, thermal_vision;
+macro INIT_COMMON_GLASS()
+  texture tex = material.texture.diffuse;
+
+  texture normal = material.texture[2];
+  render_trans;
+
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+  channel float2 tc[0] = tc[0];
+
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+
+  hlsl(ps) {
+    ##if normal != NULL
+      #define hasNormal 1
+    ##endif
+  }
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+
+      float2 texcoord               : TEXCOORD0;
+      float3 normal                 : TEXCOORD1;
+      float3 pointToEye             : TEXCOORD2;
+      float3 fogMul                 : TEXCOORD3;
+      float3 fogAdd                 : TEXCOORD4;
+      float4 clipPos                : TEXCOORD5;
+      #if defined(VSOUT_DRAW_ID)
+        VSOUT_DRAW_ID
+      #endif
+    };
+  }
+endmacro
+
+macro INIT_SIMPLE_GLASS()
+  INIT_COMMON_GLASS()
+  static int atest = 0;
+  interval atest: atestOff < 1, atestOn;
+  if (special_vision == thermal_vision)
+  {
+    z_write = true;
+  }
+  else
+  {
+    blend_src = one;  blend_dst = isa;
+    z_write = false;
+  }
+  static float4 tint_color = (1.0, 1.0, 1.0, 0.0);
+  static float opaque_coeff = 0.0;
+  static float specular_power= 1.0;
+
+  (ps) {
+    tint_color@f4 = (tint_color);
+    opaque_coeff@f1 = (opaque_coeff);
+    glass_specular_color@f3 = (pow(glass_specular_color.r, 2.2) * sun_color_0.r,
+                               pow(glass_specular_color.g, 2.2) * sun_color_0.g,
+                               pow(glass_specular_color.b, 2.2) * sun_color_0.b);
+    glass_specular_power@f1 = specular_power;
+  }
+
+  hlsl(ps) {
+    #define isSimpleGlass 1
+    ##if atest == atestOn
+      #define hasAtest 1
+    ##endif
+  }
+endmacro
+
+macro INIT_GLASS_NIGHT_EMISSION()
+  hlsl(ps) {
+    #define HAS_NIGHT_EMISSION 1
+    #define OVERRIDE_NIGHT_SUN_COS 1
+    #include "light_consts.hlsli"
+  }
+endmacro
+
+macro INIT_REFRACTION_GLASS()
+  INIT_COMMON_GLASS()
+  float4 mediumTintColor = material.diffuse; //tint color
+  static float min_thickness = 0.02;
+  static float max_thickness = 0.2;
+  static float isShell = 1;
+  static float glassIoR = 1.5;
+  texture isShellTex = material.texture[1];
+
+  (ps) {
+    mediumTintColor@f4 = (mediumTintColor.r, mediumTintColor.g, mediumTintColor.b, isShell);
+    mediumThickness@f4 = (min_thickness, max_thickness, 1./glassIoR, ((1-glassIoR)*(1-glassIoR))/((1+glassIoR)*(1+glassIoR)));
+    isShellTex@static = isShellTex;
+  }
+  hlsl(ps) {
+    #define isRefractionGlass 1
+    ##if isShellTex!=NULL
+      #define hasShellTex 1
+    ##endif
+  }
+endmacro
+
+macro INIT_GLASS_USE_TILED_LIGHTS()
+  if (glass_dynamic_light == yes && compatibility_mode == compatibility_mode_off)
+  {
+    assume use_ssss = off;
+    WRITE_GBUFFER()
+    INIT_AND_USE_TILED_LIGHTS(ps)
+    (ps)
+    {
+      screen_size@f2 = (1./screen_pos_to_texcoord.x, 1./screen_pos_to_texcoord.y,0,0);
+    }
+    hlsl(ps){#define GLASS_USE_TILED_LIGHTS 1}
+  }
+endmacro
+
+macro GLASS_APPLY_FUNC_PS()
+if (use_postfx == off)
+{
+  USE_FULL_TONEMAP_LUT(ps)
+}
+(ps) { real_skies_sun_light_dir@f4 = real_skies_sun_light_dir; }
+ENABLE_ASSERT(ps)
+hlsl(ps)
+{
+  half4 apply_glass_base(VsOutput input, float4 screenpos, half4 diffuseColor, half3 worldNormal, half thickness, float smoothness)
+  {
+    #if hasAtest
+      clip(diffuseColor.a - 0.01);
+    #endif
+
+    ##if in_editor_assume == no
+      #define HAVE_SHADOWS 1
+    ##endif
+
+    #if !isRefractionGlass
+      float glassIoR = 1. / 1.5;
+      float glassSpecular = 0.04;//pow2((glassIoR-1)/(glassIoR+1));//0.04
+    #else
+      float glassIoR = get_mediumThickness().z;
+      float glassSpecular = get_mediumThickness().w;
+    #endif
+    half surfaceOpaqueness = diffuseColor.a;
+    float2 screenUV = input.clipPos.xy / input.clipPos.w*float2(0.5, -0.5) + 0.5;
+    #include <lightGlassInc.hlsl>
+    #if !isRefractionGlass || ICON_RENDER
+      #if CAN_BE_PREMULTIPLED_ALPHA
+        diffuseTerm *= surfaceOpaqueness * get_premultipled_alpha().x + get_premultipled_alpha().y;
+      #else
+        diffuseTerm *= surfaceOpaqueness;//non-premultiplied
+      #endif
+
+      #if isSimpleGlass
+        float4 tintColor = get_tint_color();
+        float opaqueCoef = get_opaque_coeff();
+        diffuseTerm += tintColor.xyz*tintColor.w;
+        half dstAmount = saturate(surfaceOpaqueness + opaqueCoef);
+        specularTerm *= glass_specular_color * get_glass_specular_power();
+      #else
+        half dstAmount = surfaceOpaqueness;
+      #endif
+    #else
+      half3 mediumColor = diffuseColor.rgb*get_mediumTintColor().rgb;//doesn't have to be same as diffuseColor!
+      half isShell = get_mediumTintColor().a;
+      #if hasShellTex
+        isShell *= tex2DBindless(get_isShellTex(), input.texcoord).r;
+      #endif
+      float3 refractWorldDir = refract(-view, worldNormal, glassIoR);
+      float rayLengthSolid = thickness * (0.5 + 0.5*NoV);
+      float rayLengthShell = thickness / max(NoV, 0.25);
+      float rayLength = lerp(rayLengthSolid, rayLengthShell, isShell);
+      float3 refractionLight = mediumColor.rgb*fetchRefractedPixel(screenUV, cameraToPoint, refractWorldDir, rayLength, roughnessMip).rgb;
+
+      refractionLight *= 1 - fresnel;
+      diffuseTerm = lerp(refractionLight, diffuseTerm, surfaceOpaqueness);
+      half dstAmount = 1;
+    #endif
+    #if NO_SPECULAR
+      half3 litColor = diffuseTerm;
+    #else
+      half3 litColor = diffuseTerm + specularTerm;
+    #endif
+
+    #if GLASS_USE_TILED_LIGHTS
+      UnpackedGbuffer gbuffer;
+      init_gbuffer(gbuffer);
+      init_material(gbuffer, SHADING_NORMAL);
+      init_smoothness(gbuffer, smoothness);
+      init_metalness(gbuffer, 0);
+      init_normal(gbuffer, worldNormal);
+      init_albedo(gbuffer, 0);
+      GBUFFER_OUTPUT fakeOutput = encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
+      PackedGbuffer packedGbuffer;
+      packedGbuffer.albedo_ao = fakeOutput.albedo_ao;
+      packedGbuffer.normal_material = fakeOutput.normal_material;
+      packedGbuffer.smoothness_reflectance_metallTranslucency_shadow = fakeOutput.smoothness_reflectance_metallTranslucency_shadow;
+      ProcessedGbuffer processedGbuffer = processGbuffer(unpackGbuffer(packedGbuffer));
+      packedGbuffer.motion_reactive = 0;
+      litColor += get_dynamic_lighting(processedGbuffer, worldPos, view, input.clipPos.w, input.clipPos.xy, NoV, diffuseColor.rgb, screenUV, 1);
+    #endif
+
+    ##if in_editor_assume == no
+    #if APPLY_BRUNETON_FOG
+      get_volfog_with_precalculated_scattering(screenUV, screenUV, view, dist, input.clipPos.w, input.fogMul, input.fogAdd);
+    #endif
+    ##endif
+    litColor = litColor * input.fogMul + input.fogAdd * dstAmount;
+  #if HAS_NIGHT_EMISSION
+      FLATTEN
+    #if OVERRIDE_NIGHT_SUN_COS
+      if (real_skies_sun_light_dir.z < NIGHT_SUN_COS)
+    #else
+      if (sun_color_0.r < 0.1)
+    #endif
+      {
+        half3 emissionColor = diffuseColor.rgb * get_emission() * MAX_EMISSION;
+        litColor = litColor * (1 - get_emission()) + emissionColor;
+      }
+  #endif
+    ##if use_postfx == off
+      litColor = performLUTTonemap(litColor);
+    ##endif
+    #if ICON_RENDER
+      #if isRefractionGlass
+        dstAmount = max(dstAmount, background_alpha);
+      #endif
+      if (icon_silhouette_color.a<=1)
+        return half4(icon_silhouette_color.xyz, dstAmount);
+    #endif
+    return half4(litColor, dstAmount);//
+  }
+
+  half4 apply_glass_ps(VsOutput input, float4 screenpos, half4 diffuseColor, float smoothness_const)
+  {
+    half thickness = 0;
+    #if hasNormal
+      half4 packedNormalMap = tex2DBindless(get_normal_tex(), input.texcoord);
+
+      half smoothness = packedNormalMap.r;
+      half3 normalMap = unpack_ag_normal(packedNormalMap);
+      half3 worldNormal = perturb_normal_precise(normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.texcoord.xy);
+      #if isRefractionGlass
+        thickness = lerp(get_mediumThickness().x, get_mediumThickness().y, packedNormalMap.b);
+      #endif
+    #else
+      half3 worldNormal = normalize(input.normal.xyz);
+      half smoothness = smoothness_const;//there is nothing good here!
+      #if isRefractionGlass
+        thickness = get_mediumThickness().x;
+      #endif
+    #endif
+
+    return apply_glass_base(input, screenpos, diffuseColor, worldNormal, thickness, smoothness);
+  }
+}
+endmacro
+
+macro INIT_GLASS_TRANSP()
+  static float transparency_mul = 1;
+  (ps) { transparency_mul@f1 = (transparency_mul); }
+  static int is_window = 1;
+  (ps){is_window@i1 = is_window;}
+endmacro
+
+macro USE_GLASS()
+  USE_PIXEL_TANGENT_SPACE()
+  USE_ROUGH_TO_MIP()
+  hlsl(ps) {
+    #include <pbr/BRDF.hlsl>
+    #include <phase_functions.hlsl>
+  }
+  USE_SKY_DIFFUSE()
+  INIT_SKYLIGHT_PARAMS(ps)
+  USE_SKYLIGHT_PARAMS(ps)
+  INIT_ENVI_SPECULAR_SAMPLE(ps)
+  USE_ENVI_SPECULAR_SAMPLE(ps)
+  USE_INDOOR_LIGHT_PROBES(ps, get_is_window())
+  GLASS_APPLY_FUNC_PS()
+endmacro
+
+macro GLASS_PS()
+  (ps) {
+    diffuse_tex@static = tex;
+    normal_tex@static = normal;
+  }
+  INIT_GLASS_TRANSP()
+  USE_GLASS()
+  ENABLE_ASSERT(ps)
+
+  hlsl(ps) {
+
+    float4 glass_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE):SV_Target0
+    {
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(input);
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+      #endif
+
+      half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.texcoord);
+      diffuseColor.a *= get_transparency_mul();
+      input.normal.xyz = MUL_VFACE(input.normal.xyz);
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      half4 result = apply_glass_ps(input, screenpos, diffuseColor, 0.9);
+      ##if special_vision == thermal_vision
+        const float glass_temperature = 20.0f/255.0f;
+        float diffuseAndOpacity_a = saturate(diffuseColor.a*2);
+        result.r = getThermalSignature(diffuseColor.rgb* diffuseAndOpacity_a, glass_temperature) + glass_temperature;
+        result.a = 1.0f;
+        result.gb = 0;
+      ##endif
+      return float4(pack_hdr(result.rgb), result.a);
+    }
+  }
+
+  compile("target_ps", "glass_ps");
+endmacro
+

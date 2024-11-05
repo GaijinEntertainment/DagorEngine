@@ -1,0 +1,81 @@
+include "rendinst_opaque_inc.dshl"
+include "normaldetail.dshl"
+include "psh_derivate.dshl"
+include "rendinst_voxelize_albedo_inc.dshl"
+include "land_block_inc.dshl"
+include "sparkles.dshl"
+include "wetness_inc.dshl"
+
+texture hmap_patches_depth_tex;
+
+shader rendinst_heightmap_patch
+{
+  if (instancing_type != tm_vb)
+  {
+    dont_render;
+  }
+  if (rendinst_render_pass != rendinst_render_pass_depth)
+  {
+    dont_render;
+  }
+  cull_mode = none;
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+
+  RENDINST_BLOCK()
+  RENDINST_INSTANCING()
+
+  hlsl {
+    struct VsOutput
+    {
+      PRECISE VS_OUT_POSITION(pos)
+    };
+  }
+
+  hlsl(vs) {
+    INSTANCING_BUFFERS
+
+    struct VsInput
+    {
+      float3 pos : POSITION;
+    };
+    VsOutput patches_vs(VsInput input HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+      float3 localPos = input.pos;
+      float opacity = 1;
+      float3 localNormal = 1.0;
+      VB_PERFORM_INSTANCING
+      output.pos = mulPointTm(worldPos, globtm);
+      return output;
+    }
+  }
+  compile("target_vs", "patches_vs");
+  compile("ps_null", "rendinst_render_depth_black_ps");
+}
+
+shader process_hmap_patches_depth
+{
+  supports global_frame;
+  z_write = false;
+  z_test = false;
+  cull_mode = none;
+
+  ENABLE_ASSERT(ps)
+  POSTFX_VS(1)
+
+  (ps)
+  {
+    hmap_patches_depth_tex@smp2d = hmap_patches_depth_tex;
+  }
+
+  hlsl(ps) {
+    float postfx_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      return texelFetch(hmap_patches_depth_tex, int2(GET_SCREEN_POS(input.pos).xy), 0).r;
+    }
+  }
+
+  compile("target_ps", "postfx_ps");
+}

@@ -9,4 +9,4 @@ LOCALS
 [s] true
 [sec] 10000
 [vargv] ARRAY=[]
-[this] TABLE={}
+[this] NULL

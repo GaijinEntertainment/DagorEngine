@@ -1,0 +1,177 @@
+include "combine_shadows_common.dshl"
+
+int show_shadows=0;
+interval show_shadows: static_shadows<1, csm_shadows<2, csm_cascades<3, contact_shadow<4, combined_shadows<5, clouds_shadows<6, static_shadows_cascades<7, ssss;
+
+shader debug_shadows
+{
+  ENABLE_ASSERT(ps)
+  assume depth_bounds_support = no;
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+  (ps) { world_view_pos@f3 = world_view_pos; }
+
+  USE_EMISSION_DECODE_COLOR_MAP(ps)
+  INIT_COMBINE_SHADOWS()
+  USE_COMBINE_SHADOWS()
+  USE_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(ps)
+  USE_SSSS_TRANSMITTANCE_DECODE(ps)
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord : TEXCOORD1;
+      float3 viewVec : TEXCOORD2;
+    };
+  }
+  USE_AND_INIT_VIEW_VEC(vs)
+
+  hlsl(vs) {
+    VsOutput debug_shadows_vs( uint vertexId : SV_VertexID )
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4( pos.xy, 1, 1 );
+      output.texcoord.xy = screen_to_texcoords(pos);
+      output.viewVec = get_view_vec_by_vertex_id(vertexId);
+
+      return output;
+    }
+  }
+  compile("target_vs", "debug_shadows_vs");
+
+  hlsl(ps) {
+    float4 debug_shadows_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target
+    {
+      PackedShadows shadows = getShadows(input.texcoord, GET_SCREEN_POS(input.pos), input.viewVec, isGbufferHeroCockpit(GET_SCREEN_POS(input.pos).xy));
+      ##if show_shadows == static_shadows
+        return float4(shadows.staticShadow.xxx, 1.f);
+      ##elif show_shadows == csm_shadows
+        return float4(shadows.csmShadow.xxx, 1.f);
+      ##elif show_shadows == csm_cascades
+        float4 shadowColor = float4(0, 0, 0, 1);
+        switch (shadows.csmCascadeId)
+        {
+        case 0: shadowColor = float4(1, 0, 0, 1); break;
+        case 1: shadowColor = float4(0, 1, 0, 1); break;
+        case 2: shadowColor = float4(0, 0, 1, 1); break;
+        case 3: shadowColor = float4(1, 1, 0, 1); break;
+        }
+        return lerp(shadowColor, float4(1, 1, 1, 1), shadows.csmShadow.x);
+      ##elif show_shadows == contact_shadow
+        return float4(shadows.contactShadow.xxx, 1.f);
+      ##elif show_shadows == combined_shadows
+        return float4(shadows.combinedShadow.xxx, 1.f);
+      ##elif show_shadows == clouds_shadows
+        return float4(shadows.cloudsShadow.xxx, 1.f);
+      ##elif show_shadows == static_shadows_cascades
+        float4 shadowColor = float4(0, 0, 0, 1);
+        switch(shadows.staticCascadeId)
+        {
+          case 0: shadowColor = float4(1, 0, 0, 1); break;
+          case 1: shadowColor = float4(0, 1, 0, 1); break;
+        }
+        return lerp(shadowColor, float4(1, 1, 1, 1), shadows.staticShadow);
+      ##elif show_shadows == ssss
+        return float4(decode_ssss_transmittance(shadows.ssssTransmittance).xxx, 1);
+      ##endif
+      return 0;
+    }
+  }
+  compile("target_ps", "debug_shadows_ps");
+}
+
+float4x4 static_shadow_matrix_inverse;
+int static_shadow_size;
+float static_shadow_sampling_range;
+
+shader static_shadow_debug_mesh_shader
+{
+  z_test = false;
+  z_write = false;
+  cull_mode = none;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(position)
+    };
+  }
+  (vs)
+  {
+    globtm@f44 = globtm;
+    static_shadow_tex@smp2d = static_shadow_tex;
+    inverseViewProjectionMatrix@f44 = static_shadow_matrix_inverse;
+    texture_size@i1 = static_shadow_size;
+    sampling_range@f1 = static_shadow_sampling_range;
+    toroidal_center@f2 = (static_shadow_cascade_0_scale_ofs_z_tor.z, static_shadow_cascade_0_scale_ofs_z_tor.w, 0, 0);
+  }
+  hlsl(vs)
+  {
+    float3 get_texture_space_position(const uint vertexIndex)
+    {
+      const uint pointsPerTexel = 8;
+      const float samplingSize = texture_size * sampling_range;
+      const float halfTexelSize = 1.0f / texture_size / 2.0f;
+      const float almostHalfTexelSize = halfTexelSize * 0.99f;
+      const uint texelIndex = vertexIndex / pointsPerTexel;
+
+      float3 textureSpacePosition = floor(float3(texelIndex % uint(samplingSize), texelIndex / uint(samplingSize), 0.0f));
+      textureSpacePosition.xy = textureSpacePosition.xy / texture_size + halfTexelSize;
+
+      if (vertexIndex % pointsPerTexel == 1u)
+      {
+        textureSpacePosition.x += almostHalfTexelSize;
+      }
+      else if (vertexIndex % pointsPerTexel == 3u)
+      {
+        textureSpacePosition.y += almostHalfTexelSize;
+      }
+      else if (vertexIndex % pointsPerTexel == 5u)
+      {
+        textureSpacePosition.x -= almostHalfTexelSize;
+      }
+      else if (vertexIndex % pointsPerTexel == 7u)
+      {
+        textureSpacePosition.y -= almostHalfTexelSize;
+      }
+
+      textureSpacePosition.xy += toroidal_center - sampling_range * 0.5f;
+      textureSpacePosition.z = tex2Dlod(static_shadow_tex, float4(textureSpacePosition.xy, 0.0f, 0.0f)).x;
+
+      return textureSpacePosition;
+    }
+
+    float3 get_world_space_position(float3 textureSpacePosition)
+    {
+      float3 worldSpacePosition = textureSpacePosition;
+      worldSpacePosition.xy -= toroidal_center;
+      worldSpacePosition.xy /= 0.5f;
+      worldSpacePosition = mulPointTm(worldSpacePosition, inverseViewProjectionMatrix).xyz;
+      return worldSpacePosition;
+    }
+
+    VsOutput test_vs(uint vertexIndex : SV_VertexID)
+    {
+      const float3 textureSpacePosition = get_texture_space_position(vertexIndex);
+      const float3 worldSpacePosition = get_world_space_position(textureSpacePosition);
+
+      VsOutput output;
+      output.position = mulPointTm(worldSpacePosition, globtm);
+
+      return output;
+    }
+  }
+  compile("target_vs", "test_vs");
+
+  hlsl(ps)
+  {
+    float4 test_ps() : SV_Target
+    {
+      return float4(1.0f, 1.0f, 1.0f, 1.0f);
+    }
+  }
+  compile("target_ps", "test_ps");
+}

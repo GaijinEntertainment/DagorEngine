@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "easing.h"
 
 #include <math/dag_mathBase.h>

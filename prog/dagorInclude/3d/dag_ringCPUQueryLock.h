@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -47,6 +46,7 @@ public:
   // close unlock only if lock was succesfill
   void unlock();
   void reset() { currentBufferIssued = currentBufferToLock = bufferLockCounter = 0; }
+  void texaddr(int addrmode);
 
 protected:
   struct FencedGPUResource

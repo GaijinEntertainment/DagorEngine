@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -19,7 +18,7 @@ inline void sound_debug(const char *message) { sndsys::debug_trace_info("%s", me
 inline Point3 get_listener_pos() { return sndsys::get_3d_listener_pos(); }
 inline void sound_update_listener(float delta_time, const TMatrix &listener_tm) { sndsys::update_listener(delta_time, listener_tm); }
 inline void sound_reset_3d_listener() { sndsys::reset_3d_listener(); }
-inline bool sound_banks_is_preset_loaded(const char *preset_name) { return sndsys::banks::is_loaded(preset_name); }
+inline bool sound_banks_is_preset_loaded(const char *preset_name) { return preset_name && sndsys::banks::is_loaded(preset_name); }
 
 inline void sound_enable_distant_delay(bool enable) { sndsys::delayed::enable_distant_delay(enable); }
 inline void sound_release_delayed_events() { sndsys::delayed::release_delayed_events(); }
@@ -33,8 +32,17 @@ inline void sound_banks_enable_preset_starting_with(const char *name, bool enabl
   sndsys::banks::enable_starting_with(name ? name : "", enable);
 }
 
-inline bool sound_banks_is_preset_enabled(const char *name) { return sndsys::banks::is_enabled(name); }
+inline bool sound_banks_is_preset_enabled(const char *name) { return name && sndsys::banks::is_enabled(name); }
+inline bool sound_banks_is_preset_exist(const char *name) { return name && sndsys::banks::is_exist(name); }
+
 inline void sound_debug_enum_events() { sndsys::debug_enum_events(); }
 
-inline void sound_update(float dt) { sndsys::update(dt); }
+inline void sound_debug_enum_events_in_bank(const char *bank_name, const das::TBlock<void, const char *> &block, das::Context *context,
+  das::LineInfoArg *at)
+{
+  sndsys::debug_enum_events(bank_name, [&](const char *event_name) {
+    vec4f arg = das::cast<const char *const>::from(event_name);
+    context->invoke(block, &arg, nullptr, at);
+  });
+}
 } // namespace soundsystem_bind_dascript

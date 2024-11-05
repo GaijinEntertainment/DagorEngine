@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <animChar/dag_animCharacter2.h>
 #include <anim/dag_animChannels.h>
 #include <anim/dag_animBlend.h>
@@ -23,6 +25,7 @@
 #include <debug/dag_debug.h>
 #include <startup/dag_globalSettings.h>
 // #include <debug/dag_debug3d.h>
+#include <supp/dag_alloca.h>
 
 using namespace AnimV20;
 
@@ -43,11 +46,10 @@ extern PerformanceTimer2 perf_tm;
 
 namespace AnimCharV20
 {
-bool (*trace_static_ray_down)(const Point3_vec4 &from, float max_t, float &out_t, intptr_t ctx) = NULL;
-bool (*trace_static_ray_dir)(const Point3_vec4 &from, Point3_vec4 dir, float max_t, float &out_t, intptr_t ctx) = NULL;
+bool (*trace_static_multiray)(dag::Span<AnimCharV20::LegsIkRay> traces, bool down, intptr_t ctx) = NULL;
 } // namespace AnimCharV20
 
-#define LOGLEVEL_DEBUG _MAKE4C('ANIM')
+#define debug(...) logmessage(_MAKE4C('ANIM'), __VA_ARGS__)
 //
 // Animchar base component
 //
@@ -172,11 +174,6 @@ void AnimcharBaseComponent::setPostController(IAnimCharPostController *ctrl)
   recalcWtm();
 }
 
-void AnimcharBaseComponent::setTm(const mat44f &tm, bool setup_wofs)
-{
-  nodeTree.setRootTm(tm, setup_wofs);
-  nodeTree.invalidateWtm();
-}
 void AnimcharBaseComponent::setTm(const TMatrix &tm, bool setup_wofs)
 {
   mat44f tm4;
@@ -331,7 +328,7 @@ void AnimcharBaseComponent::updateFastPhys(const float dt)
 
 void AnimcharBaseComponent::act(real dt, bool calc_anim)
 {
-  // debug_ctx("act (dt=%.4f)", dt);
+  // DEBUG_CTX("act (dt=%.4f)", dt);
   totalDeltaTime += dt;
 
   if (!animState)
@@ -441,7 +438,7 @@ void AnimcharBaseComponent::resetAnim()
     animGraph->postBlendInit(*animState, nodeTree);
     if (stateDirector)
       stateDirector->reset(true);
-    // debug_ctx("animState.size=%d", animState->getSize());
+    // DEBUG_CTX("animState.size=%d", animState->getSize());
   }
   if (originalNodeTree && nodeTree.nodeCount() > 1)
   {
@@ -733,7 +730,7 @@ void AnimcharBaseComponent::setupAnim()
   animMapPRS.shrink_to_fit();
 
   animState = new AnimCommonStateHolder(*animGraph);
-  // debug_ctx("setup animGraph: %d/%d nodes", animMap.size(), nmb.totalNodes);
+  // DEBUG_CTX("setup animGraph: %d/%d nodes", animMap.size(), nmb.totalNodes);
 }
 
 void AnimcharBaseComponent::createDebugBlenderContext(bool dump_all_nodes)
@@ -762,6 +759,7 @@ const DataBlock *AnimcharBaseComponent::getDebugNodemasks()
 
 void AnimcharBaseComponent::calcAnimWtm(bool may_calc_anim)
 {
+  nodeTree.verifyOnlyTmFast();
   if (animGraph && !animValid && may_calc_anim)
   {
     AnimBlender::TlsContext *tls = NULL;
@@ -771,8 +769,6 @@ void AnimcharBaseComponent::calcAnimWtm(bool may_calc_anim)
     if (!postCtrl || !postCtrl->overridesBlender())
     {
       haveBlend |= animGraph->blend(*(tls = &animGraph->selectBlenderCtx(&irq, this)), *animState, getCharDepModif());
-      haveBlend |= motionMatchingController && motionMatchingController->blend(*tls, animMap, animMapPRS);
-      // we need both blend, because we have blending from animGraph to motionMatchingController.
     }
     if (haveBlend && tls)
     {
@@ -819,6 +815,7 @@ void AnimcharBaseComponent::calcAnimWtm(bool may_calc_anim)
 #endif
     }
 
+    nodeTree.verifyOnlyTmFast();
     nodeTree.calcWtm();
 
 #if MEASURE_PERF
@@ -840,6 +837,7 @@ void AnimcharBaseComponent::calcAnimWtm(bool may_calc_anim)
     perfanimgblend::perf_tm.pause();
 #endif
 
+    nodeTree.verifyOnlyTmFast();
     recalcWtm(world_translate);
 
     animValid = true;
@@ -879,7 +877,7 @@ intptr_t AnimcharBaseComponent::irq(int type, intptr_t p1, intptr_t p2, intptr_t
 {
   AnimcharBaseComponent *ac = (AnimcharBaseComponent *)arg;
 
-  // debug_ctx("irq #%d: 0x%p(%s), 0x%p, 0x%p (time=%.4f)", type, p1, animGraph->getBlendNodeName((IAnimBlendNode*)p1), p2, p3,
+  // DEBUG_CTX("irq #%d: 0x%p(%s), 0x%p, 0x%p (time=%.4f)", type, p1, animGraph->getBlendNodeName((IAnimBlendNode*)p1), p2, p3,
   // get_time_msec()/1000.0);
   if (type >= GIRQT_FIRST_SERVICE_IRQ)
   {
@@ -887,33 +885,23 @@ intptr_t AnimcharBaseComponent::irq(int type, intptr_t p1, intptr_t p2, intptr_t
     if (ac->stateDirector && ac->stateDirectorEnabled)
       ac->stateDirector->atIrq(type, (IAnimBlendNode *)p1);
   }
-  else if (type == GIRQT_TraceFootStepDown)
+  else if (type == GIRQT_TraceFootStepMultiRay)
   {
-    if (!AnimCharV20::trace_static_ray_down)
+    if (!AnimCharV20::trace_static_multiray)
       return GIRQR_NoResponse;
-    Point3_vec4 &pt = *(Point3_vec4 *)(void *)p1;
-    float max_trace_dist = *(float *)(void *)p2;
-    float *res = (float *)(void *)p3;
-    // draw_debug_line_buffered(pt, pt-Point3(0, max_trace_dist, 0), E3DCOLOR_MAKE(255,32,32,255));
-    if (AnimCharV20::trace_static_ray_down(pt, max_trace_dist, *res, ac->traceContext))
-    {
-      // draw_debug_line_buffered(pt, pt-Point3(0, *res, 0), E3DCOLOR_MAKE(2,255,32,255));
+    AnimCharV20::LegsIkRay *rays = (AnimCharV20::LegsIkRay *)(void *)p1;
+    int count = p2;
+    bool isTraceDown = p3;
+    if (AnimCharV20::trace_static_multiray(make_span(rays, count), isTraceDown, ac->traceContext))
       return GIRQR_TraceOK;
-    }
   }
-  else if (type == GIRQT_TraceFootStepDir)
+  else if (type == GIRQT_GetMotionMatchingPose)
   {
-    if (!AnimCharV20::trace_static_ray_dir)
+    AnimV20::AnimBlender::TlsContext *tls = (AnimV20::AnimBlender::TlsContext *)(void *)p1;
+    if (ac->motionMatchingController && ac->motionMatchingController->getPose(*tls, ac->animMap))
+      return GIRQR_MotionMatchingPoseApplied;
+    else
       return GIRQR_NoResponse;
-    Point3_vec4 &pt = *(Point3_vec4 *)(void *)p1;
-    const Point3_vec4 &dir = *(Point3_vec4 *)(void *)p2;
-    float *res = (float *)(void *)p3;
-    float max_trace_dist = *res;
-    if (AnimCharV20::trace_static_ray_dir(pt, dir, max_trace_dist, *res, ac->traceContext))
-    {
-      // draw_debug_line_buffered(pt, pt-Point3(0, *res, 0), E3DCOLOR_MAKE(2,255,32,255));
-      return GIRQR_TraceOK;
-    }
   }
   else
   {

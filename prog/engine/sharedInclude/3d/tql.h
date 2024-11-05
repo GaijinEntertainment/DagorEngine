@@ -1,6 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/dag_resId.h>
+#include <drv/3d/dag_resId.h>
 #include <3d/ddsxTex.h>
 #include <generic/dag_tab.h>
 #include <math/dag_mathBase.h>
@@ -94,21 +95,12 @@ inline bool isTexStub(BaseTexture *t) { return find_value_idx(texStub, t) >= 0; 
     return stubTexIdx >= 0 ? static_cast<decltype(this)>(tql::texStub[stubTexIdx]) : nullptr; \
   }
 
-#define TEXQL_PRE_CLEAN(SZ) \
-  do                        \
-    G_UNUSED(SZ);           \
-  while (0)
-#define TEXQL_PRE_CLEANSM(SZ) \
-  do                          \
-    G_UNUSED(SZ);             \
-  while (0)
 #define TEXQL_ON_ALLOC(BT)   tql::on_tex_created(BT)
 #define TEXQL_ON_RELEASE(BT) tql::on_tex_released(BT)
 
 #define TEXQL_ON_BUF_ALLOC(B)                               \
   do                                                        \
   {                                                         \
-    TEXQL_PRE_CLEAN(B->ressize());                          \
     tql::on_buf_changed(true, tql::sizeInKb(B->ressize())); \
   } while (0)
 #define TEXQL_ON_BUF_RELEASE(B) tql::on_buf_changed(false, -tql::sizeInKb(B->ressize()))
@@ -116,7 +108,6 @@ inline bool isTexStub(BaseTexture *t) { return find_value_idx(texStub, t) >= 0; 
 #define TEXQL_ON_BUF_ALLOC_SZ(sz)                 \
   do                                              \
   {                                               \
-    TEXQL_PRE_CLEAN(sz);                          \
     tql::on_buf_changed(true, tql::sizeInKb(sz)); \
   } while (0)
 #define TEXQL_ON_BUF_RELEASE_SZ(sz) tql::on_buf_changed(false, -tql::sizeInKb(sz))

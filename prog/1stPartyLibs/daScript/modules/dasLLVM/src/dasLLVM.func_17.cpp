@@ -12,66 +12,86 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_17() {
-// from D:\Work\libclang\include\llvm-c/Core.h:2163:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMConstNSWNeg >(*this,lib,"LLVMConstNSWNeg",SideEffects::worstDefault,"LLVMConstNSWNeg")
-		->args({"ConstantVal"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2164:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMConstNUWNeg >(*this,lib,"LLVMConstNUWNeg",SideEffects::worstDefault,"LLVMConstNUWNeg")
-		->args({"ConstantVal"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2165:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMConstFNeg >(*this,lib,"LLVMConstFNeg",SideEffects::worstDefault,"LLVMConstFNeg")
-		->args({"ConstantVal"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2166:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMConstNot >(*this,lib,"LLVMConstNot",SideEffects::worstDefault,"LLVMConstNot")
-		->args({"ConstantVal"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2167:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstAdd >(*this,lib,"LLVMConstAdd",SideEffects::worstDefault,"LLVMConstAdd")
-		->args({"LHSConstant","RHSConstant"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2168:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstNSWAdd >(*this,lib,"LLVMConstNSWAdd",SideEffects::worstDefault,"LLVMConstNSWAdd")
-		->args({"LHSConstant","RHSConstant"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2169:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstNUWAdd >(*this,lib,"LLVMConstNUWAdd",SideEffects::worstDefault,"LLVMConstNUWAdd")
-		->args({"LHSConstant","RHSConstant"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2170:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstSub >(*this,lib,"LLVMConstSub",SideEffects::worstDefault,"LLVMConstSub")
-		->args({"LHSConstant","RHSConstant"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2171:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstNSWSub >(*this,lib,"LLVMConstNSWSub",SideEffects::worstDefault,"LLVMConstNSWSub")
-		->args({"LHSConstant","RHSConstant"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2172:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstNUWSub >(*this,lib,"LLVMConstNUWSub",SideEffects::worstDefault,"LLVMConstNUWSub")
-		->args({"LHSConstant","RHSConstant"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2173:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstMul >(*this,lib,"LLVMConstMul",SideEffects::worstDefault,"LLVMConstMul")
-		->args({"LHSConstant","RHSConstant"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2174:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstNSWMul >(*this,lib,"LLVMConstNSWMul",SideEffects::worstDefault,"LLVMConstNSWMul")
-		->args({"LHSConstant","RHSConstant"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2175:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstNUWMul >(*this,lib,"LLVMConstNUWMul",SideEffects::worstDefault,"LLVMConstNUWMul")
-		->args({"LHSConstant","RHSConstant"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2176:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstAnd >(*this,lib,"LLVMConstAnd",SideEffects::worstDefault,"LLVMConstAnd")
-		->args({"LHSConstant","RHSConstant"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2177:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstOr >(*this,lib,"LLVMConstOr",SideEffects::worstDefault,"LLVMConstOr")
-		->args({"LHSConstant","RHSConstant"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2178:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstXor >(*this,lib,"LLVMConstXor",SideEffects::worstDefault,"LLVMConstXor")
-		->args({"LHSConstant","RHSConstant"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2179:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMIntPredicate,LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstICmp >(*this,lib,"LLVMConstICmp",SideEffects::worstDefault,"LLVMConstICmp")
-		->args({"Predicate","LHSConstant","RHSConstant"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2181:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMRealPredicate,LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstFCmp >(*this,lib,"LLVMConstFCmp",SideEffects::worstDefault,"LLVMConstFCmp")
-		->args({"Predicate","LHSConstant","RHSConstant"});
+// from D:\Work\libclang\include\llvm-c/Core.h:2182:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *) , LLVMSizeOf , SimNode_ExtFuncCall >(lib,"LLVMSizeOf","LLVMSizeOf")
+		->args({"Ty"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Core.h:2183:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstShl >(*this,lib,"LLVMConstShl",SideEffects::worstDefault,"LLVMConstShl")
-		->args({"LHSConstant","RHSConstant"});
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMConstNeg , SimNode_ExtFuncCall >(lib,"LLVMConstNeg","LLVMConstNeg")
+		->args({"ConstantVal"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Core.h:2184:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstLShr >(*this,lib,"LLVMConstLShr",SideEffects::worstDefault,"LLVMConstLShr")
-		->args({"LHSConstant","RHSConstant"});
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMConstNSWNeg , SimNode_ExtFuncCall >(lib,"LLVMConstNSWNeg","LLVMConstNSWNeg")
+		->args({"ConstantVal"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2185:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMConstNUWNeg , SimNode_ExtFuncCall >(lib,"LLVMConstNUWNeg","LLVMConstNUWNeg")
+		->args({"ConstantVal"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2186:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMConstNot , SimNode_ExtFuncCall >(lib,"LLVMConstNot","LLVMConstNot")
+		->args({"ConstantVal"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2187:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstAdd , SimNode_ExtFuncCall >(lib,"LLVMConstAdd","LLVMConstAdd")
+		->args({"LHSConstant","RHSConstant"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2188:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstNSWAdd , SimNode_ExtFuncCall >(lib,"LLVMConstNSWAdd","LLVMConstNSWAdd")
+		->args({"LHSConstant","RHSConstant"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2189:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstNUWAdd , SimNode_ExtFuncCall >(lib,"LLVMConstNUWAdd","LLVMConstNUWAdd")
+		->args({"LHSConstant","RHSConstant"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2190:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstSub , SimNode_ExtFuncCall >(lib,"LLVMConstSub","LLVMConstSub")
+		->args({"LHSConstant","RHSConstant"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2191:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstNSWSub , SimNode_ExtFuncCall >(lib,"LLVMConstNSWSub","LLVMConstNSWSub")
+		->args({"LHSConstant","RHSConstant"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2192:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstNUWSub , SimNode_ExtFuncCall >(lib,"LLVMConstNUWSub","LLVMConstNUWSub")
+		->args({"LHSConstant","RHSConstant"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2193:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstMul , SimNode_ExtFuncCall >(lib,"LLVMConstMul","LLVMConstMul")
+		->args({"LHSConstant","RHSConstant"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2194:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstNSWMul , SimNode_ExtFuncCall >(lib,"LLVMConstNSWMul","LLVMConstNSWMul")
+		->args({"LHSConstant","RHSConstant"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2195:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstNUWMul , SimNode_ExtFuncCall >(lib,"LLVMConstNUWMul","LLVMConstNUWMul")
+		->args({"LHSConstant","RHSConstant"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2196:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstAnd , SimNode_ExtFuncCall >(lib,"LLVMConstAnd","LLVMConstAnd")
+		->args({"LHSConstant","RHSConstant"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2197:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstOr , SimNode_ExtFuncCall >(lib,"LLVMConstOr","LLVMConstOr")
+		->args({"LHSConstant","RHSConstant"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2198:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstXor , SimNode_ExtFuncCall >(lib,"LLVMConstXor","LLVMConstXor")
+		->args({"LHSConstant","RHSConstant"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2199:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMIntPredicate,LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstICmp , SimNode_ExtFuncCall >(lib,"LLVMConstICmp","LLVMConstICmp")
+		->args({"Predicate","LHSConstant","RHSConstant"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2201:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMRealPredicate,LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstFCmp , SimNode_ExtFuncCall >(lib,"LLVMConstFCmp","LLVMConstFCmp")
+		->args({"Predicate","LHSConstant","RHSConstant"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2203:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMConstShl , SimNode_ExtFuncCall >(lib,"LLVMConstShl","LLVMConstShl")
+		->args({"LHSConstant","RHSConstant"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

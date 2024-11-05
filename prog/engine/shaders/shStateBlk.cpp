@@ -1,14 +1,16 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "shStateBlk.h"
 #include "scriptSMat.h"
 #include "scriptSElem.h"
 #include <shaders/shUtils.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_shader.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_texIdSet.h>
 #include <debug/dag_debug.h>
 #include "../lib3d/texMgrData.h"
 
-#define LOGLEVEL_DEBUG _MAKE4C('SHST')
+#define debug(...) logmessage(_MAKE4C('SHST'), __VA_ARGS__)
 
 bool shaders_internal::shader_reload_allowed = false;
 int shaders_internal::nan_counter = 0;
@@ -61,7 +63,7 @@ bool shaders_internal::reload_shaders_materials(ScriptedShadersBinDumpOwner &pre
 
   BlockAutoLock block;
 
-  debug_cp();
+  DEBUG_CP();
   // destroy shaders
   for (int i = 0; i < prev_sh.vprId.size(); i++)
     if (prev_sh.vprId[i] != BAD_VPROG)
@@ -79,6 +81,8 @@ bool shaders_internal::reload_shaders_materials(ScriptedShadersBinDumpOwner &pre
   for (int i = 0; i < prev_sh.gvMap.size(); i++)
   {
     const char *name = (const char *)prev_sh.varMap[prev_sh.gvMap[i] & 0xFFFF];
+    if (name[strlen(name) - 1] == ']')
+      continue; // skip array auxiliary vars since they are not used as a real global shader vars
     int varId = VariableMap::getVariableId(name);
     const int prevGId = prev_sh.gvMap[i] >> 16;
     auto const &vl = prev_sh.globVars;
@@ -90,6 +94,8 @@ bool shaders_internal::reload_shaders_materials(ScriptedShadersBinDumpOwner &pre
       case SHVT_COLOR4: ShaderGlobal::set_color4(varId, vl.get<Color4>(prevGId)); break;
       case SHVT_TEXTURE: ShaderGlobal::set_texture(varId, vl.getTex(prevGId).texId); break;
       case SHVT_BUFFER: ShaderGlobal::set_buffer(varId, vl.getBuf(prevGId).bufId); break;
+      case SHVT_SAMPLER: ShaderGlobal::set_sampler(varId, vl.get<d3d::SamplerHandle>(prevGId)); break;
+      case SHVT_TLAS: ShaderGlobal::set_tlas(varId, vl.get<RaytraceTopAccelerationStructure *>(prevGId)); break;
     }
 
     // copy global intervals
@@ -164,7 +170,7 @@ bool shaders_internal::reload_shaders_materials(ScriptedShadersBinDumpOwner &pre
 #if DAGOR_DBGLEVEL > 0
   shaderbindump::resetInvalidVariantMarks();
 #endif
-  debug_cp();
+  DEBUG_CP();
   return true;
 }
 
@@ -174,7 +180,7 @@ bool shaders_internal::reload_shaders_materials_on_driver_reset()
   rebuild_shaders_stateblocks();
   ScriptedShadersBinDump &sh = shBinDumpRW();
 
-  debug_cp();
+  DEBUG_CP();
   // destroy shaders
   for (int i = 0; i < sh.vprId.size(); i++)
     sh.vprId[i] = BAD_VPROG;
@@ -185,6 +191,6 @@ bool shaders_internal::reload_shaders_materials_on_driver_reset()
   for (auto e : elems)
     if (e)
       e->native().resetShaderPrograms(false /* delete_programs */);
-  debug_cp();
+  DEBUG_CP();
   return true;
 }

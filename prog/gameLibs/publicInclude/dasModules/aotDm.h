@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -17,13 +16,14 @@
 #include <damageModel/damageModelData.h>
 #include <damageModel/damageModelParams.h>
 #include <damageModel/damagePart.h>
-#include <damageModel/propsRegistryUtils.h>
 #include <damageModel/collisionData.h>
 #include <damageModel/splashDamage.h>
 #include <damageModel/syntheticShatterDamage.h>
 #include <damageModel/criticalDamageTester.h>
 #include <damageModel/damagePartUtils.h>
 #include <damageModel/explosive.h>
+#include <damageModel/metaParts.h>
+#include <damageModel/blkUtils.h>
 #include <ecs/game/dm/partId.h>
 #include <ecs/game/dm/damageModel.h>
 
@@ -76,11 +76,12 @@ DAS_BASE_BIND_ENUM(dm::KillEffect, KillEffect, KILL_EFF_NONE, KILL_EFF_INACTIVE,
 
 namespace bind_dascript
 {
-template <typename Preset, typename Params>
-int dm_read_overrided_preset(PropertyPresets<Preset> &presets, const DataBlock &blk, const char *preset_param_name,
-  int default_preset_id, const Params &params)
+inline int dm_read_overrided_preset(dm::effect::PresetList &presets, const DataBlock &blk, const char *preset_param_name,
+  int default_preset_id, const dm::DamageModelData &dm_data)
 {
-  return read_overrided_preset(presets, blk, preset_param_name, default_preset_id, &params);
+  dm::DataBlockRWHelper dataBlockRWHelper(dm::get_damage_types());
+  return dm::effect::read_overrided_preset_ex(presets, blk, preset_param_name, default_preset_id, &dm_data, nullptr,
+    dataBlockRWHelper);
 }
 
 inline uint16_t get_rel_hp_fixed(const dm::DamageModelData &dm_data, int part_id)
@@ -107,37 +108,16 @@ inline int get_part_id_by_coll_node_id(const dm::DamageModelData &dm_data, int c
 {
   return dm::get_part_id_by_coll_node_id(dm_data, coll_node_id).id;
 }
-inline void dm_effect_on_part_kill(const dm::effect::ActionCluster &action, int &dm_effects, int &rand_seed, bool &out_is_critical,
-  const das::TBlock<void, dm::PartId, bool> &block, das::Context *context, das::LineInfoArg *at)
+inline void dm_effect_on_part_kill(const dm::effect::ActionCluster &action_cluster, int &dm_effects, int &rand_seed,
+  bool &out_is_critical)
 {
-  dm::effect::on_part_kill(
-    action,
-    [&](dm::PartId partId, bool canCut) {
-      vec4f args[] = {das::cast<const dm::PartId &>::from(partId), das::cast<bool>::from(canCut)};
-      context->invoke(block, args, nullptr, at);
-    },
-    dm_effects, rand_seed, out_is_critical);
+  dm::effect::on_part_kill(action_cluster, dm_effects, rand_seed, out_is_critical);
 }
 
-inline void dm_effect_on_part_hit(const dm::effect::ActionCluster &action, const dm::DamageModelParams &params, int &dm_effects,
-  int &rand_seed, float chance_mult, uint16_t part_hp_fixed, bool &out_is_critical,
-  const das::TBlock<float, int, dm::PartId> &calc_chance_multiplier, const das::TBlock<void, dm::PartId, bool> &block,
-  das::Context *context, das::LineInfoArg *at)
+inline void dm_effect_on_part_hit(const dm::effect::ActionCluster &action_cluster, const dm::DamageModelParams &, int &dm_effects,
+  int &rand_seed, float, float, uint16_t, bool &out_is_critical)
 {
-  dm::effect::on_part_hit(
-    action, params,
-    [&](int type, dm::PartId partId) {
-      vec4f args[] = {
-        das::cast<bool>::from(type),
-        das::cast<const dm::PartId &>::from(partId),
-      };
-      return das::cast<float>::to(context->invoke(calc_chance_multiplier, args, nullptr, at));
-    },
-    [&](dm::PartId partId, bool canCut) {
-      vec4f args[] = {das::cast<const dm::PartId &>::from(partId), das::cast<bool>::from(canCut)};
-      context->invoke(block, args, nullptr, at);
-    },
-    dm_effects, rand_seed, chance_mult, part_hp_fixed, out_is_critical);
+  dm::effect::on_part_hit(action_cluster, dm_effects, rand_seed, out_is_critical, nullptr);
 }
 
 inline int get_collision_node_id(const dm::DamageModelData &dm_data, int part_id)
@@ -166,8 +146,10 @@ inline dm::splash::Params calc_splash_params(const dm::ExplosiveProperties &expl
   const dm::splash::Properties &splash_properties, bool underwater)
 {
   dm::splash::Params params;
-  dm::splash::calc_params(splash_properties, explosive_props.mass > 0.f ? &explosive_props : nullptr,
-    underwater ? dm::PhysEnvironment::WATER : dm::PhysEnvironment::AIR, 1.f, params);
+  if (explosive_props.mass > 0.f && splash_properties.type != dm::splash::Properties::Type::PREDEFINED)
+    dm::splash::calc_explosive_params(explosive_props, 1.f, params.explosiveParams);
+  dm::splash::calc_params(splash_properties, underwater ? dm::PhysEnvironment::WATER : dm::PhysEnvironment::AIR,
+    dm::get_explosive_mass_to_splash_params(), params);
   return params;
 }
 
@@ -188,5 +170,23 @@ inline float get_part_hp_prop_value(const dm::DamageModelData &dm_data, const dm
 }
 
 inline const char *das_get_part_name(const dm::DamagePartProps &props) { return dm::get_part_name(props); }
+
+inline bool das_is_coll_node_traceable(const dm::DamageModelData &dm_data, int coll_node_id, bool reverse)
+{
+  return dm::is_coll_node_traceable(dm_data, coll_node_id, nullptr, reverse);
+}
+
+inline void das_load_dm_part_props(dm::DamagePartProps &props, const char *blk_name)
+{
+  DataBlock blk(blk_name);
+  dm::DataBlockRWHelper dataBlockRWHelper(dm::get_damage_types());
+  props.load(blk, dataBlockRWHelper, true);
+}
+
+inline void splash_props_load(dm::splash::Properties &props, const DataBlock &blk)
+{
+  dm::DataBlockRWHelper dataBlockRWHelper(dm::get_damage_types());
+  props.load(blk, dataBlockRWHelper);
+}
 
 } // namespace bind_dascript

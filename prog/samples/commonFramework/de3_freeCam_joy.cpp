@@ -1,11 +1,16 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "de3_freeCam.h"
-#include <3d/dag_drv3d.h>
+#include "dag_cur_view.h"
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
-#include <render/dag_cur_view.h>
 #include <workCycle/dag_workCycle.h>
 #include <util/dag_flyMode.h>
-#include <humanInput/dag_hiGlobals.h>
-#include <humanInput/dag_hiJoystick.h>
+#include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiJoystick.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <stdlib.h>
 

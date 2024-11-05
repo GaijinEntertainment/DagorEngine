@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ecs/anim/anim.h>
 #include <ecs/core/entitySystem.h>
 #include <ecs/core/attributeEx.h>
@@ -33,12 +35,12 @@ static inline void animchar_set_tm(AnimV20::AnimcharBaseComponent &ac, bool turn
   vec3f col2 = tm4.col2;
   tm4.col0 = v_sel(tm4.col0, col2, vTurnDir);
   tm4.col2 = v_sel(tm4.col2, v_neg(col0), vTurnDir);
-  ac.setTm(tm4, true);
+  ac.setTm(tm4, /*setup_wofs*/ true);
 }
 
 static bool is_tex_harmonization_required()
 {
-  if (EASTL_UNLIKELY(harmonization_required < 0))
+  if (DAGOR_UNLIKELY(harmonization_required < 0))
     harmonization_required =
       ::dgs_get_settings()->getBool("harmonizationRequired", false) || ::dgs_get_settings()->getBool("harmonizationEnabled", false);
   return (bool)harmonization_required;
@@ -93,8 +95,11 @@ public:
   {
     const char *animCharRes = mgr.getOr(eid, ECS_HASH("animchar__res"), ecs::nullstr);
     GameResHandle handle = GAMERES_HANDLE_FROM_STRING(animCharRes);
+    if (DAGOR_UNLIKELY(!is_game_resource_loaded(handle, CharacterGameResClassId)))
+      logerr("<%s> is expected to be loaded in %s while creating %d<%s>", animCharRes, __FUNCTION__, (ecs::entity_id_t)eid,
+        mgr.getEntityTemplateName(eid)); // Note: `requestResources` should ensure that
     AnimV20::IAnimCharacter2 *animCharSource = (AnimV20::IAnimCharacter2 *)::get_game_resource_ex(handle, CharacterGameResClassId);
-    if (EASTL_UNLIKELY(!animCharSource))
+    if (DAGOR_UNLIKELY(!animCharSource))
     {
       logerr("Failed to get gameres '%s' while creating %d<%s>", animCharRes, (ecs::entity_id_t)eid, mgr.getEntityTemplateName(eid));
       return;
@@ -103,7 +108,7 @@ public:
     ::release_game_resource(handle);
 
 
-    // Don't set `eid` setTraceContext here - as might be (incorrectly) used as pointer on actual `trace_static_ray_down/dir` calls
+    // Don't set `eid` setTraceContext here - as might be (incorrectly) used as pointer on actual `trace_static_multiray` calls
 
     const TMatrix &tm = mgr.getOr(eid, ECS_HASH("transform"), TMatrix::IDENT);
     bool turnDir = mgr.getOr(eid, ECS_HASH("animchar__turnDir"), false);
@@ -186,6 +191,7 @@ ECS_REGISTER_RELOCATABLE_TYPE(AnimcharNodesMat44, nullptr);
 ECS_AUTO_REGISTER_COMPONENT(ecs::Object, "animchar__animState", nullptr, 0); // as animchar writes to animState
 ECS_AUTO_REGISTER_COMPONENT(ecs::string, "animchar__res", nullptr, 0);
 ECS_AUTO_REGISTER_COMPONENT_DEPS(AnimV20::AnimcharBaseComponent, "animchar", nullptr, 0, "?animchar__animState", "animchar__res");
+ECS_AUTO_REGISTER_COMPONENT_DEPS(AnimV20::AnimcharBaseComponent, "saved_animchar", nullptr, 0, "?animchar");
 ECS_AUTO_REGISTER_COMPONENT_DEPS(AnimcharNodesMat44, "animchar_node_wtm", nullptr, 0, "animchar", "animchar_render",
   "animchar_render__root_pos", "animchar_render__dist_sq");
 ECS_AUTO_REGISTER_COMPONENT_DEPS(AnimV20::AnimcharRendComponent, "animchar_render", nullptr, 0, "animchar");

@@ -4,6 +4,7 @@
 #pragma warning(disable:4189)
 #endif
 
+
 #ifdef __cplusplus
   #define SimData_ref SimData&
   #define SimData_cref const SimData&
@@ -55,6 +56,13 @@
 #else
   #define SPAWN_MODULE_WIDTH_DECL(e) DAFX_EMPTY_STRUCT(SPAWN_MODULE_WIDTH_EMPTY)
   #define SPAWN_MODULE_WIDTH 0
+#endif
+
+#ifdef SIM_MODULE_WIDTH_MODIFIER
+  #define SIM_MODULE_WIDTH_MODIFIER_DECL(e) e
+#else
+  #define SIM_MODULE_WIDTH_MODIFIER_DECL(e) DAFX_EMPTY_STRUCT(SIM_MODULE_WIDTH_MODIFIER_EMPTY)
+  #define SIM_MODULE_WIDTH_MODIFIER 0
 #endif
 
 #ifdef SPAWN_MODULE_CUBE_POS
@@ -154,6 +162,16 @@
   #define SIM_MODULE_RESOLVE_FORCES 0
 #endif
 
+#ifdef SIM_MODULE_GRAVITY_ZONE
+  #define SIM_MODULE_GRAVITY_ZONE_DECL(e) e
+  #if !SIM_MODULE_RESOLVE_FORCES
+    #error SIM_MODULE_RESOLVE_FORCES REQUIRED!
+  #endif
+#else
+  #define SIM_MODULE_GRAVITY_ZONE_DECL(e) DAFX_EMPTY_STRUCT(SIM_MODULE_GRAVITY_ZONE_EMPTY)
+  #define SIM_MODULE_GRAVITY_ZONE 0
+#endif
+
 //--- Dafx Derived Module Data
 
 #define SIM_MODULE_WIND (SIM_MODULE_DIRECTIONAL_WIND | SIM_MODULE_TURBULENT_WIND)
@@ -195,7 +213,7 @@
   DAFX_MODULE_DATA_DECL(1 * SPAWN_MODULE_SEED, SPAWN_MODULE_SEED_DECL(uint seed;), SPAWN_MODULE_SEED_DECL(o.seed = dafx_load_1ui(buf, ofs);), 0) \
   DAFX_MODULE_DATA_DECL(13 * SPAWN_MODULE_SPHERE_VELOCITY, SPAWN_MODULE_SPHERE_VELOCITY_DECL(SectorDistribution velocity;), SPAWN_MODULE_SPHERE_VELOCITY_DECL(o.velocity = SectorDistribution_load(buf, ofs);), 0) \
   DAFX_MODULE_DATA_DECL(2 * SIM_MODULE_DEPTH_COLLISION, SIM_MODULE_DEPTH_COLLISION_DECL(float restitution; float friction;), SIM_MODULE_DEPTH_COLLISION_DECL(o.restitution = dafx_load_1f(buf, ofs); o.friction = dafx_load_1f(buf, ofs);), 0) \
-  DAFX_MODULE_DATA_DECL(4 * SIM_MODULE_COLOR, SIM_MODULE_COLOR_DECL(uint color0; uint color1; float color1Portion; uint colorEnd;), SIM_MODULE_COLOR_DECL(o.color0 = dafx_load_1ui(buf, ofs); o.color1 = dafx_load_1ui(buf, ofs); o.color1Portion = dafx_load_1f(buf, ofs); o.colorEnd = dafx_load_1ui(buf, ofs);), 0) \
+  DAFX_MODULE_DATA_DECL(5 * SIM_MODULE_COLOR, SIM_MODULE_COLOR_DECL(uint color0; uint color1; float color1Portion; float hdrBias; uint colorEnd;), SIM_MODULE_COLOR_DECL(o.color0 = dafx_load_1ui(buf, ofs); o.color1 = dafx_load_1ui(buf, ofs); o.color1Portion = dafx_load_1f(buf, ofs); o.hdrBias = dafx_load_1f(buf, ofs); o.colorEnd = dafx_load_1ui(buf, ofs);), 0) \
   DAFX_MODULE_DATA_DECL(1 * SPAWN_MODULE_VELOCITY_BIAS_POS, SPAWN_MODULE_VELOCITY_BIAS_POS_DECL(float velocityBias;), SPAWN_MODULE_VELOCITY_BIAS_POS_DECL(o.velocityBias = dafx_load_1f(buf, ofs);), 0) \
   DAFX_MODULE_DATA_DECL(1 * SIM_MODULE_WIND, SIM_MODULE_WIND_DECL(float dragCoefficient;), SIM_MODULE_WIND_DECL(o.dragCoefficient = dafx_load_1f(buf, ofs);), 0) \
   DAFX_MODULE_DATA_DECL(4 * SIM_MODULE_TURBULENT_WIND, SIM_MODULE_TURBULENT_WIND_DECL(LinearDistribution turbulenceForce; LinearDistribution turbulenceFreq;), SIM_MODULE_TURBULENT_WIND_DECL(o.turbulenceForce = LinearDistribution_load(buf, ofs); o.turbulenceFreq = LinearDistribution_load(buf, ofs);), 0) \
@@ -203,7 +221,8 @@
   DAFX_MODULE_DATA_DECL(1 * SPAWN_MODULE_NOISE_VELOCITY, SPAWN_MODULE_NOISE_VELOCITY_DECL(float spawnNoise;), SPAWN_MODULE_NOISE_VELOCITY_DECL(o.spawnNoise = dafx_load_1f(buf, ofs);), 0) \
   DAFX_MODULE_DATA_DECL(6 * SPAWN_MODULE_CUBE_POS, SPAWN_MODULE_NOISE_POS_DECL(CubeDistribution spawnNoisePos;), SPAWN_MODULE_NOISE_POS_DECL(o.spawnNoisePos = CubeDistribution_load(buf, ofs);), 0) \
   DAFX_MODULE_DATA_DECL(1 * SIM_MODULE_COLOR, SIM_MODULE_COLOR_DECL2(float hdrScale1;), SIM_MODULE_COLOR_DECL2(o.hdrScale1 = dafx_load_1f(buf, ofs);), 0) \
-  DAFX_MODULE_DATA_DECL(1 * SIM_MODULE_DIRECTIONAL_WIND, SIM_MODULE_DIRECTIONAL_WIND_DECL(float windForce;), SIM_MODULE_DIRECTIONAL_WIND_DECL(o.windForce = dafx_load_1f(buf, ofs);), 0)
+  DAFX_MODULE_DATA_DECL(1 * SIM_MODULE_DIRECTIONAL_WIND, SIM_MODULE_DIRECTIONAL_WIND_DECL(float windForce;), SIM_MODULE_DIRECTIONAL_WIND_DECL(o.windForce = dafx_load_1f(buf, ofs);), 0) \
+  DAFX_MODULE_DATA_DECL(1 * SIM_MODULE_GRAVITY_ZONE, SIM_MODULE_GRAVITY_ZONE_DECL(uint gravity_zone;), SIM_MODULE_GRAVITY_ZONE_DECL(o.gravity_zone = dafx_load_1ui(buf, ofs);), 0) \
 
 #define DAFX_SIM_DATA \
   DAFX_MODULE_DATA_DECL(1 * SIM_MODULE_LIFE, SIM_MODULE_LIFE_DECL(float age;), SIM_MODULE_LIFE_DECL(p.age = dafx_load_1f(buf, ofs);), SIM_MODULE_LIFE_DECL(dafx_store_1f(p.age, buf, ofs);)) \
@@ -214,7 +233,9 @@
   DAFX_MODULE_DATA_DECL(3 * PARTICLES_REN_MODULE_POS, PARTICLES_REN_MODULE_POS_DECL(float3 pos;), PARTICLES_REN_MODULE_POS_DECL(p.pos = dafx_load_3f(buf, ofs);), PARTICLES_REN_MODULE_POS_DECL(dafx_store_3f(p.pos, buf, ofs);)) \
   DAFX_MODULE_DATA_DECL(3 * PARTICLES_REN_MODULE_VELOCITY, PARTICLES_REN_MODULE_VELOCITY_DECL(float3 velocity;), PARTICLES_REN_MODULE_VELOCITY_DECL(p.velocity = dafx_load_3f(buf, ofs);), PARTICLES_REN_MODULE_VELOCITY_DECL(dafx_store_3f(p.velocity, buf, ofs);)) \
   DAFX_MODULE_DATA_DECL(1 * SPAWN_MODULE_WIDTH, SPAWN_MODULE_WIDTH_DECL(float width;), SPAWN_MODULE_WIDTH_DECL(p.width = dafx_load_1f(buf, ofs);), SPAWN_MODULE_WIDTH_DECL(dafx_store_1f(p.width, buf, ofs);)) \
+  DAFX_MODULE_DATA_DECL(1 * SIM_MODULE_WIDTH_MODIFIER, SIM_MODULE_WIDTH_MODIFIER_DECL(float widthModifier;), SIM_MODULE_WIDTH_MODIFIER_DECL(p.widthModifier = dafx_load_1f(buf, ofs);), SIM_MODULE_WIDTH_MODIFIER_DECL(dafx_store_1f(p.widthModifier, buf, ofs);)) \
   DAFX_MODULE_DATA_DECL(5 * SIM_MODULE_COLOR, SIM_MODULE_COLOR_DECL(float4 color; float hdrScale;), SIM_MODULE_COLOR_DECL(p.color = dafx_load_4f(buf, ofs); p.hdrScale = dafx_load_1f(buf, ofs);), SIM_MODULE_COLOR_DECL(dafx_store_4f(p.color, buf, ofs); dafx_store_1f(p.hdrScale, buf, ofs);))
+
 
 //--- Dafx Internal Declarations
 
@@ -232,15 +253,17 @@
 
 struct ParentSimData
 {
-  float4x4 emitterWtm;
   float4x4 emitterNtm;
+  float3 fxVelocity;
+  CurveData widthOverLifeCurve;
+  float3x3 gravityTm;
   DAFX_PARENT_SIM_DATA
 };
 
 struct ParentRenData
 {
-  float4x4 fxTm;
-  float3 fxVelocity;
+  float4x4 tm;
+  uint localSpaceFlag;
   DAFX_PARENT_REN_DATA
 };
 
@@ -264,8 +287,10 @@ ParentSimData unpack_parent_sim_data( BufferData_cref buf, uint ofs )
   return *(ParentSimData*)( buf + ofs );
 #else
   ParentSimData o;
-  o.emitterWtm = dafx_load_44mat(buf, ofs);
   o.emitterNtm = dafx_load_44mat(buf, ofs);
+  o.fxVelocity = dafx_load_3f(buf, ofs);
+  o.widthOverLifeCurve = CurveData_Load(buf, ofs);
+  o.gravityTm = dafx_load_33mat(buf, ofs);
   DAFX_PARENT_SIM_DATA
   return o;
 #endif
@@ -278,8 +303,8 @@ ParentRenData unpack_parent_ren_data( BufferData_cref buf, uint ofs )
   return *(ParentRenData*)( buf + ofs );
 #else
   ParentRenData o;
-  o.fxTm = dafx_load_44mat(buf, ofs);
-  o.fxVelocity = dafx_load_3f(buf, ofs);
+  o.tm = dafx_load_44mat(buf, ofs);
+  o.localSpaceFlag = dafx_load_1ui(buf, ofs);
   DAFX_PARENT_REN_DATA
   return o;
 #endif
@@ -327,12 +352,20 @@ void pack_ren_data(RenData_ref p, BufferData_ref buf, uint ofs)
 #undef DAFX_MODULE_DATA_DECL
 #define DAFX_MODULE_DATA_DECL(sz, c, u, p) + (sz)
 
-#define DAFX_PARENT_SIM_DATA_SIZE (32 + DAFX_PARENT_SIM_DATA) * 4
+
+#define DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_EMITTER_NTM 0
+#define DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_FX_VELOCITY (DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_EMITTER_NTM + 4*4)
+#define DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_WIDTH_OVER_LIFE_HEADER (DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_FX_VELOCITY + 3)
+#define DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_WIDTH_OVER_LIFE_BODY (DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_WIDTH_OVER_LIFE_HEADER + 1)
+#define DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_GRAVITY_TM (DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_WIDTH_OVER_LIFE_BODY + 8)
+#define DAFX_PARENT_SIM_DATA_EXTRA_END (DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_GRAVITY_TM + 9)
+
+#define DAFX_PARENT_SIM_DATA_SIZE (DAFX_PARENT_SIM_DATA_EXTRA_END + DAFX_PARENT_SIM_DATA) * 4
 #if DAFX_PARENT_SIM_DATA_SIZE
   G_STATIC_ASSERT(sizeof(ParentSimData) == DAFX_PARENT_SIM_DATA_SIZE);
 #endif
 
-#define DAFX_PARENT_REN_DATA_SIZE (19 + DAFX_PARENT_REN_DATA) * 4
+#define DAFX_PARENT_REN_DATA_SIZE (16 + 1 + DAFX_PARENT_REN_DATA) * 4
 #if DAFX_PARENT_REN_DATA_SIZE
   G_STATIC_ASSERT(sizeof(ParentRenData) == DAFX_PARENT_REN_DATA_SIZE);
 #endif

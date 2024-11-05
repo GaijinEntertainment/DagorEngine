@@ -1,4 +1,7 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_textureIDHolder.h>
 #include <gui/dag_visualLog.h>
 #include <math/dag_adjpow2.h>
@@ -76,6 +79,7 @@ void LightProbeSpecularCubesContainer::init(const int cube_size, uint32_t textur
 
   const char *texName = "light_probe_specular_cubes";
   cubesArray = dag::create_cube_array_tex(cubeSize, CAPACITY, cube_format | TEXCF_CLEAR_ON_CREATE, specularMips, texName);
+  ShaderGlobal::set_sampler(get_shader_variable_id("light_probe_specular_cubes_samplerstate", true), d3d::request_sampler({}));
 
   rtCube.reset(light_probe::create("light_probe_rt_cube", cubeSize, texture_format));
 
@@ -86,6 +90,11 @@ void LightProbeSpecularCubesContainer::init(const int cube_size, uint32_t textur
   bc6h_src_mipVarId = ::get_shader_variable_id("bc6h_cs_src_mip", true);
   bc6h_src_faceVarId = ::get_shader_variable_id("bc6h_cs_src_face", true);
   bc6h_src_texVarId = ::get_shader_variable_id("bc6h_cs_src_tex", true);
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Clamp;
+    ShaderGlobal::set_sampler(::get_shader_variable_id("bc6h_cs_src_tex_samplerstate", true), d3d::request_sampler(smpInfo));
+  }
   usedIndices.reset();
 
   const char *lastMipsFaceTexName = "bc6h_high_quality_compression_target";
@@ -141,7 +150,7 @@ void LightProbeSpecularCubesContainer::update(const CubeUpdater &cube_updater, c
     const int probesInQueue = (updateQueueEnd + updateQueue.size() - updateQueueBegin) % updateQueue.size();
     if (debug_probes_output.get())
       visuallog::logmsg(String(0, "Probe %d is updating. FrameNo: %d. Active probes: %d. In queue: %d.", probe->getCubeIndex(),
-                          dagor_frame_no(), usedIndices.size() - probesInQueue, probesInQueue),
+                          dagor_frame_no(), usedIndices.count() - probesInQueue, probesInQueue),
         E3DCOLOR(0, 255, 0), LOGLEVEL_DEBUG);
   }
   if (renderedCubeFaces < FACES_COUNT)
@@ -309,6 +318,6 @@ void LightProbeSpecularCubesContainer::onProbeDone(LightProbe *probe)
   const int probesInQueue = (updateQueueEnd + updateQueue.size() - updateQueueBegin) % updateQueue.size();
   if (debug_probes_output.get())
     visuallog::logmsg(String(0, "Probe %d updated. FrameNo: %d. Active probes: %d. In queue: %d.", probe->getCubeIndex(),
-                        ::dagor_frame_no(), usedIndices.size() - probesInQueue, probesInQueue),
+                        ::dagor_frame_no(), usedIndices.count() - probesInQueue, probesInQueue),
       E3DCOLOR(0, 180, 180), LOGLEVEL_DEBUG);
 }

@@ -1,8 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/renderUtil/dynRenderBuf.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_DynamicShadersBuffer.h>
 #include <shaders/dag_shaderMesh.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
 #include <3d/dag_materialData.h>

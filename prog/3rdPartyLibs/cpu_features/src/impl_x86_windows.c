@@ -50,8 +50,8 @@ static void DetectFeaturesFromOs(X86Info* info, X86Features* features) {
   features->sse4_2 =
       GetWindowsIsProcessorFeaturePresent(PF_SSE4_2_INSTRUCTIONS_AVAILABLE);
 
-// do not bother checking PF_AVX*
-// cause AVX enabled processor will have XCR0 be exposed and this function will be skipped at all
+  // Do not bother checking PF_AVX* : AVX enabled processor will have their XCR0
+  // register exposed and this function will be skipped altogether.
 }
 
 #endif  // CPU_FEATURES_OS_WINDOWS

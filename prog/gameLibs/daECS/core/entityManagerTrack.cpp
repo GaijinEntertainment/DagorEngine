@@ -1,8 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/core/componentTypes.h>
 #include <vecmath/dag_vecMath.h>
 #include "entityManagerEvent.h"
 #include <daECS/core/entitySystem.h>
-#include <daECS/core/internal/trackComponentAccess.h>
 #include <daECS/core/coreEvents.h>
 #include <util/dag_stlqsort.h>
 #include "tokenize_const_string.h"
@@ -358,7 +359,7 @@ bool EntityManager::trackChangedArchetype(uint32_t archetypeId, component_index_
 void EntityManager::scheduleTrackChanged(EntityId eid, component_index_t cidx)
 {
   // if constrained mode, lock mutex | use lock-free queue
-  ScopedMTMutexT<OSSpinlock> lock(isConstrainedMTMode(), eidTrackingMutex);
+  ScopedMTMutexT<OSSpinlock> lock(isConstrainedMTMode(), ownerThreadId, eidTrackingMutex);
   scheduleTrackChangedNoMutex(eid, cidx);
 }
 
@@ -491,7 +492,7 @@ void EntityManager::performTrackChanges(bool flush_all)
 void EntityManager::sheduleArchetypeTracking(const ArchetypesQuery &archDesc)
 {
   // if constrained mode, lock mutex/use lockless
-  ScopedMTMutexT<OSSpinlock> lock(isConstrainedMTMode(), archetypeTrackingMutex);
+  ScopedMTMutexT<OSSpinlock> lock(isConstrainedMTMode(), ownerThreadId, archetypeTrackingMutex);
   const size_t index = &archDesc - archetypeQueries.begin();
   if (queryScheduled.test(index, false))
     return;

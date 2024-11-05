@@ -1,0 +1,11 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/image/tinyexr-1.0.8 ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/image/tinyexr-1.0.8.lib ;
+
+AddIncludes = $(Root)/prog/3rdPartyLibs/arc/zlib-$(UseZlibVer) ;
+
+Sources = tinyexr.cc ;
+
+include $(Root)/prog/_jBuild/build.jam ;

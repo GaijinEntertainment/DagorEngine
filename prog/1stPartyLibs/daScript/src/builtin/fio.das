@@ -77,22 +77,22 @@ def fsave(f:file;buf:auto(BufType)const)
     return (r1+r2)
 
 def fread(f:file;buf:auto(BufType) const implicit )
-    concept_assert(typeinfo(is_raw buf),"can only fread raw pod")
+    concept_assert(typeinfo(is_raw buf),"'fread' accepts only raw POD types")
     unsafe
         return _builtin_read(f, addr(buf), typeinfo(sizeof buf))
 
 def fread(f:file;buf:array<auto(BufType)> const implicit )
-    concept_assert(typeinfo(is_raw type<BufType>),"can only save fread pod array")
+    concept_assert(typeinfo(is_raw type<BufType>),"'fread' accepts only raw POD type arrays")
     unsafe
         return _builtin_read(f, addr(buf[0]), length(buf) *( typeinfo(sizeof type<BufType>)))
 
 def fwrite(f:file;buf:auto(BufType) const implicit )
-    concept_assert(typeinfo(is_raw buf),"can only fwrite raw pod")
+    concept_assert(typeinfo(is_raw buf),"'fwrite' accepts only raw POD types")
     unsafe
         return _builtin_write(f, addr(buf), typeinfo(sizeof buf))
 
 def fwrite(f:file;buf:array<auto(BufType)> const implicit )
-    concept_assert(typeinfo(is_raw type<BufType>),"can only fwrite pod array")
+    concept_assert(typeinfo(is_raw type<BufType>),"'fwrite' accepts only raw POD type arrays")
     unsafe
         return _builtin_write(f, addr(buf[0]), length(buf) *( typeinfo(sizeof type<BufType>)))
 

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderBlock.h>
 #include <startup/dag_restart.h>
@@ -9,7 +11,7 @@
 #include <workCycle/dag_startupModules.h>
 #include <workCycle/dag_gameSettings.h>
 #include <workCycle/dag_workCycle.h>
-#include <humanInput/dag_hiJoystick.h>
+#include <drv/hid/dag_hiJoystick.h>
 #include <ioSys/dag_dataBlock.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <osApiWrappers/dag_progGlobals.h>
@@ -25,6 +27,7 @@
 #include <de3_guiManager.h>
 #include <de3_ICamera.h>
 #include <de3_loghandler.h>
+#include <drv/3d/dag_info.h>
 
 #include <folders/folders.h>
 #include <EASTL/string.h>
@@ -76,7 +79,7 @@ static void post_shutdown_handler()
 {
   memreport::dump_memory_usage_report(0);
   quitted = true;
-  debug_ctx("shutdown!");
+  DEBUG_CTX("shutdown!");
   game_demo_close();
   reset_game_resources();
   shutdown_game(RESTART_INPUT);

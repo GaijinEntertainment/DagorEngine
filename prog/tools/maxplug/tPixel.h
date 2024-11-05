@@ -1,6 +1,5 @@
-#ifndef TPIXEL_H
-#define TPIXEL_H
-
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 typedef struct rgba_t
 {
@@ -56,6 +55,3 @@ public:
     pf = PF_DWORD;
   };
 };
-
-
-#endif

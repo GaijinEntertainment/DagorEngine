@@ -31,7 +31,7 @@ macro USE_GBUF_TO_TEMPERATURE_BASE()
       {
         gbufTemp += gbuffer_temperature_base.x*baseColorDot;
         gbufTemp += 1.5*gbuffer_temperature_add.x*gbuffer.linearRoughness;
-        gbufTemp += gbuffer_temperature_add.z*gbuffer.metallness;
+        gbufTemp += gbuffer_temperature_add.z*gbuffer.metalness;
         gbufTemp *= shadow;
       }
       else if (material == THERMAL_SHADING_LANDSCAPE)

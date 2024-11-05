@@ -1710,7 +1710,7 @@ struct ReaderContext
       {
         auto newProp = new PropertyBuiltIn;
         propPtr.reset(newProp);
-        newProp->builtIn = decoration.data.BuiltIn.first;
+        newProp->builtIn = decoration.data.BuiltInData.first;
         break;
       }
       case Decoration::NoPerspective:
@@ -2410,7 +2410,7 @@ struct ReaderContext
         auto newProp = new PropertyBuiltIn;
         propPtr.reset(newProp);
         newProp->memberIndex = member.value;
-        newProp->builtIn = decoration.data.BuiltIn.first;
+        newProp->builtIn = decoration.data.BuiltInData.first;
         break;
       }
       case Decoration::NoPerspective:
@@ -7275,7 +7275,7 @@ struct ReaderContext
       {
         auto newProp = new PropertyBuiltIn;
         propPtr.reset(newProp);
-        newProp->builtIn = decoration.data.BuiltIn.first;
+        newProp->builtIn = decoration.data.BuiltInData.first;
         break;
       }
       case Decoration::NoPerspective:
@@ -9296,7 +9296,7 @@ struct ReaderContext
       {
         auto newProp = new PropertyBuiltIn;
         propPtr.reset(newProp);
-        newProp->builtIn = decoration.data.BuiltIn.first;
+        newProp->builtIn = decoration.data.BuiltInData.first;
         break;
       }
       case Decoration::NoPerspective:
@@ -9984,7 +9984,7 @@ struct ReaderContext
       {
         auto newProp = new PropertyBuiltIn;
         propPtr.reset(newProp);
-        newProp->builtIn = decoration.data.BuiltIn.first;
+        newProp->builtIn = decoration.data.BuiltInData.first;
         break;
       }
       case Decoration::NoPerspective:
@@ -10684,7 +10684,7 @@ struct ReaderContext
         auto newProp = new PropertyBuiltIn;
         propPtr.reset(newProp);
         newProp->memberIndex = member.value;
-        newProp->builtIn = decoration.data.BuiltIn.first;
+        newProp->builtIn = decoration.data.BuiltInData.first;
         break;
       }
       case Decoration::NoPerspective:
@@ -11475,7 +11475,7 @@ struct ReaderContext
         auto newProp = new PropertyBuiltIn;
         propPtr.reset(newProp);
         newProp->memberIndex = member.value;
-        newProp->builtIn = decoration.data.BuiltIn.first;
+        newProp->builtIn = decoration.data.BuiltInData.first;
         break;
       }
       case Decoration::NoPerspective:

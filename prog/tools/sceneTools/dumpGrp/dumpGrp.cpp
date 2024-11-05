@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #if _TARGET_PC_WIN
 #include <windows.h>
 #include <d3d9types.h>
@@ -11,7 +13,7 @@
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_rendInstRes.h>
 #include <shaders/dag_dynSceneRes.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/ddsxTex.h>
 #include <3d/ddsxTexMipOrder.h>
 #include <3d/ddsFormat.h>
@@ -772,7 +774,6 @@ static void extract_dxp_contents_dds(DxpBinData &dxp, BinDumpReader &crd, const 
     {32, 0x00000000, 0xff0000, 0xff00, 0xff, D3DFMT_X8B8G8R8, DDPF_RGB},
     {16, 0x00000000, 0x0000ff, 0xff00, 0x00, D3DFMT_V8U8, DDPF_BUMPDUDV},
     {16, 0x0000ff00, 0x0000ff, 0x0000, 0x00, D3DFMT_A8L8, DDPF_LUMINANCE | DDPF_ALPHAPIXELS},
-    {32, 0x00000000, 0xFFFF, 0xFFFF0000, 0, D3DFMT_V16U16, DDPF_BUMPDUDV},
     {16, 0x00000000, 0xFFFF, 0x00000000, 0, D3DFMT_L16, DDPF_LUMINANCE},
   };
 

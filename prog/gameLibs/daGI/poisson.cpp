@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_Point3.h>
 #include "shaders/poisson_samples.hlsli"
 

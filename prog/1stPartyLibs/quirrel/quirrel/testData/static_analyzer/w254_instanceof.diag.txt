@@ -1,5 +1,5 @@
 WARNING: w254 (bool-passed-to-strange) Boolean passed to 'instanceof' operator.
-testData/static_analyzer/w254_instanceof.nut:3:4
+testData/static_analyzer/w254_instanceof.nut:6:4
 
 local x = 10
 if (x instanceof !"weapModSlotName")
@@ -7,13 +7,3 @@ if (x instanceof !"weapModSlotName")
   return null
 
 
-
-AN ERROR HAS OCCURRED [cannot apply instanceof between a bool and a integer]
-
-CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w254_instanceof.nut line [3]
-
-LOCALS
-[x] 10
-[vargv] ARRAY=[]
-[this] TABLE={}

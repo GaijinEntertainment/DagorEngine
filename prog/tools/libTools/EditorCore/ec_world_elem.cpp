@@ -1,12 +1,21 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "ec_cachedRender.h"
 #include "ec_stat3d.h"
 
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_ViewportWindow.h>
 #include <EditorCore/ec_camera_elem.h>
+#include <EditorCore/ec_interface_ex.h>
 
-#include <3d/dag_drv3d_pc.h>
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_platform_pc.h>
 #include <3d/dag_render.h>
+#include <drv/3d/dag_info.h>
 #include <render/dag_cur_view.h>
 #include <workCycle/dag_workCycle.h>
 #include <workCycle/dag_gameScene.h>
@@ -19,7 +28,14 @@
 #include <shaders/dag_renderScene.h>
 #include <perfMon/dag_graphStat.h>
 #include <debug/dag_debug3d.h>
+#include <gui/dag_imgui.h>
 #include <gui/dag_stdGuiRender.h>
+#include <propPanel/commonWindow/dialogManager.h>
+#include <propPanel/messageQueue.h>
+#include <propPanel/propPanel.h>
+#include <sepGui/wndPublic.h>
+
+#include <imgui/imgui.h>
 
 void update_visibility_finder(VisibilityFinder &vf) // legacy
 {
@@ -34,14 +50,53 @@ void update_visibility_finder(VisibilityFinder &vf) // legacy
   Frustum f;
   f.construct(pv);
   d3d::getpersp(p);
-  vf.set(v_ldu(&::grs_cur_view.pos.x), f, 0, 0, 1, p.hk, true);
+  vf.set(v_ldu(&::grs_cur_view.pos.x), f, 0, 0, 1, p.hk, current_occlusion);
 }
 
-void update_visibility_finder()
+
+class EditorStartupScene : public DagorGameScene
 {
-  if (visibility_finder)
-    update_visibility_finder(*visibility_finder);
-}
+public:
+  virtual void actScene() override { PropPanel::process_message_queue(); }
+
+  virtual void drawScene() override
+  {
+    IWndManager *wndManager = EDITORCORE->getWndManager();
+    G_ASSERT_RETURN(wndManager, );
+
+    wndManager->updateImguiMouseCursor();
+
+    unsigned clientWidth = 0;
+    unsigned clientHeight = 0;
+    wndManager->getWindowClientSize(wndManager->getMainWindow(), clientWidth, clientHeight);
+
+    // They can be zero when toggling the application's window between minimized and maximized state.
+    if (clientWidth == 0 || clientHeight == 0)
+      return;
+
+    imgui_update(clientWidth, clientHeight);
+    PropPanel::after_new_frame();
+
+    PropPanel::render_dialogs();
+
+    PropPanel::before_end_frame();
+    imgui_endframe();
+
+    {
+      d3d::GpuAutoLock gpuLock;
+
+      d3d::set_render_target();
+
+      const ImVec4 color = ImGui::GetStyleColorVec4(ImGuiCol_ModalWindowDimBg);
+      d3d::clearview(CLEAR_TARGET, e3dcolor(Color4(color.x, color.y, color.z, color.w)), 0, 0);
+
+      imgui_render();
+      d3d::pcwin32::set_present_wnd(wndManager->getMainWindow());
+    }
+  }
+
+  virtual void sceneDeselected(DagorGameScene * /*new_scene*/) override { delete this; }
+};
 
 class EditorCoreScene : public DagorGameScene
 {
@@ -70,7 +125,7 @@ public:
       return;
     IEditorCoreEngine::get()->beforeRenderObjects();
 
-    update_visibility_finder();
+    update_visibility_finder(EDITORCORE->queryEditorInterface<IVisibilityFinderProvider>()->getVisibilityFinder());
   }
 
   void render()
@@ -81,7 +136,7 @@ public:
     d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(64, 64, 64, 0), 0, 0);
 
     d3d::settm(TM_WORLD, TMatrix::IDENT);
-    update_visibility_finder();
+    update_visibility_finder(EDITORCORE->queryEditorInterface<IVisibilityFinderProvider>()->getVisibilityFinder());
     IEditorCoreEngine::get()->renderObjects();
 
     ec_camera_elem::freeCameraElem->render();
@@ -183,8 +238,6 @@ public:
     vpw->drawStat3d();
     vpw->paint(viewportW, viewportH);
     d3d::setwire(::grs_draw_wire);
-
-    d3d::pcwin32::set_present_wnd(vpw->getHandle());
   }
 
   void restartPostfx(const DataBlock &game_params, bool allow_isl_creation)
@@ -209,8 +262,6 @@ public:
     ec_camera_elem::tpsCameraElem->act();
     ec_camera_elem::carCameraElem->act();
     IEditorCoreEngine::get()->actObjects(::dagor_game_act_time * ::dagor_game_time_scale);
-
-    postFx->update(::dagor_game_act_time * ::dagor_game_time_scale);
   }
 
 
@@ -225,6 +276,17 @@ static void render_viewport_frame(ViewportWindow *vpw)
 {
   if (::edScene)
     ::edScene->renderViewportFrame(vpw);
+}
+
+void startup_editor_core_select_startup_scene() { dagor_select_game_scene(new EditorStartupScene()); }
+
+void startup_editor_core_force_startup_scene_draw()
+{
+  d3d::GpuAutoLock gpuLock;
+
+  dagor_work_cycle_flush_pending_frame();
+  dagor_draw_scene_and_gui(true, true);
+  d3d::update_screen();
 }
 
 void startup_editor_core_world_elem(bool do_clear_on_render)

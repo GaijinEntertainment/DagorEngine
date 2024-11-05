@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -17,8 +16,13 @@ typedef float __vec4f __attribute__((__vector_size__(16), __may_alias__));
 typedef long long __vec4i __attribute__((__vector_size__(16), __may_alias__));
 #endif
 #elif _TARGET_SIMD_NEON
+#ifdef __clang__
 typedef __attribute__((neon_vector_type(4))) float __vec4f;
 typedef __attribute__((neon_vector_type(4))) int __vec4i;
+#elif defined(_MSC_VER)
+typedef struct __declspec(intrin_type) __declspec(align(16)) __vec4f;
+typedef struct __declspec(intrin_type) __declspec(align(16)) __vec4i;
+#endif
 #endif
 
 #ifdef __cplusplus
@@ -27,7 +31,7 @@ typedef __attribute__((neon_vector_type(4))) int __vec4i;
 #if _TARGET_STATIC_LIB || !_TARGET_PC_WIN
 #define DSA_KRNLIMP
 #else
-#ifdef __B_MINICORE
+#ifdef __B_KERNEL_LIB
 #define DSA_KRNLIMP __declspec(dllexport)
 #else
 #define DSA_KRNLIMP __declspec(dllimport)
@@ -263,7 +267,7 @@ struct DSA
 
   DSA_KRNLIMP static int mixed_print_fmt(char *buf, int len, const char *fmt, const void *valist_or_dsa, int dsa_anum);
 
-#if _TARGET_STATIC_LIB || defined(__B_MINICORE) // to prevent mix 2 different RTL contexts
+#if _TARGET_STATIC_LIB || defined(__B_KERNEL_LIB) // to prevent mix 2 different RTL contexts
   DSA_KRNLIMP static int fprint_fmt(void *fp, const char *fmt, const DSA *arg, int anum);
   static int mixed_fprint_fmt(void *fp, const char *fmt, const void *valist_or_dsa, int dsa_num);
 #endif

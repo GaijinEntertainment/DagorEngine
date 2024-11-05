@@ -1,5 +1,6 @@
-// clang-format off
-#include <dxil/compiled_shader_header.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/shadersMetaData/dxil/compiled_shader_header.h>
 #include <dxil/compiler.h>
 
 #include <util/dag_string.h>
@@ -9,7 +10,6 @@
 #include <dxc/dxcapi.h>
 #include "supplements/auto.h"
 #include <debug/dag_debug.h>
-// clang-format on
 
 using namespace dxil;
 
@@ -259,42 +259,15 @@ bool is_sampler_type(D3D_SHADER_INPUT_TYPE type) { return D3D_SIT_SAMPLER == typ
 
 } // namespace
 
-static const SemanticInfo semantic_remap[25] = //
-  {{"POSITION", 0}, {"BLENDWEIGHT", 0}, {"BLENDINDICES", 0}, {"NORMAL", 0}, {"PSIZE", 0}, {"COLOR", 0}, {"COLOR", 1},
-    {"TEXCOORD", 0}, // 7
-    {"TEXCOORD", 1}, {"TEXCOORD", 2}, {"TEXCOORD", 3}, {"TEXCOORD", 4}, {"TEXCOORD", 5}, {"TEXCOORD", 6}, {"TEXCOORD", 7},
-    {"POSITION", 1}, {"NORMAL", 1}, {"TEXCOORD", 15}, {"TEXCOORD", 8}, {"TEXCOORD", 9}, {"TEXCOORD", 10}, {"TEXCOORD", 11},
-    {"TEXCOORD", 12}, {"TEXCOORD", 13}, {"TEXCOORD", 14}};
-
-const SemanticInfo *dxil::getSemanticInfoFromIndex(uint32_t index)
-{
-  auto at = eastl::begin(semantic_remap) + index;
-  if (at >= eastl::end(semantic_remap))
-    return nullptr;
-  return at;
-}
-// NOTE: for something like TEXCOORD1 the input has to be "TEXCOOORD" for name and 1 for index
-uint32_t dxil::getIndexFromSementicAndSemanticIndex(const char *name, uint32_t index)
-{
-  auto ref = eastl::find_if(eastl::begin(semantic_remap), eastl::end(semantic_remap),
-    [=](const SemanticInfo &info) { return info.index == index && 0 == strcmp(name, info.name); });
-
-  if (ref != eastl::end(semantic_remap))
-  {
-    return ref - eastl::begin(semantic_remap);
-  }
-  return ~uint32_t(0);
-}
-
 ShaderHeaderCompileResult dxil::compileHeaderFromReflectionData(ShaderStage stage, const eastl::vector<uint8_t> &reflection,
-  uint32_t max_const_count, uint32_t bone_const_used, void *dxc_lib)
+  uint32_t max_const_count, void *dxc_lib)
 {
   ShaderHeaderCompileResult result = {};
 #if _TARGET_PC_WIN
 
   result.header.shaderType = static_cast<uint16_t>(stage);
   result.header.maxConstantCount = max_const_count;
-  result.header.bonesConstantsUsed = bone_const_used;
+  result.header.bonesConstantsUsed = -1; // @TODO: remove
   if (!dxc_lib)
   {
     result.logMessage = "dxil::compileHeaderFromShader: no valid shader compiler library handle "
@@ -342,6 +315,12 @@ ShaderHeaderCompileResult dxil::compileHeaderFromReflectionData(ShaderStage stag
   result.isOk = true;
   D3D12_SHADER_DESC desc = {};
   shaderInfo->GetDesc(&desc);
+
+  uint64_t reqFlags = shaderInfo->GetRequiresFlags();
+
+  result.header.deviceRequirement.shaderModel = static_cast<uint8_t>(desc.Version);
+  result.header.deviceRequirement.shaderFeatureFlagsLow = static_cast<uint32_t>(reqFlags);
+  result.header.deviceRequirement.shaderFeatureFlagsHigh = static_cast<uint32_t>(reqFlags >> 32);
 
   result.header.inputPrimitive = desc.InputPrimitive;
 
@@ -585,8 +564,27 @@ ShaderHeaderCompileResult dxil::compileHeaderFromReflectionData(ShaderStage stag
 
   if ((ShaderStage::COMPUTE == stage) || (ShaderStage::MESH == stage) || (ShaderStage::AMPLIFICATION == stage))
   {
-    shaderInfo->GetThreadGroupSize(&result.computeShaderInfo.threadGroupSizeX, &result.computeShaderInfo.threadGroupSizeY,
+    UINT total = shaderInfo->GetThreadGroupSize(&result.computeShaderInfo.threadGroupSizeX, &result.computeShaderInfo.threadGroupSizeY,
       &result.computeShaderInfo.threadGroupSizeZ);
+    if (total < 1)
+    {
+      result.logMessage = "GetThreadGroupSize returned a product of group sizes of 0\n";
+    }
+    if (result.computeShaderInfo.threadGroupSizeX < 1)
+    {
+      result.isOk = false;
+      result.logMessage += "GetThreadGroupSize returned for group size X of 0\n";
+    }
+    if (result.computeShaderInfo.threadGroupSizeY < 1)
+    {
+      result.isOk = false;
+      result.logMessage += "GetThreadGroupSize returned for group size Y of 0\n";
+    }
+    if (result.computeShaderInfo.threadGroupSizeZ < 1)
+    {
+      result.isOk = false;
+      result.logMessage += "GetThreadGroupSize returned for group size Z of 0\n";
+    }
   }
 
   if (!result.isOk)

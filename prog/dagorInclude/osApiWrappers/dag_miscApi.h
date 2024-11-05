@@ -1,13 +1,12 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <util/dag_stdint.h>
 #include <osApiWrappers/dag_lockProfiler.h>
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 #if _TARGET_SIMD_SSE
 #include <emmintrin.h> // _mm_pause
 #endif
@@ -73,6 +72,10 @@ struct DagorDateTime
 };
 
 KRNLIMP int get_local_time(DagorDateTime *outTime); // return zero on success
+
+//! returns 0 if failed, 1 if succeeded. outTimezone is offset in minutes from UTC. current PC time = UTC + outTimezone
+//! implemented for Windows only
+KRNLIMP int get_timezone_minutes(long &outTimezone);
 
 enum TargetPlatform : uint8_t
 {
@@ -141,13 +144,25 @@ KRNLIMP TargetPlatform get_platform_id_by_string(const char *name);
 KRNLIMP const char *get_platform_string_id();
 
 //! flash window in the taskbar if inactive
-KRNLIMP void flash_window(void *wnd_handle = NULL);
+KRNLIMP void flash_window(void *wnd_handle = NULL, bool always_flash = false);
+
+KRNLIMP void *get_console_window_handle();
 
 #if _TARGET_PC_WIN
 //! replacement of GetVersionEx that is working on all versions from Windows XP to Windows 10 build 1511.
 typedef struct _OSVERSIONINFOEXW OSVERSIONINFOEXW;
 KRNLIMP bool get_version_ex(OSVERSIONINFOEXW *osversioninfo);
 #endif
+
+struct WindowsVersion
+{
+  uint32_t MajorVersion;
+  uint32_t MinorVersion;
+  uint32_t BuildNumber;
+};
+
+// On Windows will return the current OS' version number, on other platform will return 0 initialized object.
+KRNLIMP WindowsVersion get_windows_version();
 
 // Returns true if the current process is being debugged (either
 // running under the debugger or has a debugger attached post facto).
@@ -167,6 +182,7 @@ enum class ConsoleModel
   XBOX_LOCKHART,
   XBOX_ANACONDA,
   PS5,
+  PS5_PRO,
   NINTENDO_SWITCH,
   TOTAL
 };
@@ -200,4 +216,4 @@ inline void spin_wait(F keep_waiting_cb, uint32_t token = da_profiler::DescSleep
   dagor_lock_profiler_stop(reft, token, threshold_us);
 }
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

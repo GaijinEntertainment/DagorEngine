@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "subpass_dependency.h"
 
 using namespace drv3d_vulkan;

@@ -1,11 +1,42 @@
-switch $(OS) {
-  case NT     : Platform  ?= win32 ;
-  case MACOSX : Platform  ?= macosx ;
-  case LINUX  : Platform  ?= linux64 ;
-}
-AndroidArch ?= arm64-v8a ;
+if $(__DEFAULT_PLATFORM_JAM_INCLUDED) { return ; }
+__DEFAULT_PLATFORM_JAM_INCLUDED = yes ;
 
-if $(Platform) in win32 win64 macosx linux64 ps4 ps5 xboxOne scarlett {
+NOCARE $(Root)/prog/platform.jam ;
+include $(Root)/prog/platform.jam ;
+
+# temporary substitute for legacy Platform names
+switch $(Platform) {
+  case macosx :
+    Platform = macOS ; echo replaced macosx with Platform=$(Platform) ;
+  case linux64 :
+    Platform = linux ; echo replaced linux64 with Platform=$(Platform) ;
+  case win32 :
+    Platform = windows ; PlatformArch = x86 ; echo replaced win32 with Platform=$(Platform) PlatformArch=$(PlatformArch) ;
+  case win64 :
+    Platform = windows ; PlatformArch = x86_64 ; echo replaced win64 with Platform=$(Platform) PlatformArch=$(PlatformArch) ;
+}
+
+switch $(OS) {
+  case NT     : Platform  ?= windows ;
+  case MACOSX : Platform  ?= macOS ;
+  case LINUX  : Platform  ?= linux ;
+}
+PlatformArch_windows ?= x86 ;
+PlatformArch_linux ?= x86_64 ;
+PlatformArch_macOS ?= x86_64 ;
+PlatformArch_iOS ?= arm64 ;
+PlatformArch_tvOS ?= arm64 ;
+PlatformArch_android ?= arm64-v8a ;
+PlatformArch_nswitch ?= arm64 ;
+PlatformArch_xboxOne ?= x86_64 ;
+PlatformArch_scarlett ?= x86_64 ;
+PlatformArch_ps4 ?= x86_64 ;
+PlatformArch_ps5 ?= x86_64 ;
+
+PlatformArch ?= $(PlatformArch_$(Platform)) ;
+PlatformArch ?= x86_64 ;
+
+if $(Platform) in windows macOS linux ps4 ps5 xboxOne scarlett {
   PlatformDataFormatCode ?= PC ;
 } else if $(Platform) in iOS {
   PlatformDataFormatCode ?= iOS ;
@@ -21,3 +52,13 @@ for t in $(JAMTARGETS) { # process target-keywords (with special meaning)
   if $(t) in mkdevtools clean this nocare depjam cache clean clean_all { Depends $(t) : all ; }
 }
 
+LegacyPlatformSuffix = $(Platform) ;
+switch $(Platform)-$(PlatformArch) {
+  case windows-x86    : LegacyPlatformSuffix = win32 ;
+  case windows-x86_64 : LegacyPlatformSuffix = win64 ;
+  case windows-arm64  : LegacyPlatformSuffix = win-arm64 ;
+  case macOS-x86_64   : LegacyPlatformSuffix = macosx ;
+  case macOS-arm64    : LegacyPlatformSuffix = macosx ;
+  case linux-x86_64   : LegacyPlatformSuffix = linux64 ;
+  case linux-e2k      : LegacyPlatformSuffix = linux64 ;
+}

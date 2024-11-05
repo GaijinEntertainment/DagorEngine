@@ -1,14 +1,23 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv_log_defs.h>
+
 #include "execution_sync.h"
 #include "pipeline_barrier.h"
 #include "image_resource.h"
+#include "globals.h"
+#include "driver_config.h"
+#include "vk_to_string.h"
 
 using namespace drv3d_vulkan;
 
 String ExecutionSyncTracker::ImageOp::format() const
 {
-  return String(128, "syncImgOp: %p [mip:%u-%u arr:%u-%u] %s %s %s %s \n internal caller: %s", obj, area.mipIndex,
-    area.mipIndex + area.mipRange, area.arrayIndex, area.arrayIndex + area.arrayRange, formatImageLayout(layout),
-    formatPipelineStageFlags(laddr.stage), formatMemoryAccessFlags(laddr.access), obj->getDebugName(), caller.getInternal());
+  return String(128,
+    "syncImgOp %p:\n%p-%s [mip:%u-%u arr:%u-%u]\n%s subpass %u NRP idx %u\n%s\n%s\n internal caller: %s\n external caller: %s", this,
+    obj, obj->getDebugName(), area.mipIndex, area.mipIndex + area.mipRange, area.arrayIndex, area.arrayIndex + area.arrayRange,
+    formatImageLayout(layout), subpassIdx, nativeRPIndex, formatPipelineStageFlags(laddr.stage), formatMemoryAccessFlags(laddr.access),
+    caller.getInternal(), caller.getExternal());
 }
 
 bool ExecutionSyncTracker::ImageOp::verifySelfConflict(const ImageOp &cmp) const
@@ -48,58 +57,108 @@ bool ExecutionSyncTracker::ImageOp::verifySelfConflict(const ImageOp &cmp) const
 
 bool ExecutionSyncTracker::ImageOp::conflicts(const ImageOp &cmp) const
 {
-  return area.intersects(cmp.area) && (laddr.conflicting(cmp.laddr) || layout != cmp.layout) && !completed &&
-         !cmp.completed
-         // treat only "external" subpasses as conflicting, leave internal subpasses sync to subpass dependencies
-         && ((subpassIdx == ExecutionSyncTracker::SUBPASS_NON_NATIVE) || (cmp.subpassIdx == ExecutionSyncTracker::SUBPASS_NON_NATIVE));
+  // clang-format off
+  return area.intersects(cmp.area)
+    && (laddr.conflicting(cmp.laddr) || layout != cmp.layout)
+    && !completed && !cmp.completed;
+  // clang-format on
+}
+
+bool ExecutionSyncTracker::ImageOp::shouldSuppress() const
+{
+  // We suppress barriers if:
+  // we have a pair of OPS happening inside the same NRP, in which
+  // case the barrier is handled by the subpass dependency
+  return handledBySubpassDependency;
 }
 
 void ExecutionSyncTracker::ImageOp::addToBarrierByTemplateSrc(PipelineBarrier &barrier)
 {
-  // memory barriers only
-  if (changesLayout)
+  if (shouldSuppress())
   {
-    // clear change layout flag, as it dynamically computed at conflict check stage
-    changesLayout = false;
+    resetIntermediateTracking();
     return;
   }
-  barrier.modifyImageTemplate(obj);
-  barrier.modifyImageTemplateNewLayout(layout);
-  barrier.modifyImageTemplateOldLayout(layout);
-  barrier.modifyImageTemplate(area.mipIndex, area.mipRange, area.arrayIndex, area.arrayRange);
-  barrier.addImageByTemplate({laddr.access, VK_ACCESS_NONE});
+
+  // memory barriers only
+  barrier.addStagesSrc(laddr.stage);
+  if (!changesLayout)
+  {
+    barrier.modifyImageTemplate(obj);
+    barrier.modifyImageTemplateNewLayout(layout);
+    barrier.modifyImageTemplateOldLayout(layout);
+    barrier.modifyImageTemplate(area.mipIndex, area.mipRange, area.arrayIndex, area.arrayRange);
+    barrier.addImageByTemplate({laddr.access, conflictingAccessFlags});
+  }
+  resetIntermediateTracking();
 }
 
-void ExecutionSyncTracker::ImageOp::addToBarrierByTemplateDst(PipelineBarrier &barrier, size_t gpu_work_id)
+void ExecutionSyncTracker::ImageOp::processLayoutChange()
 {
+#if DAGOR_DBGLEVEL > 0
+  if (Globals::cfg.bits.debugImageGarbadgeReads && laddr.isRead() && !laddr.isWrite())
+  {
+    for (uint32_t mip = area.mipIndex; mip < area.mipIndex + area.mipRange; ++mip)
+      for (uint32_t array = area.arrayIndex; array < area.arrayIndex + area.arrayRange; ++array)
+        if (obj->layout.get(mip, array) == VK_IMAGE_LAYOUT_UNDEFINED)
+        {
+          D3D_ERROR("vulkan: reading garbage from image %p:%s mip %u layer %u at sync op %s", obj, obj->getDebugName(), mip, array,
+            format());
+          break;
+        }
+  }
+#endif
+
+  for (uint32_t mip = area.mipIndex; mip < area.mipIndex + area.mipRange; ++mip)
+    for (uint32_t array = area.arrayIndex; array < area.arrayIndex + area.arrayRange; ++array)
+      obj->layout.set(mip, array, layout);
+
+  resetIntermediateTracking();
+}
+
+void ExecutionSyncTracker::ImageOp::addToBarrierByTemplateDst(PipelineBarrier &barrier)
+{
+  if (shouldSuppress())
+  {
+    processLayoutChange();
+    return;
+  }
+
+  barrier.addStagesDst(laddr.stage);
   // layout changing barriers only!
   if (!changesLayout)
+  {
+    resetIntermediateTracking();
     return;
-  // clear change layout flag, as it dynamically computed at conflict check stage
-  changesLayout = false;
+  }
+
+  bool aliasDeactivate = layout == VK_IMAGE_LAYOUT_UNDEFINED;
 
   barrier.modifyImageTemplate(obj);
   barrier.modifyImageTemplateNewLayout(layout);
 
   bool splitted = false;
-  VkImageLayout zeroLayout = obj->layout.get(area.mipIndex, area.arrayIndex);
-  for (uint32_t mip = area.mipIndex; mip < area.mipIndex + area.mipRange; ++mip)
-  {
-    for (uint32_t array = area.arrayIndex; array < area.arrayIndex + area.arrayRange; ++array)
+  VkImageLayout zeroLayout = discard ? VK_IMAGE_LAYOUT_UNDEFINED : obj->layout.get(area.mipIndex, area.arrayIndex);
+  if (!discard)
+    for (uint32_t mip = area.mipIndex; mip < area.mipIndex + area.mipRange; ++mip)
     {
-      VkImageLayout subresLayout = obj->layout.get(mip, array);
-      splitted |= subresLayout != zeroLayout;
-      splitted |= subresLayout == layout;
-      if (splitted)
-        break;
+      for (uint32_t array = area.arrayIndex; array < area.arrayIndex + area.arrayRange; ++array)
+      {
+        VkImageLayout subresLayout = obj->layout.get(mip, array);
+        splitted |= subresLayout != zeroLayout;
+        splitted |= subresLayout == layout;
+        if (splitted)
+          break;
+      }
     }
-  }
 
   if (!splitted)
   {
     barrier.modifyImageTemplate(area.mipIndex, area.mipRange, area.arrayIndex, area.arrayRange);
+    if (aliasDeactivate)
+      barrier.modifyImageTemplateNewLayout(zeroLayout);
     barrier.modifyImageTemplateOldLayout(zeroLayout);
-    barrier.addImageByTemplate({VK_ACCESS_NONE, laddr.access});
+    barrier.addImageByTemplate({conflictingAccessFlags, laddr.access});
   }
   else
   {
@@ -110,40 +169,38 @@ void ExecutionSyncTracker::ImageOp::addToBarrierByTemplateDst(PipelineBarrier &b
         VkImageLayout subresLayout = obj->layout.get(mip, array);
         if (subresLayout == layout)
           continue;
+        if (aliasDeactivate)
+          barrier.modifyImageTemplateNewLayout(subresLayout);
         barrier.modifyImageTemplate(mip, 1, array, 1);
-        barrier.modifyImageTemplateOldLayout(subresLayout);
-        barrier.addImageByTemplate({VK_ACCESS_NONE, laddr.access});
+        if (!discard)
+          barrier.modifyImageTemplateOldLayout(subresLayout);
+        barrier.addImageByTemplate({conflictingAccessFlags, laddr.access});
       }
     }
   }
 
-
-  for (uint32_t mip = area.mipIndex; mip < area.mipIndex + area.mipRange; ++mip)
-    for (uint32_t array = area.arrayIndex; array < area.arrayIndex + area.arrayRange; ++array)
-    {
-      obj->layout.set(mip, array, layout);
-    }
-
-  bool setsRoSeal = obj->requestedRoSeal(gpu_work_id) && !laddr.isWrite() && obj->layout.roSealTargetLayout == layout;
-  if (setsRoSeal)
-  {
-    for (VkImageLayout i : obj->layout.data)
-      if (i != obj->layout.roSealTargetLayout)
-        return;
-    obj->activateRoSeal();
-  }
+  processLayoutChange();
 }
 
-void ExecutionSyncTracker::ImageOp::modifyBarrierTemplate(PipelineBarrier &barrier, LogicAddress &src, LogicAddress &dst)
+void ExecutionSyncTracker::ImageOp::onConflictWithDst(ExecutionSyncTracker::ImageOp &dst)
 {
-  barrier.modifyImageTemplate({src.access, dst.access});
-}
+  // record to both ops, to properly handle layout chaning barriers (always dst barriers)
+  conflictingAccessFlags |= dst.laddr.access;
+  dst.conflictingAccessFlags |= laddr.access;
 
-void ExecutionSyncTracker::ImageOp::onConflictWithDst(ExecutionSyncTracker::ImageOp &dst, size_t)
-{
   bool differentLayouts = dst.layout != layout;
   changesLayout |= differentLayouts;
   dst.changesLayout |= differentLayouts;
+
+  // clang-format off
+  const bool handledBySubpassDep =
+    subpassIdx != ExecutionSyncTracker::SUBPASS_NON_NATIVE &&
+    dst.subpassIdx != ExecutionSyncTracker::SUBPASS_NON_NATIVE &&
+    nativeRPIndex == dst.nativeRPIndex &&
+    nrpAttachment && dst.nrpAttachment;
+  // clang-format on
+  handledBySubpassDependency = handledBySubpassDep;
+  dst.handledBySubpassDependency = handledBySubpassDep;
 }
 
 bool ExecutionSyncTracker::ImageOp::hasObjConflict()
@@ -191,6 +248,8 @@ bool ExecutionSyncTracker::ImageOp::isAreaPartiallyCoveredBy(const ImageOp &dst)
            (dst.area.arrayIndex <= area.arrayIndex) &&
            (dst.area.arrayIndex + dst.area.arrayRange >= area.arrayIndex + area.arrayRange));
 }
+
+void ExecutionSyncTracker::ImageOp::onPartialSplit() { resetIntermediateTracking(); }
 
 void ExecutionSyncTracker::AreaCoverageMap::init(ImageArea area)
 {
@@ -272,4 +331,28 @@ bool ExecutionSyncTracker::AreaCoverageMap::getArea(ImageArea &area)
     }
   }
   return false;
+}
+
+void ExecutionSyncTracker::ImageOp::aliasEndAccess(VkPipelineStageFlags stage, ExecutionSyncTracker &tracker)
+{
+  tracker.addImageAccess({stage, VK_ACCESS_NONE}, obj, VK_IMAGE_LAYOUT_UNDEFINED, {0, obj->getMipLevels(), 0, obj->getArrayLayers()});
+}
+
+void ExecutionSyncTracker::ImageOpsArray::removeRoSeal(Image *obj)
+{
+  arr[lastProcessed] = {obj->getRoSealReads(), obj, {0, obj->getMipLevels(), 0, obj->getArrayLayers()}, {}, // we don't know actual
+                                                                                                            // caller
+    VK_ACCESS_NONE, obj->layout.roSealTargetLayout, ExecutionSyncTracker::SUBPASS_NON_NATIVE, 0,
+    /*completed*/ false,
+    /*dstConflict*/ false};
+}
+
+void ExecutionSyncTracker::ImageOp::resetIntermediateTracking()
+{
+  // clear change layout flag, as it dynamically computed at conflict check stage
+  changesLayout = false;
+  handledBySubpassDependency = false;
+  // also clear accumulated conflicting access flags to not carry them over to next sync step
+  // (needed because we can fill them at dst conflict and then read again in src conflict)
+  conflictingAccessFlags = VK_ACCESS_NONE;
 }

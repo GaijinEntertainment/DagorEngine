@@ -1,6 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <rendInst/riShaderConstBuffers.h>
 #include "render/riShaderConstBuffers.h"
 #include "render/genRender.h"
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_buffers.h>
 
 
 namespace rendinst::render
@@ -25,6 +29,15 @@ void startRenderInstancing()
 #endif
 }
 
+bool setPerDrawData(const UniqueBuf &buf)
+{
+  static ShaderVariableInfo perDrawDataVarId("perDrawInstanceData");
+  if (ShaderGlobal::get_buffer(perDrawDataVarId) != buf.getBufId())
+    return ShaderGlobal::set_buffer(perDrawDataVarId, buf);
+
+  return false;
+}
+
 void init_instances_tb()
 {
   for (int i = 0; i < instancesCB.size(); ++i)
@@ -45,61 +58,67 @@ void close_instances_tb()
 
 RiShaderConstBuffers::RiShaderConstBuffers()
 {
-  perDraw[0] = v_make_vec4f(0.f, 1.f, 0.f, 0.f);
-  for (int i = 1; i < countof(perDraw); ++i)
-    perDraw[i] = v_zero();
-  bbox[0] = v_zero(); // no change
-  bbox[1] = V_C_ONE;  // no change
-  bbox[2] = v_cast_vec4f(v_make_vec4i(0, 3, 0, 0));
+  memset(&consts, 0, sizeof(consts));
+  consts.rendinst_opacity = v_make_vec4f(0.f, 1.f, 0.f, 0.f);
+  consts.bbox[0] = v_zero(); // no change
+  consts.bbox[1] = V_C_ONE;  // no change
+  consts.bbox[2] = v_cast_vec4f(v_make_vec4i(0, 3, 0, 0));
 }
 
-void RiShaderConstBuffers::setInstancing(uint32_t ofs, uint32_t stride, uint32_t impostor_data_offset, bool global_per_draw_buffer)
+void RiShaderConstBuffers::setInstancing(uint32_t ofs, uint32_t stride, uint32_t flags, uint32_t impostor_data_offset)
 {
-  bbox[2] = v_cast_vec4f(v_make_vec4i(ofs, stride, global_per_draw_buffer ? 1 : 0, impostor_data_offset));
+  // flags 1: useCbufferParams 2: hashVal
+  consts.bbox[2] = v_cast_vec4f(v_make_vec4i(ofs, stride, flags, impostor_data_offset));
 }
 
 void RiShaderConstBuffers::setBBoxZero()
 {
-  bbox[0] = v_zero();
-  bbox[1] = V_C_UNIT_0001;
+  consts.bbox[0] = v_zero();
+  consts.bbox[1] = V_C_UNIT_0001;
 }
 void RiShaderConstBuffers::setBBoxNoChange()
 {
-  bbox[0] = v_zero();
-  bbox[1] = V_C_ONE;
+  consts.bbox[0] = v_zero();
+  consts.bbox[1] = V_C_ONE;
 }
 
 void RiShaderConstBuffers::setBBox(vec4f p[2])
 {
-  bbox[0] = p[0];
-  bbox[1] = p[1];
+  consts.bbox[0] = p[0];
+  consts.bbox[1] = p[1];
 }
 
-void RiShaderConstBuffers::setOpacity(float p0, float p1, float p2, float p3) { perDraw[0] = v_make_vec4f(p0, p1, p2, p3); }
+void RiShaderConstBuffers::setOpacity(float p0, float p1, float p2, float p3)
+{
+  consts.rendinst_opacity = v_make_vec4f(p0, p1, p2, p3);
+}
 
-void RiShaderConstBuffers::setBoundingBox(const vec4f &bounding_box) { perDraw[7] = v_perm_xyzd(bounding_box, perDraw[7]); }
+void RiShaderConstBuffers::setBoundingBox(const vec4f &bounding_box)
+{
+  consts.rendinst_bbox__cross_dissolve_range = v_perm_xyzd(bounding_box, consts.rendinst_bbox__cross_dissolve_range);
+}
 
 void RiShaderConstBuffers::setCrossDissolveRange(float crossDissolveRange)
 {
-  perDraw[7] = v_perm_xyzd(perDraw[7], v_splats(crossDissolveRange));
+  consts.rendinst_bbox__cross_dissolve_range = v_perm_xyzd(consts.rendinst_bbox__cross_dissolve_range, v_splats(crossDissolveRange));
 }
 
 void RiShaderConstBuffers::setBoundingSphere(float p0, float p1, float sphereRadius, float cylinderRadius, float sphereCenterY)
 {
   const float a0 = rendinst_ao_mul / (sphereRadius + 0.0001f);
 
-  perDraw[1] = v_make_vec4f(p0, p1, sphereRadius, sphereCenterY);
+  consts.bounding_sphere = v_make_vec4f(p0, p1, sphereRadius, sphereCenterY);
   vec4f aoMul_cylRad = v_make_vec4f(a0, cylinderRadius, 0.f, 0.f);
-  perDraw[2] = v_perm_xycd(aoMul_cylRad, perDraw[2]);
+  consts.ao_mul__inv_height = v_perm_xycd(aoMul_cylRad, consts.ao_mul__inv_height);
 }
 
-void RiShaderConstBuffers::setImpostorMultiWidths(float widths[], float heights[])
+void RiShaderConstBuffers::setShadowImpostorSizes(const SizePerRotationArr &sizes)
 {
   int s = 0;
-  for (int i = 0; i < 4; ++i)
+  for (auto &shadow_impostor_size : consts.optional_data.shadow_impostor_sizes)
   {
-    // 2 slices width+height per reg
-    perDraw[3 + i] = v_make_vec4f(widths[s], heights[s], widths[s + 1], heights[s + 1]);
+    // 2 width+height per register
+    shadow_impostor_size = v_make_vec4f(sizes[s].x, sizes[s].y, sizes[s + 1].x, sizes[s + 1].y);
     s += 2;
   }
 }
@@ -107,26 +126,12 @@ void RiShaderConstBuffers::setImpostorMultiWidths(float widths[], float heights[
 void RiShaderConstBuffers::setRadiusFade(float radius, float drown_scale)
 {
   vec4f radius_drownScale = v_make_vec4f(0., 0., radius, drown_scale);
-  perDraw[2] = v_perm_xycd(perDraw[2], radius_drownScale);
+  consts.ao_mul__inv_height = v_perm_xycd(consts.ao_mul__inv_height, radius_drownScale);
 }
 
 void RiShaderConstBuffers::setInteractionParams(float hardness, float rendinst_height, float center_x, float center_z)
 {
-  perDraw[10] = v_make_vec4f(hardness, rendinst_height, center_x, center_z);
-}
-
-void RiShaderConstBuffers::setRandomColors(const E3DCOLOR *colors)
-{
-#if _TARGET_SIMD_SSE >= 4 // Note: _mm_cvtepu8_epi32 is SSE4.1
-  __m128 m255 = _mm_set1_ps(float(UCHAR_MAX));
-  perDraw[8] = _mm_div_ps(_mm_cvtepi32_ps(_mm_cvtepu8_epi32(_mm_cvtsi32_si128(colors[0].u))), m255);
-  perDraw[9] = _mm_div_ps(_mm_cvtepi32_ps(_mm_cvtepu8_epi32(_mm_cvtsi32_si128(colors[1].u))), m255);
-  perDraw[8] = _mm_shuffle_ps(perDraw[8], perDraw[8], 0xC6); // Swizzle BGRA.
-  perDraw[9] = _mm_shuffle_ps(perDraw[9], perDraw[9], 0xC6);
-#else
-  *(Color4 *)(char *)&perDraw[8] = color4(colors[0]);
-  *(Color4 *)(char *)&perDraw[9] = color4(colors[1]);
-#endif
+  consts.rendinst_interaction_params = v_make_vec4f(hardness, rendinst_height, center_x, center_z);
 }
 
 void RiShaderConstBuffers::flushPerDraw() const
@@ -136,14 +141,13 @@ void RiShaderConstBuffers::flushPerDraw() const
 #else
   if (perDrawCB)
   {
-    bool res = rendinst::render::perDrawCB->updateDataWithLock(0, sizeof(consts), consts, VBLOCK_DISCARD);
-    /*G_ASSERT(res);*/ (void)res;
+    rendinst::render::perDrawCB->updateDataWithLock(0, sizeof(consts), &consts, VBLOCK_DISCARD);
     d3d::set_const_buffer(STAGE_VS, perinstBuffNo, rendinst::render::perDrawCB);
   }
   else
   {
-    d3d::set_vs_const(50, (float *)consts, sizeof(consts) / sizeof(vec4f)); // 40 is hardcoded
-    int *instConstI = (int *)&bbox[2];
+    d3d::set_vs_const(50, (float *)&consts, sizeof(consts) / sizeof(vec4f)); // 40 is hardcoded
+    int *instConstI = (int *)&consts.bbox[2];
     Point4 instConstF(instConstI[0], instConstI[1], instConstI[2], instConstI[3]);
     d3d::set_vs_const(52, &instConstF.x, 1);
   }
@@ -171,6 +175,11 @@ void RiShaderConstBuffers::setInstancePositions(const float *data, int vec4_coun
   // the difference is that we sample just ONE float4 for trees, and cache prefetching doesn't help us (like it does in TB/SB)
   d3d::set_const_buffer(STAGE_VS, instanceBuffNo, rendinst::render::instancesCB[bin]);
 #endif
+}
+
+void RiShaderConstBuffers::setPLODRadius(float radius)
+{
+  consts.optional_data.plod_data.radius = v_make_vec4f(radius, 0.0f, 0.0f, 0.0f);
 }
 
 } // namespace rendinst::render

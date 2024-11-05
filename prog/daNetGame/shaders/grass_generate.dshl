@@ -1,0 +1,929 @@
+include "grass_generate_inc.dshl"
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "psh_tangent.dshl"
+include "frustum.dshl"
+include "toroidal_grass.dshl"
+include "wetness.dshl"
+include "heightmap_ofs.dshl"
+include "rendinst_heightmap_ofs.dshl"
+include "static_shadow.dshl"
+include "deform_hmap_common.dshl"
+
+texture perlin_noise3d;
+include "wind/wind_simulation_inc.dshl"
+
+buffer grass_eraser_instances;
+buffer grass_instances_count_readback;
+int grass_update_readback_count;
+
+shader grass_create_indirect {
+  ENABLE_ASSERT(cs)
+  INIT_GRASS_GENERATE(cs)
+  (cs) {
+    readbackCountBuffer@uav = grass_instances_count_readback hlsl { RWByteAddressBuffer readbackCountBuffer@uav; }
+    grass_update_readback_count@i1 = grass_update_readback_count;
+  }
+  hlsl(cs) {
+    [numthreads( 1, 1, 1 )]
+    void main()
+    {
+      if (grass_update_readback_count)
+      {
+        ##if grass_instancing == off
+          uint verticesCount = loadBuffer(grassCount, 0);
+          ##if grass_use_quads == yes
+            uint instancesCount = verticesCount / 4;
+          ##else
+            uint instancesCount = verticesCount / 6;
+          ##endif
+        ##else
+          uint instancesCount = loadBuffer(grassCount, 4);
+        ##endif
+        storeBuffer(readbackCountBuffer, 0, instancesCount);
+      }
+      ##if grass_instancing == off
+        ##if hardware.vulkan
+          uint instanceCount = 0;
+        ##else
+          uint instanceCount = 1;
+        ##endif
+        storeBuffer4(grassCount, 0*4,
+          uint4(0,//vertexCountPerInstance or IndexCountPerInstance
+                instanceCount,//instanceCount
+                0, 0));
+      ##else
+        storeBuffer4(grassCount, 0*4,
+          uint4(6,//vertexCountPerInstance or IndexCountPerInstance
+                0,//instanceCount
+                0, 0));
+      ##endif
+      storeBuffer(grassCount, 4*4, 0);
+    }
+  }
+  compile("target_cs", "main");
+  //compile("target_cs", "main");
+}
+
+float4 grass_eraser_culling_rect = (0,0,0,0); // x,z,xSize/2,zSize/2
+float4 grass_gen_order;
+
+float mip_bias;
+
+texture deform_hmap_info_tex;
+
+shader grass_generate_cs
+{
+  (cs) {
+    grass_color_tex@smp2d = grass_color_tex;
+    world_to_hmap_low@f4 = (world_to_hmap_low.x, world_to_hmap_low.y, world_to_hmap_low.z + 0.5*tex_hmap_inv_sizes.x, world_to_hmap_low.w+0.5*tex_hmap_inv_sizes.y);
+    tex_hmap_low@smp2d = tex_hmap_low;
+    heightmap_scale@f4 = (heightmap_scale.x, heightmap_scale.y, 1.5*tex_hmap_inv_sizes.x, 1.5*tex_hmap_inv_sizes.y);
+
+    world_view_pos@f3 = world_view_pos;
+
+    water_level_displacement@f4 = (water_level, 0, hmap_displacement_up-hmap_displacement_down, hmap_displacement_down);
+    grass_gen_order@f3 = grass_gen_order;
+
+    deform_hmap_info_tex@tex = deform_hmap_info_tex hlsl { Texture2D<float>deform_hmap_info_tex@tex; }
+  }
+
+  INIT_DEFORM_HMAP(cs)
+  INIT_GRASS_GENERATE(cs)
+  USE_GRASS_GENERATE(cs)
+  USE_GRASS_PUSH_INSTANCE(cs)
+  USE_GRASS_TC(cs)
+  INIT_AND_USE_FRUSTUM_CHECK_CS()
+
+  INIT_HEIGHTMAP_OFS(cs)
+  USE_HEIGHTMAP_OFS(cs)
+  INIT_RENDINST_HEIGHTMAP_OFS(cs)
+  USE_RENDINST_HEIGHTMAP_OFS(cs)
+  INIT_HMAP_HOLES(cs)
+  USE_HMAP_HOLES(cs)
+
+  hlsl(cs) {
+    #define water_level (water_level_displacement.x)
+    #define ht_displacement (water_level_displacement.zw)
+    #define deform_hmap_info_tex_samplerstate grass_mask_tex_samplerstate
+
+    float rand(float co)
+    {
+      return frac(sin(co*12.9898) * 43758.5453);
+    }
+    float2 rand2(float2 co)
+    {
+      return frac(sin(co*12.9898) * 43758.5453);
+    }
+    float4 rand4(float4 co)
+    {
+      return frac(sin(co*12.9898) * 43758.5453);
+    }
+
+    #include <noise/Value1D.hlsl>
+
+    half3 getNormalLow(float2 pos)
+    {
+      float2 tex_hmap_inv_sizes = heightmap_scale.zw;
+      float sizeInMeters = 2*tex_hmap_inv_sizes.x/world_to_hmap_low.x/heightmap_scale.x;
+      float3 offset = float3(tex_hmap_inv_sizes.x, 0, tex_hmap_inv_sizes.y);
+      half W = tex2Dlod(tex_hmap_low, float4(pos.xy - offset.xy,0,0)).x;//textureOffset (-1,0)
+      half E = tex2Dlod(tex_hmap_low, float4(pos.xy + offset.xy,0,0)).x;
+      half N = tex2Dlod(tex_hmap_low, float4(pos.xy - offset.yz,0,0)).x;
+      half S = tex2Dlod(tex_hmap_low, float4(pos.xy + offset.yz,0,0)).x;
+      return normalize(half3(W-E, sizeInMeters, N-S));
+    }
+
+    [numthreads( GRASS_WARP_SIZE_X, GRASS_WARP_SIZE_Y, 1 )]
+    //void main_cs( uint3 gId : SV_GroupID, uint3 gtId : SV_GroupThreadID )
+    void main_cs( uint3 dtId : SV_DispatchThreadID )
+    {
+      uint genDist = uint(grass_grid_params.w);
+      uint genDistDouble = genDist*2;
+      int2 gridPos;
+
+      gridPos = int2(dtId.xy) - genDist.xx;
+      FLATTEN
+      if (grass_gen_order.y)
+        gridPos.x = -gridPos.x;
+      FLATTEN
+      if (grass_gen_order.z)
+        gridPos.y = -gridPos.y;
+
+      //for other 4 principal axis
+      //gridPos.xy = -gridPos.yx;// 0 -x, -y
+      //gridPos.xy = gridPos.yx;// 2 +x, +y
+      //gridPos.xy = int2(-gridPos.x, gridPos.y);//1 +x, -y
+      //gridPos.xy = int2(gridPos.x, -gridPos.y);//3 -x, +y
+      //1
+      //gridPos = int2(gridPos.x+gridPos.y, gridPos.x-gridPos.y);
+      //or after
+      //gridPos.x = -gridPos.x; //0 -x, -y
+      //; // 1 +x, -y
+      //gridPos.y = -gridPos.y; //2 +x, +y
+      //gridPos.xy = -gridPos.xy; //3 -x, +y
+
+      //if (dot(gridPos, gridPos) > genDist*genDist)//since there are many groups
+      if (uint(dot(gridPos, gridPos)) > (genDist*genDist))//since there are many groups
+      //if (max(dtId.x, dtId.y) >= genDistDouble || dot(gridPos, gridPos) > genDist*genDist)//since there are many groups
+        return;
+
+      FLATTEN
+      if (grass_gen_order.x)
+        gridPos.xy = gridPos.yx;
+
+      float2 gridPosition = gridPos.xy + 0.5f;
+      float radius2 = dot(gridPosition, gridPosition);
+      //BRANCH
+      //if (grass_grid_params.w*grass_grid_params.w<radius2)
+      //  return;
+
+      float2 worldGridPos = (gridPosition.xy*grass_grid_params.z + grass_grid_params.xy);
+      //todo: make dispatch indirect, check that for whole group
+      {
+        const float avg_ht = grass_average_ht__ht_extent__avg_hor__hor_extent.x;//0.5*(max_ht+min_ht + max_grass_height)
+        const float ht_ext = grass_average_ht__ht_extent__avg_hor__hor_extent.y; //0.5*(max_ht-min_ht + max_grass_height)
+        const float avg_hor = grass_average_ht__ht_extent__avg_hor__hor_extent.z; //grass_grid_params.z*0.5
+        const float hor_ext = grass_average_ht__ht_extent__avg_hor__hor_extent.w;//grass_grid_params.z*0.5 + max_grass_size*0.5
+        if (!testBoxExtentB(float3(worldGridPos+avg_hor.xx, avg_ht).xzy,
+                            float2(hor_ext, ht_ext).xyx))
+          return;
+      }
+
+      float2 worldCameraPos = worldGridPos-world_view_pos.xz;
+      float lod_dist_scale = calcLodDistScale(length(worldCameraPos));
+      if(lod_dist_scale <= 0)
+        return;
+
+      //float4 random4_low = rand4(float4(worldGridPos.xy+1.0131*worldGridPos.yx, 3.1*worldGridPos.xy+1.1317*worldGridPos.yx));//replace with sample from texture
+      //float4 random4_high = rand4(float4(worldGridPos.xy*2.9+1.1311*worldGridPos.yx, 1.117*worldGridPos.xy+1.1731*worldGridPos.yx));//replace with sample from texture
+      float4 random4_high = tex2Dlod(noise_64_tex, float4(worldGridPos.xy*0.17+float2(1.011, 1.031), 0,0));//both faster and more predictable than arithmetical
+      float2 posOfs = random4_high.xy;//position in grid
+      float3 worldPos = float3(worldGridPos,0).xzy;
+      worldPos.xz += posOfs*grass_grid_params.z;
+      //common textures.
+      float2 grass_mask_tc = getGrassTC(worldPos);
+      #define GRASS_MASK_COMPRESSED 1
+
+      if (checkHeightmapHoles(worldPos))
+        return;
+
+      float2 dim;
+      grass_mask_tex.GetDimensions(dim.x, dim.y);
+      float2 bilW = frac(grass_mask_tc * dim - 0.5f);
+      float4 red = grass_mask_tex.GatherRed(grass_mask_tex_samplerstate, grass_mask_tc);
+      float2 redX = bilW.y>0.5 ? red.xy : red.wz;
+      float redChannel = bilW.x>0.5 ? redX.x : redX.y;
+      uint grassChannel = redChannel*255;
+
+      float maskScale;
+      float displacementScale;
+      float decals_grass_mask;
+      unpackGrassMaskParams(
+          sampleGrassMaskParams(grass_mask_tex, grass_mask_tc), maskScale,
+          displacementScale, decals_grass_mask);
+
+      if (max(maskScale, decals_grass_mask) <= 0.01)//early exit for empty mask
+        return;
+
+      float4 grassColor = tex2Dlod(grass_color_tex, float4(grass_mask_tc,0,0));//point_sampler
+      if (grassColor.a>=(GRASS_MAX_CHANNELS-0.5)/255.)//early exit for 'removal' decal channel
+        return;
+      //if (maskTex.a>=0.1 && grass_decal_id>=GRASS_MAX_CHANNELS)//early exit for empty decal
+      //  return;
+
+      float4 random4_low = tex2Dlod(noise_64_tex, float4(worldGridPos.xy*0.0171, 0,0));//both faster and more predictable than arithmetical
+      float decalsGrassChannel = grassColor.a;
+      float grassChannelRand = random4_low.z;
+      float grassTypeRand = random4_high.x;
+      uint grassType = getGrassType(decalsGrassChannel, grassChannel, grassTypeRand, grassChannelRand, decals_grass_mask, maskScale);
+
+      if (grassType>=GRASS_MAX_TYPES)
+        return;
+
+      bool is_horizontal, underwater;
+      float2 height_horSize;float probability;
+      float grass_size_rnd = (dot(random4_low.zw, random4_low.zw));
+      get_grass_sizes_density(grassType, maskScale, grass_size_rnd, height_horSize, probability, is_horizontal, underwater);
+      //height_horSize.x *= lod_dist_scale;
+
+      height_horSize.xy*= pow(abs(grass_types_cb.grass_type_params[grassType].size_lod_mul), grass_gen_lod_index);
+
+      #define HEIGHT_THRESHOLD 0.05
+      if (min(min(height_horSize.x, height_horSize.y) - HEIGHT_THRESHOLD, probability-grassTypeRand) < 0)
+        return;
+
+      float2 tex_hmap_tc = worldPos.xz*world_to_hmap_low.xy + world_to_hmap_low.zw;
+      if (any(abs(tex_hmap_tc - 0.5) > 0.5))
+        return;
+      float groundPos = tex2Dlod(tex_hmap_low, float4(tex_hmap_tc,0,0)).r*heightmap_scale.x+heightmap_scale.y;
+      groundPos += displacementScale * ht_displacement.x + ht_displacement.y;
+
+      apply_renderinst_hmap_ofs(worldPos.xz, groundPos);
+##if hmap_patches_tex != NULL
+      apply_height_patches(worldPos.xz, groundPos);
+##endif
+      worldPos.y = groundPos + (is_horizontal ? 0.01 + 0.04*random4_low.z : -0.05*height_horSize.x);//a bit below surface. Better compute 1d-surface gradient according to rotation and put it so it's not above surface
+      //todo: if grass horizontal, sample displacement instead
+      float waterLevel = water_level;
+      if (underwater != (height_horSize.x + worldPos.y < waterLevel))
+        return;
+      //radius is sqrt((height*0.5)^2+(2d_size*0.5)^2) = 0.5*length(float2(height, 2d_dist))
+
+##if deform_hmap_enabled == on
+      float2 tc = worldPos.xz * deform_hmap_world_to_uv_scale_bias.xy + deform_hmap_world_to_uv_scale_bias.zw;
+      float pressure = deform_hmap_info_tex.SampleLevel(deform_hmap_info_tex_samplerstate, tc, 0).x;
+      float deformTexSample = abs(tex2Dlod(deform_hmap_tex, float4(tc, 0, 0)).r - 0.5f);
+      if (pressure > 0.01 && deformTexSample > 0.01)
+        return;
+##endif
+
+      if (!testSphereB(worldPos+float3(0,height_horSize.x*0.5,0), 0.5*length(height_horSize)))
+        return;
+      uint grassVariation = (uint)floor(random4_high.w*255+0.5f);
+
+      GrassInstanceUncompressed inst;
+      inst.position.xyz = float3(saturate(worldPos.xz*world_to_grass_position.x + world_to_grass_position.zw), worldPos.y).xzy;
+      inst.random = random4_low.y;
+      inst.height = height_horSize.x;//fixme: get height from type and position
+      inst.size = height_horSize.y;
+      inst.lodNo = grass_gen_lod_index;
+      inst.vAngle = getVAngle(grassType, rand(worldPos.x*109+worldPos.z*113));
+      inst.rotation = getGrassRotation(is_horizontal, worldCameraPos, random4_high.z);
+      inst.opacity = 0.5+pow2(1-lod_dist_scale)*0.5;
+      //inst.opacity = 0.5;
+
+      inst.landColor = sqrt(grass_color_tex.SampleLevel(grass_mask_tex_samplerstate, grass_mask_tc, 0).rgb);//use gamma 2
+      //sqrt(tex2Dlod(last_clip_tex, float4(worldPos.xz*world_to_last_clip.xy+world_to_last_clip.zw,0,0)).rgb);
+      inst.grassType = grassType;
+      inst.grassVariation = grassVariation;
+      inst.landNormal = getNormalLow(tex_hmap_tc);
+      inst.worldYOrientation = true;
+      pushGrassInstance(inst);
+    }
+  }
+  //compile("vs_5_0", "main_vs");
+  //compile("ps_5_0", "main_ps");
+  compile("target_cs", "main_cs");
+}
+
+shader copy_grass_decals
+{
+  supports global_frame;
+
+  POSTFX_VS(0)
+
+  color_write = a;
+
+  hlsl(ps) {
+    struct MRT_Output
+    {
+      float4 maskTex: SV_Target0;
+      float4 colorTex: SV_Target1;
+    };
+    MRT_Output copy_grass_decal_ps(float4 screenpos:VPOS)
+    {
+      MRT_Output ret;
+      ret.maskTex = ret.colorTex = 0;
+      return ret;
+    }
+  }
+  compile("target_ps", "copy_grass_decal_ps");
+}
+
+texture grass_texture;
+texture grass_texture_n;
+texture grass_texture_a;
+int grass_pass = 0;
+interval grass_pass:prepass_off<1, depth_prepass<2, prepass_on;
+float grass_inv_vis_distance = 0.01;
+
+buffer grass_insts_buf;
+buffer obstacle_indices_buf;
+const_buffer obstacles_buf;
+const_buffer grass_colors_buf;
+
+shader grass_render_billboards
+{
+  supports global_frame;
+  cull_mode = none;
+
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    hlsl {
+      #define SPECULAR_DISABLED 1
+      #define BRDF_DIFFUSE 0
+      #define USE_SSS_THIN 1
+    }
+  }
+  hlsl {
+    struct VsOutput
+    {
+      PRECISE VS_OUT_POSITION(pos)
+      float4 tc_opacity:   TEXCOORD0;
+      ##if grass_pass != depth_prepass
+      float3 p2e:  TEXCOORD1;
+      float3 normal:  TEXCOORD2;//replace with tangent space
+      float4 color_height_from_ground:TEXCOORD3;
+      float3 mask_r:TEXCOORD4;
+      float3 mask_b:TEXCOORD5;
+      float3 color_mask_g_from:TEXCOORD6;
+      float3 color_mask_g_to:TEXCOORD7;
+      ##endif
+    };
+  }
+
+  (vs) {
+    globtm@f44 = globtm;
+    grass_inv_vis_distance@f1 = (grass_inv_vis_distance);
+    grass_to_world_position@f4 = (1/world_to_grass_position.x, 0, -world_to_grass_position.z/world_to_grass_position.x, -world_to_grass_position.w/world_to_grass_position.x);
+
+    instances@buf = grass_insts_buf hlsl {
+      #include <grassInstance.hlsli>
+      StructuredBuffer<GrassInstance> instances@buf;
+    };
+    obstacle_indices@buf = obstacle_indices_buf hlsl {
+      StructuredBuffer<uint> obstacle_indices@buf;//fixme: move that to generate phase! it is totally doable, since all we do in the end is squash one direction
+    };
+    obstacles_indirection@cbuf = obstacles_buf hlsl {
+      #include "obstacleStruct.hlsli"
+      cbuffer obstacles_indirection@cbuf
+      {
+        ObstaclesData obstacles;
+      };
+    }
+    VSGrassColors@cbuf = grass_colors_buf hlsl {
+      #include <grassInstance.hlsli>
+      cbuffer VSGrassColors@cbuf
+      {
+        GrassColorVS grass_colors_vs[GRASS_MAX_TYPES];
+      };
+    };
+  }
+
+  INIT_STATICS_WETNESS()
+  USE_MICRODETAIL_BASED_WETNESS()
+  INIT_USE_COMBINED_WIND(vs)
+  INIT_GRASS_GENERATE_NO_UAV(vs)
+  USE_GRASS_GENERATE(vs)
+  ENABLE_ASSERT(ps)
+
+  hlsl(vs) {
+    float rand(float co)
+    {
+      return frac(sin(co*12.9898) * 43758.5453);
+    }
+
+    float4 sdBoxNorm(float3 localPos, float3 boxExt)
+    {
+      float3 dist = abs(localPos) - boxExt;
+      float insideDist = min(max(max(dist.x, dist.y), dist.z), 0);
+      float3 ptOnBox = max(dist, 0);
+      float outsideDist = length(ptOnBox);
+      float signedDist = outsideDist + insideDist;
+      float3 norm;
+      FLATTEN
+      if (signedDist <= 0)
+        norm = (float3(insideDist == dist.x, insideDist == dist.y, insideDist == dist.z));
+      else
+        norm = ptOnBox/(outsideDist+1e-6);
+      norm = (localPos < 0 ? -norm : norm);
+      return float4(signedDist, norm);
+    }
+
+    float3 offsetFromObstacle( float3 worldPivot, float3 worldPos, float4 dir_x, float4 dir_y, float4 dir_z, float3 boxSize, float sz, float height, float rad, out float effect)
+    {
+      float3 center = float3(dir_x.w, dir_y.w, dir_z.w);
+      float3 relPos = worldPos - center;
+      float3 local_pos = mul(float3x3(dir_x.xyz, dir_y.xyz, dir_z.xyz), relPos);
+
+      effect = 0;
+      float3 ret = 0;
+
+      float4 distToBoxNorm = sdBoxNorm(local_pos, 0.5*boxSize+rad);
+      if (distToBoxNorm.x<0)
+      {
+        float3 moveDir = -distToBoxNorm.yzw*distToBoxNorm.x;
+        moveDir = mul(moveDir, float3x3(dir_x.xyz, dir_y.xyz, dir_z.xyz));
+        float radDist = (-distToBoxNorm.x/rad);
+        float squashed = saturate(radDist-1);//grass is totally squashed
+        moveDir.y = -abs(moveDir.y);//don't allow grass move up
+        moveDir = lerp(moveDir, float3(0,-height,0) + rad*normalize(float3(relPos.x, 0, relPos.z)), squashed);
+        ret = moveDir;
+        effect = saturate(radDist*2);
+      }
+      return ret;
+    }
+
+    // (rotate + change of height)
+    float3 apply_obstacles(float3 worldPivot, float3 worldPos, float verticalPos, float2 height_horSize)
+    {
+      float2 pos = worldPivot.xz-obstacles.indirection_lt;
+      pos.xy /= obstacles.indirection_cell;
+      float2 vignette = abs((pos.xy/obstacles.indirection_wd)*2-1);
+      float vignetteEffect = saturate(10-9*dot(vignette,vignette));
+      if (vignetteEffect==0 || obstacles.indirection_wd == 0 || verticalPos == 0)
+        return 0;
+      uint2 coord = clamp(uint2(pos.xy), 0U, obstacles.indirection_wd-1);
+      uint index = coord.x+coord.y*obstacles.indirection_wd;
+
+      float3 totalOfs = 0;
+      uint obstIndCount = structuredBufferAt(obstacle_indices, index);
+      uint obstIndStart = obstIndCount>>OBSTACLE_OFFSET_BIT_SHIFT;
+      uint obstIndEnd = (obstIndCount&((1U<<OBSTACLE_OFFSET_BIT_SHIFT) - 1)) + obstIndStart;
+
+      float ceffect = 1;
+      float height = 0.8*height_horSize.y;
+      float radius = 0.5*height_horSize.x;
+      worldPos = worldPivot + float3(0,height,0);//instead of float worldPos, use offseted pivot. So whole grass move one direction
+      for (uint i = obstIndStart; i < obstIndEnd; ++i)
+      {
+        uint index = structuredBufferAt(obstacle_indices, i);
+      //for (uint i = 0; i < 1; ++i)
+      //{
+      //  uint index = i;
+        float effect;
+        float3 ofs = offsetFromObstacle( worldPivot, worldPos+totalOfs, obstacles.obstacles[index].dir_x, obstacles.obstacles[index].dir_y, obstacles.obstacles[index].dir_z,
+                                         obstacles.obstacles[index].box.xyz, verticalPos, height, radius, effect);
+        totalOfs += ofs*ceffect;
+
+        //compiler workaround:
+        ceffect = saturate(ceffect * saturate(1-effect));//this saturate is required because compiler generate something bad otherwise (and ceffect is not corret)
+      }
+      return totalOfs*vignetteEffect;
+    }
+    float TriangleWave(float x)
+    {
+      float y = abs(frac(x + 0.5) * 2. - 1.);
+      return y * y * (3. - 2. * y);
+    }
+    void ApplyGrassWind(inout float3 pos, float height, float noise_speed_mult, float stiffness, float random_wind_amp)
+    {
+      FLATTEN
+      if (height>0.0001)
+      {
+        const float WIND_TIME_MULT = 0.25;
+        const float WIND_MULT = 0.03;
+        float3 wind = sampleWindCurrentTime(pos,noise_speed_mult, 0);
+        float wind_speed = length(wind);
+        float t = WIND_TIME_MULT * (ambient_wind__speed__current_time__previous_time.y + wind_speed);
+        wind.xz += random_wind_amp * wind_speed*float2(TriangleWave(pos.x + t),TriangleWave(pos.z + t));
+        wind *= WIND_MULT * stiffness;
+        wind = wind * height / length(wind + float3(0,height,0));
+        pos +=wind;
+      }
+    }
+    ##if grass_pass == depth_prepass
+      #define __XBOX_REGALLOC_VGPR_LIMIT 32//found by pix
+    ##elif grass_pass == prepass_on
+      #define __XBOX_ENABLE_DOM_LIFETIME_SHORTENING 1//found by pix
+      #define __XBOX_REGALLOC_VGPR_LIMIT 40//found by pix
+    ##endif
+
+    ##if grass_instancing == off
+    VsOutput grass_vs(uint vertexId : SV_VertexID)
+    ##else
+    VsOutput grass_vs(uint subvertexId : SV_VertexID, uint inst : SV_InstanceID)
+    ##endif
+    {
+      ##if grass_instancing == off
+##if grass_use_quads == yes
+      uint inst = vertexId / 4;
+      uint subvertexId = vertexId % 4;
+##else
+      uint inst = vertexId/6;
+      uint subvertexId = vertexId%6;
+##endif
+      ##endif
+      inst = min(inst, uint(grass_max_instance_count) - 1);
+      GrassInstanceUncompressed grass = uncompress_instance(instances[inst]);
+      uint grassType = grass.grassType;
+      grass.position.xz = grass_to_world_position.x*grass.position.xz + grass_to_world_position.zw;
+      //0 1      4|1
+      //2    3|2 5|3
+      // subvertex
+      //int corner = subvertexId>2 ? subvertexId-2 : subvertexId;//cull none
+      //int corner = subvertexId>2 ? (subvertexId == 5 ? 3 : 5-subvertexId) : subvertexId;//cull none
+      //int cornerX = corner&1;
+      //int cornerY = (corner&2)>>1;
+##if grass_use_quads == yes
+      float2 localPos = int2(subvertexId % 2, subvertexId / 2);
+      FLATTEN
+      if ((subvertexId/2)%2 == 1)
+        localPos.x = 1-localPos.x;
+##else
+      // triangle A: 0:left top, 1:right top, 2: left bottom
+      // triangle B: 3:right bottom, 4:left bottom, 5: right top
+      float2 localPos = int2(subvertexId % 2, subvertexId > 1 && subvertexId < 5);
+##endif
+      float cornerX = localPos.x, cornerY = localPos.y;
+      float3 instanceWorldPos = grass.position;
+      float2 height_horSize = float2(grass.height, grass.size);
+      //float height = structuredBufferAt(grass, instance).height;
+      float normalizedViewRadius = length(instanceWorldPos.xz-world_view_pos.xz)*grass_inv_vis_distance;
+      float normalizedScale = saturate(5-normalizedViewRadius*5);
+      height_horSize.x = height_horSize.x*normalizedScale;//fixme: get height from type and position
+      //instancePos = 0;
+      //instancePos.z = instance;
+      //height = 1;
+
+      half xPos = (cornerX-0.5)*height_horSize.y;
+      bool is_horizontal = grass.rotation < 0;
+      float vHeight = (is_horizontal ? cornerY - 0.5 : cornerY) * height_horSize.x;
+
+      half angle = grass.rotation;
+      half2 rotSC;
+      sincos(angle, rotSC.x, rotSC.y);
+
+      half vAngle = grass.vAngle;
+      half2 rotVSC;
+      sincos(vAngle, rotVSC.x, rotVSC.y);
+
+      //float3 worldPos = instanceWorldPos+ float3((rotSC.y*xPos), (vHeight), (rotSC.x*xPos));//no rotation
+      //float zPos = (rotSC.x*xPos);
+      //float3x3 rotYTM = float3x3(float3(rotSC.y,0,rotSC.x), float3(0,1,0), float3(-rotSC.x,0,rotSC.y));
+      //float3x3 rotXTM = float3x3(float3(1,0,0), float3(0,rotVSC.y,rotVSC.x), float3(0,-rotVSC.x,rotVSC.y));
+      //float3x3 ntm = mul(rotYTM, rotXTM);
+      /*rotSC.y, 0, rotSC.x
+        0,     1,    0
+      -rotSC.x, 0, rotSC.y
+
+      1,     0,        0
+      0, rotVSC.y, rotVSC.x
+      0, -rotVSC.x, rotVSC.y*/
+
+      //float3x3 ntm = float3x3(float3(rotSC.y, -rotSC.x*rotVSC.x, rotSC.x*rotVSC.y),
+      //                        float3(0,        rotVSC.y,         rotVSC.x),
+      //                        float3(-rotSC.x,-rotSC.y*rotVSC.x, rotSC.y*rotVSC.y));
+      //float3 worldCornerPos = mul(ntm, float3(xPos, vHeight, 0));//no rotation
+      float3 worldCornerPos = float3(rotSC.y*xPos - rotSC.x*(rotVSC.x*vHeight), (vHeight)*rotVSC.y, -rotSC.x*xPos - rotSC.y*(rotVSC.x*vHeight));//no rotation
+      FLATTEN
+      if (is_horizontal)
+      {
+        float2 rotatedPos = float2(xPos*rotSC.y + vHeight*rotSC.x, -xPos*rotSC.x + vHeight*rotSC.y);
+        worldCornerPos.y = -dot(grass.landNormal.xz, rotatedPos);
+        worldCornerPos.xz = rotatedPos;
+      }
+
+      // Rotate around land normal
+      BRANCH
+      if (!grass.worldYOrientation)
+      {
+        float3 xVector = cross(float3(0.0, 0.0, 1.0), grass.landNormal);
+        // Fix rare case when normal is equal to (0,0,1)
+        xVector = dot(xVector, xVector) < 1E-4 ?  float3(1.0, 0.0, 0.0) : normalize(xVector);
+
+        float3x3 ntm = float3x3(xVector, grass.landNormal, cross(grass.landNormal, xVector) );
+        worldCornerPos = mul(worldCornerPos, ntm);
+      }
+
+      // Apply wind simulation
+      float3 worldPos = instanceWorldPos + worldCornerPos;//no rotation
+
+      float wind_speed_mult = 2 - grass_colors_vs[grassType].stiffness;
+      float wind_amp_mult = is_horizontal ? 0 : grass_colors_vs[grassType].stiffness;
+
+    ##if mobile_render == off
+      if (cornerY > 0.001)
+      {
+        ApplyGrassWind(worldPos.xyz,vHeight, wind_speed_mult* cornerY,wind_amp_mult,0.4);
+      }
+    ##endif
+
+      //float3 unit_pos = world_view_pos;//float3(-324, 7.42, 48.15);
+      //float unit_aspect = 1, unit_radius = 1;
+      //float2 unit_dir = float2(0,1);
+      BRANCH
+      if (!is_horizontal)
+        worldPos += apply_obstacles(instanceWorldPos, worldPos, cornerY, height_horSize);
+
+      /*
+      worldCornerPos.xz += vWavesSum.xy * amp;
+      float fBendScale = 0.2;
+      float windGustPosFreq = 0.25, windGustTimeFreq = 1;
+      float2 windDir=float2(1,0);
+      float windGust = dot(sin((instanceWorldPos.xz*windGustPosFreq+wind_time*windGustTimeFreq*windDir)), 0.25)*3/2 + 0.25;//better use perlin noise
+      float fBF = cornerY * fBendScale;
+      // Smooth bending factor and increase its nearby height limit.
+      fBF += 1.0;
+      fBF *= fBF;
+      fBF = fBF * fBF - fBF;
+      float fLength = length(worldCornerPos);
+      float2 vWind = windDir*(windGust*wind_strength);
+      worldCornerPos.xz += vWind.xy * fBF;
+      // Rescale
+      worldCornerPos = normalize(worldCornerPos.xyz)* fLength;
+      worldPos = worldCornerPos+instanceWorldPos;*/
+
+
+
+      //float3 worldPos = instanceWorldPos+ float3(rotSC.y*xPos, (vHeight)*rotVSC.y+zPos*rotVSC.x, zPos*rotVSC.y-(vHeight)*rotVSC.x);//no rotation
+      VsOutput output;
+      output.pos = mul(float4(worldPos, 1), globtm);
+
+      uint grassTextureType = grass_colors_vs[grassType].grassTextureType;
+      float grassVariations = grass_colors_vs[grassType].grassVariations;
+      //grassTextureType = 1;
+      //grassVariations = 2;
+
+      ##if grass_pass != depth_prepass
+      output.color_height_from_ground.rgb = grass.landColor*grass.landColor;//use gamma 2
+      output.color_height_from_ground.w = vHeight*pow4(saturate(3-normalizedViewRadius*3));
+      output.p2e.xyz = world_view_pos-worldPos;
+      float randV = grass.random;//
+      //output.normal = float3(-rotSC.x, 0, rotSC.y); //rotSC.y,0,rotSC.x
+      //rotSC.y, rotVSC.y+rotSC.x*rotVSC.x, rotSC.x*rotVSC.y-rotVSC.x
+      //1, rotVSC.y, -rotVSC.x
+      //0, rotVSC.y+rotVSC.x, rotVSC.y-rotVSC.x
+      output.normal = float3(rotSC.x*rotVSC.y, rotVSC.x, rotSC.y*rotVSC.y);
+      if (dot(output.normal, output.p2e)<0)
+        output.normal = -output.normal;
+      if (is_horizontal || localPos.y == 0)
+        output.normal = grass.landNormal*0.75;//float3(0,1,0);
+
+      //output.normal = mul(float3(0,0,1), transpose(ntm));
+      output.mask_r = lerp( grass_colors_vs[grassType].mask_r_color0.rgb, grass_colors_vs[grassType].mask_r_color1.rgb, randV );
+      output.mask_b = lerp( grass_colors_vs[grassType].mask_b_color0.rgb, grass_colors_vs[grassType].mask_b_color1.rgb, randV );
+      output.color_mask_g_from = grass_colors_vs[grassType].mask_g_color0.rgb;
+      output.color_mask_g_to = grass_colors_vs[grassType].mask_g_color1.rgb;
+      //if (grassType <= 2)
+      //  output.mask_r = output.mask_b = output.color_mask_g_from = output.color_mask_g_to = float3(grassType == 0, grassType == 1, grassType == 2);
+      ##endif
+
+      float grassVariation = float(grass.grassVariation)%grassVariations;
+
+      output.tc_opacity = float4((cornerX+grassVariation)/grassVariations, 1-cornerY, grassTextureType, grass.opacity);
+      output.tc_opacity.x *= grass_colors_vs[grassType].tile_tc_x;
+      return output;
+    }
+  }
+
+  if (grass_pass != prepass_on)
+  {
+    (ps) { grass_texture_a@smpArray = grass_texture_a; }
+  }
+  if (grass_pass != depth_prepass)
+  {
+    (ps) {
+      grass_texture@smpArray = grass_texture;
+      grass_texture_n@smpArray = grass_texture_n;
+      mip_bias@f1 = (mip_bias);
+    }
+
+    USE_PIXEL_TANGENT_SPACE()
+
+    INIT_STATIC_SHADOW_PS()
+    WRITE_GBUFFER()
+    //blend_src = sa; blend_dst = isa;
+  }
+
+  hlsl(ps) {
+
+    ##if grass_pass == depth_prepass
+##if hardware.ps4 || hardware.ps5
+    [RE_Z]
+##endif
+    void grass_ps(VsOutput input HW_USE_SCREEN_POS)
+    ##else
+    GBUFFER_OUTPUT grass_ps(VsOutput input HW_USE_SCREEN_POS)
+    //float4 grass_ps(VsOutput input, float4 screenpos:VPOS):SV_Target
+    ##endif
+    {
+      float3 tc = input.tc_opacity.xyz;
+
+      float opacity = input.tc_opacity.w;
+      ##if grass_pass == prepass_off || grass_pass == depth_prepass
+      half alpha = tex3D(grass_texture_a, tc).r;
+      clip(alpha-opacity);
+      //clip(grassAlbedo.a-0.01);
+      ##endif
+      ##if grass_pass != depth_prepass
+      half3 grassAlbedo = tex3D(grass_texture, tc).rgb;
+      //== fill pixel shader
+      //input.normal.xyz = (dot(input.normal.xyz, input.p2e)<0) ? -input.normal.xyz : input.normal.xyz;
+
+      half3 landColor = input.color_height_from_ground.rgb;//==fixme
+
+      //input.normal.xyz = normalize(cross(ddx(input.p2e), ddy(input.p2e)));
+      //input.normal.xyz = MUL_VFACE(input.normal.xyz);
+      // this is dirty trick, that replaces vertex normal with more vertical (better be ground one!) one, based on sun light direction
+      // the issue is: our billboards are captured from side, and do not represent statistical picture when we look from above
+      // the same way it is not correctly represent when sun light is from above, and especially - if both
+      // better would be to render additional billboards and cross-dissolve them, but it is heavier.
+      // todo: to make trick look better and faster, we'd better:
+      //  * move MUL_VFACE(input.normal.xyz) to vertex shader (it can be done based on just position)
+      //  * move whole input.normal calculation to VS
+      //  * use ground normal
+      input.normal = normalize(input.normal);
+      ##if grass_texture_n != NULL
+      //half3 landColor =float3(1, 0, 0);//==fixme
+      half3 color = lerp( landColor, input.mask_r, grassAlbedo.r );
+      color = lerp( color.rgb, input.mask_b, grassAlbedo.b );
+      color = color * lerp( input.color_mask_g_from, input.color_mask_g_to, grassAlbedo.g ) * 4.59479341998814;
+      grassAlbedo.rgb = color;
+      half4 packedNormalMap = tex3D(grass_texture_n, tc.xyz);
+      half3 normalMap = unpack_ag_normal(packedNormalMap);
+      half3 worldNormal = perturb_normal( normalMap, input.normal.xyz, input.p2e, tc.xy );//==
+      half translucency = packedNormalMap.b;
+      //half smoothness = lerp(lerp(input.color_mask_g_from.a, input.mask_r.a, grassAlbedo.r), input.mask_b.a, grassAlbedo.b);
+      half smoothness = packedNormalMap.r;//there is nothing good here!
+      float reflectance = 0.5*saturate(3*input.color_height_from_ground.w);
+      ##else
+
+      half translucency = 1;
+      float3 worldNormal = input.normal.xyz;//lerp(float3(0,1,0), input.normal.xyz, saturate(input.color_height_from_ground.w/0.125));
+      //worldNormal = normalize(cross(ddx(input.p2e.xyz),ddy(input.p2e.xyz)));
+      //worldNormal = normalize(float3(worldNormal.x, 0.5, worldNormal.z));
+      //worldNormal = float3(0,1,0);
+      //half smoothness = 0.25*saturate(input.color_height_from_ground.w);
+      half smoothness = 0.1;
+      grassAlbedo.rgb = lerp(landColor.rgb, grassAlbedo.rgb, saturate(input.color_height_from_ground.w*(1./0.01)));
+      //float reflectance = 0.02*saturate(input.color_height_from_ground.w*0.5);
+      //reflectance
+      float reflectance = 0.5+0.5*saturate(0.5*input.color_height_from_ground.w);
+      ##endif
+      half ao = 1;
+      //ao = 0.5 + 0.5*saturate(1.25-input.tc.y);
+      reflectance *=0.5 +0.5*saturate(1.25-tc.y);//saturate(input.color_height_from_ground.w*(1./0.1));
+      //translucency*=saturate(input.color_height_from_ground.w*(1./0.1));
+      //grassAlbedo.a= saturate(2*grassAlbedo.a-1);
+      //return grassAlbedo;
+
+      UnpackedGbuffer gbuffer;
+      //reflectance = 0;
+      //translucency = 1;
+      //this is filtering reflectance and smoothness based on mip lod.
+      //can be done in mipmap chain (so much faster, using Hardware).
+      //but will require separate reflectance in texture
+##if hardware.metal
+      float4 gradients = float4(ddx(tc.xy), ddy(tc.xy));//fixme: use fwidth?
+      float2 dtex = gradients.xz*gradients.xz + gradients.yw*gradients.yw;
+      float minLod = log2(max((128*128)*max(dtex.x,dtex.y), 1.));
+##else
+      float minLod = max(0, grass_texture_n.CalculateLevelOfDetailUnclamped(grass_texture_n_samplerstate, tc.xy) - mip_bias);
+##endif
+      //to avoid mipmapping of specular (it is incorrect due to alpha test)
+      //pre 4.1 shaders code
+      //float4 gradients = float4(ddx(tc.xy), ddy(tc.xy));//fixme: use fwidth?
+      //float2 dtex = gradients.xz*gradients.xz + gradients.yw*gradients.yw;
+      //float minLod = log2(max((128*128)*max(dtex.x,dtex.y), 1.));
+      float lodscale = rcp(1+minLod);
+      smoothness *= lodscale;
+      reflectance *= lodscale;
+      //end of filter
+
+      half3 worldPos = world_view_pos - input.p2e.xyz;
+    ##if mobile_render == off
+      apply_wetness_by_porosity(0.95, worldPos, grassAlbedo.rgb, worldNormal, reflectance, smoothness, ao);
+    ##endif
+
+      init_gbuffer(gbuffer);
+
+      init_albedo(gbuffer, grassAlbedo.rgb);
+      init_translucency(gbuffer, translucency);
+      init_material(gbuffer, SHADING_FOLIAGE);
+      init_smoothness(gbuffer, smoothness);
+      init_normal(gbuffer, worldNormal);
+      init_reflectance(gbuffer, reflectance);
+      init_isLandscape(gbuffer, 1);
+      init_order(gbuffer, GBUFFER_ORDER_DYNAMIC);
+
+      //init_metalness(result, 0);
+      init_shadow(gbuffer, ao);
+      init_ao(gbuffer, ao);
+      return encode_gbuffer(gbuffer, input.p2e.xyz, GET_SCREEN_POS(input.pos));
+      ##endif
+    }
+  }
+  compile("vs_5_0", "grass_vs");
+  compile("ps_5_0", "grass_ps");
+  //compile("target_cs", "main");
+}
+
+shader grass_eraser {
+  supports global_frame;
+
+  z_test = false;
+  z_write = false;
+  cull_mode = none;
+  color_write = ga;
+  no_ablend;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 worldPos : TEXCOORD0;
+      nointerpolation float4 pos_radius : TEXCOORD1;
+    };
+  }
+
+  (vs) {
+    globtm@f44 = globtm;
+    grass_eraser_culling_rect@f4 = grass_eraser_culling_rect;
+    instances@cbuf = grass_eraser_instances hlsl {
+      #include <grass_eraser_consts.hlsli>
+      cbuffer instances@cbuf
+      {
+        float4 pos_radius[MAX_GRASS_ERASERS];
+      };
+    }
+  }
+
+  hlsl(vs) {
+    VsOutput grass_eraser_vs(uint instanceId : SV_InstanceID, uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      output.pos_radius = pos_radius[instanceId];
+
+      float3 pos = output.pos_radius.xyz;
+      float radius = output.pos_radius.w;
+
+      float2 diff = abs(grass_eraser_culling_rect.xy - pos.xz);
+
+      // cull erasers outside of the render rect
+      if (all(diff <= grass_eraser_culling_rect.zw + radius))
+      {
+        uint subVertexId = vertexId%4;
+
+        float2 localPos = int2(subVertexId % 2, subVertexId / 2);
+        localPos = localPos*2 - 1;
+
+        float3 worldPos = float3(localPos.x, 0, localPos.y) * radius + pos;
+
+        output.pos = mulPointTm(worldPos, globtm);
+        output.worldPos = worldPos;
+      }
+      else
+      {
+        output.pos = float4(0, 0, 0, 1);
+        output.worldPos = float3(0, 0, 0);
+      }
+
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    struct MRT_Output
+    {
+      float4 maskTex: SV_Target0;
+    };
+    MRT_Output grass_eraser_ps(VsOutput input)
+    {
+      float3 worldPos = input.worldPos;
+      float2 d = worldPos.xz - input.pos_radius.xz;
+
+      if (dot(d, d) > input.pos_radius.w*input.pos_radius.w)
+        discard;
+
+      MRT_Output ret;
+      ret.maskTex = float4(0, 0, 0, 0);
+      return ret;
+    }
+  }
+
+
+  compile("target_vs", "grass_eraser_vs");
+  compile("target_ps", "grass_eraser_ps");
+}

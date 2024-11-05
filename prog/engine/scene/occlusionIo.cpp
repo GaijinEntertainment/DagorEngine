@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <scene/dag_occlusion.h>
 #include <ioSys/dag_genIo.h>
 

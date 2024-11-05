@@ -1,0 +1,78 @@
+include "rendinst_trans_inc.dshl"
+include "semi_trans_inc.dshl"
+
+float4 placing_color = (0, 0, 0, 0);
+texture diffuse_rendinst_tex;
+
+shader rendinst_semi_trans
+{
+  assume instancing_type = tm_vb;
+
+  render_trans;
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+  channel float2 tc[0] = tc[0];
+
+  blend_src = one;  blend_dst = isa;
+
+  z_write = false;
+
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+
+  if (diffuse_rendinst_tex != NULL)
+  {
+    (ps) { diffuse_rendinst_tex@smp2d = diffuse_rendinst_tex; }
+  }
+
+  (ps) { placing_color@f3 = placing_color; }
+
+  RENDINST_TRANS_BLOCK()
+  RENDINST_INSTANCING()
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 normal                 : TEXCOORD1;
+      float3 pointToEye             : TEXCOORD2;
+    ##if (diffuse_rendinst_tex != NULL)
+      float2 diffuseTexcoord        : TEXCOORD3;
+    ##endif
+    };
+  }
+  hlsl(vs) {
+    INSTANCING_BUFFERS
+    struct VsInput
+    {
+      float3 pos                  : POSITION;
+      float4 normal               : NORMAL;
+    ##if (diffuse_rendinst_tex != NULL)
+      float2 diffuseTexcoord      : TEXCOORD0;
+    ##endif
+    };
+    VsOutput rendinst_semi_trans_vs(VsInput input HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+      input.normal = normalize(input.normal * 2 - 1);
+      float3 localNormal = input.normal.xyz;
+      float3 localPos = input.pos;
+      float opacity = 1;
+      VB_PERFORM_INSTANCING
+
+      output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+      output.pointToEye = world_view_pos - worldPos;
+      output.normal = worldNormal;
+    ##if (diffuse_rendinst_tex != NULL)
+      output.diffuseTexcoord = input.diffuseTexcoord;
+    ##endif
+      return output;
+    }
+  }
+  compile("target_vs", "rendinst_semi_trans_vs");
+
+  SEMI_TRANS_PS()
+}

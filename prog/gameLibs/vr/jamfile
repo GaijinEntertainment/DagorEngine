@@ -18,4 +18,5 @@ Sources =
 
 CPPopt = ;
 
+include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ;
 include $(Root)/prog/_jBuild/build.jam ;

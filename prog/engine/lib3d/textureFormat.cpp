@@ -1,5 +1,8 @@
-#include <3d/dag_tex3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_tex3d.h>
 #include <debug/dag_debug.h>
+#include <EASTL/tuple.h>
 
 static const TextureFormatDesc format_descs[] = {
   {TEXFMT_A8R8G8B8, 4, false, 1, 1, ChannelDType::UNORM, {}, {8, 16, 0, 0, 1}, {8, 8, 0, 0, 1}, {8, 0, 0, 0, 1}, {8, 24, 0, 0, 1}, {},
@@ -23,7 +26,6 @@ static const TextureFormatDesc format_descs[] = {
   {TEXFMT_DXT3, 16, true, 4, 4, ChannelDType::UNORM, {}, {8, 0}, {8, 0}, {8, 0}, {1, 0}, {}, {}},
   {TEXFMT_DXT5, 16, true, 4, 4, ChannelDType::UNORM, {}, {8, 0}, {8, 0}, {8, 0}, {8, 0}, {}, {}},
   {TEXFMT_R32G32UI, 8, false, 1, 1, ChannelDType::UINT, {}, {32, 0, 0, 0, 0}, {32, 32, 0, 0, 0}, {}, {}, {}, {}},
-  {TEXFMT_V16U16, 4, false, 1, 1, ChannelDType::SNORM, {}, {16, 0, 0, 0, 1}, {16, 16, 0, 0, 1}, {}, {}, {}, {}},
   {TEXFMT_L16, 2, false, 1, 1, ChannelDType::UNORM, {}, {16, 0, 0, 0, 1}, {}, {}, {}, {}, {}},
   {TEXFMT_A8, 1, false, 1, 1, ChannelDType::UNORM, {}, {}, {}, {}, {8, 0, 0, 0, 1}, {}, {}},
   {TEXFMT_L8, 1, false, 1, 1, ChannelDType::UNORM, {}, {8, 0, 0, 0, 1}, {}, {}, {}, {}, {}},
@@ -55,6 +57,7 @@ static const TextureFormatDesc format_descs[] = {
   {TEXFMT_BC6H, 16, true, 4, 4, ChannelDType::UFLOAT, {}, {10, 0}, {10, 0}, {10, 0}, {}, {}, {}},
   {TEXFMT_BC7, 16, true, 4, 4, ChannelDType::UNORM, {}, {8, 0}, {8, 0}, {8, 0}, {8, 0}, {}, {}},
   {TEXFMT_R8UI, 1, false, 1, 1, ChannelDType::UINT, {}, {8, 0, 0, 0, 1}, {}, {}, {}, {}, {}},
+  {TEXFMT_R16UI, 2, false, 1, 1, ChannelDType::UINT, {}, {16, 0, 0, 0, 1}, {}, {}, {}, {}, {}},
 
 
   {TEXFMT_DEPTH24, 4, false, 1, 1, ChannelDType::UNORM, {}, {}, {}, {}, {}, {24, 0, 1, 0, 1}, {}},
@@ -93,7 +96,6 @@ static const TextureFormatName format_names[] = {
   {TEXFMT_DXT3, "DXT3", nullptr},
   {TEXFMT_DXT5, "DXT5", nullptr},
   {TEXFMT_R32G32UI, "R32G32UI", nullptr},
-  {TEXFMT_V16U16, "V16U16", nullptr},
   {TEXFMT_L16, "L16", "R16"},
   {TEXFMT_A8, "A8", nullptr},
   {TEXFMT_L8, "L8", "R8"},
@@ -198,22 +200,76 @@ uint32_t get_tex_channel_value(const void *pixel, const TextureChannelFormatDesc
   int copiedBits = 0;
   if (prefixBits > 0)
   {
-    result |= *(bytePtr) >> (8 - prefixBits);
+    result |= static_cast<uint32_t>(*bytePtr) >> (8 - prefixBits);
     copiedBits += prefixBits;
     ++bytePtr;
   }
 
   for (int i = 0; i < fullBytes; ++i)
   {
-    result |= *bytePtr << copiedBits;
+    result |= static_cast<uint32_t>(*bytePtr) << copiedBits;
     copiedBits += 8;
     ++bytePtr;
   }
 
   if (postfixBits > 0)
-    result |= (*bytePtr & ((1 << postfixBits) - 1)) << copiedBits;
+    result |= (static_cast<uint32_t>(*bytePtr) & ((1 << postfixBits) - 1)) << copiedBits;
 
   return result;
+}
+
+void set_tex_channel_value(void *pixel, const TextureChannelFormatDesc &channel, uint32_t bits)
+{
+  //     postfix      full bytes    prefix
+  //       ___  __________________  _____
+  // [.....XXX][XXXXXXXX][XXXXXXXX][XXXXX...]
+  // <------------bit significance-----------
+  const int prefixBits = ((channel.offset + 7) / 8) * 8 - channel.offset;
+  const int fullBytes = (channel.bits - prefixBits) / 8;
+  const int postfixBits = channel.bits - fullBytes * 8 - prefixBits;
+
+  uint8_t *bytePtr = reinterpret_cast<uint8_t *>(pixel);
+  bytePtr += channel.offset >> 3;
+
+  int copiedBits = 0;
+  if (prefixBits > 0)
+  {
+    //       mask
+    //       ___
+    // [XXXXX...]
+    const uint8_t mask = (1 << prefixBits) - 1;
+    *bytePtr = (*bytePtr & mask) | ((bits << (8 - prefixBits)) & ~mask);
+    ++bytePtr;
+  }
+
+  for (int i = 0; i < fullBytes; ++i)
+  {
+    *bytePtr = static_cast<uint8_t>(bits >> copiedBits);
+    copiedBits += 8;
+    ++bytePtr;
+  }
+
+  if (postfixBits > 0)
+  {
+    //       mask
+    //       ___
+    // [.....XXX]
+    const uint8_t mask = (1 << postfixBits) - 1;
+    *bytePtr = (*bytePtr & ~mask) | static_cast<uint8_t>(bits >> copiedBits);
+  }
+}
+
+static auto decompose_float(uint32_t value, uint32_t exponent_bits, uint32_t mantissa_bits)
+{
+  const uint32_t sign = (value >> (exponent_bits + mantissa_bits)) & ((1 << 1) - 1);
+  const uint32_t exponent = (value >> (mantissa_bits)) & ((1 << exponent_bits) - 1);
+  const uint32_t mantissa = (value >> 0) & ((1 << mantissa_bits) - 1);
+  return eastl::tuple<uint32_t, uint32_t, uint32_t>{sign, exponent, mantissa};
+}
+
+static uint32_t compose_float(uint32_t sign, uint32_t exponent, uint32_t mantissa, uint32_t exponent_bits, uint32_t mantissa_bits)
+{
+  return (sign << (exponent_bits + mantissa_bits)) | (exponent << mantissa_bits) | mantissa;
 }
 
 float channel_bits_to_float(uint32_t bits, ChannelDType type, const TextureChannelFormatDesc &channel)
@@ -237,59 +293,208 @@ float channel_bits_to_float(uint32_t bits, ChannelDType type, const TextureChann
       return max(static_cast<float>(value) / ((1 << (channel.bits - 1)) - 1), -1.f);
     }
 
-    case ChannelDType::SFLOAT:
+    case ChannelDType::SFLOAT: [[fallthrough]];
+    case ChannelDType::UFLOAT:
       if (channel.bits == 32)
       {
         return bitwise_cast<float>(bits);
       }
-      else if (channel.bits == 16)
+      else if (channel.bits == 10 || channel.bits == 11 || channel.bits == 16)
       {
-        // TODO: verify whether this does not introduce more error
-        // than necessary
-        const uint32_t sign = (bits & ((1 << 16) - 1)) >> 15;
-        const uint32_t exponent = (bits & ((1 << 15) - 1)) >> 10;
-        const uint32_t mantissa = (bits & ((1 << 10) - 1)) >> 0;
+        constexpr uint32_t exponentBits = 5;
+        const uint32_t mantissaBits = channel.bits - exponentBits - (channel.isSigned ? 1 : 0);
 
-        const float fSign = sign ? -1.f : 1.f;
-        const float fMantissa = static_cast<float>(mantissa) / (1 << 10);
+        constexpr uint32_t maxExponent = (1 << exponentBits) - 1;
+        constexpr int32_t exponentBias = -static_cast<int32_t>(maxExponent) / 2;
+        constexpr int32_t subnormalThresholdPower = exponentBias + 1;
+
+        const auto [sign, exponent, mantissa] = decompose_float(bits, exponentBits, mantissaBits);
+
+        const auto composeFloat32 = [](uint32_t sign, uint32_t exponent, uint32_t mantissa) {
+          return bitwise_cast<float>(compose_float(sign, exponent, mantissa, 8, 23));
+        };
 
         if (exponent == 0 && mantissa == 0)
-          return fSign * 0.f;
+        {
+          // Case 1: +-zero
+          return composeFloat32(sign, 0, 0);
+        }
         else if (exponent == 0)
-          return fSign * exp2f(-14) * fMantissa;
+        {
+          // Case 2: the representation is subnormal, but we can represent it as normal
+          // Note that we can never return a subnormal representation from this function
+
+          // 2^stp * M/2^mb = 2^(E32 - 127) * (1 + M32/2^23)
+          // Find k, the biggest number such that 2^k < M,
+          // then let M = 2^k + l
+          const uint32_t logMantissa = get_log2i_unsafe(mantissa);
+          const uint32_t remainder = mantissa - (1 << logMantissa);
+          // 2^(stp - mb) * (2^k + l) = 2^(E32 - 127) * (1 + M32/2^23)
+          // 2^(stp - mb + k) * (1 + l/2^k) = 2^(E32 - 127) * (1 + M32/2^23)
+          // stp - mb + k = E32 - 127
+          // E32 = 127 + stp - mb + k
+          const uint32_t exponent32 = 127 + subnormalThresholdPower - mantissaBits + logMantissa;
+          // l/2^k = M32/2^23
+          // M32 = l * 2^(23 - k)
+          const uint32_t mantissa32 = remainder << (23 - logMantissa);
+          return composeFloat32(sign, exponent32, mantissa32);
+        }
         else if (exponent < 31)
-          return fSign * exp2f(static_cast<int>(exponent) - 15) * (1 + fMantissa);
+        {
+          // Case 3: normal number, just shift the exponent/mantissa and we're done
+          // E32 - 127 = E + eb
+          const uint32_t exponent32 = 127 + exponent + exponentBias;
+          // 1 + M32/2^23 = 1 + M/2^mb
+          // M32 = M * 2^(23 - mb)
+          const uint32_t mantissa32 = mantissa << (23 - mantissaBits);
+          return composeFloat32(sign, exponent32, mantissa32);
+        }
         else if (mantissa == 0)
-          return fSign * INFINITY;
+        {
+          // Case 4: +-infinity
+          return composeFloat32(sign, (1 << 8) - 1, 0);
+        }
         else
-          return NAN;
+        {
+          // Case 5: NaN (signaling/quit doesn't matter for us)
+          return composeFloat32(sign, (1 << 8) - 1, 1);
+        }
       }
       G_ASSERTF_RETURN(false, NAN, "Encountered an unsupported signed float format!");
 
-    case ChannelDType::UFLOAT:
-      if (channel.bits == 11 || channel.bits == 10)
-      {
-        const uint32_t exponentBits = 5;
-        const uint32_t mantissaBits = channel.bits - exponentBits;
-
-        const uint32_t exponent = (bits & ((1 << channel.bits) - 1)) >> mantissaBits;
-        const uint32_t mantissa = (bits & ((1 << mantissaBits) - 1)) >> 0;
-
-        const float fMantissa = static_cast<float>(mantissa) / (1 << mantissaBits);
-
-        if (exponent == 0 && mantissa == 0)
-          return 0.f;
-        else if (exponent == 0)
-          return exp2f(-14) * fMantissa;
-        else if (exponent < 31)
-          return exp2f(static_cast<int>(exponent) - 15) * (1 + fMantissa);
-        else if (mantissa == 0)
-          return INFINITY;
-        else
-          return NAN;
-      }
-      G_ASSERTF_RETURN(false, NAN, "Encountered an unsupported unsigned float format!");
-
     default: G_ASSERTF_RETURN(false, NAN, "The channel did not have a format convertible to float!");
+  }
+}
+
+uint32_t float_to_channel_bits(float value, ChannelDType type, const TextureChannelFormatDesc &channel)
+{
+  // Conversion is done as per section 3.9 of vulkan API specification
+  // The hope is that no other platform is crazy enough to implement
+  // these formats in a fundamentally different way.
+
+#if DAGOR_DBGLEVEL > 0
+  const auto fpClass = fpclassify(value);
+  if (!channel.isFloatPoint)
+    G_ASSERTF(fpClass == FP_ZERO || fpClass == FP_NORMAL || fpClass == FP_SUBNORMAL,
+      "Cannot convert a nan or infinite float to a non-floating point format!");
+  if (!channel.isSigned)
+    G_ASSERTF(fpClass == FP_NAN || value >= 0, "Cannot convert a negative float to an unsigned format!");
+#endif
+
+  // 64-bit channels are not supported on some of our platforms, so we
+  // don't even try to handle them
+  G_FAST_ASSERT(channel.bits <= 32);
+
+  switch (type)
+  {
+    case ChannelDType::UNORM:
+    {
+      const uint32_t maxRepresentable = (uint32_t{1} << channel.bits) - 1;
+      const uint32_t ivalue = static_cast<uint32_t>(value * maxRepresentable + 0.5f);
+      G_ASSERTF(ivalue <= maxRepresentable, "Value is too big for the format!");
+      return ivalue & maxRepresentable;
+    }
+
+    case ChannelDType::SNORM:
+    {
+      const int32_t maxRepresentable = (int32_t{1} << (channel.bits - 1)) - 1;
+      const int32_t ivalue = static_cast<int32_t>(value * maxRepresentable + 0.5f);
+      G_ASSERTF(ivalue <= maxRepresentable, "Value is too big for the format!");
+      G_ASSERTF(-maxRepresentable < ivalue, "Value is too small for the format!");
+
+      return ivalue & maxRepresentable;
+    }
+
+    case ChannelDType::SFLOAT:
+    case ChannelDType::UFLOAT:
+      if (channel.bits == 32 && channel.isSigned)
+      {
+        return bitwise_cast<uint32_t>(value);
+      }
+      else if (channel.bits == 10 || channel.bits == 11 || channel.bits == 16)
+      {
+        const auto [sign32, exponent32, mantissa32] = decompose_float(bitwise_cast<uint32_t>(value), 8, 23);
+        const uint32_t sign = sign32;
+
+        static constexpr uint32_t exponentBits = 5;
+        // 10, 6 or 5
+        const uint32_t mantissaBits = channel.bits - exponentBits - (channel.isSigned ? 1 : 0);
+
+        // -15
+        constexpr int32_t exponentBias = 1 - (1 << (exponentBits - 1));
+
+        // -14
+        constexpr int32_t subnormalThresholdPower = exponentBias + 1;
+        // -24, -20 or -19
+        const int32_t minReprPower = subnormalThresholdPower - mantissaBits;
+        // 16
+        constexpr int32_t maxReprPower = (1 << exponentBits) + exponentBias;
+
+        const auto composeFloat = [mantissaBits](uint32_t sign, uint32_t exponent, uint32_t mantissa) {
+          return compose_float(sign, exponent, mantissa, exponentBits, mantissaBits);
+        };
+
+        if (exponent32 < 127 + minReprPower)
+        {
+          // Case 1: exponent too small, representation is zero
+          // Note that all subnormal float32 values fall into this case
+          return composeFloat(sign, 0, 0);
+        }
+        else if (exponent32 < 127 + subnormalThresholdPower)
+        {
+          // Case 2: we can represent value as a subnormal repr
+          // here, 127 + mrp <= exponent32 < 127 + stp
+          // 0 <= exponent32 - 127 - mrp < stp - mrp
+          // stp - mb = mrp
+          // stp - mrp = mb
+          // 0 <= exponent32 - 127 - mrp < mb
+
+          // 23 + mrp + mrp <= exponent32 - 104 + mrp < 23 + stp + mrp
+          // -23 - stp - mrp < 104 - exponent32 - mrp <= -23 - mrp - mrp
+          // -9 - mrp < ... <= -23 - mrp - mrp
+          // 15 < ... <= 25 // float16
+          // 11 < ... <= 17 // float11
+          // 10 < ... <= 15 // float10
+
+          // 2^stp * M/2^mb = 2^(E32 - 127) * (1 + M32/2^23)
+          // M * 2^(stp - mb) = 2^(E32 - 127) * (1 + M32/2^23)
+          // M = 2^(E32 - 127) * (2^(mb - stp) + M32 * 2^(-23 + mb - stp))
+          // M = 2^(E32 - 127 + mb - stp) + M32 * 2^(E32 - 150 + mb - stp)
+          // M = 2^(E32 - 127 - mrp) + M32 * 2^(E32 - 150 - mrp)
+          const auto mantissa = (1 << (exponent32 - minReprPower - 127)) + (mantissa32 >> (150 + minReprPower - exponent32));
+          G_FAST_ASSERT(mantissa < 1 << mantissaBits);
+          return composeFloat(sign, 0, mantissa);
+        }
+        else if (exponent32 < 127 + maxReprPower)
+        {
+          // Case 3: we can represent value as a normal repr
+          // here, 127 + stp <= exponent32 < 127 + mrp
+          // 0 <= exponent32 - 127 - stp < mrp - stp
+
+          // 2^(E16 + eb) = 2^(E32 - 127)
+          // E16 = E32 - 127 - eb
+          const auto exponent = exponent32 - 127 - exponentBias;
+          G_FAST_ASSERT(exponent < 1 << exponentBits);
+
+          // 1 + M/2^mb = 1 + M32/2^23
+          // M = M32*2^(-23 + mb)
+          const auto mantissa = mantissa32 >> (23 - mantissaBits);
+          G_FAST_ASSERT(mantissa < 1 << mantissaBits);
+          return composeFloat(sign, exponent, mantissa);
+        }
+        else if (mantissa32 == 0)
+        {
+          // Case 3: exponent too big, representation is inf
+          return composeFloat(sign, (1 << exponentBits) - 1, 0);
+        }
+        else
+        {
+          // Case 5: NaN (signaling/quit doesn't matter for us)
+          return composeFloat(sign, (1 << exponentBits) - 1, 1);
+        }
+      }
+      G_ASSERTF_RETURN(false, 0, "Encountered an unsupported signed float format!");
+
+    default: G_ASSERTF_RETURN(false, 0, "The channel did not have a format convertible from float!");
   }
 }

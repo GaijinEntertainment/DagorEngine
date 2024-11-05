@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <assets/assetExporter.h>
 #include <assets/assetRefs.h>
 #include <assets/asset.h>
@@ -173,7 +175,7 @@ public:
     nodeTree.buildFromDagNodes(sc.root, a.props.getStr("unimportantNodesPrefix", NULL));
 
     DAGOR_TRY { nodeTree.save(cwr, preferZstdPacking, allowOodlePacking); }
-    DAGOR_CATCH(IGenSave::SaveException)
+    DAGOR_CATCH(const IGenSave::SaveException &)
     {
       log.addMessage(ILogWriter::ERROR, "I/O error for skeleton file %s", fn);
       return false;

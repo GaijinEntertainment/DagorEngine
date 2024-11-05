@@ -1,5 +1,5 @@
 // https://github.com/CedricGuillemet/ImGuizmo
-// v 1.83
+// v 1.89 WIP
 //
 // The MIT License(MIT)
 //
@@ -111,7 +111,11 @@ void EditTransform(const Camera& camera, matrix_t& matrix)
 #define IMGUI_API
 #endif
 
-namespace ImGuizmo
+#ifndef IMGUIZMO_NAMESPACE
+#define IMGUIZMO_NAMESPACE ImGuizmo
+#endif
+
+namespace IMGUIZMO_NAMESPACE
 {
    // call inside your own window and before Manipulate() in order to draw gizmo to that window.
    // Or pass a specific ImDrawList to draw to (e.g. ImGui::GetForegroundDrawList()).
@@ -131,6 +135,9 @@ namespace ImGuizmo
 
    // return true if mouse IsOver or if the gizmo is in moving state
    IMGUI_API bool IsUsing();
+
+   // return true if any gizmo is in moving state
+   IMGUI_API bool IsUsingAny();
 
    // enable/disable the gizmo. Stay in the state until next call to Enable.
    // gizmo is rendered with gray half transparent color when disabled
@@ -176,9 +183,15 @@ namespace ImGuizmo
       SCALE_Y          = (1u << 8),
       SCALE_Z          = (1u << 9),
       BOUNDS           = (1u << 10),
+      SCALE_XU         = (1u << 11),
+      SCALE_YU         = (1u << 12),
+      SCALE_ZU         = (1u << 13),
+
       TRANSLATE = TRANSLATE_X | TRANSLATE_Y | TRANSLATE_Z,
       ROTATE = ROTATE_X | ROTATE_Y | ROTATE_Z | ROTATE_SCREEN,
-      SCALE = SCALE_X | SCALE_Y | SCALE_Z
+      SCALE = SCALE_X | SCALE_Y | SCALE_Z,
+      SCALEU = SCALE_XU | SCALE_YU | SCALE_ZU, // universal
+      UNIVERSAL = TRANSLATE | ROTATE | SCALEU
    };
 
    inline OPERATION operator|(OPERATION lhs, OPERATION rhs)
@@ -192,13 +205,17 @@ namespace ImGuizmo
       WORLD
    };
 
-   IMGUI_API bool Manipulate(const float* view, const float* projection, OPERATION operation, MODE mode, float* matrix, float* deltaMatrix = NULL, const float* snap = NULL, const float* localBounds = NULL, const float* boundsSnap = NULL);
+   // DAGOR PATCH
+   IMGUI_API bool Manipulate(const float* view, const float* projection, OPERATION operation, MODE mode, float* matrix, float* deltaMatrix = NULL, const float* snapTranslation = NULL, const float* snapRotation = NULL, const float* snapScale = NULL, const float* localBounds = NULL, const float* boundsSnap = NULL);
    //
    // Please note that this cubeview is patented by Autodesk : https://patents.google.com/patent/US7782319B2/en
    // It seems to be a defensive patent in the US. I don't think it will bring troubles using it as
    // other software are using the same mechanics. But just in case, you are now warned!
    //
    IMGUI_API void ViewManipulate(float* view, float length, ImVec2 position, ImVec2 size, ImU32 backgroundColor);
+
+   // use this version if you did not call Manipulate before and you are just using ViewManipulate
+   IMGUI_API void ViewManipulate(float* view, const float* projection, OPERATION operation, MODE mode, float* matrix, float length, ImVec2 position, ImVec2 size, ImU32 backgroundColor);
 
    IMGUI_API void SetID(int id);
 
@@ -210,4 +227,47 @@ namespace ImGuizmo
    // When true (default), the guizmo axis flip for better visibility
    // When false, they always stay along the positive world/local axis
    IMGUI_API void AllowAxisFlip(bool value);
+
+   // Configure the limit where axis are hidden
+   IMGUI_API void SetAxisLimit(float value);
+   // Configure the limit where planes are hiden
+   IMGUI_API void SetPlaneLimit(float value);
+
+   enum COLOR
+   {
+      DIRECTION_X,      // directionColor[0]
+      DIRECTION_Y,      // directionColor[1]
+      DIRECTION_Z,      // directionColor[2]
+      PLANE_X,          // planeColor[0]
+      PLANE_Y,          // planeColor[1]
+      PLANE_Z,          // planeColor[2]
+      SELECTION,        // selectionColor
+      INACTIVE,         // inactiveColor
+      TRANSLATION_LINE, // translationLineColor
+      SCALE_LINE,
+      ROTATION_USING_BORDER,
+      ROTATION_USING_FILL,
+      HATCHED_AXIS_LINES,
+      TEXT,
+      TEXT_SHADOW,
+      COUNT
+   };
+
+   struct Style
+   {
+      IMGUI_API Style();
+
+      float TranslationLineThickness;   // Thickness of lines for translation gizmo
+      float TranslationLineArrowSize;   // Size of arrow at the end of lines for translation gizmo
+      float RotationLineThickness;      // Thickness of lines for rotation gizmo
+      float RotationOuterLineThickness; // Thickness of line surrounding the rotation gizmo
+      float ScaleLineThickness;         // Thickness of lines for scale gizmo
+      float ScaleLineCircleSize;        // Size of circle at the end of lines for scale gizmo
+      float HatchedAxisLineThickness;   // Thickness of hatched axis lines
+      float CenterCircleSize;           // Size of circle at the center of the translate/scale gizmo
+
+      ImVec4 Colors[COLOR::COUNT];
+   };
+
+   IMGUI_API Style& GetStyle();
 }

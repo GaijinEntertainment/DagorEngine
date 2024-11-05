@@ -1,0 +1,30 @@
+include "sky_shader_global.dshl"
+include "gbuffer.dshl"
+include "static_shadow.dshl"
+include "fom_shadows.dshl"
+include "clouds_vars.dshl"
+include "sq_clouds_shadow.dshl"
+include "dafx_blocks.dshl"
+
+
+block(scene) dynamic_scene_trans_volmedia
+{
+  supports global_frame;
+
+
+  z_write = false;
+  (vs) { globtm@f44 = globtm; }   //FIXME: Should be in particle_frame.
+  (ps)
+  {
+    view_inscatter_volume_resolution@f3 = (volfog_froxel_volume_res.x, volfog_froxel_volume_res.y, volfog_froxel_volume_res.z, 0);
+    view_inscatter_inv_range@f1 = volfog_froxel_range_params.y;
+  }
+
+  INIT_ZNZFAR()
+}
+
+block(scene) render_particles_to_gbuffer_block
+{
+  supports global_frame;
+  (vs) { globtm@f44 = globtm; }   //FIXME: Should be in particle_frame.
+}

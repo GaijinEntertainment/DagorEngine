@@ -1,0 +1,188 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "globtm.dshl"
+include "assert.dshl"
+include "dagi_albedo_scene_common.dshl"
+include "project_is_dynamic_point.dshl"
+
+int dagi_albedo_scene_stable_update = 1;
+interval dagi_albedo_scene_stable_update:off<1, on;
+int4 dagi_albedo_scene_update_count;
+
+macro ALBEDO_SCENE_MARK_FROM_GBUF(code)
+  DAGI_ALBEDO_WRITE(code)
+  PROJECT_DO_NOT_UPDATE_FROM_POINT(code)
+  (code) {
+    globtm_psf@f44 = {globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3};
+    world_view_pos@f3 = world_view_pos;
+  }
+  if (hardware.dx11 && !hardware.dx12)
+  {
+    hlsl(code) {
+      #pragma force_min_opt_level 4
+    }
+  }
+  hlsl(code) {
+    ##if dagi_albedo_scene_stable_update == on
+    #define DAGI_ALBEDO_SCENE_STABLE 1
+    ##endif
+    #include <monteCarlo.hlsl>
+    #include <pcg_hash.hlsl>
+
+    void dagi_albedo_scene_update_color(float3 worldPos, int cascade, float3 albedo, float w = 0.95)
+    {
+      dagi_write_albedo_unsafe(worldPos, albedo, cascade, w);
+    }
+    #if !DAGI_ALBEDO_SCENE_STABLE
+      void albedo_scene_mark_from_gbuf(float3 worldPos, float linearDepth, float2 tc, uint2 tcI, uint random, int cascade)
+      {
+        ProcessedGbuffer gbuf = loadProcessedGbuffer(tcI);
+        if (get_project_update_from_point(worldPos, linearDepth, tc, tcI, gbuf) != POINT_OPAQUE)
+          return;
+        dagi_albedo_scene_update_color(worldPos, cascade, gbuf.albedo);
+      }
+    #else
+
+      #define PIXELS_TO_AVERAGE_SQRT 8
+      #define PIXELS_TO_AVERAGE (PIXELS_TO_AVERAGE_SQRT*PIXELS_TO_AVERAGE_SQRT)
+      groupshared uint3 shared_albedo_all;
+      groupshared uint shared_albedo_count, shared_albedo_opaque_count;
+      void albedo_scene_mark_from_gbuf_average(float3 baseWorldPos, float baseRawDepth, uint2 baseTcI, uint random, int cascade, uint tid, uint2 dim)
+      {
+        if (tid == 0)
+        {
+          shared_albedo_count = shared_albedo_opaque_count = 0;
+          shared_albedo_all = 0;
+        }
+        GroupMemoryBarrierWithGroupSync();
+
+        float baseVoxelSize = dagi_albedo_voxel_size(cascade);
+        float3 baseVoxelCoord = floor(baseWorldPos.xzy/baseVoxelSize);
+
+        float3 voxelCenter = (baseVoxelCoord.xzy + 0.5)*baseVoxelSize;
+        uint random2 = pcg2d(uint2(random, tid)).x;
+        float2 rand2F = (uint2(tid, tid/PIXELS_TO_AVERAGE_SQRT)%PIXELS_TO_AVERAGE_SQRT)*1./PIXELS_TO_AVERAGE_SQRT + float2(uint2(random2, random2>>16)&0xFFFF)/(PIXELS_TO_AVERAGE_SQRT*65536.);
+        //float2 rand2F = (uint2(tid, tid/PIXELS_TO_AVERAGE_SQRT)%PIXELS_TO_AVERAGE_SQRT)*1./PIXELS_TO_AVERAGE_SQRT;
+        float3 sampleWorldPos = voxelCenter + 0.5*baseVoxelSize*tangent_to_world(float3(uniform_sample_disk(rand2F), 0), normalize(voxelCenter - world_view_pos));
+        float4 clipSpacePt = mul(float4(sampleWorldPos, 1.0), globtm_psf);
+        if (clipSpacePt.w <= 0 && tid == 0)
+        {
+          sampleWorldPos = baseWorldPos;
+          clipSpacePt = mul(float4(sampleWorldPos, 1.0), globtm_psf);
+        }
+
+        if (clipSpacePt.w > 0 || tid == 0)
+        {
+          clipSpacePt.xy = saturate(clipSpacePt.xy*float2(0.5, -0.5)/clipSpacePt.w + 0.5);
+          uint2 tcI = min(floor(dim*clipSpacePt.xy), dim-1);
+          float rawDepth = texture2DAt(depth_gbuf, tcI).x;
+          if (tid == 0 && rawDepth == 0)
+          {
+            rawDepth = baseRawDepth;
+            tcI = baseTcI;
+          }
+
+          if (rawDepth > 0)
+          {
+            float2 tc = (tcI+0.5)/dim;
+            float3 ndcCoord = float3(tc.xy*float2(2, -2) - float2(1, -1), rawDepth);
+            float4 worldpos_prj = mul(float4(ndcCoord,1), globtm_inv);
+            float3 worldPos = worldpos_prj.xyz / worldpos_prj.w; // to be exactly accurate
+            bool isSameVoxel = all(floor(worldPos.xzy/baseVoxelSize) == baseVoxelCoord);
+            if (isSameVoxel)// || tid == 0
+            {
+              float linearDepth = linearize_z(rawDepth, zn_zfar.zw);
+              ProcessedGbuffer gbuf = loadProcessedGbuffer(tcI);
+              //todo: WaveInterlockedAdd
+              uint tp = get_project_update_from_point(worldPos, linearDepth, tc, tcI, gbuf);
+              if (tp != POINT_DYNAMIC)
+              {
+                InterlockedAdd(shared_albedo_opaque_count, tp == POINT_OPAQUE);
+                InterlockedAdd(shared_albedo_count, 1);
+                uint3 uintAlbedo = gbuf.albedo*255+0.5;
+                InterlockedAdd(shared_albedo_all.x, uintAlbedo.x);
+                InterlockedAdd(shared_albedo_all.y, uintAlbedo.y);
+                InterlockedAdd(shared_albedo_all.z, uintAlbedo.z);
+              }
+            }
+          }
+        }
+        GroupMemoryBarrierWithGroupSync();
+        uint totalCount = shared_albedo_count;
+
+        if (!totalCount || !shared_albedo_opaque_count)
+          return;
+        float3 averagedAlbedo = float3(shared_albedo_all*1./255)/totalCount;
+        //float3 averagedAlbedo = shared_albedo[0]/totalCount;
+        //averagedRadiance = float(totalCount)/PIXELS_TO_AVERAGE;
+        if (tid == 0)
+          dagi_albedo_scene_update_color(voxelCenter, cascade, averagedAlbedo);
+      }
+    #endif
+  }
+endmacro
+
+float4x4 globtm_inv;
+
+shader dagi_albedo_scene_from_gbuf_cs
+{
+  INIT_ZNZFAR_STAGE(cs)
+
+  ENABLE_ASSERT(cs)
+  (cs) {
+    globtm_inv@f44 = globtm_inv;
+    depth_gbuf@tex2d = depth_gbuf;
+    depth_gbuf_dim@f2 = get_dimensions(depth_gbuf, 0);
+    dagi_albedo_scene_update_count@i2 = dagi_albedo_scene_update_count;
+  }
+  ALBEDO_SCENE_MARK_FROM_GBUF(cs)
+
+  hlsl(cs) {
+
+    #include "screen_update_tiled.hlsl"
+    #if !DAGI_ALBEDO_SCENE_STABLE
+    [numthreads(64, 1, 1)]
+    void mark_voxels_cs(uint dtId : SV_DispatchThreadID)
+    #else
+    [numthreads(1, PIXELS_TO_AVERAGE, 1)]
+    void mark_voxels_cs(uint dtId : SV_DispatchThreadID, uint2 gtId : SV_GroupThreadID, uint2 gId : SV_GroupID)
+    #endif
+    {
+      #if !DAGI_ALBEDO_SCENE_STABLE
+      uint pixelIndex = dtId;
+      #else
+      uint pixelIndex = gId.x;
+      #endif
+      uint2 dim = depth_gbuf_dim;
+      uint2 random = pcg2d(uint2(pixelIndex, dagi_albedo_scene_update_count.y));
+      uint2 tcI = pseudo_random_screen_coord(pixelIndex, dagi_albedo_scene_update_count.x, dim, random.x);
+      //uint2 tcI = uint2(random.x%dim.x, (random.x/dim.x)%dim.y);
+      float rawDepth = texture2DAt(depth_gbuf, tcI).x; // this is same for all vertical group
+      if (rawDepth<=0)
+        return;
+      float2 tc = (tcI+0.5)/dim;
+      float3 ndcCoord = float3(tc.xy*float2(2, -2) - float2(1, -1), rawDepth);
+      float4 worldpos_prj = mul(float4(ndcCoord,1), globtm_inv);
+      float3 worldPos = worldpos_prj.xyz / worldpos_prj.w;
+      uint minCascade = dagi_albedo_get_best_enclosing_clip(worldPos);
+      if (minCascade >= DAGI_MAX_ALBEDO_CLIPS)
+        return;
+      uint cascade = minCascade;
+      float randVal = (random.y&0xFFFF)/65536.0;
+      float chance = 0.125;
+      // chance is not that big, as higher cascades are not really visible (we use best possible cascade)
+      if (randVal < chance)
+      {
+        cascade = min(floor(lerp((float)minCascade, (float)dagi_albedo_get_clip_count(), pow2(randVal/chance))+0.5), dagi_albedo_get_clip_count()-1);
+      }
+
+      float linearDepth = linearize_z(rawDepth, zn_zfar.zw);
+      #if !DAGI_ALBEDO_SCENE_STABLE
+      albedo_scene_mark_from_gbuf(worldPos, linearDepth, tc, tcI, random.y, cascade);
+      #else
+      albedo_scene_mark_from_gbuf_average(worldPos, rawDepth, tcI, random.y, cascade, gtId.y, dim);
+      #endif
+    }
+  }
+  compile("cs_5_0", "mark_voxels_cs");
+}

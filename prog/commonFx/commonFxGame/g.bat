@@ -1,4 +1,4 @@
-set CSQEXE=..\..\..\tools\dagor3_cdk\util\csq-dev.exe
+set CSQEXE=..\..\..\tools\dagor_cdk\windows-x86_64\csq-dev.exe
 %CSQEXE% StdEmitter.gen.nut 
 %CSQEXE% StaticVisSphere.gen.nut
 %CSQEXE% StdFxShaderParams.gen.nut

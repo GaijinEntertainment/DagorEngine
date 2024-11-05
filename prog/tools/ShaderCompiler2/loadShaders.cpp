@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "loadShaders.h"
 #include "linkShaders.h"
 #include "shLog.h"
@@ -14,10 +16,11 @@
 #include "globVar.h"
 #include "varMap.h"
 #include "namedConst.h"
+#include "samplers.h"
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_stackHlp.h>
 #include <debug/dag_debug.h>
-#include <3d/dag_renderStates.h>
+#include <drv/3d/dag_renderStates.h>
 
 namespace loadedshaders
 {
@@ -39,11 +42,11 @@ bool get_file_time64(const char *fn, int64_t &ft)
   return false;
 }
 
-bool check_scripted_shader(const char *filename, bool check_dep)
+CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String> current_deps)
 {
   bindump::FileReader reader(filename);
   if (!reader)
-    return false;
+    return CompilerAction::COMPILE_AND_LINK;
 
   ShadersBindumpHeader header;
   try
@@ -52,24 +55,21 @@ bool check_scripted_shader(const char *filename, bool check_dep)
     if (header.cache_sign != SHADER_CACHE_SIGN)
     {
       sh_debug(SHLOG_NORMAL, "Invalid file format");
-      return false;
+      return CompilerAction::COMPILE_AND_LINK;
     }
 
     if (header.cache_version != SHADER_CACHE_VER)
     {
-      sh_debug(SHLOG_NORMAL, "Invalid shader cache version (loaded %c%c%c%c, but required %c%c%c%c)", _DUMP4C(header.cache_version),
-        _DUMP4C(SHADER_CACHE_VER));
-      return false;
+      sh_debug(SHLOG_NORMAL, "[INFO] Outdated shader cache version (loaded %c%c%c%c, but required %c%c%c%c), rebuilding",
+        _DUMP4C(header.cache_version), _DUMP4C(SHADER_CACHE_VER));
+      return CompilerAction::COMPILE_AND_LINK;
     }
 
     if (!header.hash.isLayoutValid())
     {
       sh_debug(SHLOG_NORMAL, "Invalid shader layout hash");
-      return false;
+      return CompilerAction::COMPILE_AND_LINK;
     }
-
-    if (!check_dep)
-      return true;
   }
   catch (IGenLoad::LoadException &e)
   {
@@ -77,37 +77,70 @@ bool check_scripted_shader(const char *filename, bool check_dep)
     // It's not a fatal error to interrupt the entire compilation, just let this shader recompile completely
     sh_debug(SHLOG_NORMAL, "Invalid shader file %s: %s, code %i", filename, e.excDesc, e.excCode);
     bindump::close();
-    return false;
+    return CompilerAction::COMPILE_AND_LINK;
   }
 
   int64_t srcFt;
   if (!get_file_time64(filename, srcFt))
   {
     sh_debug(SHLOG_WARNING, "Cannot detect cache file time");
-    return false;
+    return CompilerAction::COMPILE_AND_LINK;
   }
 
-  int existsCount = 0;
-  for (int i = 0; i < header.dependency_files.size(); i++)
+  if (!current_deps.empty())
   {
-    int64_t ft;
-    if (get_file_time64(header.dependency_files[i].c_str(), ft))
+    NameMap currentDepSet;
+    for (int i = 0; i < current_deps.size(); i++)
+      currentDepSet.addNameId(current_deps[i].c_str());
+    NameMap previousDepSet;
+    for (int i = 0; i < header.dependency_files.size(); i++)
     {
-      existsCount++;
-      if (srcFt <= ft)
+      if (currentDepSet.getNameId(header.dependency_files[i].c_str()) == -1)
       {
-        debug("Source shader file '%s' has been changed since last cache build", header.dependency_files[i].c_str());
-        return false;
+        sh_debug(SHLOG_NORMAL, "Source shader file '%s' is not in the list of current dependencies",
+          header.dependency_files[i].c_str());
+        return CompilerAction::LINK_ONLY;
+      }
+    }
+    for (int i = 0; i < header.dependency_files.size(); i++)
+      previousDepSet.addNameId(header.dependency_files[i].c_str());
+    for (int i = 0; i < current_deps.size(); i++)
+    {
+      if (previousDepSet.getNameId(current_deps[i].c_str()) == -1)
+      {
+        sh_debug(SHLOG_NORMAL, "Source shader file '%s' is not in the list of previous dependencies", current_deps[i].c_str());
+        return CompilerAction::LINK_ONLY;
       }
     }
   }
-
-  if (existsCount > 0 && existsCount != header.dependency_files.size())
+  else
   {
-    sh_debug(SHLOG_NORMAL, "Some source shader files are missing");
-    return false;
+    int existsCount = 0;
+    for (int i = 0; i < header.dependency_files.size(); i++)
+    {
+      int64_t ft;
+      if (get_file_time64(header.dependency_files[i].c_str(), ft))
+      {
+        existsCount++;
+        if (srcFt <= ft)
+        {
+          debug("Source shader file '%s' has been changed since last cache build", header.dependency_files[i].c_str());
+          return CompilerAction::COMPILE_AND_LINK;
+        }
+      }
+      else
+      {
+        sh_debug(SHLOG_NORMAL, "Source shader file '%s' is missing", header.dependency_files[i].c_str());
+      }
+    }
+
+    if (existsCount > 0 && existsCount != header.dependency_files.size())
+    {
+      sh_debug(SHLOG_NORMAL, "Some source shader files are missing");
+      return CompilerAction::COMPILE_AND_LINK;
+    }
   }
-  return true;
+  return CompilerAction::NOTHING;
 }
 
 bool load_scripted_shaders(const char *filename, bool check_dep)
@@ -124,6 +157,7 @@ bool load_scripted_shaders(const char *filename, bool check_dep)
   loadedshaders::vpr = eastl::move(shaders.shaders_vpr);
   loadedshaders::stCode = eastl::move(shaders.shaders_stcode);
   loadedshaders::shClass = eastl::move(shaders.shader_classes);
+  g_sampler_table = SamplerTable{eastl::move(shaders.static_samplers)};
 
   ShaderGlobal::getMutableVariableList() = eastl::move(shaders.variable_list);
   ShaderGlobal::getMutableIntervalList() = eastl::move(shaders.intervals);
@@ -149,6 +183,7 @@ void unload_scripted_shaders()
 
   ShaderGlobal::clear();
   VarMap::clear();
+  g_sampler_table = SamplerTable{};
 
   clear_and_shrink(loadedshaders::fsh);
   clear_and_shrink(loadedshaders::vpr);

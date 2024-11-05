@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "global_vars.h"
 #include <debug/dag_log.h>
 namespace dagi25d

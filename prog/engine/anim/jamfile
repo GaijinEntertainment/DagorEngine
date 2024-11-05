@@ -5,6 +5,8 @@ StrictCompile = yes ;
 TargetType  = lib ;
 Target      = engine/anim.lib ;
 
+include $(Root)/prog/_jBuild/defaults.jam ;
+
 Sources =
   animBlendCtrl.cpp
   animPostBlendCtrl.cpp
@@ -14,10 +16,9 @@ Sources =
   animGraph.cpp
   animGraphDbg.cpp
   animStateHolder.cpp
+  footLockerIKCtrl.cpp
   simpleNodeAnim.cpp
 ;
-
-CPPopt = -D__B_CORE ;
 
 if $(PlatformSpec) = clang
 {
@@ -33,5 +34,6 @@ if $(DagorAnim_MEASURE_PERF) {
   Target = $(Target:S=)$(suf).lib ;
   CPPopt += -DMEASURE_PERF=$(DagorAnim_MEASURE_PERF) -DMEASURE_PERF_FRAMES=$(DagorAnim_MEASURE_PERF_FRAMES) ;
 }
+UseProgLibs = 3rdPartyLibs/regExp ;
 
 include $(Root)/prog/_jBuild/build.jam ;

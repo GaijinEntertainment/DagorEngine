@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/span.h>
@@ -63,11 +64,11 @@ using Packer = eastl::fixed_function<64, PackerOutput(PackerInput)>;
 
 enum PackerType : int
 {
-  Baseline,
+  Baseline = 0,
   GreedyScanline,
-  Boxing,
-  AdHocBoxing,
-  COUNT = AdHocBoxing
+  Boxing,      // Experimental. Do not use in production.
+  AdHocBoxing, // Experimental. Do not use in production.
+  COUNT
 };
 
 Packer make_greedy_scanline_packer();

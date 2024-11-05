@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_stdint.h>
 #include <util/dag_globDef.h>
 #include <debug/dag_debug.h>
@@ -22,7 +24,7 @@
 #include <workCycle/dag_workCycle.h>
 #include <workCycle/dag_gameScene.h>
 #include <workCycle/dag_genGuiMgr.h>
-#include <humanInput/dag_hiJoystick.h>
+#include <drv/hid/dag_hiJoystick.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <ioSys/dag_dataBlock.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -33,10 +35,10 @@
 #include <debug/dag_debug.h>
 #include <debug/dag_debug3d.h>
 
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3d_platform.h>
-#include <3d/dag_drv3dReset.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_platform.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <3d/dag_texPackMgr2.h>
 #include <3d/dag_texMgr.h>
 
@@ -45,9 +47,9 @@
 #include <gameRes/dag_stdGameRes.h>
 #include <math/dag_geomTree.h>
 
-#include <humanInput/dag_hiGlobals.h>
-#include <humanInput/dag_hiKeybIds.h>
-#include <humanInput/dag_hiPointing.h>
+#include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiPointing.h>
 #include <gui/dag_stdGuiRender.h>
 
 #include <util/dag_delayedAction.h>
@@ -315,7 +317,7 @@ void draw_memview()
 
   ImVec2 wsz = windowSz;
   wsz.x = windowSz.x - blockListWidth;
-  ImGui::BeginChild("", wsz, false, 0);
+  ImGui::BeginChild("", wsz, ImGuiChildFlags_None);
 
   ImGui::Checkbox("All heaps", &blockStatsSummary);
   ImGui::SameLine();
@@ -326,17 +328,17 @@ void draw_memview()
 
   static const double positions[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24};
   G_ASSERT(countof(positions) >= BLK_POW2_ELEMENTS);
-  ImPlot::SetNextPlotTicksX(positions, BLK_POW2_ELEMENTS, blockLabels);
-  ImPlot::SetNextPlotLimits(0, BLK_POW2_ELEMENTS, 0, maxCnt, ImGuiCond_Always);
   if (ImPlot::BeginPlot("Block distribution | count", "Block >=", "Count"))
   {
+    ImPlot::SetupAxisTicks(ImAxis_X1, positions, BLK_POW2_ELEMENTS, blockLabels);
+    ImPlot::SetupAxesLimits(0, BLK_POW2_ELEMENTS, 0, maxCnt, ImGuiCond_Always);
     ImPlot::PlotBars("", blockCounts, BLK_POW2_ELEMENTS);
     ImPlot::EndPlot();
   }
-  ImPlot::SetNextPlotTicksX(positions, BLK_POW2_ELEMENTS, blockLabels);
-  ImPlot::SetNextPlotLimits(0, BLK_POW2_ELEMENTS, 0, maxSize, ImGuiCond_Always);
   if (ImPlot::BeginPlot("Block distribution | size", "Block >=", "Size"))
   {
+    ImPlot::SetupAxisTicks(ImAxis_X1, positions, BLK_POW2_ELEMENTS, blockLabels);
+    ImPlot::SetupAxesLimits(0, BLK_POW2_ELEMENTS, 0, maxSize, ImGuiCond_Always);
     ImPlot::PlotBars("", blockSizes, BLK_POW2_ELEMENTS);
     ImPlot::EndPlot();
   }
@@ -386,7 +388,7 @@ void draw_memview()
 
   int lbHeight = wsz.y / ImGui::GetFontSize() * 0.8f;
 
-  ImGui::BeginChild("Blocks", wsz, true, 0);
+  ImGui::BeginChild("Blocks", wsz, ImGuiChildFlags_Border);
   if (mbiOut > 0)
     ImGui::ListBox("", &selectedBlockId, blockInfo, mbiOut, lbHeight);
   //    for (int i = 0; i < mbiOut; i++)

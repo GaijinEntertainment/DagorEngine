@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/fastPhysData/fp_data.h>
 #include <libTools/fastPhysData/fp_edpoint.h>
 #include <libTools/fastPhysData/fp_edbone.h>

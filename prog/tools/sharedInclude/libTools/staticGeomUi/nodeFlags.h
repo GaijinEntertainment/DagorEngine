@@ -1,7 +1,5 @@
-#ifndef __GAIJIN_STATICGEOM_UI_NODEFLAGS__
-#define __GAIJIN_STATICGEOM_UI_NODEFLAGS__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <generic/dag_tab.h>
 
@@ -9,10 +7,13 @@
 
 #include <libTools/staticGeom/staticGeometry.h>
 
+namespace PropPanel
+{
+class ContainerPropertyControl;
+}
 
 class StaticGeometryContainer;
 class StaticGeometryNode;
-class PropertyContainerControlBase;
 
 
 struct NodesData
@@ -50,6 +51,8 @@ struct NodesData
     real visRange;
     real lodRange;
 
+    int showOccluder;
+
     NodeFlags();
     NodeFlags(const StaticGeometryNode &node) { set(node); }
 
@@ -81,6 +84,7 @@ public:
   virtual void onLinkedResChanged(int node_idx, const char *res_name) = 0;
   virtual void onTopLodChanged(int node_idx, const char *top_lod_name) = 0;
   virtual void onLodRangeChanged(int node_idx, int lod_range) = 0;
+  virtual void onShowOccludersChanged(int node_idx, bool show_occluders) = 0;
   virtual void onUseDefaultChanged(bool use_default) = 0;
 };
 
@@ -99,6 +103,7 @@ struct NodeFlagsSettings
   bool showFade;
   bool showFadeNull;
   bool showBillboard;
+  bool useOccluder;
   bool showOccluder;
   bool showBkFaceDynLight;
   bool showDoNotMixLods;
@@ -129,6 +134,7 @@ struct NodeFlagsSettings
     showFade(true),
     showFadeNull(true),
     showBillboard(true),
+    useOccluder(true),
     showOccluder(true),
     showBkFaceDynLight(true),
     showForceNormals(true),
@@ -152,11 +158,11 @@ public:
   inline void setSettings(const NodeFlagsSettings &set) { settings = set; }
 
   // fills Property Panel
-  void fillPanel(PropertyContainerControlBase &panel, const NodesData &flags, int start_pid, bool create_nodes_grp = true);
+  void fillPanel(PropPanel::ContainerPropertyControl &panel, const NodesData &flags, int start_pid, bool create_nodes_grp = true);
   // return true if changing handled. usually it calls when edit_finished == true
-  bool onPPChange(PropertyContainerControlBase &panel, int pid);
+  bool onPPChange(PropPanel::ContainerPropertyControl &panel, int pid);
   // return true if button press handled
-  bool onPPBtnPressed(PropertyContainerControlBase &panel, int pid);
+  bool onPPBtnPressed(PropPanel::ContainerPropertyControl &panel, int pid);
 
   void clear();
 
@@ -175,6 +181,7 @@ public:
   inline int getAllFadeNullPid() const { return nodesGrpPid + PID_ALL_FLG_FADENULL; }
   inline int getAllBillboardPid() const { return nodesGrpPid + PID_ALL_FLG_BILLBOARD_MESH; }
   inline int getAllOccluderPid() const { return nodesGrpPid + PID_ALL_FLG_OCCLUDER; }
+  inline int getAllShowOccluderPid() const { return nodesGrpPid + PID_ALL_FLG_SHOW_OCCLUDER; }
   inline int getAllAutoVisrangePid() const { return nodesGrpPid + PID_ALL_FLG_AUTOMATIC_VISRANGE; }
   inline int getAllBackFaceDynlightPid() const { return nodesGrpPid + PID_ALL_FLG_BACK_FACE_DYNLIGHT; }
   inline int getAllDoNotMixLods() const { return nodesGrpPid + PID_ALL_DO_NOT_MIX_LODS; }
@@ -209,6 +216,7 @@ public:
   inline int getFadeNullPid(int idx) const { return getNodePid(idx, PID_FLG_FADENULL); }
   inline int getBillboardPid(int idx) const { return getNodePid(idx, PID_FLG_BILLBOARD_MESH); }
   inline int getOccluderPid(int idx) const { return getNodePid(idx, PID_FLG_OCCLUDER); }
+  inline int getShowOccluderPid(int idx) const { return getNodePid(idx, PID_FLG_SHOW_OCCLUDER); }
   inline int getAutoVisrangePid(int idx) const { return getNodePid(idx, PID_FLG_AUTOMATIC_VISRANGE); }
   inline int getBackFaceDynlightPid(int idx) const { return getNodePid(idx, PID_FLG_BACK_FACE_DYNLIGHT); }
   inline int getDoNotMixLods(int idx) const { return getNodePid(idx, PID_FLG_DO_NOT_MIX_LODS); }
@@ -262,6 +270,7 @@ private:
     PID_ALL_FLG_FADENULL,
     PID_ALL_FLG_BILLBOARD_MESH,
     PID_ALL_FLG_OCCLUDER,
+    PID_ALL_FLG_SHOW_OCCLUDER,
     PID_ALL_FLG_AUTOMATIC_VISRANGE,
     PID_ALL_FLG_BACK_FACE_DYNLIGHT,
     PID_ALL_DO_NOT_MIX_LODS,
@@ -295,6 +304,7 @@ private:
     PID_FLG_FADENULL,
     PID_FLG_BILLBOARD_MESH,
     PID_FLG_OCCLUDER,
+    PID_FLG_SHOW_OCCLUDER,
     PID_FLG_AUTOMATIC_VISRANGE,
     PID_FLG_BACK_FACE_DYNLIGHT,
     PID_FLG_DO_NOT_MIX_LODS,
@@ -327,9 +337,6 @@ private:
 
   int getAllForceIdx(const NodesData::NodeFlags &flg) const;
   int getForceIdx(const NodesData::NodeFlags &flg) const;
-  void fillAllNodesGrp(PropertyContainerControlBase &panel, const NodesData &flags);
-  void fillNodeGrp(PropertyContainerControlBase &panel, const NodesData &flags, int idx);
+  void fillAllNodesGrp(PropPanel::ContainerPropertyControl &panel, const NodesData &flags);
+  void fillNodeGrp(PropPanel::ContainerPropertyControl &panel, const NodesData &flags, int idx);
 };
-
-
-#endif //__GAIJIN_STATICGEOM_UI_NODEFLAGS__

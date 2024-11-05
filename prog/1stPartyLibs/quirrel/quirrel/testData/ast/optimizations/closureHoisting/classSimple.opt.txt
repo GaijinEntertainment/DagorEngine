@@ -1,11 +1,11 @@
 {
-  let foo = FUNCTION foo(this, x, y) {
-    let $ch0 = FUNCTION (classSimple.nut:6)(this) {
+  let foo = FUNCTION foo(x, y) {
+    let $ch0 = FUNCTION (classSimple.nut:6)() {
       RETURN x + 10
     }
     let c = CLASS {
       "x" <- 10
-      "zed" <- FUNCTION zed(this) {
+      "zed" <- FUNCTION zed() {
         RETURN $ch0() + this.x
       }
     }

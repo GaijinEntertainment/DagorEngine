@@ -1,8 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "../compileResult.h"
 #include "../DebugLevel.h"
-#include <dxil/compiled_shader_header.h>
+#include <drv/shadersMetaData/dxil/compiled_shader_header.h>
 
 #include <EASTL/string.h>
 #include <EASTL/unique_ptr.h>
@@ -13,6 +14,8 @@
 struct ID3DXBuffer;
 struct TmpmemAlloc;
 typedef int VPRTYPE;
+
+extern bool autotest_mode;
 
 namespace dx12
 {
@@ -26,12 +29,15 @@ enum class Platform
 };
 inline bool is_xbox_platform(Platform p) { return Platform::XBOX_ONE == p || Platform::XBOX_SCARLETT == p; }
 inline bool platform_has_mesh_support(Platform p) { return Platform::XBOX_ONE != p; }
+
+inline bool use_two_phase_compilation(Platform p) { return is_xbox_platform(p) && !autotest_mode; }
+
 // NOTE: platform has to be the same for each call for the currently running instance
 // otherwise the selected platform is undefined, especially when multiple threads at
 // the same time call this function.
 CompileResult compileShader(dag::ConstSpan<char> source, const char *profile, const char *entry, bool need_disasm, bool hlsl2021,
-  bool enableFp16, bool skipValidation, bool optimize, bool debug_info, wchar_t *pdb_dir, int max_constants_no, int bones_const_used,
-  const char *name, Platform platform, bool scarlett_w32, bool warnings_as_errors, DebugLevel debug_level);
+  bool enableFp16, bool skipValidation, bool optimize, bool debug_info, wchar_t *pdb_dir, int max_constants_no, const char *name,
+  Platform platform, bool scarlett_w32, bool warnings_as_errors, DebugLevel debug_level, bool embed_source);
 
 void combineShaders(SmallTab<unsigned, TmpmemAlloc> &target, dag::ConstSpan<unsigned> vs, dag::ConstSpan<unsigned> hs,
   dag::ConstSpan<unsigned> ds, dag::ConstSpan<unsigned> gs, unsigned id);
@@ -46,6 +52,7 @@ struct RootSignatureStore
   bool hasVertexInput;
   bool isMesh;
   bool hasAmplificationStage;
+  bool hasAccelerationStructure;
 };
 
 struct CompilationOptions
@@ -75,9 +82,9 @@ eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>> combinePhaseOnePixelShader(da
   const RootSignatureStore &signature, unsigned id, bool has_gs, bool has_ts, CompilationOptions options);
 
 eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> recompileVertexProgram(dag::ConstSpan<unsigned> source,
-  Platform platform, wchar_t *pdb_dir, DebugLevel debug_level);
+  Platform platform, wchar_t *pdb_dir, DebugLevel debug_level, bool embed_source);
 
 eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> recompilePixelSader(dag::ConstSpan<unsigned> source,
-  Platform platform, wchar_t *pdb_dir, DebugLevel debug_level);
+  Platform platform, wchar_t *pdb_dir, DebugLevel debug_level, bool embed_source);
 } // namespace dxil
 } // namespace dx12

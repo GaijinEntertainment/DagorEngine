@@ -1,11 +1,17 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <billboardDecals/billboardDecals.h>
 #include <decalMatrices/decalsMatrices.h>
 #include <billboardDecals/matProps.h>
 #include <shaders/dag_computeShaders.h>
 #include <math/integer/dag_IPoint4.h>
 #include <3d/dag_quadIndexBuffer.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_resPtr.h>
+#include <perfMon/dag_statDrv.h>
 
 static constexpr int MAX_HOLES_IN_IB = 16384;
 
@@ -33,14 +39,21 @@ bool BillboardDecals::init_textures(dag::ConstSpan<const char *> diffuse, dag::C
 
   diffuseTex = dag::add_managed_array_texture(String(128, "%s_diff*", texture_name), diffuse, "billboard_decals_diff_tex");
   if (diffuseTex)
-    diffuseTex->texaddr(TEXADDR_CLAMP);
+    diffuseTex->disableSampler();
   diffuseTex.setVar();
   if (!normal.empty())
   {
     bumpTex = dag::add_managed_array_texture(String(128, "%s_normal*", texture_name), normal, "billboard_decals_bump_tex");
     if (bumpTex)
-      bumpTex->texaddr(TEXADDR_CLAMP);
+      bumpTex->disableSampler();
     bumpTex.setVar();
+  }
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    d3d::SamplerHandle sampler = d3d::request_sampler(smpInfo);
+    ShaderGlobal::set_sampler(get_shader_variable_id("billboard_decals_diff_tex_samplerstate", true), sampler);
+    ShaderGlobal::set_sampler(get_shader_variable_id("billboard_decals_bump_tex_samplerstate", true), sampler);
   }
   // Textures.
 
@@ -163,6 +176,7 @@ void BillboardDecals::clearInSphere(const Point3 &pos, float sphere_radius)
 
 void BillboardDecals::render()
 {
+  TIME_D3D_PROFILE(BillboardDecals_render);
   if (numHoles == 0 || !diffuseTex)
     return;
 

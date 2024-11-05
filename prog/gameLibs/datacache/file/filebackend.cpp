@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "filebackend.h"
 #include "fileentry.h"
 #include "fileutil.h"

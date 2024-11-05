@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <anim/dag_animPostBlendCtrl.h>
 #include <anim/dag_animIrq.h>
 #include <vecmath/dag_vecMath.h>
@@ -34,7 +36,7 @@ static bool make_chain(AnimV20::MultiChainFABRIKCtrl::ChainSlice &cs, chain_tab_
   auto n1 = tree.findNodeIndex(name1);
   if (!n1)
   {
-    logerr_ctx("node1=<%s> not found", name1);
+    LOGERR_CTX("node1=<%s> not found", name1);
     return false;
   }
   n.push_back(n1);
@@ -46,7 +48,7 @@ static bool make_chain(AnimV20::MultiChainFABRIKCtrl::ChainSlice &cs, chain_tab_
   }
   if (!tree.getParentNodeIdx(n1))
   {
-    logerr_ctx("node0=<%s> not found upstream from <%s>", name0, name1);
+    LOGERR_CTX("node0=<%s> not found upstream from <%s>", name0, name1);
     n.resize(cs.ofs);
     return false;
   }
@@ -100,7 +102,7 @@ static void reposition_base_location(dag::Span<vec3f> chain, vec3f new_p0)
 }
 static void solve_for_target(dag::Span<vec3f> chain, vec3f target)
 {
-  simple_solve_fabrik_chain(chain.data(), chain.size(), target, 4, 0.001, 0.0005, -1);
+  simple_solve_fabrik_chain(chain.data(), chain.size(), target, 4, 0.001f, 0.0005f, -1);
 }
 
 void AnimV20::MultiChainFABRIKCtrl::reset(IPureAnimStateHolder &st)
@@ -221,10 +223,10 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
 
   StaticTab<StaticTab<vec3f, MAX_NODES_PER_CHAIN>, MAX_CHAINS> chains;
   StaticTab<vec3f, MAX_NODES_PER_CHAIN> mainChain;
-  Point3_vec4 targets[MAX_CHAINS];
+  vec3f targets[MAX_CHAINS];
   int effType[MAX_CHAINS];
   int targets_cnt = 0;
-  Point3_vec4 body_p[2];
+  vec3f body_p[2];
   float body_w[2];
 
 #if ALLOW_DBG_CHAIN_STORE
@@ -240,10 +242,6 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
     }
 #endif
 
-  // animchar is already translated to ZERO (to avoid inaccuracy in calculations)
-  Point3_vec4 origin;
-  v_st(&origin.x, ctx.worldTranslate);
-
   // prepare tree and get geom-node-fixed effectors
   tree.calcWtm();
   for (int i = 0; i < effectorVarId.size(); i++)
@@ -251,10 +249,10 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
     IAnimStateHolder::EffectorVar &eff = st.paramEffector(effectorVarId[i].eff);
     if (eff.type == eff.T_useGeomNode && eff.nodeId)
     {
-      const Point3 &p = as_point3(&tree.getNodeWtmRel(eff.nodeId).col3);
-      eff.x = p.x;
-      eff.y = p.y;
-      eff.z = p.z;
+      vec3f p = tree.getNodeWtmRel(eff.nodeId).col3;
+      eff.x = v_extract_x(p);
+      eff.y = v_extract_y(p);
+      eff.z = v_extract_z(p);
     }
   }
 
@@ -265,8 +263,9 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
     if (eff.type == eff.T_useEffector)
     {
       auto node0 = S.bodyChainNodeIds().front();
-      Point3 &node0_pos = as_point3(&tree.getNodeWtmRel(node0).col3);
-      node0_pos = lerp(node0_pos, eff.isLocalEff() ? Point3::xyz(eff) : Point3::xyz(eff) - origin, wt);
+      vec3f &node0_pos = tree.getNodeWtmRel(node0).col3;
+      node0_pos =
+        v_lerp_vec4f(v_splats(wt), node0_pos, v_sub(v_ldu(&eff.x), v_and(ctx.worldTranslate, v_bool_to_mask(!eff.isLocalEff()))));
       compute_tm_from_wtm(tree, node0);
       tree.invalidateWtm(S.bodyChainNodeIds().front());
       tree.calcWtm();
@@ -296,12 +295,13 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
       float w = wt * getWeightMul(st, effectorVarId[i].wScale, effectorVarId[i].wScaleInverted);
       effType[targets_cnt] = eff.type;
       if (eff.type == eff.T_useEffector)
-        targets[targets_cnt] = lerp(as_point3(&n0_wtm.col3), eff.isLocalEff() ? Point3::xyz(eff) : Point3::xyz(eff) - origin, w);
+        targets[targets_cnt] =
+          v_lerp_vec4f(v_splats(w), n0_wtm.col3, v_sub(v_ldu(&eff.x), v_and(ctx.worldTranslate, v_bool_to_mask(!eff.isLocalEff()))));
       else if (eff.type == eff.T_useGeomNode && eff.nodeId)
-        targets[targets_cnt] = lerp(as_point3(&n0_wtm.col3), Point3::xyz(eff), w);
+        targets[targets_cnt] = v_lerp_vec4f(v_splats(w), n0_wtm.col3, v_ldu(&eff.x));
       else
       {
-        targets[targets_cnt].set(0, 0, 0);
+        targets[targets_cnt] = v_zero();
         effType[targets_cnt] = IAnimStateHolder::EffectorVar::T_looseEnd;
       }
       targets_cnt++;
@@ -314,7 +314,7 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
       {
         tree.partialCalcWtm(S.chainNodeIds(i).front());
         reposition_base_location(make_span(chains[i]), tree.getNodeWposRel(S.chainNodeIds(i).front()));
-        solve_for_target(make_span(chains[i]), v_ld(&targets[i].x));
+        solve_for_target(make_span(chains[i]), targets[i]);
         apply_chain(&tree, S.chainNodeIds(i), chains[i], -1);
 
         effType[i] = IAnimStateHolder::EffectorVar::T_looseEnd; // don't solve this chain no more
@@ -325,12 +325,12 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
   for (int i = 0; i < countof(S.bodyTri); i++)
     if (S.bodyTri[i].node0)
     {
-      body_p[i] = (tree.getNodeWposRelScalar(S.bodyTri[i].node0) + tree.getNodeWposRelScalar(S.bodyTri[i].node1)) * 0.5 +
-                  tree.getNodeWposRelScalar(S.bodyTri[i].add) - tree.getNodeWposRelScalar(S.bodyTri[i].sub);
-      body_w[i] = (tree.getNodeWposRelScalar(S.bodyTri[i].node0) - tree.getNodeWposRelScalar(S.bodyTri[i].node1)).length();
+      body_p[i] = v_add(v_mul(v_add(tree.getNodeWposRel(S.bodyTri[i].node0), tree.getNodeWposRel(S.bodyTri[i].node1)), V_C_HALF),
+        v_sub(tree.getNodeWposRel(S.bodyTri[i].add), tree.getNodeWposRel(S.bodyTri[i].sub)));
+      body_w[i] = v_extract_x(v_length3_x(v_sub(tree.getNodeWposRel(S.bodyTri[i].node0), tree.getNodeWposRel(S.bodyTri[i].node1))));
     }
     else
-      body_p[i] = Point3(0, 0, 0), body_w[i] = 1;
+      body_p[i] = v_zero(), body_w[i] = 1;
 
   // build body chain
   if (S.bodyChainSlice.cnt > 1)
@@ -339,15 +339,15 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
     for (int i = 0; i <= nodeIds.size(); i++)
     {
       if (!((i == 0 && !S.bodyTri[0].node0) || (i == nodeIds.size() && !S.bodyTri[1].node0)))
-        add_bone(mainChain, i > 0 ? tree.getNodeWposRel(nodeIds[i - 1]) : v_ld(&body_p[0].x),
-          i < nodeIds.size() ? tree.getNodeWposRel(nodeIds[i]) : v_ld(&body_p[1].x));
+        add_bone(mainChain, i > 0 ? tree.getNodeWposRel(nodeIds[i - 1]) : body_p[0],
+          i < nodeIds.size() ? tree.getNodeWposRel(nodeIds[i]) : body_p[1]);
       // debug("add bone %s - %s  %@ - %@",
       //   i > 0 ? tree.getNodeName(nodeIds[i-1]) : "-0-",
       //   i < nodeIds.size() ? tree.getNodeName(nodeIds[i]) : "-1-",
       //   i > 0 ? tree.getNodeWposRelScalar(nodeIds[i-1]) : body_p[0],
       //   i < nodeIds.size() ? tree.getNodeWposRelScalar(nodeIds[i]) : body_p[1]);
     }
-    add_last_bone_point(mainChain, v_ld(&body_p[1].x));
+    add_last_bone_point(mainChain, body_p[1]);
 #if ALLOW_DBG_CHAIN_STORE
     if (dbgDataPtr[0]) // copy original chains to debug var
       dbgDataPtr[0]->push_back() = mainChain;
@@ -358,11 +358,11 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
   for (int i = 0; i < chains.size(); i++)
     if (effType[i] != IAnimStateHolder::EffectorVar::T_looseEnd)
     {
-      solve_for_target(make_span(chains[i]), v_ld(&targets[i].x));
+      solve_for_target(make_span(chains[i]), targets[i]);
       if (!chains[i].empty())
-        if ((as_point3(&chains[i].back()) - targets[i]).lengthSq() > 1e-4)
+        if (v_extract_x(v_length3_sq_x(v_sub(chains[i].back(), targets[i]))) > 1e-6f)
         {
-          vec3f d = v_perm_xyzd(v_sub(v_ld(&targets[i].x), chains[i].back()), v_zero());
+          vec3f d = v_perm_xyzd(v_sub(targets[i], chains[i].back()), v_zero());
           for (int j = 0; j < chains[i].size(); j++)
             chains[i][j] = v_add(chains[i][j], d);
         }
@@ -370,32 +370,31 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
 
   if (S.bodyChainSlice.cnt > 1)
   {
-    Point3_vec4 nd[2], np[2];
+    vec3f nd[2], np[2];
     // build ends of main chain using body triangles
     for (int i = 0; i < 2; i++)
       if (S.bodyTri[i].node0)
       {
-        nd[i] = normalize(as_point3(&chains[S.bodyTri[i].chain1][0]) - as_point3(&chains[S.bodyTri[i].chain0][0])) * 0.5;
-        np[i] = (as_point3(&chains[S.bodyTri[i].chain0][0]) + as_point3(&chains[S.bodyTri[i].chain1][0])) * 0.5 +
-                tree.getNodeWposRelScalar(S.bodyTri[i].add) - tree.getNodeWposRelScalar(S.bodyTri[i].sub);
+        nd[i] = v_mul(v_norm3_safe(v_sub(chains[S.bodyTri[i].chain1][0], chains[S.bodyTri[i].chain0][0]), v_zero()), V_C_HALF);
+        np[i] = v_add(v_mul(v_add(chains[S.bodyTri[i].chain0][0], chains[S.bodyTri[i].chain1][0]), V_C_HALF),
+          v_sub(tree.getNodeWposRel(S.bodyTri[i].add), tree.getNodeWposRel(S.bodyTri[i].sub)));
       }
       else
-        np[i] = body_p[i], nd[i].set(0, 0, 0);
+        np[i] = body_p[i], nd[i] = v_zero();
 
     // solve main chain
-    mainChain[0] = v_perm_xyzd(v_ld(&np[0].x), mainChain[0]);
-    solve_for_target(make_span(mainChain), v_ld(&np[1].x));
+    mainChain[0] = v_perm_xyzd(np[0], mainChain[0]);
+    solve_for_target(make_span(mainChain), np[1]);
 
     // reposition and resolve other chains
     for (int i = 0; i < 2; i++)
       if (S.bodyTri[i].node0)
       {
-        np[i] = (i == 0 ? as_point3(&mainChain[0]) : as_point3(&mainChain.back())) - tree.getNodeWposRelScalar(S.bodyTri[i].add) +
-                tree.getNodeWposRelScalar(S.bodyTri[i].sub);
+        np[i] = v_add(v_sub(v_sel_b(mainChain.back(), mainChain[0], i == 0), tree.getNodeWposRel(S.bodyTri[i].add)),
+          tree.getNodeWposRel(S.bodyTri[i].sub));
 
-        reposition_base_location(make_span(chains[S.bodyTri[i].chain0]),
-          v_nmsub(v_ld(&nd[i].x), v_splat4(&body_w[i]), v_ld(&np[i].x)));
-        reposition_base_location(make_span(chains[S.bodyTri[i].chain1]), v_madd(v_ld(&nd[i].x), v_splat4(&body_w[i]), v_ld(&np[i].x)));
+        reposition_base_location(make_span(chains[S.bodyTri[i].chain0]), v_nmsub(nd[i], v_splats(body_w[i]), np[i]));
+        reposition_base_location(make_span(chains[S.bodyTri[i].chain1]), v_madd(nd[i], v_splats(body_w[i]), np[i]));
       }
 
     // apply main chain transformation onto nodes
@@ -415,7 +414,7 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
       if (S.bodyChainSlice.cnt > 1)
       {
         reposition_base_location(make_span(chains[i]), tree.getNodeWposRel(S.chainNodeIds(i).front()));
-        solve_for_target(make_span(chains[i]), v_ld(&targets[i].x));
+        solve_for_target(make_span(chains[i]), targets[i]);
       }
       apply_chain(&tree, S.chainNodeIds(i), chains[i], -1);
     }

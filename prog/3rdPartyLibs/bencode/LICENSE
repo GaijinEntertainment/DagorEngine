@@ -1,0 +1,11 @@
+C implementation of a bencode decoder.
+This is the format defined by BitTorrent:
+ http://wiki.theory.org/BitTorrentSpecification#bencoding
+
+This is released into the public domain:
+ http://en.wikipedia.org/wiki/Public_Domain
+
+Written by:
+  Mike Frysinger <vapier@gmail.com>
+And improvements from:
+  Gilles Chanteperdrix <gilles.chanteperdrix@xenomai.org>

@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <daInput/input_api.h>
@@ -83,7 +84,7 @@ struct ActionGlobData
 
   int bindingsColumnCount = 0; // adb.size() == ad.size()*bindingsColumnCount, etc.
   int longPressDur = 300;
-  int dblClickDur = 200;
+  int dblClickDur = 220;
 
   int get_binding_idx(action_handle_t a, int column) { return (a & ~TYPEGRP__MASK) * bindingsColumnCount + column; }
 };
@@ -115,7 +116,9 @@ extern HumanInput::IGenJoystick *dev4_joy;
 extern HumanInput::VrInput *dev5_vr;
 extern int configVer;
 
-extern bool (*notify_ui_action_triggered_cb)(action_handle_t action, bool action_terminated, int dur_ms);
+extern int64_t controlTID;
+
+extern void (*notify_ui_action_triggered_cb)(action_handle_t action, bool action_terminated, int dur_ms);
 extern action_triggered_t notify_action_triggered_cb;
 extern action_progress_changed_t notify_progress_changed_cb;
 extern bool actionset_logs, event_logs;

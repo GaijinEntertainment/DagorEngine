@@ -1,0 +1,203 @@
+include "shader_global.dshl"
+include "globtm.dshl"
+include "world_sdf_update_common.dshl"
+include "world_sdf_collision_buffers_common.dshl"
+include "world_sdf_project_common.dshl"
+include "giHelpers/common_collision_render.dshl"
+include "giHelpers/voxelize_gs.dshl"
+
+shader world_sdf_voxelize_collision_cs
+{
+  ENABLE_ASSERT(cs)
+  supports none;
+  supports global_frame;
+  (cs) {immediate_dword_count = 4;}
+  (cs) {
+    matrices@buf = collision_voxelization_tm hlsl { StructuredBuffer<float4> matrices@buf; };
+    //voxelize_box_min@f3 = voxelize_box0;
+    //voxelize_box_max@f3 = (voxelize_box0.x + 1./voxelize_box1.x, voxelize_box0.y + 1./voxelize_box1.y, voxelize_box0.z + 1./voxelize_box1.z, 0);
+  }
+  INIT_LOAD_COLLISION_PRIMITIVES(cs)
+  USE_LOAD_COLLISION_PRIMITIVES(cs)
+  (cs) {
+    world_sdf_cull_update_lt@f4 = world_sdf_cull_update_lt;
+    world_sdf_cull_update_rb@f4 = world_sdf_cull_update_rb;
+  }
+  WORLD_SDF_RES_MATH(cs)
+  WSDF_COORD_UPDATE(cs)
+  hlsl {
+    #define RASTERIZE_PRIMS 1
+    #include <world_sdf_interpolant.hlsl>
+  }
+  PROJECT_WORLD_SDF_RASTERIZE(cs)
+
+  hlsl(cs) {
+    #include <world_sdf_dist.hlsl>
+    #include <world_sdf.hlsli>
+    #include <point_distance.hlsl>
+
+    #define UAV_TYPED_LOAD 1//todo: support missing typed load. can be done with atomic on render, or just render to other voltex and then ping pong twice
+    RWByteAddressBuffer world_sdf_clipmap_rasterize : register(u2);
+    void writeSDFOnePointCoord(int3 coord, float3 worldPosInVoxels, TrianglePlanes tri)
+    {
+      if (any(uint3(coord - world_sdf_update_lt_coord.xyz) >= uint3(world_sdf_update_sz_coord.xyz)))//safety first. that's just faster
+        return;
+      float voxelSize = world_sdf_cull_update_lt.w;
+      float3 voxelCenterInVoxels = float3(coord.xzy) + 0.5;
+      //float minDistance = pointTriangleSignedDistance(voxelCenterInVoxels, tri.A, tri.B, tri.C);
+      float minDistance = pointTriangleSignedDistancePlanes(voxelCenterInVoxels, tri);
+      //float3 toVoxelCenter = voxelCenterInVoxels - worldPosInVoxels;
+      //float minDistance = length(toVoxelCenter); // with GS we could pass triangle and calc exact distance
+      minDistance /= MAX_WORLD_SDF_VOXELS_BAND;
+      if (minDistance < 1)
+      {
+        uint rasterI = world_sdf_raster_index(world_sdf_raster_target_coord_from_world(coord));
+        world_sdf_clipmap_rasterize.InterlockedMin(4*rasterI, encode_world_sdf(minDistance));
+        /*uint3 writeCoord = targetCoord + get_world_sdf_coord_cascade_offset(world_sdf_update_mip);
+        if (abs(world_sdf_clipmap[writeCoord]*2-1) > abs(minDistance))
+          world_sdf_clipmap[writeCoord] = minDistance*0.5+0.5;
+        */
+      }
+    }
+
+    void writeSDFOnePoint(float3 worldPosInVoxels, TrianglePlanes tri)
+    {
+      float voxelSize = world_sdf_cull_update_lt.w;
+      project_world_sdf_rasterize_normal(worldPosInVoxels*voxelSize, tri.N, false);
+
+      #if 0
+      int3 coord = floor(worldPosInVoxels.xzy+0.5);
+      writeSDFOnePointCoord(coord, worldPosInVoxels, tri);
+      writeSDFOnePointCoord(coord+int3(+1,0,0), worldPosInVoxels, tri);
+      writeSDFOnePointCoord(coord+int3(-1,0,0), worldPosInVoxels, tri);
+      writeSDFOnePointCoord(coord+int3(0,+1,0), worldPosInVoxels, tri);
+      writeSDFOnePointCoord(coord+int3(0,-1,0), worldPosInVoxels, tri);
+      writeSDFOnePointCoord(coord+int3(0,0,+1), worldPosInVoxels, tri);
+      writeSDFOnePointCoord(coord+int3(0,0,-1), worldPosInVoxels, tri);
+      #elif 0
+      int3 coord = floor(worldPosInVoxels.xzy+0.5);
+      writeSDFOnePointCoord(coord, worldPosInVoxels, tri);
+      int3 coord2 = floor(worldPosInVoxels.xzy - 0.5);
+      if (any(coord2 != coord))
+        writeSDFOnePointCoord(coord2, worldPosInVoxels, tri);
+      #else
+      int3 coord = floor(worldPosInVoxels.xzy);
+      writeSDFOnePointCoord(coord, worldPosInVoxels, tri);
+      int3 coord2 = floor(worldPosInVoxels.xzy - 0.5);
+      if (any(coord2 != coord))
+        writeSDFOnePointCoord(coord2, worldPosInVoxels, tri);
+      int3 coord3 = floor(worldPosInVoxels.xzy + 0.5);
+      if (any(coord3 != coord))
+        writeSDFOnePointCoord(coord3, worldPosInVoxels, tri);
+      #endif
+    }
+
+    float3 tessellation(uint id, uint tessellationFactor, float3 p1, float3 p2, float3 p3)
+    {
+      uint subtriangles = (tessellationFactor * tessellationFactor);
+      float triangleID = float(id % subtriangles);
+      float row = floor (sqrt( triangleID ));
+      uint column = uint(triangleID - ( row * row ));
+      float incuv = 1.0 / float(tessellationFactor);
+      float u = (1.0 + row) / float(tessellationFactor);
+      float v = incuv * floor (float(column) * 0.5);
+      u -= v;
+      float w = 1.0 - u - v;
+      float du = 0, dv = 0,dw = 0;
+      if ((column & 1u) != 0u)
+      {
+        dv += incuv, du -= incuv;
+        dv += incuv, du -= incuv;
+        dw += incuv, du -= incuv;
+        dw += incuv, du -= incuv;
+      } else
+      {
+        dv += incuv, du -= incuv;
+        du -= incuv, dw += incuv;
+      }
+      u = u + du * 1. / 3;
+      v = v + dv * 1. / 3;
+      w = w + dw * 1. / 3;
+      //u = v = w = 1./3;
+      return u * p1 + v * p2 + w * p3;
+    }
+    [numthreads(64, 1, 1)]
+    void gi_collision_cs(uint dtid : SV_DispatchThreadID, uint2 gtId: SV_GroupThreadID)
+    {
+      uint trianglesInstCount = get_immediate_dword_2();
+      uint trianglesCount = trianglesInstCount&((1U<<20)-1);
+      uint instCount = trianglesInstCount>>20;
+      uint tri = dtid%trianglesCount;
+      uint instanceNo = dtid/trianglesCount;
+      if (instanceNo >= instCount)
+        return;
+      uint indexOffset = get_immediate_dword_0();
+      uint vertexOffset = get_immediate_dword_1();
+
+      if (tri >= trianglesCount)
+        return;
+
+      uint matrixOffset = (get_immediate_dword_3()+instanceNo)*3;
+
+      float3 worldLocalX = float3(structuredBufferAt(matrices, matrixOffset).x, structuredBufferAt(matrices, matrixOffset + 1).x, structuredBufferAt(matrices, matrixOffset + 2).x);
+      float3 worldLocalY = float3(structuredBufferAt(matrices, matrixOffset).y, structuredBufferAt(matrices, matrixOffset + 1).y, structuredBufferAt(matrices, matrixOffset + 2).y);
+      float3 worldLocalZ = float3(structuredBufferAt(matrices, matrixOffset).z, structuredBufferAt(matrices, matrixOffset + 1).z, structuredBufferAt(matrices, matrixOffset + 2).z);
+      float3 worldLocalPos = float3(structuredBufferAt(matrices, matrixOffset).w, structuredBufferAt(matrices, matrixOffset + 1).w, structuredBufferAt(matrices, matrixOffset + 2).w);
+      //writeSceneVoxelDataSafe(worldLocalPos,0.1,1);
+      float3 va, vb, vc;
+      if (!getTriangle(tri*3+indexOffset, vertexOffset, va, vb, vc))
+        return;
+      va = va.x * worldLocalX + va.y * worldLocalY + va.z * worldLocalZ + worldLocalPos;
+      vb = vb.x * worldLocalX + vb.y * worldLocalY + vb.z * worldLocalZ + worldLocalPos;
+      vc = vc.x * worldLocalX + vc.y * worldLocalY + vc.z * worldLocalZ + worldLocalPos;
+      float invVoxelSize = world_sdf_cull_update_rb.w;
+      va*=invVoxelSize;
+      vb*=invVoxelSize;
+      vc*=invVoxelSize;
+
+      float3 triBoxMin = min(min(va, vb), vc), triBoxMax = max(max(va, vb), vc);
+      int3 minUnWrappedCoord = floor(triBoxMin.xzy), maxUnWrappedCoord = floor(triBoxMax.xzy);
+      int3 world_sdf_update_rb_coord = world_sdf_update_lt_coord.xyz + world_sdf_update_sz_coord.xyz + 1;
+      if (any(maxUnWrappedCoord < world_sdf_update_lt_coord - 2 || minUnWrappedCoord > world_sdf_update_rb_coord))//that's just faster
+        return;
+      TrianglePlanes triPlanes = get_triangle_planes(va, vb, vc);
+      #if 1
+      const uint maxTess = 10;
+      uint tesselationFactor = clamp(sqrt(triPlanes.twiceArea), 0, maxTess);
+      writeSDFOnePoint((va+vb+vc)*1./3, triPlanes);
+      //tesselationFactor = 4;
+      uint tSq = tesselationFactor*tesselationFactor;
+      for (uint i = 0; i < tSq; ++i)
+        writeSDFOnePoint(tessellation(i, tesselationFactor, va, vb, vc), triPlanes);
+      #else
+      float3 edgeBA = vb-va, edgeAC=va-vc;
+      float3 worldNormal = cross(edgeBA, edgeAC);
+      float twiceArea = length(worldNormal);
+      worldNormal /= twiceArea;
+      //float3 clampedTriBoxMin = max(triBoxMin, voxelize_box_min), clampedTriBoxMax = min(triBoxMax, voxelize_box_max);
+      float3 AB = vb-va, BC = vc-vb, AC = vc-va;
+      //Also with large sample count per triangle the game just crashes...
+      float sdf_voxelize_max_samples = 16*invVoxelSize;
+      float n = min(ceil(twiceArea*8*invVoxelSize), sdf_voxelize_max_samples);
+      float invN = rcp(n);
+      float3 s1 = AB*invN, s2 = BC*invN, s3 = AC*invN;
+      float3 Ps = (1./3.)*(va + (va + s1) + (va + s3));
+      writeSDFOnePoint(Ps, triPlanes);
+      int ni = n;
+      for (int i = 2; i <= ni; ++i)
+      {
+        Ps += s1;
+        writeSDFOnePoint(Ps, triPlanes);
+        float3 P = Ps;
+        for (int j = 2; j <= i; ++j)
+        {
+          P += s2;
+          writeSDFOnePoint(P, triPlanes);
+        }
+      }
+      #endif
+    }
+
+  }
+  compile("target_cs", "gi_collision_cs");
+}

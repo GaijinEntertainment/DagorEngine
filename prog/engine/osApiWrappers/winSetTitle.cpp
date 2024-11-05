@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_progGlobals.h>
 #include <supp/_platform.h>
 #include <debug/dag_fatal.h>

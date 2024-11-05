@@ -1,25 +1,24 @@
-#include "frame_info.h"
-#include "device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <perfMon/dag_statDrv.h>
+
+#include "util/scoped_timer.h"
+#include "frame_info.h"
+#include "globals.h"
+#include "device_queue.h"
+#include "driver_config.h"
+#include "backend.h"
+#include "execution_timings.h"
+#include "backend_interop.h"
 
 using namespace drv3d_vulkan;
 
-void FrameInfo::sendSignal()
-{
-  for (auto &&signal : signalRecivers)
-    signal->completed();
-  signalRecivers.clear();
-}
-
-void FrameInfo::addSignalReciver(AsyncCompletionState &reciver) { signalRecivers.push_back(&reciver); }
-
 void FrameInfo::init()
 {
-  Device &device = get_device();
-  VulkanDevice &vkDev = device.getVkDevice();
+  VulkanDevice &vkDev = Globals::VK::dev;
 
-  uint32_t cmdQFamily = device.getQueue(DeviceQueueType::GRAPHICS).getFamily();
-  bool resetCmdPool = device.getFeatures().test(DeviceFeaturesConfig::RESET_COMMAND_POOLS);
+  uint32_t cmdQFamily = Globals::VK::que[DeviceQueueType::GRAPHICS].getFamily();
+  bool resetCmdPool = Globals::cfg.bits.resetCommandPools;
 
   VkCommandPoolCreateInfo cpci;
   cpci.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -38,6 +37,7 @@ void FrameInfo::init()
   pendingCommandBuffers.clear();
 
   frameDone = new ThreadedFence(vkDev, ThreadedFence::State::SIGNALED);
+  execTracker.init();
 
   initialized = true;
 }
@@ -47,13 +47,11 @@ void FrameInfo::shutdown()
   G_ASSERT(initialized);
   initialized = false;
 
-  VulkanDevice &vkDev = get_device().getVkDevice();
+  VulkanDevice &vkDev = Globals::VK::dev;
 
   frameDone->shutdown(vkDev);
   delete frameDone;
   frameDone = NULL;
-
-  sendSignal();
 
   if (!freeCommandBuffers.empty())
   {
@@ -73,12 +71,20 @@ void FrameInfo::shutdown()
 
   finishCleanups();
   finishSemaphores();
+  for (Tab<VulkanSemaphoreHandle> &i : pendingSemaphores)
+  {
+    for (VulkanSemaphoreHandle j : i)
+      VULKAN_LOG_CALL(vkDev.vkDestroySemaphore(vkDev.get(), j, NULL));
+    i.clear();
+  }
+  pendingSemaphoresRingIdx = 0;
   for (int i = 0; i < readySemaphores.size(); ++i)
     VULKAN_LOG_CALL(vkDev.vkDestroySemaphore(vkDev.get(), readySemaphores[i], NULL));
   clear_and_shrink(readySemaphores);
 
-  pendingTimestamps.clear();
+  pendingTimestamps = nullptr;
   finishShaderModules();
+  execTracker.shutdown();
 }
 
 VulkanCommandBufferHandle FrameInfo::allocateCommandBuffer(VulkanDevice &device)
@@ -98,10 +104,14 @@ VulkanCommandBufferHandle FrameInfo::allocateCommandBuffer(VulkanDevice &device)
   VulkanCommandBufferHandle cmd = freeCommandBuffers.back();
   freeCommandBuffers.pop_back();
   pendingCommandBuffers.push_back(cmd);
+
+  if (Globals::cfg.debugLevel > 0)
+    Globals::Dbg::naming.setCommandBufferName(cmd, String(32, "Frame %u Pending order %u", index, pendingCommandBuffers.size()));
+
   return cmd;
 }
 
-VulkanSemaphoreHandle FrameInfo::allocSemaphore(VulkanDevice &device, bool auto_track)
+VulkanSemaphoreHandle FrameInfo::allocSemaphore(VulkanDevice &device)
 {
   VulkanSemaphoreHandle sem;
   if (readySemaphores.empty())
@@ -117,17 +127,17 @@ VulkanSemaphoreHandle FrameInfo::allocSemaphore(VulkanDevice &device, bool auto_
     sem = readySemaphores.back();
     readySemaphores.pop_back();
   }
-  if (auto_track)
-    pendingSemaphores.push_back(sem);
   return sem;
 }
+
+void FrameInfo::addPendingSemaphore(VulkanSemaphoreHandle sem) { pendingSemaphores[pendingSemaphoresRingIdx].push_back(sem); }
 
 void FrameInfo::submit()
 {
   // we finish current frame after chunk of replay work
   // but after replay work is done frame is changed, so we must handle
   // internal backend queued objects after replay event here
-  cleanups.backendAfterFrameSubmitCleanup(get_device().getContext().getBackend());
+  cleanups.backendAfterFrameSubmitCleanup();
 }
 
 void FrameInfo::acquire(size_t timeline_abs_idx)
@@ -136,7 +146,8 @@ void FrameInfo::acquire(size_t timeline_abs_idx)
     init();
 
   index = timeline_abs_idx;
-  frameDone->reset(get_device().getVkDevice());
+  frameDone->reset(Globals::VK::dev);
+  execTracker.restart(index);
 }
 
 void FrameInfo::wait()
@@ -147,7 +158,7 @@ void FrameInfo::wait()
   finishCleanups();
   finishSemaphores();
 
-  finishTimeStamps();
+  pendingTimestamps->fillDataFromPool();
   finishShaderModules();
 }
 
@@ -158,30 +169,27 @@ void FrameInfo::process() {}
 void FrameInfo::finishCleanups()
 {
   for (CleanupQueue *i : cleanupsRefs)
-    i->backendAfterGPUCleanup(get_device().getContext().getBackend());
+    i->backendAfterGPUCleanup();
   clear_and_shrink(cleanupsRefs);
 
-  cleanups.backendAfterGPUCleanup(get_device().getContext().getBackend());
+  cleanups.backendAfterGPUCleanup();
 }
 
 void FrameInfo::finishCmdBuffers()
 {
-  Device &device = get_device();
-  VulkanDevice &vkDev = device.getVkDevice();
+  VulkanDevice &vkDev = Globals::VK::dev;
 
   freeCommandBuffers.reserve(freeCommandBuffers.size() + pendingCommandBuffers.size());
-  if (device.getFeatures().test(DeviceFeaturesConfig::RESET_COMMAND_POOLS))
+  if (Globals::cfg.bits.resetCommandPools)
   {
-    VkCommandPoolResetFlags poolResetFlags = device.getFeatures().test(DeviceFeaturesConfig::RESET_COMMANDS_RELEASE_TO_SYSTEM)
-                                               ? VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT
-                                               : 0;
+    VkCommandPoolResetFlags poolResetFlags =
+      Globals::cfg.bits.resetCommandsReleaseToSystem ? VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT : 0;
     VULKAN_LOG_CALL(vkDev.vkResetCommandPool(vkDev.get(), commandPool, poolResetFlags));
   }
   else
   {
-    VkCommandBufferResetFlags bufferResetFlags = device.getFeatures().test(DeviceFeaturesConfig::RESET_COMMANDS_RELEASE_TO_SYSTEM)
-                                                   ? VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT
-                                                   : 0;
+    VkCommandBufferResetFlags bufferResetFlags =
+      Globals::cfg.bits.resetCommandsReleaseToSystem ? VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT : 0;
     for (VulkanCommandBufferHandle cmd : pendingCommandBuffers)
       VULKAN_LOG_CALL(vkDev.vkResetCommandBuffer(cmd, bufferResetFlags));
   }
@@ -191,45 +199,31 @@ void FrameInfo::finishCmdBuffers()
 
 void FrameInfo::finishGpuWork()
 {
-  Device &device = get_device();
-  VulkanDevice &vkDev = device.getVkDevice();
+  VulkanDevice &vkDev = Globals::VK::dev;
 
-  int64_t &gpuWaitDuration = device.getContext().getBackend().gpuWaitDuration;
+  int64_t &gpuWaitDuration = Backend::timings.gpuWaitDuration;
   if (!frameDone->isReady(vkDev))
   {
     gpuWaitDuration = 1;
-    FrameTimingWatch watch(gpuWaitDuration);
+    ScopedTimerTicks watch(gpuWaitDuration);
     frameDone->wait(vkDev);
   }
   else
     gpuWaitDuration = 0;
-
-  sendSignal();
+  Backend::interop.lastGPUCompletedReplayWorkId.store(replayId, std::memory_order_release);
 }
 
 void FrameInfo::finishSemaphores()
 {
-  append_items(readySemaphores, pendingSemaphores.size(), pendingSemaphores.data());
-  pendingSemaphores.clear();
-}
-
-void FrameInfo::finishTimeStamps()
-{
-  VulkanDevice &vkDev = get_device().getVkDevice();
-
-  for (auto &&ts : pendingTimestamps)
-  {
-    uint64_t temp;
-    VULKAN_EXIT_ON_FAIL(vkDev.vkGetQueryPoolResults(vkDev.get(), ts.pool->pool, ts.index, 1, sizeof(uint64_t), &temp, sizeof(uint64_t),
-      VK_QUERY_RESULT_64_BIT));
-    ts.pool->values[ts.index].store(temp);
-  }
-  pendingTimestamps.clear();
+  pendingSemaphoresRingIdx = (pendingSemaphoresRingIdx + 1) % GPU_TIMELINE_HISTORY_SIZE;
+  Tab<VulkanSemaphoreHandle> &finishedSems = pendingSemaphores[pendingSemaphoresRingIdx];
+  append_items(readySemaphores, finishedSems.size(), finishedSems.data());
+  finishedSems.clear();
 }
 
 void FrameInfo::finishShaderModules()
 {
-  VulkanDevice &vkDev = get_device().getVkDevice();
+  VulkanDevice &vkDev = Globals::VK::dev;
 
   for (auto &&module : deletedShaderModules)
   {

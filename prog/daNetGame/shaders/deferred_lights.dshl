@@ -1,0 +1,100 @@
+include "clustered/deferred_lights.dshl"
+include "sky_shader_global.dshl"
+include "viewVecVS.dshl"
+include "gbuffer.dshl"
+
+interval special_vision : special_vision_off<1, thermal_vision;
+
+shader point_lights, spot_lights
+{
+  if (special_vision == thermal_vision)
+  {
+    hlsl {
+      #define LIGHT_LIMIT_SIZE 3
+    }
+  }
+  (vs) { globtm@f44 = globtm; }
+  supports global_frame;
+  INIT_AND_USE_PHOTOMETRY_TEXTURES(vs)
+  INIT_AND_USE_PHOTOMETRY_TEXTURES(ps)
+  DEFERRED_LIGHTS_COMMON_SHADER()
+
+  BRUNETON_FOG()
+  USE_SCREENPOS_TO_TC()
+  USE_AND_INIT_VIEW_VEC_PS()
+  INIT_READ_GBUFFER()
+  USE_READ_GBUFFER()
+
+  INIT_ZNZFAR()
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+
+  INIT_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
+  USE_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
+
+  USE_DECODE_DEPTH()
+  ENABLE_ASSERT(ps)
+
+  hlsl(ps) {
+    #include "pbr/pbr.hlsl"
+  }
+  hlsl(ps) {
+    float3 get_all_fog_loss(float3 view, float dist, float2 screenTc, float w)
+    {
+      return get_volfog_with_scattering_loss(screenTc, screenTc, view, dist, w);
+    }
+  }
+
+  if (shader == point_lights)
+  {
+    DEFERRED_OMNI_LIGHTS_VS_SHADER()
+    DEFERRED_OMNI_LIGHTS_PS_SHADER()
+    hlsl(ps) {
+      float3 deferred_lights_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+      {
+        float4 screenpos = GET_SCREEN_POS(input.pos);
+        half3 result;
+        float3 view;
+        float2 tc;
+        float dist, w;
+        if (deferred_omni_light(input, screenpos, tc, view, dist, w, result))
+        {
+          ##if special_vision == thermal_vision
+          return float3(0.0f, result.x, 0.0f);
+          ##endif
+          result *= get_all_fog_loss(view, dist, tc, w);
+          return result;
+        } else
+          return 0;
+      }
+    }
+  } else
+  {
+    hlsl(ps) {
+      #define SPOT_SHADOWS 0
+    }
+    DEFERRED_SPOT_LIGHTS_VS_SHADER()
+    DEFERRED_SPOT_LIGHTS_PS_SHADER()
+    hlsl(ps) {
+      half3 deferred_lights_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+      {
+        ##if special_vision == thermal_vision
+          return 0;
+        ##endif
+        float4 screenpos = GET_SCREEN_POS(input.pos);
+        half3 result;
+        float3 view;
+        float2 tc;
+        float dist, w;
+        if (deferred_spot_light(input, screenpos, tc, view, dist, w, result))
+        {
+          result *= get_all_fog_loss(view, dist, tc, w);
+          return result;
+        } else
+          return 0;
+      }
+    }
+  }
+  compile("target_vs", "deferred_lights_vs");
+  compile("target_ps", "deferred_lights_ps");
+}

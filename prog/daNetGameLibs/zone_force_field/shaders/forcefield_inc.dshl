@@ -1,0 +1,163 @@
+include "sky_shader_global.dshl"
+include "upscale_use.dshl"
+include "use_downsampled_checkerboard_depth_tex.dshl"
+
+texture low_res_forcefield;
+
+int forcefield_bilateral_upscale_enabled = 1;
+interval forcefield_bilateral_upscale_enabled : off<1, on;
+
+bool use_bilateral_upscale = forcefield_bilateral_upscale_enabled == on && compatibility_mode == compatibility_mode_off;
+
+macro FORCEFIELD_HALF_RES_DEPTH_TEX_USE()
+  //we can't use checkerboard depth tex when upscale is disabled
+  if (use_bilateral_upscale)
+  {
+    (ps) { half_res_depth_tex@smp2d = downsampled_checkerboard_depth_tex; }
+  } else {
+    (ps) { half_res_depth_tex@smp2d = downsampled_far_depth_tex; }
+  }
+endmacro
+
+macro FORCEFIELD_VS()
+  channel float3 pos = pos;
+
+  (vs) { globtm@f44 = globtm; }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 pointToEye:TEXCOORD0;
+      float4 sphere_center_invR:TEXCOORD1;
+      float3 normal:TEXCOORD2;
+    };
+  }
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float3 pos: POSITION;
+    };
+    float4 spheres[16]:register(c16);
+    float4 last_reg :register(c33);
+
+    VsOutput forcefield_vs(VsInput input HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+      float4 forcefield_sphere = spheres[instance_id];
+      float3 worldPos = input.pos.xyz*forcefield_sphere.w + forcefield_sphere.xyz;
+
+      output.pos = mulPointTm(worldPos, globtm);
+      output.pointToEye.xyz = world_view_pos-worldPos;
+      output.pointToEye.w = output.pos.w;
+      output.sphere_center_invR = float4(forcefield_sphere.xyz, 1.0 / forcefield_sphere.w);
+      output.normal = normalize(input.pos.xyz);
+      return output;
+    }
+  }
+endmacro
+
+macro FORCEFIELD_APPLY(get_forcefield_color_fn, is_fullscreen, forcefield_pack_hdr)
+  supports global_frame;
+  if (is_fullscreen)
+  {
+    z_test = false; z_write=false;
+  }
+  else
+  {
+    channel float3 pos = pos;
+    z_test = true; z_write = false;
+    (vs) { globtm@f44 = globtm; }
+  }
+
+  cull_mode = none;
+  blend_src = one; blend_dst = sa;
+  //do not modify alpha to allow storing extra data from main pass in it
+  color_write = rgb;
+
+  INIT_UPSCALE_SAMPLING()
+  USE_UPSCALE_SAMPLING()
+  INIT_HDR(ps)
+  USE_HDR(ps)
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+    };
+  }
+  if (is_fullscreen)
+  {
+    hlsl(vs) {
+      VsOutput forcefield_apply_vs(uint vertexId : SV_VertexID)
+      {
+        VsOutput output;
+        float2 inpos = get_fullscreen_inpos(vertexId);
+
+        output.pos = float4(inpos,0,1);
+
+        return output;
+      }
+    }
+  }
+  else
+  {
+    hlsl(vs) {
+      float4 forcefield_sphere:register(c16);
+
+      VsOutput forcefield_apply_vs(float3 pos : POSITION)
+      {
+        VsOutput output;
+        float3 worldPos = pos.xyz * forcefield_sphere.w + forcefield_sphere.xyz;
+        output.pos = mulPointTm(worldPos, globtm);
+        return output;
+      }
+    }
+  }
+  USE_SCREENPOS_TO_TC()
+  USE_SCREENPOS_TO_LOWRES_TC()
+
+  if (mobile_render == deferred) {
+    USE_SUBPASS_LOADS()
+    INIT_SUBPASS_LOAD_DEPTH_GBUFFER(SP_PANORAMA_REG_DEPTH, SP_PANORAMA_IA_DEPTH)
+    USE_SUBPASS_LOAD_DEPTH_GBUFFER()
+  }
+
+
+  (ps) { low_res_forcefield@smp2d = low_res_forcefield; }
+
+  hlsl(ps) {
+    float4 forcefield_apply_ps(VsOutput input HW_USE_SCREEN_POS) :SV_Target
+    {
+      float4 pos = GET_SCREEN_POS(input.pos);
+      float2 tc = pos.xy * screen_pos_to_texcoord.xy;
+      float2 lowres_tc = screen_pos_to_lowres_tc(pos.xy);
+
+    ##if mobile_render == deferred
+      float depth = loadGbufferDepth(tc);
+      if (depth >= input.pos.z)
+        discard;
+    ##endif
+
+    ##if !use_bilateral_upscale
+      float4 outColor = h4tex2Dlod(low_res_forcefield, float4(lowres_tc, 0, 0));
+    ##else
+      half4 lowResR = low_res_forcefield.GatherRed(low_res_forcefield_samplerstate,lowres_tc);
+      half4 lowResG = low_res_forcefield.GatherGreen(low_res_forcefield_samplerstate,lowres_tc);
+      half4 lowResB = low_res_forcefield.GatherBlue(low_res_forcefield_samplerstate,lowres_tc);
+      half4 lowResA = low_res_forcefield.GatherAlpha(low_res_forcefield_samplerstate,lowres_tc);
+
+      float4 weight = SampleUpscaleWeight(pos.xy);
+
+      float4 res = float4(dot(lowResR,weight),dot(lowResG,weight),dot(lowResB,weight),dot(lowResA,weight));
+      float4 outColor = get_forcefield_color_fn(res, tc);
+    ##endif
+
+      ##if forcefield_pack_hdr
+        outColor.rgb = pack_hdr(outColor.rgb);
+      ##endif
+      return outColor;
+    }
+  }
+endmacro

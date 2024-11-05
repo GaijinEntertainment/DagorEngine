@@ -8,6 +8,28 @@
 
 // #define MODFX_TEX_DEBUG_ENABLED 1
 
+
+#if MODFX_DEBUG_RENDER_ENABLED
+  #undef MODFX_USE_SHADOW
+  #define MODFX_USE_SHADOW 0
+
+  #undef DAFX_USE_CLOUD_SHADOWS
+  #define DAFX_USE_CLOUD_SHADOWS 0
+
+  #undef MODFX_USE_GI
+  #define MODFX_USE_GI 0
+
+  #undef MODFX_USE_FOG
+  #define MODFX_USE_FOG 0
+
+  #undef MODFX_USE_FOG_PS_APPLY
+  #define MODFX_USE_FOG_PS_APPLY 0
+
+  #undef FX_FOG_MULT_ALPHA
+  #define FX_FOG_MULT_ALPHA 0
+#endif
+
+
 #if !APPLY_VOLUMETRIC_FOG
   #undef MODFX_USE_FOG_PS_APPLY
   #define MODFX_USE_FOG_PS_APPLY 0 // no per-pixel fog apply if we don't have volfog at all
@@ -87,6 +109,7 @@
     #endif
   #endif
 #endif
+    nointerpolation uint draw_call_id : TEXCOORD6;
   };
 
   float2 rotate_point(float2 pos, float angle_cos, float angle_sin, float inv_scale)
@@ -141,7 +164,7 @@
 #if !MODFX_RIBBON_SHAPE
   // disabled for ribbons for now (it has a completely different pos/tc calc)
   #if MODFX_USE_FRAMEBOUNDS
-    if (finfo.boundary_id_offset != DAFX_INVALID_BOUNDARY_OFFSET)
+    if (dafx_frame_boundary_buffer_enabled && finfo.boundary_id_offset != DAFX_INVALID_BOUNDARY_OFFSET)
     {
       float4 frame_boundary = structuredBufferAt(dafx_frame_boundary_buffer, finfo.boundary_id_offset + frame_idx);
 
@@ -164,10 +187,10 @@
         frame_boundary = float4(minPos, maxPos);
       }
 
-      if ( frame_flags & MODFX_FRAME_FLAGS_RANDOM_FLIP_X )
+      if ( frame_flags & MODFX_FRAME_FLAGS_FLIP_X )
         frame_boundary.xz = 1 - frame_boundary.zx;
 
-      if (frame_flags & MODFX_FRAME_FLAGS_RANDOM_FLIP_Y )
+      if (frame_flags & MODFX_FRAME_FLAGS_FLIP_Y )
         frame_boundary.yw = 1 - frame_boundary.wy;
 
       delta = lerp(frame_boundary.xy, frame_boundary.zw, delta);
@@ -177,9 +200,9 @@
     float2 delta_tc = float2( delta.x, 1.f - delta.y );
 #endif
 
-    if ( frame_flags & MODFX_FRAME_FLAGS_RANDOM_FLIP_X )
+    if ( frame_flags & MODFX_FRAME_FLAGS_FLIP_X )
       delta_tc.x = 1.f - delta_tc.x;
-    if ( frame_flags & MODFX_FRAME_FLAGS_RANDOM_FLIP_Y )
+    if ( frame_flags & MODFX_FRAME_FLAGS_FLIP_Y )
       delta_tc.y = 1.f - delta_tc.y;
 
     // delta_tc *= crop.x;
@@ -291,11 +314,18 @@
     }
 #endif
 
-  VsOutput dafx_bboard_vs( uint vertex_id : SV_VertexID HW_USE_INSTANCE_ID )
+  float get_placement_height(float3 pos, float placement_threshold, bool terrainOnly)
+  {
+    place_fx_above(pos, placement_threshold, terrainOnly);
+    return pos.y;
+  }
+
+
+  VsOutput dafx_bboard_vs( uint vertex_id : SV_VertexID, uint draw_call_id : TEXCOORD0 HW_USE_INSTANCE_ID )
   {
     GlobalData gdata = global_data_load();
     DafxRenderData ren_info;
-    dafx_get_render_info( instance_id, ren_info );
+    dafx_get_render_info( instance_id, vertex_id, draw_call_id, ren_info );
 
     ModfxParentRenData parent_data;
     dafx_preload_parent_ren_data( 0, ren_info.parent_ofs, parent_data );
@@ -409,11 +439,16 @@
 #endif
     }
 
-#if MODFX_ABOVE_DEPTH_PLACEMENT
-    ModfxDeclRenderPlacementParams placementParams = ModfxDeclRenderPlacementParams_load(0, parent_data.mods_offsets[MODFX_RMOD_RENDER_PLACEMENT_PARAMS]);
-    if (!place_fx_above(rdata.pos, placementParams.placement_threshold, placementParams.terrain_only))
-      is_dead = true;
-#endif
+    float placementNormalOffset = -1;
+    if ( parent_data.mods_offsets[MODFX_RMOD_RENDER_PLACEMENT_PARAMS] )
+    {
+      ModfxDeclRenderPlacementParams placementParams = ModfxDeclRenderPlacementParams_load(0, parent_data.mods_offsets[MODFX_RMOD_RENDER_PLACEMENT_PARAMS]);
+      bool terrainOnly = placementParams.flags & MODFX_GPU_PLACEMENT_HMAP; // TODO: make it more dynamic
+      if (!place_fx_above(rdata.pos, placementParams.placement_threshold, terrainOnly))
+        is_dead = true;
+      else
+        placementNormalOffset = placementParams.align_normals_offset;
+    }
 
     float3 view_dir = gdata.world_view_pos - rdata.pos;
     float view_dir_dist = length( view_dir );
@@ -648,6 +683,23 @@
       rotated_up_vec = angle_sin * right_vec + angle_cos * up_vec;
     }
 
+    BRANCH
+    if ( placementNormalOffset > 0 )
+    {
+      ModfxDeclRenderPlacementParams placementParams = ModfxDeclRenderPlacementParams_load(0, parent_data.mods_offsets[MODFX_RMOD_RENDER_PLACEMENT_PARAMS]);
+      bool terrainOnly = placementParams.flags & MODFX_GPU_PLACEMENT_HMAP; // TODO: make it more dynamic
+
+      half W = get_placement_height(rdata.pos + float3(-placementNormalOffset, 0, 0), placementParams.placement_threshold, terrainOnly);
+      half E = get_placement_height(rdata.pos + float3(+placementNormalOffset, 0, 0), placementParams.placement_threshold, terrainOnly);
+      half N = get_placement_height(rdata.pos + float3(0, 0, -placementNormalOffset), placementParams.placement_threshold, terrainOnly);
+      half S = get_placement_height(rdata.pos + float3(0, 0, +placementNormalOffset), placementParams.placement_threshold, terrainOnly);
+      float3 placementWorldNormal = float3(W-E, 2*placementNormalOffset, N-S); // no need to normalize it on its own
+
+      // particle "forward direction" (parallel to velocity dir) is up_vec, so we need that to align with the projected world normal
+      rotated_up_vec = normalize( cross( view_dir_norm, placementWorldNormal ) );
+      rotated_right_vec = normalize( cross( view_dir_norm, rotated_up_vec ) );
+    }
+
 #if !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT || MODFX_SHADER_VOLSHAPE_DEPTH)
     if ( MOD_ENABLED( parent_data.mods, MODFX_RMOD_SHAPE_ADAPTIVE_ALIGNED ) )
     {
@@ -682,7 +734,10 @@
 
 #endif
 
+    VsOutput vs_out;
+
     wpos += camera_offset * view_dir_norm;
+    vs_out.pos = mul( float4( wpos, 1.f ), gdata.globtm );
 
     float3 lighting = 0;
     bool isModfxOmniLightEnabled = FLAG_ENABLED( flags, MODFX_RFLAG_OMNI_LIGHT_ENABLED );
@@ -692,10 +747,9 @@
       lighting = get_omni_lighting(wpos.xyz, pp.pos, pp.radius, pp.color);
     }
 
-    VsOutput vs_out;
 #if MODFX_USE_GI
     if ( FLAG_ENABLED( flags, MODFX_RFLAG_LIGHTING_AMBIENT_ENABLED ) )
-      vs_out.ambient.rgb = ambient_calculating(wpos, gdata.world_view_pos, gdata.sky_color);
+      vs_out.ambient.rgb = ambient_calculating(wpos, gdata.world_view_pos, gdata.sky_color, vs_out.pos);
     else
       vs_out.ambient.rgb = gdata.sky_color;
 #endif
@@ -704,8 +758,6 @@
     if (!is_dead)
       is_dead = cull_away_rain(rdata.pos - float3(0, rdata.radius, 0)); //Always test with bottom
 #endif
-
-    vs_out.pos = mul( float4( wpos, 1.f ), gdata.globtm );
 
 #if MODFX_BBOARD_LIGHTING_FROM_CLUSTERED_LIGHTS
     BRANCH
@@ -735,7 +787,7 @@
 #endif
     vs_out.color = rdata.color;
     vs_out.emission.rgb = emission_mask;
-#if MODFX_USE_SHADOW || MODFX_USE_LIGHTING
+#if MODFX_USE_SHADOW || MODFX_USE_LIGHTING || DAFX_USE_CLOUD_SHADOWS
     #if MODFX_USE_SHADOW || DAFX_USE_CLOUD_SHADOWS
       vs_out.lighting.a = 1.f;
     #endif
@@ -794,7 +846,9 @@
 #endif
 
 #if MODFX_USE_FOG
+    float stc_raw_depth = vs_out.pos.w > 0 ? vs_out.pos.z / vs_out.pos.w : 0;
     float2 stc = vs_out.pos.w > 0 ? vs_out.pos.xy * RT_SCALE_HALF / vs_out.pos.w + float2(0.5, 0.5) : 0;
+    stc = reproject_scattering(stc, stc_raw_depth);
     #if MODFX_USE_FOG_PS_APPLY
       float tcZ;
       vs_out.scattering_base = get_scattering_tc_scatter_loss(stc, view_dir_norm, view_dir_dist, tcZ);
@@ -831,6 +885,11 @@
 
     if ( is_dead )
       vs_out.pos = float4(-2,-2,1,1);
+
+    if( FLAG_ENABLED( flags, MODFX_RFLAG_GAMMA_CORRECTION ) )
+      vs_out.color.rgb = pow2(vs_out.color.rgb);
+
+    vs_out.draw_call_id = draw_call_id;
 
     return vs_out;
   }
@@ -877,30 +936,87 @@
   }
 #endif
 
+
+  float3 calc_debug_color(float2 delta_xy, float delta_scale, float border_scale, float center_scale)
+  {
+    float2 dd = delta_xy.xy * 0.5 + 0.5;
+
+    float border = 0;
+    float tt = 0.05;
+    if ( dd.x < tt || dd.x > ( 1 - tt ) )
+      border = 1;
+
+    if ( dd.y < tt || dd.y > ( 1 - tt ) )
+      border = 1;
+
+    float center = 0;
+    if ( dot( delta_xy, delta_xy ) < 0.3 )
+      center = 1;
+
+    dd *= delta_scale;
+    border *= border_scale;
+    center *= center_scale;
+
+    float3 color;
+    color.r = ( center > 0 ? 1 : 0 );
+    color.gb = ( center > 0 ? 0 : 1 ) * dd;
+    color.rgb += border;
+    color = saturate( color );
+    return color;
+  }
+
+  float3 calc_debug_color(float2 delta_xy)
+  {
+    // default params for debug rendering
+    return calc_debug_color(delta_xy, 0.1, 0.2, 0.3);
+  }
+
 #if !MODFX_SHADER_ATEST && !defined(_HARDWARE_METAL)
   [earlydepthstencil]
 #endif
 #if MODFX_SHADER_VOLFOG_INJECTION
-  void dafx_bboard_ps( VsOutput input HW_USE_SCREEN_POS)
+  void dafx_bboard_ps(VsOutput input HW_USE_SCREEN_POS)
 #elif MODFX_SHADER_FOM
   FOM_DATA dafx_bboard_ps( VsOutput input HW_USE_SCREEN_POS)
 #elif MODFX_WBOIT_ENABLED
   WBOIT_RET dafx_bboard_ps( VsOutput input HW_USE_SCREEN_POS) WBOIT_TAR
 #else
-  float4 dafx_bboard_ps( VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+  struct PsOutput
+  {
+    float4 color : SV_Target0;
+#if DAFXEX_USE_REACTIVE_MASK
+    float reactive : SV_Target1;
+#endif
+  };
+  PsOutput encode_output(float4 color)
+  {
+    PsOutput output;
+    output.color = color;
+#if DAFXEX_USE_REACTIVE_MASK
+    output.reactive = color.a;
+#endif
+    return output;
+  }
+  PsOutput dafx_bboard_ps(VsOutput input HW_USE_SCREEN_POS)
 #endif
   {
-#if MODFX_SHADER_VOLSHAPE_DEPTH
-    return 0;
-#endif
 
-#if MODFX_USE_INVERTED_POS_W
-    input.pos.w = rcp(input.pos.w);
+#if MODFX_DEBUG_RENDER_ENABLED
+    PsOutput output = encode_output(0);
+#if !MODFX_RIBBON_SHAPE // TODO: add ribbon support for debug rendering
+    output.color.xyz = modfx_pack_hdr(calc_debug_color(input.delta.xy));
+#endif
+    return output;
+#else // MODFX_DEBUG_RENDER_ENABLED
+
+
+#if MODFX_SHADER_VOLSHAPE_DEPTH
+    return encode_output(0);
 #endif
 
     GlobalData gdata = global_data_load();
     DafxRenderData ren_info;
-    dafx_get_render_info( 0, ren_info );
+    dafx_get_render_info_patched( 0, input.draw_call_id, ren_info );
 
     ModfxParentRenData parent_data;
     dafx_preload_parent_ren_data( 0, ren_info.parent_ofs, parent_data );
@@ -916,33 +1032,8 @@
 
 #if !MODFX_RIBBON_SHAPE
 
-#if MODFX_TEX_DEBUG_ENABLED || MODFX_DEBUG_RENDER_ENABLED
-
-    float2 dd = input.delta.xy * 0.5f + 0.5f;
-
-    float border = 0;
-    float tt = 0.05f;
-    if ( dd.x < tt || dd.x > ( 1.f - tt ) )
-      border = 1.f;
-
-    if ( dd.y < tt || dd.y > ( 1.f - tt ) )
-      border = 1.f;
-
-    float center = 0;
-    if ( dot( input.delta, input.delta ) < 0.3f )
-      center = 1;
-
-#if MODFX_DEBUG_RENDER_ENABLED
-    dd *= 0.1;
-    border *= 0.2;
-    center *= 0.3;
-#endif
-
-    input.color.r = ( center > 0 ? 1 : 0 );
-    input.color.gb = ( center > 0 ? 0 : 1 ) * dd;
-    input.color.rgb += border;
-
-    input.color = saturate( input.color );
+#if MODFX_TEX_DEBUG_ENABLED
+    input.color = modfx_pack_hdr( calc_debug_color(input.delta.xy, 1,1,1 ) );
 #endif
 #endif
 
@@ -1014,8 +1105,10 @@
           return fx_fom_null();
         #elif MODFX_WBOIT_PASS_COMBINED
           WboitData wboit_res = (WboitData)0;
-        #else
+        #elif MODFX_WBOIT_ENABLED
           return 0;
+        #else
+          return encode_output(0);
         #endif
       }
     }
@@ -1043,7 +1136,9 @@
     if ( parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK] )
     {
       ModfxDepthMask pp = ModfxDepthMask_load( 0, parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK] );
-      depth_mask = dafx_get_soft_depth_mask(viewport_tc, pp.depth_softness_rcp, gdata);
+      float4 cloud_tc = viewport_tc;
+      cloud_tc.xy = reproject_scattering(cloud_tc.xy, cloud_tc.z / cloud_tc.w);
+      depth_mask = dafx_get_soft_depth_mask(viewport_tc, cloud_tc, pp.depth_softness_rcp, gdata);
     }
 #endif
 
@@ -1152,8 +1247,8 @@
     float zPart = frac(posF.z);
     uint3 volfogTargetId0 = clamp(uint3(posF), 0u, uint3(view_inscatter_volume_resolution.xyz - 1));
     uint3 volfogTargetId1 = clamp(uint3(posF + float3(0,0,1)), 0u, uint3(view_inscatter_volume_resolution.xyz - 1));
-    initial_media[volfogTargetId0] = (1-zPart)*volfogInjection;
-    initial_media[volfogTargetId1] = zPart * volfogInjection;
+    volfog_ff_initial_media_rw[volfogTargetId0] = (1-zPart)*volfogInjection;
+    volfog_ff_initial_media_rw[volfogTargetId1] = zPart * volfogInjection;
     return;
 #endif
 
@@ -1166,10 +1261,17 @@
 #else
     float dst_depth = gdata.zn_zfar.y;
 #endif
+    float znear_offset = 0.f;
+    if (parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK])
+    {
+      ModfxDepthMask pp = ModfxDepthMask_load(0, parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK]);
+      znear_offset = pp.znear_clip_offset;
+    }
+
     float src_depth = linearize_z(viewport_tc.z, gdata.zn_zfar.zw) - input.life_radius.z;
     float offset = saturate(1.f - dot(input.delta, input.delta)) * input.life_radius.y;
     float far_depth = min(src_depth + offset, dst_depth);
-    float near_depth = max(min(src_depth - offset, dst_depth), gdata.zn_zfar.x);
+    float near_depth = max(min(src_depth - offset, dst_depth), gdata.zn_zfar.x + znear_offset);
 
     float thickness = pow( max(far_depth - near_depth, 0) / (input.life_radius.y*2.f), radius_pow ) * (input.life_radius.y*2.f) * thickness_mul;
     float vol_alpha = 1.f - saturate( exp2( -2.f * thickness) );
@@ -1180,6 +1282,11 @@
     alpha *= vol_alpha;
 
 #if MODFX_SHADER_VOLSHAPE_WBOIT_APPLY
+
+#ifdef DAFXEX_CLOUD_MASK_ENABLED
+    alpha *= dafx_get_screen_cloud_volume_mask(viewport_tc.xy, viewport_tc.w);
+#endif
+
   #if MODFX_WBOIT_PASS_COMBINED
     float4 wboit_accum = tex2D(wboit_color, viewport_tc.xy);
     float wboit_r = wboit_accum.w;
@@ -1191,8 +1298,7 @@
 
     float3 col = wboit_accum.xyz / clamp(wboit_accum.w, 0.0000001f, 1000.f);
     float a = 1.f - wboit_r;
-    // return float4(col * a, a);
-    return float4(col * a, a) * alpha * a;
+    return encode_output(float4(col * a, a) * alpha * a);
 #endif
 
 #endif
@@ -1243,7 +1349,7 @@
       }
       else if ( pp.type == MODFX_LIGHTING_TYPE_NORMALMAP )
       {
-        float2 src_tex_1 = tex2D( g_tex_1, input.tc.xy ).gr;
+        float2 src_tex_1 = tex2D( g_tex_1, input.tc.xy ).rg;
         if ( FLAG_ENABLED( flags, MODFX_RFLAG_FRAME_ANIMATED_FLIPBOOK ) )
           src_tex_1 = lerp( src_tex_1, tex2D( g_tex_1, input.tc.zw ).rg, input.frame_blend );
 
@@ -1308,7 +1414,7 @@
     if (depthHaze <= depthScene)
     {
       discard;
-      return 0;
+      return encode_output(0);
     }
 
     float distortionMod = dafx_get_1f(0, parent_data.mods_offsets[MODFX_RMOD_DISTORTION_STRENGTH]);
@@ -1361,19 +1467,13 @@
 
     result.w *= depth_mask;
 
-#if MODFX_DEBUG_RENDER_ENABLED
-
-    result.xyz = modfx_pack_hdr( input.color.rgb );
-    result.w = 0;
-    return result;
-
-#elif MODFX_SHADER_ATEST
+#if MODFX_SHADER_ATEST
 
     result.xyz += fog_add;
     result.xyz = modfx_pack_hdr( result.xyz );
     clip_alpha( result.w );
     result.w = 1.f;
-    return result;
+    return encode_output(result);
 
 #elif MODFX_SHADER_FOM
 
@@ -1447,9 +1547,11 @@
       return result.w;
     #endif
   #else
-    return result;
-  #endif
+    return encode_output(result);
 #endif
+#endif
+
+#endif // MODFX_DEBUG_RENDER_ENABLED
   }
 
 #endif

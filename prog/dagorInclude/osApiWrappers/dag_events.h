@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -13,7 +12,7 @@
 #include <errno.h>
 #endif
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 #if _TARGET_PC_WIN | _TARGET_XBOX
 typedef void *os_event_t; // see HANDLE declaration in WinNt.h
@@ -51,10 +50,13 @@ enum
 };
 #endif
 
-// all operations return value < 0 on error
-KRNLIMP void os_event_create(os_event_t *event, const char *event_name = NULL);
+// Note: all operations return non zero value on error
+KRNLIMP void os_event_create(os_event_t *event, const char *event_name = NULL, bool manual_reset = false, bool init = false);
 KRNLIMP int os_event_destroy(os_event_t *event);
 KRNLIMP int os_event_set(os_event_t *event);
+KRNLIMP int os_event_reset(os_event_t *e);
 KRNLIMP int os_event_wait(os_event_t *event, unsigned timeout_ms);
+// Warn: must to be called for events created with `manual_reset = true` to be portable
+KRNLIMP int os_event_wait_noreset(os_event_t *event, unsigned timeout_ms);
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

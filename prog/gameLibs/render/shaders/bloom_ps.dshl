@@ -37,28 +37,16 @@ macro POSTFX()
   compile("target_vs", "postfx_vs");
 endmacro
 
-texture luma_tex;
-
 shader frame_bloom_downsample, bloom_downsample_hq, bloom_downsample_lq
 {
   POSTFX()
+  INIT_EXPOSURE(ps)
+  USE_EXPOSURE(ps)
+
   if (shader == bloom_downsample_hq)
   {
     (ps) {
-      Exposure@buf = Exposure hlsl {
-        StructuredBuffer<float> Exposure@buf;
-      };
       bloom_threshold@f1 = bloom_threshold;
-    }
-    // do we use this on ios?
-    bool should_write_log_lum = !hardware.metaliOS && luma_tex != NULL;
-    if (should_write_log_lum)
-    {
-      (ps) {
-        lumaResult@uav = luma_tex hlsl {
-          RWTexture2D<half> lumaResult@uav;
-        }
-      }
     }
   }
   (ps) {
@@ -90,15 +78,8 @@ shader frame_bloom_downsample, bloom_downsample_hq, bloom_downsample_lq
         #define THRESHOLD(a)
       ##elif shader == bloom_downsample_hq
         const bool bKillFireflies = true;
-        float ScaledThreshold = bloom_threshold * Exposure[1];   // BloomThreshold / Exposure
-        ##if should_write_log_lum
-          half luma = 0;
-          //float farCorner = 0.25/4/4, farSide = 0.5/4/4, corner = 1.25/4/4, center = 2/4;
-          //#define THRESHOLD(a) tex=pow2_vec3(tex*0.4);
-          #define THRESHOLD(a) {tex2 = tex; tex = max(0, tex - ScaledThreshold);}
-        ##else
-          #define THRESHOLD(a) {tex2 = tex; tex = max(0, tex - ScaledThreshold);}
-        ##endif
+        float ScaledThreshold = bloom_threshold * getInvExposureScale();   // BloomThreshold / Exposure
+        #define THRESHOLD(a) {tex2 = tex; tex = max(0, tex - ScaledThreshold);}
       ##else
         const bool bKillFireflies = false;
         #define THRESHOLD(a)
@@ -132,9 +113,6 @@ shader frame_bloom_downsample, bloom_downsample_hq, bloom_downsample_lq
       addBlock(blockTL);addBlock(blockBL);
       
       tex = tex2D(_tex0, tc.xy + float2( 0,  0) * TexSize.xy).rgb;
-      ##if shader == bloom_downsample_hq && should_write_log_lum
-        luma += GetLuminance(tex);
-      ##endif
       THRESHOLD(center);
 
       if (bKillFireflies) tex /= 1 + GetLuminance(tex);
@@ -191,22 +169,6 @@ shader frame_bloom_downsample, bloom_downsample_hq, bloom_downsample_lq
         blockCC /= (1 - GetLuminance(blockCC));
       ret.bloomColor = blockCC;
       ##endif
-      ##if shader == bloom_downsample_hq && should_write_log_lum
-
-        const float MinLog = Exposure[4];
-        const float RcpLogRange = Exposure[7];
-        //const float MinLog = -12;
-        //const float RcpLogRange = 1./(4-MinLog);
-        float logLuma = saturate((log2(luma) - MinLog) * RcpLogRange);  // Rescale to [0.0, 1.0]
-        //LumaResult[DTid.xy] = logLuma * 254.0/255.0 + 1./255.0;                    // Rescale to [1, 255]
-        //LumaResult[DTid.xy] = logLuma * 254.0/255.0 + 1.5/255.0;                    // Rescale to [1, 255]
-        //LumaResult[DTid.xy] = luma * 254.0/255.0 + 1.5/255.0;
-        float histPos = luma > 0 ? logLuma * 254.0/255.0 + 1./255.0 : 0;
-        uint2 DTid = uint2(pos.xy);
-        if ((DTid.x&3) == 1 && (DTid.y&3) == 1)//only write 1/4 of resolution in pixels
-          lumaResult[DTid>>2] = histPos;
-        //ret.bloomColor = 0;
-      ##endif
       return ret;
     }
   }
@@ -214,15 +176,18 @@ shader frame_bloom_downsample, bloom_downsample_hq, bloom_downsample_lq
   compile("target_ps", "main");
 }
 
+float4 bloom_upsample_mip_scale = (0.65, 0.65, 0.65, 0.65);
 shader bloom_upsample
 {
   POSTFX()
-  blend_src = bf; blend_dst = ibf;
+  blend_src = 1; blend_dst = bf;
 
   local float4 blur_src_tex_size = get_dimensions(blur_src_tex, 0) * 2;
   (ps) {
     _tex0@smp2d = blur_src_tex;
     params@f4 = (bloom_radius / blur_src_tex_size.x, bloom_radius / blur_src_tex_size.y, 1.0 / blur_src_tex_size.x, 1.0 / blur_src_tex_size.y);
+    //Tentfilter  0.0625f
+    bloom_upsample_mip_scale@f3 = (0.0625*bloom_upsample_mip_scale);
   }
   hlsl(ps) {
 
@@ -242,8 +207,7 @@ shader bloom_upsample
       float3 c7 = tex2D(_tex0, texCoord + float2(0, 1) * offset).rgb;
       float3 c8 = tex2D(_tex0, texCoord + float2(1, 1) * offset).rgb;
 
-      //Tentfilter  0.0625f    
-      return 0.0625f * (c0 + 2 * c1 + c2 + 2 * c3 + 4 * c4 + 2 * c5 + c6 + 2 * c7 + c8);
+      return bloom_upsample_mip_scale.rgb*(c0 + 2 * c1 + c2 + 2 * c3 + 4 * c4 + 2 * c5 + c6 + 2 * c7 + c8);
     }
   }
 

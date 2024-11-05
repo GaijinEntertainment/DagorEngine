@@ -1,0 +1,21 @@
+screen_droplets{
+  _singleton:b=yes
+  "water_droplets_node:dabfg::NodeHandle"{}
+  _tags:t="render"
+  screen_droplets__visible:b=false
+}
+
+screen_droplets_settings{
+  _use:t="replicating"
+  _group{
+    _track:b=yes
+    screen_droplets__has_leaks:b=yes
+    screen_droplets__on_rain_fadeout_radius:r=0.9
+    screen_droplets__screen_time:r=4
+    screen_droplets__rain_cone_max:r=0.5
+    screen_droplets__rain_cone_off:r=-0.25
+    screen_droplets__intensity_direct_control:b=no
+    screen_droplets__intensity_change_rate:r=0.1666667
+    screen_droplets__grid_x:r=2.8
+  }
+}

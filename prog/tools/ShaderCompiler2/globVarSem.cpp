@@ -1,13 +1,16 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "globVarSem.h"
 #include "shsyn.h"
 #include "shExprParser.h"
 #include "semUtils.h"
 #include "shCompiler.h"
+#include "cppStcode.h"
 
 #include "globVar.h"
 #include "samplers.h"
 #include <shaders/dag_shaderCommon.h>
+#include <util/dag_bitwise_cast.h>
 #include "varMap.h"
 #include "intervals.h"
 
@@ -16,25 +19,25 @@ using namespace ShaderTerminal;
 
 namespace ShaderParser
 {
-void error(const char *msg, Terminal *t, ShaderSyntaxParser &parser)
+void error(const char *msg, Symbol *s, ShaderSyntaxParser &parser)
 {
-  if (t)
+  if (s)
   {
     eastl::string str = msg;
-    if (!t->macro_call_stack.empty())
+    if (!s->macro_call_stack.empty())
       str.append("\nCall stack:\n");
-    for (auto it = t->macro_call_stack.rbegin(); it != t->macro_call_stack.rend(); ++it)
+    for (auto it = s->macro_call_stack.rbegin(); it != s->macro_call_stack.rend(); ++it)
       str.append_sprintf("  %s()\n    %s(%i)\n", it->name, parser.get_lex_parser().get_filename(it->file), it->line);
-    parser.get_lex_parser().set_error(t->file_start, t->line_start, t->col_start, str.c_str());
+    parser.get_lex_parser().set_error(s->file_start, s->line_start, s->col_start, str.c_str());
   }
   else
     parser.get_lex_parser().set_error(msg);
 }
 
-static void warning(const char *msg, Terminal *t, ShaderSyntaxParser &parser)
+static void warning(const char *msg, Symbol *s, ShaderSyntaxParser &parser)
 {
-  G_ASSERT(t);
-  parser.get_lex_parser().set_warning(t->file_start, t->line_start, t->col_start, msg);
+  G_ASSERT(s);
+  parser.get_lex_parser().set_warning(s->file_start, s->line_start, s->col_start, msg);
 }
 
 // add a new global variable to a global variable list
@@ -53,6 +56,7 @@ void add_global_var(global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &p
     case SHADER_TOKENS::SHTOK_float4x4: t = SHVT_FLOAT4X4; break;
     case SHADER_TOKENS::SHTOK_texture: t = SHVT_TEXTURE; break;
     case SHADER_TOKENS::SHTOK_buffer: t = SHVT_BUFFER; break;
+    case SHADER_TOKENS::SHTOK_tlas: t = SHVT_TLAS; break;
     case SHADER_TOKENS::SHTOK_const_buffer: t = SHVT_BUFFER; break;
     default: G_ASSERT(0);
   }
@@ -121,7 +125,10 @@ void add_global_var(global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &p
     variable_list[v].array_size = size;
     variable_list[v].index = i;
 
-    Color4 val(0, 0, 0, 1);
+    const bool expectingInt = t == SHVT_INT || t == SHVT_INT4;
+    Color4 val = expectingInt ? Color4{bitwise_cast<float>(0), bitwise_cast<float>(0), bitwise_cast<float>(0), bitwise_cast<float>(1)}
+                              : Color4{0, 0, 0, 1};
+
     ShaderTerminal::arithmetic_expr *expr = nullptr;
     if (i == 0)
       expr = is_array ? decl->arr0 : decl->expr;
@@ -131,18 +138,34 @@ void add_global_var(global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &p
     if (expr)
     {
       ExpressionParser::getStatic().setParser(&parser);
-      if (!ExpressionParser::getStatic().parseConstExpression(*expr, val))
+      shexpr::ValueType expectedValType = shexpr::VT_UNDEFINED;
+      if (t == SHVT_REAL || t == SHVT_INT)
+        expectedValType = shexpr::VT_REAL;
+      else if (t == SHVT_COLOR4 || t == SHVT_INT4)
+        expectedValType = shexpr::VT_COLOR4;
+      else if (t == SHVT_FLOAT4X4)
+      {
+        error("float4x4 default value is not supported", decl->name, parser);
+        return;
+      }
+
+      if (!ExpressionParser::getStatic().parseConstExpression(*expr, val,
+            ExpressionParser::Context{expectedValType, expectingInt, decl->name}))
       {
         error("Wrong expression", decl->name, parser);
         return;
       }
     }
+
     switch (t)
     {
       case SHVT_COLOR4: variable_list[v].value.c4.set(val); break;
       case SHVT_REAL: variable_list[v].value.r = val[0]; break;
-      case SHVT_INT: variable_list[v].value.i = real2int(val[0]); break;
-      case SHVT_INT4: variable_list[v].value.i4.set(real2int(val[0]), real2int(val[1]), real2int(val[2]), real2int(val[3])); break;
+      case SHVT_INT: variable_list[v].value.i = bitwise_cast<int>(val[0]); break;
+      case SHVT_INT4:
+        variable_list[v].value.i4.set(bitwise_cast<int>(val[0]), bitwise_cast<int>(val[1]), bitwise_cast<int>(val[2]),
+          bitwise_cast<int>(val[3]));
+        break;
       case SHVT_FLOAT4X4:
         // default value is not supported
         break;
@@ -150,6 +173,7 @@ void add_global_var(global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &p
         variable_list[v].value.bufId = unsigned(BAD_D3DRESID);
         variable_list[v].value.buf = NULL;
         break;
+      case SHVT_TLAS: variable_list[v].value.tlas = NULL; break;
       case SHVT_TEXTURE:
         variable_list[v].value.texId = unsigned(BAD_TEXTUREID);
         variable_list[v].value.tex = NULL;
@@ -157,9 +181,11 @@ void add_global_var(global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &p
       default: G_ASSERT(0);
     }
   }
+
+  g_cppstcode.globVars.setVar(ShaderVarType(t), decl->name->text);
 }
 
-void add_sampler(sampler_decl *decl, ShaderSyntaxParser &parser) { Sampler::add(*decl, parser); }
+void add_sampler(sampler_decl *decl, ShaderSyntaxParser &parser) { g_sampler_table.add(*decl, parser); }
 
 void add_interval(IntervalList &intervals, interval &interv, ShaderVariant::VarType type, ShaderSyntaxParser &parser)
 {

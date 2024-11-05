@@ -1,0 +1,170 @@
+include "rendinst_opaque_inc.dshl"
+include "normaldetail.dshl"
+include "projectiveDecals/projective_decals_common.dshl"
+
+shader rendinst_projective_decal // blood
+{
+  if (instancing_type != tm_vb)
+  {
+    dont_render;
+  }
+
+  render_stage decal;
+
+  z_write = false;
+  blend_asrc = 0; blend_adst = 1;
+  blend_src = sa; blend_dst = isa;
+
+  static int draw_order = 0 no_warnings;
+  static float4 decal_tc = (0, 0, 1, 1);
+  static float4 box_scale = (1, 1, 1, 0);
+
+  texture tex = material.texture.diffuse;
+  texture normal = material.texture[2];
+  (ps) {
+    diffuse_tex@static = tex;
+    normal_tex@static = normal;
+    decal_tc@f4 = (decal_tc.x, decal_tc.y, decal_tc.z - decal_tc.x, decal_tc.w - decal_tc.y);
+  }
+
+  hlsl {
+    #define BLEND_GBUFFER 1
+  }
+  USE_PIXEL_TANGENT_SPACE()
+  WRITE_GBUFFER()
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack; // not used actually, but need it because RI limitation (assert when no normals)
+
+  supports rendinst_scene;
+
+  ENABLE_MULTI_DRAW(false)
+  RENDINST_INSTANCING()
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+
+      float3 center     : TEXCOORD0;
+      float3 normal     : TEXCOORD1;
+      float3 tangent    : TEXCOORD2;
+      float3 invBoxSize : TEXCOORD3;
+      VSOUT_DRAW_ID
+    };
+  }
+
+  (vs) {
+    view_vecLT@f3 = view_vecLT;
+    box_scale@f3 = box_scale;
+  }
+  INIT_ZNZFAR_STAGE(vs)
+
+  hlsl(vs) {
+    INSTANCING_BUFFERS
+
+    struct VsInput
+    {
+      float3 pos : POSITION;
+    };
+
+    VsOutput projective_decal_vs(VsInput input HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+      #endif
+
+      float3 localPos = input.pos;
+      localPos *= get_box_scale();
+      float3 localNormal = float3(0, 1, 0);
+      float3 localTangent = float3(1, 0, 0);
+      VB_PERFORM_INSTANCING
+
+      output.center = worldLocalPos;
+      output.normal = worldNormal;
+      output.tangent = normalize(localTangent.x * worldLocalX + localTangent.y * worldLocalY + localTangent.z * worldLocalZ);
+      float3 boxSize = float3(length(worldLocalX), length(worldLocalY), length(worldLocalZ)) * get_box_scale();
+      output.invBoxSize = 1.0f / boxSize;
+
+      // special case for RI with zero transform
+      if (any(boxSize.xz < 0.001))
+      {
+        output.pos = NaN;
+        return output;
+      }
+
+      // if camera (or near frustum plane) is inside box then draw 2 fullscreen triangles
+      float3 boxCenterToCamera = world_view_pos - worldLocalPos;
+      float3 cameraProjectedPos = float3(dot(boxCenterToCamera, normalize(worldLocalX)),
+                                         dot(boxCenterToCamera, normalize(worldLocalY)),
+                                         dot(boxCenterToCamera, normalize(worldLocalZ)));
+      if (all(abs(cameraProjectedPos) - length(view_vecLT) * zn_zfar.x < 0.5 * boxSize))
+      {
+        float2 screenTc = localPos.z > 0 ? float2(localPos.x > 0 ? 1 : -1, localPos.y > 0 ? -1 : 1) : float2(NaN, NaN);
+        output.pos = float4(screenTc, 1, 1);
+      }
+      else
+        output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+
+      return output;
+    }
+  }
+
+  USE_DECODE_DEPTH()
+  POJECTIVE_DECALS_WITHOUT_ZN_ZFAR_PS()
+
+  hlsl(ps) {
+    GBUFFER_OUTPUT projective_decal_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      #if SET_UP_MULTIDRAW
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+      #endif
+      half4 screen = GET_SCREEN_POS(input.pos);
+      half3 pointToEye = -get_decal_eye_to_point(screen);
+      half3 worldPos = world_view_pos - pointToEye;
+      half3 decalTC = get_decal_tex_coord_from_world_pos(worldPos, input.center, input.normal, input.tangent);
+      decalTC *= input.invBoxSize.xzy;
+      decalTC.xy /= saturate(1 - abs(decalTC.z) * 2);
+      if (max(abs(decalTC.x), abs(decalTC.y)) > 0.5)
+        discard;
+      decalTC.xy = decalTC.xy + 0.5;
+      decalTC.xy = get_decal_tc().xy + decalTC.xy * get_decal_tc().zw;
+
+      half4 diffuse = tex2DBindless(get_diffuse_tex(), decalTC.xy);
+      half alpha = diffuse.a;
+      half3 surfaceNormal = normalize(cross(ddx(pointToEye), ddy(pointToEye)));
+      half dotNormal = dot(surfaceNormal, input.normal);
+      // Hide decal on opposite side of wall/floor
+      half diffuseBlendFrom = 0; // cos 90 degrees
+      half diffuseBlendTo = -0.5; // cos 120 degrees
+      alpha *= smoothstep(diffuseBlendTo, diffuseBlendFrom, dotNormal);
+      // We can't read normal from gbuf (because write there) and normal from ddx/ddy is very bad on round
+      // surfaces. So just not modify normal when angle is too large. Broken normals look worse than only
+      // diffuse part of blood.
+      half normalBlendFrom = 0.866; // cos 30 degrees
+      half normalBlendTo = 0.5; // cos 60 degrees
+      half normalStrength = smoothstep(normalBlendTo, normalBlendFrom, dotNormal);
+
+      half4 packedNormalMap = tex2DBindless(get_normal_tex(), decalTC.xy);
+      half smoothness = packedNormalMap.r;
+      half metalness = packedNormalMap.b;
+      half3 normalMap = unpack_ag_normal(packedNormalMap);
+      half3 worldNormal = perturb_normal_precise(normalMap, input.normal, pointToEye, decalTC.xy);
+
+      UnpackedGbuffer result;
+      init_gbuffer(result);
+      init_albedo(result, diffuse.rgb);
+      init_normal(result, worldNormal);
+      init_smoothness(result, smoothness);
+      init_metalness(result, metalness);
+
+      half3 alpha3 = half3(alpha, alpha * normalStrength, alpha);
+      return encode_gbuffer_alpha3(result, alpha3, pointToEye, screen);
+    }
+  }
+
+  compile("target_vs", "projective_decal_vs");
+  compile("target_ps", "projective_decal_ps");
+}

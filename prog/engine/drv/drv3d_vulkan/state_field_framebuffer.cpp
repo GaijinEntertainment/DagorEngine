@@ -1,6 +1,9 @@
-#include "device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "state_field_framebuffer.h"
 #include "texture.h"
+#include "execution_context.h"
+#include "device_context.h"
 
 namespace drv3d_vulkan
 {
@@ -22,29 +25,18 @@ void StateFieldFramebufferAttachment::applyTo(uint32_t index, FrontFramebufferSt
 
   if (useSwapchain)
   {
-    // FIXME: regression here, if swapchain depth is smaller than other attachments - it will be not resized
-    // but i did not encountered this case on any of our games
-    if (index >= MRT_INDEX_DEPTH_STENCIL)
+    FormatStore fmt = ctx.swapchain.getActiveMode().colorFormat;
+    actualView.setFormat(
+      state.swapchainSrgbWrite.data && ctx.swapchain.getActiveMode().enableSrgb ? fmt.getSRGBVariant() : fmt.getLinearVariant());
+    // need to update to the actual format of the swapchain as the proxy texture might has
+    // not the right one (a format that can not be represented by TEXFMT_)
+    actualImage = ctx.swapchain.getColorImage();
+    if (actualImage)
     {
-      FormatStore fmt = ctx.swapchain.getActiveMode().getDepthStencilFormat();
-      actualView.setFormat(fmt.getLinearVariant());
-      actualImage = ctx.getSwapchainPrimaryDepthStencilImage();
-    }
-    else
-    {
-      FormatStore fmt = ctx.swapchain.getActiveMode().colorFormat;
-      actualView.setFormat(
-        state.swapchainSrgbWrite.data && ctx.swapchain.getActiveMode().enableSrgb ? fmt.getSRGBVariant() : fmt.getLinearVariant());
-      // need to update to the actual format of the swapchain as the proxy texture might has
-      // not the right one (a format that can not be represented by TEXFMT_)
-      actualImage = ctx.getSwapchainColorImage();
-      if (actualImage)
-      {
-        auto reqFormat = actualView.getFormat();
-        auto replacementFormat = actualImage->getFormat();
-        replacementFormat.isSrgb = reqFormat.isSrgb && replacementFormat.isSrgbCapableFormatType();
-        actualView.setFormat(replacementFormat);
-      }
+      auto reqFormat = actualView.getFormat();
+      auto replacementFormat = actualImage->getFormat();
+      replacementFormat.isSrgb = reqFormat.isSrgb && replacementFormat.isSrgbCapableFormatType();
+      actualView.setFormat(replacementFormat);
     }
   }
   else if (actualImage)
@@ -63,14 +55,15 @@ void StateFieldFramebufferAttachment::applyTo(uint32_t index, FrontFramebufferSt
       fbs.renderPassClass.depthState =
         state.readOnlyDepth.data ? RenderPassClass::Identifier::RO_DEPTH : RenderPassClass::Identifier::RW_DEPTH;
       fbs.renderPassClass.depthStencilFormat = actualView.getFormat();
-      fbs.renderPassClass.colorSamples[0] = actualImage->getSampleCount();
-      fbs.frameBufferInfo.depthStencilAttachment = RenderPassClass::FramebufferDescription::AttachmentInfo(actualImage,
-        get_device().getImageView(actualImage, actualView), actualView);
+      fbs.renderPassClass.depthSamples = actualImage->getSampleCount();
+      fbs.frameBufferInfo.depthStencilAttachment =
+        RenderPassClass::FramebufferDescription::AttachmentInfo(actualImage, actualImage->getImageView(actualView), actualView);
     }
     else
     {
       fbs.renderPassClass.depthState = RenderPassClass::Identifier::NO_DEPTH;
       fbs.renderPassClass.depthStencilFormat = FormatStore(0);
+      fbs.renderPassClass.depthSamples = UCHAR_MAX;
       fbs.frameBufferInfo.depthStencilAttachment = RenderPassClass::FramebufferDescription::AttachmentInfo();
     }
   }
@@ -82,13 +75,14 @@ void StateFieldFramebufferAttachment::applyTo(uint32_t index, FrontFramebufferSt
       fbs.renderPassClass.colorTargetMask |= 1 << index;
       fbs.renderPassClass.colorFormats[index] = actualView.getFormat();
       fbs.renderPassClass.colorSamples[index] = actualImage->getSampleCount();
-      fbs.frameBufferInfo.colorAttachments[index] = RenderPassClass::FramebufferDescription::AttachmentInfo(actualImage,
-        get_device().getImageView(actualImage, actualView), actualView);
+      fbs.frameBufferInfo.colorAttachments[index] =
+        RenderPassClass::FramebufferDescription::AttachmentInfo(actualImage, actualImage->getImageView(actualView), actualView);
     }
     else
     {
       fbs.renderPassClass.colorTargetMask &= ~(1 << index);
       fbs.renderPassClass.colorFormats[index] = FormatStore(0);
+      fbs.renderPassClass.colorSamples[index] = UCHAR_MAX;
       fbs.frameBufferInfo.colorAttachments[index] = RenderPassClass::FramebufferDescription::AttachmentInfo();
     }
   }
@@ -248,7 +242,7 @@ void StateFieldFramebufferAttachment::set(const StateFieldFramebufferAttachment:
   if (v.tex)
   {
     BaseTex *base = cast_to_texture_base(v.tex);
-    image = base->getDeviceImage(true);
+    image = base->getDeviceImage();
     useSwapchain = image == nullptr;
     view = base->getViewInfoRenderTarget(v.mip, v.layer);
   }
@@ -280,7 +274,7 @@ bool StateFieldFramebufferAttachment::diff(const StateFieldFramebufferAttachment
     return (image != nullptr) || useSwapchain;
 
   BaseTex *base = cast_to_texture_base(v.tex);
-  Image *img = base->getDeviceImage(true);
+  Image *img = base->getDeviceImage();
 
   if (img == nullptr) // v.tex is "swapchain"
     return !useSwapchain;

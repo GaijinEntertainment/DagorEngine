@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "../publicInclude/spirv/traits_table.h"
 using namespace spirv;
 static const char *extension_name_table[] = //

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/dagFileRW/dagFileNode.h>
 #include <libTools/dagFileRW/dagFileFormat.h>
 #include <libTools/dagFileRW/sceneImpIface.h>
@@ -265,6 +267,8 @@ int MyLoadCB::load_node_data(char *name, uint16_t id, int cnum, int flg)
     cnode->flags |= NODEFLG_CASTSHADOW;
   if (flg & IMP_NF_RCVSHADOW)
     cnode->flags |= NODEFLG_RCVSHADOW;
+  if (flg & IMP_NF_POINTCLOUD)
+    cnode->flags |= NODEFLG_POINTCLOUD;
   return 1;
 }
 
@@ -322,7 +326,7 @@ int MyLoadCB::load_node_mesh(Mesh *m)
       return 0;
     }
     m->kill_bad_faces();
-    if (m->getFace().size() <= 0)
+    if (m->getFace().size() <= 0 && !(cnode->flags & NODEFLG_POINTCLOUD))
       logerr("warning: node <%s> from <%s> has mesh with 0 faces", cnode->name.str(), fname);
     if (!m->check_mesh())
     {

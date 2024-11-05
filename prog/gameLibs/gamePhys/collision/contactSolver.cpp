@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gamePhys/collision/contactSolver.h>
 
 #include <gamePhys/collision/collisionObject.h>
@@ -429,7 +431,7 @@ void ContactSolver::integrateVelocity(double /* dt */)
 
     state.location = phys->getCurrentStateLoc();
     state.velocity = phys->getCurrentStateVelocity();
-    state.omega = phys->getCurrentStateOmega();
+    state.omega = dpoint3(state.location.O.getQuat() * phys->getCurrentStateOmega());
   }
 }
 
@@ -970,7 +972,7 @@ void ContactSolver::update(double at_time, double dt)
 
     state.shouldCheckContactWithGround = true;
 
-    body.phys->setCurrentMinimalState(state.location, state.velocity, state.omega);
+    body.phys->setCurrentMinimalState(state.location, state.velocity, dpoint3(inverse(state.location.O.getQuat()) * state.omega));
 
     if (!(body.flags & Flags::Sleepable))
       continue;
@@ -1010,4 +1012,40 @@ bool ContactSolver::isContactBetween(IPhysBase *bodyA, IPhysBase *bodyB) const
           (bodies[p.indexA].phys == bodyB && bodies[p.indexB].phys == bodyA)))
       return true;
   return false;
+}
+
+
+void ContactSolver::drawDebugCollisions()
+{
+  for (const Body &body : bodies)
+  {
+    if (!body.phys)
+      continue;
+    const auto objects = body.phys->getCollisionObjects();
+    for (const auto &co : objects)
+    {
+      if (!co.body)
+        continue;
+      co.body->drawDebugCollision(0xffffaaffu, true);
+    }
+  }
+}
+
+void ContactSolver::drawDebugContacts()
+{
+  Tab<ContactManifoldPoint> manifold;
+  cache.getManifold(manifold);
+  for (const auto &p : manifold)
+  {
+    if (unsigned(p.indexA) >= bodies.size() || unsigned(p.indexB) >= bodies.size() || bodies[p.indexA].phys == nullptr ||
+        bodies[p.indexB].phys == nullptr)
+      continue;
+
+    const TMatrix &tmA = getState(p.indexA).location.makeTM();
+    const TMatrix &tmB = getState(p.indexB).location.makeTM();
+    const Point3 cA = tmA * bodies[p.indexA].phys->getCenterOfMass();
+    const Point3 cB = tmB * bodies[p.indexB].phys->getCenterOfMass();
+    draw_cached_debug_line(cA, cA + p.rA, 0xff00ff00u);
+    draw_cached_debug_line(cB, cB + p.rB, 0xff00ff00u);
+  }
 }

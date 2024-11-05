@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <3d/dag_picMgr.h>
@@ -17,7 +18,6 @@ struct AsyncLoadRequest
   IGuiScene *scene = nullptr;
   Point2 tcLt = Point2(0, 0);
   Point2 tcRb = Point2(0, 0);
-  Point2 picSize = Point2(0, 0);
 
   bool isActive() { return pic != nullptr; }
 };
@@ -27,12 +27,12 @@ class PicAsyncLoad
 {
 public:
   static AsyncLoadRequest *make_request(Picture *pic);
-  static void wait_for_load(AsyncLoadRequest *req);
+  static void insert_pending(AsyncLoadRequest *req);
   static void cancel_waiting(AsyncLoadRequest *req);
   static void on_scene_shutdown(IGuiScene *gui_scene);
 
-  static void pic_mgr_async_load_cb(PICTUREID pid, TEXTUREID tid, const Point2 *tcLt, const Point2 *tcRb, const Point2 *picture_sz,
-    void *arg);
+  static void pic_mgr_async_load_cb(PICTUREID pid, TEXTUREID tid, d3d::SamplerHandle smp, const Point2 *tcLt, const Point2 *tcRb,
+    const Point2 *picture_sz, void *arg);
 };
 
 

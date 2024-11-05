@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_brotliIo.h>
 #include <brotli/decode.h>
 

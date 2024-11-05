@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <stdlib.h>
 #include <fstream>
 #include <string.h>
@@ -32,7 +34,7 @@ void load(float error_threshold1, int point_limit1, Map *DEM, Mesh &m, float cel
   greedy_insertion();
   generate_output(m, cell, ofs, DEM);
   delete_obj(mesh);
-  debug_ctx("delmem used %dK (of %dK allocated in %d pools)", rm_alloc.getPoolUsedSize() >> 10, rm_alloc.getPoolAllocatedSize() >> 10,
+  DEBUG_CTX("delmem used %dK (of %dK allocated in %d pools)", rm_alloc.getPoolUsedSize() >> 10, rm_alloc.getPoolAllocatedSize() >> 10,
     rm_alloc.getPoolsCount());
   delmem = NULL;
 }

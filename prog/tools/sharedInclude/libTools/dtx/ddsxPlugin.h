@@ -1,7 +1,5 @@
-#ifndef __GAIJIN_DDSXPLUGIN_H__
-#define __GAIJIN_DDSXPLUGIN_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 // public interface implemented on editor side
 namespace ddsx
@@ -160,6 +158,4 @@ public:
 #define DDSX_GET_PLUGIN_PROC "get_plugin"
 #else
 #define DDSX_GET_PLUGIN_PROC "_get_plugin@4"
-#endif
-
 #endif

@@ -33,7 +33,7 @@ macro SAMPLE_VOXELS_25D(code)
     }
     uint getRawVoxel25dBufDataAlpha4(uint address)
     {
-      return address < VOXEL_25D_MAX_ALPHA_ADDRESS ? getRawVoxel25dBufDataAlpha4Unsafe(address) : 0;
+      return address < VOXEL_25D_MAX_ALPHA_ADDRESS ? getRawVoxel25dBufDataAlpha4Unsafe(min(address, VOXEL_25D_MAX_ALPHA_ADDRESS - 1 )) : 0;
     }
     uint getRawVoxel25dBufDataAlpha(uint3 dtId)
     {

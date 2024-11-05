@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_genIo.h>
 #include <math/dag_math3d.h>
 #include <math/dag_mathUtils.h>
@@ -59,7 +61,7 @@ bool DeserializedStaticSceneRayTracerT<FI>::_serializedLoad(IGenLoad &cb, unsign
   if (memcmp(sign, "RTdump", 6) != 0 ||
       ((version != LEGACY_VERSION && version != CURRENT_VERSION) || !is_supported_compression(compression)))
   {
-    debug_ctx("bad signature or version mismatch (sign=%.6s version=%d compression %d ver=%0x)", sign, version, (int)compression, ver);
+    DEBUG_CTX("bad signature or version mismatch (sign=%.6s version=%d compression %d ver=%0x)", sign, version, (int)compression, ver);
     return false;
   }
   // curmem = midmem;

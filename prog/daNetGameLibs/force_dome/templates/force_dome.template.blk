@@ -1,0 +1,43 @@
+force_dome_resources{
+  _use:t="replicating"
+  _singleton:b=yes
+  _group{
+    _tags:t="render"
+    "force_dome_resources:ForceDomeResources"{}
+    "force_dome__texture:SharedTexHolder"{}
+    force_dome__texture_res:t="force_field_hexagon_tex_n"
+    force_dome__texture_var:t="forcedome_diffuse_texture"
+  }
+  _group{
+    _track:b=yes
+    force_dome__texture_scale:r=0.1
+    force_dome__color:p4=0, 0.5, 1, 0.2
+    force_dome__brightness:r=1
+    force_dome__edge_thinness:r=30
+    force_dome__edge_intensity:r=200
+    force_dome__hit_effect_name:t=""
+    force_dome__hit_effect_scale:r=1
+  }
+}
+
+force_dome{
+  _use:t="replicating"
+  force_dome__position:p3=0, 0, 0
+  force_dome__radius:r=1
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  collres__res:t="hemisphere_dome_collision"
+  collres{}
+}
+
+force_dome_sound{
+  _use:t="replicating"
+  _singleton:b=yes
+  _group{
+    _tags:t="sound"
+    "force_dome_sound__event:SoundEvent"{}
+    force_dome_sound__path:t="events/moonbase/player/effects/energy_field"
+    force_dome_sound__enterPath:t="events/moonbase/player/effects/energy_filed_enter"
+    force_dome_sound__hearingRange:r=45
+    force_dome_sound__isInside:b=false
+  }
+}

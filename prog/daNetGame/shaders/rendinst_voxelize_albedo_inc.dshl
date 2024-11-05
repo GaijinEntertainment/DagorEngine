@@ -1,0 +1,95 @@
+include "dagi_albedo_scene_common.dshl"
+include "giHelpers/voxelize_gs.dshl"
+
+macro COMPILE_RI_VS_TARGET_WITH_TESSELLATION(entry, use_tessellation)
+  if (use_tessellation)
+  {
+    compile("target_vs_for_tess", entry);
+  }
+  else
+  {
+    compile("target_vs", entry);
+  }
+endmacro
+
+macro COMPILE_RI_VS_TARGET(entry)
+  COMPILE_RI_VS_TARGET_WITH_TESSELLATION(entry, false)
+endmacro
+
+macro RI_NO_VOXELIZE_CODE()
+  hlsl {
+    #define VOXEL_CENTROID
+  }
+  hlsl(vs) {
+    #if defined(INSTANCE_ID_DIVISOR) || defined(PROCESS_OUTPUT)
+      #error RI_VOXELIZE_ALBEDO() should be called before RENDINST_INSTANCING()
+    #endif
+    #define INSTANCE_ID_DIVISOR 1
+    #define PROCESS_OUTPUT(POS, WORLD_POS)
+  }
+endmacro
+
+macro RI_NO_VOXELIZE()
+  if (rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
+  {
+    dont_render;
+  }
+  RI_NO_VOXELIZE_CODE()
+endmacro
+
+macro RI_VOXELIZE_ALBEDO()
+  if (rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
+  {
+    if (mobile_render != off)
+    {
+      dont_render;
+    }
+    z_write=false;z_test=false;
+    cull_mode = none;
+
+    hlsl {
+      #define VOXELIZE_ALBEDO_PASS 1
+    }
+    DAGI_ALBEDO_WRITE_USE(ps)
+
+    hlsl {
+      #define GsOutput VsOutput
+      #define VOXEL_CENTROID centroid
+    }
+    USE_VOXELIZE_SPACE(vs)
+    hlsl(vs) {
+      #if defined(INSTANCE_ID_DIVISOR) || defined(PROCESS_OUTPUT)
+        #error RI_VOXELIZE_ALBEDO() should be called before RENDINST_INSTANCING()
+      #endif
+      #define INSTANCE_ID_DIVISOR 3
+      //xyz, yzx, xzy
+      #define PROCESS_OUTPUT(POS, WORLD_POS) POS = worldPosToVoxelSpace(WORLD_POS, voxelize_axis)
+    }
+    hlsl(ps) {
+      #if _HARDWARE_JUST_DX11
+        #define VOXELIZE_DISCARD_CALL shouldDiscard = true
+        #define VOXELIZE_PRE_DISCARD bool shouldDiscard = false
+        #define VOXELIZE_DISCARD_LATER {if (shouldDiscard) discard;}
+      #else
+        #define VOXELIZE_DISCARD_CALL discard
+        #define VOXELIZE_PRE_DISCARD
+        #define VOXELIZE_DISCARD_LATER
+      #endif
+      #define VOXELIZE_DISCARD_PRIM VOXELIZE_PRE_DISCARD; \
+        {\
+          if (!dagi_should_write_albedo(world_view_pos-input.pointToEye.xyz))\
+            VOXELIZE_DISCARD_CALL; \
+        }
+      #define WRITE_SCENE25D_VOXEL_DATA(worldPos, voxelAlbedo, emisStr, emisCol) \
+        { \
+          VOXELIZE_DISCARD_LATER; \
+          float4 emissionColor = emisCol; \
+          dagi_write_updated_albedo_legacy(worldPos.xyz, voxelAlbedo + emisStr*emissionColor.rgb*lerp(1, voxelAlbedo.rgb, emissionColor.a), 0.5);\
+        }
+    }
+    //VOXELIZE_GS(0, 1)
+  } else
+  {
+    RI_NO_VOXELIZE_CODE()
+  }
+endmacro

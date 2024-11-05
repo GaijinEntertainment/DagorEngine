@@ -1,7 +1,5 @@
-#ifndef __GAIJIN_SPLASH_SCREEN_
-#define __GAIJIN_SPLASH_SCREEN_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 class SplashScreen
 {
@@ -21,6 +19,3 @@ private:
   static unsigned registerSplashClass();
   static int __stdcall wndProc(void *h_wnd, unsigned msg, void *w_param, void *l_param);
 };
-
-
-#endif //__GAIJIN_SPLASH_SCREEN_

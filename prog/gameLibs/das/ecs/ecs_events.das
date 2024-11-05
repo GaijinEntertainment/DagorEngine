@@ -9,7 +9,7 @@ require %daslib/type_traits public
 //  if evt.eventType == get_ecs_event_type(type<MyEvent>)
 [template(t), unused_argument(t)]
 def get_ecs_event_type(t : auto(T))
-  let evt_name = typeinfo(undecorated_typename type<T- const>)
+  let evt_name = typeinfo(undecorated_typename type<T -const>)
   return ecs_hash(evt_name)
 
 

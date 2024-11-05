@@ -1,0 +1,20 @@
+R"(/* shader: %s, stcode header */ // <- shader file name
+#pragma once
+
+#ifndef __GENERATED_STCODE_FILE
+  #error This file can only be included in generated stcode
+#endif
+
+namespace stcode::cpp
+{
+
+namespace _%s // <- shader file name
+{
+
+// declarations of stcode routines
+%s
+
+}
+
+}
+)"

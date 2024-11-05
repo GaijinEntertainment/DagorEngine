@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <anim/dag_animPostBlendCtrl.h>
 #include <anim/dag_animKeyInterp.h>
 #include <math/dag_quatInterp.h>
@@ -6,6 +8,7 @@
 #include <math/dag_mathAng.h>
 #include <debug/dag_fatal.h>
 #include <ioSys/dag_dataBlock.h>
+#include <gameRes/dag_gameResSystem.h> // is_ignoring_unavailable_resources
 #include <math/dag_geomTree.h>
 #include <math/dag_mathUtils.h>
 #include <math/random/dag_random.h>
@@ -208,22 +211,22 @@ static float get_var_or_val(IPureAnimStateHolder &st, int var_pid, float val)
   return val;
 }
 
-#define BLEND_FINAL_TM(NEW_M3, OLD_M3, WT, MARKER, LEFT_M_EXPR)                                                  \
-  if (WT < 0.999f)                                                                                               \
-  {                                                                                                              \
-    bool left_m = LEFT_M_EXPR;                                                                                   \
-    if (left_m)                                                                                                  \
-    {                                                                                                            \
-      OLD_M3.col2 = v_neg(OLD_M3.col2);                                                                          \
-      NEW_M3.col2 = v_neg(NEW_M3.col2);                                                                          \
-    }                                                                                                            \
-    quat4f r0, r1;                                                                                               \
-    vec3f s0, s1;                                                                                                \
-    v_mat33_decompose(OLD_M3, r0, s0);                                                                           \
-    v_mat33_decompose(NEW_M3, r1, s1);                                                                           \
-    v_mat33_compose(NEW_M3, v_quat_qslerp(WT, v_norm4(r0), v_norm4(r1)), v_lerp_vec4f(v_splat4(&(WT)), s0, s1)); \
-    if (left_m)                                                                                                  \
-      NEW_M3.col2 = v_neg(NEW_M3.col2);                                                                          \
+#define BLEND_FINAL_TM(NEW_M3, OLD_M3, WT, MARKER, LEFT_M_EXPR)                                                 \
+  if (WT < 0.999f)                                                                                              \
+  {                                                                                                             \
+    bool left_m = LEFT_M_EXPR;                                                                                  \
+    if (left_m)                                                                                                 \
+    {                                                                                                           \
+      OLD_M3.col2 = v_neg(OLD_M3.col2);                                                                         \
+      NEW_M3.col2 = v_neg(NEW_M3.col2);                                                                         \
+    }                                                                                                           \
+    quat4f r0, r1;                                                                                              \
+    vec3f s0, s1;                                                                                               \
+    v_mat33_decompose(OLD_M3, r0, s0);                                                                          \
+    v_mat33_decompose(NEW_M3, r1, s1);                                                                          \
+    v_mat33_compose(NEW_M3, v_quat_qslerp(WT, v_norm4(r0), v_norm4(r1)), v_lerp_vec4f(v_splats((WT)), s0, s1)); \
+    if (left_m)                                                                                                 \
+      NEW_M3.col2 = v_neg(NEW_M3.col2);                                                                         \
   }
 
 #define BLEND_FINAL_WTM(NEW_M3, OLD_M3, WT, MARKER) BLEND_FINAL_TM(NEW_M3, OLD_M3, WT, MARKER, v_extract_x(v_mat33_det(OLD_M3)) < 0)
@@ -245,7 +248,7 @@ static void blend_mat44f(mat44f &new_m4, const mat44f &old_m4, float w)
   new_m4.col0 = nm3.col0;
   new_m4.col1 = nm3.col1;
   new_m4.col2 = nm3.col2;
-  new_m4.col3 = v_lerp_vec4f(v_splat4(&w), old_m4.col3, new_m4.col3);
+  new_m4.col3 = v_lerp_vec4f(v_splats(w), old_m4.col3, new_m4.col3);
 }
 
 static float getWeightMul(AnimV20::IPureAnimStateHolder &st, int wscale_pid, bool inv)
@@ -390,20 +393,22 @@ void DeltaAnglesCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &t
   tree.partialCalcWtm(node_id);
   if (destRotateVarId >= 0 || destPitchVarId >= 0)
   {
-    Point3 &node_dir = as_point3(&n_wtm.col0 + fwdAxisIdx);
-    Point2 root_fwd = dir_to_angles(as_point3(&nr_wtm.col2));
-    Point2 node_fwd = dir_to_angles(invFwd ? -node_dir : node_dir);
+    vec3f node_dir = (&n_wtm.col0)[fwdAxisIdx];
+    vec4f root_fwd = v_dir_to_angles(nr_wtm.col2);
+    vec4f node_fwd = v_dir_to_angles(v_xor(node_dir, v_bool_to_msbit(invFwd)));
+    vec4f sAng = v_norm_s_angle(v_sub(root_fwd, node_fwd));
     if (destRotateVarId >= 0)
-      st.setParam(destRotateVarId, norm_s_ang(root_fwd.x - node_fwd.x) * scaleR * wt);
+      st.setParam(destRotateVarId, v_extract_x(sAng) * scaleR * wt);
     if (destPitchVarId >= 0)
-      st.setParam(destPitchVarId, norm_s_ang(root_fwd.y - node_fwd.y) * scaleP * wt);
+      st.setParam(destPitchVarId, v_extract_y(sAng) * scaleP * wt);
   }
   if (destLeanVarId >= 0)
   {
-    Point3 &node_dir = as_point3(&n_wtm.col0 + sideAxisIdx);
-    Point2 root_side = dir_to_angles(as_point3(&nr_wtm.col0));
-    Point2 node_side = dir_to_angles(invSide ? -node_dir : node_dir);
-    st.setParam(destLeanVarId, norm_s_ang(node_side.y - root_side.y) * scaleL * wt);
+    vec3f node_dir = (&n_wtm.col0)[sideAxisIdx];
+    vec4f root_side = v_dir_to_angles(nr_wtm.col0);
+    vec4f node_side = v_dir_to_angles(v_xor(node_dir, v_bool_to_msbit(invFwd)));
+    vec4f sAng = v_norm_s_angle(v_sub(node_side, root_side));
+    st.setParam(destLeanVarId, v_extract_y(sAng) * scaleL * wt);
   }
 }
 void DeltaAnglesCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
@@ -518,7 +523,7 @@ void AnimPostBlendAlignCtrl::process(IPureAnimStateHolder &st, real wt, GeomNode
     vec3f sn_pos = sn_wtm.col3;
     if (srcSlotId >= 0)
       sn_pos = v_sub(sn_pos, ctx.worldTranslate);
-    dn_wtm.col3 = v_lerp_vec4f(v_splat4(&wt), dn_wtm.col3, sn_pos);
+    dn_wtm.col3 = v_lerp_vec4f(v_splats(wt), dn_wtm.col3, sn_pos);
   }
   mat44f iwtm;
   v_mat44_inverse43(iwtm, tree.getNodeWtmRel(tree.getParentNodeIdx(nodeId->target)));
@@ -559,15 +564,15 @@ void AnimPostBlendAlignCtrl::createNode(AnimationGraph &graph, const DataBlock &
 
   if (blk.getBool("leftTm", true))
   {
-    node->lr.col0 = v_mul(V_C_UNIT_0010, v_splat4(&scale[2]));
-    node->lr.col1 = v_mul(V_C_UNIT_0100, v_splat4(&scale[1]));
-    node->lr.col2 = v_mul(V_C_UNIT_1000, v_splat4(&scale[0]));
+    node->lr.col0 = v_mul(V_C_UNIT_0010, v_splats(scale[2]));
+    node->lr.col1 = v_mul(V_C_UNIT_0100, v_splats(scale[1]));
+    node->lr.col2 = v_mul(V_C_UNIT_1000, v_splats(scale[0]));
   }
   else
   {
-    node->lr.col0 = v_mul(V_C_UNIT_1000, v_splat4(&scale[0]));
-    node->lr.col1 = v_mul(V_C_UNIT_0100, v_splat4(&scale[1]));
-    node->lr.col2 = v_mul(V_C_UNIT_0010, v_splat4(&scale[2]));
+    node->lr.col0 = v_mul(V_C_UNIT_1000, v_splats(scale[0]));
+    node->lr.col1 = v_mul(V_C_UNIT_0100, v_splats(scale[1]));
+    node->lr.col2 = v_mul(V_C_UNIT_0010, v_splats(scale[2]));
   }
   node->binaryWt = blk.getBool("binaryWt", false);
   node->copyBlendResultToSrc = blk.getBool("copyBlendResultToSrc", false);
@@ -621,7 +626,7 @@ void AnimPostBlendAlignExCtrl::process(IPureAnimStateHolder &st, real wt, GeomNo
     quat4f qd = v_quat_from_mat(v_norm3(rootTm.col0), v_norm3(rootTm.col1), v_norm3(rootTm.col2));
     qd = v_quat_mul_quat(qd, v_quat_conjugate(qs));
 
-    float w = wt * (i + 1 < targetNode.size() ? targetNode[nodeId.id[i].nodeRemap].wt : 1.0);
+    float w = wt * (i + 1 < targetNode.size() ? targetNode[nodeId.id[i].nodeRemap].wt : 1.0f);
     if (w < 1)
       qd = v_quat_qslerp(w, V_C_UNIT_0001, qd);
     v_mat44_from_quat(rot, qd, v_zero());
@@ -706,8 +711,8 @@ AnimPostBlendRotateCtrl::AnimPostBlendRotateCtrl(AnimationGraph &g, const char *
   kAdd = 0;
   kAdd2 = 0;
   kCourseAdd = 0;
-  kMul = 1.0;
-  kMul2 = 1.0;
+  kMul = 1.0f;
+  kMul2 = 1.0f;
   rotAxis = V_C_UNIT_0100;
   dirAxis = V_C_UNIT_0010;
   axisFromCharIndex = -1;
@@ -742,36 +747,35 @@ void AnimPostBlendRotateCtrl::process(IPureAnimStateHolder &st, real wt, GeomNod
         continue;
       auto n_idx = nodeId[i].target;
       mat44f &n_tm = tree.getNodeTm(n_idx);
-      unsigned *c = (unsigned *)&n_tm.col0;
-      if ((c[0] | c[1] | c[2]) == 0)
+      if (v_test_all_bits_zeros(n_tm.col0))
         continue;
 
       real p = p0 * targetNode[nodeId[i].nodeRemap].wt;
-      vec4f vp = v_splat4(&p);
+      vec4f vp = v_splats(p);
       v_mat33_make_rot_cw(tm, dirAxis, vp);
-      mat33f nodeMat = ((mat33f &)ctx.origTree.getNodeTm(n_idx));
+      mat44f nodeMat = ctx.origTree.getNodeTm(n_idx);
       if (saveScale)
       {
         quat4f rot, originRot;
         vec4f scl, originScl;
-        mat33f nodeOriginMat = nodeMat;
-        v_mat33_decompose(nodeOriginMat, originRot, originScl);
-        v_mat33_decompose((mat33f &)n_tm, rot, scl);
+        vec3f pos, originPos;
+        v_mat4_decompose(nodeMat, originPos, originRot, originScl);
+        v_mat4_decompose(n_tm, pos, rot, scl);
         originScl = v_add(originScl, v_splats(-1));
         scl = v_sub(scl, originScl);
-        Point3 scale = as_point3(&scl);
-        if (fabsf(scale.x - 1.f) > 0.001)
+        int mask = v_signmask(v_cmp_gt(v_sub(scl, V_C_ONE), v_splats(0.001f)));
+        if (mask & 1)
           nodeMat.col0 = v_mul(nodeMat.col0, v_splat_x(scl));
-        if (fabsf(scale.y - 1.f) > 0.001)
+        if (mask & 2)
           nodeMat.col1 = v_mul(nodeMat.col1, v_splat_y(scl));
-        if (fabsf(scale.z - 1.f) > 0.001)
+        if (mask & 4)
           nodeMat.col2 = v_mul(nodeMat.col2, v_splat_z(scl));
       }
       if (relRot)
       {
-        mat33f tm1;
-        v_mat33_mul(tm1, nodeMat, tm);
-        tm = tm1;
+        mat33f nodeMat33;
+        v_mat33_from_mat44(nodeMat33, nodeMat);
+        v_mat33_mul(tm, nodeMat33, tm);
       }
       else if (swapYZ)
       {
@@ -791,7 +795,7 @@ void AnimPostBlendRotateCtrl::process(IPureAnimStateHolder &st, real wt, GeomNod
   }
 
   float ang = -(st.getParam(axisCourseParamId) + kCourseAdd) * PI / 180.0f;
-  vec3f axis = v_norm3(v_quat_mul_vec3(v_quat_from_unit_vec_ang(rotAxis, v_splat4(&ang)), dirAxis));
+  vec3f axis = v_norm3(v_quat_mul_vec3(v_quat_from_unit_vec_ang(rotAxis, v_splats(ang)), dirAxis));
   if (axisFromCharIndex >= 0)
   {
     mat44f animcharTm;
@@ -811,12 +815,11 @@ void AnimPostBlendRotateCtrl::process(IPureAnimStateHolder &st, real wt, GeomNod
       continue;
     auto n_idx = nodeId[i].target;
     mat44f &n_wtm = tree.getNodeWtmRel(n_idx);
-    unsigned *c = (unsigned *)&n_wtm.col0;
-    if ((c[0] | c[1] | c[2]) == 0)
+    if (v_test_all_bits_zeros(n_wtm.col0))
       continue;
 
     real p = p0 * targetNode[nodeId[i].nodeRemap].wt * wt;
-    vec4f vp = v_splat4(&p);
+    vec4f vp = v_splats(p);
     mat33f wtm, m2;
 
     tree.partialCalcWtm(n_idx);
@@ -889,7 +892,7 @@ void AnimPostBlendRotateCtrl::createNode(AnimationGraph &graph, const DataBlock 
   }
   if (const char *pn = blk.getStr("paramAdd2", NULL))
     node->addParam3Id = *pn ? graph.addParamId(pn, IPureAnimStateHolder::PT_ScalarParam) : -1;
-  node->kCourseAdd = blk.getReal("kCourseAdd", 0.0);
+  node->kCourseAdd = blk.getReal("kCourseAdd", 0.0f);
   Point4 ra, da;
   ra.set_xyz0(blk.getPoint3("rotAxis", Point3(0, 1, 0)));
   da.set_xyz0(blk.getPoint3("dirAxis", Point3(0, 0, 1)));
@@ -952,12 +955,11 @@ void AnimPostBlendRotateAroundCtrl::process(IPureAnimStateHolder &st, real wt, G
     auto n_idx = nodeId[i].target;
     auto parent = tree.getParentNodeIdx(n_idx);
     mat44f &node_wtm = tree.getNodeWtmRel(n_idx);
-    unsigned *c = (unsigned *)&node_wtm.col0;
-    if ((c[0] | c[1] | c[2]) == 0 || !parent)
+    if (v_test_all_bits_zeros(node_wtm.col0) || !parent)
       continue;
 
     float weightedRotation = rotationRad * targetNode[nodeId[i].nodeRemap].wt * wt;
-    vec4f vRotation = v_splat4(&weightedRotation);
+    vec4f vRotation = v_splats(weightedRotation);
     quat4f rotQuat = v_quat_from_unit_vec_ang(rotAxis, vRotation);
 
     tree.partialCalcWtm(n_idx);
@@ -1053,8 +1055,7 @@ void AnimPostBlendScaleCtrl::process(IPureAnimStateHolder &st, real wt, GeomNode
       continue;
     auto n_idx = nodeId[i].target;
     mat44f &n_tm = tree.getNodeTm(n_idx);
-    unsigned *c = (unsigned *)&n_tm.col0;
-    if ((c[0] | c[1] | c[2]) == 0)
+    if (v_test_all_bits_zeros(n_tm.col0))
       continue;
     mat44f originMat = ctx.origTree.getNodeTm(n_idx);
     mat44f nodeMat = tree.getNodeTm(n_idx);
@@ -1129,7 +1130,7 @@ AnimPostBlendMoveCtrl::AnimPostBlendMoveCtrl(AnimationGraph &g, const char *para
   axisCourseParamId = ac_pname ? graph.addParamId(ac_pname, IPureAnimStateHolder::PT_ScalarParam) : -1;
   kCourseAdd = 0;
   kAdd = 0;
-  kMul = 1.0;
+  kMul = 1.0f;
   rotAxis = V_C_UNIT_0100;
   dirAxis = V_C_UNIT_0010;
   frameRef = FRAME_REF_PARENT;
@@ -1160,8 +1161,7 @@ void AnimPostBlendMoveCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeT
         continue;
       auto n_idx = nodeId[i].target;
       mat44f &n_tm = tree.getNodeTm(n_idx);
-      unsigned *c = (unsigned *)&n_tm.col0;
-      if ((c[0] | c[1] | c[2]) == 0)
+      if (v_test_all_bits_zeros(n_tm.col0))
         continue;
 
       vec4f pos = additive ? n_tm.col3 : ctx.origTree.getNodeTm(n_idx).col3;
@@ -1181,19 +1181,11 @@ void AnimPostBlendMoveCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeT
       real p = p0 * targetNode[nodeId[i].nodeRemap].wt * wt;
       if (saveOtherAxisMove && !additive)
       {
-        Point3 dir3 = as_point3(&dir);
-        float *pos3 = (float *)&pos;
-        float *realPos3 = (float *)&n_tm.col3;
-        if (dir3.x != 0)
-          realPos3[0] = pos3[0] + dir3.x * p;
-        if (dir3.y != 0)
-          realPos3[1] = pos3[1] + dir3.y * p;
-        if (dir3.z != 0)
-          realPos3[2] = pos3[2] + dir3.z * p;
+        n_tm.col3 = v_sel(v_madd(dir, v_splats(p), pos), n_tm.col3, v_cmp_eq(dir, v_zero()));
       }
       else
       {
-        vec4f vp = v_splat4(&p);
+        vec4f vp = v_splats(p);
         n_tm.col3 = v_madd(dir, vp, pos);
       }
       tree.invalidateWtm(n_idx.preceeding());
@@ -1203,7 +1195,7 @@ void AnimPostBlendMoveCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeT
 
   float ang = -(st.getParam(axisCourseParamId) + kCourseAdd) * PI / 180.0f;
   real p0 = (st.getParam(paramId) * kMul + kAdd);
-  vec3f axis = v_norm3(v_quat_mul_vec3(v_quat_from_unit_vec_ang(rotAxis, v_splat4(&ang)), dirAxis));
+  vec3f axis = v_norm3(v_quat_mul_vec3(v_quat_from_unit_vec_ang(rotAxis, v_splats(ang)), dirAxis));
 
   // TRANSLATION IN CHARACTER SPACE
   for (int i = 0; i < targetNode.size(); i++)
@@ -1212,12 +1204,11 @@ void AnimPostBlendMoveCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeT
       continue;
     auto n_idx = nodeId[i].target;
     mat44f &n_wtm = tree.getNodeWtmRel(n_idx);
-    unsigned *c = (unsigned *)&n_wtm.col0;
-    if ((c[0] | c[1] | c[2]) == 0)
+    if (v_test_all_bits_zeros(n_wtm.col0))
       continue;
 
     real p = p0 * targetNode[nodeId[i].nodeRemap].wt * wt;
-    vec4f vp = v_splat4(&p);
+    vec4f vp = v_splats(p);
 
     tree.partialCalcWtm(n_idx);
     n_wtm.col3 = v_madd(axis, vp, n_wtm.col3);
@@ -1248,7 +1239,7 @@ void AnimPostBlendMoveCtrl::createNode(AnimationGraph &graph, const DataBlock &b
   String var_name = String("var") + name;
 
   AnimPostBlendMoveCtrl *node = new AnimPostBlendMoveCtrl(graph, pname, ac_name);
-  node->kCourseAdd = blk.getReal("kCourseAdd", 0.0);
+  node->kCourseAdd = blk.getReal("kCourseAdd", 0.0f);
   node->kMul = blk.getReal("kMul", 1.0f);
   node->kAdd = blk.getReal("kAdd", 0.0f);
   Point4 ra, da;
@@ -1317,7 +1308,7 @@ void ApbAnimateCtrl::process(IPureAnimStateHolder &st, real /*w*/, GeomNodeTree 
         continue;
 
       if (AnimV20::AnimKeyPoint3 *kpos = anim[j].pos ? anim[j].pos->findKey(t, &tpos) : NULL)
-        p = (tpos != 0.f) ? AnimV20Math::interp_key(kpos[0], v_splat4(&tpos)) : kpos->p;
+        p = (tpos != 0.f) ? AnimV20Math::interp_key(kpos[0], v_splats(tpos)) : kpos->p;
       else
         p = v_zero();
 
@@ -1327,7 +1318,7 @@ void ApbAnimateCtrl::process(IPureAnimStateHolder &st, real /*w*/, GeomNodeTree 
         r = v_zero();
 
       if (AnimV20::AnimKeyPoint3 *kscl = anim[j].scl ? anim[j].scl->findKey(t, &tscl) : NULL)
-        s = (tscl != 0.f) ? AnimV20Math::interp_key(kscl[0], v_splat4(&tscl)) : kscl->p;
+        s = (tscl != 0.f) ? AnimV20Math::interp_key(kscl[0], v_splats(tscl)) : kscl->p;
       else
         s = V_C_ONE;
 
@@ -1677,18 +1668,14 @@ void AnimPostBlendCondHideCtrl::process(IPureAnimStateHolder &st, real wt, GeomN
     {
       // hide node (set matrix to zero)
       n_wtm.col0 = n_wtm.col1 = n_wtm.col2 = n_tm.col0 = n_tm.col1 = n_tm.col2 = v_zero();
-      tree.invalidateWtm(n_idx);
+      tree.invalidateWtm(n_idx.preceeding());
     }
-    else if (!desc.hideOnly)
+    else if (!desc.hideOnly && v_test_all_bits_zeros(n_tm.col0))
     {
-      unsigned *c = (unsigned *)&n_tm.col0;
-      if ((c[0] | c[1] | c[2]) == 0)
-      {
-        // unhide (restore original tm) only hidden node
-        n_tm = ctx.origTree.getNodeTm(n_idx);
-        n_wtm = ctx.origTree.getNodeWtmRel(n_idx);
-        tree.invalidateWtm(n_idx);
-      }
+      // unhide (restore original tm) only hidden node
+      n_tm = ctx.origTree.getNodeTm(n_idx);
+      n_wtm = ctx.origTree.getNodeWtmRel(n_idx);
+      tree.invalidateWtm(n_idx.preceeding());
     }
   }
 }
@@ -1755,7 +1742,6 @@ void AnimPostBlendCondHideCtrl::createNode(AnimationGraph &graph, const DataBloc
 ApbParamCtrl::ApbParamCtrl(AnimationGraph &g, const char *param_name) : AnimPostBlendCtrl(g), rec(midmem), mapRec(midmem)
 {
   wtPid = graph.addParamId(param_name, IPureAnimStateHolder::PT_ScalarParam);
-  lastDtPid = graph.addParamId(String(0, "%s:lastDt", param_name), IPureAnimStateHolder::PT_ScalarParam);
 }
 
 void ApbParamCtrl::reset(IPureAnimStateHolder &st)
@@ -1777,7 +1763,7 @@ enum
 void ApbParamCtrl::process(IPureAnimStateHolder &st, real w, GeomNodeTree &, AnimPostBlendCtrl::Context &)
 {
   st.setParam(wtPid, w);
-  float lastDt = st.getParam(lastDtPid);
+  float lastDt = st.getParam(AnimationGraph::PID_GLOBAL_LAST_DT);
   if (w > 0)
   {
     for (int i = 0; i < ops.size(); ++i)
@@ -1806,7 +1792,6 @@ void ApbParamCtrl::process(IPureAnimStateHolder &st, real w, GeomNodeTree &, Ani
 void ApbParamCtrl::advance(IPureAnimStateHolder &st, real dt)
 {
   float w = st.getParam(wtPid);
-  st.setParam(lastDtPid, dt);
   if (w > 0)
   {
     for (int i = 0; i < rec.size(); i++)
@@ -2100,21 +2085,11 @@ void AnimPostBlendAimCtrl::AimState::init()
   lockPitch = false;
 }
 
-static Point2 v_dir_to_angles(const vec4f &target_local_pos)
+void AnimPostBlendAimCtrl::AimState::updateDstAngles(vec4f target_local_pos)
 {
-  Point3_vec4 targetLocalPos;
-  v_stu(&targetLocalPos.x, target_local_pos);
-  return Point2(-RadToDeg(unsafe_atan2(targetLocalPos.z, targetLocalPos.x)),
-    RadToDeg(unsafe_atan2(targetLocalPos.y, length(Point2::xz(targetLocalPos)))));
-}
-
-void AnimPostBlendAimCtrl::AimState::updateDstAngles(const vec4f &target_local_pos)
-{
-  Point3_vec4 targetLocalPos;
-  v_stu(&targetLocalPos.x, target_local_pos);
-
-  yawDst = -RadToDeg(unsafe_atan2(targetLocalPos.z, targetLocalPos.x));
-  pitchDst = RadToDeg(unsafe_atan2(targetLocalPos.y, length(Point2::xz(targetLocalPos))));
+  vec3f angles = v_rad_to_deg(v_dir_to_angles(target_local_pos));
+  yawDst = v_extract_x(angles);
+  pitchDst = v_extract_y(angles);
 }
 
 void AnimPostBlendAimCtrl::AimState::clampAngles(const AimDesc &desc, float &yaw_in_out, float &pitch_in_out)
@@ -2157,7 +2132,7 @@ void AnimPostBlendAimCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTr
   const float yaw = targetYawId >= 0 ? st.getParam(targetYawId) : 0.f;
   const float pitch = targetPitchId >= 0 ? st.getParam(targetPitchId) : 0.f;
 
-  Point3 dir = angles_to_dir(DEG_TO_RAD * Point2(-yaw, pitch));
+  vec3f dir = v_angles_to_dir(v_deg_to_rad(v_make_vec4f(-yaw, pitch, 0, 0)));
 
   AimState &aim = *(AimState *)st.getInlinePtr(varId);
 
@@ -2199,23 +2174,23 @@ void AnimPostBlendAimCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTr
     v_mat44_ident(itm);
   }
 
-  aim.updateDstAngles(v_mat44_mul_vec3v(itm, v_ldu(&dir.x)));
+  aim.updateDstAngles(v_mat44_mul_vec3v(itm, dir));
 
   Point2 prevLocalAngles(aim.yawDst, aim.pitchDst);
-  const bool hasStabilizer = hasStabId >= 0 && st.getParam(hasStabId) > 0.5 && prevYawId >= 0 && prevPitchId >= 0;
-  const bool isYawStabilized = hasStabilizer && stabYawId >= 0 && st.getParam(stabYawId) > 0.5;
-  const bool isPitchStabilized = hasStabilizer && stabPitchId >= 0 && st.getParam(stabPitchId) > 0.5;
+  const bool hasStabilizer = hasStabId >= 0 && st.getParam(hasStabId) > 0.5f && prevYawId >= 0 && prevPitchId >= 0;
+  const bool isYawStabilized = hasStabilizer && stabYawId >= 0 && st.getParam(stabYawId) > 0.5f;
+  const bool isPitchStabilized = hasStabilizer && stabPitchId >= 0 && st.getParam(stabPitchId) > 0.5f;
   if (isYawStabilized || isPitchStabilized)
   {
     const float prevYaw = st.getParam(prevYawId);
     const float prevPitch = st.getParam(prevPitchId);
-    const Point3 prevDir = angles_to_dir(DEG_TO_RAD * Point2(-prevYaw, prevPitch));
-    prevLocalAngles = v_dir_to_angles(v_mat44_mul_vec3v(itm, v_ldu(&prevDir.x)));
+    vec3f prevDir = v_angles_to_dir(v_deg_to_rad(v_make_vec4f(-prevYaw, prevPitch, 0, 0)));
+    v_stu_half(&prevLocalAngles.x, v_rad_to_deg(v_dir_to_angles(v_mat44_mul_vec3v(itm, prevDir))));
   }
 
   aim.clampAngles(aimDesc, aim.yawDst, aim.pitchDst);
   aim.updateRotation(aimDesc, stabErrorId >= 0 ? st.getParam(stabErrorId) : 0.f, isYawStabilized, isPitchStabilized,
-    stabYawMultId >= 0 ? st.getParam(stabYawMultId) : 1.0, stabPitchMultId >= 0 ? st.getParam(stabPitchMultId) : 1.0,
+    stabYawMultId >= 0 ? st.getParam(stabYawMultId) : 1.0f, stabPitchMultId >= 0 ? st.getParam(stabPitchMultId) : 1.0f,
     prevLocalAngles.x, prevLocalAngles.y);
 
   if (curYawId >= 0)
@@ -2224,18 +2199,20 @@ void AnimPostBlendAimCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTr
     st.setParam(curPitchId, aim.pitch);
   if (curWorldYawId >= 0 && curWorldPitchId >= 0)
   {
-    Point3 curDirLocal = angles_to_dir(DEG_TO_RAD * Point2(-aim.yaw, aim.pitch));
-    curDirLocal.z = -curDirLocal.z;
-    Point2 curDir = v_dir_to_angles(v_mat44_mul_vec3v(tm, v_ldu(&curDirLocal.x)));
+    vec3f curDirLocal = v_angles_to_dir(v_deg_to_rad(v_make_vec4f(-aim.yaw, aim.pitch, 0, 0)));
+    curDirLocal = v_perm_xycd(curDirLocal, v_neg(curDirLocal)); // curDirLocal.z = -curDirLocal.z;
+    Point2 curDir;
+    v_stu_half(&curDir.x, v_rad_to_deg(v_dir_to_angles(v_mat44_mul_vec3v(tm, curDirLocal))));
     st.setParam(curWorldYawId, curDir.x);
     st.setParam(curWorldPitchId, curDir.y);
   }
 
   if (hasStabilizer)
   {
-    Point3 curDirLocal = angles_to_dir(DEG_TO_RAD * Point2(-prevLocalAngles.x, prevLocalAngles.y));
-    curDirLocal.z = -curDirLocal.z;
-    Point2 curDir = v_dir_to_angles(v_mat44_mul_vec3v(tm, v_ldu(&curDirLocal.x)));
+    vec3f curDirLocal = v_angles_to_dir(v_deg_to_rad(v_make_vec4f(-prevLocalAngles.x, prevLocalAngles.y, 0, 0)));
+    curDirLocal = v_perm_xycd(curDirLocal, v_neg(curDirLocal)); // curDirLocal.z = -curDirLocal.z;
+    Point2 curDir;
+    v_stu_half(&curDir.x, v_rad_to_deg(v_dir_to_angles(v_mat44_mul_vec3v(tm, curDirLocal))));
     curDir.x = -curDir.x;
 
     st.setParam(prevYawId, curDir.x);
@@ -2365,7 +2342,7 @@ void AttachGeomNodeCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree
 }
 void AttachGeomNodeCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
-  if (wt < 1e-4 || tree.empty())
+  if (wt < 1e-4f || tree.empty())
     return;
 
   dag::Span<dag::Index16> nodeIds((dag::Index16 *)st.getInlinePtr(perAnimStateDataVarId), nodeNames.size());
@@ -2377,41 +2354,33 @@ void AttachGeomNodeCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree
       continue;
     AttachDesc &att = AttachGeomNodeCtrl::getAttachDesc(st, destVarId[i].nodeWtm);
     float w = att.w * wt * getWeightMul(st, destVarId[i].wScale, destVarId[i].wScaleInverted);
-    if (w < 1e-4)
+    if (w < 1e-4f)
       continue;
 
     mat44f &n_wtm = tree.getNodeWtmRel(nodeIds[i]);
     tree.partialCalcWtm(nodeIds[i]);
-    mat33f m;
-    m.col0 = v_ldu(att.wtm.m[0]);
-    m.col1 = v_ldu(att.wtm.m[1]);
-    m.col2 = v_ldu(att.wtm.m[2]);
+    mat44f attWtm;
+    v_mat44_make_from_43cu(attWtm, att.wtm.array);
     if (ctx.acScale)
     {
       vec3f s = v_max(v_min(*ctx.acScale, maxNodeScale), minNodeScale);
-      m.col0 = v_mul(m.col0, v_splat_x(s));
-      m.col1 = v_mul(m.col1, v_splat_y(s));
-      m.col2 = v_mul(m.col2, v_splat_z(s));
+      attWtm.col0 = v_mul(attWtm.col0, v_splat_x(s));
+      attWtm.col1 = v_mul(attWtm.col1, v_splat_y(s));
+      attWtm.col2 = v_mul(attWtm.col2, v_splat_z(s));
     }
     if (w >= 0.9999f)
     {
-      n_wtm.col0 = m.col0;
-      n_wtm.col1 = m.col1;
-      n_wtm.col2 = m.col2;
-      as_point4(&n_wtm.col3).set_xyz1(att.wtm.getcol(3));
+      n_wtm = attWtm;
     }
     else
     {
-      mat33f om;
-      om.col0 = n_wtm.col0;
-      om.col1 = n_wtm.col1;
-      om.col2 = n_wtm.col2;
+      mat33f m, om;
+      v_mat33_from_mat44(m, attWtm);
+      v_mat33_from_mat44(om, n_wtm);
       BLEND_FINAL_WTM(m, om, w, attach);
 
-      n_wtm.col0 = m.col0;
-      n_wtm.col1 = m.col1;
-      n_wtm.col2 = m.col2;
-      as_point4(&n_wtm.col3).set_xyz1(lerp(as_point3(&n_wtm.col3), att.wtm.getcol(3), w));
+      n_wtm.set33(m);
+      n_wtm.col3 = v_perm_xyzd(v_lerp_vec4f(v_splats(w), n_wtm.col3, attWtm.col3), attWtm.col3);
     }
     tree.recalcTm(nodeIds[i]);
     tree.invalidateWtm(nodeIds[i]);
@@ -2442,8 +2411,11 @@ void AttachGeomNodeCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
     dv.wScaleInverted = b.getBool("wtModulateInverse", blk.getBool("wtModulateInverse", false));
     dv.nodeWtm = graph.addInlinePtrParamId(var_nm, sizeof(AttachDesc));
   }
-  as_point4(&node->minNodeScale).set_xyz0(blk.getPoint3("minNodeScale", Point3(1, 1, 1)));
-  as_point4(&node->maxNodeScale).set_xyz0(blk.getPoint3("maxNodeScale", Point3(1, 1, 1)));
+  Point3_vec4 minScale{}, maxScale{};                        //-V519
+  minScale = blk.getPoint3("minNodeScale", Point3(1, 1, 1)); //-V519
+  maxScale = blk.getPoint3("maxNodeScale", Point3(1, 1, 1)); //-V519
+  node->minNodeScale = v_ld(&minScale.x);
+  node->maxNodeScale = v_ld(&maxScale.x);
   node->perAnimStateDataVarId =
     graph.addInlinePtrParamId(String(0, "%s$treeCtx", name), sizeof(dag::Index16) * node->nodeNames.size());
   graph.registerBlendNode(node, name);
@@ -2485,8 +2457,7 @@ void AnimPostBlendNodeLookatCtrl::process(IPureAnimStateHolder &st, real wt, Geo
     auto n_idx = nodeId[i].target;
     if (!n_idx)
       continue;
-    unsigned *c = (unsigned *)&tree.getNodeTm(n_idx).col0;
-    if ((c[0] | c[1] | c[2]) == 0)
+    if (v_test_all_bits_zeros(tree.getNodeTm(n_idx).col0))
       continue;
 
     mat44f &n_wtm = tree.getNodeWtmRel(n_idx);
@@ -2568,21 +2539,23 @@ void AnimPostBlendNodeLookatCtrl::createNode(AnimationGraph &graph, const DataBl
 //
 void AnimPostBlendNodeLookatNodeCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
 {
-  NodeId *nodeId = (NodeId *)st.getInlinePtr(varId);
+  LocalData &ldata = *(LocalData *)st.getInlinePtr(varId);
+  ldata.targetNodeId = resolve_node_by_name(tree, targetNode);
 
-  init_target_nodes(tree, targetNodes, nodeId);
-
-  lookatNodeId = tree.findINodeIndex(lookatNodeName);
-  upNodeId = tree.findINodeIndex(upNodeName);
-  if (!lookatNodeId)
+  ldata.lookatNodeId = tree.findINodeIndex(lookatNodeName);
+  if (!ldata.lookatNodeId)
   {
     DAG_FATAL("lookat node '%s' does not exist", lookatNodeName);
     valid = false;
   }
-  if (!upNodeId)
+  if (upNodeName)
   {
-    DAG_FATAL("up node '%s' does not exist", upNodeName);
-    valid = false;
+    ldata.upNodeId = tree.findINodeIndex(upNodeName);
+    if (!ldata.upNodeId)
+    {
+      DAG_FATAL("up node '%s' does not exist", upNodeName);
+      valid = false;
+    }
   }
 }
 
@@ -2591,39 +2564,43 @@ void AnimPostBlendNodeLookatNodeCtrl::process(IPureAnimStateHolder &st, real wt,
   if (wt <= 0.001f || !valid)
     return;
 
-  NodeId *nodeId = (NodeId *)st.getInlinePtr(varId);
-  const vec3f v_pos = tree.getNodeWposRel(lookatNodeId);
-  const size_t targetNodesSize = targetNodes.size();
+  LocalData &ldata = *(LocalData *)st.getInlinePtr(varId);
+  const vec3f v_pos = tree.getNodeWposRel(ldata.lookatNodeId);
 
-  for (int i = 0; i < targetNodesSize; i++)
+  auto n_idx = ldata.targetNodeId;
+  if (!n_idx)
+    return;
+  if (v_test_all_bits_zeros(tree.getNodeTm(n_idx).col0))
+    return;
+
+  mat44f &n_wtm = tree.getNodeWtmRel(n_idx);
+  const vec4f lookatDir = v_norm3(v_sub(v_pos, n_wtm.col3));
+  vec4f dirUp;
+  if (!upNodeName.empty())
   {
-    auto n_idx = nodeId[i].target;
-    if (!n_idx)
-      continue;
-    unsigned *c = (unsigned *)&tree.getNodeTm(n_idx).col0;
-    if ((c[0] | c[1] | c[2]) == 0)
-      continue;
-
-    mat44f &n_wtm = tree.getNodeWtmRel(n_idx);
-    const vec4f lookatCol = v_norm3(v_sub(v_pos, n_wtm.col3));
-    const vec4f upNodePos = tree.getNodeWposRel(upNodeId);
-    const vec4f dirUp = v_norm3(v_sub(upNodePos, n_wtm.col3));
-    const vec4f sideCol = v_norm3(v_cross3(lookatCol, dirUp));
-    const vec4f upCol = v_norm3(v_cross3(sideCol, lookatCol));
-
-    (&n_wtm.col0)[lookatAxis] = lookatCol;
-    (&n_wtm.col0)[upAxis] = upCol;
-    (&n_wtm.col0)[3 - lookatAxis - upAxis] = sideCol;
-
-    for (int i = 0; i < 3; ++i)
-    {
-      if (negAxes[i])
-        (&n_wtm.col0)[i] = v_neg((&n_wtm.col0)[i]);
-    }
-
-    tree.recalcTm(n_idx, false);
-    tree.invalidateWtm(n_idx);
+    const vec4f upNodePos = tree.getNodeWposRel(ldata.upNodeId);
+    dirUp = v_norm3(v_sub(upNodePos, n_wtm.col3));
   }
+  else
+  {
+    dirUp = v_ldu_p3(&upVector.x);
+  }
+
+  const vec4f sideDir = v_norm3(v_cross3(lookatDir, dirUp));
+  const vec4f upDir = v_norm3(v_cross3(sideDir, lookatDir));
+
+  (&n_wtm.col0)[lookatAxis] = lookatDir;
+  (&n_wtm.col0)[upAxis] = upDir;
+  (&n_wtm.col0)[3 - lookatAxis - upAxis] = sideDir;
+
+  for (int i = 0; i < 3; ++i)
+  {
+    if (negAxes[i])
+      (&n_wtm.col0)[i] = v_neg((&n_wtm.col0)[i]);
+  }
+
+  tree.recalcTm(n_idx, false);
+  tree.invalidateWtm(n_idx);
 }
 
 void AnimPostBlendNodeLookatNodeCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
@@ -2636,34 +2613,28 @@ void AnimPostBlendNodeLookatNodeCtrl::createNode(AnimationGraph &graph, const Da
     return;
   }
 
+  const char *targetNodeName = blk.getStr("targetNode", "");
   const char *lookatNodeName = blk.getStr("lookatNode", "");
-  const char *upNodeName = blk.getStr("upNode", "");
-  Tab<NodeDesc> targetNodes;
-
-  // read node list
-  int nid = blk.getNameId("targetNode");
-  for (int j = 0; j < blk.paramCount(); ++j)
-    if (blk.getParamType(j) == DataBlock::TYPE_STRING && blk.getParamNameId(j) == nid)
-      targetNodes.push_back().name = blk.getStr(j);
+  const char *upNodeName = blk.getStr("upNode", NULL);
 
   // Necessary paramaters: name, targetNode, lookatNode, upNode. Optional parameters: lookatAxis, upAxis, negX, negY, negZ.
   // The target node will 'look' at lookatNode with lookatAxis and then turn around lookatAxis in such a way
   // that the angle between upAxis and the vector from the target node to upNode is minimized.
   // Afterwards, the xyz axes can be reversed if negX, negY or negZ are true.
 
-  const bool valid = (*lookatNodeName && *upNodeName && !targetNodes.empty());
+  const bool valid = (*targetNodeName && *lookatNodeName);
 
   if (!valid)
   {
-    DAG_FATAL("lookat node controller should either have 'targetNode', 'lookatNode' and 'upNode' specified");
+    DAG_FATAL("lookat node controller should either have 'targetNode', and 'lookatNode' specified");
     return;
   }
 
   AnimPostBlendNodeLookatNodeCtrl *node = new AnimPostBlendNodeLookatNodeCtrl(graph);
   node->valid = valid;
+  node->targetNode = targetNodeName;
   node->lookatNodeName = lookatNodeName;
   node->upNodeName = upNodeName;
-  node->targetNodes = eastl::move(targetNodes);
 
   node->lookatAxis = blk.getInt("lookatAxis", 2);
   node->upAxis = blk.getInt("upAxis", 1);
@@ -2672,13 +2643,17 @@ void AnimPostBlendNodeLookatNodeCtrl::createNode(AnimationGraph &graph, const Da
   if (node->lookatAxis == node->upAxis)
     node->upAxis = (node->upAxis + 1) % 3;
 
+  if (upNodeName == NULL)
+  {
+    node->upVector = blk.getPoint3("upVector", Point3(0, 1, 0));
+  }
+
   node->negAxes[0] = blk.getBool("negX", false);
   node->negAxes[1] = blk.getBool("negY", false);
   node->negAxes[2] = blk.getBool("negZ", false);
 
   // allocate state variable
-  node->varId =
-    graph.addInlinePtrParamId(String("var") + name, sizeof(NodeId) * node->targetNodes.size(), IPureAnimStateHolder::PT_InlinePtr);
+  node->varId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData), IPureAnimStateHolder::PT_InlinePtr);
 
   graph.registerBlendNode(node, name);
 }
@@ -2759,14 +2734,14 @@ void AnimPostBlendEffFromAttachement::process(IPureAnimStateHolder &st, real wt,
       vec3f p = m.col3;
       if (slotId >= 0)
         p = v_sub(p, ctx.worldTranslate);
-      bool should_blend = (ldata.node[i].dest && w < 0.9999);
+      bool should_blend = (ldata.node[i].dest && w < 0.9999f);
 
       // setup effector
       if (should_blend)
       {
         mat44f &dm = tree.getNodeWtmRel(ldata.node[i].dest);
         tree.partialCalcWtm(ldata.node[i].dest);
-        p = v_lerp_vec4f(v_splat4(&w), dm.col3, p);
+        p = v_lerp_vec4f(v_splats(w), dm.col3, p);
       }
 
       st.paramEffector(destVarId[i].eff).set(v_extract_x(p), v_extract_y(p), v_extract_z(p), false);
@@ -3166,7 +3141,7 @@ void AnimPostBlendMatVarFromNode::process(IPureAnimStateHolder &st, real wt, Geo
     v_stu(&ad.wtm.m[0][0], m3.col0);
     v_stu(&ad.wtm.m[1][0], m3.col1);
     v_stu(&ad.wtm.m[2][0], m3.col2);
-    v_stu(&ad.wtm.m[3][0], v_lerp_vec4f(v_splat4(&w), op, pos));
+    v_stu(&ad.wtm.m[3][0], v_lerp_vec4f(v_splats(w), op, pos));
   }
   else
   {
@@ -3332,16 +3307,16 @@ void AnimPostBlendCompoundRotateShift::createNode(AnimationGraph &graph, const D
   Point3 euler = blk.getPoint3("preRotEuler", Point3(0, 0, 0)) * PI / 180;
   Point3 scale = blk.getPoint3("preScale", Point3(1, 1, 1));
   v_mat33_make_rot_cw_zyx(node->tmRot[0], v_neg(v_ldu(&euler.x)));
-  node->tmRot[0].col0 = v_mul(node->tmRot[0].col0, v_splat4(&scale.x));
-  node->tmRot[0].col1 = v_mul(node->tmRot[0].col1, v_splat4(&scale.y));
-  node->tmRot[0].col2 = v_mul(node->tmRot[0].col2, v_splat4(&scale.z));
+  node->tmRot[0].col0 = v_mul(node->tmRot[0].col0, v_splats(scale.x));
+  node->tmRot[0].col1 = v_mul(node->tmRot[0].col1, v_splats(scale.y));
+  node->tmRot[0].col2 = v_mul(node->tmRot[0].col2, v_splats(scale.z));
 
   euler = blk.getPoint3("postRotEuler", Point3(0, 0, 0)) * PI / 180;
   scale = blk.getPoint3("postScale", Point3(1, 1, 1));
   v_mat33_make_rot_cw_zyx(node->tmRot[1], v_neg(v_ldu(&euler.x)));
-  node->tmRot[1].col0 = v_mul(node->tmRot[1].col0, v_splat4(&scale.x));
-  node->tmRot[1].col1 = v_mul(node->tmRot[1].col1, v_splat4(&scale.y));
-  node->tmRot[1].col2 = v_mul(node->tmRot[1].col2, v_splat4(&scale.z));
+  node->tmRot[1].col0 = v_mul(node->tmRot[1].col0, v_splats(scale.x));
+  node->tmRot[1].col1 = v_mul(node->tmRot[1].col1, v_splats(scale.y));
+  node->tmRot[1].col2 = v_mul(node->tmRot[1].col2, v_splats(scale.z));
 
   node->localVarId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData), IPureAnimStateHolder::PT_InlinePtr);
   graph.registerBlendNode(node, name);
@@ -3452,5 +3427,129 @@ void AnimPostBlendTwistCtrl::createNode(AnimationGraph &graph, const DataBlock &
 
   node->varId = graph.addInlinePtrParamId(String("var") + name, sizeof(int16_t) * (2 + node->twistNodes.size()),
     IPureAnimStateHolder::PT_InlinePtr);
+  graph.registerBlendNode(node, name);
+}
+
+void AnimPostBlendEyeCtrl::init(IPureAnimStateHolder &, const GeomNodeTree &tree)
+{
+  eyeDirectionNodeId = tree.findINodeIndex(eyeDirectionNodeName);
+  eyelidStartTopNodeId = tree.findINodeIndex(eyelidStartTopNodeName);
+  eyelidStartBottomNodeId = tree.findINodeIndex(eyelidStartBottomNodeName);
+  eyelidHorizontalReactionNodeId = tree.findINodeIndex(eyelidHorizontalReactionNodeName);
+  eyelidVerticalTopReactionNodeId = tree.findINodeIndex(eyelidVerticalTopReactionNodeName);
+  eyelidVerticalBottomReactionNodeId = tree.findINodeIndex(eyelidVerticalBottomReactionNodeName);
+  eyelidBlinkSourceNodeId = tree.findINodeIndex(eyelidBlinkSourceNodeName);
+  eyelidBlinkTopNodeId = tree.findINodeIndex(eyelidBlinkTopNodeName);
+  eyelidBlinkBottomNodeId = tree.findINodeIndex(eyelidBlinkBottomNodeName);
+
+  G_ASSERTF(eyeDirectionNodeId, "Node %s not found", eyeDirectionNodeName);
+  G_ASSERTF(eyelidStartTopNodeId, "Node %s not found", eyelidStartTopNodeName);
+  G_ASSERTF(eyelidStartBottomNodeId, "Node %s not found", eyelidStartBottomNodeName);
+  G_ASSERTF(eyelidHorizontalReactionNodeId, "Node %s not found", eyelidHorizontalReactionNodeName);
+  G_ASSERTF(eyelidVerticalTopReactionNodeId, "Node %s not found", eyelidVerticalTopReactionNodeName);
+  G_ASSERTF(eyelidVerticalBottomReactionNodeId, "Node %s not found", eyelidVerticalBottomReactionNodeName);
+  G_ASSERTF(eyelidBlinkSourceNodeId, "Node %s not found", eyelidBlinkSourceNodeName);
+  G_ASSERTF(eyelidBlinkTopNodeId, "Node %s not found", eyelidBlinkTopNodeName);
+  G_ASSERTF(eyelidBlinkBottomNodeId, "Node %s not found", eyelidBlinkBottomNodeName);
+}
+
+void AnimPostBlendEyeCtrl::process(IPureAnimStateHolder &, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
+{
+  if (wt <= 0.001f)
+    return;
+
+  tree.partialCalcWtm(eyeDirectionNodeId);
+  mat44f &eyeDirWtm = tree.getNodeWtmRel(eyeDirectionNodeId);
+  quat4f eyeQuaternion = v_quat_from_mat(eyeDirWtm.col0, eyeDirWtm.col2, eyeDirWtm.col1);
+  vec3f eyeRotation = v_euler_from_quat(eyeQuaternion);
+
+  // Eyelids reaction on horizontal motion of the eye
+  mat33f m33;
+  v_mat33_make_rot_cw_y(m33, v_mul(v_splat_x(eyeRotation), v_splats(horizontalReactionFactor)));
+
+  tree.partialCalcWtm(eyelidHorizontalReactionNodeId);
+  mat44f &horizontalWtm = tree.getNodeWtmRel(eyelidHorizontalReactionNodeId);
+  horizontalWtm.col0 = m33.col0;
+  horizontalWtm.col1 = m33.col2;
+  horizontalWtm.col2 = m33.col1;
+  tree.recalcTm(eyelidHorizontalReactionNodeId);
+  tree.invalidateWtm(eyelidHorizontalReactionNodeId);
+
+  // Top eyelid eaction on vertical motion of the eye
+  tree.partialCalcWtm(eyelidStartTopNodeId);
+  tree.partialCalcWtm(eyelidVerticalTopReactionNodeId);
+  mat44f &startTopWtm = tree.getNodeWtmRel(eyelidStartTopNodeId);
+  mat44f &verticalTopWtm = tree.getNodeWtmRel(eyelidVerticalTopReactionNodeId);
+  verticalTopWtm.col3 =
+    v_perm_xbzw(startTopWtm.col3, v_sub(startTopWtm.col3, v_mul(v_splat_z(eyeRotation), v_splats(-verticalReactionFactor.x))));
+  tree.recalcTm(eyelidVerticalTopReactionNodeId);
+  tree.invalidateWtm(eyelidVerticalTopReactionNodeId);
+
+  // Bottom eyelid reaction on vertical motion of the eye
+  tree.partialCalcWtm(eyelidStartBottomNodeId);
+  tree.partialCalcWtm(eyelidVerticalBottomReactionNodeId);
+  mat44f &startBottomWtm = tree.getNodeWtmRel(eyelidStartBottomNodeId);
+  mat44f &verticalBottomWtm = tree.getNodeWtmRel(eyelidVerticalBottomReactionNodeId);
+  verticalBottomWtm.col3 =
+    v_perm_xbzw(startBottomWtm.col3, v_sub(startBottomWtm.col3, v_mul(v_splat_z(eyeRotation), v_splats(-verticalReactionFactor.y))));
+  tree.recalcTm(eyelidVerticalBottomReactionNodeId);
+  tree.invalidateWtm(eyelidVerticalBottomReactionNodeId);
+
+  // Blinking
+  float eyelidsDistance = v_extract_y(v_sub(verticalTopWtm.col3, verticalBottomWtm.col3));
+  float eyelidsHalfDistance = eyelidsDistance * 0.5f;
+
+  tree.partialCalcWtm(eyelidBlinkSourceNodeId);
+  vec4f blinkSource = tree.getNodeWposRel(eyelidBlinkSourceNodeId);
+  float blinkValue = v_extract_y(blinkSource);
+
+  tree.partialCalcWtm(eyelidBlinkTopNodeId);
+  mat44f &blinkTopWtm = tree.getNodeWtmRel(eyelidBlinkTopNodeId);
+
+  tree.partialCalcWtm(eyelidBlinkBottomNodeId);
+  mat44f &blinkBottomWtm = tree.getNodeWtmRel(eyelidBlinkBottomNodeId);
+
+  if (blinkValue < eyelidsHalfDistance)
+  {
+    blinkTopWtm.col3 =
+      v_perm_xbzw(verticalTopWtm.col3, v_sub(verticalTopWtm.col3, v_mul(blinkSource, v_splats(blinkingReactionFactor))));
+    blinkBottomWtm.col3 =
+      v_perm_xbzw(verticalBottomWtm.col3, v_add(verticalBottomWtm.col3, v_mul(blinkSource, v_splats(blinkingReactionFactor))));
+  }
+  else
+  {
+    blinkTopWtm.col3 =
+      v_perm_xbzw(verticalTopWtm.col3, v_sub(verticalTopWtm.col3, v_splats(eyelidsHalfDistance * blinkingReactionFactor)));
+    blinkBottomWtm.col3 =
+      v_perm_xbzw(verticalBottomWtm.col3, v_add(verticalBottomWtm.col3, v_splats(eyelidsHalfDistance * blinkingReactionFactor)));
+  }
+
+  tree.recalcTm(eyelidBlinkTopNodeId);
+  tree.invalidateWtm(eyelidBlinkTopNodeId);
+
+  tree.recalcTm(eyelidBlinkBottomNodeId);
+  tree.invalidateWtm(eyelidBlinkBottomNodeId);
+}
+
+void AnimPostBlendEyeCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
+{
+  const char *name = blk.getStr("name", NULL);
+  G_ASSERTF_RETURN(name, , "no name for %s", __FUNCTION__);
+
+  AnimPostBlendEyeCtrl *node = new AnimPostBlendEyeCtrl(graph);
+  node->horizontalReactionFactor = blk.getReal("horizontal_reaction_factor", 0.f);
+  node->blinkingReactionFactor = blk.getReal("blinking_reaction_factor", 0.f);
+  node->verticalReactionFactor = blk.getPoint2("vertical_reaction_factor", Point2());
+
+  node->eyeDirectionNodeName = blk.getStr("eye_direction", "");
+  node->eyelidStartTopNodeName = blk.getStr("eyelid_start_top", "");
+  node->eyelidStartBottomNodeName = blk.getStr("eyelid_start_bottom", "");
+  node->eyelidHorizontalReactionNodeName = blk.getStr("eyelids_horizontal", "");
+  node->eyelidVerticalTopReactionNodeName = blk.getStr("eyelid_vertical_top", "");
+  node->eyelidVerticalBottomReactionNodeName = blk.getStr("eyelid_vertical_bottom", "");
+  node->eyelidBlinkSourceNodeName = blk.getStr("blink_source", "");
+  node->eyelidBlinkTopNodeName = blk.getStr("eyelid_blink_top", "");
+  node->eyelidBlinkBottomNodeName = blk.getStr("eyelid_blink_bottom", "");
+
   graph.registerBlendNode(node, name);
 }

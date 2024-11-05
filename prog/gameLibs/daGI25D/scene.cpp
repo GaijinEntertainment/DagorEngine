@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daGI25D/scene.h>
 #include <math/dag_math3d.h>
 #include <math/dag_Point2.h>
@@ -5,8 +7,13 @@
 #include <math/integer/dag_IBBox2.h>
 #include <math/integer/dag_IBBox3.h>
 
-#include <3d/dag_drv3d.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_tex3d.h>
 #include <shaders/dag_computeShaders.h>
 #include <perfMon/dag_statDrv.h>
 

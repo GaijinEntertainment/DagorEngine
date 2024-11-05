@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -13,6 +12,17 @@
 
 class PhysBody;
 class PhysJoint;
+
+namespace rendinst
+{
+struct RiPhysSettings
+{
+  bool impulseCallbacksEnabled = false;
+};
+
+RiPhysSettings &get_mutable_ri_phys_settings();
+const RiPhysSettings &get_ri_phys_settings();
+} // namespace rendinst
 
 enum class RendInstPhysType
 {
@@ -60,6 +70,8 @@ struct RendInstPhys
   float maxTtl;
   float maxLifeDist;
   float distConstrainedPhys;
+
+  rendinst::TreeInstData treeInstData;
 
   RendInstPhysType type = RendInstPhysType::OTHER;
   RendInstTreeSound treeSound;

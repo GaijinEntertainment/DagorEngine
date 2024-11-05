@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_messageBox.h>
 #include <osApiWrappers/dag_unicode.h>
 #include <osApiWrappers/dag_miscApi.h>

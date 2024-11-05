@@ -1,10 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <memory/dag_framemem.h>
 #include <dag/dag_vectorSet.h>
 
 #include <backend/intermediateRepresentation.h>
-#include <id/idIndexedFlags.h>
 
 
 namespace dabfg
@@ -12,13 +12,15 @@ namespace dabfg
 
 struct InternalRegistry;
 struct DependencyData;
+struct ValidityInfo;
 class NameResolver;
 
 class IrGraphBuilder
 {
 public:
-  IrGraphBuilder(const InternalRegistry &reg, const DependencyData &depDataCalc, const NameResolver &nameRes) :
-    registry{reg}, depData{depDataCalc}, nameResolver{nameRes}
+  IrGraphBuilder(const InternalRegistry &reg, const DependencyData &depDataCalc, const ValidityInfo &valInf,
+    const NameResolver &nameRes) :
+    registry{reg}, depData{depDataCalc}, validityInfo{valInf}, nameResolver{nameRes}
   {}
 
   // Returns an intermediate representation of the graph that
@@ -31,38 +33,36 @@ public:
 private:
   const InternalRegistry &registry;
   const DependencyData &depData;
+  const ValidityInfo &validityInfo;
   const NameResolver &nameResolver;
 
-  struct ValidityInfo
-  {
-    IdIndexedFlags<ResNameId, framemem_allocator> resourceValid;
-    IdIndexedFlags<NodeNameId, framemem_allocator> nodeValid;
-  };
-  bool validateResource(ResNameId resId) const;
-  bool validateNode(NodeNameId resId) const;
-  void validateLifetimes(ValidityInfo &validity) const;
-  ValidityInfo findValidResourcesAndNodes() const;
+  const char *frontendNodeName(const intermediate::Node &node) const;
 
-  // Result contains no edges yet
-  eastl::pair<intermediate::Graph, intermediate::Mapping> createDiscreteGraph(const ValidityInfo &validity,
-    multiplexing::Extents extents) const;
+  template <class F, class G>
+  void scanPhysicalResourceUsages(ResNameId res_id, const F &process_reader, const G &process_modifier) const;
+  auto findFirstUsageAndUpdatedCreationFlags(ResNameId res_id, uint32_t initial_flags) const;
+
+  void addResourcesToGraph(intermediate::Graph &graph, intermediate::Mapping &mapping, multiplexing::Extents extents) const;
+  void addNodesToGraph(intermediate::Graph &graph, intermediate::Mapping &mapping, multiplexing::Extents extents) const;
   void fixupFalseHistoryFlags(intermediate::Graph &graph) const;
   void setIrGraphDebugNames(intermediate::Graph &graph) const;
   // Actually adds the edges
-  void addEdgesToIrGraph(intermediate::Graph &graph, const ValidityInfo &validity, const intermediate::Mapping &mapping) const;
+  void addEdgesToIrGraph(intermediate::Graph &graph, const intermediate::Mapping &mapping) const;
 
   using SinkSet = dag::VectorSet<intermediate::NodeIndex, eastl::less<intermediate::NodeIndex>, framemem_allocator>;
   SinkSet findSinkIrNodes(const intermediate::Graph &graph, const intermediate::Mapping &mapping,
     eastl::span<const ResNameId> sinkResources) const;
 
   // Returns a displacement (old index -> new index) partial mapping
-  IdIndexedMapping<intermediate::NodeIndex, intermediate::NodeIndex, framemem_allocator> pruneGraph(const intermediate::Graph &graph,
-    const intermediate::Mapping &mapping, eastl::span<const intermediate::NodeIndex> sinkNodes, const ValidityInfo &validity) const;
+  using DisplacementFmem = IdIndexedMapping<intermediate::NodeIndex, intermediate::NodeIndex, framemem_allocator>;
+  using EdgesToBreakFmem = dag::Vector<eastl::pair<intermediate::NodeIndex, intermediate::NodeIndex>, framemem_allocator>;
+  eastl::pair<DisplacementFmem, EdgesToBreakFmem> pruneGraph(const intermediate::Graph &graph, const intermediate::Mapping &mapping,
+    eastl::span<const intermediate::NodeIndex> sinksNodes) const;
 
   intermediate::RequiredNodeState calcNodeState(NodeNameId node_id, intermediate::MultiplexingIndex multi_index,
     const intermediate::Mapping &mapping) const;
 
-  void dumpRawUserGraph(const ValidityInfo &info) const;
+  void dumpRawUserGraph() const;
 };
 
 } // namespace dabfg

@@ -1,0 +1,14 @@
+Root     ?= ../../.. ;
+Location  = prog/gameLibs/publicConfigs ;
+TargetType     = lib ;
+Target    = gameLibs/publicConfigs.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources = publicConfigs.cpp ;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -9,7 +9,7 @@
 using namespace std;
 
 static int indent = 2;
-static int line_width = 140;
+static int line_width = -1;
 static bool stdinout = false;
 
 static const char * tokens_str[] =
@@ -671,6 +671,9 @@ struct Formatter
 
   void fmtLineWidth()
   {
+    if (line_width < 1)
+      return;
+
     int curIndent = 0;
     int accum = 0;
     int lineBeginTok = 0;
@@ -837,7 +840,7 @@ void print_usage()
   printf("  or\n");
   printf("  nut_formatter [options] --files:<files-list.txt>\n\n");
   printf("  --no-backup - don't create backup files.\n");
-  printf("  --line-width:110 - fit to line width (140 by default).\n");
+  printf("  --line-width:140 - fit to line width (unlimited by default).\n");
   printf("  --std - get source from stdin, write result to stdout.\n");
 }
 
@@ -873,7 +876,7 @@ int main(int argc, char ** argv)
       const char * s = arg + 13;
       line_width = atoi(s);
       if (line_width <= indent)
-        line_width = 999999;
+        line_width = -1;
     }
 
     if (!strncmp(arg, "--files:", 8))

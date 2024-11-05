@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "bhvPannable2Touch.h"
 
 #include <daRg/dag_element.h>

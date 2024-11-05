@@ -1,8 +1,0 @@
-ERROR: too many expressions separated by comma in 'for ([from, ] to)' - loop
-testData/diagnostics/rangeloop1.nut.txt:4:11
-
-for (a, b, s, g) {
-           ^
-    println("ERROR loop 1")
-
-

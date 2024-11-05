@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <image/dag_dxtCompress.h>
 #include <debug/dag_fatal.h>
 
@@ -181,18 +183,6 @@ void decompress_dxt(unsigned char *decompressedData, int lw, int lh, int row_pit
     decompress_dxt5(decompressedData, lw, lh, row_pitch, src_data);
 }
 
-void decompress_dxt1_downsample4x(unsigned char *downsampledData, int lw, int lh, int row_pitch, unsigned char *src_data,
-  unsigned char *decodedData)
-{
-  DAG_FATAL("not implemented");
-}
-void decompress_dxt5_downsample4x(unsigned char *downsampledData, int lw, int lh, int row_pitch, unsigned char *src_data,
-  unsigned char *decodedData)
-{
-  DAG_FATAL("not implemented");
-}
-void decompress_dxt3_downsample4x(unsigned char *downsampledData, int lw, int lh, int row_pitch, unsigned char *src_data,
-  unsigned char *decodedData)
-{
-  DAG_FATAL("not implemented");
-}
+void decompress_dxt1_downsample4x(unsigned char *, int, int, int, unsigned char *, unsigned char *) { DAG_FATAL("not implemented"); }
+void decompress_dxt5_downsample4x(unsigned char *, int, int, int, unsigned char *, unsigned char *) { DAG_FATAL("not implemented"); }
+void decompress_dxt3_downsample4x(unsigned char *, int, int, int, unsigned char *, unsigned char *) { DAG_FATAL("not implemented"); }

@@ -13,6 +13,7 @@ AddIncludes =
 ;
 
 Sources =
+  netPhysResync.cpp
   collRes.cpp
   collResFromEcs.cpp
   collResFromRI.cpp

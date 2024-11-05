@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <max.h>
 #include "dagor.h"
 // #include "resource.h"

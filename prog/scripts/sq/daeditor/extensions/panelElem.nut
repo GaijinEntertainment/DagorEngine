@@ -1,7 +1,7 @@
 from "%darg/ui_imports.nut" import *
 
 let textButton = require("%daeditor/components/textButton.nut")
-let {msgboxComponent=null, showMsgbox=null} = require_optional("%daeditor/components/mkMsgbox.nut")("daeditorx_")
+let {msgboxComponent=null, showMsgbox=null} = require_optional("%daeditor/components/mkMsgbox.nut")?("daeditorx_")
 
 let panelElemsButtonStyle = { boxStyle = { normal = { fillColor = Color(0,0,0,80) } } }
 

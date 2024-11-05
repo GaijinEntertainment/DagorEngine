@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <util/dag_stdint.h>
@@ -22,8 +23,6 @@ extern bool is_window_in_thread;
 extern float gametimeElapsed;
 extern int minVariableRateActTimeUsec, lastFrameTime;
 extern int fixedActPerfFrame, curFrameActs;
-
-extern int inInternalWinLoop;
 
 intptr_t main_window_proc(void *, unsigned, uintptr_t, intptr_t);
 void set_priority(bool foreground);

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/dagFileRW/dagMatRemapUtil.h>
 
 #include <ioSys/dag_fileIo.h>
@@ -130,14 +132,14 @@ public:
   inline bool seekrelSafe(int ofs)
   {
     DAGOR_TRY { seekrel(ofs); }
-    DAGOR_CATCH(IGenLoad::LoadException e) { return false; }
+    DAGOR_CATCH(const IGenLoad::LoadException &e) { return false; }
 
     return true;
   }
   inline bool seektoSafe(int ofs)
   {
     DAGOR_TRY { seekto(ofs); }
-    DAGOR_CATCH(IGenLoad::LoadException e) { return false; }
+    DAGOR_CATCH(const IGenLoad::LoadException &e) { return false; }
 
     return true;
   }
@@ -146,7 +148,7 @@ public:
   {
     int tag = -1;
     DAGOR_TRY { tag = beginTaggedBlock(); }
-    DAGOR_CATCH(IGenLoad::LoadException e) { return -1; }
+    DAGOR_CATCH(const IGenLoad::LoadException &e) { return -1; }
     blkTag.push_back(tag);
     return getBlockLength() - 4;
   }
@@ -154,7 +156,7 @@ public:
   {
     int tag = -1;
     DAGOR_TRY { endBlock(); }
-    DAGOR_CATCH(IGenLoad::LoadException e) { return false; }
+    DAGOR_CATCH(const IGenLoad::LoadException &e) { return false; }
     blkTag.pop_back();
     return true;
   }
@@ -243,7 +245,7 @@ static bool load_node(MatRemapImpBlkReader &rdr, DagData::Node &node)
           }
           else
           {
-            debug_ctx("load_node error");
+            DEBUG_CTX("load_node error");
             printf("error\n");
             return false;
           }
@@ -306,7 +308,7 @@ static bool load_node(MatRemapImpBlkReader &rdr, DagData::Node &node)
   return true;
 
 err:
-  debug_ctx("load_node error");
+  DEBUG_CTX("load_node error");
   return false;
 }
 
@@ -330,15 +332,15 @@ bool load_scene(const char *fname, DagData &data, bool read_nodes)
     }else */
     if (rdr.getBlockTag() == DAG_TEXTURES)
     {
-      // debug_ctx("begin tex %d", rdr.tell());
+      // DEBUG_CTX("begin tex %d", rdr.tell());
       data.texStart = rdr.tell();
       uint16_t num;
       READ(&num, 2);
-      // debug_ctx("textures %d", num);
+      // DEBUG_CTX("textures %d", num);
       clear_and_shrink(data.texlist);
-      debug_cp();
+      DEBUG_CP();
       data.texlist.reserve(num);
-      // debug_ctx("textures %d", num);
+      // DEBUG_CTX("textures %d", num);
       for (int i = 0; i < num; ++i)
       {
         int l = 0;
@@ -349,7 +351,7 @@ bool load_scene(const char *fname, DagData &data, bool read_nodes)
         data.texlist.push_back(String(str));
       }
       data.texEnd = rdr.tell();
-      // debug_ctx("end tex %d", data.texEnd);
+      // DEBUG_CTX("end tex %d", data.texEnd);
     }
     else if (rdr.getBlockTag() == DAG_MATER)
     {
@@ -362,7 +364,7 @@ bool load_scene(const char *fname, DagData &data, bool read_nodes)
         READ(str, l);
       str[l] = 0;
       m.name = str;
-      // debug_ctx("mat <%s>", str);
+      // DEBUG_CTX("mat <%s>", str);
       READ(&m.mater, sizeof(DagMater));
       l = 0;
       READ(&l, 1);

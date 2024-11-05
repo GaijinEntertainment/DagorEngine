@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -18,10 +17,10 @@ eastl::string get_country_code();
 namespace bind_dascript
 {
 
-inline const char *get_country_code(das::Context *context)
+inline const char *get_country_code(das::Context *context, das::LineInfoArg *at)
 {
   eastl::string country{auth::get_country_code()};
-  return context->stringHeap->allocateString(country.begin(), uint32_t(country.length()));
+  return context->allocateString(country, at);
 }
 
 } // namespace bind_dascript

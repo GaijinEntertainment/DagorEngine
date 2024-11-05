@@ -1,7 +1,7 @@
 import sys
 
-if sys.version_info.major < 3:
-  print("\nERROR: Python 3 or a higher version is required to run this script.")
+if not (sys.version_info.major >= 3 and sys.version_info.minor >= 8):
+  print("\nERROR: Python 3.8 or a higher version is required to run this script.")
   exit(1)
 
 import sys
@@ -155,7 +155,7 @@ def setup_vs140(check_again_after_download):
 # vs142
 def setup_vs142(check_again_after_download):
   vs142_ver = "14.29"
-  vc2019_dest_folder = dest_dir + '/vc2019_16.10.3'
+  vc2019_dest_folder = dest_dir + '/vc2019_16.11.34'
 
   if pathlib.Path(vc2019_dest_folder).exists():
     real_path = ""
@@ -196,13 +196,64 @@ def setup_vs142(check_again_after_download):
       print('+++ VC2019 found at {0}'.format(vc2019_src_folder))
       make_directory_symlink(vc2019_src_folder, vc2019_dest_folder)
     else:
-      print('--- VC2019 not found, install VisualStudio 2019 16.10.3+ and re-run setup')
+      print('--- VC2019 not found, install VisualStudio 2019 16.11.34+ and re-run setup')
       if not check_again_after_download:
         error("Visual Studio 2019 is required but not found at '{0}'".format(vc2019_src_folder))
       microsoft_retry.append(setup_vs142)
 
 
 setup_vs142(True)
+
+
+def setup_vs143(check_again_after_download):
+  vs143_ver = "14.39"
+  vc2022_dest_folder = dest_dir + '/vc2022_17.9.5'
+
+  if pathlib.Path(vc2022_dest_folder).exists():
+    real_path = ""
+    try:
+      real_path = os.path.realpath(vc2022_dest_folder)
+    except OSError as e:
+      pass
+
+    if (not pathlib.Path(vc2022_dest_folder + '/bin/HostX64/x64/1033').exists() or
+       (real_path.find("Microsoft") != -1 and real_path.find(vs143_ver) == -1)):
+      print(vc2022_dest_folder+" contains invalid version of build tools.")
+      print("...removing "+vc2022_dest_folder)
+      try:
+        os.remove(vc2022_dest_folder)
+      except OSError as e:
+        error("Cannot remove link {0}: {1}".format(vc2022_dest_folder, e))
+
+
+  if pathlib.Path(vc2022_dest_folder).exists():
+    print('=== VC2022 symlink found at {0}, skipping setup'.format(vc2022_dest_folder))
+  else:
+    ok = False
+    vc2022_src_folder = '{0}/Microsoft Visual Studio'.format(os.environ['ProgramFiles(x86)'])
+    if vc2022_src_folder and pathlib.Path(vc2022_src_folder).exists():
+      for nm in ['/2022/BuildTools', '/2022/Community', '/2022/Enterprise', '/2022/Professional']:
+        if pathlib.Path(vc2022_src_folder + nm + '/VC/Tools/MSVC').exists():
+          versions_folder = vc2022_src_folder + nm + '/VC/Tools/MSVC'
+          for item in pathlib.Path(versions_folder).glob(vs143_ver + ".*"):
+            if item.is_dir():
+              if pathlib.Path(os.path.normpath(item)+'/bin/HostX64/x64/1033').exists():
+                if pathlib.Path(os.path.normpath(item)+'/bin/HostX86/x86/1033').exists():
+                  vc2022_src_folder = os.path.normpath(item)
+                  ok = True
+                  break
+
+    if ok:
+      print('+++ VC2022 found at {0}'.format(vc2022_src_folder))
+      make_directory_symlink(vc2022_src_folder, vc2022_dest_folder)
+    else:
+      print('--- VC2022 not found, install VisualStudio 2022 17.9.5+ and re-run setup')
+      if not check_again_after_download:
+        error("Visual Studio 2022 is required but not found at '{0}'".format(vc2022_src_folder))
+      microsoft_retry.append(setup_vs143)
+
+
+setup_vs143(True)
 
 
 # Microsoft Windows 10 SDK
@@ -269,8 +320,12 @@ if len(microsoft_retry) > 0:
     " Microsoft.Component.VC.Runtime.UCRTSDK" +
     " Microsoft.VisualStudio.Component.VC.140" +
     " Microsoft.VisualStudio.Workload.VCTools" +
-    " Microsoft.VisualStudio.Component.VC.14.29.16.11.x86.x64" +
-    " Microsoft.VisualStudio.Component.VC.14.29.16.11.ATL" )
+    " Microsoft.VisualStudio.Component.VC.14.29.16.11.x86.x64 " +
+    " Microsoft.VisualStudio.Component.VC.14.29.16.11.ARM64 " +
+    " Microsoft.VisualStudio.Component.VC.14.29.16.11.ATL " +
+    " Microsoft.VisualStudio.Component.VC.14.39.17.9.x86.x64 " +
+    " Microsoft.VisualStudio.Component.VC.14.39.17.9.ARM64 " +
+    " Microsoft.VisualStudio.Component.VC.14.39.17.9.ATL " )
 
   for fn in microsoft_retry:
     fn(False)
@@ -391,6 +446,10 @@ else:
     make_directory_symlink(fmod_src_folder+'/api/core/inc', fmod_dest_folder+'/core/win64/inc')
     make_directory_symlink(fmod_src_folder+'/api/core/lib/x64', fmod_dest_folder+'/core/win64/lib')
 
+    pathlib.Path(fmod_dest_folder+'/core/win-arm64').mkdir(parents=True, exist_ok=True)
+    make_directory_symlink(fmod_src_folder+'/api/core/inc', fmod_dest_folder+'/core/win-arm64/inc')
+    make_directory_symlink(fmod_src_folder+'/api/core/lib/arm64', fmod_dest_folder+'/core/win-arm64/lib')
+
     pathlib.Path(fmod_dest_folder+'/studio/win32').mkdir(parents=True, exist_ok=True)
     make_directory_symlink(fmod_src_folder+'/api/studio/inc', fmod_dest_folder+'/studio/win32/inc')
     make_directory_symlink(fmod_src_folder+'/api/studio/lib/x86', fmod_dest_folder+'/studio/win32/lib')
@@ -398,6 +457,11 @@ else:
     pathlib.Path(fmod_dest_folder+'/studio/win64').mkdir(parents=True, exist_ok=True)
     make_directory_symlink(fmod_src_folder+'/api/studio/inc', fmod_dest_folder+'/studio/win64/inc')
     make_directory_symlink(fmod_src_folder+'/api/studio/lib/x64', fmod_dest_folder+'/studio/win64/lib')
+
+    pathlib.Path(fmod_dest_folder+'/studio/win-arm64').mkdir(parents=True, exist_ok=True)
+    make_directory_symlink(fmod_src_folder+'/api/studio/inc', fmod_dest_folder+'/studio/win-arm64/inc')
+    make_directory_symlink(fmod_src_folder+'/api/studio/lib/arm64', fmod_dest_folder+'/studio/win-arm64/lib')
+
     shutil.copyfile(fmod_src_folder+'/doc/LICENSE.TXT', fmod_dest_folder+'/LICENSE.TXT')
     shutil.copyfile(fmod_src_folder+'/doc/revision.txt', fmod_dest_folder+'/revision.txt')
   else:
@@ -405,22 +469,24 @@ else:
     print('consider downloading and installing https://www.fmod.com/download#fmodengine - Windows Download')
     pathlib.Path(fmod_dest_folder+'/core/win32/inc').mkdir(parents=True, exist_ok=True)
     pathlib.Path(fmod_dest_folder+'/core/win64/inc').mkdir(parents=True, exist_ok=True)
+    pathlib.Path(fmod_dest_folder+'/core/win-arm64/inc').mkdir(parents=True, exist_ok=True)
     pathlib.Path(fmod_dest_folder+'/studio/win32/inc').mkdir(parents=True, exist_ok=True)
     pathlib.Path(fmod_dest_folder+'/studio/win64/inc').mkdir(parents=True, exist_ok=True)
+    pathlib.Path(fmod_dest_folder+'/studio/win-arm64/inc').mkdir(parents=True, exist_ok=True)
 
 
-# OpenXR 1.0.16
-openxr_dest_folder = dest_dir+'/openxr-1.0.16'
+# OpenXR 1.0.27
+openxr_dest_folder = dest_dir+'/openxr-1.0.27'
 if pathlib.Path(openxr_dest_folder).exists():
   print('=== OpenXR symlink found at {0}, skipping setup'.format(openxr_dest_folder))
 else:
-  download_url('https://github.com/KhronosGroup/OpenXR-SDK-Source/releases/download/release-1.0.16/openxr_loader_windows-1.0.16.zip')
-  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/openxr_loader_windows-1.0.16.zip'), 'r') as zip_file:
+  download_url('https://github.com/KhronosGroup/OpenXR-SDK-Source/releases/download/release-1.0.27/openxr_loader_windows-1.0.27.zip')
+  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/openxr_loader_windows-1.0.27.zip'), 'r') as zip_file:
     zip_file.extractall(openxr_dest_folder)
     make_directory_symlink(openxr_dest_folder+'/openxr_loader_windows/include', openxr_dest_folder+'/include')
     make_directory_symlink(openxr_dest_folder+'/openxr_loader_windows/Win32', openxr_dest_folder+'/win32')
     make_directory_symlink(openxr_dest_folder+'/openxr_loader_windows/x64', openxr_dest_folder+'/win64')
-    print('+++ OpenXR 1.0.16 installed at {0}'.format(openxr_dest_folder))
+    print('+++ OpenXR 1.0.27 installed at {0}'.format(openxr_dest_folder))
 
 
 # FidelityFX-FSR2 compiler
@@ -454,6 +520,26 @@ else:
       shutil.copyfile(dest_dir+'/.packages/DirectXShaderCompiler-1.7.2207/LICENSE.TXT', dxc_dest_folder+'/LICENSE.TXT')
       print('+++ DXC Jul 2022 installed at {0}'.format(dxc_dest_folder))
 
+# Agility.SDK.1.614.1
+asdk_ver = '1.614.1'
+asdk_dest_folder = dest_dir+'/Agility.SDK.'+asdk_ver
+if pathlib.Path(asdk_dest_folder).exists():
+  print('=== Agility.SDK.{1} symlink found at {0}, skipping setup'.format(asdk_dest_folder, asdk_ver))
+else:
+  zip_name = 'D3D12-{0}.zip'.format(asdk_ver)
+  download_url2('https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/'+asdk_ver, zip_name)
+  asdk_pkg_name = dest_dir+'/.packages/D3D12-'+asdk_ver+'.pkg'
+  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/'+zip_name), 'r') as zip_file:
+    zip_file.extractall(asdk_pkg_name)
+    #make_directory_symlink(asdk_pkg_name+'/build/native', asdk_dest_folder)
+    shutil.move(asdk_pkg_name+'/build/native', asdk_dest_folder)
+    shutil.move(asdk_pkg_name+'/README.md', asdk_dest_folder)
+    shutil.move(asdk_pkg_name+'/distributable files.txt', asdk_dest_folder)
+    shutil.move(asdk_pkg_name+'/LICENSE.txt', asdk_dest_folder)
+    shutil.move(asdk_pkg_name+'/LICENSE-CODE.txt', asdk_dest_folder)
+    shutil.move(asdk_pkg_name+'/Microsoft.Direct3D.D3D12.nuspec', asdk_dest_folder)
+    print('+++ Agility.SDK.{1} installed at {0}'.format(asdk_dest_folder, asdk_ver))
+
 # astcenc-4.5.1
 astcenc_dest_folder = dest_dir+'/astcenc-4.6.1'
 if pathlib.Path(astcenc_dest_folder).exists():
@@ -465,18 +551,20 @@ else:
     os.rename(os.path.normpath(dest_dir+'/astcenc-4.6.1/bin'), os.path.normpath(dest_dir+'/astcenc-4.6.1/win64'));
     print('+++ ASTC encoder 4.6.1 installed at {0}'.format(astcenc_dest_folder))
 
-# ispc-v1.22.0
-ispc_dest_folder = dest_dir+'/ispc-v1.22.0-windows'
+# ispc-v1.23.0
+ispc_dest_folder = dest_dir+'/ispc-v1.23.0-windows'
 if pathlib.Path(ispc_dest_folder).exists():
-  print('=== ISPC v1.22.0 {0}, skipping setup'.format(ispc_dest_folder))
+  print('=== ISPC v1.23.0 {0}, skipping setup'.format(ispc_dest_folder))
 else:
-  download_url('https://github.com/ispc/ispc/releases/download/v1.22.0/ispc-v1.22.0-windows.zip')
-  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/ispc-v1.22.0-windows.zip'), 'r') as zip_file:
+  download_url('https://github.com/ispc/ispc/releases/download/v1.23.0/ispc-v1.23.0-windows.zip')
+  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/ispc-v1.23.0-windows.zip'), 'r') as zip_file:
     zip_file.extractall(dest_dir)
-    print('+++ ISPC v1.22.0 installed at {0}'.format(ispc_dest_folder))
+    print('+++ ISPC v1.23.0 installed at {0}'.format(ispc_dest_folder))
 
 
 # install 3ds Max SDKs
+install_3ds_Max_SDK('2025',
+  'https://autodesk-adn-transfer.s3.us-west-2.amazonaws.com/ADN+Extranet/M%26E/Max/Autodesk+3ds+Max+2025/SDK_3dsMax2025.msi')
 install_3ds_Max_SDK('2024',
   'https://autodesk-adn-transfer.s3.us-west-2.amazonaws.com/ADN+Extranet/M%26E/Max/Autodesk+3ds+Max+2024/SDK_3dsMax2024.msi')
 install_3ds_Max_SDK('2023',
@@ -491,6 +579,8 @@ if pathlib.Path("prog").exists():
     fd.write('_DEVTOOL = {0} ;\n'.format(dest_dir))
     if pathlib.Path(fmod_dest_folder+'/LICENSE.TXT').exists():
       fd.write('FmodStudio = 2.xx.xx ;\n')
+    else:
+      fd.write('FmodStudio = none ;\n')
     fd.close()
 
 
@@ -521,8 +611,9 @@ try:
   subprocess.run(["jam", "-v"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 except FileNotFoundError:
   print("jam.exe not found, installing jam...")
-  download_url2("https://github.com/GaijinEntertainment/jam-G8/releases/download/2.5-G8-1.2-2023%2F05%2F04/jam-win64.zip", "jam.zip")
-  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/jam.zip'), 'r') as zip_file:
+  jam_zip = 'jam-windows-x86_64.zip'
+  download_url("https://github.com/GaijinEntertainment/jam-G8/releases/download/2.5-G8-1.3-2024%2F04%2F01/jam-windows-x86_64.zip")
+  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/'+jam_zip), 'r') as zip_file:
     zip_file.extractall(dest_dir)
 
 if env_updated:

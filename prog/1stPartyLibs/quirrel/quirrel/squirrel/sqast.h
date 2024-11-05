@@ -1,5 +1,4 @@
-#ifndef _SQAST_H_
-#define _SQAST_H_
+#pragma once
 
 #include <assert.h>
 #include "squirrel.h"
@@ -7,7 +6,7 @@
 #include "arena.h"
 #include "sqobject.h"
 
-// NOTE: There are some checkers that rely on the order of this list so re-arrange it carrefuly
+// NOTE: There are some checkers that rely on the order of this list so re-arrange it carefully
 
 #define TREE_OPS \
     DEF_TREE_OP(BLOCK), \
@@ -54,7 +53,6 @@
     DEF_TREE_OP(ADD), \
     DEF_TREE_OP(SUB), \
     DEF_TREE_OP(NEWSLOT), \
-    DEF_TREE_OP(INEXPR_ASSIGN), \
     DEF_TREE_OP(PLUSEQ), \
     DEF_TREE_OP(MINUSEQ), \
     DEF_TREE_OP(MULEQ), \
@@ -70,16 +68,17 @@
     DEF_TREE_OP(DELETE), \
     DEF_TREE_OP(LITERAL), \
     DEF_TREE_OP(BASE), \
-    DEF_TREE_OP(ROOT), \
+    DEF_TREE_OP(ROOT_TABLE_ACCESS), \
     DEF_TREE_OP(INC), \
     DEF_TREE_OP(DECL_EXPR), \
     DEF_TREE_OP(ARRAYEXPR), \
     DEF_TREE_OP(GETFIELD), \
     DEF_TREE_OP(SETFIELD), \
-    DEF_TREE_OP(GETTABLE), \
-    DEF_TREE_OP(SETTABLE), \
+    DEF_TREE_OP(GETSLOT), \
+    DEF_TREE_OP(SETSLOT), \
     DEF_TREE_OP(CALL), \
     DEF_TREE_OP(TERNARY), \
+    DEF_TREE_OP(EXTERNAL_VALUE), \
     DEF_TREE_OP(EXPR_MARK), \
     DEF_TREE_OP(VAR), \
     DEF_TREE_OP(PARAM), \
@@ -114,7 +113,7 @@ class Decl;
 
 class Id;
 class GetFieldExpr;
-class GetTableExpr;
+class GetSlotExpr;
 
 
 class Node : public ArenaObj {
@@ -148,29 +147,31 @@ public:
     Id *asId() { assert(_op == TO_ID); return (Id*)this; }
     const Id *asId() const { assert(_op == TO_ID); return (const Id*)this; }
     GetFieldExpr *asGetField() const { assert(_op == TO_GETFIELD); return (GetFieldExpr*)this; }
-    GetTableExpr *asGetTable() const { assert(_op == TO_GETTABLE); return (GetTableExpr*)this; }
+    GetSlotExpr *asGetSlot() const { assert(_op == TO_GETSLOT); return (GetSlotExpr*)this; }
 
-    SQInteger lineStart() const { return _coordinates.lineStart; }
-    void setLineStartPos(SQInteger pos) { _coordinates.lineStart = pos; }
-    SQInteger lineEnd() const { return _coordinates.lineEnd; }
-    void setLineEndPos(SQInteger pos) { _coordinates.lineEnd = pos; }
+    int lineStart() const { return _coordinates.lineStart; }
+    void setLineStartPos(int pos) { _coordinates.lineStart = pos; }
+    int lineEnd() const { return _coordinates.lineEnd; }
+    void setLineEndPos(int pos) { _coordinates.lineEnd = pos; }
 
-    SQInteger columnStart() const { return _coordinates.columnStart; }
-    void setColumnStartPos(SQInteger pos) { _coordinates.columnStart = pos; }
-    SQInteger columnEnd() const { return _coordinates.columnEnd; }
-    void setColumnEndPos(SQInteger pos) { _coordinates.columnEnd = pos; }
+    int columnStart() const { return _coordinates.columnStart; }
+    void setColumnStartPos(int pos) { _coordinates.columnStart = pos; }
+    int columnEnd() const { return _coordinates.columnEnd; }
+    void setColumnEndPos(int pos) { _coordinates.columnEnd = pos; }
 
-    SQInteger textWidth() const { return columnEnd() - columnStart(); }
+    int textWidth() const { return columnEnd() - columnStart(); }
+
+    void copyLocationFrom(const Node &from) { _coordinates = from._coordinates; }
 
 private:
 
-  struct {
-    SQInteger lineStart;
-    SQInteger columnStart;
+    struct {
+        int lineStart;
+        int columnStart;
 
-    SQInteger lineEnd;
-    SQInteger columnEnd;
-  } _coordinates;
+        int lineEnd;
+        int columnEnd;
+    } _coordinates;
 
     enum TreeOp _op;
 };
@@ -180,56 +181,34 @@ class LiteralExpr;
 class DeclExpr;
 class BinExpr;
 class CallExpr;
+class ExternalValueExpr;
 
 class Expr : public Node {
 protected:
-    Expr(enum TreeOp op) : Node(op), _isConst(false) {}
+    Expr(enum TreeOp op) : Node(op) {}
 
 public:
-    bool isAccessExpr() const { return TO_GETFIELD <= op() && op() <= TO_SETTABLE; }
+    bool isAccessExpr() const { return TO_GETFIELD <= op() && op() <= TO_SETSLOT; }
     AccessExpr *asAccessExpr() const { assert(isAccessExpr()); return (AccessExpr*)this; }
     LiteralExpr *asLiteral() const { assert(op() == TO_LITERAL); return (LiteralExpr *)this; }
     DeclExpr *asDeclExpr() const { assert(op() == TO_DECL_EXPR); return (DeclExpr *)this; }
     BinExpr *asBinExpr() const { assert(TO_NULLC <= op() && op() <= TO_MODEQ); return (BinExpr *)this; }
     CallExpr *asCallExpr() const { assert(op() == TO_CALL); return (CallExpr *)this; }
-
-    void setConst() { _isConst = true; }
-    bool isConst() const { return _isConst; }
-private:
-    bool _isConst;
+    ExternalValueExpr *asExternal() const { assert(op() == TO_EXTERNAL_VALUE); return (ExternalValueExpr *)this; }
 };
 
-enum IdType : SQInteger {
-    ID_LOCAL = -1,
-    ID_FIELD = -2
-};
 
 class Id : public Expr {
 public:
-    Id(const SQChar *id) : Expr(TO_ID), _id(id), _outpos(ID_LOCAL), _assignable(false) {}
+    Id(const SQChar *id) : Expr(TO_ID), _id(id) {}
 
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
 
     const SQChar *id() const { return _id; }
 
-    void setOuterPos(SQInteger pos) { _outpos = pos; }
-
-    bool isOuter() const { return _outpos >= 0; }
-    bool isField() const { return _outpos == ID_FIELD; }
-    void setField() { _outpos = ID_FIELD; }
-    bool isLocal() const { return _outpos == ID_LOCAL; }
-
-    SQInteger outerPos() const { return _outpos; }
-    void setAssignable(bool v) { _assignable = v; }
-    bool isAssignable() const { return _assignable; }
-    bool isBinding() const { return (isOuter() || isLocal()) && !isAssignable(); }
-
-
 private:
     const SQChar *_id;
-    SQInteger _outpos;
-    bool _assignable;
 };
 
 class UnExpr : public Expr {
@@ -311,7 +290,6 @@ protected:
 class FieldAccessExpr : public AccessExpr {
 protected:
     FieldAccessExpr(enum TreeOp op, Expr *receiver, const SQChar *field, bool nullable) : AccessExpr(op, receiver, nullable), _fieldName(field) {}
-    //bool canBeDefaultDelegate() const;
 
 public:
 
@@ -324,16 +302,16 @@ private:
 };
 
 class GetFieldExpr : public FieldAccessExpr {
-    bool _isBuiltInGet;
+    bool _isTypeMethod;
 public:
-    GetFieldExpr(Expr *receiver, const SQChar *field, bool nullable, bool builtin)
+    GetFieldExpr(Expr *receiver, const SQChar *field, bool nullable, bool is_type_method)
       : FieldAccessExpr(TO_GETFIELD, receiver, field, nullable)
-      , _isBuiltInGet(builtin) {}
+      , _isTypeMethod(is_type_method) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
 
-    bool isBuiltInGet() const { return _isBuiltInGet; }
+    bool isTypeMethod() const { return _isTypeMethod; }
 };
 
 
@@ -351,9 +329,9 @@ protected:
 };
 
 
-class TableAccessExpr : public AccessExpr {
+class SlotAccessExpr : public AccessExpr {
 protected:
-    TableAccessExpr(enum TreeOp op, Expr *receiver, Expr *key, bool nullable) : AccessExpr(op, receiver, nullable), _key(key) {}
+    SlotAccessExpr(enum TreeOp op, Expr *receiver, Expr *key, bool nullable) : AccessExpr(op, receiver, nullable), _key(key) {}
 public:
 
     Expr *key() const { return _key; }
@@ -361,17 +339,17 @@ protected:
     Expr *_key;
 };
 
-class GetTableExpr : public TableAccessExpr {
+class GetSlotExpr : public SlotAccessExpr {
 public:
-    GetTableExpr(Expr *receiver, Expr *key, bool nullable): TableAccessExpr(TO_GETTABLE, receiver, key, nullable) {}
+    GetSlotExpr(Expr *receiver, Expr *key, bool nullable): SlotAccessExpr(TO_GETSLOT, receiver, key, nullable) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
 };
 
-class SetTableExpr : public TableAccessExpr {
+class SetSlotExpr : public SlotAccessExpr {
 public:
-    SetTableExpr(Expr *receiver, Expr *key, Expr *val, bool nullable): TableAccessExpr(TO_SETTABLE, receiver, key, nullable), _val(val) {}
+    SetSlotExpr(Expr *receiver, Expr *key, Expr *val, bool nullable): SlotAccessExpr(TO_SETSLOT, receiver, key, nullable), _val(val) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -383,21 +361,15 @@ private:
 
 class BaseExpr : public Expr {
 public:
-    BaseExpr() : Expr(TO_BASE), _pos(-1) {}
+    BaseExpr() : Expr(TO_BASE) {}
 
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
-
-    void setPos(SQInteger pos) { _pos = pos; }
-    SQInteger getPos() const { return _pos; }
-
-private:
-    SQInteger _pos;
 };
 
-class RootExpr : public Expr {
+class RootTableAccessExpr : public Expr {
 public:
-    RootExpr() : Expr(TO_ROOT) {}
+    RootTableAccessExpr() : Expr(TO_ROOT_TABLE_ACCESS) {}
 
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
@@ -444,6 +416,21 @@ private:
 
 };
 
+// Used in the analyzer for external bindings
+class ExternalValueExpr : public Expr {
+public:
+    ExternalValueExpr(const SQObject &from) : Expr(TO_EXTERNAL_VALUE), _value(from) {}
+
+    void visitChildren(Visitor *visitor) {}
+    void transformChildren(Transformer *transformer) {}
+
+    SQObjectPtr& value() { return _value; }
+    const SQObjectPtr& value() const { return _value; }
+
+private:
+    SQObjectPtr _value;
+};
+
 enum IncForm {
     IF_PREFIX,
     IF_POSTFIX
@@ -451,18 +438,18 @@ enum IncForm {
 
 class IncExpr : public Expr {
 public:
-    IncExpr(Expr *arg, SQInteger diff, enum IncForm form) : Expr(TO_INC), _arg(arg), _diff(diff), _form(form) {}
+    IncExpr(Expr *arg, int diff, enum IncForm form) : Expr(TO_INC), _arg(arg), _diff(diff), _form(form) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
 
     enum IncForm form() const { return _form; }
-    SQInteger diff() const { return _diff; }
+    int diff() const { return _diff; }
     Expr *argument() const { return _arg; }
 
 private:
     enum IncForm _form;
-    SQInteger _diff;
+    int _diff;
     Expr *_arg;
 };
 
@@ -557,33 +544,21 @@ public:
 class DirectiveStmt : public Statement {
 public:
     DirectiveStmt() : Statement(TO_DIRECTIVE) {}
-    SQInteger setFlags = 0, clearFlags = 0;
+    uint32_t setFlags = 0, clearFlags = 0;
     bool applyToDefault = false;
 };
 
-enum DeclarationContext {
-    DC_UNKNOWN,
-    DC_LOCAL,
-    DC_SLOT,
-    DC_EXPR
-};
 
 class ParamDecl;
 class VarDecl;
 
 class Decl : public Statement {
 protected:
-    Decl(enum TreeOp op) : Statement(op), _context(DC_UNKNOWN) {}
+    Decl(enum TreeOp op) : Statement(op) {}
 public:
-
-    void setContext(enum DeclarationContext ctx) { _context = ctx; }
-    enum DeclarationContext context() const { return _context; }
 
     ParamDecl *asParam() const { assert(op() == TO_PARAM); return (ParamDecl *)(this); }
     VarDecl *asVarDecl() const { assert(op() == TO_VAR); return (VarDecl *)(this); }
-
-private:
-    enum DeclarationContext _context;
 };
 
 class ValueDecl : public Decl {
@@ -605,7 +580,7 @@ private:
 class ParamDecl : public ValueDecl {
   bool _isVararg;
 public:
-    ParamDecl(const SQChar *name, Expr *defaltVal) : ValueDecl(TO_PARAM, name, defaltVal), _isVararg(false) {}
+    ParamDecl(const SQChar *name, Expr *defaultVal) : ValueDecl(TO_PARAM, name, defaultVal), _isVararg(false) {}
 
     bool hasDefaultValue() const { return expression() != NULL; }
     Expr *defaultValue() const { return expression(); }
@@ -1093,15 +1068,16 @@ public:
     virtual void visitAccessExpr(AccessExpr *expr) { visitExpr(expr); }
     virtual void visitGetFieldExpr(GetFieldExpr *expr) { visitAccessExpr(expr); }
     virtual void visitSetFieldExpr(SetFieldExpr *expr) { visitAccessExpr(expr); }
-    virtual void visitGetTableExpr(GetTableExpr *expr) { visitAccessExpr(expr); }
-    virtual void visitSetTableExpr(SetTableExpr *expr) { visitAccessExpr(expr); }
+    virtual void visitGetSlotExpr(GetSlotExpr *expr) { visitAccessExpr(expr); }
+    virtual void visitSetSlotExpr(SetSlotExpr *expr) { visitAccessExpr(expr); }
     virtual void visitBaseExpr(BaseExpr *expr) { visitExpr(expr); }
-    virtual void visitRootExpr(RootExpr *expr) { visitExpr(expr); }
+    virtual void visitRootTableAccessExpr(RootTableAccessExpr *expr) { visitExpr(expr); }
     virtual void visitLiteralExpr(LiteralExpr *expr) { visitExpr(expr); }
     virtual void visitIncExpr(IncExpr *expr) { visitExpr(expr); }
     virtual void visitDeclExpr(DeclExpr *expr) { visitExpr(expr); }
     virtual void visitArrayExpr(ArrayExpr *expr) { visitExpr(expr); }
     virtual void visitCommaExpr(CommaExpr *expr) { visitExpr(expr); }
+    virtual void visitExternalValueExpr(ExternalValueExpr *expr) { visitExpr(expr); }
 
     virtual void visitStmt(Statement *stmt) { visitNode(stmt); }
     virtual void visitBlock(Block *block) { visitStmt(block); }
@@ -1154,15 +1130,16 @@ public:
   virtual Node *transformId(Id *id) { return transformExpr(id); }
   virtual Node *transformGetFieldExpr(GetFieldExpr *expr) { return transformExpr(expr); }
   virtual Node *transformSetFieldExpr(SetFieldExpr *expr) { return transformExpr(expr); }
-  virtual Node *transformGetTableExpr(GetTableExpr *expr) { return transformExpr(expr); }
-  virtual Node *transformSetTableExpr(SetTableExpr *expr) { return transformExpr(expr); }
+  virtual Node *transformGetSlotExpr(GetSlotExpr *expr) { return transformExpr(expr); }
+  virtual Node *transformSetSlotExpr(SetSlotExpr *expr) { return transformExpr(expr); }
   virtual Node *transformBaseExpr(BaseExpr *expr) { return transformExpr(expr); }
-  virtual Node *transformRootExpr(RootExpr *expr) { return transformExpr(expr); }
+  virtual Node *transformRootTableAccessExpr(RootTableAccessExpr *expr) { return transformExpr(expr); }
   virtual Node *transformLiteralExpr(LiteralExpr *expr) { return transformExpr(expr); }
   virtual Node *transformIncExpr(IncExpr *expr) { return transformExpr(expr); }
   virtual Node *transformDeclExpr(DeclExpr *expr) { return transformExpr(expr); }
   virtual Node *transformArrayExpr(ArrayExpr *expr) { return transformExpr(expr); }
   virtual Node *transformCommaExpr(CommaExpr *expr) { return transformExpr(expr); }
+  virtual Node *transformExternalValueExpr(ExternalValueExpr *expr) { return transformExpr(expr); }
 
   virtual Node *transformStmt(Statement *stmt) { return transformNode(stmt); }
   virtual Node *transformBlock(Block *block) { return transformStmt(block); }
@@ -1245,7 +1222,6 @@ void Node::visit(V *visitor) {
     case TO_ADD:
     case TO_SUB:
     case TO_NEWSLOT:
-    case TO_INEXPR_ASSIGN:
     case TO_PLUSEQ:
     case TO_MINUSEQ:
     case TO_MULEQ:
@@ -1265,8 +1241,8 @@ void Node::visit(V *visitor) {
         visitor->visitLiteralExpr(static_cast<LiteralExpr *>(this)); return;
     case TO_BASE:
         visitor->visitBaseExpr(static_cast<BaseExpr *>(this)); return;
-    case TO_ROOT:
-        visitor->visitRootExpr(static_cast<RootExpr *>(this)); return;
+    case TO_ROOT_TABLE_ACCESS:
+        visitor->visitRootTableAccessExpr(static_cast<RootTableAccessExpr *>(this)); return;
     case TO_INC:
         visitor->visitIncExpr(static_cast<IncExpr *>(this)); return;
     case TO_DECL_EXPR:
@@ -1277,14 +1253,16 @@ void Node::visit(V *visitor) {
         visitor->visitGetFieldExpr(static_cast<GetFieldExpr *>(this)); return;
     case TO_SETFIELD:
         visitor->visitSetFieldExpr(static_cast<SetFieldExpr *>(this)); return;
-    case TO_GETTABLE:
-        visitor->visitGetTableExpr(static_cast<GetTableExpr *>(this)); return;
-    case TO_SETTABLE:
-        visitor->visitSetTableExpr(static_cast<SetTableExpr *>(this)); return;
+    case TO_GETSLOT:
+        visitor->visitGetSlotExpr(static_cast<GetSlotExpr *>(this)); return;
+    case TO_SETSLOT:
+        visitor->visitSetSlotExpr(static_cast<SetSlotExpr *>(this)); return;
     case TO_CALL:
         visitor->visitCallExpr(static_cast<CallExpr *>(this)); return;
     case TO_TERNARY:
         visitor->visitTerExpr(static_cast<TerExpr *>(this)); return;
+    case TO_EXTERNAL_VALUE:
+        visitor->visitExternalValueExpr(static_cast<ExternalValueExpr *>(this)); return;
         //case TO_EXPR_MARK:
     case TO_VAR:
         visitor->visitVarDecl(static_cast<VarDecl *>(this)); return;
@@ -1360,7 +1338,6 @@ Node *Node::transform(T *transformer) {
   case TO_ADD:
   case TO_SUB:
   case TO_NEWSLOT:
-  case TO_INEXPR_ASSIGN:
   case TO_PLUSEQ:
   case TO_MINUSEQ:
   case TO_MULEQ:
@@ -1380,8 +1357,8 @@ Node *Node::transform(T *transformer) {
     return transformer->transformLiteralExpr(static_cast<LiteralExpr *>(this));
   case TO_BASE:
     return transformer->transformBaseExpr(static_cast<BaseExpr *>(this));
-  case TO_ROOT:
-    return transformer->transformRootExpr(static_cast<RootExpr *>(this));
+  case TO_ROOT_TABLE_ACCESS:
+    return transformer->transformRootTableAccessExpr(static_cast<RootTableAccessExpr *>(this));
   case TO_INC:
     return transformer->transformIncExpr(static_cast<IncExpr *>(this));
   case TO_DECL_EXPR:
@@ -1392,14 +1369,16 @@ Node *Node::transform(T *transformer) {
     return transformer->transformGetFieldExpr(static_cast<GetFieldExpr *>(this));
   case TO_SETFIELD:
     return transformer->transformSetFieldExpr(static_cast<SetFieldExpr *>(this));
-  case TO_GETTABLE:
-    return transformer->transformGetTableExpr(static_cast<GetTableExpr *>(this));
-  case TO_SETTABLE:
-    return transformer->transformSetTableExpr(static_cast<SetTableExpr *>(this));
+  case TO_GETSLOT:
+    return transformer->transformGetSlotExpr(static_cast<GetSlotExpr *>(this));
+  case TO_SETSLOT:
+    return transformer->transformSetSlotExpr(static_cast<SetSlotExpr *>(this));
   case TO_CALL:
     return transformer->transformCallExpr(static_cast<CallExpr *>(this));
   case TO_TERNARY:
     return transformer->transformTerExpr(static_cast<TerExpr *>(this));
+  case TO_EXTERNAL_VALUE:
+    return transformer->transformExternalValueExpr(static_cast<ExternalValueExpr *>(this));
     //case TO_EXPR_MARK:
   case TO_VAR:
     return transformer->transformVarDecl(static_cast<VarDecl *>(this));
@@ -1430,5 +1409,3 @@ Node *Node::transform(T *transformer) {
 }
 
 } // namespace SQCompilation
-
-#endif // _SQAST_H_

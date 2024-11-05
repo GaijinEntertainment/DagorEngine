@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <perfMon/dag_perfMonStat.h>
 #include <startup/dag_globalSettings.h>
 #include <debug/dag_debug.h>

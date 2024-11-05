@@ -1,0 +1,63 @@
+include "water_3d_geometry.dshl"
+include "water_3d_color.dshl"
+include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
+
+int use_satellite_rendering;
+interval use_satellite_rendering: no<1, yes;
+
+shader water_nv2, water_nv2_heightmap
+{
+  ENABLE_ASSERT(ps)
+  if (use_satellite_rendering == yes)
+  {
+    FULL_TONEMAP_LUT_APPLY(ps)
+  }
+
+  if (hardware.metal && water_tess_factor != water_tess_factor_off)
+  {
+    dont_render;
+  }
+
+  if ((water_refraction_tex == NULL) || (use_satellite_rendering == yes))
+  {
+    blend_src = 1;
+    blend_dst = isa;
+  } else
+  {
+    hlsl(ps)
+    {
+      #define HAS_REFRACTION 1
+    }
+  }
+
+  if (in_editor_assume == no)
+  {
+    USE_INDOOR_LIGHT_PROBES(ps, false)
+  }
+
+  INIT_WATER_3D_DEFERRED_COLOR()
+  USE_WATER_3D_DEFERRED_COLOR()
+
+  hlsl(ps) {
+    float4 water_nv_ps(PS_INPUT In HW_USE_SCREEN_POS INPUT_VFACE) : SV_Target0
+    {
+      half3 worldNormal = half3(0, 1, 0);
+      ##if use_satellite_rendering == yes
+        float4 waterCA = calc_water_color_from_ps_input_really_simple(In, vface, worldNormal);
+        float3 ret = performLUTTonemap(waterCA.xyz);
+        return float4(ret,waterCA.w);
+      ##else
+        return calc_water_color_from_ps_input(In, vface, worldNormal);
+      ##endif
+    }
+  }
+
+  if (shader == water_nv2)
+  {
+    WATER_3D_DEFERRED_SHADERS_COMMON()
+  }
+  else if (shader == water_nv2_heightmap)
+  {
+    WATER_3D_HEIGHTMAP_RENDER()
+  }
+}

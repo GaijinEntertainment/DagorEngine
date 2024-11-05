@@ -1,6 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "entityCopyDlg.h"
 
 #include <oldEditor/de_interface.h>
+#include <propPanel/commonWindow/dialogWindow.h>
+#include <propPanel/control/container.h>
+
+using heightmapland::CopyDlg;
 
 enum
 {
@@ -16,7 +22,7 @@ CopyDlg::CopyDlg(String &clone_name, int &clone_count, bool &clone_seed) :
 {
   mDialog = DAGORED2->createDialog(hdpi::_pxScaled(290), hdpi::_pxScaled(200), "Clone object");
 
-  PropPanel2 &panel = *mDialog->getPanel();
+  PropPanel::ContainerPropertyControl &panel = *mDialog->getPanel();
 
   panel.createEditBox(PID_CLONE_PREFIX, "Name of clone(s) (empty - automatic):", cloneName);
   panel.createEditInt(PID_CLONE_COUNT, "Count of clones:", 1);
@@ -32,9 +38,9 @@ bool CopyDlg::execute()
 {
   int ret = mDialog->showDialog();
 
-  if (ret == DIALOG_ID_OK)
+  if (ret == PropPanel::DIALOG_ID_OK)
   {
-    PropPanel2 &panel = *mDialog->getPanel();
+    PropPanel::ContainerPropertyControl &panel = *mDialog->getPanel();
 
     cloneName = panel.getText(PID_CLONE_PREFIX);
     cloneCount = panel.getInt(PID_CLONE_COUNT);

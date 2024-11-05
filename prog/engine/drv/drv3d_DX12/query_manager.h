@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <atomic>
@@ -76,10 +77,10 @@ private:
     ID3D12QueryHeap *heap = nullptr;
     uint32_t heapIndex = 0;
   };
-  eastl::vector<HeapTimeStampVisibility> timeStampHeaps;
-  eastl::vector<HeapTimeStampVisibility> visibilityHeaps;
-  eastl::vector<QueryFlushMapping> tsFlushes;
-  eastl::vector<VisibilityFlushMapping> visFlushes;
+  dag::Vector<HeapTimeStampVisibility> timeStampHeaps;
+  dag::Vector<HeapTimeStampVisibility> visibilityHeaps;
+  dag::Vector<QueryFlushMapping> tsFlushes;
+  dag::Vector<VisibilityFlushMapping> visFlushes;
 
   HeapTimeStampVisibility *newTimeStampVisibilityHeap(D3D12_QUERY_HEAP_TYPE type, ID3D12Device *device);
   void heapResolve(ID3D12GraphicsCommandList *target, D3D12_QUERY_TYPE type, HeapTimeStampVisibility &heap);
@@ -122,10 +123,10 @@ class FrontendQueryManager
     WinCritSec guard;
     ObjectPool<Query> objectPool;
   };
-  eastl::vector<HeapPredicate> predicateHeaps;
+  dag::Vector<HeapPredicate> predicateHeaps;
   WinCritSec predicateGuard;
   QueriesData qd;
-  eastl::vector<HeapPredicate>::iterator newPredicateHeap(Device &device, ID3D12Device *dx_device);
+  dag::Vector<HeapPredicate>::iterator newPredicateHeap(Device &device, ID3D12Device *dx_device);
 
 public:
   uint64_t createPredicate(Device &device, ID3D12Device *dx_device);
@@ -134,7 +135,7 @@ public:
   void preRecovery();
   bool postRecovery(Device &device, ID3D12Device *dx_device);
   void deleteQuery(Query *query_ptr);
-  void removeDeletedQueries(const eastl::vector<Query *> &deletedQueries);
+  void removeDeletedQueries(const dag::Vector<Query *> &deletedQueries);
   Query *newQuery();
   Query *getQueryPtrFromId(uint64_t id);
   PredicateInfo getPredicateInfo(Query *query);
@@ -349,7 +350,7 @@ inline Query *FrontendQueryManager::getQueryPtrFromId(uint64_t id)
   }
   return nullptr;
 }
-inline void FrontendQueryManager::removeDeletedQueries(const eastl::vector<Query *> &deletedQueries)
+inline void FrontendQueryManager::removeDeletedQueries(const dag::Vector<Query *> &deletedQueries)
 {
   WinAutoLock l(qd.guard);
   for (auto &&ts : deletedQueries)

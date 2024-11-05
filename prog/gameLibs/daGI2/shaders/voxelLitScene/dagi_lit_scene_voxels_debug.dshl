@@ -1,0 +1,173 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "world_sdf.dshl"
+include "dagi_lit_scene_voxels.dshl"
+include "postfx_inc.dshl"
+include "viewVecVS.dshl"
+include "globtm.dshl"
+
+shader dagi_lit_scene_voxels_debug
+{
+  supports global_const_block;
+  supports global_frame;
+  supports none;
+  cull_mode = none;
+  z_write = true;
+  z_test = true;
+
+  ENABLE_ASSERT(ps)
+  READ_WORLD_SDF(ps)
+  USE_AND_INIT_VIEW_VEC_VS()
+  POSTFX_VS_VIEWVEC(1, viewvec)
+  (ps) {debug_world_view_pos@f3 = world_view_pos;}
+
+  INIT_AND_USE_GLOBTM(ps)
+  DAGI_SAMPLE_VOXEL_LIT_SCENE_INIT(ps)
+  DAGI_SAMPLE_VOXEL_LIT_SCENE_USE(ps)
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  (ps) {
+     world_sdf_inv_size@f4 = world_sdf_inv_size;
+     world_sdf_coord_lt@i4[] = {world_sdf_coord_lt_0, world_sdf_coord_lt_1, world_sdf_coord_lt_2, world_sdf_coord_lt_3, world_sdf_coord_lt_4, world_sdf_coord_lt_5, world_sdf_coord_lt_6, world_sdf_coord_lt_7};
+  }
+
+  hlsl(ps)
+  {
+    #define sample_world_sdf_coord_lt(clip) _sample_world_sdf_coord_lt(clip, _FILE_, __LINE__)
+    int4 _sample_world_sdf_coord_lt(uint clip, int file, int ln)
+    {
+      // 8 is hardcoded currently. TODO: support array size in preshader for such checks.
+      ##assert(clip < 8, "[%s:%.f] Out of bounds: Buffer 'world_sdf_coord_lt' has size 8, but access to (%.f)", file, ln, clip);
+      return world_sdf_coord_lt[clip];
+    }
+
+    struct Output
+    {
+      float4 color : SV_Target;
+      float depth : SV_Depth;
+    };
+    int getSDFcascade(uint cascade) {return cascade + dagi_lit_scene_voxels_first_sdf_clip();}
+    void getLitSceneVoxelBox(uint cascade, out float3 bmin, out float3 bmax)
+    {
+      cascade += dagi_lit_scene_voxels_first_sdf_clip();
+      float voxelSize = world_sdf_voxel_size(cascade);
+      bmin = world_sdf_get_lt(cascade);
+      bmax = world_sdf_get_rb(cascade);
+      bmin += 0.5*voxelSize; bmax -= 0.5*voxelSize;
+    }
+    float getLitSceneVoxelSize(uint cascade)
+    {
+      return world_sdf_voxel_size(cascade + dagi_lit_scene_voxels_first_sdf_clip())*rcp(dagi_lit_scene_voxels_resolution().x*world_sdf_inv_size.x);
+    }
+
+    #include <base_wooray3d.hlsl>
+    float2 get_box_offset(uint cascade, float3 wpos, float3 wdir)
+    {
+      float3 bmin, bmax;
+      getLitSceneVoxelBox(cascade, bmin, bmax);
+      return rayBoxIntersect(bmin, bmax, wpos, wdir);
+    }
+
+
+    bool raycast_woo(uint cascade, float3 wpos, float3 wdir, float maxDist, out float dist, out float3 voxel_normal, out uint3 pt, out float3 result)
+    {
+      dist = 0;result = 0;
+      float2 startEnd = get_box_offset(cascade, wpos, wdir);
+      float startT = max(0, startEnd.x);
+      bool ret = false;
+      if (startT < startEnd.y)
+      {
+        maxDist = min(startEnd.y, maxDist) - startT;
+
+        float3 bmin, bmax;
+        getLitSceneVoxelBox(cascade, bmin, bmax);
+
+        float3 worldPos = wpos + startT*wdir;
+        float bwd = getLitSceneVoxelSize(cascade);
+        WooRay3d ray = initWoo(worldPos.xzy, wdir.xzy, bwd);
+        int3 diff = abs(int3(floor((worldPos.xzy + wdir.xzy*maxDist)/bwd)) - ray.pt);
+
+        int3 lt_coord = sample_world_sdf_coord_lt(getSDFcascade(cascade)).xyz;
+        //WooRay3d ray = initWoo(ofsPos, wdir.xzy, bwd, dagi_lit_scene_voxels_resolution(), int3(floor((worldPos.xzy + wdir.xzy*maxDist)/bwd)));
+        //int3 diff = abs(ray.endCell - ray.pt);
+        int n = 4*dot(diff, 1)+1;
+        float t = 0;
+        pt = 0;
+
+        int cnt = n;
+        voxel_normal = 0;
+        result = 0;
+        LOOP
+        for (;n;n--) {
+
+          int3 sdf_scene_coord = floor(ray.pt/dagi_lit_voxel_scene_to_sdf.xxy) - lt_coord;
+
+          //if (any(sdf_scene_coord < 0 && ray.stepCell < 0) || any(sdf_scene_coord >= world_sdf_get_res() && ray.stepCell > 0))
+          //  return false;
+          if (all(uint3(sdf_scene_coord) < uint3(world_sdf_get_res())))
+          {
+            float3 bbmin = ray.pt.xzy*bwd;
+            voxel_normal = ray_box_intersect_normal(wpos, wdir, bbmin, bbmin+bwd);
+            uint axis = dagi_main_axis_from_normal(voxel_normal);
+            uint3 wrapCoord = dagi_lit_scene_voxels_abs_coord_to_wrap_coord(ray.pt);
+            uint3 targetCoord = dagi_lit_scene_unsafe_atlas_coord(wrapCoord, cascade);
+            targetCoord.z += axis*dagi_lit_scene_voxels_axis_atlas_resolution();
+            float alpha = texture3DAt(dagi_lit_voxel_scene_alpha, targetCoord).x;
+            if (alpha > 0)
+            {
+              result = texture3DAt(dagi_lit_voxel_scene, targetCoord).xyz/alpha;
+              //result = voxel_normal*0.5+0.5;
+              //result = cascade*0.25;//
+              pt = ray.pt;
+              ret = true;
+              break;
+            }
+          }
+          nextCell(ray, t);
+
+          if (t >= maxDist)
+            break;
+        }
+        dist = min(t, maxDist) + startT;
+      }
+      return ret;//half4(0,1,0,1);
+    }
+
+    #define MAX_DIST 200
+    //#define FIXED_LOOP_COUNT 1
+
+    half4 lit_raycast_woo(float3 wpos, float3 wdir, out float t)
+    {
+      float3 voxel_normal;
+      uint3 coord;
+      half4 ret = 0;
+      t = 0;
+      for (uint cascade = 0; cascade < dagi_lit_scene_voxels_clip_count(); ++cascade)
+      {
+        float cOfs = max(0, t - sqrt(3.)*getLitSceneVoxelSize(cascade));
+        if (raycast_woo(cascade, wpos + wdir*cOfs, wdir, MAX_DIST, t, voxel_normal, coord, ret.rgb))
+        {
+          t += cOfs;
+          ret.a = 1;
+          break;
+        }
+        t += cOfs;
+      }
+      return ret;
+    }
+
+    Output debug_rasterize_ps(VsOutput IN)
+    {
+      float t = 0;
+      Output output;
+      float3 viewDir = normalize(IN.viewvec);
+      output.color = lit_raycast_woo(debug_world_view_pos, viewDir, t);
+      clip(output.color.a-0.001);
+      output.color.rgb = pack_hdr(output.color.rgb);
+      float4 imagePos = mulPointTm(debug_world_view_pos + viewDir*t, globtm);
+      output.depth = imagePos.z/imagePos.w;
+      return output;
+    }
+  }
+  compile("target_ps", "debug_rasterize_ps");
+}

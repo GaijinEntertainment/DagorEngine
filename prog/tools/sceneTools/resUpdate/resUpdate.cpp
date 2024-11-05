@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gameResPatcher/resUpdUtil.h>
 #include <util/dag_globDef.h>
 #include <startup/dag_globalSettings.h>

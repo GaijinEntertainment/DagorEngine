@@ -72,6 +72,8 @@
 #	define NV_CPU_PPC 1
 #elif defined POSH_CPU_E2K
 #	define NV_CPU_E2K 1
+#elif defined POSH_CPU_ARM64
+#	define NV_CPU_ARM64 1
 #else
 #	error "Unsupported CPU"
 #endif

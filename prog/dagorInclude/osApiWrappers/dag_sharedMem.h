@@ -1,13 +1,12 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <util/dag_stdint.h>
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 //! creates global shared (mapped) view of named file
 KRNLIMP void *create_global_map_shared_mem(const char *shared_mem_fname, void *base_addr, size_t sz, intptr_t &out_fd);
@@ -25,7 +24,7 @@ KRNLIMP void unlink_global_shared_mem(const char *shared_mem_fname);
 //! marks pages in shared mem region as read-only/read-write
 KRNLIMP void mark_global_shared_mem_readonly(void *addr, size_t sz, bool read_only);
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>
 
 
 #ifdef __cplusplus

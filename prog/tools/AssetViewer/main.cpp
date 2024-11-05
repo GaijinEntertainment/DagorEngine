@@ -1,5 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "av_appwnd.h"
 
+#include <EditorCore/ec_mainWindow.h>
 #include <winGuiWrapper/wgw_busy.h>
 #include <workCycle/dag_gameSettings.h>
 #include <startup/dag_globalSettings.h>
@@ -77,10 +80,10 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   cpujobs::init();
   threadpool::init(eastl::min(cpujobs::get_core_count(), 64), 1024, 128 << 10);
   dagor_install_dev_fatal_handler(NULL);
-  IWndManager *wndManager = IWndManager::createManager(&appManager);
-  wndManager->run(1024, 768, "AssetViewer2", "AssetViewerIcon", WSI_MAXIMIZED);
 
-  delete wndManager;
+  EditorMainWindow mainWindow(appManager);
+  mainWindow.run("AssetViewer2", "AssetViewerIcon");
+
   return 0;
 }
 

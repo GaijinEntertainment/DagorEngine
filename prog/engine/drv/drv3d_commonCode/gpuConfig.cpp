@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "gpuConfig.h"
 #include "gpuVendor.h"
 
@@ -6,7 +8,9 @@
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
 #include <osApiWrappers/dag_miscApi.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <util/dag_string.h>
 #include <osApiWrappers/dag_localConv.h>
 #if _TARGET_PC_WIN
@@ -369,26 +373,23 @@ static void check_ati_driver(const GpuVideoSettings &video, const char *gpu_desc
 
   // False negative survey results. Tested on R9 380 with 2016/10/25 8.17.10.1484 <aticfx32.dll>. Not reproduced with
   // 2019/08/26 8.17.10.1669 driver.
-  if (driver_version[0] == 8 && driver_version[3] < 1669)
+  if (driver_version[0] == 8 && driver_version[1] == 17 && driver_version[2] == 10 && driver_version[3] < 1669)
   {
     debug("flushBeforeSurvey enabled on outdated ATI driver");
     out_cfg.flushBeforeSurvey = true;
   }
 
   // 2009/07/14 8.15.10.163 crash in atidxx32.dll (In 2012 drivers numbering started from 1000).
-  if (driver_version[0] == 8 && driver_version[3] < 1000)
+  if (driver_version[0] == 8 && driver_version[1] == 15 && driver_version[2] == 10 && driver_version[3] < 1000)
   {
     out_cfg.outdatedDriver = out_cfg.fallbackToCompatibilty = true;
     debug("Fallback to compatibility on outdated ATI driver.");
   }
 
-  // on radeon 6000 series on latest driver versions many problems with mesh streaming issued
-  // needs actual fix, it looks like mesh streaming is pretty bugged
-  if ((driver_version[0] == 8) && (driver_version[3] >= 1698))
-  {
-    out_cfg.disableMeshStreaming = true;
-    debug("Disable mesh streaming in bugged driver version.");
-  }
+  // disable mesh streaming due to bug
+  // https://youtrack.gaijin.team/issue/1-117527/Graphical-artifacts-during-tank-battles-with-Radeon-GPU
+  // TODO: actual fix
+  out_cfg.disableMeshStreaming = true;
 
   out_cfg.gradientWorkaroud = strstr(gpu_desc, "radeon hd 3");
   if (out_cfg.gradientWorkaroud)
@@ -414,6 +415,15 @@ static void check_nvidia_driver(const GpuVideoSettings &video, const char *gpu_d
     debug("Old Nvidia GPU with outdated driver on Windows 10.");
   }
 #endif
+
+  // 551.23 is causing some weird issues on multpiple CopySubresourceRegion to one target. Didnt happens before this version
+  // TODO: re-check with newer nvidia driver version (when it will be available), NV migth fix it.
+  // Addition: 551.52 seems to have same problem, so assume all version >=551.23 for now
+  if (nvidiaDriverVersion >= 55123)
+  {
+    out_cfg.multipleCopySubresourceWorkaround = true;
+    debug("Multiple CopySubresourceRegion workaround for NV driver");
+  }
 
   // 347.88 and older - UAV causes VB Map to return random invalid pointers.
   if (nvidiaDriverVersion > 0 && nvidiaDriverVersion <= 34788)
@@ -641,6 +651,11 @@ void d3d_apply_gpu_settings(const GpuVideoSettings &video)
     gpu_driver_config.oldHardware = true;
     debug("oldHardware found for %s from %s", oldHardware.str(), gpuDescription.str());
   }
+
+  debug("gpu_driver_config.oldHardware=%d", gpu_driver_config.oldHardware);
+  debug("gpu_driver_config.usedSlowIntegrated=%d", gpu_driver_config.usedSlowIntegrated);
+  debug("gpu_driver_config.usedSlowIntegratedSwitchableGpu=%d", gpu_driver_config.usedSlowIntegratedSwitchableGpu);
+  debug("gpu_driver_config.disableDepthCopyResource=%d", gpu_driver_config.disableDepthCopyResource);
 
   // Count systems with only DX10 support for statistics.
 #if _TARGET_PC_WIN

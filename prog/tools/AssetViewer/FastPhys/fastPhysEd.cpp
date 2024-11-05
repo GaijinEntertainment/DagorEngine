@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <assets/asset.h>
 #include <assets/assetMgr.h>
 #include <assets/assetHlp.h>
@@ -22,7 +24,7 @@
 
 #include <libTools/fastPhysData/fp_edbone.h>
 
-#include <propPanel2/comWnd/list_dialog.h>
+#include <propPanel/commonWindow/multiListDialog.h>
 
 #include <winGuiWrapper/wgw_dialogs.h>
 
@@ -785,11 +787,11 @@ void FastPhysEditor::updateToolbarButtons()
 }
 
 
-void FastPhysEditor::fillToolBar(PropPanel2 *toolbar)
+void FastPhysEditor::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
 {
   ObjectEditor::fillToolBar(toolbar);
 
-  PropertyContainerControlBase *tb = toolbar->createToolbarPanel(0, "");
+  PropPanel::ContainerPropertyControl *tb = toolbar->createToolbarPanel(0, "");
 
   // addButton(tb, CM_CLOSE_CURRENT_EDITOR, "close_editor", "Exit FastPhys Editor");
   // tb->createSeparator();
@@ -822,7 +824,8 @@ void FastPhysEditor::fillToolBar(PropPanel2 *toolbar)
 }
 
 
-void FastPhysEditor::addButton(PropPanel2 *toolbar, int id, const char *bmp_name, const char *hint, bool check)
+void FastPhysEditor::addButton(PropPanel::ContainerPropertyControl *toolbar, int id, const char *bmp_name, const char *hint,
+  bool check)
 {
   if (id == CM_OBJED_OBJPROP_PANEL)
     return;
@@ -853,7 +856,7 @@ void FastPhysEditor::getWind(Point3 &vel, float &power, float &turb)
 }
 
 
-void FastPhysEditor::onClick(int pcb_id, PropPanel2 *panel)
+void FastPhysEditor::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   ObjectEditor::onClick(pcb_id, panel);
 
@@ -925,7 +928,7 @@ bool FastPhysEditor::showNodeList(Tab<int> &sels)
   for (dag::Index16 i(1), ie(nodeTree.nodeCount()); i < ie; ++i)
     _names.push_back() = nodeTree.getNodeName(i);
 
-  MultiListDialog dlg("Select points", hdpi::_pxScaled(300), hdpi::_pxScaled(400), _names, _sel_names);
+  PropPanel::MultiListDialog dlg("Select points", hdpi::_pxScaled(300), hdpi::_pxScaled(400), _names, _sel_names);
   dlg.setSelectionTab(&sels);
   dlg.showDialog();
 

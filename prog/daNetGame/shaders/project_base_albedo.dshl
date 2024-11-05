@@ -1,0 +1,54 @@
+include "project_base_hmap.dshl"
+include "clipmap_common.dshl"
+
+macro PROJECT_HMAP_ALBEDO(code)
+  hlsl(code) {
+    #define PROJECT_DAGI_HMAP_ALBEDO 1
+    float3 getProjectAlbedoAt(float3 worldPos)
+    {
+      ##if tex_hmap_low != NULL
+        return sampleFallBackAlbdeoLod0(worldPos);
+      ##else
+        return 0;
+      ##endif
+    }
+  }
+endmacro
+
+macro PROJECT_BASE_ALBEDO(code)
+  PROJECT_BASE_HEIGHTMAP(code)
+  INIT_CLIPMAP_FALLBACK_ALBEDO(code)
+  USE_CLIPMAP_FALLBACK_ALBEDO(code)
+  PROJECT_HMAP_ALBEDO(code)
+  hlsl(code) {
+    float4 dagi_project_get_albedo(float3 worldPos, float albedoVoxelSize)
+    {
+      #if PROJECT_DAGI_USE_HMAP
+      float height;
+      if (dagi_project_get_base_heightmap(worldPos, height, 0.5*albedoVoxelSize))
+      {
+        if (worldPos.y <= height + 0.5*albedoVoxelSize && worldPos.y > height - 2*albedoVoxelSize)
+          return float4(getProjectAlbedoAt(worldPos), 1);
+      }
+      #endif
+      return 0;
+    }
+    bool dagi_project_is_albedo_needed(float3 bmin, float3 bmax, float albedoVoxelSize)
+    {
+      ##if tex_hmap_low != NULL
+      float4 heights = float4(
+        getHeightLowLod(calcTcLow(bmin.xz), 0),
+        getHeightLowLod(calcTcLow(bmax.xz), 0),
+        getHeightLowLod(calcTcLow(float2(bmin.x, bmax.z)), 0),
+        getHeightLowLod(calcTcLow(float2(bmax.x, bmin.z)), 0));
+      float midh = getHeightLowLod(calcTcLow(0.5*(bmin.xz+bmax.xz)), 0);
+      float minH = decode_height(min3(min(heights.x, heights.y), min(heights.z, heights.w), midh));
+      float maxH = decode_height(max3(max(heights.x, heights.y), max(heights.z, heights.w), midh));
+
+      return (bmin.y <= maxH + albedoVoxelSize + bmax.x-bmin.x && bmax.y > minH - albedoVoxelSize - (bmax.x-bmin.x));
+      ##else
+      return false;
+      ##endif
+    }
+  }
+endmacro

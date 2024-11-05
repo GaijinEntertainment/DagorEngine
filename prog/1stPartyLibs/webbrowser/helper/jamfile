@@ -9,7 +9,7 @@ Target = $(Cef3Version)/cefprocess ;
 
 OutDir ?= $(Root)/webbrowser ;
 
-if ! $(Platform) in win32 win64 {
+if ! $(Platform) in windows {
   Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
 }
 
@@ -39,14 +39,14 @@ AddIncludes +=
 
 UseProgLibs += 1stPartyLibs/webbrowser ;
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   CPPopt += -DUNICODE -D_UNICODE ;
   AddLibs += Shell32.lib ;
 }
 
-if $(Platform) = win32 {
+if $(Platform)-$(PlatformArch) = windows-x86 {
   Manifest = $(Root)/$(Location)/helper.exe.manifest ;
-} else if $(Platform) = win64 {
+} else if $(Platform)-$(PlatformArch) = windows-x86_64 {
   Manifest = $(Root)/$(Location)/helper64.exe.manifest ;
 }
 

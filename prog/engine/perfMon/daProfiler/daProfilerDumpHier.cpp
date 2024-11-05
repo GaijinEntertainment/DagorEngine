@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "daGpuProfiler.h"
 #include "daProfilerInternal.h"
 #include "daProfilePlatform.h"

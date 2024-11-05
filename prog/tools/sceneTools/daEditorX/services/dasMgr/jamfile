@@ -30,9 +30,6 @@ UseProgLibs =
   gameLibs/dasModules/daProfiler
   tools/AssetViewer/dasModules
 ;
-if [ GLOB $(Root)/prog/daNetGameLibs/motion_matching : * ] {
-  CPPopt += -DHAS_DANETGAME_LIBS_MM ;
-}
 if [ GLOB $(Root)/prog/gameLibs/ecs/phys : * ] {
   UseProgLibs += gameLibs/dasModules/phys ;
   CPPopt += -DHAS_PHYS ;

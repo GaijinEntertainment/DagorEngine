@@ -1,29 +1,26 @@
-#if SSR_QUALITY == 1
+#ifdef SSR_FFX
+  #if SSR_QUALITY == 1
+    #define NUM_STEPS 32
+  #elif SSR_QUALITY == 2
+    #define NUM_STEPS 64
+  #elif SSR_QUALITY == 3
+    #define NUM_STEPS 128
+  #else
+    #error "UNDEFINED"
+  #endif
+#else
   #define NUM_STEPS 8
-  #define NUM_RAYS 1
-#elif SSR_QUALITY == 2
-  #define NUM_STEPS 16
-  #define NUM_RAYS 1
-#elif SSR_QUALITY == 3
-  #define NUM_STEPS 8
-  #define NUM_RAYS 4
-#else // SSR_QUALITY == 4
-  #define NUM_STEPS 12
-  #define NUM_RAYS 12
 #endif
 
 #define STEP (1.0 / NUM_STEPS)
-#define TEA_ITERATIONS 2
 
 #ifndef PREV_FRAME_UNPACK
 #define PREV_FRAME_UNPACK(x) (x)
 #endif
 
-#include "scrambleTea.hlsl"
 #include "interleavedGradientNoise.hlsl"
 #include "noise/Value3D.hlsl"
 
-#ifndef SSR_USE_SEPARATE_DEPTH_MIPS
 float4 sample_4depths(float Level, float4 tc0, float4 tc1)
 {
   float4 rawDepth;
@@ -33,12 +30,6 @@ float4 sample_4depths(float Level, float4 tc0, float4 tc1)
   rawDepth.w = tex2Dlod(ssr_depth, float4(tc1.zw, 0, Level)).r;
   return rawDepth;
 }
-#else
-float4 sample_4depths(float Level, float4 tc0, float4 tc1)
-{
-  return sample_4depths_separate(Level, tc0, tc1);
-}
-#endif
 
 float4 ssr_smootherstep_vec4(float4 x)
 {
@@ -50,7 +41,7 @@ float ssr_linearize_z(float rawDepth)
 }
 // hierarchical raymarch function
 // TODO - reduce first step length to find close reflections
-float4 hierarchRayMarch(float3 rayStart_uv_z, float3 R, float linear_roughness, float linearDepth, float3 cameraToPoint,
+float4 hierarchRayMarch(float2 rayStart_uv, float3 R, float linear_roughness, float linearDepth, float3 cameraToPoint,
                         float stepOfs, float4x4 viewProjTmNoOfs, float waterLevel)
 {
   float dist = linearDepth*0.97;
@@ -89,11 +80,15 @@ float4 hierarchRayMarch(float3 rayStart_uv_z, float3 R, float linear_roughness, 
     float3 direction = rayStepUVz;
     float2 screen_size = lowres_rt_params.xy;
     int most_detailed_mip = 0;
-    uint max_traversal_intersections = 128;
+    uint max_traversal_intersections = NUM_STEPS;
     bool valid_hit = false;
 
     result.xyz = FFX_SSSR_HierarchicalRaymarch(origin, direction, screen_size, most_detailed_mip,
                                                max_traversal_intersections, valid_hit);
+
+    bool hitSky = result.z == 0;
+    if (!valid_hit && !hitSky)
+      return float4(0,0,0,0);
     result.w = 1;
   }
   #else
@@ -148,8 +143,8 @@ float4 hierarchRayMarch(float3 rayStart_uv_z, float3 R, float linear_roughness, 
     float4 rayToWater = mul(float4(wRayToWater.xyz, 1), viewProjTmNoOfs);
     float3 rayEndWater = rayToWater.xyz / rayToWater.w;
     rayEndWater = float3(0.5+rayEndWater.xy * float2(0.5, -0.5), rayEndWater.z);
-    float lenToWater = ((rayEndWater.z>0) && (R.y*underwater_params.w<0) && (rayEndWater.x>0) && (rayEndWater.y>0) && (rayEndWater.x<1) && (rayEndWater.y<1)) ? length(rayEndWater.xy - rayStart_uv_z.xy) : 1000000;
-    float lenToTrace = length(result.xy - rayStart_uv_z.xy);
+    float lenToWater = ((rayEndWater.z>0) && (R.y*underwater_params.w<0) && (rayEndWater.x>0) && (rayEndWater.y>0) && (rayEndWater.x<1) && (rayEndWater.y<1)) ? length(rayEndWater.xy - rayStart_uv) : 1000000;
+    float lenToTrace = length(result.xy - rayStart_uv);
     result = lenToWater<lenToTrace ? float4(rayEndWater.xy, rayToWater.z, 1) : result;
   #endif
 
@@ -166,7 +161,7 @@ bool RaySphereIntersection(float3 rayPos, float3 rayDir, float3 spherePos, float
 {
   float3 o_minus_c = rayPos - spherePos;
 
-  float p = dot(rayDir, o_minus_c);
+  float p = dot(normalize(rayDir), o_minus_c);
   float q = dot(o_minus_c, o_minus_c) - (sphereRadius * sphereRadius);
   float discriminant = (p * p) - q;
   float dRoot = sqrt(max(0, discriminant));
@@ -192,10 +187,52 @@ half4 sample_analytic_sphere(float hitDist, float3 cameraToPoint, float3 R, floa
   return result;
 }
 
+bool get_prev_frame_disocclusion_weight_sample(float2 historyUV, float3 cameraToPoint, float lod, inout half3 historySample)
+{
+  bool weight = all(abs(historyUV*2-1) < 1);
+  #if USE_PREV_DOWNSAMPLED_CLOSE_DEPTH
+    float4 prevClipExactPos = mul(float4(cameraToPoint, 1), prev_globtm_no_ofs_psf);
+    float prevScreenExactZ = prevClipExactPos.w > 1e-6 ? prevClipExactPos.z/prevClipExactPos.w : 0;
+    float prev_linear_depth = max(prev_zn_zfar.x, linearize_z(prevScreenExactZ, prev_zn_zfar.zw));
+
+    float4 depths = prev_downsampled_close_depth_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, historyUV).wzxy;
+    float4 linearDepths = linearize_z4(depths, prev_zn_zfar.zw);
+    float4 depthDiff = abs(linearDepths - prev_linear_depth);
+    float threshold = 0.05*prev_linear_depth;
+    float4 weights = depthDiff < threshold;
+    if (all(weights)) // bilinear filtering is valid
+    {
+      historySample = tex2Dlod(prev_frame_tex, float4(historyUV, 0, lod)).rgb;
+    } else
+    {
+      float2 historyCrdf = historyUV*prev_downsampled_close_depth_tex_target_size.xy - 0.5;
+      float4 bil = float4(frac(historyCrdf), 1-frac(historyCrdf));
+      weights *= float4(bil.zx*bil.w, bil.zx*bil.y);
+      float sumW = dot(weights, 1);
+      weight = weight && sumW >= 0.0001;
+      weights *= rcp(max(1e-6, sumW));
+      float2 uv = (floor(historyCrdf) + 0.5)*prev_downsampled_close_depth_tex_target_size.zw;//todo: one madd
+      // we rely on prev_downsampled_close_depth_tex_samplerstate being point sample
+      //float2 uv = historyUV;
+      half3 lt = prev_frame_tex.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, lod).rgb;
+      half3 rt = prev_frame_tex.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, lod, int2(1,0)).rgb;
+      half3 lb = prev_frame_tex.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, lod, int2(0,1)).rgb;
+      half3 rb = prev_frame_tex.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, lod, int2(1,1)).rgb;
+      historySample = lt*weights.x + rt*weights.y + lb*weights.z + rb*weights.w;
+      //weight = 0;
+    }
+  #else
+    historySample = tex2Dlod(prev_frame_tex, float4(historyUV, 0, lod)).rgb;
+  #endif
+  historySample = PREV_FRAME_UNPACK(historySample);
+  return weight;
+}
+
 half4 sample_vignetted_color(float3 hit_uv_z, float linear_roughness, float hitDist,
                              float3 cameraToPoint, float3 R, float3 worldPos)
 {
   half4 result;
+  float3 cameraToHitPoint = getViewVecOptimized(hit_uv_z.xy)* hit_uv_z.z;
   #ifdef REPROJECT_TO_PREV_SCREEN
     float2 oldUv = 0;
     float2 screenPos = 0;
@@ -204,19 +241,16 @@ half4 sample_vignetted_color(float3 hit_uv_z, float linear_roughness, float hitD
       float2 motion = tex2Dlod(MOTION_VECTORS_TEXTURE, float4(hit_uv_z.xy, 0, 0)).rg;
       if (CHECK_VALID_MOTION_VECTOR(motion)) // if we have  motion vectors
       {
-        oldUv = hit_uv_z.xy + decode_motion_vector(motion);
+        oldUv = hit_uv_z.xy + motion;
         screenPos = oldUv * 2 - 1;
       }
       else
     #endif
       {
-        float3 viewVect = getViewVecOptimized(hit_uv_z.xy);
-        float viewDepth = hit_uv_z.z;
-        float3 cameraToPoint = viewVect * viewDepth;
         #if SSR_MOTIONREPROJ != 1 && PREV_HERO_SPHERE
-          apply_hero_matrix(cameraToPoint);
+          apply_hero_matrix(hit_uv_z.xy, cameraToHitPoint);
         #endif
-        oldUv = get_reprojected_history_uv(cameraToPoint, prev_globtm_no_ofs_psf, screenPos);
+          oldUv = get_reprojected_history_uvz1(cameraToHitPoint, prev_globtm_no_ofs_psf, screenPos).xy;
       }
     #define SSR_MIPS 1
 
@@ -233,8 +267,11 @@ half4 sample_vignetted_color(float3 hit_uv_z, float linear_roughness, float hitD
   #else
     float TXlod = 0;
   #endif
-
-  result.rgb = PREV_FRAME_UNPACK(tex2Dlod(prev_frame_tex, float4(sampleUV.xy, 0, TXlod)).rgb);
+  half3 prevScreenColor = 0;
+  bool hit = get_prev_frame_disocclusion_weight_sample(sampleUV.xy, cameraToHitPoint, TXlod, prevScreenColor);
+  result.rgb = prevScreenColor;
+  //hit = true;
+  //result.rgb = PREV_FRAME_UNPACK(tex2Dlod(prev_frame_tex, float4(sampleUV.xy, 0, TXlod)).rgb);
 
   BRANCH if (analytic_light_sphere_pos_r.w > 0)
   {
@@ -242,7 +279,7 @@ half4 sample_vignetted_color(float3 hit_uv_z, float linear_roughness, float hitD
     result.rgb = lerp(result.rgb, add_ref.rgb, add_ref.a);
   }
 
-  result.a = get_vignette_value(screenPos);
+  result.a = hit ? get_vignette_value(screenPos) : 0;
   return result;
 }
 
@@ -253,69 +290,32 @@ float brdf_G_GGX(float3 n, float3 v, float linear_roughness)
   return 2 * sup / (1e-6 + sup + sqrt(sup*(alpha2 + (1 - alpha2)*sup)));//avoid nan 0/0
 }
 
-#define JITTER_SIZE 4
-#define JITTER_MASK (JITTER_SIZE-1)
-#define JITTER_COUNT (JITTER_SIZE*JITTER_SIZE)
-#define JITTER_COUNT_MASK (JITTER_COUNT-1)
-
-half4 performSSR(uint2 pixelPos, float2 UV, float linear_roughness, float3 N, float rawDepth,
+half4 performSSR(uint2 pixelPos, float2 UV, float linear_roughness, float3 N,
                  float linearDepth, float3 cameraToPoint, float4x4 viewProjNoOfsTm, float waterLevel,
-                 float3 worldPos)
+                 float3 worldPos, out float reflectionDistance)
 {
   half4 result = 0;
 
   float3 originToPoint = cameraToPoint;
   originToPoint = normalize(originToPoint);
-  uint frameRandom = uint(SSRParams.w);
-  float stepOfs = interleavedGradientNoiseFramed(pixelPos.xy, uint(SSRParams.z)) - 0.25;
+  float stepOfs = interleavedGradientNoiseFramed(pixelPos.xy, uint(SSRParams.z)&7) - 0.25;
 
   // Sample set dithered over 4x4 pixels
-#if NUM_RAYS > 1
-
-  uint2 random = scramble_TEA(uint2(pixelPos.x ^ frameRandom, pixelPos.y ^ frameRandom));
-
-  float3 R = reflect(originToPoint, N);
-  // Shoot multiple rays
-  LOOP for (uint i = 0; i < NUM_RAYS; i++)
-  {
-
-    float2 E = hammersley(i, NUM_RAYS, random);
-    float3x3 tbnTransform = create_tbn_matrix(N);
-    float3 viewDirTC = mul(-originToPoint, tbnTransform);
-
-    float3 sampledNormalTC = importance_sample_GGX_VNDF(E, viewDirTC, linear_roughness);
-
-    float3 reflectedDirTC = reflect(-viewDirTC, sampledNormalTC);
-    float3 R = mul(reflectedDirTC, transpose(tbnTransform));
-
-    float4 hit_uv_z_fade = hierarchRayMarch(float3(UV, rawDepth), R, linear_roughness, linearDepth, cameraToPoint, stepOfs, viewProjNoOfsTm, waterLevel);
-
-    // if there was a hit
-    BRANCH if (hit_uv_z_fade.z) // hit_uv_z_fade.w was a hit, hit_uv_z_fade.z > 0 - actual hit with something, not with zfar
-    {
-      hit_uv_z_fade.z = ssr_linearize_z(hit_uv_z_fade.z);
-      half4 sampleColor = sample_vignetted_color(hit_uv_z_fade.xyz, linear_roughness, hit_uv_z_fade.z, cameraToPoint, R, worldPos);
-      sampleColor.rgb*=sampleColor.a;
-      sampleColor.rgb /= 1 + luminance(sampleColor.rgb);
-      result += sampleColor;
-    }
-  }
-
-  result *= rcp(NUM_RAYS);
-  result.rgb /= 1 - luminance(result.rgb);
-#else
   float3 R = reflect(originToPoint, N);
 
-  float4 hit_uv_z_fade = hierarchRayMarch(float3(UV, rawDepth), R, linear_roughness, linearDepth, cameraToPoint, stepOfs, viewProjNoOfsTm, waterLevel);
+  float4 hit_uv_z_fade = hierarchRayMarch(UV, R, linear_roughness, linearDepth, cameraToPoint, stepOfs, viewProjNoOfsTm, waterLevel);
   bool wasHitNotZfar = hit_uv_z_fade.z != 0;// hit_uv_z_fade.w was a hit, hit_uv_z_fade.z > 0 - actual hit with something, not with zfar
 
   bool hitSky = hit_uv_z_fade.z == 0 && hit_uv_z_fade.w != 0;
   // if there was a hit
   BRANCH if (wasHitNotZfar)
   {
-    hit_uv_z_fade.z = ssr_linearize_z(hit_uv_z_fade.z);
-    result = sample_vignetted_color(hit_uv_z_fade.xyz, linear_roughness, hit_uv_z_fade.z, cameraToPoint, R, worldPos);
-  }
+    const float linearZHit = ssr_linearize_z(hit_uv_z_fade.z);
+    reflectionDistance = length(cameraToPoint - getViewVecOptimized(hit_uv_z_fade.xy) * linearZHit);
+    result = sample_vignetted_color(float3(hit_uv_z_fade.xy, linearZHit), linear_roughness, linearZHit, cameraToPoint, R, worldPos);
+  } else
+    reflectionDistance = 1e6;
+
   result.rgb *= result.a;
 #ifdef ENCODE_HIT_SKY
   // if SSR hits sky, result.a is 0 and result.b is used as an "inverted" vignette value
@@ -327,7 +327,6 @@ half4 performSSR(uint2 pixelPos, float2 UV, float linear_roughness, float3 N, fl
     float2 screenPos = hit_uv_z_fade.xy * 2 - 1;
     result.b = 1.0 - get_vignette_value(screenPos);
   }
-#endif
 #endif
 
   return float4(result.rgb*brdf_G_GGX(N, originToPoint, linear_roughness), result.a);

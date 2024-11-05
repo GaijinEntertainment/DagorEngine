@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "daProfilerMessageServer.h"
 #include "daProfilerMessageTypes.h"
 #include "daProfilerInternal.h"

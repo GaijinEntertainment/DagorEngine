@@ -1,4 +1,3 @@
-
 bool llvm_jit_enabled () { return false; }
 bool llvm_jit_all_functions () { return false; }
 

@@ -1,18 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "command_list_storage.h"
 #include "command_list_trace.h"
 #include "command_list_trace_recorder.h"
-
-
-namespace drv3d_dx12
-{
-struct Direct3D12Enviroment;
-namespace debug
-{
-union Configuration;
-}
-} // namespace drv3d_dx12
 
 inline const char *to_string(D3D12_DRED_ALLOCATION_TYPE type)
 {
@@ -120,7 +111,13 @@ inline void report_page_fault(ID3D12DeviceRemovedExtendedData *dred)
   report_allocation_info(pagefaultInfo.pHeadRecentFreedAllocationNode);
 }
 
-namespace drv3d_dx12::debug::gpu_postmortem::microsoft
+namespace drv3d_dx12
+{
+struct Direct3D12Enviroment;
+namespace debug
+{
+union Configuration;
+namespace gpu_postmortem::microsoft
 {
 class DeviceRemovedExtendedData
 {
@@ -152,8 +149,8 @@ public:
   void configure();
   void beginCommandBuffer(ID3D12Device *device, ID3D12GraphicsCommandList *cmd);
   void endCommandBuffer(ID3D12GraphicsCommandList *);
-  void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>, eastl::span<const char>);
-  void endEvent(ID3D12GraphicsCommandList *, eastl::span<const char>);
+  void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>, const eastl::string &);
+  void endEvent(ID3D12GraphicsCommandList *, const eastl::string &);
   void marker(ID3D12GraphicsCommandList *, eastl::span<const char>);
   void draw(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
     const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t count, uint32_t instance_count,
@@ -180,6 +177,8 @@ public:
   void onDeviceShutdown();
   bool onDeviceSetup(ID3D12Device *, const Configuration &, const Direct3D12Enviroment &);
 
+  bool tryCreateDevice(IUnknown *, D3D_FEATURE_LEVEL, void **) { return false; }
+
   template <typename T>
   static bool load(const Configuration &config, const Direct3D12Enviroment &d3d_env, T &target)
   {
@@ -191,4 +190,6 @@ public:
     return false;
   }
 };
-} // namespace drv3d_dx12::debug::gpu_postmortem::microsoft
+} // namespace gpu_postmortem::microsoft
+} // namespace debug
+} // namespace drv3d_dx12

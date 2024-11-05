@@ -1,4 +1,6 @@
-﻿#define _WIN32_WINNT 0x0500
+﻿// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#define _WIN32_WINNT 0x0500
 
 #include "de_aboutdlg.h"
 #include <windows.h>

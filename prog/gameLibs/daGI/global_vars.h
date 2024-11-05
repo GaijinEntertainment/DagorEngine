@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <shaders/dag_shaderVariableInfo.h>
 
 #define GLOBAL_VARS_LIST               \
@@ -15,11 +17,6 @@
   VAR(ambient_voxels_visible_start)    \
   VAR(ambient_voxels_visible_width)    \
   VAR(ssgi_current_frame)              \
-  VAR(windowsBoxLt)                    \
-  VAR(windowsBoxRb)                    \
-  VAR(windowsBoxRange)                 \
-  VAR(windowsGridLT)                   \
-  VAR(windowsGridInv)                  \
   VAR(globtm_psf_0)                    \
   VAR(globtm_psf_1)                    \
   VAR(globtm_psf_2)                    \

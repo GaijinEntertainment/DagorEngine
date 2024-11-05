@@ -1,9 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <camTrack/camTrack.h>
 #include <ioSys/dag_asyncWrite.h>
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
 #include <3d/dag_render.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_tabUtils.h>
 #include <EASTL/hash_map.h>

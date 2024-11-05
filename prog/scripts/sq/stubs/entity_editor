@@ -19,6 +19,11 @@ return {
   get_point_action_ext_mtx = @() null
   get_point_action_ext_eid = @() 0
   get_point_action_ext_sph = @() null
-  gather_ri_by_sphere = @() null
-  get_ri_from_entity = @() null
+  gather_ri_by_sphere = @(_x, _y, _z, _r) null
+  get_ri_from_entity = @(_eid) null
+  save_component = @(_eid, _name) null
+  reset_component = @(_eid, _name) null
+  save_add_template = @(_eid, _name) null
+  save_del_template = @(_eid, _name) null
+  get_template_name_for_ui = @(_eid) "template"
 }

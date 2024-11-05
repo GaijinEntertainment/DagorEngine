@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -62,8 +61,9 @@ inline void get_rigen_extra_matrix(rendinst::riex_handle_t ri_handle, TMatrix &t
 inline Point4 get_ri_gen_extra_bsphere(rendinst::riex_handle_t ri_handle)
 {
   const vec4f bsph = rendinst::getRIGenExtraBSphere(ri_handle);
-  const float *data = (const float *)&bsph;
-  return Point4(data[0], data[1], data[2], abs(data[3])); // radius is negative sometimes
+  alignas(16) Point4 ret;
+  v_st(&ret.x, bsph);
+  return ret; // radius is negative sometimes, it mean 'removed from grid'
 }
 
 inline void gather_ri_gen_extra_collidable(const BBox3 &viewBB,
@@ -135,7 +135,7 @@ inline void get_ri_gen_extra_instances_by_box(int res_idx, const bbox3f &box,
 }
 
 inline void damage_ri_in_sphere(const Point3 &pos, float rad, const Point2 &dmg_near_far, float at_time, bool create_destr,
-  const das::TBlock<void, const rendinst::riex_handle_t> &riex_destr_cb, bool is_client,
+  const das::TBlock<void, const rendinst::riex_handle_t> &riex_destr_cb,
   const das::TBlock<bool, const rendinst::riex_handle_t> &should_damage, das::Context *context, das::LineInfoArg *at)
 {
   auto riex_destr_cb_func = [&](rendinst::riex_handle_t riex_handle) {
@@ -149,8 +149,7 @@ inline void damage_ri_in_sphere(const Point3 &pos, float rad, const Point2 &dmg_
     return das::cast<bool>::to(res);
   };
 
-  ::rendinstdestr::damage_ri_in_sphere(pos, rad, dmg_near_far, at_time, create_destr,
-    /*effect_cb*/ nullptr, riex_destr_cb_func, is_client, should_damage_func);
+  ::rendinstdestr::damage_ri_in_sphere(pos, rad, dmg_near_far, 0.f, at_time, create_destr, riex_destr_cb_func, should_damage_func);
 }
 
 inline void doRIGenDamage(const BSphere3 &sphere, unsigned frame_no, const Point3 &axis)
@@ -158,10 +157,9 @@ inline void doRIGenDamage(const BSphere3 &sphere, unsigned frame_no, const Point
   rendinst::doRIGenDamage(sphere, frame_no, axis);
 }
 
-inline void doRendinstDamage(const BSphere3 &sphere, uint32_t frame_no, float at_time, bool is_client, bool create_destr,
-  const Point3 &view_pos)
+inline void doRendinstDamage(const BSphere3 &sphere, uint32_t frame_no, float at_time, bool create_destr, const Point3 &view_pos)
 {
-  rendinstdestr::doRendinstDamage(sphere, false, frame_no, nullptr, at_time, is_client, create_destr, view_pos, nullptr,
+  rendinstdestr::doRendinstDamage(sphere, false, frame_no, at_time, create_destr, view_pos, nullptr,
     rendinst::DestrOptionFlag::AddDestroyedRi);
 }
 

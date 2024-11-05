@@ -1,0 +1,2 @@
+int dagi_warp64_irradiance;
+interval dagi_warp64_irradiance:off < 1, on;

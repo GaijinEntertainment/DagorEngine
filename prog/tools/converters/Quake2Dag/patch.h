@@ -1,6 +1,5 @@
-#ifndef PATCH_H
-
-#define PATCH_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 // ############################################################################
 // ##                                                                        ##
@@ -43,5 +42,3 @@ private:
   LightMapVertex *mPoints;  // vertices produced.
   unsigned short *mIndices; // indices into those vertices
 };
-
-#endif

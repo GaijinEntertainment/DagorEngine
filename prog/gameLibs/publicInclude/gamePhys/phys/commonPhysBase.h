@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -9,6 +8,7 @@
 #include <string.h>
 #include <stddef.h>
 #include <EASTL/utility.h>
+#include <EASTL/unique_ptr.h>
 #include <math/dag_mathAng.h>
 #include <dag/dag_vector.h>
 #include <generic/dag_tab.h>
@@ -23,6 +23,23 @@ namespace dacoll
 {
 extern void set_obj_motion(CollisionObject obj, const TMatrix &tm, const Point3 &vel, const Point3 &omega);
 }
+
+class ICustomPhysStateSyncer
+{
+  template <typename P, typename C, typename PA>
+  friend class PhysicsBase;
+  ICustomPhysStateSyncer *next = nullptr; // Link list
+public:
+  virtual void saveHistoryState(int tick) = 0;
+  virtual void saveAuthState(int tick) = 0;
+  virtual bool isHistoryStateEqualAuth(int htick, int atick) = 0;
+  virtual void serializeAuthState(danet::BitStream &bs, int tick) const = 0;
+  virtual bool deserializeAuthState(const danet::BitStream &bs, int tick) = 0;
+  virtual void eraseHistoryStateTail(int tick) = 0;
+  virtual void eraseHistoryStateHead(int tick) = 0;
+  virtual void applyAuthState(int at_tick) = 0;
+  virtual void clear() = 0;
+};
 
 class ExtrapolatedPhysState
 {
@@ -113,18 +130,16 @@ struct PhysDesyncStats
 
 #define ALL_COLLISION_OBJECTS ~0ull
 
-template <typename PhysState, typename ControlState, typename PartialState, bool bInterpretActorOffsetAsPtr = false,
-  bool bInterpolateVel = true>
+template <typename PhysState, typename ControlState, typename PartialState>
 class PhysicsBase : public IPhysBase
 {
 public:
   typedef PhysState PhysStateBase;
   typedef PartialState PhysPartialState;
-  ptrdiff_t physActorOffset; // if bInterpretActorOffsetAsPtr is true then it's pointer, otherwise offset from this
+  ptrdiff_t physActorOffset; // Note: offset from this (see `getActor`)
 
   PhysStateBase previousState;
   PhysStateBase currentState;
-  DPoint3 ccdMove = DPoint3(0.0, 0.0, 0.0);
 
   dag::Vector<PhysStateBase> historyStates;
 
@@ -142,7 +157,10 @@ public:
   danet::BitStream *fmsyncPreviousData;
   danet::BitStream *fmsyncCurrentData;
 
-  PhysStateBase authorityApprovedState;
+  // On server - allocated on first attempt to send it
+  // On client - allocated on first receive
+  eastl::unique_ptr<PhysStateBase> authorityApprovedState;
+  ICustomPhysStateSyncer *customPhysStateSyncer = nullptr;
   ExtrapolatedPhysState extrapolatedState;
 
   bool isAuthorityApprovedStateProcessed = true;
@@ -241,7 +259,7 @@ public:
     currentState.velocity += add_vel;
     currentState.omega += add_omega;
   }
-  void applyPseudoVelOmegaDelta(const DPoint3 &add_pos, const DPoint3 &add_ori) override final
+  void __forceinline applyPseudoVelOmegaDeltaImpl(const DPoint3 &add_pos, const DPoint3 &add_ori, DPoint3 *out_ccd_add = nullptr)
   {
     G_ASSERT(lengthSq(add_pos) < sqr(1000.f));
     DPoint3 centerOfGravityBefore = dpoint3(currentState.location.O.getQuat() * getCenterOfMass());
@@ -251,22 +269,24 @@ public:
 
     DPoint3 add = add_pos + centerOfGravityBefore - centerOfGravityAfter;
     currentState.location.P += add;
-    ccdMove += add;
+    if (out_ccd_add)
+      *out_ccd_add += add;
+  }
+  void applyPseudoVelOmegaDelta(const DPoint3 &add_pos, const DPoint3 &add_ori) override
+  {
+    applyPseudoVelOmegaDeltaImpl(add_pos, add_ori);
   }
 
   TraceMeshFaces *getTraceHandle() const override { return nullptr; }
   virtual IPhysActor *getActor() const override final
   {
-    if (!bInterpretActorOffsetAsPtr)
-      return physActorOffset ? (IPhysActor *)((uint8_t *)this - physActorOffset) : nullptr;
-    else
-      return (IPhysActor *)physActorOffset;
+    return physActorOffset ? (IPhysActor *)((uint8_t *)this - physActorOffset) : nullptr;
   }
 
   virtual void setPositionRough(const Point3 &position)
   {
-    if (getActor()->isAuthority())
-      authorityApprovedState.location.P = position;
+    if (getActor()->isAuthority() && authorityApprovedState)
+      authorityApprovedState->location.P = position;
 
     previousState.location.P = position;
     currentState.location.P = position;
@@ -279,8 +299,8 @@ public:
   }
   virtual void setOrientationRough(gamephys::Orient orient)
   {
-    if (getActor()->isAuthority())
-      authorityApprovedState.location.O = orient;
+    if (getActor()->isAuthority() && authorityApprovedState)
+      authorityApprovedState->location.O = orient;
     previousState.location.O = orient;
     currentState.location.O = orient;
     visualLocation.O = orient;
@@ -292,10 +312,10 @@ public:
   }
   virtual void stopRotationRough()
   {
-    if (getActor()->isAuthority())
+    if (getActor()->isAuthority() && authorityApprovedState)
     {
-      authorityApprovedState.omega.zero();
-      authorityApprovedState.alpha.zero();
+      authorityApprovedState->omega.zero();
+      authorityApprovedState->alpha.zero();
     }
     previousState.omega.zero();
     previousState.alpha.zero();
@@ -309,8 +329,8 @@ public:
   }
   virtual void setTmRough(TMatrix tm)
   {
-    if (getActor()->isAuthority())
-      authorityApprovedState.location.O.fromTM(tm);
+    if (getActor()->isAuthority() && authorityApprovedState)
+      authorityApprovedState->location.O.fromTM(tm);
     previousState.location.fromTM(tm);
     currentState.location.fromTM(tm);
     visualLocation.fromTM(tm);
@@ -323,10 +343,10 @@ public:
   virtual void setTmSoft(TMatrix tm) { visualLocation.fromTM(tm); }
   virtual void setVelocityRough(Point3 velocity)
   {
-    if (getActor()->isAuthority())
+    if (getActor()->isAuthority() && authorityApprovedState)
     {
-      authorityApprovedState.velocity = velocity;
-      authorityApprovedState.acceleration.zero();
+      authorityApprovedState->velocity = velocity;
+      authorityApprovedState->acceleration.zero();
     }
     previousState.velocity = velocity;
     previousState.acceleration.zero();
@@ -343,8 +363,8 @@ public:
     clear_and_shrink(historyStates);
     if (getActor()->isShadow())
       historyStates.push_back(previousState);
-    if (getActor()->isAuthority())
-      saveCurrentStateTo(authorityApprovedState, state_tick);
+    else if (getActor()->isAuthority() && authorityApprovedState)
+      saveCurrentStateTo(*authorityApprovedState, state_tick);
   }
   virtual void saveCurrentStateTo(PhysStateBase &state, int32_t state_tick) const
   {
@@ -362,6 +382,12 @@ public:
   virtual void setCurrentState(const PhysStateBase &state) { currentState = state; }
   virtual void setCurrentMinimalState(const gamephys::Loc & /* loc */, const DPoint3 & /* vel */, const DPoint3 & /* omega */) override
   {}
+  void saveCurrentStateToHistory()
+  {
+    if (DAGOR_UNLIKELY(!historyStates.capacity()))
+      historyStates.reserve(1.5f / timeStep + 0.5f); // Note: 45 on tickrate 30
+    saveCurrentStateTo(historyStates.push_back(), currentState.atTick);
+  }
   virtual void applyProducedState() { appliedCT = producedCT; }
   void extrapolateMinimalState(const PhysStateBase &state, float time, ExtrapolatedPhysState &newState) const
   {
@@ -405,8 +431,8 @@ public:
     newState.atTime = time;
   }
 
-  static gamephys::Loc interpolateVisualPosition(const PhysStateBase &prevState, const PhysStateBase &curState, float time_step,
-    float at_time)
+  static gamephys::Loc __forceinline lerpVisualLocImpl(const PhysStateBase &prevState, const PhysStateBase &curState, float time_step,
+    float at_time, bool lerp_vel = true)
   {
     G_FAST_ASSERT(curState.atTick != prevState.atTick); // delta can't be 0
     float delta = (curState.atTick - prevState.atTick) * time_step;
@@ -415,7 +441,7 @@ public:
     gamephys::Loc visLoc;
     visLoc.interpolate(prevState.location, curState.location, dt / delta);
 
-    if (curState.velocity * prevState.velocity > 0.f && bInterpolateVel)
+    if (lerp_vel && curState.velocity * prevState.velocity > 0.f)
     {
       DPoint3 noAccelerationPos = prevState.location.P + dpoint3(prevState.velocity * delta);
       DPoint3 posDiff = curState.location.P - noAccelerationPos;
@@ -430,12 +456,18 @@ public:
 
     return visLoc;
   }
+
+  virtual gamephys::Loc lerpVisualLoc(const PhysStateBase &prevState, const PhysStateBase &curState, float time_step, float at_time)
+  {
+    return lerpVisualLocImpl(prevState, curState, time_step, at_time);
+  }
+
   void interpolateVisualPosition(float at_time) override final
   {
     const float tsErr = timeStep / 100.f;
     if (currentState.atTick > previousState.atTick && at_time >= (previousState.atTick * timeStep - tsErr) &&
         at_time <= (currentState.atTick * timeStep + tsErr))
-      visualLocation = interpolateVisualPosition(previousState, currentState, timeStep, at_time);
+      visualLocation = lerpVisualLoc(previousState, currentState, timeStep, at_time);
     else
       visualLocation = currentState.location;
   }
@@ -494,9 +526,9 @@ public:
     else
       physicsTimeToSendState = min(physicsTimeToSendState, float(ticks_threshold) * timeStep);
   }
-  void doCustomResync(const PhysStateBase & /*prev_desynced_state*/, const PhysStateBase & /*desynced_state*/,
-    const PhysStateBase & /*incoming_state*/, const PhysStateBase * /*matching_state*/)
-  {}
+  typedef void (*custom_resync_cb_t)(IPhysBase *self, const PhysStateBase & /*prev_desynced_state*/,
+    const PhysStateBase & /*desynced_state*/, const PhysStateBase & /*incoming_state*/, const PhysStateBase * /*matching_state*/);
+  virtual custom_resync_cb_t getCustomResyncCb() const { return nullptr; }
   virtual void resetProducedCt() { producedCT.reset(); }
   virtual void setCurrentTick(int32_t at_tick) final override { currentState.atTick = at_tick; }
   virtual int32_t getCurrentTick() const final override { return currentState.atTick; }
@@ -510,23 +542,68 @@ public:
   virtual void repair() {}
 
   virtual void setLocationFromTm(const TMatrix &tm) { currentState.location.fromTM(tm); }
-  virtual bool receiveAuthorityApprovedState(const danet::BitStream &bs, uint8_t unit_version, float from_time)
+
+  void registerCustomPhysStateSyncer(ICustomPhysStateSyncer &syncer)
+  {
+#if DAGOR_DBGLEVEL > 0
+    for (auto ss = customPhysStateSyncer; ss; ss = ss->next)
+      G_ASSERTF(ss != &syncer, "%p already registered", &syncer);
+#endif
+    syncer.next = customPhysStateSyncer;
+    customPhysStateSyncer = &syncer;
+  }
+
+  bool unregisterCustomPhysStateSyncer(ICustomPhysStateSyncer &syncer)
+  {
+    for (ICustomPhysStateSyncer **pss = &customPhysStateSyncer; *pss; pss = &(*pss)->next)
+      if (*pss == &syncer)
+      {
+        *pss = syncer.next;
+        return true;
+      }
+    return false;
+  }
+
+  template <typename F, typename... Args>
+  auto forEachCustomStateSyncer(F cb, Args &&...args)
+  {
+    if constexpr (eastl::is_same_v<decltype(cb(customPhysStateSyncer)), bool>)
+    {
+      for (auto ss = customPhysStateSyncer; ss; ss = ss->next)
+        if (!cb(ss, eastl::forward<Args>(args)...))
+          return false;
+      return true;
+    }
+    else
+      for (auto ss = customPhysStateSyncer; ss; ss = ss->next)
+        cb(ss, eastl::forward<Args>(args)...);
+  }
+
+  bool receiveAuthorityApprovedState(const danet::BitStream &bs, uint8_t unit_version, float from_time) override final
   {
     PhysState incomingState;
     if (!incomingState.deserialize(bs, *this))
       return false;
-    if (incomingState.atTick > authorityApprovedState.atTick)
+    bool ok = true;
+    if (!authorityApprovedState || incomingState.atTick > authorityApprovedState->atTick)
     {
-      authorityApprovedState = eastl::move(incomingState);
+      ok = forEachCustomStateSyncer([&](auto ss) { return ss->deserializeAuthState(bs, incomingState.atTick); });
+      if (DAGOR_UNLIKELY(!authorityApprovedState))
+      {
+        auto paas = eastl::make_unique<PhysStateBase>();
+        authorityApprovedState.swap(paas);
+        paas.release(); // -V530 Force compiler to avoid gen dtor call here
+      }
+      *authorityApprovedState = eastl::move(incomingState);
       isAuthorityApprovedStateProcessed = false;
       authorityApprovedStateUnitVersion = unit_version;
       authorityApprovedStateDumpFromTime = from_time;
     }
     else
       ; // Otherwise assume that it's out-of-order packet and ignore it
-    return true;
+    return ok;
   }
-  virtual bool receivePartialAuthorityApprovedState(const danet::BitStream &bs)
+  bool receivePartialAuthorityApprovedState(const danet::BitStream &bs) override final
   {
     PhysPartialState incomingPartialState;
     if (!incomingPartialState.deserialize(bs, *this))
@@ -540,6 +617,7 @@ public:
       ; // Otherwise assume that it's out-of-order packet and ignore it
     return true;
   }
+
   bool receiveControlsPacket(const danet::BitStream &bs, int max_queue_size, int32_t &out_anomaly_flags)
   {
     alignas(ControlState) int stateBuf[(sizeof(ControlState) + 3) / 4];
@@ -674,6 +752,7 @@ public:
   }
 
 
+  virtual void addCollisionToWorld() {}
   virtual void prepareCollisions(daphys::SolverBodyInfo & /*body1*/, daphys::SolverBodyInfo & /*body2*/, bool /*first_body*/,
     dag::Span<gamephys::CollisionContactData> /*contacts*/, dag::Span<gamephys::SeqImpulseInfo> /*collisions*/) const
   {}
@@ -712,9 +791,9 @@ public:
     unitVersion = version;                                                                        \
   }
 
-template <typename PhysState, typename ControlState, typename PartialState, bool bInterpretActorOffsetAsPtr, bool bInterpolateVel>
-PhysicsBase<PhysState, ControlState, PartialState, bInterpretActorOffsetAsPtr, bInterpolateVel>::PhysicsBase(
-  ptrdiff_t physactor_offset, PhysVars *, float time_step, float extrapolation_time_mult) :
+template <typename PhysState, typename ControlState, typename PartialState>
+PhysicsBase<PhysState, ControlState, PartialState>::PhysicsBase(ptrdiff_t physactor_offset, PhysVars *, float time_step,
+  float extrapolation_time_mult) :
   physActorOffset(physactor_offset),
   fmsyncPreviousData(NULL),
   fmsyncCurrentData(NULL),
@@ -738,8 +817,8 @@ PhysicsBase<PhysState, ControlState, PartialState, bInterpretActorOffsetAsPtr, b
   lastAuthorityApprovedStateSentAtTick = 0;
 }
 
-template <typename PhysState, typename ControlState, typename PartialState, bool bInterpretActorOffsetAsPtr, bool bInterpolateVel>
-PhysicsBase<PhysState, ControlState, PartialState, bInterpretActorOffsetAsPtr, bInterpolateVel>::~PhysicsBase()
+template <typename PhysState, typename ControlState, typename PartialState>
+PhysicsBase<PhysState, ControlState, PartialState>::~PhysicsBase()
 {
   del_it(fmsyncPreviousData);
   del_it(fmsyncCurrentData);

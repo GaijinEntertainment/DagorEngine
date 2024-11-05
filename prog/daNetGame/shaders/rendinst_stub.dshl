@@ -1,0 +1,2 @@
+float rendinst_ao_mul = 1;
+float rendinst_inv_lod0_range = 1;

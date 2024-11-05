@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 static inline bool validate_update_sub_region_params(BaseTexture *src, int src_subres_idx, int src_x, int src_y, int src_z, int src_w,
@@ -42,8 +43,8 @@ static inline bool validate_update_sub_region_params(BaseTexture *src, int src_s
     G_ASSERTF_RETURN((dst_y & 3) == 0, false, "Invalid destination y(%d), must be block size (4) aligned", dst_y);
   }
 
-  G_ASSERTF_RETURN(src_x + src_w <= sw && src_y + src_h <= sh && src_z + src_z <= sd && dst_x + src_w <= dw && dst_y + src_h <= dh &&
-                     dst_z + src_z <= dd,
+  G_ASSERTF_RETURN(src_x + src_w <= sw && src_y + src_h <= sh && src_z + src_d <= sd && dst_x + src_w <= dw && dst_y + src_h <= dh &&
+                     dst_z + src_d <= dd,
     /*return*/ false,
     "Invalid updateSubRegion rect size: (src mip %d: %dx%dx%d) %d,%d,%d, %dx%dx%d -> %d,%d,%d (dst mip %d: %dx%dx%d)\n"
     "src %dx%dx%d,L%d %s\ndst %dx%dx%d,L%d %s",

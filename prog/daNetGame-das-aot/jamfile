@@ -1,0 +1,228 @@
+UseQuirrel = sq3r ;
+PhysName  ?= Jolt ;
+UseD3DMulti       ?= yes ;
+CheckedContainers ?= yes ;
+Exceptions        ?= no ;
+if $(UseWholeOpt) != yes { UseLLDLink ?= yes ; }
+
+Root    ?= ../.. ;
+Location = . ;
+AotSrcDir = prog/daNetGame-das-aot ;
+ConsoleExe = yes ;
+IsHeadless = yes ;
+
+TargetType  = exe ;
+TargetCodeName = _aot ;
+if ! $(OutDir) { Exit OutDir not set ; }
+
+include $(Root)/prog/_jBuild/defPlatform.jam ;
+if $(Platform)-$(PlatformArch) = windows-x86_64 {
+  PlatformSpec ?= clang ;
+}
+
+if $(Platform)-$(PlatformArch) = linux-x86_64 { # same build cfg as linux dedicated (to be able share build output)
+  SSEVersion = 4 ;
+  MArch ?= haswell ; # MOVBE,MMX,SSE,SSE2,SSE3,SSSE3,SSE4.1,SSE4.2,POPCNT,CX16,SAHF,FXSR,AVX,XSAVE,PCLMUL,FSGSBASE,RDRND,F16C,AVX2,BMI,BMI2,LZCNT,FMA,MOVBE,HLE
+  if ! -march=$(MArch) in $(GlobalCPPopt) { GlobalCPPopt += -march=$(MArch) ; }
+}
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+if ! $(Target) { Exit Target not set ; }
+Target = $(Target:B)-$(Platform)-$(PlatformArch) ;
+if $(CheckedContainers) = yes { Target = $(Target)-c ; }
+
+rule AddDasToStringify # folder : files_list
+{
+  for s in $(2) { DasToStringify += $(1)/$(s).das $(1)/$(s).das.inl $(1)/$(s).cpp ; }
+}
+
+Sources +=
+  prog/daNetGame-das-aot/main.cpp
+  prog/daNetGame-das-aot/da.cpp
+
+  prog/1stPartyLibs/daScript/dagorAdapter/da_dummy.cpp
+  prog/daNetGame/dasModules/actor.cpp
+  prog/daNetGame/dasModules/app.cpp
+  prog/daNetGame/dasModules/auth.cpp
+  prog/daNetGame/dasModules/camera.cpp
+  prog/daNetGame/dasModules/cameraShaker.cpp
+  prog/daNetGame/dasModules/capsuleApproximation.cpp
+  prog/daNetGame/dasModules/collisionTraces.cpp
+  prog/daNetGame/dasModules/dagorDebug3dSolid.cpp
+  prog/daNetGame/dasModules/dgNet.cpp
+  prog/daNetGame/dasModules/gameObject.cpp
+  prog/daNetGame/dasModules/gridCollision.cpp
+  prog/daNetGame/dasModules/level.cpp
+  prog/daNetGame/dasModules/netPhys.cpp
+  prog/daNetGame/dasModules/propsRegistry.cpp
+  prog/daNetGame/dasModules/netPropsRegistry.cpp
+  prog/daNetGame/dasModules/netstat.cpp
+  prog/daNetGame/dasModules/phys.cpp
+  prog/daNetGame/dasModules/player.cpp
+  prog/daNetGame/dasModules/replay.cpp
+  prog/daNetGame/dasModules/smokeOccluder.cpp
+  prog/daNetGame/dasModules/sound/aotSoundProps.cpp
+  prog/daNetGame/dasModules/sound_net/aotSoundNetProps.cpp
+  prog/daNetGame/dasModules/streaming.cpp
+  prog/daNetGame/dasModules/ui.cpp
+  prog/daNetGame/dasModules/dacoll.cpp
+  prog/daNetGame/dasModules/matchingTypes.cpp
+  prog/daNetGame/input/dasModules/inputControls.cpp
+  prog/daNetGame/input/dasModules/touchInput.cpp
+  prog/daNetGame/net/reCreateEntityES.cpp.gen.es.cpp
+  prog/daNetGame/render/dasModules/clipmapDecals.cpp
+  prog/daNetGame/render/dasModules/daSkies.cpp
+  prog/daNetGame/render/dasModules/fx.cpp
+  prog/daNetGame/render/dasModules/priorityManagedShadervar.cpp
+  prog/daNetGame/render/dasModules/dagorMaterials.cpp
+  prog/daNetGame/render/dasModules/worldRenderer.cpp
+  prog/daNetGame/render/dasModules/heightmapQueryManager.cpp
+
+  prog/daNetGame/main/dedicated/dasModules/dngMatching.cpp
+
+  prog/daNetGame-das-aot/stub.cpp
+  prog/gameLibs/daRg/dasBinding.cpp
+;
+include $(Root)/prog/gameLibs/render/daBfg/_aot.jam ;
+include $(Root)/prog/gameLibs/render/resourceSlot/_aot.jam ;
+include $(Root)/prog/gameLibs/ecs/deferToAct/_aot.jam ;
+include $(Root)/prog/gameLibs/rendInst/_aot.jam ;
+include $(Root)/prog/gameLibs/daEditorE/_aot.jam ;
+
+if $(Platform) in windows linux macOS && $(Config) != rel {
+  Sources +=
+    prog/daNetGame/dasModules/websocket/webSocket.cpp
+    prog/daNetGame/dasModules/websocket/webSocketServer.cpp
+  ;
+}
+
+AddDasToStringify prog/daNetGame/dasModules :
+  dgNet
+  dagorDebug3dSolid
+;
+
+AddDasToStringify prog/daNetGame/render/dasModules :
+  daSkies
+  fx
+;
+
+if $(Platform) in windows linux macOS && $(Config) != rel {
+  AddDasToStringify prog/daNetGame/dasModules/websocket : webSocket ;
+}
+
+UseProgLibs +=
+  engine/osApiWrappers
+  engine/kernel
+  engine/perfMon
+  engine/math
+  engine/gameRes
+  engine/memory/rtlStdMemory
+  engine/consoleProc
+  engine/drv/drv3d_null
+#  engine/memory/rtlOverride
+  engine/baseUtil
+#  engine/ioSys
+  engine/startup
+  engine/coreUtil
+  engine/sceneRay
+  engine/scene
+  3rdPartyLibs/eastl
+  1stPartyLibs/rapidJsonUtils
+  1stPartyLibs/daScript
+  1stPartyLibs/daScriptModules/rapidjson
+  1stPartyLibs/daScript/modules/dasImgui
+  1stPartyLibs/daScript/modules/dasQuirrel
+  gameLibs/ecs/game/generic
+  gameLibs/ecs/game/zones
+  gameLibs/daECS/core
+  gameLibs/daECS/gameResStub
+  gameLibs/daECS/io/datablock
+  gameLibs/daECS/utility
+  gameLibs/ecs/scripts/das
+  gameLibs/dasModules/common
+  gameLibs/dasModules/quirrel
+  gameLibs/dasModules/phys
+  gameLibs/dasModules/projectiveDecals
+  gameLibs/dasModules/ECSGlobalTags
+  gameLibs/dasModules/currentCircuit
+  gameLibs/dasModules/gameMath
+  gameLibs/dasModules/generic
+  gameLibs/dasModules/sound
+  gameLibs/dasModules/sound/common
+  gameLibs/soundSystem/stub
+  gameLibs/ecs/sound/stub
+  gameLibs/dasModules/shaders
+  gameLibs/dasModules/rendInst
+  gameLibs/dasModules/daInput
+  gameLibs/dasModules/actions
+  gameLibs/dasModules/daProfiler
+  gameLibs/dasModules/camera
+  gameLibs/dasModules/render
+  gameLibs/dasModules/stdGui
+  gameLibs/dasModules/stdGui/aotStub
+  gameLibs/dasModules/imgui
+  gameLibs/dasModules/videoPlayer
+  gameLibs/dasModules/gpuReadbackQuery
+  gameLibs/dasModules/landMesh
+  gameLibs/dasModules/systemInfo
+  gameLibs/daGame/timers
+  gameLibs/daECS/net
+  gameLibs/grid
+  gameLibs/jsonUtils
+  gameLibs/ecs/scripts/sq
+  gameLibs/quirrel/bindQuirrelEx
+  gameLibs/quirrel/quirrel_json
+  gameLibs/quirrel/sqCrossCall
+  gameLibs/spacePartition/looseGrid
+  gameLibs/streaming
+  gameLibs/dasModules/forceFeedback
+  gameLibs/dasModules/net
+  gameLibs/dasModules/clientNet
+  gameLibs/dasModules/statsd
+  gameLibs/daEditorE
+  gameLibs/dasModules/daEditor
+  gameLibs/propsRegistry
+;
+if [ GLOB $(Root)/prog/gameLibs/gamePhys/ballistics : * ] {
+  Sources += prog/daNetGame-das-aot/stub_ballistics.cpp ;
+  UseProgLibs += gameLibs/dasModules/ballistics ;
+}
+
+CPPopt = ;
+
+AddIncludes +=
+  $(Root)/prog/daNetGame
+  $(Root)/prog/daNetGameLibs
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+  $(Root)/prog/engine/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/daScript/include
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel/include
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+  $(Root)/prog/1stPartyLibs/rapidJsonUtils/include
+  $(Root)/prog/3rdPartyLibs/Detour/Include
+;
+
+
+Copt   = $(CPPopt) ;
+
+if $(ProjectLocation) {
+  NOCARE $(Root)/$(ProjectLocation)/_aot.jam ;
+  include $(Root)/$(ProjectLocation)/_aot.jam ;
+}
+
+NOCARE $(Root)/prog/daNetGame-das-aot/gaijin.jam ;
+include $(Root)/prog/daNetGame-das-aot/gaijin.jam ;
+
+rule ProcessDasToStringifyTriples
+{
+  if ! $(1) { return ; }
+  StringifySourceFile $(1[1]) : $(1[2]) : $(1[3]) ;
+  if $(1[4]) { ProcessDasToStringifyTriples $(1[4-]) ; }
+}
+ProcessDasToStringifyTriples $(DasToStringify) ;
+
+include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ;
+include $(Root)/prog/_jBuild/build.jam ;

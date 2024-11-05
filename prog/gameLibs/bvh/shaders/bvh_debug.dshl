@@ -1,0 +1,181 @@
+include "shader_global.dshl"
+include "bvh.dshl"
+include "clipmap.dshl"
+include "rt/rt_lighting.dshl"
+include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
+
+texture bvh_debug_target;
+
+float4 view_vecLT;
+float4 view_vecRT;
+float4 view_vecLB;
+float4 view_vecRB;
+
+int bvh_debug_mode = 0;
+interval bvh_debug_mode: lit < 1, texture_color < 2, world_normal < 3, texcoord < 4, secTexcoord < 5, camoTexcoord < 6, vertex_color < 7, gi < 8, twosided < 9, paint;
+
+define_macro_if_not_defined USE_EMISSION_DECODE_COLOR_MAP(code)
+endmacro
+
+shader bvh_debug
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+  supports global_const_block;
+
+  (cs)
+  {
+    debug_target@uav = bvh_debug_target hlsl { RWTexture2D<float4> debug_target@uav; }
+    view_vecLT@f3 = view_vecLT;
+    view_vecRT@f3 = view_vecRT;
+    view_vecLB@f3 = view_vecLB;
+    view_vecRB@f3 = view_vecRB;
+    world_view_pos@f3 = world_view_pos;
+  }
+
+  hlsl (cs) {
+    #include <Include/NRDEncoding.hlsli>
+    #include <Include/NRD.hlsli>
+  }
+
+  INIT_BVH(cs, 0, true)
+  USE_BVH_FOR_RENDER(cs)
+  USE_BVH_FX_RENDER(cs)
+
+  USE_EMISSION_DECODE_COLOR_MAP(cs)
+  PACK_UNPACK_GBUFFER_BASE(cs)
+
+  INIT_RT_LIGHTING(cs, false, true)
+  USE_RT_LIGHTING(cs, 0)
+
+  INIT_EXPOSURE(cs)
+  USE_EXPOSURE(cs)
+
+  INIT_FULL_TONEMAP_LUT(cs)
+  USE_FULL_TONEMAP_LUT(cs)
+
+  ENABLE_ASSERT(cs)
+
+  INIT_LOAD_BVH_FLAGS_BASE(cs)
+  USE_LOAD_BVH_FLAGS_BASE(cs)
+
+  hlsl(cs)
+  {
+    [numthreads(8, 8, 1)]
+    void main(uint2 thread : SV_DispatchThreadID)
+    {
+      float2 resolution;
+      debug_target.GetDimensions(resolution.x, resolution.y);
+
+      float2 rate = ( thread + 0.5 ) / resolution;
+      float3 topT = lerp(view_vecLT, view_vecRT, rate.x);
+      float3 botT = lerp(view_vecLB, view_vecRB, rate.x);
+      float3 direction = normalize(lerp(topT, botT, rate.y));
+
+      float3 result;
+
+      HitInfo hitInfo;
+      if (trace_ray(bvhMain, 0, direction, 0, 100000, 0, bvhGroupRender, hitInfo))
+      {
+        ##if bvh_debug_mode == lit
+          result = light_hit_surface(hitInfo, -direction, 0, 100000);
+        ##elif bvh_debug_mode == texture_color
+          if (get_material_type(hitInfo.material) == bvhMaterialTerrain)
+          {
+            Vtex textures = sample_clipmaps(hitInfo.position + bvh_origin, 0, 0);
+            result = textures.diffuse.rgb;
+          }
+          else if (get_material_type(hitInfo.material) == bvhMaterialRendinst)
+          {
+            if (hitInfo.isLayered)
+            {
+              result = calc_layers(hitInfo, 0);
+            }
+            else if (hitInfo.albedoTextureIndex != 0xFFFF)
+            {
+              SamplerState bvh_sampler = bvh_samplers[hitInfo.albedoSamplerIndex];
+              float4 texel = bvh_textures[bvh_textures_range_start + hitInfo.albedoTextureIndex].SampleLevel(bvh_sampler, hitInfo.texcoord, 0);
+              result = texel.rgb;
+            }
+            else
+              result = float3(1, 1, 0);
+          }
+          else
+            result = float3(1, 0, 0);
+        ##elif bvh_debug_mode == world_normal
+          if (get_material_type(hitInfo.material) == bvhMaterialTerrain)
+            result = get_land_normal_from_normalmap(hitInfo.position + bvh_origin) * 0.5 + 0.5;
+          else
+            result = hitInfo.normal * 0.5 + 0.5;
+        ##elif bvh_debug_mode == texcoord
+          result = float3(hitInfo.texcoord, 0);
+        ##elif bvh_debug_mode == secTexcoord
+          result = float3(hitInfo.secTexcoord, 0);
+        ##elif bvh_debug_mode == camoTexcoord
+          uint camoArgsPacked = asuint(hitInfo.perInstanceData.z);
+          float2 unpack;
+          unpack.x = f16tof32(camoArgsPacked);
+          unpack.y = f16tof32(camoArgsPacked >> 16);
+          float3 camoSinCos = float3(unpack.x, -unpack.x, unpack.y);
+          float2 camoTexcoord = 4096 * hitInfo.secTexcoord - float2(0.5, 0.5) * 4096;
+          camoTexcoord.x = dot(camoTexcoord, camoSinCos.zx);
+          camoTexcoord.y = dot(camoTexcoord, camoSinCos.yz);
+          camoTexcoord.xy += 0.5;
+          result = float3(camoTexcoord, 0);
+        ##elif bvh_debug_mode == vertex_color
+          result = hitInfo.color;
+        ##elif bvh_debug_mode == gi
+          if (get_material_type(hitInfo.material) == bvhMaterialTerrain)
+          {
+            Vtex textures = sample_clipmaps(hitInfo.position + bvh_origin, 0, 0);
+            result = textures.diffuse.rgb;
+          }
+          else if (get_material_type(hitInfo.material) == bvhMaterialInterior)
+          {
+            result = 0.5.xxx;
+          }
+          else
+            result = hitInfo.color;
+        ##elif bvh_debug_mode == twosided
+          #ifdef BVH_TWO_SIDED
+            float2 bvhResolution;
+            bvh_gbuf_load.GetDimensions(bvhResolution.x, bvhResolution.y);
+            uint bvhFlags = loadBvhFlags(rate * bvhResolution);
+            result = bvhFlags & BVH_TWO_SIDED ? float3(0, 1, 0) : float3(0, 0, 0);
+          #else
+            result = float3(1, 0, 0);
+          #endif
+        ##elif bvh_debug_mode == paint
+          if (get_material_type(hitInfo.material) == bvhMaterialRendinst && !hitInfo.isLayered && hitInfo.albedoTextureIndex != 0xFFFF)
+          {
+            SamplerState bvh_sampler = bvh_samplers[hitInfo.albedoSamplerIndex];
+            half4 texel = (half4)bvh_textures[bvh_textures_range_start + hitInfo.albedoTextureIndex].SampleLevel(bvh_sampler, hitInfo.texcoord, 0);
+            apply_painting(hitInfo, texel.a, texel.rgb);
+            result = texel.rgb;
+          }
+        ##endif
+      }
+      else
+      {
+        ##if bvh_debug_mode == lit
+          result = texCUBElod(envi_probe_specular, float4(direction, 0)).rgb;
+        ##else
+          result = float3(0, 0, 1);
+        ##endif
+      }
+
+      float translucentT;
+      trace_ray_fx_translucent(0, direction, 0, hitInfo.t, 0, result, translucentT);
+
+      ##if bvh_debug_mode == lit
+        result = performLUTTonemap(result);
+      ##endif
+
+      debug_target[thread] = float4(result, 1);
+    }
+  }
+
+  compile("cs_6_5", "main");
+}

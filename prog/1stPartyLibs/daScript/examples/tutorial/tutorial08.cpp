@@ -50,7 +50,8 @@ void tutorial () {
     program->serialize(ser);
     program.reset();
 // deserialize
-    AstSerializer deser ( ForReading{}, move(ser.buffer) );
+    AstSerializer deser ( ForReading{});
+    deser.buffer = das::move(ser.buffer);
     auto new_program = make_smart<Program>();
     new_program->serialize(deser);
     program = new_program;

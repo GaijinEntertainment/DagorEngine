@@ -1,0 +1,16 @@
+WARNING: w312 (missing-field) No field 'baz' in table.
+testData/static_analyzer/w312_require.nut:4:10
+
+let baz = require("testData/static_analyzer/foo.nut").baz
+          ^----------------------------------------------
+return baz(1)
+
+
+HINT: h314 (see-other) You can find source of table here.
+testData/static_analyzer/w312_require.nut:4:10
+
+let baz = require("testData/static_analyzer/foo.nut").baz
+          ^------------------------------------------
+return baz(1)
+
+

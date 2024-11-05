@@ -30,7 +30,7 @@ UseProgLibs =
   3rdPartyLibs/image/avif
 ;
 
-if $(DriverLinkage) != dynamic {
+if $(KernelLinkage) != dynamic {
   UseProgLibs +=
     3rdPartyLibs/arc/lzma-9.20
   ;

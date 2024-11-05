@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "riGen/riGenData.h"
@@ -108,7 +109,10 @@ private:
 
   PaletteInfo &addPalette(const char *asset_name, const RenderableInstanceLodsResource::ImpostorParams &impostors_params,
     const EntryId &id, uint32_t rotation_count);
-  void recreateBuffer();
+
+  // @NOTE(PKiyashko): we do this instead of recreating the buffer in place, because closing it in another thread
+  // requires reading all the shadervars, and this causes data races with shadervar writes in main thread
+  void deferBufferRecreationToMT();
   void fillBuffer();
 };
 

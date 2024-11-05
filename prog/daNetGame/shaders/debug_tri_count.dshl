@@ -1,0 +1,280 @@
+include "shader_global.dshl"
+
+float4 debug_count_tri_start;
+float4 debug_count_tri_cell;
+hlsl {
+  #define FILL_DEBUG_SIZE 128
+  #define FILL_DEBUG_SIZE_Y 128
+  #define DEBUG_RES float3(FILL_DEBUG_SIZE,FILL_DEBUG_SIZE_Y,FILL_DEBUG_SIZE)
+}
+
+shader temp_faces_count
+{
+  if (hardware.metal)
+  {
+    dont_render;
+  }
+  supports none;
+  supports global_frame;
+  cull_mode = none;
+
+  z_write = false;
+  z_test = false;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 cell                   : TEXCOORD0;
+    };
+  }
+
+  (vs) {
+    debug_count_tri_cell@f4 = debug_count_tri_cell;
+    debug_count_tri_start@f4 = debug_count_tri_start;
+  }
+  ENABLE_ASSERT(ps)
+  hlsl(ps) {
+    RWStructuredBuffer<uint> tri_count:register(u4);
+    void count_collision_ps(VsOutput input)
+    {
+      int3 cell = int3(floor(input.cell));//int3(floor((worldPos - debug_count_tri_start)/debug_count_tri_cell.xyz));
+      if (any(cell<0 || cell >= int3(FILL_DEBUG_SIZE,FILL_DEBUG_SIZE_Y,FILL_DEBUG_SIZE)))
+        discard;
+      InterlockedAdd(structuredBufferAt(tri_count, cell.x+cell.y*FILL_DEBUG_SIZE+cell.z*FILL_DEBUG_SIZE*FILL_DEBUG_SIZE_Y), 1);
+    }
+  }
+
+
+  channel float3 pos=pos;
+  hlsl(vs) {
+    struct VsInput
+    {
+      float3 pos: POSITION;  // W defaults to 1.
+    };
+    float4 tm_line_0:register(c6);
+    float4 tm_line_1:register(c7);
+    float4 tm_line_2:register(c8);
+
+    VsOutput count_collision_vs(VsInput input, uint vertId : SV_VertexID)
+    {
+      VsOutput output;
+
+      float3 localPos = input.pos;
+      float3 worldLocalX = float3(tm_line_0.x, tm_line_1.x, tm_line_2.x);
+      float3 worldLocalY = float3(tm_line_0.y, tm_line_1.y, tm_line_2.y);
+      float3 worldLocalZ = float3(tm_line_0.z, tm_line_1.z, tm_line_2.z);
+      float3 worldLocalPos = float3(tm_line_0.w, tm_line_1.w, tm_line_2.w);
+      float3 worldPos = localPos.x * worldLocalX + localPos.y * worldLocalY + localPos.z * worldLocalZ + worldLocalPos;
+      output.cell = (worldPos - debug_count_tri_start.xyz)/debug_count_tri_cell.xyz;
+      output.pos = float4(output.cell/DEBUG_RES,1);
+
+      return output;
+    }
+  }
+
+  hlsl(gs) {
+    [maxvertexcount(3)]
+    void count_collision_gs(triangle VsOutput input[3], inout TriangleStream<VsOutput> triStream)
+    {
+      VsOutput p[3];
+      for (int i = 0; i < 3; i++)
+      	p[i] = input[i];
+      float3 normal = -normalize(cross(input[1].cell - input[0].cell, input[2].cell - input[0].cell));
+      //todo: forced sample count
+      float3 absNormal = abs(normal);
+      uint angle = 0;
+      if (absNormal.y > absNormal.x && absNormal.y > absNormal.z)
+        angle = 1;
+      else if (absNormal.z > absNormal.x && absNormal.z > absNormal.y)
+        angle = 2;
+      float3 boxPos0 = input[0].cell/FILL_DEBUG_SIZE, boxPos1 = input[1].cell/FILL_DEBUG_SIZE, boxPos2 = input[2].cell/FILL_DEBUG_SIZE;
+      boxPos0 = boxPos0 * 2-1;
+      boxPos1 = boxPos1 * 2-1;
+      boxPos2 = boxPos2 * 2-1;
+      p[0].pos = float4(boxPos0.xy,0.5,1);
+      p[1].pos = float4(boxPos1.xy,0.5,1);
+      p[2].pos = float4(boxPos2.xy,0.5,1);
+      if (angle > 0)
+      {
+        p[0].pos.xy = angle == 1 ? boxPos0.xz : boxPos0.yx;
+        p[1].pos.xy = angle == 1 ? boxPos1.xz : boxPos1.yx;
+        p[2].pos.xy = angle == 1 ? boxPos2.xz : boxPos2.yx;
+      }
+
+      triStream.Append(p[0]);
+      triStream.Append(p[1]);
+      triStream.Append(p[2]);
+    }
+  }
+  compile("target_gs", "count_collision_gs");
+  compile("target_ps", "count_collision_ps");
+  compile("target_vs_for_gs", "count_collision_vs");
+}
+
+shader debug_count_tri_boxes_cs
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+  supports none;
+  supports global_frame;
+
+  (cs) {
+    debug_count_tri_cell@f4 = debug_count_tri_cell;
+    debug_count_tri_start@f4 = debug_count_tri_start;
+  }
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    float4 tm_line_0:register(c6);
+    float4 tm_line_1:register(c7);
+    float4 tm_line_2:register(c8);
+    uint4 triangle_info:register(c9);
+
+    RWStructuredBuffer<uint> tri_count:register(u0);
+    struct MyTriangle { float4 v[3]; };
+
+    StructuredBuffer<MyTriangle> triangles:register(t0);
+    [numthreads(16, 1, 1)]
+    void count_triangle_boxes_treshold_cs(uint dId : SV_DispatchThreadID)
+    {
+      if (dId >= triangle_info.y)
+        return;
+      MyTriangle tri = triangles[triangle_info.x + dId];
+      float3 worldLocalX = float3(tm_line_0.x, tm_line_1.x, tm_line_2.x);
+      float3 worldLocalY = float3(tm_line_0.y, tm_line_1.y, tm_line_2.y);
+      float3 worldLocalZ = float3(tm_line_0.z, tm_line_1.z, tm_line_2.z);
+      float3 worldLocalPos = float3(tm_line_0.w, tm_line_1.w, tm_line_2.w);
+      float3 worldPos0 = tri.v[0].x * worldLocalX + tri.v[0].y * worldLocalY + tri.v[0].z * worldLocalZ + worldLocalPos;
+      float3 worldPos1 = tri.v[1].x * worldLocalX + tri.v[1].y * worldLocalY + tri.v[1].z * worldLocalZ + worldLocalPos;
+      float3 worldPos2 = tri.v[2].x * worldLocalX + tri.v[2].y * worldLocalY + tri.v[2].z * worldLocalZ + worldLocalPos;
+      float3 boxMin = min(min(worldPos0, worldPos1), worldPos2), boxMax = max(max(worldPos0, worldPos1), worldPos2);
+      boxMin = floor((boxMin - debug_count_tri_start.xyz)/debug_count_tri_cell.xyz);
+      boxMax = floor((boxMax - debug_count_tri_start.xyz)/debug_count_tri_cell.xyz);
+      int3 boxMinI = int3(clamp(boxMin, float3(0,0,0), DEBUG_RES-1));
+      int3 boxMaxI = int3(clamp(boxMax, float3(0,0,0), DEBUG_RES-1));
+      if (any(boxMax<boxMin))
+        return;
+      for (int z = boxMinI.z; z <= boxMaxI.z; ++z)
+        for (int y = boxMinI.y; y <= boxMaxI.y; ++y)
+          for (int x = boxMinI.x; x <= boxMaxI.x; ++x)
+          {
+            InterlockedAdd(structuredBufferAt(tri_count, z*(FILL_DEBUG_SIZE_Y*FILL_DEBUG_SIZE) + y*FILL_DEBUG_SIZE + x), 1);
+          }
+    }
+  }
+  compile("cs_5_0", "count_triangle_boxes_treshold_cs");
+}
+
+shader debug_count_tri_cs
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+  supports none;
+  supports global_frame;
+
+  (cs) {
+    debug_count_tri_cell@f4 = debug_count_tri_cell;
+    debug_count_tri_start@f4 = debug_count_tri_start;
+  }
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    RWStructuredBuffer<float4> passed:register(u0);
+    RWStructuredBuffer<uint> passedCount:register(u1);
+    StructuredBuffer<uint> gridCount:register(t0);
+    [numthreads(4, 4, 4)]
+    void count_triangles_treshold_cs(uint3 dId_xzy : SV_DispatchThreadID)
+    {
+      uint3 dId = dId_xzy.xzy;
+      uint count = structuredBufferAt(gridCount, dId.x + dId.y*FILL_DEBUG_SIZE + dId.z*FILL_DEBUG_SIZE*FILL_DEBUG_SIZE_Y);
+      if (count < uint(debug_count_tri_cell.w) || debug_count_tri_cell.w == 0)
+        return;
+      float3 coord = debug_count_tri_start.xyz + debug_count_tri_cell.xyz*(dId+0.5);
+      uint appendIdx;
+      InterlockedAdd(structuredBufferAt(passedCount, 0), 1, appendIdx);
+      structuredBufferAt(passed, appendIdx) = float4(coord, count);
+    }
+  }
+  compile("cs_5_0", "count_triangles_treshold_cs");
+}
+
+shader debug_draw_faces_count
+{
+  supports global_frame;
+  z_write = false;
+  z_test = false;
+
+  (vs) {
+    globtm@f44 = globtm;
+    debug_count_tri_cell@f4 = debug_count_tri_cell;
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 norm_count: TEXCOORD0;
+      float3 view: TEXCOORD1;
+    };
+  }
+
+  hlsl(vs) {
+    StructuredBuffer<float4> visible_voxels:register(t15);
+
+    static const uint box_indices[36] =
+    {
+      0,3,1,0,2,3,
+      0,1,5,0,5,4,
+      0,4,6,0,6,2,
+      1,7,5,1,3,7,
+      4,5,7,4,7,6,
+      2,7,3,2,6,7
+    };
+
+    VsOutput test_vs(uint allVertId : SV_VertexID)
+    {
+      VsOutput output;
+      uint instId = allVertId/36;
+      uint boxVertId = allVertId%36;
+
+      uint vertId = box_indices[boxVertId];
+      float4 center_count = visible_voxels[instId];
+      float3 cornerPos = float3(vertId&1 ? 1 : 0, vertId&2 ? 1 : 0, vertId&4 ? 1 : 0);//generate
+
+      float3 worldPos = center_count.xyz + (cornerPos*2-float3(1,1,1))*(0.5*debug_count_tri_cell.xyz);
+      output.pos = mul(float4(worldPos, 1), globtm);
+      output.norm_count = float4(normalize(cornerPos*float3(2,2,2)-float3(1,1,1)),
+      (center_count.w-debug_count_tri_cell.w)/debug_count_tri_cell.w
+      );
+      output.view = worldPos-world_view_pos;
+      return output;
+    }
+  }
+  blend_src = sa;blend_dst = isa;
+  hlsl(ps) {
+    float4 test_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      //float3 normal = normalize(cross(ddx_fine(input.pointToEye), ddy_fine(input.pointToEye)));
+      float3 normal = normalize(input.norm_count.xyz);
+      float3 absnorm = abs(normal.xyz);
+      float maxn = max(max(absnorm.x, absnorm.y), absnorm.z);
+      float3 w = pow2_vec3(1-saturate(maxn.xxx-absnorm));
+      w = pow2_vec3(w); w = pow2_vec3(w); w = pow2_vec3(w);w = pow2_vec3(w);
+
+      float3 dirNormal = normalize(normal * w);
+      float3 colors[4]={float3(0,0.25,0), float3(.25,.25,0), float3(1,0.5,0), float3(1,0,0)};
+      float fresnel = 0.5+0.5*(pow5(abs(dot(dirNormal, normalize(input.view)))));
+      int p0 = int(clamp(input.norm_count.w, 0, 3));
+      int p1 = int(clamp(input.norm_count.w+1, 0, 3));
+      float fracP = clamp(input.norm_count.w - p0,0,1);
+      return float4(lerp(colors[p0], colors[p1], fracP)*(input.norm_count.w>=4 ? input.norm_count.w-3 : 1), fresnel);
+    }
+  }
+  //*/
+  compile("target_vs", "test_vs");
+  compile("target_ps", "test_ps");
+}

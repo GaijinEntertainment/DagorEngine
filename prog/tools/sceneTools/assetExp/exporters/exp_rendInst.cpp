@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <assets/assetExporter.h>
 #include <assets/assetRefs.h>
 #include <assets/asset.h>
@@ -24,7 +26,7 @@ public:
   virtual unsigned __stdcall getGameResClassId() const { return RendInstGameResClassId; }
   virtual unsigned __stdcall getGameResVersion() const
   {
-    const int ord_ver = 0;
+    const int ord_ver = 3;
     const int base_ver = 26 + ord_ver * 6 + (splitMatToDescBin && !shadermeshbuilder_strip_d3dres ? 3 : 0);
     return base_ver + (ShaderMeshData::preferZstdPacking ? (ShaderMeshData::allowOodlePacking ? 2 : 1) : 0);
   }
@@ -90,6 +92,7 @@ public:
     const DataBlock &a_props = a.getProfileTargetProps(cwr.getTarget(), cwr.getProfile());
     lodsBlk.setFrom(&a_props);
     int lodNameId = lodsBlk.getNameId("lod");
+    int plodNameId = lodsBlk.getNameId("plod");
     if (!lodsBlk.getBlockByName(lodNameId))
     {
       log.addMessage(ILogWriter::ERROR, "%s: no lods specified", a.getName());
@@ -118,12 +121,25 @@ public:
     }
 
     int lodNo = 0;
+    int plodNo = 0;
     for (int i = 0; DataBlock *blk = lodsBlk.getBlock(i); i++)
+    {
       if (blk->getBlockNameId() == lodNameId)
       {
         sn.printf(260, "%s.lod%02d.dag", a.props.getStr("lod_fn_prefix", a.getName()), lodNo++);
         blk->setStr("scene", String(260, "%s/%s", a.getFolderPath(), blk->getStr("fname", sn)));
       }
+      if (blk->getBlockNameId() == plodNameId)
+      {
+        if (plodNo++ != 0)
+          log.addMessage(ILogWriter::ERROR, "%s: plod can be only one!", a.getName());
+        else
+        {
+          sn.printf(260, "%s.plod.dag", a.props.getStr("lod_fn_prefix", a.getName()));
+          blk->setStr("scene", String(260, "%s/%s", a.getFolderPath(), blk->getStr("fname", sn)));
+        }
+      }
+    }
 
     load_shaders_for_target(cwr.getTarget());
     setup_tex_subst(a_props);

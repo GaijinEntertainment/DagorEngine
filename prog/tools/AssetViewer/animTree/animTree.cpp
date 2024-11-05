@@ -1,139 +1,41 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "animTree.h"
 #include "../av_plugin.h"
 #include "../av_appwnd.h"
+#include "animTreePanelPids.h"
+#include "animTreeIcons.h"
+#include "animTreeUtils.h"
 
-#include <de3_interface.h>
-#include <de3_objEntity.h>
-#include <de3_lodController.h>
-#include <de3_animCtrl.h>
+#include "controllers/ctrlType.h"
+#include "controllers/moveNode.h"
+#include "controllers/rotateNode.h"
+#include "controllers/paramSwitch.h"
+#include "controllers/randomSwitch.h"
+#include "controllers/hub.h"
+#include "controllers/linearPoly.h"
+#include "controllers/rotateAroundNode.h"
 
-#include <gameRes/dag_gameResources.h>
-#include <gameRes/dag_stdGameResId.h>
-#include <math/dag_mathUtils.h>
+#include "blendNodes/blendNodeType.h"
+#include "blendNodes/single.h"
+#include "blendNodes/continuous.h"
+#include "blendNodes/still.h"
+#include "blendNodes/parametric.h"
+
+#include "animStates/animStatesType.h"
+#include "nodeMasks/nodeMaskType.h"
+
 #include <util/dag_lookup.h>
 
 #include <assetsGui/av_selObjDlg.h>
 #include <assets/assetMgr.h>
 #include <sepGui/wndPublic.h>
-
-#include <propPanel2/c_window_base.h>
+#include <osApiWrappers/dag_direct.h>
 
 using hdpi::_pxScaled;
 
-enum
-{
-  PID_SELECT_DYN_MODEL,
-
-  PID_NODE_MASKS_GROUP,
-  PID_NODE_MASKS_FILTER,
-  PID_NODE_MASKS_TREE,
-  PID_NODE_MASKS_ADD_MASK,
-  PID_NODE_MASKS_ADD_NODE,
-  PID_NODE_MASKS_REMOVE_NODE,
-  PID_NODE_MASKS_SETTINGS_GROUP,
-  PID_NODE_MASKS_NAME_FIELD,
-  PID_NODE_MASKS_SAVE,
-
-  PID_ANIM_BLEND_NODES_GROUP,
-  PID_ANIM_BLEND_NODES_SETTINGS_GROUP,
-  PID_ANIM_BLEND_NODES_FILTER,
-  PID_ANIM_BLEND_NODES_TREE,
-  PID_ANIM_BLEND_NODES_A2D,
-  PID_ANIM_BLEND_NODES_LEAF,
-  PID_ANIM_BLEND_NODES_IRQ,
-  PID_ANIM_BLEND_NODES_CREATE_NODE,
-  PID_ANIM_BLEND_NODES_ADD_LEAF,
-  PID_ANIM_BLEND_NODES_ADD_IRQ,
-  PID_ANIM_BLEND_NODES_REMOVE_NODE,
-
-  PID_ANIM_BLEND_CTRLS_GROUP,
-  PID_ANIM_BLEND_CTRLS_SETTINGS_GROUP,
-  PID_ANIM_BLEND_CTRLS_FILTER,
-  PID_ANIM_BLEND_CTRLS_TREE,
-
-  PID_ANIM_STATES_GROUP,
-  PID_ANIM_STATES_FILTER,
-  PID_ANIM_STATES_TREE,
-  PID_ANIM_STATES_ADD_ENUM,
-  PID_ANIM_STATES_ADD_ENUM_ITEM,
-  PID_ANIM_STATES_REMOVE_NODE,
-  PID_ANIM_STATES_SETTINGS_GROUP,
-  PID_ANIM_STATES_NAME_FIELD,
-  PID_ANIM_STATES_SAVE,
-
-  PID_NODES_PARAMS_FIELD,
-  PID_IRQ_INTERRUPTION_FIELD = PID_NODES_PARAMS_FIELD,
-  PID_IRQ_NAME_FIELD,
-  PID_NODES_PARAMS_FIELD_SIZE = PID_NODES_PARAMS_FIELD + 100,
-
-  PID_NODES_ACTION_FIELD,
-  PID_IRQ_TYPE_COMBO_SELECT = PID_NODES_ACTION_FIELD,
-  PID_NODES_SETTINGS_PLAY_ANIMATION,
-  PID_NODES_SETTINGS_SAVE,
-  PID_NODES_ACTION_FIELD_SIZE,
-
-  PID_CTRLS_PARAMS_FIELD,
-  PID_CTRLS_PARAMS_FIELD_SIZE = PID_CTRLS_PARAMS_FIELD + 100,
-
-  PID_CTRLS_ACTION_FIELD,
-  PID_CTRLS_TYPE_COMBO_SELECT = PID_CTRLS_ACTION_FIELD,
-  PID_CTRLS_SEPARATOR,
-
-  PID_CTRLS_PARAM_SWITCH_TYPE_COMBO_SELECT,
-  PID_CTRLS_PARAM_SWITCH_ENUM_GEN_COMBO_SELECT,
-  PID_CTRLS_PARAM_SWITCH_NAME_TEMPLATE,
-
-  PID_CTRLS_PARAM_SWITCH_NODES_LIST,
-  PID_CTRLS_PARAM_SWITCH_NODES_LIST_ADD,
-  PID_CTRLS_PARAM_SWITCH_NODES_LIST_REMOVE,
-  PID_CTRLS_PARAM_SWITCH_NODE_ENUM_ITEM,
-  PID_CTRLS_PARAM_SWITCH_NODE_NAME,
-  PID_CTRLS_PARAM_SWITCH_NODE_RANGE_FROM,
-  PID_CTRLS_PARAM_SWITCH_NODE_RANGE_TO,
-
-  PID_CTRLS_SETTINGS_SAVE,
-  PID_CTRLS_ACTION_FIELD_SIZE,
-
-};
-
-// Icon names located at D:\dagor2\tools\dagor3_cdk\commonData\gui16x16
-static const char *ASSET_SKELETON_ICON = "asset_skeleton";
-static const char *RES_ANIMBNL_ICON = "res_animbnl";
-static const char *SHOW_PANEL_ICON = "show_panel";
-static const char *FOLDER_ICON = "folder";
-static const char *CREATE_SPHERE_ICON = "create_sphere";
-
-// Icon names for nodes
-static const char *ANIM_BLEND_NODE_ICON = "blend_node";
-static const char *A2D_NAME_ICON = "blend_nodes_group";
-static const char *NODE_MASK_ICON = "anim_node_mask1";
-static const char *NODE_MASK_LEAF_ICON = ASSET_SKELETON_ICON;
-static const char *ANIM_BLEND_CTRL_ICON = RES_ANIMBNL_ICON;
-static const char *STATE_ICON = "anim_states";
-static const char *STATE_LEAF_ICON = "anim_state_leaf";
-static const char *ENUMS_ROOT_ICON = FOLDER_ICON;
-static const char *ENUM_ICON = SHOW_PANEL_ICON;
-static const char *ENUM_ITEM_ICON = CREATE_SPHERE_ICON;
-static const char *IRQ_ICON = "irq";
-
-static const char *CTRL_COND_HIDE_ICON = "ctrl_cond_hide";
-static const char *CTRL_ATTACH_NODE_ICON = "ctrl_attach_node";
-static const char *CTRL_HUB_ICON = "ctrl_hub";
-static const char *CTRL_LINEAR_POLY_ICON = "ctrl_linearpoly";
-static const char *CTRL_EFF_FROM_ATT_ICON = "ctrl_eff_from_att";
-static const char *CTRL_RANDOM_SWITCH_ICON = "ctrl_random_switch";
-static const char *CTRL_PARAM_SWITCH_ICON = "ctrl_param_switch";
-static const char *CTRL_PARAMS_CTRL_ICON = "ctrl_params_ctrl";
-static const char *CTRL_FIFO3_ICON = "ctrl_fifo3";
-static const char *CTRL_SET_PARAM_ICON = "ctrl_set_param";
-static const char *CTRL_MOVE_NODE_ICON = "move";
-static const char *CTRL_ROTATE_NODE_ICON = "rotate";
-
-static constexpr int ANIM_BLEND_NODE_A2D = PID_ANIM_BLEND_NODES_A2D;
-static constexpr int ANIM_BLEND_NODE_LEAF = PID_ANIM_BLEND_NODES_LEAF;
-static constexpr int ANIM_BLEND_NODE_IRQ = PID_ANIM_BLEND_NODES_IRQ;
-
-extern String a2d_last_ref_model;
+static const char *NODE_MASK_DEFAULT_NAME = "node_mask";
+static const char *NODE_LEAF_DEFAULT_NAME = "node_leaf";
 
 static Tab<String> irq_types{String("key"), String("relPos"), String("keyFloat")};
 enum IrqType
@@ -145,120 +47,121 @@ enum IrqType
   IRQ_TYPE_SIZE
 };
 
-#define CONTROLLERS_LIST                                                                                                       \
-  DECL_CTRL(null), DECL_CTRL(setParam), DECL_CTRL(compoundRotateShift), DECL_CTRL(attachNode), DECL_CTRL(alias),               \
-    DECL_CTRL(paramFromNode), DECL_CTRL(effFromAttachment), DECL_CTRL(effectorFromChildIK), DECL_CTRL(multiChainFABRIK),       \
-    DECL_CTRL(nodesFromAttachement), DECL_CTRL(matFromNode), DECL_CTRL(hub), DECL_CTRL(paramSwitch), DECL_CTRL(linearPoly),    \
-    DECL_CTRL(rotateNode), DECL_CTRL(rotateAroundNode), DECL_CTRL(paramsCtrl), DECL_CTRL(randomSwitch), DECL_CTRL(alignEx),    \
-    DECL_CTRL(alignNode), DECL_CTRL(moveNode), DECL_CTRL(fifo3), DECL_CTRL(legsIK), DECL_CTRL(twistCtrl), DECL_CTRL(condHide), \
-    DECL_CTRL(lookat), DECL_CTRL(scaleNode), DECL_CTRL(defClampCtrl), DECL_CTRL(lookatNode), DECL_CTRL(deltaRotateShiftCalc)
+bool is_include_node_mask(const NodeMaskData &data) { return data.type == NodeMaskType::INCLUDE; };
 
-#define DECL_CTRL(x) String(#x)
-Tab<String> ctrl_type = {CONTROLLERS_LIST};
-#undef DECL_CTRL
-
-#define DECL_CTRL(x) ctrl_type_##x
-enum CtrlType
+struct ExeptionField
 {
-  ctrl_type_not_found = -1,
-  CONTROLLERS_LIST,
-  ctrl_type_size
+  const char *name;
+  int len;
 };
-#undef DECL_CTRL
 
-static Tab<String> param_switch_type({String("Generated from enum"), String("Enum list")});
-enum ParamSwitchType
-{
-  PARAM_SWITCH_TYPE_ENUM_GEN,
-  PARAM_SWITCH_TYPE_ENUM_LIST,
-};
+#define STR_WITH_LEN(x) \
+  {                     \
+    x, sizeof(x) - 1    \
+  }
+#define STR_LINE(x) \
+  {                 \
+    x, -1           \
+  }
+
+dag::Vector<ExeptionField> exeption_fields = {STR_WITH_LEN("@clone-last:"), STR_WITH_LEN("@override:"), STR_WITH_LEN("@delete:"),
+  STR_WITH_LEN("@delete-all:"), STR_LINE("@override-last"), STR_LINE("@delete-last")};
 
 AnimTreePlugin::AnimTreePlugin() :
-  dynModelId{get_app().getAssetMgr().getAssetTypeId("dynModel")}, animProgress{0.0f}, animTime{1.f}, firstKey{0}, lastKey{0}
+  animPlayer{get_app().getAssetMgr().getAssetTypeId("dynModel")},
+  ctrlTreeEventHandler(controllersData, includePaths, ctrlChildsDialog),
+  ctrlChildsDialog(controllersData, blendNodesData, includePaths),
+  blendNodeTreeEventHandler(blendNodesData, includePaths),
+  nodeMaskTreeEventHandler(nodeMasksData, includePaths),
+  animStatesTreeEventHandler(statesData, includePaths)
 {}
 
 bool AnimTreePlugin::begin(DagorAsset *asset)
 {
   curAsset = asset;
-  if (modelName.empty())
-    modelName = a2d_last_ref_model;
-  reloadDynModel();
+  animPlayer.init(*curAsset);
+  blendNodeTreeEventHandler.setAsset(curAsset);
+  ctrlTreeEventHandler.setAsset(curAsset);
+  nodeMaskTreeEventHandler.setAsset(curAsset);
+  animStatesTreeEventHandler.setAsset(curAsset);
+
   return true;
 }
 
 bool AnimTreePlugin::end()
 {
-  resetDynModel();
+  animPlayer.clear();
   curAsset = nullptr;
-  if (selectedA2d)
-  {
-    ::release_game_resource((GameResource *)selectedA2d);
-    selectedA2d = nullptr;
-  }
-  selectedA2dName.clear();
+  blendNodeTreeEventHandler.setAsset(nullptr);
+  ctrlTreeEventHandler.setAsset(nullptr);
+  nodeMaskTreeEventHandler.setAsset(nullptr);
+  animStatesTreeEventHandler.setAsset(nullptr);
+
+  enumsRootLeaf = nullptr;
+  blendNodesData.clear();
+  controllersData.clear();
+  nodeMasksData.clear();
+  statesData.clear();
+  includePaths.clear();
+  curCtrlAndBlendNodeUniqueIdx = 0;
+  ctrlChildsDialog.clear();
+  ctrlChildsDialog.hide();
 
   return true;
 }
 
-bool AnimTreePlugin::getSelectionBox(BBox3 &box) const
-{
-  if (!entity)
-    return false;
-  box = entity->getBbox();
-  return true;
-}
+bool AnimTreePlugin::getSelectionBox(BBox3 &box) const { return animPlayer.getSelectionBox(box); }
 
-static int get_key_by_name(const AnimV20::AnimData *selectedA2d, const char *key_name)
+static void update_play_animation_text(PropPanel::ContainerPropertyControl *panel, bool is_anim_in_progress)
 {
-  for (int i = 0; i < selectedA2d->dumpData.noteTrack.size(); ++i)
-    if (!strcmp(key_name, selectedA2d->dumpData.noteTrack[i].name))
-      return selectedA2d->dumpData.noteTrack[i].time;
+  if (!panel)
+    return;
 
-  return 0;
+  if (is_anim_in_progress)
+    panel->setCaption(PID_NODES_SETTINGS_PLAY_ANIMATION, "Stop playing animation");
+  else
+    panel->setCaption(PID_NODES_SETTINGS_PLAY_ANIMATION, "Play animation");
 }
 
 void AnimTreePlugin::actObjects(float dt)
 {
-  if (!entity || !ctrl || !origGeomTree || !selectedA2d)
-    return;
-
-  if (animProgress < 1.f)
-  {
-    animProgress += dt / animTime;
-    int animKey = lerp(firstKey, lastKey, saturate(animProgress));
-    animate(animKey);
-  }
+  const bool oldState = animPlayer.isAnimInProgress();
+  animPlayer.act(dt);
+  const bool curState = animPlayer.isAnimInProgress();
+  if (oldState != curState)
+    update_play_animation_text(getPluginPanel(), curState);
 }
 
 bool AnimTreePlugin::supportAssetType(const DagorAsset &asset) const { return strcmp(asset.getTypeStr(), "animTree") == 0; }
 
-void AnimTreePlugin::fillPropPanel(PropertyContainerControlBase &panel)
+void AnimTreePlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
 {
+  const String modelName = animPlayer.getModelName();
   panel.setEventHandler(this);
   panel.createButton(PID_SELECT_DYN_MODEL, modelName.empty() ? "Select model" : modelName.c_str());
   fillTreePanels(&panel);
 }
 
-bool AnimTreePlugin::isEnumOrEnumItem(TLeafHandle leaf, PropertyContainerControlBase *tree)
+bool AnimTreePlugin::isEnumOrEnumItem(TLeafHandle leaf, PropPanel::ContainerPropertyControl *tree)
 {
   TLeafHandle parentLeaf = tree->getParentLeaf(leaf);
   TLeafHandle rootLeaf = tree->getParentLeaf(parentLeaf);
   return (rootLeaf && rootLeaf == enumsRootLeaf) || (parentLeaf && parentLeaf == enumsRootLeaf);
 }
 
-static bool is_name_exists_in_childs(TLeafHandle parent, PropertyContainerControlBase *tree, const char *new_name)
+static TLeafHandle is_name_exists_in_childs(TLeafHandle parent, PropPanel::ContainerPropertyControl *tree, const char *new_name)
 {
   const int childCount = tree->getChildCount(parent);
   for (int i = 0; i < childCount; ++i)
   {
     TLeafHandle child = tree->getChildLeaf(parent, i);
     if (tree->getCaption(child) == new_name)
-      return true;
+      return child;
   }
-  return false;
+  return nullptr;
 }
 
-static bool create_new_leaf(TLeafHandle parent, PropertyContainerControlBase *tree, PropertyContainerControlBase *panel,
+static bool create_new_leaf(TLeafHandle parent, PropPanel::ContainerPropertyControl *tree, PropPanel::ContainerPropertyControl *panel,
   const char *sample_name, const char *icon_name, int field_pid)
 {
   const bool isNameExists = is_name_exists_in_childs(parent, tree, sample_name);
@@ -269,38 +172,112 @@ static bool create_new_leaf(TLeafHandle parent, PropertyContainerControlBase *tr
     tree->setSelLeaf(newLeaf);
   }
   else
-    logerr("Can't create enum item, name <%s> already registered", sample_name);
+    logerr("Can't create item, name <%s> already registered", sample_name);
 
   return !isNameExists;
 }
 
-TLeafHandle AnimTreePlugin::getEnumsRootLeaf(PropertyContainerControlBase *tree)
+static TLeafHandle get_anim_blend_node_leaf(PropPanel::ContainerPropertyControl *tree)
 {
-  return enumsRootLeaf ? enumsRootLeaf : enumsRootLeaf = tree->createTreeLeaf(tree->getRootLeaf(), "enum", ENUMS_ROOT_ICON);
+  TLeafHandle leaf = tree->getSelLeaf();
+  if (leaf)
+  {
+    TLeafHandle parent = tree->getParentLeaf(leaf);
+    if (parent && tree->getUserData(leaf) == &ANIM_BLEND_NODE_IRQ)
+      return parent;
+    else if (tree->getUserData(leaf) == &ANIM_BLEND_NODE_LEAF)
+      return leaf;
+    else if (tree->getUserData(leaf) == &ANIM_BLEND_NODE_A2D && tree->getChildCount(leaf) > 0)
+      return tree->getChildLeaf(leaf, 0);
+    else if (tree->getUserData(leaf) == &ANIM_BLEND_NODE_INCLUDE)
+      return nullptr;
+    else
+      logerr("Can't find anim blend node for this selected leaf");
+  }
+
+  return nullptr;
 }
 
-static void remove_fields(PropertyContainerControlBase *panel, int field_start, int field_end, bool break_if_not_found)
+static TLeafHandle get_anim_blend_node_include(PropPanel::ContainerPropertyControl *tree, const bool force_parent = false)
 {
-  for (int i = field_start; i < field_end; ++i)
-    if (!panel->removeById(i) && break_if_not_found)
-      return;
+  TLeafHandle selLeaf = tree->getSelLeaf();
+  if (tree->getUserData(selLeaf) == &ANIM_BLEND_NODE_INCLUDE && force_parent)
+    return tree->getParentLeaf(selLeaf);
+  else if (selLeaf == tree->getRootLeaf() || tree->getUserData(selLeaf) == &ANIM_BLEND_NODE_INCLUDE)
+    return selLeaf;
+
+  TLeafHandle nodeLeaf = get_anim_blend_node_leaf(tree);
+  if (nodeLeaf)
+  {
+    TLeafHandle parent = tree->getParentLeaf(nodeLeaf);
+    if (parent && tree->getUserData(parent) == &ANIM_BLEND_NODE_A2D)
+      return tree->getParentLeaf(parent);
+    else
+      return tree->getParentLeaf(nodeLeaf);
+  }
+
+  return nullptr;
 }
 
-static void remove_nodes_fields(PropertyContainerControlBase *panel)
+// leaf_name must be from anim blend node leaf, use get_anim_blend_node_leaf()
+static DataBlock *get_selected_bnl_settings(DataBlock &props, const char *leaf_name, int &a2d_idx)
 {
-  const bool breakIfNotFound = true;
-  remove_fields(panel, PID_NODES_PARAMS_FIELD, PID_NODES_PARAMS_FIELD_SIZE, breakIfNotFound);
-  remove_fields(panel, PID_NODES_ACTION_FIELD, PID_NODES_ACTION_FIELD_SIZE, !breakIfNotFound);
+  for (int i = 0; i < props.blockCount(); ++i)
+  {
+    DataBlock *node = props.getBlock(i);
+    if (!strcmp(node->getBlockName(), "AnimBlendNodeLeaf"))
+    {
+      for (int j = 0; j < node->blockCount(); ++j)
+      {
+        DataBlock *settings = node->getBlock(j);
+        if (!strcmp(settings->getStr("name", ""), leaf_name))
+        {
+          a2d_idx = i;
+          return settings;
+        }
+      }
+    }
+  }
+  return nullptr;
 }
 
-static void remove_ctrls_fields(PropertyContainerControlBase *panel)
+void AnimTreePlugin::addController(TLeafHandle handle, CtrlType type)
 {
-  const bool breakIfNotFound = true;
-  remove_fields(panel, PID_CTRLS_PARAMS_FIELD, PID_CTRLS_PARAMS_FIELD_SIZE, breakIfNotFound);
-  remove_fields(panel, PID_CTRLS_ACTION_FIELD, PID_CTRLS_ACTION_FIELD_SIZE, !breakIfNotFound);
+  controllersData.emplace_back(AnimCtrlData{curCtrlAndBlendNodeUniqueIdx++, handle, type});
+}
+void AnimTreePlugin::addBlendNode(TLeafHandle handle, BlendNodeType type)
+{
+  blendNodesData.emplace_back(BlendNodeData{curCtrlAndBlendNodeUniqueIdx++, handle, type});
 }
 
-static void create_irq_interruption_moment_type_combo(PropertyContainerControlBase *panel, const char *type_name = "",
+void AnimTreePlugin::savePropsWithoutReload(DataBlock &props, const String &path)
+{
+  if (path.empty())
+  {
+    logerr("Can't save blk, path is empty");
+    return;
+  }
+  const bool curParseCommentsAsParams = DataBlock::parseCommentsAsParams;
+  // We need rise this flag, otherwise comments can't save
+  DataBlock::parseCommentsAsParams = true;
+  curAsset->getMgr().enableChangesTracker(false);
+  props.saveToTextFile(path);
+  curAsset->getMgr().enableChangesTracker(true);
+  DataBlock::parseCommentsAsParams = curParseCommentsAsParams;
+}
+
+TLeafHandle AnimTreePlugin::getEnumsRootLeaf(PropPanel::ContainerPropertyControl *tree)
+{
+  if (!enumsRootLeaf)
+  {
+    enumsRootLeaf = tree->createTreeLeaf(tree->getRootLeaf(), "enum", ENUMS_ROOT_ICON);
+    statesData.emplace_back(AnimStatesData{enumsRootLeaf, AnimStatesType::ENUM_ROOT});
+  }
+
+  return enumsRootLeaf;
+}
+
+static void create_irq_interruption_moment_type_combo(PropPanel::ContainerPropertyControl *panel, const char *type_name = "",
   IrqType selected_type = IRQ_TYPE_UNSET)
 {
   if (selected_type == IRQ_TYPE_UNSET)
@@ -310,8 +287,8 @@ static void create_irq_interruption_moment_type_combo(PropertyContainerControlBa
   panel->createCombo(PID_IRQ_TYPE_COMBO_SELECT, "Interruption moment type", irq_types, selected_type);
 }
 
-static void fill_irq_settings(PropertyContainerControlBase *panel, const char *irq_name, IrqType selected_type, const char *key = "",
-  float key_float = 0.0f)
+static void fill_irq_settings(PropPanel::ContainerPropertyControl *panel, const char *irq_name, IrqType selected_type,
+  const char *key = "", float key_float = 0.0f, bool save_enabled = true)
 {
   remove_nodes_fields(panel);
   create_irq_interruption_moment_type_combo(panel, "", selected_type);
@@ -321,10 +298,10 @@ static void fill_irq_settings(PropertyContainerControlBase *panel, const char *i
   else
     panel->createEditFloat(PID_IRQ_INTERRUPTION_FIELD, typeName.c_str(), key_float, /*prec*/ 3);
   panel->createEditBox(PID_IRQ_NAME_FIELD, "name", irq_name);
-  panel->createButton(PID_NODES_SETTINGS_SAVE, "Save");
+  panel->createButton(PID_NODES_SETTINGS_SAVE, "Save", save_enabled);
 }
 
-static int get_irq_idx(PropertyContainerControlBase *tree, TLeafHandle leaf)
+static int get_irq_idx(PropPanel::ContainerPropertyControl *tree, TLeafHandle leaf)
 {
   TLeafHandle parent = tree->getParentLeaf(leaf);
   for (int i = 0; i < tree->getChildCount(parent); ++i)
@@ -337,16 +314,93 @@ static int get_irq_idx(PropertyContainerControlBase *tree, TLeafHandle leaf)
   return 0;
 }
 
-void AnimTreePlugin::onClick(int pcb_id, PropertyContainerControlBase *panel)
+template <typename Data>
+static void remove_childs_data_by_leaf(PropPanel::ContainerPropertyControl *tree, dag::Vector<Data> &data_vec, TLeafHandle leaf)
+{
+  const int leafCount = tree->getChildCount(leaf);
+  for (int i = 0; i < leafCount; ++i)
+  {
+    TLeafHandle child = tree->getChildLeaf(leaf, i);
+    Data *removeItem = find_data_by_handle(data_vec, child);
+    if (removeItem != data_vec.end())
+    {
+      TLeafHandle handle = removeItem->handle;
+      data_vec.erase(removeItem);
+
+      if (tree->getChildCount(handle) > 0)
+        remove_childs_data_by_leaf(tree, data_vec, handle);
+    }
+  }
+}
+
+void AnimTreePlugin::addLeafToBlendNodesTree(PropPanel::ContainerPropertyControl *tree, DataBlock &props)
+{
+  int a2dIdx = -1;
+  TLeafHandle leaf = get_anim_blend_node_leaf(tree);
+  DataBlock *settings = get_selected_bnl_settings(props, tree->getCaption(leaf), a2dIdx);
+  if (!settings)
+    return;
+
+  DataBlock *a2dBlk = props.getBlock(a2dIdx);
+  const char *a2dName = a2dBlk->getStr("a2d", nullptr);
+  if (!a2dName)
+  {
+    logerr("a2d field not exist or empty, can't create new leaf");
+    return;
+  }
+  TLeafHandle parent = tree->getParentLeaf(leaf);
+  DataBlock *newNodeSettings = a2dBlk->addNewBlock("single");
+  newNodeSettings->setStr("name", "new_node");
+  if (tree->getRootLeaf() == parent || tree->getUserData(parent) == &ANIM_BLEND_NODE_INCLUDE)
+  {
+    const String oldName = tree->getCaption(leaf);
+    // Remove irq from leaf and craete on one level deep
+    remove_childs_data_by_leaf(tree, blendNodesData, leaf);
+    const int irqCount = tree->getChildCount(leaf);
+    for (int i = 0; i < irqCount; ++i)
+      tree->removeLeaf(tree->getChildLeaf(leaf, 0));
+
+    BlendNodeType nodeType = static_cast<BlendNodeType>(lup(settings->getBlockName(), blend_node_types));
+    TLeafHandle nodeLeaf = tree->createTreeLeaf(leaf, oldName.c_str(), get_blend_node_icon_name(nodeType));
+    addBlendNode(nodeLeaf, nodeType);
+    tree->setUserData(nodeLeaf, (void *)&ANIM_BLEND_NODE_LEAF);
+    for (int i = 0; i < settings->blockCount(); ++i)
+    {
+      TLeafHandle irqLeaf = tree->createTreeLeaf(nodeLeaf, settings->getBlock(i)->getStr("name"), IRQ_ICON);
+      addBlendNode(irqLeaf, BlendNodeType::IRQ);
+      tree->setUserData(irqLeaf, (void *)&ANIM_BLEND_NODE_IRQ);
+    }
+    TLeafHandle newLeaf = tree->createTreeLeaf(leaf, "new_node", BLEND_NODE_SINGLE_ICON);
+    addBlendNode(newLeaf, BlendNodeType::SINGLE);
+    tree->setUserData(newLeaf, (void *)&ANIM_BLEND_NODE_LEAF);
+
+    BlendNodeData *leafData = find_data_by_handle(blendNodesData, leaf);
+    if (leafData != blendNodesData.end())
+      leafData->type = BlendNodeType::A2D;
+    tree->setCaption(leaf, a2dName);
+    tree->setButtonPictures(leaf, A2D_NAME_ICON);
+    tree->setUserData(leaf, (void *)&ANIM_BLEND_NODE_A2D);
+
+    tree->setSelLeaf(newLeaf);
+  }
+  else
+  {
+    TLeafHandle newLeaf = tree->createTreeLeaf(parent, "new_node", BLEND_NODE_SINGLE_ICON);
+    addBlendNode(newLeaf, BlendNodeType::SINGLE);
+    tree->setUserData(newLeaf, (void *)&ANIM_BLEND_NODE_LEAF);
+    tree->setSelLeaf(newLeaf);
+  }
+}
+
+void AnimTreePlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   switch (pcb_id)
   {
-    case PID_SELECT_DYN_MODEL:
-      selectDynModel();
-      panel->setCaption(PID_SELECT_DYN_MODEL, modelName.empty() ? "Select model" : modelName.c_str());
+    case PID_SELECT_DYN_MODEL: selectDynModel(panel); break;
+    case PID_NODES_SETTINGS_PLAY_ANIMATION:
+      animPlayer.changePlayingAnimation();
+      update_play_animation_text(panel, animPlayer.isAnimInProgress());
       break;
-
-    case PID_NODES_SETTINGS_PLAY_ANIMATION: animProgress = 0.f; break;
     case PID_ANIM_STATES_ADD_ENUM: addEnumToAnimStatesTree(panel); break;
     case PID_ANIM_STATES_ADD_ENUM_ITEM: addEnumItemToAnimStatesTree(panel); break;
     case PID_ANIM_STATES_REMOVE_NODE: removeNodeFromAnimStatesTree(panel); break;
@@ -356,15 +410,23 @@ void AnimTreePlugin::onClick(int pcb_id, PropertyContainerControlBase *panel)
     case PID_NODE_MASKS_REMOVE_NODE: removeNodeFromNodeMasksTree(panel); break;
     case PID_NODE_MASKS_SAVE: saveSettingsNodeMasksTree(panel); break;
     case PID_ANIM_BLEND_NODES_ADD_IRQ: addIrqNodeToAnimNodesTree(panel); break;
+    case PID_ANIM_BLEND_NODES_CREATE_NODE: createNodeAnimNodesTree(panel); break;
+    case PID_ANIM_BLEND_NODES_ADD_LEAF: createLeafAnimNodesTree(panel); break;
     case PID_ANIM_BLEND_NODES_REMOVE_NODE: removeNodeFromAnimNodesTree(panel); break;
     case PID_NODES_SETTINGS_SAVE: saveSettingsAnimNodesTree(panel); break;
-    case PID_CTRLS_PARAM_SWITCH_NODES_LIST_ADD: addNodeParamSwitchList(panel); break;
-    case PID_CTRLS_PARAM_SWITCH_NODES_LIST_REMOVE: removeNodeParamSwitchList(panel); break;
+    case PID_CTRLS_NODES_LIST_ADD: addNodeCtrlList(panel); break;
+    case PID_CTRLS_NODES_LIST_REMOVE: removeNodeCtrlList(panel); break;
     case PID_CTRLS_SETTINGS_SAVE: saveControllerSettings(panel); break;
+    case PID_CTRLS_TARGET_NODE_ADD: add_target_node(ctrlParams, panel); break;
+    case PID_CTRLS_TARGET_NODE_REMOVE: remove_target_node(ctrlParams, panel); break;
+    case PID_ANIM_BLEND_CTRLS_ADD_NODE: addNodeToCtrlTree(panel); break;
+    case PID_ANIM_BLEND_CTRLS_ADD_INCLUDE:
+    case PID_ANIM_BLEND_CTRLS_ADD_INNER_INCLUDE: addIncludeToCtrlTree(panel, pcb_id); break;
+    case PID_ANIM_BLEND_CTRLS_REMOVE_NODE: removeNodeFromCtrlsTree(panel); break;
   }
 }
 
-static bool fill_field_by_type(PropertyContainerControlBase *panel, const DataBlock *node, int param_idx, int field_idx)
+static bool fill_field_by_type(PropPanel::ContainerPropertyControl *panel, const DataBlock *node, int param_idx, int field_idx)
 {
   bool isFieldCreated = true;
   if (node->getParamType(param_idx) == DataBlock::TYPE_STRING)
@@ -386,7 +448,29 @@ static bool fill_field_by_type(PropertyContainerControlBase *panel, const DataBl
   return isFieldCreated;
 }
 
-void AnimTreePlugin::onChange(int pcb_id, PropertyContainerControlBase *panel)
+static void fill_values_if_exists(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings,
+  const dag::Vector<AnimParamData> &params)
+{
+  for (int i = 0; i < settings->paramCount(); ++i)
+  {
+    const AnimParamData *param = find_param_by_name(params, settings->getParamName(i));
+    if (param != params.end())
+    {
+      switch (param->type)
+      {
+        case DataBlock::TYPE_STRING: panel->setText(param->pid, settings->getStr(i)); break;
+        case DataBlock::TYPE_REAL: panel->setFloat(param->pid, settings->getReal(i)); break;
+        case DataBlock::TYPE_BOOL: panel->setBool(param->pid, settings->getBool(i)); break;
+        case DataBlock::TYPE_POINT3: panel->setPoint3(param->pid, settings->getPoint3(i)); break;
+        case DataBlock::TYPE_INT: panel->setInt(param->pid, settings->getInt(i)); break;
+
+        default: logerr("skip param type: %d", settings->getParamType(i)); break;
+      }
+    }
+  }
+}
+
+void AnimTreePlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   switch (pcb_id)
   {
@@ -395,60 +479,367 @@ void AnimTreePlugin::onChange(int pcb_id, PropertyContainerControlBase *panel)
     case PID_ANIM_STATES_TREE: selectedChangedAnimStatesTree(panel); break;
     case PID_IRQ_TYPE_COMBO_SELECT: irqTypeSelected(panel); break;
     case PID_ANIM_BLEND_CTRLS_TREE: fillCtrlsSettings(panel); break;
-    case PID_CTRLS_PARAM_SWITCH_NODES_LIST: setSelectedParamSwitchSettings(panel); break;
+    case PID_CTRLS_NODES_LIST: setSelectedCtrlNodeListSettings(panel); break;
     case PID_CTRLS_PARAM_SWITCH_TYPE_COMBO_SELECT: changeParamSwitchType(panel); break;
     case PID_NODE_MASKS_FILTER: setTreeFilter(panel, PID_NODE_MASKS_TREE, pcb_id); break;
     case PID_ANIM_BLEND_NODES_FILTER: setTreeFilter(panel, PID_ANIM_BLEND_NODES_TREE, pcb_id); break;
     case PID_ANIM_BLEND_CTRLS_FILTER: setTreeFilter(panel, PID_ANIM_BLEND_CTRLS_TREE, pcb_id); break;
     case PID_ANIM_STATES_FILTER: setTreeFilter(panel, PID_ANIM_STATES_TREE, pcb_id); break;
+    case PID_NODES_SETTINGS_NODE_TYPE_COMBO_SELECT: changeAnimNodeType(panel); break;
+    case PID_CTRLS_TYPE_COMBO_SELECT: changeCtrlType(panel); break;
   }
 
   if (pcb_id >= PID_NODES_PARAMS_FIELD && pcb_id <= PID_NODES_PARAMS_FIELD_SIZE)
-    animNodesFieldChanged(panel, pcb_id);
+    updateAnimNodeFields(panel, pcb_id);
 }
 
-static void add_anim_bnl_to_tree(int idx, TLeafHandle parent, const DataBlock *node, PropertyContainerControlBase *tree)
+void AnimTreePlugin::addBlendNodeToTree(PropPanel::ContainerPropertyControl *tree, const DataBlock *node, int idx, TLeafHandle parent)
 {
   const DataBlock *animNode = node->getBlock(idx);
-  TLeafHandle animLeaf = tree->createTreeLeaf(parent, animNode->getStr("name"), ANIM_BLEND_NODE_ICON);
+  BlendNodeType type = static_cast<BlendNodeType>(lup(animNode->getBlockName(), blend_node_types));
+  const char *iconName = get_blend_node_icon_name(type);
+  TLeafHandle animLeaf = tree->createTreeLeaf(parent, animNode->getStr("name"), iconName);
+  addBlendNode(animLeaf, type);
   tree->setUserData(animLeaf, (void *)&ANIM_BLEND_NODE_LEAF);
   for (int i = 0; i < animNode->blockCount(); ++i)
   {
     TLeafHandle irqLeaf = tree->createTreeLeaf(animLeaf, animNode->getBlock(i)->getStr("name"), IRQ_ICON);
+    addBlendNode(irqLeaf, BlendNodeType::IRQ);
     tree->setUserData(irqLeaf, (void *)&ANIM_BLEND_NODE_IRQ);
   }
 }
 
-static const char *get_ctrl_icon_name(const char *name)
+static bool blk_has_override_fields(const DataBlock &blk)
 {
-  CtrlType type = static_cast<CtrlType>(lup(name, ctrl_type, ctrl_type_not_found));
-  switch (type)
-  {
-    case ctrl_type_paramSwitch: return CTRL_PARAM_SWITCH_ICON;
-    case ctrl_type_condHide: return CTRL_COND_HIDE_ICON;
-    case ctrl_type_attachNode: return CTRL_ATTACH_NODE_ICON;
-    case ctrl_type_hub: return CTRL_HUB_ICON;
-    case ctrl_type_linearPoly: return CTRL_LINEAR_POLY_ICON;
-    case ctrl_type_effFromAttachment: return CTRL_EFF_FROM_ATT_ICON;
-    case ctrl_type_randomSwitch: return CTRL_RANDOM_SWITCH_ICON;
-    case ctrl_type_paramsCtrl: return CTRL_PARAMS_CTRL_ICON;
-    case ctrl_type_fifo3: return CTRL_FIFO3_ICON;
-    case ctrl_type_setParam: return CTRL_SET_PARAM_ICON;
-    case ctrl_type_moveNode: return CTRL_MOVE_NODE_ICON;
-    case ctrl_type_rotateNode: return CTRL_ROTATE_NODE_ICON;
+  // check block name contain one of overrides
+  const char *name = blk.getBlockName();
+  if (name)
+    for (const ExeptionField &field : exeption_fields)
+      if ((field.len != -1 && strncmp(name, field.name, field.len) == 0) || strcmp(name, field.name) == 0)
+        return true;
 
-    default: return ANIM_BLEND_CTRL_ICON;
+  for (int i = 0; i < blk.blockCount(); ++i)
+    if (blk_has_override_fields(*blk.getBlock(i)))
+      return true;
+
+  return false;
+}
+
+static bool is_simple_one_file_blk(const String &file_path)
+{
+  const bool curParseIncludesAsParams = DataBlock::parseIncludesAsParams;
+  const bool curParseOverridesNotApply = DataBlock::parseOverridesNotApply;
+  DataBlock::parseIncludesAsParams = true;
+  DataBlock::parseOverridesNotApply = true;
+
+  DataBlock assetProps(file_path);
+
+  DataBlock::parseIncludesAsParams = curParseIncludesAsParams;
+  DataBlock::parseOverridesNotApply = curParseOverridesNotApply;
+
+  return !blk_has_override_fields(assetProps);
+}
+
+static DataBlock get_props_from_include_leaf_blend_node(dag::ConstSpan<String> paths, const DagorAsset &asset,
+  PropPanel::ContainerPropertyControl *tree, String &full_path, bool force_parent = false)
+{
+  TLeafHandle includeLeaf = get_anim_blend_node_include(tree, force_parent);
+  return get_props_from_include_leaf(paths, asset, tree, includeLeaf, full_path);
+}
+
+static TLeafHandle get_node_mask_include(dag::ConstSpan<NodeMaskData> masks_data, PropPanel::ContainerPropertyControl *tree,
+  bool force_parent = false)
+{
+  TLeafHandle selLeaf = tree->getSelLeaf();
+  if (selLeaf == tree->getRootLeaf())
+    return selLeaf;
+
+  String selName = tree->getCaption(selLeaf);
+  const NodeMaskData *maskData =
+    eastl::find_if(masks_data.begin(), masks_data.end(), [selLeaf](const NodeMaskData &data) { return selLeaf == data.handle; });
+
+  if (maskData != masks_data.end())
+  {
+    if ((maskData->type == NodeMaskType::INCLUDE && force_parent) || maskData->type == NodeMaskType::MASK)
+      return tree->getParentLeaf(selLeaf);
+    else if (maskData->type == NodeMaskType::INCLUDE)
+      return selLeaf;
+    else if (maskData->type == NodeMaskType::LEAF)
+    {
+      TLeafHandle parent = tree->getParentLeaf(selLeaf);
+      return tree->getParentLeaf(parent);
+    }
+  }
+  return nullptr;
+}
+
+struct ParentLeafs
+{
+  TLeafHandle nodes;
+  TLeafHandle masks;
+  TLeafHandle ctrls;
+};
+
+static bool check_includes_not_looped(PropPanel::ContainerPropertyControl *tree, TLeafHandle parent, const char *name,
+  const char *asset_name)
+{
+  if (!strcmp(name, asset_name))
+    return false;
+
+  TLeafHandle root = tree->getRootLeaf();
+  while (parent && parent != root)
+  {
+    if (tree->getCaption(parent) == name)
+      return false;
+
+    parent = tree->getParentLeaf(parent);
+  }
+
+  return true;
+}
+
+static bool check_include_duplication_in_blk(const DataBlock &props, const String &path)
+{
+  const int includeNid = props.getNameId("@include");
+  for (int i = 0; i < props.paramCount(); ++i)
+    if (includeNid == props.getParamNameId(i) && props.getStr(i) == path)
+      return true;
+
+  if (props.blockExists("AnimBlendCtrl"))
+    return check_include_duplication_in_blk(*props.getBlockByName("AnimBlendCtrl"), path);
+
+  return false;
+}
+
+void AnimTreePlugin::fillCtrlsIncluded(PropPanel::ContainerPropertyControl *tree, const DataBlock &props, const String &source_path,
+  TLeafHandle parent)
+{
+  const int includeNid = props.getNameId("@include");
+  for (int i = 0; i < props.paramCount(); ++i)
+    if (includeNid == props.getParamNameId(i))
+    {
+      const char *rawPath = props.getStr(i);
+      const int lenWithoutDotBlk = strlen(rawPath) - 4;
+      if (lenWithoutDotBlk < 0 || strncmp(rawPath + lenWithoutDotBlk, ".blk", 4) != 0)
+      {
+        logerr("Skip path: <%s> Path not end by \".blk\"", rawPath);
+        continue;
+      }
+      char fileNameBuf[DAGOR_MAX_PATH];
+      const char *name = dd_get_fname_without_path_and_ext(fileNameBuf, sizeof(fileNameBuf), rawPath);
+      if (!name)
+      {
+        logerr("File name is empty, skip path: <%s>", rawPath);
+        continue;
+      }
+      if (!check_includes_not_looped(tree, parent, name, curAsset->getSrcFileName()))
+      {
+        logerr("Find loop in includes, leaf <%s> with parent <%s> already created above", name, tree->getCaption(parent));
+        continue;
+      }
+
+      TLeafHandle includeLeaf = tree->createTreeLeaf(parent, name, INNER_INCLUDE_ICON);
+      addController(includeLeaf, ctrl_type_inner_include);
+      includePaths.emplace_back(0, rawPath);
+      String path(0, rawPath);
+      if (!DataBlock::resolveIncludePath(path))
+      {
+        char fileLocationBuf[DAGOR_MAX_PATH];
+        path = String(0, "%s%s", dd_get_fname_location(fileLocationBuf, source_path.c_str()), rawPath);
+      }
+      if (!is_simple_one_file_blk(path))
+        logerr("Overrides found in blk with path: <%s>\n"
+               "Blocks or params with errors below are read-only and should be edited manually in a text editor.",
+          path);
+
+      DataBlock includeBlk(path);
+      fillCtrlsIncluded(tree, includeBlk, path, includeLeaf);
+    }
+
+  for (int i = 0; i < props.blockCount(); ++i)
+  {
+    const DataBlock *settings = props.getBlock(i);
+    const char *typeName = settings->getBlockName();
+    const char *nameField = settings->getStr("name", nullptr);
+    CtrlType type = static_cast<CtrlType>(lup(typeName, ctrl_type, ctrl_type_not_found));
+    if (type == ctrl_type_not_found)
+      logerr("Type: <%s> not found in controllers types", typeName);
+    if (nameField)
+    {
+      const char *iconName = get_ctrl_icon_name(type);
+      TLeafHandle leaf = tree->createTreeLeaf(parent, nameField, iconName);
+      addController(leaf, type);
+    }
   }
 }
 
-void AnimTreePlugin::fillTreePanels(PropertyContainerControlBase *panel)
+void AnimTreePlugin::fillAnimStatesTreeNode(PropPanel::ContainerPropertyControl *panel, const DataBlock &node,
+  const char *include_name)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
+  TLeafHandle root = tree->getRootLeaf();
+  const String rootName = tree->getCaption(root);
+  if (rootName != "Root" && rootName != include_name)
+  {
+    logerr("Find duplicate init states tree. States tree init only from one blk! First init from: %s, another try from %s",
+      rootName.c_str(), include_name);
+    return;
+  }
+  if (rootName == "Root")
+  {
+    tree->setCaption(root, include_name);
+    statesData.emplace_back(AnimStatesData{root, AnimStatesType::INCLUDE_ROOT});
+  }
+
+  const char *blockName = node.getBlockName();
+  if (!strcmp(blockName, "stateDesc"))
+  {
+    TLeafHandle nodeLeaf = tree->createTreeLeaf(root, blockName, STATE_ICON);
+    statesData.emplace_back(AnimStatesData{nodeLeaf, AnimStatesType::STATE_DESC});
+    int chanNid = node.getNameId("chan");
+    int stateNid = node.getNameId("state");
+    int stateAliasNid = node.getNameId("state_alias");
+    for (int i = 0; i < node.blockCount(); ++i)
+    {
+      const DataBlock *stateNode = node.getBlock(i);
+      TLeafHandle leaf = tree->createTreeLeaf(nodeLeaf, stateNode->getStr("name"), STATE_LEAF_ICON);
+      if (stateNode->getBlockNameId() == chanNid)
+        statesData.emplace_back(AnimStatesData{leaf, AnimStatesType::CHAN});
+      else if (stateNode->getBlockNameId() == stateNid)
+        statesData.emplace_back(AnimStatesData{leaf, AnimStatesType::STATE});
+      else if (stateNode->getBlockNameId() == stateAliasNid)
+        statesData.emplace_back(AnimStatesData{leaf, AnimStatesType::STATE_DESC});
+    }
+  }
+  else if (!strcmp(blockName, "initAnimState"))
+  {
+    TLeafHandle nodeLeaf = tree->createTreeLeaf(root, node.getBlockName(), STATE_ICON);
+    statesData.emplace_back(AnimStatesData{nodeLeaf, AnimStatesType::INIT_ANIM_STATE});
+    for (int j = 0; j < node.blockCount(); ++j)
+    {
+      const DataBlock *settings = node.getBlock(j);
+      const char *settingsBlockName = settings->getBlockName();
+      if (!strcmp(settingsBlockName, "enum"))
+        fillEnumTree(settings, tree, root);
+      else if (!strcmp(settingsBlockName, "postBlendCtrlOrder"))
+      {
+        TLeafHandle leaf = tree->createTreeLeaf(nodeLeaf, settingsBlockName, STATE_LEAF_ICON);
+        statesData.emplace_back(AnimStatesData{leaf, AnimStatesType::POST_BLEND_CTRL_ORDER});
+      }
+      else
+      {
+        TLeafHandle leaf = tree->createTreeLeaf(nodeLeaf, settingsBlockName, STATE_LEAF_ICON);
+        statesData.emplace_back(AnimStatesData{leaf, AnimStatesType::INIT_FIFO3});
+      }
+    }
+  }
+  else if (!strcmp(blockName, "preview"))
+  {
+    TLeafHandle leaf = tree->createTreeLeaf(root, blockName, STATE_ICON);
+    statesData.emplace_back(AnimStatesData{leaf, AnimStatesType::PREVIEW});
+  }
+}
+
+void AnimTreePlugin::fillTreesIncluded(PropPanel::ContainerPropertyControl *panel, const DataBlock &props, const String &source_path,
+  ParentLeafs parents)
+{
+  PropPanel::ContainerPropertyControl *nodesTree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+  PropPanel::ContainerPropertyControl *masksTree = panel->getById(PID_NODE_MASKS_TREE)->getContainer();
+  PropPanel::ContainerPropertyControl *ctrlsTree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+
+  const int includeNid = props.getNameId("@include");
+  for (int i = 0; i < props.paramCount(); ++i)
+    if (includeNid == props.getParamNameId(i))
+    {
+      const char *rawPath = props.getStr(i);
+      const int lenWithoutDotBlk = strlen(rawPath) - 4;
+      if (lenWithoutDotBlk < 0 || strncmp(rawPath + lenWithoutDotBlk, ".blk", 4) != 0)
+      {
+        logerr("Skip path: <%s> Path not end by \".blk\"", rawPath);
+        continue;
+      }
+      char fileNameBuf[DAGOR_MAX_PATH];
+      const char *name = dd_get_fname_without_path_and_ext(fileNameBuf, sizeof(fileNameBuf), rawPath);
+      if (!name)
+      {
+        logerr("File name is empty, skip path: <%s>", rawPath);
+        continue;
+      }
+      if (!check_includes_not_looped(nodesTree, parents.nodes, name, curAsset->getSrcFileName()))
+      {
+        logerr("Find loop in includes, leaf <%s> with parent <%s> already created above", name, nodesTree->getCaption(parents.nodes));
+        continue;
+      }
+
+      ParentLeafs includeParents;
+      includeParents.nodes = nodesTree->createTreeLeaf(parents.nodes, name, FOLDER_ICON);
+      nodesTree->setUserData(includeParents.nodes, (void *)&ANIM_BLEND_NODE_INCLUDE);
+      includeParents.masks = masksTree->createTreeLeaf(parents.masks, name, FOLDER_ICON);
+      includeParents.ctrls = ctrlsTree->createTreeLeaf(parents.ctrls, name, FOLDER_ICON);
+      includePaths.emplace_back(0, rawPath);
+      addBlendNode(includeParents.nodes, BlendNodeType::INCLUDE);
+      nodeMasksData.emplace_back(NodeMaskData{includeParents.masks, NodeMaskType::INCLUDE});
+      addController(includeParents.ctrls, ctrl_type_include);
+      String path(0, rawPath);
+      if (!DataBlock::resolveIncludePath(path))
+      {
+        char fileLocationBuf[DAGOR_MAX_PATH];
+        path = String(0, "%s%s", dd_get_fname_location(fileLocationBuf, source_path.c_str()), rawPath);
+      }
+      if (!is_simple_one_file_blk(path))
+        logerr("Overrides found in blk with path: <%s>\n"
+               "Blocks or params with errors below are read-only and should be edited manually in a text editor.",
+          path);
+
+      DataBlock includeBlk(path);
+      fillTreesIncluded(panel, includeBlk, path, includeParents);
+    }
+
+  for (int i = 0; i < props.blockCount(); ++i)
+  {
+    const DataBlock *node = props.getBlock(i);
+    if (!strcmp(node->getBlockName(), "AnimBlendNodeLeaf"))
+    {
+      if (node->blockCount() == 1)
+        addBlendNodeToTree(nodesTree, node, /*idx*/ 0, parents.nodes);
+      else
+      {
+        TLeafHandle nodeLeaf = nodesTree->createTreeLeaf(parents.nodes, node->getStr("a2d"), A2D_NAME_ICON);
+        nodesTree->setUserData(nodeLeaf, (void *)&ANIM_BLEND_NODE_A2D);
+        addBlendNode(nodeLeaf, BlendNodeType::A2D);
+        for (int j = 0; j < node->blockCount(); ++j)
+          addBlendNodeToTree(nodesTree, node, j, nodeLeaf);
+      }
+    }
+    else if (!strcmp(node->getBlockName(), "nodeMask"))
+    {
+      TLeafHandle nodeLeaf = masksTree->createTreeLeaf(parents.masks, node->getStr("name"), NODE_MASK_ICON);
+      nodeMasksData.emplace_back(NodeMaskData{nodeLeaf, NodeMaskType::MASK});
+      for (int j = 0; j < node->paramCount(); ++j)
+        if (!strcmp(node->getParamName(j), "node"))
+        {
+          TLeafHandle leaf = masksTree->createTreeLeaf(nodeLeaf, node->getStr(j), NODE_MASK_LEAF_ICON);
+          nodeMasksData.emplace_back(NodeMaskData{leaf, NodeMaskType::LEAF});
+        }
+    }
+    else if (!strcmp(node->getBlockName(), "AnimBlendCtrl"))
+      fillCtrlsIncluded(ctrlsTree, *node, source_path, parents.ctrls);
+    else if (!strcmp(node->getBlockName(), "stateDesc") || !strcmp(node->getBlockName(), "initAnimState") ||
+             !strcmp(node->getBlockName(), "preview"))
+      fillAnimStatesTreeNode(panel, *node, nodesTree->getCaption(parents.nodes)); // for include name we can use any parent leaf
+  }
+}
+
+void AnimTreePlugin::fillTreePanels(PropPanel::ContainerPropertyControl *panel)
 {
   G_ASSERT(ctrl_type.size() == ctrl_type_size);
+
   auto *masksGroup = panel->createGroup(PID_NODE_MASKS_GROUP, "Node masks");
-  masksGroup->createEditBox(PID_NODE_MASKS_FILTER, "Filter");
+  masksGroup->createEditBox(PID_NODE_MASKS_FILTER, "Filter", "", /*enabled*/ false);
   auto *masksTree = masksGroup->createTree(PID_NODE_MASKS_TREE, "Skeleton node masks", /*height*/ _pxScaled(300));
+  masksTree->setTreeEventHandler(&nodeMaskTreeEventHandler);
   masksGroup->createButton(PID_NODE_MASKS_ADD_MASK, "Add mask");
-  masksGroup->createButton(PID_NODE_MASKS_ADD_NODE, "Add node", /*enabled*/ false, /*new_line*/ false);
+  masksGroup->createButton(PID_NODE_MASKS_ADD_NODE, "Add node", /*enabled*/ true, /*new_line*/ false);
   masksGroup->createButton(PID_NODE_MASKS_REMOVE_NODE, "Remove selected");
   auto *masksSettingsGroup = masksGroup->createGroup(PID_NODE_MASKS_SETTINGS_GROUP, "Selected settings");
   masksSettingsGroup->createEditBox(PID_NODE_MASKS_NAME_FIELD, "Field name", "");
@@ -456,161 +847,179 @@ void AnimTreePlugin::fillTreePanels(PropertyContainerControlBase *panel)
   auto *nodesGroup = panel->createGroup(PID_ANIM_BLEND_NODES_GROUP, "Anim blend nodes");
   nodesGroup->createEditBox(PID_ANIM_BLEND_NODES_FILTER, "Filter");
   auto *nodesTree = nodesGroup->createTree(PID_ANIM_BLEND_NODES_TREE, "Anim blend nodes", /*height*/ _pxScaled(300));
+  nodesTree->setTreeEventHandler(&blendNodeTreeEventHandler);
   nodesGroup->createButton(PID_ANIM_BLEND_NODES_CREATE_NODE, "Create blend node");
   nodesGroup->createButton(PID_ANIM_BLEND_NODES_ADD_LEAF, "Create leaf");
   nodesGroup->createButton(PID_ANIM_BLEND_NODES_ADD_IRQ, "Add irq", /*enabled*/ false, /*new_line*/ false);
   nodesGroup->createButton(PID_ANIM_BLEND_NODES_REMOVE_NODE, "Remove selected");
   nodesGroup->createGroup(PID_ANIM_BLEND_NODES_SETTINGS_GROUP, "Selected settings");
   auto *crtlsGroup = panel->createGroup(PID_ANIM_BLEND_CTRLS_GROUP, "Anim blend controllers");
-  crtlsGroup->createEditBox(PID_ANIM_BLEND_CTRLS_FILTER, "Filter");
+  crtlsGroup->createEditBox(PID_ANIM_BLEND_CTRLS_FILTER, "Filter", "", /*enabled*/ false);
   auto *ctrlsTree = crtlsGroup->createTree(PID_ANIM_BLEND_CTRLS_TREE, "Anim blend controllers", /*height*/ _pxScaled(300));
+  ctrlsTree->setTreeEventHandler(&ctrlTreeEventHandler);
+  crtlsGroup->createButton(PID_ANIM_BLEND_CTRLS_ADD_NODE, "Add node");
+  crtlsGroup->createButton(PID_ANIM_BLEND_CTRLS_ADD_INCLUDE, "Add include");
+  crtlsGroup->createButton(PID_ANIM_BLEND_CTRLS_ADD_INNER_INCLUDE, "Add inner include", /*enabled*/ true, /*new_line*/ false);
+  crtlsGroup->createButton(PID_ANIM_BLEND_CTRLS_REMOVE_NODE, "Remove selected");
   crtlsGroup->createGroup(PID_ANIM_BLEND_CTRLS_SETTINGS_GROUP, "Selected settings");
   auto *statesGroup = panel->createGroup(PID_ANIM_STATES_GROUP, "Anim states");
-  statesGroup->createEditBox(PID_ANIM_STATES_FILTER, "Filter");
+  statesGroup->createEditBox(PID_ANIM_STATES_FILTER, "Filter", "", /*enabled*/ false);
   auto *statesTree = statesGroup->createTree(PID_ANIM_STATES_TREE, "Anim states", /*height*/ _pxScaled(300));
+  statesTree->setTreeEventHandler(&animStatesTreeEventHandler);
   statesGroup->createButton(PID_ANIM_STATES_ADD_ENUM, "Add enum");
   statesGroup->createButton(PID_ANIM_STATES_ADD_ENUM_ITEM, "Add item", /*enabled*/ false, /*new_line*/ false);
   statesGroup->createButton(PID_ANIM_STATES_REMOVE_NODE, "Remove selected");
   auto *statesSettingGroup = statesGroup->createGroup(PID_ANIM_STATES_SETTINGS_GROUP, "Selected settings");
   statesSettingGroup->createEditBox(PID_ANIM_STATES_NAME_FIELD, "Field name", "");
   statesSettingGroup->createButton(PID_ANIM_STATES_SAVE, "Save");
-  const DataBlock &blk = curAsset->props;
   TLeafHandle masksRoot = masksTree->createTreeLeaf(0, "Root", FOLDER_ICON);
   TLeafHandle nodesRoot = nodesTree->createTreeLeaf(0, "Root", FOLDER_ICON);
   TLeafHandle ctrlsRoot = ctrlsTree->createTreeLeaf(0, "Root", FOLDER_ICON);
   TLeafHandle statesRoot = statesTree->createTreeLeaf(0, "Root", FOLDER_ICON);
-  for (int i = 0; i < blk.blockCount(); ++i)
-  {
-    const DataBlock *node = blk.getBlock(i);
-    if (!strcmp(node->getBlockName(), "AnimBlendNodeLeaf"))
-    {
-      if (node->blockCount() == 1)
-        add_anim_bnl_to_tree(/*idx*/ 0, nodesRoot, node, nodesTree);
-      else
-      {
-        TLeafHandle nodeLeaf = nodesTree->createTreeLeaf(nodesRoot, node->getStr("a2d"), A2D_NAME_ICON);
-        nodesTree->setUserData(nodeLeaf, (void *)&ANIM_BLEND_NODE_A2D);
-        for (int j = 0; j < node->blockCount(); ++j)
-          add_anim_bnl_to_tree(j, nodeLeaf, node, nodesTree);
-      }
-    }
-    else if (!strcmp(node->getBlockName(), "nodeMask"))
-    {
-      TLeafHandle nodeLeaf = masksTree->createTreeLeaf(masksRoot, node->getStr("name"), NODE_MASK_ICON);
-      for (int j = 0; j < node->paramCount(); ++j)
-        if (!strcmp(node->getParamName(j), "node"))
-          masksTree->createTreeLeaf(nodeLeaf, node->getStr(j), NODE_MASK_LEAF_ICON);
-    }
-    else if (!strcmp(node->getBlockName(), "AnimBlendCtrl"))
-    {
-      for (int j = 0; j < node->blockCount(); ++j)
-      {
-        const DataBlock *settings = node->getBlock(j);
-        const char *iconName = get_ctrl_icon_name(settings->getBlockName());
-        TLeafHandle leaf = ctrlsTree->createTreeLeaf(ctrlsRoot, settings->getStr("name"), iconName);
-        const char *typeName = settings->getBlockName();
-        CtrlType type = static_cast<CtrlType>(lup(typeName, ctrl_type, ctrl_type_not_found));
-        if (type == ctrl_type_not_found)
-          logerr("Type: <%s> not found in controllers types", typeName);
-        controllersData.push_back({leaf, type});
-      }
-    }
-    else if (!strcmp(node->getBlockName(), "stateDesc"))
-    {
-      TLeafHandle nodeLeaf = statesTree->createTreeLeaf(statesRoot, node->getBlockName(), STATE_ICON);
-      for (int j = 0; j < node->blockCount(); ++j)
-        statesTree->createTreeLeaf(nodeLeaf, node->getBlock(j)->getStr("name"), STATE_LEAF_ICON);
-    }
-    else if (!strcmp(node->getBlockName(), "initAnimState"))
-    {
-      TLeafHandle nodeLeaf = statesTree->createTreeLeaf(statesRoot, node->getBlockName(), STATE_ICON);
-      for (int j = 0; j < node->blockCount(); ++j)
-      {
-        const DataBlock *settings = node->getBlock(j);
-        if (!strcmp(settings->getBlockName(), "enum"))
-          fillEnumTree(settings, statesTree, statesRoot);
-        else
-          statesTree->createTreeLeaf(nodeLeaf, settings->getBlockName(), STATE_LEAF_ICON);
-      }
-    }
-    else if (!strcmp(node->getBlockName(), "preview"))
-      statesTree->createTreeLeaf(statesRoot, node->getBlockName(), STATE_ICON);
-    else
-      logerr("skip node: %s with blocks: %d, params %d", node->getBlockName(), node->blockCount(), node->paramCount());
-  }
+  const String assetPath = curAsset->getSrcFilePath();
+  if (!is_simple_one_file_blk(assetPath))
+    logerr("Overrides found in blk with path: <%s>\n"
+           "Blocks or params with errors below are read-only and should be edited manually in a text editor.",
+      assetPath);
+
+  const bool curParseIncludesAsParams = DataBlock::parseIncludesAsParams;
+  DataBlock::parseIncludesAsParams = true;
+  DataBlock assetProps(assetPath);
+  fillTreesIncluded(panel, assetProps, assetPath, {nodesRoot, masksRoot, ctrlsRoot});
+  fillCtrlsChilds(panel);
+
+  DataBlock::parseIncludesAsParams = curParseIncludesAsParams;
+
+  ctrlChildsDialog.setTreePanels(ctrlsTree, nodesTree, curAsset);
   masksTree->setBool(masksRoot, /*open*/ true);
   nodesTree->setBool(nodesRoot, /*open*/ true);
   ctrlsTree->setBool(ctrlsRoot, /*open*/ true);
   statesTree->setBool(statesRoot, /*open*/ true);
 }
 
-void AnimTreePlugin::fillEnumTree(const DataBlock *settings, PropertyContainerControlBase *panel, TLeafHandle tree_root)
+void AnimTreePlugin::fillEnumTree(const DataBlock *settings, PropPanel::ContainerPropertyControl *panel, TLeafHandle tree_root)
 {
   enumsRootLeaf = panel->createTreeLeaf(tree_root, settings->getBlockName(), ENUMS_ROOT_ICON);
+  statesData.emplace_back(AnimStatesData{enumsRootLeaf, AnimStatesType::ENUM_ROOT});
   for (int i = 0; i < settings->blockCount(); ++i)
   {
     const DataBlock *enumBlk = settings->getBlock(i);
     TLeafHandle enumLeaf = panel->createTreeLeaf(enumsRootLeaf, enumBlk->getBlockName(), ENUM_ICON);
+    statesData.emplace_back(AnimStatesData{enumLeaf, AnimStatesType::ENUM});
     for (int j = 0; j < enumBlk->blockCount(); ++j)
-      panel->createTreeLeaf(enumLeaf, enumBlk->getBlock(j)->getBlockName(), ENUM_ITEM_ICON);
-  }
-}
-
-static TLeafHandle get_anim_blend_node_leaf(PropertyContainerControlBase *tree)
-{
-  TLeafHandle leaf = tree->getSelLeaf();
-  if (leaf)
-  {
-    TLeafHandle parent = tree->getParentLeaf(leaf);
-    if (parent && tree->getUserData(leaf) == &ANIM_BLEND_NODE_IRQ)
-      return parent;
-    else if (tree->getUserData(leaf) == &ANIM_BLEND_NODE_LEAF)
-      return leaf;
-    else if (tree->getUserData(leaf) == &ANIM_BLEND_NODE_A2D && tree->getChildCount(leaf) > 0)
-      return tree->getChildLeaf(leaf, 0);
-    else
-      logerr("Can't find anim blend node for this selected leaf");
-  }
-
-  return nullptr;
-}
-
-static const DataBlock *get_selected_bnl_settings(const DataBlock &props, const char *leaf_name, int &a2d_idx)
-{
-  for (int i = 0; i < props.blockCount(); ++i)
-  {
-    const DataBlock *node = props.getBlock(i);
-    if (!strcmp(node->getBlockName(), "AnimBlendNodeLeaf"))
     {
-      for (int j = 0; j < node->blockCount(); ++j)
-      {
-        const DataBlock *settings = node->getBlock(j);
-        if (!strcmp(settings->getStr("name"), leaf_name))
-        {
-          a2d_idx = i;
-          return settings;
-        }
-      }
+      TLeafHandle leaf = panel->createTreeLeaf(enumLeaf, enumBlk->getBlock(j)->getBlockName(), ENUM_ITEM_ICON);
+      statesData.emplace_back(AnimStatesData{leaf, AnimStatesType::ENUM_ITEM});
     }
   }
-  return nullptr;
 }
 
-void AnimTreePlugin::fillAnimBlendSettings(PropertyContainerControlBase *tree, PropertyContainerControlBase *group)
+static void fill_param_data(const DataBlock *settings, dag::Vector<AnimParamData> &params, int idx, int pid)
+{
+  params.emplace_back(
+    AnimParamData{pid, static_cast<DataBlock::ParamType>(settings->getParamType(idx)), String(settings->getParamName(idx))});
+}
+
+static void fill_params_from_settings(const DataBlock *settings, PropPanel::ContainerPropertyControl *panel,
+  dag::Vector<AnimParamData> &params, int &field_idx)
+{
+  for (int i = 0; i < settings->paramCount(); ++i)
+  {
+    fill_field_by_type(panel, settings, i, field_idx);
+    fill_param_data(settings, params, i, field_idx);
+    ++field_idx;
+  }
+}
+
+// Add all fields if not exists based on BlendNodeType
+static void fill_anim_blend_params_settings(const BlendNodeType type, PropPanel::ContainerPropertyControl *panel,
+  dag::Vector<AnimParamData> &params, int field_idx, bool default_foreign)
+{
+  switch (type)
+  {
+    case BlendNodeType::SINGLE: single_init_panel(params, panel, field_idx, default_foreign); break;
+    case BlendNodeType::CONTINUOUS: continuous_init_panel(params, panel, field_idx, default_foreign); break;
+    case BlendNodeType::STILL: still_init_panel(params, panel, field_idx, default_foreign); break;
+    case BlendNodeType::PARAMETRIC: parametric_init_panel(params, panel, field_idx, default_foreign); break;
+
+    default: break;
+  }
+}
+
+static void set_anim_blend_dependent_defaults(const BlendNodeType type, PropPanel::ContainerPropertyControl *panel,
+  dag::Vector<AnimParamData> &params)
+{
+  switch (type)
+  {
+    case BlendNodeType::SINGLE: single_set_dependent_defaults(params, panel); break;
+    case BlendNodeType::CONTINUOUS: continuous_set_dependent_defaults(params, panel); break;
+    case BlendNodeType::STILL: still_set_dependent_defaults(params, panel); break;
+    case BlendNodeType::PARAMETRIC: parametric_set_dependent_defaults(params, panel); break;
+
+    default: break;
+  }
+}
+
+static void fill_include_settings(PropPanel::ContainerPropertyControl *tree, PropPanel::ContainerPropertyControl *group,
+  TLeafHandle leaf, dag::ConstSpan<String> paths, dag::Vector<AnimParamData> &params, int filed_idx)
+{
+  const String selName = tree->getCaption(leaf);
+  const String *path = eastl::find_if(paths.begin(), paths.end(), [&selName](const String &value) {
+    char fileNameBuf[DAGOR_MAX_PATH];
+    return selName == dd_get_fname_without_path_and_ext(fileNameBuf, sizeof(fileNameBuf), value.c_str());
+  });
+  char fileLocationBuf[DAGOR_MAX_PATH];
+  String pathWithoutName = (path != paths.end() && !path->empty()) ? String(dd_get_fname_location(fileLocationBuf, path->c_str()))
+                                                                   : String("#/example/path/for/include/");
+  add_edit_box_if_not_exists(params, group, filed_idx, "file name", selName.c_str());
+  add_edit_box_if_not_exists(params, group, filed_idx, "path", pathWithoutName.c_str());
+}
+
+void AnimTreePlugin::fillAnimBlendSettings(PropPanel::ContainerPropertyControl *tree, PropPanel::ContainerPropertyControl *group)
 {
   TLeafHandle leaf = get_anim_blend_node_leaf(tree);
+  TLeafHandle selLeaf = tree->getSelLeaf();
+  if (!selLeaf)
+    return;
+
+  remove_nodes_fields(group);
+  animBnlParams.clear();
+  if (tree->getUserData(selLeaf) == &ANIM_BLEND_NODE_INCLUDE)
+  {
+    animPlayer.resetSelectedA2dName();
+    fill_include_settings(tree, group, selLeaf, includePaths, animBnlParams, PID_NODES_PARAMS_FIELD);
+    group->createButton(PID_NODES_SETTINGS_SAVE, "Save");
+  }
+
   if (!leaf)
     return;
 
-  TLeafHandle selLeaf = tree->getSelLeaf();
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf_blend_node(includePaths, *curAsset, tree, fullPath);
+  if (fullPath.empty())
+    return;
+
   TLeafHandle parent = tree->getParentLeaf(selLeaf);
   const bool isA2dNode = tree->getChildCount(selLeaf) > 0 && tree->getChildLeaf(selLeaf, 0) == leaf;
   const bool isIrqNode = parent && parent == leaf;
+  bool isEditButtonEnabled = true;
   int a2dIdx = -1;
-  const DataBlock *settings = get_selected_bnl_settings(curAsset->props, tree->getCaption(leaf), a2dIdx);
-  const DataBlock *a2dBlk = curAsset->props.getBlock(a2dIdx);
-  remove_nodes_fields(group);
-  fieldNames.clear();
+  DataBlock *settings = get_selected_bnl_settings(props, tree->getCaption(leaf), a2dIdx);
+  DataBlock *a2dBlk = props.getBlock(a2dIdx);
+  if (!settings)
+  {
+    const bool curParseIncludesAsParams = DataBlock::parseIncludesAsParams;
+    DataBlock::parseIncludesAsParams = true;
+    props.load(fullPath);
+    DataBlock::parseIncludesAsParams = curParseIncludesAsParams;
+    settings = get_selected_bnl_settings(props, tree->getCaption(leaf), a2dIdx);
+    a2dBlk = props.getBlock(a2dIdx);
+    isEditButtonEnabled = false;
+    if (settings)
+      logerr("Node %s overrided in blk, can't edit this node. Edit it manual in %s", tree->getCaption(leaf), fullPath.c_str());
+    else
+      logerr("Can't find node %s in blk", tree->getCaption(leaf));
+  }
 
   if (settings)
   {
@@ -634,629 +1043,639 @@ void AnimTreePlugin::fillAnimBlendSettings(PropertyContainerControlBase *tree, P
                 key = irq->getStr(typeName);
               else
                 keyFloat = irq->getReal(typeName);
-              fill_irq_settings(group, irq->getStr("name"), type, key, keyFloat);
+              fill_irq_settings(group, irq->getStr("name"), type, key, keyFloat, isEditButtonEnabled);
               break;
             }
           }
         }
       }
-      selectedA2dName.clear();
+      animPlayer.resetSelectedA2dName();
     }
     else
     {
-      fillAnimBlendFields(group, a2dBlk, fieldIdx);
+      fill_params_from_settings(a2dBlk, group, animBnlParams, fieldIdx);
+      add_edit_box_if_not_exists(animBnlParams, group, fieldIdx, "a2d");
+      add_edit_box_if_not_exists(animBnlParams, group, fieldIdx, "accept_name_mask_re");
+      add_edit_box_if_not_exists(animBnlParams, group, fieldIdx, "decline_name_mask_re");
       if (!isA2dNode)
       {
-        group->createSeparator(fieldIdx++);
-        fieldNames.emplace_back("separator");
-        fillAnimBlendFields(group, settings, fieldIdx);
+        group->createSeparator(fieldIdx);
+        animBnlParams.emplace_back(AnimParamData{fieldIdx, DataBlock::TYPE_NONE, String("separator")});
+        fieldIdx++;
+        group->createCombo(PID_NODES_SETTINGS_NODE_TYPE_COMBO_SELECT, "Node type", blend_node_types, settings->getBlockName());
+        fill_params_from_settings(settings, group, animBnlParams, fieldIdx);
+        DataBlock fullProps(curAsset->getSrcFilePath());
+        const bool defaultForeign = fullProps.getBool("defaultForeignAnim", false);
+        BlendNodeType type = static_cast<BlendNodeType>(lup(settings->getBlockName(), blend_node_types));
+        fill_anim_blend_params_settings(type, group, animBnlParams, fieldIdx, defaultForeign);
+        set_anim_blend_dependent_defaults(type, group, animBnlParams);
       }
       group->createButton(PID_NODES_SETTINGS_PLAY_ANIMATION, "Play animation");
-      selectedA2dName = group->getText(PID_NODES_PARAMS_FIELD);
-      group->createButton(PID_NODES_SETTINGS_SAVE, "Save");
+      animPlayer.setSelectedA2dName(group->getText(PID_NODES_PARAMS_FIELD));
+      group->createButton(PID_NODES_SETTINGS_SAVE, "Save", isEditButtonEnabled);
     }
+  }
+  PropPanel::ContainerPropertyControl *panel = getPluginPanel();
+  panel->setEnabledById(PID_ANIM_BLEND_NODES_CREATE_NODE, isEditButtonEnabled);
+  panel->setEnabledById(PID_ANIM_BLEND_NODES_ADD_LEAF, isEditButtonEnabled);
+  panel->setEnabledById(PID_ANIM_BLEND_NODES_ADD_IRQ, isEditButtonEnabled);
+  panel->setEnabledById(PID_ANIM_BLEND_NODES_REMOVE_NODE, isEditButtonEnabled);
+}
+
+// Add all fields if not exists based on CtrlType
+static void fill_ctrls_params_settings(PropPanel::ContainerPropertyControl *panel, CtrlType type, int field_idx,
+  dag::Vector<AnimParamData> &params)
+{
+  switch (type)
+  {
+    case ctrl_type_paramSwitch: param_switch_init_panel(params, panel, field_idx); break;
+    case ctrl_type_moveNode: move_node_init_panel(params, panel, field_idx); break;
+    case ctrl_type_rotateNode: rotate_node_init_panel(params, panel, field_idx); break;
+    case ctrl_type_randomSwitch: random_switch_init_panel(params, panel, field_idx); break;
+    case ctrl_type_hub: hub_init_panel(params, panel, field_idx); break;
+    case ctrl_type_linearPoly: linear_poly_init_panel(params, panel, field_idx); break;
+    case ctrl_type_rotateAroundNode: rotate_around_node_init_panel(params, panel, field_idx); break;
+
+    default: break;
   }
 }
 
-static void fill_param_data(const DataBlock *settings, dag::Vector<AnimParamData> &params, int idx, int pid)
+void AnimTreePlugin::findCtrlsChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings)
 {
-  params.emplace_back(
-    AnimParamData{pid, static_cast<DataBlock::ParamType>(settings->getParamType(idx)), String(settings->getParamName(idx))});
+  switch (data.type)
+  {
+    case ctrl_type_paramSwitch: paramSwitchFindChilds(panel, data, settings); break;
+    case ctrl_type_hub: hubFindChilds(panel, data, settings); break;
+    case ctrl_type_linearPoly: linearPolyFindChilds(panel, data, settings); break;
+    case ctrl_type_randomSwitch: randomSwitchFindChilds(panel, data, settings); break;
+
+    default: break;
+  }
 }
 
-void AnimTreePlugin::fillAnimBlendFields(PropertyContainerControlBase *panel, const DataBlock *node, int &field_idx)
+void AnimTreePlugin::fillCtrlsChilds(PropPanel::ContainerPropertyControl *panel)
 {
-  for (int i = 0; i < node->paramCount(); ++i)
-  {
-    if (fill_field_by_type(panel, node, i, field_idx))
+  PropPanel::ContainerPropertyControl *ctrlsTree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+  fillCtrlsChildsBody(panel, ctrlsTree->getRootLeaf(), ctrl_type_include);
+  for (AnimCtrlData &ctrl : controllersData)
+    if (is_include_ctrl(ctrl))
+      fillCtrlsChildsBody(panel, ctrl.handle, ctrl.type);
+}
+
+void AnimTreePlugin::fillCtrlsChildsBody(PropPanel::ContainerPropertyControl *panel, TLeafHandle handle, CtrlType type)
+{
+  PropPanel::ContainerPropertyControl *ctrlsTree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, ctrlsTree, handle, fullPath, /*only_includes*/ true);
+  if (type == ctrl_type_include && props.blockExists("AnimBlendCtrl"))
+    if (const DataBlock *ctrlsProps =
+          get_props_from_include_leaf_ctrl_node(controllersData, includePaths, *curAsset, props, ctrlsTree, handle))
     {
-      fieldNames.emplace_back(node->getParamName(i));
-      ++field_idx;
+      for (int blkIdx = 0, leafIdx = 0; blkIdx < ctrlsProps->blockCount(); ++blkIdx, ++leafIdx)
+      {
+        TLeafHandle leaf = ctrlsTree->getChildLeaf(handle, leafIdx);
+        AnimCtrlData *leafData = find_data_by_handle(controllersData, leaf);
+        // If get include leaf we need skip it, but not skip block
+        if (leafData != controllersData.end() && is_include_ctrl(*leafData))
+        {
+          --blkIdx;
+          continue;
+        }
+
+        const DataBlock *settings = ctrlsProps->getBlock(blkIdx);
+        const char *nameField = settings->getStr("name", nullptr);
+        // In props we can catch blocks with comments and we skip it
+        if (!nameField)
+        {
+          --leafIdx;
+          continue;
+        }
+        // We should have same hierarchy with leafs and blocks exclude cases above
+        if (ctrlsTree->getCaption(leaf) != nameField)
+        {
+          logerr("Fields order in ctrls tree doesn't match order in blk with path:<%s> \nGet:<%s>, but expect:<%s>", fullPath,
+            ctrlsTree->getCaption(leaf), nameField);
+          return;
+        }
+
+        findCtrlsChilds(panel, *leafData, *settings);
+      }
     }
-  }
 }
 
-static DataBlock *find_block_by_name(DataBlock *props, const String &name)
+void AnimTreePlugin::fillCtrlsSettings(PropPanel::ContainerPropertyControl *panel)
 {
-  for (int i = 0; i < props->blockCount(); ++i)
-  {
-    DataBlock *settings = props->getBlock(i);
-    if (name == settings->getStr("name"))
-      return settings;
-  }
-
-  G_ASSERT_FAIL("Can't find block with name <%s>", name);
-  return nullptr;
-}
-
-void AnimTreePlugin::fillCtrlsSettings(PropertyContainerControlBase *panel)
-{
-  PropertyContainerControlBase *tree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
-  PropertyContainerControlBase *group = panel->getById(PID_ANIM_BLEND_CTRLS_SETTINGS_GROUP)->getContainer();
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+  PropPanel::ContainerPropertyControl *group = panel->getById(PID_ANIM_BLEND_CTRLS_SETTINGS_GROUP)->getContainer();
   TLeafHandle leaf = tree->getSelLeaf();
   if (!leaf || leaf == tree->getRootLeaf())
     return;
 
-  DataBlock *ctrlsBlk = curAsset->props.getBlockByName("AnimBlendCtrl");
-  if (!ctrlsBlk)
-  {
-    logerr("Can't find AnimBlendCtrl block in props");
+  AnimCtrlData *selectedData = find_data_by_handle(controllersData, leaf);
+  if (selectedData == controllersData.end())
     return;
-  }
-  remove_ctrls_fields(group);
+
+  const int lastCtrlsPid = !ctrlParams.empty() ? ctrlParams.back().pid : PID_CTRLS_PARAMS_FIELD;
+  G_ASSERTF(lastCtrlsPid < PID_CTRLS_PARAMS_FIELD_SIZE, "Previous controller have more params than reserved");
+  remove_ctrls_fields(group, lastCtrlsPid);
   ctrlParams.clear();
-  if (DataBlock *settings = find_block_by_name(ctrlsBlk, tree->getCaption(leaf)))
+
+  if (selectedData->type == ctrl_type_include || selectedData->type == ctrl_type_inner_include)
   {
-    int fieldIdx = PID_CTRLS_PARAMS_FIELD;
-    group->createCombo(PID_CTRLS_TYPE_COMBO_SELECT, "Controller type", ctrl_type, settings->getBlockName());
-    for (int j = 0; j < settings->paramCount(); ++j)
-    {
-      fill_field_by_type(group, settings, j, fieldIdx);
-      fill_param_data(settings, ctrlParams, j, fieldIdx);
-      ++fieldIdx;
-    }
-    fillCtrlsParamsSettings(group, settings, fieldIdx);
-    fillCtrlsBlocksSettings(group, settings);
+    fill_include_settings(tree, group, leaf, includePaths, ctrlParams, PID_CTRLS_PARAMS_FIELD);
     group->createButton(PID_CTRLS_SETTINGS_SAVE, "Save");
   }
-}
-
-static bool is_contains_param(dag::Vector<AnimParamData> &params, const char *name)
-{
-  return eastl::find_if(params.begin(), params.end(), [name](AnimParamData value) { return value.name == name; }) != params.end();
-}
-
-static void add_edit_box_if_not_exists(dag::Vector<AnimParamData> &params, PropertyContainerControlBase *panel, int &pid,
-  const char *name, const char *default_value = "")
-{
-  if (!is_contains_param(params, name))
-  {
-    panel->createEditBox(pid, name, default_value);
-    params.emplace_back(AnimParamData{pid, DataBlock::TYPE_STRING, String(name)});
-    ++pid;
-  }
-}
-
-static void add_edit_float_if_not_exists(dag::Vector<AnimParamData> &params, PropertyContainerControlBase *panel, int &pid,
-  const char *name, float default_value = 0.f)
-{
-  if (!is_contains_param(params, name))
-  {
-    panel->createEditFloat(pid, name, default_value);
-    params.emplace_back(AnimParamData{pid, DataBlock::TYPE_REAL, String(name)});
-    ++pid;
-  }
-}
-
-static void add_edit_point3_if_not_exists(dag::Vector<AnimParamData> &params, PropertyContainerControlBase *panel, int &pid,
-  const char *name, Point3 default_value = Point3(0.f, 0.f, 0.f))
-{
-  if (!is_contains_param(params, name))
-  {
-    panel->createPoint3(pid, name, default_value);
-    params.emplace_back(AnimParamData{pid, DataBlock::TYPE_POINT3, String(name)});
-    ++pid;
-  }
-}
-
-static void add_edit_bool_if_not_exists(dag::Vector<AnimParamData> &params, PropertyContainerControlBase *panel, int &pid,
-  const char *name, bool default_value = false)
-{
-  if (!is_contains_param(params, name))
-  {
-    panel->createCheckBox(pid, name, default_value);
-    params.emplace_back(AnimParamData{pid, DataBlock::TYPE_BOOL, String(name)});
-    ++pid;
-  }
-}
-
-static void fill_param_switch_params(dag::Vector<AnimParamData> &params, PropertyContainerControlBase *panel, int field_idx)
-{
-  const char *nameParam = "name";
-  const char *varnameParam = "varname";
-  const char *morphTimeParam = "morphTime";
-  const char *acceptNameMaskReParam = "accept_name_mask_re";
-  const float defaultMorphTime = 0.15f;
-
-  add_edit_box_if_not_exists(params, panel, field_idx, nameParam);
-  add_edit_box_if_not_exists(params, panel, field_idx, varnameParam);
-  add_edit_float_if_not_exists(params, panel, field_idx, morphTimeParam, defaultMorphTime);
-  add_edit_box_if_not_exists(params, panel, field_idx, acceptNameMaskReParam);
-}
-
-static auto find_param_by_name(const dag::Vector<AnimParamData> &params, const char *name)
-{
-  auto it = eastl::find_if(params.begin(), params.end(), [name](AnimParamData value) { return value.name == name; });
-  if (it == params.end())
-    logerr("can't find <%s> param data", name);
-
-  return it;
-}
-
-static bool get_bool_param_by_name(dag::Vector<AnimParamData> &params, PropertyContainerControlBase *panel, const char *name)
-{
-  auto data = find_param_by_name(params, name);
-  if (data != params.end())
-    return panel->getBool(data->pid);
   else
-    G_ASSERT_FAIL("Can't find param <%s>", name);
-
-  return false;
-}
-
-static void fill_move_node_params(dag::Vector<AnimParamData> &params, PropertyContainerControlBase *panel, int field_idx)
-{
-  const char *localAdditiveParam = "localAdditive";
-  const char *localAdditive2Param = "localAdditive2";
-  const float defaultKMul = 1.0f;
-  const Point3 defaultRotAxis = Point3(0.f, 1.f, 0.f);
-  const Point3 defaultDirAxis = Point3(0.f, 0.f, 1.f);
-
-  add_edit_box_if_not_exists(params, panel, field_idx, "name");
-  add_edit_box_if_not_exists(params, panel, field_idx, "targetNode");
-  add_edit_box_if_not_exists(params, panel, field_idx, "param");
-  add_edit_box_if_not_exists(params, panel, field_idx, "axis_course");
-  add_edit_float_if_not_exists(params, panel, field_idx, "kCourseAdd");
-  add_edit_float_if_not_exists(params, panel, field_idx, "kMul", defaultKMul);
-  add_edit_float_if_not_exists(params, panel, field_idx, "kAdd");
-  add_edit_point3_if_not_exists(params, panel, field_idx, "rotAxis", defaultRotAxis);
-  add_edit_point3_if_not_exists(params, panel, field_idx, "dirAxis", defaultDirAxis);
-  add_edit_bool_if_not_exists(params, panel, field_idx, localAdditiveParam);
-  { // additive param default value depends on value in localAdditiveParam
-    const bool localAdditiveValue = get_bool_param_by_name(params, panel, localAdditiveParam);
-    add_edit_bool_if_not_exists(params, panel, field_idx, "additive", localAdditiveValue);
-  }
-  add_edit_bool_if_not_exists(params, panel, field_idx, localAdditive2Param);
-  { // saveOtherAxisMove param default value depends on value in localAdditive2Param
-    const bool localAdditive2Value = get_bool_param_by_name(params, panel, localAdditive2Param);
-    add_edit_bool_if_not_exists(params, panel, field_idx, "saveOtherAxisMove", localAdditive2Value);
+  {
+    TLeafHandle parent = tree->getParentLeaf(leaf);
+    String fullPath;
+    DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, parent, fullPath);
+    if (DataBlock *ctrlsProps = get_props_from_include_leaf_ctrl_node(controllersData, includePaths, *curAsset, props, tree, parent))
+      if (DataBlock *settings = find_block_by_name(ctrlsProps, tree->getCaption(leaf)))
+      {
+        int fieldIdx = PID_CTRLS_PARAMS_FIELD;
+        group->createCombo(PID_CTRLS_TYPE_COMBO_SELECT, "Controller type", ctrl_type, settings->getBlockName());
+        fill_params_from_settings(settings, group, ctrlParams, fieldIdx);
+        CtrlType type = static_cast<CtrlType>(lup(settings->getBlockName(), ctrl_type, ctrl_type_not_found));
+        fill_ctrls_params_settings(group, type, fieldIdx, ctrlParams);
+        fillCtrlsBlocksSettings(group, type, settings);
+        group->createButton(PID_CTRLS_SETTINGS_SAVE, "Save");
+      }
   }
 }
 
-void AnimTreePlugin::fillCtrlsParamsSettings(PropertyContainerControlBase *panel, const DataBlock *settings, int field_idx)
+void AnimTreePlugin::fillCtrlsBlocksSettings(PropPanel::ContainerPropertyControl *panel, CtrlType type, const DataBlock *settings)
 {
-  CtrlType type = static_cast<CtrlType>(lup(settings->getBlockName(), ctrl_type, ctrl_type_not_found));
   switch (type)
   {
-    case ctrl_type_paramSwitch: fill_param_switch_params(ctrlParams, panel, field_idx); break;
-    case ctrl_type_moveNode: fill_move_node_params(ctrlParams, panel, field_idx); break;
+    case ctrl_type_paramSwitch: paramSwitchFillBlockSettings(panel, settings); break;
+    case ctrl_type_randomSwitch: random_switch_init_block_settings(panel, settings); break;
+    case ctrl_type_hub: hub_init_block_settings(panel, settings); break;
+    case ctrl_type_linearPoly: linear_poly_init_block_settings(panel, settings); break;
 
     default: break;
   }
 }
 
-void AnimTreePlugin::fillCtrlsBlocksSettings(PropertyContainerControlBase *panel, const DataBlock *settings)
-{
-  CtrlType type = static_cast<CtrlType>(lup(settings->getBlockName(), ctrl_type, ctrl_type_not_found));
-  switch (type)
-  {
-    case ctrl_type_paramSwitch: fillParamSwitchBlockSettings(panel, settings); break;
-
-    default: break;
-  }
-}
-
-static void fill_param_switch_enum_list(PropertyContainerControlBase *panel, const DataBlock *nodes)
-{
-  Tab<String> nodeNames;
-  const int defBlockIdx = 0;
-  const DataBlock *defBlock = nodes->getBlock(defBlockIdx);
-  const char *nameParam = "name";
-  const char *rangeFromParam = "rangeFrom";
-  const char *rangeToParam = "rangeTo";
-  for (int i = 0; i < nodes->blockCount(); ++i)
-    nodeNames.emplace_back(nodes->getBlock(i)->getBlockName());
-  panel->createList(PID_CTRLS_PARAM_SWITCH_NODES_LIST, "Nodes", nodeNames, defBlockIdx);
-  panel->createButton(PID_CTRLS_PARAM_SWITCH_NODES_LIST_ADD, "Add");
-  panel->createButton(PID_CTRLS_PARAM_SWITCH_NODES_LIST_REMOVE, "Remove", /*enabled*/ true, /*new_line*/ false);
-  panel->createEditBox(PID_CTRLS_PARAM_SWITCH_NODE_ENUM_ITEM, "Enum item", defBlock ? defBlock->getBlockName() : "");
-  panel->createEditBox(PID_CTRLS_PARAM_SWITCH_NODE_NAME, nameParam, defBlock ? defBlock->getStr(nameParam, "") : "");
-  panel->createEditFloat(PID_CTRLS_PARAM_SWITCH_NODE_RANGE_FROM, rangeFromParam,
-    defBlock ? defBlock->getReal(rangeFromParam, 0.f) : 0.f);
-  panel->createEditFloat(PID_CTRLS_PARAM_SWITCH_NODE_RANGE_TO, rangeToParam, defBlock ? defBlock->getReal(rangeToParam, 0.f) : 0.f);
-}
-
-void AnimTreePlugin::fillParamSwitchBlockSettings(PropertyContainerControlBase *panel, const DataBlock *settings)
-{
-  const DataBlock *nodes = settings->getBlockByName("nodes");
-  if (!nodes)
-  {
-    logerr("Param switch controller should have <nodes> block with child nodes");
-    return;
-  }
-
-  const char *enumGenField = "enum_gen";
-  const bool isEnumGenType = nodes->paramExists(enumGenField);
-  panel->createSeparator(PID_CTRLS_SEPARATOR);
-  panel->createCombo(PID_CTRLS_PARAM_SWITCH_TYPE_COMBO_SELECT, "Param swtich type", param_switch_type,
-    isEnumGenType ? PARAM_SWITCH_TYPE_ENUM_GEN : PARAM_SWITCH_TYPE_ENUM_LIST);
-  if (isEnumGenType)
-    fillParamSwitchEnumGen(panel, nodes);
-  else
-    fill_param_switch_enum_list(panel, nodes);
-}
-
-void AnimTreePlugin::fillParamSwitchEnumGen(PropertyContainerControlBase *panel, const DataBlock *nodes)
-{
-  const char *enumGenField = "enum_gen";
-  const char *nameTemplateField = "name_template";
-  if (!enumsRootLeaf)
-  {
-    logerr("Enums root leaf not found. Please add enums to the anim states tree first");
-    return;
-  }
-  DataBlock *initAnimState = curAsset->props.getBlockByName("initAnimState");
-  if (!initAnimState)
-  {
-    logerr("Block <initAnimState> not found in props");
-    return;
-  }
-  DataBlock *enumBlock = initAnimState->getBlockByName("enum");
-  if (!enumBlock)
-  {
-    logerr("Block <enum> not found in props");
-    return;
-  }
-
-  Tab<String> enumNames;
-  for (int i = 0; i < enumBlock->blockCount(); ++i)
-    enumNames.emplace_back(enumBlock->getBlock(i)->getBlockName());
-  panel->createCombo(PID_CTRLS_PARAM_SWITCH_ENUM_GEN_COMBO_SELECT, enumGenField, enumNames, nodes->getStr(enumGenField, ""));
-  panel->createEditBox(PID_CTRLS_PARAM_SWITCH_NAME_TEMPLATE, nameTemplateField, nodes->getStr(nameTemplateField, ""));
-}
-
-void AnimTreePlugin::setSelectedParamSwitchSettings(PropertyContainerControlBase *panel)
-{
-  PropertyContainerControlBase *tree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
-  TLeafHandle leaf = tree->getSelLeaf();
-  DataBlock *ctrlsBlk = curAsset->props.getBlockByName("AnimBlendCtrl");
-  if (!ctrlsBlk)
-  {
-    logerr("Can't find AnimBlendCtrl block in props");
-    return;
-  }
-  if (DataBlock *settings = find_block_by_name(ctrlsBlk, tree->getCaption(leaf)))
-  {
-    const SimpleString nodeName = panel->getText(PID_CTRLS_PARAM_SWITCH_NODES_LIST);
-    const DataBlock *nodes = settings->getBlockByNameEx("nodes");
-    const DataBlock *selectedNode = nodes->getBlockByNameEx(nodeName.c_str());
-    const char *nameParam = "name";
-    const char *rangeFromParam = "rangeFrom";
-    const char *rangeToParam = "rangeTo";
-    panel->setText(PID_CTRLS_PARAM_SWITCH_NODE_ENUM_ITEM, nodeName.c_str());
-    panel->setText(PID_CTRLS_PARAM_SWITCH_NODE_NAME, selectedNode->getStr(nameParam, ""));
-    panel->setFloat(PID_CTRLS_PARAM_SWITCH_NODE_RANGE_FROM, selectedNode->getReal(rangeFromParam, 0.f));
-    panel->setFloat(PID_CTRLS_PARAM_SWITCH_NODE_RANGE_TO, selectedNode->getReal(rangeToParam, 0.f));
-  }
-}
-
-void AnimTreePlugin::changeParamSwitchType(PropertyContainerControlBase *panel)
-{
-  remove_fields(panel, PID_CTRLS_PARAM_SWITCH_ENUM_GEN_COMBO_SELECT, PID_CTRLS_ACTION_FIELD_SIZE, false);
-  ParamSwitchType type = static_cast<ParamSwitchType>(panel->getInt(PID_CTRLS_PARAM_SWITCH_TYPE_COMBO_SELECT));
-  PropertyContainerControlBase *tree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
-  PropertyContainerControlBase *group = panel->getById(PID_ANIM_BLEND_CTRLS_SETTINGS_GROUP)->getContainer();
-  TLeafHandle leaf = tree->getSelLeaf();
-  DataBlock *ctrlsBlk = curAsset->props.getBlockByName("AnimBlendCtrl");
-  if (!ctrlsBlk)
-  {
-    logerr("Can't find AnimBlendCtrl block in props");
-    return;
-  }
-  if (DataBlock *settings = find_block_by_name(ctrlsBlk, tree->getCaption(leaf)))
-  {
-    const DataBlock *nodes = settings->getBlockByNameEx("nodes");
-    if (type == PARAM_SWITCH_TYPE_ENUM_GEN)
-      fillParamSwitchEnumGen(group, nodes);
-    else
-      fill_param_switch_enum_list(group, nodes);
-  }
-  group->createButton(PID_CTRLS_SETTINGS_SAVE, "Save");
-}
-
-void AnimTreePlugin::addNodeParamSwitchList(PropertyContainerControlBase *panel)
-{
-  int idx = panel->addString(PID_CTRLS_PARAM_SWITCH_NODES_LIST, "new_node");
-  panel->setInt(PID_CTRLS_PARAM_SWITCH_NODES_LIST, idx);
-  setSelectedParamSwitchSettings(panel);
-}
-
-void AnimTreePlugin::removeNodeParamSwitchList(PropertyContainerControlBase *panel)
-{
-  const int removeIdx = panel->getInt(PID_CTRLS_PARAM_SWITCH_NODES_LIST);
-  const SimpleString removeName = panel->getText(PID_CTRLS_PARAM_SWITCH_NODES_LIST);
-  if (removeIdx < 0)
-    return;
-
-  PropertyContainerControlBase *tree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
-  TLeafHandle leaf = tree->getSelLeaf();
-  if (!leaf)
-    return;
-  DataBlock *ctrlsBlk = curAsset->props.getBlockByName("AnimBlendCtrl");
-  if (!ctrlsBlk)
-  {
-    logerr("Can't find AnimBlendCtrl block in props");
-    return;
-  }
-  if (DataBlock *settings = find_block_by_name(ctrlsBlk, tree->getCaption(leaf)))
-  {
-    DataBlock *nodesBlk = settings->getBlockByName("nodes");
-    if (!nodesBlk)
-      return;
-    nodesBlk->removeBlock(removeName.c_str());
-  }
-
-  panel->removeString(PID_CTRLS_PARAM_SWITCH_NODES_LIST, removeIdx);
-  setSelectedParamSwitchSettings(panel);
-}
-
-static void save_params_blk(DataBlock *settings, const dag::Vector<AnimParamData> &params, PropertyContainerControlBase *panel)
+static void save_params_blk(DataBlock *settings, dag::ConstSpan<AnimParamData> params, PropPanel::ContainerPropertyControl *panel)
 {
   for (int i = settings->paramCount() - 1; i >= 0; --i)
     settings->removeParam(i);
 
-  for (int i = 0; i < params.size(); ++i)
-    switch (params[i].type)
+  for (const AnimParamData &param : params)
+    switch (param.type)
     {
       case DataBlock::TYPE_STRING:
       {
-        const SimpleString value = panel->getText(params[i].pid);
-        settings->setStr(params[i].name, value.c_str());
+        const SimpleString value = panel->getText(param.pid);
+        settings->addStr(param.name, value.c_str());
         break;
       }
-      case DataBlock::TYPE_REAL: settings->setReal(params[i].name, panel->getFloat(params[i].pid)); break;
-      case DataBlock::TYPE_BOOL: settings->setBool(params[i].name, panel->getBool(params[i].pid)); break;
-      case DataBlock::TYPE_POINT3: settings->setPoint3(params[i].name, panel->getPoint3(params[i].pid)); break;
+      case DataBlock::TYPE_REAL: settings->addReal(param.name, panel->getFloat(param.pid)); break;
+      case DataBlock::TYPE_BOOL: settings->addBool(param.name, panel->getBool(param.pid)); break;
+      case DataBlock::TYPE_POINT3: settings->addPoint3(param.name, panel->getPoint3(param.pid)); break;
+      case DataBlock::TYPE_INT: settings->addInt(param.name, panel->getInt(param.pid)); break;
 
-      default: logerr("can't save param <%s> type: %d", params[i].name, params[i].type); break;
+      default: logerr("can't save param <%s> type: %d", param.name, param.type); break;
     }
 }
 
-void AnimTreePlugin::saveControllerSettings(PropertyContainerControlBase *panel)
+void AnimTreePlugin::setSelectedCtrlNodeListSettings(PropPanel::ContainerPropertyControl *panel)
 {
-  PropertyContainerControlBase *tree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
   TLeafHandle leaf = tree->getSelLeaf();
   if (!leaf)
     return;
 
-  DataBlock *ctrlsBlk = curAsset->props.getBlockByName("AnimBlendCtrl");
-  if (!ctrlsBlk)
-  {
-    logerr("Can't find AnimBlendCtrl block in props");
+  String fullPath;
+  TLeafHandle parent = tree->getParentLeaf(leaf);
+  DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, parent, fullPath);
+  if (DataBlock *ctrlsProps = get_props_from_include_leaf_ctrl_node(controllersData, includePaths, *curAsset, props, tree, parent))
+    if (const DataBlock *settings = find_block_by_name(ctrlsProps, tree->getCaption(leaf)))
+    {
+      CtrlType type = static_cast<CtrlType>(panel->getInt(PID_CTRLS_TYPE_COMBO_SELECT));
+      switch (type)
+      {
+        case ctrl_type_randomSwitch: random_switch_set_selected_node_list_settings(panel, settings); break;
+        case ctrl_type_paramSwitch: param_switch_set_selected_node_list_settings(panel, settings); break;
+        case ctrl_type_hub: hub_set_selected_node_list_settings(panel, settings); break;
+        case ctrl_type_linearPoly: linear_poly_set_selected_node_list_settings(panel, settings); break;
+
+        default: break;
+      }
+    }
+}
+
+static const char *NEW_NODE_CHILD_NAME = "new_node";
+
+void AnimTreePlugin::addNodeCtrlList(PropPanel::ContainerPropertyControl *panel)
+{
+  int idx = panel->addString(PID_CTRLS_NODES_LIST, NEW_NODE_CHILD_NAME);
+  panel->setInt(PID_CTRLS_NODES_LIST, idx);
+  setSelectedCtrlNodeListSettings(panel);
+  panel->setEnabledById(PID_CTRLS_NODES_LIST_ADD, /*enabled*/ false);
+}
+
+void update_add_button(PropPanel::ContainerPropertyControl *panel)
+{
+  SimpleString selectedName = panel->getText(PID_CTRLS_NODES_LIST);
+  if (selectedName == NEW_NODE_CHILD_NAME)
+    panel->setEnabledById(PID_CTRLS_NODES_LIST_ADD, /*enabled*/ true);
+}
+
+static void change_include_leaf(PropPanel::ContainerPropertyControl *tree, const char *name, TLeafHandle leaf)
+{
+  tree->setCaption(leaf, name);
+  const int leafCount = tree->getChildCount(leaf);
+  for (int i = 0; i < leafCount; ++i)
+    tree->removeLeaf(tree->getChildLeaf(leaf, 0));
+}
+
+void AnimTreePlugin::removeNodeCtrlList(PropPanel::ContainerPropertyControl *panel)
+{
+  const int removeIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  if (removeIdx < 0)
     return;
-  }
-  if (DataBlock *settings = find_block_by_name(ctrlsBlk, tree->getCaption(leaf)))
+
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+  TLeafHandle leaf = tree->getSelLeaf();
+  if (!leaf)
+    return;
+
+  String fullPath;
+  TLeafHandle parent = tree->getParentLeaf(leaf);
+  DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, parent, fullPath);
+  if (DataBlock *ctrlsProps = get_props_from_include_leaf_ctrl_node(controllersData, includePaths, *curAsset, props, tree, parent))
+    if (DataBlock *settings = find_block_by_name(ctrlsProps, tree->getCaption(leaf)))
+    {
+      update_add_button(panel);
+      CtrlType type = static_cast<CtrlType>(lup(settings->getBlockName(), ctrl_type, ctrl_type_not_found));
+      switch (type)
+      {
+        case ctrl_type_randomSwitch: random_switch_remove_node_from_list(panel, settings); break;
+        case ctrl_type_paramSwitch: param_switch_remove_node_from_list(panel, settings); break;
+        case ctrl_type_hub: hub_remove_node_from_list(panel, settings); break;
+        case ctrl_type_linearPoly: linear_poly_remove_node_from_list(panel, settings); break;
+
+        default: break;
+      }
+      savePropsWithoutReload(props, fullPath);
+    }
+
+  AnimCtrlData *data = find_data_by_handle(controllersData, leaf);
+  PropPanel::ContainerPropertyControl *nodesTree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+  const SimpleString childName = panel->getText(PID_CTRLS_NODES_LIST);
+  if (data != controllersData.end() && data->childs.size())
+    data->childs.erase(data->childs.begin() + removeIdx);
+  else
+    logerr("Can't find selected leaf with name <%s> in controllers data for remove child idx", childName.c_str());
+
+  panel->removeString(PID_CTRLS_NODES_LIST, removeIdx);
+  setSelectedCtrlNodeListSettings(panel);
+}
+
+static void save_include_change(PropPanel::ContainerPropertyControl *tree, TLeafHandle include_leaf, dag::Vector<String> &paths,
+  DataBlock &props, const DagorAsset &asset, const String &old_name, String &new_full_path)
+{
+  String *path = eastl::find_if(paths.begin(), paths.end(), [&old_name](const String &value) {
+    char fileNameBuf[DAGOR_MAX_PATH];
+    return old_name == dd_get_fname_without_path_and_ext(fileNameBuf, sizeof(fileNameBuf), value.c_str());
+  });
+
+  if (path != paths.end())
   {
-    saveControllerParamsSettings(panel, settings);
-    saveControllerBlocksSettings(panel, settings);
-    tree->setCaption(leaf, settings->getStr("name"));
-  }
-}
+    const int includeNid = props.getNameId("@include");
+    for (int i = 0; i < props.paramCount(); ++i)
+      if (includeNid == props.getParamNameId(i) && *path == props.getStr(i))
+        props.setStr(i, new_full_path.c_str());
 
-static void remove_param_if_default_float(dag::Vector<AnimParamData> &params, PropertyContainerControlBase *panel, const char *name,
-  float default_value = 0.f)
-{
-  auto param = find_param_by_name(params, name);
-  if (param != params.end())
+    *path = new_full_path;
+  }
+  else
   {
-    const float value = panel->getFloat(param->pid);
-    if (is_equal_float(value, default_value))
-      params.erase(param);
+    props.addStr("@include", new_full_path.c_str());
+    paths.emplace_back(new_full_path);
   }
-}
 
-static void remove_param_if_default_str(dag::Vector<AnimParamData> &params, PropertyContainerControlBase *panel, const char *name,
-  const char *default_value = "")
-{
-  auto param = find_param_by_name(params, name);
-  if (param != params.end())
+  if (!DataBlock::resolveIncludePath(new_full_path))
   {
-    const SimpleString value = panel->getText(param->pid);
-    if (value == default_value)
-      params.erase(param);
+    String folderPath = get_folder_path_based_on_parent(paths, asset, tree, include_leaf);
+    new_full_path = String(0, "%s%s", folderPath.c_str(), new_full_path.c_str());
   }
 }
 
-static void remove_param_if_default_point3(dag::Vector<AnimParamData> &params, PropertyContainerControlBase *panel, const char *name,
-  Point3 default_value = Point3(0.f, 0.f, 0.f))
+bool AnimTreePlugin::checkIncludeBeforeSave(PropPanel::ContainerPropertyControl *tree, TLeafHandle leaf, const SimpleString &file_name,
+  const SimpleString &new_path, const DataBlock &props)
 {
-  auto param = find_param_by_name(params, name);
-  if (param != params.end())
+  if (file_name.empty())
   {
-    const Point3 value = panel->getPoint3(param->pid);
-    if (value == default_value)
-      params.erase(param);
+    logerr("File name can't be empty");
+    return false;
   }
-}
-
-static void remove_param_if_default_bool(dag::Vector<AnimParamData> &params, PropertyContainerControlBase *panel, const char *name,
-  bool default_value = false)
-{
-  auto param = find_param_by_name(params, name);
-  if (param != params.end())
+  TLeafHandle parent = tree->getParentLeaf(leaf);
+  if (!check_includes_not_looped(tree, parent, file_name.c_str(), curAsset->getSrcFileName()))
   {
-    const bool value = panel->getBool(param->pid);
-    if (value == default_value)
-      params.erase(param);
+    logerr("Find loop in includes, can't save leaf <%s> with parent <%s> already created above", file_name.c_str(),
+      tree->getCaption(parent));
+    return false;
   }
+  String newFullPath = String(0, "%s%s.blk", new_path.c_str(), file_name.c_str());
+  if (check_include_duplication_in_blk(props, newFullPath))
+  {
+    logerr("Can't save include <%s>, already exist in blk. Path: %s", file_name.str(), newFullPath.c_str());
+    return false;
+  }
+  if (!createBlkIfNotExistWithDialog(newFullPath, tree, leaf))
+    return false;
+
+  return true;
 }
 
-static void remove_unchanged_default_params_param_switch(dag::Vector<AnimParamData> &params, PropertyContainerControlBase *panel)
+bool AnimTreePlugin::createBlkIfNotExistWithDialog(String &path, PropPanel::ContainerPropertyControl *tree, TLeafHandle include_leaf)
 {
-  const char *morphTimeParam = "morphTime";
-  const char *acceptNameMaskReParam = "accept_name_mask_re";
-  const float defaultMorphTime = 0.15f;
+  if (!DataBlock::resolveIncludePath(path))
+  {
+    String folderPath = get_folder_path_based_on_parent(includePaths, *curAsset, tree, include_leaf);
+    path = String(0, "%s%s", folderPath.c_str(), path.c_str());
+  }
 
-  remove_param_if_default_float(params, panel, morphTimeParam, defaultMorphTime);
-  remove_param_if_default_str(params, panel, acceptNameMaskReParam);
+  if (dd_file_exist(path.c_str()))
+    return true;
+
+  const int dialogResult = wingw::message_box(wingw::MBS_QUEST | wingw::MBS_YESNO, "Include change",
+    "File with path: %s doesn't exist.\nDo you want to create new blk?", path.c_str());
+
+  return dialogResult == PropPanel::DIALOG_ID_YES;
 }
 
-static void remove_unchanged_default_params_move_node(dag::Vector<AnimParamData> &params, PropertyContainerControlBase *panel)
+void AnimTreePlugin::saveIncludeChange(PropPanel::ContainerPropertyControl *panel, PropPanel::ContainerPropertyControl *tree,
+  TLeafHandle include_leaf, DataBlock &props, const String &old_name, String &new_full_path, ParentLeafs parents)
 {
-  const char *localAdditiveParam = "localAdditive";
-  const char *localAdditive2Param = "localAdditive2";
-  const float defaultKMul = 1.0f;
-  const Point3 defaultRotAxis = Point3(0.f, 1.f, 0.f);
-  const Point3 defaultDirAxis = Point3(0.f, 0.f, 1.f);
-  const bool localAdditiveValue = get_bool_param_by_name(params, panel, localAdditiveParam);
-  const bool localAdditive2Value = get_bool_param_by_name(params, panel, localAdditive2Param);
+  save_include_change(tree, include_leaf, includePaths, props, *curAsset, old_name, new_full_path);
 
-  remove_param_if_default_str(params, panel, "axis_course");
-  remove_param_if_default_float(params, panel, "kCourseAdd");
-  remove_param_if_default_float(params, panel, "kMul", defaultKMul);
-  remove_param_if_default_float(params, panel, "kAdd");
-  remove_param_if_default_point3(params, panel, "rotAxis", defaultRotAxis);
-  remove_param_if_default_point3(params, panel, "dirAxis", defaultDirAxis);
-  remove_param_if_default_bool(params, panel, localAdditiveParam);
-  remove_param_if_default_bool(params, panel, "additive", localAdditiveValue);
-  remove_param_if_default_bool(params, panel, localAdditive2Param);
-  remove_param_if_default_bool(params, panel, "saveOtherAxisMove", localAdditive2Value);
+  const bool curParseIncludesAsParams = DataBlock::parseIncludesAsParams;
+  DataBlock::parseIncludesAsParams = true;
+  DataBlock blk;
+  if (!dd_file_exist(new_full_path.c_str()))
+    blk.saveToTextFile(new_full_path.c_str());
+  else
+    blk.load(new_full_path.c_str());
+
+  fillTreesIncluded(panel, blk, new_full_path, parents);
+  DataBlock::parseIncludesAsParams = curParseIncludesAsParams;
 }
 
-void AnimTreePlugin::saveControllerParamsSettings(PropertyContainerControlBase *panel, DataBlock *settings)
+static TLeafHandle find_include_leaf_by_name_anim_blend(PropPanel::ContainerPropertyControl *tree, TLeafHandle parent,
+  const String &sel_name)
+{
+  const int childCount = tree->getChildCount(parent);
+  for (int i = 0; i < childCount; ++i)
+  {
+    TLeafHandle leaf = tree->getChildLeaf(parent, i);
+    if (tree->getUserData(leaf) == &ANIM_BLEND_NODE_INCLUDE && tree->getCaption(leaf) == sel_name)
+      return leaf;
+  }
+  for (int i = 0; i < childCount; ++i)
+    if (TLeafHandle leaf = find_include_leaf_by_name_anim_blend(tree, tree->getChildLeaf(parent, i), sel_name))
+      return leaf;
+
+  return nullptr;
+}
+
+static TLeafHandle change_include_leaf_nodes(PropPanel::ContainerPropertyControl *panel, const String &sel_name, const char *new_name)
+{
+  PropPanel::ContainerPropertyControl *nodesTree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+  TLeafHandle root = nodesTree->getRootLeaf();
+  TLeafHandle nodeLeaf = find_include_leaf_by_name_anim_blend(nodesTree, root, sel_name);
+  change_include_leaf(nodesTree, new_name, nodeLeaf);
+  return nodeLeaf;
+}
+
+template <typename Data, typename Predicate>
+static TLeafHandle find_include_leaf_by_name(PropPanel::ContainerPropertyControl *tree, dag::ConstSpan<Data> data_span,
+  const String &sel_name, const Predicate &is_include_leaf)
+{
+  TLeafHandle root = tree->getRootLeaf();
+  if (sel_name == tree->getCaption(root))
+    return root;
+
+  const Data *data = eastl::find_if(data_span.begin(), data_span.end(), [&sel_name, tree, &is_include_leaf](const Data &item) {
+    return is_include_leaf(item) && sel_name == tree->getCaption(item.handle);
+  });
+
+  return data != data_span.end() ? data->handle : nullptr;
+}
+
+template <typename Data, typename Predicate>
+static TLeafHandle change_include_leaf(PropPanel::ContainerPropertyControl *panel, dag::Vector<Data> &data_vec, const String &sel_name,
+  const char *new_name, int pid, const Predicate &is_include_leaf)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(pid)->getContainer();
+  TLeafHandle leaf = find_include_leaf_by_name(tree, make_span_const(data_vec), sel_name, is_include_leaf);
+  remove_childs_data_by_leaf(tree, data_vec, leaf);
+  change_include_leaf(tree, new_name, leaf);
+  return leaf;
+}
+
+void AnimTreePlugin::saveControllerSettings(PropPanel::ContainerPropertyControl *panel)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+  TLeafHandle leaf = tree->getSelLeaf();
+  if (!leaf)
+    return;
+
+  AnimCtrlData *selectedData = find_data_by_handle(controllersData, leaf);
+  if (selectedData == controllersData.end())
+    return;
+
+  TLeafHandle parent = tree->getParentLeaf(leaf);
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, parent, fullPath);
+
+  if (selectedData->type == ctrl_type_include || selectedData->type == ctrl_type_inner_include)
+  {
+    const SimpleString fileName = get_str_param_by_name_optional(ctrlParams, panel, "file name");
+    const SimpleString newPath = get_str_param_by_name_optional(ctrlParams, panel, "path");
+    if (!checkIncludeBeforeSave(tree, leaf, fileName, newPath, props))
+      return;
+
+    String newFullPath = String(0, "%s%s.blk", newPath.c_str(), fileName.c_str());
+    const String selName = tree->getCaption(leaf);
+    change_include_leaf(tree, fileName.c_str(), leaf);
+    if (selectedData->type == ctrl_type_include)
+    {
+      TLeafHandle nodeLeaf = change_include_leaf_nodes(panel, selName, fileName.c_str());
+      TLeafHandle maskLeaf =
+        change_include_leaf(panel, nodeMasksData, selName, fileName.c_str(), PID_NODE_MASKS_TREE, is_include_node_mask);
+      saveIncludeChange(panel, tree, leaf, props, selName, newFullPath, {nodeLeaf, maskLeaf, leaf});
+    }
+    else
+    {
+      // In this case we save inner include and it can have parent as include or inner include
+      AnimCtrlData *parentData = find_data_by_handle(controllersData, parent);
+      if ((parentData != controllersData.end() && parentData->type == ctrl_type_include) || parent == tree->getRootLeaf())
+      {
+        DataBlock *ctrlsBlk = props.addBlock("AnimBlendCtrl");
+        save_include_change(tree, leaf, includePaths, *ctrlsBlk, *curAsset, selName, newFullPath);
+      }
+      else
+        save_include_change(tree, leaf, includePaths, props, *curAsset, selName, newFullPath);
+
+      const bool curParseIncludesAsParams = DataBlock::parseIncludesAsParams;
+      DataBlock::parseIncludesAsParams = true;
+      DataBlock blk;
+      if (!dd_file_exist(newFullPath.c_str()))
+        blk.saveToTextFile(newFullPath.c_str());
+      else
+        blk.load(newFullPath.c_str());
+
+      fillCtrlsIncluded(tree, blk, newFullPath, leaf);
+      DataBlock::parseIncludesAsParams = curParseIncludesAsParams;
+    }
+  }
+  else
+  {
+    if (DataBlock *ctrlsProps = get_props_from_include_leaf_ctrl_node(controllersData, includePaths, *curAsset, props, tree, parent))
+      if (DataBlock *settings = find_block_by_name(ctrlsProps, tree->getCaption(leaf)))
+      {
+        SimpleString newTypeName = panel->getText(PID_CTRLS_TYPE_COMBO_SELECT);
+        // If ctrl type changed we need change block name and remove all blocks from old type if they exist
+        if (settings->getBlockName() != newTypeName)
+        {
+          settings->changeBlockName(newTypeName.c_str());
+          Tab<String> names;
+          panel->getStrings(PID_CTRLS_NODES_LIST, names);
+          // After change type user can't create more then 1 new node
+          if (names.size() <= 1)
+            for (int i = settings->blockCount() - 1; i >= 0; --i)
+              settings->removeBlock(i);
+        }
+        CtrlType type = static_cast<CtrlType>(lup(newTypeName.c_str(), ctrl_type, ctrl_type_not_found));
+        selectedData->type = type;
+        tree->setButtonPictures(leaf, get_ctrl_icon_name(type));
+        saveControllerParamsSettings(panel, settings);
+        saveControllerBlocksSettings(panel, settings, *selectedData);
+        const String oldName = tree->getCaption(leaf);
+        const char *newName = settings->getStr("name");
+        if (oldName != newName)
+        {
+          tree->setCaption(leaf, newName);
+          selectedData->id = curCtrlAndBlendNodeUniqueIdx++;
+        }
+      }
+  }
+
+  savePropsWithoutReload(props, fullPath);
+}
+
+void AnimTreePlugin::saveControllerParamsSettings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
   // Make copy, becuse we can don't save optinal fields
   dag::Vector<AnimParamData> params = ctrlParams;
 
+  // Prepare params, before save we need remove unchanged default params based on CtrlType
   CtrlType type = static_cast<CtrlType>(lup(settings->getBlockName(), ctrl_type, ctrl_type_not_found));
   switch (type)
   {
-    case ctrl_type_paramSwitch: remove_unchanged_default_params_param_switch(params, panel); break;
-    case ctrl_type_moveNode: remove_unchanged_default_params_move_node(params, panel); break;
+    case ctrl_type_paramSwitch: param_switch_prepare_params(params, panel); break;
+    case ctrl_type_moveNode: move_node_prepare_params(params, panel); break;
+    case ctrl_type_rotateNode: rotate_node_prepare_params(params, panel); break;
+    case ctrl_type_randomSwitch: random_switch_prepare_params(params, panel); break;
+    case ctrl_type_hub: hub_prepare_params(params, panel); break;
+    case ctrl_type_linearPoly: linear_poly_prepare_params(params, panel); break;
+    case ctrl_type_rotateAroundNode: rotate_around_node_prepare_params(params, panel); break;
 
     default: break;
   }
 
-  save_params_blk(settings, params, panel);
+  save_params_blk(settings, make_span_const(params), panel);
 }
 
-void AnimTreePlugin::saveControllerBlocksSettings(PropertyContainerControlBase *panel, DataBlock *settings)
+void AnimTreePlugin::saveControllerBlocksSettings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings, AnimCtrlData &data)
 {
+  update_add_button(panel);
   CtrlType type = static_cast<CtrlType>(lup(settings->getBlockName(), ctrl_type, ctrl_type_not_found));
   switch (type)
   {
-    case ctrl_type_paramSwitch: saveParamSwitchBlockSettings(panel, settings); break;
+    case ctrl_type_paramSwitch: paramSwitchSaveBlockSettings(panel, settings, data); break;
+    case ctrl_type_hub: hubSaveBlockSettings(panel, settings, data); break;
+    case ctrl_type_linearPoly: linearPolySaveBlockSettings(panel, settings, data); break;
+    case ctrl_type_randomSwitch: randomSwitchSaveBlockSettings(panel, settings, data); break;
 
     default: break;
   }
 }
 
-bool is_enum_item_name_exist(const DataBlock *props, const SimpleString &name)
-{
-  const DataBlock *enums = props->getBlockByNameEx("enum");
-  for (int i = 0; i < enums->blockCount(); ++i)
-  {
-    const DataBlock *enumBlk = enums->getBlock(i);
-    for (int j = 0; j < enumBlk->blockCount(); ++j)
-      if (name == enumBlk->getBlock(j)->getBlockName())
-        return true;
-  }
-  return false;
-}
-
-void AnimTreePlugin::saveParamSwitchBlockSettings(PropertyContainerControlBase *panel, DataBlock *settings)
-{
-  ParamSwitchType type = static_cast<ParamSwitchType>(panel->getInt(PID_CTRLS_PARAM_SWITCH_TYPE_COMBO_SELECT));
-  DataBlock *nodes = settings->getBlockByName("nodes");
-  if (!nodes)
-    nodes = settings->addBlock("nodes");
-
-  const char *enumGenField = "enum_gen";
-  const char *nameTemplateField = "name_template";
-  if (type == PARAM_SWITCH_TYPE_ENUM_GEN)
-  {
-    // if enumGenField not found then it can be enum list and we want remove all this blocks
-    if (!nodes->paramExists(enumGenField))
-      for (int i = nodes->blockCount() - 1; i >= 0; --i)
-        nodes->removeBlock(i);
-    const SimpleString eunmGenSelect = panel->getText(PID_CTRLS_PARAM_SWITCH_ENUM_GEN_COMBO_SELECT);
-    const SimpleString nameTemplate = panel->getText(PID_CTRLS_PARAM_SWITCH_NAME_TEMPLATE);
-    nodes->setStr(enumGenField, eunmGenSelect.c_str());
-    nodes->setStr(nameTemplateField, nameTemplate.c_str());
-  }
-  else
-  {
-    const SimpleString enumNameList = panel->getText(PID_CTRLS_PARAM_SWITCH_NODES_LIST);
-    const SimpleString enumItemName = panel->getText(PID_CTRLS_PARAM_SWITCH_NODE_ENUM_ITEM);
-    if (!is_enum_item_name_exist(curAsset->props.getBlockByNameEx("initAnimState"), enumItemName))
-    {
-      logerr("Can't save settings, <%s> enum item not found in props", enumItemName.c_str());
-      return;
-    }
-
-    if (nodes->paramExists(enumGenField))
-      nodes->removeParam(enumGenField);
-    if (nodes->paramExists(nameTemplateField))
-      nodes->removeParam(nameTemplateField);
-
-    DataBlock *enumItem = nodes->getBlockByName(enumNameList.c_str());
-    if (!enumItem)
-      enumItem = nodes->addBlock(enumItemName.c_str());
-
-    if (enumNameList != enumItemName)
-    {
-      enumItem->changeBlockName(enumItemName.c_str());
-      panel->setText(PID_CTRLS_PARAM_SWITCH_NODES_LIST, enumItemName.c_str());
-    }
-
-    const SimpleString nodeName = panel->getText(PID_CTRLS_PARAM_SWITCH_NODE_NAME);
-    const float rangeFrom = panel->getFloat(PID_CTRLS_PARAM_SWITCH_NODE_RANGE_FROM);
-    const float rangeTo = panel->getFloat(PID_CTRLS_PARAM_SWITCH_NODE_RANGE_TO);
-    const char *rangeFromField = "rangeFrom";
-    const char *rangeToField = "rangeTo";
-    enumItem->setStr("name", nodeName.c_str());
-    if (rangeFrom > 0.0f || rangeTo > 0.0f)
-    {
-      enumItem->setReal(rangeFromField, rangeFrom);
-      enumItem->setReal(rangeToField, rangeTo);
-    }
-    else
-    {
-      enumItem->removeParam(rangeFromField);
-      enumItem->removeParam(rangeToField);
-    }
-  }
-}
-
-void AnimTreePlugin::setTreeFilter(PropertyContainerControlBase *panel, int tree_pid, int filter_pid)
+void AnimTreePlugin::setTreeFilter(PropPanel::ContainerPropertyControl *panel, int tree_pid, int filter_pid)
 {
   SimpleString filterText = panel->getText(filter_pid);
   panel->setText(tree_pid, String(filterText).toLower().c_str());
 }
 
-void AnimTreePlugin::addEnumToAnimStatesTree(PropertyContainerControlBase *panel)
+void AnimTreePlugin::addIncludeLeaf(PropPanel::ContainerPropertyControl *panel, int main_pid, TLeafHandle main_parent,
+  const String &parent_name)
 {
-  PropertyContainerControlBase *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
-  TLeafHandle leaf = tree->getRootLeaf();
-  TLeafHandle enumLeaf = getEnumsRootLeaf(tree);
+  PropPanel::ContainerPropertyControl *nodesTree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+  PropPanel::ContainerPropertyControl *masksTree = panel->getById(PID_NODE_MASKS_TREE)->getContainer();
+  PropPanel::ContainerPropertyControl *ctrlsTree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+  TLeafHandle nodesInclude, masksInclude, ctrlsInclude;
 
-  if (create_new_leaf(enumLeaf, tree, panel, "enum_name", ENUM_ICON, PID_ANIM_STATES_NAME_FIELD))
-    panel->setEnabledById(PID_ANIM_STATES_ADD_ENUM_ITEM, /*enabled*/ true);
+  TLeafHandle rootNodes = nodesTree->getRootLeaf();
+  if (main_pid == PID_ANIM_BLEND_NODES_TREE)
+    nodesInclude = main_parent;
+  else if (parent_name == nodesTree->getCaption(rootNodes))
+    nodesInclude = rootNodes;
+  else
+    nodesInclude = find_include_leaf_by_name_anim_blend(nodesTree, rootNodes, parent_name);
+
+  if (main_pid == PID_NODE_MASKS_TREE)
+    masksInclude = main_parent;
+  else
+    masksInclude = find_include_leaf_by_name(masksTree, make_span_const(nodeMasksData), parent_name, is_include_node_mask);
+
+  if (main_pid == PID_ANIM_BLEND_CTRLS_TREE)
+    ctrlsInclude = main_parent;
+  else
+    ctrlsInclude = find_include_leaf_by_name(ctrlsTree, make_span_const(controllersData), parent_name, is_include_ctrl);
+
+  TLeafHandle nodesLeaf = nodesTree->createTreeLeaf(nodesInclude, "new_include", FOLDER_ICON);
+  addBlendNode(nodesLeaf, BlendNodeType::INCLUDE);
+  nodesTree->setUserData(nodesLeaf, (void *)&ANIM_BLEND_NODE_INCLUDE);
+  TLeafHandle masksLeaf = masksTree->createTreeLeaf(masksInclude, "new_include", FOLDER_ICON);
+  nodeMasksData.emplace_back(NodeMaskData{masksLeaf, NodeMaskType::INCLUDE});
+  TLeafHandle ctrlsLeaf = ctrlsTree->createTreeLeaf(ctrlsInclude, "new_include", FOLDER_ICON);
+  addController(ctrlsLeaf, ctrl_type_include);
+
+  if (main_pid == PID_ANIM_BLEND_NODES_TREE)
+    nodesTree->setSelLeaf(nodesLeaf);
+  else if (main_pid == PID_NODE_MASKS_TREE)
+    masksTree->setSelLeaf(masksLeaf);
+  else if (main_pid == PID_ANIM_BLEND_CTRLS_TREE)
+    ctrlsTree->setSelLeaf(ctrlsLeaf);
 }
 
-void AnimTreePlugin::addEnumItemToAnimStatesTree(PropertyContainerControlBase *panel)
+void AnimTreePlugin::addEnumToAnimStatesTree(PropPanel::ContainerPropertyControl *panel)
 {
-  PropertyContainerControlBase *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
+  TLeafHandle enumLeaf = getEnumsRootLeaf(tree);
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, tree->getRootLeaf(), fullPath);
+  if (fullPath.empty())
+    return;
+
+  if (create_new_leaf(enumLeaf, tree, panel, "enum_name", ENUM_ICON, PID_ANIM_STATES_NAME_FIELD))
+  {
+    panel->setEnabledById(PID_ANIM_STATES_ADD_ENUM_ITEM, /*enabled*/ true);
+    props.addBlock("initAnimState")->addBlock("enum")->addBlock("enum_name");
+    savePropsWithoutReload(props, fullPath);
+    statesData.emplace_back(AnimStatesData{tree->getSelLeaf(), AnimStatesType::ENUM});
+    selectedChangedAnimStatesTree(panel);
+  }
+}
+
+void AnimTreePlugin::addEnumItemToAnimStatesTree(PropPanel::ContainerPropertyControl *panel)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
   TLeafHandle leaf = tree->getSelLeaf();
   if (!leaf || !isEnumOrEnumItem(leaf, tree))
     return;
@@ -1265,48 +1684,190 @@ void AnimTreePlugin::addEnumItemToAnimStatesTree(PropertyContainerControlBase *p
   if (parent == enumsRootLeaf)
     parent = leaf;
 
-  create_new_leaf(parent, tree, panel, "leaf_item", ENUM_ITEM_ICON, PID_ANIM_STATES_NAME_FIELD);
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, tree->getRootLeaf(), fullPath);
+  if (fullPath.empty())
+    return;
+
+  if (create_new_leaf(parent, tree, panel, "leaf_item", ENUM_ITEM_ICON, PID_ANIM_STATES_NAME_FIELD))
+  {
+    const String parentName = tree->getCaption(parent);
+    props.addBlock("initAnimState")->addBlock("enum")->addBlock(parentName.c_str())->addBlock("leaf_item");
+    savePropsWithoutReload(props, fullPath);
+    statesData.emplace_back(AnimStatesData{tree->getSelLeaf(), AnimStatesType::ENUM_ITEM});
+  }
 }
 
-void AnimTreePlugin::removeNodeFromAnimStatesTree(PropertyContainerControlBase *panel)
+static void remove_include_node(PropPanel::ContainerPropertyControl *tree, dag::Vector<String> &paths, DataBlock &props,
+  TLeafHandle leaf)
 {
-  PropertyContainerControlBase *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
+  String name = tree->getCaption(leaf);
+  String *path = eastl::find_if(paths.begin(), paths.end(), [&name](const String &value) {
+    char fileNameBuf[DAGOR_MAX_PATH];
+    return name == dd_get_fname_without_path_and_ext(fileNameBuf, sizeof(fileNameBuf), value.c_str());
+  });
+
+  if (path != paths.end())
+  {
+    const int includeNid = props.getNameId("@include");
+    for (int i = 0; i < props.paramCount(); ++i)
+      if (includeNid == props.getParamNameId(i) && *path == props.getStr(i))
+        props.removeParam(i);
+
+    paths.erase(path);
+  }
+  tree->removeLeaf(leaf);
+}
+
+template <typename Data>
+static void remove_include_tree_node(PropPanel::ContainerPropertyControl *tree, dag::Vector<Data> &data_vec,
+  dag::Vector<String> &paths, DataBlock &props, TLeafHandle leaf)
+{
+  remove_childs_data_by_leaf(tree, data_vec, leaf);
+  remove_include_node(tree, paths, props, leaf);
+}
+
+template <typename Data, typename Predicate>
+static void remove_include_leaf(PropPanel::ContainerPropertyControl *panel, int pid, dag::Vector<Data> &data_vec, const String &name,
+  const Predicate &is_include_leaf)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(pid)->getContainer();
+  Data *data = eastl::find_if(data_vec.begin(), data_vec.end(),
+    [&name, tree, &is_include_leaf](const Data &item) { return is_include_leaf(item) && name == tree->getCaption(item.handle); });
+  if (data != data_vec.end())
+  {
+    TLeafHandle includeLeaf = data->handle;
+    data_vec.erase(data);
+    remove_childs_data_by_leaf(tree, data_vec, includeLeaf);
+    tree->removeLeaf(includeLeaf);
+  }
+}
+
+static void remove_include_leaf_nodes(PropPanel::ContainerPropertyControl *panel, dag::Vector<BlendNodeData> &nodes,
+  const String &name)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+  TLeafHandle root = tree->getRootLeaf();
+  TLeafHandle leaf = find_include_leaf_by_name_anim_blend(tree, root, name);
+  remove_childs_data_by_leaf(tree, nodes, leaf);
+  BlendNodeData *removeData = find_data_by_handle(nodes, leaf);
+  if (removeData != nodes.end())
+    nodes.erase(removeData);
+  tree->removeLeaf(leaf);
+}
+
+void AnimTreePlugin::removeNodeFromAnimStatesTree(PropPanel::ContainerPropertyControl *panel)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
   TLeafHandle leaf = tree->getSelLeaf();
   if (!leaf)
     return;
 
-  if (isEnumOrEnumItem(leaf, tree))
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, tree->getRootLeaf(), fullPath);
+  if (fullPath.empty())
+    return;
+
+  AnimStatesData *data = find_data_by_handle(statesData, leaf);
+  if (data == statesData.end())
+    return;
+
+  if (data->type == AnimStatesType::ENUM || data->type == AnimStatesType::ENUM_ITEM)
   {
+    const int initAnimStateId = props.getNameId("initAnimState");
+    const int enumId = props.getNameId("enum");
+    if (initAnimStateId != -1 && enumId != -1)
+    {
+      DataBlock *enumBlock = props.getBlockByNameId(initAnimStateId)->getBlockByNameId(enumId);
+      const String name = tree->getCaption(leaf);
+      if (data->type == AnimStatesType::ENUM_ITEM)
+      {
+        const String parentName = tree->getCaption(tree->getParentLeaf(leaf));
+        DataBlock *parentBlock = enumBlock->getBlockByName(parentName.c_str());
+        if (parentBlock)
+          parentBlock->removeBlock(name.c_str());
+      }
+      else
+        enumBlock->removeBlock(name.c_str());
+    }
+
+    statesData.erase(data);
     tree->removeLeaf(leaf);
     panel->setText(PID_ANIM_STATES_NAME_FIELD, "");
   }
+  else if (data->type == AnimStatesType::INCLUDE_ROOT)
+  {
+    props.removeBlock("initAnimState");
+    props.removeBlock("stateDesc");
+    props.removeBlock("preview");
+    statesData.clear();
+    change_include_leaf(tree, "Root", leaf);
+  }
+
+  savePropsWithoutReload(props, fullPath);
 }
 
-void AnimTreePlugin::saveSettingsAnimStatesTree(PropertyContainerControlBase *panel)
+void AnimTreePlugin::saveSettingsAnimStatesTree(PropPanel::ContainerPropertyControl *panel)
 {
-  PropertyContainerControlBase *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
   TLeafHandle leaf = tree->getSelLeaf();
   if (!leaf)
     return;
 
-  if (isEnumOrEnumItem(leaf, tree))
+  if (leaf == tree->getRootLeaf() && tree->getCaption(leaf) == "Root")
+  {
+    SimpleString name = panel->getText(PID_ANIM_STATES_NAME_FIELD);
+    tree->setCaption(leaf, name);
+    statesData.emplace_back(AnimStatesData{leaf, AnimStatesType::INCLUDE_ROOT});
+  }
+
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, tree->getRootLeaf(), fullPath);
+  if (fullPath.empty())
+    return;
+
+  AnimStatesData *data = find_data_by_handle(statesData, leaf);
+  if (data == statesData.end())
+    return;
+
+  if (data->type == AnimStatesType::ENUM || data->type == AnimStatesType::ENUM_ITEM)
   {
     TLeafHandle parent = tree->getParentLeaf(leaf);
     SimpleString name = panel->getText(PID_ANIM_STATES_NAME_FIELD);
-    if (!is_name_exists_in_childs(parent, tree, name))
-      tree->setCaption(leaf, name);
+    if (TLeafHandle handle = is_name_exists_in_childs(parent, tree, name))
+    {
+      if (handle != leaf)
+        logerr("Name \"%s\" is not unique, can't save", name);
+      return;
+    }
+
+    const String oldName = tree->getCaption(leaf);
+    DataBlock *enumRootBlk = props.addBlock("initAnimState")->addBlock("enum");
+    if (data->type == AnimStatesType::ENUM)
+    {
+      DataBlock *enumBlk = enumRootBlk->addBlock(oldName.c_str());
+      enumBlk->changeBlockName(name.c_str());
+    }
     else
-      logerr("Name \"%s\" is not unique, can't save", name);
+    {
+      const String parentName = tree->getCaption(parent);
+      DataBlock *enumBlk = enumRootBlk->addBlock(parentName.c_str());
+      DataBlock *enumItemBlk = enumBlk->addBlock(oldName.c_str());
+      enumItemBlk->changeBlockName(name.c_str());
+    }
+    savePropsWithoutReload(props, fullPath);
+    tree->setCaption(leaf, name);
   }
 }
 
-void AnimTreePlugin::selectedChangedAnimStatesTree(PropertyContainerControlBase *panel)
+void AnimTreePlugin::selectedChangedAnimStatesTree(PropPanel::ContainerPropertyControl *panel)
 {
-  PropertyContainerControlBase *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
+  PropPanel::ContainerPropertyControl *group = panel->getById(PID_ANIM_STATES_SETTINGS_GROUP)->getContainer();
+  group->removeById(PID_ANIM_STATES_NAME_FIELD);
   TLeafHandle leaf = tree->getSelLeaf();
-  if (!leaf || leaf == tree->getRootLeaf())
+  if (!leaf)
   {
-    panel->setText(PID_ANIM_STATES_NAME_FIELD, "");
     panel->setEnabledById(PID_ANIM_STATES_ADD_ENUM_ITEM, /*enabled*/ false);
     return;
   }
@@ -1314,89 +1875,557 @@ void AnimTreePlugin::selectedChangedAnimStatesTree(PropertyContainerControlBase 
   const bool isEnumSelected = isEnumOrEnumItem(leaf, tree);
   panel->setEnabledById(PID_ANIM_STATES_ADD_ENUM_ITEM, isEnumSelected);
   if (isEnumSelected)
-    panel->setText(PID_ANIM_STATES_NAME_FIELD, tree->getCaption(leaf));
-  else
-    panel->setText(PID_ANIM_STATES_NAME_FIELD, "");
-}
-
-void AnimTreePlugin::addMaskToNodeMasksTree(PropertyContainerControlBase *panel)
-{
-  PropertyContainerControlBase *tree = panel->getById(PID_NODE_MASKS_TREE)->getContainer();
-  create_new_leaf(0, tree, panel, "node_mask", NODE_MASK_ICON, PID_NODE_MASKS_NAME_FIELD);
-  panel->setEnabledById(PID_NODE_MASKS_ADD_NODE, /*enabled*/ true);
-}
-
-void AnimTreePlugin::addNodeToNodeMasksTree(PropertyContainerControlBase *panel)
-{
-  PropertyContainerControlBase *tree = panel->getById(PID_NODE_MASKS_TREE)->getContainer();
-  TLeafHandle leaf = tree->getSelLeaf();
-  if (!leaf)
-    return;
-
-  TLeafHandle parent = tree->getParentLeaf(leaf);
-  if (!parent)
-    parent = leaf;
-
-  create_new_leaf(parent, tree, panel, "node_leaf", NODE_MASK_LEAF_ICON, PID_NODE_MASKS_NAME_FIELD);
-}
-
-void AnimTreePlugin::removeNodeFromNodeMasksTree(PropertyContainerControlBase *panel)
-{
-  PropertyContainerControlBase *tree = panel->getById(PID_NODE_MASKS_TREE)->getContainer();
-  TLeafHandle leaf = tree->getSelLeaf();
-  if (!leaf)
-    return;
-
-  tree->removeLeaf(leaf);
-  panel->setText(PID_NODE_MASKS_NAME_FIELD, "");
-}
-
-void AnimTreePlugin::saveSettingsNodeMasksTree(PropertyContainerControlBase *panel)
-{
-  PropertyContainerControlBase *tree = panel->getById(PID_NODE_MASKS_TREE)->getContainer();
-  TLeafHandle leaf = tree->getSelLeaf();
-  if (!leaf)
-    return;
-
-  TLeafHandle parent = tree->getParentLeaf(leaf);
-  SimpleString name = panel->getText(PID_NODE_MASKS_NAME_FIELD);
-  if (!is_name_exists_in_childs(parent, tree, name))
-    tree->setCaption(leaf, name);
-  else
-    logerr("Name \"%s\" is not unique, can't save", name);
-}
-
-void AnimTreePlugin::selectedChangedNodeMasksTree(PropertyContainerControlBase *panel)
-{
-  PropertyContainerControlBase *tree = panel->getById(PID_NODE_MASKS_TREE)->getContainer();
-  TLeafHandle leaf = tree->getSelLeaf();
-  const bool isSelectedLeafValid = leaf && leaf != tree->getRootLeaf();
-  panel->setEnabledById(PID_NODE_MASKS_ADD_NODE, static_cast<bool>(isSelectedLeafValid));
-  if (!isSelectedLeafValid)
+    group->createEditBox(PID_ANIM_STATES_NAME_FIELD, "Field name", tree->getCaption(leaf));
+  else if (leaf == tree->getRootLeaf())
   {
-    panel->setText(PID_NODE_MASKS_NAME_FIELD, "");
+    PropPanel::ContainerPropertyControl *ctrlsTree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+    Tab<String> names;
+    names.emplace_back("Root");
+    // We use ctrls data becuse include paths content includes and inner includes, we want use only includes
+    for (const AnimCtrlData &data : controllersData)
+      if (data.type == ctrl_type_include)
+        names.emplace_back(ctrlsTree->getCaption(data.handle));
+
+    group->createCombo(PID_ANIM_STATES_NAME_FIELD, "Root include", names, tree->getCaption(leaf), statesData.empty());
+  }
+  group->moveById(PID_ANIM_STATES_SAVE);
+}
+
+void AnimTreePlugin::addNodeToCtrlTree(PropPanel::ContainerPropertyControl *panel)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+  TLeafHandle leaf = tree->getSelLeaf();
+  TLeafHandle root = tree->getRootLeaf();
+  TLeafHandle includeLeaf = leaf;
+  if (!leaf)
+    return;
+
+  if (leaf != root)
+  {
+    AnimCtrlData *selectedData = find_data_by_handle(controllersData, leaf);
+    if (selectedData == controllersData.end())
+      return;
+
+    if (selectedData->type != ctrl_type_include && selectedData->type != ctrl_type_inner_include)
+      includeLeaf = tree->getParentLeaf(leaf);
+  }
+
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, includeLeaf, fullPath);
+  if (fullPath.empty())
+    return;
+
+  if (
+    DataBlock *ctrlsProps = get_props_from_include_leaf_ctrl_node(controllersData, includePaths, *curAsset, props, tree, includeLeaf))
+  {
+    TLeafHandle newLeaf = tree->createTreeLeaf(includeLeaf, "new_node", ANIM_BLEND_CTRL_ICON);
+    addController(newLeaf, ctrl_type_null);
+    DataBlock *settings = ctrlsProps->addNewBlock("null");
+    settings->setStr("name", "new_node");
+    savePropsWithoutReload(props, fullPath);
+    tree->setSelLeaf(newLeaf);
+    fillCtrlsSettings(panel);
+  }
+}
+
+void AnimTreePlugin::addIncludeToCtrlTree(PropPanel::ContainerPropertyControl *panel, int type_pid)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+  TLeafHandle leaf = tree->getSelLeaf();
+  TLeafHandle root = tree->getRootLeaf();
+  TLeafHandle includeLeaf = leaf;
+  if (!leaf)
+    return;
+
+  if (leaf != root)
+  {
+    AnimCtrlData *selectedData = find_data_by_handle(controllersData, leaf);
+    if (selectedData == controllersData.end())
+      return;
+
+    if (selectedData->type != ctrl_type_include && selectedData->type != ctrl_type_inner_include)
+      includeLeaf = tree->getParentLeaf(leaf);
+  }
+
+  AnimCtrlData *includeData = find_data_by_handle(controllersData, includeLeaf);
+
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, includeLeaf, fullPath);
+  if (fullPath.empty())
+    return;
+
+  // We wan't create include leaf in inner include
+  if (type_pid == PID_ANIM_BLEND_CTRLS_ADD_INCLUDE &&
+      (includeLeaf == tree->getRootLeaf() || (includeData != controllersData.end() && includeData->type != ctrl_type_inner_include)))
+    addIncludeLeaf(panel, PID_ANIM_BLEND_CTRLS_TREE, includeLeaf, tree->getCaption(includeLeaf));
+  else if (type_pid == PID_ANIM_BLEND_CTRLS_ADD_INNER_INCLUDE)
+  {
+    TLeafHandle ctrlsLeaf = tree->createTreeLeaf(includeLeaf, "new_include", INNER_INCLUDE_ICON);
+    addController(ctrlsLeaf, ctrl_type_inner_include);
+    tree->setSelLeaf(ctrlsLeaf);
+  }
+  fillCtrlsSettings(panel);
+}
+
+static void remove_include_states_tree(PropPanel::ContainerPropertyControl *panel, dag::Vector<AnimStatesData> &states,
+  const String &name)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
+  TLeafHandle root = tree->getRootLeaf();
+
+  if (tree->getCaption(root) == name)
+  {
+    change_include_leaf(tree, "Root", root);
+    states.clear();
+  }
+}
+
+void AnimTreePlugin::removeNodeFromCtrlsTree(PropPanel::ContainerPropertyControl *panel)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+  TLeafHandle leaf = tree->getSelLeaf();
+  if (!leaf)
+    return;
+
+  AnimCtrlData *selectedData = find_data_by_handle(controllersData, leaf);
+  if (selectedData == controllersData.end())
+    return;
+
+  TLeafHandle parent = tree->getParentLeaf(leaf);
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, parent, fullPath);
+
+  if (selectedData->type == ctrl_type_include)
+  {
+    const String selName = tree->getCaption(leaf);
+    remove_include_tree_node(tree, controllersData, includePaths, props, leaf);
+    remove_include_leaf_nodes(panel, blendNodesData, selName);
+    remove_include_leaf(panel, PID_NODE_MASKS_TREE, nodeMasksData, selName, is_include_node_mask);
+    remove_include_states_tree(panel, statesData, selName);
+  }
+  else if (selectedData->type == ctrl_type_inner_include)
+  {
+    AnimCtrlData *parentData = find_data_by_handle(controllersData, parent);
+    if ((parentData != controllersData.end() && parentData->type == ctrl_type_include) || parent == tree->getRootLeaf())
+    {
+      DataBlock *ctrlsBlk = props.addBlock("AnimBlendCtrl");
+      remove_include_tree_node(tree, controllersData, includePaths, *ctrlsBlk, leaf);
+    }
+    else
+      remove_include_tree_node(tree, controllersData, includePaths, props, leaf);
+  }
+  else
+  {
+    if (DataBlock *ctrlsProps = get_props_from_include_leaf_ctrl_node(controllersData, includePaths, *curAsset, props, tree, parent))
+    {
+      const String name = tree->getCaption(leaf);
+      for (int i = 0; i < ctrlsProps->blockCount(); ++i)
+      {
+        DataBlock *settings = ctrlsProps->getBlock(i);
+        if (name == settings->getStr("name", ""))
+          ctrlsProps->removeBlock(i);
+      }
+      tree->removeLeaf(leaf);
+    }
+  }
+
+  controllersData.erase(selectedData);
+  savePropsWithoutReload(props, fullPath);
+}
+
+void AnimTreePlugin::changeCtrlType(PropPanel::ContainerPropertyControl *panel)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+  PropPanel::ContainerPropertyControl *group = panel->getById(PID_ANIM_BLEND_CTRLS_SETTINGS_GROUP)->getContainer();
+  TLeafHandle leaf = tree->getSelLeaf();
+  TLeafHandle parent = tree->getParentLeaf(leaf);
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, parent, fullPath);
+  if (fullPath.empty())
+    return;
+  const CtrlType type = static_cast<CtrlType>(panel->getInt(PID_CTRLS_TYPE_COMBO_SELECT));
+  const int lastCtrlsPid = !ctrlParams.empty() ? ctrlParams.back().pid : PID_CTRLS_PARAMS_FIELD;
+  G_ASSERTF(lastCtrlsPid < PID_CTRLS_PARAMS_FIELD_SIZE, "Previous controller have more params than reserved");
+  const bool breakIfNotFound = true;
+  remove_fields(panel, PID_CTRLS_PARAMS_FIELD, lastCtrlsPid + 1, !breakIfNotFound);
+  remove_fields(panel, PID_CTRLS_ACTION_FIELD + 1, PID_CTRLS_ACTION_FIELD_SIZE, !breakIfNotFound);
+  ctrlParams.clear();
+
+  int fieldIdx = PID_CTRLS_PARAMS_FIELD;
+  fill_ctrls_params_settings(group, type, fieldIdx, ctrlParams);
+
+  // Before fill block settings we need check new and old types, if they different use emptyBlock for fill
+  const DataBlock *blocksSettings = &DataBlock::emptyBlock;
+  if (DataBlock *ctrlsProps = get_props_from_include_leaf_ctrl_node(controllersData, includePaths, *curAsset, props, tree, parent))
+    if (DataBlock *settings = find_block_by_name(ctrlsProps, tree->getCaption(leaf)))
+    {
+      CtrlType oldType = static_cast<CtrlType>(lup(settings->getBlockName(), ctrl_type, ctrl_type_not_found));
+      if (oldType == type)
+        blocksSettings = settings;
+      fill_values_if_exists(group, settings, ctrlParams);
+    }
+
+  fillCtrlsBlocksSettings(group, type, blocksSettings);
+  group->createButton(PID_CTRLS_SETTINGS_SAVE, "Save");
+}
+
+void AnimTreePlugin::addMaskToNodeMasksTree(PropPanel::ContainerPropertyControl *panel)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_NODE_MASKS_TREE)->getContainer();
+  TLeafHandle includeLeaf = get_node_mask_include(nodeMasksData, tree);
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, includeLeaf, fullPath);
+  if (fullPath.empty())
+    return;
+  if (create_new_leaf(includeLeaf, tree, panel, NODE_MASK_DEFAULT_NAME, NODE_MASK_ICON, PID_NODE_MASKS_NAME_FIELD))
+  {
+    nodeMasksData.emplace_back(NodeMaskData{tree->getSelLeaf(), NodeMaskType::MASK});
+    DataBlock *node = props.addBlock("nodeMask");
+    node->setStr("name", NODE_MASK_DEFAULT_NAME);
+    savePropsWithoutReload(props, fullPath);
+    selectedChangedNodeMasksTree(panel);
+  }
+}
+
+void AnimTreePlugin::addNodeToNodeMasksTree(PropPanel::ContainerPropertyControl *panel)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_NODE_MASKS_TREE)->getContainer();
+  TLeafHandle leaf = tree->getSelLeaf();
+  TLeafHandle root = tree->getRootLeaf();
+  if (!leaf)
+    return;
+  TLeafHandle includeLeaf = get_node_mask_include(nodeMasksData, tree);
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, includeLeaf, fullPath);
+  if (fullPath.empty())
+    return;
+
+  const NodeMaskData *maskData = find_data_by_handle(nodeMasksData, leaf);
+  if (maskData == nodeMasksData.end() && includeLeaf != root)
+  {
+    logerr("Selected leaf <%s> not found in node masks data", panel->getCaption(leaf));
     return;
   }
 
-  panel->setText(PID_NODE_MASKS_NAME_FIELD, tree->getCaption(leaf));
+  if (maskData->type == NodeMaskType::INCLUDE || (maskData == nodeMasksData.end() && includeLeaf == root))
+    addIncludeLeaf(panel, PID_NODE_MASKS_TREE, includeLeaf, tree->getCaption(includeLeaf));
+  else if (maskData->type == NodeMaskType::MASK || maskData->type == NodeMaskType::LEAF)
+  {
+    TLeafHandle parent = maskData->type == NodeMaskType::MASK ? leaf : tree->getParentLeaf(leaf);
+    if (create_new_leaf(parent, tree, panel, NODE_LEAF_DEFAULT_NAME, NODE_MASK_LEAF_ICON, PID_NODE_MASKS_NAME_FIELD))
+    {
+      nodeMasksData.emplace_back(NodeMaskData{tree->getSelLeaf(), NodeMaskType::LEAF});
+      const int nodeMaskNid = props.getNameId("nodeMask");
+      const String nodeMaskName = tree->getCaption(parent);
+      for (int i = 0; i < props.blockCount(); ++i)
+      {
+        if (props.getBlock(i)->getNameId() == nodeMaskNid)
+        {
+          DataBlock *node = props.getBlock(i);
+          if (nodeMaskName == node->getStr("name"))
+            node->addStr("node", NODE_LEAF_DEFAULT_NAME);
+        }
+      }
+      savePropsWithoutReload(props, fullPath);
+    }
+  }
+  selectedChangedNodeMasksTree(panel);
 }
 
-void AnimTreePlugin::addIrqNodeToAnimNodesTree(PropertyContainerControlBase *panel)
+void AnimTreePlugin::removeNodeFromNodeMasksTree(PropPanel::ContainerPropertyControl *panel)
 {
-  PropertyContainerControlBase *tree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
-  PropertyContainerControlBase *group = panel->getById(PID_ANIM_BLEND_NODES_SETTINGS_GROUP)->getContainer();
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_NODE_MASKS_TREE)->getContainer();
+  TLeafHandle leaf = tree->getSelLeaf();
+  if (!leaf)
+    return;
+
+  // if selected leaf is include leaf, then we need parent include for remove selected include from it
+  const bool forceParent = true;
+  TLeafHandle includeLeaf = get_node_mask_include(nodeMasksData, tree, forceParent);
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, includeLeaf, fullPath);
+  if (fullPath.empty())
+    return;
+
+  const NodeMaskData *maskData = find_data_by_handle(nodeMasksData, leaf);
+  if (maskData == nodeMasksData.end())
+  {
+    logerr("Selected leaf <%s> not found in node masks data", panel->getCaption(leaf));
+    return;
+  }
+
+  if (maskData->type == NodeMaskType::INCLUDE)
+  {
+    const String selName = tree->getCaption(leaf);
+    remove_include_tree_node(tree, nodeMasksData, includePaths, props, leaf);
+    remove_include_leaf_nodes(panel, blendNodesData, selName);
+    remove_include_leaf(panel, PID_ANIM_BLEND_CTRLS_TREE, controllersData, selName, is_include_ctrl);
+    remove_include_states_tree(panel, statesData, selName);
+    panel->setText(PID_NODE_MASKS_NAME_FIELD, "");
+    panel->setCaption(PID_NODE_MASKS_NAME_FIELD, "Field name");
+    panel->removeById(PID_NODE_MASKS_PATH_FIELD);
+  }
+  else if (maskData->type == NodeMaskType::MASK || maskData->type == NodeMaskType::LEAF)
+  {
+    TLeafHandle parent = tree->getParentLeaf(leaf);
+    TLeafHandle nodeMaskLeaf = maskData->type == NodeMaskType::LEAF ? parent : leaf;
+    const int nodeMaskNid = props.getNameId("nodeMask");
+    const String nodeMaskName = tree->getCaption(nodeMaskLeaf);
+    for (int i = 0; i < props.blockCount(); ++i)
+    {
+      if (props.getBlock(i)->getNameId() == nodeMaskNid)
+      {
+        DataBlock *node = props.getBlock(i);
+        if (nodeMaskName == node->getStr("name"))
+        {
+          if (leaf != nodeMaskLeaf)
+          {
+            const String leafName = tree->getCaption(leaf);
+            const int nodeNid = node->getNameId("node");
+            for (int j = 0; j < node->paramCount(); ++j)
+              if (nodeNid == node->getParamNameId(j) && leafName == node->getStr(j))
+                node->removeParam(j);
+          }
+          else
+            props.removeBlock(i);
+        }
+      }
+    }
+
+    remove_childs_data_by_leaf(tree, nodeMasksData, leaf);
+    tree->removeLeaf(leaf);
+    panel->setText(PID_NODE_MASKS_NAME_FIELD, "");
+  }
+
+  nodeMasksData.erase(maskData);
+  savePropsWithoutReload(props, fullPath);
+  selectedChangedNodeMasksTree(panel);
+}
+
+void AnimTreePlugin::saveSettingsNodeMasksTree(PropPanel::ContainerPropertyControl *panel)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_NODE_MASKS_TREE)->getContainer();
+  TLeafHandle leaf = tree->getSelLeaf();
+  TLeafHandle root = tree->getRootLeaf();
+  if (!leaf || leaf == root)
+    return;
+
+  // if selected leaf is include leaf, then we need parent include for save selected include in it
+  const bool forceParent = true;
+  TLeafHandle includeLeaf = get_node_mask_include(nodeMasksData, tree, forceParent);
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, includeLeaf, fullPath);
+  if (fullPath.empty())
+    return;
+  const NodeMaskData *maskData = find_data_by_handle(nodeMasksData, leaf);
+  if (maskData == nodeMasksData.end())
+  {
+    logerr("Selected leaf <%s> not found in node masks data", panel->getCaption(leaf));
+    return;
+  }
+
+  if (maskData->type == NodeMaskType::INCLUDE)
+  {
+    const SimpleString fileName = panel->getText(PID_NODE_MASKS_NAME_FIELD);
+    const SimpleString newPath = panel->getText(PID_NODE_MASKS_PATH_FIELD);
+    if (!checkIncludeBeforeSave(tree, leaf, fileName, newPath, props))
+      return;
+
+    String newFullPath = String(0, "%s%s.blk", newPath.c_str(), fileName.c_str());
+    const String selName = tree->getCaption(leaf);
+    TLeafHandle nodeLeaf = change_include_leaf_nodes(panel, selName, fileName.c_str());
+    change_include_leaf(tree, fileName.c_str(), leaf);
+    TLeafHandle ctrlLeaf =
+      change_include_leaf(panel, controllersData, selName, fileName.c_str(), PID_ANIM_BLEND_CTRLS_TREE, is_include_ctrl);
+    saveIncludeChange(panel, tree, leaf, props, selName, newFullPath, {nodeLeaf, leaf, ctrlLeaf});
+  }
+  else if (maskData->type == NodeMaskType::MASK || maskData->type == NodeMaskType::LEAF)
+  {
+    TLeafHandle parent = tree->getParentLeaf(leaf);
+    SimpleString name = panel->getText(PID_NODE_MASKS_NAME_FIELD);
+    if (TLeafHandle handle = is_name_exists_in_childs(parent, tree, name))
+    {
+      if (handle != leaf)
+        logerr("Name \"%s\" is not unique, can't save", name);
+      return;
+    }
+
+    TLeafHandle nodeMaskLeaf = maskData->type == NodeMaskType::LEAF ? parent : leaf;
+    const int nodeMaskNid = props.getNameId("nodeMask");
+    const String nodeMaskName = tree->getCaption(nodeMaskLeaf);
+    for (int i = 0; i < props.blockCount(); ++i)
+    {
+      if (props.getBlock(i)->getNameId() == nodeMaskNid)
+      {
+        DataBlock *node = props.getBlock(i);
+        if (nodeMaskName == node->getStr("name"))
+        {
+          if (leaf != nodeMaskLeaf)
+          {
+            const String leafName = tree->getCaption(leaf);
+            const int nodeNid = node->getNameId("node");
+            for (int j = 0; j < node->paramCount(); ++j)
+              if (nodeNid == node->getParamNameId(j) && leafName == node->getStr(j))
+                node->setStr(j, name.c_str());
+          }
+          else
+            node->setStr("name", name.c_str());
+        }
+      }
+    }
+    tree->setCaption(leaf, name.c_str());
+  }
+
+  savePropsWithoutReload(props, fullPath);
+}
+
+static bool try_find_mask_node_with_override(const String &path, const String &name)
+{
+  const bool curParseIncludesAsParams = DataBlock::parseIncludesAsParams;
+  DataBlock::parseIncludesAsParams = true;
+  DataBlock props(path);
+  DataBlock::parseIncludesAsParams = curParseIncludesAsParams;
+  const int nodeMaskNid = props.getNameId("nodeMask");
+  for (int i = 0; i < props.blockCount(); ++i)
+  {
+    const DataBlock *node = props.getBlock(i);
+    if (node->getNameId() == nodeMaskNid && node->getStr("name") == name)
+      return true;
+  }
+  return false;
+}
+
+void AnimTreePlugin::selectedChangedNodeMasksTree(PropPanel::ContainerPropertyControl *panel)
+{
+  // Clear fields by default
+  panel->setText(PID_NODE_MASKS_NAME_FIELD, "");
+  panel->setCaption(PID_NODE_MASKS_NAME_FIELD, "Field name");
+  panel->removeById(PID_NODE_MASKS_PATH_FIELD);
+
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_NODE_MASKS_TREE)->getContainer();
+  PropPanel::ContainerPropertyControl *group = panel->getById(PID_NODE_MASKS_SETTINGS_GROUP)->getContainer();
+  TLeafHandle leaf = tree->getSelLeaf();
+  if (leaf == tree->getRootLeaf())
+    panel->setCaption(PID_NODE_MASKS_ADD_NODE, "Add include");
+  if (!leaf || leaf == tree->getRootLeaf())
+    return;
+
+  NodeMaskData *selectedData = find_data_by_handle(nodeMasksData, leaf);
+  if (selectedData == nodeMasksData.end())
+    return;
+
+  if (selectedData->type == NodeMaskType::INCLUDE)
+  {
+    String selName = tree->getCaption(leaf);
+    group->setCaption(PID_NODE_MASKS_NAME_FIELD, "file name");
+    group->setText(PID_NODE_MASKS_NAME_FIELD, selName.c_str());
+
+    const String *path = eastl::find_if(includePaths.begin(), includePaths.end(), [&selName](const String &value) {
+      char fileNameBuf[DAGOR_MAX_PATH];
+      return selName == dd_get_fname_without_path_and_ext(fileNameBuf, sizeof(fileNameBuf), value.c_str());
+    });
+    char fileLocationBuf[DAGOR_MAX_PATH];
+    String pathWithoutName = (path != includePaths.end() && !path->empty())
+                               ? String(dd_get_fname_location(fileLocationBuf, path->c_str()))
+                               : String("#/example/path/for/include/");
+    group->createEditBox(PID_NODE_MASKS_PATH_FIELD, "path", pathWithoutName);
+    group->moveById(PID_NODE_MASKS_PATH_FIELD, PID_NODE_MASKS_SAVE);
+    panel->setCaption(PID_NODE_MASKS_ADD_NODE, "Add include");
+  }
+  else if (selectedData->type == NodeMaskType::MASK || selectedData->type == NodeMaskType::LEAF)
+  {
+    bool isEditEnabled = false;
+    TLeafHandle nodeMaskLeaf = selectedData->type == NodeMaskType::MASK ? leaf : tree->getParentLeaf(leaf);
+    TLeafHandle includeLeaf = get_node_mask_include(nodeMasksData, tree);
+    String fullPath;
+    DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, includeLeaf, fullPath);
+    const String nodeMaskName = tree->getCaption(nodeMaskLeaf);
+    const int nodeMaskNid = props.getNameId("nodeMask");
+    for (int i = 0; i < props.blockCount(); ++i)
+    {
+      const DataBlock *node = props.getBlock(i);
+      if (node->getNameId() == nodeMaskNid && node->getStr("name") == nodeMaskName)
+        isEditEnabled = true;
+    }
+
+    if (!isEditEnabled)
+      if (try_find_mask_node_with_override(fullPath, nodeMaskName))
+        logerr("Node %s overrided in blk, can't edit this node. Edit it manual in %s", tree->getCaption(leaf), fullPath.c_str());
+      else
+        logerr("Can't find node %s in blk", tree->getCaption(leaf));
+
+    group->setText(PID_NODE_MASKS_NAME_FIELD, tree->getCaption(leaf));
+    panel->setCaption(PID_NODE_MASKS_ADD_NODE, "Add node");
+    panel->setEnabledById(PID_NODE_MASKS_ADD_NODE, isEditEnabled);
+    panel->setEnabledById(PID_NODE_MASKS_SAVE, isEditEnabled);
+  }
+}
+
+void AnimTreePlugin::createNodeAnimNodesTree(PropPanel::ContainerPropertyControl *panel)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf_blend_node(includePaths, *curAsset, tree, fullPath);
+  if (fullPath.empty())
+    return;
+
+  TLeafHandle selLeaf = tree->getSelLeaf();
+  TLeafHandle includeLeaf = get_anim_blend_node_include(tree);
+  if (!includeLeaf)
+    return;
+
+  TLeafHandle leaf = tree->createTreeLeaf(includeLeaf, "new_node", BLEND_NODE_SINGLE_ICON);
+  tree->setUserData(leaf, (void *)&ANIM_BLEND_NODE_LEAF);
+  addBlendNode(leaf, BlendNodeType::SINGLE);
+  DataBlock *settings = props.addNewBlock("AnimBlendNodeLeaf")->addBlock("single");
+  settings->setStr("name", "new_node");
+  tree->setSelLeaf(leaf);
+  savePropsWithoutReload(props, fullPath);
+  selectedChangedAnimNodesTree(panel);
+}
+
+void AnimTreePlugin::createLeafAnimNodesTree(PropPanel::ContainerPropertyControl *panel)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+  TLeafHandle selLeaf = tree->getSelLeaf();
+  if (!selLeaf)
+    return;
+
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf_blend_node(includePaths, *curAsset, tree, fullPath);
+  if (fullPath.empty())
+    return;
+
+  if (tree->getUserData(selLeaf) == &ANIM_BLEND_NODE_LEAF || tree->getUserData(selLeaf) == &ANIM_BLEND_NODE_A2D)
+    addLeafToBlendNodesTree(tree, props);
+  else if (tree->getUserData(selLeaf) == &ANIM_BLEND_NODE_INCLUDE || tree->getRootLeaf() == selLeaf)
+    addIncludeLeaf(panel, PID_ANIM_BLEND_NODES_TREE, selLeaf, tree->getCaption(selLeaf));
+
+  savePropsWithoutReload(props, fullPath);
+  selectedChangedAnimNodesTree(panel);
+}
+
+void AnimTreePlugin::addIrqNodeToAnimNodesTree(PropPanel::ContainerPropertyControl *panel)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+  PropPanel::ContainerPropertyControl *group = panel->getById(PID_ANIM_BLEND_NODES_SETTINGS_GROUP)->getContainer();
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf_blend_node(includePaths, *curAsset, tree, fullPath);
+  if (fullPath.empty())
+    return;
   TLeafHandle leaf = tree->getSelLeaf();
   if (!leaf || tree->getUserData(leaf) != &ANIM_BLEND_NODE_LEAF)
     return;
 
   const char *leafName = "irq_name";
   TLeafHandle irqLeaf = tree->createTreeLeaf(leaf, leafName, IRQ_ICON);
+  addBlendNode(irqLeaf, BlendNodeType::IRQ);
   tree->setUserData(irqLeaf, (void *)&ANIM_BLEND_NODE_IRQ);
   tree->setSelLeaf(irqLeaf);
   fill_irq_settings(group, leafName, IRQ_TYPE_KEY);
   panel->setEnabledById(PID_ANIM_BLEND_NODES_ADD_IRQ, /*enabled*/ false);
   String bnlName = tree->getCaption(leaf);
-  DataBlock *settings = findBnlProps(bnlName.c_str());
+  DataBlock *settings = find_blend_node_settings(props, bnlName.c_str());
   if (!settings)
   {
     logerr("Can't find animBlendNodeLeaf props with name %s", bnlName.c_str());
@@ -1406,16 +2435,99 @@ void AnimTreePlugin::addIrqNodeToAnimNodesTree(PropertyContainerControlBase *pan
   DataBlock *irqProps = settings->addNewBlock("irq");
   irqProps->addStr(irq_types[IRQ_TYPE_KEY], "");
   irqProps->addStr("name", leafName);
+  savePropsWithoutReload(props, fullPath);
 }
-void AnimTreePlugin::removeNodeFromAnimNodesTree(PropertyContainerControlBase *panel)
+
+void AnimTreePlugin::removeBlendNodeOrA2d(PropPanel::ContainerPropertyControl *tree, TLeafHandle leaf, DataBlock *props)
 {
-  PropertyContainerControlBase *tree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+  int a2dIdx = -1;
+  TLeafHandle nodeLeaf = get_anim_blend_node_leaf(tree);
+  if (!nodeLeaf)
+    return;
+
+  DataBlock *settings = get_selected_bnl_settings(*props, tree->getCaption(nodeLeaf), a2dIdx);
+  DataBlock *a2dBlk = props->getBlock(a2dIdx);
+
+  TLeafHandle parent = tree->getParentLeaf(leaf);
+  // First case is selected a2d node or it's collapsed a2d node with only 1 child
+  if (tree->getUserData(leaf) == &ANIM_BLEND_NODE_A2D ||
+      (tree->getUserData(leaf) == &ANIM_BLEND_NODE_LEAF &&
+        (parent == tree->getRootLeaf() || tree->getUserData(parent) == &ANIM_BLEND_NODE_INCLUDE)))
+  {
+    props->removeBlock(a2dIdx);
+    remove_childs_data_by_leaf(tree, blendNodesData, leaf);
+    tree->removeLeaf(leaf);
+  }
+  else if (tree->getUserData(leaf) == &ANIM_BLEND_NODE_LEAF)
+  {
+    TLeafHandle a2dLeaf = tree->getParentLeaf(leaf);
+    // In case when a2d node have only 1 child we display only anim blend node in tree
+    // And if childs 2 or more display a2d node with anim blend node leafs
+    if (tree->getChildCount(a2dLeaf) > 2)
+    {
+      for (int i = 0; i < tree->getChildCount(a2dLeaf); ++i)
+        if (tree->getChildLeaf(a2dLeaf, i) == leaf)
+          a2dBlk->removeBlock(i);
+
+      remove_childs_data_by_leaf(tree, blendNodesData, leaf);
+      tree->removeLeaf(leaf);
+    }
+    else if (tree->getChildCount(a2dLeaf) == 2)
+    {
+      // In this case we need remove selected node and collapse a2d node to just anim blend node
+      const int selectedIdx = tree->getChildLeaf(a2dLeaf, 0) == leaf ? 0 : 1;
+      TLeafHandle anotherLeaf = tree->getChildLeaf(a2dLeaf, selectedIdx == 0 ? 1 : 0);
+      const String anotherLeafName = tree->getCaption(anotherLeaf);
+      const DataBlock *anotherLeafSettings = get_selected_bnl_settings(*props, anotherLeafName.c_str(), a2dIdx);
+      tree->setCaption(a2dLeaf, anotherLeafName.c_str());
+      tree->setUserData(a2dLeaf, (void *)&ANIM_BLEND_NODE_LEAF);
+      BlendNodeData *a2dData = find_data_by_handle(blendNodesData, a2dLeaf);
+      BlendNodeType a2dLeafType = BlendNodeType::UNSET;
+      if (anotherLeafSettings)
+        a2dLeafType = static_cast<BlendNodeType>(lup(anotherLeafSettings->getBlockName(), blend_node_types));
+      if (a2dData != blendNodesData.end())
+        a2dData->type = a2dLeafType;
+      else
+        addBlendNode(a2dLeaf, a2dLeafType);
+      tree->setButtonPictures(a2dLeaf, get_blend_node_icon_name(a2dLeafType));
+
+      // this remove data for leaf and anotherLeaf and they childs
+      remove_childs_data_by_leaf(tree, blendNodesData, a2dLeaf);
+      tree->removeLeaf(leaf);
+      tree->removeLeaf(anotherLeaf);
+      a2dBlk->removeBlock(selectedIdx);
+      DataBlock *anotherSettings = a2dBlk->getBlock(0);
+
+      for (int i = 0; i < anotherSettings->blockCount(); ++i)
+      {
+        TLeafHandle irqLeaf = tree->createTreeLeaf(a2dLeaf, anotherSettings->getBlock(i)->getStr("name"), IRQ_ICON);
+        addBlendNode(irqLeaf, BlendNodeType::IRQ);
+        tree->setUserData(irqLeaf, (void *)&ANIM_BLEND_NODE_IRQ);
+      }
+    }
+  }
+}
+
+void AnimTreePlugin::removeNodeFromAnimNodesTree(PropPanel::ContainerPropertyControl *panel)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+  String fullPath;
+  // if selected leaf is include leaf, then we need parent include for remove selected include from it
+  const bool forceParent = true;
+  DataBlock props = get_props_from_include_leaf_blend_node(includePaths, *curAsset, tree, fullPath, forceParent);
+  if (fullPath.empty())
+    return;
+
   TLeafHandle leaf = tree->getSelLeaf();
+  BlendNodeData *removeData = find_data_by_handle(blendNodesData, leaf);
+  if (removeData != blendNodesData.end())
+    blendNodesData.erase(removeData);
+
   if (tree->getUserData(leaf) == &ANIM_BLEND_NODE_IRQ)
   {
     TLeafHandle parent = tree->getParentLeaf(leaf);
     String bnlName = tree->getCaption(parent);
-    DataBlock *settings = findBnlProps(bnlName.c_str());
+    DataBlock *settings = find_blend_node_settings(props, bnlName.c_str());
     if (!settings)
     {
       logerr("Can't find animBlendNodeLeaf props with name %s", bnlName.c_str());
@@ -1425,61 +2537,189 @@ void AnimTreePlugin::removeNodeFromAnimNodesTree(PropertyContainerControlBase *p
     remove_nodes_fields(panel);
     tree->removeLeaf(leaf);
   }
+  else if (tree->getUserData(leaf) == &ANIM_BLEND_NODE_A2D || tree->getUserData(leaf) == &ANIM_BLEND_NODE_LEAF)
+  {
+    removeBlendNodeOrA2d(tree, leaf, &props);
+    remove_nodes_fields(panel);
+    animBnlParams.clear();
+  }
+  else if (tree->getUserData(leaf) == &ANIM_BLEND_NODE_INCLUDE)
+  {
+    const String selName = tree->getCaption(leaf);
+    remove_childs_data_by_leaf(tree, blendNodesData, leaf);
+    remove_include_node(tree, includePaths, props, leaf);
+    remove_include_leaf(panel, PID_NODE_MASKS_TREE, nodeMasksData, selName, is_include_node_mask);
+    remove_include_leaf(panel, PID_ANIM_BLEND_CTRLS_TREE, controllersData, selName, is_include_ctrl);
+    remove_include_states_tree(panel, statesData, selName);
+    remove_nodes_fields(panel);
+    animBnlParams.clear();
+  }
+
+  savePropsWithoutReload(props, fullPath);
 }
 
-void AnimTreePlugin::saveSettingsAnimNodesTree(PropertyContainerControlBase *panel)
+static void save_irq(DataBlock *settings, PropPanel::ContainerPropertyControl *panel)
 {
-  PropertyContainerControlBase *tree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+  const IrqType selectedType = static_cast<IrqType>(panel->getInt(PID_IRQ_TYPE_COMBO_SELECT));
+  if (selectedType == IRQ_TYPE_KEY)
+  {
+    SimpleString key = panel->getText(PID_IRQ_INTERRUPTION_FIELD);
+    if (!key.empty())
+    {
+      for (const String &typeParam : irq_types)
+        settings->removeParam(typeParam.c_str());
+      settings->addStr(irq_types[selectedType], key.c_str());
+    }
+    else
+      logerr("Irq key can't be empty");
+  }
+  else if (selectedType == IRQ_TYPE_REL_POS || selectedType == IRQ_TYPE_KEY_FLOAT)
+  {
+    for (const String &typeParam : irq_types)
+      settings->removeParam(typeParam.c_str());
+    const float floatParam = panel->getFloat(PID_IRQ_INTERRUPTION_FIELD);
+    settings->addReal(irq_types[selectedType], floatParam);
+  }
+
+  SimpleString irqName = panel->getText(PID_IRQ_NAME_FIELD);
+  if (!irqName.empty())
+  {
+    PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+    TLeafHandle leaf = tree->getSelLeaf();
+    tree->setCaption(leaf, irqName.c_str());
+    settings->setStr("name", irqName.c_str());
+  }
+  else
+    logerr("New irq name can't be empty");
+}
+
+void AnimTreePlugin::saveSettingsAnimNodesTree(PropPanel::ContainerPropertyControl *panel)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+  String fullPath;
+  // if selected leaf is include leaf, then we need parent include for save selected include in it
+  const bool forceParent = true;
+  DataBlock props = get_props_from_include_leaf_blend_node(includePaths, *curAsset, tree, fullPath, forceParent);
+  if (fullPath.empty())
+    return;
+
   TLeafHandle leaf = tree->getSelLeaf();
   if (tree->getUserData(leaf) == &ANIM_BLEND_NODE_IRQ)
   {
     TLeafHandle parent = tree->getParentLeaf(leaf);
     String bnlName = tree->getCaption(parent);
-    DataBlock *settings = findBnlProps(bnlName.c_str());
+    DataBlock *settings = find_blend_node_settings(props, bnlName.c_str());
     if (!settings)
     {
       logerr("Can't find animBlendNodeLeaf props with name %s", bnlName.c_str());
       return;
     }
     DataBlock *irqSettings = settings->getBlock(get_irq_idx(tree, leaf));
+    save_irq(irqSettings, panel);
+  }
+  else if (tree->getUserData(leaf) == &ANIM_BLEND_NODE_LEAF || tree->getUserData(leaf) == &ANIM_BLEND_NODE_A2D)
+  {
+    int a2dIdx = -1;
+    TLeafHandle nodeLeaf = get_anim_blend_node_leaf(tree);
+    if (!nodeLeaf)
+      return;
 
-    const IrqType selectedType = static_cast<IrqType>(panel->getInt(PID_IRQ_TYPE_COMBO_SELECT));
-    if (selectedType == IRQ_TYPE_KEY)
+    DataBlock *settings = get_selected_bnl_settings(props, tree->getCaption(nodeLeaf), a2dIdx);
+    DataBlock *a2dBlk = props.getBlock(a2dIdx);
+    if (!settings)
     {
-      SimpleString key = panel->getText(PID_IRQ_INTERRUPTION_FIELD);
-      if (!key.empty())
+      logerr("Not found node with name %s", tree->getCaption(nodeLeaf));
+      return;
+    }
+
+    // Make copy, becuse we can don't save optinal fields if it's node leaf
+    dag::Vector<AnimParamData> params = animBnlParams;
+    remove_param_if_default_str(params, panel, "accept_name_mask_re");
+    remove_param_if_default_str(params, panel, "decline_name_mask_re");
+    if (tree->getUserData(leaf) == &ANIM_BLEND_NODE_LEAF)
+    {
+      BlendNodeType type = static_cast<BlendNodeType>(panel->getInt(PID_NODES_SETTINGS_NODE_TYPE_COMBO_SELECT));
+      DataBlock fullProps(curAsset->getSrcFilePath());
+      const bool defaultForeign = fullProps.getBool("defaultForeignAnim", false);
+      switch (type)
       {
-        for (const String &typeParam : irq_types)
-          irqSettings->removeParam(typeParam.c_str());
-        irqSettings->addStr(irq_types[selectedType], key.c_str());
+        case BlendNodeType::SINGLE: single_prepare_params(params, panel, defaultForeign); break;
+        case BlendNodeType::CONTINUOUS: continuous_prepare_params(params, panel, defaultForeign); break;
+        case BlendNodeType::STILL: still_prepare_params(params, panel, defaultForeign); break;
+        case BlendNodeType::PARAMETRIC: parametric_prepare_params(params, panel, defaultForeign); break;
+
+        default: break;
       }
-      else
-        logerr("Irq key can't be empty");
-    }
-    else if (selectedType == IRQ_TYPE_REL_POS || selectedType == IRQ_TYPE_KEY_FLOAT)
-    {
-      for (const String &typeParam : irq_types)
-        irqSettings->removeParam(typeParam.c_str());
-      const float floatParam = panel->getFloat(PID_IRQ_INTERRUPTION_FIELD);
-      irqSettings->addReal(irq_types[selectedType], floatParam);
     }
 
-    SimpleString irqName = panel->getText(PID_IRQ_NAME_FIELD);
-    if (!irqName.empty())
+    auto separator =
+      eastl::find_if(params.begin(), params.end(), [](const AnimParamData &value) { return value.type == DataBlock::TYPE_NONE; });
+    if (separator != params.end())
     {
-      tree->setCaption(leaf, irqName.c_str());
-      irqSettings->setStr("name", irqName.c_str());
+      // Split params based on separator in params, separator not included
+      dag::ConstSpan<AnimParamData> a2dParams = make_span_const(params.begin(), eastl::distance(params.begin(), separator));
+      dag::ConstSpan<AnimParamData> settingsParams = make_span_const(separator + 1, eastl::distance(separator + 1, params.end()));
+      save_params_blk(a2dBlk, a2dParams, panel);
+      save_params_blk(settings, settingsParams, panel);
+      SimpleString newTypeName = panel->getText(PID_NODES_SETTINGS_NODE_TYPE_COMBO_SELECT);
+      settings->changeBlockName(newTypeName.c_str());
+      BlendNodeType type = static_cast<BlendNodeType>(lup(newTypeName.c_str(), blend_node_types));
+      tree->setButtonPictures(leaf, get_blend_node_icon_name(type));
+      BlendNodeData *data = find_data_by_handle(blendNodesData, leaf);
+      const String oldName = tree->getCaption(leaf);
+      if (data != blendNodesData.end())
+        data->type = type;
+      else
+        logerr("Can't find and update data for blend node with name: %s", oldName);
+
+      const char *newName = settings->getStr("name");
+      if (oldName != newName)
+      {
+        tree->setCaption(leaf, newName);
+        if (data != blendNodesData.end())
+          data->id = curCtrlAndBlendNodeUniqueIdx++;
+      }
     }
     else
-      logerr("New irq name can't be empty");
+    {
+      save_params_blk(a2dBlk, make_span_const(params), panel);
+      const auto a2dParam = find_param_by_name(params, "a2d");
+      if (a2dParam != params.end())
+        tree->setCaption(leaf, panel->getText(a2dParam->pid));
+    }
+    animPlayer.setSelectedA2dName(panel->getText(PID_NODES_PARAMS_FIELD));
+    animPlayer.loadA2dResource(panel, animBnlParams, leaf);
+    update_play_animation_text(panel, animPlayer.isAnimInProgress());
   }
+  else if (tree->getUserData(leaf) == &ANIM_BLEND_NODE_INCLUDE)
+  {
+    const SimpleString fileName = get_str_param_by_name_optional(animBnlParams, panel, "file name");
+    const SimpleString newPath = get_str_param_by_name_optional(animBnlParams, panel, "path");
+    if (!checkIncludeBeforeSave(tree, leaf, fileName, newPath, props))
+      return;
+
+    String newFullPath = String(0, "%s%s.blk", newPath.c_str(), fileName.c_str());
+    const String selName = tree->getCaption(leaf);
+    change_include_leaf(tree, fileName.c_str(), leaf);
+    TLeafHandle maskLeaf =
+      change_include_leaf(panel, nodeMasksData, selName, fileName.c_str(), PID_NODE_MASKS_TREE, is_include_node_mask);
+    TLeafHandle ctrlLeaf =
+      change_include_leaf(panel, controllersData, selName, fileName.c_str(), PID_ANIM_BLEND_CTRLS_TREE, is_include_ctrl);
+    saveIncludeChange(panel, tree, leaf, props, selName, newFullPath, {leaf, maskLeaf, ctrlLeaf});
+  }
+
+  savePropsWithoutReload(props, fullPath);
 }
 
-void AnimTreePlugin::selectedChangedAnimNodesTree(PropertyContainerControlBase *panel)
+void AnimTreePlugin::selectedChangedAnimNodesTree(PropPanel::ContainerPropertyControl *panel)
 {
-  PropertyContainerControlBase *tree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
-  PropertyContainerControlBase *group = panel->getById(PID_ANIM_BLEND_NODES_SETTINGS_GROUP)->getContainer();
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+  PropPanel::ContainerPropertyControl *group = panel->getById(PID_ANIM_BLEND_NODES_SETTINGS_GROUP)->getContainer();
   TLeafHandle leaf = tree->getSelLeaf();
+  if (leaf == tree->getRootLeaf() || tree->getUserData(leaf) == &ANIM_BLEND_NODE_INCLUDE)
+    panel->setCaption(PID_ANIM_BLEND_NODES_ADD_LEAF, "Add include");
+  else
+    panel->setCaption(PID_ANIM_BLEND_NODES_ADD_LEAF, "Add leaf");
   const bool isSelectedLeafValid = leaf && leaf != tree->getRootLeaf();
   const bool isAnimLeaf = isSelectedLeafValid && (tree->getUserData(leaf) == &ANIM_BLEND_NODE_LEAF);
   panel->setEnabledById(PID_ANIM_BLEND_NODES_ADD_IRQ, isAnimLeaf);
@@ -1487,187 +2727,131 @@ void AnimTreePlugin::selectedChangedAnimNodesTree(PropertyContainerControlBase *
     return;
 
   fillAnimBlendSettings(tree, group);
-  loadA2dResource(panel);
+  animPlayer.loadA2dResource(panel, animBnlParams, leaf);
+  update_play_animation_text(panel, animPlayer.isAnimInProgress());
 }
 
-void AnimTreePlugin::irqTypeSelected(PropertyContainerControlBase *panel)
+void AnimTreePlugin::irqTypeSelected(PropPanel::ContainerPropertyControl *panel)
 {
-  PropertyContainerControlBase *group = panel->getById(PID_ANIM_BLEND_NODES_SETTINGS_GROUP)->getContainer();
+  PropPanel::ContainerPropertyControl *group = panel->getById(PID_ANIM_BLEND_NODES_SETTINGS_GROUP)->getContainer();
   const IrqType selectedType = static_cast<IrqType>(group->getInt(PID_IRQ_TYPE_COMBO_SELECT));
   const SimpleString irqName = group->getText(PID_IRQ_NAME_FIELD);
   fill_irq_settings(group, irqName.c_str(), selectedType);
 }
 
-void AnimTreePlugin::animNodesFieldChanged(PropertyContainerControlBase *panel, int pid)
+void AnimTreePlugin::changeAnimNodeType(PropPanel::ContainerPropertyControl *panel)
 {
-  const String &fieldName = fieldNames[pid - PID_NODES_PARAMS_FIELD];
-  if (fieldName == "time")
-    animTime = panel->getFloat(pid);
-  else if (selectedA2d && fieldName == "key_start")
-    firstKey = get_key_by_name(selectedA2d, panel->getText(pid));
-  else if (selectedA2d && fieldName == "key_end")
-    lastKey = get_key_by_name(selectedA2d, panel->getText(pid));
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+  PropPanel::ContainerPropertyControl *group = panel->getById(PID_ANIM_BLEND_NODES_SETTINGS_GROUP)->getContainer();
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf_blend_node(includePaths, *curAsset, tree, fullPath);
+  if (fullPath.empty())
+    return;
+  const BlendNodeType type = static_cast<BlendNodeType>(panel->getInt(PID_NODES_SETTINGS_NODE_TYPE_COMBO_SELECT));
+  auto separator = eastl::find_if(animBnlParams.begin(), animBnlParams.end(),
+    [](const AnimParamData &value) { return value.type == DataBlock::TYPE_NONE; });
+
+  // We remove all params after separator
+  animBnlParams.erase(separator + 1, animBnlParams.end());
+  const bool breakIfNotFound = true;
+  remove_fields(panel, separator->pid + 1, PID_NODES_PARAMS_FIELD_SIZE, breakIfNotFound);
+  DataBlock fullProps(curAsset->getSrcFilePath());
+  const bool defaultForeign = fullProps.getBool("defaultForeignAnim", false);
+  fill_anim_blend_params_settings(type, group, animBnlParams, separator->pid + 1, defaultForeign);
+  TLeafHandle leaf = tree->getSelLeaf();
+  if (const DataBlock *settings = find_blend_node_settings(props, tree->getCaption(leaf)))
+    fill_values_if_exists(group, settings, animBnlParams);
+  set_anim_blend_dependent_defaults(type, group, animBnlParams);
+  group->moveById(PID_NODES_SETTINGS_PLAY_ANIMATION);
+  group->moveById(PID_NODES_SETTINGS_SAVE);
 }
 
-void AnimTreePlugin::selectDynModel()
+static void update_anim_node_dependent_field(PropPanel::ContainerPropertyControl *panel, AnimTreeAnimationPlayer &player,
+  dag::Vector<AnimParamData> &params, AnimParamData &changed_param);
+
+static void update_dependent_text_field(PropPanel::ContainerPropertyControl *panel, AnimTreeAnimationPlayer &player,
+  dag::Vector<AnimParamData> &params, const char *changed_field, const char *text)
+{
+  AnimParamData *param = find_param_by_name(params, changed_field);
+  if (param != params.end() && param->dependent)
+  {
+    panel->setText(param->pid, text);
+    update_anim_node_dependent_field(panel, player, params, *param);
+    player.animNodesFieldChanged(panel, params, *param);
+  }
+}
+
+static void update_anim_node_dependent_field(PropPanel::ContainerPropertyControl *panel, AnimTreeAnimationPlayer &player,
+  dag::Vector<AnimParamData> &params, AnimParamData &changed_param)
+{
+  if (changed_param.name == "name")
+    update_dependent_text_field(panel, player, params, "key", panel->getText(changed_param.pid));
+  else if (changed_param.name == "key")
+  {
+    const SimpleString keyValue = panel->getText(changed_param.pid);
+    update_dependent_text_field(panel, player, params, "key_start", String(0, "%s_start", keyValue.c_str()));
+    update_dependent_text_field(panel, player, params, "key_end", String(0, "%s_end", keyValue.c_str()));
+
+    const AnimParamData *nameParam = find_param_by_name(params, "name");
+    if (nameParam != params.end())
+      changed_param.dependent = keyValue == panel->getText(nameParam->pid);
+  }
+  else if (changed_param.name == "key_start")
+  {
+    update_dependent_text_field(panel, player, params, "sync_time", panel->getText(changed_param.pid));
+    const AnimParamData *keyParam = find_param_by_name(params, "key");
+    if (keyParam != params.end())
+    {
+      const SimpleString keyValue = panel->getText(keyParam->pid);
+      const String keyStartDefault = String(0, "%s_start", keyValue.c_str());
+      changed_param.dependent = panel->getText(changed_param.pid) == keyStartDefault.c_str();
+    }
+  }
+  else if (changed_param.name == "key_end")
+  {
+    const AnimParamData *keyParam = find_param_by_name(params, "key");
+    if (keyParam != params.end())
+    {
+      const SimpleString keyValue = panel->getText(keyParam->pid);
+      const String keyEndDefault = String(0, "%s_end", keyValue.c_str());
+      changed_param.dependent = panel->getText(changed_param.pid) == keyEndDefault.c_str();
+    }
+  }
+  else if (changed_param.name == "sync_time")
+  {
+    const AnimParamData *keyStartParam = find_param_by_name(params, "key_start");
+    if (keyStartParam != params.end())
+      changed_param.dependent = panel->getText(changed_param.pid) == panel->getText(keyStartParam->pid);
+  }
+}
+
+void AnimTreePlugin::updateAnimNodeFields(PropPanel::ContainerPropertyControl *panel, int pid)
+{
+  AnimParamData *param =
+    eastl::find_if(animBnlParams.begin(), animBnlParams.end(), [pid](const AnimParamData &value) { return value.pid == pid; });
+  if (param == animBnlParams.end())
+  {
+    logerr("Param with pid: %d not found", pid);
+    return;
+  }
+  update_anim_node_dependent_field(panel, animPlayer, animBnlParams, *param);
+  animPlayer.animNodesFieldChanged(panel, animBnlParams, *param);
+}
+
+void AnimTreePlugin::selectDynModel(PropPanel::ContainerPropertyControl *panel)
 {
   String selectMsg(64, "Select dynModel");
   String resetMsg(64, "Reset dynModel");
-  int x, y;
-  unsigned w, h;
 
-  G_ASSERT(getPropPanel() && "Plugin panel closed!");
-  if (!getWndManager().getWindowPosSize(getPropPanel()->getParentWindowHandle(), x, y, w, h))
-    return;
-
-  getWndManager().clientToScreen(x, y);
-  SelectAssetDlg dlg(0, &curAsset->getMgr(), selectMsg, selectMsg, resetMsg, make_span_const(&dynModelId, 1), x - w - 5, y, w, h);
-
+  const int dynModelId = animPlayer.getDynModelId();
+  SelectAssetDlg dlg(0, &curAsset->getMgr(), selectMsg, selectMsg, resetMsg, make_span_const(&dynModelId, 1));
+  dlg.setManualModalSizingEnabled();
+  dlg.positionLeftToWindow("Properties", true);
   int result = dlg.showDialog();
-  if (result == DIALOG_ID_CLOSE)
+  if (result == PropPanel::DIALOG_ID_CLOSE)
     return;
 
-  modelName = result == DIALOG_ID_OK ? dlg.getSelObjName() : "";
-  a2d_last_ref_model = modelName;
-
-  reloadDynModel();
-}
-
-void AnimTreePlugin::resetDynModel()
-{
-  if (ctrl)
-    ctrl->setSkeletonForRender(nullptr);
-  destroy_it(entity);
-  geomTree = GeomNodeTree();
-  ctrl = nullptr;
-  origGeomTree = nullptr;
-  animNodes.clear();
-}
-
-void AnimTreePlugin::reloadDynModel()
-{
-  resetDynModel();
-  if (modelName.empty())
-    return;
-
-  DagorAsset *modelAsset = curAsset->getMgr().findAsset(modelName, dynModelId);
-  if (!modelAsset)
-  {
-    logerr("Can't find asset for load dynModel: %s", modelName);
-    return;
-  }
-
-  entity = DAEDITOR3.createEntity(*modelAsset);
-  entity->setSubtype(DAEDITOR3.registerEntitySubTypeId("single_ent"));
-  ctrl = entity->queryInterface<ILodController>();
-  origGeomTree = ctrl->getSkeleton();
-  if (!origGeomTree)
-    return;
-  geomTree = *origGeomTree;
-  ctrl->setSkeletonForRender(&geomTree);
-}
-
-void AnimTreePlugin::loadA2dResource(PropertyContainerControlBase *panel)
-{
-  if (selectedA2dName.empty() || !entity || !ctrl || !origGeomTree)
-    return;
-
-  if (selectedA2d)
-  {
-    ::release_game_resource((GameResource *)selectedA2d);
-    selectedA2d = nullptr;
-  }
-  selectedA2d = (AnimV20::AnimData *)::get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(selectedA2dName), Anim2DataGameResClassId);
-  animNodes.clear();
-  animProgress = 0.f;
-  if (!selectedA2d)
-    return;
-
-  for (dag::Index16 ni(0), idxEnd(geomTree.nodeCount()); ni != idxEnd; ++ni)
-    if (const char *nodeName = geomTree.getNodeName(ni))
-      if (SimpleNodeAnim anim; anim.init(selectedA2d, nodeName))
-        animNodes.emplace_back(AnimNodeData{nodeName, geomTree.findNodeIndex(nodeName), anim});
-
-  if (int pid = getPidByName("time"); pid != -1)
-    animTime = panel->getFloat(pid);
-  else
-    animTime = 1.f;
-  const int firstKeyPid = getPidByName("key_start");
-  const int lastKeyPid = getPidByName("key_end");
-  if (firstKeyPid != -1 && lastKeyPid != -1)
-  {
-    firstKey = get_key_by_name(selectedA2d, panel->getText(firstKeyPid));
-    lastKey = get_key_by_name(selectedA2d, panel->getText(lastKeyPid));
-  }
-  else
-  {
-    const int lastTrackIdx = selectedA2d->dumpData.noteTrack.size() - 1;
-    firstKey = 0;
-    lastKey = selectedA2d->dumpData.noteTrack[lastTrackIdx].time;
-  }
-
-  animate(firstKey);
-}
-
-static void blend_add_anim(mat44f &dest_tm, const mat44f &base_tm, const TMatrix &add_tm_s)
-{
-  vec4f p0, r0, s0;
-  vec4f p1, r1, s1;
-  mat44f add_tm;
-  v_mat44_make_from_43cu(add_tm, add_tm_s.m[0]);
-  v_mat4_decompose(base_tm, p0, r0, s0);
-  v_mat4_decompose(add_tm, p1, r1, s1);
-  v_mat44_compose(dest_tm, v_add(p0, p1), v_quat_mul_quat(r0, r1), v_mul(s0, s1));
-}
-
-void AnimTreePlugin::animate(int key)
-{
-  if (!entity || !ctrl || !origGeomTree || !selectedA2d)
-    return;
-
-  for (AnimNodeData &animNode : animNodes)
-  {
-    TMatrix tm;
-    mat44f &nodeTm = geomTree.getNodeTm(animNode.skelIdx);
-    animNode.anim.calcAnimTm(tm, key);
-    if (selectedA2d->isAdditive())
-      blend_add_anim(nodeTm, origGeomTree->getNodeTm(animNode.skelIdx), tm);
-    else
-    {
-      v_stu_p3(&tm.col[3].x, nodeTm.col3);
-      geomTree.setNodeTmScalar(animNode.skelIdx, tm);
-    }
-  }
-
-  geomTree.invalidateWtm();
-  geomTree.calcWtm();
-  entity->setTm(TMatrix::IDENT);
-}
-
-int AnimTreePlugin::getPidByName(const char *name)
-{
-  G_STATIC_ASSERT((eastl::is_same<decltype(fieldNames)::value_type, String>::value));
-  auto it = eastl::find(fieldNames.begin(), fieldNames.end(), name);
-  if (it != fieldNames.end())
-    return PID_NODES_PARAMS_FIELD + eastl::distance(fieldNames.begin(), it);
-  else
-    return -1;
-}
-
-DataBlock *AnimTreePlugin::findBnlProps(const char *name)
-{
-  for (int i = 0; i < curAsset->props.blockCount(); ++i)
-  {
-    DataBlock *node = curAsset->props.getBlock(i);
-    if (!strcmp(node->getBlockName(), "AnimBlendNodeLeaf"))
-    {
-      for (int j = 0; j < node->blockCount(); ++j)
-      {
-        DataBlock *settings = node->getBlock(j);
-        if (!strcmp(settings->getStr("name"), name))
-          return settings;
-      }
-    }
-  }
-  return nullptr;
+  String modelName(result == PropPanel::DIALOG_ID_OK ? dlg.getSelObjName() : "");
+  animPlayer.setDynModel(modelName.c_str(), *curAsset);
+  panel->setCaption(PID_SELECT_DYN_MODEL, modelName.empty() ? "Select model" : modelName.c_str());
 }

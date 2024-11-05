@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/utility.h>
+#include <osApiWrappers/dag_threadSafety.h>
 
 
 // Very simple wrapper to make a non thread safe container thread safe with the help of a paired mutex.
@@ -11,9 +13,11 @@ class ContainerMutexWrapper
   MTX mtx;
   T container;
 
-  void lock() { mtx.lock(); }
+  // NOTE: this class is automatically always thread safe via the type system, no need for static analysis.
 
-  void unlock() { mtx.unlock(); }
+  void lock() DAG_TS_NO_THREAD_SAFETY_ANALYSIS { mtx.lock(); }
+
+  void unlock() DAG_TS_NO_THREAD_SAFETY_ANALYSIS { mtx.unlock(); }
 
   T &data() { return container; }
 

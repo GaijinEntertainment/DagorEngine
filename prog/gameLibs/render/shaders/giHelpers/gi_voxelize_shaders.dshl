@@ -15,7 +15,7 @@ define_macro_if_not_defined OPTIONAL_USE_WALLS(code)
 endmacro
 
 int gi_voxelize_with_instancing;
-interval gi_voxelize_with_instancing:off<1, on;
+interval gi_voxelize_with_instancing:instancing<2, primitives;
 
 int gi_voxelize_with_colors = 1;
 macro GET_ALBEDO_25D(code)
@@ -49,11 +49,8 @@ shader voxelize_collision
 
   z_write = false;
   z_test = false;
-  if (gi_voxelize_with_instancing != off)
-  {
-    hlsl {
-      #define VOXELIZE_WITH_INSTANCING 1
-    }
+  hlsl {
+    #define VOXELIZE_WITH_INSTANCING 1
   }
 
   hlsl {
@@ -85,22 +82,11 @@ shader voxelize_collision
   }
 
   GET_ALBEDO_25D(ps)
-  if (gi_voxelize_with_instancing == off)
-  {
-    if (hardware.metal)
-    {
-      dont_render;
-    }
-    INIT_VOXELIZE_GS()
-    VOXELIZE_GS(1, 0)
-  } else
-  {
-    hlsl {
-      #define GsOutput VsOutput
-    }
-    TO_VOXELIZE_SPACE(vs)
-    USE_VOXELIZE_SPACE(vs)
+  hlsl {
+    #define GsOutput VsOutput
   }
+  TO_VOXELIZE_SPACE(vs)
+  USE_VOXELIZE_SPACE(vs)
   hlsl(ps) {
 
     void gi_collision_ps(GsOutput ps_input INPUT_VFACE)
@@ -201,13 +187,7 @@ shader voxelize_collision
   }
 
   compile("target_ps", "gi_collision_ps");
-  if (gi_voxelize_with_instancing == off)
-  {
-    compile("target_vs_for_gs", "gi_collision_vs");
-  } else
-  {
-    compile("target_vs", "gi_collision_vs");
-  }
+  compile("target_vs", "gi_collision_vs");
 }
 
 buffer gi_voxelization_vbuffer;

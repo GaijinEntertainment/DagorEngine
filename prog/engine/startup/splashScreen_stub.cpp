@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <startup/dag_splashScreen.h>
 
 #if !(_TARGET_C1 | _TARGET_C2)

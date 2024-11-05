@@ -13,7 +13,7 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 local AllSources = [ GLOB $(Root)/$(Location) : *.cpp ] ;
 Sources = $(AllSources:D=) ;
 
-#if $(Platform) in xboxOne scarlett win32 win64 { # Warning: Windows supports Bcrypt API since Vista
+#if $(Platform) in xboxOne scarlett windows { # Warning: Windows supports Bcrypt API since Vista
 if $(Platform) in xboxOne scarlett {
   CPPopt += -DUSE_BCRYPT=1 ;
   AddLibs += bcrypt.lib ;

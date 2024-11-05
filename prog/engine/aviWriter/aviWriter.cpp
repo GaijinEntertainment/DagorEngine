@@ -1,5 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_aviWriter.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_globDef.h>
 #include <util/dag_string.h>
@@ -38,7 +42,7 @@ bool avi_start_write(const DataBlock &stg)
 {
   if (aviWriter)
   {
-    logerr_ctx("avi writer already started!");
+    LOGERR_CTX("avi writer already started!");
     return false;
   }
 
@@ -76,7 +80,7 @@ void avi_stop_write()
 {
   if (!aviWriter)
   {
-    logerr_ctx("avi writer hasnt been started!");
+    LOGERR_CTX("avi writer hasnt been started!");
     return;
   }
 
@@ -127,7 +131,7 @@ static bool async = true;
   CHECK_AVI_RESULT_MSG                                                 \
   result &= SUCCEEDED(res);                                            \
   if (!SUCCEEDED(res))                                                 \
-    debug_ctx("%s %s return error %X", __FUNCTION__, #fn, res);
+    DEBUG_CTX("%s %s return error %X", __FUNCTION__, #fn, res);
 #else
 #define CHECK_AVI_RESULT(fn) \
   CHECK_AVI_RESULT_MSG       \

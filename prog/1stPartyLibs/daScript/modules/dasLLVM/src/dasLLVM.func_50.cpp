@@ -12,61 +12,86 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_50() {
-// from D:\Work\libclang\include\llvm-c/TargetMachine.h:129:19
-	addExtern< LLVMOpaqueTargetData * (*)(LLVMOpaqueTargetMachine *) , LLVMCreateTargetDataLayout >(*this,lib,"LLVMCreateTargetDataLayout",SideEffects::worstDefault,"LLVMCreateTargetDataLayout")
-		->args({"T"});
-// from D:\Work\libclang\include\llvm-c/TargetMachine.h:132:6
-	addExtern< void (*)(LLVMOpaqueTargetMachine *,int) , LLVMSetTargetMachineAsmVerbosity >(*this,lib,"LLVMSetTargetMachineAsmVerbosity",SideEffects::worstDefault,"LLVMSetTargetMachineAsmVerbosity")
-		->args({"T","VerboseAsm"});
-// from D:\Work\libclang\include\llvm-c/TargetMachine.h:138:10
-	addExtern< int (*)(LLVMOpaqueTargetMachine *,LLVMOpaqueModule *,const char *,LLVMCodeGenFileType,char **) , LLVMTargetMachineEmitToFile >(*this,lib,"LLVMTargetMachineEmitToFile",SideEffects::worstDefault,"LLVMTargetMachineEmitToFile")
-		->args({"T","M","Filename","codegen","ErrorMessage"});
-// from D:\Work\libclang\include\llvm-c/TargetMachine.h:144:10
-	addExtern< int (*)(LLVMOpaqueTargetMachine *,LLVMOpaqueModule *,LLVMCodeGenFileType,char **,LLVMOpaqueMemoryBuffer **) , LLVMTargetMachineEmitToMemoryBuffer >(*this,lib,"LLVMTargetMachineEmitToMemoryBuffer",SideEffects::worstDefault,"LLVMTargetMachineEmitToMemoryBuffer")
-		->args({"T","M","codegen","ErrorMessage","OutMemBuf"});
-// from D:\Work\libclang\include\llvm-c/TargetMachine.h:150:7
-	addExtern< char * (*)() , LLVMGetDefaultTargetTriple >(*this,lib,"LLVMGetDefaultTargetTriple",SideEffects::worstDefault,"LLVMGetDefaultTargetTriple");
-// from D:\Work\libclang\include\llvm-c/TargetMachine.h:154:7
-	addExtern< char * (*)(const char *) , LLVMNormalizeTargetTriple >(*this,lib,"LLVMNormalizeTargetTriple",SideEffects::worstDefault,"LLVMNormalizeTargetTriple")
-		->args({"triple"});
-// from D:\Work\libclang\include\llvm-c/TargetMachine.h:158:7
-	addExtern< char * (*)() , LLVMGetHostCPUName >(*this,lib,"LLVMGetHostCPUName",SideEffects::worstDefault,"LLVMGetHostCPUName");
-// from D:\Work\libclang\include\llvm-c/TargetMachine.h:162:7
-	addExtern< char * (*)() , LLVMGetHostCPUFeatures >(*this,lib,"LLVMGetHostCPUFeatures",SideEffects::worstDefault,"LLVMGetHostCPUFeatures");
-// from D:\Work\libclang\include\llvm-c/TargetMachine.h:165:6
-	addExtern< void (*)(LLVMOpaqueTargetMachine *,LLVMOpaquePassManager *) , LLVMAddAnalysisPasses >(*this,lib,"LLVMAddAnalysisPasses",SideEffects::worstDefault,"LLVMAddAnalysisPasses")
-		->args({"T","PM"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:36:6
-	addExtern< void (*)() , LLVMLinkInMCJIT >(*this,lib,"LLVMLinkInMCJIT",SideEffects::worstDefault,"LLVMLinkInMCJIT");
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:37:6
-	addExtern< void (*)() , LLVMLinkInInterpreter >(*this,lib,"LLVMLinkInInterpreter",SideEffects::worstDefault,"LLVMLinkInInterpreter");
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:53:21
-	addExtern< LLVMOpaqueGenericValue * (*)(LLVMOpaqueType *,unsigned long long,int) , LLVMCreateGenericValueOfInt >(*this,lib,"LLVMCreateGenericValueOfInt",SideEffects::worstDefault,"LLVMCreateGenericValueOfInt")
-		->args({"Ty","N","IsSigned"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:57:21
-	addExtern< LLVMOpaqueGenericValue * (*)(void *) , LLVMCreateGenericValueOfPointer >(*this,lib,"LLVMCreateGenericValueOfPointer",SideEffects::worstDefault,"LLVMCreateGenericValueOfPointer")
-		->args({"P"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:59:21
-	addExtern< LLVMOpaqueGenericValue * (*)(LLVMOpaqueType *,double) , LLVMCreateGenericValueOfFloat >(*this,lib,"LLVMCreateGenericValueOfFloat",SideEffects::worstDefault,"LLVMCreateGenericValueOfFloat")
-		->args({"Ty","N"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:61:10
-	addExtern< unsigned int (*)(LLVMOpaqueGenericValue *) , LLVMGenericValueIntWidth >(*this,lib,"LLVMGenericValueIntWidth",SideEffects::worstDefault,"LLVMGenericValueIntWidth")
-		->args({"GenValRef"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:63:20
-	addExtern< unsigned long long (*)(LLVMOpaqueGenericValue *,int) , LLVMGenericValueToInt >(*this,lib,"LLVMGenericValueToInt",SideEffects::worstDefault,"LLVMGenericValueToInt")
-		->args({"GenVal","IsSigned"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:66:7
-	addExtern< void * (*)(LLVMOpaqueGenericValue *) , LLVMGenericValueToPointer >(*this,lib,"LLVMGenericValueToPointer",SideEffects::worstDefault,"LLVMGenericValueToPointer")
-		->args({"GenVal"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:68:8
-	addExtern< double (*)(LLVMOpaqueType *,LLVMOpaqueGenericValue *) , LLVMGenericValueToFloat >(*this,lib,"LLVMGenericValueToFloat",SideEffects::worstDefault,"LLVMGenericValueToFloat")
-		->args({"TyRef","GenVal"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:70:6
-	addExtern< void (*)(LLVMOpaqueGenericValue *) , LLVMDisposeGenericValue >(*this,lib,"LLVMDisposeGenericValue",SideEffects::worstDefault,"LLVMDisposeGenericValue")
-		->args({"GenVal"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:74:10
-	addExtern< int (*)(LLVMOpaqueExecutionEngine **,LLVMOpaqueModule *,char **) , LLVMCreateExecutionEngineForModule >(*this,lib,"LLVMCreateExecutionEngineForModule",SideEffects::worstDefault,"LLVMCreateExecutionEngineForModule")
-		->args({"OutEE","M","OutError"});
+// from D:\Work\libclang\include\llvm-c/Orc.h:589:13
+	makeExtern< const char * (*)(LLVMOrcOpaqueSymbolStringPoolEntry *) , LLVMOrcSymbolStringPoolEntryStr , SimNode_ExtFuncCall >(lib,"LLVMOrcSymbolStringPoolEntryStr","LLVMOrcSymbolStringPoolEntryStr")
+		->args({"S"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:594:6
+	makeExtern< void (*)(LLVMOrcOpaqueResourceTracker *) , LLVMOrcReleaseResourceTracker , SimNode_ExtFuncCall >(lib,"LLVMOrcReleaseResourceTracker","LLVMOrcReleaseResourceTracker")
+		->args({"RT"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:600:6
+	makeExtern< void (*)(LLVMOrcOpaqueResourceTracker *,LLVMOrcOpaqueResourceTracker *) , LLVMOrcResourceTrackerTransferTo , SimNode_ExtFuncCall >(lib,"LLVMOrcResourceTrackerTransferTo","LLVMOrcResourceTrackerTransferTo")
+		->args({"SrcRT","DstRT"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:607:14
+	makeExtern< LLVMOpaqueError * (*)(LLVMOrcOpaqueResourceTracker *) , LLVMOrcResourceTrackerRemove , SimNode_ExtFuncCall >(lib,"LLVMOrcResourceTrackerRemove","LLVMOrcResourceTrackerRemove")
+		->args({"RT"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:614:6
+	makeExtern< void (*)(LLVMOrcOpaqueDefinitionGenerator *) , LLVMOrcDisposeDefinitionGenerator , SimNode_ExtFuncCall >(lib,"LLVMOrcDisposeDefinitionGenerator","LLVMOrcDisposeDefinitionGenerator")
+		->args({"DG"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:619:6
+	makeExtern< void (*)(LLVMOrcOpaqueMaterializationUnit *) , LLVMOrcDisposeMaterializationUnit , SimNode_ExtFuncCall >(lib,"LLVMOrcDisposeMaterializationUnit","LLVMOrcDisposeMaterializationUnit")
+		->args({"MU"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:683:1
+	makeExtern< LLVMOrcOpaqueMaterializationUnit * (*)(LLVMOrcCSymbolMapPair *,size_t) , LLVMOrcAbsoluteSymbols , SimNode_ExtFuncCall >(lib,"LLVMOrcAbsoluteSymbols","LLVMOrcAbsoluteSymbols")
+		->args({"Syms","NumPairs"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:706:31
+	makeExtern< LLVMOrcOpaqueMaterializationUnit * (*)(LLVMOrcOpaqueLazyCallThroughManager *,LLVMOrcOpaqueIndirectStubsManager *,LLVMOrcOpaqueJITDylib *,LLVMOrcCSymbolAliasMapPair *,size_t) , LLVMOrcLazyReexports , SimNode_ExtFuncCall >(lib,"LLVMOrcLazyReexports","LLVMOrcLazyReexports")
+		->args({"LCTM","ISM","SourceRef","CallableAliases","NumPairs"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:721:6
+	makeExtern< void (*)(LLVMOrcOpaqueMaterializationResponsibility *) , LLVMOrcDisposeMaterializationResponsibility , SimNode_ExtFuncCall >(lib,"LLVMOrcDisposeMaterializationResponsibility","LLVMOrcDisposeMaterializationResponsibility")
+		->args({"MR"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:727:20
+	makeExtern< LLVMOrcOpaqueJITDylib * (*)(LLVMOrcOpaqueMaterializationResponsibility *) , LLVMOrcMaterializationResponsibilityGetTargetDylib , SimNode_ExtFuncCall >(lib,"LLVMOrcMaterializationResponsibilityGetTargetDylib","LLVMOrcMaterializationResponsibilityGetTargetDylib")
+		->args({"MR"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:734:1
+	makeExtern< LLVMOrcOpaqueExecutionSession * (*)(LLVMOrcOpaqueMaterializationResponsibility *) , LLVMOrcMaterializationResponsibilityGetExecutionSession , SimNode_ExtFuncCall >(lib,"LLVMOrcMaterializationResponsibilityGetExecutionSession","LLVMOrcMaterializationResponsibilityGetExecutionSession")
+		->args({"MR"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:747:29
+	makeExtern< LLVMOrcCSymbolFlagsMapPair * (*)(LLVMOrcOpaqueMaterializationResponsibility *,size_t *) , LLVMOrcMaterializationResponsibilityGetSymbols , SimNode_ExtFuncCall >(lib,"LLVMOrcMaterializationResponsibilityGetSymbols","LLVMOrcMaterializationResponsibilityGetSymbols")
+		->args({"MR","NumPairs"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:755:6
+	makeExtern< void (*)(LLVMOrcCSymbolFlagsMapPair *) , LLVMOrcDisposeCSymbolFlagsMap , SimNode_ExtFuncCall >(lib,"LLVMOrcDisposeCSymbolFlagsMap","LLVMOrcDisposeCSymbolFlagsMap")
+		->args({"Pairs"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:766:1
+	makeExtern< LLVMOrcOpaqueSymbolStringPoolEntry * (*)(LLVMOrcOpaqueMaterializationResponsibility *) , LLVMOrcMaterializationResponsibilityGetInitializerSymbol , SimNode_ExtFuncCall >(lib,"LLVMOrcMaterializationResponsibilityGetInitializerSymbol","LLVMOrcMaterializationResponsibilityGetInitializerSymbol")
+		->args({"MR"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:776:1
+	makeExtern< LLVMOrcOpaqueSymbolStringPoolEntry ** (*)(LLVMOrcOpaqueMaterializationResponsibility *,size_t *) , LLVMOrcMaterializationResponsibilityGetRequestedSymbols , SimNode_ExtFuncCall >(lib,"LLVMOrcMaterializationResponsibilityGetRequestedSymbols","LLVMOrcMaterializationResponsibilityGetRequestedSymbols")
+		->args({"MR","NumSymbols"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:784:6
+	makeExtern< void (*)(LLVMOrcOpaqueSymbolStringPoolEntry **) , LLVMOrcDisposeSymbols , SimNode_ExtFuncCall >(lib,"LLVMOrcDisposeSymbols","LLVMOrcDisposeSymbols")
+		->args({"Symbols"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:802:14
+	makeExtern< LLVMOpaqueError * (*)(LLVMOrcOpaqueMaterializationResponsibility *,LLVMOrcCSymbolMapPair *,size_t) , LLVMOrcMaterializationResponsibilityNotifyResolved , SimNode_ExtFuncCall >(lib,"LLVMOrcMaterializationResponsibilityNotifyResolved","LLVMOrcMaterializationResponsibilityNotifyResolved")
+		->args({"MR","Symbols","NumPairs"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:819:14
+	makeExtern< LLVMOpaqueError * (*)(LLVMOrcOpaqueMaterializationResponsibility *) , LLVMOrcMaterializationResponsibilityNotifyEmitted , SimNode_ExtFuncCall >(lib,"LLVMOrcMaterializationResponsibilityNotifyEmitted","LLVMOrcMaterializationResponsibilityNotifyEmitted")
+		->args({"MR"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:835:14
+	makeExtern< LLVMOpaqueError * (*)(LLVMOrcOpaqueMaterializationResponsibility *,LLVMOrcCSymbolFlagsMapPair *,size_t) , LLVMOrcMaterializationResponsibilityDefineMaterializing , SimNode_ExtFuncCall >(lib,"LLVMOrcMaterializationResponsibilityDefineMaterializing","LLVMOrcMaterializationResponsibilityDefineMaterializing")
+		->args({"MR","Pairs","NumPairs"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:846:6
+	makeExtern< void (*)(LLVMOrcOpaqueMaterializationResponsibility *) , LLVMOrcMaterializationResponsibilityFailMaterialization , SimNode_ExtFuncCall >(lib,"LLVMOrcMaterializationResponsibilityFailMaterialization","LLVMOrcMaterializationResponsibilityFailMaterialization")
+		->args({"MR"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

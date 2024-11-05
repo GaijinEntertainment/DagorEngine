@@ -1,0 +1,20 @@
+//use 2 different intervals, so that only combine_shadows gets more variants
+int use_ssss = 0;
+interval use_ssss : off<1, sun_and_dynamic_lights;
+
+int ssss_quality = 0;
+interval ssss_quality: off<1, reflectance_blur_only<2, transmittance_and_reflectance_blur;
+
+macro USE_SSSS_TRANSMITTANCE_ENCODE(stage)
+  hlsl(stage)
+  {
+    float encode_ssss_transmittance(float t) { return pow(saturate(t), 1.0 / 4.0); }
+  }
+endmacro
+
+macro USE_SSSS_TRANSMITTANCE_DECODE(stage)
+  hlsl(stage)
+  {
+    float decode_ssss_transmittance(float t) { return t * t * t * t; }
+  }
+endmacro

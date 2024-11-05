@@ -37,12 +37,12 @@ local scarlett_dlls =
 ;
 
 for l in $(xbox_one_dlls) {
-  BundleCopy += @$(_DEVTOOL)/xbox.gdk.$(GdkVer)/$(GdkVer)/GXDK/bin/XboxOne/$(l) xbox_one/$(l) ;
+  BundleCopy += @$(_DEVTOOL)/xbox.gdk.$(GdkVer)/$(GdkVer)/GXDK/bin/XboxOne/$(l) dxc-dx12/xbox_one/$(l) ;
   ALWAYS $(_DEVTOOL)/xbox.gdk.$(GdkVer)/$(GdkVer)/GXDK/bin/XboxOne/$(l) ;
 }
 
 for l in $(scarlett_dlls) {
-  BundleCopy += @$(_DEVTOOL)/xbox.gdk.$(GdkVer)/$(GdkVer)/GXDK/bin/Scarlett/$(l) xbox_scarlett/$(l) ;
+  BundleCopy += @$(_DEVTOOL)/xbox.gdk.$(GdkVer)/$(GdkVer)/GXDK/bin/Scarlett/$(l) dxc-dx12/xbox_scarlett/$(l) ;
   ALWAYS $(_DEVTOOL)/xbox.gdk.$(GdkVer)/$(GdkVer)/GXDK/bin/Scarlett/$(l) ;
 }
 }

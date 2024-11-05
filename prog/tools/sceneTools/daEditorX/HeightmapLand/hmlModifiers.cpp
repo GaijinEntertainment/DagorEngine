@@ -1,7 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hmlPlugin.h"
 #include "hmlSplineObject.h"
 
-#include <dllPluginCore/core.h>
 #include <de3_hmapService.h>
 #include <de3_interface.h>
 #include <perfMon/dag_cpuFreq.h>

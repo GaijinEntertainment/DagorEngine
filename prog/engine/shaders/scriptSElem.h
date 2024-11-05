@@ -1,3 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 /************************************************************************
   scripted shader element class
 ************************************************************************/
@@ -7,6 +10,7 @@
 #include "shadersBinaryData.h"
 #include <shaders/dag_renderStateId.h>
 #include <shaders/dag_shaders.h>
+#include <shaders/dag_shaderState.h>
 #include <generic/dag_smallTab.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <atomic>
@@ -56,7 +60,7 @@ public:
 
   const shaderbindump::ShaderCode &code;
   const shaderbindump::ShaderClass &shClass;
-  mutable os_spinlock_t stateBlocksSpinLock;
+  mutable OSSpinlock stateBlocksSpinLock;
   mutable VDECL usedVdecl; // cached
   uint8_t stageDest;
   enum
@@ -95,11 +99,12 @@ public:
 
   void setStatesForVariant(int curVariant, uint32_t program, uint32_t state_index) const;
   void getDynamicVariantStates(int variant_code, int cur_variant, uint32_t &program, uint32_t &state_index,
-    shaders::RenderStateId &render_state, uint32_t &const_state, uint32_t &tex_state) const;
+    shaders::RenderStateId &render_state, shaders::ConstStateIdx &const_state, shaders::TexStateIdx &tex_state) const;
 
   void update_stvar(ScriptedShaderMaterial &m, int stvarid);
 
-  GCC_HOT void exec_stcode(dag::ConstSpan<int> cod, const shaderbindump::ShaderCode::Pass *__restrict code_cp) const;
+  GCC_HOT void execute_chosen_stcode(uint16_t stcodeId, const shaderbindump::ShaderCode::Pass *cPass, const uint8_t *vars,
+    bool is_compute) const;
 
   SNC_LIKELY_TARGET bool setStates() const override;
   SNC_LIKELY_TARGET void render(int minv, int numv, int sind, int numf, int base_vertex, int prim = PRIM_TRILIST) const override;
@@ -107,9 +112,12 @@ public:
   bool setStatesDispatch() const override;
   bool dispatchCompute(int tgx, int tgy, int tgz, GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS, bool set_states = true) const;
   eastl::array<uint16_t, 3> getThreadGroupSizes() const;
+  uint32_t getWaveSize() const;
   bool dispatchComputeThreads(int threads_x, int threads_y, int threads_z, GpuPipeline gpu_pipeline, bool set_states) const;
   bool dispatchComputeIndirect(Sbuffer *args, int ofs, GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS, bool set_states = true) const;
 
+  SNC_LIKELY_TARGET int getTextureCount() const override;
+  SNC_LIKELY_TARGET TEXTUREID getTexture(int index) const override;
   SNC_LIKELY_TARGET void gatherUsedTex(TextureIdSet &tex_id_list) const override;
   SNC_LIKELY_TARGET bool replaceTexture(TEXTUREID tex_id_old, TEXTUREID tex_id_new) override;
   SNC_LIKELY_TARGET bool hasTexture(TEXTUREID tex_id) const override;
@@ -136,7 +144,12 @@ public:
   const char *getShaderClassName() const override;
   void setProgram(uint32_t variant);
   PROGRAM getComputeProgram(const shaderbindump::ShaderCode::ShRef *p) const;
-  inline void setReqTexLevel(int req_tex_level = 15) const override { tex_level = req_tex_level; }
+  inline bool setReqTexLevel(int req_tex_level = 15) const override
+  {
+    bool increased = req_tex_level > tex_level;
+    tex_level = req_tex_level;
+    return increased;
+  }
 
 private:
   static const unsigned int invalid_variant = 0xFFFFFFFF;
@@ -144,6 +157,8 @@ private:
   __forceinline void prepareShaderProgram(PackedPassId::Id &pass_id, int variant, unsigned int variant_code) const;
   __forceinline void preparePassId(PackedPassId::Id &pass_id, int variant, unsigned int variant_code) const;
   void preparePassIdOOL(PackedPassId::Id &pass_id, int variant, unsigned int variant_code) const;
+
+  const shaderbindump::ShaderCode::ShRef *getPassCode() const;
 
   int recordStateBlock(const shaderbindump::ShaderCode::ShRef &p) const;
   VDECL initVdecl() const;

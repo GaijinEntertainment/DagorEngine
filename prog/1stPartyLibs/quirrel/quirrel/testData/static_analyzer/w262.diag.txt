@@ -61,7 +61,7 @@ testData/static_analyzer/w262.nut:57:0
 
 if (x) // EXPECTED 7
 if (y)
-^--
+^-------
   print(1)
 
 

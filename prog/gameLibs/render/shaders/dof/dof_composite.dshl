@@ -1,4 +1,4 @@
-hlsl(ps) {
+hlsl {
   #define COMPLICATED_DOF 1
   #define MAX_COC  4
 }
@@ -19,14 +19,14 @@ interval dof_focus_far_mode: off < 1, on < 2, linear;
 texture dof_blend_tex;
 texture dof_blend_depth_tex;
 
-macro USE_DOF_COMPOSITE_NEAR()
-  (ps) { dof_near_layer@smp2d = dof_near_layer; }
-  hlsl(ps) {
+macro USE_DOF_COMPOSITE_NEAR(code)
+  (code) { dof_near_layer@smp2d = dof_near_layer; }
+  hlsl(code) {
     #define HAS_NEAR_DOF 1
     #include <tex2d_bicubic.hlsl>
     half4 get_dof_near(float2 tc, float2 dof_resolution)
     {
-      half4 cLayerNear = tex2D_bicubic(dof_near_layer, dof_near_layer_samplerstate, tc.xy, dof_resolution);
+      half4 cLayerNear = tex2D_bicubic_lod(dof_near_layer, dof_near_layer_samplerstate, tc.xy, dof_resolution, 0);
       cLayerNear.rgb = cLayerNear.rgb / (cLayerNear.a > 0 ? cLayerNear.a : 1.0f);
 
     ##if dof_focus_near_mode == linear
@@ -42,20 +42,20 @@ macro USE_DOF_COMPOSITE_NEAR()
   }
 endmacro
 
-macro USE_DOF_COMPOSITE_FAR()
-  (ps) {
+macro USE_DOF_COMPOSITE_FAR(code)
+  (code) {
     dlss_jitter_offset_screen_size@f4 = (dlss_jitter_offset.x, dlss_jitter_offset.y, rendering_res.z, rendering_res.w);
     dof_far_layer@smp2d = dof_far_layer;
     dof_focus_params@f4 = dof_focus_params;
     dof_blend_tex@smp2d = dof_blend_tex;
   }
-  hlsl(ps) {
+  hlsl(code) {
     #define HAS_FAR_DOF 1
     #include <dof/circleOfConfusion.hlsl>
     #include <tex2d_bicubic.hlsl>
     half4 get_dof_far(float2 tc, float2 dof_resolution)
     {
-      half4 cLayerFar = tex2D_bicubic(dof_far_layer, dof_far_layer_samplerstate, tc.xy, dof_resolution);
+      half4 cLayerFar = tex2D_bicubic_lod(dof_far_layer, dof_far_layer_samplerstate, tc.xy, dof_resolution, 0);
 
     ##if dof_focus_far_mode == linear
       float depth = tex2Dlod(dof_blend_depth_tex, float4(tc.xy, 0, 0)).x;
@@ -86,6 +86,9 @@ macro USE_DOF_COMPOSITE_FAR()
         cLayerFar.a += dot(ComputeFarCircleOfConfusion4(depth4, dof_focus_params), float4(0.125, 0.125, 0.125, 0.125));
       #elif DOF_FAR_POSTFX_TAA
         cLayerFar.a = tex2Dlod(dof_blend_tex, float4(tc.xy, 0, 0)).x;
+      #elif DOF_FAR_POSTFX_TSR
+        float pseudoDepth = tex2Dlod(frame_tex, float4(tc.xy, 0, 0)).a;
+        cLayerFar.a = ComputeFarCircleOfConfusion(pseudoDepth, dof_focus_params);
       #else
         float depth = tex2Dlod(dof_blend_depth_tex, float4(tc.xy, 0, 0)).x;
         float farCoC = ComputeFarCircleOfConfusion(depth, dof_focus_params);
@@ -98,11 +101,11 @@ macro USE_DOF_COMPOSITE_FAR()
   }
 endmacro
 
-macro USE_DOF_COMPOSITE_NEAR_FAR()
-  (ps) { dof_blend_depth_tex@smp2d = dof_blend_depth_tex; }
-  USE_DOF_COMPOSITE_FAR()
-  USE_DOF_COMPOSITE_NEAR()
-  hlsl(ps) {
+macro USE_DOF_COMPOSITE_NEAR_FAR(code)
+  (code) { dof_blend_depth_tex@smp2d = dof_blend_depth_tex; }
+  USE_DOF_COMPOSITE_FAR(code)
+  USE_DOF_COMPOSITE_NEAR(code)
+  hlsl(code) {
     half4 cLayerNear,cLayerFar;
     void get_dof_near_far(float2 tc, float2 dof_resolution, out half4 cLayerNear, out half4 cLayerFar)
     {
@@ -112,19 +115,37 @@ macro USE_DOF_COMPOSITE_NEAR_FAR()
   }
 endmacro
 
-macro USE_DOF_COMPOSITE_NEAR_FAR_OPTIONAL()
-  (ps) { dof_focus_linear_params@f4 = dof_focus_linear_params; }
+macro USE_DOF_COMPOSITE_NEAR_FAR_OPTIONAL_STAGE(code)
+  (code) { dof_focus_linear_params@f4 = dof_focus_linear_params; }
 
   if (dof_focus_near_mode != off || dof_focus_far_mode != off)
   {
-    (ps) { dof_blend_depth_tex@smp2d = dof_blend_depth_tex; }
+    (code) { dof_blend_depth_tex@smp2d = dof_blend_depth_tex; }
   }
   if (dof_focus_near_mode != off)
   {
-    USE_DOF_COMPOSITE_NEAR()
+    USE_DOF_COMPOSITE_NEAR(code)
   }
   if (dof_focus_far_mode != off)
   {
-    USE_DOF_COMPOSITE_FAR()
+    USE_DOF_COMPOSITE_FAR(code)
   }
+
+  hlsl(code) {
+    void apply_dof(float2 uv, inout float3 color)
+    {
+    #if HAS_FAR_DOF
+      half4 cLayerFar = get_dof_far(uv, dof_rt_size.xy);
+      color = lerp(color, cLayerFar.rgb, cLayerFar.a);
+    #endif
+    #if HAS_NEAR_DOF
+      half4 cLayerNear = get_dof_near(uv, dof_rt_size.xy);
+      color = lerp(color, cLayerNear.rgb, cLayerNear.a);
+    #endif
+    }
+  }
+endmacro
+
+macro USE_DOF_COMPOSITE_NEAR_FAR_OPTIONAL()
+USE_DOF_COMPOSITE_NEAR_FAR_OPTIONAL_STAGE(ps)
 endmacro

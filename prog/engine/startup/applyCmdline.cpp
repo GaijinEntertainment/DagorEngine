@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <startup/dag_loadSettings.h>
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>

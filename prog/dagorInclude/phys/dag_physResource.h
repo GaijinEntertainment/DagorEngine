@@ -1,19 +1,19 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <shaders/dag_dynSceneRes.h>
 #include <memory/dag_mem.h>
 #include <math/dag_TMatrix.h>
 #include <generic/dag_tab.h>
+#include <generic/dag_ptrTab.h>
 #include <generic/dag_DObject.h>
 #include <util/dag_simpleString.h>
 
 class GeomNodeTree;
 class DynamicRenderableSceneLodsResource;
+class IGenLoad;
 
 
 decl_dclass_and_id(PhysicsResource, DObject, 0xABEFB687) // DagorPhysicsResource
@@ -171,12 +171,11 @@ class DynamicPhysObjectData
 public:
   PtrTab<DynamicRenderableSceneLodsResource> models;
   Ptr<PhysicsResource> physRes;
-  GeomNodeTree *nodeTree;
-  GeomNodeTree *skeleton;
+  GeomNodeTree *nodeTree = nullptr;
+  GeomNodeTree *skeleton = nullptr;
 
-  DynamicPhysObjectData() : models(midmem)
-  {
-    nodeTree = NULL;
-    skeleton = nullptr;
-  }
+  DynamicPhysObjectData();
+  DynamicPhysObjectData(const DynamicPhysObjectData &) = delete;
+  DynamicPhysObjectData &operator=(const DynamicPhysObjectData &) = delete;
+  ~DynamicPhysObjectData();
 };

@@ -9,6 +9,9 @@
 #include "daScript/misc/performance_time.h"
 #include "daScript/misc/sysos.h"
 
+#include <condition_variable>
+#include <atomic>
+
 using namespace das;
 
 MAKE_TYPE_FACTORY(DebugAgent,DebugAgent)
@@ -46,7 +49,31 @@ namespace debugapi {
     struct DebugAgentAdapter : DebugAgent, DapiDebugAgent_Adapter {
         DebugAgentAdapter ( char * pClass, const StructInfo * info, Context * ctx )
             : DapiDebugAgent_Adapter(info), classPtr(pClass), classInfo(info), context(ctx) {
-       }
+        }
+        virtual void onBeforeGC ( Context * ctx ) override {
+            if ( auto fnOnBeforeGC = get_onBeforeGC(classPtr) ) {
+                context->lock();
+                invoke_onBeforeGC(context,fnOnBeforeGC,classPtr,*ctx);
+                context->unlock();
+            }
+        }
+        virtual void onAfterGC ( Context * ctx ) override {
+            if ( auto fnOnAfterGC = get_onAfterGC(classPtr) ) {
+                context->lock();
+                invoke_onAfterGC(context,fnOnAfterGC,classPtr,*ctx);
+                context->unlock();
+            }
+        }
+        virtual bool onUserCommand ( const char * cmd ) override {
+            if ( auto fnOnUserCommand = get_onUserCommand(classPtr) ) {
+                context->lock();
+                auto res = invoke_onUserCommand(context,fnOnUserCommand,classPtr,(char *)cmd);
+                context->unlock();
+                return res;
+            } else {
+                return false;
+            }
+        }
         virtual void onInstall ( DebugAgent * agent ) override {
             if ( auto fnOnInstall = get_onInstall(classPtr) ) {
                 context->lock();
@@ -148,6 +175,31 @@ namespace debugapi {
                 context->lock();
                 invoke_onBreakpointsReset(context,fnOnBreakpointsReset,classPtr,(char *)file, breakpointsNum);
                 context->unlock();
+            }
+        }
+        virtual void onAllocate ( Context * ctx, void * data, uint64_t size, const LineInfo & at ) override {
+            if ( auto fnOnAllocate = get_onAllocate(classPtr) ) {
+                invoke_onAllocate(context,fnOnAllocate,classPtr,*ctx,data,size,at);
+            }
+        }
+        virtual void onReallocate ( Context * ctx, void * data, uint64_t oldSize, void * newData, uint64_t newSize, const LineInfo & at ) override {
+            if ( auto fnOnReallocate = get_onReallocate(classPtr) ) {
+                invoke_onReallocate(context,fnOnReallocate,classPtr,*ctx,data,oldSize,newData,newSize,at);
+            }
+        }
+        virtual void onFree ( Context * ctx, void * data, const LineInfo & at ) override {
+            if ( auto fnOnFree = get_onFree(classPtr) ) {
+                invoke_onFree(context,fnOnFree,classPtr,*ctx,data,at);
+            }
+        }
+        virtual void onAllocateString ( Context * ctx, void * data, uint64_t size, const LineInfo & at ) override {
+            if ( auto fnOnAllocateString = get_onAllocateString(classPtr) ) {
+                invoke_onAllocateString(context,fnOnAllocateString,classPtr,*ctx,data,size,at);
+            }
+        }
+        virtual void onFreeString ( Context * ctx, void * data, const LineInfo & at ) override {
+            if ( auto fnOnFreeString = get_onFreeString(classPtr) ) {
+                invoke_onFreeString(context,fnOnFreeString,classPtr,*ctx,data,at);
             }
         }
     public:
@@ -587,6 +639,11 @@ namespace debugapi {
                 invoke_WalkEnumeration16(context,fn_WalkEnumeration16,classPtr,value,*ei);
             }
         }
+        virtual void WalkEnumeration64 ( int64_t & value, EnumInfo * ei ) override {
+           if ( auto fn_WalkEnumeration64 = get_WalkEnumeration64(classPtr) ) {
+                invoke_WalkEnumeration64(context,fn_WalkEnumeration64,classPtr,value,*ei);
+            }
+        }
         virtual void FakeContext ( Context * value ) override {
            if ( auto fn_FakeContext = get_FakeContext(classPtr) ) {
                 invoke_FakeContext(context,fn_FakeContext,classPtr,*value);
@@ -702,6 +759,24 @@ namespace debugapi {
         return make_smart<DebugAgentAdapter>((char *)pClass,info,context);
     }
 
+    atomic<bool>          stopped;
+    atomic<bool>          stop_requested;
+    atomic<bool>          debugger_started;
+    mutex                 debugger_mutex;
+    condition_variable    debugger_stopped;
+
+    bool debuggerStopRequested ( ) {
+        return stop_requested.load();
+    }
+
+    void shutdownDebuggers ( ) {
+        if (debugger_started.load()) {
+            das::unique_lock lock(das::debugger_mutex);
+            stop_requested.store(1);
+            debugger_stopped.wait(lock, []() { return stopped.load(); });
+        }
+    }
+
     void debuggerSetContextSingleStep ( Context & context, bool step ) {
         context.setSingleStep(step);
     }
@@ -720,6 +795,10 @@ namespace debugapi {
 
     void dapiWalkDataV ( DataWalkerPtr walker, float4 data, const TypeInfo & info ) {
         walker->walk((vec4f)data,(TypeInfo*)&info);
+    }
+
+    void dapiWalkDataS ( DataWalkerPtr walker, void * data, const StructInfo & info ) {
+        walker->walk_struct((char *)data,(StructInfo*)&info);
     }
 
     int32_t dapiStackDepth ( Context & context ) {
@@ -843,15 +922,17 @@ namespace debugapi {
                 return;
             }
             invCtx->exception = nullptr;
-            invCtx->runWithCatch([&](){
-                if ( !invCtx->ownStack ) {
-                    StackAllocator sharedStack(8*1024);
-                    SharedStackGuard guard(*invCtx, sharedStack);
+            if ( !invCtx->ownStack ) {
+                StackAllocator sharedStack(8*1024);
+                SharedStackGuard guard(*invCtx, sharedStack);
+                invCtx->runWithCatch([&](){
                     res = invCtx->callOrFastcall(simFn, args+2, &call->debugInfo);
-                } else {
+                });
+            } else {
+                invCtx->runWithCatch([&](){
                     res = invCtx->callOrFastcall(simFn, args+2, &call->debugInfo);
-                }
-            });
+                });
+            }
             if ( invCtx->exception ) {
                 exAt = invCtx->exceptionAt;
                 exText = invCtx->exception;
@@ -876,15 +957,17 @@ namespace debugapi {
         string exText;
         invCtx->threadlock_context([&](){
             invCtx->exception = nullptr;
-            invCtx->runWithCatch([&](){
-                if ( !invCtx->ownStack ) {
-                    StackAllocator sharedStack(8*1024);
-                    SharedStackGuard guard(*invCtx, sharedStack);
+            if ( !invCtx->ownStack ) {
+                StackAllocator sharedStack(8*1024);
+                SharedStackGuard guard(*invCtx, sharedStack);
+                invCtx->runWithCatch([&](){
                     res = invCtx->callOrFastcall(simFn, args+2, &call->debugInfo);
-                } else {
+                });
+            } else {
+                invCtx->runWithCatch([&](){
                     res = invCtx->callOrFastcall(simFn, args+2, &call->debugInfo);
-                }
-            });
+                });
+            }
             if ( invCtx->exception ) {
                 exAt = invCtx->exceptionAt;
                 exText = invCtx->exception;
@@ -910,15 +993,17 @@ namespace debugapi {
         string exText;
         invCtx->threadlock_context([&](){
             invCtx->exception = nullptr;
-            invCtx->runWithCatch([&](){
-                if ( !invCtx->ownStack ) {
-                    StackAllocator sharedStack(8*1024);
-                    SharedStackGuard guard(*invCtx, sharedStack);
+            if ( !invCtx->ownStack ) {
+                StackAllocator sharedStack(8*1024);
+                SharedStackGuard guard(*invCtx, sharedStack);
+                invCtx->runWithCatch([&](){
                     res = invCtx->callOrFastcall(simFn, args+1, &call->debugInfo);
-                } else {
+                });
+            } else {
+                invCtx->runWithCatch([&](){
                     res = invCtx->callOrFastcall(simFn, args+1, &call->debugInfo);
-                }
-            });
+                });
+            }
             if ( invCtx->exception ) {
                 exAt = invCtx->exceptionAt;
                 exText = invCtx->exception;
@@ -1030,6 +1115,10 @@ namespace debugapi {
         return cast<void *>::from(ctx->getVariable(vidx));
     }
 
+    void instrument_context_allocations ( Context & ctx, bool isInstrumenting ) {
+        ctx.instrumentAllocations = isInstrumenting;
+    }
+
     void instrument_context ( Context & ctx, bool isInstrumenting, const TBlock<bool,LineInfo> & blk, Context * context, LineInfoArg * line ) {
         ctx.instrumentContextNode(blk, isInstrumenting, context, line);
     }
@@ -1128,6 +1217,8 @@ namespace debugapi {
             addExtern<DAS_BIND_FUN(makeDebugAgent)>(*this, lib,  "make_debug_agent",
                 SideEffects::modifyExternal, "makeDebugAgent")
                     ->args({"class","info","context"});
+            addExtern<DAS_BIND_FUN(debuggerStopRequested)>(*this, lib,  "debugger_stop_requested",
+                SideEffects::modifyExternal, "debuggerStopRequested");
             addExtern<DAS_BIND_FUN(tickDebugAgent)>(*this, lib,  "tick_debug_agent",
                 SideEffects::modifyExternal, "tickDebugAgent");
             addExtern<DAS_BIND_FUN(tickSpecificDebugAgent)>(*this, lib,  "tick_debug_agent",
@@ -1166,6 +1257,9 @@ namespace debugapi {
                 SideEffects::modifyExternal, "dapiReportContextState")
                     ->args({"context","category","name","info","data"});
             // instrumentation
+            addExtern<DAS_BIND_FUN(instrument_context_allocations)>(*this, lib,  "instrument_context_allocations",
+                SideEffects::modifyExternal, "instrument_context_allocations")
+                    ->args({"context","isInstrumenting"});
             addExtern<DAS_BIND_FUN(instrument_context)>(*this, lib,  "instrument_node",
                 SideEffects::modifyExternal, "instrument_context")
                     ->args({"context","isInstrumenting","block","context","line"});
@@ -1187,6 +1281,10 @@ namespace debugapi {
             addExtern<DAS_BIND_FUN(clear_instruments)>(*this, lib,  "clear_instruments",
                 SideEffects::modifyExternal, "clear_instruments")
                     ->arg("context");
+            // user commands
+            addExtern<DAS_BIND_FUN(dapiUserCommand)>(*this, lib,  "debug_agent_command",
+                SideEffects::modifyExternal, "dapiUserCommand")
+                    ->args({"command"});
             // data walker
             addExtern<DAS_BIND_FUN(makeDataWalker)>(*this, lib,  "make_data_walker",
                 SideEffects::modifyExternal, "makeDataWalker")
@@ -1197,6 +1295,9 @@ namespace debugapi {
             addExtern<DAS_BIND_FUN(dapiWalkDataV)>(*this, lib,  "walk_data",
                 SideEffects::modifyExternal, "dapiWalkDataV")
                     ->args({"walker","data","info"});
+            addExtern<DAS_BIND_FUN(dapiWalkDataS)>(*this, lib,  "walk_data",
+                SideEffects::modifyExternal, "dapiWalkDataS")
+                    ->args({"walker","data","struct_info"});
             // stack walker
             addExtern<DAS_BIND_FUN(makeStackWalker)>(*this, lib,  "make_stack_walker",
                 SideEffects::modifyExternal, "makeStackWalker")

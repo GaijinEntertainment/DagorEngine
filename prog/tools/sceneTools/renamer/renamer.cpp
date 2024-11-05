@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
@@ -171,7 +173,7 @@ void usage()
 {
   printf("Usage: replacer <file_extension> <replace_in_directory> <replace_pairs.txt> [--remove-spaces]\n");
   printf("\n--remove-spaces - remove spaces in all text fields (slow)\n\n");
-  printf("Example: replacer .dag D:\\dagor2\\enlisted\\develop\\assets replace_pairs.txt\n");
+  printf("Example: replacer .dag D:\\dagor2\\enlisted\\develop\\assets replace_pairs.txt\n"); // FIXME_BROKEN_DEP
   printf("         and file \"replace_pairs.txt\" is something like this:\n");
   printf("is_african_pattern_atlas_tex_n.tga europe_pattern_tex_n.tga\n");
   printf("is_african_tex_n.tga europe_tex_n.tga\n");

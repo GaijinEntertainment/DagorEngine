@@ -1,0 +1,36 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = gpu_benchmark ;
+Location = prog/daNetGameLibs/$(Module) ;
+
+CPPopt += -DUSE_SQRAT_CONFIG ;
+
+UseProgLibs =
+  gameLibs/render/gpuBenchmark
+;
+
+AddIncludes =
+  $(Root)/$(Location)
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel/include
+  $(Root)/prog/1stPartyLibs/quirrel/sqrat/include
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+;
+
+local AllSrcFolder_CPP = ;
+local AllSrcFolder_ES = ;
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_ES +=
+    render
+  ;
+  AllSrcFolder_CPP +=
+    ui
+  ;
+  AddPullVars += gpu_benchmark_ui ;
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

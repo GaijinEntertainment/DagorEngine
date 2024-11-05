@@ -1,0 +1,62 @@
+include "sky_shader_global.dshl"
+include "viewVecVS.dshl"
+include "globtm.dshl"
+include "prev_screen_tc.dshl"
+include "heightmap_common.dshl"
+
+include "volfog_common.dshl"
+include "volfog_hardcoded_media.dshl"
+
+
+
+texture volfog_occlusion;
+
+shader froxel_fog_fill_media_cs
+{
+  ENABLE_ASSERT(cs)
+
+  VIEW_VEC_OPTIMIZED(cs)
+  INIT_JITTER_PARAMS(cs)
+
+  (cs) {
+    local_view_z@f3 = local_view_z;
+    inv_resolution@f4 = (inv_volfog_froxel_volume_res.x, inv_volfog_froxel_volume_res.y, inv_volfog_froxel_volume_res.z, volfog_froxel_range_params.x);
+    volfog_occlusion@tex2d = volfog_occlusion;
+    world_view_pos@f4 = (world_view_pos.x, world_view_pos.y, world_view_pos.z, time_phase(0,0));
+  }
+  INIT_ZNZFAR_STAGE(cs)
+
+  INIT_AND_USE_VOLFOG_MODIFIERS(cs)
+  GET_MEDIA_HARDCODED(cs)
+
+  VOLUME_DEPTH_CONVERSION(cs)
+  USE_FROXEL_JITTERED_TC(cs, jitter_ray_offset.w, inv_resolution)
+
+  hlsl(cs) {
+    #include <hammersley.hlsl>
+  }
+  (cs) {
+    volfog_ff_initial_media@uav: register(volfog_ff_initial_media_const_no) hlsl {
+      RWTexture3D<float4> volfog_ff_initial_media@uav;
+    }
+  }
+
+  hlsl(cs) {
+    [numthreads( MEDIA_WARP_SIZE_X, MEDIA_WARP_SIZE_Y, MEDIA_WARP_SIZE_Z)]
+    void media_cs( uint3 dtId : SV_DispatchThreadID )
+    {
+      BRANCH
+      if (is_voxel_id_occluded(dtId))
+      {
+        texture3DAt(volfog_ff_initial_media, dtId) = 0;
+        return;
+      }
+      float3 screenTcJittered = calc_jittered_tc(dtId);
+      float3 view = getViewVecOptimized(screenTcJittered.xy);
+      float cdepth = volume_pos_to_depth(screenTcJittered.z);
+      float3 worldPos = cdepth*view + world_view_pos.xyz;
+      texture3DAt(volfog_ff_initial_media, dtId) = get_media(worldPos, screenTcJittered, world_view_pos.w);
+    }
+  }
+  compile("target_cs", "media_cs");
+}

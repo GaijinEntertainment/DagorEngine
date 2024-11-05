@@ -5,33 +5,23 @@ if $(OS) = MACOSX { OutputSuffix = nofm ; }
 FullOOPEnabled = no ;
 WError ?= no ; # treat all warnings as errors
 
-compileSources = yes ;
 CopyDxcLib = yes ;
 
 if $(OS) = NT {
   Target = tools/dsc2-metal.exe ;
 }
 else if $(OS) = MACOSX {
-  Target = dsc2-metal ;
-  if ! $(MacOSXArch) {
-    compileSources = no ;
+  Target = tools/dsc2-metal ;
+  if ! $(PlatformArch) {
+    Target = $(Target:B) ;
     baseJam = jamfile-hlsl2metal ;
     include $(Root)/$(Location)/jamfile-universal-bin ;
-    CopyDxcLib = no ;
-  } else if $(UniversalBinaryPart) {
-    Target = $(Target)-$(MacOSXArch) ;
-    if $(MacOSXArch) != arm64 {
-      CopyDxcLib = no ; # copy only once per universal binary
-    }
-  } else {
-    Target = tools/$(Target) ;
+    return ;
   }
 }
 else {
   Exit OS=$(OS) is not supported! ; # Probably supported but no tests were made to check it
 }
-
-if $(compileSources) = yes {
 
 include $(Root)/$(Location)/jamfile-common ;
 
@@ -74,19 +64,13 @@ if $(OS) = NT {
 CPPopt += -D_CROSS_TARGET_METAL=1 -DBINDUMP_TARGET_BE=0 -D_CRT_SECURE_NO_DEPRECATE -D_HAS_EXCEPTIONS=0 -D_SECURE_SCL=0 -DEXCLUDE_PSTDINT -DENABLE_HLSL=1 ;
 # -D_HAS_ITERATOR_DEBUGGING=0 -D_CRT_SECURE_NO_DEPRECATE -D_HAS_EXCEPTIONS=0 -D_SECURE_SCL=0 ;
 
-if $(Platform) in win32 win64
-{
-  VCMathOption = -fp:precise ;
-}
-else
+if $(Platform) != windows
 {
   CPPopt += -Wno-comment -Wno-writable-strings -Wno-int-to-pointer-cast -Wno-switch -Wno-tautological-constant-out-of-range-compare
          -Wno-undefined-bool-conversion
          -Wno-deprecated-declarations
          -D_STD_RTL_MEMORY=1
   ;
-}
-
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -1,6 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "nameResolver.h"
 
 #include <memory/dag_framemem.h>
+
+#include <common/genericPoint.h>
 
 
 namespace dabfg
@@ -35,9 +39,19 @@ void NameResolver::updateMapping()
 
   IdIndexedFlags<AutoResTypeNameId, framemem_allocator> autoResTypeValid(registry.knownNames.nameCount<AutoResTypeNameId>(), false);
   for (auto [autoResTypeId, data] : registry.autoResTypes.enumerate())
-    if (data.staticResolution.x > 0 && data.staticResolution.y > 0 && data.dynamicResolution.x > 0 && data.dynamicResolution.y > 0)
-      autoResTypeValid[autoResTypeId] = true;
+  {
+    const bool positive = eastl::visit(
+      [&](const auto &values) {
+        if constexpr (eastl::is_same_v<eastl::decay_t<decltype(values)>, eastl::monostate>)
+          return false;
+        else
+          return all_greater(values.staticResolution, 0) && all_greater(values.dynamicResolution, 0);
+      },
+      data.values);
 
+    if (positive)
+      autoResTypeValid[autoResTypeId] = true;
+  }
 
   resolver.rebuild(registry.knownNames, resourceValid, nodeValid, autoResTypeValid);
 }

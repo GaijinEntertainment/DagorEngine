@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "gpuGrassSrv.h"
 #include <de3_interface.h>
 #include <ioSys/dag_dataBlock.h>
@@ -7,7 +9,7 @@
 
 bool RandomGPUGrassRenderHelper::isValid() const { return hmap != nullptr; }
 
-bool RandomGPUGrassRenderHelper::beginRender(const Point3 &center_pos, const BBox3 &box, const TMatrix4 &tm)
+bool RandomGPUGrassRenderHelper::beginRender(const Point3 &center_pos, const BBox3 &box, const TMatrix4 &, const TMatrix4 &)
 {
   this->box = box;
   if (!hmap)
@@ -78,7 +80,7 @@ void GPUGrassService::beforeRender(Stage stage)
     return;
 
   const TMatrix &itm = ::grs_cur_view.itm;
-  grass->generate(itm.getcol(3), itm.getcol(2), grassHelper, {});
+  grass->generate(itm.getcol(3), itm.getcol(2), grassHelper);
 }
 
 void GPUGrassService::renderGeometry(Stage stage)

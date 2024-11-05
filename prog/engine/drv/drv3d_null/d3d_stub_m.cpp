@@ -1,8 +1,9 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_info.h>
 
 D3dInterfaceTable d3di;
-bool d3d::HALF_TEXEL_OFS = false;
-float d3d::HALF_TEXEL_OFSFU = 0.f;
 
 bool d3d::is_inited() { return false; }
 DriverCode d3d::get_driver_code() { return DriverCode::make(d3d::null); }
@@ -24,3 +25,6 @@ bool d3d::init_driver()
   fill_interface_table(d3di);
   return false;
 }
+
+d3d::GpuAutoLock::GpuAutoLock() = default;
+d3d::GpuAutoLock::~GpuAutoLock() = default;

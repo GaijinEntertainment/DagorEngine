@@ -467,6 +467,9 @@ void ComputeMultipleScatteringApprox(
 #if SHADOWMAP_ENABLED
 // we artificially increase shadow for god rays from clouds
 INLINE float finalShadowFromShadowTerm(float s){return s*s;}
+#if SHADER_COMPILER_FP16_ENABLED
+INLINE half finalShadowFromShadowTerm(half s){return s*s;}
+#endif
 #endif
 
 INLINE IrradianceSpectrum ComputeScatteringForIrradiance(

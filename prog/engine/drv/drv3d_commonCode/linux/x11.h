@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <unistd.h>
@@ -23,6 +24,7 @@
 #include <memory/dag_framemem.h>
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
+#include "drv_log_defs.h"
 
 struct X11Randr
 {
@@ -50,6 +52,8 @@ struct X11Randr
   void (*XRRSetScreenSize)(Display *dpy, Window window, int width, int height, int mmWidth, int mmHeight);
   XRRCrtcInfo *(*XRRGetCrtcInfo)(Display *, XRRScreenResources *, RRCrtc);
   Status (*XRRSetCrtcConfig)(Display *, XRRScreenResources *, RRCrtc, Time, int, int, RRMode, Rotation, RROutput *, int);
+  Rotation (*XRRRotations)(Display *dpy, int screen, Rotation *current_rotation);
+  short (*XRRConfigCurrentRate)(XRRScreenConfiguration *config);
 
   void init(void *so)
   {
@@ -76,6 +80,8 @@ struct X11Randr
     *(void **)&XRRSetOutputPrimary = os_dll_get_symbol(so, "XRRSetOutputPrimary");
     *(void **)&XRRGetOutputPrimary = os_dll_get_symbol(so, "XRRGetOutputPrimary");
     *(void **)&XRRSetScreenSize = os_dll_get_symbol(so, "XRRSetScreenSize");
+    *(void **)&XRRRotations = os_dll_get_symbol(so, "XRRRotations");
+    *(void **)&XRRConfigCurrentRate = os_dll_get_symbol(so, "XRRConfigCurrentRate");
   }
 
   inline void reset() { memset(this, 0, sizeof(*this)); }
@@ -278,12 +284,31 @@ struct X11
     {
       int nsizes = 0;
       int screen = randr.XRRRootToScreen(rootDisplay, rootWindow);
+      Rotation curRotation = RR_Rotate_0;
+      randr.XRRRotations(rootDisplay, screen, &curRotation);
       XRRScreenSize *sizes = randr.XRRSizes(rootDisplay, screen, &nsizes);
       if (nsizes > 0)
       {
-        width = sizes[0].width;
-        height = sizes[0].height;
-        debug("x11: screen size from xrandr %dx%d. nsizes %d", width, height, nsizes);
+        switch (curRotation)
+        {
+          case RR_Rotate_0:
+          case RR_Rotate_180:
+            width = sizes[0].width;
+            height = sizes[0].height;
+            break;
+          case RR_Rotate_90:
+          case RR_Rotate_270:
+            width = sizes[0].height;
+            height = sizes[0].width;
+            break;
+          default:
+            // still use xrandr sizes but complain as fallback
+            width = sizes[0].width;
+            height = sizes[0].height;
+            debug("x11: unknown xrandr rotation!");
+            break;
+        }
+        debug("x11: screen size from xrandr %dx%d rotation %u. nsizes %d", width, height, curRotation, nsizes);
       }
     }
 
@@ -296,7 +321,7 @@ struct X11
       if (!outputInfo)
       {
         randr.XRRFreeScreenResources(screen);
-        logerr("x11: can't read primary output info");
+        D3D_ERROR("x11: can't read primary output info");
         return;
       }
 
@@ -314,10 +339,10 @@ struct X11
           randr.XRRFreeCrtcInfo(crtcInfo);
         }
         else
-          logerr("x11: primary output crtc info is not available");
+          D3D_ERROR("x11: primary output crtc info is not available");
       }
       else
-        logerr("x11: primary output is not available");
+        D3D_ERROR("x11: primary output is not available");
 
       randr.XRRFreeOutputInfo(outputInfo);
       randr.XRRFreeScreenResources(screen);
@@ -525,6 +550,60 @@ struct X11
 
   inline bool isDeleteMessage(Atom ident) const { return ident == wmDelete; }
   inline bool isPingMessage(Atom ident) const { return ident == wmPing; }
+
+  int getScreenRefreshRate()
+  {
+    if (randr.XRRGetOutputPrimary && randr.XRRGetScreenResources && randr.XRRGetOutputInfo && randr.XRRGetCrtcInfo)
+    {
+      if (primaryOutput == None)
+        return 0;
+
+      int ret = 0;
+      XRRScreenResources *screen = randr.XRRGetScreenResources(rootDisplay, rootWindow);
+      if (screen)
+      {
+        XRROutputInfo *output = randr.XRRGetOutputInfo(rootDisplay, screen, primaryOutput);
+        if (output)
+        {
+          XRRCrtcInfo *crtc = randr.XRRGetCrtcInfo(rootDisplay, screen, output->crtc);
+          if (crtc)
+          {
+            XRRModeInfo *curModeInfo = nullptr;
+            for (int i = 0; i < screen->nmode; ++i)
+            {
+              if (crtc->mode == screen->modes[i].id)
+              {
+                curModeInfo = &screen->modes[i];
+                break;
+              }
+            }
+            if (curModeInfo)
+            {
+              if (curModeInfo->hTotal && curModeInfo->vTotal)
+                ret = (int)((double)curModeInfo->dotClock / (double)(curModeInfo->hTotal * curModeInfo->vTotal));
+            }
+            randr.XRRFreeCrtcInfo(crtc);
+          }
+          randr.XRRFreeOutputInfo(output);
+        }
+        randr.XRRFreeScreenResources(screen);
+      }
+      return ret;
+    }
+    else
+    {
+      // fallback to older xrandr API, with fail for "metamodes"
+      if (!randr.XRRGetScreenInfo || !randr.XRRConfigCurrentRate)
+        return 0;
+
+      XRRScreenConfiguration *sc = randr.XRRGetScreenInfo(rootDisplay, rootWindow);
+      if (!sc)
+        return 0;
+      int ret = randr.XRRConfigCurrentRate(sc);
+      randr.XRRFreeScreenConfigInfo(sc);
+      return ret;
+    }
+  }
 
   inline bool setScreenResolution(int width, int height, int &viewport_wd, int &viewport_ht)
   {

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <3d/ddsxTex.h>
 #include <3d/ddsFormat.h>
 #include <3d/ddsxTexMipOrder.h>
@@ -47,7 +49,6 @@ static bool ddsx_to_dds(IGenLoad &crd, IGenSave &cwr)
     {32, 0x00000000, 0xff0000, 0xff00, 0xff, D3DFMT_X8B8G8R8, DDPF_RGB},
     {16, 0x00000000, 0x0000ff, 0xff00, 0x00, D3DFMT_V8U8, DDPF_BUMPDUDV},
     {16, 0x0000ff00, 0x0000ff, 0x0000, 0x00, D3DFMT_A8L8, DDPF_LUMINANCE | DDPF_ALPHAPIXELS},
-    {32, 0x00000000, 0xFFFF, 0xFFFF0000, 0, D3DFMT_V16U16, DDPF_BUMPDUDV},
     {16, 0x00000000, 0xFFFF, 0x00000000, 0, D3DFMT_L16, DDPF_LUMINANCE},
   };
 

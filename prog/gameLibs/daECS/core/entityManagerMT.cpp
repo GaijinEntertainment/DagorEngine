@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/core/entityManager.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_atomic.h>

@@ -1,0 +1,27 @@
+R"(/* shader: %s, stcode header */ // <- shader file name
+#include <shaders/stcode/scalarTypes.h>
+#include <shaders/stcode/functions.stcode.h>
+#include <shaders/stcode/callbacks.stcode.h>
+#include "%s.stcode.gen.h" // <- shader file name
+
+#define PPCAT_PREP(_a, _b) _a ## _b
+#define PPCAT(_a, _b) PPCAT_PREP(_a, _b)
+#define LOC(_name) static_cast<size_t>(Location:: _name)
+#define VAR(_name, _type) (*(_type *)(vars_base + static_cast<size_t>(PPCAT(OffsetStvar, CUR_STVAR_ID):: _name##_ofs)))
+
+namespace stcode::cpp
+{
+
+// Enum classes for static var offsets
+%s
+
+namespace _%s // <- shader file name
+{
+
+// Code for stcode routines from this file
+%s
+
+}
+
+}
+)"

@@ -1,4 +1,4 @@
-Version: 4.6.0
+Version: 4.8.0
 seterrorhandler: function
 setdebughook: function
 getstackinfos: function

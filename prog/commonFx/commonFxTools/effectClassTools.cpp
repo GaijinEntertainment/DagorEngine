@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <generic/dag_tab.h>
 #include <fx/effectClassTools.h>
 
@@ -21,7 +23,7 @@ void register_effect_class_tools(IEffectClassTools *iface)
   IEffectClassTools *f = get_effect_class_tools_interface(iface->getClassName());
   if (f)
   {
-    debug_ctx("duplicate effect class tools: '%s', %p and %p", iface->getClassName(), iface, f);
+    DEBUG_CTX("duplicate effect class tools: '%s', %p and %p", iface->getClassName(), iface, f);
     return;
   }
 

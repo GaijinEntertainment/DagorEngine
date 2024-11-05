@@ -71,7 +71,7 @@ struct SQOuter : public CHAINABLE_OBJ
 {
 
 private:
-    SQOuter(SQSharedState *ss, SQObjectPtr *outer){_valptr = outer; _link = NULL; INIT_CHAIN(); ADD_TO_CHAIN(&_ss(this)->_gc_chain,this); }
+    SQOuter(SQSharedState *ss, SQObjectPtr *outer){_valptr = outer; _next = NULL; INIT_CHAIN(); ADD_TO_CHAIN(&_ss(this)->_gc_chain,this); }
 
 public:
     static SQOuter *Create(SQSharedState *ss, SQObjectPtr *outer)
@@ -97,7 +97,7 @@ public:
     SQObjectPtr *_valptr;  /* pointer to value on stack, or _value below */
     SQInteger    _idx;     /* idx in stack array, for relocation */
     SQObjectPtr  _value;   /* value of outer after stack frame is closed */
-    SQOuter     *_link;    /* pointer to next outer when frame is open   */
+    SQOuter     *_next;    /* pointer to next outer when frame is open   */
 };
 
 //////////////////////////////////////////////

@@ -1,0 +1,89 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "object_sdf.dshl"
+include "postfx_inc.dshl"
+include "viewVecVS.dshl"
+include "globtm.dshl"
+
+shader sdf_object_debug
+{
+  supports global_const_block;
+  supports global_frame;
+  cull_mode = none;
+  z_write = true;
+  z_test = true;
+
+  USE_AND_INIT_VIEW_VEC_VS()
+  POSTFX_VS_VIEWVEC(1, viewvec)
+  (ps) {debug_world_view_pos@f3 = world_view_pos;}
+
+  READ_OBJECT_SDF(ps)
+
+  INIT_AND_USE_GLOBTM(ps)
+
+  hlsl(ps)
+  {
+    struct Output
+    {
+      float4 color : SV_Target;
+      float depth : SV_Depth;
+    };
+    #include <ray_sphere_intersect.hlsl>
+    Output raymarcher(VsOutput input)
+    {
+      Output output;
+      uint minInst = 0;
+      int instCnt = (int)object_sdf_instances_count.x;
+      float3 worldRayDir = normalize(input.viewvec) ;
+      float maxT = 1000, t = maxT;
+      bool hit = false;
+      float dif;
+      float3 worldPos = debug_world_view_pos;
+      uint steps = 0;
+      int si = minInst;
+      float3 norm = 0;
+#if SDF_SUPPORT_OBJECT_TRACING
+      float3 gradient = 0;
+      for (int i = si; i < si + instCnt; ++i)
+      {
+        float3 out_pos;
+        float4 sph_r = read_sdf_instance_bounds(i);
+        if ((ray_intersect_sphere(worldPos, worldRayDir, sph_r.xyz, sph_r.w, out_pos) && out_pos.y < t))
+        {
+          ObjectSDFInstance inst = read_packed_sdf_instance(i);
+          float ct;
+          float3 gradient2;
+          if (sdf_trace_object_volume(worldPos, worldRayDir,
+            maxT,
+            inst.objectId,
+            0,
+            inst.worldToLocal,
+            inst.localToWorld,
+            -inst.extent, inst.extent,
+            ct, steps, gradient2, dif))
+          {
+            if (ct < t)
+            {
+              hit = true;
+              gradient = gradient2;
+              t = ct;
+            }
+          }
+        }
+      }
+      float gradLen = length(gradient);
+      float3 norm = gradLen > 0 ? gradient/gradLen : float3(0,0,0);
+#endif
+      if (!hit)
+        discard;
+      output.color.w = 1;
+      //output.color = 0.5*(1-exp2(-0.1*steps));
+      output.color.rgb = (norm*0.5 + 0.5);
+      //output.color.rgb = exp2(-0.1*t);
+      float4 imagePos = mulPointTm(worldPos + worldRayDir*t, globtm);
+      output.depth = imagePos.z/imagePos.w;
+      return output;
+    }
+  }
+  compile("target_ps", "raymarcher");
+}

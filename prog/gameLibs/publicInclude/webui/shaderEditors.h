@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -10,7 +9,6 @@
 #include <webui/nodeBasedShaderType.h>
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_string.h>
-#include <EASTL/functional.h>
 
 #define HAS_SHADER_GRAPH_COMPILE_SUPPORT (DAGOR_DBGLEVEL > 0 && _TARGET_PC_WIN)
 
@@ -76,6 +74,7 @@ private:
 
   String editorName;
 
+  int lastRecompileTimeMsec = 0;
   bool shouldRecompile = false;
 
   ShaderGetSrcCallback shaderGetSrcCallback = nullptr;

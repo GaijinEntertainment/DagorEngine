@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -44,6 +43,11 @@ struct PhysShapeQueryOutput;
 namespace dacoll
 {
 typedef ::PhysShapeQueryResult ShapeQueryOutput;
+struct RIFilterCB
+{
+  virtual ~RIFilterCB() {}
+  virtual bool onFilter(const rendinst::RendInstDesc &, float) { return true; }
+};
 
 enum CollType : uint32_t
 {
@@ -79,7 +83,7 @@ enum class TestPairFlags
 };
 DAGOR_ENABLE_ENUM_BITMASK(TestPairFlags);
 
-void init_collision_world(InitFlags flags = InitFlags::Default, float collapse_contact_thr = 0.f);
+void init_collision_world(InitFlags flags, float collapse_contact_thr);
 void term_collision_world();
 void destroy_static_collision();
 void clear_collision_world();
@@ -90,7 +94,7 @@ void set_ttl_for_collision_instances(float value);
 void add_static_collision_frt(DeserializedStaticSceneRayTracer *frt, const char *name, dag::ConstSpan<unsigned char> *pmid = NULL);
 void set_water_tracer(BuildableStaticSceneRayTracer *tracer);
 bool load_static_collision_frt(IGenLoad *crd);
-void add_collision_hmap(LandMeshManager *land, float restitution = 0.f);
+void add_collision_hmap(LandMeshManager *land, float restitution, float margin);
 void add_collision_hmap_custom(const Point3 &collision_pos, const BBox3 &collision_box, const Point2 &hmap_offset, float hmap_scale,
   int hmap_step);
 void add_collision_landmesh(LandMeshManager *land, const char *name, float restitution = 0.f);
@@ -163,8 +167,8 @@ void get_min_max_hmap_list_in_circle(const Point2 &center, float rad, Tab<Point2
 void set_enable_apex(bool flag);
 bool is_apex_enabled();
 
-CollisionObject create_coll_obj_from_shape(const PhysCollision &shape, void *userPtr, bool kinematic, bool add_to_world = true,
-  int group_filter = EPL_KINEMATIC, int mask = DEFAULT_DYN_COLLISION_MASK, const TMatrix *wtm = nullptr);
+CollisionObject create_coll_obj_from_shape(const PhysCollision &shape, void *userPtr, bool kinematic, bool add_to_world,
+  bool auto_mask, int group_filter = EPL_KINEMATIC, int mask = DEFAULT_DYN_COLLISION_MASK, const TMatrix *wtm = nullptr);
 
 CollisionObject add_dynamic_cylinder_collision(const TMatrix &tm, float rad, float ht, void *user_ptr = nullptr,
   bool add_to_world = true);
@@ -172,8 +176,13 @@ CollisionObject add_dynamic_sphere_collision(const TMatrix &tm, float rad, void 
 CollisionObject add_dynamic_capsule_collision(const TMatrix &tm, float rad, float height, void *user_ptr = nullptr,
   bool add_to_world = true);
 CollisionObject add_dynamic_box_collision(const TMatrix &tm, const Point3 &width, void *user_ptr = nullptr, bool add_to_world = true);
-CollisionObject add_dynamic_collision(const DataBlock &props, void *userPtr = nullptr, bool is_player = false,
-  bool add_to_world = true, int mask = DEFAULT_DYN_COLLISION_MASK, const TMatrix *wtm = nullptr);
+CollisionObject add_dynamic_collision_with_mask(const DataBlock &props, void *userPtr, bool is_player, bool add_to_world,
+  bool auto_mask, int mask = DEFAULT_DYN_COLLISION_MASK, const TMatrix *wtm = nullptr);
+inline CollisionObject add_dynamic_collision(const DataBlock &props, void *userPtr = nullptr, bool is_player = false,
+  bool add_to_world = true, int mask = DEFAULT_DYN_COLLISION_MASK, const TMatrix *wtm = nullptr)
+{
+  return add_dynamic_collision_with_mask(props, userPtr, is_player, add_to_world, !add_to_world, mask, wtm);
+}
 enum AddDynCOFromCollResFlags
 {
   ACO_NONE = 0,
@@ -182,13 +191,14 @@ enum AddDynCOFromCollResFlags
   ACO_ADD_TO_WORLD = 1 << 2,
   ACO_APEX_IS_PLAYER = 1 << 3,
   ACO_APEX_IS_VEHICLE = 1 << 4,
-  ACO_APEX_ADD = 1 << 5
+  ACO_APEX_ADD = 1 << 5,
+  ACO_FORCE_CONVEX_HULL = 1 << 6,
 };
 CollisionObject add_dynamic_collision_from_coll_resource(const DataBlock *props, const CollisionResource *coll_resource,
   void *user_ptr = nullptr, /*AddDynCOFromCollResFlags */ int flags = ACO_NONE, int phys_layer = EPL_KINEMATIC,
   int mask = DEFAULT_DYN_COLLISION_MASK, const TMatrix *wtm = nullptr);
 CollisionObject add_simple_dynamic_collision_from_coll_resource(const DataBlock &props, const CollisionResource *resource,
-  GeomNodeTree *tree, float margin, float scale, Point3 &out_center, TMatrix &out_tm, TMatrix &out_tm_in_model);
+  GeomNodeTree *tree, float margin, float scale, Point3 &out_center, TMatrix &out_tm, TMatrix &out_tm_in_model, bool add_to_world);
 CollisionObject add_dynamic_collision_convex_from_coll_resource(dag::ConstSpan<const CollisionNode *> coll_nodes, const Point3 &offset,
   void *user_ptr, int node_type_flags, bool kinematic, bool add_to_world, int phys_layer = EPL_KINEMATIC,
   int mask = DEFAULT_DYN_COLLISION_MASK, const TMatrix *wtm = nullptr);
@@ -216,6 +226,7 @@ CollisionObject &get_reusable_box_collision();
 
 void set_collision_object_tm(const CollisionObject &co, const TMatrix &tm);
 void set_vert_capsule_shape_size(const CollisionObject &co, float cap_rad, float cap_cyl_ht);
+void set_collision_sphere_rad(const CollisionObject &co, float rad);
 
 bool test_collision_frt(const CollisionObject &co, Tab<gamephys::CollisionContactData> &out_contacts, int mat_id = -1);
 bool test_collision_lmesh(const CollisionObject &co, const TMatrix &tm, float max_rad, int def_mat_id,
@@ -229,9 +240,9 @@ void update_ri_cache_in_volume_to_phys_world(const BBox3 &box);
 bool test_collision_world(const CollisionObject &co, Tab<gamephys::CollisionContactData> &out_contacts, int mat_id = -1,
   dacoll::PhysLayer group = EPL_DEFAULT, int mask = EPL_ALL);
 bool test_collision_world(dag::ConstSpan<CollisionObject> collision, const TMatrix &tm, float bounding_rad,
-  Tab<gamephys::CollisionContactData> &out_contacts);
+  Tab<gamephys::CollisionContactData> &out_contacts, const TraceMeshFaces *trace_cache);
 bool test_collision_world(dag::ConstSpan<CollisionObject> collision, float bounding_rad,
-  Tab<gamephys::CollisionContactData> &out_contacts);
+  Tab<gamephys::CollisionContactData> &out_contacts, const TraceMeshFaces *trace_cache);
 bool test_sphere_collision_world(const Point3 &pos, float radius, int mat_id, Tab<gamephys::CollisionContactData> &out_contacts,
   dacoll::PhysLayer group = EPL_DEFAULT, int mask = EPL_ALL);
 bool test_box_collision_world(const TMatrix &tm, int mat_id, Tab<gamephys::CollisionContactData> &out_contacts,
@@ -255,11 +266,13 @@ void shape_query_lmesh(const PhysSphereCollision &shape, const TMatrix &from, co
 void shape_query_frt(const PhysBody *shape, const TMatrix &from, const TMatrix &to, ShapeQueryOutput &out);
 void shape_query_lmesh(const PhysBody *shape, const TMatrix &from, const TMatrix &to, ShapeQueryOutput &out);
 void shape_query_ri(const PhysBody *shape, const TMatrix &from, const TMatrix &to, float rad, ShapeQueryOutput &out,
-  int cast_mat_id = -1, Tab<rendinst::RendInstDesc> *out_desc = nullptr, const TraceMeshFaces *handle = nullptr);
+  int cast_mat_id = -1, Tab<rendinst::RendInstDesc> *out_desc = nullptr, const TraceMeshFaces *handle = nullptr,
+  RIFilterCB *filterCB = nullptr);
 bool sphere_query_ri(const Point3 &from, const Point3 &to, float rad, ShapeQueryOutput &out, int cast_mat_id = -1,
-  Tab<rendinst::RendInstDesc> *out_desc = nullptr, const TraceMeshFaces *handle = nullptr);
+  Tab<rendinst::RendInstDesc> *out_desc = nullptr, const TraceMeshFaces *handle = nullptr, RIFilterCB *filterCB = nullptr);
 bool sphere_cast(const Point3 &from, const Point3 &to, float rad, ShapeQueryOutput &out, int cast_mat_id = -1,
   const TraceMeshFaces *handle = nullptr);
+bool sphere_cast_land(const Point3 &from, const Point3 &to, float rad, ShapeQueryOutput &out, int hmap_step = -1);
 static constexpr int DEFAULT_SPHERE_CAST_MASK = EPL_ALL & ~(EPL_CHARACTER | EPL_DEBRIS);
 bool sphere_cast_ex(const Point3 &from, const Point3 &to, float rad, ShapeQueryOutput &out, int cast_mat_id,
   dag::ConstSpan<CollisionObject> ignore_objs, const TraceMeshFaces *handle = nullptr, int mask = DEFAULT_SPHERE_CAST_MASK,

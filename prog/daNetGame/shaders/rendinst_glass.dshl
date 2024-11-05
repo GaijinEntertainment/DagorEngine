@@ -1,0 +1,91 @@
+include "psh_tangent.dshl"
+include "rendinst_trans_inc.dshl"
+include "emissive.dshl"
+include "glass.dshl"
+include "indoor_light_probes.dshl"
+include "gbuffer_to_temperature.dshl"
+include "csm.dshl"
+
+shader rendinst_simple_glass, rendinst_refraction
+{
+  assume instancing_type = tm_vb;
+  ENABLE_MULTI_DRAW(false)
+  if (in_editor_assume == no)
+  {
+    USE_BRUNETON_FOG()
+  }
+  if (shader == rendinst_simple_glass)
+  {
+    INIT_CSM_SHADOW(ps)
+    USE_CSM_SHADOW_DEF_NUM()
+    hlsl (ps) {
+      #define USE_CSM_SHADOWS 1
+      float getCSMShadow(float3 pointToEye)
+      {
+        return get_csm_shadow(pointToEye).x;
+      }
+    }
+
+    INIT_SIMPLE_GLASS()
+    static float emission = 0;
+    (ps) { emission@f1 = (emission); }
+    INIT_GLASS_NIGHT_EMISSION()
+  } else
+  {
+    INIT_REFRACTION_GLASS()
+    INIT_GLASS_USE_TILED_LIGHTS()
+  }
+  if (gi_quality != off)
+  {
+    USE_IN_FRUSTUM_GI(ps)
+    hlsl {
+      #define GLASS_USE_GI 1
+    }
+  }
+  RENDINST_TRANS_BLOCK()
+  RENDINST_INSTANCING()
+  USE_THERMAL_SIGNATURE()
+  hlsl(vs) {
+
+    INSTANCING_BUFFERS
+
+    struct VsInput
+    {
+      float3 pos                  : POSITION;
+      float3 normal               : NORMAL;
+      float2 texcoord             : TEXCOORD0;
+    };
+
+    VsOutput glass_vs(VsInput input  HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+      #endif
+
+      input.normal = normalize(input.normal * 2 - 1);
+      float3 localNormal = input.normal.xyz;
+      float3 localPos = input.pos;
+      float opacity = 1;
+      VB_PERFORM_INSTANCING
+
+      float3 pointToEye = world_view_pos-worldPos;
+
+      output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+      output.texcoord.xy = input.texcoord;
+      output.normal.xyz = worldNormal;
+      output.pointToEye.xyz = pointToEye;
+      half3 fogMul, fogAdd;
+      get_fog(pointToEye, fogMul, fogAdd);
+      output.clipPos = output.pos;
+      output.fogMul = fogMul;
+      output.fogAdd = fogAdd;
+      return output;
+    }
+  }
+  compile("target_vs", "glass_vs");
+
+  GLASS_PS()
+}

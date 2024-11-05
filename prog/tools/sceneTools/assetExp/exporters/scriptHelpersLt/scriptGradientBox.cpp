@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_genIo.h>
 
-#include <propPanel2/c_common.h>
+#include <propPanel/c_common.h>
 #include "tunedParams.h"
 
 using namespace ScriptHelpers;
@@ -13,7 +15,7 @@ class TunedGradientBoxParam : public TunedElement
 public:
   static const int MAX_POINTS = 64;
 
-  Tab<GradientKey> values;
+  Tab<PropPanel::GradientKey> values;
   TunedGradientBoxParam(const char *nm) { name = nm; }
   ~TunedGradientBoxParam() {}
 
@@ -56,7 +58,7 @@ public:
     for (int i = 0; i < MAX_POINTS; ++i)
       if (blk.paramExists(String(32, "pos_%d", i)))
       {
-        GradientKey v;
+        PropPanel::GradientKey v;
         v.position = blk.getReal(String(32, "pos_%d", i), 0);
         v.color = blk.getE3dcolor(String(32, "color_%d", i), 0xffffffff);
         v.position = clamp<float>(v.position, 0, 1);

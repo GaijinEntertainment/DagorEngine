@@ -4,6 +4,7 @@ Location = prog/3rdPartyLibs/image/jpeg-6b ;
 TargetType  = lib ;
 Target      = 3rdPartyLibs/image/jpeg-6b.lib ;
 
+include $(Root)/prog/_jBuild/defaults.jam ;
 
 AddIncludes     = $(Root)/prog/3rdPartyLibs/image/jpeg-6b ;
 
@@ -57,14 +58,17 @@ Sources =
   jmemdagor.c
 ;
 
-CPPopt = -D__B_CORE -DNO_GETENV=1 ;
+CPPopt = -DNO_GETENV=1 ;
 
-if $(PlatformSpec) in clang clang64 {
+if $(PlatformSpec) = clang {
   CPPopt += -Wno-shift-negative-value ;
 }
 
 if $(PlatformSpec) in gcc clang {
   CPPopt += -Wno-unused-parameter ;
+}
+if $(Platform) in macOS {
+  CPPopt += -Wno-deprecated-declarations -Wno-shift-negative-value ;
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

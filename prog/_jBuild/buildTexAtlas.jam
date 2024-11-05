@@ -1,7 +1,7 @@
 if ! $(__TEX_ATLAS_BUILD_INCLUDED) { if ! $(Root) { Exit 'Root' variable not defined, aborting ; } __TEX_ATLAS_BUILD_INCLUDED = 1 ;
 
 include $(Root)/prog/_jBuild/defPlatform.jam ;
-TEX_ATLAS_BUILD_TOOL = $(Root)/tools/dagor3_cdk/util64/guiTex-dev.exe ;
+if $(OS) = NT { TEX_ATLAS_BUILD_TOOL = $(Root)/tools/dagor_cdk/windows-x86_64/guiTex-dev.exe ; }
 
 actions quietly build_tex_atlas
 {

@@ -1,3 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 /************************************************************************
   sematic checker for vprog & fshader - base class
 /************************************************************************/

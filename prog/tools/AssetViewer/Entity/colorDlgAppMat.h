@@ -1,15 +1,16 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <propPanel2/comWnd/color_dialog.h>
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/commonWindow/colorDialog.h>
+#include <propPanel/control/container.h>
 #include <shaders/dag_shMaterialUtils.h>
 
 
-class ColorDialogAppMat : public ColorDialog
+class ColorDialogAppMat : public PropPanel::ColorDialog
 {
 public:
   ColorDialogAppMat(void *phandle, const char caption[]);
-  void onChange(int pcb_id, PropPanel2 *panel) override;
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
 private:
   enum

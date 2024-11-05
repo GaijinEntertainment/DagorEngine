@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 /**
  * This header tries to figure out which windows sdk version is
  * used and fills in the gaps to make DX12 compile with it.

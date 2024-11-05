@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <supp/_platform.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <osApiWrappers/dag_critSec.h>
@@ -19,12 +21,13 @@
 #include <unistd.h>
 #elif _TARGET_PC_WIN | _TARGET_XBOX
 #include <process.h>
+#include <malloc.h>
 #else
 #include <unistd.h>
 #include <limits.h>
-#define HAVE_PTHREAD_SETDETACHSTATE 1
 #endif
 
+#define GET_FLEXA_KB() (-1) // N/a
 #if _TARGET_PC_LINUX
 #include <sys/prctl.h>
 #elif _TARGET_ANDROID
@@ -33,10 +36,17 @@
 #elif _TARGET_C1 | _TARGET_C2
 
 
+
+
 #elif _TARGET_C3
 
+#endif
 
-
+#ifdef INVALID_HANDLE_VALUE
+#elif defined(PTHREAD_NULL)
+#define INVALID_HANDLE_VALUE PTHREAD_NULL
+#else
+#define INVALID_HANDLE_VALUE pthread_t()
 #endif
 
 #define DEBUG_JOB_LEV 0
@@ -64,11 +74,6 @@ inline void LOGMSG1(const char *, ...) {}
 #define MAX_VIRT_JOB_MGR_COUNT 32
 #endif
 
-#if _TARGET_C1 | _TARGET_C2
-
-#elif _TARGET_APPLE | _TARGET_PC_LINUX | _TARGET_ANDROID | _TARGET_C3
-#define THREAD_STACK_MIN (256 << 10)
-#endif
 #include "threadPriorities.h"
 
 void set_current_cpujobs_thread_name(const char *tname) { DaThread::setCurrentThreadName(tname); }
@@ -83,11 +88,9 @@ static void *__cdecl job_mgr_thread(void *p);
 
 namespace cpujobs
 {
-class JobQueueList
+struct JobQueueList
 {
   IJob *volatile first;
-
-public:
   IJob *last;
 
   IJob *getFirst() { return interlocked_acquire_load_ptr(first); }
@@ -166,8 +169,9 @@ public:
     }
   }
 
-  void removeByTag(JobQueueList &done, unsigned tag)
+  int removeByTag(JobQueueList &done, unsigned tag)
   {
+    int jobsRemovedCount = 0;
     if (first && first->next)
     {
       IJob *j = first;
@@ -180,6 +184,7 @@ public:
           n->next = NULL;
           done.add(n);
           n = j->next;
+          jobsRemovedCount++;
         }
         else
         {
@@ -190,6 +195,7 @@ public:
           last = j;
       }
     }
+    return jobsRemovedCount;
   }
 
   bool isInQueue(IJob *j)
@@ -227,7 +233,7 @@ enum
   ABORT_REQUESTED
 };
 
-struct JobMgrCtx //-V730
+struct JobMgrCtx // Note: zero inited
 {
 #if _TARGET_PC_WIN | _TARGET_XBOX
   static constexpr int THREAD_NAME_LEN = 32;
@@ -235,16 +241,16 @@ struct JobMgrCtx //-V730
   static constexpr int THREAD_NAME_LEN = 16;
 #endif
   JobQueueList job, doneJobs;
-  volatile int state = NOT_USED;
+  volatile int state;
   int stackSz;
   int idleTime; // in msec
   int prio;
   uint64_t affinity;
   os_event_t cmdEvent;
 #if _TARGET_PC_WIN | _TARGET_XBOX
-  DWORD tId;
+  HANDLE tId, handle;
 #else
-  pthread_t tId;
+  pthread_t tId, handle;
 #endif
   CritSecStorage critSec;
 
@@ -264,6 +270,16 @@ struct JobMgrCtx //-V730
   }
   bool isBusy() const { return interlocked_acquire_load(state) >= USED; }
 
+  void detach()
+  {
+    if (handle != INVALID_HANDLE_VALUE)
+#if _TARGET_PC_WIN | _TARGET_XBOX
+      G_VERIFY(CloseHandle(eastl::exchange(handle, INVALID_HANDLE_VALUE)));
+#else
+      G_VERIFY(pthread_detach(eastl::exchange(handle, INVALID_HANDLE_VALUE)) == 0);
+#endif
+  }
+
   void init(int stk_sz, const char *name, int jmidx, uint64_t affinity_, int prio_, int idle_time_sec = 0)
   {
     if (name)
@@ -276,24 +292,30 @@ struct JobMgrCtx //-V730
     job.reset();
     doneJobs.reset();
     stackSz = stk_sz;
-    affinity = affinity_;
+    affinity = affinity_ == WORKER_THREADS_AFFINITY_MASK ? WORKER_THREADS_AFFINITY_USE : affinity_;
     prio = prio_;
     idleTime = idle_time_sec * 1000;
+    tId = handle = INVALID_HANDLE_VALUE;
     os_event_create(&cmdEvent);
-    memset(&tId, 0xff, sizeof(tId)); // not inited yet
     interlocked_release_store(state, USED);
   }
   int startThread() // Returns 0 on success or errorcode otherwise
   {
+    detach(); // Detach previous in case of non first start
+
 #if _TARGET_PC_WIN | _TARGET_XBOX
     // To consider: start paused and change prio/affinity and then resume
+    tId = 0;     // Zero high bits
 #if _TARGET_XBOX // Microsoft extensions for threading are obsolete and have been removed.
-    HANDLE handle = CreateThread(NULL, stackSz, job_mgr_thread, this, 0, &tId);
+    handle = CreateThread(NULL, stackSz, job_mgr_thread, this, 0, (DWORD *)&tId);
 #else
-    HANDLE handle = (HANDLE)_beginthreadex(NULL, stackSz, job_mgr_thread, this, STACK_SIZE_PARAM_IS_A_RESERVATION, (unsigned *)&tId);
+    handle = (HANDLE)_beginthreadex(NULL, stackSz, job_mgr_thread, this, STACK_SIZE_PARAM_IS_A_RESERVATION, (unsigned *)&tId);
 #endif
     if (DAGOR_UNLIKELY(!handle))
+    {
+      tId = INVALID_HANDLE_VALUE;
       return GetLastError();
+    }
 #if HAS_THREAD_PRIORITY // It is dangerous to set threads different priorities with many locks/mutex/critsections. It caused Priority
                         // Inversion, and can lead to freezes
 #if HAS_THREAD_PRIORITY == PRIORITY_ONLY_HIGHER // We allow to have different priority, but only one step higher. That is resistent to
@@ -302,39 +324,27 @@ struct JobMgrCtx //-V730
 #endif
     if (prio != THREAD_PRIORITY_NORMAL)
       if (!::SetThreadPriority(handle, prio))
-      {
-        DAGOR_WITH_LOGS(DWORD last_err = GetLastError());
-        logwarn("%s SetThreadPriority failed with error %d (0x%x)", __FUNCTION__, last_err, last_err);
-      }
+        logwarn("%s SetThreadPriority failed with error %d", __FUNCTION__, GetLastError());
 #endif
-
-    SetThreadAffinityMask(handle, affinity);
-
-    CloseHandle(handle);
-
 #else
 
-    pthread_t handle;
+    pthread_t thread;
     pthread_attr_t attr;
     pthread_attr_init(&attr);
-
-#if HAVE_PTHREAD_SETDETACHSTATE
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-#endif
-    pthread_attr_setstacksize(&attr, stackSz > THREAD_STACK_MIN ? stackSz : THREAD_STACK_MIN);
+    pthread_attr_setstacksize(&attr, stackSz);
 
 #if _TARGET_C1
 
 #endif
 
-    int ret = pthread_create(&handle, &attr, job_mgr_thread, this);
+    int ret = pthread_create(&thread, &attr, job_mgr_thread, this);
 
     pthread_attr_destroy(&attr);
 
     if (DAGOR_UNLIKELY(ret))
       return ret;
 
-    tId = handle;
+    handle = tId = thread;
 
 #if HAS_THREAD_PRIORITY // It is dangerous to set threads different priorities with many locks/mutex/critsections. It caused Priority
                         // Inversion, and can lead to freezes
@@ -357,37 +367,6 @@ struct JobMgrCtx //-V730
     }
 #endif
 
-#if _TARGET_C1 | _TARGET_C2
-
-
-#elif _TARGET_TVOS | _TARGET_IOS
-    int cpuset = 0;
-    const int cpu_cores = cpujobs::get_core_count();
-    for (uint32_t i = 0; i < cpu_cores; ++i)
-      if (affinity & (1u << i))
-        cpuset |= (1 << i);
-    thread_affinity_policy_data_t policy = {cpuset};
-    thread_port_t mach_thread = pthread_mach_thread_np(handle);
-    thread_policy_set(mach_thread, THREAD_AFFINITY_POLICY, (thread_policy_t)&policy, 1);
-#elif _TARGET_C3
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#endif
-
 #endif
     return 0;
   }
@@ -402,6 +381,7 @@ struct JobMgrCtx //-V730
         jout = j;
     }
     doneJobs.reset();
+    detach();
     interlocked_release_store(state, NOT_USED);
   }
   void addJob(IJob *j, bool prepend, bool need_release)
@@ -425,8 +405,23 @@ struct JobMgrCtx //-V730
 
     unlock();
 
-    if (DAGOR_UNLIKELY(threadStarted))
-      logerr("Failed to start thread for jobMgr <%s> stackSize=%dK with error %d", threadName, stackSz >> 10, threadStarted);
+#if DAGOR_DBGLEVEL > 0 || DAGOR_FORCE_LOGS
+    if (DAGOR_UNLIKELY(threadStarted != 0))
+    {
+      char errMsgBuf[128], *errMsg = errMsgBuf;
+#if _TARGET_PC_WIN | _TARGET_XBOX
+      auto fmf = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
+      auto langid = MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US);
+      FormatMessageA(fmf, NULL, threadStarted, langid, errMsgBuf, sizeof(errMsgBuf), NULL);
+#elif _TARGET_PC_LINUX
+      errMsg = strerror_r(threadStarted, errMsgBuf, sizeof(errMsgBuf));
+#else
+      strerror_r(threadStarted, errMsgBuf, sizeof(errMsgBuf));
+#endif
+      logerr("Failed to start thread for jobMgr <%s> stackSize/flexa=%d/%d KB with error %d: %s", threadName, stackSz >> 10,
+        GET_FLEXA_KB(), threadStarted, errMsg);
+    }
+#endif
   }
   IJob *nextJob()
   {
@@ -444,17 +439,21 @@ struct JobMgrCtx //-V730
     job.resetButCurrent(doneJobs);
     unlock();
   }
-  void removeJobs(unsigned tag)
+  int removeJobs(unsigned tag)
   {
     lock();
-    job.removeByTag(doneJobs, tag);
+    const int jobsRemovedCount = job.removeByTag(doneJobs, tag);
     unlock();
+    return jobsRemovedCount;
   }
   void releaseDoneQueue()
   {
     lock();
-    IJob *j = doneJobs.getFirst();
-    doneJobs.reset();
+    // Use interlocked even under lock to avoid technical race on checking `first` ptr in `release_done_jobs`
+    IJob *j = interlocked_exchange_ptr(doneJobs.first, (IJob *)nullptr);
+    if (!j)
+      return unlock();
+    doneJobs.last = nullptr; // Reset
     unlock();
     JobQueueList::releaseJobList(j);
   }
@@ -485,7 +484,7 @@ static struct CpuJobsData //-V730
 #endif
   uint16_t ctxCount = 0;
   uint16_t firstVirtJobMgrId;
-  volatile int maxVirtJobMgrId;
+  volatile int maxVirtJobMgrId = -1;
   CritSecStorage globCritSec;
 #if CONSTEXPR_CORE_COUNT
   JobMgrCtx ctx[numLogicalCores + MAX_VIRT_JOB_MGR_COUNT];
@@ -498,34 +497,6 @@ static struct CpuJobsData //-V730
   void reset() { memset(this, 0, offsetof(CpuJobsData, globCritSec)); }
 } cpujobs_data;
 } // namespace cpujobs
-
-#if _TARGET_ANDROID
-static void android_apply_thread_affinity(cpujobs::JobMgrCtx &ctx)
-{
-  if (ctx.affinity == 0)
-    DAG_FATAL("For thread <%s> try set zero affinity mask");
-  const int online_cores = sysconf(_SC_NPROCESSORS_ONLN);
-
-  const uint64_t validMask = ((uint64_t)1 << online_cores) - 1;
-  if (!(ctx.affinity & validMask))
-    logwarn("For thread<%s> wrong affinity mask %08X valid mask %08X max cores: %d shift mask", ctx.threadName, ctx.affinity,
-      validMask, online_cores);
-  while (!(ctx.affinity & validMask))
-    ctx.affinity >>= online_cores;
-
-  cpu_set_t cpuset;
-  CPU_ZERO(&cpuset);
-  for (uint32_t i = 0; i < online_cores; ++i)
-    if (ctx.affinity & ((uint64_t)1 << i))
-      CPU_SET(i, &cpuset);
-
-  if (sched_setaffinity(gettid(), sizeof(cpuset), &cpuset) != 0)
-    debug("job_mgr_thread failed to set affinity for %s mask: %08X online_cores: %d errno: %d", ctx.threadName, ctx.affinity,
-      online_cores, errno);
-}
-#else
-static void android_apply_thread_affinity(cpujobs::JobMgrCtx &) {}
-#endif
 
 extern void update_float_exceptions();
 
@@ -541,16 +512,16 @@ static void *__cdecl job_mgr_thread(void *p)
 
   JobMgrCtx &ctx = *(JobMgrCtx *)p;
 
-  android_apply_thread_affinity(ctx);
-
   set_current_cpujobs_thread_name(ctx.getName());
+  uint64_t setAffinity = ctx.affinity;
+#if _TARGET_TVOS | _TARGET_IOS | _TARGET_C3
+  if (!setAffinity)
+    setAffinity = (1ull << cpujobs::get_core_count()) - 1;
+#endif
+  DaThread::applyThisThreadAffinity(setAffinity);
 
 #if DAGOR_DBGLEVEL > 0 || _TARGET_PC
   update_float_exceptions();
-#endif
-
-#if _TARGET_C3
-
 #endif
 
   bool timeouted = false;
@@ -561,7 +532,7 @@ static void *__cdecl job_mgr_thread(void *p)
       ctx.lock();
       if (!ctx.job.getFirst() && interlocked_compare_exchange(ctx.state, USED, THREAD_STARTED) == THREAD_STARTED)
       {
-        memset(&ctx.tId, 0xff, sizeof(ctx.tId));
+        ctx.tId = INVALID_HANDLE_VALUE;
         ctx.unlock();
         timeouted = true;
         break;
@@ -594,15 +565,6 @@ static void *__cdecl job_mgr_thread(void *p)
 
   LOGMSG0("cpuobjs: job mgr %d thread exited\n", &ctx - &cpujobs_data.ctx[0]);
 
-#if _TARGET_PC_WIN
-  _endthreadex(0);
-#elif _TARGET_XBOX
-  ExitThread(0);
-#elif _TARGET_C3
-
-#else
-  pthread_exit(NULL);
-#endif
   return 0;
 }
 
@@ -686,6 +648,9 @@ void cpujobs::init(int force_core_count, bool reserve_jobmgr_cores)
 #else
   cpujobs_data.ctx = (JobMgrCtx *)calloc(cpujobs_data.ctxCount, sizeof(JobMgrCtx));
 #endif
+  if (INVALID_HANDLE_VALUE != decltype(cpujobs_data.ctx[0].handle)())
+    for (int i = 0; i < cpujobs_data.ctxCount; ++i)
+      cpujobs_data.ctx[i].handle = INVALID_HANDLE_VALUE; //-V522
 
   LOGMSG0("cpuobjs inited: %d Cores\n", cpujobs_data.numLogicalCores);
 }
@@ -704,21 +669,29 @@ void cpujobs::term(bool cancel_jobs, int timeout_msec)
       destroy_virtual_job_manager(i, !cancel_jobs);
 
   bool all_done = true;
-  while (timeout_msec > 0)
+  do
   {
-    sleep_msec(10);
-    timeout_msec -= 10;
-
     all_done = true;
-    for (int j = 0; j < cpujobs_data.ctxCount; j++)
-      if (cpujobs_data.ctx[j].isBusy())
+    for (int i = 0; i < cpujobs_data.ctxCount; i++)
+      if (cpujobs_data.ctx[i].isBusy())
         all_done = false;
+      else if (auto &th = cpujobs_data.ctx[i].handle; th != INVALID_HANDLE_VALUE)
+      {
+        // Wait to ensure that TLSes are actually destroyed
+#if _TARGET_PC_WIN | _TARGET_XBOX
+        G_VERIFY(WaitForSingleObject(th, INFINITE) == WAIT_OBJECT_0);
+        G_VERIFY(CloseHandle(eastl::exchange(th, INVALID_HANDLE_VALUE)));
+#else
+        G_VERIFY(pthread_join(eastl::exchange(th, INVALID_HANDLE_VALUE), NULL) == 0);
+#endif
+      }
 
-    if (all_done)
+    if (all_done || timeout_msec-- <= 0)
       break;
 
     abortJobsRequested = true;
-  }
+    sleep_msec(1);
+  } while (1);
 
   if (!cancel_jobs)
   {
@@ -943,11 +916,11 @@ void cpujobs::reset_job_queue(int core_or_vmgr_id, bool auto_release_jobs)
   LOGMSG1("cpuobjs: reset job queue on %d\n", core_or_vmgr_id);
 }
 
-void cpujobs::remove_jobs_by_tag(int core_or_vmgr_id, unsigned tag, bool auto_release_jobs)
+int cpujobs::remove_jobs_by_tag(int core_or_vmgr_id, unsigned tag, bool auto_release_jobs)
 {
   G_ASSERT(cpujobs_data.isInited());
   if (core_or_vmgr_id == COREID_IMMEDIATE)
-    return;
+    return 0;
   G_ASSERT(core_or_vmgr_id >= 0 && core_or_vmgr_id < cpujobs_data.ctxCount);
 
   JobMgrCtx &ctx = cpujobs_data.ctx[core_or_vmgr_id];
@@ -955,14 +928,15 @@ void cpujobs::remove_jobs_by_tag(int core_or_vmgr_id, unsigned tag, bool auto_re
   if (!ctx.isUsed())
   {
     cpujobs_data.unlock();
-    return;
+    return 0;
   }
-  ctx.removeJobs(tag);
+  const int jobsRemovedCount = ctx.removeJobs(tag);
 
   if (auto_release_jobs)
     ctx.releaseDoneQueue();
   cpujobs_data.unlock();
   LOGMSG1("cpuobjs: remove job queue on %d, tag=%f\n", core_or_vmgr_id, tag);
+  return jobsRemovedCount;
 }
 
 bool cpujobs::is_job_manager_busy(int core_or_vmgr_id)
@@ -1025,7 +999,7 @@ int64_t cpujobs::get_job_manager_thread_id(int vmgr_id)
 bool cpujobs::is_in_job()
 {
 #if _TARGET_PC_WIN | _TARGET_XBOX
-  DWORD thread_id = GetCurrentThreadId();
+  HANDLE thread_id = (HANDLE)GetCurrentThreadId();
 #else
   pthread_t thread_id = pthread_self();
 #endif

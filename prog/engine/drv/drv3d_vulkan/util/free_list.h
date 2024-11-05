@@ -1,6 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <generic/dag_tab.h>
+
+#include "vulkan_api.h"
 
 template <typename T>
 class FreeList

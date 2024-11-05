@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <osApiWrappers/dag_direct.h>
 #include <generic/dag_tab.h>
 

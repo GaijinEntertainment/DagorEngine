@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 extern size_t dagormem_first_pool_sz, dagormem_next_pool_sz;

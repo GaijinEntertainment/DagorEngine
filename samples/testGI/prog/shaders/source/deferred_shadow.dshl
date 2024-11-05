@@ -1,4 +1,7 @@
 include "sky_shader_global.dshl"
+include "clustered/simple_point_light.dshl"
+include "clusteredViewLights.dshl"
+include "light_mask_helpers.dshl"
 include "pbr.dshl"
 include "gbuffer.dshl"
 include "monteCarlo.dshl"
@@ -18,10 +21,7 @@ include "clouds_vars.dshl"
 include "sq_clouds_shadow.dshl"
 include "static_shadow.dshl"
 include "use_prefiltered_gf.dshl"
-
-int dynamic_lights_count = 0;
-interval dynamic_lights_count: lights_off<1, lights_on;
-int dynamic_lights_cb_const_no = 60;
+include "screenspace_probes_common.dshl"
 
 float4 shadow_cascade_depth_range;
 
@@ -33,7 +33,6 @@ float4 stereo_params = (0, 0, 0, 0);
 float csm_distance = 1000;
 
 texture combined_shadows;
-
 
 macro COMMON_RESOLVE()
   (vs) {world_view_pos@f3 = world_view_pos;}
@@ -68,6 +67,7 @@ hlsl(ps) {
 endmacro
 
 texture screen_ambient;
+texture screen_specular;
 int deferred_lighting_mode = 0;
 interval deferred_lighting_mode: result<1, light<2, diffuse_light<3, direct_light<4, indirect_light;
 
@@ -90,30 +90,35 @@ shader deferred_shadow_to_buffer
 
   SQ_INIT_CLOUDS_SHADOW()
   SQ_CLOUDS_SHADOW()
+  SAMPLE_IRRADIANCE_SP(ps)
+
+  INIT_UPSCALE_SAMPLING_BASE(ps)
+  USE_UPSCALE_SAMPLING_BASE(ps)
 
   if (ssao_tex != NULL)
   {
-    INIT_SSAO()
-    USE_SSAO()
+    INIT_SSAO_BASE(ps)
+    USE_SSAO_UPSCALE_BASE_WITH_SMP(ps, ssao_tex_samplerstate)
+    hlsl(ps) {
+      #define getSSAO getSSAOUpscale
+    }
   } else
   {
     hlsl(ps) {
-      #define getSSAO(w, ssaotc) 1
+      #define getSSAO(w, ssaotc, scp) 1
+      #define getSSAOUpscaleWeighted(weights, screenpos) 1
     }
   }
 
   if (ssr_target != NULL)
   {
-    if (ssao_tex == NULL)
-    {
-      (ps) { downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex; }
-    }
     INIT_USE_SSR()
     USE_SSR()
   } else
   {
     hlsl(ps) {
       #define getSSR(a,b) half4(0,0,0,0)
+      #define getSSRWeighted(linearRoughness, curViewTc, screenpos, weights)  half4(0,0,0,0)
     }
   }
 
@@ -124,30 +129,7 @@ shader deferred_shadow_to_buffer
       VS_OUT_POSITION(pos)
       float4 texcoord     : TEXCOORD0;
       float3 viewVect     : TEXCOORD1;
-##if ssao_tex != NULL
-      float2 ssaoTexcoord : TEXCOORD2;
-##endif
     };
-  }
-
-  if (dynamic_lights_count != lights_off)
-  {
-    hlsl(ps) {
-      ##if (ssr_target != NULL)
-
-      #define DYNAMIC_LIGHTS_SPECULAR 1
-
-      ##endif
-      #define LAMBERT_LIGHT 1
-    }
-    ONE_POINT_LIGHT()
-    hlsl(ps) {
-      #define MAX_LIGHTS 5
-      float4 lights_cb[MAX_LIGHTS*2]:register(c60);
-      float4 lights_box_center_count:register(c70);
-      float3 lights_box_extent:register(c71);
-      #define CSM_LAST_REG_NOT_NEEDED 1
-    }
   }
 
   USE_POSTFX_VERTEX_POSITIONS()
@@ -161,22 +143,32 @@ shader deferred_shadow_to_buffer
       output.pos = float4(pos.xy, 1, 1);
       output.texcoord.xy = screen_to_texcoords(pos);
       output.texcoord.zw = screen_to_texcoords(pos) * screen_size;
-##if ssao_tex != NULL
-      output.ssaoTexcoord = pos.xy * RT_SCALE_HALF + ssao_pos_to_texcoord.zw;
-##endif
       output.viewVect = get_view_vec_by_vertex_id(vertexId);
 
       return output;
     }
   }
 
-  (ps) { screen_ambient@smp2d = screen_ambient; }
+  (ps) {
+    screen_ambient@tex2d = screen_ambient;
+    screen_specular@tex2d= screen_specular;
+  }
   if (oculus == oculus_on)
   {
     (ps) { stereo_params@f4 = stereo_params; }
   }
 
   USE_PREINTEGRATED_GF()
+
+  if (dynamic_lights_count != lights_off)
+  {
+    hlsl(ps) {
+      #include <BRDF.hlsl>
+    }
+    USE_SPOT_LIGHT_MASK(ps)
+    USE_OMNI_LIGHT_MASK(ps)
+    INIT_AND_USE_CLUSTERED_VIEW_LIGHTS(ps)
+  }
 
 
   hlsl(ps) {
@@ -187,7 +179,7 @@ shader deferred_shadow_to_buffer
       half3 C = 2.75 * Albedo + 0.69;
       return max(AO, ((AO * A + B) * AO + C) * AO);
     }
-    half4 deferred_shadow_per_sample(VsOutput input, float2 stereoParams, float w, ProcessedGbuffer gbuffer, float csmShadow)
+    half4 deferred_shadow_per_sample(VsOutput input, float2 screenpos, float2 stereoParams, float w, ProcessedGbuffer gbuffer, float csmShadow)
     {
       //SUN
       half3 lightColor = sun_color_0.rgb;
@@ -209,10 +201,10 @@ shader deferred_shadow_to_buffer
       float3 pointToEye = -input.viewVect * w;
       float3 pointToEyeOfs = pointToEye;
       float4 worldPos = float4(world_view_pos.xyz - pointToEyeOfs, 1);
-      half ssao = getSSAO(w, input.ssaoTexcoord);
 
-      half4 ssrReflections = getSSR(gbuffer.linearRoughness, input.texcoord.xy);
-      half enviSSR = (1-ssrReflections.a);
+      float4 weights = sampleCloseUpscaleWeight(screenpos);
+      SSAO_TYPE ssao = getSSAOUpscaleWeighted(weights, screenpos);
+      half4 ssrReflections = getSSRWeighted(gbuffer.linearRoughness, input.texcoord.xy, screenpos, weights);
 
       float geometryFactor = 1;
       float3 enviLightingNormal = gbuffer.normal;
@@ -232,7 +224,7 @@ shader deferred_shadow_to_buffer
       half enviAO = gbuffer.ao * ssao;//we still modulate by albedo color, so we don't need micro AO
       half enviAmbientAO = enviAO;//we still modulate by albedo color, so we don't need micro AO
       half specularAOcclusion = computeSpecOcclusion(NoV, enviAO, alpha);// dice spec occlusion
-      specularAOcclusion = max(0.5 * enviAO, specularAOcclusion);
+      //specularAOcclusion = max(0.5 * enviAO, specularAOcclusion);
 
       half3 specularColor = gbuffer.specularColor*(specularAOcclusion*gbuffer.extracted_albedo_ao);
 
@@ -258,7 +250,7 @@ shader deferred_shadow_to_buffer
       BRANCH
       if (NoL>0 && shadow>0)
       {
-        result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, alpha, gbuffer.linearRoughness, specularColor*enviSSR, gbuffer.extracted_albedo_ao, lightDir, view, gbuffer.normal)*(shadow)*lightColor;
+        result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, alpha, gbuffer.linearRoughness, specularColor, gbuffer.extracted_albedo_ao, lightDir, view, gbuffer.normal)*(shadow)*lightColor;
       }
       ##if (dynamic_lights_count != lights_off)
       /*BRANCH
@@ -309,7 +301,7 @@ shader deferred_shadow_to_buffer
 
       float roughMip = ComputeReflectionCaptureMipFromRoughness(gbuffer.linearRoughness);
       half2 AB = getEnviBRDF_AB_LinearRoughness(gbuffer.linearRoughness, NoV).xy;
-      half3 enviBRDF = specularColor * AB.x + saturate( INV_MIN_IOR * specularColor.g ) * AB.y;
+      half3 enviBRDF = gbuffer.specularColor * AB.x + saturate( INV_MIN_IOR * gbuffer.specularColor.g ) * AB.y;
 
       /*FLATTEN
       if (gbuffer.material == SHADING_FOLIAGE)
@@ -322,25 +314,9 @@ shader deferred_shadow_to_buffer
       //half3 environmentAmbientReflection = gamma_to_linear(texCUBElod(envi_probe_specular, float4(reflectionVec, 0)).rgb);
       //half3 environmentAmbientReflection = gamma_to_linear(texCUBElod(envi_probe_specular, float4(roughR, roughMip)).rgb)*enviBRDF;
       //half3 environmentAmbientReflection = geometryFactor*gamma_to_linear(texCUBElod(envi_probe_specular, float4(roughR, roughMip)).rgb)*enviBRDF;
-      half3 environmentAmbientReflection = gamma_to_linear(texCUBElod(envi_probe_specular, float4(roughR, roughMip)).rgb)*enviBRDF;
-      float3 giAmbient = tex2Dlod(screen_ambient, float4(input.texcoord.xy,0,0)).xyz;
-      {
-        //https://www.activision.com/cdn/research/Volumetric_Global_Illumination_at_Treyarch.pdf
-        //another (much faster) fake from Volumetric Global Illumination at Treyarch
-        float mipForTrick =  gbuffer.linearRoughness*NUM_PROBE_MIPS;
-        float maximumSpecValue = max3( 1.26816, 9.13681 * exp2( 6.85741 - 2 * mipForTrick ) * NdotV, 9.70809 * exp2( 7.085 - mipForTrick - 0.403181 * pow2(mipForTrick)) * NdotV );
-        #if ORIGINAL_TREYARCH
-          float adjustedMaxSpec = luminance(giAmbient) * maximumSpecValue;
-          float specLum = luminance( environmentAmbientReflection );
-          float3 reflection = environmentAmbientReflection * (adjustedMaxSpec / ( adjustedMaxSpec + specLum ));
-        #else
-          //colored version
-          maximumSpecValue = min(maximumSpecValue, 32);//to be removed with envi light probes in rooms
-          float3 adjustedMaxSpec = giAmbient * maximumSpecValue;
-          float3 reflection = environmentAmbientReflection * (adjustedMaxSpec / ( adjustedMaxSpec + environmentAmbientReflection + 0.001));//avoid nans
-        #endif
-        environmentAmbientReflection = reflection;
-      }
+      float3 giSpecular = pre_exposure_decode(screen_specular[int2(screenpos)].xyz);
+      float3 giAmbient = pre_exposure_decode(screen_ambient[int2(screenpos)].xyz);
+      //return half4(giAmbient,1);
       //environmentAmbientReflection *= 0.8 + 0.2*shadow;
       //return environmentAmbientReflection.rgbr;
       //return distToIntersect > 0 ? environmentAmbientReflection.rgbr : 0;
@@ -355,11 +331,9 @@ shader deferred_shadow_to_buffer
 ##endif
       half3 environmentAmbientUnoccludedLighting = giAmbient*gbuffer.diffuseColor * localIndirect;
       half3 environmentAmbientLighting = (enviAmbientAO * geometryFactor)*environmentAmbientUnoccludedLighting;
-      environmentAmbientReflection *= lerp(1, enviAO, gbuffer.translucency);//g.amelihin asked for that hack
-      half3 totalReflection = environmentAmbientReflection*enviSSR + ssrReflections.rgb*enviBRDF;//enviBRDF
+      half3 totalReflection = (giSpecular*(specularAOcclusion - ssrReflections.a*specularAOcclusion) + ssrReflections.rgb)*enviBRDF;//enviBRDF
       ##if deferred_lighting_mode == direct_light
         environmentAmbientUnoccludedLighting = 0;
-        environmentAmbientReflection = 0;
         totalReflection = 0;
         environmentAmbientLighting = 0;
       ##endif
@@ -369,17 +343,21 @@ shader deferred_shadow_to_buffer
       //if (subSurface)//gbuffer.material == SHADING_FOLIAGE)//fixme: use that only for foliage?
       if (gbuffer.material == SHADING_FOLIAGE)
       {
-        environmentAmbientLighting += enviAO*GetSkySHDiffuse(-gbuffer.normal)*gbuffer.translucencyColor;
+        half3 ambient = GetSkySHDiffuseSimple(-gbuffer.normal);
+        sample_bilinear_irradiance_envi_normal_campos(-gbuffer.normal, w, -pointToEye, -gbuffer.normal, screenpos.xy, ambient);
+        environmentAmbientLighting += enviAO*ambient*gbuffer.translucencyColor;
       }
       //totalReflection = 0;
-      //totalReflection = environmentAmbientReflection;
 
-      //half3 reflection = totalReflection+environmentAmbientLighting;//correct                                                                                  
+      //half3 reflection = totalReflection+environmentAmbientLighting;//correct
       half3 reflection = environmentAmbientLighting + totalReflection;//*enviAO - tri-ace formula
       //return reflection.rgbr;
       //half3 reflection = totalReflection+environmentAmbientLighting;//correct
       result += reflection;
       result = result*(1-gbuffer.emission_part) + gbuffer.emissionColor;
+      ##if (dynamic_lights_count != lights_off)
+      result += get_dynamic_lighting(gbuffer, worldPos.xyz, -view, w, screenpos, NoV, specularColor, input.texcoord.xy, enviAO);
+      ##endif
 
       //envi-
 
@@ -394,9 +372,9 @@ shader deferred_shadow_to_buffer
       return tex2Dlod( combined_shadows, float4( input.texcoord.xy, 0, 0 ) ).x;
     }
 
-    half4 deferred_shadow_to_buffer_ps(VsOutput input
-        ) : SV_Target0
+    half4 deferred_shadow_to_buffer_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
     {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
       int2 tci = int2(input.texcoord.zw);
 
       half shadow = get_combined_shadows_simple( input );
@@ -415,7 +393,7 @@ shader deferred_shadow_to_buffer
 
       float2 stereoParams = float2(0, 0);
 
-      return deferred_shadow_per_sample(input, stereoParams, w, readProcessedGbuffer(input.texcoord.xy),shadow);
+      return deferred_shadow_per_sample(input, screenpos.xy, stereoParams, w, readProcessedGbuffer(input.texcoord.xy),shadow);
     }
   }
 
@@ -535,8 +513,8 @@ shader deferred_simple
       half otherShadow = clouds_shadow(worldPos.xyz);
       //half trees_shadow = min(cloudShadow, vsmShadow);
       half csmShadow = getStaticShadow(worldPos.xyz);
-      csmShadow = min(gbuffer.shadow, csmShadow);
-      half shadow = min(csmShadow, otherShadow);
+      csmShadow *= gbuffer.shadow;
+      half shadow = csmShadow*otherShadow;
 
       //SUN
       BRANCH
@@ -592,7 +570,7 @@ shader deferred_simple
       apply_bruneton_fog(-view, dist, result);
       //result.rgb = apply_fog(result.rgb, pointToEye);
       result.rgb = pack_hdr(result.rgb).rgb;
-      return half4(result,1);
+      return half4(result.rgb,1);
     }
   }
 
@@ -669,7 +647,7 @@ shader combine_shadows
       pointToEye -= stereo_params.xyz;
 ##endif
       float4 worldPos = float4( world_view_pos.xyz - pointToEye, 1.f );
-      //return getStaticShadow(worldPos);
+      //return getStaticShadow(worldPos.xyz);
 
       half3 csmShadow = half3( 1, 9, 1 );
       BRANCH

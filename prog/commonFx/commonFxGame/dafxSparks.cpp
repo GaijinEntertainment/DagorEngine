@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <fx/dag_fxInterface.h>
 #include <math/dag_hlsl_floatx.h>
 #include <math/dag_mathUtils.h>
@@ -48,8 +50,6 @@ struct DafxSparks : BaseParticleEffect
   dafx_ex::SystemInfo sinfo;
 
   int sortOrder = 0;
-  TMatrix fxTm = TMatrix::IDENT;
-  TMatrix emitterTm = TMatrix::IDENT;
   int gameResId = 0;
 
   ~DafxSparks()
@@ -57,10 +57,35 @@ struct DafxSparks : BaseParticleEffect
     if (iid && g_dafx_ctx)
       dafx::destroy_instance(g_dafx_ctx, iid);
   }
+  DafxSparks &operator=(const DafxSparks &) = default; // should be used with caution only in clone()
+
+  DAFX_INLINE
+  float modfx_calc_curve_weight(uint steps, float life_k, uint_ref k0, uint_ref k1)
+  {
+    uint s = steps - 1;
+    float k = s * life_k;
+
+    k0 = (uint)k;
+    k1 = min(k0 + 1, s);
+    return k - (float)k0;
+  }
+
+  DAFX_INLINE
+  void gen_prebake_curve(eastl::vector<unsigned char> &out, CubicCurveSampler &curve, int steps)
+  {
+    G_UNUSED(curve);
+    out.resize(steps);
+
+    for (int i = 0; i < steps; ++i)
+    {
+      float k = steps > 1 ? (float)i / (steps - 1) : 0;
+      out[i] = saturate(curve.sample(saturate(k))) * 255.f;
+    }
+  }
 
   void loadParamsData(const char *ptr, int len, BaseParamScriptLoadCB *load_cb) override
   {
-    CHECK_FX_VERSION(ptr, len, 4);
+    CHECK_FX_VERSION(ptr, len, 5);
 
     if (!g_dafx_ctx)
     {
@@ -77,6 +102,7 @@ struct DafxSparks : BaseParticleEffect
     DafxSparksSimParams simParams = {};
     DafxSparksRenParams renParams = {};
     DafxSparksGlobalParams parGlobals = {};
+    DafxSparksOptionalModifiers parOptionalModifiers = {};
     DafxSparksQuality parQuality = {};
     DafxRenderGroup parRenderGroup = {};
     if (len)
@@ -84,6 +110,7 @@ struct DafxSparks : BaseParticleEffect
       simParams.load(ptr, len, load_cb);
       renParams.load(ptr, len, load_cb);
       parGlobals.load(ptr, len, load_cb);
+      parOptionalModifiers.load(ptr, len, load_cb);
       parQuality.load(ptr, len, load_cb);
       parRenderGroup.load(ptr, len, load_cb);
     }
@@ -93,9 +120,13 @@ struct DafxSparks : BaseParticleEffect
     sinfo.spawnRangeLimit = parGlobals.spawn_range_limit;
     sinfo.onePointNumber = parGlobals.one_point_number;
     sinfo.onePointRadius = parGlobals.one_point_radius;
+    sinfo.transformType = static_cast<dafx_ex::TransformType>(parGlobals.transform_type);
 
-    G_ASSERT(sizeof(ParentRenData) == sizeof(DafxSparksRenParams) + sizeof(TMatrix4) + sizeof(Point3));
-    G_ASSERT(sizeof(ParentSimData) == sizeof(DafxSparksSimParams) + sizeof(TMatrix4) * 2);
+    G_STATIC_ASSERT(
+      sizeof(ParentRenData) == sizeof(DafxSparksRenParams) + sizeof(ParentRenData::tm) + sizeof(ParentRenData::localSpaceFlag));
+    G_STATIC_ASSERT(sizeof(ParentSimData) == sizeof(DafxSparksSimParams) + sizeof(ParentSimData::emitterNtm) +
+                                               sizeof(ParentSimData::fxVelocity) + sizeof(ParentSimData::widthOverLifeCurve) +
+                                               sizeof(ParentSimData::gravityTm));
 
     dafx::SystemDesc desc;
     desc.emissionData.type = dafx::EmissionType::SHADER;
@@ -112,6 +143,9 @@ struct DafxSparks : BaseParticleEffect
     desc.gameResId = gameResId;
     parentDesc.gameResId = gameResId;
 
+    if (!parOptionalModifiers.allowScreenProjDiscard)
+      desc.specialFlags |= dafx::SystemDesc::FLAG_SKIP_SCREEN_PROJ_CULL_DISCARD;
+
 #define GDATA(a) \
   desc.reqGlobalValues.push_back(dafx::ValueBindDesc(#a, offsetof(dafx_ex::GlobalData, a), sizeof(dafx_ex::GlobalData::a)))
 
@@ -119,6 +153,7 @@ struct DafxSparks : BaseParticleEffect
     GDATA(globtm);
     GDATA(globtm_prev);
     GDATA(world_view_pos);
+    GDATA(gravity_zone_count);
     GDATA(proj_hk);
     GDATA(target_size);
     GDATA(target_size_rcp);
@@ -158,67 +193,101 @@ struct DafxSparks : BaseParticleEffect
     parentDesc.emissionData.simulationRefData.resize(parentDesc.simulationElemSize);
 
     memcpy(parentDesc.emissionData.renderRefData.data(), &TMatrix4::IDENT, sizeof(TMatrix4));
-    memcpy(parentDesc.emissionData.simulationRefData.data(), &TMatrix4::IDENT, sizeof(TMatrix4));
-    memcpy(parentDesc.emissionData.simulationRefData.data() + sizeof(TMatrix4), &TMatrix4::IDENT, sizeof(TMatrix4));
+    memset(parentDesc.emissionData.renderRefData.data() + sizeof(TMatrix4), 0, sizeof(uint));
+    memcpy(parentDesc.emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_EMITTER_NTM * 4, &TMatrix4::IDENT,
+      sizeof(TMatrix4));
+    memset(parentDesc.emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_FX_VELOCITY * 4, 0, sizeof(float3));
+    memcpy(parentDesc.emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_GRAVITY_TM * 4, &Matrix3::IDENT,
+      sizeof(Matrix3));
 
-    memcpy(parentDesc.emissionData.renderRefData.data() + sizeof(TMatrix4) + sizeof(Point3), &renParams, sizeof(DafxSparksRenParams));
-    memcpy(parentDesc.emissionData.simulationRefData.data() + sizeof(TMatrix4) * 2, &simParams, sizeof(DafxSparksSimParams));
+    if (parOptionalModifiers.widthOverLife.enabled)
+    {
+      memset(parentDesc.emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_WIDTH_OVER_LIFE_HEADER * 4, 1,
+        sizeof(uint));
+      static constexpr int stepCnt = 32;
+      eastl::vector<unsigned char> refValues;
+      gen_prebake_curve(refValues, parOptionalModifiers.widthOverLife.curve, stepCnt);
+      memcpy(parentDesc.emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_WIDTH_OVER_LIFE_BODY * 4,
+        refValues.data(), stepCnt * sizeof(unsigned char));
+    }
+    else
+    {
+      memset(parentDesc.emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_WIDTH_OVER_LIFE_HEADER * 4, 0,
+        sizeof(uint));
+    }
 
-    // binding lambda shortcuts
-    typedef dafx_ex::SystemInfo::ValueType ValueType;
-    auto desc_bind = [this](dafx::ValueBindDesc &&bind_desc) -> void { parentDesc.localValuesDesc.push_back(bind_desc); };
-    auto sinfo_desc_bind = [this](dafx::ValueBindDesc &&bind_desc, ValueType sinfo_valueType) -> void {
-      sinfo.valueOffsets[sinfo_valueType] = bind_desc.offset;
-      parentDesc.localValuesDesc.push_back(bind_desc);
+    memcpy(parentDesc.emissionData.renderRefData.data() + sizeof(TMatrix4) + sizeof(uint), &renParams, sizeof(DafxSparksRenParams));
+    memcpy(parentDesc.emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_END * 4, &simParams,
+      sizeof(DafxSparksSimParams));
+
+    using ValueType = dafx_ex::SystemInfo::ValueType;
+    auto desc_bind = [this](int &ofs, const char *name, int size) -> void {
+      parentDesc.localValuesDesc.push_back(dafx::ValueBindDesc(name, ofs, size));
+      ofs += size;
+    };
+    auto sinfo_desc_bind = [this, &desc_bind](int &ofs, const char *name, int size, ValueType sinfo_valueType) -> void {
+      sinfo.valueOffsets[sinfo_valueType] = ofs;
+      desc_bind(ofs, name, size);
     };
 
+    int ofs = 0;
+
     // rparams
-    desc_bind(dafx::ValueBindDesc("fx_tm", 0, 64));
-    desc_bind(dafx::ValueBindDesc("fx_velocity", 64, 12));
+    desc_bind(ofs, "tm", 64);
+    desc_bind(ofs, "local_space_flag", 4);
     // rparams dynamic
-    desc_bind(dafx::ValueBindDesc("blending", 76, 4));
-    desc_bind(dafx::ValueBindDesc("motionScale", 80, 4));
-    desc_bind(dafx::ValueBindDesc("hdrScale", 84, 4));
-    desc_bind(dafx::ValueBindDesc("arrowShape", 88, 4));
+    desc_bind(ofs, "blending", 4);
+    desc_bind(ofs, "motionScale", 4);
+    desc_bind(ofs, "motionScaleMax", 4);
+    desc_bind(ofs, "hdrScale", 4);
+    desc_bind(ofs, "arrowShape", 4);
+
+    ofs = DAFX_PARENT_REN_DATA_SIZE;
 
     // sparams
-    desc_bind(dafx::ValueBindDesc("emitter_wtm", DAFX_PARENT_REN_DATA_SIZE, 64));
-    desc_bind(dafx::ValueBindDesc("emitter_ntm", DAFX_PARENT_REN_DATA_SIZE + 64, 64));
+    desc_bind(ofs, "emitter_ntm", 64);
+    desc_bind(ofs, "fx_velocity", 12);
+    desc_bind(ofs, "width_over_life_curve", sizeof(CurveData));
+    sinfo_desc_bind(ofs, "gravity_tm", sizeof(Matrix3), ValueType::VAL_GRAVITY_ZONE_TM);
+
     // sparams dynamic
-    desc_bind(dafx::ValueBindDesc("pos.center", DAFX_PARENT_REN_DATA_SIZE + 128, 12));
-    desc_bind(dafx::ValueBindDesc("pos.size", DAFX_PARENT_REN_DATA_SIZE + 140, 12));
-    sinfo_desc_bind(dafx::ValueBindDesc("width.start", DAFX_PARENT_REN_DATA_SIZE + 152, 4), ValueType::VAL_RADIUS_MIN);
-    sinfo_desc_bind(dafx::ValueBindDesc("width.end", DAFX_PARENT_REN_DATA_SIZE + 156, 4), ValueType::VAL_RADIUS_MAX);
-    desc_bind(dafx::ValueBindDesc("life.start", DAFX_PARENT_REN_DATA_SIZE + 160, 4));
-    desc_bind(dafx::ValueBindDesc("life.end", DAFX_PARENT_REN_DATA_SIZE + 164, 4));
-    desc_bind(dafx::ValueBindDesc("seed", DAFX_PARENT_REN_DATA_SIZE + 168, 4));
-    sinfo_desc_bind(dafx::ValueBindDesc("velocity.center", DAFX_PARENT_REN_DATA_SIZE + 172, 12), ValueType::VAL_VELOCITY_ADD_VEC3);
-    sinfo_desc_bind(dafx::ValueBindDesc("velocity.scale", DAFX_PARENT_REN_DATA_SIZE + 184, 12), ValueType::VAL_VELOCITY_START_VEC3);
-    desc_bind(dafx::ValueBindDesc("velocity.radiusMin", DAFX_PARENT_REN_DATA_SIZE + 196, 4));
-    desc_bind(dafx::ValueBindDesc("velocity.radiusMax", DAFX_PARENT_REN_DATA_SIZE + 200, 4));
-    desc_bind(dafx::ValueBindDesc("velocity.azimutMax", DAFX_PARENT_REN_DATA_SIZE + 204, 4));
-    desc_bind(dafx::ValueBindDesc("velocity.azimutNoise", DAFX_PARENT_REN_DATA_SIZE + 208, 4));
-    desc_bind(dafx::ValueBindDesc("velocity.inclinationMin", DAFX_PARENT_REN_DATA_SIZE + 212, 4));
-    desc_bind(dafx::ValueBindDesc("velocity.inclinationMax", DAFX_PARENT_REN_DATA_SIZE + 216, 4));
-    desc_bind(dafx::ValueBindDesc("velocity.inclinationNoise", DAFX_PARENT_REN_DATA_SIZE + 220, 4));
-    desc_bind(dafx::ValueBindDesc("restitution", DAFX_PARENT_REN_DATA_SIZE + 224, 4));
-    desc_bind(dafx::ValueBindDesc("friction", DAFX_PARENT_REN_DATA_SIZE + 228, 4));
-    sinfo_desc_bind(dafx::ValueBindDesc("color0", DAFX_PARENT_REN_DATA_SIZE + 232, 4), ValueType::VAL_COLOR_MIN);
-    sinfo_desc_bind(dafx::ValueBindDesc("color1", DAFX_PARENT_REN_DATA_SIZE + 236, 4), ValueType::VAL_COLOR_MAX);
-    desc_bind(dafx::ValueBindDesc("color1Portion", DAFX_PARENT_REN_DATA_SIZE + 240, 4));
-    desc_bind(dafx::ValueBindDesc("colorEnd", DAFX_PARENT_REN_DATA_SIZE + 244, 4));
-    desc_bind(dafx::ValueBindDesc("velocityBias", DAFX_PARENT_REN_DATA_SIZE + 248, 4));
-    sinfo_desc_bind(dafx::ValueBindDesc("dragCoefficient", DAFX_PARENT_REN_DATA_SIZE + 252, 4), ValueType::VAL_DRAG_COEFF);
-    desc_bind(dafx::ValueBindDesc("turbulenceForce.start", DAFX_PARENT_REN_DATA_SIZE + 256, 4));
-    desc_bind(dafx::ValueBindDesc("turbulenceForce.end", DAFX_PARENT_REN_DATA_SIZE + 260, 4));
-    desc_bind(dafx::ValueBindDesc("turbulenceFreq.start", DAFX_PARENT_REN_DATA_SIZE + 264, 4));
-    desc_bind(dafx::ValueBindDesc("turbulenceFreq.end", DAFX_PARENT_REN_DATA_SIZE + 268, 4));
-    desc_bind(dafx::ValueBindDesc("liftForce", DAFX_PARENT_REN_DATA_SIZE + 272, 12));
-    desc_bind(dafx::ValueBindDesc("liftTime", DAFX_PARENT_REN_DATA_SIZE + 284, 4));
-    desc_bind(dafx::ValueBindDesc("spawnNoise", DAFX_PARENT_REN_DATA_SIZE + 288, 4));
-    desc_bind(dafx::ValueBindDesc("spawnNoisePos.center", DAFX_PARENT_REN_DATA_SIZE + 292, 12));
-    desc_bind(dafx::ValueBindDesc("spawnNoisePos.size", DAFX_PARENT_REN_DATA_SIZE + 304, 12));
-    desc_bind(dafx::ValueBindDesc("hdrScale1", DAFX_PARENT_REN_DATA_SIZE + 316, 4));
+    desc_bind(ofs, "pos.center", 12);
+    desc_bind(ofs, "pos.size", 12);
+    sinfo_desc_bind(ofs, "width.start", 4, ValueType::VAL_RADIUS_MIN);
+    sinfo_desc_bind(ofs, "width.end", 4, ValueType::VAL_RADIUS_MAX);
+    desc_bind(ofs, "life.start", 4);
+    desc_bind(ofs, "life.end", 4);
+    desc_bind(ofs, "seed", 4);
+    sinfo_desc_bind(ofs, "velocity.center", 12, ValueType::VAL_VELOCITY_ADD_VEC3);
+    sinfo_desc_bind(ofs, "velocity.scale", 12, ValueType::VAL_VELOCITY_START_VEC3);
+    desc_bind(ofs, "velocity.radiusMin", 4);
+    desc_bind(ofs, "velocity.radiusMax", 4);
+    desc_bind(ofs, "velocity.azimutMax", 4);
+    desc_bind(ofs, "velocity.azimutNoise", 4);
+    desc_bind(ofs, "velocity.inclinationMin", 4);
+    desc_bind(ofs, "velocity.inclinationMax", 4);
+    desc_bind(ofs, "velocity.inclinationNoise", 4);
+    desc_bind(ofs, "restitution", 4);
+    desc_bind(ofs, "friction", 4);
+    sinfo_desc_bind(ofs, "color0", 4, ValueType::VAL_COLOR_MIN);
+    sinfo_desc_bind(ofs, "color1", 4, ValueType::VAL_COLOR_MAX);
+    desc_bind(ofs, "color1Portion", 4);
+    desc_bind(ofs, "hdrBias", 4);
+    desc_bind(ofs, "colorEnd", 4);
+    desc_bind(ofs, "velocityBias", 4);
+    sinfo_desc_bind(ofs, "dragCoefficient", 4, ValueType::VAL_DRAG_COEFF);
+    desc_bind(ofs, "turbulenceForce.start", 4);
+    desc_bind(ofs, "turbulenceForce.end", 4);
+    desc_bind(ofs, "turbulenceFreq.start", 4);
+    desc_bind(ofs, "turbulenceFreq.end", 4);
+    desc_bind(ofs, "liftForce", 12);
+    desc_bind(ofs, "liftTime", 4);
+    desc_bind(ofs, "spawnNoise", 4);
+    desc_bind(ofs, "spawnNoisePos.center", 12);
+    desc_bind(ofs, "spawnNoisePos.size", 12);
+    desc_bind(ofs, "hdrScale1", 4);
+    sinfo_desc_bind(ofs, "windForce", 4, ValueType::VAL_VELOCITY_WIND_COEFF);
+    desc_bind(ofs, "gravity_zone", 4);
 
     parentDesc.subsystems.push_back(desc);
   }
@@ -299,6 +368,8 @@ struct DafxSparks : BaseParticleEffect
       dafx::set_instance_visibility(g_dafx_ctx, iid, value ? *(bool *)value : false);
     else if (id == _MAKE4C('PFXG'))
       dafx::warmup_instance(g_dafx_ctx, iid, value ? *(float *)value : 0);
+    else if (id == _MAKE4C('GZTM'))
+      dafx::set_instance_value(g_dafx_ctx, iid, "gravity_tm", value, sizeof(Matrix3));
   }
 
   void *getParam(unsigned id, void *value) override
@@ -356,6 +427,16 @@ struct DafxSparks : BaseParticleEffect
         ((eastl::vector<dafx::SystemDesc *> *)value)->push_back(&parentDesc);
       return value;
     }
+    else if (id == _MAKE4C('FXIC') && value)
+    {
+      *(int *)value = dafx::get_instance_elem_count(g_dafx_ctx, iid);
+      return value;
+    }
+    else if (id == _MAKE4C('FXID') && value)
+    {
+      *(dafx::InstanceId *)value = iid;
+      return value;
+    }
 
     return nullptr;
   }
@@ -393,28 +474,43 @@ struct DafxSparks : BaseParticleEffect
     setSpawnRate(&spawnRate);
   }
 
+  void setTransform(const TMatrix &value, dafx_ex::TransformType tr_type)
+  {
+    int type = sinfo.transformType;
+    if (type == dafx_ex::TRANSFORM_DEFAULT)
+      type = tr_type;
+
+    TMatrix4 fxTm4 = value;
+    uint32_t localSpace = type == dafx_ex::TRANSFORM_LOCAL_SPACE;
+    if (localSpace)
+      fxTm4 = fxTm4.transpose();
+
+    dafx::set_instance_value(g_dafx_ctx, iid, "tm", &fxTm4, 64);
+    dafx::set_instance_value(g_dafx_ctx, iid, "local_space_flag", &localSpace, 4);
+
+    if (type == dafx_ex::TRANSFORM_WORLD_SPACE)
+    {
+      TMatrix emitterNormalTm;
+      emitterNormalTm.setcol(0, normalize(value.getcol(0)));
+      emitterNormalTm.setcol(1, normalize(value.getcol(1)));
+      emitterNormalTm.setcol(2, normalize(value.getcol(2)));
+      emitterNormalTm.setcol(3, Point3(0, 0, 0));
+
+      fxTm4 = emitterNormalTm;
+      dafx::set_instance_value(g_dafx_ctx, iid, "emitter_ntm", &fxTm4, 64);
+    }
+  }
+
   void setTm(const TMatrix *value) override
   {
-    fxTm = *(TMatrix *)value;
-    TMatrix4 fxTm4 = fxTm;
-    fxTm4 = fxTm4.transpose();
-    dafx::set_instance_value(g_dafx_ctx, iid, "fx_tm", &fxTm4, 64);
+    if (iid && value)
+      setTransform(*value, dafx_ex::TRANSFORM_LOCAL_SPACE);
   }
 
   void setEmitterTm(const TMatrix *value) override
   {
-    emitterTm = *(TMatrix *)value;
-    TMatrix4 fxTm4 = emitterTm;
-    dafx::set_instance_value(g_dafx_ctx, iid, "emitter_wtm", &fxTm4, 64);
-
-    TMatrix emitterNormalTm;
-    emitterNormalTm.setcol(0, normalize(emitterTm.getcol(0)));
-    emitterNormalTm.setcol(1, normalize(emitterTm.getcol(1)));
-    emitterNormalTm.setcol(2, normalize(emitterTm.getcol(2)));
-    emitterNormalTm.setcol(3, Point3(0, 0, 0));
-
-    fxTm4 = emitterNormalTm;
-    dafx::set_instance_value(g_dafx_ctx, iid, "emitter_ntm", &fxTm4, 64);
+    if (iid && value)
+      setTransform(*value, dafx_ex::TRANSFORM_WORLD_SPACE);
   }
 
   void setVelocity(const Point3 *v) override

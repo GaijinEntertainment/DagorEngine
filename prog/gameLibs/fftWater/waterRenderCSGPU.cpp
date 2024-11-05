@@ -1,5 +1,10 @@
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <3d/dag_lockSbuffer.h>
 #include <perfMon/dag_statDrv.h>
 #include <FFT_CPU_Simulation.h>
@@ -94,6 +99,8 @@ bool CSGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
     return false;
   }
 
+  gpuConstBuffer = dag::buffers::create_one_frame_cb(4 * dag::buffers::cb_struct_reg_count<ConstantBuffer>(), "fft_water_cbuffer");
+
   const int gauss_size = N0 * N0;
   gauss = dag::buffers::create_persistent_sr_structured(sizeof(float2), gauss_size, "fft_gauss");
   if (!gauss)
@@ -143,14 +150,16 @@ bool CSGPUData::initDispArray(const NVWaveWorks_FFT_CPU_Simulation *fft, bool r_
 
   const int N0 = 1 << fft[0].getParams().fft_resolution_bits;
   int numCascades = cascades.size();
+  int fmt = d3d::get_driver_desc().issues.hasBrokenComputeFormattedOutput ? TEXFMT_A32B32G32R32F : TEXFMT_A16B16G16R16F;
 
   dispArray.close();
   dispArray = dag::create_array_tex(N0, N0, numCascades,
-    TEXCF_UNORDERED | TEXFMT_A16B16G16R16F | (r_target ? TEXCF_RTARGET : 0) // for enabling cascades separately in debug mode
+    TEXCF_UNORDERED | fmt | (r_target ? TEXCF_RTARGET : 0) // for enabling cascades separately in debug mode
     ,
     1, "water3d_disp_cs_array");
   if (!dispArray)
     return false;
+  dispArray->disableSampler();
 
   G_ASSERT(dispArray);
   return true;
@@ -211,10 +220,7 @@ CSGPUData::CascadeData &CSGPUData::getData(int idx, int num_cascades, int &group
 
 void CSGPUData::setConstantBuffer(int idx, int groups_z)
 {
-  if (idx >= 0)
-    d3d::set_cb0_data(STAGE_CS, constantBuffer[idx], groups_z * sizeof(constantBuffer[0]) / 16);
-  else
-    d3d::release_cb0_data(STAGE_CS);
+  gpuConstBuffer->updateData(0, groups_z * sizeof(constantBuffer[0]), constantBuffer[idx], VBLOCK_WRITEONLY | VBLOCK_DISCARD);
 }
 
 bool CSGPUData::fillOmega(int numCascades, const NVWaveWorks_FFT_CPU_Simulation *fft)
@@ -328,7 +334,6 @@ void CSGPUData::updateH0(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCasca
     update_h0->dispatch(1, N, groupsZ, GpuPipeline::ASYNC_COMPUTE);
   }
 
-  setConstantBuffer(-1, 0);
   d3d::set_rwbuffer(STAGE_CS, 0, 0);
 
   h0UpdateRequired = false;
@@ -380,7 +385,6 @@ void CSGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
   d3d::resource_barrier({dispArray.getBaseTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_VERTEX, 0, 0});
   asyncComputeFence = d3d::insert_fence(GpuPipeline::ASYNC_COMPUTE);
 
-  setConstantBuffer(-1, 0);
   d3d::set_rwtex(STAGE_CS, 0, NULL, 0, 0);
   d3d::set_buffer(STAGE_CS, 0, 0);
   d3d::set_buffer(STAGE_CS, 1, 0);

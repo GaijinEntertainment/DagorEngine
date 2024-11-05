@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <webui/httpserver.h>
 #include <osApiWrappers/dag_sockets.h>
 #include <osApiWrappers/dag_atomic.h>
@@ -10,7 +12,6 @@
 #include <memory/dag_mem.h>
 #include <EASTL/unique_ptr.h>
 #include <osApiWrappers/dag_critSec.h>
-#include <generic/dag_tab.h>
 #include <util/dag_string.h>
 #include <memory/dag_framemem.h>
 #include <ctype.h>
@@ -19,6 +20,7 @@
 #include <osApiWrappers/dag_localConv.h>
 #include <stdlib.h>
 #include <limits.h>
+#include "webui_internal.h"
 
 #if _TARGET_PC_WIN
 #define WIN32_LEAN_AND_MEAN
@@ -37,7 +39,7 @@
 #endif
 
 
-#define LOGLEVEL_DEBUG _MAKE4C('HTTP')
+#define debug(...) logmessage(_MAKE4C('HTTP'), __VA_ARGS__)
 
 #define RECEIVE_POST_DATA_TIMEOUT_MSEC (1000)
 
@@ -243,7 +245,11 @@ public:
   os_socket_t listenSocket;
   uint16_t listenPort;
 
-  HttpServer(Config *cfg) : DaThread("HttpServer", 128 << 10), listenSocket(OS_SOCKET_INVALID), listenPort(0), requests(midmem)
+  HttpServer(Config *cfg) :
+    DaThread("HttpServer", 128 << 10, 0, WORKER_THREADS_AFFINITY_MASK),
+    listenSocket(OS_SOCKET_INVALID),
+    listenPort(0),
+    requests(midmem)
   {
     stripStackInMinidump();
     if (os_sockets_init() < 0)
@@ -271,7 +277,7 @@ public:
       if (os_socket_bind(listenSocket, &adr, sizeof(adr)) < 0)
       {
         char errorBuf[512];
-        DAGOR_WITH_LOGS(int err = os_socket_last_error());
+        int err = os_socket_last_error();
         debug("bind on port %d failed with error %d ('%s')", port, err, os_socket_error_str(err, errorBuf, sizeof(errorBuf)));
         port++;
       }
@@ -349,31 +355,9 @@ public:
 
   bool isValid() const { return listenSocket != OS_SOCKET_INVALID; }
 
-  static String getNameOfExecutable()
-  {
-#if _TARGET_PC_WIN
-    char name[MAX_PATH];
-    GetModuleFileNameA(NULL, name, sizeof(name));
-    const char *slash = max(strrchr(name, '\\'), strrchr(name, '/'));
-    return String(slash ? slash + 1 : name);
-#elif _TARGET_PC_LINUX
-    char name[PATH_MAX];
-    int len = readlink("/proc/self/exe", name, sizeof(name) - 1);
-    if (len != -1)
-    {
-      name[len] = 0;
-      const char *slash = strrchr(name, '/');
-      return String(slash ? slash + 1 : name);
-    }
-    return String();
-#else
-    return String();
-#endif
-  }
-
   static void generateIndex(SocketType conn, char *req, int)
   {
-    String exeName = getNameOfExecutable();
+    String exeName = get_name_of_executable();
     Tab<char> buf(framemem_ptr());
     buf.resize(32 << 10);
     char *end = buf.data() + (buf.capacity() - 1);
@@ -558,7 +542,7 @@ public:
     os_socket_addr from;
     int fromLen = sizeof(from);
     os_socket_t conn = os_socket_accept(listenSocket, &from, &fromLen);
-    if (interlocked_acquire_load(terminating))
+    if (isThreadTerminating())
       return;
     else if (conn == OS_SOCKET_INVALID)
     {
@@ -579,7 +563,7 @@ public:
       os_socket_close(conn);
       return;
     }
-    if (interlocked_acquire_load(terminating))
+    if (isThreadTerminating())
       return;
     // we can terminate update unil now.
     updateCritSection.lock(); // ensure we dont leak mem on exit
@@ -597,7 +581,7 @@ public:
 
   void execute()
   {
-    while (!interlocked_acquire_load(terminating))
+    while (!isThreadTerminating())
       update();
   }
 
@@ -643,7 +627,6 @@ void startup(Config *cfg)
   if (s->isValid())
   {
     s->start();
-    s->setAffinity(WORKER_THREADS_AFFINITY_MASK);
     http_server = eastl::move(s);
   }
 }
@@ -880,3 +863,25 @@ char **lupval(char **key_values, const char *key, char **start_from)
 }
 
 }; // namespace webui
+
+String get_name_of_executable()
+{
+#if _TARGET_PC_WIN
+  char name[MAX_PATH];
+  GetModuleFileNameA(NULL, name, sizeof(name));
+  const char *slash = max(strrchr(name, '\\'), strrchr(name, '/'));
+  return String(slash ? slash + 1 : name);
+#elif _TARGET_PC_LINUX
+  char name[PATH_MAX];
+  int len = readlink("/proc/self/exe", name, sizeof(name) - 1);
+  if (len != -1)
+  {
+    name[len] = 0;
+    const char *slash = strrchr(name, '/');
+    return String(slash ? slash + 1 : name);
+  }
+  return String();
+#else
+  return String();
+#endif
+}

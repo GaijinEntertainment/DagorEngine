@@ -1,5 +1,5 @@
-#ifndef DELAUNAY_INCLUDED // -*- C++ -*-
-#define DELAUNAY_INCLUDED
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 class Mesh;
 class Point3;
@@ -26,4 +26,3 @@ public:
 void load(float error_threshold1, int point_limit1, Map *DEM, Mesh &out, float cell, const Point3 &ofs, ImportMask *MASK1);
 
 }; // namespace delaunay
-#endif

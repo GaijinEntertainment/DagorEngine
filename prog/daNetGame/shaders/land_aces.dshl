@@ -1,0 +1,374 @@
+//include "land_inc.dshl"
+include "land_hardcoded_world.dshl"
+include "normaldetail.dshl"
+include "land_block_inc.dshl"
+include "psh_derivate.dshl"
+include "psh_tangent.dshl"
+include "gbuffer.dshl"
+include "gbuffer_forward.dshl"
+include "static_shadow.dshl"
+include "wetness_inc.dshl"
+
+float4 camera_base_offset = (0, 0, 0, 0);
+
+shader land_mesh//, land_mesh_combined
+{
+
+  (vs) { camera_base_offset@f4 = camera_base_offset; }
+
+  macro USE_LANDMESH_COMBINE()
+    hlsl(ps) {
+      void apply_landmesh_combined(inout half3 diffuseColor, inout half smoothness, inout half translucency, inout half3 normal, half3 vertexNormal, float4 diffuseTexcoord, float opacity, float3 point2Eye)
+      {
+        float2 detailTC = diffuseTexcoord.zw;
+        //half2 btc = input.tc.xy;
+        //half lod = ComputeTextureLOD(texCoord, half2(256,256), dx,dy);
+        float3x3 tangent = cotangent_frame(vertexNormal, point2Eye, detailTC );
+        float3 viewDir;
+        viewDir.x = dot(point2Eye, tangent[0]);
+        viewDir.y = dot(point2Eye, tangent[1]);
+        viewDir.z = dot(point2Eye, tangent[2]);
+        viewDir = normalize(viewDir);
+
+        float2 parallaxTS = viewDir.xy;
+        float parallax_str = 0.08;
+        #define combined_num_parallax_iterations 4
+        parallaxTS *= (parallax_str/combined_num_parallax_iterations);
+        //half4 tc = half4(texCoord,0,lod);
+        UNROLL
+        for (int i=0; i<combined_num_parallax_iterations; ++i)
+        {
+          float height = 1-tex2DBindless(get_detailTex(), detailTC).a;
+          detailTC.xy += parallaxTS.xy*height;
+        }
+        #undef combined_num_parallax_iterations
+
+        half4 combinedDiffuse = tex2DBindless(get_colormapTex(), diffuseTexcoord.xy);
+        half4 combinedDetailDiffuse = tex2DBindless(get_detailTex(), detailTC);
+        half4 combinedNormalMap = tex2DBindless(get_normalmapTex(), detailTC);
+        half3 combinedNormal = unpack_ag_normal(combinedNormalMap);
+        half3 newNormal = perturb_normal(combinedNormal, vertexNormal, point2Eye, detailTC);
+        half amount = combinedDiffuse.a * opacity;
+        diffuseColor = lerp(diffuseColor, combinedDiffuse.rgb*combinedDetailDiffuse.rgb*4.59479341998814, amount);
+        normal = normalize(lerp(normal, newNormal, amount));
+        smoothness = lerp(smoothness, combinedNormalMap.r, amount);
+        translucency = lerp(translucency, 1, amount);
+      }
+    }
+  endmacro
+
+  channel short4 pos[0] = extra[7] mul_32767;//pos[0];
+  if (shader != land_mesh) {
+    channel float2 tc[0]=tc[0];
+    channel color8 norm = norm unsigned_pack;
+    texture colormap = material.texture[0];
+    texture diffusedetail = material.texture[1];
+    texture normaldetail = material.texture[2];
+    static float detail_mul_u = 4;
+    static float detail_mul_v = 4;
+    (ps) {
+      colormapTex@static = colormap;
+      detailTex@static = diffusedetail;
+      normalmapTex@static = normaldetail;
+    }
+    (vs) { detail_mul@f2 = (detail_mul_u, detail_mul_v, 0, 0); }
+    USE_PIXEL_TANGENT_SPACE()
+  }
+
+  if (in_editor_assume == yes)
+  {
+    (vs) {
+      globtm@f44 = globtm;
+      world_local_x@f3 = world_local_x;
+      world_local_y@f3 = world_local_y;
+      world_local_z@f3 = world_local_z;
+      world_local_pos@f3 = world_local_pos;
+    }
+  }
+  INIT_HARDCODED_WORLD_POS()
+
+  if (lmesh_rendering_mode == grass_color || lmesh_rendering_mode == grass_mask || lmesh_rendering_mode == rendering_clipmap)
+  {
+    dont_render;
+  }
+
+  if (lmesh_rendering_mode == rendering_depth)
+  {
+    supports land_mesh_render_depth;
+    color_write = false;
+    no_ablend;
+
+    NO_COLOR_WRITE_PS()
+
+    hlsl(vs) {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+      };
+      VsOutput landmesh_depth_vs(INPUT_POSITION(inputpos))
+      {
+        VsOutput output;
+
+        float4 inpos = decode_pos_landmesh_or_combined(inputpos);
+        float4 pos = decode_pos(inpos);
+        output.pos = mulPointTm(pos.xyz + camera_base_offset.xyz, globtm);
+
+        return output;
+      }
+    }
+    compile("target_vs", "landmesh_depth_vs");
+  }
+  else if (lmesh_rendering_mode == rendering_shadow)//can be replaced with just depth render
+  {
+    supports land_mesh_render_depth;
+    cull_mode=none;
+   
+    hlsl(vs) {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+      };
+      VsOutput landmesh_vsm_vs(INPUT_POSITION(inputpos))
+      {
+        VsOutput output;
+
+        float4 inpos = decode_pos_landmesh_or_combined(inputpos);
+        float4 pos = decode_pos(inpos);
+        output.pos = mulPointTm(pos.xyz + camera_base_offset.xyz, globtm);
+
+        return output;
+      }
+    }
+    compile("target_vs", "landmesh_vsm_vs");
+    compile("ps_null", "null_ps");
+  }
+  else if (lmesh_rendering_mode == rendering_heightmap)//can be replaced with just depth render
+  {
+    cull_mode = none;
+    supports land_mesh_render_depth;
+    blend_src = one; blend_dst = one;
+
+    hlsl {
+      struct VsOutput
+      {
+              VS_OUT_POSITION(pos)
+      };
+    }
+
+    (vs) { heightmap_min_max@f4 = heightmap_min_max; }
+
+    hlsl(vs) {
+      VsOutput landmesh_heightmap_vs(INPUT_POSITION(inputpos))
+      {
+        VsOutput output;
+
+        float4 inpos = decode_pos_landmesh_or_combined(inputpos);
+        float4 pos = decode_pos(inpos);
+        output.pos = mulPointTm(pos.xyz + camera_base_offset.xyz, globtm);
+        output.pos.z = (pos.y * heightmap_min_max.x + heightmap_min_max.y) * output.pos.w;
+
+        return output;
+      }
+    }
+    compile("target_vs", "landmesh_heightmap_vs");
+    compile("ps_null", "null_ps");
+  } else if (lmesh_rendering_mode == rendering_landmesh || lmesh_rendering_mode == rendering_reflection)
+  {
+    if (lmesh_rendering_mode == rendering_landmesh)
+    {
+      supports land_mesh_with_clipmap;
+      USE_CLIPMAP_NORMAL()
+      USE_NORMAL_DETAIL()
+      USE_LAND_MICRODETAILS_PS()
+      USE_LAND_MICRODETAIL_PARAMS_PS()
+      INIT_LAND_SHORE()
+      USE_LAND_SHORE()
+      USE_UAV_RENDERING_FEEDBACK()
+      WRITE_GBUFFER()
+    } else if (lmesh_rendering_mode == rendering_reflection)
+    {
+      supports land_mesh_with_clipmap_reflection;
+      supports global_const_block;
+      USE_CLIPMAP_LAST()
+      NO_UAV_RENDERING_FEEDBACK()
+      PACK_UNPACK_GBUFFER_BASE(ps)
+      INIT_GBUFFER_FORWARD()
+      WRITE_GBUFFER_FORWARD()
+      INIT_BRUNETON_FOG(ps)
+      USE_BRUNETON_FOG()
+    }
+    //USE_CLIPMAP_SHADOW()
+
+    if (shader != land_mesh)
+    {
+      USE_LANDMESH_COMBINE()
+    }
+    USE_LAND_LIGHTING()
+
+    hlsl {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+  ##if shader != land_mesh
+        float4 diffuseTexcoord : TEXCOORD0;
+        float3 vertexNormal : TEXCOORD1;
+  ##endif
+        float3 pointToEye : TEXCOORD2;
+      };
+    }
+    NO_VERTICAL_TEX_USE()
+    INIT_STATIC_SHADOW_PS()
+
+    if (compatibility_mode == compatibility_mode_off)
+    {
+      INIT_WETNESS()
+      USE_WETNESS_BASE()
+    }
+
+    hlsl(ps) {
+      #include "wetness_functions.hlsl"
+
+      GLOBAL_UAV_FEEDBACK
+      GBUFFER_OUTPUT landmesh_ps(VsOutput input HW_USE_SCREEN_POS)
+      {
+        float4 screenpos = GET_SCREEN_POS(input.pos);
+        float3 pointToEye = input.pointToEye.xyz;
+        float dist = length(pointToEye);
+        float3 worldPos = world_view_pos - pointToEye;
+        float3 pointToEyeNorm = pointToEye * rcp(dist);
+
+        // Normalmap.
+        
+        half baseAo = 1;
+        half3 worldNormal = get_land_normal_from_normalmap(worldPos.xz, baseAo);
+
+        half3 verticalNormal = worldNormal;//sample from level
+        half3 vertexNormal = verticalNormal;
+  ##if shader != land_mesh
+        vertexNormal = input.vertexNormal;
+  ##endif
+
+        // Base color.
+        float4 worldPosGradients = float4(ddx(worldPos.xz), ddy(worldPos.xz));
+        WRITE_UAV_FEEDBACK(worldPos.xz, 0, worldPosGradients)
+        half2 clipNormalXY = 0;
+        ##if (lmesh_rendering_mode == rendering_landmesh)
+        //shader_lod == 0, actually
+          half3 diffuseColor = 1;
+          half smoothness, ao, reflectance, emission;
+          DetailDesc detailNo;
+          sample_clipmaps(worldPos.xz, worldPosGradients, diffuseColor, clipNormalXY, smoothness, ao,
+                          reflectance, emission, detailNo, smooth_mip);
+          //ao *= baseAo;
+          float waterLevel = wind_dir_water_level_ocean_density.z;//fixme: move to common code
+          get_water_height(worldPos.xz, waterLevel);
+          float wetnessAbove = 1.05, smoothnessBelow = 0.15;
+
+          float directWetness = saturate((waterLevel+wetnessAbove-worldPos.y)/wetnessAbove);
+          float shoreWavesMultiplier;
+          float wetness = get_land_wetness(worldPos, shoreWavesMultiplier, waterLevel);
+          half porosityMul, waterSmoothnessMul, sparkles;
+          get_microdetail_effects(detailNo, porosityMul, waterSmoothnessMul, sparkles);
+          half porosity = (1-smoothness)*porosityMul;
+
+          half normalWetness = 1-pow4(saturate(1-max(wetness, shoreWavesMultiplier)));
+          wetness_normal_ts(normalWetness, clipNormalXY);
+          wetness_normal_ws(wetness, worldNormal);
+
+          worldNormal.xzy = RNM_ndetail_normalized(worldNormal.xzy, restore_normal(clipNormalXY));
+          wetness_diffuse(max(directWetness, wetness), porosity, diffuseColor.rgb);
+          wetness_reflectance(wetness, reflectance);
+          reflectance *= saturate(1-(waterLevel-worldPos.y)/smoothnessBelow);
+          ao = lerp(ao, 1, pow5(1-saturate(dot(verticalNormal, pointToEyeNorm))));
+          wetness_ao(wetness, ao);
+          wetness_smoothness(wetness, smoothness);
+
+          ##if (compatibility_mode == compatibility_mode_off)
+          float waterBorder;
+          float wetness2 = get_base_wetness(worldPos, worldNormal, waterBorder);
+          wetness_diffuse(wetness2, porosity, diffuseColor.rgb);
+          ##endif
+
+          //half shadow = saturate(abs(dot(worldNormal, from_sun_direction.xyz))+2*pow2(ao)-1.0);
+          half shadow =1;
+        ##else
+          half shadow = 1;
+          half3 diffuseColor = sample_lastclip(worldPos.xyz);
+          half clipmapHorAmount = applyVerticalTexture(verticalNormal, worldNormal, diffuse, worldPos, false);
+          half reflectance = 0.5*pow5(saturate(0.9 - (diffuseColor.g-max(diffuseColor.r, diffuseColor.b))));
+          half smoothness = 0;
+          half translucency = 0;
+          half ao = baseAo;
+        ##endif
+
+
+        half combinedAmount = 0;
+
+  ## if in_editor!=yes
+      worldNormal.xz *= mirror_scale.xy;
+  ## endif
+
+        //half clipmapHorAmount = applyVerticalTexture(verticalNormal, normal, diffuseColor, worldPos, true);
+        half3 diffuse = diffuseColor.rgb;
+       //shadow = lerp(1, shadow, clipmapHorAmount*(1-combinedAmount));
+        UnpackedGbuffer result;
+        init_gbuffer(result);
+        init_albedo(result, diffuse.rgb);
+        init_smoothness(result, smoothness);
+        init_normal(result, worldNormal);
+        init_reflectance(result, reflectance);
+        //init_material(result, SHADING_SUBSURFACE);
+        //init_translucency(result, translucency);
+        //init_normal(result, normalize(input.norm));
+        init_isLandscape(result, true);
+        init_ao(result, ao);
+        //init_shadow(result, shadow);//fixme:microshadow
+
+        GBUFFER_OUTPUT output = encode_gbuffer(result, input.pointToEye, GET_SCREEN_POS(input.pos));
+        ##if lmesh_rendering_mode == rendering_reflection
+          output.color.rgb = apply_fog(output.color.rgb, input.pointToEye.xyz);
+        ##endif
+        return output;
+      }
+    }
+
+      
+    hlsl(vs) {
+      VsOutput landmesh_vs(
+        INPUT_POSITION(inputpos)
+  ##if shader != land_mesh
+        , float3 packedNormal : NORMAL
+        , float2 diffuseTexcoord : TEXCOORD0
+  ##endif
+        )
+      {
+        VsOutput output;
+
+        float4 inpos = decode_pos_shader(inputpos);
+        float4 pos = decode_pos(inpos);
+        float3 worldPos = pos.xyz;
+  ##if in_editor_assume == yes
+        output.pos = mulPointTm(pos, globtm);
+        worldPos = pos.x * world_local_x + pos.y * world_local_y + pos.z * world_local_z + world_local_pos;
+  ##else
+        output.pos = mulPointTm(worldPos + camera_base_offset.xyz, globtm);
+  ##endif
+
+        float3 pointToEye = world_view_pos - worldPos;
+
+        output.pointToEye.xyz = pointToEye ;
+
+  ##if shader != land_mesh
+        output.diffuseTexcoord.xy = diffuseTexcoord;
+        output.diffuseTexcoord.zw = get_detail_mul()*diffuseTexcoord;
+        output.vertexNormal = packedNormal * 2 - 1;
+  ##endif
+
+        return output;
+      }
+    }
+
+    compile("vs_5_0", "landmesh_vs");
+    compile("ps_5_0", "landmesh_ps");
+  }
+}

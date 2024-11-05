@@ -1,5 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#include <EASTL/string.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EASTL/vector.h>
 #include <EASTL/sort.h>
 
@@ -24,6 +24,8 @@ void console_private::saveConsoleCommands()
 
     for (int i = 0; i < commandHistory.size(); i++)
       blk.addStr("cmd", commandHistory[i]);
+    for (int i = 0; i < pinnedCommands.size(); i++)
+      blk.addStr("pinned", pinnedCommands[i]);
     blk.addReal("cur_height", conHeight);
     blk.saveToTextFile("console_cmd.blk");
   }
@@ -82,7 +84,7 @@ void con_vprintf(LineType type, bool dup_to_log, const char *fmt, const DagorSaf
   if (conDriver)
     conDriver->puts(fmt, type);
   for (ConsoleOutputCallback &func : console_listeners)
-    func(fmt);
+    func(fmt, type);
   if (dup_to_log)
     switch (type)
     {
@@ -349,6 +351,110 @@ const char *get_command_hookless(const char *command, int &out_hook_index)
   return command;
 }
 
+void add_pinned_command(const char *cmd)
+{
+  if (is_command_pinned(cmd))
+    return;
+  auto emptySpot = eastl::find_if(pinnedCommands.begin(), pinnedCommands.end(), [](const SimpleString &s) { return s.empty(); });
+  if (emptySpot != pinnedCommands.end())
+  {
+    *emptySpot = SimpleString{cmd};
+    return;
+  }
+  if (pinnedCommands.size() >= MAX_PINNED_COMMANDS)
+    pinnedCommands.pop_back();
+  pinnedCommands.emplace_back(cmd);
+}
+
+const Tab<SimpleString> &get_pinned_command_list() { return pinnedCommands; }
+
+int get_pinned_command_count() { return pinnedCommands.size(); }
+
+void remove_pinned_command(const char *cmd)
+{
+  for (int i = 0; i < pinnedCommands.size(); ++i)
+  {
+    if (strcmp(pinnedCommands[i].c_str(), cmd) == 0)
+    {
+      pinnedCommands[i].clear(); // Leave an empty spot to keep shortcuts consistent
+      break;
+    }
+  }
+  while (!pinnedCommands.empty() && pinnedCommands.back().empty())
+    pinnedCommands.pop_back();
+}
+
+bool is_command_pinned(const char *cmd)
+{
+  for (const auto &itr : pinnedCommands)
+    if (strcmp(itr.c_str(), cmd) == 0)
+      return true;
+  return false;
+}
+
+void clear_pinned_commands() { pinnedCommands.clear(); }
+
+void validate_and_add_cached_command(const CommandStruct &command, const char *searchString)
+{
+  eastl::string cmdName(command.command);
+  if (cmdName.find(searchString) == 0)
+    cached_commands.push_back(command);
+}
+
+bool search_suboptions(const eastl::string &search, int wspaceLocation, const console::CommandStruct &command)
+{
+  if (command.commandOptions.empty())
+    return false;
+
+  clear_and_shrink(cached_commands);
+
+  eastl::vector<const char *> options;
+  int lastSpaceFound = wspaceLocation;
+  bool allSpaceFound = true;
+
+  while (allSpaceFound) // Extracting each option from search string
+  {
+    if (int currSpaceFound = search.find(' ', (eastl_size_t)lastSpaceFound + 1); currSpaceFound <= search.length())
+    {
+      options.push_back(search.substr(lastSpaceFound + 1, currSpaceFound - lastSpaceFound - 1).c_str());
+      lastSpaceFound = currSpaceFound;
+    }
+    else
+      allSpaceFound = false;
+  }
+
+  for (const CommandOptions &opt : command.commandOptions)
+  {
+    if (options.empty())
+    {
+      CommandStruct cpyCommand = command;
+      cpyCommand.command = String(0, "%s %s", cpyCommand.command.c_str(), opt.name.c_str());
+      cpyCommand.maxArgs -= opt.subOptions.empty() ? 2 : 1;
+      validate_and_add_cached_command(cpyCommand, search.c_str());
+    }
+    else if (opt.name == options[0])
+    {
+      CommandStruct cpyCommand = command;
+      cpyCommand.command = String(0, "%s %s", cpyCommand.command.c_str(), opt.name.c_str());
+      cpyCommand.maxArgs -= 1;
+      if (opt.subOptions.empty())
+        validate_and_add_cached_command(cpyCommand, search.c_str());
+      else
+      {
+        for (const CommandOptions &newOptFound : opt.subOptions)
+        {
+          CommandStruct subCpyCommand = cpyCommand;
+          subCpyCommand.command = String(0, "%s %s", cpyCommand.command.c_str(), newOptFound.name.c_str());
+          subCpyCommand.maxArgs -= 1;
+          validate_and_add_cached_command(subCpyCommand, search.c_str());
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
 // get list of commands filtered by prefix
 void get_filtered_command_list(console::CommandList &out_commands, const String &prefix)
 {
@@ -368,6 +474,7 @@ void get_filtered_command_list(console::CommandList &out_commands, const String 
 
   eastl::string search(prefixWithoutCommandHook);
   search.make_lower();
+  int wspaceLocation = search.find(' ');
   search.erase(eastl::remove(search.begin(), search.end(), '_'), search.end());
 
   eastl::string exactCmdSearch(search.substr(0, search.find_first_of(" ")));
@@ -398,8 +505,13 @@ void get_filtered_command_list(console::CommandList &out_commands, const String 
         insert_item_at(cached_commands, numGroups++, CommandStruct(group.c_str(), 0, 0));
     }
     if (findPos == eastl::string::npos && exactCmdPos == 0)
+    {
+      if (wspaceLocation == list[i].command.length() &&
+          search_suboptions(eastl::string(prefixWithoutCommandHook), wspaceLocation, list[i]))
+        break;
       cached_commands.push_back(list[i]); // The least suitable commands should be at the end of the list
                                           // (important for custom processors like das console_processor)
+    }
     if (findPos == 0 || findPos == dotPos + 1)
       insert_item_at(cached_commands, numGroups + prefixMatchInsertPos++, list[i]);
     else if (findPos != eastl::string::npos)

@@ -1,0 +1,107 @@
+include "radiance_cache_trace_common.dshl"
+include "radiance_cache_sample.dshl"
+include "radiance_cache_recalc_common.dshl"
+include "radiance_cache_filter_common.dshl"
+
+int4 radiance_cache_irradiance_frame;
+
+texture radiance_cache_prev_irradiance;
+
+shader rd_calc_irradiance_cache_new_cs, rd_calc_irradiance_cache_temporal_cs{
+  (cs) {
+    current_radiance_cache@smp2d = current_radiance_cache;
+  }
+  GET_SPATIAL_FILTERED_RADIANCE_CACHE(cs)
+
+  (cs)
+  {
+    radiance_cache_irradiance_frame@i3 = radiance_cache_irradiance_frame;
+    radiance_cache_prev_irradiance@smp2d = radiance_cache_prev_irradiance;
+  }
+  if (shader == rd_calc_irradiance_cache_new_cs)
+  {
+    (cs) {
+      new_radiance_cache_probes_needed@buf = new_radiance_cache_probes_needed hlsl {
+        ByteAddressBuffer new_radiance_cache_probes_needed@buf;
+      }
+    }
+  } else
+  {
+    (cs) {
+      radiance_cache_temporal_recalc_params2@i4 = radiance_cache_temporal_recalc_params2;
+    }
+    RADIANCE_CACHE_TEMPORAL_RECALC(cs)
+  }
+  hlsl(cs) {
+
+    RWTexture2D<float3> radiance_cache_irradiance: register(u0);
+    #include <octahedral_common.hlsl>
+
+    groupshared float4 sharedRadiance[RADIANCE_CACHE_RADIANCE_RES*RADIANCE_CACHE_RADIANCE_RES];
+    [numthreads(RADIANCE_CACHE_RADIANCE_RES, RADIANCE_CACHE_RADIANCE_RES, 1)]
+    void rd_calc_irradiance_cache_cs(uint gId : SV_GroupID, uint2 dtId : SV_DispatchThreadID, uint2 gtId:SV_GroupThreadID, uint tid:SV_GroupIndex)
+    {
+      ##if shader == rd_calc_irradiance_cache_new_cs
+        uint newProbeIndex = gId.x;
+        if (newProbeIndex >= get_radiance_cache_total_atlas_size())//safety, should not be needed
+          return;
+        uint wrappedAddr = loadBuffer(new_radiance_cache_probes_needed, newProbeIndex*4 + 4);
+        uint radianceCacheProbeIndex = radiance_cache_indirection_from_clip_addr(radiance_cache_indirection_clipmap, wrappedAddr);
+        if (radianceCacheProbeIndex >= get_radiance_cache_total_atlas_size())//safety, if we actually hadn't allocated probe
+          return;
+      ##else
+        if (gId.x >= uint(radiance_cache_temporal_recalc_params.w))
+          return;
+        uint radianceCacheProbeIndex = radiance_cache_read_selected_temporal_recalc_unsafe(gId).radianceCacheProbeIndex;
+      ##endif
+      //uint radianceCacheProbeIndex = dtId;
+      uint2 radianceCacheAtlasProbeCoord = uint2(radianceCacheProbeIndex%get_radiance_cache_atlas_dim().x, radianceCacheProbeIndex/get_radiance_cache_atlas_dim().x);
+      //uint2 radianceCacheAtlasProbeCoord = gId;
+      //uint radianceCacheProbeIndex = radianceCacheAtlasProbeCoord.x + radianceCacheAtlasProbeCoord.y*get_radiance_cache_atlas_dim().x;
+      uint2 octCoord = gtId.xy;//hardcoded
+      uint2 atlasRadianceCoord = radianceCacheAtlasProbeCoord*RADIANCE_CACHE_RADIANCE_RES + octCoord;
+      //float3 readRadiance = radiance_cache_decode_texture_radiance(current_radiance_cache[atlasRadianceCoord].xyz);
+      float3 readRadiance = get_spatial_filtered_radiance(radianceCacheProbeIndex, gtId, atlasRadianceCoord);
+      float angle = dagi_octahedral_solid_angle_fast((gtId + float2(0.5, 0.5)) / float(RADIANCE_CACHE_RADIANCE_RES), 1./RADIANCE_CACHE_RADIANCE_RES);
+      ##assert(tid < RADIANCE_CACHE_RADIANCE_RES*RADIANCE_CACHE_RADIANCE_RES, "[%s:%.f] Out of bounds: Buffer 'sharedRadiance' has size %.f, but access to (%.f)", _FILE_, __LINE__, RADIANCE_CACHE_RADIANCE_RES*RADIANCE_CACHE_RADIANCE_RES, tid);
+      sharedRadiance[tid] = float4(readRadiance, angle);
+      GroupMemoryBarrierWithGroupSync();
+
+      uint irradianceProbeResolution = RADIANCE_CACHE_IRRADIANCE_RES;
+      uint irradianceProbeResolutionWithBorder = RADIANCE_CACHE_IRRADIANCE_RES_WITH_BORDER;
+      uint sourceRadianceRes = RADIANCE_CACHE_RADIANCE_RES;
+      uint2 irradianceProbeAtlasCoord = radianceCacheAtlasProbeCoord*irradianceProbeResolutionWithBorder;
+      uint2 irradianceTargetOctCoord = gtId;
+      uint2 irradianceTexelCoord = octahedral_map_border_to_octhedral(irradianceTargetOctCoord, irradianceProbeResolutionWithBorder);
+
+      float2 irradianceProbeUV = (irradianceTexelCoord + float2(0.5f, 0.5f)) / float(irradianceProbeResolution);
+      float3 irradianceDirection = radiance_cache_dir_decode(irradianceProbeUV * 2.0 - 1.0);
+      float3 irradiance = 0; float totalWeight = 0;
+      for (uint i = 0, y = 0; y < RADIANCE_CACHE_RADIANCE_RES; y++)
+      {
+        for (uint x = 0; x < RADIANCE_CACHE_RADIANCE_RES; x++, ++i)
+        {
+          float2 radianceProbeUV = (float2(x, y) + float2(0.5, 0.5)) / float(RADIANCE_CACHE_RADIANCE_RES);
+          float3 radianceDirection = radiance_cache_dir_decode(radianceProbeUV * 2.0 - 1.0);
+
+          float NoL = dot(irradianceDirection, radianceDirection);
+
+          BRANCH
+          if (NoL > 0)
+          {
+            uint index = x + y*sourceRadianceRes;
+            ##assert(index < RADIANCE_CACHE_RADIANCE_RES*RADIANCE_CACHE_RADIANCE_RES, "[%s:%.f] Out of bounds: Buffer 'sharedRadiance' has size %.f, but access to (%.f)", _FILE_, __LINE__, RADIANCE_CACHE_RADIANCE_RES*RADIANCE_CACHE_RADIANCE_RES, index);
+            float4 radianceAngle = sharedRadiance[index];
+            float solidAngle = radianceAngle.w;
+            float sampleWeight = NoL * solidAngle;
+            irradiance += radianceAngle.xyz * sampleWeight;
+            totalWeight += sampleWeight;
+          }
+        }
+      }
+      irradiance *= 1.0f / totalWeight;
+      texture2DAt(radiance_cache_irradiance, irradianceProbeAtlasCoord + irradianceTargetOctCoord) = irradiance;
+    }
+  }
+  compile("target_cs", "rd_calc_irradiance_cache_cs");
+}

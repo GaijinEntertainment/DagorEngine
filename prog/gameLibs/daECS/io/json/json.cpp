@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/io/json.h>
 #include <daECS/core/componentTypes.h>
 #include <json/value.h>

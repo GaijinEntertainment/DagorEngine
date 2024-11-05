@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_log.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_dataBlockUtils.h>
@@ -236,10 +238,10 @@ static SQInteger blk_set(HSQUIRRELVM v)
         self->setE3dcolor(key, e3dcolor(*col4Val));
       }
       else
-        logerr_ctx("Invalid instance type passed as value of '%s'", key);
+        LOGERR_CTX("Invalid instance type passed as value of '%s'", key);
       break;
     }
-    default: logerr_ctx("Invalid type %X passed as value of '%s'", sq_type(valObj), key);
+    default: LOGERR_CTX("Invalid type %X passed as value of '%s'", sq_type(valObj), key);
   }
 
   return 0;
@@ -364,10 +366,10 @@ static SQInteger blk_newslot(HSQUIRRELVM v)
         self->setE3dcolor(key, e3dcolor(*col4Val));
       }
       else
-        logerr_ctx("Invalid instance type passed as value of '%s'", key);
+        LOGERR_CTX("Invalid instance type passed as value of '%s'", key);
       break;
     }
-    default: logerr_ctx("Invalid type %X passed as value of '%s'", sq_type(valObj), key);
+    default: LOGERR_CTX("Invalid type %X passed as value of '%s'", sq_type(valObj), key);
   }
 
   return 0;
@@ -554,6 +556,9 @@ static inline SQInteger blk_load_impl(HSQUIRRELVM v, bool ignore_missing)
   }
   return sqstd_throwerrorf(v, "Failed to load '%s'%s%s", fn, rep.err.empty() ? "" : ":\n", rep.err.str());
 }
+
+static SQInteger blk_fs_NA(HSQUIRRELVM v) { return sqstd_throwerrorf(v, "file operations not allowed"); }
+
 static SQInteger blk_load(HSQUIRRELVM v) { return blk_load_impl(v, false); }
 static SQInteger blk_try_load(HSQUIRRELVM v) { return blk_load_impl(v, true); }
 
@@ -568,6 +573,7 @@ static SQInteger blk_saveToTextFile(HSQUIRRELVM v)
   sq_pushbool(v, dblk::save_to_text_file(*self.value, fname));
   return 1;
 }
+
 static SQInteger blk_saveToTextFileCompact(HSQUIRRELVM v)
 {
   if (!Sqrat::check_signature<DataBlock *>(v))
@@ -577,6 +583,14 @@ static SQInteger blk_saveToTextFileCompact(HSQUIRRELVM v)
   const char *fname = NULL;
   G_VERIFY(SQ_SUCCEEDED(sq_getstring(v, 2, &fname)));
   sq_pushbool(v, dblk::save_to_text_file_compact(*self.value, fname));
+  return 1;
+}
+
+static int version = 2;
+
+static SQInteger blk_get_version(HSQUIRRELVM vm)
+{
+  sq_pushinteger(vm, version);
   return 1;
 }
 
@@ -644,16 +658,16 @@ static SQInteger datablock_ctor(HSQUIRRELVM vm)
   return 0;
 }
 
-
 void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access)
 {
   G_ASSERT(module_mgr);
   HSQUIRRELVM vm = module_mgr->getVM();
 
-#define FUNC(f) .Func(#f, &DataBlock::f)
+#define FUNC(f) Func(#f, &DataBlock::f)
   ///@class DataBlock=DataBlock
   Sqrat::Class<DataBlock> sqDataBlock(vm, "DataBlock");
-  (void)sqDataBlock.SquirrelCtor(datablock_ctor, -1, "xx")
+  (void)sqDataBlock //
+    .SquirrelCtor(datablock_ctor, -1, "xx")
     .SquirrelFunc("formatAsString", blk_formatAsString, -1, "x t|n n n")
     .Func("getBlock", (const DataBlock *(DataBlock::*)(uint32_t) const) & DataBlock::getBlock)
     .Func("addBlock", (DataBlock * (DataBlock::*)(const char *)) & DataBlock::addBlock)
@@ -665,6 +679,7 @@ void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access)
     .Func("getPoint3", (Point3(DataBlock::*)(const char *, const Point3 &) const) & DataBlock::getPoint3)
     .Func("getPoint2", (Point2(DataBlock::*)(const char *, const Point2 &) const) & DataBlock::getPoint2)
     .Func("getTm", (TMatrix(DataBlock::*)(const char *, const TMatrix &) const) & DataBlock::getTm)
+    .Func("getE3dcolor", (E3DCOLOR(DataBlock::*)(const char *, E3DCOLOR) const) & DataBlock::getE3dcolor)
     .Func("setStr", (int(DataBlock::*)(const char *, const char *)) & DataBlock::setStr)
     .Func("setBool", (int(DataBlock::*)(const char *, bool)) & DataBlock::setBool)
     .Func("setReal", (int(DataBlock::*)(const char *, float)) & DataBlock::setReal)
@@ -672,6 +687,7 @@ void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access)
     .Func("setPoint3", (int(DataBlock::*)(const char *, const Point3 &)) & DataBlock::setPoint3)
     .Func("setPoint2", (int(DataBlock::*)(const char *, const Point2 &)) & DataBlock::setPoint2)
     .Func("setTm", (int(DataBlock::*)(const char *, const TMatrix &)) & DataBlock::setTm)
+    .Func("setE3dcolor", (int(DataBlock::*)(const char *, E3DCOLOR)) & DataBlock::setE3dcolor)
     .Func("addStr", (int(DataBlock::*)(const char *, const char *)) & DataBlock::addStr)
     .Func("addBool", (int(DataBlock::*)(const char *, bool)) & DataBlock::addBool)
     .Func("addReal", (int(DataBlock::*)(const char *, float)) & DataBlock::addReal)
@@ -679,10 +695,12 @@ void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access)
     .Func("addPoint4", (int(DataBlock::*)(const char *, const Point4 &)) & DataBlock::addPoint4)
     .Func("addPoint2", (int(DataBlock::*)(const char *, const Point2 &)) & DataBlock::addPoint2)
     .Func("addTm", (int(DataBlock::*)(const char *, const TMatrix &)) & DataBlock::addTm)
+    .Func("addE3dcolor", (int(DataBlock::*)(const char *, E3DCOLOR)) & DataBlock::addE3dcolor)
     .Func("removeParam", (bool(DataBlock::*)(const char *)) & DataBlock::removeParam)
     .Func("removeParamById", (bool(DataBlock::*)(uint32_t)) & DataBlock::removeParam)
     .Func("removeBlock", (bool(DataBlock::*)(const char *)) & DataBlock::removeBlock)
     .Func("removeBlockById", (bool(DataBlock::*)(uint32_t)) & DataBlock::removeBlock)
+    .SquirrelFunc("__getVersion", blk_get_version, 1, "x")
 
     .GlobalFunc("findParam", find_param)
     .GlobalFunc("paramExists", param_exists)
@@ -697,7 +715,13 @@ void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access)
     .GlobalFunc("setIPoint3", set_IPoint3)
     .GlobalFunc("addIPoint3", add_IPoint3)
 
-      FUNC(clearData) FUNC(reset) FUNC(getBlockName) FUNC(changeBlockName) FUNC(blockCount) FUNC(paramCount) FUNC(getParamName)
+    .FUNC(clearData)
+    .FUNC(reset)
+    .FUNC(getBlockName)
+    .FUNC(changeBlockName)
+    .FUNC(blockCount)
+    .FUNC(paramCount)
+    .FUNC(getParamName)
 
     .SquirrelFunc("getParamTypeAnnotation", blk_get_param_type_annotation, 2, "xi")
     .SquirrelFunc("getParamValue", blk_get_param_value, 2, "xi")
@@ -717,16 +741,27 @@ void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access)
     .StaticFunc("setParseOverridesIgnored", set_parseOverridesIgnored)
     .StaticFunc("getParseOverridesIgnored", get_parseOverridesIgnored)
     .StaticFunc("setParseCommentsAsParams", set_parseCommentsAsParams)
-    .StaticFunc("getParseCommentsAsParams", get_parseCommentsAsParams); //-V1071
+    .StaticFunc("getParseCommentsAsParams", get_parseCommentsAsParams)
+    /**/;
 
   if (allow_file_access)
   {
-    (void)sqDataBlock.SquirrelFunc("load", blk_load, 2, "xs")
+    (void)sqDataBlock //
+      .SquirrelFunc("load", blk_load, 2, "xs")
       .SquirrelFunc("tryLoad", blk_try_load, -2, "xs")
       .SquirrelFunc("saveToTextFile", blk_saveToTextFile, 2, "xs")
-      .SquirrelFunc("saveToTextFileCompact", blk_saveToTextFileCompact, 2, "xs"); //-V1071
+      .SquirrelFunc("saveToTextFileCompact", blk_saveToTextFileCompact, 2, "xs")
+      /**/;
   }
-
+  else
+  {
+    (void)sqDataBlock //
+      .SquirrelFunc("load", blk_fs_NA, 2, "xs")
+      .SquirrelFunc("tryLoad", blk_fs_NA, -2, "xs")
+      .SquirrelFunc("saveToTextFile", blk_fs_NA, 2, "xs")
+      .SquirrelFunc("saveToTextFileCompact", blk_fs_NA, 2, "xs")
+      /**/;
+  }
 #undef FUNC
 
   Sqrat::Object classObj(sqDataBlock.GetObject(), vm);

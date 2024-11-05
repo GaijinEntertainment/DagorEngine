@@ -1,5 +1,4 @@
-#ifndef _DAGOR_GAMELIB_SOUNDSYSTEM_FRAMEMEMSTRING_H_
-#define _DAGOR_GAMELIB_SOUNDSYSTEM_FRAMEMEMSTRING_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/string.h>
@@ -9,5 +8,3 @@ namespace sndsys
 {
 using FrameStr = eastl::basic_string<char, framemem_allocator>;
 } // namespace sndsys
-
-#endif

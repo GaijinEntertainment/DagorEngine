@@ -101,7 +101,7 @@ namespace das {
         das_iterator(StructInfo const & info) : das_rtti_iterator<VarInfo, StructInfo>(info) {}
     };
 
-    char * rtti_get_das_type_name(Type tt, Context * context);
+    char * rtti_get_das_type_name(Type tt, Context * context, LineInfoArg * at);
     int rtti_add_annotation_argument(AnnotationArgumentList& list, const char* name);
 
     vec4f rtti_contextFunctionInfo ( Context & context, SimNode_CallBase *, vec4f * );
@@ -114,12 +114,12 @@ namespace das {
     RttiValue rtti_builtin_variable_value(const VarInfo & info);
 
     struct AnnotationArgument;
-    RttiValue rtti_builtin_argument_value(const AnnotationArgument & info, Context * context);
+    RttiValue rtti_builtin_argument_value(const AnnotationArgument & info, Context * context, LineInfoArg * at);
 
     int32_t rtti_getDimTypeInfo(const TypeInfo & ti, int32_t index, Context * context, LineInfoArg * at);
     int32_t rtti_getDimVarInfo(const VarInfo & ti, int32_t index, Context * context, LineInfoArg * at);
 
-    char * builtin_das_root ( Context * context );
+    char * builtin_das_root ( Context * context, LineInfoArg * at );
     smart_ptr<FileAccess> makeFileAccess( char * pak, Context * context, LineInfoArg * at );
     bool introduceFile ( smart_ptr_raw<FileAccess> access, char * fname, char * str, Context * context, LineInfoArg * );
     bool rtti_add_file_access_root ( smart_ptr<FileAccess> access, const char * mod, const char * path );
@@ -137,6 +137,8 @@ namespace das {
 
     void rtti_builtin_program_for_each_module(smart_ptr_raw<Program> prog, const TBlock<void, Module *> & block, Context * context, LineInfoArg * lineinfo);
     void rtti_builtin_program_for_each_registered_module(const TBlock<void, Module *> & block, Context * context, LineInfoArg * lineinfo);
+
+    void rtti_builtin_module_for_each_dependency ( Module * module, const TBlock<void,Module *,bool> & block, Context * context, LineInfoArg * at );
 
     Module * rtti_get_this_module(smart_ptr_raw<Program> prog);
     Module * rtti_get_builtin_module(const char * name);
@@ -175,11 +177,11 @@ namespace das {
     void lockAnyContext ( Context & ctx, const TBlock<void> & block, Context * context, LineInfoArg * lineInfo );
     void lockAnyMutex ( recursive_mutex & rm, const TBlock<void> & block, Context * context, LineInfoArg * lineInfo );
 
-    TSequence<VarInfo> each_FuncInfo ( FuncInfo & st, Context * context );
-    TSequence<const VarInfo> each_const_FuncInfo ( const FuncInfo & st, Context * context );
-    TSequence<VarInfo> each_StructInfo ( StructInfo & st, Context * context );
-    TSequence<const VarInfo> each_const_StructInfo ( const StructInfo & st, Context * context );
-    TSequence<EnumValueInfo> each_EnumInfo ( EnumInfo & st, Context * context );
-    TSequence<const EnumValueInfo> each_const_EnumInfo ( const EnumInfo & st, Context * context );
+    TSequence<VarInfo&> each_FuncInfo ( FuncInfo & st, Context * context, LineInfoArg * at );
+    TSequence<const VarInfo&> each_const_FuncInfo ( const FuncInfo & st, Context * context, LineInfoArg * at );
+    TSequence<VarInfo&> each_StructInfo ( StructInfo & st, Context * context, LineInfoArg * at );
+    TSequence<const VarInfo&> each_const_StructInfo ( const StructInfo & st, Context * context, LineInfoArg * at );
+    TSequence<EnumValueInfo&> each_EnumInfo ( EnumInfo & st, Context * context, LineInfoArg * at );
+    TSequence<const EnumValueInfo&> each_const_EnumInfo ( const EnumInfo & st, Context * context, LineInfoArg * at );
 }
 

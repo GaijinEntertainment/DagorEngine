@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -46,8 +45,10 @@ public:
     CockpitReprojectionMode cockpit_mode, const mat44f &cockpit_anim) = 0; // performs reprojection of latest GPU frame
   virtual void buildMips() = 0;
   virtual void prepareDebug() = 0;
-  virtual void prepareNextFrame(vec3f viewPos, mat44f_cref view, mat44f_cref proj, mat44f_cref viewProj, float zn, float zf,
-    TextureIDPair mipped_depth, Texture *depth = 0, StereoIndex stereo_index = StereoIndex::Mono) = 0;
+  virtual void prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
+    TextureIDPair mipped_depth, Texture *depth = nullptr) = 0;
+  virtual void prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
+    TextureIDPair mipped_depth, Texture *depth, StereoIndex stereo_index) = 0;
   virtual void setReprojectionUseCameraTranslatedSpace(bool enabled) = 0;
   virtual bool getReprojectionUseCameraTranslatedSpace() const = 0;
 

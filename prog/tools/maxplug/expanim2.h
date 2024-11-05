@@ -1,5 +1,4 @@
-#ifndef __DAGOR_EXPANIM2_H
-#define __DAGOR_EXPANIM2_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 struct AnimChanPoint3
@@ -24,5 +23,3 @@ bool get_node_vel(Tab<AnimKeyPoint3> &lin_vel, Tab<AnimKeyPoint3> &ang_vel, Tab<
   const Interval &limit, ExpTMAnimCB &cb, float pos_thr, float rot_thr, int explags);
 
 #include "debug.h"
-
-#endif

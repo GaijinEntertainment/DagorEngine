@@ -1,5 +1,4 @@
-#ifndef __GAIJIN_EDITORCORE_EC_DYNBUF_H__
-#define __GAIJIN_EDITORCORE_EC_DYNBUF_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <shaders/dag_shaders.h>
@@ -153,5 +152,3 @@ private:
 
   void createBuffer(int max_verts, int max_faces);
 };
-
-#endif

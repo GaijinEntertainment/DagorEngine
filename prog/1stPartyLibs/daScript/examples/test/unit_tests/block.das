@@ -59,14 +59,14 @@ def test:bool
     if true
         var a = 0
         var b = 0
-        twice({ a++; })
+        twice(${ a++; })
         assert(a==2)
-        b = twice_good() <| { return a++; }
+        b = twice_good() <| ${ return a++; }
         assert(a==4 && b==(2+3))
         b = twice_good() <|
             return a++
         assert(b==(4+5))
-        b = twice_good({ return ++a; })
+        b = twice_good(${ return ++a; })
         assert(a==8)
         assert(b==(7+8))
     if true

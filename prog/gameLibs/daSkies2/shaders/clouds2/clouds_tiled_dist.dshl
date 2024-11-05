@@ -9,6 +9,7 @@ macro USE_CLOUDS_DISTANCE(code)
     clouds_tile_distance@smp2d = clouds_tile_distance;
   }
   hlsl(code) {
+  ##if clouds_tile_distance != NULL
     #define CLOUDS_HAS_TILED_DIST 1
     float closest_tiled_dist_packed(uint2 scrPos)
     {
@@ -27,6 +28,9 @@ macro USE_CLOUDS_DISTANCE(code)
     {
       return closest_tiled_dist_packed(scrPos) == 1;
     }
+  ##else
+    #define CLOUDS_HAS_TILED_DIST 0
+  ##endif
   }
 endmacro
 

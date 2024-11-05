@@ -60,7 +60,7 @@ def document_module_math(root:string)
         group_by_regex("all numerics (uint*, int*, float*, double)", mod, %regex~(min|max)$%%);
         group_by_regex("float* and double", mod, %regex~(sign|abs|acos|asin|atan|atan2|cos|sin|tan|exp|log|exp2|
 log2|pow|sqrt|rcp|ceil|floor|abs|saturate|sincos|is_finite|is_nan)$%%);
-        group_by_regex("float* only", mod, %regex~(atan_est|atan2_est|rcp_est|ceili|floori|roundi|trunci|rsqrt|rsqrt_est|fract|\-)$%%);
+        group_by_regex("float* only", mod, %regex~(atan_est|atan2_est|rcp_est|ceili|floori|roundi|trunci|round|rsqrt|rsqrt_est|fract|\-)$%%);
         group_by_regex("float3 only", mod, %regex~(cross|reflect|refract|distance|distance_sq|
 inv_distance|inv_distance_sq)$%%);
         group_by_regex("float2, float3, float4", mod, %regex~(length|length_sq|inv_length|inv_length_sq|
@@ -85,7 +85,7 @@ def document_module_builtin(root:string)
         group_by_regex("Containers", mod, %regex~(capacity|clear|length|resize|resize_no_init|reserve|each|emplace|erase|find|
 find_for_edit|find_if_exists|find_index|find_index_if|has_value|key_exists|keys|values|lock|each_enum|each_ref|
 find_for_edit_if_exists|lock_forever|next|nothing|pop|push|push_clone|back|sort|to_array|to_table|to_array_move|
-to_table_move|empty|subarray|insert|move_to_ref|copy_to_local|move_to_local|get)$%%);
+to_table_move|empty|subarray|insert|move_to_ref|copy_to_local|move_to_local|get|remove_value)$%%);
         group_by_regex("Character set groups", mod, %regex~(is_alpha|is_number|is_white_space|is_char_in_set)$%%);
         group_by_regex("das::string manipulation", mod, %regex~(peek|set)$%%);
         group_by_regex("String builder", mod, %regex~(build_string|write|write_char|write_chars|write_escape_string)$%%);
@@ -95,14 +95,14 @@ to_table_move|empty|subarray|insert|move_to_ref|copy_to_local|move_to_local|get)
         group_by_regex("Smart ptr infrastructure", mod, %regex~(add_ptr_ref|smart_ptr|get_const_ptr|move|move_new|get_ptr$)%%);
         group_by_regex("Macro infrastructure", mod, %regex~(is_folding|is_compiling|is_in_completion|is_reporting_compilation_errors)%%);
         group_by_regex("Profiler", mod, %regex~(profile|reset_profiler|dump_profile_info|collect_profile_info)$%%);
-        group_by_regex("System infastructure", mod, %regex~(panic|print|sprint|sprint_json|to_log|to_compiler_log|error|terminate|breakpoint|stackwalk|get_das_root|is_in_aot)$%%);
+        group_by_regex("System infastructure", mod, %regex~(panic|print|sprint|sprint_json|to_log|to_compiler_log|error|terminate|breakpoint|stackwalk|get_das_root|is_in_aot|aot_enabled|is_intern_strings|eval_main_loop)$%%);
         group_by_regex("Memory manipulation", mod, %regex~(intptr|memcmp|variant_index|set_variant_index|hash|memcpy|lock_data|map_to_array|map_to_ro_array)$%%);
         group_by_regex("Binary serializer", mod, %regex~(binary_load|binary_save)$%%);
         group_by_regex("Path and command line", mod, %regex~(get_command_line_arguments)$%%);
-        group_by_regex("Time and date", mod, %regex~(get_time_usec|ref_time_ticks|get_clock|get_time_nsec)$%%);
+        group_by_regex("Time and date", mod, %regex~(get_time_usec|ref_time_ticks|get_clock|get_time_nsec|mktime)$%%);
         group_by_regex("Lock checking", mod, %regex~(lock_count|set_verify_array_locks|set_verify_table_locks)$%%);
         group_by_regex("Lock checking internals", mod, %regex~(_move_with_lockcheck|_return_with_lockcheck|_at_with_lockcheck)$%%);
-        group_by_regex("Bit operations", mod, %regex~(popcnt|clz|ctz)$%%);
+        group_by_regex("Bit operations", mod, %regex~(popcnt|clz|ctz|mul128)$%%);
         group_by_regex("Intervals", mod, %regex~(interval)$%%);
         group_by_regex("RTTI", mod, %regex~(class_rtti_size)$%%);
         hide_group(group_by_regex("Jit",mod,%regex~(invoke_code|.*jit.*)$%%));
@@ -118,9 +118,9 @@ def document_module_fio(root:string)
     var mod = get_module("fio")
     var groups <- [{DocGroup
         hide_group(group_by_regex("Internal builtin functions", mod, %regex~builtin%%));
-        group_by_regex("File manipulation", mod, %regex~(f|stat$|getchar|remove)%%);
+        group_by_regex("File manipulation", mod, %regex~(f|stat$|getchar|remove|rename)%%);
         group_by_regex("Path manipulation", mod, %regex~(base_name|dir_name|get_full_file_name)$%%);
-        group_by_regex("Directory manipulation", mod, %regex~(dir|mkdir)$%%);
+        group_by_regex("Directory manipulation", mod, %regex~(dir|mkdir|chdir|getcwd)$%%);
         group_by_regex("OS specific routines", mod, %regex~(sleep|exit|popen|popen_binary|get_env_variable|sanitize_command_line)$%%)
     }]
     document("File input output library",mod,"{root}/fio.rst","{root}/detail/fio.rst",groups)
@@ -195,7 +195,8 @@ def document_module_ast(root:string)
         group_by_regex("Use queries", mod, %regex~(get_use_global_variables|get_use_functions)%%);
         group_by_regex("Log", mod, %regex~(to_compilation_log)%%);
         group_by_regex("Removal", mod, %regex~(remove.*)%%);
-        group_by_regex("Properties", mod, %regex~(is|has|get)_.*%%);
+        group_by_regex("Properties", mod, %regex~(is|has|get|can)_.*%%);
+        group_by_regex("Infer", mod, %regex~(infer_generic_type|update_alias_map)$%%);
         hide_group(group_by_regex("Internal ast infrastructure", mod, %regex~(builtin_ast_.*)%%))
     }]
     document("AST manipulation library",mod,"{root}/ast.rst","{root}/detail/ast.rst",groups)
@@ -223,10 +224,10 @@ def document_module_strings(root:string)
         group_by_regex("Character groups", mod, %regex~is.+%%);
         group_by_regex("Character by index", mod, %regex~(character_at|character_uat)$%%);
         group_by_regex("String properties", mod, %regex~(empty|ends_with|length|starts_with)$%%);
-        group_by_regex("String builder", mod, %regex~(build_string|format|write|write_char|write_chars|write_escape_string)$%%);
+        group_by_regex("String builder", mod, %regex~(build_string|format|write|write_char|write_chars|write_escape_string|build_hash)$%%);
         group_by_regex("das::string manipulation", mod, %regex~(append|resize)$%%);
         group_by_regex("String modifications", mod, %regex~(chop|escape|unescape|repeat|replace|reverse|slice|
-strip|strip_left|strip_right|to_lower|to_lower_in_place|to_upper|to_upper_in_place|rtrim|safe_unescape)$%%);
+strip|strip_left|strip_right|to_lower|to_lower_in_place|to_upper|to_upper_in_place|rtrim|safe_unescape|ltrim|trim)$%%);
         group_by_regex("Search substrings", mod, %regex~find.*%%);
         group_by_regex("String conversion routines", mod, %regex~(double|float|int|uint|int64|uint64|to_double|to_float|to_int|to_uint|to_int64|to_uint64|string|to_char)$%%);
         group_by_regex("String as array", mod, %regex~(modify_data|peek_data)$%%);
@@ -317,7 +318,7 @@ def document_module_jobque(root:string)
     var groups <- [{DocGroup
         group_by_regex("Channel, JobStatus, Lockbox", mod, %regex~(append|notify|join|channel_create|channel_remove|add_ref|release|notify_and_release|lock_box_create|lock_box_remove|job_status_create|job_status_remove)$%%);
         group_by_regex("Queries", mod, %regex~(get_total_hw_jobs|get_total_hw_threads|is_job_que_shutting_down)$%%);
-        group_by_regex("Internal invocations", mod, %regex~(new_job_invoke|new_thread_invoke)$%%);
+        group_by_regex("Internal invocations", mod, %regex~(new_job_invoke|new_thread_invoke|new_debugger_thread)$%%);
         group_by_regex("Construction", mod, %regex~(with_channel|with_job_status|with_job_que|with_lock_box)$%%);
         group_by_regex("Atomic", mod, %regex~(atomic32_create|atomic32_remove|with_atomic32|atomic64_create|atomic64_remove|with_atomic64|get|set|inc|dec)$%%)
     }]
@@ -544,7 +545,7 @@ def document_module_decs(root:string)
         group_by_regex("Iteration", mod, %regex~(for_each_archetype|for_eid_archetype|for_each_archetype_find|get_ro|decs_array|get_default_ro|get_optional)$%%);
         group_by_regex("Request", mod, %regex~(verify_request|compile_request|lookup_request|EcsRequestPos)$%%)
     }]
-    document("DECS, daScript entity component system",mod,"{root}/decs.rst","{root}/detail/decs.rst",groups)
+    document("DECS, Daslang entity component system",mod,"{root}/decs.rst","{root}/detail/decs.rst",groups)
 
 def document_module_decs_boost(root:string)
     var mod = find_module("decs_boost")

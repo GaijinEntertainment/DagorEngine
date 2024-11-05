@@ -2,6 +2,9 @@ module random shared
 require math
 require DagorRandom public
 
+def rnd_point_on_disk(var seed : int&; radius : float) : float2
+  return rnd_point_on_ring(seed, 0f, radius)
+
 def rnd_point_on_disk(radius : float) : float2
   return rnd_point_on_ring(0f, radius)
 
@@ -26,6 +29,24 @@ def rnd_point_on_ring(radius_from, radius_to : float) : float2
   sincos(2f * PI * rndAngle, s, c)
   return float2(radius * c, radius * s)
 
+def rnd_point_on_ring(var seed : int&; radius_from, radius_to : float) : float2
+  if radius_from > radius_to
+    return float2()
+
+  let rndX = _rnd_float(seed, .0, 1.0)
+  let rndY = _rnd_float(seed, .0, 1.0)
+  let rndAngle = _rnd_float(seed, .0, 1.0)
+
+  var radius : float
+  if rndX * (radius_to - radius_from) + radius_from < rndY * (radius_to + radius_from)
+    radius =         rndX * (radius_to - radius_from) + radius_from
+  else
+    radius = (1.0 - rndX) * (radius_to - radius_from) + radius_from
+
+  var s, c : float
+  sincos(2f * PI * rndAngle, s, c)
+  return float2(radius * c, radius * s)
+
 def choose_index_by_weight(list)
   var totalWeight = .0
   for item in list
@@ -35,7 +56,7 @@ def choose_index_by_weight(list)
     rnd -= item.weight
     if rnd <= .0
       return idx
-  return length(list) - 1
+  return _::length(list) - 1
 
 def random_horz_matrix()
   let angle = gfrnd() * 2f * PI
@@ -49,10 +70,17 @@ def random_horz_matrix()
   return tm
 
 def shuffle(var list; up_to : int = -1)
-  let maxSize = length(list)
+  let maxSize = _::length(list)
   let size = up_to >= 0 ? min(up_to, maxSize) : maxSize
   for i in range(size)
     let idx = grnd() % (maxSize - i)
+    swap(list[i], list[i + idx])
+
+def shuffle_seeded(var list; var seed : int&; up_to : int = -1)
+  let maxSize = _::length(list)
+  let size = up_to >= 0 ? min(up_to, maxSize) : maxSize
+  for i in range(size)
+    let idx = _rnd_int(seed, 0, maxSize - i - 1)
     swap(list[i], list[i + idx])
 
 //for the case when the list itself cannot be shuffled

@@ -1,8 +1,5 @@
-#ifndef MXQMETRIC3_INCLUDED // -*- C++ -*-
-#define MXQMETRIC3_INCLUDED
-#if !defined(__GNUC__)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-#endif
 
 /************************************************************************
 
@@ -85,6 +82,3 @@ inline MxQuadric3 operator+(const MxQuadric3 &a, const MxQuadric3 &b)
   r += b;
   return r;
 }
-
-// MXQMETRIC3_INCLUDED
-#endif

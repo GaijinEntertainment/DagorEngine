@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <webBrowserHelper/webBrowser.h>
 #include <sqModules/sqModules.h>
 
@@ -28,13 +30,15 @@ void add_window_method(const char *name, unsigned params_cnt)
 void bind_webbrowser(SqModules *sq_modules_mgr)
 {
   Sqrat::Table tbl(sq_modules_mgr->getVM());
-  tbl.Func("can_use_embeded_browser", can_use_embedded_browser)
+  tbl //
+    .Func("can_use_embeded_browser", can_use_embedded_browser)
     .Func("browser_go_back", go_back)
     .Func("browser_reload_page", reload)
     .Func("browser_go", go)
     .Func("browser_get_current_url", get_current_url)
     .Func("browser_get_current_title", get_current_title)
-    .Func("browser_add_window_method", add_window_method);
+    .Func("browser_add_window_method", add_window_method)
+    /**/;
 
   using namespace webbrowser;
 

@@ -1,11 +1,5 @@
 ConsoleExe = yes ;
-DriverLinkage = dynamic ;
-
-if $(OS) = LINUX {
-  Platform ?= linux64 ;
-} else if $(OS) = NT {
-  Platform ?= win64 ;
-}
+KernelLinkage = dynamic ;
 
 Root    ?= ../../../.. ;
 Location = prog/tools/sceneTools/customContentTool ;
@@ -13,12 +7,9 @@ include $(Root)/prog/tools/tools_setup.jam ;
 
 TargetType  = exe ;
 Target      = util/customContentTool ;
+include $(Root)/prog/tools/tools_setup_outdir_bin.jam ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
-
-OutDir = $(Root)/tools/dagor3_cdk/bin ;
-if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
-if $(Platform) = linux64 { OutDir = $(Root)/tools/dagor3_cdk/bin-linux64 ; }
 
 AddIncludes =
   $(Root)/prog/tools/sharedInclude
@@ -47,6 +38,6 @@ if $(UseSystemOpenSSL) != yes {
 }
 
 ImportProgLibs = tools/libTools/daKernel ;
-if $(Platform) = linux64 { ImportsRelativeDir = . ; }
+if $(Platform) = linux { ImportsRelativeDir = . ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

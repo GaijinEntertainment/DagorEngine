@@ -77,13 +77,19 @@ AllACLESources =
 
 Copt += -DZLIB_COMPAT=1 ;
 
-if $(Platform) in win32 win64 linux64 xboxOne scarlett ps4 ps5 {
-  Sources +=  $(Allx86Sources:D=arch/x86) ;
-  Copt += -DX86_FEATURES -DX86_SSE2 -DX86_SSE2_CHUNKSET -DX86_SSE2_SLIDEHASH ;
-  if $(Platform) = win64 { Copt += -wd4267 ; }
+if $(Platform) in windows linux xboxOne scarlett ps4 ps5 {
+  if $(PlatformArch) in x86 x86_64 {
+    Sources +=  $(Allx86Sources:D=arch/x86) ;
+    Copt += -DX86_FEATURES -DX86_SSE2 -DX86_SSE2_CHUNKSET -DX86_SSE2_SLIDEHASH ;
+  }
+  else if $(PlatformArch) in arm64 {
+    Copt += -DARM_FEATURES -DARM_NEON_SLIDEHASH -DARM_NEON_CHUNKSET -DARM_NEON_ADLER32 -DARM_NEON_HASLD4 ;
+    Sources += $(AllNEONSources:D=arch/arm) ;
+  }
+  if $(Platform)-$(PlatformArch) = windows-x86_64 { Copt += -wd4267 ; }
 }
 
-if $(Platform) in win64 linux64 xboxOne scarlett ps4 ps5 {
+if $(PlatformArch) in x86_64 e2k {
   Copt += -DX86_SSSE3 ;
 }
 

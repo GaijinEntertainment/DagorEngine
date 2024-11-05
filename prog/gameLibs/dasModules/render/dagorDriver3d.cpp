@@ -1,8 +1,17 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/aotDagorDriver3d.h>
 #include <dasModules/dagorTexture3d.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_renderTarget.h>
 
 DAS_BIND_ENUM_CAST(DepthAccess);
 DAS_BASE_BIND_ENUM(DepthAccess, DepthAccess, RW, SampledRO);
+
+DAS_BASE_BIND_ENUM_BOTH(DAS_BIND_ENUM_QUALIFIED_HELPER, d3d::SamplerHandle, SamplerHandle, EnumerationSamplerHandle, // -V1008
+  Invalid);
 
 void bind_driver_consts(das::Module &module);
 
@@ -72,6 +81,7 @@ public:
     addAnnotation(das::make_smart<ComputeShaderAnnotation>(lib));
     addAnnotation(das::make_smart<OverrideStateAnnotation>(lib));
     addEnumeration(das::make_smart<EnumerationDepthAccess>());
+    addEnumeration(das::make_smart<EnumerationSamplerHandle>());
 
     das::addUsing<shaders::OverrideState>(*this, lib, "shaders::OverrideState");
 

@@ -17,6 +17,13 @@ def add_to_ecs_object(var obj : Object; name : string; value)
     using() <| $(var child : Object)
       fill_ecs_object(child, value)
       set(obj, name, child)
+  static_elif typeinfo(is_array value)
+    using() <| $(var child : Array)
+      for item in value
+        using() <| $(var itemObj : Object)
+          fill_ecs_object(itemObj, item)
+          push(child, itemObj)
+      set(obj, name, child)
   else
     set(obj, name, value)
 

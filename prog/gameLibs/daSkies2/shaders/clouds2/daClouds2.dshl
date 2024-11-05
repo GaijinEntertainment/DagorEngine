@@ -21,9 +21,11 @@ float clouds_offset = 0;
 int clouds_has_close_sequence = 1;
 texture clouds_depth_gbuf;
 int clouds_infinite_skies;
+interval clouds_infinite_skies:no < 1, yes;
 int clouds_panorama_frame;
 
 float4 nuke_light_color;
+float4 nuke_light_pos;
 
 //the higher the better quality is. but after 4 it doesn't really changes.
 //If you fly in clouds, use pow-of-2 (i.e 1,2,4), otherwise you will get some blinking due to fp precision and rounding errors
@@ -47,6 +49,8 @@ interval clouds_panorama_depth_out: off < 1, on;
 int clouds_panorama_split = 0;
 interval clouds_panorama_split: off < 1, trace < 2, blend;
 
+int clouds_ignore_close_objects = 0;
+interval clouds_ignore_close_objects: off < 1, on;
 
 hlsl {
   #define MAX_CLOUDS_SHADOW_DIST (100*1000)
@@ -111,6 +115,14 @@ macro RAYCAST_CLOUDS(code)
      //flying through clouds - temporal + close
      #define CLOUDS_LIGHT_SAMPLES 6
      #define CAN_BE_IN_CLOUDS 1
+
+     #ifndef INFINITE_SKIES
+      ##if clouds_infinite_skies == yes
+        #define INFINITE_SKIES 1
+      ##else
+        #define INFINITE_SKIES 0
+      ##endif
+     #endif
 
      #if !JUST_CLOSE_SEQUENCE
        #define WEIGHTED_ATMOSPHERE_SCATTERING WEIGHTED_ATMOSPHERE_SCATTERING_SEQUENCE//WEIGHTED_ATMOSPHERE_SCATTERING_ONCE
@@ -186,7 +198,6 @@ macro RAYCAST_CLOUDS(code)
   {
     (code) { clouds_offset@f1 = (clouds_offset); }
     (code) {
-      clouds_infinite_skies@f1 = (clouds_infinite_skies);
       steps_per_sequence@f1 = (16*max(1, clouds_steps_per_sequence),0,0,0);//can be independent parameter. but better be pow2
     }
     hlsl(code) {
@@ -280,7 +291,7 @@ macro RAYCAST_CLOUDS(code)
         //while fixing problems with flow control
         #define CLOUDS_OPTIMIZE_OUTER_LOOP 0
       #else
-        #define CLOUDS_OPTIMIZE_OUTER_LOOP CLOUDS_PREBAKED_FIELDS
+        #define CLOUDS_OPTIMIZE_OUTER_LOOP CLOUDS_PREBAKED_FIELD
       #endif
     }
   }
@@ -289,7 +300,8 @@ macro RAYCAST_CLOUDS(code)
     //returns skies_frustum_scattering_last_tz at skies_froxels_resolution.w, and 1 - 0.5/skies_froxels_resolution.z at 280km/
     infinite_skies_madd@f3 = (infMul, skies_frustum_scattering_last_tz - skies_froxels_resolution.w*infMul, 1 - 0.5/skies_froxels_resolution.z,0);
     nuke_light_color@f4 = nuke_light_color;
-    shadow_steps_for_nuke__trace_steps@f4 = (1 + clouds_steps_per_sequence, 0.5 / (1 + clouds_steps_per_sequence), clouds_trace_steps.x, clouds_trace_steps.y);
+    nuke_light_pos@f3 = (nuke_light_pos.x + clouds_origin_offset.x, nuke_light_pos.y, nuke_light_pos.z+clouds_origin_offset.y, 0);
+    shadow_steps_for_nuke__trace_steps@f4 = (1 + clouds_steps_per_sequence, 1.0 / (1 + clouds_steps_per_sequence), clouds_trace_steps.x, clouds_trace_steps.y);
   }
 
   if (lightning_in_clouds == on && shader != clouds_panorama && shader != clouds_alpha_panorama) {
@@ -319,18 +331,20 @@ macro RAYCAST_CLOUDS(code)
       float3 integrated_scattering_transmittance;
     };
 
-    void calculate_additional_lighting(AccumulationConstParams cp, inout float3 additional_lighting)
+    void calculate_additional_lighting(AccumulationConstParams cp, inout float3 additional_lighting, float randomOfs)
     {
 ##if nuke_in_atmosphere == on && shader != clouds_panorama && shader != clouds_alpha_panorama
       if (nuke_light_color.w > 0)
       {
-        float lightDist = length(cp.pos - nuke_pos.xyz);
+        float lightDist = length(cp.pos - nuke_light_pos.xyz);
         float radFade = saturate((nuke_light_color.w-lightDist)/nuke_light_color.w);
+
         if (radFade > 0)
         {
-          float3 lightDir = (nuke_pos.xyz - cp.pos)*rcp(lightDist);
+          float3 lightDir = (nuke_light_pos.xyz - cp.pos)*rcp(lightDist);
+          float shadowStep = shadow_steps_for_nuke.y*lightDist;
           float shadow = 1;
-          baseLightExtinction(shadow, cp.pos + cp.clouds_hole_offset, cp.height_fraction, shadow_steps_for_nuke.y*lightDist, cp.mip,
+          baseLightExtinction(shadow, cp.pos + cp.clouds_hole_offset - randomOfs*shadowStep*lightDir, cp.height_fraction, shadowStep, cp.mip,
                               2./CLOUDS_LIGHT_SAMPLES, cp.erosion_level, 0.1, lightDir.xyz, shadow_steps_for_nuke.x, 1);
           additional_lighting += pow2((1 - cp.beers_term)) * cp.integrated_scattering_transmittance.z * shadow *
                               radFade * nuke_light_color.rgb * nuke_light_color.w / pow2(lightDist);
@@ -379,6 +393,7 @@ macro RAYCAST_CLOUDS(code)
 
     void performSequence(float distStart, int e, float3 view, float stepSize, float end,
                            SunLightingPixelHelper sunPixelHelper,
+                           float savedRandomOfs,
                            float threshold,
                            inout float weightedSequenceDist,
                            inout float totalSequenceWeight,
@@ -396,6 +411,12 @@ macro RAYCAST_CLOUDS(code)
         #else
           #define CLOUDS_USE_APPROXIMATE_ALT_FRACTION 0
         #endif
+      #endif
+
+      // Early exit might introduce a bit of banding for really close clouds (but saves performance)
+      // for mobile devices it is better to keep it on
+      #ifndef FORCE_CLOSE_SEQUENCE_TRANSMITTANCE_CHECK
+        #define FORCE_CLOSE_SEQUENCE_TRANSMITTANCE_CHECK 0
       #endif
 
       float3 clouds_hole_offset = get_clouds_hole_pos_vec();
@@ -501,7 +522,7 @@ macro RAYCAST_CLOUDS(code)
         cp.beers_term = beers_term;
         cp.integrated_scattering_transmittance = integratedScatteringTransmittance;
 
-        calculate_additional_lighting(cp, additionalLighting);
+        calculate_additional_lighting(cp, additionalLighting, savedRandomOfs);
 
         // Get sun luminance according to volumetric shadow and phase function
         float2 luminance = sunAmbientLuminance(sample_pos, heightFraction, mip, erosion_level, sunPixelHelper);
@@ -513,6 +534,8 @@ macro RAYCAST_CLOUDS(code)
         integratedScatteringTransmittance.rg = integratedScatteringTransmittance.z * integScatt + integratedScatteringTransmittance.rg;
         //integratedScatteringTransmittance.rgb = float(i)/STEPS_PER_SEQUENCE;integratedScatteringTransmittance.a = 0;break;
         integratedScatteringTransmittance.z *= transmittance;
+
+        #if !JUST_CLOSE_SEQUENCE || FORCE_CLOSE_SEQUENCE_TRANSMITTANCE_CHECK
         if (integratedScatteringTransmittance.z<threshold)//early exit if we already get all light
         {
           //re-apply last sample - hides banding
@@ -523,6 +546,7 @@ macro RAYCAST_CLOUDS(code)
           #endif
           break;
         }
+        #endif
       }
       //integratedScatteringTransmittance = float(count)/e;
       //integratedScatteringTransmittance.z = 0;
@@ -645,26 +669,42 @@ macro RAYCAST_CLOUDS(code)
         #define STEPS_PER_SEQUENCE 64
         #endif
       #endif
+
+      #ifndef REDUCED_SEQUENCE_COUNT
+        #define REDUCED_SEQUENCE_COUNT 0
+      #endif
+
+      #ifndef REDUCED_IN_CLOUDS_STEPS
+        #define REDUCED_IN_CLOUDS_STEPS 0
+      #endif
+
       int stepsPerSequence = STEPS_PER_SEQUENCE;
       #if CAN_BE_IN_CLOUDS && JUST_CLOSE_SEQUENCE
+        #define IGNORE_CLOSE_OBJECTS 1
+        #define CHECK_START_ON_IGNORE 1
         const int SEQUENCE_COUNT = 1;
-        stepsPerSequence = steps_per_sequence;
+        stepsPerSequence = REDUCED_IN_CLOUDS_STEPS ? steps_per_sequence / 2 : steps_per_sequence;
         const float startStepSize = closeSequenceStepSize*(32./stepsPerSequence);
       #elif DUAL_PANORAMA
         const int SEQUENCE_COUNT = 4;
         const float startStepSize = 256;
       #elif CAN_BE_IN_CLOUDS && !TEMPORAL_REPROJECTION
-        const int SEQUENCE_COUNT = 4;
+        const int SEQUENCE_COUNT = REDUCED_SEQUENCE_COUNT ? 3 : 4;
         const float startStepSize = 512;//cube or reflection
       #elif CAN_BE_IN_CLOUDS && TEMPORAL_REPROJECTION
-        const int SEQUENCE_COUNT = 5;
-        stepsPerSequence = steps_per_sequence;
+        const int SEQUENCE_COUNT = REDUCED_SEQUENCE_COUNT ? 3 : 5;
+        stepsPerSequence = REDUCED_IN_CLOUDS_STEPS ? steps_per_sequence / 2 : steps_per_sequence;
         const float startStepSize = 256*(32./stepsPerSequence);
+
+      ##if clouds_ignore_close_objects == on
+        #define IGNORE_CLOSE_OBJECTS 1
+      ##endif
+
       #elif !CAN_BE_IN_CLOUDS && TEMPORAL_REPROJECTION
-        const int SEQUENCE_COUNT = 3;
+        const int SEQUENCE_COUNT = REDUCED_SEQUENCE_COUNT ? 2 : 3;
         const float startStepSize = 256;
       #else
-        const int SEQUENCE_COUNT = 4;
+        const int SEQUENCE_COUNT = REDUCED_SEQUENCE_COUNT ? 3 : 4;
         const float startStepSize = 128;
       #endif
       const float actualTraceDist = (((1U<<SEQUENCE_COUNT)-1)*stepsPerSequence + (1U<<SEQUENCE_COUNT))*startStepSize;
@@ -693,14 +733,17 @@ macro RAYCAST_CLOUDS(code)
 
       float distToGround = INFINITE_TRACE_DIST;
       #if !INFINITE_SKIES
-        if (!clouds_infinite_skies)
         {
           float rawDepth = tex2Dlod(clouds_depth_gbuf, float4(texcoord,0,0)).x;
           float depth = linearize_z(rawDepth, zn_zfar.zw);
-          #if CAN_BE_IN_CLOUDS && JUST_CLOSE_SEQUENCE
-          FLATTEN
-          if (depth < 40-0.5 && start == 0)//40 is copy-paste from daCloudsApply pre-shader
-            rawDepth = 0;
+          #if IGNORE_CLOSE_OBJECTS
+            FLATTEN
+            if (depth < 40-0.5
+              #if CHECK_START_ON_IGNORE
+                && start == 0
+              #endif
+            )//40 is copy-paste from daCloudsApply pre-shader
+              rawDepth = 0;
           #endif
           distToGround = rawDepth == 0 ? INFINITE_TRACE_DIST : depth*viewLen;
         }
@@ -728,6 +771,7 @@ macro RAYCAST_CLOUDS(code)
       float dist = 0;
       float3 viewStep = view*stepSize;
 
+      float savedRandomOfs = 0;
       #if TEMPORAL_REPROJECTION
         uint frameOver = TAA_CLOUDS_FRAMES;//with 16 results are slightly better, but we need to store "newFrame weight" in taa, to sample it from history, so we adjust weight accordingly (increase new frame weight, where pixel was offscreen in previous frame, not current one)
         float randomOfs = ((uint(current_frame_info.x) + uint(screenpos.x)*2789 + uint(screenpos.y)*2791)&(frameOver-1))/float(frameOver);
@@ -747,6 +791,8 @@ macro RAYCAST_CLOUDS(code)
       #else
         float randomOfs = 0;
       #endif
+
+      savedRandomOfs = randomOfs;
 
       // Contains integrated scattered luminance (in rgb ) and trasmittance (in a) along a ray .
       float weightedDist = 0, totalWeight = 0;
@@ -785,7 +831,7 @@ macro RAYCAST_CLOUDS(code)
             float weightedSequenceDist = 0, totalSequenceWeight = 0;\
             float3 integratedScatteringTransmittance2 = float3(0,0,1);\
             float3 additionalLighting2 = 0;\
-            performSequence(st, en, view, stepSize,end,sunPixelHelper, CLOUDS_TRANSMITTANCE_THRESHOLD/integratedTransmittance,\
+            performSequence(st, en, view, stepSize,end,sunPixelHelper, savedRandomOfs, CLOUDS_TRANSMITTANCE_THRESHOLD/integratedTransmittance,\
                             weightedSequenceDist, totalSequenceWeight, integratedScatteringTransmittance2, dist, additionalLighting2, float2(0,1), 1);\
             float seqAvgDist = weightedSequenceDist/max(1e-9, totalSequenceWeight);\
             float3 decodedScatteringColor = decodeScatteringColor(integratedScatteringTransmittance2.xy, skies_world_view_pos + view*seqAvgDist);\
@@ -802,7 +848,7 @@ macro RAYCAST_CLOUDS(code)
           }
         #else
           #define PERFORM_SEQUENCE(st, en)\
-            performSequence(st, en, view, stepSize,end,sunPixelHelper, CLOUDS_TRANSMITTANCE_THRESHOLD,\
+            performSequence(st, en, view, stepSize,end,sunPixelHelper, savedRandomOfs, CLOUDS_TRANSMITTANCE_THRESHOLD,\
                             weightedDist, totalWeight, integratedScatteringTransmittanceEncoded, dist, additionalLighting2, float2(0,1), 1);\
             integratedTransmittance = integratedScatteringTransmittanceEncoded.z;
         #endif
@@ -825,7 +871,7 @@ macro RAYCAST_CLOUDS(code)
             float3 additionalLighting2 = 0;\
             int e = get_steps(start, stepSize, stepSize*mulS, stepsPerSequence);\
             float erosionLevel = seqNo < 3 ? 1 : 0.5*saturate(3 + (-1./60000)*dist);\
-            performSequence(distStart, e, view, stepSize,end,sunPixelHelper, CLOUDS_TRANSMITTANCE_THRESHOLD/integratedTransmittance,\
+            performSequence(distStart, e, view, stepSize,end,sunPixelHelper, savedRandomOfs, CLOUDS_TRANSMITTANCE_THRESHOLD/integratedTransmittance,\
                             weightedSequenceDist, totalSequenceWeight, integratedScatteringTransmittance2, dist, additionalLighting2, distMulAdd, erosionLevel);\
             float seqAvgDist = weightedSequenceDist/max(1e-9, totalSequenceWeight);\
             float3 decodedScatteringColor = decodeScatteringColor(integratedScatteringTransmittance2.xy, skies_world_view_pos + view*seqAvgDist);\
@@ -846,7 +892,7 @@ macro RAYCAST_CLOUDS(code)
             int e = get_steps(start, stepSize, stepSize*mulS, stepsPerSequence);\
             float erosionLevel = seqNo < 3 ? 1 : 0.5*saturate(3 + (-1./60000)*dist);\
             float3 additionalLighting2 = 0;\
-            performSequence(distStart, e, view, stepSize,end,sunPixelHelper, CLOUDS_TRANSMITTANCE_THRESHOLD,\
+            performSequence(distStart, e, view, stepSize,end,sunPixelHelper, savedRandomOfs, CLOUDS_TRANSMITTANCE_THRESHOLD,\
                             weightedDist, totalWeight, integratedScatteringTransmittanceEncoded, dist, additionalLighting2, distMulAdd, erosionLevel, first_slice_disappear);\
             additionalLighting.rgb += integratedTransmittance*additionalLighting2;\
             integratedTransmittance = integratedScatteringTransmittanceEncoded.z;\
@@ -872,6 +918,27 @@ macro RAYCAST_CLOUDS(code)
           stepSize = max(8., (end-start)/1024);
         #else
         #endif
+
+        #if CLOUDS_PRESELECTED_SEQUENCE > 0
+          // not exactly precise compared to original approach, but good enough
+          // TODO: improve via subpass logic
+          #if CLOUDS_PRESELECTED_SEQUENCE == 1
+            PERFORM_SEQUENCE(0, 2.0)
+          #else
+            stepSize=stepSize*2.0;
+            distMulAdd = float2(0,1);
+            first_slice_disappear = false;
+            #if CLOUDS_PRESELECTED_SEQUENCE == 2
+              PERFORM_SEQUENCE(1, (SEQUENCE_COUNT == 3 ? 4 : 2))
+            #else
+              #undef GET_FOG
+              #define GET_FOG get_inf_fog
+              stepSize=stepSize*(SEQUENCE_COUNT == 3 ? 4 : 2);
+              PERFORM_SEQUENCE(2, (SEQUENCE_COUNT == 4 ? 4 : 2))
+            #endif
+          #endif
+        #else
+
         PERFORM_SEQUENCE(0, 2.0)
         distMulAdd = float2(0,1);
         first_slice_disappear = false;
@@ -905,6 +972,8 @@ macro RAYCAST_CLOUDS(code)
             }
           }
         }
+
+        #endif
       #endif
       float averageDist = totalWeight>1e-9 ? weightedDist/totalWeight : infiniteEnd;
       #if WEIGHTED_ATMOSPHERE_SCATTERING == WEIGHTED_ATMOSPHERE_SCATTERING_ONCE
@@ -921,7 +990,11 @@ macro RAYCAST_CLOUDS(code)
       #define BLEND_OUT 1
       #if BLEND_OUT
       //const float lastStepSize = (1U<<(SEQUENCE_COUNT-1))*startStepSize;
-      const float blendDistEnd = (((1U<<SEQUENCE_COUNT)-1)*stepsPerSequence)*startStepSize;
+      #if CLOUDS_PRESELECTED_SEQUENCE > 0
+        const float blendDistEnd = (((1U<<CLOUDS_PRESELECTED_SEQUENCE)-1)*stepsPerSequence)*startStepSize;
+      #else
+        const float blendDistEnd = (((1U<<SEQUENCE_COUNT)-1)*stepsPerSequence)*startStepSize;
+      #endif
       const float blendDistStart = blendDistEnd*0.95;
       float blendOut = saturate(1-(averageDist-blendDistStart)/(blendDistEnd-blendDistStart));
       integratedScatteringColor *= blendOut;
@@ -942,7 +1015,17 @@ shader clouds2_temporal_ps, clouds2_close_temporal_ps, clouds2_direct
     blend_src = one;
     blend_dst = isa;
     USE_SPECIAL_VISION()
-    SKY_HDR()
+    INIT_HDR(ps)
+    USE_HDR(ps)
+    hlsl {
+      ##if clouds_direct_sequence == first
+        #define CLOUDS_PRESELECTED_SEQUENCE 1
+      ##elif clouds_direct_sequence == second
+        #define CLOUDS_PRESELECTED_SEQUENCE 2
+      ##elif clouds_direct_sequence == third
+        #define CLOUDS_PRESELECTED_SEQUENCE 3
+      ##endif
+    }
   }
 
   hlsl {
@@ -1026,7 +1109,7 @@ shader clouds2_temporal_cs, clouds2_close_temporal_cs//, clouds2_direct_cs
 
   hlsl(cs) {
     RWTexture2D<float4> target0: register(u0);
-    RWTexture2D<float> target1: register(u1);
+    RWTexture2D<float4> target1: register(u1);
     //#include <L2_cache_friendly_dispatch.hlsl>
 
     [numthreads(CLOUD_TRACE_WARP_X, CLOUD_TRACE_WARP_Y, 1)]
@@ -1075,7 +1158,7 @@ shader clouds_panorama, clouds_alpha_panorama
   if (clouds_panorama_split != off)
   {
     //keep it compiled only where it is usefull
-    if ((shader != clouds_panorama) || (clouds_panorama_depth_out == on) || (!hardware.vulkan))
+    if ((shader != clouds_panorama) || (clouds_panorama_depth_out == on))
     {
       dont_render;
     }
@@ -1097,8 +1180,12 @@ shader clouds_panorama, clouds_alpha_panorama
 
   USE_POSTFX_VERTEX_POSITIONS()
   (vs) { tc_pos_ofs@f4 = panoramaTC; }
-  (ps) { tc_pos_ofs@f4 = panoramaTC; skies_panorama_mu_horizon@f1 = (skies_panorama_mu_horizon);}
-  (ps) { clouds_panorama_blend_weight@f1 = (clouds_panorama_blend,0,0,0); }
+  (ps) {
+    tc_pos_ofs@f4 = panoramaTC;
+    skies_panorama_mu_horizon@f1 = (skies_panorama_mu_horizon);
+    skies_panorama_sun_opposite_tc_x@f1 = skies_panorama_sun_opposite_tc_x;
+    clouds_panorama_blend_weight@f1 = (clouds_panorama_blend,0,0,0);
+  }
 
   RAYCAST_CLOUDS(ps)
   hlsl(ps) {
@@ -1115,7 +1202,7 @@ shader clouds_panorama, clouds_alpha_panorama
     USE_SUBPASS_LOADS()
     hlsl(ps)
     {
-      SUBPASS_RESOURCE(subpassTrace0, 0, 0); // subpass_read_bind_offset
+      SUBPASS_RESOURCE(subpassTrace0, t11, 0); // subpass_read_bind_offset
     }
   }
 
@@ -1136,9 +1223,12 @@ shader clouds_panorama, clouds_alpha_panorama
     struct PS_CLOUDS_RET
     {
       float4 target0            : SV_Target0;
-    ##if shader != clouds_alpha_panorama && clouds_panorama_depth_out == on
-      float4 target1            : SV_Target1;
-    ##endif
+
+      // for clouds_panorama_depth_out contains dist data
+      // for clouds_panorama_split metal path it contains final color data
+      ##if (shader != clouds_alpha_panorama && clouds_panorama_depth_out == on) || (hardware.metal && (shader == clouds_panorama) && (clouds_panorama_split == blend))
+        float4 target1            : SV_Target1;
+      ##endif
     };
 
     PS_CLOUDS_RET clouds_ps(VsOutput input HW_USE_SCREEN_POS)
@@ -1155,8 +1245,9 @@ shader clouds_panorama, clouds_alpha_panorama
         //texcoord += jitPos;
       ##endif
 
+      // Make bottom of the panorama uniformly dark (avoid unpleasant pole).
       if (int(screenpos.y) <= 1 && tc_pos_ofs.z != 0)
-        texcoord = 0;
+        texcoord = float2(skies_panorama_sun_opposite_tc_x, 0);
       GENERATE_PANORAMA_VIEWVECT(texcoord)
       GENERATE_PANORAMA_PATCH_VIEWVECT(texcoord)
       if (tc_pos_ofs.z == 0)
@@ -1230,23 +1321,33 @@ shader clouds_panorama, clouds_alpha_panorama
           //tr.target0.a = tr.target0.a*(1-strata.a);
         }
 
-        ret.target0 = tr.target0;
-        ret.target0.a = clouds_panorama_blend_weight ? clouds_panorama_blend_weight :
+        float3 resultRGB = tr.target0.rgb;
+        float resultAlpha = clouds_panorama_blend_weight ? clouds_panorama_blend_weight :
           (tr.target0.a > 0 ? lerp(0.15, 0.12, tr.target0.a) : 0.15);
-##if clouds_panorama_depth_out == on
-        ret.target1 = tr.dist;
-        ret.target1.a = current_frame_info.y;
-##endif
 ##if use_postfx == off
   //with PBR we apply tonemap at panorama apply
   //otherwise exposure will be applied wrongly
   #if !PBR_FORWARD_SHADING
-        ret.target0.rgb = performLUTTonemap(ret.target0.rgb);
+        resultRGB = performLUTTonemap(resultRGB);
   #endif
 ##endif
-        //ret.target0.a *= 0.5;
-        //ret.target0.rgb*=ret.target0.a;
-      ##endif
+
+        float4 result = float4(resultRGB, resultAlpha);
+
+        // for metal all targets are bound so here we have to
+        // explicitly write to second target
+        ##if hardware.metal && (shader == clouds_panorama) && (clouds_panorama_split == blend)
+          ret.target0 = float4(0, 0, 0, 0);
+          ret.target1 = result;
+        ##else
+          ret.target0 = result;
+
+          ##if clouds_panorama_depth_out == on
+            ret.target1 = tr.dist;
+            ret.target1.a = current_frame_info.y;
+          ##endif
+        ##endif
+      ##endif // tied to shader == clouds_alpha_panorama
       return ret;
     }
   }

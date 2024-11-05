@@ -1,0 +1,642 @@
+include "sky_shader_global.dshl"
+include "sq_clouds_shadow.dshl"
+include "dagi_rad_grid_common.dshl"
+include "dagi_lit_scene_helper.dshl"
+include "dagi_media_scene_common.dshl"
+include "world_sdf.dshl"
+include "gbuffer.dshl"
+
+include "project_light_point.dshl"
+include "frustum.dshl"
+include "gpu_occlusion.dshl"
+include "dagi_irrad_grid_sample.dshl"
+include "project_base_hmap.dshl"
+include "dagi_warp64.dshl"
+
+texture dagi_irradiance_grid_probes_age;
+int4 dagi_irrad_grid_temporal;
+//for detailed irradiance grid
+macro DAGI_IRRADIANCE_GRID_UAV(code)
+  (code) {
+    dagi_irradiance_grid_sph0@uav = dagi_irradiance_grid_sph0 hlsl {
+      RWTexture3D<float3> dagi_irradiance_grid_sph0@uav;
+    };
+    dagi_irradiance_grid_sph1@uav = dagi_irradiance_grid_sph1 hlsl {
+      RWTexture3D<float4> dagi_irradiance_grid_sph1@uav;
+    };
+  }
+endmacro
+
+macro INIT_IRRAD_GRID_PROBES_AGE_UAV(code)
+  (code) {
+    dagi_irradiance_grid_probes_age@uav = dagi_irradiance_grid_probes_age hlsl {
+      RWTexture3D<float> dagi_irradiance_grid_probes_age@uav;
+    };
+  }
+endmacro
+macro INIT_IRRAD_GRID_PROBES_AGE_SRV(code)
+  (code) {
+    dagi_irradiance_grid_probes_age@tex = dagi_irradiance_grid_probes_age hlsl {
+      Texture3D<float> dagi_irradiance_grid_probes_age@tex;
+    };
+  }
+endmacro
+
+macro DAGI_IRRAD_SW_TRILINEAR(code)
+  hlsl(code) {
+    #ifndef DAGI_IRRAD_SW_TRILINEAR_INCLUDED
+    #define DAGI_IRRAD_SW_TRILINEAR_INCLUDED 1
+      void dagi_irrad_trilinear_sampling_unsafe(uint clip, float3 absCoordF, out float3 amb, out float4 dir)
+      {
+        absCoordF -= 0.5;
+        int3 coordI = floor(absCoordF);
+        float3 cf = frac(absCoordF);
+        uint atlasOffset = 1 + clip*dagi_irrad_grid_get_clip_size_with_border();
+        coordI = dagi_irrad_grid_wrapped_coord_from_abs_coord(coordI);
+        uint3 coord2 = (coordI+uint3(1, 1, 1))%dagi_irrad_grid_get_clip_size().xxy + uint3(0,0,atlasOffset);
+        coordI += uint3(0,0,atlasOffset);
+        amb = lerp(
+                      lerp(lerp(
+                        texture3DAt(dagi_irradiance_grid_sph0, uint3(coordI.x, coordI.y, coordI.z)),
+                        texture3DAt(dagi_irradiance_grid_sph0, uint3(coord2.x, coordI.y, coordI.z)), cf.x),
+                           lerp(
+                            texture3DAt(dagi_irradiance_grid_sph0, uint3(coordI.x, coord2.y, coordI.z)),
+                            texture3DAt(dagi_irradiance_grid_sph0, uint3(coord2.x, coord2.y, coordI.z)), cf.x), cf.y),
+                      lerp(lerp(
+                        texture3DAt(dagi_irradiance_grid_sph0, uint3(coordI.x, coordI.y, coord2.z)),
+                        texture3DAt(dagi_irradiance_grid_sph0, uint3(coord2.x, coordI.y, coord2.z)), cf.x),
+                           lerp(
+                            texture3DAt(dagi_irradiance_grid_sph0, uint3(coordI.x, coord2.y, coord2.z)),
+                            texture3DAt(dagi_irradiance_grid_sph0, uint3(coord2.x, coord2.y, coord2.z)), cf.x), cf.y), cf.z);
+        dir = lerp(
+                      lerp(lerp(
+                        texture3DAt(dagi_irradiance_grid_sph1, uint3(coordI.x, coordI.y, coordI.z)),
+                        texture3DAt(dagi_irradiance_grid_sph1, uint3(coord2.x, coordI.y, coordI.z)), cf.x),
+                           lerp(
+                            texture3DAt(dagi_irradiance_grid_sph1, uint3(coordI.x, coord2.y, coordI.z)),
+                            texture3DAt(dagi_irradiance_grid_sph1, uint3(coord2.x, coord2.y, coordI.z)), cf.x), cf.y),
+                      lerp(lerp(
+                        texture3DAt(dagi_irradiance_grid_sph1, uint3(coordI.x, coordI.y, coord2.z)),
+                        texture3DAt(dagi_irradiance_grid_sph1, uint3(coord2.x, coordI.y, coord2.z)), cf.x),
+                           lerp(
+                            texture3DAt(dagi_irradiance_grid_sph1, uint3(coordI.x, coord2.y, coord2.z)),
+                            texture3DAt(dagi_irradiance_grid_sph1, uint3(coord2.x, coord2.y, coord2.z)), cf.x), cf.y), cf.z);
+        #if INCREASE_SH1_PRECISION
+        amb.z = 0;
+        #endif
+      }
+    #endif
+  }
+endmacro
+
+macro IRRADIANCE_GRID_TRACE_PROBE(code)
+  READ_WORLD_SDF(code)
+  WORLD_SDF_STEP_OUT(code)
+  PROJECT_GET_WORLD_VOXELS_LIT_SCENE_AT(code)
+  PROJECT_GET_SKY_RADIANCE_AT(code)
+  DAGI_ALBEDO_SAMPLE(code)
+  SUN_LIGHT_POINT_TRACE_HIT(code)
+  //PROJECT_GET_WORLD_RADIANCE_AT(code)
+  DAGI_MEDIA_SCENE_SAMPLE(code) // ignore me for initial!
+  INIT_SKY_DIFFUSE_BASE(code)
+  USE_SKY_DIFFUSE_BASE(code)
+  PROJECT_BASE_HEIGHTMAP(code)// after PROJECT_GET_SKY_RADIANCE_AT, so hmap sampling is not happening (for over darkening). Radiance grid is already accounted for it
+  hlsl(code) {
+    #include <fibonacci_sphere.hlsl>
+    #include <monteCarlo.hlsl>
+    #include <dagi_rad_grid_math.hlsl>
+    #include <pcg_hash.hlsl>
+    bool world_sdf_trace_stepOut(inout float3 worldPos, float stepOutSize, float voxelStepOutSize, out int clip)
+    {
+      //world_sdf_collide_probe(worldPos, stepOutSize);
+      //clip = world_sdf_find_clip(worldPos);
+      //return clip < MAX_WORLD_SDF_CLIPS;
+      return world_sdf_step_out(worldPos, clip, stepOutSize, voxelStepOutSize) && world_sdf_step_out(worldPos, clip, stepOutSize, voxelStepOutSize);
+    }
+    bool irradiance_grid_trace_radiance(uint startSDF, float3 worldPos, float probeSize, float3 rayDir, float maxT, float biasK, inout float3 radiance)
+    {
+      #if PROJECT_DAGI_USE_HMAP
+        float world_height;
+        if (dagi_project_get_base_heightmap(worldPos, world_height, probeSize))
+        {
+          FLATTEN
+          if (worldPos.y > world_height - probeSize)
+            worldPos.y = max(worldPos.y, world_height + probeSize*0.1);
+        }
+      #endif
+      uint sdfStartClip = startSDF, sdfClip;
+      //sdfStartClip = world_sdf_find_clip(worldPos);//to reduce divirgence between threads
+      float t = 0;
+      if (!world_sdf_trace_start(sdfStartClip, worldPos, rayDir, maxT, t, sdfClip, biasK))
+        return false;
+      float3 worldPosAt = worldPos + rayDir*t;
+      float3 gradient = world_sdf_sample_gradient(sdfClip, worldPosAt);
+      float gradLen = length(gradient);
+      float3 worldNormal = gradLen > 0 ? -gradient.xzy/gradLen : -rayDir;
+      FLATTEN
+      if (dot(worldNormal, rayDir) > 0)
+        worldNormal = -rayDir;
+      //radiance = dagi_get_radiance_at(worldPosAt - rayDir*min(t, world_sdf_voxel_size(sdfClip)*0.5), worldNormal);
+      if (!dagi_get_voxels_lit_scene_radiance_at(worldPosAt, worldNormal, radiance))
+      {
+        float3 albedo = DAGI_MISSED_ALBEDO;
+        dagi_sample_albedo_best(worldPos, albedo);
+        float3 sunLighting = dagi_get_sun_color(worldPosAt, worldNormal);
+        //fixme: manual trilinear irradiance filtering of upper irradiance cascades if typed uav. if not (Keppler and lower), we should only have skylight only anyway
+        float3 ambient = 0.05*GetSkySHDiffuseSimple(worldNormal);
+
+        radiance = (sunLighting + ambient)*albedo;
+      }
+      half4 light = dagi_trace_media_scene(worldPos, rayDir, t);
+      radiance.xyz = light.w*radiance.xyz + light.xyz;
+      return true;
+    }
+  }
+endmacro
+
+
+int4 dagi_irrad_grid_update_lt_coord;
+int4 dagi_irrad_grid_update_sz_coord;
+
+macro CALC_SHARED_IRRADIANCE(code)
+  DAGI_IRRADIANCE_GRID_UAV(code)
+  DAGI_RAD_GRID_SAMPLE(code)
+  IRRADIANCE_GRID_TRACE_PROBE(code)
+  DAGI_IRRAD_GRID_CLIPMAP_MATH(code)
+  hlsl(code) {
+    ##if dagi_warp64_irradiance == on
+      #if !_HARDWARE_XBOX || _HARDWARE_SCARLETT
+        //for whatever reason, xbox one is incapable of compiling wave sum
+        #define DAGI_IRRADIANCE_ONE_WARP 1
+      #endif
+    ##endif
+    #include <dagi_irradiance_shared.hlsl>
+
+    float3 dagi_irrad_no_trace_radiance(float3 worldPos, float3 rayDir, float probeSize)
+    {
+
+      uint startSDF = 1;
+      world_sdf_trace_stepOut(worldPos, max(0.125*probeSize, 0.01), 0.5, startSDF);
+      uint nextClip = dagi_rad_grid_get_best_enclosing_clip_border(worldPos, 0, 1.f);
+      BRANCH
+      if (nextClip < dagi_rad_grid_get_clip_count())// ...or find again
+      {
+        return dagi_trilinear_sample_radiance_grid_cascade_unsafe_oct(nextClip, rayDir, worldPos);
+      } else
+        return dagi_get_sky_radiance_at(worldPos, rayDir);
+    }
+
+    float3 dagi_irrad_trace_radiance(uint startSDF, float3 worldPos, float3 rayDir, float maxT, float probeSize, float featureToCaptureSize, float biasK)
+    {
+      float3 radiance = dagi_get_sky_radiance_at(worldPos + rayDir*maxT, rayDir);
+
+      if (world_sdf_trace_stepOut(worldPos, max(0.125*probeSize, 0.01), 0.5, startSDF))
+      {
+        uint nextClip = dagi_rad_grid_get_best_enclosing_clip_border(worldPos, 0, featureToCaptureSize + .5f);
+        float nextRadianceProbeSize = nextClip < dagi_rad_grid_get_clip_count() ? dagi_rad_grid_probe_size(nextClip) : 0;
+        maxT = nextClip < dagi_rad_grid_get_clip_count() ? nextRadianceProbeSize*featureToCaptureSize : maxT;
+        BRANCH
+        if (nextClip < dagi_rad_grid_get_clip_count())// ...or find again
+        {
+          float3 worldPosAt = worldPos + rayDir*max(maxT - nextRadianceProbeSize, 0);
+          radiance = dagi_trilinear_sample_radiance_grid_cascade_unsafe_oct(nextClip, rayDir, worldPosAt);
+        }
+        irradiance_grid_trace_radiance(startSDF, worldPos, probeSize, rayDir, maxT, biasK, radiance);
+      }
+      return radiance;
+    }
+    SH1 calc_shared_irradiance(uint tid, uint numRays, float3 rayDir, float3 radiance)
+    {
+      radiance *= 4./numRays;//better use solidAngle, and so not fibbonacci (*PI/PI)
+      return dagi_calc_irradiance_shared(tid, numRays, rayDir, radiance.xyz);
+    }
+  }
+endmacro
+hlsl {
+  #define INTERPOLATED_IRRADIANCE_AGE 2
+  #define INTERPOLATED_RADIANCE_AGE 1
+}
+shader dagi_irradiance_grid_toroidal_movement_interpolate_cs
+{
+  ENABLE_ASSERT(cs)
+  (cs) {
+    dagi_irrad_grid_update_lt_coord@i4 = dagi_irrad_grid_update_lt_coord;
+    dagi_irrad_grid_update_sz_coord@i4 = dagi_irrad_grid_update_sz_coord;
+  }
+  CALC_SHARED_IRRADIANCE(cs)
+  INIT_IRRAD_GRID_PROBES_AGE_UAV(cs)
+  DAGI_IRRAD_SW_TRILINEAR(cs)
+  hlsl(cs) {
+    //#include <octahedral_common.hlsl>
+    float get_interpolated_age(int3 absCoord)
+    {
+      uint clip = dagi_irrad_grid_update_lt_coord.w;
+      BRANCH
+      if (clip + 1 >= dagi_irrad_grid_get_clip_count())
+        return 0;
+      float3 coordAboveF = absCoord*0.5 + 0.25;
+      int3 coordAboveI = floor(coordAboveF);
+      float probeSize = asfloat(dagi_irrad_grid_update_sz_coord.w);
+
+      BRANCH
+      if (any(uint3(coordAboveI - dagi_irrad_grid_abs_coord_lt(clip+1)) >= dagi_irrad_grid_get_clip_size().xxy))
+        return 0;
+
+      BRANCH
+      if (world_sdf_closer_to_nearest_surface_than_threshold((absCoord.xzy+0.5)*probeSize, sqrt(3)*probeSize))
+        return 0;
+
+      half3 ambient; half4 directional;
+      dagi_irrad_trilinear_sampling_unsafe(clip + 1, absCoord*0.5+0.25, ambient, directional);
+
+      uint3 targetProbeCoord = dagi_irrad_grid_wrapped_coord_from_abs_coord(absCoord);
+      texture3DAt(dagi_irradiance_grid_sph0, targetProbeCoord + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border())) = ambient;
+      texture3DAt(dagi_irradiance_grid_sph1, targetProbeCoord + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border())) = directional;
+      if (targetProbeCoord.z == 0 || targetProbeCoord.z == dagi_irrad_grid_get_clip_size().y - 1)//write border
+      {
+        texture3DAt(dagi_irradiance_grid_sph0, uint3(targetProbeCoord.xy, targetProbeCoord.z ? 0 : dagi_irrad_grid_get_clip_size().y+1) + uint3(0,0,clip*dagi_irrad_grid_get_clip_size_with_border())) = ambient;
+        texture3DAt(dagi_irradiance_grid_sph1, uint3(targetProbeCoord.xy, targetProbeCoord.z ? 0 : dagi_irrad_grid_get_clip_size().y+1) + uint3(0,0,clip*dagi_irrad_grid_get_clip_size_with_border())) = directional;
+      }
+      return INTERPOLATED_IRRADIANCE_AGE/255.;
+    }
+    [numthreads(64, 1, 1)]
+    void dagi_irradiance_grid_toroidal_movement_interpolate_cs(uint dtid : SV_DispatchThreadID)
+    {
+      uint3 relProbeId = uint3(dtid%uint(dagi_irrad_grid_update_sz_coord.x), (dtid/uint(dagi_irrad_grid_update_sz_coord.x))%uint(dagi_irrad_grid_update_sz_coord.y), dtid/uint(dagi_irrad_grid_update_sz_coord.x*dagi_irrad_grid_update_sz_coord.y));
+      if (relProbeId.z >= uint(dagi_irrad_grid_update_sz_coord.z))
+        return;
+      int3 absCoord = int3(relProbeId) + dagi_irrad_grid_update_lt_coord.xyz;
+      float age = get_interpolated_age(absCoord);
+      BRANCH
+      if (age < INTERPOLATED_RADIANCE_AGE/255.)
+      {
+        uint clip = dagi_irrad_grid_update_lt_coord.w;
+        float probeSize = asfloat(dagi_irrad_grid_update_sz_coord.w);
+        float3 worldPos = (absCoord.xzy + 0.5)*probeSize;
+        float3 radiance;
+        {
+          float probeDiagonal = sqrt(3.)*1.01;//full diagonal is enough for correct trilinear. we extend a bit due to insufficient precision in SDF
+          uint nextClip = dagi_rad_grid_get_best_enclosing_clip_border(worldPos, 0, probeDiagonal);
+          // if we are farther than radiance grid size in any direction, then all radiance grid probes are inside same volume and interpolation is correct. we should not trace!
+          age = nextClip >= dagi_rad_grid_get_clip_count() || world_sdf_closer_to_nearest_surface_than_threshold(worldPos, dagi_rad_grid_probe_size(nextClip)*probeDiagonal) ? 0 : INTERPOLATED_RADIANCE_AGE/255.;
+        }
+      }
+      //storeBuffer(dagi_radiance_grid_probes_age, dagi_rad_grid_age_address(targetProbeCoord)*4, 0u);
+
+      uint clip = dagi_irrad_grid_update_lt_coord.w;
+      texture3DAt(dagi_irradiance_grid_probes_age, dagi_irrad_grid_wrapped_coord_from_abs_coord(absCoord) + uint3(0,0,clip*dagi_irrad_grid_get_clip_size().y)) = age;
+    }
+  }
+  compile("target_cs", "dagi_irradiance_grid_toroidal_movement_interpolate_cs");
+}
+
+
+shader dagi_irradiance_grid_toroidal_movement_trace_cs
+{
+  (cs) {
+    dagi_irrad_grid_update_lt_coord@i4 = dagi_irrad_grid_update_lt_coord;
+    dagi_irrad_grid_update_sz_coord@i4 = dagi_irrad_grid_update_sz_coord;
+  }
+  ENABLE_ASSERT(cs)
+  CALC_SHARED_IRRADIANCE(cs)
+  INIT_IRRAD_GRID_PROBES_AGE_SRV(cs)
+  DAGI_IRRAD_SW_TRILINEAR(cs)
+  hlsl(cs) {
+    //#include <octahedral_common.hlsl>
+    groupshared float shared_age;
+    #define NUM_RAYS 64//todo: on nvidia&nextgen can be even 32.
+    [numthreads(NUM_RAYS, 1, 1)]
+    void dagi_irradiance_grid_toroidal_movement_trace_cs(uint tid:SV_GroupIndex, uint2 gtid : SV_GroupThreadID, uint3 gId : SV_GroupID)
+    {
+      //write age - to optimize convergence
+      int3 absCoord = int3(gId) + dagi_irrad_grid_update_lt_coord.xyz;
+      uint3 targetProbeCoord = dagi_irrad_grid_wrapped_coord_from_abs_coord(absCoord);
+      uint clip = dagi_irrad_grid_update_lt_coord.w;
+      if (tid == 0)
+        shared_age = texture3DAt(dagi_irradiance_grid_probes_age, targetProbeCoord + uint3(0,0,clip*dagi_irrad_grid_get_clip_size().y));
+      GroupMemoryBarrierWithGroupSync();
+      float age = shared_age;
+      if (age > (INTERPOLATED_IRRADIANCE_AGE-0.5)/255.)//already interpolated
+        return;
+      bool shouldTrace = age <= (INTERPOLATED_RADIANCE_AGE-0.5)/255.;
+
+      float biasK = 0;//0 means faster, but more light leaking. Keep it faster on toroidal movement
+      //we just sample radidiance grid for non proximal probes!
+      float featureSize = 2.f;// lower - faster (more light leaking). Keep it faster on toroidal movement. todo: pass total update size here, so we can adjust!
+      float maxT = 32.f;// lower faster, but less correct when outside radiancegrid
+      uint startSDF = 0; // todo: depending on proximity can be +1 to sdf
+      float probeSize = asfloat(dagi_irrad_grid_update_sz_coord.w);
+      half3 ambient; half4 directional;
+      float3 worldPos = (absCoord.xzy + 0.5)*probeSize;
+      uint2 rand = pcg3d_hash_16bit(uint3(absCoord)).xy;
+
+      float3 rayDir = uniform_sample_sphere(fibonacci_sphere_randomized(tid, NUM_RAYS, rand)).xyz;
+      float3 radiance;
+      BRANCH
+      if (shouldTrace)
+        radiance = dagi_irrad_trace_radiance(startSDF, worldPos, rayDir, maxT, probeSize, featureSize, biasK);
+      else
+      {
+        //fixme: we can optimize the case of NUM_RAYS == radiance_res*radiance_res, and calculate full irradiance, instead of using fibonacci sphere
+        radiance = dagi_irrad_no_trace_radiance(worldPos, rayDir, probeSize);
+      }
+      radiance = select(isfinite(radiance), radiance, float3(0,0,0));
+      SH1 shLighting = calc_shared_irradiance(tid, NUM_RAYS, rayDir, radiance);
+
+      encode_sh1_luminance(shLighting, ambient, directional);//ambient and directional can be negative
+      //storeBuffer(dagi_radiance_grid_probes_age, dagi_rad_grid_age_address(targetProbeCoord)*4, 0u);
+
+      texture3DAt(dagi_irradiance_grid_sph0, targetProbeCoord + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border())) = ambient;
+      texture3DAt(dagi_irradiance_grid_sph1, targetProbeCoord + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border())) = directional;
+      if (targetProbeCoord.z == 0 || targetProbeCoord.z == dagi_irrad_grid_get_clip_size().y - 1)//write border
+      {
+        texture3DAt(dagi_irradiance_grid_sph0, uint3(targetProbeCoord.xy, targetProbeCoord.z ? 0 : dagi_irrad_grid_get_clip_size().y+1) + uint3(0,0,clip*dagi_irrad_grid_get_clip_size_with_border())) = ambient;
+        texture3DAt(dagi_irradiance_grid_sph1, uint3(targetProbeCoord.xy, targetProbeCoord.z ? 0 : dagi_irrad_grid_get_clip_size().y+1) + uint3(0,0,clip*dagi_irrad_grid_get_clip_size_with_border())) = directional;
+      }
+    }
+  }
+  compile("target_cs", "dagi_irradiance_grid_toroidal_movement_trace_cs");
+}
+
+shader dagi_irradiance_grid_spatial_filter_cs
+{
+  ENABLE_ASSERT(cs)
+  if (hardware.dx11)
+  {
+    //fixme: support no typed uav load
+  }
+  DAGI_IRRADIANCE_GRID_UAV(cs)
+  DAGI_IRRAD_GRID_CLIPMAP_MATH(cs)
+  (cs) {
+    dagi_irrad_grid_update_lt_coord@i4 = dagi_irrad_grid_update_lt_coord;
+    dagi_irrad_grid_update_sz_coord@i4 = dagi_irrad_grid_update_sz_coord;
+  }
+  hlsl(cs) {
+
+    [numthreads(64, 1, 1)]
+    void dagi_irradiance_grid_spatial_filter_cs(uint dtid : SV_DispatchThreadID)
+    {
+      uint3 relProbeId = uint3(dtid%uint(dagi_irrad_grid_update_sz_coord.x), (dtid/uint(dagi_irrad_grid_update_sz_coord.x))%uint(dagi_irrad_grid_update_sz_coord.y), dtid/uint(dagi_irrad_grid_update_sz_coord.x*dagi_irrad_grid_update_sz_coord.y));
+      if (relProbeId.z >= uint(dagi_irrad_grid_update_sz_coord.z))
+        return;
+      int3 absCoord = int3(relProbeId) + dagi_irrad_grid_update_lt_coord.xyz;
+
+      uint clip = dagi_irrad_grid_update_lt_coord.w;
+      float totalW = 1;
+
+      uint3 targetCoord = dagi_irrad_grid_wrapped_coord_from_abs_coord(absCoord);
+      uint3 atlasCoord = targetCoord + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border());
+      float3 a = texture3DAt(dagi_irradiance_grid_sph0, atlasCoord);
+      float4 d = texture3DAt(dagi_irradiance_grid_sph1, atlasCoord);
+      UNROLL
+      //for (uint i = 0; i < 27; ++i)
+      for (uint i = 0; i < 6; ++i)
+      {
+        //int3 ofs = int3(uint3(i,i/3,i/9)%3) - 1;
+        int3 ofs = i/2 == uint3(0,1,2) ? int(i&1)*2-1 : 0;
+        int3 absCoord1 = ofs + absCoord;
+        absCoord1 = uint3(absCoord1 - dagi_irrad_grid_abs_coord_lt(clip)) < dagi_irrad_grid_get_clip_size().xxy ? absCoord1 : absCoord;
+        if (any(absCoord1 != absCoord))
+        {
+          uint3 c = dagi_irrad_grid_wrapped_coord_from_abs_coord(absCoord1) + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border());
+          a += texture3DAt(dagi_irradiance_grid_sph0, c);
+          d += texture3DAt(dagi_irradiance_grid_sph1, c);
+          totalW += 1;//equal weights, basically box filter. this is the smoothest we can get in small amount of passes
+        }
+      }
+
+      GroupMemoryBarrierWithGroupSync();//to decrease hazard a bit
+
+      FLATTEN
+      if (totalW > 0)
+      {
+        a *= (1./totalW);
+        d *= (1./totalW);
+      }
+      texture3DAt(dagi_irradiance_grid_sph0, atlasCoord) = a;
+      texture3DAt(dagi_irradiance_grid_sph1, atlasCoord) = d;
+      if (targetCoord.z == 0 || targetCoord.z == dagi_irrad_grid_get_clip_size().y - 1)//write border
+      {
+        texture3DAt(dagi_irradiance_grid_sph0, uint3(atlasCoord.xy, targetCoord.z ? 0 : dagi_irrad_grid_get_clip_size().y+1)+uint3(0,0,clip*dagi_irrad_grid_get_clip_size_with_border())) = a;
+        texture3DAt(dagi_irradiance_grid_sph1, uint3(atlasCoord.xy, targetCoord.z ? 0 : dagi_irrad_grid_get_clip_size().y+1)+uint3(0,0,clip*dagi_irrad_grid_get_clip_size_with_border())) = d;
+      }
+    }
+  }
+  compile("target_cs", "dagi_irradiance_grid_spatial_filter_cs");
+}
+
+hlsl {
+  #include <dagi_rad_grid_temporal.hlsl>
+}
+
+int4 dagi_rad_grid_temporal_size;
+int4 dagi_rad_grid_temporal;
+int4 dagi_rad_grid_temporal_indirect;
+int dagi_irrad_grid_temporal_frames_sparse_for_invisible = 16;// update invisible probes once in this amount of frames
+int dagi_irrad_grid_temporal_frames_sparse_for_air = 16;// update "air" probes once in this amount of frames
+float dagi_irradiance_spatial_size = 0.1;
+
+shader dagi_irradiance_grid_select_temporal_cs
+{
+  ENABLE_ASSERT(cs)
+  INIT_IRRAD_GRID_PROBES_AGE_SRV(cs)
+  DAGI_IRRADIANCE_GRID_SAMPLE(cs)
+  INIT_AND_USE_FRUSTUM_CHECK_BASE(cs)
+  READ_WORLD_SDF(cs)
+  (cs)
+  {
+    dagi_rad_grid_temporal_size@i4 = dagi_rad_grid_temporal_size;
+    dagi_rad_grid_temporal@i4 = dagi_rad_grid_temporal;
+    dagi_irrad_grid_temporal_frames_skip@i2 = (dagi_irrad_grid_temporal_frames_sparse_for_invisible, dagi_irrad_grid_temporal_frames_sparse_for_air, 0,0);
+    dagi_rad_grid_temporal_indirect@i3 = dagi_rad_grid_temporal_indirect;
+    dagi_irradiance_spatial_size@f1 = dagi_irradiance_spatial_size;
+  }
+  GPU_OCCLUSION(cs)
+  hlsl(cs) {
+    #include <sh1.hlsl>
+    #include <pcg_hash.hlsl>
+    RWByteAddressBuffer dagi_radiance_grid_selected_probes:register(u0);
+    void addSH1(inout float3 amb, inout float3 dir, float3 center, float3 ofs, uint clip)
+    {
+      float3 minCoordF = dagi_irrad_grid_abs_coord_lt(clip).xyz + 0.5f;
+      float3 maxCoordF = dagi_irrad_grid_abs_coord_lt(clip).xyz + int3(dagi_irrad_grid_get_clip_size().xxy) - 0.5f;
+      float3 uvw = dagi_irrad_grid_abs_coord_to_atlas_tc(clip, clamp(center + ofs, minCoordF, maxCoordF));
+      float3 ambient = tex3Dlod(dagi_irradiance_grid_sph0, float4(uvw, 0)).xyz;
+      float4 directional = tex3Dlod(dagi_irradiance_grid_sph1, float4(uvw, 0));
+      #if INCREASE_SH1_PRECISION
+      amb += float3(directional.w, ambient.xy);
+      #else
+      amb += ambient;
+      #endif
+      dir += directional.xyz;
+    }
+
+
+    [numthreads(64, 1, 1)]
+    void dagi_irradiance_grid_select_temporal_cs(uint dtid : SV_DispatchThreadID)
+    {
+      uint clipFrame = dagi_rad_grid_temporal.y;
+      uint clip = dagi_rad_grid_temporal.z;
+
+      uint totalClipSize = dagi_rad_grid_temporal_indirect.x;
+
+      uint probeI = ((dtid + dagi_rad_grid_temporal.w)*37)%totalClipSize; //shuffle a bit, so hard to read
+
+      uint2 clipSize = dagi_rad_grid_temporal_size.zw;
+
+      uint3 targetCoord = uint3(probeI%clipSize.x, (probeI/clipSize.x)%clipSize.x, probeI/(clipSize.x*clipSize.x));
+      if (targetCoord.z >= clipSize.y)
+        return;
+
+      int3 absCoord = dagi_irrad_grid_abs_coord_from_wrapped_coord(targetCoord, clip);
+
+      uint4 random = pcg4d_hash_16bit(uint4(absCoord, clipFrame));
+      uint updateRandomThreshold = dagi_rad_grid_temporal.x*4;//typically we see less than 0.25, due to frustum culling
+      uint probability64k = loadBuffer(dagi_radiance_grid_selected_probes, dagi_rad_grid_temporal_indirect.y);
+      if ((random.x&RAD_GRID_PROBABILITY_MUL) > probability64k)
+        return;
+
+      float probeSize = dagi_irrad_grid_probe_size(clip);
+      float3 center = (absCoord.xzy+0.5)*probeSize;
+      BRANCH
+      if (random.y%uint(dagi_irrad_grid_temporal_frames_skip.x) != 0) //rarely update out of screen probes
+      {
+        BRANCH
+        if (!testBoxExtentB(center, probeSize*1.5))//increase probe size just a bit to prevent popping
+          return;
+
+        //check occlusion
+        float4 sbox;
+        float2 minMaxBoxRawDepth;
+        BRANCH
+        if (!check_box_occl_visible_base(center - probeSize, center + probeSize, sbox, minMaxBoxRawDepth))
+          return;
+      }
+
+      float probeExt = (2.*sqrt(3.f)+0.25)*probeSize;//yes, sqrt(3) should be enough for correct trilinear filtering. however, we offset probe sampling position with sqrt(3)*0.5 in normal and camera directions + we offset from step0 in 0.25 probeSize
+      bool sceneProximity = world_sdf_closer_to_nearest_surface_than_threshold(center, probeExt);
+      BRANCH
+      if ((random.y>>8)%uint(dagi_irrad_grid_temporal_frames_skip.y) != 0 && !sceneProximity)
+        return;
+      uint encodedProbe = probeI;
+      encodedProbe |= sceneProximity ? RAD_GRID_TEMPORAL_SCENE_PROXIMITY_BIT : 0;
+
+      uint at;
+      dagi_radiance_grid_selected_probes.InterlockedAdd(0, 1, at);
+      if (at >= uint(dagi_rad_grid_temporal_size.x))
+        return;
+      //instead of InterlockedAdd, use Load/Store, so we can limit age
+      //uint age = min(loadBuffer(dagi_radiance_grid_probes_age, probeI*4), RAD_GRID_TEMPORAL_MAX_AGE);
+      //storeBuffer(dagi_radiance_grid_probes_age, probeI*4, min(age + 1, RAD_GRID_TEMPORAL_MAX_AGE));//limit age
+      uint age = min(texture3DAt(dagi_irradiance_grid_probes_age, targetCoord + uint3(0,0,clip*dagi_irrad_grid_get_clip_size().y))*255, RAD_GRID_TEMPORAL_MAX_AGE);
+
+      float offset = dagi_irradiance_spatial_size*saturate(1-age*(1./RAD_GRID_TEMPORAL_MAX_AGE));
+      float2 ofs = float2(offset, -offset);
+      //todo: add spatial based on age
+      float3 ambient=0, direction=0;
+      float3 centerC = absCoord + 0.5;
+      addSH1(ambient, direction, centerC, ofs.yyy, clip);
+      addSH1(ambient, direction, centerC, ofs.xxx, clip);
+      addSH1(ambient, direction, centerC, ofs.xxy, clip);
+      addSH1(ambient, direction, centerC, ofs.xyy, clip);
+      addSH1(ambient, direction, centerC, ofs.xyx, clip);
+      addSH1(ambient, direction, centerC, ofs.yxx, clip);
+      addSH1(ambient, direction, centerC, ofs.yyx, clip);
+      addSH1(ambient, direction, centerC, ofs.yxy, clip);
+      ambient*=1./8;
+      direction*=1./8;
+
+
+      uint3 encodedSh1 = (f32tof16(direction.xyz)<<16) | f32tof16(ambient.xyz);
+
+      storeBuffer4(dagi_radiance_grid_selected_probes, at*16 + RAD_GRID_TEMPORAL_DATA_OFFSET, uint4(encodedProbe|(age<<RAD_GRID_TEMPORAL_AGE_SHIFT), encodedSh1));
+    }
+  }
+  compile("target_cs", "dagi_irradiance_grid_select_temporal_cs");
+}
+
+buffer dagi_radiance_grid_selected_probes;
+shader dagi_irradiance_grid_calc_temporal_cs
+{
+  ENABLE_ASSERT(cs)
+  INIT_IRRAD_GRID_PROBES_AGE_UAV(cs)
+  (cs)
+  {
+    dagi_radiance_grid_selected_probes@buf = dagi_radiance_grid_selected_probes hlsl {
+      ByteAddressBuffer dagi_radiance_grid_selected_probes@buf;
+    }
+    dagi_rad_grid_temporal@i4 = dagi_rad_grid_temporal;
+    dagi_rad_grid_temporal_size@i4 = dagi_rad_grid_temporal_size;
+  }
+  CALC_SHARED_IRRADIANCE(cs)
+  hlsl(cs) {
+    groupshared uint4 shared_probe;
+    #define NUM_RAYS 64
+    [numthreads(NUM_RAYS, 1, 1)]
+    void dagi_irradiance_grid_calc_temporal_cs(uint tid:SV_GroupIndex, uint2 gtid : SV_GroupThreadID, uint gId : SV_GroupID)
+    {
+      if (tid == 0)
+      {
+        shared_probe = loadBuffer4(dagi_radiance_grid_selected_probes, gId*16 + RAD_GRID_TEMPORAL_DATA_OFFSET);
+      }
+      GroupMemoryBarrierWithGroupSync();
+      float3 p1 = f16tof32(shared_probe.yzw);
+      float3 p2 = f16tof32(shared_probe.yzw>>16);
+      #if INCREASE_SH1_PRECISION
+      float3 oldAmbient = float3(p1.yz, 0);
+      float4 oldDirectional = float4(p2, p1.x);
+      #else
+      float3 oldAmbient = p1.xyz;
+      float4 oldDirectional = float4(p2, 0);
+      #endif
+
+      uint probeI = shared_probe.x;
+      bool proximity = probeI&RAD_GRID_TEMPORAL_SCENE_PROXIMITY_BIT;
+      uint probeAge = (probeI>>RAD_GRID_TEMPORAL_AGE_SHIFT);
+      probeI &= RAD_GRID_TEMPORAL_PROBE_MASK;
+      uint clipFrame = dagi_rad_grid_temporal.y;
+      uint clip = dagi_rad_grid_temporal.z;
+
+      uint2 clipSize = dagi_rad_grid_temporal_size.zw;
+      uint3 targetProbeCoord = uint3(probeI%clipSize.x, (probeI/clipSize.x)%clipSize.x, probeI/(clipSize.x*clipSize.x));
+
+      int3 absCoord = dagi_irrad_grid_abs_coord_from_wrapped_coord(targetProbeCoord, clip);
+
+      //float biasK = proximity ? 1. : 0;//0..1. 0 is faster, but more light leaking
+      //float featureSize = proximity ? 4.f : 2.f;
+      float biasK = 1, featureSize = 4;
+      float maxT = 64;
+      uint startSDF = 0; // todo: depending on proximity can be +1 to sdf
+      float probeSize = dagi_irrad_grid_probe_size(clip);
+
+      uint2 rand = pcg4d_hash_16bit(uint4(absCoord, clipFrame)).xy;
+
+      float3 rayDir = uniform_sample_sphere(fibonacci_sphere_randomized(tid, NUM_RAYS, rand)).xyz;
+
+      float3 radiance = dagi_irrad_trace_radiance(startSDF, (absCoord.xzy + 0.5)*probeSize, rayDir, maxT, probeSize, featureSize, biasK);
+      radiance = select(isfinite(radiance), radiance, float3(0,0,0));
+      SH1 shLighting = calc_shared_irradiance(tid, NUM_RAYS, rayDir, radiance);
+
+      half3 ambient; half4 directional;
+      encode_sh1_luminance(shLighting, ambient, directional);//ambient and directional can be negative
+      float newW = clamp(1.f/(2 + probeAge), 0.05, 0.1);
+      ambient = lerp(oldAmbient, ambient, newW);
+      directional = lerp(oldDirectional, directional, newW);
+
+
+      if (tid == 0)
+      {
+        uint3 atlasAgeCoord = targetProbeCoord + uint3(0,0,clip*dagi_rad_grid_get_clip_size().y);
+        texture3DAt(dagi_irradiance_grid_probes_age, atlasAgeCoord) = (min(probeAge + 1, RAD_GRID_TEMPORAL_MAX_AGE)+0.5)/255.;//limit age
+        texture3DAt(dagi_irradiance_grid_sph0, targetProbeCoord + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border())) = ambient;
+        texture3DAt(dagi_irradiance_grid_sph1, targetProbeCoord + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border())) = directional;
+        if (targetProbeCoord.z == 0 || targetProbeCoord.z == dagi_irrad_grid_get_clip_size().y - 1)//write border
+        {
+          texture3DAt(dagi_irradiance_grid_sph0, uint3(targetProbeCoord.xy, targetProbeCoord.z ? 0 : dagi_irrad_grid_get_clip_size().y+1) + uint3(0,0,clip*dagi_irrad_grid_get_clip_size_with_border())) = ambient;
+          texture3DAt(dagi_irradiance_grid_sph1, uint3(targetProbeCoord.xy, targetProbeCoord.z ? 0 : dagi_irrad_grid_get_clip_size().y+1) + uint3(0,0,clip*dagi_irrad_grid_get_clip_size_with_border())) = directional;
+        }
+      }
+    }
+  }
+  compile("target_cs", "dagi_irradiance_grid_calc_temporal_cs");
+}

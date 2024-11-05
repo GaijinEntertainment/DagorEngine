@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "fault_report.h"
 
 FaultReportDump::FaultReportDump() { sortedData.resize(TAG_MAX); }
@@ -30,7 +32,11 @@ void FaultReportDump::dumpLog()
   for (const DataElement &iter : data)
   {
     // small marker to conserve log space, but keep filterable
-    debug("VFD#%06lXv%02u-%016llX %s", idx, iter.tag, iter.id, iter.txt);
+    // elevate error level for production significant crash dump analysis
+    if (iter.tag == TAG_GPU_EXEC_MARKER || iter.tag == TAG_CPU_EXEC_MARKER || iter.tag == TAG_GPU_JOB_HASH)
+      logwarn("VFD#%06lXv%02u-%016llX %s", idx, iter.tag, iter.id, iter.txt);
+    else
+      debug("VFD#%06lXv%02u-%016llX %s", idx, iter.tag, iter.id, iter.txt);
     for (const ExtRef &refIter : iter.refs)
     {
       auto findResult = sortedData[refIter.tag].find(refIter.id);

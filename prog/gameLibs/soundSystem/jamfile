@@ -50,7 +50,7 @@ if $(Config) = rel {
   Sources += debug.cpp ;
 }
 
-if $(Platform) in win32 win64 xboxOne scarlett {
+if $(Platform) in windows xboxOne scarlett {
   CPPopt += /wd4505 ; # warning C4505: 'FMOD_ErrorString': unreferenced local function has been removed
 }
 

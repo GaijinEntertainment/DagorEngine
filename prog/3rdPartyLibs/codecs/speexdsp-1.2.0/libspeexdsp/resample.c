@@ -101,7 +101,9 @@ static void speex_free(void *ptr) {free(ptr);}
 #endif
 
 #ifdef USE_NEON
+#if !defined(_MSC_VER) || defined(__clang__)
 #include "resample_neon.h"
+#endif
 #endif
 
 /* Numer of elements to allocate on the stack */

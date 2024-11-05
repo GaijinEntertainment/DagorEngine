@@ -1,7 +1,10 @@
-let { rand, srand } = require("math")
-let string = require("string")
+//-file:plus-string
+#disable-optimizer
+let { get_arg_value_by_name = @(...) true, argv = freeze([]) } = require_optional("dagor.system")
+let { rand, srand, min } = require("math")
+let io = require("io")
 
-local function anyof(arr, probability_of_first = 0) {
+function anyof(arr, probability_of_first = 0) {
   if (probability_of_first > 0) {
     if (rand() % 100 < probability_of_first)
       return arr[0]
@@ -9,7 +12,7 @@ local function anyof(arr, probability_of_first = 0) {
   return arr.len() == 0 ? null : arr[rand() % arr.len()]
 }
 
-local class Scope {
+class Scope {
   locals = null
   localsRvalue = null
   params = null
@@ -32,7 +35,7 @@ local class Scope {
 }
 
 
-let function Fuzzer() {
+function Fuzzer(allowLoops) {
   let scopes = []
   local topScope = -1
   local varCount = 0
@@ -42,6 +45,7 @@ let function Fuzzer() {
   local insideSwitch = 0
   local insideLoopCondition = 0
   local insideLoopBody = 0
+  local logNum = 0
 
   let dump_scopes = function() {
     for (local i = 0; i < scopes.len(); i++) {
@@ -54,6 +58,11 @@ let function Fuzzer() {
         print($"{v} ")
       print("\n\n")
     }
+  }
+
+  let logId = function() {
+    logNum++
+    return $"\"{logNum}\""
   }
 
   let get_function_scope = function() {
@@ -101,13 +110,28 @@ let function Fuzzer() {
   let need_indent = @(s) s.len() > 1 && s[0] == '{'
 
   local int_expr, bool_bin_expr, bool_expr,
-    int_field, int_array_value, int_add, int_sub, int_or, int_and,
+    int_field, int_delegate, int_array_value, int_add, int_sub, int_or, int_and,
     int_identifier, int_var, int_param, int_function_call,
     statement, statements,
     array_var, table_var, generator_var,
     void_function_call
 
-  let int = @() insideSwitch ? (rand() % 4 - 1).tostring() : (rand() % 320 - 50).tostring()
+  let int = function() {
+    if (!allowLoops) {
+      return anyof(["0", "-1", "1", "2", "-2", "127", "128", "-127", "-128", "255", "-255", "32767", "32768", "-32767", "-32768",
+        "65535", "65536", "-65535", "-65536",
+        "2147483646", "2147483647", "2147483648", "-2147483647", "-2147483648", "-2147483649",
+        "9223372036854775806", "9223372036854775807", "-9223372036854775806", "-9223372036854775807", "(-9223372036854775807 - 1)"
+        ])
+    }
+    else if (insideSwitch)
+      return (rand() % 4 - 1).tostring()
+    else if (rand() % 16 != 0)
+      return (rand() % 20 - 5).tostring()
+    else
+      return (rand() & 0x1ff).tostring()
+  }
+
   int_add = @() $"{e(int_expr)} + {e(int_expr)}"
   int_sub = @() $"{e(int_expr)} - {e(int_expr)}"
   int_or = @() $"(({e(int_expr)}) | ({e(int_expr)}))"
@@ -123,10 +147,12 @@ let function Fuzzer() {
   let int_paren = @() $"({e(int_expr)})"
   let int_ternary = @() $"(({e(cmp_expr)}) ? ({e(int_expr)}) : ({e(int_expr)}))"
 
-  int_expr = @() e(anyof([int, int_field, int_array_value, int_var, int_add, int_sub, int_or, int_and,
+  let loop_cmp_op = @() anyof(["<", "<="])
+
+  int_expr = @() e(anyof([int, int_field, int_delegate, int_array_value, int_var, int_add, int_sub, int_or, int_and,
                    int_ternary, int_identifier, int_var, int_paren, int_param,
                    int_function_call], treeDepth > 25 ? 90 : 32))
-  let to_log = @() $"to_log({e(int_expr)})"
+  let to_log = @() $"to_log({logId()}, {e(int_expr)})"
 
   let if_then = function() {
     local condition = e(anyof([bool_expr, int_paren]))
@@ -155,7 +181,7 @@ let function Fuzzer() {
   }
 
   let for_loop = function() {
-    if (insideLoopBody >= 3)
+    if (insideLoopBody >= 3 || !allowLoops)
       return e(to_log)
 
     scopes.append(Scope())
@@ -164,6 +190,8 @@ let function Fuzzer() {
     scopes.top().isFunction = false
     scopes.top().canContainLocals = false
 
+    let varInit = e(int_expr)
+
     let idx = varCount++
     let varName = $"loop{idx}"
 
@@ -171,7 +199,7 @@ let function Fuzzer() {
     scopes.top().allIdentifiers.append(varName)
 
     insideLoopCondition++
-    local s = $"for (local {varName} = {e(int_expr)}; {varName} < {e(int_expr)}; {varName}++)"
+    local s = $"for (local {varName} = {varInit}; {varName} {loop_cmp_op()} {e(int_expr)}; {varName}++)"
     insideLoopCondition--
     inc_indent()
     breakable = true
@@ -188,7 +216,7 @@ let function Fuzzer() {
   }
 
   let foreach_loop = function() {
-    if (insideLoopBody >= 3)
+    if (insideLoopBody >= 3 || !allowLoops)
       return e(to_log)
 
     scopes.append(Scope())
@@ -223,7 +251,7 @@ let function Fuzzer() {
   }
 
   let while_loop = function() {
-    if (insideLoopBody >= 3)
+    if (insideLoopBody >= 3 || !allowLoops)
       return e(to_log)
 
     scopes.append(Scope())
@@ -231,6 +259,8 @@ let function Fuzzer() {
 
     scopes.top().isFunction = false
     scopes.top().canContainLocals = false
+
+    let varInit = e(int_expr)
 
     let idx = varCount++
     let varName = $"loop{idx}"
@@ -247,11 +277,11 @@ let function Fuzzer() {
     dec_indent()
 
     insideLoopCondition++
-    let condition = $"{varName}++ < {e(int_expr)}"
+    let condition = $"{varName}++ {loop_cmp_op()} {e(int_expr)}"
     insideLoopCondition--
 
 
-    local s = $"\{\n{ind}  local {varName} = {e(int_expr)}\n{ind}  while ({condition})\n  {need_indent(body) ? ind : ""}{body}\n{ind}\}"
+    local s = $"\{\n{ind}  local {varName} = {varInit}\n{ind}  while ({condition})\n  {need_indent(body) ? ind : ""}{body}\n{ind}\}"
 
     topScope--
     scopes.pop()
@@ -260,7 +290,7 @@ let function Fuzzer() {
   }
 
   let do_while_loop = function() {
-    if (insideLoopBody >= 3)
+    if (insideLoopBody >= 3 || !allowLoops)
       return e(to_log)
 
     scopes.append(Scope())
@@ -268,6 +298,8 @@ let function Fuzzer() {
 
     scopes.top().isFunction = false
     scopes.top().canContainLocals = false
+
+    let varInit = e(int_expr)
 
     let idx = varCount++
     let varName = $"loop{idx}"
@@ -284,10 +316,10 @@ let function Fuzzer() {
     dec_indent()
 
     insideLoopCondition++
-    let condition = $"{varName}++ < {e(int_expr)}"
+    let condition = $"{varName}++ {loop_cmp_op()} {e(int_expr)}"
     insideLoopCondition--
 
-    local s = $"\{\n{ind}  local {varName} = {e(int_expr)}\n{ind}  do\n  {need_indent(body) ? ind : ""}{body}\n{ind}  while ({condition})\n{ind}\}"
+    local s = $"\{\n{ind}  local {varName} = {varInit}\n{ind}  do\n  {need_indent(body) ? ind : ""}{body}\n{ind}  while ({condition})\n{ind}\}"
 
     topScope--
     scopes.pop()
@@ -296,7 +328,7 @@ let function Fuzzer() {
   }
 
   let break_continue = function() {
-    if (!breakable)
+    if (!breakable || !allowLoops)
       return statement()
 
     return anyof(["break", "continue"])
@@ -348,7 +380,7 @@ let function Fuzzer() {
   statement = function() {
     let st = e(anyof([to_log, void_function_call, if_then, if_then_else,
                       foreach_loop, for_loop, while_loop, do_while_loop,
-                      try_catch, break_continue, switch_case], treeDepth > 25 ? 100 : 40))
+                      try_catch, break_continue], treeDepth > 25 ? 100 : 40))
     return $"{ind}{st}"
   }
 
@@ -363,19 +395,25 @@ let function Fuzzer() {
     inc_indent()
     for (local i = 0; i < count; i++)
       if (i == throw_at)
-        s += anyof([$"{ind}qwerqwerqwer()\n", $"{ind}0/0\n", $"{ind}v0[-1] += 1\n"])
+        s += anyof([$"{ind}(\{\}).x\n", $"{ind}0/0\n", $"{ind}([0])[-1] *= 1\n"])
       else
         s += $"{e(statement)}\n"
 
     local v = ""
+    local endval = ""
     let localCount = scopes.top().locals.len()
-    for (local i = 0; i < localCount; i++)
+    for (local i = 0; i < localCount; i++) {
       v += $"{ind}let {scopes.top().locals[i]} = {scopes.top().localsRvalue[i]}\n"
+      endval += $"{ind}to_log({logId()}, {scopes.top().locals[i]})\n"
+    }
     dec_indent()
+
+    if (rand() % 2 == 0)
+      endval = "";
 
     topScope--
     scopes.pop()
-    return $"\{\n{v}{s}{ind}\}"
+    return $"\{\n{v}{s}{endval}{ind}\}"
   }
 
   int_identifier = function() {
@@ -461,7 +499,10 @@ let function Fuzzer() {
     local rvalue = "function () { "
     local count = rand() % 5
     for (local i = 0; i < count; i++)
-      rvalue += $"yield {rand() % 100 - 50}; "
+      if (rand() % 6 == 0)
+        rvalue += $"return {rand() % 20 - 5}; "
+      else
+        rvalue += $"yield {rand() % 20 - 5}; "
     rvalue += "}"
     topScope++
     scopeWithLocals.allIdentifiers.append(varName)
@@ -502,6 +543,34 @@ let function Fuzzer() {
       else
         return $"{varName}.f{fields / 2}";
     }
+  }
+
+  int_delegate = function() {
+    local scopeWithLocals = get_local_scope()
+    if (!scopeWithLocals)
+      return int()
+
+    //topScope--
+
+    let idx = varCount++
+    let className = $"A{idx}"
+    let classDecl = $"class \{ function _get(idx) \{ return idx + {e(int_expr)} \}\}"
+
+
+    let varName = $"ci{idx}"
+    let newInstance = $"A{idx}()"
+
+    //topScope++
+
+    scopeWithLocals.locals.append(className)
+    scopeWithLocals.localsRvalue.append(classDecl)
+    scopeWithLocals.locals.append(varName)
+    scopeWithLocals.localsRvalue.append(newInstance)
+    let qmark = rand() % 5 == 0 ? "?" : ""
+    if (rand() % 50 != 0)
+      return $"{varName}{qmark}[{e(int_expr)}]"
+    else
+      return $"{varName}{qmark}[\"s\"]";
   }
 
   int_array_value = function() {
@@ -606,27 +675,53 @@ let function Fuzzer() {
 
   return {
     statements
+    dump_scopes
   }
 }
 
-local seed = 0
+if (__name__ == "__main__" && !get_arg_value_by_name("static-analysis")) {
+  local seedSet = null
+  local singleSeed = 0
+  local filePrefix = null
 
-foreach (_, a in ::__argv) {
-  if (a.startswith("seed="))
-    seed = a.slice(5).tointeger()
+  foreach (_, a in argv) {
+    if (a.startswith("seed="))
+      singleSeed = a.slice(5).tointeger()
+    if (a.startswith("seedset="))
+      seedSet = a.slice(8).split(",").map(@(v) v.tointeger())
+    if (a.startswith("fileprefix="))
+      filePrefix = a.slice(11)
+  }
+
+  if (seedSet == null)
+    seedSet = [singleSeed]
+
+  foreach (seed in seedSet) {
+    local script = ""
+    script += $"// seed = {seed}\n"
+    srand(seed)
+    script += "try{\n"
+    script += "local count = 0\n"
+    script += "let to_log = function(id, s) { let tp = typeof(s); print($\"{id}: \"); print(tp == \"integer\" ||" +
+      " tp == \"float\" || tp == \"string\" ? s : tp); print(\"\\n\"); if (count++ > 1000) print[\"stop\"]; }\n"
+
+    local allowLoops = (seed % 13 != 0)
+    local fuzzer = Fuzzer(allowLoops)
+    script += fuzzer.statements()
+    script += "} catch (q) {print(q)}\nprint(\"===\\n\")"
+
+    if (filePrefix == null) {
+      for (local i = 0; i <= script.len() / 1024; i++)
+        print(script.slice(i * 1024, min((i + 1) * 1024, script.len())))
+    } else {
+      local f = io.file(filePrefix + seed + ".opt.nut", "wt")
+      f.writestring("//#disable-optimizer\n")
+      f.writestring(script)
+      f.close()
+      f = io.file(filePrefix + seed + ".no-opt.nut", "wt")
+      f.writestring("#disable-optimizer\n")
+      f.writestring(script)
+      f.close()
+    }
+  }
 }
-
-
-print($"// seed = {seed}\n")
-srand(seed)
-//print("#disable-optimizer\n")
-print("local count = 0\n")
-print("let to_log = function(s) { let tp = typeof(s); print(tp == \"integer\" ||" +
-  " tp == \"float\" || tp == \"string\" ? s : tp); print(\"\\n\"); if (count++ > 1000) print[\"stop\"]; }\n")
-
-local fuzzer = Fuzzer()
-local st = fuzzer.statements()
-for (local i = 0; i <= st.len() / 1024; i++)
-  print(st.slice(i * 1024, min((i + 1) * 1024, st.len())))
-
-print("//\n")

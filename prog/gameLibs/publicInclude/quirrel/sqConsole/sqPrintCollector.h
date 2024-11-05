@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -108,11 +107,16 @@ struct SQPrintCollector
     getFromVm(vm)->appendBuf(tempBuf);
   }
 
-  static void sq_compile_error_handler(HSQUIRRELVM vm, const SQChar *desc, const SQChar *source, SQInteger line, SQInteger column,
-    const SQChar *extra)
+  static void sq_compile_error_handler(HSQUIRRELVM vm, SQMessageSeverity severity, const SQChar *desc, const SQChar *source,
+    SQInteger line, SQInteger column, const SQChar *extra)
   {
+    const SQChar *sevName = "error";
+    if (severity == SEV_HINT)
+      sevName = "hint";
+    else if (severity == SEV_WARNING)
+      sevName = "warning";
     String str;
-    str.printf(128, "Compile error %s (%d:%d): %s", source, line, column, desc);
+    str.printf(128, "Compile %s %s (%d:%d): %s", sevName, source, line, column, desc);
     if (extra)
       str.printf(128, "\n%s", extra);
     getFromVm(vm)->appendBuf(str);

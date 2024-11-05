@@ -1,0 +1,4 @@
+return {
+  get_updated_game_version = @() 0
+  get_vromfs_dump_version  = @(v) assert(typeof v == "string") ?? 0
+}

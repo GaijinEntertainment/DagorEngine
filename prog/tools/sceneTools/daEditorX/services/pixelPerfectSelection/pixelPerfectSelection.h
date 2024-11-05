@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <3d/dag_resPtr.h>
 #include <3d/dag_textureIDHolder.h>
 #include <dag/dag_vector.h>

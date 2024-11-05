@@ -1,0 +1,10 @@
+file:t = "dagi_world_scene_debug.dshl"
+include "./screenProbes/screenProbes.blk"
+include "./volumetricGI/volumetricGI.blk"
+include "./albedoScene/albedoScene.blk"
+include "./voxelLitScene/voxelLitScene.blk"
+include "./radianceGrid/radianceGrid.blk"
+include "./mediaScene/mediaScene.blk"
+include "./skyVisibility/skyVisibility.blk"
+//not used
+//include "./radianceCache/radianceCache.blk"

@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <daFx/dafx.h>
 #include <math/dag_hlsl_floatx.h>
 #include <math/dag_mathUtils.h> // saturate
@@ -28,11 +30,9 @@ inline void stat_set(int &, int) {}
 #endif
 
 #if DAFX_VERBOSE_DEBUG
-#define LOGLEVEL_DEBUG _MAKE4C('DAFX')
-#define DBG_OPT(...)   debug(__VA_ARGS__)
+#define DBG_OPT(...) logmessage(_MAKE4C('DAFX'), __VA_ARGS__)
 #else
-#define DBG_OPT(...) \
-  {}
+#define DBG_OPT(...) (void)0
 #endif
 
 namespace dafx

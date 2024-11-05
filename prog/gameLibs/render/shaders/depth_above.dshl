@@ -48,12 +48,12 @@ endmacro
 
 macro USE_DEPTH_ABOVE_TC(code)
   hlsl(code) {
-    float applyVignette(float2 tc)
+    half applyVignette(half2 tc)
     {
-      float2 vignette = saturate(abs(tc * 2 - 1) * 10 - 9);
+      half2 vignette = saturate(abs(tc * 2 - 1) * 10 - 9);
       return saturate(dot(vignette, vignette));
     }
-    float3 getWorldBlurredDepthTC(float3 worldPos, out float vignette_effect)
+    float3 getWorldBlurredDepthTC(float3 worldPos, out half vignette_effect)
     {
       float2 uncappedTc = world_to_depth_ao.xy * worldPos.xz + world_to_depth_ao.zw;
       float2 cappedTc = saturate(uncappedTc);
@@ -65,7 +65,7 @@ macro USE_DEPTH_ABOVE_TC(code)
         tcOffset = float3(-depth_ao_heights_extra.zw, 1);
       }
 
-      vignette_effect = applyVignette(cappedTc);
+      vignette_effect = applyVignette(half2(cappedTc));
       return float3(cappedTc, 0) + tcOffset;
     }
     float decode_depth_above(float depthHt)
@@ -83,12 +83,20 @@ macro USE_DEPTH_ABOVE(code, tex)
   USE_DEPTH_ABOVE_TC(code)
   hlsl(code){
 
+    float2 get_depth_above_size()
+    {
+      float2 res;
+      uint nElem, nLevels;
+      tex.GetDimensions(0, res.x, res.y, nElem, nLevels);
+      return res;
+    }
+
     float sample_blurred_depth(float3 tc, int2 offset)
     {
       return textureLodOffset(tex, tc, 0, offset).x;
     }
 
-    float getWorldBlurredDepthPrecise(float3 worldPos, out float vignette_effect)
+    float getWorldBlurredDepthPrecise(float3 worldPos, out half vignette_effect)
     {
       float3 tc = getWorldBlurredDepthTC(worldPos, vignette_effect);
 
@@ -107,12 +115,12 @@ macro USE_DEPTH_ABOVE(code, tex)
       return decode_depth_above(height);
     }
 
-    float getWorldBlurredDepth(float3 worldPos, out float vignette_effect)
+    float getWorldBlurredDepth(float3 worldPos, out half vignette_effect)
     {
       float3 tc = getWorldBlurredDepthTC(worldPos, vignette_effect);
       return decode_depth_above(tex3Dlod(tex, float4(tc, 0)).x);
     }
-    float4 gatherWorldBlurredDepth(float3 worldPos, out float vignette_effect, out float2 lerp_factor)
+    float4 gatherWorldBlurredDepth(float3 worldPos, out half vignette_effect, out float2 lerp_factor)
     {
       float3 tc = getWorldBlurredDepthTC(worldPos, vignette_effect);
 

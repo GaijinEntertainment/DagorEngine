@@ -1,1 +1,4 @@
-_MAKE4C('11.4')
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
+_MAKE4C('12.2')

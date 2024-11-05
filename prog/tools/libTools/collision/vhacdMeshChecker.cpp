@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/collision/vhacdMeshChecker.h>
 
 bool check_face(const Tab<Point3> &verts, const Plane3 &plane, const BSphere3 &boundingSphere)

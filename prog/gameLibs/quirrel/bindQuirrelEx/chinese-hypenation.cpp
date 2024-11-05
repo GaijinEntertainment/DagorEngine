@@ -1,4 +1,6 @@
-﻿#include "hypenation.h"
+﻿// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include "hypenation.h"
 #include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -8,8 +10,8 @@
 #include <debug/dag_fatal.h>
 #include <osApiWrappers/dag_unicode.h>
 
-extern unsigned short read_utf8(const char *&ptr);
-extern void write_utf8(unsigned short val, char *&ptr);
+extern unsigned int read_utf8(const char *&ptr);
+extern void write_utf8(unsigned int val, char *&ptr);
 
 const char *cant_break_before =
   u8"\r\n\t !%),.:;>?]}¢¨°·ˇˉ―‖’”„‟†‡›℃∶、。〃〆〈《「『〕〗〞︵︹︽︿﹃﹘﹚﹜！＂％＇），．：；？］｀｜｝～";
@@ -18,7 +20,7 @@ const char *cant_break_after = u8"\r\n\t $(*,£¥·‘“〈《「『【〔〖�
 #define IS_LOWER(x)   ((x) < 0x100)
 #define IS_CHINESE(x) (((x) >= 0x4E00) && ((x) <= 9FFF))
 
-static bool can_break(unsigned short first, unsigned short second)
+static bool can_break(unsigned int first, unsigned int second)
 {
   if (first == '\t' || first == L'\u200B')
     return false;

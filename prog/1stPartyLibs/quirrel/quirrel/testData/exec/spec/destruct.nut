@@ -4,7 +4,7 @@ println(a) // => 123
 println(b) // => 567
 println(c) // => 567
 
-let function foo() {
+function foo() {
   return {x = 555, y=777, z=999, w=111}
 }
 let {x, y=1, q=3} = foo()

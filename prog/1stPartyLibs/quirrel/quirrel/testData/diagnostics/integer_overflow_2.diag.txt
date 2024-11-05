@@ -1,0 +1,7 @@
+ERROR: integer constant overflow
+testData/diagnostics/integer_overflow_2.nut:1:8
+
+println(20496385583567863808)
+        ^-------------------
+
+

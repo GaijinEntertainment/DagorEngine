@@ -1,10 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/resourceSlot/detail/registerAccess.h>
 #include <render/resourceSlot/actions.h>
 
 #include <detail/storage.h>
 
 resource_slot::NodeHandleWithSlotsAccess resource_slot::detail::register_access(dabfg::NameSpace ns, const char *name,
-  const char *source_location, ActionList &&action_list, AccessCallback &&declaration_callback)
+  ActionList &&action_list, AccessCallback &&declaration_callback)
 {
   Storage &storage = storage_list[ns];
   storage.isNodeRegisterRequired = true;
@@ -12,30 +14,7 @@ resource_slot::NodeHandleWithSlotsAccess resource_slot::detail::register_access(
 
   NodeDeclaration &node = storage.registeredNodes[nodeId];
   unsigned generation = node.generation + 1;
-  node = NodeDeclaration(nodeId, generation, source_location, eastl::move(declaration_callback));
-
-  for (const SlotAction &declaration : action_list)
-  {
-    eastl::visit(
-      [&node, &storage](const auto &decl) {
-        typedef eastl::remove_cvref_t<decltype(decl)> ValueT;
-        if constexpr (eastl::is_same_v<ValueT, Create>)
-        {
-          node.action_list.push_back(CreateDecl{storage.slotMap.id(decl.slotName), storage.resourceMap.id(decl.resourceName)});
-          node.createsSlot = true;
-        }
-        else if constexpr (eastl::is_same_v<ValueT, Update>)
-        {
-          node.action_list.push_back(
-            UpdateDecl{storage.slotMap.id(decl.slotName), storage.resourceMap.id(decl.resourceName), decl.priority});
-        }
-        else if constexpr (eastl::is_same_v<ValueT, Read>)
-        {
-          node.action_list.push_back(ReadDecl{storage.slotMap.id(decl.slotName), decl.priority});
-        }
-      },
-      declaration);
-  }
+  node = NodeDeclaration(nodeId, generation, eastl::move(action_list), eastl::move(declaration_callback));
 
   return NodeHandleWithSlotsAccess{ns, static_cast<int>(nodeId), generation};
 }

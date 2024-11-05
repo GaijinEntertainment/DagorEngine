@@ -77,11 +77,15 @@ half3 perturb_normal_precise( half3 localNorm, half3 N, float3 p, float2 uv )
     float3 B = dp2perp * duv1.y + dp1perp * duv2.y;
  
     float2 TBlen = float2(sqrt(dot(T, T)), sqrt(dot(B, B)));
-    float2 TBlenRcp = TBlen > float2(1e-10, 1e-10) ? rcp(TBlen) : float2(0, 0);
+    float2 TBlenRcp = select(TBlen > float2(1e-10, 1e-10), rcp(TBlen), float2(0, 0));
 
     // construct a scale-invariant frame 
     return half3(localNorm.z * normalize(N) + (localNorm.x * TBlenRcp.x) * T + (localNorm.y * TBlenRcp.y) * B);
   #endif
+}
+half3 perturb_normal_tbn(half3 localNorm, half3 N, half3 T, half3 B)
+{
+  return half3(localNorm.z * normalize(N) + localNorm.x * normalize(T) + localNorm.y * normalize(B));
 }
 void get_du_dv( half3 N, float3 p, float2 uv, out float3 dU, out float3 dV )
 {

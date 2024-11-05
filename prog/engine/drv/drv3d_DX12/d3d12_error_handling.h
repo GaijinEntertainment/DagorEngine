@@ -1,9 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <debug/dag_log.h>
 
 #include "driver.h"
 #include "d3d12_utils.h"
+#include "drv_log_defs.h"
 
 
 namespace drv3d_dx12
@@ -59,22 +61,26 @@ inline const char *dxgi_error_code_to_string(HRESULT ec)
   return "";
 }
 
-inline HRESULT dx12_check_result_no_oom_report(HRESULT result, const char *DAGOR_HAS_LOGS(expr), const char *DAGOR_HAS_LOGS(file),
-  int DAGOR_HAS_LOGS(line))
+bool dx12_is_gpu_crash_code(HRESULT result);
+void dx12_check_result_for_gpu_crash_and_enter_error_state(HRESULT result);
+
+inline HRESULT dx12_check_result_no_oom_report(HRESULT result, const char *expr, const char *file, int line)
 {
   if (SUCCEEDED(result))
     return result;
 
   set_last_error(result);
 
+  dx12_check_result_for_gpu_crash_and_enter_error_state(result);
+
   auto resultStr = dxgi_error_code_to_string(result);
   if ('\0' == resultStr[0])
   {
-    logerr("%s returned unknown return code %u, %s %u", expr, result, file, line);
+    D3D_ERROR("%s returned unknown return code %u, %s %u", expr, result, file, line);
   }
   else
   {
-    logerr("%s returned %s, %s %u", expr, resultStr, file, line);
+    D3D_ERROR("%s returned %s, %s %u", expr, resultStr, file, line);
   }
 
   return result;
@@ -82,8 +88,7 @@ inline HRESULT dx12_check_result_no_oom_report(HRESULT result, const char *DAGOR
 
 inline bool is_oom_error_code(HRESULT result) { return E_OUTOFMEMORY == result; }
 
-inline HRESULT dx12_check_result(HRESULT result, const char *DAGOR_HAS_LOGS(expr), const char *DAGOR_HAS_LOGS(file),
-  int DAGOR_HAS_LOGS(line))
+inline HRESULT dx12_check_result(HRESULT result, const char *expr, const char *file, int line)
 {
   if (SUCCEEDED(result))
     return result;
@@ -95,14 +100,16 @@ inline HRESULT dx12_check_result(HRESULT result, const char *DAGOR_HAS_LOGS(expr
 
   set_last_error(result);
 
+  dx12_check_result_for_gpu_crash_and_enter_error_state(result);
+
   auto resultStr = dxgi_error_code_to_string(result);
   if ('\0' == resultStr[0])
   {
-    logerr("%s returned unknown return code %u, %s %u", expr, result, file, line);
+    D3D_ERROR("%s returned unknown return code %u, %s %u", expr, result, file, line);
   }
   else
   {
-    logerr("%s returned %s, %s %u", expr, resultStr, file, line);
+    D3D_ERROR("%s returned %s, %s %u", expr, resultStr, file, line);
   }
 
   return result;
@@ -120,8 +127,7 @@ inline bool is_recoverable_error(HRESULT error)
   }
 }
 
-inline HRESULT dx12_debug_result(HRESULT result, const char *DAGOR_HAS_LOGS(expr), const char *DAGOR_HAS_LOGS(file),
-  int DAGOR_HAS_LOGS(line))
+inline HRESULT dx12_debug_result(HRESULT result, const char *expr, const char *file, int line)
 {
   if (SUCCEEDED(result))
     return result;
@@ -158,8 +164,8 @@ inline HRESULT dx12_debug_result(HRESULT result, const char *DAGOR_HAS_LOGS(expr
 
 inline void report_resource_alloc_info_error(const D3D12_RESOURCE_DESC &desc)
 {
-  logerr("DX12: Error while querying resource allocation info, resource desc: %s, %u, %u x %u x "
-         "%u, %u, %s, %u by %u, %u, %08X",
+  D3D_ERROR("DX12: Error while querying resource allocation info, resource desc: %s, %u, %u x %u x "
+            "%u, %u, %s, %u by %u, %u, %08X",
     to_string(desc.Dimension), desc.Alignment, desc.Width, desc.Height, desc.DepthOrArraySize, desc.MipLevels,
     dxgi_format_name(desc.Format), desc.SampleDesc.Count, desc.SampleDesc.Quality, desc.Layout, desc.Flags);
 }

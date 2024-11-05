@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_skiesService.h>
 #include <de3_lightService.h>
 #include <de3_lightProps.h>
@@ -13,9 +15,11 @@
 #include <render/noiseTex.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderVar.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_tex3d.h>
 #include <3d/dag_texMgr.h>
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
@@ -29,10 +33,10 @@
 #include <debug/dag_debug.h>
 #include <render/sphHarmCalc.h>
 #include <startup/dag_globalSettings.h>
+#include <3d/dag_stereoIndex.h>
 
 static const Color4 HORIZONT_COLOR = Color4(0.2f, 0.2f, 0.2f, 0.f);
 static const int SPH_HARM_FACE_WIDTH = 64;
-static const int DYNAMIC_CUBE_HDR_OVERBRIGHT = 2.f;
 static carray<int, SphHarmCalc::SH3_COUNT> sphharm_values_varids;
 static carray<int, 3> sphharm_comp_values_varids;
 
@@ -97,6 +101,7 @@ class GenericSkiesService : public ISkiesService
   WeatherOverride weatherOverride[PRIO_COUNT];
   int last_target_w, last_target_h;
   TEXTUREID targetDepthId;
+  TEXTUREID vrTargetDepthId;
 
 
 public:
@@ -110,9 +115,10 @@ public:
     postFxLutTexVarId = -1;
     postFxLutTexId = BAD_TEXTUREID;
     time = 0;
-    cube_pov_data = main_pov_data = refl_pov_data = NULL;
+    cube_pov_data = main_pov_data = refl_pov_data = vr_pov_data = NULL;
     last_target_w = last_target_h = 0;
     targetDepthId = BAD_TEXTUREID;
+    vrTargetDepthId = BAD_TEXTUREID;
 
     appliedWeather.setStr("preset", "");
     appliedWeather.setStr("env", "");
@@ -181,7 +187,7 @@ public:
 
     debug("weatherNames=%d enviNames=%d presets=%d", weatherNames.nameCount(), enviNames.nameCount(), weatherPresetFn.size());
   }
-  SkiesData *cube_pov_data, *main_pov_data, *refl_pov_data;
+  SkiesData *cube_pov_data, *main_pov_data, *refl_pov_data, *vr_pov_data;
 
   virtual void init()
   {
@@ -207,6 +213,7 @@ public:
     main_pov_data = daSkies->createSkiesData("main", fog_quality);
     cube_pov_data = daSkies->createSkiesData("cube", fog_quality / 2);
     refl_pov_data = daSkies->createSkiesData("water", fog_quality / 2);
+    vr_pov_data = daSkies->createSkiesData("vr", fog_quality);
 
     sphharm_values_varids[SphHarmCalc::SH3_SH00] = get_shader_variable_id("SH3_sh00", true);
     sphharm_values_varids[SphHarmCalc::SH3_SH1M1] = get_shader_variable_id("SH3_sh1m1", true);
@@ -232,6 +239,7 @@ public:
     daSkies->destroy_skies_data(main_pov_data);
     daSkies->destroy_skies_data(cube_pov_data);
     daSkies->destroy_skies_data(refl_pov_data);
+    daSkies->destroy_skies_data(vr_pov_data);
     del_it(daSkies);
     ltService = NULL;
   }
@@ -340,7 +348,12 @@ public:
   {
     if (!daSkies)
       return;
-    daSkies->prepare(daSkies->getSunDir(), false, time - lastBrTime);
+
+    {
+      d3d::GpuAutoLock gpuLock;
+      daSkies->prepare(daSkies->getSunDir(), false, time - lastBrTime);
+    }
+
     lastBrTime = time;
 
     if (IDynRenderService *srv = EDITORCORE->queryEditorInterface<IDynRenderService>())
@@ -371,11 +384,23 @@ public:
 
     if (get_managed_texture_refcount(targetDepthId) < 0)
       targetDepthId = get_managed_texture_id(daSkiesDepthTex);
-    if (last_target_w != w || last_target_h != h)
+    if (DAEDITOR3.getStereoIndex() != StereoIndex::Mono && get_managed_texture_refcount(vrTargetDepthId) < 0)
+      vrTargetDepthId = get_managed_texture_id("vr_intzDepthTex");
+
+    auto tdId = DAEDITOR3.getStereoIndex() == StereoIndex::Mono ? targetDepthId : vrTargetDepthId;
+
+    if (DAEDITOR3.getStereoIndex() != StereoIndex::Mono)
+    {
+      daSkies->changeSkiesData(0, last_target_w > 0 ? 1 : 0, 0, w, h, vr_pov_data);
+    }
+    else if (last_target_w != w || last_target_h != h)
     {
       if (targetDepthId != BAD_TEXTUREID)
       {
-        debug("sky: adopt new RT size %dx%d -> %dx%d", last_target_w, last_target_h, w, h);
+        static bool logEnabled = dgs_get_settings()->getBlockByNameEx("debug")->getBool("view_resizing_related_logging_enabled", true);
+        if (logEnabled)
+          debug("sky: adopt new RT size %dx%d -> %dx%d", last_target_w, last_target_h, w, h);
+
         last_target_w = w;
         last_target_h = h;
         if (Texture *t = (Texture *)acquire_managed_tex(targetDepthId))
@@ -393,6 +418,8 @@ public:
         daSkies->changeSkiesData(0, 0, 0, w, h, main_pov_data);
     }
 
+    auto pov_data = DAEDITOR3.getStereoIndex() == StereoIndex::Mono ? main_pov_data : vr_pov_data;
+
     TMatrix viewTm;
     TMatrix4 projTm;
     Driver3dPerspective persp;
@@ -402,14 +429,14 @@ public:
     if (targetDepthId == BAD_TEXTUREID)
       daSkies->renderEnvi(false, dpoint3(::grs_cur_view.pos), dpoint3(::grs_cur_view.itm.getcol(2)), 0xFF,
         EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth(),
-        EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth(), BAD_TEXTUREID, main_pov_data, viewTm, projTm,
+        EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth(), BAD_TEXTUREID, pov_data, viewTm, projTm,
         persp);
     else
     {
       daSkies->prepareSkyAndClouds(false, dpoint3(::grs_cur_view.pos), dpoint3(::grs_cur_view.itm.getcol(2)), 0xFF,
         EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth(),
-        EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth(), main_pov_data, viewTm, projTm, true, false);
-      daSkies->renderSky(main_pov_data, viewTm, projTm, persp);
+        EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth(), pov_data, viewTm, projTm, true, false);
+      daSkies->renderSky(pov_data, viewTm, projTm, persp);
     }
 
     d3d::setview(l, t, w, h, minZ, maxZ);
@@ -419,10 +446,14 @@ public:
     if (targetDepthId == BAD_TEXTUREID)
       return;
 
+    auto pov_data = DAEDITOR3.getStereoIndex() == StereoIndex::Mono ? main_pov_data : vr_pov_data;
+
     int l, t, w, h;
     float minZ, maxZ;
     d3d::getview(l, t, w, h, minZ, maxZ);
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
+
+    auto tdId = DAEDITOR3.getStereoIndex() == StereoIndex::Mono ? targetDepthId : vrTargetDepthId;
 
     TMatrix viewTm;
     TMatrix4 projTm;
@@ -431,7 +462,7 @@ public:
     daSkies->renderClouds(false,
       TextureIDPair(EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth().getTex2D(),
         EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth().getTexId()),
-      targetDepthId, main_pov_data, viewTm, projTm);
+      tdId, pov_data, viewTm, projTm);
 
     d3d::setview(l, t, w, h, minZ, maxZ);
   }

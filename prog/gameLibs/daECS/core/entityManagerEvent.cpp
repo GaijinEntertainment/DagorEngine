@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "entityManagerEvent.h"
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/coreEvents.h>
@@ -123,6 +125,19 @@ void EntityManager::notifyESEventHandlersInternal(EntityId eid, const Event &evt
                                                                           // Entity, and more, can even sync re-create current entity.
       callESEvent(esIndex, evt, qv);
   } while (++es_start != es_end);
+}
+
+void EntityManager::dispatchEvent(EntityId eid, Event &evt) // ecs::INVALID_ENTITY_ID means broadcast
+{
+  const bool isMtMode = isConstrainedMTMode();
+  DAECS_EXT_ASSERT(isMtMode || get_current_thread_id() == ownerThreadId);
+  DAECS_EXT_ASSERTF(bool(eid) == bool(evt.getFlags() & EVCAST_UNICAST), "event %s has %s flags but sent as %s", evt.getName(),
+    (evt.getFlags() & EVCAST_UNICAST) ? "unicast" : "broadcast", bool(eid) ? "unicast" : "broadcast");
+  ScopedMTMutexT<decltype(deferredEventsMutex)> evtMutex(isMtMode, ownerThreadId, deferredEventsMutex);
+  validateEventRegistration(evt, nullptr);
+
+  deferredEventsCount++;
+  emplaceUntypedEvent(eventsStorage, eid, evt);
 }
 
 void EntityManager::sendEventImmediate(EntityId eid, Event &evt)

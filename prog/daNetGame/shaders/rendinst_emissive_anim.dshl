@@ -1,0 +1,114 @@
+include "psh_tangent.dshl"
+include "rendinst_opaque_inc.dshl"
+include "emissive.dshl"
+include "emissive/emission_anim_inc.dshl"
+
+shader rendinst_emissive_anim
+{
+  assume instancing_type = tm_vb;
+  if (rendinst_render_pass == rendinst_render_pass_voxelize_albedo) { dont_render;}
+  if (rendinst_render_pass == rendinst_render_pass_grassify) { dont_render; }
+  if (rendinst_render_pass == rendinst_render_pass_to_heightmap) { dont_render; }
+  if (rendinst_render_pass == rendinst_render_pass_impostor_color ||
+      rendinst_render_pass == rendinst_render_pass_impostor_shadow ||
+      rendinst_render_pass == rendinst_render_pass_to_shadow)
+  {
+    dont_render;
+  }
+
+  EMISSIVE_INIT()
+  INIT_AND_USE_EMISSIVE_ANIM(3, 4)
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+  channel float2 tc[0] = tc[0];
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+
+  hlsl {
+    ##if (rendinst_render_pass == rendinst_render_pass_normal)
+      #define HLSL_FULL_VS_OUTPUT 1
+    ##endif
+  }
+
+  ENABLE_MULTI_DRAW(rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
+  RENDINST_BLOCK()
+  RENDINST_INSTANCING()
+  if (rendinst_render_pass == rendinst_render_pass_normal)
+  {
+    EMISSIVE_VS_OUT()
+  } else
+  {
+    hlsl {
+      struct VsOutput
+      {
+        PRECISE VS_OUT_POSITION(pos)
+        ##if (rendinst_render_pass == rendinst_render_pass_depth)
+          float3 normal                 : TEXCOORD1;
+        ##endif
+        VSOUT_DRAW_ID
+      };
+    }
+  }
+
+
+  hlsl(vs) {
+
+    INSTANCING_BUFFERS
+
+    struct VsInput
+    {
+      float3 pos                  : POSITION;
+      float3 normal               : NORMAL;
+      #if HLSL_FULL_VS_OUTPUT
+      float2 diffuseTexcoord      : TEXCOORD0;
+      #endif
+    };
+
+    VsOutput simple_vs(VsInput input  HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+      #endif
+
+      float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+      float3 localPos = input.pos;
+      float opacity = 1;
+      VB_PERFORM_INSTANCING
+
+      float3 pointToEye = world_view_pos-worldPos;
+
+      output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+      #if HLSL_FULL_VS_OUTPUT
+        output.diffuseTexcoord.xy = input.diffuseTexcoord;
+        output.normal.xyz = worldNormal;
+        output.pointToEye.xyz = pointToEye;
+      #endif
+
+      ##if (rendinst_render_pass == rendinst_render_pass_depth)
+        output.normal.xyz = worldNormal;
+      ##endif
+      return output;
+    }
+  }
+
+  if (rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
+  {
+    compile("ps_null", "rendinst_render_depth_black_ps");
+  } else
+  {
+    (ps) {
+      time_scroll_param@f1 = (time_phase(1000, 0) * 1000, 0, 0, 0);
+    }
+    hlsl(ps) {
+      #define get_special_anim_params get_emissive_anim
+    }
+    EMISSIVE_PS()
+  }
+  compile("target_vs", "simple_vs");
+}

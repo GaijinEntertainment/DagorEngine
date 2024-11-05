@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "internal.h"
 
 #if _TARGET_PC_WIN

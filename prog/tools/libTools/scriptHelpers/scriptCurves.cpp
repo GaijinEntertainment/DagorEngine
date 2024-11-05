@@ -1,7 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_genIo.h>
 
-#include <propPanel2/c_panel_base.h>
-#include "../propPanel2/windowControls/w_curve_math.h"
+#include <propPanel/control/container.h>
+#include "../propPanel/commonWindow/w_curve_math.h"
 
 #include <scriptHelpers/tunedParams.h>
 #include <math/dag_Point2.h>
@@ -33,7 +35,7 @@ public:
 
   int typePid, controlPid;
 
-  PropertyContainerControlBase *mPanel;
+  PropPanel::ContainerPropertyControl *mPanel;
 
   TunedCubicCurveParam(const char *nm, E3DCOLOR c) : typePid(-1), controlPid(-1), mPanel(NULL)
   {
@@ -50,7 +52,7 @@ public:
   ~TunedCubicCurveParam() {}
 
   void resetPropPanel() override { mPanel = nullptr; }
-  virtual void fillPropPanel(int &pid, PropertyContainerControlBase &ppcb)
+  virtual void fillPropPanel(int &pid, PropPanel::ContainerPropertyControl &ppcb)
   {
     mPanel = &ppcb;
     typePid = ++pid;
@@ -62,12 +64,12 @@ public:
     initCurveControl(ppcb);
   }
 
-  void initCurveControl(PropertyContainerControlBase &ppcb)
+  void initCurveControl(PropPanel::ContainerPropertyControl &ppcb)
   {
     if (curveType == 0)
-      ppcb.setInt(controlPid, CURVE_CUBICPOLYNOM_APP);
+      ppcb.setInt(controlPid, PropPanel::CURVE_CUBICPOLYNOM_APP);
     else if (curveType == 1)
-      ppcb.setInt(controlPid, CURVE_CUBIC_P_SPLINE_APP);
+      ppcb.setInt(controlPid, PropPanel::CURVE_CUBIC_P_SPLINE_APP);
 
     if (curveType == 0 && ptCnt != 4)
     {
@@ -82,12 +84,12 @@ public:
 
     ppcb.setBool(controlPid, true); // lock ends
     if (curveType == 0)
-      ppcb.setMinMaxStep(controlPid, 4, 4, CURVE_MIN_MAX_POINTS);
+      ppcb.setMinMaxStep(controlPid, 4, 4, PropPanel::CURVE_MIN_MAX_POINTS);
     else if (curveType == 1)
-      ppcb.setMinMaxStep(controlPid, 2, MAX_POINTS, CURVE_MIN_MAX_POINTS);
+      ppcb.setMinMaxStep(controlPid, 2, MAX_POINTS, PropPanel::CURVE_MIN_MAX_POINTS);
 
-    ppcb.setMinMaxStep(controlPid, 0, 1, CURVE_MIN_MAX_X);
-    ppcb.setMinMaxStep(controlPid, 0, 1, CURVE_MIN_MAX_Y);
+    ppcb.setMinMaxStep(controlPid, 0, 1, PropPanel::CURVE_MIN_MAX_X);
+    ppcb.setMinMaxStep(controlPid, 0, 1, PropPanel::CURVE_MIN_MAX_Y);
     ppcb.setControlPoints(controlPid, _points);
   }
   void initPoints()
@@ -145,7 +147,7 @@ public:
   virtual TunedElement *getSubElem(int index) const { return NULL; }
 
 
-  virtual void getValues(int &pid, PropertyContainerControlBase &panel)
+  virtual void getValues(int &pid, PropPanel::ContainerPropertyControl &panel)
   {
     ++pid;
     if (curveType != panel.getInt(typePid))
@@ -174,9 +176,9 @@ public:
       trans_x = mPanel->getCurveCubicCoefs(controlPid, segc);
     else
     {
-      ICurveControlCallback *curve = NULL;
-      CubicPolynomCB curve0;
-      CubicPSplineCB curve1;
+      PropPanel::ICurveControlCallback *curve = NULL;
+      PropPanel::CubicPolynomCB curve0;
+      PropPanel::CubicPSplineCB curve1;
 
       if (curveType == 0)
         curve = &curve0;

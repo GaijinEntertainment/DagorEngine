@@ -12,63 +12,86 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_58() {
-// from D:\Work\libclang\include\llvm-c/lto.h:311:19
-	addExtern< bool (*)(LLVMOpaqueLTOModule *,unsigned int *,unsigned int *) , lto_module_get_macho_cputype >(*this,lib,"lto_module_get_macho_cputype",SideEffects::worstDefault,"lto_module_get_macho_cputype")
-		->args({"mod","out_cputype","out_cpusubtype"});
-// from D:\Work\libclang\include\llvm-c/lto.h:324:19
-	addExtern< bool (*)(LLVMOpaqueLTOModule *) , lto_module_has_ctor_dtor >(*this,lib,"lto_module_has_ctor_dtor",SideEffects::worstDefault,"lto_module_has_ctor_dtor")
-		->args({"mod"});
-// from D:\Work\libclang\include\llvm-c/lto.h:370:1
-	addExtern< LLVMOpaqueLTOCodeGenerator * (*)() , lto_codegen_create >(*this,lib,"lto_codegen_create",SideEffects::worstDefault,"lto_codegen_create");
-// from D:\Work\libclang\include\llvm-c/lto.h:382:1
-	addExtern< LLVMOpaqueLTOCodeGenerator * (*)() , lto_codegen_create_in_local_context >(*this,lib,"lto_codegen_create_in_local_context",SideEffects::worstDefault,"lto_codegen_create_in_local_context");
-// from D:\Work\libclang\include\llvm-c/lto.h:391:1
-	addExtern< void (*)(LLVMOpaqueLTOCodeGenerator *) , lto_codegen_dispose >(*this,lib,"lto_codegen_dispose",SideEffects::worstDefault,"lto_codegen_dispose")
-		->args({""});
-// from D:\Work\libclang\include\llvm-c/lto.h:404:1
-	addExtern< bool (*)(LLVMOpaqueLTOCodeGenerator *,LLVMOpaqueLTOModule *) , lto_codegen_add_module >(*this,lib,"lto_codegen_add_module",SideEffects::worstDefault,"lto_codegen_add_module")
-		->args({"cg","mod"});
-// from D:\Work\libclang\include\llvm-c/lto.h:415:1
-	addExtern< void (*)(LLVMOpaqueLTOCodeGenerator *,LLVMOpaqueLTOModule *) , lto_codegen_set_module >(*this,lib,"lto_codegen_set_module",SideEffects::worstDefault,"lto_codegen_set_module")
-		->args({"cg","mod"});
-// from D:\Work\libclang\include\llvm-c/lto.h:424:1
-	addExtern< bool (*)(LLVMOpaqueLTOCodeGenerator *,lto_debug_model) , lto_codegen_set_debug_model >(*this,lib,"lto_codegen_set_debug_model",SideEffects::worstDefault,"lto_codegen_set_debug_model")
-		->args({"cg",""});
-// from D:\Work\libclang\include\llvm-c/lto.h:433:1
-	addExtern< bool (*)(LLVMOpaqueLTOCodeGenerator *,lto_codegen_model) , lto_codegen_set_pic_model >(*this,lib,"lto_codegen_set_pic_model",SideEffects::worstDefault,"lto_codegen_set_pic_model")
-		->args({"cg",""});
-// from D:\Work\libclang\include\llvm-c/lto.h:441:1
-	addExtern< void (*)(LLVMOpaqueLTOCodeGenerator *,const char *) , lto_codegen_set_cpu >(*this,lib,"lto_codegen_set_cpu",SideEffects::worstDefault,"lto_codegen_set_cpu")
-		->args({"cg","cpu"});
-// from D:\Work\libclang\include\llvm-c/lto.h:450:1
-	addExtern< void (*)(LLVMOpaqueLTOCodeGenerator *,const char *) , lto_codegen_set_assembler_path >(*this,lib,"lto_codegen_set_assembler_path",SideEffects::worstDefault,"lto_codegen_set_assembler_path")
-		->args({"cg","path"});
-// from D:\Work\libclang\include\llvm-c/lto.h:458:1
-	addExtern< void (*)(LLVMOpaqueLTOCodeGenerator *,const char **,int) , lto_codegen_set_assembler_args >(*this,lib,"lto_codegen_set_assembler_args",SideEffects::worstDefault,"lto_codegen_set_assembler_args")
-		->args({"cg","args","nargs"});
-// from D:\Work\libclang\include\llvm-c/lto.h:469:1
-	addExtern< void (*)(LLVMOpaqueLTOCodeGenerator *,const char *) , lto_codegen_add_must_preserve_symbol >(*this,lib,"lto_codegen_add_must_preserve_symbol",SideEffects::worstDefault,"lto_codegen_add_must_preserve_symbol")
-		->args({"cg","symbol"});
-// from D:\Work\libclang\include\llvm-c/lto.h:479:1
-	addExtern< bool (*)(LLVMOpaqueLTOCodeGenerator *,const char *) , lto_codegen_write_merged_modules >(*this,lib,"lto_codegen_write_merged_modules",SideEffects::worstDefault,"lto_codegen_write_merged_modules")
-		->args({"cg","path"});
-// from D:\Work\libclang\include\llvm-c/lto.h:494:1
-	addExtern< const void * (*)(LLVMOpaqueLTOCodeGenerator *,size_t *) , lto_codegen_compile >(*this,lib,"lto_codegen_compile",SideEffects::worstDefault,"lto_codegen_compile")
-		->args({"cg","length"});
-// from D:\Work\libclang\include\llvm-c/lto.h:506:1
-	addExtern< bool (*)(LLVMOpaqueLTOCodeGenerator *,const char **) , lto_codegen_compile_to_file >(*this,lib,"lto_codegen_compile_to_file",SideEffects::worstDefault,"lto_codegen_compile_to_file")
-		->args({"cg","name"});
-// from D:\Work\libclang\include\llvm-c/lto.h:514:1
-	addExtern< bool (*)(LLVMOpaqueLTOCodeGenerator *) , lto_codegen_optimize >(*this,lib,"lto_codegen_optimize",SideEffects::worstDefault,"lto_codegen_optimize")
-		->args({"cg"});
-// from D:\Work\libclang\include\llvm-c/lto.h:529:1
-	addExtern< const void * (*)(LLVMOpaqueLTOCodeGenerator *,size_t *) , lto_codegen_compile_optimized >(*this,lib,"lto_codegen_compile_optimized",SideEffects::worstDefault,"lto_codegen_compile_optimized")
-		->args({"cg","length"});
-// from D:\Work\libclang\include\llvm-c/lto.h:537:1
-	addExtern< unsigned int (*)() , lto_api_version >(*this,lib,"lto_api_version",SideEffects::worstDefault,"lto_api_version");
-// from D:\Work\libclang\include\llvm-c/lto.h:551:13
-	addExtern< void (*)(const char *const *,int) , lto_set_debug_options >(*this,lib,"lto_set_debug_options",SideEffects::worstDefault,"lto_set_debug_options")
-		->args({"options","number"});
+// from D:\Work\libclang\include\llvm-c/Object.h:166:6
+	makeExtern< void (*)(LLVMOpaqueSectionIterator *) , LLVMMoveToNextSection , SimNode_ExtFuncCall >(lib,"LLVMMoveToNextSection","LLVMMoveToNextSection")
+		->args({"SI"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Object.h:167:6
+	makeExtern< void (*)(LLVMOpaqueSectionIterator *,LLVMOpaqueSymbolIterator *) , LLVMMoveToContainingSection , SimNode_ExtFuncCall >(lib,"LLVMMoveToContainingSection","LLVMMoveToContainingSection")
+		->args({"Sect","Sym"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Object.h:171:6
+	makeExtern< void (*)(LLVMOpaqueSymbolIterator *) , LLVMDisposeSymbolIterator , SimNode_ExtFuncCall >(lib,"LLVMDisposeSymbolIterator","LLVMDisposeSymbolIterator")
+		->args({"SI"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Object.h:172:6
+	makeExtern< void (*)(LLVMOpaqueSymbolIterator *) , LLVMMoveToNextSymbol , SimNode_ExtFuncCall >(lib,"LLVMMoveToNextSymbol","LLVMMoveToNextSymbol")
+		->args({"SI"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Object.h:175:13
+	makeExtern< const char * (*)(LLVMOpaqueSectionIterator *) , LLVMGetSectionName , SimNode_ExtFuncCall >(lib,"LLVMGetSectionName","LLVMGetSectionName")
+		->args({"SI"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Object.h:176:10
+	makeExtern< uint64_t (*)(LLVMOpaqueSectionIterator *) , LLVMGetSectionSize , SimNode_ExtFuncCall >(lib,"LLVMGetSectionSize","LLVMGetSectionSize")
+		->args({"SI"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Object.h:177:13
+	makeExtern< const char * (*)(LLVMOpaqueSectionIterator *) , LLVMGetSectionContents , SimNode_ExtFuncCall >(lib,"LLVMGetSectionContents","LLVMGetSectionContents")
+		->args({"SI"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Object.h:178:10
+	makeExtern< uint64_t (*)(LLVMOpaqueSectionIterator *) , LLVMGetSectionAddress , SimNode_ExtFuncCall >(lib,"LLVMGetSectionAddress","LLVMGetSectionAddress")
+		->args({"SI"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Object.h:179:10
+	makeExtern< int (*)(LLVMOpaqueSectionIterator *,LLVMOpaqueSymbolIterator *) , LLVMGetSectionContainsSymbol , SimNode_ExtFuncCall >(lib,"LLVMGetSectionContainsSymbol","LLVMGetSectionContainsSymbol")
+		->args({"SI","Sym"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Object.h:183:27
+	makeExtern< LLVMOpaqueRelocationIterator * (*)(LLVMOpaqueSectionIterator *) , LLVMGetRelocations , SimNode_ExtFuncCall >(lib,"LLVMGetRelocations","LLVMGetRelocations")
+		->args({"Section"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Object.h:184:6
+	makeExtern< void (*)(LLVMOpaqueRelocationIterator *) , LLVMDisposeRelocationIterator , SimNode_ExtFuncCall >(lib,"LLVMDisposeRelocationIterator","LLVMDisposeRelocationIterator")
+		->args({"RI"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Object.h:185:10
+	makeExtern< int (*)(LLVMOpaqueSectionIterator *,LLVMOpaqueRelocationIterator *) , LLVMIsRelocationIteratorAtEnd , SimNode_ExtFuncCall >(lib,"LLVMIsRelocationIteratorAtEnd","LLVMIsRelocationIteratorAtEnd")
+		->args({"Section","RI"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Object.h:187:6
+	makeExtern< void (*)(LLVMOpaqueRelocationIterator *) , LLVMMoveToNextRelocation , SimNode_ExtFuncCall >(lib,"LLVMMoveToNextRelocation","LLVMMoveToNextRelocation")
+		->args({"RI"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Object.h:191:13
+	makeExtern< const char * (*)(LLVMOpaqueSymbolIterator *) , LLVMGetSymbolName , SimNode_ExtFuncCall >(lib,"LLVMGetSymbolName","LLVMGetSymbolName")
+		->args({"SI"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Object.h:192:10
+	makeExtern< uint64_t (*)(LLVMOpaqueSymbolIterator *) , LLVMGetSymbolAddress , SimNode_ExtFuncCall >(lib,"LLVMGetSymbolAddress","LLVMGetSymbolAddress")
+		->args({"SI"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Object.h:193:10
+	makeExtern< uint64_t (*)(LLVMOpaqueSymbolIterator *) , LLVMGetSymbolSize , SimNode_ExtFuncCall >(lib,"LLVMGetSymbolSize","LLVMGetSymbolSize")
+		->args({"SI"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Object.h:196:10
+	makeExtern< uint64_t (*)(LLVMOpaqueRelocationIterator *) , LLVMGetRelocationOffset , SimNode_ExtFuncCall >(lib,"LLVMGetRelocationOffset","LLVMGetRelocationOffset")
+		->args({"RI"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Object.h:197:23
+	makeExtern< LLVMOpaqueSymbolIterator * (*)(LLVMOpaqueRelocationIterator *) , LLVMGetRelocationSymbol , SimNode_ExtFuncCall >(lib,"LLVMGetRelocationSymbol","LLVMGetRelocationSymbol")
+		->args({"RI"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Object.h:198:10
+	makeExtern< uint64_t (*)(LLVMOpaqueRelocationIterator *) , LLVMGetRelocationType , SimNode_ExtFuncCall >(lib,"LLVMGetRelocationType","LLVMGetRelocationType")
+		->args({"RI"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Object.h:201:13
+	makeExtern< const char * (*)(LLVMOpaqueRelocationIterator *) , LLVMGetRelocationTypeName , SimNode_ExtFuncCall >(lib,"LLVMGetRelocationTypeName","LLVMGetRelocationTypeName")
+		->args({"RI"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

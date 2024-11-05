@@ -1,4 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+#include <webui/helpers.h>
+#include <util/dag_string.h>
 
 // Warning : do not put this macroses in header, at least not with this names
 #define TD  buf.printf("<td>")
@@ -18,3 +22,5 @@ static inline void print_table_header(webui::YAMemSave &buf, const char **hs, in
     buf.printf("<th>%s</th>", hs[i]);
   buf.printf("</tr>\n");
 }
+
+String get_name_of_executable();

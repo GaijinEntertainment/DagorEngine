@@ -6,7 +6,7 @@
  * For conditions of distribution and use, see copyright notice in zlib.h
  */
 #ifdef ARM_NEON_ADLER32
-#ifdef _M_ARM64
+#if defined(_MSC_VER) && (defined(_M_ARM64) || defined(_M_ARM64EC)) && !defined(__clang__)
 #  include <arm64_neon.h>
 #else
 #  include <arm_neon.h>

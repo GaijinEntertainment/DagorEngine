@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_interface.h>
 #include <de3_dataBlockIdHolder.h>
 #include <de3_objEntity.h>
@@ -527,8 +529,8 @@ public:
             Point3 scl(stm.getcol(0).length(), stm.getcol(1).length(), stm.getcol(2).length());
             objgenerator::place_on_ground(p, norm, props.aboveHt);
             stm.setcol(1, scl[1] * norm);
-            stm.setcol(2, scl[2] * (normalize(stm.getcol(0)) % normalize(stm.getcol(1))));
-            stm.setcol(0, scl[0] * (norm % normalize(stm.getcol(2))));
+            stm.setcol(2, scl[2] * normalize(stm.getcol(0) % stm.getcol(1)));
+            stm.setcol(0, scl[0] * normalize(norm % stm.getcol(2)));
           }
           else if (props.placeType == props.PT_3pod && e)
           {
@@ -1410,7 +1412,7 @@ void init_composit_mgr_service()
 {
   if (!IDaEditor3Engine::get().checkVersion())
   {
-    debug_ctx("Incorrect version!");
+    DEBUG_CTX("Incorrect version!");
     return;
   }
 

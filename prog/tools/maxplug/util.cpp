@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <map>
 #include <max.h>
 #include <utilapi.h>
@@ -56,8 +58,9 @@ std::string wideToStr(const TCHAR *sw)
 #ifdef _UNICODE
   size_t n = _tcslen(sw) * 3 + 1;
   char *sz = new char[n];
-  wcstombs(sz, sw, n);
-
+  _locale_t locale = _create_locale(LC_ALL, "ru-RU");
+  _wcstombs_l(sz, sw, n, locale);
+  _free_locale(locale);
   std::string res(sz);
   delete[] sz;
 #else
@@ -5679,4 +5682,8 @@ void enum_nodes_by_node(INode *node, ENodeCB *cb)
   enum_nodes(node, cb);
 }
 
+#if defined(MAX_RELEASE_R27) && MAX_RELEASE >= MAX_RELEASE_R27
+bool is_default_layer(const ILayer &layer) { return _tcscmp(layer.GetName().data(), _T("0")) == 0; }
+#else
 bool is_default_layer(const ILayer &layer) { return _tcscmp(layer.GetName(), _T("0")) == 0; }
+#endif

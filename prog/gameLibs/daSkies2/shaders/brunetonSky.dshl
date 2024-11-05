@@ -193,10 +193,7 @@ macro BASE_USE_BRUNETON_FOG(code)
 
     void get_fog(float3 point_to_eye, float dist, out half3 loss, out half3 add)
     {
-      float3 lossf, addf;
-      get_bruneton_fog(-point_to_eye, dist, lossf, addf);
-      loss = (half3)lossf;
-      add  = (half3)addf;
+      get_bruneton_fog(-point_to_eye, dist, loss, add);
     }
     void get_fog(float3 point_to_eye, out half3 loss, out half3 add)
     {

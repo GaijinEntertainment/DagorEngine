@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 static char jquerytablecss[] =
   "<style TYPE=\"text/css\">\n<!--\n"
   "body{background:#ddd;color:#000;font-family:Helvetica,Arial,sans-serif;line-height:1.5;margin:0;padding:0}#main{background:#fff;"

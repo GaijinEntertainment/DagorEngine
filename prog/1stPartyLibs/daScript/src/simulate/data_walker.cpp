@@ -10,7 +10,7 @@ namespace das {
         if ( context ) {
             context->throw_error(message);
         }
-        cancel = true;
+        _cancel = true;
     }
 
     void DataWalker::walk ( vec4f x, TypeInfo * info ) {
@@ -29,7 +29,7 @@ namespace das {
         }
         if ( canVisitStructure(ps, si) ) {
             beforeStructure(ps, si);
-            if ( cancel ) {
+            if ( cancel() ) {
                 afterStructureCancel(ps, si);
                 return;
             }
@@ -38,17 +38,17 @@ namespace das {
                 VarInfo * vi = si->fields[i];
                 char * pf = ps + vi->offset;
                 beforeStructureField(ps, si, pf, vi, last);
-                if ( cancel ) {
+                if ( cancel() ) {
                     afterStructureCancel(ps, si);
                     return;
                 }
                 walk(pf, vi);
-                if ( cancel ) {
+                if ( cancel() ) {
                     afterStructureCancel(ps, si);
                     return;
                 }
                 afterStructureField(ps, si, pf, vi, last);
-                if ( cancel ) {
+                if ( cancel() ) {
                     afterStructureCancel(ps, si);
                     return;
                 }
@@ -60,7 +60,7 @@ namespace das {
     void DataWalker::walk_tuple ( char * ps, TypeInfo * ti ) {
         if ( canVisitTuple(ps,ti) ) {
             beforeTuple(ps, ti);
-            if ( cancel ) return;
+            if ( cancel() ) return;
             int fieldOffset = 0;
             for ( uint32_t i=0, is=ti->argCount; i!=is; ++i ) {
                 bool last = i==(ti->argCount-1);
@@ -69,11 +69,11 @@ namespace das {
                 fieldOffset = (fieldOffset + fa) & ~fa;
                 char * pf = ps + fieldOffset;
                 beforeTupleEntry(ps, ti, pf, vi, last);
-                if ( cancel ) return;
+                if ( cancel() ) return;
                 walk(pf, vi);
-                if ( cancel ) return;
+                if ( cancel() ) return;
                 afterTupleEntry(ps, ti, pf, vi, last);
-                if ( cancel ) return;
+                if ( cancel() ) return;
                 fieldOffset += vi->size;
             }
             afterTuple(ps, ti);
@@ -83,7 +83,7 @@ namespace das {
     void DataWalker::walk_variant ( char * ps, TypeInfo * ti ) {
         if ( canVisitVariant(ps,ti) ) {
             beforeVariant(ps, ti);
-            if ( cancel ) return;
+            if ( cancel() ) return;
             int32_t fidx = *((int32_t *)ps);
             DAS_ASSERTF(uint32_t(fidx)<ti->argCount,"invalid variant index");
             int fieldOffset = getTypeBaseSize(Type::tInt);
@@ -91,9 +91,9 @@ namespace das {
             auto fa = getTypeAlign(ti) - 1;
             fieldOffset = (fieldOffset + fa) & ~fa;
             char * pf = ps + fieldOffset;
-            if ( cancel ) return;
+            if ( cancel() ) return;
             walk(pf, vi);
-            if ( cancel ) return;
+            if ( cancel() ) return;
             afterVariant(ps, ti);
         }
     }
@@ -102,15 +102,15 @@ namespace das {
         if ( !canVisitArrayData(ti,count) ) return;
         char * pe = pa;
         beforeArrayData(pa, stride, count, ti);
-        if ( cancel ) return;
+        if ( cancel() ) return;
         for ( uint32_t i=0; i!=count; ++i ) {
             bool last = i==count-1;
             beforeArrayElement(pa, ti, pe, i, last);
-            if ( cancel ) return;
+            if ( cancel() ) return;
             walk(pe, ti);
-            if ( cancel ) return;
+            if ( cancel() ) return;
             afterArrayElement(pa, ti, pe, i, last);
-            if ( cancel ) return;
+            if ( cancel() ) return;
             pe += stride;
         }
         afterArrayData(pa, stride, count, ti);
@@ -118,7 +118,7 @@ namespace das {
 
     void DataWalker::walk_dim ( char * pa, TypeInfo * ti ) {
         beforeDim(pa, ti);
-        if ( cancel ) return;
+        if ( cancel() ) return;
         TypeInfo copyInfo = *ti;
         DAS_ASSERT(copyInfo.dimSize);
         copyInfo.size = ti->dim[0] ? copyInfo.size / ti->dim[0] : copyInfo.size;
@@ -135,7 +135,7 @@ namespace das {
         uint32_t stride = copyInfo.size;
         uint32_t count = ti->dim[0];
         walk_array(pa, stride, count, &copyInfo);
-        if ( cancel ) return;
+        if ( cancel() ) return;
         afterDim(pa, ti);
     }
 
@@ -150,19 +150,19 @@ namespace das {
                 // key
                 char * key = tab->keys + i*keySize;
                 beforeTableKey(tab, info, key, info->firstType, count, last);
-                if ( cancel ) return;
+                if ( cancel() ) return;
                 walk ( key, info->firstType );
-                if ( cancel ) return;
+                if ( cancel() ) return;
                 afterTableKey(tab, info, key, info->firstType, count, last);
-                if ( cancel ) return;
+                if ( cancel() ) return;
                 // value
                 char * value = tab->data + i*valueSize;
                 beforeTableValue(tab, info, value, info->secondType, count, last);
-                if ( cancel ) return;
+                if ( cancel() ) return;
                 walk ( value, info->secondType );
-                if ( cancel ) return;
+                if ( cancel() ) return;
                 afterTableValue(tab, info, value, info->secondType, count, last);
-                if ( cancel ) return;
+                if ( cancel() ) return;
                 // next
                 count ++;
             }
@@ -174,12 +174,12 @@ namespace das {
             Null(info);
         } else if ( info->flags & TypeInfo::flag_ref ) {
             beforeRef(pa,info);
-            if ( cancel ) return;
+            if ( cancel() ) return;
             TypeInfo ti = *info;
             ti.flags &= ~TypeInfo::flag_ref;
             walk(*(char **)pa, &ti);
             ti.flags |= TypeInfo::flag_ref;
-            if ( cancel ) return;
+            if ( cancel() ) return;
             afterRef(pa,info);
         } else if ( info->dimSize ) {
             walk_dim(pa, info);
@@ -187,18 +187,18 @@ namespace das {
             auto arr = (Array *) pa;
             if ( canVisitArray(arr,info) ) {
                 beforeArray(arr, info);
-                if ( cancel ) return;
+                if ( cancel() ) return;
                 walk_array(arr->data, info->firstType->size, arr->size, info->firstType);
-                if ( cancel ) return;
+                if ( cancel() ) return;
                 afterArray(arr, info);
             }
         } else if ( info->type==Type::tTable ) {
             auto tab = (Table *) pa;
             if ( canVisitTable(pa,info) ) {
                 beforeTable(tab, info);
-                if ( cancel ) return;
+                if ( cancel() ) return;
                 walk_table(tab, info);
-                if ( cancel ) return;
+                if ( cancel() ) return;
                 afterTable(tab, info);
             }
         } else {
@@ -232,18 +232,19 @@ namespace das {
                 case Type::tEnumeration:    WalkEnumeration(*((int32_t *)pa), info->enumType); break;
                 case Type::tEnumeration8:   WalkEnumeration8(*((int8_t *)pa),  info->enumType); break;
                 case Type::tEnumeration16:  WalkEnumeration16(*((int16_t *)pa), info->enumType); break;
+                case Type::tEnumeration64:  WalkEnumeration64(*((int64_t *)pa), info->enumType); break;
                 case Type::fakeContext:     FakeContext(*(Context**)pa); break;
                 case Type::fakeLineInfo:    FakeLineInfo(*(LineInfo**)pa); break;
                 case Type::tPointer:
                     if ( canVisitPointer(info) ) {
                         beforePtr(pa, info);
-                        if ( cancel ) return;
+                        if ( cancel() ) return;
                         if ( info->firstType && info->firstType->type!=Type::tVoid ) {
                             walk(*(char**)pa, info->firstType);
-                            if ( cancel ) return;
+                            if ( cancel() ) return;
                         } else {
                             VoidPtr(*(void**)pa);
-                            if ( cancel ) return;
+                            if ( cancel() ) return;
                         }
                         afterPtr(pa, info);
                     }
@@ -257,9 +258,9 @@ namespace das {
                         if ( canVisitLambda(info) ) {
                             auto ll = (Lambda *) pa;
                             beforeLambda(ll, info);
-                            if ( cancel ) return;
+                            if ( cancel() ) return;
                             walk ( ll->capture, ll->getTypeInfo() );
-                            if ( cancel ) return;
+                            if ( cancel() ) return;
                             afterLambda(ll, info);
                         }
                     }
@@ -268,13 +269,13 @@ namespace das {
                         if ( canVisitIterator(info) ) {
                             auto ll = (Sequence *) pa;
                             beforeIterator(ll, info);
-                            if ( cancel ) return;
+                            if ( cancel() ) return;
                             if ( ll->iter ) {
                                 ll->iter->walk(*this);
                             } else {
                                 Null(info);
                             }
-                            if ( cancel ) return;
+                            if ( cancel() ) return;
                             afterIterator(ll, info);
                         }
                     }
@@ -282,9 +283,9 @@ namespace das {
                 case Type::tHandle:
                     if ( canVisitHandle(pa, info) ) {
                         beforeHandle(pa, info);
-                        if ( cancel ) return;
+                        if ( cancel() ) return;
                         info->getAnnotation()->walk(*this, pa);
-                        if ( cancel ) return;
+                        if ( cancel() ) return;
                         afterHandle(pa, info);
                     }
                     break;

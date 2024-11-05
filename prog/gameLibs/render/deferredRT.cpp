@@ -1,23 +1,36 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/deferredRenderer.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_postFxRenderer.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_rwResource.h>
 #include <math/dag_Point3.h>
 #include <math/dag_TMatrix4.h>
 #include <math/integer/dag_IPoint2.h>
 #include <util/dag_string.h>
 #include <perfMon/dag_statDrv.h>
+#include <image/dag_texPixel.h>
 
-#define GLOBAL_VARS_LIST      \
-  VAR(screen_pos_to_texcoord) \
-  VAR(screen_size)            \
-  VAR(gbuffer_view_size)      \
-  VAR(albedo_gbuf)            \
-  VAR(normal_gbuf)            \
-  VAR(material_gbuf)          \
-  VAR(motion_gbuf)            \
-  VAR(depth_gbuf)
+#define GLOBAL_VARS_LIST          \
+  VAR(screen_pos_to_texcoord)     \
+  VAR(screen_size)                \
+  VAR(gbuffer_view_size)          \
+  VAR(albedo_gbuf)                \
+  VAR(albedo_gbuf_samplerstate)   \
+  VAR(normal_gbuf)                \
+  VAR(normal_gbuf_samplerstate)   \
+  VAR(material_gbuf)              \
+  VAR(material_gbuf_samplerstate) \
+  VAR(motion_gbuf)                \
+  VAR(motion_gbuf_samplerstate)   \
+  VAR(bvh_gbuf)                   \
+  VAR(bvh_gbuf_samplerstate)      \
+  VAR(depth_gbuf)                 \
+  VAR(depth_gbuf_samplerstate)
 
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_VARS_LIST
@@ -30,6 +43,7 @@ void DeferredRT::close()
     mrts[i].close();
   }
   depth.close();
+  blackPixelTex.close();
   numRt = 0;
 }
 
@@ -45,14 +59,48 @@ void DeferredRT::setRt()
 void DeferredRT::setVar()
 {
   ShaderGlobal::set_texture(albedo_gbufVarId, mrts[0]);
+  ShaderGlobal::set_sampler(albedo_gbuf_samplerstateVarId, baseSampler);
   ShaderGlobal::set_texture(normal_gbufVarId, mrts[1]);
+  ShaderGlobal::set_sampler(normal_gbuf_samplerstateVarId, baseSampler);
   ShaderGlobal::set_texture(material_gbufVarId, mrts[2]);
+  ShaderGlobal::set_sampler(material_gbuf_samplerstateVarId, baseSampler);
 
   if (numRt > 3)
+  {
     ShaderGlobal::set_texture(motion_gbufVarId, mrts[3]);
+    ShaderGlobal::set_sampler(motion_gbuf_samplerstateVarId, baseSampler);
+  }
+
+  if (numRt > 4)
+  {
+    ShaderGlobal::set_texture(bvh_gbufVarId, mrts[4]);
+    ShaderGlobal::set_sampler(bvh_gbuf_samplerstateVarId, baseSampler);
+  }
+  else if (d3d::get_driver_code().is(d3d::vulkan || d3d::xboxOne || d3d::scarlett))
+  {
+    if (!blackPixelTex)
+    {
+      TexImage32 *texel = TexImage32::create(1, 1);
+      texel->getPixels()[0].u = 0;
+      String dummyName(128, "%s_bvh_dummy", name);
+      blackPixelTex = dag::create_tex(texel, 1, 1, TEXFMT_R32UI, 1, dummyName);
+      blackPixelTex->texfilter(TEXFILTER_POINT);
+      blackPixelTex->texmipmap(TEXFILTER_POINT);
+      delete texel;
+      d3d::SamplerInfo smpInfo;
+      smpInfo.filter_mode = d3d::FilterMode::Point;
+      smpInfo.mip_map_mode = d3d::MipMapMode::Point;
+      blackPixelSampler = d3d::request_sampler(smpInfo);
+    }
+    ShaderGlobal::set_texture(bvh_gbufVarId, blackPixelTex.getTexId());
+    ShaderGlobal::set_sampler(bvh_gbuf_samplerstateVarId, blackPixelSampler);
+  }
+  else
+    ShaderGlobal::set_texture(bvh_gbufVarId, BAD_TEXTUREID);
 
   ShaderGlobal::set_texture(depth_gbufVarId, depth);
-  ShaderGlobal::set_color4(screen_pos_to_texcoordVarId, 1.f / width, 1.f / height, HALF_TEXEL_OFSF / width, HALF_TEXEL_OFSF / height);
+  ShaderGlobal::set_sampler(depth_gbuf_samplerstateVarId, baseSampler);
+  ShaderGlobal::set_color4(screen_pos_to_texcoordVarId, 1.f / width, 1.f / height, 0, 0);
   ShaderGlobal::set_color4(screen_sizeVarId, width, height, 1.0 / width, 1.0 / height);
   ShaderGlobal::set_int4(gbuffer_view_sizeVarId, width, height, 0, 0);
 }
@@ -143,13 +191,24 @@ DeferredRT::DeferredRT(const char *name_, int w, int h, StereoMode stereo_mode, 
   numRt = num_rt;
   for (int i = numRt - 1; i >= 0; --i)
   {
+    if (texFmt && texFmt[i] == 0xFFFFFFFFU)
+      continue;
+
     String mrtName(128, "%s_mrt_%d", name, i);
     unsigned mrtFmt = texFmt ? texFmt[i] : TEXFMT_A8R8G8B8;
-    auto mrtTex = dag::create_tex(NULL, cs.x, cs.y, mrtFmt | TEXCF_RTARGET | msaaFlag, 1, mrtName.str());
+    auto mrtTex = dag::create_tex(NULL, cs.x, cs.y, mrtFmt | TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE | msaaFlag, 1, mrtName.str());
     d3d_err(!!mrtTex);
     mrtTex->texaddr(TEXADDR_CLAMP);
     mrtTex->texfilter(TEXFILTER_POINT);
+    mrtTex->texmipmap(TEXFILTER_POINT);
     mrts[i] = ResizableTex(std::move(mrtTex), mrtName);
+  }
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    smpInfo.mip_map_mode = d3d::MipMapMode::Point;
+    baseSampler = d3d::request_sampler(smpInfo);
   }
 }
 

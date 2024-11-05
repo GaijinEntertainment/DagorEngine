@@ -1,0 +1,13 @@
+dynamic_hair_renderer {
+  _singleton:b=true
+  _tags:t="render"
+  dynamic_hair__max_nodes_count:i=32
+  "dynamic_hair__render_node:dabfg::NodeHandle"{}
+  "dynamic_hair__entities:list<eid>"{}
+  "dynamic_hair__nodeMaskOffsets:list<i>"{}
+  "dynamic_hair__nodeMasks:list<u8>"{}
+}
+
+dynamic_hair_render_tag {
+  "dynamic_hair_render:tag"{}
+}

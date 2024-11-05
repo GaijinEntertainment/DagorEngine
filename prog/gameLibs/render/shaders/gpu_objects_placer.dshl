@@ -1,9 +1,9 @@
 include "shader_global.dshl"
 include "heightmap_common.dshl"
+include "hmap_ofs_inc.dshl"
 include "toroidal_heightmap.dshl"
 include "displacement_inc.dshl"
 include "biomes.dshl"
-include "gpuobj_displacement_inc.dshl"
 include "frustum.dshl"
 include "shore.dshl"
 include "rendinst_heightmap_ofs.dshl"
@@ -57,14 +57,52 @@ float4 view_dir;
 
 int biom_indexes_const_no = 60 always_referenced;
 
-int gpu_objects_indirect_params_const_no = 13;
-int gpu_objects_lod_offsets_buffer_const_no = 14;
-int gpu_objects_generation_params_const_no = 15;
+int gpu_objects_indirect_params_const_no = 11;
+int gpu_objects_lod_offsets_buffer_const_no = 12;
+int gpu_objects_generation_params_const_no = 13;
 
 float4 gpu_objects_bomb_hole_point_radius_0;
 float4 gpu_objects_bomb_hole_point_radius_1;
 float4 gpu_objects_bomb_hole_point_radius_2;
 float4 gpu_objects_bomb_hole_point_radius_3;
+
+int gpu_objects_bvh_max_count = 0;
+int gpu_objects_use_bvh = 0;
+interval gpu_objects_use_bvh : no < 1, yes;
+
+buffer gpu_objects_bvh_counter;
+buffer gpu_objects_bvh_instances;
+buffer gpu_objects_bvh_mappings;
+
+macro INIT_BVH_GOBJ()
+  if (gpu_objects_use_bvh == yes && (hardware.dx12 || hardware.vulkan))
+  {
+    hlsl {
+      #define GENERATE_BVH_INTANCES 1
+      static const uint bvhGroupRiExtra = 1 << 2;
+    }
+    (cs) {
+      gpu_objects_bvh_max_count@i1 = gpu_objects_bvh_max_count;
+
+      gpuobjectsBvhCounter@uav = gpu_objects_bvh_counter hlsl { RWByteAddressBuffer gpuobjectsBvhCounter@uav; };
+      gpuobjectsBvhInstances@uav = gpu_objects_bvh_instances hlsl
+      {
+        #include <RTHWInstance.hlsli>
+        RWStructuredBuffer<RTHWInstance> gpuobjectsBvhInstances@uav;
+      };
+      gpuobjectsBvhMappings@buf = gpu_objects_bvh_mappings hlsl
+      {
+        struct GpuObjectsBvhMapping
+        {
+          uint2 blas;
+          uint metaIndex;
+          uint padding;
+        };
+        StructuredBuffer<GpuObjectsBvhMapping> gpuobjectsBvhMappings@buf;
+      };
+    }
+  }
+endmacro
 
 macro USE_GPU_OBJECTS_DATA()
   ENABLE_ASSERT(cs)
@@ -575,7 +613,7 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
 
     INIT_TOROIDAL_HEIGHTMAP(cs)
 
-    if (toroidal_heightmap_texarray != NULL)// && gpu_objects_enable_displacement == yes)
+    if (toroidal_heightmap_texarray != NULL)
     {
       USE_DISPLACEMENT_PHYSMAT(cs)
       (cs) {
@@ -590,7 +628,6 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
       }
       USE_TOROIDAL_HEIGHTMAP_LOWRES(cs)
       hlsl(cs) {
-        #define GET_DISPLACEMENT_GIVES_NORMALS 0
         float3 get_displacement(float2 coordsXZ, out float3 surface_normal)
         {
           float height = displacementParams.y * sample_tor_height_lowres(coordsXZ, displacementParams.z) + displacementParams.x;
@@ -609,7 +646,13 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
     }
     else
     {
-      INIT_AND_USE_GPUOBJ_DISPLACEMENT()
+      hlsl(cs) {
+        float3 get_displacement(float2 coordsXZ, out float3 surface_normal)
+        {
+          surface_normal = float3(0, 1, 0);
+          return float3(0,0,0);
+        }
+      }
     }
 
     if (toroidal_heightmap_texarray != NULL && gpu_objects_gpu_instancing == on)
@@ -705,6 +748,8 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
   INIT_HMAP_HOLES(cs)
   USE_HMAP_HOLES(cs)
 
+  INIT_BVH_GOBJ()
+
   hlsl(cs) {
 
     float rand(float2 co)
@@ -779,10 +824,28 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
       gpuObjectsBuffer[(at + buffer_offset) * 4 + 1] = float4(direction * scale, pos.y);
       gpuObjectsBuffer[(at + buffer_offset) * 4 + 2] = float4(front * scale, pos.z);
       uint c = uint(color.x * 255) | (uint(color.y * 255) << 8) | (uint(color.z * 255) << 16) | (uint(color.w * 255) << 24);
-      gpuObjectsBuffer[(at + buffer_offset) * 4 + 3] = float4(asfloat(c), asfloat(gpu_objects_ri_pool_id_offset), 0.0, 0.0);
+      gpuObjectsBuffer[(at + buffer_offset) * 4 + 3] = float4(asfloat(gpu_objects_ri_pool_id_offset), 0.0, asfloat(c), 0.0);
 
       bbox_min = min(bbox_min, float4(pos - bounding_radius, 0));
       bbox_max = max(bbox_max, float4(pos + bounding_radius, 0));
+
+      #if GENERATE_BVH_INTANCES
+        uint bvhIndex;
+        gpuobjectsBvhCounter.InterlockedAdd(0, 1, bvhIndex);
+
+        if (bvhIndex < gpu_objects_bvh_max_count)
+        {
+          GpuObjectsBvhMapping bvhMapping = structuredBufferAt(gpuobjectsBvhMappings, lod_no);
+          RTHWInstance bvhInstance;
+          bvhInstance.transform0 = float4(right * scale, pos.x);
+          bvhInstance.transform1 = float4(direction * scale, pos.y);
+          bvhInstance.transform2 = float4(front * scale, pos.z);
+          bvhInstance.instanceId_mask = bvhMapping.metaIndex | (bvhGroupRiExtra << 24);
+          bvhInstance.instanceOffset_flags = 0;
+          bvhInstance.blas = bvhMapping.blas;
+          structuredBufferAt(gpuobjectsBvhInstances, bvhIndex) = bvhInstance;
+        }
+      #endif
     }
 
 ##if shader == gpu_objects_cs
@@ -899,9 +962,7 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
             seedMultiplier = -1;
           apply_renderinst_hmap_ofs(worldPos.xz, landHeight);
           worldPos = float3(coords.x + displacement.x, landHeight, coords.y + displacement.z);
-          #if !GET_DISPLACEMENT_GIVES_NORMALS
           surfaceNormal = getWorldNormal(worldPos);
-          #endif
         }
         float3 inclineDelta = (normalize(frac(worldPos) * 2 - 1)) * up_vector.w;
         float3 upDirection = (dot(up_vector.xyz, 1) == 0) ? surfaceNormal : up_vector.xyz;
@@ -1115,16 +1176,20 @@ shader gpu_objects_on_rendinst_clean_cs
 int gpu_objects_gather_target_offset;
 int gpu_objects_max_count_in_cell;
 int gpu_objects_visible_cells;
+int gpu_objects_copy_lod_no;
 
 shader gpu_objects_gather_matrices_cs
 {
+  ENABLE_ASSERT(cs)
+  INIT_BVH_GOBJ()
   (cs) {
-    copy_parameters@i3 = (gpu_objects_gather_target_offset, gpu_objects_max_count_in_cell, gpu_objects_visible_cells, gpu_objects_visible_cells);
+    copy_parameters@i4 = (gpu_objects_gather_target_offset, gpu_objects_max_count_in_cell, gpu_objects_visible_cells, gpu_objects_copy_lod_no);
   }
   hlsl(cs) {
     #define target_offset copy_parameters.x
     #define max_in_cell copy_parameters.y
     #define visible_cells copy_parameters.z
+    #define lod_no copy_parameters.w
 
     #include "gpuObjects/gpu_objects_const.hlsli"
     RWBuffer<float4> targetBuffer : register(u0);
@@ -1145,6 +1210,24 @@ shader gpu_objects_gather_matrices_cs
       targetBuffer[targetOffset + 1] = matrices[matrixOffset + 1];
       targetBuffer[targetOffset + 2] = matrices[matrixOffset + 2];
       targetBuffer[targetOffset + 3] = matrices[matrixOffset + 3];
+
+      #if GENERATE_BVH_INTANCES
+        uint bvhIndex;
+        gpuobjectsBvhCounter.InterlockedAdd(0, 1, bvhIndex);
+
+        if (bvhIndex < gpu_objects_bvh_max_count)
+        {
+          GpuObjectsBvhMapping bvhMapping = structuredBufferAt(gpuobjectsBvhMappings, lod_no);
+          RTHWInstance bvhInstance;
+          bvhInstance.transform0 = matrices[matrixOffset + 0];
+          bvhInstance.transform1 = matrices[matrixOffset + 1];
+          bvhInstance.transform2 = matrices[matrixOffset + 2];
+          bvhInstance.instanceId_mask = bvhMapping.metaIndex | (bvhGroupRiExtra << 24);
+          bvhInstance.instanceOffset_flags = 0;
+          bvhInstance.blas = bvhMapping.blas;
+          structuredBufferAt(gpuobjectsBvhInstances, bvhIndex) = bvhInstance;
+        }
+      #endif
     }
   }
   compile("cs_5_0", "gather_matrices");

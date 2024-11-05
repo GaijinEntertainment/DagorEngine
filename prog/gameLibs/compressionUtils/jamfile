@@ -1,0 +1,62 @@
+Root    ?= ../../.. ;
+
+Location            = prog/gameLibs/compressionUtils ;
+
+TargetType          = lib ;
+
+Target              = gameLibs/compressionUtils.lib ;
+
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+if $(UseMinCompressionUtils) != yes &&
+   ( ! [ GLOB $(Root)/prog/3rdPartyLibs/arc/snappy-1.1.9 : * ] ||
+     ! [ GLOB $(Root)/prog/3rdPartyLibs/arc/lz4 : * ] ||
+     ! [ GLOB $(Root)/prog/3rdPartyLibs/arc/bzip2-1.0.3 : * ] ) {
+ UseMinCompressionUtils = yes ;
+}
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/compressionUtils
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/tools/sharedInclude # FIXME_BROKEN_DEP
+  $(Root)/prog/3rdPartyLibs/arc/zlib-$(UseZlibVer)
+  $(Root)/prog/3rdPartyLibs/arc/zstd-$(ZstdVer)
+;
+
+UseProgLibs     +=
+    3rdPartyLibs/arc/zlib-$(UseZlibVer)
+    3rdPartyLibs/arc/zstd-$(ZstdVer)
+    3rdPartyLibs/bsdiff
+  ;
+
+Sources =
+  compression.cpp
+  vromfsCompressionImpl.cpp
+  memSilentInPlaceLoadCB.cpp
+  bsdiffwrap.cpp
+  bulkBlkPack.cpp
+  blobMultiStorage.cpp
+;
+
+if $(UseMinCompressionUtils) = yes {
+  CPPopt += -DDAGOR_MINIMUM_COMPR_UTILS ;
+  Target = $(Target:S=-min.lib) ;
+} else {
+  UseProgLibs +=
+    3rdPartyLibs/arc/lz4
+    3rdPartyLibs/arc/snappy-1.1.9
+    3rdPartyLibs/arc/bzip2-1.0.3
+  ;
+}
+
+CPPopt +=
+  -DOPENSSL_SUPPRESS_DEPRECATED
+;
+
+if $(UseSystemOpenSSL) != yes {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/openssl-$(OpenSSLVer)/include ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

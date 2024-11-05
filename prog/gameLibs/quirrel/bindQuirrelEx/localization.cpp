@@ -1,12 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_localization.h>
 #include <util/dag_string.h>
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <sqrat.h>
 #include <quirrel/sqModules/sqModules.h>
 #include "hypenation.h"
-
-
-static const char *script_get_loc_text(const char *id) { return get_localized_text(id); }
 
 
 static void handle_plural_form(String &string_to_handle, int64_t num, const char *const num_name)
@@ -48,6 +47,7 @@ static void handle_plural_form(String &string_to_handle, int64_t num, const char
     string_to_handle.replace(pluralStr.str(), word);
   }
 }
+static SQInteger localize_with_params(HSQUIRRELVM v, int top, const char *res, int paramsTblIdx);
 
 
 static SQInteger localize(HSQUIRRELVM v)
@@ -77,8 +77,11 @@ static SQInteger localize(HSQUIRRELVM v)
       return sq_throwerror(v, String(0, "Unexpected argument #%d type %X for loc(%s)", idx, argObj._type, key));
   }
 
-  const char *res = get_localized_text(key, defVal, caseInsensitive);
+  return localize_with_params(v, top, get_localized_text(key, defVal, caseInsensitive), paramsTblIdx);
+}
 
+static SQInteger localize_with_params(HSQUIRRELVM v, int top, const char *res, int paramsTblIdx)
+{
   if (!res)
   {
     sq_push(v, 2);
@@ -154,10 +157,43 @@ static SQInteger localize(HSQUIRRELVM v)
   G_UNUSED(preIterationTop);
   G_ASSERT(preIterationTop == sq_gettop(v));
   G_ASSERT(preIterationTop == top);
+  G_UNUSED(top);
 
   sq_pushstring(v, s, s.length());
 
   return 1;
+}
+
+
+static SQInteger localize_for_lang(HSQUIRRELVM v)
+{
+  const char *key = nullptr;
+  if (SQ_FAILED(sq_getstring(v, 2, &key)))
+    return 0;
+  const char *lang = nullptr;
+  if (SQ_FAILED(sq_getstring(v, 3, &lang)))
+    return 0;
+
+  int top = sq_gettop(v);
+  const char *defVal = nullptr;
+  int paramsTblIdx = -1;
+
+  for (int idx = 4; idx <= top; ++idx)
+  {
+    HSQOBJECT argObj;
+    if (SQ_FAILED(sq_getstackobj(v, idx, &argObj)) || argObj._type == OT_NULL)
+      continue;
+
+    if (argObj._type == OT_STRING)
+      defVal = sq_objtostring(&argObj);
+    else if (argObj._type == OT_TABLE || argObj._type == OT_CLASS || argObj._type == OT_INSTANCE)
+      paramsTblIdx = idx;
+    else
+      return sq_throwerror(v, String(0, "Unexpected argument #%d type %X for loc(%s)", idx, argObj._type, key));
+  }
+
+  const char *res = get_localized_text_for_lang(key, lang);
+  return localize_with_params(v, top, res ? res : defVal, paramsTblIdx);
 }
 
 
@@ -230,17 +266,18 @@ void register_dagor_localization_module(SqModules *module_mgr)
 {
   HSQUIRRELVM vm = module_mgr->getVM();
   Sqrat::Table exports(vm);
-
-  exports.SquirrelFunc("loc", &localize, -2, ".s|o")
-    .Func("getLocText", script_get_loc_text)
-    .Func("getLocTextForLang", get_localized_text_for_lang)
+  ///@module dagor.localize
+  exports //
+    .SquirrelFunc("loc", &localize, -2, ".s|o")
+    .SquirrelFunc("getLocTextForLang", &localize_for_lang, -3, ".ss|o")
     .SquirrelFunc("processHypenationsCN", process_chinese_string_with_tab, 2, ".s")
     .SquirrelFunc("processHypenationsJP", process_japanese_string_with_tab, 2, ".s")
-    .SquirrelFunc("getLocTextEx", script_get_loc_text_ex_<false>, -2, ".s")
-    .SquirrelFunc("getLocTextExCI", script_get_loc_text_ex_<true>, -2, ".s")
     .SquirrelFunc("doesLocTextExist", script_does_localized_text_exist, 2, ".s")
     .Func("getCurrentLanguage", get_current_language)
-    .SquirrelFunc("initLocalization", init_localization, -2, ".xs");
+    .Func("getForceLanguage", get_force_language)
+    .Func("setLanguageToSettings", set_language_to_settings)
+    .SquirrelFunc("initLocalization", init_localization, -2, ".xs")
+    /**/;
   module_mgr->addNativeModule("dagor.localize", exports);
 }
 

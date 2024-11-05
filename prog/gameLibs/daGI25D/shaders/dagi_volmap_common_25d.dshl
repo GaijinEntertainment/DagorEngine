@@ -119,7 +119,7 @@ macro SAMPLE_VOLMAP_25D(code)
         return 0;
 
       float y = clamp(tcY, 0.5/GI_25D_RESOLUTIONF.z, (GI_25D_RESOLUTIONF.z-0.5)/(GI_25D_RESOLUTIONF.z));
-      float3 yy = y*1./6.0 + (normal<0 ? float3(1./6, 3./6, 5./6) : float3(0./6, 2./6, 4./6));
+      float3 yy = y*1./6.0 + select(normal<0, float3(1./6, 3./6, 5./6), float3(0./6, 2./6, 4./6));
       float3 nSquared = normal * normal;
       ambient = nSquared.x*SAMPLE_25D_AMBIENT_VOLMAP(float3(xz,yy.x))+
                 nSquared.y*SAMPLE_25D_AMBIENT_VOLMAP(float3(xz,yy.y))+

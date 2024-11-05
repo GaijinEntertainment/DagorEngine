@@ -1,3 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 // dag.h: interface for the DLL wrapper of the library for DAG export
 //
 ////////////////////////////////////////////////////////////////////////////////

@@ -1,13 +1,16 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 // class to track operations on GPU execution timeline and sync them
 // according to supplied information & requests
 // generates precise (stage & acccess) barriers for less overhead on synchronization
 
-#pragma once
+#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
+#include <EASTL/vector.h>
+
 #include "driver.h"
 #include "vulkan_device.h"
-#include <EASTL/vector.h>
+#include "logic_address.h"
 
 namespace drv3d_vulkan
 {
@@ -16,39 +19,13 @@ class Buffer;
 class Image;
 class RaytraceAccelerationStructure;
 class PipelineBarrier;
+class Resource;
 
 class ExecutionSyncTracker
 {
 public:
   ExecutionSyncTracker() {}
   ~ExecutionSyncTracker() {}
-
-  struct LogicAddress
-  {
-    VkPipelineStageFlags stage;
-    VkAccessFlags access;
-
-    bool isNonConflictingUAVAccess(const LogicAddress &cmp) const;
-    bool conflicting(const LogicAddress &cmp) const;
-    bool mergeConflicting(const LogicAddress &cmp) const;
-    bool isRead() const;
-    bool isWrite() const;
-    bool isComputeOrTransfer() const;
-    void merge(const LogicAddress &v)
-    {
-      stage |= v.stage;
-      access |= v.access;
-    }
-    bool equal(const LogicAddress &v) { return stage == v.stage && access == v.access; }
-
-    static LogicAddress forBufferOnExecStage(ShaderStage stage, RegisterType reg_type);
-    static LogicAddress forAttachmentWithLayout(VkImageLayout layout);
-    static LogicAddress forImageOnExecStage(ShaderStage stage, RegisterType reg_type);
-    static LogicAddress forImageBindlessRead();
-    static LogicAddress forAccelerationStructureOnExecStage(ShaderStage stage, RegisterType reg_type);
-    static LogicAddress forBLASIndirectReads();
-    static void setAttachmentNoStoreSupport(bool supported);
-  };
 
   struct BufferArea
   {
@@ -105,6 +82,8 @@ public:
       uint32_t arrayEnd = max((arrayIndex + arrayRange), (cmp.arrayIndex + cmp.arrayRange));
       uint32_t arrayStart = min(arrayIndex, cmp.arrayIndex);
 
+      // merge should not cover areas that was not included in both operands
+      // i.e. we can extend area by one of dimensions or grow to bigger one if they nested
       bool mipExt = (arrayIndex == cmp.arrayIndex) && (arrayRange == cmp.arrayRange);
       bool arrExt = (mipIndex == cmp.mipIndex) && (mipRange == cmp.mipRange);
       bool inside = (mipStart == mipIndex) && (mipEnd == mipIndex + mipRange) && (arrayStart == arrayIndex) &&
@@ -133,12 +112,14 @@ public:
     uint64_t internal;
     uint64_t external;
     String getInternal() const;
+    String getExternal() const;
   };
   OpCaller getCaller();
 #else
   struct OpCaller
   {
     static String getInternal() { return String("<unknown>"); }
+    static String getExternal() { return String("<unknown>"); }
   };
   OpCaller getCaller() { return {}; }
 #endif
@@ -149,27 +130,28 @@ public:
     Buffer *obj;
     BufferArea area;
     OpCaller caller;
+    VkAccessFlags conflictingAccessFlags;
     bool completed : 1;
     bool dstConflict : 1;
 
     String format() const;
     bool conflicts(const BufferOp &cmp) const;
-    bool verifySelfConflict(const BufferOp &cmp) const { return !conflicts(cmp) || laddr.isNonConflictingUAVAccess(cmp.laddr); }
+    bool verifySelfConflict(const BufferOp &cmp) const;
     void addToBarrierByTemplateSrc(PipelineBarrier &barrier) const;
-    void addToBarrierByTemplateDst(PipelineBarrier &, size_t) const {}
-    static void modifyBarrierTemplate(PipelineBarrier &barrier, LogicAddress &src, LogicAddress &dst);
-    void onConflictWithDst(const BufferOp &dst, size_t gpu_work_id);
+    void addToBarrierByTemplateDst(PipelineBarrier &barrier);
+    void onConflictWithDst(BufferOp &dst);
     static bool allowsConflictFromObject() { return false; }
     bool hasObjConflict() { return false; }
     bool mergeCheck(BufferArea, uint32_t) { return true; }
     bool isAreaPartiallyCoveredBy(const BufferOp &) { return false; }
     static bool processPartials() { return false; }
+    void onPartialSplit() {}
+    // for followup alias barrier generation
+    void aliasEndAccess(VkPipelineStageFlags stage, ExecutionSyncTracker &tracker);
   };
 
-  enum
-  {
-    SUBPASS_NON_NATIVE = 255
-  };
+  static inline constexpr uint8_t SUBPASS_NON_NATIVE = 255;
+  static inline constexpr uint16_t NATIVE_RP_INDEX_MAX = 0xFFFF;
 
   struct ImageOpAdditionalParams
   {
@@ -183,24 +165,38 @@ public:
     Image *obj;
     ImageArea area;
     OpCaller caller;
+    VkAccessFlags conflictingAccessFlags;
     VkImageLayout layout;
     uint8_t subpassIdx;
+    uint16_t nativeRPIndex;
     bool completed : 1;
     bool dstConflict : 1;
     bool changesLayout : 1;
+    bool nrpAttachment : 1;
+    bool handledBySubpassDependency : 1;
+    bool discard;
 
     String format() const;
     bool conflicts(const ImageOp &cmp) const;
     bool verifySelfConflict(const ImageOp &cmp) const;
     void addToBarrierByTemplateSrc(PipelineBarrier &barrier);
-    void addToBarrierByTemplateDst(PipelineBarrier &barrier, size_t gpu_work_id);
-    static void modifyBarrierTemplate(PipelineBarrier &barrier, LogicAddress &src, LogicAddress &dst);
-    void onConflictWithDst(ImageOp &dst, size_t gpu_work_id);
+    void addToBarrierByTemplateDst(PipelineBarrier &barrier);
+    void onConflictWithDst(ImageOp &dst);
     static bool allowsConflictFromObject() { return true; }
     bool hasObjConflict();
     bool mergeCheck(ImageArea area, ImageOpAdditionalParams extra);
     bool isAreaPartiallyCoveredBy(const ImageOp &dst);
     static bool processPartials() { return true; }
+    void onPartialSplit();
+    // for followup alias barrier generation
+    void aliasEndAccess(VkPipelineStageFlags stage, ExecutionSyncTracker &tracker);
+
+    // resets fields that are used at complete step and need to be cleared for next such step
+    void resetIntermediateTracking();
+    // NRP internal subpass dependency should be suppressed on some conflicts
+    bool shouldSuppress() const;
+    // applies layout change to object and does related work for op obj
+    void processLayoutChange();
   };
 
   struct OpsArrayBase
@@ -223,6 +219,7 @@ public:
       clearBase();
     }
     static bool isRoSealValidForOperation(Image *obj, ImageOpAdditionalParams params);
+    void removeRoSeal(Image *obj);
   };
 
   struct BufferOpsArray : OpsArrayBase
@@ -234,6 +231,7 @@ public:
       clearBase();
     }
     static bool isRoSealValidForOperation(Buffer *, uint32_t) { return true; }
+    void removeRoSeal(Buffer *obj);
   };
 
 // raytrace ext
@@ -253,21 +251,22 @@ public:
     RaytraceAccelerationStructure *obj;
     AccelerationStructureArea area;
     OpCaller caller;
+    VkAccessFlags conflictingAccessFlags;
     bool completed : 1;
     bool dstConflict : 1;
 
     String format() const;
     bool conflicts(const AccelerationStructureOp &cmp) const;
     bool verifySelfConflict(const AccelerationStructureOp &cmp) const { return !conflicts(cmp); }
-    void addToBarrierByTemplateSrc(PipelineBarrier &) const {}
-    void addToBarrierByTemplateDst(PipelineBarrier &, size_t) const {}
-    static void modifyBarrierTemplate(PipelineBarrier &barrier, LogicAddress &src, LogicAddress &dst);
-    void onConflictWithDst(const AccelerationStructureOp &dst, size_t gpu_work_id);
+    void addToBarrierByTemplateSrc(PipelineBarrier &barrier) const;
+    void addToBarrierByTemplateDst(PipelineBarrier &barrier) const;
+    void onConflictWithDst(const AccelerationStructureOp &dst);
     static bool allowsConflictFromObject() { return false; }
     bool hasObjConflict() { return false; }
     bool mergeCheck(AccelerationStructureArea, uint32_t) { return true; }
     bool isAreaPartiallyCoveredBy(const AccelerationStructureOp &) { return false; }
     static bool processPartials() { return false; }
+    void onPartialSplit() {}
   };
 
   struct AccelerationStructureOpsArray : OpsArrayBase
@@ -279,6 +278,7 @@ public:
       clearBase();
     }
     static bool isRoSealValidForOperation(RaytraceAccelerationStructure *, uint32_t) { return true; }
+    void removeRoSeal(RaytraceAccelerationStructure *obj);
   };
 
   void addAccelerationStructureAccess(LogicAddress laddr, RaytraceAccelerationStructure *as);
@@ -324,21 +324,45 @@ public:
   };
 
   void addBufferAccess(LogicAddress laddr, Buffer *buf, BufferArea area);
-  void addImageAccess(LogicAddress laddr, Image *img, VkImageLayout layout, ImageArea area);
-  void setCurrentRenderSubpass(uint8_t subpass);
+  void addImageWriteDiscard(LogicAddress laddr, Image *img, VkImageLayout layout, ImageArea area)
+  {
+    addImageAccessImpl(laddr, img, layout, area, /* nrp_attachment */ true, /* discard */ true);
+  }
+
+  void addImageAccess(LogicAddress laddr, Image *img, VkImageLayout layout, ImageArea area)
+  {
+    addImageAccessImpl(laddr, img, layout, area, /* nrp_attachment */ false, /* discard */ false);
+  }
+  void addNrpAttachmentAccess(LogicAddress laddr, Image *img, VkImageLayout layout, ImageArea area, bool discard)
+  {
+    addImageAccessImpl(laddr, img, layout, area, /* nrp_attachment */ true, discard);
+  }
+
+  void setCurrentRenderSubpass(uint8_t subpass_idx);
+  void setCompletionDelay(bool val)
+  {
+    G_ASSERTF(val ^ delayCompletion, "vulkan: sync delay range can't nest! make sure user code is correct");
+    delayCompletion = val;
+  }
+  bool isCompletionDelayed() { return delayCompletion; }
 
   void completeNeeded(VulkanCommandBufferHandle cmd_buffer, const VulkanDevice &dev);
   void completeAll(VulkanCommandBufferHandle cmd_buffer, const VulkanDevice &dev, size_t gpu_work_id);
   bool anyNonProcessed();
   bool allCompleted();
+  void aliasSync(Resource *lobj, VkPipelineStageFlags stage);
 
 private:
+  void addImageAccessImpl(LogicAddress laddr, Image *img, VkImageLayout layout, ImageArea area, bool nrp_attachment, bool discard);
+
   void clearOps();
   ScratchData scratch;
   ImageOpsArray imgOps;
   BufferOpsArray bufOps;
+  uint16_t nativeRPIndex = 0;
   uint8_t currentRenderSubpass = SUBPASS_NON_NATIVE;
   size_t gpuWorkId = 0;
+  bool delayCompletion = false;
 };
 
 } // namespace drv3d_vulkan

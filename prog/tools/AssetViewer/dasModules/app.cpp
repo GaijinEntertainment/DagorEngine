@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daScript/daScript.h>
 
 // should be extern and have another behavior for aot

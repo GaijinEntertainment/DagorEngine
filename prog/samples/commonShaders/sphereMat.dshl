@@ -110,7 +110,7 @@ shader sphereMaterial
       init_normal(result, normal);
       init_metalness(result, metallness_roghness.x);
       init_ao(result, 1);
-      return encode_gbuffer(result, screenpos);
+      return encode_gbuffer(result, input.pointToEye, screenpos);
     }
   }
   compile("target_vs", "test_vs");
@@ -224,7 +224,7 @@ shader cornellBox
       init_normal(result, normal);
       init_metalness(result, 0);
       init_ao(result, 1);
-      return encode_gbuffer(result, screenpos);
+      return encode_gbuffer(result, input.pointToEye, screenpos);
     }
   }
   compile("target_vs", "test_vs");

@@ -1,5 +1,7 @@
-#include <3d/dag_drvDecl.h>
-#include <3d/dag_tex3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_decl.h>
+#include <drv/3d/dag_tex3d.h>
 #include <perfMon/dag_statDrv.h>
 #include <render/lightCube.h>
 #include <render/lightProbeSpecularCubesContainer.h>

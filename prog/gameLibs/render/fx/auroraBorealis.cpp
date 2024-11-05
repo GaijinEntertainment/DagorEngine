@@ -1,6 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/fx/auroraBorealis.h>
 #include <perfMon/dag_statDrv.h>
 #include <ioSys/dag_dataBlock.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_texture.h>
 
 static inline Point4 point4(const Point3 &xyz, float w) { return Point4(xyz.x, xyz.y, xyz.z, w); }
 
@@ -46,7 +50,7 @@ void AuroraBorealis::setParams(const AuroraBorealisParams &parameters, int targe
     auroraBorealisTex.setVar();
     if (auroraBorealisTex.getTex2D())
     {
-      auroraBorealisTex.getTex2D()->texfilter(TEXFILTER_SMOOTH);
+      auroraBorealisTex.getTex2D()->texfilter(TEXFILTER_LINEAR);
       auroraBorealisTex.getTex2D()->texaddr(TEXADDR_CLAMP);
     }
   }

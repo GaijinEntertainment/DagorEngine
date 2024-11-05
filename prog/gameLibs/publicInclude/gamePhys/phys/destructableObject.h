@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -44,7 +43,7 @@ private:
   float timeToKinematic = 2;
   float defaultTimeToLive = 3;
   float scaleDt;
-  void doAddImpulse(PhysWorld &pw, const Point3 &pos, const Point3 &impulse, float speedLimit);
+  void doAddImpulse(const Point3 &pos, const Point3 &impulse, float speedLimit, float omegaLimit);
 
 public:
   static inline int numFloatable = 0;
@@ -62,7 +61,7 @@ public:
   int getNumActiveBodies() const;
   bool hasInteractableBodies() const;
 
-  void addImpulse(PhysWorld &pw, const Point3 &pos, const Point3 &impulse, float speedLimit = 3.f);
+  void addImpulse(PhysWorld &pw, const Point3 &pos, const Point3 &impulse, float speedLimit = 7.f, float omegaLimit = 5.f);
 
   bool isFloatable() const { return timeToFloat >= 0.f; }
   void keepFloatable(float dt, float at_time);

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/dtx/dtx.h>
 
 #include <nvtt/nvtt.h>
@@ -471,6 +473,6 @@ bool ddstexture::Converter::convertImage(IGenSave &cb, TexPixel32 *pix, int w, i
     return true;
   }
 
-  logerr_ctx("type=%d format=%d failed: no support in convertImage()", type, format);
+  LOGERR_CTX("type=%d format=%d failed: no support in convertImage()", type, format);
   return false;
 }

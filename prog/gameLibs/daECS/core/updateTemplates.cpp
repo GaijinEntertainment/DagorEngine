@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/core/entityManager.h>
 #include <memory/dag_framemem.h>
 #include <daECS/core/coreEvents.h>
@@ -71,7 +73,7 @@ void EntityManager::updateEntitiesWithTemplate(template_t oldT, template_t newTe
       }
       else
       {
-        ComponentTypeManager *ctm = g_entity_mgr->getComponentTypes().getTypeManager(dataComponentInfo.componentType);
+        ComponentTypeManager *ctm = getComponentTypes().getTypeManager(dataComponentInfo.componentType);
         if (!ctm || ctm->is_equal(newTemplateData, oldTemplateData))
           continue;
       }
@@ -332,7 +334,7 @@ bool EntityManager::updateTemplates(ecs::TemplateRefs &trefs, bool update_templ_
       cb(trefTemplate.getName(), UpdateTemplateResult::DifferentTag);
       errors = true;
     }
-    if (existing.parents.size() == trefTemplate.parents.size() && existing.isEqual(trefTemplate))
+    if (existing.parents.size() == trefTemplate.parents.size() && existing.isEqual(trefTemplate, getComponentTypes()))
     {
       bool same = true;
       for (size_t pi = 0, pe = existing.parents.size(); pi != pe && same; ++pi)

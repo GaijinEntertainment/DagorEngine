@@ -1,9 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 /************************************************************************
   local variable support
 /************************************************************************/
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef __SHLOCVAR_H
-#define __SHLOCVAR_H
 
 #include <math/dag_color.h>
 #include <generic/dag_tab.h>
@@ -33,14 +33,18 @@ public:
   };
 
   ConstValue cv;
-  bool isConst = false;
-  bool isDynamic = false;
+  int32_t reg : 28 = -1;
+  bool isConst : 1 = false;
+  bool isDynamic : 1 = false;
+  bool isInteger : 1 = false;
+  bool dependsOnDynVarsAndMaterialParams : 1 = false;
   const int varNameId = -1;
   shexpr::ValueType valueType;
-  int reg = -1;
   LocalVar() = default;
 
-  inline LocalVar(int _varNameId, shexpr::ValueType val_type) : varNameId(_varNameId), valueType(val_type) {}
+  inline LocalVar(int _varNameId, shexpr::ValueType val_type, bool is_integer) :
+    varNameId(_varNameId), valueType(val_type), isInteger(is_integer)
+  {}
 }; // class LocalVar
 //
 
@@ -97,7 +101,3 @@ private:
 
   void addBuiltinConstants();
 }; // class LocalVarTable
-//
-
-
-#endif //__SHLOCVAR_H

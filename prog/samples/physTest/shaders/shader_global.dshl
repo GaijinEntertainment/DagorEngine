@@ -1,2 +1,14 @@
 include "hardware_defines.dshl"
 include "mulPointTm_inc.dshl"
+
+macro NO_ATEST()
+  hlsl(ps) {
+    #define clip_alpha(a)
+  }
+endmacro
+
+macro USE_ATEST_1()
+  hlsl(ps) {
+    #define clip_alpha(a) {if (a <= 0) discard;}
+  }
+endmacro

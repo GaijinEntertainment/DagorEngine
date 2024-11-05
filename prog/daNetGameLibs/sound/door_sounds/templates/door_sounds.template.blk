@@ -1,0 +1,109 @@
+base_door_sound{
+  _group{
+    _tags:t="sound"
+    door_sound__openPath:t="env_effects/doors/standart/open"
+    door_sound__closePath:t="env_effects/doors/standart/close"
+  }
+}
+
+metal_gate_door_sounds{
+  _use:t="base_door_sound"
+  _group{
+    _tags:t="sound"
+    door_sound__openPath:t="env_effects/doors/metal_gate_01/open"
+    door_sound__closePath:t="env_effects/doors/metal_gate_01/close"
+  }
+}
+
+modern_metal_gate_door_sounds{
+  _use:t="base_door_sound"
+  _group{
+    _tags:t="sound"
+    door_sound__openPath:t="env_effects/doors/modern_metal_gate/open"
+    door_sound__closePath:t="env_effects/doors/modern_metal_gate/close"
+  }
+}
+
+modern_wooden_gate_sounds{
+  _use:t="base_door_sound"
+  _group{
+    _tags:t="sound"
+    door_sound__openPath:t="env_effects/doors/modern_wooden_gate/open"
+    door_sound__closePath:t="env_effects/doors/modern_wooden_gate/close"
+  }
+}
+
+standart_door_sounds{
+  _use:t="base_door_sound"
+}
+
+wooden_door_sounds{
+  _use:t="base_door_sound"
+}
+
+metal_door_sounds{
+  _use:t="metal_gate_door_sounds"
+}
+
+gate_door_sounds{
+  _use:t="base_door_sound"
+  _group{
+    _tags:t="sound"
+    door_sound__openPath:t="env_effects/doors/gate/open"
+    door_sound__closePath:t="env_effects/doors/gate/close"
+  }
+}
+
+normandy_decor_gate_door_sounds{
+  _use:t="base_door_sound"
+  _group{
+    _tags:t="sound"
+    door_sound__openPath:t="env_effects/doors/normandy_decor_gate/open"
+    door_sound__closePath:t="env_effects/doors/normandy_decor_gate/close"
+  }
+}
+
+bunker_door_sounds{
+  _use:t="base_door_sound"
+  _group{
+    _tags:t="sound"
+    door_sound__openPath:t="env_effects/doors/bunker/open"
+    door_sound__closePath:t="env_effects/doors/bunker/close"
+  }
+}
+
+hatch_door_sounds{
+  _use:t="base_door_sound"
+  _group{
+    _tags:t="sound"
+    door_sound__openPath:t="env_effects/doors/hatch/open"
+    door_sound__closePath:t="env_effects/doors/hatch/close"
+  }
+}
+
+standart_window_sounds{
+  _use:t="base_door_sound"
+  _group{
+    _tags:t="sound"
+    door_sound__openPath:t="env_effects/doors/window/open"
+    door_sound__closePath:t="env_effects/doors/window/close"
+  }
+}
+
+plastic_door_sounds{
+  _use:t="base_door_sound"
+  _group{
+    _tags:t="sound"
+    door_sound__openPath:t="env_effects/doors/plastic/open"
+    door_sound__closePath:t="env_effects/doors/plastic/close"
+  }
+}
+
+plastic_window_sounds{
+  _use:t="base_door_sound"
+  _group{
+    _tags:t="sound"
+    door_sound__openPath:t="env_effects/doors/window_plastic/open"
+    door_sound__closePath:t="env_effects/doors/window_plastic/close"
+  }
+}

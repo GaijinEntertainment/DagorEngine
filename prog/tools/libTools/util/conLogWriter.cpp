@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/util/conLogWriter.h>
 #include <util/dag_globDef.h>
 #include <util/dag_string.h>

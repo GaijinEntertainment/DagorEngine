@@ -1,0 +1,14 @@
+include "clouds_shadow.dshl"
+
+macro SQ_INIT_CLOUDS_SHADOW(code)
+  INIT_CLOUDS_SHADOW_BASE(-from_sun_direction.y, code)
+endmacro
+
+macro SQ_CLOUDS_SHADOW(code)
+  hlsl(code) {
+    #define to_sun_direction (-from_sun_direction)
+    #define CLOUDS_SUN_LIGHT_DIR 1
+  }
+  USE_CLOUDS_SHADOW_BASE(code)
+endmacro
+

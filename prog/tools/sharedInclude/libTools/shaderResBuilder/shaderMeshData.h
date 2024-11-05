@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <libTools/shaderResBuilder/meshDataSave.h>
@@ -57,6 +58,7 @@ public:
   Tab<int> vRemap, iNew;
   int stride;
   unsigned gvdFlags = 0;
+  bool allowVertexMerge = true;
 
   // ctor/dtor
   GlobalVertexDataSrc();

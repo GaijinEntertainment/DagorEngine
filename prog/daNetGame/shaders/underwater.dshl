@@ -1,0 +1,151 @@
+include "sky_shader_global.dshl"
+include "viewVecVS.dshl"
+include "underwater_fog.dshl"
+include "gbuffer.dshl"
+include "clouds_vars.dshl"
+include "clouds_shadow.dshl"
+include "static_shadow.dshl"
+include "water_heightmap.dshl"
+
+float water_depth_above = 0;
+int shadow_frame;
+texture water_heightmap_lowres;
+
+shader underwater_fog
+{
+  supports global_frame;
+  cull_mode=none;
+  z_write=false;
+  z_test=false;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 tc : TEXCOORD0;
+      float2 shadow: TEXCOORD1;
+    };
+  }
+
+  DECL_POSTFX_TC_VS_SCR()
+  //USE_AND_INIT_VIEW_VEC_VS()
+  //INIT_STATIC_SHADOW_VS_ONE_CASCADE() // not enough vsmp for both cascades
+  INIT_STATIC_SHADOW_VS()
+  USE_STATIC_SHADOW_VS()
+  (vs) {
+    to_sun_direction@f3 = (-from_sun_direction.x, -from_sun_direction.y, -from_sun_direction.z, 0.0)
+  }
+
+  INIT_CLOUDS_SHADOW_BASE(to_sun_direction.y, vs)
+  USE_CLOUDS_SHADOW_BASE(vs)
+  hlsl(vs) {
+
+    VsOutput postfx_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      //float2 inpos = input.pos.xy;
+      float2 inpos = get_fullscreen_inpos(vertexId);
+
+      output.pos = float4(inpos,0,1);
+      output.tc = inpos * RT_SCALE_HALF + float2(0.50000, 0.50000);
+      output.shadow.x = getStaticShadow(world_view_pos);//approximation
+      output.shadow.y = clouds_shadow(world_view_pos);
+
+      return output;
+    }
+  }
+  blend_src = 1; blend_dst = sa;
+  USE_AND_INIT_VIEW_VEC_PS()
+
+  hlsl(ps) {
+    #define FASTEST_STATIC_SHADOW_PCF 1
+  }
+  INIT_ZNZFAR()
+  USE_DECODE_DEPTH()
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+  INIT_UNDERWATER_FOG()
+  GET_UNDERWATER_FOG()
+
+  INIT_STATIC_SHADOW() // not enough vsmp for both cascades
+  USE_STATIC_SHADOW()
+
+  INIT_SKYLIGHT_PARAMS(ps)
+  USE_SKYLIGHT_PARAMS(ps)
+  INIT_SKY_UP_DIFFUSE(ps)
+  local float4 vertical_fade_exponent = (underwater_fade * (world_view_pos.y - water_level));
+  local float4 sun_fade_exponent = (vertical_fade_exponent / max(0.001, -from_sun_direction.y));
+  local float e = 2.7182821828459045;
+  (ps) {
+    water_level@f3 = (world_view_pos.y-water_level, -water_depth_above,world_view_pos.y,0);
+    frame@f1 = (shadow_frame);
+    underwater_fade@f3 = (underwater_fade.x, underwater_fade.y, underwater_fade.z, 0);
+    sun_color_0@f4 = (sun_color_0.x, sun_color_0.y, sun_color_0.z, -from_sun_direction.y);
+    water_heightmap_lowres@smp2d = water_heightmap_lowres;
+  }
+  INIT_WORLD_TO_WATER_HEIGHTMAP(ps)
+  hlsl(ps) {
+    #include <interleavedGradientNoise.hlsl>
+    float4 postfx_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      float4 pos = GET_SCREEN_POS(input.pos);
+      float rawDepth = readGbufferDepth(input.tc.xy);
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+      float3 viewVect = lerp(lerp(view_vecLT, view_vecRT, input.tc.x), lerp(view_vecLB, view_vecRB, input.tc.x), input.tc.y);
+      float3 pointToEye = -viewVect * w;
+      float3 view = normalize(pointToEye);
+      float dist = length(pointToEye);
+      float4 worldPos = float4( world_view_pos.xyz - pointToEye, 1.f );
+      float water_height = water_level.x;
+      ##if water_heightmap_lowres != NULL
+      float2 water_heightmap_lowres_uv = worldPos.xz * world_to_water_heightmap.zw + world_to_water_heightmap.xy;
+      water_height = water_level.z - tex2Dlod(water_heightmap_lowres, float4(water_heightmap_lowres_uv,0,0)).r;
+      if (water_height > 0)
+        water_height = 0;
+      ##endif
+      float3 vertical_fade_exponent = underwater_fade * water_height;
+      float3 sun_fade_exponent = (vertical_fade_exponent / max(0.001, sun_color_0.w));
+      float3 sun_color = sun_color_0.xyz * exp(sun_fade_exponent);
+      float3 enviFade = exp(vertical_fade_exponent);
+
+      float waterDepth = dist; // Assumes that water writes depth
+
+
+      float4 oceanColor = get_ocean_color(world_view_pos.xz, 0);
+      float waterVolumeFog =  exp2((oceanColor.w*waterDepth));
+      float viewPointWeight = 0.25;
+      float averageShadow = input.shadow.x*viewPointWeight;
+      float startOffset = interleavedGradientNoiseFramed(pos.xy, frame)*0.85+0.1;
+
+      #define STEPS 4
+      UNROLL
+      for (int i = 0; i < STEPS; ++i)
+      {
+        float3 wp = world_view_pos + (-(i+startOffset)/STEPS)*pointToEye;
+        averageShadow += getStaticShadow(wp);
+      }
+      half4 accumulatedScattering;
+      averageShadow*=1./(STEPS+viewPointWeight);
+      float3 sunLight = sun_color * averageShadow * input.shadow.y;
+      float3 evironmentLight = enviUp * enviFade;
+      accumulatedScattering.rgb = (sunLight + evironmentLight) * (1 - waterVolumeFog) * oceanColor.rgb / 4;
+      accumulatedScattering.a = pow(waterVolumeFog, 1/2.2);
+      //return half4(waterVolumeFog.xxx,0);
+      return accumulatedScattering;
+      //averageShadow/=(STEPS+1);
+      //half3 lighting = sun_color_0 * averageShadow*input.shadow.y + enviUp;
+      //return float4(oceanColor.rgb*lighting/4, waterVolumeFog);//todo: lit
+      //half3 underwater_loss, underwater_inscatter;
+      //get_underwater_fog(world_view_pos, worldPos, view, waterDepth, 1, 0, underwater_loss, underwater_inscatter);
+      //return float4(underwater_inscatter, underwater_loss.g);
+      //float3 waterDensity = -0.95;
+      //float waterVolumeFog = exp2(waterDensity*waterDepth);//*waterFilter
+      //float3 waterFilter = float3(0.15, 0.5, 0.6);
+      //float3 water = exp2(waterDensity*waterDepth*waterFilter);
+      //return float4(waterFilter, 1-waterVolumeFog);
+    }
+  }
+
+  compile("target_vs", "postfx_vs");
+  compile("target_ps", "postfx_ps");
+}

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_math3d.h>
 #include <math/dag_color.h>
 #include <generic/dag_DObject.h>
@@ -47,6 +49,8 @@ public:
       useSubFxRotationSpeed[i] = false;
     }
   }
+  CompoundPsEffect(CompoundPsEffect &&) = default;
+  CompoundPsEffect(const CompoundPsEffect &) = default; // should be used with caution only in clone()
 
 
   ~CompoundPsEffect()

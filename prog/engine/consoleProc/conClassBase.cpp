@@ -1,8 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_console.h>
 #include <osApiWrappers/dag_localConv.h>
 #include <string.h>
 #include <stdlib.h>
-
 namespace console
 {
 //************************************************************************
@@ -13,7 +14,7 @@ CommandList *ICommandProcessor::cmdCollector = NULL;
 bool ICommandProcessor::cmdSearchMode = false;
 
 int collector_cmp(const char *arg, int ac, const char *cmd, int min_args, int max_args, const char *description,
-  const char *argsDescription)
+  const char *argsDescription, const char *varValue, eastl::vector<CommandOptions> &&cmdOptions)
 {
   if (!ICommandProcessor::cmdCollector)
   {
@@ -30,8 +31,8 @@ int collector_cmp(const char *arg, int ac, const char *cmd, int min_args, int ma
 
   if (!ICommandProcessor::cmdSearchMode || dd_stricmp(arg, cmd) == 0)
   {
-    CommandStruct command(cmd, min_args, max_args, description, argsDescription);
-    ICommandProcessor::cmdCollector->push_back(command);
+    ICommandProcessor::cmdCollector->emplace_back(cmd, min_args, max_args, description, argsDescription, varValue,
+      eastl::forward<eastl::vector<CommandOptions>>(cmdOptions));
     // continue if collecting all commands, stop if trying to find command and command found
     return !ICommandProcessor::cmdSearchMode ? 0 : -1;
   }
@@ -62,6 +63,7 @@ real to_real(const char *s) { return strtod(s, NULL); }
 
 unsigned main_background_color = 0xD0102030;
 unsigned tips_background_color = 0xC0202020;
+unsigned pinned_commands_background_color = 0xC5202020;
 int max_tips = 9999;
 bool print_logerr_to_console = true;
 } // namespace console

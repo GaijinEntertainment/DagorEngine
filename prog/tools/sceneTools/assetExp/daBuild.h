@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <generic/dag_tab.h>
@@ -65,9 +66,9 @@ bool checkGameResPackUpToDate(dag::ConstSpan<DagorAsset *> assets, AssetExportCa
 
 bool isAssetExportable(DagorAssetMgr &mgr, DagorAsset *asset, dag::ConstSpan<bool> exp_types_mask);
 
-void preparePacks(DagorAssetMgr &mgr, dag::ConstSpan<bool> exp_types_mask, const DataBlock &expblk, Tab<AssetPack *> &tex_pack,
-  Tab<AssetPack *> &grp_pack, FastNameMapEx &addPackages, ILogWriter &log, bool tex, bool res, const char *target_str,
-  const char *profile);
+void preparePacks(DagorAssetMgr &mgr, dag::ConstSpan<DagorAsset *> assets, dag::ConstSpan<bool> exp_types_mask,
+  const DataBlock &expblk, Tab<AssetPack *> &tex_pack, Tab<AssetPack *> &grp_pack, FastNameMapEx &addPackages, ILogWriter &log,
+  bool tex, bool res, const char *target_str, const char *profile);
 bool get_exported_assets(Tab<DagorAsset *> &dest, dag::ConstSpan<DagorAsset *> src, const char *ts, const char *profile);
 void dabuild_list_extra_packs(const char *app_dir, const DataBlock &appblk, DagorAssetMgr &mgr, const FastNameMap &pkg_to_list,
   unsigned targetCode, const char *profile, ILogWriter &log);

@@ -1,5 +1,10 @@
-#include "device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <generic/dag_sort.h>
+#include "globals.h"
+#include "device_memory.h"
+#include "resource_manager.h"
+#include "driver_config.h"
 
 namespace drv3d_vulkan
 {
@@ -26,6 +31,13 @@ ObjectPool<SamplerResource> &ResourceManager::resPool()
 {
   return resPools.sampler;
 }
+
+template <>
+ObjectPool<MemoryHeapResource> &ResourceManager::resPool()
+{
+  return resPools.heap;
+}
+
 
 #if D3D_HAS_RAY_TRACING
 template <>
@@ -93,21 +105,21 @@ void evict_pending_from_pool(ObjectPool<ResTypeName> &pool)
 
 VulkanDeviceMemoryHandle ResourceMemory::deviceMemorySlow() const
 {
-  Device &device = get_device();
-  SharedGuardedObjectAutoLock resLock(device.resources);
+  WinAutoLock lk(Globals::Mem::mutex);
 
-  return device.resources.getDeviceMemoryHandle(index);
+  return Globals::Mem::res.getDeviceMemoryHandle(index);
 }
 
-void ResourceManager::init(WinCritSec *memory_lock, const PhysicalDeviceSet &dev_set)
+void ResourceManager::init(const PhysicalDeviceSet &dev_set)
 {
   uint32_t memTypesCount = dev_set.memoryProperties.memoryTypeCount;
   allowMixedPages = dev_set.properties.limits.bufferImageGranularity <= 1024;
-  allowBufferSuballoc = get_device().getPerDriverPropertyBlock("bufferSuballocation")->getBool("enable", false);
+  allowBufferSuballoc = Globals::cfg.getPerDriverPropertyBlock("bufferSuballocation")->getBool("enable", false);
+  allowAligmentTailOverlap = Globals::cfg.getPerDriverPropertyBlock("memoryAligmentTailOverlap")->getBool("enable", true);
   debug("vulkan: %s type mixed allocators", allowMixedPages ? "using" : "not using");
+  debug("vulkan: %s buffer suballoc", allowBufferSuballoc ? "using" : "not using");
   hotMemPushIdx = 0;
   outOfMemorySignal = 0;
-  sharedGuard = memory_lock;
   perMemoryTypeMethods.resize(memTypesCount);
   for (uint32_t i = 0; i < memTypesCount; ++i)
     perMemoryTypeMethods[i].init(i, allowMixedPages ? dev_set.properties.limits.bufferImageGranularity : 0);
@@ -121,6 +133,15 @@ void ResourceManager::shutdown()
 #if D3D_HAS_RAY_TRACING
   check_leaks(resPool<RaytraceAccelerationStructure>());
 #endif
+  check_leaks(resPool<MemoryHeapResource>());
+
+  // Since we treat samplers as permanent resources, they can't leak.  We still need
+  // to destroy VK objects and reset the pool, in case the driver is re-initialized.
+  resPool<SamplerResource>().iterateAllocated([](SamplerResource *i) {
+    ResourceAlgorithm<SamplerResource> alg(*i);
+    alg.shutdown();
+  });
+  resPool<SamplerResource>().freeAll();
 
   for (int i = 0; i < hotMemPoolCount; ++i)
     processHotMem();
@@ -215,6 +236,16 @@ AllocationMethodPriorityList ResourceManager::getAllocationMethods(const Allocat
         ret.methods[ret.available++] = AllocationMethodName::RT_AS_SUBALLOC_HEAP_FREE_LIST;
       }
 #endif
+      else
+      {
+        if (desc.temporary)
+          ret.methods[ret.available++] = AllocationMethodName::MIXED_SUBALLOC_RINGED;
+        else
+        {
+          ret.methods[ret.available++] = AllocationMethodName::MIXED_SUBALLOC_SMALL_POW2_ALIGNED_PAGES;
+          ret.methods[ret.available++] = AllocationMethodName::MIXED_SUBALLOC_HEAP_FREE_LIST;
+        }
+      }
     }
   }
 
@@ -225,6 +256,8 @@ AllocationMethodPriorityList ResourceManager::getAllocationMethods(const Allocat
 
 ResourceMemoryId ResourceManager::allocFromHotMem(const AllocationDesc &desc, const AllocationMethodPriorityList &prio)
 {
+  uint32_t memClassMaskedReqMemTypeBits =
+    Globals::Mem::pool.getMemoryTypeMaskForClass(desc.memClass) & desc.reqs.requirements.memoryTypeBits;
   for (Tab<ResourceMemoryId> &i : hotMemPools)
     for (ResourceMemoryId &j : i)
     {
@@ -240,7 +273,7 @@ ResourceMemoryId ResourceManager::allocFromHotMem(const AllocationDesc &desc, co
       if (mem.isDeviceMemory() != desc.isSharedHandleAllowed())
         continue;
 
-      if (((1 << mem.memType) && desc.reqs.requirements.memoryTypeBits) == 0)
+      if (((1 << mem.memType) && memClassMaskedReqMemTypeBits) == 0)
         continue;
 
       if (!prio.isAllocatorAllowed(mem.allocator))
@@ -271,18 +304,9 @@ bool ResourceManager::allocMemoryIter(const AllocationDesc &desc, const Allocati
   return false;
 }
 
-ResourceMemoryId ResourceManager::allocMemory(const AllocationDesc &desc)
+ResourceMemoryId ResourceManager::getUnusedMemoryId()
 {
-  AllocationMethodPriorityList list = getAllocationMethods(desc);
-  if (!list.available)
-    return -1;
-
-  // try to reuse hot memory to hide allocation CPU costs
-  ResourceMemoryId ret = allocFromHotMem(desc, list);
-
-  if (ret != -1)
-    return ret;
-
+  ResourceMemoryId ret;
   if (!freeMemPool.empty())
   {
     ret = freeMemPool.back();
@@ -297,10 +321,60 @@ ResourceMemoryId ResourceManager::allocMemory(const AllocationDesc &desc)
   ResourceMemory &mem = resAllocationsPool[ret];
   mem.invalidate();
   mem.index = ret;
+  return ret;
+}
+
+ResourceMemoryId ResourceManager::allocAliasedMemory(ResourceMemoryId src_memory_id, VkDeviceSize size, VkDeviceSize offset)
+{
+  ResourceMemoryId ret = getUnusedMemoryId();
+  ResourceMemory &mem = resAllocationsPool[ret];
+  ResourceMemory &srcMem = resAllocationsPool[src_memory_id];
+  G_ASSERT(srcMem.isValid());
+  mem.handle = srcMem.handle;
+  mem.offset = srcMem.offset + offset;
+  mem.size = size;
+  mem.mappedPointer = srcMem.mappedPointer;
+  mem.allocatorIndex = 0;
+  mem.allocator = AllocationMethodName::USER_MEMORY_HEAP;
+  mem.memType = srcMem.memType;
+  mem.originalSize = srcMem.originalSize;
+  return ret;
+}
+
+void ResourceManager::freeAliasedMemory(ResourceMemoryId memory_id)
+{
+  ResourceMemory &mem = resAllocationsPool[memory_id];
+  G_ASSERT(mem.isValid());
+  G_ASSERT(mem.allocator == AllocationMethodName::USER_MEMORY_HEAP);
+  mem.invalidate();
+  freeMemPool.push_back(memory_id);
+}
+
+ResourceMemoryId ResourceManager::allocMemory(AllocationDesc desc)
+{
+  AllocationMethodPriorityList list = getAllocationMethods(desc);
+  if (!list.available)
+    return -1;
+
+  if (!allowAligmentTailOverlap)
+  {
+    VkDeviceSize invAlign = desc.reqs.requirements.alignment - 1;
+    desc.reqs.requirements.size = (desc.reqs.requirements.size + invAlign) & ~invAlign;
+  }
+
+  // try to reuse hot memory to hide allocation CPU costs
+  ResourceMemoryId ret = allocFromHotMem(desc, list);
+  if (ret != -1)
+    return ret;
+
+  ret = getUnusedMemoryId();
+  ResourceMemory &mem = resAllocationsPool[ret];
+  mem.allocator = AllocationMethodName::INVALID;
   mem.originalSize = desc.reqs.requirements.size;
   mem.size = mem.originalSize;
 
-  DeviceMemoryTypeRange memoryTypes = get_device().memory->selectMemoryType(desc.reqs.requirements.memoryTypeBits, desc.memClass);
+  G_ASSERTF(desc.reqs.requirements.memoryTypeBits != 0, "vulkan: trying to allocate memory but all memory types are disallowed");
+  DeviceMemoryTypeRange memoryTypes = Globals::Mem::pool.selectMemoryType(desc.reqs.requirements.memoryTypeBits, desc.memClass);
 
   // try to allocate
   if (!allocMemoryIter(desc, list, mem, memoryTypes))
@@ -343,7 +417,17 @@ void ResourceManager::freeMemory(ResourceMemoryId memory_id)
   ResourceMemory &mem = resAllocationsPool[memory_id];
   // do not hot pool empty memory
   if (!mem.isValid())
+  {
+    if (mem.allocator == AllocationMethodName::OBJECT_BACKED_MEMORY)
+    {
+      ResourceMemory &mem = resAllocationsPool[memory_id];
+      G_ASSERT(!mem.isValid());
+      perMemoryTypeMethods[(int)mem.memType].free(mem);
+    }
     freeMemPool.push_back(memory_id);
+  }
+  else if (mem.allocator == AllocationMethodName::USER_MEMORY_HEAP)
+    freeAliasedMemory(memory_id);
   // we can't reuse dedicated allocations (they are tied to object handle), simply shutdown them
   else if (mem.allocator == AllocationMethodName::DEDICATED)
     shutdownMemory(memory_id);
@@ -452,20 +536,31 @@ void ResourceManager::printStats(bool list_resources, bool allocator_info)
     VkDeviceSize alignedSize = 0;
     VkDeviceSize hotSize = 0;
     VkDeviceSize hotAllocs = 0;
+    VkDeviceSize aliasedSize = 0;
+    VkDeviceSize aliasedAllocs = 0;
 
     for (const ResourceMemory &i : resAllocationsPool)
     {
       if (!i.isValid())
         continue;
 
-      rawSize += i.originalSize;
-      alignedSize += i.size;
+      if (i.allocator == AllocationMethodName::USER_MEMORY_HEAP)
+      {
+        aliasedSize += i.size;
+        ++aliasedAllocs;
+      }
+      else
+      {
+        rawSize += i.originalSize;
+        alignedSize += i.size;
+      }
     }
 
     for (Tab<ResourceMemoryId> &i : hotMemPools)
       for (ResourceMemoryId &j : i)
       {
         const ResourceMemory &mem = getMemory(j);
+        G_ASSERT(mem.allocator != AllocationMethodName::USER_MEMORY_HEAP);
         hotSize += mem.size;
         ++hotAllocs;
       }
@@ -478,6 +573,8 @@ void ResourceManager::printStats(bool list_resources, bool allocator_info)
     debug("vulkan: RMS|  %05u Mb active usage", (rawSize - alignOverhead - hotSize) >> 20);
     debug("vulkan: RMS|  %05u Mb alignment overhead", alignOverhead >> 20);
     debug("vulkan: RMS|  %05u Mb hotswap", hotSize >> 20);
+    debug("vulkan: RMS|  %05u aliased/heap allocs", aliasedAllocs);
+    debug("vulkan: RMS|  %05u Mb aliased/heap allocs", aliasedSize >> 20);
   }
 
   if (allocator_info)
@@ -500,7 +597,8 @@ void ResourceManager::printStats(bool list_resources, bool allocator_info)
   if (list_resources)
   {
     debug("vulkan: RMS| Resources list");
-    debug("vulkan: RMS|  resptr           | handle           | res type  |memid |type|meth| memsize | page       | w x h     | name");
+    debug("vulkan: RMS|  resptr           | handle           | res type  |memid |type|meth| memsize | page       | w x h     | usage  "
+          "| name");
     VkDeviceSize perResTypeSize[(int)ResourceType::COUNT] = {};
     Tab<ResourceStatData> statBuffer;
 
@@ -520,6 +618,8 @@ void ResourceManager::printStats(bool list_resources, bool allocator_info)
 #if D3D_HAS_RAY_TRACING
     resPool<RaytraceAccelerationStructure>().iterateAllocated(statPrintCb);
 #endif
+    resPool<SamplerResource>().iterateAllocated(statPrintCb);
+    resPool<MemoryHeapResource>().iterateAllocated(statPrintCb);
 
     sort(statBuffer, &resourceStatSizeSort);
     for (ResourceStatData &i : statBuffer)
@@ -600,14 +700,14 @@ const AbstractAllocator::Stats ResourceManager::MethodsArray::printStats()
   for (int i = 0; i < (int)AllocationMethodName::COUNT; ++i)
   {
     AbstractAllocator::Stats st = methods[i]->getStats();
-    if (st.allocs)
+    if (st.allocs || st.vkAllocs)
     {
       debug("vulkan: RMS|    Method %02i", i);
       st.print(st.name, true);
       ret.add(st);
     }
   }
-  if (ret.allocs)
+  if (ret.allocs || ret.vkAllocs)
     ret.print("Memory type summary");
   return ret;
 }

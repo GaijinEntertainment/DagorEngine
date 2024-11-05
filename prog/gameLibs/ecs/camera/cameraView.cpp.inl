@@ -1,6 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ecs/camera/getActiveCameraSetup.h>
 #include <ecs/core/entityManager.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
 #include <math/dag_mathBase.h>
 #include <math/dag_mathUtils.h>
@@ -135,15 +140,9 @@ TMatrix calc_camera_view_tm(const TMatrix &view_itm)
   return orthonormalized_inverse(view_itm);
 }
 
-Driver3dPerspective calc_camera_perspective(const CameraSetup &camera_setup, int view_w, int view_h)
+HorVerFov calc_hor_ver_fov(const float fov_degree, const FovMode mode, const int view_w, const int view_h)
 {
-  Driver3dPerspective persp;
-  persp.zn = camera_setup.znear;
-  persp.zf = camera_setup.zfar;
-  persp.ox = 0;
-  persp.oy = 0;
-
-  float fovInTan = deg_to_fov(camera_setup.fov);
+  float fovInTan = deg_to_fov(fov_degree);
 
   // we specify fov in horizontal axis, by 16:9 normalization
   // so we need to renormalize it to vert fov first and then
@@ -152,15 +151,37 @@ Driver3dPerspective calc_camera_perspective(const CameraSetup &camera_setup, int
   // inverse division too
   float verFov = fovInTan * 16.f / 9.f;
   float horFov = fovInTan;
-  if (camera_setup.fovMode == EFM_HOR_PLUS)
+  if (mode == EFM_HOR_PLUS)
     horFov = verFov * view_h / view_w;
-  else if (camera_setup.fovMode == EFM_HYBRID)
+  else if (mode == EFM_HYBRID)
   {
     if (float(view_w) / float(view_h) < 16.f / 9.f) // if it's less wide than 16:9 then we do ver+
       verFov = fovInTan * view_w / view_h;
     horFov = verFov * view_h / view_w;
   }
 
+  HorVerFov res;
+  res.horFov = horFov;
+  res.verFov = verFov;
+
+  return res;
+}
+
+Driver3dPerspective calc_camera_perspective(const CameraSetup &camera_setup, int view_w, int view_h)
+{
+  return calc_camera_perspective(camera_setup.fov, camera_setup.fovMode, camera_setup.znear, camera_setup.zfar, view_w, view_h);
+}
+
+Driver3dPerspective calc_camera_perspective(const float fov_degree, const FovMode fov_mode, const float z_near, const float z_far,
+  int view_w, int view_h)
+{
+  const auto [horFov, verFov] = calc_hor_ver_fov(fov_degree, fov_mode, view_w, view_h);
+
+  Driver3dPerspective persp;
+  persp.zn = z_near;
+  persp.zf = z_far;
+  persp.ox = 0;
+  persp.oy = 0;
   persp.wk = horFov;
   persp.hk = verFov;
   return persp;

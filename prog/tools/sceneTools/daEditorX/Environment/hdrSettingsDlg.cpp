@@ -1,8 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hdrSettingsDlg.h"
 
 #include <oldEditor/de_interface.h>
 #include <ioSys/dag_dataBlock.h>
 #include <oldEditor/de_workspace.h>
+#include <propPanel/commonWindow/dialogWindow.h>
+#include <propPanel/control/container.h>
 #include <de3_interface.h>
 
 
@@ -31,9 +35,9 @@ HdrViewSettingsDialog::HdrViewSettingsDialog(DataBlock *hdr_blk, bool if_aces_pl
     DAEDITOR3.conError("cannot read <%s>", DAGORED2->getWorkspace().getAppPath());
   const DataBlock &blk = *app_blk.getBlockByNameEx("hdr_mode");
 
-  PropPanel2 *panel = dlg->getPanel();
+  PropPanel::ContainerPropertyControl *panel = dlg->getPanel();
 
-  PropertyContainerControlBase *radio = panel->createRadioGroup(HDR_RADIO_GROUP, "HDR mode:");
+  PropPanel::ContainerPropertyControl *radio = panel->createRadioGroup(HDR_RADIO_GROUP, "HDR mode:");
   radio->createRadio(HDR_RADIO_NONE, "None");
   radio->createRadio(HDR_RADIO_FAKE, "Fake", blk.getBool("fake", false));
   radio->createRadio(HDR_RADIO_REAL, "Real", blk.getBool("real", false));
@@ -64,10 +68,10 @@ int HdrViewSettingsDialog::showDialog()
   G_ASSERT(dlg);
   int res = dlg->showDialog();
 
-  if (res == DIALOG_ID_OK)
+  if (res == PropPanel::DIALOG_ID_OK)
   {
     // Write local gameparams.
-    PropPanel2 *panel = dlg->getPanel();
+    PropPanel::ContainerPropertyControl *panel = dlg->getPanel();
 
     int radio_cur = panel->getInt(HDR_RADIO_GROUP);
     String hdrMode("none");

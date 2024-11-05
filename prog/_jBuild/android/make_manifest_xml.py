@@ -1,26 +1,45 @@
 import os, argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('ARG_SRC_XML')#1
-parser.add_argument('ARG_DST_XML')#2
-parser.add_argument('ARG_LIB')#3
-parser.add_argument('ARG_PROJ_DOMAIN')#4
-parser.add_argument('ARG_SCR_ORI')#5
-parser.add_argument('ARG_TGT_SDK')#6
-parser.add_argument('ARG_MIN_SDK')#7
-parser.add_argument('ARG_MAIN_ACT')#8
-parser.add_argument('ARG_TYPE')#9
-parser.add_argument('ARG_VER_CODE')#10
-parser.add_argument('ARG_VER_NAME')#11
-parser.add_argument('ARG_STATE_NOT_NEED')#12
-parser.add_argument('ARG_VR_DEVICE_SUPPORT')#13
-parser.add_argument('GMS_APP_ID')#14
-parser.add_argument('OCULUS_VERSION')#15
-parser.add_argument('ANDROID_APP_ATTR', nargs='+')#16
+parser.add_argument('--input')
+parser.add_argument('--output')
+parser.add_argument('--lib')
+parser.add_argument('--domain')
+parser.add_argument('--screenOrientation')
+parser.add_argument('--targetSdk')
+parser.add_argument('--minSdk')
+parser.add_argument('--mainActivity')
+parser.add_argument('--type')
+parser.add_argument('--versionCode')
+parser.add_argument('--versionName')
+parser.add_argument('--stateNotNeed')
+parser.add_argument('--vrSupport')
+parser.add_argument('--gmsAppId')
+parser.add_argument('--oculusVersion')
+parser.add_argument('--applicationAttribures', nargs='+', default=[])
+parser.add_argument('--userPermissions', nargs='+', default=[])
+
 
 args = parser.parse_args()
+args.ARG_SRC_XML = args.input
+args.ARG_DST_XML = args.output
+args.ARG_LIB = args.lib
+args.ARG_PROJ_DOMAIN = args.domain
+args.ARG_SCR_ORI = args.screenOrientation
+args.ARG_TGT_SDK = args.targetSdk
+args.ARG_MIN_SDK = args.minSdk
+args.ARG_MAIN_ACT = args.mainActivity
+args.ARG_TYPE = args.type
+args.ARG_VER_CODE = args.versionCode
+args.ARG_VER_NAME = args.versionName
+args.ARG_STATE_NOT_NEED = args.stateNotNeed
+args.ARG_VR_DEVICE_SUPPORT = args.vrSupport
+args.GMS_APP_ID = args.gmsAppId
+args.OCULUS_VERSION = args.oculusVersion
+args.ANDROID_APP_ATTR = args.applicationAttribures
 
-tmp = args.ANDROID_APP_ATTR[0].split(' ')
+
+tmp = args.ANDROID_APP_ATTR
 for i in range(len(tmp)):
   if(tmp[i] == ''):
     continue
@@ -65,6 +84,7 @@ for f in os.listdir(os.path.dirname(args.ARG_DST_XML)):
     full_path = os.path.join(os.path.dirname(args.ARG_DST_XML), f)
     ANDROID_ACTIVITIES += '\n' + open(full_path, 'r').read()
 
+USER_PERMISSIONS = ''.join([f'<uses-permission android:name="{p}"/>' for p in args.userPermissions])
 
 origin = open(args.ARG_SRC_XML, 'r')
 content = origin.readlines()
@@ -86,7 +106,8 @@ for i in range(len(content)):
     ANDROID_APP_ATTR=ANDROID_APP_ATTR,
     GMS_APP_ID=args.GMS_APP_ID,
     OCULUS_VERSION=args.OCULUS_VERSION,
-    ANDROID_ACTIVITIES=ANDROID_ACTIVITIES
+    ANDROID_ACTIVITIES=ANDROID_ACTIVITIES,
+    USER_PERMISSIONS=USER_PERMISSIONS
     )
 
 output = open(str(args.ARG_DST_XML), 'w+')

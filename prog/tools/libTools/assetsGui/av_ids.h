@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 namespace AssetsGuiIds
@@ -6,12 +7,10 @@ namespace AssetsGuiIds
 enum
 {
   TabPanel = 1,
+  CustomControlHolder,
   AllPage,
-  AssetBaseViewPlaceholder,
   FavoritesPage,
-  FavoritesTreePlaceholder,
   RecentlyUsedPage,
-  RecentlyUsedTreePlaceholder,
 
   AddToFavoritesMenuItem,
   RemoveFromFavoritesMenuItem,
@@ -21,6 +20,8 @@ enum
   CopyAssetFolderPathMenuItem,
   CopyAssetNameMenuItem,
   RevealInExplorerMenuItem,
+  ExpandChildrenMenuItem,
+  CollapseChildrenMenuItem,
 };
 
 }

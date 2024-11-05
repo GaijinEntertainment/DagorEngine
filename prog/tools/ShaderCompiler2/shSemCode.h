@@ -1,24 +1,27 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 /************************************************************************
   shader semantic code
 /************************************************************************/
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef __SHSEMCODE_H
-#define __SHSEMCODE_H
 
 #include <util/dag_globDef.h>
 #include <generic/dag_tab.h>
 #include "const3d.h"
-#include <3d/dag_renderStates.h>
+#include <drv/3d/dag_renderStates.h>
 
 #include <shaders/dag_shaderCommon.h>
 #include "shaderVariant.h"
 #include "shcode.h"
+#include "cppStcodeAssembly.h"
 #include "shLocVar.h"
 #include "shaderVariantSrc.h"
 #include "shaderTab.h"
 #include "varMap.h"
 #include <memory/dag_regionMemAlloc.h>
 #include <EASTL/optional.h>
+
+#include <osApiWrappers/dag_stackHlp.h>
 
 #define codemem tmpmem
 
@@ -32,6 +35,8 @@ public:
 
   int flags;
   int renderStageIdx;
+
+  StcodeRegisters staticVarRegs;
 
   struct Var
   {
@@ -69,7 +74,12 @@ public:
     dag::ConstSpan<unsigned> hs, ds, gs;
     dag::ConstSpan<unsigned> cs;
     dag::ConstSpan<int> stcode, stblkcode;
+    bool enableFp16 = false;
+    bool scarlettWave32 = false;
     eastl::array<uint16_t, 3> threadGroupSizes = {};
+
+    StcodeRoutine cppStcode = StcodeRoutine(StcodeRoutine::Type::DYNSTCODE);
+    StcodeRoutine cppStblkcode = StcodeRoutine(StcodeRoutine::Type::STBLKCODE);
 
     void setCidx(int sh_profile, int c1, int c2, int c3)
     {
@@ -98,7 +108,7 @@ public:
       if ((void *)intptr_t(c1) != p || (c1 & 0xF) != 3)
       {
         if (verify)
-          sh_debug(SHLOG_ERROR, "Packed indexes are corrupted: p=%p, c1=%i, cnt=%i, profile=%c", p, c1, cnt, sh_profile);
+          sh_debug(SHLOG_ERROR, "Packed indices are corrupted: p=%p, c1=%i, cnt=%i, profile=%c", p, c1, cnt, sh_profile);
         return false;
       }
       c1 = c1 >> 4;
@@ -126,8 +136,8 @@ public:
       }
     }
 
-    using BlendFactors = eastl::array<int8_t, shaders::RenderState::NumIndependentBlendParameters>;
-    BlendFactors blend_src, blend_dst, blend_asrc, blend_adst;
+    using BlendValues = eastl::array<int8_t, shaders::RenderState::NumIndependentBlendParameters>;
+    BlendValues blend_src, blend_dst, blend_asrc, blend_adst, blend_op, blend_aop;
 
     int cull_mode, alpha_to_coverage, view_instances, z_write, atest_val, fog_color;
     int color_write, z_test, atest_func;
@@ -173,6 +183,8 @@ public:
       eastl::fill(blend_dst.begin(), blend_dst.end(), -1);
       eastl::fill(blend_asrc.begin(), blend_asrc.end(), -1);
       eastl::fill(blend_adst.begin(), blend_adst.end(), -1);
+      eastl::fill(blend_op.begin(), blend_op.end(), BLENDOP_ADD);
+      eastl::fill(blend_aop.begin(), blend_aop.end(), BLENDOP_ADD);
     }
 
     void push_stcode(int a) { curStcode.push_back(a); }
@@ -195,6 +207,7 @@ public:
         append_stblkcode(c);
     }
     Tab<int> &get_alt_curstcode(bool dyn) { return dyn ? curStcode : curStblkcode; }
+    StcodeRoutine &get_alt_curcppcode(bool dyn) { return dyn ? curCppStcode : curCppStblkcode; }
 
     void finish_pass(bool accept);
     void reset_code();
@@ -205,6 +218,8 @@ public:
   private:
     static Tab<int> curStcode, curStblkcode;
     static dag::ConstSpan<int> find_shared_stcode(Tab<int> &code, bool dyn);
+
+    static StcodeRoutine curCppStcode, curCppStblkcode;
   };
 
   // for each variant create it's own passes
@@ -240,15 +255,13 @@ public:
   const char *equal(ShaderSemCode &, bool compare_passes);
   void dump();
 
-  ShaderCode *generateShaderCode(const ShaderVariant::VariantTableSrc &dynVariants) const;
+  ShaderCode *generateShaderCode(const ShaderVariant::VariantTableSrc &dynVariants, StcodeShader &cppcode);
 
 private:
-  void convert_passes(ShaderSemCode::Pass &semP, ShaderCode::Pass &p, Tab<int> &cvar) const;
-  void convert_stcode(dag::Span<int> cod, Tab<int> &cvar) const;
+  void convert_passes(ShaderSemCode::Pass &semP, ShaderCode::Pass &p, Tab<int> &cvar, StcodeShader &cppcode);
+  static void convert_stcode(dag::Span<int> cod, Tab<int> &cvar, StcodeRegisters &static_regs);
 };
 
 #undef codemem
 
 void clear_shared_stcode_cache();
-
-#endif //__SHSEMCODE_H

@@ -1,0 +1,1 @@
+include %daslib/lint_everything.das

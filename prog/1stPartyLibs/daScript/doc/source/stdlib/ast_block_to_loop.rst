@@ -17,11 +17,11 @@ All functions and symbols are in "ast_block_to_loop" module, use require to get 
 Block to loop conversion
 ++++++++++++++++++++++++
 
-  *  :ref:`convert_block_to_loop (blk:smart_ptr\<ast::Expression\> -const;failOnReturn:bool const;replaceReturnWithContinue:bool const;requireContinueCond:bool const) : void <function-_at_ast_block_to_loop_c__c_convert_block_to_loop_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_Cb_Cb_Cb>` 
+  *  :ref:`convert_block_to_loop (blk:smart_ptr\<ast::Expression\> -const;failOnReturn:bool const;replaceReturnWithContinue:bool const;requireContinueCond:bool const) : void <function-_at_ast_block_to_loop_c__c_convert_block_to_loop_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_Cb_Cb_Cb>` 
 
-.. _function-_at_ast_block_to_loop_c__c_convert_block_to_loop_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_Cb_Cb_Cb:
+.. _function-_at_ast_block_to_loop_c__c_convert_block_to_loop_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_Cb_Cb_Cb:
 
-.. das:function:: convert_block_to_loop(blk: smart_ptr<ast::Expression>; failOnReturn: bool const; replaceReturnWithContinue: bool const; requireContinueCond: bool const)
+.. das:function:: convert_block_to_loop(blk: smart_ptr<Expression>; failOnReturn: bool const; replaceReturnWithContinue: bool const; requireContinueCond: bool const)
 
 +-------------------------+-----------------------------------------------------------+
 +argument                 +argument type                                              +

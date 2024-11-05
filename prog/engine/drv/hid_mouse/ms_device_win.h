@@ -1,9 +1,7 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef _GAIJIN_DRV_HID_MOUSE_MS_DEVICE_WIN_H
-#define _GAIJIN_DRV_HID_MOUSE_MS_DEVICE_WIN_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <humanInput/dag_hiPointing.h>
+#include <drv/hid/dag_hiPointing.h>
 #include <osApiWrappers/dag_wndProcComponent.h>
 #include "ms_device_common.h"
 #include "api_wrappers.h"
@@ -63,5 +61,3 @@ private:
 #endif
 };
 } // namespace HumanInput
-
-#endif

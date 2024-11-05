@@ -1,0 +1,26 @@
+//this is stub for native module for csq (console squirrel intepreter)
+return {
+  has_network = @() true
+  is_server = @() true
+  get_sync_time = @() 0
+  add_entity_in_net_scope = @(eid, connid) assert(type(eid)=="integer" && ["integer","null"].find(type(connid)) != null)
+  get_user_id = @() 0
+  get_dasevent_net_version = @() 0
+  get_replay_proto_version = @(_version) 0
+  INVALID_CONNECTION_ID = -1
+  NET_PROTO_VERSION = 0
+  DC_CONNECTION_CLOSED = "DC_CONNECTION_CLOSED",
+  DC_CONNECTION_LOST = "DC_CONNECTION_LOST",
+  DC_CONNECTTION_ATTEMPT_FAILED = "DC_CONNECTTION_ATTEMPT_FAILED",
+  DC_NET_PROTO_MISMATCH = "DC_NET_PROTO_MISMATCH",
+  DC_SERVER_FULL = "DC_SERVER_FULL",
+  DC_CONNECTION_STOPPED = "DC_CONNECTION_STOPPED",
+  DC_KICK_GENERIC = "DC_KICK_GENERIC",
+  DC_KICK_INACTIVITY = "DC_KICK_INACTIVITY",
+  DC_KICK_ANTICHEAT = "DC_KICK_ANTICHEAT",
+  DC_KICK_FRIENDLY_FIRE = "DC_KICK_FRIENDLY_FIRE",
+  DC_KICK_VOTE = "DC_KICK_VOTE"
+  EventOnNetworkDestroyed = class {name = "EventOnNetworkDestroyed"}
+  EventOnConnectedToServer = class {name = "EventOnConnectedToServer"}
+  EventOnDisconnectedFromServer = class {name = "EventOnDisconnectedFromServer"}
+}

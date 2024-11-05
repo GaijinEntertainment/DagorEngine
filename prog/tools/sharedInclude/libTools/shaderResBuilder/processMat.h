@@ -1,5 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <generic/dag_tab.h>
 #include <generic/dag_ptrTab.h>
@@ -34,5 +34,13 @@ struct GenericTexSubstProcessMaterialData : public IProcessMaterialData
 
 String detect_proxymat_classname(const char *mat_classname);
 String make_mat_script_from_props(const DataBlock &mat_props);
+const char *replace_asset_name(const char *mat_tex, String &tmp_stor, const char *a_name);
 void override_material_with_props(MaterialData &mat, const DataBlock &mat_props, const char *a_name);
 void override_materials(PtrTab<MaterialData> &mat_list, const DataBlock &material_overrides, const char *a_name);
+
+// Gets the name of the texture assets that a proxy material uses.
+// proxymat_props: properties of the the proxy material
+// owner_asset_name: name of the owner asset (for example a rendInst) that uses the proxy material.
+//   Proxy materials can have texture references like this: "$(ASSET_NAME)_pivot_pos.dds", owner_asset_name is used in those.
+// asset_names: output containing the referred texture asset names
+void get_textures_used_by_proxymat(const DataBlock &proxymat_props, const char *owner_asset_name, dag::Vector<String> &asset_names);

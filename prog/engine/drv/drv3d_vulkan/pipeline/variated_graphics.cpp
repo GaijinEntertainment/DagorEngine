@@ -1,4 +1,15 @@
-#include "device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include "variated_graphics.h"
+
+#include <perfMon/dag_statDrv.h>
+
+#include "globals.h"
+#include "pipeline/manager.h"
+#include "backend.h"
+#include "driver_config.h"
+#include "pipeline/compiler.h"
+#include "util/scoped_timer.h"
 
 namespace drv3d_vulkan
 {
@@ -6,7 +17,20 @@ namespace drv3d_vulkan
 template <>
 void VariatedGraphicsPipeline::onDelayedCleanupFinish<VariatedGraphicsPipeline::CLEANUP_DESTROY>()
 {
-  shutdown(get_device().getVkDevice());
+  if (Globals::cfg.bits.compileSeenGrPipelinesUsingSyncCompile && items.empty())
+  {
+#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
+    D3D_ERROR("vulkan: %s graphics pipeline was created but not used, compileSeenGrPipelinesUsingSyncCompile assumes pipelines are "
+              "used in rendering!",
+      String(128, "%s-%s", debugInfo.vs().name, debugInfo.fs().name));
+#else
+    D3D_ERROR("vulkan: %p graphics pipeline was created but not used, compileSeenGrPipelinesUsingSyncCompile assumes pipelines are "
+              "used in rendering!",
+      this);
+#endif
+  }
+
+  shutdown(Globals::VK::dev);
   delete this;
 }
 
@@ -15,7 +39,7 @@ void VariatedGraphicsPipeline::onDelayedCleanupFinish<VariatedGraphicsPipeline::
 using namespace drv3d_vulkan;
 
 GraphicsPipelineVariationStorage::ExtendedVariantDescription &GraphicsPipelineVariationStorage::get(
-  const GraphicsPipelineVariantDescription &dsc, GraphicsPipelineVariantDescription::Hash hash, RenderStateSystem::Backend &rs_backend,
+  const GraphicsPipelineVariantDescription &dsc, GraphicsPipelineVariantDescription::Hash hash, RenderStateSystemBackend &rs_backend,
   RenderPassResource *native_rp)
 {
   const auto itr = eastl::lower_bound(indexArray.begin(), indexArray.end(), eastl::make_pair(hash, 0),
@@ -54,7 +78,7 @@ bool VariatedGraphicsPipeline::pendingCompilation()
 {
   for (const auto &[_, pipeline] : items)
   {
-    if (!pipeline->checkCompiled())
+    if (!pipeline->checkCompiled() && !pipeline->isIgnored())
       return true;
   }
   return false;
@@ -66,9 +90,12 @@ void VariatedGraphicsPipeline::shutdown(VulkanDevice &device)
   {
     if (!pipeline->release())
     {
-      if (!pipeline->checkCompiled())
-        get_device().getContext().getBackend().pipelineCompiler.waitFor(pipeline);
-      pipeline->shutdown(device);
+      if (!pipeline->isIgnored())
+      {
+        if (!pipeline->checkCompiled())
+          Backend::pipelineCompiler.waitFor(pipeline);
+        pipeline->shutdown(device);
+      }
       delete pipeline;
     }
   }
@@ -94,7 +121,7 @@ GraphicsPipeline *VariatedGraphicsPipeline::compileNewVariant(CompilationContext
   auto hash = dsc.getHash();
   auto eDsc = variations.get(dsc, hash, comp_ctx.rsBackend, comp_ctx.nativeRP);
 
-  GraphicsPipeline *ret;
+  GraphicsPipeline *ret = nullptr;
   int64_t compilationTime = 0;
 
   GraphicsPipeline::CreationFeedback crFeedback;
@@ -105,29 +132,55 @@ GraphicsPipeline *VariatedGraphicsPipeline::compileNewVariant(CompilationContext
     if (!items.empty())
       parentPipe = items[0].second;
 
-    bool async = get_device().pipeMan.asyncCompileEnabled();
+    bool allowAsync = Globals::pipelines.asyncCompileEnabledGR() && !seenBefore;
+    bool tryCached = allowAsync && Globals::cfg.bits.compileCachedGrPipelinesUsingSyncCompile && !comp_ctx.nonDrawCompile;
+    bool async = allowAsync && !tryCached;
+
     GraphicsPipelineCompileScratchData localCompileData;
     GraphicsPipelineCompileScratchData *csd = async ? new GraphicsPipelineCompileScratchData() : &localCompileData;
-    memset(csd, 0, sizeof(GraphicsPipelineCompileScratchData));
-    csd->allocated = async;
 
-    csd->varIdx = eDsc.index;
-    csd->varTotal = items.size();
-    csd->progIdx = program.get();
+    auto fillCsd = [&]() {
+      memset(csd, 0, sizeof(GraphicsPipelineCompileScratchData));
+      csd->allocated = async;
+      csd->nonDrawCompile = comp_ctx.nonDrawCompile;
+      csd->failIfNotCached = tryCached;
+
+      csd->varIdx = eDsc.index;
+      csd->varTotal = items.size();
+      csd->progIdx = program.get();
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
-    csd->shortDebugName = String(128, "%s-%s", debugInfo.vs().name, debugInfo.fs().name);
-    csd->fullDebugName = String(512, "vs: %s\nps: %s\nvaridx: %u", debugInfo.vs().debugName, debugInfo.fs().debugName, eDsc.index);
+      csd->shortDebugName = String(128, "%s-%s", debugInfo.vs().name, debugInfo.fs().name);
+      csd->fullDebugName = String(512, "vs: %s\nps: %s\nvaridx: %u", debugInfo.vs().debugName, debugInfo.fs().debugName, eDsc.index);
 #endif
+    };
 
-    ret = new GraphicsPipeline(comp_ctx.dev, comp_ctx.pipeCache, layout,
-      {comp_ctx.passMan, comp_ctx.rsBackend, eDsc.base, eDsc.mask, modules, parentPipe, comp_ctx.nativeRP, csd});
-
-    if (async)
-      get_device().getContext().getBackend().pipelineCompiler.queue(ret);
-    else
+    fillCsd();
+    if (tryCached)
+    {
+      TIME_PROFILE(vulkan_gr_pipeline_compile_cached)
+      ret = new GraphicsPipeline(comp_ctx.dev, comp_ctx.pipeCache, layout,
+        {comp_ctx.rsBackend, eDsc.base, eDsc.mask, modules, parentPipe, comp_ctx.nativeRP, csd});
       ret->compile();
+      if (ret->isIgnored())
+      {
+        delete ret;
+        ret = nullptr;
+        async = true;
+        tryCached = false;
+        csd = new GraphicsPipelineCompileScratchData();
+        fillCsd();
+      }
+    }
 
+    if (!ret)
+      ret = new GraphicsPipeline(comp_ctx.dev, comp_ctx.pipeCache, layout,
+        {comp_ctx.rsBackend, eDsc.base, eDsc.mask, modules, parentPipe, comp_ctx.nativeRP, csd});
     items.push_back(eastl::make_pair(hash, ret));
+
+    if (async && !ret->isIgnored())
+      Backend::pipelineCompiler.queue(ret);
+    else if (!tryCached)
+      ret->compile();
   }
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
   totalCompilationTime += compilationTime;
@@ -155,21 +208,36 @@ GraphicsPipeline *VariatedGraphicsPipeline::getVariant(CompilationContext &comp_
     // apply input mask & related things at compile time only
     // by mapping pipeline with x description to pipeline with y description
     // where x is original and y is resulted masked description
-    ShaderProgramDatabase &spdb = get_shader_program_database();
+    ShaderProgramDatabase &spdb = Globals::shaderProgramDatabase;
 
     GraphicsPipelineVariantDescription modDsc = dsc;
     InputLayout originalLayout = spdb.getInputLayoutFromId(dsc.state.inputLayout);
     InputLayout maskedLayout = originalLayout;
     modDsc.state.maskInputs(layout->registers.vs().header.inputMask, maskedLayout);
 
+    bool layoutsSame = originalLayout.isSame(maskedLayout);
+    bool hasUnusedStrides = false;
+    if (layoutsSame)
+    {
+      for (int i = 0; i < MAX_VERTEX_INPUT_STREAMS; i++)
+        if (dsc.state.strides[i] && !originalLayout.streams.used[i])
+        {
+          hasUnusedStrides = true;
+          break;
+        }
+    }
+
     // masking did not changed layout, no need to map dsc to something
-    if (originalLayout.isSame(maskedLayout))
+    if (layoutsSame && !hasUnusedStrides)
       pipe = compileNewVariant(comp_ctx, dsc);
     else
     {
-      // register/find new input layout
-      // it is fine as input layout does not need registration in execution context
-      modDsc.state.inputLayout = spdb.registerInputLayout(get_device().getContext(), maskedLayout);
+      if (!layoutsSame)
+      {
+        // register/find new input layout
+        // it is fine as input layout does not need registration in execution context
+        modDsc.state.inputLayout = spdb.registerInputLayout(Globals::ctx, maskedLayout);
+      }
 
       pipe = findVariant(modDsc);
       if (!pipe)
@@ -184,7 +252,11 @@ GraphicsPipeline *VariatedGraphicsPipeline::getVariant(CompilationContext &comp_
   }
 
   if (!pipe->checkCompiled())
+  {
+    if (comp_ctx.asyncPipeFeedbackPtr)
+      interlocked_increment(*comp_ctx.asyncPipeFeedbackPtr);
     return nullptr;
+  }
 
   return pipe;
 }

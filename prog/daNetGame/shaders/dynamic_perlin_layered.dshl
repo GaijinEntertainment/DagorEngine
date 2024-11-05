@@ -1,0 +1,95 @@
+include "dynamic_opaque_inc.dshl"
+include "gbuffer.dshl"
+include "normaldetail.dshl"
+include "perlin_layered_inc.dshl"
+include "random_color.dshl"
+
+
+shader dynamic_perlin_layered
+{
+  ENABLE_ASSERT(ps)
+  DYNAMIC_BLOCK()
+  INIT_PERLIN_LAYERED()
+  INIT_RANDOMIZED_TC(vs)
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    hlsl {
+      #define MOTION_VECTORS_ENABLED
+    }
+  }
+
+  SETUP_CHARACTER_MICRODETAIL()
+  INIT_PAINT_DETAILS_STATIC()
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    USE_PAINT_DETAILS()
+    USE_MICRODETAIL_BASED_WETNESS()
+    USE_RANDOMIZED_TC(vs)
+    hlsl {
+      #define COLOR_NEEDED 1
+      #define DYNAMIC_SIMPLE_CUSTOM_VSOUTPUT 1
+      #define NEED_TC 1
+      #define USE_INITIAL_POS 1
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+        float2 diffuseTexcoord                  : TEXCOORD0;
+        nointerpolation float3 colorMul         : TEXCOORD1;
+        float3 initPos                          : TEXCOORD2;
+        float4 pointToEye                       : TEXCOORD3;
+        float3 normal                           : TEXCOORD4;
+        #ifdef MOTION_VECTORS_ENABLED
+        float4 out_pos                          : TEXCOORD5;
+        float4 out_pos_prev                     : TEXCOORD6;
+        #endif
+      };
+    }
+  }
+
+  DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+  hlsl(vs) {
+    void vs_post_function(VsInput input, inout VsOutput output)
+    {
+      #if COLOR_NEEDED
+        float4 initialTm0;
+        float4 initialTm1;
+        float4 initialTm2;
+        float4 hashval;
+        get_per_instance_data(hashval, 1);
+        output.colorMul = getColorMul(asuint(hashval.x));
+        ##if in_editor_assume == yes
+          initialTm0 = float4(1, 0, 0, 0);
+          initialTm1 = float4(0, 1, 0, 0);
+          initialTm2 = float4(0, 0, 1, 0);
+        ##else
+          get_per_instance_data(initialTm2, 2);
+          get_per_instance_data(initialTm1, 3);
+          get_per_instance_data(initialTm0, 4);
+        ##endif
+        float3 localPos = float3(dot(initialTm0, float4(input.pos, 1)), dot(initialTm1, float4(input.pos, 1)), dot(initialTm2, float4(input.pos, 1)));
+        output.pointToEye.w = localPos.y - initialTm1.w;
+        output.initPos = localPos;
+      #endif
+    }
+  }
+  DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
+
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    if (in_editor_assume == no) { NO_DYNSTCODE() }
+    SPECIAL_RENDER_NOALPHATEST()
+  }
+  else
+  {
+    (ps) { perlin_noise3d@smp3d = perlin_noise3d; }//todo: better move to block
+    USE_PERLIN_LAYERED(ps)
+    hlsl(ps) {
+      #define IS_DYNAMIC 1
+    }
+    PERLIN_LAYERED_PS(true, false)
+  }
+}

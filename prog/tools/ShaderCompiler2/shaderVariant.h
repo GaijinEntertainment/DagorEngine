@@ -1,5 +1,5 @@
-#ifndef __SHADERVARIANT_H
-#define __SHADERVARIANT_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #include "intervals.h"
 #include "shaderSave.h"
@@ -270,5 +270,3 @@ private:
   BINDUMP_NON_SERIALIZABLE(mutable int cachedIndex);
 };
 } // namespace ShaderVariant
-
-#endif //__SHADERVARIANT_H

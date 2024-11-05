@@ -79,14 +79,12 @@ hlsl {
 #define gamma_to_linear(a) a
 #define gamma_to_linear_rgba(a) a
 }
-macro USE_HDR_SH()
+
+macro INIT_HDR(code)
 endmacro
 
-macro INIT_HDR_STCODE()
-endmacro
-
-macro USE_HDR_PS()
-  hlsl(ps) {
+macro USE_HDR(code)
+  hlsl(code) {
     half3 pack_hdr(half3 a) {return a;}
     half3 unpack_hdr(half3 a) {return a;}
   }

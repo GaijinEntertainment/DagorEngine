@@ -8,7 +8,6 @@
 #include <EASTL/string.h>
 #include <EASTL/deque.h>
 #include <EASTL/memory.h>
-//#include <EASTL/vector.h>
 #include <EASTL/type_traits.h>
 #include <EASTL/initializer_list.h>
 #include <EASTL/functional.h>
@@ -18,17 +17,17 @@
 #include <debug/dag_assert.h>
 #include <debug/dag_fatal.h>
 #include <debug/dag_log.h>
-#include <functional>
 #include <cstddef>
 #include <stddef.h>
 #include <setjmp.h>
-#include <algorithm>
 #include <atomic>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
-#include <queue>
-#include <sstream>
+#include <iosfwd>
+#ifdef _MSC_VER
+#include <malloc.h>
+#endif
 
 namespace das
 {
@@ -47,7 +46,7 @@ namespace das
   using std::unique_lock;
   using std::atomic;
   using std::stringstream;
-  using std::queue; // error C2039: 'emplace': is not a member of 'eastl::queue<das::Feature,eastl::deque<T,eastl::allocator,16>>'
+  using eastl::deque;
   using eastl::max;
   using eastl::min;
   namespace this_thread
@@ -68,6 +67,8 @@ namespace das
 #define DAS_SMART_PTR_TRACKER 0
 
 #define DAS_NO_GLOBAL_NEW_AND_DELETE 1
+
+#define DAS_FAST_INTEGER_MOD 0 // fast-math does not work with integer mod
 
 #define DAS_ASSERT G_ASSERT
 #define DAS_ASSERTF G_ASSERTF

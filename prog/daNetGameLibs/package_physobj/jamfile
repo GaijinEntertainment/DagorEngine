@@ -1,0 +1,31 @@
+ModuleDependsOnVars = HaveRenderer PhysName ;
+HaveRenderer ?= yes ;
+
+Module = package_physobj ;
+Root    ?= ../../.. ;
+Location = prog/daNetGameLibs/$(Module) ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+  $(Root)/prog/daNetGameLibs
+  $(Root)/prog/1stPartyLibs/daScript/include
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+  $(Root)/prog/1stPartyLibs/rapidJsonUtils/include
+  $(Root)/prog/3rdPartyLibs/libb64/include
+;
+UseProgLibs =
+  gameLibs/gamePhys/phys/physObj
+;
+
+local AllSrcFolder_CPP = . dasModules ;
+local AllSrcFolder_ES = . ;
+
+AddPullVars += turretControl ;
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_CPP += render ;
+  AllSrcFolder_ES += render ;
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

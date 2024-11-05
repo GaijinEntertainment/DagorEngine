@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -22,6 +21,7 @@
 #include <math/dag_interpolator.h>
 #include <math/dag_frustum.h>
 #include <math/dag_rayIntersectSphere.h>
+#include <math/dag_polyUtils.h>
 #include <vecmath/dag_vecMathDecl.h>
 #include <gameMath/interpolateTabUtils.h>
 
@@ -143,6 +143,7 @@ inline void bbox3_add_point(BBox3 &box, das::float3 point) { box += reinterpret_
 inline void bbox3_add_bbox3(BBox3 &box, const BBox3 &add) { box += add; }
 inline void bbox3_inflate(BBox3 &box, float val) { box.inflate(val); }
 inline void bbox3_inflateXZ(BBox3 &box, float val) { box.inflateXZ(val); }
+inline void bbox3_scale(BBox3 &box, float val) { box.scale(val); }
 inline bool bbox3_intersect_point(const BBox3 &box, das::float3 pos) { return box & reinterpret_cast<Point3 &>(pos); }
 inline bool bbox3_intersect_bbox3(const BBox3 &box1, const BBox3 &box2) { return box1 & box2; }
 inline bool bbox3_intersect_bsphere(const BBox3 &box, const BSphere3 &sphere) { return box & sphere; }
@@ -150,6 +151,11 @@ inline BBox3 make_empty_bbox3() { return BBox3(); }
 inline BBox3 make_bbox3(das::float3 min, das::float3 max)
 {
   return BBox3(reinterpret_cast<Point3 &>(min), reinterpret_cast<Point3 &>(max));
+}
+inline BBox2 make_empty_bbox2() { return BBox2(); }
+inline BBox2 make_bbox2(das::float2 min, das::float2 max)
+{
+  return BBox2(reinterpret_cast<Point2 &>(min), reinterpret_cast<Point2 &>(max));
 }
 inline bool bsphere_intersect_bsphere(const BSphere3 &sphere1, const BSphere3 &sphere2) { return sphere1 & sphere2; }
 inline BBox3 make_bbox_from_bsphere(const BSphere3 &sphere) { return BBox3(sphere); }
@@ -291,7 +297,7 @@ inline int v_test_segment_box_intersection(das::float3 start, das::float3 end, b
 inline void read_interpolate_tab_as_params(InterpolateTabFloat &tab, const DataBlock &blk,
   const das::TBlock<bool, DataBlock &, int, float, float> &block, das::Context *context, das::LineInfoArg *at)
 {
-  ::read_interpolate_tab_as_params(tab, &blk, [&](const DataBlock *, int i, float x, float y) -> bool {
+  ::read_interpolate_tab_as_params(tab, blk, [&](const DataBlock &, int i, float x, float y) -> bool {
     vec4f args[] = {das::cast<DataBlock &>::from(blk), das::cast<int>::from(i), das::cast<float>::from(x), das::cast<float>::from(y)};
     return das::cast<bool>::to(context->invoke(block, args, nullptr, at));
   });
@@ -299,8 +305,8 @@ inline void read_interpolate_tab_as_params(InterpolateTabFloat &tab, const DataB
 
 inline void read_interpolate_tab_float_p2(InterpolateTabFloat &tab, const DataBlock &blk)
 {
-  ::read_interpolate_tab_as_params(tab, &blk, [](const DataBlock *blk, int i, float &x, float &y) -> bool {
-    Point2 p = blk->getPoint2(i);
+  ::read_interpolate_tab_as_params(tab, blk, [](const DataBlock &blk, int i, float &x, float &y) -> bool {
+    Point2 p = blk.getPoint2(i);
     x = p.x;
     y = p.y;
     return true;
@@ -308,5 +314,20 @@ inline void read_interpolate_tab_float_p2(InterpolateTabFloat &tab, const DataBl
 }
 
 inline float noise2(das::float2 input) { return perlin_noise::noise2(Point2::xy(input)); }
+
+inline void triangulate_poly(const das::TArray<Point2> &points, const das::TBlock<void, IPoint3> &block, das::Context *context,
+  das::LineInfoArg *at)
+{
+  if (points.size > 2) // min 3 points in polygon
+  {
+    IndicesTab indices;
+    ::triangulate_poly(dag::ConstSpan<Point2>(&points[0], points.size), indices);
+    for (int i = 0; i < indices.size(); i += 3) // ::triangulate_poly guarantees three indexes per poly
+    {
+      vec4f args[] = {das::cast<IPoint3>::from(IPoint3(indices[i], indices[i + 1], indices[i + 2]))};
+      context->invoke(block, args, nullptr, at);
+    }
+  }
+}
 
 } // namespace bind_dascript

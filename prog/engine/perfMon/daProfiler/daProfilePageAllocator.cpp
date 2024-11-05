@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "daProfilerDefines.h"
 #if _TARGET_PC_WIN | _TARGET_XBOX
 #include <windows.h>

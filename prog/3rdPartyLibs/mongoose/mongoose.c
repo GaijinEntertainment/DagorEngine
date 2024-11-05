@@ -477,6 +477,8 @@ static const char *config_options[] = {
 
 struct mg_context {
   volatile int stop_flag;         // Should we stop event loop
+  pthread_cond_t stop_flag_signal;
+
   SSL_CTX *ssl_ctx;               // SSL context
   char *config[NUM_OPTIONS];      // Mongoose configuration parameters
   struct mg_callbacks callbacks;  // User-defined callback function
@@ -956,6 +958,25 @@ static void send_http_error(struct mg_connection *conn, int status,
             suggest_connection_header(conn));
   conn->num_bytes_sent += mg_printf(conn, "%s", buf);
 }
+
+
+inline static int interlocked_load(volatile const int *iptr)
+{
+#ifdef _MSC_VER
+  return *iptr;
+#else
+  return __atomic_load_n(iptr, __ATOMIC_ACQUIRE);
+#endif
+}
+inline static void interlocked_store(volatile int *iptr, int val)
+{
+#ifdef _MSC_VER
+  *iptr = val;
+#else
+  __atomic_store_n(iptr, val, __ATOMIC_RELEASE);
+#endif
+}
+
 
 #if defined(_WIN32) && !defined(__SYMBIAN32__)
 static int pthread_mutex_init(pthread_mutex_t *mutex, void *unused) {
@@ -1538,7 +1559,7 @@ static int pull(FILE *fp, struct mg_connection *conn, char *buf, int len) {
     nread = recv(conn->client.sock, buf, (size_t) len, 0);
   }
 
-  return conn->ctx->stop_flag ? -1 : nread;
+  return interlocked_load(&conn->ctx->stop_flag) ? -1 : nread;
 }
 
 int mg_read(struct mg_connection *conn, void *buf, size_t len) {
@@ -1603,7 +1624,7 @@ int mg_write(struct mg_connection *conn, const void *buf, size_t len) {
                       (int64_t) allowed)) == allowed) {
       buf = (char *) buf + total;
       conn->last_throttle_bytes += total;
-      while (total < (int64_t) len && conn->ctx->stop_flag == 0) {
+      while (total < (int64_t) len && interlocked_load(&conn->ctx->stop_flag) == 0) {
         allowed = conn->throttle > (int64_t) len - total ?
           (int64_t) len - total : conn->throttle;
         if ((n = push(NULL, conn->client.sock, conn->ssl, (const char *) buf,
@@ -4948,7 +4969,7 @@ static void process_new_connection(struct mg_connection *conn) {
     assert(conn->data_len >= 0);
     assert(conn->data_len <= conn->buf_size);
 
-  } while (conn->ctx->stop_flag == 0 &&
+  } while (interlocked_load(&conn->ctx->stop_flag) == 0 &&
            keep_alive_enabled &&
            conn->content_len >= 0 &&
            keep_alive);
@@ -4960,7 +4981,7 @@ static int consume_socket(struct mg_context *ctx, struct socket *sp) {
   DEBUG_TRACE(("going idle"));
 
   // If the queue is empty, wait. We're idle at this point.
-  while (ctx->sq_head == ctx->sq_tail && ctx->stop_flag == 0) {
+  while (ctx->sq_head == ctx->sq_tail && interlocked_load(&ctx->stop_flag) == 0) {
     pthread_cond_wait(&ctx->sq_full, &ctx->mutex);
   }
 
@@ -4981,7 +5002,7 @@ static int consume_socket(struct mg_context *ctx, struct socket *sp) {
   (void) pthread_cond_signal(&ctx->sq_empty);
   (void) pthread_mutex_unlock(&ctx->mutex);
 
-  return !ctx->stop_flag;
+  return !interlocked_load(&ctx->stop_flag);
 }
 
 static void *worker_thread(void *thread_func_param) {
@@ -5131,8 +5152,11 @@ static void *async_send_thread(void *thread_func_param) {
 
     pthread_cond_wait(&ctx->async_send_cond, &ctx->resp_conn_queue_mutex);
 
-    if (ctx->stop_flag)
+    if (interlocked_load(&ctx->stop_flag) != 0)
+    {
+      (void) pthread_mutex_unlock(&ctx->resp_conn_queue_mutex);
       break;
+    }
 
     memcpy(conns_out, ctx->response_connections, ctx->num_resp_conn*sizeof(struct mg_connection*));
     num_out = ctx->num_resp_conn;
@@ -5233,7 +5257,7 @@ static void produce_socket(struct mg_context *ctx, const struct socket *sp) {
   (void) pthread_mutex_lock(&ctx->mutex);
 
   // If the queue is full, wait
-  while (ctx->stop_flag == 0 &&
+  while (interlocked_load(&ctx->stop_flag) == 0 &&
          ctx->sq_head - ctx->sq_tail >= (int) ARRAY_SIZE(ctx->queue)) {
     (void) pthread_cond_wait(&ctx->sq_empty, &ctx->mutex);
   }
@@ -5310,7 +5334,7 @@ static void *master_thread(void *thread_func_param) {
 #endif
 
   pfd = calloc(ctx->num_listening_sockets, sizeof(pfd[0]));
-  while (ctx->stop_flag == 0) {
+  while (interlocked_load(&ctx->stop_flag) == 0) {
     for (i = 0; i < ctx->num_listening_sockets; i++) {
       pfd[i].fd = ctx->listening_sockets[i].sock;
       pfd[i].events = POLLIN;
@@ -5318,7 +5342,7 @@ static void *master_thread(void *thread_func_param) {
 
     if (poll(pfd, ctx->num_listening_sockets, 200) > 0) {
       for (i = 0; i < ctx->num_listening_sockets; i++) {
-        if (ctx->stop_flag == 0 && pfd[i].revents == POLLIN) {
+        if (interlocked_load(&ctx->stop_flag) == 0 && pfd[i].revents == POLLIN) {
           accept_new_connection(&ctx->listening_sockets[i], ctx);
         }
       }
@@ -5367,7 +5391,8 @@ static void *master_thread(void *thread_func_param) {
   // Signal mg_stop() that we're done.
   // WARNING: This must be the very last thing this
   // thread does, as ctx becomes invalid after this line.
-  ctx->stop_flag = 2;
+  interlocked_store(&ctx->stop_flag, 2);
+  pthread_cond_signal(&ctx->stop_flag_signal);
   return NULL;
 }
 
@@ -5391,17 +5416,24 @@ static void free_context(struct mg_context *ctx) {
   }
 #endif // !NO_SSL
 
+  pthread_cond_destroy(&ctx->stop_flag_signal);
+
   // Deallocate context itself
   free(ctx);
 }
 
 void mg_stop(struct mg_context *ctx) {
-  ctx->stop_flag = 1;
+  interlocked_store(&ctx->stop_flag, 1);
 
+  pthread_mutex_t stop_flag_mutex;
+  pthread_mutex_init(&stop_flag_mutex, NULL);
+  pthread_mutex_lock(&stop_flag_mutex);
   // Wait until mg_fini() stops
-  while (ctx->stop_flag != 2) {
-    (void) mg_sleep(10);
-  }
+  pthread_cond_wait(&ctx->stop_flag_signal, &stop_flag_mutex);
+  assert(interlocked_load(&ctx->stop_flag) == 2);
+  pthread_mutex_unlock(&stop_flag_mutex);
+  pthread_mutex_destroy(&stop_flag_mutex);
+
   free_context(ctx);
 
 #if defined(_WIN32) && !defined(__SYMBIAN32__)
@@ -5490,6 +5522,7 @@ struct mg_context *mg_start(const struct mg_callbacks *callbacks,
   // (void) signal(SIGCHLD, SIG_IGN);
 #endif // !_WIN32
 
+  (void)pthread_cond_init(&ctx->stop_flag_signal, NULL);
   (void) pthread_mutex_init(&ctx->mutex, NULL);
   (void) pthread_cond_init(&ctx->cond, NULL);
   (void) pthread_cond_init(&ctx->sq_empty, NULL);

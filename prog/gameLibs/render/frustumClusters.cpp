@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/frustumClusters.h>
 #include <perfMon/dag_statDrv.h>
 #include <math/dag_TMatrix4.h>

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_baseDef.h>
 #include <util/dag_globDef.h>
 #include <stdio.h>

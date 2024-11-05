@@ -1,10 +1,11 @@
-
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #import <Metal/Metal.h>
 #import <simd/simd.h>
 #import <MetalKit/MetalKit.h>
 #import "texture.h"
+#include <drv/3d/dag_buffers.h>
 
 namespace drv3d_metal
 {
@@ -13,7 +14,7 @@ class Buffer : public Sbuffer
 public:
   struct BufTex
   {
-    uint64_t frame;
+    uint64_t last_submit = 0;
     int index = 0;
     id<MTLBuffer> buffer;
     Texture *texture;
@@ -34,7 +35,7 @@ public:
   };
 
 protected:
-  int max_buffers = 3;
+  int max_buffers = 2;
   bool isDynamic = false;
   BufTex *cur_buffer;
   BufTex *cur_render_buffer;
@@ -69,7 +70,7 @@ public:
 
   int locked_offset;
   int locked_size;
-  uint64_t last_locked_frame = ~0ull;
+  uint64_t last_locked_submit = ~0ull;
 
   Buffer(uint32_t bufsize, int ssize, int buf_flags, int tex_format, const char *name);
   ~Buffer();
@@ -90,7 +91,6 @@ public:
   virtual bool copyTo(Sbuffer * /*dest*/, uint32_t /*dst_ofs_bytes*/, uint32_t /*src_ofs_bytes*/, uint32_t /*size_bytes*/);
 
   int getDynamicOffset() const;
-  void discard(BufTex *render_buffer, id<MTLBuffer> buffer, int dyn_offset);
   static void apply(id<MTLBuffer> buffer, int stage, int slot, int offset);
 
   id<MTLBuffer> getBuffer();

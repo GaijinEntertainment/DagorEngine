@@ -21,7 +21,7 @@ float shore_wave_height_to_amplitude = 0.25;
 float shore_amplitude_to_length = 30;        // Physically correct is 14, was 25.
 float shore_parallelism_to_wind = 0.1;       // Was 0.2, to much of parallelism.
 float shore_width_k = 3;
-float4 shore_waves_dist = (600, 1000, 0, 50);
+float4 shore_waves_dist = (0, 200, 0, 50);
 float shore_gerstner_speed = 1.0;
 float shore_depth_scale = 1;
 
@@ -68,7 +68,7 @@ endmacro
 macro USE_SHORE(stage, bicubic, surf)
 
 DECLARE_SHORE_DATA(stage)
-USE_SAMPLE_BICUBIC()
+USE_SAMPLE_BICUBIC(stage)
 hlsl(stage) {
   #define water_heightmap_pages_samplerstate shore_distance_field_tex_samplerstate
   #define shore_waves_on (shore_gspeed__depth_scale.z == 1)

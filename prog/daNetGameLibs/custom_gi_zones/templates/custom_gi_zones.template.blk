@@ -1,0 +1,10 @@
+custom_gi_zone_box{
+  _use:t="replicating"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  "custom_gi_zone:tag"{}
+  "box_zone:tag"{}
+  _group{
+    _tags:t="render"
+    is_camera_inside_box:b=no
+  }
+}

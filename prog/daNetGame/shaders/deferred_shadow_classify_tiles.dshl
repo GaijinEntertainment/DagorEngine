@@ -1,0 +1,191 @@
+include "deferred_shadow_common.dshl"
+
+shader deferred_shadow_classify_tiles
+{
+  assume use_ssss = off;
+
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+
+  INIT_LOAD_GBUFFER_BASE(cs)
+  USE_LOAD_GBUFFER_BASE(cs, 0)
+  USE_EMISSION_DECODE_COLOR_MAP(cs)
+  INIT_RENDERING_RESOLUTION(cs)
+  INIT_ZNZFAR_STAGE(cs)
+
+  (cs) {
+    depth_bounds@f2 = depth_bounds;
+    downsampled_close_depth_tex@tex2d = downsampled_close_depth_tex;
+    downsampled_far_depth_tex@tex2d = downsampled_far_depth_tex;
+  }
+
+  if (dynamic_lights_count != lights_off)
+  {
+    (cs) {
+      world_view_pos@f4 = world_view_pos;
+      screen_size@f4 = (1. / screen_pos_to_texcoord.x, 1. / screen_pos_to_texcoord.y, screen_pos_to_texcoord.x, screen_pos_to_texcoord.y);
+    }
+  }
+
+  VIEW_VEC_OPTIMIZED(cs)
+  INIT_AND_USE_TILED_LIGHTS(cs)
+
+  hlsl(cs) {
+    #include <resolve_gbuffer_compute_inc.hlsli>
+
+    RWByteAddressBuffer g_tile_counters : register(u0);
+
+    // make sure there is RESOLVE_GBUFFER_MAX_PERMUTATIONS buffers declared
+    RWByteAddressBuffer g_tiles0 : register(u1);
+    RWByteAddressBuffer g_tiles1 : register(u2);
+
+    groupshared uint g_shared_feature_bits;
+
+    float2 get_raw_depth_range_2x2(uint2 conner_pix_coords)
+    {
+      return float2(
+        texelFetch(downsampled_close_depth_tex, conner_pix_coords/2, 0).x,
+        texelFetch(downsampled_far_depth_tex, conner_pix_coords/2, 0).x);
+    }
+
+    uint get_feature_bits_for_range(uint2 light_tile_id, float2 rawDepthRange)
+    {
+      uint featureBits = 0;
+
+      // workaround binary MSL compilation error. with step it compiles just fine, with
+      // if rawDepth > depth_bounds.x && rawDepth < depth_bounds.y and setting bit manually
+      // it inlines it and presumably think its bool arg and fails to find overload
+      // if (rawDepth > depth_bounds.x && rawDepth < depth_bounds.y)
+      // {
+      //   feature_bits |= (1u << 0u);
+      // }
+      uint anyGreater = rawDepthRange.x > depth_bounds.x ? 1u : 0u;
+      uint anySmaller = rawDepthRange.y < depth_bounds.y ? 1u : 0u;
+      featureBits |= ((anyGreater*anySmaller) << 0u);
+
+      float nearW = linearize_z(rawDepthRange.x, zn_zfar.zw);
+      float farW = linearize_z(rawDepthRange.y, zn_zfar.zw);
+      ##if (dynamic_lights_count != lights_off)
+      if (nearW <= max_lights_distance)
+      {
+        bool hasLights = false;
+
+        uint2 tiledGridSize = (screen_size.xy + TILE_EDGE - 1) / TILE_EDGE;
+        uint tileOffset = (light_tile_id.x * tiledGridSize.y + light_tile_id.y) * DWORDS_PER_TILE;
+
+##if (dynamic_lights_count != lights_spot_1)
+        uint nearZbinsOmni = z_binning_lookup[depth_to_z_bin(nearW)];
+        uint farZbinsOmni = z_binning_lookup[depth_to_z_bin(farW)];
+        uint2 omniLightRange = uint2(nearZbinsOmni >> 16, farZbinsOmni & 0xFFFF);
+        uint mergedOmniBinsBegin = WAVE_MIN(omniLightRange.x);
+        uint mergedOmniBinsEnd = WAVE_MAX(omniLightRange.y);
+        uint omniLightsBegin = mergedOmniBinsBegin >> 5;
+        uint omniLightsEnd = mergedOmniBinsEnd >> 5;
+        uint omniWord = 0;
+
+##if (dynamic_lights_count != lights_omni_1 && dynamic_lights_count != lights_omnispot_1)
+        for (omniWord = omniLightsBegin; omniWord <= omniLightsEnd; ++omniWord)
+##else
+        if (omniLightsBegin <= omniLightsEnd)
+##endif
+        {
+          hasLights = hasLights || (lights_list[tileOffset + omniWord] != 0);
+        }
+##endif
+
+##if (dynamic_lights_count != lights_omni_1)
+        uint nearZbinsSpot = z_binning_lookup[depth_to_z_bin(nearW) + Z_BINS_COUNT];
+        uint farZbinsSpot = z_binning_lookup[depth_to_z_bin(farW) + Z_BINS_COUNT];
+        uint2 spotLightRange = uint2(nearZbinsSpot >> 16, farZbinsSpot & 0xFFFF);
+        uint mergedSpotBinsBegin = WAVE_MIN(spotLightRange.x);
+        uint mergedSpotBinsEnd = WAVE_MAX(spotLightRange.y);
+        uint spotLightsBegin = (mergedSpotBinsBegin >> 5) + DWORDS_PER_TILE / 2;
+        uint spotLightsEnd = (mergedSpotBinsEnd >> 5) + DWORDS_PER_TILE / 2;
+        uint spotWord = DWORDS_PER_TILE / 2;
+
+##if (dynamic_lights_count != lights_spot_1 && dynamic_lights_count != lights_omnispot_1)
+        for (spotWord = spotLightsBegin; spotWord <= spotLightsEnd; ++spotWord)
+##else
+        if (spotLightsBegin <= spotLightsEnd)
+##endif
+        {
+          hasLights = hasLights || (lights_list[tileOffset + spotWord] != 0);
+        }
+##endif
+
+        FLATTEN
+        if (hasLights)
+          featureBits |= (1u << 1u);
+      }
+##endif
+      return featureBits;
+    }
+
+    [numthreads(RESOLVE_GBUFFER_TILE_SIZE/2, RESOLVE_GBUFFER_TILE_SIZE/2, 1)]
+    void deferred_shadow_classify_tiles_cs( uint3 Groupid : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex )
+    {
+      uint2 tileCoords = Groupid.xy;
+      uint2 cornerPixCoords = tileCoords * RESOLVE_GBUFFER_TILE_SIZE + GTid.xy * 2;
+      uint featureBits = get_feature_bits_for_range(tileCoords, get_raw_depth_range_2x2(cornerPixCoords));
+
+      if (GI < 1)
+        g_shared_feature_bits = 0;
+      GroupMemoryBarrierWithGroupSync();
+
+      InterlockedOr(g_shared_feature_bits, featureBits);
+      GroupMemoryBarrierWithGroupSync();
+
+      BRANCH
+      if (GI < 1)
+      {
+        uint mergedFeatureBits = g_shared_feature_bits;
+        if (mergedFeatureBits & 1u)
+        {
+          uint permutation_index = (mergedFeatureBits >> 1u);
+
+          // Output tile coordinates
+          if (permutation_index == 0) // write index must be uniform
+          {
+            uint index = 0;
+            g_tile_counters.InterlockedAdd(0, 1u, index);
+            storeBuffer(g_tiles0, 4 * index, (Groupid.y << 16) | Groupid.x);
+          }
+          else // if (permutation_index == 1)
+          {
+            uint index = 0;
+            g_tile_counters.InterlockedAdd(4, 1u, index);
+            storeBuffer(g_tiles1, 4 * index, (Groupid.y << 16) | Groupid.x);
+          }
+        }
+      }
+    }
+  }
+
+  compile("target_cs", "deferred_shadow_classify_tiles_cs");
+}
+
+shader deferred_shadow_prepare_indirect_args
+{
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    #include <resolve_gbuffer_compute_inc.hlsli>
+
+    RWByteAddressBuffer g_tile_counters : register(u0);
+    RWByteAddressBuffer g_indirect_arguments : register(u1);
+
+    [numthreads(1, 1, 1)]
+    void deferred_shadow_prepare_indirect_args_cs()
+    {
+      for (int i = 0; i < RESOLVE_GBUFFER_MAX_PERMUTATIONS; ++i)
+      {
+        uint count = g_tile_counters.Load(4 * i);
+        storeBuffer3(g_indirect_arguments, 4 * (3 * i), uint3(count, 1, 1));
+        storeBuffer(g_tile_counters, 4 * i, 0u);
+      }
+    }
+  }
+
+  compile("target_cs", "deferred_shadow_prepare_indirect_args_cs");
+}

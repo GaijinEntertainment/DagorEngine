@@ -23,7 +23,7 @@ Split and join
   *  :ref:`join (it:auto const;separator:string const implicit) : auto <function-_at_strings_boost_c__c_join_C._CIs>` 
   *  :ref:`join (iterable:array\<auto(TT)\> const;separator:string const;blk:block\<(var writer:strings::StringBuilderWriter -const;elem:TT const):void\> const) : string <function-_at_strings_boost_c__c_join_C1_ls_Y_ls_TT_gr_._gr_A_Cs_CN_ls_writer;elem_gr_0_ls_H_ls_strings_c__c_StringBuilderWriter_gr_;CY_ls_TT_gr_L_gr_1_ls_v_gr__builtin_>` 
   *  :ref:`join (iterable:iterator\<auto(TT)\> const;separator:string const;blk:block\<(var writer:strings::StringBuilderWriter -const;elem:TT const):void\> const) : string <function-_at_strings_boost_c__c_join_C1_ls_Y_ls_TT_gr_._gr_G_Cs_CN_ls_writer;elem_gr_0_ls_H_ls_strings_c__c_StringBuilderWriter_gr_;CY_ls_TT_gr_L_gr_1_ls_v_gr__builtin_>` 
-  *  :ref:`join (iterable:auto(TT) const[];separator:string const;blk:block\<(var writer:strings::StringBuilderWriter -const;elem:TT const):void\> const) : string <function-_at_strings_boost_c__c_join_C[-1]Y_ls_TT_gr_._Cs_CN_ls_writer;elem_gr_0_ls_H_ls_strings_c__c_StringBuilderWriter_gr_;CY_ls_TT_gr_L_gr_1_ls_v_gr__builtin_>` 
+  *  :ref:`join (iterable:auto(TT) const[];separator:string const;blk:block\<(var writer:strings::StringBuilderWriter -const;elem:TT const):void\> const) : string <function-_at_strings_boost_c__c_join_C_lb_-1_rb_Y_ls_TT_gr_._Cs_CN_ls_writer;elem_gr_0_ls_H_ls_strings_c__c_StringBuilderWriter_gr_;CY_ls_TT_gr_L_gr_1_ls_v_gr__builtin_>` 
   *  :ref:`split (text:string const implicit;delim:string const implicit;blk:block\<(arg:array\<string\> const#):auto\> const) : auto <function-_at_strings_boost_c__c_split_CIs_CIs_CN_ls_arg_gr_0_ls_C_hh_1_ls_s_gr_A_gr_1_ls_._gr__builtin_>` 
   *  :ref:`split_by_chars (text:string const implicit;delim:string const implicit;blk:block\<(arg:array\<string\> const#):auto\> const) : auto <function-_at_strings_boost_c__c_split_by_chars_CIs_CIs_CN_ls_arg_gr_0_ls_C_hh_1_ls_s_gr_A_gr_1_ls_._gr__builtin_>` 
 
@@ -80,7 +80,7 @@ join returns auto
 
 .. _function-_at_strings_boost_c__c_join_C1_ls_Y_ls_TT_gr_._gr_A_Cs_CN_ls_writer;elem_gr_0_ls_H_ls_strings_c__c_StringBuilderWriter_gr_;CY_ls_TT_gr_L_gr_1_ls_v_gr__builtin_:
 
-.. das:function:: join(iterable: array<auto(TT)> const; separator: string const; blk: block<(var writer:strings::StringBuilderWriter -const;elem:TT const):void> const)
+.. das:function:: join(iterable: array<auto(TT)> const; separator: string const; blk: block<(var writer:StringBuilderWriter;elem:TT const):void> const)
 
 join returns string
 
@@ -99,7 +99,7 @@ join returns string
 
 .. _function-_at_strings_boost_c__c_join_C1_ls_Y_ls_TT_gr_._gr_G_Cs_CN_ls_writer;elem_gr_0_ls_H_ls_strings_c__c_StringBuilderWriter_gr_;CY_ls_TT_gr_L_gr_1_ls_v_gr__builtin_:
 
-.. das:function:: join(iterable: iterator<auto(TT)> const; separator: string const; blk: block<(var writer:strings::StringBuilderWriter -const;elem:TT const):void> const)
+.. das:function:: join(iterable: iterator<auto(TT)> const; separator: string const; blk: block<(var writer:StringBuilderWriter;elem:TT const):void> const)
 
 join returns string
 
@@ -116,9 +116,9 @@ join returns string
 
 |function-strings_boost-join|
 
-.. _function-_at_strings_boost_c__c_join_C[-1]Y_ls_TT_gr_._Cs_CN_ls_writer;elem_gr_0_ls_H_ls_strings_c__c_StringBuilderWriter_gr_;CY_ls_TT_gr_L_gr_1_ls_v_gr__builtin_:
+.. _function-_at_strings_boost_c__c_join_C_lb_-1_rb_Y_ls_TT_gr_._Cs_CN_ls_writer;elem_gr_0_ls_H_ls_strings_c__c_StringBuilderWriter_gr_;CY_ls_TT_gr_L_gr_1_ls_v_gr__builtin_:
 
-.. das:function:: join(iterable: auto(TT) const[]; separator: string const; blk: block<(var writer:strings::StringBuilderWriter -const;elem:TT const):void> const)
+.. das:function:: join(iterable: auto(TT) const[]; separator: string const; blk: block<(var writer:StringBuilderWriter;elem:TT const):void> const)
 
 join returns string
 

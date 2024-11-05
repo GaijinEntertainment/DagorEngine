@@ -28,9 +28,9 @@ For example, from tutorial04.das ::
 Generation of bindings
 ++++++++++++++++++++++
 
-  *  :ref:`log_cpp_class_adapter (cpp_file:fio::FILE const? const;name:string const;cinfo:smart_ptr\<ast::TypeDecl\> const) : void <function-_at_cpp_bind_c__c_log_cpp_class_adapter_CY_ls_file_gr_1_ls_CH_ls_fio_c__c_FILE_gr__gr_?_Cs_CY_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr_?M>`
+  *  :ref:`log_cpp_class_adapter (cpp_file:fio::FILE const? const;name:string const;cinfo:smart_ptr\<ast::TypeDecl\> const) : void <function-_at_cpp_bind_c__c_log_cpp_class_adapter_CY_ls_file_gr_1_ls_CH_ls_fio_c__c_FILE_gr__gr__qm__Cs_CY_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr__qm_M>` 
 
-.. _function-_at_cpp_bind_c__c_log_cpp_class_adapter_CY_ls_file_gr_1_ls_CH_ls_fio_c__c_FILE_gr__gr_?_Cs_CY_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr_?M:
+.. _function-_at_cpp_bind_c__c_log_cpp_class_adapter_CY_ls_file_gr_1_ls_CH_ls_fio_c__c_FILE_gr__gr__qm__Cs_CY_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr__qm_M:
 
 .. das:function:: log_cpp_class_adapter(cpp_file: file; name: string const; cinfo: TypeDeclPtr)
 
@@ -48,6 +48,8 @@ Generation of bindings
 Generates C++ class adapter for the Daslang class.
 Intended use::
 
-    log_cpp_class_adapter(cppFileNameDotInc, "DaslangClassName", typeinfo(ast_typedecl type<DaslangClassName>))
+    log_cpp_class_adapter(cppFileNameDotInc, "daslangClassName", typeinfo(ast_typedecl type<daslangClassName>))
+get
+invoke
 
 

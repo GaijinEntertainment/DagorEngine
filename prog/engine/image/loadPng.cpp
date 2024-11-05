@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <image/dag_png.h>
 #include <image/dag_texPixel.h>
 #include <ioSys/dag_fileIo.h>
@@ -11,14 +13,14 @@ static void __cdecl crd_read(png_struct *png_ptr, png_byte *buf, png_size_t sz)
       png_error(png_ptr, "Read Error");
 }
 
-TexImage32 *load_png32(const char *fn, IMemAlloc *mem, bool *out_used_alpha = NULL)
+TexImage32 *load_png32(const char *fn, IMemAlloc *mem, bool *out_used_alpha, eastl::string *comments)
 {
   FullFileLoadCB crd(fn);
   if (crd.fileHandle)
-    return load_png32(crd, mem, out_used_alpha);
+    return load_png32(crd, mem, out_used_alpha, comments);
   return NULL;
 }
-TexImage32 *load_png32(IGenLoad &crd, IMemAlloc *mem, bool *out_used_alpha = NULL)
+TexImage32 *load_png32(IGenLoad &crd, IMemAlloc *mem, bool *out_used_alpha, eastl::string *comments)
 {
   png_structp png_ptr;
   png_infop info_ptr;
@@ -101,6 +103,15 @@ TexImage32 *load_png32(IGenLoad &crd, IMemAlloc *mem, bool *out_used_alpha = NUL
 
   if (out_used_alpha)
     *out_used_alpha = img_type == 4 ? true : false;
+
+  if (comments)
+  {
+    png_textp text_ptr;
+    int num_text = 0;
+    if (png_get_text(png_ptr, info_ptr, &text_ptr, &num_text))
+      for (int i = 0; i < num_text; ++i)
+        comments->append(text_ptr[i].text);
+  }
 
   /* Clean up after the read, and free any memory allocated - REQUIRED */
   png_destroy_read_struct(&png_ptr, &info_ptr, NULL);

@@ -1,0 +1,12 @@
+let {get_arg_value_by_name} = require("dagor.system")
+
+return {
+  steam_is_running =  @() get_arg_value_by_name("steam") ?? false
+  is_running = @() get_arg_value_by_name("steam") ?? false
+  is_running_on_steam_deck = @() false
+  is_overlay_active = @() false
+  is_overlay_enabled = @() false
+  open_url = @(_url) null
+  get_app_id = @() 0
+  get_my_id = @() "-1"
+}

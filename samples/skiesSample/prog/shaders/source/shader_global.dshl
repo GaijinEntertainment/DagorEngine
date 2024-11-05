@@ -6,12 +6,38 @@ include "brunetonSky.dshl"
 include "mulPointTm_inc.dshl"
 
 
-texture downsampled_far_depth_tex;
-
 float4 world_view_pos;
-float global_transp_r;
+texture downsampled_far_depth_tex;
+texture downsampled_close_depth_tex;
+texture downsampled_normals; // from pixels with downsampled_close_depth_tex
+float4 lowres_tex_size = (0, 0, 0, 0);
+int impostor_normal_mip = 0;
 
 float water_level = 0;
+float pre_exposure = 1;
+macro INIT_PREV_PRE_EXPOSURE(code)
+  (code) {
+    prev_pre_exposure@f2 = (pre_exposure, 1./pre_exposure, 0,0);
+  }
+endmacro
+macro USE_PREV_PRE_EXPOSURE(code)
+  hlsl(code) {
+    half3 prev_pre_exposure_encode(half3 v) {return v*prev_pre_exposure.x;}
+    half3 prev_pre_exposure_decode(half3 v) {return v*prev_pre_exposure.y;}
+  }
+endmacro
+macro INIT_PRE_EXPOSURE(code)
+  (code) {
+    pre_exposure@f2 = (pre_exposure, 1./pre_exposure, 0,0);
+  }
+endmacro
+macro USE_PRE_EXPOSURE(code)
+  hlsl(code) {
+    half3 pre_exposure_encode(half3 v) {return v*pre_exposure.x;}
+    half3 pre_exposure_decode(half3 v) {return v*pre_exposure.y;}
+  }
+endmacro
+
 float4 from_sun_direction;
 
 int is_gather4_supported = 0;
@@ -126,6 +152,10 @@ hlsl {
   {
     return rcp(decode_depth.x + decode_depth.y * rawDepth);
   }
+  float4 linearize_z4(float4 rawDepth, float2 decode_depth)
+  {
+    return rcp(decode_depth.x + decode_depth.y * rawDepth);
+  }
 }
 
 float4 zn_zfar = (1, 20000, 0, 0);
@@ -168,13 +198,12 @@ macro INIT_LINEARIZE_HIRES_SKY_DEPTH()
   }
 endmacro
 
-macro SKY_HDR()
-  hlsl(ps) {half3 pack_hdr(half3 a) {return a;}}
-  hlsl(ps) {half3 unpack_hdr(half3 a) {return a;}}
+macro INIT_HDR(code)
 endmacro
 
-macro USE_HDR_SH()
-  SKY_HDR()
+macro USE_HDR(code)
+  hlsl(code) {half3 pack_hdr(half3 a) {return a;}}
+  hlsl(code) {half3 unpack_hdr(half3 a) {return a;}}
 endmacro
 
 hlsl(ps) {
@@ -245,9 +274,6 @@ endmacro
 macro INIT_HDR_STCODE()
 endmacro
 macro INIT_SUN_STCODE()
-endmacro
-macro USE_HDR()
-  USE_HDR_SH()
 endmacro
 macro USE_SUN()
   hlsl(ps) {

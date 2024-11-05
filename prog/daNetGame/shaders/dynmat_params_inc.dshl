@@ -1,0 +1,9 @@
+
+macro DECLARE_DYNAMIC_MATERIAL_PARAMS()
+  static int parameters_channel = -1;
+  interval parameters_channel: from_asset < 0, from_inst_buf;
+  if (in_editor_assume == yes)
+  {
+    assume parameters_channel = from_asset;
+  }
+endmacro

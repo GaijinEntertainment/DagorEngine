@@ -1,38 +1,93 @@
-float4 fom_shadows_tm_x;
-float4 fom_shadows_tm_y;
-float4 fom_shadows_tm_z;
+float4 fom_shadows_tm_x = (0, 0, 0, -1);
+float4 fom_shadows_tm_y = (0, 0, 0, -1);
+float4 fom_shadows_tm_z = (0, 0, 0, -1e7);
 texture fom_shadows_cos;
 texture fom_shadows_sin;
 
-int assume_fom_shadows;
+int assume_fom_shadows = 1;
 interval assume_fom_shadows:off<1, on;
+
+int4 fom_shadows_array_index = 0;
+
+macro DO_INIT_FOM_SHADOWS(stage)
+  (stage)
+  {
+    fom_shadows_tm_x@f4 = fom_shadows_tm_x;
+    fom_shadows_tm_y@f4 = fom_shadows_tm_y;
+    fom_shadows_tm_z@f4 = fom_shadows_tm_z;
+    fom_shadows_cos@smp2d = fom_shadows_cos;
+    fom_shadows_sin@tex2d = fom_shadows_sin;
+  }
+endmacro
 
 macro INIT_FOM_SHADOWS(stage)
   if (assume_fom_shadows == on)
   {
-    (stage)
-    {
-      fom_shadows_tm_x@f4 = fom_shadows_tm_x;
-      fom_shadows_tm_y@f4 = fom_shadows_tm_y;
-      fom_shadows_tm_z@f4 = fom_shadows_tm_z;
-      fom_shadows_cos@smp2d = fom_shadows_cos;
-      fom_shadows_sin@smp2d = fom_shadows_sin;
-    }
+    DO_INIT_FOM_SHADOWS(stage)
   }
 endmacro
 
-macro USE_FOM_SHADOWS(stage)
+macro DO_INIT_FOM_SHADOWS_BINDLESS(stage)
+  (stage)
+  {
+    fom_shadows_tm_x@f4 = fom_shadows_tm_x;
+    fom_shadows_tm_y@f4 = fom_shadows_tm_y;
+    fom_shadows_tm_z@f4 = fom_shadows_tm_z;
+    fom_shadows_array_index@i4 = fom_shadows_array_index;
+  }
+
   hlsl(stage) {
-    ##if (assume_fom_shadows == on)
-    float getFOMShadow(float3 worldPos)
+    #define FOM_SHADOW_BINDLESS 1
+  }
+endmacro
+
+macro INIT_FOM_SHADOWS_BINDLESS(stage)
+  if (assume_fom_shadows == on)
+  {
+    DO_INIT_FOM_SHADOWS_BINDLESS(stage)
+  }
+endmacro
+
+macro DO_USE_FOM_SHADOWS(stage)
+  hlsl(stage) {
+    #if FOM_SHADOW_BINDLESS
+      BINDLESS_TEX_ARRAY(Texture2D, fom_shadows_array, 1);
+      BINDLESS_SMP_ARRAY(SamplerState, fom_shadows_samplers_array, 1);
+
+      float4 sample_sin(float2 uv)
+      {
+        [BRANCH]
+        if (fom_shadows_array_index.x < 0)
+          return 0;
+        return fom_shadows_array[fom_shadows_array_index.x].SampleLevel(fom_shadows_samplers_array[fom_shadows_array_index.z], uv, 0);
+      }
+      float4 sample_cos(float2 uv)
+      {
+        [BRANCH]
+        if (fom_shadows_array_index.y < 0)
+          return 0;
+        return fom_shadows_array[fom_shadows_array_index.y].SampleLevel(fom_shadows_samplers_array[fom_shadows_array_index.w], uv, 0);
+      }
+    #else
+      float4 sample_sin(float2 uv)
+      {
+        return fom_shadows_sin.SampleLevel(fom_shadows_cos_samplerstate, uv, 0);
+      }
+      float4 sample_cos(float2 uv)
+      {
+        return fom_shadows_cos.SampleLevel(fom_shadows_cos_samplerstate, uv, 0);
+      }
+    #endif
+
+    half getFOMShadow(float3 worldPos)
     {
       BRANCH
-      if (fom_shadows_tm_z.w<-1000000)//uniform branch for early out, if nothing renered to fom
+      if (fom_shadows_tm_z.w < -1e6)//uniform branch for early out, if nothing renered to fom
         return 1;
       float3 tc = float3(dot(float4(worldPos, 1), fom_shadows_tm_x), dot(float4(worldPos, 1), fom_shadows_tm_y), dot(float4(worldPos, 1), fom_shadows_tm_z));
-      float4 sR_a0123 = tex2Dlod(fom_shadows_cos, float4(tc.xy, 0, 0));
+      float4 sR_a0123 = sample_cos(tc.xy);
       //return 1-max(max(sR_a0123.r, sR_a0123.g), sR_a0123.b);
-      float3 sR_b123 = tex2Dlod(fom_shadows_sin, float4(tc.xy, 0, 0)).rgb;
+      float3 sR_b123 = sample_sin(tc.xy).rgb;
 
       float fom_distance = tc.z;
       float3 _2pik = PI*float3(1.0,2.0,3.0);
@@ -42,12 +97,22 @@ macro USE_FOM_SHADOWS(stage)
       float3 cos_b123 = 1-cos(factor_a);
 
       float rAtt = (sR_a0123.r*fom_distance/2.0) + dot(sin_a123*(sR_a0123.gba/_2pik), 1) + dot(cos_b123*(sR_b123.rgb/_2pik), 1);
-      float2 vignette = saturate( abs(tc.xy*2-1) * 10 - 9 );
-      float vignetteEffect = saturate( 1.0 - dot( vignette, vignette ) );
-      return lerp(1, saturate(exp(-rAtt)), vignetteEffect);
+      half2 vignette = saturate( abs(half2(tc.xy)*2-1) * 10 - 9 );
+      half vignetteEffect = saturate( 1.0h - dot( vignette, vignette ) );
+      return lerp(1, half(saturate(exp(-rAtt))), vignetteEffect);
     }
-    ##else
-    float getFOMShadow(float3 worldPos){return 1;}
-    ##endif
+  }
+endmacro
+
+macro USE_FOM_SHADOWS(stage)
+  if (assume_fom_shadows == on)
+  {
+    DO_USE_FOM_SHADOWS(stage)
+  }
+  else
+  {
+    hlsl(stage) {
+      half getFOMShadow(float3 worldPos){return 1;}
+    }
   }
 endmacro

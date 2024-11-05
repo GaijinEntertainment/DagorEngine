@@ -204,7 +204,7 @@ macro SSGI_JUST_USE_VOLMAP_GI_BASE_INTERNAL(code)
       float3 tc = ambientWorldPosToTc(worldPos, cascade);
       tc = clamp(tc, ssgi_ambient_volmap_tcclamp(cascade).xxz, ssgi_ambient_volmap_tcclamp(cascade).yyw);
       tc.xy -= ssgi_ambient_volmap_tc_ofs2d(cascade).xy;
-      return sampleUnfilteredAmbientCube(tc, ( worldNormal < 0.0 ) ? 1./6.0 : 0, worldNormal, cascade);
+      return sampleUnfilteredAmbientCube(tc, select(worldNormal < 0.0, 1.0/6.0, 0.0), worldNormal, cascade);
     }
     half3 calcAmbientNsq(float3 nSquared, SampledAmbientCube cube) { return nSquared.x * cube.x + nSquared.y * cube.y + nSquared.z * cube.z;}
     half3 calcAmbient(float3 normal, SampledAmbientCube cube) {return calcAmbientNsq(normal*normal, cube);}
@@ -353,7 +353,7 @@ macro SSGI_JUST_USE_VOLMAP_GI_BASE_INTERNAL(code)
     float get_ambient3d_unfiltered(float3 worldPos, float3 worldNormal, half3 env_color, inout half3 cambient, bool useFiltering)
     {
       float3 nSquared = worldNormal * worldNormal;
-      float3 isNegative = ( worldNormal < 0.0 ) ? 1./6.0 : 0;
+      float3 isNegative = select( worldNormal < 0.0 , 1./6.0 , 0.0);
       float weight0 = get_ambient3d_unfiltered_cascade(worldPos, nSquared, isNegative, env_color, cambient, 0, worldNormal, useFiltering);
       float minWeight0 = 0.9999;
       BRANCH

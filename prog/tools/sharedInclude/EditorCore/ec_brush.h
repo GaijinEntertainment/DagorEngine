@@ -1,7 +1,5 @@
-#ifndef __GAIJIN_EDITOR_BRUSH__
-#define __GAIJIN_EDITOR_BRUSH__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <util/dag_globDef.h>
 #include <util/dag_simpleString.h>
@@ -10,9 +8,13 @@
 #include <math/dag_e3dColor.h>
 
 
+namespace PropPanel
+{
+class ContainerPropertyControl;
+}
+
 class Brush;
 class IGenViewportWnd;
-class PropertyContainerControlBase;
 
 // Groups for DoxyGen ***********************************************
 /// @defgroup EditorCore Editor Core
@@ -285,22 +287,22 @@ public:
   /// @param[in] hardness_pid - property ID on Property Panel for brush hardness
   /// @param[in] autorepeat_pid - property ID on Property Panel for brush
   ///                             autorepeat
-  virtual void fillCommonParams(PropertyContainerControlBase &group, int radius_pid, int opacity_pid, int hardness_pid,
+  virtual void fillCommonParams(PropPanel::ContainerPropertyControl &group, int radius_pid, int opacity_pid, int hardness_pid,
     int autorepeat_pid, int step_pid = -1);
 
   /// Used to place list of brush masks on Property Panel.
   /// @param[in] params - ObjectParameters where masks list will be placed
-  static void addMaskList(int pid, PropertyContainerControlBase &params, const char *def = NULL);
+  static void addMaskList(int pid, PropPanel::ContainerPropertyControl &params, const char *def = NULL);
 
   /// Force brush to update its property with value from Property Panel.
   /// @param[in] panel - pointer to Property Panel
   /// @param[in] pid - property ID on Property Panel
   /// @return @b true if update is successful
-  virtual bool updateFromPanel(PropertyContainerControlBase *panel, int pid);
+  virtual bool updateFromPanel(PropPanel::ContainerPropertyControl *panel, int pid);
 
   /// Force brush to update its property to Property Panel.
   /// @param[in] panel - pointer to Property Panel
-  virtual void updateToPanel(PropertyContainerControlBase &panel);
+  virtual void updateToPanel(PropPanel::ContainerPropertyControl &panel);
   //@}
 
   /// Brush draws itself.
@@ -381,6 +383,3 @@ inline void Brush::setStepDiv(real div)
     step = radius / stepDiv;
   }
 }
-
-
-#endif //__GAIJIN_EDITOR_BRUSH__

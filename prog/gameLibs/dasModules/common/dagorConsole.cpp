@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/aotDagorConsole.h>
 #include <dasModules/dasSystem.h>
 #include <EASTL/bitvector.h>
@@ -8,6 +10,7 @@
 #include "daScript/ast/ast.h"
 #include "dagorConsoleProcessor.h"
 
+DAS_BASE_BIND_ENUM(ConVarType, ConVarType, CVT_BOOL, CVT_INT, CVT_FLOAT)
 
 namespace bind_dascript
 {
@@ -91,6 +94,17 @@ struct ConsoleCmdFunctionAnnotation : das::FunctionAnnotation, console::ICommand
       err = "console cmd shouldn't be placed in the module. Please move the function to a file without module directive";
       return false;
     }
+    for (auto &arg : fn->arguments)
+      if (arg->type->isPointer())
+      {
+        if (arg->type->isString())
+        {
+          err = "console cmd shouldn't have optional string arguments. Use init value instead";
+          return false;
+        }
+        arg->type->temporary = true;
+        arg->type->removeTemporary = false;
+      }
     fn->exports = true;
     return true;
   };
@@ -327,7 +341,7 @@ struct ConsoleCmdFunctionAnnotation : das::FunctionAnnotation, console::ICommand
       }
 
     das::SimFunction *fn = closureInfo.context->fnByMangledName(closureInfo.mangledNameHash);
-    if (EASTL_UNLIKELY(!fn))
+    if (DAGOR_UNLIKELY(!fn))
       logerr("Unable to find console cmd function <%@> in context %p", closureInfo.mangledNameHash, (void *)closureInfo.context);
 
     eastl::vector<int> intArgs;
@@ -337,10 +351,10 @@ struct ConsoleCmdFunctionAnnotation : das::FunctionAnnotation, console::ICommand
     longArgs.reserve(reserveArgsSize);
     eastl::vector<float> floatArgs;
     floatArgs.reserve(reserveArgsSize);
+    eastl::vector<double> doubleArgs;
+    doubleArgs.reserve(reserveArgsSize);
     eastl::vector<bool> boolArgs;
     boolArgs.reserve(reserveArgsSize);
-    eastl::vector<eastl::string> stringArgs;
-    stringArgs.reserve(reserveArgsSize);
     vec4f *args = (vec4f *)(alloca((closureInfo.maxParams - 1) * sizeof(vec4f)));
     for (int i = 0; i < closureInfo.maxParams - 1; ++i)
     {
@@ -378,17 +392,25 @@ struct ConsoleCmdFunctionAnnotation : das::FunctionAnnotation, console::ICommand
         }
         break;
         case das::tFloat:
-        case das::tDouble:
         {
           floatArgs.push_back(to_real(argv[i + 1]));
           args[i] = nullable ? das::cast<float *>::from(&floatArgs.back()) : das::cast<float>::from(floatArgs.back());
         }
         break;
+        case das::tDouble:
+        {
+          doubleArgs.push_back(strtod(argv[i + 1], nullptr));
+          args[i] = nullable ? das::cast<double *>::from(&doubleArgs.back()) : das::cast<double>::from(doubleArgs.back());
+        }
+        break;
         case das::tString:
         {
-          stringArgs.push_back(argv[i + 1]);
-          auto str = stringArgs.back().data();
-          args[i] = nullable ? das::cast<const char **>::from(&str) : das::cast<const char *>::from(str);
+          G_ASSERT(!nullable);
+          das::string value = argv[i + 1];
+          if (value == "\"\"")
+            value.clear();
+          auto str = closureInfo.context->allocateString(value, /*at*/ nullptr);
+          args[i] = das::cast<const char *>::from(str);
         }
         break;
         default: G_ASSERTF(0, "unsupported arg type '%@' in context command", baseType);
@@ -431,6 +453,8 @@ public:
   {
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("DagorMath"));
+
+    addEnumeration(das::make_smart<EnumerationConVarType>());
 
     addAnnotation(das::make_smart<ConsoleProcessorHintAnnotation>(lib));
     das::typeFactory<ConsoleProcessorHints>::make(lib);
@@ -479,6 +503,9 @@ public:
 
     das::addExtern<DAS_BIND_FUN(bind_dascript::console_get_edit_text_before_modify)>(*this, lib, "console_get_edit_text_before_modify",
       das::SideEffects::accessExternal, "::bind_dascript::console_get_edit_text_before_modify");
+
+    das::addExtern<DAS_BIND_FUN(bind_dascript::find_console_var)>(*this, lib, "find_console_var", das::SideEffects::accessExternal,
+      "::bind_dascript::find_console_var");
 
     compileBuiltinModule("dagorConsole.das", (unsigned char *)dagorConsole_das, sizeof(dagorConsole_das));
     verifyAotReady();

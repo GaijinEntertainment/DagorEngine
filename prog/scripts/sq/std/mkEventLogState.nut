@@ -51,7 +51,7 @@ function mkEventLogState(persistId, maxActiveEvents = 10, defTtl = 0, isEventsEq
     foreach(idx, evt in curEvents.value) {
       let { removeMsec = null } = evt
       if (resIdx != null
-          && (removeMsec == null || (time != null && time > removeMsec)))
+          && (removeMsec == null || (time != null && time < removeMsec)))
         continue
       resIdx = idx
       time = removeMsec

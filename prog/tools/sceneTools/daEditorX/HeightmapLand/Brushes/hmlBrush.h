@@ -1,7 +1,5 @@
-#ifndef __GAIJIN_HEIGHTMAPLAND_BRUSH__
-#define __GAIJIN_HEIGHTMAPLAND_BRUSH__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include "brushMask.h"
 
@@ -11,7 +9,6 @@
 
 
 class DataBlock;
-typedef class PropertyContainerControlBase PropPanel2;
 
 
 class IHmapBrushImage
@@ -73,11 +70,11 @@ public:
   virtual void paint(const Point3 &center, const Point3 &prev_center, real cell_size, bool rb);
 
 
-  virtual void fillParams(PropPanel2 &panel);
-  virtual void updateToPanel(PropPanel2 &panel);
+  virtual void fillParams(PropPanel::ContainerPropertyControl &panel);
+  virtual void updateToPanel(PropPanel::ContainerPropertyControl &panel);
 
-  virtual bool updateFromPanelRef(PropPanel2 &panel, int pid);
-  virtual void dynamicItemChange(PropPanel2 &panel);
+  virtual bool updateFromPanelRef(PropPanel::ContainerPropertyControl &panel, int pid);
+  virtual void dynamicItemChange(PropPanel::ContainerPropertyControl &panel);
 
   virtual void draw();
 
@@ -142,6 +139,3 @@ extern HmapLandBrush *getAlignBrush(IBrushClient *, IHmapBrushImage &);
 extern HmapLandBrush *getShadowsBrush(IBrushClient *, IHmapBrushImage &);
 extern HmapLandBrush *getScriptBrush(IBrushClient *, IHmapBrushImage &);
 } // namespace heightmap_land
-
-
-#endif //__GAIJIN_HEIGHTMAP_BRUSH__

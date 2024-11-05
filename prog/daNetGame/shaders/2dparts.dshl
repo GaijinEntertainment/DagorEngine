@@ -1,0 +1,73 @@
+include "shader_global.dshl"
+
+
+shader additive_2d, ablend_2d, addsmooth_2d, atest_2d, premultalpha_2d
+{
+  supports global_frame;
+
+  z_test=false;
+  z_write=false;
+  cull_mode=none;
+
+  if (shader==ablend_2d)
+  {
+    blend_src=sa; blend_dst=isa;
+    blend_asrc=zero; blend_adst=isa;
+  }
+  else if (shader==premultalpha_2d)
+  {
+    blend_src=1; blend_dst=isa;
+  }
+  else if (shader==addsmooth_2d)
+  {
+    blend_src=1; blend_dst=isc;
+  }
+  else if (shader==atest_2d)
+  {
+    blend_asrc=zero; blend_adst=one;
+  }
+  else
+  {
+    blend_src=1; blend_dst=1;
+  }
+
+  dynamic texture tex;
+
+  channel float3 pos=pos;
+  channel color8 vcol=vcol;
+  channel float3 tc[0]=tc[0];
+  channel float3 tc[1]=tc[1]; //not used here but has same vertex buffer with particle fx
+
+  (ps) { tex@smp2d = tex; }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 c0: COLOR;
+      float2 t0: TEXCOORD0;
+    };
+  }
+
+  hlsl(ps) {
+
+    float4 simple_ps(VsOutput input): SV_Target
+    {
+      return tex2D(tex,input.t0)*input.c0;
+    }
+  }
+
+  hlsl(vs) {
+
+    VsOutput simple_vs(float3 pos : POSITION, float3 t0: TEXCOORD0, float4 c0: COLOR)
+    {
+      VsOutput res;
+      res.pos = float4(pos.x, pos.y, 1, 1);
+      res.c0 = c0;
+      res.t0 = t0.xy;
+      return res;
+    }
+  }
+  compile("target_vs", "simple_vs");
+  compile("target_ps", "simple_ps");
+}

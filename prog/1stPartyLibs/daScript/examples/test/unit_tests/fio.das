@@ -1,5 +1,6 @@
 require fio
 
+[safe_when_uninitialized]
 struct Foo
     a:int = 1
     b:float = 2.0

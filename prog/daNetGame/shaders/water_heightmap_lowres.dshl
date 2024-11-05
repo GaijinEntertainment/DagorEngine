@@ -1,0 +1,30 @@
+include "shader_global.dshl"
+include "postfx_inc.dshl"
+include "water_heightmap.dshl"
+
+shader water_heightmap_lowres
+{
+  cull_mode = none;
+  z_test = false;
+  z_write = false;
+
+  POSTFX_VS_TEXCOORD(1, tc)
+  INIT_WATER_HEIGHTMAP_BASE(ps, @smp2d)
+  USE_WATER_HEIGHTMAP(ps)
+
+  (ps) { water_level@f1 = water_level; }
+
+  hlsl(ps)
+  {
+    float lowres_water_heightmap(VsOutput input) : SV_Target0
+    {
+      float waterHeight = sample_water_height(input.tc);
+      if (waterHeight < 0)
+        waterHeight = water_level;
+      else
+        waterHeight = waterHeight * water_height_offset_scale.y + water_height_offset_scale.x;
+      return waterHeight;
+    }
+  }
+  compile("target_ps", "lowres_water_heightmap");
+}

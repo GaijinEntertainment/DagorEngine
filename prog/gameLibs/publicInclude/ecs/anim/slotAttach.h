@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -14,12 +13,6 @@
 
 class DataBlock;
 
-inline void remove_from_eid_list(ecs::EntityId attach_eid, ecs::EidList &list)
-{
-  auto it = eastl::find(list.begin(), list.end(), attach_eid);
-  if (it != list.end())
-    list.erase(it);
-}
 
 namespace anim
 {

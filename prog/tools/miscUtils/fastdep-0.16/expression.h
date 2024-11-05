@@ -1,5 +1,5 @@
-#ifndef EXPRESSION_3C96529467795A46_H_
-#define EXPRESSION_3C96529467795A46_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 class CompileState;
 
@@ -29,5 +29,3 @@ private:
   CompileState *theState;
   unsigned int Pos;
 };
-
-#endif

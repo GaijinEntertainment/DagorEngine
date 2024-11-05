@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daRg/dag_renderObject.h>
 #include <daRg/dag_renderState.h>
 #include <daRg/dag_element.h>
@@ -36,7 +38,7 @@ public:
 
 class RobjWorldBlurStub : public RenderObject
 {
-  virtual void renderCustom(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
+  virtual void render(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
     const RenderState &render_state) override
   {
     RobjBlurParams *params = static_cast<RobjBlurParams *>(rdata->params);
@@ -49,7 +51,7 @@ class RobjWorldBlurStub : public RenderObject
     color = color_apply_opacity(color, render_state.opacity);
 
     ctx.set_color(color);
-    ctx.set_texture(BAD_TEXTUREID);
+    ctx.reset_textures();
     ctx.render_rect(rdata->pos, rdata->pos + rdata->size);
   }
 };

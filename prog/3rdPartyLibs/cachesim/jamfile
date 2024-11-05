@@ -1,4 +1,4 @@
-if $(OS) = NT { Platform ?= win64 ; }
+PlatformArch_windows ?= x86_64 ;
 
 Root    ?= ../../.. ;
 Location = prog/3rdPartyLibs/cachesim ;

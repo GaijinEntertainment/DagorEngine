@@ -52,7 +52,7 @@
 #define SHEEN_SPECULAR 0
 #endif
 
-float3 BRDF_diffuse( float3 diffuseColor, float linearRoughness, float NoV, float NoL, float VoH )
+half3 BRDF_diffuse( half3 diffuseColor, half linearRoughness, half NoV, half NoL, half VoH )
 {
 #if   BRDF_DIFFUSE == DIFFUSE_LAMBERT
   return diffuseLambert( diffuseColor );
@@ -68,7 +68,7 @@ float3 BRDF_diffuse( float3 diffuseColor, float linearRoughness, float NoV, floa
 #endif
 }
 
-float3 BRDF_diffuse( float3 diffuseColor, float linearRoughness, float NoV, float NoL, float VoH, float NoH )
+half3 BRDF_diffuse( half3 diffuseColor, half linearRoughness, half NoV, half NoL, half VoH, half NoH )
 {
 #if   BRDF_DIFFUSE == DIFFUSE_LAMBERT
   return diffuseLambert( diffuseColor );
@@ -83,7 +83,7 @@ float3 BRDF_diffuse( float3 diffuseColor, float linearRoughness, float NoV, floa
 #endif
 }
 
-float BRDF_distribution( float ggx_alpha, float NoH )
+half BRDF_distribution( half ggx_alpha, half NoH )
 {
 #if   BRDF_SPEC_D == SPEC_D_BLINN
   return distributionBlinn( ggx_alpha, NoH );
@@ -95,7 +95,7 @@ float BRDF_distribution( float ggx_alpha, float NoH )
 }
 
 // Vis = G / (4*NoL*NoV)
-float BRDF_geometricVisibility( float ggx_alpha, float NoV, float NoL, float VoH )
+half BRDF_geometricVisibility( half ggx_alpha, half NoV, half NoL, half VoH )
 {
 #if   BRDF_SPEC_G == SPEC_G_IMPLICIT
   return geometryImplicit();
@@ -114,7 +114,7 @@ float BRDF_geometricVisibility( float ggx_alpha, float NoV, float NoL, float VoH
 #endif
 }
 
-float3 BRDF_fresnel( float3 specularColor, float VoH )
+half3 BRDF_fresnel( half3 specularColor, half VoH )
 {
 #if   BRDF_SPEC_F == 0
   return fresnelNone( specularColor );
@@ -125,16 +125,18 @@ float3 BRDF_fresnel( float3 specularColor, float VoH )
 #endif
 }
 
-float3 BRDF_specular(float ggx_alpha, float NoV, float NoL, float VoH, float NoH, half sheenStrength, half3 sheenColor)
+half3 BRDF_specular(half ggx_alpha, half NoV, half NoL, half VoH, half NoH, half sheenStrength, half3 sheenColor)
 {
-  float D = BRDF_distribution( ggx_alpha, NoH );
-  float G = BRDF_geometricVisibility( ggx_alpha, NoV, NoL, VoH );
-  float3 result = D*G;
+  half D = BRDF_distribution( ggx_alpha, NoH );
+  half G = BRDF_geometricVisibility( ggx_alpha, NoV, NoL, VoH );
+  half3 result = D*G;
+  // limit result to avoid infinite values
+  result = min( result, 10000.h);
   #if SHEEN_SPECULAR
     if (sheenStrength > 0)
     {
-      float clothD = distributionCloth( ggx_alpha, NoH );
-      float clothG = geometryCloth( NoV, NoL );
+      half clothD = distributionCloth( ggx_alpha, NoH );
+      half clothG = geometryCloth( NoV, NoL );
       result = lerp(result,sheenColor*(clothD*clothG), sheenStrength);
     }
   #endif
@@ -153,8 +155,8 @@ half foliageSSSBackDiffuseAmount(half NoL)
 half foliageSSS(half NoL, half3 view, half3 lightDir)
 {
   half EdotL = saturate(dot(view, -lightDir));
-  half PowEdotL = pow4h(EdotL);
-  //float exponent = 8;
+  half PowEdotL = pow4(EdotL);
+  //half exponent = 8;
   //PowEdotL = PowEdotL * (exponent + 1) / (2.0f * PIh);// Modified phong energy conservation.
   half exponent = 8.h;
   PowEdotL = PowEdotL * (exponent + 1.h)/(2.0h * PIh);

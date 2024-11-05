@@ -1,0 +1,28 @@
+include "dynamic_masked_chrome_inc.dshl"
+include "simplified_rendering_inc.dshl"
+
+int dynamic_texture_hdr_pass = 0;
+interval dynamic_texture_hdr_pass : no < 1, yes;
+
+shader dynamic_masked_chrome_bump, dynamic_masked_chrome_bump_colored
+{
+  ENABLE_ASSERT(ps)
+  if (dynamic_texture_hdr_pass == yes)
+  {
+    dont_render;
+  }
+
+  SUPPORT_MULTIDRAW(false)
+  USE_SIMPLIFIED_RENDERING()
+  COMMON_MASKED_CHROME_SHADER_INIT()
+
+  hlsl(vs) {
+    void vs_post_function(VsInput input, inout VsOutput output)
+    {
+      init_burning_and_wounds(input, output);
+    }
+  }
+
+  DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
+  COMMON_MASKED_CHROME_PS()
+}

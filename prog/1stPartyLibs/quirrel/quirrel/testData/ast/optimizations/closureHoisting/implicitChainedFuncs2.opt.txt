@@ -1,15 +1,15 @@
 {
   local z = 0
-  let $ch0 = FUNCTION fff(this) {
+  let $ch0 = FUNCTION fff() {
     RETURN z
   }
-  let foo = FUNCTION foo(this, x, y) {
-    let $ch1 = FUNCTION (implicitChainedFuncs2.nut:10)(this, f, g) {
+  let foo = FUNCTION foo(x, y) {
+    let $ch1 = FUNCTION (implicitChainedFuncs2.nut:10)(f, g) {
       RETURN f - g - x
     }
-    RETURN FUNCTION (implicitChainedFuncs2.nut:4)(this, a, b) {
+    RETURN FUNCTION (implicitChainedFuncs2.nut:4)(a, b) {
       let fff = $ch0
-      RETURN FUNCTION (implicitChainedFuncs2.nut:8)(this, c, d) {
+      RETURN FUNCTION (implicitChainedFuncs2.nut:8)(c, d) {
         z = x + a - c
         RETURN $ch1
       }

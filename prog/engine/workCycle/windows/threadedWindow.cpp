@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <workCycle/threadedWindow.h>
 #include <osApiWrappers/setProgGlobals.h>
 #include <generic/dag_initOnDemand.h>
@@ -6,14 +8,14 @@
 #include <osApiWrappers/dag_threads.h>
 #include <osApiWrappers/dag_wndProcComponent.h>
 #include <osApiWrappers/dag_wndProcCompMsg.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_lowLatency.h>
 #include <EASTL/vector.h>
 #include <perfMon/dag_statDrv.h>
 #include "../../drv/drv3d_commonCode/drv_utils.h"
 
 
-#define AVOID_FALSE_SHARING char __CONCAT__(cacheline_pad, __LINE__)[std::hardware_constructive_interference_size] = {}
+#define AVOID_FALSE_SHARING char DAG_CONCAT(cacheline_pad, __LINE__)[std::hardware_constructive_interference_size] = {}
 
 static_assert(WM_DAGOR_USER == WM_USER);
 
@@ -250,7 +252,8 @@ void shutdown_threaded_window()
       PostThreadMessageW(window_thread->threadId, WM_NULL, 0, 0);
 
       win32_set_main_wnd(nullptr);
-      d3d::window_destroyed(window_thread->params.hwnd);
+      if (d3d::is_inited())
+        d3d::window_destroyed(window_thread->params.hwnd);
     }
 
     window_thread->terminate(true);
@@ -278,7 +281,8 @@ bool WindowThread::process_main_thread_messages(bool)
 }
 
 WindowThread::WindowThread(void *hinst, const char *name, int show, void *icon, const char *title, Driver3dInitCallback *cb) :
-  DaThread("WindowThread", 1ULL << 20) // For Fraps and other 3rd parties that likes to hook d3d present
+  DaThread("WindowThread", 1ULL << 20, 0, WORKER_THREADS_AFFINITY_MASK) // For Fraps and other 3rd parties that likes to hook d3d
+                                                                        // present
 {
   os_event_create(&winCreatedEvent);
 

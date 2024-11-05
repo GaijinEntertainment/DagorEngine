@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <de3_interface.h>
@@ -17,12 +19,14 @@
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/util/makeBindump.h>
 #include <libTools/dtx/ddsxPlugin.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <math/dag_mesh.h>
 #include <libTools/dagFileRW/dagExporter.h>
 #include <libTools/dagFileRW/dagFileNode.h>
 #include <coolConsole/coolConsole.h>
-#include <dllPluginCore/core.h>
+#include <EditorCore/ec_IEditorCore.h>
 #include <sceneRay/dag_sceneRay.h>
 #include <sceneRay/dag_sceneRayBuildable.h>
 #include <libTools/staticGeom/staticGeometryContainer.h>
@@ -48,6 +52,10 @@
 #include <obsolete/dag_cfg.h>
 
 #include <debug/dag_debug.h>
+
+using editorcore_extapi::dagGeom;
+using editorcore_extapi::dagRender;
+using editorcore_extapi::dagTools;
 
 static const int MD5_LEN = 16;
 extern bool allow_debug_bitmap_dump;
@@ -272,6 +280,8 @@ int LandMeshMap::addMaterial(StaticGeometryMaterial *material, bool *clipmap_onl
     return -1;
 
   if (!strstr(material->className.str(), "land_mesh"))
+    return -1;
+  if (strstr(material->className.str(), "land_mesh_clipmap"))
     return -1;
   bool is_decal = false;
   bool is_patch = false;
@@ -1880,7 +1890,7 @@ const IBBox2 *HmapLandPlugin::getExclCellBBox()
   return &bb;
 }
 
-bool HmapLandPlugin::validateBuild(int target, ILogWriter &rep, PropPanel2 *params)
+bool HmapLandPlugin::validateBuild(int target, ILogWriter &rep, PropPanel::ContainerPropertyControl *params)
 {
   if (!useMeshSurface || exportType == EXPORT_PSEUDO_PLANE)
     return true;
@@ -1950,9 +1960,6 @@ bool HmapLandPlugin::addUsedTextures(ITextureNumerator &tn)
 }
 
 extern bool hmap_export_tex(mkbindump::BinDumpSaveCB &cb, const char *tex_name, const char *fname, bool clamp, bool gamma1);
-
-extern int hmap_export_dds_as_ddsx_raw(mkbindump::BinDumpSaveCB &cb, char *data, int size, int w, int h, int bpp, int levels, int fmt,
-  bool gamma1);
 
 extern bool aces_export_detail_maps(mkbindump::BinDumpSaveCB &cb, int det_map_w, int det_map_h, int tex_elem_size,
   const Tab<SimpleString> &landclass_names, int base_ofs, bool optimize_size = false, bool tools_internal = false);

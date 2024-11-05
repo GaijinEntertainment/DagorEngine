@@ -17,6 +17,7 @@
 
 using namespace das;
 
+bool g_useSerialization = false;
 bool g_reportCompilationFailErrors = false;
 bool g_collectSharedModules = true;
 bool g_failOnSmartPtrLeaks = true;
@@ -26,16 +27,20 @@ TextPrinter tout;
 template <typename F>
 bool with_program_serialized ( F callback, ProgramPtr program ) {
 // serialize
-    AstSerializer ser;
+    unique_ptr<SerializationStorageVector> writeTo = make_unique<SerializationStorageVector>();
+    AstSerializer ser ( writeTo.get(), true );
     program->serialize(ser);
     program.reset();
+    ser.moduleLibrary = nullptr;
 // deserialize
-    AstSerializer deser ( ForReading{}, move(ser.buffer) );
+    unique_ptr<SerializationStorageVector> readFrom = make_unique<SerializationStorageVector>();
+    AstSerializer deser ( readFrom.get(), false );
+    readFrom->buffer = das::move(writeTo->buffer);
     auto new_program = make_smart<Program>();
     new_program->serialize(deser);
-    program = new_program;
+    deser.moduleLibrary = nullptr;
 // run it
-    return callback(program);
+    return callback(new_program);
 }
 
 StandaloneContextNode * StandaloneContextNode::head = nullptr;
@@ -135,6 +140,7 @@ bool unit_test ( const string & fn, bool useAot, bool useSer ) {
     CodeOfPolicies policies;
     policies.aot = useAot;
     policies.fail_on_no_aot = false;
+    policies.ignore_shared_modules = useSer;
     // policies.intern_strings = true;
     // policies.intern_const_strings = true;
     // policies.no_unsafe = true;
@@ -539,15 +545,15 @@ int main( int argc, char * argv[] ) {
     bool ok = true;
     // ok = run_all_standalone_context_tests() && ok;
     ok = run_compilation_fail_tests(getDasRoot() + "/examples/test/compilation_fail_tests") && ok;
-    ok = run_unit_tests(getDasRoot() +  "/examples/test/unit_tests",    true,  false) && ok;
-    ok = run_unit_tests(getDasRoot() +  "/examples/test/optimizations", false, false) && ok;
+    ok = run_unit_tests(getDasRoot() +  "/examples/test/unit_tests",    true,  g_useSerialization) && ok;
+    ok = run_unit_tests(getDasRoot() +  "/examples/test/optimizations", false, g_useSerialization) && ok;
     ok = run_exception_tests(getDasRoot() +  "/examples/test/runtime_errors") && ok;
-    ok = run_module_test(getDasRoot() +  "/examples/test/module", "main.das",        true, false) && ok;
-    ok = run_module_test(getDasRoot() +  "/examples/test/module", "main_inc.das",    true, false)  && ok;
-    ok = run_module_test(getDasRoot() +  "/examples/test/module", "main_default.das", false, false) && ok;
-    ok = run_module_test(getDasRoot() +  "/examples/test/module/alias",  "main.das", true, false) && ok;
-    ok = run_module_test(getDasRoot() +  "/examples/test/module/cdp",    "main.das", true, false) && ok;
-    ok = run_module_test(getDasRoot() +  "/examples/test/module/unsafe", "main.das", true, false) && ok;
+    ok = run_module_test(getDasRoot() +  "/examples/test/module", "main.das",        true, g_useSerialization) && ok;
+    ok = run_module_test(getDasRoot() +  "/examples/test/module", "main_inc.das",    true, g_useSerialization)  && ok;
+    ok = run_module_test(getDasRoot() +  "/examples/test/module", "main_default.das", false, g_useSerialization) && ok;
+    ok = run_module_test(getDasRoot() +  "/examples/test/module/alias",  "main.das", true, g_useSerialization) && ok;
+    ok = run_module_test(getDasRoot() +  "/examples/test/module/cdp",    "main.das", true, g_useSerialization) && ok;
+    ok = run_module_test(getDasRoot() +  "/examples/test/module/unsafe", "main.das", true, g_useSerialization) && ok;
     int usec = get_time_usec(timeStamp);
     tout << "TESTS " << (ok ? "PASSED " : "FAILED!!! ") << ((usec/1000)/1000.0) << "\n";
     // shutdown

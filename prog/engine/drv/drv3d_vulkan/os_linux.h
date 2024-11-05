@@ -1,10 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #ifndef _TARGET_PC_LINUX
 #error using linux specific implementation with wrong platform
 #endif
 
 #include <linux/x11.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include "../drv3d_commonCode/drv_utils.h"
 
 namespace drv3d_vulkan
@@ -22,6 +24,9 @@ struct WindowState
     int resolutionY;
     float aspect;
   } settings = {};
+
+  int refreshRate = 0;
+  void updateRefreshRateFromCurrentDisplayMode();
 
   void set(void *, const char *, int, void *, void *, void *, const char *title, void *wnd_proc)
   {

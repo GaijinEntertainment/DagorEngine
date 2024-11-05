@@ -1,6 +1,24 @@
-// classes for represenation & managment of various work blocks
-// with ability to move current execution point
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+//
+// A timeline intuitively is an infinite sequence of events or work items
+// emitted by one thread and processed by another thread. It looks something
+// like this:
+//
+//      processing  submitted    acquired
+//             |   __________  _____________
+//             V  |         | |            |
+//  . . . w5  w6  w7  w8  w9  w10  w11  w12  w13  w14  w15 . . .
+//
+// So each work item (w) has a "time" attached to it, and it's lifetime looks like this:
+// 1) wi is `acquire`d by the producer thread
+// 2) producer thread fills in wi with a hefty batch of work to be done
+// 3) producer thread `submit`s wi
+// 4) ... time passes ...
+// 5) consumer thread processes wi via `advance`
+//
+
 #include <osApiWrappers/dag_events.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -13,7 +31,7 @@ namespace drv3d_vulkan
 
 typedef uint32_t TimelineHistoryIndex;
 
-enum class TimelineHisotryState
+enum class TimelineHistoryState
 {
   INIT,
   ACQUIRED,
@@ -24,25 +42,26 @@ enum class TimelineHisotryState
   COUNT
 };
 
-// NOTE:
-// acquire/submit should be extern synced
-// advance/process can be called only from 1 thread
+template <typename T>
+class TimelineSpan;
 
+// NOTE:
+// acquire/submit should be called as-if from a single thread
+// advance should also be called as-if from a single thread
+// but acquire/submit and advance can be called called concurrently
 template <typename ElementImpl, typename SyncType, TimelineHistoryIndex HistoryLength>
 class Timeline
 {
-public:
-private:
   class HistoryElement
   {
     ElementImpl impl;
-    TimelineHisotryState state = TimelineHisotryState::SHUTDOWN;
+    TimelineHistoryState state = TimelineHistoryState::SHUTDOWN;
 
 #if DAGOR_DBGLEVEL > 0
-    eastl::array<uint64_t, (uint32_t)TimelineHisotryState::COUNT> timestamps;
+    eastl::array<uint64_t, (uint32_t)TimelineHistoryState::COUNT> timestamps;
 #endif
 
-    void setState(TimelineHisotryState new_state)
+    void setState(TimelineHistoryState new_state)
     {
 #if DAGOR_DBGLEVEL > 0
       timestamps[(uint32_t)new_state] = ref_time_ticks();
@@ -57,50 +76,50 @@ private:
 
     bool process()
     {
-      if (state != TimelineHisotryState::READY)
+      if (state != TimelineHistoryState::READY)
         return false;
 
       impl.process();
-      setState(TimelineHisotryState::IN_PROGRESS);
+      setState(TimelineHistoryState::IN_PROGRESS);
       return true;
     }
 
     void wait()
     {
-      G_ASSERT(state == TimelineHisotryState::IN_PROGRESS);
+      G_ASSERT(state == TimelineHistoryState::IN_PROGRESS);
       impl.wait();
-      setState(TimelineHisotryState::DONE);
+      setState(TimelineHistoryState::DONE);
     }
 
     void cleanup()
     {
-      G_ASSERT(state == TimelineHisotryState::DONE);
+      G_ASSERT(state == TimelineHistoryState::DONE);
       impl.cleanup();
-      setState(TimelineHisotryState::INIT);
+      setState(TimelineHistoryState::INIT);
     }
 
     void acquire(size_t abs_index)
     {
-      if (state == TimelineHisotryState::DONE)
+      if (state == TimelineHistoryState::DONE)
         cleanup();
 
-      G_ASSERT(state == TimelineHisotryState::INIT);
+      G_ASSERT(state == TimelineHistoryState::INIT);
       impl.acquire(abs_index);
-      setState(TimelineHisotryState::ACQUIRED);
+      setState(TimelineHistoryState::ACQUIRED);
     }
 
     void submit()
     {
-      G_ASSERT(state == TimelineHisotryState::ACQUIRED);
+      G_ASSERT(state == TimelineHistoryState::ACQUIRED);
       impl.submit();
-      setState(TimelineHisotryState::READY);
+      setState(TimelineHistoryState::READY);
     }
 
-    bool isCompleted() const { return state == TimelineHisotryState::DONE; }
+    bool isCompleted() const { return state == TimelineHistoryState::DONE; }
 
     ElementImpl &getImpl()
     {
-      G_ASSERT(state == TimelineHisotryState::ACQUIRED);
+      G_ASSERT(state == TimelineHistoryState::ACQUIRED);
       return impl;
     }
 
@@ -112,14 +131,14 @@ private:
     void shutdown()
     {
       impl.shutdown();
-      setState(TimelineHisotryState::SHUTDOWN);
+      setState(TimelineHistoryState::SHUTDOWN);
     }
 
     void init()
     {
-      G_ASSERT(state == TimelineHisotryState::SHUTDOWN);
+      G_ASSERT(state == TimelineHistoryState::SHUTDOWN);
       // optional impl.init() here
-      setState(TimelineHisotryState::INIT);
+      setState(TimelineHistoryState::INIT);
     }
   };
 
@@ -129,56 +148,110 @@ private:
   SyncType submitSync;
   typename SyncType::Lock acquireLock;
 
-  typename SyncType::PendingCounterType pending{0};
-  typename SyncType::AcquireCounterType acquireCnt{0};
-  size_t absIndex = 0;
+  typename SyncType::PendingCounterType pending;
+  typename SyncType::AcquireCounterType acquiredButNotSubmitted;
+  size_t time = 0;
 
   // history ring buffer
-  TimelineHistoryIndex acquireIdx = 0;
-  TimelineHistoryIndex currentIdx = 0;
+  TimelineHistoryIndex nextAcquireIdx = 0;
+  TimelineHistoryIndex currentProcessIdx = 0;
   void ringInc(TimelineHistoryIndex &val) { val = (val + 1) % HistoryLength; }
   eastl::array<HistoryElement, HistoryLength> history;
 
-public:
-  typedef ElementImpl Element;
-  typedef SyncType Sync;
+  friend class TimelineSpan<Timeline>;
+
+  ElementImpl &getElement(TimelineHistoryIndex idx)
+  {
+    G_ASSERT(idx < HistoryLength);
+    return history[idx].getImpl();
+  }
 
   static constexpr int INVALID_HISTORY_INDEX = -1;
 
-  TimelineHistoryIndex acquire()
-  {
-    G_ASSERT((acquireCnt + pending) < HistoryLength);
-    if (pending >= HistoryLength) // atomic read needed for proper sync
-      DAG_FATAL("vulkan: no element to acquire in timeline");
-    SyncType::sync_point_acquire();
+  typedef ElementImpl Element;
+  typedef SyncType Sync;
 
+public:
+  void init()
+  {
+    for (TimelineHistoryIndex i = 0; i < HistoryLength; ++i)
+      history[i].init();
+  }
+
+  void shutdown()
+  {
+    for (TimelineHistoryIndex i = 0; i < HistoryLength; ++i)
+      history[i].shutdown();
+
+    pending.reset();
+    acquiredButNotSubmitted.reset();
+    time = 0;
+    nextAcquireIdx = 0;
+    currentProcessIdx = 0;
+  }
+
+  // Acquires the next element in the timeline for preparing it for submission.
+  // NOTE: it is the user's responsibility to not acquire more than HistoryLength elements,
+  // call `advance()` eventually, and call waitAcquireSpace if they cannot guarantee free space
+  // for the acquire call through external synchronization.
+  [[nodiscard]] TimelineHistoryIndex acquire()
+  {
+    const TimelineHistoryIndex observedPending = pending.get();
+    const TimelineHistoryIndex observedAcquiredButNotSubmitted = acquiredButNotSubmitted.fetchAdd();
+
+    // User has to call waitAcquireSpace to avoid this branch
+    if (observedAcquiredButNotSubmitted + observedPending >= HistoryLength)
+    {
+      acquiredButNotSubmitted.fetchDone();
+      G_ASSERTF(false,
+        "vulkan: total amount of non-completed timeline elements %d exceeded the ring buffer size %d!"
+        " No elements available to acqurie!",
+        observedAcquiredButNotSubmitted + observedPending, HistoryLength);
+      return -1;
+    }
+
+    if (observedPending >= HistoryLength)
+    {
+      DAG_FATAL("vulkan: total amount of pending timeline elements %d exceeded the ring buffer size %d!"
+                " No elements available to acqurie!",
+        observedPending, HistoryLength);
+      return -1; // tell compiler that we will not proceed down when we FATAL
+    }
+
+    // We have synchronized-with the `pending.fetchDone()` call in `advance()` that has
+    // last touched history[nextAcquireIdx] and so we can now re-use it without
+    // a data race.
     TimelineHistoryIndex ret;
     {
       typename SyncType::AutoLock l(acquireLock);
-      history[acquireIdx].acquire(absIndex);
-      ret = acquireIdx;
-      ringInc(acquireIdx);
+      history[nextAcquireIdx].acquire(time);
+      ret = nextAcquireIdx;
+      ringInc(nextAcquireIdx);
+      time++;
     }
 
-    ++absIndex;
-    ++acquireCnt;
     return ret;
   }
 
+  // Submits an element that was acquired earlier for further processing in a different thread.
   void submit(TimelineHistoryIndex idx)
   {
-    G_ASSERT(acquireCnt);
     history[idx].submit();
-    ++pending; // sync barrier
-    --acquireCnt;
-    G_ASSERT(pending <= HistoryLength);
+    // This synchronizes-with the read in `advance()`
+    const TimelineHistoryIndex observedPending = pending.fetchAdd();
+    G_UNUSED(observedPending);
+    G_ASSERT(observedPending < HistoryLength);
+
+    const TimelineHistoryIndex observedAcquiredButNotSubmitted = acquiredButNotSubmitted.fetchDone();
+    G_ASSERT_RETURN(observedAcquiredButNotSubmitted > 0, );
+
     submitSync.signal();
   }
 
+private:
   bool process()
   {
-    SyncType::sync_point_process();
-    HistoryElement &el = history[currentIdx];
+    HistoryElement &el = history[currentProcessIdx];
     if (!el.isCompleted())
     {
       if (!el.process())
@@ -187,19 +260,32 @@ public:
     return true;
   }
 
+public:
+  // Processes the next submitted element and advances the timeline.
+  // Must only be called from a single thread.
   bool advance()
   {
-    if (pending == 0)
+    const TimelineHistoryIndex observedPending = pending.get();
+    if (observedPending == 0)
       return false;
 
+    // `pending.get()` synchronized with all previous RMW operations (due to release sequences).
+    // We have also observed it to be >0, which means that the `pending.fetchAdd()`
+    // which happened in the `submit()` call that last touched history[currentProcessIdx]
+    // is included among those RMW operations that have "already happened".
+    // Hence, we can touch this history element without a data race.
     if (!process())
       return false;
-    history[currentIdx].wait();
-    if (!keep_history)
-      history[currentIdx].cleanup();
 
-    ringInc(currentIdx);
-    --pending; // sync barrier
+    history[currentProcessIdx].wait();
+    if (!keep_history)
+      history[currentProcessIdx].cleanup();
+
+    ringInc(currentProcessIdx);
+
+    // This synchronizes-with the `pending.get()` in `acquire()` that "loops around" and
+    // re-uses this element for a new timeline element, preventing a data race.
+    pending.fetchDone();
 
     advanceSync.signal();
 
@@ -210,28 +296,39 @@ public:
   {
     // acquire/submit should be extern synced for now,
     // so we need to wait advance in case that all elements are in pending and acquired state
-    G_ASSERT(acquireCnt != HistoryLength); // it is logic error if we acquire all elements and wait for space
-    return advanceSync.waitCond([this]() { return (this->pending + this->acquireCnt) < HistoryLength; }, max_retries);
+
+    // it is logic error if we acquire all elements and wait for space
+    G_ASSERT(acquiredButNotSubmitted.get() != HistoryLength);
+    return advanceSync.waitCond(
+      [this]() {
+        const TimelineHistoryIndex observedPending = this->pending.get();
+        const TimelineHistoryIndex observedAcquiredButNotSubmitted = acquiredButNotSubmitted.get();
+        return observedPending + observedAcquiredButNotSubmitted < HistoryLength;
+      },
+      max_retries);
   }
 
   bool waitAdvance(TimelineHistoryIndex max_pending, uint32_t max_retries)
   {
-    return advanceSync.waitCond([this, max_pending]() { return this->pending <= max_pending; }, max_retries);
+    return advanceSync.waitCond(
+      [this, max_pending]() {
+        const TimelineHistoryIndex observedPending = this->pending.get();
+        return observedPending <= max_pending;
+      },
+      max_retries);
   }
 
   bool waitSubmit(TimelineHistoryIndex min_pending, uint32_t max_retries)
   {
-    return submitSync.waitCond([this, min_pending]() { return this->pending >= min_pending; }, max_retries);
+    return submitSync.waitCond(
+      [this, min_pending]() {
+        const TimelineHistoryIndex observedPending = this->pending.get();
+        return observedPending >= min_pending;
+      },
+      max_retries);
   }
 
-  TimelineHistoryIndex getPendingAmount() const { return pending; }
-
-  ElementImpl &getElement(TimelineHistoryIndex idx)
-  {
-    G_ASSERT(idx < HistoryLength);
-    return history[idx].getImpl();
-  }
-
+  // NOTE: completely not thread safe. Use at your own risk.
   template <typename T>
   void enumerate(T cb) const
   {
@@ -239,26 +336,8 @@ public:
       cb(i, history[i].getImpl());
   }
 
-  void shutdown()
-  {
-    for (TimelineHistoryIndex i = 0; i < HistoryLength; ++i)
-      history[i].shutdown();
-
-    pending = 0;
-    acquireCnt = 0;
-    absIndex = 0;
-    acquireIdx = 0;
-    currentIdx = 0;
-  }
-
-  void init()
-  {
-    for (TimelineHistoryIndex i = 0; i < HistoryLength; ++i)
-      history[i].init();
-  }
-
-  static TimelineHistoryIndex get_history_length() { return HistoryLength; }
 #if DAGOR_DBGLEVEL > 0
+  // NOTE: completely not thread safe. Use at your own risk.
   template <typename T>
   void enumerateTimestamps(T cb) const
   {
@@ -303,31 +382,50 @@ public:
   }
 };
 
+struct ConcurrentWorkCounter
+{
+  // Synchronizes-with all `fetchAdd` and `fetchDone` calls (through release sequences)
+  [[nodiscard]] TimelineHistoryIndex get() { return value.load(std::memory_order_acquire); }
+  TimelineHistoryIndex fetchAdd() { return value.fetch_add(1, std::memory_order_release); }
+  TimelineHistoryIndex fetchDone() { return value.fetch_sub(1, std::memory_order_release); }
+
+  void reset() { value.store(0, std::memory_order_relaxed); }
+
+private:
+  std::atomic<TimelineHistoryIndex> value = 0;
+};
+
+struct WorkCounter
+{
+  [[nodiscard]] TimelineHistoryIndex get() { return value; }
+  TimelineHistoryIndex fetchAdd() { return value++; }
+  TimelineHistoryIndex fetchDone() { return value--; }
+
+  void reset() { value = 0; }
+
+private:
+  TimelineHistoryIndex value = 0;
+};
+
 struct TimelineSyncPartSingleWriterSingleReader
 {
-  static void sync_point_acquire() { std::atomic_thread_fence(std::memory_order_acquire); }
-
-  static void sync_point_process() { std::atomic_thread_fence(std::memory_order_acquire); }
-
-  typedef std::atomic<TimelineHistoryIndex> PendingCounterType;
-  typedef TimelineHistoryIndex AcquireCounterType;
+  using PendingCounterType = ConcurrentWorkCounter;
+  using AcquireCounterType = WorkCounter;
 };
 
 struct TimelineSyncPartNonConcurrent
 {
-  static void sync_point_acquire() {}
-  static void sync_point_process() {}
-
-  typedef TimelineHistoryIndex PendingCounterType;
-  typedef TimelineHistoryIndex AcquireCounterType;
+  using PendingCounterType = WorkCounter;
+  using AcquireCounterType = WorkCounter;
 };
+
 
 struct TimelineSyncPartNonWaitable
 {
   void nonWaitableError() { DAG_FATAL("vulkan: timeline is not waitable"); }
 
-  void signal(){};
-  void wait() { nonWaitableError(); };
+  void signal() {}
+  void wait() { nonWaitableError(); }
 
   template <typename T>
   bool waitCond(T, uint32_t)

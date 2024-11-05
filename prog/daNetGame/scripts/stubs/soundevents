@@ -1,0 +1,4 @@
+return {
+  CmdPlaySound = class { name = "CmdPlaySound" }
+  CmdPlayNetSound = class { name = "CmdPlayNetSound" }
+}

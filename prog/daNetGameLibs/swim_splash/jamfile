@@ -1,0 +1,25 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = swim_splash ;
+Location = prog/daNetGameLibs/$(Module) ;
+
+
+AddIncludes =
+  $(Root)/prog/daNetGameLibs
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+;
+
+local AllSrcFolder_CPP = ;
+local AllSrcFolder_ES = ;
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_ES += render ;
+  AllSrcFolder_CPP += render ;
+}
+
+CPPopt = -DUSE_BULLET_PHYSICS ;
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

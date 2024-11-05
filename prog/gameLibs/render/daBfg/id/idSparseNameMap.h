@@ -1,10 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/optional.h>
 #include <EASTL/string_view.h>
 #include <util/dag_oaHashNameMap.h>
 #include <dag/dag_vector.h>
-
+#include <EASTL/span.h>
 
 template <class EnumType>
 struct IdSparseNameMap
@@ -23,6 +24,10 @@ struct IdSparseNameMap
     else
       return EnumType::Invalid;
   }
+
+  eastl::span<const EnumType> getIds() const { return ids; }
+
+  size_t size() const { return ids.size(); }
 
 private:
   OAHashNameMap<false> names;

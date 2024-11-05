@@ -1,10 +1,10 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
+#include <vecmath/dag_vecMathDecl.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_Point3.h>
 #include <phys/dag_physResource.h>
@@ -16,6 +16,7 @@
 #include <rendInst/rendInstDesc.h>
 #include <rendInst/constants.h>
 #include <rendInst/rendInstGenDamageInfo.h>
+#include <rendInst/treeDestr.h>
 
 
 class AcesEffect;
@@ -42,20 +43,32 @@ struct RendInstBufferData
   carray<int16_t, 12> data;
 };
 
-DynamicPhysObjectData *doRIGenDestr(const RendInstDesc &desc, RendInstBufferData &out_buffer, RendInstDesc &out_desc, float dmg_pts,
-  ri_damage_effect_cb effect_cb = nullptr, riex_handle_t *out_gen_riex = nullptr, bool restorable = false, int32_t user_data = -1,
-  const Point3 *coll_point = nullptr, bool *ri_removed = nullptr,
-  DestrOptionFlags destroy_flags = DestrOptionFlag::AddDestroyedRi | DestrOptionFlag::ForceDestroy);
+DynamicPhysObjectData *doRIGenDestr(const RendInstDesc &desc, RendInstBufferData &out_buffer, ri_damage_effect_cb effect_cb,
+  riex_handle_t &out_destroyed_riex_handle, int32_t user_data = -1, const Point3 *coll_point = nullptr, bool *ri_removed = nullptr,
+  DestrOptionFlags destroy_flags = DestrOptionFlag::AddDestroyedRi | DestrOptionFlag::ForceDestroy,
+  const Point3 &impulse = Point3::ZERO, const Point3 &impulse_pos = Point3::ZERO);
 
 // This one ignores subcells and doesn't return buffer (as we use it when we don't need to restore it)
 // As well it doesn't updateVb, as it's used in batches, so you'll updateVb only once, when you need it
-DynamicPhysObjectData *doRIGenDestrEx(const RendInstDesc &desc, float dmg_pts, ri_damage_effect_cb effect_cb = nullptr,
-  int32_t user_data = -1);
+DynamicPhysObjectData *doRIGenDestrEx(const RendInstDesc &desc, ri_damage_effect_cb effect_cb = nullptr, int32_t user_data = -1);
 DynamicPhysObjectData *doRIExGenDestrEx(rendinst::riex_handle_t riex_handle, ri_damage_effect_cb effect_cb = nullptr);
 
 bool restoreRiGen(const RendInstDesc &desc, const RendInstBufferData &buffer);
 riex_handle_t restoreRiGenDestr(const RendInstDesc &desc, const RendInstBufferData &buffer);
 
+struct TreeInstData
+{
+  float timer = 0.0f;
+  int rndSeed = 0;
+  Point2 impactXZ = Point2(0.0f, 0.0f);
+  rendinstdestr::TreeDestr::BranchDestr branchDestr;
+};
+
+struct TreeInstDebugData
+{
+  rendinstdestr::TreeDestr::BranchDestr branchDestr;
+  float timer_offset = 0.0f;
+};
 
 struct DestroyedRi
 {
@@ -65,6 +78,8 @@ struct DestroyedRi
   float timeToDamage = 0;
   int fxType = 0;
   riex_handle_t riHandle = RIEX_HANDLE_NULL;
+  int16_t propsId;   // Index in `riDebrisMap`. Negaive if doesn't need update
+  uint16_t debrisNo; // Index in `riDebris`
   bool shouldUpdate = false;
   float accumulatedPower = 0;
   float rotationPower = 0;
@@ -72,12 +87,19 @@ struct DestroyedRi
   RendInstBufferData savedData = {};
 
   DestroyedRi() = default;
+  DestroyedRi(const DestroyedRi &) = delete;
   ~DestroyedRi();
 };
 
 DestroyedRi *doRIGenExternalControl(const RendInstDesc &desc, bool rem_rendinst = true);
+bool fillTreeInstData(const RendInstDesc &desc, const Point2 &impact_velocity_xz, TreeInstData &out_data);
+void updateTreeDestrRenderData(const TMatrix &original_tm, riex_handle_t ri_handle, TreeInstData &tree_inst_data,
+  const TreeInstDebugData *tree_inst_debug_data = nullptr);
+
+bool should_clear_external_controls();
+
 bool returnRIGenExternalControl(const RendInstDesc &desc, DestroyedRi *ri);
-bool removeRIGenExternalControl(const RendInstDesc &desc, DestroyedRi *ri);
+bool removeRIGenExternalControl(const RendInstDesc &desc, DestroyedRi *ri, bool lock = true);
 
 void play_riextra_dmg_fx(rendinst::riex_handle_t id, const Point3 &pos, ri_damage_effect_cb effect_cb);
 

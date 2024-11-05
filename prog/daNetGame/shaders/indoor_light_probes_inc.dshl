@@ -1,0 +1,48 @@
+
+buffer all_indoor_probe_boxes;
+buffer all_indoor_probe_pos_and_cubes;
+
+macro USE_INDOOR_PROBE_CELL(code)
+  (code){
+    indoor_probes_grid_center@f3 = (indoor_probes_grid_xz_center.x, indoor_probes_grid_y_center, indoor_probes_grid_xz_center.y, 0);
+    indoor_probes_max_distance_or_disabled@f1 = indoor_probes_max_distance_or_disabled;
+  }
+  hlsl(code){
+    #include <indoor_probes_const.hlsli>
+    void get_grid_params(float3 world_pos, float viewDist, out float3 gridPos, out int3 gridSize, out float fadeWeight)
+    {
+      float3 cellSize = float3(GRID_CELL_SIZE, GRID_CELL_HEIGHT, GRID_CELL_SIZE);
+      gridPos = (world_pos - indoor_probes_grid_center) / cellSize;
+      gridSize = int3(GRID_SIDE, GRID_HEIGHT, GRID_SIDE);
+      float3 absGridPos = abs(gridPos) / gridSize;
+      float maxCoord = max3(absGridPos.x, absGridPos.y, absGridPos.z);
+      fadeWeight = saturate((0.5 - maxCoord) / SKY_PROBE_FADE_DIST);
+      // additional fadeout based on camera distance (we do not gather probes further than certain distance)
+      fadeWeight *= saturate((indoor_probes_max_distance_or_disabled - viewDist) / SKY_PROBE_FADE_DIST_WS);
+    }
+  }
+endmacro
+
+macro USE_INDOOR_LIGHT_PROBE_DFS(code) // DF as in distance fields
+  hlsl(code) {
+    float dfCapsule( float3 position, float3 a, float3 b )
+    {
+      float3 pa = position - a, ba = b - a;
+      float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
+      return length( pa - ba*h );
+    }
+
+    float sdfCylinder( float3 position, float3 a, float3 b, float radius )
+    {
+      float3 pa = position - a, ba = b - a, pb = position - b;
+      float h = dot(pa,ba)/dot(ba,ba);
+
+      float ret_val = length( pa - ba * h) - radius;
+
+      ret_val = h < 0 ? length( pa ) : ret_val;
+      ret_val = h > 1 ? length( position - b ) : ret_val;
+
+      return ret_val;
+    }
+  }
+endmacro

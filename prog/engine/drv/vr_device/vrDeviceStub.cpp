@@ -1,4 +1,6 @@
-#include "drivers/dag_vr.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/dag_vr.h>
 #include "shaders/dag_postFxRenderer.h"
 
 void VRDevice::setAndCallInputInitializationCallback(HumanInput::VrInput::InitializationCallback) {}
@@ -22,7 +24,7 @@ void VRDevice::renderMirror(FrameData &) {}
 
 void VRDevice::forceDisableScreenMask(bool) {}
 
-bool VRDevice::renderScreenMask(const TMatrix4 &, int) { return false; }
+bool VRDevice::renderScreenMask(const TMatrix4 &, int, float, int) { return false; }
 
 bool VRDevice::shouldBeEnabled() { return false; }
 
@@ -33,6 +35,14 @@ VRDevice::MirrorMode VRDevice::getMirrorModeFromSettings() { return MirrorMode::
 void VRDevice::setEnabled(bool) {}
 
 bool VRDevice::setRenderingDevice() { return false; }
+
+void VRDevice::prepareVrsMask(FrameData &) {}
+
+void VRDevice::enableVrsMask(StereoIndex, bool) {}
+
+void VRDevice::disableVrsMask() {}
+
+const ManagedTex *VRDevice::getVrsMask(StereoIndex stereo_index, bool combined) const { return nullptr; }
 
 // static
 void VRDevice::calcViewTransforms(VRDevice::FrameData::ViewData &, float, float, float) {}

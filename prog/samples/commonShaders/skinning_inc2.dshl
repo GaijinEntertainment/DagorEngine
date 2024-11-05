@@ -67,6 +67,8 @@ hlsl(vs) {
   //ConstantBuffer bones
   //{
     float4 boneTmArray[MAX_BONES*3] : register(c70);
+    float4 boneTmArrayLastreg : register(c142);
+    // 142 = MAX_BONES*3 + 70, ensure that dsc sees the vs const range correctly
   //};
   bone_t skinning_matrix(in VsInput input)
   {

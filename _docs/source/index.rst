@@ -1,23 +1,25 @@
 
-Dagor Docs
+Dagor Documentation
 =========================================
 
-
-Contents:
+Welcome to the central hub for all Dagor Engine resources, updates, and
+detailed documentation.
 
 .. toctree::
-   :maxdepth: 4
-   :glob:
+   :maxdepth: 2
+   :caption: Contents:
 
-   dagor-render/index.rst
-   dagor-engine-docs/index.rst
-   quirrel-modules/index.rst
-   qdox-user-guide/index.rst
-
+   dagor-home/index.rst
+   getting-started/index.rst
+   tutorials/index.rst
+   api-references/index.rst
+   samples/index.rst
+   dagor-tools/index.rst
+   assets/index.rst
+   danetgame-framework/index.rst
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`search`
 

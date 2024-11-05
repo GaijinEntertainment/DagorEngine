@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/io/blk.h>
 #include <generic/dag_tab.h>
 #include <daECS/core/componentTypes.h>
@@ -71,6 +73,7 @@ struct BlkLoadContext
   const char *blockName = NULL;
   TemplateComponentsDB *db = NULL;
   TemplateDBInfo *info = NULL;
+  ecs::EntityManager *mgr = NULL;
   int valueNid = -1, groupNid = -1;
   int replicateNid = -1, trackNid = -1, ignoreNid = -1, hideNid = -1, infoNid = -1;
   struct
@@ -185,7 +188,10 @@ static const BlockLoaderDesc block_loaders[] = {LIST_TYPES{TYPENAMEANDLEN("objec
   {TYPENAMEANDLEN("u8"), &load_blk_type<int, &DataBlock::getInt, uint8_t>, ComponentTypeInfo<uint8_t>::type},
   {TYPENAMEANDLEN("u16"), &load_blk_type<int, &DataBlock::getInt, uint16_t>, ComponentTypeInfo<uint16_t>::type},
   {TYPENAMEANDLEN("u32"), &load_blk_type<int, &DataBlock::getInt, uint32_t>, ComponentTypeInfo<uint32_t>::type},
-  {TYPENAMEANDLEN("u64"), &load_blk_type<int64_t, &DataBlock::getInt64, uint64_t>, ComponentTypeInfo<uint64_t>::type}};
+  {TYPENAMEANDLEN("u64"), &load_blk_type<int64_t, &DataBlock::getInt64, uint64_t>, ComponentTypeInfo<uint64_t>::type},
+  {TYPENAMEANDLEN("BBox3"),
+    [](BlkLoadContext &ctx, const char *name, const DataBlock &) { ctx.clist->emplace_back(name, ChildComponent(BBox3())); },
+    ComponentTypeInfo<BBox3>::type}};
 #undef TYPEANDLEN
 #undef LIST_TYPES
 #undef LIST_TYPE
@@ -202,7 +208,7 @@ const char *BlkLoadContext::parseNameType(const char *name, char *sname, eastl::
 {
   G_FAST_ASSERT(name);
   int nmlen = (int)strlen(name);
-  if (EASTL_UNLIKELY(nmlen >= MAX_NAME_LEN))
+  if (DAGOR_UNLIKELY(nmlen >= MAX_NAME_LEN))
     return "Too long name";
   const char *typeDelim = strchr(name, ':');
   if (!typeDelim)
@@ -227,7 +233,7 @@ enum class RegisterRet
   ERROR
 };
 
-static RegisterRet register_component(const char *compName, eastl::string_view compType, const DataBlock &blk)
+static RegisterRet register_component(ecs::EntityManager &mgr, const char *compName, eastl::string_view compType, const DataBlock &blk)
 {
   eastl::string sharedStr;
   if (compType.length() > SHARED_PREFIX_LEN &&
@@ -237,8 +243,7 @@ static RegisterRet register_component(const char *compName, eastl::string_view c
       compType.data() + SHARED_PREFIX_LEN);
     compType = sharedStr;
   }
-  type_index_t cmpType =
-    g_entity_mgr->getComponentTypes().findType(ECS_HASHLEN_SLOW_LEN(compType.data(), (uint32_t)compType.length()).hash);
+  type_index_t cmpType = mgr.getComponentTypes().findType(ECS_HASHLEN_SLOW_LEN(compType.data(), (uint32_t)compType.length()).hash);
   if (cmpType == INVALID_COMPONENT_TYPE_INDEX)
     return RegisterRet::INVALID_TYPE;
   SmallTab<component_t, framemem_allocator> deps;
@@ -252,7 +257,7 @@ static RegisterRet register_component(const char *compName, eastl::string_view c
   const component_flags_t flag = blk.getBool("_hidden", false) ? DataComponent::DONT_REPLICATE : 0;
 
   dag::Span<component_t> depsSlice(deps.begin(), deps.size());
-  const bool ok = g_entity_mgr->createComponent(ECS_HASH_SLOW(compName), cmpType, depsSlice, NULL, flag) != INVALID_COMPONENT_INDEX;
+  const bool ok = mgr.createComponent(ECS_HASH_SLOW(compName), cmpType, depsSlice, NULL, flag) != INVALID_COMPONENT_INDEX;
   return ok ? RegisterRet::OK : RegisterRet::ERROR;
 }
 
@@ -375,7 +380,7 @@ void BlkLoadContext::load(const DataBlock &blk, const char *tags, on_empty_comp_
     {
       if (doLoad)
       {
-        RegisterRet ret = register_component(pName, compType, *subBlock);
+        RegisterRet ret = register_component(*mgr, pName, compType, *subBlock);
         if (ret == RegisterRet::OK)
         {
           if (addDbComponent(userType))
@@ -528,11 +533,11 @@ static void load_list(BlkLoadContext &ctx, const char *listname, const DataBlock
   ctx.clist->emplace_back(listname, eastl::move(list));
 }
 
-static void resolve_templates_imports(const char *path, const DataBlock &blk, TemplateRefs &templates, TemplateRefs &overrides,
-  service_datablock_cb &cb, TemplateDBInfo *info);
+static void resolve_templates_imports(ecs::EntityManager &mgr, const char *path, const DataBlock &blk, TemplateRefs &templates,
+  TemplateRefs &overrides, service_datablock_cb &cb, TemplateDBInfo *info);
 
-static void resolve_one_import(TemplateRefs &templates, TemplateRefs &overrides, service_datablock_cb &cb, TemplateDBInfo *info,
-  const char *imp_fn, const String &src_folder, bool is_optional)
+static void resolve_one_import(ecs::EntityManager &mgr, TemplateRefs &templates, TemplateRefs &overrides, service_datablock_cb &cb,
+  TemplateDBInfo *info, const char *imp_fn, const String &src_folder, bool is_optional)
 {
   const dblk::ReadFlags loadBlkFlags = is_optional ? dblk::ReadFlag::ROBUST | dblk::ReadFlag::RESTORE_FLAGS : dblk::ReadFlags();
 
@@ -576,7 +581,7 @@ static void resolve_one_import(TemplateRefs &templates, TemplateRefs &overrides,
         DataBlock imp_blk;
         if (dblk::load(imp_blk, s, loadBlkFlags))
         {
-          resolve_templates_imports(NULL, imp_blk, templates, overrides, cb, info);
+          resolve_templates_imports(mgr, NULL, imp_blk, templates, overrides, cb, info);
           anyFileLoaded = true;
         }
       }
@@ -588,17 +593,17 @@ static void resolve_one_import(TemplateRefs &templates, TemplateRefs &overrides,
   {
     DataBlock imp_blk;
     if (dblk::load(imp_blk, (abs_path || mnt_path) ? imp_fn : (src_folder + imp_fn).str(), loadBlkFlags))
-      resolve_templates_imports(NULL, imp_blk, templates, overrides, cb, info);
+      resolve_templates_imports(mgr, NULL, imp_blk, templates, overrides, cb, info);
     else if (!is_optional)
       logerr("No such file on directory <%s>. Please make import_optional or add file.", imp_fn);
   }
 }
 
-static void load_templates_blk_file(const char *path, const DataBlock &blk, TemplateRefs &templates, TemplateRefs &overrides,
-  service_datablock_cb &cb, TemplateDBInfo *info);
+static void load_templates_blk_file(ecs::EntityManager &mgr, const char *path, const DataBlock &blk, TemplateRefs &templates,
+  TemplateRefs &overrides, service_datablock_cb &cb, TemplateDBInfo *info);
 
-static void resolve_templates_imports(const char *path, const DataBlock &blk, TemplateRefs &templates, TemplateRefs &overrides,
-  service_datablock_cb &cb, TemplateDBInfo *info)
+static void resolve_templates_imports(ecs::EntityManager &mgr, const char *path, const DataBlock &blk, TemplateRefs &templates,
+  TemplateRefs &overrides, service_datablock_cb &cb, TemplateDBInfo *info)
 {
   const char *src_fn = blk.resolveFilename();
   if (src_fn)
@@ -617,15 +622,15 @@ static void resolve_templates_imports(const char *path, const DataBlock &blk, Te
       if (paramNid == importNid || paramNid == importOptionalNid)
       {
         const bool isOptional = paramNid == importOptionalNid;
-        resolve_one_import(templates, overrides, cb, info, blk.getStr(i), src_folder, isOptional);
+        resolve_one_import(mgr, templates, overrides, cb, info, blk.getStr(i), src_folder, isOptional);
       }
     }
   }
-  load_templates_blk_file(path ? path : src_fn, blk, templates, overrides, cb, info);
+  load_templates_blk_file(mgr, path ? path : src_fn, blk, templates, overrides, cb, info);
 }
 
-static void load_templates_blk_file(const char *path, const DataBlock &blk, TemplateRefs &templates, TemplateRefs &overrides,
-  service_datablock_cb &cb, TemplateDBInfo *info)
+static void load_templates_blk_file(ecs::EntityManager &mgr, const char *path, const DataBlock &blk, TemplateRefs &templates,
+  TemplateRefs &overrides, service_datablock_cb &cb, TemplateDBInfo *info)
 {
   const int parentNid = blk.getNameId("_use"), trackedNid = blk.getNameId("_tracked"), replicatedNid = blk.getNameId("_replicated"),
             hiddenNid = blk.getNameId("_hidden"), overrideNid = blk.getNameId("_override"),
@@ -635,7 +640,7 @@ static void load_templates_blk_file(const char *path, const DataBlock &blk, Temp
 
   // second pass, create templates
   Template::component_set ignored, replicatedSet, trackedSet, hiddenSet, tagsSkippedSet;
-  BlkLoadContext lctx{nullptr, nullptr, path, /*blockName*/ nullptr, &templates, info, VALUE_NID(blk), GROUP_NID(blk), replNid,
+  BlkLoadContext lctx{nullptr, nullptr, path, /*blockName*/ nullptr, &templates, info, &mgr, VALUE_NID(blk), GROUP_NID(blk), replNid,
     trackNid, ignoreNid, hideNid, infoNid};
   templates.reserve(blk.blockCount());
   for (int i = 0, be = blk.blockCount(); i < be; ++i)
@@ -663,7 +668,7 @@ static void load_templates_blk_file(const char *path, const DataBlock &blk, Temp
           const bool doLoad = !ftags || (info && ecs::filter_needed(ftags, info->filterTags)); //-V595
           if (doLoad)
           {
-            RegisterRet ret = register_component(compName, eastl::string_view(compType), tblk);
+            RegisterRet ret = register_component(mgr, compName, eastl::string_view(compType), tblk);
             if (ret == RegisterRet::INVALID_TYPE)
               logerr("_component block at %s is invalid. Type %s for %sis unknown", path, compType, compName);
             else if (ret != RegisterRet::OK)
@@ -744,6 +749,7 @@ static void load_templates_blk_file(const char *path, const DataBlock &blk, Temp
     lctx.sets.replicated = &replicatedSet;
     lctx.sets.hidden = info ? &hiddenSet : NULL;
     lctx.sets.tagsSkipped = info ? &tagsSkippedSet : NULL;
+    lctx.mgr = &mgr;
 
     lctx.load(tblk, nullptr, [&cmap] /*on_empty_comp_type_cb*/ (HashedConstString hName) { cmap[hName] = ChildComponent(); });
     for (auto &&c : clist)
@@ -756,8 +762,8 @@ static void load_templates_blk_file(const char *path, const DataBlock &blk, Temp
       else
       {
         logerr("component <%s|0x%X> has type of <%s> in template <%s:%s>, while it is already typed as <%s> in other template.",
-          c.first.c_str(), cname.hash, g_entity_mgr->getComponentTypes().findTypeName(templates.getComponentType(cname.hash)), path,
-          templName, g_entity_mgr->getComponentTypes().findTypeName(c.second.getUserType()));
+          c.first.c_str(), cname.hash, mgr.getComponentTypes().findTypeName(templates.getComponentType(cname.hash)), path, templName,
+          mgr.getComponentTypes().findTypeName(c.second.getUserType()));
       }
     }
     for (int j = 0, je = tblk.paramCount(); j < je; ++j)
@@ -813,14 +819,14 @@ static void load_templates_blk_file(const char *path, const DataBlock &blk, Temp
       auto eit = templates.find(templName);
       if (eit != templates.end() && eit->isValid())
       {
-        if (eit->isEqual(templ) && eit->getParents().size() == parentNameIds.size() &&
+        if (eit->isEqual(templ, mgr.getComponentTypes()) && eit->getParents().size() == parentNameIds.size() &&
             eastl::equal(parentNameIds.begin(), parentNameIds.end(), eit->getParents().begin()))
         {
           // logwarn("ignore already existing template '%s' while parsing '%s'", templName, path);
         }
         else
         {
-          debug("%d %d==%d %d", eit->isEqual(templ), eit->getParents().size(), parentNameIds.size(),
+          debug("%d %d==%d %d", eit->isEqual(templ, mgr.getComponentTypes()), eit->getParents().size(), parentNameIds.size(),
             eit->getParents().size() == parentNameIds.size() &&
               eastl::equal(parentNameIds.begin(), parentNameIds.end(), eit->getParents().begin()));
           logerr("ignore already existing DIFFERENT template '%s' while parsing '%s' ", templName, path);
@@ -836,37 +842,39 @@ static void load_templates_blk_file(const char *path, const DataBlock &blk, Temp
   }
 }
 
-void load_templates_blk_file(const char *debug_path_name, const DataBlock &blk, TemplateRefs &templates, TemplateDBInfo *info,
-  service_datablock_cb cb)
+void load_templates_blk_file(ecs::EntityManager &mgr, const char *debug_path_name, const DataBlock &blk, TemplateRefs &templates,
+  TemplateDBInfo *info, service_datablock_cb cb)
 {
-  TemplateRefs overrides;
-  resolve_templates_imports(debug_path_name, blk, templates, overrides, cb, info);
+  TemplateRefs overrides(mgr);
+  resolve_templates_imports(mgr, debug_path_name, blk, templates, overrides, cb, info);
   templates.amend(eastl::move(overrides));
 }
 
-bool load_templates_blk_file(const char *path, TemplateRefs &templates, TemplateDBInfo *info)
+bool load_templates_blk_file(ecs::EntityManager &mgr, const char *path, TemplateRefs &templates, TemplateDBInfo *info)
 {
   // 'templates' intentionally not cleared because this function might be intentionally called several times
   DataBlock blk;
   if (!dblk::load(blk, path, dblk::ReadFlag::ROBUST_IN_REL))
     return false;
-  load_templates_blk_file(path, blk, templates, info);
+  load_templates_blk_file(mgr, path, blk, templates, info);
   return true;
 }
 
-void load_templates_blk(dag::ConstSpan<SimpleString> fnames, TemplateRefs &out_templates, TemplateDBInfo *info)
+void load_templates_blk(ecs::EntityManager &mgr, dag::ConstSpan<SimpleString> fnames, TemplateRefs &out_templates,
+  TemplateDBInfo *info)
 {
   for (auto &fname : fnames)
-    G_VERIFYF(load_templates_blk_file(fname.str(), out_templates, info), "failed to load template '%s'", fname.str());
+    G_VERIFYF(load_templates_blk_file(mgr, fname.str(), out_templates, info), "failed to load template '%s'", fname.str());
 }
 
-void create_entities_blk(const DataBlock &blk, const char *blk_path, const on_entity_created_cb_t &on_entity_created_cb,
-  const on_import_beginend_cb_t &on_import_beginend_cb)
+void create_entities_blk(ecs::EntityManager &mgr, const DataBlock &blk, const char *blk_path,
+  const on_entity_created_cb_t &on_entity_created_cb, const on_import_beginend_cb_t &on_import_beginend_cb)
 {
   int enid = blk.getNameId("entity"), tnid = blk.getNameId("_template"), impnid = blk.getNameId("import"),
       scnid = blk.getNameId("scene");
-  const TemplateDBInfo &info = g_entity_mgr->getTemplateDB().info();
+  const TemplateDBInfo &info = mgr.getTemplateDB().info();
   BlkLoadContext lctx;
+  lctx.mgr = &mgr;
   lctx.blkFilePath = blk_path;
   lctx.valueNid = VALUE_NID(blk);
   lctx.groupNid = GROUP_NID(blk);
@@ -917,10 +925,10 @@ void create_entities_blk(const DataBlock &blk, const char *blk_path, const on_en
         ComponentsMap cmapCopy(cmap);
         ecs::Template templD(buf, eastl::move(cmapCopy), Template::component_set(), Template::component_set(),
           Template::component_set(), false);
-        g_entity_mgr->addTemplate(eastl::move(templD));
+        mgr.addTemplate(eastl::move(templD));
       }
       if (*templName)
-        eid = g_entity_mgr->createEntityAsync(templName, ComponentsInitializer(eastl::move(cmap)));
+        eid = mgr.createEntityAsync(templName, ComponentsInitializer(eastl::move(cmap)));
       if (eid)
       {
         if (on_entity_created_cb)
@@ -942,7 +950,7 @@ void create_entities_blk(const DataBlock &blk, const char *blk_path, const on_en
           {
             DataBlock importBlk;
             if (dblk::load(importBlk, importScene, dblk::ReadFlag::ROBUST_IN_REL)) // not ROBUST in dev to see syntax errors
-              create_entities_blk(importBlk, importScene, on_entity_created_cb, on_import_beginend_cb);
+              create_entities_blk(mgr, importBlk, importScene, on_entity_created_cb, on_import_beginend_cb);
           }
           else
             logerr("Missing import scene <%s> in <%s>", importScene, blk_path);
@@ -954,13 +962,13 @@ void create_entities_blk(const DataBlock &blk, const char *blk_path, const on_en
       logerr("unknown block in entities_blk, block name = %s", blk.getBlock(i)->getBlockName());
 }
 
-void load_es_order(const DataBlock &blk, Tab<SimpleString> &out_es_order, Tab<SimpleString> &out_es_skip,
+void load_es_order(ecs::EntityManager &mgr, const DataBlock &blk, Tab<SimpleString> &out_es_order, Tab<SimpleString> &out_es_skip,
   dag::ConstSpan<const char *> tags)
 {
   ska::flat_hash_set<eastl::string> validTags;
   for (auto t : tags)
     validTags.insert(t);
-  g_entity_mgr->setEsTags(tags);
+  mgr.setEsTags(tags);
   for (int i = 0; i < blk.blockCount(); ++i)
   {
     const DataBlock *esBlk = blk.getBlock(i);
@@ -999,12 +1007,13 @@ void load_es_order(const DataBlock &blk, Tab<SimpleString> &out_es_order, Tab<Si
   }
 }
 
-void load_comp_list_from_blk(const DataBlock &blk, ComponentsList &clist)
+void load_comp_list_from_blk(ecs::EntityManager &mgr, const DataBlock &blk, ComponentsList &clist)
 {
   BlkLoadContext lctx;
   lctx.clist = &clist;
   lctx.valueNid = VALUE_NID(blk);
   lctx.groupNid = GROUP_NID(blk);
+  lctx.mgr = &mgr;
   lctx.load(blk, nullptr);
 }
 

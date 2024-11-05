@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -229,6 +228,15 @@ inline float angle_move_to(float from, float to, float dt, float vel)
     return from - d;
   else
     return from + d;
+}
+
+inline float angle_approach(float from_radians, float to_radians, float dt, float viscosity)
+{
+  float angleD = angle_diff(from_radians, to_radians);
+  if (fabsf(angleD) <= 2.39e-7f) // error in the last mantissa bit for angles in radians
+    return to_radians;
+
+  return approach(from_radians, from_radians + angleD, dt, viscosity);
 }
 
 __forceinline bbox3f v_ldu_bbox3(const BBox3 &bbox) { return bbox3f{v_ldu_p3(&bbox.lim[0].x), v_ldu_p3(&bbox.lim[1].x)}; }

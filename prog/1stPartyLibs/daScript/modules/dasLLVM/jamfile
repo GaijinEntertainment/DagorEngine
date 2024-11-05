@@ -10,16 +10,15 @@ TargetType  = lib ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 AddLibs +=
-  $(_DEVTOOL)/LLVM-15.0.7/lib/LLVM-C.lib
-  $(_DEVTOOL)/LLVM-15.0.7/lib/LTO.lib
-  $(_DEVTOOL)/LLVM-15.0.7/lib/Remarks.lib
+  $(_DEVTOOL)/LLVM-16.0.6/lib/LLVM-C.lib
+  $(_DEVTOOL)/LLVM-16.0.6/lib/LTO.lib
+  $(_DEVTOOL)/LLVM-16.0.6/lib/Remarks.lib
 ;
 
 
 AddIncludes =
   $(Root)/prog/1stPartyLibs/daScript/include
-  $(_DEVTOOL)/LLVM-15.0.7-headers/include
-  $(_DEVTOOL)/LLVM-15.0.7-config/build/include
+  $(_DEVTOOL)/LLVM-16.0.6-headers/include
 ;
 
 local AllSrcFolder_CPP =

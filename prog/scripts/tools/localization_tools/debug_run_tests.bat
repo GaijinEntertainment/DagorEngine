@@ -3,7 +3,7 @@
 @echo off
 setlocal
 set PARAMS_JSON="{\"root\":\".\",\"scan\":[\"tests\"],\"verbose\":true,\"isDebugTest\":true}"
-echo require("langs_validation.nut").validateLangs(parse_json(%PARAMS_JSON%)) > _temp.nut
-..\..\..\..\tools\dagor3_cdk\util\csq-dev.exe _temp.nut | tee result.txt
+echo require("langs_validation.nut").validateLangs(require("json").parse_json(%PARAMS_JSON%)) > _temp.nut
+..\..\..\..\tools\dagor_cdk\windows-x86_64\csq-dev.exe _temp.nut | tee result.txt
 del /Q _temp.nut
 endlocal

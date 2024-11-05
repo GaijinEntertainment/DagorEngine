@@ -1,0 +1,6 @@
+return {
+  is_streaming_now = @() false
+  apply_settings = @(_changed_fields) null
+  set_streaming_mode = @(val) assert(type(val) == "bool", $"{val}")
+  set_streaming_now = @(val) assert(type(val)=="bool", $"{val}")
+}

@@ -27,6 +27,15 @@ Sources =
   daSkiesAstronomy.cpp
   daSkiesExporterConsole.cpp
   cloudsShaderVars.cpp
+  cloudsField.cpp
+  cloudsFormLUT.cpp
+  cloudsLightRenderer.cpp
+  cloudsRenderer.cpp
+  cloudsRendererData.cpp
+  cloudsShadows.cpp
+  cloudsGenNoise.cpp
+  cloudsGenWeather.cpp
+  clouds2.cpp
 ;
 
 UseProgLibs +=

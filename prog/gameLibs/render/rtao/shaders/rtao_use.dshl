@@ -1,0 +1,73 @@
+int rtao_bindless_slot = -1;
+int rtao_res_mul = 1;
+int4 rtao_resolutionI = (1,1,1,1);
+
+macro CHECKING_RTAO(stage)
+  if (use_hw_raytracing)
+  {
+    (stage) {
+      rtao_bindless_slot@i1 = rtao_bindless_slot;
+    }
+
+    hlsl (stage) {
+      bool isRTAOEnabled()
+      {
+        return rtao_bindless_slot >= 0;
+      }
+    }
+  }
+  else
+  {
+    hlsl (stage) {
+      bool isRTAOEnabled()
+      {
+        return false;
+      }
+    }
+  }
+endmacro
+
+macro USING_RTAO(stage, rtao_tex_space)
+  CHECKING_RTAO(stage)
+
+  if (use_hw_raytracing)
+  {
+    (stage) {
+      inv_output_resolution@f2 = (1.0 / (rtao_resolutionI.x * rtao_res_mul), 1.0 / (rtao_resolutionI.y * rtao_res_mul));
+      resolutionI@i2 = rtao_resolutionI.xy;
+    }
+
+    hlsl (stage) {
+      #define HAS_RTAO 1
+
+      #include <rt_texture_outputs.inc.hlsli>
+
+      float getRTAO(uint2 tci)
+      {
+        float2 uv = (tci.xy + 0.5) * inv_output_resolution;
+        float2 texelPos = frac(uv * resolutionI);
+        uint2 crd = uint2(uv * resolutionI);
+
+        float tl = rt_texture_outputs[rtao_bindless_slot][crd].r;
+        float tr = rt_texture_outputs[rtao_bindless_slot][crd + uint2(1, 0)].r;
+        float bl = rt_texture_outputs[rtao_bindless_slot][crd + uint2(0, 1)].r;
+        float br = rt_texture_outputs[rtao_bindless_slot][crd + uint2(1, 1)].r;
+
+        float top = lerp(tl, tr, texelPos.x);
+        float bottom = lerp(bl, br, texelPos.x);
+
+        return lerp(top, bottom, texelPos.y);
+
+      }
+    }
+  }
+  else
+  {
+    hlsl (stage) {
+      float getRTAO(uint2 tci)
+      {
+        return 1;
+      }
+    }
+  }
+endmacro

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "car_phys.h"
 
 #include "../../de_appwnd.h"
@@ -12,7 +14,7 @@
 #include <scene/dag_physMat.h>
 #include <shaders/dag_shaderMesh.h>
 #include <debug/dag_debug3d.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <debug/dag_debug3d.h>
 #include <math/dag_capsule.h>
 #include <math/dag_rayIntersectBox.h>

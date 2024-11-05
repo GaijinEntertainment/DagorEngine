@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "state_field_execution_context.h"
-#include "device.h"
 #include "back_scope_state.h"
+#include "execution_state.h"
 
 namespace drv3d_vulkan
 {

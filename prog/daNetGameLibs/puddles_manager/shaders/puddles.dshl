@@ -1,0 +1,146 @@
+float puddle_hardness = 10;
+float puddle_increase = 0;
+float4 world_to_puddles_ofs;
+float4 world_to_puddles_tex_ofs;
+texture puddles;
+
+macro USE_PUDDLE_TEXTURE_ENCODER(stage)
+  hlsl(stage) {
+    #define MAX_PUDDLE_HEIGHT 3
+    #define INV_MAX_PUDDLE_HEIGHT (1.0/MAX_PUDDLE_HEIGHT)
+    #define PUDDLE_START_BELOW_GROUND_HEIGHT 2
+    #define ENCODED_NO_PUDDLE_VALUE ((-1 + PUDDLE_START_BELOW_GROUND_HEIGHT) * INV_MAX_PUDDLE_HEIGHT)
+
+    float encodePuddleHeight(float hmapHeight, float puddleHeight)
+    {
+      return (puddleHeight - hmapHeight + PUDDLE_START_BELOW_GROUND_HEIGHT) * INV_MAX_PUDDLE_HEIGHT;
+    }
+    float decodePuddleHeight(float hmapHeight, float encodedPuddleHeight)
+    {
+      return hmapHeight + encodedPuddleHeight * MAX_PUDDLE_HEIGHT - PUDDLE_START_BELOW_GROUND_HEIGHT;
+    }
+  }
+endmacro
+
+macro INIT_PUDDLE(stage)
+  (stage) {
+    world_to_puddles_ofs @f4 = world_to_puddles_ofs;
+    world_to_puddles_tex_ofs @f4 = (world_to_puddles_tex_ofs.x, world_to_puddles_tex_ofs.y, puddle_hardness, water_level);
+    puddle_increase @f1 = (puddle_increase, 0,0,0);
+    puddles @smp2d = puddles;
+  }
+endmacro
+
+macro USE_PUDDLE(stage)
+  USE_PUDDLE_TEXTURE_ENCODER(stage)
+  hlsl(stage) {
+    ##if in_editor_assume != yes
+
+      float getHmapLowHeight(float2 tc)
+      {
+        float lod = world_to_puddles_ofs.y;
+        return decode_height(tex2Dlod(tex_hmap_low, float4(tc, 0, lod)).x);
+      }
+
+      #define puddle_hardness (world_to_puddles_tex_ofs.z)
+      #define puddle_water_level (world_to_puddles_tex_ofs.w)
+      float getPuddleHeight(float hmapHeight, float2 puddleTc)
+      {
+        float encodedPuddleHeight = tex2Dlod(puddles, float4(puddleTc, 0,0)).x;
+        return decodePuddleHeight(hmapHeight, encodedPuddleHeight) + puddle_increase;
+      }
+
+      ##if mobile_render == deferred
+        #define PUDDLE_VIGNETTE_MUL 2
+        #define PUDDLE_VIGNETTE_OFS 0.25
+      ##else
+        #define PUDDLE_VIGNETTE_MUL 10
+        #define PUDDLE_VIGNETTE_OFS 9
+      ##endif
+    ##endif
+
+      void getPuddleData(float tc_world_pos_w, float3 worldPos, float hmapH, out float puddle, out float worldPosYPuddleOffset, out float puddleHeight)
+      {
+        puddle = 0;
+        worldPosYPuddleOffset = 0;
+        puddleHeight = 0;
+    ##if in_editor_assume != yes
+        BRANCH
+        if (world_to_puddles_ofs.x > 0)
+        {
+          float2 puddleBaseTc = world_to_puddles_ofs.x*(worldPos.xz) + world_to_puddles_ofs.zw;
+          float2 vignette = saturate( abs(puddleBaseTc*2-1) * PUDDLE_VIGNETTE_MUL - PUDDLE_VIGNETTE_OFS );
+          float vignetteEffect = saturate( 1.0 - dot( vignette, vignette ) );
+          float2 puddleTc = puddleBaseTc-world_to_puddles_tex_ofs.xy;
+          puddleHeight = getPuddleHeight(hmapH, puddleTc);
+          puddle = saturate(1-(tc_world_pos_w-puddleHeight)*puddle_hardness);
+          float waterLevel = puddle_water_level;
+          float underWaterEffect = saturate((tc_world_pos_w-waterLevel)*10);
+          puddle *= vignetteEffect*underWaterEffect;
+          worldPosYPuddleOffset = vignetteEffect*underWaterEffect*max(0, puddleHeight-worldPos.y);
+        }
+    ##endif
+      }
+      void getPuddleData(float tc_world_pos_w, float3 worldPos, out float puddle, out float worldPosYPuddleOffset, out float puddleHeight)
+      {
+        puddle = 0;
+        worldPosYPuddleOffset = 0;
+        puddleHeight = 0;
+    ##if in_editor_assume != yes
+        BRANCH
+        if (world_to_puddles_ofs.x > 0)
+        {
+          float2 htTc = worldPos.xz*world_to_hmap_low.xy + world_to_hmap_low.zw;
+          float hmapH = getHmapLowHeight(htTc);
+          getPuddleData(tc_world_pos_w, worldPos, hmapH, puddle, worldPosYPuddleOffset, puddleHeight);
+        }
+    ##endif
+      }
+      float get_height_for_puddle(float3 worldPos)
+      {
+    ##if in_editor_assume != yes
+        float lod = world_to_puddles_ofs.y;
+        float2 htTc = worldPos.xz*world_to_hmap_low.xy + world_to_hmap_low.zw;
+        return decode_height(tex2Dlod(tex_hmap_low, float4(htTc, 0, lod)).x);
+    ##else
+        return 0;
+    ##endif
+      }
+  }
+endmacro
+
+macro USE_AND_CALCULATE_PUDDLES()
+  INIT_PUDDLE(ps)
+  USE_PUDDLE(ps)
+  hlsl (ps) {
+    half addPuddles(inout UnpackedGbuffer result, float3 worldPos, half tc_world_pos_w, float2 htTc, half porosity, float heightForPuddle)
+    {
+      float puddle, worldPosYPuddleOffset, puddleHeight;
+      getPuddleData(tc_world_pos_w, worldPos, heightForPuddle, puddle, worldPosYPuddleOffset, puddleHeight);
+
+      //todo: combine wetness from puddles with wetness from water
+      float waterBorder;
+      float above_puddle_wetness = max(puddle, get_base_wetness(worldPos, result.normal, waterBorder));
+      float wetMaterial = get_wet_material(above_puddle_wetness, waterBorder);
+      BRANCH
+      if (above_puddle_wetness > 0)
+      {
+        wetness_smoothness(wetMaterial, result.smoothness);
+        wetness_ao(above_puddle_wetness, result.ao);
+        float3 waterNormal = getNormalLod(htTc, 3).xyz;
+        waterNormal = lerp(waterNormal, float3(0,1,0), 0.5);
+        result.normal = normalize(lerp(result.normal.xyz, waterNormal,
+                                clamp_range(above_puddle_wetness, 0.45, 0.95)));
+        wetness_diffuse(above_puddle_wetness, porosity, result.albedo.rgb);
+        const float puddleDensity = 20;
+        float puddleOpacity = lerp(1, exp2(min(0, puddleDensity*(tc_world_pos_w-puddleHeight))),
+                                  saturate(above_puddle_wetness*2-1));
+        result.albedo.rgb = lerp(pow(float3(30,33,0)/255, 2.2), result.albedo.rgb, puddleOpacity);
+        //diffuse.rgb = puddleOpacity;
+        float water_reflectance = 0.5*sqrt(lerp(0, 0.5, clamp_range(wetMaterial, 0.2, 1)));
+        result.reflectance = lerp(result.reflectance, water_reflectance, clamp_range(wetMaterial, 0.45, 0.95));
+      }
+      return puddle;
+    }
+  }
+endmacro

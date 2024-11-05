@@ -52,7 +52,7 @@ void Module_dasQUIRREL::initFunctions_1() {
 	addExtern< SQRESULT (*)(SQVM *) , sq_registerbaselib >(*this,lib,"sq_registerbaselib",SideEffects::worstDefault,"sq_registerbaselib")
 		->args({"v"});
 // from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\squirrel.h:233:23
-	addExtern< SQRESULT (*)(SQVM *,const char *,SQInteger,const char *,SQBool,const tagSQObject *) , sq_compilebuffer >(*this,lib,"sq_compilebuffer",SideEffects::worstDefault,"sq_compilebuffer")
+	addExtern< SQRESULT (*)(SQVM *,const char *,SQInteger,const char *,SQBool,const tagSQObject *) , sq_compile >(*this,lib,"sq_compile",SideEffects::worstDefault,"sq_compile")
 		->args({"v","s","size","sourcename","raiseerror","bindings"})
 		->arg_init(5,make_smart<ExprConstPtr>());
 // from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\squirrel.h:234:19

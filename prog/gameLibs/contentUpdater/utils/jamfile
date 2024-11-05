@@ -11,6 +11,11 @@ Sources =
   version.cpp
 ;
 
+MinorVersionDigitsCount ?= 1 ;
+
+minor_version_digits_count_src = int get_updater_minor_version_digits_count() \{ return $(MinorVersionDigitsCount); \} ;
+Sources += minor_version_digits_count_src.jamvar ;
+
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
 ;

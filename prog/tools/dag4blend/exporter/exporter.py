@@ -29,6 +29,17 @@ from ..smooth_groups.mesh_calc_smooth_groups    import objects_calc_smooth_group
 
 SUPPORTED_TYPES = ('MESH', 'CURVE')  # ,'CURVE','EMPTY','TEXT','CAMERA','LAMP')
 
+#reorders UVMap names to match three first chanels to viewport preview
+def sort_uv_names(keys):
+    keys.sort()
+    sorted = []
+    for name in ['UVMap', 'UVMap.001', 'UVMap.002']:
+        if name in keys:
+            sorted.append(name)
+            keys.remove(name)
+    sorted += keys
+    return sorted
+
 #CLASSES
 
 class DAG_PT_export(bpy.types.Panel):
@@ -348,6 +359,7 @@ class DagExporter(Operator, ExportHelper):
         if self.modifiers:
             apply_modifiers(exp_obj)
         if self.mopt:
+            fix_mat_slots(exp_obj)
             optimize_mat_slots(exp_obj)
     #mesh checks
         if not is_mesh_smooth(me):
@@ -365,7 +377,6 @@ class DagExporter(Operator, ExportHelper):
         if get_blender_version()<4.1:
             preserve_sharp(exp_obj)
         fix_mat_slots(exp_obj)
-        reorder_uv_layers(me)
         if exp_obj.data.attributes.get('SG') is None:
             objects_calc_smooth_groups([exp_obj])
     #collecting from pre-triangulated mesh to make it reversable on import
@@ -438,21 +449,27 @@ class DagExporter(Operator, ExportHelper):
 #UVMaps
         meshExp.uv = [dict() for p in range(len(me.uv_layers))]
         meshExp.uv_poly = [list() for p in range(len(me.uv_layers))]
-        n = 0
-        if me.uv_layers.__len__()==0:
-            msg = 'Node "'+exp_obj['og_name'] + '" has no UVs\n'
+        uv_amount = me.uv_layers.__len__()
+        if uv_amount == 0:
+            msg = f'Node "{exp_obj["og_name"]}" has no UVs\n'
             log(msg)
-        for layer in me.uv_layers:
+        elif uv_amount > 3:
+            msg = f'Node "{exp_obj["og_name"]}" has {uv_amount} UV layers! Are you sure all of them are necessary?\n'
+            log(msg, type = 'WARNING')
+        uv_index = 0
+        UV_names = sort_uv_names(me.uv_layers.keys())
+        for layer_name in UV_names:
+            layer = me.uv_layers[layer_name]
             if len(layer.data) == 0:
                 break#empty layer?
-
             for tri in me.polygons:
-                meshExp.uv_poly[n].append(meshExp.addUV(layer.data[tri.loop_indices[0]].uv, n))
-                meshExp.uv_poly[n].append(meshExp.addUV(layer.data[tri.loop_indices[2]].uv, n))
-                meshExp.uv_poly[n].append(meshExp.addUV(layer.data[tri.loop_indices[1]].uv, n))
-            n += 1
+                meshExp.uv_poly[uv_index].append(meshExp.addUV(layer.data[tri.loop_indices[0]].uv, uv_index))
+                meshExp.uv_poly[uv_index].append(meshExp.addUV(layer.data[tri.loop_indices[2]].uv, uv_index))
+                meshExp.uv_poly[uv_index].append(meshExp.addUV(layer.data[tri.loop_indices[1]].uv, uv_index))
+            uv_index += 1
 #Vertex Colors
         if me.color_attributes.__len__()>0:
+            color_attributes_fix_domain(exp_obj)  # making sure that vcol stored in face corners and not somewhere else
             color_attributes = me.color_attributes[0]
             for tri in me.polygons:
                 d = color_attributes.data[tri.loop_indices[0]]
@@ -614,10 +631,9 @@ class DagExporter(Operator, ExportHelper):
             self.writer.writeColor(DM.emissive)
             self.writer.writeFloat(DM.power)
             # flags
-            flags = 0
+            flags = DAG_MF_16TEX  # should be always used
             if DM.sides == 1:
                 flags |= DAG_MF_2SIDED
-                flags |= DAG_MF_16TEX
             self.writer.writeDWord(flags)
             for i in range(DAGTEXNUM):
                 attr_name = "tex" + str(i)

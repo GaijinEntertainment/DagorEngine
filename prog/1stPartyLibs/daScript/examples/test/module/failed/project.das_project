@@ -1,0 +1,12 @@
+require strings
+require daslib/strings_boost
+
+include common.das_project
+
+[export]
+def module_allowed ( mod,filename:string )
+    if mod=="strings_boost"
+        print("strings boost is not allowed\n")
+        return false
+    print("is module allowed {mod} {filename}\n")
+    return true

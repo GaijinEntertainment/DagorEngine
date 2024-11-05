@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/shaderResBuilder/shaderMeshData.h>
 #include <shaders/dag_shaders.h>
 #include "cacheOpt.h"
@@ -20,6 +22,10 @@ void ShaderMeshData::optimizeForCache(RElem &re, bool opt_overdraw_too)
 
   int numv = re.numv;
   int numf = re.numf;
+
+  if (re.si == RELEM_NO_INDEX_BUFFER)
+    return;
+
   int pos_offset = -1, pos_type = -1, coffset = 0;
   if (opt_overdraw_too)
     for (auto &c : vd.vDesc)

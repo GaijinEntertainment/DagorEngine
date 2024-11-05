@@ -1,0 +1,38 @@
+texture caustics_tex;
+
+macro INIT_OPTIONAL_COMBINE_SHADOWS_FEATURES(code)
+if (caustics_tex != NULL)
+{
+  (code)
+  {
+    caustics_tex@smp2d = caustics_tex;
+  }
+}
+endmacro
+
+macro USE_OPTIONAL_COMBINE_SHADOWS_FEATURES(code)
+hlsl(code) {
+  float load_additional_light(float2 tc)
+  {
+    ##if caustics_tex != NULL
+    return tex2Dlod(caustics_tex, float4(tc, 0, 0)).r;
+    ##else
+    return 0;
+    ##endif
+  }
+  float calculate_clouds_shadow(float caustics, float2 tc, float3 viewVec)
+  {
+    float cloudsShadow = 0;
+    BRANCH
+    if (caustics >= 1.0/255)
+    {
+      float rawDepth = readGbufferDepth(tc);
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+      float3 cameraToPoint = viewVec * w;
+      float3 worldPos = world_view_pos.xyz + cameraToPoint;
+      cloudsShadow = lerp(1.0, clouds_shadow(worldPos), clouds_shadow_influence);
+    }
+    return cloudsShadow;
+  }
+}
+endmacro

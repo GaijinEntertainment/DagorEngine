@@ -1,0 +1,53 @@
+include shader_compiler_config.blk
+
+outDumpName:t="../../game/compiledShaders/gameAndroidSpirVmini"
+
+shader_root_dir:t="."
+
+include common_inc_dirs.blk
+source
+{
+  file:t = "../gui_default.dshl"
+}
+
+common_assume_vars {}
+
+Compile
+{
+  fsh:t = SpirV-5.0
+  group_size_in_kb:i=1019
+  assume_vars {
+    //base mobile assumes
+    include common_assumes.blk
+    include common_compatibility_assumes.blk
+    supports_sh_6_1:i = 0
+    "@delete:ssao_strength":r = 1
+    "@override:bloom_tex":i=0
+    "@override:volumetric_light_assumed_off":i=1
+    "@override:water_ripples_normal":i=0
+    //gi_voxelize_use_multidraw:i=1
+    shadows_quality:i =0
+    water_render_ssr:i=0
+    particles_buffer_id:i=8
+    static_shadows_custom_fxaa:i=0
+    grass_use_quads:i=0
+    hmap_tess_factor:r=0
+    water_tess_factor:r=0
+    gi_quality:i=-1
+    envi_cover:i=0
+    hdr_ps_output_mode:i=0
+    cinematic_mode_on:i=0
+
+    //android specific
+    "@override:has_discard_without_prepass":i=1
+    "@override:small_sampled_buffers":i=1
+    "@override:rendinst_use_cell_sbuffer":i=1
+    depth_bounds_support:i=0
+  }
+}
+
+explicit_var_ref
+{
+  include common_var_ref.blk
+  include game_var_ref.blk
+}

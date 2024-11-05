@@ -27,26 +27,19 @@ AddIncludes =
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/engine/drv/drv3d_commonCode
   $(Root)/prog/3rdPartyLibs/nvapi
-  $(Root)/prog/3rdPartyLibs/aftermath/2022.2.0.22145
+  $(Root)/prog/3rdPartyLibs/aftermath/2024.1.0.24075
   $(Root)/prog/3rdPartyLibs/adl_sdk
+  $(Root)/prog/engine/drv/drv3d_DX11
 ;
 
 AddLibs += Version.lib ;
 
 CPPopt = -D__B_DRVDX -DINSIDE_DRIVER -FId3d_config.h ;
 if [ GLOB $(Root)/prog/3rdPartyLibs/nvapi : * ]     { CPPopt += -DHAS_NVAPI ; }
-if [ GLOB $(Root)/prog/3rdPartyLibs/nvsdk_ngx : * ] { CPPopt += -DHAS_NVSDK_NGX ; }
 if [ GLOB $(Root)/prog/3rdPartyLibs/aftermath : * ] { CPPopt += -DHAS_GF_AFTERMATH ; }
+if $(PlatformArch) in arm64 { CPPopt = [ StripStrings $(CPPopt) : -DHAS_NVAPI ] ; }
 
-if $(DlssEnabled) = yes && $(Platform) = win64 {
-  Target = engine/drv/drv3d_DX11~dlss.lib ;
-  Sources += ngx_wrapper.cpp ;
-  CPPopt += -DNV_WINDOWS ;
-  CPPopt += -DNGX_ENABLE_DEPRECATED_GET_PARAMETERS ; # remove this line once GetParameters is removed from DLSS
-} else {
-  Sources += ngx_wrapper_stub.cpp ;
-}
-AddIncludes += $(Root)/prog/3rdPartyLibs/nvsdk_ngx/Include ;
+AddIncludes += $(Root)/prog/3rdPartyLibs/streamline/include ;
 
 UseProgLibs = engine/drv/drv3d_commonCode ;
 

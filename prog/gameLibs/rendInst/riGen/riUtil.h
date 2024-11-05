@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "riGen/riGenData.h"
@@ -29,5 +30,5 @@ int16_t *get_data_by_desc_no_subcell(const rendinst::RendInstDesc &desc, RendIns
 int get_data_offs_from_start(const rendinst::RendInstDesc &desc);
 bool extract_buffer_data(const rendinst::RendInstDesc &desc, RendInstGenData *ri_gen, int16_t *data,
   rendinst::RendInstBufferData &out_buffer);
-void remove_rendinst(const rendinst::RendInstDesc &desc, RendInstGenData *ri_gen, bbox3f_cref crt_bbox, int16_t *data);
+void remove_rendinst(const rendinst::RendInstDesc &desc, RendInstGenData *ri_gen, RendInstGenData::CellRtData &crt, int16_t *data);
 }; // namespace riutil

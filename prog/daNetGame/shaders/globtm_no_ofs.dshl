@@ -1,0 +1,9 @@
+float4 globtm_no_ofs_psf_0;
+float4 globtm_no_ofs_psf_1;
+float4 globtm_no_ofs_psf_2;
+float4 globtm_no_ofs_psf_3;
+
+float4 prev_globtm_no_ofs_psf_0;
+float4 prev_globtm_no_ofs_psf_1;
+float4 prev_globtm_no_ofs_psf_2;
+float4 prev_globtm_no_ofs_psf_3;

@@ -1,5 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "de_appwnd.h"
 #include "de_plugindata.h"
+#include "de_startdlg.h"
 
 #include <oldEditor/de_common_interface.h>
 #include <oldEditor/de_cm.h>
@@ -21,6 +24,7 @@
 #include <EditorCore/ec_ViewportWindow.h>
 #include <EditorCore/ec_gizmofilter.h>
 #include <EditorCore/ec_brushfilter.h>
+#include <EditorCore/ec_imguiInitialization.h>
 
 #include <assets/assetHlp.h>
 #include <libTools/staticGeom/staticGeometryContainer.h>
@@ -37,6 +41,7 @@
 #include <osApiWrappers/dag_symHlp.h>
 #include <osApiWrappers/dag_vromfs.h>
 #include <osApiWrappers/dag_cpuJobs.h>
+#include <osApiWrappers/dag_basePath.h>
 
 #include <fx/dag_hdrRender.h>
 #include <gameRes/dag_gameResSystem.h>
@@ -45,7 +50,7 @@
 
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_texPackMgr2.h>
 #include <ioSys/dag_dataBlock.h>
 #include <perfMon/dag_graphStat.h>
@@ -58,12 +63,15 @@
 
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <winGuiWrapper/wgw_input.h>
-#include <propPanel2/comWnd/list_dialog.h>
-#include <propPanel2/comWnd/dialog_window.h>
-#include <propPanel2/comWnd/panel_window.h>
-#include <propPanel2/comWnd/tool_window.h>
+#include <propPanel/control/panelWindow.h>
+#include <propPanel/messageQueue.h>
+#include <propPanel/commonWindow/dialogWindow.h>
+#include <propPanel/control/menu.h>
 
 #include <de3_waterSrv.h>
+#include <gui/dag_stdGuiRenderEx.h>
+
+#include <gui/dag_imgui.h>
 
 using hdpi::_pxActual;
 
@@ -324,10 +332,19 @@ bool DagorEdAppWindow::unregisterPlugin(IGenEditorPlugin *p)
 
 //==============================================================================
 DataBlock de3scannedResBlk;
-void DagorEdAppWindow::initPlugins()
+void DagorEdAppWindow::initPlugins(const DataBlock &global_settings)
 {
   // detect new gameres system model and setup engine support for it
   DataBlock appblk(String(260, "%s/application.blk", wsp->getAppDir()));
+
+  if (const DataBlock *mnt = appblk.getBlockByName("mountPoints"))
+  {
+    const bool useAddonVromSrc = true;
+    dblk::iterate_child_blocks(*mnt, [p = useAddonVromSrc ? "forSource" : "forVromfs"](const DataBlock &b) {
+      dd_set_named_mount_path(b.getBlockName(), b.getStr(p));
+    });
+    dd_dump_named_mounts();
+  }
 
   const DataBlock &blk = *appblk.getBlockByNameEx("assets");
   const DataBlock *exp_blk = appblk.getBlockByNameEx("assets")->getBlockByName("export");
@@ -580,13 +597,20 @@ void DagorEdAppWindow::initPlugins()
   // init statically linked plugins and services
   ::dagored_init_all_plugins(appblk);
 
+#if !_TARGET_STATIC_LIB
   // load DLL plugins
-  initDllPlugins(::make_full_path(sgg::get_exe_path_full(), "plugins/de3x/"));
+  initDllPlugins(::make_full_path(sgg::get_exe_path_full(), "plugins/daEditorX/"));
 
   const char *additionalPlug = wsp->getAdditionalPluginsPath();
 
   if (additionalPlug && *additionalPlug)
     initDllPlugins(additionalPlug);
+#endif
+
+  const DataBlock &pluginsRootSettings = *global_settings.getBlockByNameEx("plugins");
+  for (int i = 0; i < getPluginCount(); ++i)
+    if (IGenEditorPlugin *plugin = getPlugin(i))
+      plugin->loadSettings(*pluginsRootSettings.getBlockByNameEx(plugin->getInternalName()));
 
   fillPluginTabs();
 
@@ -608,7 +632,7 @@ void DagorEdAppWindow::initPlugins()
 
 void DagorEdAppWindow::preparePluginsListmenu()
 {
-  IMenu *_menu = getMainMenu();
+  PropPanel::IMenu *_menu = getMainMenu();
   if (_menu)
     _menu->clearMenu(CM_PLUGINS_MENU);
 
@@ -723,7 +747,6 @@ void DagorEdAppWindow::resetCore()
   IFmodService *fmod = queryEditorInterface<IFmodService>();
   if (fmod)
     fmod->term();
-  del_it(visibility_finder);
 }
 
 //==============================================================================
@@ -769,7 +792,11 @@ bool DagorEdAppWindow::selectWorkspace(const char *app_blk_path)
 
     resetCore();
     init3d();
-    initPlugins();
+    editor_core_initialize_imgui(nullptr);
+
+    const String settingsPath = ::make_full_path(sgg::get_exe_path_full(), "../.local/de3_settings.blk");
+    DataBlock settingsBlk(settingsPath);
+    initPlugins(*settingsBlk.getBlockByNameEx("pluginSettings"));
 
     if (switchToName.length())
     {
@@ -1031,7 +1058,7 @@ IWndManager *DagorEdAppWindow::getWndManager() const
 }
 
 
-PropertyContainerControlBase *DagorEdAppWindow::getCustomPanel(int id) const
+PropPanel::ContainerPropertyControl *DagorEdAppWindow::getCustomPanel(int id) const
 {
   switch (id)
   {
@@ -1043,23 +1070,11 @@ PropertyContainerControlBase *DagorEdAppWindow::getCustomPanel(int id) const
 }
 
 
-void *DagorEdAppWindow::addToolbar(hdpi::Px height) { return 0; }
-
-
-CToolWindow *DagorEdAppWindow::createToolbar(ControlEventHandler *eh, void *hwnd)
-{
-  unsigned w, h;
-  mManager->getWindowClientSize(hwnd, w, h);
-  return new CToolWindow(eh, hwnd, 0, 0, _pxActual(w), _pxActual(h), "");
-}
-
-
 void *DagorEdAppWindow::addRawPropPanel(hdpi::Px width)
 {
   void *propbar = mManager->splitNeighbourWindow(mPlugTools->getParentWindowHandle(), 0, width, WA_RIGHT);
   if (!propbar)
     propbar = mManager->splitWindow(0, 0, width, WA_RIGHT);
-  G_ASSERT(propbar);
   daeditor3_set_plugin_prop_panel(propbar);
   return propbar;
 }
@@ -1075,7 +1090,7 @@ void DagorEdAppWindow::addPropPanel(int type, hdpi::Px width)
 void DagorEdAppWindow::removePropPanel(void *hwnd)
 {
   panelsToDelete.push_back(hwnd);
-  mManager->setWindowType(hwnd, CLIENT_WINDOW_TYPE_NONE);
+  mManager->removeWindow(hwnd);
 }
 
 
@@ -1086,24 +1101,9 @@ void DagorEdAppWindow::managePropPanels()
 
   for (int i = 0; i < panelsToAdd.size(); ++i)
   {
-    void *hwnd = 0;
-
-    if (panelsToDelete.empty())
-    {
-      hwnd = addRawPropPanel(_pxActual(panelsToAddWidth[i]));
-      mManager->setHeader(hwnd, HEADER_TOP);
-      mManager->fixWindow(hwnd, true);
-    }
-    else
-    {
-      hwnd = panelsToDelete.back();
-      panelsToDelete.pop_back();
-
-      mManager->fixWindow(hwnd, false);
-      mManager->resizeWindow(hwnd, _pxActual(panelsToAddWidth[i]));
-      mManager->fixWindow(hwnd, true);
-    }
-
+    void *hwnd = addRawPropPanel(_pxActual(panelsToAddWidth[i]));
+    mManager->setHeader(hwnd, HEADER_TOP);
+    mManager->fixWindow(hwnd, true);
     mManager->setWindowType(hwnd, panelsToAdd[i]);
   }
 
@@ -1119,21 +1119,24 @@ void DagorEdAppWindow::managePropPanels()
 void DagorEdAppWindow::skipManagePropPanels(bool skip) { panelsSkipManage = skip; }
 
 
-CPanelWindow *DagorEdAppWindow::createPropPanel(ControlEventHandler *eh, void *hwnd)
+PropPanel::PanelWindowPropertyControl *DagorEdAppWindow::createPropPanel(ControlEventHandler *eh, const char *caption)
 {
-  unsigned w, h;
-  mManager->getWindowClientSize(hwnd, w, h);
-  return new CPanelWindow(eh, hwnd, 0, 0, _pxActual(w), _pxActual(h), "");
+  return new PropPanel::PanelWindowPropertyControl(0, eh, nullptr, 0, 0, hdpi::Px(0), hdpi::Px(0), caption);
 }
 
 
-void DagorEdAppWindow::deleteCustomPanel(PropPanel2 *panel) { delete panel; }
+PropPanel::IMenu *DagorEdAppWindow::getMainMenu() { return GenericEditorAppWindow::getMainMenu(); }
 
 
-CDialogWindow *DagorEdAppWindow::createDialog(hdpi::Px w, hdpi::Px h, const char *title) { return new CDialogWindow(0, w, h, title); }
+void DagorEdAppWindow::deleteCustomPanel(PropPanel::ContainerPropertyControl *panel) { delete panel; }
 
 
-void DagorEdAppWindow::deleteDialog(CDialogWindow *dlg) { delete dlg; }
+PropPanel::DialogWindow *DagorEdAppWindow::createDialog(hdpi::Px w, hdpi::Px h, const char *title)
+{
+  return new PropPanel::DialogWindow(0, w, h, title);
+}
+
+void DagorEdAppWindow::deleteDialog(PropPanel::DialogWindow *dlg) { delete dlg; }
 
 
 //==============================================================================
@@ -1162,7 +1165,7 @@ void DagorEdAppWindow::switchToPlugin(int plgId)
   //-------------------------------------------
   // clear menu, toolbar, their eh
 
-  if (IMenu *mainMenu = getMainMenu())
+  if (PropPanel::IMenu *mainMenu = getMainMenu())
     mainMenu->clearMenu(CM_PLUGIN_PRIVATE_MENU);
 
   if (mPlugTools)
@@ -1177,17 +1180,14 @@ void DagorEdAppWindow::switchToPlugin(int plgId)
   curPluginId = plgId;
   if (next)
   {
-    mPlugTools->showPanel(false);
     if (!next->begin(GUI_PLUGIN_TOOLBAR_ID, CM_PLUGIN_PRIVATE_MENU))
     {
       if (cur)
         cur->begin(GUI_PLUGIN_TOOLBAR_ID, CM_PLUGIN_PRIVATE_MENU);
 
       curPluginId = curId;
-      mPlugTools->showPanel(true);
       return;
     }
-    mPlugTools->showPanel(true);
     ged.curEH = next->getEventHandler();
 
     // help
@@ -1400,15 +1400,16 @@ IDagorEdCustomCollider *DagorEdAppWindow::getCustomCollider(int idx) const { ret
 
 
 //==============================================================================
-bool DagorEdAppWindow::fillCustomCollidersList(PropPanel2 &panel, const char *grp_caption, int grp_pid, int collider_pid, bool shadow,
-  bool open_grp = false) const
+bool DagorEdAppWindow::fillCustomCollidersList(PropPanel::ContainerPropertyControl &panel, const char *grp_caption, int grp_pid,
+  int collider_pid, bool shadow, bool open_grp = false) const
 {
   return ::fill_custom_colliders_list(panel, grp_caption, grp_pid, collider_pid, shadow, open_grp);
 }
 
 
 //==============================================================================
-bool DagorEdAppWindow::onPPColliderCheck(int pid, const PropPanel2 &panel, int collider_pid, bool shadow) const
+bool DagorEdAppWindow::onPPColliderCheck(int pid, const PropPanel::ContainerPropertyControl &panel, int collider_pid,
+  bool shadow) const
 {
   return ::on_pp_collider_check(pid, panel, collider_pid, shadow);
 }
@@ -1756,7 +1757,10 @@ void DagorEdAppWindow::screenshotRender() { queryEditorInterface<IDynRenderServi
 void DagorEdAppWindow::actObjects(float dt)
 {
   cpujobs::release_done_jobs();
-  ged.act();
+
+  PropPanel::process_message_queue();
+
+  ged.act(dt);
   ViewportWindow *activeViewportWindow = ged.getActiveViewport();
 
   /*
@@ -1870,6 +1874,15 @@ void DagorEdAppWindow::onBeforeReset3dDevice()
 }
 
 
+bool DagorEdAppWindow::onDropFiles(const dag::Vector<String> &files)
+{
+  if (startupDlgShown)
+    return startupDlgShown->onDropFiles(files);
+
+  ViewportWindow *viewport = ged.getCurrentViewport();
+  return viewport && viewport->onDropFiles(files);
+}
+
 //==================================================================================================
 void DagorEdAppWindow::renderGrid()
 {
@@ -1888,6 +1901,9 @@ void DagorEdAppWindow::renderGrid()
 
   TMatrix camera;
   ViewportWindow *vpw = ged.getRenderViewport();
+
+  if (vpw->isOrthogonal() && grid.getUseInfiniteGrid())
+    return;
 
   vpw->clientRectToWorld(pt.data(), dirs.data(), grid.getStep() * fakeGridSize);
   vpw->getCameraTransform(camera);

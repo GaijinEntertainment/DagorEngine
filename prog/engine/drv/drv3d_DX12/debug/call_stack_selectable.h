@@ -1,18 +1,15 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "call_stack_null.h"
 #include "call_stack_return_address.h"
 #include "call_stack_full_stack.h"
 
+#include <EASTL/algorithm.h>
 #include <ioSys/dag_dataBlock.h>
 
-namespace drv3d_dx12
-{
-namespace debug
-{
-namespace call_stack
-{
-namespace selectable
+
+namespace drv3d_dx12::debug::call_stack::selectable
 {
 struct CommandData
 {
@@ -24,25 +21,25 @@ struct CommandData
   } activeMember;
   union
   {
-    ::drv3d_dx12::debug::call_stack::null::CommandData asNull;
-    ::drv3d_dx12::debug::call_stack::return_address::CommandData asReturnAddress;
-    ::drv3d_dx12::debug::call_stack::full_stack::CommandData asFullStack;
+    null::CommandData asNull;
+    return_address::CommandData asReturnAddress;
+    full_stack::CommandData asFullStack;
   };
 
-  static CommandData make(::drv3d_dx12::debug::call_stack::null::CommandData)
+  static CommandData make(null::CommandData)
   {
     CommandData result{};
     result.activeMember = ActiveMember::AS_NULL;
     return result;
   }
-  static CommandData make(const ::drv3d_dx12::debug::call_stack::return_address::CommandData &data)
+  static CommandData make(const return_address::CommandData &data)
   {
     CommandData result{};
     result.activeMember = ActiveMember::AS_RETURN_ADDRESS;
     result.asReturnAddress = data;
     return result;
   }
-  static CommandData make(const ::drv3d_dx12::debug::call_stack::full_stack::CommandData &data)
+  static CommandData make(const full_stack::CommandData &data)
   {
     CommandData result{};
     result.activeMember = ActiveMember::AS_FULL_STACK;
@@ -66,13 +63,11 @@ public:
   const char *getLastCommandName() const { return lastCommandName; }
 };
 
-class Generator : protected ::drv3d_dx12::debug::call_stack::null::Generator,
-                  protected ::drv3d_dx12::debug::call_stack::return_address::Generator,
-                  protected ::drv3d_dx12::debug::call_stack::full_stack::Generator
+class Generator : protected null::Generator, protected return_address::Generator, protected full_stack::Generator
 {
-  using NullBaseType = ::drv3d_dx12::debug::call_stack::null::Generator;
-  using ReturnAddressBaseType = ::drv3d_dx12::debug::call_stack::return_address::Generator;
-  using FullStackBaseType = ::drv3d_dx12::debug::call_stack::full_stack::Generator;
+  using NullBaseType = null::Generator;
+  using ReturnAddressBaseType = return_address::Generator;
+  using FullStackBaseType = full_stack::Generator;
 
   CommandData::ActiveMember generatorMode = CommandData::ActiveMember::AS_NULL;
 
@@ -140,13 +135,11 @@ public:
   }
 };
 
-class Reporter : protected ::drv3d_dx12::debug::call_stack::null::Reporter,
-                 protected ::drv3d_dx12::debug::call_stack::return_address::Reporter,
-                 protected ::drv3d_dx12::debug::call_stack::full_stack::Reporter
+class Reporter : protected null::Reporter, protected return_address::Reporter, protected full_stack::Reporter
 {
-  using NullBaseType = ::drv3d_dx12::debug::call_stack::null::Reporter;
-  using ReturnAddressBaseType = ::drv3d_dx12::debug::call_stack::return_address::Reporter;
-  using FullStackBaseType = ::drv3d_dx12::debug::call_stack::full_stack::Reporter;
+  using NullBaseType = null::Reporter;
+  using ReturnAddressBaseType = return_address::Reporter;
+  using FullStackBaseType = full_stack::Reporter;
 
 public:
   void report(const CommandData &data)
@@ -180,7 +173,5 @@ public:
     return {};
   }
 };
-} // namespace selectable
-} // namespace call_stack
-} // namespace debug
-} // namespace drv3d_dx12
+
+} // namespace drv3d_dx12::debug::call_stack::selectable

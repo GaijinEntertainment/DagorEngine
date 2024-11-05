@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include "outlineRenderer.h"
 #include <dag/dag_vector.h>
 #include <de3_pixelPerfectSelectionService.h>
@@ -12,6 +14,8 @@ class TMatrix;
 class CompositeEditorViewport
 {
 public:
+  void registerMenuAccelerators();
+  void handleViewportAcceleratorCommand(unsigned id, IGenViewportWnd &wnd, IObjEntity *entity);
   IObjEntity *getHitSubEntity(IGenViewportWnd *wnd, int x, int y, IObjEntity &entity);
   bool getSelectionBox(IObjEntity *entity, BBox3 &box) const;
   void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif, IObjEntity *entity);

@@ -58,7 +58,7 @@ ScriptHelpers::TunedElement *ModFxQuality::createTunedElement(const char *name)
 ScriptHelpers::TunedElement *ModfxParams::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(21);
+  elems.reserve(22);
 
   elems.push_back(ScriptHelpers::create_tuned_int_param("ref_slot", 0));
   elems.push_back(ScriptHelpers::create_tuned_Point3_param("offset", Point3(0, 0, 0)));
@@ -75,6 +75,7 @@ ScriptHelpers::TunedElement *ModfxParams::createTunedElement(const char *name)
   elems.push_back(ScriptHelpers::create_tuned_real_param("mod_velocity_drag", 1));
   elems.push_back(ScriptHelpers::create_tuned_real_param("mod_velocity_drag_to_rad", 1));
   elems.push_back(ScriptHelpers::create_tuned_real_param("mod_velocity_mass", 1));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("mod_velocity_wind_scale", 1));
   elems.push_back(ScriptHelpers::create_tuned_E3DCOLOR_param("mod_color", E3DCOLOR(255, 255, 255)));
   elems.push_back(ScriptHelpers::create_tuned_real_param("global_life_time_min", 0));
   elems.push_back(ScriptHelpers::create_tuned_real_param("global_life_time_max", 0));
@@ -112,7 +113,7 @@ ScriptHelpers::TunedElement *ModfxParams::createTunedElement(const char *name)
   }
   elems.push_back(ModFxQuality::createTunedElement("quality"));
 
-  return ScriptHelpers::create_tuned_struct(name, 9, elems);
+  return ScriptHelpers::create_tuned_struct(name, 10, elems);
 }
 
 

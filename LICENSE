@@ -83,8 +83,10 @@ third-party component as follows:
   prog/3rdPartyLibs/arc/zstd-1.4.5/LICENSE
   prog/3rdPartyLibs/assimp/contrib/poly2tri/LICENSE
   prog/3rdPartyLibs/assimp/LICENSE
+  prog/3rdPartyLibs/bencode/LICENSE
   prog/3rdPartyLibs/binPack2D/LICENSE
   prog/3rdPartyLibs/breakpad/LICENSE
+  prog/3rdPartyLibs/bsdiff/LICENSE
   prog/3rdPartyLibs/cachesim/LICENSE
   prog/3rdPartyLibs/cef3/v4896/libcef_dll/LICENSE
   prog/3rdPartyLibs/cef3/v4951/libcef_dll/LICENSE
@@ -97,6 +99,7 @@ third-party component as follows:
   prog/3rdPartyLibs/convert/fastDXT/LICENSE
   prog/3rdPartyLibs/convert/nvtt-2.0.7/LICENSE
   prog/3rdPartyLibs/cpu_features/LICENSE
+  prog/3rdPartyLibs/crashpad/LICENSE
   prog/3rdPartyLibs/Detour/LICENSE
   prog/3rdPartyLibs/doctest/LICENSE.txt
   prog/3rdPartyLibs/eastl/LICENSE
@@ -104,6 +107,7 @@ third-party component as follows:
   prog/3rdPartyLibs/fast_float/LICENSE
   prog/3rdPartyLibs/fileWatcher/License.txt
   prog/3rdPartyLibs/flatbuffers/LICENSE.txt
+  prog/3rdPartyLibs/fmt/LICENSE
   prog/3rdPartyLibs/freetype/freetype-2.8/LICENSE.TXT
   prog/3rdPartyLibs/freetype/harfbuzz-2.6.4/COPYING
   prog/3rdPartyLibs/fsr2/dx12/license.txt
@@ -116,6 +120,7 @@ third-party component as follows:
   prog/3rdPartyLibs/image/libpng-1.4.22/license.txt
   prog/3rdPartyLibs/image/psdRead/LICENSE
   prog/3rdPartyLibs/image/tiff-4.4.0/LICENSE.md
+  prog/3rdPartyLibs/image/tinyexr-1.0.8/LICENSE
   prog/3rdPartyLibs/imgui-node-editor/LICENSE
   prog/3rdPartyLibs/imgui/LICENSE_imgui.txt
   prog/3rdPartyLibs/imgui/LICENSE_implot.txt
@@ -140,6 +145,8 @@ third-party component as follows:
   prog/3rdPartyLibs/metal/spirv-tools/utils/vscode/src/lsp/LICENSE
   prog/3rdPartyLibs/metal/spirv2Metal/LICENSE
   prog/3rdPartyLibs/mimalloc/LICENSE
+  prog/3rdPartyLibs/minhook/LICENSE
+  prog/3rdPartyLibs/miniaudio/LICENSE
   prog/3rdPartyLibs/miniupnpc/LICENSE
   prog/3rdPartyLibs/mit-hrtf-lib/LICENSE
   prog/3rdPartyLibs/mongoose/LICENSE

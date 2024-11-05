@@ -1,8 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef __GAIJIN_NSB_DECL_H__
-#define __GAIJIN_NSB_DECL_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 namespace StaticSceneBuilder
 {
@@ -18,6 +15,3 @@ class LightmappedMaterials;
 class LtinputExporter;
 
 }; // namespace StaticSceneBuilder
-
-
-#endif

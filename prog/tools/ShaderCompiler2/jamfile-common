@@ -1,14 +1,15 @@
-if $(OS) = MACOSX { Platform ?= macosx ; }
-else if $(OS) = LINUX { Platform ?= linux64 ; }
-else { Platform ?= win64 ; PlatformSpec_win64 ?= clang ; }
+PlatformArch_windows ?= x86_64 ;
+PlatformSpec_windows_x86_64 ?= clang ;
+PlatformSpec_windows_arm64 ?= vc17 ; # clang 15.0.7 crashes with dag_shaderModelVersion.h when building arm64
+include $(Root)/prog/_jBuild/defPlatform.jam ;
 if ! $(Location) { Exit Location must be defined before including jamfile-common ; }
 
 SkipLicenseBuild = no ;
-ReproducibleExeBuild = yes ;
 WinSdkVer  = win.sdk.100 ;
 CPPStd = 20 ;
 MimDebug ?= 0 ;
 CopyDxcLib ?= no ;
+include $(Root)/prog/tools/tools_setup.jam ;
 
 Exceptions = yes ;
 
@@ -18,9 +19,7 @@ ConsoleExe      = yes ;
 
 TargetType  = exe ;
 
-OutDir      = $(Root)/tools/dagor3_cdk/util ;
-if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
-if $(Platform) in linux64 macosx { OutDir = $(OutDir)-$(Platform) ; }
+include $(Root)/prog/tools/tools_setup_outdir_util.jam ;
 
 Sources =
   shaderVariantSrc.cpp
@@ -29,6 +28,7 @@ Sources =
   globVarSem.cpp
   shSemCode.cpp
   assemblyShader.cpp
+  variablesMerger.cpp
   gatherVar.cpp
   semChecker.cpp
   semUtils.cpp
@@ -45,6 +45,8 @@ Sources =
   debugSpitfile.cpp
 
   shCode.cpp
+  cppStcode.cpp
+  cppStcodeAssembly.cpp
   globvar.cpp
   intervals.cpp
   samplers.cpp
@@ -68,7 +70,14 @@ Sources =
   linkShaders.cpp
   shadervarGenerator.cpp
   parser/bparser.cpp
+  gitRunner.cpp
 ;
+
+if $(Platform) = windows {
+  Sources += processes_win.cpp ;
+} else if $(Platform) in macOS linux {
+  Sources += processes_unix.cpp ;
+}
 
 for s in $(Sources) {
   if ! $(s:D) { DependOnGeneratedHeaders $(Location)/$(s) : $(Location)/sh ; }
@@ -78,6 +87,8 @@ AddIncludes     = $(Root)/prog/tools/ShaderCompiler2
                   $(Root)/prog/tools/sharedInclude
                   $(Root)/prog/engine/sharedInclude
 ;
+
+if ! $(Platform) in macOS linux { AddIncludes += $(Root)/prog/gameLibs/publicInclude/breakpad ; }
 
 UseProgLibs =
   3rdPartyLibs/eastl
@@ -94,7 +105,9 @@ UseProgLibs =
   tools/libTools/util
 ;
 
-if ( ! $(Platform) in macosx linux64 ) && $(Sanitize) != address { UseProgLibs += engine/memory/mimallocMem ; }
+if $(Platform) = windows && $(PlatformArch) in x86 x86_64 { UseProgLibs += gameLibs/breakpad/binder ; }
+
+if ( ! $(Platform) in macOS linux ) && $(Sanitize) != address && $(Config) != dbg { UseProgLibs += engine/memory/mimallocMem ; }
 else { UseProgLibs += engine/memory ; }
 UseMemoryDebugLevel = off ;
 
@@ -103,6 +116,7 @@ HlslPredefines =
   predefines_dx12.hlsl
   predefines_ps4.hlsl
   predefines_ps5.hlsl
+  predefines_ps5pro.diff.hlsl
   predefines_xboxOne.hlsl
   predefines_spirv.hlsl
   predefines_metal.hlsl
@@ -114,17 +128,13 @@ for s in $(HlslPredefines) { if [ GLOB $(Root)/$(Location) : $(s) ] { StringifyS
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
-if $(PlatformSpec) in clang clang64 {
+if $(PlatformSpec) = clang {
   CPPopt += -Wno-comment -Wno-int-to-pointer-cast -Wno-writable-strings ;
 }
 if $(PlatformSpec) in gcc {
   opt on shlex.cpp = -Wno-write-strings ;
 }
-if $(Platform) in linux64 { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
-
-if $(GLOBAL_DependOnJam) {
-  INCLUDES $(JAMFILESRC) : $(Root)/$(Location)/jamfile-common ;
-}
+if $(Platform) in linux { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
 
 actions together copy_file
 {
@@ -136,10 +146,11 @@ actions together copy_file
 include $(Root)/prog/gameLibs/spirv/jamfile-dxc-ver ;
 
 if $(CopyDxcLib) = yes {
-  if ! [ GLOB $(_DEVTOOL)/DXC-$(DXC_VERSION)/lib/$(Platform) : * ] { exit FATAL\: \"DXC-$(DXC_VERSION)/lib/$(Platform)\" not found! Please, update DEVTOOLS ; }
+  local dxc_dir = $(_DEVTOOL)/DXC-$(DXC_VERSION)/lib/$(LegacyPlatformSuffix) ;
+  if ! [ GLOB $(dxc_dir) : * ] { exit FATAL\: \"$(dxc_dir)\" not found! Please, update DEVTOOLS ; }
   ExplicitLicenseUsed += $(_DEVTOOL)/DXC-$(DXC_VERSION) ;
-  local library = [ AutoCompleteTargetName dxcompiler : dll : macosx-shortform ] ;
-  local src = $(_DEVTOOL)/DXC-$(DXC_VERSION)/lib/$(Platform)/$(library) ;
+  local library = [ AutoCompleteTargetName dxcompiler : dll : macOS-shortform ] ;
+  local src = $(dxc_dir)/$(library) ;
   local dst = $(OutDir)/$(library) ;
   MakeDirectory $(dst) : $(dst:D) ;
   Depends $(dst) : $(src) ;

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <streaming/dag_streamingCtrl.h>
 #include <streaming/dag_streamingMgr.h>
 #include <ioSys/dag_dataBlock.h>
@@ -50,7 +52,7 @@ StreamingSceneController::StreamingSceneController(IStreamingSceneManager &_mgr,
 
       if ((name = cb->getStr("stream", NULL)) == 0)
       {
-        debug_ctx("unknown \"stream\" not found");
+        DEBUG_CTX("unknown \"stream\" not found");
         continue;
       }
 
@@ -59,7 +61,7 @@ StreamingSceneController::StreamingSceneController(IStreamingSceneManager &_mgr,
       actionSph.push_back(as);
     }
 
-  debug_ctx("%d actionspehers", actionSph.size());
+  DEBUG_CTX("%d actionspehers", actionSph.size());
 }
 
 StreamingSceneController::~StreamingSceneController() {}

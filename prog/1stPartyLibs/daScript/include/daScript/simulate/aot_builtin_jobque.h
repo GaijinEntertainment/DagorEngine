@@ -102,7 +102,7 @@ namespace das {
             }
             lock_guard<mutex> guard2(that->mCompleteMutex);
             for ( auto & f : pipe ) {
-                that->pipe.emplace_back(move(f));
+                that->pipe.emplace_back(std::move(f));
             }
             pipe.clear();
             that->mCond.notify_all();  // notify_one??

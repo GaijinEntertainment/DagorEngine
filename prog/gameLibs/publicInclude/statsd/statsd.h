@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -70,6 +69,9 @@ struct Host
 //                                                             -- required for client
 //                                                             -- server set it dynamically
 bool init(ILogger *logger, const char **keys, const char *addr, int port, Env env = {nullptr}, Circuit circuit = {nullptr},
+  Application application = {nullptr}, Platform platform = {nullptr}, Project project = {nullptr}, Host host = {nullptr});
+
+bool init_async(ILogger *logger, const char **keys, const char *addr, int port, Env env = {nullptr}, Circuit circuit = {nullptr},
   Application application = {nullptr}, Platform platform = {nullptr}, Project project = {nullptr}, Host host = {nullptr});
 
 // ...or init_socket(), setup() and connect()

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <phys/dag_physics.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <Jolt/RegisterTypes.h>
@@ -23,7 +25,6 @@
 #include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
 #include <Jolt/Physics/Collision/CollisionDispatch.h>
 #include <Jolt/Core/TempAllocator.h>
-#include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Core/JobSystemSingleThreaded.h>
 #include <Jolt/ConfigurationString.h>
 #include <heightmap/heightmapHandler.h>
@@ -55,6 +56,8 @@ static constexpr const uint16_t StaticFilter = 2;
 static constexpr const uint16_t KinematicFilter = 4;
 static constexpr const uint16_t DebrisFilter = 8;
 static constexpr const uint16_t AllFilter = 0x3F;
+
+static constexpr float drawConstraintSize = 0.1f;
 
 inline JPH::ObjectLayer make_objlayer_debris(JPH::BroadPhaseLayer::Type bl, uint16_t gm, uint16_t lm)
 {
@@ -115,6 +118,14 @@ static struct JoltObjsCanCollide final : public JPH::ObjectLayerPairFilter
   }
 } objects_f;
 
+static void jolt_trace(const char *fmt, ...)
+{
+  va_list ap;
+  va_start(ap, fmt);
+  // Usually Jolt prints error related output unless some debugging enabled (so use error loglevel)
+  cvlogmessage(LOGLEVEL_ERR, fmt, ap);
+  va_end(ap);
+}
 
 JPH_IF_ENABLE_ASSERTS(
   static bool joltAssertFailed(const char *inExpression, const char *inMessage, const char *inFile, JPH::uint inLine) {
@@ -358,212 +369,6 @@ protected:
   }
 };
 
-class JoltJobSystemImpl2 : public JPH::JobSystemWithBarrier
-{
-public:
-  static JoltJobSystemImpl2 *self;
-  JoltJobSystemImpl2(unsigned inMaxJobs, unsigned inMaxBarriers, unsigned inNumThreads)
-  {
-    for (int i = 0; i < workerJobs.size(); i++)
-      workerJobs[i].tp = this, workerJobs[i].workerIdx = i;
-    for (int i = 0; i < mHeads.size(); ++i)
-      mHeads[i] = 0;
-
-    workerCount = std::min<unsigned>(workerJobs.size(), inNumThreads);
-    JobSystemWithBarrier::Init(inMaxBarriers);
-    mJobs.Init(inMaxJobs, inMaxJobs);
-    for (auto &j : mQueue)
-      j = nullptr;
-    JoltJobSystemImpl2::self = this;
-  }
-  ~JoltJobSystemImpl2() override
-  {
-    JoltJobSystemImpl2::self = nullptr;
-    StopWorkerJobs();
-    for (unsigned i = 0; i < workerCount; i++)
-      threadpool::wait(&workerJobs[i]);
-  }
-
-  /// Start/stop the worker jobs
-  void StartWorkerJobs()
-  {
-    for (unsigned i = 0; i < workerCount; i++)
-      threadpool::wait(&workerJobs[i]);
-    allWorkDone = false;
-    uint32_t qPos;
-    for (unsigned i = 0; i < workerCount; i++)
-      threadpool::add(&workerJobs[i], threadpool::PRIO_LOW, qPos, threadpool::AddFlags::None);
-    if (workerCount > 1)
-      threadpool::wake_up_all();
-  }
-  void StopWorkerJobs()
-  {
-    // Signal threads that we want to stop and wake them up
-    allWorkDone = true;
-    mSemaphore.Release(workerCount);
-  }
-
-  // See JobSystem
-  int GetMaxConcurrency() const override { return workerCount + 1; }
-
-  JPH::JobHandle CreateJob(const char *inJobName, JPH::ColorArg inColor, const JobFunction &inJobFunction,
-    JPH::uint32 inNumDependencies = 0) override
-  {
-    // Loop until we can get a job from the free list
-    unsigned index;
-    for (;;)
-    {
-      index = mJobs.ConstructObject(inJobName, inColor, this, inJobFunction, inNumDependencies);
-      if (index != AvailableJobs::cInvalidObjectIndex)
-        break;
-      G_ASSERT(false && "No jobs available!");
-      std::this_thread::sleep_for(std::chrono::microseconds(100));
-    }
-    Job *job = &mJobs.Get(index);
-
-    // Construct handle to keep a reference, the job is queued below and may immediately complete
-    JobHandle handle(job);
-
-    // If there are no dependencies, queue the job now
-    if (inNumDependencies == 0)
-      QueueJob(job);
-
-    // Return the handle
-    return handle;
-  }
-
-protected:
-  void QueueJob(Job *inJob) override
-  {
-    queueJobInternal(inJob);
-    mSemaphore.Release();
-  }
-  void QueueJobs(Job **inJobs, JPH::uint inNumJobs) override
-  {
-    G_ASSERT(inNumJobs > 0);
-    for (Job **job = inJobs, **job_end = inJobs + inNumJobs; job < job_end; ++job)
-      queueJobInternal(*job);
-    mSemaphore.Release(min(inNumJobs, workerCount));
-  }
-  void FreeJob(Job *inJob) override { mJobs.DestructObject(inJob); }
-
-private:
-  struct ThreadJob : public cpujobs::IJob
-  {
-    JoltJobSystemImpl2 *tp = nullptr;
-    int workerIdx = -1;
-    void doJob() override
-    {
-      auto &head = tp->mHeads[workerIdx];
-      auto &mTail = tp->mTail;
-      auto &mSemaphore = tp->mSemaphore;
-      auto &mQueue = tp->mQueue;
-      auto &allWorkDone = tp->allWorkDone;
-
-      while (!tp->allWorkDone)
-      {
-        // Wait for jobs
-        mSemaphore.Acquire();
-
-        // Loop over the queue
-        while (head != mTail)
-        {
-          // Exchange any job pointer we find with a nullptr
-          JPH::atomic<Job *> &job = mQueue[head & (JoltJobSystemImpl2::cQueueLength - 1)];
-          if (job.load() != nullptr)
-          {
-            Job *job_ptr = job.exchange(nullptr);
-            if (job_ptr != nullptr)
-            {
-              // And execute it
-              job_ptr->Execute();
-              job_ptr->Release();
-            }
-          }
-          head++;
-        }
-      }
-    }
-  };
-
-  inline unsigned getHead() const
-  {
-    // Find the minimal value across all threads
-    unsigned head = mTail;
-    for (unsigned i = 0; i < workerCount; ++i)
-      head = min(head, mHeads[i].load());
-    return head;
-  }
-
-  inline void queueJobInternal(Job *inJob)
-  {
-    // Add reference to job because we're adding the job to the queue
-    inJob->AddRef();
-
-    // Need to read head first because otherwise the tail can already have passed the head
-    // We read the head outside of the loop since it involves iterating over all threads and we only need to update
-    // it if there's not enough space in the queue.
-    unsigned head = getHead();
-
-    for (;;)
-    {
-      // Check if there's space in the queue
-      unsigned old_value = mTail;
-      if (old_value - head >= cQueueLength)
-      {
-        // We calculated the head outside of the loop, update head (and we also need to update tail to prevent it from passing head)
-        head = getHead();
-        old_value = mTail;
-
-        // Second check if there's space in the queue
-        if (old_value - head >= cQueueLength)
-        {
-          // Wake up all threads in order to ensure that they can clear any nullptrs they may not have processed yet
-          mSemaphore.Release(workerCount);
-
-          // Sleep a little (we have to wait for other threads to update their head pointer in order for us to be able to continue)
-          std::this_thread::sleep_for(std::chrono::microseconds(100));
-          continue;
-        }
-      }
-
-      // Write the job pointer if the slot is empty
-      Job *expected_job = nullptr;
-      bool success = mQueue[old_value & (cQueueLength - 1)].compare_exchange_strong(expected_job, inJob);
-
-      // Regardless of who wrote the slot, we will update the tail (if the successful thread got scheduled out
-      // after writing the pointer we still want to be able to continue)
-      mTail.compare_exchange_strong(old_value, old_value + 1);
-
-      // If we successfully added our job we're done
-      if (success)
-        break;
-    }
-  }
-
-  /// Array of jobs (fixed size)
-  using AvailableJobs = JPH::FixedSizeFreeList<Job>;
-  AvailableJobs mJobs;
-
-  // The job queue
-  static constexpr unsigned cQueueLength = 1024;
-  static_assert(JPH::IsPowerOf2(cQueueLength)); // We do bit operations and require queue length to be a power of 2
-  JPH::atomic<Job *> mQueue[cQueueLength];
-
-  // Head and tail of the queue, do this value modulo cQueueLength - 1 to get the element in the mQueue array
-  carray<JPH::atomic<unsigned>, 64> mHeads;                     ///< Per executing thread the head of the current queue
-  alignas(JPH_CACHE_LINE_SIZE) JPH::atomic<unsigned> mTail = 0; ///< Tail (write end) of the queue
-
-  // Semaphore used to signal worker threads that there is new work
-  JPH::Semaphore mSemaphore;
-
-  /// Boolean to indicate that we want to stop the job system
-  JPH::atomic<bool> allWorkDone = true;
-  unsigned workerCount = 0;
-  carray<ThreadJob, 64> workerJobs;
-};
-JoltJobSystemImpl2 *JoltJobSystemImpl2::self = nullptr;
-
 void PhysWorld::init_engine(bool single_threaded)
 {
   using namespace jolt_api;
@@ -581,11 +386,12 @@ void PhysWorld::init_engine(bool single_threaded)
   uint32_t maxWorkers = phys_blk.getInt("maxWorkers", 16);
   uint32_t defNumBodyMutexes = (threadpool::get_num_workers() + 1) * phys_blk.getInt("numBodyMutexesMult", 2);
   uint32_t numBodyMutexes = phys_blk.getInt("numBodyMutexes", defNumBodyMutexes);
+  float maxCollisionSeparationDistance = phys_blk.getReal("maxCollisionSeparationDistance", 0.05f);
   JPH::HeightField16Shape::sUseActiveEdges = phys_blk.getBool("htFieldBuildActiveEdges", true);
 
   JPH_IF_ENABLE_ASSERTS(JPH::AssertFailed = joltAssertFailed;)
-  JPH::RegisterDefaultAllocator();
-  tempAllocator = new JPH::TempAllocatorImpl(tempAllocSz);
+  JPH::Trace = &jolt_trace;
+  tempAllocator = new JPH::TempAllocatorImpl(tempAllocSz); // To consider: implement using framemem. Is cross-thread freeing required?
   JPH::Factory::sInstance = new JPH::Factory;
   JPH::RegisterTypes();
   JPH::HeightField16Shape::sRegister();
@@ -595,26 +401,16 @@ void PhysWorld::init_engine(bool single_threaded)
   physicsSystem->SetPhysicsSettings(physicsSettings);
   physicsSystem->SetGravity(JPH::Vec3(0, -9.8065f, 0));
 
-  switch (phys_blk.getInt("jobSysType", single_threaded ? 0 : 1))
-  {
-    case 0: jobSystem = new JPH::JobSystemSingleThreaded(maxJobs); break;
-    case 1:
-      jobSystem = new JoltJobSystemImpl(maxJobs / 16, maxBarriers, clamp<int>(threadpool::get_num_workers(), 1, maxWorkers));
-      break;
-#if DAGOR_DBGLEVEL > 0
-    case 2:
-      jobSystem = new JPH::JobSystemThreadPool(maxJobs, maxBarriers, clamp<int>(cpujobs::get_core_count() - 2, 1, maxWorkers));
-      break;
-    case 3: jobSystem = new JoltJobSystemImpl2(maxJobs, maxBarriers, clamp<int>(threadpool::get_num_workers(), 1, maxWorkers)); break;
-#endif
-    default: G_ASSERT(0);
-  }
+  if (phys_blk.getInt("jobSysType", single_threaded ? 0 : 1))
+    jobSystem = new JoltJobSystemImpl(maxJobs / 16, maxBarriers, clamp<int>(threadpool::get_num_workers(), 1, maxWorkers));
+  else
+    jobSystem = new JPH::JobSystemSingleThreaded(maxJobs);
 
   // defShapeCastStg.mBackFaceModeTriangles = JPH::EBackFaceMode::CollideWithBackFaces;
   defShapeCastStg.mReturnDeepestPoint = true;
 
   // defCollideShapeStg.mBackFaceMode = JPH::EBackFaceMode::CollideWithBackFaces;
-  defCollideShapeStg.mMaxSeparationDistance = 0.05f;
+  defCollideShapeStg.mMaxSeparationDistance = maxCollisionSeparationDistance;
 
   static bool printed_once = false;
   if (!printed_once)
@@ -635,6 +431,9 @@ void PhysWorld::term_engine()
 
   del_it(physicsSystem);
   del_it(tempAllocator);
+
+  JPH::UnregisterTypes();
+  del_it(JPH::Factory::sInstance);
 }
 
 PhysBody::PhysBody(PhysWorld *w, float mass, const PhysCollision *coll, const TMatrix &tm, const PhysBodyCreationData &s) : world(w)
@@ -642,9 +441,9 @@ PhysBody::PhysBody(PhysWorld *w, float mass, const PhysCollision *coll, const TM
   userPtr = s.userPtr;
 
   JPH::BodyCreationSettings body;
-  if (auto shape = PhysBody::create_jolt_collision_shape(coll))
-    body.SetShape(shape);
   bool isDynamic = mass > 0.f;
+  if (auto shape = PhysBody::create_jolt_collision_shape(coll, isDynamic))
+    body.SetShape(shape);
   if (s.autoMask)
   {
     groupMask = isDynamic ? DefaultFilter : StaticFilter;
@@ -790,30 +589,38 @@ struct JoltPhysNativeShape : public PhysCollision
 };
 void PhysCollision::clearNativeShapeData(PhysCollision &c) { static_cast<JoltPhysNativeShape &>(c).shape = nullptr; }
 
-JPH::RefConst<JPH::Shape> check_and_return_shape(JPH::ShapeSettings::ShapeResult res, int ln)
+JPH::Ref<JPH::Shape> check_and_return_shape(JPH::ShapeSettings::ShapeResult res, int ln)
 {
   if (res.HasError())
     _core_fatal(__FILE__, ln, "Shape error: %s", res.GetError().c_str());
   return res.Get();
 }
 
-JPH::RefConst<JPH::Shape> PhysBody::create_jolt_collision_shape(const PhysCollision *c)
+JPH::RefConst<JPH::Shape> PhysBody::create_jolt_collision_shape(const PhysCollision *c, bool dynamic)
 {
   if (!c || c->collType == c->TYPE_EMPTY ||
       (c->collType == c->TYPE_COMPOUND && !static_cast<const PhysCompoundCollision *>(c)->coll.size()))
     return nullptr;
+  auto zeroDensityIfStatic = [dynamic](JPH::Ref<JPH::Shape> shape) {
+    if (!dynamic && shape)
+    {
+      G_FAST_ASSERT(shape->GetType() == JPH::EShapeType::Convex);
+      static_cast<JPH::ConvexShape *>(shape.GetPtr())->SetDensity(0.f); // Note: this would zero mass & COM
+    }
+    return shape;
+  };
   switch (c->collType)
   {
     case PhysCollision::TYPE_SPHERE:
     {
       auto sphereColl = static_cast<const PhysSphereCollision *>(c);
-      return new JPH::SphereShape(sphereColl->radius);
+      return zeroDensityIfStatic(new JPH::SphereShape(sphereColl->radius));
     }
     break;
     case PhysCollision::TYPE_BOX:
     {
       auto boxColl = static_cast<const PhysBoxCollision *>(c);
-      return new JPH::BoxShape(to_jVec3(boxColl->size / 2), jolt_api::min_convex_rad_for_box(boxColl->size));
+      return zeroDensityIfStatic(new JPH::BoxShape(to_jVec3(boxColl->size / 2), jolt_api::min_convex_rad_for_box(boxColl->size)));
     }
     break;
 
@@ -824,9 +631,9 @@ JPH::RefConst<JPH::Shape> PhysBody::create_jolt_collision_shape(const PhysCollis
       {
         if (capsuleColl->height < 0)
           logerr("%s attempt to create capsule with height %.12f, fallback to sphere", __FUNCTION__, capsuleColl->height);
-        return new JPH::SphereShape(capsuleColl->radius);
+        return zeroDensityIfStatic(new JPH::SphereShape(capsuleColl->radius));
       }
-      auto *shape = new JPH::CapsuleShape(capsuleColl->height * 0.5f, capsuleColl->radius);
+      auto shape = zeroDensityIfStatic(new JPH::CapsuleShape(capsuleColl->height * 0.5f, capsuleColl->radius));
       switch (capsuleColl->dirIdx)
       {
         case 0: return new JPH::RotatedTranslatedShape(JPH::Vec3::sZero(), JPH::Quat(0, 0, M_SQRT1_2, M_SQRT1_2), shape);
@@ -842,7 +649,7 @@ JPH::RefConst<JPH::Shape> PhysBody::create_jolt_collision_shape(const PhysCollis
       auto cylColl = static_cast<const PhysCylinderCollision *>(c);
       float hh = cylColl->height * 0.5f;
       float convexRadius = eastl::min({hh, cylColl->radius, JPH::cDefaultConvexRadius});
-      auto *shape = new JPH::CylinderShape(hh, cylColl->radius, convexRadius);
+      auto shape = zeroDensityIfStatic(new JPH::CylinderShape(hh, cylColl->radius, convexRadius));
       switch (cylColl->dirIdx)
       {
         case 0: return new JPH::RotatedTranslatedShape(JPH::Vec3::sZero(), JPH::Quat(0, 0, M_SQRT1_2, M_SQRT1_2), shape);
@@ -910,11 +717,13 @@ JPH::RefConst<JPH::Shape> PhysBody::create_jolt_collision_shape(const PhysCollis
       {
         logerr("convex of %d points is replaced with point-sphere", convexColl->vnum);
         return new JPH::RotatedTranslatedShape(*(const JPH::Vec3 *)convexColl->vdata, JPH::Quat::sIdentity(),
-          new JPH::SphereShape(1e-3));
+          zeroDensityIfStatic(new JPH::SphereShape(1e-3)));
       }
       if (convexColl->vstride == sizeof(JPH::Vec3))
-        return check_and_return_shape(JPH::ConvexHullShapeSettings((const JPH::Vec3 *)convexColl->vdata, convexColl->vnum).Create(),
-          __LINE__);
+      {
+        auto convexHull = JPH::ConvexHullShapeSettings((const JPH::Vec3 *)convexColl->vdata, convexColl->vnum).Create();
+        return zeroDensityIfStatic(check_and_return_shape(convexHull, __LINE__));
+      }
 
       int fstride = convexColl->vstride / 4;
       Tab<JPH::Vec3> v;
@@ -922,7 +731,8 @@ JPH::RefConst<JPH::Shape> PhysBody::create_jolt_collision_shape(const PhysCollis
       JPH::Vec3 *d = v.data();
       for (auto s = (const float *)convexColl->vdata, se = s + convexColl->vnum * fstride; s < se; s += fstride, d++)
         d->SetX(s[0]), d->SetY(s[1]), d->SetZ(s[2]);
-      return check_and_return_shape(JPH::ConvexHullShapeSettings(v.data(), v.size()).Create(), __LINE__);
+      auto convexHull = JPH::ConvexHullShapeSettings(v.data(), v.size()).Create();
+      return zeroDensityIfStatic(check_and_return_shape(convexHull, __LINE__));
     }
     break;
 
@@ -951,7 +761,7 @@ JPH::RefConst<JPH::Shape> PhysBody::create_jolt_collision_shape(const PhysCollis
         const int ccType = cc.c->collType;
         const bool isIdentM3 = memcmp(&cc.m, &TMatrix::IDENT, sizeof(Point3) * 3) == 0; //-V1014 //-V1086
         const bool hasTranslation = cc.m.getcol(3).lengthSq() > 1e-6;
-        JPH::RefConst<JPH::Shape> s = PhysBody::create_jolt_collision_shape(cc.c);
+        JPH::RefConst<JPH::Shape> s = PhysBody::create_jolt_collision_shape(cc.c, dynamic);
         G_ASSERTF_RETURN(s.GetPtr(), nullptr, "failed to create collision type=%d", ccType);
 
         if (!hasTranslation && (isIdentM3 || ccType == c->TYPE_SPHERE))
@@ -970,7 +780,7 @@ JPH::RefConst<JPH::Shape> PhysBody::create_jolt_collision_shape(const PhysCollis
           case PhysCollision::TYPE_TRIMESH:
           case PhysCollision::TYPE_CONVEXHULL:
           case PhysCollision::TYPE_NATIVE_SHAPE:
-            if (auto subShape = PhysBody::create_jolt_collision_shape(cc.c))
+            if (auto subShape = PhysBody::create_jolt_collision_shape(cc.c, dynamic))
               shape.AddShape(to_jVec3(cc.m.getcol(3)), to_jQuat(cc.m), subShape);
             break;
 
@@ -995,7 +805,7 @@ JPH::RefConst<JPH::Shape> PhysBody::create_jolt_collision_shape(const PhysCollis
 
 void PhysBody::setCollision(const PhysCollision *coll, bool /*allow_fast_inaccurate_coll_tm*/)
 {
-  if (auto shape = PhysBody::create_jolt_collision_shape(coll))
+  if (auto shape = PhysBody::create_jolt_collision_shape(coll, jolt_api::body_lock().TryGetBody(bodyId)->IsDynamic()))
     api().SetShape(bodyId, shape, false, isInWorld() ? JPH::EActivation::Activate : JPH::EActivation::DontActivate);
 }
 
@@ -1079,11 +889,21 @@ void PhysBody::patchCollisionScaledCopy(const Point3 &s, PhysBody *)
 
 void PhysBody::setSphereShapeRad(float rad)
 {
-  if (auto shape = getShape())
-    if (shape->GetSubType() == JPH::EShapeSubType::Sphere &&
-        fabsf(static_cast<const JPH::SphereShape *>(shape.GetPtr())->GetRadius() - rad) > 1e-6f)
-      api().SetShape(bodyId, new JPH::SphereShape(rad), false,
-        isInWorld() ? JPH::EActivation::Activate : JPH::EActivation::DontActivate);
+  if (auto shape = getShape().GetPtr())
+  {
+    using namespace JPH;
+    G_ASSERT(shape->GetSubType() == JPH::EShapeSubType::Sphere);
+    auto sphere = (SphereShape *)shape;
+    if (fabsf(sphere->GetRadius() - rad) < 1e-6f)
+      return;
+    G_ASSERT(sphere->GetRefCount() == 1); // Must be unique for next trick
+    sphere->SetEmbedded();                // Don't complain in dtor about dangling ref
+    sphere->Release();
+    sphere->~SphereShape();
+    (new (sphere, _NEW_INPLACE) SphereShape(rad))->AddRef();
+    if (isInWorld())
+      api().NotifyShapeChanged(bodyId, Vec3::sZero(), false, EActivation::Activate);
+  }
 }
 void PhysBody::setBoxShapeExtents(const Point3 &ext)
 {
@@ -1174,6 +994,7 @@ PhysRagdollHingeJoint::PhysRagdollHingeJoint(PhysBody *body1, PhysBody *body2, c
   // By default HingeConstraintSettings is in world space so we can provide world
   // space here without need for inverses
   JPH::HingeConstraintSettings hingeSettings;
+  hingeSettings.mDrawConstraintSize = drawConstraintSize;
   hingeSettings.mPoint1 = hingeSettings.mPoint2 = to_jVec3(pos);
   hingeSettings.mHingeAxis1 = hingeSettings.mHingeAxis2 = to_jVec3(axis);
   hingeSettings.mNormalAxis1 = to_jVec3(mid_axis);
@@ -1205,6 +1026,7 @@ PhysRagdollBallJoint::PhysRagdollBallJoint(PhysBody *body1, PhysBody *body2, con
   Point3 axNorm = rot1 % _tm.getcol(2);
   TMatrix rot2 = makeTM(axNorm, -(fabsf(max_limit.y) - fabsf(min_limit.y)) * 0.5f);
   Point3 axTwist = rot2 % (rot1 % _tm.getcol(0));
+  ballSettings.mDrawConstraintSize = drawConstraintSize;
   ballSettings.mPosition1 = ballSettings.mPosition2 = to_jVec3(_tm.getcol(3));
   ballSettings.mTwistAxis1 = to_jVec3(axTwist);
   ballSettings.mPlaneAxis1 = to_jVec3(axNorm);
@@ -1215,6 +1037,11 @@ PhysRagdollBallJoint::PhysRagdollBallJoint(PhysBody *body1, PhysBody *body2, con
   ballSettings.mTwistMinAngle = min_limit.x;
   ballSettings.mTwistMaxAngle = max_limit.x;
   ballSettings.mMaxFrictionTorque = damping * 0.1;
+  // default motor settings taken from https://github.com/jrouwe/JoltPhysics/blob/master/Assets/Human.tof
+  ballSettings.mSwingMotorSettings.mSpringSettings.mFrequency = 20.0;
+  ballSettings.mSwingMotorSettings.mSpringSettings.mDamping = 2.0;
+  ballSettings.mTwistMotorSettings.mSpringSettings.mFrequency = 20.0;
+  ballSettings.mTwistMotorSettings.mSpringSettings.mDamping = 2.0;
 
   JPH::Body *b1 = jolt_api::body_lock().TryGetBody(body1->bodyId);
   JPH::Body *b2 = jolt_api::body_lock().TryGetBody(body2->bodyId);
@@ -1223,6 +1050,28 @@ PhysRagdollBallJoint::PhysRagdollBallJoint(PhysBody *body1, PhysBody *body2, con
 
   JPH::SwingTwistConstraint *constr = static_cast<JPH::SwingTwistConstraint *>(ballSettings.Create(*b1, *b2));
   jolt_api::phys_sys().AddConstraint(joint = constr);
+}
+
+void PhysRagdollBallJoint::setTargetOrientation(const TMatrix &tm)
+{
+  auto constraint = static_cast<JPH::SwingTwistConstraint *>(joint);
+  constraint->SetSwingMotorState(JPH::EMotorState::Position);
+  constraint->SetTwistMotorState(JPH::EMotorState::Position);
+  constraint->SetTargetOrientationBS(to_jQuat(tm));
+}
+
+void PhysRagdollBallJoint::setTwistSwingMotorSettings(float twistFrequency, float twistDamping, float swingFrequency,
+  float swingDamping)
+{
+  auto constraint = static_cast<JPH::SwingTwistConstraint *>(joint);
+
+  JPH::MotorSettings &twistMotorSettings = constraint->GetTwistMotorSettings();
+  twistMotorSettings.mSpringSettings.mFrequency = twistFrequency;
+  twistMotorSettings.mSpringSettings.mDamping = twistDamping;
+
+  JPH::MotorSettings &swingMotorSettings = constraint->GetSwingMotorSettings();
+  swingMotorSettings.mSpringSettings.mFrequency = swingFrequency;
+  swingMotorSettings.mSpringSettings.mDamping = swingDamping;
 }
 
 Phys6DofJoint::Phys6DofJoint(PhysBody *body1, PhysBody *body2, const TMatrix &frame1, const TMatrix &frame2) : PhysJoint(PJ_6DOF)
@@ -1239,6 +1088,7 @@ Phys6DofJoint::Phys6DofJoint(PhysBody *body1, PhysBody *body2, const TMatrix &fr
     body2, body2 ? body2->bodyId.GetIndexAndSequenceNumber() : 0, b2);
 
   JPH::SixDOFConstraintSettings sixDofSettings;
+  sixDofSettings.mDrawConstraintSize = drawConstraintSize;
   sixDofSettings.mSpace = JPH::EConstraintSpace::LocalToBodyCOM;
 
   // FIXME: rework to init using struct instead of methods (setLimit, etc..) and remove this hardcode
@@ -1307,6 +1157,7 @@ Phys6DofSpringJoint::Phys6DofSpringJoint(PhysBody *body1, PhysBody *body2, const
   PhysJoint(PJ_6DOF_SPRING)
 {
   JPH::SixDOFConstraintSettings sixDofSettings;
+  sixDofSettings.mDrawConstraintSize = drawConstraintSize;
   sixDofSettings.mSpace = JPH::EConstraintSpace::LocalToBodyCOM;
 
   // FIXME: rework to init using struct instead of methods (setLimit, etc..) and remove this hardcode
@@ -1433,7 +1284,8 @@ void PhysWorld::setInteractionLayers(unsigned int mask1, unsigned int mask2, boo
 
 struct JoltSimJob final : public cpujobs::IJob
 {
-  int maxSubSteps = 3;
+  uint8_t maxSubSteps = 3;
+  bool allowVariable = false;
   float fixedTimeStep = 1. / 60.f;
   uint32_t qPos = 0;
   float time = 0;
@@ -1441,18 +1293,12 @@ struct JoltSimJob final : public cpujobs::IJob
   void setup(int mss, float fts, float dt)
   {
     maxSubSteps = mss;
-    fixedTimeStep = fts;
+    fixedTimeStep = fabsf(fts);
+    allowVariable = fts < 0;
     time = (maxSubSteps > 0) ? (time + dt) : dt;
   }
 
-  void update(float dt, int nsteps = 1)
-  {
-    if (JoltJobSystemImpl2::self)
-      JoltJobSystemImpl2::self->StartWorkerJobs();
-    jolt_api::phys_sys().Update(dt, nsteps, tempAllocator, jobSystem);
-    if (JoltJobSystemImpl2::self)
-      JoltJobSystemImpl2::self->StopWorkerJobs();
-  }
+  void update(float dt, int nsteps = 1) { jolt_api::phys_sys().Update(dt, nsteps, tempAllocator, jobSystem); }
 
   void doJob() override
   {
@@ -1461,8 +1307,11 @@ struct JoltSimJob final : public cpujobs::IJob
     {
       int numSubSteps = int(time / fixedTimeStep);
       time -= numSubSteps * fixedTimeStep;
-      numSubSteps = min(numSubSteps, maxSubSteps);
-      update(numSubSteps * fixedTimeStep, max(numSubSteps, 1)); // Still update with 0 dt for broadphase update/contact removal
+      numSubSteps = min(numSubSteps, (int)maxSubSteps);
+      if (numSubSteps || !allowVariable)
+        update(numSubSteps * fixedTimeStep, max(numSubSteps, 1)); // Still update even with 0 dt for broadphase update/contact removal
+      else                                                        // Update with less then `fixedTimeStep` time
+        update(eastl::exchange(time, 0.f), 1);
       DA_PROFILE_TAG(JoltSimJob, "ncollsteps: %d", numSubSteps);
     }
     else

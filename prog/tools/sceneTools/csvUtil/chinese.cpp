@@ -1,4 +1,6 @@
-﻿#include <stdio.h>
+﻿// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <ctype.h>

@@ -1,6 +1,5 @@
-#ifndef VFORMAT_H
-
-#define VFORMAT_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 // ############################################################################
 // ##                                                                        ##
@@ -205,5 +204,3 @@ private:
   VertexSectionMap mSections;
   Rect3d<float> mBound; // bounding region for whole mesh
 };
-
-#endif

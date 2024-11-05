@@ -1,10 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #ifndef _TARGET_PC_WIN
 #error using windows specific implementation with wrong platform
 #endif
 
 #include <windows.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include "../drv3d_commonCode/drv_utils.h"
 
 namespace drv3d_vulkan
@@ -18,13 +20,15 @@ struct WindowState
   bool vsync = false;
   inline static main_wnd_f *mainCallback = nullptr;
   inline static WNDPROC originWndProc = nullptr;
-
   static LRESULT CALLBACK windowProcProxy(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
   WindowState() = default;
   ~WindowState() { closeWindow(); }
   WindowState(const WindowState &) = delete;
   WindowState &operator=(const WindowState &) = delete;
+
+  int refreshRate = 0;
+  void updateRefreshRateFromCurrentDisplayMode();
 
   void set(void *hinst, const char *name, int show, void *mainw, void *renderw, void *icon, const char *title, void *wnd_proc)
   {

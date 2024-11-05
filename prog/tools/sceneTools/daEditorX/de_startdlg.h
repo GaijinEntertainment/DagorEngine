@@ -1,5 +1,4 @@
-#ifndef __GAIJIN_DAGORED_DE_START_DLG__
-#define __GAIJIN_DAGORED_DE_START_DLG__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EditorCore/ec_startDlg.h>
@@ -30,14 +29,16 @@ enum
 class StartupDlg : public EditorStartDialog
 {
 public:
-  StartupDlg(void *phandle, const char *caption, DeWorkspace &wsp, const char *wsp_blk, const char *select_wsp);
+  StartupDlg(const char *caption, DeWorkspace &wsp, const char *wsp_blk, const char *select_wsp);
 
   ~StartupDlg();
 
   int getSelected() const;
 
-  virtual void onCustomFillPanel(PropPanel2 &panel);
-  virtual bool onCustomSettings(PropPanel2 &panel);
+  virtual void onCustomFillPanel(PropPanel::ContainerPropertyControl &panel);
+  virtual bool onCustomSettings(PropPanel::ContainerPropertyControl &panel);
+
+  bool onDropFiles(const dag::Vector<String> &files);
   const DataBlock &getScreenshotMetaInfo() const { return mScreenshotMetaInfo; }
   const String &getFilePathFromScreenshotMetaInfo() const { return mFilePathFromScreenshotMetaInfo; }
 
@@ -45,20 +46,16 @@ protected:
   virtual void onAddWorkspace();
   virtual void onChangeWorkspace(const char *name);
 
-  virtual void onDoubleClick(int pcb_id, PropPanel2 *panel);
+  virtual void onDoubleClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
   virtual bool onOk();
-  virtual bool onDropFiles(const dag::Vector<String> &files) override;
 
 private:
   Tab<class IGenEditorPlugin *> exporters;
 
-  void fillExportPluginsGrp(PropPanel2 &panel);
+  void fillExportPluginsGrp(PropPanel::ContainerPropertyControl &panel);
 
-  PropertyContainerControlBase *mPanel;
+  PropPanel::ContainerPropertyControl *mPanel;
   int mSelected;
   DataBlock mScreenshotMetaInfo;
   String mFilePathFromScreenshotMetaInfo;
 };
-
-
-#endif //__GAIJIN_DAGORED_DE_START_DLG__

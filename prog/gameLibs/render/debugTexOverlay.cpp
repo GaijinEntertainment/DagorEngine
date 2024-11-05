@@ -1,8 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/debugTexOverlay.h>
 #include <math/dag_Point2.h>
 #include <math/dag_Point4.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_tex3d.h>
 #include <3d/dag_texMgr.h>
 #include <gameRes/dag_gameResources.h>
 #include <shaders/dag_shaders.h>
@@ -22,7 +25,7 @@ static const float g_target_to_tex_ratio = 0.333f;
 static int cube_indexVarId = -1;
 
 static const char g_usage_text[] =
-  "usage: show_tex <tex_name size_x size_y offset_x offset_y swizzling range_begin range_end> ; <...> ...\n"
+  "usage: show_tex <tex_name size_x size_y offset_x offset_y swizzling range_begin range_end flip_x flip_y> ; <...> ...\n"
   "     : (without <> brackets and up to 4 texture descriptions)\n"
   "     : order of (size_x,size_y,offset_x,offset_y)/swizzling/(range_begin,range_end) OUTSIDE of () is irrelevant\n"
   "     : to skip specifying a variable, use the character _\n"
@@ -107,6 +110,8 @@ String DebugTexOverlay::TextureWrapper::initFromConsoleCmd(const char *argv[], i
   int f = 0;
   int num = -1;
   int filter = 0;
+  flipX = false;
+  flipY = false;
 
   carray<Point4, 4> swz = {Point4(1, 0, 0, 0), Point4(0, 1, 0, 0), Point4(0, 0, 1, 0), Point4(0, 0, 0, 1)};
 
@@ -121,6 +126,17 @@ String DebugTexOverlay::TextureWrapper::initFromConsoleCmd(const char *argv[], i
   for (int i = 1; i < argc; ++i)
   {
     const char *v = argv[i];
+    if (strcmp("flip_x", v) == 0)
+    {
+      flipX = true;
+      continue;
+    }
+    if (strcmp("flip_y", v) == 0)
+    {
+      flipY = true;
+      continue;
+    }
+
     // swizzling (caveat: cannot use 0 or 1 in first channel)
     if (v[0] == 'r' || v[0] == 'g' || v[0] == 'b' || v[0] == 'a')
       params[4] = v;
@@ -213,10 +229,13 @@ String DebugTexOverlay::TextureWrapper::initFromConsoleCmd(const char *argv[], i
     memmove(name, name + 1, strlen(name));
   }
   id = get_managed_texture_id(name);
-
-  if (id == BAD_TEXTUREID) // worth trying to check shader_vars as well
-    id = ShaderGlobal::get_tex_fast(::get_shader_variable_id(name, true));
-
+  // worth trying to check shader_vars as well
+  varId = ::get_shader_variable_id(name, true);
+  const TEXTUREID varTexId = varId > 0 ? ShaderGlobal::get_tex_fast(varId) : BAD_TEXTUREID;
+  if (id == BAD_TEXTUREID)
+    id = varTexId;
+  else if (id != varTexId)
+    varId = -1;
   if (id == BAD_TEXTUREID)
   {
     id = ::get_tex_gameres(name);
@@ -230,6 +249,9 @@ String DebugTexOverlay::TextureWrapper::initFromConsoleCmd(const char *argv[], i
   BaseTexture *tex = acquire_managed_tex(id);
   FreeTexAtReturn ftat(id);
 
+  TextureInfo info;
+  tex->getinfo(info);
+
   if (m >= tex->level_count())
     return String(128, "incorrect mip: %d, tex has only: %d", m, tex->level_count());
 
@@ -238,16 +260,12 @@ String DebugTexOverlay::TextureWrapper::initFromConsoleCmd(const char *argv[], i
 
   if (f != 0 && tex->restype() == RES3D_VOLTEX)
   {
-    TextureInfo info;
-    tex->getinfo(info);
     if (f >= info.d)
       return String(128, "incorrect face: %d, tex has only: %d", f, info.d);
   }
 
   if (f != 0 && (tex->restype() == RES3D_ARRTEX || tex->restype() == RES3D_CUBEARRTEX))
   {
-    TextureInfo info;
-    tex->getinfo(info);
     if (f >= info.a)
       return String(128, "incorrect face: %d, tex has only: %d", f, info.a);
   }
@@ -318,7 +336,8 @@ String DebugTexOverlay::TextureWrapper::initFromConsoleCmd(const char *argv[], i
   }
 
   setTexEx(target_size, id, offs, sz, swz, mod, m, f, num, filter);
-  return String();
+  const char *formatName = get_tex_format_name(info.cflg);
+  return String(0, "    %s %dx%dx%dx%d", formatName ? formatName : "?", info.w, info.h, info.d, info.a);
 }
 
 
@@ -336,6 +355,18 @@ void DebugTexOverlay::TextureWrapper::setTexEx(const Point2 &target_size_, TEXTU
   modifiers = mod_;
   if (texId != BAD_TEXTUREID && (size.x < 0 || size.y < 0))
     fixAspectRatio(target_size_);
+  origSize = size;
+  origOffset = offset;
+  if (texId != BAD_TEXTUREID)
+  {
+    BaseTexture *tex = acquire_managed_tex(texId);
+    TextureInfo info;
+    tex->getinfo(info, mip);
+    const Point2 csz = Point2(info.w, info.h);
+    offsetF = div(offset, csz);
+    sizeF = div(size, csz);
+    release_managed_tex(texId);
+  }
 }
 
 void DebugTexOverlay::hideTex() { clear_and_shrink(textures); }
@@ -354,12 +385,16 @@ void DebugTexOverlay::TextureWrapper::render(const Point2 &target_size, const Po
 {
   if (texId == BAD_TEXTUREID)
     return;
-  if (!get_managed_texture_name(texId))
+  if (!D3dResManagerData::isValidID(texId, nullptr))
   {
-    reset();
-    return;
+    if (varId == -1 || (texId = ShaderGlobal::get_tex_fast(varId)) == BAD_TEXTUREID || !D3dResManagerData::isValidID(texId, nullptr))
+    {
+      reset();
+      return;
+    }
   }
   static int texVarId = get_shader_variable_id("swizzled_texture");
+  static int samplerVarId = get_shader_variable_id("swizzled_texture_samplerstate", true);
   static int texSizeVarId = get_shader_variable_id("swizzled_texture_size");
   static int texTypeVarId = get_shader_variable_id("swizzled_texture_type");
   static int texFaceMipVarId = get_shader_variable_id("swizzled_texture_face_mip");
@@ -374,6 +409,12 @@ void DebugTexOverlay::TextureWrapper::render(const Point2 &target_size, const Po
   if (!tex)
     return;
 
+  TextureInfo info;
+  tex->getinfo(info, mip);
+  const Point2 csz = Point2(info.w, info.h);
+  offset = mul(offsetF, csz);
+  size = mul(sizeF, csz);
+
 #if DAGOR_DBGLEVEL > 0
   int curTexFilter = tex->getTexfilter();
   if (curTexFilter == TEXFILTER_COMPARE)
@@ -381,6 +422,7 @@ void DebugTexOverlay::TextureWrapper::render(const Point2 &target_size, const Po
 #endif
 
   ShaderGlobal::set_texture(texVarId, texId);
+  ShaderGlobal::set_sampler(samplerVarId, d3d::request_sampler({}));
 
   for (int i = 0; i < 4; ++i)
   {
@@ -399,8 +441,6 @@ void DebugTexOverlay::TextureWrapper::render(const Point2 &target_size, const Po
   }
   else if (tex->restype() == RES3D_VOLTEX)
   {
-    TextureInfo info;
-    tex->getinfo(info, mip);
     ShaderGlobal::set_int(texTypeVarId, 3);
     faceUse = (faceUse + .5f) / info.d;
   }
@@ -420,18 +460,24 @@ void DebugTexOverlay::TextureWrapper::render(const Point2 &target_size, const Po
 
   Point2 o = Point2(offset.x / target_size.x, offset.y / target_size.y);
   Point2 s = Point2(size.x / target_size.x, size.y / target_size.y);
-  ShaderGlobal::set_color4(texSizeVarId, Color4(s.x, s.y, s.x - 1.f + o.x * 2, 1.f - s.y - o.y * 2));
+  Point4 resTexSize = Point4(s.x, s.y, s.x - 1.f + o.x * 2, 1.f - s.y - o.y * 2);
+  if (flipX)
+    resTexSize.x = -resTexSize.x;
+  if (flipY)
+    resTexSize.y = -resTexSize.y;
+  ShaderGlobal::set_color4(texSizeVarId, resTexSize);
   if (size.x <= 0 || size.y <= 0 || offset.x >= target_size.x || offset.y >= target_size.y)
   {
     logerr("invalid scissor %@ .. %@", offset, size);
   }
   else
   {
-    d3d::setscissor(offset.x, offset.y, size.x, size.y);
+    d3d::setscissor(origOffset.x, origOffset.y, origSize.x, origSize.y);
     renderer.render();
   }
 
   ShaderGlobal::set_texture(texVarId, BAD_TEXTUREID);
+  ShaderGlobal::set_sampler(samplerVarId, d3d::INVALID_SAMPLER_HANDLE);
 
 #if DAGOR_DBGLEVEL > 0
   if (curTexFilter == TEXFILTER_COMPARE)

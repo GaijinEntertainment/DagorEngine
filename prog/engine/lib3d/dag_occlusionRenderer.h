@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <math/dag_occlusionTest.h>
 #include <3d/dag_occlusionSystem.h>
 
@@ -15,6 +17,10 @@ private:
   static float zBufferReprojected[sizeX * sizeY];
 
 public:
+#if DAGOR_DBGLEVEL > 0
+  static float reprojectionDebug[sizeX * sizeY];
+#endif
+
   static float *getReprojected() { return zBufferReprojected; }
 
   OcclusionRenderer() {}
@@ -225,11 +231,13 @@ public:
                  viewVecY = v_add(viewVecY, v_splat_y(viewVecInc4)), viewVecZ = v_add(viewVecZ, v_splat_z(viewVecInc4)),
                  nonProjAddr = v_addi(nonProjAddr, v_splatsi(4)))
         {
-          const vec4f depth = v_rcp(v_madd(decode_depth, *pSrcZ, rcp_zf));
-          vec4f isWithinCockpit = v_cmp_ge(cockpitDistance, depth);
+          const vec4f rawDepth = *pSrcZ;
+          const vec4f isWithinCockpit = v_is_neg(rawDepth);
+          const vec4f depth = v_rcp(v_madd(decode_depth, v_abs(rawDepth), rcp_zf));
+#if DAGOR_DBGLEVEL > 0
+          *(vec4f *)&reprojectionDebug[y * sizeX + x] = v_and(isWithinCockpit, v_splats(1)); // 0 or 1 when cockpit
+#endif
           bool shouldReprojectAnimated = v_test_vec_mask_neq_0(isWithinCockpit) & (cockpitMode == COCKPIT_REPROJECT_ANIMATED);
-          // const vec4f vNonLinearDepth = *pSrcZ;
-          // const vec4f depth = v_rcp(v_madd(vNonLinearDepth, v_splat_x(scaleBiasDepth), v_splat_y(scaleBiasDepth)));
           vec4f vWorldPosX = v_madd(viewVecX, depth, viewPosX);
           vec4f vWorldPosY = v_madd(viewVecY, depth, viewPosY);
           vec4f vWorldPosZ = v_madd(viewVecZ, depth, viewPosZ);
@@ -566,3 +574,8 @@ public:
 
 template <int sizeX, int sizeY>
 alignas(32) float OcclusionRenderer<sizeX, sizeY>::zBufferReprojected[] = {};
+
+#if DAGOR_DBGLEVEL > 0
+template <int sizeX, int sizeY>
+alignas(32) float OcclusionRenderer<sizeX, sizeY>::reprojectionDebug[] = {};
+#endif

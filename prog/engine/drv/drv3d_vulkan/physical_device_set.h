@@ -1,8 +1,15 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-#include "vulkan_device.h"
-#include "vulkan_instance.h"
+
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
+#include <ska_hash_map/flat_hash_map2.hpp>
+#include <drv/3d/dag_decl.h>
+
+#include "vulkan_device.h"
+#include "vulkan_instance.h"
+#include "vk_to_string.h"
+#include "device_featureset.h"
 
 namespace drv3d_vulkan
 {
@@ -43,7 +50,7 @@ struct PhysicalDeviceSet
 
 #if VK_KHR_buffer_device_address
   VkPhysicalDeviceBufferDeviceAddressFeaturesKHR deviceBufferDeviceAddressFeature = //
-    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR, nullptr, true};
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR, nullptr, false};
 #endif
 
 #if VK_KHR_ray_tracing_pipeline
@@ -59,6 +66,8 @@ struct PhysicalDeviceSet
 #if VK_KHR_acceleration_structure
   VkPhysicalDeviceAccelerationStructureFeaturesKHR deviceAccelerationStructureFeature = //
     {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR, nullptr, true};
+  VkPhysicalDeviceAccelerationStructurePropertiesKHR deviceAccelerationStructureProps = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR, nullptr};
 #endif
 
 #if VK_EXT_device_fault
@@ -76,6 +85,30 @@ struct PhysicalDeviceSet
     {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES, nullptr, false, false};
 #endif
 
+#if VK_EXT_pageable_device_local_memory
+  VkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT pageableDeviceLocalMemoryFeatures = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PAGEABLE_DEVICE_LOCAL_MEMORY_FEATURES_EXT, nullptr, false};
+#endif
+
+#if VK_EXT_memory_priority
+  VkPhysicalDeviceMemoryPriorityFeaturesEXT memoryPriorityFeatures = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT, nullptr, false};
+#endif
+
+#if VK_EXT_pipeline_creation_cache_control
+  VkPhysicalDevicePipelineCreationCacheControlFeaturesEXT pipelineCreationCacheControlFeatures = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_CREATION_CACHE_CONTROL_FEATURES_EXT, nullptr, false};
+#endif
+
+#if VK_KHR_16bit_storage
+  VkPhysicalDevice16BitStorageFeaturesKHR sixteenBitStorageFeatures = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES, nullptr, false, false, false, false};
+#endif
+
+#if VK_KHR_display
+  Tab<VkDisplayPropertiesKHR> displays;
+#endif
+
   bool hasDevProps2 = false;
 
   bool hasConditionalRender = false;
@@ -85,19 +118,26 @@ struct PhysicalDeviceSet
   bool hasRayTracingPipeline = false;
   bool hasRayQuery = false;
   bool hasAccelerationStructure = false;
+  bool hasIndirectRayTrace = false;
+  bool hasRayTracePrimitiveCulling = false;
   bool hasDeviceFaultFeature = false;
   bool hasDeviceFaultVendorInfo = false;
   bool hasDepthStencilResolve = false;
   bool hasBindless = false;
   bool hasLazyMemory = false;
   bool hasShaderFloat16 = false;
+  bool hasMemoryPriority = false;
+  bool hasPageableDeviceLocalMemory = false;
+  bool hasPipelineCreationCacheControl = false;
+  bool hasSixteenBitStorage = false;
   uint32_t maxBindlessTextures = 0;
   uint32_t maxBindlessSamplers = 0;
-#if D3D_HAS_RAY_TRACING
+  uint32_t maxBindlessBuffers = 0;
+  uint32_t maxBindlessStorageBuffers = 0;
   uint32_t raytraceShaderHeaderSize = 0;
   uint32_t raytraceMaxRecursionDepth = 0;
   uint32_t raytraceTopAccelerationInstanceElementSize = 0;
-#endif
+  uint32_t raytraceScratchBufferAlignment = 0;
 #if VK_KHR_driver_properties
   VkPhysicalDeviceDriverPropertiesKHR driverProps = // init it to something safe
     {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR, nullptr, VK_DRIVER_ID_MAX_ENUM, "<unknown>", "<unknown>", {0, 0, 0, 0}};
@@ -173,11 +213,25 @@ struct PhysicalDeviceSet
                                 [=](const VkExtensionProperties &ep) { return 0 == strcmp(extension_name<T>(), ep.extensionName); });
   }
 
+  bool hasExtensionByName(const char *name) const
+  {
+    return end(extensions) != eastl::find_if(begin(extensions), end(extensions),
+                                [name](const VkExtensionProperties &ep) { return 0 == strcmp(name, ep.extensionName); });
+  }
+
+  void disableExtensionByName(const char *name)
+  {
+    if (hasExtensionByName(name))
+      extensions.erase(eastl::find_if(begin(extensions), end(extensions),
+        [name](const VkExtensionProperties &ep) { return 0 == strcmp(name, ep.extensionName); }));
+  }
+
   template <typename T>
   void disableExtension()
   {
-    extensions.erase(eastl::find_if(begin(extensions), end(extensions),
-      [=](const VkExtensionProperties &ep) { return 0 == strcmp(extension_name<T>(), ep.extensionName); }));
+    if (hasExtension<T>())
+      extensions.erase(eastl::find_if(begin(extensions), end(extensions),
+        [=](const VkExtensionProperties &ep) { return 0 == strcmp(extension_name<T>(), ep.extensionName); }));
   }
 
   void removeInstanceIncompatibleExtensions(VulkanInstance &instance)
@@ -278,6 +332,34 @@ struct PhysicalDeviceSet
       chain_structs(target, shaderFloat16Int8Features);
     }
 #endif
+
+#if VK_EXT_memory_priority
+    if (hasExtension<MemoryPriorityEXT>())
+    {
+      chain_structs(target, memoryPriorityFeatures);
+    }
+#endif
+
+#if VK_EXT_pageable_device_local_memory
+    if (hasExtension<PageableDeviceLocalMemoryEXT>())
+    {
+      chain_structs(target, pageableDeviceLocalMemoryFeatures);
+    }
+#endif
+
+#if VK_EXT_pipeline_creation_cache_control
+    if (hasExtension<PipelineCreationCacheControlEXT>())
+    {
+      chain_structs(target, pipelineCreationCacheControlFeatures);
+    }
+#endif
+
+#if VK_KHR_16bit_storage
+    if (hasExtension<SixteenBitStorageKHR>())
+    {
+      chain_structs(target, sixteenBitStorageFeatures);
+    }
+#endif
   }
 
   uint32_t getAvailableVideoMemoryKb() const { return deviceLocalHeapSizeKb; }
@@ -368,6 +450,8 @@ struct PhysicalDeviceSet
       hasConditionalRender = conditionalRenderingFeature.conditionalRendering != VK_FALSE;
       conditionalRenderingFeature.pNext = nullptr;
     }
+    else
+      hasConditionalRender = false;
 #endif
 
 #if VK_KHR_imageless_framebuffer
@@ -376,6 +460,8 @@ struct PhysicalDeviceSet
       hasImagelessFramebuffer = imagelessFramebufferFeature.imagelessFramebuffer == VK_TRUE;
       imagelessFramebufferFeature.pNext = nullptr;
     }
+    else
+      hasImagelessFramebuffer = false;
 #endif
 
 #if VK_EXT_device_memory_report
@@ -384,6 +470,8 @@ struct PhysicalDeviceSet
       hasDeviceMemoryReport = deviceMemoryReportFeature.deviceMemoryReport == VK_TRUE;
       deviceMemoryReportFeature.pNext = nullptr;
     }
+    else
+      hasDeviceMemoryReport = false;
 #endif
 
 #if VK_KHR_buffer_device_address
@@ -392,14 +480,23 @@ struct PhysicalDeviceSet
       hasDeviceBufferDeviceAddress = deviceBufferDeviceAddressFeature.bufferDeviceAddress == VK_TRUE;
       deviceBufferDeviceAddressFeature.pNext = nullptr;
     }
+    else
+      hasDeviceBufferDeviceAddress = false;
 #endif
 
 #if VK_KHR_ray_tracing_pipeline
     if (hasExtension<RaytracingPipelineKHR>())
     {
-      hasRayTracingPipeline = deviceRayTracingPipelineFeature.rayTracingPipeline == VK_TRUE &&
-                              deviceRayTracingPipelineFeature.rayTracingPipelineTraceRaysIndirect == VK_TRUE;
+      hasRayTracingPipeline = deviceRayTracingPipelineFeature.rayTracingPipeline == VK_TRUE;
+      hasIndirectRayTrace = deviceRayTracingPipelineFeature.rayTracingPipelineTraceRaysIndirect == VK_TRUE;
+      hasRayTracePrimitiveCulling = deviceRayTracingPipelineFeature.rayTraversalPrimitiveCulling == VK_TRUE;
       deviceRayTracingPipelineFeature.pNext = nullptr;
+    }
+    else
+    {
+      hasRayTracingPipeline = false;
+      hasIndirectRayTrace = false;
+      hasRayTracePrimitiveCulling = false;
     }
 #endif
 
@@ -409,6 +506,8 @@ struct PhysicalDeviceSet
       hasRayQuery = deviceRayQueryFeature.rayQuery == VK_TRUE;
       deviceRayQueryFeature.pNext = nullptr;
     }
+    else
+      hasRayQuery = false;
 #endif
 
 #if VK_KHR_acceleration_structure
@@ -417,6 +516,8 @@ struct PhysicalDeviceSet
       hasAccelerationStructure = deviceAccelerationStructureFeature.accelerationStructure == VK_TRUE;
       deviceAccelerationStructureFeature.pNext = nullptr;
     }
+    else
+      hasAccelerationStructure = false;
 #endif
 
 #if VK_EXT_device_fault
@@ -426,6 +527,11 @@ struct PhysicalDeviceSet
       hasDeviceFaultVendorInfo = deviceFaultFeature.deviceFaultVendorBinary;
       deviceFaultFeature.pNext = nullptr;
     }
+    else
+    {
+      hasDeviceFaultFeature = false;
+      hasDeviceFaultVendorInfo = false;
+    }
 #endif
 
 #if VK_EXT_descriptor_indexing
@@ -434,6 +540,8 @@ struct PhysicalDeviceSet
       hasBindless = indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray;
       indexingFeatures.pNext = nullptr;
     }
+    else
+      hasBindless = false;
 #endif
 
 #if VK_KHR_shader_float16_int8
@@ -442,6 +550,48 @@ struct PhysicalDeviceSet
       hasShaderFloat16 = shaderFloat16Int8Features.shaderFloat16;
       shaderFloat16Int8Features.pNext = nullptr;
     }
+    else
+      hasShaderFloat16 = false;
+#endif
+
+#if VK_EXT_memory_priority
+    if (hasExtension<MemoryPriorityEXT>())
+    {
+      hasMemoryPriority = memoryPriorityFeatures.memoryPriority;
+      memoryPriorityFeatures.pNext = nullptr;
+    }
+    else
+      hasMemoryPriority = false;
+#endif
+
+#if VK_EXT_pageable_device_local_memory
+    if (hasExtension<PageableDeviceLocalMemoryEXT>())
+    {
+      hasPageableDeviceLocalMemory = pageableDeviceLocalMemoryFeatures.pageableDeviceLocalMemory;
+      pageableDeviceLocalMemoryFeatures.pNext = nullptr;
+    }
+    else
+      hasPageableDeviceLocalMemory = false;
+#endif
+
+#if VK_EXT_pipeline_creation_cache_control
+    if (hasExtension<PipelineCreationCacheControlEXT>())
+    {
+      hasPipelineCreationCacheControl = pipelineCreationCacheControlFeatures.pipelineCreationCacheControl;
+      pipelineCreationCacheControlFeatures.pNext = nullptr;
+    }
+    else
+      hasPipelineCreationCacheControl = false;
+#endif
+
+#if VK_KHR_16bit_storage
+    if (hasExtension<SixteenBitStorageKHR>())
+    {
+      hasSixteenBitStorage = sixteenBitStorageFeatures.storageBuffer16BitAccess;
+      sixteenBitStorageFeatures.pNext = nullptr;
+    }
+    else
+      hasSixteenBitStorage = false;
 #endif
   }
 
@@ -462,7 +612,7 @@ struct PhysicalDeviceSet
     if (!instance.hasExtension<GetPhysicalDeviceProperties2KHR>())
       return false;
     hasDevProps2 = true;
-    VkPhysicalDeviceFeatures2KHR pdf = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR, nullptr};
+    VkPhysicalDeviceFeatures2KHR pdf = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR, nullptr, {}};
 
     chainExtendedFeaturesInfoStructs(pdf);
 
@@ -476,7 +626,10 @@ struct PhysicalDeviceSet
 
 #if VK_KHR_driver_properties
     if (hasExtension<DriverPropertiesKHR>())
+    {
+      driverProps.pNext = nullptr;
       chain_structs(pdp, driverProps);
+    }
 #endif
 
 #if VK_KHR_depth_stencil_resolve
@@ -488,14 +641,11 @@ struct PhysicalDeviceSet
       hasDepthStencilResolve = hasDepthStencilResolve && checkExtensionDepencency<DepthStencilResolveKHR, Maintenance2KHR>();
       if (hasDepthStencilResolve)
       {
-        debug("vulkan: extension %s is available", extension_name<DepthStencilResolveKHR>());
+        depthStencilResolveProps.pNext = nullptr;
         chain_structs(pdp, depthStencilResolveProps);
       }
       else if (depthStencilResolvePresent)
-      {
-        debug("vulkan: disabling extension %s", extension_name<DepthStencilResolveKHR>());
         disableExtension<DepthStencilResolveKHR>();
-      }
     }
 #endif
 
@@ -516,8 +666,21 @@ struct PhysicalDeviceSet
       chain_structs(pdp, descriptorIndexingProps);
 #endif
 
+#if VK_KHR_acceleration_structure
+    if (hasExtension<AccelerationStructureKHR>())
+      chain_structs(pdp, deviceAccelerationStructureProps);
+#endif
+
     VULKAN_LOG_CALL(instance.vkGetPhysicalDeviceProperties2KHR(device, &pdp));
     properties = pdp.properties;
+
+#if VK_KHR_acceleration_structure
+    if (hasExtension<AccelerationStructureKHR>())
+    {
+      raytraceScratchBufferAlignment = deviceAccelerationStructureProps.minAccelerationStructureScratchOffsetAlignment;
+      deviceAccelerationStructureProps.pNext = nullptr;
+    }
+#endif
 
 #if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
     if (hasExtension<RaytracingPipelineKHR>() || hasExtension<RayQueryKHR>())
@@ -532,6 +695,9 @@ struct PhysicalDeviceSet
     {
       maxBindlessTextures = descriptorIndexingProps.maxDescriptorSetUpdateAfterBindSampledImages;
       maxBindlessSamplers = descriptorIndexingProps.maxDescriptorSetUpdateAfterBindSamplers;
+      maxBindlessBuffers = descriptorIndexingProps.maxDescriptorSetUpdateAfterBindUniformBuffers;
+      maxBindlessStorageBuffers = descriptorIndexingProps.maxDescriptorSetUpdateAfterBindStorageBuffers;
+      descriptorIndexingProps.pNext = nullptr;
     }
 #endif
 
@@ -549,6 +715,7 @@ struct PhysicalDeviceSet
       }
       VULKAN_LOG_CALL(instance.vkGetPhysicalDeviceQueueFamilyProperties2KHR(device, &qfpc, qf.data()));
       qf.resize(qfpc);
+      queueFamilyProperties.clear();
       queueFamilyProperties.reserve(qfpc);
       for (auto &&info : qf)
         queueFamilyProperties.push_back(info.queueFamilyProperties);
@@ -560,6 +727,7 @@ struct PhysicalDeviceSet
 #if VK_EXT_memory_budget
     if (hasExtension<MemoryBudgetEXT>())
     {
+      memoryBudgetInfo.pNext = nullptr;
       chain_structs(pdmp, memoryBudgetInfo);
       memoryBudgetInfoAvailable = true;
     }
@@ -644,6 +812,28 @@ struct PhysicalDeviceSet
     }
   }
 
+  void queryDisplays(VulkanInstance &instance)
+  {
+#if VK_KHR_display
+    if (!displays.empty())
+      return;
+
+    if (instance.hasExtension<DisplayKHR>())
+    {
+      uint32_t count = 0;
+      if (VULKAN_OK(instance.vkGetPhysicalDeviceDisplayPropertiesKHR(device, &count, nullptr)))
+      {
+        displays.resize(count);
+        if (VULKAN_FAIL(instance.vkGetPhysicalDeviceDisplayPropertiesKHR(device, &count, displays.data())))
+        {
+          clear_and_shrink(displays);
+          return;
+        }
+      }
+    }
+#endif
+  }
+
   void init(VulkanInstance &instance, VulkanPhysicalDeviceHandle pd)
   {
     device = pd;
@@ -655,67 +845,64 @@ struct PhysicalDeviceSet
     decodeDriverVersion();
     guessWarpSize();
     calculateScore();
+    queryDisplays(instance);
   }
 
-  static inline const char *bool32ToStr(VkBool32 b) { return b ? "yes" : "no"; }
+  static inline const char *bool32ToStr(VkBool32 b) { return b ? "y" : "n"; }
+  static inline const char *boolToStr(VkBool32 b) { return b ? "y" : "n"; }
 
-  static inline void print(const VkPhysicalDeviceFeatures &DAGOR_HAS_LOGS(set))
+  // DID stands for "device info dump"
+#define apd(fmt, ...)                  \
+  {                                    \
+    out += "vulkan: DID: ";            \
+    out.aprintf(64, fmt, __VA_ARGS__); \
+    out += "\n";                       \
+  }
+
+#define apdnf(str)          \
+  {                         \
+    out += "vulkan: DID: "; \
+    out += str;             \
+    out += "\n";            \
+  }
+
+  static inline void print(const VkPhysicalDeviceFeatures &set, String &out)
   {
-    debug("robustBufferAccess: %s", bool32ToStr(set.robustBufferAccess));
-    debug("fullDrawIndexUint32: %s", bool32ToStr(set.fullDrawIndexUint32));
-    debug("imageCubeArray: %s", bool32ToStr(set.imageCubeArray));
-    debug("independentBlend: %s", bool32ToStr(set.independentBlend));
-    debug("geometryShader: %s", bool32ToStr(set.geometryShader));
-    debug("tessellationShader: %s", bool32ToStr(set.tessellationShader));
-    debug("sampleRateShading: %s", bool32ToStr(set.sampleRateShading));
-    debug("dualSrcBlend: %s", bool32ToStr(set.dualSrcBlend));
-    debug("logicOp: %s", bool32ToStr(set.logicOp));
-    debug("multiDrawIndirect: %s", bool32ToStr(set.multiDrawIndirect));
-    debug("drawIndirectFirstInstance: %s", bool32ToStr(set.drawIndirectFirstInstance));
-    debug("depthClamp: %s", bool32ToStr(set.depthClamp));
-    debug("depthBiasClamp: %s", bool32ToStr(set.depthBiasClamp));
-    debug("fillModeNonSolid: %s", bool32ToStr(set.fillModeNonSolid));
-    debug("depthBounds: %s", bool32ToStr(set.depthBounds));
-    debug("wideLines: %s", bool32ToStr(set.wideLines));
-    debug("largePoints: %s", bool32ToStr(set.largePoints));
-    debug("alphaToOne: %s", bool32ToStr(set.alphaToOne));
-    debug("multiViewport: %s", bool32ToStr(set.multiViewport));
-    debug("samplerAnisotropy: %s", bool32ToStr(set.samplerAnisotropy));
-    debug("textureCompressionETC2: %s", bool32ToStr(set.textureCompressionETC2));
-    debug("textureCompressionASTC_LDR: %s", bool32ToStr(set.textureCompressionASTC_LDR));
-    debug("textureCompressionBC: %s", bool32ToStr(set.textureCompressionBC));
-    debug("occlusionQueryPrecise: %s", bool32ToStr(set.occlusionQueryPrecise));
-    debug("pipelineStatisticsQuery: %s", bool32ToStr(set.pipelineStatisticsQuery));
-    debug("vertexPipelineStoresAndAtomics: %s", bool32ToStr(set.vertexPipelineStoresAndAtomics));
-    debug("fragmentStoresAndAtomics: %s", bool32ToStr(set.fragmentStoresAndAtomics));
-    debug("shaderTessellationAndGeometryPointSize: %s", bool32ToStr(set.shaderTessellationAndGeometryPointSize));
-    debug("shaderImageGatherExtended: %s", bool32ToStr(set.shaderImageGatherExtended));
-    debug("shaderStorageImageExtendedFormats: %s", bool32ToStr(set.shaderStorageImageExtendedFormats));
-    debug("shaderStorageImageMultisample: %s", bool32ToStr(set.shaderStorageImageMultisample));
-    debug("shaderStorageImageReadWithoutFormat: %s", bool32ToStr(set.shaderStorageImageReadWithoutFormat));
-    debug("shaderStorageImageWriteWithoutFormat: %s", bool32ToStr(set.shaderStorageImageWriteWithoutFormat));
-    debug("shaderUniformBufferArrayDynamicIndexing: %s", bool32ToStr(set.shaderUniformBufferArrayDynamicIndexing));
-    debug("shaderSampledImageArrayDynamicIndexing: %s", bool32ToStr(set.shaderSampledImageArrayDynamicIndexing));
-    debug("shaderStorageBufferArrayDynamicIndexing: %s", bool32ToStr(set.shaderStorageBufferArrayDynamicIndexing));
-    debug("shaderStorageImageArrayDynamicIndexing: %s", bool32ToStr(set.shaderStorageImageArrayDynamicIndexing));
-    debug("shaderClipDistance: %s", bool32ToStr(set.shaderClipDistance));
-    debug("shaderCullDistance: %s", bool32ToStr(set.shaderCullDistance));
-    debug("shaderFloat64: %s", bool32ToStr(set.shaderFloat64));
-    debug("shaderInt64: %s", bool32ToStr(set.shaderInt64));
-    debug("shaderInt16: %s", bool32ToStr(set.shaderInt16));
-    debug("shaderResourceResidency: %s", bool32ToStr(set.shaderResourceResidency));
-    debug("shaderResourceMinLod: %s", bool32ToStr(set.shaderResourceMinLod));
-    debug("sparseBinding: %s", bool32ToStr(set.sparseBinding));
-    debug("sparseResidencyBuffer: %s", bool32ToStr(set.sparseResidencyBuffer));
-    debug("sparseResidencyImage2D: %s", bool32ToStr(set.sparseResidencyImage2D));
-    debug("sparseResidencyImage3D: %s", bool32ToStr(set.sparseResidencyImage3D));
-    debug("sparseResidency2Samples: %s", bool32ToStr(set.sparseResidency2Samples));
-    debug("sparseResidency4Samples: %s", bool32ToStr(set.sparseResidency4Samples));
-    debug("sparseResidency8Samples: %s", bool32ToStr(set.sparseResidency8Samples));
-    debug("sparseResidency16Samples: %s", bool32ToStr(set.sparseResidency16Samples));
-    debug("sparseResidencyAliased: %s", bool32ToStr(set.sparseResidencyAliased));
-    debug("variableMultisampleRate: %s", bool32ToStr(set.variableMultisampleRate));
-    debug("inheritedQueries: %s", bool32ToStr(set.inheritedQueries));
+    apd("robustBufferAccess: %s, fullDrawIndexUint32: %s, imageCubeArray: %s, independentBlend: %s",
+      bool32ToStr(set.robustBufferAccess), bool32ToStr(set.fullDrawIndexUint32), bool32ToStr(set.imageCubeArray),
+      bool32ToStr(set.independentBlend));
+    apd("geometryShader: %s, tessellationShader: %s, sampleRateShading: %s, dualSrcBlend: %s", bool32ToStr(set.geometryShader),
+      bool32ToStr(set.tessellationShader), bool32ToStr(set.sampleRateShading), bool32ToStr(set.dualSrcBlend));
+    apd("logicOp: %s, multiDrawIndirect: %s, drawIndirectFirstInstance: %s, depthClamp: %s", bool32ToStr(set.logicOp),
+      bool32ToStr(set.multiDrawIndirect), bool32ToStr(set.drawIndirectFirstInstance), bool32ToStr(set.depthClamp));
+    apd("depthBiasClamp: %s, fillModeNonSolid: %s, depthBounds: %s, wideLines: %s", bool32ToStr(set.depthBiasClamp),
+      bool32ToStr(set.fillModeNonSolid), bool32ToStr(set.depthBounds), bool32ToStr(set.wideLines));
+    apd("largePoints: %s, alphaToOne: %s, multiViewport: %s, samplerAnisotropy: %s", bool32ToStr(set.largePoints),
+      bool32ToStr(set.alphaToOne), bool32ToStr(set.multiViewport), bool32ToStr(set.samplerAnisotropy));
+    apd("textureCompression[ETC2,ASTC_LDR,BC]: %s,%s,%s", bool32ToStr(set.textureCompressionETC2),
+      bool32ToStr(set.textureCompressionASTC_LDR), bool32ToStr(set.textureCompressionBC));
+    apd("occlusionQueryPrecise: %s, pipelineStatisticsQuery: %s, vertexPipelineStoresAndAtomics: %s, fragmentStoresAndAtomics: %s",
+      bool32ToStr(set.occlusionQueryPrecise), bool32ToStr(set.pipelineStatisticsQuery),
+      bool32ToStr(set.vertexPipelineStoresAndAtomics), bool32ToStr(set.fragmentStoresAndAtomics));
+    apd("shaderTessellationAndGeometryPointSize: %s, shaderImageGatherExtended: %s, shaderClipDistance: %s, shaderCullDistance: %s",
+      bool32ToStr(set.shaderTessellationAndGeometryPointSize), bool32ToStr(set.shaderImageGatherExtended),
+      bool32ToStr(set.shaderClipDistance), bool32ToStr(set.shaderCullDistance));
+    apd("shaderStorageImage[ExtendedFormats,Multisample,ReadWithoutFormat,WriteWithoutFormat]: %s,%s,%s,%s",
+      bool32ToStr(set.shaderStorageImageExtendedFormats), bool32ToStr(set.shaderStorageImageMultisample),
+      bool32ToStr(set.shaderStorageImageReadWithoutFormat), bool32ToStr(set.shaderStorageImageWriteWithoutFormat));
+    apd("shader[UniformBuffer,SampledImage,StorageBuffer,StorageImage]ArrayDynamicIndexing: %s,%s,%s,%s",
+      bool32ToStr(set.shaderUniformBufferArrayDynamicIndexing), bool32ToStr(set.shaderSampledImageArrayDynamicIndexing),
+      bool32ToStr(set.shaderStorageBufferArrayDynamicIndexing), bool32ToStr(set.shaderStorageImageArrayDynamicIndexing));
+    apd("shader[Float64,Int64,Int16,ResourceResidency,ResourceMinLod]: %s,%s,%s,%s,%s", bool32ToStr(set.shaderFloat64),
+      bool32ToStr(set.shaderInt64), bool32ToStr(set.shaderInt16), bool32ToStr(set.shaderResourceResidency),
+      bool32ToStr(set.shaderResourceMinLod));
+    apd("sparseBinding: %s, sparseResidency[Buffer,Image2D,Image3D,2Samples,4Samples,8Samples,16Samples,Aliased]: "
+        "%s,%s,%s,%s,%s,%s,%s,%s",
+      bool32ToStr(set.sparseBinding), bool32ToStr(set.sparseResidencyBuffer), bool32ToStr(set.sparseResidencyImage2D),
+      bool32ToStr(set.sparseResidencyImage3D), bool32ToStr(set.sparseResidency2Samples), bool32ToStr(set.sparseResidency4Samples),
+      bool32ToStr(set.sparseResidency8Samples), bool32ToStr(set.sparseResidency16Samples), bool32ToStr(set.sparseResidencyAliased));
+    apd("variableMultisampleRate: %s, inheritedQueries: %s", bool32ToStr(set.variableMultisampleRate),
+      bool32ToStr(set.inheritedQueries));
   }
 
   static inline const char *nameOf(VkPhysicalDeviceType type)
@@ -731,175 +918,130 @@ struct PhysicalDeviceSet
     }
   }
 
-  static inline void print(const VkPhysicalDeviceLimits &DAGOR_HAS_LOGS(limits))
+  static inline void print(const VkPhysicalDeviceLimits &limits, String &out)
   {
-    debug("maxImageDimension1D: %u", limits.maxImageDimension1D);
-    debug("maxImageDimension2D: %u", limits.maxImageDimension2D);
-    debug("maxImageDimension3D: %u", limits.maxImageDimension3D);
-    debug("maxImageDimensionCube: %u", limits.maxImageDimensionCube);
-    debug("maxImageArrayLayers: %u", limits.maxImageArrayLayers);
-    debug("maxTexelBufferElements: %u", limits.maxTexelBufferElements);
-    debug("maxUniformBufferRange: %u", limits.maxUniformBufferRange);
-    debug("maxStorageBufferRange: %u", limits.maxStorageBufferRange);
-    debug("maxPushConstantsSize: %u", limits.maxPushConstantsSize);
-    debug("maxMemoryAllocationCount: %u", limits.maxMemoryAllocationCount);
-    debug("maxSamplerAllocationCount: %u", limits.maxSamplerAllocationCount);
-    debug("bufferImageGranularity: %u", limits.bufferImageGranularity);
-    debug("sparseAddressSpaceSize: %u", limits.sparseAddressSpaceSize);
-    debug("maxBoundDescriptorSets: %u", limits.maxBoundDescriptorSets);
-    debug("maxPerStageDescriptorSamplers: %u", limits.maxPerStageDescriptorSamplers);
-    debug("maxPerStageDescriptorUniformBuffers: %u", limits.maxPerStageDescriptorUniformBuffers);
-    debug("maxPerStageDescriptorStorageBuffers: %u", limits.maxPerStageDescriptorStorageBuffers);
-    debug("maxPerStageDescriptorSampledImages: %u", limits.maxPerStageDescriptorSampledImages);
-    debug("maxPerStageDescriptorStorageImages: %u", limits.maxPerStageDescriptorStorageImages);
-    debug("maxPerStageDescriptorInputAttachments: %u", limits.maxPerStageDescriptorInputAttachments);
-    debug("maxPerStageResources: %u", limits.maxPerStageResources);
-    debug("maxDescriptorSetSamplers: %u", limits.maxDescriptorSetSamplers);
-    debug("maxDescriptorSetUniformBuffers: %u", limits.maxDescriptorSetUniformBuffers);
-    debug("maxDescriptorSetUniformBuffersDynamic: %u", limits.maxDescriptorSetUniformBuffersDynamic);
-    debug("maxDescriptorSetStorageBuffers: %u", limits.maxDescriptorSetStorageBuffers);
-    debug("maxDescriptorSetStorageBuffersDynamic: %u", limits.maxDescriptorSetStorageBuffersDynamic);
-    debug("maxDescriptorSetSampledImages: %u", limits.maxDescriptorSetSampledImages);
-    debug("maxDescriptorSetStorageImages: %u", limits.maxDescriptorSetStorageImages);
-    debug("maxDescriptorSetInputAttachments: %u", limits.maxDescriptorSetInputAttachments);
-    debug("maxVertexInputAttributes: %u", limits.maxVertexInputAttributes);
-    debug("maxVertexInputBindings: %u", limits.maxVertexInputBindings);
-    debug("maxVertexInputAttributeOffset: %u", limits.maxVertexInputAttributeOffset);
-    debug("maxVertexInputBindingStride: %u", limits.maxVertexInputBindingStride);
-    debug("maxVertexOutputComponents: %u", limits.maxVertexOutputComponents);
-    debug("maxTessellationGenerationLevel: %u", limits.maxTessellationGenerationLevel);
-    debug("maxTessellationPatchSize: %u", limits.maxTessellationPatchSize);
-    debug("maxTessellationControlPerVertexInputComponents: %u", limits.maxTessellationControlPerVertexInputComponents);
-    debug("maxTessellationControlPerVertexOutputComponents: %u", limits.maxTessellationControlPerVertexOutputComponents);
-    debug("maxTessellationControlPerPatchOutputComponents: %u", limits.maxTessellationControlPerPatchOutputComponents);
-    debug("maxTessellationControlTotalOutputComponents: %u", limits.maxTessellationControlTotalOutputComponents);
-    debug("maxTessellationEvaluationInputComponents: %u", limits.maxTessellationEvaluationInputComponents);
-    debug("maxTessellationEvaluationOutputComponents: %u", limits.maxTessellationEvaluationOutputComponents);
-    debug("maxGeometryShaderInvocations: %u", limits.maxGeometryShaderInvocations);
-    debug("maxGeometryInputComponents: %u", limits.maxGeometryInputComponents);
-    debug("maxGeometryOutputComponents: %u", limits.maxGeometryOutputComponents);
-    debug("maxGeometryOutputVertices: %u", limits.maxGeometryOutputVertices);
-    debug("maxGeometryTotalOutputComponents: %u", limits.maxGeometryTotalOutputComponents);
-    debug("maxFragmentInputComponents: %u", limits.maxFragmentInputComponents);
-    debug("maxFragmentOutputAttachments: %u", limits.maxFragmentOutputAttachments);
-    debug("maxFragmentDualSrcAttachments: %u", limits.maxFragmentDualSrcAttachments);
-    debug("maxFragmentCombinedOutputResources: %u", limits.maxFragmentCombinedOutputResources);
-    debug("maxComputeSharedMemorySize: %u", limits.maxComputeSharedMemorySize);
-    debug("maxComputeWorkGroupCount[0]: %u", limits.maxComputeWorkGroupCount[0]);
-    debug("maxComputeWorkGroupCount[1]: %u", limits.maxComputeWorkGroupCount[1]);
-    debug("maxComputeWorkGroupCount[2]: %u", limits.maxComputeWorkGroupCount[2]);
-    debug("maxComputeWorkGroupInvocations: %u", limits.maxComputeWorkGroupInvocations);
-    debug("maxComputeWorkGroupSize[0]: %u", limits.maxComputeWorkGroupSize[0]);
-    debug("maxComputeWorkGroupSize[1]: %u", limits.maxComputeWorkGroupSize[1]);
-    debug("maxComputeWorkGroupSize[2]: %u", limits.maxComputeWorkGroupSize[2]);
-    debug("subPixelPrecisionBits: %u", limits.subPixelPrecisionBits);
-    debug("subTexelPrecisionBits: %u", limits.subTexelPrecisionBits);
-    debug("mipmapPrecisionBits: %u", limits.mipmapPrecisionBits);
-    debug("maxDrawIndexedIndexValue: %u", limits.maxDrawIndexedIndexValue);
-    debug("maxDrawIndirectCount: %u", limits.maxDrawIndirectCount);
-    debug("maxSamplerLodBias: %f", limits.maxSamplerLodBias);
-    debug("maxSamplerAnisotropy: %f", limits.maxSamplerAnisotropy);
-    debug("maxViewports: %u", limits.maxViewports);
-    debug("maxViewportDimensions[0]: %u", limits.maxViewportDimensions[0]);
-    debug("maxViewportDimensions[1]: %u", limits.maxViewportDimensions[1]);
-    debug("viewportBoundsRange[0]: %f", limits.viewportBoundsRange[0]);
-    debug("viewportBoundsRange[1]: %f", limits.viewportBoundsRange[1]);
-    debug("viewportSubPixelBits: %u", limits.viewportSubPixelBits);
-    debug("minMemoryMapAlignment: %u", limits.minMemoryMapAlignment);
-    debug("minTexelBufferOffsetAlignment: %u", limits.minTexelBufferOffsetAlignment);
-    debug("minUniformBufferOffsetAlignment: %u", limits.minUniformBufferOffsetAlignment);
-    debug("minStorageBufferOffsetAlignment: %u", limits.minStorageBufferOffsetAlignment);
-    debug("minTexelOffset: %u", limits.minTexelOffset);
-    debug("maxTexelOffset: %u", limits.maxTexelOffset);
-    debug("minTexelGatherOffset: %u", limits.minTexelGatherOffset);
-    debug("maxTexelGatherOffset: %u", limits.maxTexelGatherOffset);
-    debug("minInterpolationOffset: %f", limits.minInterpolationOffset);
-    debug("maxInterpolationOffset: %f", limits.maxInterpolationOffset);
-    debug("subPixelInterpolationOffsetBits: %u", limits.subPixelInterpolationOffsetBits);
-    debug("maxFramebufferWidth: %u", limits.maxFramebufferWidth);
-    debug("maxFramebufferHeight: %u", limits.maxFramebufferHeight);
-    debug("maxFramebufferLayers: %u", limits.maxFramebufferLayers);
-    debug("framebufferColorSampleCounts: %u", limits.framebufferColorSampleCounts);
-    debug("framebufferDepthSampleCounts: %u", limits.framebufferDepthSampleCounts);
-    debug("framebufferStencilSampleCounts: %u", limits.framebufferStencilSampleCounts);
-    debug("framebufferNoAttachmentsSampleCounts: %u", limits.framebufferNoAttachmentsSampleCounts);
-    debug("maxColorAttachments: %u", limits.maxColorAttachments);
-    debug("sampledImageColorSampleCounts: %u", limits.sampledImageColorSampleCounts);
-    debug("sampledImageIntegerSampleCounts: %u", limits.sampledImageIntegerSampleCounts);
-    debug("sampledImageDepthSampleCounts: %u", limits.sampledImageDepthSampleCounts);
-    debug("sampledImageStencilSampleCounts: %u", limits.sampledImageStencilSampleCounts);
-    debug("storageImageSampleCounts: %u", limits.storageImageSampleCounts);
-    debug("maxSampleMaskWords: %u", limits.maxSampleMaskWords);
-    debug("timestampComputeAndGraphics: %u", limits.timestampComputeAndGraphics);
-    debug("timestampPeriod: %f", limits.timestampPeriod);
-    debug("maxClipDistances: %u", limits.maxClipDistances);
-    debug("maxCullDistances: %u", limits.maxCullDistances);
-    debug("maxCombinedClipAndCullDistances: %u", limits.maxCombinedClipAndCullDistances);
-    debug("discreteQueuePriorities: %u", limits.discreteQueuePriorities);
-    debug("pointSizeRange[0]: %f", limits.pointSizeRange[0]);
-    debug("pointSizeRange[1]: %f", limits.pointSizeRange[1]);
-    debug("lineWidthRange[0]: %f", limits.lineWidthRange[0]);
-    debug("lineWidthRange[1]: %f", limits.lineWidthRange[1]);
-    debug("pointSizeGranularity: %f", limits.pointSizeGranularity);
-    debug("lineWidthGranularity: %f", limits.lineWidthGranularity);
-    debug("strictLines: %s", bool32ToStr(limits.strictLines));
-    debug("standardSampleLocations: %s", bool32ToStr(limits.standardSampleLocations));
-    debug("optimalBufferCopyOffsetAlignment: %u", limits.optimalBufferCopyOffsetAlignment);
-    debug("optimalBufferCopyRowPitchAlignment: %u", limits.optimalBufferCopyRowPitchAlignment);
-    debug("nonCoherentAtomSize: %u", limits.nonCoherentAtomSize);
+    apd("maxImageDimension1D,2D,3D,Cube: %u, %u, %u, %u", limits.maxImageDimension1D, limits.maxImageDimension2D,
+      limits.maxImageDimension3D, limits.maxImageDimensionCube);
+    apd("maxImageArrayLayers: %u, maxTexelBufferElements: %u", limits.maxImageArrayLayers, limits.maxTexelBufferElements);
+    apd("maxUniformBufferRange: %u, maxStorageBufferRange: %u", limits.maxUniformBufferRange, limits.maxStorageBufferRange);
+    apd("maxMemoryAllocationCount: %u, maxSamplerAllocationCount: %u", limits.maxMemoryAllocationCount,
+      limits.maxSamplerAllocationCount);
+    apd("maxPushConstantsSize: %u, bufferImageGranularity: %u, sparseAddressSpaceSize: %u, maxBoundDescriptorSets: %u",
+      limits.maxPushConstantsSize, limits.bufferImageGranularity, limits.sparseAddressSpaceSize, limits.maxBoundDescriptorSets);
+    apd(
+      "maxPerStageDescriptor[Samplers,UniformBuffers,StorageBuffers,SampledImages,StorageImages,InputAttachments]: %u,%u,%u,%u,%u,%u",
+      limits.maxPerStageDescriptorSamplers, limits.maxPerStageDescriptorUniformBuffers, limits.maxPerStageDescriptorStorageBuffers,
+      limits.maxPerStageDescriptorSampledImages, limits.maxPerStageDescriptorStorageImages,
+      limits.maxPerStageDescriptorInputAttachments);
+    apd("maxPerStageResources: %u, maxDescriptorSetSamplers: %u", limits.maxPerStageResources, limits.maxDescriptorSetSamplers);
+    apd("maxDescriptorSetUniform[Buffers,BuffersDynamic]: %u,%u", limits.maxDescriptorSetUniformBuffers,
+      limits.maxDescriptorSetUniformBuffersDynamic);
+    apd("maxDescriptorSetStorage[Buffers,BuffersDynamic]: %u,%u", limits.maxDescriptorSetStorageBuffers,
+      limits.maxDescriptorSetStorageBuffersDynamic);
+    apd("maxDescriptorSet[Sampled,Storage]Images: %u,%u", limits.maxDescriptorSetSampledImages, limits.maxDescriptorSetStorageImages);
+    apd("maxDescriptorSetInputAttachments: %u", limits.maxDescriptorSetInputAttachments);
+    apd("maxVertexInput[Attributes,Bindings,AttributeOffset,BindingStride]: %u,%u,%u,%u", limits.maxVertexInputAttributes,
+      limits.maxVertexInputBindings, limits.maxVertexInputAttributeOffset, limits.maxVertexInputBindingStride);
+    apd("maxVertexOutputComponents: %u, maxTessellationGenerationLevel: %u, maxTessellationPatchSize: %u",
+      limits.maxVertexOutputComponents, limits.maxTessellationGenerationLevel, limits.maxTessellationPatchSize);
+    apd("maxTessellationControl[PerVertexInput,PerVertexOutput,PerPatchOutput,TotalOutput]Components: %u,%u,%u,%u",
+      limits.maxTessellationControlPerVertexInputComponents, limits.maxTessellationControlPerVertexOutputComponents,
+      limits.maxTessellationControlPerPatchOutputComponents, limits.maxTessellationControlTotalOutputComponents);
+    apd("maxTessellationEvaluation[Input,Output]Components: %u,%u", limits.maxTessellationEvaluationInputComponents,
+      limits.maxTessellationEvaluationOutputComponents);
+    apd("maxGeometry[ShaderInvocations,InputComponents,OutputComponents,OutputVertices,TotalOutputComponents]: %u,%u,%u,%u,%u",
+      limits.maxGeometryShaderInvocations, limits.maxGeometryInputComponents, limits.maxGeometryOutputComponents,
+      limits.maxGeometryOutputVertices, limits.maxGeometryTotalOutputComponents);
+    apd("maxFragment[InputComponents,OutputAttachments,DualSrcAttachments,CombinedOutputResources]: %u,%u,%u,%u",
+      limits.maxFragmentInputComponents, limits.maxFragmentOutputAttachments, limits.maxFragmentDualSrcAttachments,
+      limits.maxFragmentCombinedOutputResources);
+    apd("maxComputeSharedMemorySize: %u, maxComputeWorkGroupInvocations: %u", limits.maxComputeSharedMemorySize,
+      limits.maxComputeWorkGroupInvocations);
+    apd("maxComputeWorkGroupCount: [%u,%u,%u], maxComputeWorkGroupSize: [%u,%u,%u]", limits.maxComputeWorkGroupCount[0],
+      limits.maxComputeWorkGroupCount[1], limits.maxComputeWorkGroupCount[2], limits.maxComputeWorkGroupSize[0],
+      limits.maxComputeWorkGroupSize[1], limits.maxComputeWorkGroupSize[2]);
+    apd("sub[Pixel,Texel]PrecisionBits: %u,%u, mipmapPrecisionBits: %u", limits.subPixelPrecisionBits, limits.subTexelPrecisionBits,
+      limits.mipmapPrecisionBits);
+    apd("maxDraw[IndexedIndexValue,IndirectCount]: %u,%u", limits.maxDrawIndexedIndexValue, limits.maxDrawIndirectCount);
+    apd("maxSampler[LodBias,Anisotropy]: %f,%f, maxViewport[s,Dimensions]: %u, [%u,%u]", limits.maxSamplerLodBias,
+      limits.maxSamplerAnisotropy, limits.maxViewports, limits.maxViewportDimensions[0], limits.maxViewportDimensions[1]);
+    apd("viewportBoundsRange: [%f,%f], viewportSubPixelBits: %u, minMemoryMapAlignment: %u", limits.viewportBoundsRange[0],
+      limits.viewportBoundsRange[1], limits.viewportSubPixelBits, limits.minMemoryMapAlignment);
+    apd("min[Texel,Uniform,Storage]BufferOffsetAlignment: %u,%u,%u", limits.minTexelBufferOffsetAlignment,
+      limits.minUniformBufferOffsetAlignment, limits.minStorageBufferOffsetAlignment);
+    apd("[min,max]TexelOffset: %u,%u, [min,max]TexelGatherOffset: %u,%u", limits.minTexelOffset, limits.maxTexelOffset,
+      limits.minTexelGatherOffset, limits.maxTexelGatherOffset);
+    apd("[min,max]InterpolationOffset: %f,%f, subPixelInterpolationOffsetBits: %u", limits.minInterpolationOffset,
+      limits.maxInterpolationOffset, limits.subPixelInterpolationOffsetBits);
+    apd("maxFramebuffer[Width,Height,Layers]: %u,%u,%u", limits.maxFramebufferWidth, limits.maxFramebufferHeight,
+      limits.maxFramebufferLayers);
+    apd("framebuffer[Color,Depth,Stencil,NoAttachments]SampleCounts: %u,%u,%u,%u", limits.framebufferColorSampleCounts,
+      limits.framebufferDepthSampleCounts, limits.framebufferStencilSampleCounts, limits.framebufferNoAttachmentsSampleCounts);
+    apd("sampledImage[Color,Integer,Depth,Stencil]SampleCounts: %u,%u,%u,%u", limits.sampledImageColorSampleCounts,
+      limits.sampledImageIntegerSampleCounts, limits.sampledImageDepthSampleCounts, limits.sampledImageStencilSampleCounts);
+    apd("maxColorAttachments: %u, storageImageSampleCounts: %u, maxSampleMaskWords: %u", limits.maxColorAttachments,
+      limits.storageImageSampleCounts, limits.maxSampleMaskWords);
+    apd("timestampComputeAndGraphics: %u, timestampPeriod: %f", limits.timestampComputeAndGraphics, limits.timestampPeriod);
+    apd("max[Clip,Cull]Distances: %u,%u, maxCombinedClipAndCullDistances: %u", limits.maxClipDistances, limits.maxCullDistances,
+      limits.maxCombinedClipAndCullDistances);
+    apd("pointSizeRange: [%f,%f], lineWidthRange: [%f,%f]", limits.pointSizeRange[0], limits.pointSizeRange[1],
+      limits.lineWidthRange[0], limits.lineWidthRange[1]);
+    apd("discreteQueuePriorities: %u, pointSizeGranularity: %f, lineWidthGranularity: %f", limits.discreteQueuePriorities,
+      limits.pointSizeGranularity, limits.lineWidthGranularity);
+    apd("strictLines: %s, standardSampleLocations: %s", bool32ToStr(limits.strictLines), bool32ToStr(limits.standardSampleLocations));
+    apd("optimalBufferCopy[Offset,RowPitch]Alignment: %u,%u, nonCoherentAtomSize: %u", limits.optimalBufferCopyOffsetAlignment,
+      limits.optimalBufferCopyRowPitchAlignment, limits.nonCoherentAtomSize);
   }
 
-  static inline void print(const VkPhysicalDeviceSparseProperties &DAGOR_HAS_LOGS(props))
+  static inline void print(const VkPhysicalDeviceSparseProperties &props, String &out)
   {
-    debug("residencyStandard2DBlockShape: %s", bool32ToStr(props.residencyStandard2DBlockShape));
-    debug("residencyStandard2DMultisampleBlockShape: %s", bool32ToStr(props.residencyStandard2DMultisampleBlockShape));
-    debug("residencyStandard3DBlockShape: %s", bool32ToStr(props.residencyStandard3DBlockShape));
-    debug("residencyAlignedMipSize: %s", bool32ToStr(props.residencyAlignedMipSize));
-    debug("residencyNonResidentStrict: %s", bool32ToStr(props.residencyNonResidentStrict));
+    apd("residencyStandard[2D,2DMultisample,3D]BlockShape: %s,%s,%s, residencyAlignedMipSize: %s, residencyNonResidentStrict: %s",
+      bool32ToStr(props.residencyStandard2DBlockShape), bool32ToStr(props.residencyStandard2DMultisampleBlockShape),
+      bool32ToStr(props.residencyStandard3DBlockShape), bool32ToStr(props.residencyAlignedMipSize),
+      bool32ToStr(props.residencyNonResidentStrict));
   }
 
-  static inline void print(const VkPhysicalDeviceProperties &prop)
+  static inline void print(const VkPhysicalDeviceProperties &prop, String &out)
   {
-    debug("Device: %s", prop.deviceName);
-    debug("API version: %u.%u.%u", VK_VERSION_MAJOR(prop.apiVersion), VK_VERSION_MINOR(prop.apiVersion),
-      VK_VERSION_PATCH(prop.apiVersion));
-    debug("Driver version RAW: %lu", prop.driverVersion);
-    debug("VendorID: 0x%X", prop.vendorID);
-    debug("DeviceID: 0x%X", prop.deviceID);
-    debug("Device Type: %s", nameOf(prop.deviceType));
+    apd("%s %s(VID%X DID%X) API %u.%u.%u Driver RAW %lu", nameOf(prop.deviceType), prop.deviceName, prop.vendorID, prop.deviceID,
+      VK_VERSION_MAJOR(prop.apiVersion), VK_VERSION_MINOR(prop.apiVersion), VK_VERSION_PATCH(prop.apiVersion), prop.driverVersion);
     String uuidStr("0x");
     for (int i = 0; i < VK_UUID_SIZE; ++i)
       uuidStr.aprintf(32, "%X", prop.pipelineCacheUUID[i]);
-    debug("Device UUID: %s", uuidStr);
-    print(prop.limits);
-    print(prop.sparseProperties);
+    apd("UUID: %s", uuidStr);
+    print(prop.limits, out);
+    print(prop.sparseProperties, out);
   }
 
-  static inline void print(const eastl::vector<VkQueueFamilyProperties> &qs)
+  static inline void print(const eastl::vector<VkQueueFamilyProperties> &qs, String &out)
   {
     String flags;
+    String dump("Queues: [");
     for (auto &&q : qs)
     {
       flags.clear();
       if (q.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-        flags += "Graphics | ";
+        flags += "G|";
       if (q.queueFlags & VK_QUEUE_COMPUTE_BIT)
-        flags += "Compute | ";
+        flags += "C|";
       if (q.queueFlags & VK_QUEUE_TRANSFER_BIT)
-        flags += "Transfer | ";
+        flags += "T|";
       if (q.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT)
-        flags += "Sparse Binding | ";
+        flags += "S|";
       if (!flags.empty())
-        flags.chop(3);
+        flags.chop(1);
       else
         flags = "None";
-      debug("Queue %u:", &q - qs.data());
-      debug("Flags: %s", flags);
-      debug("Count: %u", q.queueCount);
-      debug("Timestamp Valid Bits: %u", q.timestampValidBits);
-      debug("Min Image Transfer Granularity: %u, %u, %u", q.minImageTransferGranularity.width, q.minImageTransferGranularity.height,
-        q.minImageTransferGranularity.depth);
+      dump.aprintf(32, "%u:%s c%ut%u", &q - qs.data(), flags, q.queueCount, q.timestampValidBits);
+      if (q.minImageTransferGranularity.width != 1 || q.minImageTransferGranularity.height != 1 ||
+          q.minImageTransferGranularity.depth != 1)
+        dump.aprintf(16, " %u-%u-%u", q.minImageTransferGranularity.width, q.minImageTransferGranularity.height,
+          q.minImageTransferGranularity.depth);
+      dump += ",";
     }
+    dump.pop_back();
+    dump += "]";
+    apdnf(dump);
   }
 
   static inline const char *formatName(VkFormat fmt)
@@ -907,295 +1049,369 @@ struct PhysicalDeviceSet
     switch (fmt)
     {
       default: return "Unknown";
-#define E_TO_N(e) \
-  case VK_FORMAT_##e: return #e
-        E_TO_N(UNDEFINED);
-        E_TO_N(R4G4_UNORM_PACK8);
-        E_TO_N(R4G4B4A4_UNORM_PACK16);
-        E_TO_N(B4G4R4A4_UNORM_PACK16);
-        E_TO_N(R5G6B5_UNORM_PACK16);
-        E_TO_N(B5G6R5_UNORM_PACK16);
-        E_TO_N(R5G5B5A1_UNORM_PACK16);
-        E_TO_N(B5G5R5A1_UNORM_PACK16);
-        E_TO_N(A1R5G5B5_UNORM_PACK16);
-        E_TO_N(R8_UNORM);
-        E_TO_N(R8_SNORM);
-        E_TO_N(R8_USCALED);
-        E_TO_N(R8_SSCALED);
-        E_TO_N(R8_UINT);
-        E_TO_N(R8_SINT);
-        E_TO_N(R8_SRGB);
-        E_TO_N(R8G8_UNORM);
-        E_TO_N(R8G8_SNORM);
-        E_TO_N(R8G8_USCALED);
-        E_TO_N(R8G8_SSCALED);
-        E_TO_N(R8G8_UINT);
-        E_TO_N(R8G8_SINT);
-        E_TO_N(R8G8_SRGB);
-        E_TO_N(R8G8B8_UNORM);
-        E_TO_N(R8G8B8_SNORM);
-        E_TO_N(R8G8B8_USCALED);
-        E_TO_N(R8G8B8_SSCALED);
-        E_TO_N(R8G8B8_UINT);
-        E_TO_N(R8G8B8_SINT);
-        E_TO_N(R8G8B8_SRGB);
-        E_TO_N(B8G8R8_UNORM);
-        E_TO_N(B8G8R8_SNORM);
-        E_TO_N(B8G8R8_USCALED);
-        E_TO_N(B8G8R8_SSCALED);
-        E_TO_N(B8G8R8_UINT);
-        E_TO_N(B8G8R8_SINT);
-        E_TO_N(B8G8R8_SRGB);
-        E_TO_N(R8G8B8A8_UNORM);
-        E_TO_N(R8G8B8A8_SNORM);
-        E_TO_N(R8G8B8A8_USCALED);
-        E_TO_N(R8G8B8A8_SSCALED);
-        E_TO_N(R8G8B8A8_UINT);
-        E_TO_N(R8G8B8A8_SINT);
-        E_TO_N(R8G8B8A8_SRGB);
-        E_TO_N(B8G8R8A8_UNORM);
-        E_TO_N(B8G8R8A8_SNORM);
-        E_TO_N(B8G8R8A8_USCALED);
-        E_TO_N(B8G8R8A8_SSCALED);
-        E_TO_N(B8G8R8A8_UINT);
-        E_TO_N(B8G8R8A8_SINT);
-        E_TO_N(B8G8R8A8_SRGB);
-        E_TO_N(A8B8G8R8_UNORM_PACK32);
-        E_TO_N(A8B8G8R8_SNORM_PACK32);
-        E_TO_N(A8B8G8R8_USCALED_PACK32);
-        E_TO_N(A8B8G8R8_SSCALED_PACK32);
-        E_TO_N(A8B8G8R8_UINT_PACK32);
-        E_TO_N(A8B8G8R8_SINT_PACK32);
-        E_TO_N(A8B8G8R8_SRGB_PACK32);
-        E_TO_N(A2R10G10B10_UNORM_PACK32);
-        E_TO_N(A2R10G10B10_SNORM_PACK32);
-        E_TO_N(A2R10G10B10_USCALED_PACK32);
-        E_TO_N(A2R10G10B10_SSCALED_PACK32);
-        E_TO_N(A2R10G10B10_UINT_PACK32);
-        E_TO_N(A2R10G10B10_SINT_PACK32);
-        E_TO_N(A2B10G10R10_UNORM_PACK32);
-        E_TO_N(A2B10G10R10_SNORM_PACK32);
-        E_TO_N(A2B10G10R10_USCALED_PACK32);
-        E_TO_N(A2B10G10R10_SSCALED_PACK32);
-        E_TO_N(A2B10G10R10_UINT_PACK32);
-        E_TO_N(A2B10G10R10_SINT_PACK32);
-        E_TO_N(R16_UNORM);
-        E_TO_N(R16_SNORM);
-        E_TO_N(R16_USCALED);
-        E_TO_N(R16_SSCALED);
-        E_TO_N(R16_UINT);
-        E_TO_N(R16_SINT);
-        E_TO_N(R16_SFLOAT);
-        E_TO_N(R16G16_UNORM);
-        E_TO_N(R16G16_SNORM);
-        E_TO_N(R16G16_USCALED);
-        E_TO_N(R16G16_SSCALED);
-        E_TO_N(R16G16_UINT);
-        E_TO_N(R16G16_SINT);
-        E_TO_N(R16G16_SFLOAT);
-        E_TO_N(R16G16B16_UNORM);
-        E_TO_N(R16G16B16_SNORM);
-        E_TO_N(R16G16B16_USCALED);
-        E_TO_N(R16G16B16_SSCALED);
-        E_TO_N(R16G16B16_UINT);
-        E_TO_N(R16G16B16_SINT);
-        E_TO_N(R16G16B16_SFLOAT);
-        E_TO_N(R16G16B16A16_UNORM);
-        E_TO_N(R16G16B16A16_SNORM);
-        E_TO_N(R16G16B16A16_USCALED);
-        E_TO_N(R16G16B16A16_SSCALED);
-        E_TO_N(R16G16B16A16_UINT);
-        E_TO_N(R16G16B16A16_SINT);
-        E_TO_N(R16G16B16A16_SFLOAT);
-        E_TO_N(R32_UINT);
-        E_TO_N(R32_SINT);
-        E_TO_N(R32_SFLOAT);
-        E_TO_N(R32G32_UINT);
-        E_TO_N(R32G32_SINT);
-        E_TO_N(R32G32_SFLOAT);
-        E_TO_N(R32G32B32_UINT);
-        E_TO_N(R32G32B32_SINT);
-        E_TO_N(R32G32B32_SFLOAT);
-        E_TO_N(R32G32B32A32_UINT);
-        E_TO_N(R32G32B32A32_SINT);
-        E_TO_N(R32G32B32A32_SFLOAT);
-        E_TO_N(R64_UINT);
-        E_TO_N(R64_SINT);
-        E_TO_N(R64_SFLOAT);
-        E_TO_N(R64G64_UINT);
-        E_TO_N(R64G64_SINT);
-        E_TO_N(R64G64_SFLOAT);
-        E_TO_N(R64G64B64_UINT);
-        E_TO_N(R64G64B64_SINT);
-        E_TO_N(R64G64B64_SFLOAT);
-        E_TO_N(R64G64B64A64_UINT);
-        E_TO_N(R64G64B64A64_SINT);
-        E_TO_N(R64G64B64A64_SFLOAT);
-        E_TO_N(B10G11R11_UFLOAT_PACK32);
-        E_TO_N(E5B9G9R9_UFLOAT_PACK32);
-        E_TO_N(D16_UNORM);
-        E_TO_N(X8_D24_UNORM_PACK32);
-        E_TO_N(D32_SFLOAT);
-        E_TO_N(S8_UINT);
-        E_TO_N(D16_UNORM_S8_UINT);
-        E_TO_N(D24_UNORM_S8_UINT);
-        E_TO_N(D32_SFLOAT_S8_UINT);
-        E_TO_N(BC1_RGB_UNORM_BLOCK);
-        E_TO_N(BC1_RGB_SRGB_BLOCK);
-        E_TO_N(BC1_RGBA_UNORM_BLOCK);
-        E_TO_N(BC1_RGBA_SRGB_BLOCK);
-        E_TO_N(BC2_UNORM_BLOCK);
-        E_TO_N(BC2_SRGB_BLOCK);
-        E_TO_N(BC3_UNORM_BLOCK);
-        E_TO_N(BC3_SRGB_BLOCK);
-        E_TO_N(BC4_UNORM_BLOCK);
-        E_TO_N(BC4_SNORM_BLOCK);
-        E_TO_N(BC5_UNORM_BLOCK);
-        E_TO_N(BC5_SNORM_BLOCK);
-        E_TO_N(BC6H_UFLOAT_BLOCK);
-        E_TO_N(BC6H_SFLOAT_BLOCK);
-        E_TO_N(BC7_UNORM_BLOCK);
-        E_TO_N(BC7_SRGB_BLOCK);
-        E_TO_N(ETC2_R8G8B8_UNORM_BLOCK);
-        E_TO_N(ETC2_R8G8B8_SRGB_BLOCK);
-        E_TO_N(ETC2_R8G8B8A1_UNORM_BLOCK);
-        E_TO_N(ETC2_R8G8B8A1_SRGB_BLOCK);
-        E_TO_N(ETC2_R8G8B8A8_UNORM_BLOCK);
-        E_TO_N(ETC2_R8G8B8A8_SRGB_BLOCK);
-        E_TO_N(EAC_R11_UNORM_BLOCK);
-        E_TO_N(EAC_R11_SNORM_BLOCK);
-        E_TO_N(EAC_R11G11_UNORM_BLOCK);
-        E_TO_N(EAC_R11G11_SNORM_BLOCK);
-        E_TO_N(ASTC_4x4_UNORM_BLOCK);
-        E_TO_N(ASTC_4x4_SRGB_BLOCK);
-        E_TO_N(ASTC_5x4_UNORM_BLOCK);
-        E_TO_N(ASTC_5x4_SRGB_BLOCK);
-        E_TO_N(ASTC_5x5_UNORM_BLOCK);
-        E_TO_N(ASTC_5x5_SRGB_BLOCK);
-        E_TO_N(ASTC_6x5_UNORM_BLOCK);
-        E_TO_N(ASTC_6x5_SRGB_BLOCK);
-        E_TO_N(ASTC_6x6_UNORM_BLOCK);
-        E_TO_N(ASTC_6x6_SRGB_BLOCK);
-        E_TO_N(ASTC_8x5_UNORM_BLOCK);
-        E_TO_N(ASTC_8x5_SRGB_BLOCK);
-        E_TO_N(ASTC_8x6_UNORM_BLOCK);
-        E_TO_N(ASTC_8x6_SRGB_BLOCK);
-        E_TO_N(ASTC_8x8_UNORM_BLOCK);
-        E_TO_N(ASTC_8x8_SRGB_BLOCK);
-        E_TO_N(ASTC_10x5_UNORM_BLOCK);
-        E_TO_N(ASTC_10x5_SRGB_BLOCK);
-        E_TO_N(ASTC_10x6_UNORM_BLOCK);
-        E_TO_N(ASTC_10x6_SRGB_BLOCK);
-        E_TO_N(ASTC_10x8_UNORM_BLOCK);
-        E_TO_N(ASTC_10x8_SRGB_BLOCK);
-        E_TO_N(ASTC_10x10_UNORM_BLOCK);
-        E_TO_N(ASTC_10x10_SRGB_BLOCK);
-        E_TO_N(ASTC_12x10_UNORM_BLOCK);
-        E_TO_N(ASTC_12x10_SRGB_BLOCK);
-        E_TO_N(ASTC_12x12_UNORM_BLOCK);
-        E_TO_N(ASTC_12x12_SRGB_BLOCK);
+#define E_TO_N(e, v) \
+  case VK_FORMAT_##e: return v
+        E_TO_N(UNDEFINED, "Unk");
+        E_TO_N(R4G4_UNORM_PACK8, "RG4UN_16");
+        E_TO_N(R4G4B4A4_UNORM_PACK16, "RGBA4UN_16");
+        E_TO_N(B4G4R4A4_UNORM_PACK16, "BGRA4UN_16");
+        E_TO_N(R5G6B5_UNORM_PACK16, "RGB565UN_16");
+        E_TO_N(B5G6R5_UNORM_PACK16, "BGR565UN_16");
+        E_TO_N(R5G5B5A1_UNORM_PACK16, "RGB5A1UN_16");
+        E_TO_N(B5G5R5A1_UNORM_PACK16, "BGR5A1UN_16");
+        E_TO_N(A1R5G5B5_UNORM_PACK16, "A1RGB5UN_16");
+        E_TO_N(R8_UNORM, "R8UN");
+        E_TO_N(R8_SNORM, "R8SN");
+        E_TO_N(R8_USCALED, "R8US");
+        E_TO_N(R8_SSCALED, "R8SS");
+        E_TO_N(R8_UINT, "R8UI");
+        E_TO_N(R8_SINT, "R8SI");
+        E_TO_N(R8_SRGB, "R8s");
+        E_TO_N(R8G8_UNORM, "RG8UN");
+        E_TO_N(R8G8_SNORM, "RG8SN");
+        E_TO_N(R8G8_USCALED, "RG8US");
+        E_TO_N(R8G8_SSCALED, "RG8SS");
+        E_TO_N(R8G8_UINT, "RG8UI");
+        E_TO_N(R8G8_SINT, "RG8SI");
+        E_TO_N(R8G8_SRGB, "RG8s");
+        E_TO_N(R8G8B8_UNORM, "RGB8UN");
+        E_TO_N(R8G8B8_SNORM, "RGB8SN");
+        E_TO_N(R8G8B8_USCALED, "RGB8US");
+        E_TO_N(R8G8B8_SSCALED, "RGB8SS");
+        E_TO_N(R8G8B8_UINT, "RGB8UI");
+        E_TO_N(R8G8B8_SINT, "RGB8SI");
+        E_TO_N(R8G8B8_SRGB, "RGB8s");
+        E_TO_N(B8G8R8_UNORM, "BGR8UN");
+        E_TO_N(B8G8R8_SNORM, "BGR8SN");
+        E_TO_N(B8G8R8_USCALED, "BGR8US");
+        E_TO_N(B8G8R8_SSCALED, "BGR8SS");
+        E_TO_N(B8G8R8_UINT, "BGR8UI");
+        E_TO_N(B8G8R8_SINT, "BGR8SI");
+        E_TO_N(B8G8R8_SRGB, "BGR8s");
+        E_TO_N(R8G8B8A8_UNORM, "RGBA8UN");
+        E_TO_N(R8G8B8A8_SNORM, "RGBA8SN");
+        E_TO_N(R8G8B8A8_USCALED, "RGBA8US");
+        E_TO_N(R8G8B8A8_SSCALED, "RGBA8SS");
+        E_TO_N(R8G8B8A8_UINT, "RGBA8UI");
+        E_TO_N(R8G8B8A8_SINT, "RGBA8SI");
+        E_TO_N(R8G8B8A8_SRGB, "RGBA8s");
+        E_TO_N(B8G8R8A8_UNORM, "BGRA8UN");
+        E_TO_N(B8G8R8A8_SNORM, "BGRA8SN");
+        E_TO_N(B8G8R8A8_USCALED, "BGRA8US");
+        E_TO_N(B8G8R8A8_SSCALED, "BGRA8SS");
+        E_TO_N(B8G8R8A8_UINT, "BGRA8UI");
+        E_TO_N(B8G8R8A8_SINT, "BGRA8SI");
+        E_TO_N(B8G8R8A8_SRGB, "BGRA8s");
+        E_TO_N(A8B8G8R8_UNORM_PACK32, "ABGR8UN_32");
+        E_TO_N(A8B8G8R8_SNORM_PACK32, "ABGR8SN_32");
+        E_TO_N(A8B8G8R8_USCALED_PACK32, "ABGR8US_32");
+        E_TO_N(A8B8G8R8_SSCALED_PACK32, "ABGR8SS_32");
+        E_TO_N(A8B8G8R8_UINT_PACK32, "ABGR8UI_32");
+        E_TO_N(A8B8G8R8_SINT_PACK32, "ABGR8SI_32");
+        E_TO_N(A8B8G8R8_SRGB_PACK32, "ABGR8s_32");
+        E_TO_N(A2R10G10B10_UNORM_PACK32, "A2RGB10UN_32");
+        E_TO_N(A2R10G10B10_SNORM_PACK32, "A2RGB10SN_32");
+        E_TO_N(A2R10G10B10_USCALED_PACK32, "A2RGB10US_32");
+        E_TO_N(A2R10G10B10_SSCALED_PACK32, "A2RGB10SS_32");
+        E_TO_N(A2R10G10B10_UINT_PACK32, "A2RGB10UI_32");
+        E_TO_N(A2R10G10B10_SINT_PACK32, "A2RGB10SI_32");
+        E_TO_N(A2B10G10R10_UNORM_PACK32, "A2BGR10UN_32");
+        E_TO_N(A2B10G10R10_SNORM_PACK32, "A2BGR10SN_32");
+        E_TO_N(A2B10G10R10_USCALED_PACK32, "A2BGR10US_32");
+        E_TO_N(A2B10G10R10_SSCALED_PACK32, "A2BGR10SS_32");
+        E_TO_N(A2B10G10R10_UINT_PACK32, "A2BGR10UI_32");
+        E_TO_N(A2B10G10R10_SINT_PACK32, "A2BGR10SI_32");
+        E_TO_N(R16_UNORM, "R16UN");
+        E_TO_N(R16_SNORM, "R16SN");
+        E_TO_N(R16_USCALED, "R16US");
+        E_TO_N(R16_SSCALED, "R16SS");
+        E_TO_N(R16_UINT, "R16UI");
+        E_TO_N(R16_SINT, "R16SI");
+        E_TO_N(R16_SFLOAT, "R16SF");
+        E_TO_N(R16G16_UNORM, "RG16UN");
+        E_TO_N(R16G16_SNORM, "RG16SN");
+        E_TO_N(R16G16_USCALED, "RG16US");
+        E_TO_N(R16G16_SSCALED, "RG16SS");
+        E_TO_N(R16G16_UINT, "RG16UI");
+        E_TO_N(R16G16_SINT, "RG16SI");
+        E_TO_N(R16G16_SFLOAT, "RG16SF");
+        E_TO_N(R16G16B16_UNORM, "RGB16UN");
+        E_TO_N(R16G16B16_SNORM, "RGB16SN");
+        E_TO_N(R16G16B16_USCALED, "RGB16US");
+        E_TO_N(R16G16B16_SSCALED, "RGB16SS");
+        E_TO_N(R16G16B16_UINT, "RGB16UI");
+        E_TO_N(R16G16B16_SINT, "RGB16SI");
+        E_TO_N(R16G16B16_SFLOAT, "RGB16SF");
+        E_TO_N(R16G16B16A16_UNORM, "RGBA16UN");
+        E_TO_N(R16G16B16A16_SNORM, "RGBA16SN");
+        E_TO_N(R16G16B16A16_USCALED, "RGBA16US");
+        E_TO_N(R16G16B16A16_SSCALED, "RGBA16SS");
+        E_TO_N(R16G16B16A16_UINT, "RGBA16UI");
+        E_TO_N(R16G16B16A16_SINT, "RGBA16SI");
+        E_TO_N(R16G16B16A16_SFLOAT, "RGBA16SF");
+        E_TO_N(R32_UINT, "R32UI");
+        E_TO_N(R32_SINT, "R32SI");
+        E_TO_N(R32_SFLOAT, "R32SF");
+        E_TO_N(R32G32_UINT, "RG32UI");
+        E_TO_N(R32G32_SINT, "RG32SI");
+        E_TO_N(R32G32_SFLOAT, "RG32SF");
+        E_TO_N(R32G32B32_UINT, "RGB32UI");
+        E_TO_N(R32G32B32_SINT, "RGB32SI");
+        E_TO_N(R32G32B32_SFLOAT, "RGB32SF");
+        E_TO_N(R32G32B32A32_UINT, "RGBA32UI");
+        E_TO_N(R32G32B32A32_SINT, "RGBA32SI");
+        E_TO_N(R32G32B32A32_SFLOAT, "RGBA32SF");
+        E_TO_N(R64_UINT, "R64UI");
+        E_TO_N(R64_SINT, "R64SI");
+        E_TO_N(R64_SFLOAT, "R64SF");
+        E_TO_N(R64G64_UINT, "RG64UI");
+        E_TO_N(R64G64_SINT, "RG64SI");
+        E_TO_N(R64G64_SFLOAT, "RG64SF");
+        E_TO_N(R64G64B64_UINT, "RGB64UI");
+        E_TO_N(R64G64B64_SINT, "RGB64SI");
+        E_TO_N(R64G64B64_SFLOAT, "RGB64SF");
+        E_TO_N(R64G64B64A64_UINT, "RGBA64UI");
+        E_TO_N(R64G64B64A64_SINT, "RGBA64SI");
+        E_TO_N(R64G64B64A64_SFLOAT, "RGBA64SF");
+        E_TO_N(B10G11R11_UFLOAT_PACK32, "B10GR11UF_32");
+        E_TO_N(E5B9G9R9_UFLOAT_PACK32, "E5BGR9UF_32");
+        E_TO_N(D16_UNORM, "D16UN");
+        E_TO_N(X8_D24_UNORM_PACK32, "X8D24UN_32");
+        E_TO_N(D32_SFLOAT, "D32SF");
+        E_TO_N(S8_UINT, "S8UI");
+        E_TO_N(D16_UNORM_S8_UINT, "D16UNS8UI");
+        E_TO_N(D24_UNORM_S8_UINT, "D32UNS8UI");
+        E_TO_N(D32_SFLOAT_S8_UINT, "D32SFS8UI");
+        E_TO_N(BC1_RGB_UNORM_BLOCK, "RGBUN_BC1");
+        E_TO_N(BC1_RGB_SRGB_BLOCK, "RGBs_BC1");
+        E_TO_N(BC1_RGBA_UNORM_BLOCK, "RGBAUN_BC1");
+        E_TO_N(BC1_RGBA_SRGB_BLOCK, "RGBAs_BC1");
+        E_TO_N(BC2_UNORM_BLOCK, "UN_BC2");
+        E_TO_N(BC2_SRGB_BLOCK, "s_BC2");
+        E_TO_N(BC3_UNORM_BLOCK, "UN_BC3");
+        E_TO_N(BC3_SRGB_BLOCK, "s_BC3");
+        E_TO_N(BC4_UNORM_BLOCK, "UN_BC4");
+        E_TO_N(BC4_SNORM_BLOCK, "SN_BC4");
+        E_TO_N(BC5_UNORM_BLOCK, "UN_BC5");
+        E_TO_N(BC5_SNORM_BLOCK, "SN_BC5");
+        E_TO_N(BC6H_UFLOAT_BLOCK, "UF_BC6H");
+        E_TO_N(BC6H_SFLOAT_BLOCK, "SF_BC6H");
+        E_TO_N(BC7_UNORM_BLOCK, "UN_BC7");
+        E_TO_N(BC7_SRGB_BLOCK, "s_BC7");
+        E_TO_N(ETC2_R8G8B8_UNORM_BLOCK, "RGB8UN_ETC2");
+        E_TO_N(ETC2_R8G8B8_SRGB_BLOCK, "RGB8s_ETC2");
+        E_TO_N(ETC2_R8G8B8A1_UNORM_BLOCK, "RGB8A1UN_ETC2");
+        E_TO_N(ETC2_R8G8B8A1_SRGB_BLOCK, "RGB8A1s_ETC2");
+        E_TO_N(ETC2_R8G8B8A8_UNORM_BLOCK, "RGBA8UN_ETC2");
+        E_TO_N(ETC2_R8G8B8A8_SRGB_BLOCK, "RGBA8s_ETC2");
+        E_TO_N(EAC_R11_UNORM_BLOCK, "R11UN_EAC");
+        E_TO_N(EAC_R11_SNORM_BLOCK, "R11SN_EAC");
+        E_TO_N(EAC_R11G11_UNORM_BLOCK, "RG11UN_EAC");
+        E_TO_N(EAC_R11G11_SNORM_BLOCK, "RG11SN_EAC");
+        E_TO_N(ASTC_4x4_UNORM_BLOCK, "UN_ASTC44");
+        E_TO_N(ASTC_4x4_SRGB_BLOCK, "s_ASTC44");
+        E_TO_N(ASTC_5x4_UNORM_BLOCK, "UN_ASTC54");
+        E_TO_N(ASTC_5x4_SRGB_BLOCK, "s_ASTC54");
+        E_TO_N(ASTC_5x5_UNORM_BLOCK, "UN_ASTC55");
+        E_TO_N(ASTC_5x5_SRGB_BLOCK, "s_ASTC55");
+        E_TO_N(ASTC_6x5_UNORM_BLOCK, "UN_ASTC65");
+        E_TO_N(ASTC_6x5_SRGB_BLOCK, "s_ASTC65");
+        E_TO_N(ASTC_6x6_UNORM_BLOCK, "UN_ASTC66");
+        E_TO_N(ASTC_6x6_SRGB_BLOCK, "s_ASTC66");
+        E_TO_N(ASTC_8x5_UNORM_BLOCK, "UN_ASTC85");
+        E_TO_N(ASTC_8x5_SRGB_BLOCK, "s_ASTC85");
+        E_TO_N(ASTC_8x6_UNORM_BLOCK, "UN_ASTC86");
+        E_TO_N(ASTC_8x6_SRGB_BLOCK, "s_ASTC86");
+        E_TO_N(ASTC_8x8_UNORM_BLOCK, "UN_ASTC88");
+        E_TO_N(ASTC_8x8_SRGB_BLOCK, "s_ASTC88");
+        E_TO_N(ASTC_10x5_UNORM_BLOCK, "UN_ASTC105");
+        E_TO_N(ASTC_10x5_SRGB_BLOCK, "s_ASTC105");
+        E_TO_N(ASTC_10x6_UNORM_BLOCK, "UN_ASTC106");
+        E_TO_N(ASTC_10x6_SRGB_BLOCK, "s_ASTC106");
+        E_TO_N(ASTC_10x8_UNORM_BLOCK, "UN_ASTC108");
+        E_TO_N(ASTC_10x8_SRGB_BLOCK, "s_ASTC108");
+        E_TO_N(ASTC_10x10_UNORM_BLOCK, "UN_ASTC1010");
+        E_TO_N(ASTC_10x10_SRGB_BLOCK, "s_ASTC1010");
+        E_TO_N(ASTC_12x10_UNORM_BLOCK, "UN_ASTC1210");
+        E_TO_N(ASTC_12x10_SRGB_BLOCK, "s_ASTC1210");
+        E_TO_N(ASTC_12x12_UNORM_BLOCK, "UN_ASTC1212");
+        E_TO_N(ASTC_12x12_SRGB_BLOCK, "s_ASTC1212");
 #undef E_TO_N
     }
   }
 
   static inline void formatFlagsToString(String &str, VkFormatFeatureFlags flags)
   {
-    str.clear();
     if (flags & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)
-      str += "Samplerd Image | ";
+      str += "Spl|";
     if (flags & VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT)
-      str += "Storage Image | ";
-    if (flags & VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT)
-      str += "Storage Image Atomic | ";
+    {
+      if (flags & VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT)
+        str += "UAV-A|";
+      else
+        str += "UAV|";
+    }
     if (flags & VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT)
-      str += "Uniform Texel Buffer | ";
+      str += "TBuf|";
     if (flags & VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT)
-      str += "Storage Texel Buffer | ";
-    if (flags & VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT)
-      str += "Storage Texel Buffer Atomic | ";
+    {
+      if (flags & VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT)
+        str += "UAV-A TBuf|";
+      else
+        str += "UAV TBuf|";
+    }
     if (flags & VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT)
-      str += "Vertex Buffer | ";
+      str += "VBuf|";
     if (flags & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT)
-      str += "Color Attachment | ";
+      str += "RT|";
     if (flags & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT)
-      str += "Color Attachment Blend | ";
+      str += "RT-B|";
     if (flags & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
-      str += "Depth Stencil Attachment | ";
-    if (flags & VK_FORMAT_FEATURE_BLIT_SRC_BIT)
-      str += "Blit Source | ";
-    if (flags & VK_FORMAT_FEATURE_BLIT_DST_BIT)
-      str += "Blit Destination | ";
-    if (flags & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)
-      str += "Sampled Image Filter Linear | ";
-    if (flags & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_IMG)
-      str += "Sampled Image Filter Cubic | ";
-    if (flags & VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR)
-      str += "Transfer Source | ";
-    if (flags & VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR)
-      str += "Transfer Destination | ";
-    if (str.empty())
-      str = "None";
+      str += "DS|";
+    if ((flags & (VK_FORMAT_FEATURE_BLIT_DST_BIT | VK_FORMAT_FEATURE_BLIT_SRC_BIT)) ==
+        (VK_FORMAT_FEATURE_BLIT_DST_BIT | VK_FORMAT_FEATURE_BLIT_SRC_BIT))
+      str += "Blit|";
     else
-      str.chop(3);
+    {
+      if (flags & VK_FORMAT_FEATURE_BLIT_SRC_BIT)
+        str += "BlitS|";
+      if (flags & VK_FORMAT_FEATURE_BLIT_DST_BIT)
+        str += "BlitD|";
+    }
+    if (flags & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)
+      str += "SplL|";
+    if (flags & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_IMG)
+      str += "SplC|";
+
+    if ((flags & (VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR | VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR)) ==
+        (VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR | VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR))
+      str += "Cpy|";
+    else
+    {
+      if (flags & VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR)
+        str += "CpyS|";
+      if (flags & VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR)
+        str += "CpyD|";
+    }
+    if (str.empty())
+      str += "None";
+    else
+      str.chop(1);
   }
 
-  static inline void print(dag::ConstSpan<VkFormatProperties> fmt)
+  using UniqFeaturesMap = ska::flat_hash_map<VkFormatFeatureFlags, eastl::vector<VkFormat>>;
+
+  static inline void print(const UniqFeaturesMap &masks, String &out, const char *feature_type)
   {
-    String flags;
-    for (int i = 0; i < fmt.size(); ++i)
+    String dump("");
+    const size_t formatsPerLine = 16;
+    for (auto i = masks.begin(); i != masks.end(); ++i)
     {
-      debug("%s:", formatName((VkFormat)i));
-      formatFlagsToString(flags, fmt[i].linearTilingFeatures);
-      debug("Linear Layout: %s", flags);
-      formatFlagsToString(flags, fmt[i].optimalTilingFeatures);
-      debug("Optimal Layout: %s", flags);
-      formatFlagsToString(flags, fmt[i].bufferFeatures);
-      debug("Buffer Features: %s", flags);
+      if (i->first == 0)
+        continue;
+      size_t cnt = 0;
+      for (VkFormat j : i->second)
+      {
+        if (cnt % formatsPerLine == 0)
+        {
+          if (cnt > 0)
+          {
+            dump.pop_back();
+            apdnf(dump);
+          }
+          dump.clear();
+          dump += feature_type;
+          dump += " ";
+          formatFlagsToString(dump, i->first);
+          dump += ": ";
+        }
+        dump.aprintf(16, "%s", formatName(j));
+        dump += ",";
+        ++cnt;
+      }
+      if (dump.size())
+      {
+        dump.pop_back();
+        apdnf(dump);
+      }
     }
   }
 
-  static inline void print(uint32_t DAGOR_HAS_LOGS(i), VkMemoryType type)
+  static inline void print(dag::ConstSpan<VkFormatProperties> fmt, String &out)
   {
-    debug("Memory type %u: %s(0x%08lX), heap %u", i, formatMemoryTypeFlags(type.propertyFlags), type.propertyFlags, type.heapIndex);
+    const VkFormatFeatureFlags usefullFlags =
+      (VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT | VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT |
+        VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT | VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT |
+        VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT | VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT |
+        VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT |
+        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_FORMAT_FEATURE_BLIT_SRC_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT |
+        VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_IMG |
+        VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR | VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR);
+
+    UniqFeaturesMap linMasks;
+    UniqFeaturesMap optMasks;
+    UniqFeaturesMap bufMasks;
+    for (int i = 0; i < fmt.size(); ++i)
+    {
+      linMasks[fmt[i].linearTilingFeatures & usefullFlags].push_back((VkFormat)i);
+      optMasks[fmt[i].optimalTilingFeatures & usefullFlags].push_back((VkFormat)i);
+      bufMasks[fmt[i].bufferFeatures & usefullFlags].push_back((VkFormat)i);
+    }
+
+    print(linMasks, out, "FMT lin");
+    print(optMasks, out, "FMT opt");
+    print(bufMasks, out, "FMT buf");
   }
 
-  static inline void print(uint32_t DAGOR_HAS_LOGS(i), VkMemoryHeap type)
+  static inline void print(uint32_t i, VkMemoryHeap type, String &out)
   {
     String flags;
     if (type.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
-      flags += "Device Local | ";
+      flags += "GPU";
 
     if (!flags.empty())
       flags.chop(3);
     else
       flags = "None";
-    debug("Heap %i: %s, %u Gib, %u Mib, %u Kib, %u b", i, flags, type.size / 1024 / 1024 / 1024, type.size / 1024 / 1024,
+    apd("Heap %i: %s, %u Gib, %u Mib, %u Kib, %u b", i, flags, type.size / 1024 / 1024 / 1024, type.size / 1024 / 1024,
       type.size / 1024, type.size);
   }
 
-  static inline void print(const VkPhysicalDeviceMemoryProperties &mem)
+  static inline void print(const VkPhysicalDeviceMemoryProperties &mem, String &out)
   {
+    String dump("Memory: [");
     for (uint32_t i = 0; i < mem.memoryTypeCount; ++i)
-      print(i, mem.memoryTypes[i]);
+      dump.aprintf(48, "%u:%u %s.%03lX,", i, mem.memoryTypes[i].heapIndex, formatMemoryTypeFlags(mem.memoryTypes[i].propertyFlags),
+        mem.memoryTypes[i].propertyFlags);
+    dump.pop_back();
+    dump += "]";
+    apdnf(dump);
+    dump = "Heaps: [";
     for (uint32_t i = 0; i < mem.memoryHeapCount; ++i)
-      print(i, mem.memoryHeaps[i]);
+      dump.aprintf(48, "%i:%s %.4gGib,", i, mem.memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT ? "GPU" : "CPU",
+        mem.memoryHeaps[i].size / 1024.0f / 1024.0f / 1024.0f);
+    dump.pop_back();
+    dump += "]";
+    apdnf(dump);
   }
 
 #if VK_EXT_memory_budget
-  static inline void print(const VkPhysicalDeviceMemoryProperties &mem, const VkPhysicalDeviceMemoryBudgetPropertiesEXT &budget)
+  static inline void print(const VkPhysicalDeviceMemoryProperties &mem, const VkPhysicalDeviceMemoryBudgetPropertiesEXT &budget,
+    String &out)
   {
+    String dump("Budget: [");
     for (int i = 0; i != mem.memoryHeapCount; ++i)
-      debug("Heap %u budget: %u Mb Used: %u Mb", i, budget.heapBudget[i] >> 20, budget.heapUsage[i] >> 20);
+      dump.aprintf(32, "%u:%uMb used %uMb,", i, budget.heapBudget[i] >> 20, budget.heapUsage[i] >> 20);
+    dump.pop_back();
+    dump += "]";
+    apdnf(dump);
   }
 #endif
 
 
 #if VK_KHR_driver_properties
-  static inline void print(const VkPhysicalDeviceDriverPropertiesKHR &drv_props)
+  static inline void print(const VkPhysicalDeviceDriverPropertiesKHR &drv_props, String &out)
   {
-    debug("vulkan: driver: name = %s", drv_props.driverName);
-    debug("vulkan: driver: info = %s", drv_props.driverInfo);
-
     String drvTypeStr(32, "<unknown id %u>", (uint32_t)drv_props.driverID);
 
 #if VK_VERSION_1_2
@@ -1243,63 +1459,83 @@ struct PhysicalDeviceSet
 
 #undef DRV_ID_STR
 
-    debug("vulkan: driver: type id = %s", drvTypeStr);
-    debug("vulkan: driver: conformant against vulkan %u.%u.%u.%u", drv_props.conformanceVersion.major,
-      drv_props.conformanceVersion.minor, drv_props.conformanceVersion.subminor, drv_props.conformanceVersion.patch);
+    apd("driver: %s %s [%s] API v%u.%u.%u.%u", drv_props.driverName, drv_props.driverInfo, drvTypeStr,
+      drv_props.conformanceVersion.major, drv_props.conformanceVersion.minor, drv_props.conformanceVersion.subminor,
+      drv_props.conformanceVersion.patch);
   }
 #endif
 
-  inline void printExt() const
+  inline void printDisplays(String &out) const
   {
-    debug("VK_EXT_conditional_rendering:");
-    debug("conditionalRendering: %s", hasConditionalRender ? "yes" : "no");
-    debug("VK_KHR_imageless_framebuffer:");
-    debug("imagelessFramebuffer: %s", hasImagelessFramebuffer ? "yes" : "no");
-    debug("memoryBudget: %s", memoryBudgetInfoAvailable ? "yes" : "no");
-    debug("deviceMemoryReport: %s", hasDeviceMemoryReport ? "yes" : "no");
-    debug("bufferDeviceAddress: %s", hasDeviceBufferDeviceAddress ? "yes" : "no");
-    debug("rayTracingPipeline: %s", hasRayTracingPipeline ? "yes" : "no");
-    debug("rayQuery: %s", hasRayQuery ? "yes" : "no");
-    debug("accelerationStructure: %s", hasAccelerationStructure ? "yes" : "no");
-    debug("deviceFaultFeature: %s", hasDeviceFaultFeature ? "yes" : "no");
-    debug("deviceFaultVendorInfo: %s", hasDeviceFaultVendorInfo ? "yes" : "no");
-    debug("depthStencilResolve: %s", hasDepthStencilResolve ? "yes" : "no");
+#if VK_KHR_display
+    if (displays.empty())
+    {
+      apdnf("No displays found");
+      return;
+    }
+    else
+    {
+      for (const VkDisplayPropertiesKHR &iter : displays)
+        apd("Display %u:%s", &iter - displays.begin(), iter.displayName ? iter.displayName : "unknown");
+      return;
+    }
+#else
+    apdnf("No display ext");
+#endif
+  }
+
+  inline void printExt(String &out) const
+  {
+    apd("conditionalRendering: %s, imagelessFramebuffer: %s, memoryBudget: %s, deviceMemoryReport: %s",
+      boolToStr(hasConditionalRender), boolToStr(hasImagelessFramebuffer), boolToStr(memoryBudgetInfoAvailable),
+      boolToStr(hasDeviceMemoryReport));
+    apd("bufferDeviceAddress: %s, rayTracingPipeline: %s, rayQuery: %s, accelerationStructure: %s",
+      boolToStr(hasDeviceBufferDeviceAddress), boolToStr(hasRayTracingPipeline), boolToStr(hasRayQuery),
+      boolToStr(hasAccelerationStructure));
+    apd("deviceFaultFeature: %s, deviceFaultVendorInfo: %s, depthStencilResolve: %s", boolToStr(hasDeviceFaultFeature),
+      boolToStr(hasDeviceFaultVendorInfo), boolToStr(hasDepthStencilResolve));
 #if VK_EXT_memory_budget
     if (memoryBudgetInfoAvailable)
-      print(memoryProperties, memoryBudgetInfo);
+      print(memoryProperties, memoryBudgetInfo, out);
 #endif
 #if D3D_HAS_RAY_TRACING
-    debug("Raytracing:");
-    debug("shaderHeaderSize: %u", raytraceShaderHeaderSize);
-    debug("maxRecursionDepth: %u", raytraceMaxRecursionDepth);
-    debug("topAccelerationInstanceElementSize: %u", raytraceTopAccelerationInstanceElementSize);
+    apd("raytrace[ShaderHeaderSize, MaxRecursionDepth]: %u,%u", raytraceShaderHeaderSize, raytraceMaxRecursionDepth);
+    apd("raytrace[TopAccelerationInstanceElementSize, ScratchBufferAlignment]: %u, %u", raytraceTopAccelerationInstanceElementSize,
+      raytraceScratchBufferAlignment);
 #endif
 #if VK_EXT_descriptor_indexing
-    debug("Bindless (VK_EXT_descriptor_indexing): %s", hasBindless ? "yes" : "no");
-    debug("maxBindlessTextures (maxDescriptorSetUpdateAfterBindSampledImages): %u", maxBindlessTextures);
-    debug("maxBindlessSamplers (maxDescriptorSetUpdateAfterBindSamplers): %u", maxBindlessSamplers);
+    apd("Bindless: %s, maxBindless[Textures,Samplers,Buffers,StorageBuffers]: %u,%u,%u,%u", boolToStr(hasBindless),
+      maxBindlessTextures, maxBindlessSamplers, maxBindlessBuffers, maxBindlessStorageBuffers);
 #endif
-    debug("WarpSize: %u", warpSize);
-    debug("Driver version: %u.%u.%u.%u", driverVersionDecoded[0], driverVersionDecoded[1], driverVersionDecoded[2],
-      driverVersionDecoded[3]);
-    debug("hasLazyMemory: %s", hasLazyMemory ? "yes" : "no");
-#if VK_KHR_shader_float16_int8
-    debug("hasShaderFloat16: %s", hasShaderFloat16 ? "yes" : "no");
-#endif
+    apd("WarpSize: %u, Driver version: %u.%u.%u.%u", warpSize, driverVersionDecoded[0], driverVersionDecoded[1],
+      driverVersionDecoded[2], driverVersionDecoded[3]);
+    apd("hasLazyMemory: %s, hasShaderFloat16: %s, hasMemoryPriority: %s, hasPageableDeviceLocalMemory: %s", boolToStr(hasLazyMemory),
+      boolToStr(hasShaderFloat16), boolToStr(hasMemoryPriority), boolToStr(hasPageableDeviceLocalMemory));
+    apd("hasPipelineCreationCacheControl: %s", boolToStr(hasPipelineCreationCacheControl));
+    apd("hasSixteenBitStorage: %s", boolToStr(hasSixteenBitStorage));
   }
 
-  inline void print() const
+  inline void print(uint32_t device_index)
   {
-    print(properties);
+    String out;
+    apd("start %u", device_index);
+    print(properties, out);
 #if VK_KHR_driver_properties
     if (hasExtension<DriverPropertiesKHR>())
-      print(driverProps);
+      print(driverProps, out);
 #endif
-    print(memoryProperties);
-    print(features);
-    print(queueFamilyProperties);
-    print(formatProperties);
-    printExt();
+    print(memoryProperties, out);
+    print(features, out);
+    print(queueFamilyProperties, out);
+    print(formatProperties, out);
+    printExt(out);
+    printDisplays(out);
+
+    apd("end %u", device_index);
+    out.pop_back();
+    debug(out);
   }
+#undef apd
+#undef apdnf
 };
 } // namespace drv3d_vulkan

@@ -35,6 +35,6 @@ return {
     return makeKey(path) in storage
   }
   ndbDelete = function(path) {
-    delete storage[makeKey(path)]
+    storage.$rawdelete(makeKey(path))
   }
 }

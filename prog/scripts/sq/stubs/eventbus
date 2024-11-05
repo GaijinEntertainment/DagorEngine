@@ -1,33 +1,41 @@
+function eventbus_subscribe(event_name, handler){
+  assert(type(event_name)=="string")
+  assert(type(handler)=="function")
+}
+
+function eventbus_unsubscribe(event_name, handler){
+  assert(type(event_name)=="string")
+  assert(type(handler)=="function")
+}
+
+function eventbus_subscribe_onehit(event_name, handler){
+  assert(type(event_name)=="string")
+  assert(type(handler)=="function")
+}
+
+function eventbus_send(event_name, _payload=null) {
+  assert(type(event_name)=="string")
+}
+function eventbus_send_foreign(event_name, _payload){
+  assert(type(event_name)=="string")
+}
+
+function eventbus_has_listeners(event_name){
+  assert(type(event_name)=="string")
+  return true
+}
+
+function eventbus_has_foreign_listeners(event_name){
+  assert(type(event_name)=="string")
+  return true
+}
+
 return {
-  function subscribe(event_name, handler){
-    assert(type(event_name)=="string")
-    assert(type(handler)=="function")
-  }
-
-  function unsubscribe(event_name, handler){
-    assert(type(event_name)=="string")
-    assert(type(handler)=="function")
-  }
-
-  function subscribe_onehit(event_name, handler){
-    assert(type(event_name)=="string")
-    assert(type(handler)=="function")
-  }
-
-  function send(event_name, _payload) {
-    assert(type(event_name)=="string")
-  }
-  function send_foreign(event_name, _payload){
-    assert(type(event_name)=="string")
-  }
-
-  function has_listeners(event_name){
-    assert(type(event_name)=="string")
-    return true
-  }
-
-  function has_foreign_listeners(event_name){
-    assert(type(event_name)=="string")
-    return true
-  }
+  eventbus_subscribe
+  eventbus_unsubscribe
+  eventbus_subscribe_onehit
+  eventbus_send
+  eventbus_send_foreign
+  eventbus_has_foreign_listeners
+  eventbus_has_listeners
 }

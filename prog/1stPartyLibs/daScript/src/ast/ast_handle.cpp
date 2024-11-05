@@ -17,6 +17,33 @@ namespace das {
         }
     }
 
+    uint64_t BasicStructureAnnotation::getOwnSemanticHash ( HashBuilder & hb, das_set<Structure *> & dep, das_set<Annotation *> & adep ) const {
+        hb.updateString(getMangledName());
+        for ( auto & it : fields ) {
+            auto & sfield = it.second;
+            hb.updateString(sfield.name);
+            hb.update(sfield.offset);
+            if ( sfield.constDecl ) {
+                hb.update(sfield.constDecl->getOwnSemanticHash(hb,dep,adep));
+            }
+            if ( sfield.decl ) {
+                hb.update(sfield.decl->getOwnSemanticHash(hb,dep,adep));
+            }
+        }
+        return hb.getHash();
+    }
+
+    bool BasicStructureAnnotation::hasStringData(das_set<void *> & dep) const {
+        for ( auto & it : fields ) {
+            auto & sfield = it.second;
+            if ( sfield.decl ) {
+                if ( sfield.decl->isString() ) return true;
+                if ( sfield.decl->hasStringData(dep) ) return true;
+            }
+        }
+        return false;
+    }
+
 
     bool BasicStructureAnnotation::canSubstitute(TypeAnnotation * ann) const {
         if ( this==ann ) return true;
@@ -125,7 +152,7 @@ namespace das {
         }
     }
 
-    BasicStructureAnnotation::StructureField & BasicStructureAnnotation::addFieldEx ( const string & na, const string & cppNa, off_t offset, TypeDeclPtr pT ) {
+    BasicStructureAnnotation::StructureField & BasicStructureAnnotation::addFieldEx ( const string & na, const string & cppNa, off_t offset, const TypeDeclPtr & pT ) {
         auto & field = fields[na];
         if ( field.decl ) {
             DAS_FATAL_ERROR("structure field %s already exist in structure %s\n", na.c_str(), name.c_str() );
@@ -170,6 +197,7 @@ namespace das {
                     }
                 }
             }
+            sti->module_name = debugInfo->allocateCachedName(this->module->name);
         }
 
     }
@@ -227,5 +255,50 @@ namespace das {
             }
             return true;
         },"*");
+    }
+
+    void reportTrait ( const TypeDeclPtr & type, const string & prefix, set<Structure *> & visited, const callable<void(const TypeDeclPtr &, const string &)> & report ) {
+        report(type, prefix);
+        if ( type->baseType==Type::tPointer ) {
+            // trait never propages via pointer
+            //if ( type->firstType ) reportTrait(type->firstType, prefix, visited, report);
+        } else if ( type->baseType==Type::tStructure ) {
+            if ( type->structType ) {
+                if ( visited.find(type->structType)!=visited.end() ) return;
+                visited.insert(type->structType);
+                for ( auto & fld : type->structType->fields ) {
+                    reportTrait(fld.type, prefix+"."+fld.name, visited, report);
+                }
+            }
+        } else if ( type->baseType==Type::tTuple || type->baseType==Type::tVariant ) {
+            if ( type->argNames.size() ) {
+                int index = 0;
+                for ( auto & argN : type->argNames ) {
+                    reportTrait(type->argTypes[index], prefix+"."+argN, visited, report);
+                    index++;
+                }
+            } else if ( type->argTypes.size() ) {
+                for ( size_t i=0; i!=type->argTypes.size(); ++i ) {
+                    reportTrait(type->argTypes[i], prefix+"."+to_string(i), visited, report);
+                }
+            }
+        } else if ( type->baseType==Type::tArray ) {
+            if ( type->firstType ) reportTrait(type->firstType, prefix+"[]", visited, report);
+        } else if ( type->baseType==Type::tTable ) {
+            if ( type->firstType ) reportTrait(type->firstType, prefix+".key", visited, report);
+            if ( type->secondType ) reportTrait(type->secondType, prefix+".value", visited, report);
+        } else if ( type->baseType==Type::tHandle ) {
+            if ( type->annotation->rtti_isBasicStructureAnnotation() ) {
+                auto sa = (BasicStructureAnnotation *)(type->annotation);
+                for ( auto & fld : sa->fields ) {
+                    reportTrait((fld.second).decl, prefix+"."+fld.first, visited, report);
+                }
+            }
+        }
+    }
+
+    void reportTrait ( const TypeDeclPtr & type, const string & prefix, const callable<void(const TypeDeclPtr &, const string &)> & report ) {
+        set<Structure *> visisted;
+        reportTrait(type, prefix, visisted, report);
     }
 }

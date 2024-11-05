@@ -69,23 +69,6 @@ struct ObjectStructureTypeAnnotation : ManagedStructureAnnotation <Object> {
 
 MAKE_TYPE_FACTORY(Object, Object)
 
-namespace das {
-    template <>
-    struct typeName<ObjectArray> {
-        constexpr static const char * name() {
-            return "ObjectArray";
-        }
-    };
-};
-
-namespace das {
-
-	IMPLEMENT_OP2_EVAL_BOOL_POLICY(Equ, Object);
-	IMPLEMENT_OP2_EVAL_BOOL_POLICY(NotEqu, Object);
-
-}
-
-
 ___noinline int AddOne(int a) {
     return a+1;
 }
@@ -383,11 +366,11 @@ void aotEsRunBlock ( TextWriter & ss, EsAttributeTable * table, const vector<EsC
             if (def_s) {
                 ss << "\"" << def_s << "\"";
             } else if ( table->attributes[a].size==4 ) {
-                ss << to_string_ex(v_extract_x(def)) << "f";
+                ss << to_cpp_float(v_extract_x(def));
             } else {
                 ss << "v_make_vec4f("
-                    << to_string_ex(v_extract_x(def)) << "f," << to_string_ex(v_extract_y(def)) << "f,"
-                    << to_string_ex(v_extract_z(def)) << "f," << to_string_ex(v_extract_w(def)) << "f)";
+                    << to_cpp_float(v_extract_x(def)) << "," << to_cpp_float(v_extract_y(def)) << ","
+                    << to_cpp_float(v_extract_z(def)) << "," << to_cpp_float(v_extract_w(def)) << ")";
             }
         }
     }
@@ -950,6 +933,12 @@ uint32_t testMaxFrom1s(uint32_t x) {
     return res;
 }
 
+void testTableSort ( TArray<int32_t> & tab ) {
+    int32_t * begin = (int32_t *)(tab.data);
+    int32_t * end = begin + tab.size;
+    sort(begin, end, [&](int32_t a, int32_t b) { return a > b; });
+}
+
 class Module_TestProfile : public Module {
 public:
     Module_TestProfile() : Module("testProfile") {
@@ -960,7 +949,9 @@ public:
         // register types
         addAnnotation(make_smart<ObjectStructureTypeAnnotation>(lib));
         addAnnotation(make_smart<ManagedVectorAnnotation<ObjectArray>>("ObjectArray",lib));
-        addFunctionBasic<Object>(*this, lib);
+        addExtern<DAS_BIND_FUN(objEqu)>(*this, lib, "==",SideEffects::none,"objEqu");
+        addExtern<DAS_BIND_FUN(objNeq)>(*this, lib, "!=",SideEffects::none,"objNeq");
+        addUsing<ObjectArray>(*this, lib, "ObjectArray");
         registerVectorFunctions<ObjectArray>::init(this, lib, true, true);
         // register functions
         addExtern<DAS_BIND_FUN(AddOne)>(*this,lib,"AddOne",SideEffects::none, "AddOne");
@@ -997,6 +988,7 @@ public:
         addExtern<DAS_BIND_FUN(testNBodiesS)>(*this, lib, "testNBodiesS",SideEffects::modifyExternal,"testNBodiesS");
         addExtern<DAS_BIND_FUN(testTree)>(*this, lib, "testTree",SideEffects::modifyExternal,"testTree");
         addExtern<DAS_BIND_FUN(testMaxFrom1s)>(*this, lib, "testMaxFrom1s",SideEffects::modifyExternal,"testMaxFrom1s");
+        addExtern<DAS_BIND_FUN(testTableSort)>(*this, lib, "testTableSort",SideEffects::modifyExternal,"testTableSort");
         // its AOT ready
         verifyAotReady();
     }

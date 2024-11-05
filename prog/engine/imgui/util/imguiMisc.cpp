@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gui/dag_imguiUtil.h>
 
 // Helper to display a little (?) mark which shows a tooltip when hovered.

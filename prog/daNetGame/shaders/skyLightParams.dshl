@@ -1,0 +1,32 @@
+float4 skylight_params = (0, 1, 1, 1);
+float4 skylight_sky_atten = (1, 1, 0, 0);
+
+macro INIT_SKYLIGHT_PARAMS(stage)
+  (stage) {
+    skylight_params@f4 = skylight_params;
+  }
+endmacro
+macro USE_SKYLIGHT_PARAMS(stage)
+  hlsl(stage) {
+    #define skylight_progress skylight_params.x
+    #define skylight_ambient_atten skylight_params.y
+    #define skylight_sun_atten skylight_params.z
+    #define skylight_gi_weight_atten skylight_params.w
+  }
+endmacro
+
+macro USING_SKYLIGHT_PARAMS(stage)
+  INIT_SKYLIGHT_PARAMS(stage)
+  USE_SKYLIGHT_PARAMS(stage)
+endmacro
+
+macro USING_SKY_ATTENUATION(stage)
+  (stage) {
+    skylight_sky_atten_consts@f2 = skylight_sky_atten;
+  }
+  hlsl(stage) {
+    #define skylight_base_sky_atten skylight_sky_atten_consts.x
+    #define skylight_sky_atten skylight_sky_atten_consts.y
+  }
+  USE_SKYLIGHT_PARAMS(stage)
+endmacro

@@ -1,0 +1,305 @@
+include "land_block_inc.dshl"
+include "clipmap.dshl"
+include "shader_global.dshl"
+include "skyLight.dshl"
+include "gbuffer.dshl"
+
+texture paint_details_tex;
+int bvh_paint_details_tex_slot;
+int bvh_paint_details_smp_slot;
+
+texture bvh_atmosphere_texture;
+float bvh_atmosphere_texture_distance = 10000;
+
+// use_cockpit_lights is Skyquake specific
+macro INIT_RT_LIGHTING(stage, use_cockpit_lights, use_sampler_for_cloud_shadows)
+  INIT_CLIPMAP_NORMAL_BASE(stage)
+  INIT_WORLD_HEIGHTMAP_BASE(stage)
+  INIT_SKY_DIFFUSE_BASE(stage)
+  INIT_ENVI_SPECULAR_BASE(stage)
+  if (gi_quality == only_ao)
+  {
+    DAGI_SKY_VIS_SAMPLE_INIT(stage)
+  }
+  else
+  {
+    DAGI_IRRADIANCE_GRID_SAMPLE_INIT(stage)
+  }
+  (stage) {
+    paint_details_tex_slot@i1 = bvh_paint_details_tex_slot;
+    paint_details_smp_slot@i1 = bvh_paint_details_smp_slot;
+
+    // Atmosphere
+    atmosphere_texture@smpArray = bvh_atmosphere_texture;
+    atmosphere_texture_distance@f1 = bvh_atmosphere_texture_distance;
+  }
+  endmacro
+
+macro USE_RT_LIGHTING(stage, use_cockpit_lights)
+  hlsl(stage) {
+    #define NO_GRADIENTS_IN_SHADER 1
+
+    #include "pbr/pbr.hlsl"
+    #include <psh_tangent.hlsl>
+    #include <normaldetail.hlsl>
+
+    #define paint_details_tex bvh_textures[bvh_textures_range_start + paint_details_tex_slot]
+    #define paint_details_tex_samplerstate bvh_samplers[paint_details_smp_slot]
+  }
+  USE_CLIPMAP_NORMAL_BASE(stage)
+  USE_HEIGHTMAP_COMMON_BASE(stage)
+  USE_SKY_DIFFUSE_BASE(stage)
+  USE_ROUGH_TO_MIP()
+  USE_SKY_SPECULAR_BASE(stage)
+  PACK_UNPACK_GBUFFER_BASE(stage)
+  USING_SKYLIGHT_PARAMS(stage)
+
+  if (gi_quality == only_ao)
+  {
+    DAGI_SKY_VIS_SAMPLE_USE(stage)
+  }
+  else
+  {
+    DAGI_IRRADIANCE_GRID_SAMPLE_USE(stage)
+  }
+  USE_COSINE_SAMPLING(stage)
+
+  hlsl(stage)
+  {
+    // copy pasted from shader_global, that only had a ps version
+    half3 restore_normal(half2 xy)
+    {
+      half3 normal;
+      normal.xy = xy*2-1;
+      normal.z = sqrt(saturate(1-dot(normal.xy,normal.xy)));
+      return normal;
+    }
+    half get_specular_intensity_from_color(half3 color)
+    {
+      return pow4(color.r);
+    }
+
+    // Wrappers to have the same interface as Skyquake
+    struct Vtex
+    {
+      half3 diffuse;
+      half2 normal_xy;
+      half reflectance, smoothness, ao, emission;
+      DetailDesc detailNo;
+    };
+    Vtex sample_clipmaps(float3 worldPos, float4 world_pos_xz_gradients, half smooth_mip)
+    {
+      Vtex vtex = (Vtex)0;
+      sample_clipmaps(worldPos.xz, world_pos_xz_gradients,
+        vtex.diffuse, vtex.normal_xy, vtex.smoothness, vtex.ao,
+        vtex.reflectance, vtex.emission, vtex.detailNo, smooth_mip);
+      return vtex;
+    }
+    float3 get_land_normal_from_normalmap(float3 worldPos)
+    {
+      Vtex textures = sample_clipmaps(worldPos, 0, 0);
+      float3 normal = getNormalLow(worldPos.xz);
+      normal.xzy = RNM_ndetail_normalized(normal.xzy, restore_normal(textures.normal_xy));
+      return normal;
+    }
+
+    half3 get_gi_ambient(float3 worldPos, half3 diffuseNormal, half3 enviLight)
+    {
+      half3 ambient = enviLight;
+      ##if (gi_quality == only_ao)
+        float4 sh1 = dagi_get_sky_visibility_smooth_sh1(world_view_pos.xyz, worldPos, 0, 0, diffuseNormal, 0);
+        if (all(sh1 != 1))
+          ambient = GetSHFunctionValueSimple(diffuseNormal, enviSPH0 * sh1.wyzx, enviSPH1 * sh1.wyzx, enviSPH2 * sh1.wyzx);
+      ##else
+          dagi_irrad_grid_diffuse(worldPos, diffuseNormal, ambient);
+      ##endif
+      return ambient;
+    }
+
+    // from paint_details_inc.dshl
+    half3 getColorMul(uint paint_palette_row, uint palette_index, uint paint_palette_col)
+    {
+      half correction = 4.59479341998814;
+      uint2 dim;
+      paint_details_tex.GetDimensions(dim.x, dim.y);
+      dim.x >>= 1;
+      half3 colorMul = paint_details_tex[uint2(paint_palette_col%dim.x + dim.x * palette_index, paint_palette_row % dim.y)].rgb;
+      colorMul *= correction;
+      return colorMul;
+    }
+
+    // from const_color_inc.dshl
+    half3 get_color_mul(half3 colorMul, half4 const_color)
+    {
+      const_color.xyz *= 2;
+      return lerp(colorMul * const_color.rgb, const_color.rgb, const_color.w);
+    }
+
+    void apply_painting(HitInfo hitInfo, half paint_weight, inout half3 albedo)
+    {
+      ##if paint_details_tex != NULL
+      if (!has_material_painted(hitInfo.material))
+        return;
+
+      uint paint_palette_row = hitInfo.materialData1.x;
+      uint palette_index = hitInfo.materialData1.y;
+      uint paint_palette_col = asuint(hitInfo.perInstanceData.x);
+      half4 colorOverride = half4(hitInfo.materialData2);
+
+      half3 paintColor = getColorMul(paint_palette_row, palette_index, paint_palette_col);
+      paintColor = get_color_mul(paintColor, colorOverride);
+      albedo = lerp(albedo.rgb, albedo.rgb * paintColor, paint_weight);
+      ##endif
+    }
+
+    void apply_painting(HitInfo hitInfo, inout half3 albedo)
+    {
+      apply_painting(hitInfo, half(hitInfo.materialData1.w), albedo);
+    }
+
+    half3 calc_layers(HitInfo hitInfo, float mip_level)
+    {
+      return 0;
+    }
+
+    void calc_atmosphere(inout half3 litPixel, float3 position, float distance)
+    {
+      ##if bvh_atmosphere_texture != NULL
+        float3 atmosphereDir = normalize(float3(position.x, 0, position.z));
+        float angle = atan2(atmosphereDir.x, atmosphereDir.z);
+        if (angle < 0)
+          angle += 2 * PI;
+        float2 tc = float2(angle / (2 * PI), distance / atmosphere_texture_distance);
+        half3 insc = half3(tex3Dlod(atmosphere_texture, float4(tc, 0, 0)).rgb); // add
+        half3 loss = half3(tex3Dlod(atmosphere_texture, float4(tc, 1, 0)).rgb); // mul
+        litPixel = litPixel * loss + insc;
+      ##endif
+    }
+
+    half3 light_hit_surface(HitInfo hitInfo, half3 view, float w, float ray_max)
+    {
+      float3 worldPos = hitInfo.position + bvh_origin;
+      float distance = w + hitInfo.t;
+      float mipLevel = min(3, distance / 50);
+
+      half3 albedo;
+      half smoothness;
+      half metalness = 0;
+      half reflectance = 0.5;
+      if (get_material_type(hitInfo.material) == bvhMaterialTerrain)
+      {
+        float totalRayT = w + hitInfo.t;
+        float calculatedDx = totalRayT / 1000;
+        Vtex textures = sample_clipmaps(worldPos, calculatedDx, 0);
+        albedo = textures.diffuse;
+        hitInfo.normal = getNormalLow(worldPos.xz);
+        hitInfo.normal.xzy = RNM_ndetail_normalized(hitInfo.normal.xzy, restore_normal(textures.normal_xy));
+        smoothness = textures.smoothness;
+        metalness = textures.reflectance;
+      }
+      else if (get_material_type(hitInfo.material) == bvhMaterialRendinst)
+      {
+        if (hitInfo.albedoTextureIndex != 0xFFFF)
+        {
+          SamplerState bvh_sampler = bvh_samplers[hitInfo.albedoSamplerIndex];
+          half4 texel = (half4)bvh_textures[bvh_textures_range_start + hitInfo.albedoTextureIndex].SampleLevel(bvh_sampler, hitInfo.texcoord, mipLevel);
+          albedo = texel.rgb;
+          apply_painting(hitInfo, albedo);
+        }
+        else
+          albedo = 1;
+
+        if (hitInfo.normalTextureIndex != 0xFFFF)
+        {
+          SamplerState bvh_sampler = bvh_samplers[hitInfo.normalSamplerIndex];
+          half4 texel = (half4) bvh_textures[bvh_textures_range_start + hitInfo.normalTextureIndex].SampleLevel(bvh_sampler, hitInfo.texcoord, mipLevel);
+          smoothness = texel.r;
+          metalness = texel.b;
+        }
+        else
+        {
+          smoothness = get_specular_intensity_from_color(albedo);
+          metalness = 0.0;
+        }
+      }
+      else
+        return 0;
+
+      half3 normalh = (half3)hitInfo.normal;
+
+      half linearRoughness = linearSmoothnessToLinearRoughness(smoothness);
+      half ggx_alpha = max(1e-4, linearRoughness * linearRoughness);
+      half3 surfaceSpecularColor = decodeSpecularColor(reflectance, metalness, albedo);
+      half ao = 1;
+
+      half3 lightColor = (half3)sun_color_0.rgb;
+      half3 toSun = (half3)-from_sun_direction.xyz;
+      half NoL = dot(normalh, toSun);
+      half NdotV = dot(normalh, view);
+      half3 reflectionVec = 2 * NdotV * normalh - view;
+      half NoV = abs(NdotV) + 1e-5h;
+
+      // TODO: Have two sided in model meta and set bias accordingly
+      half shadow = is_obstructed(bvhMain, hitInfo.position, toSun, 0, ray_max, w + hitInfo.t, bvhGroupAll & ~bvhGroupGrass) ? 0 : 1;
+
+      half extractedAlbedoAo = decode_albedo_ao(albedo);
+      half3 diffuseColor = albedo - metalness * albedo;
+
+      half specularAOcclusion = 1;
+      half3 specularColor = surfaceSpecularColor * (specularAOcclusion * extractedAlbedoAo);
+      half enviSSR = 1;
+      half sheenColor = 0, sheenStrength = 0;
+
+      half3 litPixel = standardBRDF( NoV, saturate(NoL), diffuseColor, ggx_alpha, linearRoughness, specularColor, enviSSR*extractedAlbedoAo, toSun, view, normalh, sheenColor, sheenStrength)*(shadow)*lightColor;
+
+      half3 enviLightingNormal = normalize(getDiffuseDominantDir(normalh, view, saturate(NdotV), ggx_alpha));
+      half3 enviLight = GetSkySHDiffuse(enviLightingNormal);
+      half3 ambient = get_gi_ambient(worldPos, enviLightingNormal, enviLight);
+      ambient *= skylight_gi_weight_atten;
+
+      half3 environmentAmbientUnoccludedLighting = ambient * diffuseColor;
+      litPixel += ao * environmentAmbientUnoccludedLighting;
+
+      half3 roughR = getRoughReflectionVec(reflectionVec.xyz, normalh, ggx_alpha);
+      half3 environmentAmbientReflection = getSkyReflection(linearRoughness, roughR, NoV, specularColor);
+
+      if (any(enviLight != ambient))
+      {
+        float mipForTrick = linearRoughness*NUM_PROBE_MIPS;
+        float maximumSpecValue = max3(
+          1.26816,
+          9.13681 * exp2( 6.85741 - 2 * mipForTrick ) * NdotV,
+          9.70809 * exp2( 7.085 - mipForTrick - 0.403181 * pow2(mipForTrick)) * NdotV );
+        maximumSpecValue = min(maximumSpecValue, 32);//to be removed with envi light probes in rooms
+        float3 adjustedMaxSpec = ambient * maximumSpecValue;
+        float3 reflection = environmentAmbientReflection * (adjustedMaxSpec / ( adjustedMaxSpec + environmentAmbientReflection + 0.001));//avoid nans
+        environmentAmbientReflection = reflection;
+      }
+
+      litPixel += environmentAmbientReflection;
+
+      calc_atmosphere(litPixel, hitInfo.position, distance);
+
+      return litPixel;
+    }
+  }
+endmacro
+
+macro GET_SCATTERED_REFLECTION_VECTOR(stage)
+  hlsl(stage)
+  {
+    half3 get_scattered_reflection_vector(half3 reflection_vector, inout float seed, half roughness)
+    {
+      return cosine_sample_hemisphere(reflection_vector, seed, pow2(roughness));
+    }
+  }
+endmacro
+
+macro WETNESS_FOR_SPEC_BRDF(stage)
+  hlsl(stage) {
+    void apply_env_wetness(float3 world_pos, float3 vertical_normal, float3 view, float material, inout half3 albedo, inout half smoothness, inout float3 normal, inout half reflectance)
+    {
+      // TODO: Implement
+    }
+  }
+endmacro

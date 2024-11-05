@@ -1,14 +1,16 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <stdint.h>
+#include <shaders/dag_shaderState.h>
 
-
-void update_bindless_state(uint32_t const_state_idx, int tex_level);
-uint32_t get_material_offset(uint32_t const_state_idx);
-uint32_t get_material_id(uint32_t const_state_idx);
-bool is_packed_material(uint32_t const_state_idx);
+void update_bindless_state(shaders::ConstStateIdx const_state_idx, int tex_level);
+uint32_t get_material_offset(shaders::ConstStateIdx const_state_idx);
+uint32_t get_material_id(shaders::ConstStateIdx const_state_idx)
+#if defined(__GNUC__) || defined(__clang__)
+  __attribute__((const))
+#endif
+  ;
+bool is_packed_material(shaders::ConstStateIdx const_state_idx);

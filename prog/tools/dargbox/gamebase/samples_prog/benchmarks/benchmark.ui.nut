@@ -13,16 +13,14 @@ const calcLayout = false
 
 let cursors = require("samples_prog/_cursors.nut")
 
-let state =  persist("state", @() {
-  timer = Watched(0)
-})
+let timer =  mkWatched(persist, "timer", 0)
 
 local timerFloat = 0
 let showChild = []
 
 gui_scene.setUpdateHandler(function(dt) {
   timerFloat += dt
-  state.timer.update(math.floor(timerFloat).tointeger())
+  timer.update(math.floor(timerFloat).tointeger())
 })
 
 
@@ -35,7 +33,7 @@ function simpleComponent(val){
 
   if (borders && showChild[val].value) {
     children.append(@() {
-                 //color = Color(rc+state.timer.value*57,rc+state.timer.value*31,rc+state.timer.value*89)
+                 //color = Color(rc+timer.value*57,rc+state.timer.value*31,rc+state.timer.value*89)
                  //color = Color(frc(),frc(),frc())
                  borderWidth = [1,1,1,1]
                  rendObj=ROBJ_FRAME size=[flex(),flex()]
@@ -49,9 +47,9 @@ function simpleComponent(val){
   if (texts && showChild[val].value) {
     children.append( @() {
                  rendObj=ROBJ_TEXT
-                 //text = string.format("%02d", state.timer.value%60)
+                 //text = string.format("%02d", timer.value%60)
                  behavior = rt_update ? [Behaviors.RtPropUpdate] : null
-                 update = @() {text = string.format("%02d", state.timer.value%60)}
+                 update = @() {text = string.format("%02d", timer.value%60)}
                  rtRecalcLayout = rtRecalcLayout
                })
    }

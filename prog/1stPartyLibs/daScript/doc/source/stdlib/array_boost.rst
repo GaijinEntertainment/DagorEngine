@@ -20,8 +20,8 @@ Temporary arrays
 
   *  :ref:`temp_array (arr:auto implicit ==const -const) : auto <function-_at_array_boost_c__c_temp_array_I_eq_.>` 
   *  :ref:`temp_array (arr:auto const implicit ==const) : auto <function-_at_array_boost_c__c_temp_array_CI_eq_.>` 
-  *  :ref:`temp_array (data:auto? ==const -const;lenA:int const;a:auto(TT) const) : array\<TT -const -#\> <function-_at_array_boost_c__c_temp_array__eq_1_ls_._gr_?_Ci_CY_ls_TT_gr_.>` 
-  *  :ref:`temp_array (data:auto? const ==const;lenA:int const;a:auto(TT) const) : array\<TT -const -#\> const <function-_at_array_boost_c__c_temp_array_C_eq_1_ls_._gr_?_Ci_CY_ls_TT_gr_.>` 
+  *  :ref:`temp_array (data:auto? ==const -const;lenA:int const;a:auto(TT) const) : array\<TT -const -#\> <function-_at_array_boost_c__c_temp_array__eq_1_ls_._gr__qm__Ci_CY_ls_TT_gr_.>` 
+  *  :ref:`temp_array (data:auto? const ==const;lenA:int const;a:auto(TT) const) : array\<TT -const -#\> const <function-_at_array_boost_c__c_temp_array_C_eq_1_ls_._gr__qm__Ci_CY_ls_TT_gr_.>` 
 
 .. _function-_at_array_boost_c__c_temp_array_I_eq_.:
 
@@ -67,7 +67,7 @@ Important requirements are:
     * each element follows the next one directly, with the stride equal to size of the element
     * object memory does not change within the lifetime of the returned array
 
-.. _function-_at_array_boost_c__c_temp_array__eq_1_ls_._gr_?_Ci_CY_ls_TT_gr_.:
+.. _function-_at_array_boost_c__c_temp_array__eq_1_ls_._gr__qm__Ci_CY_ls_TT_gr_.:
 
 .. das:function:: temp_array(data: auto? ==const; lenA: int const; a: auto(TT) const)
 
@@ -93,7 +93,7 @@ Important requirements are:
     * each element follows the next one directly, with the stride equal to size of the element
     * object memory does not change within the lifetime of the returned array
 
-.. _function-_at_array_boost_c__c_temp_array_C_eq_1_ls_._gr_?_Ci_CY_ls_TT_gr_.:
+.. _function-_at_array_boost_c__c_temp_array_C_eq_1_ls_._gr__qm__Ci_CY_ls_TT_gr_.:
 
 .. das:function:: temp_array(data: auto? const ==const; lenA: int const; a: auto(TT) const)
 
@@ -167,7 +167,7 @@ creates a view of the array, which is a temporary array that is valid only withi
 
 .. _function-_at_array_boost_c__c_array_view__eq_1_ls_Y_ls_TT_gr_._gr_A_Ci_Ci_CN_ls_view_gr_0_ls__hh_1_ls_Y_ls_TT_gr_L_gr_A_gr_1_ls_v_gr__builtin_:
 
-.. das:function:: array_view(bytes: array<auto(TT)> ==const; offset: int const; length: int const; blk: block<(var view:array<TT># -const):void> const)
+.. das:function:: array_view(bytes: array<auto(TT)> ==const; offset: int const; length: int const; blk: block<(var view:array<TT>#):void> const)
 
 array_view returns auto
 

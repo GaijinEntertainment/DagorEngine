@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/fastPhysData/fp_data.h>
 #include <libTools/fastPhysData/fp_edbone.h>
 #include <libTools/fastPhysData/fp_edclipper.h>
@@ -11,7 +13,7 @@
 
 //------------------------------------------------------------------
 
-void ActionsTreeCB::onTvSelectionChange(TreeBaseWindow &tree, TLeafHandle new_sel)
+void ActionsTreeCB::onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle new_sel)
 {
   // objEd->getUndoSystem()->begin();
 
@@ -40,17 +42,17 @@ void ActionsTreeCB::onTvSelectionChange(TreeBaseWindow &tree, TLeafHandle new_se
 }
 
 
-void ActionsTreeCB::onTvListSelection(TreeBaseWindow &tree, int index) {}
+void ActionsTreeCB::onTvListSelection(PropPanel::TreeBaseWindow &tree, int index) {}
 
 
-bool ActionsTreeCB::onTvContextMenu(TreeBaseWindow &tree, TLeafHandle under_mouse, IMenu &menu) { return false; }
+bool ActionsTreeCB::onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree) { return false; }
 
 
 //------------------------------------------------------------------
 
 void FPPanel::refillPanel()
 {
-  PropertyContainerControlBase *panel = mPlugin.getPluginPanel();
+  PropPanel::ContainerPropertyControl *panel = mPlugin.getPluginPanel();
   if (panel)
   {
     panel->clear();
@@ -71,7 +73,7 @@ void FPPanel::refillPanel()
       String s(256, "Selected %d objects", _cnt);
       panel->createStatic(PID_OBJ_NAME, s.str());
     }
-    PropertyContainerControlBase &fpGrp = *panel->createGroup(PID_FAST_PHYS_PARAMS_GROUP, "Fast phys params");
+    PropPanel::ContainerPropertyControl &fpGrp = *panel->createGroup(PID_FAST_PHYS_PARAMS_GROUP, "Fast phys params");
     Point3 windVel;
     float windPower, windTurb;
     mPlugin.getEditor()->getWind(windVel, windPower, windTurb);
@@ -82,7 +84,7 @@ void FPPanel::refillPanel()
 }
 
 
-void FPPanel::onChange(int pcb_id, PropPanel2 *panel)
+void FPPanel::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   if (pcb_id == PID_WIND_VEL || pcb_id == PID_WIND_POWER || pcb_id == PID_WIND_TURB)
     mPlugin.getEditor()->setWind(panel->getPoint3(PID_WIND_VEL), panel->getFloat(PID_WIND_POWER), panel->getFloat(PID_WIND_TURB));
@@ -94,7 +96,7 @@ void FPPanel::onChange(int pcb_id, PropPanel2 *panel)
 }
 
 
-void FPPanel::onClick(int pcb_id, PropPanel2 *panel)
+void FPPanel::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   IFPObject *wobj = mPlugin.getEditor()->getSelObject();
 

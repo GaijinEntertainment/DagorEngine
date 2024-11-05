@@ -19,6 +19,11 @@ array minus 1. An array's elements can be obtained by their index.
   push(b,1)
   assert(b[0] == 1)
 
+Alternative syntax is::
+
+  var a = fixed_array(1,2,3,4)
+  var a = fixed_array<int>(1,2,3,4)
+
 There are static arrays (of fixed size, allocated on the stack), and dynamic arrays (size is dynamic, allocated on the heap)::
 
   var a = [[int[4] 1; 2; 3; 4]] // fixed size of array is 4, and content is [1, 2, 3, 4]
@@ -64,6 +69,11 @@ Dynamic arrays can also be constructed inline::
 This is syntactic equivalent to::
 
 	let arr : array<string> <- to_array_move([[string[3] "one"; "two"; "three"]])
+
+Alternative syntax is::
+
+  let arr <- array(1., 2., 3., 4.5)
+  let arr <- array<float>(1., 2., 3., 4.5)
 
 If only one element is specified, local data construction is of that element::
 

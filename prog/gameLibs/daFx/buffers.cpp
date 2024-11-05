@@ -1,5 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "buffers.h"
 #include "context.h"
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_info.h>
 
 namespace dafx
 {
@@ -68,7 +72,7 @@ typename T::Page *create_gen_buffer(T &dst, unsigned int sz, typename T::Buffer 
     const typename T::Page *page = dst.pages.getByIdx(i);
     if (page && page->available >= sz)
     {
-      cid = dst.pages.createReferenceFromIdx(i);
+      cid = dst.pages.getRefByIdx(i);
       break;
     }
   }
@@ -122,7 +126,7 @@ bool create_cpu_buffer(CpuBufferPool &dst, unsigned int sz, CpuBuffer &out)
 }
 
 template <typename T>
-void release_buffer(T &dst, typename T::Buffer &buf)
+void release_buffer(T &dst, typename T::Buffer &buf, bool delayed_destroy)
 {
   G_ASSERT_RETURN(buf.size > 0, );
 
@@ -137,16 +141,31 @@ void release_buffer(T &dst, typename T::Buffer &buf)
   G_ASSERT_RETURN(page->garbage <= page->size, );
   if (page->garbage == page->size - page->available)
   {
-    dst.pages.destroyReference(buf.pageId);
+    if (delayed_destroy)
+    {
+      page->available = 0;
+      dst.pagesToDestroy.push_back(buf.pageId);
+    }
+    else
+      dst.pages.destroyReference(buf.pageId);
     DBG_OPT("free page");
   }
 
   buf.pageId = typename T::PageId();
 }
 
-void release_gpu_buffer(GpuBufferPool &dst, GpuBuffer &buf) { release_buffer(dst, buf); }
+void release_gpu_buffer(GpuBufferPool &dst, GpuBuffer &buf, bool delayed_destroy) { release_buffer(dst, buf, delayed_destroy); }
 
-void release_cpu_buffer(CpuBufferPool &dst, CpuBuffer &buf) { release_buffer(dst, buf); }
+void release_cpu_buffer(CpuBufferPool &dst, CpuBuffer &buf) { release_buffer(dst, buf, false); }
+
+void exec_delayed_page_destroy(GpuBufferPool &dst)
+{
+  for (GpuPageId pageId : dst.pagesToDestroy)
+    if (!dst.pages.destroyReference(pageId))
+      logerr("dafx: invalid page id in delayed destroy queue");
+
+  dst.pagesToDestroy.clear();
+}
 
 bool update_gpu_cb_buffer(Sbuffer *res, const void *src, unsigned int src_size)
 {

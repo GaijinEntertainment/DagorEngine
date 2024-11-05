@@ -1,6 +1,5 @@
-#ifndef FLOAD_H
-
-#define FLOAD_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 // ############################################################################
 // ##                                                                        ##
@@ -49,5 +48,3 @@ private:
   char *mReadLoc;
   int mReadLen;
 };
-
-#endif

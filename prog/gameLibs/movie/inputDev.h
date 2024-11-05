@@ -1,16 +1,16 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-
-#include <humanInput/dag_hiGlobals.h>
-#include <humanInput/dag_hiJoystick.h>
-#include <humanInput/dag_hiJoyData.h>
-#include <humanInput/dag_hiKeyboard.h>
-#include <humanInput/dag_hiKeybData.h>
-#include <humanInput/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiJoystick.h>
+#include <drv/hid/dag_hiJoyData.h>
+#include <drv/hid/dag_hiKeyboard.h>
+#include <drv/hid/dag_hiKeybData.h>
+#include <drv/hid/dag_hiKeybIds.h>
 
 #if _TARGET_TVOS
-#include <humanInput/dag_hiXInputMappings.h>
-#include <humanInput/dag_hiTvosMap.h>
+#include <drv/hid/dag_hiXInputMappings.h>
+#include <drv/hid/dag_hiTvosMap.h>
 #endif
 
 extern bool fullScreenMovieSkipped;

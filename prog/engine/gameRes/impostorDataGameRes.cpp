@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_debug.h>
 #include <gameRes/dag_dumpResRefCountImpl.h>
 #include <gameRes/dag_gameResSystem.h>

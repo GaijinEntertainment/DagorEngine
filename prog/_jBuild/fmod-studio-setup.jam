@@ -1,5 +1,14 @@
-FmodStudioSoSuffix = [ MATCH "[0-9]+\.0*([0-9]+)\.0*([0-9]+)" : $(FmodStudio) ] ;
-FmodStudioSoSuffix = .$(FmodStudioSoSuffix[1]).$(FmodStudioSoSuffix[2]) ;
+if $(FmodStudio) = none { return ; }
+FmodStudioSoSuffix = [ MATCH "([0-9]+)\.([0-9]+|xx)\.0*([0-9]+|xx)" : $(FmodStudio) ] ;
+switch $(FmodStudioSoSuffix[1]).$(FmodStudioSoSuffix[2]) {
+  case 1.10 : FmodStudioSoSuffix = .10.$(FmodStudioSoSuffix[3]) ;
+  case 2.00 : FmodStudioSoSuffix = .11.$(FmodStudioSoSuffix[3]) ;
+  case 2.01 : FmodStudioSoSuffix = .12.$(FmodStudioSoSuffix[3]) ;
+  case 2.02 : FmodStudioSoSuffix = .13.$(FmodStudioSoSuffix[3]) ;
+  case 2.xx : FmodStudioSoSuffix = " " ;
+  case 2.03 : FmodStudioSoSuffix = .14.$(FmodStudioSoSuffix[3]) ;
+  case * : exit unexpected FmodStudio=$(FmodStudio) version: $(FmodStudioSoSuffix[1]).$(FmodStudioSoSuffix[2]).$(FmodStudioSoSuffix[3]) ;
+}
 
 FmodStudioRoot ?= $(_DEVTOOL)/fmod-studio-$(FmodStudio) ;
 local FmodStudioCoreFolder = ;
@@ -7,38 +16,54 @@ switch $(FmodStudio) {
   case 1.* : FmodStudioCoreFolder = lowlevel ;
   case *   : FmodStudioCoreFolder = core ;
 }
+local platform_suffix = $(Platform) ;
+if $(Platform) in xboxOne scarlett { platform_suffix = GDK ; }
+if ! [ GLOB $(FmodStudioRoot)/$(FmodStudioCoreFolder)/$(platform_suffix)/inc : * ] { platform_suffix = $(LegacyPlatformSuffix) ; }
 FmodIncPath =
-  $(FmodStudioRoot)/$(FmodStudioCoreFolder)/$(Platform)/inc
-  $(FmodStudioRoot)/studio/$(Platform)/inc
+  $(FmodStudioRoot)/$(FmodStudioCoreFolder)/$(platform_suffix)/inc
+  $(FmodStudioRoot)/studio/$(platform_suffix)/inc
 ;
 
-FmodStudioLowLibPath = $(FmodStudioRoot)/$(FmodStudioCoreFolder)/$(Platform)/lib ;
-FmodStudioApiLibPath = $(FmodStudioRoot)/studio/$(Platform)/lib ;
-if $(Platform) = linux64 {
-  FmodStudioLowLibPath = $(FmodStudioLowLibPath)/x86_64 ;
-  FmodStudioApiLibPath = $(FmodStudioApiLibPath)/x86_64 ;
-} else if $(Platform) = android {
-  FmodStudioLowLibPath = $(FmodStudioLowLibPath)/$(AndroidArch) ;
-  FmodStudioApiLibPath = $(FmodStudioApiLibPath)/$(AndroidArch) ;
-} else if $(Platform) = nswitch {
-  #fmod 2.02.14 or higher does not have nx32 nx64 folders
-  if $(FmodStudio) in 2.02.14 2.02.15 {
-    FmodStudioLowLibPath = $(FmodStudioLowLibPath) ;
-    FmodStudioApiLibPath = $(FmodStudioApiLibPath) ;
-  } else {
-    FmodStudioLowLibPath = $(FmodStudioLowLibPath)/nx64 ;
-    FmodStudioApiLibPath = $(FmodStudioApiLibPath)/nx64 ;
+local arch_suffix = ;
+if $(Platform) in windows linux android nswitch {
+  arch_suffix = $(PlatformArch) ;
+  if $(Platform) = windows && $(PlatformArch) = x86_64 { arch_suffix = x64 ; }
+  if $(Platform) = windows && $(platform_suffix) != windows { arch_suffix = ; }
+  if $(Platform) = nswitch { if $(FmodStudio) in 2.02.14 2.02.15 { arch_suffix = ; } else { arch_suffix = nx64 ; } }
+} else if $(Platform) in xboxOne scarlett { arch_suffix = $(Platform) ; }
+
+FmodStudioLowLibPath = $(FmodStudioRoot)/$(FmodStudioCoreFolder)/$(platform_suffix)/lib ;
+FmodStudioApiLibPath = $(FmodStudioRoot)/studio/$(platform_suffix)/lib ;
+FmodPluginResonanceAudioPath = $(FmodStudioRoot)/plugins/$(platform_suffix)/resonance_audio/lib ;
+if ! [ GLOB $(FmodStudioLowLibPath) : * ] {
+  local sdk_suffix ;
+  switch $(Platform) {
+    case ps4 :      sdk_suffix = sdk$(PS4SdkVer) ;
+    case ps5 :      sdk_suffix = sdk$(PS5SdkVer) ;
+    case xboxOne :  sdk_suffix = gdk$(GdkVer) ;
+    case scarlett : sdk_suffix = gdk$(GdkVer) ;
+    case nswitch :  sdk_suffix = sdk$(NSwitchSdkVer) ;
   }
+  if $(sdk_suffix) && [ GLOB $(FmodStudioLowLibPath).$(sdk_suffix) : * ] {
+    FmodStudioLowLibPath = $(FmodStudioLowLibPath).$(sdk_suffix) ;
+    FmodStudioApiLibPath = $(FmodStudioApiLibPath).$(sdk_suffix) ;
+    FmodPluginResonanceAudioPath = $(FmodPluginResonanceAudioPath).$(sdk_suffix) ;
+  }
+}
+if $(arch_suffix) {
+  FmodStudioLowLibPath = $(FmodStudioLowLibPath)/$(arch_suffix) ;
+  FmodStudioApiLibPath = $(FmodStudioApiLibPath)/$(arch_suffix) ;
+  FmodPluginResonanceAudioPath = $(FmodPluginResonanceAudioPath)/$(arch_suffix) ;
 }
 
 local libname_suffix = ;
 switch $(Platform) {
-  case win32 : libname_suffix = _vc.lib ;
-  case win64 : libname_suffix = _vc.lib ;
-  case linux64 : libname_suffix = .so$(FmodStudioSoSuffix) ;
-  case macosx : libname_suffix = .dylib ;
+  case windows : libname_suffix = _vc.lib ;
+  case linux : libname_suffix = .so$(FmodStudioSoSuffix) ;
+  case macOS : libname_suffix = .dylib ;
 
-  case xboxOne : libname_suffix = _vc.lib ;
+  case xboxOne  : libname_suffix = .lib ;
+  case scarlett : libname_suffix = .lib ;
   case ps4 : libname_suffix = _stub_weak.a ;
   case ps5 : libname_suffix = _stub_weak.a ;
 
@@ -48,16 +73,6 @@ switch $(Platform) {
   case nswitch : libname_suffix =  .a ;
 }
 
-if $(Platform) in xboxOne scarlett {
-  FmodIncPath =
-    $(FmodStudioRoot)/$(FmodStudioCoreFolder)/GDK/inc
-    $(FmodStudioRoot)/studio/GDK/inc
-  ;
-  FmodStudioLowLibPath = $(FmodStudioRoot)/$(FmodStudioCoreFolder)/GDK/lib/$(Platform) ;
-  FmodStudioApiLibPath = $(FmodStudioRoot)/studio/GDK/lib/$(Platform) ;
-  libname_suffix = .lib ;
-}
-
 local soname_suffix = $(libname_suffix) ;
 
 if $(Config) != rel { libname_suffix = L$(libname_suffix) ; }
@@ -65,7 +80,7 @@ if $(Config) != rel { libname_suffix = L$(libname_suffix) ; }
 # when concatenating with empty variable/list result is always empty.
 # http://david.freetype.org/jam/jam-language-1.html
 local lib_prefix = "" ;
-if $(Platform) in linux64 macosx ps4 ps5 android iOS tvOS nswitch {
+if $(Platform) in linux macOS ps4 ps5 android iOS tvOS nswitch {
   lib_prefix = lib ;
 }
 
@@ -76,15 +91,22 @@ FmodStaticLibs =
 
 if $(Platform) in ps4 ps5 {
   soname_suffix = .prx ;
-} else if $(Platform) in win32 win64 xboxOne scarlett {
+} else if $(Platform) in windows xboxOne scarlett {
   soname_suffix = .dll ;
 }
 
-if $(Config) != rel { soname_suffix = L$(soname_suffix) ; }
+local debuggable_soname_suffix = $(soname_suffix) ;
+if $(Config) != rel { debuggable_soname_suffix = L$(debuggable_soname_suffix) ; }
 FmodStudioSharedLibs =
-  $(FmodStudioLowLibPath)/$(lib_prefix)fmod$(soname_suffix)
-  $(FmodStudioApiLibPath)/$(lib_prefix)fmodstudio$(soname_suffix)
+  $(FmodStudioLowLibPath)/$(lib_prefix)fmod$(debuggable_soname_suffix)
+  $(FmodStudioApiLibPath)/$(lib_prefix)fmodstudio$(debuggable_soname_suffix)
 ;
+
+if $(FmodUseResonanceAudio) = yes {
+  FmodStudioSharedLibs +=
+    $(FmodPluginResonanceAudioPath)/$(lib_prefix)resonanceaudio$(soname_suffix)
+  ;
+}
 
 soname_suffix = ;
 lib_prefix = ;

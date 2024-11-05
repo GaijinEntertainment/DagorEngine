@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_console.h>
 #include <perfMon/dag_perfTimer.h>
 #include <perfMon/dag_statDrv.h>
@@ -7,11 +9,12 @@
 #include <daECS/core/internal/performQuery.h>
 #include <EASTL/algorithm.h>
 #include <EASTL/vector_map.h>
-#include <daECS/core/internal/trackComponentAccess.h>
 #include <daECS/core/internal/typesAndLimits.h>
 #include <ecs/core/utility/ecsBlkUtils.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_memIo.h>
+#include <ioSys/dag_fileIo.h>
+#include <osApiWrappers/dag_files.h>
 #include <regex>
 #include <string>
 
@@ -101,6 +104,11 @@ static void merge_components(ecs::ComponentsMap &high_priority_source, const ecs
 static ecs::ComponentsMap gather_all_components(const char *template_name)
 {
   ecs::ComponentsMap result;
+  if (!template_name)
+  {
+    console::print_d("Template name is null");
+    return result;
+  }
 
   const ecs::Template *templ = g_entity_mgr->getTemplateDB().getTemplateByName(template_name);
   if (!templ)
@@ -154,6 +162,13 @@ static std::string to_searchable_querry_name(std::string qname)
     int line = atoi(matches[1].str().c_str());
     int character = atoi(matches[2].str().c_str());
     std::string lineInfoStr = ":" + std::to_string(line) + ":" + std::to_string(character);
+    return std::regex_replace(qname, rexp, lineInfoStr);
+  }
+  rexp = std::regex("das_l(\\d+)");
+  if (std::regex_search(qname, matches, rexp))
+  {
+    int line = atoi(matches[1].str().c_str());
+    std::string lineInfoStr = "das:" + std::to_string(line);
     return std::regex_replace(qname, rexp, lineInfoStr);
   }
   return qname;
@@ -478,6 +493,46 @@ static void diff_templates(const char *lhs, const char *rhs)
   diff_systems(lhsComps, rhsComps, lhs, rhs, eastl::vector<std::string>());
 }
 
+static void serialize_entity(int i_eid, const char *file_name)
+{
+  ecs::EntityId eid = ecs::EntityId(i_eid);
+  eastl::vector<eastl::string> res;
+
+  auto lhsIt = g_entity_mgr->getComponentsIterator(eid);
+  const char *prev = nullptr;
+  while (lhsIt)
+  {
+    if (prev != nullptr && strcmp(prev, (*lhsIt).first) == 0)
+    {
+      ++lhsIt;
+      continue;
+    }
+    prev = (*lhsIt).first;
+    res.push_back(component_to_string((*lhsIt).first, (*lhsIt).second));
+    ++lhsIt;
+  }
+  const char *templName = g_entity_mgr->getEntityTemplateName(eid);
+  debug("Components of <%d>(%s)", eid, templName);
+  eastl::sort(res.begin(), res.end());
+  String output(20 * res.size(), "");
+  eastl::string prevStr = "";
+  for (auto &str : res)
+  {
+    if (str == prevStr)
+      continue;
+    prevStr = str;
+    debug(str.c_str());
+    output += (str + "\n").c_str();
+  }
+  file_ptr_t h = ::df_open(file_name, DF_WRITE | DF_CREATE);
+  if (!h)
+    return;
+
+  LFileGeneralSaveCB cb(h);
+  cb.tryWrite(output.c_str(), output.size());
+  ::df_close(h);
+}
+
 static void diff_entities(int lhs_i_eid, int rhs_i_eid)
 {
   ecs::EntityId lhsEid = ecs::EntityId(lhs_i_eid);
@@ -788,6 +843,108 @@ static void search_for_eid_in_entities(int raw_eid)
     };
   });
   debug("Finished searching entities. Match count: %d", matchCount);
+}
+
+struct ParentStats
+{
+  ecs::ComponentsMap uniqueComps;
+  eastl::vector<ecs::component_t> overwrites;
+  int totalParents;
+  int parents;
+  int totalComps;
+  int comps;
+  int depth;
+  int originIdx;
+  uint32_t templId;
+
+  ParentStats(int _depth, int _originIdx, uint32_t _templId) :
+    totalParents(0), parents(0), totalComps(0), comps(0), depth(_depth), originIdx(_originIdx), templId(_templId){};
+};
+
+static void explore_template_routine(uint32_t templ_id, eastl::vector<ParentStats> &all_stats, int origin_idx, int depth = 0)
+{
+  int idx = all_stats.size();
+  all_stats.emplace_back(depth, origin_idx, templ_id);
+  const ecs::Template *templ = g_entity_mgr->getTemplateDB().getTemplateById(templ_id);
+  dag::ConstSpan<uint32_t> parents = templ->getParents();
+
+  for (const uint32_t p : parents)
+    explore_template_routine(p, all_stats, idx, depth + 1);
+
+  ParentStats &stats = all_stats[idx];
+  stats.parents = parents.size();
+  stats.totalParents = parents.size();
+  const ecs::ComponentsMap &thisComps = templ->getComponentsMap();
+  stats.totalComps = thisComps.size();
+  stats.comps = thisComps.size();
+  if (parents.size() > 0)
+  {
+    for (int i = idx + 1; i < all_stats.size(); ++i)
+    {
+      if (all_stats[i].originIdx == idx)
+      {
+        stats.totalComps += all_stats[i].totalComps;
+        stats.totalParents += all_stats[i].totalParents;
+        for (auto &c : all_stats[i].uniqueComps)
+        {
+          stats.uniqueComps[c.first] = c.second;
+        }
+      }
+      if (all_stats[i].depth <= depth) // we're in a parallel branch, this sub-tree is fully explored.
+        break;
+    }
+  }
+  for (auto &c : thisComps)
+  {
+    if (!stats.uniqueComps[c.first].isNull())
+      stats.overwrites.push_back(c.first);
+    stats.uniqueComps[c.first] = c.second;
+  }
+}
+
+static void print_explored_template_routine(const eastl::vector<ParentStats> &all_stats, int idx)
+{
+  String indentation("\t");
+  for (int i = 0; i < all_stats[idx].depth; ++i)
+    indentation += "\t";
+  String parentsInfo = String(0, "[P: %d / %d]", all_stats[idx].parents, all_stats[idx].totalParents);
+  String componentInfo =
+    all_stats[idx].totalComps == all_stats[idx].comps
+      ? String(0, "[C:(%d)]", all_stats[idx].comps)
+      : String(0, "[C: %d / (%d) / %d]", all_stats[idx].comps, all_stats[idx].uniqueComps.size(), all_stats[idx].totalComps);
+
+  debug("%s%s%s %s", indentation, all_stats[idx].totalParents > 0 ? parentsInfo : String(""), componentInfo,
+    g_entity_mgr->getTemplateDB().getTemplateById(all_stats[idx].templId)->getName());
+
+  for (int i = idx + 1; i < all_stats.size(); ++i)
+  {
+    if (all_stats[i].originIdx == idx)
+      print_explored_template_routine(all_stats, i);
+    if (all_stats[i].depth <= all_stats[idx].depth) // we're in a parallel branch, this sub-tree is fully explored.
+      break;
+  }
+}
+
+static void explore_template_structure(const char *template_name)
+{
+  if (!template_name)
+  {
+    console::print_d("Template name is null");
+    return;
+  }
+
+  const ecs::Template *templ = g_entity_mgr->getTemplateDB().getTemplateByName(template_name);
+  if (!templ)
+  {
+    console::print_d("Template '%s' not found", template_name);
+    return;
+  }
+
+  eastl::vector<ParentStats> allStats;
+  explore_template_routine(g_entity_mgr->getTemplateDB().getTemplateIdByName(template_name), allStats, 0);
+  debug("NB: This does not account for shared components.");
+  debug("[P: this_parents / total_parents] [C: this_comps / (unique_comps_so_far) / total_comps] templateName");
+  print_explored_template_routine(allStats, 0);
 }
 
 #endif
@@ -1180,10 +1337,10 @@ static bool ecs_console_handler(const char *argv[], int argc)
     if (cidx == ecs::INVALID_COMPONENT_INDEX)
       console::print_d("Component '%s' not found", argv[1]);
     else
-      ecsdebug::start_track_ecs_component(comp);
+      g_entity_mgr->startTrackComponent(comp);
   }
 
-  CONSOLE_CHECK_NAME("ecs", "stop_track_component_access", 1, 1) { ecsdebug::stop_dump_track_ecs_components(); }
+  CONSOLE_CHECK_NAME("ecs", "stop_track_component_access", 1, 1) { g_entity_mgr->stopTrackComponentsAndDump(); }
 
   CONSOLE_CHECK_NAME("ecs", "createEntityRaw", 1, 2)
   {
@@ -1338,6 +1495,8 @@ static bool ecs_console_handler(const char *argv[], int argc)
   {
     who_modifies_tracked_components_of_template(argv[1]);
   }
+  CONSOLE_CHECK_NAME("ecs", "explore_template_structure", 2, 2) { explore_template_structure(argv[1]); }
+  CONSOLE_CHECK_NAME("ecs", "serialize_entity", 3, 3) { serialize_entity(atoi(argv[1]), argv[2]); }
 #endif
   return found;
 }

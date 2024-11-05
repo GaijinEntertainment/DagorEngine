@@ -6,41 +6,22 @@ include "ssao_use.dshl"
 include "get_additional_shadows.dshl"
 include "get_additional_ao.dshl"
 include "ssao_reprojection.dshl"
+include "halfres_close_depth_with_normals.dshl"
 
 float gtao_radius = 2.8;
 float gtao_temporal_directions = 0;
 float gtao_temporal_offset = 0;
+int4 temporal_shadow_frame;
 float4 hero_cockpit_vec = (0, 0, 0, 0);
 texture raw_gtao_tex;
 texture gtao_tex;
 texture gtao_prev_tex;
-texture prev_downsampled_far_depth_tex;
-texture downsampled_checkerboard_depth_tex;
-texture downsampled_close_depth_tex;
-texture downsampled_normals;
 float4 globtm_no_ofs_psf_0;
 float4 globtm_no_ofs_psf_1;
 float4 globtm_no_ofs_psf_2;
 float4 globtm_no_ofs_psf_3;
 
-macro INIT_HALF_RES_DEPTH(stage)
-  if (downsampled_close_depth_tex != NULL)
-  {
-    // This is not correct, as half-res SSAO will be upsampled with the assumption that it was rendered with
-    // checkerboard_depth, but using close_depth helps in reducing bright halo around edges of objects in front of
-    // occluded areas. In the long run we need to figure out how to prevent this with checkerboard_depth, or use proper
-    // uplampling based on close_depth for SSAO
-    (stage) { half_res_depth_tex@smp2d = downsampled_close_depth_tex; }
-  }
-  else if (downsampled_checkerboard_depth_tex != NULL)
-  {
-    (stage) { half_res_depth_tex@smp2d = downsampled_checkerboard_depth_tex; }
-  }
-  else
-  {
-    (stage) { half_res_depth_tex@smp2d = downsampled_far_depth_tex; }
-  }
-endmacro
+float contact_shadow_min_len = 0.25;
 
 define_macro_if_not_defined USE_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(stage)
 endmacro
@@ -62,28 +43,21 @@ macro GTAO_MAIN_CORE(code)
   supports none;
   supports global_const_block;
 
-  local float4 halfResTexSize = get_dimensions(downsampled_far_depth_tex, 0);
+  local float4 halfResTexSize = get_dimensions(downsampled_close_depth_tex, 0);
   (code) {
     world_view_pos@f3 = world_view_pos;
     gtao_radius@f1 = (gtao_radius);
-    gtao_texel_size@f4 = (1.0 / halfResTexSize.xy, halfResTexSize.xy);
+    gtao_texel_size@f4 = (1.0 / max(1, halfResTexSize.x), 1.0 / max(1, halfResTexSize.y), halfResTexSize.xy);
     gtao_temporal_directions@f1 = (gtao_temporal_directions);
     gtao_temporal_offset@f1 = (gtao_temporal_offset);
-    gtao_height_width_rel@f1 = (halfResTexSize.y / halfResTexSize.x, 0, 0, 0);
+    gtao_height_width_rel@f1 = (halfResTexSize.y / max(1, halfResTexSize.x), 0, 0, 0);
     hero_cockpit_vec@f4 = hero_cockpit_vec;
-    //todo: use just downsampled_close_depth_tex
-    //however, it has to be changed in USE_SSAO simultaneously, and in spatial filter, and in temporal filter, including prev_depth
-    // (and probably in SSR)
-    //for now, just use both
-    downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
-    downsampled_close_depth_tex@smp2d = downsampled_close_depth_tex;
-    downsampled_normals@smp2d = downsampled_normals;
 
     local_view_x@f3 = local_view_x;
     local_view_y@f3 = local_view_y;
     local_view_z@f3 = local_view_z;
 
-    shadow_params@f3 = (0, shadow_frame, contact_shadow_len, 0);
+    shadow_params@f3 = (temporal_shadow_frame.x, contact_shadow_len, contact_shadow_min_len, 0);
 
     viewProjectionMatrixNoOfs@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
 
@@ -91,13 +65,13 @@ macro GTAO_MAIN_CORE(code)
       zn_zfar.x / (zn_zfar.x * zn_zfar.y), (zn_zfar.y - zn_zfar.x) / (zn_zfar.x * zn_zfar.y));
   }
 
-  INIT_HALF_RES_DEPTH(code)
-
+  INIT_HALF_RES_CLOSE_DEPTH(code)
+  INIT_HALF_RES_CLOSE_DEPTH_NORMALS(code)
   INIT_ZNZFAR_STAGE(code)
   hlsl(code) {
-    #define shadow_frame shadow_params.y
-    #define contact_shadow_len shadow_params.z
-    #define USE_LINEAR_THRESHOLD 1
+    #define shadow_frame shadow_params.x
+    #define contact_shadow_len shadow_params.y
+    #define contact_shadow_min_len shadow_params.z
   }
 
   CONTACT_SHADOWS_BASE(code)
@@ -117,7 +91,7 @@ macro GTAO_MAIN_CORE(code)
 
     half3 GetPosition(half2 uv)
     {
-      float sceneDepth = decode_depth(tex2Dlod(downsampled_close_depth_tex, float4(uv.xy, 0, 0)).x, zn_zfar.zw);
+      float sceneDepth = decode_depth(tex2Dlod(half_res_close_depth, float4(uv.xy, 0, 0)).x, zn_zfar.zw);
       return GetCameraVec(uv) * sceneDepth;
     }
 
@@ -148,7 +122,7 @@ macro GTAO_MAIN_CORE(code)
     void SliceSample(half2 tc_base, half2 aoDir, int i, float targetMip, half3 ray, half3 v, inout float closest)
     {
       half2 uv = clamp(tc_base + aoDir * i,float2(0.001,0.001),float2(0.999,0.999));
-      float rawDepth = tex2Dlod(downsampled_close_depth_tex, float4(uv.xy, 0, targetMip)).x;
+      float rawDepth = tex2Dlod(half_res_close_depth, float4(uv.xy, 0, targetMip)).x;
 
       ##if (maybe(screen_mask_enabled))
         if (rawDepth >= 1)
@@ -257,13 +231,13 @@ macro GTAO_MAIN_CORE(code)
       #else
         #define GTAO_VALUE_X gtao_value.x
       #endif
-      float rawDepth = tex2Dlod(half_res_depth_tex, float4(texcoord, 0, 0)).x;
-      float depth1 = decode_depth(rawDepth, zn_zfar.zw);
+      float rawDepth = tex2Dlod(half_res_close_depth, float4(texcoord, 0, 0)).x;
       BRANCH
-      if (rawDepth >= 1 || depth1 >= zn_zfar.y*0.99)
+      if (rawDepth <= 0 || rawDepth >= 1)//why not just rawDepth <= 0
         return 1;
 
-      half3 wsNormal = normalize(tex2Dlod(downsampled_normals, float4(texcoord, 0, 0)).xyz * 2 - 1);
+      float depth1 = decode_depth(rawDepth, zn_zfar.zw);
+      half3 wsNormal = normalize(tex2Dlod(half_res_close_depth_normals, float4(texcoord, 0, 0)).xyz * 2 - 1);
       float3 cameraToPoint = depth1 * viewVect;
       float w = depth1;
       float3 pixelPos = cameraToPoint + world_view_pos;
@@ -281,20 +255,24 @@ macro GTAO_MAIN_CORE(code)
           #define shadow_steps 24
         ##endif
 
-        float dither = interleavedGradientNoiseFramed(screenpos, floor(shadow_frame));//if we have temporal aa
-        dither = interleavedGradientNoise(screenpos);
+        float dither = interleavedGradientNoiseFramed(screenpos, shadow_frame);//if we have temporal aa
         float2 hitUV;
-        float offset = 0.0001;
-        float sunNdotL = dot(wsNormal, from_sun_direction);
-        float sunNoL = abs(sunNdotL);
-        offset = lerp(0.05, 0.0001, sunNoL);
-        float fovScale = 1.0;
-        gtao_value.CONTACT_SHADOWS_ATTR = contactShadowRayCast(
-          downsampled_far_depth_tex, downsampled_far_depth_tex_samplerstate,
-          cameraToPoint - normalize(viewVect) * (w * offset + 0.005), -from_sun_direction,
-          w * contact_shadow_len*fovScale, shadow_steps, dither - 0.5, projectionMatrix,
-          w, viewProjectionMatrixNoOfs, hitUV, float2(100, 99)
-        );
+        half shadow_strength = pow2(saturate(dot(wsNormal, from_sun_direction.xyz)*-2 + sqrt(0.5)));
+        BRANCH
+        if (shadow_strength>0)
+        {
+          gtao_value.CONTACT_SHADOWS_ATTR = contactShadowRayCast(
+            half_res_close_depth, half_res_close_depth_samplerstate,
+            cameraToPoint, -from_sun_direction,
+            max(w * contact_shadow_len, min(contact_shadow_min_len, w)),
+            shadow_steps, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, float2(100, 99)
+          );
+
+          gtao_value.CONTACT_SHADOWS_ATTR = lerp (1, gtao_value.CONTACT_SHADOWS_ATTR, shadow_strength);
+        }
+        else
+          gtao_value.CONTACT_SHADOWS_ATTR = 1;
+
         gtao_value.CONTACT_SHADOWS_ATTR = getAdditionalShadow(gtao_value.CONTACT_SHADOWS_ATTR, cameraToPoint, wsNormal, texcoord, w);
       }
       ##endif
@@ -351,7 +329,7 @@ shader gtao_main_cs
   GTAO_MAIN_CORE(cs)
 
   hlsl(cs) {
-    RWTexture2D<float3> gtao_target : register(u0);
+    RWTexture2D<SSAO_TYPE> gtao_target : register(u0);
 
     [numthreads( 8, 8, 1 )]
     void gtao_resolve_cs(uint3 DTid : SV_DispatchThreadID)
@@ -373,9 +351,10 @@ macro GTAO_SPATIAL_CORE(code)
   supports none;
 
   INIT_ZNZFAR_STAGE(code)
-  INIT_HALF_RES_DEPTH(code)
+  INIT_HALF_RES_CLOSE_DEPTH(code)
   INIT_VIEW_VEC_STAGE(code)
   USE_VIEW_VEC_STAGE(code)
+  ENABLE_ASSERT(code)
 
   local float4 halfResTexSize = get_dimensions(raw_gtao_tex, 0);
   (code) {
@@ -388,10 +367,10 @@ macro GTAO_SPATIAL_CORE(code)
     SSAO_TYPE gtao_spatial(float2 texcoord)
     {
       // Get the depth of the "center" sample - this reference depth is used to weight the other samples
-      float rawDepth = tex2Dlod(half_res_depth_tex, float4(texcoord, 0, 0)).r;
+      float rawDepth = tex2Dlod(half_res_close_depth, float4(texcoord, 0, 0)).r;
 
       BRANCH
-      if (rawDepth >= 1)
+      if (rawDepth >= 1 || rawDepth <= 0)
         return 1;
 
       float depth = decode_depth(rawDepth, zn_zfar.zw);
@@ -408,7 +387,7 @@ macro GTAO_SPATIAL_CORE(code)
           // reference depth so that the further from the camera the samples are, the higher the tolerance for depth
           // differences is.
           float2 uv = texcoord + float2(x - 2, y - 2) * gtao_texel_size.xy;
-          float localDepth = decode_depth(tex2Dlod(half_res_depth_tex, float4(uv, 0, 0)).r, zn_zfar.zw);
+          float localDepth = decode_depth(tex2Dlod(half_res_close_depth, float4(uv, 0, 0)).r, zn_zfar.zw);
           float localWeight = max(0.0, 1.0 - abs(localDepth - depth) / (depth * 0.1));
           weightsSpatial += localWeight;
           ao += tex2Dlod(raw_gtao_tex, float4(uv, 0, 0)).SSAO_ATTRS * localWeight;
@@ -447,7 +426,7 @@ shader gtao_spatial_cs
   GTAO_SPATIAL_CORE(cs)
 
   hlsl(cs) {
-    RWTexture2D<float3> gtao_target : register(u0);
+    RWTexture2D<SSAO_TYPE> gtao_target : register(u0);
 
     [numthreads( 8, 8, 1 )]
     void gtao_spatial_cs(uint3 DTid : SV_DispatchThreadID)
@@ -470,9 +449,10 @@ macro GTAO_TEMPORAL_CORE(code)
 
   INIT_ZNZFAR_STAGE(code)
   SSAO_REPROJECTION(code, gtao_prev_tex)
-  INIT_HALF_RES_DEPTH(code)
+  INIT_HALF_RES_CLOSE_DEPTH(code)
   INIT_VIEW_VEC_STAGE(code)
   USE_VIEW_VEC_STAGE(code)
+  ENABLE_ASSERT(code)
 
   local float4 halfResTexSize = get_dimensions(gtao_tex, 0);
   (code) {
@@ -482,19 +462,21 @@ macro GTAO_TEMPORAL_CORE(code)
 
   hlsl(code) {
 
-    SSAO_TYPE gtao_temporal(float2 texcoord)
+    SSAO_TYPE gtao_temporal(int2 pixel)
     {
       // Reconstruct position from depth
       // Note that the position is relative to the camera position (not an absolute world space position)
-      float3 viewVec = lerp_view_vec(texcoord);
-      float rawDepth = tex2Dlod(half_res_depth_tex, float4(texcoord, 0, 0)).r;
+      float3 viewVec = lerp_view_vec((pixel.xy + 0.5) * gtao_texel_size.xy);
+      float rawDepth = texelFetch(half_res_close_depth, pixel, 0).r;
+      float2 texcoord  = (pixel.xy + 0.4999) * gtao_texel_size.xy;
 
       BRANCH
-      if (rawDepth >= 1)
+      if (rawDepth >= 1 || rawDepth <= 0)
         return 1;
 
       float depth = decode_depth(rawDepth, zn_zfar.zw);
       float3 cameraToPoint = viewVec * depth;
+      float neighborWeights = 0;
 
       SSAO_TYPE ao = tex2Dlod(gtao_tex, float4(texcoord, 0, 0)).SSAO_ATTRS;
 
@@ -504,21 +486,27 @@ macro GTAO_TEMPORAL_CORE(code)
       {
         UNROLL for (int x = -1; x <= 1; x++)
         {
-          float2 uv = texcoord + float2(x, y) * gtao_texel_size.xy;
+          if (x != 0 || y != 0)
+          {
+            // Sample neighbor AO
+            SSAO_TYPE neighborAo = gtao_tex.SampleLevel(half_res_close_depth_samplerstate, texcoord, 0, int2(x, y)).SSAO_ATTRS;
 
-          // Sample neighbor AO
-          SSAO_TYPE neighborAo = tex2Dlod(gtao_tex, float4(uv, 0, 0)).SSAO_ATTRS;
+            // Blend neighbor AO to center AO if neighbor depth is too different from center depth
+            float neighborDepth = decode_depth(half_res_close_depth.SampleLevel(half_res_close_depth_samplerstate, texcoord, 0, int2(x,y)).r, zn_zfar.zw);
+            //float neighborDepth = decode_depth(texelFetch(half_res_close_depth, pixel + int2(x,y), 0).r, zn_zfar.zw);
+            float neighborWeight = saturate(1.0 - abs(neighborDepth - depth) / (depth * 0.1));
+            neighborWeights += neighborWeight;
+            neighborAo = lerp(ao, neighborAo, neighborWeight);
 
-          // Blend neighbor AO to center AO if neighbor depth is too different from center depth
-          float neighborDepth = decode_depth(tex2Dlod(half_res_depth_tex, float4(uv, 0, 0)).r, zn_zfar.zw);
-          float neighborWeight = max(0.0, 1.0 - abs(neighborDepth - depth) / (depth * 0.1));
-          neighborAo = lerp(ao, neighborAo, neighborWeight);
-
-          // Adjust min and max values found in neighborhood
-          minAo = min(minAo, neighborAo);
-          maxAo = max(maxAo, neighborAo);
+            // Adjust min and max values found in neighborhood
+            minAo = min(minAo, neighborAo);
+            maxAo = max(maxAo, neighborAo);
+          }
         }
       }
+      neighborWeights = neighborWeights*1./8;
+      minAo = lerp(0, minAo, neighborWeights);
+      maxAo = lerp(1, maxAo, neighborWeights);
 
       reproject_ssao_with_neighborhood(ao, minAo, maxAo, cameraToPoint, texcoord, depth);
 
@@ -534,14 +522,15 @@ shader gtao_temporal
   cull_mode = none;
   color_write = rgb;
 
-  POSTFX_VS_TEXCOORD(0, texcoord)
+  POSTFX_VS(0)
   GTAO_TEMPORAL_CORE(ps)
 
   hlsl(ps) {
 
-    SSAO_TYPE gtao_temporal_ps(VsOutput input) : SV_Target0
+    SSAO_TYPE gtao_temporal_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
     {
-      return gtao_temporal(input.texcoord);
+      float4 pos = GET_SCREEN_POS(input.pos);
+      return gtao_temporal(int2(pos.xy));
     }
   }
 
@@ -553,7 +542,7 @@ shader gtao_temporal_cs
   GTAO_TEMPORAL_CORE(cs)
 
   hlsl(cs) {
-    RWTexture2D<float3> gtao_target : register(u0);
+    RWTexture2D<SSAO_TYPE> gtao_target : register(u0);
 
     [numthreads( 8, 8, 1 )]
     void gtao_temporal_cs(uint3 DTid : SV_DispatchThreadID)
@@ -561,9 +550,7 @@ shader gtao_temporal_cs
       if (any(DTid.xy >= gtao_texel_size.zw))
         return;
 
-      float2 pixelCenter = DTid.xy + 0.5;
-      float2 texcoord    = pixelCenter * gtao_texel_size.xy;
-      SSAO_TYPE ao = gtao_temporal(texcoord);
+      SSAO_TYPE ao = gtao_temporal(DTid.xy);
       gtao_target[DTid.xy] = ao;
     }
   }

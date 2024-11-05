@@ -1,8 +1,8 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <ioSys/dag_dataBlock.h>
 #include <sqplus.h>
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/control/container.h>
 
 #include <scriptPanelWrapper/spw_main.h>
 #include <scriptPanelWrapper/spw_param.h>
@@ -25,14 +25,14 @@ ScriptPanelParam::~ScriptPanelParam()
 }
 
 
-void ScriptPanelParam::setupParameter(PropPanel2 *panel, int &pid)
+void ScriptPanelParam::setupParameter(PropPanel::ContainerPropertyControl *panel, int &pid)
 {
   mPid = pid;
   mPanel = panel;
 }
 
 
-void ScriptPanelParam::fillParameter(PropPanel2 *panel, int &pid, SquirrelObject so)
+void ScriptPanelParam::fillParameter(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject so)
 {
   setupParameter(panel, pid);
   mParam = so;
@@ -145,7 +145,7 @@ ScriptPanelContainer::ScriptPanelContainer(CSQPanelWrapper *wrapper, ScriptPanel
 ScriptPanelContainer::~ScriptPanelContainer() { clear(); }
 
 
-void ScriptPanelContainer::fillParams(PropPanel2 *panel, int &pid, SquirrelObject so)
+void ScriptPanelContainer::fillParams(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject so)
 {
   clear();
   if (panel)
@@ -183,7 +183,7 @@ const char *ScriptPanelContainer::getParamCaption(SquirrelObject param, const ch
 }
 
 
-bool ScriptPanelContainer::scriptExtFactory(PropPanel2 *panel, int &pid, SquirrelObject param)
+bool ScriptPanelContainer::scriptExtFactory(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject param)
 {
   ScriptPanelParam *panel_param = NULL;
 
@@ -270,7 +270,7 @@ void ScriptPanelContainer::sendMessage(int pid, int msg, void *arg)
   }
 }
 
-long ScriptPanelContainer::onChanging(int pid, PropPanel2 &panel)
+long ScriptPanelContainer::onChanging(int pid, PropPanel::ContainerPropertyControl &panel)
 {
   for (int i = 0; i < mItems.size(); ++i)
   {
@@ -282,21 +282,21 @@ long ScriptPanelContainer::onChanging(int pid, PropPanel2 &panel)
 }
 
 
-void ScriptPanelContainer::onChange(int pid, PropPanel2 &panel)
+void ScriptPanelContainer::onChange(int pid, PropPanel::ContainerPropertyControl &panel)
 {
   for (int i = 0; i < mItems.size(); ++i)
     mItems[i]->onChange(pid, panel);
 }
 
 
-void ScriptPanelContainer::onClick(int pid, PropPanel2 &panel)
+void ScriptPanelContainer::onClick(int pid, PropPanel::ContainerPropertyControl &panel)
 {
   for (int i = 0; i < mItems.size(); ++i)
     mItems[i]->onClick(pid, panel);
 }
 
 
-void ScriptPanelContainer::onPostEvent(int pid, PropPanel2 &panel)
+void ScriptPanelContainer::onPostEvent(int pid, PropPanel::ContainerPropertyControl &panel)
 {
   for (int i = 0; i < mItems.size(); ++i)
     mItems[i]->onPostEvent(pid, panel);

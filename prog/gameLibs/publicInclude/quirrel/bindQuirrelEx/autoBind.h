@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -15,8 +14,10 @@ namespace sq
 
 enum VmType
 {
-  VM_GAME = 1,
-  VM_UI = 2,
+  VM_GAME = 0x01,
+  VM_INTERNAL_UI = 0x02,
+  VM_USER_UI = 0x04,
+  VM_UI_ALL = VM_INTERNAL_UI | VM_USER_UI,
 
   VM_ALL = 0xFFFF,
   VM_FLG_REGFUNC = 0x10000,

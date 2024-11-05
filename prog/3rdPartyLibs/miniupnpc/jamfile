@@ -10,12 +10,12 @@ AddIncludes =
   $(Root)/$(Location)
 ;
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   AddIncludes += $(Root)/$(Location)/_build_win32 ;
   Copt += -D_CRT_SECURE_NO_WARNINGS -DWINSOCK_DEPRECATED_NO_WARNINGS /wd4267 ;
-} else if $(Platform) in linux64 {
+} else if $(Platform) in linux {
   AddIncludes += $(Root)/$(Location)/_build_linux ;
-} else if $(Platform) in macosx {
+} else if $(Platform) in macOS {
   AddIncludes += $(Root)/$(Location)/_build_macosx ;
 } else {
   Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;

@@ -1,0 +1,404 @@
+
+include "dynmat_params_inc.dshl"
+
+macro INIT_METATEX_COMMON()
+  DECLARE_DYNAMIC_MATERIAL_PARAMS()
+
+  (ps) {
+    parameters_channel@f1 = (parameters_channel);
+    meta_tex@static = tex;
+    normal_tex@static = normal;
+  }
+
+  if (parameters_channel == from_asset) {
+    static float4 color_black_from = (0.03921569, 0.04705882, 0.04313726, 0.368627);
+    static float4 color_black_to = (1, 0.8117647, 0, 1);
+    static float4 color_red_from = (0.396078, 0.368627, 0.313725, 0.215686);
+    static float4 color_red_to = (0.2, 0, 0, 0.427451);
+    static float4 color_green_from = (0, 0.196078, 0.0980392, 0.74902);
+    static float4 color_green_to = (0.164706, 0.870588, 1, 0.376471);
+    static float4 color_blue_from = (0, 0.196078, 0.0980392, 0.74902);
+    static float4 color_blue_to = (0.164706, 0.870588, 1, 0.376471);
+    static float4 color_alpha_from = (0.223529, 0.258824, 0.419608, 0.25);
+    static float4 color_alpha_to = (0.713725, 0.698039, 0.690196, 0.75);
+
+    (ps) {
+      color_black_from@f4 = color_black_from;
+      color_black_to@f4 = color_black_to;
+      color_red_from@f4 = color_red_from;
+      color_red_to@f4 = color_red_to;
+      color_green_from@f4 = color_green_from;
+      color_green_to@f4 = color_green_to;
+      color_blue_from@f4 = color_blue_from;
+      color_blue_to@f4 = color_blue_to;
+      color_alpha_from@f4 = color_alpha_from;
+      color_alpha_to@f4 = color_alpha_to;
+    }
+  }
+
+endmacro
+
+macro INIT_METATEX_EMISSIVE()
+  INIT_METATEX_COMMON()
+
+  if (parameters_channel == from_asset) {
+    static float emissive_black_from = 0;
+    static float emissive_black_to = 0;
+    static float emissive_red_from = 0;
+    static float emissive_red_to = 0;
+    static float emissive_green_from = 0;
+    static float emissive_green_to = 0;
+    static float emissive_blue_from = 0;
+    static float emissive_blue_to = 1;
+    static float emissive_alpha_from = 0.5;
+    static float emissive_alpha_to = 0.5;
+    static float4 emissive_color = (1, 1, 1, 1);
+    static float albedo_blend_for_emission = 1;
+
+    (ps) {
+      property_black_from@f4 = (emissive_black_from, 0, 0, 0);
+      property_black_to@f4 = (emissive_black_to, 0, 0, 0);
+      property_red_from@f4 = (emissive_red_from, 0, 0, 0);
+      property_red_to@f4 = (emissive_red_to, 0, 0, 0);
+      property_green_from@f4 = (emissive_green_from, 0, 0, 0);
+      property_green_to@f4 = (emissive_green_to, 0, 0, 0);
+      property_blue_from@f4 = (emissive_blue_from, 0, 0, 0);
+      property_blue_to@f4 = (emissive_blue_to, 0, 0, 0);
+      property_alpha_from@f4 = (emissive_alpha_from, 0, 0, 0);
+      property_alpha_to@f4 = (emissive_alpha_to, 0, 0, 0);
+      emissive_color@f4 = emissive_color;
+      albedo_blend_for_emission@f1 = (albedo_blend_for_emission);
+    }
+  }
+
+  hlsl(ps) {
+    #define NEED_METATEX_PROPERTY 1
+    #define IS_EMISSIVE_SHADER 1
+  }
+endmacro
+
+macro INIT_METATEX_TRANSLUCENT()
+  hlsl(ps) {
+    #define IS_TRANSLUCENT_SHADER 1
+  }
+  INIT_METATEX_COMMON()
+endmacro
+
+macro INIT_METATEX_REFRACTIVE()
+  hlsl(ps) {
+    #define NEED_METATEX_PROPERTY 1
+  }
+  INIT_METATEX_COMMON()
+
+  if (parameters_channel == from_asset) {
+    static float opacity_black_from = 0;
+    static float opacity_black_to = 0;
+    static float opacity_red_from = 0;
+    static float opacity_red_to = 0;
+    static float opacity_green_from = 0;
+    static float opacity_green_to = 0.1;
+    static float opacity_blue_from = 0.1;
+    static float opacity_blue_to = 1;
+    static float opacity_alpha_from = 0.5;
+    static float opacity_alpha_to = 0.5;
+
+    (ps) {
+      property_black_from@f4 = (opacity_black_from, 0, 0, 0);
+      property_black_to@f4 = (opacity_black_to, 0, 0, 0);
+      property_red_from@f4 = (opacity_red_from, 0, 0, 0);
+      property_red_to@f4 = (opacity_red_to, 0, 0, 0);
+      property_green_from@f4 = (opacity_green_from, 0, 0, 0);
+      property_green_to@f4 = (opacity_green_to, 0, 0, 0);
+      property_blue_from@f4 = (opacity_blue_from, 0, 0, 0);
+      property_blue_to@f4 = (opacity_blue_to, 0, 0, 0);
+      property_alpha_from@f4 = (opacity_alpha_from, 0, 0, 0);
+      property_alpha_to@f4 = (opacity_alpha_to, 0, 0, 0);
+    }
+  }
+endmacro
+
+
+macro SET_METATEX_PARAM_GETTERS(calc_metatex_param_offset, get_metatex_param)
+  hlsl(ps) {
+    #define CALC_METATEX_PARAM_OFFSET calc_metatex_param_offset(int(get_parameters_channel()))
+    #define GET_METATEX_PARAM(offset,i) get_metatex_param(offset + i)
+  }
+endmacro
+
+
+macro APPLY_METATEX()
+hlsl(ps)
+{
+  #ifndef CALC_METATEX_PARAM_OFFSET
+    #define CALC_METATEX_PARAM_OFFSET 0
+  #endif
+
+  ##if (parameters_channel == from_asset)
+    #define FILL_METATEX_COLOR(offset)\
+      float4 colorBlackFrom = get_color_black_from();\
+      float4 colorBlackTo = get_color_black_to();\
+      float4 colorRedFrom = get_color_red_from();\
+      float4 colorRedTo = get_color_red_to();\
+      float4 colorGreenFrom = get_color_green_from();\
+      float4 colorGreenTo = get_color_green_to();\
+      float4 colorBlueFrom = get_color_blue_from();\
+      float4 colorBlueTo = get_color_blue_to();\
+      float4 colorAlphaFrom = get_color_alpha_from();\
+      float4 colorAlphaTo = get_color_alpha_to();
+
+    #define FILL_METATEX_PROPERTIES(offset)\
+      float propertyBlackFrom = get_property_black_from().x;\
+      float propertyBlackTo = get_property_black_to().x;\
+      float propertyRedFrom = get_property_red_from().x;\
+      float propertyRedTo = get_property_red_to().x;\
+      float propertyGreenFrom = get_property_green_from().x;\
+      float propertyGreenTo = get_property_green_to().x;\
+      float propertyBlueFrom = get_property_blue_from().x;\
+      float propertyBlueTo = get_property_blue_to().x;\
+      float propertyAlphaFrom = get_property_alpha_from().x;\
+      float propertyAlphaTo = get_property_alpha_to().x;
+
+    #define FILL_METATEX_EMISSIVE(offset)\
+      float4 emissiveColor = get_emissive_color();\
+      float albedoBlendForEmission = get_albedo_blend_for_emission();
+  ##else
+
+    #ifndef GET_METATEX_PARAM
+      #define GET_METATEX_PARAM(offset,i) float4(0, 0, 0, 0)
+    #endif
+
+    #define FILL_METATEX_COLOR(offset)\
+      float4 colorBlackFrom = GET_METATEX_PARAM(offset,0);\
+      float4 colorBlackTo = GET_METATEX_PARAM(offset,1);\
+      float4 colorRedFrom = GET_METATEX_PARAM(offset,2);\
+      float4 colorRedTo = GET_METATEX_PARAM(offset,3);\
+      float4 colorGreenFrom = GET_METATEX_PARAM(offset,4);\
+      float4 colorGreenTo = GET_METATEX_PARAM(offset,5);\
+      float4 colorBlueFrom = GET_METATEX_PARAM(offset,6);\
+      float4 colorBlueTo = GET_METATEX_PARAM(offset,7);\
+      float4 colorAlphaFrom = GET_METATEX_PARAM(offset,8);\
+      float4 colorAlphaTo = GET_METATEX_PARAM(offset,9);
+
+    #ifdef IS_EMISSIVE_SHADER
+      #define FILL_METATEX_PROPERTIES(offset) FILL_METATEX_EMISSIVE_PROPERTIES(offset)
+    #else
+      #define FILL_METATEX_PROPERTIES(offset) FILL_METATEX_REFRACTIVE_PROPERTIES(offset)
+    #endif
+
+    #define FILL_METATEX_EMISSIVE_PROPERTIES(offset)\
+      float propertyBlackFrom = GET_METATEX_PARAM(offset,10).x;\
+      float propertyBlackTo = GET_METATEX_PARAM(offset,10).y;\
+      float propertyRedFrom = GET_METATEX_PARAM(offset,10).z;\
+      float propertyRedTo = GET_METATEX_PARAM(offset,10).w;\
+      float propertyGreenFrom = GET_METATEX_PARAM(offset,11).x;\
+      float propertyGreenTo = GET_METATEX_PARAM(offset,11).y;\
+      float propertyBlueFrom = GET_METATEX_PARAM(offset,11).z;\
+      float propertyBlueTo = GET_METATEX_PARAM(offset,11).w;\
+      float propertyAlphaFrom = GET_METATEX_PARAM(offset,12).x;\
+      float propertyAlphaTo = GET_METATEX_PARAM(offset,12).y;
+
+    #define FILL_METATEX_EMISSIVE(offset)\
+      float4 emissiveColor = GET_METATEX_PARAM(offset,13);\
+      float albedoBlendForEmission = GET_METATEX_PARAM(offset,14).x;
+
+    #define FILL_METATEX_REFRACTIVE_PROPERTIES(offset)\
+      float propertyBlackFrom = GET_METATEX_PARAM(offset,15).x;\
+      float propertyBlackTo = GET_METATEX_PARAM(offset,15).y;\
+      float propertyRedFrom = GET_METATEX_PARAM(offset,15).z;\
+      float propertyRedTo = GET_METATEX_PARAM(offset,15).w;\
+      float propertyGreenFrom = GET_METATEX_PARAM(offset,16).x;\
+      float propertyGreenTo = GET_METATEX_PARAM(offset,16).y;\
+      float propertyBlueFrom = GET_METATEX_PARAM(offset,16).z;\
+      float propertyBlueTo = GET_METATEX_PARAM(offset,16).w;\
+      float propertyAlphaFrom = GET_METATEX_PARAM(offset,17).x;\
+      float propertyAlphaTo = GET_METATEX_PARAM(offset,17).y;
+  ##endif
+
+  float4 apply_metatex(
+    float4 black_from, float4 black_to,
+    float4 red_from,   float4 red_to,
+    float4 green_from, float4 green_to,
+    float4 blue_from,  float4 blue_to,
+    float4 alpha_from, float4 alpha_to,
+    half   mask,       half4  meta_tex_data
+    )
+  {
+    float4 black = lerp(black_from, black_to, mask);
+    float4 red   = lerp(red_from,   red_to,   mask);
+    float4 green = lerp(green_from, green_to, mask);
+    float4 blue  = lerp(blue_from,  blue_to,  mask);
+    float4 alpha = lerp(alpha_from, alpha_to, meta_tex_data.a);
+
+    black = lerp(black, red,   meta_tex_data.r);
+    black = lerp(black, green, meta_tex_data.g);
+    black = lerp(black, blue,  meta_tex_data.b);
+    return black * alpha * 2;
+  }
+
+  void unpack_metatex(
+    int global_param_offset,
+    float2 texCoord,
+    out float3 diffuseColor,
+    out half3 normalMap,
+    out float smoothness,
+    out float property,
+    out half metalness,
+    out half material_coef
+    )
+  {
+    half4 packedNormalMap = tex2DBindless(get_normal_tex(), texCoord);
+    half4 metaTexData = tex2DBindless(get_meta_tex(), texCoord);
+
+    FILL_METATEX_COLOR(global_param_offset)
+
+    float4 diffuseSmoothness = apply_metatex(
+      colorBlackFrom,  colorBlackTo,
+      colorRedFrom,  colorRedTo,
+      colorGreenFrom,  colorGreenTo,
+      colorBlueFrom,  colorBlueTo,
+      colorAlphaFrom,  colorAlphaTo,
+      packedNormalMap.r, metaTexData
+    );
+    diffuseColor = pow2(diffuseSmoothness.rgb);
+    smoothness = diffuseSmoothness.a;
+
+    normalMap = unpack_ag_normal(packedNormalMap);
+    metalness = packedNormalMap.b;
+    material_coef = packedNormalMap.b;
+    property = 0;
+#if NEED_METATEX_PROPERTY
+    FILL_METATEX_PROPERTIES(global_param_offset)
+    property = apply_metatex(
+      propertyBlackFrom, propertyBlackTo,
+      propertyRedFrom, propertyRedTo,
+      propertyGreenFrom, propertyGreenTo,
+      propertyBlueFrom, propertyBlueTo,
+      propertyAlphaFrom, propertyAlphaTo,
+      packedNormalMap.r,   metaTexData
+    ).r;
+#endif
+  }
+  void unpack_metatex(
+    float2 texCoord,
+    out float3 diffuseColor,
+    out half3 normalMap,
+    out float smoothness,
+    out float property,
+    out half metalness,
+    out half material_coef
+  )
+  {
+    int global_param_offset = CALC_METATEX_PARAM_OFFSET;
+    unpack_metatex(global_param_offset,texCoord,diffuseColor,normalMap,smoothness,property,metalness,material_coef);
+  }
+}
+ENABLE_ASSERT(ps)
+endmacro
+
+macro USE_METATEX_PS(is_writing_gbuffer)
+  APPLY_METATEX()
+  if (is_writing_gbuffer)
+  {
+    WRITE_GBUFFER()
+  }
+  USE_CHARACTER_MICRODETAIL()
+
+hlsl(ps) {
+  #if VOXELIZE_ALBEDO_PASS
+    void metatex_ps(VsOutput input INPUT_VFACE)
+  #else
+    #if JITTER_DEPTH_PIXEL_OFFSET
+      #include "interleavedGradientNoise.hlsl"
+      GBUFFER_OUTPUT metatex_ps(VsOutput input, out float depth : SV_DepthLessEqual)
+    #else
+      GBUFFER_OUTPUT metatex_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
+    #endif
+  #endif
+  {
+  #ifdef VOXELIZE_DISCARD_PRIM
+    VOXELIZE_DISCARD_PRIM
+  #endif
+  #ifndef IS_DYNAMIC
+    #define IS_DYNAMIC 0
+  #endif
+  #ifndef FORCE_AUTO_MOTION_VECTOR
+    #define FORCE_AUTO_MOTION_VECTOR 0
+  #endif
+
+  #if JITTER_DEPTH_PIXEL_OFFSET
+    float depthJitter = interleavedGradientNoiseFramed( input.pos.xy, shadow_frame );
+    depth = input.zw.x/(input.zw.y + depthJitter*0.05*min(1,input.zw.y));
+  #endif
+
+  #if SET_UP_MULTIDRAW
+    SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+  #endif
+
+  input.normal.xyz = MUL_VFACE(input.normal.xyz);
+
+  float2 texCoord = input.diffuseTexcoord.xy;
+  float3 worldPos = world_view_pos - input.pointToEye.xyz;
+
+  int globalParamOffset = CALC_METATEX_PARAM_OFFSET;
+  float3 diffuseColor;
+  half3 normalMap;
+  float smoothness;
+  float emissive;
+  half metalness;
+  half translucency;
+  unpack_metatex(globalParamOffset, texCoord, diffuseColor, normalMap, smoothness, emissive, metalness, translucency);
+
+  #if VOXELIZE_ALBEDO_PASS
+    WRITE_SCENE25D_VOXEL_DATA(worldPos, diffuseColor, 0, 0);
+  #else
+    half reflectance = 0.5;
+    half ao = 1;
+    BRANCH
+    if (character_micro_detail_layer>=0)
+    {
+    apply_character_micro_detail(sample_character_micro_detail(input.diffuseTexcoord.xy*get_character_micro_detail_scale().xy, character_micro_detail_layer),
+      diffuseColor, normalMap, reflectance, smoothness);
+    }
+    half3 worldNormal = perturb_normal_precise( normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.diffuseTexcoord.xy );
+    #if NORMAL_RENDER_PASS
+    apply_wetness_by_microdetail(character_micro_detail_layer, worldPos, diffuseColor, worldNormal, reflectance, smoothness, ao);
+    #endif
+
+    UnpackedGbuffer gbuffer;
+    init_gbuffer(gbuffer);
+
+    init_ao(gbuffer, ao);
+    init_material(gbuffer, SHADING_NORMAL);
+
+    init_smoothness(gbuffer, smoothness);
+    init_metalness(gbuffer, metalness);
+    init_reflectance(gbuffer, reflectance);
+    init_normal(gbuffer, worldNormal);
+    init_albedo(gbuffer, diffuseColor);
+    init_dynamic(gbuffer, IS_DYNAMIC);
+    init_order(gbuffer, GBUFFER_ORDER_DYNAMIC);
+    init_auto_motion_vector(gbuffer, FORCE_AUTO_MOTION_VECTOR);
+
+#if IS_TRANSLUCENT_SHADER
+    init_material(gbuffer, SHADING_SUBSURFACE);
+    init_translucency(gbuffer, translucency);
+#elif IS_EMISSIVE_SHADER
+    init_metalness(gbuffer, 0);
+    if (emissive > 0) {
+      init_material(gbuffer, SHADING_SELFILLUM);
+      FILL_METATEX_EMISSIVE(globalParamOffset)
+      init_emission(gbuffer, emissive * min(emissiveColor.a, MAX_EMISSION));
+      init_emission_color(gbuffer, half4(emissiveColor.rgb, albedoBlendForEmission));
+    }
+#endif
+
+    #ifdef MOTION_VECTORS_ENABLED
+      float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
+      init_motion_vector(gbuffer, motion);
+    #endif
+    return encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
+  #endif
+  }
+}
+compile("target_ps", "metatex_ps");
+endmacro

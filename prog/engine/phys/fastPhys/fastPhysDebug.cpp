@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <phys/dag_fastPhys.h>
 #include <math/dag_TMatrix.h>
 #include <debug/dag_debug3d.h>

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "workCyclePriv.h"
 #include <workCycle/dag_workCycle.h>
 #include <perfMon/dag_cpuFreq.h>

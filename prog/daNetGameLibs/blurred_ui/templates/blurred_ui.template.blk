@@ -1,0 +1,11 @@
+blurred_ui{
+  _use:t="replicating"
+  _singleton:b=true
+  "blurred_ui__manager:BlurredUI"{}
+  "blurred_ui__texid:TEXTUREID"{}
+  "blurred_ui_sdr__texid:TEXTUREID"{}
+  "blurred_ui__smp:d3d::SamplerHandle"{}
+  "blurred_ui_sdr__smp:d3d::SamplerHandle"{}
+  "blurred_ui__levels:u32"{value:i=2;}
+  _tags:t="render"
+}

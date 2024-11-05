@@ -1,8 +1,8 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <ioSys/dag_dataBlock.h>
 #include <sqplus.h>
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/control/container.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <libTools/util/blkUtil.h>
 
@@ -66,7 +66,7 @@ void ScriptExtContainer::getValueFromScript(SquirrelObject param)
 void ScriptExtContainer::appendExBlock()
 {
   int &new_pid = mPanelWrapper->getFreePid();
-  PropPanel2 *ext_container = NULL;
+  PropPanel::ContainerPropertyControl *ext_container = NULL;
   if (mPanel && mVisible)
     ext_container = mPanel->createExtensible(++new_pid);
   else
@@ -78,10 +78,10 @@ void ScriptExtContainer::appendExBlock()
 }
 
 
-void ScriptExtContainer::onChange(int pid, PropPanel2 &panel) { ScriptPanelContainer::onChange(pid, panel); }
+void ScriptExtContainer::onChange(int pid, PropPanel::ContainerPropertyControl &panel) { ScriptPanelContainer::onChange(pid, panel); }
 
 
-void ScriptExtContainer::onClick(int pid, PropPanel2 &panel)
+void ScriptExtContainer::onClick(int pid, PropPanel::ContainerPropertyControl &panel)
 {
   if (mPid == pid || (searchPidIndex(pid) != -1))
   {
@@ -93,7 +93,7 @@ void ScriptExtContainer::onClick(int pid, PropPanel2 &panel)
 }
 
 
-void ScriptExtContainer::onPostEvent(int pid, PropPanel2 &panel)
+void ScriptExtContainer::onPostEvent(int pid, PropPanel::ContainerPropertyControl &panel)
 {
   if (mPid == pid && mExtItemPids.size() < itemsCountMax)
   {
@@ -107,13 +107,13 @@ void ScriptExtContainer::onPostEvent(int pid, PropPanel2 &panel)
   {
     switch (panel.getInt(pid))
     {
-      case EXT_BUTTON_REMOVE: removeExBlock(pid, ind); break;
+      case PropPanel::EXT_BUTTON_REMOVE: removeExBlock(pid, ind); break;
 
-      case EXT_BUTTON_INSERT: insertExBlock(pid, ind); break;
+      case PropPanel::EXT_BUTTON_INSERT: insertExBlock(pid, ind); break;
 
-      case EXT_BUTTON_UP: moveBlockExUp(pid, ind); break;
+      case PropPanel::EXT_BUTTON_UP: moveBlockExUp(pid, ind); break;
 
-      case EXT_BUTTON_DOWN: moveBlockExDown(pid, ind); break;
+      case PropPanel::EXT_BUTTON_DOWN: moveBlockExDown(pid, ind); break;
     }
     updateMenuFlags();
     return;
@@ -168,7 +168,7 @@ bool ScriptExtContainer::insertExBlock(int pid, int ind)
   setDefValues(mParam);
 
   int &new_pid = mPanelWrapper->getFreePid();
-  PropPanel2 *ext_container = NULL;
+  PropPanel::ContainerPropertyControl *ext_container = NULL;
   if (mPanel && mVisible)
     ext_container = mPanel->createExtensible(++new_pid);
   else
@@ -276,7 +276,7 @@ void ScriptExtContainer::clear()
 }
 
 
-bool ScriptExtContainer::scriptExtFactory(PropPanel2 *panel, int &pid, SquirrelObject param) { return false; }
+bool ScriptExtContainer::scriptExtFactory(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject param) { return false; }
 
 
 void ScriptExtContainer::updateParams() {}
@@ -310,13 +310,13 @@ void ScriptExtContainer::updateMenuFlags()
   {
     int flags = 0;
     if (mExtItemPids.size() < itemsCountMax)
-      flags |= (1 << EXT_BUTTON_INSERT);
+      flags |= (1 << PropPanel::EXT_BUTTON_INSERT);
     if (mExtItemPids.size() > itemsCountMin)
-      flags |= (1 << EXT_BUTTON_REMOVE);
+      flags |= (1 << PropPanel::EXT_BUTTON_REMOVE);
     if (i > 0)
-      flags |= (1 << EXT_BUTTON_UP);
+      flags |= (1 << PropPanel::EXT_BUTTON_UP);
     if (i + 1 < mExtItemPids.size())
-      flags |= (1 << EXT_BUTTON_DOWN);
+      flags |= (1 << PropPanel::EXT_BUTTON_DOWN);
 
     mPanel->setInt(mExtItemPids[i], flags);
   }

@@ -24,10 +24,11 @@ namespace das {
 
     template <typename T>
     struct smart_ptr_raw {
-        smart_ptr_raw ( smart_ptr_jit & p ) : ptr((T *)&p) {}
+        smart_ptr_raw ( smart_ptr_jit * p ) : ptr((T *)p) {}
         explicit operator smart_ptr_jit * () { return (smart_ptr_jit *)ptr; }
         smart_ptr_raw () : ptr(nullptr) {}
         smart_ptr_raw ( T * p ) : ptr(p) {}
+        smart_ptr_raw ( nullptr_t ) : ptr(nullptr) {}
         template <typename Y>
         __forceinline smart_ptr_raw ( const smart_ptr_raw<Y> & p ) {
             static_assert( is_base_of<T,Y>::value || is_base_of<Y,T>::value, "can only cast if inherited" );
@@ -83,8 +84,9 @@ namespace das {
 
     template <>
     struct smart_ptr_raw<void> {
-        smart_ptr_raw ( smart_ptr_jit & p ) : ptr((void *)&p) {}
+        smart_ptr_raw ( smart_ptr_jit * p ) : ptr((void *)p) {}
         explicit operator smart_ptr_jit * () { return (smart_ptr_jit *)ptr; }
+        smart_ptr_raw ( nullptr_t ) : ptr(nullptr) {}
         smart_ptr_raw () : ptr(nullptr) {}
         smart_ptr_raw ( void * p ) : ptr(p) {}
         __forceinline void * get() const { return ptr; }
@@ -119,13 +121,14 @@ namespace das {
     public:
         using element_type = T;
         using element_type_ptr = T *;
-        smart_ptr ( smart_ptr_jit & p ) {
-            init((T *)&p);
+        smart_ptr ( smart_ptr_jit * p ) {
+            init((T *)p);
         }
         explicit operator smart_ptr_jit * () {
             addRef();   // this is only during jit wrapping. we cast to this. old one gets deleted. we need to add ref.
             return (smart_ptr_jit *)ptr;
         }
+        smart_ptr ( nullptr_t ) : ptr(nullptr) {}
         __forceinline smart_ptr ( ) {
             ptr = nullptr;
         }

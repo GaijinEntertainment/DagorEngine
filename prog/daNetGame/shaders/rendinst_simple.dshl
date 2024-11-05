@@ -1,0 +1,52 @@
+include "rendinst_simple_inc.dshl"
+include "simple_inc.dshl"
+
+shader rendinst_simple, rendinst_simple_colored
+{
+  ENABLE_ASSERT(ps)
+
+  COMMON_RENDINST_SIMPLE_INIT()
+
+  texture tex = material.texture.diffuse;
+  texture normal = material.texture[2];
+  texture detail = material.texture[3];
+  texture secondary_detail = material.texture[4];
+
+  static float4 detail_scale_offset;
+  (ps) { detail_scale_offset@f4 = detail_scale_offset; }
+
+  static float4 secondary_detail_scale_offset;
+  (ps) { secondary_detail_scale_offset@f4 = secondary_detail_scale_offset; }
+
+  static int atest = 0;
+  interval atest: atestOff < 1, atestOn;
+
+  static float parallax_str = 0;
+  interval parallax_str: parallax_off < 0.0001, parallax_on;
+
+  COMMON_RENDINST_ATEST_DEFINES()
+
+  INIT_AND_USE_DETAIL()
+
+  COMMON_RENDINST_VS_IO_DEFINES()
+
+  hlsl {
+    struct VsOutput
+    {
+        COMMON_RENDINST_VS_OUTPUT_MEMBERS
+    };
+  }
+
+  COMMON_RENDINST_VS_INPUT()
+  COMMON_RENDINST_VS()
+
+  COMMON_RENDINST_PS_PREP(true)
+
+  if (!rendinst_render_is_shadow_or_depth)
+  {
+    USE_PARALLAX()
+    USE_SIMPLE_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo))
+  }
+
+  COMPILE_RI_VS_TARGET("simple_vs")
+}

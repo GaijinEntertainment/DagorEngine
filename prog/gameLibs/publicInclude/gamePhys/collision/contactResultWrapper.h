@@ -1,11 +1,9 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <gamePhys/collision/collisionInfo.h>
 #include <gamePhys/collision/contactData.h>
 #include <phys/dag_physDebug.h>
 #include <scene/dag_physMat.h>
@@ -23,8 +21,8 @@ struct WrapperContactResultCB
     contacts(stor), checkMatId(check_mat_id), collapseContactThreshold(collapse_thres)
   {}
 
-  void setContactData(const gamephys::CollisionContactData &cp, obj_user_data_t *userPtrA, obj_user_data_t *userPtrB,
-    gamephys::CollisionObjectInfo *obj_info, gamephys::CollisionContactData &dest_c)
+  contact_data_t &setContactData(const gamephys::CollisionContactData &cp, obj_user_data_t *userPtrA, obj_user_data_t *userPtrB,
+    gamephys::CollisionContactData &dest_c)
   {
     dest_c.depth = cp.depth;
     dest_c.wpos = cp.wpos;
@@ -39,11 +37,10 @@ struct WrapperContactResultCB
 
     dest_c.userPtrA = userPtrA;
     dest_c.userPtrB = userPtrB;
-    dest_c.objectInfo = obj_info;
+    return dest_c;
   }
 
-  float addSingleResult(contact_data_t &cp, obj_user_data_t *userPtrA, obj_user_data_t *userPtrB,
-    gamephys::CollisionObjectInfo *obj_info)
+  contact_data_t &addSingleResult(const contact_data_t &cp, obj_user_data_t *userPtrA, obj_user_data_t *userPtrB)
   {
     if (collapseContactThreshold > 0.f)
       for (gamephys::CollisionContactData &c : contacts)
@@ -51,18 +48,17 @@ struct WrapperContactResultCB
         {
           // update this one and move out
           if (c.depth > cp.depth)
-            setContactData(cp, userPtrA, userPtrB, obj_info, c);
-          return 0;
+            setContactData(cp, userPtrA, userPtrB, c);
+          return c;
         }
-    setContactData(cp, userPtrA, userPtrB, obj_info, contacts.push_back());
-    return 0;
+    return setContactData(cp, userPtrA, userPtrB, contacts.push_back());
   }
 
 #if DAGOR_DBGLEVEL > 0
   static void visualDebugForSingleResult(const PhysBody *bodyA, const PhysBody *bodyB, const contact_data_t &c)
   {
-    PhysWorld *physWorld = dacoll::get_phys_world();
-    if (physdbg::isInDebugMode(physWorld))
+    PhysWorld *physWorld = bodyA ? bodyA->getPhysWorld() : (bodyB ? bodyB->getPhysWorld() : nullptr);
+    if (physWorld && physdbg::isInDebugMode(physWorld))
     {
       physdbg::renderOneBody(physWorld, bodyA);
       physdbg::renderOneBody(physWorld, bodyB);

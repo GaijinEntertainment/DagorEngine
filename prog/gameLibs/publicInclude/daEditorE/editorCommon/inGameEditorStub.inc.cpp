@@ -9,6 +9,10 @@ void init_entity_object_editor() {}
 void init_da_editor4() {}
 void term_da_editor4() {}
 bool is_editor_activated() { return false; }
+bool is_editor_in_reload() { return false; }
+void start_editor_reload() {}
+void finish_editor_reload() {}
+bool is_editor_free_camera_enabled() { return false; }
 
 IDaEditor4EmbeddedComponent &get_da_editor4() { return daEd4Stub; }
 EntityObjEditor *get_entity_obj_editor() { return nullptr; }

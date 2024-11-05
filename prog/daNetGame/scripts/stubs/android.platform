@@ -1,0 +1,22 @@
+
+return {
+  checkAndRequestPermission = function(_title, _text, _textBlocked, _permission) {}
+  checkPermission = function(_permission) {}
+  getSafeArea = function() {return 1.0}
+  getSafeAreaVert = function() {return 1.0}
+  getSafeAreaHor = function() {return 1.0}
+  restartApp = function() {}
+  showAppReview = function() {}
+  isDownloadedFromGooglePlay = function() {return false}
+  getStartDeepLinkParams = function() {return ""}
+  getPackageName = function() {return ""}
+  getPackageVersion = function() {return ""}
+  getApiVersion = function() {return -1}
+  checkAppUpdateOnMarket = function() {}
+  getBuildMarket = function() {return ""}
+  readIntSettings = @(_,__) 0
+  writeIntSettings = @(_,__) null
+  readBoolSettings = @(_,__) false
+  writeBoolSettings = @(_,__) null
+  getScreenPPI = @() 360.0
+}

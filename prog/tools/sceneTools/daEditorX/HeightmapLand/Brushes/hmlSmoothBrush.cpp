@@ -1,10 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hmlSmoothBrush.h"
 #include "../hmlPlugin.h"
 #include "../hmlCm.h"
 #include <ioSys/dag_dataBlock.h>
 
 
-void HmapSmoothLandBrush::fillParams(PropPanel2 &panel)
+void HmapSmoothLandBrush::fillParams(PropPanel::ContainerPropertyControl &panel)
 {
   HmapLandBrush::fillParams(panel);
   panel.createTrackInt(PID_BRUSH_SIGMA, "Sigma", sigma * 100, 1, 100, 1);
@@ -13,7 +15,7 @@ void HmapSmoothLandBrush::fillParams(PropPanel2 &panel)
 }
 
 
-void HmapSmoothLandBrush::updateToPanel(PropPanel2 &panel)
+void HmapSmoothLandBrush::updateToPanel(PropPanel::ContainerPropertyControl &panel)
 {
   HmapLandBrush::updateToPanel(panel);
   panel.setInt(PID_BRUSH_SIGMA, sigma * 100);
@@ -21,7 +23,7 @@ void HmapSmoothLandBrush::updateToPanel(PropPanel2 &panel)
 }
 
 
-bool HmapSmoothLandBrush::updateFromPanelRef(PropPanel2 &panel, int pid)
+bool HmapSmoothLandBrush::updateFromPanelRef(PropPanel::ContainerPropertyControl &panel, int pid)
 {
   switch (pid)
   {

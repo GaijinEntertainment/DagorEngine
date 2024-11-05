@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "de3_gui_dialogs.h"
 #include <windows.h>
 #include <CommDlg.h>

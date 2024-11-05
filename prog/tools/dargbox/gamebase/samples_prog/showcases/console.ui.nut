@@ -39,9 +39,9 @@ function textLog(log_state) {
   }
 }
 
-let consoleLog = persist("consoleLog", @() Watched([]))
-let textSt = persist("textSt", @() Watched(""))
-let history = persist("history", @() Watched([]))
+let consoleLog = mkWatched(persist, "consoleLog", [])
+let textSt = mkWatched(persist, "textSt", "")
+let history = mkWatched(persist, "history", [])
 local key = 0
 
 local historyCursorPos = 0

@@ -123,7 +123,7 @@ shader editor_opaque_geom_helper, editor_opaque_geom_helper_no_tex
 
   WRITE_GBUFFER()
   hlsl(ps) {
-    GBUFFER_OUTPUT editor_helper_ps(VSOutput input) : SV_Target
+    GBUFFER_OUTPUT editor_helper_ps(VSOutput input HW_USE_SCREEN_POS) : SV_Target
     {
       UnpackedGbuffer gbuffer;
       float3 albedo = input.color.rgb;
@@ -139,7 +139,7 @@ shader editor_opaque_geom_helper, editor_opaque_geom_helper_no_tex
       init_smoothness(gbuffer, smoothness);
       init_normal(gbuffer, input.normal);
       init_ao(gbuffer, 1);
-      return encode_gbuffer(gbuffer, input.pointToEye);
+      return encode_gbuffer(gbuffer, input.pointToEye, GET_SCREEN_POS(input.pos));
     }
   }
   compile("target_ps", "editor_helper_ps");

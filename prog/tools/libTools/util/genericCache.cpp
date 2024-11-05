@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/util/genericCache.h>
 #include <sys/stat.h>
 #include <ioSys/dag_fileIo.h>
@@ -69,7 +71,7 @@ bool GenericBuildCache::load(const char *cache_fname, int *end_pos)
     if (end_pos)
       *end_pos = crd.tell();
   }
-  DAGOR_CATCH(IGenLoad::LoadException exc)
+  DAGOR_CATCH(const IGenLoad::LoadException &exc)
   {
     logerr("failed to read '%s'", cache_fname);
     debug_flush(false);

@@ -84,6 +84,7 @@ void btDagorHeightfieldTerrainShape::processAllTriangles(btTriangleCallback *cal
   endZ = min(endZ, length - 2);
   float minAAHt = aabbMin.getY();
   uint16_t minAaHtInt = uint16_t(max(minAAHt - hMin, 0.f) / hScaleRaw);
+  const float hMinAndMargin = hMin - getMargin();
   // todo: optimize, so that
   //  a) we get heights with direct access, so remove multiplication from heightmapData[x + y*hmapWidth.x]
   //  b) we reuse 2 vertices at least from previous horizontal quad
@@ -104,7 +105,7 @@ void btDagorHeightfieldTerrainShape::processAllTriangles(btTriangleCallback *cal
         continue;
       float height[4];
       for (int i = 0; i < 4; ++i)
-        height[i] = htInt[i] * hScaleRaw + hMin;
+        height[i] = htInt[i] * hScaleRaw + hMinAndMargin;
       btVector3 vertices[3];
       bool holesCheck[4] = {false, false, false, false};
       if (holes)

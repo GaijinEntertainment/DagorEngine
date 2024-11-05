@@ -1,4 +1,3 @@
-include "land_block_inc.dshl"
 include "bc_compression_inc.dshl"
 
 texture src_tex;

@@ -1,10 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "nodeScheduler.h"
 
-#include <EASTL/fixed_vector.h>
 #include <EASTL/bitvector.h>
 #include <EASTL/stack.h>
 #include <EASTL/algorithm.h>
 #include <EASTL/numeric.h>
+#include <dag/dag_vectorSet.h>
 
 #include <debug/dag_assert.h>
 #include <debug/backendDebug.h>
@@ -15,137 +17,106 @@
 namespace dabfg
 {
 
-auto NodeScheduler::schedule(const intermediate::Graph &graph) -> NodePermutation
+auto NodeScheduler::schedule(const intermediate::Graph &graph, const PassColoring &pass_coloring) -> NodePermutation
 {
-  NodePermutation outTime(graph.nodes.size());
+  static constexpr intermediate::NodeIndex NOT_VISITED = MINUS_ONE_SENTINEL_FOR<intermediate::NodeIndex>;
 
-  // Simple non-recursive DFS to find a toplogical sort using out times.
+  NodePermutation result(graph.nodes.size(), NOT_VISITED);
 
-  // As per classical algorithms literature,
-  // white = unvisited, gray = current path, black = visited
-  enum class Color
-  {
-    WHITE,
-    GRAY,
-    BLACK
-  };
-  dag::Vector<Color, framemem_allocator> colors(graph.nodes.size(), Color::WHITE);
+  FRAMEMEM_VALIDATE;
 
-  // NOTE: This is a crutch that forces different eyes to be run in-order.
-  // Saves us while we have global state not tracked by framegraph yet.
-  // TODO: Remove when DNG no longer has any global state (so basically never)
-  auto orderRange = IdRange<intermediate::NodeIndex>(graph.nodes.size());
-  dag::Vector<intermediate::NodeIndex, framemem_allocator> dfsLaunchOrder(orderRange.begin(), orderRange.end());
+  // This is called Kahn's algorithm, apparently. It generates a
+  // topological sort of the graph and is strictly better than a DFS
+  // or a BFS because depending on choice of next node at each iteration,
+  // we are capable of generating ANY correct topological sort.
 
-  // We can use the same lambda to order descending using .rbegin()/.rend().
-  auto orderComp = [&graph](intermediate::NodeIndex l, intermediate::NodeIndex r) {
+  // "how many edges point into me?"
+  IdIndexedMapping<intermediate::NodeIndex, uint16_t, framemem_allocator> inDegree(graph.nodes.size());
+  for (auto [nodeId, node] : graph.nodes.enumerate())
+    for (auto pred : node.predecessors)
+      ++inDegree[pred];
+
+  // "how many edges point into this pass from different passes?"
+  IdIndexedMapping<PassColor, uint16_t, framemem_allocator> passInDegree;
+  passInDegree.reserve(graph.nodes.size());
+  for (auto [nodeId, _] : graph.nodes.enumerate())
+    passInDegree.expandMapping(pass_coloring[nodeId], 0);
+
+  for (auto [nodeId, node] : graph.nodes.enumerate())
+    for (auto pred : node.predecessors)
+      if (pass_coloring[nodeId] != pass_coloring[pred])
+        ++passInDegree[pass_coloring[pred]];
+
+  // The frontier contains all nodes with in-degree 0
+  dag::Vector<intermediate::NodeIndex, framemem_allocator> frontier;
+  frontier.reserve(graph.nodes.size());
+  frontier.push_back(static_cast<intermediate::NodeIndex>(graph.nodes.size() - 1));
+
+  eastl::underlying_type_t<intermediate::NodeIndex> timer = graph.nodes.size() - 1;
+  PassColor lastColor = pass_coloring.back();
+
+
+  auto orderComp = [&graph, &lastColor, &pass_coloring, &passInDegree](intermediate::NodeIndex l, intermediate::NodeIndex r) {
     if (graph.nodes[l].multiplexingIndex != graph.nodes[r].multiplexingIndex)
       return graph.nodes[l].multiplexingIndex < graph.nodes[r].multiplexingIndex;
-    return graph.nodes[l].priority < graph.nodes[r].priority;
+
+    if ((pass_coloring[l] == lastColor) != (pass_coloring[r] == lastColor))
+      return (pass_coloring[l] == lastColor) < (pass_coloring[r] == lastColor);
+
+    if (passInDegree[pass_coloring[l]] != passInDegree[pass_coloring[r]])
+      return passInDegree[pass_coloring[l]] > passInDegree[pass_coloring[r]];
+
+    if (graph.nodes[l].priority != graph.nodes[r].priority)
+      return graph.nodes[l].priority < graph.nodes[r].priority;
+
+    return eastl::to_underlying(l) > eastl::to_underlying(r);
   };
 
-  eastl::sort(dfsLaunchOrder.begin(), dfsLaunchOrder.end(), orderComp);
+  // The core property of the pass coloring is that if we condense the
+  // graph according to it, we should still get a DAG.
+  // This property guarantees to us that if we schedule nodes using
+  // passInDegree as priority, each pass will be scheduled as a
+  // contiguous sequence of nodes.
+  // Sadly, when multiplexing is enabled, we cannot do that due to
+  // legacy global state modification in some projects, so we issue
+  // a warning whenever this property is violated for informative purposes.
+  bool passContiguityViolated = false;
 
-  uint32_t timer = 0;
-  for (auto i : dfsLaunchOrder)
+  while (!frontier.empty())
   {
-    if (colors[i] != Color::WHITE)
-      continue;
+    // This can be a bit slow, but the way orderComp works changes on
+    // every iteration, so we can't really cache anything :/
+    const auto it = eastl::max_element(frontier.begin(), frontier.end(), orderComp);
+    const auto curr = *it;
 
-    // This stack will be on top of the framemem stack throughout the dfs,
-    // so expanding is FREE
-    eastl::stack<intermediate::NodeIndex, dag::Vector<intermediate::NodeIndex, framemem_allocator>> stack;
-    stack.push(i);
+    frontier.erase_unsorted(it);
+    G_FAST_ASSERT(inDegree[curr] == 0 && result[curr] == NOT_VISITED);
 
-    // Loop until all reachable nodes were visited
-    while (!stack.empty())
+    if (passInDegree[pass_coloring[curr]] != 0)
+      passContiguityViolated = true;
+
+    result[curr] = static_cast<intermediate::NodeIndex>(timer--);
+    lastColor = pass_coloring[curr];
+
+    for (auto pred : graph.nodes[curr].predecessors)
     {
-      auto curr = stack.top();
+      if (pass_coloring[curr] != pass_coloring[pred])
+        --passInDegree[pass_coloring[pred]];
 
-      // If this is a fresh node that we haven't seen yet,
-      // mark it gray and enqueue all predecessors
-      // Note that we do NOT pop the curr node from the stack!!!
-      if (colors[curr] == Color::WHITE)
-      {
-        colors[curr] = Color::GRAY;
-
-        const auto &unsortedPreds = graph.nodes[curr].predecessors;
-
-        // This is a very important reservation, it makes frameemem
-        // allocation scopes nest. We first pre-allocate enough space
-        // in the stack for all predecessors and only then allocate a
-        // the `predecessors` vector. This guarantees that the following
-        // pushes don't need to allocate more memory inside the stack.
-        // Without this, pushing could cause a reallocation, which would
-        // force framemem to completely move the stack to different memory :(
-        stack.get_container().reserve(stack.size() + unsortedPreds.size());
-
-        // Our current hack for priorities. I don't like it, but can't
-        // think of anything better.
-        dag::Vector<intermediate::NodeIndex, framemem_allocator> predecessors(unsortedPreds.begin(), unsortedPreds.end());
-        eastl::sort(predecessors.rbegin(), predecessors.rend(), orderComp);
-
-        for (intermediate::NodeIndex next : predecessors)
-        {
-          if (DAGOR_UNLIKELY(colors[next] == Color::GRAY))
-          {
-            // We've found a cycle, the world is sort of broken, complain.
-            const auto &stackRaw = stack.get_container();
-            const auto it = eastl::find(stackRaw.begin(), stackRaw.end(), next);
-
-            eastl::string path;
-            eastl::bitvector<framemem_allocator> visited{graph.nodes.size(), false};
-            for (auto i = it; i != stackRaw.end(); ++i)
-              if (colors[*i] == Color::GRAY && !visited.test(*i, false))
-              {
-                visited.set(*i, true);
-                path += (graph.nodeNames[*i] + " -> ").c_str();
-              }
-            path += graph.nodeNames[*it].c_str();
-            graphDumper.dumpRawUserGraph();
-            logerr("Cyclic dependency detected in framegraph IR: %s", path);
-            logerr("For resource dependency dump look at debug log!");
-          }
-
-          if (colors[next] == Color::WHITE)
-            stack.push(next);
-        }
-
-        continue;
-      }
-
-      // After all children of a node have been completely visited,
-      // we will find this node at the top of the stack again,
-      // this time with gray mark. Mark it black and record out time.
-      // Conceptually our algorithm is "leaving" this node,
-      // so we record the leaving time.
-      if (colors[curr] == Color::GRAY)
-      {
-        outTime[curr] = static_cast<intermediate::NodeIndex>(timer++);
-        colors[curr] = Color::BLACK;
-      }
-
-      // The node might have been added multiple time to the stack,
-      // but only the last entry got "visited", so ignore others. E.g.:
-      //       B
-      //      ^ ^
-      //     /   \
-      //    /     \
-      //   /       \
-      //  A-------->C
-      // Stack after each iteration:
-      // A
-      // ABC
-      // ABCB
-      // ABCB
-      // ABC
-      // AB  <- B is black here, because it was already visited
-      // A
-      stack.pop();
+      if (--inDegree[pred] == 0)
+        frontier.push_back(pred);
     }
   }
 
-  return outTime;
+  if (passContiguityViolated)
+    logwarn("daBfg: Node scheduler could not schedule some passes to be contiguous! This is fine, but sub-optimal.");
+
+#if DAGOR_DBGLEVEL > 0
+  for (auto i : result)
+    G_ASSERTF(i != NOT_VISITED, "daBfg: IR graph was not a DAG! This is an invariant that MUST hold!");
+#endif
+
+  return result;
 }
 
 } // namespace dabfg

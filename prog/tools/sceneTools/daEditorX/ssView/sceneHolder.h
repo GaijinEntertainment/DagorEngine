@@ -1,5 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <de3_dynRenderService.h>
 #include <render/dag_cur_view.h>

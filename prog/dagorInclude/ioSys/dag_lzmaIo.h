@@ -1,13 +1,12 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <ioSys/dag_baseIo.h>
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 
 enum
@@ -108,4 +107,4 @@ protected:
 
 KRNLIMP int lzma_compress_data(IGenSave &dest, int compression_level, IGenLoad &src, int sz, int dict_sz = 1 << 20);
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

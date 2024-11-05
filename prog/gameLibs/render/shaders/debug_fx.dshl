@@ -1,0 +1,60 @@
+include "shader_global.dshl"
+
+
+texture fx_debug_color_rt;
+float fx_debug_exposure_threshold = 1.0;
+
+int fx_debug_editor_mode = 0;
+interval fx_debug_editor_mode:base<1, hdr_emission;
+
+
+shader debug_fx_final_render
+{
+  z_test = false;
+  z_write = false;
+  supports none;
+  cull_mode = none;
+  blend_src = one; blend_dst = sa;
+
+  POSTFX_VS_TEXCOORD(1, texcoord)
+
+  INIT_HDR(ps)
+  USE_HDR(ps)
+
+  (ps) {
+    color_rt@smp2d = fx_debug_color_rt;
+    fx_debug_exposure_threshold@f1 = fx_debug_exposure_threshold;
+  }
+
+  hlsl(ps) {
+    float4 simple_fx_final_render_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      float4 pos = GET_SCREEN_POS(input.pos);
+      int2 ipos = int2(pos.xy);
+
+      float4 color = texelFetch(color_rt, ipos, 0);
+
+##if fx_debug_editor_mode == hdr_emission
+      color.rgb = unpack_hdr(color.rgb);
+
+      float maxChannel = max3(color.x, color.y, color.z);
+
+      if (maxChannel <= fx_debug_exposure_threshold)
+        return float4(maxChannel,maxChannel,maxChannel,color.a);
+
+      float4 result = float4(0,0,0,color.a);
+      if (color.r == maxChannel)
+        result.r = 1;
+      if (color.g == maxChannel)
+        result.g = 1;
+      if (color.b == maxChannel)
+        result.b = 1;
+
+      return result;
+##else
+      return color;
+##endif
+    }
+  }
+  compile("target_ps", "simple_fx_final_render_ps");
+}

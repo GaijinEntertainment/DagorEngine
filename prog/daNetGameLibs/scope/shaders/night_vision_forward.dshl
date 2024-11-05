@@ -1,0 +1,36 @@
+include "night_vision_inc.dshl"
+
+texture scope_lens_mask;
+int lens_night_vision_on = 0;
+interval lens_night_vision_on:off<1, on;
+
+macro INIT_NIGHT_VISION_FORWARD()
+  if (lens_night_vision_on == on) {
+    (ps) {
+      screen_pos_to_texcoord@f2 = (screen_pos_to_texcoord.x, screen_pos_to_texcoord.y, 0, 0);
+      scope_lens_mask@smp2d = scope_lens_mask;
+    }
+    INIT_NIGHT_VISION()
+  }
+endmacro
+
+macro USE_NIGHT_VISION_FORWARD()
+  if (lens_night_vision_on == on) {
+    USE_NIGHT_VISION()
+    hlsl(ps) {
+      void applyOptionalFilter(inout half3 color, float2 sceneUV, float2 tc)
+      {
+        ##if (lens_night_vision_on == on)
+          if (tex2D(scope_lens_mask, sceneUV).r >= 0.5)
+            applyNightVision(color, tc);
+        ##endif
+      }
+    }
+  }
+  else {
+    hlsl(ps)
+    {
+      void applyOptionalFilter(inout half3 color, float2 sceneUV, float2 tc) {}
+    }
+  }
+endmacro

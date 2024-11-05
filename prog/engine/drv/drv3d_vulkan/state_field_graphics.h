@@ -1,5 +1,8 @@
-// fields that related to graphics part of pipeline
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+// fields that related to graphics part of pipeline
+
 #include "util/tracked_state.h"
 #include "driver.h"
 #include "graphics_state.h"
@@ -474,14 +477,14 @@ struct StateFieldGraphicsVertexBuffersBindArray : TrackedStateFieldBase<false, f
     countMask = 0;
   }
 
-  void set(const BufferSubAllocation &bsa)
+  void set(const BufferRef &ref)
   {
-    resPtrs[0] = bsa.buffer;
-    buffers[0] = bsa.buffer->getHandle();
-    offsets[0] = bsa.buffer->bufOffsetLoc(bsa.offset);
+    resPtrs[0] = ref.buffer;
+    buffers[0] = ref.buffer->getHandle();
+    offsets[0] = ref.bufOffset(0);
     countMask |= 1 << 0;
   }
-  bool diff(const BufferSubAllocation &) const { return true; }
+  bool diff(const BufferRef &) const { return true; }
 
   void set(const StateFieldGraphicsVertexBufferBind::Indexed &bind)
   {

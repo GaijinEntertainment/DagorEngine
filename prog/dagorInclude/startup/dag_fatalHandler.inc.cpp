@@ -1,6 +1,5 @@
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #pragma once
 
@@ -15,8 +14,7 @@ extern void dagor_install_dev_fatal_handler(const char *(*get_ctx)());
 
 #include <workCycle/dag_workCycle.h>
 #include <workCycle/dag_gameSettings.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_driver.h>
 #include <startup/dag_restart.h>
 #include <startup/dag_globalSettings.h>
 #include <osApiWrappers/dag_progGlobals.h>

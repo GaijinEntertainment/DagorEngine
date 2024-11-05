@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daFx/dafx.h>
 #include <math/dag_hlsl_floatx.h>
 #include <math/dag_mathUtils.h>
@@ -8,8 +10,12 @@
 #include <daFx/dafx_loaders.hlsli>
 #include <daFx/dafx_packers.hlsli>
 #include <daFx/dafx_random.hlsli>
+#include <daFx/dafx_gravity_zone.hlsli>
 
 #include <dafx_globals.hlsli>
+
+extern int dafx_gravity_zone_count;
+extern GravityZoneDescriptor_buffer dafx_gravity_zone_buffer;
 
 namespace dafx_sparks
 {

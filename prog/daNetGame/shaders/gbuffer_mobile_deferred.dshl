@@ -1,0 +1,469 @@
+macro MOBILE_DEFERRED_PACK_UNPACK_GBUFFER_BASE(code)
+hlsl(code) {
+#ifndef PACK_UNPACK_GBUFFER_DEFINED
+#define PACK_UNPACK_GBUFFER_DEFINED 1
+}
+
+USE_GBUFFER_PACK_UNPACK(code)
+
+hlsl(code) {
+  struct ProcessedGbuffer
+  {
+    half3 diffuseColor;
+    half3 specularColor;
+    half ggx_alpha, linearRoughness;
+    float3 normal;
+
+    half metalness;
+    half translucency;
+
+    half extracted_albedo_ao;
+    half ao;
+    uint material;
+
+    uint dynamicMask;
+    uint isLandscape;
+  };
+
+  struct UnpackedGbuffer
+  {
+    half3 albedo;
+    half smoothness;
+    float3 normal;
+
+    half metalness;
+    half translucency;
+    half reflectance;
+
+    half ao;
+    uint material;
+
+    uint dynamicMask;
+    uint isLandscape;
+
+    uint isEmissive;
+    float4 emissionColor;
+    float emissionStrength;
+  };
+
+##if mobile_simplified_materials == yes
+  #define MATERIAL_DEFAULT 0
+  #define MATERIAL_METAL   1
+  #define MATERIAL_FOILAGE 2
+  #define MATERIALS_COUNT  3
+
+  struct PackedGbuffer
+  {
+    half4 albedo_nx;
+    half2 ny_landDmaskMaterial;
+  };
+
+  PackedGbuffer pack_gbuffer(UnpackedGbuffer gbuffer)
+  {
+  #ifdef MOBILE_EMISSIVE
+    //this is a dirty fake to mimic required color and contrast
+    //it is not additive with other result color
+    //so it will be missed at night and in shadow
+    if (gbuffer.material == SHADING_SELFILLUM)
+    {
+      gbuffer.albedo = gbuffer.emissionStrength * gbuffer.emissionColor.rgb * lerp(1, gbuffer.albedo, gbuffer.emissionColor.a);
+      gbuffer.metalness = 0;
+      gbuffer.normal = -gbuffer_sun_light_dir.xyz;
+    }
+  #endif
+    //filter materials not supported in resolve and replace them with metallic (SHADING_NORMAL = 0)
+    gbuffer.material = gbuffer.material & SUPPORTED_MATERIALS_IN_RESOLVE_MASK;
+
+    half2 N = pack_normal_so(gbuffer.normal);
+    uint material = 0;
+
+    material =
+        isSubSurfaceShader(gbuffer.material) ? MATERIAL_FOILAGE
+      : gbuffer.metalness >= 0.7 ? MATERIAL_METAL
+      : MATERIAL_DEFAULT;
+
+    uint landDmaskMaterial =
+      material << 2 | gbuffer.dynamicMask << 1 | gbuffer.isLandscape;
+
+    PackedGbuffer gbuf;
+    gbuf.albedo_nx = half4(gbuffer.albedo, N.x);
+    gbuf.ny_landDmaskMaterial = half2(N.y, half(landDmaskMaterial) / 255.0);
+    return gbuf;
+  }
+
+  UnpackedGbuffer unpackGbuffer(PackedGbuffer gbuf)
+  {                           //def   metal  foilage
+    half3 reflectance =  half3(0.05,  0.49,   0.14);
+    half3 translucency = half3(0.0,   0.0,    0.65);
+    half3 metalness =    half3(0.0,   0.8,    0.0);
+    half3 smoothness =   half3(0.01,  0.7,    0.15);
+
+    UnpackedGbuffer gbuffer;
+
+    half2 N = half2(gbuf.albedo_nx.a, gbuf.ny_landDmaskMaterial.r);
+
+    uint landDmaskMaterial = uint(gbuf.ny_landDmaskMaterial.g * 255.0);
+    uint materialId = landDmaskMaterial >> 2;
+
+    gbuffer.albedo = gbuf.albedo_nx.rgb;
+    gbuffer.normal = unpack_normal_so(N);
+    gbuffer.smoothness = smoothness[materialId];
+    gbuffer.ao = 1.0;
+    gbuffer.material =  materialId != MATERIAL_FOILAGE ? SHADING_NORMAL : SHADING_FOLIAGE;
+    gbuffer.metalness = metalness[materialId];
+    gbuffer.reflectance = reflectance[materialId];
+    gbuffer.translucency = translucency[materialId];
+    gbuffer.isLandscape = landDmaskMaterial & 0x1;
+    gbuffer.dynamicMask = (landDmaskMaterial >> 1) & 0x1;
+
+  #ifdef MOBILE_GBUFFER_UNPACK_FORCE_METALNESS
+    gbuffer.metalness = MOBILE_GBUFFER_UNPACK_FORCE_METALNESS;
+  #endif
+
+    return gbuffer;
+  }
+##else //mobile_simplified_materials == no
+  struct PackedGbuffer
+  {
+    half4 albedo_smooth;
+    half4 normal_refl_mettr;
+    half2 ao_material_dmask;
+  };
+
+  PackedGbuffer pack_gbuffer(UnpackedGbuffer gbuffer)
+  {
+  #ifdef MOBILE_EMISSIVE
+    //this is a dirty fake to mimic required color and contrast
+    //it is not additive with other result color
+    //so it will be missed at night and in shadow
+    if (gbuffer.material == SHADING_SELFILLUM)
+    {
+      gbuffer.albedo = gbuffer.emissionStrength * gbuffer.emissionColor.rgb * lerp(1, gbuffer.albedo, gbuffer.emissionColor.a);
+      gbuffer.metalness = 0;
+      gbuffer.normal = -gbuffer_sun_light_dir.xyz;
+    }
+  #endif
+
+    //filter materials not supported in resolve and replace them with metallic (SHADING_NORMAL = 0)
+    gbuffer.material = gbuffer.material & SUPPORTED_MATERIALS_IN_RESOLVE_MASK;
+
+    PackedGbuffer gbuf;
+    half metalnessOrTranslucency = isSubSurfaceShader(gbuffer.material) ? gbuffer.translucency : gbuffer.metalness;
+    uint landMaterialDmask =
+      (gbuffer.isLandscape << 2) | (gbuffer.material << 1) | gbuffer.dynamicMask;
+
+    gbuf.albedo_smooth = half4(gbuffer.albedo, gbuffer.smoothness);
+    gbuf.normal_refl_mettr = half4(pack_normal_so(gbuffer.normal), gbuffer.reflectance, metalnessOrTranslucency);
+    gbuf.ao_material_dmask = half2(gbuffer.ao, half(landMaterialDmask) / 255.0);
+
+    return gbuf;
+  }
+
+  UnpackedGbuffer unpackGbuffer(PackedGbuffer gbuf)
+  {
+    UnpackedGbuffer gbuffer;
+
+    gbuffer.normal = unpack_normal_so(gbuf.normal_refl_mettr.xy);
+    half reflectance = gbuf.normal_refl_mettr.z;
+    half metalnessOrTranslucency = gbuf.normal_refl_mettr.w;
+
+    gbuffer.albedo = gbuf.albedo_smooth.xyz;
+    gbuffer.smoothness = gbuf.albedo_smooth.w;
+
+    gbuffer.ao = gbuf.ao_material_dmask.r;
+
+    uint landMaterialDmask = uint(gbuf.ao_material_dmask.g * 255.0);
+    gbuffer.dynamicMask = landMaterialDmask & 0x1;
+
+    uint landMaterial = landMaterialDmask >> 1;
+    gbuffer.material = landMaterial & 0x1;
+    gbuffer.isLandscape = landMaterial >> 1;
+
+    bool isSubSurface = isSubSurfaceShader(gbuffer.material);
+    gbuffer.metalness = isMetallicShader(gbuffer.material) ? metalnessOrTranslucency : 0;
+    gbuffer.translucency = isSubSurface ? metalnessOrTranslucency : 0;
+    gbuffer.reflectance = reflectance;
+
+#ifdef MOBILE_GBUFFER_UNPACK_FORCE_METALNESS
+  gbuffer.metalness = MOBILE_GBUFFER_UNPACK_FORCE_METALNESS;
+#endif
+
+    return gbuffer;
+  }
+##endif
+  #ifndef BLOOD_SSS_FACTOR
+  #define BLOOD_SSS_FACTOR half3(0.8,0.4,0.3)
+  #endif
+
+  #ifndef LEAVES_SSS_FACTOR
+  #define LEAVES_SSS_FACTOR half3(1.0,0.8,0.5)
+  #endif
+
+  ProcessedGbuffer processGbuffer(UnpackedGbuffer gbuf)
+  {
+    ProcessedGbuffer gbuffer;
+    gbuffer.material = gbuf.material;
+    gbuffer.normal = gbuf.normal;
+    gbuffer.linearRoughness = linearSmoothnessToLinearRoughness(gbuf.smoothness);
+    gbuffer.ggx_alpha = max(1e-4, gbuffer.linearRoughness*gbuffer.linearRoughness);
+    gbuffer.metalness = gbuf.metalness;
+    gbuffer.translucency = gbuf.translucency;
+    gbuffer.extracted_albedo_ao = decode_albedo_ao(gbuf.albedo);
+    gbuffer.diffuseColor = gbuf.albedo-gbuffer.metalness*gbuf.albedo;//*(1-met)
+    gbuffer.specularColor = decodeSpecularColor(gbuf.reflectance, gbuffer.metalness, gbuf.albedo);
+    gbuffer.ao = gbuf.ao;
+    gbuffer.isLandscape = gbuf.isLandscape;
+    return gbuffer;
+  }
+
+  void init_gbuffer(out UnpackedGbuffer result)
+  {
+    result.albedo = result.normal = 0;
+    result.smoothness = result.metalness = result.translucency = 0;
+    result.ao = 1;
+    result.material = SHADING_NORMAL;
+    result.reflectance = 0.5;
+    result.dynamicMask = 0.0;
+    result.isLandscape = 0;
+  }
+  void init_albedo(inout UnpackedGbuffer result, half3 albedo)
+  {
+    result.albedo.xyz = albedo;
+  }
+  void init_smoothness(inout UnpackedGbuffer result, half smoothness)
+  {
+    result.smoothness = smoothness;
+  }
+  void init_normal(inout UnpackedGbuffer result, float3 norm)
+  {
+    result.normal = norm;
+  }
+  void init_metalness(inout UnpackedGbuffer result, half metal)
+  {
+    result.metalness = metal;
+  }
+  void init_translucency(inout UnpackedGbuffer result, half translucency)
+  {
+    result.translucency = translucency;
+  }
+  void init_ao(inout UnpackedGbuffer result, half ao)
+  {
+    result.ao = ao;
+  }
+  void init_shadow(inout UnpackedGbuffer result, half shadow)
+  {
+  }
+  void init_material(inout UnpackedGbuffer result, uint material)
+  {
+    result.material = material;
+  }
+  void init_dynamic(inout UnpackedGbuffer result, bool dynamic)
+  {
+  }
+  void init_order(inout UnpackedGbuffer result, uint order)
+  {
+    result.dynamicMask = order == GBUFFER_ORDER_DYNAMIC;
+  }
+  void init_auto_motion_vector(inout UnpackedGbuffer result, bool need_auto_motion_vectors)
+  {
+  }
+  void init_emission(inout UnpackedGbuffer result, float emission_strength)
+  {
+    result.emissionStrength = emission_strength;
+  }
+  void init_emission_color(inout UnpackedGbuffer result, half4 emission_color) // emission_color.a is emission_albedo_mult
+  {
+    result.emissionColor = emission_color;
+  }
+  void init_reflectance(inout UnpackedGbuffer result, float reflectance)
+  {
+    result.reflectance = reflectance;
+  }
+  void init_sss_profile(inout UnpackedGbuffer result, uint sss_profile)
+  {
+  }
+  void init_isLandscape(inout UnpackedGbuffer result, uint isLandscape)
+  {
+    result.isLandscape = isLandscape;
+  }
+  void init_motion_vector(inout UnpackedGbuffer result, half2 motion)
+  {
+  }
+  void init_glass(inout UnpackedGbuffer result)
+  {
+  }
+#endif
+}
+endmacro
+
+macro REDUCE_GBUFFER_MRT_MOBILE()
+  hlsl(ps) {
+    ##if mobile_render == deferred
+      #define GBUFFER_REDUCED_MRT 1
+    ##endif
+  }
+endmacro
+
+macro WRITE_GBUFFER_MOBILE_DEFERRED()
+  hlsl(ps) {
+  ##if mobile_simplified_materials == yes
+    struct GBUFFER_OUTPUT
+    {
+      float4 albedo_nx : SV_Target0;
+    #ifndef GBUFFER_REDUCED_MRT
+      float2 ny_landDmaskMaterial : SV_Target1;
+    #endif
+    };
+
+    GBUFFER_OUTPUT write_gbuffer(PackedGbuffer gbuf)
+    {
+      GBUFFER_OUTPUT gbufOut;
+      gbufOut.albedo_nx = gbuf.albedo_nx;
+    #ifndef GBUFFER_REDUCED_MRT
+      gbufOut.ny_landDmaskMaterial = gbuf.ny_landDmaskMaterial;
+    #endif
+      return gbufOut;
+    }
+
+    #if BLEND_GBUFFER
+    GBUFFER_OUTPUT encode_gbuffer_alpha_raw(UnpackedGbuffer gbuffer, half alpha)
+    {
+      GBUFFER_OUTPUT ret = write_gbuffer(pack_gbuffer(gbuffer));
+      ret.albedo_nx.w = alpha;
+      //ret.albedo_smooth.w =  ret.normal_refl_mettr.w = alpha;
+      return ret;
+    }
+
+    GBUFFER_OUTPUT encode_gbuffer_alpha3_raw(UnpackedGbuffer gbuffer, half3 alpha)
+    {
+      GBUFFER_OUTPUT ret = write_gbuffer(pack_gbuffer(gbuffer));
+      ret.albedo_nx.w = alpha.x;
+      //ret.albedo_smooth.w = alpha.x;
+      //ret.normal_refl_mettr.w = alpha.y;
+      return ret;
+    }
+
+    #define encode_gbuffer_alpha(a,b,c,d) encode_gbuffer_alpha_raw(a,b)
+    #define encode_gbuffer_alpha3(a,b,c,d) encode_gbuffer_alpha3_raw(a,b)
+    #endif
+    #define encode_gbuffer(a,b,c) encode_gbuffer_raw(a)
+  ##else //mobile_simplified_materials == no
+    struct GBUFFER_OUTPUT
+    {
+      float4 albedo_smooth : SV_Target0;
+      float4 normal_refl_mettr : SV_Target1;
+    #ifndef GBUFFER_REDUCED_MRT
+      float2 ao_material_dmask : SV_Target2;
+    #endif
+    };
+
+    GBUFFER_OUTPUT write_gbuffer(PackedGbuffer gbuf)
+    {
+      GBUFFER_OUTPUT gbufOut;
+      gbufOut.albedo_smooth = gbuf.albedo_smooth;
+      gbufOut.normal_refl_mettr = gbuf.normal_refl_mettr;
+    #ifndef GBUFFER_REDUCED_MRT
+      gbufOut.ao_material_dmask = gbuf.ao_material_dmask;
+    #endif
+      return gbufOut;
+    }
+
+    #if BLEND_GBUFFER
+    GBUFFER_OUTPUT encode_gbuffer_alpha_raw(UnpackedGbuffer gbuffer, half alpha)
+    {
+      GBUFFER_OUTPUT ret = write_gbuffer(pack_gbuffer(gbuffer));
+      ret.albedo_smooth.w =  ret.normal_refl_mettr.w = alpha;
+      return ret;
+    }
+
+    GBUFFER_OUTPUT encode_gbuffer_alpha3_raw(UnpackedGbuffer gbuffer, half3 alpha)
+    {
+      GBUFFER_OUTPUT ret = write_gbuffer(pack_gbuffer(gbuffer));
+      ret.albedo_smooth.w = alpha.x;
+      ret.normal_refl_mettr.w = alpha.y;
+      return ret;
+    }
+
+    #define encode_gbuffer_alpha(a,b,c,d) encode_gbuffer_alpha_raw(a,b)
+    #define encode_gbuffer_alpha3(a,b,c,d) encode_gbuffer_alpha3_raw(a,b)
+    #endif
+    #define encode_gbuffer(a,b,c) encode_gbuffer_raw(a)
+  ##endif
+
+    GBUFFER_OUTPUT encode_gbuffer_raw(UnpackedGbuffer gbuffer)
+    {
+      return write_gbuffer(pack_gbuffer(gbuffer));
+    }
+  }
+endmacro
+
+macro USE_READ_GBUFFER_MOBILE_DEFERRED()
+  MOBILE_DEFERRED_PACK_UNPACK_GBUFFER_BASE(ps)
+  hlsl(ps) {
+    PackedGbuffer readPackedGbuffer(float2 tc)
+    {
+      PackedGbuffer gbuf;
+    ##if mobile_simplified_materials == no
+      gbuf.albedo_smooth = tex2Dlod(albedo_smooth_gbuf, float4(tc, 0, 0));
+      gbuf.normal_refl_mettr = tex2Dlod(normal_refl_mettr_gbuf, float4(tc, 0, 0));
+      gbuf.ao_material_dmask = tex2Dlod(ao_material_dmask_gbuf, float4(tc, 0, 0)).xy;
+    ##else
+      gbuf.albedo_nx = tex2Dlod(albedo_nx_gbuf, float4(tc, 0, 0));
+      gbuf.ny_landDmaskMaterial = tex2Dlod(ny_landDmaskMaterial_gbuf, float4(tc, 0, 0)).rg;
+    ##endif
+
+      return gbuf;
+    }
+
+    ProcessedGbuffer readProcessedGbuffer(float2 tc)
+    {
+      return processGbuffer(unpackGbuffer(readPackedGbuffer(tc)));
+    }
+  }
+endmacro
+
+macro INIT_SUBPASS_LOAD_GBUFFER(code,
+  albedo_smooth_reg, albedo_smooth_iatt,
+  normal_refl_mettr_reg, normal_refl_mettr_iatt,
+  ao_material_dmask_reg, ao_material_dmask_iatt)
+  MOBILE_DEFERRED_PACK_UNPACK_GBUFFER_BASE(ps)
+  if (mobile_simplified_materials == no) {
+  hlsl(code) {
+    SUBPASS_RESOURCE(albedo_smooth_gbuf, albedo_smooth_reg, albedo_smooth_iatt);
+    SUBPASS_RESOURCE(normal_refl_mettr_gbuf, normal_refl_mettr_reg, normal_refl_mettr_iatt);
+    SUBPASS_RESOURCE(ao_material_dmask_gbuf, ao_material_dmask_reg, ao_material_dmask_iatt);
+  }}
+  else {
+  hlsl(code) {
+    SUBPASS_RESOURCE(albedo_smooth_gbuf, albedo_smooth_reg, albedo_smooth_iatt);
+    SUBPASS_RESOURCE(normal_refl_mettr_gbuf, normal_refl_mettr_reg, normal_refl_mettr_iatt);
+  }}
+endmacro
+
+macro USE_SUBPASS_LOAD_GBUFFER(code)
+  hlsl(code) {
+  ##if mobile_simplified_materials == yes
+    PackedGbuffer readPackedGbuffer(int2 tc)
+    {
+      PackedGbuffer gbuf;
+      gbuf.albedo_nx = SUBPASS_LOAD(albedo_smooth_gbuf, tc); //gbuf0
+      gbuf.ny_landDmaskMaterial = SUBPASS_LOAD(normal_refl_mettr_gbuf, tc).rg;//gbuf1
+      return gbuf;
+    }
+  ##else
+    PackedGbuffer readPackedGbuffer(int2 tc)
+    {
+      PackedGbuffer gbuf;
+      gbuf.albedo_smooth = SUBPASS_LOAD(albedo_smooth_gbuf, tc);
+      gbuf.normal_refl_mettr = SUBPASS_LOAD(normal_refl_mettr_gbuf, tc);
+      gbuf.ao_material_dmask = SUBPASS_LOAD(ao_material_dmask_gbuf, tc).xy;
+      return gbuf;
+    }
+  ##endif
+
+    ProcessedGbuffer readProcessedGbuffer(int2 tc)
+    {
+      return processGbuffer(unpackGbuffer(readPackedGbuffer(tc)));
+    }
+  }
+endmacro

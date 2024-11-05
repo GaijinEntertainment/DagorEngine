@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "HLSL2MetalCommon.h"
 #include "../debugSpitfile.h"
@@ -76,7 +77,7 @@ void save2Lib(std::string &shader)
   }
 }
 
-MetalImageType translateImageType(const spirv_cross::SPIRType::ImageType &imgType)
+drv3d_metal::MetalImageType translateImageType(const spirv_cross::SPIRType::ImageType &imgType)
 {
   switch (imgType.dim)
   {
@@ -84,21 +85,21 @@ MetalImageType translateImageType(const spirv_cross::SPIRType::ImageType &imgTyp
     {
       if (imgType.depth)
       {
-        return Tex2DDepth;
+        return drv3d_metal::MetalImageType::Tex2DDepth;
       }
       else if (imgType.arrayed)
       {
-        return Tex2DArray;
+        return drv3d_metal::MetalImageType::Tex2DArray;
       }
       else
       {
-        return Tex2D;
+        return drv3d_metal::MetalImageType::Tex2D;
       }
     }
-    case spv::Dim3D: return Tex3D;
-    case spv::DimCube: return TexCube;
-    case spv::DimBuffer: return Tex2D;
-    default: return Tex2D;
+    case spv::Dim3D: return drv3d_metal::MetalImageType::Tex3D;
+    case spv::DimCube: return imgType.arrayed ? drv3d_metal::MetalImageType::TexCubeArray : drv3d_metal::MetalImageType::TexCube;
+    case spv::DimBuffer: return drv3d_metal::MetalImageType::TexBuffer;
+    default: return drv3d_metal::MetalImageType::Tex2D;
   }
 }
 

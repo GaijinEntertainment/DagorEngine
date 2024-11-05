@@ -1,3 +1,5 @@
+include "mulPointTm_inc.dshl"
+
 float4 hero_matrixX = (1,0,0,0);
 float4 hero_matrixY = (0,1,0,0);
 float4 hero_matrixZ = (0,0,1,0);
@@ -5,8 +7,18 @@ float4 hero_matrixZ = (0,0,1,0);
 float4 prev_hero_matrixX = (1,0,0,0);
 float4 prev_hero_matrixY = (0,1,0,0);
 float4 prev_hero_matrixZ = (0,0,1,0);
+float4 hero_bbox_reprojectionX = (1,0,0,0);
+float4 hero_bbox_reprojectionY = (0,1,0,0);
+float4 hero_bbox_reprojectionZ = (0,0,1,0);
+
+
+define_macro_if_not_defined INIT_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
+endmacro
+define_macro_if_not_defined USE_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
+endmacro
 
 macro INIT_HERO_MATRIX(code)
+  INIT_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
   (code) {
     hero_matrixX@f4 = hero_matrixX;
     hero_matrixY@f4 = hero_matrixY;
@@ -14,21 +26,33 @@ macro INIT_HERO_MATRIX(code)
     prev_hero_matrixX@f4 = prev_hero_matrixX;
     prev_hero_matrixY@f4 = prev_hero_matrixY;
     prev_hero_matrixZ@f4 = prev_hero_matrixZ;
+    hero_bbox_reprojectionX@f4 = hero_bbox_reprojectionX;
+    hero_bbox_reprojectionY@f4 = hero_bbox_reprojectionY;
+    hero_bbox_reprojectionZ@f4 = hero_bbox_reprojectionZ;
   }
 endmacro
 
 macro USE_HERO_MATRIX(code)
+  USE_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
   hlsl(code) {
-    bool apply_hero_matrix(inout float3 eye_to_point)
+    bool is_inside_hero_bbox(float3 eye_to_point)
     {
-      float3 heroPos = float3(dot(float4(eye_to_point, 1), hero_matrixX),
-                              dot(float4(eye_to_point, 1), hero_matrixY),
-                              dot(float4(eye_to_point, 1), hero_matrixZ));
-      if (all(abs(heroPos) < 1))
-      {
-        eye_to_point = float3(dot(float4(eye_to_point, 1), prev_hero_matrixX),
-                              dot(float4(eye_to_point, 1), prev_hero_matrixY),
-                              dot(float4(eye_to_point, 1), prev_hero_matrixZ));
+      return all(abs(mulPointTm(eye_to_point, hero_matrixX, hero_matrixY, hero_matrixZ)) < 1);
+    }
+
+    float3 reproject_point_in_hero_bbox(float3 eye_to_point)
+    {
+      return mulPointTm(eye_to_point, hero_bbox_reprojectionX, hero_bbox_reprojectionY, hero_bbox_reprojectionZ);
+    }
+
+    bool apply_hero_matrix(float2 uv, inout float3 eye_to_point)
+    {
+      if (is_inside_hero_bbox(eye_to_point)
+#ifdef GBUFFER_HAS_HERO_COCKPIT_BIT
+        || isGbufferHeroCockpit(uv)
+#endif
+      ){
+        eye_to_point = mulPointTm(eye_to_point, prev_hero_matrixX, prev_hero_matrixY, prev_hero_matrixZ);
         return true;
       }
       return false;

@@ -1,11 +1,17 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <strclass.h>
 #include <vector>
 
 class DagorLogWindow
 {
 public:
+#if (__cplusplus >= 201100L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201100L)
   enum class LogLevel
+#else
+  enum LogLevel
+#endif
   {
     Note,
     Warning,

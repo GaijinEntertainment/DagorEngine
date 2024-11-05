@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 /********************************************************/
 /* AABB-triangle overlap test code                      */
 /* by Tomas Akenine-Möller                              */

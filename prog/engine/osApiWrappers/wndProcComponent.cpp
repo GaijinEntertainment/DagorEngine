@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_wndProcComponent.h>
 #include <stdlib.h>
 #include <string.h>

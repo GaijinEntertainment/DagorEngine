@@ -1,6 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/fx/ui_blurring.h>
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_textureIDHolder.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <math/integer/dag_IPoint2.h>
@@ -11,12 +16,14 @@
 #include <dag/dag_vector.h>
 #include <memory/dag_framemem.h>
 
-#define GLOBAL_VARS_LIST   \
-  VAR(blur_src_tex)        \
-  VAR(blur_pixel_offset)   \
-  VAR(blur_src_tex_size)   \
-  VAR(blur_dst_tex_size)   \
-  VAR(blur_background_tex) \
+#define GLOBAL_VARS_LIST                \
+  VAR(blur_src_tex)                     \
+  VAR(blur_src_tex_samplerstate)        \
+  VAR(blur_pixel_offset)                \
+  VAR(blur_src_tex_size)                \
+  VAR(blur_dst_tex_size)                \
+  VAR(blur_background_tex)              \
+  VAR(blur_background_tex_samplerstate) \
   VAR(blur_bw)
 
 #define VAR(a) static int a##VarId = -1;
@@ -26,12 +33,21 @@ GLOBAL_VARS_LIST
 const int FIRST_GAUSS_SIZE = 3, SECOND_GAUSS_SIZE = 3 * 7 + 1;
 constexpr int FIRST_REG = 16; // same as in shader
 constexpr int CB_SIZE = 4096 - FIRST_REG;
+d3d::SamplerHandle clamp_sampler;
 
 static void init_blur_shader_vars()
 {
 #define VAR(a) a##VarId = get_shader_variable_id(#a, true);
   GLOBAL_VARS_LIST
 #undef VAR
+
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    clamp_sampler = d3d::request_sampler(smpInfo);
+    ShaderGlobal::set_sampler(blur_background_tex_samplerstateVarId, clamp_sampler);
+    ShaderGlobal::set_sampler(blur_src_tex_samplerstateVarId, clamp_sampler);
+  }
 }
 
 static inline int calc_all_secondary_gauss_sizes(int max_ui_mip)
@@ -60,6 +76,7 @@ static void blur_mip(int tex_mip, TextureIDHolder &tex, TextureIDHolder &interm_
   G_ASSERTF(info.w == w && info.h == h, "%dx%d (%d) != %dx%d (mip = %d)", w, h, tex_mip, info.w, info.h, interm_texture_mip);
   d3d::set_render_target(interm_texture.getTex2D(), interm_texture_mip);
   interm_texture.getTex2D()->texmiplevel(interm_texture_mip, interm_texture_mip);
+  ShaderGlobal::set_sampler(blur_src_tex_samplerstateVarId, clamp_sampler);
   ShaderGlobal::set_texture(blur_src_texVarId, tex.getId());
   ShaderGlobal::set_color4(blur_pixel_offsetVarId, 1.0f / w, 0, 0, 0);
   tex.getTex2D()->texmiplevel(tex_mip, tex_mip);
@@ -145,6 +162,7 @@ void update_blurred_from(const TextureIDPair &src, const TextureIDPair &backgrou
 
     d3d::set_render_target(intermediate.getTex2D(), downsampled_frame_mip);
     ShaderGlobal::set_color4(blur_src_tex_sizeVarId, 1.0f / src_info.w, 1.0f / src_info.h, 0, 0);
+    ShaderGlobal::set_sampler(blur_src_tex_samplerstateVarId, clamp_sampler);
     ShaderGlobal::set_texture(blur_src_texVarId, src.getTex() ? src.getId() : background.getId());
     ShaderGlobal::set_color4(blur_dst_tex_sizeVarId, 1.0f / dinfo.w, 1.0f / dinfo.h, 0, 0);
     ShaderGlobal::set_texture(blur_background_texVarId, background.getId());
@@ -169,11 +187,14 @@ void update_blurred_from(const TextureIDPair &src, const TextureIDPair &backgrou
       *(quad++) = int4(lt.x, lt.y, rb.x, rb.y);
     }
 
-    downsample_first_step.getElem()->setStates();
     const uint32_t quadCount = quad - quadBuffer;
-    d3d::set_vs_constbuffer_size(quadCount + FIRST_REG);
-    d3d::set_vs_const(FIRST_REG, quadBuffer, quadCount);
-    d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, quadCount);
+    if (quadCount > 0)
+    {
+      downsample_first_step.getElem()->setStates();
+      d3d::set_vs_constbuffer_size(quadCount + FIRST_REG);
+      d3d::set_vs_const(FIRST_REG, quadBuffer, quadCount);
+      d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, quadCount);
+    }
   }
   // then downsample without border
   {
@@ -235,11 +256,14 @@ void update_blurred_from(const TextureIDPair &src, const TextureIDPair &backgrou
           mipBoxes.push_back(IBBox2(lt, rb));
       }
 
-      downsample_4.getElem()->setStates();
       const uint32_t quadCount = quad - quadBuffer;
-      d3d::set_vs_constbuffer_size(quadCount + FIRST_REG);
-      d3d::set_vs_const(FIRST_REG, quadBuffer, quadCount);
-      d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, quadCount);
+      if (quadCount > 0)
+      {
+        downsample_4.getElem()->setStates();
+        d3d::set_vs_constbuffer_size(quadCount + FIRST_REG);
+        d3d::set_vs_const(FIRST_REG, quadBuffer, quadCount);
+        d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, quadCount);
+      }
 
       if (!mipBoxes.empty()) // blur even more
       {

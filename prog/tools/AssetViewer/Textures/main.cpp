@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "textures.h"
 
 #include <EditorCore/ec_interface.h>

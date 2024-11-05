@@ -15,7 +15,7 @@ def gather_files_to_check(path, relative="", cwd=None):
 
 def check(file_info):
   cmd_darg = 'dargbox-64-dev.exe -quiet -silent -config:script:t={file} -config:debug/profiler:t=off -config:debug/limit_updates:i=1 -config:video/driver:t="stub" -fatals_to_stderr -logerr_to_stderr -config:workcycle/act_rate:i=0 -config:debug/useVromSrc:b=yes -config:debug/fatalOnLogerrOnExit:b=no'.format(file=file_info["rel"])
-  cmd_sq = '..\\dagor3_cdk\\util64\\csq-dev.exe {file}'.format(file=file_info["rel"])
+  cmd_sq = '..\\dagor_cdk\\windows-x86_64\\csq-dev.exe {file}'.format(file=file_info["rel"])
   failedBy = ""
   failText = ""
   result = subprocess.run(cmd_sq, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=file_info["cwd"])
@@ -54,7 +54,7 @@ if __name__ == "__main__":
   print("files to check = {}".format(len(files)))
   os.chdir(os.path.normpath("../../../tools/dargbox"))
 
-  version_cmd = f'..\\dagor3_cdk\\util64\\csq-dev.exe --version'
+  version_cmd = f'..\\dagor_cdk\\windows-x86_64\\csq-dev.exe --version'
   try:
     print("csq version:")
     subprocess.check_call(version_cmd, shell=True, stderr=subprocess.STDOUT)

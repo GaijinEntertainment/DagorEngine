@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_dust_pull ;
+  UseProgLibs += daNetGameLibs/dust ;
+}

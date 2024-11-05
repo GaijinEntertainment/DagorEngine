@@ -8,33 +8,8 @@
 
 namespace das
 {
-    struct HashDataWalker : DataWalker {
-        const uint64_t fnv_prime = 1099511628211ul;
-        uint64_t fnv_bias = 14695981039346656037ul;
-        template <typename TT>
-        __forceinline void update ( TT & data ) {
-            auto size = sizeof(TT);
-            uint8_t * block = (uint8_t *) & data;
-            while ( size-- ) {
-                fnv_bias = ( fnv_bias ^ *block++ ) * fnv_prime;
-            }
-        }
-        __forceinline void updateString ( char * & str ) {
-            if ( !str ) {
-                fnv_bias *= fnv_prime;
-                return;
-            }
-            uint8_t * block = (uint8_t *) str;
-            while ( *block ) {
-                fnv_bias = ( fnv_bias ^ *block++ ) * fnv_prime;
-            }
-        }
-        __forceinline uint64_t getHash ( void ) const {
-            if (fnv_bias <= HASH_KILLED64) {
-                return fnv_prime;
-            }
-            return fnv_bias;
-        }
+    struct HashDataWalker : DataWalker, HashBuilder {
+    public:
     // walker
         HashDataWalker ( Context & ctx ) {
             context = &ctx;

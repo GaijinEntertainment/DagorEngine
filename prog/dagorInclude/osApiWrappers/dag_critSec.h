@@ -1,11 +1,14 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
+
+#if _TARGET_C3 || defined(__SANITIZE_THREAD__)
+#define DAG_CS_CUSTOM_LOCKSCOUNT 1
+#endif
 
 #if _TARGET_APPLE | _TARGET_ANDROID | _TARGET_64BIT
 static constexpr int CRITICAL_SECTION_OBJECT_SIZE = 64;
@@ -17,11 +20,13 @@ struct CritSecStorage
 {
 #if defined(__GNUC__)
   char critSec[CRITICAL_SECTION_OBJECT_SIZE] __attribute__((aligned(16)));
-  volatile int locksCount;
 #elif defined(_MSC_VER)
   alignas(void *) char critSec[CRITICAL_SECTION_OBJECT_SIZE];
 #else
 #error Compiler is not supported
+#endif
+#if DAG_CS_CUSTOM_LOCKSCOUNT
+  volatile int locksCount;
 #endif
   operator void *() { return critSec; }
 };
@@ -74,8 +79,8 @@ class WinAutoLock
 {
 private:
   // make copy constructor and assignment operator inaccessible
-  WinAutoLock(const WinAutoLock &refAutoLock) = delete;
-  WinAutoLock &operator=(const WinAutoLock &refAutoLock) = delete;
+  WinAutoLock(const WinAutoLock &) = delete;
+  WinAutoLock &operator=(const WinAutoLock &) = delete;
 
 protected:
   CritSecStorage *pLock;
@@ -112,4 +117,4 @@ public:
   WinAutoLockOpt(CritSecStorage *pcss) : WinAutoLock(pcss) {}
 };
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

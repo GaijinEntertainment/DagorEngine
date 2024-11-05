@@ -1,0 +1,26 @@
+macro USE_MOTION_VEC_ENCODE(stage)
+  hlsl(stage) {
+    float3 encode_motion_vector( float4 out_pos, float4 out_pos_prev )
+    {
+      float2 clipPos = ( out_pos.xy / out_pos.w );
+      float2 prevClipPos = ( out_pos_prev.xy / out_pos_prev.w );
+      float2 motionInClipSpace = prevClipPos - clipPos;
+      return float3(motionInClipSpace * float2(0.5, -0.5), out_pos_prev.w - out_pos.w);
+    }
+  }
+endmacro
+
+macro USE_MOTION_VEC_MASK_ONLY_STAGE(stage)
+  hlsl(stage)
+  {
+    float3 encode_motion_mask()
+    {
+      float fp16_max = 65504.0;
+      return float3( fp16_max, fp16_max, 0 );
+    }
+  }
+endmacro
+
+macro USE_MOTION_VEC_MASK_ONLY()
+  USE_MOTION_VEC_MASK_ONLY_STAGE(ps)
+endmacro

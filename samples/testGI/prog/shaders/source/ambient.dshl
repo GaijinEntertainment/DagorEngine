@@ -15,23 +15,21 @@ include "sq_clouds_shadow.dshl"
 include "static_shadow.dshl"
 include "use_prefiltered_gf.dshl"
 
-include "dagi_volmap_gi.dshl"
-include "dagi_helpers.dshl"
-include "dagi_scene_voxels_common.dshl"
-include "dagi_volmap_common_25d.dshl"
+//include "world_sdf.dshl"
+include "volumetric_gi_common.dshl"
+include "screenspace_probes_common.dshl"
+include "dagi_sky_vis_common.dshl"
+include "dagi_irrad_grid_sample.dshl"
+include "dagi_rad_grid_common.dshl"
+include "dagi_quality.dshl"
 
-int ssgi_current_frame;
-hlsl {
-  //#define NO_RAYTRACE 1
-}
-int use_gi_quality = 1;
-interval use_gi_quality: off<1, only_ao<2, full<3, raytraced;
+int gi_debug_froxels;
+interval gi_debug_froxels: off<1, on;
 
 shader render_ambient
 {
   no_ablend;
 
-  
   cull_mode  = none;
 
   z_test = false;
@@ -42,6 +40,8 @@ shader render_ambient
     screen_size@f4 = (1./screen_pos_to_texcoord.x, 1./screen_pos_to_texcoord.y,0,0);
     world_view_pos@f3 = world_view_pos;
   }
+  INIT_PRE_EXPOSURE(ps)
+  USE_PRE_EXPOSURE(ps)
   USE_POSTFX_VERTEX_POSITIONS()
   USE_AND_INIT_VIEW_VEC_VS()
   INIT_ZNZFAR()
@@ -51,7 +51,8 @@ shader render_ambient
 
   INIT_SKY_DIFFUSE()
   USE_SKY_DIFFUSE()
-  INIT_ENVI_SPECULAR()
+  INIT_LOCAL_SPECULAR()
+  //INIT_ENVI_SPECULAR()
 
   (ps) {
     world_view_pos@f3 = world_view_pos;
@@ -59,72 +60,42 @@ shader render_ambient
 
   INIT_READ_GBUFFER()
   USE_READ_GBUFFER_NORMAL()
+  USE_ROUGH_TO_MIP()
+  //SAMPLE_IRRADIANCE_GRID(ps)
+  //SAMPLE_RADIANCE_GRID(ps)
 
-  if (use_gi_quality != off)
+  if (gi_quality != off)
   {
-    INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(ps)
-    SAMPLE_INIT_VOLMAP_25D(ps)
-    SAMPLE_VOLMAP_25D(ps)
+    if (gi_quality == only_ao)
+    {
+      hlsl {
+        #define DAGI_IRRADIANCE_GRID_TYPE DAGI_IRRADIANCE_GRID_TYPE_SKYVIS
+      }
+      DAGI_SKY_VIS_SAMPLE(ps)
+      //DAGI_IRRADIANCE_GRID_SAMPLE(ps)
+    } else if (gi_quality == colored)
+    {
+      hlsl {
+        #define DAGI_IRRADIANCE_GRID_TYPE DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE
+      }
+      DAGI_IRRADIANCE_GRID_SAMPLE(ps)
+      DAGI_RAD_GRID_SAMPLE(ps)
+    } else
+    {
+      SAMPLE_IRRADIANCE_SPECULAR_SP(ps)
+    }
+
+    if (gi_quality != only_ao)
+    {
+      GI_VOLUMETRIC_IRRADIANCE_INIT(ps)
+      GI_VOLUMETRIC_IRRADIANCE_USE(ps)
+    }
+
+
     hlsl(ps) {
       #define AMBIENT 1
       #define NEED_SAMPLE_DEPTH 1
-    }
-    SSGI_USE_VOLMAP_GI(ps)
-    if (use_gi_quality == raytraced)
-    {
-      RAY_CAST_VOXELS(ps)
-      (ps) { ssgi_current_frame@f1 = (ssgi_current_frame); }
-      hlsl(ps) {
-        #include <monteCarlo.hlsl>
-        #include <hammersley.hlsl>
-        #include <fibonacci_sphere.hlsl>
-        #include <interleavedGradientNoise.hlsl>
-        #include <scrambleTea.hlsl>
-        #include <wangHash.hlsl>
-      }
-      hlsl(ps){
-        float3 raycast_loop2(float3 worldPos, float3 worldDir, float3 worldNormal, float3 stepDir, float dist)
-        {
-          //return raycast_loop(0, worldPos, worldDir, dist);
-          uint startCascade = 0;
-          float floorHt = ssgi_get_heightmap_2d_height(worldPos);
-
-          float3 voxelSize = getSceneVoxelSize(startCascade);
-          worldPos.y = max(floorHt + voxelSize.y+0.1, worldPos.y);
-          {
-            int3 coord = sceneWorldPosToCoord(worldPos, startCascade);
-            if (any(coord<0) || any(coord>=VOXEL_RESOLUTION))
-              startCascade ++;
-            coord = sceneWorldPosToCoord(worldPos, startCascade);
-            if (any(coord<0) || any(coord>=VOXEL_RESOLUTION))
-              startCascade ++;
-          }
-
-          voxelSize = getSceneVoxelSize(startCascade);
-          //worldPos += stepDir*0.2;
-          float startOfs = 0.25+0.5*randOfset(worldDir);
-          startOfs*=0.1;
-          //worldPos += startOfs*voxelSize.x*worldDir;
-          bool insideVoxel = getVoxelsAlpha(wrapSceneVoxelCoord(sceneWorldPosToCoord(worldPos, startCascade), startCascade), startCascade)>=1;
-          if (insideVoxel)
-            worldPos += voxelSize*worldNormal;
-          if (getVoxelsAlpha(wrapSceneVoxelCoord(sceneWorldPosToCoord(worldPos, startCascade), startCascade), startCascade)>=1)
-            worldPos += voxelSize*stepDir;
-          //if (getVoxelsAlpha(wrapSceneVoxelCoord(sceneWorldPosToCoord(worldPos, startCascade), startCascade), startCascade)>=1)
-          //  worldPos += voxelSize*worldNormal;
-
-          //if (insideVoxel)
-          //  worldPos += (0.5*voxelSize.x)*stepDir;
-          //if (insideVoxel)
-          //  worldPos += ((startOfs + 0.75+0.5*randOfset(worldPos))*voxelSize.x)*worldDir;
-          //half4 ret = raycast_voxel_loop_coord(startCascade, worldPos, worldDir, dist);
-          half4 ret = raycast_cone(startCascade, worldPos, worldDir, dist);
-          BRANCH
-          if (ret.a<0.01)
-            return ret.rgb;
-          return ret.rgb + texCUBElod(envi_probe_specular, float4(worldDir,1)).rgb*ret.a;
-        }
-      }
+      #include <interleavedGradientNoise.hlsl>
     }
   }
 
@@ -152,78 +123,119 @@ shader render_ambient
 
 
   hlsl(ps){
-
-    half3 shadows_to_target_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    #include <specular_brdf.hlsl>
+    #include <diffuse_brdf.hlsl>
+    struct Output
     {
+      half3 ambient  : SV_Target0;
+      half3 specular : SV_Target1;
+    };
+    Output shadows_to_target_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      Output output;
       float4 screenpos = GET_SCREEN_POS(input.pos);
-      #if NEED_SAMPLE_DEPTH
+
       float rawDepth = readGbufferDepth(input.texcoord.xy);
-      if (rawDepth==0)
-        discard;
       float w = linearize_z(rawDepth, zn_zfar.zw);
-
-      float3 pointToEye = -input.viewVect * w;
-      float3 worldPos = world_view_pos.xyz - pointToEye;
-      #endif
-
       float3 normal;
       half smoothness;
       readPackedGbufferNormalSmoothness(input.texcoord.xy, normal, smoothness);
-      half3 enviLight = GetSkySHDiffuse(normal);
+      half linearRoughness = 1-smoothness;
+      float ggx_alpha = max(1e-4, linearRoughness*linearRoughness);
+
+      float3 pointToEye = -input.viewVect * w;
+      float dist = length(pointToEye);
+      float3 view = normalize(pointToEye);
+      float NdotV = dot(normal, view);
+      float3 worldPos = world_view_pos.xyz - pointToEye;
+
+      float3 specularDir;
+      {
+        float3 reflectionVec = 2 * NdotV * normal - view;
+        float NoV = abs( NdotV ) + 1e-5;
+        float alpha = pow2(linearRoughness);
+        float3 lightProbeReflectionVec = reflectionVec;
+        specularDir = getRoughReflectionVec(lightProbeReflectionVec.xyz, normal, alpha);
+      }
+
+      float3 enviLightingNormal = normalize(getDiffuseDominantDir(normal, view, saturate(NdotV), ggx_alpha));
+      half3 enviLight = GetSkySHDiffuse(enviLightingNormal);
       half3 ambient = enviLight;
-      ##if (use_gi_quality != off)
-        ##if (use_gi_quality == full)
-        float giAmount = get_ambient3d(worldPos, normal, enviLight, ambient);
-        BRANCH
-        if (giAmount < 1)
+      half3 specular = texCUBElod(envi_probe_specular, float4(specularDir, ComputeReflectionCaptureMipFromRoughness(linearRoughness))).rgb;
+      half3 giSpecular = specular;
+
+      ##if (gi_quality != off)
+        ##if gi_debug_froxels == on && gi_quality != only_ao
+          ambient = volumetric_gi_calc_diffuse_uvw(input.texcoord.xy, 0.97*w, enviLightingNormal);
+          #define HAS_SPECULAR 0
+          #define HACK_SPECULAR_BRIGHTNESS 1
+        ##elif (gi_quality == screen_probes)
         {
-        ##endif
-          half3 ambient25d = enviLight;
-          half ambient25dAmount = sample_25d_volmap(worldPos, normal, ambient25d);
-          enviLight = lerp(enviLight, ambient25d, ambient25dAmount);
-        ##if (use_gi_quality == full)
+          sample_bilinear_specular_irradiance_with_normal_campos(specularDir, enviLightingNormal, w, -pointToEye, normal, screenpos.xy, giSpecular, ambient);
+          #define HAS_SPECULAR 1
+          #define HACK_SPECULAR_BRIGHTNESS 0
         }
-        ambient = lerp(enviLight, ambient, giAmount);
-        ##else
-        ambient = enviLight;
-        ##endif
-        ##if use_gi_quality == raytraced
-          float3 traced = 0;
-          const int NUM_FILTER_SAMPLES = 2;
-          //uint2 Random = scramble_TEA( uint2(screenpos.xy)+wang_hash(ssgi_current_frame.x) );
-          uint2 Random = scramble_TEA( uint2(screenpos.xy));
-          //uint2 Random2 = scramble_TEA( Random);
-          //uint2 Random2 = Random + wang_hash(uint(ssgi_current_frame));
-          uint i = (uint(ssgi_current_frame))%NUM_FILTER_SAMPLES;
-          //uint i = (uint(wang_hash(Random2.x+Random2.y + ssgi_current_frame)))%NUM_FILTER_SAMPLES;
-          //int i = NUM_FILTER_SAMPLES*interleavedGradientNoiseFramed( screenpos.xy, ssgi_current_frame )*0.999;
-          //Random = uint2(jitterSample
-          const uint NUM_PER_SAMPLE_RAYS = 4;
-          //#include "poisson2d_256.hlsl"
-          #include "poisson2d_2048.hlsl"
-          for (uint ri = 0; ri < NUM_PER_SAMPLE_RAYS; ++ri)
+        ##elif (gi_quality == colored)
+          float ofs = max(dist*0.04, 0.25*dagi_irrad_grid_probe_size(0));
+          worldPos += view*ofs;
+            //float3 filteredWorldPos = worldPos + normalize(lerp(normal, normalize(pointToEye), 0.8))*useProbeSize;
+          dagi_irrad_grid_diffuse_biased_smooth(world_view_pos, worldPos, enviLightingNormal, view, max(0, dist-ofs), normal, interleavedGradientNoise( screenpos.xy ), ambient);
+          //ambient = volumetric_gi_calc_diffuse_uvw(input.texcoord.xy, 0.95*w, enviLightingNormal);
+          bool HAS_SPECULAR = 0;
+          uint radGridCascade = dagi_rad_grid_get_best_enclosing_clip_border(worldPos, 0, 1);
+          if (radGridCascade < DAGI_MAX_RAD_GRID_CLIPS)
           {
-            uint ray = uint(i)*NUM_PER_SAMPLE_RAYS+ri;
-            //uint ray = uint(i)+ri*NUM_FILTER_SAMPLES;
-            float2 E = hammersley( ray, NUM_PER_SAMPLE_RAYS*NUM_FILTER_SAMPLES, Random );
-            //E = fibonacci_sphere_randomized( ray, NUM_PER_SAMPLE_RAYS*NUM_FILTER_SAMPLES, 0 );
-            E = POISSON_SAMPLES[(ray + Random.x*11 + Random.y*13)%SAMPLE_NUM];//hammersley( uint(i), NUM_FILTER_SAMPLES, Random );
-            //E = POISSON_SAMPLES[((Random.x^Random.y)+ray)%SAMPLE_NUM];//hammersley( uint(i), NUM_FILTER_SAMPLES, Random );
-            //E = POISSON_SAMPLES[((Random.x^Random.y)%SAMPLE_NUM+ray)%SAMPLE_NUM];//hammersley( uint(i), NUM_FILTER_SAMPLES, Random );
-            //E = POISSON_SAMPLES[((Random.x^Random.y)%SAMPLE_NUM+i)%SAMPLE_NUM];//hammersley( uint(i), NUM_FILTER_SAMPLES, Random );
-            float3 worldDir = tangent_to_world( cosine_sample_hemisphere( E ).xyz, normal );
-            float3 final = raycast_loop2(worldPos+worldDir*(ri*0.1/NUM_PER_SAMPLE_RAYS), worldDir, normal, normalize(pointToEye), 30);
-            //float3 final = texCUBElod(envi_probe_specular, float4(worldDir,1)).rgb;
-            traced += final;
+            float probeSize = dagi_rad_grid_probe_size(radGridCascade);
+            float ofs = 0.5*sqrt(3)*probeSize;
+            float vOfs = min(dist, ofs);
+            float3 filtWorldPos = worldPos.xyz + ofs*normal + view*vOfs;
+            giSpecular = dagi_trilinear_sample_radiance_grid_cascade_unsafe(radGridCascade, specularDir, filtWorldPos);
+            HAS_SPECULAR = 1;
           }
-          traced *= 1./NUM_PER_SAMPLE_RAYS;
-          #if !NO_RAYTRACE
-            ambient = traced;
-          #endif
+          #define HACK_SPECULAR_BRIGHTNESS 1
+        ##elif (gi_quality == only_ao)
+          float ofs = max(dist*0.04, 0.25*dagi_sky_vis_probe_size(0));
+          worldPos += view*ofs;
+          float4 sh1 = dagi_get_sky_visibility_smooth_sh1(world_view_pos.xyz, worldPos, view, max(0, dist-ofs), normal, interleavedGradientNoise( screenpos.xy ) );
+          if (all(sh1 != 1))
+            ambient = GetSHFunctionValueSimple(enviLightingNormal, enviSPH0*sh1.wyzx, enviSPH1*sh1.wyzx, enviSPH2*sh1.wyzx);
+          #define HAS_SPECULAR 0
+          #define HACK_SPECULAR_BRIGHTNESS 1
         ##endif
-      //ambient = lerp(ambient, traced, traced.a);
+        if (HAS_SPECULAR)
+        {
+          BRANCH
+          if (smoothness > 0.5)
+          {
+            half3 blurredSpecular = texCUBElod(envi_probe_specular, float4(specularDir, 5)).rgb;
+            blurredSpecular = max(0, blurredSpecular);
+            float enviBlurredLuma = luminance(blurredSpecular), giSpecularLuma = luminance(giSpecular);
+            half3 adjustment = lerp(1, min(4, (1e-3 + giSpecular)/(1e-3 + blurredSpecular)), (saturate(0.25*max(giSpecularLuma, enviBlurredLuma)/(1e-3 + min(giSpecularLuma, enviBlurredLuma)) - 0.25)));
+
+            specular = lerp(giSpecular, specular*adjustment, smoothness*2 - 1);
+            //specular = blurredSpecular;
+          } else
+            specular = giSpecular;
+        }
+        #if HACK_SPECULAR_BRIGHTNESS
+           //fixme: add support specular from radiance grid
+            half3 environmentAmbientReflection = specular;
+            //https://www.activision.com/cdn/research/Volumetric_Global_Illumination_at_Treyarch.pdf
+            //another (much faster) fake from Volumetric Global Illumination at Treyarch
+            float mipForTrick =  linearRoughness*NUM_PROBE_MIPS;
+            float maximumSpecValue = max3( 1.26816, 9.13681 * exp2( 6.85741 - 2 * mipForTrick ) * NdotV, 9.70809 * exp2( 7.085 - mipForTrick - 0.403181 * pow2(mipForTrick)) * NdotV );
+            maximumSpecValue = min(maximumSpecValue, 32);//to be removed with envi light probes in rooms
+            float3 adjustedMaxSpec = ambient * maximumSpecValue;
+            float3 reflection = environmentAmbientReflection * (adjustedMaxSpec / ( adjustedMaxSpec + environmentAmbientReflection + 0.001));//avoid nans
+            specular = reflection;
+        #endif
       ##endif
-      return ambient;
+
+
+      //ambient = lerp(ambient, traced, traced.a);
+      output.ambient = pre_exposure_encode(ambient);
+      output.specular = pre_exposure_encode(specular);
+      return output;
     }
   }
 

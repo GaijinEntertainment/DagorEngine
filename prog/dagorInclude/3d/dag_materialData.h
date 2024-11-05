@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -62,7 +61,7 @@ public:
       }
   }
 
-  bool isEqual(const MaterialData &d)
+  bool isEqual(const MaterialData &d) const
   {
     if (className != (const char *)d.className || matScript != (const char *)d.matScript || flags != d.flags || mat != d.mat)
       return false;

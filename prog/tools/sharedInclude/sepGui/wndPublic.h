@@ -1,7 +1,6 @@
 //
 // Dagor Tech 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -26,8 +25,8 @@ public:
 class IWndManagerWindowHandler
 {
 public:
-  virtual IWndEmbeddedWindow *onWmCreateWindow(void *handle, int type) = 0;
-  virtual bool onWmDestroyWindow(void *handle) = 0;
+  virtual void *onWmCreateWindow(int type) = 0;
+  virtual bool onWmDestroyWindow(void *window) = 0;
 };
 
 
@@ -98,7 +97,14 @@ public:
   // accelerators
   virtual void addAccelerator(unsigned cmd_id, unsigned v_key, bool ctrl = false, bool alt = false, bool shift = false) = 0;
   virtual void addAcceleratorUp(unsigned cmd_id, unsigned v_key, bool ctrl = false, bool alt = false, bool shift = false) = 0;
+  virtual void addViewportAccelerator(unsigned cmd_id, unsigned v_key, bool ctrl = false, bool alt = false, bool shift = false,
+    bool allow_repeat = false) = 0;
   virtual void clearAccelerators() = 0;
+  virtual unsigned processImguiAccelerator() = 0;
+  virtual unsigned processImguiViewportAccelerator() = 0;
+
+  virtual void initCustomMouseCursors(const char *path) = 0;
+  virtual void updateImguiMouseCursor() = 0;
 };
 
 inline void *IWndManager::splitWindow(void *old_handle, void *new_handle, hdpi::Px new_wsize, WindowAlign new_walign)

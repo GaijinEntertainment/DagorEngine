@@ -1,10 +1,15 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "materialMgr.h"
 #include <3d/dag_materialData.h>
 #include <de3_interface.h>
 #include <de3_assetService.h>
 #include <oldEditor/de_interface.h>
-#include <dllPluginCore/core.h>
+#include <EditorCore/ec_IEditorCore.h>
 #include <debug/dag_debug.h>
+
+using editorcore_extapi::dagRender;
+using editorcore_extapi::make_full_start_path;
 
 int ObjLibMaterialListMgr::getMaterialId(const char *mat_asset_name)
 {
@@ -25,7 +30,7 @@ void ObjLibMaterialListMgr::setDefaultMat0(MaterialDataList &mat)
   Ptr<MaterialData> defSm = new MaterialData;
   defSm->className = "simple";
   defSm->mat.diff = Color4(1, 1, 1);
-  defSm->mtex[0] = dagRender->addManagedTexture("../commonData/tex/missing.dds");
+  defSm->mtex[0] = dagRender->addManagedTexture(::make_full_start_path("../commonData/tex/missing.dds"));
   mat.list[0] = defSm;
 }
 
@@ -68,7 +73,7 @@ MaterialDataList *ObjLibMaterialListMgr::buildMaterialDataList()
         defSm = new MaterialData;
         defSm->className = "simple";
         defSm->mat.diff = Color4(1, 1, 1);
-        defSm->mtex[0] = dagRender->addManagedTexture("../commonData/tex/missing.dds");
+        defSm->mtex[0] = dagRender->addManagedTexture(::make_full_start_path("../commonData/tex/missing.dds"));
       }
       sm = defSm;
       DAEDITOR3.conError("can't find material %s", mat[i].str());

@@ -1,17 +1,32 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <vecmath/dag_vecMathDecl.h>
+#include <3d/dag_quadIndexBuffer.h>
 #include <render/temporalAA.h>
+#include <render/clusteredLights.h>
 #include <math/dag_TMatrix4D.h>
 #include <astronomy/astronomy.h>
 #include <dag_noise/dag_uint_noise.h>
 #include <osApiWrappers/dag_direct.h>
 #include <debug/dag_logSys.h>
 #include <ioSys/dag_dataBlock.h>
+#include <ioSys/dag_zstdIo.h>
 #include <workCycle/dag_gameScene.h>
 #include <workCycle/dag_workCycle.h>
 #include <workCycle/dag_gameSettings.h>
 #include <workCycle/dag_genGuiMgr.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3d_platform.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_platform.h>
+#include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_lock.h>
 #include <shaders/dag_shaderMesh.h>
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_dynSceneRes.h>
@@ -19,14 +34,15 @@
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <3d/dag_texPackMgr2.h>
+#include <3d/dag_texMgrTags.h>
 
 #include "test_main.h"
 #include <shaders/dag_computeShaders.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <startup/dag_globalSettings.h>
-#include <humanInput/dag_hiGlobals.h>
-#include <humanInput/dag_hiKeybIds.h>
-#include <humanInput/dag_hiPointing.h>
+#include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiPointing.h>
 #include "de3_freeCam.h"
 #include "de3_visibility_finder.h"
 #include <gui/dag_stdGuiRender.h>
@@ -70,90 +86,119 @@
 #include <render/tileDeferredLighting.h>
 #include <render/preIntegratedGF.h>
 #include <render/viewVecs.h>
+#include <render/voxelization_target.h>
 #include <daSkies2/daSkies.h>
 #include <daSkies2/daSkiesToBlk.h>
 #include "de3_gui.h"
 #include "de3_gui_dialogs.h"
 #include "de3_hmapTex.h"
+#include <render/spheres_consts.hlsli>
 #include <render/scopeRenderTarget.h>
+#include <shaders/dag_shaderMatData.h>
 #include <scene/dag_loadLevel.h>
 #include <streaming/dag_streamingBase.h>
 #include <render/debugTexOverlay.h>
+#include <render/cameraPositions.h>
 #include <shaders/dag_DynamicShaderHelper.h>
 #include <render/toroidalStaticShadows.h>
+#include <render/upscale/upscaleSampling.h>
 #include <daEditorE/daEditorE.h>
 #include "entEdit.h"
 #include <render/debugGbuffer.h>
 
 #include <math/dag_hlsl_floatx.h>
-#include <daGI/daGI.h>
+#include <daGI2/daGI2.h>
+#include <daGI2/treesAboveDepth.h>
+#include <render/voxelization_target.h>
 #include <shaders/dag_overrideStates.h>
 #include <EASTL/functional.h>
+#include <EASTL/bit.h>
+#include <generic/dag_enumerate.h>
+
+#include <bvh/bvh.h>
+#include <bvh/bvh_processors.h>
 
 #include "de3_benchmark.h"
 #include "lruCollision.h"
+#include <render/toroidal_update.h>
+#include <profileEventsGUI/profileEventsGUI.h>
 
 #include <SnapdragonSuperResolution/SnapdragonSuperResolution.h>
 
-typedef BaseStreamingSceneHolder scene_type_t;
+extern "C" const size_t PS4_USER_MALLOC_MEM_SIZE = 1ULL << 30; // 1GB
+
+static int loading_job_mgr_id = -1;
+#include "level.h"
+typedef StrmSceneHolder scene_type_t;
 
 #define SKY_GUI  1
 #define TEST_GUI 0
 
-#define GLOBAL_VARS_LIST              \
-  VAR(water_level)                    \
-  VAR(zn_zfar)                        \
-  VAR(view_vecLT)                     \
-  VAR(view_vecRT)                     \
-  VAR(view_vecLB)                     \
-  VAR(view_vecRB)                     \
-  VAR(prev_world_view_pos)            \
-  VAR(world_view_pos)                 \
-  VAR(downsampled_far_depth_tex)      \
-  VAR(prev_downsampled_far_depth_tex) \
-  VAR(from_sun_direction)             \
-  VAR(downsample_depth_type)          \
+#define GLOBAL_VARS_LIST                     \
+  VAR(new_ambient)                           \
+  VAR(new_screen_specular)                   \
+  VAR(prev_ambient_age)                      \
+  VAR(prev_ambient)                          \
+  VAR(prev_screen_specular)                  \
+  VAR(screen_ambient)                        \
+  VAR(ambient_reproject)                     \
+  VAR(prev_gbuffer_depth)                    \
+  VAR(screen_specular)                       \
+  VAR(voxelize_world_to_rasterize_space_mul) \
+  VAR(voxelize_world_to_rasterize_space_add) \
+  VAR(water_level)                           \
+  VAR(dynamic_lights_count)                  \
+  VAR(zn_zfar)                               \
+  VAR(view_vecLT)                            \
+  VAR(view_vecRT)                            \
+  VAR(view_vecLB)                            \
+  VAR(view_vecRB)                            \
+  VAR(world_view_pos)                        \
+  VAR(upscale_half_res_depth_tex)            \
+  VAR(lowres_tex_size)                       \
+  VAR(downsampled_far_depth_tex)             \
+  VAR(prev_downsampled_far_depth_tex)        \
+  VAR(downsampled_close_depth_tex)           \
+  VAR(prev_downsampled_close_depth_tex)      \
+  VAR(downsampled_normals)                   \
+  VAR(prev_downsampled_normals)              \
+  VAR(from_sun_direction)                    \
+  VAR(rasterize_collision_type)              \
+  VAR(downsample_depth_type)                 \
+  VAR(local_light_probe_tex)                 \
   VAR(envi_probe_specular)
 
-#define VAR(a) static int a##VarId = -1;
+#define GLOBAL_VARS_OPT_LIST              \
+  VAR(gbuffer_for_treesabove)             \
+  VAR(downsampled_checkerboard_depth_tex) \
+  VAR(sphere_time)                        \
+  VAR(prev_globtm_psf_0)                  \
+  VAR(prev_globtm_psf_1)                  \
+  VAR(prev_globtm_psf_2)                  \
+  VAR(prev_globtm_psf_3)
+
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
+GLOBAL_VARS_OPT_LIST
+#undef VAR
+#define VAR(a) static ShaderVariableInfo a##VarId(#a);
 GLOBAL_VARS_LIST
 #undef VAR
 
 enum
 {
   SCENE_MODE_NORMAL = 0,
-  SCENE_MODE_VOXELIZE = 1,
-  SCENE_MODE_VOXELIZE_ALBEDO = 4
+  SCENE_MODE_VOXELIZE_ALBEDO = 1,
+  SCENE_MODE_VOXELIZE_SDF = 2
 };
-
 enum
 {
-  ONLY_AO = dagi::GI3D::ONLY_AO,
-  COLORED = dagi::GI3D::COLORED
-};
-
-enum
-{
-  ONE_BOUNCE = dagi::GI3D::ONE_BOUNCE,
-  TILL_CONVERGED = dagi::GI3D::TILL_CONVERGED,
-  MULTIPLE_BOUNCE = dagi::GI3D::CONTINUOUS
-};
-
-enum
-{
-  USE_OFF = 0,
-  USE_AO = 1,
-  USE_FULL = 2,
-  USE_RAYTRACED = 3
+  REFLECTIONS_OFF,
+  REFLECTIONS_SSR,
+  REFLECTIONS_ALL
 };
 
 extern bool grs_draw_wire;
 bool exit_button_pressed = false;
-enum
-{
-  NUM_ROUGHNESS = 10,
-  NUM_METALLIC = 10
-};
 
 static bool enable_taa_override = false;
 static bool use_snapdragon_super_resolution = false;
@@ -175,9 +220,16 @@ static void init_webui(const DataBlock *debug_block)
   }
 }
 
+void add_dynrend_resource_to_bvh(bvh::ContextId context_id, const DynamicRenderableSceneLodsResource *resource, uint64_t bvhId);
+void add_dynrend_instance_to_bvh(bvh::ContextId context_id, const DynamicRenderableSceneInstance *resource, uint64_t bvh_id, int count,
+  const Point3 &view_pos);
+
+static constexpr float bvh_radius = 100.f;
+
+void set_test_tm(int inst, TMatrix &tm) { tm.setcol(3, Point3(20 + (inst / 10) * 14, 0, 20 + (inst % 10) * 14)); }
 
 static const int gbuf_rt = 3;
-static unsigned gbuf_fmts[gbuf_rt] = {TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD | TEXCF_SRGBWRITE, TEXFMT_A2B10G10R10, TEXFMT_R8G8};
+static unsigned gbuf_fmts[gbuf_rt] = {TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD | TEXCF_SRGBWRITE, TEXFMT_A2B10G10R10, TEXFMT_A8R8G8B8};
 enum
 {
   GBUF_ALBEDO_AO = 0,
@@ -186,13 +238,18 @@ enum
   GBUF_NUM = 4
 };
 
-CONSOLE_BOOL_VAL("render", rasterize_collision, true);
+
+CONSOLE_INT_VAL("render", gf_frames, 128, 1, 512);
+CONSOLE_BOOL_VAL("render", gi_reset, false);
 CONSOLE_BOOL_VAL("render", ssao_blur, true);
 CONSOLE_BOOL_VAL("render", bnao_blur, true);
 CONSOLE_BOOL_VAL("render", bent_cones, true);
 CONSOLE_BOOL_VAL("render", dynamic_lights, true);
+CONSOLE_BOOL_VAL("render", invalidate_dynamic_shadows, false);
 CONSOLE_BOOL_VAL("render", taa, false);
 CONSOLE_BOOL_VAL("render", taa_halton, true);
+CONSOLE_BOOL_VAL("render", rasterize_sdf_prims, true);
+CONSOLE_BOOL_VAL("render", rasterize_sdf_level, true);
 CONSOLE_FLOAT_VAL_MINMAX("render", taa_mip_scale, -1.2, -5, 4);
 CONSOLE_FLOAT_VAL_MINMAX("render", taa_newframe_falloff, 0.15f, 0, 1.f);
 CONSOLE_FLOAT_VAL_MINMAX("render", taa_newframe_dynamic_falloff, 0.14f, 0, 1.f);
@@ -203,6 +260,7 @@ CONSOLE_FLOAT_VAL_MINMAX("render", taa_frame_weight_dynamic_min, 0.15f, 0, 1.f);
 CONSOLE_FLOAT_VAL_MINMAX("render", taa_sharpening, 0.2f, 0, 1.f);
 CONSOLE_FLOAT_VAL_MINMAX("render", taa_clamping_gamma, 1.2f, 0.1, 3.f);
 CONSOLE_INT_VAL("render", taa_subsamples, 4, 1, 16);
+CONSOLE_BOOL_VAL("shadows", render_static_shadows_every_frame, false);
 
 ConVarI sleep_msec_val("sleep_msec", 0, 0, 1000, NULL);
 
@@ -211,7 +269,6 @@ struct IRenderDynamicCubeFace2
   virtual void renderLightProbeOpaque() = 0;
   virtual void renderLightProbeEnvi() = 0;
 };
-static int ssgi_scene_common_color_reg_no_const = 6, ssgi_scene_common_alpha_reg_no_const = 5;
 
 class RenderDynamicCube
 {
@@ -239,12 +296,14 @@ public:
   void update(const ManagedTex *cubeTarget, IRenderDynamicCubeFace2 &cb, const Point3 &pos)
   {
     ShaderGlobal::set_color4(world_view_posVarId, pos.x, pos.y, pos.z, 1);
+    float prev_pre_exposure = ShaderGlobal::get_real(get_shader_variable_id("pre_exposure", true));
+    ShaderGlobal::set_real(get_shader_variable_id("pre_exposure"), 1);
     Driver3dRenderTarget prevRT;
     d3d::get_render_target(prevRT);
     float zn = 0.05, zf = 100;
     ShaderGlobal::set_color4(zn_zfarVarId, zn, zf, 0, 0);
-    static int light_robe_posVarId = get_shader_variable_id("light_probe_pos", true);
-    ShaderGlobal::set_color4(light_robe_posVarId, pos.x, pos.y, pos.z, 1);
+    static int light_probe_posVarId = get_shader_variable_id("light_probe_pos", true);
+    ShaderGlobal::set_color4(light_probe_posVarId, pos.x, pos.y, pos.z, 1);
     for (int i = 0; i < 6; ++i)
     {
       target->setRt();
@@ -271,8 +330,10 @@ public:
       copy.render();
     }
     d3d::set_render_target(prevRT);
+    ShaderGlobal::set_real(get_shader_variable_id("pre_exposure"), prev_pre_exposure);
   }
 };
+
 
 class IntProperty
 {
@@ -322,24 +383,31 @@ public:
   float *operator&() { return &mValue; }
 };
 
-class DemoGameScene : public DagorGameScene, public IRenderDynamicCubeFace2, public ICascadeShadowsClient
+CONSOLE_BOOL_VAL("render", rasterize_debug_collision, false);
+CONSOLE_BOOL_VAL("render", rasterize_gbuf_collision, true);
+CONSOLE_FLOAT_VAL_MINMAX("render", world_sdf_from_collision_rasterize_below, 3, -1, 16);
+CONSOLE_FLOAT_VAL_MINMAX("render", world_sdf_rasterize_supersample, 1, 1, 4);
+
+class DemoGameScene final : public DagorGameScene, public IRenderDynamicCubeFace2, public ICascadeShadowsClient
 {
 public:
-  CascadeShadows *csm;
-  virtual void getCascadeShadowAnchorPoint(float cascade_from, Point3 &out_anchor)
+  CascadeShadows *csm = nullptr;
+  static DemoGameScene *the_scene;
+  VisibilityFinder visibilityFinder;
+  Point4 getCascadeShadowAnchor(int cascade_no) override
   {
     TMatrix itm;
     curCamera->getInvViewMatrix(itm);
-    out_anchor = -itm.getcol(3);
+    return Point4::xyz0(-itm.getcol(3));
   }
   virtual void renderCascadeShadowDepth(int cascade_no, const Point2 &)
   {
     d3d::settm(TM_VIEW, TMatrix::IDENT);
     d3d::settm(TM_PROJ, &csm->getWorldRenderMatrix(cascade_no));
-    Frustum frustum = visibility_finder->getFrustum();
-    visibility_finder->setFrustum(csm->getFrustum(cascade_no));
-    renderOpaque(false, false);
-    visibility_finder->setFrustum(frustum);
+    Frustum frustum = visibilityFinder.getFrustum();
+    visibilityFinder.setFrustum(csm->getFrustum(cascade_no));
+    renderOpaque((mat44f_cref)csm->getWorldCullingMatrix(cascade_no), false, false);
+    visibilityFinder.setFrustum(frustum);
   }
 
   virtual void getCascadeShadowSparseUpdateParams(int cascade_no, const Frustum &, float &out_min_sparse_dist,
@@ -374,9 +442,11 @@ public:
     }
     ShaderGlobal::set_color4(from_sun_directionVarId, -dir_to_sun.x, -dir_to_sun.y, -dir_to_sun.z, 0);
   }
+  eastl::unique_ptr<ClusteredLights> clusteredLights;
   eastl::unique_ptr<DeferredRenderTarget> target;
-  carray<UniqueTex, 2> farDownsampledDepth;
-  UniqueTexHolder downsampledNormals, downsampled_close_depth_tex;
+  carray<UniqueTex, 2> farDownsampledDepth, downsampledNormals, downsampled_close_depth_tex;
+  UniqueTex downsampled_checkerboard_depth_tex;
+  eastl::unique_ptr<UpscaleSamplingTex> upscale_tex;
   int currentDownsampledDepth;
 
   UniqueTexHolder frame, prevFrame;
@@ -394,23 +464,34 @@ public:
   {
     TIME_D3D_PROFILE(downsample_depth);
     currentDownsampledDepth = 1 - currentDownsampledDepth;
-    UniqueTexHolder null_tex;
+    UniqueTex null_tex;
     downsample_depth::downsample(target->getDepthAll(), target->getWidth(), target->getHeight(),
-      farDownsampledDepth[currentDownsampledDepth], downsampled_close_depth_tex, downsample_normals ? downsampledNormals : null_tex,
-      null_tex, null_tex);
+      farDownsampledDepth[currentDownsampledDepth], downsampled_close_depth_tex[currentDownsampledDepth],
+      downsample_normals ? downsampledNormals[currentDownsampledDepth] : null_tex, null_tex, downsampled_checkerboard_depth_tex);
+
 
     ShaderGlobal::set_texture(downsampled_far_depth_texVarId, farDownsampledDepth[currentDownsampledDepth]);
     ShaderGlobal::set_texture(prev_downsampled_far_depth_texVarId, farDownsampledDepth[1 - currentDownsampledDepth]);
+
+    downsampled_close_depth_tex[currentDownsampledDepth]->texaddr(TEXADDR_CLAMP);
+
+    ShaderGlobal::set_texture(downsampled_close_depth_texVarId, downsampled_close_depth_tex[currentDownsampledDepth]);
+    ShaderGlobal::set_texture(prev_downsampled_close_depth_texVarId, downsampled_close_depth_tex[1 - currentDownsampledDepth]);
+    ShaderGlobal::set_texture(downsampled_normalsVarId, downsampledNormals[currentDownsampledDepth]);
+    ShaderGlobal::set_texture(prev_downsampled_normalsVarId, downsampledNormals[1 - currentDownsampledDepth]);
+    ShaderGlobal::set_texture(upscale_half_res_depth_texVarId, downsampled_close_depth_tex[currentDownsampledDepth]);
+    if (upscale_tex)
+      upscale_tex->render();
   }
 
   UniqueTexHolder combined_shadows;
   PostFxRenderer combine_shadows;
 
-  UniqueTexHolder preIntegratedGF;
+  MultiFramePGF preIntegratedGF;
   void initGF()
   {
     SCOPE_RENDER_TARGET_NAME(_initGF);
-    preIntegratedGF = render_preintegrated_fresnel_GGX("preIntegratedGF", PREINTEGRATE_SPECULAR_DIFFUSE_QUALTY_MAX);
+    preIntegratedGF.init(PREINTEGRATE_SPECULAR_DIFFUSE_QUALITY_MAX, gf_frames);
   }
 
   void combineShadows()
@@ -422,47 +503,20 @@ public:
     combined_shadows.setVar();
   }
 
-  enum
+  void invalidateGI()
   {
-    NO_DEBUG = -1,
-    VISIBLE = dagi::GI3D::VISIBLE,
-    INTERSECTED = dagi::GI3D::INTERSECTED,
-    NON_INTERSECTED = dagi::GI3D::NON_INTERSECTED,
-    PROBE_AMBIENT,
-    PROBE_INTERSECTION,
-    PROBE_AGE,
-  };
-
-  enum
-  {
-    VIS_RAYCAST = dagi::GI3D::VIS_RAYCAST,
-    EXACT_VOXELS = dagi::GI3D::EXACT_VOXELS,
-    LIT_VOXELS = dagi::GI3D::LIT_VOXELS
-  };
-  dagi::GI3D ssgi;
-  void invalidateGI() { ssgi.afterReset(); }
-
-  BBox3 sceneBox;
-
-  void initSSGIVoxels()
-  {
-    ShaderGlobal::get_int_by_name("ssgi_scene_common_color_reg_no", ssgi_scene_common_color_reg_no_const);
-    ShaderGlobal::get_int_by_name("ssgi_scene_common_alpha_reg_no", ssgi_scene_common_alpha_reg_no_const);
-    TIME_D3D_PROFILE(gi_init);
-    if (ssgi_panel.volmap_res_xz.pullValueChange() || ssgi_panel.volmap_res_y.pullValueChange() ||
-        ssgi_panel.quality.pullValueChange() || ssgi_panel.gi25DWidthScale.pullValueChange() || ssgi_panel.giWidth.pullValueChange() ||
-        ssgi_panel.cascade_scale.pullValueChange() || ssgi_panel.maxHtAboveFloor.pullValueChange())
+    reloadCube(true);
+    if (daGI2)
     {
-      ssgi.setQuality((dagi::GI3D::QualitySettings)ssgi_panel.quality.get(), ssgi_panel.maxHtAboveFloor.get(),
-        2. * ssgi_panel.gi25DWidthScale.get() * ssgi_panel.giWidth.get(), 2. * ssgi_panel.giWidth.get(), ssgi_panel.cascade_scale,
-        ssgi_panel.volmap_res_xz, ssgi_panel.volmap_res_y);
+      d3d::GpuAutoLock gpu_al;
+      daGI2->afterReset();
     }
-
-    ssgi.setBouncingMode((dagi::GI3D::BouncingMode)ssgi_panel.bouncing_mode);
-    ssgi.updateVoxelSceneBox(sceneBox);
-    ssgi.setMaxVoxelsPerBin(ssgi_panel.convergence_speed_intersected, ssgi_panel.convergence_speed_non_intersected,
-      ssgi_panel.convergence_speed_initial);
+    validAmbientHistory = false;
+    // daGI2.reset(create_dagi());
   }
+
+  BBox3 sceneBox, levelBox;
+
   int giUpdatePosFrameCounter = 0;
   enum
   {
@@ -470,7 +524,7 @@ public:
   };
   void updateSSGIPos(const Point3 &pos)
   {
-    float giUpdateDist = 64;
+    float giUpdateDist = 128;
     if (++giUpdatePosFrameCounter <= MAX_GI_FRAMES_TO_INVALIDATE_POS) // if frames passed < threshold
     {
       if (!staticShadows->isInside(BBox3(pos, giUpdateDist))) // we are not even inside static shadows
@@ -484,87 +538,53 @@ public:
         return;
     }
     giUpdatePosFrameCounter = 0;
-    SCOPE_RENDER_TARGET;
-    d3d::set_render_target();
-    ssgi.updateOrigin(
-      pos,
-      [this](const BBox3 &box, const Point3 &voxel_size) {
-        Sbuffer *scene = ssgi.getSceneVoxels25d().getBuf();
-        STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_PS, ssgi_scene_common_color_reg_no_const, VALUE), scene);
-        renderVoxelsMediaGeom(box, voxel_size, SCENE_MODE_VOXELIZE_ALBEDO);
-      },
-      [](const BBox3 &, const Point3 &) {},
-      [this](const BBox3 &box, const Point3 &voxel_size) {
-        STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_PS, ssgi_scene_common_alpha_reg_no_const, VALUE, 0, 0),
-          ssgi.getSceneVoxelsAlpha().getVolTex());
-        STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_PS, ssgi_scene_common_color_reg_no_const, VALUE, 0, 0),
-          ssgi.getSceneVoxels().getVolTex());
-        renderVoxelsMediaGeom(box, voxel_size, SCENE_MODE_VOXELIZE);
-      });
-    update_visibility_finder();
-  }
-  void updateSSGISceneVoxels()
-  {
-    TMatrix4 globtm;
-    d3d::getglobtm(globtm);
-    ssgi.markVoxelsFromRT(globtm);
-  }
-  void updateSSGI(const TMatrix &view_tm, const TMatrix4 &proj_tm)
-  {
-    farDownsampledDepth[currentDownsampledDepth]->texfilter(TEXFILTER_POINT);
-    farDownsampledDepth[currentDownsampledDepth]->texaddr(TEXADDR_CLAMP);
-    ssgi.render(view_tm, proj_tm);
-    farDownsampledDepth[currentDownsampledDepth]->texaddr(TEXADDR_BORDER);
+
+    update_visibility_finder(visibilityFinder);
   }
 
-  shaders::UniqueOverrideStateId updateHeightmapOverride;
-  void initOverrides()
-  {
-    {
-      shaders::OverrideState state;
-      state.set(shaders::OverrideState::CULL_NONE);
-      updateHeightmapOverride = shaders::overrides::create(state);
-    }
-  }
-  void renderVoxelsMediaGeom(const BBox3 &sceneBox, const Point3 &voxel_size, int mode)
+  void renderVoxelsMediaGeom(const BBox3 &scene_box, const Point3 &voxel_size, int mode)
   {
     if (!binScene || !land_panel.level)
       return;
-    debug("invalid render %@ %@", sceneBox[0], sceneBox[1]);
+    DA_PROFILE_UNIQUE;
+    // debug("invalid render %@ %@", scene_box[0], scene_box[1]);
     static int scene_mode_varId = get_shader_variable_id("scene_mode");
     ShaderGlobal::set_int(scene_mode_varId, mode);
-    const IPoint3 res = IPoint3(ceil(div(sceneBox.width(), voxel_size)));
+    const IPoint3 res = IPoint3(ceil(div(scene_box.width(), voxel_size)));
     SCOPE_RENDER_TARGET;
     int maxRes = max(max(res.x, res.y), res.z);
-    ssgi.setSubsampledTargetAndOverride(maxRes, maxRes);
-    ShaderGlobal::set_color4(get_shader_variable_id("voxelize_box0"), sceneBox[0].x, sceneBox[0].y, sceneBox[0].z, maxRes);
-    ShaderGlobal::set_color4(get_shader_variable_id("voxelize_box1"), 1. / sceneBox.width().x, 1 / sceneBox.width().y,
+    set_voxelization_target_and_override(maxRes, maxRes);
+    ShaderGlobal::set_color4(get_shader_variable_id("voxelize_box0"), scene_box[0].x, scene_box[0].y, scene_box[0].z, maxRes);
+    ShaderGlobal::set_color4(get_shader_variable_id("voxelize_box1"), 1. / scene_box.width().x, 1 / scene_box.width().y,
       1 / sceneBox.width().z, 0.f);
 
-    Point3 voxelize_box0 = sceneBox[0];
-    Point3 voxelize_box1 = Point3(1. / sceneBox.width().x, 1. / sceneBox.width().y, 1. / sceneBox.width().z);
-    Point3 voxelize_aspect_ratio = point3(res) / maxRes;
+    Point3 voxelize_box0 = scene_box[0];
+    Point3 voxelize_box1 = Point3(1. / scene_box.width().x, 1. / scene_box.width().y, 1. / scene_box.width().z);
+    Point3 voxelize_aspect_ratio = min(point3(res) / maxRes, Point3(1, 1, 1));
+    // Point3 voxelize_aspect_ratio = min((point3(res) + Point3(1,1,1)) * 2. / maxRes, Point3(1,1,1));
+    // voxelize_aspect_ratio = max(voxelize_aspect_ratio, Point3(0.5,0.5,0.5));
     Point3 mult = 2. * mul(voxelize_box1, voxelize_aspect_ratio);
     Point3 add = -mul(voxelize_box0, mult) - voxelize_aspect_ratio;
     ShaderGlobal::set_color4(get_shader_variable_id("voxelize_world_to_rasterize_space_mul"), P3D(mult), 0);
     ShaderGlobal::set_color4(get_shader_variable_id("voxelize_world_to_rasterize_space_add"), P3D(add), 0);
 
     Frustum f;
-    Point3 camera_pos(sceneBox.center().x, sceneBox[1].y, sceneBox.center().z);
+    Point3 camera_pos(scene_box.center().x, scene_box[1].y, scene_box.center().z);
     {
       TMatrix cameraMatrix = cube_matrix(TMatrix::IDENT, CUBEFACE_NEGY);
       cameraMatrix.setcol(3, camera_pos);
       cameraMatrix = orthonormalized_inverse(cameraMatrix);
       d3d::settm(TM_VIEW, cameraMatrix);
-      BBox3 box = cameraMatrix * sceneBox;
+
+      BBox3 box = cameraMatrix * scene_box;
       TMatrix4 proj = matrix_ortho_off_center_lh(box[0].x, box[1].x, box[1].y, box[0].y, box[0].z, box[1].z);
       d3d::settm(TM_PROJ, &proj);
       mat44f globtm;
-      d3d::getglobtm(globtm);
+      d3d::calcglobtm(cameraMatrix, proj, (TMatrix4 &)globtm);
       f = Frustum(globtm);
     }
     VisibilityFinder vf;
-    vf.set(v_ldu(&camera_pos.x), f, 0.0f, 0.0f, 1.0f, 1.0f, false);
+    vf.set(v_ldu(&camera_pos.x), f, 0.0f, 0.0f, 1.0f, 1.0f, nullptr);
 
     for (int i = 0; i < 3; ++i)
     {
@@ -573,7 +593,7 @@ public:
       // cameraMatrix.setcol(3, camera_pos);
       // cameraMatrix = orthonormalized_inverse(cameraMatrix);
       // d3d::settm(TM_VIEW, cameraMatrix);
-      // BBox3 box = cameraMatrix*sceneBox;
+      // BBox3 box = cameraMatrix*scene_box;
       /*int xAxis = 0, yAxis = 1, zAxis = 2;
       if (i == 0)
       {
@@ -584,170 +604,142 @@ public:
       }
       d3d::setview(0,0, res[xAxis], res[yAxis],0,1);
       d3d::settm(TM_VIEW, TMatrix::IDENT);
-      TMatrix4 proj = matrix_ortho_off_center_lh(sceneBox[0][xAxis], sceneBox[1][xAxis],
-                                                 sceneBox[1][yAxis], sceneBox[0][yAxis],
-                                                 sceneBox[0][zAxis], sceneBox[1][zAxis]);
+      TMatrix4 proj = matrix_ortho_off_center_lh(scene_box[0][xAxis], scene_box[1][xAxis],
+                                                 scene_box[1][yAxis], scene_box[0][yAxis],
+                                                 scene_box[0][zAxis], scene_box[1][zAxis]);
       d3d::settm(TM_PROJ, &proj);
       mat44f globtm;
       d3d::getglobtm(globtm);*/
       // vf.set(v_ldu(&camera_pos.x), Frustum(globtm), 0.0f, 0.0f, 1.0f, 1.0f, false);
-      d3d::setview(0, 0, maxRes, maxRes, 0, 1);
+      // d3d::setview(0, 0, maxRes, maxRes, 0, 1);
       binScene->render(vf, 0, 0xFFFFFFFF);
     }
-    ssgi.resetOverride();
+    reset_voxelization_override();
     ShaderGlobal::set_int(scene_mode_varId, SCENE_MODE_NORMAL);
   }
 
   void debugVolmap()
   {
-    if (ssgi_panel.debug_volmap != NO_DEBUG)
-    {
-      if (ssgi_panel.probeCascade >= 2)
-        ssgi.debugVolmap25D(ssgi_panel.debug_volmap == INTERSECTED          ? dagi25d::IrradianceDebugType::INTERSECTED
-                            : ssgi_panel.debug_volmap == PROBE_INTERSECTION ? dagi25d::IrradianceDebugType::INTERSECTION
-                                                                            : dagi25d::IrradianceDebugType::AMBIENT);
-      else if (ssgi_panel.debug_volmap >= PROBE_AMBIENT && ssgi_panel.debug_volmap <= PROBE_AGE)
-      {
-        mat44f globtm;
-        d3d::getglobtm(globtm);
-        ssgi.drawDebugAllProbes(ssgi_panel.probeCascade, Frustum(globtm),
-          (dagi::GI3D::DebugAllVolmapType)(ssgi_panel.debug_volmap - PROBE_AMBIENT));
-      }
-      else
-        ssgi.drawDebug(ssgi_panel.probeCascade, (dagi::GI3D::DebugVolmapType)ssgi_panel.debug_volmap);
-    }
-    if (ssgi_panel.debug_scene != NO_DEBUG)
-    {
-      ssgi.debugSceneVoxelsRayCast((dagi::GI3D::DebugSceneType)ssgi_panel.debug_scene, ssgi_panel.debug_scene_cascade);
-    }
-    if (ssgi_panel.debug_scene25d != NO_DEBUG)
-    {
-      ssgi.debugScene25DVoxelsRayCast((dagi25d::SceneDebugType)ssgi_panel.debug_scene25d);
-    }
+    // fixme: add here
   }
 
-  UniqueTexHolder cambient[2], ambient[2];
+  UniqueTex ambient[2];
+  UniqueTex ambient_age[2];
+  UniqueTex screen_specular[2];
+  UniqueTex current_ambient;
+  UniqueTex current_screen_specular;
   int cAmbientFrame = 0;
-  PostFxRenderer ambientRenderer, ambientTemporal, ambientBlur;
+  PostFxRenderer ambientRenderer, ambientReproject;
 
-  UniqueTexHolder heightmap;
-  Point2 heightmapOrigin = {-100000, 10000};
   LRUCollision lruColl;
 
-  void updateHeightmap(const Point3 &at)
+  eastl::unique_ptr<DaGI> daGI2;
+  TreesAboveDepth treesAbove;
+  void ensurePrevFrame()
   {
-    const float cellSize = 1.f;
-    Point2 alignedOrigin = point2(ipoint2(Point2::xz(at) / cellSize + Point2(0.5f, 0.5f))) * cellSize;
-    if (length(heightmapOrigin - alignedOrigin) < cellSize * 4)
-      return;
-    heightmapOrigin = alignedOrigin;
-    SCOPE_RENDER_TARGET;
-    SCOPE_VIEW_PROJ_MATRIX;
-    d3d::set_render_target();
-    // set Matrix
-    d3d_err(d3d::set_render_target(0, (Texture *)NULL, 0));
-    d3d::set_depth(heightmap.getTex2D(), DepthAccess::RW);
-    heightmap->texfilter(TEXFILTER_POINT);
-    heightmap.setVar();
-
-    TMatrix vtm;
-    vtm.setcol(0, 1, 0, 0);
-    vtm.setcol(1, 0, 0, 1);
-    vtm.setcol(2, 0, 1, 0);
-    vtm.setcol(3, 0, 0, 0);
-    d3d::settm(TM_VIEW, vtm);
-
-    const float htSize = 64;
-    float minHt = sceneBox[0].y - 1, maxHt = sceneBox[1].y + 1;
-    alignas(16) TMatrix4 proj = matrix_ortho_off_center_lh(heightmapOrigin.x - htSize, heightmapOrigin.x + htSize,
-      heightmapOrigin.y + htSize, heightmapOrigin.y - htSize, maxHt, minHt);
-    float worldToTcScale = 0.5 / htSize;
-    ShaderGlobal::set_color4(get_shader_variable_id("scene_voxels_2d_heightmap_area"), worldToTcScale, 0,
-      0.5 - heightmapOrigin.x * worldToTcScale, 0.5 - heightmapOrigin.y * worldToTcScale);
-    ShaderGlobal::set_color4(get_shader_variable_id("scene_voxels_2d_heightmap_scale"), maxHt, minHt - maxHt, 0, 0);
-    d3d::settm(TM_PROJ, &proj);
-
-    d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
-    shaders::overrides::set(updateHeightmapOverride);
-
-    // render everything to gbuffer!
-    if (binScene && land_panel.level)
+    TextureInfo frameInfo;
+    frame.getTex2D()->getinfo(frameInfo);
+    TextureInfo prevFrameInfo;
+    if (prevFrame)
+      prevFrame.getTex2D()->getinfo(prevFrameInfo);
+    if (prevFrameInfo.w != frameInfo.w / 2 || prevFrameInfo.h != frameInfo.h / 2)
     {
-      mat44f globtm;
-      d3d::getglobtm(globtm);
-      visibility_finder->setFrustum(Frustum(globtm));
-      binScene->render();
+      prevFrame.close();
+      prevFrame = dag::create_tex(NULL, frameInfo.w / 2, frameInfo.h / 2, frameInfo.cflg, 1, "prev_frame_tex");
+      prevFrame->texaddr(TEXADDR_CLAMP);
+      // prevFrame.getTex2D()->texfilter(TEXFILTER_POINT);
     }
-
-    shaders::overrides::reset();
   }
 
-
-  DemoGameScene() : main_pov_data(NULL), cube_pov_data(NULL)
+  void closeGIReprojection()
   {
-    setDirToSun();
-    cpujobs::start_job_manager(1, 256 << 10);
-    visualConsoleDriver = NULL;
-    unloaded_splash = false;
-    test = NULL;
-    binScene = NULL;
+    if (!ambient[0])
+      return;
+    screen_specular[0].close();
+    screen_specular[1].close();
+    ambient[0].close();
+    ambient[1].close();
+    ambient_age[0].close();
+    ambient_age[1].close();
+    validAmbientHistory = false;
+  }
 
-    if (!(d3d::get_texformat_usage(gbuf_fmts[2]) & d3d::USAGE_RTARGET))
-      gbuf_fmts[2] = TEXFMT_DEFAULT;
+  void initGIReprojection(int w, int h)
+  {
+    if (ambient[0])
+      return;
+    closeGIReprojection();
+    ambient[0] = dag::create_tex(NULL, w, h, TEXFMT_R11G11B10F | TEXCF_RTARGET, 1, "screen_ambient0");
+    ambient[1] = dag::create_tex(NULL, w, h, TEXFMT_R11G11B10F | TEXCF_RTARGET, 1, "screen_ambient1");
+    ambient[0]->texaddr(TEXADDR_CLAMP);
+    ambient[1]->texaddr(TEXADDR_CLAMP);
 
+    screen_specular[0] = dag::create_tex(NULL, w, h, TEXFMT_R11G11B10F | TEXCF_RTARGET, 1, "screen_specular0");
+    screen_specular[1] = dag::create_tex(NULL, w, h, TEXFMT_R11G11B10F | TEXCF_RTARGET, 1, "screen_specular1");
+    screen_specular[0]->texaddr(TEXADDR_CLAMP);
+    screen_specular[1]->texaddr(TEXADDR_CLAMP);
+
+    ambient_age[0] = dag::create_tex(NULL, w, h, TEXFMT_L8 | TEXCF_RTARGET, 1, "screen_ambient_age0");
+    ambient_age[1] = dag::create_tex(NULL, w, h, TEXFMT_L8 | TEXCF_RTARGET, 1, "screen_ambient_age1");
+    ambient_age[0]->texaddr(TEXADDR_CLAMP);
+    ambient_age[1]->texaddr(TEXADDR_CLAMP);
+  }
+
+  ResizableTex otherDepth;
+
+  int oldReflections = REFLECTIONS_OFF;
+  void initReflections(int w, int h)
+  {
+    const int rq = min(gi_panel.reflections, int(gi_panel.gi_mode <= ONLY_AO ? REFLECTIONS_SSR : REFLECTIONS_ALL));
+    if (oldReflections == rq)
+      return;
+    oldReflections = rq;
+    ssr.reset();
+    if (rq == REFLECTIONS_OFF)
+      return;
+    ssr.reset(new ScreenSpaceReflections(w / 2, h / 2, 1, rq == REFLECTIONS_ALL ? TEXFMT_A16B16G16R16F : 0,
+      rq == REFLECTIONS_ALL ? SSRQuality::Compute : SSRQuality::Low));
+    ShaderGlobal::set_int(get_shader_variable_id("ssr_alternate_reflections", true), rq == REFLECTIONS_ALL ? 1 : 0);
+  }
+
+  void initRes(int w, int h)
+  {
     d3d::GpuAutoLock gpu_al;
-    int w, h;
-    d3d::get_target_size(w, h);
-    if (use_snapdragon_super_resolution)
-    {
-      w = (int)((float)w * snapdragon_super_resolution_scale);
-      h = (int)((float)h * snapdragon_super_resolution_scale);
-    }
-    postfx.init("postfx");
+    target.reset();
     target = eastl::make_unique<DeferredRenderTarget>("deferred_shadow_to_buffer", "main", w, h,
       DeferredRT::StereoMode::MonoOrMultipass, 0, gbuf_rt, gbuf_fmts, TEXFMT_DEPTH32);
-    heightmap = dag::create_tex(NULL, 512, 512, TEXFMT_DEPTH16 | TEXCF_RTARGET, 1, "scene_voxels_2d_heightmap");
+    target->setVar();
+    {
+      TextureInfo ti;
+      target->getDepth()->getinfo(ti);
+      otherDepth.close();
+      otherDepth = dag::create_tex(NULL, ti.w, ti.h, ti.cflg, 1, "other_target_depth");
+    }
 
+    combined_shadows.close();
     combined_shadows = dag::create_tex(NULL, w, h, TEXFMT_L8 | TEXCF_RTARGET, 1, "combined_shadows");
-    combine_shadows.init("combine_shadows");
-    initGF();
     debugTexOverlay.setTargetSize(Point2(w, h));
 
     int halfW = w / 2, halfH = h / 2;
-    ShaderGlobal::set_color4(::get_shader_variable_id("lowres_rt_params", true), halfW, halfH, HALF_TEXEL_OFSF / halfW,
-      HALF_TEXEL_OFSF / halfH);
+    ShaderGlobal::set_color4(::get_shader_variable_id("lowres_rt_params", true), halfW, halfH, 0, 0);
 
     ShaderGlobal::set_color4(get_shader_variable_id("rendering_res"), w, h, 1.0f / w, 1.0f / h);
     ShaderGlobal::set_color4(::get_shader_variable_id("taa_display_resolution", true), w, h, 0, 0);
-    ssr.reset(new ScreenSpaceReflections(w / 2, h / 2));
+    initReflections(w, h);
+    ssao.reset();
     ssao = eastl::make_unique<SSAORenderer>(w / 2, h / 2, 1);
 
+    gtao.reset();
     gtao = eastl::make_unique<GTAORenderer>(w / 2, h / 2, 1);
 
-    ambient[0] = dag::create_tex(NULL, w, h, TEXFMT_R11G11B10F | TEXCF_RTARGET, 1, "screen_ambient");
-    ambient[1] = dag::create_tex(NULL, w, h, TEXFMT_R11G11B10F | TEXCF_RTARGET, 1, "screen_ambient2");
-    cambient[0] = dag::create_tex(NULL, w, h, TEXFMT_R11G11B10F | TEXCF_RTARGET, 1, "current_ambient");
-    cambient[1] = dag::create_tex(NULL, w, h, TEXFMT_R11G11B10F | TEXCF_RTARGET, 1, "current_ambient2");
-    cambient[0]->texaddr(TEXADDR_CLAMP);
-    cambient[1]->texaddr(TEXADDR_CLAMP);
-    ambient[0]->texaddr(TEXADDR_CLAMP);
-    ambient[1]->texaddr(TEXADDR_CLAMP);
-    ambientRenderer.init("render_ambient");
-    ambientTemporal.init("taa_ambient");
-    ambientBlur.init("blur_ambient");
-
-    currentDownsampledDepth = 0;
-    CascadeShadows::Settings csmSettings;
-    csmSettings.cascadeWidth = 512;
-    csmSettings.splitsW = csmSettings.splitsH = 2;
-    csmSettings.shadowDepthBias = 0.034f;
-    csmSettings.shadowConstDepthBias = 5e-5f;
-    csmSettings.shadowDepthSlopeBias = 0.34f;
-    csm = CascadeShadows::make(this, csmSettings);
+    current_ambient.close();
+    current_ambient = dag::create_tex(NULL, w, h, TEXFMT_R11G11B10F | TEXCF_RTARGET, 1, "current_screen_ambient");
+    current_ambient->texaddr(TEXADDR_CLAMP);
+    current_screen_specular.close();
+    current_screen_specular = dag::create_tex(NULL, w, h, TEXFMT_R11G11B10F | TEXCF_RTARGET, 1, "current_screen_specular");
 
     if (ssao || gtao) //||ssr||dynamicLighting
     {
-      downsample_depth::init("downsample_depth2x");
       int numMips = min(get_log2w(w / 2), get_log2w(h / 2)) - 1;
       numMips = max(numMips, 8);
       debug("numMips = %d", numMips);
@@ -766,48 +758,140 @@ public:
         farDownsampledDepth[i]->texbordercolor(0);
         farDownsampledDepth[i]->texfilter(TEXFILTER_POINT);
         farDownsampledDepth[i]->texmipmap(TEXMIPMAP_POINT);
-      }
-      downsampled_close_depth_tex = dag::create_tex(NULL, w / 2, h / 2, rfmt | TEXCF_RTARGET, numMips, "downsampled_close_depth_tex");
-      downsampled_close_depth_tex->texaddr(TEXADDR_CLAMP);
-      downsampled_close_depth_tex->texfilter(TEXFILTER_POINT);
-      downsampled_close_depth_tex->texmipmap(TEXMIPMAP_POINT);
+        downsampled_close_depth_tex[i].close();
+        name.printf(128, "close_downsampled_depth%d", i);
+        downsampled_close_depth_tex[i] = dag::create_tex(NULL, w / 2, h / 2, rfmt | TEXCF_RTARGET, numMips, name);
+        downsampled_close_depth_tex[i]->texaddr(TEXADDR_CLAMP);
+        downsampled_close_depth_tex[i]->texfilter(TEXFILTER_POINT);
+        downsampled_close_depth_tex[i]->texmipmap(TEXMIPMAP_POINT);
 
-      String name(128, "downsampled_normals");
-      downsampledNormals = dag::create_tex(NULL, w / 2, h / 2, TEXCF_RTARGET, 1, name); // TEXFMT_A2B10G10R10 |
-      downsampledNormals->texaddr(TEXADDR_CLAMP);
+        name.printf(128, "close_downsampled_normals%d", i);
+        downsampledNormals[i].close();
+        downsampledNormals[i] = dag::create_tex(NULL, w / 2, h / 2, TEXCF_RTARGET, 1, name); // TEXFMT_A2B10G10R10 |
+        downsampledNormals[i]->texaddr(TEXADDR_CLAMP);
+      }
+      upscale_tex.reset();
+      upscale_tex.reset(new UpscaleSamplingTex(w, h, "close_"));
+      ShaderGlobal::set_color4(lowres_tex_sizeVarId, w / 2, h / 2, 1.f / (w / 2), 1.f / (h / 2));
+
+      downsampled_checkerboard_depth_tex.close();
+      downsampled_checkerboard_depth_tex =
+        dag::create_tex(NULL, w / 2, h / 2, rfmt | TEXCF_RTARGET, 1, "downsampled_checkerboard_depth_tex");
+      ShaderGlobal::set_texture(downsampled_checkerboard_depth_texVarId, downsampled_checkerboard_depth_tex.getTexId());
     }
     uint32_t rtFmt = TEXFMT_R11G11B10F;
     if (!(d3d::get_texformat_usage(rtFmt) & d3d::USAGE_RTARGET))
       rtFmt = TEXFMT_A16B16G16R16F;
-
-    prevFrame = dag::create_tex(NULL, w / 2, h / 2, rtFmt | TEXCF_RTARGET, 1, "prev_frame_tex");
-    prevFrame->texaddr(TEXADDR_CLAMP);
-    // prevFrame.getTex2D()->texfilter(TEXFILTER_POINT);
+    if (!prevFrame)
+    {
+      prevFrame = dag::create_tex(NULL, w / 2, h / 2, rtFmt | TEXCF_RTARGET, 1, "prev_frame_tex");
+      prevFrame->texaddr(TEXADDR_CLAMP);
+      // prevFrame.getTex2D()->texfilter(TEXFILTER_POINT);
+    }
+    frame.close();
     frame = dag::create_tex(NULL, w, h, rtFmt | TEXCF_RTARGET, 1, "frame_tex");
+    taaHistory[0].close();
+    taaHistory[1].close();
     taaHistory[0] = dag::create_tex(NULL, w, h, rtFmt | TEXCF_RTARGET, 1, "taa_history_tex");
     taaHistory[1] = dag::create_tex(NULL, w, h, rtFmt | TEXCF_RTARGET, 1, "taa_history_tex2");
+    if (use_snapdragon_super_resolution)
+    {
+      int fw, fh;
+      d3d::get_target_size(fw, fh);
+      superResolutionOutput.close();
+      superResolutionOutput = dag::create_tex(NULL, fw, fh, rtFmt | TEXCF_RTARGET, 1, "SuperResolutionOutput");
+      snapdragonSuperResolutionRender.SetViewport(w, h);
+    }
+    clusteredLights->changeResolution(w, h);
+  }
+
+  DemoGameScene() : main_pov_data(NULL), cube_pov_data(NULL)
+  {
+    RenderScene::useSRVBuffers = isRtEnabled();
+    LRURendinstCollision::useSRVBuffers = isRtEnabled();
+
+    the_scene = this;
+    init_voxelization();
+    {
+      FullFileLoadCB riCollision("ri_collisions.bin");
+      if (riCollision.fileHandle)
+        lruColl.load(riCollision);
+    }
+    daGI2.reset(create_dagi());
+
+    setDirToSun();
+    loading_job_mgr_id = cpujobs::create_virtual_job_manager(1, 2 << 20);
+    visualConsoleDriver = NULL;
+    unloaded_splash = false;
+
+    if (!(d3d::get_texformat_usage(gbuf_fmts[2]) & d3d::USAGE_RTARGET))
+      gbuf_fmts[2] = TEXFMT_DEFAULT;
+
+    int w, h;
+    d3d::get_render_target_size(w, h, nullptr);
+    screen_probes.tileSize = clamp<int>((int(h * 8. / 1080.) + 1) & ~1, 8, 32);
+    if (use_snapdragon_super_resolution)
+    {
+      w = (int)((float)w * snapdragon_super_resolution_scale);
+      h = (int)((float)h * snapdragon_super_resolution_scale);
+    }
+
+
+    postfx.init("postfx");
+    combine_shadows.init("combine_shadows");
+    downsample_depth::init("downsample_depth2x");
+    ambientRenderer.init("render_ambient");
+    ambientReproject.init("ambient_reproject");
+    {
+      clusteredLights.reset(new ClusteredLights);
+      clusteredLights->setResolution(w, h);
+      clusteredLights->init(8, 4096, false);
+      clusteredLights->setMaxClusteredDist(128);
+      clusteredLights->setMaxShadowDist(128);
+      Point4 bias(-0.00006f, -0.1f, 0.01f, 0.015f);
+      clusteredLights->setShadowBias(bias.x, bias.y, bias.z, bias.w);
+    }
+    {
+      OmniLight omni(Point3(9.96434, 2.16349, 2.9432), 2 * Color3(1, 1, 0.5), 5, 0.5);
+      auto omniId = clusteredLights->addOmniLight(omni);
+      clusteredLights->addShadowToLight(omniId, true, false, 16, 8, 2, DynamicShadowRenderGPUObjects::NO);
+
+      SpotLight spot(Point3(-8.70424, 8.19734, 0.452339), 50 * Color3(0.5, 1, 0.5), 25, 0.5, Point3(-0.655051, -0.755133, -0.0261049),
+        0.2, true, true);
+      auto spotId = clusteredLights->addSpotLight(spot, SpotLightsManager::GI_LIGHT_MASK);
+      clusteredLights->addShadowToLight(spotId, true, false, 16, 8, 2, DynamicShadowRenderGPUObjects::NO);
+      clusteredLights->setLight(spotId, spot, SpotLightsManager::GI_LIGHT_MASK, true);
+    }
+    initRes(w, h);
+
+    d3d::GpuAutoLock gpu_al;
+    initGF();
+
+
+    currentDownsampledDepth = 0;
+    CascadeShadows::Settings csmSettings;
+    csmSettings.cascadeWidth = 512;
+    csmSettings.splitsW = csmSettings.splitsH = 2;
+    csmSettings.shadowDepthBias = 0.034f;
+    csmSettings.shadowConstDepthBias = 5e-5f;
+    csmSettings.shadowDepthSlopeBias = 0.34f;
+    csm = CascadeShadows::make(this, csmSettings);
+
+
     taaRender.init("taa");
     if (global_cls_drv_pnt)
       global_cls_drv_pnt->getDevice(0)->setClipRect(0, 0, w, h);
     localProbe = NULL;
 
-    if (use_snapdragon_super_resolution)
-    {
-      int fw, fh;
-      d3d::get_target_size(fw, fh);
-      superResolutionOutput = dag::create_tex(NULL, fw, fh, rtFmt | TEXCF_RTARGET, 1, "SuperResolutionOutput");
-      snapdragonSuperResolutionRender.SetViewport(w, h);
-    }
-
-#define VAR(a) a##VarId = get_shader_variable_id(#a);
-    GLOBAL_VARS_LIST
-#undef VAR
 
     daSkies.initSky();
     main_pov_data = daSkies.createSkiesData("main"); // required for each point of view (or the only one if panorama, for panorama
                                                      // center)
     cube_pov_data = daSkies.createSkiesData("cube"); // required for each point of view (or the only one if panorama, for panorama
                                                      // center)
+
+    initBvh();
+    enforceLruCache();
   }
   PostFxRenderer taaRender;
   SnapdragonSuperResolution snapdragonSuperResolutionRender;
@@ -821,16 +905,25 @@ public:
 
   ~DemoGameScene()
   {
+    the_scene = nullptr;
+    close_voxelization();
+
+    teardownBvh();
+
     daSkies.destroy_skies_data(main_pov_data);
     daSkies.destroy_skies_data(cube_pov_data);
     ssr.reset();
     del_it(csm);
     for (int i = 0; i < farDownsampledDepth.size(); ++i)
+    {
       farDownsampledDepth[i].close();
-    downsampledNormals.close();
-    downsampled_close_depth_tex.close();
+      downsampledNormals[i].close();
+      downsampled_close_depth_tex[i].close();
+    }
+    downsampled_checkerboard_depth_tex.close();
     ShaderGlobal::set_texture(downsampled_far_depth_texVarId, BAD_TEXTUREID);
     ShaderGlobal::set_texture(prev_downsampled_far_depth_texVarId, BAD_TEXTUREID);
+    ShaderGlobal::set_texture(prev_downsampled_close_depth_texVarId, BAD_TEXTUREID);
     downsample_depth::close();
 
     del_it(test);
@@ -838,9 +931,11 @@ public:
     del_it(visualConsoleDriver);
     light_probe::destroy(localProbe);
 
-    cpujobs::stop_job_manager(1, true);
+    cpujobs::destroy_virtual_job_manager(loading_job_mgr_id, true);
     de3_imgui_term();
     ShaderGlobal::reset_textures();
+    del_it(freeCam);
+    delayed_binary_dumps_unload();
   }
 
   virtual bool rayTrace(const Point3 &p, const Point3 &norm_dir, float trace_dist, float &max_dist) { return false; }
@@ -948,7 +1043,6 @@ public:
 
     if (!exit_button_pressed && !de3_imgui_act(::dagor_game_act_time))
       curCamera->act();
-
     // Quit Game
     static int old_type = -1;
     if (render_panel.render_type != old_type)
@@ -984,15 +1078,21 @@ public:
     }
   }
 
+  ProfileUniqueEventsGUI allEvents;
+  void drawProfile() { allEvents.drawProfiled(); }
+
   virtual void drawScene()
   {
+    int sw, sh;
+    d3d::get_render_target_size(sw, sh, frame.getTex2D());
+    int w, h;
+    d3d::get_render_target_size(w, h, nullptr);
 
     StdGuiRender::reset_per_frame_dynamic_buffer_pos();
 
     TMatrix itm;
     curCamera->getInvViewMatrix(itm);
     // todo: clamp itm.getcol(3) with shrinked sceneBox - there is nothing interesting outside scene
-    initSSGIVoxels();
     updateSSGIPos(itm.getcol(3)); // we can frustum cull here as well, to reduce latency
     static int64_t time0 = ref_time_ticks();
     int current_time_usec = get_time_usec(time0);
@@ -1011,7 +1111,7 @@ public:
     Driver3dPerspective p;
     d3d::getpersp(p);
 
-    if (renderTaa || gi_panel.per_pixel_trace)
+    if (renderTaa)
     {
       TemporalAAParams taaParams;
       taaParams.subsamples = taa_subsamples.get();
@@ -1039,27 +1139,187 @@ public:
       int usecs = get_time_usec(reft);
       reft = ref_time_ticks();
 
-      set_temporal_parameters(noJitterGlobTm, prevNoJitterGlobTm, jitteredOfs, taaFrame == 0 ? 10.f : usecs / 1e6, w, taaParams);
+      // @TODO: unified reprojection matrix calculation in gameLibs?
+      //        Currently daNetGame does it's thing, skyquake moved to it's internal function,
+      //        and the following logic was removed from temporalAA
+      TMatrix4D reprojection;
+      TMatrix4D noJitterGlobTmInv;
+
+      double det;
+      G_VERIFY(inverse44(noJitterGlobTm, noJitterGlobTmInv, det));
+
+      {
+        reprojection = noJitterGlobTmInv * prevNoJitterGlobTm;
+        TMatrix4D scaleBias1 = {0.5, 0, 0, 0, 0, -0.5, 0, 0, 0, 0, 1, 0, 0.5, 0.5, 0, 1};
+        TMatrix4D scaleBias2 = {2.0, 0, 0, 0, 0, -2.0, 0, 0, 0, 0, 1, 0, -1.0, 1.0, 0, 1};
+        reprojection = scaleBias2 * reprojection * scaleBias1;
+      }
+
+      set_temporal_parameters((TMatrix4)reprojection, jitteredOfs, taaFrame == 0 ? 10.f : usecs / 1e6, w, taaParams);
       prevNoJitterGlobTm = noJitterGlobTm;
     }
 
-
-    d3d::set_render_target(frame.getTex2D(), 0);
-    render();
-    if (gi_panel.update_ssgi && gi_panel.gi_mode == SSGI) // && gi_panel.onscreen_mode == RESULT
+    TMatrix view;
+    d3d::gettm(TM_VIEW, view);
+    alignas(16) TMatrix4 projTm;
+    d3d::gettm(TM_PROJ, &projTm);
     {
-      d3d::set_render_target();
-      frame.setVar();
+      mat44f globtm;
+      d3d::getglobtm(globtm);
+      SCOPE_VIEW_PROJ_MATRIX;
+      // can be done in thread
+      Driver3dPerspective p;
+      G_VERIFY(d3d::getpersp(p));
+      alignas(16) TMatrix4 viewTm = TMatrix4(view);
+      clusteredLights->cullFrustumLights(v_ldu_p3(itm[3]), globtm, (mat44f_cref)viewTm, (mat44f_cref)projTm, p.zn, nullptr,
+        SpotLightsManager::MASK_ALL, OmniLightsManager::MASK_ALL);
 
-      TMatrix4 projTm;
-      d3d::calcproj(p, projTm);
-      updateSSGI(orthonormalized_inverse(itm), projTm);
+      vec4f vpos = v_ldu_p3(itm[3]);
+      bbox3f dynBox = {v_sub(vpos, v_splats(5)), v_add(vpos, v_splats(5))};
+      if (invalidate_dynamic_shadows)
+      {
+        invalidate_dynamic_shadows = false;
+        clusteredLights->invalidateAllShadows();
+      }
+
+      const int spotsCount = clusteredLights->getVisibleClusteredSpotsCount();
+      const int omniCount = clusteredLights->getVisibleClusteredOmniCount();
+
+
+      DynLightsOptimizationMode dynLightsMode = (dynamic_lights.get() && clusteredLights->hasClusteredLights())
+                                                  ? get_lights_count_interval(spotsCount, omniCount)
+                                                  : DynLightsOptimizationMode::NO_LIGHTS;
+
+      ShaderGlobal::set_int(dynamic_lights_countVarId, eastl::to_underlying(dynLightsMode));
+      clusteredLights->setBuffersToShader();
+
+      dynamic_shadow_render::VolumesVector volumesToRender;
+      clusteredLights->framePrepareShadows(volumesToRender, itm.getcol(3), globtm, p.hk, make_span_const(&dynBox, 1), nullptr);
+
+      auto globalFrameId = ShaderGlobal::getBlockId("global_frame");
+      ShaderGlobal::setBlock(globalFrameId, ShaderGlobal::LAYER_FRAME);
+      clusteredLights->frameRenderShadows(
+        volumesToRender,
+        [&](mat44f_cref globTm, const TMatrix &viewItm, int, int, DynamicShadowRenderGPUObjects) {
+          d3d::settm(TM_VIEW, TMatrix::IDENT);
+          d3d::settm(TM_PROJ, globTm);
+          ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
+          renderOpaque((mat44f_cref)globTm, false, true);
+          ShaderGlobal::setBlock(globalFrameId, ShaderGlobal::LAYER_FRAME);
+        },
+        [](const TMatrix &view_itm, const mat44f &view_tm, const mat44f &proj_tm) {
+          G_UNUSED(view_itm);
+          G_UNUSED(view_tm);
+          G_UNUSED(proj_tm);
+        });
+      ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
+    }
+    daGI2->beforeRender(sw, sh, w, h, itm, projTm, p.zn, p.zf);
+    treesAbove.init(256.f, 1.f); // fixme
+    {
+      bool lightsInsideFrustum = true;
+      daGI2->updatePosition(
+        [&](int sdf_clip, const BBox3 &box, float voxelSize, uintptr_t &) {
+          BBox3 sceneBox = box;
+          sceneBox[0] -= Point3(voxelSize, voxelSize, voxelSize); // we increase by maximum written + 1 where we rounding due to
+                                                                  // rasterization
+          sceneBox[1] += Point3(voxelSize, voxelSize, voxelSize);
+
+          dag::Vector<uint64_t, framemem_allocator> handles;
+          {
+            TIME_D3D_PROFILE(sdf_from_collision)
+            // sceneBox[0] -= box.width()*0.25f;
+            // sceneBox[1] += box.width()*0.25f;
+            bbox3f vbox;
+            vbox.bmin = v_ldu(&sceneBox[0].x);
+            vbox.bmax = v_ldu(&sceneBox[1].x);
+            // vbox.bmin = v_sub(vbox.bmin, v_splats(voxelSize*2));//we rasterize with up 2 voxels dist
+            // vbox.bmax = v_add(vbox.bmax, v_splats(voxelSize*2));//we rasterize with up 2 voxels dist
+            lruColl.gatherBox(vbox, handles);
+          }
+          const bool intersectLevel = levelBox & box & rasterize_sdf_level;
+          if (handles.empty() && !intersectLevel)
+            return UpdateGiQualityStatus::NOTHING;
+
+          if (clusteredLights->initialized())
+          {
+            if (daGI2->sdfClipHasVoxelsLitSceneClip(sdf_clip))
+            {
+              alignas(16) TMatrix4 globtm = matrix_ortho_off_center_lh(box[0].x, box[1].x, box[1].y, box[0].y, box[0].z, box[1].z);
+              clusteredLights->cullOutOfFrustumLights((mat44f_cref)globtm, SpotLightsManager::GI_LIGHT_MASK,
+                OmniLightsManager::GI_LIGHT_MASK);
+              clusteredLights->setOutOfFrustumLightsToShader();
+            }
+            else
+              clusteredLights->setEmptyOutOfFrustumLights();
+            lightsInsideFrustum = false;
+          }
+
+          Point3 voxelize_box0 = sceneBox[0];
+          Point3 voxelize_box_sz = max(Point3(1e-6f, 1e-6f, 1e-6f), sceneBox.width());
+          IPoint3 res = ipoint3(floor(sceneBox.width() / voxelSize + Point3(0.5, 0.5, 0.5)));
+          // Point3 voxelize_box1 = Point3(1./sceneBox.width().x, 1./sceneBox.width().y, 1./sceneBox.width().z);
+          const int maxRes = max(max(res.x, res.y), max(res.z, 1));
+          Point3 voxelize_aspect_ratio = point3(max(res, IPoint3(1, 1, 1))) / maxRes; // use fixed aspect ratio of 1. for oversampling
+                                                                                      // and HW clipping
+          Point3 mult = 2. * div(voxelize_aspect_ratio, voxelize_box_sz);
+          Point3 add = -mul(voxelize_box0, mult) - voxelize_aspect_ratio;
+          ShaderGlobal::set_color4(voxelize_world_to_rasterize_space_mulVarId, P3D(mult), 0);
+          ShaderGlobal::set_color4(voxelize_world_to_rasterize_space_addVarId, P3D(add), 0);
+          if (handles.size())
+          {
+            if (voxelSize <= world_sdf_from_collision_rasterize_below)
+            {
+              SCOPE_RENDER_TARGET;
+              set_voxelization_target_and_override(maxRes * world_sdf_rasterize_supersample, maxRes * world_sdf_rasterize_supersample);
+              bool prims = rasterize_sdf_prims.get() && d3d::get_driver_desc().shaderModel < 6.1_sm;
+              lruColl.voxelize.rasterizeSDF(*lruColl.lruColl, dag::Span<uint64_t>(handles.data(), handles.size()), prims);
+              reset_voxelization_override();
+            }
+            else
+            {
+              lruColl.voxelize.voxelizeSDFCompute(*lruColl.lruColl, dag::Span<uint64_t>(handles.data(), handles.size()));
+            }
+          }
+          if (intersectLevel)
+          {
+            SCOPE_VIEW_PROJ_MATRIX;
+            SCOPE_RENDER_TARGET;
+            renderVoxelsMediaGeom(sceneBox, Point3(voxelSize, voxelSize, voxelSize) / world_sdf_rasterize_supersample,
+              SCENE_MODE_VOXELIZE_SDF);
+          }
+          return UpdateGiQualityStatus::RENDERED;
+        },
+        [&](const BBox3 &box, float voxelSize, uintptr_t &) {
+          const bool intersectLevel = levelBox & box;
+          if (!intersectLevel)
+            return UpdateGiQualityStatus::NOTHING;
+          if (intersectLevel)
+          {
+            SCOPE_VIEW_PROJ_MATRIX;
+            SCOPE_RENDER_TARGET;
+            renderVoxelsMediaGeom(box, Point3(voxelSize, voxelSize, voxelSize), SCENE_MODE_VOXELIZE_ALBEDO);
+          }
+          return UpdateGiQualityStatus::RENDERED;
+        });
+      if (!lightsInsideFrustum)
+        clusteredLights->setInsideOfFrustumLightsToShader();
     }
 
     d3d::set_render_target(frame.getTex2D(), 0);
     d3d::set_depth(target->getDepth(), DepthAccess::RW);
-    renderTrans();
+    render();
 
+    d3d::settm(TM_VIEW, view);
+    d3d::settm(TM_PROJ, &projTm);
+    d3d::set_render_target(frame.getTex2D(), 0);
+    d3d::set_depth(target->getDepth(), DepthAccess::RW);
+    daGI2->afterFrameRendered(DaGI::FrameData(DaGI::FrameHasAll));
+    d3d::settm(TM_VIEW, view);
+    d3d::settm(TM_PROJ, &projTm);
+    renderTrans();
+    daGI2->debugRenderTrans();
+    ShaderGlobal::set_int(dynamic_lights_countVarId, 0);
 
     if (renderTaa)
     {
@@ -1070,7 +1330,6 @@ public:
       ShaderGlobal::set_texture(get_shader_variable_id("taa_frame_tex"), frame);
       taaRender.render();
       ShaderGlobal::set_texture(frame.getVarId(), taaHistory[1 - taaHistoryI]);
-      taaFrame++;
     }
     else
       frame.setVar();
@@ -1081,11 +1340,12 @@ public:
       ShaderGlobal::set_texture(frame.getVarId(), superResolutionOutput);
     }
 
+    if (renderTaa)
+      taaFrame++;
     if (::grs_draw_wire)
       d3d::setwire(0);
 
     d3d::set_render_target();
-    d3d::set_srgb_backbuffer_write(true);
 
     if (show_gbuffer == DebugGbufferMode::None)
     {
@@ -1098,6 +1358,11 @@ public:
     else
       target->debugRender((int)show_gbuffer);
 
+    {
+      daGI2->debugRenderScreenDepth();
+      daGI2->debugRenderScreen();
+    }
+
     debugTexOverlay.render();
     de3_imgui_render();
 
@@ -1108,49 +1373,85 @@ public:
     }
     // if (::dagor_gui_manager)
 
-    bool do_start = !StdGuiRender::is_render_started();
-    if (do_start)
-      StdGuiRender::start_render();
-    StdGuiRender::set_font(0);
-    StdGuiRender::set_color(255, 0, 255, 255);
-    StdGuiRender::set_ablend(true);
-
-    StdGuiRender::goto_xy(200, 25);
-
-    if (gi_panel.gi_mode == ENVI_PROBE)
-      ShaderGlobal::set_int(get_shader_variable_id("use_gi_quality"), -2);
-
-    if (gi_panel.gi_mode == SSGI)
-    {
-      ssgi.setVars();
-    }
-
-    StdGuiRender::flush_data();
-    if (do_start)
-      StdGuiRender::end_render();
-
     {
       TIME_D3D_PROFILE(gui);
-      static Color3 sun[2], sky[2], moonsun[2], moonsky[2];
-      static int show_sun_sky = 0;
-
-      bool do_start = !StdGuiRender::is_render_started();
-      if (do_start)
-        StdGuiRender::start_render();
-      StdGuiRender::set_font(0);
-      StdGuiRender::set_color(255, 0, 255, 255);
-      StdGuiRender::set_ablend(true);
-      StdGuiRender::flush_data();
-      if (do_start)
-        StdGuiRender::end_render();
+      drawProfile();
     }
     if (::grs_draw_wire)
       d3d::setwire(::grs_draw_wire);
+    TMatrix4 globtm;
+    d3d::getglobtm(globtm);
+    TMatrix4 globtmTr = globtm.transpose();
+    ShaderGlobal::set_color4(prev_globtm_psf_0VarId, Color4(globtmTr[0]));
+    ShaderGlobal::set_color4(prev_globtm_psf_1VarId, Color4(globtmTr[1]));
+    ShaderGlobal::set_color4(prev_globtm_psf_2VarId, Color4(globtmTr[2]));
+    ShaderGlobal::set_color4(prev_globtm_psf_3VarId, Color4(globtmTr[3]));
   }
 
+  void giQualitySet()
+  {
+    ShaderGlobal::set_int(get_shader_variable_id("gi_quality"), (int)gi_panel.gi_mode);
+    auto s = daGI2->getNextSettings();
+    s.voxelScene.sdfResScale = 0.5;
+    s.voxelScene.onlyLuma = false;
+    s.albedoScene.clips = albedo_scene_panel.clips;
+    s.radianceGrid.clips = radiance_grid_panel.clips;
+    s.radianceGrid.w = radiance_grid_panel.texWidth;
+
+    if (gi_panel.gi_mode == ONLY_AO)
+    {
+      s.skyVisibility.clipW = 64;
+      s.albedoScene.clips = 0;
+      s.radianceGrid.w = 0;
+      s.screenProbes.tileSize = 0;
+      s.volumetricGI.tileSize = 0;
+      s.voxelScene.onlyLuma = true;
+      // s.voxelScene.sdfResScale = 0;
+    }
+    else if (gi_panel.gi_mode == SIMPLE_COLORED)
+    {
+      s.skyVisibility.clipW = 0;
+      s.radianceGrid.irradianceProbeDetail = 2.f;
+      s.radianceGrid.additionalIrradianceClips = 2;
+      s.screenProbes.tileSize = 0;
+      s.volumetricGI.tileSize = 64;
+    }
+    else if (gi_panel.gi_mode == SCREEN_PROBES)
+    {
+      s.skyVisibility.clipW = 0;
+      s.radianceGrid.irradianceProbeDetail = 1.f;
+      s.radianceGrid.additionalIrradianceClips = 0;
+      s.screenProbes.tileSize = screen_probes.tileSize;
+      s.screenProbes.temporality = screen_probes.temporality;
+      s.screenProbes.radianceOctRes = screen_probes.radianceOctRes;
+      s.screenProbes.angleFiltering = screen_probes.angleFiltering;
+      s.volumetricGI.tileSize = 0; // autodetect
+    }
+    s.sdf.voxel0Size = sdf_panel.voxel0Size;
+    s.sdf.clips = sdf_panel.clips;
+    s.sdf.texWidth = sdf_panel.texWidth;
+    s.sdf.yResScale = sdf_panel.yResScale;
+    if (gi_panel.gi_mode != ENVI_PROBE)
+      daGI2->setSettings(s);
+  }
   virtual void beforeDrawScene(int realtime_elapsed_usec, float gametime_elapsed_sec)
   {
+    giQualitySet();
+    if (gi_reset)
+    {
+      daGI2->afterReset();
+      gi_reset = false;
+    }
+    static float prev_pre_exposure = 1.f;
+    ShaderGlobal::set_real(get_shader_variable_id("prev_pre_exposure", true), prev_pre_exposure);
+    // artificially add randomness, to ensure we correctly decode previous frame
+    // in normal circumstances it is easy to miss correct decoding,
+    // as all exposure is changing gradually and prev frame is similar to current one
+    const float new_pre_exposure = sqrt(gi_panel.exposure) * (gfrnd() * 0.5 + 0.5);
+    ShaderGlobal::set_real(get_shader_variable_id("pre_exposure"), prev_pre_exposure = new_pre_exposure);
     TIME_D3D_PROFILE(beforeDraw);
+    preIntegratedGF.setFramesCount(gf_frames);
+    preIntegratedGF.update();
     static bool scene = false;
 
     if (scene != land_panel.level)
@@ -1176,10 +1477,14 @@ public:
       }
     }
     setDirToSun();
+    current_sphere_time += land_panel.spheres_speed * gametime_elapsed_sec / 100.;
+    if (current_sphere_time > 1e5)
+      current_sphere_time = 0;
+
 
     curCamera->setView();
 
-    update_visibility_finder();
+    update_visibility_finder(visibilityFinder);
     float windDirX = cosf(DegToRad(render_panel.windDir)), windDirZ = sinf(DegToRad(render_panel.windDir));
     float dt = gametime_elapsed_sec;
     float windX = render_panel.cloudsSpeed * windDirX * dt, windZ = render_panel.cloudsSpeed * windDirZ * dt;
@@ -1235,6 +1540,29 @@ public:
       G_ASSERT(0);
     }
 
+    int w, h;
+    d3d::get_render_target_size(w, h, nullptr);
+    if (gi_panel.fake_dynres)
+    {
+      static int sframe;
+      const int pdiv = 1 - (sframe / 8) & 1;
+      const int div = 1 - (++sframe / 8) & 1;
+      if (pdiv != div)
+        initRes(w / (div + 1), h / (div + 1));
+    }
+    initReflections(w, h);
+    target->swapDepth(otherDepth);
+    target->setVar();
+    ShaderGlobal::set_texture(prev_gbuffer_depthVarId, otherDepth.getTexId());
+
+    if (gi_panel.gi_mode == SCREEN_PROBES)
+    {
+      TextureInfo ti;
+      current_ambient.getTex2D()->getinfo(ti);
+      initGIReprojection(ti.w, ti.h);
+    }
+    else
+      closeGIReprojection();
 
     Driver3dPerspective p;
     G_VERIFY(d3d::getpersp(p));
@@ -1249,6 +1577,8 @@ public:
     ShaderGlobal::set_color4(globtm_psf_3VarId,Color4(globtmTr[3]));*/
     TMatrix itm;
     curCamera->getInvViewMatrix(itm);
+    if (test)
+      test->setLod(test->chooseLod(itm.getcol(3)));
     ShaderGlobal::set_color4(world_view_posVarId, itm.getcol(3).x, itm.getcol(3).y, itm.getcol(3).z, 1);
     CascadeShadows::ModeSettings mode;
     mode.powWeight = 0.8;
@@ -1258,8 +1588,29 @@ public:
     TMatrix4 projTm;
     d3d::gettm(TM_PROJ, &projTm);
     csm->prepareShadowCascades(mode, dir_to_sun, inverse(itm), itm.getcol(3), projTm, Frustum(globtm), Point2(p.zn, p.zf), p.zn);
-    updateHeightmap(itm.getcol(3));
+    treesAbove.prepare(itm.getcol(3), sceneBox[0].y, sceneBox[1].y, [&](const BBox3 &box, bool depth_min) {
+      TMatrix4 proj = matrix_ortho_off_center_lh(box[0].x, box[1].x, box[1].z, box[0].z, box[depth_min].y, box[!depth_min].y);
+      d3d::settm(TM_PROJ, &proj);
+
+      TMatrix4 view;
+      view.setcol(0, 1, 0, 0, 0);
+      view.setcol(1, 0, 0, 1, 0);
+      view.setcol(2, 0, 1, 0, 0);
+      view.setcol(3, 0, 0, 0, 1);
+      d3d::settm(TM_VIEW, &view);
+
+      TMatrix4 globtm_ = view * proj;
+      mat44f globtm;
+      v_mat44_make_from_44cu(globtm, globtm_.m[0]);
+      if (!depth_min)
+        ShaderGlobal::set_int(gbuffer_for_treesaboveVarId, 1);
+      renderTrees();
+      if (!depth_min)
+        ShaderGlobal::set_int(gbuffer_for_treesaboveVarId, 0);
+    });
     de3_imgui_before_render();
+
+    buildBvh();
   }
 
   virtual void sceneSelected(DagorGameScene * /*prev_scene*/) { loadScene(); }
@@ -1270,23 +1621,44 @@ public:
     console::set_visual_driver(NULL, NULL);
     delete this;
   }
+  DynamicShaderHelper drawSpheres;
+  float current_sphere_time = 0;
+  void renderDynamicSpheres()
+  {
+    if (!land_panel.spheres)
+      return;
+    DA_PROFILE_GPU;
+    if (!drawSpheres.shader)
+      drawSpheres.init("draw_debug_dynamic_spheres", NULL, 0, "draw_debug_dynamic_spheres");
+    ShaderGlobal::set_real(sphere_timeVarId, current_sphere_time);
+    drawSpheres.shader->setStates(0, true);
+    d3d::setvsrc_ex(0, NULL, 0, 0);
+    d3d::draw_instanced(PRIM_TRILIST, 0, SPHERES_INDICES_TO_DRAW, 6);
+  }
 
   // IRenderWorld interface
   void renderTrees()
   {
-    if (!land_panel.trees)
+    if (!land_panel.trees || !test)
       return;
     TIME_D3D_PROFILE(tree);
 
-    if (test)
+    TMatrix tm;
+    tm.identity();
+    for (int inst = 0; inst < testCount; inst++)
+    {
+      set_test_tm(inst, tm);
+      for (int i : test->getLodsResource()->getNames().node.id)
+        test->setNodeWtm(i, tm);
       test->render();
+    }
   }
-  void renderLevel()
+  void renderLevel(bool hmap)
   {
     if (!land_panel.level || !binScene)
       return;
     TIME_D3D_PROFILE(level);
-    binScene->render();
+    binScene->render(visibilityFinder, hmap);
   }
   void renderPrepass()
   {
@@ -1299,23 +1671,23 @@ public:
     d3d_err(d3d::set_render_target(0, nullptr, 0));
     d3d::set_depth(target->getDepth(), DepthAccess::RW);
     renderTrees();
-    renderLevel();
+    renderLevel(true);
+    renderDynamicSpheres();
     d3d::set_render_target(prevRT);
   }
-  void renderOpaque(bool render_decals, bool change_frustum)
+  void renderOpaque(mat44f_cref culling, bool render_decals, bool change_frustum)
   {
     TIME_D3D_PROFILE(opaque);
     renderTrees();
-    Frustum frustum = visibility_finder->getFrustum();
+    renderDynamicSpheres();
+    Frustum frustum = visibilityFinder.getFrustum();
     if (change_frustum)
-    {
-      mat44f globtm;
-      d3d::getglobtm(globtm);
-      visibility_finder->setFrustum(Frustum(globtm));
-    }
-    renderLevel();
+      visibilityFinder.setFrustum(Frustum(culling));
+    renderLevel(render_decals);
     if (change_frustum)
-      visibility_finder->setFrustum(frustum);
+      visibilityFinder.setFrustum(frustum);
+
+    rasterizeGbufCollision(culling, !render_decals);
   }
   void renderLightProbeOpaque()
   {
@@ -1327,7 +1699,7 @@ public:
     itm = orthonormalized_inverse(view);
     daSkies.useFog(itm.getcol(3), cube_pov_data, view, projTm);
     if (binScene && land_panel.level)
-      binScene->render();
+      binScene->render(visibilityFinder);
   }
 
   void renderLightProbeEnvi()
@@ -1355,14 +1727,17 @@ public:
       shaders::overrides::set(depthBiasAndClamp);
       char *one = 0;
       one++;
-      d3d::driver_command(DRV3D_COMMAND_OVERRIDE_MAX_ANISOTROPY_LEVEL, one, NULL, NULL); //-V566
+      d3d::driver_command(Drv3dCommand::OVERRIDE_MAX_ANISOTROPY_LEVEL, one); //-V566
     }
 
-    void renderStaticShadowDepth(const mat44f &, const ViewTransformData &, int) override { scene->renderOpaque(false, true); }
+    void renderStaticShadowDepth(const mat44f &culling_gtm, const ViewTransformData &, int) override
+    {
+      scene->renderOpaque(culling_gtm, false, true);
+    }
     void endRenderStaticShadow() override
     {
       shaders::overrides::reset();
-      d3d::driver_command(DRV3D_COMMAND_OVERRIDE_MAX_ANISOTROPY_LEVEL, (void *)0, NULL, NULL);
+      d3d::driver_command(Drv3dCommand::OVERRIDE_MAX_ANISOTROPY_LEVEL, (void *)0);
     }
   };
 
@@ -1374,8 +1749,25 @@ public:
     initStaticShadow();
     bool invalidVars = staticShadows->setSunDir(dir_to_sun);
     StaticShadowCallback cb(this, depthBiasAndClamp.get());
-    if (staticShadows->updateOriginAndRender(p, t, 0.1f, 0.1f, false, cb).varsChanged || invalidVars)
+    if (!render_static_shadows_every_frame)
+    {
+      if (staticShadows->updateOriginAndRender(p, t, 0.1f, 0.1f, false, cb).varsChanged || invalidVars)
+        staticShadows->setShaderVars();
+    }
+    else
+    {
+      staticShadows->invalidate(true);
+
+      for (int i = 0, n = staticShadows->cascadesCount(); i < n; i++)
+      {
+        staticShadows->enableOptimizeBigQuadsRender(i, false);
+        staticShadows->enableTransitionCascade(i, false);
+
+        staticShadows->updateOriginAndRender(p, t, 0.1f, 0.1f, false, cb);
+      }
+
       staticShadows->setShaderVars();
+    }
   }
   void updateStaticShadowAround()
   {
@@ -1413,75 +1805,89 @@ public:
       BBox3 box;
       for (int i = 0; i < binScene->getRsm().getScenes().size(); ++i)
         box += binScene->getRsm().getScenes()[i]->calcBoundingBox();
+      levelBox = box;
+      if (lruColl.size())
+      {
+        bbox3f colBox = lruColl.calcBox();
+        box[0] = min(box[0], (const Point3 &)colBox.bmin);
+        box[1] = max(box[1], (const Point3 &)colBox.bmax);
+      }
       box.inflate(1.f);
+      levelBox = box;
+      if (lruColl.size())
+      {
+        bbox3f colBox = lruColl.calcBox();
+        box[0] = min(box[0], (const Point3 &)colBox.bmin);
+        box[1] = max(box[1], (const Point3 &)colBox.bmax);
+      }
       sceneBox = box;
-      heightmapOrigin -= Point2(1000, 10000);
       staticShadows->setWorldBox(box);
+      const float htRange = min(ceilf((box[1].y - box[0].y) / 8.f) * 8., 1024.); // no more than 1km
+      staticShadows->setMaxHtRange(htRange);                                     // that is only for skewed matrix
     }
+    clusteredLights->invalidateAllShadows();
+    treesAbove.invalidate();
     invalidateGI();
+    reloadCube(true);
   }
-
-  void renderAmbient()
+  bool validAmbientHistory = false;
+  void renderAmbient(UniqueTex &amb, UniqueTex &spec)
+  {
+    TIME_D3D_PROFILE(current_ambient)
+    target->setVar();
+    d3d::set_render_target(0, amb.getTex2D(), 0);
+    d3d::set_render_target(1, spec.getTex2D(), 0);
+    d3d::set_depth(target->getDepth(), DepthAccess::SampledRO);
+    ambientRenderer.render();
+  }
+  void renderAmbient(const TMatrix4 &cGlobtm)
   {
     TIME_D3D_PROFILE(ambientFixup)
     SCOPE_RENDER_TARGET;
-    target->setVar();
-    if (gi_panel.gi_mode == SSGI)
+    static TMatrix4 prevGlobTm;
+    if (ambient[0] && gi_panel.reproject)
     {
-      ShaderGlobal::set_int(get_shader_variable_id("use_gi_quality"),
-        (dagi::GI3D::QualitySettings)ssgi_panel.quality == dagi::GI3D::ONLY_AO
-          ? USE_AO
-          : (gi_panel.per_pixel_trace ? USE_RAYTRACED : USE_FULL));
-      if (gi_panel.per_pixel_trace)
+      renderAmbient(validAmbientHistory ? current_ambient : ambient[cAmbientFrame],
+        validAmbientHistory ? current_screen_specular : screen_specular[cAmbientFrame]);
+      if (validAmbientHistory)
       {
-        d3d::set_render_target(cambient[0].getTex2D(), 0);
-        d3d::set_depth(target->getDepth(), DepthAccess::SampledRO);
-        {
-          TIME_D3D_PROFILE(frame_ambient);
-          ambientRenderer.render();
-        }
-        {
-          TIME_D3D_PROFILE(blur_ambient);
-          d3d::set_render_target(cambient[1].getTex2D(), 0);
-          ShaderGlobal::set_int(get_shader_variable_id("ambient_blur_x"), 1);
-          ShaderGlobal::set_texture(get_shader_variable_id("current_ambient"), cambient[0]);
-          ambientBlur.render();
+        ShaderGlobal::set_texture(new_ambientVarId, current_ambient.getTexId());
+        ShaderGlobal::set_texture(new_screen_specularVarId, current_screen_specular.getTexId());
 
-          d3d::set_render_target(cambient[0].getTex2D(), 0);
-          ShaderGlobal::set_int(get_shader_variable_id("ambient_blur_x"), 0);
-          ShaderGlobal::set_texture(get_shader_variable_id("current_ambient"), cambient[1]);
-          ambientBlur.render();
-        }
-        ShaderGlobal::set_texture(get_shader_variable_id("current_ambient"), cambient[0]);
+        ShaderGlobal::set_texture(prev_ambientVarId, ambient[cAmbientFrame].getTexId());
+        ShaderGlobal::set_texture(prev_screen_specularVarId, screen_specular[cAmbientFrame].getTexId());
+        ShaderGlobal::set_texture(prev_ambient_ageVarId, ambient_age[cAmbientFrame].getTexId());
 
         cAmbientFrame = 1 - cAmbientFrame;
-        d3d::set_render_target(ambient[cAmbientFrame].getTex2D(), 0);
-        d3d::set_depth(target->getDepth(), DepthAccess::SampledRO);
-        ShaderGlobal::set_texture(get_shader_variable_id("prev_ambient"), ambient[1 - cAmbientFrame]);
-        cambient[0]->texfilter(TEXFILTER_POINT);
-        {
-          TIME_D3D_PROFILE(temporal);
-          ambientTemporal.render();
-          ShaderGlobal::set_texture(ambient[0].getVarId(), ambient[cAmbientFrame]);
-        }
-        cambient[0]->texfilter(TEXFILTER_SMOOTH);
+        d3d::set_render_target(0, ambient[cAmbientFrame].getTex2D(), 0);
+        d3d::set_render_target(1, screen_specular[cAmbientFrame].getTex2D(), 0);
+        d3d::set_render_target(2, ambient_age[cAmbientFrame].getTex2D(), 0);
+        TMatrix4D globTmInv;
+
+        double det;
+        G_VERIFY(inverse44(cGlobtm, globTmInv, det));
+        TMatrix4D reprojection = globTmInv * prevGlobTm;
+        TMatrix4 repr = TMatrix4(reprojection).transpose();
+        ShaderGlobal::set_float4x4(ambient_reprojectVarId, repr);
+
+        TIME_D3D_PROFILE(reproject_gi)
+        ambientReproject.render();
       }
       else
       {
-        cAmbientFrame = 0;
-        d3d::set_render_target(ambient[0].getTex2D(), 0);
-        d3d::set_depth(target->getDepth(), DepthAccess::SampledRO);
-        ambient[0].setVar();
-        ambientRenderer.render();
+        d3d::set_render_target(ambient_age[cAmbientFrame].getTex2D(), 0);
+        d3d::clearview(CLEAR_TARGET, E3DCOLOR(0, 0, 0, 0), 0, 0);
       }
+      prevGlobTm = cGlobtm;
+      validAmbientHistory = true;
+      ShaderGlobal::set_texture(screen_ambientVarId, ambient[cAmbientFrame].getTexId());
+      ShaderGlobal::set_texture(screen_specularVarId, screen_specular[cAmbientFrame].getTexId());
     }
     else
     {
-      cAmbientFrame = 0;
-      d3d::set_render_target(ambient[0].getTex2D(), 0);
-      ambient[0].setVar();
-      d3d::set_depth(target->getDepth(), DepthAccess::SampledRO);
-      ambientRenderer.render();
+      renderAmbient(current_ambient, current_screen_specular);
+      ShaderGlobal::set_texture(screen_ambientVarId, current_ambient.getTexId());
+      ShaderGlobal::set_texture(screen_specularVarId, current_screen_specular.getTexId());
     }
   }
 
@@ -1503,50 +1909,53 @@ public:
     // d3d::set_render_target(target.gbuf[target.GBUF_ALBEDO_AO].getTex2D(), 0, false);
     // d3d::clearview(CLEAR_TARGET, 0xFF108080, 0, 0);
     // d3d::set_render_target();
+    Driver3dPerspective persp;
+    G_VERIFY(d3d::getpersp(persp));
     TMatrix itm;
-    TMatrix view;
-    d3d::gettm(TM_VIEW, view);
-    TMatrix4 projTm;
-    d3d::gettm(TM_PROJ, &projTm);
     curCamera->getInvViewMatrix(itm);
+    TMatrix view = orthonormalized_inverse(itm);
+    alignas(16) TMatrix4 projTm;
+    d3d::gettm(TM_PROJ, &projTm);
+    mat44f globtm;
+    d3d::calcglobtm(view, projTm, (TMatrix4 &)globtm);
+
     {
       TIME_D3D_PROFILE(changeData)
       daSkies.changeSkiesData(render_panel.sky_quality, render_panel.direct_quality, !render_panel.infinite_skies, target->getWidth(),
         target->getHeight(), main_pov_data);
-
       daSkies.useFog(itm.getcol(3), main_pov_data, view, projTm);
     }
-
-    updateStaticShadowAround();
-
-    target->setRt();
-    d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, 0x00FFFFFF, 0, 0); //
     set_inv_globtm_to_shader(view, projTm, false);
     set_viewvecs_to_shader(view, projTm);
+
+    updateStaticShadowAround();
+    d3d::settm(TM_VIEW, view);
+    d3d::settm(TM_PROJ, &projTm);
+
+    target->setRt();
+    d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0); //
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
     {
       TIME_D3D_PROFILE(scene)
       renderPrepass();
-      renderOpaque(true, false);
+      renderOpaque(globtm, true, false);
     }
 
     if (::grs_draw_wire)
       d3d::setwire(0);
     extern bool g_ssao_blur;
     g_ssao_blur = ssao_blur.get();
-    downsampleDepth(ssao || ssr || gtao);
+    downsampleDepth(true);
 
     if (ssr)
       ssr->render(view, projTm);
-    if (!gi_panel.ssr)
+    if (!ssr || gi_panel.reflections == REFLECTIONS_OFF)
     {
       ShaderGlobal::set_texture(get_shader_variable_id("ssr_target"), BAD_TEXTUREID);
     }
     if (gi_panel.ssao && ssao)
     {
-      farDownsampledDepth[1 - currentDownsampledDepth]->texfilter(TEXFILTER_SMOOTH);
-      ssao->render(view, projTm, farDownsampledDepth[currentDownsampledDepth]);
-      farDownsampledDepth[1 - currentDownsampledDepth]->texfilter(TEXFILTER_POINT);
+      ssao->render(view, projTm, downsampled_close_depth_tex[currentDownsampledDepth]);
     }
 
     if (gi_panel.gtao && gtao)
@@ -1555,21 +1964,15 @@ public:
     if (!gi_panel.ssao && !gi_panel.gtao)
       ShaderGlobal::set_texture(get_shader_variable_id("ssao_tex"), BAD_TEXTUREID);
 
-    renderAmbient();
+    csm->renderShadowsCascades();
+    csm->setCascadesToShader();
+    combineShadows();
+    daGI2->beforeFrameLit(gi_panel.dynamic_gi_quality);
+
     ShaderGlobal::set_int(get_shader_variable_id("deferred_lighting_mode"), gi_panel.onscreen_mode);
     {
-      csm->renderShadowsCascades();
-      csm->setCascadesToShader();
-      combineShadows();
+      renderAmbient((const TMatrix4 &)globtm);
       {
-        if (gi_panel.update_scene && gi_panel.gi_mode == SSGI)
-        {
-          set_inv_globtm_to_shader(view, projTm, false);
-          set_viewvecs_to_shader(view, projTm);
-          target->setVar();
-          updateSSGISceneVoxels();
-        }
-
         TIME_D3D_PROFILE(shading)
         target->resolve(frame.getTex2D(), view, projTm);
         d3d::set_render_target(frame.getTex2D(), 0);
@@ -1578,8 +1981,10 @@ public:
     ShaderGlobal::set_int(get_shader_variable_id("deferred_lighting_mode"), RESULT);
 
     d3d::set_depth(target->getDepth(), DepthAccess::SampledRO);
+    clusteredLights->renderOtherLights();
     renderEnvi();
     d3d::set_depth(target->getDepth(), DepthAccess::RW);
+    ensurePrevFrame();
     d3d::stretch_rect(frame.getTex2D(), prevFrame.getTex2D());
 
     if (::grs_draw_wire)
@@ -1588,14 +1993,33 @@ public:
       sleep_msec(sleep_msec_val.get());
   }
 
-  void rasterizeCollision() { lruColl.rasterize(lruColl.instances); }
-
+  void rasterizeDebugCollision()
+  {
+    mat44f viewproj;
+    d3d::getglobtm(viewproj);
+    ShaderGlobal::set_int(rasterize_collision_typeVarId, 0);
+    lruColl.rasterize(viewproj);
+  }
+  void rasterizeGbufCollision(mat44f_cref culling, bool depth)
+  {
+    if (!rasterize_gbuf_collision)
+      return;
+    ShaderGlobal::set_int(rasterize_collision_typeVarId, depth ? 2 : 1);
+    lruColl.rasterize(culling);
+  }
   virtual void renderTrans()
   {
+    // begin_draw_cached_debug_lines();
+    // for (auto &b : indirBoxes)
+    //   draw_cached_debug_box(b, E3DCOLOR(0xff,0x80, 0xff, 0xff));
+    // end_draw_cached_debug_lines();
+
+    buildBvhRiColl();
+
     if (binScene && land_panel.level)
       binScene->renderTrans();
-    if (rasterize_collision)
-      rasterizeCollision();
+    if (rasterize_debug_collision)
+      rasterizeDebugCollision();
     debugVolmap();
   }
 
@@ -1609,17 +2033,23 @@ public:
 
   void reinitCube(int ew)
   {
+    cube.close();
     cube.init(ew);
     light_probe::destroy(localProbe);
     localProbe = light_probe::create("local", ew, TEXFMT_A16B16G16R16F);
-    reloadCube(true);
     initEnviProbe();
+    reloadCube(true);
   }
   UniqueTexHolder enviProbe;
+  UniqueTex enviProbe0;
   void initEnviProbe()
   {
+    enviProbe0.close();
+    enviProbe0 = dag::create_cubetex(64, TEXCF_RTARGET | TEXFMT_A16B16G16R16F | TEXCF_GENERATEMIPS | TEXCF_CLEAR_ON_CREATE, 1,
+      "envi_probe_specular0");
+
     enviProbe.close();
-    enviProbe = dag::create_cubetex(128, TEXCF_RTARGET | TEXFMT_A16B16G16R16F | TEXCF_GENERATEMIPS | TEXCF_CLEAR_ON_CREATE, 3,
+    enviProbe = dag::create_cubetex(128, TEXCF_RTARGET | TEXFMT_A16B16G16R16F | TEXCF_GENERATEMIPS | TEXCF_CLEAR_ON_CREATE, 4,
       "envi_probe_specular");
     renderEnviProbe();
   }
@@ -1633,23 +2063,23 @@ public:
     // skies render can use envi probe for ground-skies interaction on some of skies configs,
     // causing RW conflict (SRV vs RT usages) workaround this by removing texture from shader var
     ShaderGlobal::set_texture(envi_probe_specularVarId, BAD_TEXTUREID);
+    ShaderGlobal::set_texture(local_light_probe_texVarId, BAD_TEXTUREID);
     SCOPE_RENDER_TARGET;
     SCOPE_VIEW_PROJ_MATRIX;
-    float zn = 0.1, zf = 1000;
-    for (int i = 0; i < 6; ++i)
-    {
-      d3d::set_render_target(enviProbe.getCubeTex(), i, 0);
-      d3d::clearview(CLEAR_TARGET, 0, 0, 0);
+    const bool old = land_panel.level;
+    land_panel.level = false;
+    cube.update(&enviProbe0, *this, Point3(100000, 10, 0));
+    land_panel.level = old;
 
-      target->setRt();
-      d3d::setpersp(Driver3dPerspective(1, 1, zn, zf, 0, 0));
-      TMatrix cameraMatrix = cube_matrix(TMatrix::IDENT, i);
-      cameraMatrix.setcol(3, 0, 100, 0);
-      d3d::settm(TM_VIEW, orthonormalized_inverse(cameraMatrix));
+    ShaderGlobal::set_texture(envi_probe_specularVarId, enviProbe0.getTexId());
+    ShaderGlobal::set_texture(local_light_probe_texVarId, enviProbe0.getTexId());
 
-      renderLightProbeEnvi();
-    }
+    cube.update(&enviProbe, *this, Point3(100000, 10, 0));
+    land_panel.level = old;
     enviProbe.getCubeTex()->generateMips();
+
+    if (light_probe::getManagedTex(localProbe))
+      ShaderGlobal::set_texture(local_light_probe_texVarId, *light_probe::getManagedTex(localProbe));
     ShaderGlobal::set_texture(envi_probe_specularVarId, enviProbe);
   }
 
@@ -1657,10 +2087,17 @@ public:
   {
     d3d::GpuAutoLock gpu_al;
     renderEnviProbe();
-    initStaticShadow();
-    static int local_light_probe_texVarId = get_shader_variable_id("local_light_probe_tex", true);
+    Point3 pos = Point3(0, 10, 0);
+    if (!first && curCamera)
+    {
+      TMatrix itm;
+      curCamera->getInvViewMatrix(itm);
+      pos = itm.getcol(3);
+    }
+    updateStaticShadowAround(pos, 1.);
     if (first)
     {
+      ShaderGlobal::set_texture(local_light_probe_texVarId, enviProbe);
       SCOPE_RENDER_TARGET;
       for (int i = 0; i < 6; ++i)
       {
@@ -1673,9 +2110,7 @@ public:
     }
     {
       TIME_D3D_PROFILE(cubeRender)
-      TMatrix itm;
-      curCamera->getInvViewMatrix(itm);
-      cube.update(light_probe::getManagedTex(localProbe), *this, first ? Point3(0, -10, 0) : itm.getcol(3));
+      cube.update(light_probe::getManagedTex(localProbe), *this, pos);
     }
     {
       TIME_D3D_PROFILE(lightProbeSpecular)
@@ -1699,23 +2134,24 @@ public:
   }
   enum
   {
-    ENVI_PROBE,
-    SSGI
+    ENVI_PROBE = -1,
+    ONLY_AO = 0,
+    SIMPLE_COLORED = 1,
+    SCREEN_PROBES = 2
   };
   IGameCamera *curCamera; // for console made publuc
   IFreeCameraDriver *freeCam;
 
 protected:
-  DynamicRenderableSceneInstance *test;
-  scene_type_t *binScene;
+  DynamicRenderableSceneInstance *test = nullptr;
+  scene_type_t *binScene = nullptr;
+
+  const int testCount = 100;
 
   bool unloaded_splash;
 
   void loadScene()
   {
-    FullFileLoadCB riCollision("ri_collisions.bin");
-    if (riCollision.fileHandle)
-      lruColl.load(riCollision);
 #if !_TARGET_PC
     freeCam = create_gamepad_free_camera();
 #else
@@ -1723,48 +2159,36 @@ protected:
     freeCam = create_mskbd_free_camera();
     freeCam->scaleSensitivity(4, 2);
 #endif
-    IFreeCameraDriver::zNear = 0.05;
-    IFreeCameraDriver::zFar = 1000.0;
+    IFreeCameraDriver::zNear = 0.01;
+    IFreeCameraDriver::zFar = 50000.0;
     IFreeCameraDriver::turboScale = 20;
 
     de3_imgui_init("Test GI", "Sky properties");
 
     static GuiControlDesc skyGuiDesc[] = {
-      DECLARE_INT_COMBOBOX(ssgi_panel, debug_volmap, NO_DEBUG, NO_DEBUG, VISIBLE, INTERSECTED, NON_INTERSECTED, PROBE_AMBIENT,
-        PROBE_INTERSECTION, PROBE_AGE),
-      DECLARE_INT_SLIDER(ssgi_panel, probeCascade, 0, 2, 0),
-      DECLARE_INT_COMBOBOX(ssgi_panel, debug_scene, NO_DEBUG, NO_DEBUG, VIS_RAYCAST, EXACT_VOXELS, LIT_VOXELS),
-      DECLARE_INT_COMBOBOX(ssgi_panel, debug_scene25d, NO_DEBUG, NO_DEBUG, VIS_RAYCAST, EXACT_VOXELS, LIT_VOXELS),
-      DECLARE_INT_SLIDER(ssgi_panel, debug_scene_cascade, 0, 4, 0),
-      DECLARE_INT_SLIDER(ssgi_panel, volmap_res_xz, 32, 256, 64),
-      DECLARE_INT_SLIDER(ssgi_panel, volmap_res_y, 4, 64, 32),
-      DECLARE_FLOAT_SLIDER(ssgi_panel, giWidth, 16., 256., 32., 1),
-      DECLARE_FLOAT_SLIDER(ssgi_panel, gi25DWidthScale, 2., 16., 4., 0.1),
-      DECLARE_FLOAT_SLIDER(ssgi_panel, maxHtAboveFloor, 12., 64., 18., 1),
-      DECLARE_FLOAT_SLIDER(ssgi_panel, cascade_scale, 2, 4, 2., 0.1),
-      DECLARE_FLOAT_SLIDER(ssgi_panel, convergence_speed_intersected, 0.125, 1, 0.125, 0.0625),
-      DECLARE_FLOAT_SLIDER(ssgi_panel, convergence_speed_non_intersected, 0.125, 1, 0.125, 0.0625),
-      DECLARE_FLOAT_SLIDER(ssgi_panel, convergence_speed_initial, 0.125, 1, 1, 0.0625),
-      DECLARE_INT_COMBOBOX(ssgi_panel, quality, COLORED, ONLY_AO, COLORED),
-      DECLARE_INT_COMBOBOX(ssgi_panel, bouncing_mode, MULTIPLE_BOUNCE, ONE_BOUNCE, TILL_CONVERGED, MULTIPLE_BOUNCE),
-
-      DECLARE_BOOL_CHECKBOX(gi_panel, update_ssgi, true),
-      DECLARE_BOOL_CHECKBOX(gi_panel, update_scene, true),
+      DECLARE_BOOL_CHECKBOX(gi_panel, reproject, false),
       DECLARE_BOOL_CHECKBOX(gi_panel, ssao, false),
       DECLARE_BOOL_CHECKBOX(gi_panel, gtao, false),
-      DECLARE_BOOL_CHECKBOX(gi_panel, ssr, true),
-      DECLARE_BOOL_CHECKBOX(gi_panel, per_pixel_trace, false),
+      DECLARE_INT_COMBOBOX(gi_panel, reflections, REFLECTIONS_ALL, REFLECTIONS_OFF, REFLECTIONS_SSR, REFLECTIONS_ALL),
+      DECLARE_BOOL_CHECKBOX(gi_panel, fake_dynres, false),
       DECLARE_INT_COMBOBOX(gi_panel, onscreen_mode, RESULT, RESULT, LIGHTING, DIFFUSE_LIGHTING, DIRECT_LIGHTING, INDIRECT_LIGHTING),
-      DECLARE_INT_COMBOBOX(gi_panel, gi_mode, SSGI, ENVI_PROBE, SSGI),
-      DECLARE_INT_SLIDER(gi_panel, lightmap_size, 32, 4096, 256),
-      DECLARE_INT_SLIDER(gi_panel, voxel_dimensions_xz, 32, 256, 64),
-      DECLARE_INT_SLIDER(gi_panel, voxel_dimensions_y, 4, 64, 16),
-      DECLARE_INT_SLIDER(gi_panel, voxel_iterations, 1, 4, 1),
-
-      DECLARE_INT_COMBOBOX(gi_panel, cube_size, 128, 32, 64, 128, 256),
-      DECLARE_INT_SLIDER(gi_panel, probes_xz, 2, 32, 8),
-      DECLARE_INT_SLIDER(gi_panel, probes_y, 2, 16, 4),
+      DECLARE_INT_COMBOBOX(gi_panel, gi_mode, SCREEN_PROBES, ENVI_PROBE, ONLY_AO, SIMPLE_COLORED, SCREEN_PROBES),
+      DECLARE_FLOAT_SLIDER(gi_panel, dynamic_gi_quality, 0, 4., 1.0, 0.01),
       DECLARE_FLOAT_SLIDER(gi_panel, exposure, 0.1, 16, 1, 0.01),
+
+      DECLARE_INT_SLIDER(sdf_panel, clips, 3, 8, 5),
+      DECLARE_INT_SLIDER(sdf_panel, texWidth, 64, 256, 128),
+      DECLARE_FLOAT_SLIDER(sdf_panel, voxel0Size, 0.1, 1., 0.15, 0.1),
+      DECLARE_FLOAT_SLIDER(sdf_panel, yResScale, 0.5, 1., 0.5, 0.1),
+      DECLARE_FLOAT_SLIDER(screen_probes, temporality, 0, 1., 0.5, 0.01),
+      DECLARE_INT_COMBOBOX(screen_probes, tileSize, screen_probes.tileSize, 8, 10, 12, 14, 16, 20, 24, 32),
+      DECLARE_INT_COMBOBOX(screen_probes, radianceOctRes, 8, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16),
+      DECLARE_BOOL_CHECKBOX(screen_probes, angleFiltering, false),
+
+      DECLARE_INT_SLIDER(radiance_grid_panel, clips, 2, 4, 3),
+      DECLARE_INT_SLIDER(radiance_grid_panel, texWidth, 16, 64, 32),
+
+      DECLARE_INT_SLIDER(albedo_scene_panel, clips, 2, 4, 3),
 
       ////DECLARE_BOOL_BUTTON(gi_panel, calc_ground_truth, false),
       // DECLARE_BOOL_CHECKBOX(gi_panel, show_ground_truth, false),
@@ -1780,7 +2204,7 @@ protected:
       DECLARE_FLOAT_SLIDER(sun_panel, moon_age, 0., 29.530588853, 10, 0.1),
       DECLARE_FLOAT_SLIDER(sun_panel, latitude, -90, 90, 55, 0.01),
       DECLARE_FLOAT_SLIDER(sun_panel, longitude, -180, 180, 37, 0.01),
-      DECLARE_INT_SLIDER(sun_panel, year, 1941, 2016, 1939),
+      DECLARE_INT_SLIDER(sun_panel, year, 1941, 2032, 1939),
       DECLARE_INT_SLIDER(sun_panel, month, 1, 12, 6),
       DECLARE_INT_SLIDER(sun_panel, day, 1, 365, 6),
       DECLARE_FLOAT_SLIDER(sun_panel, time, 0, 24, 12, 0.001),
@@ -1833,6 +2257,8 @@ protected:
       DECLARE_FLOAT_SLIDER(land_panel, heightMin, -1.0, 1.0, -0.5, 0.1),
       DECLARE_FLOAT_SLIDER(land_panel, cellSize, 1, 250, 25, 0.5),
       DECLARE_BOOL_CHECKBOX(land_panel, trees, false),
+      DECLARE_BOOL_CHECKBOX(land_panel, spheres, true),
+      DECLARE_FLOAT_SLIDER(land_panel, spheres_speed, 0, 32, 8, 0.01),
       DECLARE_BOOL_CHECKBOX(land_panel, prepass, false),
 
       DECLARE_FLOAT_SLIDER(clouds_rendering2, forward_eccentricity, 0.1, 0.9999, 0.8, 0.01),
@@ -1923,10 +2349,14 @@ protected:
       ddsx::tex_pack2_perform_delayed_data_loading(); // or it will crash here
     d3d::GpuAutoLock gpu_al;
     d3d::set_render_target();
+#if _TARGET_C1 | _TARGET_C2
+
+#else
     visualConsoleDriver = new VisualConsoleDriver;
+#endif
     console::set_visual_driver(visualConsoleDriver, NULL);
     if (dgs_get_settings()->getStr("model", NULL))
-      scheduleDynModelLoad(&test, dgs_get_settings()->getStr("model", "test"), dgs_get_settings()->getStr("model_skel", NULL),
+      scheduleDynModelLoad(dgs_get_settings()->getStr("model", "test"), dgs_get_settings()->getStr("model_skel", NULL),
         dgs_get_settings()->getPoint3("model_pos", Point3(0, 0, 0)));
 
     setDirToSun();
@@ -1958,10 +2388,9 @@ protected:
     }
 
     reinitCube(128);
-    initOverrides();
 
     if (const char *level_fn = dgs_get_settings()->getStr("level", NULL))
-      scheduleLevelBinLoad(level_fn);
+      scheduleLevelBinLoad(level_fn, dgs_get_settings()->getStr("heightmap", ""));
   }
 
 
@@ -2022,41 +2451,42 @@ protected:
   } sun_panel;
   struct
   {
-    bool level, enabled, trees, prepass;
+    bool level, enabled, trees, spheres, prepass;
     float heightScale, heightMin, cellSize;
+    float spheres_speed;
   } land_panel;
 
   struct
   {
-    bool ssao = true, gtao = true, ssr = true;
-    bool update_ssgi, update_scene = true;
-    bool per_pixel_trace = false;
+    bool ssao = true, gtao = true;
+    int reflections = REFLECTIONS_ALL;
     int onscreen_mode = RESULT;
     int gi_mode = ENVI_PROBE;
-    int voxel_dimensions_y = 16;
-    int voxel_dimensions_xz = 64;
-    int voxel_iterations = 1;
-    int lightmap_size = 256;
-    int cube_size = 64;
+    float dynamic_gi_quality = 1.0;
     float exposure = 1;
-    int probes_xz = 8, probes_y = 4;
+    bool fake_dynres = false;
+    bool reproject = true;
   } gi_panel;
+  struct
+  {
+    int clips = 5, texWidth = 128;
+    float voxel0Size = 0.15, yResScale = 0.5;
+  } sdf_panel;
+  struct
+  {
+    int clips = 3, texWidth = 32;
+  } radiance_grid_panel;
+  struct
+  {
+    int clips = 2;
+  } albedo_scene_panel;
 
   struct
   {
-    IntProperty volmap_res_y = 16, volmap_res_xz = 64;
-    int debug_volmap = NO_DEBUG, probeCascade = 0, debug_scene = NO_DEBUG, debug_scene_cascade = 0, debug_scene25d = NO_DEBUG;
-    FloatProperty cascade_scale = 3, giWidth = 44, gi25DWidthScale = 5, maxHtAboveFloor = 12.;
-    float convergence_speed_intersected = 0.125, convergence_speed_non_intersected = 0.125, convergence_speed_initial = 1;
-    IntProperty quality = COLORED;
-    int bouncing_mode = MULTIPLE_BOUNCE;
-  } ssgi_panel;
-
-  struct
-  {
-    bool fill_voxels, always_fill_voxels, debug_raycast, debug_conetrace, debug_rasterize;
-  } voxels_panel;
-
+    int tileSize = 16, radianceOctRes = 8;
+    float temporality = 0.5;
+    bool angleFiltering;
+  } screen_probes;
 
   enum
   {
@@ -2094,17 +2524,28 @@ protected:
   light_probe::Cube *localProbe;
   console::IVisualConsoleDriver *visualConsoleDriver;
 
+  void setModel(DynamicRenderableSceneInstance *s)
+  {
+    test = s;
+    treesAbove.invalidate();
 
-  void scheduleDynModelLoad(DynamicRenderableSceneInstance **dm, const char *name, const char *skel_name, const Point3 &pos)
+    if (test && bvhCtx)
+    {
+      testId = ++bvhIdGen;
+      add_dynrend_resource_to_bvh(bvhCtx, test->getLodsResource(), testId);
+    }
+  }
+
+  void scheduleDynModelLoad(const char *name, const char *skel_name, const Point3 &pos)
   {
     struct LoadJob : cpujobs::IJob
     {
-      DynamicRenderableSceneInstance **dm;
+      DemoGameScene *s;
       SimpleString name, skelName;
       Point3 pos;
 
-      LoadJob(DynamicRenderableSceneInstance **_dm, const char *_name, const char *_skel_name, const Point3 &_pos) :
-        dm(_dm), name(_name), skelName(_skel_name), pos(_pos)
+      LoadJob(DemoGameScene *sc, const char *_name, const char *_skel_name, const Point3 &_pos) :
+        s(sc), name(_name), skelName(_skel_name), pos(_pos)
       {}
       virtual void doJob()
       {
@@ -2125,15 +2566,16 @@ protected:
           val = new DynamicRenderableSceneInstance(resource);
           release_game_resource((GameResource *)resource); // Release original resource.
         }
+
+        TMatrix tm;
+        tm.identity();
+        tm.setcol(3, pos);
         if (!skelName.empty() && val)
         {
           GeomNodeTree *skel = (GeomNodeTree *)get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(skelName), GeomNodeTreeGameResClassId);
 
           if (skel)
           {
-            TMatrix tm;
-            tm.identity();
-            tm.setcol(3, pos);
             skel->setRootTmScalar(tm);
             skel->invalidateWtm();
             skel->calcWtm();
@@ -2149,39 +2591,54 @@ protected:
           else
             logerr("skeleton %s not found", skelName);
         }
+        else if (val)
+        {
+          for (int i : val->getLodsResource()->getNames().node.id)
+            val->setNodeWtm(i, tm);
+        }
 
         reset_required_res_list_restriction();
-        if (!is_managed_textures_streaming_load_on_demand())
-          ddsx::tex_pack2_perform_delayed_data_loading();
+        prefetch_managed_textures_by_textag(TEXTAG_DYNMODEL);
+        ddsx::tex_pack2_perform_delayed_data_loading();
 
         struct UpdatePtr : public DelayedAction
         {
-          DynamicRenderableSceneInstance **dest, *val;
-          UpdatePtr(DynamicRenderableSceneInstance **_dest, DynamicRenderableSceneInstance *_val) : dest(_dest), val(_val) {}
-          virtual void performAction() { *dest = val; }
+          DemoGameScene *s;
+          DynamicRenderableSceneInstance *val;
+          UpdatePtr(DemoGameScene *_s, DynamicRenderableSceneInstance *_val) : s(_s), val(_val) {}
+          virtual void performAction()
+          {
+            s->setModel(val);
+            cpujobs::release_done_jobs();
+          }
         };
-        add_delayed_action(new UpdatePtr(dm, val));
+        add_delayed_action(new UpdatePtr(s, val));
       }
       virtual void releaseJob() { delete this; }
     };
-    *dm = NULL;
-    cpujobs::add_job(1, new LoadJob(dm, name, skel_name, pos));
+    test = NULL;
+    cpujobs::add_job(loading_job_mgr_id, new LoadJob(this, name, skel_name, pos));
   }
-  void scheduleLevelBinLoad(const char *level_bindump_fn)
+
+  void scheduleLevelBinLoad(const char *level_bindump_fn, const char *hmap_fn = "")
   {
     struct LoadJob : cpujobs::IJob
     {
-      SimpleString fn;
+      SimpleString fn, hmap_fn;
       scene_type_t **destScn;
 
-      LoadJob(const char *_fn, scene_type_t **scn) : fn(_fn), destScn(scn) {}
+      LoadJob(const char *_fn, const char *hmap_fn, scene_type_t **scn) : fn(_fn), hmap_fn(hmap_fn), destScn(scn) {}
       virtual void doJob()
       {
         scene_type_t *scn = new scene_type_t;
+        textag_mark_begin(TEXTAG_LAND);
         scn->openSingle(fn);
-        if (!is_managed_textures_streaming_load_on_demand())
-          ddsx::tex_pack2_perform_delayed_data_loading();
-
+        if (strlen(hmap_fn))
+          scn->loadHeightmap(hmap_fn);
+        textag_mark_end();
+        prefetch_managed_textures_by_textag(TEXTAG_LAND);
+        // if (!is_managed_textures_streaming_load_on_demand())
+        ddsx::tex_pack2_perform_delayed_data_loading();
         struct UpdatePtr : public DelayedAction
         {
           scene_type_t **dest, *val;
@@ -2189,7 +2646,9 @@ protected:
           virtual void performAction()
           {
             *dest = val;
+            ddsx::tex_pack2_perform_delayed_data_loading();
             ((DemoGameScene *)dagor_get_current_game_scene())->onSceneLoaded();
+            ((DemoGameScene *)dagor_get_current_game_scene())->addBvhMeshes(val);
           }
         };
         add_delayed_action(new UpdatePtr(destScn, scn));
@@ -2197,12 +2656,238 @@ protected:
       virtual void releaseJob() { delete this; }
     };
 
-    if (!visibility_finder)
-      visibility_finder = new VisibilityFinder;
-    cpujobs::add_job(1, new LoadJob(level_bindump_fn, &binScene));
+    cpujobs::add_job(loading_job_mgr_id, new LoadJob(level_bindump_fn, hmap_fn, &binScene));
+  }
+
+  bvh::ContextId bvhCtx = bvh::InvalidContextId;
+  eastl::vector<uint64_t> bvhMeshes;
+  uint64_t bvhIdGen = 0;
+  uint64_t bvhLruMeshBase = 0;
+  uint64_t bvhMeshBase = 0;
+  uint64_t bvhMeshCount = 0;
+  uint64_t testId = 0;
+
+  struct BvhHeightProvider final : public bvh::HeightProvider
+  {
+    HeightmapHandler *heightmap = nullptr;
+
+    bool embedNormals() const override final { return false; }
+    void getHeight(void *data, const Point2 &origin, int cell_size, int cell_count) const override final
+    {
+      struct TerrainVertex
+      {
+        Point3 position;
+        uint32_t normal;
+      };
+
+      TerrainVertex *scratch = (TerrainVertex *)data;
+
+      auto float_to_uchar = [](float a) { return uint32_t(floorf((a * 255) + 0.5f)); };
+
+      for (int z = 0; z <= cell_count; ++z)
+        for (int x = 0; x <= cell_count; ++x)
+        {
+          Point2 loc(x * cell_size, z * cell_size);
+
+          TerrainVertex &v = scratch[z * (cell_count + 1) + x];
+          v.position.x = loc.x;
+          v.position.z = loc.y;
+
+          Point3 normal;
+          if (heightmap->getHeight(loc + origin, v.position.y, &normal))
+            v.normal = (float_to_uchar(normal.x * 0.5f + 0.5f) << 16) | (float_to_uchar(normal.y * 0.5f + 0.5f) << 8) |
+                       float_to_uchar(normal.z * 0.5f + 0.5f);
+          else
+            v.normal = 0;
+        }
+    }
+  } heightProvider;
+
+  struct ElemCallback : public RenderScene::ElemCallback
+  {
+    bvh::ContextId bvhCtx;
+    uint64_t *bvhIdGen;
+
+    void on_elem_found(const Data &data) override
+    {
+      G_ASSERT(data.normalFormat == -1 || data.normalFormat == VSDT_E3DCOLOR);
+      G_ASSERT(data.colorFormat == -1 || data.colorFormat == VSDT_E3DCOLOR);
+
+      uint64_t id = ++(*bvhIdGen);
+
+      bvh::MeshInfo meshInfo;
+      meshInfo.indices = data.indices;
+      meshInfo.indexCount = data.indexCount;
+      meshInfo.startIndex = data.startIndex;
+      meshInfo.vertices = data.vertices;
+      meshInfo.vertexCount = data.vertexCount;
+      meshInfo.startVertex = data.startVertex;
+      meshInfo.vertexSize = data.vertexStride;
+      meshInfo.positionOffset = data.positionOffset;
+      meshInfo.positionFormat = data.positionFormat;
+      meshInfo.texcoordOffset = data.texcoordOffset;
+      meshInfo.texcoordFormat = data.texcoordFormat;
+      meshInfo.normalOffset = data.normalOffset;
+      meshInfo.colorOffset = bvh::MeshInfo::invalidOffset; // The sponza shader doesn't use vertex colors
+      meshInfo.posMul = Point4::ONE;
+      meshInfo.posAdd = Point4::ZERO;
+      meshInfo.albedoTextureId = data.albedoTextureId;
+      if (data.albedoTextureId != BAD_TEXTUREID)
+        meshInfo.vertexProcessor = &bvh::ProcessorInstances::getBakeTextureToVerticesProcessor();
+      bvh::add_mesh(bvhCtx, id, meshInfo);
+    }
+  } elemCallback;
+
+  bool isRtEnabled() const
+  {
+    if (!bvh::is_available())
+      return false;
+    return dgs_get_settings()->getBlockByNameEx("graphics")->getBool("enableBVH", false);
+  }
+
+  void initBvh()
+  {
+    if (isRtEnabled())
+    {
+      bvh::init();
+      bvhCtx = bvh::create_context("GI", bvh::ForGI);
+    }
+  }
+  void teardownBvh()
+  {
+    if (bvhCtx == bvh::InvalidContextId)
+      return;
+
+    bvh::teardown(bvhCtx);
+    bvh::teardown();
+  }
+
+  void addBvhMeshes(scene_type_t *bin_scene)
+  {
+    if (bvhCtx)
+    {
+      d3d::GpuAutoLock gpu_al;
+      elemCallback.bvhCtx = bvhCtx;
+      elemCallback.bvhIdGen = &bvhIdGen;
+
+      bvhMeshBase = bvhIdGen + 1;
+
+      RenderSceneManager &sm = bin_scene->getRsm();
+      for (RenderScene *scene : sm.getScenes())
+      {
+        if (!scene)
+          continue;
+
+        scene->foreachElem(elemCallback);
+      }
+
+      bvhMeshCount = bvhIdGen - bvhMeshBase + 1;
+    }
+  }
+
+  void enforceLruCache()
+  {
+    // load all instances to BVH. not optimal, but ok for debug purposes
+    // in real game we use streaming
+    if (bvhCtx != bvh::InvalidContextId && lruColl.lruColl)
+    {
+      dag::Vector<rendinst::riex_handle_t, framemem_allocator> ri;
+      ri.resize(lruColl.collRes.size());
+      for (size_t i = 0, ie = ri.size(); i < ie; ++i)
+        ri[i] = uint64_t(i) << 32UL;
+      lruColl.lruColl->updateLRU(ri);
+    }
+  }
+
+  void buildBvhRiColl()
+  {
+    static int countdown = 100;
+    if (bvhCtx != bvh::InvalidContextId && lruColl.lruColl && !lruColl.collRes.empty() && !bvhLruMeshBase)
+    {
+      if (countdown-- > 0)
+        return;
+
+      bvhLruMeshBase = bvhIdGen + 1;
+
+      for (auto [modelIx, instances] : enumerate(lruColl.instances))
+      {
+        uint64_t meshId = ++bvhIdGen;
+
+        auto data = lruColl.getModelData(modelIx);
+        if (!data.has_value())
+          continue;
+
+        if (data->vertexCount == 0 || data->indexCount == 0)
+          continue;
+
+        bvh::MeshInfo meshInfo;
+        meshInfo.indices = data->indices;
+        meshInfo.indexCount = data->indexCount;
+        meshInfo.startIndex = data->startIndex;
+        meshInfo.vertices = data->vertices;
+        meshInfo.vertexCount = data->vertexCount;
+        meshInfo.baseVertex = data->baseVertex;
+        meshInfo.vertexSize = data->vertexStride;
+        meshInfo.positionOffset = data->positionOffset;
+        meshInfo.positionFormat = data->positionFormat;
+        meshInfo.posMul = Point4::ONE;
+        meshInfo.posAdd = Point4::ZERO;
+
+        bvh::add_mesh(bvhCtx, meshId, meshInfo);
+      }
+    }
+
+    if (bvhLruMeshBase)
+    {
+      bvh::update_instances(bvhCtx, Point3::ZERO, Frustum(), nullptr, nullptr);
+
+      auto accept = [](auto) { return LRUCollision::ObjectClass::Accept; };
+      auto addInstance = [this](size_t i, mat43f_cref tm, bbox3f_cref, bbox3f_cref) {
+        bvh::add_instance(bvhCtx, bvhLruMeshBase + i, tm);
+      };
+
+      TMatrix itm;
+      curCamera->getInvViewMatrix(itm);
+      auto viewPos = itm.getcol(3);
+
+      bbox3f bbox;
+      v_bbox3_init_by_bsph(bbox, v_ldu(&viewPos.x), v_make_vec3f(bvh_radius, bvh_radius, bvh_radius));
+      lruColl.gatherBox(bbox, addInstance, accept);
+
+      mat43f instanceTransform;
+      instanceTransform.row0 = v_make_vec4f(1, 0, 0, 0);
+      instanceTransform.row1 = v_make_vec4f(0, 1, 0, 0);
+      instanceTransform.row2 = v_make_vec4f(0, 0, 1, 0);
+
+      for (int meshIx = 0; meshIx < bvhMeshCount; ++meshIx)
+        bvh::add_instance(bvhCtx, bvhMeshBase + meshIx, instanceTransform);
+
+      if (test)
+        add_dynrend_instance_to_bvh(bvhCtx, test, testId, testCount, viewPos);
+    }
+  }
+  void buildBvh()
+  {
+    if (bvhCtx == bvh::InvalidContextId)
+      return;
+
+    bvh::start_frame();
+
+    TMatrix itm;
+    curCamera->getInvViewMatrix(itm);
+
+    if (binScene)
+    {
+      heightProvider.heightmap = &binScene->heightmap;
+      bvh::add_terrain(bvhCtx, &heightProvider);
+      bvh::update_terrain(bvhCtx, Point2::xz(itm.getcol(3)));
+    }
+
+    bvh::build(bvhCtx, itm, TMatrix4::IDENT, itm.getcol(3), Point3::ZERO);
   }
 };
 
+DemoGameScene *DemoGameScene::the_scene = nullptr;
 // headers needed for startup only
 // #include <fx/dag_fxInterface.h>
 // #include <fx/dag_commonFx.h>
@@ -2240,6 +2925,15 @@ bool TestConsole::processCommand(const char *argv[], int argc)
   if (argc < 1)
     return false;
   int found = 0;
+  CONSOLE_CHECK_NAME("profiler", "events", 1, 2)
+  {
+    auto &e = ((DemoGameScene *)dagor_get_current_game_scene())->allEvents;
+    bool on = argc > 1 ? console::to_bool(argv[1]) : !e.profileAll;
+    if (on)
+      e.addProfile("*", 1024);
+    else
+      e.addProfile("-", 1024);
+  }
   CONSOLE_CHECK_NAME("render", "reload_cube", 1, 1)
   {
     console::command("shaders.reload");
@@ -2253,49 +2947,15 @@ bool TestConsole::processCommand(const char *argv[], int argc)
   CONSOLE_CHECK_NAME("app", "dflush", 1, 1) { debug_flush(false); }
   CONSOLE_CHECK_NAME("camera", "save", 1, 2)
   {
-    unsigned int slotNo = 0;
-    if (argc == 2)
-      slotNo = to_int(argv[1]);
-
-    DataBlock cameraPositions;
-    if (dd_file_exist("cameraPositions.blk"))
-      cameraPositions.load("cameraPositions.blk");
-
     TMatrix camTm;
     ((DemoGameScene *)dagor_get_current_game_scene())->curCamera->getInvViewMatrix(camTm);
-
-
-    DataBlock *slotBlk = cameraPositions.getBlockByName(String(100, "slot%d", slotNo));
-
-    if (!slotBlk)
-      slotBlk = cameraPositions.addNewBlock(String(100, "slot%d", slotNo));
-
-    slotBlk->setPoint3("tm0", camTm.getcol(0));
-    slotBlk->setPoint3("tm1", camTm.getcol(1));
-    slotBlk->setPoint3("tm2", camTm.getcol(2));
-    slotBlk->setPoint3("tm3", camTm.getcol(3));
-
-    cameraPositions.saveToTextFile("cameraPositions.blk");
+    save_camera_position("cameraPositions.blk", argc > 1 ? argv[1] : "slot0", camTm);
   }
   CONSOLE_CHECK_NAME("camera", "restore", 1, 2)
   {
-    unsigned int slotNo = 0;
-    if (argc == 2)
-      slotNo = to_int(argv[1]);
-
-    DataBlock cameraPositions;
-    if (dd_file_exist("cameraPositions.blk"))
-      cameraPositions.load("cameraPositions.blk");
-
     TMatrix camTm;
-    const DataBlock *slotBlk = cameraPositions.getBlockByNameEx(String(100, "slot%d", slotNo));
-
-    camTm.setcol(0, slotBlk->getPoint3("tm0", Point3(1.f, 0.f, 0.f)));
-    camTm.setcol(1, slotBlk->getPoint3("tm1", Point3(0.f, 1.f, 0.f)));
-    camTm.setcol(2, slotBlk->getPoint3("tm2", Point3(0.f, 0.f, 1.f)));
-    camTm.setcol(3, slotBlk->getPoint3("tm3", ZERO<Point3>()));
-
-    ((DemoGameScene *)dagor_get_current_game_scene())->curCamera->setInvViewMatrix(camTm);
+    if (load_camera_position("cameraPositions.blk", argc > 1 ? argv[1] : "slot0", camTm))
+      ((DemoGameScene *)dagor_get_current_game_scene())->curCamera->setInvViewMatrix(camTm);
   }
   CONSOLE_CHECK_NAME("camera", "pos", 1, 4)
   {
@@ -2328,6 +2988,12 @@ bool TestConsole::processCommand(const char *argv[], int argc)
     if (!str.empty())
       console::print(str);
   }
+  /*CONSOLE_CHECK_NAME("render", "objects_sdf_atlas_sz", 4, 4)
+  {
+    DemoGameScene *scene = (DemoGameScene *)dagor_get_current_game_scene();
+    if (scene->objectsSdf)
+      scene->objectsSdf->setAtlasSize(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
+  }*/
   return found;
 }
 
@@ -2335,13 +3001,10 @@ uint32_t lru_collision_get_type(rendinst::riex_handle_t h) { return h >> 32ULL; 
 mat43f lru_collision_get_transform(rendinst::riex_handle_t h)
 {
   uint32_t typ = h >> 32ULL, in = uint32_t(h);
-  return ((DemoGameScene *)dagor_get_current_game_scene())->lruColl.instances[typ][in];
+  return DemoGameScene::the_scene->lruColl.instances[typ][in];
 }
 
-const CollisionResource *lru_collision_get_collres(uint32_t typ)
-{
-  return ((DemoGameScene *)dagor_get_current_game_scene())->lruColl.collRes[typ].get();
-}
+const CollisionResource *lru_collision_get_collres(uint32_t typ) { return DemoGameScene::the_scene->lruColl.collRes[typ].get(); }
 
 
 static TestConsole test_console;
@@ -2368,7 +3031,6 @@ void game_demo_init()
   df_close(file);*/
 
   debug("[DEMO] registering factories");
-  d3d::driver_command(DRV3D_COMMAND_ENABLE_MT, NULL, NULL, NULL);
   ::enable_tex_mgr_mt(true, 1024);
   ::set_gameres_sys_ver(2);
   ::register_dynmodel_gameres_factory();
@@ -2430,4 +3092,144 @@ void game_demo_init()
   dagor_set_game_act_rate(blk.getInt("actRate", -60));
   init_webui(NULL);
   dagor_select_game_scene(new DemoGameScene);
+}
+
+inline uint64_t make_mesh_id(uint32_t res_id, uint32_t lod_id, uint32_t elem_id)
+{
+  return (uint64_t(res_id) << 32) | lod_id << 28 | elem_id;
+}
+inline uint64_t make_elem_id(uint32_t mesh_no, uint32_t elem_id) { return mesh_no << 14 | elem_id; }
+
+void add_dynrend_resource_to_bvh(bvh::ContextId context_id, const DynamicRenderableSceneLodsResource *resource, uint64_t bvh_id)
+{
+  d3d::GpuAutoLock gpu_al;
+
+  BSphere3 bounding;
+  bounding = resource->getLocalBoundingBox();
+
+  Point4 posMul, posAdd;
+  if (resource->isBoundPackUsed())
+  {
+    posMul = *((Point4 *)resource->bpC255);
+    posAdd = *((Point4 *)resource->bpC254);
+  }
+  else
+  {
+    posMul = Point4(1.f, 1.f, 1.f, 0.0f);
+    posAdd = Point4(0.f, 0.f, 0.f, 0.0f);
+  }
+
+  for (auto [lodIx, lod] : enumerate(resource->lods))
+  {
+    auto rigidCount = lod.scene->getRigidsConst().size();
+    auto lodIxLocal = lodIx;
+
+    lod.scene->getMeshes(
+      [&](const ShaderMesh *mesh, int node_id, float radius, int rigid_no) {
+        G_UNUSED(node_id);
+        G_UNUSED(radius);
+        auto elems = mesh->getElems(ShaderMesh::STG_opaque, ShaderMesh::STG_atest);
+        for (auto [elemIx, elem] : enumerate(elems))
+        {
+          auto elemId = make_elem_id(rigid_no, elemIx);
+          auto meshId = make_mesh_id(bvh_id, lodIxLocal, elemIx);
+
+          bool hasIndices;
+          if (!elem.vertexData->isRenderable(hasIndices))
+            continue;
+
+          bvh::ChannelParser parser;
+          if (!elem.mat->enum_channels(parser, parser.flags))
+            return;
+
+          if (parser.positionFormat == -1)
+            return;
+
+          G_ASSERT(parser.normalFormat == -1 || parser.normalFormat == VSDT_E3DCOLOR);
+          G_ASSERT(parser.colorFormat == -1 || parser.colorFormat == VSDT_E3DCOLOR);
+
+          bool isTree = strncmp(elem.mat->getShaderClassName(), "tree_", 5) == 0;
+
+          bool hasAlphaTest = isTree;
+          TEXTUREID alphaTextureId = BAD_TEXTUREID;
+
+          ShaderMatData shaderData;
+          elem.mat->getMatData(shaderData);
+
+          bool isTwoSided = shaderData.matflags & (SHFLG_2SIDED | SHFLG_REAL2SIDED);
+
+          auto ib = hasIndices ? elem.vertexData->getIB() : nullptr;
+          auto vb = elem.vertexData->getVB();
+
+          bvh::MeshInfo meshInfo{};
+          meshInfo.indices = ib;
+          meshInfo.indexCount = elem.numf * 3;
+          meshInfo.startIndex = elem.si;
+          meshInfo.vertices = vb;
+          meshInfo.vertexCount = elem.numv;
+          meshInfo.vertexSize = elem.vertexData->getStride();
+          meshInfo.baseVertex = elem.baseVertex;
+          meshInfo.startVertex = elem.sv;
+          meshInfo.positionFormat = parser.positionFormat;
+          meshInfo.positionOffset = parser.positionOffset;
+          meshInfo.indicesOffset = parser.indicesOffset;
+          meshInfo.weightsOffset = parser.weightsOffset;
+          meshInfo.normalOffset = parser.normalOffset;
+          meshInfo.colorOffset = parser.colorFormat == VSDT_E3DCOLOR ? parser.colorOffset : bvh::MeshInfo::invalidOffset;
+          meshInfo.texcoordFormat = parser.texcoordFormat;
+          meshInfo.texcoordOffset = parser.texcoordOffset;
+          meshInfo.secTexcoordOffset = parser.secTexcoordOffset;
+          meshInfo.albedoTextureId = elem.mat->get_texture(0);
+          meshInfo.normalTextureId = elem.mat->get_texture(2);
+          meshInfo.alphaTextureId = alphaTextureId;
+          meshInfo.alphaTest = hasAlphaTest;
+          meshInfo.vertexProcessor = nullptr;
+          meshInfo.posMul = posMul;
+          meshInfo.posAdd = posAdd;
+          meshInfo.enableCulling = !isTwoSided;
+          meshInfo.boundingSphere = bounding;
+          meshInfo.isInterior = false;
+
+          bvh::add_mesh(context_id, meshId, meshInfo);
+        }
+      },
+      [&](const ShaderSkinnedMesh *, int, int) { G_ASSERTF(0, "Skinned parts are not yet supported."); });
+  }
+}
+
+void add_dynrend_instance_to_bvh(bvh::ContextId context_id, const DynamicRenderableSceneInstance *resource, uint64_t bvh_id, int count,
+  const Point3 &view_pos)
+{
+  resource->getCurSceneResource()->getMeshes(
+    [&](const ShaderMesh *mesh, int node_id, float radius, int rigid_no) {
+      auto elems = mesh->getElems(ShaderMesh::STG_opaque, ShaderMesh::STG_atest);
+
+      if (elems.empty())
+        return;
+
+      for (int treeIx = 0; treeIx < count; ++treeIx)
+      {
+        TMatrix tm = TMatrix::IDENT;
+        set_test_tm(treeIx, tm);
+
+        if ((view_pos - tm.getcol(3)).lengthSq() > sqr(bvh_radius))
+          continue;
+
+        mat44f tm44;
+        mat43f tm43;
+        v_mat44_make_from_43cu(tm44, tm.array);
+        v_mat44_transpose_to_mat43(tm43, tm44);
+
+        for (auto [elemIx, elem] : enumerate(elems))
+        {
+          bool hasIndices;
+          if (!elem.vertexData->isRenderable(hasIndices))
+            continue;
+
+          auto meshId = make_mesh_id(bvh_id, resource->getCurrentLodNo(), make_elem_id(rigid_no, elemIx));
+          bvh::add_instance(context_id, meshId, tm43);
+        }
+      }
+    },
+    [&](const ShaderSkinnedMesh *, int, int) { G_ASSERTF(0, "Skinned parts are not yet supported."); });
 }

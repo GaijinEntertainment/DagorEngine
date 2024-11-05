@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -19,7 +18,21 @@ ECS_DECLARE_RELOCATABLE_TYPE(DaInputComponent);
 
 namespace ecs
 {
-void init_hid_drivers(int poll_thread_interval_msec);
+enum InitDeviceType
+{
+  None = 0,
+  Keyboard = 1,
+  Pointing = 2, // Aka mouse or touchscreen
+  Joystick = 4,
+  All = 7,
+#if _TARGET_PC
+  Default = All,
+#else
+  Default = All & ~Keyboard
+#endif
+};
+
+void init_hid_drivers(int poll_thread_interval_msec, int init_dev_type = InitDeviceType::Default);
 void term_hid_drivers();
 
 void init_input(const char *controls_config_fname);

@@ -1,0 +1,31 @@
+macro RENDER_TO_DEFORM_HMAP()
+  static float deform_hmap_pressure = 0.0;
+  if (dyn_model_render_pass == render_to_deform_hmap)
+  {
+    USE_DIFFUSE_TC()
+    hlsl {
+      #define NEED_TC 1
+      #define SUPPORT_DEFORM_INFO 1
+    }
+    (ps) { pressure@f1 = deform_hmap_pressure; }
+  }
+endmacro
+macro RENDER_DEFORM_HMAP_PS()
+  hlsl(ps) {
+    #ifdef SUPPORT_DEFORM_INFO
+    float render_deform_hmap_ps(VsOutput input) : SV_Target
+    {
+      #if SET_UP_MULTIDRAW
+        SET_DRAW_CALL_ID(GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK);
+      #endif
+      return get_pressure();
+    }
+    #else
+    float render_deform_hmap_ps(float4 screen_pos : VPOS) : SV_Target
+    {
+      return 0;
+    }
+    #endif
+  }
+  compile("target_ps", "render_deform_hmap_ps");
+endmacro

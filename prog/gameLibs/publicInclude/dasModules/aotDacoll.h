@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -22,6 +21,7 @@ DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(::dacoll::CollType, CollType);
 MAKE_TYPE_FACTORY(TraceMeshFaces, TraceMeshFaces);
 MAKE_TYPE_FACTORY(CollisionObject, CollisionObject);
 MAKE_TYPE_FACTORY(ShapeQueryOutput, dacoll::ShapeQueryOutput);
+MAKE_TYPE_FACTORY(CollisionContactDataMin, gamephys::CollisionContactDataMin);
 MAKE_TYPE_FACTORY(CollisionContactData, gamephys::CollisionContactData);
 
 namespace bind_dascript
@@ -164,6 +164,11 @@ inline bool dacoll_sphere_cast_with_collision_object_ex(const Point3 &from, cons
   return dacoll::sphere_cast_ex(from, to, rad, out, cast_mat_id, make_span_const(&ignore_obj, 1), handle, mask);
 }
 
+inline bool dacoll_sphere_cast_land(const Point3 &from, const Point3 &to, float rad, dacoll::ShapeQueryOutput &out)
+{
+  return dacoll::sphere_cast_land(from, to, rad, out);
+}
+
 inline bool dacoll_sphere_cast_ex(const Point3 &from, const Point3 &to, float rad, dacoll::ShapeQueryOutput &out, int cast_mat_id,
   TraceMeshFaces *handle, int mask)
 {
@@ -187,6 +192,31 @@ inline bool dacoll_sphere_query_ri(const Point3 &from, const Point3 &to, float r
   return result;
 }
 
+struct SphereQueryRIFilter : dacoll::RIFilterCB
+{
+  const das::TBlock<bool, const rendinst::RendInstDesc &, float> &block;
+  das::Context *context;
+  das::LineInfoArg *at;
+  SphereQueryRIFilter(const das::TBlock<bool, const rendinst::RendInstDesc &, float> &_block, das::Context *_context,
+    das::LineInfoArg *_at) :
+    block(_block), context(_context), at(_at)
+  {}
+  virtual bool onFilter(const rendinst::RendInstDesc &desc, float t)
+  {
+    vec4f args[] = {das::cast<rendinst::RendInstDesc *>::from(&desc), das::cast<float>::from(t)};
+    vec4f res = context->invoke(block, args, nullptr, at);
+    return das::cast<bool>::to(res);
+  }
+};
+
+inline bool dacoll_sphere_query_ri_filtered(const Point3 &from, const Point3 &to, float rad, dacoll::ShapeQueryOutput &out,
+  int cast_mat_id, TraceMeshFaces *handle, const das::TBlock<bool, const rendinst::RendInstDesc &, float> &block,
+  das::Context *context, das::LineInfoArg *at)
+{
+  SphereQueryRIFilter filter(block, context, at);
+  return dacoll::sphere_query_ri(from, to, rad, out, cast_mat_id, nullptr, handle, &filter);
+}
+
 inline void dacoll_add_dynamic_collision_from_coll_resource(CollisionObject &co, const CollisionResource &coll_res,
   const char *blk_name)
 {
@@ -207,7 +237,8 @@ inline void dacoll_destroy_dynamic_collision(CollisionObject &coll_obj)
 inline bool dacoll_test_collision_world(const CollisionObject &coll_obj, const das::float3x4 &tm, float bounding_rad)
 {
   Tab<gamephys::CollisionContactData> contacts(framemem_ptr());
-  return dacoll::test_collision_world(make_span_const(&coll_obj, 1), reinterpret_cast<const TMatrix &>(tm), bounding_rad, contacts);
+  return dacoll::test_collision_world(make_span_const(&coll_obj, 1), reinterpret_cast<const TMatrix &>(tm), bounding_rad, contacts,
+    nullptr /*cache*/);
 }
 
 inline bool dacoll_test_collision_world_ex(const CollisionObject &coll_obj, const das::float3x4 &tm, float bounding_rad,
@@ -215,8 +246,8 @@ inline bool dacoll_test_collision_world_ex(const CollisionObject &coll_obj, cons
   das::LineInfoArg *at)
 {
   Tab<gamephys::CollisionContactData> contacts(framemem_ptr());
-  bool result =
-    dacoll::test_collision_world(make_span_const(&coll_obj, 1), reinterpret_cast<const TMatrix &>(tm), bounding_rad, contacts);
+  bool result = dacoll::test_collision_world(make_span_const(&coll_obj, 1), reinterpret_cast<const TMatrix &>(tm), bounding_rad,
+    contacts, nullptr /*cache*/);
 
   // TODO: make invoke generic for reuse
   das::Array arr;

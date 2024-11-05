@@ -1,21 +1,20 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_dynLib.h>
 
 #if _TARGET_PC_LINUX | _TARGET_APPLE | _TARGET_ANDROID
 #include <dlfcn.h>
+#include <cstring>
 #else
 #include <supp/_platform.h>
+#include <osApiWrappers/dag_unicode.h>
 #endif
-#if _TARGET_PC_WIN | _TARGET_XBOX
-#include <malloc.h>
-#endif
+#include <supp/dag_alloca.h>
 
 // Load dynamic library. Return NULL if failed.
 void *os_dll_load(const char *filename)
 {
-#if _TARGET_PC_LINUX
-  return ::dlopen(filename, RTLD_LAZY | RTLD_DEEPBIND); // RTLD_DEEPBIND requires GLIBC 2.3.4 (introduced in 2004-12-29)
-
-#elif _TARGET_APPLE | _TARGET_ANDROID
+#if _TARGET_PC_LINUX | _TARGET_APPLE | _TARGET_ANDROID
   return ::dlopen(filename, RTLD_LAZY);
 
 #elif _TARGET_PC_WIN | _TARGET_XBOX
@@ -30,6 +29,19 @@ void *os_dll_load(const char *filename)
   return NULL;
 #endif
 }
+#if _TARGET_PC_LINUX
+void *os_dll_load_deep_bind(const char *filename)
+{
+  // RTLD_DEEPBIND is incompatible with sanitizer runtime
+  // RTLD_DEEPBIND requires GLIBC 2.3.4 (introduced in 2004-12-29),
+  //   keep it disabled on game client builds, as we have complains for it!
+#if !defined(__SANITIZE_ADDRESS__) && !defined(__SANITIZE_THREAD__)
+  return ::dlopen(filename, RTLD_LAZY | RTLD_DEEPBIND);
+#else
+  return ::dlopen(filename, RTLD_LAZY);
+#endif
+}
+#endif
 
 const char *os_dll_get_last_error_str()
 {
@@ -78,6 +90,38 @@ bool os_dll_close(void *handle)
 
 #else
   return false;
+#endif
+}
+
+const char *os_dll_get_dll_name_from_addr(char *out_buf, size_t out_buf_size, const void *addr)
+{
+#if _TARGET_PC_LINUX | _TARGET_APPLE | _TARGET_ANDROID
+
+  Dl_info info{};
+  if (!dladdr(addr, &info))
+    return nullptr;
+
+  strncpy(out_buf, info.dli_fname, out_buf_size);
+  return out_buf;
+
+#elif _TARGET_PC_WIN | _TARGET_XBOX
+
+  HMODULE hModule = nullptr;
+  if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)addr,
+        &hModule) == 0)
+  {
+    return nullptr;
+  }
+
+  WCHAR pathBuf[MAX_PATH] = {0};
+  if (GetModuleFileNameW(hModule, pathBuf, sizeof(pathBuf) / sizeof(WCHAR)) == 0)
+    return nullptr;
+
+  wcs_to_utf8(pathBuf, out_buf, out_buf_size);
+  return out_buf;
+
+#else
+  return nullptr;
 #endif
 }
 

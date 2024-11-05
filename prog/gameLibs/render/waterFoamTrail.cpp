@@ -1,9 +1,15 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/waterFoamTrail.h>
 #include <math/dag_Point3.h>
 #include <math/dag_TMatrix4.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderBlock.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_texPackMgr2.h>
 #include <3d/dag_materialData.h>
 #include <3d/dag_resPtr.h>

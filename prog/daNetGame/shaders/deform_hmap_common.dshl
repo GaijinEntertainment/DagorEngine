@@ -1,0 +1,70 @@
+int deform_hmap_enabled;
+interval deform_hmap_enabled: off<1, on;
+
+texture deform_hmap_tex;
+int deform_hmap_tex_size = 1024;
+float4 deform_hmap_world_to_uv_scale_bias;
+
+macro INIT_DEFORM_HMAP(stage)
+  (stage) {
+    deform_hmap_tex@smp2d = deform_hmap_tex;
+    deform_hmap_texel_size@f1 = (1 / deform_hmap_tex_size, 0, 0, 0);
+    deform_hmap_world_to_uv_scale_bias@f4 = deform_hmap_world_to_uv_scale_bias;
+  }
+endmacro
+
+macro USE_DEFORM_HMAP(stage)
+  hlsl(stage) {
+    half getDeformVignette(float2 tc)
+    {
+      float2 vignette = saturate(abs(tc*2-1) * 2.0f - 1.0f);
+      return saturate(1.0 - dot(vignette, vignette));
+    }
+
+    half getDeformHeight(float3 worldPos, half deformRange)
+    {
+      ##if deform_hmap_enabled == off
+        return 0;
+      ##endif
+
+      float2 tc = worldPos.xz * deform_hmap_world_to_uv_scale_bias.xy + deform_hmap_world_to_uv_scale_bias.zw;
+      if (any(tc < 0 || tc > 1))
+        return 0;
+
+      half depthTexSample = (tex2Dlod(deform_hmap_tex, float4(tc, 0, 0)).r - 0.5f) * 2.0f;
+      half deformAmount = -depthTexSample * deformRange * getDeformVignette(tc);
+
+      return deformAmount;
+    }
+
+    half3 getDeformNormal(float3 worldPos, float3 origWorldNormal, half deformRange)
+    {
+      ##if deform_hmap_enabled == off
+        return origWorldNormal;
+      ##endif
+
+      float2 tc = worldPos.xz * deform_hmap_world_to_uv_scale_bias.xy + deform_hmap_world_to_uv_scale_bias.zw;
+      if (any(tc < 0 || tc > 1))
+        return origWorldNormal;
+
+      float3 origSurfaceTangentForward = normalize(float3(0, -origWorldNormal.z, origWorldNormal.y)); // cross(float3(1, 0, 0), origWorldNormal)
+      float3 origSurfaceTangentRight = normalize(float3(origWorldNormal.y, -origWorldNormal.x, 0)); // cross(origWorldNormal, float3(0, 0, 1))
+      float twoTexelWorldSize = 2.0f * deform_hmap_texel_size / deform_hmap_world_to_uv_scale_bias.x;
+      float3 offset = float3(deform_hmap_texel_size, 0, deform_hmap_texel_size);
+
+      half W = -tex2Dlod(deform_hmap_tex, float4(tc - offset.xy, 0, 0)).r;
+      half E = -tex2Dlod(deform_hmap_tex, float4(tc + offset.xy, 0, 0)).r;
+      half N = -tex2Dlod(deform_hmap_tex, float4(tc - offset.yz, 0, 0)).r;
+      half S = -tex2Dlod(deform_hmap_tex, float4(tc + offset.yz, 0, 0)).r;
+
+      float scale = getDeformVignette(tc) * deformRange * 2;
+      half deformedHDiffX = (W - E) * scale - origSurfaceTangentRight.y * twoTexelWorldSize;
+      half deformedHDiffZ = (N - S) * scale - origSurfaceTangentForward.y * twoTexelWorldSize;
+
+      half3 modifiedWorldNormal = normalize(half3(deformedHDiffX, twoTexelWorldSize, deformedHDiffZ));
+
+      //add some normal vector smoothing around the edge of the projected rectangle (where tc is near 0 or 1)
+      return normalize(lerp(origWorldNormal, modifiedWorldNormal, getDeformVignette(tc)));
+    }
+  }
+endmacro

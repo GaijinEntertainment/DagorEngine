@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <crypto/ssl.h>
 #include <crypto/rand.h>
 #include <openssl/ssl.h>

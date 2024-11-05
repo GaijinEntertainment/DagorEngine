@@ -396,11 +396,6 @@ void TAA_gather_history(Texture2D<float4> historyTex, SamplerState historyTex_sa
 //historyTex_samplerstate HAS to be linear
 //sceneTex_samplerstate HAS to be point filtered
 
-float4 linearize_z4(float4 raw4, float2 decode_depth)
-{
-  return rcp(decode_depth.xxxx + decode_depth.y * raw4);
-}
-
 void TAA(out float4 result_color, out float taaWeight,
          Texture2D<float4> sceneTex, SamplerState sceneTex_samplerstate,
          Texture2D<float4> cloudsDepthTex, SamplerState cloudsDepthTex_samplerstate,

@@ -41,7 +41,21 @@ macro INIT_BAKED_IMPOSTOR_VARS(shader_var_type) // shader_var_type: dynamic or s
 
     float get_impostor_bounding_sphere_y(int impostor_data_offset)
     {
-      return impostor_data_buffer[impostor_data_offset+IMPOSTOR_DATA_BSP_Y__PRESHADOW].x;
+      uint index = impostor_data_offset + IMPOSTOR_DATA_BSP_Y__PRESHADOW__BOT_GRADIENT;
+      // This check is required to avoid a mysterious crash on RX 7700 XT (RE-1178).
+  ##if hardware.dx12
+      uint dim = 0;
+      impostor_data_buffer.GetDimensions(dim);
+      ##assert(index < dim, "[%s:%.f] Out of bounds: Buffer `impostor_data_buffer` has size %d, but access to %d", _FILE_, __LINE__, dim, index);
+      if (index >= dim)
+        return 0;
+  ##endif
+      return impostor_data_buffer[index].x;
+    }
+
+    float get_bottom_gradient(int impostor_data_offset)
+    {
+      return impostor_data_buffer[impostor_data_offset+IMPOSTOR_DATA_BSP_Y__PRESHADOW__BOT_GRADIENT].z;
     }
 
     float2 get_impostor_vertex_offset(int impostor_data_offset, int vertex_id)
@@ -55,7 +69,7 @@ macro INIT_BAKED_IMPOSTOR_VARS(shader_var_type) // shader_var_type: dynamic or s
 ##if baked_impostor_preshadows == preshadow_off
       return false;
 ##elif baked_impostor_preshadows == preshadow_dynamic
-      return impostor_data_buffer[impostor_data_offset+IMPOSTOR_DATA_BSP_Y__PRESHADOW].y > 0;
+      return impostor_data_buffer[impostor_data_offset+IMPOSTOR_DATA_BSP_Y__PRESHADOW__BOT_GRADIENT].y > 0;
 ##else
       return true;
 ##endif
@@ -121,8 +135,6 @@ macro INIT_BAKED_IMPOSTORS()
     #define MULTISLICE_COUNT 9
     ##if baked_impostor_multisample == yes
       #define USE_MULTISLICED 1
-    ##else
-      #define OVERWRITE_IMP_HALF_SIZE 1
     ##endif
   ##endif
   }
@@ -198,6 +210,14 @@ macro USE_IMPOSTORS_COMMON2()
     out_y = normalize( lerp( float3( 0, 1, 0 ), view_y, above_k ) );
     }
 
+    float2 get_shadow_impostor_size(int palette_id, float4 s01, float4 s23, float4 s45, float4 s67)
+    {
+      float2 sizes[8] = { s01.xy, s01.zw, s23.xy, s23.zw, s45.xy, s45.zw, s67.xy, s67.zw };
+      uint id = min(uint(palette_id + 0.5), 7u);
+
+      return sizes[id];
+    }
+
 #if MULTISLICE_COUNT
 
     void get_impostor_slices( float3 ray_dir_norm, out uint2 slice_idx, out float2 slice_d )
@@ -229,20 +249,6 @@ macro USE_IMPOSTORS_COMMON2()
           slice_d.y = d[j];
         }
       }
-    }
-
-    float2 get_impostor_half_size( float4 slices, float slices_det, float4 s01, float4 s23, float4 s45, float4 s67, float2 s7 )
-    {
-      float widths[9] =  { s01.x, s01.z, s23.x, s23.z, s45.x, s45.z, s67.x, s67.z, s7.x };
-      float heights[9] = { s01.y, s01.w, s23.y, s23.w, s45.y, s45.w, s67.y, s67.w, s7.y };
-
-      uint i0 = min(uint(slices.x + 0.5), 8);
-      uint i1 = min(uint(slices.y + 0.5), 8);
-
-      float2 wh0 = float2( widths[i0], heights[i0] );
-      float2 wh1 = float2( widths[i1], heights[i1] );
-
-      return lerp( wh0, wh1, slices_det );
     }
 
 #endif

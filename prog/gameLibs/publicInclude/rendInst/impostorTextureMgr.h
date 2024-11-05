@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -48,6 +47,7 @@ public:
     bool allowParallax = true;
     bool allowTriView = true;
     bool octahedralImpostor = false;
+    float bottomGradient = 0.0;
     uint32_t rotationPaletteSize = 3;
     Point3 tiltLimit = Point3(5, 5, 5) * DEG_TO_RAD;
   };
@@ -76,14 +76,18 @@ public:
   static Point3 get_point_to_eye_octahedral(uint32_t h, uint32_t v, const GenerationData &gen_data);
   static Point3 get_point_to_eye_billboard(uint32_t sliceId);
 
-  void generate_mask(const Point3 &point_to_eye, RenderableInstanceLodsResource *res, DeferredRenderTarget *rt, Texture *mask_tex);
+  void generate_mask(const Point3 &point_to_eye, RenderableInstanceLodsResource *res, DeferredRenderTarget *rt, Texture *mask_tex,
+    int lod = -1);
   void render_slice_octahedral(uint32_t h, uint32_t v, const TMatrix &view_to_content, const GenerationData &gen_data,
-    RenderableInstanceLodsResource *res, int block_id);
-  void render_slice_billboard(uint32_t sliceId, const TMatrix &view_to_content, RenderableInstanceLodsResource *res, int block_id);
-  void generate_mask_billboard(uint32_t sliceId, RenderableInstanceLodsResource *res, DeferredRenderTarget *rt, Texture *mask_tex);
+    RenderableInstanceLodsResource *res, int block_id, int lod = -1);
+  void render_slice_billboard(uint32_t sliceId, const TMatrix &view_to_content, RenderableInstanceLodsResource *res, int block_id,
+    int lod = -1);
+  void generate_mask_billboard(uint32_t sliceId, RenderableInstanceLodsResource *res, DeferredRenderTarget *rt, Texture *mask_tex,
+    int lod = -1);
   void generate_mask_octahedral(uint32_t h, uint32_t v, const GenerationData &gen_data, RenderableInstanceLodsResource *res,
-    DeferredRenderTarget *rt, Texture *mask_tex);
+    DeferredRenderTarget *rt, Texture *mask_tex, int lod = -1);
   void start_rendering_slices(DeferredRenderTarget *rt);
+  void start_rendering_branches(Texture *rt);
   void end_rendering_slices();
 
   UniqueTex renderDepthAtlasForShadow(RenderableInstanceLodsResource *res);
@@ -103,8 +107,10 @@ private:
   eastl::unique_ptr<BcCompressor> shadowAtlasCompressor;
   UniqueTex impostorCompressionBuffer;
   Sbuffer *treeCrownDataBuf = nullptr;
+  int treeCrownBufSlot = -1;
 
-  void render(const Point3 &point_to_eye, const TMatrix &post_view_tm, RenderableInstanceLodsResource *res, int block_id) const;
+  void render(const Point3 &point_to_eye, const TMatrix &post_view_tm, RenderableInstanceLodsResource *res, int block_id,
+    int lod) const;
 
   static bool prefer_bc_compression();
 

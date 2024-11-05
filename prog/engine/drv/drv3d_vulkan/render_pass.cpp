@@ -1,6 +1,10 @@
-#include "device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "render_pass.h"
 #include <EASTL/algorithm.h>
+#include "image_resource.h"
+#include "globals.h"
+#include "driver_config.h"
 
 using namespace drv3d_vulkan;
 
@@ -38,7 +42,7 @@ VulkanRenderPassHandle RenderPassClass::getPass(VulkanDevice &device, int clear_
 }
 VulkanFramebufferHandle RenderPassClass::getFrameBuffer(VulkanDevice &device, const FramebufferDescription &info)
 {
-  bool imageless = get_device().hasImagelessFramebuffer();
+  bool imageless = Globals::cfg.has.imagelessFramebuffer;
   auto ref = eastl::find_if(begin(frameBuffers), end(frameBuffers), [&info, &imageless](const FrameBuffer &fb) {
     return imageless ? fb.desc.compatibleToImageless(info) : fb.desc.compatibleTo(info);
   });
@@ -69,7 +73,7 @@ void RenderPassClass::unloadAll(VulkanDevice &device)
 void RenderPassClass::unloadWith(VulkanDevice &device, VulkanImageViewHandle view)
 {
 #if VK_KHR_imageless_framebuffer
-  if (get_device().hasImagelessFramebuffer())
+  if (Globals::cfg.has.imagelessFramebuffer)
     return; // With this extension the framebuffer is not bound to the view
 #endif
   auto newEnd = eastl::remove_if(begin(frameBuffers), end(frameBuffers),
@@ -100,26 +104,16 @@ StaticTab<VkClearValue, Driver3dRenderTarget::MAX_SIMRT + 1> RenderPassClass::co
   return result;
 }
 
-bool RenderPassClass::verifyPass(int clear_mask)
+uint32_t RenderPassClass::getAttachmentsLoadMask(int clear_mask) const
 {
-  const bool clearColor = (clear_mask & CLEAR_TARGET) != 0;
-  if (auto usedColorMask = identifier.colorTargetMask)
-  {
-    for (int i = 0; (i < Driver3dRenderTarget::MAX_SIMRT) && usedColorMask; ++i, usedColorMask >>= 1)
-    {
-      if ((usedColorMask & 1) == 0)
-        continue;
+  constexpr uint32_t clearColorMask = CLEAR_TARGET | CLEAR_DISCARD_TARGET;
+  constexpr uint32_t clearDepthMask = CLEAR_ZBUFFER | CLEAR_DISCARD_ZBUFFER;
 
-      bool isMultiSampledAttachment = identifier.colorSamples[i] > 1;
+  bool loadColor = (clear_mask & clearColorMask) == 0 && identifier.colorTargetMask != 0;
+  bool loadDepth = (clear_mask & clearDepthMask) == 0 && identifier.hasDepth();
 
-      if (isMultiSampledAttachment && !clearColor)
-      {
-        logerr("MSAA verifyPass failed for attachment %u", i);
-        return false;
-      }
-    }
-  }
-  return true;
+  uint32_t loadMask = (loadColor ? identifier.colorTargetMask : 0) | (loadDepth ? Driver3dRenderTarget::DEPTH : 0);
+  return loadMask;
 }
 
 VulkanRenderPassHandle RenderPassClass::compileVariant(VulkanDevice &device, int clear_mask)
@@ -147,7 +141,7 @@ VulkanRenderPassHandle RenderPassClass::compileVariant(VulkanDevice &device, int
   PASS_BUILD_INFO("building pass with loadop-color=%s, loadop-depth=%s, loadop-stencil=%s", formatAttachmentLoadOp(colorLoadOp),
     formatAttachmentLoadOp(depthLoadOp), formatAttachmentLoadOp(stencilLoadOp));
 
-  bool useNoStoreOp = get_device().hasAttachmentNoStoreOp();
+  bool useNoStoreOp = Globals::cfg.has.attachmentNoStoreOp;
   VkSubpassDependency selfDept;
   selfDept.srcSubpass = 0;
   selfDept.dstSubpass = 0;
@@ -177,7 +171,7 @@ VulkanRenderPassHandle RenderPassClass::compileVariant(VulkanDevice &device, int
     for (int i = 0; (i < Driver3dRenderTarget::MAX_SIMRT) && usedColorMask; ++i, usedColorMask >>= 1)
     {
       bool isMultiSampledAttachment = identifier.colorSamples[i] > 1;
-      bool isResolveAttachment = (i > 0) && (identifier.colorSamples[i - 1] > 1);
+      bool isResolveAttachment = (i > 0) && (identifier.colorSamples[i - 1] > 1) && ((identifier.colorTargetMask >> (i - 1)) & 1);
 
       VkAttachmentReference &ref = isResolveAttachment ? resolveRef.push_back() : colorRef.push_back();
       ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -271,9 +265,9 @@ VulkanRenderPassHandle RenderPassClass::compileVariant(VulkanDevice &device, int
     VkAttachmentDescription &desc = attachmentDefs.push_back();
     desc.flags = 0;
     desc.format = identifier.depthStencilFormat.asVkFormat();
-    desc.samples = VkSampleCountFlagBits(identifier.colorSamples[0]);
+    desc.samples = VkSampleCountFlagBits(identifier.depthSamples);
 
-    if (identifier.colorSamples[0] > 1)
+    if (identifier.depthSamples > 1)
     {
       desc.loadOp = depthLoadOp;
       desc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -344,7 +338,7 @@ VulkanFramebufferHandle RenderPassClass::compileFrameBuffer(VulkanDevice &device
   StaticTab<VkFramebufferAttachmentImageInfoKHR, Driver3dRenderTarget::MAX_SIMRT + 1> fbaiis;
   StaticTab<Image::ViewFormatList, Driver3dRenderTarget::MAX_SIMRT + 1> viewFormats;
 
-  if (get_device().hasImagelessFramebuffer())
+  if (Globals::cfg.has.imagelessFramebuffer)
   {
     fbci.flags |= VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT_KHR;
 
@@ -436,7 +430,7 @@ RenderPassClass::FramebufferDescription::AttachmentInfo::AttachmentInfo(Image *i
   imageInfo.layers = ivs.isArray ? ivs.getArrayCount() : 1;
   viewHandle = view_handle;
 
-  if (get_device().hasImagelessFramebuffer())
+  if (Globals::cfg.has.imagelessFramebuffer)
   {
     VkExtent2D viewExtent = image->getMipExtents2D(ivs.getMipBase());
     imageInfo.width = viewExtent.width;
@@ -451,7 +445,7 @@ RenderPassClass::FramebufferDescription::AttachmentInfo::AttachmentInfo(Image *i
 
 bool RenderPassClass::FramebufferDescription::contains(VulkanImageViewHandle view) const
 {
-  if (get_device().hasImagelessFramebuffer())
+  if (Globals::cfg.has.imagelessFramebuffer)
     return false;
   using namespace eastl;
   return (end(colorAttachments) !=

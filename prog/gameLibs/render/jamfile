@@ -16,7 +16,7 @@ AddIncludes =
 
 Sources =
 #  bentCones.cpp
-  cur_view.cpp
+  cameraPositions.cpp
   bigLightsShadows.cpp
   tdrGpu.cpp
   toroidalStaticShadows/toroidalStaticShadowCascade.cpp
@@ -46,7 +46,7 @@ Sources =
   omniLightsManager.cpp
   spotLightsManager.cpp
   distortion.cpp
-  antialiasing.cpp
+  fxaa.cpp
   partialDxtRender.cpp
   dynamicLightProbe.cpp
   randomGrass.cpp
@@ -61,6 +61,7 @@ Sources =
   screenSpaceReflections.cpp
   tileDeferredLighting.cpp
   grassTranslucency.cpp
+  globTMVars.cpp
   viewVecs.cpp
   set_reprojection.cpp
   debugTexOverlay.cpp
@@ -79,14 +80,15 @@ Sources =
   dstReadbackLights.cpp
   temporalAA.cpp
   toroidalHeightmap.cpp
+  toroidalPuddleMap.cpp
   mipRenderer.cpp
   depthAOAboveRenderer.cpp
   whiteTex.cpp
   lightProbe.cpp
   debugLightProbeSpheres.cpp
-  debugIndoorBoxes.cpp
   lightProbeSpecularCubesContainer.cpp
   debugBoxRenderer.cpp
+  debugLightProbeShapeRenderer.cpp
   debugGbuffer.cpp
   screenDroplets.cpp
   atlasTexManager.cpp
@@ -104,6 +106,7 @@ Sources =
   graphicsAutodetect.cpp
   vertexDensityOverlay.cpp
   grassify.cpp
+  driverNetworkManager.cpp
 ;
 
 UseProgLibs +=
@@ -112,22 +115,23 @@ UseProgLibs +=
   gameLibs/render/primitiveObjects
   gameLibs/render/fx
   gameLibs/frustumCulling
-  gameLibs/render/volumetricLights
   gameLibs/render/dynmodelRenderer
 ;
 
 if $(Config) != rel
 {
   UseProgLibs += gameLibs/render/debugMesh ;
+  UseProgLibs += gameLibs/render/imGuiProfiler ;
 }
 else
 {
   UseProgLibs += gameLibs/render/debugMesh/stub ;
+  UseProgLibs += gameLibs/render/imGuiProfiler/stub ;
 }
 
 CPPopt = ;
 
-if $(Platform) in win32 win64
+if $(Platform) in windows
 {
   AddLibs += OleAut32.lib ;
 }

@@ -1,0 +1,57 @@
+//todo: move me to screenProbes
+include "world_sdf.dshl"
+include "shader_global.dshl"
+include "radianceCache/radiance_cache_mark_used_common.dshl"
+include "screenProbes/screenspace_probes_common.dshl"
+
+int dagi_screenprobes_trace_quality = 1;
+interval dagi_screenprobes_trace_quality: screen_only < 1, screen_and_sdf;// < 2, sdf_only;
+
+shader mark_used_radiance_cache_probes_cs
+{
+  SCREENSPACE_PROBES_POSITIONS(cs)
+  RADIANCE_CACHE_MARK_PROBES(cs)
+  READ_WORLD_SDF(cs)
+  WORLD_SDF_STEP_OUT(cs)
+
+  hlsl(cs) {
+    #include "sp_calc_common.hlsl"
+    [numthreads(64, 1, 1)]
+    void mark_used_radiance_cache_probes_cs(uint dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
+    {
+      uint atlasProbeIndex = dtId;
+      if (atlasProbeIndex >= sp_getNumScreenProbes())
+        return;
+      uint encodedProbe = sp_loadEncodedProbe(screenspace_probe_pos, atlasProbeIndex);
+      if (!encodedProbe)
+        return;
+      uint2 tile_coord = uint2(atlasProbeIndex%uint(screenspace_probe_res.x), atlasProbeIndex/uint(screenspace_probe_res.x));
+      DecodedProbe probe = sp_decodeProbeInfo(encodedProbe);
+      float sceneLinearDepth = SCREENPROBES_BIAS_TO_CAMERA*probe.normalizedW*sp_zn_zfar.y;
+      float3 viewVec = sp_getViewVecOptimized(getScreenProbeCenterScreenUV(tile_coord));
+      float3 probeWorldPos = sp_world_view_pos.xyz + sceneLinearDepth*viewVec;
+      uint startClip = world_sdf_find_clip(probeWorldPos);
+      float sdfVoxelSize = startClip < MAX_WORLD_SDF_CLIPS ? world_sdf_voxel_size(startClip) : 1;
+      probeWorldPos = sp_world_view_pos.xyz + max(sceneLinearDepth - sdfVoxelSize, 0.01)*viewVec;
+      float3 probeNormal = decodeProbeNormal(sp_loadEncodedProbeNormalCoord(screenspace_probe_pos, atlasProbeIndex));
+      //fixme: load probe offset from buffer
+      ##if dagi_screenprobes_trace_quality == screen_only
+      {
+        int3 coarserWorldCoord;
+        probeWorldPos += probeNormal*(SP_LQ_PROBE_NORMAL_BIAS*SP_PROBE_SIZE*radiance_cache_probe_world_size(radiance_cache_find_clip_trilinear(coarserWorldCoord, probeWorldPos, 0)));
+      }
+      ##else
+      {
+        //must match what is used for tracing
+        #if SP_MATCH_PROBES_OFFSETED
+        float normalBias = sdfVoxelSize*(SP_PROBE_SIZE*SP_HQ_PROBE_NORMAL_BIAS_SDF);
+        probeWorldPos += probeNormal*normalBias;
+        world_sdf_step_out_clip(probeWorldPos, startClip, 0.0, 0.5);
+        #endif
+      }
+      ##endif
+      radiance_cache_mark_world_pos(probeWorldPos, true);
+    }
+  }
+  compile("target_cs", "mark_used_radiance_cache_probes_cs");
+}

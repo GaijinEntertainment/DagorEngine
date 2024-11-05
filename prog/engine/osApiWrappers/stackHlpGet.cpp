@@ -1,9 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_stackHlp.h>
 #include <osApiWrappers/dag_stackHlpEx.h>
 #include <osApiWrappers/dag_atomic.h>
 
 #include "stackSize.h"
-#if _TARGET_PC_WIN || XBOX_GDK_CALLSTACKS
+#if _TARGET_PC_WIN || _TARGET_XBOX
 #include <windows.h>
 #include <dbghelp.h>
 #include <tlhelp32.h>
@@ -17,10 +19,13 @@
 #define MODULE_BASE_TYPE ULONG
 #endif
 
+#define CAN_RESOLVE_SYMBOLS (_TARGET_PC_WIN || (_TARGET_XBOX && (DAGOR_DBGLEVEL != 0)))
+
 
 // One line suppression does not work.
 //-V::566,720
-#define HAS_GET_SYMBOL 1
+#define HAS_GET_SYMBOL (CAN_RESOLVE_SYMBOLS)
+#if HAS_GET_SYMBOL
 OSSpinlock dbghelp_spinlock;
 
 bool stackhlp_get_symbol(void *addr, uint32_t &line, char *filename, size_t max_file_name, char *symbolname, size_t max_symbol_name)
@@ -67,6 +72,10 @@ bool stackhlp_get_symbol(void *addr, uint32_t &line, char *filename, size_t max_
   return ret;
 }
 
+#endif
+
+#if CAN_RESOLVE_SYMBOLS
+
 const char *stackhlp_get_call_stack(char *buf, int out_buf_sz, const void *const *stack, unsigned max_size)
 {
   LimitedBufferWriter lbw(buf, out_buf_sz);
@@ -78,7 +87,7 @@ const char *stackhlp_get_call_stack(char *buf, int out_buf_sz, const void *const
 
   unsigned stack_size = get_stack_size(stack, max_size);
 
-  lbw.aprintf("Call stack (%d frames):\n", stack_size);
+  lbw.aprintf("Call stack (%d frames, BP: %p):\n", stack_size, stackhlp_get_bp());
 
   // All DbgHelp functions are single threaded.
   // https://docs.microsoft.com/en-us/windows/win32/api/dbghelp/nf-dbghelp-undecoratesymbolname
@@ -116,7 +125,7 @@ const char *stackhlp_get_call_stack(char *buf, int out_buf_sz, const void *const
 
     if (sym_ok)
     {
-#if XBOX_GDK_CALLSTACKS
+#if _TARGET_XBOX
       lbw.aprintf(" %s", sym.Name);
 #else
       char n[256];
@@ -150,6 +159,32 @@ const char *stackhlp_get_call_stack(char *buf, int out_buf_sz, const void *const
 
   return buf;
 }
+
+#else // CAN_RESOLVE_SYMBOLS
+
+const char *stackhlp_get_call_stack(char *buf, int out_buf_sz, const void *const *stack, unsigned max_size)
+{
+  LimitedBufferWriter lbw(buf, out_buf_sz);
+  if (!stack)
+  {
+    lbw.aprintf("n/a");
+    return buf;
+  }
+
+  unsigned stack_size = get_stack_size(stack, max_size);
+
+  lbw.aprintf("Call stack (%d frames, BP: %p), addresses only:\n", stack_size, stackhlp_get_bp());
+
+  for (int i = 0; i < stack_size; i++)
+  {
+    uintptr_t stk_addr = (uintptr_t)stack[i];
+    lbw.aprintf("  %-8llX\n", (int64_t)stk_addr);
+  }
+  lbw.aprintf("\n");
+  return buf;
+}
+
+#endif // CAN_RESOLVE_SYMBOLS
 
 void *stackhlp_get_bp() { return (void *)GetModuleHandle(NULL); }
 
@@ -213,7 +248,7 @@ void dump_thread_callstack(intptr_t thread_id)
 
 void dump_all_thread_callstacks()
 {
-#if !XBOX_GDK_CALLSTACKS
+#if !_TARGET_XBOX
   HANDLE h = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
   if (h != INVALID_HANDLE_VALUE)
   {
@@ -489,7 +524,7 @@ bool stackhlp_get_symbol(void *, uint32_t &, char *filename, size_t, char *symbo
 }
 #endif
 
-#if !(_TARGET_PC_WIN | XBOX_GDK_CALLSTACKS)
+#if !(_TARGET_PC_WIN || _TARGET_XBOX)
 bool can_unwind_callstack_for_other_thread() { return false; }
 int get_thread_handle_callstack(intptr_t, void **, uint32_t) { return 0; }
 intptr_t sampling_open_thread(intptr_t) { return 0; }
@@ -500,7 +535,7 @@ void sampling_close_thread(intptr_t) {}
 
 void xbox_init_dbghelp()
 {
-#if XBOX_GDK_CALLSTACKS
+#if DAGOR_DBGLEVEL != 0
   OSSpinlockScopedLock lock(dbghelp_spinlock);
   static bool initialized = false;
   if (initialized)

@@ -1,5 +1,5 @@
 local z = 0
-let function foo(x, y) {
+function foo(x, y) {
     return function(a, b) {
         z = a + b
         return function(c, d) {

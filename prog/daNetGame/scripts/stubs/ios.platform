@@ -1,0 +1,32 @@
+
+return {
+  showAppReview = @() null
+  getSafeArea = @() 1.0
+  getSafeAreaVert = @() 1.0
+  getSafeAreaHor = @() 1.0
+  getConnectionStatus = @() -1
+  getUUID = @() ""
+  checkMicPermissionAndRequest = @(_) false
+  requestTrackingPermission = @() null
+  getTrackingPermission = @() 0
+  checkAppStoreUpdate = @() null
+  checkAppStoreUpdateWithBundleKey = @(_) null
+  checkAppStoreUpdateWithVersion = @(_) null
+  getAppStoreProdVersion = @() null
+  getBundleStringByKey = @(_) ""
+  getBundleVersion = @() ""
+  readIntSettings = @(_,__) 0
+  writeIntSettings = @(_,__) null
+  readBoolSettings = @(_,__) false
+  writeBoolSettings = @(_,__) null
+  getScreenPPI = @() 326.0
+  CONN_WIFI = 2
+  CONN_LIMITED = 1
+  CONN_NO_CONNECTION = 0
+  CONN_UNKNOWN = -1
+  ATT_UNKNOWN = -1
+  ATT_NOT_DETERMINED = 0
+  ATT_RESTRICTED = 1
+  ATT_DENIED = 2
+  ATT_GRANTED = 3
+}

@@ -1,0 +1,57 @@
+include "water_3d_geometry.dshl"
+include "frustum.dshl"
+include "heightmap_common.dshl"
+include "viewVecVS.dshl"
+
+shader water_depth_nv2, water_depth_nv2_heightmap, water_depth_distant
+{
+  if (hardware.metal && water_tess_factor != water_tess_factor_off)
+  {
+    dont_render;
+  }
+
+  no_ablend;
+  color_write = 0;
+
+  bool colorPass = false;
+  WATER_3D_COMMON_VS()
+  WATER_3D_DEFERRED_COMMON_VS()
+
+  if (shader == water_depth_distant)
+  {
+    USE_WATER_DISTANT_COMMON()
+  }
+
+  hlsl(ps) {
+    ##if shader == water_depth_distant
+      float4 water_nv_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE) : SV_Target0
+      {
+        half3 worldNormal;
+        PS_INPUT In = get_spoofed_ps_input(input, worldNormal);
+        BRANCH
+        if (In.pos_clip.w < 0)
+          discard;
+        return float4(0,0,0,0);
+      }
+    ##else
+      float4 water_nv_ps(PS_INPUT In HW_USE_SCREEN_POS INPUT_VFACE) : SV_Target0
+      {
+        return float4(0,0,0,0);
+      }
+    ##endif
+  }
+
+  if (shader == water_depth_nv2)
+  {
+    WATER_3D_DEFERRED_SHADERS_COMMON()
+  }
+  else if (shader == water_depth_nv2_heightmap)
+  {
+    WATER_3D_HEIGHTMAP_RENDER()
+  }
+  else
+  {
+    if (in_editor_assume == yes) {dont_render;}
+    compile("target_ps", "water_nv_ps");
+  }
+}

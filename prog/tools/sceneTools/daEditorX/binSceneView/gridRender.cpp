@@ -1,7 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "gridRender.h"
 #include <math/dag_Point2.h>
 #include <math/dag_Point3.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_buffers.h>
 #include <3d/dag_materialData.h>
 #include <shaders/dag_shaders.h>
 

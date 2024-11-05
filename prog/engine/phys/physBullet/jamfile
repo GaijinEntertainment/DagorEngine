@@ -10,7 +10,7 @@ if $(BulletSdkVer) != $(DefBulletSdkVer) { Target = $(Target:S=~bt$(BulletSdkVer
 AddIncludes =
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/3rdPartyLibs/phys/bullet-$(BulletSdkVer)/src
-  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude # FIXME_BROKEN_DEP
 ;
 
 
@@ -29,12 +29,12 @@ Sources =
 UseProgLibs =
   engine/phys/physCommon
   3rdPartyLibs/phys/bullet-$(BulletSdkVer)
-  gameLibs/render/dynmodelRenderer
+  gameLibs/render/dynmodelRenderer # FIXME_BROKEN_DEP
 ;
 
 
 
-CPPopt = -D__B_CORE -DUSE_BULLET_PHYSICS ;
+CPPopt = -DUSE_BULLET_PHYSICS ;
 
 include $(Root)/prog/3rdPartyLibs/phys/bullet-$(BulletSdkVer)/setup.jam ;
 include $(Root)/prog/_jBuild/build.jam ;

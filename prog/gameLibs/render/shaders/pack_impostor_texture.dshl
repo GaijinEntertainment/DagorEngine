@@ -18,6 +18,8 @@ int slice_id = 0;
 texture impostor_sdf_tex;
 int impostor_sdf_tex_const_no = 3 always_referenced;
 
+texture impostor_branch_mask_tex;
+
 macro USE_IMPOSTOR_STRUCTS()
   hlsl(ps) {
     #include <pack_impostor_texture.hlsl>
@@ -372,6 +374,7 @@ shader pack_impostor_texture
     impostor_texture_transform@f4 = (impostor_texture_transform.x*texture_size.x, impostor_texture_transform.y*texture_size.y, impostor_texture_transform.z*texture_size.x, impostor_texture_transform.w*texture_size.y);
     slice_id@i1 = (slice_id);
     impostor_sdf_max_distance@f1 = (impostor_sdf_max_distance);
+    impostor_branch_mask_tex@tex2d = impostor_branch_mask_tex;
   }
 
   hlsl(ps) {
@@ -391,6 +394,9 @@ shader pack_impostor_texture
       int2 center = texCoord*RENDER_OVERSCALE + (RENDER_OVERSCALE+1)/2;
 
       ImpostorParameters params = fetch_gbuf(center);
+
+      float branchValue = texelFetch(impostor_branch_mask_tex, texCoord, 0).x;
+      params.translucency *= branchValue;
 
       bool isCenterInside = params.alpha >= 0.5;
       int maxDist = min(max(texture_size.x, texture_size.y)*RENDER_OVERSCALE/2, impostor_sdf_max_distance);

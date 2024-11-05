@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "daProfilerInternal.h"
 
 namespace da_profiler
@@ -35,5 +37,6 @@ desc_id_t get_tls_description(const char *file_name, int line, uint32_t flags, c
   return (desc_id_t)the_profiler.getTLSDescription(name, file_name, line, flags, color);
 }
 
+const char *get_description(desc_id_t i, uint32_t &color_and_flags) { return the_profiler.descriptions.get(i, color_and_flags); }
 
 }; // namespace da_profiler

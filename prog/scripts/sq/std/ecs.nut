@@ -7,6 +7,7 @@
 // }
 let { logerr } = require("dagor.debug")
 let { kwarg } = require("%sqstd/functools.nut")
+//let { flatten } = require("%sqstd/underscore.nut")
 let { DBGLEVEL } = require("dagor.system")
 let ecs = require("ecs")
 
@@ -66,6 +67,9 @@ function register_es(name, onEvents={}, compsDesc={}, params = {}) {
       onChange = [ecs.EventComponentChanged],
       onDestroy = [ecs.EventEntityDestroyed, ecs.EventComponentsDisappear]
     }
+//    let keys = flatten(onEvents.keys()).reduce(function(res, k) {res[k] <- k; return res;}, {})
+//    if (("onInit" in keys || "onChange" in keys) && "onDestroy" not in keys)
+//      println($"ES requires destroy: {name}")
     foreach (k, func in onEvents) {
       if (k in remap) {
         foreach (j in remap[k])

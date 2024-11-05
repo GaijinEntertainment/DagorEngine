@@ -1,7 +1,7 @@
 Root        ?= ../../../../.. ;
 BreakpadRoot = prog/3rdPartyLibs/breakpad ;
 Location     = $(BreakpadRoot)/common/mac ;
-Platform    ?= macosx ;
+Platform    ?= macOS ;
 
 TargetType  = lib ;
 Target      = 3rdPartyLibs/breakpad/common/mac.lib ;

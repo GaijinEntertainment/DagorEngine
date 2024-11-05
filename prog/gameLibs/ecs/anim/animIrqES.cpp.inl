@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ecs/core/entityManager.h>
 #include <daECS/core/coreEvents.h>
 #include <ecs/anim/anim.h>
@@ -12,7 +14,7 @@ struct AnimIrqToEventComponent : public ecs::AnimIrqHandler
 
   int addIrqToHandle(AnimV20::AnimcharBaseComponent &animchar, const ecs::string &irq_type)
   {
-    int irqType = AnimV20::getIrqId(irq_type.c_str());
+    int irqType = AnimV20::addIrqId(irq_type.c_str());
     animchar.unregisterIrqHandler(irqType, this); // to avoide duplicate registrations
     animchar.registerIrqHandler(irqType, this);
     return irqType;

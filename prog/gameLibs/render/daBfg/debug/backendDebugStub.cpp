@@ -1,9 +1,16 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include "backendDebug.h"
+
 #include <runtime/runtime.h>
-#include <render/daBfg/bfg.h>
+
 
 namespace dabfg
 {
-void update_graph_visualization(InternalRegistry &, const DependencyData &, eastl::span<const NodeNameId>) {}
+
+void update_graph_visualization(InternalRegistry &, const NameResolver &, const DependencyData &, const DebugPassColoration &,
+  eastl::span<const NodeNameId>)
+{}
 void invalidate_graph_visualization() {}
 void reset_texture_visualization() {}
 
@@ -16,7 +23,8 @@ void debug_rec_resource_barrier(ResNameId, int, int, int, ResourceBarrier) {}
 void validation_restart() {}
 void validation_set_current_node(const InternalRegistry &, NodeNameId) {}
 void validation_add_resource(const D3dResource *) {}
-void validation_of_external_resources_duplication(const IdIndexedMapping<intermediate::ResourceIndex, intermediate::Resource> &,
+void validation_of_external_resources_duplication(
+  const IdIndexedMapping<intermediate::ResourceIndex, eastl::optional<ExternalResource>> &,
   const IdIndexedMapping<intermediate::ResourceIndex, intermediate::DebugResourceName> &)
 {}
 void validate_global_state(const InternalRegistry &, NodeNameId) {}

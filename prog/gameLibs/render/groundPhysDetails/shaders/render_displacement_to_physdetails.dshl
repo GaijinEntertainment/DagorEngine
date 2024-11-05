@@ -1,0 +1,108 @@
+include "shader_global.dshl"
+include "toroidal_heightmap.dshl"
+include "displacement_inc.dshl"
+
+texture tex_hmap_low;
+texture hmap_ofs_thickness;
+texture ground_physdetails_tex;
+
+float4 world_to_ground_physdetails;
+float4 ground_physdetails_params;
+float4 groundDetails_to_world;
+float4 world_to_hmap_low = (10e+3, 10e+3, 10e+10, 10e+10);
+float4 tex_hmap_inv_sizes = (1/2048,1/2048,1/2048,1/2048);
+float4 heightmap_scale = (1,0,1,0);
+float4 hmap_ofs_thickness_map = (1/2048,1/2048,0,0);
+
+shader copy_height_displacement, copy_height_displacement_GPU
+{
+  if (hmap_ofs_thickness != NULL)//has_detail_tex
+  {
+    (ps) {
+      hmap_ofs_thickness@smp2d = hmap_ofs_thickness;
+      hmap_ofs_thickness_map@f4 = hmap_ofs_thickness_map;
+      world_to_hmap_ofs@f4 = world_to_hmap_ofs;
+    }
+    hlsl(ps)
+    {
+      #define has_ofs_tex 1
+    }
+  }
+
+  no_ablend;
+  supports none;
+  supports global_frame;
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  (ps) {
+    tex_hmap_low@smp2d = tex_hmap_low;
+    ground_physdetails_tex@smp2d = ground_physdetails_tex;
+
+    heightmap_scale@f4 = heightmap_scale;
+    ground_physdetails_params@f4 = ground_physdetails_params;
+    world_to_ground_physdetails@f4 = world_to_ground_physdetails;
+    groundDetails_to_world@f4 = groundDetails_to_world;
+    world_to_hmap_low@f4 = (world_to_hmap_low.x, world_to_hmap_low.y,
+                            world_to_hmap_low.z + 0.5*tex_hmap_inv_sizes.x,
+                            world_to_hmap_low.w+0.5*tex_hmap_inv_sizes.y);
+  }
+
+
+  POSTFX_VS_TEXCOORD(0, texcoord00)
+
+  HEIGHTMAP_DISPLACEMENT_LOWRES_PS()
+  PS4_DEF_TARGET_FMT_32_GR()
+
+  hlsl(ps)
+  {
+    float4 render_height_displacement_ps(VsOutput input) : SV_Target
+    {
+      float2 worldXZ = input.texcoord00*groundDetails_to_world.xy+groundDetails_to_world.zw;
+      float2 tc_low = worldXZ*world_to_hmap_low.xy + world_to_hmap_low.zw;
+
+      float thickTex = 0, weightOfs = 0;
+      #if has_ofs_tex
+        float2 tc_ofs = worldXZ*world_to_hmap_ofs.xy + world_to_hmap_ofs.zw;
+        float2 tc_centered = saturate(-10*abs(tc_ofs*2-1)+10);
+        weightOfs = 1-(tc_centered.x*tc_centered.y);
+        thickTex = tex2Dlod(hmap_ofs_thickness, float4(worldXZ*hmap_ofs_thickness_map.xy + hmap_ofs_thickness_map.zw,0,0)).r;
+      #endif
+      float height = tex2Dlod(tex_hmap_low, float4(tc_low,0,0)).r;
+      height = height * heightmap_scale.x + heightmap_scale.y;
+      float tformHeight;
+      height += get_displacement_relief_lowres(worldXZ, thickTex, weightOfs, height, tformHeight);
+
+      float2 tcMicrodetails = worldXZ*world_to_ground_physdetails.xy + world_to_ground_physdetails.zw;
+      tcMicrodetails.y=1-tcMicrodetails.y;
+
+      #define READ_DEPTH(tex, cX, cY) tex2Dlod(tex, float4(tcMicrodetails.xy + ground_physdetails_params.z * float2(cX, cY), 0, 0)).x
+
+      #if shader == copy_height_displacement
+        float4 physdetailHeight = float4(
+                READ_DEPTH(ground_physdetails_tex, -1, -1),
+                READ_DEPTH(ground_physdetails_tex, -1, 1),
+                READ_DEPTH(ground_physdetails_tex, 1, -1),
+                READ_DEPTH(ground_physdetails_tex, 1, 1));
+      #else
+        float4 physdetailHeight = READ_DEPTH(ground_physdetails_tex, 0, 0);
+      #endif
+
+      physdetailHeight = ground_physdetails_params.x+physdetailHeight*ground_physdetails_params.y;
+
+      // #define USE_MAXIMUM = 1
+      #if USE_MAXIMUM
+        height = max(height, max(max(physdetailHeight.x, physdetailHeight.y), max(physdetailHeight.z, physdetailHeight.w)));
+      #else
+        physdetailHeight = max(physdetailHeight, float4(height, height, height, height));
+        float maxphysdetailHeight = max(max(physdetailHeight.x, physdetailHeight.y), max(physdetailHeight.z, physdetailHeight.w));
+        height = 0.2*dot(physdetailHeight, float4(1, 1, 1, 1)) + 0.2*maxphysdetailHeight;
+      #endif
+
+      return height;
+    }
+  }
+  compile("target_ps", "render_height_displacement_ps");
+}

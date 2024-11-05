@@ -1,6 +1,6 @@
-# Getting started with daScript
+# Getting started with Daslang
 
-Read the installation steps to get daScript for your system, then read the
+Read the installation steps to get Daslang for your system, then read the
 tutorial.
 
 ## Prerequisites

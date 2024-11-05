@@ -1,9 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 /************************************************************************
   macro support for shaders
 /************************************************************************/
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef __SHMACRO_H
-#define __SHMACRO_H
 
 #include <generic/dag_tab.h>
 #include <osApiWrappers/dag_localConv.h>
@@ -119,6 +119,3 @@ const String &getCurrentMacroDesc(ShaderLexParser *parser);
 void realize();
 
 }; // namespace ShaderMacroManager
-//
-
-#endif //__SHMACRO_H

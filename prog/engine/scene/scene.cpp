@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <vecmath/dag_vecMath.h>
 #include <scene/dag_scene.h>
 #include <startup/dag_globalSettings.h>
@@ -224,13 +226,13 @@ bool scene::SimpleScene::checkConsistency() const
 void scene::SimpleScene::setFlags(node_index node, uint16_t flags)
 {
   uint32_t nodeIdx = getNodeIndexInternal(node);
-  if (nodeIdx < nodes.size())
+  if (!isFreeIndex(nodeIdx))
     set_node_flags(nodes[nodeIdx], flags);
 }
 
 void scene::SimpleScene::unsetFlags(node_index node, uint16_t flags)
 {
   uint32_t nodeIdx = getNodeIndexInternal(node);
-  if (nodeIdx < nodes.size())
+  if (!isFreeIndex(nodeIdx))
     unset_node_flags(nodes[nodeIdx], flags);
 }

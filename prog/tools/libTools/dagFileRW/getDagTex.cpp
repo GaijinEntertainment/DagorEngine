@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/dagFileRW/dagUtil.h>
 #include <libTools/dagFileRW/dagFileFormat.h>
 #include <libTools/dagFileRW/sceneImpIface.h>

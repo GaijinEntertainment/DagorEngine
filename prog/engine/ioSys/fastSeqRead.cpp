@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_fastSeqRead.h>
 #include <osApiWrappers/dag_asyncRead.h>
 #include <osApiWrappers/dag_miscApi.h>
@@ -138,7 +140,7 @@ int FastSeqReader::tryRead(void *ptr, int size)
   {
     if (cBuf && file.pos >= cBuf->ea)
     {
-      logmessage_ctx(_MAKE4C('nEvt'), "reset cBuf due to file.pos %d cBuf->sa=%d cBuf->ea=%d i=%d", file.pos, cBuf->sa, cBuf->ea,
+      LOGMESSAGE_CTX(_MAKE4C('nEvt'), "reset cBuf due to file.pos %d cBuf->sa=%d cBuf->ea=%d i=%d", file.pos, cBuf->sa, cBuf->ea,
         cBuf - buf);
       cBuf = nullptr;
     }
@@ -162,7 +164,7 @@ int FastSeqReader::tryRead(void *ptr, int size)
       int sz = cBuf->ea - file.pos;
       if (!(file.pos >= cBuf->sa && sz <= size && file.pos + sz <= cBuf->ea && cBuf->ea - cBuf->sa <= BUF_SZ))
       {
-        logmessage_ctx(_MAKE4C('nEvt'),
+        LOGMESSAGE_CTX(_MAKE4C('nEvt'),
           "file.pos=%d sz=%d size=%d cBuf->sa=%d cBuf->ea=%d BUF_SZ=%d i=%d doneMask=0x%x pendMask=0x%x %s", file.pos, sz, size,
           cBuf->sa, cBuf->ea, BUF_SZ, cBuf - buf, doneMask, pendMask, targetFilename);
         return p - (char *)ptr;
@@ -173,7 +175,7 @@ int FastSeqReader::tryRead(void *ptr, int size)
 #endif
               ))
       {
-        logmessage_ctx(_MAKE4C('nEvt'), "cBuf=%p [%d] cBuf->data=%p file.pos=%d sz=%d doneMask=0x%x pendMask=0x%x %s", cBuf,
+        LOGMESSAGE_CTX(_MAKE4C('nEvt'), "cBuf=%p [%d] cBuf->data=%p file.pos=%d sz=%d doneMask=0x%x pendMask=0x%x %s", cBuf,
           cBuf - buf, cBuf ? cBuf->data : nullptr, file.pos, sz, doneMask, pendMask, targetFilename);
         return p - (char *)ptr;
       }
@@ -191,51 +193,49 @@ int FastSeqReader::tryRead(void *ptr, int size)
       for (int i = 0, bit = 1; i < BUF_CNT; i++, bit <<= 1)
         if ((pendMask & bit) && file.pos >= buf[i].sa && file.pos < buf[i].ea)
         {
-          waitForDone(bit);
+          int sz = 0;
+          dfa_wait_until_complete(buf[i].handle, &sz);
+          readCompleted(i, bit, sz);
           if ((doneMask & bit) && file.pos >= buf[i].sa && file.pos < buf[i].ea)
             cBuf = buf + i;
           else if (buf[i].ea > buf[i].sa) // report only non-empty blocks (and just ignore empty ones)
-            logmessage_ctx(_MAKE4C('nEvt'), "wait done mismatch: file.pos=%d file.size=%d buf[%d].sa=%d buf[%d].ea=%d %s", file.pos,
+            LOGMESSAGE_CTX(_MAKE4C('nEvt'), "wait done mismatch: file.pos=%d file.size=%d buf[%d].sa=%d buf[%d].ea=%d %s", file.pos,
               file.size, i, buf[i].sa, i, buf[i].ea, targetFilename);
           break;
         }
+
     placeRequests();
-    if (!cBuf && (readAheadPos >= file.size || (doneMask | pendMask) == BUF_ALL_MASK))
-      sleep_msec_ex(0);
+
   } while (size > 0);
+
   return p - (char *)ptr;
 }
 
-void FastSeqReader::waitForDone(int wait_mask)
+void FastSeqReader::readCompleted(int i, int bit, int sz)
 {
-  while (!(doneMask & wait_mask))
+  if (DAGOR_UNLIKELY(sz < 0)) // err?
   {
-    placeRequests();
-    sleep_msec_ex(0);
+#if DAGOR_EXCEPTIONS_ENABLED
+    DAGOR_THROW(LoadException("async read failed", buf[i].sa)); // To consider: store copy of string within DagorException?
+#else
+    DAG_FATAL("exception: LoadException(\"async read from '%s' failed with error %d\")", targetFilename.c_str(), sz);
+#endif
   }
+  G_ASSERT(sz);
+  // out_debug_str_fmt("complete %d\n", i);
+  doneMask |= bit;
+  pendMask &= ~bit;
+  buf[i].ea = buf[i].sa + sz;
 }
 
 void FastSeqReader::placeRequests()
 {
   checkThreadSanity();
+
   if (pendMask)
-    for (int i = 0, bit = 1, sz; i < BUF_CNT; i++, bit <<= 1)
+    for (int i = 0, bit = 1, sz = 0; i < BUF_CNT; i++, bit <<= 1)
       if ((pendMask & bit) && dfa_check_complete(buf[i].handle, &sz))
-      {
-        if (DAGOR_UNLIKELY(sz < 0)) // err?
-        {
-#if DAGOR_EXCEPTIONS_ENABLED
-          DAGOR_THROW(LoadException("async read failed", buf[i].sa)); // To consider: store copy of string within DagorException?
-#else
-          DAG_FATAL("exception: LoadException(\"async read from '%s' failed with error %d\")", targetFilename.c_str(), sz);
-#endif
-        }
-        G_ASSERT(sz);
-        // out_debug_str_fmt("complete %d\n", i);
-        doneMask |= bit;
-        pendMask &= ~bit;
-        buf[i].ea = buf[i].sa + sz;
-      }
+        readCompleted(i, bit, sz);
 
   if (maxBackSeek && doneMask && file.pos >= maxBackSeek && file.pos >= lastSweepPos + BUF_SZ - 1)
   {
@@ -301,7 +301,7 @@ void FastSeqReader::placeRequests()
         // out_debug_str_fmt("place req %d: %d-%d\n", i, buf[i].sa, buf[i].ea);
         if (cBuf == buf + i)
         {
-          logmessage_ctx(_MAKE4C('nEvt'), "reset cBuf==buf[%d]", i);
+          LOGMESSAGE_CTX(_MAKE4C('nEvt'), "reset cBuf==buf[%d]", i);
           cBuf = nullptr;
         }
         pendMask |= bit;
@@ -351,7 +351,7 @@ void FastSeqReader::checkThreadSanity()
   }
   else if (curThreadId != cur_thread)
   {
-    logmessage_ctx(_MAKE4C('nEvt'), "checkThreadSanity failed (%d and %d) for %s, file.pos=%d", curThreadId, cur_thread,
+    LOGMESSAGE_CTX(_MAKE4C('nEvt'), "checkThreadSanity failed (%d and %d) for %s, file.pos=%d", curThreadId, cur_thread,
       targetFilename, file.pos);
   }
 

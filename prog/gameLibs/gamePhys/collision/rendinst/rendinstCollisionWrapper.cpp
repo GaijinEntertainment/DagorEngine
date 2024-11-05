@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <phys/dag_physDecl.h>
 #include <phys/dag_physics.h>
 
@@ -78,7 +80,8 @@ void WrapperRendInstCollisionImplCB::addTreeCheck(const rendinst::CollisionInfo 
   if (!rendinstdestr::get_tree_collision())
   {
     CollisionObject &treeColl = rendinstdestr::get_tree_collision();
-    treeColl = dacoll::create_coll_obj_from_shape(PhysCapsuleCollision(rad, ht + rad * 2, 1 /*Y*/), NULL, /*kinematic*/ false, false);
+    treeColl = dacoll::create_coll_obj_from_shape(PhysCapsuleCollision(rad, ht + rad * 2, 1 /*Y*/), NULL, /*kinematic*/ false,
+      /* add to world */ false, /* auto mask */ true);
   }
 
   if (!rendinstdestr::get_tree_collision())

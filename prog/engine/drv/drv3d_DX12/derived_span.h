@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/type_traits.h>
@@ -22,7 +23,7 @@ public:
     static_assert(eastl::is_base_of<T, U>::value, "U is invalid type");
   }
   template <typename U>
-  DerivedSpan(const eastl::vector<U> &u_base) : DerivedSpan{u_base.data(), u_base.size()}
+  DerivedSpan(const dag::Vector<U> &u_base) : DerivedSpan{u_base.data(), u_base.size()}
   {}
   class Iterator
   {

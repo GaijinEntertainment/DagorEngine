@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_critSec.h>
 #include <util/dag_globDef.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -143,7 +145,7 @@ int full_leave_critical_section(void *p)
   int cnt = cc->RecursionCount;
   for (int i = 0; i < cnt; i++)
     LeaveCriticalSection(cc);
-#else
+#elif DAG_CS_CUSTOM_LOCKSCOUNT
   int cnt = csimpl::lockcount::value(p);
   for (int i = 0; i < cnt; i++)
   {
@@ -154,6 +156,14 @@ int full_leave_critical_section(void *p)
     pthread_mutex_unlock(cc);
 #endif
   }
+#else
+  int cnt = 0;
+#if _TARGET_C1 | _TARGET_C2
+
+#else
+  while (pthread_mutex_unlock(cc) == 0)
+#endif
+    cnt++;
 #endif
   return cnt;
 }

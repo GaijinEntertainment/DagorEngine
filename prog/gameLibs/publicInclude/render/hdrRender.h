@@ -1,13 +1,12 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <3d/dag_drv3dConsts.h>
+#include <drv/3d/dag_consts.h>
 #include <3d/dag_texMgr.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_tex3d.h>
 #include <3d/dag_resPtr.h>
 
 class DataBlock;

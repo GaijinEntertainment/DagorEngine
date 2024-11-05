@@ -1,5 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <3d/tql.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_memIo.h>
 #include <util/dag_string.h>
@@ -243,5 +247,5 @@ static void reload_texstubs_from_mem(bool full_reset)
   }
 }
 
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_resetDevice.h>
 REGISTER_D3D_AFTER_RESET_FUNC(reload_texstubs_from_mem);

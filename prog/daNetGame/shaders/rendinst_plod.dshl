@@ -1,0 +1,124 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "rendinst_simple_inc.dshl"
+include "rendinst_plod_inc.dshl"
+
+shader rendinst_plod_simple
+{
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+  channel color8 tc[0] = tc[0];
+  channel color8 tc[1] = tc[1];
+  channel color8 tc[2] = tc[2];
+
+  assume instancing_type = tm_vb;
+  if (rendinst_render_pass == rendinst_render_pass_impostor_color  ||
+      rendinst_render_pass == rendinst_render_pass_impostor_shadow ||
+      rendinst_render_pass == rendinst_render_pass_grassify ||
+      rendinst_render_pass == rendinst_render_pass_to_heightmap)
+  {
+    dont_render;
+  }
+
+  RENDINST_BLOCK()
+  RENDINST_INSTANCING()
+
+  WRITE_GBUFFER()
+
+  RENDINST_SW_VERTEX_FETCH(vs)
+  RENDINST_SW_VERTEX_FETCH(ps)
+
+  PLOD_COMMON()
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      uint vertexByteOffset : BLENDINDICES0;
+      ##if (compatibility_mode == compatibility_mode_on)
+        float3 pointToEye : TEXCOORD3;
+      ##endif
+      ##if hardware.vulkan
+        #if SHADER_COMPILER_DXC
+          [[vk::builtin("PointSize")]] float pointSize : PSIZE;
+        #else
+          float pointSize : PSIZE;
+        #endif
+      ##elif hardware.metal
+        #if SHADER_COMPILER_DXC
+          [[vk::builtin("PointSize")]] float pointSize : PSIZE;
+        #else
+          [[vk::builtin("PointSize")]] float pointSize;
+        #endif
+      ##endif
+    };
+  }
+  hlsl(vs) {
+    INSTANCING_BUFFERS
+    struct VsInput
+    {
+      float3 pos  : POSITION;
+      half3 normal : NORMAL;
+    };
+
+    struct VsInputEmpty
+    {
+      HW_BASE_VERTEX_ID_OPTIONAL
+      HW_VERTEX_ID
+    };
+
+    VsOutput plod_vs(VsInputEmpty vs_id HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+
+      VsInput input;
+      const uint vertexStride = 28;
+      USE_VERTEX_ID_WITHOUT_BASE_OFFSET(vs_id)
+      const uint vertexByteOffset = getVertexOffset(vs_id.vertexId, vertexStride);
+      // 0      4       8       12     16    28
+      // [pos.x | pos.y | pos.z | norm | ... ]
+      input.pos = fetchVertexFloat3Attribute(vertexByteOffset);
+      input.normal = fetchVertexColor8Attribute(vertexByteOffset + 12).xyz;
+      output.vertexByteOffset = vertexByteOffset;
+
+      float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+      float3 localPos = input.pos;
+      float opacity = 1;
+      VB_PERFORM_INSTANCING
+
+      const float3 pointToCellCentre = cellxyz_min.xyz + cellxyz_size.xyz / 2 - localPos;
+      worldPos = calculatePointWorldPos(worldPos, world_view_pos, vs_id.vertexId, pointToCellCentre, plodRadius);
+      output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+
+      if (dot(worldPos - world_view_pos, worldNormal) > 0) // cull 'backface' points away
+        output.pos = NaN;
+
+      ##if (compatibility_mode == compatibility_mode_on)
+        output.pointToEye = world_view_pos - worldPos;
+      ##endif
+      ##if hardware.vulkan || hardware.metal
+        output.pointSize = 1.0;
+      ##endif
+      return output;
+    }
+  }
+  hlsl(ps) {
+    GBUFFER_OUTPUT plod_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      PackedGbuffer packedGbuf;
+      // 0      4       8       12     16          20                24     28
+      // [pos.x | pos.y | pos.z | norm | albedo_ao | normal_material | srms ]
+      packedGbuf.albedo_ao = fetchVertexColor8Attribute(input.vertexByteOffset + 16);
+      packedGbuf.normal_material = fetchVertexColor8Attribute(input.vertexByteOffset + 20);
+      packedGbuf.smoothness_reflectance_metallTranslucency_shadow = fetchVertexColor8Attribute(input.vertexByteOffset + 24);
+      packedGbuf.motion_reactive = 0.f;
+      ##if (compatibility_mode == compatibility_mode_off)
+        return write_gbuffer(packedGbuf);
+      ##else
+        return encode_gbuffer(unpackGbuffer(packedGbuf), input.pointToEye, GET_SCREEN_POS(input.pos));
+      ##endif
+    }
+  }
+  compile("target_vs", "plod_vs");
+  compile("target_ps", "plod_ps");
+}

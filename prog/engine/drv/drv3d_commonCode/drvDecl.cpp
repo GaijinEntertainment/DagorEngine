@@ -1,4 +1,9 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <generic/dag_carray.h>
 #include <EASTL/utility.h>
 #include <EASTL/algorithm.h>
@@ -36,6 +41,8 @@ static const eastl::pair<uint32_t, int> vendor_id_table[] = //
 
     {0x144D, D3D_VENDOR_SAMSUNG},
 
+    {0x19E5, D3D_VENDOR_HUAWEI},
+
     {0x0000, D3D_VENDOR_NONE},
 };
 
@@ -51,6 +58,7 @@ static const carray<const char *, D3D_VENDOR_COUNT> vendor_names = {
   "ARM",         // D3D_VENDOR_ARM
   "Qualcomm",    // D3D_VENDOR_QUALCOMM
   "Samsung",     // D3D_VENDOR_SAMSUNG
+  "Huawei",      // D3D_VENDOR_HUAWEI
 };
 
 void d3d_get_render_target(Driver3dRenderTarget &rt) { d3d::get_render_target(rt); }

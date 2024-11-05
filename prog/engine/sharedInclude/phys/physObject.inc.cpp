@@ -3,6 +3,7 @@
 #include <phys/dag_physics.h>
 #include <math/dag_geomTree.h>
 #include <math/dag_geomNodeUtils.h>
+#include <shaders/dag_dynSceneRes.h>
 #include <generic/dag_tabUtils.h>
 #include <debug/dag_debug.h>
 #include <math/twistCtrl.h>

@@ -844,7 +844,7 @@ def genFunction(fn:ClangFunc; castbind:bool; df:FILE const?)
     var qargs <- parseQualArgs(fn.ftype, rtype)
     var revArgs = true
     if length(qargs) != length(fn.args)
-        print("warning: args did not parse `{fn.ftype}` to {qargs}\n")
+        print("warning: args did not parse '{fn.ftype}' to {qargs}\n")
         delete qargs
         revArgs = false
     if revArgs

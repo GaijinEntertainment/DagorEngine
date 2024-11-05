@@ -3,6 +3,7 @@
 #include <sqstdaux.h>
 #include <stdio.h>
 #include <assert.h>
+#include <inttypes.h>
 #include <string.h>
 #include <stdarg.h>
 #include <squirrel/sqvm.h>
@@ -64,7 +65,7 @@ static void print_simple_value(HSQUIRRELVM v, PrintFunc pf, SQObjectPtr &val, bo
 
 
 template<typename PrintFunc>
-static void collect_stack_sting(HSQUIRRELVM v, PrintFunc pf)
+static void collect_stack_string(HSQUIRRELVM v, PrintFunc pf)
 {
     SQStackInfos si;
     SQInteger i;
@@ -110,7 +111,7 @@ static void collect_stack_sting(HSQUIRRELVM v, PrintFunc pf)
                 break;
             case OT_INTEGER:
                 sq_getinteger(v,-1,&i);
-                pf(v,_SC("[%s] %d\n"),name,i);
+                pf(v,_SC("[%s] ") _SC("%" PRId64) _SC("\n"),name, int64_t(i));
                 break;
             case OT_FLOAT:
                 sq_getfloat(v,-1,&f);
@@ -173,7 +174,7 @@ static void collect_stack_sting(HSQUIRRELVM v, PrintFunc pf)
                 }
                 break;
             case OT_CLOSURE:
-                pf(v,_SC("[%s] CLOSURE="),name);                
+                pf(v,_SC("[%s] CLOSURE="),name);
                 print_simple_value(v, pf, stack_get(v, -1));
                 pf(v,_SC("\n"));
                 break;
@@ -222,7 +223,7 @@ void sqstd_printcallstack(HSQUIRRELVM v)
 {
     SQPRINTFUNCTION pf = sq_geterrorfunc(v);
     if (pf)
-        collect_stack_sting(v, pf);
+        collect_stack_string(v, pf);
 }
 
 
@@ -236,7 +237,7 @@ SQRESULT sqstd_formatcallstackstring(HSQUIRRELVM v)
 
     SQChar* dst = mem;
 
-    collect_stack_sting(v, [alloc_ctx, &mem, &dst, &memlen](HSQUIRRELVM, const SQChar *fmt, ...) {
+    collect_stack_string(v, [alloc_ctx, &mem, &dst, &memlen](HSQUIRRELVM, const SQChar *fmt, ...) {
         const int appendBlock = 128;
         va_list args;
 
@@ -285,7 +286,7 @@ static SQInteger _sqstd_aux_printerror(HSQUIRRELVM v)
     return 0;
 }
 
-void _sqstd_compiler_error(HSQUIRRELVM v,const SQChar *sErr,const SQChar *sSource,SQInteger line,SQInteger column, const SQChar *extra)
+void _sqstd_compiler_message(HSQUIRRELVM v,SQMessageSeverity severity,const SQChar *sErr,const SQChar *sSource,SQInteger line,SQInteger column, const SQChar *extra)
 {
     SQPRINTFUNCTION pf = sq_geterrorfunc(v);
     if(pf) {
@@ -298,7 +299,7 @@ void _sqstd_compiler_error(HSQUIRRELVM v,const SQChar *sErr,const SQChar *sSourc
 
 void sqstd_seterrorhandlers(HSQUIRRELVM v)
 {
-    sq_setcompilererrorhandler(v,_sqstd_compiler_error);
+    sq_setcompilererrorhandler(v,_sqstd_compiler_message);
     sq_newclosure(v,_sqstd_aux_printerror,0);
     sq_seterrorhandler(v);
 }

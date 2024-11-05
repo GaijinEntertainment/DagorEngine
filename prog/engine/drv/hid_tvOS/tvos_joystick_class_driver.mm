@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #import <Foundation/Foundation.h>
 #include "tvos_joystick_class_driver.h"
 

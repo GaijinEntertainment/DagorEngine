@@ -1,0 +1,102 @@
+#  to be included in jBuild.jam
+
+rule ProcessLinkTarget
+{
+  local _LINUX_LIBS = rt pthread dl ;
+
+  if $(TargetType) in exe dll {
+    SeparateDebugInfo ?= yes ;
+    if $(SeparateDebugInfo) = yes {
+      $(Target)__IMGBUILD = call objcopy ;
+      $(Target)__PDB = $(OutDir)/$(Target).debuginfo ;
+    }
+    else {
+      $(Target)__IMGBUILD = rem ;
+    }
+  }
+
+  if $(TargetType) = exe
+  {
+    _LINK_OPT = ;
+
+    _LINK_OPT = --Map=$($(Target)__TmpDir)/$(Target:S=.map) ;
+
+    $(Target)__LINK      = $(_LINK) ;
+    $(Target)__LINK_OPT  = $(_LINK_OPT) $(LINKopt) ;
+
+    LinkExeSetBuildStamp $(Target) ;
+  }
+  else if $(TargetType) = lib
+  {
+    $(Target)__LINK     = $(_LIB) ;
+    $(Target)__LINK_OPT = $(LINKopt) ;
+    #if $(Config) = rel || $(Config) = irel { }
+  }
+  else if $(TargetType) = dll
+  {
+    _LINK = $(_LINK_DLL) ;
+    $(Target)__LINK     = $(_LINK) ;
+    $(Target)__LINK_OPT = $(LINKopt) ;
+  }
+
+  local _ADD_LIBS = $(1) ;
+
+  if $(TargetType) = exe {
+    _ADD_LIBS += -l$(_LINUX_LIBS) ;
+  }
+  $(Target)__LINK_LIBS = $(_ADD_LIBS) ;
+}
+
+
+actions together quietly link_target
+{
+#async
+  $(prelink_cmd)
+  echo linking $(1:B)$(1:S)
+  del $(1)
+  del $(1).debuginfo
+  call $(link) $(obj_list) -Wl,$(link_opt) -Wl,--start-group -Wl,$(link_libs) -Wl,$(_LINK_DEF_LIBS) -Wl,--end-group -Wl,-z,noexecstack -o $(1)
+  if errorlevel 1 goto failed_link
+  if not exist $(1) goto failed_link
+  $(imgbuild) --only-keep-debug $(1) $(1).debuginfo
+  $(imgbuild) --strip-$(StripType) $(1)
+  $(imgbuild) --add-gnu-debuglink=$(1).debuginfo $(1)
+  echo ----------------------------------------------------------------------
+  echo SUCCESSFULLY built $(1:B)$(1:S)  $(_PrintedOutput)
+  goto end
+
+  :failed_link
+  echo ----------------------------------------------------------------------
+  echo FAILED to build $(1:B)$(1:S) [Error #%errorlevel%] $(_PrintedOutput)
+  set ERRORLEVEL=13
+
+  :end
+  echo .
+}
+
+
+actions together quietly lib_target
+{
+#async
+  echo creating lib $(1:B)$(1:S)
+  del $(1)
+  enter_critsec
+  call $(Root)/prog/_jBuild/linux/merge_ar $(1) $(link[1]) $(link_libs)
+  leave_critsec
+  call $(link[1]) -qc $(link_opt) $(1) $(obj_list)
+  echo ----------------------------------------------------------------------
+  if errorlevel 1 goto failed
+  if not exist $(1) goto failed
+  call $(link[2]) $(1)
+  if errorlevel 1 goto failed
+  if not exist $(1) goto failed
+  echo SUCCESSFULLY built $(1:B)$(1:S)  $(_PrintedOutput)
+  goto end
+
+  :failed
+  echo FAILED to build $(1:B)$(1:S) [Error #%errorlevel%] $(_PrintedOutput)
+  set ERRORLEVEL=13
+
+  :end
+  echo .
+}

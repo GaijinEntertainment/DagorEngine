@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <vecmath/dag_vecMath.h>
 #include <scene/dag_scene.h>
 #include <scene/dag_tiledScene.h>

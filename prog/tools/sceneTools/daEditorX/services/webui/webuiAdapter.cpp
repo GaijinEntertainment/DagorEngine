@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_interface.h>
 #include <webui/httpserver.h>
 #include <webui/helpers.h>

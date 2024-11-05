@@ -1,4 +1,7 @@
-#include <3d/dag_hangHandler.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_hangHandler.h>
+#include <drv/3d/dag_lock.h>
 #include <util/dag_globDef.h>
 #include <cstring>
 #include <EASTL/type_traits.h>
@@ -37,6 +40,7 @@ void hang_if_requested(const char *event)
 #if DAGOR_DBGLEVEL > 0
   if (hanger && hang_on_event[0] && event && strcmp(event, hang_on_event) == 0)
   {
+    d3d::GpuAutoLock lock{};
     hanger();
     hang_on_event[0] = 0;
   }

@@ -12,62 +12,84 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_37() {
-// from D:\Work\libclang\include\llvm-c/Core.h:4194:20
-	addExtern< LLVMOpaquePassManager * (*)(LLVMOpaqueModule *) , LLVMCreateFunctionPassManagerForModule >(*this,lib,"LLVMCreateFunctionPassManagerForModule",SideEffects::worstDefault,"LLVMCreateFunctionPassManagerForModule")
-		->args({"M"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4197:20
-	addExtern< LLVMOpaquePassManager * (*)(LLVMOpaqueModuleProvider *) , LLVMCreateFunctionPassManager >(*this,lib,"LLVMCreateFunctionPassManager",SideEffects::worstDefault,"LLVMCreateFunctionPassManager")
-		->args({"MP"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4203:10
-	addExtern< int (*)(LLVMOpaquePassManager *,LLVMOpaqueModule *) , LLVMRunPassManager >(*this,lib,"LLVMRunPassManager",SideEffects::worstDefault,"LLVMRunPassManager")
-		->args({"PM","M"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4208:10
-	addExtern< int (*)(LLVMOpaquePassManager *) , LLVMInitializeFunctionPassManager >(*this,lib,"LLVMInitializeFunctionPassManager",SideEffects::worstDefault,"LLVMInitializeFunctionPassManager")
-		->args({"FPM"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4214:10
-	addExtern< int (*)(LLVMOpaquePassManager *,LLVMOpaqueValue *) , LLVMRunFunctionPassManager >(*this,lib,"LLVMRunFunctionPassManager",SideEffects::worstDefault,"LLVMRunFunctionPassManager")
-		->args({"FPM","F"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4219:10
-	addExtern< int (*)(LLVMOpaquePassManager *) , LLVMFinalizeFunctionPassManager >(*this,lib,"LLVMFinalizeFunctionPassManager",SideEffects::worstDefault,"LLVMFinalizeFunctionPassManager")
-		->args({"FPM"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4224:6
-	addExtern< void (*)(LLVMOpaquePassManager *) , LLVMDisposePassManager >(*this,lib,"LLVMDisposePassManager",SideEffects::worstDefault,"LLVMDisposePassManager")
-		->args({"PM"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4241:10
-	addExtern< int (*)() , LLVMStartMultithreaded >(*this,lib,"LLVMStartMultithreaded",SideEffects::worstDefault,"LLVMStartMultithreaded");
-// from D:\Work\libclang\include\llvm-c/Core.h:4245:6
-	addExtern< void (*)() , LLVMStopMultithreaded >(*this,lib,"LLVMStopMultithreaded",SideEffects::worstDefault,"LLVMStopMultithreaded");
-// from D:\Work\libclang\include\llvm-c/Core.h:4249:10
-	addExtern< int (*)() , LLVMIsMultithreaded >(*this,lib,"LLVMIsMultithreaded",SideEffects::worstDefault,"LLVMIsMultithreaded");
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:197:10
-	addExtern< unsigned int (*)() , LLVMDebugMetadataVersion >(*this,lib,"LLVMDebugMetadataVersion",SideEffects::worstDefault,"LLVMDebugMetadataVersion");
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:202:10
-	addExtern< unsigned int (*)(LLVMOpaqueModule *) , LLVMGetModuleDebugMetadataVersion >(*this,lib,"LLVMGetModuleDebugMetadataVersion",SideEffects::worstDefault,"LLVMGetModuleDebugMetadataVersion")
-		->args({"Module"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:210:10
-	addExtern< int (*)(LLVMOpaqueModule *) , LLVMStripModuleDebugInfo >(*this,lib,"LLVMStripModuleDebugInfo",SideEffects::worstDefault,"LLVMStripModuleDebugInfo")
-		->args({"Module"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:216:18
-	addExtern< LLVMOpaqueDIBuilder * (*)(LLVMOpaqueModule *) , LLVMCreateDIBuilderDisallowUnresolved >(*this,lib,"LLVMCreateDIBuilderDisallowUnresolved",SideEffects::worstDefault,"LLVMCreateDIBuilderDisallowUnresolved")
-		->args({"M"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:223:18
-	addExtern< LLVMOpaqueDIBuilder * (*)(LLVMOpaqueModule *) , LLVMCreateDIBuilder >(*this,lib,"LLVMCreateDIBuilder",SideEffects::worstDefault,"LLVMCreateDIBuilder")
-		->args({"M"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:229:6
-	addExtern< void (*)(LLVMOpaqueDIBuilder *) , LLVMDisposeDIBuilder >(*this,lib,"LLVMDisposeDIBuilder",SideEffects::worstDefault,"LLVMDisposeDIBuilder")
-		->args({"Builder"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:234:6
-	addExtern< void (*)(LLVMOpaqueDIBuilder *) , LLVMDIBuilderFinalize >(*this,lib,"LLVMDIBuilderFinalize",SideEffects::worstDefault,"LLVMDIBuilderFinalize")
-		->args({"Builder"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:240:6
-	addExtern< void (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueMetadata *) , LLVMDIBuilderFinalizeSubprogram >(*this,lib,"LLVMDIBuilderFinalizeSubprogram",SideEffects::worstDefault,"LLVMDIBuilderFinalizeSubprogram")
-		->args({"Builder","Subprogram"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:275:17
-	addExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueDIBuilder *,LLVMDWARFSourceLanguage,LLVMOpaqueMetadata *,const char *,size_t,int,const char *,size_t,unsigned int,const char *,size_t,LLVMDWARFEmissionKind,unsigned int,int,int,const char *,size_t,const char *,size_t) , LLVMDIBuilderCreateCompileUnit >(*this,lib,"LLVMDIBuilderCreateCompileUnit",SideEffects::worstDefault,"LLVMDIBuilderCreateCompileUnit")
-		->args({"Builder","Lang","FileRef","Producer","ProducerLen","isOptimized","Flags","FlagsLen","RuntimeVer","SplitName","SplitNameLen","Kind","DWOId","SplitDebugInlining","DebugInfoForProfiling","SysRoot","SysRootLen","SDK","SDKLen"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:293:1
-	addExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueDIBuilder *,const char *,size_t,const char *,size_t) , LLVMDIBuilderCreateFile >(*this,lib,"LLVMDIBuilderCreateFile",SideEffects::worstDefault,"LLVMDIBuilderCreateFile")
-		->args({"Builder","Filename","FilenameLen","Directory","DirectoryLen"});
+// from D:\Work\libclang\include\llvm-c/Core.h:4221:10
+	makeExtern< int (*)() , LLVMIsMultithreaded , SimNode_ExtFuncCall >(lib,"LLVMIsMultithreaded","LLVMIsMultithreaded")
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:207:10
+	makeExtern< unsigned int (*)() , LLVMDebugMetadataVersion , SimNode_ExtFuncCall >(lib,"LLVMDebugMetadataVersion","LLVMDebugMetadataVersion")
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:212:10
+	makeExtern< unsigned int (*)(LLVMOpaqueModule *) , LLVMGetModuleDebugMetadataVersion , SimNode_ExtFuncCall >(lib,"LLVMGetModuleDebugMetadataVersion","LLVMGetModuleDebugMetadataVersion")
+		->args({"Module"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:220:10
+	makeExtern< int (*)(LLVMOpaqueModule *) , LLVMStripModuleDebugInfo , SimNode_ExtFuncCall >(lib,"LLVMStripModuleDebugInfo","LLVMStripModuleDebugInfo")
+		->args({"Module"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:226:18
+	makeExtern< LLVMOpaqueDIBuilder * (*)(LLVMOpaqueModule *) , LLVMCreateDIBuilderDisallowUnresolved , SimNode_ExtFuncCall >(lib,"LLVMCreateDIBuilderDisallowUnresolved","LLVMCreateDIBuilderDisallowUnresolved")
+		->args({"M"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:233:18
+	makeExtern< LLVMOpaqueDIBuilder * (*)(LLVMOpaqueModule *) , LLVMCreateDIBuilder , SimNode_ExtFuncCall >(lib,"LLVMCreateDIBuilder","LLVMCreateDIBuilder")
+		->args({"M"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:239:6
+	makeExtern< void (*)(LLVMOpaqueDIBuilder *) , LLVMDisposeDIBuilder , SimNode_ExtFuncCall >(lib,"LLVMDisposeDIBuilder","LLVMDisposeDIBuilder")
+		->args({"Builder"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:244:6
+	makeExtern< void (*)(LLVMOpaqueDIBuilder *) , LLVMDIBuilderFinalize , SimNode_ExtFuncCall >(lib,"LLVMDIBuilderFinalize","LLVMDIBuilderFinalize")
+		->args({"Builder"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:250:6
+	makeExtern< void (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueMetadata *) , LLVMDIBuilderFinalizeSubprogram , SimNode_ExtFuncCall >(lib,"LLVMDIBuilderFinalizeSubprogram","LLVMDIBuilderFinalizeSubprogram")
+		->args({"Builder","Subprogram"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:285:17
+	makeExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueDIBuilder *,LLVMDWARFSourceLanguage,LLVMOpaqueMetadata *,const char *,size_t,int,const char *,size_t,unsigned int,const char *,size_t,LLVMDWARFEmissionKind,unsigned int,int,int,const char *,size_t,const char *,size_t) , LLVMDIBuilderCreateCompileUnit , SimNode_ExtFuncCall >(lib,"LLVMDIBuilderCreateCompileUnit","LLVMDIBuilderCreateCompileUnit")
+		->args({"Builder","Lang","FileRef","Producer","ProducerLen","isOptimized","Flags","FlagsLen","RuntimeVer","SplitName","SplitNameLen","Kind","DWOId","SplitDebugInlining","DebugInfoForProfiling","SysRoot","SysRootLen","SDK","SDKLen"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:303:1
+	makeExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueDIBuilder *,const char *,size_t,const char *,size_t) , LLVMDIBuilderCreateFile , SimNode_ExtFuncCall >(lib,"LLVMDIBuilderCreateFile","LLVMDIBuilderCreateFile")
+		->args({"Builder","Filename","FilenameLen","Directory","DirectoryLen"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:322:1
+	makeExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueMetadata *,const char *,size_t,const char *,size_t,const char *,size_t,const char *,size_t) , LLVMDIBuilderCreateModule , SimNode_ExtFuncCall >(lib,"LLVMDIBuilderCreateModule","LLVMDIBuilderCreateModule")
+		->args({"Builder","ParentScope","Name","NameLen","ConfigMacros","ConfigMacrosLen","IncludePath","IncludePathLen","APINotesFile","APINotesFileLen"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:338:1
+	makeExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueMetadata *,const char *,size_t,int) , LLVMDIBuilderCreateNameSpace , SimNode_ExtFuncCall >(lib,"LLVMDIBuilderCreateNameSpace","LLVMDIBuilderCreateNameSpace")
+		->args({"Builder","ParentScope","Name","NameLen","ExportSymbols"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:361:17
+	makeExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueMetadata *,const char *,size_t,const char *,size_t,LLVMOpaqueMetadata *,unsigned int,LLVMOpaqueMetadata *,int,int,unsigned int,LLVMDIFlags,int) , LLVMDIBuilderCreateFunction , SimNode_ExtFuncCall >(lib,"LLVMDIBuilderCreateFunction","LLVMDIBuilderCreateFunction")
+		->args({"Builder","Scope","Name","NameLen","LinkageName","LinkageNameLen","File","LineNo","Ty","IsLocalToUnit","IsDefinition","ScopeLine","Flags","IsOptimized"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:376:17
+	makeExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,unsigned int,unsigned int) , LLVMDIBuilderCreateLexicalBlock , SimNode_ExtFuncCall >(lib,"LLVMDIBuilderCreateLexicalBlock","LLVMDIBuilderCreateLexicalBlock")
+		->args({"Builder","Scope","File","Line","Column"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:388:1
+	makeExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,unsigned int) , LLVMDIBuilderCreateLexicalBlockFile , SimNode_ExtFuncCall >(lib,"LLVMDIBuilderCreateLexicalBlockFile","LLVMDIBuilderCreateLexicalBlockFile")
+		->args({"Builder","Scope","File","Discriminator"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:402:1
+	makeExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,unsigned int) , LLVMDIBuilderCreateImportedModuleFromNamespace , SimNode_ExtFuncCall >(lib,"LLVMDIBuilderCreateImportedModuleFromNamespace","LLVMDIBuilderCreateImportedModuleFromNamespace")
+		->args({"Builder","Scope","NS","File","Line"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:419:17
+	makeExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,unsigned int,LLVMOpaqueMetadata **,unsigned int) , LLVMDIBuilderCreateImportedModuleFromAlias , SimNode_ExtFuncCall >(lib,"LLVMDIBuilderCreateImportedModuleFromAlias","LLVMDIBuilderCreateImportedModuleFromAlias")
+		->args({"Builder","Scope","ImportedEntity","File","Line","Elements","NumElements"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:434:17
+	makeExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,unsigned int,LLVMOpaqueMetadata **,unsigned int) , LLVMDIBuilderCreateImportedModuleFromModule , SimNode_ExtFuncCall >(lib,"LLVMDIBuilderCreateImportedModuleFromModule","LLVMDIBuilderCreateImportedModuleFromModule")
+		->args({"Builder","Scope","M","File","Line","Elements","NumElements"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:454:17
+	makeExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,unsigned int,const char *,size_t,LLVMOpaqueMetadata **,unsigned int) , LLVMDIBuilderCreateImportedDeclaration , SimNode_ExtFuncCall >(lib,"LLVMDIBuilderCreateImportedDeclaration","LLVMDIBuilderCreateImportedDeclaration")
+		->args({"Builder","Scope","Decl","File","Line","Name","NameLen","Elements","NumElements"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

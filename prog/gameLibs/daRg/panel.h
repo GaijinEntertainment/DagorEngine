@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "elementTree.h"
@@ -82,6 +83,7 @@ struct PanelSpatialInfo
   bool canBePointedAt = false;
   bool canBeTouched = false;
   bool visible = false;
+  bool renderRedirection = false;
 
   Point3 position = Point3(0, 0, 0);
   Point3 angles = Point3(0, 0, 0);
@@ -139,6 +141,13 @@ public:
 
 struct PanelData
 {
+  PanelData(GuiScene &scene, const Sqrat::Object &object, int panelIndex);
+  PanelData(const PanelData &) = delete;
+  PanelData &operator=(const PanelData &) = delete;
+  PanelData(PanelData &&) = delete;
+  PanelData &operator=(PanelData &&) = delete;
+  ~PanelData() = default;
+
   eastl::unique_ptr<Panel> panel;
   eastl::unique_ptr<TextureIDHolder> canvas;
   TEXTUREID pointerTex = BAD_TEXTUREID;
@@ -147,15 +156,11 @@ struct PanelData
 
   bool isDirty = true;
 
-  void init(GuiScene &scene, const Sqrat::Object &object, int panelIndex);
-  void close();
-  bool isPanelInited() const { return !!panel; }
-
   bool needRenderInWorld() const;
   bool getCanvasSize(IPoint2 &size) const;
   void syncCanvas();
 
-  void updateTexture(GuiScene &scene);
+  void updateTexture(GuiScene &scene, BaseTexture *target);
 
   eastl::string getPointerPath() const;
   Point2 getPointerSize() const;

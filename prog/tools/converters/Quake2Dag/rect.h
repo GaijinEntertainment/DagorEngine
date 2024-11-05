@@ -1,6 +1,5 @@
-#ifndef RECT_H
-
-#define RECT_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 // ############################################################################
 // ##                                                                        ##
@@ -102,6 +101,3 @@ public:
   Vector3d<Type> r1;
   Vector3d<Type> r2;
 };
-
-
-#endif

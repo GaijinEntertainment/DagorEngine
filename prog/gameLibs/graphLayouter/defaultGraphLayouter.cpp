@@ -1,20 +1,30 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "defaultGraphLayouter.h"
 #include <EASTL/sort.h>
 
 
 void DefaultGraphLayouter::rankNodes(const AdjacencyLists &graph, eastl::span<const NodeIdx> topsort)
 {
-  // rank[i] = max{rank[j] | edge i->j exists} + 1
+  // Edges point backwards in the topsort order: a <- b <- c <- ... <- z
 
   nodeRanks.clear();
   nodeRanks.resize(graph.size(), 0);
+  // Move stuff to the left such that i <- j => rank[i] > rank[j]
+  // rank[j] = max{rank[i] | edge i->j exists} + 1
   for (auto it = topsort.rbegin(); it != topsort.rend(); ++it)
+    for (NodeIdx next : graph[*it])
+      nodeRanks[next] = eastl::max(nodeRanks[next], nodeRanks[*it] + 1);
+  // Now move stuff even more to the left to eliminate "long legs"
+  for (auto it = topsort.begin(); it != topsort.end(); ++it)
   {
-    NodeIdx node = *it;
-    for (NodeIdx next : graph[node])
-    {
-      nodeRanks[next] = eastl::max(nodeRanks[next], nodeRanks[node] + 1);
-    }
+    if (graph[*it].empty())
+      continue;
+
+    auto minAmongNexts = *eastl::min_element(graph[*it].begin(), graph[*it].end(),
+      [&nodeRanks = nodeRanks](NodeIdx a, NodeIdx b) { return nodeRanks[a] < nodeRanks[b]; });
+
+    nodeRanks[*it] = nodeRanks[minAmongNexts] - 1;
   }
 }
 

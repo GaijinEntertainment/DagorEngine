@@ -1,4 +1,4 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "wndManager.h"
 #include "wndDragPlacesShower.h"
@@ -8,7 +8,7 @@
 #include "windows/wndMovableWindow.h"
 
 #include <workCycle/dag_workCycle.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 
 #include <windows.h>
 #include <stdlib.h>
@@ -30,13 +30,7 @@ LRESULT CALLBACK sepgui_window_proc(HWND h_wnd, unsigned msg, WPARAM w_param, LP
 
 //=============================================================================
 WinManager::WinManager(IWndManagerEventHandler *event_handler) :
-  mMainWindow(this),
-  mEventHandler(event_handler),
-  mRootWindow(NULL),
-  mLayoutSaver(this),
-  mMovableWindows(midmem),
-  mWindowHandlers(midmem),
-  mAccels(this)
+  mMainWindow(this), mEventHandler(event_handler), mRootWindow(NULL), mLayoutSaver(this), mMovableWindows(midmem), mAccels(this)
 {}
 
 
@@ -68,70 +62,6 @@ void WinManager::onClose()
     mEventHandler->onDestroy();
 
   PostQuitMessage(0);
-}
-
-
-//=============================================================================
-IWndEmbeddedWindow *WinManager::onWmCreateWindow(void *handle, int type)
-{
-  for (int i = 0; i < mWindowHandlers.size(); ++i)
-  {
-    G_ASSERT(mWindowHandlers[i] && "WinManager::onWmCreateWindow(): window handler == NULL!");
-
-    IWndEmbeddedWindow *w = mWindowHandlers[i]->onWmCreateWindow(handle, type);
-    if (w)
-      return w;
-  }
-
-  return NULL;
-}
-
-
-//=============================================================================
-void WinManager::onWmDestroyWindow(void *handle)
-{
-  for (int i = 0; i < mWindowHandlers.size(); ++i)
-  {
-    G_ASSERT(mWindowHandlers[i] && "WinManager::onWmDestroyWindow(): window handler == NULL!");
-
-    if (mWindowHandlers[i]->onWmDestroyWindow(handle))
-      return;
-  }
-}
-
-
-//=============================================================================
-void WinManager::registerWindowHandler(IWndManagerWindowHandler *handler)
-{
-  if (!handler)
-  {
-    debug("IWndManager::registerWindowHandler(): passed NULL handler!");
-    return;
-  }
-
-  for (int i = 0; i < mWindowHandlers.size(); ++i)
-    if (mWindowHandlers[i] == handler)
-      return;
-
-  mWindowHandlers.push_back(handler);
-}
-
-
-//=============================================================================
-void WinManager::unregisterWindowHandler(IWndManagerWindowHandler *handler)
-{
-  if (!handler)
-  {
-    debug("IWndManager::unregisterWindowHandler(): passed NULL handler!");
-    return;
-  }
-
-  for (int i = 0; i < mWindowHandlers.size(); ++i)
-    if (mWindowHandlers[i] == handler)
-    {
-      erase_items(mWindowHandlers, i, 1);
-      return;
-    }
 }
 
 

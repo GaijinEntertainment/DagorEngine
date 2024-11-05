@@ -1,8 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_globDef.h>
-#include <3d/dag_drv3dCmd.h>
-#include <3d/dag_drv3d_pc.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_shader.h>
+#include <drv/3d/dag_platform_pc.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>
 #include <debug/dag_debug.h>
@@ -31,6 +35,7 @@
 #include <3d/ddsFormat.h>
 #include <util/dag_string.h>
 #include <3d/parseShaders.h>
+#include <util/dag_globDef.h>
 
 #include <debug/dag_except.h>
 
@@ -60,8 +65,6 @@ static void show_disasm(const void *shader_bin, uint32_t size, const char *prefi
 namespace drv3d_dx11
 {
 #include "shaderSource.inc.cpp"
-
-int g_vs_bones_const = MAX_VS_CONSTS_BONES;
 
 static ObjectPoolWithLock<PixelShader> g_pixel_shaders("pixel_shaders");
 static ObjectPoolWithLock<VertexShader> g_vertex_shaders("vertex_shaders");
@@ -109,6 +112,8 @@ FSHADER g_default_debug_ps = BAD_FSHADER;
 VPROG g_default_debug_vs = BAD_VPROG;
 VDECL g_default_debug_vdecl = BAD_VDECL;
 PROGRAM g_default_debug_program = BAD_PROGRAM;
+
+d3d::SamplerHandle g_default_clamp_sampler = d3d::INVALID_SAMPLER_HANDLE;
 
 int ConstantBuffers::getVsConstBufferId(int required_size)
 {
@@ -527,7 +532,7 @@ VPROG create_vertex_shader_internal(const void *shader_bin, uint32_t size, uint3
     {
       if (e.shader == NULL || IsBadReadPtr(e.shader, 1))
       {
-        logerr("CreateVertexShader (or hull/domain/geometry) failed: vs=0x%08X, hres=0x%08X", e.shader, last_hres);
+        D3D_ERROR("CreateVertexShader (or hull/domain/geometry) failed: vs=0x%08X, hres=0x%08X", e.shader, last_hres);
         DAG_FATAL("dx11 error: broken driver");
       }
     }
@@ -571,7 +576,7 @@ FSHADER create_pixel_shader_unpacked(const void *shader_bin, uint32_t size, uint
     {
       if (e.shader == NULL || IsBadReadPtr(e.shader, 1))
       {
-        logerr("CreatePixelShader failed: ps=0x%08X, hres=0x%08X", e.shader, last_hres);
+        D3D_ERROR("CreatePixelShader failed: ps=0x%08X, hres=0x%08X", e.shader, last_hres);
         DAG_FATAL("dx11 error: broken driver");
       }
     }
@@ -644,6 +649,12 @@ void init_default_shaders()
   g_default_debug_ps = create_pixel_shader(g_default_debug_ps_src, sizeof(g_default_debug_ps_src), 0);
   g_default_debug_vdecl = d3d::create_vdecl(debug_vdecl);
   g_default_debug_program = d3d::create_program(g_default_debug_vs, g_default_debug_ps, g_default_debug_vdecl);
+
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    g_default_clamp_sampler = d3d::request_sampler(smpInfo);
+  }
 }
 
 void close_default_shaders()
@@ -673,6 +684,8 @@ void close_default_shaders()
   g_default_debug_vs = BAD_VPROG;
   g_default_debug_vdecl = BAD_VDECL;
   g_default_debug_program = BAD_PROGRAM;
+
+  g_default_clamp_sampler = d3d::INVALID_SAMPLER_HANDLE;
 }
 
 
@@ -775,7 +788,7 @@ void close_shaders()
   {
     if (g_input_layouts.totalUsed() > 0)
     {
-      logerr("Unreleased vdecl objects: %d", g_input_layouts.totalUsed());
+      D3D_ERROR("Unreleased vdecl objects: %d", g_input_layouts.totalUsed());
     }
 
     g_input_layouts.clear();
@@ -830,9 +843,9 @@ void close_shaders()
         else
           break;
       }
-      logerr("Can't compile:\n %s",str.data());
+      D3D_ERROR("Can't compile:\n %s",str.data());
     } else
-      logerr("Can't compile");
+      D3D_ERROR("Can't compile");
   }
 
   if (errors)
@@ -1294,8 +1307,7 @@ VPROG d3d::create_vertex_shader_hlsl(const char * /*hlsl_text*/, unsigned /*len*
 
 VPROG d3d::create_vertex_shader(const uint32_t *shader_bin)
 {
-  return drv3d_dx11::create_vertex_shader(shader_bin + 3, *shader_bin,
-    max((int)((int *)shader_bin)[2] >= 0 ? g_vs_bones_const : 0, (int)(((int *)shader_bin)[1] >= 0 ? shader_bin[1] + 1 : 0)));
+  return drv3d_dx11::create_vertex_shader(shader_bin + 3, *shader_bin, (int)(((int *)shader_bin)[1] >= 0 ? shader_bin[1] + 1 : 0));
 }
 
 void d3d::delete_vertex_shader(VPROG handle)
@@ -1341,13 +1353,28 @@ bool d3d::set_const(unsigned stage, unsigned reg_base, const void *data, unsigne
   ConstantBuffers &cb = g_render_state.constants;
   G_ASSERT_RETURN(stage < STAGE_MAX, false);
 
-  G_ASSERTF((stage == STAGE_PS && reg_base + num_regs <= MAX_PS_CONSTS) ||
-              (stage == STAGE_CS && (reg_base + num_regs <= g_csbin_max_size) &&
-                (reg_base + num_regs <= DEF_CS_CONSTS ||
-                  (cb.constsRequired[STAGE_CS] > 0 && reg_base + num_regs <= cb.constsRequired[STAGE_CS]))) ||
-              (stage == STAGE_VS && (reg_base + num_regs <= g_vs_bones_const ||
-                                      (cb.constsRequired[STAGE_VS] > 0 && reg_base + num_regs <= cb.constsRequired[STAGE_VS]))),
-    "reg_base = %d num_regs=%d cb.vsConstsRequired=%d", reg_base, num_regs, cb.constsRequired[stage]);
+  // Check OOB
+#if DAGOR_DBGLEVEL > 0
+  if (stage == STAGE_PS)
+    G_ASSERTF(reg_base + num_regs <= MAX_PS_CONSTS, "PS: Writing %u regs with base=%u over the limit=%u", num_regs, reg_base,
+      MAX_PS_CONSTS);
+  else if (stage == STAGE_CS)
+  {
+    G_ASSERTF(reg_base + num_regs <= g_csbin_max_size, "CS: Writing %u regs with base=%u over the hard limit=%u", num_regs, reg_base,
+      g_csbin_max_size);
+    const unsigned limit = max<unsigned>(DEF_CS_CONSTS, cb.constsRequired[stage]);
+    G_ASSERTF(reg_base + num_regs <= limit, "CS: Writing %u regs with base=%u over the hard limit=%u, (constsRequired=%u)", num_regs,
+      reg_base, limit, cb.constsRequired[stage]);
+  }
+  else if (stage == STAGE_VS)
+  {
+    const unsigned limit = max<unsigned>(DEF_VS_CONSTS, cb.constsRequired[stage]);
+    G_ASSERTF(reg_base + num_regs <= limit, "VS: Writing %u regs with base=%u over the hard limit=%u, (constsRequired=%u)", num_regs,
+      reg_base, limit, cb.constsRequired[stage]);
+  }
+  else
+    G_ASSERTF(0, "Invalid stage %d", stage);
+#endif
 
   if (reg_base < 32 && !cb.constantsModified[stage]) // only do this for first 32 constants. it is unlikely, that later constants won't
                                                      // change, and it helps speed up rendinst/landmesh
@@ -1541,12 +1568,14 @@ void d3d::delete_program(PROGRAM sh)
   //  AutoAcquireGpu gpu_lock;
   if (!g_programs.isIndexValid(sh))
     return;
-  G_ASSERT(!g_programs.isIndexInFreeList(sh));
+  g_programs.lock();
+  G_ASSERT(!g_programs.isIndexInFreeListUnsafe(sh));
   g_programs[sh].refCntX2 -= 2;
   if (g_programs[sh].refCntX2 > 0)
-    return;
+    return g_programs.unlock();
   G_ASSERT(g_programs[sh].refCntX2 == 0);
-  g_programs.release(sh);
+  g_programs.releaseEntryUnsafe(sh);
+  g_programs.unlock();
 }
 
 PROGRAM d3d::get_debug_program() { return drv3d_dx11::get_debug_program(); }

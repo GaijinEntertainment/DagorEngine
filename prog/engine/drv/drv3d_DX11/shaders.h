@@ -1,5 +1,4 @@
-#ifndef __DRV3D_DX11_SHADERS_H
-#define __DRV3D_DX11_SHADERS_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "drvCommonConsts.h"
@@ -16,10 +15,9 @@ typedef union
   float f[4];
 } vecflt;
 
-static const int g_vsbin_sizes[] = {16, 32, 64, MAX_VS_CONSTS_NOBONES, MAX_VS_CONSTS_BONES, 256, 512, 1024, 2048, 4096};
+static const int g_vsbin_sizes[] = {16, 32, 64, 128, DEF_VS_CONSTS, 512, 1024, 2048, 4096};
 static const int g_vsbin_sizes_count = sizeof(g_vsbin_sizes) / sizeof(g_vsbin_sizes[0]);
 static const int g_vsbin_max_size = 4096;
-extern int g_vs_bones_const;
 
 static const int g_csbin_sizes_count = 13 - DEF_CS_CONSTS_SHIFT; // 64, 128, 256, 512, 1024, 2048, 4096
 static const int g_csbin_max_size = 4096;
@@ -231,6 +229,5 @@ extern VDECL g_default_pos_vdecl;
 extern FSHADER g_default_clear_ps;
 extern VPROG g_default_clear_vs;
 extern VDECL g_default_clear_vdecl;
+extern d3d::SamplerHandle g_default_clamp_sampler;
 }; // namespace drv3d_dx11
-
-#endif

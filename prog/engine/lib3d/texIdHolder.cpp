@@ -1,7 +1,10 @@
-#include <3d/dag_tex3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_tex3d.h>
 #include <3d/dag_textureIDHolder.h>
 #include <shaders/dag_shaders.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <EASTL/string.h>
 #include <math/dag_adjpow2.h>
 

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "sound.h"
 #include <array>
 #include <EASTL/array.h>
@@ -1105,16 +1107,19 @@ void bind_script(SqModules *module_mgr)
   HSQUIRRELVM vm = module_mgr->getVM();
 
   SqratPcmSoundClass sqPcmSound(vm);
-  sqPcmSound.SquirrelFunc("getSoundData", get_sound_data, 2, "x x|a")
+  sqPcmSound //
+    .SquirrelFunc("getSoundData", get_sound_data, 2, "x x|a")
     .SquirrelFunc("setSoundData", set_sound_data, 2, "x x|a")
     .Prop("dataMemorySize", &PcmSound::getDataMemorySize)
     .Prop("duration", &PcmSound::getDuration)
     .Prop("freq", &PcmSound::getFrequency)
     .Prop("samples", &PcmSound::getSamples)
-    .Prop("channels", &PcmSound::getChannels);
+    .Prop("channels", &PcmSound::getChannels)
+    /**/;
 
   Sqrat::Table exports(vm);
-  exports.SquirrelFunc("play_sound", play_sound, -2, ". x t|o")
+  exports //
+    .SquirrelFunc("play_sound", play_sound, -2, ". x t|o")
     .Func("set_sound_pitch", set_sound_pitch)
     .Func("set_sound_volume", set_sound_volume)
     .Func("set_sound_pan", set_sound_pan)
@@ -1126,7 +1131,8 @@ void bind_script(SqModules *module_mgr)
     .Func("set_master_volume", set_master_volume)
     .Func("get_output_sample_rate", get_output_sample_rate)
     .Func("get_total_samples_played", get_total_samples_played)
-    .Func("get_total_time_played", get_total_time_played);
+    .Func("get_total_time_played", get_total_time_played)
+    /**/;
   exports.Bind("PcmSound", sqPcmSound);
   module_mgr->addNativeModule("gamelib.sound", exports);
 }

@@ -1,0 +1,244 @@
+
+motion_matching_trajectory{
+  _tags:t="render"
+  //history tracking
+  "mm_trajectory__historyPositions:list<p3>"{}
+  "mm_trajectory__historyRotations:list<p4>"{}
+  mm_trajectory__historyLength:i=0
+  mm_trajectory__lastHistoryIdx:i=-1
+  mm_trajectory__lastHistoryTime:r=0
+  mm_trajectory__historyDt:r=0
+
+  mm_trajectory__prevPosition:p3=0,0,0
+  mm_trajectory__prevRotation:p4=0,0,0,1
+  mm_trajectory__currPosition:p3=0,0,0
+  mm_trajectory__currRotation:p4=0,0,0,1
+  mm_trajectory__linearVelocity:p3=0,0,0
+  mm_trajectory__angularVelocity:p3=0,0,0
+  mm_trajectory__linearVelocityViscosity:r=0.1
+  mm_trajectory__angularVelocityViscosity:r=0.1
+
+  //trajectory data used for MM search
+  "mm_trajectory__featurePositions:list<p3>"{}
+  "mm_trajectory__featureDirections:list<p3>"{}
+}
+
+motion_matching_animchar_component{
+  _use:t="motion_matching_trajectory"
+  _tags:t="render"
+  motion_matching__enabled:b=false
+  motion_matching__blendTimeToAnimtree:r=0.45
+
+  motion_matching__metricaTolerance:r=0.0
+
+  motion_matching__animationBlendTime:r=0.45
+  motion_matching__presetBlendTimeLeft:r=0.0
+  "motion_matching__goalFeature:FrameFeatures"{}
+  "motion_matching__goalNodesIdx:list<i>"{}
+
+
+  motion_matching__updateProgress:r=0.0
+  motion_matching__distanceFactor:r=1.0
+  motion_matching__trajectoryTolerance:r=0.0
+  motion_matching__presetIdx:i=-1
+
+  "motion_matching__dataBaseEid:eid"{}
+  motion_matching__dataBaseTemplateName:t="motion_matching_animation_database"
+
+  "motion_matching__controller:MotionMatchingController"{}
+}
+
+motion_matching_foot_ik_locker{
+  _tags:t="render"
+  "foot_ik_locker_nodes:FootIKLockerNodes"{}
+  "foot_ik_locker_nodeNames:array"{
+    "leg:object"{
+      toeNodeName:t="Bip01 L Toe0"
+      heelNodeName:t="Bip01 L Foot"
+      kneeNodeName:t="Bip01 L Calf"
+      hipNodeName:t="Bip01 L Thigh"
+    }
+    "leg:object"{
+      toeNodeName:t="Bip01 R Toe0"
+      heelNodeName:t="Bip01 R Foot"
+      kneeNodeName:t="Bip01 R Calf"
+      hipNodeName:t="Bip01 R Thigh"
+    }
+  }
+  foot_ik_locker_inited:b=false
+  foot_ik_locker_enabled:b=true
+  foot_ik_locker_blendTime:r=0.2
+  foot_ik_locker_maxReachScale:r=0.99
+  foot_ik_locker_unlockByAnimRadius:r=0.2
+  foot_ik_locker_unlockWhenUnreachableRadius:r=0.05
+  foot_ik_locker_toeNodeHeight:r=0.025
+}
+
+motion_matching_animation_database{
+  _singleton:b=true
+  _tags:t="render"
+  main_database__loaded:b=false
+  main_database__perFrameLimit:i=-1//no limit
+  "data_bases_paths:list<t>"{
+    path:t="%danetlibs/motion_matching/animation_data_base/swim_animations.blk"
+  }
+  weightsPath:t="%danetlibs/motion_matching/animation_data_base/main_data_base_weights.blk"
+  rootMotionPath:t="%danetlibs/motion_matching/animation_data_base/main_data_base_root_motion.blk"
+  main_database__nodeMasksPath:t="%danetlibs/motion_matching/animation_data_base/main_data_base_node_masks.blk"
+  "dataBase:AnimationDataBase"{}
+  _use:t="motion_matching_foot_ik_locker"
+
+  // Why can't we read all this directly from BLK?
+  main_database__root_node:t=""
+  main_database__root_motion_a2d_node:t=""
+  "main_database__direction_nodes:list<t>"{}
+  "main_database__direction_weights:list<r>"{}
+  "main_database__center_of_mass_nodes:list<t>"{}
+  "main_database__center_of_mass_params:list<p4>"{}
+
+  "main_database__presetsTagsName:list<t>"{}
+
+  "main_database__pbcWeightOverrides:object"{
+    "#body_dir_rotate_applier":r=0 // MM will rotate body and root by itself
+  }
+  "main_database__availableTags:list<t>"{
+    tag:t="play_only_from_start"
+  }
+  main_database__footLockerCtrlName:t=""
+}
+
+motion_matching_animation_database_extended{
+  // to be removed
+  _use:t="motion_matching_animation_database"
+  _tags:t="render"
+  "data_bases_paths:list<t>"{
+    path:t="%danetlibs/motion_matching/animation_data_base/legacy_locomotion.blk"
+    path:t="%danetlibs/motion_matching/animation_data_base/demo_mocap_animations.blk"
+    // path:t="%danetlibs/motion_matching/animation_data_base/mocap_animations.blk"
+    // path:t="%danetlibs/motion_matching/animation_data_base/swim_animations.blk"
+  }
+}
+
+motion_matching_optional_subtemplates_manager
+{
+  _singleton:b=true
+  _group{
+    _tags:t="render,dev"
+    _track:b=yes
+    motion_matching__optionalSubtemplatesEnabled:b=true
+  }
+}
+
+animation_test_scope{
+  "animationTestScope:tag"{}
+  animation_test__startTime:r=0
+  animation_test__duration:r=10
+}
+
+animation_test_spawn_area{
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  "animationTestSpawnArea:tag"{}
+}
+
+animation_test_target{
+  test_target:p3=0,0,0
+  test_target_posOffset:p3=0,0,0
+  test_target_velocity:p3=0,0,2
+  test_target_origin:p3=0,0,0
+  test_target_mode:t="default"
+  test_target_time:r=0.0
+  test_target_timeToReset:r=0.0
+}
+
+animation_tester{
+  animation_tester__moveTarget:p3=0,0,0
+}
+
+motion_matching_camera_target{
+  //todo: make proper camera someday, with rotations and working free camera toggling
+  motion_matching__followWithFreeCamera:b=true
+  motion_matching__freeCameraOffset:p3=0,4,-4
+}
+
+motion_matching_debug_label{
+  motion_matching__debugLabel:t=""
+}
+
+animation_self_tester{
+  _use:t="motion_matching_animchar_component"
+  _use:t="animation_tester"
+  _use:t="animation_test_target"
+  _use:t="motion_matching_debug_label"
+  _group{
+    _tags:t="render"
+    motion_matching__enabled:b=true
+    motion_matching__dataBaseTemplateName:t="motion_matching_animation_database_extended"
+  }
+}
+
+motion_matching_anim_tree_tester{
+  _use:t="animation_self_tester"
+  "motion_matching__animTreeTester:tag"{}
+  motion_matching__debugLabel:t="anim tree"
+}
+
+motion_matching_tester{
+  _use:t="animation_self_tester"
+  "motion_matching__MMTester:tag"{}
+  motion_matching__debugLabel:t="motion matching"
+}
+
+motion_matching_inertial_blend_tester{
+  _use:t="animation_self_tester"
+  "motion_matching__inertialBlendTester:tag"{}
+  motion_matching__debugLabel:t="inertial blend"
+}
+
+animation_test_pair_base{
+  _use:t="motion_matching_camera_target"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  "animationTestPair:tag"{}
+  "tester_list:list<eid>"{}
+}
+
+animation_test_pair{
+  _use:t="animation_test_pair_base"
+  _use:t="animation_test_target"
+}
+
+foot_locker_debug
+{
+  _group{
+    _tags:t="render,dev"
+    foot_locker_debug__targetLegNo:i=-1
+    foot_locker_debug__ankleTargetMove:r=0
+  }
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+}
+
+motion_matching_imgui_state{
+  _singleton:b=true
+  _tags:t="render"
+  "mm_imguiAnimcharEid:eid"{}
+
+  mm_visualization_show_feature_nodes:b=false
+  mm_visualization_show_trajectory:b=false
+  mm_visualization__trajectoryClipIdx:i=-1
+  mm_visualization__trajectoryFrameIdx:i=-1
+  mm_visualization_show_skeleton:b=false
+  mm_visualization_show_skeleton_original:b=false
+  mm_visualization_show_skeleton_node_labels:b=false
+  mm_visualization_show_foot_ik_locked_positions:b=false
+  mm_visualization_show_foot_ik_target_positions:b=false
+
+  "mm_clips_clipProgress:list<i>"{}
+  "mm_clips_history:list<ip2>"{}
+  mm_clips_historyIndex:ip2=-1, 0
+  mm_clips_animationPlaySpeed:r=1.0
+  mm_clips_animationPlayMode:i=0
+  mm_clips__pauseOnTransitionFrom:t=""
+  mm_clips__pauseOnTransitionFromIdx:i=-1
+  mm_clips__pauseOnTransitionTo:t=""
+  mm_clips__pauseOnTransitionToIdx:i=-1
+  mm_clips__pausedOnTransition:b=false
+}

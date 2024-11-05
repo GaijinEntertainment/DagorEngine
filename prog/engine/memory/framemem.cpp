@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <memory/dag_framemem.h>
 #include <memory/dag_memBase.h>
 #include <stddef.h>
@@ -55,7 +57,7 @@ static inline void fill_with_debug_pattern(char *beg, char *end)
   G_FAST_ASSERT(end >= beg);
   G_FAST_ASSERT(!(uintptr_t(beg) & 15));
   G_FAST_ASSERT(!(uintptr_t(end) & 15));
-  static const vec4i_const DEBUG_PATTERN = {0x7ffbffff, 0x7ffbffff, 0x7ffbffff, 0x7ffbffff};
+  static const vec4i_const DEBUG_PATTERN = DECL_VECUINT4(0x7ffbffff, 0x7ffbffff, 0x7ffbffff, 0x7ffbffff);
   vec4f pattern = (vec4f)DEBUG_PATTERN;
   char *maxEnd = beg + 4096, *end_ = end < maxEnd ? end : maxEnd; // cap of how much memory we filling up for debug (for perfomance)
   for (; beg < end_; beg += 16)
@@ -88,7 +90,7 @@ struct AllocHeader
 };
 
 static constexpr size_t ALIGNED_HEADER_SIZE = DEF_ALIGNMENT;
-static_assert(sizeof(AllocHeader) <= ALIGNED_HEADER_SIZE && ALIGNED_HEADER_SIZE % DEF_ALIGNMENT == 0);
+G_STATIC_ASSERT(sizeof(AllocHeader) <= ALIGNED_HEADER_SIZE && ALIGNED_HEADER_SIZE % DEF_ALIGNMENT == 0);
 
 class FrameMemAlloc final : public IMemAlloc
 {

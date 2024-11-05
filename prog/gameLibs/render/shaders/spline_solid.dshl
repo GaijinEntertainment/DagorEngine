@@ -69,7 +69,7 @@ shader spline_solid
         float3 worldNormal = normalize(cross(ddx(input.pointToEye), ddy(input.pointToEye)));
         init_normal(gbuffer, worldNormal);
         init_reflectance(gbuffer, 0);
-        return encode_gbuffer3(gbuffer, input.pointToEye, GET_SCREEN_POS(input.pos));
+        return encode_gbuffer(gbuffer, input.pointToEye, GET_SCREEN_POS(input.pos));
       }
     }
   }

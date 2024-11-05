@@ -1,0 +1,221 @@
+include "character_micro_detail.dshl"
+include "depth_above.dshl"
+include "dagi_albedo_scene_common.dshl"
+include "giHelpers/voxelize_gs.dshl"
+include "wetness.dshl"
+include "wind/wind_simulation_inc.dshl"
+include "rendinst_inc.dshl"
+include "static_shadow.dshl"
+include "hmap_for_ri_block_inc.dshl"
+include "hmap_blend_inc.dshl"
+include "sky_shader_global.dshl"
+include "rendinst_heightmap_ofs.dshl"
+include "overlay_color_map_inc.dshl"
+
+int rendinst_render_pass = 0;
+interval rendinst_render_pass : rendinst_render_pass_normal < 1, rendinst_render_pass_impostor_color < 2, rendinst_render_pass_impostor_shadow < 3, rendinst_render_pass_to_shadow < 4, rendinst_render_pass_depth < 6, rendinst_render_pass_voxelize_albedo < 8, rendinst_render_pass_grassify < 9, rendinst_render_pass_to_heightmap;
+int fluid_wind_support_assume = 0;
+interval fluid_wind_support_assume: off < 1, on;
+
+macro RENDINST_BLOCK()
+  if (rendinst_render_pass == rendinst_render_pass_to_shadow ||
+      rendinst_render_pass == rendinst_render_pass_depth ||
+      rendinst_render_pass == rendinst_render_pass_to_heightmap)
+  {
+    supports rendinst_depth_scene;
+  }
+  else if (rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
+  {
+    supports rendinst_voxelize_scene;
+  }
+  else if (rendinst_render_pass == rendinst_render_pass_grassify)
+  {
+    supports rendinst_grassify_scene;
+  }
+  else
+  {
+    supports rendinst_scene;
+  }
+endmacro
+
+block(scene) rendinst_scene
+{
+  supports __static_cbuf;
+
+  (vs) {
+    tree_wind_params@f4 = (time_phase(1000, 0) * 1000, tree_wind_branch_amp, tree_wind_detail_amp, tree_wind_speed);
+    paint_details_tex@smp2d = paint_details_tex;
+    tess_quality@f1 = (tess_quality);
+    cliff_color_overlay_map_tex@smp2d = cliff_color_overlay_map_tex;
+    cliff_color_overlay_map_tex_exists@i1 = exists_tex(cliff_color_overlay_map_tex);
+    cliff_color_overlay_map_scale_offset@f4 = (
+        1.0 / (cliff_color_overlay_map_left_top_right_bottom.z - cliff_color_overlay_map_left_top_right_bottom.x),
+        1.0 / (cliff_color_overlay_map_left_top_right_bottom.w - cliff_color_overlay_map_left_top_right_bottom.y),
+        -cliff_color_overlay_map_left_top_right_bottom.x / (cliff_color_overlay_map_left_top_right_bottom.z - cliff_color_overlay_map_left_top_right_bottom.x),
+        -cliff_color_overlay_map_left_top_right_bottom.y / (cliff_color_overlay_map_left_top_right_bottom.w - cliff_color_overlay_map_left_top_right_bottom.y));
+  }
+
+  (ps) {
+    perlin_noise3d@smp3d = perlin_noise3d;
+    time_scroll_param@f1 = (time_phase(1000, 0) * 1000, 0, 0, 0);
+  }
+
+  RENDINST_SCENE_COMMON()
+
+  INIT_USE_CHARACTER_MICRODETAIL()
+  INIT_WORLD_HEIGHTMAP_BASE(ps)
+  INIT_WORLD_HEIGHTMAP_VS()
+  INIT_HMAP_HOLES(vs)
+  INIT_STATICS_WETNESS()
+  INIT_RENDINST_IMPOSTOR_SHADOW()
+  INIT_AMBIENT_WIND(vs)
+  INIT_RENDINST_HEIGHTMAP_OFS(vs)
+  if (compatibility_mode != compatibility_mode_on)
+  {
+    INIT_HMAP_FOR_RI_BLOCK()
+    INIT_HMAP_BLEND()
+  }
+
+  if (fluid_wind_support_assume == on)
+  {
+    INIT_FLUID_WIND(vs)
+  }
+
+  if (mobile_render != off)
+  {
+    INIT_STATIC_SHADOW_PS()
+  }
+}
+
+block(scene) rendinst_depth_scene
+{
+  supports __static_cbuf;
+
+  (vs) {
+    tree_wind_params@f4 = (time_phase(1000, 0) * 1000, tree_wind_branch_amp, tree_wind_detail_amp, tree_wind_speed);
+    tess_quality@f1 = (tess_quality);
+  }
+  INIT_WORLD_HEIGHTMAP_VS()
+  INIT_HMAP_HOLES(vs)
+  INIT_RENDINST_HEIGHTMAP_OFS(vs)
+  RENDINST_SCENE_COMMON()
+  if (fluid_wind_support_assume == on)
+  {
+    INIT_FLUID_WIND(vs)
+  }
+  INIT_AMBIENT_WIND(vs)
+
+  if (mobile_render != off)
+  {
+    INIT_STATIC_SHADOW_PS()
+  }
+}
+
+float4 voxelize_aspect_ratio always_referenced;
+
+block(scene) rendinst_grassify_scene
+{
+  supports __static_cbuf;
+
+  INIT_WORLD_HEIGHTMAP_VS()
+  RENDINST_SCENE_COMMON()
+}
+
+block(scene) rendinst_voxelize_scene
+{
+  supports __static_cbuf;
+
+  (vs) {
+    tree_wind_params@f4 = (time_phase(1000, 0) * 1000, tree_wind_branch_amp, tree_wind_detail_amp, tree_wind_speed);
+    paint_details_tex@smp2d = paint_details_tex;
+    cliff_color_overlay_map_tex@smp2d = cliff_color_overlay_map_tex;
+    cliff_color_overlay_map_tex_exists@i1 = exists_tex(cliff_color_overlay_map_tex);
+    cliff_color_overlay_map_scale_offset@f4 = (
+        1.0 / (cliff_color_overlay_map_left_top_right_bottom.z - cliff_color_overlay_map_left_top_right_bottom.x),
+        1.0 / (cliff_color_overlay_map_left_top_right_bottom.w - cliff_color_overlay_map_left_top_right_bottom.y),
+        -cliff_color_overlay_map_left_top_right_bottom.x / (cliff_color_overlay_map_left_top_right_bottom.z - cliff_color_overlay_map_left_top_right_bottom.x),
+        -cliff_color_overlay_map_left_top_right_bottom.y / (cliff_color_overlay_map_left_top_right_bottom.w - cliff_color_overlay_map_left_top_right_bottom.y));
+  }
+  (ps) { perlin_noise3d@smp3d = perlin_noise3d; }
+
+  RENDINST_SCENE_COMMON()
+
+  INIT_AMBIENT_WIND(vs)
+
+  INIT_USE_CHARACTER_MICRODETAIL()
+  INIT_WORLD_HEIGHTMAP_BASE(ps)
+  INIT_WORLD_HEIGHTMAP_VS()
+  INIT_HMAP_HOLES(vs)
+  DAGI_ALBEDO_WRITE_INIT(ps)
+  //INIT_VOXELIZE_GS()
+  TO_VOXELIZE_SPACE(vs)
+  //(vs) { voxelize_aspect_ratio@f3 = voxelize_aspect_ratio;}
+  if (compatibility_mode != compatibility_mode_on)
+  {
+    INIT_HMAP_FOR_RI_BLOCK()
+    INIT_HMAP_BLEND()
+  }
+
+  if (mobile_render != off)
+  {
+    INIT_STATIC_SHADOW_PS()
+  }
+}
+
+macro RENDINST_IMPOSTOR_BLOCK()
+  RENDINST_BLOCK()
+  INIT_ZNZFAR()
+endmacro
+
+macro RENDER_TO_SHADOW_PS_ATEST()
+  hlsl(ps) {
+    void rendinst_render_to_shadow_ps(VsOutput input)
+    {
+      #if SET_UP_MULTIDRAW
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+      #endif
+      fixed4 diffuse = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy);
+      clip(diffuse.a-0.5);
+    }
+  }
+  compile("target_ps", "rendinst_render_to_shadow_ps");
+endmacro
+
+macro RENDER_TO_SHADOW_PS()
+  if (atest == atestOn)
+  {
+    if (shader == rendinst_simple_emissive_anim)
+    {
+      dont_render;
+    }
+    (ps) { diffuse_tex@static = tex; }
+    RENDER_TO_SHADOW_PS_ATEST()
+  } else
+  {
+    compile("ps_null", "rendinst_render_depth_black_ps");
+  }
+endmacro
+
+macro USE_RENDINST_IMPOSTOR_SHADOW()
+  (ps) { impostor_shadow@shd = impostor_shadow; }
+
+  hlsl(ps) {
+
+    fixed texShadow ( float4 uvz )
+    {
+      return shadow2D(impostor_shadow, uvz.xyz);
+    }
+    half getShadow(float3 point2Eye)
+    {
+      float4 worldPos = float4(world_view_pos - point2Eye, 1);
+      float4 shadowTexcoord = float4(
+        dot(worldPos, impostor_shadow_x),
+        dot(worldPos, impostor_shadow_y),
+        dot(worldPos, impostor_shadow_z),
+        0);
+      return texShadow(shadowTexcoord);
+    }
+  }
+
+endmacro
+

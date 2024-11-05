@@ -1,13 +1,20 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/mipRenderer.h>
 #include <3d/dag_textureIDHolder.h>
 #include <perfMon/dag_statDrv.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_tex3d.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_computeShaders.h>
 #include <math/integer/dag_IPoint2.h>
 
-#define GLOBAL_VARS_LIST VAR(mip_target_size)
+#define GLOBAL_VARS_LIST \
+  VAR(mip_target_size)   \
+  VAR(gaussian_mipchain_srgb)
 
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_VARS_LIST
@@ -86,6 +93,9 @@ void MipRenderer::render(BaseTexture *tex, uint8_t max_level) const
 
     if (isCS)
     {
+      bool isSRGB = !!(texInfo.cflg & (TEXCF_SRGBREAD | TEXCF_SRGBWRITE));
+      ShaderGlobal::set_int(gaussian_mipchain_srgbVarId, isSRGB ? 1 : 0);
+
       d3d::resource_barrier(
         {{tex, tex}, {RB_RO_SRV | RB_STAGE_COMPUTE, RB_RW_UAV | RB_STAGE_COMPUTE}, {unsigned(i - 1), unsigned(i)}, {1U, 1U}});
       d3d::set_rwtex(STAGE_CS, 0, tex, 0, i);

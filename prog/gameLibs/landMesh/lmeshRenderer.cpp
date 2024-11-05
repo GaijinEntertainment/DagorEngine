@@ -1,6 +1,14 @@
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
-#include <3d/dag_drv3dReset.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <math/dag_TMatrix4.h>
 #include <math/dag_bounds3.h>
 #include <math/dag_frustum.h>
@@ -160,7 +168,11 @@ static void init_one_quad()
   one_quad->unlock();
 }
 
-static void lmesh_after_reset_device(bool) { init_one_quad(); }
+static void lmesh_after_reset_device(bool)
+{
+  if (one_quad)
+    init_one_quad();
+}
 
 REGISTER_D3D_AFTER_RESET_FUNC(lmesh_after_reset_device);
 
@@ -568,7 +580,7 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
 
   GET_SHADER_CONSTANT(lmesh_physmats__buffer_idx);
   if (lmesh_physmats__buffer_idx > 0)
-    physmatIdsBuf = d3d::buffers::create_one_frame_sr_byte_address(DET_TEX_NUM * 4 * 4, "physmats_IDS");
+    physmatIdsBuf = d3d::buffers::create_one_frame_sr_byte_address(DET_TEX_NUM * 4, "physmats_IDS");
   else
     physmatIdsBuf = NULL;
 
@@ -789,7 +801,7 @@ void LandMeshRenderer::evictSplattingData()
 
 void LandMeshRenderer::resetTextures()
 {
-  d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, NULL, NULL, NULL);
+  d3d::GpuAutoLock gpuLock;
   d3d::settex(lmesh_sampler__land_detail_map, NULL);
   d3d::settex(lmesh_sampler__land_detail_map2, NULL);
 
@@ -797,7 +809,6 @@ void LandMeshRenderer::resetTextures()
   {
     d3d::settex(lmesh_sampler__land_detail_tex1 + i, NULL);
   }
-  d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL);
 }
 
 void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, float hmap_camera_height)
@@ -1198,16 +1209,16 @@ __forceinline ShaderMesh *LandMeshRenderer::prepareGeomCellsCM(LandMeshManager &
   return provider.getCellCombinedShaderMeshRaw(mirroredCell.cellX, mirroredCell.cellY, isCombinedBig);
 }
 
-void LandMeshRenderer::renderGeomCellsLM(LandMeshManager &provider, uint16_t *cell_no, int cells_count, int lodNo, RenderType rtype,
+void LandMeshRenderer::renderGeomCellsLM(LandMeshManager &provider, dag::ConstSpan<uint16_t> cells, int lodNo, RenderType rtype,
   uint8_t hide_excluded)
 {
-  if (!cells_count || !optScn)
+  if (!cells.size() || !optScn)
     return;
-  // debug_ctx("%d: render %d", rtype, cells_count);
+  // DEBUG_CTX("%d: render %d", rtype, cells_count);
   landmesh::VisibilityData &visData = optScn[lodNo].visData;
-  for (int ci = 0; ci < cells_count; ++ci)
+  for (auto id : cells)
   {
-    const MirroredCellState &mirroredCell = mirroredCells[cell_no[ci]];
+    const MirroredCellState &mirroredCell = mirroredCells[id];
     if (hide_excluded & mirroredCell.excluded)
       continue;
     ShaderMesh *landm = provider.getCellLandShaderMeshRaw(mirroredCell.cellX, mirroredCell.cellY, lodNo);
@@ -1283,10 +1294,10 @@ void LandMeshRenderer::renderGeomCellsLM(LandMeshManager &provider, uint16_t *ce
   }
 }
 
-void LandMeshRenderer::renderGeomCellsCM(LandMeshManager &provider, uint16_t *cell_no, int cells_count, RenderType rtype,
+void LandMeshRenderer::renderGeomCellsCM(LandMeshManager &provider, dag::ConstSpan<uint16_t> cells, RenderType rtype,
   bool skip_not_big)
 {
-  if (!cells_count || !provider.getCombinedVdata())
+  if (!cells.size() || !provider.getCombinedVdata())
     return;
   provider.getCombinedVdata()->setToDriver();
   // todo: glueing and separating by materials
@@ -1294,10 +1305,10 @@ void LandMeshRenderer::renderGeomCellsCM(LandMeshManager &provider, uint16_t *ce
   {
     case RENDER_ONE_SHADER:
     case RENDER_DEPTH:
-      for (int ci = 0; ci < cells_count; ++ci)
+      for (auto id : cells)
       {
         bool *isCombinedBig;
-        ShaderMesh *combinedm = prepareGeomCellsCM(provider, cell_no[ci], skip_not_big ? &isCombinedBig : NULL);
+        ShaderMesh *combinedm = prepareGeomCellsCM(provider, id, skip_not_big ? &isCombinedBig : NULL);
         if (!combinedm)
           continue;
         for (int ei = 0; ei < combinedm->getAllElems().size(); ++ei)
@@ -1312,10 +1323,10 @@ void LandMeshRenderer::renderGeomCellsCM(LandMeshManager &provider, uint16_t *ce
 
     case RENDER_WITH_CLIPMAP:
     case RENDER_REFLECTION:
-      for (int ci = 0; ci < cells_count; ++ci)
+      for (auto id : cells)
       {
         bool *isCombinedBig;
-        ShaderMesh *combinedm = prepareGeomCellsCM(provider, cell_no[ci], &isCombinedBig);
+        ShaderMesh *combinedm = prepareGeomCellsCM(provider, id, &isCombinedBig);
         if (!combinedm)
           continue;
         for (int ei = 0; ei < combinedm->getAllElems().size(); ++ei)
@@ -1954,22 +1965,19 @@ enum
 static constexpr int LANDMESH_MAX_CELLS_LEAVES = 1024;
 struct RenderCulledCtx
 {
-  carray<carray<uint16_t, LANDMESH_MAX_CELLS_LEAVES>, MIRRORS * LandMeshManager::LOD_COUNT - 1> cellsLodData;
-  carray<uint16_t, LANDMESH_MAX_CELLS_LEAVES * 7> cellsData;
+  carray<carray<uint16_t, LANDMESH_MAX_CELLS_LEAVES>, MIRRORS * LandMeshManager::LOD_COUNT - 1> tmpCellsLodData;
+  carray<uint16_t, LANDMESH_MAX_CELLS_LEAVES * MIRRORS * LandMeshManager::LOD_COUNT> cellsFlattenedData;
 
   carray<uint16_t[MIRRORS][LandMeshManager::LOD_COUNT], MAX_LAND_MESH_REGIONS> endRegion;
-  uint16_t cellI[MIRRORS][LandMeshManager::LOD_COUNT];
+  uint16_t cellCounter[MIRRORS][LandMeshManager::LOD_COUNT];
 };
 
 #if DAGOR_DBGLEVEL > 0
-bool LandMeshRenderer::check_cull_matrix(const TMatrix &realView, const TMatrix4 &realProj, const TMatrix4 &realGlobtm,
-  const char *marker, const LandMeshCullingData &data, bool do_fatal)
+bool LandMeshRenderer::check_cull_matrix(const TMatrix &realView, const TMatrix4 &realProj, const Driver3dPerspective &persp,
+  const TMatrix4 &realGlobtm, const char *marker, const LandMeshCullingData &data, bool do_fatal)
 {
   TMatrix realWtm;
   d3d::gettm(TM_WORLD, realWtm);
-
-  Driver3dPerspective persp;
-  d3d::getpersp(persp);
 
   if (persp.ox == 0.f && persp.oy == 0.f && !matrices_are_equal(realGlobtm, data.culltm))
   {
@@ -2022,12 +2030,12 @@ bool LandMeshRenderer::check_cull_matrix(const TMatrix &realView, const TMatrix4
 void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype, const LandMeshCullingData &culledData,
   const Point3 &view_pos, RenderPurpose rpurpose)
 {
-  return renderCulled(provider, rtype, culledData, nullptr, nullptr, nullptr, view_pos, false, rpurpose);
+  return renderCulled(provider, rtype, culledData, nullptr, nullptr, nullptr, nullptr, view_pos, false, rpurpose);
 }
 
 void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype, const LandMeshCullingData &culledData,
-  const TMatrix *realView, const TMatrix4 *realProj, const TMatrix4 *realGlobtm, const Point3 &view_pos, bool check_matrices,
-  RenderPurpose rpurpose)
+  const TMatrix *realView, const TMatrix4 *realProj, const Driver3dPerspective *persp, const TMatrix4 *realGlobtm,
+  const Point3 &view_pos, bool check_matrices, RenderPurpose rpurpose)
 {
   if (lmesh_vs_const__pos_to_world < 0)
     return;
@@ -2139,8 +2147,8 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
   }
 
 #if DAGOR_DBGLEVEL > 0
-  if (check_matrices && realView && realProj && realGlobtm)
-    check_cull_matrix(*realView, *realProj, *realGlobtm, "renderCulled_main", culledData, true);
+  if (check_matrices && realView && realProj && realGlobtm && persp)
+    check_cull_matrix(*realView, *realProj, *persp, *realGlobtm, "renderCulled_main", culledData, true);
 #else
   G_UNUSED(realView);
   G_UNUSED(realProj);
@@ -2175,17 +2183,18 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
     float cellSize = provider.getLandCellSize();
     float gridCellSize = provider.getGridCellSize();
 
-#if _TARGET_64BIT
-    RenderCulledCtx inst, *ctx = &inst;
-#else // Context is too big for 32-bit platforms
     eastl::unique_ptr<RenderCulledCtx, framememDeleter> ctx(new (framemem_ptr()) RenderCulledCtx);
-#endif
+
+    auto calcLodOffset = [](int mirror, int lod) -> int {
+      // [0][0] is special offset, it's excluded
+      return mirror * LandMeshManager::LOD_COUNT + lod - 1;
+    };
 
     int regionsCount = culledData.regionsCount;
     int regionCallbackCnt = regionCallback ? regionCallback->regionsCount() - 1 : 0;
     int lastRegion = -1;
     {
-      memset(ctx->cellI, 0, sizeof(ctx->cellI));
+      memset(ctx->cellCounter, 0, sizeof(ctx->cellCounter)); // reset cell indices
       for (int srcRegioni = 0, dstRegioni = 0; srcRegioni < regionsCount; ++srcRegioni)
       {
         if (culledData.regions[srcRegioni].head != LANDMESH_INVALID_CELL)
@@ -2199,41 +2208,45 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
                 Point2 dir = Point2(centerDir.x * cellSize, centerDir.y * cellSize);
                 dir.x += centerDir.x < 0 ? cellSize - centerCellFract.x : centerDir.x > 0 ? -centerCellFract.x : 0;
                 dir.y += centerDir.y < 0 ? cellSize - centerCellFract.y : centerDir.y > 0 ? -centerCellFract.y : 0;
-                float distSq = lengthSq(dir);
-                int lod = clamp((int)(sqrtf(distSq) * invGeomLodDist), 0, LandMeshManager::LOD_COUNT - 1);
+                int lod = clamp((int)(length(dir) * invGeomLodDist), 0, LandMeshManager::LOD_COUNT - 1);
                 int cellNo = (borderY - provider.getCellOrigin().y + numBorderCellsZNeg) * tWidth +
                              (borderX - provider.getCellOrigin().x + numBorderCellsXNeg);
                 const MirroredCellState &mirroredCell = mirroredCells[cellNo];
                 int mirror = mirroredCell.mirrorScaleState.xz;
 
-
+                auto &cellIndex = ctx->cellCounter[mirror][lod];
                 if (mirror || lod)
-                  ctx->cellsLodData[mirror * LandMeshManager::LOD_COUNT + lod - 1][ctx->cellI[mirror][lod]] = cellNo;
+                  ctx->tmpCellsLodData[calcLodOffset(mirror, lod)][cellIndex] = cellNo;
                 else
-                  ctx->cellsData[ctx->cellI[mirror][lod]] = cellNo;
-                ctx->cellI[mirror][lod] = min(ctx->cellI[mirror][lod] + 1, LANDMESH_MAX_CELLS_LEAVES - 1);
+                  ctx->cellsFlattenedData[cellIndex] = cellNo;
+                cellIndex = min(cellIndex + 1, LANDMESH_MAX_CELLS_LEAVES - 1);
               }
         }
 
         if (dstRegioni < regionCallbackCnt || srcRegioni == regionsCount - 1)
         {
+          auto &cellIndexOffset = ctx->cellCounter[0][0];
           lastRegion = dstRegioni;
-          ctx->endRegion[dstRegioni][0][0] = ctx->cellI[0][0];
+          ctx->endRegion[dstRegioni][0][0] = cellIndexOffset;
           for (int mirror = 0; mirror < MIRRORS; ++mirror)
             for (int lod = 0; lod < LandMeshManager::LOD_COUNT; ++lod)
               if (mirror || lod)
               {
-                if (ctx->cellI[mirror][lod])
+                auto cellIndexCnt = ctx->cellCounter[mirror][lod];
+                if (cellIndexCnt)
                 {
-                  memcpy(ctx->cellsData.data() + ctx->cellI[0][0],
-                    ctx->cellsLodData[mirror * LandMeshManager::LOD_COUNT + lod - 1].data(),
-                    ctx->cellI[mirror][lod] * sizeof(ctx->cellsData[0]));
-                  ctx->cellI[0][0] += ctx->cellI[mirror][lod];
-                  ctx->cellI[mirror][lod] = 0;
+                  G_ASSERT(cellIndexCnt <= LANDMESH_MAX_CELLS_LEAVES);
+                  G_ASSERT(cellIndexOffset + cellIndexCnt <= ctx->cellsFlattenedData.size());
+                  memcpy(ctx->cellsFlattenedData.data() + cellIndexOffset, ctx->tmpCellsLodData[calcLodOffset(mirror, lod)].data(),
+                    cellIndexCnt * sizeof(ctx->cellsFlattenedData[0]));
+
+                  cellIndexOffset += ctx->cellCounter[mirror][lod];
+                  ctx->cellCounter[mirror][lod] = 0;
                 }
-                ctx->endRegion[dstRegioni][mirror][lod] = ctx->cellI[0][0];
+                ctx->endRegion[dstRegioni][mirror][lod] = cellIndexOffset;
               }
-          memset(&ctx->cellI[0][1], 0, sizeof(ctx->cellI) - sizeof(ctx->cellI[0][0]));
+          memset(&ctx->cellCounter[0][1], 0, sizeof(ctx->cellCounter) - sizeof(cellIndexOffset)); // reset cell indices, except cell
+                                                                                                  // offset
           dstRegioni++;
         }
       }
@@ -2253,7 +2266,7 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
         for (int mirror = 0; mirror < MIRRORS; ++mirror)
           for (int lod = 0; lod < LandMeshManager::LOD_COUNT; ++lod)
             for (; cellI < ctx->endRegion[regioni][mirror][lod]; cellI++)
-              renderCell(provider, ctx->cellsData[cellI], lod, rtype, rpurpose, lod > 0);
+              renderCell(provider, ctx->cellsFlattenedData[cellI], lod, rtype, rpurpose, lod > 0);
 
         if (regionCallback)
           regionCallback->endRenderCellRegion(regioni);
@@ -2271,22 +2284,27 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
         if (regionCallback)
           regionCallback->startRenderCellRegion(regioni);
 
+        auto makeCellSpan = [&ctx](int start_id, int end_id) -> eastl::span<uint16_t> {
+          G_ASSERT(start_id >= 0 && end_id >= 0);
+          G_ASSERT(start_id < end_id);
+          G_ASSERT(end_id <= ctx->cellsFlattenedData.size());
+          return eastl::span(ctx->cellsFlattenedData.data() + start_id, end_id - start_id);
+        };
+
         if (lmesh_render_flags & RENDER_COMBINED)
         {
-          for (int cellI = startCellI, mirrorI = 0; mirrorI < MIRRORS;
-               cellI = ctx->endRegion[regioni][mirrorI][LandMeshManager::LOD_COUNT - 1], ++mirrorI)
+          for (int cellI = startCellI, mirrorI = 0; mirrorI < MIRRORS; ++mirrorI)
           {
             for (int lod = 0; lod < LandMeshManager::LOD_COUNT; cellI = ctx->endRegion[regioni][mirrorI][lod], ++lod)
             {
               if (ctx->endRegion[regioni][mirrorI][lod] > cellI)
               {
                 // set mirror
-                const MirroredCellState &mirroredCell = mirroredCells[ctx->cellsData[cellI]];
+                const MirroredCellState &mirroredCell = mirroredCells[ctx->cellsFlattenedData[cellI]];
                 mirroredCell.setPsMirror();
                 mirroredCell.setFlipCull(this);
                 d3d::set_vs_const(lmesh_vs_const__pos_to_world, &worldMulPos[mirroredCell.mirrorScaleState.xz][0].x, 2);
-                renderGeomCellsCM(provider, ctx->cellsData.data() + cellI, ctx->endRegion[regioni][mirrorI][lod] - cellI, rtype,
-                  lod > 0);
+                renderGeomCellsCM(provider, makeCellSpan(cellI, ctx->endRegion[regioni][mirrorI][lod]), rtype, lod > 0);
               }
             }
           }
@@ -2299,18 +2317,16 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
             {
               if (ctx->endRegion[regioni][mirrorI][lod] > cellI)
               {
-                const MirroredCellState &mirroredCell = mirroredCells[ctx->cellsData[cellI]];
+                const MirroredCellState &mirroredCell = mirroredCells[ctx->cellsFlattenedData[cellI]];
                 mirroredCell.setPsMirror();
                 mirroredCell.setFlipCull(this);
                 d3d::set_vs_const(lmesh_vs_const__pos_to_world, &worldMulPos[mirroredCell.mirrorScaleState.xz][0].x, 2);
-                renderGeomCellsLM(provider, ctx->cellsData.data() + cellI, ctx->endRegion[regioni][mirrorI][lod] - cellI, lod, rtype,
-                  use_exclusion);
+                renderGeomCellsLM(provider, makeCellSpan(cellI, ctx->endRegion[regioni][mirrorI][lod]), lod, rtype, use_exclusion);
               }
             }
         }
         if (rtype == RENDER_WITH_SPLATTING && (lmesh_render_flags & RENDER_DECALS))
         {
-          provider.getHmapHandler()->setVsSampler();
           for (int cellI = startCellI, mirrorI = 0; mirrorI < MIRRORS; ++mirrorI)
             for (int lod = 0; lod < LandMeshManager::LOD_COUNT; cellI = ctx->endRegion[regioni][mirrorI][lod], ++lod)
             {
@@ -2318,7 +2334,7 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
               {
                 for (int ci = cellI; ci < ctx->endRegion[regioni][mirrorI][lod]; ++ci)
                 {
-                  const MirroredCellState &mirroredCell = mirroredCells[ctx->cellsData[ci]];
+                  const MirroredCellState &mirroredCell = mirroredCells[ctx->cellsFlattenedData[ci]];
                   mirroredCell.setPsMirror();
                   mirroredCell.setFlipCull(this);
                   mirroredCell.setPosConsts(false);
@@ -2326,7 +2342,6 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
                 }
               }
             }
-          provider.getHmapHandler()->resetVsSampler();
         }
         if (regionCallback)
           regionCallback->endRenderCellRegion(regioni);
@@ -2364,13 +2379,15 @@ bool LandMeshRenderer::renderDecals(LandMeshManager &provider, RenderType rtype,
 
   Point3 hmapOriginPos(0.f, 0.f, 0.f);
   float cameraHeight = 0.f;
+  float waterLevel = HeightmapHeightCulling::NO_WATER_ON_LEVEL;
   if (provider.getHmapHandler())
   {
     hmapOriginPos = provider.getHmapHandler()->getPreparedOriginPos();
     cameraHeight = provider.getHmapHandler()->getPreparedCameraHeight();
+    waterLevel = provider.getHmapHandler()->getPreparedWaterLevel();
   }
   LandMeshCullingData defaultCullData(framemem_ptr());
-  state.frustumCulling(provider, frustum, NULL, defaultCullData, NULL, 0, hmapOriginPos, cameraHeight, -1);
+  state.frustumCulling(provider, frustum, NULL, defaultCullData, NULL, 0, hmapOriginPos, cameraHeight, waterLevel, -1);
 
   LandMeshRenderer::MirroredCellState::startRender();
 
@@ -2389,8 +2406,6 @@ bool LandMeshRenderer::renderCulledDecals(LandMeshManager &provider, const LandM
   if (!cellStates)
     return false;
 
-  if (provider.getHmapHandler())
-    provider.getHmapHandler()->setVsSampler();
   const LandMeshCellDesc *cellsArr = culledData.cells;
 
   bool renderedAnything = false;
@@ -2403,6 +2418,11 @@ bool LandMeshRenderer::renderCulledDecals(LandMeshManager &provider, const LandM
                      (borderX - provider.getCellOrigin().x + numBorderCellsXNeg);
 
         const MirroredCellState &mirroredCell = mirroredCells[cellNo];
+
+        ShaderMesh *decalm = provider.getCellDecalShaderMeshOffseted(mirroredCell.cellX, mirroredCell.cellY);
+        if (!decalm || !(lmesh_render_flags & RENDER_DECALS) || decalm->getAllElems().empty())
+          continue;
+
         mirroredCell.setPsMirror();
         mirroredCell.setPosConsts(false);
         CellState &curState = cellStates[mirroredCell.cellX + mirroredCell.cellY * provider.getNumCellsX()];
@@ -2426,9 +2446,6 @@ bool LandMeshRenderer::renderCulledDecals(LandMeshManager &provider, const LandM
         renderedAnything |= renderCellDecals(provider, mirroredCell);
       }
 
-  if (provider.getHmapHandler())
-    provider.getHmapHandler()->resetVsSampler();
-
   return renderedAnything;
 }
 
@@ -2439,6 +2456,14 @@ void LandMeshRenderer::render(LandMeshManager &provider, RenderType rtype, const
   mat44f globtm;
   d3d::getglobtm(globtm);
   Frustum frustum(globtm);
+  return render(globtm, frustum, provider, rtype, view_pos, rpurpose);
+}
+
+void LandMeshRenderer::render(mat44f_cref globtm, const Frustum &frustum, LandMeshManager &provider, RenderType rtype,
+  const Point3 &view_pos, RenderPurpose rpurpose)
+{
+  if (lmesh_vs_const__pos_to_world < 0)
+    return;
 
   HmapRenderType prevRenderHeightmapType = renderHeightmapType;
 
@@ -2452,10 +2477,12 @@ void LandMeshRenderer::render(LandMeshManager &provider, RenderType rtype, const
 
   Point3 hmapOriginPos(0.f, 0.f, 0.f);
   float cameraHeight = 0.f;
+  float waterLevel = HeightmapHeightCulling::NO_WATER_ON_LEVEL;
   if (provider.getHmapHandler())
   {
     hmapOriginPos = provider.getHmapHandler()->getPreparedOriginPos();
     cameraHeight = provider.getHmapHandler()->getPreparedCameraHeight();
+    waterLevel = provider.getHmapHandler()->getPreparedWaterLevel();
   }
 
   LandMeshCullingData defaultCullData(framemem_ptr());
@@ -2469,7 +2496,7 @@ void LandMeshRenderer::render(LandMeshManager &provider, RenderType rtype, const
     state.useExclBox = false;
     if (!state.renderInBBox.isempty())
       state.cullMode = state.NO_CULLING; // faster culling - no bbox testing
-    state.frustumCulling(provider, frustum, NULL, defaultCullData, NULL, 0, hmapOriginPos, cameraHeight, -1);
+    state.frustumCulling(provider, frustum, NULL, defaultCullData, NULL, 0, hmapOriginPos, cameraHeight, waterLevel, -1);
   }
   else
   {
@@ -2496,9 +2523,9 @@ void LandMeshRenderer::render(LandMeshManager &provider, RenderType rtype, const
     }
     if (regionCallback)
       state.frustumCulling(provider, frustum, NULL, defaultCullData, regionCallback->regions(), regionCallback->regionsCount(),
-        hmapOriginPos, cameraHeight, renderHeightmapType == TESSELATED_HMAP ? useHmapTankDetail : -1, hmapSubDivLod0);
+        hmapOriginPos, cameraHeight, waterLevel, renderHeightmapType == TESSELATED_HMAP ? useHmapTankDetail : -1, hmapSubDivLod0);
     else
-      state.frustumCulling(provider, frustum, NULL, defaultCullData, NULL, 0, hmapOriginPos, cameraHeight,
+      state.frustumCulling(provider, frustum, NULL, defaultCullData, NULL, 0, hmapOriginPos, cameraHeight, waterLevel,
         renderHeightmapType == TESSELATED_HMAP ? useHmapTankDetail : -1, hmapSubDivLod0);
   }
   renderCulled(provider, rtype, defaultCullData, view_pos, rpurpose);

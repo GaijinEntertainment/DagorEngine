@@ -1,5 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/esmAo.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_quadIndexBuffer.h>
 
 ECS_REGISTER_BOXED_TYPE(EsmAoManager, nullptr);

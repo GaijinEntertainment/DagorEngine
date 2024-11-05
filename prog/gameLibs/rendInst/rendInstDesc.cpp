@@ -1,10 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <rendInst/rendInstDesc.h>
 #include "riGen/riUtil.h"
 #include "riGen/riGenExtra.h"
 
 bool rendinst::isRiGenDescValid(const rendinst::RendInstDesc &desc)
 {
-  if (EASTL_UNLIKELY(!desc.isValid()))
+  if (DAGOR_UNLIKELY(!desc.isValid()))
     return false;
 
   if (desc.isRiExtra())
@@ -22,3 +24,5 @@ float rendinst::getTtl(const rendinst::RendInstDesc &desc)
 }
 
 bool rendinst::isRgLayerPrimary(const RendInstDesc &desc) { return rendinst::isRgLayerPrimary(desc.layer); }
+
+bool rendinst::ignoreTraceRiExtra(const RendInstDesc &desc, rendinst::IgnoreFunc f) { return f ? f(desc) : false; }

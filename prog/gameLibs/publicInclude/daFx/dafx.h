@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -9,14 +8,16 @@
 #include <EASTL/vector.h>
 #include <EASTL/array.h>
 #include <EASTL/string.h>
-#include <EASTL/string_view.h>
+#include <hash/wyhash.h>
 #include <util/dag_generationRefId.h>
-#include <3d/dag_resId.h>
+#include <generic/dag_span.h>
+#include <drv/3d/dag_resId.h>
 
 class D3dResource;
 struct Frustum;
 class Occlusion;
 class BaseTexture;
+struct mat44f;
 
 //
 // proper dafx call order:
@@ -57,6 +58,7 @@ const uint32_t DEBUG_DISABLE_RENDER = 1 << 3;
 const uint32_t DEBUG_DISABLE_SIMULATION = 1 << 4;
 const uint32_t DEBUG_DISABLE_OCCLUSION = 1 << 5;
 const uint32_t DEBUG_SHOW_BBOXES = 1 << 6;
+const uint32_t DEBUG_ENABLE_SYSTEM_USAGE_STATS = 1 << 7;
 
 struct CpuExecData
 {
@@ -172,6 +174,14 @@ struct ValueBindDesc
   int size;
 };
 
+struct TextureDesc
+{
+  TextureDesc(TEXTUREID t, bool a) : texId(t), anisotropic(a) {}
+
+  TEXTUREID texId;
+  bool anisotropic;
+};
+
 enum class SortingType : int
 {
   NONE = 0,
@@ -182,33 +192,43 @@ enum class SortingType : int
 
 struct CullingDesc
 {
-  CullingDesc(const eastl::string &t, SortingType s, int vrs_rate = 0) : tag(t), sortingType(s), vrsRate(vrs_rate) {}
+  CullingDesc(const eastl::string &t, SortingType s, int vrs_rate = 0, float screen_discard_threshold = 0) :
+    tag(t), sortingType(s), vrsRate(vrs_rate), screenAreaDiscardThreshold(screen_discard_threshold)
+  {}
 
   int vrsRate;
+  float screenAreaDiscardThreshold;
   eastl::string tag;
   SortingType sortingType;
 };
 
 struct SystemDesc
 {
+  enum
+  {
+    FLAG_SKIP_SCREEN_PROJ_CULL_DISCARD = 0x01,
+    FLAG_DISABLE_SIM_LODS = 0x02,
+  };
+
   EmitterData emitterData;
   EmissionData emissionData;
   SimulationData simulationData;
   eastl::vector<RenderDesc> renderDescs; // optional if subsystems are present
 
+  unsigned int specialFlags = 0;
   unsigned int renderElemSize = 0;     // 1 element size in bytes
   unsigned int simulationElemSize = 0; // 1 element size in bytes
   unsigned int serviceDataSize = 0;    // optional shader accessible data at the end of the buffer chunk
 
-  bool customDepth = false;
   uint32_t qualityFlags = 0xffffffff; // for exclusion for custom config params, i.e. - quality settings, see dafx::Config::qualityMask
   unsigned int renderPrimPerPart = 2;
+  int maxTextureSlotsAllocated = 0;
 
   eastl::vector<unsigned char> serviceData;
 
-  eastl::vector<TEXTUREID> texturesVs; // optional
-  eastl::vector<TEXTUREID> texturesPs; // optional
-  eastl::vector<TEXTUREID> texturesCs; // optional
+  eastl::vector<TextureDesc> texturesVs; // optional
+  eastl::vector<TextureDesc> texturesPs; // optional
+  eastl::vector<TextureDesc> texturesCs; // optional
 
   eastl::vector<ValueBindDesc> localValuesDesc; // optional
   eastl::vector<ValueBindDesc> reqGlobalValues; // optional
@@ -220,6 +240,7 @@ struct SystemDesc
 
 struct Config;
 struct Stats;
+struct SystemUsageStat;
 
 ContextId create_context(const Config &cfg);
 void release_context(ContextId cid);
@@ -248,6 +269,8 @@ CullingId create_proxy_culling_state(ContextId cid);
 void destroy_culling_state(ContextId cid, CullingId cull_id);
 void update_culling_state(ContextId cid, CullingId cullid, const Frustum &frustum, const Point3 &view_pos,
   Occlusion *(*occlusion_sync_wait_f)() = nullptr);
+void update_culling_state(ContextId cid, CullingId cullid, const Frustum &frustum, const mat44f &globtm, const Point3 &view_pos,
+  Occlusion *(*occlusion_sync_wait_f)() = nullptr);
 void clear_culling_state(ContextId cid, CullingId cullid);
 void remap_culling_state_tag(ContextId cid, CullingId cullid, const eastl::string &from, const eastl::string &to); // pass same values
                                                                                                                    // to reset remap
@@ -258,6 +281,7 @@ void partition_workers_if_outside_sphere(ContextId cid, CullingId cull_id_from, 
 void partition_workers_if_inside_sphere(ContextId cid, CullingId cull_id_from, CullingId cull_id_to,
   const eastl::vector<eastl::string> &tags, Point4 sphere);
 
+void set_was_inactive(ContextId cid);
 void start_update(ContextId cid, float dt, bool update_gpu = true, bool tp_wake_up = true);
 void finish_update(ContextId cid, bool update_gpu_fetch = true, bool beforeRenderFrameFrameBoundary = false);
 void finish_update_cpu_only(ContextId cid); // must be called before finish_update_gpu_only
@@ -269,17 +293,21 @@ void flush_command_queue(ContextId cid);
 
 void updateDafxFrameBounds(ContextId cid);
 
+using TextureCallback = void (*)(TEXTUREID);
+
 void before_render(ContextId cid, uint32_t tags_mask = 0xFFFFFFFF);
 void before_render(ContextId cid, const eastl::vector<eastl::string> &tags_name);
-bool render(ContextId ctx_id, CullingId cull_id, const eastl::string &tag);
+bool render(ContextId ctx_id, CullingId cull_id, const eastl::string &tag, float mip_bias, TextureCallback tc = nullptr);
+void reset_samplers_cache(ContextId cid);
 
 void flush_global_values(ContextId cid);
 
-void set_custom_depth(ContextId cid, BaseTexture *tex);
-void set_global_value(ContextId cid, const char *name, size_t name_len, const void *data, int size);
-inline void set_global_value(ContextId cid, eastl::string_view name, const void *data, int size)
+void set_global_value_ext(ContextId cid, const char *name, size_t name_len, uint32_t name_hash, const void *data, int size);
+template <unsigned N>
+inline void set_global_value(ContextId cid, const char (&name)[N], const void *data, int size)
 {
-  set_global_value(cid, name.data(), name.size(), data, size);
+  uint32_t hash = wyhash((const uint8_t *)&name, N - 1, 1); // DefaultOAHasher<false>().hash_data(&name[0], N - 1))
+  set_global_value_ext(cid, &name[0], N - 1, hash, data, size);
 }
 bool get_global_value(ContextId cid, const eastl::string &name, void *data, int size);
 
@@ -287,6 +315,10 @@ void set_instance_value(ContextId cid, InstanceId iid, const eastl::string &name
 void set_instance_value_opt(ContextId cid, InstanceId iid, const eastl::string &name, const void *data, int size);
 void set_instance_value(ContextId cid, InstanceId iid, int offset, const void *data, int size);
 void set_subinstance_value(ContextId cid, InstanceId iid, int sub_idx, int offset, const void *data, int size);
+void set_instance_value_from_system(ContextId cid, InstanceId iid, SystemId sid, int offset, int size,
+  dag::Span<const float> scale_vec = {} /*optional: assumes target and scale values are floats*/);
+void set_subinstance_value_from_system(ContextId cid, InstanceId iid, int sub_idx, SystemId sid, int offset, int size,
+  dag::Span<const float> scale_vec = {} /*optional: assumes target and scale values are floats*/);
 void set_instance_pos(ContextId cid, InstanceId iid, const Point4 &pos); // for sorting and distance based emitters
 void set_instance_emission_rate(ContextId cid, InstanceId iid, float v);
 void set_instance_status(ContextId cid, InstanceId iid, bool enabled);
@@ -297,6 +329,9 @@ bool is_instance_renderable_visible(ContextId cid, InstanceId iid);
 bool get_instance_value(ContextId cid, InstanceId iid, int offset, void *out_data, int size);
 bool get_subinstances(ContextId cid, InstanceId iid, eastl::vector<InstanceId> &out);
 eastl::string get_instance_info(ContextId cid, InstanceId iid);
+int get_instance_elem_count(ContextId cid, InstanceId iid); // slow and not thread-safe, only for debug!
+void gather_instance_stats(ContextId cid, InstanceId iid, eastl::vector<eastl::string> &names, eastl::vector<int> &elems,
+  eastl::vector<int> &lods); // only for debug use
 
 void render_debug_opt(ContextId cid);
 void set_debug_flags(ContextId cid, uint32_t flags);
@@ -307,6 +342,8 @@ void clear_stats(ContextId cid);
 void get_stats(ContextId cid, Stats &out_s);
 void get_stats_as_string(ContextId cid, eastl::string &out_s);
 
+dag::ConstSpan<SystemUsageStat> get_system_usage_stats(ContextId cid);
+
 unsigned int get_emitter_limit(const EmitterData &data, bool skip_error);
 
 struct Config
@@ -315,13 +352,21 @@ struct Config
   uint32_t qualityMask = 0xffffffff;
 
   bool vrs_enabled = false;
+  bool multidraw_enabled = true;
   bool use_async_thread = true;
   bool low_prio_jobs = false;
+  bool delayed_release_gpu_buffers = true;
+  bool screen_area_cull_discard = true;
   unsigned int max_async_threads = 0; // if 0, threadpool::get_num_workers() will be used
+  unsigned int forced_sim_lod_offset = 0;
 
   int render_buffer_gc_tail = 100;
   int render_buffer_gc_after = 5 * 1024 * 1024;
   int render_buffer_start_size = 512 * 1024;
+
+  bool sim_lods_enabled = false;
+  bool gen_sim_lods_for_invisible_instances = false;
+  float min_sim_lod_dt_tick = 1.f / 5.f; // default: 5 ticks per frame
 
   float render_buffer_shrink_ratio = 0.2f;
   float emission_factor = 1.f;
@@ -331,6 +376,8 @@ struct Config
   unsigned int staging_buffer_size = 65536;
   unsigned int warmup_sims_budged = 50; // parent/root instances
   unsigned int max_warmup_steps_per_instance = 10;
+  unsigned int max_multidraw_batch_size = 256;
+  unsigned int multidraw_buffer_size = 4096;
 
   unsigned int texture_start_slot = 10;
 
@@ -342,6 +389,7 @@ struct Config
 
   static const int max_render_tags = 16;
   static const int max_system_depth = 8;
+  static const int max_simulation_lods = 8;
   static const int max_culling_states = 32;
   static const int max_staging_frames = 5;
 
@@ -394,6 +442,7 @@ struct Stats
   int renderSwitchShaders;
   int renderSwitchTextures;
   int renderSwitchDispatches;
+  int renderSwitchRenderState;
 
   int cpuCullElems;
   int gpuCullElems;
@@ -403,6 +452,8 @@ struct Stats
 
   int gpuTransferCount;
   int gpuTransferSize;
+
+  int genVisibilityLod;
 
   struct Queue
   {
@@ -416,5 +467,14 @@ struct Stats
     int setInstanceValueTotalSize;
   };
   Queue queue[2]; // 2 last frames
+
+  eastl::array<int, Config::max_render_tags> drawCallsByRenderTags;
+};
+
+struct SystemUsageStat
+{
+  int gameResId;
+  int instanceCount;
+  int particleCount;
 };
 } // namespace dafx

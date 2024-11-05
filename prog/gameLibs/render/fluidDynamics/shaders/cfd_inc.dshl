@@ -19,8 +19,8 @@ macro USE_CFD_TC(code)
     float3 get_cfd_voxel_tc(float3 worldPos)
     {
       float3 tc;
-      tc.xy = saturate((worldPos.xz - cfd_world_to_voxel.zw) * cfd_world_to_voxel.xy);
-      tc.z = saturate((worldPos.y - cfd_world_to_voxel_height.y) * cfd_world_to_voxel_height.x);
+      tc.xy = (worldPos.xz - cfd_world_to_voxel.zw) * cfd_world_to_voxel.xy;
+      tc.z = (worldPos.y - cfd_world_to_voxel_height.y) * cfd_world_to_voxel_height.x;
       return tc;
     }
   }

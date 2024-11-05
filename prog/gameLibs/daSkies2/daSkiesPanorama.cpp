@@ -1,8 +1,17 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daSkies2/daSkies.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderVar.h>
-#include <3d/dag_tex3d.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_renderPass.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_async_pipeline.h>
+#include <drv/3d/dag_lock.h>
 #include <math/dag_TMatrix4.h>
 #include <math/dag_adjpow2.h>
 #include <dag_noise/dag_uint_noise.h>
@@ -14,6 +23,7 @@
 #include "shaders/clouds2/panorama_samples.hlsli"
 #include "render/downsampleDepth.h"
 #include <render/viewVecs.h>
+#include <drv/3d/dag_info.h>
 
 static const int panorma_temporal_upsample = PANORAMA_TEMPORAL_SAMPLES; // more than 32 can decrease quality, but due to lack of bits
                                                                         // in TEXFMT_R11G11B10F will cause banding on blending (1/32 =
@@ -21,45 +31,50 @@ static const int panorma_temporal_upsample = PANORAMA_TEMPORAL_SAMPLES; // more 
 static const int panorma_quads_frames = 8;
 static const int panorma_temporal_frames = panorma_temporal_upsample * panorma_quads_frames;
 const int frames_to_exp_validate = 12;
+static uint32_t panorama_async_pipe_feedback = 0;
 
 static uint32_t panoramaFmt = TEXFMT_R11G11B10F; // TEXCF_SRGBREAD|TEXCF_SRGBWRITE;// TEXFMT_A16B16G16R16F;//TEXFMT_R11G11B10F;
 
-#define GLOBAL_VARS_LIST                       \
-  VAR(render_sun, false)                       \
-  VAR(real_skies_sun_light_dir, false)         \
-  VAR(real_skies_sun_color, false)             \
-  VAR(skies_moon_dir, true)                    \
-  VAR(skies_moon_color, true)                  \
-  VAR(skies_primary_sun_light_dir, false)      \
-  VAR(skies_secondary_sun_light_dir, false)    \
-  VAR(skies_primary_sun_color, false)          \
-  VAR(skies_secondary_sun_color, false)        \
-  VAR(skies_panorama_light_dir, false)         \
-  VAR(panoramaTC, false)                       \
-  VAR(clouds_panorama_tex_res, false)          \
-  VAR(clouds_panorama_use_biquadratic, true)   \
-  VAR(cloudsAlphaPanoramaWorldPos, false)      \
-  VAR(currentPanoramaWorldOffset, false)       \
-  VAR(skies_world_view_pos, false)             \
-  VAR(strata_pos_x, false)                     \
-  VAR(strata_pos_z, false)                     \
-  VAR(skies_render_panorama_scattering, false) \
-  VAR(skies_panorama_mu_horizon, false)        \
-  VAR(clouds_panorama_frame, false)            \
-  VAR(clouds_panorama_blend, false)            \
-  VAR(clouds_panorama_blend_from, false)       \
-  VAR(clouds_panorama_tex, false)              \
-  VAR(clouds_panorama_patch_tex, false)        \
-  VAR(rgbm_panorama_scale_factor, false)       \
-  VAR(clouds_panorama_depth_out, true)         \
-  VAR(clouds_panorama_split, true)
+#define GLOBAL_VARS_LIST                             \
+  VAR(render_sun, false)                             \
+  VAR(real_skies_sun_light_dir, false)               \
+  VAR(real_skies_sun_color, false)                   \
+  VAR(skies_moon_dir, true)                          \
+  VAR(skies_moon_color, true)                        \
+  VAR(skies_primary_sun_light_dir, false)            \
+  VAR(skies_secondary_sun_light_dir, false)          \
+  VAR(skies_primary_sun_color, false)                \
+  VAR(skies_secondary_sun_color, false)              \
+  VAR(skies_panorama_light_dir, false)               \
+  VAR(panoramaTC, false)                             \
+  VAR(clouds_panorama_tex_res, false)                \
+  VAR(clouds_panorama_use_biquadratic, true)         \
+  VAR(cloudsAlphaPanoramaWorldPos, false)            \
+  VAR(currentPanoramaWorldOffset, false)             \
+  VAR(skies_world_view_pos, false)                   \
+  VAR(strata_pos_x, false)                           \
+  VAR(strata_pos_z, false)                           \
+  VAR(skies_render_panorama_scattering, false)       \
+  VAR(skies_panorama_mu_horizon, false)              \
+  VAR(skies_panorama_sun_opposite_tc_x, true)        \
+  VAR(clouds_panorama_frame, false)                  \
+  VAR(clouds_panorama_blend, false)                  \
+  VAR(clouds_panorama_blend_from, false)             \
+  VAR(clouds_panorama_tex, false)                    \
+  VAR(clouds_panorama_tex_samplerstate, false)       \
+  VAR(clouds_panorama_patch_tex, false)              \
+  VAR(clouds_panorama_patch_tex_samplerstate, false) \
+  VAR(rgbm_panorama_scale_factor, false)             \
+  VAR(clouds_panorama_depth_out, true)               \
+  VAR(clouds_panorama_split, true)                   \
+  VAR(clouds_alpha_panorama_tex_samplerstate, true)
 
 #define VAR(a, opt) static ShaderVariableInfo a##VarId;
 GLOBAL_VARS_LIST
 #undef VAR
 
 void DaSkies::initPanorama(SkiesData * /*panorama_data*/, bool blend_two, int resolutionW, int resolutionH, bool compress_panorama,
-  bool sky_panorama_patch_enabled)
+  bool sky_panorama_patch_enabled, bool allow_async_pipelines_feedback)
 {
   if (cpuOnly)
     return;
@@ -81,6 +96,7 @@ void DaSkies::initPanorama(SkiesData * /*panorama_data*/, bool blend_two, int re
   }
 
   skyPanoramaPatchEnabled = sky_panorama_patch_enabled;
+  panoramaAllowAsyncPipelineFeedback = allow_async_pipelines_feedback;
 
   TextureInfo tinfo;
   tinfo.w = tinfo.h = 0;
@@ -128,8 +144,13 @@ void DaSkies::initPanorama(SkiesData * /*panorama_data*/, bool blend_two, int re
     invalidatePanorama(true);
 
     cloudsAlphaPanoramaTex = dag::create_tex(NULL, 256, 128, TEXCF_RTARGET | alphaPanoramaFmt, 1, "clouds_alpha_panorama_tex");
-    cloudsAlphaPanoramaTex->texaddru(TEXADDR_WRAP);
-    cloudsAlphaPanoramaTex->texaddrv(TEXADDR_CLAMP);
+    {
+      d3d::SamplerInfo smpInfo;
+      smpInfo.address_mode_u = d3d::AddressMode::Wrap;
+      smpInfo.address_mode_v = d3d::AddressMode::Clamp;
+      ShaderGlobal::set_sampler(clouds_alpha_panorama_tex_samplerstateVarId, d3d::request_sampler(smpInfo));
+    }
+    cloudsAlphaPanoramaTex->disableSampler();
 
     if (VariableMap::isGlobVariablePresent(get_shader_variable_id("clouds_panorama_mip", true)))
     {
@@ -143,8 +164,13 @@ void DaSkies::initPanorama(SkiesData * /*panorama_data*/, bool blend_two, int re
     // todo: sky panorama patch
     // todo: skyPanoramaTex can and should be just LUT in panoramaData
     skyPanoramaTex = dag::create_tex(NULL, 256, 128, TEXCF_RTARGET | panoramaFmt, 1, "sky_panorama_tex");
-    skyPanoramaTex->texaddru(TEXADDR_WRAP);
-    skyPanoramaTex->texaddrv(TEXADDR_CLAMP);
+    skyPanoramaTex->disableSampler();
+    {
+      d3d::SamplerInfo smpInfo;
+      smpInfo.address_mode_u = d3d::AddressMode::Wrap;
+      smpInfo.address_mode_v = d3d::AddressMode::Clamp;
+      ShaderGlobal::set_sampler(::get_shader_variable_id("sky_panorama_tex_samplerstate"), d3d::request_sampler(smpInfo));
+    }
 
     createCloudsPanoramaTex(blend_two, resolutionW, resolutionH);
 
@@ -157,6 +183,20 @@ void DaSkies::initPanorama(SkiesData * /*panorama_data*/, bool blend_two, int re
     if (cloudsPanoramaMipTex)
       cloudsPanoramaMipTex->getinfo(tinfo);
     ShaderGlobal::set_color4(clouds_panorama_tex_resVarId, resolutionW, resolutionH, tinfo.w, tinfo.h);
+  }
+
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = d3d::AddressMode::Wrap;
+    smpInfo.address_mode_v = d3d::AddressMode::Clamp;
+    ShaderGlobal::set_sampler(clouds_panorama_tex_samplerstateVarId, d3d::request_sampler(smpInfo));
+  }
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = d3d::AddressMode::Clamp;
+    smpInfo.address_mode_v = d3d::AddressMode::Clamp;
+    smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    ShaderGlobal::set_sampler(clouds_panorama_patch_tex_samplerstateVarId, d3d::request_sampler(smpInfo));
   }
 }
 
@@ -195,7 +235,7 @@ void DaSkies::createCloudsPanoramaSplitResources(int resolution_width, int resol
       {1, RenderPassExtraIndexes::RP_SUBPASS_EXTERNAL_END, 0, RP_TA_STORE_WRITE, RB_STAGE_PIXEL | RB_RO_SRV}};
 
     cloudsPanoramaSplitRP = d3d::create_render_pass(
-      {"clouds_panorama_multipass", sizeof(targets) / sizeof(targets[0]), sizeof(binds) / sizeof(binds[0]), targets, binds, 0});
+      {"clouds_panorama_multipass", sizeof(targets) / sizeof(targets[0]), sizeof(binds) / sizeof(binds[0]), targets, binds, 11});
   }
 }
 
@@ -207,35 +247,33 @@ void DaSkies::createCloudsPanoramaTex(bool blend_two, int resolution_width, int 
     const uint32_t flg = (TEXCF_RTARGET | panoramaFmt);
     cloudsPanoramaTex[i].close();
     cloudsPanoramaTex[i] = dag::create_tex(NULL, w, h, flg, 1, name);
-    cloudsPanoramaTex[i]->texaddru(TEXADDR_WRAP);
-    cloudsPanoramaTex[i]->texaddrv(TEXADDR_CLAMP);
+    cloudsPanoramaTex[i]->disableSampler();
 
     if (skyPanoramaPatchEnabled)
     {
       name.printf(128, "clouds_panorama_patch_tex_%d", i);
       cloudsPanoramaPatchTex[i].close();
       cloudsPanoramaPatchTex[i] = dag::create_tex(NULL, pw, ph, flg, 1, name);
-      cloudsPanoramaPatchTex[i]->texaddr(TEXADDR_CLAMP);
+      cloudsPanoramaPatchTex[i]->disableSampler();
     }
 
-    d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, NULL, NULL, NULL);
+    d3d::GpuAutoLock gpuLock;
+    SCOPE_RENDER_TARGET;
+    d3d::set_render_target(cloudsPanoramaTex[i].getTex2D(), 0);
+    d3d::clearview(CLEAR_TARGET, 0, 0.f, 0);
+    d3d::resource_barrier({cloudsPanoramaTex[i].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+
+    if (skyPanoramaPatchEnabled)
     {
-      SCOPE_RENDER_TARGET;
-      d3d::set_render_target(cloudsPanoramaTex[i].getTex2D(), 0);
+      d3d::set_render_target(cloudsPanoramaPatchTex[i].getTex2D(), 0);
       d3d::clearview(CLEAR_TARGET, 0, 0.f, 0);
-      d3d::resource_barrier({cloudsPanoramaTex[i].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-
-      if (skyPanoramaPatchEnabled)
-      {
-        d3d::set_render_target(cloudsPanoramaPatchTex[i].getTex2D(), 0);
-        d3d::clearview(CLEAR_TARGET, 0, 0.f, 0);
-        d3d::resource_barrier({cloudsPanoramaPatchTex[i].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-      }
+      d3d::resource_barrier({cloudsPanoramaPatchTex[i].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     }
-    d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL);
   };
 
-  if (d3d::get_driver_desc().caps.hasNativeRenderPassSubPasses)
+  allowCloudsPanoramaSplit = d3d::get_driver_desc().caps.hasNativeRenderPassSubPasses &&
+                             d3d::get_driver_desc().caps.hasTileBasedArchitecture && d3d::get_driver_code().is(d3d::vulkan);
+  if (allowCloudsPanoramaSplit)
     createCloudsPanoramaSplitResources(resolution_width, resolution_height);
 
   create(0, resolution_width, resolution_height, max(8, resolution_height / 16), max(8, resolution_height / 16));
@@ -269,8 +307,7 @@ void DaSkies::initPanoramaCompression(int width, int height)
     auto compressFormat = etc2 ? TEXFMT_ETC2_RGBA : TEXFMT_DXT5;
     compressedCloudsPanoramaTex = dag::create_tex(NULL, width, height,
       compressFormat | TEXCF_CLEAR_ON_CREATE | TEXCF_UPDATE_DESTINATION, 1, "compressed_clouds_panorama_tex");
-    compressedCloudsPanoramaTex->texaddru(TEXADDR_WRAP);
-    compressedCloudsPanoramaTex->texaddrv(TEXADDR_CLAMP);
+    compressedCloudsPanoramaTex->disableSampler();
 
     panoramaCompressor = eastl::make_unique<PanoramaCompressor>(cloudsPanoramaTex[0], compressFormat);
   }
@@ -285,7 +322,9 @@ void DaSkies::closePanorama()
   }
   cloudsAlphaPanoramaTex.close();
   cloudsDepthPanoramaTex.close();
+  cloudsDepthPanoramaPatchTex.close();
   cloudsDepthDownsampledPanoramaTex.close();
+  cloudsDepthDownsampledPanoramaPatchTex.close();
   cloudsPanoramaMipTex.close();
   skyPanoramaTex.close();
   compressedCloudsPanoramaTex.close();
@@ -337,6 +376,9 @@ void DaSkies::renderPanorama(const Point3 &origin, const TMatrix &view_tm, const
   set_horizon_shadervar(skies.getEarthRadius(), origin.y);
   ShaderGlobal::set_color4(skies_world_view_posVarId, origin.x, origin.y, origin.z, 0);
   ShaderGlobal::set_color4(skies_panorama_light_dirVarId, panoramaVariables.real_skies_sun_light_dir);
+  float sunOppositeTcX =
+    safe_atan2(-panoramaVariables.real_skies_sun_light_dir.r, -panoramaVariables.real_skies_sun_light_dir.g) * (0.5f / PI) + 0.5f;
+  ShaderGlobal::set_real(skies_panorama_sun_opposite_tc_xVarId, sunOppositeTcX);
   ShaderGlobal::set_texture(clouds_panorama_texVarId,
     isPanoramaCompressed ? compressedCloudsPanoramaTex : cloudsPanoramaTex[currentPanorama]);
 
@@ -345,6 +387,9 @@ void DaSkies::renderPanorama(const Point3 &origin, const TMatrix &view_tm, const
 
   {
     TIME_D3D_PROFILE(applyPanorama);
+    // There is some renderpass split when rendering envi probe.
+    // Since it happens on events (i. e. not every frame) it's ok to just allow RP interruption.
+    d3d::allow_render_pass_target_load();
     applyCloudsPanorama.render();
   }
 
@@ -419,7 +464,11 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
       panorama_sun_light_color_brightness, !is_relative_equal_float(sunBrightness, panorama_sun_light_color_brightness, 0.05f, 0.2f),
       computedScatteringGeneration, panoramaScatteringGeneration, cloudsGeneration, panoramaCloudsGeneration);
   }
-  if (panoramaValid == PANORAMA_VALID)
+  d3d::AutoPipelineAsyncCompileFeedback<false /*allow_compute_pipelines*/> asyncFeedback(
+    panoramaAllowAsyncPipelineFeedback ? &panorama_async_pipe_feedback : nullptr);
+  bool isRetryNeeded = asyncFeedback.isRetryNeeded();
+  forcedInvalidate |= isRetryNeeded;
+  if (panoramaValid == PANORAMA_VALID && !forcedInvalidate)
   {
     if (panoramaCompressor && !isPanoramaCompressed)
     {
@@ -480,7 +529,7 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
   if (!cloudsPanoramaTex[1])
     targetPanorama = 0;
   currentPanorama = 0;
-  if (panoramaValid == PANORAMA_INVALID)
+  if (panoramaValid == PANORAMA_INVALID || isRetryNeeded)
   {
     targetPanorama = currentPanorama;
     panoramaFrame = 0;
@@ -524,6 +573,7 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
       TIME_D3D_PROFILE(skyPanorama)
       SCOPE_RENDER_TARGET;
       d3d::set_render_target(skyPanoramaTex.getTex2D(), 0);
+      d3d::clearview(CLEAR_TARGET, 0, 0, 0);
       ShaderGlobal::set_color4(panoramaTCVarId, 0, 0, 1, 1);
       skyPanorama.render();
       d3d::resource_barrier({skyPanoramaTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
@@ -539,7 +589,7 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
     auto updateSubpixel = [&](ManagedTex &to, int x, int y, int w, int h) {
       TIME_D3D_PROFILE(panoramaSubframe);
 
-      if (d3d::get_driver_desc().caps.hasNativeRenderPassSubPasses)
+      if (allowCloudsPanoramaSplit)
       {
         RenderPassArea rpArea = {(uint32_t)x, (uint32_t)y, (uint32_t)w, (uint32_t)h, 0, 1};
         if (w == 0)
@@ -585,19 +635,18 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
       d3d::resource_barrier({to.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     };
 
-    auto updateSubpixelWithDepth = [&](ManagedTex &to, int x, int y, int w, int h) {
-      if (!cloudsDepthPanoramaTex)
-        createPanoramaDepthTex();
+    auto updateSubpixelWithDepth = [&](ManagedTex &to, UniqueTex &depth, UniqueTexHolder &downsampled_depth, int x, int y, int w,
+                                     int h) {
       TIME_D3D_PROFILE(panoramaSubframe);
       d3d::set_render_target(to.getTex2D(), 0);
-      d3d::set_render_target(1, cloudsDepthPanoramaTex.getTex2D(), 0);
+      d3d::set_render_target(1, depth.getTex2D(), 0);
       if (w != 0)
         d3d::setview(x, y, w, h, 0, 1);
       cloudsPanorama.render();
       d3d::resource_barrier({to.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-      d3d::resource_barrier({cloudsDepthPanoramaTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+      d3d::resource_barrier({depth.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
       if (panoramaFrame == panoramaValidFrame - 1)
-        downsamplePanoramaDepth();
+        downsamplePanoramaDepth(depth, downsampled_depth);
     };
     auto panoramaTC = [&](int &x, int &y, int &w, int &h, ManagedTex &tex) {
       TextureInfo ti;
@@ -619,14 +668,19 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
     };
 
     cloudsLayersHeightsBarrier();
+    bool needDepthOut = renderDownsampledDepth && !isPanoramaDepthTexReady;
+    ShaderGlobal::set_int(clouds_panorama_depth_outVarId, needDepthOut ? 1 : 0);
     {
       TIME_D3D_PROFILE(panoramaBig);
       int x, y, w, h;
       panoramaTC(x, y, w, h, cloudsPanoramaTex[targetPanorama]);
-      bool needDepthOut = renderDownsampledDepth && !isPanoramaDepthTexReady;
-      ShaderGlobal::set_int(clouds_panorama_depth_outVarId, needDepthOut ? 1 : 0);
       if (needDepthOut)
-        updateSubpixelWithDepth(cloudsPanoramaTex[targetPanorama], x, y, w, h);
+      {
+        if (!cloudsDepthPanoramaTex)
+          createPanoramaDepthTex();
+        updateSubpixelWithDepth(cloudsPanoramaTex[targetPanorama], cloudsDepthPanoramaTex, cloudsDepthDownsampledPanoramaTex, x, y, w,
+          h);
+      }
       else
         updateSubpixel(cloudsPanoramaTex[targetPanorama], x, y, w, h);
     }
@@ -634,7 +688,15 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
     {
       TIME_D3D_PROFILE(panoramaPatch);
       ShaderGlobal::set_color4(panoramaTCVarId, 0, 0, 0, 0);
-      updateSubpixel(cloudsPanoramaPatchTex[targetPanorama], 0, 0, 0, 0);
+      if (needDepthOut)
+      {
+        if (!cloudsDepthPanoramaPatchTex)
+          createDepthPanoramaPatchTex();
+        updateSubpixelWithDepth(cloudsPanoramaPatchTex[targetPanorama], cloudsDepthPanoramaPatchTex,
+          cloudsDepthDownsampledPanoramaPatchTex, 0, 0, 0, 0);
+      }
+      else
+        updateSubpixel(cloudsPanoramaPatchTex[targetPanorama], 0, 0, 0, 0);
     }
     // if (updatePatch)
     {
@@ -644,6 +706,9 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
       int x, y, w, h;
       panoramaTC(x, y, w, h, cloudsAlphaPanoramaTex);
       d3d::set_render_target(cloudsAlphaPanoramaTex.getTex2D(), 0);
+      if (panoramaFrame == 0)
+        d3d::clearview(CLEAR_TARGET, 0, 0, 0);
+
       if (w != 0)
         d3d::setview(x, y, w, h, 0, 1);
       cloudsAlphaPanorama.render();
@@ -714,40 +779,58 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
   return true;
 }
 
+void DaSkies::createPanoramaDepthTexHelper(UniqueTex &depth, const char *depth_name, UniqueTexHolder &downsampled_depth,
+  const char *downsampled_depth_name, int w, int h, int addru, int addrv)
+{
+  depth.close();
+  downsampled_depth.close();
+
+  depth = dag::create_tex(NULL, w, h, TEXCF_RTARGET | TEXFMT_R32F | TEXCF_UNORDERED | TEXCF_GENERATEMIPS,
+    panoramaDepthTexMipNumber + 1, depth_name);
+  depth->texfilter(TEXFILTER_LINEAR);
+  depth->texmipmap(TEXMIPMAP_LINEAR);
+  depth->texaddru(addru);
+  depth->texaddrv(addrv);
+
+  uint16_t downsampledW = w >> panoramaDepthTexMipNumber;
+  uint16_t downsampledH = h >> panoramaDepthTexMipNumber;
+  downsampled_depth =
+    dag::create_tex(NULL, downsampledW, downsampledH, TEXCF_RTARGET | TEXFMT_R32F | TEXCF_UNORDERED, 1, downsampled_depth_name);
+  downsampled_depth->texfilter(TEXFILTER_LINEAR);
+  downsampled_depth->texaddru(addru);
+  downsampled_depth->texaddrv(addrv);
+}
+
 void DaSkies::createPanoramaDepthTex()
 {
   TextureInfo info;
-  cloudsDepthPanoramaTex.close();
-  cloudsDepthDownsampledPanoramaTex.close();
   cloudsPanoramaTex[0]->getinfo(info);
   int resolutionW = info.w;
   int resolutionH = info.h;
-  cloudsDepthPanoramaTex = dag::create_tex(NULL, resolutionW, resolutionH,
-    TEXCF_RTARGET | TEXFMT_R32F | TEXCF_UNORDERED | TEXCF_GENERATEMIPS, panoramaDepthTexMipNumber + 1, "clouds_depth_panorama_tex");
-  cloudsDepthPanoramaTex->texfilter(TEXFILTER_SMOOTH);
-  cloudsDepthPanoramaTex->texmipmap(TEXMIPMAP_LINEAR);
-  cloudsDepthPanoramaTex->texaddru(TEXADDR_WRAP);
-  cloudsDepthPanoramaTex->texaddrv(TEXADDR_CLAMP);
-
-  uint16_t panoramaDownsampledDepthTexWidth = resolutionW >> panoramaDepthTexMipNumber;
-  uint16_t panoramaDownsampledDepthTexHeight = resolutionH >> panoramaDepthTexMipNumber;
-  cloudsDepthDownsampledPanoramaTex = dag::create_tex(NULL, panoramaDownsampledDepthTexWidth, panoramaDownsampledDepthTexHeight,
-    TEXCF_RTARGET | TEXFMT_R32F | TEXCF_UNORDERED, 1, "clouds_depth_downsampled_panorama_tex");
-  cloudsDepthDownsampledPanoramaTex->texfilter(TEXFILTER_SMOOTH);
-  cloudsDepthDownsampledPanoramaTex->texaddru(TEXADDR_WRAP);
-  cloudsDepthDownsampledPanoramaTex->texaddrv(TEXADDR_CLAMP);
+  createPanoramaDepthTexHelper(cloudsDepthPanoramaTex, "clouds_depth_panorama_tex", cloudsDepthDownsampledPanoramaTex,
+    "clouds_depth_downsampled_panorama_tex", resolutionW, resolutionH, TEXADDR_WRAP, TEXADDR_CLAMP);
 }
 
-void DaSkies::downsamplePanoramaDepth()
+void DaSkies::createDepthPanoramaPatchTex()
 {
-  cloudsDepthPanoramaTex.getTex2D()->generateMips();
+  TextureInfo info;
+  cloudsPanoramaPatchTex[0]->getinfo(info);
+  int resolutionW = info.w;
+  int resolutionH = info.h;
+  createPanoramaDepthTexHelper(cloudsDepthPanoramaPatchTex, "clouds_depth_panorama_patch_tex", cloudsDepthDownsampledPanoramaPatchTex,
+    "clouds_depth_downsampled_panorama_patch_tex", resolutionW, resolutionH, TEXADDR_CLAMP, TEXADDR_CLAMP);
+}
+
+void DaSkies::downsamplePanoramaDepth(UniqueTex &depth, UniqueTexHolder &downsampled_depth)
+{
+  depth.getTex2D()->generateMips();
   TextureInfo depthTexInfo;
-  cloudsDepthPanoramaTex->getinfo(depthTexInfo);
+  depth->getinfo(depthTexInfo);
   uint16_t panoramaDownsampledDepthTexWidth = depthTexInfo.w >> panoramaDepthTexMipNumber;
   uint16_t panoramaDownsampledDepthTexHeight = depthTexInfo.h >> panoramaDepthTexMipNumber;
-  cloudsDepthDownsampledPanoramaTex->updateSubRegion(cloudsDepthPanoramaTex.getTex2D(), 2, 0, 0, 0, panoramaDownsampledDepthTexWidth,
-    panoramaDownsampledDepthTexHeight, 1, 0, 0, 0, 0);
-  cloudsDepthPanoramaTex.close();
+  downsampled_depth->updateSubRegion(depth.getTex2D(), 2, 0, 0, 0, panoramaDownsampledDepthTexWidth, panoramaDownsampledDepthTexHeight,
+    1, 0, 0, 0, 0);
+  depth.close();
   isPanoramaDepthTexReady = true;
 }
 

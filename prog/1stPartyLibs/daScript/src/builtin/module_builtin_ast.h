@@ -17,6 +17,7 @@ MAKE_EXTERNAL_TYPE_FACTORY(PassMacro,das::PassMacro)
 MAKE_EXTERNAL_TYPE_FACTORY(VariantMacro,das::VariantMacro)
 MAKE_EXTERNAL_TYPE_FACTORY(ForLoopMacro,das::ForLoopMacro)
 MAKE_EXTERNAL_TYPE_FACTORY(CaptureMacro,das::CaptureMacro)
+MAKE_EXTERNAL_TYPE_FACTORY(TypeMacro,das::TypeMacro)
 MAKE_EXTERNAL_TYPE_FACTORY(SimulateMacro,das::SimulateMacro)
 MAKE_EXTERNAL_TYPE_FACTORY(ReaderMacro,das::ReaderMacro)
 MAKE_EXTERNAL_TYPE_FACTORY(CommentReader,das::CommentReader)
@@ -183,6 +184,7 @@ namespace das {
     TypeDeclPtr makeExprCopyFlags();
     TypeDeclPtr makeExprMoveFlags();
     TypeDeclPtr makeExprIfFlags();
+    TypeDeclPtr makeExprStringBuilderFlags();
 
     void init_expr ( BasicStructureAnnotation & ann );
     bool canSubstituteExpr ( const TypeAnnotation* thisAnn, TypeAnnotation* ann );
@@ -237,6 +239,8 @@ namespace das {
             :  AstExpressionAnnotation<EXPR> (na, ml) {
             using ManagedType = EXPR;
             this->template addField<DAS_BIND_MANAGED_FIELD(subexpr)>("subexpr");
+            this->template addField<DAS_BIND_MANAGED_FIELD(unsafeDeref)>("unsafeDeref");
+            this->template addField<DAS_BIND_MANAGED_FIELD(assumeNoAlias)>("assumeNoAlias");
         }
     };
 

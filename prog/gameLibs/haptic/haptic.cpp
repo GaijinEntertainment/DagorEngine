@@ -1,8 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "haptic.h"
 
 #include <perfMon/dag_statDrv.h>
 #include <EASTL/string.h>
 #include <EASTL/vector_map.h>
+#include <math/dag_mathBase.h>
 
 #if _TARGET_ANDROID
 #include "android/haptic_vibration.h"
@@ -46,7 +49,7 @@ void haptic::playHapticPattern(const int patternId, float intensityMultiplier)
 {
   TIME_PROFILE(playHapticPattern);
   intensityMultiplier *= g_globalIntensityMultiplier;
-  if (intensityMultiplier == 0.0f)
+  if (!float_nonzero(intensityMultiplier))
     return;
 #if _TARGET_IOS
   playHapticPattern_iOS(patternId, intensityMultiplier);

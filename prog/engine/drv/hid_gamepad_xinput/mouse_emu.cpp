@@ -1,7 +1,9 @@
-#include <humanInput/dag_hiPointing.h>
-#include <humanInput/dag_hiGlobals.h>
-#include <humanInput/dag_hiCreate.h>
-#include <humanInput/dag_hiXInputMappings.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/hid/dag_hiPointing.h>
+#include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiCreate.h>
+#include <drv/hid/dag_hiXInputMappings.h>
 #include <supp/dag_math.h>
 #include <workCycle/dag_workCycle.h>
 #include "emu_hooks.h"
@@ -170,7 +172,7 @@ public:
     clip.t = t;
     clip.r = r;
     clip.b = b;
-    // debug_ctx ( "set clip rect: (%d,%d)-(%d,%d)", l, t, r, b );
+    // DEBUG_CTX("set clip rect: (%d,%d)-(%d,%d)", l, t, r, b);
     if (clampStateCoord())
       setPosition(raw_state_pnt.mouse.x, raw_state_pnt.mouse.y);
   }

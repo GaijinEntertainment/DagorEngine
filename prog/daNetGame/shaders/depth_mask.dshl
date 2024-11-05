@@ -1,0 +1,58 @@
+include "cloud_mask.dshl"
+
+
+
+macro GET_BASE_DEPTH_MASK()
+  hlsl(ps) {
+    half get_base_soft_depth_mask(
+      float4 screen_texcoord,
+      float softness_depth_rcp)
+    {
+##if effects_depth_tex != NULL
+      float srcZ = screen_texcoord.w;
+      float dstDepth = linearize_z(tex2Dproj(effects_depth_tex, screen_texcoord).x, zn_zfar.zw);
+      float dstZ = dstDepth;  // depth_tex is linear on PC.
+      float diff = dstZ - srcZ;
+      half depthMask = saturate(softness_depth_rcp * diff);
+##else
+      half depthMask = 1;
+##endif
+
+      depthMask *= saturate(screen_texcoord.w - screen_texcoord.z);
+
+      return depthMask;
+    }
+  }
+endmacro
+
+
+
+macro GET_DEPTH_MASK()
+  GET_BASE_DEPTH_MASK()
+  GET_CLOUD_VOLUME_MASK()
+  
+  hlsl(ps) {
+    half get_soft_depth_mask(
+      float4 screen_texcoord,
+      float softness_depth_rcp)
+    {
+      return get_base_soft_depth_mask(screen_texcoord, softness_depth_rcp)
+        * get_cloud_volume_mask(screen_texcoord);
+    }
+    half get_hard_depth_mask(float4 screen_texcoord)
+    {
+##if effects_depth_tex != NULL
+      float dstZ = linearize_z(tex2Dproj(effects_depth_tex, screen_texcoord).x, zn_zfar.zw);
+      half depthMask = (dstZ >= screen_texcoord.w) ? 1. : 0.;
+##else
+      half depthMask = 1;
+##endif
+      return depthMask * get_cloud_volume_mask(screen_texcoord);
+    }
+
+  }
+endmacro
+
+
+
+

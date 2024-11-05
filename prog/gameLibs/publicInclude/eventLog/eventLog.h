@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -32,6 +31,7 @@ struct EventLogInitParams
   const char *project = nullptr;
   const char *version = nullptr;
   bool use_https = true;
+  bool use_connect_async = false;
 };
 
 // The following 2 functions are not threadsafe

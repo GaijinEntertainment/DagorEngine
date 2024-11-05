@@ -1,7 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/renderType.h>
 #include <render/xcsm.h>
 #include <render/variance.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <util/dag_globDef.h>
 #include <shaders/dag_shaders.h>
 #include <math/integer/dag_IPoint2.h>
@@ -15,7 +21,6 @@
 #include <perfMon/dag_statDrv.h>
 #include <debug/dag_fatal.h>
 #include <debug/dag_debug.h>
-#include <3d/dag_drv3dCmd.h>
 #include <shaders/dag_overrideStates.h>
 
 enum
@@ -88,11 +93,9 @@ Variance::Variance() : vsm_shadowmapVarId(-1)
   temp_tex = targ_tex = dest_tex = NULL;
   temp_wrtex = targ_wrtex = NULL;
   temp_texId = targ_texId = dest_texId = BAD_TEXTUREID;
-  vsmType = VSM_SW;
   updateBox.setempty();
   updateLightDir.zero();
   updateShadowDist = 0.f;
-  isUpdateForced = false;
 }
 
 static int vsm_positiveVarId = -1;
@@ -148,12 +151,6 @@ void Variance::init(int w, int h, VsmType vsmTypeIn)
     else
       logerr("vsm falling to argb8");
   }
-
-  // in case of FP16 targets on PS3, add aliased entries to prealloc_rt
-  // rt { fmt:t="G16R16F"; name:t="temp_vsm_tex"; }
-  // rt { fmt:t="G16R16F"; name:t="targ_vsm_tex"; }
-  // rt { fmt:t="A16B16G16R16F"; alias="temp_vsm_tex"; name:t="temp_vsm_wrtex"; }
-  // rt { fmt:t="A16B16G16R16F"; alias="targ_vsm_tex"; name:t="targ_vsm_wrtex"; }
 
   temp_tex = d3d::create_tex(NULL, w, h, flags_vsm, 1, "temp_vsm_tex");
   d3d_err(temp_tex);
@@ -254,7 +251,7 @@ void Variance::init(int w, int h, VsmType vsmTypeIn)
   enable_vsm_treshold = 0.8;
   oldLightDir = Point3(0, 0, 0);
   oldBox.setempty();
-  isUpdateForced = true;
+  forceUpdate();
 }
 
 void Variance::close()
@@ -299,12 +296,6 @@ void Variance::endShadowMap()
   }
 
   d3d::set_render_target(oldrt);
-  if (update_state & UPDATE_SCENE)
-  {
-    d3d::settm(TM_VIEW, &svtm);
-    if (perspOk)
-      d3d::setpersp(persp);
-  }
   if (update_state & UPDATE_BLUR_Y)
   {
     ShaderGlobal::set_color4_fast(vsmShadowProjXVarId,
@@ -332,15 +323,20 @@ void Variance::endShadowMap()
     update_state = UPDATE_BLUR_Y;
   else if (update_state & UPDATE_SCENE)
     update_state = UPDATE_BLUR_X;
-  ShaderGlobal::set_texture_fast(vsm_shadowmapVarId, targ_texId);
+  ShaderGlobal::set_texture(vsm_shadowmapVarId, targ_texId);
+  ShaderGlobal::set_color4(vsm_shadow_tex_sizeVarId, width, height, 1.0 / width, 1.0 / height);
+  d3d_set_view_proj(savedViewProj);
 }
 
 void Variance::setOff()
 {
   if (VariableMap::isGlobVariablePresent(vsm_shadowmapVarId))
-    ShaderGlobal::set_texture_fast(vsm_shadowmapVarId, BAD_TEXTUREID);
+  {
+    ShaderGlobal::set_texture(vsm_shadowmapVarId, BAD_TEXTUREID);
+    ShaderGlobal::set_color4(vsm_shadow_tex_sizeVarId, 0, 0);
+  }
   update_state = UPDATE_NONE;
-  isUpdateForced = false;
+  forceUpdateFrameDelay = -1;
 }
 
 bool Variance::needUpdate(const Point3 &light_dir) const
@@ -349,20 +345,27 @@ bool Variance::needUpdate(const Point3 &light_dir) const
   return needUpdate() || diffLight > light_full_update_threshold;
 }
 
-bool Variance::startShadowMap(const BBox3 &in_box, const Point3 &in_light_dir_unrm, float in_shadow_dist)
+bool Variance::startShadowMap(const BBox3 &in_box, const Point3 &in_light_dir_unrm, float in_shadow_dist,
+  CullingInfo *out_culling_info)
 {
   if (!blur)
     return false;
 
+  d3d_get_view_proj(savedViewProj);
+
   Point3 in_light_dir = normalize(in_light_dir_unrm);
 
-  int new_update_state = isUpdateForced ? UPDATE_ALL : UPDATE_NONE;
+  int new_update_state = UPDATE_NONE;
+  if (forceUpdateFrameDelay >= 0)
+  {
+    if (forceUpdateFrameDelay == 0)
+      new_update_state = UPDATE_ALL;
+    forceUpdateFrameDelay--;
+  }
 
   updateBox = in_box;
   updateLightDir = in_light_dir;
   updateShadowDist = in_shadow_dist;
-
-  isUpdateForced = false;
 
   float diffLight = lengthSq(updateLightDir - oldLightDir);
   if (diffLight > light_full_update_threshold)
@@ -408,8 +411,6 @@ bool Variance::startShadowMap(const BBox3 &in_box, const Point3 &in_light_dir_un
   oldLightDir = updateLightDir;
   oldBox = updateBox;
 
-  perspOk = d3d::getpersp(persp);
-
   TMatrix viewTm, viewItm;
   if (!updateBox.isempty())
   {
@@ -445,7 +446,7 @@ bool Variance::startShadowMap(const BBox3 &in_box, const Point3 &in_light_dir_un
 
       lightProj = lightProj * tRound;
     }
-    shadowProjMatrix = (TMatrix4(viewTm) * lightProj) * screen_to_tex_scale_tm_xy(HALF_TEXEL_OFSF / width, HALF_TEXEL_OFSF / height);
+    shadowProjMatrix = (TMatrix4(viewTm) * lightProj) * screen_to_tex_scale_tm_xy();
   }
   else
   {
@@ -456,7 +457,8 @@ bool Variance::startShadowMap(const BBox3 &in_box, const Point3 &in_light_dir_un
     split.isWarp = false;
     split.isAlign = true;
     xcsm.setSplit(0, split);
-    xcsm.prepare(persp.wk, persp.hk, persp.zn, updateShadowDist, viewTm, -updateLightDir, updateShadowDist);
+    xcsm.prepare(savedViewProj.p.wk, savedViewProj.p.hk, savedViewProj.p.zn, updateShadowDist, viewTm, -updateLightDir,
+      updateShadowDist);
     lightProj = xcsm.getSplitProj(0);
     // shadowProjMatrix = lightProj * shadowScaleMatrix;
     shadowProjMatrix = xcsm.getSplitTexTM(0);
@@ -478,29 +480,25 @@ bool Variance::startShadowMap(const BBox3 &in_box, const Point3 &in_light_dir_un
     d3d_err(d3d::set_depth(dest_tex, DepthAccess::RW));
     shaders::overrides::set(depthOnlyOverride);
   }
-  else
+  else // VSM_BLEND
   {
-    if (vsmType == VSM_SW)
-    {
-      d3d_err(d3d::set_render_target(dest_tex, 0));
-      d3d::set_backbuf_depth();
-    }
-    else if (vsmType == VSM_BLEND)
-    {
-      d3d_err(d3d::set_render_target(temp_tex, 0));
-    }
+    d3d_err(d3d::set_render_target(temp_tex, 0));
     clearFlags |= CLEAR_TARGET;
   }
 
   d3d::clearview(clearFlags, 0xFFFFFFFF, 1, 0);
-
-  d3d::gettm(TM_VIEW, &svtm);
 
   // Set new matrices.
   d3d::settm(TM_WORLD, &TMatrix4::IDENT);
 
   d3d::settm(TM_VIEW, viewTm);
   d3d::settm(TM_PROJ, &lightProj);
+
+  if (out_culling_info)
+  {
+    out_culling_info->viewInv = viewItm;
+    out_culling_info->viewProj = TMatrix4(viewTm) * lightProj;
+  }
   return true;
 }
 

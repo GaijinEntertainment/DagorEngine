@@ -37,7 +37,9 @@ texture uav_depth_texture;
 shader applyCloudsPanorama
 {
   //blend_src = 1; blend_dst = sa;
-  SKY_HDR()
+
+  INIT_HDR(ps)
+  USE_HDR(ps)
   USE_SPECIAL_VISION()
   cull_mode = none;
   z_write = false;
@@ -254,7 +256,7 @@ shader applyCloudsPanorama
       panorama = decode_rgbm(panorama, rgbm_panorama_scale_factor);
       #endif
 
-
+      // Similar logic is also present in lightningFlashPanorama.dshl
       ##if sky_panorama_patch == on
         float patch_vignette = max(abs(viewDirection.x),abs(viewDirection.z));
         BRANCH
@@ -262,8 +264,7 @@ shader applyCloudsPanorama
         {
           float2 patchTc = viewDirection.xz*(0.5/PANORAMA_PATCH_THRESHOLD)+0.5;
           half4 ptch = tex2Dlod( clouds_panorama_patch_tex, float4(patchTc,0,0) );
-          const float LERP_AMOUNT = 0.99;
-          panorama = lerp(panorama, ptch, saturate((-1.f/(1-LERP_AMOUNT))*patch_vignette + PANORAMA_PATCH_THRESHOLD*LERP_AMOUNT/(1-LERP_AMOUNT) ));
+          panorama = lerp(panorama, ptch, saturate((-1.f/(1-PANORAMA_PATCH_LERP_AMOUNT))*patch_vignette + PANORAMA_PATCH_THRESHOLD*PANORAMA_PATCH_LERP_AMOUNT/(1-PANORAMA_PATCH_LERP_AMOUNT) ));
         }
       ##endif
 
@@ -281,7 +282,7 @@ shader applyCloudsPanorama
         //panorama.rgb = L > 0 && panoramaAdjusted > 0 ? minSunL + panoramaAdjusted*lerp(1, 1/(L+1),  val) : panorama.rgb;//
       }
 
-      apply_lightning_flash(sky_uv, originalViewDirection, panorama.rgb);
+      apply_lightning_flash(sky_uv, viewDirection, originalViewDirection, panorama.rgb);
 
       float2 jitteredVolfogTc = get_volfog_dithered_screen_tc(screenpos.xy, input.texcoord.xy);
       apply_sky_custom_fog(panorama.rgb, input.texcoord.xy, jitteredVolfogTc);
@@ -303,7 +304,6 @@ shader applyCloudsPanorama
         half4 result=half4(pack_hdr(panorama.rgb).rgb, retAlpha);
       #endif
       return result;
-      //return lerp(tex2D( envi_sphere, sky_uv )*envi_exposure, float4(20,0,0,0), pow2(pow8(saturate(dot(viewDirection, normalize(float3(0.4,0.6,-0.4)))))));
     }
   }
   compile("target_ps", "envi_ps");

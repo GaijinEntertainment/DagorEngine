@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ev.h>
 #include <debug/dag_logSys.h>
 #include <osApiWrappers/dag_critSec.h>

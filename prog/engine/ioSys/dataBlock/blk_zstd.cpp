@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "blk_shared.h"
 #include <ioSys/dag_zlibIo.h>
 #include <ioSys/dag_fileIo.h>
@@ -306,7 +308,7 @@ bool dblk::pack_to_binary_file(const DataBlock &blk, const char *filename, int a
     return false;
 
   DAGOR_TRY { dblk::pack_to_stream(blk, cwr, approx_sz); }
-  DAGOR_CATCH(IGenSave::SaveException) { return false; }
+  DAGOR_CATCH(const IGenSave::SaveException &) { return false; }
   return true;
 }
 

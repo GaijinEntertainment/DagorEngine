@@ -5,7 +5,6 @@ options no_unused_function_arguments = false
 module imgui_boost shared
 
 require imgui public
-require daslib/safe_addr
 require daslib/static_let
 require rtti public
 require strings

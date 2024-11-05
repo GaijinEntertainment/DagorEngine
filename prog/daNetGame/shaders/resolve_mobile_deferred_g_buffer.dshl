@@ -1,0 +1,194 @@
+include "sky_shader_global.dshl"
+include "pbr.dshl"
+include "gbuffer.dshl"
+include "roughToMip.dshl"
+include "viewVecVS.dshl"
+include "static_shadow.dshl"
+
+//profiling show on Adreno610
+//2ms for shadows, and +2ms for fxaa, 2ms for 4k vs 2k shadow map size
+int mobile_deferred_shadow_quality = 1;
+interval mobile_deferred_shadow_quality: off < 1, fast_pcf_static < 2, fxaa_pcf_static;
+
+int hmap_use_full_render = 0;
+interval hmap_use_full_render:no<1, yes;
+
+shader mobile_deferred_resolve
+{
+  USE_COMPAT_HDR_WRITE(ps)
+
+  if (mobile_deferred_shadow_quality == fast_pcf_static)
+  {
+    hlsl(ps) {
+      # define FASTEST_STATIC_SHADOW_PCF 1
+    }
+  }
+
+  hlsl(ps) {
+    #include "pbr/pbr.hlsl"
+    #include <sh3_function.hlsl>
+  }
+  supports global_frame;
+  z_write = false;
+  z_test = false;
+
+  INIT_ZNZFAR()
+  USE_AND_INIT_VIEW_VEC_VS()
+
+  USE_SUBPASS_LOADS()
+  INIT_SUBPASS_LOAD_DEPTH_GBUFFER(SP_RESOLVE_REG_DEPTH, SP_RESOLVE_IA_DEPTH)
+  USE_SUBPASS_LOAD_DEPTH_GBUFFER()
+  INIT_SUBPASS_LOAD_GBUFFER(ps,
+    SP_RESOLVE_REG_GBUF0, SP_RESOLVE_IA_GBUF0,
+    SP_RESOLVE_REG_GBUF1, SP_RESOLVE_IA_GBUF1,
+    SP_RESOLVE_REG_GBUF2, SP_RESOLVE_IA_GBUF2)
+  USE_SUBPASS_LOAD_GBUFFER(ps)
+
+  if (mobile_deferred_shadow_quality != off)
+  {
+    INIT_STATIC_SHADOW()
+    USE_STATIC_SHADOW()
+  }
+  USE_ROUGH_TO_MIP()
+
+  cull_mode = none;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord     : TEXCOORD0;
+      float3 viewVect     : TEXCOORD1;
+    };
+  }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  (vs) { screen_size@f2 = (1./screen_pos_to_texcoord.x, 1./screen_pos_to_texcoord.y,0,0); }
+
+  hlsl(vs) {
+    VsOutput mobile_deferred_resolve_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 inpos = get_fullscreen_inpos(vertexId);
+      output.pos = float4(inpos.xy, 1, 1);
+      output.texcoord.xy = screen_to_texcoords(inpos);
+      output.viewVect = get_view_vec_by_vertex_id(vertexId);
+
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    half4 get_exp_fog(float distSq, half3 air_color)
+    {
+      half dist = sqrt(distSq);
+      half airFactor = exp2(dist * -air_fog_density);
+
+      return half4(air_color.rgb*(1-airFactor), airFactor);
+    }
+
+    half3 apply_fog(half3 color, half4 fogColor)
+    {
+      return color*fogColor.a+fogColor.rgb;
+    }
+
+    float4 mobile_deferred_resolve_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+
+      ProcessedGbuffer gbuffer = readProcessedGbuffer(screenpos.xy);
+      half4 ret = half4(0,0,0,0);
+
+      float rawDepth = loadGbufferDepth(screenpos.xy).x;
+      BRANCH
+      if (rawDepth == 0)
+        return 0;
+
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+
+      float3 viewVect = input.viewVect;
+      float3 pointToEye = -viewVect * w;
+
+      float3 worldPos = -pointToEye + world_view_pos;
+      float distSq = dot(pointToEye, pointToEye);
+
+      //process shadow ahead of followup code, to probably hide sampling latency
+      float shadow = 1;
+      ##if mobile_deferred_shadow_quality != off
+        //hardcoded to have zero cost on cb lookup
+        const float maxShadowDistSq = 150 * 150;
+        const float shadowFadeDistSq = 100 * 100;
+        float shadowFade = saturate((distSq - maxShadowDistSq)/shadowFadeDistSq);
+        if (shadowFade < 1.0f)
+        {
+          shadow = getStaticShadow(worldPos);
+          shadow = lerp(shadow, 1, shadowFade);
+        }
+      ##endif
+
+      half3  environmentAmbientReflection = 0;
+      half3  sunLight = 0;
+      half   enviAO = gbuffer.ao;//we still modulate by albedo color, so we dont need micro AO
+      float  NoL = dot(gbuffer.normal, -gbuffer_sun_light_dir.xyz);
+
+      float invRsqrt = rsqrt(distSq);
+      float3 view = pointToEye * invRsqrt;
+
+      float NdotV = dot(gbuffer.normal, view);
+      float3 reflectionVec = 2 * NdotV * gbuffer.normal - view;
+      float NoV = abs( NdotV ) + 1e-5;
+      float ggx_alpha = gbuffer.ggx_alpha;
+      half specularAOcclusion = 1.0;//computeSpecOcclusion(NoV, gbuffer.ao, gbuffer.roughness);// dice spec occlusion
+      half3 specularColor = gbuffer.specularColor * (specularAOcclusion * gbuffer.extracted_albedo_ao);
+
+      bool isFoliage = isFoliageShader(gbuffer.material);
+    ##if hmap_use_full_render == no
+      BRANCH
+      if (gbuffer.isLandscape && !isFoliage)
+      {
+        sunLight = diffuseLambert(gbuffer.diffuseColor) * saturate(NoL*shadow);
+      }
+      else
+    ##endif
+      {
+        BRANCH
+        if (isFoliage)
+        {
+          half backlight = foliageSSSfast(NoL) * gbuffer.translucency;
+          sunLight = diffuseLambert( gbuffer.diffuseColor ) * (saturate(NoL) + backlight) * shadow;
+        }
+        else
+        {
+          sunLight = standardBRDF( NoV, saturate(NoL), gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, gbuffer.extracted_albedo_ao, -gbuffer_sun_light_dir, view, gbuffer.normal)*shadow;
+        }
+
+        half3 enviBRDF = EnvBRDFApprox(specularColor, gbuffer.linearRoughness, NoV);
+
+        float3 roughR = getRoughReflectionVec(reflectionVec.xyz, gbuffer.normal, ggx_alpha);
+        float roughMip = ComputeReflectionCaptureMipFromRoughness(gbuffer.linearRoughness);
+        environmentAmbientReflection = texCUBElod(gbuffer_envi_probe_specular, float4(roughR, roughMip)).rgb*enviBRDF;
+      }
+
+      half3 environmentAmbientUnoccludedLighting = GetSHFunctionValueSimple(gbuffer.normal, gbuffer_enviSPH0, gbuffer_enviSPH1, gbuffer_enviSPH2);
+      half3 ambientLight = enviAO * environmentAmbientUnoccludedLighting * gbuffer.diffuseColor;
+
+      BRANCH
+      if (isFoliage)
+        ambientLight *= (1.0f + gbuffer.translucency);
+
+      float enviSpecularBrightness = gbuffer_sun_light_col.w;
+      ambientLight += environmentAmbientReflection * enviSpecularBrightness;
+      sunLight *=  gbuffer_sun_light_col.rgb;
+      float3 viewSH = GetSHFunctionValueSimple(view, gbuffer_enviSPH0, gbuffer_enviSPH1, gbuffer_enviSPH2);
+      half4 fog = get_exp_fog(distSq, viewSH);
+      float exposure = get_exposure_mul();
+      ret.rgb = apply_fog(sunLight + ambientLight, fog) * exposure;
+      ret.a = 1.0f;
+
+      return ret;
+    }
+  }
+
+  compile("target_vs", "mobile_deferred_resolve_vs");
+  compile("target_ps", "mobile_deferred_resolve_ps");
+}

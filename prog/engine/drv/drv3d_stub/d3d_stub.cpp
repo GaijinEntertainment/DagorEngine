@@ -1,13 +1,38 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #if _TARGET_PC_WIN
 #include <windows.h>
 #include <3d/ddsFormat.h>
 #endif
 
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3d_res.h>
-#include <3d/dag_drv3d_platform.h>
-#include <3d/dag_tex3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_sampler.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_renderPass.h>
+#include <drv/3d/dag_tiledResource.h>
+#include <drv/3d/dag_heap.h>
+#include <drv/3d/dag_dispatchMesh.h>
+#include <drv/3d/dag_dispatch.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_shader.h>
+#include <drv/3d/dag_bindless.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_query.h>
+#include <drv/3d/dag_res.h>
+#include <drv/3d/dag_platform.h>
+#include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_variableRateShading.h>
+#include <drv/3d/dag_resUpdateBuffer.h>
+#include <drv/3d/dag_shaderLibrary.h>
+#include <drv/3d/dag_capture.h>
 #include <3d/ddsxTex.h>
 #include <3d/tql.h>
 #include "pools.h"
@@ -36,6 +61,7 @@
 #include <startup/dag_globalSettings.h>
 #include "frameStateTM.inc.h"
 #include <basetexture.h>
+#include <destroyEvent.h>
 
 #include <EASTL/string.h>
 
@@ -110,8 +136,32 @@ static inline int get_bytes_per_pixel(unsigned fmt)
     case TEXFMT_A16B16G16R16F:
     case TEXFMT_G32R32F: return 8;
     case TEXFMT_A32B32G32R32F: return 16;
+    case TEXFMT_A8:
+    case TEXFMT_R8: return 1;
+    case TEXFMT_A1R5G5B5:
+    case TEXFMT_A4R4G4B4:
+    case TEXFMT_R5G6B5:
+    case TEXFMT_A8L8: return 2;
+    // Block size in bytes for BC formats
+    case TEXFMT_DXT1:
+    case TEXFMT_ATI1N: return 8;
+    case TEXFMT_DXT3:
+    case TEXFMT_DXT5:
+    case TEXFMT_ATI2N:
+    case TEXFMT_BC6H:
+    case TEXFMT_BC7: return 16;
   }
   return 4; // including lesser formats
+}
+
+static inline unsigned calc_surface_sz(const TextureInfo &ti, unsigned l)
+{
+  const uint32_t BC_BLOCK_SIZE = 4;
+  unsigned w = max<unsigned>(ti.w >> l, 1), h = max<unsigned>(ti.h >> l, 1);
+  bool is_bc = is_bc_texformat(ti.cflg);
+  unsigned stride_bytes = (is_bc ? ((w + BC_BLOCK_SIZE - 1) / BC_BLOCK_SIZE) : w) * get_bytes_per_pixel(ti.cflg);
+  unsigned heightInBlocks = (is_bc ? ((h + BC_BLOCK_SIZE - 1) / BC_BLOCK_SIZE) : h);
+  return stride_bytes * heightInBlocks;
 }
 
 struct DrvBuffer
@@ -138,7 +188,7 @@ struct DrvBuffer
         return nullptr;
       thread_idx = count + 1;
       const int newThreadIdx = interlocked_increment(next_thread_idx);
-      debug_ctx("one more resource creator/locker thread, %d total", newThreadIdx);
+      DEBUG_CTX("one more resource creator/locker thread, %d total", newThreadIdx);
       //      debug_dump_stack();
     }
     int ti = thread_idx - 1;
@@ -180,13 +230,12 @@ protected:
 static bool useTexDynPool = true;
 static DrvBuffer drvBuffer;
 
-class DummyVBuffer : public Vbuffer
+class DummyBufferImpl : public Sbuffer
 {
 public:
-  DummyVBuffer()
+  DummyBufferImpl()
   {
     size = 1;
-    elemSz = 1;
     flags = 0;
     bufData = NULL;
   }
@@ -207,9 +256,7 @@ public:
       memfree(bufData, midmem);
     bufData = NULL;
   }
-  void setElemSz(int esz) { elemSz = esz; }
 
-  // Vbuffer
   virtual int lock(unsigned ofs_bytes, unsigned size_bytes, void **ptr, int options)
   {
     if (!ptr) // delayed lock
@@ -238,109 +285,85 @@ public:
   int getFlags() const override { return flags; }
   virtual int unlock() { return 1; }
 
-  int getElemSz() const { return elemSz; }
-  int getNumElem() const { return size / elemSz; };
+  virtual bool copyTo(Sbuffer *destBase)
+  {
+    auto *dest = static_cast<DummyBufferImpl *>(destBase);
 
-  virtual int getElementSize() const { return getElemSz(); }
-  virtual int getNumElements() const { return getNumElem(); };
+    if (dest->size != size)
+      return false;
+
+    // Since the contents of the buffers do not matter for stub driver, no copy is necessary.
+    // Otherwise, provided both pointers are valid (and they currently might not be), it would be:
+    // memcpy(dest->bufData, bufData, size);
+
+    return true;
+  }
+
+  virtual bool copyTo(Sbuffer *destBase, uint32_t dst_ofs_bytes, uint32_t src_ofs_bytes, uint32_t size_bytes)
+  {
+    auto *dest = static_cast<DummyBufferImpl *>(destBase);
+
+    if (dst_ofs_bytes + size_bytes > dest->size)
+      return false;
+
+    if (src_ofs_bytes + size_bytes > size)
+      return false;
+
+    // Since the contents of the buffers do not matter for stub driver, no copy is necessary.
+    // Otherwise, provided both pointers are valid (and they currently might not be), it would be:
+    // memcpy(reinterpret_cast<char *>(dest->bufData) + dst_ofs_bytes, reinterpret_cast<char *>(bufData) + src_ofs_bytes, size_bytes);
+
+    return true;
+  }
 
   // D3DResource
-  virtual void destroy() { dispose(this); }
   virtual void preload() {}
   int ressize() const override { return size; }
+
+protected:
+  int size, flags;
+  void *bufData;
+};
+
+class DummyVBuffer final : public DummyBufferImpl
+{
+public:
+  DummyVBuffer() : DummyBufferImpl() { elemSz = 1; }
+  void setElemSz(int esz) { elemSz = esz; }
+
+  virtual int getElementSize() const { return elemSz; }
+  virtual int getNumElements() const { return size / getElementSize(); };
+  virtual void destroy() { dispose(this); }
 
   DECLARE_BUF_CREATOR(DummyVBuffer);
 
-protected:
-  int size, flags;
+private:
   int elemSz;
-  void *bufData;
 };
 
-class DummyIBuffer : public Ibuffer
+class DummyIBuffer final : public DummyBufferImpl
 {
 public:
-  DummyIBuffer()
-  {
-    size = 1;
-    bufData = NULL;
-    flags = 0;
-  }
+  DummyIBuffer() : DummyBufferImpl() {}
 
-  void allocInternal()
-  {
-    bufData = memalloc(size, midmem);
-    memset(bufData, 0, size);
-  }
-  void allocBuf(bool allocate)
-  {
-    if (vb_ib_data_mandatory_support || (allocate && vb_ib_data_flag_support))
-      allocInternal();
-  }
-  void freeBuf()
-  {
-    if (bufData)
-      memfree(bufData, midmem);
-    bufData = NULL;
-  }
-
+  virtual int getElementSize() const { return (flags & SBCF_INDEX32) ? 4 : 2; }
+  virtual int getNumElements() const { return size / getElementSize(); };
   virtual void destroy() { dispose(this); }
-  virtual void preload() {}
-  int ressize() const override { return size; }
-
-  virtual int lock(unsigned ofs_bytes, unsigned size_bytes, void **ptr, int options)
-  {
-    *ptr = NULL;
-    if (size_bytes == 0 && ofs_bytes != 0)
-      return 0;
-    if (ofs_bytes + size_bytes > size)
-      return 0;
-
-    if (bufData)
-      *ptr = (void *)((char *)bufData + ofs_bytes);
-    else
-    {
-      *ptr = drvBuffer.getBuffer(size, (options & (VBLOCK_WRITEONLY | VBLOCK_DISCARD)));
-      if (!*ptr)
-      {
-        allocInternal();
-        return lock(ofs_bytes, size_bytes, ptr, options);
-      }
-    }
-    return 1;
-  }
-
-  int getFlags() const override { return flags; }
-  virtual int unlock() { return 1; }
-
-  int getElemSz() const { return (flags & SBCF_INDEX32) ? 4 : 2; }
-  int getNumElem() const { return size / getElemSz(); };
-
-  virtual int getElementSize() const { return getElemSz(); }
-  virtual int getNumElements() const { return getNumElem(); };
-
-  virtual bool load() { return true; }
-  virtual bool unload() { return true; }
-  virtual bool isloaded() { return true; }
 
   DECLARE_BUF_CREATOR(DummyIBuffer);
-
-protected:
-  int size, flags;
-  void *bufData;
 };
 
-class DummyVolTexture : public VolTexture
+class DummyVolTexture final : public VolTexture
 {
 public:
   DummyVolTexture() { setSize(4, 4, 4, 1); }
 
-  //// CubeTexture ////
-  virtual int texaddrw(int /*addrmode*/) { return TEXADDR_WRAP; } // default is TEXADDR_WRAP
   // load color texture
 
   int getinfo(TextureInfo &i, int level = 0) const override
   {
+    if (!ti.mipLevels)
+      debug("E-- %s %dx%d,D%d,A%d,L%d", getTexName(), ti.w, ti.h, ti.d, ti.a, ti.mipLevels);
     if (level >= ti.mipLevels)
       level = ti.mipLevels - 1;
 
@@ -366,15 +389,7 @@ public:
   //// BaseTexture ////
   virtual int generateMips() { return 1; }
   int level_count() const override { return ti.mipLevels; }
-  virtual int texaddr(int /*addrmode*/) { return 1; }
-  virtual int texaddru(int /*addrmode*/) { return TEXADDR_WRAP; }
-  virtual int texaddrv(int /*addrmode*/) { return TEXADDR_WRAP; }
-  virtual int texbordercolor(E3DCOLOR /*color*/) { return 1; }
-  virtual int texfilter(int /*filtermode*/) { return TEXFILTER_DEFAULT; }
-  virtual int texmipmap(int /*mipmapmode*/) { return TEXMIPMAP_DEFAULT; }
-  virtual int texlod(float /*mipmaplod*/) { return 0; }
   virtual int texmiplevel(int /*minlevel*/, int /*maxlevel*/) { return 0; }
-  virtual int setAnisotropy(int /*level*/) { return 1; }
   virtual int update(BaseTexture * /*src*/) { return 1; }
   virtual int updateSubRegion(BaseTexture * /*src*/, int /*src_subres_idx*/, int /*src_x*/, int /*src_y*/, int /*src_z*/,
     int /*src_w*/, int /*src_h*/, int /*src_d*/, int /*dest_subres_idx*/, int /*dest_x*/, int /*dest_y*/, int /*dest_z*/)
@@ -383,14 +398,10 @@ public:
   }
 
   //// D3dResource ////
-  virtual void destroy()
-  {
-    memset(&ti, 0, sizeof(ti));
-    dispose(this);
-  }
+  virtual void destroy() { dispose(this); }
   virtual void preload() {}
   int restype() const override { return RES3D_VOLTEX; }
-  int ressize() const override { return 1; }
+  int ressize() const override { return memSz; }
 
   inline void setSize(int w, int h, int d, int lev, int cflg = 0)
   {
@@ -401,6 +412,9 @@ public:
     ti.mipLevels = lev;
     ti.resType = RES3D_VOLTEX;
     ti.cflg = cflg;
+    memSz = 0;
+    for (unsigned l = 0; l < ti.mipLevels; l++)
+      memSz += calc_surface_sz(ti, l) * max<unsigned>(ti.d >> l, 1);
   }
   inline void setTexName(const char *stat_name) { setResName(stat_name); }
 
@@ -408,10 +422,21 @@ public:
 
 public:
   TextureInfo ti;
+  unsigned memSz = 0;
   DECLARE_TQL_AND_MAKETMPRES(DummyVolTexture)
+protected:
+  virtual int texaddrImpl(int /*addrmode*/) { return 1; }
+  virtual int texaddruImpl(int /*addrmode*/) { return TEXADDR_WRAP; }
+  virtual int texaddrvImpl(int /*addrmode*/) { return TEXADDR_WRAP; }
+  virtual int texaddrwImpl(int /*addrmode*/) { return TEXADDR_WRAP; } // default is TEXADDR_WRAP
+  virtual int texbordercolorImpl(E3DCOLOR /*color*/) { return 1; }
+  virtual int texfilterImpl(int /*filtermode*/) { return TEXFILTER_DEFAULT; }
+  virtual int texmipmapImpl(int /*mipmapmode*/) { return TEXMIPMAP_DEFAULT; }
+  virtual int texlodImpl(float /*mipmaplod*/) { return 0; }
+  virtual int setAnisotropyImpl(int /*level*/) { return 1; }
 };
 
-class DummyArrTexture : public ArrayTexture
+class DummyArrTexture final : public ArrayTexture
 {
 public:
   DummyArrTexture() { setSize(4, 4, 4, 1); }
@@ -419,6 +444,8 @@ public:
   // load color texture
   int getinfo(TextureInfo &i, int level = 0) const override
   {
+    if (!ti.mipLevels)
+      debug("E-- %s %dx%d,D%d,A%d,L%d", getTexName(), ti.w, ti.h, ti.d, ti.a, ti.mipLevels);
     if (level >= ti.mipLevels)
       level = ti.mipLevels - 1;
 
@@ -434,15 +461,7 @@ public:
   //// BaseTexture ////
   virtual int generateMips() { return 1; }
   int level_count() const override { return ti.mipLevels; }
-  virtual int texaddr(int /*addrmode*/) { return 1; }
-  virtual int texaddru(int /*addrmode*/) { return TEXADDR_WRAP; }
-  virtual int texaddrv(int /*addrmode*/) { return TEXADDR_WRAP; }
-  virtual int texbordercolor(E3DCOLOR /*color*/) { return 1; }
-  virtual int texfilter(int /*filtermode*/) { return TEXFILTER_DEFAULT; }
-  virtual int texmipmap(int /*mipmapmode*/) { return TEXMIPMAP_DEFAULT; }
-  virtual int texlod(float /*mipmaplod*/) { return 0; }
   virtual int texmiplevel(int /*minlevel*/, int /*maxlevel*/) { return 0; }
-  virtual int setAnisotropy(int /*level*/) { return 1; }
   virtual int update(BaseTexture * /*src*/) { return 1; }
   virtual int updateSubRegion(BaseTexture * /*src*/, int /*src_subres_idx*/, int /*src_x*/, int /*src_y*/, int /*src_z*/,
     int /*src_w*/, int /*src_h*/, int /*src_d*/, int /*dest_subres_idx*/, int /*dest_x*/, int /*dest_y*/, int /*dest_z*/)
@@ -452,14 +471,10 @@ public:
   bool isCubeArray() const override { return ti.resType == RES3D_CUBEARRTEX; }
 
   //// D3dResource ////
-  virtual void destroy()
-  {
-    memset(&ti, 0, sizeof(ti));
-    dispose(this);
-  }
+  virtual void destroy() { dispose(this); }
   virtual void preload() {}
   int restype() const override { return ti.resType; }
-  int ressize() const override { return 1; }
+  int ressize() const override { return memSz; }
 
   inline void setSize(int w, int h, int d, int lev, int cflg = 0)
   {
@@ -470,6 +485,9 @@ public:
     ti.mipLevels = lev;
     ti.resType = RES3D_ARRTEX;
     ti.cflg = cflg;
+    memSz = 0;
+    for (unsigned l = 0; l < ti.mipLevels; l++)
+      memSz += calc_surface_sz(ti, l) * ti.a;
   }
   inline void setTexName(const char *stat_name) { setResName(stat_name); }
 
@@ -477,10 +495,20 @@ public:
 
 public:
   TextureInfo ti;
+  unsigned memSz = 0;
   DECLARE_TQL_AND_MAKETMPRES(DummyArrTexture)
+protected:
+  virtual int texaddrImpl(int /*addrmode*/) { return 1; }
+  virtual int texaddruImpl(int /*addrmode*/) { return TEXADDR_WRAP; }
+  virtual int texaddrvImpl(int /*addrmode*/) { return TEXADDR_WRAP; }
+  virtual int texbordercolorImpl(E3DCOLOR /*color*/) { return 1; }
+  virtual int texfilterImpl(int /*filtermode*/) { return TEXFILTER_DEFAULT; }
+  virtual int texmipmapImpl(int /*mipmapmode*/) { return TEXMIPMAP_DEFAULT; }
+  virtual int texlodImpl(float /*mipmaplod*/) { return 0; }
+  virtual int setAnisotropyImpl(int /*level*/) { return 1; }
 };
 
-class DummyCubeTexture : public CubeTexture
+class DummyCubeTexture final : public CubeTexture
 {
 public:
   DummyCubeTexture() { setSize(4, 1); }
@@ -490,6 +518,8 @@ public:
 
   int getinfo(TextureInfo &i, int level = 0) const override
   {
+    if (!ti.mipLevels)
+      debug("E-- %s %dx%d,D%d,A%d,L%d", getTexName(), ti.w, ti.h, ti.d, ti.a, ti.mipLevels);
     if (level >= ti.mipLevels)
       level = ti.mipLevels - 1;
 
@@ -501,8 +531,10 @@ public:
   virtual int lockimg(void **, int &, int = 0, unsigned = TEXLOCK_DEFAULT) { return 0; };
   virtual int lockimg(void **p, int &stride_bytes, int /*face*/, int /*level*/, unsigned flags)
   {
-    *p = drvBuffer.getBuffer(ti.w * ti.h * get_bytes_per_pixel(ti.cflg), !(flags & TEXLOCK_READ));
-    stride_bytes = ti.w * get_bytes_per_pixel(ti.cflg);
+    const uint32_t BC_BLOCK_SIZE = 4;
+    stride_bytes = (is_bc_texformat(ti.cflg) ? ((ti.w + BC_BLOCK_SIZE - 1) / BC_BLOCK_SIZE) : ti.w) * get_bytes_per_pixel(ti.cflg);
+    uint32_t heightInBlocks = (is_bc_texformat(ti.cflg) ? ((ti.h + BC_BLOCK_SIZE - 1) / BC_BLOCK_SIZE) : ti.h);
+    *p = drvBuffer.getBuffer(heightInBlocks * stride_bytes, !(flags & TEXLOCK_READ));
     return 1;
   }
   virtual int unlockimg() { return 1; }
@@ -510,15 +542,7 @@ public:
   //// BaseTexture ////
   virtual int generateMips() { return 1; }
   int level_count() const override { return ti.mipLevels; }
-  virtual int texaddr(int /*addrmode*/) { return 1; }
-  virtual int texaddru(int /*addrmode*/) { return TEXADDR_WRAP; }
-  virtual int texaddrv(int /*addrmode*/) { return TEXADDR_WRAP; }
-  virtual int texbordercolor(E3DCOLOR /*color*/) { return 1; }
-  virtual int texfilter(int /*filtermode*/) { return TEXFILTER_DEFAULT; }
-  virtual int texmipmap(int /*mipmapmode*/) { return TEXMIPMAP_DEFAULT; }
-  virtual int texlod(float /*mipmaplod*/) { return 0; }
   virtual int texmiplevel(int /*min_lev*/, int /*max_lev*/) { return 0; }
-  virtual int setAnisotropy(int /*level*/) { return 1; }
   virtual int update(BaseTexture * /*src*/) { return 1; }
   virtual int updateSubRegion(BaseTexture * /*src*/, int /*src_subres_idx*/, int /*src_x*/, int /*src_y*/, int /*src_z*/,
     int /*src_w*/, int /*src_h*/, int /*src_d*/, int /*dest_subres_idx*/, int /*dest_x*/, int /*dest_y*/, int /*dest_z*/)
@@ -527,14 +551,10 @@ public:
   }
 
   //// D3dResource ////
-  virtual void destroy()
-  {
-    memset(&ti, 0, sizeof(ti));
-    dispose(this);
-  }
+  virtual void destroy() { dispose(this); }
   virtual void preload() {}
   int restype() const override { return RES3D_CUBETEX; }
-  int ressize() const override { return 1; }
+  int ressize() const override { return memSz; }
 
   inline void setSize(int sz, int lev, int cflg = 0)
   {
@@ -545,6 +565,9 @@ public:
     ti.mipLevels = lev;
     ti.resType = RES3D_CUBETEX;
     ti.cflg = cflg;
+    memSz = 0;
+    for (unsigned l = 0; l < ti.mipLevels; l++)
+      memSz += calc_surface_sz(ti, l) * 6;
   }
   inline void setTexName(const char *stat_name) { setResName(stat_name); }
 
@@ -552,23 +575,29 @@ public:
 
 public:
   TextureInfo ti;
+  unsigned memSz = 0;
   DECLARE_TQL_AND_MAKETMPRES(DummyCubeTexture)
+protected:
+  virtual int texaddrImpl(int /*addrmode*/) { return 1; }
+  virtual int texaddruImpl(int /*addrmode*/) { return TEXADDR_WRAP; }
+  virtual int texaddrvImpl(int /*addrmode*/) { return TEXADDR_WRAP; }
+  virtual int texbordercolorImpl(E3DCOLOR /*color*/) { return 1; }
+  virtual int texfilterImpl(int /*filtermode*/) { return TEXFILTER_DEFAULT; }
+  virtual int texmipmapImpl(int /*mipmapmode*/) { return TEXMIPMAP_DEFAULT; }
+  virtual int texlodImpl(float /*mipmaplod*/) { return 0; }
+  virtual int setAnisotropyImpl(int /*level*/) { return 1; }
 };
 
-class DummyTexture : public Texture
+class DummyTexture final : public Texture
 {
 public:
   DummyTexture() { setSize(4, 4, 1); }
 
   // from  D3dResource
-  virtual void destroy()
-  {
-    memset(&ti, 0, sizeof(ti));
-    dispose(this);
-  }
+  virtual void destroy() { dispose(this); }
 
   int restype() const override { return RES3D_TEX; }
-  int ressize() const override { return 1; }
+  int ressize() const override { return memSz; }
   virtual void preload() {}
 
   // from  BaseTexture
@@ -580,15 +609,7 @@ public:
     return 1;
   }
   int level_count() const override { return ti.mipLevels; }
-  virtual int texaddr(int /*addrmode*/) { return 1; }             // set texaddru,texaddrv,...
-  virtual int texaddru(int /*addrmode*/) { return TEXADDR_WRAP; } // default is TEXADDR_WRAP
-  virtual int texaddrv(int /*addrmode*/) { return TEXADDR_WRAP; } // default is TEXADDR_WRAP
-  virtual int texbordercolor(E3DCOLOR) { return 1; }
-  virtual int texfilter(int /*filtermode*/) { return TEXFILTER_DEFAULT; } // default is TEXFILTER_DEFAULT
-  virtual int texmipmap(int /*mipmapmode*/) { return TEXMIPMAP_DEFAULT; } // default is TEXMIPMAP_DEFAULT
-  virtual int texlod(float /*mipmaplod*/) { return 0; }                   // default is zero. Sets texture lod bias
   virtual int texmiplevel(int /*min_lev*/, int /*max_lev*/) { return 0; }
-  virtual int setAnisotropy(int /*level*/) { return 1; } // default is 1.
 
   virtual int lockimg(void **p, int &stride_bytes, int /*level*/, unsigned flags)
   {
@@ -601,10 +622,11 @@ public:
   virtual int lockimg(void **, int &, int, int = 0, unsigned = TEXLOCK_DEFAULT) { return 0; };
 
   virtual int unlockimg() { return 1; }
-  virtual bool addDirtyRect(const RectInt & /*rect*/) { return true; }
 
   int getinfo(TextureInfo &i, int level = 0) const override
   {
+    if (!ti.mipLevels)
+      debug("E-- %s %dx%d,D%d,A%d,L%d", getTexName(), ti.w, ti.h, ti.d, ti.a, ti.mipLevels);
     if (level >= ti.mipLevels)
       level = ti.mipLevels - 1;
 
@@ -623,6 +645,9 @@ public:
     ti.mipLevels = lev;
     ti.resType = RES3D_TEX;
     ti.cflg = cflg;
+    memSz = 0;
+    for (unsigned l = 0; l < ti.mipLevels; l++)
+      memSz += calc_surface_sz(ti, l);
   }
   inline void setTexName(const char *stat_name) { setResName(stat_name); }
 
@@ -636,7 +661,17 @@ public:
 
 public:
   TextureInfo ti;
+  unsigned memSz = 0;
   DECLARE_TQL_AND_MAKETMPRES(DummyTexture)
+protected:
+  virtual int texaddrImpl(int /*addrmode*/) { return 1; }             // set texaddru,texaddrv,...
+  virtual int texaddruImpl(int /*addrmode*/) { return TEXADDR_WRAP; } // default is TEXADDR_WRAP
+  virtual int texaddrvImpl(int /*addrmode*/) { return TEXADDR_WRAP; } // default is TEXADDR_WRAP
+  virtual int texbordercolorImpl(E3DCOLOR) { return 1; }
+  virtual int texfilterImpl(int /*filtermode*/) { return TEXFILTER_DEFAULT; } // default is TEXFILTER_DEFAULT
+  virtual int texmipmapImpl(int /*mipmapmode*/) { return TEXMIPMAP_DEFAULT; } // default is TEXMIPMAP_DEFAULT
+  virtual int texlodImpl(float /*mipmaplod*/) { return 0; }                   // default is zero. Sets texture lod bias
+  virtual int setAnisotropyImpl(int /*level*/) { return 1; }                  // default is 1.
 };
 
 static DummyTexture backBufTex, backBufDepthTex;
@@ -670,7 +705,8 @@ static Driver3dDesc stub_desc = {
 
   8,    // int maxSimRT;
   true, // bool is20ArbitrarySwizzleAvailable;
-  32    // minWarpSize
+  32,   // minWarpSize
+  64    // maxWarpSize
 };
 
 static Driver3dRenderTarget currentRtState;
@@ -707,6 +743,7 @@ bool d3d::init_driver()
   stub_desc.caps.hasReadMultisampledDepth = true;
   stub_desc.caps.hasQuadTessellation = true;
   stub_desc.caps.hasGather4 = true;
+  stub_desc.caps.hasUAVOnEveryStage = true;
 #endif
 
 #if _TARGET_PC_WIN || _TARGET_C1 || _TARGET_C1
@@ -843,7 +880,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   return true;
 }
 
-void d3d::release_driver() {}
+void d3d::release_driver() { drv_inited = false; }
 
 #include "driver_code.h"
 DriverCode d3d::get_driver_code() { return DriverCode::make(d3d::stub); }
@@ -853,7 +890,7 @@ const char *d3d::get_last_error() { return "n/a"; }
 uint32_t d3d::get_last_error_code() { return 0; }
 const char *d3d::get_device_driver_version() { return "1.0"; }
 
-void d3d::prepare_for_destroy() {}
+void d3d::prepare_for_destroy() { on_before_window_destroyed(); }
 void d3d::window_destroyed(void * /*hwnd*/) {}
 
 void *d3d::get_device() { return NULL; }
@@ -861,13 +898,13 @@ void *d3d::get_device() { return NULL; }
 /// returns driver description (pointer to static object)
 const Driver3dDesc &d3d::get_driver_desc() { return stub_desc; }
 
-int d3d::driver_command(int command, void * /*par1*/, void * /*par2*/, void * /*par3*/)
+int d3d::driver_command(Drv3dCommand command, void * /*par1*/, void * /*par2*/, void * /*par3*/)
 {
   // of course we can actually track when we need mt sync or not (just like in drv3d_DX9, see needMtSync var),
   // but much simpler just always lock & unlock
-  if (command == DRV3D_COMMAND_ACQUIRE_OWNERSHIP)
+  if (command == Drv3dCommand::ACQUIRE_OWNERSHIP)
     dummy_crit.lock();
-  else if (command == DRV3D_COMMAND_RELEASE_OWNERSHIP)
+  else if (command == Drv3dCommand::RELEASE_OWNERSHIP)
     dummy_crit.unlock();
   return 0;
 }
@@ -897,10 +934,8 @@ bool d3d::check_texformat(int /*cflg*/) { return true; }
 int d3d::get_max_sample_count(int) { return 1; }
 bool d3d::issame_texformat(int cflg1, int cflg2) { return cflg1 == cflg2; }
 bool d3d::check_cubetexformat(int /*cflg*/) { return true; }
-bool d3d::issame_cubetexformat(int cflg1, int cflg2) { return cflg1 == cflg2; }
 
 bool d3d::check_voltexformat(int /*cflg*/) { return true; }
-bool d3d::issame_voltexformat(int cflg1, int cflg2) { return cflg1 == cflg2; }
 
 Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name)
 {
@@ -913,6 +948,8 @@ Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, con
   }
   RETURN_NULL_ON_ZERO_SIZE(!w || !h);
   DummyTexture *tex = DummyTexture::create();
+  if (!levels)
+    levels = get_log2i(max(w, h));
   tex->setSize(w, h, levels, flg);
   tex->setTexName(stat_name);
   return tex;
@@ -924,11 +961,11 @@ BaseTexture *d3d::alloc_ddsx_tex(const ddsx::Header &hdr, int flg, int quality_i
   G_ASSERT((flg & TEXCF_TYPEMASK) != TEXCF_RTARGET);
 
   if (hdr.flags & ddsx::Header::FLG_ARRTEX)
-    return create_array_tex(hdr.w, hdr.h, hdr.depth, 0, 0, stat_name);
+    return create_array_tex(hdr.w, hdr.h, hdr.depth, flg, hdr.levels, stat_name);
   if (hdr.flags & ddsx::Header::FLG_CUBTEX)
-    return create_cubetex(hdr.w, 0, 0, stat_name);
+    return create_cubetex(hdr.w, flg, hdr.levels, stat_name);
   if (hdr.flags & ddsx::Header::FLG_VOLTEX)
-    return create_voltex(hdr.w, hdr.h, hdr.depth, 0, 0, stat_name);
+    return create_voltex(hdr.w, hdr.h, hdr.depth, flg, hdr.levels, stat_name);
 
   RETURN_NULL_ON_ZERO_SIZE(!hdr.w || !hdr.h);
   int skip_levels = hdr.getSkipLevels(hdr.getSkipLevelsFromQ(quality_id), levels);
@@ -955,7 +992,7 @@ BaseTexture *d3d::create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int le
   if (!bt)
     return NULL;
 
-  if (!load_ddsx_tex_contents(bt, hdr, crd, quality_id))
+  if (load_ddsx_tex_contents(bt, hdr, crd, quality_id) != TexLoadRes::OK)
   {
     del_d3dres(bt);
     return NULL;
@@ -968,6 +1005,8 @@ CubeTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat
 {
   RETURN_NULL_ON_ZERO_SIZE(!size);
   DummyCubeTexture *tex = DummyCubeTexture::create();
+  if (!levels)
+    levels = get_log2i(size);
   tex->setSize(size, levels, flg);
   tex->setTexName(stat_name);
   return tex;
@@ -977,6 +1016,8 @@ VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const c
 {
   RETURN_NULL_ON_ZERO_SIZE(!w || !h || !d);
   DummyVolTexture *tex = DummyVolTexture::create();
+  if (!levels)
+    levels = get_log2i(max(max(w, h), d));
   tex->setSize(w, h, d, levels, flg);
   tex->setTexName(stat_name);
   return tex;
@@ -986,6 +1027,8 @@ ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, co
 {
   RETURN_NULL_ON_ZERO_SIZE(!w || !h || !d);
   DummyArrTexture *tex = DummyArrTexture::create();
+  if (!levels)
+    levels = get_log2i(max(w, h));
   tex->setSize(w, h, d, levels, flg);
   tex->setTexName(stat_name);
   return tex;
@@ -995,15 +1038,13 @@ ArrayTexture *d3d::create_cube_array_tex(int side, int d, int flg, int levels, c
 {
   RETURN_NULL_ON_ZERO_SIZE(!side || !d);
   DummyArrTexture *tex = DummyArrTexture::create();
+  if (!levels)
+    levels = get_log2i(side);
   tex->setSize(side, side, d * 6, levels, flg);
   tex->setTexName(stat_name);
   tex->ti.resType = RES3D_CUBEARRTEX;
   return tex;
 }
-
-bool d3d::set_tex_usage_hint(int /*w*/, int /*h*/, int /*mips*/, const char * /*format*/, unsigned int /*tex_num*/) { return true; }
-
-void d3d::discard_managed_textures() {}
 
 bool d3d::stretch_rect(BaseTexture * /*src*/, BaseTexture * /*dst*/, RectInt * /*rsrc*/, RectInt * /*rdst*/) { return true; }
 bool d3d::copy_from_current_render_target(BaseTexture * /*to_tex*/) { return true; }
@@ -1112,12 +1153,6 @@ bool d3d::set_depth(BaseTexture *tex, int face, DepthAccess access)
     currentRtState.removeDepth();
   else
     currentRtState.setDepth(tex, face, access == DepthAccess::SampledRO);
-  return true;
-}
-
-bool d3d::set_backbuf_depth()
-{
-  currentRtState.setBackbufDepth();
   return true;
 }
 
@@ -1238,6 +1273,9 @@ bool d3d::update_screen(bool /*app_active*/)
   return true;
 }
 
+void d3d::wait_for_async_present(bool) {}
+void d3d::gpu_latency_wait() {}
+
 /// set vertex stream source
 bool d3d::setvsrc_ex(int /*stream*/, Vbuffer *, int /*ofs*/, int /*stride_bytes*/) { return true; }
 
@@ -1273,9 +1311,6 @@ shaders::DriverRenderStateId d3d::create_render_state(const shaders::RenderState
 bool d3d::set_render_state(shaders::DriverRenderStateId) { return true; }
 void d3d::clear_render_states() {}
 
-bool d3d::setantialias(int /*aa_type*/) { return true; }
-int d3d::getantialias() { return 0; }
-
 bool d3d::setstencil(uint32_t /*ref*/) { return true; }
 
 bool d3d::setwire(bool /*in*/) { return true; }
@@ -1285,7 +1320,6 @@ bool d3d::set_msaa_pass() { return true; }
 bool d3d::set_depth_resolve() { return true; }
 
 bool d3d::setgamma(float) { return true; }
-bool d3d::isVcolRgba() { return true; }
 
 float d3d::get_screen_aspect_ratio() { return screen_aspect_ratio; }
 void d3d::change_screen_aspect_ratio(float) {}
@@ -1314,10 +1348,10 @@ void d3d::get_texture_statistics(uint32_t *num_textures, uint64_t *total_mem, St
 
 bool d3d::set_blend_factor(E3DCOLOR) { return true; }
 
-d3d::SamplerHandle d3d::create_sampler(const d3d::SamplerInfo &) { return 0; }
-void d3d::destroy_sampler(d3d::SamplerHandle) {}
+d3d::SamplerHandle d3d::request_sampler(const d3d::SamplerInfo &) { return d3d::SamplerHandle(0); }
 void d3d::set_sampler(unsigned, unsigned, d3d::SamplerHandle) {}
 uint32_t d3d::register_bindless_sampler(BaseTexture *) { return 0; }
+uint32_t d3d::register_bindless_sampler(SamplerHandle) { return 0; }
 
 uint32_t d3d::allocate_bindless_resource_range(uint32_t, uint32_t) { return 0; }
 uint32_t d3d::resize_bindless_resource_range(uint32_t, uint32_t, uint32_t, uint32_t) { return 0; }
@@ -1331,6 +1365,8 @@ bool d3d::clear_rwtexi(BaseTexture *, const unsigned[4], uint32_t, uint32_t) { r
 bool d3d::clear_rwtexf(BaseTexture *, const float[4], uint32_t, uint32_t) { return true; }
 bool d3d::clear_rwbufi(Sbuffer *, const unsigned[4]) { return true; }
 bool d3d::clear_rwbuff(Sbuffer *, const float[4]) { return true; }
+
+bool d3d::clear_rt(const RenderTarget &, const ResourceClearValue &) { return true; }
 
 bool d3d::set_buffer(unsigned, unsigned, Sbuffer *) { return true; }
 bool d3d::set_rwbuffer(unsigned, unsigned, Sbuffer *) { return true; }
@@ -1382,10 +1418,6 @@ void d3d::end_survey(int) {}
 void d3d::begin_conditional_render(int) {}
 void d3d::end_conditional_render(int) {}
 bool d3d::set_depth_bounds(float, float) { return true; }
-bool d3d::supports_depth_bounds()
-{
-  return true;
-}; // returns true if hardware supports depth bounds. same as get_driver_desc().capshasDepthBoundsTest
 
 #if _TARGET_PC_WIN
 bool d3d::pcwin32::set_capture_full_frame_buffer(bool /*ison*/) { return false; }
@@ -1394,11 +1426,6 @@ unsigned d3d::pcwin32::get_texture_format(BaseTexture *) { return 0; }
 const char *d3d::pcwin32::get_texture_format_str(BaseTexture *) { return "n/a"; }
 void *d3d::pcwin32::get_native_surface(BaseTexture *) { return nullptr; }
 
-#endif
-
-#if !(_TARGET_C1 | _TARGET_C2)
-const bool d3d::HALF_TEXEL_OFS = false;
-const float d3d::HALF_TEXEL_OFSFU = 0.f;
 #endif
 
 #if _TARGET_PC | _TARGET_XBOX
@@ -1426,7 +1453,6 @@ void d3d::endEvent() {}
 
 Texture *d3d::get_backbuffer_tex() { return &backBufTex; }
 Texture *d3d::get_secondary_backbuffer_tex() { return nullptr; }
-Texture *d3d::get_backbuffer_tex_depth() { return &backBufDepthTex; }
 
 #include "../drv3d_commonCode/rayTracingStub.inc.cpp"
 
@@ -1459,7 +1485,7 @@ ResourceHeap *d3d::create_resource_heap(ResourceHeapGroup *heap_group, size_t si
   return nullptr;
 }
 void d3d::destroy_resource_heap(ResourceHeap *heap) { G_UNUSED(heap); }
-Sbuffer *d3d::place_buffere_in_resource_heap(ResourceHeap *heap, const ResourceDescription &desc, size_t offset,
+Sbuffer *d3d::place_buffer_in_resource_heap(ResourceHeap *heap, const ResourceDescription &desc, size_t offset,
   const ResourceAllocationProperties &alloc_info, const char *name)
 {
   G_UNUSED(heap);
@@ -1558,6 +1584,17 @@ void d3d::begin_render_pass(d3d::RenderPass *rp, const RenderPassArea area, cons
 void d3d::next_subpass() {}
 
 void d3d::end_render_pass() {}
+
+#if DAGOR_DBGLEVEL > 0
+void d3d::allow_render_pass_target_load() {}
+#endif
+
+ShaderLibrary d3d::create_shader_library(const ShaderLibraryCreateInfo &) { return InvalidShaderLibrary; }
+
+void d3d::destroy_shader_library(ShaderLibrary) {}
+
+bool d3d::start_capture(const char *, const char *) { return false; }
+void d3d::stop_capture(){};
 
 #define CHECK_MAIN_THREAD()
 #include "frameStateTM.inc.cpp"

@@ -1,10 +1,21 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/gpuVisibilityTest.h>
 #include <util/dag_string.h>
-#include <3d/dag_drvDecl.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_decl.h>
 #include <perfMon/dag_statDrv.h>
 #include <memory/dag_framemem.h>
 #include <math/dag_frustum.h>
 #include <3d/dag_quadIndexBuffer.h>
+#include <drv/3d/dag_info.h>
 
 static constexpr int BBOX_VIS_RESULT_REG_ID = 1;
 static constexpr int MAX_TESTS_IN_QUEUE = 128 << 10; // 8Mb

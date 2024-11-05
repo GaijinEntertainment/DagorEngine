@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_symHlp.h>
 
 #if _TARGET_PC_WIN
@@ -101,7 +103,7 @@ bool symhlp_load(const char *pe_img_name, uintptr_t base_addr, uintptr_t module_
 {
   if (base_addr == 0)
     symhlp_find_module_addr(pe_img_name, base_addr, module_size);
-  // debug_ctx ( "symhlp_load: <%s> base=%08X size=%08X", pe_img_name, base_addr, module_size );
+  // DEBUG_CTX("symhlp_load: <%s> base=%08X size=%08X", pe_img_name, base_addr, module_size);
   char pdb_dir[DAGOR_MAX_PATH];
   dd_get_fname_location(pdb_dir, pe_img_name);
   strcat(pdb_dir, ";");
@@ -120,7 +122,7 @@ bool symhlp_unload(const char *pe_img_name, uintptr_t base_addr)
 
   if (base_addr == 0)
     symhlp_find_module_addr(pe_img_name, base_addr, module_size);
-  // debug_ctx ( "symhlp_unload: <%s> %08X %d", pe_img_name, base_addr );
+  // DEBUG_CTX("symhlp_unload: <%s> %08X %d", pe_img_name, base_addr);
   if (base_addr == 0)
     return false;
   return SymUnloadModule((char *)pe_img_name, base_addr);

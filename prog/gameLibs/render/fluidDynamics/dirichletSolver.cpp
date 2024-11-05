@@ -1,5 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/fluidDynamics/dirichletSolver.h>
 #include <perfMon/dag_statDrv.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_texture.h>
 
 namespace cfd
 {
@@ -15,7 +19,10 @@ namespace cfd
   VAR(cfd_initial_potential_tex) \
   VAR(dirichlet_cascade_no)      \
   VAR(dirichlet_implicit_mode)   \
-  VAR(cfd_cascade_no)
+  VAR(cfd_cascade_no)            \
+  VAR(cfd_calc_offset)           \
+  VAR(dirichlet_partial_solve)   \
+  VAR(cfd_toroidal_offset)
 
 #define VAR(a) static int a##VarId = -1;
 DIRICHLET_VARS_LIST
@@ -51,7 +58,7 @@ void DirichletSolver::fillInitialConditions()
 
 bool DirichletSolver::solveEquations(float dt, int num_dispatches)
 {
-  TIME_D3D_PROFILE("cfd_solveEquationsDirichlet");
+  TIME_D3D_PROFILE(cfd_solveEquationsDirichlet);
 
   int currentIdx = 0;
 
@@ -102,7 +109,7 @@ float DirichletSolver::getSimulationTime() const { return simulationTime; }
 
 // Cascade solver
 
-DirichletCascadeSolver::DirichletCascadeSolver(const char *solver_shader_name, IPoint3 tex_size, float spatial_step,
+DirichletCascadeSolver::DirichletCascadeSolver(IPoint3 tex_size, float spatial_step,
   const eastl::array<uint32_t, NUM_CASCADES> &num_dispatches_per_cascade) :
   numDispatchesPerCascade(std::move(num_dispatches_per_cascade)), textureDepth(tex_size.z)
 {
@@ -112,7 +119,9 @@ DirichletCascadeSolver::DirichletCascadeSolver(const char *solver_shader_name, I
 
   initialConditionsCs.reset(new_compute_shader("dirichlet_initial_conditions"));
   initialConditionsFromTexCs.reset(new_compute_shader("dirichlet_initial_conditions_from_tex"));
-  solverCs.reset(new_compute_shader(solver_shader_name));
+  initialConditionsToroidalCs.reset(new_compute_shader("dirichlet_initial_conditions_toroidal"));
+  explicitSolverCs.reset(new_compute_shader("dirichlet_solver"));
+  implicitSolverCs.reset(new_compute_shader("dirichlet_solver_implicit"));
 
   for (int cascade_no = 0; cascade_no < NUM_CASCADES; ++cascade_no)
   {
@@ -137,10 +146,36 @@ void DirichletCascadeSolver::fillInitialConditions()
   d3d::resource_barrier({cascades[currentCascade].potentialTex[0].getBaseTex(), RB_STAGE_COMPUTE | RB_RO_SRV, 0, 0});
 }
 
+void DirichletCascadeSolver::fillInitialConditionsToroidal(ToroidalUpdateRegion update_region)
+{
+  ShaderGlobal::set_texture(cfd_initial_potential_texVarId, cascades[currentCascade].potentialTex[1]);
+  ShaderGlobal::set_texture(cfd_potential_texVarId, cascades[currentCascade].potentialTex[0]);
+  IPoint4 toroidalOffset = IPoint4::ZERO;
+  int offsetSize = cascades[currentCascade].texSize.x / 4;
+  switch (update_region)
+  {
+    case ToroidalUpdateRegion::TOP: toroidalOffset.y = -offsetSize; break;
+    case ToroidalUpdateRegion::RIGHT: toroidalOffset.x = offsetSize; break;
+    case ToroidalUpdateRegion::BOTTOM: toroidalOffset.y = offsetSize; break;
+    case ToroidalUpdateRegion::LEFT: toroidalOffset.x = -offsetSize; break;
+    default: G_ASSERT(0);
+  }
+
+  ShaderGlobal::set_int4(cfd_toroidal_offsetVarId, toroidalOffset);
+
+  initialConditionsToroidalCs->dispatchThreads(cascades[currentCascade].texSize.x, cascades[currentCascade].texSize.y, textureDepth);
+  d3d::resource_barrier({cascades[currentCascade].potentialTex[0].getBaseTex(), RB_STAGE_COMPUTE | RB_RO_SRV, 0, 0});
+
+  ShaderGlobal::set_texture(cfd_initial_potential_texVarId, cascades[currentCascade].potentialTex[0]);
+  ShaderGlobal::set_texture(cfd_potential_texVarId, cascades[currentCascade].potentialTex[1]);
+  initialConditionsFromTexCs->dispatchThreads(cascades[currentCascade].texSize.x, cascades[currentCascade].texSize.y, textureDepth);
+  d3d::resource_barrier({cascades[currentCascade].potentialTex[1].getBaseTex(), RB_STAGE_COMPUTE | RB_RO_SRV, 0, 0});
+}
+
 static const eastl::array<float, 3> cascade_num_factor = {0.125f, 0.5f, 1.f};
 void DirichletCascadeSolver::solveEquations(float dt, int num_dispatches, bool implicit)
 {
-  TIME_D3D_PROFILE("cfd_solveDirichletCascade");
+  TIME_D3D_PROFILE(cfd_solveDirichletCascade);
 
   if (curNumDispatches >= numDispatchesPerCascade[currentCascade])
     return;
@@ -154,7 +189,8 @@ void DirichletCascadeSolver::solveEquations(float dt, int num_dispatches, bool i
   ShaderGlobal::set_real(cfd_simulation_dxVarId, cascades[currentCascade].spatialStep);
 
   int currentIdx = 0;
-  solverCs->setStates();
+  if (!implicit)
+    explicitSolverCs->setStates();
   for (int i = 0; i < num_dispatches; ++i)
   {
     d3d::set_tex(STAGE_CS, 1, cascades[currentCascade].potentialTex[currentIdx].getBaseTex());
@@ -166,11 +202,11 @@ void DirichletCascadeSolver::solveEquations(float dt, int num_dispatches, bool i
       int implicitMode = currentIdx;
       ShaderGlobal::set_int(dirichlet_implicit_modeVarId, currentIdx);
       // we use groupsize of 64, so in larger cascades we process multiple pixels per thread
-      solverCs->dispatchThreads(implicitMode == 0 ? 64 : cascades[currentCascade].texSize.x,
+      implicitSolverCs->dispatchThreads(implicitMode == 0 ? 64 : cascades[currentCascade].texSize.x,
         implicitMode == 1 ? 64 : cascades[currentCascade].texSize.y, textureDepth, GpuPipeline::GRAPHICS, true);
     }
     else
-      solverCs->dispatchThreads(cascades[currentCascade].texSize.x, cascades[currentCascade].texSize.y, textureDepth,
+      explicitSolverCs->dispatchThreads(cascades[currentCascade].texSize.x, cascades[currentCascade].texSize.y, textureDepth,
         GpuPipeline::GRAPHICS, false);
 
     d3d::resource_barrier({cascades[currentCascade].potentialTex[currentIdx].getBaseTex(), RB_STAGE_COMPUTE | RB_RW_UAV, 0, 0});
@@ -183,7 +219,6 @@ void DirichletCascadeSolver::solveEquations(float dt, int num_dispatches, bool i
 
     if (curNumDispatches >= numDispatchesPerCascade[currentCascade])
     {
-      debug("Cascade %d finished in %d dispatches", currentCascade, curNumDispatches);
       d3d::resource_barrier(
         {cascades[currentCascade].potentialTex[0].getBaseTex(), RB_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_RO_SRV, 0, 0});
       if (currentCascade == 0)
@@ -193,6 +228,77 @@ void DirichletCascadeSolver::solveEquations(float dt, int num_dispatches, bool i
       break;
     }
   }
+}
+
+static const float dispatch_num_factor_partial = 0.125f;
+void DirichletCascadeSolver::solveEquationsPartial(float dt, int num_dispatches, const BBox2 &area, bool implicit)
+{
+  TIME_D3D_PROFILE(cfd_solveDirichletCascadePartial);
+
+  if (curNumDispatchesPartial >= numDispatchesPartial)
+    return;
+
+  num_dispatches *= dispatch_num_factor_partial;
+  const float actualDt = dt * cascades[currentCascade].spatialStep;
+  ShaderGlobal::set_real(cfd_simulation_dtVarId, actualDt);
+  ShaderGlobal::set_int4(cfd_tex_sizeVarId,
+    IPoint4(cascades[currentCascade].texSize.x, cascades[currentCascade].texSize.y, textureDepth, 0));
+  ShaderGlobal::set_real(cfd_simulation_dxVarId, cascades[currentCascade].spatialStep);
+  ShaderGlobal::set_int4(cfd_calc_offsetVarId,
+    IPoint4(cascades[currentCascade].texSize.x * area.getMin().x, cascades[currentCascade].texSize.y * area.getMin().y, 0, 0));
+  ShaderGlobal::set_int(dirichlet_partial_solveVarId, 1);
+
+  int horCascade = 0, horThreads = 0;
+  int vertCascade = 0, vertThreads = 0;
+  if (implicit)
+  {
+    horThreads = area.size().x * cascades[currentCascade].texSize.x;
+    if (is_equal_float(area.size().x, 1.0f))
+      horCascade = 0;
+    else
+      horCascade = 2;
+
+    vertThreads = area.size().y * cascades[currentCascade].texSize.y;
+    if (is_equal_float(area.size().y, 1.0f))
+      vertCascade = 0;
+    else
+      vertCascade = 2;
+  }
+  else
+    explicitSolverCs->setStates();
+
+  int currentIdx = 0;
+  for (int i = 0; i < num_dispatches; ++i)
+  {
+    d3d::set_tex(STAGE_CS, 1, cascades[currentCascade].potentialTex[currentIdx].getBaseTex());
+    d3d::set_rwtex(STAGE_CS, 0, cascades[currentCascade].potentialTex[1 - currentIdx].getBaseTex(), 0, 0);
+
+    if (implicit)
+    {
+      ShaderGlobal::set_int(dirichlet_implicit_modeVarId, currentIdx);
+      ShaderGlobal::set_int(dirichlet_cascade_noVarId, currentIdx == 0 ? horCascade : vertCascade); // Set cascade based on area size
+
+      implicitSolverCs->dispatchThreads(currentIdx == 0 ? 64 : horThreads, currentIdx == 1 ? 64 : vertThreads, textureDepth);
+    }
+    else
+      explicitSolverCs->dispatchThreads(cascades[currentCascade].texSize.x * area.size().x,
+        cascades[currentCascade].texSize.y * area.size().y, textureDepth, GpuPipeline::GRAPHICS, false);
+
+    d3d::resource_barrier({cascades[currentCascade].potentialTex[currentIdx].getBaseTex(), RB_STAGE_COMPUTE | RB_RW_UAV, 0, 0});
+    d3d::resource_barrier({cascades[currentCascade].potentialTex[1 - currentIdx].getBaseTex(), RB_STAGE_COMPUTE | RB_RO_SRV, 0, 0});
+    currentIdx = (currentIdx + 1) % 2;
+
+    ++curNumDispatchesPartial;
+
+    if (curNumDispatchesPartial >= numDispatchesPartial)
+    {
+      d3d::resource_barrier(
+        {cascades[currentCascade].potentialTex[0].getBaseTex(), RB_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_RO_SRV, 0, 0});
+      partialResultReady = true;
+      break;
+    }
+  }
+  ShaderGlobal::set_int(dirichlet_partial_solveVarId, 0);
 }
 
 void DirichletCascadeSolver::switchToCascade(int cascade)
@@ -205,7 +311,7 @@ void DirichletCascadeSolver::switchToCascade(int cascade)
   if (cascade != NUM_CASCADES - 1)
   {
     ShaderGlobal::set_texture(cfd_initial_potential_texVarId, cascades[currentCascade].potentialTex[0]);
-    cascades[currentCascade].potentialTex[0].getVolTex()->texfilter(TEXFILTER_SMOOTH);
+    cascades[currentCascade].potentialTex[0].getVolTex()->texfilter(TEXFILTER_LINEAR);
     initialConditionsFromTexCs->dispatchThreads(cascades[cascade].texSize.x, cascades[cascade].texSize.y, textureDepth);
     d3d::resource_barrier({cascades[cascade].potentialTex[0].getBaseTex(), RB_STAGE_COMPUTE | RB_RO_SRV, 0, 0});
     cascades[currentCascade].potentialTex[0].getVolTex()->texfilter(TEXFILTER_POINT);
@@ -225,6 +331,12 @@ void DirichletCascadeSolver::reset()
 }
 
 bool DirichletCascadeSolver::isResultReady() const { return resultReady; }
+bool DirichletCascadeSolver::isPartialResultReady() const { return partialResultReady; }
+void DirichletCascadeSolver::resetPartialUpdate()
+{
+  curNumDispatchesPartial = 0;
+  partialResultReady = false;
+}
 TEXTUREID DirichletCascadeSolver::getPotentialTexId() const { return cascades[currentCascade].potentialTex[0].getTexId(); }
 float DirichletCascadeSolver::getSimulationTime() const { return simulationTime; }
 int DirichletCascadeSolver::getNumDispatches() const { return totalNumDispatches; }
@@ -232,6 +344,8 @@ void DirichletCascadeSolver::setNumDispatchesForCascade(int cascade_no, int num_
 {
   numDispatchesPerCascade[cascade_no] = num_dispatches;
 }
+
+void DirichletCascadeSolver::setNumDispatchesPartial(int num_dispatches) { numDispatchesPartial = num_dispatches; }
 
 void DirichletCascadeSolver::setBoundariesCb(eastl::function<void(int)> cb) { boundariesCb = std::move(cb); }
 } // namespace cfd

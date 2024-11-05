@@ -134,8 +134,11 @@ namespace das {
         return filter.PassFilter(text, nullptr);
     }
 
-    char * text_range_string( ImGuiTextFilter::ImGuiTextRange & r, das::Context *context, das::LineInfoArg * ) {
-        return context->stringHeap->allocateString(r.b, r.e - r.b);
+    char * text_range_string( ImGuiTextFilter::ImGuiTextRange & r, das::Context *context, das::LineInfoArg * at ) {
+        auto res = context->allocateString(r.b, r.e - r.b, at);
+        if (!res)
+          context->throw_out_of_memory(true, r.e - r.b, at);
+        return res;
     }
 
     void AddText( ImDrawList & drawList, const ImVec2& pos, ImU32 col, const char* text ) {
@@ -175,7 +178,10 @@ namespace das {
         if ( len>buf.size() ) {
             context->throw_error_at(at, "can't get slice of ImGuiTextBuffer, slice too big");
         }
-        return context->stringHeap->allocateString(buf.begin() + head,len+1);
+        auto res = context->allocateString(buf.begin() + head,len + 1, at);
+        if (!res)
+          context->throw_out_of_memory(true, len + 1, at );
+        return res;
     }
 
     // ImGuiInputTextCallbackData
@@ -211,8 +217,8 @@ namespace das {
         ImGui::SetNextWindowSizeConstraints(size_min, size_max);
     }
 
-    ImGuiSortDirection_ SortDirection ( const ImGuiTableColumnSortSpecs & specs ) {
-        return ImGuiSortDirection_(specs.SortDirection);
+    ImGuiSortDirection SortDirection ( const ImGuiTableColumnSortSpecs & specs ) {
+        return ImGuiSortDirection(specs.SortDirection);
     }
 
     ImVec2 CalcTextSize(const char* text,bool hide_text_after_double_hash, float wrap_width) {
@@ -226,15 +232,17 @@ namespace das {
         LineInfo *  at;
     };
 
-    bool ComboGetterCallback ( void* data, int idx, const char** out_text ) {
+    const char *ComboGetterCallback(void* data, int idx) {
         ImGuiComboGetter * getter = (ImGuiComboGetter *) data;
         if ( !getter->lambda.capture ) {
             getter->context->throw_error_at(getter->at, "expecting lambda");
         }
-        *out_text = nullptr;
-        auto res = das_invoke_lambda<bool>::invoke<int,char **>(getter->context,getter->at,getter->lambda,idx,(char **)out_text);
-        if ( *out_text==nullptr ) *out_text = "";
-        return res;
+        const char *out_text = nullptr;
+        bool res = das_invoke_lambda<bool>::invoke<int,char **>(getter->context,getter->at,getter->lambda,idx,(char **)&out_text);
+        G_UNUSED(res);
+        if (out_text == nullptr)
+          out_text = "";
+        return out_text;
     }
 
     bool Combo ( vec4f cg, const char * label, int * current_item, int items_count, int popup_max_height_in_items, Context * ctx, LineInfoArg * at ) {
@@ -285,90 +293,90 @@ namespace das {
 	void Module_dasIMGUI::initMain () {
         addConstant(*this,"IMGUI_VERSION", IMGUI_VERSION);
         // imgui text filter
-        addExtern<DAS_BIND_FUN(das::PassFilter)>(*this, lib, "PassFilter",
+        addExtern<DAS_BIND_FUN(das::PassFilter), SimNode_ExtFuncCall, imguiTempFn>(*this, lib, "PassFilter",
             SideEffects::worstDefault, "das::PassFilter");
-        addExtern<DAS_BIND_FUN(das::text_range_string)>(*this, lib, "string",
+        addExtern<DAS_BIND_FUN(das::text_range_string), SimNode_ExtFuncCall, imguiTempFn>(*this, lib, "string",
             SideEffects::worstDefault, "das::text_range_string");
         // imcolor
-        addExtern<DAS_BIND_FUN(das::HSV)>(*this, lib, "HSV",
+        addExtern<DAS_BIND_FUN(das::HSV), SimNode_ExtFuncCall, imguiTempFn>(*this, lib, "HSV",
             SideEffects::none, "das::HSV")
                 ->args({"h","s","v","a"})
                     ->arg_init(3,make_smart<ExprConstFloat>(1.0f));
         // imgui draw list
-        addExtern<DAS_BIND_FUN(das::AddText)>(*this, lib, "AddText",
+        addExtern<DAS_BIND_FUN(das::AddText), SimNode_ExtFuncCall, imguiTempFn>(*this, lib, "AddText",
             SideEffects::worstDefault, "das::AddText");
-        addExtern<DAS_BIND_FUN(das::AddText2)>(*this, lib, "AddText",
+        addExtern<DAS_BIND_FUN(das::AddText2), SimNode_ExtFuncCall, imguiTempFn>(*this, lib, "AddText",
             SideEffects::worstDefault, "das::AddText2")
                 ->args({"drawList","font","font_size","pos","col","text","wrap_width","cpu_fine_clip_rect"})
                     ->arg_init(6,make_smart<ExprConstFloat>(0.0f))
                     ->arg_init(7,make_smart<ExprConstPtr>());
         // variadic functions
-        addExtern<DAS_BIND_FUN(das::Text)>(*this,lib,"Text",
+        addExtern<DAS_BIND_FUN(das::Text), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"Text",
             SideEffects::worstDefault,"das::Text");
-        addExtern<DAS_BIND_FUN(das::TextWrapped)>(*this,lib,"TextWrapped",
+        addExtern<DAS_BIND_FUN(das::TextWrapped), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"TextWrapped",
             SideEffects::worstDefault,"das::TextWrapped");
-        addExtern<DAS_BIND_FUN(das::TextDisabled)>(*this,lib,"TextDisabled",
+        addExtern<DAS_BIND_FUN(das::TextDisabled), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"TextDisabled",
             SideEffects::worstDefault,"das::TextDisabled");
         addExtern<DAS_BIND_FUN(das::TextColored), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"TextColored",
             SideEffects::worstDefault,"das::TextColored");
-        addExtern<DAS_BIND_FUN(das::LabelText)>(*this,lib,"LabelText",
+        addExtern<DAS_BIND_FUN(das::LabelText), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"LabelText",
             SideEffects::worstDefault,"das::LabelText");
-        addExtern<DAS_BIND_FUN(das::LogText)>(*this,lib,"LogText",
+        addExtern<DAS_BIND_FUN(das::LogText), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"LogText",
             SideEffects::worstDefault,"das::LogText");
-        addExtern<DAS_BIND_FUN(das::TreeNode)>(*this,lib,"TreeNode",
+        addExtern<DAS_BIND_FUN(das::TreeNode), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"TreeNode",
             SideEffects::worstDefault,"das::TreeNode");
-        addExtern<DAS_BIND_FUN(das::TreeNodeEx)>(*this,lib,"TreeNodeEx",
+        addExtern<DAS_BIND_FUN(das::TreeNodeEx), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"TreeNodeEx",
             SideEffects::worstDefault,"das::TreeNodeEx");
-        addExtern<DAS_BIND_FUN(das::TreeNodeEx2)>(*this,lib,"TreeNodeEx",
+        addExtern<DAS_BIND_FUN(das::TreeNodeEx2), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"TreeNodeEx",
             SideEffects::worstDefault,"das::TreeNodeEx2");
-        addExtern<DAS_BIND_FUN(das::BulletText)>(*this,lib,"BulletText",
+        addExtern<DAS_BIND_FUN(das::BulletText), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"BulletText",
             SideEffects::worstDefault,"das::BulletText");
-        addExtern<DAS_BIND_FUN(das::SetTooltip)>(*this,lib,"SetTooltip",
+        addExtern<DAS_BIND_FUN(das::SetTooltip), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"SetTooltip",
             SideEffects::worstDefault,"das::SetTooltip");
         // text unfromatted
-        addExtern<DAS_BIND_FUN(das::TextUnformatted)>(*this, lib, "TextUnformatted",
+        addExtern<DAS_BIND_FUN(das::TextUnformatted), SimNode_ExtFuncCall, imguiTempFn>(*this, lib, "TextUnformatted",
             SideEffects::worstDefault, "das::TextUnformatted")
             ->arg("text");
         // input text
-        addExtern<DAS_BIND_FUN(das::InputText)>(*this, lib, "_builtin_InputText",
+        addExtern<DAS_BIND_FUN(das::InputText), SimNode_ExtFuncCall, imguiTempFn>(*this, lib, "_builtin_InputText",
             SideEffects::worstDefault, "das::InputText");
-        addExtern<DAS_BIND_FUN(das::InputTextWithHint)>(*this, lib, "_builtin_InputTextWithHint",
+        addExtern<DAS_BIND_FUN(das::InputTextWithHint), SimNode_ExtFuncCall, imguiTempFn>(*this, lib, "_builtin_InputTextWithHint",
             SideEffects::worstDefault, "das::InputTextWithHint");
         addExtern<DAS_BIND_FUN(das::InputTextMultiline), SimNode_ExtFuncCall, imguiTempFn>(*this, lib, "_builtin_InputTextMultiline",
             SideEffects::worstDefault, "das::InputTextMultiline");
         // imgui text buffer
-        addExtern<DAS_BIND_FUN(das::ImGTB_Append)>(*this,lib,"append",
+        addExtern<DAS_BIND_FUN(das::ImGTB_Append), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"append",
             SideEffects::worstDefault,"das::ImGTB_Append");
-        addExtern<DAS_BIND_FUN(das::ImGTB_At)>(*this,lib,"at",          // TODO: do we need to learn to map operator []?
+        addExtern<DAS_BIND_FUN(das::ImGTB_At), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"at",          // TODO: do we need to learn to map operator []?
             SideEffects::worstDefault,"das::ImGTB_At");
-        addExtern<DAS_BIND_FUN(das::ImGTB_SetAt)>(*this,lib,"set_at",   // TODO: do we need to learn to map operator []?
+        addExtern<DAS_BIND_FUN(das::ImGTB_SetAt), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"set_at",   // TODO: do we need to learn to map operator []?
             SideEffects::worstDefault,"das::ImGTB_SetAt");
-        addExtern<DAS_BIND_FUN(das::ImGTB_Slice)>(*this,lib,"slice",
+        addExtern<DAS_BIND_FUN(das::ImGTB_Slice), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"slice",
             SideEffects::worstDefault,"das::ImGTB_Slice");
         // ImGuiInputTextCallbackData
-        addExtern<DAS_BIND_FUN(das::InsertChars)>(*this,lib,"InsertChars",
+        addExtern<DAS_BIND_FUN(das::InsertChars), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"InsertChars",
             SideEffects::worstDefault,"das::InsertChars");
         // SetNextWindowSizeConstraints
         addExtern<DAS_BIND_FUN(das::SetNextWindowSizeConstraints), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"_builtin_SetNextWindowSizeConstraints",
             SideEffects::worstDefault,"das::SetNextWindowSizeConstraints");
-        addExtern<DAS_BIND_FUN(das::SetNextWindowSizeConstraintsNoCallback)>(*this,lib,"SetNextWindowSizeConstraints",
+        addExtern<DAS_BIND_FUN(das::SetNextWindowSizeConstraintsNoCallback), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"SetNextWindowSizeConstraints",
             SideEffects::worstDefault,"das::SetNextWindowSizeConstraintsNoCallback")
                 ->args({"size_min","size_max"});
         // ImGuiTableColumnSortSpecs
-        addExtern<DAS_BIND_FUN(das::SortDirection)>(*this,lib,"SortDirection",
+        addExtern<DAS_BIND_FUN(das::SortDirection), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"SortDirection",
             SideEffects::none,"das::SortDirection");
         // CalcTextSize
-        addExtern<DAS_BIND_FUN(das::CalcTextSize)>(*this, lib, "CalcTextSize",SideEffects::worstDefault, "das::CalcTextSize")
+        addExtern<DAS_BIND_FUN(das::CalcTextSize), SimNode_ExtFuncCall, imguiTempFn>(*this, lib, "CalcTextSize",SideEffects::worstDefault, "das::CalcTextSize")
         ->args({"text","hide_text_after_double_hash","wrap_width"})
             ->arg_init(1,make_smart<ExprConstBool>(false))
             ->arg_init(2,make_smart<ExprConstFloat>(-1.0f));
         // combo
-        addExtern<DAS_BIND_FUN(das::Combo)>(*this, lib, "_builtin_Combo",
+        addExtern<DAS_BIND_FUN(das::Combo), SimNode_ExtFuncCall, imguiTempFn>(*this, lib, "_builtin_Combo",
             SideEffects::worstDefault, "das::Combo");
         // plot lines and historgram
-        addExtern<DAS_BIND_FUN(das::PlotLines)>(*this, lib, "_builtin_PlotLines",
+        addExtern<DAS_BIND_FUN(das::PlotLines), SimNode_ExtFuncCall, imguiTempFn>(*this, lib, "_builtin_PlotLines",
             SideEffects::worstDefault, "das::PlotLines");
-        addExtern<DAS_BIND_FUN(das::PlotHistogram)>(*this, lib, "_builtin_PlotHistogram",
+        addExtern<DAS_BIND_FUN(das::PlotHistogram), SimNode_ExtFuncCall, imguiTempFn>(*this, lib, "_builtin_PlotHistogram",
             SideEffects::worstDefault, "das::PlotHistogram");
         // additional default values
         findUniqueFunction("AddRect")

@@ -1,7 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/dag_renderStates.h>
-#include <3d/dag_sampler.h>
+#include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_sampler.h>
 #include <shaders/shInternalTypes.h>
 #include <shaders/dag_renderStateId.h>
 #include <shaders/dag_shaderCommon.h>
@@ -97,6 +98,7 @@ BINDUMP_BEGIN_LAYOUT(Interval)
   Span<real> maxVal;
   uint16_t nameId = 0;
   uint8_t type = 0;
+  uint8_t pad_ = 0;
 
   inline unsigned getValCount() const { return maxVal.size() + 1; }
 
@@ -141,6 +143,32 @@ BINDUMP_BEGIN_LAYOUT(VariantTable)
   Span<uint16_t> mapData;
   Span<IntervalBind> codePieces;
   int mapType = 0;
+
+  template <typename T>
+  inline void appendToHashContext(ShaderHashValue::CalculateContext & context, T hash_interval_id) const
+  {
+    // we encode the map size, and which variant indices into NULL codes,
+    // so the hash will change when new null mappings are added or removed
+    uint32_t nullCount = 0;
+    if (MAPTYPE_EQUAL != mapType)
+    {
+      context(mapData.size());
+      enumerateCodesForVariant(FIND_NULL, [&context, &nullCount](uint32_t code) {
+        ++nullCount;
+        context(code);
+      });
+    }
+    context(nullCount);
+    for (auto &c : codePieces)
+    {
+      // caller can customize how intervals are hashed, some may use the id others may want to use the name
+      hash_interval_id(context, c.intervalId);
+      context(c.totalMul);
+    }
+
+    // Just to be sure there are no false positives
+    context(mapType);
+  }
 
   inline int variantCount() const { return (mapType == MAPTYPE_LOOKUP) ? mapData.size() : mapData.size() / 2; }
 
@@ -214,7 +242,10 @@ struct IntPair
 struct ShRef
 {
   uint16_t vprId, fshId, stcodeId, stblkcodeId, renderStateNo;
-  eastl::array<uint16_t, 3> threadGroupSizes;
+  uint16_t threadGroupSizeX;
+  uint16_t threadGroupSizeY;
+  uint16_t threadGroupSizeZ : 15;
+  uint16_t scarlettWave32 : 1;
 };
 } // namespace detail
 
@@ -236,7 +267,9 @@ BINDUMP_BEGIN_LAYOUT(ShaderCode)
   Span<ShaderChannelId> channel;
   Span<int> initCode;
 
-  int16_t varSize = 0, __unused1 = -1, codeFlags = 0;
+  int16_t varSize = 0, __unused1 = -1;
+  static constexpr uint16_t CF_USED = 0x8000;
+  uint16_t codeFlags = 0;
   int16_t vertexStride = 0;
   VecHolder<Span<blk_word_t>> suppBlockUid;
 
@@ -256,6 +289,8 @@ BINDUMP_END_LAYOUT()
 
 BINDUMP_BEGIN_LAYOUT(ShaderClass)
   BINDUMP_USING_EXTENSION()
+  using timestamp_t = int64_t;
+  static constexpr timestamp_t NO_TIMESTAMP = -1;
   VecHolder<ShaderCode<>> code;
   Field<VariantTable> stVariants;
   Field<VarList> localVars;
@@ -267,10 +302,18 @@ BINDUMP_BEGIN_LAYOUT(ShaderClass)
   // storages
   VecHolder<detail::ShRef> shrefStorage;
   VecHolder<ShaderVarTextureType> staticTextureTypeBySlot;
-  VecHolder<detail::IntPair> __unused2;
+  VecHolder<timestamp_t> timestamp;
   VecHolder<ShaderChannelId> chanStorage;
   VecHolder<int> icStorage;
   VecHolder<uint32_t> svStorage;
+
+  timestamp_t getTimestamp() const
+  {
+    if (timestamp.empty())
+      return NO_TIMESTAMP;
+    return timestamp[0];
+  }
+
 BINDUMP_END_LAYOUT()
 
 BINDUMP_BEGIN_LAYOUT(ShaderBlock)
@@ -353,7 +396,7 @@ BINDUMP_BEGIN_LAYOUT(ScriptedShadersBinDump)
   // shader context/work data
   enum
   {
-    MAX_VARS = 3072,
+    MAX_VARS = 3584,
     VARIDX_ABSENT = 0xFFFEu,
     VARIDX_INVALID = 0xFFFFu
   };

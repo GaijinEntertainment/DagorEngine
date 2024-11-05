@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -27,12 +26,21 @@ inline void cpu_cp(const char *str, int ln)
   if (debug_on)
     debug(" -- %d: %s,%d", get_time_usec(ref_frame_start), str, ln);
 }
+template <typename... Args>
+void log(const Args &...args)
+{
+  if (debug_on)
+    debug(args...);
+}
 #else
-static const bool debug_on = false;
+constexpr bool debug_on = false;
 
 inline void enable_debug(bool) {}
 inline int get_frame_timepos_usec() { return 0; }
 inline void cpu_cp(const char *, int) {}
+template <typename... Args>
+void log(const Args &...)
+{}
 #endif
 
 extern bool cpu_only_cycle_record_enabled;
@@ -59,6 +67,18 @@ inline void mark_cpu_only_cycle_end()
     last_cpu_only_cycle_time_usec = get_time_usec(ref_cpu_only_cycle_start);
     summed_cpu_only_cycle_time += last_cpu_only_cycle_time_usec;
     num_cpu_only_cycle++;
+  }
+}
+
+inline void mark_cpu_only_cycle_pause()
+{
+  if (!cpu_only_cycle_record_enabled)
+    return;
+
+  if (ref_cpu_only_cycle_start != 0)
+  {
+    last_cpu_only_cycle_time_usec = get_time_usec(ref_cpu_only_cycle_start);
+    summed_cpu_only_cycle_time += last_cpu_only_cycle_time_usec;
   }
 }
 

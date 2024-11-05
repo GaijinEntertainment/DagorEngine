@@ -1,7 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "collisionNodesSettings.h"
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/control/container.h>
 
 struct CombinedNode
 {
@@ -18,7 +19,7 @@ public:
   CombinedNode selectedNode;
   dag::Vector<CombinedNode> nodes;
 
-  void init(CollisionResource *collision_res, PropertyContainerControlBase *prop_panel);
+  void init(CollisionResource *collision_res, PropPanel::ContainerPropertyControl *prop_panel);
   void calcSelectedCombinedNode();
   void calcCombinedNode(const SelectedNodesSettings &settings);
   void setSelectedNodesSettings(SelectedNodesSettings &&selected_nodes);
@@ -28,6 +29,6 @@ public:
   void updateSeletectedSettings();
 
 private:
-  PropertyContainerControlBase *panel = nullptr;
+  PropPanel::ContainerPropertyControl *panel = nullptr;
   CollisionResource *collisionRes = nullptr;
 };

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <scene/dag_physMat.h>
 #include <generic/dag_tab.h>
 #include <debug/dag_log.h>
@@ -209,6 +211,9 @@ static void loadMaterial(MaterialData &mat, const MaterialData &def, const DataB
   mat.reverbocclusion = matBlk->getReal("reverb_occlusion", def.reverbocclusion);
   mat.deformableWidth = matBlk->getReal("deformable_width", def.deformableWidth);
   mat.resistanceK = matBlk->getReal("resistanceK", def.resistanceK);
+  mat.completelyTransparent = matBlk->getBool("completelyTransparent", def.completelyTransparent);
+  mat.lightTransparent = matBlk->getBool("lightTransparent", def.lightTransparent || mat.completelyTransparent);
+  mat.noTransparentThickness = matBlk->getReal("noTransparentThickness", def.noTransparentThickness);
 
   mat.camera_collision = matBlk->getBool("camera_collision", def.camera_collision);
   mat.physics_collision = matBlk->getBool("physics_collision", def.physics_collision);
@@ -219,6 +224,8 @@ static void loadMaterial(MaterialData &mat, const MaterialData &def, const DataB
   mat.soundMaterial = matBlk->getStr("sndMat", def.soundMaterial);
   mat.isSolid = matBlk->getBool("is_solid", def.isSolid);
   mat.tankTracksTexId = matBlk->getInt("tankTracksTexId", def.tankTracksTexId);
+  mat.heightmapDeformation = matBlk->getPoint2("heightmapDeformation", def.heightmapDeformation);
+  mat.trailDetailStrength = matBlk->getReal("trailDetailStrength", def.trailDetailStrength);
 }
 
 // init manager
@@ -265,8 +272,13 @@ void init(const char *filename, const DataBlock *loadedBlk, register_mat_props_c
   def.soundMaterial = "default";
   def.deformableWidth = 0.f;
   def.resistanceK = 0.f;
+  def.completelyTransparent = false;
+  def.lightTransparent = false;
+  def.noTransparentThickness = 0.f;
   def.isSolid = false;
   def.tankTracksTexId = 0;
+  def.heightmapDeformation = Point2(0.f, 0.f);
+  def.trailDetailStrength = 0.f;
 
   if (!loadedBlk && !phys_blk.load(filename))
   {
@@ -545,7 +557,7 @@ MatID getMaterialId(const char *name)
 // get matrial by ID
 const MaterialData &getMaterial(MatID pmid1)
 {
-  G_ASSERTF_RETURN(pmid1 < mats.size(), mats[PHYSMAT_DEFAULT], "invalid phys-material: %d, count = %d", pmid1, mats.size());
+  G_ASSERTF_RETURN(uint32_t(pmid1) < mats.size(), mats[PHYSMAT_DEFAULT], "invalid phys-material: %d, count = %d", pmid1, mats.size());
   return mats[pmid1];
 }
 
@@ -591,5 +603,4 @@ MatID getMaterialIdByPhysBodyMaterial(int material_id)
 
 void setPhysBodyMaterial(MatID mat_id, int material_id) { mats[mat_id].physBodyMaterial = material_id; }
 int getPhysBodyMaterial(MatID mat_id) { return mats[mat_id].physBodyMaterial; }
-
 }; // namespace PhysMat

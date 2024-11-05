@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <shaders/dag_shaderVariableInfo.h>
 
 #define GLOBAL_VARS_LIST                    \

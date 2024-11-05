@@ -1,12 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-
 #include <ecs/input/hidEventRouter.h>
-#include <humanInput/dag_hiKeyboard.h>
-#include <humanInput/dag_hiPointing.h>
-#include <humanInput/dag_hiJoystick.h>
-#include <humanInput/dag_hiPointingData.h>
-#include <humanInput/dag_hiGlobals.h>
+#include <drv/hid/dag_hiKeyboard.h>
+#include <drv/hid/dag_hiPointing.h>
+#include <drv/hid/dag_hiJoystick.h>
+#include <drv/hid/dag_hiPointingData.h>
+#include <drv/hid/dag_hiGlobals.h>
 #include <generic/dag_tab.h>
 
 using namespace HumanInput;

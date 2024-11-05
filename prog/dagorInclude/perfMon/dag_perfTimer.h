@@ -1,13 +1,12 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <util/dag_stdint.h>
 #include <perfMon/dag_cpuFreq.h>
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 // this is for profiling only, and it uses rdtsc on all x86 platforms
 // on all modern architectures, it is guaranteed to work constant and usually even invariant (i.e. continue to tick in deep-c state)
@@ -17,16 +16,17 @@
 // in that case, you can't rely on consistency of profile_ref_ticks functions (you can still use it for profiling), as it can goes back
 // in time it is still safe, if you don't assume it always return 'reasonable' values.
 
-#if _TARGET_SIMD_NEON && !_TARGET_C3
+#if _TARGET_SIMD_NEON && !(_TARGET_PC_WIN | _TARGET_C3)
 
 #define NATIVE_PROFILE_TICKS 1
 
+extern KRNLIMP uint32_t profiler_ticks_scale;
 inline uint64_t profile_ref_ticks()
 {
   // __builtin_readcyclecounter() doesn't work for arm64 on Android, iOS and macOS (maybe doesn't work anywhere at all)
   uint64_t ticks;
   asm volatile("mrs %0, cntvct_el0" : "=r"(ticks));
-  return ticks;
+  return ticks * profiler_ticks_scale;
 }
 #elif _TARGET_SIMD_SSE
 #ifdef _MSC_VER
@@ -70,4 +70,4 @@ inline void init_profile_timer() {}
 
 inline int profile_time_usec(int64_t ref) { return profile_usec_from_ticks_delta(profile_ref_ticks() - ref); } // convert to usec
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

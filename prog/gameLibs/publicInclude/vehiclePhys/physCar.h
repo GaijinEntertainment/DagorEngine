@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -9,6 +8,7 @@
 #include <math/dag_capsule.h>
 #include <phys/dag_physDecl.h>
 #include <3d/dag_texMgr.h>
+#include <scene/dag_visibility.h>
 
 class DynamicRenderableSceneInstance;
 class DynamicRenderableSceneLodsResource;
@@ -240,10 +240,10 @@ public:
   };
 
   virtual void resetLastLodNo() = 0;
-  virtual bool beforeRender(const Point3 &view_pos) = 0;
+  virtual bool beforeRender(const Point3 &view_pos, const VisibilityFinder &vf) = 0;
   virtual void render(int parts_flags) = 0;
   virtual void renderTrans(int parts_flags) = 0;
-  virtual bool getRenderWtms(TMatrix &wtm_body, TMatrix *wtm_wheels) = 0;
+  virtual bool getRenderWtms(TMatrix &wtm_body, TMatrix *wtm_wheels, const VisibilityFinder &vf) = 0;
 #endif
 };
 

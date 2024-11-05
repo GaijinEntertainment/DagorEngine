@@ -1,9 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "../av_plugin.h"
 // #include "../av_interface.h"
 #include "materialRec.h"
-#include <propPanel2/c_control_event_handler.h>
+#include <propPanel/c_control_event_handler.h>
 
 
 class OLAppWindow;
@@ -20,7 +21,7 @@ class MatCustom;
 class Mat2Sided;
 
 
-class MaterialsPlugin : public IGenEditorPlugin, public ControlEventHandler
+class MaterialsPlugin : public IGenEditorPlugin, public PropPanel::ControlEventHandler
 {
 public:
   MaterialsPlugin();
@@ -50,12 +51,12 @@ public:
 
   virtual bool supportAssetType(const DagorAsset &asset) const;
 
-  virtual void fillPropPanel(PropertyContainerControlBase &panel);
-  virtual void fillShaderPanel(PropertyContainerControlBase *panel);
+  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel);
+  virtual void fillShaderPanel(PropPanel::ContainerPropertyControl *panel);
   virtual void postFillPropPanel() {}
 
-  virtual void onChange(int pcb_id, PropertyContainerControlBase *panel);
-  virtual void onClick(int pcb_id, PropertyContainerControlBase *panel);
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
 
 private:
   DagorAsset *curAsset;
@@ -87,27 +88,28 @@ private:
   // get existent parameter or create new one
   MatParam &findMatParam(const char *name);
 
-  void fillShaderParams(PropertyContainerControlBase *panel, const MaterialRec &mat, const MatShader &shader);
+  void fillShaderParams(PropPanel::ContainerPropertyControl *panel, const MaterialRec &mat, const MatShader &shader);
 
-  void addTexture(PropertyContainerControlBase *panel, const MaterialRec &mat, const char *caption, int ctrl_idx, int tex_idx) const;
-  void addTripleInt(PropertyContainerControlBase *panel, const char *caption, const char *script_param, const IPoint2 &constrains,
+  void addTexture(PropPanel::ContainerPropertyControl *panel, const MaterialRec &mat, const char *caption, int ctrl_idx,
+    int tex_idx) const;
+  void addTripleInt(PropPanel::ContainerPropertyControl *panel, const char *caption, const char *script_param,
+    const IPoint2 &constrains, int ctrl_idx) const;
+  void addTripleReal(PropPanel::ContainerPropertyControl *panel, const char *caption, const char *script_param,
+    const Point2 &constrains, int ctrl_idx) const;
+  void addE3dColor(PropPanel::ContainerPropertyControl *panel, const char *caption, const char *script_param, int col_idx,
     int ctrl_idx) const;
-  void addTripleReal(PropertyContainerControlBase *panel, const char *caption, const char *script_param, const Point2 &constrains,
-    int ctrl_idx) const;
-  void addE3dColor(PropertyContainerControlBase *panel, const char *caption, const char *script_param, int col_idx,
-    int ctrl_idx) const;
-  void addCombo(PropertyContainerControlBase *panel, const char *caption, const char *script_param, const Tab<String> &vals,
+  void addCombo(PropPanel::ContainerPropertyControl *panel, const char *caption, const char *script_param, const Tab<String> &vals,
     const char *def, int ctrl_idx);
-  void addCustom(PropertyContainerControlBase *panel, const char *script_param, int ctrl_idx) const;
+  void addCustom(PropPanel::ContainerPropertyControl *panel, const char *script_param, int ctrl_idx) const;
 
-  void onShaderParamChange(int pid, PropertyContainerControlBase *panel);
-  void onTripleIntChange(PropertyContainerControlBase *panel, const IPoint2 &param_idx, MatTripleInt &param) const;
-  void onTripleRealChange(PropertyContainerControlBase *panel, const IPoint2 &param_idx, MatTripleReal &param) const;
-  void onE3dColorChange(PropertyContainerControlBase *panel, const IPoint2 &paramIdx, MatE3dColor &param) const;
-  void onComboChange(PropertyContainerControlBase *panel, const IPoint2 &param_idx, MatCombo &param) const;
-  void onTextureChange(PropertyContainerControlBase *panel, const IPoint2 &param_idx, MatTexture &param) const;
-  void onCustomChange(PropertyContainerControlBase *panel, const IPoint2 &param_idx, MatCustom &param) const;
-  void onTwoSidedChange(PropertyContainerControlBase *panel, const IPoint2 &param_idx, Mat2Sided &param) const;
+  void onShaderParamChange(int pid, PropPanel::ContainerPropertyControl *panel);
+  void onTripleIntChange(PropPanel::ContainerPropertyControl *panel, const IPoint2 &param_idx, MatTripleInt &param) const;
+  void onTripleRealChange(PropPanel::ContainerPropertyControl *panel, const IPoint2 &param_idx, MatTripleReal &param) const;
+  void onE3dColorChange(PropPanel::ContainerPropertyControl *panel, const IPoint2 &paramIdx, MatE3dColor &param) const;
+  void onComboChange(PropPanel::ContainerPropertyControl *panel, const IPoint2 &param_idx, MatCombo &param) const;
+  void onTextureChange(PropPanel::ContainerPropertyControl *panel, const IPoint2 &param_idx, MatTexture &param) const;
+  void onCustomChange(PropPanel::ContainerPropertyControl *panel, const IPoint2 &param_idx, MatCustom &param) const;
+  void onTwoSidedChange(PropPanel::ContainerPropertyControl *panel, const IPoint2 &param_idx, Mat2Sided &param) const;
 
   real getCorrectRealVal(real val, const Point2 &constrains) const;
 

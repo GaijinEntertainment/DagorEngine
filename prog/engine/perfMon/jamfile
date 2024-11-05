@@ -15,7 +15,6 @@ AddIncludes =
 Sources =
   profilerModes.cpp
   profilerSettings.cpp
-  gpuProfiler.cpp
   visClipMesh.cpp
   stat3d.cpp
   tdrProfile.cpp
@@ -25,11 +24,19 @@ Sources =
   memoryReport.cpp
   memoryReportVramQuery.cpp
   memoryReportLog.cpp
+  pix.cpp
 ;
 
-CPPopt = -D__B_CORE ;
+UseGpu ?= yes ;
 
-if $(Platform) = win64 {
+if $(UseGpu) = yes {
+  Sources += gpuProfiler.cpp ;
+}
+else {
+  UseProgLibs += engine/perfMon/gpuProfilerStub ;
+}
+
+if $(Platform)-$(PlatformArch) = windows-x86_64 {
   CacheSim ?= no ;
 } else {
   CacheSim = no ; # not supported
@@ -44,6 +51,6 @@ else {
   Sources += stub/cachesim.cpp ;
 }
 
-if $(DriverLinkage) != dynamic { UseProgLibs += engine/perfMon/daProfiler ; }
+if $(KernelLinkage) != dynamic { UseProgLibs += engine/perfMon/daProfiler ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

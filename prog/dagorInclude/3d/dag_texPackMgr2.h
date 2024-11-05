@@ -1,12 +1,10 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <3d/dag_texMgr.h>
-#include <generic/dag_tabFwd.h>
 
 namespace ddsx
 {
@@ -34,6 +32,9 @@ void tex_pack2_perform_delayed_data_loading_async(int prio, int jobmgr_id, bool 
 //! remotely cease loading inside tex_pack2_perform_delayed_data_loading() (e.g., that was called in another thread)
 //! operation is rather safe since in restores rest of textures as pending and raises flag to load them later
 bool cease_delayed_data_loading(int prio = 0);
+
+//! intended for temporally stalling `reloadTex` thread within frame
+void set_tex_pack_async_loading_allowed(bool on);
 
 //! ceases loading inside tex_pack2_perform_delayed_data_loading and ensures that
 //! no loading jobs are running or waiting (finishing active, cancelling queued)

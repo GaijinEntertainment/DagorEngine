@@ -1,7 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gamePhys/phys/floatingVolume.h>
 
+#include <gamePhys/collision/collisionLib.h>
 #include <gamePhys/props/atmosphere.h>
-#include <gamePhys/common/loc.h>
 #include <generic/dag_smallTab.h>
 #include <ioSys/dag_dataBlock.h>
 

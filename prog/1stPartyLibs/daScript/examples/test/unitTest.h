@@ -113,7 +113,7 @@ __forceinline uint32_t countTestObjectSmart( const das::smart_ptr<TestObjectSmar
 
 __forceinline int32_t getTotalTestObjectSmart() { return TestObjectSmart::total; }
 
-__forceinline TestObjectFoo makeDummy() { TestObjectFoo x; x.fooData = 1; return x; }
+__forceinline TestObjectFoo makeDummy() { TestObjectFoo x; memset(&x, 0, sizeof(x)); x.fooData = 1;  return x; }
 __forceinline int takeDummy ( const TestObjectFoo & x ) { return x.fooData; }
 
 struct TestObjectBar {
@@ -259,6 +259,27 @@ __forceinline int32_t eidToInt(EntityId id) {
     return id.value;
 }
 
+struct SceneNodeId
+{
+  typedef uint32_t handle_type_t;
+  handle_type_t id;
+
+  SceneNodeId() = default;
+  SceneNodeId(handle_type_t i) : id(i) {}
+  operator uint32_t() const { return id; }
+};
+
+SceneNodeId __create_scene_node();
+
+namespace das {
+    template <>
+    struct cast<SceneNodeId> {
+        static __forceinline SceneNodeId to ( vec4f x )            { return SceneNodeId{uint32_t(v_extract_xi(v_cast_vec4i(x)))}; }
+        static __forceinline vec4f from ( SceneNodeId x )          { return v_cast_vec4f(v_seti_x(x.id)); }
+    };
+    template <> struct WrapType<SceneNodeId> { enum { value = true }; typedef uint32_t type; typedef uint32_t rettype; };
+}
+
 struct FancyClass {
     int32_t value;
     das::string hidden; // hidden property which makes it non-trivial
@@ -268,3 +289,6 @@ struct FancyClass {
 
 inline void deleteFancyClass(FancyClass& fclass) { fclass.~FancyClass(); }
 inline void deleteFancyClassDummy(FancyClass& ) {  } // this one in AOT version, since local class will be deleted by dtor
+
+void test_abi_lambda_and_function ( das::Lambda lambda, das::Func fn, int32_t lambdaSize, das::Context * context, das::LineInfoArg * lineinfo );
+

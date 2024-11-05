@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gamePhys/phys/walker/humanWeapState.h>
 #include <ioSys/dag_dataBlock.h>
 #include <daNet/bitStream.h>
@@ -24,8 +26,6 @@ void HumanWeaponParams::loadFromBlk(const DataBlock *blk)
   equipSpeedMult = blk->getReal("equipSpeedMult", 1.f);
   holsterSwapSpeedMult = blk->getReal("holsterSwapSpeedMult", 1.f);
 
-  offsFromNode = blk->getPoint3("offsFromNode", Point3(0.f, 0.f, 0.f));
-  offsFromNodeCrouch = blk->getPoint3("offsFromNodeCrouch", offsFromNode);
   offsAimNode = blk->getPoint3("offsAimNode", Point3(0.f, 0.15f, 0.f));
   offsCheckLeftNode = blk->getPoint3("offsCheckLeftNode", Point3(0.f, 0.075f, 0.075f));
   offsCheckRightNode = blk->getPoint3("offsCheckRightNode", Point3(0.f, 0.075f, -0.075f));

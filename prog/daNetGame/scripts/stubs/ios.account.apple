@@ -1,0 +1,8 @@
+
+return {
+  getAppleLoginToken = @() null
+  APPLE_LOGIN_SUCCESS = 1
+  APPLE_LOGIN_FAIL = 2
+  APPLE_LOGIN_TIMEOUT = 3
+  APPLE_LOGIN_CANCEL = 4
+}

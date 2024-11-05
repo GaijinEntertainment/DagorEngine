@@ -1,5 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "gamepad_device.h"
-#include <humanInput/dag_hiGlobals.h>
+#include <drv/hid/dag_hiGlobals.h>
 #include <supp/_platform.h>
 #include <startup/dag_demoMode.h>
 #include <debug/dag_debug.h>
@@ -27,7 +29,7 @@ HumanInput::SteamGamepadDevice::SteamGamepadDevice(int gamepad_no, const char *_
   userId = gamepad_no;
   xStPktId = 0xFFFFFFFF;
 
-  debug_ctx("inited gamepad %s", _name);
+  DEBUG_CTX("inited gamepad %s", _name);
   name = _name;
   memset(&state, 0, sizeof(state));
   for (int i = 0; i < JoystickRawState::MAX_POV_HATS; i++)

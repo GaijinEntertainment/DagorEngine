@@ -4,6 +4,8 @@ Location = prog/engine/sceneRay ;
 TargetType  = lib ;
 Target      = engine/sceneRay.lib ;
 
+include $(Root)/prog/_jBuild/defaults.jam ;
+
 Sources =
   buildableSceneRay.cpp
   deserializedSceneRay.cpp
@@ -12,8 +14,6 @@ Sources =
 ;
 
 AddIncludes = $(Root)/prog/engine/sharedInclude ;
-
-CPPopt = -D__B_CORE ;
 
 if $(PlatformSpec) = clang
 {

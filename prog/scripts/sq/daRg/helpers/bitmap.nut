@@ -10,21 +10,21 @@ function mkBitmapPicture(w, h, fillcb, prefix="") {
   b.resize(HEADER_SIZE+BITMAP_SIZE)
 
   b.seek(0)
-  b.writen(0, 'c') // id
-  b.writen(0, 'c') // colormap
-  b.writen(2, 'c') // true color
+  b.writen(0, 'b') // id
+  b.writen(0, 'b') // colormap
+  b.writen(2, 'b') // true color
   b.writen(0, 's') // colormap start
   b.writen(0, 's') // colormap len
-  b.writen(0, 'c') // colormap entry size
+  b.writen(0, 'b') // colormap entry size
   b.writen(0, 's') // x origin
   b.writen(0, 's') // y origin
   b.writen(w, 's') // width
   b.writen(h, 's') // height
-  b.writen(32,'c') // pixel depth
-  b.writen(8, 'c') // alpha depth & dir
+  b.writen(32,'b') // pixel depth
+  b.writen(8, 'b') // alpha depth & dir
 
   for (local i=0;i<BITMAP_SIZE; ++i)
-    b.writen(0, 'c')
+    b.writen(0, 'b')
 
   function setPixel(x_, y_, c) {
     let x = x_.tointeger()

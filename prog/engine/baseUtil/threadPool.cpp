@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_threadPool.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <osApiWrappers/dag_cpuJobsQueue.h>
@@ -34,6 +36,10 @@
 static inline void WaitOnAddress(...) {}
 static inline void WakeByAddressSingle(...) {}
 static inline void WakeByAddressAll(...) {}
+#endif
+
+#if _TARGET_C1
+
 #endif
 
 extern const size_t DEFAULT_FRAMEMEM_SIZE;
@@ -132,13 +138,6 @@ static constexpr int BUSY_WAIT_ITERATIONS = 128; // worker threads will iterate 
                                                  // going to sleep if there is no job to do
 #endif
 
-enum TPMode
-{
-  TPM_NORMAL,
-  TPM_QUIT,
-  TPM_STAY_AWAKE_BUT_IDLE
-};
-
 struct JobQueueElem
 {
   cpujobs::IJob *job = NULL;
@@ -223,8 +222,9 @@ struct TPWorkerThread final : public DaThread
   JobEnvironment jenv;
 
   TPWorkerThread(); // not defined
-  TPWorkerThread(const char *name, int id_, TPCtxBase &tpctx_, size_t stack_size, int thread_priority, uint8_t max_prio) :
-    DaThread(name, stack_size, thread_priority),
+  TPWorkerThread(const char *name, int id_, TPCtxBase &tpctx_, size_t stack_size, int thread_priority, uint8_t max_prio,
+    uint64_t affinity) :
+    DaThread(name, stack_size, thread_priority, affinity),
     tpctx(tpctx_),
     id(uint8_t(id_))
 #if PER_WORKER_MAX_PRIO
@@ -238,23 +238,23 @@ struct TPWorkerThread final : public DaThread
 
   void execute() override
   {
+#if _TARGET_C1
+
+
+
+#endif
     TIME_PROFILE_THREAD(getCurrentThreadName());
     jenv.coreId = id;
     currentWorkerId = id;
 
     bool haveFutex = HAVE_FUTEX;
-#if (_TARGET_PC && _TARGET_64BIT) || _TARGET_C2 || _TARGET_SCARLETT // Use a bit more memory on PC & curgen
-    constexpr int FM_TP_DIV = 2;
-#else
-    constexpr int FM_TP_DIV = 4;
-#endif
-    RAIIThreadFramememAllocator framememAllocator(DEFAULT_FRAMEMEM_SIZE / FM_TP_DIV);
+    RAIIThreadFramememAllocator framememAllocator(DEFAULT_FRAMEMEM_SIZE / 2);
     do
     {
       threadpool::JobQueueElem jelem;
       // To consider: evaluate actual rate of spurious wakeups on different systems/OSes
 #if _TARGET_PC_WIN
-      if (EASTL_LIKELY(haveFutex)) // Note: win7 (which doesn't have it) market share is declining
+      if (DAGOR_LIKELY(haveFutex)) // Note: win7 (which doesn't have it) market share is declining
 #else
       if (haveFutex)
 #endif
@@ -271,30 +271,29 @@ struct TPWorkerThread final : public DaThread
         jelem = pop_job(tpctx.taskQueue, PRIO_LOW, maxPrio); // Try to pop job under mutex since we already holding it at this point
       }
 
-      if (interlocked_acquire_load(terminating) == TPM_QUIT)
+      if (interlocked_acquire_load(terminating))
         break;
 
-      do
+      int busyIterations = BUSY_WAIT_ITERATIONS / (maxPrio + 1); // if worker woke up, there is(was) something to do.
+      // Let's just-in case busy wait for few iterations, if new job appears, it won't have to wait for worker
+      do // do while jobs exist
       {
-        int busyIterations = BUSY_WAIT_ITERATIONS / (maxPrio + 1); // if worker woke up, there is(was) something to do.
-        // Let's just-in case busy wait for few iterations, if new job appears, it won't have to wait for worker
-        do // do while jobs exist
+        if (perform_queue_elem(jelem, jenv, tpctx.jobDoneEvent))
         {
-          if (perform_queue_elem(jelem, jenv, tpctx.jobDoneEvent))
-          {
-            busyIterations = BUSY_WAIT_ITERATIONS / (maxPrio + 1);
-          }
-          else
-          {
-            if (--busyIterations <= 0)
-              break;     // no more jobs in queue
-            cpu_yield(); // just for HT
-          }
-          jelem = pop_job(tpctx.taskQueue, PRIO_LOW, maxPrio);
-        } while (1);
-      } while (interlocked_acquire_load(terminating) == TPM_STAY_AWAKE_BUT_IDLE);
+          busyIterations = BUSY_WAIT_ITERATIONS / (maxPrio + 1);
+        }
+        else
+        {
+          if (--busyIterations <= 0)
+            break;     // no more jobs in queue
+          cpu_yield(); // just for HT
+        }
+        jelem = pop_job(tpctx.taskQueue, PRIO_LOW, maxPrio);
+      } while (1);
+
       reset_framemem();
-    } while (interlocked_acquire_load(terminating) != TPM_QUIT);
+
+    } while (!interlocked_acquire_load(terminating));
   }
 };
 
@@ -368,22 +367,22 @@ struct TPCtx : public TPCtxBase
 
   inline void activeWaitBarrier(volatile int &var, JobPriority prio, uint32_t queue_pos, uint32_t desc)
   {
-    // lock_start_t interval = 0;
-    while (interlocked_acquire_load(var) == 0)
+    // Note: assume that if we get here then `var` is likely 0
+    while (taskQueue[(int)prio].getCurrentReadIndex() <= queue_pos) // We have not started performing our job yet
     {
-      if (taskQueue[(int)prio].getCurrentReadIndex() <= queue_pos) // we have not started performing our job yet
-      {
-        threadpool::JobQueueElem jelem = taskQueue[prio].pop();
-        if (perform_queue_elem(jelem, *jenv_direct, jobDoneEvent))
-          continue;
-      }
-      break;
+      if (!perform_queue_elem(taskQueue[prio].pop(), *jenv_direct, jobDoneEvent))
+        break; // Empty queue
+      if (interlocked_acquire_load(var))
+        return;
     }
+    if (interlocked_acquire_load(var))
+      return;
     ScopeLockProfiler<da_profiler::NoDesc> lp(desc ? desc : da_profiler::DescThreadPool);
     G_UNUSED(lp);
     intptr_t spins = SPINS_BEFORE_SLEEP << int(!HAVE_FUTEX);
-    while (!interlocked_acquire_load(var))
+    do
       jobDoneEvent.wait(var, spins);
+    while (!interlocked_acquire_load(var));
   }
 
   void wakeUpAll()
@@ -446,8 +445,8 @@ void init_ex(int num_workers, int queue_sizes[NUM_PRIO], size_t stack_size, uint
 
   char thread_name[32];
   // only boost priority if there is enough cores
-  const int workerThreadPriority =
-    cpujobs::get_core_count() < 4 ? cpujobs::DEFAULT_THREAD_PRIORITY : cpujobs::DEFAULT_THREAD_PRIORITY + 1;
+  const int coreCount = cpujobs::get_core_count();
+  const int workerThreadPriority = coreCount < 4 ? cpujobs::DEFAULT_THREAD_PRIORITY : cpujobs::DEFAULT_THREAD_PRIORITY + 1;
   for (int i = 0; i < num_workers; ++i, max_workers_prio >>= 2)
   {
     SNPRINTF(thread_name, sizeof(thread_name), "TPWorker #%d", i);
@@ -456,37 +455,29 @@ void init_ex(int num_workers, int queue_sizes[NUM_PRIO], size_t stack_size, uint
     min_per_worker_prio = max(min_per_worker_prio, wrkPrio);
 #endif
     new (&tp_instance->workers[i], _NEW_INPLACE)
-      TPWorkerThread(thread_name, i, *tp_instance, stack_size, workerThreadPriority, wrkPrio);
+      TPWorkerThread(thread_name, i, *tp_instance, stack_size, workerThreadPriority, wrkPrio, WORKER_THREADS_AFFINITY_MASK);
     tp_instance->workers[i].start();
   }
 
-  const int coreCount = cpujobs::get_core_count();
 #if _TARGET_XBOXONE
   G_UNUSED(coreCount);
   for (int workerNo = 0; workerNo < num_workers; workerNo++)
   {
-    tp_instance->workers[workerNo].setAffinity(WORKER_THREADS_AFFINITY_MASK);
     if (workerNo < 4) // #5th core is shared with fmod, #6th core is shared (time sliced) with OS, so allow it to run on any core
                       // except main one
       tp_instance->workers[workerNo].setThreadIdealProcessor(workerNo + 1);
   }
-#elif _TARGET_XBOX
-  for (int workerNo = 0; workerNo < num_workers; workerNo++)
-    tp_instance->workers[workerNo].setAffinity(1 << (workerNo % (coreCount - 1) + 1));
-#elif _TARGET_C3 | _TARGET_C1
-
-
-
+#elif _TARGET_C3 | _TARGET_C1 | _TARGET_ANDROID | _TARGET_IOS
+  G_UNUSED(coreCount);
 #elif _TARGET_PC_WIN | _TARGET_C2
   int idealCore = 0;
   for (int workerNo = 0; workerNo < num_workers; workerNo++)
   {
-    tp_instance->workers[workerNo].setThreadIdealProcessor(idealCore);        // Just a hint for OS to not run workers on one core.
-    tp_instance->workers[workerNo].setAffinity(WORKER_THREADS_AFFINITY_MASK); // Exclude core where the main thread runs to avoid
-                                                                              // scheduling it out.
+    tp_instance->workers[workerNo].setThreadIdealProcessor(idealCore); // Just a hint for OS to not run workers on one core.
+                                                                       // scheduling it out.
 
     idealCore += 2; // Skip HT threads.
-    while (((1 << idealCore) & WORKER_THREADS_AFFINITY_MASK) == 0 && idealCore < coreCount)
+    while (((1ull << idealCore) & WORKER_THREADS_AFFINITY_MASK) == 0 && idealCore < coreCount)
       idealCore += 2;
 
     if (idealCore >= coreCount)
@@ -501,7 +492,7 @@ void shutdown()
     return;
 
   for (int i = 0; i < tp_instance->numWorkers; ++i)
-    interlocked_release_store(tp_instance->workers[i].terminating, TPM_QUIT);
+    interlocked_release_store(tp_instance->workers[i].terminating, 1);
   tp_instance->wakeUpAll();
   for (int i = 0; i < tp_instance->numWorkers; ++i)
     tp_instance->workers[i].terminate(/*wait*/ true);
@@ -515,23 +506,6 @@ void shutdown()
   tp_instance = NULL;
   tp_instance_memory = nullptr;
   num_wakes = 0;
-}
-
-bool set_stay_awake_but_idle(bool val)
-{
-#if _TARGET_TVOS | _TARGET_IOS | _TARGET_ANDROID | _TARGET_C3 | _TARGET_PC_LINUX
-  G_UNUSED(val); // This operation mode is too energy wastefull for mobiles
-#else
-  if (tp_instance)
-  {
-    bool ret = tp_instance->workers[0].terminating == TPM_STAY_AWAKE_BUT_IDLE;
-    for (int i = 0, n = tp_instance->numWorkers; i < n; ++i)
-      interlocked_release_store(tp_instance->workers[i].terminating, val ? TPM_STAY_AWAKE_BUT_IDLE : TPM_NORMAL);
-    return ret;
-  }
-  else
-#endif
-  return false;
 }
 
 int get_num_workers() { return tp_instance ? tp_instance->numWorkers : 0; }

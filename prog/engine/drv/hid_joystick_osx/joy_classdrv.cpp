@@ -1,7 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "joy_classdrv.h"
 #include "joy_device.h"
 #include <generic/dag_sort.h>
-#include <humanInput/dag_hiGlobals.h>
+#include <drv/hid/dag_hiGlobals.h>
 #include <osApiWrappers/dag_progGlobals.h>
 #include <debug/dag_hwExcept.h>
 #include <debug/dag_except.h>

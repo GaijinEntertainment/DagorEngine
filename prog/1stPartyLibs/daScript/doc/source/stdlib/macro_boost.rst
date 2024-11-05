@@ -28,6 +28,8 @@ CapturedVariable fields are
 +----------+---------------------------------------------+
 +expression+ :ref:`ast::ExprVar <handle-ast-ExprVar>` ?  +
 +----------+---------------------------------------------+
++eref      +bool                                         +
++----------+---------------------------------------------+
 
 
 Stored captured variable together with the `ExprVar` which uses it
@@ -40,15 +42,11 @@ Function annotations
 
 .. das:attribute:: MacroVerifyMacro
 
-This macro implements `macro_verify` macro. It's equivalent to a function call::
+This macro convert macro_verify(expr,message,prog,at) to the following code::
+   if !expr
+       macro_error(prog,at,message)
+       return [[ExpressionPtr]]
 
-    def macro_verify ( expr:bool; prog:ProgramPtr; at:LineInfo; message:string )
-
-However, result will be substituted with::
-
-    if !expr
-        macro_error( prog, at, message )
-        return [[ExpressionPtr]]
 +++++++++++
 Call macros
 +++++++++++
@@ -63,9 +61,9 @@ this is similar to regular return <-, but it does not check for locks
 Implementation details
 ++++++++++++++++++++++
 
-  *  :ref:`macro_verify (expr:bool const;prog:smart_ptr\<rtti::Program\> const;at:rtti::LineInfo const;message:string const) : void <function-_at_macro_boost_c__c_macro_verify_Cb_CY_ls_ProgramPtr_gr_1_ls_H_ls_rtti_c__c_Program_gr__gr_?M_CH_ls_rtti_c__c_LineInfo_gr__Cs>` 
+  *  :ref:`macro_verify (expr:bool const;prog:smart_ptr\<rtti::Program\> const;at:rtti::LineInfo const;message:string const) : void <function-_at_macro_boost_c__c_macro_verify_Cb_CY_ls_ProgramPtr_gr_1_ls_H_ls_rtti_c__c_Program_gr__gr__qm_M_CH_ls_rtti_c__c_LineInfo_gr__Cs>` 
 
-.. _function-_at_macro_boost_c__c_macro_verify_Cb_CY_ls_ProgramPtr_gr_1_ls_H_ls_rtti_c__c_Program_gr__gr_?M_CH_ls_rtti_c__c_LineInfo_gr__Cs:
+.. _function-_at_macro_boost_c__c_macro_verify_Cb_CY_ls_ProgramPtr_gr_1_ls_H_ls_rtti_c__c_Program_gr__gr__qm_M_CH_ls_rtti_c__c_LineInfo_gr__Cs:
 
 .. das:function:: macro_verify(expr: bool const; prog: ProgramPtr; at: LineInfo const; message: string const)
 
@@ -88,7 +86,7 @@ Same as verify, only the check will produce macro error, followed by return [[Ex
 Uncategorized
 +++++++++++++
 
-.. _function-_at_macro_boost_c__c_capture_block_CY_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M:
+.. _function-_at_macro_boost_c__c_capture_block_CY_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M:
 
 .. das:function:: capture_block(expr: ExpressionPtr)
 
@@ -103,24 +101,26 @@ capture_block returns array< :ref:`macro_boost::CapturedVariable <struct-macro_b
 
 Collect all captured variables in the expression.
 
-.. _function-_at_macro_boost_c__c_collect_finally_CY_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M:
+.. _function-_at_macro_boost_c__c_collect_finally_CY_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_Cb:
 
-.. das:function:: collect_finally(expr: ExpressionPtr)
+.. das:function:: collect_finally(expr: ExpressionPtr; alwaysFor: bool const)
 
 collect_finally returns array< :ref:`ast::ExprBlock <handle-ast-ExprBlock>` ?>
 
-+--------+--------------------------------------------+
-+argument+argument type                               +
-+========+============================================+
-+expr    + :ref:`ExpressionPtr <alias-ExpressionPtr>` +
-+--------+--------------------------------------------+
++---------+--------------------------------------------+
++argument +argument type                               +
++=========+============================================+
++expr     + :ref:`ExpressionPtr <alias-ExpressionPtr>` +
++---------+--------------------------------------------+
++alwaysFor+bool const                                  +
++---------+--------------------------------------------+
 
 
 Collect all finally blocks in the expression.
 Returns array of ExprBlock? with all the blocks which have `finally` section
 Does not go into 'make_block' expression, such as `lambda`, or 'block' expressions
 
-.. _function-_at_macro_boost_c__c_collect_labels_CY_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M:
+.. _function-_at_macro_boost_c__c_collect_labels_CY_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M:
 
 .. das:function:: collect_labels(expr: ExpressionPtr)
 

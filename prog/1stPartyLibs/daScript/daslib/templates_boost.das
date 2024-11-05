@@ -415,9 +415,38 @@ def public add_type_ptr_ref ( var a : TypeDeclPtr; flags:TypeDeclFlags ) : TypeD
         )
     return <- q
 
+def public enum_class_type ( st )
+    //! return underlying type for the enumeration
+    if st.baseType==Type tInt8 || st.baseType==Type tUInt8
+        return Type tEnumeration8
+    elif st.baseType==Type tInt16 || st.baseType==Type tUInt16
+        return Type tEnumeration16
+    elif st.baseType==Type tInt64 || st.baseType==Type tUInt64
+        return Type tEnumeration64
+    else
+        return Type tEnumeration
+
 def public add_type_ptr_ref ( var st : StructurePtr; flags:TypeDeclFlags ) : TypeDeclPtr
     //! Implementation details for the reification. This adds any array to the rules.
     return <- new [[TypeDecl() at=st.at, baseType=Type tStructure, structType = get_ptr(st), flags=flags]]
+
+def public add_type_ptr_ref ( var st : Structure?; flags:TypeDeclFlags ) : TypeDeclPtr
+    //! Implementation details for the reification. This adds any array to the rules.
+    return <- new [[TypeDecl() at=st.at, baseType=Type tStructure, structType = st, flags=flags]]
+
+def public add_type_ptr_ref ( var st : EnumerationPtr; flags:TypeDeclFlags ) : TypeDeclPtr
+    //! Implementation details for the reification. This adds any array to the rules.
+    return <- new [[TypeDecl() at=st.at, baseType=enum_class_type(st), enumType = get_ptr(st), flags=flags]]
+
+def public add_type_ptr_ref ( var st : Enumeration?; flags:TypeDeclFlags ) : TypeDeclPtr
+    //! Implementation details for the reification. This adds any array to the rules.
+    return <- new [[TypeDecl() at=st.at, baseType=enum_class_type(st), enumType = st, flags=flags]]
+
+[unused_argument(anything), unused_argument(flags)]
+def public add_type_ptr_ref ( anything : auto(TT); flags:TypeDeclFlags ) : TypeDeclPtr
+    //! Implementation details for the reification. This adds any array to the rules.
+    concept_assert(false,"$t reification expected type `TypeDeclPtr`, `StructurePtr`, or `Structure?`, but received {typeinfo(typename type<TT>)}")
+    return <- new [[TypeDecl()]]
 
 def private generatedExpr( var expr : ExpressionPtr ) : ExpressionPtr
     expr.genFlags |= ExprGenFlags generated
@@ -667,6 +696,9 @@ def private apply_qrules ( var expr:smart_ptr<Expression>& ) : smart_ptr<ExprBlo
         eblk := null
     unsafe
         delete astVisitor
+    eblk |> append_annotation("$", "unused_argument", [{auto
+        [[auto "rules", [[RttiValue tBool=true]] ]]
+    }])
     return <- eblk
 
 def public apply_qmacro ( var expr:smart_ptr<Expression>; blk:block<(var rules:Template):void> ) : ExpressionPtr

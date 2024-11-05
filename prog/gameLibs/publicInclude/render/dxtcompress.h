@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -49,15 +48,15 @@ typedef BaseTexture Texture;
 
 // linearData will be spoiled after call to this function
 // always assume 32bit pixel
-Texture *convert_to_dxt_texture(int w, int h, unsigned flags, char *linearData, int row_stride, int numMips, bool dxt5,
+Texture *convert_to_dxt_texture(int w, int h, unsigned flags, const char *linearData, int row_stride, int numMips, bool dxt5,
   const char *stat_name = NULL);
 
 // always assume 32bit pixel
-Texture *convert_to_bc4_texture(int w, int h, unsigned flags, char *linearData, int row_stride, int numMips, int pixel_offset,
+Texture *convert_to_bc4_texture(int w, int h, unsigned flags, const char *linearData, int row_stride, int numMips, int pixel_offset,
   const char *stat_name = NULL);
 
 // always assume 32bit pixel
-Texture *convert_to_custom_dxt_texture(int w, int h, unsigned flags, char *linearData, int row_stride, int numMips, int mode,
+Texture *convert_to_custom_dxt_texture(int w, int h, unsigned flags, const char *linearData, int row_stride, int numMips, int mode,
   int pixel_offset, const char *stat_name = NULL);
 
-void software_downsample_2x(unsigned char *dstPixel, unsigned char *srcPixel, unsigned int dstWidth, unsigned int dstHeight);
+void software_downsample_2x(unsigned char *dstPixel, const unsigned char *srcPixel, unsigned int dstWidth, unsigned int dstHeight);

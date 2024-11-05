@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "a2d.h"
 
 #include <EASTL/string.h>
@@ -20,8 +22,7 @@
 #include <gameRes/dag_stdGameResId.h>
 #include <gui/dag_stdGuiRender.h>
 #include <gui/dag_stdGuiRenderEx.h>
-#include <propPanel2/c_panel_base.h>
-#include <propPanel2/comWnd/list_dialog.h>
+#include <propPanel/control/container.h>
 
 #include <anim/dag_animChannels.h>
 #include <anim/dag_simpleNodeAnim.h>
@@ -41,6 +42,7 @@ enum // gui pids
   PID_PLAY_PROGR,
   PID_PLAY_ANIM,
   PID_PLAY_DUR,
+  PID_PLAY_CUR_TIME,
   PID_PLAY_MUL,
   PID_PLAY_LOOP,
   PID_SHOW_SKEL,
@@ -111,24 +113,61 @@ static void drawExportedNodes(const GeomNodeTree &tree, const dag::Vector<A2dPlu
   }
 }
 
-static void getNodesParamsFromA2d(AnimV20::AnimData *a2d, int &pos_cnt, int &rot_cnt, int &scl_cnt)
+struct A2dNodeStats
+{
+  int pos_cnt = -1;
+  int pos_max_keys = 0;
+  int pos_total_keys = 0;
+  int rot_cnt = -1;
+  int rot_max_keys = 0;
+  int rot_total_keys = 0;
+  int scl_cnt = -1;
+  int scl_max_keys = 0;
+  int scl_total_keys = 0;
+};
+
+static A2dNodeStats getNodesParamsFromA2d(AnimV20::AnimData *a2d)
 {
   using namespace AnimV20;
 
-  pos_cnt = -1;
-  rot_cnt = -1;
-  scl_cnt = -1;
+  A2dNodeStats s;
 
   AnimDataChan<AnimChanPoint3> *adcPos = a2d->dumpData.getChanPoint3(CHTYPE_POSITION);
   AnimDataChan<AnimChanQuat> *adcRot = a2d->dumpData.getChanQuat(CHTYPE_ROTATION);
   AnimDataChan<AnimChanPoint3> *adcScl = a2d->dumpData.getChanPoint3(CHTYPE_SCALE);
 
   if (adcPos)
-    pos_cnt = adcPos->nodeNum;
+  {
+    s.pos_cnt = adcPos->nodeNum;
+    for (int i = 0; i < adcPos->nodeNum; ++i)
+    {
+      if (s.pos_max_keys < adcPos->nodeAnim[i].keyNum)
+        s.pos_max_keys = adcPos->nodeAnim[i].keyNum;
+      s.pos_total_keys += adcPos->nodeAnim[i].keyNum;
+    }
+  }
   if (adcRot)
-    rot_cnt = adcRot->nodeNum;
+  {
+    s.rot_cnt = adcRot->nodeNum;
+    for (int i = 0; i < adcRot->nodeNum; ++i)
+    {
+      if (s.rot_max_keys < adcRot->nodeAnim[i].keyNum)
+        s.rot_max_keys = adcRot->nodeAnim[i].keyNum;
+      s.rot_total_keys += adcRot->nodeAnim[i].keyNum;
+    }
+  }
   if (adcScl)
-    scl_cnt = adcScl->nodeNum;
+  {
+    s.scl_cnt = adcScl->nodeNum;
+    for (int i = 0; i < adcScl->nodeNum; ++i)
+    {
+      if (s.scl_max_keys < adcScl->nodeAnim[i].keyNum)
+        s.scl_max_keys = adcScl->nodeAnim[i].keyNum;
+      s.scl_total_keys += adcScl->nodeAnim[i].keyNum;
+    }
+  }
+
+  return s;
 }
 
 static eastl::map<eastl::string, int> getNodesNamesFromA2d(AnimV20::AnimData *a2d)
@@ -139,21 +178,20 @@ static eastl::map<eastl::string, int> getNodesNamesFromA2d(AnimV20::AnimData *a2
   AnimDataChan<AnimChanQuat> *adcRot = a2d->dumpData.getChanQuat(CHTYPE_ROTATION);
   AnimDataChan<AnimChanPoint3> *adcScl = a2d->dumpData.getChanPoint3(CHTYPE_SCALE);
 
-  int posCnt, rotCnt, sclCnt;
-  getNodesParamsFromA2d(a2d, posCnt, rotCnt, sclCnt);
+  A2dNodeStats s = getNodesParamsFromA2d(a2d);
 
   eastl::map<eastl::string, int> nodeNames{};
-  for (int i = 0; i < posCnt; ++i)
+  for (int i = 0; i < s.pos_cnt; ++i)
   {
     eastl::string name = adcPos->nodeName[i].get();
     nodeNames[name] = ANIM_NODE_POS;
   }
-  for (int i = 0; i < rotCnt; ++i)
+  for (int i = 0; i < s.rot_cnt; ++i)
   {
     eastl::string name = adcRot->nodeName[i].get();
     nodeNames[name] = nodeNames[name] | ANIM_NODE_ROT;
   }
-  for (int i = 0; i < sclCnt; ++i)
+  for (int i = 0; i < s.scl_cnt; ++i)
   {
     eastl::string name = adcScl->nodeName[i].get();
     nodeNames[name] = nodeNames[name] | ANIM_NODE_SCL;
@@ -214,6 +252,7 @@ bool A2dPlugin::begin(DagorAsset *srcAsset)
     animTimeMax = track.time > animTimeMax ? track.time : animTimeMax;
   currAnimProgress = loopedPlay ? 0.f : -1.f;
   selectedNode = -1;
+  animTimeMul = safediv(1.0f, animTimeMax / (float)AnimV20::TIME_TicksPerSec);
 
   return true;
 }
@@ -432,7 +471,7 @@ bool A2dPlugin::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool insi
   return selectedNode >= 0;
 }
 
-void A2dPlugin::onClick(int pcb_id, PropertyContainerControlBase *panel)
+void A2dPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   if (!getPluginPanel())
     return;
@@ -442,22 +481,15 @@ void A2dPlugin::onClick(int pcb_id, PropertyContainerControlBase *panel)
     String selectMsg(64, "Select %s", ref.refTypeName);
     String resetMsg(64, "Reset %s", ref.refTypeName);
 
-    int _x, _y;
-    unsigned _w, _h;
-
-    G_ASSERT(getPropPanel() && "Plugin panel closed!");
-    if (!getWndManager().getWindowPosSize(getPropPanel()->getParentWindowHandle(), _x, _y, _w, _h))
-      return;
-
-    getWndManager().clientToScreen(_x, _y);
-    SelectAssetDlg dlg(0, &asset->getMgr(), selectMsg, selectMsg, resetMsg, make_span_const(&ref.refTypeId, 1), _x - _w - 5, _y, _w,
-      _h);
+    SelectAssetDlg dlg(0, &asset->getMgr(), selectMsg, selectMsg, resetMsg, make_span_const(&ref.refTypeId, 1));
     dlg.selectObj(ref.modelName);
+    dlg.setManualModalSizingEnabled();
+    dlg.positionLeftToWindow("Properties", true);
     int result = dlg.showDialog();
-    if (result == DIALOG_ID_CLOSE)
+    if (result == PropPanel::DIALOG_ID_CLOSE)
       return;
 
-    ref.modelName = result == DIALOG_ID_OK ? dlg.getSelObjName() : "";
+    ref.modelName = result == PropPanel::DIALOG_ID_OK ? dlg.getSelObjName() : "";
     a2d_last_ref_model = ref.modelName;
     ref.reload(ref.modelName, asset);
     setupAnimNodesForRefSkeleton();
@@ -491,29 +523,53 @@ void A2dPlugin::actObjects(float dt)
   {
     int animTime = lerp(animTimeMin, animTimeMax, currAnimProgress);
     updateAnimNodes(animTime);
-    if (getPluginPanel())
-      getPluginPanel()->setFloat(PID_PLAY_PROGR, currAnimProgress);
+    auto panel = getPluginPanel();
+    if (panel)
+    {
+      panel->setFloat(PID_PLAY_PROGR, currAnimProgress);
+      panel->setFloat(PID_PLAY_CUR_TIME, currAnimProgress * panel->getFloat(PID_PLAY_DUR));
+    }
   }
 }
 
-void A2dPlugin::onChange(int pid, PropertyContainerControlBase *panel)
+void A2dPlugin::onChange(int pid, PropPanel::ContainerPropertyControl *panel)
 {
   switch (pid)
   {
     case PID_KEY_LABELS_RADIO:
       panel->setInt(PID_KEY_TRACKBAR, panel->getInt(pid));
+
       if (ref.ready() && !isAnimInProgress())
-        setPoseFromTrackLabel(panel->getInt(PID_KEY_TRACKBAR));
+      {
+        int noteTrackNum = panel->getInt(PID_KEY_TRACKBAR);
+        if (noteTrackNum >= 0 && noteTrackNum < a2d->dumpData.noteTrack.size())
+        {
+          const float progress =
+            safediv(float(a2d->dumpData.noteTrack[noteTrackNum].time - animTimeMin), float(animTimeMax - animTimeMin));
+          panel->setFloat(PID_PLAY_PROGR, progress);
+        }
+        setPoseFromTrackLabel(noteTrackNum);
+      }
       break;
     case PID_KEY_TRACKBAR:
       if (ref.ready() && !isAnimInProgress())
         setPoseFromTrackLabel(panel->getInt(PID_KEY_TRACKBAR));
       break;
-    case PID_PLAY_MUL: animTimeMul = panel->getFloat(PID_PLAY_MUL); break;
+    case PID_PLAY_DUR:
+      animTimeMul = safediv(1.0f, panel->getFloat(PID_PLAY_DUR));
+      panel->setFloat(PID_PLAY_MUL, animTimeMul);
+      panel->setFloat(PID_PLAY_CUR_TIME, panel->getFloat(PID_PLAY_PROGR) * panel->getFloat(PID_PLAY_DUR));
+      break;
+    case PID_PLAY_MUL:
+      animTimeMul = panel->getFloat(PID_PLAY_MUL);
+      panel->setFloat(PID_PLAY_DUR, safediv(1.f, animTimeMul));
+      panel->setFloat(PID_PLAY_CUR_TIME, panel->getFloat(PID_PLAY_PROGR) * panel->getFloat(PID_PLAY_DUR));
+      break;
     case PID_PLAY_PROGR:
       currAnimProgress = -1.f;
       loopedPlay = false;
       updateAnimNodes(lerp(animTimeMin, animTimeMax, saturate(panel->getFloat(PID_PLAY_PROGR))));
+      panel->setFloat(PID_PLAY_CUR_TIME, panel->getFloat(PID_PLAY_PROGR) * panel->getFloat(PID_PLAY_DUR));
       break;
     case PID_SHOW_SKEL: drawSkeleton = panel->getBool(PID_SHOW_SKEL); break;
     case PID_SHOW_INVIS: drawA2dnodes = panel->getBool(PID_SHOW_INVIS); break;
@@ -521,7 +577,7 @@ void A2dPlugin::onChange(int pid, PropertyContainerControlBase *panel)
   }
 }
 
-void A2dPlugin::fillPropPanel(PropertyContainerControlBase &panel)
+void A2dPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
 {
   using namespace AnimV20;
 
@@ -532,15 +588,17 @@ void A2dPlugin::fillPropPanel(PropertyContainerControlBase &panel)
   panel.setEventHandler(this);
   panel.createIndent();
 
-  PropertyContainerControlBase &propGrp = *panel.createGroup(PID_PROP_GRP, "A2d properties");
-  PropertyContainerControlBase &playGrp = *panel.createGroup(PID_PLAY_GRP, "A2d preview");
-  PropertyContainerControlBase &labelsGrp = *panel.createGroup(PID_KEY_LABELS_GROUP, "Note tracks");
-  PropertyContainerControlBase &nodesGrp = *panel.createGroup(PID_ANIM_NODES_GROUP, "Anim nodes");
+  PropPanel::ContainerPropertyControl &propGrp = *panel.createGroup(PID_PROP_GRP, "A2d properties");
+  PropPanel::ContainerPropertyControl &playGrp = *panel.createGroup(PID_PLAY_GRP, "A2d preview");
+  PropPanel::ContainerPropertyControl &labelsGrp = *panel.createGroup(PID_KEY_LABELS_GROUP, "Note tracks");
+  PropPanel::ContainerPropertyControl &nodesGrp = *panel.createGroup(PID_ANIM_NODES_GROUP, "Anim nodes");
 
   propGrp.createStatic(-1, String(64, "Is additive: %s", a2d->isAdditive() ? "yes" : "no"));
   propGrp.createStatic(-1, String(64, "Note tracks: %d", a2d->dumpData.noteTrack.size()));
   playGrp.createSeparator();
-  playGrp.createTrackFloat(PID_PLAY_MUL, "Anim multiplier: ", animTimeMul, 0.f, 3.f, 0.01, 1);
+  constexpr float maxAnimMult = 3.f;
+  playGrp.createTrackFloat(PID_PLAY_DUR, "Anim duration: ", safediv(1.0f, animTimeMul), safediv(1.0f, maxAnimMult), 60.0f, 0.01f);
+  playGrp.createTrackFloat(PID_PLAY_MUL, "Anim multiplier: ", animTimeMul, 0.f, maxAnimMult, 0.01, 1);
 
   if (a2d->dumpData.noteTrack.size() > 0)
   {
@@ -549,6 +607,7 @@ void A2dPlugin::fillPropPanel(PropertyContainerControlBase &panel)
     labelsGrp.createTrackInt(PID_KEY_TRACKBAR, caption, 0, 0, tracksCnt, 1, 1);
   }
   playGrp.createTrackFloat(PID_PLAY_PROGR, "Anim progress: ", 0.f, 0.f, 1.f, 0.01, 1);
+  playGrp.createEditFloat(PID_PLAY_CUR_TIME, "Seconds: ", 0.0f, 2, false);
   playGrp.createCheckBox(PID_SHOW_SKEL, "Show skeleton nodes", drawSkeleton);
   playGrp.createCheckBox(PID_SHOW_INVIS, "Show exported nodes", drawA2dnodes);
   playGrp.createSeparator();
@@ -564,18 +623,25 @@ void A2dPlugin::fillPropPanel(PropertyContainerControlBase &panel)
   if (a2d->dumpData.noteTrack.empty())
     labelsGrp.createStatic(-1, String(64, "Warning: note labels empty"));
 
-  PropertyContainerControlBase &ntGrp = *labelsGrp.createRadioGroup(PID_KEY_LABELS_RADIO, "");
+  PropPanel::ContainerPropertyControl &ntGrp = *labelsGrp.createRadioGroup(PID_KEY_LABELS_RADIO, "");
   for (int i = 0; i < a2d->dumpData.noteTrack.size(); ++i)
   {
     static const int TICKS_PER_FRAME = TIME_TicksPerSec / 30;
-    ntGrp.createRadio(i, String(64, "\"%s\"  frame #%d (tick=%d)", a2d->dumpData.noteTrack[i].name,
-                           a2d->dumpData.noteTrack[i].time / TICKS_PER_FRAME, a2d->dumpData.noteTrack[i].time));
+    const float progress = safediv(float(a2d->dumpData.noteTrack[i].time - animTimeMin), float(animTimeMax - animTimeMin));
+    ntGrp.createRadio(i, String(64, "\"%s\"  frame #%d (tick=%d, progress=%.3f)", a2d->dumpData.noteTrack[i].name,
+                           a2d->dumpData.noteTrack[i].time / TICKS_PER_FRAME, a2d->dumpData.noteTrack[i].time, progress));
   }
   panel.setInt(PID_KEY_LABELS_RADIO, 0);
 
-  int posCnt, rotCnt, sclCnt;
-  getNodesParamsFromA2d(a2d, posCnt, rotCnt, sclCnt);
-  propGrp.createStatic(-1, String(64, String(64, "Anim nodes: P %d, R %d, S %d", posCnt, rotCnt, sclCnt)));
+  A2dNodeStats stats = getNodesParamsFromA2d(a2d);
+  propGrp.createStatic(-1, String(64, "Anim nodes: P %d, R %d, S %d", stats.pos_cnt, stats.rot_cnt, stats.scl_cnt));
+  propGrp.createStatic(-1,
+    String(64, "Max keys per chan: P %d, R %d, S %d", stats.pos_max_keys, stats.rot_max_keys, stats.scl_max_keys));
+  propGrp.createStatic(-1,
+    String(64, "Avg keys per chan: P %d, R %d, S %d", stats.pos_cnt != 0 ? stats.pos_total_keys / stats.pos_cnt : 0,
+      stats.rot_cnt != 0 ? stats.rot_total_keys / stats.rot_cnt : 0, stats.scl_cnt != 0 ? stats.scl_total_keys / stats.scl_cnt : 0));
+  propGrp.createStatic(-1,
+    String(64, "Total keys count: P %d, R %d, S %d", stats.pos_total_keys, stats.rot_total_keys, stats.scl_total_keys));
   propGrp.createIndent();
 
   int i{0};

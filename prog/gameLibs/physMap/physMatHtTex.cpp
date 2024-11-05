@@ -1,11 +1,14 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <physMap/physMap.h>
 #include <physMap/physMatHtTex.h>
 #include <physMap/physMatSwRenderer.h>
 #include <scene/dag_physMat.h>
 #include <math/dag_bounds3.h>
 #include <generic/dag_smallTab.h>
-#include <3d/dag_tex3d.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_driver.h>
 #include <convert/fastDXT/fastDXT.h>
 
 static constexpr int TEXSIZE = 2048;

@@ -8,10 +8,10 @@ Generic Programming
 .. index::
     single: Generic Programming
 
-Daslang allows ommision of types in statements, functions, and function declaration, making writing in it similar to dynamically typed languages, such as Python or Lua.
+Daslang allows omission of types in statements, functions, and function declaration, making writing in it similar to dynamically typed languages, such as Python or Lua.
 Said functions are *instantiated* for specific types of arguments on the first call.
 
-There are also ways to inspect the types of the provided arguments, in order to change the behaviour of function, or to provide reasonable meaningful errors during the compilation phase.
+There are also ways to inspect the types of the provided arguments, in order to change the behavior of function, or to provide reasonable meaningful errors during the compilation phase.
 Most of these ways are achieved with s
 
 Unlike C++ with its SFINAE, you can use common conditionals (if) in order to change the instance of the function depending on the type info of its arguments.
@@ -188,3 +188,61 @@ Generic options will be matched in the order listed::
 
     def foo ( a : Foo |# )   // accepts Foo and Foo# in that order
     def foo ( a : Foo# |# )  // accepts Foo# and Foo in that order
+
+^^^^^^^^
+typedecl
+^^^^^^^^
+
+Consider the following example::
+
+    struct A
+        id : string
+
+    struct B
+        id : int
+
+    def get_table_from_id(t : auto(T))
+        var tab : table<typedecl(t.id); T>  // NOTE typedecl
+        return <- tab
+
+    [export]
+    def main
+        var a : A
+        var b : B
+        var aTable <- get_table_from_id(a)
+        var bTable <- get_table_from_id(b)
+        print("{typeinfo(typename aTable)}\n")
+        print("{typeinfo(typename bTable)}\n")
+
+Here table is created with a key type of `id` field of the provided struct.
+This feature allows to create types based on the provided expression type.
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+generic tuples and type<> expressions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Consider the following example::
+
+    tuple Handle
+        h : auto(HandleType)
+        i : int
+
+    def make_handle ( t : auto(HandleType) ) : Handle
+        var h : type<Handle> // NOTE type<Handle>
+        return h
+
+    def take_handle ( h : Handle )
+        print("count = {h.i} of type {typeinfo(typename type<HandleType>)}\n")
+
+    [export]
+    def main
+        let h = make_handle(10)
+        take_handle(h)
+
+In the function make_handle, the type of the variable h is created with the type<> expression.
+type<> is inferred in context (this time based on a function argument).
+This feature allows to create types based on the provided expression type.
+
+Generic function take_handle takes any Handle type, but only Handle type tuple.
+
+This carries some similarity to the C++ template system, but is a bit more limited due to tuples being weak types.

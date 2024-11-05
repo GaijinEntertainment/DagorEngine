@@ -1,4 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_simplePBlock.h>
 #include <util/dag_string.h>
 #include <ioSys/dag_dataBlock.h>
@@ -218,7 +219,7 @@ SimplePBlock &SimplePBlock::operator=(const SimplePBlock &other)
     }
     else
     {
-      params[i] = other.params[i];
+      memcpy(&params[i], &other.params[i], sizeof(params[i]));
     }
   }
   return *this;

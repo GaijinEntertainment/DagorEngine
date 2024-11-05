@@ -1,0 +1,123 @@
+include "combine_shadows_common.dshl"
+include "combine_shadows_modifier.dshl"
+
+define_macro_if_not_defined INIT_OPTIONAL_COMBINE_SHADOWS_FEATURES(code)
+endmacro
+
+define_macro_if_not_defined USE_OPTIONAL_COMBINE_SHADOWS_FEATURES(code)
+hlsl(code)
+{
+  float load_additional_light(float2 tc)
+  {
+    return 0;
+  }
+  float calculate_clouds_shadow(float additionalLight, float2 tc, float3 viewVec)
+  {
+    return 0;
+  }
+}
+endmacro
+
+shader combine_shadows
+{
+  ENABLE_ASSERT(ps)
+  supports global_frame;
+  no_ablend;
+
+  cull_mode  = none;
+
+  if (ssss_quality == off)
+  {
+    z_test = false;
+    z_write = false;
+  }
+  else
+  {
+    z_test = true;
+    z_write = true;
+  }
+  color_write = rgba;
+
+  INIT_COMBINE_SHADOWS()
+  USE_COMBINE_SHADOWS()
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord : TEXCOORD1;
+      float3 viewVec : TEXCOORD2;
+    };
+  }
+  USE_AND_INIT_VIEW_VEC(vs)
+
+  hlsl(vs) {
+    VsOutput shadows_to_target_vs( uint vertexId : SV_VertexID )
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4( pos.xy, 1, 1 );
+      output.texcoord.xy = screen_to_texcoords(pos);
+      output.viewVec = get_view_vec_by_vertex_id(vertexId);
+
+      return output;
+    }
+  }
+
+  INIT_OPTIONAL_COMBINE_SHADOWS_FEATURES(ps)
+  USE_OPTIONAL_COMBINE_SHADOWS_FEATURES(ps)
+
+  hlsl(ps)
+  {
+    struct CombinedShadowResult
+      {
+        float4 combinedShadow_ssssTransmittance_additionalLight_cloudsShadow : SV_Target0;
+        ##if ssss_quality != off
+        float ssssDepthMask : SV_Depth;
+        ##endif
+      };
+      CombinedShadowResult get_combined_shadows(PackedShadows shadows, float additionalLight)
+      {
+        CombinedShadowResult result;
+        result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.x = shadows.combinedShadow;
+        result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.y = shadows.ssssTransmittance;
+        result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.z = additionalLight;
+        result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.w = shadows.cloudsShadow;
+        ##if ssss_quality != off
+        result.ssssDepthMask = shadows.ssssDepthMask;
+        ##endif
+        return result;
+      }
+      CombinedShadowResult get_black_shadow(float additionalLight, float cloudsShadow)
+      {
+        CombinedShadowResult result;
+        result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.x = 0;
+        result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.y = 0;
+        result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.z = additionalLight;
+        result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.w = cloudsShadow;
+        ##if ssss_quality != off
+        result.ssssDepthMask = 0;
+        ##endif
+        return result;
+      }
+
+    CombinedShadowResult shadows_to_target_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      ProcessedGbuffer gbuffer = readProcessedGbuffer(input.texcoord);
+      float NoL = dot(gbuffer.normal, -from_sun_direction);
+      float additionalLight = load_additional_light(input.texcoord);
+      BRANCH
+      if (!(isSubSurfaceShader(gbuffer.material) && isSubSurfaceProfileValid(gbuffer.sss_profile) && gbuffer.translucency > 1.0/255) && NoL <= 0.f)
+      {
+        float cloudsShadow = calculate_clouds_shadow(additionalLight, input.texcoord, input.viewVec);
+        return get_black_shadow(additionalLight, cloudsShadow);
+      }
+      PackedShadows shadows = getShadows(input.texcoord, GET_SCREEN_POS(input.pos), input.viewVec, gbuffer.isHeroCockpit);
+      return get_combined_shadows(shadows, additionalLight);
+    }
+  }
+
+  compile("target_vs", "shadows_to_target_vs");
+  compile("target_ps", "shadows_to_target_ps");
+}
+

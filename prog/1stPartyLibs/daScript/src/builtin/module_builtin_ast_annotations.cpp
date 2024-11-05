@@ -37,6 +37,7 @@ IMPLEMENT_EXTERNAL_TYPE_FACTORY(VariantMacro,VariantMacro)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ForLoopMacro,ForLoopMacro)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(SimulateMacro,SimulateMacro)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(CaptureMacro,CaptureMacro)
+IMPLEMENT_EXTERNAL_TYPE_FACTORY(TypeMacro,TypeMacro)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ReaderMacro,ReaderMacro)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(CommentReader,CommentReader)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(CallMacro,CallMacro)
@@ -232,8 +233,24 @@ namespace das {
         virtual TypeDeclPtr getAstType ( ModuleLibrary & lib, const ExpressionPtr &, string & ) override {
             return typeFactory<smart_ptr<TypeDecl>>::make(lib);
         }
-        virtual SimNode * simluate ( Context * context, const ExpressionPtr & expr, string & ) override {
+        virtual SimNode * simluate ( Context * context, const ExpressionPtr & expr, string & error ) override {
+
+            if ( !context->thisProgram->isCompilingMacros && !context->thisProgram->folding && !daScriptEnvironment::bound->g_isInAot ) {
+                if ( !context->thisProgram->options.getBoolOption("rtti",context->thisProgram->policies.rtti) ) {
+                    error = "ast_typedecl requires `options rtti` or rtti to be enabled in policies";
+                    return nullptr;
+                }
+            }
             auto exprTypeInfo = static_pointer_cast<ExprTypeInfo>(expr);
+            auto tName = exprTypeInfo->typeexpr->getMangledName();
+            auto hashValue = hash_blockz64((uint8_t *)tName.c_str());
+            if ( auto oldType = context->thisProgram->astTypeInfo[hashValue] ) {
+                if ( !oldType->isSameType(*exprTypeInfo->typeexpr,RefMatters::yes,ConstMatters::yes,TemporaryMatters::yes,AllowSubstitute::no,false,false) ) {
+                    error = "internal compiler error: type name collision in ast_typedecl. " + oldType->describe() + " vs " + exprTypeInfo->typeexpr->describe();
+                    return nullptr;
+                }
+            }
+            context->thisProgram->astTypeInfo[hashValue] = exprTypeInfo->typeexpr.get();
             char * descr = context->code->allocateName(exprTypeInfo->typeexpr->getMangledName());
             return context->code->makeNode<SimNode_AstGetTypeDecl>(expr->at, exprTypeInfo->typeexpr, descr);
         }

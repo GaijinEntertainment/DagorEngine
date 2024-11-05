@@ -24,9 +24,7 @@ TemplateDB &getMutableTemplateDB(); // not sure if we have to expose non-const v
 void updateEntitiesWithTemplate(template_t oldT, template_t newTemp, bool update_templ_values);
 void removeTemplateInternal(const uint32_t *to_remove, const uint32_t cnt);
 template_t createTemplate(ComponentsMap &&initializer, const char *debug_name = "(unknown)", const ComponentsFlags *flags = nullptr);
-void resetEsOrder();
 void initCompileTimeQueries();
-friend void reset_es_order();
 bool validateInitializer(template_t templ, ComponentsInitializer &comp_init) const;
 void createEntityInternal(EntityId eid, template_t templId, ComponentsInitializer &&initializer, ComponentsMap &&map,
   create_entity_async_cb_t &&cb);
@@ -356,8 +354,8 @@ struct CreatingEntity
 CreatingEntity creatingEntityTop;
 #endif
 
-eastl::vector_map<ecs::EntityId, uint16_t> loadingEntities; // it is vector_map eid->loadCount, as there can be more than one
-                                                            // recreation scheduled
+dag::VectorMap<ecs::EntityId, uint16_t> loadingEntities; // it is vector_map eid->loadCount, as there can be more than one
+                                                         // recreation scheduled
 enum class RequestResources
 {
   AlreadyLoaded,
@@ -365,10 +363,11 @@ enum class RequestResources
   Loaded,
   Error
 };
-enum class RequestResourcesType : bool
+enum class RequestResourcesType
 {
-  ASYNC = false,
-  SYNC = true
+  ASYNC,
+  SYNC,
+  CHECK_ONLY
 };
 RequestResources requestResources(EntityId eid, archetype_t old, template_t templId, const ComponentsInitializer &initializer,
   RequestResourcesType type);
@@ -380,8 +379,9 @@ void recreateOnSameArchetype(EntityId eid, template_t templId, ComponentsInitial
 
 uint32_t lastEsGen = 0;
 ska::flat_hash_set<eastl::string> esTags;
-eastl::vector_map<eastl::string, uint32_t> esOrder;
-eastl::vector_set<eastl::string> disableEntitySystems, esSkip;
+dag::VectorMap<eastl::string, uint32_t> esOrder;
+dag::VectorSet<eastl::string> disableEntitySystems, esSkip;
+dag::VectorSet<ecs::hash_str_t> ignoredES;
 SmallTab<const EntitySystemDesc *, MidmemAlloc> esList; // sorted
 eastl::bitvector<> esForAllEntities;
 
@@ -445,7 +445,7 @@ protected:
 typedef EsIndexFixedSet es_index_set;
 dag::Vector<es_index_set> esUpdates; // sorted by update priority ES functions (for each update stage)
 
-// probably use ska::flat_hash_map<event_type_t, event_index_t> esEventsMap; eastl::vector<eastl::vector_set<es_index_type>>
+// probably use ska::flat_hash_map<event_type_t, event_index_t> esEventsMap; eastl::vector<dag::VectorSet<es_index_type>>
 // esEventsList; check performance
 ska::flat_hash_map<event_type_t, es_index_set, ska::power_of_two_std_hash<event_type_t>> esEvents;
 ska::flat_hash_map<component_t, es_index_set, ska::power_of_two_std_hash<event_type_t>> esOnChangeEvents;
@@ -481,8 +481,8 @@ struct RecreateEsSet
 {
   es_index_set disappear, appear;
 };
-typedef eastl::vector_map<archetype_t, RecreateEsSet> archetype_es_map; // this is pointer, and not value, so we can add archetypes
-                                                                        // within recreate ES call
+typedef dag::VectorMap<archetype_t, RecreateEsSet> archetype_es_map; // this is pointer, and not value, so we can add archetypes
+                                                                     // within recreate ES call
 
 dag::Vector<archetype_es_map> archetypesRecreateES; // same size as archetypesES. Make tuple vector?
 const RecreateEsSet *updateRecreatePair(archetype_t old_archetype, archetype_t new_archetype);
@@ -517,7 +517,7 @@ __forceinline const RecreateEsSet *__restrict getRecreatePair(archetype_t old_ar
   auto recreateListIt = archRecreateList.find(new_archetype);
   // update cache on the fly. If we hadn't ever recreated from old_archetype to new_archetype
   // ofc, we can make that N*(N-1) matrices, and remove updating cache on the fly, but there way less actual recreates.
-  if (EASTL_UNLIKELY(recreateListIt == archetypesRecreateES[old_archetype].end()))
+  if (DAGOR_UNLIKELY(recreateListIt == archetypesRecreateES[old_archetype].end()))
     return updateRecreatePair(old_archetype, new_archetype);
   else
     return &recreateListIt->second;
@@ -622,10 +622,6 @@ dag::Vector<ArchetypesQuery> archetypeQueries; // SoA, we need to update Archety
                                                // archetype
 dag::Vector<ArchetypesEidQuery> archetypeEidQueries; // SoA, we need to update ArchetypesQuery from ResolvedQueryDesc again, if we add
                                                      // new archetype
-dag::Vector<archetype_t, EASTLAllocatorType, false> archSubQueriesContainer;
-uint32_t archSubQueriesWasted = 0;
-uint32_t archSubLastTickSize = 0;
-void defragmentArchetypeSubQueries();
 dag::Vector<uint16_t, EASTLAllocatorType, false> archComponentsSizeContainers;
 dag::Vector<ResolvedQueryDesc> resolvedQueries; // SoA, we never need resolvedQuery again, if it was successfully resolved, but we need
                                                 // it to resolve ArchetypesQuery
@@ -681,7 +677,7 @@ bool isQueryValid(QueryId id) const
 }
 void queriesShrink();
 //--SoA for QueryId
-eastl::vector<QueryId> esListQueries; // parallel to esList, index in ecs_query_handle
+dag::Vector<QueryId> esListQueries; // parallel to esList, index in ecs_query_handle
 
 #if DAECS_EXTENSIVE_CHECKS
 EntityId destroyingEntity;
@@ -760,9 +756,9 @@ struct LoadingEntityEvents
     bool operator()(const LoadingEntityEvents &rhs, EntityId eid) const { return entity_id_t(rhs.eid) < entity_id_t(eid); }
   };
 };
-eastl::vector_set<LoadingEntityEvents> eventsForLoadingEntities;
+dag::VectorSet<LoadingEntityEvents> eventsForLoadingEntities;
 
-eastl::vector_set<LoadingEntityEvents>::iterator findLoadingEntityEvents(EntityId eid)
+dag::VectorSet<LoadingEntityEvents>::iterator findLoadingEntityEvents(EntityId eid)
 {
   return eventsForLoadingEntities.find_as(eid, LoadingEntityEvents::Compare());
 }
@@ -777,12 +773,13 @@ mutable WinCritSec creationMutex;
 template <typename T>
 struct ScopedMTMutexT
 {
-  ScopedMTMutexT(bool is_mt, T &mutex_) : mutex(is_mt ? &mutex_ : nullptr)
+  ScopedMTMutexT(bool is_mt, int64_t owner_thread, T &mutex_) : mutex(is_mt ? &mutex_ : nullptr)
   {
+    G_UNUSED(owner_thread);
     if (mutex)
       mutex->lock();
     else
-      DAECS_EXT_ASSERT(is_main_thread());
+      DAECS_EXT_ASSERT(get_current_thread_id() == owner_thread);
   }
   ~ScopedMTMutexT()
   {
@@ -897,7 +894,7 @@ struct DelayedEntityCreationChunk
 };
 // we will always insert in top chunk, which is just always delayedCreationQueue.back();
 // which is never empty (i.e. topChunk != nullptr)
-eastl::vector<DelayedEntityCreationChunk> delayedCreationQueue;
+dag::Vector<DelayedEntityCreationChunk> delayedCreationQueue;
 enum
 {
   INVALID_CREATION_QUEUE_GEN = 0,
@@ -1038,3 +1035,8 @@ void setNestedQuery(int value) { nestedQuery = value; }
 friend struct ecs::NestedQueryRestorer;
 void schedule_tracked_changes(const ScheduledArchetypeComponentTrack *__restrict trackedI, uint32_t trackedChangesCount, EntityId eid,
   uint32_t archetype);
+
+void *userData = nullptr;
+int64_t ownerThreadId = 0;
+
+MTLinkedList<QueryStackData> queryStack;

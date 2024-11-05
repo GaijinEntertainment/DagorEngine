@@ -1,5 +1,4 @@
-#ifndef __GAIJIN_DDS_TEXTURE_NAME_H__
-#define __GAIJIN_DDS_TEXTURE_NAME_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <libTools/util/strUtil.h>
@@ -36,5 +35,3 @@ public:
   virtual DDSPathName findExisting(const char *base_path = NULL) const;
   virtual DDSPathName &simplify();
 };
-
-#endif // __GAIJIN_DDS_TEXTURE_NAME_H__

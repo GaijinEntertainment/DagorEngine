@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <generic/dag_tab.h>
 #include <ioSys/dag_genIo.h>
 #include <ioSys/dag_lzmaIo.h>
@@ -5,6 +7,7 @@
 #include <ioSys/dag_oodleIo.h>
 #include <ioSys/dag_btagCompr.h>
 #include <memory/dag_framemem.h>
+#include <memory/dag_physMem.h>
 #include <util/dag_stlqsort.h>
 #include <util/dag_simpleString.h>
 #include <util/dag_treeBitmap.h>
@@ -13,6 +16,7 @@
 #include <physMap/physMapLoad.h>
 #include <math/integer/dag_IPoint2.h>
 #include <physMap/physMatSwRenderer.h>
+#include <supp/dag_alloca.h>
 
 static inline IGenLoad &ptr_to_ref(IGenLoad *crd) { return *crd; }
 
@@ -213,7 +217,7 @@ PhysMap *load_phys_map(IGenLoad &crd, bool is_lmp2)
   if (fmt == btag_compr::OODLE)
   {
     int src_sz = crd.readInt();
-    zcrd_p = new (alloca(sizeof(OodleLoadCB)), _NEW_INPLACE) OodleLoadCB(crd, blockSize, src_sz);
+    zcrd_p = new (alloca(sizeof(OodleLoadCB)), _NEW_INPLACE) OodleLoadCB(crd, crd.getBlockRest(), src_sz);
   }
   else if (fmt == btag_compr::ZSTD)
     zcrd_p = new (alloca(sizeof(ZstdLoadCB)), _NEW_INPLACE) ZstdLoadCB(crd, blockSize);
@@ -311,11 +315,13 @@ PhysMap *load_phys_map_with_decals(IGenLoad &crd, bool is_lmp2)
     matIdsRemap[id] = i;
   }
 
-  Tab<uint8_t> decalRegData;
-  decalRegData.resize(decal_render_reg * decal_render_reg);
+  Tab<uint8_t> decalRegData(decal_render_reg * decal_render_reg, framemem_ptr());
 
-  Tab<uint8_t> resultPhysData;
-  resultPhysData.resize(sz * sz);
+  using namespace dagor_phys_memory;
+  uint8_t *resultPhysData = (uint8_t *)defaultmem->tryAlloc(sz * sz);
+  bool resultPhysDataAtPhysMem = !resultPhysData;
+  if (!resultPhysData)
+    resultPhysData = (uint8_t *)alloc_phys_mem(sz * sz);
 
   RenderDecalMaterials<decal_render_reg, decal_render_reg> decalRender(make_span(decalRegData));
 
@@ -344,7 +350,12 @@ PhysMap *load_phys_map_with_decals(IGenLoad &crd, bool is_lmp2)
 
   del_it(physMap->parent);
   physMap->parent = new TreeBitmapNode;
-  physMap->parent->create(resultPhysData, IPoint2(sz, sz));
+  physMap->parent->create(make_span_const(resultPhysData, sz * sz), IPoint2(sz, sz));
+
+  if (!resultPhysDataAtPhysMem)
+    defaultmem->free(resultPhysData);
+  else
+    free_phys_mem(resultPhysData);
 
   return physMap;
 }

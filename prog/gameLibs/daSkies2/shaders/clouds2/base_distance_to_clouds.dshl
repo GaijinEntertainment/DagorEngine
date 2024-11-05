@@ -14,7 +14,7 @@ macro BASE_DISTANCE_TO_CLOUDS(code)
   //local float cloud_start_radius = (skies_planet_radius+clouds_start_altitude2);
   //local float cloud_end_radius = (cloud_start_radius+clouds_thickness2);
   (code) {
-    cloud_layers_altitudes_tex@smp2d = cloud_layers_altitudes_tex;
+    cloud_layers_altitudes_tex@tex2d = cloud_layers_altitudes_tex;
     //if no info
     //clouds_layer_info_big@f4 = (cloud_start_radius-0.001,
     //                            cloud_end_radius+0.001,

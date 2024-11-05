@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "postFX_panel.h"
 
 #include <oldEditor/de_interface.h>
@@ -5,15 +7,15 @@
 #include <osApiWrappers/dag_direct.h>
 #include <EditorCore/ec_IEditorCore.h>
 
-#include <propPanel2/comWnd/panel_window.h>
-#include <propPanel2/c_indirect.h>
+#include <propPanel/control/panelWindow.h>
+#include <propPanel/c_indirect.h>
 #include <sepGui/wndGlobal.h>
 #include <libTools/util/strUtil.h>
 
 
 EnvironmentPlugin::PostfxPanel::PostfxPanel(EnvironmentPlugin &plug, void *hwnd) : plugin(plug), scheme(NULL)
 {
-  propPanel = DAGORED2->createPropPanel(this, hwnd);
+  propPanel = DAGORED2->createPropPanel(this, "PostFX settings");
   scheme = propPanel->createSceme();
 
   pluginPostfxBlk = plugin.isAcesPlugin ? &plugin.currentEnvironmentAces.postfxBlk : &plugin.postfxBlk;
@@ -64,7 +66,7 @@ void EnvironmentPlugin::PostfxPanel::fillPanel()
 }
 
 
-void EnvironmentPlugin::PostfxPanel::onChange(int pcb_id, PropPanel2 *panel)
+void EnvironmentPlugin::PostfxPanel::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   DataBlock gameBlk;
   gameBlk.setFrom(pluginPostfxBlk);

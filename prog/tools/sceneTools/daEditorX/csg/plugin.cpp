@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_dataBlock.h>
 #include <coolConsole/coolConsole.h>
@@ -29,9 +31,11 @@
 #include "plugIn.h"
 #include "box_csg.h"
 
-#include <dllPluginCore/core.h>
+#include <EditorCore/ec_IEditorCore.h>
 #include "csg.h"
 #include "de3_box_vs_tri.h"
+
+using editorcore_extapi::dagGeom;
 
 
 CSGPlugin *CSGPlugin::self = NULL;
@@ -46,7 +50,7 @@ CSGPlugin::~CSGPlugin() { self = NULL; }
 
 bool CSGPlugin::begin(int toolbar_id, unsigned menu_id)
 {
-  PropertyContainerControlBase *toolbar = DAGORED2->getCustomPanel(toolbar_id);
+  PropPanel::ContainerPropertyControl *toolbar = DAGORED2->getCustomPanel(toolbar_id);
   G_ASSERT(toolbar);
   objEd.initUi(toolbar_id);
   return true;
@@ -291,6 +295,14 @@ void *CSGPlugin::queryInterfacePtr(unsigned huid)
   RETURN_INTERFACE(huid, IPostProcessGeometry);
   RETURN_INTERFACE(huid, IGatherStaticGeometry);
   return NULL;
+}
+
+void CSGPlugin::handleViewportAcceleratorCommand(unsigned id) { objEd.onClick(id, nullptr); }
+
+void CSGPlugin::registerMenuAccelerators()
+{
+  IWndManager &wndManager = *DAGORED2->getWndManager();
+  objEd.registerViewportAccelerators(wndManager);
 }
 
 void CSGPlugin::setVisible(bool vis)

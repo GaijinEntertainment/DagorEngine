@@ -1,8 +1,8 @@
 {
   local z = 0
-  let foo = FUNCTION foo(this, x, y) {
-    RETURN FUNCTION bar(this, a, b) {
-      RETURN FUNCTION qux(this, c, d) {
+  let foo = FUNCTION foo(x, y) {
+    RETURN FUNCTION bar(a, b) {
+      RETURN FUNCTION qux(c, d) {
         z = x + a - c
       }
     }

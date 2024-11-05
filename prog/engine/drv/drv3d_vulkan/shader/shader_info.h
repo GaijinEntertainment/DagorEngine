@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/dag_drv3dConsts.h>
+#include <EASTL/unique_ptr.h>
+#include <drv/3d/dag_consts.h>
 
 #include "vulkan_device.h"
 
@@ -136,37 +138,28 @@ struct ShaderInfo
     if ((module != info.module_a) || (header != info.header_a))
       return false;
 
-    if (info.header_b && info.module_b)
+    if (geometryShader)
     {
-      if (geometryShader)
-      {
-        return geometryShader->header == info.header_b && geometryShader->module == info.module_b;
-      }
-      return false;
+      if ((geometryShader->module != info.module_b) || (geometryShader->header != info.header_b))
+        return false;
     }
-    else if (geometryShader)
+    else if (info.module_b)
       return false;
 
-    if (info.header_c && info.module_c)
+    if (controlShader)
     {
-      if (controlShader)
-      {
-        return controlShader->header == info.header_c && controlShader->module == info.module_c;
-      }
-      return false;
+      if ((controlShader->module != info.module_c) || (controlShader->header != info.header_c))
+        return false;
     }
-    else if (controlShader)
+    else if (info.module_c)
       return false;
 
-    if (info.header_d && info.module_d)
+    if (evaluationShader)
     {
-      if (evaluationShader)
-      {
-        return evaluationShader->header == info.header_d && evaluationShader->module == info.module_d;
-      }
-      return false;
+      if ((evaluationShader->module != info.module_d) || (evaluationShader->header != info.header_d))
+        return false;
     }
-    else if (evaluationShader)
+    else if (info.module_d)
       return false;
 
     return true;

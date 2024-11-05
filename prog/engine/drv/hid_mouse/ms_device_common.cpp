@@ -1,5 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "ms_device_common.h"
-#include <humanInput/dag_hiGlobals.h>
+#include <drv/hid/dag_hiGlobals.h>
 #include <debug/dag_debug.h>
 #include "api_wrappers.h"
 
@@ -80,7 +82,7 @@ void GenericMouseDevice::setClipRect(int l, int t, int r, int b)
   clip.t = t;
   clip.r = r;
   clip.b = b;
-  // debug_ctx ( "set clip rect: (%d,%d)-(%d,%d)", l, t, r, b );
+  // DEBUG_CTX("set clip rect: (%d,%d)-(%d,%d)", l, t, r, b);
   if (clampStateCoord())
     setPosition(state.mouse.x, state.mouse.y);
 }

@@ -1,3 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 #include <stdint.h>
 
 // almost direct copy of optick layer
@@ -61,7 +64,8 @@ struct DataResponse
     SettingsPack = 11,
     Heartbeat = 12,
     ReportLiveFrameTime = 13,
-    Plugins = 14, // pack of current plugins
+    Plugins = 14,           // pack of current plugins
+    UniqueEventsBoard = 15, // Pack of UniqueEvents
     //...
     Reserved_255 = 255,
 
@@ -109,7 +113,7 @@ enum class ReadResponseStatus
 };
 
 template <class IGenLoadCB, class DataResponseCB>
-inline ReadResponseStatus read_responses(IGenLoadCB &load_cb, DataResponseCB &resp_cb)
+inline ReadResponseStatus read_responses(IGenLoadCB &load_cb, const DataResponseCB &resp_cb)
 {
   auto skip = [&](size_t sz) {
     char buf[256];

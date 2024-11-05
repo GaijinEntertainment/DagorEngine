@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -55,6 +54,8 @@ public:
   using SimpleScene::begin;
   using SimpleScene::end;
 
+  using SimpleScene::nodesInRange;
+
   const SimpleScene &getBaseSimpleScene() const { return *this; }
 
   struct NoAction
@@ -98,7 +99,7 @@ public:
     frustumCull(mat44f_cref globtm, vec4f pos_distscale, uint32_t test_flags, uint32_t equal_flags, Occlusion *occlusion,
       VisibleNodesF visible_nodes) const;
 
-  bool lockForRead() const
+  bool lockForRead() const DAG_TS_TRY_ACQUIRE_SHARED(true, mRWLock)
   {
     if (!isInWritingThread())
     {
@@ -109,7 +110,7 @@ public:
     return false;
   }
 
-  void unlockAfterRead() const
+  void unlockAfterRead() const DAG_TS_RELEASE_SHARED(mRWLock)
   {
     addReader(-1);
     mRWLock.unlockRead();
@@ -125,14 +126,22 @@ public:
     frustumCullOneTile(const scene::TiledSceneCullContext &ctx, mat44f_cref globtm, vec4f pos_distscale, Occlusion *occlusion,
       int tile_idx, VisibleNodesF visible_nodes) const;
 
+  // VisibleNodesFunctor(scene::node_index, mat44f_cref)
+  template <bool use_flags, bool use_pools, typename VisibleNodesFunctor>
+  void nodesInRange(bbox3f_cref box, uint32_t test_flags, uint32_t equal_flags, VisibleNodesFunctor visible_nodes, int start_index,
+    int end_index) const;
+
   template <bool use_flags, bool use_pools, typename VisibleNodesFunctor> // VisibleNodesFunctor(scene::node_index, mat44f_cref)
   void boxCull(bbox3f_cref box, uint32_t test_flags, uint32_t equal_flags, VisibleNodesFunctor visible_nodes) const;
+
   // default is min_nodes_count = 16, kdtree_rebuild_threshold = 1.
   void setKdtreeRebuildParams(unsigned min_nodes_count, float kdtree_rebuild_threshold);
   // defualt is min_to_split_by_geom = 8, max_to_split_by_count = 32;
   // min_box_to_split_geom=32.f, max_box_to_split_count = 8.f
   void setKdtreeBuildParams(uint32_t min_to_split_by_geom, uint32_t max_to_split_by_count, float min_box_to_split_geom,
     float max_box_to_split_count);
+
+  int getTileCountInBox(bbox3f_cref box) const;
 
 protected:
   node_index reserveOne();
@@ -311,13 +320,33 @@ protected:
     } command;
   };
 
-  dag::Vector<DeferredCommand> mDeferredCommand;
+  // Helper class to ensure that counter is written atomically and after command data write
+  // (for lockless read in `flushDeferredTransformUpdates`)
+  class DeferredCommandVector : public dag::Vector<DeferredCommand>
+  {
+  public:
+    using dag::Vector<DeferredCommand>::Vector;
+
+    DeferredCommand &push_back(...) = delete;    // Use `addCmd` instead
+    void *push_back_uninitialized(...) = delete; // Use `addCmd` instead
+
+    template <typename F>
+    void addCmd(F cb)
+    {
+      if (EASTL_UNLIKELY(size() == capacity()))
+        DoGrow(GetNewCapacity(size()));
+      cb(data()[mCount]);
+      interlocked_increment(*(volatile int *)&mCount);
+    }
+    bool empty() const { return interlocked_acquire_load(*(volatile int *)&mCount) == 0; }
+  };
+  DeferredCommandVector mDeferredCommand;
   std::mutex mDeferredSetTransformMutex;
 
   __forceinline uint32_t selectTileIndex(uint32_t n_index, bool allow_add);
   __forceinline void insertNode(TileData &tile, node_index node);
   __forceinline void removeNode(TileData &tile, node_index node);
-  __forceinline void updateTileExtents(TileData &tile, mat44f_cref &node, bbox3f &wabb);
+  __forceinline void updateTileExtents(TileData &tile, mat44f_cref node, bbox3f &wabb);
   __forceinline void updateTileMaxExt(int tidx);
   __forceinline void scheduleTileMaintenance(TileData &tile, uint32_t mflags);
   __forceinline void initTile(TileData &tile);
@@ -1113,14 +1142,37 @@ __forceinline void scene::TiledScene::internalBoxCull(bbox3f_cref bbox, const Ti
   }
 }
 
-template <bool use_flags, bool use_pools, typename VisibleNodesFunctor> // VisibleNodesFunctor(scene::node_index, mat44f_cref)
+inline int scene::TiledScene::getTileCountInBox(bbox3f_cref box) const
+{
+  if (!getNodesAliveCount())
+    return 0;
+
+  ReadLockRAII lock(*this);
+
+  alignas(16) int regions[4];
+  getBoxRegion(regions, box.bmin, box.bmax);
+
+  const int tilesInGrid = (regions[2] - regions[0] + 1) * (regions[3] - regions[1] + 1);
+  return eastl::min((int)tileCull.size(), tilesInGrid);
+}
+
+// VisibleNodesFunctor(scene::node_index, mat44f_cref)
+template <bool use_flags, bool use_pools, typename VisibleNodesFunctor>
 void scene::TiledScene::boxCull(bbox3f_cref box, uint32_t test_flags, uint32_t equal_flags, VisibleNodesFunctor visible_nodes) const
+{
+  nodesInRange<use_flags, use_pools>(box, test_flags, equal_flags, visible_nodes, 0, tileCull.size());
+}
+
+// VisibleNodesFunctor(scene::node_index, mat44f_cref)
+template <bool use_flags, bool use_pools, typename VisibleNodesFunctor>
+void scene::TiledScene::nodesInRange(bbox3f_cref box, uint32_t test_flags, uint32_t equal_flags, VisibleNodesFunctor visible_nodes,
+  int start_index, int end_index) const
 {
   if (!getNodesAliveCount())
     return;
 
   ReadLockRAII lock(*this);
-  if (tileCull.size() <= 1) // if evrything is in outer tile, or no tiles at all
+  if (tileCull.size() <= 1) // if everything is in outer tile, or no tiles at all
   {
     SimpleScene::boxCull<use_flags, use_pools, VisibleNodesFunctor>(box, test_flags, equal_flags, visible_nodes);
     return;
@@ -1138,7 +1190,7 @@ void scene::TiledScene::boxCull(bbox3f_cref box, uint32_t test_flags, uint32_t e
   {
     // if there are too much tiles in selected area - iterate over tiles, to avoid indirection
     // it actually happen
-    for (int i = OUTER_TILE_INDEX; i < tileCull.size(); ++i)
+    for (int i = eastl::max<int>(OUTER_TILE_INDEX, start_index), ie = eastl::min<int>(tileCull.size(), end_index); i < ie; ++i)
     {
       if (isEmptyTileMemory(tileBox.data()[i]))
         continue;
@@ -1147,9 +1199,19 @@ void scene::TiledScene::boxCull(bbox3f_cref box, uint32_t test_flags, uint32_t e
   }
   else
   {
+    int i = 0;
     for (int tz = regions[1]; tz <= regions[3]; ++tz) // otherwise use grid
-      for (int tx = regions[0]; tx <= regions[2]; ++tx)
+    {
+      if (i >= end_index)
+        break;
+
+      for (int tx = regions[0]; tx <= regions[2]; ++tx, ++i)
       {
+        if (i < start_index)
+          continue;
+        if (i >= end_index)
+          break;
+
         const uint32_t tileIndex = getTileIndexOffseted(tx, tz);
         if (tileIndex == INVALID_INDEX)
           continue;
@@ -1159,6 +1221,7 @@ void scene::TiledScene::boxCull(bbox3f_cref box, uint32_t test_flags, uint32_t e
         internalBoxCull<use_flags, use_pools>(tileBox.data()[tileIndex], tileCull.data()[tileIndex], box, test_flags, equal_flags,
           visible_nodes);
       }
+    }
     if (!isEmptyTileMemory(tileBox.data()[OUTER_TILE_INDEX]))
       internalBoxCull<use_flags, use_pools>(tileBox.data()[OUTER_TILE_INDEX], tileCull.data()[OUTER_TILE_INDEX], box, test_flags,
         equal_flags, visible_nodes);
@@ -1172,31 +1235,32 @@ void scene::TiledScene::setNodeUserData(node_index node, unsigned user_cmd, cons
   G_ASSERTF_AND_DO(user_cmd < DeferredCommand::SET_USER_DATA, user_cmd = DeferredCommand::SET_USER_DATA - 1, "user_cmd=0x%X",
     user_cmd);
   std::lock_guard<std::mutex> scopedLock(mDeferredSetTransformMutex);
-  if (isInWritingThread() && !mDeferredCommand.size())
+  if (isInWritingThread() && mDeferredCommand.empty())
   {
     WriteLockRAII lock(*this);
     if (user_cmd_processsor(user_cmd, *this, node, (const char *)&data))
       return;
   }
 
-  DeferredCommand &cmd = mDeferredCommand.push_back();
-  cmd.command = DeferredCommand::Cmd(cmd.SET_USER_DATA + user_cmd);
-  cmd.node = node;
-  memcpy(&cmd.transformCommand, &data, sizeof(data));
+  mDeferredCommand.addCmd([&](DeferredCommand &cmd) {
+    cmd.command = DeferredCommand::Cmd(cmd.SET_USER_DATA + user_cmd);
+    cmd.node = node;
+    memcpy(&cmd.transformCommand, &data, sizeof(data));
+  });
 }
 
 template <typename T, typename F>
 void scene::TiledScene::flushDeferredTransformUpdates(F user_cmd_processor)
 {
   G_ASSERT_RETURN(isInWritingThread(), );
-  if (!mDeferredCommand.size())
+  if (mDeferredCommand.empty()) // Note: atomic read (intentionally without mutex taken)
     return;
 
   std::lock_guard<std::mutex> scopedLock(mDeferredSetTransformMutex);
   WriteLockRAII lock(*this);
   if (usedTilesCount == 0) // drop commands added after tile data was terminated
   {
-    mDeferredCommand.resize(0);
+    mDeferredCommand.clear();
     return;
   }
   applyReserves();
@@ -1239,7 +1303,7 @@ void scene::TiledScene::flushDeferredTransformUpdates(F user_cmd_processor)
     newCommands.reserve(256);
     newCommands.swap(mDeferredCommand);
   }
-  mDeferredCommand.resize(0);
+  mDeferredCommand.clear();
   G_ASSERT(tileData[OUTER_TILE_INDEX].isDead() == tileCull[OUTER_TILE_INDEX].isDead());
   G_ASSERT(tileData[OUTER_TILE_INDEX].isDead() == isEmptyTile(tileBox[OUTER_TILE_INDEX], tileCull[OUTER_TILE_INDEX]));
 }

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/net/network.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/template.h>
@@ -23,6 +25,8 @@
 
 namespace net
 {
+extern const uint32_t MIN_ENCRYPTION_KEY_LENGTH = EncryptionCtx::KEY_LEN;
+
 extern void dump_and_clear_components_profiler_stats();
 extern void reset_replicate_component_filters();
 
@@ -41,7 +45,7 @@ extern void clear_cached_replicated_components();
 static int cachedCreationBandwith = -1, cachedCreationMaxDeltaTime = -1;
 static inline eastl::pair<int, int> get_creation_bw_limits() // returns (bandwidth, maxDeltaTime)
 {
-  if (EASTL_UNLIKELY(cachedCreationBandwith < 0))
+  if (DAGOR_UNLIKELY(cachedCreationBandwith < 0))
   {
     const DataBlock *blk = dgs_get_settings();
     blk = blk->getBlockByNameEx("net");
@@ -148,7 +152,7 @@ static inline bool check_routing(const IMessage &msg, const CNetwork &cnet, ecs:
         if (!robj)
           robj = g_entity_mgr->getNullable<net::Object>(toEid, ECS_HASH("replication"));
 #if DAECS_EXTENSIVE_CHECKS
-        G_ASSERTF(robj, "%d", (ecs::entity_id_t)toEid);
+        G_ASSERTF(robj || (send && !g_entity_mgr->doesEntityExist(toEid)), "%d", (ecs::entity_id_t)toEid);
 #endif
         return robj && receiver == robj->getControlledBy();
       }
@@ -166,7 +170,7 @@ void CNetwork::ObjMsg::apply(const net::Object &robj, net::Connection &from, CNe
   G_ASSERT(!mgr.isLoadingEntity(toEid));
   alignas(16) char tmpBuf[256];
   void *dataPtr = tmpBuf;
-  if (EASTL_UNLIKELY(msgCls->memSize > sizeof(tmpBuf)))
+  if (DAGOR_UNLIKELY(msgCls->memSize > sizeof(tmpBuf)))
     dataPtr = framemem_ptr()->alloc(msgCls->memSize);
   eastl::unique_ptr<IMessage, MessageDeleter> msg(&msgCls->create(dataPtr), MessageDeleter(/*heap*/ false));
   if (check_routing(*msg, cnet, toEid, &robj, from.getId(), /*send*/ false))
@@ -454,6 +458,13 @@ bool CNetwork::sendto(int cur_time, ecs::EntityId to_eid, const IMessage &msg, I
   return conn->send(cur_time, bsToSend, pprio, mdsc.reliability, mdsc.channel, mdsc.dupDelay);
 }
 
+void CNetwork::setScopeQueryCb(scope_query_cb_t &&sqcb)
+{
+  G_ASSERT(isServer());
+  G_ASSERT(clientConnections.empty());
+  scope_query = eastl::move(sqcb);
+}
+
 #define GET_CONN_OR_LEAVE(idx)                                                              \
   Connection *conn = getConnection(idx);                                                    \
   if (!conn)                                                                                \
@@ -637,7 +648,7 @@ void CNetwork::onPacket(const Packet *pkt, int cur_time_ms, uint8_t replication_
         if (!bsToRead)
           break;
         // Make sure that entities actually destroyed before creating new ones (in order to free potentially colliding eid slots)
-        if (EASTL_UNLIKELY(numEntitiesDestroyed != 0))
+        if (DAGOR_UNLIKELY(numEntitiesDestroyed != 0))
         {
           g_entity_mgr->performDelayedCreation(/*flush_all*/ false);
           numEntitiesDestroyed = 0;

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -15,10 +14,12 @@
 #include <gamePhys/ballistics/shellBallisticProps.h>
 #include <gamePhys/ballistics/shellBallistics.h>
 #include <gamePhys/ballistics/rocketMotorProps.h>
+#include <gamePhys/ballistics/shellPayloadProps.h>
 #include <ecs/gamePhys/ballistics.h>
 
 MAKE_TYPE_FACTORY(ProjectileProps, ballistics::ProjectileProps);
 MAKE_TYPE_FACTORY(ShellProps, ballistics::ShellProps);
+MAKE_TYPE_FACTORY(ShellPayloadProps, ShellPayloadProps);
 MAKE_TYPE_FACTORY(RocketMotorProps, ballistics::RocketMotorProps);
 
 using RocketMotorPropsArrayFloat2 = carray<float, 2>;

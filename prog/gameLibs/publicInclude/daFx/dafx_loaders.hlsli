@@ -53,6 +53,12 @@ float4 dafx_get_4f( BufferData_cref buf, uint offset )
 }
 
 DAFX_INLINE
+float3x3 dafx_get_33mat( BufferData_cref buf, uint offset )
+{
+  return *(Matrix3*)(buf + offset );
+}
+
+DAFX_INLINE
 float4x4 dafx_get_44mat( BufferData_cref buf, uint offset )
 {
   return *(TMatrix4*)(buf + offset );
@@ -168,6 +174,14 @@ float4x4 dafx_load_44mat( BufferData_cref buf, uint1_ref offset )
   return v;
 }
 
+DAFX_INLINE
+float3x3 dafx_load_33mat( BufferData_cref buf, uint1_ref offset )
+{
+  float3x3 v = dafx_get_33mat( buf, offset );
+  offset += 9u;
+  return v;
+}
+
 // savers
 DAFX_INLINE
 void dafx_store_1ui( uint v, BufferData_ref buf, uint1_ref offset )
@@ -275,6 +289,16 @@ float4 _dafx_get_4f(uint offset, int file, int ln )
     asfloat( loadBufferBase(dafx_system_data, offset + 1, file, ln, -1) ),
     asfloat( loadBufferBase(dafx_system_data, offset + 2, file, ln, -1) ),
     asfloat( loadBufferBase(dafx_system_data, offset + 3, file, ln, -1) ) );
+}
+
+#define dafx_get_33mat(_buf, _offset) _dafx_get_33mat(_offset, _FILE_, __LINE__)
+float3x3 _dafx_get_33mat(uint offset, int file, int ln )
+{
+  float3x3 r;
+  r[0] = _dafx_get_3f( offset + 0, file, ln );
+  r[1] = _dafx_get_3f( offset + 3, file, ln );
+  r[2] = _dafx_get_3f( offset + 6, file, ln );
+  return r;
 }
 
 #define dafx_get_44mat(_buf, _offset) _dafx_get_44mat(_offset, _FILE_, __LINE__)
@@ -446,6 +470,14 @@ float4x4 _dafx_load_44mat( uint1_ref offset, int file, int ln )
 {
   float4x4 v = _dafx_get_44mat( offset, file, ln );
   offset += 16u;
+  return v;
+}
+
+#define dafx_load_33mat(_buf, _offset) _dafx_load_33mat(_offset, _FILE_, __LINE__)
+float3x3 _dafx_load_33mat( uint1_ref offset, int file, int ln )
+{
+  float3x3 v = _dafx_get_33mat( offset, file, ln );
+  offset += 9u;
   return v;
 }
 

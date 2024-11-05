@@ -1,6 +1,5 @@
 Config = rel ;
 ConsoleExe = yes ;
-if $(OS) = NT { Platform ?= win64 ; }
 ProjectAllowsOodle = yes ;
 
 Root    ?= ../../../.. ;
@@ -9,12 +8,7 @@ include $(Root)/prog/tools/tools_setup.jam ;
 
 TargetType  = exe ;
 Target      = util/ddsxCvt ;
-
-include $(Root)/prog/_jBuild/defaults.jam ;
-
-OutDir = $(Root)/tools/dagor3_cdk/util ;
-if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
-if $(Platform) in linux64 macosx { OutDir = $(OutDir)-$(Platform) ; }
+include $(Root)/prog/tools/tools_setup_outdir_util.jam ;
 
 AddIncludes     = $(Root)/prog/tools/sharedInclude ;
 
@@ -36,6 +30,6 @@ UseProgLibs =
   tools/libTools/util
 ;
 
-if $(Platform) = linux64 { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
+if $(Platform) = linux { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

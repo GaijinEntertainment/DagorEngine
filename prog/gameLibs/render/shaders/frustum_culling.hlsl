@@ -25,6 +25,34 @@ bool baseTestBoxExtentB(float3 center, float3 extent, float4 planes03X, float4 p
   return comp;
 }
 
+bool baseTestBoxExtentIntersects(float3 center, float3 extent, float4 planes03X, float4 planes03Y, float4 planes03Z, float4 planes03W, float4 plane4, float4 plane5)
+{
+  float4 res03;
+  res03 = (center.xxxx - extent.x * sign(planes03X)) * planes03X + planes03W;
+  res03 = (center.yyyy - extent.y * sign(planes03Y)) * planes03Y + res03;
+  res03 = (center.zzzz - extent.z * sign(planes03Z)) * planes03Z + res03;
+
+  bool outside = all(bool4(res03 >= 0));
+  outside = (dot(center.xyz - extent * sign(plane4.xyz), plane4.xyz) + plane4.w >=0 ) & outside;
+  outside = (dot(center.xyz - extent * sign(plane5.xyz), plane5.xyz) + plane5.w >=0 ) & outside;
+  return !outside;
+}
+
+uint baseTestBoxExtent(float3 center, float3 extent, float4 planes03X, float4 planes03Y, float4 planes03Z, float4 planes03W, float4 plane4, float4 plane5)
+{
+
+  float4 res03;
+  res03 = (center.xxxx + extent.x * sign(planes03X)) * planes03X + planes03W;
+  res03 = (center.yyyy + extent.y * sign(planes03Y)) * planes03Y + res03;
+  res03 = (center.zzzz + extent.z * sign(planes03Z)) * planes03Z + res03;
+  bool inside = all(bool4(res03 >= 0));
+  inside = (dot(center.xyz + extent * sign(plane4.xyz), plane4.xyz) + plane4.w >=0 ) & inside;
+  inside = (dot(center.xyz + extent * sign(plane5.xyz), plane5.xyz) + plane5.w >=0 ) & inside;
+
+  bool intersects = baseTestBoxExtentIntersects(center, extent, planes03X, planes03Y, planes03Z, planes03W, plane4, plane5);
+  return inside ? 1+uint(intersects) : 0;
+}
+
 void get_frustum_planes(float4x4 m2, out float4 planes03X, out float4 planes03Y, out float4 planes03Z, out float4 planes03W, out float4 plane4, out float4 plane5)
 {
   float4 camPlanes0 = (m2[3] - m2[0]);  // right

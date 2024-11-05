@@ -1,0 +1,81 @@
+entity_anchor {
+  "anchor__parent:eid" {}
+  anchor__offset:p3=0,0,0
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+}
+
+winch_anchor {
+  _use:t="entity_anchor"
+  "anchor__winch:tag" {}
+}
+
+world_anchor {
+  _use:t="entity_anchor"
+  "anchor__ri_extra_handle:u64"{
+    value:i64=-1
+  }
+  "anchorWorld:tag" {}
+}
+
+winching_in_progress {
+  "winch_first_eid:eid" {}
+  "winch_owner:eid" {}
+}
+
+rope_base_phys {
+  _use:t="spline_gen_geometry" // requires spline_geometry
+  rope_phys__segmentLen:r=0
+  "spline_gen_geometry__points:list<p3>" {}
+  "rope_phys__prevPos:list<p3>" {}
+
+  spline_gen_geometry__lods_name:t="rope"
+  spline_gen_geometry__radius:p3=0.0125, 0.0125, 0.0125
+}
+
+rope_phys {
+  _use:t="rope_base_phys"
+  rope_phys__numPoints:i=30
+  rope_phys__length:r=5
+  rope_phys__start:p3=0,0,0
+  rope_phys__end:p3=0,0,0
+}
+
+detached_rope {
+  _use:t="rope_base_phys"
+
+  rope_phys__despawnAt:r=0
+  rope_phys__lastFixed:b=no
+  "phys_joint__firstBody:eid" {}
+  phys_joint__firstBodyAnchor:p3=0,0,0
+  detached_rope__isOrigin:b=no
+}
+
+phys_joint_pt {
+  "phys_joint__firstBody:eid" {}
+  "phys_joint__secondBody:eid" {}
+  "phys_joint__firstAnchor:eid" {}
+  "phys_joint__secondAnchor:eid" {}
+  phys_joint__firstBodyAnchor:p3=0,0,0
+  phys_joint__secondBodyAnchor:p3=0,0,0
+  phys_joint__jointLength:r=5
+
+  // handle to a ri_extra this joint is attached
+  "ri_extra__handle:u64"{
+    value:i64=-1
+  }
+
+  joint__lambdaSum:r=0 // it's duplicated in winch_settings in tts. probably a good idea to have it only in one place
+
+  joint__stressLimit:r=40000
+  joint__stressStart:r=25000
+  joint__stress:r=0
+  joint__detachedDuration:r=3.0
+}
+
+phys_joint_ext {
+  _use:t="phys_joint_pt"
+  phys_joint__extensionMax:r=20
+  joint__stressStart:r=2000
+  joint__stressLimit:r=5000
+  joint__detachAtEnding:b=yes
+}

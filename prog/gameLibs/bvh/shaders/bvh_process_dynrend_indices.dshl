@@ -1,0 +1,61 @@
+include "shader_global.dshl"
+
+int bvh_process_target_offset;
+int bvh_process_dynrend_indices_start;
+int bvh_process_dynrend_indices_start_aligned;
+int bvh_process_dynrend_indices_count;
+int bvh_process_dynrend_indices_vertex_base;
+int bvh_process_dynrend_indices_size;
+
+interval bvh_process_dynrend_indices_size: two < 4, four;
+
+interval bvh_process_dynrend_indices_start_aligned: no < 1, yes;
+
+shader bvh_process_dynrend_indices
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+  (cs) {
+    target_offset@u1 = bvh_process_target_offset;
+    start_index@i1 = bvh_process_dynrend_indices_start;
+    vertex_base@i1 = bvh_process_dynrend_indices_vertex_base;
+    item_count@i1 = bvh_process_dynrend_indices_count;
+  }
+
+  hlsl(cs) {
+    ByteAddressBuffer source : register(t6);
+    RWByteAddressBuffer output : register(u0);
+
+    [numthreads( 64, 1, 1 )]
+    void bvh_process_dynrend_indices(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint indexId = dtId.x;
+      if (indexId >= item_count)
+        return;
+
+      ##if bvh_process_dynrend_indices_size == four
+        uint index = source.Load((start_index + indexId) * 4);
+        output.Store(target_offset + indexId * 4, index - vertex_base);
+      ##else
+        int address = start_index * 2 + indexId * 4;
+        ##if bvh_process_dynrend_indices_start_aligned == yes
+          // Dword aligned
+          uint packedIndex = source.Load(address);
+          uint2 indices = uint2(packedIndex & 0xFFFF, packedIndex >> 16);
+        ##else
+          // In the middle of a dword
+          uint2 packedIndex = source.Load2(address - 2);
+          uint2 indices = uint2(packedIndex.x >> 16, packedIndex.y & 0xFFFF);
+        ##endif
+
+        indices -= vertex_base;
+        uint index = indices.x | (indices.y << 16);
+        output.Store(target_offset + indexId * 4, index);
+      ##endif
+    }
+  }
+
+  compile("target_cs", "bvh_process_dynrend_indices");
+}

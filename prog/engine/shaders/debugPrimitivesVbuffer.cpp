@@ -1,6 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <shaders/dag_DebugPrimitivesVbuffer.h>
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_buffers.h>
 
 #include <EASTL/unique_ptr.h>
 #include <generic/dag_sort.h>

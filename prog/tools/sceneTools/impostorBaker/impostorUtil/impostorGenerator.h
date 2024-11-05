@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <ioSys/dag_dataBlock.h>
@@ -38,8 +39,8 @@ public:
   const ImpostorBaker *getImpostorBaker() const { return &impostorBaker; }
   ImpostorBaker *getImpostorBaker() { return &impostorBaker; }
 
-  dag::Vector<DagorAsset *> gatherListForBaking();
-  dag::Vector<DagorAsset *> gatherListForBakingWithPacks(const eastl::set<eastl::string> &packs);
+  dag::Vector<DagorAsset *> gatherListForBaking(bool forceRebake = false);
+  dag::Vector<DagorAsset *> gatherListForBakingWithPacks(const eastl::set<eastl::string> &packs, bool forceRebake = false);
   dag::Vector<DagorAsset *> gatherListForBakingFromArgs(const eastl::vector<eastl::string> &assetsToBuild);
   bool hasAssetChanged(DagorAsset *asset) const;
   // returns true if all data was gathered successfully (including baked textures)
@@ -70,4 +71,7 @@ private:
 
   void loadCharacterMicroDetails(const DataBlock *micro);
   void closeCharacterMicroDetails();
+
+  void addProxyMatTextureSourceFiles(const char *src_file_path, const char *owner_asset_name,
+    eastl::set<String, ImpostorBaker::StrLess> &files) const;
 };

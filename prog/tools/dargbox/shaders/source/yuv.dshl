@@ -1,5 +1,18 @@
 include "shader_global.dshl"
 
+float4 viewportRect;
+
+int transparent = 0;
+interval transparent: transOff < 1, transOn < 2, transNonpremultiplied < 3, transAdditive;
+
+int useColorMatrix = 0;
+interval useColorMatrix: cmOff < 1, cmUsed;
+float4 colorMatrix0;
+float4 colorMatrix1;
+float4 colorMatrix2;
+float4 colorMatrix3;
+
+
 shader yuv_movie
 {
   z_test=false;
@@ -14,18 +27,6 @@ shader yuv_movie
   dynamic texture texY;
   dynamic texture texU;
   dynamic texture texV;
-  dynamic float4 viewportRect;
-
-  dynamic int transparent = 0;
-  interval transparent: transOff < 1, transOn < 2, transNonpremultiplied < 3, transAdditive;
-
-  dynamic int useColorMatrix = 0;
-  interval useColorMatrix: cmOff < 1, cmUsed;
-  dynamic float4 colorMatrix0;
-  dynamic float4 colorMatrix1;
-  dynamic float4 colorMatrix2;
-  dynamic float4 colorMatrix3;
-
   (vs) {
     viewport@f4 = viewportRect;
   }

@@ -1,0 +1,98 @@
+include "shader_global.dshl"
+include "viewVecVS.dshl"
+
+float4x4 infinite_grid_view_proj;
+float4 infinite_grid_major_line_color;
+float4 infinite_grid_minor_line_color;
+float infinite_grid_major_line_width;
+float infinite_grid_minor_line_width;
+float infinite_grid_major_subdivisions;
+float infinite_grid_y_position;
+
+shader infinite_grid
+{
+  cull_mode = none;
+  blend_src = 1;
+  blend_dst = isa;
+
+  USE_AND_INIT_VIEW_VEC_VS()
+
+  hlsl
+  {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 viewVect: TEXCOORD0;
+    };
+  }
+
+  hlsl(vs)
+  {
+    VsOutput infinite_grid_vs(uint vertex_id : SV_VertexID)
+    {
+      VsOutput output;
+      float2 inpos = get_fullscreen_inpos(vertex_id);
+      output.pos = float4(inpos, 0.0, 1.0);
+      output.viewVect = get_view_vec_by_vertex_id(vertex_id);
+      return output;
+    }
+  }
+  compile("target_vs", "infinite_grid_vs");
+
+  (ps)
+  {
+    world_view_pos@f3 = world_view_pos;
+    infinite_grid_view_proj@f44 = infinite_grid_view_proj;
+
+    infinite_grid_major_line_color@f4 = infinite_grid_major_line_color;
+    infinite_grid_minor_line_color@f4 = infinite_grid_minor_line_color;
+    infinite_grid_major_line_width@f1 = infinite_grid_major_line_width;
+    infinite_grid_minor_line_width@f1 = infinite_grid_minor_line_width;
+    infinite_grid_major_subdivisions@f1 = infinite_grid_major_subdivisions;
+    infinite_grid_y_position@f1 = infinite_grid_y_position;
+  }
+
+  hlsl(ps)
+  {
+    float raycast_on_plane(float3 ray_start, float3 ray_dir, float3 point_on_plane, float3 plane_normal)
+    {
+      float divisor = dot(ray_dir, plane_normal);
+      if (abs(divisor) < 0.00001)
+        return -1.0;
+      return dot(point_on_plane - ray_start, plane_normal) / divisor;
+    }
+
+    float calculateGrid(float2 uv, float line_width)
+    {
+      // Based on "The Best Darn Grid Shader (Yet)" by Ben Golus
+      // https://bgolus.medium.com/the-best-darn-grid-shader-yet-727f9278b9d8
+      float2 uvDeriv = fwidth(uv);
+      float2 drawWidth = clamp(line_width, uvDeriv, 0.5);
+      float2 lineAa = uvDeriv * 1.5;
+      float2 gridUv = 1.0 - abs((frac(uv) * 2.0) - 1.0);
+      float2 grid2 = smoothstep(drawWidth + lineAa, drawWidth - lineAa, gridUv);
+      grid2 *= saturate(line_width / drawWidth);
+      return lerp(grid2.x, 1.0, grid2.y);
+    }
+
+    float4 infinite_grid_ps(VsOutput input, out float depth : SV_Depth) : SV_Target
+    {
+      float3 dir = input.viewVect;
+      float w = raycast_on_plane(world_view_pos, dir, float3(0, infinite_grid_y_position, 0), float3(0, 1, 0));
+      if (w < 0.0)
+        discard;
+
+      float3 worldPos = world_view_pos + w * dir;
+      float2 uv = worldPos.xz;
+      float minorGrid = calculateGrid(uv, infinite_grid_minor_line_width);
+      float majorGrid = calculateGrid(uv / infinite_grid_major_subdivisions, infinite_grid_major_line_width / infinite_grid_major_subdivisions);
+
+      float4 projectedPos = mul(infinite_grid_view_proj, float4(worldPos, 1.0));
+      depth = projectedPos.z / projectedPos.w;
+
+      float4 color = infinite_grid_minor_line_color * minorGrid;
+      return lerp(color, infinite_grid_major_line_color, majorGrid);
+    }
+  }
+  compile("target_ps", "infinite_grid_ps");
+}

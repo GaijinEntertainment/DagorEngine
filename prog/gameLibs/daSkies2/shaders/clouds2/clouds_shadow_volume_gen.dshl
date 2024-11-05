@@ -40,6 +40,7 @@ shader copy_cloud_shadows_volume
   hlsl(cs) {
     RWTexture3D<uint> output : register(u0);
 
+    #pragma wave32
     [numthreads(CLOUD_SHADOWS_WARP_SIZE_XZ/2, CLOUD_SHADOWS_WARP_SIZE_XZ, CLOUD_SHADOWS_WARP_SIZE_Y)]
     void cs_main(uint3 dtid : SV_DispatchThreadID) {
       uint3 tid = uint3(dtid.x*2, dtid.yz) + uint3(start_compute_offset.xyz);//todo: use some jitter instead (z-curve)

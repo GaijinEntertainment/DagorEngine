@@ -1,13 +1,11 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_tex3d.h>
 #include <3d/dag_texMgr.h>
-#include <3d/dag_drv3dCmd.h>
 #include <3d/dag_textureIDHolder.h>
 #include <3d/dag_eventQueryHolder.h>
 #include <math/dag_e3dColor.h>
@@ -56,16 +54,6 @@ struct DemonPostFxSettings
   Color3 brightnessColor;
   real brightness;
 
-  // Adaptation
-  real targetBrightness;
-  real targetBrightnessUp, targetBrightnessEffect;
-
-  real adaptMin, adaptMax;
-  real adaptTimeUp, adaptTimeDown;
-
-  float perceptionLinear;
-  float perceptionPower;
-
   real lum_min, lum_max, lum_avg;
   real lowBrightScale; // effect of low level threshold. should be as close to 1 as possible. 0.9 - default
 
@@ -110,17 +98,21 @@ public:
   // NOTE: Image is affected by motion blur.
   bool showAlpha;
 
-
-  DemonPostFx(const DataBlock &main_blk, const DataBlock &hdr_blk, int target_w, int target_h, unsigned rtarget_flags,
+  DemonPostFx(const DataBlock &main_blk, const DataBlock &adaptation_blk, int target_w, int target_h, unsigned rtarget_flags,
     bool initPostfxGlow = true, bool initSunVolfog = true);
   ~DemonPostFx();
 
   //! updates settings that don't require recreate, or return false to indicated need of recreate
-  bool updateSettings(const DataBlock &main_blk, const DataBlock &hdr_blk);
+  bool updateSettings(const DataBlock &main_blk);
+
+  using PreCombineFxProc = void (*)();
+
+  TextureIDPair downsample(Texture *input_tex, TEXTUREID input_id, const Point4 &input_uv_transform = Point4(1, 1, 0, 0));
 
   void apply(bool vr_mode, Texture *input_tex, TEXTUREID input_id, Texture *output_tex, TEXTUREID output_id, const TMatrix &view_tm,
     const TMatrix4 &proj_tm, Texture *depth_tex = nullptr, int eye = -1, int target_layer = 0,
-    const Point4 &target_uv_transform = Point4(1, 1, 0, 0), const RectInt *output_viewport = nullptr);
+    const Point4 &target_uv_transform = Point4(1, 1, 0, 0), const RectInt *output_viewport = nullptr,
+    PreCombineFxProc pre_combine_fx_proc = nullptr);
 
   void prepareSkyMask(const TMatrix &view_tm); // if we want, we can call it before apply
 
@@ -161,36 +153,14 @@ public:
 
   void setSunDir(const Point3 &dir2sun) { current.setSunDir(dir2sun); }
 
-  void update(float dt);
-
   const UniqueTex &getPrevFrameLowResTex() const { return prevFrameLowResTex; }
   TextureIDPair getUIBlurTex() const { return TextureIDPair(uiBlurTex.getTex2D(), uiBlurTex.getTexId()); }
 
-  void resetAdaptation(float value = 1)
-  {
-    adaptationResetValue = value;
-    framesBeforeValidHistogram = 2;
-    removeQueries();
-  }
-
-  //! returns current adaptation value; slow due to need to lock RT to read value!
-  float getCurrentAdaptationValueSlow();
-
-  void setUseAdaptation(bool use);
-  bool getUseAdaptation() { return useAdaptation; }
-  void setAdaptationPause(bool pause) { pauseAdaptationUpdate = pause; };
-  void setShowHistogram(bool show) { showHistogram = show; }
-
   void setLenseFlareEnabled(bool enabled);
 
-
-  void onBeforeReset3dDevice();
   void delayedCombineFx(TEXTUREID textureId);
 
   static bool globalDisableAdaptation;
-
-  //! use LUT-based shaders (default=false)
-  static bool useLutTexture;
 
   const TMatrix &getParamColorMatrix() { return paramColorMatrix; }
   void setExternalSkyMaskTexId(TEXTUREID texId) { externalSkyMaskTexId = texId; }
@@ -204,9 +174,6 @@ public:
   void initLenseFlare(const char *lense_covering_tex_name, const char *lense_radial_tex_name);
   void closeLenseFlare();
 
-  bool getCenterWeightedAdaptation() const;
-  void setCenterWeightedAdaptation(bool value);
-
 protected:
   bool skyMaskPrepared;
   void applyLenseFlare(const UniqueTex &src_tex);
@@ -216,29 +183,13 @@ protected:
 
   Flare lensFlare;
 
-  friend class DemonPostFxConProc;
-  UniqueBufHolder hist_verts; // for debug
-  UniqueBufHolder hist_inds;  // for debug
-  enum
-  {
-    MAX_HISTOGRAM_COLUMNS_BITS = 8,
-    MAX_HISTOGRAM_COLUMNS = 1 << MAX_HISTOGRAM_COLUMNS_BITS
-  }; // up to 256 is reasonable. SHOULD BE power of TWO.
-  uint8_t histogramColumnsBits;
-  uint16_t histogramColumns;
-  unsigned histogram[MAX_HISTOGRAM_COLUMNS];
-
   bool eventFinished;
-  bool showHistogram;
-  void drawHistogram(unsigned *histogram, int max_pixels, const Point2 &lt, const Point2 &rb);
-  void drawHistogram(Texture *from, float max_bright, const Point2 &lt, const Point2 &rb);
 
   TMatrix paramColorMatrix;
 
-  UniqueTex lowResLumTexA, lowResLumTexB, lutTex2d;
-  UniqueTex lutTex3d;
+  UniqueTex lowResLumTexA, lowResLumTexB;
 
-  UniqueTex histogramTex, glowTex, glowTmpTex, tmpTex, uiBlurTex, prevFrameLowResTex;
+  UniqueTex glowTex, glowTmpTex, tmpTex, uiBlurTex, prevFrameLowResTex;
   UniqueTex ldrTempTex;
   TEXTUREID externalSkyMaskTexId; // for external sky mask, for deferred shading for example
 
@@ -260,23 +211,7 @@ protected:
 
   bool lenseFlareEnabled;
 
-  real timePassed;
-  float adaptationResetValue;
-  float lastHistogramAvgBright;
-  int framesBeforeValidHistogram;
-
   bool useSimpleMode;
-  enum
-  {
-    MAX_QUERY = 2,
-    HISTOGRAM_TEXTURES = 3
-  };
-  static constexpr int MAX_ADAPTATIONS = 3; // max of above
-  bool useAdaptation;
-  bool pauseAdaptationUpdate;
-  carray<float, MAX_ADAPTATIONS> currentOverbright; // adapted ::hdr_max_overbright
-  carray<float, MAX_ADAPTATIONS> currentLowBright;  // adapted
-  carray<float, MAX_ADAPTATIONS> lumHistScale;
   PostFxRenderer downsample4x;
 
   PostFxRenderer glowBlurXFx, glowBlurYFx, glowBlur2XFx, glowBlur2YFx, combineFx, radialBlur1Fx, radialBlur2Fx, render2lut;
@@ -286,53 +221,9 @@ protected:
 
   void recalcColorMatrix();
   void recalcGlow();
-  void getAdaptation();
-  void startGetAdaptation();
-  void removeQueries();
   void downsample(Texture *to, TEXTUREID src, int srcW, int srcH, const Point4 &uv_transform = Point4(1, 1, 0, 0));
 
-  UniqueTex lowresBrightness1;
-  bool lowresBrightness2Valid;
-  PostFxRenderer histogramQuery;
-  int queryTail, queryHead;
-  void *histogramQueries[MAX_QUERY][MAX_HISTOGRAM_COLUMNS];
-  bool histogramQueriesGot[MAX_QUERY]; /// if query processed
-
-  carray<EventQueryHolder, HISTOGRAM_TEXTURES> histogramTextureEvent;
-  carray<UniqueTex, HISTOGRAM_TEXTURES> histogramTexture;
-  carray<bool, HISTOGRAM_TEXTURES> histogramTextureCopied;
-  static constexpr int INTERLACE_HEIGHT = 64;
-  UniqueTex histogramInterlacedTexture;
-  int currentHistogramTexture;
-  int histogramLockCounter;
-  UniqueBuf histogramVb;
-  struct HistBufferFiller : public Sbuffer::IReloadData
-  {
-    void reloadD3dRes(Sbuffer *buf);
-    void destroySelf() {}
-    IPoint2 vbSize;
-  } histBufferFiller;
-  bool centerWeightedAdaptation;
-  ShaderMaterial *histogramCalcMat;
-  ShaderElement *histogramCalcElement;
-
-  PostFxRenderer histogramAccum;
-
-  PostFxRenderer luminance;
-  void initAdaptation();
-  void closeAdaptation();
-  void initHistogramVb();
   Color4 glowWeights0X, glowWeights1X;
 
   bool useCompute;
-
-  struct ExposureValues
-  {
-    float lowBright, avgBright;
-
-    void adapt(float du, float dd, const ExposureValues &next);
-    static float adaptValue(float du, float dd, float prev, float next);
-    ExposureValues() : lowBright(0), avgBright(0.7), adaptationScale(1) {}
-    float adaptationScale; // calculatable
-  } currentExposure;
 };

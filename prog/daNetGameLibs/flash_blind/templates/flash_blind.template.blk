@@ -1,0 +1,13 @@
+flash_blind_renderer{
+  _tags:t="render"
+  _singleton:b=yes
+
+  flash_blind__decay_factor:r=0.2
+  flash_blind__decay_color:p4=0.9, 0.95, 1, 1
+  flash_blind__desaturation_scale:r=0.5
+
+  flash_blind__remaining_time:r=0
+  flash_blind__just_captured:b=false
+
+  "flashBlind:resource_slot::NodeHandleWithSlotsAccess"{}
+}

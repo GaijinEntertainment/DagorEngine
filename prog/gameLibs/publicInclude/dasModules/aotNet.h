@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -234,6 +233,21 @@ inline bool setObjectInScopeAlways(net::IConnection &conn, net::Object &no)
 inline bool setEntityInScopeAlways(net::IConnection &conn, ecs::EntityId eid)
 {
   return static_cast<net::Connection &>(conn).setEntityInScopeAlways(eid);
+}
+
+inline bool addObjectInScope(net::IConnection &conn, net::Object &no)
+{
+  return static_cast<net::Connection &>(conn).addObjectInScope(no);
+}
+
+inline void clearObjectInScopeAlways(net::IConnection &conn, net::Object &no)
+{
+  return static_cast<net::Connection &>(conn).clearObjectInScopeAlways(no);
+}
+
+inline void clearObjectInScope(net::IConnection &conn, net::Object &no)
+{
+  return static_cast<net::Connection &>(conn).clearObjectInScope(no);
 }
 
 inline const DataBlock &get_circuit_conf()

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -238,6 +237,7 @@ public:
   const AnimChanReal *getRealAnim(unsigned channel_type, const char *node_name);
   int getLabelTime(const char *name, bool fatal_err = true);
   bool isAdditive() const { return animAdditive; }
+  AnimData *getSourceAnimData() const { return src; }
 
 protected:
   virtual const char *class_name() const { return "AnimData"; }

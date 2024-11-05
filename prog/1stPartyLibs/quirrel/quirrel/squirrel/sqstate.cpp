@@ -15,7 +15,7 @@
 SQSharedState::SQSharedState(SQAllocContext allocctx) :
     _alloc_ctx(allocctx),
     _refs_table(allocctx),
-    defaultLangFeatures(LF_FORBID_EXTENDS_KW | LF_FORBID_SWITCH_STMT)
+    defaultLangFeatures(LF_FORBID_DELETE_OP | LF_FORBID_SWITCH_STMT)
 {
     _compilererrorhandler = NULL;
     _compilerdiaghandler = NULL;
@@ -30,14 +30,6 @@ SQSharedState::SQSharedState(SQAllocContext allocctx) :
     compilationOptions = 0;
 }
 
-#define newsysstring(s) {   \
-    _systemstrings->push_back(SQString::Create(this,s));    \
-    }
-
-#define newmetamethod(s) {  \
-    _metamethods->push_back(SQString::Create(this,s));  \
-    _table(_metamethodsmap)->NewSlot(_metamethods->back(),(SQInteger)(_metamethods->size()-1)); \
-    }
 
 bool CompileTypemask(SQIntVec &res,const SQChar *typemask)
 {
@@ -106,10 +98,15 @@ void SQSharedState::Init()
 
     _stringtable = (SQStringTable*)SQ_MALLOC(_alloc_ctx, sizeof(SQStringTable));
     new (_stringtable) SQStringTable(this);
-    sq_new(_alloc_ctx, _metamethods, SQObjectPtrVec, _alloc_ctx);
+    sq_new(_alloc_ctx, _metamethodnames, SQObjectPtrVec, _alloc_ctx);
     sq_new(_alloc_ctx, _systemstrings, SQObjectPtrVec, _alloc_ctx);
     sq_new(_alloc_ctx, _types, SQObjectPtrVec, _alloc_ctx);
-    _metamethodsmap = SQTable::Create(this,MT_LAST-1);
+    _metamethodsmap = SQTable::Create(this,MT_NUM_METHODS);
+
+#define newsysstring(s) {   \
+    _systemstrings->push_back(SQString::Create(this,s));    \
+    }
+
     //adding type strings to avoid memory trashing
     //types names
     newsysstring(_SC("null"));
@@ -127,23 +124,17 @@ void SQSharedState::Init()
     newsysstring(_SC("class"));
     newsysstring(_SC("instance"));
     newsysstring(_SC("bool"));
+#undef newsysstring
+
     //meta methods
-    newmetamethod(MM_ADD);
-    newmetamethod(MM_SUB);
-    newmetamethod(MM_MUL);
-    newmetamethod(MM_DIV);
-    newmetamethod(MM_UNM);
-    newmetamethod(MM_MODULO);
-    newmetamethod(MM_SET);
-    newmetamethod(MM_GET);
-    newmetamethod(MM_TYPEOF);
-    newmetamethod(MM_NEXTI);
-    newmetamethod(MM_CMP);
-    newmetamethod(MM_CALL);
-    newmetamethod(MM_CLONED);
-    newmetamethod(MM_NEWSLOT);
-    newmetamethod(MM_DELSLOT);
-    newmetamethod(MM_TOSTRING);
+#define MM_IMPL(mm, name) {  \
+        _metamethodnames->push_back(SQString::Create(this,name));  \
+        _table(_metamethodsmap)->NewSlot(_metamethodnames->back(),(SQInteger)(mm)); \
+    }
+
+    METAMETHODS_LIST
+
+#undef MM_IMPL
 
     _constructorstr = SQString::Create(this,_SC("constructor"));
     _registry = SQTable::Create(this,0);
@@ -197,7 +188,7 @@ SQSharedState::~SQSharedState()
         t->_uiRef++;
         while(t) {
             t->Finalize();
-            nx = t->_next;
+            nx = t->_gc_next;
             if(nx) nx->_uiRef++;
             if(--t->_uiRef == 0)
                 t->Release();
@@ -213,7 +204,7 @@ SQSharedState::~SQSharedState()
 
     sq_delete(_alloc_ctx, _types, SQObjectPtrVec);
     sq_delete(_alloc_ctx, _systemstrings, SQObjectPtrVec);
-    sq_delete(_alloc_ctx, _metamethods,SQObjectPtrVec);
+    sq_delete(_alloc_ctx, _metamethodnames, SQObjectPtrVec);
     sq_delete(_alloc_ctx, _stringtable,SQStringTable);
     if(_scratchpad)SQ_FREE(_alloc_ctx,_scratchpad,_scratchpadsize);
 }
@@ -300,15 +291,15 @@ SQInteger SQSharedState::ResurrectUnreachable(SQVM *vm)
                 sqo._flags = 0; //< FIXME: we lose information on mutability, so it turns everyhing into mutable
                 ret->Append(sqo);
             }
-            t = t->_next;
+            t = t->_gc_next;
             n++;
         }
 
-        assert(rlast->_next == NULL);
-        rlast->_next = _gc_chain;
+        assert(rlast->_gc_next == NULL);
+        rlast->_gc_next = _gc_chain;
         if(_gc_chain)
         {
-            _gc_chain->_prev = rlast;
+            _gc_chain->_gc_prev = rlast;
         }
         _gc_chain = resurrected;
     }
@@ -316,7 +307,7 @@ SQInteger SQSharedState::ResurrectUnreachable(SQVM *vm)
     t = _gc_chain;
     while(t) {
         t->UnMark();
-        t = t->_next;
+        t = t->_gc_next;
     }
 
     if(ret) {
@@ -342,7 +333,7 @@ SQInteger SQSharedState::CollectGarbage(SQVM *vm)
         t->_uiRef++;
         while(t) {
             t->Finalize();
-            nx = t->_next;
+            nx = t->_gc_next;
             if(nx) nx->_uiRef++;
             if(--t->_uiRef == 0)
                 t->Release();
@@ -354,7 +345,7 @@ SQInteger SQSharedState::CollectGarbage(SQVM *vm)
     t = tchain;
     while(t) {
         t->UnMark();
-        t = t->_next;
+        t = t->_gc_next;
     }
     _gc_chain = tchain;
 
@@ -365,20 +356,20 @@ SQInteger SQSharedState::CollectGarbage(SQVM *vm)
 #ifndef NO_GARBAGE_COLLECTOR
 void SQCollectable::AddToChain(SQCollectable **chain,SQCollectable *c)
 {
-    c->_prev = NULL;
-    c->_next = *chain;
-    if(*chain) (*chain)->_prev = c;
+    c->_gc_prev = NULL;
+    c->_gc_next = *chain;
+    if(*chain) (*chain)->_gc_prev = c;
     *chain = c;
 }
 
 void SQCollectable::RemoveFromChain(SQCollectable **chain,SQCollectable *c)
 {
-    if(c->_prev) c->_prev->_next = c->_next;
-    else *chain = c->_next;
-    if(c->_next)
-        c->_next->_prev = c->_prev;
-    c->_next = NULL;
-    c->_prev = NULL;
+    if(c->_gc_prev) c->_gc_prev->_gc_next = c->_gc_next;
+    else *chain = c->_gc_next;
+    if(c->_gc_next)
+        c->_gc_next->_gc_prev = c->_gc_prev;
+    c->_gc_next = NULL;
+    c->_gc_prev = NULL;
 }
 #endif
 
@@ -596,7 +587,7 @@ SQString *SQStringTable::Add(const SQChar *news,SQInteger len)
     SQHash newhash = ::_hashstr(news,len);
     SQHash h = newhash&(_numofslots-1);
     SQString *s;
-    for (s = _strings[h]; s; s = s->_link){
+    for (s = _strings[h]; s; s = s->_next){
         if(s->_len == len && (!memcmp(news,s->_val,len)))
             return s; //found
     }
@@ -608,7 +599,7 @@ SQString *SQStringTable::Add(const SQChar *news,SQInteger len)
     t->_val[len] = _SC('\0');
     t->_len = len;
     t->_hash = newhash;
-    t->_link = _strings[h];
+    t->_next = _strings[h];
     _strings[h] = t;
     _slotused++;
     if (_slotused > _numofslots)  /* too crowded? */
@@ -624,9 +615,9 @@ void SQStringTable::Resize(SQInteger size)
     for (SQInteger i=0; i<oldsize; i++){
         SQString *p = oldtable[i];
         while(p){
-            SQString *next = p->_link;
+            SQString *next = p->_next;
             SQHash h = p->_hash&(_numofslots-1);
-            p->_link = _strings[h];
+            p->_next = _strings[h];
             _strings[h] = p;
             p = next;
         }
@@ -643,9 +634,9 @@ void SQStringTable::Remove(SQString *bs)
     for (s = _strings[h]; s; ){
         if(s == bs){
             if(prev)
-                prev->_link = s->_link;
+                prev->_next = s->_next;
             else
-                _strings[h] = s->_link;
+                _strings[h] = s->_next;
             _slotused--;
             SQInteger slen = s->_len;
             s->~SQString();
@@ -653,7 +644,7 @@ void SQStringTable::Remove(SQString *bs)
             return;
         }
         prev = s;
-        s = s->_link;
+        s = s->_next;
     }
     assert(0);//if this fail something is wrong
 }

@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <rendInst/rendInstExtra.h>
@@ -12,6 +13,7 @@
 #include <scene/dag_physMat.h>
 #include <dag/dag_vector.h>
 #include <3d/dag_texStreamingContext.h>
+#include <EASTL/bitvector.h>
 #include <util/dag_multicastEvent.h>
 
 
@@ -53,11 +55,12 @@ class RiExtraPoolsVec : public dag::Vector<RiExtraPool> // To consider: move thi
 {
 public:
   using dag::Vector<RiExtraPool>::Vector;
-  uint32_t size_interlocked() const;
+  uint32_t size_interlocked() const { return interlocked_acquire_load(*(const volatile int *)&mCount); }
   uint32_t interlocked_increment_size();
 };
 extern RiExtraPoolsVec riExtra;
 extern FastNameMap riExtraMap;
+extern eastl::bitvector<> riExtraPoolWasNotSavedToElems; // Parallel to `riExtra`
 
 extern SmartReadWriteFifoLock ccExtra;
 extern int maxExtraRiCount;
@@ -66,8 +69,6 @@ extern int maxExtraRiCount;
 inline constexpr size_t RIEX_RENDERING_CONTEXTS = 2;
 
 extern int maxRenderedRiEx[RIEX_RENDERING_CONTEXTS];
-extern int perDrawInstanceDataBufferType;
-extern int instancePositionsBufferType;
 extern float riExtraLodDistSqMul;
 extern float riExtraCullDistSqMul;
 extern Tab<uint16_t> riExPoolIdxPerStage[RIEX_STAGE_COUNT];

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "daScript/misc/memory_model.h"
-#include "daScript/misc/fnv.h"
 #include "daScript/misc/callable.h"
+#include "daScript/misc/anyhash.h"
 
 namespace das {
 
@@ -127,9 +127,9 @@ namespace das {
     class AnyHeapAllocator : public ptr_ref_count {
     public:
         virtual bool breakOnFree ( void *, uint32_t ) { return false; }
-        virtual char * allocate ( uint32_t ) = 0;
-        virtual void free ( char *, uint32_t ) = 0;
-        virtual char * reallocate ( char *, uint32_t, uint32_t ) = 0;
+        virtual char * impl_allocate ( uint32_t ) = 0;
+        virtual void impl_free ( char *, uint32_t ) = 0;
+        virtual char * impl_reallocate ( char *, uint32_t, uint32_t ) = 0;
         virtual int depth() const = 0;
         virtual uint64_t bytesAllocated() const = 0;
         virtual uint64_t totalAlignedMemoryAllocated() const = 0;
@@ -143,16 +143,28 @@ namespace das {
         virtual void setInitialSize ( uint32_t size ) = 0;
         virtual int32_t getInitialSize() const = 0;
         virtual void setGrowFunction ( CustomGrowFunction && fun ) = 0;
+        __forceinline void setLimit ( uint64_t l ) { limit = l; }
+        __forceinline uint64_t getLimit() const { return limit; }
+        __forceinline uint64_t getTotalAllocations() const { return totalAllocations; }
+        __forceinline uint64_t getTotalBytesAllocated() const { return totalBytesAllocated; }
+        __forceinline uint64_t getTotalBytesDeleted() const { return totalBytesDeleted; }
     public:
 #if DAS_TRACK_ALLOCATIONS
-        virtual void mark_location ( void *, LineInfo * )  {}
+        virtual void mark_location ( void *, const LineInfo * )  {}
         virtual  void mark_comment ( void *, const char * ) {}
 #else
-        __forceinline void mark_location ( void *, LineInfo * ) {}
+        __forceinline void mark_location ( void *, const LineInfo * ) {}
         __forceinline void mark_comment ( void *, const char * ) {}
 #endif
     public:
         char * allocateName ( const string & name );
+        char * impl_allocateIterator ( uint32_t size, const char * name="", const LineInfo * info=nullptr );
+        void   impl_freeIterator ( char * ptr );
+    protected:
+        uint64_t limit = 0;
+        uint64_t totalAllocations = 0;
+        uint64_t totalBytesAllocated = 0;
+        uint64_t totalBytesDeleted = 0;
     };
 
     struct StrHashEntry {
@@ -176,6 +188,8 @@ namespace das {
         }
     };
 
+    class Context;
+
     typedef das_hash_set<StrHashEntry,StrHashPred,StrEqPred> das_string_set;
 
     class StringHeapAllocator : public AnyHeapAllocator {
@@ -183,9 +197,8 @@ namespace das {
         virtual void forEachString ( const callable<void (const char *)> & fn ) = 0;
         virtual void reset() override;
     public:
-        char * allocateString ( const char * text, uint32_t length );
-        char * allocateString ( const string & str );
-        void freeString ( char * text, uint32_t length );
+        char * impl_allocateString ( Context * context, const char * text, uint32_t length, const LineInfo * at = nullptr );
+        void impl_freeString ( char * text, uint32_t length );
         void setIntern ( bool on );
         bool isIntern() const { return needIntern; }
         char * intern ( const char * str, uint32_t length ) const;
@@ -224,13 +237,32 @@ namespace das {
         }
 #else
     public:
-        virtual void free ( char * ptr, uint32_t size ) override { model.free(ptr,size); }
+        virtual void impl_free ( char * ptr, uint32_t size ) override {
+            totalBytesDeleted += size;
+            model.free(ptr,size);
+        }
         virtual void sweep() override { model.sweep(); }
 #endif
     public:
         PersistentHeapAllocator() {}
-        virtual char * allocate ( uint32_t size ) override { return model.allocate(size); }
-        virtual char * reallocate ( char * ptr, uint32_t oldSize, uint32_t newSize ) override { return model.reallocate(ptr,oldSize,newSize); }
+        virtual char * impl_allocate ( uint32_t size ) override {
+            if ( limit==0 || model.bytesAllocated()+size<=limit ) {
+                totalAllocations ++;
+                totalBytesAllocated += size;
+                return model.allocate(size);
+            } else {
+                return nullptr;
+            }
+        }
+        virtual char * impl_reallocate ( char * ptr, uint32_t oldSize, uint32_t newSize ) override {
+            if ( limit==0 || model.bytesAllocated()+newSize-oldSize<=limit ) {
+                totalAllocations ++;
+                totalBytesAllocated += newSize-oldSize;
+                return model.reallocate(ptr,oldSize,newSize);
+            } else {
+                return nullptr;
+            }
+        }
         virtual int depth() const override { return model.depth(); }
         virtual uint64_t bytesAllocated() const override { return model.bytesAllocated(); }
         virtual uint64_t totalAlignedMemoryAllocated() const override { return model.totalAlignedMemoryAllocated(); }
@@ -244,7 +276,7 @@ namespace das {
         virtual int32_t getInitialSize() const override { return model.initialSize; }
         virtual void setGrowFunction ( CustomGrowFunction && fun ) override { model.customGrow = fun; };
 #if DAS_TRACK_ALLOCATIONS
-        virtual void mark_location ( void * ptr, LineInfo * at ) override  { model.mark_location(ptr,at); };
+        virtual void mark_location ( void * ptr, const LineInfo * at ) override  { model.mark_location(ptr,at); };
         virtual  void mark_comment ( void * ptr, const char * what ) override { model.mark_comment(ptr,what); };
 #endif
     protected:
@@ -254,9 +286,28 @@ namespace das {
     class LinearHeapAllocator final : public AnyHeapAllocator {
     public:
         LinearHeapAllocator() {}
-        virtual char * allocate ( uint32_t size ) override { return model.allocate(size); }
-        virtual void free ( char * ptr, uint32_t size ) override { model.free(ptr,size); }
-        virtual char * reallocate ( char * ptr, uint32_t oldSize, uint32_t newSize ) override { return model.reallocate(ptr,oldSize,newSize); }
+        virtual char * impl_allocate ( uint32_t size ) override {
+            if ( limit==0 || model.bytesAllocated()+size<=limit ) {
+                totalAllocations ++;
+                totalBytesAllocated += size;
+                return model.allocate(size);
+            } else {
+                return nullptr;
+            }
+        }
+        virtual void impl_free ( char * ptr, uint32_t size ) override {
+            totalBytesDeleted += size;
+            model.free(ptr,size);
+        }
+        virtual char * impl_reallocate ( char * ptr, uint32_t oldSize, uint32_t newSize ) override {
+            if ( limit==0 || model.bytesAllocated()+newSize-oldSize<=limit ) {
+                totalAllocations ++;
+                totalBytesAllocated += newSize-oldSize;
+                return model.reallocate(ptr,oldSize,newSize);
+            } else {
+                return nullptr;
+            }
+        }
         virtual int depth() const override { return model.depth(); }
         virtual uint64_t bytesAllocated() const override { return model.bytesAllocated(); }
         virtual uint64_t totalAlignedMemoryAllocated() const override { return model.totalAlignedMemoryAllocated(); }
@@ -283,9 +334,9 @@ namespace das {
     class ConstStringAllocator : public LinearChunkAllocator {
     public:
         ConstStringAllocator() { alignMask = 3; }
-        char * allocateString ( const char * text, uint32_t length );
-        __forceinline char * allocateString ( const string & str ) {
-            return allocateString ( str.c_str(), uint32_t(str.length()) );
+        char * impl_allocateString ( const char * text, uint32_t length );
+        __forceinline char * impl_allocateString ( const string & str ) {
+            return impl_allocateString ( str.c_str(), uint32_t(str.length()) );
         }
         virtual void reset () override;
         char * intern ( const char * str, uint32_t length ) const;
@@ -296,9 +347,28 @@ namespace das {
     class PersistentStringAllocator final : public StringHeapAllocator {
     public:
         PersistentStringAllocator() { model.alignMask = 3; }
-        virtual char * allocate ( uint32_t size ) override { return model.allocate(size); }
-        virtual void free ( char * ptr, uint32_t size ) override { model.free(ptr,size); }
-        virtual char * reallocate ( char * ptr, uint32_t oldSize, uint32_t newSize ) override { return model.reallocate(ptr,oldSize,newSize); }
+        virtual char * impl_allocate ( uint32_t size ) override {
+            if ( limit==0 || model.bytesAllocated()+size<=limit ) {
+                totalAllocations ++;
+                totalBytesAllocated += size;
+                return model.allocate(size);
+            } else {
+                return nullptr;
+            }
+        }
+        virtual void impl_free ( char * ptr, uint32_t size ) override {
+            totalBytesDeleted += size;
+            model.free(ptr,size);
+        }
+        virtual char * impl_reallocate ( char * ptr, uint32_t oldSize, uint32_t newSize ) override {
+            if ( limit==0 || model.bytesAllocated()+newSize-oldSize<=limit ) {
+                totalAllocations ++;
+                totalBytesAllocated += newSize-oldSize;
+                return model.reallocate(ptr,oldSize,newSize);
+            } else {
+                return nullptr;
+            }
+        }
         virtual int depth() const override { return model.depth(); }
         virtual uint64_t bytesAllocated() const override { return model.bytesAllocated(); }
         virtual uint64_t totalAlignedMemoryAllocated() const override { return model.totalAlignedMemoryAllocated(); }
@@ -314,7 +384,7 @@ namespace das {
         virtual int32_t getInitialSize() const override { return model.initialSize; }
         virtual void setGrowFunction ( CustomGrowFunction && fun ) override { model.customGrow = fun; };
 #if DAS_TRACK_ALLOCATIONS
-        virtual void mark_location ( void * ptr, LineInfo * at ) override { model.mark_location(ptr,at); };
+        virtual void mark_location ( void * ptr, const LineInfo * at ) override { model.mark_location(ptr,at); };
         virtual  void mark_comment ( void * ptr, const char * what ) override { model.mark_comment(ptr,what); };
 #endif
     protected:
@@ -324,9 +394,28 @@ namespace das {
     class LinearStringAllocator final : public StringHeapAllocator {
     public:
         LinearStringAllocator() { model.alignMask = 3; }
-        virtual char * allocate ( uint32_t size ) override { return model.allocate(size); }
-        virtual void free ( char * ptr, uint32_t size ) override { model.free(ptr,size); }
-        virtual char * reallocate ( char * ptr, uint32_t oldSize, uint32_t newSize ) override { return model.reallocate(ptr,oldSize,newSize); }
+        virtual char * impl_allocate ( uint32_t size ) override {
+            if ( limit==0 || model.bytesAllocated()+size<=limit ) {
+                totalAllocations ++;
+                totalBytesAllocated += size;
+                return model.allocate(size);
+            } else {
+                return nullptr;
+            }
+        }
+        virtual void impl_free ( char * ptr, uint32_t size ) override {
+            totalBytesDeleted += size;
+            model.free(ptr,size);
+        }
+        virtual char * impl_reallocate ( char * ptr, uint32_t oldSize, uint32_t newSize ) override {
+            if ( limit==0 || model.bytesAllocated()+newSize-oldSize<=limit ) {
+                totalAllocations ++;
+                totalBytesAllocated += newSize-oldSize;
+                return model.reallocate(ptr,oldSize,newSize);
+            } else {
+                return nullptr;
+            }
+        }
         virtual int depth() const override { return model.depth(); }
         virtual uint64_t bytesAllocated() const override { return model.bytesAllocated(); }
         virtual uint64_t totalAlignedMemoryAllocated() const override { return model.totalAlignedMemoryAllocated(); }
@@ -428,6 +517,7 @@ namespace das {
             case Type::tEnumeration:    return makeNode<NodeType<int32_t>>(args...);
             case Type::tEnumeration8:   return makeNode<NodeType<int8_t>>(args...);
             case Type::tEnumeration16:  return makeNode<NodeType<int16_t>>(args...);
+            case Type::tEnumeration64:  return makeNode<NodeType<int64_t>>(args...);
             case Type::tBitfield:       return makeNode<NodeType<Bitfield>>(args...);
             case Type::tInt:            return makeNode<NodeType<int32_t>>(args...);
             case Type::tInt2:           return makeNode<NodeType<int2>>(args...);

@@ -1,19 +1,24 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include "dag_resMgr.h"
 #include "dag_texMgr.h"
-#include "dag_drv3d_multi.h"
-#include "dag_drv3d_buffers.h"
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_heap.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_buffers.h>
 #include <shaders/dag_shaders.h>
 #include <gameRes/dag_gameResources.h>
 #include <debug/dag_assert.h>
 #include <EASTL/algorithm.h>
 #include <EASTL/type_traits.h>
+#include <util/dag_preprocessor.h>
 
 #if DAGOR_DBGLEVEL > 1
 #include <EASTL/unordered_set.h>
@@ -333,7 +338,8 @@ public:
 
   static void release(typename Helper<ResType>::resid_t &res_id, ResType *res)
   {
-    ShaderGlobal::reset_from_vars(res_id);
+    if (Helper<ResType>::getManagedRefCount(res_id) > 1)
+      ShaderGlobal::reset_from_vars(res_id);
     G_ASSERTF(res_id == Helper<ResType>::BAD_ID || Helper<ResType>::getManagedRefCount(res_id) == 1,
       "resource_name = '%s' res_id=0x%x refCount=%d", res ? res->getResName() : "", res_id,
       Helper<ResType>::getManagedRefCount(res_id));
@@ -471,6 +477,17 @@ public:
   {
     ManagedResType::BaseType::swap(resource);
 
+    if (this->mResId == Helper<ResType>::BAD_ID)
+    {
+      const char *errString = "ConcreteResHolder constructor failed. mResId is equal to BAD_ID";
+      if (!shader_var_name)
+      {
+        logerr(errString);
+        return;
+      }
+      logwarn("%s (shader_var_name: %s)", errString, shader_var_name);
+    }
+
     if (!shader_var_name)
       shader_var_name = Helper<ResType>::getNameById(this->mResId);
 
@@ -530,7 +547,7 @@ using SharedTex = SharedRes<ManagedTex>;
 using SharedBuf = SharedRes<ManagedBuf>;
 
 using ManagedTexHolder = resptr_detail::ManagedResHolder<ManagedTex>;
-using ManagedBufHolder = resptr_detail::ManagedResHolder<ManagedTex>;
+using ManagedBufHolder = resptr_detail::ManagedResHolder<ManagedBuf>;
 using UniqueTexHolder = resptr_detail::ConcreteResHolder<UniqueTex>;
 using UniqueBufHolder = resptr_detail::ConcreteResHolder<UniqueBuf>;
 using SharedTexHolder = resptr_detail::ConcreteResHolder<SharedTex>;
@@ -571,6 +588,22 @@ static inline TexPtr create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int
 static inline TexPtr alias_tex(BaseTexture *base_tex, TexImage32 *img, int w, int h, int flg, int levels, const char *name = nullptr)
 {
   return resptr_detail::ResPtrFactory(d3d::alias_tex(base_tex, img, w, h, flg, levels, name));
+}
+static inline TexPtr alias_cubetex(BaseTexture *base_tex, int side, int flg, int levels, const char *name = nullptr)
+{
+  return resptr_detail::ResPtrFactory(d3d::alias_cubetex(base_tex, side, flg, levels, name));
+}
+static inline TexPtr alias_voltex(BaseTexture *base_tex, int w, int h, int d, int flg, int levels, const char *name = nullptr)
+{
+  return resptr_detail::ResPtrFactory(d3d::alias_voltex(base_tex, w, h, d, flg, levels, name));
+}
+static inline TexPtr alias_array_tex(BaseTexture *base_tex, int w, int h, int d, int flg, int levels, const char *name = nullptr)
+{
+  return resptr_detail::ResPtrFactory(d3d::alias_array_tex(base_tex, w, h, d, flg, levels, name));
+}
+static inline TexPtr alias_cube_array_tex(BaseTexture *base_tex, int side, int d, int flg, int levels, const char *name = nullptr)
+{
+  return resptr_detail::ResPtrFactory(d3d::alias_cube_array_tex(base_tex, side, d, flg, levels, name));
 }
 
 static inline ResPtr<Vbuffer> create_vb(int sz, int f, const char *name)
@@ -687,6 +720,11 @@ inline ResPtr<Sbuffer> create_one_frame_sr_structured(uint32_t structure_size, u
   return resptr_detail::ResPtrFactory(d3d::buffers::create_one_frame_sr_structured(structure_size, elements_count, name));
 }
 
+inline ResPtr<Sbuffer> create_raytrace_scratch_buffer(uint32_t size_in_bytes, const char *name)
+{
+  return resptr_detail::ResPtrFactory(d3d::buffers::create_raytrace_scratch_buffer(size_in_bytes, name));
+}
+
 } // namespace buffers
 
 static inline SharedTex get_tex_gameres(const char *resname) { return SharedTex(::get_tex_gameres(resname, false)); }
@@ -712,16 +750,19 @@ static inline TexPtr place_texture_in_resource_heap(ResourceHeap *heap, const Re
 static inline BufPtr place_buffer_in_resource_heap(ResourceHeap *heap, const ResourceDescription &desc, size_t offset,
   const ResourceAllocationProperties &alloc_info, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::place_buffere_in_resource_heap(heap, desc, offset, alloc_info, name));
+  return resptr_detail::ResPtrFactory(d3d::place_buffer_in_resource_heap(heap, desc, offset, alloc_info, name));
 }
 
 static inline ExternalTex get_backbuffer() { return ExternalTex(resptr_detail::ResPtrFactory(d3d::get_backbuffer_tex())); }
-static inline ExternalTex get_backbuffer_depth() { return ExternalTex(resptr_detail::ResPtrFactory(d3d::get_backbuffer_tex_depth())); }
+static inline ExternalTex get_secondary_backbuffer() // Supposed to be used on Xbox only (autoGameDvr=off mode)
+{
+  return ExternalTex(resptr_detail::ResPtrFactory(d3d::get_secondary_backbuffer_tex()));
+}
 
 static inline TexPtr make_texture_raw(Drv3dMakeTextureParams &makeParams)
 {
   Texture *wrappedTexture;
-  d3d::driver_command(DRV3D_COMMAND_MAKE_TEXTURE, &makeParams, &wrappedTexture, nullptr);
+  d3d::driver_command(Drv3dCommand::MAKE_TEXTURE, &makeParams, &wrappedTexture);
   return resptr_detail::ResPtrFactory(wrappedTexture);
 }
 
@@ -741,7 +782,5 @@ static inline SharedBufHolder set_buffer(int var_id, const SharedBufHolder &buf)
 
 } // namespace dag
 
-#define RESPTR_CAT(a, b)         a##b
-#define RESPTR_CAT2(a, b)        RESPTR_CAT(a, b)
-#define SCOPED_SET_TEXTURE(a, b) auto RESPTR_CAT2(scopedSharedTexGuard, __LINE__) = dag::set_texture(a, b)
-#define SCOPED_SET_BUFFER(a, b)  auto RESPTR_CAT2(scopedSharedBufGuard, __LINE__) = dag::set_buffer(a, b)
+#define SCOPED_SET_TEXTURE(a, b) auto DAG_CONCAT(scopedSharedTexGuard, __LINE__) = dag::set_texture(a, b)
+#define SCOPED_SET_BUFFER(a, b)  auto DAG_CONCAT(scopedSharedBufGuard, __LINE__) = dag::set_buffer(a, b)

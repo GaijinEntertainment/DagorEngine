@@ -1,11 +1,22 @@
-#pragma once
+#ifndef FLOW_MAP_INC_HLSL
+#define FLOW_MAP_INC_HLSL
 
-#define MAX_FLOWMAP_WINDS 16
+#define MAX_FLOWMAP_CIRCULAR_OBSTACLES 64
+#define MAX_FLOWMAP_RECTANGULAR_OBSTACLES 64
 
-struct FlowmapWind
+struct FlowmapCircularObstacle
 {
-  float4 area;
-  float2 dir;
-  float padding0;
-  float padding1;
+  float2 position;
+  float radius;
+  float padding;
 };
+
+struct FlowmapRectangularObstacle
+{
+  float2 position;
+  float2 rotation;
+  float2 size;
+  float2 padding;
+};
+
+#endif

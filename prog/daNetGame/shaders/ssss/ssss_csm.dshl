@@ -1,0 +1,60 @@
+include "ssss/ssss_transmittance_factor.dshl"
+include "csm.dshl"
+
+float csm_range_cascade_0;
+float csm_range_cascade_1;
+float csm_range_cascade_2;
+float csm_meter_to_uv_cascade_0;
+float csm_meter_to_uv_cascade_1;
+float csm_meter_to_uv_cascade_2;
+float4 csm_uv_minmax_cascade_0;
+float4 csm_uv_minmax_cascade_1;
+float4 csm_uv_minmax_cascade_2;
+
+macro INIT_CSM_SSSS_TRANSMITTANCE_FACTOR(code)
+  if (ssss_quality == transmittance_and_reflectance_blur)
+  {
+    INIT_SSSS_TRANSMITTANCE_FACTOR_CALC(code)
+    (code)
+    {
+      csm_ranges@f3 = (csm_range_cascade_0, csm_range_cascade_1, csm_range_cascade_2, 0);
+      csm_meter_to_uvs@f3 = (csm_meter_to_uv_cascade_0, csm_meter_to_uv_cascade_1, csm_meter_to_uv_cascade_2, 0);
+      csm_uv_minmaxs@f4[] = {csm_uv_minmax_cascade_0, csm_uv_minmax_cascade_1, csm_uv_minmax_cascade_2};
+      shadow_cascade_depth_tex_smp@tex2d = shadow_cascade_depth_tex; //TODO do we still need this?
+      shadow_cascade_depth_tex_size@f2 = get_dimensions(shadow_cascade_depth_tex, 0);
+    }
+  }
+endmacro
+
+macro USE_CSM_SSSS_TRANSMITTANCE_FACTOR(code)
+  if (ssss_quality == transmittance_and_reflectance_blur)
+  {
+    hlsl(code)
+    {
+      struct ShadowDescriptor
+      {
+        float shadowRange;
+        float meterToUV;
+        float4 uvMinMax;
+      };
+      float ssss_linearize_sample(float sample_depth, ShadowDescriptor desc)
+      {
+        return sample_depth * desc.shadowRange;
+      }
+      float ssss_bias_scale(float linear_depth, ShadowDescriptor desc)
+      {
+        return desc.shadowRange;
+      }
+      float ssss_get_meter_to_uv(float linear_depth, ShadowDescriptor desc)
+      {
+        //Orthogonal projection, frustum width is costant for the cascade.
+        return desc.meterToUV;
+      }
+      bool ssss_is_uv_valid(float2 uv, ShadowDescriptor desc)
+      {
+        return all(uv >= desc.uvMinMax.xy && uv < desc.uvMinMax.zw);
+      }
+    }
+    USE_SSSS_TRANSMITTANCE_FACTOR_CALC(code)
+  }
+endmacro

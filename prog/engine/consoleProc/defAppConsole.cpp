@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_debug.h>
 #include <util/dag_console.h>
 #include <osApiWrappers/dag_miscApi.h>

@@ -1,6 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "program_database.h"
 #include "shader.h"
-#include "device.h"
+#include "device_context.h"
+#include "frontend.h"
 
 using namespace drv3d_vulkan;
 
@@ -187,7 +190,7 @@ eastl::optional<ShaderInfo::CreationInfo> ShaderProgramDatabase::getShaderCreati
         return eastl::nullopt;
 
       *fd.uniqueHeader = shaderDesc.headers.uniqueInsert(ctx, header);
-      *fd.uniqueModule = shaderDesc.modules.uniqueInsert(ctx, blob);
+      *fd.uniqueModule = shaderDesc.modules.uniqueInsert(ctx, eastl::move(blob));
     }
   }
 
@@ -252,7 +255,7 @@ void ShaderProgramDatabase::init(bool has_bindless, DeviceContext &ctx)
   initShaders(ctx);
   initDebugProg(has_bindless, ctx);
   // set debug prog to states, unset shader is an error
-  ctx.getFrontend().pipelineState.set<StateFieldGraphicsProgram, ProgramID, FrontGraphicsState>(debugProgId);
+  Frontend::State::pipe.set<StateFieldGraphicsProgram, ProgramID, FrontGraphicsState>(debugProgId);
 }
 
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA

@@ -1,3 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 /************************************************************************
 
 /************************************************************************/
@@ -60,6 +63,7 @@ extern Tab<ShaderStatistics> shaderStatisticsList;
 
 void reset();
 void printReport(const char *dir);
+inline int getUniqueCompilationCount() { return hlslCompileCount - hlslCacheHitCount - hlslExternalCacheHitCount.load(); }
 } // namespace ShaderCompilerStat
 
 #endif

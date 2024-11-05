@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "driver.h" // MAKEFOURCC is defined somewhere there
@@ -73,7 +74,6 @@ enum D3DFORMAT
   D3DFMT_L6V5U5 = 61,
   D3DFMT_X8L8V8U8 = 62,
   D3DFMT_Q8W8V8U8 = 63,
-  D3DFMT_V16U16 = 64,
   D3DFMT_A2W10V10U10 = 67,
 
   D3DFMT_UYVY = MAKEFOURCC('U', 'Y', 'V', 'Y'),

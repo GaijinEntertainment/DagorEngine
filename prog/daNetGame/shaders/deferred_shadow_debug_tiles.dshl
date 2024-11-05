@@ -1,0 +1,38 @@
+include "deferred_shadow_common.dshl"
+
+buffer tile_coordinates always_referenced;
+float4 debug_color;
+
+shader deferred_shadow_debug_tiles
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    debug_color@f4 = debug_color;
+    tile_coordinates@buf = tile_coordinates hlsl { ByteAddressBuffer tile_coordinates@buf; };
+  }
+
+  hlsl(cs) {
+    #include <resolve_gbuffer_compute_inc.hlsli>
+
+    RWTexture2D<float3> g_output : register(u0);
+
+    [numthreads(RESOLVE_GBUFFER_TILE_SIZE, RESOLVE_GBUFFER_TILE_SIZE, 1)]
+    void debug_tiles_cs( uint3 Groupid : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_GroupThreadID )
+    {
+      uint tile_coords = loadBuffer(tile_coordinates, 4 * Groupid.x);
+
+      uint2 pix_coords = uint2(tile_coords & 0xFFFF, tile_coords >> 16);
+      pix_coords = pix_coords * RESOLVE_GBUFFER_TILE_SIZE + GTid.xy;
+
+      g_output[pix_coords] = debug_color.xyz;
+    }
+  }
+
+  compile("cs_5_0", "debug_tiles_cs");
+}

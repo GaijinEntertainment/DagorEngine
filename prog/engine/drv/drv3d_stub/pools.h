@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <generic/dag_tab.h>
@@ -26,7 +27,10 @@ public:
 
     const int idx = entUuIdx.back();
     entUuIdx.pop_back();
-    return ent[idx];
+    // reset the object to its default constructed state, as it already
+    // contains garbage in it's fields from previous leasing
+    eastl::destroy_at(ent[idx]);
+    return new (ent[idx], _NEW_INPLACE) T;
   }
 
   void del(T *e)
@@ -71,7 +75,10 @@ public:
 
     int idx = entUuIdx.back();
     entUuIdx.pop_back();
-    return &ent[idx];
+    // reset the object to its default constructed state, as it already
+    // contains garbage in it's fields from previous leasing
+    eastl::destroy_at(&ent[idx]);
+    return new (&ent[idx], _NEW_INPLACE) T;
   }
 
   bool del(T *e)

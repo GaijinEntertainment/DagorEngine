@@ -1,12 +1,11 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <3d/dag_texMgr.h>
-#include <3d/dag_sampler.h>
+#include <drv/3d/dag_sampler.h>
 #include <shaders/dag_shaderVariableInfo.h>
 #include <math/integer/dag_IPoint4.h>
 #include <math/dag_Point2.h>
@@ -16,6 +15,7 @@ struct Color4;
 class DataBlock;
 struct RoDataBlock;
 struct ShaderVariableInfo;
+struct RaytraceTopAccelerationStructure;
 
 namespace resptr_detail
 {
@@ -107,6 +107,7 @@ dag::Vector<String> get_subinterval_names(Interval interv);
 int get_var_type(int variable_id);
 bool is_var_assumed(int variable_id);
 int get_interval_assumed_value(int variable_id);
+int get_interval_current_value(int variable_id);
 bool has_associated_interval(int variable_id);
 dag::ConstSpan<float> get_interval_ranges(int variable_id);
 dag::ConstSpan<float> get_interval_ranges(Interval interv);
@@ -138,9 +139,12 @@ bool set_buffer(int variable_id, D3DRESID buffer_id);
 bool set_buffer(int variable_id, const ManagedBuf &buffer);
 bool set_texture(const ShaderVariableInfo &, const ManagedTex &texture);
 bool set_buffer(const ShaderVariableInfo &, const ManagedBuf &buffer);
+bool set_tlas(int variable_id, RaytraceTopAccelerationStructure *ptr);
 
 // sets all texture global vars to BAD_TEXTUREID and issue release_managed_tex() on them
 void reset_textures(bool removed_tex_only = false);
+// Reset all var types, that are not valid after reset.
+void reset_stale_vars();
 
 // resets references to texture from all global shader vars
 void reset_from_vars(TEXTUREID id);
@@ -169,6 +173,7 @@ float get_real_fast(int glob_var_id);
 Color4 get_color4_fast(int glob_var_id);
 TEXTUREID get_tex_fast(int glob_var_id);
 D3DRESID get_buf_fast(int glob_var_id);
+d3d::SamplerHandle get_sampler(int var_id);
 
 inline bool get_int_by_name(const char *name, int &val)
 {
@@ -225,5 +230,9 @@ IPoint4 get_int4(int glob_var_id);
 inline TEXTUREID get_tex(int glob_var_id) { return get_tex_fast(glob_var_id); }
 inline D3DRESID get_buf(int glob_var_id) { return get_buf_fast(glob_var_id); }
 
+inline bool is_var_assumed(const ShaderVariableInfo &v) { return is_var_assumed(v.get_var_id()); }
+inline int get_interval_assumed_value(const ShaderVariableInfo &v) { return get_interval_assumed_value(v.get_var_id()); }
+inline int get_interval_current_value(const ShaderVariableInfo &v) { return get_interval_current_value(v.get_var_id()); }
+inline bool has_associated_interval(const ShaderVariableInfo &v) { return has_associated_interval(v.get_var_id()); }
 
 }; // namespace ShaderGlobal

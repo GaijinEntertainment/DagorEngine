@@ -1,37 +1,31 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "texture.h"
-#include <3d/dag_drv3dCmd.h>
-#include <3d/dag_drv3dReset.h>
-#include <math/dag_TMatrix.h>
-#include <math/dag_TMatrix4.h>
-#include <debug/dag_debug.h>
-#include <osApiWrappers/dag_atomic.h>
-#include <image/dag_texPixel.h>
+
+#include <EASTL/unique_ptr.h>
+#include <EASTL/span.h>
 #include <debug/dag_debug.h>
 #include <debug/dag_log.h>
-#include <generic/dag_smallTab.h>
-#include <ioSys/dag_asyncIo.h>
-#include <osApiWrappers/dag_files.h>
-#include <osApiWrappers/dag_direct.h>
+#include <drv/3d/dag_texture.h>
+#include <image/dag_texPixel.h>
 #include <startup/dag_globalSettings.h>
-#include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_memIo.h>
-#include "basetexture.h"
-#include <math/integer/dag_IPoint2.h>
 #include <math/dag_adjpow2.h>
 #include <util/dag_string.h>
-#include <EASTL/memory.h>
-#include <EASTL/tuple.h>
-#include <EASTL/span.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <3d/ddsFormat.h>
-#include <generic/dag_tab.h>
-#include <util/dag_watchdog.h>
 #include <validateUpdateSubRegion.h>
-#include "util/backtrace.h"
-
-#if _TARGET_PC
-#include <3d/dag_drv3d_pc.h>
+#include <validation/texture.h>
+#if _TARGET_PC_WIN
+#include <drv/3d/dag_platform_pc.h>
 #endif
+
+#include "driver_defs.h"
+#include "basetexture.h"
+#include "globals.h"
+#include "resource_manager.h"
+#include "vk_format_utils.h"
+#include "device_context.h"
 
 #if 0
 #define VERBOSE_DEBUG debug
@@ -43,285 +37,165 @@ using namespace drv3d_vulkan;
 
 namespace
 {
+
+void create_tex_fill(BaseTex::D3DTextures &tex, BaseTex *bt_in, const ImageCreateInfo &ici, BaseTex::ImageMem *initial_data)
+{
+  uint32_t flg = bt_in->cflg;
+  // transient image can't be cleared/filled with data
+  // and if any other fillers are not applicable, skip fill
+  if (
+    (ici.usage & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT) || (!initial_data && ((flg & (TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE)) == 0)))
+    return;
+
+  if (flg & TEXCF_RTARGET)
+  {
+    // init render target to a known state
+    VkImageSubresourceRange area;
+    area.aspectMask = ici.format.getAspektFlags();
+    area.baseMipLevel = 0;
+    area.levelCount = ici.mips;
+    area.baseArrayLayer = 0;
+    area.layerCount = ici.arrays;
+
+    if (area.aspectMask & VK_IMAGE_ASPECT_COLOR_BIT)
+    {
+      VkClearColorValue cv = {};
+      Globals::ctx.clearColorImage(tex.image, area, cv, true);
+    }
+    else
+    {
+      VkClearDepthStencilValue cv = {};
+      Globals::ctx.clearDepthStencilImage(tex.image, area, cv);
+    }
+  }
+  else
+  {
+    const bool tempStage = tex.stagingBuffer == nullptr;
+    carray<VkBufferImageCopy, MAX_MIPMAPS> copies;
+
+    if (initial_data)
+    {
+      if (tempStage)
+        tex.useStaging(ici.format, ici.size.width, ici.size.height, ici.size.depth, ici.mips, ici.arrays, true);
+
+      uint32_t offset = 0;
+      for (uint32_t i = 0; i < ici.arrays; ++i)
+      {
+        uint32_t flushStart = offset;
+        for (uint32_t j = 0; j < ici.mips; ++j)
+        {
+          copies[j] = make_copy_info(ici.format, j, i, 1, {ici.size.width, ici.size.height, ici.size.depth},
+            tex.stagingBuffer->bufOffsetLoc(offset));
+
+          BaseTex::ImageMem &src = initial_data[ici.mips * i + j];
+          memcpy(tex.stagingBuffer->ptrOffsetLoc(offset), src.ptr, src.memSize);
+          offset += src.memSize;
+        }
+        tex.stagingBuffer->markNonCoherentRangeLoc(flushStart, offset - flushStart, true);
+        Globals::ctx.copyBufferToImage(tex.stagingBuffer, tex.image, ici.mips, copies.data(), true);
+      }
+    }
+    else
+    {
+      if (tempStage)
+        tex.useStaging(ici.format, ici.size.width, ici.size.height, ici.size.depth, 1, 1, true);
+
+      uint32_t size = tex.stagingBuffer->getBlockSize();
+      memset(tex.stagingBuffer->ptrOffsetLoc(0), 0, size);
+      tex.stagingBuffer->markNonCoherentRangeLoc(0, size, true);
+
+      for (uint32_t i = 0; i < ici.arrays; ++i)
+      {
+        for (uint32_t j = 0; j < ici.mips; ++j)
+          copies[j] =
+            make_copy_info(ici.format, j, i, 1, {ici.size.width, ici.size.height, ici.size.depth}, tex.stagingBuffer->bufOffsetLoc(0));
+        Globals::ctx.copyBufferToImage(tex.stagingBuffer, tex.image, ici.mips, copies.data(), false);
+      }
+    }
+    if (tempStage)
+      tex.destroyStaging();
+  }
+}
+
+void create_tex_tql(BaseTex::D3DTextures &tex, BaseTex *bt_in)
+{
+  tex.memSize = bt_in->ressize();
+  bt_in->updateTexName();
+  TEXQL_ON_ALLOC(bt_in);
+}
+
+bool create_tex_image(const ImageCreateInfo &ici, BaseTex::D3DTextures &tex, BaseTex *bt_in)
+{
+  tex.image = Image::create(ici);
+  if (tex.image)
+  {
+    G_ASSERTF((bt_in->cflg & (TEXCF_RTARGET | TEXCF_SYSMEM)) != (TEXCF_RTARGET | TEXCF_SYSMEM),
+      "vulkan: can't create SYSMEM render target");
+    if (bt_in->cflg & (TEXCF_READABLE | TEXCF_SYSMEM))
+      tex.useStaging(ici.format, ici.size.width, ici.size.height, ici.size.depth, ici.mips, ici.arrays);
+  }
+  else
+    tex.destroyStaging();
+
+  return tex.image != nullptr;
+}
+
 bool create_tex2d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_t h, uint32_t levels, bool cube,
-  BaseTex::ImageMem *initial_data, int array_size = 1, bool temp_alloc = false)
+  BaseTex::ImageMem *initial_data, int array_size = 1)
 {
   uint32_t &flg = bt_in->cflg;
   G_ASSERT(!((flg & TEXCF_SAMPLECOUNT_MASK) && initial_data != nullptr));
   G_ASSERT(!((flg & TEXCF_LOADONCE) && (flg & (TEXCF_DYNAMIC | TEXCF_RTARGET))));
-
-  ImageCreateInfo desc;
-  desc.type = VK_IMAGE_TYPE_2D;
-  desc.size.width = w;
-  desc.size.height = h;
-  desc.size.depth = 1;
-  desc.mips = levels;
   tex.realMipLevels = levels;
-  desc.arrays = (cube ? 6 : 1) * array_size;
-  desc.residencyFlags = Image::MEM_NORMAL;
 
-  bool multisample = flg & (TEXCF_SAMPLECOUNT_MASK);
-  bool transient = flg & TEXCF_TRANSIENT;
+  ImageCreateInfo ici;
+  ici.type = VK_IMAGE_TYPE_2D;
+  ici.size.width = w;
+  ici.size.height = h;
+  ici.size.depth = 1;
+  ici.mips = levels;
+  ici.arrays = (cube ? 6 : 1) * array_size;
+  ici.initByTexCreate(flg, cube);
 
-  desc.samples = VkSampleCountFlagBits(get_sample_count(flg));
-
-  desc.format = FormatStore::fromCreateFlags(flg);
-  desc.usage = 0;
-
-  if (multisample || transient)
-  {
-    desc.usage |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
-  }
-  else
-  {
-    desc.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    if (!(flg & TEXCF_SYSMEM))
-      desc.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
-  }
-
-  const bool isDepth = desc.format.getAspektFlags() & VK_IMAGE_ASPECT_DEPTH_BIT;
-  const bool isRT = flg & TEXCF_RTARGET;
-  if (isRT)
-  {
-    desc.usage |= isDepth ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    desc.usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
-  }
-  desc.usage |= (flg & TEXCF_UNORDERED) ? VK_IMAGE_USAGE_STORAGE_BIT : 0;
-
-  G_ASSERT(!(isDepth && (flg & TEXCF_READABLE)));
-
-  Device &device = get_device();
-  if (flg & TEXCF_SYSMEM)
-  {
-    tex.useStaging(desc.format, desc.size.width, desc.size.height, desc.size.depth, desc.mips, desc.arrays);
-    G_ASSERT(!isRT && !isDepth);
-  }
-
-  desc.flags = cube ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
-  if ((desc.format.isSrgbCapableFormatType() && FormatStore::needMutableFormatForCreateFlags(flg)) || (flg & TEXCF_UNORDERED))
-    desc.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
-
-  if (!temp_alloc)
-    TEXQL_PRE_CLEAN(bt_in->ressize());
-
-  tex.image = device.createImage(desc);
-  if (!tex.image)
-  {
-    tex.destroyStaging();
+  if (!create_tex_image(ici, tex, bt_in))
     return false;
-  }
 
-  if ((flg & (TEXCF_READABLE | TEXCF_SYSMEM)) == TEXCF_READABLE)
-    tex.useStaging(desc.format, desc.size.width, desc.size.height, desc.size.depth, desc.mips, desc.arrays);
-
-  if (initial_data)
-  {
-    bool tempStage = tex.stagingBuffer == nullptr;
-    if (tempStage)
-      tex.useStaging(desc.format, desc.size.width, desc.size.height, desc.size.depth, desc.mips, desc.arrays, true);
-
-    carray<VkBufferImageCopy, MAX_MIPMAPS> copies;
-
-    uint32_t offset = 0;
-    for (uint32_t i = 0; i < desc.arrays; ++i)
-    {
-      uint32_t flushStart = offset;
-      for (uint32_t j = 0; j < desc.mips; ++j)
-      {
-        BaseTex::ImageMem &src = initial_data[desc.mips * i + j];
-        VkBufferImageCopy &copy = copies[j];
-        copy = make_copy_info(desc.format, j, i, 1, {desc.size.width, desc.size.height, 1}, tex.stagingBuffer->bufOffsetLoc(offset));
-
-        memcpy(tex.stagingBuffer->ptrOffsetLoc(offset), src.ptr, src.memSize);
-        offset += src.memSize;
-      }
-      tex.stagingBuffer->markNonCoherentRangeLoc(flushStart, offset - flushStart, true);
-      device.getContext().copyBufferToImage(tex.stagingBuffer, tex.image, desc.mips, copies.data(), true);
-    }
-
-    if (tempStage)
-      tex.destroyStaging();
-  }
-  else if (isRT)
-  {
-    // init render target to a known state
-    VkImageSubresourceRange area;
-    area.aspectMask = desc.format.getAspektFlags();
-    area.baseMipLevel = 0;
-    area.levelCount = levels;
-    area.baseArrayLayer = 0;
-    area.layerCount = desc.arrays;
-    // a transient image only can be "cleared" in a renderpass
-    if ((desc.usage & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT) == 0)
-    {
-      if (area.aspectMask & VK_IMAGE_ASPECT_COLOR_BIT)
-      {
-        VkClearColorValue cv = {};
-        device.getContext().clearColorImage(tex.image, area, cv);
-      }
-      else
-      {
-        VkClearDepthStencilValue cv = {};
-        device.getContext().clearDepthStencilImage(tex.image, area, cv);
-      }
-    }
-  }
-  else if (flg & TEXCF_CLEAR_ON_CREATE)
-  {
-    bool tempStage = tex.stagingBuffer == nullptr;
-    if (tempStage)
-      tex.useStaging(desc.format, desc.size.width, desc.size.height, desc.size.depth, 1, 1, true);
-
-    uint32_t size = tex.stagingBuffer->getBlockSize();
-    memset(tex.stagingBuffer->ptrOffsetLoc(0), 0, size);
-    tex.stagingBuffer->markNonCoherentRangeLoc(0, size, true);
-
-    carray<VkBufferImageCopy, MAX_MIPMAPS> copies;
-
-    for (uint32_t i = 0; i < desc.arrays; ++i)
-    {
-      for (uint32_t j = 0; j < desc.mips; ++j)
-        copies[j] = make_copy_info(desc.format, j, i, 1, {desc.size.width, desc.size.height, 1}, tex.stagingBuffer->bufOffsetLoc(0));
-      device.getContext().copyBufferToImage(tex.stagingBuffer, tex.image, desc.mips, copies.data(), false);
-    }
-
-    if (tempStage)
-      tex.destroyStaging();
-  }
-
-  tex.memSize = bt_in->ressize();
-  bt_in->updateTexName();
-  TEXQL_ON_ALLOC(bt_in);
+  create_tex_fill(tex, bt_in, ici, initial_data);
+  create_tex_tql(tex, bt_in);
   return true;
 }
+
 bool create_tex3d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_t h, uint32_t d, uint32_t flg, uint32_t levels,
   BaseTex::ImageMem *initial_data)
 {
   G_ASSERT((flg & TEXCF_SAMPLECOUNT_MASK) == 0);
   G_ASSERT(!((flg & TEXCF_LOADONCE) && (flg & TEXCF_DYNAMIC)));
-
-  ImageCreateInfo desc;
-  desc.type = VK_IMAGE_TYPE_3D;
-  desc.size.width = w;
-  desc.size.height = h;
-  desc.size.depth = d;
-  desc.mips = levels;
   tex.realMipLevels = levels;
-  desc.arrays = 1;
-  desc.format = FormatStore::fromCreateFlags(flg);
-  desc.residencyFlags = Image::MEM_NORMAL;
-  desc.samples = VK_SAMPLE_COUNT_1_BIT;
 
-  desc.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-  if (!(flg & TEXCF_SYSMEM))
-    desc.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+  ImageCreateInfo ici;
+  ici.type = VK_IMAGE_TYPE_3D;
+  ici.size.width = w;
+  ici.size.height = h;
+  ici.size.depth = d;
+  ici.mips = levels;
+  ici.arrays = 1;
+  ici.initByTexCreate(flg, false /*cube_tex*/);
 
-  const bool isRT = flg & TEXCF_RTARGET;
-  if (flg & TEXCF_UNORDERED)
-    desc.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
-
-  desc.flags = 0;
-  if ((desc.format.isSrgbCapableFormatType() && FormatStore::needMutableFormatForCreateFlags(flg)) || (flg & TEXCF_UNORDERED))
-    desc.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
-
-  TEXQL_PRE_CLEAN(bt_in->ressize());
-
-  Device &device = get_device();
-  const bool isDepth = (desc.format.getAspektFlags() & VK_IMAGE_ASPECT_DEPTH_BIT) != 0;
-  if (isRT)
-  {
-    if (device.canRenderTo3D())
-    {
-      desc.usage |= isDepth ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-#if VK_KHR_maintenance1
-      desc.flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT_KHR;
-#endif
-    }
-  }
-  tex.image = device.createImage(desc);
-  if (!tex.image)
+  if (!create_tex_image(ici, tex, bt_in))
     return false;
-  // emulate render to 3d slices by creating a 2d array image
-  // with a depth of the 3d image
-  if (isRT && !device.canRenderTo3D())
+
+  // check 3d render support
+  const bool isRT = flg & TEXCF_RTARGET;
+  if (isRT && !Globals::cfg.has.renderTo3D)
   {
-    desc.type = VK_IMAGE_TYPE_2D;
-    desc.size.depth = 1;
-    desc.arrays = d;
-    desc.usage |= isDepth ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    desc.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    tex.renderTarget3DEmul = device.createImage(desc);
-    if (!tex.renderTarget3DEmul)
-    {
-      debug("vulkan: can not create array texture to emulate render to vol texture, releasing vol "
-            "texture");
-      device.getContext().destroyImage(tex.image);
-      tex.image = nullptr;
-      return false;
-    }
-  }
-  if (initial_data)
-  {
-    uint32_t size = desc.format.calculateImageSize(desc.size.width, desc.size.height, desc.size.depth, desc.mips);
-    auto stage = device.createBuffer(size, DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER, 1, BufferMemoryFlags::TEMP);
-    stage->setStagingDebugName(tex.image);
-
-    carray<VkBufferImageCopy, MAX_MIPMAPS> copies;
-    VkDeviceSize bufferOffset = 0;
-
-    for (uint32_t j = 0; j < levels; ++j)
-    {
-      VkBufferImageCopy &copy = copies[j];
-      copy =
-        make_copy_info(desc.format, j, 0, 1, {desc.size.width, desc.size.height, desc.size.depth}, stage->bufOffsetLoc(bufferOffset));
-
-      uint32_t imgSize = desc.format.calculateImageSize(copy.imageExtent.width, copy.imageExtent.height, copy.imageExtent.depth, 1);
-      memcpy(stage->ptrOffsetLoc(bufferOffset), initial_data[j].ptr, imgSize);
-      bufferOffset += imgSize;
-    }
-    stage->markNonCoherentRangeLoc(0, size, true);
-    device.getContext().copyBufferToImage(stage, tex.image, levels, copies.data(), true);
-    device.getContext().destroyBuffer(stage);
-  }
-  else if (isRT)
-  {
-    // init render target to a known state
-    VkImageSubresourceRange area;
-    area.aspectMask = desc.format.getAspektFlags();
-    area.baseMipLevel = 0;
-    area.levelCount = levels;
-    area.baseArrayLayer = 0;
-    area.layerCount = 1;
-    if (area.aspectMask & VK_IMAGE_ASPECT_COLOR_BIT)
-    {
-      VkClearColorValue cv = {};
-      device.getContext().clearColorImage(tex.renderTarget3DEmul ? tex.renderTarget3DEmul : tex.image, area, cv);
-    }
-    else
-    {
-      VkClearDepthStencilValue cv = {};
-      device.getContext().clearDepthStencilImage(tex.renderTarget3DEmul ? tex.renderTarget3DEmul : tex.image, area, cv);
-    }
-  }
-  else if (flg & TEXCF_CLEAR_ON_CREATE)
-  {
-    uint32_t size = desc.format.calculateImageSize(desc.size.width, desc.size.height, desc.size.depth, 1);
-    auto stage = device.createBuffer(size, DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER, 1, BufferMemoryFlags::TEMP);
-    stage->setStagingDebugName(tex.image);
-    memset(stage->ptrOffsetLoc(0), 0, size);
-    stage->markNonCoherentRangeLoc(0, size, true);
-
-    carray<VkBufferImageCopy, MAX_MIPMAPS> copies;
-    for (uint32_t j = 0; j < levels; ++j)
-      copies[j] = make_copy_info(desc.format, j, 0, 1, {desc.size.width, desc.size.height, desc.size.depth}, stage->bufOffsetLoc(0));
-
-    device.getContext().copyBufferToImage(stage, tex.image, levels, copies.data(), false);
-    device.getContext().destroyBuffer(stage);
+    debug("vulkan: render to voltex is not supported");
+    Globals::ctx.destroyImage(tex.image);
+    tex.image = nullptr;
+    return false;
   }
 
-  tex.memSize = bt_in->ressize();
-  bt_in->updateTexName();
-  TEXQL_ON_ALLOC(bt_in);
+  create_tex_fill(tex, bt_in, ici, initial_data);
+  create_tex_tql(tex, bt_in);
   return true;
 }
 
@@ -330,10 +204,20 @@ bool create_tex3d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_
 namespace drv3d_vulkan
 {
 
+void BaseTex::cleanupWaitEvent()
+{
+  if (waitEvent.isRequested())
+  {
+    TIME_PROFILE(vulkan_tex_cleanup_wait_event);
+    Globals::ctx.waitForIfPending(waitEvent);
+    waitEvent.reset();
+  }
+}
+
 void BaseTex::blockingReadbackWait()
 {
   TIME_PROFILE(vulkan_texture_blocking_readback);
-  get_device().getContext().wait();
+  Globals::ctx.wait();
 }
 
 void BaseTex::setParams(int w, int h, int d, int levels, const char *stat_name)
@@ -348,7 +232,7 @@ void BaseTex::setParams(int w, int h, int d, int levels, const char *stat_name)
   minMipLevel = levels - 1;
   setTexName(stat_name);
 
-  if (!(get_device().getFormatFeatures(fmt.asVkFormat()) & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
+  if (!(Globals::VK::fmt.features(fmt.asVkFormat()) & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
   {
     debug("vulkan: texture %s default filter changed to nearest due to format %s not supporting linear", stat_name,
       fmt.getNameString());
@@ -386,14 +270,35 @@ void BaseTex::copy(Image *dst)
     region.extent.depth = max<uint32_t>(1u, depthSlices >> i);
   }
 
-  get_device().getContext().copyImage(tex.image, dst, regions.data(), mipLevels, 0, 0, mipLevels);
+  Globals::ctx.copyImage(tex.image, dst, regions.data(), mipLevels, 0, 0, mipLevels);
 }
 
-void BaseTex::resolve(Image *dst) { get_device().getContext().resolveMultiSampleImage(tex.image, dst); }
+void BaseTex::resolve(Image *dst) { Globals::ctx.resolveMultiSampleImage(tex.image, dst); }
 
-int BaseTex::updateSubRegionInternal(BaseTex *src, int src_subres_idx, int src_x, int src_y, int src_z, int src_w, int src_h,
-  int src_d, int dest_subres_idx, int dest_x, int dest_y, int dest_z)
+int BaseTex::updateSubRegionInternal(BaseTexture *srcBaseTex, int src_subres_idx, int src_x, int src_y, int src_z, int src_w,
+  int src_h, int src_d, int dest_subres_idx, int dest_x, int dest_y, int dest_z, bool unordered)
 {
+  if (isStub())
+  {
+    D3D_ERROR("updateSubRegion() called for tex=<%s> in stub state: stubTexIdx=%d", getTexName(), stubTexIdx);
+    return 0;
+  }
+  if (srcBaseTex)
+    if (BaseTex *stex = getbasetex(srcBaseTex))
+      if (stex->isStub())
+      {
+        D3D_ERROR("updateSubRegion() called with src tex=<%s> in stub state: stubTexIdx=%d", srcBaseTex->getTexName(),
+          stex->stubTexIdx);
+        return 0;
+      }
+
+  if ((RES3D_TEX != resType) && (RES3D_CUBETEX != resType) && (RES3D_VOLTEX != resType) && (RES3D_ARRTEX != resType))
+    return 0;
+
+  BaseTex *src = getbasetex(srcBaseTex);
+  if (!src)
+    return 0;
+
   if (!validate_update_sub_region_params(src, src_subres_idx, src_x, src_y, src_z, src_w, src_h, src_d, this, dest_subres_idx, dest_x,
         dest_y, dest_z))
     return 0;
@@ -433,8 +338,8 @@ int BaseTex::updateSubRegionInternal(BaseTex *src, int src_subres_idx, int src_x
     }
   }
 
-  get_device().getContext().copyImage(src->tex.image, tex.image, &region, 1, src_subres_idx % src->mipLevels,
-    dest_subres_idx % mipLevels, 1);
+  Globals::ctx.copyImage(src->tex.image, tex.image, &region, 1, src_subres_idx % src->mipLevels, dest_subres_idx % mipLevels, 1,
+    unordered);
   return 1;
 }
 
@@ -542,14 +447,14 @@ int BaseTex::update(BaseTexture *src)
 {
   if (isStub())
   {
-    logerr("updateSubRegion() called for tex=<%s> in stub state: stubTexIdx=%d", getTexName(), stubTexIdx);
+    D3D_ERROR("updateSubRegion() called for tex=<%s> in stub state: stubTexIdx=%d", getTexName(), stubTexIdx);
     return 0;
   }
   if (src)
     if (BaseTex *stex = getbasetex(src))
       if (stex->isStub())
       {
-        logerr("updateSubRegion() called with src tex=<%s> in stub state: stubTexIdx=%d", src->getTexName(), stex->stubTexIdx);
+        D3D_ERROR("updateSubRegion() called with src tex=<%s> in stub state: stubTexIdx=%d", src->getTexName(), stex->stubTexIdx);
         return 0;
       }
 
@@ -575,27 +480,15 @@ int BaseTex::update(BaseTexture *src)
 int BaseTex::updateSubRegion(BaseTexture *src, int src_subres_idx, int src_x, int src_y, int src_z, int src_w, int src_h, int src_d,
   int dest_subres_idx, int dest_x, int dest_y, int dest_z)
 {
-  if (isStub())
-  {
-    logerr("updateSubRegion() called for tex=<%s> in stub state: stubTexIdx=%d", getTexName(), stubTexIdx);
-    return 0;
-  }
-  if (src)
-    if (BaseTex *stex = getbasetex(src))
-      if (stex->isStub())
-      {
-        logerr("updateSubRegion() called with src tex=<%s> in stub state: stubTexIdx=%d", src->getTexName(), stex->stubTexIdx);
-        return 0;
-      }
+  return BaseTex::updateSubRegionInternal(src, src_subres_idx, src_x, src_y, src_z, src_w, src_h, src_d, dest_subres_idx, dest_x,
+    dest_y, dest_z, false);
+}
 
-  if ((RES3D_TEX == resType) || (RES3D_CUBETEX == resType) || (RES3D_VOLTEX == resType) || (RES3D_ARRTEX == resType))
-  {
-    BaseTex *btex = getbasetex(src);
-    if (btex)
-      return BaseTex::updateSubRegionInternal(btex, src_subres_idx, src_x, src_y, src_z, src_w, src_h, src_d, dest_subres_idx, dest_x,
-        dest_y, dest_z);
-  }
-  return 0;
+int BaseTex::updateSubRegionNoOrder(BaseTexture *src, int src_subres_idx, int src_x, int src_y, int src_z, int src_w, int src_h,
+  int src_d, int dest_subres_idx, int dest_x, int dest_y, int dest_z)
+{
+  return BaseTex::updateSubRegionInternal(src, src_subres_idx, src_x, src_y, src_z, src_w, src_h, src_d, dest_subres_idx, dest_x,
+    dest_y, dest_z, true);
 }
 
 void BaseTex::destroy()
@@ -609,7 +502,7 @@ void BaseTex::destroy()
 int BaseTex::generateMips()
 {
   if (mipLevels > 1)
-    get_device().getContext().generateMipmaps(tex.image);
+    Globals::ctx.generateMipmaps(tex.image);
   return 1;
 }
 
@@ -619,7 +512,7 @@ void BaseTex::D3DTextures::useStaging(FormatStore fmt, int32_t w, int32_t h, int
   if (!stagingBuffer)
   {
     uint32_t size = fmt.calculateImageSize(w, h, d, levels) * arrays;
-    stagingBuffer = get_device().createBuffer(size, DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER, 1,
+    stagingBuffer = Buffer::create(size, DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER, 1,
       temporary ? BufferMemoryFlags::TEMP : BufferMemoryFlags::NONE);
 
     stagingBuffer->setStagingDebugName(image);
@@ -630,59 +523,50 @@ void BaseTex::D3DTextures::destroyStaging()
 {
   if (stagingBuffer)
   {
-    get_device().getContext().destroyBuffer(stagingBuffer);
+    Globals::ctx.destroyBuffer(stagingBuffer);
     stagingBuffer = nullptr;
   }
 }
 
 void BaseTex::D3DTextures::releaseDelayed(AsyncCompletionState &event)
 {
-  Device &device = get_device();
   // races to staging buffer is a caller problem, so just delete it asap
   if (stagingBuffer)
   {
-    device.getContext().destroyBuffer(stagingBuffer);
+    Globals::ctx.destroyBuffer(stagingBuffer);
     stagingBuffer = nullptr;
   }
 
-  if (event.isPending())
+  if (event.isRequested())
   {
-    device.getContext().wait();
+    TIME_PROFILE(vulkan_tex_release_delayed_wait_event);
+    Globals::ctx.waitForIfPending(event);
     event.reset();
   }
 
   if (image)
-    device.getContext().destroyImageDelayed(image);
-
-  if (renderTarget3DEmul)
-    device.getContext().destroyImageDelayed(renderTarget3DEmul);
+    Globals::ctx.destroyImageDelayed(image);
 }
 
 void BaseTex::D3DTextures::release(AsyncCompletionState &event)
 {
-  Device &device = get_device();
   if (stagingBuffer)
   {
-    device.getContext().destroyBuffer(stagingBuffer);
+    Globals::ctx.destroyBuffer(stagingBuffer);
     stagingBuffer = nullptr;
   }
 
-  if (event.isPending())
+  if (event.isRequested())
   {
-    device.getContext().wait();
+    TIME_PROFILE(vulkan_tex_release_wait_event);
+    Globals::ctx.waitForIfPending(event);
     event.reset();
   }
 
   if (image)
   {
-    device.getContext().destroyImage(image);
+    Globals::ctx.destroyImage(image);
     image = nullptr;
-  }
-
-  if (renderTarget3DEmul)
-  {
-    device.getContext().destroyImage(renderTarget3DEmul);
-    renderTarget3DEmul = nullptr;
   }
 }
 
@@ -704,19 +588,13 @@ void BaseTex::swapInnerTex(D3DTextures &new_tex)
     // this will create some small overbudget, but we can't move BaseTex to backend
     TEXQL_ON_RELEASE(this);
 
-  // sometimes engine can swap to image with uninitialized subresources
-  // we need to avoid this in order to not add barrier when such texture is used right away
-  if (tex.image)
-    get_device().getContext().fillEmptySubresources(tex.image);
   // important: swap before release, sync on followup front lock atomic RW
   tex = new_tex;
-  std::atomic_thread_fence(std::memory_order_release);
   texc.releaseDelayed(waitEvent);
 
   // old texture will be deleted, so we are swapping to nullptr
   new_tex.image = nullptr;
   new_tex.stagingBuffer = nullptr;
-  new_tex.renderTarget3DEmul = nullptr;
 }
 
 BaseTexture *BaseTex::makeTmpTexResCopy(int w, int h, int d, int l, bool staging_tex)
@@ -735,12 +613,13 @@ BaseTexture *BaseTex::makeTmpTexResCopy(int w, int h, int d, int l, bool staging
 void BaseTex::replaceTexResObject(BaseTexture *&other_tex)
 {
   {
-    WinAutoLock lock(get_device().getContext().getStubSwapGuard());
+    WinAutoLock lock(Globals::ctx.getStubSwapGuard());
     BaseTex *other = getbasetex(other_tex);
     G_ASSERT_RETURN(other, );
 
     // safely swap texture objects
     swapInnerTex(other->tex);
+    updateTexName();
     // swap dimensions
     eastl::swap(width, other->width);
     eastl::swap(height, other->height);
@@ -760,9 +639,9 @@ bool BaseTex::allocateTex()
   {
     case RES3D_VOLTEX: return create_tex3d(tex, this, width, height, depth, cflg, mipLevels, nullptr);
     case RES3D_TEX:
-    case RES3D_CUBETEX: return create_tex2d(tex, this, width, height, mipLevels, resType == RES3D_CUBETEX, nullptr, 1, false);
+    case RES3D_CUBETEX: return create_tex2d(tex, this, width, height, mipLevels, resType == RES3D_CUBETEX, nullptr, 1);
     case RES3D_CUBEARRTEX:
-    case RES3D_ARRTEX: return create_tex2d(tex, this, width, height, mipLevels, resType == RES3D_CUBEARRTEX, nullptr, depth, false);
+    case RES3D_ARRTEX: return create_tex2d(tex, this, width, height, mipLevels, resType == RES3D_CUBEARRTEX, nullptr, depth);
   }
   return false;
 }
@@ -774,11 +653,10 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
 
   bool stagingIsTemporary = (flags & TEXLOCK_DELSYSMEMCOPY) && !(cflg & TEXCF_DYNAMIC);
 
-  Device &device = get_device();
   if (!tex.image && (flags & TEXLOCK_WRITE) && !(flags & TEXLOCK_READ))
     if (!create_tex2d(tex, this, width, height, mipLevels, false, nullptr))
     {
-      logerr("failed to auto-create tex.tex2D on lockImg");
+      D3D_ERROR("failed to auto-create tex.tex2D on lockImg");
       return 0;
     }
   stride = 0;
@@ -790,7 +668,7 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
     lockFlags = 0;
     if ((getFormat().getAspektFlags() & VK_IMAGE_ASPECT_DEPTH_BIT) && !(flags & TEXLOCK_COPY_STAGING))
     {
-      logerr("can't lock depth format");
+      D3D_ERROR("can't lock depth format");
       return 0;
     }
     tex.useStaging(getFormat(), width, height, getDepthSlices(), mipLevels, getArrayCount(), stagingIsTemporary);
@@ -812,21 +690,31 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
       }
       if (flags & TEXLOCK_COPY_STAGING)
       {
-        device.getContext().copyImageToBuffer(tex.image, tex.stagingBuffer, mipLevels, copies.data(), nullptr);
+        Globals::ctx.copyImageToBuffer(tex.image, tex.stagingBuffer, mipLevels, copies.data(), nullptr);
         blockingReadbackWait();
         lockFlags = TEXLOCK_COPY_STAGING;
         return 1;
       }
+
+      // another case of start readback logic
+      if (!resourceCopied && p && (flags & TEXLOCK_NOSYSLOCK))
+      {
+        cleanupWaitEvent();
+        Globals::ctx.copyImageToBuffer(tex.image, tex.stagingBuffer, mipLevels, copies.data(), &waitEvent);
+        lockFlags = TEX_COPIED;
+        stride = 0;
+        return 0;
+      }
+
       if (!p)
       {
         // on some cases the requested copy is never used
-        if (waitEvent.isPending())
-          device.getContext().wait();
-        device.getContext().copyImageToBuffer(tex.image, tex.stagingBuffer, mipLevels, copies.data(), &waitEvent);
+        cleanupWaitEvent();
+        Globals::ctx.copyImageToBuffer(tex.image, tex.stagingBuffer, mipLevels, copies.data(), &waitEvent);
       }
       else if (!resourceCopied)
       {
-        device.getContext().copyImageToBuffer(tex.image, tex.stagingBuffer, mipLevels, copies.data(), nullptr);
+        Globals::ctx.copyImageToBuffer(tex.image, tex.stagingBuffer, mipLevels, copies.data(), nullptr);
         blockingReadbackWait();
       }
     }
@@ -844,7 +732,7 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
     {
       if (flags & TEXLOCK_RWMASK)
       {
-        logerr("nullptr in lockimg");
+        D3D_ERROR("nullptr in lockimg");
         return 0;
       }
     }
@@ -875,12 +763,11 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
     lockMsr.rowPitch = getFormat().calculateRowPitch(max(width >> lev, 1));
     lockMsr.slicePitch = getFormat().calculateSlicePich(max(width >> lev, 1), max(height >> lev, 1));
 
-    // fast check is ok here
-    if (waitEvent.isPendingOrCompletedFast())
+    if (waitEvent.isRequested())
     {
       if (flags & TEXLOCK_NOSYSLOCK)
       {
-        if (waitEvent.isPending())
+        if (!waitEvent.isCompleted())
         {
           // restore TEX_COPIED flag to prevent
           // breaking previous copy if lock is non fenced
@@ -893,10 +780,9 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
       }
       else
       {
-        if (waitEvent.isPending())
-          device.getContext().wait();
+        TIME_PROFILE(vulkan_tex_lock_early_readback_finish);
+        Globals::ctx.waitForIfPending(waitEvent);
       }
-
       waitEvent.reset();
     }
 
@@ -914,8 +800,7 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
 
 int BaseTex::unlockimg()
 {
-  auto &device = get_device();
-  auto &context = device.getContext();
+  auto &context = Globals::ctx;
   if (RES3D_TEX == resType)
   {
     if (lockFlags == TEXLOCK_COPY_STAGING)
@@ -933,7 +818,7 @@ int BaseTex::unlockimg()
         bufferOffset += getFormat().calculateImageSize(copy.imageExtent.width, copy.imageExtent.height, copy.imageExtent.depth, 1);
       }
       tex.stagingBuffer->markNonCoherentRangeLoc(0, bufferOffset, true);
-      get_device().getContext().copyBufferToImage(tex.stagingBuffer, tex.image, mipLevels, copies.data(), false);
+      Globals::ctx.copyBufferToImage(tex.stagingBuffer, tex.image, mipLevels, copies.data(), false);
       return 1;
     }
 
@@ -971,7 +856,7 @@ int BaseTex::unlockimg()
         uint32_t dirtySize =
           getFormat().calculateImageSize(copy.imageExtent.width, copy.imageExtent.height, copy.imageExtent.depth, 1);
         tex.stagingBuffer->markNonCoherentRangeLoc(0, dirtySize, true);
-        get_device().getContext().copyBufferToImageOrdered(tex.stagingBuffer, tex.image, 1, &copy);
+        Globals::ctx.copyBufferToImageOrdered(tex.stagingBuffer, tex.image, 1, &copy);
         tex.destroyStaging();
       }
       else if ((lockFlags & TEXLOCK_DONOTUPDATEON9EXBYDEFAULT) != 0)
@@ -994,7 +879,7 @@ int BaseTex::unlockimg()
         const eastl::span<VkBufferImageCopy> fullResource{copies.data(), mipLevels};
         const eastl::span<VkBufferImageCopy> oneSubresource{&copies[lockedLevel], 1};
         const auto uploadRegions = unlockImageUploadSkipped ? fullResource : oneSubresource;
-        get_device().getContext().copyBufferToImage(tex.stagingBuffer, tex.image, uploadRegions.size(), uploadRegions.data(), false);
+        Globals::ctx.copyBufferToImage(tex.stagingBuffer, tex.image, uploadRegions.size(), uploadRegions.data(), false);
         unlockImageUploadSkipped = false;
       }
     }
@@ -1042,8 +927,7 @@ int BaseTex::lockimg(void **p, int &stride, int face, int lev, unsigned flags)
 
   if ((flags & TEXLOCK_RWMASK))
   {
-    auto &device = get_device();
-    auto &context = device.getContext();
+    auto &context = Globals::ctx;
 
     lockFlags = flags;
     lockedLevel = lev;
@@ -1069,18 +953,14 @@ int BaseTex::lockimg(void **p, int &stride, int face, int lev, unsigned flags)
         else
         {
           // sometimes async read back are issued without waiting for it and then re-issuing again
-          if (waitEvent.isPending())
-            context.wait();
+          cleanupWaitEvent();
           context.copyImageToBuffer(tex.image, tex.stagingBuffer, 1, &copy, &waitEvent);
         }
       }
 
       if (p)
       {
-        if (waitEvent.isPending())
-          context.wait();
-
-        waitEvent.reset();
+        cleanupWaitEvent();
         tex.stagingBuffer->markNonCoherentRangeLoc(0, tex.stagingBuffer->getBlockSize(), false);
         *p = tex.stagingBuffer->ptrOffsetLoc(0);
         stride = format.calculateRowPitch(levelWidth);
@@ -1106,8 +986,7 @@ int BaseTex::lockbox(void **data, int &row_pitch, int &slice_pitch, int level, u
 
   if ((flags & TEXLOCK_RWMASK) && data)
   {
-    auto &device = get_device();
-    auto &context = device.getContext();
+    auto &context = Globals::ctx;
 
     auto format = getFormat();
     uint32_t levelWidth = max(width >> level, 1);
@@ -1156,8 +1035,7 @@ int BaseTex::unlockbox()
 
   G_ASSERTF(lockFlags != 0, "Unlock without any lock before?");
 
-  auto &device = get_device();
-  auto &context = device.getContext();
+  auto &context = Globals::ctx;
 
   if ((cflg & TEXCF_SYSTEXCOPY) && data_size(texCopy) && lockMsr.ptr)
   {
@@ -1201,13 +1079,60 @@ int BaseTex::unlockbox()
   return 1;
 }
 
+Texture *BaseTex::wrapVKImage(VkImage tex_res, ResourceBarrier current_state, int width, int height, int layers, int mips,
+  const char *name, int flg)
+{
+  VkImageLayout currentVkLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  if (current_state == ResourceBarrier::RB_RW_RENDER_TARGET)
+    currentVkLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  if ((current_state & ResourceBarrier::RB_RO_SRV) != 0)
+    currentVkLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+  bool isDepthStencil = ((flg & TEXFMT_MASK) >= TEXFMT_FIRST_DEPTH) && ((flg & TEXFMT_MASK) <= TEXFMT_LAST_DEPTH);
+
+  FormatStore dagorFormat = FormatStore::fromCreateFlags(flg);
+
+  VkImageUsageFlags vkUsage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+  if ((flg & TEXCF_RTARGET) != 0)
+  {
+    if (isDepthStencil)
+      vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    else
+      vkUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+  }
+  if ((flg & TEXCF_UNORDERED) != 0)
+    vkUsage |= VK_IMAGE_USAGE_STORAGE_BIT;
+  if ((dagorFormat.isSrgbCapableFormatType() && FormatStore::needMutableFormatForCreateFlags(flg)) || (flg & TEXCF_UNORDERED) != 0)
+    vkUsage |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+
+  TextureInterfaceBase *tex = allocate_texture(layers > 1 ? RES3D_ARRTEX : RES3D_TEX, flg);
+  tex->setParams(width, height, layers, mips, name);
+
+  Image::Description::TrimmedCreateInfo ici;
+  ici.flags = 0;
+  ici.imageType = VK_IMAGE_TYPE_2D;
+  ici.extent = VkExtent3D{uint32_t(width), uint32_t(height), 1};
+  ici.mipLevels = mips;
+  ici.arrayLayers = layers;
+  ici.usage = vkUsage;
+  ici.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+
+  WinAutoLock lk(Globals::Mem::mutex);
+  tex->tex.image = Globals::Mem::res.alloc<Image>({ici, Image::MEM_NOT_EVICTABLE, dagorFormat, currentVkLayout}, false);
+  tex->tex.image->setDerivedHandle(VulkanHandle(tex_res));
+  tex->tex.memSize = tex->ressize();
+
+  return tex;
+}
+
 } // namespace drv3d_vulkan
 
 Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name)
 {
+  check_texture_creation_args(w, h, flg, stat_name);
   if ((flg & (TEXCF_RTARGET | TEXCF_DYNAMIC)) == (TEXCF_RTARGET | TEXCF_DYNAMIC))
   {
-    logerr("create_tex: can not create dynamic render target");
+    D3D_ERROR("create_tex: can not create dynamic render target");
     return nullptr;
   }
   if (img)
@@ -1234,7 +1159,7 @@ Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, con
 
     if ((w != img->w) || (h != img->h))
     {
-      logerr("create_tex: image size differs from texture size (%dx%d != %dx%d)", img->w, img->h, w, h);
+      D3D_ERROR("create_tex: image size differs from texture size (%dx%d != %dx%d)", img->w, img->h, w, h);
       img = nullptr; // abort copying
     }
 
@@ -1322,7 +1247,7 @@ CubeTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat
 {
   if ((flg & (TEXCF_RTARGET | TEXCF_DYNAMIC)) == (TEXCF_RTARGET | TEXCF_DYNAMIC))
   {
-    logerr("create_cubtex: can not create dynamic render target");
+    D3D_ERROR("create_cubtex: can not create dynamic render target");
     return nullptr;
   }
 
@@ -1346,7 +1271,7 @@ VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const c
 {
   if ((flg & (TEXCF_RTARGET | TEXCF_DYNAMIC)) == (TEXCF_RTARGET | TEXCF_DYNAMIC))
   {
-    logerr("create_voltex: can not create dynamic render target");
+    D3D_ERROR("create_voltex: can not create dynamic render target");
     return nullptr;
   }
 
@@ -1422,6 +1347,30 @@ ArrayTexture *d3d::create_cube_array_tex(int side, int d, int flg, int levels, c
   return tex;
 }
 
+static BaseTexture *retry_load_ddsx_tex_contents(BaseTexture *tex, const ddsx::Header &hdr, int quality_id, const void *ptr, int sz,
+  const char *stat_name)
+{
+  TexLoadRes ldRet = TexLoadRes::ERR;
+  for (unsigned attempt = 0, tries = 5, f = dagor_frame_no(); attempt < tries;)
+    if (dagor_frame_no() < f + 1)
+      sleep_msec(1);
+    else
+    {
+      InPlaceMemLoadCB mcrd(ptr, sz);
+      ldRet = d3d::load_ddsx_tex_contents(tex, hdr, mcrd, quality_id);
+      if (ldRet == TexLoadRes::OK)
+      {
+        debug("finally loaded %s (attempt=%d)", stat_name, attempt + 1);
+        return tex;
+      }
+      f = dagor_frame_no();
+      attempt++;
+    }
+  if (ldRet != TexLoadRes::ERR_RUB)
+    D3D_ERROR("vulkan: retry failure at texture %s ddsx load", stat_name);
+  return tex;
+}
+
 // load compressed texture
 BaseTexture *d3d::create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int levels, const char *stat_name)
 {
@@ -1436,7 +1385,6 @@ BaseTexture *d3d::create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int le
   if (tex)
   {
     BaseTex *bt = (BaseTex *)tex;
-    int st_pos = crd.tell();
     G_ASSERTF_AND_DO(hdr.hqPartLevels == 0, bt->cflg &= ~TEXCF_SYSTEXCOPY,
       "cannot use TEXCF_SYSTEXCOPY with base part of split texture!");
     if (bt->cflg & TEXCF_SYSTEXCOPY)
@@ -1447,35 +1395,40 @@ BaseTexture *d3d::create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int le
       /*sysCopyQualityId*/ ((ddsx::Header *)bt->texCopy.data())->hqPartLevels = quality_id;
       if (!crd.readExact(bt->texCopy.data() + sizeof(hdr), data_sz))
       {
-        logerr_ctx("inconsistent input tex data, data_sz=%d tex=%s", data_sz, stat_name);
+        LOGERR_CTX("inconsistent input tex data, data_sz=%d tex=%s", data_sz, stat_name);
         del_d3dres(tex);
         return NULL;
       }
       VERBOSE_DEBUG("%s %dx%d stored DDSx (%d bytes) for TEXCF_SYSTEXCOPY", stat_name, hdr.w, hdr.h, data_size(bt->texCopy));
       InPlaceMemLoadCB mcrd(bt->texCopy.data() + sizeof(hdr), data_sz);
-      if (load_ddsx_tex_contents(tex, hdr, mcrd, quality_id))
+      TexLoadRes ldRet = load_ddsx_tex_contents(tex, hdr, mcrd, quality_id);
+      if (ldRet == TexLoadRes::OK)
         return tex;
-    }
-    else if (load_ddsx_tex_contents(tex, hdr, crd, quality_id))
-      return tex;
 
-    if (!is_main_thread())
+      if (!is_main_thread())
+        return retry_load_ddsx_tex_contents(tex, hdr, quality_id, bt->texCopy.data() + sizeof(hdr), data_sz, stat_name);
+    }
+    else
     {
-      for (unsigned attempt = 0, tries = 5, f = dagor_frame_no(); attempt < tries;)
-        if (dagor_frame_no() < f + 1)
-          sleep_msec(1);
-        else
-        {
-          crd.seekto(st_pos);
-          if (load_ddsx_tex_contents(tex, hdr, crd, quality_id))
-          {
-            debug("finally loaded %s (attempt=%d)", stat_name, attempt + 1);
-            return tex;
-          }
-          f = dagor_frame_no();
-          attempt++;
-        }
-      return tex;
+      // Use temporary buffer to read compressed texture data
+      // crd could be a FastSeqReadCB which has a limit to seekto back in the stream
+      // and mught end up with fatal error.
+      const int dataSz = hdr.packedSz ? hdr.packedSz : hdr.memSz;
+      eastl::unique_ptr<char[]> tmpBuffer(new char[dataSz]);
+
+      if (!crd.readExact(tmpBuffer.get(), dataSz))
+      {
+        LOGERR_CTX("Cannot read %d of texture %s", dataSz, stat_name);
+        return nullptr;
+      }
+
+      InPlaceMemLoadCB tmpCrd(tmpBuffer.get(), dataSz);
+      TexLoadRes ldRet = load_ddsx_tex_contents(tex, hdr, tmpCrd, quality_id);
+      if (ldRet == TexLoadRes::OK)
+        return tex;
+
+      if (!is_main_thread())
+        return retry_load_ddsx_tex_contents(tex, hdr, quality_id, tmpBuffer.get(), dataSz, stat_name);
     }
     del_d3dres(tex);
   }
@@ -1542,12 +1495,6 @@ const char *d3d::pcwin32::get_texture_format_str(BaseTexture *tex)
 }
 #endif
 
-bool d3d::set_tex_usage_hint(int, int, int, const char *, unsigned int)
-{
-  debug_ctx("n/a");
-  return true;
-}
-
 void d3d::get_texture_statistics(uint32_t *num_textures, uint64_t *total_mem, String *out_dump)
 {
   if (num_textures)
@@ -1557,8 +1504,8 @@ void d3d::get_texture_statistics(uint32_t *num_textures, uint64_t *total_mem, St
 
   // TODO: make a proper one like in dx11/dx12/etc
   // but now at least make log on app.tex being called
-  SharedGuardedObjectAutoLock lock(drv3d_vulkan::get_device().resources);
-  drv3d_vulkan::get_device().resources.printStats(out_dump != nullptr, true);
+  WinAutoLock lk(drv3d_vulkan::Globals::Mem::mutex);
+  drv3d_vulkan::Globals::Mem::res.printStats(out_dump != nullptr, true);
 }
 
 Texture *d3d::alias_tex(Texture *, TexImage32 *, int, int, int, int, const char *) { return nullptr; }

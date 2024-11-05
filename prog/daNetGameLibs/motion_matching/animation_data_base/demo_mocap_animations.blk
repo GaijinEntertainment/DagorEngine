@@ -1,0 +1,8 @@
+clips{
+  default_animation_mask:t="demo_mocap_nodemask"
+
+  run1_subject5{ use_foot_ik_locker{} }
+  run1_mirror_subject5{ use_foot_ik_locker{} }
+  walk1_subject5{ use_foot_ik_locker{} }
+  walk1_mirror_subject5{ use_foot_ik_locker{} }
+}

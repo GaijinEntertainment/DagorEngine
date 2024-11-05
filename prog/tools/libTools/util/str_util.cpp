@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/util/strUtil.h>
 #include <libTools/util/filePathname.h>
 
@@ -469,4 +471,59 @@ const char *trim(char *str)
     ;
 
   return str;
+}
+
+//==================================================================================================
+bool str_has_wildcard_character(const char *text)
+{
+  if (!text)
+    return false;
+
+  for (; *text; ++text)
+    if (*text == '*' || *text == '?')
+      return true;
+
+  return false;
+}
+
+//==================================================================================================
+// Taken from prog/1stPartyLibs/yuplay2/yu_path.cpp
+bool str_matches_wildcard_pattern(const char *text, const char *pattern)
+{
+  if (pattern[0] == '*' && !pattern[1])
+    return true;
+
+  for (;; ++pattern)
+  {
+    switch (*pattern)
+    {
+      case 0: return !*text;
+
+      case '?': ++text; break;
+
+      case '*':
+        while (*++pattern == '*')
+          ;
+
+        if (!*pattern)
+          return true;
+
+        while (*text)
+        {
+          if (str_matches_wildcard_pattern(text, pattern))
+            return true;
+          ++text;
+        }
+        return false;
+
+      default:
+        if (*text != *pattern)
+          return false;
+
+        ++text;
+        break;
+    }
+  }
+
+  return true;
 }

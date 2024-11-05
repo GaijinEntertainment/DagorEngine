@@ -1,6 +1,6 @@
 require dastest/testing_boost public
 
-
+[safe_when_uninitialized]
 struct AAA
     x : int = 1
     y : int = 1
@@ -98,16 +98,16 @@ def test_table_init()
 
 
 def test_blocks()
-    {}
-    {
+    ${}
+    ${
     }
-    {;}
-    { {}; }
-    { {} /**/; };
-    { {} ; /**/ }
-    { { {}; };
+    ${;}
+    ${ ${}; }
+    ${ ${} /**/; };
+    ${ ${} ; /**/ }
+    ${ ${ ${}; };
     }
-    {print("1"); print("2\n");}
+    ${print("1"); print("2\n");}
 
     if true {print("12\n");}
     if true {if true {print("12\n");} else {print("34\n"); }; }

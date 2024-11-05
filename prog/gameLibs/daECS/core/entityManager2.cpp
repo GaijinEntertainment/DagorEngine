@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/core/entityManager.h>
 #include <memory/dag_framemem.h>
 #include <EASTL/fixed_set.h>
@@ -158,7 +160,7 @@ void EntityManager::createEntityInternal(EntityId eid, template_t templId, Compo
   const uint32_t oldIdInChunk = entDescs[idx].idInChunk;
   const bool isRecreating = oldArchetype != INVALID_ARCHETYPE;
 
-  if (EASTL_UNLIKELY(oldArchetype == newArchetype)) // effectively doing nothing, all data is already created
+  if (DAGOR_UNLIKELY(oldArchetype == newArchetype)) // effectively doing nothing, all data is already created
   {
     recreateOnSameArchetype(eid, templId, eastl::move(initializer), eastl::move(creation_cb));
     return;
@@ -191,7 +193,7 @@ void EntityManager::createEntityInternal(EntityId eid, template_t templId, Compo
   if (isRecreating)
   {
     nArch->manager.allocateEmpty(chunkId, idInChunk, nArch->entitySize);
-    if (EASTL_UNLIKELY(nArch->manager.lock() == 0))
+    if (DAGOR_UNLIKELY(nArch->manager.lock() == 0))
     {
       logerr("Attempt to recreate Entity on same archetype too often <%s>", getTemplateName(templId));
       nArch->manager.unlock();
@@ -220,7 +222,7 @@ void EntityManager::createEntityInternal(EntityId eid, template_t templId, Compo
 
   const uint16_t *__restrict newOffsets = archetypes.componentDataOffsets(newArchetype);
   // Iterate in reverse order, so later values overwrite earlier ones
-  for (auto initIt = initializer.rbegin(), initE = initializer.rend(); initIt != initE; ++initIt)
+  for (auto initIt = initializer.end() - 1, initE = initializer.begin() - 1; initIt != initE; --initIt)
   {
     InitializerNode &init = *initIt;
     const component_index_t initializerIndex = init.cIndex;
@@ -518,7 +520,7 @@ void EntityManager::createEntityInternal(EntityId eid, template_t templId, Compo
             archetypes.getComponentDataUnsafeOfsNoCheck(newArchetype, component.trackedFromOfs, component.size, chunkId, idInChunk);
           entCreatProf.start(component.originalCidx);
           ComponentTypeManager *typeManager = componentTypes.getTypeManager(component.typeIndex);
-          if (EASTL_UNLIKELY(!typeManager->copy(copyData, fromData, component.originalCidx, eid))) // trying to create copy constructor
+          if (DAGOR_UNLIKELY(!typeManager->copy(copyData, fromData, component.originalCidx, eid))) // trying to create copy constructor
           {
             typeManager->create(copyData, *this, eid, map, component.originalCidx);
             if (!typeManager->assign(copyData, fromData))
@@ -564,7 +566,7 @@ void EntityManager::createEntityInternal(EntityId eid, template_t templId, Compo
   }
 
   auto it = findLoadingEntityEvents(eid);
-  if (EASTL_UNLIKELY(it != eventsForLoadingEntities.end()))
+  if (DAGOR_UNLIKELY(it != eventsForLoadingEntities.end()))
   {
     PROFILE_CREATE(loading_events);
     DAECS_EXT_ASSERT(it->eid == eid);
@@ -591,7 +593,7 @@ inline bool EntityManager::validateInitializer(template_t templId, ComponentsIni
     if (initIt->cIndex == INVALID_COMPONENT_INDEX)
     {
       component_index_t initializerIndex = dataComponents.findComponentId(initIt->name);
-      if (EASTL_UNLIKELY(initializerIndex == INVALID_COMPONENT_INDEX))
+      if (DAGOR_UNLIKELY(initializerIndex == INVALID_COMPONENT_INDEX))
       {
 #if DAECS_EXTENSIVE_CHECKS
         static eastl::vector_set<template_t> warnedTemplates;
@@ -604,7 +606,7 @@ inline bool EntityManager::validateInitializer(template_t templId, ComponentsIni
       DataComponent destComponent;
       // verify type and 'not a copy' (should never happen in production)!
       destComponent = dataComponents.getComponentById(initIt->cIndex);
-      if (EASTL_UNLIKELY(
+      if (DAGOR_UNLIKELY(
             initIt->second.getUserType() != destComponent.componentTypeName || (destComponent.flags & DataComponent::IS_COPY)))
       {
         logerr("initializer <%s|0x%X> type mismatch %s initializer, <%s> in template <%s>",
@@ -623,7 +625,7 @@ inline bool EntityManager::validateInitializer(template_t templId, ComponentsIni
     }
 #if DAECS_EXTENSIVE_CHECKS
     // todo: store initializerIndex in ComponentsInitializer parallel array.
-    if (EASTL_UNLIKELY(archetypes.getArchetypeComponentIdUnsafe(archetype, initIt->cIndex) == INVALID_ARCHETYPE_COMPONENT_ID))
+    if (DAGOR_UNLIKELY(archetypes.getArchetypeComponentIdUnsafe(archetype, initIt->cIndex) == INVALID_ARCHETYPE_COMPONENT_ID))
     {
       component_t name = dataComponents.getComponentTpById(initIt->cIndex);
       auto flagsIt = getTemplateDB().info().componentFlags.find(name);
@@ -653,7 +655,6 @@ EntityManager::RequestResources EntityManager::requestResources(EntityId eid, ar
   requestingTop = &creating;
   ResourceRequestCb rcb(*this);
   const bool recreating = oldArchetype != INVALID_ARCHETYPE;
-  const bool sync = bool(type);
   // todo: better skip initializer with resources as well
   // currently we don't it can potentially lead to loading of unneeded resources
   for (auto &component : archetypes.getComponentsWithResources(archetype))
@@ -667,9 +668,11 @@ EntityManager::RequestResources EntityManager::requestResources(EntityId eid, ar
   if (rcb.requestedResources.empty())
     return RequestResources::AlreadyLoaded;
 
-  if (!filter_out_loaded_gameres(rcb.requestedResources))
+  if (!filter_out_loaded_gameres(rcb.requestedResources, (type == RequestResourcesType::CHECK_ONLY) ? 0 : 1024))
     return RequestResources::AlreadyLoaded;
-  else if (!sync)
+  else if (type == RequestResourcesType::CHECK_ONLY)
+    return RequestResources::Error;
+  else if (type == RequestResourcesType::ASYNC)
   {
     DAECS_EXT_ASSERT(!rcb.requestedResources.empty());
     if (!requestedResources.empty())
@@ -693,7 +696,7 @@ EntityId EntityManager::createEntitySync(template_t templId, ComponentsInitializ
     return ecs::INVALID_ENTITY_ID;
   EntityId eid = allocateOneEid();
   const RequestResources result = requestResources(eid, INVALID_ARCHETYPE, templId, initializer, RequestResourcesType::SYNC);
-  if (EASTL_UNLIKELY(result != RequestResources::AlreadyLoaded))
+  if (DAGOR_UNLIKELY(result != RequestResources::AlreadyLoaded))
   {
 #if DAECS_EXTENSIVE_CHECKS
     if (result == RequestResources::Loaded)
@@ -802,7 +805,7 @@ template_t EntityManager::instantiateTemplate(int id)
           {
             // this is needed only on server and on client with validation - i.e. in dev mode
             // todo: skip on release client, to optimize mem usage
-            if ((tempFlags & FLAG_REPLICATED) && should_replicate(comp))
+            if ((tempFlags & FLAG_REPLICATED) && should_replicate(comp, *this))
               templReplicatedIndices.insert(comp);
             component_index_t compCopy = createComponent(HashedConstString{NULL, compHash}, typeIdx, dag::Span<component_t>(), nullptr,
               flag | DataComponent::IS_COPY);
@@ -867,7 +870,7 @@ template_t EntityManager::templateByName(const char *templ_name, EntityId eid)
 
 EntityId EntityManager::createEntitySync(const char *templ_name, ComponentsInitializer &&initializer, ComponentsMap &&map)
 {
-  ScopedMTMutex lock(isConstrainedMTMode(), creationMutex);
+  ScopedMTMutex lock(isConstrainedMTMode(), ownerThreadId, creationMutex);
   auto tId = templateByName(templ_name);
   if (bool(lock))
   {
@@ -883,7 +886,7 @@ EntityId EntityManager::createEntitySync(const char *templ_name, ComponentsIniti
 EntityId EntityManager::createEntityAsync(const char *templ_name, ComponentsInitializer &&initializer, ComponentsMap &&map,
   create_entity_async_cb_t &&cb)
 {
-  ScopedMTMutex lock(isConstrainedMTMode(), creationMutex);
+  ScopedMTMutex lock(isConstrainedMTMode(), ownerThreadId, creationMutex);
   EntityId eid = allocateOneEidDelayed(isConstrainedMTMode());
   emplaceCreate(eid, DelayedEntityCreation::Op::Create, templ_name, eastl::move(initializer), eastl::move(map), eastl::move(cb));
   return eid;
@@ -892,9 +895,9 @@ EntityId EntityManager::createEntityAsync(const char *templ_name, ComponentsInit
 
 void EntityManager::forceServerEidGeneration(EntityId from_eid)
 {
-  ScopedMTMutex lock(isConstrainedMTMode(), creationMutex);
+  ScopedMTMutex lock(isConstrainedMTMode(), ownerThreadId, creationMutex);
   unsigned ei = from_eid.index();
-  if (EASTL_UNLIKELY(entDescs[ei].archetype != INVALID_ARCHETYPE)) // already allocated (this is considered erroneous code path)
+  if (DAGOR_UNLIKELY(entDescs[ei].archetype != INVALID_ARCHETYPE)) // already allocated (this is considered erroneous code path)
   {
     EntityId peid(make_eid(ei, entDescs[ei].generation));
     logerr("%s attempt to allocate eid %d while slot already occupied with %d<%s>. Did client created replicating entity?",
@@ -909,7 +912,7 @@ bool EntityManager::collapseRecreate(EntityId eid, const char *template_name, Co
 {
   for (auto ci = delayedCreationQueue.end() - 1, ce = delayedCreationQueue.begin() - 1; ci != ce; --ci)
     for (auto cr = ci->end() - 1, cre = ci->begin() - 1; cr != cre; --cr)
-      if (EASTL_UNLIKELY(cr->eid == eid))
+      if (DAGOR_UNLIKELY(cr->eid == eid))
       {
         if (cr->currentlyCreating)
           return true; // don't try to optimize currently creating entity (e.g. if we get here from disappear events)
@@ -948,7 +951,7 @@ EntityId EntityManager::reCreateEntityFromAsync(EntityId from_eid, const char *t
 {
   if (!doesEntityExist(from_eid))
     return ecs::INVALID_ENTITY_ID;
-  ScopedMTMutex lock(isConstrainedMTMode(), creationMutex);
+  ScopedMTMutex lock(isConstrainedMTMode(), ownerThreadId, creationMutex);
   const uint32_t idx = from_eid.index();
   if (entDescs.isCurrentlyCreating(idx) && !collapseRecreate(from_eid, templ_name, initializer, map, eastl::move(cb)))
     return from_eid;
@@ -968,7 +971,7 @@ EntityId EntityManager::allocateOneEid()
     alloc_non_reserved:
       idx = entDescs.push_back();
     }
-    else if (EASTL_LIKELY(nextResevedEidIndex <= MAX_RESERVED_EID_IDX_CONST))
+    else if (DAGOR_LIKELY(nextResevedEidIndex <= MAX_RESERVED_EID_IDX_CONST))
       idx = nextResevedEidIndex++;
     else if (!freeIndicesReserved.empty())
       goto alloc_free_indices;
@@ -1007,7 +1010,7 @@ EntityId EntityManager::allocateOneEidDelayed(bool delayed)
     alloc_non_reserved:
       idx = delayed ? entDescs.push_back_delayed() : entDescs.push_back();
     }
-    else if (EASTL_LIKELY(nextResevedEidIndex <= MAX_RESERVED_EID_IDX_CONST))
+    else if (DAGOR_LIKELY(nextResevedEidIndex <= MAX_RESERVED_EID_IDX_CONST))
       idx = nextResevedEidIndex++;
     else if (!freeIndicesReserved.empty())
       goto alloc_free_indices;
@@ -1062,8 +1065,9 @@ void EntityManager::initCompileTimeQueries()
 
 void init_profiler_tokens();
 
-EntityManager::EntityManager()
+EntityManager::EntityManager() : templateDB(*this)
 {
+  ownerThreadId = get_main_thread_id(); // use main thread as default to keep same logic
   init_profiler_tokens();
   delayedCreationQueue.reserve(16); // avoid memory reallocation. 16 is enough for 2mln of entities.
   initializeCreationQueue();
@@ -1086,7 +1090,7 @@ EntityManager::EntityManager()
   resetEsOrder();
 }
 
-EntityManager::EntityManager(const EntityManager &from)
+EntityManager::EntityManager(const EntityManager &from) : ownerThreadId(from.ownerThreadId), templateDB(*this)
 {
   init_profiler_tokens();
   delayedCreationQueue.reserve(16); // avoid memory reallocation. 16 is enough for 2mln of entities.
@@ -1123,6 +1127,7 @@ void EntityManager::clear()
   bool destroyed = false;
   do
   {
+    destroyed = false;
     clearCreationQueue();
     sendQueuedEvents(1024);
     // actually we need to destroy all components instead
@@ -1140,7 +1145,7 @@ void EntityManager::clear()
       minGen = eastl::min(minGen, entDesc.generation);
       maxGen = eastl::max(maxGen, entDesc.generation);
     }
-  } while (destroyed && deferredEventsCount && --clearAttempts);
+  } while ((destroyed || deferredEventsCount) && --clearAttempts);
 
   if (clearAttempts == 0)
   {
@@ -1225,17 +1230,22 @@ void EntityManager::copyFrom(const EntityManager &from)
   queryDescs.clear();
   queriesReferences.clear();
   queriesGenerations.clear();
+  int queryIdx = 0;
   for (uint32_t qi = 0u; qi < from.getQueriesCount(); qi++)
   {
     auto qid = from.getQuery(qi);
     auto desc = from.getQueryDesc(qid);
     auto name = from.getQueryName(qid);
+    if (name == nullptr)
+      continue;
     ecs::NamedQueryDesc namedDesk(name, desc.componentsRW, desc.componentsRO, desc.componentsRQ, desc.componentsNO);
     createQuery(namedDesk);
+    queriesGenerations[queryIdx] = from.queriesGenerations[queryIdx];
+    queriesReferences[queryIdx] = from.queriesReferences[queryIdx];
+    ++queryIdx;
   }
   esTags = from.esTags;
   resetEsOrder();
-  queriesGenerations = from.queriesGenerations;
   esListQueries = from.esListQueries;
 }
 
@@ -1339,11 +1349,10 @@ void EntityManager::performDeferredEvents(bool flush_all)
 bool EntityManager::validateResources(EntityId eid, archetype_t old_archetype, template_t templ,
   const ComponentsInitializer &initializer)
 {
-  const RequestResources result = requestResources(eid, old_archetype, templ, initializer, RequestResourcesType::SYNC); // sync load,
-                                                                                                                        // dry run
+  const RequestResources result = requestResources(eid, old_archetype, templ, initializer, RequestResourcesType::CHECK_ONLY);
   if (result == RequestResources::Error)
   {
-    logerr("sync creation of entity %d eid to (%s) is not possible, as some resources are missing", eid, getTemplateName(templ));
+    logerr("Creation of entity %d<%s> is not possible, as some resources are missing", eid, getTemplateName(templ));
     return false;
   }
   return true;
@@ -1487,7 +1496,7 @@ bool EntityManager::createQueuedEntitiesOOL()
   destroyQueued();
   const bool wereAdded = currentTop != createOrDestroyGen;
 
-  if (EASTL_UNLIKELY(delayedCreationQueue.size() > 1))
+  if (DAGOR_UNLIKELY(delayedCreationQueue.size() > 1))
   {
     delayedCreationQueue.erase(
       eastl::remove_if(delayedCreationQueue.begin() + 1, delayedCreationQueue.end(), [](auto &a) { return a.empty(); }),
@@ -1639,12 +1648,11 @@ void EntityManager::tick(bool flush_all)
   performDelayedCreation(flush_all); // we call it twice, since after performDeferredEvents there could be new
   defragmentArchetypes();
   maintainQueries();
-  defragmentArchetypeSubQueries();
 }
 
 const char *EntityManager::getEntityFutureTemplateName(EntityId eid) const
 {
-  ScopedMTMutex lock(isConstrainedMTMode(), creationMutex);
+  ScopedMTMutex lock(isConstrainedMTMode(), ownerThreadId, creationMutex);
   const unsigned idx = eid.index();
 
   if (!entDescs.doesEntityExist(idx, eid.generation()))

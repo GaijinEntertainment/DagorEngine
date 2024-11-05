@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -26,6 +25,7 @@ class EntityId
 public:
   EntityId() = default;
   explicit EntityId(entity_id_t h) : handle(h) {}
+  EntityId(const EntityId &) = default;
   EntityId &operator=(const EntityId &) = default;
   explicit operator entity_id_t() const { return handle; }
   explicit operator bool() const { return handle != ECS_INVALID_ENTITY_ID_VAL; }

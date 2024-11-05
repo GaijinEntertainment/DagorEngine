@@ -1,7 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <memory/dag_fixedBlockAllocator.h>
-#include <3d/dag_drv3dCmd.h>
-#include <3d/dag_drv3d_pc.h>
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_platform_pc.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>
 #include <debug/dag_debug.h>
@@ -88,7 +90,7 @@ extern DXGI_FORMAT dxgi_format_for_res(DXGI_FORMAT fmt, uint32_t cflg);
 extern DXGI_FORMAT dxgi_format_for_res_depth(DXGI_FORMAT fmt, uint32_t cflg, bool read_stencil);
 extern void set_tex_params(BaseTex *tex, int w, int h, int d, uint32_t flg, int levels, const char *stat_name);
 extern bool create_tex2d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_t h, uint32_t levels, bool cube,
-  D3D11_SUBRESOURCE_DATA *initial_data, int array_size = 1, bool tmp_tex = false);
+  D3D11_SUBRESOURCE_DATA *initial_data, int array_size = 1);
 extern void clear_texture(BaseTex *tex);
 extern bool is_float_format(uint32_t cflg);
 extern bool mark_dirty_texture_in_states(const BaseTexture *tex);
@@ -494,8 +496,9 @@ void validate_copy_destination_flags(BaseTex *self, const char *what, int other_
   {
     return;
   }
-  logerr("used %s method on texture <%s> that does not support it, the texture needs either TEXCF_UPDATE_DESTINATION, TEXCF_RTARGET "
-         "or TEXCF_UNORDERED create flags specified",
+  D3D_ERROR(
+    "used %s method on texture <%s> that does not support it, the texture needs either TEXCF_UPDATE_DESTINATION, TEXCF_RTARGET "
+    "or TEXCF_UNORDERED create flags specified",
     what, self->getResName());
 }
 
@@ -610,7 +613,7 @@ int BaseTex::updateSubRegionImpl(BaseTexture *base_src, int src_subres_idx, int 
     return 1;
   }
   else
-    logerr("%s(tex.texRes=%p, src->tex.texRes=%p)", __FUNCTION__, tex.texRes, src->tex.texRes);
+    D3D_ERROR("%s(tex.texRes=%p, src->tex.texRes=%p)", __FUNCTION__, tex.texRes, src->tex.texRes);
 
 
   return 0;
@@ -698,56 +701,56 @@ void BaseTex::destroyObject()
   destroy_tex(this);
 }
 
-int BaseTex::texaddr(int a)
+int BaseTex::texaddrImpl(int a)
 {
   addrU = addrV = addrW = a;
   modified = 0b1111;
   return 1;
 }
 
-int BaseTex::texaddru(int a)
+int BaseTex::texaddruImpl(int a)
 {
   addrU = a;
   modified = 0b1111;
   return 1;
 }
 
-int BaseTex::texaddrv(int a)
+int BaseTex::texaddrvImpl(int a)
 {
   addrV = a;
   modified = 0b1111;
   return 1;
 }
 
-int BaseTex::texaddrw(int a)
+int BaseTex::texaddrwImpl(int a)
 {
   addrW = a;
   modified = 0b1111;
   return 1;
 }
 
-int BaseTex::texbordercolor(E3DCOLOR c)
+int BaseTex::texbordercolorImpl(E3DCOLOR c)
 {
   borderColor = c;
   modified = 0b1111;
   return 1;
 }
 
-int BaseTex::texfilter(int m)
+int BaseTex::texfilterImpl(int m)
 {
   texFilter = m;
   modified = 0b1111;
   return 1;
 }
 
-int BaseTex::texmipmap(int m)
+int BaseTex::texmipmapImpl(int m)
 {
   mipFilter = m;
   modified = 0b1111;
   return 1;
 }
 
-int BaseTex::texlod(float mipmaplod)
+int BaseTex::texlodImpl(float mipmaplod)
 {
   lodBias = mipmaplod;
   modified = 0b1111;
@@ -756,17 +759,26 @@ int BaseTex::texlod(float mipmaplod)
 
 int BaseTex::texmiplevel(int minlev, int maxlev)
 {
-  G_ASSERT(minlev < (int)mipLevels);
-  G_ASSERT(maxlev < (int)mipLevels);
-  G_ASSERT(minlev <= maxlev);
+  const int topLevel = mipLevels - 1;
+  if (minlev >= (int)mipLevels)
+  {
+    logerr("DX11: texmiplevel error: minlev=%d < mipLevel=%d failed in %s", minlev, (int)mipLevels, getTexName());
+    minlev = topLevel;
+  }
+  if (maxlev >= (int)mipLevels)
+  {
+    logerr("DX11: texmiplevel error: maxlev=%d < mipLevel=%d failed in %s", maxlev, (int)mipLevels, getTexName());
+    maxlev = topLevel;
+  }
+  G_ASSERTF(minlev < 0 || maxlev < 0 || minlev <= maxlev, "%d <= %d failed", minlev, maxlev);
 
   maxMipLevel = (minlev >= 0) ? minlev : 0;
-  minMipLevel = (maxlev >= 0) ? maxlev : (mipLevels - 1);
+  minMipLevel = (maxlev >= 0) ? maxlev : topLevel;
   modified = 0b1111;
   return 1;
 }
 
-int BaseTex::setAnisotropy(int level)
+int BaseTex::setAnisotropyImpl(int level)
 {
   anisotropyLevel = clamp<int>(level, 1, 16);
   modified = 0b1111;
@@ -821,8 +833,8 @@ ID3D11ShaderResourceView *BaseTex::getResView(uint32_t face, uint32_t mip_level,
 
   if ((uint32_t)baseMip != mip_level || (mip_count != 0 && (uint32_t)mipCount != mip_count))
   {
-    logerr("fixed an invalid getResView call for texture '%s' baseMip=%u -> %d mipCount=%u -> %d minMipLevel=%u maxMipLevel=%u "
-           "mipLevels=%u realMipLevels=%u format=%s",
+    D3D_ERROR("fixed an invalid getResView call for texture '%s' baseMip=%u -> %d mipCount=%u -> %d minMipLevel=%u maxMipLevel=%u "
+              "mipLevels=%u realMipLevels=%u format=%s",
       getTexName(), mip_level, baseMip, mip_count, mipCount, minMipLevel, maxMipLevel, mipLevels, tex.realMipLevels,
       dxgi_format_to_string(format));
 
@@ -1001,6 +1013,9 @@ void BaseTex::replaceTexResObject(BaseTexture *&other_tex)
     ResAutoLock resLock;
     BaseTex *other = (BaseTex *)other_tex;
 
+    if (!other->isStub())
+      other->tex.setPrivateData(getTexName());
+
     // swap texture objects
     char tmp[sizeof(tex)];
     memcpy(tmp, &tex, sizeof(tmp));
@@ -1046,8 +1061,8 @@ bool BaseTex::allocateTex()
   {
     case RES3D_VOLTEX: return create_tex3d(tex, this, width, height, depth, cflg, mipLevels, nullptr);
     case RES3D_TEX:
-    case RES3D_CUBETEX: return create_tex2d(tex, this, width, height, mipLevels, type == RES3D_CUBETEX, nullptr, 1, false);
-    case RES3D_ARRTEX: return create_tex2d(tex, this, width, height, mipLevels, cube_array, nullptr, depth, false);
+    case RES3D_CUBETEX: return create_tex2d(tex, this, width, height, mipLevels, type == RES3D_CUBETEX, nullptr, 1);
+    case RES3D_ARRTEX: return create_tex2d(tex, this, width, height, mipLevels, cube_array, nullptr, depth);
   }
   return false;
 }
@@ -1198,7 +1213,7 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
 {
   if (device_is_lost != S_OK)
   {
-    logerr("lockimg during reset");
+    D3D_ERROR("lockimg during reset");
     if (p)
       *p = NULL;
     return 0;
@@ -1215,7 +1230,7 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
   if (!tex.tex2D && (flags & TEXLOCK_WRITE) && !(flags & TEXLOCK_READ))
     if (!create_tex2d(tex, this, width, height, mipLevels, false, NULL))
     {
-      logerr("failed to auto-create tex.tex2D on lockImg");
+      D3D_ERROR("failed to auto-create tex.tex2D on lockImg");
       return 0;
     }
   stride = 0;
@@ -1245,14 +1260,13 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
       desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
       desc.MiscFlags = (type == RES3D_CUBETEX) ? D3D11_RESOURCE_MISC_TEXTURECUBE : 0;
 
-      TEXQL_PRE_CLEANSM(ressize());
       if (device_is_lost == S_OK)
       {
         HRESULT hr = dx_device->CreateTexture2D(&desc, NULL, &tex.stagingTex2D);
         RETRY_CREATE_STAGING_TEX(hr, ressize(), dx_device->CreateTexture2D(&desc, NULL, &tex.stagingTex2D));
         if (FAILED(hr))
         {
-          logerr_ctx("can't create staging tex");
+          D3D_ERROR("can't create staging tex");
           if (!device_should_reset(hr, "CreateTexture2D(rtarget stagingTex2D)"))
           {
             DXFATAL(hr, "CreateTexture2D(stagingTex2D)");
@@ -1294,7 +1308,7 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
     {
       if (flags & TEXLOCK_RWMASK)
       {
-        logerr("NULL in lockimg");
+        D3D_ERROR("NULL in lockimg");
         return 0;
       }
     }
@@ -1303,7 +1317,7 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
 
     if (tex.texUsage == D3D11_USAGE_IMMUTABLE)
     {
-      logerr("can't lock immutable tex");
+      D3D_ERROR("can't lock immutable tex");
       return 0;
     }
   }
@@ -1326,14 +1340,13 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
       desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
       desc.MiscFlags = (type == RES3D_CUBETEX) ? D3D11_RESOURCE_MISC_TEXTURECUBE : 0;
 
-      TEXQL_PRE_CLEANSM(ressize());
       if (device_is_lost == S_OK)
       {
         HRESULT hr = dx_device->CreateTexture2D(&desc, NULL, &tex.stagingTex2D);
         RETRY_CREATE_STAGING_TEX(hr, ressize(), dx_device->CreateTexture2D(&desc, NULL, &tex.stagingTex2D));
         if (FAILED(hr))
         {
-          logerr_ctx("can't create staging tex");
+          D3D_ERROR("can't create staging tex");
           if (!device_should_reset(hr, "CreateTexture2D(lock stagingTex2D)"))
           {
             DXFATAL(hr, "CreateTexture2D(stagingTex2D)");
@@ -1398,7 +1411,7 @@ int BaseTex::lockimg(void **p, int &stride, int face, int level, unsigned flags)
 {
   if (device_is_lost != S_OK)
   {
-    logerr("lockimg during reset");
+    D3D_ERROR("lockimg during reset");
     if (p)
       *p = NULL;
     return 0;
@@ -1409,7 +1422,7 @@ int BaseTex::lockimg(void **p, int &stride, int face, int level, unsigned flags)
   uint32_t prevFlags = lockFlags;
   if ((flags & (TEXLOCK_RWMASK | TEXLOCK_UPDATEFROMSYSTEX)) != TEXLOCK_READ && p)
   {
-    logerr("cannot lock cube tex image for write - n/a!");
+    D3D_ERROR("cannot lock cube tex image for write - n/a!");
     return 0;
   }
   if (cflg & (TEXCF_RTARGET | TEXCF_UNORDERED))
@@ -1421,7 +1434,7 @@ int BaseTex::lockimg(void **p, int &stride, int face, int level, unsigned flags)
     lockFlags = 0;
     if (is_depth_format_flg(cflg))
     {
-      logerr("can't lock depth format");
+      D3D_ERROR("can't lock depth format");
       return 0;
     }
     if (tex.stagingTex2D == NULL)
@@ -1442,13 +1455,12 @@ int BaseTex::lockimg(void **p, int &stride, int face, int level, unsigned flags)
       desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
       desc.MiscFlags = (type == RES3D_CUBETEX) ? D3D11_RESOURCE_MISC_TEXTURECUBE : 0;
 
-      TEXQL_PRE_CLEANSM(ressize());
       {
         HRESULT hr = dx_device->CreateTexture2D(&desc, NULL, &tex.stagingTex2D);
         RETRY_CREATE_STAGING_TEX(hr, ressize(), dx_device->CreateTexture2D(&desc, NULL, &tex.stagingTex2D));
         if (FAILED(hr))
         {
-          logerr_ctx("can't create staging tex");
+          D3D_ERROR("can't create staging tex");
           if (!device_should_reset(hr, "CreateTexture2D(rtarget stagingTex2D)"))
             DXFATAL(hr, "CreateTexture2D(stagingTex2D)");
           if (p)
@@ -1516,7 +1528,7 @@ int BaseTex::lockimg(void **p, int &stride, int face, int level, unsigned flags)
   }
   else
   {
-    logerr("cannot lock non rtarget cube tex image - n/a!");
+    D3D_ERROR("cannot lock non rtarget cube tex image - n/a!");
     return 0;
   }
   return 0;
@@ -1660,7 +1672,7 @@ int BaseTex::lockbox(void **data, int &row_pitch, int &slice_pitch, int level, u
 {
   if (device_is_lost != S_OK)
   {
-    logerr("lockbox during reset");
+    D3D_ERROR("lockbox during reset");
     if (data)
       *data = NULL;
     return 0;
@@ -1670,7 +1682,7 @@ int BaseTex::lockbox(void **data, int &row_pitch, int &slice_pitch, int level, u
 
   if (!data)
   {
-    logerr("NULL in lockbox");
+    D3D_ERROR("NULL in lockbox");
     return 0;
   }
 
@@ -1710,7 +1722,7 @@ int BaseTex::lockbox(void **data, int &row_pitch, int &slice_pitch, int level, u
         HRESULT hr = dx_device->CreateTexture3D(&desc, NULL, &tex.stagingTex3D);
         if (FAILED(hr))
         {
-          logerr_ctx("can't create staging tex");
+          D3D_ERROR("can't create staging tex");
           if (!device_should_reset(last_hres, "CreateTexture3D"))
             DXFATAL(hr, "CreateTexture3D(stagingTex3D)");
           *data = NULL; // -V1048

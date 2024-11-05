@@ -117,6 +117,34 @@ namespace das {
         }
     };
 
+    bool doesExprTerminates ( const ExpressionPtr & expr ) {
+        if ( !expr ) return false;
+        if ( expr->rtti_isBlock() ) {
+            auto pBlock = static_pointer_cast<ExprBlock>(expr);
+            for ( auto & e : pBlock->list ) {
+                if ( e->rtti_isReturn() || e->rtti_isBreak() || e->rtti_isContinue() ) {
+                    return true;
+                }
+                if ( e->rtti_isBlock() ) {
+                    if ( doesExprTerminates(e) ) {
+                        return true;
+                    }
+                }
+            }
+        } else if ( expr->rtti_isIfThenElse() ) {
+            auto pIte = static_pointer_cast<ExprIfThenElse>(expr);
+            if ( doesExprTerminates(pIte->if_true) && doesExprTerminates(pIte->if_false) ) {
+                return true;
+            }
+        } else if ( expr->rtti_isWith() ) {
+            auto pWith = static_pointer_cast<ExprWith>(expr);
+            if ( pWith->body && doesExprTerminates(pWith->body) ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     class BlockFolding : public PassVisitor {
     protected:
         das_set<int32_t> labels;
@@ -156,6 +184,16 @@ namespace das {
                     continue;
                 }
                 if ( expr->rtti_isBreak() || expr->rtti_isReturn() || expr->rtti_isContinue() ) {
+                    if ( stopAtExit ) {
+                        list.push_back(expr);
+                        break;
+                    } else {
+                        list.push_back(expr);
+                        skipTilLabel = true;
+                        continue;
+                    }
+                }
+                if ( expr->rtti_isIfThenElse() && doesExprTerminates(expr) ) {
                     if ( stopAtExit ) {
                         list.push_back(expr);
                         break;

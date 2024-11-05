@@ -1,11 +1,11 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <EASTL/string.h>
+#include <util/dag_preprocessor.h>
 
 #if DAGOR_DBGLEVEL > 0
 #define PROFILER_TRACKER_ENABLED 1
@@ -53,10 +53,8 @@ struct ScopeTimeTracker
 } // namespace profiler_tracker
 
 #if PROFILER_TRACKER_ENABLED
-#define TRACKER_CAT1(a, b)            a##b
-#define TRACKER_CAT2(a, b)            TRACKER_CAT1(a, b)
 // Use these for scopes, which are executed once pre frame
-#define TRACK_SCOPE_TIME(group, name) profiler_tracker::ScopeTimeTracker TRACKER_CAT2(profile_tracker_, __LINE__)(#group, #name)
+#define TRACK_SCOPE_TIME(group, name) profiler_tracker::ScopeTimeTracker DAG_CONCAT(profile_tracker_, __LINE__)(#group, #name)
 #else
 #define TRACK_SCOPE_TIME(group, name) static_cast<void>(0)
 #endif

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "bhvRtPropUpdate.h"
 
 #include <daRg/dag_element.h>

@@ -113,11 +113,11 @@ That doesn't mean that language can not have bugs or other issues, but it obviou
 ## Migration from Squirrel and useful tools
 
 ### Binding
-Obviously if you are using embedded language your need some bindings with your native code. We took **sqrat** and [heavily changed it](https://github.com/GaijinEntertainment/sqrat), reduced code, improve performance and fixed some bugs. *Probably better to rename it too.*
+Obviously if you are using embedded language your need some bindings with your native code. We took **Sqrat** and heavily changed it, reduced code, improve performance and fixed some bugs. *Probably it is better to rename it too.*
 
 ### Static analyzer
 We have [changed language a lot](http://quirrel.io/doc/reference/diff_from_original.html) in the past.
-To be able to upgrade existing code to new language we have written a [static analyzer tool](https://github.com/GaijinEntertainment/quirrel_static_analyzer).
+To be able to upgrade existing code to new language we have written a static analyzer tool.
 It is still under development and we would better have typehinting (that is important for dynamic typed languages),
 but it already can be used and it finds potential bugs everyday, before they hit QA or real users.
 
@@ -129,7 +129,7 @@ We have our own debugger, however it currently heavily depends on our internal e
 
 ### Modules
 It is hard and unproductive to have modern language without modules.
-Modules allow to re-use and share code. It is also a way to isolate and encapsulate your pieces code which is also prove to be important to maintain a code.  
+Modules allow to re-use and share code. It is also a way to isolate and encapsulate pieces of code to ease their maintenance.
 
 ## History
 
@@ -155,39 +155,11 @@ We continued versioning from Squirrel version, so Quirrel started from version 4
 
 ## Development state
 
-Quirrel is in stable version 4.1.0.
-
-This project has successfully been compiled and run on
-  * Windows (x86 and amd64)
-  * Linux (x86, amd64 and ARM)
-  * Illumos (x86 and amd64)
-  and several other platforms (including mobile and consoles)
-
-The following compilers have been confirmed to be working:
-   
-    MS Visual C++  10.0 (all on x86 and amd64)
-                   11.0   |
-                   12.0   v
-                   13.0
-                   14.x   ---
-    MinGW gcc 3.2 (mingw special 20020817-1)
-    Cygnus gcc 3.2
-    Linux gcc 3.2.3
-              4.0.0 (x86 and amd64)
-              5.3.1 (amd64)
-    Illumos gcc 4.0.0 (x86 and amd64)
-    ARM Linux gcc 4.6.3 (Raspberry Pi Model B)
+This project has successfully been compiled and run on Windows (x86 and amd64), Linux (x86, amd64 and ARM) and several other platforms
+(including mobile and consoles).
 
 
 ## Things to add, to improve, to discuss and to change
-
-### Planned
-
-* Modules library documentation
-
-### Likely to be implemented
-
-* Fix: Null-propagation operators ?[] ?. silently consumes not only 'slot not found' result, but also any error raised by _get() metamethod
 
 ### Ideas in arbitrary order
 
@@ -201,8 +173,6 @@ The following compilers have been confirmed to be working:
 
 * global varname = for global variable declaration (conflicts with hot reload)
 * Typehinting in syntax and typechecking in analyzer
-* AST-based compiler (to make language even more faster and safer)
-
 
 ## Welcome!
 

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -34,7 +33,14 @@ public:
     double m[4][4];
   };
 
+  static const TMatrix4D IDENT, ZERO;
+
   INLINE TMatrix4D() = default;
+  INLINE explicit TMatrix4D(double a)
+  {
+    memset(m, 0, sizeof(m));
+    _11 = _22 = _33 = _44 = a;
+  }
   INLINE TMatrix4D(const TMatrix &tm)
   {
     m[0][0] = tm.m[0][0], m[0][1] = tm.m[0][1], m[0][2] = tm.m[0][2], m[0][3] = 0;
@@ -286,9 +292,17 @@ INLINE TMatrix4D &TMatrix4D::operator*=(const TMatrix4D &b)
   return *this;
 }
 
+INLINE TMatrix4D dmatrix_perspective_reverse(double wk, double hk, double zn, double zf, double ox, double oy)
+{
+  TMatrix4D res(wk, 0, 0, 0, 0, hk, 0, 0, 0, 0, -zn / (zf - zn), 1, 0, 0, zn * zf / (zf - zn), 0);
+  res(2, 0) += ox;
+  res(2, 1) += oy;
+  return res;
+}
+
 INLINE TMatrix4D dmatrix_perspective_reverse(double wk, double hk, double zn, double zf)
 {
-  return TMatrix4D(wk, 0, 0, 0, 0, hk, 0, 0, 0, 0, -zn / (zf - zn), 1, 0, 0, zn * zf / (zf - zn), 0);
+  return dmatrix_perspective_reverse(wk, hk, zn, zf, 0.0, 0.0);
 }
 
 INLINE TMatrix4D dmatrix_perspective_forward(double wk, double hk, double z_near, double z_far)

@@ -1,3 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 /*
  * Copyright 2001-2004 Unicode, Inc.
  *

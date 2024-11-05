@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 // call stack format
 // 0-word: 8 bit new samples, 8 bit same samples (as in previous call stack)
 // [1..4] words: 64 bit tid

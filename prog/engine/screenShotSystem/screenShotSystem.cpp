@@ -1,5 +1,10 @@
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dReset.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <workCycle/dag_gameScene.h>
 #include <workCycle/dag_gameSceneRenderer.h>
 #include <image/dag_tga.h>
@@ -100,12 +105,12 @@ bool ScreenShotSystem::saveScreenShotTo(ScreenShot &info, char *fileName)
 
   if (writeImageCb(fileName, (TexPixel32 *)info.picture, info.w, info.h, info.stride))
   {
-    message(String(128, "%sScreen shot \"%s\"saved", info.fastLocked ? " fast " : "", fileName));
+    message(String(128, "Screen shot saved: \"%s\"", fileName));
     return true;
   }
   else
   {
-    message(String(128, "screen shot \"%s\" wasn't saved (IO error)", fileName));
+    message(String(128, "Screen shot wasn't saved (IO error): \"%s\"", fileName));
     return false;
   }
 }
@@ -119,10 +124,64 @@ bool ScreenShotSystem::saveScreenShotToClipboard(ScreenShot &info)
   return clipboard::set_clipboard_bmp_image((TexPixel32 *)info.picture, info.w, info.h, info.stride);
 }
 
+bool ScreenShotSystem::makeTriplanarTexScreenShot(ScreenShot &info, Texture *tex_r, Texture *tex_g, Texture *tex_b)
+{
+  info.reset();
+  TextureInfo ti;
+  int stride;
+  char *ptr;
+  tex_r->getinfo(ti, 0);
+
+  info.w = ti.w;
+  info.h = ti.h * 3;
+  info.stride = info.w * sizeof(uint16_t);
+  info.picture = memalloc(info.stride * info.h, tmpmem_ptr());
+  if (!info.picture)
+  {
+    message(String(128, "Not enough memory: %d needed", info.stride * info.h));
+    return false;
+  }
+  info.allocated = true;
+
+  char *op = (char *)info.picture;
+
+  for (auto *tex : {tex_r, tex_g, tex_b})
+  {
+    TextureInfo planeTI;
+    tex->getinfo(planeTI, 0);
+    G_ASSERT(planeTI.w == ti.w && planeTI.h == ti.h);
+    if (!(ti.cflg & (TEXCF_RTARGET | TEXCF_SYSMEM | TEXCF_UNORDERED | TEXCF_READABLE)))
+    {
+      logwarn("can't make screenshot of unlockable texture");
+      info.reset();
+      return false;
+    }
+    else if ((ti.cflg & TEXFMT_MASK) != TEXFMT_R16F)
+    {
+      logwarn("only 16-bit float image planes are supported");
+      info.reset();
+      return false;
+    }
+    else if (!tex->lockimg((void **)&ptr, stride, 0, TEXLOCK_READ) || ptr == nullptr)
+    {
+      logwarn("can't lock texture for screenshot");
+      info.reset();
+      return false;
+    }
+    else
+    {
+      for (int y = planeTI.h; y > 0; y--, ptr = (char *)ptr + stride, op += info.stride)
+        memcpy(op, ptr, info.stride);
+      tex->unlockimg();
+    }
+  }
+
+  return true;
+}
 
 bool ScreenShotSystem::makeTexScreenShot(ScreenShot &info, Texture *tex)
 {
-  info = ScreenShot();
+  info.reset();
   if (!tex)
     return false;
   TextureInfo ti;
@@ -131,11 +190,11 @@ bool ScreenShotSystem::makeTexScreenShot(ScreenShot &info, Texture *tex)
   tex->getinfo(ti, 0);
   if (!(ti.cflg & (TEXCF_RTARGET | TEXCF_SYSMEM | TEXCF_UNORDERED | TEXCF_READABLE)))
     logwarn("can't make screenshot of unlockable texture");
-  else if (ti.cflg & TEXFMT_MASK)
+  else if ((ti.cflg & TEXFMT_MASK))
   {
     logwarn("can't make screenshot of format 0x%x", ti.cflg & TEXFMT_MASK);
   }
-  else if (!tex->lockimg((void **)&ptr, stride, 0, TEXLOCK_READ))
+  else if (!tex->lockimg((void **)&ptr, stride, 0, TEXLOCK_READ) || ptr == nullptr)
   {
     logwarn("can't lock texture for screenshot");
   }
@@ -163,7 +222,7 @@ bool ScreenShotSystem::makeTexScreenShot(ScreenShot &info, Texture *tex)
 
 bool ScreenShotSystem::makeDepthTexScreenShot(ScreenShot &info, Texture *tex)
 {
-  info = ScreenShot();
+  info.reset();
   if (!tex)
     return false;
   TextureInfo ti;
@@ -172,7 +231,7 @@ bool ScreenShotSystem::makeDepthTexScreenShot(ScreenShot &info, Texture *tex)
   tex->getinfo(ti, 0);
   if (!(ti.cflg & (TEXCF_RTARGET | TEXCF_SYSMEM | TEXCF_UNORDERED | TEXCF_READABLE)))
     logwarn("can't make screenshot of unlockable texture");
-  else if (!tex->lockimg((void **)&ptr, stride, 0, TEXLOCK_READ))
+  else if (!tex->lockimg((void **)&ptr, stride, 0, TEXLOCK_READ) || ptr == nullptr)
   {
     logwarn("can't lock texture for screenshot");
   }
@@ -239,7 +298,7 @@ bool ScreenShotSystem::makeDepthTexScreenShot(ScreenShot &info, Texture *tex)
 
 bool ScreenShotSystem::makeHugeScreenShot(float fov, float aspect, float znear, float zfar, int quadrants, ScreenShot &info)
 {
-  info = ScreenShot();
+  info.reset();
 
   d3d::set_render_target();
   float top = znear / fov;

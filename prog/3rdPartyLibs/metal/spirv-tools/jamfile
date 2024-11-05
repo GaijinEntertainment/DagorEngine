@@ -196,7 +196,7 @@ Sources =
 ;
 
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   CPPopt =
     /d2Zi+
     -DWIN32

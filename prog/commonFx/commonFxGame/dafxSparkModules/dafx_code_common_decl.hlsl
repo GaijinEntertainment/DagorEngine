@@ -45,6 +45,12 @@ struct VectorBasis
   float endLength;
 };
 
+struct CurveData
+{
+  uint enabled; // TODO (optimization): it can be used as step count with a smarter curve generation
+  uint packedCurveData[8];
+};
+
 // Deprecated
 struct SectorDistribution
 {
@@ -109,6 +115,15 @@ VectorDistribution VectorDistribution_load(BufferData_ref buf, in out uint ofs)
   o.endAzimuth = dafx_load_1f(buf, ofs);
   o.startZenith = dafx_load_1f(buf, ofs);
   o.endZenith = dafx_load_1f(buf, ofs);
+  return o;
+}
+
+CurveData CurveData_Load(BufferData_ref buf, in out uint ofs)
+{
+  CurveData o;
+  o.enabled = dafx_load_1ui(buf, ofs);
+  for (int i = 0; i < 8; ++i)
+    o.packedCurveData[i] = dafx_load_1ui(buf, ofs);
   return o;
 }
 

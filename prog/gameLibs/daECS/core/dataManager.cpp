@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_adjpow2.h>
 #include <debug/dag_debug.h>
 #include <daECS/core/internal/dataComponentManager.h>
@@ -192,24 +194,24 @@ DataComponentManager::DefragResult DataComponentManager::defragment(const uint16
   if (usedInNonMaxBlock > maxCapacity) // we can just fit all data in one new chunk, but we can't fit all of it in any of current
   {
     moved_to_chunk = allocateChunk(entity_size, get_bigger_log2(usedInNonMaxBlock));
-    // debug_ctx("moved_to_chunk = %d", moved_to_chunk);
+    // DEBUG_CTX("moved_to_chunk = %d", moved_to_chunk);
   }
   else if (moved_from_chunk != maxCapacityChunk && minUsed <= chunkPtr[maxCapacityChunk].getFree()) // there is enough empty space left
                                                                                                     // in chunk with biggest capacity
   {
     moved_to_chunk = maxCapacityChunk;
-    // debug_ctx("moved_to_chunk = %d", moved_to_chunk);
+    // DEBUG_CTX("moved_to_chunk = %d", moved_to_chunk);
   }
   else if (minUsed <= maxFree) // there is enough empty space left in some chunk
   {
     moved_to_chunk = maxFreeChunk;
-    // debug_ctx("moved_to_chunk = %d", moved_to_chunk);
+    // DEBUG_CTX("moved_to_chunk = %d", moved_to_chunk);
   }
   else if (usedInNonMaxBlock > 0 && nonMaxBlocks > 1) // there is not enough empty space left anywhere, but there are some blocks we
                                                       // can collapse
   {
     moved_to_chunk = allocateChunk(entity_size, get_bigger_log2(usedInNonMaxBlock));
-    // debug_ctx("moved_to_chunk = %d", moved_to_chunk);
+    // DEBUG_CTX("moved_to_chunk = %d", moved_to_chunk);
   }
   else
   {

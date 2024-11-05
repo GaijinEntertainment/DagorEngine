@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <navigation/dag_navInterface.h>
 #include <ioSys/dag_genIo.h>
 #include <navigation/dag_navMesh.h>

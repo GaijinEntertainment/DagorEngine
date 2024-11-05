@@ -1,12 +1,16 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "irGraphBuilder.h"
 
 #include <memory/dag_framemem.h>
 #include <util/dag_convar.h>
 #include <math/random/dag_random.h>
+#include <EASTL/stack.h>
 
 #include <frontend/multiplexingInternal.h>
 #include <frontend/dumpInternalRegistry.h>
 #include <frontend/dependencyData.h>
+#include <frontend/validityInfo.h>
 #include <frontend/nameResolver.h>
 #include <common/resourceUsage.h>
 
@@ -20,719 +24,492 @@ intermediate::Graph IrGraphBuilder::build(multiplexing::Extents extents) const
 {
   FRAMEMEM_REGION;
 
-  // Step 1: prune broken nodes.
-  // If a node requests a resource as a mandatory one but it was not
-  // produced by any node, we have no choice but to disable the node.
-  // This is applied recursively until no "broken" nodes are left, as a
-  // disabled node may have been producing another resource which is now
-  // missing as well.
-
-  auto validityInfo = findValidResourcesAndNodes();
-
-  // Step 2: build the intermediate graph.
+  // Build the intermediate graph.
   // Only valid nodes and resources are included, so all of the following
   // graph compilation process does not need to do validity assertions at
   // all.
 
-  auto [graph, mapping] = createDiscreteGraph(validityInfo, extents);
+  intermediate::Graph graph;
+  intermediate::Mapping mapping(registry.knownNames.nameCount<NodeNameId>(), registry.knownNames.nameCount<ResNameId>(),
+    multiplexing_extents_to_ir(extents));
+
+  graph.resources.reserve(mapping.mappedResourceIndexCount());
+  addResourcesToGraph(graph, mapping, extents);
+
+  // Fake source/destination nodes, see below
+  const size_t INTERNAL_FAKE_NODES = 2;
+  graph.nodes.reserve(mapping.mappedNodeIndexCount() + INTERNAL_FAKE_NODES);
+  graph.nodeStates.reserve(mapping.mappedNodeIndexCount() + INTERNAL_FAKE_NODES);
+
+  // We add a fake source node that precedes all nodes. This makes our
+  // graph a proper control flow graph in the strict mathematical sense.
+  const auto sourceId = graph.nodes.appendNew(intermediate::Node{}).first;
+  graph.nodeStates.appendNew();
+
+  addNodesToGraph(graph, mapping, extents);
 
   fixupFalseHistoryFlags(graph);
 
-  addEdgesToIrGraph(graph, validityInfo, mapping);
+  addEdgesToIrGraph(graph, mapping);
 
+  // Make the source node actually precede everything.
+  for (auto [nodeId, node] : graph.nodes.enumerate())
+    if (node.predecessors.empty() && nodeId != sourceId)
+      node.predecessors.insert(sourceId);
 
   graph.validate();
 
-  // Pruning (this makes mappings out of date)
   const auto sinks = findSinkIrNodes(graph, mapping, {registry.sinkExternalResources.begin(), registry.sinkExternalResources.end()});
-  G_ASSERT_DO_AND_LOG(!sinks.empty(), dumpRawUserGraph(validityInfo),
+  G_ASSERT_DO_AND_LOG(!sinks.empty(), dumpRawUserGraph(),
     "All specified frame graph sinks were skipped due to broken resource pruning! "
     "No rendering will be done! Report this to programmers!");
+  // Pruning (this makes mappings out of date)
+  auto [displacement, edgesToBreak] = pruneGraph(graph, mapping, sinks);
+  if (!edgesToBreak.empty())
+  {
+    dumpRawUserGraph();
+    logerr("The IR graph contained dependency cycles! "
+           "See above for the cycles and the full graph dump! "
+           "Note that this is a bug in this game's frame graph and should be reported to programmers!");
 
-  auto displacement = pruneGraph(graph, mapping, {sinks.begin(), sinks.end()}, validityInfo);
+    // Cycles must be broken, IR graph being a control flow graph is an
+    // invariant that must be upheld.
+    for (auto [from, to] : edgesToBreak)
+      graph.nodes[from].predecessors.erase(to);
+
+    // After an edge was removed, we might get "hanging" nodes, which
+    // are not permitted inside a CFG, so we have to fix that up.
+    // Doing more pruning is not what we want to do here, as we are
+    // desperately trying to recover and render at least something.
+    for (auto [from, _] : edgesToBreak)
+      if (graph.nodes[from].predecessors.empty())
+        graph.nodes[from].predecessors.insert(sourceId);
+  }
   graph.choseSubgraph(displacement);
+
+  // Also add a fake destination node that succeeds all nodes, this
+  // also makes our life easier later down the line than having to deal
+  // with multiple sinks.
+  // Note that this obviously does not ruin the topsort order.
+  {
+    IdIndexedFlags<intermediate::NodeIndex, framemem_allocator> hasIncomingEdges(graph.nodes.size() + 1, false);
+    for (auto [nodeId, node] : graph.nodes.enumerate())
+      for (auto pred : node.predecessors)
+        hasIncomingEdges[pred] = true;
+
+    graph.nodeStates.appendNew();
+    const auto destinationId = graph.nodes.appendNew(intermediate::Node{0, {}, {}, {}, {}}).first;
+
+    for (auto [nodeId, node] : graph.nodes.enumerate())
+      if (!hasIncomingEdges[nodeId] && nodeId != destinationId)
+        graph.nodes[destinationId].predecessors.insert(nodeId);
+  }
+
   graph.validate();
 
   setIrGraphDebugNames(graph);
 
-  // NRVO does not work with structured bindings
-  return eastl::move(graph);
+  return graph;
+}
+
+const char *IrGraphBuilder::frontendNodeName(const intermediate::Node &node) const
+{
+  if (node.frontendNode)
+    return registry.knownNames.getName(*node.frontendNode);
+
+  return node.predecessors.empty() ? "FAKE_SRC" : "FAKE_DST";
 }
 
 
-void IrGraphBuilder::validateLifetimes(ValidityInfo &validity) const
+template <class F, class G>
+void IrGraphBuilder::scanPhysicalResourceUsages(ResNameId res_id, const F &process_reader, const G &process_modifier) const
 {
-  for (auto [resId, lifetime] : depData.resourceLifetimes.enumerate())
-  {
-    if (registry.resources[resId].history != History::No && lifetime.consumedBy != NodeNameId::Invalid)
-    {
-      logerr("Resource '%s' was consumed by '%s' on it's frame but had it's "
-             "history requested on next frame! "
-             "This is impossible to satisfy, disabling the resource! ",
-        registry.knownNames.getName(resId), registry.knownNames.getName(lifetime.consumedBy));
-
-      validity.resourceValid.set(resId, false);
-    }
-
-    if (lifetime.introducedBy != NodeNameId::Invalid && lifetime.introducedBy == lifetime.consumedBy)
-    {
-      logerr("Resource '%s' was both created and consumed by node '%s'! "
-             "This is impossible to satisfy, disabling the resource!",
-        registry.knownNames.getName(resId), registry.knownNames.getName(lifetime.introducedBy));
-
-      validity.resourceValid.set(resId, false);
-    }
-
-    dag::RelocatableFixedVector<NodeNameId, 32> sortedReaders;
-    sortedReaders.assign(lifetime.readers.begin(), lifetime.readers.end());
-    eastl::sort(sortedReaders.begin(), sortedReaders.end());
-
-    if (eastl::binary_search(sortedReaders.begin(), sortedReaders.end(), lifetime.introducedBy))
-    {
-      logerr("Resource '%s' was both read and introduced by node '%s'! "
-             "This is impossible to satisfy, disabling the resource! ",
-        registry.knownNames.getName(resId), registry.knownNames.getName(lifetime.introducedBy));
-
-      validity.resourceValid.set(resId, false);
-    }
-
-    if (eastl::binary_search(sortedReaders.begin(), sortedReaders.end(), lifetime.consumedBy))
-    {
-      logerr("Resource '%s' was both read and consumed by node '%s'! "
-             "This is impossible to satisfy, disabling the node! ",
-        registry.knownNames.getName(resId), registry.knownNames.getName(lifetime.consumedBy));
-
-      validity.nodeValid.set(lifetime.consumedBy, false);
-    }
-
-    dag::RelocatableFixedVector<NodeNameId, 32> sortedModifiers;
-    sortedModifiers.assign(lifetime.modificationChain.begin(), lifetime.modificationChain.end());
-    eastl::sort(sortedModifiers.begin(), sortedModifiers.end());
-
-    dag::RelocatableFixedVector<NodeNameId, 8> conflicts;
-    eastl::set_intersection(sortedReaders.begin(), sortedReaders.end(), sortedModifiers.begin(), sortedModifiers.end(),
-      eastl::back_insert_iterator<decltype(conflicts)>(conflicts));
-
-    if (!conflicts.empty())
-    {
-      eastl::string list;
-      for (const auto nodeId : conflicts)
-      {
-        list += "'";
-        list += registry.knownNames.getName(nodeId);
-        list += "' ";
-      }
-
-      logerr("Found nodes that both modify and read resource '%s'! Offender(s): %s. "
-             "This is impossible to satisfy, disabling these nodes!",
-        registry.knownNames.getName(resId), list.c_str());
-
-      for (const auto nodeId : conflicts)
-        validity.nodeValid.set(nodeId, false);
-    }
-  }
-}
-
-bool IrGraphBuilder::validateResource(ResNameId resId) const
-{
-  const auto &lifetime = depData.resourceLifetimes[resId];
-
-  const bool wasIntroduced = lifetime.introducedBy != NodeNameId::Invalid;
-  const bool isASlot = registry.resourceSlots[resId].has_value();
-  if (isASlot && wasIntroduced)
-    logerr("The name '%s' was both used to create/register/rename "
-           "a resource in node '%s' and was filled as a resource slot. "
-           "Please, use a different name for one of those!",
-      registry.knownNames.getName(resId), registry.knownNames.getName(lifetime.introducedBy));
-
-  const auto checkResolution = [this](AutoResTypeNameId unresolvedAutoResId) {
-    const auto autoResId = nameResolver.resolve(unresolvedAutoResId);
-    auto [x, y] = registry.autoResTypes[autoResId].staticResolution;
-    auto [dx, dy] = registry.autoResTypes[autoResId].dynamicResolution;
-    return x > 0 && y > 0 && dx > 0 && dy > 0;
-  };
-
-  const bool autoResValid =
-    !registry.resources[resId].resolution.has_value() || checkResolution(registry.resources[resId].resolution->id);
-
-  if (!autoResValid)
-    logerr("Resource '%s' was created with auto-resolution '%s', "
-           "but this resolution was either set to an invalid value or "
-           "not set at all!",
-      registry.knownNames.getName(resId), registry.knownNames.getName(registry.resources[resId].resolution->id));
-
-  // Slots stay marked as invalid cuz they don't represent real resources.
-  // Things that had a conflict are invalid.
-  return wasIntroduced && !isASlot && autoResValid;
-}
-
-bool IrGraphBuilder::validateNode(NodeNameId nodeId) const
-{
-  const auto &nodeData = registry.nodes[nodeId];
-
-  bool anyUnfilledSlotRequests = false;
-  for (const auto &[resId, req] : nodeData.resourceRequests)
-    if (req.slotRequest && !req.optional && !registry.resourceSlots[resId].has_value())
-    {
-      logerr("Found a broken node '%s'! "
-             "Reason: it requested the resource in slot '%s' as mandatory, "
-             "but this slot was never actually filled! Either a "
-             "typo in the name, or this is supposed to be a regular "
-             "resource request (not a slot one), or a missing call "
-             "to fill_slot! Disabling this node!",
-        registry.knownNames.getName(nodeId), registry.knownNames.getName(resId));
-      anyUnfilledSlotRequests = true;
-    }
-
-  bool anyBindingTypeMismatches = false;
-  for (const auto &[bindId, req] : nodeData.bindings)
-  {
-    // TODO: validate that subtypes match when binding matrices
-    if (req.type != BindingType::ShaderVar)
-      continue;
-
-    const auto resolvedResId = nameResolver.resolve(req.resource);
-    const auto resType = registry.resources[resolvedResId].type;
-    const auto svType = ShaderGlobal::get_var_type(bindId);
-
-    static constexpr eastl::array<char const *const, 8> SHVT_MESSAGES{"is missing from the shader map", "only accepts INTs",
-      "only accepts REALs", "only accepts COLOR4s", "only accepts TEXTUREs", "only accepts BUFFERs", "only accepts INT4s",
-      "only accepts FLOAT4X4s"};
-
-    G_ASSERT_CONTINUE(svType >= -1 && 1 + svType < SHVT_MESSAGES.size()); // Sanity check
-
-    auto handleMismatch = [this, &anyBindingTypeMismatches, svType, nodeId = nodeId, svId = bindId, resId = req.resource](
-                            const char *res_type_str) {
-      logerr("Node '%s' requested %s '%s' to be set to"
-             " shader variable '%s', but the variable %s!"
-             " Either the programmers messed up, or the shader dump is out of date!",
-        registry.knownNames.getName(nodeId), res_type_str, registry.knownNames.getName(resId), VariableMap::getVariableName(svId),
-        SHVT_MESSAGES[1 + svType]);
-      anyBindingTypeMismatches = false;
-    };
-
-    switch (resType)
-    {
-      case ResourceType::Texture:
-        if (svType != SHVT_TEXTURE)
-          handleMismatch("texture");
-        break;
-
-      case ResourceType::Buffer:
-        if (svType != SHVT_BUFFER)
-          handleMismatch("buffer");
-        break;
-
-      case ResourceType::Blob:
-        // TODO: validate blob type using subtypes
-        if (svType == SHVT_BUFFER || svType == SHVT_TEXTURE || svType == -1)
-          handleMismatch("blob");
-        break;
-
-      // If resource is missing, either this is an optional request
-      // and everything will work fine, or the unfulfilled mandatory
-      // request will get caught down below.
-      case ResourceType::Invalid: break;
-    }
-  }
-
-  bool anyUsageConflictsAfterNameResolution = false;
-
-  const auto checkResIdRequest = [this, nodeId, &anyUsageConflictsAfterNameResolution](bool history, auto resolvedResId,
-                                   eastl::span<const ResNameId> unresolvedResIds) {
-    G_ASSERT(!unresolvedResIds.empty());
-
-    // We expect to always find a correct request, otherwise nameResolver is broken.
-    const auto getUsage = [&](ResNameId unresolvedResId) -> eastl::optional<ResourceUsage> {
-      const auto &requests = history ? registry.nodes[nodeId].historyResourceReadRequests : registry.nodes[nodeId].resourceRequests;
-
-      const auto reqIt = requests.find(unresolvedResId);
-      if (reqIt != requests.end())
-        return reqIt->second.usage;
-
-      return eastl::nullopt;
-    };
-
-    const auto firstUsage = getUsage(unresolvedResIds.front());
-    G_ASSERT_RETURN(firstUsage.has_value(), );
-
-    for (const auto unresolvedResId : unresolvedResIds)
-    {
-      const auto usage = getUsage(unresolvedResId);
-      G_ASSERT_CONTINUE(usage.has_value());
-
-      if (firstUsage->access != usage->access || firstUsage->type != usage->type)
-      {
-        logerr("Resource requests for names '%s' and '%s' both resolved to the same resource with name '%s' "
-               "within the node '%s', but the requested usages were different! This would result in impossible"
-               "barriers, disabling this node!",
-          registry.knownNames.getName(unresolvedResIds.front()), registry.knownNames.getName(unresolvedResId),
-          registry.knownNames.getName(resolvedResId), registry.knownNames.getName(nodeId));
-        anyUsageConflictsAfterNameResolution = true;
-      }
-    }
-  };
-
-  nameResolver.iterateInverseMapping(nodeId, checkResIdRequest);
-
-  return nodeData.execute && !anyUnfilledSlotRequests && !anyBindingTypeMismatches && !anyUsageConflictsAfterNameResolution;
-}
-
-auto IrGraphBuilder::findValidResourcesAndNodes() const -> ValidityInfo
-{
-  // We build an initial marking of invalid resources/nodes and then
-  // propagate the invalid marks to dependent nodes/resources using a BFS
-
-  ValidityInfo result;
-  auto &resourceValid = result.resourceValid;
-  auto &nodeValid = result.nodeValid;
-
-  resourceValid.resize(registry.knownNames.nameCount<ResNameId>(), false);
-  for (const auto resId : IdRange<ResNameId>(depData.resourceLifetimes.size()))
-    resourceValid.set(resId, validateResource(resId));
-
-  nodeValid.resize(registry.knownNames.nameCount<NodeNameId>(), false);
-  for (const auto nodeId : IdRange<NodeNameId>(registry.nodes.size()))
-    nodeValid.set(nodeId, validateNode(nodeId));
-
-  validateLifetimes(result);
-
-  // We have to do an initial pass of marking resources created by
-  // broken nodes as invalid.
-  for (auto [nodeId, valid] : nodeValid.enumerate())
-    if (!valid)
-    {
-      for (auto resId : registry.nodes[nodeId].createdResources)
-        resourceValid[resId] = false;
-      for (auto [toId, _] : registry.nodes[nodeId].renamedResources)
-        resourceValid[toId] = false;
-    }
-
-  // WARNING: do NOT use bitset::set inside a framemem_region -- it reallocates!
   FRAMEMEM_VALIDATE;
-  // We need a "resource -> [nodes with mandatory dependency on it]"
-  // mapping that also accounts for history resources for the BFS to be quick.
-  using ResToNodeMapping =
-    IdIndexedMapping<ResNameId, eastl::fixed_vector<NodeNameId, 64, true, framemem_allocator>, framemem_allocator>;
-  ResToNodeMapping nodesDependentOnResource(resourceValid.size());
+  // Save scanned resources to prevent hanging if there is cycle in renaming chains
+  dag::VectorSet<ResNameId, eastl::less<ResNameId>, framemem_allocator> knownCandidates;
+  const auto scanNodeSlotsOrResource = [this](NodeNameId node_id, ResNameId res_id, const auto &process_node) {
+    for (const auto unresolvedResId : nameResolver.unresolve(node_id, res_id))
+      process_node(node_id, unresolvedResId);
+  };
+  auto resIdCandidate = res_id;
+  while (true)
+  {
+    // We don't want to consider broken/invalid nodes when looking
+    // for an appropriate usage.
+    for (const auto modifier : depData.resourceLifetimes[resIdCandidate].modificationChain)
+      if (validityInfo.nodeValid[modifier])
+        scanNodeSlotsOrResource(modifier, resIdCandidate, process_modifier);
 
-  // We also need a mapping that says us which resources are actually
-  // other resources, just renamed. This is used to disable the renamed
-  // resource even if the node that does the renaming will not be disabled
-  // itself due to the renaming being optional.
-  using ResToResMapping = IdIndexedMapping<ResNameId, eastl::optional<ResNameId>, framemem_allocator>;
-  ResToResMapping resourceRenamingDependencies(resourceValid.size());
+    for (const auto reader : depData.resourceLifetimes[resIdCandidate].readers)
+      if (validityInfo.nodeValid[reader])
+        scanNodeSlotsOrResource(reader, resIdCandidate, process_reader);
+
+    // The renaming chain might've been "torn" by an invalid node.
+    if (!validityInfo.resourceValid[depData.renamingChains[resIdCandidate]])
+      break;
+
+    resIdCandidate = depData.renamingChains[resIdCandidate];
+    if (knownCandidates.find(resIdCandidate) != knownCandidates.end())
+      break;
+    knownCandidates.insert(resIdCandidate);
+  }
+}
+
+auto IrGraphBuilder::findFirstUsageAndUpdatedCreationFlags(ResNameId res_id, uint32_t initial_flags) const
+{
+  // If the node introducer do not specify usage, find the first usage
+  // in the modification requests in all renamings.
+  auto firstUsage = registry.nodes[depData.resourceLifetimes[res_id].introducedBy].resourceRequests.find(res_id)->second.usage;
+  const auto type = registry.resources[res_id].type;
+  bool hasReaders = false;
+
+  const auto processReaders = [this, type, &firstUsage, &initial_flags, &hasReaders](NodeNameId node_id, ResNameId renamed_res_id) {
+    hasReaders = true;
+    const auto usage = registry.nodes[node_id].resourceRequests.find(renamed_res_id)->second.usage;
+    update_creation_flags_from_usage(initial_flags, usage, type);
+    if (firstUsage.type == Usage::UNKNOWN)
+      logerr("daBfg: Resource %s is read by %s before first modify usage", registry.knownNames.getName(renamed_res_id),
+        registry.knownNames.getName(node_id));
+  };
+
+  const auto processModifiers = [this, type, &firstUsage, &initial_flags](NodeNameId node_id, ResNameId renamed_res_id) {
+    const auto usage = registry.nodes[node_id].resourceRequests.find(renamed_res_id)->second.usage;
+    update_creation_flags_from_usage(initial_flags, usage, type);
+    if (firstUsage.type == Usage::UNKNOWN)
+      firstUsage = usage;
+  };
+
+  scanPhysicalResourceUsages(res_id, processReaders, processModifiers);
+
+  if (firstUsage.type == Usage::UNKNOWN && hasReaders)
+    logerr("daBfg: Resource %s is not initialized and it's first modify usage is UNKNOWN.", registry.knownNames.getName(res_id));
+
+  return eastl::pair{firstUsage, initial_flags};
+}
+
+
+void IrGraphBuilder::addResourcesToGraph(intermediate::Graph &graph, intermediate::Mapping &mapping,
+  multiplexing::Extents extents) const
+{
+  FRAMEMEM_VALIDATE;
+
+  const auto &nodeValid = validityInfo.nodeValid;
+  const auto &resourceValid = validityInfo.resourceValid;
 
   for (auto [nodeId, nodeData] : registry.nodes.enumerate())
   {
-    for (const auto &[unresolvedResId, req] : nodeData.resourceRequests)
-      if (!req.optional)
-        nodesDependentOnResource[nameResolver.resolve(unresolvedResId)].push_back(nodeId);
-    for (const auto &[unresolvedResId, req] : nodeData.historyResourceReadRequests)
-      if (!req.optional)
-        nodesDependentOnResource[nameResolver.resolve(unresolvedResId)].push_back(nodeId);
+    if (!nodeValid[nodeId])
+      continue;
 
-    for (const auto &[to, unresolvedFrom] : nodeData.renamedResources)
-    {
-      auto &dep = resourceRenamingDependencies[nameResolver.resolve(unresolvedFrom)];
-      G_ASSERT(!dep.has_value());
-      dep = to;
-    }
-  }
 
-  // Wave of resources which are definitely invalid but who's dependent
-  // nodes/resources may have not been marked as invalid yet.
-  using Wave = eastl::fixed_vector<ResNameId, 64, true, framemem_allocator>;
-  Wave wave;
+    const auto nodeMultiplexingExtents = extents_for_node(nodeData.multiplexingMode, extents);
 
-  // Fill in the initial wave of invalid resources
-  for (const auto [resId, isValid] : resourceValid.enumerate())
-    if (!isValid)
-      wave.emplace_back(resId);
+    auto processResource = [&extents, &nodeMultiplexingExtents, &graph, &mapping](ResNameId resId, const multiplexing::Index &midx,
+                             const intermediate::ConcreteResource &variant) {
+      const auto irMultiplexingIndex = multiplexing_index_to_ir(midx, extents);
 
-  // Transitively disable all dependent nodes using a BFS
-  while (!wave.empty())
-  {
-    Wave nextWave;
-
-    for (auto resId : wave)
-    {
-      if (resourceRenamingDependencies[resId])
+      if (!index_inside_extents(midx, nodeMultiplexingExtents))
       {
-        auto renamedToResId = *resourceRenamingDependencies[resId];
-
-        if (resourceValid[renamedToResId])
-        {
-          resourceValid[renamedToResId] = false; //-V601
-          nextWave.push_back(renamedToResId);
-        }
+        // Index outside of this node's multiplexing extents, redirect
+        // the mapping to the intersection with the valid extents
+        const auto fromIrIndex = multiplexing_index_to_ir(clamp(midx, nodeMultiplexingExtents), extents);
+        mapping.mapRes(resId, irMultiplexingIndex) = mapping.mapRes(resId, fromIrIndex);
+        return;
       }
 
-      for (auto nodeId : nodesDependentOnResource[resId])
-      {
-        if (!nodeValid[nodeId])
-          continue;
+      // Correct multiindex for this frontend node, multiplex the
+      // resource (unique physical resource per index)
+      auto [idx, irRes] = graph.resources.appendNew();
+      mapping.mapRes(resId, irMultiplexingIndex) = idx;
+      irRes.resource = variant;
+      irRes.frontendResources = {resId};
+      irRes.multiplexingIndex = irMultiplexingIndex;
+    };
 
-        const bool resWasIntroduced = depData.resourceLifetimes[resId].introducedBy != NodeNameId::Invalid;
-        const bool introducedByUs = depData.resourceLifetimes[resId].introducedBy == nodeId;
-
-        logerr("Found a broken node '%s'! "
-               "Reason: the node requested '%s' as a mandatory resource, "
-               "but %s. Disabling this node!",
-          registry.knownNames.getName(nodeId), registry.knownNames.getName(resId),
-          resWasIntroduced ? (introducedByUs ? "the resource itself was broken!" : "the node that produces it was broken too!")
-                           : "it was never produced by any node!");
-
-        nodeValid[nodeId] = false; //-V601
-
-        auto invalidateRes = [&resourceValid, &nextWave](ResNameId resId) {
-          if (!resourceValid[resId])
-            return;
-
-          resourceValid[resId] = false; //-V601
-          nextWave.push_back(resId);
-        };
-
-        const auto &nodeData = registry.nodes[nodeId];
-
-        for (const auto &resId : nodeData.createdResources)
-          invalidateRes(resId);
-
-        for (const auto &[to, _] : nodeData.renamedResources)
-          invalidateRes(to);
-      }
-    }
-
-    wave = eastl::move(nextWave);
-  }
-
-  return result;
-}
-
-eastl::pair<intermediate::Graph, intermediate::Mapping> IrGraphBuilder::createDiscreteGraph(const ValidityInfo &validity,
-  multiplexing::Extents extents) const
-{
-  const auto irMultiplexingExtents = multiplexing_extents_to_ir(extents);
-
-  eastl::pair<intermediate::Graph, intermediate::Mapping> result{
-    {}, intermediate::Mapping(registry.knownNames.nameCount<NodeNameId>(), registry.knownNames.nameCount<ResNameId>(),
-          irMultiplexingExtents)};
-
-  auto &graph = result.first;
-  auto &mapping = result.second;
-
-  const auto &nodeValid = validity.nodeValid;
-  const auto &resourceValid = validity.resourceValid;
-
-  // Group and multiplex resources
-  {
-    graph.resources.reserve(mapping.mappedResourceIndexCount());
-
-    for (auto [nodeId, nodeData] : registry.nodes.enumerate())
+    for (auto resId : nodeData.createdResources)
     {
-      if (!nodeValid[nodeId])
+      if (!resourceValid[resId])
         continue;
 
+      const auto &resData = registry.resources[resId];
 
-      const auto nodeMultiplexingExtents = extents_for_node(nodeData.multiplexingMode, extents);
-
-      auto processResource = [&extents, &nodeMultiplexingExtents, &graph, &mapping](ResNameId resId,
-                               const eastl::variant<intermediate::ScheduledResource, ExternalResource> &variant) {
-        for (multiplexing::Index i = {}; index_inside_extents(i, extents); i = next_index(i, extents))
-        {
-          const auto irMultiplexingIndex = multiplexing_index_to_ir(i, extents);
-
-          if (!index_inside_extents(i, nodeMultiplexingExtents))
-          {
-            // Index outside of this node's multiplexing extents, redirect
-            // the mapping to the intersection with the valid extents
-            const auto fromIrIndex = multiplexing_index_to_ir(clamp(i, nodeMultiplexingExtents), extents);
-            mapping.mapRes(resId, irMultiplexingIndex) = mapping.mapRes(resId, fromIrIndex);
-            continue;
-          }
-
-          // Correct multiindex for this frontend node, multiplex the
-          // resource (unique physical resource per index)
-          auto [idx, irRes] = graph.resources.appendNew();
-          mapping.mapRes(resId, irMultiplexingIndex) = idx;
-          irRes.resource = variant;
-          irRes.frontendResources.insert(resId);
-          irRes.multiplexingIndex = irMultiplexingIndex;
-        }
-      };
-
-      for (auto resId : nodeData.createdResources)
+      if (auto resDesc = eastl::get_if<ResourceDescription>(&resData.creationInfo))
       {
-        if (!resourceValid[resId])
-          continue;
+        auto [firstUsage, updatedFlags] = findFirstUsageAndUpdatedCreationFlags(resId, resDesc->asBasicRes.cFlags);
 
-        const auto &resData = registry.resources[resId];
+        auto activation = get_activation_from_usage(History::DiscardOnFirstFrame, firstUsage, resData.type);
 
-        const auto scanResourceUsages = [this, &validity](ResNameId res_id, const auto &process_readers,
-                                          const auto &process_modifiers) {
-          FRAMEMEM_VALIDATE;
-          // Save scanned resources to prevent hanging if there is cycle in renaming chains
-          dag::VectorSet<ResNameId, eastl::less<ResNameId>, framemem_allocator> knownCandidates;
-          const auto scanNodeSlotsOrResource = [this](NodeNameId node_id, ResNameId res_id, const auto &process_node) {
-            for (const auto unresolvedResId : nameResolver.unresolve(node_id, res_id))
-              process_node(node_id, unresolvedResId);
-          };
-          auto resIdCandidate = res_id;
-          while (true)
-          {
-            // We don't want to consider broken/invalid nodes when looking
-            // for an appropriate usage.
-            for (const auto modifier : depData.resourceLifetimes[resIdCandidate].modificationChain)
-              if (validity.nodeValid[modifier])
-                scanNodeSlotsOrResource(modifier, resIdCandidate, process_modifiers);
-
-            for (const auto reader : depData.resourceLifetimes[resIdCandidate].readers)
-              if (validity.nodeValid[reader])
-                scanNodeSlotsOrResource(reader, resIdCandidate, process_readers);
-
-            // The renaming chain might've been "torn" by an invalid node.
-            if (!validity.resourceValid[depData.renamingChains[resIdCandidate]])
-              break;
-
-            resIdCandidate = depData.renamingChains[resIdCandidate];
-            if (knownCandidates.find(resIdCandidate) != knownCandidates.end())
-              break;
-            knownCandidates.insert(resIdCandidate);
-          }
-        };
-
-        if (auto resDesc = eastl::get_if<ResourceDescription>(&resData.creationInfo))
+        ResourceDescription updatedDesc = *resDesc;
+        updatedDesc.asBasicRes.cFlags = updatedFlags;
+        if (activation)
         {
-          // If the node introducer do not specify usage, find the first usage
-          // in the modification requests in all renamings.
-          auto firstUsage = registry.nodes[depData.resourceLifetimes[resId].introducedBy].resourceRequests.find(resId)->second.usage;
-          auto desc = *resDesc;
-          bool hasReaders = false;
-          const auto processReaders = [this, type = resData.type, &firstUsage, &desc, &hasReaders](NodeNameId node_id,
-                                        ResNameId res_id) {
-            hasReaders = true;
-            const auto usage = registry.nodes[node_id].resourceRequests.find(res_id)->second.usage;
-            update_creation_flags_from_usage(desc.asBasicRes.cFlags, usage, type);
-            if (firstUsage.type == Usage::UNKNOWN)
-              logerr("Resource %s is read by %s before first modify usage", registry.knownNames.getName(res_id),
-                registry.knownNames.getName(node_id));
-          };
-          const auto processModifiers = [this, type = resData.type, &firstUsage, &desc](NodeNameId node_id, ResNameId res_id) {
-            const auto usage = registry.nodes[node_id].resourceRequests.find(res_id)->second.usage;
-            update_creation_flags_from_usage(desc.asBasicRes.cFlags, usage, type);
-            if (firstUsage.type == Usage::UNKNOWN)
-              firstUsage = usage;
-          };
-          scanResourceUsages(resId, processReaders, processModifiers);
-          if (firstUsage.type == Usage::UNKNOWN && hasReaders)
-          {
-            logerr("Resource %s is not initialized and it's first modify usage is UNKNOWN.", registry.knownNames.getName(resId));
-          }
-
-          auto activation = get_activation_from_usage(History::DiscardOnFirstFrame, firstUsage, resData.type);
-          if (activation)
-            desc.asBasicRes.activation = *activation;
-          else
-          {
-            logerr("Could not infer an activation action for %s from the first usage of a"
-                   " v2 API resource, either an application error or a bug in frame graph!",
-              registry.knownNames.getName(resId));
-            if (resData.type == ResourceType::Texture)
-              desc.asBasicRes.activation = ResourceActivationAction::DISCARD_AS_RTV_DSV;
-            else if (resData.type == ResourceType::Buffer)
-              desc.asBasicRes.activation = ResourceActivationAction::DISCARD_AS_UAV;
-          }
-          intermediate::ScheduledResource res{desc, resData.type, resData.resolution, resData.history};
-          processResource(resId, res);
+          updatedDesc.asBasicRes.activation = *activation;
         }
-        else if (auto blobDesc = eastl::get_if<BlobDescription>(&resData.creationInfo))
+        else
         {
-          intermediate::ScheduledResource res{*blobDesc, resData.type, eastl::nullopt, resData.history};
-          processResource(resId, res);
+          logerr("Could not infer an activation action for %s from the first usage of a"
+                 " v2 API resource, either an application error or a bug in frame graph!",
+            registry.knownNames.getName(resId));
+          if (resData.type == ResourceType::Texture)
+            updatedDesc.asBasicRes.activation = ResourceActivationAction::DISCARD_AS_RTV_DSV;
+          else if (resData.type == ResourceType::Buffer)
+            updatedDesc.asBasicRes.activation = ResourceActivationAction::DISCARD_AS_UAV;
         }
-        else if (auto externalProvider = eastl::get_if<ExternalResourceProvider>(&resData.creationInfo))
+
+        eastl::optional<AutoResolutionData> resolvedAutoResData = resData.resolution;
+        if (resolvedAutoResData)
+          resolvedAutoResData->id = nameResolver.resolve(resolvedAutoResData->id);
+
+        intermediate::ScheduledResource res{updatedDesc, resData.type, resolvedAutoResData, resData.history};
+        for (multiplexing::Index i = {}; index_inside_extents(i, extents); i = next_index(i, extents))
+          processResource(resId, i, res);
+      }
+      else if (auto blobDesc = eastl::get_if<BlobDescription>(&resData.creationInfo))
+      {
+        intermediate::ScheduledResource res{*blobDesc, resData.type, eastl::nullopt, resData.history};
+        for (multiplexing::Index i = {}; index_inside_extents(i, extents); i = next_index(i, extents))
+          processResource(resId, i, res);
+      }
+      else if (auto externalProvider = eastl::get_if<ExternalResourceProvider>(&resData.creationInfo))
+      {
+        // We "probe" the provided external resources on recompilation
+        // and record their properties. Then at runtime we assert that
+        // these properties have not changed.
+        // Supporting runtime changes of external resource properties
+        // is possible, but it would result in bad performence and
+        // is generally a bad idea.
+        // TODO: we should scan usages of such resources and make sure
+        // that the flags are actually compatible with how they are
+        // used in practice.
+        switch (resData.type)
         {
-          switch (resData.type)
+          case ResourceType::Texture:
           {
-            case ResourceType::Texture: processResource(resId, ManagedTexView{}); break;
+            for (multiplexing::Index i = {}; index_inside_extents(i, extents); i = next_index(i, extents))
+            {
+              const auto tex = eastl::get<ManagedTexView>((*externalProvider)(i));
 
-            case ResourceType::Buffer: processResource(resId, ManagedBufView{}); break;
-
-            case ResourceType::Blob:
-            case ResourceType::Invalid: G_ASSERTF_BREAK(false, "This should never ever happen!");
+              TextureInfo info;
+              tex->getinfo(info);
+              intermediate::ExternalResource res{info};
+              processResource(resId, i, res);
+            }
           }
+          break;
+
+          case ResourceType::Buffer:
+          {
+            for (multiplexing::Index i = {}; index_inside_extents(i, extents); i = next_index(i, extents))
+            {
+              const auto buf = eastl::get<ManagedBufView>((*externalProvider)(i));
+
+              intermediate::BufferInfo info;
+              info.flags = buf->getFlags();
+              intermediate::ExternalResource res{info};
+              processResource(resId, i, res);
+            }
+          }
+          break;
+
+          case ResourceType::Blob:
+          case ResourceType::Invalid: G_ASSERTF_BREAK(false, "This should never ever happen!");
         }
       }
-    }
-
-    // Fill in mappings for resources produced via renaming
-    for (auto [nodeId, nodeData] : registry.nodes.enumerate())
-    {
-      if (!nodeValid[nodeId])
-        continue;
-
-      for (const auto &[toResId, unresolvedFromResId] : nodeData.renamedResources)
+      else if (eastl::holds_alternative<DriverDeferredTexture>(resData.creationInfo))
       {
-        if (!resourceValid[toResId])
-          continue;
-
-        auto originalRes = depData.renamingRepresentatives[nameResolver.resolve(unresolvedFromResId)];
-
+        intermediate::DriverDeferredTexture res{};
         for (multiplexing::Index i = {}; index_inside_extents(i, extents); i = next_index(i, extents))
-        {
-          const auto irMultiplexingIndex = multiplexing_index_to_ir(i, extents);
-          G_ASSERT(mapping.wasResMapped(originalRes, irMultiplexingIndex));
-
-          const auto originalIndex = mapping.mapRes(originalRes, irMultiplexingIndex);
-          mapping.mapRes(toResId, irMultiplexingIndex) = originalIndex;
-
-          auto &originalRes = graph.resources[originalIndex];
-          originalRes.frontendResources.insert(toResId);
-
-          // When renaming resources, the history flag is specified on
-          // the last renamee, because it makes sense. Here, we need
-          // to propagate it to the first renamee. This code is not ideal,
-          // as it will propagate a flag even for a resource in the middle,
-          // of a chain, but it's ok cuz we validate that no resources in
-          // the middle have history, so the if will work only for the
-          // last resource in a chain.
-          if (originalRes.isScheduled() && registry.resources[toResId].history != History::No)
-            originalRes.asScheduled().history = registry.resources[toResId].history;
-        }
+          processResource(resId, i, res);
       }
     }
   }
 
-  // Group and multiplex nodes
+  // Fill in mappings for resources produced via renaming
+  for (auto [nodeId, nodeData] : registry.nodes.enumerate())
   {
-    dag::Vector<NodeNameId, framemem_allocator> validNodes;
-    validNodes.reserve(registry.nodes.size());
-    for (auto [nodeId, _] : registry.nodes.enumerate())
-      if (nodeValid[nodeId])
-        validNodes.emplace_back(nodeId);
+    if (!nodeValid[nodeId])
+      continue;
 
-    if (randomize_order.get())
+    for (const auto &[toResId, unresolvedFromResId] : nodeData.renamedResources)
     {
-      eastl::random_shuffle(validNodes.begin(), validNodes.end(), [](uint32_t n) { return static_cast<uint32_t>(grnd() % n); });
-    }
+      if (!resourceValid[toResId])
+        continue;
 
-    graph.nodes.reserve(mapping.mappedNodeIndexCount());
-    graph.nodeStates.reserve(mapping.mappedNodeIndexCount());
-
-    for (auto nodeId : validNodes)
-    {
-      const auto &nodeData = registry.nodes[nodeId];
-      // TODO: on mobile TBDR, group nodes together based on their
-      // renderpass. Breaking an RP is extremely bad there.
-      // Priorities will have to be reworked as well.
-
-      const auto nodeMultiplexingExtents = extents_for_node(nodeData.multiplexingMode, extents);
+      auto originalRes = depData.renamingRepresentatives[nameResolver.resolve(unresolvedFromResId)];
 
       for (multiplexing::Index i = {}; index_inside_extents(i, extents); i = next_index(i, extents))
       {
         const auto irMultiplexingIndex = multiplexing_index_to_ir(i, extents);
-        if (!index_inside_extents(i, nodeMultiplexingExtents))
-        {
-          const auto fromIrIndex = multiplexing_index_to_ir(clamp(i, nodeMultiplexingExtents), extents);
-          // Note that mapping at formIrIndex is guaranteed to be correct,
-          // as breaching this node's extents on some axis means that
-          // we've already iterated all values up to the extent on that
-          // axis.
-          mapping.mapNode(nodeId, irMultiplexingIndex) = mapping.mapNode(nodeId, fromIrIndex);
-          continue;
-        }
+        G_ASSERT(mapping.wasResMapped(originalRes, irMultiplexingIndex));
 
-        auto [idx, irNode] = graph.nodes.appendNew();
-        mapping.mapNode(nodeId, irMultiplexingIndex) = idx;
-        irNode.frontendNode = nodeId;
-        irNode.priority = nodeData.priority;
-        irNode.multiplexingIndex = irMultiplexingIndex;
+        const auto originalIndex = mapping.mapRes(originalRes, irMultiplexingIndex);
+        mapping.mapRes(toResId, irMultiplexingIndex) = originalIndex;
 
+        auto &originalRes = graph.resources[originalIndex];
 
-        eastl::array<dag::VectorMap<ResNameId, uint32_t, eastl::less<ResNameId>, framemem_allocator>, 2>
-          resolvedResIdxToIndexInIrRequests;
-
-        auto processRequest = [&irNode = irNode, &mapping, &resourceValid, &nodeData, &validity, &graph,
-                                &resolvedResIdxToIndexInIrRequests, this, irMultiplexingIndex,
-                                nodeId](bool history, ResNameId resId, const ResourceRequest &req) {
-          // Skip optional requests for missing resources
-          if (req.optional && !resourceValid[resId])
-            return;
-
-          // Note that this resMapping might redirect us to a resource
-          // that is less multiplexed than us. This is ok.
-          const auto resIndex = mapping.mapRes(resId, irMultiplexingIndex);
-
-          // On the other hand, if we are less multiplexed than the
-          // requested resource, we basically get undefined behaviour:
-          // we don't know which one of multiple physical resources
-          // we actually want to read. Assert.
-          const auto resMplexMode = registry.nodes[depData.resourceLifetimes[resId].introducedBy].multiplexingMode;
-          G_ASSERT_DO_AND_LOG(!less_multiplexed(nodeData.multiplexingMode, resMplexMode), dumpRawUserGraph(validity),
-            "Node '%s' requested resource '%s', which is more"
-            " multiplexed than the node due to being produced by a"
-            " node that is more multiplexed. This is invalid usage.",
-            registry.knownNames.getName(nodeId), registry.knownNames.getName(resId));
-
-
-          // Note that name resolution might have mapped several requests
-          // into the same resource requests, in which case we need to
-          // merge them.
-          if (const auto alreadyProcessedIt = resolvedResIdxToIndexInIrRequests[history].find(resId);
-              alreadyProcessedIt == resolvedResIdxToIndexInIrRequests[history].end())
-          {
-            resolvedResIdxToIndexInIrRequests[history].emplace(resId, irNode.resourceRequests.size());
-
-            auto &irRequest = irNode.resourceRequests.emplace_back();
-            irRequest.resource = resIndex;
-            irRequest.usage = intermediate::ResourceUsage{req.usage.access, req.usage.type, req.usage.stage};
-            irRequest.fromLastFrame = history;
-          }
-          else
-          {
-            auto &irRequest = irNode.resourceRequests[alreadyProcessedIt->second];
-            // Otherwise this node must have been marked as broken and removed.
-            G_ASSERT(irRequest.usage.access == req.usage.access && irRequest.usage.type == irRequest.usage.type);
-
-            irRequest.usage.stage = irRequest.usage.stage | req.usage.stage;
-          }
-
-          if (history && registry.resources[resId].history == History::No)
-          {
-            dumpRawUserGraph(validity);
-            logerr("Node '%s' requested history for resource '%s', but the"
-                   " resource was created with no history enabled. Please"
-                   " specify a history behavior in the resource creation call!"
-                   " Artifacts and crashes are possible otherwise!",
-              registry.knownNames.getName(nodeId), registry.knownNames.getName(resId));
-          }
-
-          // NOTE: we could theoretically prune nodes that are broken
-          // in this way, but that's a pretty complicated change with
-          // dubious benefits.
-          if (const auto &res = graph.resources[resIndex];
-              res.isScheduled() && res.asScheduled().isCpuResource() &&
-              !resourceTagsMatch(req.subtypeTag, res.asScheduled().getCpuDescription().typeTag))
-          {
-            dumpRawUserGraph(validity);
-            logerr("Node '%s' requested resource '%s' with a mismatched"
-                   " subtype tag! Please make sure that you are requesting"
-                   " this resource with the same type as it was produced with!",
-              registry.knownNames.getName(nodeId), registry.knownNames.getName(resId));
-          }
-        };
-
-        for (const auto &[resId, req] : nodeData.resourceRequests)
-          processRequest(false, nameResolver.resolve(resId), req);
-        for (const auto &[resId, req] : nodeData.historyResourceReadRequests)
-          processRequest(true, nameResolver.resolve(resId), req);
-
-        graph.nodeStates.set(idx, calcNodeState(nodeId, irMultiplexingIndex, mapping));
+        // When renaming resources, the history flag is specified on
+        // the last renamee, because it makes sense. Here, we need
+        // to propagate it to the first renamee. This code is not ideal,
+        // as it will propagate a flag even for a resource in the middle,
+        // of a chain, but it's ok cuz we validate that no resources in
+        // the middle have history, so the if will work only for the
+        // last resource in a chain.
+        if (originalRes.isScheduled() && registry.resources[toResId].history != History::No)
+          originalRes.asScheduled().history = registry.resources[toResId].history;
       }
     }
   }
 
-  return result;
+  for (auto [resIdx, res] : graph.resources.enumerate())
+  {
+    G_ASSERT(res.frontendResources.size() == 1);
+
+    // Walk along the renaming chain and append renamed frontend resources
+    // (first element intentionally skipped)
+    auto current = res.frontendResources.front();
+    while (depData.renamingChains[current] != current)
+    {
+      current = depData.renamingChains[current];
+
+      if (!resourceValid[current])
+        break;
+
+      res.frontendResources.push_back(current);
+    }
+  }
+}
+
+void IrGraphBuilder::addNodesToGraph(intermediate::Graph &graph, intermediate::Mapping &mapping, multiplexing::Extents extents) const
+{
+  FRAMEMEM_VALIDATE;
+
+  const auto &nodeValid = validityInfo.nodeValid;
+  const auto &resourceValid = validityInfo.resourceValid;
+
+  dag::Vector<NodeNameId, framemem_allocator> validNodes;
+  validNodes.reserve(registry.nodes.size());
+  for (auto [nodeId, _] : registry.nodes.enumerate())
+    if (nodeValid[nodeId])
+      validNodes.emplace_back(nodeId);
+
+  if (randomize_order.get())
+  {
+    eastl::random_shuffle(validNodes.begin(), validNodes.end(), [](uint32_t n) { return static_cast<uint32_t>(grnd() % n); });
+  }
+
+  for (auto nodeId : validNodes)
+  {
+    const auto &nodeData = registry.nodes[nodeId];
+    // TODO: on mobile TBDR, group nodes together based on their
+    // renderpass. Breaking an RP is extremely bad there.
+    // Priorities will have to be reworked as well.
+
+    const auto nodeMultiplexingExtents = extents_for_node(nodeData.multiplexingMode, extents);
+
+    for (multiplexing::Index i = {}; index_inside_extents(i, extents); i = next_index(i, extents))
+    {
+      const auto irMultiplexingIndex = multiplexing_index_to_ir(i, extents);
+      if (!index_inside_extents(i, nodeMultiplexingExtents))
+      {
+        const auto fromIrIndex = multiplexing_index_to_ir(clamp(i, nodeMultiplexingExtents), extents);
+        // Note that mapping at formIrIndex is guaranteed to be correct,
+        // as breaching this node's extents on some axis means that
+        // we've already iterated all values up to the extent on that
+        // axis.
+        mapping.mapNode(nodeId, irMultiplexingIndex) = mapping.mapNode(nodeId, fromIrIndex);
+        continue;
+      }
+
+      auto [idx, irNode] = graph.nodes.appendNew();
+      mapping.mapNode(nodeId, irMultiplexingIndex) = idx;
+      irNode.frontendNode = nodeId;
+      irNode.priority = nodeData.priority;
+      irNode.multiplexingIndex = irMultiplexingIndex;
+
+
+      eastl::array<dag::VectorMap<ResNameId, uint32_t, eastl::less<ResNameId>, framemem_allocator>, 2>
+        resolvedResIdxToIndexInIrRequests;
+
+      for (auto &req : resolvedResIdxToIndexInIrRequests)
+        req.reserve(registry.resources.size());
+
+      auto processRequest = [&irNode = irNode, &mapping, &resourceValid, &nodeData, &graph, &resolvedResIdxToIndexInIrRequests, this,
+                              irMultiplexingIndex, nodeId, extents](bool history, ResNameId resId, const ResourceRequest &req) {
+        // Skip optional requests for missing resources
+        if (req.optional && !resourceValid[resId])
+          return;
+
+        // Note that this resMapping might redirect us to a resource
+        // that is less multiplexed than us. This is ok.
+        const auto resIndex = mapping.mapRes(resId, irMultiplexingIndex);
+
+        // On the other hand, if we are less multiplexed than the
+        // requested resource, we basically get undefined behaviour:
+        // we don't know which one of multiple physical resources
+        // we actually want to read. Assert.
+        const auto resMplexMode = registry.nodes[depData.resourceLifetimes[resId].introducedBy].multiplexingMode;
+        G_ASSERT_DO_AND_LOG(!less_multiplexed(nodeData.multiplexingMode, resMplexMode, extents), dumpRawUserGraph(),
+          "Node '%s' requested resource '%s', which is more"
+          " multiplexed than the node due to being produced by a"
+          " node that is more multiplexed. This is invalid usage.",
+          registry.knownNames.getName(nodeId), registry.knownNames.getName(resId));
+
+
+        // Note that name resolution might have mapped several requests
+        // into the same resource requests, in which case we need to
+        // merge them.
+        if (const auto alreadyProcessedIt = resolvedResIdxToIndexInIrRequests[history].find(resId);
+            alreadyProcessedIt == resolvedResIdxToIndexInIrRequests[history].end())
+        {
+          resolvedResIdxToIndexInIrRequests[history].emplace(resId, irNode.resourceRequests.size());
+
+          auto &irRequest = irNode.resourceRequests.emplace_back();
+          irRequest.resource = resIndex;
+          irRequest.usage = intermediate::ResourceUsage{req.usage.access, req.usage.type, req.usage.stage};
+          irRequest.fromLastFrame = history;
+        }
+        else
+        {
+          auto &irRequest = irNode.resourceRequests[alreadyProcessedIt->second];
+          // Otherwise this node must have been marked as broken and removed.
+          G_ASSERT(irRequest.usage.access == req.usage.access && irRequest.usage.type == req.usage.type);
+
+          irRequest.usage.stage = irRequest.usage.stage | req.usage.stage;
+        }
+
+        if (history && registry.resources[resId].history == History::No)
+        {
+          dumpRawUserGraph();
+          logerr("Node '%s' requested history for resource '%s', but the"
+                 " resource was created with no history enabled. Please"
+                 " specify a history behavior in the resource creation call!"
+                 " Artifacts and crashes are possible otherwise!",
+            registry.knownNames.getName(nodeId), registry.knownNames.getName(resId));
+        }
+
+        // NOTE: we could theoretically prune nodes that are broken
+        // in this way, but that's a pretty complicated change with
+        // dubious benefits.
+        if (const auto &res = graph.resources[resIndex];
+            res.isScheduled() && res.asScheduled().isCpuResource() &&
+            !resourceTagsMatch(req.subtypeTag, res.asScheduled().getCpuDescription().typeTag))
+        {
+          dumpRawUserGraph();
+          logerr("Node '%s' requested resource '%s' with a mismatched"
+                 " subtype tag! Please make sure that you are requesting"
+                 " this resource with the same type as it was produced with!",
+            registry.knownNames.getName(nodeId), registry.knownNames.getName(resId));
+        }
+      };
+
+      for (const auto &[resId, req] : nodeData.resourceRequests)
+        processRequest(false, nameResolver.resolve(resId), req);
+      for (const auto &[resId, req] : nodeData.historyResourceReadRequests)
+        processRequest(true, nameResolver.resolve(resId), req);
+
+      graph.nodeStates.set(idx, calcNodeState(nodeId, irMultiplexingIndex, mapping));
+    }
+  }
 }
 
 void IrGraphBuilder::fixupFalseHistoryFlags(intermediate::Graph &graph) const
@@ -753,11 +530,10 @@ void IrGraphBuilder::fixupFalseHistoryFlags(intermediate::Graph &graph) const
       res.asScheduled().history = History::No;
 }
 
-void IrGraphBuilder::addEdgesToIrGraph(intermediate::Graph &graph, const ValidityInfo &validity,
-  const intermediate::Mapping &mapping) const
+void IrGraphBuilder::addEdgesToIrGraph(intermediate::Graph &graph, const intermediate::Mapping &mapping) const
 {
-  const auto &nodeValid = validity.nodeValid;
-  const auto &resourceValid = validity.resourceValid;
+  const auto &nodeValid = validityInfo.nodeValid;
+  const auto &resourceValid = validityInfo.resourceValid;
 
   bool anyMissingExplicitDependencies = false;
 
@@ -804,7 +580,7 @@ void IrGraphBuilder::addEdgesToIrGraph(intermediate::Graph &graph, const Validit
 
   if (anyMissingExplicitDependencies)
   {
-    dumpRawUserGraph(validity);
+    dumpRawUserGraph();
     logerr("Some nodes had explicit dependencies on nodes that don't exist!"
            " See above for details and full graph dump.");
   }
@@ -910,15 +686,17 @@ auto IrGraphBuilder::findSinkIrNodes(const intermediate::Graph &graph, const int
 
   for (const auto &resId : sinkResources)
   {
+    const auto &resData = registry.resources[depData.renamingRepresentatives[resId]];
     // We might want a renamed version of an external resource as a sink,
     // so the check must work on the original resource
-    if (registry.resources[depData.renamingRepresentatives[resId]].type == ResourceType::Invalid)
+    if (resData.type == ResourceType::Invalid)
     {
       logerr("Attempted to mark a non-existent resource '%s' as a sink!", registry.knownNames.getName(resId));
       continue;
     }
 
-    if (!eastl::holds_alternative<ExternalResourceProvider>(registry.resources[depData.renamingRepresentatives[resId]].creationInfo))
+    if (!eastl::holds_alternative<ExternalResourceProvider>(resData.creationInfo) &&
+        !eastl::holds_alternative<DriverDeferredTexture>(resData.creationInfo))
     {
       logerr("Attempted to mark a FG-internal resource '%s' as an "
              "externally consumed resource. This is impossible, as FG "
@@ -954,78 +732,170 @@ auto IrGraphBuilder::findSinkIrNodes(const intermediate::Graph &graph, const int
   return result;
 }
 
-IdIndexedMapping<intermediate::NodeIndex, intermediate::NodeIndex, framemem_allocator> IrGraphBuilder::pruneGraph(
-  const intermediate::Graph &graph, const intermediate::Mapping &mapping, eastl::span<const intermediate::NodeIndex> sinkNodes,
-  const ValidityInfo &validity) const
+eastl::pair<IrGraphBuilder::DisplacementFmem, IrGraphBuilder::EdgesToBreakFmem> IrGraphBuilder::pruneGraph(
+  const intermediate::Graph &graph, const intermediate::Mapping &mapping, eastl::span<const intermediate::NodeIndex> sinksNodes) const
 {
-  // We reindex nodes to go in bfs order, this makes memory access
-  // pattern better when scheduling, plus the code is simpler than if we
-  // tried to preserve the original order
+  // We prune the nodes using a dfs from the destination node, changing
+  // the ir graph to be topsorted in the process. This not the actual
+  // order that will be used when executing the graph, having a
+  // topsort is just convenient for doing DP on the graph.
   static constexpr intermediate::NodeIndex NOT_VISITED = MINUS_ONE_SENTINEL_FOR<intermediate::NodeIndex>;
-  IdIndexedMapping<intermediate::NodeIndex, intermediate::NodeIndex, framemem_allocator> visited(graph.nodes.size(), NOT_VISITED);
 
+  eastl::pair<DisplacementFmem, EdgesToBreakFmem> result;
 
-  FRAMEMEM_REGION;
-  // This is a way to write a BFS. Instead of a queue, we store a "wave"
-  // of nodes, iterate adjacent nodes of the "wave" building a the next
-  // wave out of not visited ones and then repeat.
-  using Wave = eastl::fixed_vector<intermediate::NodeIndex, 64, true, framemem_allocator>;
-  Wave wave{sinkNodes.begin(), sinkNodes.end()};
-  uint32_t lastAdded = 0;
-  auto recordVisited = [&lastAdded, &visited](intermediate::NodeIndex node) {
-    visited[node] = static_cast<intermediate::NodeIndex>(lastAdded++);
+  auto &[outTime, edgesToBreak] = result;
+  outTime.assign(graph.nodes.size(), NOT_VISITED);
+  edgesToBreak.reserve(graph.nodes.size());
+
+  FRAMEMEM_VALIDATE;
+
+  enum class Color
+  {
+    WHITE,
+    GRAY,
+    BLACK
   };
+  dag::Vector<Color, framemem_allocator> colors(graph.nodes.size(), Color::WHITE);
 
-  for (auto idx : wave)
-    recordVisited(idx);
+  // It is not enough to simply launch a DFS from every sink node, we
+  // might have nodes the are not reachable from any sink, but whose
+  // resources are used through history requests. We accumulate such
+  // nodes into a next wave and launch a new DFS from them afterwards.
+  // Note that this does not ruin the topsort, as we are only adding
+  // nodes that were not reachable previously.
+  dag::Vector<intermediate::NodeIndex, framemem_allocator> wave;
+  wave.reserve(graph.nodes.size());
+  wave.assign(sinksNodes.begin(), sinksNodes.end());
+
+  // Incremented each time DFS leaves a node
+  eastl::underlying_type_t<intermediate::NodeIndex> timer = 0;
 
   while (!wave.empty())
   {
-    Wave nextWave;
+    eastl::stack<intermediate::NodeIndex, dag::Vector<intermediate::NodeIndex, framemem_allocator>> stack;
+    stack.get_container().reserve(colors.size());
+    for (auto id : wave)
+      if (colors[id] == Color::WHITE)
+        stack.push(id);
+    wave.clear();
 
-    for (auto idx : wave)
+    while (!stack.empty())
     {
-      auto addToNextWave = [&visited, &recordVisited, &nextWave](intermediate::NodeIndex nodeIdx) {
-        if (visited[nodeIdx] != NOT_VISITED)
-          return;
-        recordVisited(nodeIdx);
-        nextWave.push_back(nodeIdx);
-      };
+      const auto curr = stack.top();
 
-      auto &currentNode = graph.nodes[idx];
+      // If this is a fresh node that we haven't seen yet,
+      // mark it gray and enqueue all predecessors
+      // Note that we do NOT pop the curr node from the stack!!!
+      if (colors[curr] == Color::WHITE)
+      {
+        colors[curr] = Color::GRAY;
 
-      for (auto pred : currentNode.predecessors)
-        addToNextWave(pred);
+        const auto &currNode = graph.nodes[curr];
 
-      // Iterate all history resource requests of this node and
-      // add nodes responsible for their production to the wave.
-      for (const auto &[resId, req] : registry.nodes[currentNode.frontendNode].historyResourceReadRequests)
-        if (validity.resourceValid[resId])
-        {
-          auto &lifetime = depData.resourceLifetimes[resId];
+        for (intermediate::NodeIndex next : currNode.predecessors)
+          if (colors[next] == Color::WHITE)
+            stack.push(next);
+          else if (DAGOR_UNLIKELY(colors[next] == Color::GRAY))
+          {
+            // We've found a cycle, the world is sort of broken, complain.
+            const auto &stackRaw = stack.get_container();
+            const auto it = eastl::find(stackRaw.begin(), stackRaw.end(), next);
 
-          for (auto modifierId : lifetime.modificationChain)
-            addToNextWave(mapping.mapNode(modifierId, currentNode.multiplexingIndex));
+            eastl::string path;
 
-          addToNextWave(mapping.mapNode(lifetime.introducedBy, currentNode.multiplexingIndex));
-        }
+            const auto appendNode = [&path, &graph, this](intermediate::NodeIndex idx) {
+              const auto &node = graph.nodes[idx];
+              const char *nodeName = frontendNodeName(node);
+              const auto midx = graph.nodes[idx].multiplexingIndex;
+              path.append_sprintf("%s {%#04X}", nodeName, midx);
+            };
+
+            eastl::bitvector<framemem_allocator> visited{graph.nodes.size(), false};
+            for (auto i = it; i != stackRaw.end(); ++i)
+              if (colors[*i] == Color::GRAY && !visited.test(*i, false))
+              {
+                visited.set(*i, true);
+                appendNode(*i);
+                path += " -> ";
+              }
+            appendNode(*it);
+            // We will issue a single logerr outside of this function
+            // to get good looking logs from production
+            logwarn("Dependency cycle detected in framegraph IR: %s", path);
+
+            edgesToBreak.push_back({curr, next});
+          }
+
+        // Iterate all history resource requests of this node and
+        // add nodes responsible for their production to the wave.
+        if (currNode.frontendNode)
+          for (const auto &[resId, req] : registry.nodes[*currNode.frontendNode].historyResourceReadRequests)
+            if (validityInfo.resourceValid[resId])
+            {
+              const auto &lifetime = depData.resourceLifetimes[resId];
+
+              for (const auto modifierId : lifetime.modificationChain)
+              {
+                const auto modifierIndex = mapping.mapNode(modifierId, currNode.multiplexingIndex);
+                if (colors[modifierIndex] == Color::WHITE)
+                  wave.push_back(modifierIndex);
+              }
+
+              const auto introducedByIndex = mapping.mapNode(lifetime.introducedBy, currNode.multiplexingIndex);
+              if (colors[introducedByIndex] == Color::WHITE)
+                wave.push_back(introducedByIndex);
+            }
+
+        continue;
+      }
+
+      // After all children of a node have been completely visited,
+      // we will find this node at the top of the stack again,
+      // this time with gray mark. Mark it black and record out time.
+      // Conceptually our algorithm is "leaving" this node,
+      // so we record the leaving time.
+      if (colors[curr] == Color::GRAY)
+      {
+        outTime[curr] = static_cast<intermediate::NodeIndex>(timer++);
+        colors[curr] = Color::BLACK;
+      }
+
+      // The node might have been added multiple time to the stack,
+      // but only the last entry got "visited", so ignore others. E.g.:
+      //       B
+      //      ^ ^
+      //     /   \
+      //    /     \
+      //   /       \
+      //  A-------->C
+      // Stack after each iteration:
+      // A
+      // ABC
+      // ABCB
+      // ABCB
+      // ABC
+      // AB  <- B is black here, because it was already visited
+      // A
+      stack.pop();
     }
-
-    wave = eastl::move(nextWave);
   }
 
   bool anyNodePruned = false;
-  for (auto [nodeId, v] : visited.enumerate())
-    if (v == NOT_VISITED)
-    {
+
+  for (auto [nodeId, time] : outTime.enumerate())
+    if (time == NOT_VISITED)
       anyNodePruned = true;
-      logerr("FG: Node '%s' is pruned. See below for full user graph dump.",
-        registry.knownNames.getName(graph.nodes[nodeId].frontendNode));
-    }
 
   if (anyNodePruned)
-    dumpRawUserGraph(validity);
-  return visited;
+  {
+    dumpRawUserGraph();
+
+    for (auto [nodeId, time] : outTime.enumerate())
+      if (time == NOT_VISITED)
+        logerr("FG: Node '%s' is pruned. See above for full user graph dump.", frontendNodeName(graph.nodes[nodeId]));
+  }
+
+  return result;
 }
 
 struct StateFieldSetter
@@ -1046,18 +916,12 @@ struct StateFieldSetter
     to.frameLayer = from.frameLayer;
   }
 
-  void set(eastl::optional<intermediate::VrsState> &to, const eastl::optional<VrsStateRequirements> &from)
+  void set(intermediate::VrsState &to, const VrsStateRequirements &from)
   {
-    if (!from.has_value())
-      return;
-
-    to.emplace();
-
-    to->rateX = from->rateX;
-    to->rateY = from->rateY;
-    to->rateTexture = mapping.mapRes(nameResolver.resolve(from->rateTextureResId), multiIndex);
-    to->vertexCombiner = from->vertexCombiner;
-    to->pixelCombiner = from->pixelCombiner;
+    to.rateX = from.rateX;
+    to.rateY = from.rateY;
+    to.vertexCombiner = from.vertexCombiner;
+    to.pixelCombiner = from.pixelCombiner;
   }
 
   void set(eastl::optional<intermediate::RenderPass> &to, const eastl::optional<VirtualPassRequirements> &from)
@@ -1089,6 +953,53 @@ struct StateFieldSetter
 
     to->depthAttachment = getAttachment(from->depthAttachment);
     to->depthReadOnly = from->depthReadOnly;
+
+    to->clears.reserve(from->clears.size());
+    for (const auto &[resNameId, value] : from->clears)
+    {
+      const auto resIndex = mapping.mapRes(nameResolver.resolve(resNameId), multiIndex);
+      if (resIndex == intermediate::RESOURCE_NOT_MAPPED)
+      {
+        // Sanity check, node should've been skipped otherwise
+        G_ASSERT(registry.nodes[nodeId].resourceRequests.find(resNameId)->second.optional);
+        continue;
+      }
+
+      if (auto dynClearColor = eastl::get_if<DynamicPassParameter>(&value))
+      {
+        const auto clearResIndex = mapping.mapRes(nameResolver.resolve(dynClearColor->resource), multiIndex);
+        if (clearResIndex == intermediate::RESOURCE_NOT_MAPPED)
+        {
+          // Sanity check, node should've been skipped otherwise
+          G_ASSERT(registry.nodes[nodeId].resourceRequests.find(dynClearColor->resource)->second.optional);
+          continue;
+        }
+        intermediate::DynamicPassParameter irDynClearColor{clearResIndex, dynClearColor->projectedTag, dynClearColor->projector};
+        to->clears.emplace(resIndex, irDynClearColor);
+      }
+      else if (auto clearColor = eastl::get_if<ResourceClearValue>(&value))
+        to->clears.emplace(resIndex, *clearColor);
+      else
+        G_ASSERT_FAIL("Impossible situation");
+    }
+
+    to->resolves.reserve(from->resolves.size());
+    for (const auto &[src, dst] : from->resolves)
+    {
+      to->resolves.emplace(mapping.mapRes(nameResolver.resolve(src), multiIndex),
+        mapping.mapRes(nameResolver.resolve(dst), multiIndex));
+    }
+
+    if (from->colorAttachments.size() == 1)
+    {
+      const auto resolvedResId = nameResolver.resolve(from->colorAttachments[0].nameId);
+      const auto repResId = depData.renamingRepresentatives[resolvedResId];
+      to->isLegacyPass = eastl::holds_alternative<DriverDeferredTexture>(registry.resources[repResId].creationInfo);
+    }
+    else
+      to->isLegacyPass = false;
+
+    to->vrsRateAttachment = getAttachment(from->vrsRateAttachment);
   }
 
   void set(intermediate::BindingsMap &to, const BindingsMap &from)
@@ -1107,7 +1018,7 @@ struct StateFieldSetter
       {
         // Sanity check, node should've been skipped otherwise
         G_ASSERT((bindInfo.history ? registry.nodes[nodeId].historyResourceReadRequests : registry.nodes[nodeId].resourceRequests)
-                   .find(resNameId)
+                   .find(bindInfo.resource)
                    ->second.optional);
 
         // bind "nothing", nullptr for projector is intentional
@@ -1122,6 +1033,7 @@ struct StateFieldSetter
 
   const InternalRegistry &registry;
   const NameResolver &nameResolver;
+  const DependencyData &depData;
   const intermediate::Mapping &mapping;
   intermediate::MultiplexingIndex multiIndex;
   NodeNameId nodeId;
@@ -1137,7 +1049,7 @@ intermediate::RequiredNodeState IrGraphBuilder::calcNodeState(NodeNameId node_id
       nodeData.shaderBlockLayers.frameLayer == -1)
     return {};
 
-  StateFieldSetter setter{registry, nameResolver, mapping, multi_index, node_id};
+  StateFieldSetter setter{registry, nameResolver, depData, mapping, multi_index, node_id};
   intermediate::RequiredNodeState result;
 
   if (nodeData.stateRequirements)
@@ -1149,6 +1061,7 @@ intermediate::RequiredNodeState IrGraphBuilder::calcNodeState(NodeNameId node_id
     SET(shaderOverrides, pipelineStateOverride);
 #undef SET
   }
+  setter.set(result.asyncPipelines, nodeData.allowAsyncPipelines);
   setter.set(result.pass, nodeData.renderingRequirements);
   setter.set(result.shaderBlockLayers, nodeData.shaderBlockLayers);
   setter.set(result.bindings, nodeData.bindings);
@@ -1177,7 +1090,7 @@ void IrGraphBuilder::setIrGraphDebugNames(intermediate::Graph &graph) const
   graph.nodeNames.resize(graph.nodes.size());
   for (auto [nodeIdx, irNode] : graph.nodes.enumerate())
   {
-    const auto &frontendName = registry.knownNames.getName(irNode.frontendNode);
+    const char *frontendName = frontendNodeName(irNode);
     auto &debugName = graph.nodeNames[nodeIdx];
     debugName.reserve(strlen(frontendName) + MULTI_INDEX_STRING_APPROX_SIZE);
     debugName += frontendName;
@@ -1203,7 +1116,11 @@ void IrGraphBuilder::setIrGraphDebugNames(intermediate::Graph &graph) const
       debugName += '[';
     for (auto userResId : irRes.frontendResources)
     {
-      debugName += registry.knownNames.getName(userResId);
+      const char *namePtr = registry.knownNames.getName(userResId);
+      if (namePtr[0] == '/')
+        namePtr++;
+
+      debugName += namePtr;
       debugName += ", ";
     }
     debugName.resize(debugName.size() - 2);
@@ -1213,11 +1130,11 @@ void IrGraphBuilder::setIrGraphDebugNames(intermediate::Graph &graph) const
   }
 }
 
-void IrGraphBuilder::dumpRawUserGraph(const ValidityInfo &info) const
+void IrGraphBuilder::dumpRawUserGraph() const
 {
   dump_internal_registry(
-    registry, [&info](NodeNameId id) { return info.nodeValid.test(id); },
-    [&info](ResNameId id) { return info.resourceValid.test(id); });
+    registry, [this](NodeNameId id) { return validityInfo.nodeValid.test(id); },
+    [this](ResNameId id) { return validityInfo.resourceValid.test(id); });
 }
 
 } // namespace dabfg

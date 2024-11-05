@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daFx/dafx.h>
 #include <math/dag_hlsl_floatx.h>
 #include <math/dag_mathUtils.h>
@@ -7,9 +9,16 @@
 #include <daFx/dafx_random.hlsli>
 #include <daFx/dafx_loaders.hlsli>
 #include <daFx/dafx_packers.hlsli>
+#include <daFx/dafx_gravity_zone.hlsli>
 #include <dafx_globals.hlsli>
 
 float3 (*modfx_get_additional_wind_at_pos)(const float3 &p) = nullptr;
+float3 (*modfx_get_cfd_wind_cpu)(const float3 &p, const float2 &wind_dir, float wind_speed, float directional_force,
+  float impulse_force) = nullptr;
+float modfx_cfd_wind_infl_threshold = 0.0f; // CFD wind is disabled if the directional_force * life_limit for the particle is below
+                                            // this threshold
+extern int dafx_gravity_zone_count;
+extern GravityZoneDescriptor_buffer dafx_gravity_zone_buffer;
 
 namespace dafx_modfx
 {

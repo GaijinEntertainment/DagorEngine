@@ -1,0 +1,36 @@
+include "indoor_light_probes.dshl"
+include "custom_probe_inc.dshl"
+
+macro SSR_ENV_RESOLVE(code)
+  USE_ROUGH_TO_MIP()
+  INIT_ENVI_SPECULAR_BASE(code)
+  INIT_ENVI_SPECULAR_SAMPLE(code)
+  USE_ENVI_SPECULAR_SAMPLE(code)
+  USE_INDOOR_LIGHT_PROBES(code, false)
+  USE_CUSTOM_PROBE(code)
+
+  hlsl(code) {
+    #include <specular_brdf.hlsl>
+
+    half3 GetEnvLight(float3 worldPos, float w, float3 reflectionVec, float3 normal, float linear_roughness)
+    {
+      float3 lightProbeReflectionVec = reflectionVec;
+      float ggx_alpha = linear_roughness * linear_roughness;
+      float3 roughR = normalize(getRoughReflectionVec(lightProbeReflectionVec.xyz, normal, ggx_alpha));// we have to normalize it, as it is used for parallax in envi probes
+      float roughMip = max(0,ComputeReflectionCaptureMipFromRoughness(linear_roughness));
+
+      float4 indoorRefl__localWeight = should_use_custom_probe(worldPos) ?
+        use_custom_probe(worldPos, roughR, roughMip) :
+        use_indoor_probes(worldPos, normal, roughR, roughMip, w);
+
+      float3 enviProbe = 0;
+      BRANCH
+      if (indoorRefl__localWeight.w > 0)
+        enviProbe = sample_envi_probe(float4(roughR, roughMip)).rgb;
+      half3 environmentAmbientReflection = indoorRefl__localWeight.xyz + enviProbe * indoorRefl__localWeight.w;
+
+      // Not a compeletle see ComputeDeferredLight for full resolve
+      return environmentAmbientReflection;
+    }
+  }
+endmacro

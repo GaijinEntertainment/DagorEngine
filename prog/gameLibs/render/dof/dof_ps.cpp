@@ -1,4 +1,9 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
 #include <math/integer/dag_IPoint2.h>
 #include <math/dag_adjpow2.h>
 #include <math/dag_Point2.h>
@@ -10,21 +15,26 @@
 #include <shaders/dag_postFxRenderer.h>
 #include <util/dag_console.h>
 
-#define GLOBAL_VARS_LIST               \
-  VAR(dof_frame_tex)                   \
-  VAR(dof_near_layer)                  \
-  VAR(dof_far_layer)                   \
-  VAR(dof_rt_size)                     \
-  VAR(dof_downsampled_frame_tex)       \
-  VAR(dof_downsampled_close_depth_tex) \
-  VAR(dof_gather_iteration)            \
-  VAR(dof_focus_params)                \
-  VAR(dof_focus_linear_params)         \
-  VAR(num_dof_taps)                    \
-  VAR(dof_focus_far_mode)              \
-  VAR(dof_focus_near_mode)             \
-  VAR(simplified_dof)                  \
-  VAR(dof_coc_history)
+#define GLOBAL_VARS_LIST                      \
+  VAR(dof_frame_tex)                          \
+  VAR(dof_frame_tex_samplerstate)             \
+  VAR(dof_near_layer)                         \
+  VAR(dof_near_layer_samplerstate)            \
+  VAR(dof_far_layer)                          \
+  VAR(dof_far_layer_samplerstate)             \
+  VAR(dof_rt_size)                            \
+  VAR(dof_downsampled_frame_tex)              \
+  VAR(dof_downsampled_frame_tex_samplerstate) \
+  VAR(dof_downsampled_close_depth_tex)        \
+  VAR(dof_gather_iteration)                   \
+  VAR(dof_focus_params)                       \
+  VAR(dof_focus_linear_params)                \
+  VAR(num_dof_taps)                           \
+  VAR(dof_focus_far_mode)                     \
+  VAR(dof_focus_near_mode)                    \
+  VAR(simplified_dof)                         \
+  VAR(dof_coc_history)                        \
+  VAR(dof_blend_depth_tex_samplerstate)
 
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_VARS_LIST
@@ -111,8 +121,9 @@ void DepthOfFieldPS::initNear()
     String name(128, "dof_near_layer%d", i);
     dof_near_layer[i] = dag::create_tex(NULL, originalWidth, originalHeight, flg | TEXFMT_A16B16G16R16F, 1, name);
     if (dof_near_layer[i].getTex2D())
-      dof_near_layer[i].getTex2D()->texaddr(TEXADDR_CLAMP);
+      dof_near_layer[i]->disableSampler();
   }
+  ShaderGlobal::set_sampler(dof_near_layer_samplerstateVarId, clampSampler);
   for (int i = 0; i < dof_coc.size(); i++)
   {
     int wd = 1 << i;
@@ -142,7 +153,6 @@ void DepthOfFieldPS::changeNearResolution()
   for (ResizableTex &holder : dof_near_layer)
   {
     holder.resize(width, height);
-    holder.getTex2D()->texaddr(TEXADDR_CLAMP);
   }
   for (int i = 0; i < dof_coc.size(); i++)
   {
@@ -165,13 +175,14 @@ void DepthOfFieldPS::initFar()
 {
   if (dof_far_layer[0].getTex2D())
     return;
+  ShaderGlobal::set_sampler(dof_far_layer_samplerstateVarId, clampSampler);
   uint32_t flg = TEXCF_RTARGET;
   for (uint32_t i = 0; i < dof_far_layer.size(); ++i)
   {
     String name(128, "dof_far_layer%d", i);
     dof_far_layer[i] = dag::create_tex(NULL, originalWidth, originalHeight, flg | TEXFMT_A16B16G16R16F, 1, name);
     if (dof_far_layer[i].getTex2D())
-      dof_far_layer[i].getTex2D()->texaddr(TEXADDR_CLAMP);
+      dof_far_layer[i].getTex2D()->disableSampler();
   }
 
   dof_max_coc_far = dag::create_tex(NULL, originalWidth, originalHeight, flg | TEXFMT_L8, 1, "dof_max_coc_far");
@@ -188,7 +199,6 @@ void DepthOfFieldPS::changeFarResolution()
   for (ResizableTex &holder : dof_far_layer)
   {
     holder.resize(width, height);
-    holder.getTex2D()->texaddr(TEXADDR_CLAMP);
   }
   dof_max_coc_far.resize(width, height);
   dof_max_coc_far.getTex2D()->texaddr(TEXADDR_CLAMP);
@@ -234,6 +244,21 @@ void DepthOfFieldPS::init(int w, int h)
   {
     closeNear();
     initNear();
+  }
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    ShaderGlobal::set_sampler(dof_blend_depth_tex_samplerstateVarId, d3d::request_sampler(smpInfo));
+  }
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    clampSampler = d3d::request_sampler(smpInfo);
+  }
+  {
+    ShaderGlobal::set_sampler(dof_downsampled_frame_tex_samplerstateVarId, clampSampler);
+    ShaderGlobal::set_sampler(dof_frame_tex_samplerstateVarId, clampSampler);
   }
 }
 
@@ -454,7 +479,9 @@ void DepthOfFieldPS::perform(const TextureIDPair &frame, const TextureIDPair &cl
       dof_coc.back().getTex2D()->texfilter(TEXFILTER_POINT);
 
     d3d::settex(0, dof_near_layer[0].getTex2D());
+    d3d::set_sampler(STAGE_PS, 0, clampSampler);
     d3d::settex(1, dof_far_layer[0].getTex2D());
+    d3d::set_sampler(STAGE_PS, 1, clampSampler);
     d3d::settex(2, dof_coc.back().getTex2D());
     d3d::settex(3, dof_max_coc_far.getTex2D());
 
@@ -498,7 +525,9 @@ void DepthOfFieldPS::perform(const TextureIDPair &frame, const TextureIDPair &cl
       dof_coc.back().getTex2D()->texfilter(TEXFILTER_POINT);
 
     d3d::settex(0, dof_near_layer[1].getTex2D());
+    d3d::set_sampler(STAGE_PS, 0, clampSampler);
     d3d::settex(1, dof_far_layer[1].getTex2D());
+    d3d::set_sampler(STAGE_PS, 1, clampSampler);
     d3d::settex(2, dof_coc.back().getTex2D());
     d3d::settex(3, dof_max_coc_far.getTex2D());
     ShaderGlobal::set_int(num_dof_tapsVarId, nSquareTapsSide * nSquareTapsSide);
@@ -512,8 +541,17 @@ void DepthOfFieldPS::perform(const TextureIDPair &frame, const TextureIDPair &cl
 
   if (useCoCAccumulation && !useSimplifiedRendering && dof_coc_history && dof_coc[0])
   {
+    TextureInfo histInfo;
+    dof_coc_history.getTex2D()->getinfo(histInfo, 0);
+    TextureInfo cocInfo;
+    dof_coc[0].getTex2D()->getinfo(cocInfo, 0);
+    if (histInfo.w != cocInfo.w || histInfo.h != cocInfo.h)
+    {
+      dof_coc_history.resize(cocInfo.w, cocInfo.h);
+      dof_coc_history.getTex2D()->texaddr(TEXADDR_CLAMP);
+    }
     eastl::swap(dof_coc_history, dof_coc[0]);
-    dof_coc_history->texfilter(TEXFILTER_SMOOTH);
+    dof_coc_history->texfilter(TEXFILTER_LINEAR);
   }
 }
 

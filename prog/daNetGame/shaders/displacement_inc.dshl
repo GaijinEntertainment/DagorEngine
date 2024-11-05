@@ -1,0 +1,86 @@
+include "terraform/terraform_inc.dshl"
+
+float hmap_displacement_down = -0.15;
+float hmap_displacement_up = 0.3;
+float hmap_displacement_radius = 32;
+
+float hmap_displacement_for_depth = -0.1;
+float hmap_displacement_wignette =  0.15;
+
+float displacement_hardness        = 1.0;
+float displacement_max_phys_height = 0.5;
+
+macro INIT_HEIGHTMAP_ZEROLEVEL(code)
+  (code) {
+    heightmap_bump_params@f4 = (- hmap_displacement_down / max(0.00001, hmap_displacement_up - hmap_displacement_down),
+                                1.0 / max(0.00001, hmap_displacement_up - hmap_displacement_down),
+                                hmap_displacement_down, hmap_displacement_up);
+  }
+  hlsl(code) {
+    #define heightmap_zerolevel heightmap_bump_params.x
+    #define hmap_displacement_scale heightmap_bump_params.y
+    #define hmap_displacement_min heightmap_bump_params.z
+    #define hmap_displacement_max heightmap_bump_params.w
+  }
+endmacro
+
+macro USE_HEIGHTMAP_ZEROLEVEL(code)//todo: split init and use
+endmacro
+
+macro USE_DISPLACEMENT_PHYSMAT(code)
+  (code)
+  {
+    displacement_physparams@f2 = (displacement_hardness, displacement_max_phys_height, 0, 0);
+  }
+  hlsl(code)
+  {
+    half get_phys_height(float height, float thickness, float offset)
+    {
+      half hardness = pow2(saturate(displacement_physparams.x-thickness));
+      half tracker = saturate(offset);
+      float physHeight = height > 0 ? lerp(height * tracker, height, hardness) : height;
+      return lerp(min(physHeight, displacement_physparams.y), physHeight, tracker);
+    }
+  }
+endmacro
+
+macro INIT_HEIGHTMAP_DISPLACEMENT(code)
+  (code) {
+    displacementParams@f4 = (hmap_displacement_down, hmap_displacement_up-hmap_displacement_down,
+                            - hmap_displacement_down / (hmap_displacement_up - hmap_displacement_down), hmap_displacement_radius);
+    displacementFactors@f2 =  (hmap_displacement_for_depth, hmap_displacement_wignette, 0, 0);
+  }
+
+  if (in_editor_assume == yes)
+  {
+    (code) { displacementInEditor@f2 = (hmap_displacement_up-hmap_displacement_down, hmap_displacement_down, 0, 0); }
+  }
+endmacro
+
+macro USE_HEIGHTMAP_DISPLACEMENT()
+  (vs) {
+  USE_DISPLACEMENT_PHYSMAT(vs)
+  hlsl(vs){
+    half get_displacement_scale(float distance)
+    {
+      return saturate(displacementFactors.y*(displacementParams.w-distance));
+    }
+
+    half get_displacement_relief(float2 worldXZ, float thickness, float offset)
+    {
+      half height =  displacementParams.y * sample_tor_height_vs(worldXZ, displacementParams.z) + displacementParams.x;
+      return get_phys_height(height, thickness, offset);
+    }
+ }
+endmacro
+
+macro USE_HEIGHTMAP_DISPLACEMENT_LOWRES_PS()
+  USE_DISPLACEMENT_PHYSMAT(ps)
+  hlsl(ps){
+    half get_displacement_relief_lowres(float2 worldXZ, float thickness, float offset)
+    {
+      half height =  displacementParams.y * sample_tor_height_lowres(worldXZ, displacementParams.z) + displacementParams.x;
+      return get_phys_height(height, thickness, offset);
+    }
+ }
+endmacro

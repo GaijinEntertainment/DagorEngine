@@ -1,0 +1,19 @@
+int screen_droplets_rendered = 0;
+
+macro INIT_SCREEN_DROPLETS()
+(ps) {screen_droplets_rendered@i1 = screen_droplets_rendered;}
+endmacro
+
+macro USE_SCREEN_DROPLETS()
+hlsl(ps) {
+  void apply_screen_droplets(inout float3 frame, float2 tc)
+  {
+    BRANCH
+    if (screen_droplets_rendered)
+    {
+      float4 droplet = tex2Dlod(screen_droplets_tex, float4(tc, 0, 1));
+      frame = lerp(frame, droplet.xyz, droplet.w);
+    }
+  }
+}
+endmacro

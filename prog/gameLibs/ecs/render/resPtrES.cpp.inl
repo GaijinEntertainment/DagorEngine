@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ecs/render/resPtr.h>
 
 struct SharedTexConstruct final : public SharedTex
@@ -31,6 +33,8 @@ public:
       return;
     }
     *((SharedTexHolder *)this) = dag::get_tex_gameres(gameresName->c_str(), shaderVarName->c_str());
+    tmpName = eastl::string(eastl::string::CtorSprintf(), "%s_samplerstate", shaderVarName->c_str());
+    ShaderGlobal::set_sampler(get_shader_variable_id(tmpName.c_str(), true), d3d::request_sampler({}));
   }
 };
 ECS_REGISTER_MANAGED_TYPE(SharedTexHolder, nullptr,

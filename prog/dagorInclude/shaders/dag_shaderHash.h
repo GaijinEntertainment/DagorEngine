@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -52,4 +51,32 @@ struct ShaderHashValue
     G_ASSERT(size > (sizeof(ShaderHashValue) * 2));
     data_to_str_hex_buf(buffer, size, value, sizeof(value));
   }
+
+  class CalculateContext
+  {
+    sha1_context context;
+    ShaderHashValue &target;
+
+  public:
+    CalculateContext(ShaderHashValue &t) : target{t} { sha1_starts(&context); }
+    ~CalculateContext() { sha1_finish(&context, reinterpret_cast<unsigned char *>(target.value)); }
+
+    template <typename T>
+    void operator()(const T &value)
+    {
+      sha1_update(&context, reinterpret_cast<const unsigned char *>(&value), sizeof(T));
+    }
+
+    template <typename T>
+    void operator()(const T *values, size_t count)
+    {
+      sha1_update(&context, reinterpret_cast<const unsigned char *>(values), sizeof(T) * count);
+    }
+
+    template <typename T, size_t N>
+    void operator()(const T (&values)[N])
+    {
+      sha1_update(&context, reinterpret_cast<const unsigned char *>(values), sizeof(T) * N);
+    }
+  };
 };

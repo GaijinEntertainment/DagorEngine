@@ -1,12 +1,42 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "actionData.h"
-#include <humanInput/dag_hiVrInput.h>
+#include <drv/hid/dag_hiVrInput.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_dataBlockUtils.h>
 #include <debug/dag_assert.h>
 #include <EASTL/optional.h>
+#include <osApiWrappers/dag_miscApi.h>
+#include <drv/hid/dag_hiXInputMappings.h>
+
 
 // We can't have dynamic action sets in OpenXr, so we make only one "everything" action set
 static const int VR_DUMMY_ACTN_SET = 1;
+
+
+static void patch_thumbstick_legacy_id(dainput::SingleButtonId &obj)
+{
+  using namespace HumanInput;
+  if (obj.devId == dainput::DEV_gamepad)
+  {
+    if (obj.btnId == _JOY_XINPUT_LEGACY_L_THUMB_CENTER)
+      obj.btnId = JOY_XINPUT_REAL_BTN_L_THUMB;
+    else if (obj.btnId == _JOY_XINPUT_LEGACY_R_THUMB_CENTER)
+      obj.btnId = JOY_XINPUT_REAL_BTN_R_THUMB;
+  }
+}
+
+static void patch_thumbstick_legacy_id(dainput::DigitalActionBinding &obj)
+{
+  using namespace HumanInput;
+  if (obj.devId == dainput::DEV_gamepad)
+  {
+    if (obj.ctrlId == _JOY_XINPUT_LEGACY_L_THUMB_CENTER)
+      obj.ctrlId = JOY_XINPUT_REAL_BTN_L_THUMB;
+    else if (obj.ctrlId == _JOY_XINPUT_LEGACY_R_THUMB_CENTER)
+      obj.ctrlId = JOY_XINPUT_REAL_BTN_R_THUMB;
+  }
+}
 
 void dainput::reset_actions()
 {
@@ -32,9 +62,10 @@ void dainput::reset_actions()
 }
 void dainput::init_actions(const DataBlock &blk)
 {
+  dainput::set_control_thread_id(get_main_thread_id());
   configVer = blk.getInt("configVer", 0);
   agData.longPressDur = blk.getInt("longPressDur", 300);
-  agData.dblClickDur = blk.getInt("dblClickDur", 200);
+  agData.dblClickDur = blk.getInt("dblClickDur", 220);
 
 
   eastl::vector<eastl::pair<eastl::string, int>> actToNid;
@@ -556,6 +587,7 @@ void load_action_binding_modifiers(AB &b, const DataBlock &blk)
       }
       b.mod[b.modCnt].devId = blk.getBlock(i)->getInt("dev", 0);
       b.mod[b.modCnt].btnId = blk.getBlock(i)->getInt("btn", 0);
+      patch_thumbstick_legacy_id(b.mod[b.modCnt]);
       b.modCnt++;
     }
 }
@@ -577,6 +609,7 @@ void dainput::load_action_binding_digital(const DataBlock &blk, dainput::Digital
     b.ctrlId = idx - 1;
     b.btnCtrl = 1;
     b.axisCtrlThres = 0;
+    patch_thumbstick_legacy_id(b);
   }
   else if (int idx = blk.getInt("axis", -1) + 1)
   {
@@ -606,6 +639,7 @@ void dainput::load_action_binding_axis(const DataBlock &blk, dainput::AnalogAxis
   {
     b.minBtn.devId = bb->getInt("dev", 0);
     b.minBtn.btnId = bb->getInt("btn", 0);
+    patch_thumbstick_legacy_id(b.minBtn);
   }
   else
     b.minBtn.devId = b.minBtn.btnId = 0;
@@ -614,6 +648,7 @@ void dainput::load_action_binding_axis(const DataBlock &blk, dainput::AnalogAxis
   {
     b.maxBtn.devId = bb->getInt("dev", 0);
     b.maxBtn.btnId = bb->getInt("btn", 0);
+    patch_thumbstick_legacy_id(b.maxBtn);
   }
   else
     b.maxBtn.devId = b.maxBtn.btnId = 0;
@@ -622,6 +657,7 @@ void dainput::load_action_binding_axis(const DataBlock &blk, dainput::AnalogAxis
   {
     b.incBtn.devId = bb->getInt("dev", 0);
     b.incBtn.btnId = bb->getInt("btn", 0);
+    patch_thumbstick_legacy_id(b.incBtn);
   }
   else
     b.incBtn.devId = b.incBtn.btnId = 0;
@@ -630,6 +666,7 @@ void dainput::load_action_binding_axis(const DataBlock &blk, dainput::AnalogAxis
   {
     b.decBtn.devId = bb->getInt("dev", 0);
     b.decBtn.btnId = bb->getInt("btn", 0);
+    patch_thumbstick_legacy_id(b.decBtn);
   }
   else
     b.decBtn.devId = b.decBtn.btnId = 0;
@@ -653,6 +690,7 @@ void dainput::load_action_binding_stick(const DataBlock &blk, dainput::AnalogSti
   {
     b.minXBtn.devId = bb->getInt("dev", 0);
     b.minXBtn.btnId = bb->getInt("btn", 0);
+    patch_thumbstick_legacy_id(b.minXBtn);
   }
   else
     b.minXBtn.devId = b.minXBtn.btnId = 0;
@@ -661,6 +699,7 @@ void dainput::load_action_binding_stick(const DataBlock &blk, dainput::AnalogSti
   {
     b.maxXBtn.devId = bb->getInt("dev", 0);
     b.maxXBtn.btnId = bb->getInt("btn", 0);
+    patch_thumbstick_legacy_id(b.maxXBtn);
   }
   else
     b.maxXBtn.devId = b.maxXBtn.btnId = 0;
@@ -669,6 +708,7 @@ void dainput::load_action_binding_stick(const DataBlock &blk, dainput::AnalogSti
   {
     b.minYBtn.devId = bb->getInt("dev", 0);
     b.minYBtn.btnId = bb->getInt("btn", 0);
+    patch_thumbstick_legacy_id(b.minYBtn);
   }
   else
     b.minYBtn.devId = b.minYBtn.btnId = 0;
@@ -677,6 +717,7 @@ void dainput::load_action_binding_stick(const DataBlock &blk, dainput::AnalogSti
   {
     b.maxYBtn.devId = bb->getInt("dev", 0);
     b.maxYBtn.btnId = bb->getInt("btn", 0);
+    patch_thumbstick_legacy_id(b.maxYBtn);
   }
   else
     b.maxYBtn.devId = b.maxYBtn.btnId = 0;

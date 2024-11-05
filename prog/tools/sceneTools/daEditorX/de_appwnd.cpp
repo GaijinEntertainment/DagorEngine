@@ -1,3 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#define IMGUI_DEFINE_MATH_OPERATORS
+
 #include "de_appwnd.h"
 #include "de_apphandler.h"
 #include "plugin_dlg.h"
@@ -8,13 +12,13 @@
 #include "de_batch.h"
 #include "de_screenshotMetaInfoLoader.h"
 #include "de_viewportWindow.h"
+#include "controlGallery.h"
 
 #include <de3_interface.h>
 #include <de3_lightService.h>
 #include <de3_huid.h>
 #include <de3_editorEvents.h>
 #include <de3_dxpFactory.h>
-
 #include "pluginService/de_IDagorPhysImpl.h"
 
 #include <oldEditor/iClipping.h>
@@ -28,7 +32,12 @@
 #include <de3_interface.h>
 #include <de3_dynRenderService.h>
 
-#include <propPanel2/comWnd/tool_window.h>
+#include <propPanel/commonWindow/dialogManager.h>
+#include <propPanel/control/container.h>
+#include <propPanel/control/menu.h>
+#include <propPanel/c_util.h>
+#include <propPanel/constants.h>
+#include <propPanel/propPanel.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <winGuiWrapper/wgw_input.h>
 #include <winGuiWrapper/wgw_busy.h>
@@ -37,6 +46,7 @@
 #include <workCycle/dag_gameSettings.h>
 #include <workCycle/dag_workCycle.h>
 #include <gui/dag_baseCursor.h>
+#include <gui/dag_stdGuiRenderEx.h>
 
 #include <EditorCore/ec_ViewportWindow.h>
 #include <EditorCore/ec_gizmofilter.h>
@@ -47,7 +57,9 @@
 #include <EditorCore/ec_gridobject.h>
 #include <EditorCore/ec_ObjectEditor.h>
 #include <EditorCore/ec_IEditorCore.h>
+#include <EditorCore/ec_imguiInitialization.h>
 #include <EditorCore/ec_startup.h>
+#include <EditorCore/ec_viewportSplitter.h>
 
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/renderViewports/cachedViewports.h>
@@ -69,7 +81,9 @@
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_info.h>
 
 #include <debug/dag_log.h>
 #include <debug/dag_debug.h>
@@ -84,6 +98,10 @@
 #include <eventLog/eventLog.h>
 #include <eventLog/errorLog.h>
 #include <util/dag_delayedAction.h>
+
+#include <gui/dag_imgui.h>
+#include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 
 #ifdef ERROR
 #undef ERROR
@@ -102,6 +120,7 @@ enum
   CM_DISCARD_TEX_MODE,
 };
 
+extern void init3d_early();
 extern void init3d();
 
 namespace environment
@@ -143,17 +162,18 @@ extern void *get_generic_cable_service();
 extern void *get_generic_spline_gen_service();
 extern void *get_generic_wind_service();
 extern void *get_pixel_perfect_selection_service();
+extern void *get_visibility_finder_service();
 extern FastNameMap cmdline_include_dll_re, cmdline_exclude_dll_re;
 
 IDagorEd2Engine *IDagorEd2Engine::__dagored_global_instance = NULL;
 
-IDagorRender *dagRender = NULL;
-IDagorGeom *dagGeom = NULL;
-IDagorConsole *dagConsole = NULL;
-IDagorTools *dagTools = NULL;
-IDagorScene *dagScene = NULL;
-IEditorCore *editorCore = NULL;
+IDagorRender *editorcore_extapi::dagRender = nullptr;
+IDagorGeom *editorcore_extapi::dagGeom = nullptr;
+IDagorConsole *editorcore_extapi::dagConsole = nullptr;
+IDagorTools *editorcore_extapi::dagTools = nullptr;
+IDagorScene *editorcore_extapi::dagScene = nullptr;
 
+static eastl::unique_ptr<ControlGallery> control_gallery;
 static bool discardTexMode = false;
 
 struct PluginMap
@@ -259,16 +279,16 @@ DagorEdAppWindow::DagorEdAppWindow(IWndManager *manager, const char *open_fname)
   IDagorEd2Engine::set(this);
   IEditorCoreEngine::set(this);
 
-  ::dagRender = editorCoreImpl.getRender();
-  G_ASSERT(::dagRender);
-  ::dagGeom = editorCoreImpl.getGeom();
-  G_ASSERT(::dagGeom);
-  ::dagConsole = editorCoreImpl.getConsole();
-  G_ASSERT(::dagConsole);
-  ::dagTools = editorCoreImpl.getTools();
-  G_ASSERT(::dagTools);
-  ::dagScene = editorCoreImpl.getScene();
-  G_ASSERT(::dagScene);
+  editorcore_extapi::dagRender = editorCoreImpl.getRender();
+  G_ASSERT(editorcore_extapi::dagRender);
+  editorcore_extapi::dagGeom = editorCoreImpl.getGeom();
+  G_ASSERT(editorcore_extapi::dagGeom);
+  editorcore_extapi::dagConsole = editorCoreImpl.getConsole();
+  G_ASSERT(editorcore_extapi::dagConsole);
+  editorcore_extapi::dagTools = editorCoreImpl.getTools();
+  G_ASSERT(editorcore_extapi::dagTools);
+  editorcore_extapi::dagScene = editorCoreImpl.getScene();
+  G_ASSERT(editorcore_extapi::dagScene);
 
   // ViewportWindow::showDagorUiCursor = false;
 
@@ -316,6 +336,16 @@ DagorEdAppWindow::~DagorEdAppWindow()
     for (int i = 0; i < toDagPlugNames.size(); ++i)
       toDagPlugBlk->addStr("plug_name", toDagPlugNames[i]);
 
+  DataBlock &pluginsRootSettings = *editorBlk.addNewBlock("plugins");
+  for (int i = 0; i < getPluginCount(); ++i)
+    if (IGenEditorPlugin *plugin = getPlugin(i))
+    {
+      DataBlock pluginSettings;
+      plugin->saveSettings(pluginSettings);
+      if (!pluginSettings.isEmpty())
+        pluginsRootSettings.addNewBlock(&pluginSettings, plugin->getInternalName());
+    }
+
   saveScreenshotSettings(editorBlk);
 
   String pathName = ::make_full_path(sgg::get_exe_path_full(), "../.local/de3_settings.blk");
@@ -325,7 +355,12 @@ DagorEdAppWindow::~DagorEdAppWindow()
 
   // switchToPlugin(-1);
 
+  editor_core_save_imgui_settings();
+  PropPanel::remove_delayed_callback(*this);
+  PropPanel::release();
+
   terminateInterface();
+  imgui_shutdown();
 
   del_it(aboutDlg);
   del_it(wsp);
@@ -337,11 +372,14 @@ void DagorEdAppWindow::init()
 {
   String imgPath(512, "%s%s", sgg::get_exe_path_full(), "../commonData/gui16x16/");
   ::dd_simplify_fname_c(imgPath.str());
-  p2util::set_icon_path(imgPath.str());
-  p2util::set_main_parent_handle(mManager->getMainWindow());
+  PropPanel::p2util::set_icon_path(imgPath.str());
+  PropPanel::p2util::set_main_parent_handle(mManager->getMainWindow());
+  mManager->initCustomMouseCursors(imgPath);
 
   makeDafaultLayout();
 
+  init3d_early();
+  editor_core_initialize_imgui(nullptr); // The path is not set to avoid saving the startup screen's settings.
   GenericEditorAppWindow::init();
 
   IGenViewportWnd *curVP = ged.getViewport(0);
@@ -404,8 +442,13 @@ void DagorEdAppWindow::addEditorAccelerators()
   mManager->addAcceleratorUp(CM_TAB_RELEASE, wingw::V_TAB);
 
   mManager->addAccelerator(CM_CHANGE_VIEWPORT, 'W', true);
+
   if (auto *p = curPlugin())
     p->registerMenuAccelerators();
+
+  ViewportWindow *viewport = ged.getCurrentViewport();
+  if (viewport)
+    viewport->registerViewportAccelerators(*mManager);
 }
 
 
@@ -451,24 +494,18 @@ void DagorEdAppWindow::makeDafaultLayout()
 }
 
 
-IWndEmbeddedWindow *DagorEdAppWindow::onWmCreateWindow(void *handle, int type)
+void *DagorEdAppWindow::onWmCreateWindow(int type)
 {
   switch (type)
   {
     case TOOLBAR_TYPE:
     {
       if (mToolPanel)
-        return NULL;
+        return nullptr;
 
       getMainMenu()->setEnabledById(CM_WINDOW_TOOLBAR, false);
 
-      mManager->setHeader(handle, HEADER_LEFT);
-      mManager->setCaption(handle, "Main Toolbar");
-
-      unsigned w, h;
-      mManager->getWindowClientSize(handle, w, h);
-
-      mToolPanel = new CToolWindow(this, handle, 0, 0, _pxActual(w), _pxActual(h), "");
+      mToolPanel = new PropPanel::ContainerPropertyControl(0, this, nullptr, 0, 0, hdpi::Px(0), hdpi::Px(0));
 
       fillMainToolBar();
 
@@ -479,15 +516,11 @@ IWndEmbeddedWindow *DagorEdAppWindow::onWmCreateWindow(void *handle, int type)
     case TABBAR_TYPE:
     {
       if (mTabWindow)
-        return NULL;
+        return nullptr;
 
       getMainMenu()->setEnabledById(CM_WINDOW_TABBAR, false);
 
-      mManager->setCaption(handle, "Plugin Tabs");
-
-      unsigned w, h;
-      mManager->getWindowClientSize(handle, w, h);
-      mTabWindow = new CToolWindow(this, handle, 0, 0, _pxActual(w), _pxActual(h), "");
+      mTabWindow = new PropPanel::ContainerPropertyControl(0, this, nullptr, 0, 0, hdpi::Px(0), hdpi::Px(0));
 
       mTabPanel = mTabWindow->createTabPanel(TAB_PANEL_ID, "");
       mTabPanel->moveTo(2, 0);
@@ -502,17 +535,11 @@ IWndEmbeddedWindow *DagorEdAppWindow::onWmCreateWindow(void *handle, int type)
     case PLUGTOOLS_TYPE:
     {
       if (mPlugTools)
-        return NULL;
+        return nullptr;
 
       getMainMenu()->setEnabledById(CM_WINDOW_PLUGTOOLS, false);
 
-      mManager->setHeader(handle, HEADER_LEFT);
-      mManager->setCaption(handle, "Plugin Tools");
-
-      unsigned w, h;
-      mManager->getWindowClientSize(handle, w, h);
-
-      mPlugTools = new CToolWindow(this, handle, 0, 0, _pxActual(w), _pxActual(h), "");
+      mPlugTools = new PropPanel::ContainerPropertyControl(0, this, nullptr, 0, 0, hdpi::Px(0), hdpi::Px(0));
 
       return mPlugTools;
     }
@@ -522,52 +549,48 @@ IWndEmbeddedWindow *DagorEdAppWindow::onWmCreateWindow(void *handle, int type)
     {
       getMainMenu()->setEnabledById(CM_WINDOW_VIEWPORT, false);
 
-      mManager->setCaption(handle, "Viewport");
-
-      unsigned w, h;
-      mManager->getWindowClientSize(handle, w, h);
-      DagorEdViewportWindow *v = new DagorEdViewportWindow(handle, 0, 0, w, h);
-      ged.addViewport(handle, appEH, mManager, v);
+      DagorEdViewportWindow *v = new DagorEdViewportWindow(nullptr, 0, 0, 0, 0);
+      ged.addViewport(nullptr, appEH, mManager, v);
       return v;
     }
     break;
   }
 
-  return NULL;
+  return nullptr;
 }
 
 
-bool DagorEdAppWindow::onWmDestroyWindow(void *handle)
+bool DagorEdAppWindow::onWmDestroyWindow(void *window)
 {
-  if (mToolPanel && mToolPanel->getParentWindowHandle() == handle)
+  if (window == mToolPanel)
   {
     del_it(mToolPanel);
-    mManager->getMainMenu()->setEnabledById(CM_WINDOW_TOOLBAR, true);
+    getMainMenu()->setEnabledById(CM_WINDOW_TOOLBAR, true);
     return true;
   }
 
-  if (mTabWindow && mTabWindow->getParentWindowHandle() == handle)
+  if (window == mTabWindow)
   {
     del_it(mTabWindow);
-    mManager->getMainMenu()->setEnabledById(CM_WINDOW_TABBAR, true);
+    getMainMenu()->setEnabledById(CM_WINDOW_TABBAR, true);
     return true;
   }
 
-  if (mPlugTools && mPlugTools->getParentWindowHandle() == handle)
+  if (window == mPlugTools)
   {
     del_it(mPlugTools);
-    mManager->getMainMenu()->setEnabledById(CM_WINDOW_PLUGTOOLS, true);
+    getMainMenu()->setEnabledById(CM_WINDOW_PLUGTOOLS, true);
     return true;
   }
 
   for (int i = 0; i < ged.getViewportCount(); ++i)
   {
     ViewportWindow *vport = ged.getViewport(i);
-    if (vport && vport->getParentHandle() == handle)
+    if (vport && vport == window)
     {
       ged.deleteViewport(i);
       if (!ged.getViewportCount())
-        mManager->getMainMenu()->setEnabledById(CM_WINDOW_VIEWPORT, true);
+        getMainMenu()->setEnabledById(CM_WINDOW_VIEWPORT, true);
       return true;
     }
   }
@@ -580,7 +603,7 @@ void DagorEdAppWindow::fillMainToolBar()
 {
   ged.tbManager->init(GUI_MAIN_TOOLBAR_ID);
 
-  PropertyContainerControlBase *tb2 = EDITORCORE->getCustomPanel(GUI_MAIN_TOOLBAR_ID)->createToolbarPanel(0, "");
+  PropPanel::ContainerPropertyControl *tb2 = EDITORCORE->getCustomPanel(GUI_MAIN_TOOLBAR_ID)->createToolbarPanel(0, "");
   tb2->createSeparator();
   tb2->createCheckBox(CM_DISCARD_TEX_MODE, "Discard textures (show stub tex)");
   tb2->setButtonPictures(CM_DISCARD_TEX_MODE, "discard_tex");
@@ -591,7 +614,7 @@ void DagorEdAppWindow::fillMainToolBar()
 }
 
 
-void DagorEdAppWindow::fillMenu(IMenu *menu)
+void DagorEdAppWindow::fillMenu(PropPanel::IMenu *menu)
 {
   menu->clearMenu(ROOT_MENU_ITEM);
 
@@ -628,13 +651,13 @@ void DagorEdAppWindow::fillMenu(IMenu *menu)
   menu->addItem(CM_VIEW, CM_VIEWPORT_LAYOUT_4, "4 quarters");
   menu->addItem(CM_VIEW, CM_VIEWPORT_LAYOUT_1, "1 viewport");
 
-  menu->addSeparator(CM_VIEW, 0);
+  menu->addSeparator(CM_VIEW);
 
   menu->addItem(CM_VIEW, CM_LOAD_DEFAULT_LAYOUT, "Load default layout");
-  menu->addSeparator(CM_VIEW, 0);
+  menu->addSeparator(CM_VIEW);
   menu->addItem(CM_VIEW, CM_LOAD_LAYOUT, "Load layout ...");
   menu->addItem(CM_VIEW, CM_SAVE_LAYOUT, "Save layout ...");
-  menu->addSeparator(CM_VIEW, 0);
+  menu->addSeparator(CM_VIEW);
 
   menu->addItem(CM_VIEW, CM_OPTIONS_TOTAL, "Plugins visibility...\tF11");
   menu->addItem(CM_VIEW, CM_OPTIONS_GRID, "Edit grid options...");
@@ -687,7 +710,7 @@ void DagorEdAppWindow::fillMenu(IMenu *menu)
 
   menu->addItem(CM_OPTIONS, CM_OPTIONS_CAMERAS, "Cameras...");
   menu->addItem(CM_OPTIONS, CM_OPTIONS_SCREENSHOT, "Screenshot...");
-  menu->addItem(CM_OPTIONS, CM_OPTIONS_STAT_DISPLAY_SETTINGS, "Stat display...");
+  menu->addItem(CM_OPTIONS, CM_OPTIONS_STAT_DISPLAY_SETTINGS, "Stats settings...");
 
   menu->addSeparator(CM_OPTIONS);
   menu->addItem(CM_OPTIONS, CM_ENVIRONMENT_SETTINGS, "Environment settings...");
@@ -704,6 +727,7 @@ void DagorEdAppWindow::fillMenu(IMenu *menu)
   menu->addSeparator(CM_HELP);
 
   menu->addItem(CM_HELP, CM_TUTORIALS, "Tutorials");
+  menu->addItem(CM_HELP, CM_CONTROL_GALLERY, "Control gallery");
 
   menu->addSeparator(CM_HELP);
 
@@ -713,12 +737,12 @@ void DagorEdAppWindow::fillMenu(IMenu *menu)
 }
 
 
-void DagorEdAppWindow::updateMenu(IMenu *menu) {}
+void DagorEdAppWindow::updateMenu(PropPanel::IMenu *menu) {}
 
 
 void DagorEdAppWindow::updateExportMenuItems()
 {
-  IMenu *menu = getMainMenu();
+  PropPanel::IMenu *menu = getMainMenu();
   bool has_all = false;
 
   if (wsp)
@@ -827,7 +851,7 @@ int DagorEdAppWindow::onMenuItemClick(unsigned id)
       {
         ViewportWindow *vport = ged.getViewport(_id);
         if (vport && vport != cur_vport)
-          mManager->removeWindow(vport->getParentHandle());
+          mManager->removeWindow(vport);
         else
           _id++;
       }
@@ -847,14 +871,9 @@ int DagorEdAppWindow::onMenuItemClick(unsigned id)
 
       if (curVp)
       {
-        void *hVp1 = curVp->getParentHandle();
-        void *hVp2 = mManager->splitWindowF(hVp1, 0, 0.5f, WA_BOTTOM);
-        void *hVp3 = mManager->splitWindowF(hVp1, 0, 0.5f, WA_RIGHT);
-        void *hVp4 = mManager->splitWindowF(hVp2, 0, 0.5f, WA_RIGHT);
-
-        mManager->setWindowType(hVp2, VIEWPORT_TYPE);
-        mManager->setWindowType(hVp3, VIEWPORT_TYPE);
-        mManager->setWindowType(hVp4, VIEWPORT_TYPE);
+        mManager->setWindowType(nullptr, VIEWPORT_TYPE);
+        mManager->setWindowType(nullptr, VIEWPORT_TYPE);
+        mManager->setWindowType(nullptr, VIEWPORT_TYPE);
       }
 
       return 1;
@@ -1063,8 +1082,10 @@ int DagorEdAppWindow::onMenuItemClick(unsigned id)
 
     case CM_OPTIONS_GRID:
     {
-      GridEditDialog dlg(0, EDITORCORE->getGrid(), "", ged.getCurrentViewportId());
-      dlg.showDialog();
+      ViewportWindow *viewport = ged.getCurrentViewport();
+      if (viewport)
+        viewport->showGridSettingsDialog();
+
       return 1;
     }
     case CM_ANIMATE_VIEWPORTS:
@@ -1088,7 +1109,7 @@ int DagorEdAppWindow::onMenuItemClick(unsigned id)
 
     case CM_DISCARD_TEX_MODE:
       discardTexMode = !discardTexMode;
-      mManager->getMainMenu()->setCheckById(id, discardTexMode);
+      getMainMenu()->setCheckById(id, discardTexMode);
       mToolPanel->setBool(id, discardTexMode);
       wingw::set_busy(true);
       dxp_factory_force_discard(discardTexMode);
@@ -1117,6 +1138,16 @@ int DagorEdAppWindow::onMenuItemClick(unsigned id)
       IGenEditorPlugin *plug = curPlugin();
       if (plug)
         pluginHelp(plug->getHelpUrl());
+
+      return 1;
+    }
+
+    case CM_CONTROL_GALLERY:
+    {
+      if (control_gallery)
+        control_gallery.reset();
+      else
+        control_gallery.reset(new ControlGallery());
 
       return 1;
     }
@@ -1254,7 +1285,7 @@ int DagorEdAppWindow::onMenuItemClick(unsigned id)
 }
 
 
-void DagorEdAppWindow::onClick(int pcb_id, PropPanel2 *panel)
+void DagorEdAppWindow::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   switch (pcb_id)
   {
@@ -1296,7 +1327,7 @@ void DagorEdAppWindow::onClick(int pcb_id, PropPanel2 *panel)
 }
 
 
-void DagorEdAppWindow::onChange(int pcb_id, PropPanel2 *panel)
+void DagorEdAppWindow::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   // ged.activateCurrentViewport();
 
@@ -1497,18 +1528,36 @@ void DagorEdAppWindow::startWithWorkspace(const char *wspName)
   if (!wspName)
     wspName = settingsBlk.getBlockByNameEx("workspace")->getStr("currentName", NULL);
 
+  // Asset Viewer and daEditorX work differently, if daEditorX does not find the specified workspace then
+  // EditorStartDialog's ctor calls EditorStartDialog::onAddWorkspace() which shows a dialog, so the startup scene is
+  // always needed.
+  startup_editor_core_select_startup_scene();
 
   for (bool handled = false; !handled;)
   {
-    StartupDlg dlg(mManager->getMainWindow(), "DaEditorX start", *getWorkspace(), WSP_FILE_PATH, wspName);
+    StartupDlg dlg("DaEditorX start", *getWorkspace(), WSP_FILE_PATH, wspName);
 
-    int result = shouldLoadFile ? DIALOG_ID_OK : dlg.showDialog();
-    int sel = shouldLoadFile ? ID_RECENT_FIRST : dlg.getSelected();
+    int result = PropPanel::DIALOG_ID_OK;
+    int sel = ID_RECENT_FIRST;
+    if (!shouldLoadFile)
+    {
+      // Crash rather than get stuck on a blank screen.
+      if (d3d::get_driver_code().is(d3d::stub))
+        DAG_FATAL("Cannot interact with a modal dialog when using the stub driver!");
+
+      startupDlgShown = &dlg;
+      result = dlg.showDialog();
+      sel = dlg.getSelected();
+      startupDlgShown = nullptr;
+
+      startup_editor_core_force_startup_scene_draw();
+    }
+
     dagor_idle_cycle();
 
     handled = true;
 
-    if (result == DIALOG_ID_CANCEL || sel == -1)
+    if (result == PropPanel::DIALOG_ID_CANCEL || sel == -1)
     {
       mManager->close();
       return;
@@ -1525,8 +1574,12 @@ void DagorEdAppWindow::startWithWorkspace(const char *wspName)
       DAEDITOR3.conError("cannot read <%s>", DAGORED2->getWorkspace().getAppPath());
 
     init3d();
+
+    const String imguiIniPath(::make_full_path(sgg::get_exe_path_full(), "../.local/de3_imgui.ini"));
+    editor_core_initialize_imgui(imguiIniPath);
+
     setDocTitle();
-    initPlugins();
+    initPlugins(settingsBlk);
 
     const Tab<String> &recents = wsp->getRecents();
 
@@ -1605,16 +1658,25 @@ void DagorEdAppWindow::startWithWorkspace(const char *wspName)
   updateRecentMenu();
 
   wingw::set_busy(true);
+
+  // Rendering must be enabled before the HUID_AfterProjectLoad event because in response to this event the "Select
+  // binary dump file" modal dialog is shown by the BinSceneViewPlugin in War Thunder. (It is drawn by ImGui, so if
+  // the rendering is not enabled at that point then the application appears to be frozen.)
+  queryEditorInterface<IDynRenderService>()->enableRender(!d3d::is_stub_driver());
   spawnEvent(HUID_AfterProjectLoad, NULL);
 
-  queryEditorInterface<IDynRenderService>()->enableRender(!d3d::is_stub_driver());
+  d3d::GpuAutoLock gpuLock;
+
   repaint();
   dagor_work_cycle_flush_pending_frame();
   dagor_draw_scene_and_gui(true, true);
   d3d::update_screen();
   dagor_idle_cycle();
-  debug_cp();
+  DEBUG_CP();
   wingw::set_busy(false);
+
+  // SetActiveWindow is needed otherwise the application gets deactivated for some reason when hiding the console.
+  SetActiveWindow((HWND)mManager->getMainWindow());
   DAGORED2->getConsole().hideConsole();
 }
 
@@ -1683,6 +1745,11 @@ void *DagorEdAppWindow::queryEditorInterfacePtr(unsigned huid)
 
   if (huid == HUID_IPixelPerfectSelectionService)
     return get_pixel_perfect_selection_service();
+
+  if (huid == HUID_IVisibilityFinderProvider)
+    return get_visibility_finder_service();
+
+  RETURN_INTERFACE(huid, IMainWindowImguiRenderingService);
 
   return NULL;
 }
@@ -1840,7 +1907,7 @@ void DagorEdAppWindow::handleSaveAsProject()
 
   dlg.setLocation(location);
   dlg.setName("");
-  if (dlg.showDialog() != DIALOG_ID_OK)
+  if (dlg.showDialog() != PropPanel::DIALOG_ID_OK)
     return;
 
   String fileName(260, "%s/%s/%s" LEVEL_FILE_EXTENSION, dlg.getLocation(), dlg.getName(), dlg.getName());
@@ -1906,7 +1973,7 @@ void DagorEdAppWindow::getDocTitleText(String &text)
 
 bool DagorEdAppWindow::canCloseScene(const char *title)
 {
-  if (!sceneFname[0])
+  if (!sceneFname[0] || on_batch_exit)
     return true;
 
   int ret;
@@ -1946,7 +2013,7 @@ bool DagorEdAppWindow::handleNewProject(bool edit)
 
   dlg.setLocation(location);
   dlg.setName("");
-  if (dlg.showDialog() != DIALOG_ID_OK)
+  if (dlg.showDialog() != PropPanel::DIALOG_ID_OK)
     return false;
 
   wingw::set_busy(true);
@@ -2211,7 +2278,7 @@ bool DagorEdAppWindow::loadProject(const char *filename)
 
   if (!blk.load(filename))
   {
-    debug_ctx("Error loading %s", filename);
+    DEBUG_CTX("Error loading %s", filename);
     queryEditorInterface<IDynRenderService>()->enableRender(real_3d);
     return false;
   }
@@ -2495,11 +2562,13 @@ bool DagorEdAppWindow::loadProject(const char *filename)
   switchToPlugin(plugId);
   ged.activateCurrentViewport();
   con.endProgress();
-  debug_cp();
+  DEBUG_CP();
+
+  d3d::GpuAutoLock gpuLock;
 
   // perform initial pre-frame-render update
   beforeRenderObjects();
-  debug_cp();
+  DEBUG_CP();
 
   repaint();
 
@@ -2507,7 +2576,7 @@ bool DagorEdAppWindow::loadProject(const char *filename)
   dagor_draw_scene_and_gui(true, true);
   d3d::update_screen();
   dagor_idle_cycle();
-  debug_cp();
+  DEBUG_CP();
 
   prev_fatal_handler = dgs_fatal_handler;
   dgs_fatal_handler = DagorEdAppWindow::gracefulFatalExit;
@@ -2838,7 +2907,7 @@ void DagorEdAppWindow::showSelectWindow(IObjectsList *obj_list, const char *obj_
 {
   SelWindow selWnd(0, obj_list, obj_list_owner_name);
 
-  if (selWnd.showDialog() == DIALOG_ID_OK)
+  if (selWnd.showDialog() == PropPanel::DIALOG_ID_OK)
   {
     Tab<String> names(tmpmem);
     selWnd.getSelectedNames(names);
@@ -2958,7 +3027,33 @@ void DagorEdAppWindow::updateUseOccluders()
   invalidateViewportCache();
 }
 
+void DagorEdAppWindow::setShowMessageAt(int x, int y, const SimpleString &msg)
+{
+  msgX = x;
+  msgY = y;
+  messageAt = msg;
+}
 
+void DagorEdAppWindow::showMessageAt()
+{
+  if (messageAt.empty())
+    return;
+  StdGuiRender::set_font(0);
+  Point2 ts = StdGuiRender::get_str_bbox(messageAt.c_str()).size();
+  int ascent = StdGuiRender::get_font_ascent();
+  int descent = StdGuiRender::get_font_descent();
+  int fontHeight = ascent + descent;
+  int padding = 2;
+  int width = ts.x;
+  int height = padding + fontHeight + padding;
+  int left = msgX;
+  int top = msgY - height;
+  StdGuiRender::set_color(COLOR_BLACK);
+  StdGuiRender::render_box(left, top, left + width, top + height);
+
+  StdGuiRender::set_color(COLOR_WHITE);
+  StdGuiRender::draw_strf_to(left + (width - ts.x) / 2, top + padding + ascent, messageAt.c_str());
+};
 //==================================================================================================
 Point3 DagorEdAppWindow::snapToGrid(const Point3 &p) const { return grid.snapToGrid(p); }
 
@@ -2990,6 +3085,256 @@ void DagorEdAppWindow::setAnimateViewports(bool animate)
 
   ::appWnd.checkMenuItem(CM_ANIMATE_VIEWPORTS, animateViewports);
   */
+}
+
+void DagorEdAppWindow::onImguiDelayedCallback(void *user_data)
+{
+  const unsigned highestCommandBit = 1 << ((sizeof(unsigned) * 8) - 1);
+  const unsigned commandId = (unsigned)user_data;
+
+  if ((commandId & highestCommandBit) == 0)
+  {
+    onMenuItemClick(commandId);
+  }
+  else
+  {
+    ViewportWindow *viewport = ged.getCurrentViewport();
+    if (!viewport || !viewport->isActive())
+      return;
+
+    const unsigned viewportCommandId = commandId & ~highestCommandBit;
+    if (viewport->handleViewportAcceleratorCommand(viewportCommandId))
+      return;
+
+    IGenEditorPlugin *currentPlugin = curPlugin();
+    if (currentPlugin)
+      currentPlugin->handleViewportAcceleratorCommand(viewportCommandId);
+  }
+}
+
+void DagorEdAppWindow::renderUIViewports()
+{
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+  ImGui::Begin("Viewport");
+  ImGui::PopStyleVar();
+
+  const float itemSpacing = ImGui::GetStyle().ItemSpacing.y; // Use the same spacing in both directions.
+  const Point2 regionAvailable = Point2(ImGui::GetContentRegionAvail()) - Point2(itemSpacing, itemSpacing);
+
+  if (ged.getViewportCount() == 1)
+  {
+    ViewportWindow *viewport0 = ged.getViewport(0);
+    if (viewport0)
+      viewport0->updateImgui(regionAvailable, itemSpacing);
+  }
+  else if (ged.getViewportCount() == 4)
+  {
+    ViewportWindow *viewport0 = ged.getViewport(0);
+    ViewportWindow *viewport1 = ged.getViewport(1);
+    ViewportWindow *viewport2 = ged.getViewport(2);
+    ViewportWindow *viewport3 = ged.getViewport(3);
+    if (viewport0 && viewport1 && viewport2 && viewport3)
+    {
+      int currentLeftWidth;
+      int currentRightWidth;
+      int currentTopHeight;
+      int currentBottomHeight;
+      viewport0->getViewportSize(currentLeftWidth, currentTopHeight);
+      viewport3->getViewportSize(currentRightWidth, currentBottomHeight);
+
+      render_imgui_viewport_splitter(viewportSplitRatio, regionAvailable, currentLeftWidth, currentRightWidth, currentTopHeight,
+        currentBottomHeight, itemSpacing);
+
+      const float leftWidth = regionAvailable.x * viewportSplitRatio.x;
+      const float rightWidth = regionAvailable.x - leftWidth;
+      const float topHeight = regionAvailable.y * viewportSplitRatio.y;
+      const float bottomHeight = regionAvailable.y - topHeight;
+
+      viewport0->updateImgui(Point2(leftWidth, topHeight), itemSpacing);
+      ImGui::SameLine(0.0f, itemSpacing);
+      viewport1->updateImgui(Point2(rightWidth, topHeight), itemSpacing);
+
+      viewport2->updateImgui(Point2(leftWidth, bottomHeight), itemSpacing);
+      ImGui::SameLine(0.0f, itemSpacing);
+      viewport3->updateImgui(Point2(rightWidth, bottomHeight), itemSpacing);
+    }
+  }
+
+  ImGui::End();
+}
+
+void DagorEdAppWindow::renderUI()
+{
+  unsigned clientWidth = 0;
+  unsigned clientHeight = 0;
+  getWndManager()->getWindowClientSize(getWndManager()->getMainWindow(), clientWidth, clientHeight);
+
+  // They can be zero when toggling the application's window between minimized and maximized state.
+  if (clientWidth == 0 || clientHeight == 0)
+    return;
+
+  PropPanel::IMenu *mainMenu = getMainMenu();
+  if (mainMenu)
+    PropPanel::render_menu(*mainMenu);
+
+  const ImGuiViewport *viewport = ImGui::GetMainViewport();
+  ImGui::SetNextWindowPos(viewport->WorkPos);
+  ImGui::SetNextWindowSize(viewport->WorkSize);
+
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+  ImGui::Begin("Root", nullptr,
+    ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking |
+      ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNav);
+  ImGui::PopStyleVar(3);
+
+  if (mToolPanel || mTabWindow || mPlugTools)
+  {
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_PopupBg));
+    ImGui::PushStyleColor(ImGuiCol_Border, PropPanel::Constants::TOOLBAR_BORDER_COLOR);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, PropPanel::Constants::TOOLBAR_WINDOW_PADDING);
+
+    ImGui::BeginChild("Toolbar", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Border,
+      ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking);
+
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor(2);
+
+    if (mToolPanel)
+      mToolPanel->updateImgui();
+    if (mTabWindow)
+    {
+      mTabWindow->updateImgui();
+      if (mPlugTools)
+        ImGui::NewLine();
+    }
+    if (mPlugTools)
+      mPlugTools->updateImgui();
+
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(ImGui::GetStyle().ItemSpacing.x, 0.0f));
+    ImGui::EndChild();
+    ImGui::PopStyleVar();
+  }
+
+  ImGui::BeginChild("DockHolder", ImVec2(0.0f, 0.0f), ImGuiChildFlags_None,
+    ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDocking);
+
+  ImGuiID rootDockSpaceId = ImGui::GetID("RootDockSpace");
+
+  if (!dockPositionsInitialized)
+  {
+    dockPositionsInitialized = true;
+
+    const ImVec2 viewportSize = ImGui::GetMainViewport()->Size;
+
+    ImGui::DockBuilderRemoveNode(rootDockSpaceId);
+    ImGui::DockBuilderAddNode(rootDockSpaceId, ImGuiDockNodeFlags_CentralNode);
+    ImGui::DockBuilderSetNodeSize(rootDockSpaceId, ImGui::GetMainViewport()->Size);
+
+    ImGuiID dockSpaceViewport;
+    ImGuiID dockSpaceRight4 = ImGui::DockBuilderSplitNode(rootDockSpaceId, ImGuiDir_Right, 0.15f, nullptr, &leftDockNodeId);
+    ImGuiID dockSpaceRight3 = ImGui::DockBuilderSplitNode(leftDockNodeId, ImGuiDir_Right, 0.25f, nullptr, &leftDockNodeId);
+    ImGuiID dockSpaceRight2 = ImGui::DockBuilderSplitNode(leftDockNodeId, ImGuiDir_Right, 0.25f, nullptr, &leftDockNodeId);
+    ImGuiID dockSpaceRight1 = ImGui::DockBuilderSplitNode(leftDockNodeId, ImGuiDir_Right, 0.33f, nullptr, &dockSpaceViewport);
+    leftDockNodeId = ImGui::DockBuilderSplitNode(dockSpaceViewport, ImGuiDir_Left, 0.4f, nullptr, &dockSpaceViewport);
+
+    ImGuiDockNode *viewportNode = ImGui::DockBuilderGetNode(dockSpaceViewport);
+    if (viewportNode)
+      viewportNode->SetLocalFlags(viewportNode->LocalFlags | ImGuiDockNodeFlags_HiddenTabBar);
+
+    // TODO: ImGui porting: view: extensibility?
+    ImGui::DockBuilderDockWindow("Viewport", dockSpaceViewport);
+    ImGui::DockBuilderDockWindow("Outliner", dockSpaceRight1);
+    ImGui::DockBuilderDockWindow("Properties", dockSpaceRight2);
+    ImGui::DockBuilderDockWindow("Trigger / Mission Obj. Info", dockSpaceRight2);
+    ImGui::DockBuilderDockWindow("Object Properties", dockSpaceRight3);
+
+    ImGui::DockBuilderFinish(rootDockSpaceId);
+  }
+
+  // Change the close button's color for the daEditorX Classic style.
+  ImGui::PushStyleColor(ImGuiCol_Text, PropPanel::Constants::DIALOG_TITLE_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+  ImGui::DockSpace(rootDockSpaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+  ImGui::PopStyleColor(2);
+
+  renderUIViewports();
+
+  IGenEditorPlugin *currentPlugin = curPlugin();
+  if (currentPlugin)
+    currentPlugin->updateImgui();
+
+  if (control_gallery)
+  {
+    bool open = true;
+    DAEDITOR3.imguiBegin(control_gallery->getPanel(), &open);
+    control_gallery->getPanel().updateImgui();
+    DAEDITOR3.imguiEnd();
+
+    if (!open)
+      control_gallery.reset();
+  }
+
+  PropPanel::render_dialogs();
+
+  ImGui::EndChild();
+
+  ImGui::End();
+}
+
+void DagorEdAppWindow::beforeUpdateImgui() { mManager->updateImguiMouseCursor(); }
+
+void DagorEdAppWindow::updateImgui()
+{
+  static bool renderingImgui = false;
+
+  // Most likely cause if this assert fails: a modal dialog is being shown in response to an event handled in an
+  // updateImgui. See the notes at the PropPanel::MessageQueue class.
+  G_ASSERT(!renderingImgui);
+  renderingImgui = true;
+
+  PropPanel::after_new_frame();
+
+  // The keyboard press checking itself cannot be in actObject because actObject could be called more often than
+  // renderUI (that calls ImGui's NewFrame that updates ImGui's key states), and onMenuItemClick could fire more than
+  // once.
+
+  const unsigned highestCommandBit = 1 << ((sizeof(unsigned) * 8) - 1);
+  ViewportWindow *viewport = ged.getCurrentViewport();
+  unsigned commandId = 0;
+  if (viewport && viewport->isActive())
+  {
+    commandId = mManager->processImguiViewportAccelerator();
+    if (commandId != 0)
+    {
+      G_ASSERT((commandId & highestCommandBit) == 0);
+      commandId |= highestCommandBit;
+    }
+  }
+
+  if (commandId == 0)
+  {
+    commandId = mManager->processImguiAccelerator();
+    G_ASSERT((commandId & highestCommandBit) == 0);
+  }
+
+  if (commandId != 0)
+    PropPanel::request_delayed_callback(*this, (void *)commandId);
+
+  if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_F12))
+    imguiDebugWindowsVisible = !imguiDebugWindowsVisible;
+
+  if (imguiDebugWindowsVisible)
+    ImGui::ShowMetricsWindow(&imguiDebugWindowsVisible);
+
+  editor_core_update_imgui_style_editor();
+
+  renderUI();
+
+  PropPanel::before_end_frame();
+
+  renderingImgui = false;
 }
 
 const char *daeditor3_get_appblk_fname()

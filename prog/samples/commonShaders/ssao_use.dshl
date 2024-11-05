@@ -1,4 +1,5 @@
 include "shader_global.dshl"
+include "upscale_use.dshl"
 
 float4 ssao_pos_to_texcoord = (0.5, -0.5, 0.5, 0.5);
 float4 lowres_rt_params = (1280, 720, 0, 0);
@@ -13,22 +14,57 @@ hlsl {
     #define SSAO_TYPE half2
     #define SSAO_ATTRS xy
     #define CONTACT_SHADOWS_ATTR y
+    #define SSAO_HAS_GREEN 1
   #else
     #define SSAO_TYPE half
     #define SSAO_ATTRS x
   #endif
 }
 
+macro USE_SSAO_UPSCALE_BASE_WITH_SMP(code, _samplerstate)
+  hlsl(code) {
+    SSAO_TYPE getSSAOUpscaleWeighted(float4 weights, float2 screenpos)
+    {
+      float2 ssaotc = screenpos * screen_pos_to_lowres_texcoord;
+      float4 ssaoValue = ssao_tex.GatherRed(_samplerstate, ssaotc);
+      SSAO_TYPE ao = 1;
+      ao.x = dot(ssaoValue, weights);
+      #if SSAO_HAS_GREEN
+      float4 contactShadowValue = ssao_tex.GATHER_SHADOW(_samplerstate, ssaotc);
+      ao.CONTACT_SHADOWS_ATTR = dot(contactShadowValue, weights);
+      #endif
+      return ao;
+    }
+
+    SSAO_TYPE getSSAOUpscale(float linear_depth, float2 screenpos)
+    {
+      return getSSAOUpscaleWeighted(sampleCloseUpscaleWeight(screenpos), screenpos);
+    }
+  }
+endmacro
+
+macro USE_SSAO_UPSCALE_BASE(code)
+  USE_UPSCALE_SAMPLING_BASE(code)
+  USE_SSAO_UPSCALE_BASE_WITH_SMP(code, ssao_tex_samplerstate)
+endmacro
+
+macro INIT_SSAO_BASE(code)
+  (code) {
+    ssao_tex@smp2d = ssao_tex;
+    lowres_rt_params@f4 = (lowres_rt_params.x, lowres_rt_params.y, 1./lowres_rt_params.x, 1./lowres_rt_params.y);
+    screen_pos_to_lowres_texcoord@f2 = float4(0.5 / lowres_rt_params.x, 0.5 / lowres_rt_params.y, 0., 0.);
+  }
+endmacro
+
 macro INIT_SSAO()
   //SSAO
-  (ps)
+  INIT_SSAO_BASE(ps)
+  if (upscale_sampling_tex != NULL)
   {
-    ssao_tex@smp2d = ssao_tex;
-    downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
-    lowres_rt_params@f4 = (lowres_rt_params.x, lowres_rt_params.y, 1./lowres_rt_params.x, 1./lowres_rt_params.y);
-    //upscale_depth_cutoff@f4 = ( upscale_edge_cutoff_near, upscale_edge_cutoff_far,
-    // (upscale_edge_cutoff_near-upscale_edge_cutoff_far)*(zn_zfar.x+upscale_edge_cutoff_near_dist*zn_zfar.y),
-    // zn_zfar.x+upscale_edge_cutoff_near_dist*zn_zfar.y);
+    INIT_UPSCALE_SAMPLING_BASE(ps)
+  } else
+  {
+    (ps) { downsampled_close_depth_tex@smp2d = downsampled_close_depth_tex; }
   }
   (vs)
   {
@@ -48,145 +84,155 @@ endmacro
 
 macro USE_SSAO()
 
-  hlsl(ps) {
-    ///*
-
-    SSAO_TYPE doStep( float lowDepth, SSAO_TYPE lowAO, float viewZ, inout float totalWeight )
-    {
-      float Z = linearize_z(lowDepth, zn_zfar.zw);
-      float Zdiff = abs( Z - viewZ );
-      //float invViewZ = 1000*rcp(viewZ);
-      float w = rcp( 0.00001 + Zdiff );
-      totalWeight += w;
-
-      return lowAO * w;
+  if (upscale_sampling_tex != NULL)
+  {
+    USE_SSAO_UPSCALE_BASE(ps)
+    hlsl(ps) {
+      SSAO_TYPE getSSAO(float linear_depth, float2 screen_pos) {return getSSAOUpscale(linear_depth, screen_pos);}
     }
-
-    SSAO_TYPE getSSAO(float fullResDepth, float2 ssaotc)
-    {
-      float totalWeight = 0;
-      SSAO_TYPE aoOut = 0;
-      int2 ssaotci = int2(lowres_rt_params.xy*ssaotc);
-      #define DO_STEP2(valD, valAO) aoOut += doStep( valD, valAO, fullResDepth, totalWeight )
-      #define DO_STEP(offset, dval) {dval = texelFetchOffset( downsampled_far_depth_tex, ssaotci, 0, offset ).r; SSAO_TYPE aoVal = texelFetchOffset( ssao_tex, ssaotci, 0, offset ).SSAO_ATTRS; DO_STEP2(dval, aoVal);}
-      SSAO_TYPE aoBil = tex2Dlod(ssao_tex, float4(ssaotc,0,0)).SSAO_ATTRS;
-      float d0,d1,d2,d3;
-
-      //textureGather
-
-      /*float2 ssaotcfl = ssaotc+0.5*lowres_rt_params.zw;
-      float4 lowResDepths = downsampled_far_depth_tex.GatherRed(downsampled_far_depth_tex_samplerstate, ssaotcfl).wzxy;
-      float4 lowResAO = ssao_tex.GatherRed(ssao_tex_samplerstate, ssaotcfl).wzxy;
-      DO_STEP2( d0=lowResDepths.x, lowResAO.x );
-      DO_STEP2( d1=lowResDepths.y, lowResAO.y );
-      DO_STEP2( d2=lowResDepths.z, lowResAO.z );
-      DO_STEP2( d3=lowResDepths.w, lowResAO.w );
-      */
-      DO_STEP( int2( 0, 0 ),d0 );
-      DO_STEP( int2( 1, 0 ),d1 );
-      DO_STEP( int2( 0, 1 ),d2 );
-      DO_STEP( int2( 1, 1 ),d3 );
-      float md1,md2;
-      DO_STEP( int2( -1, 0 ), md1 );
-      DO_STEP( int2( 0, -1 ), md2 );
-
-      float diffH0 = d1-d0;
-      //float diffH1 = d3-d2;
-      float diffH1 = d0-md1;
-      float diffV0 = d2-d0;
-      //float diffV1 = d3-d1;
-      float diffV1 = d0-md2;
-      float threshold = 0.00004/fullResDepth;
-
-      /*DO_STEP( int2( -1, -1 ) );
-      DO_STEP( int2( 1, -1 ) );
-      DO_STEP( int2( -1, 1 ) );
-      DO_STEP( int2( 1, 1 ) );
-
-      DO_STEP( int2( -1, 0 ) );
-      DO_STEP( int2( 1, 0 ) );
-      DO_STEP( int2( 0, 1 ) );
-      DO_STEP( int2( 0, -1 ) );*/
-
-      #undef DO_STEP
-      //return max(abs(diffV0-diffV1), abs(diffH0-diffH1)) < threshold;
-      SSAO_TYPE result = aoOut *rcp(totalWeight);
-      FLATTEN
-      if (max(abs(diffV0-diffV1), abs(diffH0-diffH1)) < threshold)
-        return aoBil;
-      return result;
-    }
-    /*/
-    //although having bilinear filtering is nice, it is very hard to get all those coefficient correctly
-    half getSSAO(float fullResDepth, float2 ssaotc)
-    {
-      #if 0
-      {
-      float4 sampledDownsampledDepth;
-      float2 ssaoPointTc = (floor(lowres_rt_params.xy*ssaotc)+0.5)*lowres_rt_params.zw;
-      sampledDownsampledDepth.x = tex2Dlod(downsampled_far_depth_tex, float4(ssaoPointTc,0,0)).x;
-      sampledDownsampledDepth.y = tex2Dlod(downsampled_far_depth_tex, float4(ssaoPointTc+float2(lowres_rt_params.z, 0),0,0)).x;
-      sampledDownsampledDepth.z = tex2Dlod(downsampled_far_depth_tex, float4(ssaoPointTc+float2(0, lowres_rt_params.w),0,0)).x;
-      sampledDownsampledDepth.w = tex2Dlod(downsampled_far_depth_tex, float4(ssaoPointTc+lowres_rt_params.zw,0,0)).x;
-      float4 ldx = ddx(sampledDownsampledDepth);
-      float4 ldy = ddy(sampledDownsampledDepth);
-      FLATTEN
-      if (any(abs(ldx-ddx(fullResDepth))>0.01) || any(abs(ldy.yzw-ddy(fullResDepth))>0.01))
-        return 1;
-      return 0;
-      }
-      #endif
-      //ssaotc+=0.5*lowres_rt_params.zw;
-      half ssaoBil = tex2Dlod(ssao_tex, float4(ssaotc,0,0)).x;
+  } else
+  {
+    hlsl(ps) {
       ///*
-      ##if is_gather4_supported == supported
-      float4 sampledDownsampledDepth = textureGather(downsampled_far_depth_tex, ssaotc);
-      half4 sampledSSAO = textureGather(ssao_tex, ssaotc);
-      ##else
 
-      float4 sampledDownsampledDepth;
-      float2 ssaoPointTc = (floor(lowres_rt_params.xy*ssaotc)+0.5)*lowres_rt_params.zw;
-      sampledDownsampledDepth.x = tex2Dlod(downsampled_far_depth_tex, float4(ssaoPointTc,0,0)).x;
-      sampledDownsampledDepth.y = tex2Dlod(downsampled_far_depth_tex, float4(ssaoPointTc+float2(lowres_rt_params.z, 0),0,0)).x;
-      sampledDownsampledDepth.z = tex2Dlod(downsampled_far_depth_tex, float4(ssaoPointTc+float2(0, lowres_rt_params.w),0,0)).x;
-      sampledDownsampledDepth.w = tex2Dlod(downsampled_far_depth_tex, float4(ssaoPointTc+lowres_rt_params.zw,0,0)).x;
+      SSAO_TYPE doStep( float lowDepth, SSAO_TYPE lowAO, float viewZ, inout float totalWeight )
+      {
+        float Z = linearize_z(lowDepth, zn_zfar.zw);
+        float Zdiff = abs( Z - viewZ );
+        //float invViewZ = 1000*rcp(viewZ);
+        float w = rcp( 0.00001 + Zdiff );
+        totalWeight += w;
 
-      half4 sampledSSAO;
-      sampledSSAO.x = tex2Dlod(ssao_tex, float4(ssaoPointTc,0,0)).x;
-      sampledSSAO.y = tex2Dlod(ssao_tex, float4(ssaoPointTc+float2(lowres_rt_params.z, 0),0,0)).x;
-      sampledSSAO.z = tex2Dlod(ssao_tex, float4(ssaoPointTc+float2(0, lowres_rt_params.w),0,0)).x;
-      sampledSSAO.w = tex2Dlod(ssao_tex, float4(ssaoPointTc+lowres_rt_params.zw,0,0)).x;
-      ##endif
+        return lowAO * w;
+      }
 
-      //float nZ = max(0, fullResDepth + depth_rescale.y);//);
-      //float depthThreshold = lerp(ssao_blur_depth_cutoff.x, ssao_blur_depth_cutoff.y, sqrt(nZ));
-      //float depthThresholdInv = 1.0 / depthThreshold;
-      //float4 depthDiff = abs(float4(fullResDepth,fullResDepth,fullResDepth,fullResDepth) - sampledDownsampledDepth)*depthThresholdInv;
+      SSAO_TYPE getSSAO(float fullResDepth, float2 screenpos)
+      {
+        float totalWeight = 0;
+        SSAO_TYPE aoOut = 0;
+        float2 ssaotc = screenpos * screen_pos_to_lowres_texcoord;
+        int2 ssaotci = int2(lowres_rt_params.xy*ssaotc);
+        #define DO_STEP2(valD, valAO) aoOut += doStep( valD, valAO, fullResDepth, totalWeight )
+        #define DO_STEP(offset, dval) {dval = texelFetchOffset( downsampled_close_depth_tex, ssaotci, 0, offset ).r; SSAO_TYPE aoVal = texelFetchOffset( ssao_tex, ssaotci, 0, offset ).SSAO_ATTRS; DO_STEP2(dval, aoVal);}
+        SSAO_TYPE aoBil = tex2Dlod(ssao_tex, float4(ssaotc,0,0)).SSAO_ATTRS;
+        float d0,d1,d2,d3;
 
-      //float depthThresholdInv = lerp(1.0/ssao_blur_depth_cutoff.x, 1.0/ssao_blur_depth_cutoff.y, sqrt(nZ));
-      //float depthThreshold = lerp(ssao_blur_depth_cutoff.x, ssao_blur_depth_cutoff.y, exp2(nZ)-1);
-      float depthThreshold = fullResDepth<upscale_depth_cutoff.w ? fullResDepth*upscale_depth_cutoff.x : fullResDepth*upscale_depth_cutoff.y+upscale_depth_cutoff.z;
-      float depthThresholdInv = 1.0 / depthThreshold;
-      //float4 weight = rcp(0.00001f + abs(fullResDepth.xxxx - linearize_z4(sampledDownsampledDepth, zn_zfar)));
-      //float2 minDepthDiff0 = min(weight.xy, weight.zw);
-      //float minDepthDiff = min(minDepthDiff0.x, minDepthDiff0.y);
+        //textureGather
 
-      //weight *= rcp(dot(weight,1));
-      float4 depthDiffOriginal = abs(fullResDepth.xxxx - linearize_z4(sampledDownsampledDepth, zn_zfar));
-      float4 depthDiff = depthDiffOriginal*depthThresholdInv;
+        /*float2 ssaotcfl = ssaotc+0.5*lowres_rt_params.zw;
+        float4 lowResDepths = downsampled_close_depth_tex.GatherRed(downsampled_close_depth_tex_samplerstate, ssaotcfl).wzxy;
+        float4 lowResAO = ssao_tex.GatherRed(ssao_tex_samplerstate, ssaotcfl).wzxy;
+        DO_STEP2( d0=lowResDepths.x, lowResAO.x );
+        DO_STEP2( d1=lowResDepths.y, lowResAO.y );
+        DO_STEP2( d2=lowResDepths.z, lowResAO.z );
+        DO_STEP2( d3=lowResDepths.w, lowResAO.w );
+        */
+        DO_STEP( int2( 0, 0 ),d0 );
+        DO_STEP( int2( 1, 0 ),d1 );
+        DO_STEP( int2( 0, 1 ),d2 );
+        DO_STEP( int2( 1, 1 ),d3 );
+        float md1,md2;
+        DO_STEP( int2( -1, 0 ), md1 );
+        DO_STEP( int2( 0, -1 ), md2 );
 
-      half geomEdge = dot(saturate(depthDiff), 1);
-      float2 minDepthDiff0 = min(depthDiff.xy, depthDiff.zw);
-      float minDepthDiff = min(minDepthDiff0.x, minDepthDiff0.y);
+        float diffH0 = d1-d0;
+        //float diffH1 = d3-d2;
+        float diffH1 = d0-md1;
+        float diffV0 = d2-d0;
+        //float diffV1 = d3-d1;
+        float diffV1 = d0-md2;
+        float threshold = 0.00004/fullResDepth;
 
-      //half4 weight = half4(1,1,1,1) - saturate((depthDiff - half4(minDepthDiff,minDepthDiff,minDepthDiff,minDepthDiff)));
-      float4 weight = rcp(0.00001 + depthDiffOriginal);
-      weight *= rcp(dot(weight,1));
-      //return geomEdge < 1;
-      return geomEdge < 1 ? ssaoBil : dot(sampledSSAO, weight);
-      //return geomEdge < 1 ? ssaoBil : 1;
-      //return dot(sampledSSAO, weight);
+        /*DO_STEP( int2( -1, -1 ) );
+        DO_STEP( int2( 1, -1 ) );
+        DO_STEP( int2( -1, 1 ) );
+        DO_STEP( int2( 1, 1 ) );
+
+        DO_STEP( int2( -1, 0 ) );
+        DO_STEP( int2( 1, 0 ) );
+        DO_STEP( int2( 0, 1 ) );
+        DO_STEP( int2( 0, -1 ) );*/
+
+        #undef DO_STEP
+        //return max(abs(diffV0-diffV1), abs(diffH0-diffH1)) < threshold;
+        SSAO_TYPE result = aoOut *rcp(totalWeight);
+        FLATTEN
+        if (max(abs(diffV0-diffV1), abs(diffH0-diffH1)) < threshold)
+          return aoBil;
+        return result;
+      }
+      /*/
+      //although having bilinear filtering is nice, it is very hard to get all those coefficient correctly
+      half getSSAO(float fullResDepth, float2 ssaotc)
+      {
+        #if 0
+        {
+        float4 sampledDownsampledDepth;
+        float2 ssaoPointTc = (floor(lowres_rt_params.xy*ssaotc)+0.5)*lowres_rt_params.zw;
+        sampledDownsampledDepth.x = tex2Dlod(downsampled_close_depth_tex, float4(ssaoPointTc,0,0)).x;
+        sampledDownsampledDepth.y = tex2Dlod(downsampled_close_depth_tex, float4(ssaoPointTc+float2(lowres_rt_params.z, 0),0,0)).x;
+        sampledDownsampledDepth.z = tex2Dlod(downsampled_close_depth_tex, float4(ssaoPointTc+float2(0, lowres_rt_params.w),0,0)).x;
+        sampledDownsampledDepth.w = tex2Dlod(downsampled_close_depth_tex, float4(ssaoPointTc+lowres_rt_params.zw,0,0)).x;
+        float4 ldx = ddx(sampledDownsampledDepth);
+        float4 ldy = ddy(sampledDownsampledDepth);
+        FLATTEN
+        if (any(abs(ldx-ddx(fullResDepth))>0.01) || any(abs(ldy.yzw-ddy(fullResDepth))>0.01))
+          return 1;
+        return 0;
+        }
+        #endif
+        //ssaotc+=0.5*lowres_rt_params.zw;
+        half ssaoBil = tex2Dlod(ssao_tex, float4(ssaotc,0,0)).x;
+        ///*
+        ##if is_gather4_supported == supported
+        float4 sampledDownsampledDepth = textureGather(downsampled_close_depth_tex, ssaotc);
+        half4 sampledSSAO = textureGather(ssao_tex, ssaotc);
+        ##else
+
+        float4 sampledDownsampledDepth;
+        float2 ssaoPointTc = (floor(lowres_rt_params.xy*ssaotc)+0.5)*lowres_rt_params.zw;
+        sampledDownsampledDepth.x = tex2Dlod(downsampled_close_depth_tex, float4(ssaoPointTc,0,0)).x;
+        sampledDownsampledDepth.y = tex2Dlod(downsampled_close_depth_tex, float4(ssaoPointTc+float2(lowres_rt_params.z, 0),0,0)).x;
+        sampledDownsampledDepth.z = tex2Dlod(downsampled_close_depth_tex, float4(ssaoPointTc+float2(0, lowres_rt_params.w),0,0)).x;
+        sampledDownsampledDepth.w = tex2Dlod(downsampled_close_depth_tex, float4(ssaoPointTc+lowres_rt_params.zw,0,0)).x;
+
+        half4 sampledSSAO;
+        sampledSSAO.x = tex2Dlod(ssao_tex, float4(ssaoPointTc,0,0)).x;
+        sampledSSAO.y = tex2Dlod(ssao_tex, float4(ssaoPointTc+float2(lowres_rt_params.z, 0),0,0)).x;
+        sampledSSAO.z = tex2Dlod(ssao_tex, float4(ssaoPointTc+float2(0, lowres_rt_params.w),0,0)).x;
+        sampledSSAO.w = tex2Dlod(ssao_tex, float4(ssaoPointTc+lowres_rt_params.zw,0,0)).x;
+        ##endif
+
+        //float nZ = max(0, fullResDepth + depth_rescale.y);//);
+        //float depthThreshold = lerp(ssao_blur_depth_cutoff.x, ssao_blur_depth_cutoff.y, sqrt(nZ));
+        //float depthThresholdInv = 1.0 / depthThreshold;
+        //float4 depthDiff = abs(float4(fullResDepth,fullResDepth,fullResDepth,fullResDepth) - sampledDownsampledDepth)*depthThresholdInv;
+
+        //float depthThresholdInv = lerp(1.0/ssao_blur_depth_cutoff.x, 1.0/ssao_blur_depth_cutoff.y, sqrt(nZ));
+        //float depthThreshold = lerp(ssao_blur_depth_cutoff.x, ssao_blur_depth_cutoff.y, exp2(nZ)-1);
+        float depthThreshold = fullResDepth<upscale_depth_cutoff.w ? fullResDepth*upscale_depth_cutoff.x : fullResDepth*upscale_depth_cutoff.y+upscale_depth_cutoff.z;
+        float depthThresholdInv = 1.0 / depthThreshold;
+        //float4 weight = rcp(0.00001f + abs(fullResDepth.xxxx - linearize_z4(sampledDownsampledDepth, zn_zfar)));
+        //float2 minDepthDiff0 = min(weight.xy, weight.zw);
+        //float minDepthDiff = min(minDepthDiff0.x, minDepthDiff0.y);
+
+        //weight *= rcp(dot(weight,1));
+        float4 depthDiffOriginal = abs(fullResDepth.xxxx - linearize_z4(sampledDownsampledDepth, zn_zfar));
+        float4 depthDiff = depthDiffOriginal*depthThresholdInv;
+
+        half geomEdge = dot(saturate(depthDiff), 1);
+        float2 minDepthDiff0 = min(depthDiff.xy, depthDiff.zw);
+        float minDepthDiff = min(minDepthDiff0.x, minDepthDiff0.y);
+
+        //half4 weight = half4(1,1,1,1) - saturate((depthDiff - half4(minDepthDiff,minDepthDiff,minDepthDiff,minDepthDiff)));
+        float4 weight = rcp(0.00001 + depthDiffOriginal);
+        weight *= rcp(dot(weight,1));
+        //return geomEdge < 1;
+        return geomEdge < 1 ? ssaoBil : dot(sampledSSAO, weight);
+        //return geomEdge < 1 ? ssaoBil : 1;
+        //return dot(sampledSSAO, weight);
+      }
+      //*/
     }
-    //*/
   }
 endmacro

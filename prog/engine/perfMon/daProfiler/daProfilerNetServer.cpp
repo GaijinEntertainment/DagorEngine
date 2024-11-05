@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "daProfilerDumpServer.h"
 #include "daProfilerMessageServer.h"
 #include "daProfilerNetwork.h"
@@ -49,11 +51,30 @@ public:
 
 class NetServer final : public ProfilerDumpClient
 {
-  SocketHandler listenSocket;
-
 public:
   AcceptedClientServer client;
-  NetServer() { os_sockets_init(); }
+
+private:
+  SocketHandler listenSocket;
+  NetTCPZlibSave compressedOutStream;
+  enum
+  {
+    UNCOMPRESSED = 0,
+    ZLIB_ALGO = 1,
+    ZSTD_ALGO = 2
+  } algo = UNCOMPRESSED; // bits
+  void reinitCompressed()
+  {
+    compressedOutStream.~NetTCPZlibSave();
+    new (&compressedOutStream, _NEW_INPLACE) NetTCPZlibSave(client.sock.get());
+  }
+  IGenSave &optionalCompressed()
+  {
+    return algo == ZLIB_ALGO ? (IGenSave &)compressedOutStream : (IGenSave &)compressedOutStream.rawTcp;
+  }
+
+public:
+  NetServer() : compressedOutStream(client.sock.get()) { os_sockets_init(); }
   ~NetServer() { os_sockets_shutdown(); }
   bool init(int start_port, uint32_t port_range)
   {
@@ -110,12 +131,43 @@ public:
     os_socket_addr_get(&from, sizeof(from), &host);
     uint32_t port = os_socket_addr_get_port(&from, sizeof(from));
     G_UNUSED(port);
+    reinitCompressed();
     debug("got profiler connection from %d.%d.%d.%d:%d", host & 0xFF, (host >> 8) & 0xFF, (host >> 16) & 0xFF, host >> 24, port);
     settingsGen = pluginsGen = 1 << 30;
     client.sock = ((SocketHandler &&) incomingSocket);
     os_socket_set_option(client.sock.get(), OSO_NONBLOCK, 0); // we prefer blocking socket. as long as connection established
-    NetTCPSave saveCb(client.sock.get());
-    response_handshake(saveCb);
+    {
+      struct FirstMessage
+      {
+        MessageHeader hdr;
+        uint16_t messageType;
+      } msg;
+      const ReadStatus rd = read(&msg, sizeof(MessageHeader) + sizeof(uint16_t));
+      if (rd != ReadStatus::Ok || !msg.hdr.IsValid())
+      {
+        debug("can't read correct first message %d", msg.hdr.IsValid());
+        return false;
+      }
+      if (msg.messageType == Connected)
+      {
+        debug("connected profiler frontend doesn't support compression (or doesn't want to)");
+        algo = UNCOMPRESSED;
+      }
+      else if (msg.messageType == ConnectedCompression)
+      {
+        uint16_t compressionAlgorithms = 0;
+        if (read(&compressionAlgorithms, sizeof(compressionAlgorithms)) != ReadStatus::Ok)
+        {
+          debug("invalid ConnectedCompression message or disconnect");
+          return false;
+        }
+        if (compressionAlgorithms & ZLIB_ALGO)
+          algo = ZLIB_ALGO;
+      }
+      debug("frontend compression is %d", algo);
+    }
+    response_handshake(compressedOutStream.rawTcp, algo);
+    debug("handshake sent");
     return true;
   }
   int64_t lastHeartBeatTick = 0;
@@ -126,8 +178,7 @@ public:
       return true;
     if (!updateSocket<true>() || !client.sock)
       return false;
-    NetTCPSave saveCb(client.sock.get());
-    response_heartbeat(saveCb);
+    response_heartbeat(optionalCompressed());
     bool ret = updateSocket<true>() && client.sock;
     lastHeartBeatTick = profile_ref_ticks();
     return ret;
@@ -139,8 +190,7 @@ public:
     {
       if (!updateSocket<true>() || !client.sock)
         return;
-      NetTCPSave cb(client.sock.get());
-      response_plugins(cb, plugins);
+      response_plugins(optionalCompressed(), plugins);
       pluginsGen = gen;
     }
   }
@@ -148,8 +198,7 @@ public:
   {
     if (!updateSocket<true>() || !client.sock)
       return;
-    NetTCPSave cb(client.sock.get());
-    response_live_frames(cb, available, frame_times, count);
+    response_live_frames(optionalCompressed(), available, frame_times, count);
   }
   bool reportsLiveFrame() const { return bool(client.sock); }
 
@@ -159,8 +208,7 @@ public:
   {
     if (!updateSocket<true>() || !client.sock)
       return DumpProcessing::Continue;
-    NetTCPSave cb(client.sock.get());
-    the_profiler.saveDump(cb, dump);
+    the_profiler.saveDump(optionalCompressed(), dump);
     // ProfilerData::finish(cb);
     return DumpProcessing::Continue;
   }
@@ -169,8 +217,7 @@ public:
   {
     if (!updateSocket<true>() || !client.sock)
       return false;
-    NetTCPSave cb(client.sock.get());
-    response_settings(cb, s);
+    response_settings(optionalCompressed(), s);
     return (updateSocket<true>() && client.sock);
   }
   enum class ReadStatus
@@ -219,7 +266,6 @@ public:
       if (!hdr.IsValid())
         continue;
       NetTCPLoad loadCb(client.sock.get());
-      NetTCPSave saveCb(client.sock.get());
       uint16_t messageType = uint16_t(~uint16_t(0));
       loadCb.read(&messageType, sizeof(messageType));
 
@@ -231,7 +277,7 @@ public:
         if (!client.sock)
           break;
         InPlaceMemLoadCB memCb(messageMem.data(), messageMem.size());
-        read_and_perform_message(messageType, messageMem.size(), memCb, saveCb);
+        read_and_perform_message(messageType, messageMem.size(), memCb, optionalCompressed());
       }
       if (messageType == Disconnect)
       {

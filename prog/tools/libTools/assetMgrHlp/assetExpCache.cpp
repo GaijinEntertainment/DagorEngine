@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <assets/assetExpCache.h>
 #include <sys/stat.h>
 #include <ioSys/dag_fileIo.h>
@@ -102,7 +104,7 @@ void AssetExportCache::reset()
 bool AssetExportCache::load(const char *cache_fname, const DagorAssetMgr &mgr, int *end_pos)
 {
   reset();
-  FullFileLoadCB crd(cache_fname);
+  FullFileLoadCB crd(cache_fname, DF_READ | DF_IGNORE_MISSING);
   DAGOR_TRY
   {
     if (!crd.fileHandle)
@@ -159,7 +161,7 @@ bool AssetExportCache::load(const char *cache_fname, const DagorAssetMgr &mgr, i
     if (end_pos)
       *end_pos = crd.tell();
   }
-  DAGOR_CATCH(IGenLoad::LoadException exc)
+  DAGOR_CATCH(const IGenLoad::LoadException &exc)
   {
     logerr("failed to read '%s'", cache_fname);
     debug_flush(false);
@@ -516,7 +518,7 @@ bool AssetExportCache::getFileHash(const char *fname, unsigned char out_hash[HAS
   finish:
     ::md5_finish(&md5s, out_hash);
   }
-  DAGOR_CATCH(IGenLoad::LoadException exc)
+  DAGOR_CATCH(const IGenLoad::LoadException &exc)
   {
     logerr("failed to read '%s', exc", fname);
     return false;

@@ -17,7 +17,7 @@ if $(Platform) in ps4 ps5 {
   AddIncludes = $(Root)/$(Location)/include/ps4 ;
 }
 
-if $(Platform) in win32 win64 xboxOne scarlett {
+if $(Platform) in windows xboxOne scarlett {
   Sources = src/inet_ntop.c
             src/inet_pton.c ;
 }

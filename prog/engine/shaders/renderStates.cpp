@@ -1,11 +1,14 @@
-#include <3d/dag_renderStates.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_renderStates.h>
 #include <EASTL/vector.h>
 #include <EASTL/vector_map.h>
 #include <EASTL/sort.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <hash/xxh3.h>
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <shaders/dag_overrideStates.h>
 #include <shaders/dag_renderStateId.h>
 #include "nonRelocCont.h"
@@ -151,7 +154,7 @@ RenderStateId create(const RenderState &state)
 {
   uint64_t hash = XXH3_64bits(&state, sizeof(state));
   auto it = renderStatesHash.find(hash);
-  if (EASTL_LIKELY(it != renderStatesHash.end()))
+  if (DAGOR_LIKELY(it != renderStatesHash.end()))
     return it->second;
 #if DAGOR_DBGLEVEL > 1
   G_ASSERT((int)renderStates.find_if([&](auto &rs) { return rs.first == state; }) < 0); // must be unique
@@ -186,6 +189,11 @@ void on_override_state_destroyed(OverrideStateId overrideId)
 void set(RenderStateId id)
 {
   G_FAST_ASSERT(id != RenderStateId());
+  if (DAGOR_UNLIKELY(!id))
+  {
+    LOGERR_ONCE("Attempt to set invalid render state");
+    return;
+  }
 
   auto &rstate = renderStates[(unsigned)id];
   DriverRenderStateId drsid = rstate.second;
@@ -196,7 +204,7 @@ void set(RenderStateId id)
     uint64_t key = (uint64_t((uint32_t)overrideId) << 32) | uint32_t(id);
     decltype(overriddenRenderStates)::value_type *ors;
     auto it = renderStateOverrides.lower_bound(key);
-    if (EASTL_LIKELY(it != renderStateOverrides.end() && it->first == key))
+    if (DAGOR_LIKELY(it != renderStateOverrides.end() && it->first == key))
       ors = &overriddenRenderStates[it->second];
     else // not found -> create new
     {

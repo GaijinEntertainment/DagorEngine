@@ -1,0 +1,226 @@
+
+include "depth_above.dshl"
+
+int volfog_hardcoded_input_type = -1;
+interval volfog_hardcoded_input_type: use_null_graph < 0, fog_graph_0;
+
+float volfog_media_fog_input_mul = 1.0;
+
+texture distant_heightmap_tex;
+float4 distant_world_to_hmap_low;
+float4 distant_heightmap_scale;
+float4 distant_heightmap_target_box = (0,0,10000000,10000000);
+texture volfog_mask_tex always_referenced;
+float4 world_to_volfog_mask always_referenced;
+
+texture noise_64_tex_l8;
+float4 vf_wind_dir = (1.53,0.33,0.931,0);
+
+macro GET_MEDIA_HARDCODED(code)
+  (code) {
+    noise_64_tex_l8@smp2d = noise_64_tex_l8;
+    vf_wind_dir@f4 = vf_wind_dir;
+
+    world_to_hmap_low@f4 = (world_to_hmap_low.x, world_to_hmap_low.y, world_to_hmap_low.z + 0.5*tex_hmap_inv_sizes.x, world_to_hmap_low.w+0.5*tex_hmap_inv_sizes.y);
+    tex_hmap_low@smp2d = tex_hmap_low;
+    heightmap_scale@f4 = heightmap_scale;
+
+    volfog_media_params@f2 = (time_phase(0,0), volfog_media_fog_input_mul, 0, 0);
+
+    distant_heightmap_tex@tex2d = distant_heightmap_tex;
+    distant_world_to_hmap_low@f4 = distant_world_to_hmap_low;
+    distant_heightmap_scale@f4 = distant_heightmap_scale;
+    distant_heightmap_target_box@f4 = distant_heightmap_target_box;
+  }
+  hlsl(code)
+  {
+    #define global_time_phase volfog_media_params.x
+    #define volfog_media_fog_input_mul volfog_media_params.y
+    #define noise_sampler noise_64_tex_l8
+    #define noise_sampler_samplerstate noise_64_tex_l8_samplerstate
+    #define distant_heightmap_tex_samplerstate tex_hmap_low_samplerstate
+  }
+
+  (code) {
+    depth_above@smp2d = depth_around;
+  }
+  INIT_BLURRED_DEPTH_ABOVE(code)
+  USE_BLURRED_DEPTH_ABOVE(code)
+
+  hlsl(code) {
+    #include <get_smooth_noise4d.hlsl>
+
+    struct MRTOutput
+    {
+      float4 col0;
+    };
+
+    // copy-paste from NBS: TODO: make it common
+    float sample_distant_heightmap(float2 world_xz)
+    {
+      float2 tc_low = world_xz * distant_world_to_hmap_low.xy + distant_world_to_hmap_low.zw;
+      return tex2Dlod(distant_heightmap_tex, float4(tc_low, 0, 0)).x * distant_heightmap_scale.x + distant_heightmap_scale.y;
+    }
+    float sample_heightmap(float2 world_xz, float lod)
+    {
+      float2 tc_low = world_xz * world_to_hmap_low.xy + world_to_hmap_low.zw;
+      return tex2Dlod(tex_hmap_low, float4(tc_low, 0, lod)).x * heightmap_scale.x + heightmap_scale.y;
+    }
+    float get_ground_height_lod(float3 world_pos, float lod)
+    {
+      float2 world_xz = world_pos.xz;
+      float2 dist2 = abs(world_xz - distant_heightmap_target_box.xy) - distant_heightmap_target_box.zw;
+      float dist = max(dist2.x, dist2.y);
+
+      BRANCH
+      if (dist > 0)
+        return sample_distant_heightmap(world_pos.xz);
+      else
+        return sample_heightmap(world_pos.xz, lod);
+    }
+
+    float get_ground_height(float3 world_pos)
+    {
+      return get_ground_height_lod(world_pos, HEIGHTMAP_LOD);
+    }
+    float3 getDepthAboveTcAndVignette(float3 world_pos)
+    {
+      float2 tc = saturate(world_to_depth_ao.xy * world_pos.xz + world_to_depth_ao.zw);
+      float2 vignette = saturate(abs(tc * 2 - 1) * 10 - 9);
+      float vignette_effect = saturate(dot(vignette, vignette));
+      return float3(tc - depth_ao_heights.zw, vignette_effect);
+    }
+
+
+    // parameters intentionally have mixed case, so generated code can be copied into the function body as-is
+    // TODO: doesn't work for some generated code at the moment (some functions are not shared and texture names are not generated correctly)
+    void get_hardcoded_media(inout MRTOutput result,
+      float3 world_pos, float3 screenTcJittered, float wind_time, float2 depthAboveTc, float depthAboveVignette)
+    {
+##if volfog_hardcoded_input_type == fog_graph_0
+      float3 _v_3_0 = world_pos;
+      float _v_5_2 = float4(_v_3_0, 0.0).y;
+      float _v_5_3 = float4(_v_3_0, 0.0).z;
+      float _v_85_0 = 20.0;
+      float _v_88_2 = (_v_85_0 - _v_5_2);
+      float _v_103_0 = get_ground_height(world_pos);
+      float3 _v_124_0 = float3(0.2, 0.2, 0.2);
+      float _v_154_0 = global_time_phase;
+      float3 _v_156_0 = world_pos;
+      float4 _v_159_0 = float4(0.5, 0.8, 1.0, 1.0);
+      float _v_163_0 = -0.8;
+      float _v_165_2 = (_v_103_0 - _v_5_2);
+      float4 _v_170_0 = float4(vf_wind_dir);
+      float _v_172_1 = _v_5_3 * (0.001);
+      float _v_175_0 = -0.2;
+      float3 _v_187_0 = float3(-1230.0, 184.0, 240.0);
+      float3 _v_188_0 = world_pos;
+      float3 _v_189_2 = (_v_187_0 - _v_188_0);
+      float _v_190_1 = length(_v_189_2);
+      float _v_192_0 = 200.0;
+      float4 _v_193_0 = float4(0.1, 0.09, 0.08, 1.0);
+      float3 _v_198_0 = float3(195.0, 5.0, -983.0);
+      float3 _v_203_0 = float3(0.0, -10.0, 0.0);
+      float3 _v_204_0 = float3(0.1, 0.05, 0.1);
+      float3 _v_205_0 = world_pos;
+      float3 _v_209_0 = world_pos;
+      float3 _v_210_2 = (_v_198_0 - _v_209_0);
+      float _v_213_0 = 400.0;
+      float4 _v_214_0 = float4(1.0, 1.0, 1.0, 1.0);
+      float3 _v_232_0 = float3(1.0, 16.0, 1.0);
+      float3 _v_234_0 = float3(-1540.0, 0.0, -350.0);
+      float3 _v_235_2 = (_v_234_0 - _v_209_0);
+      float _v_238_0 = 200.0;
+      float3 _v_242_0 = float3(1.0, 4.0, 1.0);
+      float3 _v_245_0 = float3(-615.0, 40.0, 244.0);
+      float3 _v_246_2 = (_v_245_0 - _v_209_0);
+      float _v_249_0 = 150.0;
+      float3 _v_253_0 = float3(1.0, 4.0, 1.0);
+      float _v_258_0 = 0.2;
+      float _v_2_1 = _v_88_2 * (0.008);
+      float _v_87_1 = _v_154_0 * (2.0);
+      float4 _v_125_2 = (float4(_v_87_1, _v_87_1, _v_87_1, _v_87_1) * _v_170_0);
+      float4 _v_161_2 = (float4(_v_156_0, 0.0) + _v_125_2);
+      float _v_164_1 = _v_165_2 * (1.0);
+      float4 _v_167_2 = (float4(_v_124_0, 0.0) * _v_161_2);
+      float _v_168_1 = get_smooth_noise3d(_v_167_2.xyz);
+      float _v_174_2 = (_v_172_1 + _v_175_0);
+      float _v_176_1 = saturate(_v_2_1);
+      float _v_191_2 = (_v_190_1 / _v_192_0);
+      float _v_199_1 = 1.0 - _v_191_2;
+      float3 _v_202_2 = (float3(_v_154_0, _v_154_0, _v_154_0) * _v_203_0);
+      float3 _v_231_2 = (_v_210_2 * _v_232_0);
+      float3 _v_241_2 = (_v_235_2 * _v_242_0);
+      float3 _v_252_2 = (_v_246_2 * _v_253_0);
+      float _v_162_2 = (_v_164_1 - _v_163_0);
+      float _v_173_1 = saturate(_v_174_2);
+      float _v_178_1 = exp(_v_162_2);
+      float _v_195_1 = _v_199_1 * (0.2);
+      float4 _v_201_2 = (_v_125_2 + float4(_v_202_2, 0.0));
+      float4 _v_206_2 = (float4(_v_205_0, 0.0) + _v_201_2);
+      float4 _v_207_2 = (float4(_v_204_0, 0.0) * _v_206_2);
+      float _v_208_1 = get_smooth_noise3d(_v_207_2.xyz);
+      float _v_211_1 = length(_v_231_2);
+      float _v_212_2 = (_v_211_1 / _v_213_0);
+      float _v_227_1 = 1.0 - _v_212_2;
+      float _v_236_1 = length(_v_241_2);
+      float _v_237_2 = (_v_236_1 / _v_238_0);
+      float _v_240_1 = 1.0 - _v_237_2;
+      float _v_247_1 = length(_v_252_2);
+      float _v_248_2 = (_v_247_1 / _v_249_0);
+      float _v_251_1 = 1.0 - _v_248_2;
+      float _v_254_1 = smoothstep(0.0, 1.0, _v_251_1);
+      float _v_255_1 = smoothstep(0.0, 1.0, _v_240_1);
+      float _v_257_2 = (_v_208_1 - _v_258_0);
+      float _v_177_1 = saturate(_v_178_1);
+      float _v_225_1 = _v_227_1 * (0.2);
+      float _v_233_2 = (_v_225_1 * _v_177_1);
+      float _v_239_1 = _v_255_1 * (0.2);
+      float _v_243_2 = max(_v_233_2, _v_239_1);
+      float _v_250_1 = _v_254_1 * (0.2);
+      float _v_256_1 = saturate(_v_257_2);
+      float _v_32_2 = (_v_177_1 + _v_176_1);
+      float _v_171_2 = (_v_32_2 * _v_173_1);
+      float _v_200_2 = (_v_195_1 * _v_256_1);
+      float _v_244_2 = max(_v_243_2, _v_250_1);
+      float _v_169_2 = (_v_171_2 * _v_168_1);
+      float _v_197_1 = saturate(_v_200_2);
+      float _v_228_2 = (_v_244_2 * _v_256_1);
+      float _v_166_1 = _v_169_2 * (0.01);
+      float _v_182_1 = saturate(_v_166_1);
+      float4 _v_194_2 = (_v_193_0 * float4(_v_197_1, _v_197_1, _v_197_1, _v_197_1));
+      float _v_226_1 = saturate(_v_228_2);
+      float4 _v_160_2 = (_v_159_0 * float4(_v_182_1, _v_182_1, _v_182_1, _v_182_1));
+      float4 _v_181_2 = (_v_160_2 + float4(0.0, 0.0, 0.0, 0.0));
+      float4 _v_196_2 = (_v_181_2 + _v_194_2);
+      float4 _v_215_2 = (_v_214_0 * float4(_v_226_1, _v_226_1, _v_226_1, _v_226_1));
+      float4 _v_230_2 = (_v_196_2 + _v_215_2);
+      result.col0 += _v_230_2;
+##endif
+
+#if DEBUG_DISTANT_FOG_MEDIA_EXTRA_MUL
+      result.col0 *= volfog_media_fog_input_mul;
+#endif
+    }
+
+    float4 get_media_no_modifiers(float3 world_pos, float3 screen_tc, float wind_time)
+    {
+      float3 screenTcJittered = screen_tc;
+      float3 depthAboveTcAndVignette = getDepthAboveTcAndVignette(world_pos);
+      float2 depthAboveTc = depthAboveTcAndVignette.xy;
+      float depthAboveVignette = depthAboveTcAndVignette.z;
+
+      MRTOutput result = (MRTOutput)0;
+      get_hardcoded_media(result, world_pos, screen_tc, wind_time, depthAboveTc, depthAboveVignette);
+
+      return result.col0;
+    }
+
+    float4 get_media(float3 world_pos, float3 screen_tc, float wind_time)
+    {
+      float4 result = get_media_no_modifiers(world_pos, screen_tc, wind_time);
+      apply_volfog_modifiers(result, screen_tc, world_pos);
+      return (result < 1.0e10 && result >= 0.0f) ? result : 0;
+    }
+  }
+endmacro

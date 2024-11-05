@@ -8,20 +8,20 @@ macro USE_FEEDBACK_PACKER(code)
     static const uint4 FEEDBACK_MASK = (1U << FEEDBACK_BITS) - 1U;
 
     // without dummy clear offset, do NOT use it during UAV feedback filling
-    uint packFinalFeedbackInfo(uint2 pos, uint mip, uint ri_index)
+    uint packFinalFeedbackInfo(uint2 pos, uint mip, uint ri_offset)
     {
-      uint4 data = uint4(ri_index, pos.y, pos.x, mip);
+      uint4 data = uint4(ri_offset, pos.y, pos.x, mip);
       data = data << FEEDBACK_SHIFT;
       return uint(data.x | data.y | data.z | data.w);
     }
 
-    uint packFeedbackInfo(uint2 pos, uint mip, uint ri_index)
+    uint packFeedbackInfo(uint2 pos, uint mip, uint ri_offset)
     {
-      ++ri_index; // ri_index == 0 is a dummy clear value for feedback
-      return packFinalFeedbackInfo(pos, mip, ri_index);
+      ++ri_offset; // ri_offset == 0 is a dummy clear value for feedback
+      return packFinalFeedbackInfo(pos, mip, ri_offset);
     }
 
-    void unpackFeedbackInfo(uint pack, out uint2 pos, out uint mip, out uint ri_index)
+    void unpackFeedbackInfo(uint pack, out uint2 pos, out uint mip, out uint ri_offset)
     {
       uint4 data = uint4(pack, pack, pack, pack) >> FEEDBACK_SHIFT;
       data = data & FEEDBACK_MASK;
@@ -29,12 +29,12 @@ macro USE_FEEDBACK_PACKER(code)
       pos.x = data.z;
       pos.y = data.y;
       mip = data.w;
-      ri_index = data.x;
+      ri_offset = data.x;
 
-      if (ri_index == 0)
+      if (ri_offset == 0)
         mip = TEX_MIPS; // invalid mip, invalid data on CPU with only this check
       else
-        --ri_index; // undo dummy clear offset
+        --ri_offset; // undo dummy clear offset
     }
   }
 endmacro

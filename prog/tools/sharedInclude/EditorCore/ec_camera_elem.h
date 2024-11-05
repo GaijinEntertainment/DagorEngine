@@ -1,11 +1,9 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef __GAIJIN_EDITORCORE_EC_CAMERA_ELEM_H__
-#define __GAIJIN_EDITORCORE_EC_CAMERA_ELEM_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EditorCore/ec_interface.h>
 #include <generic/dag_initOnDemand.h>
-#include <propPanel2/c_common.h>
+#include <propPanel/c_common.h>
 
 /// The class for managing cameras.
 /// @ingroup EditorCore
@@ -129,6 +127,7 @@ public:
     if (getCamera() != thisCamType)
     {
       initPosition = true;
+      stop();
       return;
     }
     actInternal();
@@ -148,6 +147,7 @@ protected:
   Point3 getSurfPos(const Point3 &pos);
   virtual bool canPutCapsule(const Point3 &pt);
   virtual void actInternal();
+  void stop();
 
   static IGenViewportWnd *vpw;
   static int currentType;
@@ -291,5 +291,3 @@ extern InitOnDemand<FpsCameraElem> fpsCameraElem;
 extern InitOnDemand<TpsCameraElem> tpsCameraElem;
 extern InitOnDemand<CarCameraElem> carCameraElem;
 } // namespace ec_camera_elem
-
-#endif

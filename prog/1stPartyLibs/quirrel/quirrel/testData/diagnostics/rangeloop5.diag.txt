@@ -1,8 +1,0 @@
-ERROR: iterator name (identifier) is expected in 'for ([variable:] [from,] to[, step])', got 'expression'
-testData/diagnostics/rangeloop5.nut.txt:3:11
-
-for (local i = 0: a, b) {
-           ^-----
-    println("ERROR loop 5")
-
-

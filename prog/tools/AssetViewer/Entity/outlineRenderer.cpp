@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "outlineRenderer.h"
 #include <de3_interface.h>
 #include <EditorCore/ec_interface.h>
@@ -5,6 +7,9 @@
 #include <rendInst/rendInstExtraRender.h>
 #include <shaders/dag_dynSceneRes.h>
 #include <shaders/dag_shaderBlock.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_texture.h>
 
 int OutlineRenderer::simple_outline_colorVarId = -1;
 int OutlineRenderer::simple_outline_color_rtVarId = -1;

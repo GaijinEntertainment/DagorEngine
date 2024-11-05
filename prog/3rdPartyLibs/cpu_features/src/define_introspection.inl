@@ -71,6 +71,7 @@ static void (*const kSetters[])(FEAT_TYPE_NAME*, bool) = {INTROSPECTION_TABLE};
 // Implements the `GetXXXFeaturesEnumValue` API.
 int GET_FEAT_ENUM_VALUE(const FEAT_TYPE_NAME* features, FEAT_ENUM_NAME value) {
   if (value >= FEAT_ENUM_LAST) return false;
+  if (value >= sizeof(kGetters)/sizeof(kGetters[0])) return false;
   return kGetters[value](features);
 }
 
@@ -82,5 +83,6 @@ static const char* kFeatureNames[] = {INTROSPECTION_TABLE};
 // Implements the `GetXXXFeaturesEnumName` API.
 const char* GET_FEAT_ENUM_NAME(FEAT_ENUM_NAME value) {
   if (value >= FEAT_ENUM_LAST) return "unknown_feature";
+  if (value >= sizeof(kFeatureNames)/sizeof(kFeatureNames[0])) return "unknown_feature";
   return kFeatureNames[value];
 }

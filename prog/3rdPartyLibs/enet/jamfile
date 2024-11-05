@@ -16,12 +16,12 @@ Sources =
   protocol.c
 ;
 
-if $(Platform) in win32 win64 xboxOne scarlett { Sources += win32.c ; }
-if $(Platform) in ps4 ps5 macosx iOS tvOS linux64 android { Sources += unix.c ; }
+if $(Platform) in windows xboxOne scarlett { Sources += win32.c ; }
+if $(Platform) in ps4 ps5 macOS iOS tvOS linux android { Sources += unix.c ; }
 
 AddIncludes = $(Root)/prog/3rdPartyLibs/enet/include ;
 
-if $(Platform) in win32 win64
+if $(Platform) in windows
 {
   AddLibs += winmm.lib ws2_32.lib ;
 }
@@ -34,7 +34,7 @@ else if $(Platform) in ps4 ps5
     -DPF_INET=AF_INET
   ;
 }
-else if $(Platform) in macosx iOS tvOS linux64 android
+else if $(Platform) in macOS iOS tvOS linux android
 {
   CPPopt +=
     # options

@@ -1,25 +1,31 @@
 package com.nvidia.Helpers;
 
-import android.app.*;
-import android.content.*;
-import android.graphics.drawable.ColorDrawable;
-import android.text.*;
-import android.text.method.TextKeyListener;
-import android.view.*;
-import android.view.inputmethod.*;
-import android.view.View.*;
-import android.widget.*;
-import android.util.Log;
-import java.io.*;
+import android.app.Activity;
+import android.app.Dialog;
+import android.app.NativeActivity;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.graphics.Rect;
-import android.content.pm.*;
-import android.os.Build;
+import android.graphics.drawable.ColorDrawable;
+import android.text.InputFilter;
+import android.util.Log;
+import android.view.KeyEvent;
+import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
+import android.widget.TextView;
 
 public class NvSoftInput extends Dialog
 {
   private static final String TAG = "SoftInput";
 
-  private static native void nativeTextReport(String text, boolean isCanceled);
+  private static native void nativeTextReport(String text, int cursorPos, boolean isCanceled);
 
   private Context mContext = null;
   private EditText mEditText = null;
@@ -72,7 +78,7 @@ public class NvSoftInput extends Dialog
     }
   }
 
-  public static void Show(final Activity activity, final String initialText, final String hint, final int editFlags, final int imeOptions)
+  public static void Show(final Activity activity, final String initialText, final String hint, final int editFlags, final int imeOptions, final int cursorPos, final int maxLength)
   {
     if (!mInited)
       Init(activity, null);
@@ -86,7 +92,7 @@ public class NvSoftInput extends Dialog
           mCurrent = null;
         }
 
-        mCurrent = new NvSoftInput(activity, initialText, hint, editFlags, imeOptions);
+        mCurrent = new NvSoftInput(activity, initialText, hint, editFlags, imeOptions, cursorPos, maxLength);
         mCurrent.show();
       }
     });
@@ -117,7 +123,7 @@ public class NvSoftInput extends Dialog
     return false;
   }
 
-  private NvSoftInput(Context context, String initialText, String hint, int editTypeFlags, int imeOptions)
+  private NvSoftInput(Context context, String initialText, String hint, int editTypeFlags, int imeOptions, int cursorPos, int maxLength)
   {
     super (context);
     mContext = context;
@@ -126,7 +132,12 @@ public class NvSoftInput extends Dialog
     mWindow.requestFeature(Window.FEATURE_NO_TITLE);
     mWindow.setBackgroundDrawable(new ColorDrawable(0));
 
-    setContentView(createView(initialText, hint, editTypeFlags, imeOptions));
+    setContentView(createView(initialText, hint, editTypeFlags, imeOptions, cursorPos, maxLength));
+
+    //set cursor position should be done after adding to the view
+    try {
+      mEditText.setSelection(cursorPos);
+    } catch (Exception e) {}
 
     setCanceledOnTouchOutside(true);
     setOnCancelListener(new DialogInterface.OnCancelListener() {
@@ -148,21 +159,13 @@ public class NvSoftInput extends Dialog
 
     mInsideClose = true;
 
-    nativeTextReport(getText(), isCanceled);
-
-    //Shield Portable Android 4.x BSP WAR
-    //selection decorators can appear on the screen after IME was closed
-    //resetting selection doesn't work so kill the text.
-    if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.KITKAT)
-    {
-      mEditText.setText("");
-    }
+    nativeTextReport(getText(), mEditText.getSelectionEnd(), isCanceled);
 
     NvSoftInput.Hide();
     mInsideClose = false;
   }
 
-  private View createView(String initialText, String hint, int editTypeFlags, int imeOptions)
+  private View createView(String initialText, String hint, int editTypeFlags, int imeOptions, int cursorPos, int maxLength)
   {
     mEditText = new EditText(mContext) {
       public boolean onKeyPreIme(int keyCode, KeyEvent event)
@@ -208,20 +211,20 @@ public class NvSoftInput extends Dialog
       }
     });
 
+    if (maxLength > 0) {
+      InputFilter[] currentFilters = mEditText.getFilters();
+      InputFilter[] newFilters = new InputFilter[currentFilters.length + 1];
+      System.arraycopy(currentFilters, 0, newFilters, 0, currentFilters.length);
+      newFilters[currentFilters.length] = new InputFilter.LengthFilter(maxLength);
+      mEditText.setFilters(newFilters);
+    }
+
     mEditText.setImeOptions(imeOptions);
     mEditText.setText(initialText);
     mEditText.setHint(hint);
     mEditText.setInputType(editTypeFlags);
     mEditText.setClickable(true);
-
-    if ((editTypeFlags & EditorInfo.TYPE_TEXT_FLAG_IME_MULTI_LINE) == 0)
-    {
-      //bug? can't use selectAll() for Leanback keyboard
-      //it vanishes the text that was previously set via setText()
-      //need to run on UI thread syncronously?
-      //just move cursor to the end of line for now
-      mEditText.setSelection(initialText.length());
-    }
+    mEditText.setBackgroundColor(Color.WHITE);
 
     mEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
       @Override public void onFocusChange(View v, boolean hasFocus)
@@ -239,9 +242,6 @@ public class NvSoftInput extends Dialog
     mHeight = mEditText.getMeasuredHeight();
 
     mEditText.setMinWidth(mWidth);
-
     return mEditText;
   }
-
-  public void onBackPressed() { close(true); }
 }

@@ -82,9 +82,11 @@ typedef struct {
   int avx512_4fmaps : 1;
   int avx512_bf16 : 1;
   int avx512_vp2intersect : 1;
+  int avx512_fp16 : 1;
   int amx_bf16 : 1;
   int amx_tile : 1;
   int amx_int8 : 1;
+  int amx_fp16 : 1;
 
   int pclmulqdq : 1;
   int smx : 1;
@@ -99,6 +101,16 @@ typedef struct {
   int ss : 1;
   int adx : 1;
   int lzcnt : 1;  // Note: this flag is called ABM for AMD, LZCNT for Intel.
+  int gfni : 1;
+  int movdiri : 1;
+  int movdir64b : 1;
+  int fs_rep_mov : 1;          // Fast short REP MOV
+  int fz_rep_movsb : 1;        // Fast zero-length REP MOVSB
+  int fs_rep_stosb : 1;        // Fast short REP STOSB
+  int fs_rep_cmpsb_scasb : 1;  // Fast short REP CMPSB/SCASB
+
+  int lam : 1;  // Intel Linear Address Mask
+  int uai : 1;  // AMD Upper Address Ignore
   // Make sure to update X86FeaturesEnum below if you add a field here.
 } X86Features;
 
@@ -116,63 +128,64 @@ X86Info GetX86Info(void);
 
 // Returns cache hierarchy informations.
 // Can call cpuid multiple times.
-// Only works on Intel CPU at the moment.
 CacheInfo GetX86CacheInfo(void);
 
 typedef enum {
   X86_UNKNOWN,
-  ZHAOXIN_ZHANGJIANG,  // ZhangJiang
-  ZHAOXIN_WUDAOKOU,    // WuDaoKou
-  ZHAOXIN_LUJIAZUI,    // LuJiaZui
-  ZHAOXIN_YONGFENG,    // YongFeng
-  INTEL_80486,         // 80486
-  INTEL_P5,            // P5
-  INTEL_LAKEMONT,      // LAKEMONT
-  INTEL_CORE,          // CORE
-  INTEL_PNR,           // PENRYN
-  INTEL_NHM,           // NEHALEM
-  INTEL_ATOM_BNL,      // BONNELL
-  INTEL_WSM,           // WESTMERE
-  INTEL_SNB,           // SANDYBRIDGE
-  INTEL_IVB,           // IVYBRIDGE
-  INTEL_ATOM_SMT,      // SILVERMONT
-  INTEL_HSW,           // HASWELL
-  INTEL_BDW,           // BROADWELL
-  INTEL_SKL,           // SKYLAKE
-  INTEL_ATOM_GMT,      // GOLDMONT
-  INTEL_ATOM_GMT_PLUS, // GOLDMONT+
-  INTEL_ATOM_TMT,      // TREMONT
-  INTEL_KBL,           // KABY LAKE
-  INTEL_CFL,           // COFFEE LAKE
-  INTEL_WHL,           // WHISKEY LAKE
-  INTEL_CML,           // COMET LAKE
-  INTEL_CNL,           // CANNON LAKE
-  INTEL_ICL,           // ICE LAKE
-  INTEL_TGL,           // TIGER LAKE
-  INTEL_SPR,           // SAPPHIRE RAPIDS
-  INTEL_ADL,           // ALDER LAKE
-  INTEL_RCL,           // ROCKET LAKE
-  INTEL_KNIGHTS_M,     // KNIGHTS MILL
-  INTEL_KNIGHTS_L,     // KNIGHTS LANDING
-  INTEL_KNIGHTS_F,     // KNIGHTS FERRY
-  INTEL_KNIGHTS_C,     // KNIGHTS CORNER
-  INTEL_NETBURST,      // NETBURST
-  AMD_HAMMER,          // K8  HAMMER
-  AMD_K10,             // K10
-  AMD_K11,             // K11
-  AMD_K12,             // K12 LLANO
-  AMD_BOBCAT,          // K14 BOBCAT
-  AMD_PILEDRIVER,      // K15 PILEDRIVER
-  AMD_STREAMROLLER,    // K15 STREAMROLLER
-  AMD_EXCAVATOR,       // K15 EXCAVATOR
-  AMD_BULLDOZER,       // K15 BULLDOZER
-  AMD_JAGUAR,          // K16 JAGUAR
-  AMD_PUMA,            // K16 PUMA
-  AMD_ZEN,             // K17 ZEN
-  AMD_ZEN_PLUS,        // K17 ZEN+
-  AMD_ZEN2,            // K17 ZEN 2
-  AMD_ZEN3,            // K19 ZEN 3
-  AMD_ZEN4,            // K19 ZEN 4
+  ZHAOXIN_ZHANGJIANG,   // ZhangJiang
+  ZHAOXIN_WUDAOKOU,     // WuDaoKou
+  ZHAOXIN_LUJIAZUI,     // LuJiaZui
+  ZHAOXIN_YONGFENG,     // YongFeng
+  INTEL_80486,          // 80486
+  INTEL_P5,             // P5
+  INTEL_LAKEMONT,       // LAKEMONT
+  INTEL_CORE,           // CORE
+  INTEL_PNR,            // PENRYN
+  INTEL_NHM,            // NEHALEM
+  INTEL_ATOM_BNL,       // BONNELL
+  INTEL_WSM,            // WESTMERE
+  INTEL_SNB,            // SANDYBRIDGE
+  INTEL_IVB,            // IVYBRIDGE
+  INTEL_ATOM_SMT,       // SILVERMONT
+  INTEL_HSW,            // HASWELL
+  INTEL_BDW,            // BROADWELL
+  INTEL_SKL,            // SKYLAKE
+  INTEL_CCL,            // CASCADELAKE
+  INTEL_ATOM_GMT,       // GOLDMONT
+  INTEL_ATOM_GMT_PLUS,  // GOLDMONT+
+  INTEL_ATOM_TMT,       // TREMONT
+  INTEL_KBL,            // KABY LAKE
+  INTEL_CFL,            // COFFEE LAKE
+  INTEL_WHL,            // WHISKEY LAKE
+  INTEL_CML,            // COMET LAKE
+  INTEL_CNL,            // CANNON LAKE
+  INTEL_ICL,            // ICE LAKE
+  INTEL_TGL,            // TIGER LAKE
+  INTEL_SPR,            // SAPPHIRE RAPIDS
+  INTEL_ADL,            // ALDER LAKE
+  INTEL_RCL,            // ROCKET LAKE
+  INTEL_RPL,            // RAPTOR LAKE
+  INTEL_KNIGHTS_M,      // KNIGHTS MILL
+  INTEL_KNIGHTS_L,      // KNIGHTS LANDING
+  INTEL_KNIGHTS_F,      // KNIGHTS FERRY
+  INTEL_KNIGHTS_C,      // KNIGHTS CORNER
+  INTEL_NETBURST,       // NETBURST
+  AMD_HAMMER,           // K8  HAMMER
+  AMD_K10,              // K10
+  AMD_K11,              // K11
+  AMD_K12,              // K12 LLANO
+  AMD_BOBCAT,           // K14 BOBCAT
+  AMD_PILEDRIVER,       // K15 PILEDRIVER
+  AMD_STREAMROLLER,     // K15 STREAMROLLER
+  AMD_EXCAVATOR,        // K15 EXCAVATOR
+  AMD_BULLDOZER,        // K15 BULLDOZER
+  AMD_JAGUAR,           // K16 JAGUAR
+  AMD_PUMA,             // K16 PUMA
+  AMD_ZEN,              // K17 ZEN
+  AMD_ZEN_PLUS,         // K17 ZEN+
+  AMD_ZEN2,             // K17 ZEN 2
+  AMD_ZEN3,             // K19 ZEN 3
+  AMD_ZEN4,             // K19 ZEN 4
   X86_MICROARCHITECTURE_LAST_,
 } X86Microarchitecture;
 
@@ -238,9 +251,11 @@ typedef enum {
   X86_AVX512_4FMAPS,
   X86_AVX512_BF16,
   X86_AVX512_VP2INTERSECT,
+  X86_AVX512_FP16,
   X86_AMX_BF16,
   X86_AMX_TILE,
   X86_AMX_INT8,
+  X86_AMX_FP16,
   X86_PCLMULQDQ,
   X86_SMX,
   X86_SGX,
@@ -253,6 +268,15 @@ typedef enum {
   X86_SS,
   X86_ADX,
   X86_LZCNT,
+  X86_GFNI,
+  X86_MOVDIRI,
+  X86_MOVDIR64B,
+  X86_FS_REP_MOV,
+  X86_FZ_REP_MOVSB,
+  X86_FS_REP_STOSB,
+  X86_FS_REP_CMPSB_SCASB,
+  X86_LAM,
+  X86_UAI,
   X86_LAST_,
 } X86FeaturesEnum;
 

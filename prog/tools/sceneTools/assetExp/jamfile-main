@@ -1,18 +1,15 @@
-if $(OS) = NT { Platform ?= win64 ; }
 Root    ?= ../../../.. ;
 Location = prog/tools/sceneTools/assetExp ;
-DriverLinkage ?= dynamic ;
+KernelLinkage ?= dynamic ;
+BuildingTools  = yes ;
 include $(Root)/prog/tools/tools_setup.jam ;
 ConsoleExe    = yes ;
 
 TargetType  = exe ;
 Target      = tools/sceneTools/daBuild ;
+include $(Root)/prog/tools/tools_setup_outdir_bin.jam ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
-
-OutDir = $(Root)/tools/dagor3_cdk/bin ;
-if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
-if $(Platform) in linux64 macosx { OutDir = $(OutDir)-$(Platform) ; }
 
 
 AddIncludes =
@@ -46,12 +43,12 @@ UseProgLibs =
   tools/libTools/dtx
   3rdPartyLibs/hash
 ;
-if $(Platform) in linux64 macosx { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
+if $(Platform) in linux macOS { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
 
 CPPopt = -D_TARGET_DABUILD_STATIC ;
 
-if $(DriverLinkage) = dynamic {
-  if $(Sanitize) = address { Exit ASAN requires DriverLinkage=static ; }
+if $(KernelLinkage) = dynamic {
+  if $(Sanitize) = address { Exit ASAN requires KernelLinkage=static ; }
   ImportProgLibs = tools/libTools/daKernel ;
   ImportsRelativeDir = . ;
 } else {

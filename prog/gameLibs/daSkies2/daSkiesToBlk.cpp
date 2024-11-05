@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EASTL/type_traits.h>
 #include <daSkies2/daSkiesToBlk.h>
 #include <ioSys/dag_dataBlock.h>

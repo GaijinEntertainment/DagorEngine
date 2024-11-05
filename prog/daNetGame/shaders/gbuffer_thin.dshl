@@ -1,0 +1,171 @@
+macro WRITE_GBUFFER_THIN()
+  USE_ROUGH_TO_MIP()
+
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    USE_COMPAT_HDR_WRITE(ps)
+  }
+
+  hlsl(ps) {
+    #include "pbr/pbr.hlsl"
+    #include <sh3_function.hlsl>
+    struct GBUFFER_OUTPUT
+    {
+      float4 sunLight : SV_Target0;
+      float4 ambientLight : SV_Target1;
+    };
+
+    #define ROUGHNESS_TRESHOLD 0.75
+
+    GBUFFER_OUTPUT apply_gbuffer_hdr(GBUFFER_OUTPUT ret)
+    {
+      ret.sunLight.rgb *= get_exposure_mul();
+      ret.ambientLight.rgb *= get_exposure_mul();
+      #if BLEND_GBUFFER
+      ret.sunLight.a = 0;
+      ret.ambientLight.a = 0;
+      #endif
+      return ret;
+    }
+
+    GBUFFER_OUTPUT apply_gbuffer_rgb(GBUFFER_OUTPUT ret, half3 rgb)
+    {
+      ret.sunLight.rgb = ret.ambientLight.rgb = rgb;
+      #if BLEND_GBUFFER
+      ret.sunLight.a   = ret.ambientLight.a   = 0;
+      #endif
+      return ret;
+    }
+
+    GBUFFER_OUTPUT encode_processed_gbuffer_exposure(ProcessedGbuffer gbuffer, float3 pointToEye,
+      float exposure, float3 sunLightDir, float3 sunLightColor,
+      float4 sph0, float4 sph1, float4 sph2, float enviSpecularBrightness)
+    {
+      GBUFFER_OUTPUT ret = (GBUFFER_OUTPUT)0;
+      half3 sunLight = 0;
+      float distSq = dot(pointToEye, pointToEye);
+      float invRsqrt = rsqrt(distSq);
+      float3 view = pointToEye * invRsqrt;
+      float dist = rcp(invRsqrt);
+
+      float NoL = dot(gbuffer.normal, -sunLightDir.xyz);
+      half shadow = gbuffer.shadow;
+      half enviAO = gbuffer.ao;//we still modulate by albedo color, so we dont need micro AO
+      half3 environmentAmbientReflection = 0;
+
+##if shader == dynamic_masked_chrome_bump
+      #define BARE_MINIMUM_AMBIENT_MULTIPLIER 0.02
+      // Here we make a very strong assumption that position of the camera inside tank cockpit is typically not too far away from cockpit's
+      // center due to not having world position to compare to. It holds true from what I've checked
+      float fragmentInTankCockpit = float(distSq < tank_cockpit__bsphere.w);
+##endif
+
+      #if SPECULAR_DISABLED && BRDF_DIFFUSE == DIFFUSE_LAMBERT
+        half backlight = 0.0f;
+        #if USE_SSS_THIN
+          if (isSubSurfaceShader(gbuffer.material) && isSubSurfaceProfileValid(gbuffer.sss_profile))
+            backlight += foliageSSSfast(NoL) * gbuffer.translucency;
+        #endif
+        sunLight = diffuseLambert( gbuffer.diffuseColor ) * (saturate(NoL) + backlight) * shadow;
+      #else
+        #if ROUGHNESS_BASED_LIGHT
+        if (gbuffer.linearRoughness > ROUGHNESS_TRESHOLD)
+          sunLight = diffuseLambert( gbuffer.diffuseColor ) * saturate(NoL) * shadow;
+        else
+        #endif
+        {
+        float NdotV = dot(gbuffer.normal, view);
+        float3 reflectionVec = 2 * NdotV * gbuffer.normal - view;
+        float NoV = abs( NdotV ) + 1e-5;
+        float ggx_alpha = gbuffer.ggx_alpha;
+
+        half specularAOcclusion = 1.0;//computeSpecOcclusion(NoV, gbuffer.ao, gbuffer.ggx_alpha);// dice spec occlusion
+        half3 specularColor = gbuffer.specularColor * (specularAOcclusion * gbuffer.extracted_albedo_ao);
+        #if ROUGHNESS_BASED_LIGHT
+          specularColor *= saturate(10*(ROUGHNESS_TRESHOLD - gbuffer.linearRoughness));
+        #endif
+        //SUN
+
+        //SUN
+        sunLight = standardBRDF( NoV, saturate(NoL), gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, gbuffer.extracted_albedo_ao, -sunLightDir, view, gbuffer.normal)*shadow;
+
+        #if !SPECULAR_DISABLED
+          half3 enviBRDF = EnvBRDFApprox(specularColor, gbuffer.linearRoughness, NoV);
+
+          float3 roughR = getRoughReflectionVec(reflectionVec.xyz, gbuffer.normal, ggx_alpha);
+          float roughMip = ComputeReflectionCaptureMipFromRoughness(gbuffer.linearRoughness);
+          environmentAmbientReflection = texCUBElod(gbuffer_envi_probe_specular, float4(roughR, roughMip)).rgb*enviBRDF*enviSpecularBrightness;
+##if shader == dynamic_masked_chrome_bump
+          environmentAmbientReflection *= (1.0 - fragmentInTankCockpit);
+##endif
+        #endif
+        }
+      #endif
+      //envi+
+      //half3 environmentAmbientUnoccludedLighting = GetSHFunctionValue(gbuffer.normal, gbuffer_enviSPH0, gbuffer_enviSPH1, gbuffer_enviSPH2, gbuffer_enviSPH3, gbuffer_enviSPH4, gbuffer_enviSPH5, gbuffer_enviSPH6);
+      half3 environmentAmbientUnoccludedLighting = GetSHFunctionValueSimple(gbuffer.normal, sph0, sph1, sph2);
+##if shader == dynamic_masked_chrome_bump
+      environmentAmbientUnoccludedLighting *= (1.0 - fragmentInTankCockpit);
+      environmentAmbientUnoccludedLighting += tank_cockpit_fake_ambient_light_strength * BARE_MINIMUM_AMBIENT_MULTIPLIER * fragmentInTankCockpit;
+##endif
+      half3 ambientLight = enviAO * environmentAmbientUnoccludedLighting * gbuffer.diffuseColor;
+
+      #if USE_SSS_THIN
+        if (isSubSurfaceShader(gbuffer.material) && isSubSurfaceProfileValid(gbuffer.sss_profile))
+          ambientLight *= (1.0f + gbuffer.translucency);
+      #endif
+
+      sunLight *= sunLightColor;
+
+
+      //envi-
+      ambientLight += gbuffer.emissionColor + environmentAmbientReflection;
+      ambientLight *= exposure;//hdr
+      ret.sunLight.rgb = sunLight*exposure;//hdr
+      ret.ambientLight.rgb = ambientLight;//hdr
+
+      ret.sunLight.a = 0;
+      ret.ambientLight.a = 0;
+
+      return ret;
+    }
+
+    GBUFFER_OUTPUT encode_gbuffer_exposure(UnpackedGbuffer gbuf, float3 pointToEye, float4 screenPos,
+      float exposure, float3 sunLightDir, float3 sunLightColor,
+      float4 sph0, float4 sph1, float4 sph2, float enviSpecularBrightness)
+    {
+      ProcessedGbuffer gbuffer = processGbuffer(gbuf);
+      return encode_processed_gbuffer_exposure(gbuffer, pointToEye, exposure,
+                                               sunLightDir, sunLightColor,
+                                               sph0, sph1, sph2, enviSpecularBrightness);
+    }
+
+    GBUFFER_OUTPUT encode_gbuffer(UnpackedGbuffer gbuf, float3 pointToEye, float4 screenPos)
+    {
+      return encode_gbuffer_exposure(gbuf, pointToEye, screenPos, get_exposure_mul(),
+        gbuffer_sun_light_dir.xyz, gbuffer_sun_light_col.rgb,
+        gbuffer_enviSPH0, gbuffer_enviSPH1, gbuffer_enviSPH2, gbuffer_sun_light_col.w);
+    }
+
+    #if BLEND_GBUFFER
+    GBUFFER_OUTPUT encode_gbuffer_alpha(UnpackedGbuffer gbuffer, half alpha, float3 pointToEye, float4 screenPos)
+    {
+      GBUFFER_OUTPUT ret = encode_gbuffer(gbuffer, pointToEye, screenPos);
+      //thin gbuffer does not have W component by default, but writing it affects blending
+      ret.sunLight.w = ret.ambientLight.w = alpha;
+      return ret;
+    }
+
+    GBUFFER_OUTPUT encode_gbuffer_alpha3(UnpackedGbuffer gbuffer, half3 alpha, float3 pointToEye, float4 screenPos)
+    {
+      GBUFFER_OUTPUT ret = encode_gbuffer(gbuffer, pointToEye, screenPos);
+      //as original intention to use different alphas per Gbuffer
+      //can't be ported directly (as gbuffers are not compatible with each other)
+      //use albedo gbuffer alhpa everywhere as workaround
+      ret.sunLight.w = ret.ambientLight.w = alpha.x;
+      return ret;
+    }
+    #endif
+  }
+
+endmacro

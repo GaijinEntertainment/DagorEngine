@@ -1,15 +1,10 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <supp/dag_define_COREIMP.h>
-
-#include <util/dag_stdint.h>
-#include <util/dag_hash.h>
-#include <EASTL/utility.h>
+#include <util/dag_preprocessor.h>
 #include <perfMon/dag_drawStat.h>
 
 #ifndef TIME_PROFILER_ENABLED
@@ -43,9 +38,6 @@ struct TimeIntervalInfo
 
 #if TIME_PROFILER_ENABLED
 
-#define __CAT1(a, b) a##b
-#define __CAT2(a, b) __CAT1(a, b)
-
 #define TIME_PROFILE_THREAD(Name)  DA_PROFILE_THREAD(Name)
 #define TIME_PROFILE_AUTO_THREAD() DA_PROFILE_THREAD(nullptr)
 
@@ -59,9 +51,9 @@ struct TimeIntervalInfo
 
 #if DAGOR_DBGLEVEL != 0
 
-#define TIME_PROFILER_TICK(allow_switch) DA_PROFILE_TICK()
+#define TIME_PROFILER_TICK() DA_PROFILE_TICK()
 #else
-#define TIME_PROFILER_TICK(allow_switch) DA_PROFILE_TICK()
+#define TIME_PROFILER_TICK() DA_PROFILE_TICK()
 #endif
 
 #define TIME_PROFILER_TICK_END()
@@ -80,7 +72,7 @@ struct TimeIntervalInfo
 #define TIME_PROFILE_AUTO_THREAD()
 #define TIME_D3D_PROFILE(LabelName)
 #define TIME_D3D_PROFILE_NAME(LabelName, Name) G_UNUSED(Name);
-#define TIME_PROFILER_TICK(allow_switch)
+#define TIME_PROFILER_TICK()
 #define TIME_PROFILER_TICK_END()
 #define TIME_PROFILER_SHUTDOWN()
 #define TIME_PROFILER_EXIT_THREAD()
@@ -89,20 +81,28 @@ struct TimeIntervalInfo
 
 // Time profile which works only in dev builds
 #if DAGOR_DBGLEVEL > 0
-#define TIME_PROFILE_WAIT_DEV(LabelName) DA_PROFILE_WAIT(LabelName)
-#define TIME_PROFILE_DEV(LabelName)      TIME_PROFILE(LabelName)
-#define TIME_PROFILE_NAME_DEV            TIME_PROFILE_NAME
-#define TIME_D3D_PROFILE_DEV             TIME_D3D_PROFILE
+#define TIME_PROFILE_WAIT_DEV(LabelName)          DA_PROFILE_WAIT(LabelName)
+#define TIME_PROFILE_DEV(LabelName)               TIME_PROFILE(LabelName)
+#define TIME_PROFILE_NAME_DEV                     TIME_PROFILE_NAME
+#define TIME_D3D_PROFILE_DEV                      TIME_D3D_PROFILE
+#define TIME_PROFILE_UNIQUE_DEV                   DA_PROFILE_UNIQUE
+#define TIME_PROFILE_UNIQUE_EVENT_DEV             DA_PROFILE_UNIQUE_EVENT
+#define TIME_PROFILE_UNIQUE_EVENT_NAMED_DEV(Name) DA_PROFILE_UNIQUE_EVENT_NAMED(Name)
+#define TIME_PROFILE_UNIQUE_EVENT_DESC_DEV(Desc)  DA_PROFILE_UNIQUE_EVENT_DESC(Desc)
 #else
 #define TIME_PROFILE_WAIT_DEV(LabelName)
 #define TIME_PROFILE_DEV(LabelName)
 #define TIME_PROFILE_NAME_DEV(...)
 #define TIME_D3D_PROFILE_DEV(LabelName)
+#define TIME_PROFILE_UNIQUE_DEV
+#define TIME_PROFILE_UNIQUE_EVENT_DEV(...)
+#define TIME_PROFILE_UNIQUE_EVENT_NAMED_DEV(Name)
+#define TIME_PROFILE_UNIQUE_EVENT_DESC_DEV(Desc)
 #endif
 
 #if TDR_PROFILE
 #undef TIME_D3D_PROFILE
-#define TIME_D3D_PROFILE(LabelName) TdrProfile __CAT2(TdrProfile, LabelName)(#LabelName);
+#define TIME_D3D_PROFILE(LabelName) TdrProfile DAG_CONCAT(TdrProfile, LabelName)(#LabelName);
 
 struct TdrProfile
 {
@@ -114,4 +114,4 @@ struct TdrProfile
 };
 #endif
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

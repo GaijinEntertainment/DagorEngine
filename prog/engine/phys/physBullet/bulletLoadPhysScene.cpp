@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <phys/dag_physics.h>
 #include <scene/dag_frtdump.h>
 #include <ioSys/dag_zlibIo.h>
@@ -52,7 +54,7 @@ void *PhysWorld::loadSceneCollision(IGenLoad &_crd, int /*scene_mat_id*/)
   // load static triangle meshes
   G_VERIFY(crd.readInt() == _MAKE4C('MESH'));
 #if TRACE_PHYS_SCENE_LOADING
-  debug_ctx("Bullet loading: %d tr-meshesd", tri_mesh_actors);
+  DEBUG_CTX("Bullet loading: %d tr-meshesd", tri_mesh_actors);
 #endif
   Tab<btCollisionShape *> shapes(tmpmem);
   Tab<char> triMeshData(tmpmem);
@@ -107,7 +109,7 @@ void *PhysWorld::loadSceneCollision(IGenLoad &_crd, int /*scene_mat_id*/)
     sc->bodies.push_back(body);
 
 #if TRACE_PHYS_SCENE_LOADING
-    debug_ctx("Bullet collision loaded, actor #%d: %d shapes", ai, shapes.size());
+    DEBUG_CTX("Bullet collision loaded, actor #%d: %d shapes", ai, shapes.size());
 #endif
   }
   clear_and_shrink(shapes);

@@ -3,14 +3,64 @@
 #include "daScript/ast/ast_expressions.h"
 #include "daScript/ast/ast_handle.h"
 #include "daScript/ast/ast.h"
+#include <optional>
+#include <utility>
 
 namespace das {
-    struct ForReading {};
+    struct SerializationStorage {
+        vector<uint8_t> buffer;
+        size_t bufferPos = 0;
+        template<typename T>
+        __forceinline bool read ( T & data ) {
+            if ( bufferPos + sizeof(T) < buffer.size() ) {
+                data = *(T*)(buffer.data() + bufferPos);
+                bufferPos += sizeof(T);
+                return true;
+            }
+            return readOverflow(&data, sizeof(T));
+        }
+        __forceinline bool read ( vec4f & data ) {
+            if ( bufferPos + sizeof(vec4f) < buffer.size() ) {
+                data = v_ldu((const float*)(buffer.data() + bufferPos));
+                bufferPos += sizeof(vec4f);
+                return true;
+            }
+            return readOverflow(&data, sizeof(vec4f));
+        }
+        __forceinline bool read ( void * data, size_t size ) {
+            if ( bufferPos + size < buffer.size() ) {
+                memcpy(data, buffer.data() + bufferPos, size);
+                bufferPos += size;
+                return true;
+            }
+            return readOverflow(data, size);
+        }
+        virtual bool readOverflow ( void * data, size_t size ) = 0;
+        virtual void write ( const void * data, size_t size ) = 0;
+        virtual size_t writingSize() const = 0;
+        virtual ~SerializationStorage() {}
+    };
+
+    struct SerializationStorageVector : SerializationStorage {
+        virtual size_t writingSize() const override {
+            return buffer.size();
+        }
+        virtual bool readOverflow ( void * data, size_t size ) override {
+            if ( bufferPos + size > buffer.size() ) return false;
+            memcpy(data, buffer.data() + bufferPos, size);
+            bufferPos += size;
+            return true;
+        }
+        virtual void write ( const void * data, size_t size ) override {
+            auto at = buffer.size();
+            buffer.resize(at + size);
+            memcpy(buffer.data() + at, data, size);
+        }
+    };
 
     struct AstSerializer {
         ~AstSerializer ();
-        AstSerializer ( void );
-        AstSerializer ( ForReading, vector<uint8_t> && buffer_ );
+        AstSerializer ( SerializationStorage * storage, bool isWriting );
 
         AstSerializer ( const AstSerializer & from ) = delete;
         AstSerializer ( AstSerializer && from ) = default;
@@ -25,8 +75,7 @@ namespace das {
         bool                writing = false;
         bool                failed = false;
         size_t              readOffset = 0;
-        vector<uint8_t>     buffer;
-        vector<uint8_t>     metadata;
+        SerializationStorage * buffer = nullptr;
         bool                seenNewModule = false;
     // file info clean up
         vector<FileInfo*>         deleteUponFinish; // these pointers are for builtins (which we don't serialize) and need to be cleaned manually
@@ -59,27 +108,39 @@ namespace das {
         vector<tuple<string, uint64_t, ProgramPtr, Module*>> parsedModules;
     // tracking for shared modules
         das_hash_set<Module *>                      writingReadyModules;
-        void tag ( const char * name );
+        void tag   ( const char * name );
+        template<typename T>
+        void read  ( T & data ) { buffer->read(data); }
         void read  ( void * data, size_t size );
         void write ( const void * data, size_t size );
+        template<typename T>
+        void serialize ( T & data ) {
+            if ( writing ) {
+                write(&data, sizeof(data));
+            } else {
+                read(data);
+            }
+        }
+        void serialize ( void * data, size_t size );
         void serializeAdaptiveSize64 ( uint64_t & size );
         void serializeAdaptiveSize32 ( uint32_t & size );
-        void serialize ( void * data, size_t size );
+        void collectFileInfo ( vector<FileInfoPtr> & orphanedFileInfos );
+        void getCompiledModules ( );
         void patch ();
         AstSerializer & operator << ( string & str );
         AstSerializer & operator << ( const char * & value );
-        AstSerializer & operator << ( bool & value ) { serialize(&value, sizeof(value)); return *this; }
-        AstSerializer & operator << ( vec4f & value ) { serialize(&value, sizeof(value)); return *this; }
-        AstSerializer & operator << ( float & value ) { serialize(&value, sizeof(value)); return *this; }
-        AstSerializer & operator << ( void * & value ) { serialize(&value, sizeof(value)); return *this; }
-        AstSerializer & operator << ( uint8_t & value ) { serialize(&value, sizeof(value)); return *this; }
-        AstSerializer & operator << ( int32_t & value ) { serialize(&value, sizeof(value)); return *this; }
-        AstSerializer & operator << ( int64_t & value ) { serialize(&value, sizeof(value)); return *this; }
-        AstSerializer & operator << ( uint16_t & value ) { serialize(&value, sizeof(value)); return *this; }
-        AstSerializer & operator << ( uint32_t & value ) { serialize(&value, sizeof(value)); return *this; }
-        AstSerializer & operator << ( uint64_t & value ) { serialize(&value, sizeof(value)); return *this; }
-        AstSerializer & operator << ( pair<uint32_t,uint32_t> & value ) { serialize(&value, sizeof(value)); return *this; }
-        AstSerializer & operator << ( pair<uint64_t,uint64_t> & value ) { serialize(&value, sizeof(value)); return *this; }
+        AstSerializer & operator << ( bool & value ) { serialize(value); return *this; }
+        AstSerializer & operator << ( vec4f & value ) { serialize(value); return *this; }
+        AstSerializer & operator << ( float & value ) { serialize(value); return *this; }
+        AstSerializer & operator << ( void * & value ) { serialize(value); return *this; }
+        AstSerializer & operator << ( uint8_t & value ) { serialize(value); return *this; }
+        AstSerializer & operator << ( int32_t & value ) { serialize(value); return *this; }
+        AstSerializer & operator << ( int64_t & value ) { serialize(value); return *this; }
+        AstSerializer & operator << ( uint16_t & value ) { serialize(value); return *this; }
+        AstSerializer & operator << ( uint32_t & value ) { serialize(value); return *this; }
+        AstSerializer & operator << ( uint64_t & value ) { serialize(value); return *this; }
+        AstSerializer & operator << ( pair<uint32_t,uint32_t> & value ) { serialize(value); return *this; }
+        AstSerializer & operator << ( pair<uint64_t,uint64_t> & value ) { serialize(value); return *this; }
         AstSerializer & operator << ( pair<string,bool> & value ) { *this << value.first << value.second; return *this; }
         AstSerializer & operator << ( tuple<Module *, string, string, bool, LineInfo> & value );
         AstSerializer & operator << ( CodeOfPolicies & ser );
@@ -117,8 +178,12 @@ namespace das {
         AstSerializer & operator << ( MakeStructPtr & ptr );
    // Top-level
         AstSerializer & operator << ( Module & module );
+        AstSerializer & serializeModule ( Module & module, bool already_exists );
 
-        void serializeProgram ( ProgramPtr program, ModuleGroup & libGroup );
+        uint32_t getVersion ();
+
+        void serializeProgram ( ProgramPtr program, ModuleGroup & libGroup ) noexcept;
+        bool serializeScript ( ProgramPtr program ) noexcept;
 
         template<typename T>
         void serializeSmartPtr( smart_ptr<T> & obj, das_hash_map<uint64_t, smart_ptr<T>> & objMap );
@@ -128,8 +193,24 @@ namespace das {
             serialize(value, n * sizeof(int)); return *this;
         }
 
+        ___noinline bool trySerialize ( const callable<void(AstSerializer&)> &cb ) noexcept;
+
         template <typename TT>
-        AstSerializer & operator << ( vector<TT> & value );
+        AstSerializer & operator << ( vector<TT> & value ) {
+            tag("Vector");
+            if ( writing ) {
+                uint64_t size = value.size();
+                serializeAdaptiveSize64(size);
+            } else {
+                uint64_t size = 0;
+                serializeAdaptiveSize64(size);
+                value.resize(size);
+            }
+            for ( TT & v : value ) {
+                *this << v;
+            }
+            return *this;
+        }
 
         template <typename K, typename V, typename H, typename E>
         void serialize_hash_map ( das_hash_map<K, V, H, E> & value );

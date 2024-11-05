@@ -1,12 +1,28 @@
-﻿.toggle .header {
-    display: block;
-    clear: both;
+﻿:root {
+    --sd-color-white: #d1d1d1;
+    --sd-color-primary-text: #d1d1d1;
+    --sd-color-secondary-text: #d1d1d1;
+    --sd-color-success-text: #d1d1d1;
+    --sd-color-info-text: #d1d1d1;
+    --sd-color-danger-text: #d1d1d1;
+    --sd-color-muted-text: #d1d1d1;
+    --sd-color-dark-text: #d1d1d1;
+    --sd-color-black-text: #d1d1d1;
+
 }
 
-.toggle .header:after {
-    content: " ▶";
+
+.wy-side-nav-search, .wy-nav-top {
+    background: #1a1c1e;
 }
 
-.toggle .header.open:after {
-    content: " ▼";
+.wy-side-nav-search .wy-dropdown > a img.logo, .wy-side-nav-search > a img.logo {
+    width: 75%;
 }
+
+.wy-nav-content{
+    max-width: 90%;
+}
+
+
+

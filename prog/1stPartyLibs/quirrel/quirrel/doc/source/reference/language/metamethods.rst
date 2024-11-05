@@ -224,3 +224,16 @@ Invoked when during string concatenation or when the ``print`` function prints a
 The method is also invoked by the sq_tostring() API.
 
 Must return a string representation of the object.
+
+^^^^^^^^^^^^^^^^^^^^^^^^
+_lock
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+::
+
+    _lock()
+
+Metamethods of class object only.
+Called when a class is locked (manually by an explicit call to ``cls.lock()``, when the class is being inherited or when its instance is first created).
+``this`` references the class object itself.
+At this stage the class still can be modified.

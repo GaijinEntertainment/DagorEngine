@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "checkVersion.h"
 #include <stdio.h>
 #include <iostream>

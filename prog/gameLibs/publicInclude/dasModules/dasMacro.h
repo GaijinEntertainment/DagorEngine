@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -401,7 +400,56 @@ struct ConstStringArgCallFunctionAnnotation : das::FunctionAnnotation
   }
 };
 
-__forceinline das::AnnotationDeclarationPtr annotation_declaration(das::AnnotationPtr ann)
+struct LogFmtHashFunctionAnnotation : das::TransformFunctionAnnotation
+{
+  LogFmtHashFunctionAnnotation() : das::TransformFunctionAnnotation("log_fmt_hash") {}
+
+  das::ExpressionPtr transformCall(das::ExprCallFunc *call, das::string &err) override
+  {
+    auto arg = call->arguments[0];
+    // for string builder collect all const parts of the string and calculate hash based on that
+    if (strcmp(arg->__rtti, "ExprStringBuilder") == 0)
+    {
+      auto builder = das::static_pointer_cast<das::ExprStringBuilder>(arg);
+      uint32_t hash = 0;
+      for (auto e : builder->elements)
+      {
+        if (e->type && e->type->isString() && e->type->isConst() && e->rtti_isConstant())
+        {
+          auto starg = das::static_pointer_cast<das::ExprConstString>(e);
+          hash = str_hash_fnv1<32>(starg->text.c_str(), hash);
+        }
+      }
+      auto exprHash = das::make_smart<das::ExprConstUInt>(arg->at, hash);
+      exprHash->generated = true;
+      auto newCall = das::static_pointer_cast<das::ExprCallFunc>(call->clone());
+      if (call->func->fromGeneric)
+        newCall->name = call->func->fromGeneric->name;
+      // insert our calcualted hash param after the format string, so hinted version of the log gets called
+      newCall->arguments.insert(newCall->arguments.begin() + 1, exprHash);
+      return newCall;
+    }
+
+    // const strings can get hashes later from itself, no need for precalculation
+    // and if it's a non const string but not a string builder - we can't precalc anything either
+    if (arg->type && arg->type->isString())
+      return nullptr;
+
+    err.append("Log function called without ExprStringBuilder or String");
+    return nullptr;
+  }
+  bool apply(const das::FunctionPtr &, das::ModuleGroup &, const das::AnnotationArgumentList &, das::string &) override
+  {
+    return true;
+  }
+  bool finalize(const das::FunctionPtr &, das::ModuleGroup &, const das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
+    das::string &) override
+  {
+    return true;
+  }
+};
+
+__forceinline das::AnnotationDeclarationPtr annotation_declaration(const das::AnnotationPtr &ann)
 {
   auto decl = das::make_smart<das::AnnotationDeclaration>();
   decl->annotation = ann;

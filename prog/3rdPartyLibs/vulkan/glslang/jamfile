@@ -73,7 +73,7 @@ CPPopt =
   -DENABLE_OPT=1
 ;
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   AddIncludes +=
     $(Root)/$(Location)/glslang/OSDependent/Windows
   ;
@@ -86,7 +86,7 @@ if $(Platform) in win32 win64 {
     -DWIN32
   ;
 }
-if $(Platform) in macosx linu64 {
+if $(Platform) in macOS linu64 {
   Sources +=
     glslang/OSDependent/Unix/ossource.cpp
   ;

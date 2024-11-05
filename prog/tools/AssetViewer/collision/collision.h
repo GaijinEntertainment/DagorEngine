@@ -1,17 +1,23 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "../av_plugin.h"
 #include "nodesProcessing.h"
 #include <EditorCore/ec_interface.h>
 
-#include <propPanel2/c_control_event_handler.h>
+#include <propPanel/c_control_event_handler.h>
+#include <propPanel/control/treeInterface.h>
+#include <sepGui/wndMenuInterface.h>
 #include <3d/dag_resPtr.h>
 
 class CollisionResource;
 class GeomNodeTree;
 
 
-class CollisionPlugin : public IGenEditorPlugin, public ControlEventHandler
+class CollisionPlugin : public IGenEditorPlugin,
+                        public PropPanel::ControlEventHandler,
+                        public PropPanel::ITreeControlEventHandler,
+                        public IMenuEventHandler
 {
 public:
   CollisionPlugin();
@@ -40,11 +46,11 @@ public:
 
   virtual bool supportAssetType(const DagorAsset &asset) const;
 
-  virtual void fillPropPanel(PropertyContainerControlBase &panel);
+  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel);
   virtual void postFillPropPanel() {}
 
-  virtual void onClick(int pcb_id, PropertyContainerControlBase *panel);
-  virtual void onChange(int pcb_id, PropertyContainerControlBase *panel);
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
   virtual bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
 
   void handleViewportPaint(IGenViewportWnd *wnd)
@@ -52,6 +58,10 @@ public:
     drawObjects(wnd);
     drawInfo(wnd);
   }
+
+  virtual bool onTreeContextMenu(PropPanel::ContainerPropertyControl &tree, int pcb_id,
+    PropPanel::ITreeInterface &tree_interface) override;
+  virtual int onMenuItemClick(unsigned id) override;
 
 public:
   CollisionPlugin *self;
@@ -74,6 +84,7 @@ protected:
   void clearAssetStats();
   void fillAssetStats();
   void updateFaceOrientationRenderDepthFromCurRT();
+  int getNodeIdx(PropPanel::ContainerPropertyControl *tree, PropPanel::TLeafHandle leaf);
 };
 
 void InitCollisionResource(const DagorAsset &asset, CollisionResource **collision_res, GeomNodeTree **node_tree);

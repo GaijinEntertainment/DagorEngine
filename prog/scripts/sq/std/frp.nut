@@ -1,7 +1,19 @@
-from "frp" import Computed, Watched, FRP_INITIAL, FRP_DONT_CHECK_NESTED, set_nested_observable_debug, make_all_observables_immutable
+from "frp" import Computed, Watched, FRP_INITIAL, FRP_DONT_CHECK_NESTED, set_nested_observable_debug,
+  make_all_observables_immutable, recalc_all_computed_values, gather_graph_stats, update_deferred, set_default_deferred
+
+// set_default_deferred(false)
+
+function ComputedImmediate(...) {
+  let c = Computed.acall([this].extend(vargv))
+  c.setDeferred(false)
+  return c
+}
+
+let isObservable = @(v) type(v)=="instance" && v instanceof Watched
+let isComputed = @(v) type(v)=="instance" && v instanceof Computed
 
 function watchedTable2TableOfWatched(state, fieldsList = null) {
-  assert(state instanceof Watched, "state has to be Watched")
+  assert(isObservable(state), "state has to be Watched")
   let list = fieldsList ?? state.value
   assert(type(list) == "table", "fieldsList should be provided as table")
   return list.map(@(_, key) Computed(@() state.value[key]))
@@ -37,9 +49,10 @@ function mkLatestByTriggerStream(triggerObservable) {
     }
     res.whiteListMutatorClosure(updateFunc)
     function deleteKey(k){
-      if (k in next_value)
+      if (k in next_value){
         next_value.$rawdelete(k)
-      triggerObservable.subscribe(updateFunc)
+        triggerObservable.subscribe(updateFunc)
+      }
     }
     function setKeyVal(k, v){
       next_value[k] <- v
@@ -164,15 +177,33 @@ function mkTriggerableLatestWatchedSetAndStorage(triggerableObservable) {
     }
   }
 }
+
+function emptyMutatorDummy() {}
+
+function WatchedRo(val) {
+  let w = Watched(val)
+  w.whiteListMutatorClosure(emptyMutatorDummy)
+  return w
+}
+
+
 return {
   mkLatestByTriggerStream
   mkTriggerableLatestWatchedSetAndStorage
   watchedTable2TableOfWatched
   MK_COMBINED_STATE
   Computed
+  ComputedImmediate
   Watched
   FRP_INITIAL
   FRP_DONT_CHECK_NESTED
   set_nested_observable_debug
   make_all_observables_immutable
+  recalc_all_computed_values
+  gather_graph_stats
+  update_deferred
+  set_default_deferred
+  WatchedRo
+  isObservable
+  isComputed
 }

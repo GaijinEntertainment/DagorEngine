@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "module_nodes.h"
 #include <spirv/module_builder.h>
 

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "dasScripts.h"
 #include <daRg/dasBinding.h>
 #include "guiScene.h"
@@ -27,11 +29,11 @@ struct DargContext final : das::Context
 
 void DasLogWriter::output()
 {
-  int newPos = tellp();
+  const uint64_t newPos = tellp();
   if (newPos != pos)
   {
-    int len = newPos - pos;
-    ::debug("daRg-das: %.*s", len, data.data() + pos);
+    const auto len = newPos - pos;
+    ::debug("daRg-das: %.*s", len, data() + pos);
     pos = newPos;
   }
 }
@@ -80,6 +82,9 @@ das::FileInfo *DargFileAccess::getNewFileInfo(const das::string &fname)
 
 DasScriptsData::DasScriptsData() : fAccess(make_smart<DargFileAccess>())
 {
+  dasEnv = daScriptEnvironment::bound;
+  G_ASSERT(dasEnv);
+
   typeGuiContextRef = dbgInfoHelper.makeTypeInfo(nullptr, makeType<StdGuiRender::GuiContext &>(moduleGroup));
   typeConstElemRenderDataRef = dbgInfoHelper.makeTypeInfo(nullptr, makeType<const ElemRenderData &>(moduleGroup));
   typeConstRenderStateRef = dbgInfoHelper.makeTypeInfo(nullptr, makeType<const RenderState &>(moduleGroup));
@@ -169,7 +174,7 @@ static SQInteger load_das(HSQUIRRELVM vm)
       details += das::reportError(e.at, e.what, e.extra, e.fixme, e.cerr);
     }
     guiScene->errorMessageWithCb(details.c_str());
-    return sqstd_throwerrorf(vm, "Failed to compile '%s'", filename);
+    return 0;
   }
 
   if (dasMgr->aotMode == AotMode::AOT && !program->aotErrors.empty())
@@ -197,7 +202,7 @@ static SQInteger load_das(HSQUIRRELVM vm)
     details += ctx->getStackWalk(nullptr, true, true);
 
     guiScene->errorMessageWithCb(details.c_str());
-    return sqstd_throwerrorf(vm, "Failed to simulate '%s", filename);
+    return 0;
   }
 
   process_loaded_script(*ctx, filename);

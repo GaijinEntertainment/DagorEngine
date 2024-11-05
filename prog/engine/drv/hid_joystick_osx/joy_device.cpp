@@ -1,5 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "joy_device.h"
-#include <humanInput/dag_hiGlobals.h>
+#include <drv/hid/dag_hiGlobals.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <math/dag_mathBase.h>
 #include <util/dag_string.h>
@@ -32,7 +34,7 @@ HidJoystickDevice::HidJoystickDevice(IOHIDDeviceRef dev) : buttons(inimem), axes
       break;
   SNPRINTF(devID, sizeof(devID), "%04X:%04X", (int)IOHIDDevice_GetVendorID(dev), (int)IOHIDDevice_GetProductID(dev));
 
-  debug_ctx("added joystick: dev=%p <%s> %04lX:%04lX", device, product, IOHIDDevice_GetVendorID(dev), IOHIDDevice_GetProductID(dev));
+  DEBUG_CTX("added joystick: dev=%p <%s> %04lX:%04lX", device, product, IOHIDDevice_GetVendorID(dev), IOHIDDevice_GetProductID(dev));
   setDeviceName(product);
 
   // IOHIDDeviceOpen(dev, kIOHIDOptionsTypeSeizeDevice);
@@ -254,7 +256,7 @@ HidJoystickDevice::~HidJoystickDevice()
 void HidJoystickDevice::setDeviceName(const char *nm)
 {
   name = nm;
-  debug_ctx("joy device name: <%s>", name);
+  DEBUG_CTX("joy device name: <%s>", name);
 }
 
 bool HidJoystickDevice::updateState(int dt_msec, bool def)

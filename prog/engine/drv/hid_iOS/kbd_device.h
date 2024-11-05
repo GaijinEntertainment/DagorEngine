@@ -1,8 +1,8 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <humanInput/dag_hiKeyboard.h>
-#include <humanInput/dag_hiGlobals.h>
+#include <drv/hid/dag_hiKeyboard.h>
+#include <drv/hid/dag_hiGlobals.h>
 #include <osApiWrappers/dag_wndProcComponent.h>
 #include <osApiWrappers/dag_wndProcCompMsg.h>
 #include <string.h>

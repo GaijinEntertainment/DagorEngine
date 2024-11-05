@@ -1,0 +1,94 @@
+# to be included from final Game Project's jamfile
+if ! $(Game) { Exit Game is not defined! ; }
+
+gameMain = \# include \"main/main.cpp\" ;
+gameVersion = \# include \"main/version.cpp\" ;
+
+DefVars_$(Game) = const char* default_game_name \= \"$(Game)\"; ;
+
+local statsd_url_str = \"$(UseGameStatsdURL)\" ;
+statsd_url_str ?= nullptr ;
+DefVars_$(Game) += const char* default_game_statsd_url \= $(statsd_url_str); ;
+
+local statsd_key_str = \"$(UseGameStatsdKey)\" ;
+statsd_key_str ?= \"$(Game)\" ;
+DefVars_$(Game) += const char* default_game_statsd_key \= $(statsd_key_str); ;
+
+local eventlog_agent_str = \"$(UseGameEventlogAgent)\" ;
+eventlog_agent_str ?= \"$(Game)\" ;
+DefVars_$(Game) += const char* default_game_eventlog_agent \= $(eventlog_agent_str); ;
+
+local eventlog_proj_str = \"$(UseGameEventlogDefProj)\" ;
+eventlog_proj_str ?= \"\" ;
+DefVars_$(Game) += const char* default_game_eventlog_project \= $(eventlog_proj_str); ;
+
+if $(GamePublicKeyDER) {
+  if ! $(GamePublicKeyDER[292]) || $(GamePublicKeyDER[293]) { exit bad public key, must be in DER format (292 hex-byte strings): $(GamePublicKeyDER) ; }
+  gamePublicKeyDER = extern \"C\" const unsigned char game_public_key_DER[292] \= \{ $(GamePublicKeyDER) \}\; ;
+} else {
+  gamePublicKeyDER = extern \"C\" const unsigned char game_public_key_DER[292] \= {0} \; ;
+}
+
+rule MakeAuthKeyJamvar name : func : key : forced {
+  $(name) = "#include \"net/userid.h\"" ;
+  if $(key) && ( $(Config) in dev dbg || $(Platform) = linux || $(forced) = yes ) {
+    if ! $(key[20]) || $(key[21]) { exit bad key for $(func)(), must be 20 strings: $(key) ; }
+    $(name) += "net::auth_key_t net::"$(func)"() { static const uint8_t key[]={"$(key:J=,)"}; return auth_key_t(key, sizeof(key)); }" ;
+  } else {
+    $(name) += "net::auth_key_t net::"$(func)"() { return {}; }" ;
+  }
+  $(name)_action = echo_var_lines_to_cpp ;
+}
+
+MakeAuthKeyJamvar gamePlatformAuthKey : get_platform_auth_key : $(GameAuthKey_$(Platform)) : yes ;
+
+Sources +=
+  gameMain.jamvar
+  gameVersion.jamvar
+  DefVars_$(Game).jamvar
+  gamePlatformAuthKey.jamvar
+  gamePublicKeyDER.jamvar
+;
+
+if $(Dedicated) = yes  {
+  gameAuthKeyForPlatform = "#include \"net/userid.h\"" ;
+  if $(Config) in dev dbg || $(Platform) = linux {
+    local pairs = $(GameAuthKeyPlatformListPairs) ;
+    local null_defined ;
+    while $(pairs) {
+      local key = $(GameAuthKey_$(pairs[2])) ;
+      if $(key) {
+        if ! $(key[20]) || $(key[21]) { exit bad key (must be 20 strings): GameAuthKey_$(pairs[2])= $(key) ; }
+        gameAuthKeyForPlatform += "static const uint8_t bkey_"$(pairs[1])"[]={"$(key:J=,)"\};" ;
+        gameAuthKeyForPlatform += "static net::auth_key_t key_"$(pairs[1])" { bkey_"$(pairs[1])", sizeof(bkey_"$(pairs[1])") };" ;
+      } else if ! $(null_defined) {
+        gameAuthKeyForPlatform += "static net::auth_key_t key_null;" ;
+        null_defined = yes ;
+      }
+      pairs = $(pairs[3-]) ;
+    }
+  }
+  gameAuthKeyForPlatform += "bool net::get_auth_key_for_platform(const char *pltf, net::auth_key_t *&out_key) {" ;
+  gameAuthKeyForPlatform += "  if (strstr(pltf, \"win\")==pltf || strstr(pltf, \"mac\")==pltf) { out_key = nullptr; return true; }" ;
+  if $(Config) in dev dbg || $(Platform) = linux {
+    local pairs = $(GameAuthKeyPlatformListPairs) ;
+    while $(pairs) {
+      local key = $(GameAuthKey_$(pairs[2])) ;
+      if $(key) {
+        gameAuthKeyForPlatform += "  if (strstr(pltf, \""$(pairs[1])"\")==pltf) { out_key = &key_"$(pairs[1])"; return true; }" ;
+      } else {
+        gameAuthKeyForPlatform += "  if (strstr(pltf, \""$(pairs[1])"\")==pltf) { out_key = &key_null; return true; }" ;
+      }
+      pairs = $(pairs[3-]) ;
+    }
+  }
+  gameAuthKeyForPlatform += "  return false;" ;
+  gameAuthKeyForPlatform += "}" ;
+  gameAuthKeyForPlatform_action = echo_var_lines_to_cpp ;
+  Sources += gameAuthKeyForPlatform.jamvar ;
+}
+
+if $(Config) = rel && $(ForceLogs) = yes && $(GameLogCryptKey) {
+  getLogCryptKey = const unsigned char *get_dagor_log_crypt_key() \{ static const unsigned char key[128] \= \{ $(GameLogCryptKey) \} \; return key \; \} ;
+  Sources += getLogCryptKey.jamvar ;
+}

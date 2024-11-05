@@ -76,7 +76,7 @@ class ConstantExpressionMacro : AstFunctionAnnotation
         argi |> reverse
         if empty(argi)
             return <- [[ExpressionPtr]]
-        var inscope func_copy <- clone_function(FunctionPtr(expr.func))
+        var inscope func_copy <- clone_function(expr.func)
         var func_name = "{func_copy.name}`constant_expression"
         for i in argi
             let fhash = hash(describe(expr.arguments[i]))

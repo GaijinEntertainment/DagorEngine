@@ -1,0 +1,248 @@
+sound_override_time_speed{
+  _use:t="replicating"
+  _group{
+    _tags:t="sound"
+    sound_override_time_speed:r=1
+  }
+  _singleton:b=yes
+}
+
+distant_delayable_sounds{
+  _use:t="replicating"
+  _group{
+    _tags:t="sound"
+    "distantDelayableSounds:tag"{}
+  }
+  _singleton:b=yes
+}
+
+sound_debug_draw_enable{
+  "soundDebugDrawEnable:tag"{_tags:t="sound";}
+}
+
+sound_debug_draw_template{
+  "soundDebugDrawTemplate:tag"{_tags:t="sound";}
+}
+
+sound_banks_state{
+  _group{
+    _tags:t="sound"
+    sound_banks_state__presetName:t="master"
+    sound_banks_state__isPresetLoaded:b=no
+  }
+  _tracked:t="sound_banks_state__isPresetLoaded"
+}
+
+watched_sound{
+  _group{
+    _tags:t="sound"
+    is_watched_sound:b=no
+  }
+  _tracked:t="is_watched_sound"
+}
+
+watched_by_player_sound{
+  _use:t="watched_sound"
+  "watchedByPlayerSound:tag"{}
+}
+
+sound_control{
+  _use:t="sound_banks_state"
+  _tracked:t="sound_control__soundEnabled"
+  _tracked:t="sound_control__enabledGroups"
+
+  _group{
+    _tags:t="sound"
+    sound_control__range:r=22
+    sound_control__inRange:b=no
+    sound_control__soundEnabled:b=no
+    // setup
+    sound_control__allowSound:b=yes
+    "sound_control__enabledGroups:u32" { value:i=1; }
+    "sound_control__needGroupsMask:u32" { value:i=1; }
+    sound_control__subtemplate:t=""
+  }
+}
+
+sound_control_init_range{
+  _group{
+    _tags:t="sound"
+    sound_control__initRange:t=""
+  }
+}
+
+disable_sound_control{
+  _group{
+    _tags:t="sound"
+    "disableSoundControl:tag"{}
+  }
+}
+
+sound_enabled{
+  _group{
+    _tags:t="sound"
+    "soundEnabled:tag"{}
+  }
+}
+
+sound_control_disable_timer{
+  sound_control_disable_timer__endTime:r=-1
+  _replicated:t="sound_control_disable_timer__endTime"
+  _group{
+    _tags:t="server"
+    // setup
+    sound_control_disable_timer__duration:r=60
+  }
+}
+
+base_managed_sound_control{
+  _use:t="replicating"
+
+  _group{
+    _tags:t="sound"
+    "managed_sound_control__entities:list<eid>"{}
+    "managed_sound_control__positions:list<p3>"{}
+    "managed_sound_control__groupMask:u32" { value:i=1; }
+  }
+  // setup
+  managed_sound_control__maxInstances:i=3
+  managed_sound_control__cooldown:r=1
+}
+
+base_managed_sound{
+  _group{
+    _tags:t="sound"
+    managed_sound__nextTimeToAllow:r=0
+  }
+  _group{
+    _tags:t="sound"
+    "sound_control__enabledGroups:u32" { value:i=0; } // disabled on appeared
+    "managedSound:tag"{}
+  }
+}
+
+vehicle_managed_sound_control{
+  _use:t="base_managed_sound_control"
+  "vehicleManageSoundControl:tag"{_tags:t="sound";}
+  _singleton:b=yes
+}
+sfx_managed_sound_control{
+  _use:t="base_managed_sound_control"
+  "sfxManageSoundControl:tag"{_tags:t="sound";}
+  _singleton:b=yes
+}
+
+vehicle_managed_sound{
+  _use:t="base_managed_sound"
+  "vehicleManageSoundControl:tag"{_tags:t="sound";}
+}
+sfx_managed_sound{
+  _use:t="base_managed_sound"
+  "sfxManageSoundControl:tag"{_tags:t="sound";}
+}
+
+test_managed_sound{
+  _use:t="sound_effect"
+  _use:t="moveable_sound_effect"
+  _use:t="sfx_managed_sound"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  _group{
+    _tags:t="sound"
+    sound_effect__path:t="env_effects/fire/fire_mid"
+  }
+}
+
+sound_destroy_timer{
+  _group{
+    _tags:t="server"
+    sound_destroy_timer__endTime:r=0
+    // setup
+    sound_destroy_timer__duration:r=60
+  }
+}
+
+sound_event_group{
+  sound_event_group{
+    _tags:t="sound"
+  }
+}
+
+sound_paths{
+  "sound_paths:shared:object"{
+    _tags:t="sound"
+  }
+}
+sound_irqs{
+  "sound_irqs:shared:object"{
+    _tags:t="sound"
+  }
+}
+sound_tags{
+  "sound_tags:object"{
+    _tags:t="sound"
+  }
+  _tracked:t="sound_tags"
+}
+
+sound_player_components{
+  _use:t="sound_paths"
+  _use:t="sound_irqs"
+  _use:t="sound_tags"
+}
+
+base_game_object_sound{
+  _use:t="replicating"
+  game_object_sound__name:t=""
+  _group{
+    _tags:t="sound"
+    game_object_sound__path:t=""
+  }
+}
+
+game_object_sound{
+  _use:t="base_game_object_sound"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+}
+
+game_object_compound_sound{
+  _use:t="base_game_object_sound"
+  "game_object_compound_sound__transforms:list<m>"{}
+  "game_object_compound_sound__shapes:list<u32>"{}
+}
+
+sound_debug_soundpack{
+  _group{
+    _tags:t="sound"
+    "sound_debug_soundpack__events:list<t>"{}
+    "sound_debug_soundpack__eventBanks:list<t>"{}
+    "sound_debug_soundpack__event1:SoundEvent"{}
+    "sound_debug_soundpack__event2:SoundEvent"{}
+    "sound_debug_soundpack__event3:SoundEvent"{}
+    "sound_debug_soundpack__event4:SoundEvent"{}
+    sound_debug_soundpack__inited:b=no
+    sound_debug_soundpack__nextEventAt:r=0
+    // setup
+    "sound_debug_soundpack__banks:list<t>"{
+      bank:t="bank:/ww2/ww2_weapon_antivehicle"
+      bank:t="bank:/ww2/ww2_weapon_cannon"
+      bank:t="bank:/ww2/ww2_weapon_mgun"
+      bank:t="bank:/ww2/ww2_weapon_pistol"
+      bank:t="bank:/ww2/ww2_weapon_rifle"
+      bank:t="bank:/cmn/cmn_sfx_effect"
+      bank:t="bank:/cmn/cmn_fx_impact"
+    }
+    sound_debug_soundpack__playDelay:r=0.5
+    sound_debug_soundpack__delay:r=0.5
+  }
+}
+
+sound_debug_positioning{
+  _group{
+    _tags:t="sound"
+    "sound_debug_positioning__event:SoundEvent"{}
+    // setup
+    sound_debug_positioning__path:t="env_effects/rally_point"
+    sound_debug_positioning__speed:r=1.
+    sound_debug_positioning__radius:r=30
+  }
+}

@@ -17,6 +17,7 @@ Sources =
   refProviders.cpp
   assetLocalProps.cpp
   assetMgrHlp.cpp
+  assetUtils.cpp
 ;
 
 UseProgLibs =

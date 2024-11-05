@@ -1,0 +1,18 @@
+  ref:t=lmesh_sampler__land_detail_array1
+  ref:t=lmesh_ps_const_land_detail_array_slices
+
+  ref:t=supports_uav
+  ref:t=lmesh_vs_const__pos_to_world
+  ref:t=lmesh_vs_const__mul_offset_base
+  ref:t=lmesh_ps_const__land_detail_map_tc
+  ref:t=lmesh_ps_const__mul_offset_base
+  ref:t=lmesh_sampler__land_detail_map
+  ref:t=lmesh_sampler__land_detail_map2
+  ref:t=lmesh_sampler__land_detail_tex1
+  ref:t=lmesh_ps_const__mirror_scale
+
+  ref:t=lmesh_ps_const__weight
+  ref:t=lmesh_sampler__land_detail_ntex1
+  ref:t=lmesh_ps_const__invtexturesizes
+
+  ref:t=heightmap_scale_offset

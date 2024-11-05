@@ -1,0 +1,22 @@
+return {
+  EventOnGameAppStarted = class { name = "EventOnGameAppStarted" }
+  EventHeroChanged = class { name = "EventHeroChanged" }
+  EventOnInstallWeapMod = class { name = "EventOnInstallWeapMod" }
+  EventOnModsChanged = class { name = "EventOnModsChanged" }
+  CmdUse = class { name = "CmdUse" }
+  EventOnCollision = class { name = "EventOnCollision" }
+  EventPlayerRebalanced = class { name = "EventPlayerRebalanced" }
+  EventOnEntityReset = class {name = "EventOnEntityReset"}
+  EventOnEntityTeleported = class {name = "EventOnEntityTeleported"}
+  CmdSetSimplifiedPhys = class {name = "CmdSetSimplifiedPhys"}
+  CmdTeleportEntity = class {name = "CmdTeleportEntity"}
+  EventLevelLoaded = class {name = "EventLevelLoaded"}
+  EventOnDisconnectedFromServer = class {name = "EventOnDisconnectedFromServer"}
+  CmdChangePlayerPerk = class {name = "CmdChangePlayerPerk"}
+  CmdSwapEquipSlots = class {name = "CmdSwapEquipSlots"}
+  EventRiExtraDestroyed = class {name = "EventRiExtraDestroyed"}
+  CmdTeleportTo = class {name = "CmdTeleportTo"}
+  EventUserLoggedIn = class {name = "EventUserLoggedIn"}
+  EventUserLoggedOut = class {name = "EventUserLoggedOut"}
+  EventUserMMQueueJoined = class {name = "EventUserMMQueueJoined"}
+}

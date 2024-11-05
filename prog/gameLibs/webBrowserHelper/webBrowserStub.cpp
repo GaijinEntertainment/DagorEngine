@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_log.h>
 #include <webBrowserHelper/webBrowser.h>
 
@@ -23,6 +25,7 @@ bool WebBrowserHelper::canEnable() { return false; }
 
 bool WebBrowserHelper::hasTexture() { return false; }
 TEXTUREID WebBrowserHelper::getTexture() { return BAD_TEXTUREID; }
+d3d::SamplerHandle WebBrowserHelper::getSampler() const { return d3d::INVALID_SAMPLER_HANDLE; }
 
 void WebBrowserHelper::go(const char *url) {}
 void WebBrowserHelper::goBack() {}

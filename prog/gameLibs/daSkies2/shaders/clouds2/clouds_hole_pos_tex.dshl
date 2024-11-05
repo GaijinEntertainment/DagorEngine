@@ -7,10 +7,10 @@ macro USE_CLOUDS_HOLE_POS_TEX(code)
   hlsl(code) {
     float3 get_clouds_hole_pos_vec()
     {
-      #if WTM
-        return float3(0.0, 0.0, 0.0);
-      #else
+      #if ALLOW_CLOUD_HOLE
         return float3(clouds_hole_pos_tex[uint2(0, 0)].xy, 0).xzy;
+      #else
+        return float3(0.0, 0.0, 0.0);
       #endif
     }
   }

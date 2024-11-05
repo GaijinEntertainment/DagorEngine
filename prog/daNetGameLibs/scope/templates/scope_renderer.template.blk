@@ -1,0 +1,65 @@
+scope_full_deferred_renderer{
+  _singleton:b=yes
+  _tags:t="render"
+
+  "scope__full_deferred__opaque_node:dabfg::NodeHandle"{}
+  "scope__full_deferred__prepass_node:dabfg::NodeHandle"{}
+  "scope__full_deferred__lens_mask_node:dabfg::NodeHandle"{}
+  "scope__full_deferred__vrs_mask_node:dabfg::NodeHandle"{}
+  "scope__full_deferred__cut_depth_node:dabfg::NodeHandle"{}
+  "scope__full_deferred__crosshair_node:dabfg::NodeHandle"{}
+
+  "scope__full_deferred__render_lens_frame_node:dabfg::NodeHandle"{}
+  "scope__full_deferred__render_lens_optics_node:dabfg::NodeHandle"{}
+
+  "aim_dof_prepare_node:dabfg::NodeHandle"{}
+  "aim_dof_restore_node:dabfg::NodeHandle"{}
+
+  "setup_scope_aim_rendering_data_node:dabfg::NodeHandle"{}
+  "setup_aim_rendering_data_node:dabfg::NodeHandle"{}
+}
+
+scope_mobile_deferred_renderer{
+  _singleton:b=yes
+  _tags:t="render"
+  "scope__mobile_deferred__manager:ScopeMobileDeferredManager"{}
+
+  "scope__mobile_deferred__begin_rp_node:dabfg::NodeHandle"{}
+  "scope__mobile_deferred__prepass_node:dabfg::NodeHandle"{}
+  "scope__mobile_deferred__node:dabfg::NodeHandle"{}
+  "scope__mobile_deferred__lens_mask_node:dabfg::NodeHandle"{}
+  "scope__mobile_deferred__depth_cut_node:dabfg::NodeHandle"{}
+
+  "scope__lens_mobile_node:dabfg::NodeHandle"{}
+
+  "setup_scope_aim_rendering_data_node:dabfg::NodeHandle"{}
+}
+
+scope_forward_renderer{
+  _singleton:b=yes
+  _tags:t="render"
+  "forward__setup_aim_rendering_data_node:dabfg::NodeHandle"{}
+
+  "scope__forward__prepass_node:dabfg::NodeHandle"{}
+  "scope__forward__node:dabfg::NodeHandle"{}
+  "scope__forward__lens_mask_node:dabfg::NodeHandle"{}
+  "scope__forward__vrs_mask_node:dabfg::NodeHandle"{}
+  "scope__forward__lens_hole_node:dabfg::NodeHandle"{}
+
+  "scope__lens_mobile_node:dabfg::NodeHandle"{}
+
+  "setup_scope_aim_rendering_data_node:dabfg::NodeHandle"{}
+}
+
+scope_additional_data{
+  _singleton:b=yes
+  _tags:t="render"
+
+  lens_renderer_enabled_globally:b=true
+  "postfx__additional_bind_textures:list<t>"{
+    item:t="scope_lens_mask"
+  }
+  "postfx__additional_read_textures:list<t>"{
+    item:t="lens_dof_blend_depth_tex"
+  }
+}

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "init3d.h"
 #define _WIN32_WINNT 0x500
 #include <windows.h>
@@ -5,7 +7,11 @@
 #include <workCycle/dag_startupModules.h>
 #include <workCycle/dag_gameSettings.h>
 #include <workCycle/dag_genGuiMgr.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_info.h>
 #include <3d/dag_texMgr.h>
 #include <startup/dag_globalSettings.h>
 #include <startup/dag_restart.h>
@@ -21,19 +27,13 @@ class De3GuiMgrDrawFps : public IGeneralGuiManager
 public:
   virtual void beforeRender(int /*ticks_usec*/) {}
 
-  virtual void act() {}
-
-  virtual void draw(int /*ticks*/) {}
-  virtual void changeRenderSettings(bool & /*draw_scene*/, bool & /*clr_scene*/) {}
-  virtual bool canActScene() { return true; }
   virtual bool canCloseNow()
   {
-    debug_ctx("closing window");
+    DEBUG_CTX("closing window");
     debug_flush(false);
     return true;
   }
 
-  virtual void drawCopyrightMessage(int) {}
   virtual void drawFps(float, float, float) {}
 };
 
@@ -52,6 +52,19 @@ static LRESULT FAR PASCAL d3dWindowProc(HWND hWnd, UINT message, WPARAM wParam, 
   PAINTSTRUCT ps;
   switch (message)
   {
+    // Prevent the window from being resized or becoming visible.
+    // For example in case of device reset d3d::reset_device() would make it visible.
+    case WM_WINDOWPOSCHANGING:
+    {
+      WINDOWPOS *windowPos = reinterpret_cast<WINDOWPOS *>(lParam);
+      windowPos->x = 0;
+      windowPos->y = 0;
+      windowPos->cx = GetSystemMetrics(SM_CXSCREEN);
+      windowPos->cy = GetSystemMetrics(SM_CYSCREEN);
+      windowPos->flags = (windowPos->flags & ~SWP_SHOWWINDOW) | SWP_HIDEWINDOW;
+      return 0;
+    }
+
     case WM_ERASEBKGND: return 1;
     case WM_PAINT:
       SetCursor(NULL);
@@ -87,34 +100,41 @@ bool tools3d::init(const char *drv_name, const DataBlock *blkTexStreaming)
   // create invisible window (sized as desktop)
   void *handle = CreateWindowExW(0, L"engine3d-srv", NULL, 0, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), NULL,
     NULL, (HINSTANCE)win32_get_instance(), NULL);
-  ShowWindow((HWND)handle, 0);
 
   // perform dagor init
   win32_set_main_wnd(handle);
 
-  dgs_load_settings_blk();
+  dgs_load_settings_blk(true, String(260, "%s/../commonData/startup_editors.blk", sgg::get_exe_path_full()), nullptr);
 
   DataBlock *global_settings_blk = const_cast<DataBlock *>(::dgs_get_settings());
-  DataBlock b(String(260, "%s/../commonData/startup_editors.blk", sgg::get_exe_path_full()));
 
-  global_settings_blk->addBlock("directx")->setInt("max_genmip_tex_sz", 4096);
-  global_settings_blk->addBlock("directx")->setBool("immutable_textures",
-    b.getBlockByNameEx("directx")->getBool("immutable_textures", false));
-  global_settings_blk->addBlock("directx")->setInt("inline_vb_size",
-    b.getBlockByNameEx("directx")->getInt("inline_vb_size", 32 << 20));
-  global_settings_blk->addBlock("directx")->setInt("inline_ib_size", b.getBlockByNameEx("directx")->getInt("inline_ib_size", 2 << 20));
-  if (int bones = b.getBlockByNameEx("directx")->getInt("bonesCount", 0))
-    global_settings_blk->addBlock("directx")->setInt("bonesCount", bones);
+  // Some textures are re-created when the resolution of the view changes,
+  // and they might not be used, so to avoid the "texture ... was destroyed
+  // but was never used in rendering" messages and messages reporting about
+  // the view size change itself, we disable logging those messages in tools.
+  global_settings_blk->addBlock("debug")->setBool("view_resizing_related_logging_enabled", false);
 
-  global_settings_blk->addBlock("video")->setBool("windowed_ext", true);
-  global_settings_blk->addBlock("video")->setStr("mode", "windowed");
-  global_settings_blk->addBlock("video")->setInt("min_target_size", b.getBlockByNameEx("video")->getInt("min_target_size", 0));
-  global_settings_blk->addBlock("video")->setStr("instancing", b.getBlockByNameEx("video")->getStr("instancing", "auto"));
-  global_settings_blk->addBlock("video")->setStr("driver",
-    drv_name ? drv_name : b.getBlockByNameEx("video")->getStr("driver", "auto"));
+  // Do not allow window occlusion checking because here (in tools3d::init) there is a desktop sized invisible window
+  // created that always occludes daEditorX's main window.
+  if (DataBlock *dx_blk = global_settings_blk->addBlock("directx"))
+  {
+    dx_blk->setBool("winOcclusionCheckEnabled", false);
+    dx_blk->setInt("max_genmip_tex_sz", 4096);
+    dx_blk->setBool("immutable_textures", dx_blk->getBool("immutable_textures", false));
+    dx_blk->setInt("inline_vb_size", dx_blk->getInt("inline_vb_size", 32 << 20));
+    dx_blk->setInt("inline_ib_size", dx_blk->getInt("inline_ib_size", 2 << 20));
+  }
+
+  if (DataBlock *video_blk = global_settings_blk->addBlock("video"))
+  {
+    video_blk->setBool("windowed_ext", true);
+    video_blk->setStr("mode", "windowed");
+    video_blk->setInt("min_target_size", video_blk->getInt("min_target_size", 0));
+    video_blk->setStr("instancing", video_blk->getStr("instancing", "auto"));
+    video_blk->setStr("driver", drv_name ? drv_name : video_blk->getStr("driver", "auto"));
+  }
+
   global_settings_blk->addBlock("physx")->setBool("disable_hardware", true);
-  if (const DataBlock *b2 = b.getBlockByName("stub3d"))
-    global_settings_blk->addNewBlock(b2, "stub3d");
 
   ::dgs_limit_fps = true;
   ::dgs_dont_use_cpu_in_background = true;
@@ -129,12 +149,10 @@ bool tools3d::init(const char *drv_name, const DataBlock *blkTexStreaming)
   if (!d3d::init_driver())
     DAG_FATAL("Error initializing 3D driver:\n%s", d3d::get_last_error());
 
-  dgs_set_window_mode(WindowMode::WINDOWED);
+  dgs_set_window_mode(WindowMode::WINDOWED_NO_BORDER);
 
   if (!d3d::init_video(win32_get_instance(), NULL, NULL, 0, handle, handle, 0, "", NULL))
     return false;
-
-  ShowWindow((HWND)handle, 0); // should not be needed unless d3d::init_video() forces WS_VISIBLE
 
   ::dagor_common_startup();
   ::startup_game(RESTART_ALL);
@@ -142,11 +160,15 @@ bool tools3d::init(const char *drv_name, const DataBlock *blkTexStreaming)
   ::dagor_gui_manager = new De3GuiMgrDrawFps;
 
   // clear backbuffer once and forever
-  int targetW, targetH;
-  d3d::set_render_target();
-  d3d::get_target_size(targetW, targetH);
-  d3d::setview(0, 0, targetW, targetH, 0, 1);
-  d3d::clearview(CLEAR_TARGET, E3DCOLOR(10, 10, 64, 0), 0, 0);
+  {
+    d3d::GpuAutoLock gpuLock;
+
+    int targetW, targetH;
+    d3d::set_render_target();
+    d3d::get_target_size(targetW, targetH);
+    d3d::setview(0, 0, targetW, targetH, 0, 1);
+    d3d::clearview(CLEAR_TARGET, E3DCOLOR(10, 10, 64, 0), 0, 0);
+  }
 
   enable_tex_mgr_mt(true, 64 << 10);
   inited = true;

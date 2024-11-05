@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "riGen/genObjUtil.h"
 #include "riGen/riGenData.h"
 
@@ -18,13 +20,14 @@ int rendinst::gen::SingleEntityPool::cur_cell_id = 0;
 int rendinst::gen::SingleEntityPool::cur_ri_extra_ord = 0;
 int rendinst::gen::SingleEntityPool::per_inst_data_dwords = 0;
 
-#if _TARGET_PC && !_TARGET_STATIC_LIB // Tools (De3X, AV2)
+#if _TARGET_PC_TOOLS_BUILD
 namespace rendinst
 {
 bool forceRiExtra = false;
 }
 #endif
 
+// TODO: eliminate these globals, e.g. by extracting them into a struct and passing it explicitly.
 StaticTab<RendInstGenData *, 16> rendinst::rgLayer;
 StaticTab<rendinst::RiGenDataAttr, 16> rendinst::rgAttr;
 unsigned rendinst::rgPrimaryLayers = 0;
@@ -46,3 +49,4 @@ RendInstGenData::CellRtData *(*RendInstGenData::riGenValidateGeneratedCell)(Rend
   int idx, int cx, int cz) = nullptr;
 void (*rendinst::do_delayed_ri_extra_destruction)() = nullptr;
 void (*rendinst::sweep_rendinst_cb)(const RendInstDesc &) = nullptr;
+void (*rendinst::shader_material_validation_cb)(ShaderMaterial *mat, const char *res_name) = nullptr;

@@ -1,0 +1,94 @@
+include "shader_global.dshl"
+include "dagi_media_scene_common.dshl"
+include "dagi_media_project_defined.dshl"
+hlsl {
+  #define DAGI_MEDIA_SCENE_TYPED_UAV_LOAD 1
+}
+
+shader dagi_media_toroidal_movement_cs
+{
+  ENABLE_ASSERT(cs)
+  DAGI_MEDIA_SCENE_UAV(cs)
+  DAGI_MEDIA_SCENE_CLIPMAP_MATH(cs)
+  DAGI_MEDIA_SCENE_ATLAS(cs)
+  PROJECT_GI_INITIAL_MEDIA(cs)
+  (cs) {
+    dagi_media_scene_update_lt_coord@i4 = dagi_media_scene_update_lt_coord;
+    dagi_media_scene_update_sz_coord@i4 = dagi_media_scene_update_sz_coord;
+  }
+  hlsl(cs) {
+    #define WARP_SIZE 64
+    [numthreads(WARP_SIZE, 1, 1)]
+    void dagi_media_toroidal_movement_cs(uint dtId : SV_DispatchThreadID)
+    {
+      uint3 ucoord = uint3(dtId%uint(dagi_media_scene_update_sz_coord.x),
+                          (dtId/uint(dagi_media_scene_update_sz_coord.x))%uint(dagi_media_scene_update_sz_coord.y),
+                          (dtId/uint(dagi_media_scene_update_sz_coord.x*dagi_media_scene_update_sz_coord.y)));
+      if (ucoord.z >= uint(dagi_media_scene_update_sz_coord.z))
+        return;
+      int3 absCoord = int3(ucoord) + dagi_media_scene_update_lt_coord.xyz;
+      float voxelSize = asfloat(dagi_media_scene_update_sz_coord.w);
+      float3 worldPos = (absCoord.xzy + 0.5)*voxelSize;
+      uint clip = dagi_media_scene_update_lt_coord.w;
+
+      float4 media;
+      #if DAGI_MEDIA_SCENE_TYPED_UAV_LOAD && 0
+      uint nextClip = clip + 1;
+      nextClip = nextClip < dagi_media_scene_get_clip_count() ? dagi_media_scene_get_best_enclosing_clip(worldPos, nextClip) : nextClip;
+      if (nextClip < dagi_media_scene_get_clip_count())
+      {
+        float3 coordF = worldPos.xzy/dagi_media_scene_voxel_size(nextClip)-0.5;
+        int3 coordI = floor(coordF);
+        float3 tcFract = coordF - coordI;
+        int3 z = int3(0,0,1 + nextClip*dagi_media_scene_get_clip_size_with_border());
+        uint3 wrapped = dagi_media_scene_wrapped_coord_from_abs_coord(coordI);
+        uint2 sz = dagi_media_scene_get_clip_size();
+        media = lerp(lerp(lerp(
+                                texture3DAt(dagi_media_scene, (wrapped+uint3(0,0,0))%sz.xxy+z),
+                                texture3DAt(dagi_media_scene, (wrapped+uint3(1,0,0))%sz.xxy+z), tcFract.x),
+                          lerp(
+                                texture3DAt(dagi_media_scene, (wrapped+uint3(0,1,0))%sz.xxy+z),
+                                texture3DAt(dagi_media_scene, (wrapped+uint3(1,1,0))%sz.xxy+z), tcFract.x), tcFract.y),
+                     lerp(lerp(
+                                texture3DAt(dagi_media_scene, (wrapped+uint3(0,0,1))%sz.xxy+z),
+                                texture3DAt(dagi_media_scene, (wrapped+uint3(1,0,1))%sz.xxy+z), tcFract.x),
+                          lerp(
+                                texture3DAt(dagi_media_scene, (wrapped+uint3(0,1,1))%sz.xxy+z),
+                                texture3DAt(dagi_media_scene, (wrapped+uint3(1,1,1))%sz.xxy+z), tcFract.x), tcFract.y),
+                          tcFract.z);
+        //media = dagi_get_project_media(worldPos, voxelSize);
+      } else
+      #endif
+        media = dagi_get_project_initial_media(worldPos, voxelSize);
+
+      media = max(media, 0);
+
+      uint3 targetCoord = dagi_media_scene_wrapped_coord_from_abs_coord(absCoord);
+      texture3DAt(dagi_media_scene, targetCoord + uint3(0,0,1 + clip*dagi_media_scene_get_clip_size_with_border())) = media;
+      if (targetCoord.z == 0 || targetCoord.z == dagi_media_scene_get_clip_size().y - 1)//write border
+      {
+        texture3DAt(dagi_media_scene, uint3(targetCoord.xy, targetCoord.z ? 0 : dagi_media_scene_get_clip_size().y+1)+uint3(0,0,clip*dagi_media_scene_get_clip_size_with_border())) = media;
+      }
+    }
+  }
+  compile("target_cs", "dagi_media_toroidal_movement_cs");
+}
+
+shader dagi_media_scene_reset_cs
+{
+  ENABLE_ASSERT(cs)
+  DAGI_MEDIA_SCENE_UAV(cs)
+  DAGI_MEDIA_SCENE_CLIPMAP_MATH(cs)
+  hlsl(cs) {
+    [numthreads(4, 4, 4)]
+    void dagi_media_scene_reset_cs(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint3 targetCoord = dtId;
+      if (any(targetCoord >= uint3(dagi_media_scene_get_clip_size().xx,dagi_media_scene_get_clip_count()*dagi_media_scene_get_clip_size_with_border())))
+        return;
+      texture3DAt(dagi_media_scene, targetCoord) = 0;
+    }
+  }
+  compile("target_cs", "dagi_media_scene_reset_cs");
+}
+

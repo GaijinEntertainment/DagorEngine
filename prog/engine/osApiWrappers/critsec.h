@@ -1,8 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+#include <osApiWrappers/dag_critSec.h>
 #if _TARGET_PC_WIN | _TARGET_XBOX
 #include <windows.h>
 #define HAVE_WINAPI                    1
-#define HAVE_LOCKCOUNT_IMPLEMENTATION  0
 #define PLATFORM_CRITICAL_SECTION_TYPE CRITICAL_SECTION
 G_STATIC_ASSERT(alignof(CritSecStorage) == alignof(CRITICAL_SECTION));
 #elif _TARGET_C1 | _TARGET_C2
@@ -13,7 +15,6 @@ G_STATIC_ASSERT(alignof(CritSecStorage) == alignof(CRITICAL_SECTION));
 #include <errno.h>
 #define HAVE_WINAPI                    0
 #define PLATFORM_CRITICAL_SECTION_TYPE pthread_mutex_t
-#define HAVE_LOCKCOUNT_IMPLEMENTATION  1
 #endif
 
 
@@ -23,7 +24,7 @@ using type = PLATFORM_CRITICAL_SECTION_TYPE;
 inline type *get(void *p) { return (type *)p; }
 namespace lockcount
 {
-#if HAVE_LOCKCOUNT_IMPLEMENTATION
+#if DAG_CS_CUSTOM_LOCKSCOUNT
 inline volatile int &ref(void *p) { return ((CritSecStorage *)p)->locksCount; }
 inline int value(void *p) { return ((CritSecStorage *)p)->locksCount; }
 static inline void release(void *p) { interlocked_release_store(lockcount::ref(p), 0); }

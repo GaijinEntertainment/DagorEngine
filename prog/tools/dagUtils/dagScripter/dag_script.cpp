@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_localConv.h>
 #include <osApiWrappers/dag_basePath.h>

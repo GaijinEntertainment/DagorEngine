@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/shaderCacheWarmup/shaderCacheWarmup.h>
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_dataBlockUtils.h>
 #include <osApiWrappers/dag_miscApi.h>
@@ -33,15 +35,21 @@ static Tab<const char *> get_shaders_to_warmup(const char *pipeline_type, const 
   return shaderNames;
 }
 
-void warmup_shaders_from_settings(const bool is_loading_thread) { warmup_shaders_from_settings(WarmupParams{}, is_loading_thread); }
+void warmup_shaders_from_settings(const bool is_loading_thread)
+{
+  warmup_shaders_from_settings(WarmupParams{}, is_loading_thread, false);
+}
 
-void warmup_shaders_from_settings(const WarmupParams &params, const bool is_loading_thread)
+void warmup_shaders_from_settings(const WarmupParams &params, const bool is_loading_thread, const bool backgroundWarmup)
 {
   const DataBlock *warmupBlk = ::dgs_get_settings()->getBlockByNameEx("shadersWarmup");
 
   if (warmup_enabled(warmupBlk))
   {
     debug("starting shaders warmup");
+
+    if (backgroundWarmup)
+      warmupBlk = warmupBlk->getBlockByNameEx("backgroundWarmup");
 
     Tab<const char *> graphicsShaders = get_shaders_to_warmup("graphics", warmupBlk);
     Tab<const char *> computeShaders = get_shaders_to_warmup("compute", warmupBlk);

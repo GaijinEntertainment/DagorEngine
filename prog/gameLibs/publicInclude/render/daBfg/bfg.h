@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -45,6 +44,14 @@ void startup();
 /// \brief Frees resources held by the daBfg backend.
 void shutdown();
 
+/**
+ * \brief Invalidates history
+ * \details When making changes to the graph history is generally preserved
+ * calling this function makes this preservation invalid and the history
+ * resources will be recreated.
+ */
+void invalidate_history();
+
 /// \brief Sets various global state that is external to daBfg.
 void update_external_state(ExternalState state);
 
@@ -78,13 +85,21 @@ template <class F>
 /**
  * \brief Alias for dabfg::root().setResolution, see \ref NameSpace::setResolution
  */
-inline void set_resolution(const char *typeName, IPoint2 value) { dabfg::root().setResolution(typeName, value); }
+template <class T>
+inline void set_resolution(const char *typeName, T value)
+{
+  dabfg::root().setResolution(typeName, value);
+}
 
 /**
  * \brief Alias for dabfg::root().setDynamicResolution,
  * see \ref NameSpace::setDynamicResolution
  */
-inline void set_dynamic_resolution(const char *typeName, IPoint2 value) { dabfg::root().setDynamicResolution(typeName, value); }
+template <class T>
+inline void set_dynamic_resolution(const char *typeName, T value)
+{
+  dabfg::root().setDynamicResolution(typeName, value);
+}
 
 /**
  * \brief Alias for dabfg::root().fillSlot(slot, dabfg::root(), res_name), see \ref NameSpace::fillSlot

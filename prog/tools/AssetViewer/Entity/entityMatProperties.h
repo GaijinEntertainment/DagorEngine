@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <util/dag_simpleString.h>
@@ -51,6 +52,7 @@ struct MatVarDesc
 struct EntityMatProperties
 {
   int dagMatId = -1;
+  int facesUsingMaterial = 0; // Number of faces that use this material.
   SimpleString matName;
   SimpleString shClassName;
   dag::Vector<MatVarDesc> vars;

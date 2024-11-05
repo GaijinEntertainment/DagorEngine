@@ -1,0 +1,4 @@
+return {
+  EventWindowActivated = class { name = "EventWindowActivated" }
+  EventWindowDeactivated = class { name = "EventWindowDeactivated" }
+}

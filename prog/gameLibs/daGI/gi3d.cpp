@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_frustum.h>
 #include <math/dag_Point2.h>
 #include <math/integer/dag_IBBox2.h>
@@ -5,8 +7,16 @@
 #include <math/integer/dag_IPoint4.h>
 
 #include <3d/dag_quadIndexBuffer.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_tex3d.h>
 #include <shaders/dag_computeShaders.h>
 #include <perfMon/dag_statDrv.h>
 #include <generic/dag_smallTab.h>
@@ -24,6 +34,8 @@
 
 #include "util/dag_convar.h"
 #include <render/spheres_consts.hlsli>
+#include <render/voxelization_target.h>
+#include <frustumCulling/frustumPlanes.h>
 
 CONSOLE_BOOL_VAL("render", debug_inline_rt, false);
 
@@ -37,7 +49,6 @@ static constexpr int GI_MOVEMENT_THRESHOLD = 2;
 #define GI_VIGNETEE_OFFSET 0.5f
 
 extern Point3_vec4 POISSON_SAMPLES[SAMPLE_NUM];
-extern void set_frustum_planes(const Frustum &frustum);
 
 static void setCSIndirect(Sbuffer *buf, int cnt = 1)
 {
@@ -79,92 +90,15 @@ GI3D::GI3D() : debugLastGTM(), volmap()
   cascadeResolution[0] = Point2(0.45, 0.45);
   cascadeResolution[1] = cascadeResolution[0] * 3.0;
   setBouncingMode(BouncingMode::CONTINUOUS);
-
-  shaders::OverrideState state;
-  state.set(shaders::OverrideState::CULL_NONE);
-  state.set(shaders::OverrideState::Z_WRITE_DISABLE);
-  state.set(shaders::OverrideState::Z_TEST_DISABLE);
-  if (d3d::get_driver_desc().caps.hasForcedSamplerCount || d3d::get_driver_desc().caps.hasUAVOnlyForcedSampleCount)
-  {
-    state.set(shaders::OverrideState::FORCED_SAMPLE_COUNT);
-    state.forcedSampleCount = 8; // 8 is always supported
-    debug("voxelization uses Forced Sample Count: %d", state.forcedSampleCount);
-  }
-  voxelizeOverride = shaders::overrides::create(state);
+  init_voxelization();
   v_bbox3_init_empty(lastRestrictedUpdateGiBox);
 }
 
-bool GI3D::ensureSampledTarget(int w, int h, uint32_t fmt)
-{
-  TextureInfo tinfo;
-  if (sampledTarget)
-    sampledTarget->getinfo(tinfo);
-  if (((tinfo.cflg & TEXFMT_MASK) != (fmt & TEXFMT_MASK)) || tinfo.w < w || tinfo.h < h)
-  {
-    TexPtr tex = dag::create_tex(NULL, w, h, fmt | TEXCF_RTARGET, 1, "voxelization_msaa_target");
-    debug("MSAA voxelization target %s %dx%d fmt 0x%X", tex ? "created" : "can't be created", w, h, fmt);
-    if (!tex)
-      return false;
-    sampledTarget = eastl::move(tex);
-  }
-  d3d::set_render_target(sampledTarget.get(), 0, 0);
-  return true;
-}
+bool GI3D::setSubsampledTargetAndOverride(int w, int h) { return set_voxelization_target_and_override(w, h); }
 
-static int find_max_msaa_format()
-{
-  using namespace eastl;
-  int maxMsaaFormats[] = {
-    TEXFMT_R8, // sort by bit count
-    TEXFMT_L16,
-    TEXFMT_R8G8,
-    TEXFMT_R8G8B8A8,
-  };
-  int maxMsaaSamples[size(maxMsaaFormats)] = {};
-  transform(begin(maxMsaaFormats), end(maxMsaaFormats), begin(maxMsaaSamples),
-    [](auto fmt) { return d3d::get_max_sample_count(fmt); });
-  auto maxIdx = distance(begin(maxMsaaSamples), max_element(begin(maxMsaaSamples), end(maxMsaaSamples)));
-  return make_sample_count_flag(maxMsaaSamples[maxIdx]) | maxMsaaFormats[maxIdx];
-}
+void GI3D::resetOverride() { reset_voxelization_override(); }
 
-ConVarT<int, true> gi_use_forced_sample_count("render.gi_use_forced_sample_count", 1, 0, 2, "0 - OFF, 1 - ON, 2 - UAV only");
-bool GI3D::setSubsampledTargetAndOverride(int w, int h)
-{
-  if (gi_use_forced_sample_count.get() == 1 && d3d::get_driver_desc().caps.hasForcedSamplerCount)
-  {
-    BaseTexture *backBuf = d3d::get_backbuffer_tex();
-    TextureInfo tinfo;
-    if (!backBuf->getinfo(tinfo) || (tinfo.cflg & TEXCF_SAMPLECOUNT_MASK) || tinfo.w < w || tinfo.h < h)
-    {
-      if (!ensureSampledTarget(w, h, TEXFMT_R8))
-        return false;
-    }
-    else
-      d3d::set_render_target(backBuf, 0, 0);
-  }
-  else if (gi_use_forced_sample_count.get() && d3d::get_driver_desc().caps.hasUAVOnlyForcedSampleCount) // vulkan codepath
-  {
-    d3d::set_render_target(nullptr, 0, 0);
-  }
-  else
-  {
-    if (!ensureSampledTarget(w, h, find_max_msaa_format()))
-    {
-      //? w *= 2; h *= 2;//supersampling should be better, but probably videocard is really slow
-      if (!ensureSampledTarget(w, h, TEXFMT_R8))
-        return false;
-    }
-  }
-  if (gi_use_forced_sample_count.get()) // fixme: use different override, without forced sample count
-    shaders::overrides::set(voxelizeOverride);
-  d3d::set_depth(nullptr, DepthAccess::SampledRO);
-  d3d::setview(0, 0, w, h, 0, 1);
-  return true;
-}
-
-void GI3D::resetOverride() { shaders::overrides::reset(); }
-
-GI3D::~GI3D() {}
+GI3D::~GI3D() { close_voxelization(); }
 
 void GI3D::initDebug()
 {
@@ -298,7 +232,6 @@ void GI3D::VolmapCommonData::initCommon()
     return;
 
   initEnviCube();
-  shaderHelperUtils = texture_util::get_shader_helper();
   cull_ambient_voxels_cs.reset(new_compute_shader("cull_ambient_voxels_cs"));
   cull_ambient_voxels_cs_warp_64.reset(new_compute_shader("cull_ambient_voxels_cs_warp_64"));
   warpSize = d3d::get_driver_desc().minWarpSize;
@@ -357,12 +290,16 @@ void GI3D::VolmapCommonData::initCommon()
 
 void GI3D::VolmapCommonData::invalidateTextureContent()
 {
-  shaderHelperUtils->clear_float_voltex_via_cs(ssgiTemporalWeight.getVolTex());
-  shaderHelperUtils->clear_float3_voltex_via_cs(cube.getVolTex());
   if (ssgiTemporalWeight.getVolTex())
+  {
+    d3d::clear_rwtexf(ssgiTemporalWeight.getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
     d3d::resource_barrier({ssgiTemporalWeight.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
+  }
   if (cube.getVolTex())
+  {
+    d3d::clear_rwtexf(cube.getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
     d3d::resource_barrier({cube.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
+  }
 }
 
 void GI3D::VolmapCommonData::afterReset()
@@ -881,7 +818,7 @@ float GI3D::getLightMaxDist() const { return max(getLightDist3D(), irradiance25D
 extern ConVarT<bool, false> gi_25d_force_update_scene, gi_25d_force_update_volmap;
 
 void GI3D::updateOrigin(const Point3 &center, const dagi25d::voxelize_scene_fun_cb &voxelize_25d_cb,
-  const render_scene_fun_cb &preclear_cb, const render_scene_fun_cb &voxelize_cb, int scenes)
+  const render_scene_fun_cb_t &preclear_cb, const render_scene_fun_cb_t &voxelize_cb, int scenes)
 {
   TIME_D3D_PROFILE(gi_update_origin);
   calcEnviCube();
@@ -1221,7 +1158,7 @@ void GI3D::afterReset()
 
 static int ssgi_current_frame = 0;
 
-void GI3D::render(const TMatrix &view_tm, const TMatrix4 &proj_tm)
+void GI3D::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, const TMatrix4_vec4 &glob_tm)
 {
   ShaderGlobal::set_int(gi_qualityVarId, common.quality);
   if (!common.cube)
@@ -1230,8 +1167,6 @@ void GI3D::render(const TMatrix &view_tm, const TMatrix4 &proj_tm)
   setVars();
   ShaderGlobal::set_int(ssgi_current_frameVarId, (++ssgi_current_frame) & 0xFFFF);
   d3d::settm(TM_WORLD, TMatrix::IDENT);
-  mat44f globtm;
-  d3d::getglobtm(globtm);
 
   bool resetted = false;
   for (int i = volmap.size() - 1; i >= 0; --i)
@@ -1245,8 +1180,8 @@ void GI3D::render(const TMatrix &view_tm, const TMatrix4 &proj_tm)
   if (resetted)
     updateVolmapCB();
   for (int i = volmap.size() - 1; i >= 0; --i)
-    volmap[i].render(common, globtm);
-  debugLastGTM = globtm;
+    volmap[i].render(common, reinterpret_cast<mat44f_cref>(glob_tm));
+  debugLastGTM = reinterpret_cast<mat44f_cref>(glob_tm);
 
   // volmap[0].copyFromNext(common);
   // move to different

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <3d/dag_resourcePool.h>
 
 // incremental unique ids should be build-wide unique,

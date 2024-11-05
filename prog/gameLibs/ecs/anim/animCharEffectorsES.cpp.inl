@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ecs/core/entityManager.h>
 #include <daECS/core/coreEvents.h>
 #include <ecs/anim/anim.h>
@@ -22,8 +24,9 @@ static void reset_ik_attnode(AnimV20::AnimcharBaseComponent &animchar, int wtm_i
 }
 
 ECS_ON_EVENT(on_appear, InvalidateEffectorData)
-static void animchar_effectors_init_es_event_handler(const ecs::Event &, const AnimV20::AnimcharBaseComponent &animchar,
-  const ecs::Array &animchar_effectors__effectorsList, ecs::Object &animchar_effectors__effectorsState)
+static void animchar_effectors_init_es_event_handler(const ecs::Event &, ecs::EntityId eid,
+  const AnimV20::AnimcharBaseComponent &animchar, const ecs::Array &animchar_effectors__effectorsList,
+  ecs::Object &animchar_effectors__effectorsState)
 {
   animchar_effectors__effectorsState.clear();
   const AnimV20::AnimationGraph *animGraph = animchar.getAnimGraph();
@@ -35,7 +38,12 @@ static void animchar_effectors_init_es_event_handler(const ecs::Event &, const A
 
     const ecs::string &effName = obj[ECS_HASH("effectorName")].get<ecs::string>();
     int effId = animGraph->getParamId(effName.c_str(), AnimV20::IAnimStateHolder::PT_Effector);
-    G_ASSERTF_RETURN(effId >= 0, , "Incorrect effector name '%s'", effName.c_str());
+    if (DAGOR_UNLIKELY(effId < 0))
+    {
+      logerr("Effector name '%s' not found in animgraph of animchar '%s' entity '%s'", effName.c_str(),
+        animchar.getCreateInfo()->resName.c_str(), g_entity_mgr->getEntityTemplateName(eid));
+      continue;
+    }
 
     const ecs::string &effWtmName = obj[ECS_HASH("effectorWtmName")].get<ecs::string>();
     int effWtmId = animGraph->getParamId(effWtmName.c_str(), AnimV20::IAnimStateHolder::PT_InlinePtr);

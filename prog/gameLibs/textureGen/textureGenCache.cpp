@@ -1,5 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_dataBlock.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
 #include <math/dag_adjpow2.h>
 #include <util/dag_string.h>
 #include <generic/dag_tab.h>

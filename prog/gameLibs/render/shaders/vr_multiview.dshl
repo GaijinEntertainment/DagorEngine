@@ -1,6 +1,6 @@
 include "vr_reprojection.dshl"
 
-int use_vr_multiview = 0;
+int use_vr_multiview = 0 always_referenced;
 interval use_vr_multiview : no < 1, yes;
 
 macro VR_MULTIVIEW_RENDERING(enable, use_dynstcode)

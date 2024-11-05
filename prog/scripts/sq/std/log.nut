@@ -2,6 +2,7 @@
 
 let dagorDebug = require("dagor.debug")
 let string = require("string.nut")
+let { split_by_chars } = require("string")
 let math = require("math")
 let tostring_r = string.tostring_r
 let join = string.join //like join, but skip emptylines
@@ -37,7 +38,7 @@ function Log(tostringfunc=null) {
     if (vargv.len()==1)
       vargv=vargv[0]
     let out = tostring_r(vargv,{tostringfunc=tostringfunc})
-    let s = string.split_by_chars(out,"\n")
+    let s = split_by_chars(out,"\n")
     for (local i=0; i < math.min(80,s.len()); i++) {
       dagorDebug.screenlog(s[i])
     }

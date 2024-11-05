@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -20,7 +19,7 @@ void register_utf8(SqModules *module_mgr);
 
 void bind_dagor_time(SqModules *module_mgr);
 
-void bind_dagor_workcycle(SqModules *module_mgr, bool auto_update_from_idle_cycle);
+void bind_dagor_workcycle(SqModules *module_mgr, bool auto_update_from_idle_cycle, const char *vm_name);
 void cleanup_dagor_workcycle_module(HSQUIRRELVM vm);
 void dagor_workcycle_frame_update(HSQUIRRELVM vm);
 void dagor_workcycle_skip_update(HSQUIRRELVM vm);
@@ -37,6 +36,7 @@ void register_dagor_system(SqModules *module_mgr);
 void register_dagor_shell(SqModules *module_mgr);
 void register_dagor_fs_module(SqModules *module_mgr);
 void register_dagor_fs_vrom_module(SqModules *module_mgr);
+void register_dagor_folders_module(SqModules *module_mgr);
 void register_dagor_clipboard(SqModules *module_mgr);
 void register_dagor_localization_module(SqModules *module_mgr);
 void register_platform_module(SqModules *module_mgr);

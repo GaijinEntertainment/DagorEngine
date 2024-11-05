@@ -17,6 +17,9 @@ Sources =
 AddIncludes =
   $(Root)/prog/3rdPartyLibs/metal/glslang/SPIRV
 ;
-if $(Platform) = macosx { CPPopt = -Wno-deprecated-declarations -Wno-overriding-t-option -fno-fast-math ; }
+if $(Platform) = macOS {
+  CPPopt = -Wno-deprecated-declarations -Wno-overriding-t-option -fno-fast-math
+  -Wno-deprecated-this-capture ; 
+}
 
 include $(Root)/prog/_jBuild/build.jam ;

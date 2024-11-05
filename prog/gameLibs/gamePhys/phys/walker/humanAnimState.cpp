@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gamePhys/phys/walker/humanAnimState.h>
 #include <animChar/dag_animCharacter2.h>
 #include <anim/dag_animBlendCtrl.h>

@@ -1,0 +1,17 @@
+Root    ?= ../../.. ;
+Module = native_dasevents ;
+ModuleDependsOnVars = PhysName ;
+Location = prog/daNetGameLibs/$(Module) ;
+local DasModule = daNetGameLibs_native_dasevents_DAS_pull_AOT ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+local AllSrcFolder_DAS =
+  main
+  ui
+;
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

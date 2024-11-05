@@ -1,0 +1,292 @@
+include "shader_global.dshl"
+include "land_micro_detail.dshl"
+include "clipmap.dshl"
+include "shore.dshl"
+include "displacement_inc.dshl"
+include "heightmap_common.dshl"
+include "biomes.dshl"
+
+float4 heightmap_min_max = (0, 0, 0, 0);
+
+texture lightmap_tex;
+float4 world_to_lightmap = (1 / 60000, 1 / 60000, 0.5, 0.5);
+texture landTileTex;
+float landTileXSize = 1;
+float4 specular_detect_land_color = (1, 0, 0, 0);
+
+float4 landCellShortDecodeXZ=(1,1,0,0);
+float4 landCellShortDecodeY =(1,0,0,0);
+float ocean_density = 1.0;
+float wetness_above = 1.05;
+
+int lmesh_rendering_mode = 0;
+interval lmesh_rendering_mode : rendering_landmesh<1, rendering_clipmap<3, grass_color<4, grass_mask<6, rendering_heightmap<7, rendering_depth<8, rendering_shadow<9, rendering_reflection;//<10, rendering_feedback;
+
+texture land_detail_map;
+texture land_detail_map2;
+
+include "vertical.dshl"
+
+
+//float4 land_flir = (0.2, 0.3, 0, 0);
+float4 landmesh_debug_cells_scale= (1, 1, 1, 1);
+
+macro DECODE_WORLD_POS()
+  (vs) {
+    landCellShortDecodeY@f2 = landCellShortDecodeY;
+    landCellShortDecodeXZ@f4 = landCellShortDecodeXZ;
+  }
+endmacro
+
+macro BASE_LAND_MESH_BLOCK()
+  (ps) { world_to_lightmap@f4 = world_to_lightmap; }
+
+  if (in_editor_assume == no)
+  {
+    (vs) { globtm@f44 = globtm; }
+  }
+endmacro
+
+float water_depth_to_opacity_exp_base = 0.95;
+float4 water_color_light_loss = (0.99, 1,1,0);
+block(scene) land_mesh_with_splatting
+{
+  supports global_frame;
+  BASE_LAND_MESH_BLOCK()
+}
+
+float land_bump_scale = 2;
+float detail_bump_scale = 0.01;
+float clipmapshadow_is_ao_str = 0;
+
+block(scene) land_mesh_prepare_clipmap
+{
+  supports global_frame;
+  DECODE_WORLD_POS()
+  if (in_editor_assume == no)
+  {
+    (vs) { globtm@f44 = globtm; }
+  }
+  INIT_LAND_MICRODETAILS_COUNT_PS()
+  INIT_LAND_MICRODETAILS_PARAMS_PS()
+  //land_bump_scale@f4 = ((2.*2.*0.6685551585321885)/land_bump_scale,detail_bump_scale,0,0);
+  (ps) {
+    world_to_lightmap@f4 = world_to_lightmap;
+    land_bump_scale@f4 = (1,detail_bump_scale, -hmap_displacement_down/(hmap_displacement_up-hmap_displacement_down), 1/(hmap_displacement_up-hmap_displacement_down));
+  }
+}
+block(scene) land_mesh_grass_mask
+{
+  supports global_frame;
+  DECODE_WORLD_POS()
+  if (in_editor_assume == no)
+  {
+    (vs) { globtm@f44 = globtm; }
+  }
+  INIT_LAND_MICRODETAILS_COUNT_PS()
+  INIT_LAND_MICRODETAILS_PARAMS_PS()
+  (ps) {
+    world_to_lightmap@f4 = world_to_lightmap;
+    land_bump_scale@f4 = (1,detail_bump_scale,-hmap_displacement_down/(hmap_displacement_up-hmap_displacement_down), 1/(hmap_displacement_up-hmap_displacement_down));
+  }
+  //INIT_CLIPMAP_NONORMAL()
+  INIT_CLIPMAP_LAST()
+}
+block(scene) land_mesh_with_clipmap_reflection
+{
+  supports global_frame;
+  DECODE_WORLD_POS()
+  BASE_LAND_MESH_BLOCK()
+  (ps) {
+    world_to_last_clip@f4 = world_to_last_clip;
+    last_clip_tex@smp2d = last_clip_tex;
+    lightmap_tex@smp2d = lightmap_tex;
+  }
+}
+
+macro INIT_LAND_SHORE()
+INIT_SHORE(ps)
+endmacro
+
+macro USE_LAND_SHORE()
+hlsl(ps) {
+  #define max_wave_height (shore_params1.x)
+  #define foam_time (shore_params1.y)
+  #define decode_heightmap shore_params1.zw
+  #define IS_DEFERRED_PASS 1
+}
+
+USE_SHORE(ps, 1, 1)
+
+hlsl(ps) {
+  float get_land_wetness(float3 worldPos, out float shoreWavesMultiplier, float water_level)
+  {
+    float2 wind_dir = wind_dir_water_level_ocean_density.xy;
+    float ocean_density = wind_dir_water_level_ocean_density.w;
+    float const_wet_above = 0.4;
+    float wet_above = const_wet_above + max_wave_height/2;
+    //fixme:      wet_above = 0.2+max(riversMultiplier*max_wave_height/16, 2*shoreWavesDisplacement.z);
+    float under_water_deep = max(0, (water_level-worldPos.y)+wet_above);
+    float3 geomNormal = float3(0,1,0);
+    shoreWavesMultiplier = 0;
+    ##if shore_distance_field_tex == NULL
+    return saturate((water_level-worldPos.y)*rcp(const_wet_above) +1);
+    ##else
+    BRANCH
+    if (under_water_deep>0)
+    {
+      float2 tc = worldPos.xz*world_to_heightmap.xy + world_to_heightmap.zw;
+      float4 sdf = tex2Dlod(shore_distance_field_tex, float4(tc,0,0));
+      //no displacement if very deep inside terrain
+      float wetness = saturate((water_level-worldPos.y)*rcp(const_wet_above) + 1);
+      float real_water_level = water_level;
+      float2 vignette = saturate( abs(tc*2-1) * 10 - 9 );
+      float vignetteVal = saturate( 1.0 - max( vignette.x, vignette.y ) );
+      BRANCH
+      if (sdf.w > 0)//fixme: if too high according to riversMultiplier as well
+      {
+        float3 normal; float breaker, foamTrail, riversMultiplier, oceanWavesMultiplier;//, shoreWavesMultiplier
+        float3 shoreWavesDisplacement = 0;
+        float sdf_size_in_meters = world_to_heightmap.x;
+        float linear_wetness;
+        GetShoreSurfaceAttributes(max_wave_height, foam_time, 2*(kSDFRadiusInPixels/kSDFTextureSize)/sdf_size_in_meters, float2(decode_heightmap.x, decode_heightmap.y-water_level), wind_dir,
+                                 worldPos.xzy, shoreWavesDisplacement, normal, breaker, foamTrail,
+                                 shoreWavesMultiplier, oceanWavesMultiplier, riversMultiplier, sdf, linear_wetness, geomNormal, water_level);
+        float shoreWetness = 1-pow2(1-saturate(linear_wetness));
+
+        wetness = max(wetness, shoreWetness*vignetteVal);
+        return wetness;
+        //real_water_level += 0.5*shoreWavesDisplacement.z;
+      }
+      return sdf.w<0.001 ? wetness : 0;
+    }
+    ##endif
+    return 0;
+  }
+}
+endmacro
+
+
+block(scene) land_mesh_with_clipmap
+{
+  supports global_frame;
+  supports global_const_block;
+  DECODE_WORLD_POS()
+  BASE_LAND_MESH_BLOCK()
+  INIT_CLIPMAP_NORMAL()
+
+  (ps) {
+    wind_dir_water_level_ocean_density@f4 = (wind_dir_x, wind_dir_y, water_level, -0.5*ocean_density);
+    shore_params1@f4 = (max_wave_height, scroll_time, water_heightmap_min_max.z, water_heightmap_min_max.w);
+    lightmap_tex@smp2d = lightmap_tex;
+  }
+
+  INIT_LAND_MICRODETAILS_PS()
+  INIT_LAND_MICRODETAILS_PARAMS_PS()
+  INIT_RAW_RENDERING_FEEDBACK()
+}
+
+block(scene) land_mesh_render_depth
+{
+  supports global_frame;
+  DECODE_WORLD_POS()
+  if (in_editor_assume == no)
+  {
+    (vs) { globtm@f44 = globtm; }
+  }
+}
+
+
+hlsl {
+  half3 pack_detail_ao_reflectance_emission(half detail, half ao, half reflectance, half emission)
+  {
+    half ao_emission = emission < 0.01 ? ao * 0.5 : emission * 0.5 + 0.5;
+    return half3(ao_emission, reflectance, detail);
+  }
+}
+
+int autodetect_land_selfillum_enabled = 0;
+interval autodetect_land_selfillum_enabled: no < 1, yes;
+float4 autodetect_land_selfillum_color = (10.0, 10.0, 10.0, -100);
+float land_selfillum_strength = 4;
+float land_selfillum_worldscale = 0.9;
+int land_selfillum_biome_group_id = -1;
+int land_selfillum_microdetail_id = -1;
+
+macro DETECT_LAND_SELFILLUM()
+  (ps) {
+    land_selfillum_params@f4 = (land_selfillum_strength, 1.0/autodetect_land_selfillum_color.w,
+                                time_phase(0.0, 0.0), land_selfillum_worldscale);
+  }
+  hlsl(ps) {
+    float apply_threshold_for_emission(float emission)
+    {
+      const float EMISSION_THRESHOLD = 0.05;
+      return saturate((emission - EMISSION_THRESHOLD) / (1.0 - EMISSION_THRESHOLD));
+    }
+    #define APPLY_LAND_SELFILLUM(gbuffer, worldpos, selfillum_strength)\
+      init_material(gbuffer, SHADING_SELFILLUM);\
+      float emission_varying = 0.6+0.4*sin((worldpos.x+worldpos.z)*land_selfillum_params.w+land_selfillum_params.z);\
+      init_emission(gbuffer, emission_varying*land_selfillum_params.x*selfillum_strength);\
+      init_emission_color(gbuffer, 1);
+  }
+if (autodetect_land_selfillum_enabled == yes)
+{
+  INIT_BIOMES(ps)
+  USE_BIOMES(ps)
+  (ps) {
+    autodetect_land_selfillum_color@f4 = autodetect_land_selfillum_color;
+    land_selfillum_params_add@f2 = (land_selfillum_biome_group_id, land_selfillum_microdetail_id, 0, 0);
+  }
+  hlsl(ps) {
+    #define SET_LAND_SELFILLUM_PARAMS(diffuse, gbuffer, worldpos, emission, detail_no)\
+      float selfillum_strength = dot(abs(diffuse.rgb - autodetect_land_selfillum_color.rgb), float3(1,1,1));\
+      selfillum_strength = max(autodetect_land_selfillum_color.a - selfillum_strength, 0.0) * land_selfillum_params.y;\
+      if (emission > 0.001)\
+        selfillum_strength = apply_threshold_for_emission(emission);\
+      BRANCH\
+      if (selfillum_strength > 0.001)\
+      {\
+        bool active2 = (land_selfillum_params_add.y < 0 || any(int4(detail_no.id * MAX_MICRO_DETAILS_SCALE + 0.5) == int4(land_selfillum_params_add.yyyy)));\
+        if (active2 && (land_selfillum_params_add.x < 0 || getBiomeGroupIndex(worldpos) == int(land_selfillum_params_add.x))) {\
+          APPLY_LAND_SELFILLUM(gbuffer, worldpos, selfillum_strength);\
+        } \
+      }
+  }
+}
+else
+{
+  hlsl(ps) {
+    #define SET_LAND_SELFILLUM_PARAMS(diffuse, gbuffer, worldpos, emission, detail_no)\
+      float selfillum_strength = apply_threshold_for_emission(emission);\
+      if (selfillum_strength > 0.001)\
+      {\
+        APPLY_LAND_SELFILLUM(gbuffer, worldpos, selfillum_strength);\
+      }
+  }
+}
+endmacro
+
+macro LAND_MASK_HEIGHT_VS()
+  hlsl(vs) {
+    float4 get_land_mask_height(float3 world_pos)
+    {
+      return 0;
+    }
+  }
+endmacro
+
+macro LAND_MASK_HEIGHT_PS()
+  INIT_WORLD_HEIGHTMAP_PS()
+  USE_HEIGHTMAP_COMMON_PS()
+  hlsl(ps) {
+    float4 get_land_mask_height(float3 world_pos)
+    {
+      return getWorldHeight(world_pos.xz);
+    }
+  }
+endmacro
+
+macro LAND_MASK_HEIGHT()
+  LAND_MASK_HEIGHT_PS()
+endmacro

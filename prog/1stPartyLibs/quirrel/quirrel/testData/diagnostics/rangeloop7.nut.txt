@@ -1,3 +1,0 @@
-for (10, local i = 0) {
-    println("ERROR loop 7")
-}

@@ -6,6 +6,12 @@ include_decl_h("DafxEmitter");
 
 begin_declare_params("DafxSparks");
 
+declare_struct("SparkFxValueCurveOpt", 1,
+[
+  { name="enabled", type="bool", defVal=0 },
+  { name="curve", type="cubic_curve" },
+]);
+
 declare_struct("DafxLinearDistribution", 1,
 [
   { name="start", type="real" },
@@ -43,10 +49,10 @@ declare_struct("DafxSectorDistribution", 1,
   { name="inclinationNoise", type="real", defVal=0 },
 ]);
 
-declare_struct("DafxSparksSimParams", 6,
+declare_struct("DafxSparksSimParams", 12,
 [
   { name="pos", type="DafxCubeDistribution" },
-  { name="width", type="DafxLinearDistribution" },
+  { name="width__mm", type="DafxLinearDistribution" },
   { name="life", type="DafxLinearDistribution" },
   { name="seed", type="int", defVal=0 },
   { name="velocity", type="DafxSectorDistribution" },
@@ -55,6 +61,7 @@ declare_struct("DafxSparksSimParams", 6,
   { name="color0", type="E3DCOLOR", defVal=Color4(128, 128, 128, 255) },
   { name="color1", type="E3DCOLOR", defVal=Color4(255, 255, 255, 255) },
   { name="color1Portion", type="real", defVal=0 },
+  { name="hdrBias", type="real", defVal=0},
   { name="colorEnd", type="E3DCOLOR", defVal=Color4(255, 255, 255, 0) },
   { name="velocityBias", type="real", defVal=0 },
   { name="dragCoefficient", type="real", defVal=1 },
@@ -66,17 +73,19 @@ declare_struct("DafxSparksSimParams", 6,
   { name="spawnNoisePos", type="DafxCubeDistribution" },
   { name="hdrScale1", type="real", defVal=2.0 },
   { name="windForce", type="real", defVal=0 },
+  { name="gravity_zone", type="list", list=["default", "disabled", "per_emitter", "per_particle"] },
 ]);
 
-declare_struct("DafxSparksRenParams", 3,
+declare_struct("DafxSparksRenParams", 4,
 [
   { name="blending", type="list", list=["additive", "alpha_blend"] },
   { name="motionScale", type="real", defVal=0.05 },
+  { name="motionScaleMax", type="real", defVal=10 },
   { name="hdrScale", type="real", defVal=2.0 },
   { name="arrowShape", type="real", defVal=0.0 },
 ]);
 
-declare_struct("DafxSparksGlobalParams", 1,
+declare_struct("DafxSparksGlobalParams", 2,
 [
   { name="spawn_range_limit", type="real", defVal=0 },
   { name="max_instances", type="int", defVal=100 },
@@ -84,7 +93,15 @@ declare_struct("DafxSparksGlobalParams", 1,
   { name="emission_min", type="real", defVal=0 },
   { name="one_point_number", type="real", defVal=3 },
   { name="one_point_radius", type="real", defVal=5 },
+  { name="transform_type", type="list", list=["default", "world_space", "local_space"] },
 ]);
+
+declare_struct("DafxSparksOptionalModifiers", 2, // optional stuff must be separate from DafxSparksSimParams due to implementation reasons
+[
+  { name="widthOverLife", type="SparkFxValueCurveOpt" },
+  { name="allowScreenProjDiscard", type="bool", defVal=1 },
+]);
+
 
 declare_struct("DafxSparksQuality", 1,
 [
@@ -98,11 +115,12 @@ declare_struct("DafxRenderGroup", 1,
   { name="type", type="list", list=["highres", "lowres", "underwater"]},
 ]);
 
-end_declare_params("dafx_sparks", 4, [
+end_declare_params("dafx_sparks", 5, [
   {struct="DafxEmitterParams"},
   {struct="DafxSparksSimParams"},
   {struct="DafxSparksRenParams"},
   {struct="DafxSparksGlobalParams"},
+  {struct="DafxSparksOptionalModifiers"},
   {struct="DafxSparksQuality"},
   {struct="DafxRenderGroup"}
 ]);

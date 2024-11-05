@@ -1,0 +1,345 @@
+include "world_sdf.dshl"
+include "sky_shader_global.dshl"
+include "screenspace_probes_common.dshl"
+include "screenspace_probes_reprojection.dshl"
+
+int debug_screenspace_probes_type;
+
+buffer screenspace_tile_classificator;
+
+texture current_radiance_distance;
+shader screenspace_probes_draw_debug
+{
+  supports global_const_block;
+  supports global_frame;
+  supports none;
+  (vs) {
+    globtm@f44 = globtm;
+  }
+  (vs) {
+    screenspace_tile_classificator@buf = screenspace_tile_classificator hlsl {
+      ByteAddressBuffer screenspace_tile_classificator@buf;
+    }
+    debug_screenspace_probes_type@i1 = debug_screenspace_probes_type;
+  }
+  (ps) {
+    screenspace_tile_classificator@buf = screenspace_tile_classificator hlsl {
+      ByteAddressBuffer screenspace_tile_classificator@buf;
+    }
+    screenspace_probes_temporal@i2 = screenspace_probes_temporal;
+  }
+  ENABLE_ASSERT(ps)
+  SCREENSPACE_PROBES_POSITIONS(vs)
+  SCREENSPACE_PROBES_POSITIONS(ps)
+  PREV_SCREENSPACE_PROBES_POSITIONS(ps)
+  SP_REPROJECT(ps)
+  //SCREENSPACE_PROBES_ADAPTIVE_POSITIONS(vs)
+  hlsl {
+    #include <sp_calc_common.hlsl>
+    #include "spheres_vertices.hlsl"
+    #include "screenprobes_consts.hlsli"
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 norm:  TEXCOORD1;
+      float4 centerPos:  TEXCOORD2;
+      nointerpolation uint atlasProbeIndex: TEXCOORD3;
+      nointerpolation uint tag: TEXCOORD4;
+      nointerpolation uint encodedProbeNormal: TEXCOORD5;
+    };
+    #define DEBUG_IRRADIANCE 0
+    #define DEBUG_RADIANCE 1
+    #define DEBUG_TYPE 2
+    #define DEBUG_NORMAL 3
+    #define DEBUG_COORD 4
+    #define DEBUG_TRACE_POS 5
+    #define DEBUG_DISTANCE 6
+  }
+
+  READ_WORLD_SDF(vs)
+  WORLD_SDF_STEP_OUT(vs)
+  hlsl(vs) {
+    VsOutput test_vs(uint iId : SV_InstanceID, uint vertId : SV_VertexID)
+    {
+      VsOutput output = (VsOutput)0;
+      output.pos = NaN;
+
+      uint atlasProbeIndex = iId;
+      uint numScreenProbes = sp_getNumScreenProbes();
+      uint totalAtlasProbes = sp_getNumTotalProbes();
+      uint numAddProbes = sp_getNumAdaptiveProbes();
+      if (atlasProbeIndex >= totalAtlasProbes)
+        return output;
+      uint2 screen_tile_coord = uint2(atlasProbeIndex%uint(screenspace_probe_res.x), atlasProbeIndex/uint(screenspace_probe_res.x));
+
+      uint encodedProbe = sp_loadEncodedProbe(screenspace_probe_pos, atlasProbeIndex);
+      if (!encodedProbe)
+        return output;
+      DecodedProbe probe = sp_decodeProbeInfo(encodedProbe);
+
+      bool isScreenProbe = atlasProbeIndex < numScreenProbes;
+      if (!isScreenProbe)
+      {
+        uint screenProbeIndex = loadBuffer(screenspace_tile_classificator, (sp_getScreenTileClassificatorOffsetDwords() + atlasProbeIndex - numScreenProbes)*4);
+        if (screenProbeIndex == ~0u)
+          return output;
+        screen_tile_coord = uint2(screenProbeIndex%uint(screenspace_probe_res.x), screenProbeIndex/uint(screenspace_probe_res.x));
+        //if (!getAdditionalScreenProbesCountRaw(screenspace_probe_pos, screenProbeIndex))
+        //  return output;
+      }
+
+      uint encodedProbeNormal = sp_loadEncodedProbeNormalCoord(screenspace_probe_pos, atlasProbeIndex, sp_getNumTotalProbes());
+      output.encodedProbeNormal = encodedProbeNormal;
+      uint2 coord_ofs = decodeCoordOfs(encodedProbeNormal);
+      float2 screenProbeCoord = min(screen_tile_coord*screenspace_probe_res.z + coord_ofs + 0.5f, screenspace_probe_screen_limit.zw);;
+      float3 center = sp_world_view_pos + (probe.normalizedW)*sp_getViewVecOptimizedNormalized(screenCoordToScreenUV(screenProbeCoord));//fixme
+
+      if (debug_screenspace_probes_type == DEBUG_TRACE_POS)
+      {
+        float sceneLinearDepth = (SCREENPROBES_BIAS_TO_CAMERA*probe.normalizedW*sp_zn_zfar.y);
+        float3 probeViewVec = sp_getViewVecOptimized(screenCoordToScreenUV(screenProbeCoord));
+        center = sp_world_view_pos + sceneLinearDepth*probeViewVec;
+        uint startClip = world_sdf_find_clip(center);
+        bool insideSDF = startClip < MAX_WORLD_SDF_CLIPS;
+        float sdfVoxelSize = insideSDF ? world_sdf_voxel_size(startClip) : 1;
+        center = sp_world_view_pos + max(sceneLinearDepth - sdfVoxelSize, sp_zn_zfar.x)*probeViewVec;
+
+        float3 probeNormal = decodeProbeNormal(encodedProbeNormal);
+        float normalBias = sdfVoxelSize*(SP_PROBE_SIZE*SP_HQ_PROBE_NORMAL_BIAS_SDF);
+        center += probeNormal*normalBias;
+        world_sdf_step_out_clip(center, startClip, 0.0, 0.5);
+      }
+
+      float size_scale = 0.005*pow(length(center - sp_world_view_pos), 0.75);
+      float3 pos = get_sphere_vertex_pos_low(vertId);
+      float3 worldPos = center + pos * size_scale;
+      output.atlasProbeIndex = atlasProbeIndex;
+      output.tag = probe.allTag;
+      output.norm = pos;
+      output.pos = mul(float4(worldPos, 1), globtm);
+      return output;
+    }
+  }
+
+  (ps) {
+    screenspace_irradiance@smp2d = screenspace_irradiance;
+    screenprobes_current_radiance@smp2d = screenprobes_current_radiance;
+    screenprobes_current_radiance_distance@smp2d = screenprobes_current_radiance_distance;
+    debug_screenspace_probes_type@i1 = debug_screenspace_probes_type;
+    sp_irradiance_res@i4 = sp_irradiance_res;
+  }
+  SREENSPACE_PROBES_OCTAHEDRAL(ps)
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  hlsl(ps) {
+    #include <sp_calc_common.hlsl>
+
+    half3 test_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    {
+      float2 octOffset = screenspace_probe_dir_encode(input.norm);
+      octOffset = octOffset*0.5 + 0.5;
+      if (debug_screenspace_probes_type != DEBUG_IRRADIANCE)
+        octOffset = clamp(octOffset, 0.5/sp_getRadianceRes(), 1-0.5/sp_getRadianceRes());
+      else
+        octOffset = (octOffset * sp_irradiance_res.x + 1.)/uint(sp_irradiance_res.y);
+      uint2 sampleCoord = uint2(input.atlasProbeIndex%uint(screenspace_probe_res.x), input.atlasProbeIndex/uint(screenspace_probe_res.x));
+      float2 sampleTC = (float2(sampleCoord) + octOffset)*screenspace_probe_atlas_size.zw;
+      uint isScreenProbe = sampleCoord.y < uint(screenspace_probe_res.y);
+      if (debug_screenspace_probes_type == DEBUG_TYPE)
+      {
+        uint revAge = sp_decodeTagRevAge(input.tag);
+        float3 colors[] = {float3(1,1,1), float3(1,0,0), float3(0,1,0), float3(0,0,1)};
+        //return pack_hdr(colors[revAge]);
+        if (input.tag&SP_TAG_MOVING_PROBE)
+          return pack_hdr(float3(isScreenProbe ? 0 : 1, 1,0));
+        if (!isScreenProbe)
+          return pack_hdr(float3(1,0,0));
+      }
+      if (debug_screenspace_probes_type == DEBUG_DISTANCE)
+        return pack_hdr(tex2Dlod(screenprobes_current_radiance_distance, float4(sampleTC,0,0)).x);
+      if (debug_screenspace_probes_type == DEBUG_IRRADIANCE)
+        return pack_hdr(tex2Dlod(screenspace_irradiance, float4(sampleTC,0,0)).xyz);
+      if (debug_screenspace_probes_type == DEBUG_COORD)
+      {
+        uint2 coordOfs = decodeCoordOfs(input.encodedProbeNormal);
+        if (!isScreenProbe)
+          discard;
+        //uint2 screen_tile_coord = sampleCoord;
+        uint2 prevCoordOfs = decodeCoordOfs(sp_loadEncodedProbeNormalCoord(prev_screenspace_probe_pos, input.atlasProbeIndex, sp_getPrevNumTotalProbes()));
+        if (any(prevCoordOfs != uint(screenspace_probe_res.z)/2))
+          return pack_hdr(float3(0,1,0));
+        if (any(coordOfs != uint(screenspace_probe_res.z)/2))
+          return pack_hdr(float3(1,0,0));
+        if (any(prevCoordOfs != coordOfs))
+          return pack_hdr(float3(1, 1, 0));
+      }
+      if (debug_screenspace_probes_type == DEBUG_NORMAL)
+      {
+        float3 probeNormal = decodeProbeNormal(input.encodedProbeNormal);//fixme: should be without tonemapping!
+        return pack_hdr(probeNormal*0.5 + 0.5);
+      }
+      //if (debug_screenspace_probes_type == DEBUG_RADIANCE)
+        float currentExposure = 1;
+        return pack_hdr(currentExposure*sp_decode_texture_radiance(tex2Dlod(screenprobes_current_radiance, float4(sampleTC,0,0)).xyz));
+      //return tex2Dlod(screenspace_iadiance, float4(sampleTC,0,0)).xyz;
+    }
+  }
+  compile("target_vs", "test_vs");
+  compile("target_ps", "test_ps");
+}
+
+include "gbuffer.dshl"
+include "project_is_dynamic_point.dshl"
+
+shader screenspace_probes_draw_debug_classificator
+{
+  supports global_const_block;
+  //supports global_frame;
+  supports none;
+  cull_mode  = none;
+  (ps) {
+    screenspace_tile_classificator@buf = screenspace_tile_classificator hlsl {
+      ByteAddressBuffer screenspace_tile_classificator@buf;
+    }
+    //screenspace_probe_pos@buf = screenspace_probe_pos hlsl {
+    //  ByteAddressBuffer screenspace_probe_pos@buf;
+    //}
+    //screenspace_probe_res@i4 = screenspace_probe_res;
+  }
+  SCREENSPACE_PROBES_POSITIONS(ps)
+  //SCREENSPACE_PROBES_POSITIONS_COMMON_MATH(ps)
+  z_test = false;
+  z_write = false;
+  blend_src = sa; blend_dst = isa;
+
+  (vs) {
+    screen_size@f4 = (1./screen_pos_to_texcoord.x, 1./screen_pos_to_texcoord.y,0,0);
+  }
+  USE_POSTFX_VERTEX_POSITIONS()
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord : TEXCOORD1;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput shadows_to_target_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4( pos.xy, 1, 1 );
+      output.texcoord = screen_to_texcoords(pos);
+
+      return output;
+    }
+  }
+
+
+  INIT_READ_DEPTH_GBUFFER_BASE(ps)
+  USE_READ_DEPTH_GBUFFER_BASE(ps)
+  PROJECT_DO_NOT_UPDATE_FROM_POINT(ps)
+  SP_CALC_UPSAMPLE_WEIGHTS(ps)
+
+  hlsl(ps){
+    half4 shadows_to_target_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      uint2 tci = screenpos.xy;
+      uint2 tileCoord = tci/uint(screenspace_probe_res.z);
+      uint tileIndex = tileCoord.x + tileCoord.y*screenspace_probe_res.x;
+
+      uint numScreenProbes = sp_getNumScreenProbes();
+      uint totalAtlasProbes = sp_getNumTotalProbes();
+      uint numAddProbes = sp_getNumAdaptiveProbes();
+      float3 colors[8] = {float3(0,0,0), float3(1,0,0), float3(0,1,0), float3(0,0,1), float3(1,1,0), float3(1,0,1), float3(0,1,1), float3(1,1,1)};
+      if (0)
+      {
+        SRVBufferInfo srvInfo;
+        srvInfo.posBuffer = screenspace_probe_pos;
+        uint baseEncodedProbe = sp_loadEncodedProbe(srvInfo.posBuffer, tileIndex);
+        float4 def = 0;
+        if (sp_has_additinal_probes(sp_decodeProbeInfo(baseEncodedProbe).allTag))//we can also use it as count
+        {
+          uint addCount, addAt;
+          getAdditionalScreenProbesCount(srvInfo.posBuffer, tileIndex, addCount, addAt);
+          LOOP
+          for (uint addI = addAt, addE = addAt + addCount; addI != addE; ++addI )
+          {
+            uint addProbeIndex = sp_getNumScreenProbes() + addI;
+            uint additionalEncodedProbe = sp_loadEncodedProbe(srvInfo.posBuffer, addProbeIndex);
+            uint additionalEncodedNormal = sp_loadEncodedProbeNormalCoord(srvInfo.posBuffer, addProbeIndex, sp_getNumTotalProbes());
+            //DecodedProbe additionalProbe = sp_decodeProbeInfo(additionalEncodedProbe);
+            uint2 coordOfs = decodeCoordOfs(additionalEncodedNormal);
+            if (all(tileCoord*screenspace_probe_res.z + coordOfs == tci))
+              return float4(colors[(addI-addAt)%8],1);
+          }
+        }
+        //*/
+        return def;
+      }
+
+      if (0){
+        uint2 screenCoord = tci;
+        UpsamplePointInfo pointInfo;
+        float rawDepth = readGbufferDepth(input.texcoord);//loadGbufferDepth(screenCoord);
+        if (rawDepth == 0)
+          discard;
+        SRVBufferInfo srvInfo;
+        srvInfo.posBuffer = screenspace_probe_pos;
+        pointInfo.sceneLinearDepth = linearize_z(rawDepth, sp_zn_zfar.zw);
+        float3 viewVect = sp_getViewVecOptimized(screenICoordToScreenUV(screenCoord));
+        pointInfo.camPos = pointInfo.sceneLinearDepth*viewVect;
+        pointInfo.screenCoord = screenCoord + 0.5;
+        pointInfo.bilinearExpand = SP_BILINEAR_EXPAND;
+        loadPackedGbufferNormal(screenCoord, pointInfo.worldNormal);
+        float maxW = 1e6;
+        UpsampleCornerWeights corners = calc_upsample_weights(srvInfo, sp_getScreenViewInfo(), pointInfo, SP_DEFAULT_BILINEAR_DEPTH_EXP, true);
+        maxW = dot(corners.cornerDepthBilWeights, 1);
+        return maxW < 0.01 ? float4(1,0,0,1) : float4(0,1,0,1);
+      }
+
+
+      //uint encodedNormal = loadBuffer(screenspace_tile_classificator, (sp_getScreenTileClassificatorOffsetDwords() + tileIndex)*4);
+      //float3 probeNormal = decodeProbeNormal(encodedNormal);
+      //return float4((encodedNormal.xxx%8)/7.0,1);
+      //return float4(probeNormal*0.5+0.5,0.5);
+      //DecodedProbe screenProbe;
+      //if (!getScreenProbe(screenspace_probe_pos, tileIndex, screenProbe))
+      //  discard;
+
+      bool val = loadBuffer(screenspace_tile_classificator, (tileIndex>>5)*4)&(1u<<(tileIndex&31));
+      //if (!val)
+      //  discard;
+      //return 1;
+
+      uint tileAtCount = getAdditionalScreenProbesCountRaw(screenspace_probe_pos, tileIndex);
+      uint tileCount = tileAtCount>>24, tileAt = tileAtCount&((1<<24)-1);
+      //if (!tileCount && val)
+      //  return 10;
+      if (!tileCount)
+        discard;
+      //uint tileIndex2 = loadBuffer(screenspace_tile_classificator, (sp_getScreenTileClassificatorOffsetDwords() + totalAtlasProbes + tileAt)*4);
+      //return float4((tileIndex2.xxx%8)/7.0,1);
+      //uint2 tileCoord2 = uint2(tileIndex2%screenspace_probe_res.x, tileIndex2/screenspace_probe_res.x);
+      uint encodedProbe = sp_loadEncodedProbe(screenspace_probe_pos, tileAt+numScreenProbes);
+      uint encodedProbeNormal = sp_loadEncodedProbeNormalCoord(screenspace_probe_pos, tileAt+numScreenProbes, sp_getNumTotalProbes());
+      //return float4(w.xxx*0.01,1);
+      //return float4((encodedProbe.xxx%8)/7.0,1);
+      //return float4((tileCoord2.xy%8)/7.0,1,1);
+      //return float4((tileIndex.xxx%8)/7.0,1);
+      //return float4((tileIndex2 == tileIndex).xxx,1);
+      if (tileCount < 8)
+        return float4(colors[tileCount], 1);
+      else
+        return 0.5;
+      //return (tileCount == 0 ? float4(0.4,0,0.4,0.2) : tileCount == 1 ? float4(1,0,0,0.1) : (tileCount == 2 ? float4(0,1,0,0.1) : tileCount == 3 ? float4(0,0,1,0.1) : float4(0,1,1,0.1))) * (val ? 10 : 1);
+    }
+  }
+
+  compile("target_vs", "shadows_to_target_vs");
+  compile("target_ps", "shadows_to_target_ps");
+}
+

@@ -1,0 +1,30 @@
+ModuleDependsOnVars = HaveEditor PhysName ;
+
+Root    ?= ../../.. ;
+Module = imgui_daeditor ;
+Location = prog/daNetGameLibs/$(Module) ;
+UseQuirrel = sq3r ;
+local DasModule = daNetGameLibs_imgui_daeditor_DAS_pull_AOT ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGameLibs
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+local AllSrcFolder_DAS = ;
+
+if $(HaveRenderer) = yes && $(Config) != rel {
+  AllSrcFolder_DAS +=
+    imgui
+  ;
+
+  if $(HaveEditor) = yes {
+    AllSrcFolder_DAS +=
+      imgui/daEditor
+      imgui/daEditor/rendInst
+      daEditor
+    ;
+  }
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

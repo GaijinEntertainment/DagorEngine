@@ -1,0 +1,13 @@
+Root    ?= ../../.. ;
+Module = dascript_base ;
+Location = prog/daNetGameLibs/$(Module) ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+local AllSrcFolder_DAS =
+;
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

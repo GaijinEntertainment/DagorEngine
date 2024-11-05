@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <generic/dag_span.h>
@@ -15,7 +16,7 @@ class GatherNameMap;
 // binary dump utility functions
 namespace bindumphlp
 {
-void sortShaders(dag::ConstSpan<ShaderStateBlock *> blocks);
+void sortShaders(dag::ConstSpan<ShaderStateBlock *> blocks, bool sort_stcode);
 void patchStCode(dag::Span<int> code, dag::ConstSpan<int> remapTable, dag::ConstSpan<int> smpTable);
 
 // builds global variables remapping table

@@ -17,8 +17,7 @@ hlsl(ps) {
   void init_dynamic(inout UnpackedGbuffer result, bool dynamic) {}
   void init_motion_vector(inout UnpackedGbuffer result, half2 motion) {}
 
-  GBUFFER_OUTPUT encode_gbuffer(UnpackedGbuffer gbuf, float3 pointToEye) { return (GBUFFER_OUTPUT)0; }
-  #define encode_gbuffer3(a,b,c) encode_gbuffer(a, b)  // For compatibility of shared shaders with WT which has 3 parameters.
+  GBUFFER_OUTPUT encode_gbuffer(UnpackedGbuffer gbuf, float3 pointToEye, float4 screenPos) { return (GBUFFER_OUTPUT)0; }
 }
 endmacro
 

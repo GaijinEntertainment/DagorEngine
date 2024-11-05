@@ -1,0 +1,66 @@
+include "shader_global.dshl"
+include "shader_gamma_inc.dshl"
+include "hdr/hdr_ps_output.dshl"
+include "use_bloom.dshl"
+
+texture frame_tex;
+
+float concussion_effect_time_start = -1000;
+float concussion_effect_duration = 10.0;
+float concussion_shake_intensity = 0.02;
+
+float flash_blind_remaining_time = 0.0;
+
+macro COMMON_POSTFX()
+  cull_mode=none;
+  z_write=false;
+  z_test=false;
+
+  INIT_ZNZFAR()
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 tc : TEXCOORD0;
+    };
+  }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  INIT_EXPOSURE(ps)
+  USE_EXPOSURE(ps)
+
+  hlsl(vs) {
+
+    VsOutput postfx_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 inpos = getPostfxVertexPositionById(vertexId);
+
+      output.pos = float4(inpos,1,1);
+      output.tc = screen_to_texcoords(inpos);
+
+      return output;
+    }
+  }
+
+  FULL_TONEMAP_LUT_APPLY(ps)
+
+  INIT_BLOOM(ps)
+  USE_BLOOM(ps)
+
+  hlsl(ps) {
+    half3 common_postfx(float3 frame, float2 tc, float exposure)
+    {
+      apply_bloom(tc, frame);
+
+      ##if (in_editor_assume == yes)
+        frame *= getPrevExposureRatio();
+      ##else
+        frame *= exposure;
+      ##endif
+
+      return frame;
+    }
+  }
+endmacro

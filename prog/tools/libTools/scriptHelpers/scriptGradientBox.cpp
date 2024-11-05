@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_genIo.h>
 
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/control/container.h>
 
 #include <scriptHelpers/tunedParams.h>
 #include <math/dag_Point2.h>
@@ -19,8 +21,8 @@ public:
   static const int MAX_POINTS = 64;
 
   int controlPid;
-  Tab<GradientKey> values;
-  PropertyContainerControlBase *mPanel;
+  Tab<PropPanel::GradientKey> values;
+  PropPanel::ContainerPropertyControl *mPanel;
 
   TunedGradientBoxParam(const char *nm) : controlPid(-1), mPanel(NULL)
   {
@@ -30,7 +32,7 @@ public:
   }
 
   void resetPropPanel() override { mPanel = nullptr; }
-  virtual void fillPropPanel(int &pid, PropertyContainerControlBase &ppcb)
+  virtual void fillPropPanel(int &pid, PropPanel::ContainerPropertyControl &ppcb)
   {
     mPanel = &ppcb;
     controlPid = ++pid;
@@ -39,9 +41,9 @@ public:
     initCurveControl(ppcb);
   }
 
-  void initCurveControl(PropertyContainerControlBase &ppcb) { mPanel->setGradient(controlPid, &values); }
+  void initCurveControl(PropPanel::ContainerPropertyControl &ppcb) { mPanel->setGradient(controlPid, &values); }
 
-  virtual void getControlPoints(PGradient points)
+  virtual void getControlPoints(PropPanel::PGradient points)
   {
     if ((controlPid > -1) && (mPanel))
       mPanel->getGradient(controlPid, points);
@@ -54,10 +56,10 @@ public:
   virtual int subElemCount() const { return 0; }
   virtual TunedElement *getSubElem(int index) const { return NULL; }
 
-  virtual void getValues(int &pid, PropertyContainerControlBase &panel)
+  virtual void getValues(int &pid, PropPanel::ContainerPropertyControl &panel)
   {
     ++pid;
-    Tab<GradientKey> pts(tmpmem);
+    Tab<PropPanel::GradientKey> pts(tmpmem);
     getControlPoints(&pts);
     values = pts;
   }
@@ -94,7 +96,7 @@ public:
     for (int i = 0; i < MAX_POINTS; ++i)
       if (blk.paramExists(String(32, "pos_%d", i)))
       {
-        GradientKey v;
+        PropPanel::GradientKey v;
         v.position = blk.getReal(String(32, "pos_%d", i), 0);
         v.color = blk.getE3dcolor(String(32, "color_%d", i), 0xffffffff);
         v.position = clamp<float>(v.position, 0, 1);

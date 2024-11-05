@@ -1,0 +1,167 @@
+include "wetness.dshl"
+include "static_shadow.dshl"
+include "hmap_blend_inc.dshl"
+include "normaldetail.dshl"
+include "psh_derivate.dshl"
+include "sparkles.dshl"
+include "optional_puddle_access.dshl"
+include "heightmap_ofs.dshl"
+include "clipmap_common_inc.dshl"
+
+int prefab_render_pass_is_depth = 0;
+interval prefab_render_pass_is_depth : no < 1, yes;
+
+float4 camera_base_offset = (0, 0, 0, 0);
+
+// land_mesh_clipmap is a fixed name, it is filtered out in many places
+shader land_mesh_clipmap // aka prefab_clipmap
+{
+  supports global_frame;
+
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+
+  hlsl
+  {
+    #define NEED_NORMAL 1
+    #define NEED_TC_WORLDPOS 1
+    #define NEED_POINT_TO_EYE 1
+    #define PN_TESSELATION 0
+  }
+
+  static int is_prefab_clipmap = 1 no_warnings;
+
+  texture tex = material.texture.diffuse;
+  texture normal = material.texture[2];
+
+  channel float3 pos=pos;
+  channel color8 norm=norm unsigned_pack;
+  channel float2 tc[0]=tc[0];
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 pointToEye : TEXCOORD0;
+      float3 normal : TEXCOORD1;
+      float4 tcWorldPos : TEXCOORD2;
+      float heightForPuddle : TEXCOORD3;
+    };
+  }
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float4 pos : POSITION;  // W defaults to 1.
+      float3 packedNormal : NORMAL;
+      float2 diffuseTexcoord : TEXCOORD0;
+    };
+  }
+
+  (vs) {
+    camera_base_offset@f3 = camera_base_offset;
+  }
+  (ps) {
+    diffuse_tex@static = tex;
+    normal_tex@static = normal;
+
+    from_sun_direction@f3 = from_sun_direction;
+    wetness_above_rcp@f1 = (1.0 / wetness_above, 0, 0, 0);
+    wind_dir_water_level_ocean_density@f4 = (wind_dir_x, wind_dir_y, water_level, -0.5*ocean_density);
+    shore_params1@f4 = (max_wave_height, scroll_time, water_heightmap_min_max.z, water_heightmap_min_max.w);
+    lightmap_tex@smp2d = lightmap_tex;
+  }
+
+  if (in_editor == yes)
+  {
+    (vs) { globtm@f44 = globtm; }
+    (vs) {
+      world_local_x@f3 = world_local_x;
+      world_local_y@f3 = world_local_y;
+      world_local_z@f3 = world_local_z;
+      world_local_pos@f3 = world_local_pos;
+    }
+  }
+
+  WRITE_GBUFFER()
+  INIT_WORLD_HEIGHTMAP_BASE(ps)
+  INIT_LAND_MICRODETAILS_PS()
+  INIT_CLIPMAP_NORMAL()
+  INIT_SHORE(ps)
+  INIT_LAND_MICRODETAILS_PARAMS_PS()
+  INIT_SPARKLES()
+  INIT_RAW_RENDERING_FEEDBACK()
+  INIT_WETNESS()
+  if (mobile_render != off)
+  {
+    INIT_STATIC_SHADOW_PS()
+  }
+
+  BASE_LAND_MESH_BLOCK()
+  NO_VERTICAL_TEX_USE()
+
+  USE_CLIPMAP_NORMAL()
+  USE_RAW_RENDERING_FEEDBACK()
+  USE_UAV_RENDERING_FEEDBACK_NORMAL_PASS_DEFINES()
+  USE_HEIGHTMAP_COMMON_BASE(ps)
+  USE_LAND_MICRODETAILS_PS()
+  USE_LAND_MICRODETAIL_PARAMS_PS()
+  USE_LAND_SHORE()
+  DETECT_LAND_SELFILLUM()
+  USE_WETNESS_BASE()
+  HEIGHTMAP_CALCULATIONS()
+  USE_AND_CALCULATE_PUDDLES()
+  USE_SPARKLES()
+
+  USE_CLIPMAP_VS(VsInput, VsOutput, false)
+
+  hlsl(vs) {
+
+    VsOutput main_vs_all_simples_aces(VsInput input)
+    {
+      VsOutput output;
+
+      ##if in_editor == yes
+        float3 worldPos = float3(input.pos.x * world_local_x + input.pos.y * world_local_y + input.pos.z * world_local_z + world_local_pos);
+      ##else
+        float3 worldPos = input.pos.xyz;
+      ##endif
+
+      ##if in_editor == yes
+        float3 normal = input.packedNormal * 2. - 1.;
+        float3 worldNormal = normalize(normal.x * world_local_x + normal.y * world_local_y + normal.z * world_local_z);
+      ##else
+        float3 worldNormal = input.packedNormal * 2. - 1.;
+      ##endif
+
+      ClipmapCalcParams params;
+      params.worldPos = worldPos;
+      params.worldNormal = worldNormal;
+      calc_clipmap_vs(input, output, params);
+
+      return output;
+    }
+  }
+  compile("target_vs", "main_vs_all_simples_aces");
+
+  if (prefab_render_pass_is_depth == yes)
+  {
+    compile("ps_null", "null_ps");
+  }
+  else
+  {
+    USE_CLIPMAP_PS(VsOutput, false)
+
+    hlsl(ps) {
+      GBUFFER_OUTPUT main_ps_simple_aces(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
+      {
+        UnpackedGbuffer result;
+        calc_clipmap_ps(input, result);
+        return encode_gbuffer(result, input.pointToEye, GET_SCREEN_POS(input.pos));
+      }
+    }
+    compile("target_ps", "main_ps_simple_aces");
+  }
+}

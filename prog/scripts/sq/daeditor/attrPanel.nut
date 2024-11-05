@@ -27,6 +27,7 @@ let {addModalWindow, removeModalWindow, modalWindowsComponent} = modalWindows
 let {showMsgbox} = require("editor_msgbox.nut")
 let infoBox = @(text) showMsgbox({text})
 let mkSortModeButton = require("components/mkSortModeButton.nut")
+let nameFilter = require("components/nameFilter.nut")
 
 let cursors = require("components/cursors.nut")
 let {mkTemplateTooltip, mkCompMetaInfoText} = require("components/templateHelp.nut")
@@ -157,6 +158,7 @@ let mkCompNameText = function(comp_name, comp_name_text, metaInfo, modified, gro
   return {
     rendObj = ROBJ_TEXT
     text = $"{prefix}{comp_name_text}{suffix}"
+    color = colors.TextDefault
     size = [flex(), fontH(100)]
     margin = fsh(0.5)
     group = group
@@ -509,7 +511,7 @@ function getOpenedCacheEntry(eid, cname, cpath) {
 }
 
 
-let addPropValueTypes = ["text" "real" "bool" "integer" "array" "object"]
+let addPropValueTypes = ["text" "real" "bool" "integer" "array" "object" "Point2" "Point3" "Point4"]
 
 const attrPanelAddObjectValueUID = "attr_panel_add_object_value"
 
@@ -534,6 +536,12 @@ function doAddObjectValue(eid, cname, cpath, value_name, value_type) {
       ccobj[value_name] = []
     else if (value_type == "object")
       ccobj[value_name] = {}
+    else if (value_type == "Point2")
+      ccobj[value_name] = Point2(0,0)
+    else if (value_type == "Point3")
+      ccobj[value_name] = Point3(0,0,0)
+    else if (value_type == "Point4")
+      ccobj[value_name] = Point4(0,0,0,0)
 
     obsolete_dbg_set_comp_val(eid, cname, object)
     entity_editor.save_component(eid, cname)
@@ -604,6 +612,12 @@ function doAddArrayValue(eid, cname, cpath, ckey, value_type) {
     value = []
   else if (value_type=="object")
     value = {}
+  else if (value_type == "Point2")
+    value = Point2(0,0)
+  else if (value_type == "Point3")
+    value = Point3(0,0,0)
+  else if (value_type == "Point4")
+    value = Point4(0,0,0,0)
 
   if (value==null) {
     infoBox($"Unsupported array value type: {value_type}")
@@ -1125,7 +1139,7 @@ function mkEntityRow(eid, template_name, name, is_odd) {
   }
 }
 
-let sortedEntites = Computed(function() {
+let sortedEntities = Computed(function() {
   if (!propPanelVisible.value)
     return []
 
@@ -1144,6 +1158,38 @@ let sortedEntites = Computed(function() {
     entitiesList.sort(@(lsh, rsh) entitySortState.value.func(lsh.eid, rsh.eid))
   return entitiesList
 })
+
+let templateFilterText = Watched("")
+
+let filteredEntities = Computed(function() {
+  let text = templateFilterText.get()
+  let needFilter = (text?.len() ?? 0) > 0
+  return needFilter
+    ? sortedEntities.get().filter(@(v) v.name.contains(text))
+    : sortedEntities.get()
+})
+
+let templateFilter = nameFilter(templateFilterText, {
+  placeholder = "Filter by template"
+
+  function onChange(text) {
+    templateFilterText.set(text)
+  }
+
+  function onEscape() {
+    set_kb_focus(null)
+  }
+
+  function onReturn() {
+    set_kb_focus(null)
+  }
+
+  function onClear() {
+    templateFilterText.set("")
+    set_kb_focus(null)
+  }
+})
+
 
 function compPanel() {
 
@@ -1185,14 +1231,16 @@ function compPanel() {
 
     let templName = eid!=INVALID_ENTITY_ID ? removeSelectedByEditorTemplate(g_entity_mgr.getEntityTemplateName(eid) ?? "") : null
     let uiTemplName = eid!=INVALID_ENTITY_ID ? entity_editor.get_template_name_for_ui(eid) : null
-    let captionText = eid!=INVALID_ENTITY_ID ? "{0}{1}: {2}".subst(captionPrefix, eid, uiTemplName) :
+    local extraName = getEntityExtraName(eid)
+    extraName = (extraName != null) ? $" / {extraName}" : ""
+    let captionText = eid!=INVALID_ENTITY_ID ? "{0}{1}: {2}{3}".subst(captionPrefix, eid, uiTemplName, extraName) :
       selectedEntities.value.len() == 0 ? "No entity selected"
       : $"{selectedEntities.value.len()} entities selected"
 
     local listRows = []
     if (showList) {
       local odd = true
-      foreach (v in sortedEntites.value) {
+      foreach (v in filteredEntities.get()) {
         listRows.append(mkEntityRow(v.eid, v.tplName, v.name, odd))
         odd = !odd
       }
@@ -1214,7 +1262,7 @@ function compPanel() {
       watch = [
         selectedEntity, selectedEntities, propPanelVisible, filterString,
         windowState, isCurEntityComponents, filteredCurComponents, selectedCompName,
-        de4workMode, riSelectShown, sortedEntites
+        de4workMode, riSelectShown, filteredEntities
       ]
       size = [sw(100), sh(100)]
 
@@ -1237,9 +1285,9 @@ function compPanel() {
 
           children = [
             {
-              size = [flex(), flex()] // free some space for combo
-              rendObj = ROBJ_WORLD_BLUR
-              color = Color(220,220,220,205)
+              size = flex() // free some space for combo
+              rendObj = ROBJ_WORLD_BLUR_PANEL
+              fillColor = Color(20,20,20,235)
               clipChildren = true
 
               flow = FLOW_VERTICAL
@@ -1255,6 +1303,7 @@ function compPanel() {
                     closeButton(closePropPanel)
                   ]
                 }
+                showList ? templateFilter : null
                 nonSceneEntity ? warningGenerated() : null
                 showComps && isCurEntityComponents.value ? compNameFilter : null
                 showComps ? scrolledGrid : null

@@ -7,6 +7,7 @@ float4 screen_droplets_setup = (0.0, 0.0, -1.0, 0.4);
 texture frame_tex;
 float screen_droplets_intensity;
 int screen_droplets_has_leaks;
+float screen_droplets_grid_x = 5.4;
 
 shader screen_droplets
 {
@@ -50,6 +51,7 @@ shader screen_droplets
     frame_tex@smp2d = frame_tex;
     screen_droplets_intensity@f1 = (screen_droplets_intensity);
     screen_droplets_has_leaks@i1 = (screen_droplets_has_leaks);
+    GRID_X@f1 = screen_droplets_grid_x;
   }
 
   hlsl(ps)
@@ -62,7 +64,6 @@ shader screen_droplets
     #define MAX_DROP_R 0.15
     #define MAX_DROP_RI (1.0 / MAX_DROP_R)
     #define MAX_TRAIL_R 0.15
-    #define GRID_X 5.4
     #define GRID_Y 0.9
     #define SHRINK_Y 0.059
     #define MOVE_BOARD_K 0.75

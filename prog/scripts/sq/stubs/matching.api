@@ -1,9 +1,9 @@
 return {
-  listen_notify = @(...) null
-  listen_rpc = @(...) null
-  logout = @() null
-  dial = @(...) null
-  call = @(...) null
-  notify = @(...) null
-  send_response = @(...) null
+  matching_listen_notify = @(...) null
+  matching_listen_rpc = @(...) null
+  matching_logout = @() null
+  matching_login = @(...) null
+  matching_call = @(...) null
+  matching_notify = @(...) null
+  matching_send_response = @(...) null
 }

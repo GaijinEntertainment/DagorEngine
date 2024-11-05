@@ -1,15 +1,19 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <math/dag_color.h>
 #include <math/integer/dag_IPoint4.h>
 #include <util/dag_string.h>
 #include <generic/dag_tab.h>
 #include <3d/dag_texMgr.h>
+#include <drv/3d/dag_sampler.h>
 #include "varTypes.h"
 #include "varMap.h"
 #include "shaderSave.h"
 #include "shVarVecTypes.h"
 
 class IntervalList;
+struct RaytraceTopAccelerationStructure;
 
 namespace ShaderGlobal
 {
@@ -29,6 +33,8 @@ union StVarValue
     unsigned bufId;
     Sbuffer *buf;
   };
+  RaytraceTopAccelerationStructure *tlas;
+  d3d::SamplerInfo samplerInfo;
   StVarValue() : i4{0, 0, 0, 0} {}
 };
 

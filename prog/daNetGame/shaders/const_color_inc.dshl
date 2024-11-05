@@ -1,0 +1,24 @@
+macro INIT_CONST_COLOR_OVERRIDES(var_name)
+  static float4 var_name = (0.5, 0.5, 0.5, 0);
+
+    (ps) {
+      var_name @f4 = (var_name .x * 2,
+                      var_name .y * 2,
+                      var_name .z * 2,
+                      var_name .w); //0 -> modulating mode, 1 -> override mode
+    }
+endmacro
+
+macro USE_CONST_COLOR_OVERRIDES()
+  hlsl(ps)
+  {
+    float3 get_color_mul(VsOutput input, float4 const_color)
+    {
+      #if COLOR_NEEDED
+        return lerp(input.colorMul * const_color.rgb, const_color.rgb, const_color.w);
+      #else
+        return const_color.rgb; //if palette doesn't exist, use override mode
+      #endif
+    }
+  }
+endmacro

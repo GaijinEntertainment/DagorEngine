@@ -8,4 +8,4 @@ LOCALS
 [i] 10
 [t] TABLE={}
 [vargv] ARRAY=[]
-[this] TABLE={}
+[this] NULL

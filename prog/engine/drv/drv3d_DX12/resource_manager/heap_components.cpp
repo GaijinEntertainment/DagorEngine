@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "device.h"
 #include <ioSys/dag_dataBlock.h>
 
@@ -16,7 +18,6 @@ struct AlwaysConvertToFlaseType
 };
 struct DefaultMemorySourceMaskType
 {
-  constexpr bool canAllocateFromLockedHeap() const { return true; }
   constexpr bool canAllocateFromLockedRange() const { return true; }
 };
 // Tries to find the best place to allocate the needed amount of memory.
@@ -91,8 +92,7 @@ ResourceMemory try_allocate_from_heap_group(const D3D12_RESOURCE_ALLOCATION_INFO
   }
 
   // If nothing could be found but a locked heap exists we now try it with that heap.
-  if (source_mask.canAllocateFromLockedHeap() && (lockedHeapIndex < group.size()) &&
-      !((heapIndex < group.size()) && group[heapIndex].isValidRange(selectedRange)))
+  if ((lockedHeapIndex < group.size()) && !((heapIndex < group.size()) && group[heapIndex].isValidRange(selectedRange)))
   {
     heapIndex = lockedHeapIndex;
     // First try to use ranges that are not covered by the locked range.
@@ -631,113 +631,140 @@ ResourceMemoryHeapProvider::getInitialTextureResourceState(D3D12_RESOURCE_FLAGS 
   return propertiesToInitialState(D3D12_RESOURCE_DIMENSION_TEXTURE2D, flags, DeviceMemoryClass::DEVICE_RESIDENT_IMAGE);
 }
 
+ResourceMemory ResourceMemoryHeapProvider::tryAllocateFromMemoryWithProperties(ID3D12Device *device,
+  ResourceHeapProperties heap_properties, AllocationFlags flags, const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, HRESULT *error_code)
+{
+  ResourceMemory result;
+  auto hasSpace = getHeapGroupFreeMemorySize(heap_properties.raw) >= alloc_info.SizeInBytes;
+
+  auto &group = groups[heap_properties.raw];
+
+  if (!flags.test(AllocationFlag::DEDICATED_HEAP) && hasSpace)
+  {
+    struct SourceMaskType
+    {
+      AllocationFlags flags;
+      bool canAllocateFromLockedRange() const { return !flags.test(AllocationFlag::DISALLOW_LOCKED_RANGES); }
+    };
+    result = try_allocate_from_heap_group(alloc_info, group, heap_properties.raw, SourceMaskType{flags});
+  }
+
+  if (!result && error_code != nullptr)
+    *error_code = E_OUTOFMEMORY;
+
+#if _TARGET_PC_WIN
+  // Budget limit is the maximum of available for reservation and ~66% of budget
+  static const uint64_t budgetScaleNumerator = ::dgs_get_settings()->getBlockByNameEx("dx12")->getInt("budgetScaleNumerator", 2);
+  static const uint64_t budgetScaleDenominator = ::dgs_get_settings()->getBlockByNameEx("dx12")->getInt("budgetScaleDenominator", 3);
+  const uint64_t scaledBudget = budgetScaleNumerator * getDeviceLocalBudget() / budgetScaleDenominator;
+  const uint64_t budgetLimit = eastl::max(getDeviceLocalAvailableForReservation(), scaledBudget);
+  bool hasBudget = !flags.test(AllocationFlag::NEW_HEAPS_ONLY_WITH_BUDGET) || heap_properties.isL0Pool || isUMASystem() ||
+                   (poolStates[device_local_memory_pool].CurrentUsage < budgetLimit);
+#else
+  constexpr bool hasBudget = true;
+#endif
+
+  if (!result && !flags.test(AllocationFlag::EXISTING_HEAPS_ONLY) && hasBudget)
+  {
+    TIME_PROFILE_DEV(DX12_AllocateHeap);
+    // neither a active nor a zombie heap could provide memory, create a new one
+    D3D12_HEAP_DESC newHeapDesc;
+    newHeapDesc.SizeInBytes = getHeapSizeFromAllocationSize(alloc_info.SizeInBytes, heap_properties, flags);
+    newHeapDesc.Properties.Type = heap_properties.getHeapType();
+    newHeapDesc.Properties.CPUPageProperty = heap_properties.getCpuPageProperty(isUMASystem());
+    newHeapDesc.Properties.MemoryPoolPreference = heap_properties.getMemoryPool(isUMASystem());
+    newHeapDesc.Properties.CreationNodeMask = 0;
+    newHeapDesc.Properties.VisibleNodeMask = 0;
+    newHeapDesc.Alignment = heap_properties.getAlignment();
+    newHeapDesc.Flags = heap_properties.getFlags(canMixResources());
+
+    G_ASSERT(newHeapDesc.SizeInBytes >= alloc_info.SizeInBytes);
+    ResourceHeap newHeap;
+    newHeap.totalSize = newHeapDesc.SizeInBytes;
+    G_ASSERT(newHeap.totalSize == newHeapDesc.SizeInBytes);
+    newHeap.freeRanges.push_back(make_value_range(0ull, newHeap.totalSize));
+
+    auto errorCode = DX12_CHECK_RESULT_NO_OOM_CHECK(device->CreateHeap(&newHeapDesc, COM_ARGS(&newHeap.heap)));
+    if (error_code != nullptr)
+      *error_code = errorCode;
+    if (SUCCEEDED(errorCode) && newHeap.heap)
+    {
+      addHeapGroupFreeSpace(heap_properties.raw, newHeap.totalSize);
+
+      HeapID heapID;
+      G_STATIC_ASSERT(heapID.group_bits >= heap_properties.bits);
+      heapID.group = heap_properties.raw;
+      for (heapID.index = 0; heapID.index < group.size(); ++heapID.index)
+      {
+        if (group[heapID.index])
+        {
+          continue;
+        }
+        group[heapID.index] = eastl::move(newHeap);
+        break;
+      }
+
+      if (heapID.index == group.size())
+      {
+        group.push_back(eastl::move(newHeap));
+      }
+
+      auto &heap = group[heapID.index];
+      result = first_allocate_from_heap(alloc_info, heap, heapID);
+
+      HEAP_LOG("DX12: Allocated new memory heap %p with a size of %.2f %s", heap.heap.Get(), ByteUnits{heap.totalSize}.units(),
+        ByteUnits{heap.totalSize}.name());
+
+      recordHeapAllocated(newHeap.totalSize, D3D12_MEMORY_POOL_L1 == newHeapDesc.Properties.MemoryPoolPreference);
+    }
+  }
+
+  if (result)
+  {
+    subtractHeapGroupFreeSpace(heap_properties.raw, result.size());
+
+    recordMemoryAllocated(result.size(), D3D12_MEMORY_POOL_L1 == heap_properties.getMemoryPool(isUMASystem()));
+
+    updateHeapGroupGeneration(heap_properties.raw, flags.test(AllocationFlag::DEFRAGMENTATION_OPERATION));
+  }
+
+  return result;
+}
+
 ResourceMemory ResourceMemoryHeapProvider::allocate(DXGIAdapter *adapter, ID3D12Device *device, ResourceHeapProperties properties,
-  const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags)
+  const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags, HRESULT *error_code)
 {
   TIME_PROFILE_DEV(DX12_AllocateMemory);
   G_UNUSED(adapter);
-  ResourceMemory result;
-  auto &group = groups[properties.raw];
+  if (error_code != nullptr)
+    *error_code = S_OK;
 
+  OSSpinlockScopedLock lock{heapGroupMutex};
+
+  if (flags.test(AllocationFlag::DEFRAGMENTATION_OPERATION) && !checkDefragmentationGeneration(properties.raw))
+    return {};
+
+  ResourceMemory result = tryAllocateFromMemoryWithProperties(device, properties, flags, alloc_info, error_code);
+
+  if (!flags.test(AllocationFlag::DISABLE_ALTERNATE_HEAPS))
   {
-    OSSpinlockScopedLock lock{heapGroupMutex};
-    auto hasSpace = getHeapGroupFreeMemorySize(properties.raw) >= alloc_info.SizeInBytes;
-
-    if (!flags.test(AllocationFlag::DEDICATED_HEAP) && hasSpace)
+    for (ResourceHeapProperties currentProperties = {}; !result && currentProperties.raw < groups.size(); currentProperties.raw++)
     {
-      struct SourceMaskType
-      {
-        AllocationFlags flags;
-        bool canAllocateFromLockedHeap() const { return !flags.test(AllocationFlag::DISALLOW_LOCKED_HEAP); }
-        bool canAllocateFromLockedRange() const { return !flags.test(AllocationFlag::DISALLOW_LOCKED_RANGES); }
-      };
-      result = try_allocate_from_heap_group(alloc_info, group, properties.raw, SourceMaskType{flags});
-    }
-
-#if _TARGET_PC_WIN
-    // Budget limit is the maximum of available for reservation and ~66% of budget
-    static const uint64_t budgetScaleNumerator = ::dgs_get_settings()->getBlockByNameEx("dx12")->getInt("budgetScaleNumerator", 2);
-    static const uint64_t budgetScaleDenominator = ::dgs_get_settings()->getBlockByNameEx("dx12")->getInt("budgetScaleDenominator", 3);
-    const uint64_t scaledBudget = budgetScaleNumerator * getDeviceLocalBudget() / budgetScaleDenominator;
-    const uint64_t budgetLimit = eastl::max(getDeviceLocalAvailableForReservation(), scaledBudget);
-    bool hasBudget = !flags.test(AllocationFlag::NEW_HEAPS_ONLY_WITH_BUDGET) || properties.isL0Pool || isUMASystem() ||
-                     (poolStates[device_local_memory_pool].CurrentUsage < budgetLimit);
-#else
-    constexpr bool hasBudget = true;
-#endif
-
-    if (!result && !flags.test(AllocationFlag::EXISTING_HEAPS_ONLY) && hasBudget)
-    {
-      TIME_PROFILE_DEV(DX12_AllocateHeap);
-      // neither a active nor a zombie heap could provide memory, create a new one
-      D3D12_HEAP_DESC newHeapDesc;
-      newHeapDesc.SizeInBytes = getHeapSizeFromAllocationSize(alloc_info.SizeInBytes, properties, flags);
-      newHeapDesc.Properties.Type = properties.getHeapType();
-      newHeapDesc.Properties.CPUPageProperty = properties.getCpuPageProperty(isUMASystem());
-      newHeapDesc.Properties.MemoryPoolPreference = properties.getMemoryPool(isUMASystem());
-      newHeapDesc.Properties.CreationNodeMask = 0;
-      newHeapDesc.Properties.VisibleNodeMask = 0;
-      newHeapDesc.Alignment = properties.getAlignment();
-      newHeapDesc.Flags = properties.getFlags(canMixResources());
-
-      G_ASSERT(newHeapDesc.SizeInBytes >= alloc_info.SizeInBytes);
-      ResourceHeap newHeap;
-      newHeap.totalSize = newHeapDesc.SizeInBytes;
-      G_ASSERT(newHeap.totalSize == newHeapDesc.SizeInBytes);
-      newHeap.freeRanges.push_back(make_value_range(0ull, newHeap.totalSize));
-
-      auto errorCode = DX12_CHECK_RESULT_NO_OOM_CHECK(device->CreateHeap(&newHeapDesc, COM_ARGS(&newHeap.heap)));
-      if (SUCCEEDED(errorCode) && newHeap.heap)
-      {
-        addHeapGroupFreeSpace(properties.raw, newHeap.totalSize);
-
-        HeapID heapID;
-        G_STATIC_ASSERT(heapID.group_bits >= properties.bits);
-        heapID.group = properties.raw;
-        for (heapID.index = 0; heapID.index < group.size(); ++heapID.index)
-        {
-          if (group[heapID.index])
-          {
-            continue;
-          }
-          group[heapID.index] = eastl::move(newHeap);
-          break;
-        }
-
-        if (heapID.index == group.size())
-        {
-          group.push_back(eastl::move(newHeap));
-        }
-
-        auto &heap = group[heapID.index];
-        result = first_allocate_from_heap(alloc_info, heap, heapID);
-
-        HEAP_LOG("DX12: Allocated new memory heap %p with a size of %.2f %s", heap.heap.Get(), ByteUnits{heap.totalSize}.units(),
-          ByteUnits{heap.totalSize}.name());
-
-        recordHeapAllocated(newHeap.totalSize, D3D12_MEMORY_POOL_L1 == newHeapDesc.Properties.MemoryPoolPreference);
-
-        if (!flags.test(AllocationFlag::DEDICATED_HEAP) && hasSpace)
-        {
-          updateHeapGroupNeedsDefragmentation(properties.raw, DefragmentationReason::FRAGMENTED_FREE_SPACE);
-        }
-      }
-    }
-
-    if (result)
-    {
-      subtractHeapGroupFreeSpace(properties.raw, result.size());
-
-      recordMemoryAllocated(result.size(), D3D12_MEMORY_POOL_L1 == properties.getMemoryPool(isUMASystem()));
-
-      updateHeapGroupGeneration(properties.raw);
+      if (currentProperties.raw == properties.raw)
+        continue;
+      if (!properties.isCompatible(currentProperties, canMixResources(), isUMASystem(), flags.test(AllocationFlag::IS_UAV)))
+        continue;
+      result = tryAllocateFromMemoryWithProperties(device, currentProperties, flags, alloc_info, error_code);
+      if (result)
+        logwarn("DX12: Alternate heap allocation: size: %u, group: %u (requested group: %u)", alloc_info.SizeInBytes,
+          currentProperties.raw, properties.raw);
     }
   }
 
   return result;
 }
 
-void ResourceMemoryHeapProvider::free(ResourceMemory allocation)
+void ResourceMemoryHeapProvider::free(ResourceMemory allocation, bool update_defragmentation_generation)
 {
   TIME_PROFILE_DEV(DX12_FreeMemory);
   auto heapID = allocation.getHeapID();
@@ -745,8 +772,10 @@ void ResourceMemoryHeapProvider::free(ResourceMemory allocation)
 
   OSSpinlockScopedLock lock{heapGroupMutex};
   auto &heap = group[heapID.index];
-  G_ASSERT(heap.heap.Get() == allocation.getHeap());
-  updateHeapGroupGeneration(heapID.group);
+  G_ASSERTF(heap.heap.Get() == allocation.getHeap(),
+    "DX12: Provided Heap %p for HeapID (%u, isAlias=%u, group=%u, index=%u) does not match heap table entry %p", allocation.getHeap(),
+    heapID.raw, heapID.isAlias, heapID.group, heapID.index, heap.heap.Get());
+  updateHeapGroupGeneration(heapID.group, update_defragmentation_generation);
   addHeapGroupFreeSpace(heapID.group, allocation.size());
 
   ResourceHeapProperties properties;
@@ -762,16 +791,6 @@ void ResourceMemoryHeapProvider::free(ResourceMemory allocation)
 
     recordHeapFreed(heap.totalSize, isGPUMemory);
     heap = {};
-  }
-  else
-  {
-    auto freeSize = getHeapGroupFreeMemorySize(heapID.group);
-    auto ref = eastl::find_if(begin(group), end(group),
-      [freeSize](auto &heap) { return static_cast<bool>(heap) && heap.totalSize <= freeSize; });
-    if (ref != end(group))
-    {
-      updateHeapGroupNeedsDefragmentation(heapID.group, DefragmentationReason::FREE_UNUSED_HEAPS);
-    }
   }
 }
 

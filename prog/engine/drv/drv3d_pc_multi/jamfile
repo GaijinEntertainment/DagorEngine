@@ -5,10 +5,9 @@ StrictCompile = yes ;
 
 rule ValidateUseD3DMultiList
 {
-  local valid_win32 = stub DX11 DX12 vulkan ;
-  local valid_win64 = $(valid_win32) ;
-  local valid_macosx  = stub Metal ;
-  local valid_linux64 = stub vulkan ;
+  local valid_windows = stub DX11 DX12 vulkan ;
+  local valid_macOS   = stub Metal ;
+  local valid_linux   = stub vulkan ;
   local valid_nswitch = stub vulkan ;
 
   local ret_list = ;
@@ -49,12 +48,12 @@ UseProgLibs =
   engine/drv/drv3d_$(UseD3DMultiList)
 ;
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   if DX11 in $(UseD3DMultiList) || DX12 in $(UseD3DMultiList) { Sources += hlsl_dx.cpp ; }
   else { Sources += hlsl_stub.cpp ; }
 }
 
-if $(Platform) = linux64 && ( vulkan in $(UseD3DMultiList) ) {
+if $(Platform) = linux && ( vulkan in $(UseD3DMultiList) ) {
   CPPopt += -DUSE_X11 ;
   Sources += x11.cpp ;
 }

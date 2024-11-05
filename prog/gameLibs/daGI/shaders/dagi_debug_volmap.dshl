@@ -4,14 +4,9 @@ include "frustum.dshl"
 include "gbuffer.dshl"
 include "dagi_volmap_gi.dshl"
 include "dagi_scene_voxels_common.dshl"
-//include "sample_voxels.dshl"
 
 hlsl {
   #include "dagi_common_types.hlsli"
-  cbuffer BufferCounter : register( b1 )
-  {
-    uint numVoxels;
-  };
 }
 
 shader create_debug_render_cs

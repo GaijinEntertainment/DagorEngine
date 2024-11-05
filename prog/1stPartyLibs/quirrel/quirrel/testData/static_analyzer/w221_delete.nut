@@ -1,4 +1,4 @@
-
+#allow-delete-operator
 
 let x = {}
 

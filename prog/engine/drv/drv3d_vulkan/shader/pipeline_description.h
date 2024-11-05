@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/dag_drv3dConsts.h>
+#include <drv/3d/dag_consts.h>
+#include <drv/3d/dag_renderStates.h>
 
 #include "vulkan_device.h"
 
@@ -9,13 +11,12 @@ namespace drv3d_vulkan
 
 class DeviceContext;
 class Image;
-class Device;
 
 // platforms like mac/ios can't handle bgra vertex layout
 #if VULKAN_PLATFORM_WITHOUT_BGRA_VERTEX
-constexpr VkFormat E3DCOLOR_FORMAT = VK_FORMAT_R8G8B8A8_UNORM;
+inline constexpr VkFormat E3DCOLOR_FORMAT = VK_FORMAT_R8G8B8A8_UNORM;
 #else
-constexpr VkFormat E3DCOLOR_FORMAT = VK_FORMAT_B8G8R8A8_UNORM;
+inline constexpr VkFormat E3DCOLOR_FORMAT = VK_FORMAT_B8G8R8A8_UNORM;
 #endif
 
 BEGIN_BITFIELD_TYPE(VertexAttributeDesc, uint32_t)
@@ -164,6 +165,7 @@ END_BITFIELD_TYPE()
 
 struct InputLayout
 {
+  static constexpr int max_element_length = 16; // i.e. 4component*32bit entry
   InputStreamSet streams;
   VertexAttributeSet attribs;
 

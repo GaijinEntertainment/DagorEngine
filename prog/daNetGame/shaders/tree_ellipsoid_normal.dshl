@@ -1,0 +1,29 @@
+macro INIT_TREE_ELLIPSOID_NORMAL_PARAMS()
+  static float n_ellipsoid_scale = 1.0;
+  static float n_ellipsoid_offset = 0.0;
+  static float n_ellipsoid_mix = 0.0;
+endmacro
+
+macro USE_TREE_ELLIPSOID_NORMAL()
+  (vs) {
+    n_ellipsoid_scale@f1 = n_ellipsoid_scale;
+    n_ellipsoid_offset@f1 = n_ellipsoid_offset;
+    n_ellipsoid_mix@f1 = n_ellipsoid_mix;
+  }
+
+  hlsl {
+    #define NEED_ELLIPSOID_NORMAL
+  }
+
+  hlsl(vs) {
+    float3 getEllipsoidNormal(float3 local_pos, float4 bounding_sphere)
+    {
+      float3 centerOfTree = float3(0.0f, bounding_sphere.z*(1 + get_n_ellipsoid_offset()), 0.0f);
+      float ellipsoidXZ = bounding_sphere.z * get_n_ellipsoid_scale();
+      float3 ellipsoidParams = float3(ellipsoidXZ, bounding_sphere.z, ellipsoidXZ);
+      float3 checkedPos = local_pos - centerOfTree;
+      float3 ellipsoidNormal = 2.0*checkedPos / pow2(ellipsoidParams);
+      return ellipsoidNormal;
+    }
+  }
+endmacro

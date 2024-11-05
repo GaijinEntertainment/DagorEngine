@@ -1,0 +1,68 @@
+// Taken from https://www.shadertoy.com/view/3sGSWV (MIT license)
+float4 film_grain_params = float4(0.0, 1.0, 0.75, 0.0); // strength, rate, pitch [0.5; 1.0]
+
+macro INIT_FILM_GRAIN()
+  (ps)
+  {
+    film_grain_params@f4 = (film_grain_params.x, film_grain_params.y, 1.0 / film_grain_params.z, 1000 * time_phase(0, 0));
+  }
+endmacro
+
+macro USE_FILM_GRAIN()
+  hlsl (ps)
+  {
+    // From Dave Hoskins: https://www.shadertoy.com/view/4djSRW.
+    float hash(float3 p3)
+    {
+      p3 = frac(p3 * 0.1031);
+      p3 += dot(p3, p3.yzx + 19.19);
+      return frac((p3.x + p3.y) * p3.z);
+    }
+
+    // From iq: https://www.shadertoy.com/view/4sfGzS.
+    float noise(float3 x)
+    {
+      float3 i = floor(x);
+      float3 f = frac(x);
+      f = f * f * (3.0 - 2.0 * f);
+      return lerp(lerp(lerp(hash(i + float3(0, 0, 0)),
+                            hash(i + float3(1, 0, 0)), f.x),
+                       lerp(hash(i + float3(0, 1, 0)),
+                            hash(i + float3(1, 1, 0)), f.x), f.y),
+                  lerp(lerp(hash(i + float3(0, 0, 1)),
+                            hash(i + float3(1, 0, 1)), f.x),
+                       lerp(hash(i + float3(0, 1, 1)),
+                            hash(i + float3(1, 1, 1)), f.x), f.y), f.z);
+    }
+
+    // Slightly high-passed continuous value-noise.
+    float grain_source(float3 x, float strength, float inv_pitch)
+    {
+      float center = noise(x);
+      float v1 = center - noise(float3( 1, 0, 0) * inv_pitch + x) + 0.5;
+      float v2 = center - noise(float3( 0, 1, 0) * inv_pitch + x) + 0.5;
+      float v3 = center - noise(float3(-1, 0, 0) * inv_pitch + x) + 0.5;
+      float v4 = center - noise(float3( 0,-1, 0) * inv_pitch + x) + 0.5;
+
+      float total = (v1 + v2 + v3 + v4) / 4.0;
+      return lerp(1.0, 0.5 + total, strength);
+    }
+
+    float3 apply_film_grain(float3 color, float2 uvs)
+    {
+      float grain_strength = film_grain_params.x;
+      float grain_rate = film_grain_params.y;
+      float grain_inv_pitch = film_grain_params.z;
+      float grain_phase = film_grain_params.w;
+
+      float rg = grain_source(float3(uvs, floor(grain_rate * (grain_phase))),       grain_strength, grain_inv_pitch);
+      float gg = grain_source(float3(uvs, floor(grain_rate * (grain_phase + 9.0))), grain_strength, grain_inv_pitch);
+      float bg = grain_source(float3(uvs, floor(grain_rate * (grain_phase - 9.0))), grain_strength, grain_inv_pitch);
+
+      float3 grain = float3(rg, gg, bg);
+
+      const float grain_lift_ratio = 0.5; // choose blending (0.0 - multiply, 1.0 - add)
+      return max(lerp(color * grain, color + (grain - 1.0), grain_lift_ratio), 0.0);
+    }
+  }
+endmacro

@@ -1,0 +1,14 @@
+include "gbuffer_to_temperature_inc.dshl"
+macro USE_GBUF_TO_TEMPERATURE()
+USE_GBUF_TO_TEMPERATURE_BASE()
+  hlsl(ps)
+  {
+    float gbufferToTemperature(ProcessedGbuffer gbuffer, float3 pointToEye, float shadow)
+    {
+      float materialType = gbuffer.material;
+      if (gbuffer.isLandscape)
+        materialType = THERMAL_SHADING_LANDSCAPE;
+      return gbufferToTemperatureBase(gbuffer, materialType, pointToEye, shadow);
+    }
+  }
+endmacro

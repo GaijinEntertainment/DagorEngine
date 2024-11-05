@@ -1,4 +1,4 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <windows.h>
 #include <winGuiWrapper/wgw_input.h>

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -36,6 +35,12 @@ class Registry final : private NameSpaceRequest
   Registry(NodeNameId node, InternalRegistry *reg);
 
 public:
+  /**
+   * \brief Allows async pipeline compilation
+   * Graphics pipelines will be async compiled with draw call skip when pipeline is not yet ready
+   */
+  Registry allowAsyncPipelines();
+
   /**
    * \brief Orders the current node before a certain node.
    * This means that the node \p name will only start executing after
@@ -125,7 +130,7 @@ public:
    *
    * \return NameSpaceRequest object representing the root name space.
    */
-  NameSpaceRequest root();
+  NameSpaceRequest root() const;
 
   using NameSpaceRequest::getResolution;
 
@@ -160,13 +165,50 @@ public:
    * Note that history is not supported for external resources.
    *
    * \param name A unique name identifying this resource within the current node's namespace.
-   * \param texture_provider_callback A callback that maps a multiplexing index to a ManagedTexView.
+   * \param texture_provider_callback
+   *   A callback that maps a multiplexing index to a ManagedTexView. It might be called
+   *   an arbitrary number of times, but only while the current node is registered.
    */
   template <class F>
   VirtualTextureRequest<NewRwRequestPolicy> registerTexture2d(const char *name, F &&texture_provider_callback)
   {
     auto uid = registerTexture2dImpl(name,
       [impl = eastl::forward<F>(texture_provider_callback)](const multiplexing::Index &mIdx) { return ExternalResource(impl(mIdx)); });
+    return {uid, nodeId, registry};
+  }
+
+  /**
+   * \brief Marks this node as the back buffer provider and creates a
+   * virtual dabfg resource that corresponds to it.
+   * \details The back buffer is not a real resource in dagor, but
+   * rather a special value that will be replaced with the actual
+   * swapchain image when it's acquired on the driver thread.
+   * This makes the back buffer a special case everywhere, it is not
+   * possible to read from it, nor is it possible to UAV-write to it.
+   * In daBfg, we only to render to it, and only with a single attachment
+   * at that, so no MRT and no depth-stencil even.
+   * \note This is a hot discussion topic and might change in the future.
+   *
+   * \param name a unique name identifying the back buffer as a resource within the current node's namespace.
+   */
+  VirtualTextureRequest<NewRwRequestPolicy> registerBackBuffer(const char *name);
+
+  /**
+   * \brief Creates a new buffer at node execution time, which will
+   * not be FG-provided, but acquired from the callback before the node
+   * starts executing and stored somewhere outside.
+   * Note that history is not supported for external resources.
+   *
+   * \param name A unique name identifying this resource within the current node's namespace.
+   * \param buffer_provider_callback
+   *   A callback that maps a multiplexing index to a ManagedBufferView. It might be called
+   *   an arbitrary number of times, but only while the current node is registered.
+   */
+  template <class F>
+  VirtualBufferRequest<NewRwRequestPolicy> registerBuffer(const char *name, F &&buffer_provider_callback)
+  {
+    auto uid = registerBufferImpl(name,
+      [impl = eastl::forward<F>(buffer_provider_callback)](const multiplexing::Index &mIdx) { return ExternalResource(impl(mIdx)); });
     return {uid, nodeId, registry};
   }
 
@@ -207,6 +249,7 @@ public:
 
 private:
   detail::ResUid registerTexture2dImpl(const char *name, dabfg::ExternalResourceProvider &&p);
+  detail::ResUid registerBufferImpl(const char *name, dabfg::ExternalResourceProvider &&p);
 };
 
 } // namespace dabfg

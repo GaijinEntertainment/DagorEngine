@@ -1,0 +1,48 @@
+
+base_asset_manager{
+  _tags:t="render"
+  _singleton:b=true
+
+  "asset__manager:DagorAssetMgr"{}
+  asset__applicationBlkPath:t="%danetlibs/assets_import/application.blk"
+  asset__baseFolder:t="custom_assets"
+  asset__pluginsFolder:t="plugins"
+  asset__baseFolderAbsPath:t=""
+  asset__currentFileName:t=""
+  asset__rendInstType:i=-1
+
+  _group{
+    "activeRI__lodDistances:list<r>"{}
+    "activeRI__lodFiles:list<t>"{}
+  }
+
+  asset__curCollisionPath:t=""
+
+  asset__currentSearchFilter:t=""
+
+  asset__clipmapInvalidationEnabled:b=false
+}
+
+composit_child_rendinst{
+  _use:t="rendinst"
+  "ignoredEditable:tag"{ _tags:t="render" }
+}
+
+composit_rendinst{
+
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  composit__name:t=""
+  composit__prevTransform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  "composit__entities:list<eid>"{}
+  _tracked:t="transform"
+}
+
+custom_animchar{
+  _use:t="animchar"
+  _use:t="replicating"
+
+  animchar__res:t=""
+  animchar__animStateDirty:b=false
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+
+}

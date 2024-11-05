@@ -1,5 +1,4 @@
-#ifndef __GAIJIN_EDITOR_BRUSHFILTER__
-#define __GAIJIN_EDITOR_BRUSHFILTER__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EditorCore/ec_interface.h>
@@ -119,6 +118,3 @@ private:
 
   bool active;
 };
-
-
-#endif //__GAIJIN_EDITOR_BRUSHFILTER__

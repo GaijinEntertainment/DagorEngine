@@ -1,11 +1,22 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/gpuGrass.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <3d/dag_textureIDHolder.h>
+#include <3d/dag_lockSbuffer.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_info.h>
 #include <util/dag_convar.h>
 #include <util/dag_stlqsort.h>
 #include <shaders/dag_computeShaders.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
 #include <math/dag_frustum.h>
@@ -27,6 +38,8 @@
 #include <webui/editVarNotifications.h>
 #include <3d/dag_quadIndexBuffer.h>
 #include <shaders/dag_overrideStates.h>
+#include <frustumCulling/frustumPlanes.h>
+#include <gui/dag_visualLog.h>
 
 #define USE_QUADS_INDEX_BUFFER 0
 #define GRASS_USE_QUADS        D3D_HAS_QUADS // xbox one & ps4
@@ -51,6 +64,8 @@ enum
   VAR(grass_grid_params)                                    \
   VAR(grass_draw_instances_buffer)                          \
   VAR(grass_draw_instances_indirect_buffer)                 \
+  VAR_OPT(grass_update_readback_count)                      \
+  VAR_OPT(grass_max_instance_count)                         \
   VAR_OPT(grass_average_ht__ht_extent__avg_hor__hor_extent) \
   VAR_OPT(grass_instancing)
 
@@ -62,13 +77,10 @@ GLOBAL_VARS_LIST
 #undef VAR
 #undef VAR_OPT
 
-void set_frustum_planes(const Frustum &frustum);
 
 CONSOLE_BOOL_VAL("grass", grassLod, true);
 CONSOLE_BOOL_VAL("grass", grassGenerate, true);
-CONSOLE_BOOL_VAL("grass", grassGpuSort, false);
 // CONSOLE_BOOL_VAL("grass", grassInstancing, false);
-CONSOLE_INT_VAL("grass", grassCount, 0, 0, 100000);
 CONSOLE_FLOAT_VAL("grass", grassGridSizeMultiplier, 1.0f);
 
 
@@ -91,6 +103,7 @@ void GPUGrassBase::close()
   if (indexBufferInited)
     index_buffer::release_quads_32bit();
   alreadyLoaded = false;
+  isInitialized = false;
 }
 
 static inline float3 srgb_color4(E3DCOLOR ec)
@@ -111,6 +124,28 @@ static float get_quality_multiplier(GrassQuality quality)
     default: return 1.0;
   }
 }
+
+#if DAGOR_DBGLEVEL > 0
+CONSOLE_BOOL_VAL("grass", debugGrassInstanceCount, false);
+
+static void debug_grass_inctances_count(Sbuffer *readback_buffer, int max_instance_count, int allocated_buf_size)
+{
+  if (!debugGrassInstanceCount || !readback_buffer)
+    return;
+  // NOTE: Not sure that it is ok to lock without waiting readback query, but it works and debug functionality anyway
+  if (auto bufferData = lock_sbuffer<const uint32_t>(readback_buffer, 0, 1, VBLOCK_READONLY))
+  {
+    int instanceCount = bufferData[0];
+    visuallog::setOffset(IPoint2(30, 40)); // To not overdraw fps
+    visuallog::setMaxItems(1);
+    visuallog::logmsg(String(0, "Grass instances count %d/%d (%d%%), allocated size %.2f Mb (%d%%)", instanceCount, max_instance_count,
+      instanceCount * 100 / max_instance_count, (allocated_buf_size >> 10) / 1024.f,
+      allocated_buf_size * 100 / (max_instance_count * sizeof(GrassInstance))));
+  }
+}
+#else
+static void debug_grass_inctances_count(Sbuffer *, int, int) {}
+#endif
 
 void GPUGrassBase::loadGrassTypes(const DataBlock &grassSettings, const eastl::hash_map<eastl::string, int> &grassTypesUsed)
 {
@@ -271,16 +306,28 @@ void GPUGrassBase::loadGrassTypes(const DataBlock &grassSettings, const eastl::h
     DAG_FATAL("array texture not created");
     return;
   }
-  grassTex->texaddrv(TEXADDR_CLAMP);
 
   if (!grassAlphaTex)
   {
     DAG_FATAL("array texture not created");
     return;
   }
-  grassAlphaTex->texaddrv(TEXADDR_CLAMP);
-
-  grassNTex->texaddrv(TEXADDR_CLAMP);
+  {
+    grassColorAlphaTexSampler.address_mode_u = grassColorAlphaTexSampler.address_mode_v = grassColorAlphaTexSampler.address_mode_w =
+      d3d::AddressMode::Clamp;
+    ShaderGlobal::set_sampler(get_shader_variable_id("grass_texture_a_samplerstate"), d3d::request_sampler(grassColorAlphaTexSampler));
+    ShaderGlobal::set_sampler(get_shader_variable_id("grass_texture_samplerstate"), d3d::request_sampler(grassColorAlphaTexSampler));
+    grassAlphaTex->disableSampler();
+    grassTex->disableSampler();
+  }
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    // intenionally no anisotropy on normalmap
+    smpInfo.anisotropic_max = 1;
+    ShaderGlobal::set_sampler(get_shader_variable_id("grass_texture_n_samplerstate"), d3d::request_sampler(smpInfo));
+    grassNTex->disableSampler();
+  }
 }
 
 void GPUGrassBase::updateGrassColors()
@@ -359,10 +406,21 @@ void GPUGrassBase::init(const DataBlock &grassSettings)
   grassRandomTypesCB = dag::buffers::create_persistent_cb(dag::buffers::cb_struct_reg_count<GrassTypesCB>(), "grass_rnd_types_buf");
   grassColorsVSCB =
     dag::buffers::create_persistent_cb(dag::buffers::cb_array_reg_count<GrassColorVS>(GRASS_MAX_TYPES), "grass_colors_buf");
+  grassInstancesIndirect = dag::buffers::create_ua_indirect(dag::buffers::Indirect::DrawIndexed, 1, "grass_instances_indirect");
+  grassInstancesCountRB = dag::buffers::create_ua_byte_address_readback(1, "grass_instances_count_readback");
 
-  indirectSrv = get_shader_variable_id("grass_instances_indirect", true) >= 0;
-  grassInstancesIndirect = dag::create_sbuffer(4, 5 + ((GRASS_LOD_COUNT + 3) & ~3),
-    (indirectSrv ? SBCF_BIND_SHADER_RES : 0) | SBCF_UA_INDIRECT, 0, "grass_instances_indirect");
+  if (!grassInstancesIndirect || !grassInstancesCountRB || !grassRandomTypesCB || !grassColorsVSCB)
+  {
+    logdbg("grassRandomTypesCB=%p", grassRandomTypesCB.getBuf());
+    logdbg("grassColorsVSCB=%p", grassColorsVSCB.getBuf());
+    logdbg("grassInstancesIndirect=%p", grassInstancesIndirect.getBuf());
+    logdbg("grassInstancesCountRB=%p", grassInstancesCountRB.getBuf());
+    logerr("grass: failed to create buffers");
+    return;
+  }
+
+  readbackQuery.reset(d3d::create_event_query());
+  ShaderGlobal::set_int(grass_update_readback_countVarId, 0);
   grassRenderer.init("grass_render_billboards", NULL, 0, "grass");
   generated = false;
 
@@ -511,6 +569,7 @@ void GPUGrassBase::init(const DataBlock &grassSettings)
   loadGrassTypes(grassSettings, grassTypesUsed);
   applyAnisotropy();
   updateGrassTypes();
+  isInitialized = true;
 }
 
 void GPUGrassBase::applyAnisotropy()
@@ -518,26 +577,16 @@ void GPUGrassBase::applyAnisotropy()
   // intenionally less anisotropy on grass, and only if aniso is more than 4
   int grassAnisotropy = dgs_tex_anisotropy > 4 ? dgs_tex_anisotropy / 2 : 1;
 
-  if (grassTex)
-  {
-    grassTex->setAnisotropy(grassAnisotropy);
-  }
-  if (grassAlphaTex)
-  {
-    grassAlphaTex->setAnisotropy(grassAnisotropy);
-  }
-  if (grassNTex)
-  {
-    // intenionally no anisotropy on normalmap
-    grassNTex->setAnisotropy(1);
-  }
+  grassColorAlphaTexSampler.anisotropic_max = grassAnisotropy;
+  ShaderGlobal::set_sampler(get_shader_variable_id("grass_texture_samplerstate"), d3d::request_sampler(grassColorAlphaTexSampler));
+  ShaderGlobal::set_sampler(get_shader_variable_id("grass_texture_a_samplerstate"), d3d::request_sampler(grassColorAlphaTexSampler));
 }
 
 void GPUGrassBase::driverReset()
 {
   updateGrassColors();
   updateGrassTypes();
-  initedInstance = false;
+  invalidate();
 }
 
 void GPUGrassBase::updateGrassTypes()
@@ -688,7 +737,7 @@ void GPUGrassBase::renderGrassLods(RenderGrassLodCallback renderGrassLod) const
 }
 
 void GPUGrassBase::generateGrass(const Point2 &pos, const Point3 &view_dir, float min_ht_, float max_ht_,
-  const frustum_heights_cb_t &cb, GrassPreRenderCallback pre_render_cb)
+  const frustum_heights_cb_t &cb)
 {
   TIME_D3D_PROFILE(genGrass)
 
@@ -733,27 +782,24 @@ void GPUGrassBase::generateGrass(const Point2 &pos, const Point3 &view_dir, floa
 
     instances = min<int>(MAX_GRASS * grassInstancesMul, instances);
 
-    if (instances != maxInstanceCount)
+    int generatedInstances = 0;
+    if (readbackQueryIssued && d3d::get_event_query_status(readbackQuery.get(), false))
+    {
+      if (auto bufferData = lock_sbuffer<const uint>(grassInstancesCountRB.getBuf(), 0, 1, 0))
+        generatedInstances = bufferData[0];
+      readbackQueryIssued = false;
+    }
+    if (instances != maxInstanceCount || (generatedInstances > allocatedInstances && allocatedInstances < instances))
     {
       maxInstanceCount = instances;
-      debug("grass: maxInstanceCount = %d (%d %d %d)", maxInstanceCount, lodInstancesCount[0], lodInstancesCount[1],
-        lodInstancesCount[2]);
+      constexpr float ALLOCATION_STEP = 0.1f;
+      if (allocatedInstances == 0 || generatedInstances > allocatedInstances)
+        allocatedInstances = max(int(allocatedInstances + ceilf(ALLOCATION_STEP * maxInstanceCount)), generatedInstances);
+      allocatedInstances = min(allocatedInstances, maxInstanceCount);
+      debug("grass: maxInstanceCount = %d (%d %d %d), allocatedCount = %d", maxInstanceCount, lodInstancesCount[0],
+        lodInstancesCount[1], lodInstancesCount[2], allocatedInstances);
       grassInstances.close();
-      eastl::array<int, GRASS_LOD_COUNT + 1> startsAt;
-      if (instances)
-      {
-        int actualCount = 0;
-        for (auto ic : lodInstancesCount)
-          actualCount += ic;
-        if (actualCount != instances)
-          for (auto &ic : lodInstancesCount)
-            ic = ic * instances / actualCount;
-        startsAt[0] = 0;
-        for (size_t i = 1; i < startsAt.size(); ++i)
-          startsAt[i] = startsAt[i - 1] + lodInstancesCount[i - 1];
-      }
-      ShaderGlobal::set_color4(get_shader_variable_id("lod_grass_instances_start_at", true), startsAt[0], startsAt[1], startsAt[2],
-        startsAt[3]);
+      ShaderGlobal::set_int(grass_max_instance_countVarId, allocatedInstances);
       if (indexBufferInited)
       {
         index_buffer::release_quads_32bit();
@@ -767,17 +813,13 @@ void GPUGrassBase::generateGrass(const Point2 &pos, const Point3 &view_dir, floa
       }
 #endif
       ShaderGlobal::set_int(get_shader_variable_id("grass_use_quads", true), GRASS_USE_QUADS);
-      grassInstances = dag::buffers::create_ua_sr_structured(sizeof(GrassInstance), maxInstanceCount, "grass_insts_buf");
+      grassInstances = dag::buffers::create_ua_sr_structured(sizeof(GrassInstance), allocatedInstances, "grass_insts_buf");
     }
   }
 
   // it is always faster to render without instancing. However, if there are not much instances it can be otherwise
   // ShaderGlobal::set_int(grass_instancingVarId, grassInstancing.get() ? 1 : 0);
   ShaderGlobal::set_int(grass_instancingVarId, 0);
-
-  // wait for deform hmap finish
-  if (pre_render_cb)
-    pre_render_cb();
 
   grassIsSorted = false;
   {
@@ -793,9 +835,17 @@ void GPUGrassBase::generateGrass(const Point2 &pos, const Point3 &view_dir, floa
       view_XZ.y < 0 ? 1 : 0, 0);
     ShaderGlobal::set_buffer(grass_draw_instances_indirect_bufferVarId, grassInstancesIndirect.getBufId());
     ShaderGlobal::set_buffer(grass_draw_instances_bufferVarId, grassInstances.getBufId());
+    if (generated && !readbackQueryIssued)
+      ShaderGlobal::set_int(grass_update_readback_countVarId, 1);
     createIndirect->dispatch(1, 1, 1); // clear
     d3d::resource_barrier({{grassInstancesIndirect.getBuf(), grassInstances.getBuf()},
       {RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE, RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE}});
+    if (generated && !readbackQueryIssued)
+    {
+      ShaderGlobal::set_int(grass_update_readback_countVarId, 0);
+      issue_readback_query(readbackQuery.get(), grassInstancesCountRB.getBuf());
+      readbackQueryIssued = true;
+    }
 
     auto renderGrassLod = [&](const float currentGridSize, const float currentGrassDistance) {
       const int quadSize = currentGrassDistance / currentGridSize;
@@ -817,18 +867,17 @@ void GPUGrassBase::generateGrass(const Point2 &pos, const Point3 &view_dir, floa
     renderGrassLods(renderGrassLod);
     d3d::set_const_buffer(STAGE_CS, 1, 0);
 
-    d3d::resource_barrier({{grassInstancesIndirect.getBuf(), grassInstances.getBuf()},
-      {(indirectSrv ? RB_RO_SRV | RB_STAGE_VERTEX | RB_RO_INDIRECT_BUFFER : RB_RO_INDIRECT_BUFFER), RB_RO_SRV | RB_STAGE_VERTEX}});
+    d3d::resource_barrier(
+      {{grassInstancesIndirect.getBuf(), grassInstances.getBuf()}, {RB_RO_INDIRECT_BUFFER, RB_RO_SRV | RB_STAGE_VERTEX}});
   }
   generated = true;
 }
 
-void GPUGrassBase::generate(const Point3 &pos, const Point3 &view_dir, const frustum_heights_cb_t &cb,
-  GrassPreRenderCallback pre_render_cb)
+void GPUGrassBase::generate(const Point3 &pos, const Point3 &view_dir, const frustum_heights_cb_t &cb)
 {
   if (!isInited())
     return;
-  generateGrass(Point2::xz(pos), view_dir, pos.y - 1000.f, pos.y + 1000.f, cb, eastl::move(pre_render_cb));
+  generateGrass(Point2::xz(pos), view_dir, pos.y - 1000.f, pos.y + 1000.f, cb);
 }
 
 void GPUGrassBase::render(RenderType rtype)
@@ -862,9 +911,9 @@ void GPUGrassBase::render(RenderType rtype)
   else
     d3d::draw_indirect(PRIM_TRILIST, grassInstancesIndirect.getBuf(), 0);
 #endif
-  // d3d::draw(PRIM_TRILIST, 0, min(grassCount.get()>0 ? grassCount.get() : 10000000, grassInstancesCount)*2);
   if (rtype == GRASS_AFTER_PREPASS)
     shaders::overrides::reset();
+  debug_grass_inctances_count(grassInstancesCountRB.getBuf(), maxInstanceCount, grassInstances->ressize());
 }
 
 void GPUGrassBase::invalidate() { generated = false; }
@@ -927,11 +976,17 @@ void GPUGrass::init(const DataBlock &grassSettings)
   maskResolution = grassSettings.getInt("grassMaskResolution", 512);
   maskTexHelper.texSize = maskResolution;
   maskTex.set(d3d::create_tex(NULL, maskResolution, maskResolution, TEXCF_RTARGET, 1, "grass_mask_tex"), "grass_mask_tex");
+  ShaderGlobal::set_sampler(get_shader_variable_id("grass_mask_tex_samplerstate"), d3d::request_sampler({}));
   colorTex.set(
     d3d::create_tex(NULL, maskResolution, maskResolution, TEXCF_SRGBREAD | TEXCF_SRGBWRITE | TEXCF_RTARGET, 1, "grass_color_tex"),
     "grass_color_tex");
-  colorTex.getTex2D()->texfilter(TEXFILTER_POINT);
-  colorTex.getTex2D()->texmipmap(TEXMIPMAP_POINT); // no mips!
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    smpInfo.mip_map_mode = d3d::MipMapMode::Point;
+    ShaderGlobal::set_sampler(get_shader_variable_id("grass_color_tex_samplerstate"), d3d::request_sampler(smpInfo));
+  }
+  colorTex.getTex2D()->disableSampler();
 }
 
 void GPUGrass::setQuality(GrassQuality quality)
@@ -951,28 +1006,18 @@ void GPUGrass::driverReset()
 
 void MaskRenderCallback::start(const IPoint2 &)
 {
-  d3d_get_view_proj(viewproj);
-  TMatrix vtm;
-  vtm.setcol(0, 1, 0, 0);
-  vtm.setcol(1, 0, 0, 1);
-  vtm.setcol(2, 0, 1, 0);
-  vtm.setcol(3, 0, 0, 0);
-  d3d::settm(TM_VIEW, vtm);
+  d3d_get_view_proj(originalViewproj);
+  d3d::settm(TM_VIEW, viewTm);
 }
 
 void MaskRenderCallback::renderQuad(const IPoint2 &lt, const IPoint2 &wd, const IPoint2 &texelsFrom)
 {
-  if (preRenderCB)
-  {
-    preRenderCB();
-    preRenderCB = nullptr;
-  }
   BBox2 box(point2(texelsFrom) * texelSize, point2(texelsFrom + wd) * texelSize);
   BBox3 bbox3(Point3::xVy(box[0], -3000), Point3::xVy(box[1], 3000));
   TMatrix4 proj = matrix_ortho_off_center_lh(bbox3[0].x, bbox3[1].x, bbox3[1].z, bbox3[0].z, bbox3[0].y, bbox3[1].y);
   d3d::settm(TM_PROJ, &proj);
 
-  cm.beginRender(Point3::xVy(box.center(), 0), bbox3, proj);
+  cm.beginRender(Point3::xVy(box.center(), 0), bbox3, TMatrix4(viewTm) * proj, proj);
 
   d3d::set_render_target(colorTex, 0);
   d3d::setview(lt.x, lt.y, wd.x, wd.y, 0, 1);
@@ -994,9 +1039,9 @@ void MaskRenderCallback::renderQuad(const IPoint2 &lt, const IPoint2 &wd, const 
   d3d::resource_barrier({colorTex, RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
 }
 
-void MaskRenderCallback::end() { d3d_set_view_proj(viewproj); }
+void MaskRenderCallback::end() { d3d_set_view_proj(originalViewproj); }
 
-void GPUGrass::generate(const Point3 &pos, const Point3 &view_dir, IRandomGrassRenderHelper &cb, GrassPreRenderCallback pre_render_cb)
+void GPUGrass::generate(const Point3 &pos, const Point3 &view_dir, IRandomGrassRenderHelper &cb)
 {
   if (!base.isInited())
     return;
@@ -1042,7 +1087,7 @@ void GPUGrass::generate(const Point3 &pos, const Point3 &view_dir, IRandomGrassR
       needToToroidalUpdate = true;
     }
 
-    MaskRenderCallback maskcb(texelSize, cb, maskTex.getTex2D(), colorTex.getTex2D(), &copy_grass_decals, eastl::move(pre_render_cb));
+    MaskRenderCallback maskcb(texelSize, cb, maskTex.getTex2D(), colorTex.getTex2D(), &copy_grass_decals);
 
     shaders::overrides::set(flipCullStateId);
     if (needToToroidalUpdate)
@@ -1068,8 +1113,7 @@ void GPUGrass::generate(const Point3 &pos, const Point3 &view_dir, IRandomGrassR
     colorTex.setVar();
     maskTex.setVar();
   }
-  base.generate(
-    pos, view_dir, [&](const BBox2 &box, float &mn, float &mx) { return cb.getMinMaxHt(box, mn, mx); }, eastl::move(pre_render_cb));
+  base.generate(pos, view_dir, [&](const BBox2 &box, float &mn, float &mx) { return cb.getMinMaxHt(box, mn, mx); });
 }
 
 void GPUGrass::render(RenderType rtype) { base.render((GPUGrassBase::RenderType)rtype); }

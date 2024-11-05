@@ -1,5 +1,5 @@
-#ifndef CHECKVERSION_3DBA9B36642F541B_H_
-#define CHECKVERSION_3DBA9B36642F541B_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #define FASTDEP_VERSION_MAJOR    1
 #define FASTDEP_VERSION_MINOR    1
@@ -8,5 +8,3 @@
 #include <string>
 
 int atLeastVersion(const std::string &aVersion);
-
-#endif

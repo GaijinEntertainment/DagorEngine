@@ -1,0 +1,25 @@
+local dagorMath = require("dagor.math")
+local Point3 =  dagorMath.Point3
+
+return {
+  function project_to_nearest_navmesh_point(wishPos, t){
+    assert (wishPos instanceof Point3)
+    assert (type(t)=="float")
+    return Point3(0,0,0)
+  }
+  function project_to_nearest_navmesh_point_no_obstacles(wishPos, t){
+    assert (wishPos instanceof Point3)
+    assert (t instanceof Point3)
+    return Point3(0,0,0)
+  }
+  function traceray_navmesh(orig_pos, wishPos, t){
+    assert (wishPos instanceof Point3)
+    assert (orig_pos instanceof Point3)
+    assert (type(t)=="float")
+  }
+  find_path = @(...) false
+  check_path = @(...) true
+  POLYFLAG_GROUND   = 1,
+  POLYFLAG_OBSTACLE = 2,
+  POLYFLAG_JUMP   = 3
+}

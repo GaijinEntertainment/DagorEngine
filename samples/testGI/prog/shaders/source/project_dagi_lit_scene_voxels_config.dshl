@@ -1,0 +1,9 @@
+// if project has predefined fixed anisotropy on or off (for example for powerful/old platform)
+// it can implement project_dagi_lit_scene_voxels_config.sh with
+// macro PROJECT_DAGI_VOXEL_LIT_SCENE_ANISOTROPY(code)
+//  hlsl(code) {
+//    #include <dagi_lit_scene_voxels_consts.hlsli>
+//    #define DAGI_VOXEL_LIT_SCENE_ANISOTROPY DAGI_VOXEL_LIT_SCENE_ANISOTROPY_(OFF|ON)
+// }
+// endmacro
+// this optimizes performance a bit, at no cost

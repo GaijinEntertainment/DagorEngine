@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/debugMesh.h>
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <shaders/dag_overrideStates.h>
 #include <util/dag_console.h>
 #include <util/dag_convar.h>
@@ -15,6 +17,7 @@ namespace debug_mesh
 static Type debug_counter = Type::NONE;
 static int range_min = 0, range_max = DEBUG_MESH_COLORS__MAX;
 static shaders::UniqueOverrideStateId stencilMasterOverride;
+static ShaderVariableInfo overdraw_rangeVarId("overdraw_range", /*opt*/ true);
 
 Type debug_gbuffer_mode_to_type(DebugGbufferMode mode)
 {
@@ -25,7 +28,7 @@ Type debug_gbuffer_mode_to_type(DebugGbufferMode mode)
 
 bool enable_debug(Type type)
 {
-  ShaderGlobal::set_real(get_shader_glob_var_id("overdraw_range"), (float)overdraw_range.get());
+  ShaderGlobal::set_real(overdraw_rangeVarId, (float)overdraw_range.get());
 
   if (debug_counter == type)
     return false;

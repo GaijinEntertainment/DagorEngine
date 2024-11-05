@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <image/dag_psd.h>
 #include <image/dag_texPixel.h>
 #include <image/psdRead/bmgImage.h>

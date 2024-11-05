@@ -1,16 +1,14 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/dag_resId.h>
+#include <drv/3d/dag_resId.h>
 #include <math/dag_color.h>
 #include <vecmath/dag_vecMath.h>
-#if _TARGET_PC_WIN
-#include <malloc.h>
-#elif defined(__GNUC__)
-#include <stdlib.h>
-#endif
+#include <supp/dag_alloca.h>
 
 class Sbuffer;
 class BaseTexture;
+struct RaytraceTopAccelerationStructure;
 
 template <typename T>
 static __forceinline T &make_ref(void *ptr)
@@ -32,4 +30,8 @@ static INLINE Color4 &color4_reg(char *rb, int o) { return make_ref<Color4>(&rb[
 static INLINE TMatrix4 &float4x4_reg(char *rb, int o) { return make_ref<TMatrix4>(&rb[o * 4]); }
 static INLINE vec4f get_vec_reg(char *rb, int o) { return v_ldu((float *)&rb[o * 4]); }
 static INLINE void set_vec_reg(vec4f v, char *rb, int o) { return v_stu(&rb[o * 4], v); }
+static INLINE RaytraceTopAccelerationStructure *&tlas_reg(char *rb, int o)
+{
+  return make_ref<RaytraceTopAccelerationStructure *>(&rb[o * 4]);
+}
 #undef INLINE

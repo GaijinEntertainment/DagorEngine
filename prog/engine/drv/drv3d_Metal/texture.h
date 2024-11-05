@@ -1,4 +1,4 @@
-
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #import <Metal/Metal.h>
@@ -7,6 +7,8 @@
 #include <EASTL/vector.h>
 #include <generic/dag_smallTab.h>
 #include <3d/tql.h>
+
+#include <mutex>
 
 namespace drv3d_metal
 {
@@ -34,6 +36,7 @@ public:
     id<MTLTexture> sub_texture_no_srgb = nil;
     id<MTLTexture> rt_texture = nil;
     id<MTLTexture> stencil_read_texture = nil;
+    id<MTLTexture> texture_as_uint = nil;
     eastl::vector<SubMip> sub_mip_textures;
     int tid = -1;
     int texture_size = 0;
@@ -43,54 +46,31 @@ public:
     void release(bool immediate);
     id<MTLTexture> allocateOrCreateSubmip(int set_minlevel, int set_maxlevel, bool is_uav);
     void destroyObject() {}
+
+    void applyName();
   };
 
   uint32_t cflg;
   int base_format;
+
   uint8_t type;
-
-  E3DCOLOR borderColor = 0;
-  float lodBias = 0.0f;
-
-  uint8_t anisotropyLevel = 1;
-  uint8_t addrU = TEXADDR_WRAP;
-  uint8_t addrV = TEXADDR_WRAP;
-  uint8_t addrW = TEXADDR_WRAP;
-  uint8_t texFilter = TEXFILTER_DEFAULT;
-  uint8_t mipFilter = TEXMIPMAP_DEFAULT;
   uint8_t mipLevels = 1;
-  uint8_t lockedLevel = 0;
-  uint8_t minMipLevel = 20;
-  uint8_t maxMipLevel = 0;
 
   uint16_t width = 1, height = 1, depth = 1, samples = 1;
 
   struct SamplerState
   {
-    int addrU;
-    int addrV;
-    int addrW;
-    int texFilter;
-    int mipmap;
-    int max_level;
-    int lod;
-    int anisotropy;
-    E3DCOLOR border_color;
+    int addrU = TEXADDR_WRAP;
+    int addrV = TEXADDR_WRAP;
+    int addrW = TEXADDR_WRAP;
+    int texFilter = TEXFILTER_LINEAR;
+    int mipmap = TEXFILTER_LINEAR;
+    int max_level = 1024;
+    int lod = 0;
+    int anisotropy = 1;
+    E3DCOLOR border_color = E3DCOLOR(0, 0, 0, 0);
 
-    id<MTLSamplerState> sampler;
-
-    SamplerState()
-    {
-      addrU = TEXADDR_WRAP;
-      addrV = TEXADDR_WRAP;
-      addrW = TEXADDR_WRAP;
-      texFilter = TEXFILTER_SMOOTH;
-      mipmap = TEXFILTER_SMOOTH;
-      lod = 0;
-      anisotropy = 1;
-      max_level = 1024;
-      border_color = E3DCOLOR(0, 0, 0, 0);
-    }
+    id<MTLSamplerState> sampler = nil;
 
     friend inline bool operator==(const SamplerState &left, const SamplerState &right)
     {
@@ -107,6 +87,7 @@ public:
 
   static MTLSamplerDescriptor *samplerDescriptor;
   static Tab<SamplerState> states;
+  static std::mutex samplerStatesMutex;
   id<MTLSamplerState> sampler;
 
   int start_level;
@@ -121,15 +102,12 @@ public:
   MTLPixelFormat metal_rt_format;
   MTLTextureType metal_type;
 
-  uint64_t last_render_frame = ~0ull;
-
-  const int TEXLOCK_BUSY_WAITING_IN_QUEUE = 0x80000000;
+  uint64_t last_readback_submit = ~0ull;
   uint32_t lockFlags = 0;
 
   struct SysImage
   {
     id<MTLBuffer> buffer = nil;
-    uint64_t frame = 0;
     int lock_level;
     int lock_face;
     int guard_offest;
@@ -164,17 +142,7 @@ public:
   int getHeight();
 
   int level_count() const override;
-  virtual int texaddr(int a);
-  virtual int texaddru(int addrmode);
-  virtual int texaddrv(int addrmode);
-  virtual int texaddrw(int addrmode);
-  virtual int texbordercolor(E3DCOLOR color);
-  virtual int texfilter(int filtermode);
-  virtual int texmipmap(int mipmapmode);
-  virtual int texlod(float mipmaplod);
   virtual int texmiplevel(int minlevel, int maxlevel);
-  void setMiplevelImpl(int minlevel, int maxlevel);
-  virtual int setAnisotropy(int level);
   virtual void setReadStencil(bool on) override { read_stencil = on; }
   bool isReadStencil() const { return read_stencil; }
 
@@ -203,13 +171,10 @@ public:
   void *lock(int &row_pitch, int &slice_pitch, int level, int face, unsigned flags, bool readback = false);
   void unlock();
 
-  void doSetAddressing(int u, int v, int w);
-  void doSetBorder(E3DCOLOR color);
-  void doSetFilter(int filter, int mipfilter);
-  void doSetAnisotropy(int level);
-
-  void apply(id<MTLTexture> &out_tex, bool is_read_stencil, int mip_level, bool is_uav);
+  void apply(id<MTLTexture> &out_tex, bool is_read_stencil, int mip_level, bool is_uav, bool as_uint);
   void applySampler(id<MTLSamplerState> &out_smp);
+
+  static void getSampler(SamplerState &sampler_state);
 
   virtual void destroy();
   void release();
@@ -218,7 +183,6 @@ public:
 
   bool allocateTex() override
   {
-    ensureSwapTexDone();
     if (apiTex && !isStub())
       return true;
     apiTex = nullptr;
@@ -231,16 +195,19 @@ public:
 
   BaseTexture *makeTmpTexResCopy(int w, int h, int d, int l, bool staging_tex) override;
   void replaceTexResObject(BaseTexture *&other_tex) override;
-  void replaceTexResObjectImpl(BaseTexture *&other_tex);
-
-  void ensureSwapTexDone() const
-  {
-    if (lockFlags & TEXLOCK_BUSY_WAITING_IN_QUEUE)
-      waitSwapTexDone();
-  }
-  void waitSwapTexDone() const;
 
   static void cleanup();
+
+protected:
+  int texaddrImpl(int a) override;
+  int texaddruImpl(int a) override;
+  int texaddrvImpl(int a) override;
+  int texaddrwImpl(int a) override;
+  int texbordercolorImpl(E3DCOLOR c) override;
+  int texfilterImpl(int m) override;
+  int texmipmapImpl(int m) override;
+  int texlodImpl(float mipmaplod) override;
+  int setAnisotropyImpl(int level) override;
 };
 
 void clear_textures_pool_garbage();

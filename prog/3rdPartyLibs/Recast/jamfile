@@ -24,9 +24,10 @@ AddIncludes = $(Root)/prog/3rdPartyLibs/Recast/Include ;
 
 CPPopt += -D_RELEASE ;
 
-if $(Platform) = linux64 || $(PlatformSpec) = clang {
-  if $(Platform) in win32 win64 xboxOne scarlett {
-    CPPopt += -fp:fast /clang:-fno-unsafe-math-optimizations ;
+if $(Platform) = linux || $(PlatformSpec) = clang {
+  if $(Platform) in windows xboxOne scarlett {
+    CPPopt += -fp:fast ;
+    if $(PlatformArch) != arm64 { CPPopt += /clang:-fno-unsafe-math-optimizations ; }
   } else {
     CPPopt += -ffast-math ;
     if ! $(Platform) in iOS nswitch { CPPopt += -fno-unsafe-math-optimizations ; }

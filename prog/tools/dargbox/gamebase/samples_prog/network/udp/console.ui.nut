@@ -4,7 +4,7 @@ let autoScrollTextArea = require("samples_prog/_basic/components/autoScrollTextA
 let textLog  = require("textlog.nut")
 
 let eventbus = require("eventbus")
-let { json_to_string, parse_json } = require("json")
+let { object_to_json_string, parse_json } = require("json")
 let {format_unixtime, get_local_unixtime, get_time_msec} = require("dagor.time")
 
 let udp = require("dagor.udp")
@@ -55,7 +55,7 @@ function onStartButtonClick() {
   else {
     print_log($"Echo socket bound to port {echoPortInt}.")
   }
-  if (!udp.send("client-socket", "127.0.0.1", echoPortInt, json_to_string({sendTime=get_time_msec()}))) {
+  if (!udp.send("client-socket", "127.0.0.1", echoPortInt, object_to_json_string({sendTime=get_time_msec()}))) {
     error_log($"Failed to send udp packet: {udp.last_error()}")
   }
 }

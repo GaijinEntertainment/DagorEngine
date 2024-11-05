@@ -1,5 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include "hmlPlugin.h"
 
@@ -29,9 +29,11 @@ public:
   virtual bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const;
   virtual bool getWorldBox(BBox3 &box) const;
 
-  virtual void fillProps(PropPanel2 &panel, DClassID for_class_id, dag::ConstSpan<RenderableEditableObject *> objects);
+  virtual void fillProps(PropPanel::ContainerPropertyControl &panel, DClassID for_class_id,
+    dag::ConstSpan<RenderableEditableObject *> objects);
 
-  virtual void onPPChange(int pid, bool edit_finished, PropPanel2 &panel, dag::ConstSpan<RenderableEditableObject *> objects);
+  virtual void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
+    dag::ConstSpan<RenderableEditableObject *> objects);
 
   virtual void rotateObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis) {}
 

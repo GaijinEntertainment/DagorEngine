@@ -1,10 +1,23 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 #include <gameRes/dag_collisionResource.h>
 #include <render/lruCollision.h>
-#pragma once
+#include <daGI2/lruCollisionVoxelization.h>
+#include <scene/dag_tiledScene.h>
+
+// todo: add tiledScene or something
 struct LRUCollision
 {
+  LRUCollisionVoxelization voxelize;
+
   dag::Vector<eastl::unique_ptr<CollisionResource>> collRes;
   dag::Vector<dag::Vector<mat43f>> instances;
+  dag::Vector<dag::Vector<vec4f>> instancesSph;
+  dag::Vector<bbox3f> typeBoxes;
+  size_t count = 0;
+  scene::TiledScene scene;
+  size_t size() const { return collRes.size(); }
   size_t addCollRes(const dag::Vector<Point3_vec4> &vertices, const dag::Vector<uint16_t> &indices)
   {
     eastl::unique_ptr<CollisionResource> coll(new CollisionResource());
@@ -47,63 +60,135 @@ struct LRUCollision
       int instCount = cb.readInt();
       instances.push_back().resize(instCount);
       cb.read(instances.back().data(), instances.back().size() * sizeof(mat43f));
+      v_bbox3_init_empty(typeBoxes.push_back());
+      bbox3f ibox = collRes.back()->vFullBBox;
+      instancesSph.push_back().resize(instCount);
+      for (size_t j = 0, je = instances.back().size(); j != je; ++j)
+      {
+        mat44f m;
+        v_mat43_transpose_to_mat44(m, instances.back()[j]);
+        bbox3f boxAABB;
+        v_bbox3_init(boxAABB, m, ibox);
+        v_bbox3_add_box(typeBoxes.back(), boxAABB);
+        instancesSph.back()[j] = v_perm_xyzd(v_bbox3_center(boxAABB), v_splat_x(v_bbox3_outer_rad(boxAABB)));
+      }
+      count += instances.back().size();
     }
+    init();
   }
 
-  eastl::unique_ptr<ShaderMaterial> renderCollisionMat;
-  ShaderElement *renderCollisionElem = 0;
   eastl::unique_ptr<LRURendinstCollision> lruColl;
-  ~LRUCollision()
-  {
-    if (renderCollisionElem && d3d::get_driver_desc().caps.hasWellSupportedIndirect)
-      d3d::delete_vdecl(renderCollisionElem->getEffectiveVDecl());
-  }
+
+  ~LRUCollision() {}
 
   void init()
   {
     lruColl.reset(new LRURendinstCollision);
-    renderCollisionMat.reset(new_shader_material_by_name_optional("render_collision"));
-    if (renderCollisionMat)
-    {
-      renderCollisionMat->addRef();
-      renderCollisionElem = renderCollisionMat->make_elem();
-    }
-    else
-      logerr("no render_collision shader");
-    const bool multiDrawIndirectSupported = d3d::get_driver_desc().caps.hasWellSupportedIndirect;
-    if (multiDrawIndirectSupported && renderCollisionElem)
-    {
-      VSDTYPE vsdInstancing[] = {VSD_STREAM_PER_VERTEX_DATA(0), VSD_REG(VSDR_POS, VSDT_HALF4), VSD_STREAM_PER_INSTANCE_DATA(1),
-        VSD_REG(VSDR_TEXC0, VSDT_INT1), VSD_END};
-      renderCollisionElem->replaceVdecl(d3d::create_vdecl(vsdInstancing));
-    }
+    voxelize.init();
+    buildScene();
   }
-  void rasterize(dag::Span<uint64_t> handles)
+
+  void rasterize(dag::Span<uint64_t> handles, VolTexture *color, VolTexture *alpha, ShaderElement *e, int instMul, bool prim)
   {
-    if (!lruColl)
-      init();
-    if (!renderCollisionElem)
-      return;
-    DA_PROFILE_GPU;
-    lruColl->updateLRU(handles);
-    lruColl->draw(handles, nullptr, nullptr, 1, *renderCollisionElem);
+    if (lruColl)
+      voxelize.rasterize(*lruColl, handles, color, alpha, e, instMul, prim);
   }
-  void rasterize(const dag::Vector<dag::Vector<mat43f>> &instances)
+
+  void gatherBox(bbox3f_cref box, dag::Vector<uint64_t, framemem_allocator> &handles) const
   {
-    mat44f viewproj;
-    d3d::getglobtm(viewproj);
-    dag::Vector<uint64_t, framemem_allocator> handles;
+    scene.boxCull<false, false>(box, 0, 0, [&](scene::node_index ni, mat44f_cref node) {
+      handles.push_back((uint64_t(scene::get_node_pool(node)) << 32UL) | uint64_t(scene::get_node_flags(node)));
+    });
+    stlsort::sort(handles.begin(), handles.end(),
+      [](auto a, auto b) { return rendinst::handle_to_ri_type(a) < rendinst::handle_to_ri_type(b); });
+  }
+  enum class ObjectClass
+  {
+    Accept,
+    Skip
+  };
+  struct AlwaysAccept
+  {
+    ObjectClass operator()(uint32_t) const { return ObjectClass::Accept; }
+  };
+
+  template <class Cb, class TypeCb>
+  void gatherBox(bbox3f_cref box, const Cb &cb, const TypeCb &tcb) const
+  {
+    DA_PROFILE;
     for (size_t i = 0, e = instances.size(); i != e; ++i)
     {
-      vec3f bmin, bmax;
+      if (tcb(i) != ObjectClass::Accept)
+        continue;
+      if (!v_bbox3_test_box_intersect(box, typeBoxes[i]))
+        continue;
+      bbox3f ibox = collRes[i]->vFullBBox;
       for (size_t j = 0, je = instances[i].size(); j != je; ++j)
       {
-        mat44f clip;
-        v_mat44_mul43(clip, viewproj, instances[i][j]);
-        if (v_is_visible_b_fast(bmin, bmax, clip))
-          handles.push_back((uint64_t(i) << 32UL) | j);
+        vec4f sph = instancesSph[i][j], r = v_splat_w(sph);
+        if (!v_bbox3_test_sph_intersect(box, sph, v_mul_x(r, r)))
+          continue;
+        bbox3f instSphBB;
+        v_bbox3_init_by_bsph(instSphBB, sph, r);
+        if (!v_bbox3_test_box_intersect(box, instSphBB))
+          continue;
+        mat44f m;
+        v_mat43_transpose_to_mat44(m, instances[i][j]);
+        bbox3f boxAABB;
+        v_bbox3_init(boxAABB, m, ibox);
+        if (v_bbox3_test_box_intersect(box, boxAABB))
+          cb(i, instances[i][j], ibox, boxAABB);
       }
     }
-    rasterize(dag::Span<uint64_t>(handles.data(), handles.size()));
   }
+
+  void rasterize(mat44f_cref viewproj)
+  {
+    if (!lruColl)
+      return;
+    DA_PROFILE;
+
+    dag::Vector<uint64_t, framemem_allocator> handles;
+    scene.doMaintenance(ref_time_ticks(), 10000000);
+    scene.frustumCull<false, false, false>(viewproj, v_zero(), 0, 0, nullptr, [&](scene::node_index ni, mat44f_cref node, vec4f) {
+      handles.push_back((uint64_t(scene::get_node_pool(node)) << 32UL) | uint64_t(scene::get_node_flags(node)));
+    });
+    stlsort::sort(handles.begin(), handles.end(),
+      [](auto a, auto b) { return rendinst::handle_to_ri_type(a) < rendinst::handle_to_ri_type(b); });
+    if (handles.size())
+    {
+      const int old = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
+      ShaderGlobal::setBlock(ShaderGlobal::getBlockId("global_frame", ShaderGlobal::LAYER_FRAME), ShaderGlobal::LAYER_FRAME);
+      voxelize.rasterize(*lruColl, dag::Span<uint64_t>(handles.data(), handles.size()), nullptr, nullptr, voxelize.renderCollisionElem,
+        1, false);
+      ShaderGlobal::setBlock(old, ShaderGlobal::LAYER_FRAME);
+    }
+  }
+  void buildScene()
+  {
+    scene.init(128);
+    scene.reserve(count);
+    scene.doMaintenance(ref_time_ticks(), 10000000);
+    for (size_t i = 0, e = instances.size(); i != e; ++i)
+    {
+      scene.setPoolBBox(i, collRes[i]->vFullBBox);
+    }
+    for (size_t i = 0, e = instances.size(); i != e; ++i)
+      for (size_t j = 0, je = min<size_t>(65535, instances[i].size()); j != je; ++j)
+      {
+        mat44f m;
+        v_mat43_transpose_to_mat44(m, instances[i][j]);
+        scene.allocate(m, i, j);
+      }
+  }
+  bbox3f calcBox() const
+  {
+    bbox3f ret;
+    v_bbox3_init_empty(ret);
+    for (auto &box : typeBoxes)
+      v_bbox3_add_box(ret, box);
+    return ret;
+  }
+
+  eastl::optional<LRURendinstCollision::MeshData> getModelData(int modelId) const { return lruColl->getModelData(modelId); }
 };

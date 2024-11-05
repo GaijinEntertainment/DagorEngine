@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ctype.h>
 #include <stdlib.h>
 #include <debug/dag_debug.h>
@@ -409,13 +411,13 @@ void GraphEditor::processRequest(RequestInfo *params)
   }
   else if (!strcmp(params->params[0], "nodeUtils.js"))
   {
-    String fname = findFileInParentDir("tools/dagor3_cdk/commonData/graphEditor/builder/nodeUtils.js");
+    String fname = findFileInParentDir("tools/dagor_cdk/commonData/graphEditor/builder/nodeUtils.js");
     String content = readFileToString(fname);
     html_response_raw(params->conn, content);
   }
   else if (!strcmp(params->params[0], "graphEditor.js"))
   {
-    String fname = findFileInParentDir("tools/dagor3_cdk/commonData/graphEditor/builder/graphEditor.js");
+    String fname = findFileInParentDir("tools/dagor_cdk/commonData/graphEditor/builder/graphEditor.js");
     String content = readFileToString(fname);
     html_response_raw(params->conn, content);
   }

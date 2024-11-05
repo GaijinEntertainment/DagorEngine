@@ -1,8 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #if DAGOR_DBGLEVEL > 0
 #include "debug_ui.h"
 #include <gui/dag_imgui.h>
-#include "device.h"
 #include "imgui.h"
+#include "globals.h"
+#include "resource_manager.h"
 
 using namespace drv3d_vulkan;
 
@@ -58,13 +61,12 @@ void listUpdate()
     ++summary[(int)i->getResType()].count;
   };
 
-  Device &device = get_device();
-  SharedGuardedObjectAutoLock resLock(device.resources);
-  device.resources.iterateAllocated<Buffer>(statPrintCb);
-  device.resources.iterateAllocated<Image>(statPrintCb);
-  device.resources.iterateAllocated<RenderPassResource>(statPrintCb);
+  WinAutoLock lk(Globals::Mem::mutex);
+  Globals::Mem::res.iterateAllocated<Buffer>(statPrintCb);
+  Globals::Mem::res.iterateAllocated<Image>(statPrintCb);
+  Globals::Mem::res.iterateAllocated<RenderPassResource>(statPrintCb);
 #if D3D_HAS_RAY_TRACING
-  device.resources.iterateAllocated<RaytraceAccelerationStructure>(statPrintCb);
+  Globals::Mem::res.iterateAllocated<RaytraceAccelerationStructure>(statPrintCb);
 #endif
 }
 

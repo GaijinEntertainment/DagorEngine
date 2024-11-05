@@ -1,7 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #define __UNLIMITED_BASE_PATH     1
 #define __SUPPRESS_BLK_VALIDATION 1
 #define __DEBUG_FILEPATH          "*"
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
 #include "common.h"
 #include <startup/dag_mainCon.inc.cpp>
 #include "blk2dag.h"

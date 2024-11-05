@@ -31,7 +31,7 @@ else {
   ;
 }
 
-if $(Platform) in win32 win64 { AddLibs += Ws2_32.lib Advapi32.lib ; }
+if $(Platform) in windows { AddLibs += Ws2_32.lib Advapi32.lib ; }
 
 ExplicitLicenseUsed += $(Root)/$(Location) ;
 

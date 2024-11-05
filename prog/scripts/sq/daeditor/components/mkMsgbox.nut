@@ -103,7 +103,7 @@ function mkMsgbox(id, defStyling = require("msgbox.style.nut")){
     }
 
     local btnsDesc = params?.buttons ?? defaultButtons
-    if (!(btnsDesc instanceof Watched))
+    if (!(isObservable(btnsDesc)))
       btnsDesc = Watched(btnsDesc, FRP_DONT_CHECK_NESTED)
 
     local defCancel = null

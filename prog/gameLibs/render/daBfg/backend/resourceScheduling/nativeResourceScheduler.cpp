@@ -1,25 +1,49 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "nativeResourceScheduler.h"
 
 #include <debug/backendDebug.h>
 #include <perfMon/dag_statDrv.h>
 #include <3d/dag_resizableTex.h>
 #include <3d/dag_resPtr.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <memory/dag_framemem.h>
 
 #include <render/daBfg/resourceCreation.h>
 
+#include <common/genericPoint.h>
 #include <id/idRange.h>
 
 
 namespace dabfg
 {
 
-static ResourceDescription fix_tex_params(const ResourceDescription &desc)
+static ResourceDescription fixup_description(const ResourceDescription &desc)
 {
   ResourceDescription fixed_desc = desc;
-  if (desc.asTexRes.mipLevels == AUTO_MIP_COUNT)
-    fixed_desc.asTexRes.mipLevels = auto_mip_levels_count(desc.asTexRes.width, desc.asTexRes.height, 1);
+  switch (desc.resType)
+  {
+    case RES3D_TEX:
+    case RES3D_ARRTEX:
+      if (desc.asBasicTexRes.mipLevels == AUTO_MIP_COUNT)
+        fixed_desc.asBasicTexRes.mipLevels = auto_mip_levels_count(desc.asTexRes.width, desc.asTexRes.height, 1);
+      break;
+
+    case RES3D_CUBETEX:
+    case RES3D_CUBEARRTEX:
+      if (desc.asBasicTexRes.mipLevels == AUTO_MIP_COUNT)
+        fixed_desc.asBasicTexRes.mipLevels = auto_mip_levels_count(desc.asCubeTexRes.extent, 1);
+      break;
+
+    case RES3D_VOLTEX:
+      if (desc.asBasicTexRes.mipLevels == AUTO_MIP_COUNT)
+        fixed_desc.asBasicTexRes.mipLevels =
+          auto_mip_levels_count(desc.asVolTexRes.width, desc.asVolTexRes.height, desc.asVolTexRes.depth, 1);
+      break;
+
+    default: break;
+  }
+
   return fixed_desc;
 }
 
@@ -34,31 +58,70 @@ NativeResourceScheduler::ResourceKey::ResourceKey(const ResourceDescription &des
   uint32_t offset) :
   desc(description)
 {
-  if (description.resType == RES3D_SBUF)
+  switch (description.resType)
   {
-    rawHash = desc.hash();
-    hashPack(rawHash, offset, prop.offsetAlignment);
-    hash = rawHash;
-  }
-  else
-  {
-    desc.asTexRes.width = 0;
-    desc.asTexRes.height = 0;
-    rawHash = desc.hash();
-    hashPack(rawHash, offset, prop.offsetAlignment);
-    hash = rawHash;
-    hashPack(hash, description.asTexRes.width, description.asTexRes.height);
-    desc.asTexRes.width = description.asTexRes.width;
-    desc.asTexRes.height = description.asTexRes.height;
+    case RES3D_SBUF:
+      rawHash = desc.hash();
+      hashPack(rawHash, offset, prop.offsetAlignment);
+      hash = rawHash;
+      break;
+
+    case RES3D_TEX:
+    case RES3D_ARRTEX:
+      desc.asTexRes.width = 0;
+      desc.asTexRes.height = 0;
+      rawHash = desc.hash();
+      hashPack(rawHash, offset, prop.offsetAlignment);
+      hash = rawHash;
+      hashPack(hash, description.asTexRes.width, description.asTexRes.height);
+      desc.asTexRes.width = description.asTexRes.width;
+      desc.asTexRes.height = description.asTexRes.height;
+      break;
+
+    case RES3D_CUBETEX:
+    case RES3D_CUBEARRTEX:
+      desc.asCubeTexRes.extent = 0;
+      rawHash = desc.hash();
+      hashPack(rawHash, offset, prop.offsetAlignment);
+      hash = rawHash;
+      hashPack(hash, description.asCubeTexRes.extent);
+      desc.asCubeTexRes.extent = description.asCubeTexRes.extent;
+      break;
+
+    case RES3D_VOLTEX:
+      desc.asVolTexRes.width = 0;
+      desc.asVolTexRes.height = 0;
+      desc.asVolTexRes.depth = 0;
+      rawHash = desc.hash();
+      hashPack(rawHash, offset, prop.offsetAlignment);
+      hash = rawHash;
+      hashPack(hash, description.asVolTexRes.width, description.asVolTexRes.height, description.asVolTexRes.depth);
+      desc.asVolTexRes.width = description.asVolTexRes.width;
+      desc.asVolTexRes.height = description.asVolTexRes.height;
+      desc.asVolTexRes.depth = description.asVolTexRes.depth;
+      break;
+
+    default: G_ASSERT(false); break;
   }
 }
 
 NativeResourceScheduler::ResourceKey::ResourceKey(const ResourceKey &key, const Point2 &resolution) :
   hash(key.rawHash), rawHash(key.rawHash), desc(key.desc)
 {
+  G_ASSERT(desc.resType == RES3D_TEX || desc.resType == RES3D_ARRTEX);
   hashPack(hash, resolution.x, resolution.y);
   desc.asTexRes.width = resolution.x;
   desc.asTexRes.height = resolution.y;
+}
+
+NativeResourceScheduler::ResourceKey::ResourceKey(const ResourceKey &key, const Point3 &resolution) :
+  hash(key.rawHash), rawHash(key.rawHash), desc(key.desc)
+{
+  G_ASSERT(desc.resType == RES3D_VOLTEX);
+  hashPack(hash, resolution.x, resolution.y, resolution.z);
+  desc.asVolTexRes.width = resolution.x;
+  desc.asVolTexRes.height = resolution.y;
+  desc.asVolTexRes.depth = resolution.z;
 }
 
 inline bool NativeResourceScheduler::ResourceKey::operator==(const ResourceKey &key) const { return hash == key.hash; }
@@ -76,7 +139,7 @@ ManagedResView<typename ResType::BaseType> NativeResourceScheduler::getResource(
 
   ManagedResView<typename ResType::BaseType> resView = eastl::get<ResType>(it->second.resource);
   G_ASSERT_RETURN(resView, {});
-  resView->setResName(cachedIntermediateResourceNames[res_id].c_str());
+  resView->setResName(cachedIntermediateResourceNames[res_id].c_str(), cachedIntermediateResourceNames[res_id].size());
   return resView;
 }
 
@@ -93,7 +156,7 @@ ManagedBufView NativeResourceScheduler::getBuffer(int frame, intermediate::Resou
 ResourceAllocationProperties NativeResourceScheduler::getResourceAllocationProperties(const ResourceDescription &desc,
   bool force_not_on_chip)
 {
-  auto updatedDescription = desc;
+  auto updatedDescription = fixup_description(desc);
   if (force_not_on_chip)
   {
 #if _TARGET_XBOX
@@ -104,7 +167,10 @@ ResourceAllocationProperties NativeResourceScheduler::getResourceAllocationPrope
   auto cachedValueIter = allocationPropertiesCache.find(updatedDescription);
   if (cachedValueIter != allocationPropertiesCache.end())
     return cachedValueIter->second;
-  return allocationPropertiesCache[updatedDescription] = d3d::get_resource_allocation_properties(updatedDescription);
+
+  const auto resProps = d3d::get_resource_allocation_properties(updatedDescription);
+  G_ASSERT(resProps.sizeInBytes != 0);
+  return allocationPropertiesCache[updatedDescription] = resProps;
 }
 
 ResourceHeapGroupProperties NativeResourceScheduler::getResourceHeapGroupProperties(ResourceHeapGroup *heap_group)
@@ -174,8 +240,11 @@ ResourceScheduler::DestroyedHeapSet NativeResourceScheduler::allocateHeaps(const
     {
       placedHeapResources[i].clear();
       result.push_back(i);
-      for (auto &heapHintedResources : hintedResources[i])
-        heapHintedResources.clear();
+
+      if (temporalResourceLocations.isMapped(i))
+        for (auto &locs : temporalResourceLocations[i])
+          locs.clear();
+
       d3d::destroy_resource_heap(eastl::exchange(heaps[i], nullptr));
       debug("daBfg: Destroyed heap %d because it was too small/big (size was %dKB, but %dKB are required)", eastl::to_underlying(i),
         allocatedHeaps[i].size >> 10, req.size >> 10);
@@ -214,15 +283,15 @@ static auto generate_name(uint32_t heap_idx, size_t hash_value)
 {
   constexpr const char *HEX_DIGITS = "0123456789ABCDEF";
   // WARNING: sizes for the fixed string and the name template must match!
-  eastl::fixed_string<char, 32> result = "fg_resource_heap$$_hash$$$$$$$$";
-  if (EASTL_UNLIKELY(heap_idx >= 0xFF))
+  eastl::fixed_string<char, 40> result = "fg_resource_heap$$_hash$$$$$$$$$$$$$$$$";
+  if (DAGOR_UNLIKELY(heap_idx >= 0xFF))
   {
     logerr("daBfg has allocated more than 255 resource heaps! This shouldn't be happening!");
     heap_idx &= 0xFF;
   }
   result[16] = HEX_DIGITS[heap_idx & 0xf];
   result[17] = HEX_DIGITS[heap_idx >> 4];
-  for (uint32_t i = 30; i >= 23; --i)
+  for (uint32_t i = 38; i >= 23; --i)
   {
     result[i] = HEX_DIGITS[hash_value & 0xF];
     hash_value >>= 4;
@@ -231,7 +300,8 @@ static auto generate_name(uint32_t heap_idx, size_t hash_value)
 }
 
 void NativeResourceScheduler::placeResource(int frame, intermediate::ResourceIndex res_idx, HeapIndex heap_idx,
-  const ResourceDescription &desc, uint32_t offset, const ResourceAllocationProperties &properties)
+  const ResourceDescription &desc, uint32_t offset, const ResourceAllocationProperties &properties,
+  const DynamicResolution &dyn_resolution)
 {
   const auto key = ResourceKey(desc, properties, offset);
   const auto placedResName = generate_name(eastl::to_underlying(heap_idx), key.hash);
@@ -246,9 +316,19 @@ void NativeResourceScheduler::placeResource(int frame, intermediate::ResourceInd
   {
     auto createTex = [this, &key, &heap_idx, &placedResName, &offset, &properties]() -> UniqueTex {
       return UniqueTex(
-        dag::place_texture_in_resource_heap(heaps[heap_idx], fix_tex_params(key.desc), offset, properties, placedResName.c_str()));
+        dag::place_texture_in_resource_heap(heaps[heap_idx], fixup_description(key.desc), offset, properties, placedResName.c_str()));
     };
     placeResource<UniqueTex>(frame, res_idx, heap_idx, offset, key, createTex);
+
+    // TODO: it is possible to skip placing a full-resolution texture and place a
+    // dynamic resolution one from the start, but that would require some refactoring.
+    const auto autoResType = cachedIntermediateResources[res_idx].asScheduled().resolutionType;
+    eastl::visit(
+      [&](const auto &res) {
+        if constexpr (!eastl::is_same_v<eastl::decay_t<decltype(res)>, eastl::monostate>)
+          resizeTexture(res_idx, frame, scale_by(res, autoResType->multiplier));
+      },
+      dyn_resolution);
   }
 }
 
@@ -268,14 +348,15 @@ NativeResourceScheduler::~NativeResourceScheduler()
   NativeResourceScheduler::shutdownInternal();
 }
 
-void NativeResourceScheduler::resizeTexture(intermediate::ResourceIndex res_idx, int frame, const Point2 &resolution)
+template <class T>
+void NativeResourceScheduler::resizeTexture(intermediate::ResourceIndex res_idx, int frame, const T &resolution)
 {
   const auto scheduledResIdx = resourceIndexInCollection[frame][res_idx];
-  const auto &resProp = placedProperties[scheduledResIdx];
+  const auto resProp = placedProperties[scheduledResIdx];
   const auto key = ResourceKey(resProp.key, resolution);
-  auto createTex = [this, &key, resProp]() -> UniqueTex {
+  auto createTex = [this, &key, &resProp]() -> UniqueTex {
     const auto placedResName = generate_name(eastl::to_underlying(resProp.heapIndex), key.hash);
-    const auto desc = fix_tex_params(key.desc);
+    const auto desc = fixup_description(key.desc);
     const auto allocInfo = getResourceAllocationProperties(desc);
     auto tex = dag::place_texture_in_resource_heap(heaps[resProp.heapIndex], desc, resProp.offset, allocInfo, placedResName.c_str());
 
@@ -303,8 +384,12 @@ void NativeResourceScheduler::resizeAutoResTextures(int frame, const DynamicReso
 
     const auto mult = schedRes.resolutionType->multiplier;
     const auto res = resolutions[schedRes.resolutionType->id];
-    if (res)
-      resizeTexture(idx, frame, IPoint2{static_cast<int>(mult * res->x), static_cast<int>(mult * res->y)});
+    eastl::visit(
+      [&](const auto &res) {
+        if constexpr (!eastl::is_same_v<eastl::decay_t<decltype(res)>, eastl::monostate>)
+          resizeTexture(idx, frame, scale_by(res, mult));
+      },
+      res);
   }
 }
 

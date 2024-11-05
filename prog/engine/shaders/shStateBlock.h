@@ -1,25 +1,27 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include "nonRelocCont.h"
+#include <shaders/dag_shStateBlockBindless.h>
 #include <dag/dag_vector.h>
 #include <EASTL/fixed_vector.h>
 #include <memory/dag_framemem.h>
 #include <shaders/dag_shaders.h>
 #include <math/dag_Point4.h>
 #include <math/integer/dag_IPoint4.h>
-#include <3d/dag_drv3dCmd.h>
 #include <generic/dag_patchTab.h>
 #include <shaders/dag_renderStateId.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <util/dag_stdint.h>
 #include <util/dag_globDef.h>
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_resetDevice.h>
+#include <drv/3d/dag_info.h>
+
+#include "nonRelocCont.h"
 #include "shStateBlk.h"
-#include "shRegs.h"
 
 #if _TARGET_XBOX || _TARGET_C1 || _TARGET_C2
 #define PLATFORM_HAS_BINDLESS true
-#elif _TARGET_PC || _TARGET_ANDROID || _TARGET_C3
+#elif _TARGET_PC || _TARGET_ANDROID || _TARGET_C3 || _TARGET_PC_MACOSX
 #define PLATFORM_HAS_BINDLESS d3d::get_driver_desc().caps.hasBindless
 #else
 #define PLATFORM_HAS_BINDLESS false
@@ -33,23 +35,24 @@ struct BindlessConstParams
   bool operator==(const BindlessConstParams &other) const { return constIdx == other.constIdx && texId == other.texId; }
 };
 
-void apply_bindless_state(uint32_t const_state_idx, int tex_level);
+void apply_bindless_state(shaders::ConstStateIdx const_state_idx, int tex_level);
 void clear_bindless_states();
-void req_tex_level_bindless(uint32_t const_state_idx, int tex_level);
+void req_tex_level_bindless(shaders::ConstStateIdx const_state_idx, int tex_level);
 using added_bindless_textures_t = eastl::fixed_vector<uint32_t, 4, /*overflow*/ true, framemem_allocator>;
 int find_or_add_bindless_tex(TEXTUREID tid, added_bindless_textures_t &added_bindless_textures);
 void reset_bindless_samplers_in_all_collections();
 void dump_bindless_states_stat();
 
-void apply_slot_textures_state(uint32_t const_state_idx, uint32_t sampler_state_id, int tex_level);
+void apply_slot_textures_state(shaders::ConstStateIdx const_state_idx, shaders::TexStateIdx sampler_state_id, int tex_level);
 void clear_slot_textures_states();
 void dump_slot_textures_states_stat();
-void slot_textures_req_tex_level(uint32_t sampler_state_id, int tex_level);
+void slot_textures_req_tex_level(shaders::TexStateIdx sampler_state_id, int tex_level);
 
 struct ShaderStateBlock
 {
   shaders::RenderStateId stateIdx;
-  uint32_t samplerIdx = 0, constIdx = 0;
+  shaders::TexStateIdx samplerIdx = {};
+  shaders::ConstStateIdx constIdx = {};
 #if _TARGET_STATIC_LIB
   uint16_t refCount = 0;
 #else
@@ -151,6 +154,7 @@ public:
     blocks.push_back(ShaderStateBlock{});
     deleted_blocks = 0;
   }
+
   static void reset_samplers()
   {
     if (!PLATFORM_HAS_BINDLESS)

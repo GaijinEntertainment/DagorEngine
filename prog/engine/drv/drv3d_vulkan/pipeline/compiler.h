@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <osApiWrappers/dag_threads.h>
 #include <EASTL/vector.h>
 #include <atomic>
@@ -55,9 +57,10 @@ typedef Timeline<PipelineCompilerWork, PipelineCompileTimelineSync, PipelineComp
 
 class PipelineCompiler
 {
+  static constexpr size_t pipeline_compiler_stack = 256 << 10; // 512KB, 256KB is not enough on Radeon (yes, 256 is 512)
   struct PrimaryWorkerThread : public DaThread
   {
-    PrimaryWorkerThread(PipelineCompiler &c) : DaThread("VkPipeComp"), compiler(c) {}
+    PrimaryWorkerThread(PipelineCompiler &c) : DaThread("VkPipeComp", pipeline_compiler_stack), compiler(c) {}
     void execute() override;
 
   private:
@@ -68,7 +71,8 @@ class PipelineCompiler
   {
     static const char *getWorkerName(int idx);
 
-    SecondaryWorkerThread(PipelineCompiler &c, int idx) : DaThread(String(16, "VkPipeComp%u", idx)), compiler(c)
+    SecondaryWorkerThread(PipelineCompiler &c, int idx) :
+      DaThread(String(16, "VkPipeComp%u", idx), pipeline_compiler_stack), compiler(c)
     {
       os_event_create(&wakeEvent);
     }
@@ -84,15 +88,17 @@ class PipelineCompiler
 
   struct Config
   {
+    bool disable;
     uint8_t maxSecondaryThreads;
     size_t secondarySpawnThreshold;
     size_t minItemsPerSecondary;
   };
 
-  Config cfg = {0, 0, 0};
+  Config cfg = {false, 0, 0, 0};
   PrimaryWorkerThread primaryWorker;
   static constexpr uint8_t MAX_THREADS = 16;
 
+  bool secondaryThreadsRunning = false;
   eastl::unique_ptr<SecondaryWorkerThread> secondaryWorkers[MAX_THREADS] = {};
   TimelineSpan<PipelineCompileTimeline> timeBlock;
   std::atomic<PipelineCompileQueueItem *> currentItem{nullptr};

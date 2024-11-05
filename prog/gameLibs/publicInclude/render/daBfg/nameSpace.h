@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -63,6 +62,8 @@ public:
    *   by value and returning an execution callback, which in turn may
    *   accept a dabfg::multiplexing::Index object (or may accept nothing).
    *   Basically, a function with signature Registry -> (Index -> ()).
+   *   Note: the declaration and execution callbacks might be called an arbitrary
+   *   number of times, but only while the resulting node is registered.
    * \return
    *   A handle that represents the lifetime of the new node. The node
    *   will be unregistered when the handle is destroyed.
@@ -103,21 +104,25 @@ public:
    * causes a complete resource rescheduling, invalidating all history.
    * It also resets dynamic resolution.
    *
+   * \tparam T point type, either IPoint2 or IPoint3.
    * \param type_name The name of the auto-res type, looked up in this namespace.
    * \param value The new resolution value.
    */
-  void setResolution(const char *type_name, IPoint2 value);
+  template <class T>
+  void setResolution(const char *type_name, T value);
 
   /**
    * \brief Updates an auto-resolution of a particular type without causing
    * a resource rescheduling, hence preserving history.
    * \note This is only available on platforms that support heaps.
    *
+   * \tparam P -- point type, either IPoint2 or IPoint3.
    * \param type_name The name of the auto-res type, looked up in this namespace.
    * \param value The new dynamic resolution value. Must be smaller than
    *   the initial resolution for this type.
    */
-  void setDynamicResolution(const char *type_name, IPoint2 value);
+  template <class T>
+  void setDynamicResolution(const char *type_name, T value);
 
   /**
    * \brief Sets a value to a named slot. Named slots are basically links
@@ -166,6 +171,10 @@ public:
   void unmarkResourceExternallyConsumed(const char *res_name);
 
   friend bool operator==(const NameSpace &fst, const NameSpace &snd) { return fst.nameId == snd.nameId; }
+
+  friend bool operator<(const NameSpace &fst, const NameSpace &snd) { return fst.nameId < snd.nameId; }
+
+  inline static NameSpace _make_namespace(dabfg::NameSpaceNameId nid) { return {nid}; }
 
 private:
   auto resolveName(const char *name) const;

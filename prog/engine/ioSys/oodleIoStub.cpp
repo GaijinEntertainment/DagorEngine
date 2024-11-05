@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_oodleIo.h>
 
 size_t oodle_compress(void *, size_t, const void *, size_t, int)

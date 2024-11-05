@@ -5,19 +5,104 @@ float4 imgui_mvp_1;
 float4 imgui_mvp_2;
 float4 imgui_mvp_3;
 texture imgui_tex;
+texture imgui_tex_diff;
+
+float4 imgui_cube_view_dir;
+float4 imgui_cube_view_up;
+float4 imgui_cube_view_right;
+
+int imgui_tex_type = 0;
+interval imgui_tex_type: twoD < 1, threeD < 2, array < 3, cube < 4, twoDInteger;
+
+int imgui_draw_function = 0;
+interval imgui_draw_function: normal < 1, rtr_tile_visualization;
+
+float imgui_slice = 0;
+
+int imgui_channel_mask = 15;
+
+float imgui_r_min = 0;
+float imgui_r_max = 1;
+float imgui_g_min = 0;
+float imgui_g_max = 1;
+float imgui_b_min = 0;
+float imgui_b_max = 1;
+float imgui_a_min = 0;
+float imgui_a_max = 1;
+
+int imgui_mip_level = 0;
+
+int imgui_use_custom_sampler = 0;
+interval imgui_use_custom_sampler: no < 1, yes;
 
 shader imgui
 {
   blend_src = sa;
   blend_dst = isa;
-  blend_asrc = isa;
-  blend_adst = zero;
+  blend_asrc = one;
+  blend_adst = one;
   cull_mode = none;
   z_test = false;
   z_write = false;
 
+  local float4 r_ranges = ( imgui_r_min, imgui_r_max, 0, 0 );
+  local float4 g_ranges = ( imgui_g_min, imgui_g_max, 0, 0 );
+  local float4 b_ranges = ( imgui_b_min, imgui_b_max, 0, 0 );
+  local float4 a_ranges = ( imgui_a_min, imgui_a_max, 0, 0 );
+
   (vs) { mvp@f44 = {imgui_mvp_0, imgui_mvp_1, imgui_mvp_2, imgui_mvp_3}; }
-  (ps) { tex@smp2d = imgui_tex; }
+  (ps) {
+    channel_mask@i1 = imgui_channel_mask;
+    ranges@f4[] = { r_ranges, g_ranges, b_ranges, a_ranges };
+    mip_level@i1 = imgui_mip_level;
+    slice@f1 = imgui_slice;
+    input_resolution@f2 = get_dimensions(imgui_tex, 0).xy;
+  }
+
+  if (imgui_draw_function == rtr_tile_visualization)
+  {
+    (ps) {
+      tex@tex = imgui_tex hlsl { Texture2D<uint> tex@tex; };
+    }
+  }
+  else if (imgui_tex_type == twoD)
+  {
+    (ps) {
+      tex@smp2d = imgui_tex;
+      diff@smp2d = imgui_tex_diff;
+    }
+  }
+  else if (imgui_tex_type == twoDInteger)
+  {
+    (ps) {
+      tex@tex = imgui_tex hlsl { Texture2D<uint4> tex@tex; };
+      diff@tex = imgui_tex_diff hlsl { Texture2D<uint4> diff@tex; };
+    }
+  }
+  else if (imgui_tex_type == threeD)
+  {
+    (ps) {
+      tex@smp3d = imgui_tex;
+      diff@smp3d = imgui_tex_diff;
+    }
+  }
+  else if (imgui_tex_type == array)
+  {
+    (ps) {
+      tex@smpArray = imgui_tex;
+      diff@smpArray = imgui_tex_diff;
+    }
+  }
+  else if (imgui_tex_type == cube)
+  {
+    (ps) {
+      tex@smpCube = imgui_tex;
+      diff@smpCube = imgui_tex_diff;
+      cube_view_dir@f3 = imgui_cube_view_dir;
+      cube_view_up@f3 = imgui_cube_view_up;
+      cube_view_right@f3 = imgui_cube_view_right;
+    }
+  }
 
   hlsl {
     struct VsOutput
@@ -52,9 +137,104 @@ shader imgui
   compile("target_vs", "imgui_vs");
 
   hlsl(ps) {
+    SamplerState custom_sampler : register(s5);
+
+    void handle_channel(inout float c, uint mask, uint index)
+    {
+      if ((mask & (1U << index)) == 0)
+        c = index == 3 ? 1 : 0;
+      else
+      {
+        float min = ranges[index].x;
+        float max = ranges[index].y;
+        c = saturate((c - min) / (max - min));
+      }
+    }
+
+    ##if imgui_draw_function == normal
+      float4 function_normal(VsOutput i)
+      {
+        float4 uv = float4(i.uv, 0, mip_level);
+
+        ##if imgui_tex_type != twoDInteger
+          ##if imgui_use_custom_sampler == no
+            SamplerState samplerState = tex_samplerstate;
+          ##else
+            SamplerState samplerState = custom_sampler;
+          ##endif
+        ##endif
+
+        ##if imgui_tex_type == twoD
+          float4 texel = tex.SampleLevel(samplerState, i.uv, mip_level);
+          ##if imgui_tex_diff != NULL
+            texel -= diff.SampleLevel(custom_sampler, i.uv, mip_level);
+          ##endif
+        ##elif imgui_tex_type == twoDInteger
+          uint3 dim;
+          tex.GetDimensions(0, dim.x, dim.y, dim.z);
+          float4 texel = tex.Load(uint3(i.uv * dim.xy, mip_level));
+          ##if imgui_tex_diff != NULL
+            uint3 dimDiff;
+            tex.GetDimensions(0, dimDiff.x, dimDiff.y, dimDiff.z);
+            texel -= diff.Load(uint3(i.uv * dimDiff.xy, mip_level));
+          ##endif
+        ##elif imgui_tex_type == threeD
+          float4 texel = tex.SampleLevel(samplerState, float3(i.uv, slice), mip_level);
+          ##if imgui_tex_diff != NULL
+            texel -= diff.SampleLevel(custom_sampler, float3(i.uv, slice), mip_level);
+          ##endif
+        ##elif imgui_tex_type == array
+          float4 texel = tex.SampleLevel(samplerState, float3(i.uv, slice), mip_level);
+          ##if imgui_tex_diff != NULL
+            texel -= diff.SampleLevel(custom_sampler, float3(i.uv, slice), mip_level);
+          ##endif
+        ##elif imgui_tex_type == cube
+          float3 cuv;
+          i.uv = i.uv * 2 - 1;
+          if (slice < 0)        cuv = cube_view_dir + cube_view_right * i.uv.x + cube_view_up * -i.uv.y;
+          else if (slice < 0.5) cuv = float3(1, -i.uv.y, -i.uv.x);
+          else if (slice < 1.5) cuv = float3(-1, -i.uv.y, i.uv.x);
+          else if (slice < 2.5) cuv = float3(i.uv.x, 1, i.uv.y);
+          else if (slice < 3.5) cuv = float3(i.uv.x, -1, -i.uv.y);
+          else if (slice < 4.5) cuv = float3(i.uv.x, -i.uv.y, 1);
+          else                  cuv = float3(-i.uv, -1);
+          float4 texel = tex.SampleLevel(samplerState, cuv, mip_level);
+          ##if imgui_tex_diff != NULL
+            texel -= diff.SampleLevel(custom_sampler, cuv, mip_level);
+          ##endif
+        ##endif
+
+        handle_channel(texel.r, channel_mask, 0);
+        handle_channel(texel.g, channel_mask, 1);
+        handle_channel(texel.b, channel_mask, 2);
+        handle_channel(texel.a, channel_mask, 3);
+        return i.col * texel;
+      }
+    ##endif
+
+    ##if imgui_draw_function == rtr_tile_visualization
+      float4 function_rtr_tile_visualization(VsOutput i)
+      {
+        uint type = tex.Load(int3(i.uv * input_resolution, 0)).r;
+        switch(type)
+        {
+          case 0: return float4(0, 0, 0, 1);
+          case 1: return float4(1, 1, 1, 1);
+          case 4: return float4(0, 1, 0, 1);
+          case 16: return float4(0, 0, 1, 1);
+          case 64: return float4(1, 0, 0, 1);
+          default: return 0;
+        }
+      }
+    ##endif
+
     float4 imgui_ps(VsOutput i) : SV_Target
     {
-      return i.col * tex2D(tex, i.uv);
+      ##if imgui_draw_function == normal
+        return function_normal(i);
+      ##elif imgui_draw_function == rtr_tile_visualization
+        return function_rtr_tile_visualization(i);
+      ##endif
     }
   }
   compile("target_ps", "imgui_ps");

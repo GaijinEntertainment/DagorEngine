@@ -1,0 +1,220 @@
+include "gbuffer.dshl"
+include "dynamic_opaque_inc.dshl"
+include "normaldetail.dshl"
+
+int spline_gen_slices;
+int spline_gen_stripes;
+int spline_gen_vertex_count;
+buffer spline_gen_instancing_buffer;
+buffer spline_gen_spline_buffer;
+buffer spline_gen_indirection_buffer;
+buffer spline_gen_vertex_buffer;
+buffer spline_gen_prev_vertex_buffer;
+
+buffer spline_gen_culled_buffer;
+
+int spline_gen_attachment_batch_size;
+int spline_gen_attachment_max_no;
+buffer spline_gen_obj_batch_id_buffer;
+
+float4 prevOrigoRelativeViewProjTm0;
+float4 prevOrigoRelativeViewProjTm1;
+float4 prevOrigoRelativeViewProjTm2;
+float4 prevOrigoRelativeViewProjTm3;
+
+
+macro INIT_SPLINE_GEN_INSTANTIATION_BASE(stage)
+  (stage)
+  {
+    spline_gen_slices@i1 = (spline_gen_slices);
+    spline_gen_stripes@i1 = (spline_gen_stripes);
+    spline_gen_inverses@f3 = (1.0 / spline_gen_slices, 1.0 / spline_gen_stripes, 1.0 / (spline_gen_stripes - 1), 0);
+    spline_gen_vertex_count@i1 = (spline_gen_vertex_count);
+    spline_gen_instancing_buffer@buf = spline_gen_instancing_buffer hlsl {
+      #include "spline_gen_buffer.hlsli"
+      StructuredBuffer<SplineGenInstance> spline_gen_instancing_buffer@buf;
+    };
+    spline_gen_spline_buffer@buf = spline_gen_spline_buffer hlsl {
+      #include "spline_gen_buffer.hlsli"
+      StructuredBuffer<SplineGenSpline> spline_gen_spline_buffer@buf;
+    };
+  }
+endmacro
+
+macro INIT_SPLINE_GEN_INSTANTIATION_GENERATE()
+  INIT_SPLINE_GEN_INSTANTIATION_BASE(cs)
+  (cs)
+  {
+    spline_gen_indirection_buffer@buf = spline_gen_indirection_buffer hlsl {
+      #include "spline_gen_buffer.hlsli"
+      Buffer<InstanceId> spline_gen_indirection_buffer@buf;
+    };
+  }
+endmacro
+
+macro INIT_SPLINE_GEN_INSTANTIATION_RENDER()
+  INIT_SPLINE_GEN_INSTANTIATION_BASE(vs)
+  (vs)
+  {
+    spline_gen_culled_buffer@buf = spline_gen_culled_buffer hlsl {
+      StructuredBuffer<uint> spline_gen_culled_buffer@buf;
+    };
+  }
+endmacro
+
+macro USE_SPLINE_GEN_INSTANTIATION(stage)
+  hlsl(stage)
+  {
+    #include "spline_gen_buffer.hlsli"
+
+    uint2 get_vertex_coord(uint vertex_id)
+    {
+      uint vertexStrip = vertex_id / (spline_gen_slices + 1);
+      uint vertexRotation = vertex_id % (spline_gen_slices + 1);
+      return uint2(vertexRotation, vertexStrip);
+    }
+
+    uint decode_shifted_coord(uint2 coord, int2 shift)
+    {
+      coord += uint2(spline_gen_slices + shift.x, shift.y);
+      return coord.x % spline_gen_slices + coord.y * (spline_gen_slices + 1);
+    }
+
+    bool is_coord_valid(uint2 coord)
+    {
+      return coord.y <= spline_gen_stripes;
+    }
+
+    float2 convert_coord_to_float(uint2 coord)
+    {
+      return float2(coord) * spline_gen_inverses.xy;
+    }
+
+    uint get_vb_index(InstanceId instance_id, uint vertex_id)
+    {
+      return instance_id * spline_gen_vertex_count + vertex_id;
+    }
+
+    uint decode_vb_index(InstanceId instance_id, uint2 coord, int2 shift)
+    {
+      return get_vb_index(instance_id, decode_shifted_coord(coord, shift));
+    }
+
+    uint get_spline_index(InstanceId instance_id, uint local_spline)
+    {
+      return instance_id * (spline_gen_stripes + 1) +  local_spline;
+    }
+  }
+endmacro
+
+macro INIT_SPLINE_GEN_ATTACHMENT_BATCHES(stage)
+  (stage)
+  {
+    spline_gen_attachment_batch_size@i1 = (spline_gen_attachment_batch_size);
+    spline_gen_attachment_max_no@i1 = (spline_gen_attachment_max_no);
+    spline_gen_obj_batch_id_buffer@buf = spline_gen_obj_batch_id_buffer hlsl {
+      #include "spline_gen_buffer.hlsli"
+      Buffer<BatchId> spline_gen_obj_batch_id_buffer@buf;
+    };
+  }
+endmacro
+
+macro USE_UNIT_VEC_CODEC()
+  hlsl
+  {
+    #define ELEVEN_BITS_MASK 0x7FF
+    #define TEN_BITS_MASK 0x3FF
+    uint encode_unit_vector(float3 unit_vec)
+    {
+      float3 scaledVec = saturate(unit_vec * 0.5 + 0.5);
+      uint3 unpackedVec = uint3(round(scaledVec * float3(ELEVEN_BITS_MASK, ELEVEN_BITS_MASK, TEN_BITS_MASK)));
+      uint packedVec = ((unpackedVec.x & ELEVEN_BITS_MASK) << 21 ) |
+                       ((unpackedVec.y & ELEVEN_BITS_MASK) << 10)  |
+                       (unpackedVec.z & TEN_BITS_MASK);
+      return packedVec;
+    }
+
+    float3 decode_unit_vector(uint packed_vec)
+    {
+      uint3 unpackedVec;
+      unpackedVec.x = (packed_vec >> 21) & ELEVEN_BITS_MASK;
+      unpackedVec.y = (packed_vec >> 10) & ELEVEN_BITS_MASK;
+      unpackedVec.z = packed_vec & TEN_BITS_MASK;
+      float3 scaledVec = float3(unpackedVec) / float3(ELEVEN_BITS_MASK, ELEVEN_BITS_MASK, TEN_BITS_MASK);
+      float3 unitVec = normalize(scaledVec * 2 - 1);
+      return unitVec;
+    }
+  }
+endmacro
+
+macro DYNAMIC_SPLINE_GEN_VS_COMMON()
+  DYNAMIC_BLOCK()
+  hlsl
+  {
+    ##if dyn_model_render_pass == render_pass_normal && in_editor_assume == no
+      #define MOTION_VECTORS_ENABLED
+    ##endif
+
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 pointToEye : TEXCOORD0;
+      float2 texcoord : TEXCOORD1;
+      float3 normal : TEXCOORD2;
+      #ifdef MOTION_VECTORS_ENABLED
+      float4 out_pos : TEXCOORD3;
+      float4 out_prev_pos : TEXCOORD4;
+      #endif
+      ##if shader == dynamic_spline_gen
+      float3 tangent : TEXCOORD5;
+      float3 bitangent : TEXCOORD6;
+      ##endif
+    };
+  }
+  if (in_editor_assume == no)
+  {
+    INIT_SPLINE_GEN_INSTANTIATION_RENDER()
+    USE_SPLINE_GEN_INSTANTIATION(vs)
+    (vs)
+    {
+      prevOrigoRelativeViewProjTm@f44 = { prevOrigoRelativeViewProjTm0, prevOrigoRelativeViewProjTm1,
+                                        prevOrigoRelativeViewProjTm2, prevOrigoRelativeViewProjTm3 };
+    }
+  }
+endmacro
+
+macro DYNAMIC_SPLINE_GEN_PS_COMMON()
+  WRITE_GBUFFER()
+  USE_MOTION_VEC_ENCODE(ps)
+  USE_NORMAL_DETAIL()
+  hlsl (ps)
+  {
+    GBUFFER_OUTPUT spline_gen_ps_base_impl(VsOutput input, float4 packed_diffuse, float4 packed_normal_map, float4 screenpos)
+    {
+      float3 color = packed_diffuse.rgb;
+      float alpha = packed_diffuse.a;
+      clip_alpha(alpha)
+      float3 normalMap = unpack_ag_normal(packed_normal_map);
+      ##if shader == dynamic_spline_gen
+      float3 normal = normalMap.x * input.tangent + normalMap.y * input.bitangent + normalMap.z * input.normal;
+      ##else // dynamic_spline_attachment
+      float3 normal = perturb_normal_precise(normalMap, normalize(input.normal), input.pointToEye, input.texcoord);
+      ##endif
+      half metallness = packed_normal_map.b;
+      half smoothness = packed_normal_map.r;
+
+      UnpackedGbuffer gbuffer;
+      init_gbuffer(gbuffer);
+      init_albedo(gbuffer, color);
+      init_normal(gbuffer, normal);
+      init_smoothness(gbuffer, smoothness);
+      init_metalness(gbuffer, metallness);
+      init_dynamic(gbuffer, true);
+      #ifdef MOTION_VECTORS_ENABLED
+        float3 motion = encode_motion_vector(input.out_pos, input.out_prev_pos);
+        init_motion_vector(gbuffer, motion);
+      #endif
+      return encode_gbuffer(gbuffer, input.pointToEye, screenpos);
+    }
+  }
+endmacro

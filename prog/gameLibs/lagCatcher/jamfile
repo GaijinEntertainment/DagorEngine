@@ -14,7 +14,7 @@ Sources =
   lagCatcher.cpp
 ;
 
-if $(Platform) in linux64 {
+if $(Platform) in linux {
   Sources +=
     btCollector.cpp
     utils.cpp

@@ -1,0 +1,367 @@
+include "shader_global.dshl"
+include "radiance_cache_common.dshl"
+
+buffer new_radiance_cache_probes_needed;
+buffer free_radiance_cache_indices_list;
+
+hlsl {
+  #define RC_FREE_UNUSED_WARP_SIZE 64
+  #define RC_ALLOCATE_NEW_WARP_SIZE 64
+}
+
+shader clear_radiance_cache_clipmap_indirection_cs
+{
+  RADIANCE_CACHE_CLIPMAP_MATH(cs)
+  hlsl(cs) {
+    RWStructuredBuffer<uint> radiance_cache_indirection_clipmap: register(u0);
+    [numthreads(64, 1, 1)]
+    void clear_radiance_cache_clipmap_indirection_cs(uint dtId : SV_DispatchThreadID)
+    {
+      if (dtId < (get_radiance_cache_total_clipmap_size()+3)/4)
+      {
+        structuredBufferAt(radiance_cache_indirection_clipmap, dtId*4 + 0) = INVALID_RADIANCE_CACHE_PROBE_INDEX;
+        structuredBufferAt(radiance_cache_indirection_clipmap, dtId*4 + 1) = INVALID_RADIANCE_CACHE_PROBE_INDEX;
+        structuredBufferAt(radiance_cache_indirection_clipmap, dtId*4 + 2) = INVALID_RADIANCE_CACHE_PROBE_INDEX;
+        structuredBufferAt(radiance_cache_indirection_clipmap, dtId*4 + 3) = INVALID_RADIANCE_CACHE_PROBE_INDEX;
+      }
+    }
+  }
+  compile("target_cs", "clear_radiance_cache_clipmap_indirection_cs");
+}
+
+//called on invalid history
+shader clear_radiance_cache_positions_cs
+{
+  RADIANCE_CACHE_ATLAS_MATH(cs)
+  hlsl(cs) {
+    #include <radiance_cache_consts.hlsl>
+    RWByteAddressBuffer radiance_cache_positions: register(u0);
+    RWByteAddressBuffer free_radiance_cache_indices_list: register(u1);
+    RWByteAddressBuffer radiance_cache_age: register(u2);
+    [numthreads(64, 1, 1)]
+    void clear_radiance_cache_positions_cs(uint dtId : SV_DispatchThreadID)
+    {
+      if (dtId == 0)
+        storeBuffer(free_radiance_cache_indices_list, 0, get_radiance_cache_total_atlas_size());
+      if (dtId < get_radiance_cache_total_atlas_size())
+      {
+        //todo: make it in Store4 (align sizes(
+        storeBuffer(free_radiance_cache_indices_list, dtId*4+4, get_radiance_cache_total_atlas_size()-1-dtId);
+        storeBuffer(radiance_cache_positions, dtId*4, ~0u);
+        storeBuffer(radiance_cache_age, dtId*4, RADIANCE_CACHE_INVALID_AGE);
+        storeBuffer(radiance_cache_age, (get_radiance_cache_total_atlas_size() + dtId)*4, RADIANCE_CACHE_INVALID_AGE);
+      }
+    }
+  }
+  compile("target_cs", "clear_radiance_cache_positions_cs");
+}
+
+
+int4 radiance_cache_clipmap_lt_prev_coord_0;
+int4 radiance_cache_clipmap_lt_prev_coord_1;
+int4 radiance_cache_clipmap_lt_prev_coord_2;
+int4 radiance_cache_clipmap_lt_prev_coord_3;
+int4 radiance_cache_clipmap_lt_prev_coord_4;
+int4 radiance_cache_clipmap_lt_prev_coord_5;
+int4 radiance_cache_clipmap_lt_prev_coord_6;
+int4 radiance_cache_clipmap_lt_prev_coord_7;
+
+shader radiance_cache_free_unused_after_movement_cs
+{
+  RADIANCE_CACHE_CLIPMAP_ATLAS_MATH(cs)
+  (cs) {
+    radiance_cache_clipmap_lt_prev_coord@i4[] = {radiance_cache_clipmap_lt_prev_coord_0, radiance_cache_clipmap_lt_prev_coord_1, radiance_cache_clipmap_lt_prev_coord_2, radiance_cache_clipmap_lt_prev_coord_3, radiance_cache_clipmap_lt_prev_coord_4, radiance_cache_clipmap_lt_prev_coord_5, radiance_cache_clipmap_lt_prev_coord_6, radiance_cache_clipmap_lt_prev_coord_7};
+  }
+  hlsl(cs) {
+    #define sample_radiance_cache_clipmap_lt_prev_coord(clip) _sample_radiance_cache_clipmap_lt_prev_coord(clip, _FILE_, __LINE__)
+    int4 _sample_radiance_cache_clipmap_lt_prev_coord(uint clip, int file, int ln)
+    {
+      // 8 is hardcoded currently. TODO: support array size in preshader for such checks.
+      ##assert(clip < 8, "[%s:%.f] Out of bounds: Buffer 'radiance_cache_clipmap_lt_prev_coord' has size 8, but access to (%.f)", file, ln, clip);
+      return radiance_cache_clipmap_lt_prev_coord[clip];
+    }
+
+    #include <radiance_cache_consts.hlsl>
+    RWStructuredBuffer<uint> radiance_cache_indirection_clipmap: register(u0);
+    RWByteAddressBuffer radiance_cache_positions: register(u1);
+    RWByteAddressBuffer free_radiance_cache_indices_list: register(u2);
+    RWByteAddressBuffer radiance_cache_age: register(u3);
+
+    [numthreads(64, 1, 1)]
+    void fill_clipmap_from_radiance_cache_cs(uint dtId : SV_DispatchThreadID)
+    {
+      uint cacheProbeIndex = dtId;
+      if (cacheProbeIndex >= get_radiance_cache_total_atlas_size())
+        return;
+      uint wrappedAddr = radiance_cache_get_wrapped_addr(radiance_cache_positions, cacheProbeIndex);
+      if (wrappedAddr == ~0u)
+        return;
+      uint4 oldWrappedCoordClip = radiance_cache_decode_wrapped_coord(wrappedAddr);
+      uint clipId = oldWrappedCoordClip.w;
+      if (clipId >= get_radiance_cache_clip_count())//safety, same as above condition!
+        return;
+      //uint4 oldClipPosClip = radiance_cache_get_clip_pos(radiance_cache_positions, cacheProbeIndex);
+      int3 absCoord = radiance_cache_abs_coord_from_wrapped_coord(oldWrappedCoordClip.xyz, sample_radiance_cache_clipmap_lt_prev_coord(clipId).xyz);
+      if (any(uint3(absCoord - sample_radiance_cache_clipmap_lt_coord(clipId).xyz) >= get_radiance_cache_clip_size().xxy))//they became free now
+      {
+        structuredBufferAt(radiance_cache_indirection_clipmap, wrappedAddr) = ~0u;
+        storeBuffer(radiance_cache_positions, cacheProbeIndex*4, ~0u);//free it
+        storeBuffer(radiance_cache_age, cacheProbeIndex*4, RADIANCE_CACHE_INVALID_AGE);
+        storeBuffer(radiance_cache_age, (get_radiance_cache_total_atlas_size() + cacheProbeIndex)*4, RADIANCE_CACHE_INVALID_AGE);
+
+        uint freeIndexAt;
+        free_radiance_cache_indices_list.InterlockedAdd(0, 1, freeIndexAt);
+        if (freeIndexAt < get_radiance_cache_total_atlas_size())// false could not be happening, safety
+        {
+          storeBuffer(free_radiance_cache_indices_list, freeIndexAt*4 + 4, cacheProbeIndex);
+        }
+      } else
+      {
+        //radiance_cache_indirection_clipmap[wrappedAddr] = cacheProbeIndex;
+      }
+    }
+  }
+  compile("target_cs", "fill_clipmap_from_radiance_cache_cs");
+}
+
+int4 radiance_cache_clipmap_update_lt_coord;
+int4 radiance_cache_clipmap_update_sz_coord;
+int4 radiance_cache_clipmap_update_clip_to_lt_coord;
+
+shader radiance_cache_toroidal_movement_cs
+{
+  RADIANCE_CACHE_CLIPMAP_ATLAS_MATH(cs)
+  (cs) {
+    //radiance_cache_clipmap_lt_prev_coord@i4[] = {radiance_cache_clipmap_lt_prev_coord_0, radiance_cache_clipmap_lt_prev_coord_1, radiance_cache_clipmap_lt_prev_coord_2, radiance_cache_clipmap_lt_prev_coord_3, radiance_cache_clipmap_lt_prev_coord_4, radiance_cache_clipmap_lt_prev_coord_5, radiance_cache_clipmap_lt_prev_coord_6, radiance_cache_clipmap_lt_prev_coord_7};
+    radiance_cache_clipmap_update_lt_coord@i4 = radiance_cache_clipmap_update_lt_coord;
+    radiance_cache_clipmap_update_sz_coord@i4 = radiance_cache_clipmap_update_sz_coord;
+    radiance_cache_clipmap_update_clip_to_lt_coord@i4 = radiance_cache_clipmap_update_clip_to_lt_coord;
+  }
+  hlsl(cs) {
+    #include <radiance_cache_consts.hlsl>
+    RWStructuredBuffer<uint> radiance_cache_indirection_clipmap: register(u0);
+    RWByteAddressBuffer radiance_cache_positions: register(u1);
+    RWByteAddressBuffer free_radiance_cache_indices_list: register(u2);
+    RWByteAddressBuffer radiance_cache_age: register(u3);
+
+    [numthreads(64, 1, 1)]
+    void radiance_cache_toroidal_movement_cs(uint dtId : SV_DispatchThreadID)
+    {
+      uint3 ucoord = uint3(dtId%uint(radiance_cache_clipmap_update_sz_coord.x),
+                          (dtId/uint(radiance_cache_clipmap_update_sz_coord.x))%uint(radiance_cache_clipmap_update_sz_coord.y),
+                          (dtId/uint(radiance_cache_clipmap_update_sz_coord.w)));
+      if (ucoord.z >= uint(radiance_cache_clipmap_update_sz_coord.z))
+        return;
+      int3 absCoord = int3(ucoord) + radiance_cache_clipmap_update_lt_coord.xyz;
+      uint3 targetCoord = radiance_cache_wrapped_coord_from_abs_coord(absCoord);
+      uint wrappedAddr = get_radiance_cache_buffer_addr(targetCoord, radiance_cache_clipmap_update_clip_to_lt_coord.w);
+      uint cacheProbeIndex = structuredBufferAt(radiance_cache_indirection_clipmap, wrappedAddr);
+      if (cacheProbeIndex == ~0u)
+        return;
+        structuredBufferAt(radiance_cache_indirection_clipmap, wrappedAddr) = ~0u;
+      storeBuffer(radiance_cache_positions, cacheProbeIndex*4, ~0u);//free it
+      storeBuffer(radiance_cache_age, cacheProbeIndex*4, RADIANCE_CACHE_INVALID_AGE);
+      storeBuffer(radiance_cache_age, (get_radiance_cache_total_atlas_size() + cacheProbeIndex)*4, RADIANCE_CACHE_INVALID_AGE);
+
+      uint freeIndexAt;
+      free_radiance_cache_indices_list.InterlockedAdd(0, 1, freeIndexAt);
+      if (freeIndexAt < get_radiance_cache_total_atlas_size())// false could not be happening, safety
+      {
+        storeBuffer(free_radiance_cache_indices_list, freeIndexAt*4 + 4, cacheProbeIndex);
+      }
+    }
+  }
+  compile("target_cs", "radiance_cache_toroidal_movement_cs");
+}
+
+shader radiance_cache_clear_new_cs
+{
+  RADIANCE_CACHE_CLIPMAP_MATH(cs)
+  hlsl(cs) {
+    RWByteAddressBuffer new_radiance_cache_probes_needed: register(u0);
+    RWByteAddressBuffer radiance_cache_used_mask: register(u1);
+    [numthreads(64, 1, 1)]
+    void radiance_cache_clear_cs(uint dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
+    {
+      if (dtId == 0)
+        storeBuffer(new_radiance_cache_probes_needed, 0, 0);
+      if (dtId < ((get_radiance_cache_total_clipmap_size()+31u)/32u + 3u)/4u)
+        storeBuffer4(radiance_cache_used_mask, dtId*16, 0);
+    }
+  }
+  compile("target_cs", "radiance_cache_clear_cs");
+}
+
+shader free_unused_radiance_cache_probes_cs
+{
+  RADIANCE_CACHE_CLIPMAP_ATLAS_MATH(cs)
+  (cs) {
+    radiance_cache_current_frame@i1 = radiance_cache_current_frame;
+    new_radiance_cache_probes_needed@buf = new_radiance_cache_probes_needed hlsl {
+      ByteAddressBuffer new_radiance_cache_probes_needed@buf;
+    }
+  }
+  hlsl(cs) {
+    RWByteAddressBuffer free_radiance_cache_indices_list: register(u0);
+    RWByteAddressBuffer radiance_cache_positions: register(u1);
+    RWStructuredBuffer<uint> radiance_cache_indirection_clipmap: register(u2);
+    RWByteAddressBuffer radiance_cache_age: register(u3);
+  }
+  RADIANCE_CACHE_POSITIONS_READ(cs)
+  RADIANCE_CACHE_AGE_READ(cs)
+
+  hlsl(cs) {
+    #include <radiance_cache_consts.hlsl>
+    #include <waveUtils.hlsl>
+    groupshared uint sharedTotalToAllocate, sharedTotalFree;
+    [numthreads(RC_FREE_UNUSED_WARP_SIZE, 1, 1)]
+    void free_unused_radiance_cache_probes_cs(uint dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
+    {
+      if (tid == 0)
+      {
+        sharedTotalToAllocate = loadBuffer(new_radiance_cache_probes_needed, 0);
+        sharedTotalFree = loadBuffer(free_radiance_cache_indices_list, 0);
+      }
+      GroupMemoryBarrierWithGroupSync();
+      //fixme: dispatch indirect can ensure we don't call free at all if there is no need for it
+      //also, can be called with different frames_to_keep
+      if (sharedTotalFree > sharedTotalToAllocate)
+        return;
+      //todo: keep allocated array, to reduce iterating over not-allocated probes
+      uint radianceCacheIndex = dtId;
+      if (radianceCacheIndex >= get_radiance_cache_total_atlas_size())
+        return;
+      uint lastFrameUsed = radiance_cache_get_last_frame_used(radianceCacheIndex);
+      const int frames_to_keep = 4;//todo: make me adaptive
+
+      //fixme: radiance_cache_current_frame - frames_to_keep is constant
+      //fixme: make adapative age
+      if (lastFrameUsed == RADIANCE_CACHE_INVALID_AGE || lastFrameUsed >= uint(radiance_cache_current_frame - frames_to_keep))//already deleted or new
+        return;
+      uint4 wrappedCoordId = radiance_cache_get_wrapped_coord(radianceCacheIndex);
+      uint clipId = wrappedCoordId.w;
+      if (clipId >= get_radiance_cache_clip_count())//not existent
+        return;
+      //not used
+      uint freeIndexAt;
+      WaveInterlockedAddRawUintOriginal(free_radiance_cache_indices_list, 0, 1, freeIndexAt);
+      //free_radiance_cache_indices_list.InterlockedAdd(0, 1, freeIndexAt);
+      if (freeIndexAt < get_radiance_cache_total_atlas_size())// could not be happening, safety
+      {
+        uint wrappedAddr = get_radiance_cache_buffer_addr(wrappedCoordId.xyz, wrappedCoordId.w);
+        storeBuffer(free_radiance_cache_indices_list, freeIndexAt*4 + 4, radianceCacheIndex);
+        storeBuffer(radiance_cache_positions, radianceCacheIndex*4, ~0u);
+        storeBuffer(radiance_cache_age, radianceCacheIndex*4, RADIANCE_CACHE_INVALID_AGE);
+        storeBuffer(radiance_cache_age, (get_radiance_cache_total_atlas_size() + radianceCacheIndex)*4, RADIANCE_CACHE_INVALID_AGE);
+        structuredBufferAt(radiance_cache_indirection_clipmap, wrappedAddr) = INVALID_RADIANCE_CACHE_PROBE_INDEX;
+      }
+    }
+  }
+  compile("target_cs", "free_unused_radiance_cache_probes_cs");
+}
+
+shader allocate_radiance_cache_probes_cs
+{
+  RADIANCE_CACHE_CLIPMAP_ATLAS_MATH(cs)
+  (cs) {
+    new_radiance_cache_probes_needed@buf = new_radiance_cache_probes_needed hlsl {
+      ByteAddressBuffer new_radiance_cache_probes_needed@buf;
+    }
+    radiance_cache_current_frame@i1 = radiance_cache_current_frame;
+  }
+
+  hlsl(cs) {
+    #include <radiance_cache_common_math.hlsl>
+    RWByteAddressBuffer free_radiance_cache_indices_list: register(u0);
+    RWByteAddressBuffer radiance_cache_positions: register(u1);
+    RWStructuredBuffer<uint> radiance_cache_indirection_clipmap: register(u2);
+    RWByteAddressBuffer radiance_cache_age: register(u3);
+    [numthreads(RC_ALLOCATE_NEW_WARP_SIZE, 1, 1)]
+    void allocate_radiance_cache_probes_cs(uint dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
+    {
+      uint newProbeIndex = dtId;
+      uint totalNewCount = loadBuffer(new_radiance_cache_probes_needed, 0);
+      if (newProbeIndex >= min(get_radiance_cache_total_atlas_size(), totalNewCount))
+        return;
+      int freeIndexAt;
+      free_radiance_cache_indices_list.InterlockedAdd(0, -1, freeIndexAt);
+      freeIndexAt--;
+      if (freeIndexAt < 0)
+      {
+        //increase back, so there are should be no negative values. Cache exhausted!
+        //todo: we'd rather increase back once in a fix up step
+        free_radiance_cache_indices_list.InterlockedAdd(0, 1);
+        return;
+      } else
+      {
+        //fixme: use wave intrinsics or groupshared
+        uint radianceCacheProbeIndex = loadBuffer(free_radiance_cache_indices_list, 4 + freeIndexAt*4);
+
+        uint wrappedAddr = loadBuffer(new_radiance_cache_probes_needed, newProbeIndex*4 + 4);
+        uint4 wrappedCoordClipId = radiance_cache_decode_wrapped_coord(wrappedAddr);
+
+        storeBuffer(radiance_cache_positions, radianceCacheProbeIndex*4, radiance_cache_encode_wrapped_coord(wrappedCoordClipId.xyz, wrappedCoordClipId.w));
+        structuredBufferAt(radiance_cache_indirection_clipmap, wrappedAddr) = radianceCacheProbeIndex;
+        storeBuffer(radiance_cache_age, radianceCacheProbeIndex*4, uint(radiance_cache_current_frame));
+        //should not be needed, as we set that in trace
+        storeBuffer(radiance_cache_age, (radianceCacheProbeIndex + get_radiance_cache_total_atlas_size())*4, encode_temporal_age_and_frame(0, radiance_cache_current_frame));
+      }
+    }
+  }
+  compile("target_cs", "allocate_radiance_cache_probes_cs");
+}
+
+
+shader radiance_cache_create_dispatch_indirect_cs
+{
+  ENABLE_ASSERT(cs)
+  RADIANCE_CACHE_CLIPMAP_ATLAS_MATH(cs)
+  (cs) {
+    radiance_cache_current_frame@i1 = radiance_cache_current_frame;
+    new_radiance_cache_probes_needed@buf = new_radiance_cache_probes_needed hlsl {
+      ByteAddressBuffer new_radiance_cache_probes_needed@buf;
+    }
+    free_radiance_cache_indices_list@buf = free_radiance_cache_indices_list hlsl {
+      ByteAddressBuffer free_radiance_cache_indices_list@buf;
+    }
+  }
+
+  hlsl(cs) {
+    RWByteAddressBuffer dispatchIndirectBuffer: register(u0);
+    RWByteAddressBuffer radiance_cache_selected_temporal_probes: register(u1);
+    #include "radianace_cache_indirect.hlsli"
+
+    [numthreads(RADIANCE_CACHE_INDIRECT_BUFFER_SIZE, 1, 1)]
+    void radiance_cache_create_dispatch_indirect_cs(uint2 gtId : SV_GroupThreadID, uint2 gId : SV_GroupID, uint2 dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
+    {
+
+      uint dest = tid;
+      uint write = 1;
+      uint totalNewCount = clamp(loadBuffer(new_radiance_cache_probes_needed, 0), 0, get_radiance_cache_total_atlas_size());//can be made shared
+      uint totalFree = clamp(loadBuffer(free_radiance_cache_indices_list, 0), 0, get_radiance_cache_total_atlas_size());//can be made shared
+      uint totalAllocatedCount = get_radiance_cache_total_atlas_size();//todo: make iteration only over allocated probes
+      FLATTEN
+      if (tid == RADIANCE_CACHE_FREE_UNUSED_INDIRECT_OFFSET)
+      {
+        //todo: make iteration only over allocated probes
+        //keep list of allocated probes (sorted by LRU)
+        //intetionally >=, so we can distinct exhaustion of cache from normal allocation
+        write = totalNewCount >= totalFree ? (get_radiance_cache_total_atlas_size() + RC_FREE_UNUSED_WARP_SIZE-1)/RC_FREE_UNUSED_WARP_SIZE : 0;
+      }
+
+      FLATTEN
+      if (tid == RADIANCE_CACHE_ALLOCATE_NEW_INDIRECT_OFFSET)
+        write = (totalNewCount + RC_ALLOCATE_NEW_WARP_SIZE - 1)/RC_ALLOCATE_NEW_WARP_SIZE;
+
+      FLATTEN
+      if (tid == RADIANCE_TRACE_CALC_NEW_PROBES_INDIRECT_OFFSET)
+        write = totalNewCount;
+
+      if (tid < RADIANCE_CACHE_INDIRECT_BUFFER_SIZE)
+        storeBuffer(dispatchIndirectBuffer, tid * 4, write);
+      if (tid == 0)
+        storeBuffer3(radiance_cache_selected_temporal_probes, 0, uint3(0,1,1));
+    }
+  }
+  compile("target_cs", "radiance_cache_create_dispatch_indirect_cs");
+}

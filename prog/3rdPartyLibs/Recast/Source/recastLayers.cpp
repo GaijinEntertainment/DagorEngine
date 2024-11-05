@@ -152,6 +152,11 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 				if (sid == 0xff)
 				{
 					sid = sweepId++;
+					if (sid >= nsweeps)
+					{
+						ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: sweeps (%d) overflow. Too many layers of surfaces inside navmesh tile?", nsweeps);
+						return false;
+					}
 					sweeps[sid].nei = 0xff;
 					sweeps[sid].ns = 0;
 				}

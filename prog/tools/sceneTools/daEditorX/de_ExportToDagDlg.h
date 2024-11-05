@@ -1,8 +1,7 @@
-#ifndef __GAIJIN_DAGORED_EXPORT_TO_DAG_DLG__
-#define __GAIJIN_DAGORED_EXPORT_TO_DAG_DLG__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <propPanel2/comWnd/dialog_window.h>
+#include <propPanel/commonWindow/dialogWindow.h>
 #include <generic/dag_tab.h>
 
 
@@ -12,7 +11,7 @@ enum
 };
 
 
-class ExportToDagDlg : public CDialogWindow
+class ExportToDagDlg : public PropPanel::DialogWindow
 {
 public:
   ExportToDagDlg(Tab<String> &sel_names, bool visual, const char *name);
@@ -20,9 +19,6 @@ public:
   void getSelPlugins(Tab<int> &sel);
 
 private:
-  PropertyContainerControlBase *mDPanel;
+  PropPanel::ContainerPropertyControl *mDPanel;
   Tab<unsigned> plugs;
 };
-
-
-#endif

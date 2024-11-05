@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <sqDebugger/sqDebugger.h>
 #include <sqDebugger/scriptProfiler.h>
 #include <sqModules/sqModules.h>
@@ -89,27 +91,37 @@ void SourceCodeCoverage::init(const char *filename_)
   clear();
 }
 
-void SourceCodeCoverage::clear()
+void SourceCodeCoverage::clear() { lineType.clear(); }
+
+void SourceCodeCoverage::clearCoverage()
 {
-  runCount.clear();
-  runCount.assign(2048, 0);
+  for (char &t : lineType)
+    if (t == SRC_LINE_EXECUTED)
+      t = SRC_LINE_EXISTS;
 }
 
-void SourceCodeCoverage::inc(int lineNum)
+
+void SourceCodeCoverage::onLineExists(int lineNum)
 {
-  if (lineNum >= runCount.size())
+  if (lineNum >= lineType.size())
   {
-    int prevCount = runCount.size();
-    int newCount = lineNum + lineNum / 2;
-    runCount.resize(newCount);
+    int prevCount = lineType.size();
+    int newCount = lineNum + lineNum / 2 + 10;
+    lineType.resize(newCount);
     for (int i = prevCount; i < newCount; i++)
-      runCount[i] = 0;
+      lineType[i] = SRC_LINE_INACTIVE;
   }
 
-  if (runCount[lineNum] < 99)
-    runCount[lineNum]++;
+  lineType[lineNum] = SRC_LINE_EXISTS;
 }
 
+void SourceCodeCoverage::onLineExecuted(int lineNum)
+{
+  if (lineNum >= lineType.size())
+    return;
+
+  lineType[lineNum] = SRC_LINE_EXECUTED;
+}
 
 SourceCodeCoverageList::SourceCodeCoverageList() { clear(); }
 
@@ -121,19 +133,27 @@ void SourceCodeCoverageList::clear()
   lastIndex = 0;
 }
 
+void SourceCodeCoverageList::clearCoverage()
+{
+  for (SourceCodeCoverage &source : sources)
+    source.clearCoverage();
+  lastFileName.clear();
+  lastIndex = 0;
+}
+
 void SourceCodeCoverageList::clearByIndex(int index)
 {
   if (index < sources.size())
     sources[index].clear();
 }
 
-void SourceCodeCoverageList::inc(const char *sourcename, int line)
+void SourceCodeCoverageList::onLineExecuted(const char *sourcename, int line)
 {
   if (!sourcename || !*sourcename)
     return;
 
   if (lastFileName == sourcename)
-    sources[lastIndex].inc(line);
+    sources[lastIndex].onLineExecuted(line);
   else
   {
     for (int i = 0; i < sources.size(); i++)
@@ -141,7 +161,7 @@ void SourceCodeCoverageList::inc(const char *sourcename, int line)
       {
         lastIndex = i;
         lastFileName = sourcename;
-        sources[lastIndex].inc(line);
+        sources[lastIndex].onLineExecuted(line);
         return;
       }
 
@@ -149,7 +169,33 @@ void SourceCodeCoverageList::inc(const char *sourcename, int line)
     a.init(sourcename);
     lastIndex = sources.size() - 1;
     lastFileName = sourcename;
-    sources[lastIndex].inc(line);
+    sources[lastIndex].onLineExecuted(line);
+  }
+}
+
+void SourceCodeCoverageList::onLineExists(const char *sourcename, int line)
+{
+  if (!sourcename || !*sourcename)
+    return;
+
+  if (lastFileName == sourcename)
+    sources[lastIndex].onLineExists(line);
+  else
+  {
+    for (int i = 0; i < sources.size(); i++)
+      if (!strcmp(sources[i].sourcename.str(), sourcename))
+      {
+        lastIndex = i;
+        lastFileName = sourcename;
+        sources[lastIndex].onLineExists(line);
+        return;
+      }
+
+    SourceCodeCoverage &a = sources.push_back();
+    a.init(sourcename);
+    lastIndex = sources.size() - 1;
+    lastFileName = sourcename;
+    sources[lastIndex].onLineExists(line);
   }
 }
 
@@ -190,6 +236,12 @@ static void sq_debug_hook(HSQUIRRELVM v, SQInteger type, const SQChar *sourcenam
 
     default: return;
   }
+}
+
+static void compile_line_hook(HSQUIRRELVM v, const SQChar *sourcename, SQInteger line)
+{
+  DagSqDebugger &debugger = dag_sq_debuggers.get(v);
+  debugger.onLineExists(sourcename, line);
 }
 
 
@@ -257,7 +309,9 @@ void DagSqDebugger::init(SqModules *module_mgr, const char *description_)
   vm = module_mgr->getVM();
   description = description_;
 
-  vm->_on_compile_file = addSource;
+  sq_set_compile_line_hook(vm, compile_line_hook);
+
+  module_mgr->onCompileFile_cb = addSource;
   areFunctionsRegistered = true;
 
   Sqrat::Table exports(vm);
@@ -393,17 +447,19 @@ void DagSqDebugger::onNewLineExecuted(const char *sourcename, int line)
   else if (pauseOutOfLineNum > 0 && line != pauseOutOfLineNum && stackDepth <= stackDepthToBreak)
     onBreakpoint(sourcename, line);
 
-  sourceCodeCoverageList.inc(sourcename, line);
+  sourceCodeCoverageList.onLineExecuted(sourcename, line);
 }
 
-void DagSqDebugger::clearSourceCoverage() { sourceCodeCoverageList.clear(); }
+void DagSqDebugger::onLineExists(const char *sourcename, int line) { sourceCodeCoverageList.onLineExists(sourcename, line); }
+
+void DagSqDebugger::clearSourceCoverage() { sourceCodeCoverageList.clearCoverage(); }
 
 bool DagSqDebugger::getSourceCoverage(const char *sourcename, Tab<char> &result)
 {
   for (int i = 0; i < sourceCodeCoverageList.sources.size(); i++)
     if (!strcmp(sourceCodeCoverageList.sources[i].sourcename.str(), sourcename))
     {
-      result = sourceCodeCoverageList.sources[i].runCount;
+      result = sourceCodeCoverageList.sources[i].lineType;
       return true;
     }
 

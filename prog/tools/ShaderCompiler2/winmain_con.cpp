@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 static const char *get_debug_fname();
 #define __DEBUG_FILEPATH          get_debug_fname()
 #define __UNLIMITED_BASE_PATH     1
@@ -13,7 +15,7 @@ extern char **__argv;
 static const char *get_debug_fname()
 {
   const char *log_dir = NULL;
-  bool supressLogs = false;
+  bool suppressLogs = false;
   const char *log_prefix =
 #if defined(_CROSS_TARGET_C1)
 
@@ -35,12 +37,12 @@ static const char *get_debug_fname()
 
   for (int i = 1; i < __argc; i++)
   {
-    if (dd_stricmp(__argv[i], "-supressLogs") == 0)
-      supressLogs = true;
+    if (dd_stricmp(__argv[i], "-supressLogs") == 0 || dd_stricmp(__argv[i], "-suppressLogs") == 0)
+      suppressLogs = true;
     else if (dd_stricmp(__argv[i], "-logdir") == 0 && i + 1 < __argc)
       log_dir = __argv[i + 1];
   }
-  if (supressLogs)
+  if (suppressLogs)
     return NULL;
 
   for (int i = 1; i < __argc; i++)

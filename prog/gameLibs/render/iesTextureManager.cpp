@@ -1,6 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/iesTextureManager.h>
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_driver.h>
 #include <debug/dag_debug3d.h>
 #include <shaders/dag_shaderVar.h>
 #include <shaders/dag_shaders.h>
@@ -115,9 +118,14 @@ void IesTextureCollection::reloadTextures()
   {
     photometryTexId = ::add_managed_array_texture(PHOTOMETRY_TEX_NAME, cstrVec);
     if (BaseTexture *photometryTex = D3dResManagerData::getD3dTex<RES3D_TEX>(photometryTexId))
-      photometryTex->texaddr(TEXADDR_CLAMP);
+      photometryTex->disableSampler();
   }
   ShaderGlobal::set_texture(::get_shader_variable_id(PHOTOMETRY_VAR_NAME), photometryTexId);
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    ShaderGlobal::set_sampler(::get_shader_variable_id("photometry_textures_tex_samplerstate"), d3d::request_sampler(smpInfo));
+  }
   for (uint32_t i = 0; i < usedTextures.size(); ++i)
   {
     SharedTex tex = dag::get_tex_gameres(cstrVec[i]);

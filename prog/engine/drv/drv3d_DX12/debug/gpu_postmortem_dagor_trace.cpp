@@ -1,8 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "device.h"
 
-using namespace drv3d_dx12;
+namespace drv3d_dx12::debug::gpu_postmortem::dagor
+{
 
-void debug::gpu_postmortem::dagor::Trace::walkBreadcumbs(call_stack::Reporter &reporter)
+void Trace::walkBreadcumbs(call_stack::Reporter &reporter)
 {
   CommandListTraceBase::printLegend();
 
@@ -50,7 +53,7 @@ void debug::gpu_postmortem::dagor::Trace::walkBreadcumbs(call_stack::Reporter &r
   });
 }
 
-bool debug::gpu_postmortem::dagor::Trace::try_load(const Configuration &config, const Direct3D12Enviroment &d3d_env)
+bool Trace::try_load(const Configuration &config, const Direct3D12Enviroment &d3d_env)
 {
   if (!config.enableDagorGPUTrace)
   {
@@ -89,49 +92,45 @@ bool debug::gpu_postmortem::dagor::Trace::try_load(const Configuration &config, 
   return true;
 }
 
-void debug::gpu_postmortem::dagor::Trace::configure() {}
-
-void debug::gpu_postmortem::dagor::Trace::beginCommandBuffer(ID3D12Device3 *device, ID3D12GraphicsCommandList *cmd)
+void Trace::beginCommandBuffer(ID3D12Device3 *device, ID3D12GraphicsCommandList *cmd)
 {
   auto &list = commandListTable.beginList(cmd, device);
   list.traceRecodring.beginRecording();
   list.traceList.beginTrace();
 }
 
-void debug::gpu_postmortem::dagor::Trace::endCommandBuffer(ID3D12GraphicsCommandList *cmd) { commandListTable.endList(cmd); }
+void Trace::endCommandBuffer(ID3D12GraphicsCommandList *cmd) { commandListTable.endList(cmd); }
 
-void debug::gpu_postmortem::dagor::Trace::beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text,
-  eastl::span<const char> full_path)
+void Trace::beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text, const eastl::string &full_path)
 {
   auto &list = commandListTable.getList(cmd);
   list.traceList.beginEvent({}, text, full_path);
 }
 
-void debug::gpu_postmortem::dagor::Trace::endEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> full_path)
+void Trace::endEvent(ID3D12GraphicsCommandList *cmd, const eastl::string &full_path)
 {
   auto &list = commandListTable.getList(cmd);
   list.traceList.endEvent({}, full_path);
 }
 
-void debug::gpu_postmortem::dagor::Trace::marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text)
+void Trace::marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text)
 {
   auto &list = commandListTable.getList(cmd);
   list.traceList.marker({}, text);
 }
 
-void debug::gpu_postmortem::dagor::Trace::draw(const call_stack::CommandData &debug_info, ID3D12GraphicsCommandList2 *cmd,
-  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  uint32_t count, uint32_t instance_count, uint32_t start, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
+void Trace::draw(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
+  const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t count, uint32_t instance_count,
+  uint32_t start, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
 {
   auto &list = commandListTable.getList(cmd);
   auto id = list.traceRecodring.record(cmd);
   list.traceList.draw(id, debug_info, vs, ps, pipeline_base, pipeline, count, instance_count, start, first_instance, topology);
 }
 
-void debug::gpu_postmortem::dagor::Trace::drawIndexed(const call_stack::CommandData &debug_info, ID3D12GraphicsCommandList2 *cmd,
-  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  uint32_t count, uint32_t instance_count, uint32_t index_start, int32_t vertex_base, uint32_t first_instance,
-  D3D12_PRIMITIVE_TOPOLOGY topology)
+void Trace::drawIndexed(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
+  const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t count, uint32_t instance_count,
+  uint32_t index_start, int32_t vertex_base, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
 {
   auto &list = commandListTable.getList(cmd);
   auto id = list.traceRecodring.record(cmd);
@@ -139,25 +138,24 @@ void debug::gpu_postmortem::dagor::Trace::drawIndexed(const call_stack::CommandD
     first_instance, topology);
 }
 
-void debug::gpu_postmortem::dagor::Trace::drawIndirect(const call_stack::CommandData &debug_info, ID3D12GraphicsCommandList2 *cmd,
-  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  BufferResourceReferenceAndOffset buffer)
+void Trace::drawIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
+  const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, BufferResourceReferenceAndOffset buffer)
 {
   auto &list = commandListTable.getList(cmd);
   auto id = list.traceRecodring.record(cmd);
   list.traceList.drawIndirect(id, debug_info, vs, ps, pipeline_base, pipeline, buffer);
 }
 
-void debug::gpu_postmortem::dagor::Trace::drawIndexedIndirect(const call_stack::CommandData &debug_info,
-  ID3D12GraphicsCommandList2 *cmd, const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base,
-  PipelineVariant &pipeline, BufferResourceReferenceAndOffset buffer)
+void Trace::drawIndexedIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+  BufferResourceReferenceAndOffset buffer)
 {
   auto &list = commandListTable.getList(cmd);
   auto id = list.traceRecodring.record(cmd);
   list.traceList.drawIndexedIndirect(id, debug_info, vs, ps, pipeline_base, pipeline, buffer);
 }
 
-void debug::gpu_postmortem::dagor::Trace::dispatchIndirect(const call_stack::CommandData &debug_info, ID3D12GraphicsCommandList2 *cmd,
+void Trace::dispatchIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
   const PipelineStageStateBase &state, ComputePipeline &pipeline, BufferResourceReferenceAndOffset buffer)
 {
   auto &list = commandListTable.getList(cmd);
@@ -165,24 +163,23 @@ void debug::gpu_postmortem::dagor::Trace::dispatchIndirect(const call_stack::Com
   list.traceList.dispatchIndirect(id, debug_info, state, pipeline, buffer);
 }
 
-void debug::gpu_postmortem::dagor::Trace::dispatch(const call_stack::CommandData &debug_info, ID3D12GraphicsCommandList2 *cmd,
-  const PipelineStageStateBase &state, ComputePipeline &pipeline, uint32_t x, uint32_t y, uint32_t z)
+void Trace::dispatch(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &state,
+  ComputePipeline &pipeline, uint32_t x, uint32_t y, uint32_t z)
 {
   auto &list = commandListTable.getList(cmd);
   auto id = list.traceRecodring.record(cmd);
   list.traceList.dispatch(id, debug_info, state, pipeline, x, y, z);
 }
 
-void debug::gpu_postmortem::dagor::Trace::dispatchMesh(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  uint32_t x, uint32_t y, uint32_t z)
+void Trace::dispatchMesh(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
+  const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t x, uint32_t y, uint32_t z)
 {
   auto &list = commandListTable.getList(cmd);
   auto id = list.traceRecodring.record(cmd);
   list.traceList.dispatchMesh(id, debug_info, vs, ps, pipeline_base, pipeline, x, y, z);
 }
 
-void debug::gpu_postmortem::dagor::Trace::dispatchMeshIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+void Trace::dispatchMeshIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
   const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
   BufferResourceReferenceAndOffset args, BufferResourceReferenceAndOffset count, uint32_t max_count)
 {
@@ -191,14 +188,14 @@ void debug::gpu_postmortem::dagor::Trace::dispatchMeshIndirect(const call_stack:
   list.traceList.dispatchMeshIndirect(id, debug_info, vs, ps, pipeline_base, pipeline, args, count, max_count);
 }
 
-void debug::gpu_postmortem::dagor::Trace::blit(const call_stack::CommandData &call_stack, ID3D12GraphicsCommandList2 *cmd)
+void Trace::blit(const call_stack::CommandData &call_stack, D3DGraphicsCommandList *cmd)
 {
   auto &list = commandListTable.getList(cmd);
   auto id = list.traceRecodring.record(cmd);
   list.traceList.blit(id, call_stack);
 }
 
-void debug::gpu_postmortem::dagor::Trace::onDeviceRemoved(D3DDevice *device, HRESULT reason, call_stack::Reporter &reporter)
+void Trace::onDeviceRemoved(D3DDevice *device, HRESULT reason, call_stack::Reporter &reporter)
 {
   if (DXGI_ERROR_INVALID_CALL == reason)
   {
@@ -219,11 +216,11 @@ void debug::gpu_postmortem::dagor::Trace::onDeviceRemoved(D3DDevice *device, HRE
   report_page_fault(dred.Get());
 }
 
-bool debug::gpu_postmortem::dagor::Trace::sendGPUCrashDump(const char *, const void *, uintptr_t) { return false; }
+bool Trace::sendGPUCrashDump(const char *, const void *, uintptr_t) { return false; }
 
-void debug::gpu_postmortem::dagor::Trace::onDeviceShutdown() { commandListTable.reset(); }
+void Trace::onDeviceShutdown() { commandListTable.reset(); }
 
-bool debug::gpu_postmortem::dagor::Trace::onDeviceSetup(ID3D12Device *device, const Configuration &, const Direct3D12Enviroment &)
+bool Trace::onDeviceSetup(ID3D12Device *device, const Configuration &, const Direct3D12Enviroment &)
 {
   // have to check if hw does support the necessary features
   D3D12_FEATURE_DATA_D3D12_OPTIONS3 level3Options = {};
@@ -253,3 +250,4 @@ bool debug::gpu_postmortem::dagor::Trace::onDeviceSetup(ID3D12Device *device, co
   }
   return true;
 }
+} // namespace drv3d_dx12::debug::gpu_postmortem::dagor

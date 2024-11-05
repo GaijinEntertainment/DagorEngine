@@ -12,65 +12,85 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_3() {
-// from D:\Work\libclang\include\llvm-c/Core.h:585:24
-	addExtern< LLVMDiagnosticSeverity (*)(LLVMOpaqueDiagnosticInfo *) , LLVMGetDiagInfoSeverity >(*this,lib,"LLVMGetDiagInfoSeverity",SideEffects::worstDefault,"LLVMGetDiagInfoSeverity")
-		->args({"DI"});
-// from D:\Work\libclang\include\llvm-c/Core.h:587:10
-	addExtern< unsigned int (*)(LLVMOpaqueContext *,const char *,unsigned int) , LLVMGetMDKindIDInContext >(*this,lib,"LLVMGetMDKindIDInContext",SideEffects::worstDefault,"LLVMGetMDKindIDInContext")
-		->args({"C","Name","SLen"});
-// from D:\Work\libclang\include\llvm-c/Core.h:589:10
-	addExtern< unsigned int (*)(const char *,unsigned int) , LLVMGetMDKindID >(*this,lib,"LLVMGetMDKindID",SideEffects::worstDefault,"LLVMGetMDKindID")
-		->args({"Name","SLen"});
-// from D:\Work\libclang\include\llvm-c/Core.h:602:10
-	addExtern< unsigned int (*)(const char *,size_t) , LLVMGetEnumAttributeKindForName >(*this,lib,"LLVMGetEnumAttributeKindForName",SideEffects::worstDefault,"LLVMGetEnumAttributeKindForName")
-		->args({"Name","SLen"});
-// from D:\Work\libclang\include\llvm-c/Core.h:603:10
-	addExtern< unsigned int (*)() , LLVMGetLastEnumAttributeKind >(*this,lib,"LLVMGetLastEnumAttributeKind",SideEffects::worstDefault,"LLVMGetLastEnumAttributeKind");
-// from D:\Work\libclang\include\llvm-c/Core.h:608:18
-	addExtern< LLVMOpaqueAttributeRef * (*)(LLVMOpaqueContext *,unsigned int,uint64_t) , LLVMCreateEnumAttribute >(*this,lib,"LLVMCreateEnumAttribute",SideEffects::worstDefault,"LLVMCreateEnumAttribute")
-		->args({"C","KindID","Val"});
+// from D:\Work\libclang\include\llvm-c/Core.h:590:7
+	makeExtern< char * (*)(LLVMOpaqueDiagnosticInfo *) , LLVMGetDiagInfoDescription , SimNode_ExtFuncCall >(lib,"LLVMGetDiagInfoDescription","LLVMGetDiagInfoDescription")
+		->args({"DI"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:597:24
+	makeExtern< LLVMDiagnosticSeverity (*)(LLVMOpaqueDiagnosticInfo *) , LLVMGetDiagInfoSeverity , SimNode_ExtFuncCall >(lib,"LLVMGetDiagInfoSeverity","LLVMGetDiagInfoSeverity")
+		->args({"DI"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:599:10
+	makeExtern< unsigned int (*)(LLVMOpaqueContext *,const char *,unsigned int) , LLVMGetMDKindIDInContext , SimNode_ExtFuncCall >(lib,"LLVMGetMDKindIDInContext","LLVMGetMDKindIDInContext")
+		->args({"C","Name","SLen"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:601:10
+	makeExtern< unsigned int (*)(const char *,unsigned int) , LLVMGetMDKindID , SimNode_ExtFuncCall >(lib,"LLVMGetMDKindID","LLVMGetMDKindID")
+		->args({"Name","SLen"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:614:10
+	makeExtern< unsigned int (*)(const char *,size_t) , LLVMGetEnumAttributeKindForName , SimNode_ExtFuncCall >(lib,"LLVMGetEnumAttributeKindForName","LLVMGetEnumAttributeKindForName")
+		->args({"Name","SLen"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Core.h:615:10
-	addExtern< unsigned int (*)(LLVMOpaqueAttributeRef *) , LLVMGetEnumAttributeKind >(*this,lib,"LLVMGetEnumAttributeKind",SideEffects::worstDefault,"LLVMGetEnumAttributeKind")
-		->args({"A"});
-// from D:\Work\libclang\include\llvm-c/Core.h:620:10
-	addExtern< uint64_t (*)(LLVMOpaqueAttributeRef *) , LLVMGetEnumAttributeValue >(*this,lib,"LLVMGetEnumAttributeValue",SideEffects::worstDefault,"LLVMGetEnumAttributeValue")
-		->args({"A"});
-// from D:\Work\libclang\include\llvm-c/Core.h:625:18
-	addExtern< LLVMOpaqueAttributeRef * (*)(LLVMOpaqueContext *,unsigned int,LLVMOpaqueType *) , LLVMCreateTypeAttribute >(*this,lib,"LLVMCreateTypeAttribute",SideEffects::worstDefault,"LLVMCreateTypeAttribute")
-		->args({"C","KindID","type_ref"});
-// from D:\Work\libclang\include\llvm-c/Core.h:631:13
-	addExtern< LLVMOpaqueType * (*)(LLVMOpaqueAttributeRef *) , LLVMGetTypeAttributeValue >(*this,lib,"LLVMGetTypeAttributeValue",SideEffects::worstDefault,"LLVMGetTypeAttributeValue")
-		->args({"A"});
-// from D:\Work\libclang\include\llvm-c/Core.h:636:18
-	addExtern< LLVMOpaqueAttributeRef * (*)(LLVMOpaqueContext *,const char *,unsigned int,const char *,unsigned int) , LLVMCreateStringAttribute >(*this,lib,"LLVMCreateStringAttribute",SideEffects::worstDefault,"LLVMCreateStringAttribute")
-		->args({"C","K","KLength","V","VLength"});
+	makeExtern< unsigned int (*)() , LLVMGetLastEnumAttributeKind , SimNode_ExtFuncCall >(lib,"LLVMGetLastEnumAttributeKind","LLVMGetLastEnumAttributeKind")
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:620:18
+	makeExtern< LLVMOpaqueAttributeRef * (*)(LLVMOpaqueContext *,unsigned int,uint64_t) , LLVMCreateEnumAttribute , SimNode_ExtFuncCall >(lib,"LLVMCreateEnumAttribute","LLVMCreateEnumAttribute")
+		->args({"C","KindID","Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:627:10
+	makeExtern< unsigned int (*)(LLVMOpaqueAttributeRef *) , LLVMGetEnumAttributeKind , SimNode_ExtFuncCall >(lib,"LLVMGetEnumAttributeKind","LLVMGetEnumAttributeKind")
+		->args({"A"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:632:10
+	makeExtern< uint64_t (*)(LLVMOpaqueAttributeRef *) , LLVMGetEnumAttributeValue , SimNode_ExtFuncCall >(lib,"LLVMGetEnumAttributeValue","LLVMGetEnumAttributeValue")
+		->args({"A"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:637:18
+	makeExtern< LLVMOpaqueAttributeRef * (*)(LLVMOpaqueContext *,unsigned int,LLVMOpaqueType *) , LLVMCreateTypeAttribute , SimNode_ExtFuncCall >(lib,"LLVMCreateTypeAttribute","LLVMCreateTypeAttribute")
+		->args({"C","KindID","type_ref"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Core.h:643:13
-	addExtern< const char * (*)(LLVMOpaqueAttributeRef *,unsigned int *) , LLVMGetStringAttributeKind >(*this,lib,"LLVMGetStringAttributeKind",SideEffects::worstDefault,"LLVMGetStringAttributeKind")
-		->args({"A","Length"});
-// from D:\Work\libclang\include\llvm-c/Core.h:648:13
-	addExtern< const char * (*)(LLVMOpaqueAttributeRef *,unsigned int *) , LLVMGetStringAttributeValue >(*this,lib,"LLVMGetStringAttributeValue",SideEffects::worstDefault,"LLVMGetStringAttributeValue")
-		->args({"A","Length"});
-// from D:\Work\libclang\include\llvm-c/Core.h:653:10
-	addExtern< int (*)(LLVMOpaqueAttributeRef *) , LLVMIsEnumAttribute >(*this,lib,"LLVMIsEnumAttribute",SideEffects::worstDefault,"LLVMIsEnumAttribute")
-		->args({"A"});
-// from D:\Work\libclang\include\llvm-c/Core.h:654:10
-	addExtern< int (*)(LLVMOpaqueAttributeRef *) , LLVMIsStringAttribute >(*this,lib,"LLVMIsStringAttribute",SideEffects::worstDefault,"LLVMIsStringAttribute")
-		->args({"A"});
-// from D:\Work\libclang\include\llvm-c/Core.h:655:10
-	addExtern< int (*)(LLVMOpaqueAttributeRef *) , LLVMIsTypeAttribute >(*this,lib,"LLVMIsTypeAttribute",SideEffects::worstDefault,"LLVMIsTypeAttribute")
-		->args({"A"});
+	makeExtern< LLVMOpaqueType * (*)(LLVMOpaqueAttributeRef *) , LLVMGetTypeAttributeValue , SimNode_ExtFuncCall >(lib,"LLVMGetTypeAttributeValue","LLVMGetTypeAttributeValue")
+		->args({"A"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:648:18
+	makeExtern< LLVMOpaqueAttributeRef * (*)(LLVMOpaqueContext *,const char *,unsigned int,const char *,unsigned int) , LLVMCreateStringAttribute , SimNode_ExtFuncCall >(lib,"LLVMCreateStringAttribute","LLVMCreateStringAttribute")
+		->args({"C","K","KLength","V","VLength"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:655:13
+	makeExtern< const char * (*)(LLVMOpaqueAttributeRef *,unsigned int *) , LLVMGetStringAttributeKind , SimNode_ExtFuncCall >(lib,"LLVMGetStringAttributeKind","LLVMGetStringAttributeKind")
+		->args({"A","Length"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Core.h:660:13
-	addExtern< LLVMOpaqueType * (*)(LLVMOpaqueContext *,const char *) , LLVMGetTypeByName2 >(*this,lib,"LLVMGetTypeByName2",SideEffects::worstDefault,"LLVMGetTypeByName2")
-		->args({"C","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:685:15
-	addExtern< LLVMOpaqueModule * (*)(const char *) , LLVMModuleCreateWithName >(*this,lib,"LLVMModuleCreateWithName",SideEffects::worstDefault,"LLVMModuleCreateWithName")
-		->args({"ModuleID"});
-// from D:\Work\libclang\include\llvm-c/Core.h:693:15
-	addExtern< LLVMOpaqueModule * (*)(const char *,LLVMOpaqueContext *) , LLVMModuleCreateWithNameInContext >(*this,lib,"LLVMModuleCreateWithNameInContext",SideEffects::worstDefault,"LLVMModuleCreateWithNameInContext")
-		->args({"ModuleID","C"});
-// from D:\Work\libclang\include\llvm-c/Core.h:698:15
-	addExtern< LLVMOpaqueModule * (*)(LLVMOpaqueModule *) , LLVMCloneModule >(*this,lib,"LLVMCloneModule",SideEffects::worstDefault,"LLVMCloneModule")
-		->args({"M"});
+	makeExtern< const char * (*)(LLVMOpaqueAttributeRef *,unsigned int *) , LLVMGetStringAttributeValue , SimNode_ExtFuncCall >(lib,"LLVMGetStringAttributeValue","LLVMGetStringAttributeValue")
+		->args({"A","Length"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:665:10
+	makeExtern< int (*)(LLVMOpaqueAttributeRef *) , LLVMIsEnumAttribute , SimNode_ExtFuncCall >(lib,"LLVMIsEnumAttribute","LLVMIsEnumAttribute")
+		->args({"A"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:666:10
+	makeExtern< int (*)(LLVMOpaqueAttributeRef *) , LLVMIsStringAttribute , SimNode_ExtFuncCall >(lib,"LLVMIsStringAttribute","LLVMIsStringAttribute")
+		->args({"A"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:667:10
+	makeExtern< int (*)(LLVMOpaqueAttributeRef *) , LLVMIsTypeAttribute , SimNode_ExtFuncCall >(lib,"LLVMIsTypeAttribute","LLVMIsTypeAttribute")
+		->args({"A"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:672:13
+	makeExtern< LLVMOpaqueType * (*)(LLVMOpaqueContext *,const char *) , LLVMGetTypeByName2 , SimNode_ExtFuncCall >(lib,"LLVMGetTypeByName2","LLVMGetTypeByName2")
+		->args({"C","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:697:15
+	makeExtern< LLVMOpaqueModule * (*)(const char *) , LLVMModuleCreateWithName , SimNode_ExtFuncCall >(lib,"LLVMModuleCreateWithName","LLVMModuleCreateWithName")
+		->args({"ModuleID"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:705:15
+	makeExtern< LLVMOpaqueModule * (*)(const char *,LLVMOpaqueContext *) , LLVMModuleCreateWithNameInContext , SimNode_ExtFuncCall >(lib,"LLVMModuleCreateWithNameInContext","LLVMModuleCreateWithNameInContext")
+		->args({"ModuleID","C"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

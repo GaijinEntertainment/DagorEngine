@@ -1,7 +1,7 @@
-
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_tex3d.h>
 #include "render.h"
 
 enum TextureFormat
@@ -20,8 +20,6 @@ enum TextureFormat
 
   D3DFMT_L8 = 50,
   D3DFMT_A8L8 = 51,
-
-  D3DFMT_V16U16 = 64,
 
   D3DFMT_DXT1 = _MAKE4C('DXT1'),
   D3DFMT_DXT3 = _MAKE4C('DXT3'),

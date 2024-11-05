@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "daBuild.h"
 #include <libTools/util/conLogWriter.h>
 #include <libTools/util/progressInd.h>
@@ -650,7 +652,7 @@ bool buildGameResPack(mkbindump::BinDumpSaveCB &cwr, dag::ConstSpan<DagorAsset *
   }
 
   DAGOR_TRY { cwr.copyDataTo(fcwr); }
-  DAGOR_CATCH(IGenSave::SaveException)
+  DAGOR_CATCH(const IGenSave::SaveException &)
   {
     log.addMessage(ILogWriter::ERROR, "Error writing GRP file %s", pack_fname);
     dd_erase(pack_fname);
@@ -694,6 +696,11 @@ bool checkGameResPackUpToDate(dag::ConstSpan<DagorAsset *> assets, AssetExportCa
       goto cur_changed;
 
     e->gatherSrcDataFiles(a, a_files);
+    // A lot of assets add the asset itself to the list of src data files.
+    // checkFileChanged is quite slow and we checked this asset already above.
+    // Removing this asset from gather list is faster then calling checkFileChanged one extra time
+    if (a_files.size() > 0 && strcmp(a_files[0].c_str(), assets[i]->getTargetFilePath().c_str()) == 0)
+      a_files.erase(a_files.begin());
     for (int j = 0; j < a_files.size(); j++)
       if (c4.checkFileChanged(a_files[j]))
         goto cur_changed;

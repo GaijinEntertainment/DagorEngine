@@ -1,12 +1,12 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <EASTL/string.h>
 #include <3d/dag_resPtr.h>
+#include <drv/3d/dag_info.h>
 
 struct SbufferHeapManager
 {
@@ -17,7 +17,7 @@ struct SbufferHeapManager
   void copy(Heap &to, size_t to_offset, const Heap &from, size_t from_offset, size_t len)
   {
     // todo: if no overlappedCopy flag, do it with intermediary buffer/tempBuffer
-    if (!shouldCopy)
+    if (!shouldCopy || !to.getBuf() || !from.getBuf())
       return;
     G_ASSERT(from.getBuf() != to.getBuf() || overlappedCopy);
     from.getBuf()->copyTo(to.getBuf(), to_offset, from_offset, len);
@@ -40,7 +40,7 @@ struct SbufferHeapManager
       h = dag::create_sbuffer(elementSize, (sz + elementSize - 1) / elementSize, flags, texfmt, name.c_str());
       generation++;
     }
-    return true;
+    return (bool)h;
   }
   void orphan(Heap &h) { h.close(); }
   const char *getName() const { return baseName.c_str(); }

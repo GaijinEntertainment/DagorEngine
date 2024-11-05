@@ -1,7 +1,5 @@
-#ifndef __GAIJIN_SCRIPTHELPERS_TUNEDPARAMS_H__
-#define __GAIJIN_SCRIPTHELPERS_TUNEDPARAMS_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <util/dag_globDef.h>
 #include <ioSys/dag_dataBlock.h>
@@ -184,6 +182,3 @@ TunedGroup *create_tuned_struct(const char *name, int version, dag::ConstSpan<Tu
 
 TunedGroup *create_tuned_group(const char *name, int version, dag::ConstSpan<TunedElement *> elems);
 }; // namespace ScriptHelpers
-
-
-#endif

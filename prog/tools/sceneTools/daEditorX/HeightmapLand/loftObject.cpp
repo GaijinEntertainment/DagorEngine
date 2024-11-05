@@ -1,10 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hmlSplineObject.h"
 #include "hmlSplinePoint.h"
 #include "hmlPlugin.h"
 #include <de3_splineClassData.h>
 #include <de3_genObjData.h>
 #include <de3_lightService.h>
-#include <dllPluginCore/core.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <math/dag_bezierPrec.h>
 

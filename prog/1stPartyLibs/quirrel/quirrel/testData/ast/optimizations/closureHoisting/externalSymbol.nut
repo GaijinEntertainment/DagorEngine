@@ -1,4 +1,4 @@
-let function foo(x, y) {
+function foo(x, y) {
     return function(a, b) {
         println(a + b)
         return function(c, d) {

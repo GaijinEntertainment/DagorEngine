@@ -1,8 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <shaders/dag_shaders.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_tex3d.h>
 #include <3d/dag_resPtr.h>
 #include <math/dag_adjpow2.h>
 #include <ioSys/dag_fileIo.h>

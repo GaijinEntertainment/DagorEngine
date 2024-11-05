@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <colorPipette/colorPipette.h>
 
 #if _TARGET_PC_WIN && DAGOR_DBGLEVEL > 0
@@ -37,7 +39,7 @@ static void on_pick(bool picked, int r, int g, int b);
 class PipetteThread final : public DaThread
 {
 public:
-  PipetteThread() : DaThread("PipetteThread") {}
+  PipetteThread() : DaThread("PipetteThread", DEFAULT_STACK_SZ, 0, WORKER_THREADS_AFFINITY_MASK) {}
 
   void execute() override
   {
@@ -71,7 +73,7 @@ public:
       TranslateMessage(&msg);
       DispatchMessage(&msg);
 
-      if (terminating)
+      if (isThreadTerminating())
         termination_requested = true;
     }
 
@@ -378,6 +380,7 @@ bool start(ColorPipetteCallback callback_, void *user_data_)
 
   pipette_thread.reset(new PipetteThread());
   pipette_thread->start();
+
   return true;
 }
 

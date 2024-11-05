@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/dtx/ddsxPlugin.h>
 #include <generic/dag_tab.h>
 #include <ioSys/dag_chainedMemIo.h>
@@ -41,7 +43,7 @@ typedef IDdsxCreatorPlugin *(__stdcall *get_plugin_t)(IDdsxCreatorPlugin::IAlloc
 int ddsx::load_plugins(const char *dirpath)
 {
   alefind_t ff;
-  const String mask(260, "%s/*" DAGOR_PC_OS_DLL_SUFFIX, dirpath);
+  const String mask(260, "%s/*" DAGOR_OS_DLL_SUFFIX, dirpath);
   String fname;
   int num = 0;
 
@@ -52,7 +54,7 @@ int ddsx::load_plugins(const char *dirpath)
       dd_simplify_fname_c(fname);
       debug("found: %s", fname.str());
 
-      void *dllHandle = os_dll_load(fname);
+      void *dllHandle = os_dll_load_deep_bind(fname);
       IDdsxCreatorPlugin *p = NULL;
 
       if (dllHandle)

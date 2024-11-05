@@ -1,6 +1,4 @@
-
-#ifndef __DAGOR_FONT_H
-#define __DAGOR_FONT_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <gui/dag_stdGuiRender.h>
@@ -18,6 +16,7 @@
 #include <3d/dag_dynAtlas.h>
 #include <ioSys/dag_dataBlock.h>
 #include <hb.h>
+#include <drv/3d/dag_renderTarget.h>
 #if defined(__GNUC__)
 #include <wchar.h>
 #endif
@@ -385,6 +384,7 @@ public:
 
   public:
     TextureIDHolder texBlurred;
+    d3d::SamplerHandle texBlurredSampler;
 
   protected:
     alignas(StdGuiRender::GuiContext) char ctxBuf[sizeof(StdGuiRender::GuiContext)];
@@ -663,5 +663,3 @@ static inline const BBox2 *find_bbox(hash_t hash, Hash2IdxStratum h2i, unsigned 
   return nullptr;
 }
 } // namespace strboxcache
-
-#endif // __DAGOR_FONT_H

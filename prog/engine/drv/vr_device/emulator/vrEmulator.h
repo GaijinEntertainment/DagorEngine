@@ -1,6 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <drivers/dag_vr.h>
+#include <drv/dag_vr.h>
 #include <shaders/dag_overrideStateId.h>
 #include <3d/dag_texMgr.h>
 #include <3d/dag_resPtr.h>
@@ -71,6 +72,7 @@ private:
 
   bool isHmdOn;
   bool callFirstHmdOn;
+  bool isHmdWorn;
 
   Point3 position;
   TMatrix orientation;
@@ -81,4 +83,6 @@ private:
   shaders::UniqueOverrideStateId scissor;
 
   VrEmulatorInputHandler inputHandler;
+
+  int fpsLimit;
 };

@@ -7,14 +7,27 @@
 #include <dafxEmitter_decl.h>
 
 
+ScriptHelpers::TunedElement *DafxEmitterDistanceBased::createTunedElement(const char *name)
+{
+  Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
+  elems.reserve(3);
+
+  elems.push_back(ScriptHelpers::create_tuned_int_param("elem_limit", 10));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("distance", 1));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("idle_period", 0));
+
+  return ScriptHelpers::create_tuned_struct(name, 1, elems);
+}
+
+
 ScriptHelpers::TunedElement *DafxEmitterParams::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(6);
+  elems.reserve(7);
 
   {
     Tab<ScriptHelpers::EnumEntry> enumEntries(tmpmem);
-    enumEntries.resize(3);
+    enumEntries.resize(4);
 
     enumEntries[0].name = "fixed";
     enumEntries[0].value = 0;
@@ -22,6 +35,8 @@ ScriptHelpers::TunedElement *DafxEmitterParams::createTunedElement(const char *n
     enumEntries[1].value = 1;
     enumEntries[2].name = "linear";
     enumEntries[2].value = 2;
+    enumEntries[3].name = "distance_based";
+    enumEntries[3].value = 3;
 
     elems.push_back(ScriptHelpers::create_tuned_enum_param("type", enumEntries));
   }
@@ -30,6 +45,7 @@ ScriptHelpers::TunedElement *DafxEmitterParams::createTunedElement(const char *n
   elems.push_back(ScriptHelpers::create_tuned_int_param("cycles", 0));
   elems.push_back(ScriptHelpers::create_tuned_real_param("period", 0));
   elems.push_back(ScriptHelpers::create_tuned_real_param("delay", 0));
+  elems.push_back(DafxEmitterDistanceBased::createTunedElement("distance_based"));
 
-  return ScriptHelpers::create_tuned_struct(name, 1, elems);
+  return ScriptHelpers::create_tuned_struct(name, 2, elems);
 }

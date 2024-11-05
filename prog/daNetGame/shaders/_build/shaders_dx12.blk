@@ -1,0 +1,27 @@
+include "shaders_pc11.blk"
+include "raytracing.blk"
+"@delete-all:packBin":b=false; packBin:b=yes
+
+"@override:source"
+{
+  file:t = "depth_hierarchy.dshl"
+}
+
+"@override:outDumpName":t="../../game/compiledShaders/gameDX12"
+"@override:Compile" {
+  "@override:fsh":t="5.0"
+  "@override:assume_vars" {
+     //gi_voxelize_use_multidraw:i=1
+    "@delete:dagi_sp_calc_exposure":i=1
+    "@delete:hdr_ps_output_mode":i=0
+  }
+}
+
+"@override:common_valid_variants"
+{
+  invalid {hdr_ps_output_mode:i=1;}
+  invalid {hasTexture:i=4;}
+}
+
+// Warning: There is an issue with those assumes. They might cause bugs with shaders_compat12_xboxOne.blk.
+// See https://youtrack.gaijin.team/issue/RE-1530 for details.

@@ -1,6 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "query_pools.h"
-#include "device.h"
 #include <EASTL/sort.h>
+#include "globals.h"
+#include "vulkan_device.h"
+#include "buffer_resource.h"
+#include "device_context.h"
+#include "backend.h"
 
 using namespace drv3d_vulkan;
 
@@ -21,17 +27,16 @@ void SurveyQueryManager::createSurveyPoolImpl()
   WinAutoLock lock(surveyPoolGuard);
   SurveyQueryPool pool;
 
-  Device &device = get_device();
-  VulkanDevice &vkDev = device.getVkDevice();
+  VulkanDevice &vkDev = Globals::VK::dev;
 
   VkQueryPoolCreateInfo qpci = {VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO};
   qpci.queryType = VK_QUERY_TYPE_OCCLUSION;
   qpci.queryCount = SurveyQueryPool::POOL_SIZE;
   VULKAN_EXIT_ON_FAIL(vkDev.vkCreateQueryPool(vkDev.get(), &qpci, NULL, ptr(pool.pool)));
 
-  pool.dataStore = device.createBuffer(sizeof(uint32_t) * SurveyQueryPool::POOL_SIZE, DeviceMemoryClass::DEVICE_RESIDENT_BUFFER, 1,
+  pool.dataStore = Buffer::create(sizeof(uint32_t) * SurveyQueryPool::POOL_SIZE, DeviceMemoryClass::DEVICE_RESIDENT_BUFFER, 1,
     BufferMemoryFlags::NONE);
-  device.setBufName(pool.dataStore, "survey query pool");
+  Globals::Dbg::naming.setBufName(pool.dataStore, "survey query pool");
   surveyPool.push_back(pool);
 }
 
@@ -110,7 +115,7 @@ bool SurveyQueryManager::getResult(uint32_t name)
   uint32_t poolIndex = name / QueryPool::POOL_SIZE;
   uint32_t surveyId = name % QueryPool::POOL_SIZE;
 
-  VulkanDevice &vkDev = get_device().getVkDevice();
+  VulkanDevice &vkDev = Globals::VK::dev;
 
   WinAutoLock lock(surveyPoolGuard);
   if (surveyPool[poolIndex].validMask & (QueryPool::BlockMask_t(1) << surveyId))
@@ -127,7 +132,7 @@ bool SurveyQueryManager::getResult(uint32_t name)
 void SurveyQueryManager::shutdownDataBuffers()
 {
   // delete the buffers here and later the pools
-  DeviceContext &ctx = get_device().getContext();
+  DeviceContext &ctx = Globals::ctx;
 
   for (auto &&pool : surveyPool)
     ctx.destroyBuffer(pool.dataStore);
@@ -135,7 +140,7 @@ void SurveyQueryManager::shutdownDataBuffers()
 
 void SurveyQueryManager::shutdownPools()
 {
-  VulkanDevice &vkDev = get_device().getVkDevice();
+  VulkanDevice &vkDev = Globals::VK::dev;
   for (auto &&pool : surveyPool)
   {
     VULKAN_LOG_CALL(vkDev.vkDestroyQueryPool(vkDev.get(), pool.pool, nullptr));
@@ -143,148 +148,25 @@ void SurveyQueryManager::shutdownPools()
   surveyPool.clear();
 }
 
-TimestampQuery *TimestampQueryManager::allocate()
+VulkanQueryPoolHandle RaytraceBLASCompactionSizeQueryPool::getPool()
 {
-  WinAutoLock lock(guard);
-
-  return objPool.allocate();
-}
-
-void TimestampQueryManager::release(TimestampQuery *query)
-{
-  WinAutoLock lock(guard);
-
-  if (TimestampQuery::State::ISSUED == query->state)
-    query->timestampHandle.pool->markUnused(query->timestampHandle.index);
-
-  objPool.free(query);
-}
-
-bool TimestampQueryManager::isReady(TimestampQuery *query)
-{
-  if (TimestampQuery::State::ISSUED == query->state)
-  {
-    uint64_t value = query->timestampHandle.pool->values[query->timestampHandle.index].load();
-    if (value != 0)
-    {
-      query->result = value;
-      query->state = TimestampQuery::State::FINALIZED;
-
-      WinAutoLock lock(guard);
-      query->timestampHandle.pool->markUnused(query->timestampHandle.index);
-      return true;
-    }
-    return false;
-  }
-  return true;
-}
-
-CmdInsertTimesampQuery TimestampQueryManager::issue(TimestampQuery *query)
-{
-  TimestampQueryRef queryRef;
-  WinAutoLock lock(guard);
-  auto poolRef = eastl::find_if(begin(queryPools), end(queryPools),
-    [=](const eastl::unique_ptr<TimestampQueryPool> &pool) //
-    {
-      // each bit indicates if its allocated, so if we flip it and its 0
-      // all slots are allocated
-      return 0 != ~pool->validMask;
-    });
-
-  // no empty pool, create a new one
-  if (poolRef == end(queryPools))
-    poolRef = queryPools.emplace(end(queryPools), new TimestampQueryPool);
-
-  queryRef.pool = poolRef->get();
-  for (queryRef.index = 0; queryRef.index < TimestampQueryPool::POOL_SIZE; ++queryRef.index)
-  {
-    if (!queryRef.pool->isFree(queryRef.index))
-      continue;
-
-    queryRef.pool->markUsed(queryRef.index);
-    // has to be set to 0 or user will mistakenly use old values resulting in wrong time stamp results
-    // FIXME: we can read old result if it was not finished before we used index again, not written to it but readed
-    queryRef.pool->values[queryRef.index].store(0);
-    break;
-  }
-
-  // be aware if bitmagic are wrong
-  G_ASSERTF(queryRef.index < TimestampQueryPool::POOL_SIZE,
-    "vulkan: timestamps: can't add to pool with free slots. validMask %llX asked index %u", queryRef.pool->validMask, queryRef.index);
-
-  query->state = TimestampQuery::State::ISSUED;
-  query->timestampHandle = queryRef;
-  CmdInsertTimesampQuery result{queryRef};
-  return result;
-}
-
-void TimestampQueryManager::write(const TimestampQueryRef &ref, VulkanCommandBufferHandle frame_cmds)
-{
-  VulkanDevice &vkDev = get_device().getVkDevice();
-
-  // lazy allocate pool
-  if (is_null(ref.pool->pool))
+  // lazy allocate
+#if D3D_HAS_RAY_TRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
+  if (is_null(pool))
   {
     const VkQueryPoolCreateInfo qpci = //
-      {VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, nullptr, 0, VK_QUERY_TYPE_TIMESTAMP, TimestampQueryPool::POOL_SIZE, 0};
+      {VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, nullptr, 0, VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR, 1, 0};
 
-    VULKAN_EXIT_ON_FAIL(vkDev.vkCreateQueryPool(vkDev.get(), &qpci, nullptr, ptr(ref.pool->pool)));
+    VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkCreateQueryPool(Globals::VK::dev.get(), &qpci, nullptr, ptr(pool)));
   }
-
-  VULKAN_LOG_CALL(vkDev.vkCmdWriteTimestamp(frame_cmds, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, ref.pool->pool, ref.index));
-  resetList.push_back(ref);
+#else
+  DAG_FATAL("vulkan: RaytraceBLASCompactionSizeQueryPool used when RT is not available");
+#endif
+  return pool;
 }
 
-void TimestampQueryManager::writeResetsAndQueueReadbacks(VulkanCommandBufferHandle cmd_b)
+void RaytraceBLASCompactionSizeQueryPool::shutdownPools()
 {
-  eastl::sort(begin(resetList), end(resetList),
-    [](const TimestampQueryRef &l, const TimestampQueryRef &r) //
-    {
-      if (l.pool < r.pool)
-        return true;
-      if (l.pool > r.pool)
-        return false;
-      return l.index < r.index;
-    });
-
-  auto at = begin(resetList);
-  const auto stop = end(resetList);
-
-  Device &device = get_device();
-  ContextBackend &back = device.getContext().getBackend();
-  VulkanDevice &vkDev = device.getVkDevice();
-
-  FrameInfo &frame = back.contextState.frame.get();
-  // this tries to group contiguous pool elements together to reduce api calls
-  while (at != stop)
-  {
-    frame.pendingTimestamps.push_back(*at);
-    auto start = at;
-    auto lastAt = at;
-    for (++at; at != stop; ++at)
-    {
-      if (start->pool != at->pool)
-        break;
-      if (lastAt->index + 1 != at->index)
-        break;
-
-      frame.pendingTimestamps.push_back(*at);
-      lastAt = at;
-    }
-
-    // needs to be this way, at may be same as stop, pointing behind the last valid entry
-    auto count = (lastAt->index - start->index) + 1;
-    VULKAN_LOG_CALL(vkDev.vkCmdResetQueryPool(cmd_b, start->pool->pool, start->index, count));
-  }
-
-  resetList.clear();
-}
-
-void TimestampQueryManager::shutdownPools()
-{
-  VulkanDevice &vkDev = get_device().getVkDevice();
-  for (auto &&pool : queryPools)
-    if (!is_null(pool->pool))
-      VULKAN_LOG_CALL(vkDev.vkDestroyQueryPool(vkDev.get(), pool->pool, nullptr));
-  queryPools.clear();
+  if (!is_null(pool))
+    VULKAN_LOG_CALL(Globals::VK::dev.vkDestroyQueryPool(Globals::VK::dev.get(), pool, nullptr));
 }

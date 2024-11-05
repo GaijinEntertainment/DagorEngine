@@ -1,4 +1,7 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
+#include <drv/3d/dag_driver.h>
 #include <EASTL/tuple.h>
 #include <generic/dag_smallTab.h>
 
@@ -46,17 +49,7 @@ public:
     int dest_subres_idx, int dest_x, int dest_y, int dest_z) = 0;
 
   int level_count() const override;
-  virtual int texaddr(int a) = 0;
-  virtual int texaddru(int a) = 0;
-  virtual int texaddrv(int a) = 0;
-  virtual int texaddrw(int a) = 0;
-  virtual int texbordercolor(E3DCOLOR c) = 0;
-  virtual int texfilter(int m) = 0;
-  virtual int texmipmap(int m) = 0;
-
-  virtual int texlod(float mipmaplod) = 0;
   virtual int texmiplevel(int minlev, int maxlev) = 0;
-  virtual int setAnisotropy(int level) = 0;
 
   void setTexName(const char *name);
 
@@ -70,6 +63,16 @@ public:
 #if DAGOR_DBGLEVEL > 0
   virtual int getTexfilter() const { return texFilter; }
 #endif
+protected:
+  int texaddrImpl(int a) = 0;
+  int texaddruImpl(int a) = 0;
+  int texaddrvImpl(int a) = 0;
+  int texaddrwImpl(int a) = 0;
+  int texbordercolorImpl(E3DCOLOR c) = 0;
+  int texfilterImpl(int m) = 0;
+  int texmipmapImpl(int m) = 0;
+  int texlodImpl(float mipmaplod) = 0;
+  int setAnisotropyImpl(int level) = 0;
 };
 
 int count_mips_if_needed(int w, int h, int32_t flg, int levels);

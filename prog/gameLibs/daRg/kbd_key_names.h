@@ -1,6 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <humanInput/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiKeybIds.h>
 #include <EASTL/tuple.h>
 
 

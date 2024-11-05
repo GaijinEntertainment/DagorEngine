@@ -1,0 +1,434 @@
+include "skinning_inc.dshl"
+
+int matrices_stride = 6;
+buffer instance_data_buffer;
+buffer bind_pose_tr_buffer always_referenced;
+
+macro INIT_WORLD_LOCAL_MATRIX(code)
+  (vs) {
+    world_local_x_vs@f3 = world_local_x;
+    world_local_y_vs@f3 = world_local_y;
+    world_local_z_vs@f3 = world_local_z;
+    world_local_pos_vs@f3 = world_local_pos;
+  }
+endmacro
+
+macro INIT_PER_INSTANCE_DATA(code)
+  hlsl (code) {
+    #ifndef INST_OFFSET_GETTER
+    #define INST_OFFSET_GETTER get_immediate_dword_0()
+    #endif
+  }
+  if (in_editor_assume == no)
+  {
+    (code) {immediate_dword_count = 2;}//todo: probably move to block
+    hlsl(code) {
+      void get_per_instance_data(out float4 bone1, int at)
+      {
+        uint offset_id = INST_OFFSET_GETTER;
+        bone1 = bufferAt(instance_data_buffer, offset_id-at);
+      }
+    }
+  }
+  else
+  {
+    hlsl(code) {
+      void get_per_instance_data(out float4 bone1, int at)
+      {
+        //will return 0 for a while since it not used in tools
+        bone1 = float4(0,0,0,0);
+      }
+    }
+  }
+endmacro
+
+macro USE_BONE_VERTEX_UNPACKING()
+  hlsl(vs)
+  {
+    #ifndef UNPACK_BONE_VERTEX_DATA_DEFINED
+    #define UNPACK_BONE_VERTEX_DATA_DEFINED
+
+    void unpack_bone_vertex_data(float4 packed_indices, float4 packed_weights, out uint4 bi, out float4 bw)
+    {
+      uint4 boneIndices = D3DCOLORtoUBYTE4(packed_indices.zyxw);
+      boneIndices = min(boneIndices, 255U);//fixme: that should never be relevant, but it is.
+      bi = BGRA_SWIZZLE(boneIndices);
+      bw = BGRA_SWIZZLE(packed_weights);
+      bw.w = 1 - bw.x - bw.y - bw.z;
+    }
+
+    #endif
+  }
+endmacro
+
+macro USE_BONE_MATRIX_BLENDING_GEN(blend_bone_mtx_name_t, fetch_bone_mtx_name_t, bone_mtx_stride, bone_mtx_row_getter)
+  hlsl(vs)
+  {
+    bone_t blend_bone_mtx_name_t(uint offset, uint4 bi, float4 bw)
+    {
+      bone_t skinnedTm;
+      bi = bi * bone_mtx_stride + offset;
+      skinnedTm.r0 = bone_mtx_row_getter(bi.x+0) * bw.x + bone_mtx_row_getter(bi.y+0) * bw.y + bone_mtx_row_getter(bi.z+0) * bw.z + bone_mtx_row_getter(bi.w+0) * bw.w;
+      skinnedTm.r1 = bone_mtx_row_getter(bi.x+1) * bw.x + bone_mtx_row_getter(bi.y+1) * bw.y + bone_mtx_row_getter(bi.z+1) * bw.z + bone_mtx_row_getter(bi.w+1) * bw.w;
+      skinnedTm.r2 = bone_mtx_row_getter(bi.x+2) * bw.x + bone_mtx_row_getter(bi.y+2) * bw.y + bone_mtx_row_getter(bi.z+2) * bw.z + bone_mtx_row_getter(bi.w+2) * bw.w;
+      return skinnedTm;
+    }
+    bone_t fetch_bone_mtx_name_t(uint offset, uint bi)
+    {
+      bone_t skinnedTm;
+      bi = bi * bone_mtx_stride + offset;
+      skinnedTm.r0 = bone_mtx_row_getter(bi.x+0);
+      skinnedTm.r1 = bone_mtx_row_getter(bi.x+1);
+      skinnedTm.r2 = bone_mtx_row_getter(bi.x+2);
+      return skinnedTm;
+    }
+  }
+endmacro
+
+
+macro INIT_NO_SKINNING()
+  hlsl(vs) {
+    #define INIT_BONES_VSINPUT(t1, t2)
+  }
+endmacro
+
+macro INIT_HAS_SKINNING()
+hlsl(vs) {
+  #define INIT_BONES_VSINPUT(t1, t2)\
+    float4 packedBoneIndices    : t1;\
+    float4 boneWeights          : t2;
+}
+hlsl {
+  #define HAS_SKINNING 1
+}
+endmacro
+
+macro NO_SKINNING_VS()
+if (in_editor_assume == yes)
+{
+  hlsl(vs) {
+    #define OFFSET_TO_CHUNK(rigid_index) ((get_immediate_dword_0() >> 8 & 0xFFFFFF) + uint(rigid_index * 255.001 * (get_immediate_dword_0() & 0xFF)))
+    #define INSTANCE_DATA_BUFFER instance_data_buffer
+  }
+  WORLD_LOCAL_VS()
+}
+INIT_PER_INSTANCE_DATA(vs)
+hlsl(vs) {
+  void instance_skinning(
+    in VsInput input,
+    in float3 vertex_pos,
+    in float3 vertex_normal,
+    in float3 vertex_du,
+    in float3 vertex_dv,
+    out float3 eye_to_point,
+    out float4 output_pos,
+    out float3 world_normal,
+    out float3 world_du,
+    out float3 world_dv)
+  {
+  ##if in_editor_assume == yes
+    SETUP_RENDER_VARS(input.normal.w);
+
+    output_pos = vertex_pos.x * globtm_0 + vertex_pos.y * globtm_1 + vertex_pos.z * globtm_2 + globtm_3;
+    eye_to_point = output_pos.x * proj_to_world_tm_0.xyz + output_pos.y * proj_to_world_tm_1.xyz + output_pos.z * proj_to_world_tm_2.xyz + output_pos.w * proj_to_world_tm_3.xyz;
+    eye_to_point -= world_view_pos;
+
+    float4 projNormal = vertex_normal.x * globtm_0 + vertex_normal.y * globtm_1 + vertex_normal.z * globtm_2;
+    world_normal = projNormal.x * proj_to_world_tm_0.xyz + projNormal.y * proj_to_world_tm_1.xyz + projNormal.z * proj_to_world_tm_2.xyz + projNormal.w * proj_to_world_tm_3.xyz;
+
+    #if VERTEX_TANGENT
+    float4 projDu = vertex_du.x * globtm_0 + vertex_du.y * globtm_1 + vertex_du.z * globtm_2;
+    world_du = projDu.x * proj_to_world_tm_0.xyz + projDu.y * proj_to_world_tm_1.xyz + projDu.z * proj_to_world_tm_2.xyz + projDu.w * proj_to_world_tm_3.xyz;
+    float4 projDv = vertex_dv.x * globtm_0 + vertex_dv.y * globtm_1 + vertex_dv.z * globtm_2;
+    world_dv = projDv.x * proj_to_world_tm_0.xyz + projDv.y * proj_to_world_tm_1.xyz + projDv.z * proj_to_world_tm_2.xyz + projDv.w * proj_to_world_tm_3.xyz;
+    #else
+    world_du = world_dv = 0;
+    #endif
+  ##else
+    uint offset_id = INST_OFFSET_GETTER;
+    offset_id += uint(input.normal.w*255.001953) * matrices_stride;
+    float4 r1 = bufferAt(instance_data_buffer, offset_id);
+    float4 r2 = bufferAt(instance_data_buffer, offset_id+1);
+    float4 r3 = bufferAt(instance_data_buffer, offset_id+2);
+    float3 world_local_x = r1.xyz;
+    float3 world_local_y = r2.xyz;
+    float3 world_local_z = r3.xyz;
+    float3 world_local_pos = float3(r1.w,r2.w,r3.w);
+
+    eye_to_point = vertex_pos.x * world_local_x + vertex_pos.y * world_local_y + vertex_pos.z * world_local_z + world_local_pos;
+    world_normal = vertex_normal.x * world_local_x + vertex_normal.y * world_local_y + vertex_normal.z * world_local_z;
+    #if VERTEX_TANGENT
+    world_du = vertex_du.x * world_local_x + vertex_du.y * world_local_y + vertex_du.z * world_local_z;
+    world_dv = vertex_dv.x * world_local_x + vertex_dv.y * world_local_y + vertex_dv.z * world_local_z;
+    #else
+    world_du = world_dv = 0;
+    #endif
+    output_pos = mulPointTm(eye_to_point, viewProjTm);
+  ##endif
+  }
+}
+endmacro
+
+macro HAS_SKINNING_VS()
+
+if (in_editor_assume == yes)
+{
+  hlsl(vs)
+  {
+    #define OFFSET_TO_CHUNK(rigid_index) (get_immediate_dword_0() >> 8 & 0xFFFFFF)
+    #define INSTANCE_DATA_BUFFER instance_data_buffer
+  }
+  WORLD_LOCAL_VS()
+}
+
+hlsl(vs)
+{
+##if in_editor_assume == yes
+  #define SKINNING_MATRIX_STRIDE 6
+  #define SKINNING_BONE_ROW_GETTER(bi) get_bone_row(bi)
+##else
+  #define SKINNING_MATRIX_STRIDE (matrices_stride)
+  #define SKINNING_BONE_ROW_GETTER(bi) bufferAt(instance_data_buffer, bi)
+
+  struct bone_t { float4 r0, r1, r2; };
+##endif
+}
+
+INIT_PER_INSTANCE_DATA(vs)
+USE_BONE_VERTEX_UNPACKING()
+USE_BONE_MATRIX_BLENDING_GEN(blend_skinning_matrix_base, fetch_skinning_matrix_base, SKINNING_MATRIX_STRIDE, SKINNING_BONE_ROW_GETTER)
+
+hlsl(vs)
+{
+  float3 mul_bone(float3 p3, bone_t m) { return float3(dot(m.r0, float4(p3,1)), dot(m.r1, float4(p3,1)), dot(m.r2, float4(p3,1))); }
+  float3 mul_bone3(float3 p3, bone_t m) { return float3(dot(m.r0.xyz, p3), dot(m.r1.xyz, p3), dot(m.r2.xyz, p3)); }
+  float3 mul_bone3m(float3 p3, float3x3 m3) { return mul(m3, p3); }
+
+  bone_t blend_skinning_matrix(uint4 bi, float4 bw, uint in_matrix_offset)
+  {
+  ##if in_editor_assume == no
+      in_matrix_offset += INST_OFFSET_GETTER;
+  ##endif
+    return blend_skinning_matrix_base(in_matrix_offset, bi, bw);
+  }
+
+  bone_t bone_skinning_matrix(uint bi)
+  {
+  ##if in_editor_assume == yes
+    uint offset = 0;
+  ##else
+    uint offset = INST_OFFSET_GETTER;
+  ##endif
+    return fetch_skinning_matrix_base(offset, bi);
+  }
+
+  bone_t skinning_matrix_base(in VsInput input, uint in_matrix_offset)
+  {
+    uint4 bi; float4 bw;
+    unpack_bone_vertex_data(input.packedBoneIndices, input.boneWeights, bi, bw);
+    return blend_skinning_matrix(bi, bw, in_matrix_offset);
+  }
+
+  bone_t skinning_matrix(in VsInput input)
+  {
+    return skinning_matrix_base(input, 0);
+  }
+  bone_t prev_skinning_matrix(in VsInput input)
+  {
+    return skinning_matrix_base(input, 3);//Skip 3 rows
+  }
+
+  void instance_skinning(
+    in VsInput input,
+    in float3 vertex_pos,
+    in float3 vertex_normal,
+    in float3 vertex_du,
+    in float3 vertex_dv,
+    out float3 eye_to_point,
+    out float4 output_pos,
+    out float3 world_normal,
+    out float3 world_du,
+    out float3 world_dv)
+  {
+  ##if in_editor_assume == yes
+    SETUP_RENDER_VARS(input.normal.w);
+
+    bone_t skinnedTm = skinning_matrix(input);
+
+    eye_to_point = mul_bone(float4(vertex_pos, 1), skinnedTm);
+    float3x3 wtm = float3x3(skinnedTm.r0.xyz, skinnedTm.r1.xyz, skinnedTm.r2.xyz);   // Rotation part of model TM should be applied to bones.
+
+    world_normal = normalize(mul_bone3m(vertex_normal, wtm));
+    #if VERTEX_TANGENT
+    world_du = normalize(mul_bone3m(vertex_du, wtm));
+    world_dv = normalize(mul_bone3m(vertex_dv, wtm));
+    #else
+    world_du = world_dv = 0;
+    #endif
+    output_pos = eye_to_point.x * globtm_0 + eye_to_point.y * globtm_1 + eye_to_point.z * globtm_2 + globtm_3;
+  ##else
+    bone_t skinnedTm = skinning_matrix(input);
+
+    eye_to_point = mul_bone(vertex_pos, skinnedTm);
+    world_normal = mul_bone3(vertex_normal, skinnedTm);
+
+    #if VERTEX_TANGENT
+    world_du = normalize(mul_bone3m(vertex_du, wtm));
+    world_dv = normalize(mul_bone3m(vertex_dv, wtm));
+    #else
+    world_du = world_dv = 0;
+    #endif
+    output_pos = mulPointTm(eye_to_point, viewProjTm);
+  ##endif
+  }
+}
+endmacro
+
+macro OPTIONAL_SKINNING_SHADER()
+if (num_bones == no_bones)
+{
+  NO_SKINNING_VS()
+} else
+{
+  HAS_SKINNING_VS()
+}
+endmacro
+
+macro INIT_OPTIONAL_SKINNING()
+if (num_bones == no_bones)
+{
+  INIT_NO_SKINNING()
+} else
+{
+  INIT_HAS_SKINNING()
+}
+endmacro
+
+macro USE_MOTION_VECTORS()
+  hlsl(vs)
+  {
+    #ifdef MOTION_VECTORS_ENABLED                  // 0                3                6
+    #define PREV_MATRIX_OFFSET (matrices_stride-3) // | current        | previous       |
+                                                   // | row1 row2 row3 | row1 row2 row3 |
+    // If matrices_slide == 3 then motion vectors are not used and previous matrices are missing
+    // in the instance_data buffer. In this case prev matrix = current matrix to avoid reading invalid data.
+    struct PositionDesc{
+      float4 pos;
+      float3 eyeToPoint;
+      float3 worldNormal;
+    };
+    PositionDesc get_prevframe_output_parameters(in VsInput input, in float3 vertex_pos, float3 vertex_normal)
+    {
+      #ifdef HAS_SKINNING
+        bone_t skinnedTm = skinning_matrix_base(input, PREV_MATRIX_OFFSET);
+        float3 eye_to_point = mul_bone(vertex_pos, skinnedTm);
+        float3 world_normal = mul_bone3(vertex_normal, skinnedTm);
+        ##if in_editor_assume == yes
+          SETUP_RENDER_VARS(input);
+          float3 skinned_vertex_pos = eye_to_point;
+        ##endif
+      #else
+        uint offset_id = INST_OFFSET_GETTER;
+        offset_id += uint(input.normal.w*255.001953) * matrices_stride + PREV_MATRIX_OFFSET;
+      ##if in_editor_assume == no
+        float4 r1 = bufferAt(instance_data_buffer, offset_id);
+        float4 r2 = bufferAt(instance_data_buffer, offset_id+1);
+        float4 r3 = bufferAt(instance_data_buffer, offset_id+2);
+        float3 world_local_x_vs = r1.xyz;
+        float3 world_local_y_vs = r2.xyz;
+        float3 world_local_z_vs = r3.xyz;
+        float3 world_local_pos_vs = float3(r1.w,r2.w,r3.w);
+        float3 eye_to_point = vertex_pos.x * world_local_x_vs + vertex_pos.y * world_local_y_vs + vertex_pos.z * world_local_z_vs + world_local_pos_vs;
+        float3 world_normal = vertex_normal.x * world_local_x_vs + vertex_normal.y * world_local_y_vs + vertex_normal.z * world_local_z_vs;
+      ##else
+        SETUP_RENDER_VARS(input.normal.w);
+        float3 skinned_vertex_pos = vertex_pos;
+        float3 world_normal = vertex_normal;
+      ##endif
+      #endif
+      ##if in_editor_assume == no
+        float4 r = mulPointTm(eye_to_point, prevViewProjTm);
+      ##else
+        float4 r = skinned_vertex_pos.x * prev_globtm_0 + skinned_vertex_pos.y * prev_globtm_1 + skinned_vertex_pos.z * prev_globtm_2 + prev_globtm_3;
+      ##endif
+
+      PositionDesc result;
+      result.pos = r;
+      ##if in_editor_assume == yes
+        result.eyeToPoint = skinned_vertex_pos; // Note: Tool path is untested
+      ##else
+        result.eyeToPoint = eye_to_point;
+      ##endif
+      result.worldNormal = world_normal;
+      return result;
+    }
+    float4 get_prevframe_output_pos(in VsInput input, in float3 vertex_pos)
+    {
+      return get_prevframe_output_parameters(input, vertex_pos, 0).pos;
+    }
+    #endif
+  }
+endmacro
+
+
+macro DECLARE_BINDPOSE()
+  dynamic int bind_pose_indicator_dummy = 0;
+endmacro
+
+macro INIT_BINDPOSE_VS()
+  (vs)
+  {
+    bind_pose_indicator_dummy@i1 = (bind_pose_indicator_dummy);
+  }
+  if (in_editor_assume == no && num_bones != no_bones)
+  {
+    (vs)
+    {
+      bind_pose_tr_buffer@buf = bind_pose_tr_buffer hlsl { StructuredBuffer<float4> bind_pose_tr_buffer@buf; }
+    }
+  }
+endmacro
+
+macro USE_BINDPOSE_VS()
+  if (in_editor_assume == no && num_bones != no_bones) // no bindpose support for the editor (or outside or daNetGame)
+  {
+    hlsl(vs)
+    {
+      #define BINDPOSE_BONE_ROW_GETTER(bi) bind_pose_tr_buffer[bi]
+    }
+    USE_BONE_VERTEX_UNPACKING()
+    USE_BONE_MATRIX_BLENDING_GEN(blend_bindpose_matrix_base, fetch_bindpose_matrix_base, 3, BINDPOSE_BONE_ROW_GETTER)
+    hlsl(vs)
+    {
+      bone_t blend_bindpose_matrix(uint4 bi, float4 bw)
+      {
+        uint offset = get_immediate_dword_1();
+        return blend_bindpose_matrix_base(offset, bi, bw);
+      }
+      bone_t bindpose_matrix_base(in VsInput input)
+      {
+        uint4 bi; float4 bw;
+        unpack_bone_vertex_data(input.packedBoneIndices, input.boneWeights, bi, bw);
+        return blend_bindpose_matrix(bi, bw);
+      }
+
+      bone_t bindpose_matrix(uint bi)
+      {
+        uint offset = get_immediate_dword_1();
+        return fetch_skinning_matrix_base(offset, bi);
+      }
+
+      bone_t calc_bone_wtm(bone_t skinning_tm, bone_t bindpose_tm)
+      {
+        // TODO: maybe optimize it
+        float4x4 bindPose = float4x4(bindpose_tm.r0, bindpose_tm.r1, bindpose_tm.r2, float4(0,0,0,1));
+        bone_t wtm;
+        wtm.r0 = mul(skinning_tm.r0, bindPose);
+        wtm.r1 = mul(skinning_tm.r1, bindPose);
+        wtm.r2 = mul(skinning_tm.r2, bindPose);
+        return wtm;
+      }
+    }
+  }
+endmacro
+

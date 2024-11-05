@@ -1,8 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef _GAIJIN_FX_COMMONFXTOOLS_H
-#define _GAIJIN_FX_COMMONFXTOOLS_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 void register_anim_planes_fx_tools();
 void register_blood_ps_fx_tools();
@@ -28,6 +25,3 @@ void register_dafx_modfx_fx_tools();
 void register_dafx_compound_fx_tools();
 
 void register_all_common_fx_tools();
-
-
-#endif

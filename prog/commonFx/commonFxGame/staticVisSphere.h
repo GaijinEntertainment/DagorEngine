@@ -1,8 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef _GAIJIN_DAGOR_FX_STATICVISSPHERE_H
-#define _GAIJIN_DAGOR_FX_STATICVISSPHERE_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <fx/dag_baseFxClasses.h>
 
@@ -20,6 +17,3 @@ public:
   virtual void setParam(unsigned /*id*/, void * /*value*/) {}
   virtual void *getParam(unsigned /*id*/, void * /*value*/) { return NULL; }
 };
-
-
-#endif

@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_caustics_pull ;
+  UseProgLibs += daNetGameLibs/caustics ;
+}

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "das_ecs.h"
 #include <dasModules/dasMacro.h>
 #include <dasModules/dasEvent.h>
@@ -59,11 +61,6 @@ struct EntityIdAnnotation final : das::ManagedValueAnnotation<ecs::EntityId>
       int32_t eidV = int32_t(ecs::entity_id_t(*t));
       walker.Int(eidV);
     }
-  }
-  virtual bool canClone() const override { return true; }
-  das::SimNode *simulateClone(das::Context &context, const das::LineInfo &at, das::SimNode *l, das::SimNode *r) const override
-  {
-    return context.code->makeNode<das::SimNode_CloneRefValueT<ecs::EntityId>>(at, l, r);
   }
   bool canBePlacedInContainer() const override { return true; }
   virtual bool hasNonTrivialCtor() const override { return false; } // Warning: workaround, do not copy!

@@ -44,21 +44,14 @@ String dumpCmdParam(VulkanQueryPoolHandle buffer, CmdDumpContext) { return Strin
 String dumpCmdParam(const BufferRef &value, CmdDumpContext ctx)
 {
   ctx.addRef(FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)value.buffer);
-  return String(32, "BufferRef{ buffer = 0x%p{0x%X}, discardIndex = %u }", value.buffer,
-    value.buffer ? value.buffer->getHandle().value : 0, value.discardIndex);
+  return String(32, "BufferRef{ buffer = 0x%p{0x%X}, offset = %u }", value.buffer, value.buffer ? value.buffer->getHandle().value : 0,
+    value.offset);
 }
 
 String dumpCmdParam(const VkRect2D &value, CmdDumpContext)
 {
   return String(32, "VkRect2D{ x = %i, y = %i, w = %u, h = %u }", value.offset.x, value.offset.y, value.extent.width,
     value.extent.height);
-}
-
-String dumpCmdParam(const BufferSubAllocation &value, CmdDumpContext ctx)
-{
-  ctx.addRef(FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)value.buffer);
-  return String(32, "BufferSubAllocation{ buffer = 0x%p{0x%X}, offset = %u, size = %u }", value.buffer,
-    value.buffer ? value.buffer->getHandle().value : 0, value.offset, value.size);
 }
 
 String dumpCmdParam(ProgramID value, CmdDumpContext ctx)
@@ -93,12 +86,6 @@ String dumpCmdParam(const VkImageBlit &value, CmdDumpContext)
     value.srcOffsets[1].y, value.srcOffsets[1].z, value.dstSubresource.aspectMask, value.dstSubresource.mipLevel,
     value.dstSubresource.baseArrayLayer, value.dstSubresource.layerCount, value.dstOffsets[0].x, value.dstOffsets[0].y,
     value.dstOffsets[0].z, value.dstOffsets[1].x, value.dstOffsets[1].y, value.dstOffsets[1].z);
-}
-
-String dumpCmdParam(const TimestampQueryRef &value, CmdDumpContext)
-{
-  return String(32, "TimestampQueryRef{ pool = 0x%p{0x%X}, index = %u }", value.pool, value.pool ? value.pool->pool.value : 0,
-    value.index);
 }
 
 String dumpCmdParam(const VkClearColorValue &value, CmdDumpContext)
@@ -248,8 +235,6 @@ String dumpCmdParam(GraphicsProgram *value, CmdDumpContext) { return String(32, 
 
 String dumpCmdParam(ThreadedFence *value, CmdDumpContext) { return String(32, "0x%p", value); }
 
-String dumpCmdParam(AsyncCompletionState *value, CmdDumpContext) { return String(32, "0x%p", value); }
-
 #if D3D_HAS_RAY_TRACING
 
 String dumpCmdParam(RaytraceAccelerationStructure *value, CmdDumpContext ctx)
@@ -332,6 +317,21 @@ String dumpCmdParam(const InputLayoutID &val, CmdDumpContext) { return String(32
 
 String dumpCmdParam(FrameEvents *, CmdDumpContext) { return String(32, "Frame event callback ..."); }
 
+String dumpCmdParam(const FSRUpscalingArgs &args, CmdDumpContext)
+{
+  return String(0,
+    "FSRUpscaling\n"
+    ">>colorTexture: 0x%p\n"
+    ">>depthTexture: 0x%p\n"
+    ">>motionVectors: 0x%p\n"
+    ">>exposureTexture: 0x%p\n"
+    ">>reactiveTexture: 0x%p\n"
+    ">>transparencyAndCompositionTexture: 0x%p\n"
+    ">>outputTexture: 0x%p\n",
+    args.colorTexture, args.depthTexture, args.motionVectors, args.exposureTexture, args.reactiveTexture,
+    args.transparencyAndCompositionTexture, args.outputTexture);
+}
+
 String dumpCmdParam(const VkBufferImageCopy &val, CmdDumpContext)
 {
   return String(128,
@@ -369,8 +369,7 @@ String dumpCmdParam(const TRegister &tReg, CmdDumpContext ctx)
   {
     case TRegister::TYPE_IMG:
       ctx.addRef(FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)tReg.img.ptr);
-      return String(64, "img %p %s %s", tReg.img.ptr, tReg.isSwapchainColor ? "swc_clr" : "-",
-        tReg.isSwapchainDepth ? "swc_depth" : "-");
+      return String(64, "img %p %s %s", tReg.img.ptr);
     case TRegister::TYPE_BUF:
       ctx.addRef(FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)tReg.buf.buffer);
       return String(64, "buf %p\n", tReg.buf.buffer);
@@ -398,10 +397,20 @@ String dumpCmdParam(const SRegister &sReg, CmdDumpContext ctx)
     return String(32, "spl unknown type %u", sReg.type);
 }
 
-
 String dumpCmdParam(const RenderPassArea &area, CmdDumpContext)
 {
   return String(32, "RPArea [%u, %u] - [%u, %u] Z [%f, %f]", area.left, area.top, area.width, area.height, area.minZ, area.maxZ);
+}
+
+String dumpCmdParam(const AliasedResourceMemory &mem_alias, CmdDumpContext)
+{
+  return String(64,
+    "AliasedResourceMemory {"
+    "deviceMemory=%s, "
+    "handle=0x%016llX, "
+    "offset=0x%016llX, "
+    "size=0x%016llX}",
+    mem_alias.deviceMemory ? "y" : "n", mem_alias.handle, mem_alias.offset, mem_alias.size);
 }
 
 } // namespace

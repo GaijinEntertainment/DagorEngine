@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -167,9 +166,11 @@ public:
     Sqrat::DerivedClass<First, ecs::Event> sqEventCls(vm, First::staticName());
     register_native_event<First>();
     event_ctor_bind_helper<decltype(sqEventCls), typename First::TupleType>(sqEventCls, eastl::make_index_sequence<argsN>());
-    sqEventCls.SquirrelFunc("_get", evt_get<First>, 2, "x.")
+    sqEventCls //
+      .SquirrelFunc("_get", evt_get<First>, 2, "x.")
       .GlobalFunc("len", evt_len<argsN>)
-      .SquirrelFunc("_nexti", evt_nexti<argsN>, 2, "xi|o");
+      .SquirrelFunc("_nexti", evt_nexti<argsN>, 2, "xi|o")
+      /**/;
 
     {
       Sqrat::Object clsObj(sqEventCls.GetObject(), vm);

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_assert.h>
 #include <pcrecpp_nostl.h>
 #include "sqRegExp.h"

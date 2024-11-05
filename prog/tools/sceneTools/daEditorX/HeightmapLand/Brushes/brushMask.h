@@ -1,5 +1,4 @@
-#ifndef __GAIJIN_HEIGHTMAPLAND_BRUSH_MASK__
-#define __GAIJIN_HEIGHTMAPLAND_BRUSH_MASK__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <generic/dag_smallTab.h>
@@ -24,5 +23,3 @@ protected:
   };
   Tab<Mask> maskChain;
 };
-
-#endif //__GAIJIN_HEIGHTMAP_BRUSH__

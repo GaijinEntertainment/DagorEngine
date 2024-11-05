@@ -1,0 +1,1 @@
+include %daslib/safe_addr.das

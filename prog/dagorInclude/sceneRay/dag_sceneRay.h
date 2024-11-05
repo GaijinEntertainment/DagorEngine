@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -25,9 +24,11 @@
 #include <generic/dag_tab.h>
 #include <generic/dag_smallTab.h>
 #include <generic/dag_patchTab.h>
+#include <generic/dag_relocatableFixedVector.h>
 #include <sceneRay/dag_rtHierGrid3.h>
 #include <math/integer/dag_IBBox3.h>
 #include <vecmath/dag_vecMath.h>
+#include <memory/dag_framemem.h>
 
 // forward declarations for external classes
 struct Capsule;
@@ -38,11 +39,18 @@ class GlobalSharedMemStorage;
 // clang-format off
 namespace dag
 {
-template<typename T> struct IndexTypeHelper {};
-template<> struct IndexTypeHelper<SceneRayI24F8> { typedef unsigned index_t; };
-template<> struct IndexTypeHelper<uint16_t> { typedef uint16_t index_t; };
+  template<typename T> struct IndexTypeHelper {};
+  template<> struct IndexTypeHelper<SceneRayI24F8> { typedef unsigned index_t; };
+  template<> struct IndexTypeHelper<uint16_t> { typedef uint16_t index_t; };
 }
 // clang-format on
+
+struct FaceIntersection
+{
+  int faceId;
+  float t;
+};
+typedef dag::RelocatableFixedVector<FaceIntersection, 8, true, framemem_allocator> all_faces_ret_t;
 
 //! Standard interface for ray-tracing static scene composed of meshes.
 //! This class provide no way to create useful object -  use deserialized or buildable one.
@@ -57,14 +65,6 @@ public:
   typedef typename dag::IndexTypeHelper<FI>::index_t index_t;
 
   GetFacesContext *getMainThreadCtx() const;
-  class Ray : public WooRay3d
-  {
-  public:
-    real mint, startAt;
-    Ray(const Point3 &start, const Point3 &dir, real dist, real start_at, const Point3 &leafSize) :
-      startAt(start_at), mint(dist), WooRay3d(start, dir, leafSize)
-    {}
-  };
   enum
   {
     CULL_CCW = 0x01,
@@ -138,8 +138,8 @@ public:
 
   //! Tests ray hit to closest object and returns parameters of hit (if happen)
   /// return -1 if not hit, face index otherwise
-  int traceray(const Point3 &p, const Point3 &dir, real &t, int fromFace = -1) const;
-  VECTORCALL int traceray(vec3f p, vec3f dir, real &mint, int fromFace = -1) const;
+  int traceray(const Point3 &p, const Point3 &dir, real &t, int ignore_face = -1) const;
+  VECTORCALL int traceray(vec3f p, vec3f dir, real &mint, int ignore_face = -1) const;
 
   //! Gets height to closest object, but below point and returns parameters of hit (if happen)
   /// return -1 if there is no face below, face index otherwise
@@ -151,19 +151,16 @@ public:
 
   //! Tests ray hit to closest object and returns parameters of hit (if happen), for normalized Dir only
   /// return -1 if not hit, face index otherwise
-  int tracerayNormalized(const Point3 &p, const Point3 &dir, real &t, int fromFace = -1) const;
-  VECTORCALL int tracerayNormalized(vec3f p, vec3f dir, real &mint, int fromFace = -1) const;
-
-  //! Tests ray hit to closest object and returns parameters of hit (if happen), for normalized Dir only
-  /// return -1 if not hit, face index otherwise
-  int tracerayNormalizedScalar(const Point3 &p, const Point3 &normDir, real &t, int fromFace = -1) const;
+  int tracerayNormalized(const Point3 &p, const Point3 &dir, real &t, int ignore_face = -1) const;
+  VECTORCALL int tracerayNormalized(vec3f p, vec3f dir, real &mint, int ignore_face = -1) const;
+  VECTORCALL bool tracerayNormalized(vec3f p, vec3f dir, real mint, all_faces_ret_t &hits) const;
 
   __forceinline void setUseFlagMask(unsigned flag) { useFlags = flag << 24; }
 
   __forceinline void setSkipFlagMask(unsigned flag) { skipFlags = flag << 24; }
 
   //! Tests ray hit to any object and returns parameters of hit (if happen)
-  VECTORCALL int rayhitNormalizedIdx(vec3f p, vec3f dir, real mint) const;
+  VECTORCALL int rayhitNormalizedIdx(vec3f p, vec3f dir, real mint, int ignore_face = -1) const;
   VECTORCALL bool rayhitNormalized(vec3f p, vec3f dir, real mint) const { return rayhitNormalizedIdx(p, dir, mint) >= 0; }
   bool rayhitNormalized(const Point3 &p, const Point3 &d, real t) const { return rayhitNormalized(v_ldu(&p.x), v_ldu(&d.x), t); }
 
@@ -227,19 +224,19 @@ protected:
     const Node *node) const;
   inline int clipCapsuleLNode(const Capsule &c, Point3 &cp1, Point3 &cp2, real &md, const Point3 &movedirNormalized,
     const LNode *node) const;
-  inline int tracerayLNode(const Point3 &p, const Point3 &dir, real &t, const LNode *node, int fromFace) const;
-  inline int tracerayNode(const Point3 &p, const Point3 &dir, real &t, const Node *node, int fromFace) const;
+  inline int tracerayLNode(const Point3 &p, const Point3 &dir, real &t, const LNode *node, int ignore_face) const;
+  inline int tracerayNode(const Point3 &p, const Point3 &dir, real &t, const Node *node, int ignore_face) const;
 
   // NOINLINE and ref& added for better performance
   template <bool noCull>
-  DAGOR_NOINLINE int tracerayLNodeVec(const vec3f &p, const vec3f &dir, float &t, const LNode *node, int fromFace) const;
+  DAGOR_NOINLINE int tracerayLNodeVec(const vec3f &p, const vec3f &dir, float &t, const LNode *node, int ignore_face) const;
   template <bool noCull>
-  DAGOR_NOINLINE int tracerayNodeVec(const vec3f &p, const vec3f &dir, float &t, const Node *node, int fromFace) const;
+  DAGOR_NOINLINE int tracerayNodeVec(const vec3f &p, const vec3f &dir, float &t, const Node *node, int ignore_face) const;
 
   template <bool noCull>
-  VECTORCALL inline int rayhitLNodeIdx(vec3f p, vec3f dir, float t, const LNode *node) const;
+  VECTORCALL inline int rayhitLNodeIdx(vec3f p, vec3f dir, float t, const LNode *node, int ignore_face) const;
   template <bool noCull>
-  VECTORCALL inline int rayhitNodeIdx(vec3f p, vec3f dir, float t, const Node *node) const;
+  VECTORCALL inline int rayhitNodeIdx(vec3f p, vec3f dir, float t, const Node *node, int ignore_face) const;
 
   inline int getHeightBelowLNode(const Point3 &p, real &ht, const LNode *node) const;
   inline int getHeightBelowNode(const Point3 &p, real &ht, const Node *node) const;

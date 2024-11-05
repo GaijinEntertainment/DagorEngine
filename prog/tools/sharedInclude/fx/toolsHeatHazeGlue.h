@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_tex3d.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <render/heatHazeRenderer.h>
 #include <shaders/dag_overrideStates.h>

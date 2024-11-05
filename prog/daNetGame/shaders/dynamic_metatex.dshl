@@ -1,0 +1,41 @@
+include "dynamic_opaque_metatex_inc.dshl"
+include "dynamic_metatex_inc.dshl"
+
+shader dynamic_metatex, dynamic_emissive_metatex, dynamic_translucent_metatex
+{
+  INIT_OPAQUE_METATEX_PS()
+  if (shader == dynamic_emissive_metatex)
+  {
+    INIT_METATEX_EMISSIVE()
+  }
+  else if (shader == dynamic_translucent_metatex)
+  {
+    INIT_METATEX_TRANSLUCENT()
+  }
+  else
+  {
+    INIT_METATEX_COMMON()
+  }
+  DYNAMIC_BLOCK()
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    hlsl {
+      #define MOTION_VECTORS_ENABLED
+    }
+  }
+
+  DYNAMIC_SIMPLE_VS_ATEST_USE()
+
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    DYNAMIC_SIMPLE_SHARED_DECL(ps) // needed for dynmat metadata
+  }
+  SET_DYNMAT_METATEX_PARAM_GETTERS()
+  ENABLE_ASSERT(ps)
+
+  METATEX_PS()
+}

@@ -20,11 +20,10 @@ endmacro
     Shamelessly stolen from UE4 Pivot Painter 2
     MaterialFunction'/Engine/Functions/Engine_MaterialFunctions02/PivotPainter2/PivotPainter2FoliageShader.PivotPainter2FoliageShader'
 */
-macro USE_PIVOT_PAINTER()
-  (vs) {
-    pp_pos_tex@static = pp_position;
-    pp_dir_tex@static = pp_direction;
 
+macro USE_PIVOT_PAINTER_BASE(stage)
+  (stage)
+  {
     wind_noise_speed_base@f1 = (wind_noise_speed_base);
     wind_noise_speed_level_mul@f1 = (wind_noise_speed_level_mul);
 
@@ -38,7 +37,7 @@ macro USE_PIVOT_PAINTER()
     wind_motion_damp_level_mul@f1 = (wind_motion_damp_level_mul);
   }
 
-  hlsl(vs) {
+  hlsl(stage) {
     // This should be parameter and be EQUAL to houdini's i@gen max value
     static const int MAX_ALLOWED_HIERARCHY = 4;
 
@@ -74,7 +73,7 @@ macro USE_PIVOT_PAINTER()
 
     int getParentIndexAndPivotPos(float2 coords, float3 X, float3 Y, float3 Z, float3 P, out float3 pivotPos)
     {
-      float4 result = tex2DLodBindless(get_pp_pos_tex(), float4(coords,0,0));
+      float4 result = sample_pp_pos_tex(coords);
 
       pivotPos = transformLocalWorld(result.xyz, X, Y, Z, P);
 
@@ -86,7 +85,7 @@ macro USE_PIVOT_PAINTER()
 
     float4 getParentPivotDirectionAndExtent(float2 coords, float3 X, float3 Y, float3 Z)
     {
-      float4 result = tex2DLodBindless(get_pp_dir_tex(), float4(coords,0,0));
+      float4 result = sample_pp_dir_tex(coords);
 
       result.xyz = scaleRotateLocalWorld( result.xyz * 2.0 - 1.0, X, Y, Z );
       float len = max(length(result.xyz), 0.01);
@@ -105,6 +104,7 @@ macro USE_PIVOT_PAINTER()
       // Hierarchical attributes, 0 == current level, 1 == parent, 2 == parent of parent, etc.
       float3 branchPivotPos[MAX_ALLOWED_HIERARCHY];
       float4 branchDirExtent[MAX_ALLOWED_HIERARCHY];
+      int branchIndices[MAX_ALLOWED_HIERARCHY];
     };
 
     HierarchyData fetchHierarchyData(float2 startCoords, float3 X, float3 Y, float3 Z, float3 P)
@@ -117,6 +117,8 @@ macro USE_PIVOT_PAINTER()
       for(int level = 0; level < MAX_ALLOWED_HIERARCHY; ++level)
       {
         int curIdx = getIndexByUv(currentUV);
+        Data.branchIndices[level] = curIdx;
+
         int parentIdx = getParentIndexAndPivotPos(currentUV, X, Y, Z, P, Data.branchPivotPos[level].xyz);
         Data.branchDirExtent[level].xyzw = getParentPivotDirectionAndExtent(currentUV, X, Y, Z);
 
@@ -164,8 +166,38 @@ macro USE_PIVOT_PAINTER()
       return v + q.w * t + cross(q.xyz, t);
     }
 
+    float3 evaluate_wind_animation(
+      float3 windDirectionScaleNormalized, float windSpeed, int idx,
+      float3 branchPivotPos, float3 branchDir, float branchExtent,
+      float3 oldPos, float parentAngleAnimation,
+      inout float rotationAngleAnimation, inout float4 rotQuat)
+    {
+      rotationAngleAnimation = 0;
+      rotationAngleAnimation += windSpeed * getAngleRotationRate(idx);
+      rotationAngleAnimation += saturate(windSpeed) * parentAngleAnimation * get_wind_parent_contrib();
+      rotationAngleAnimation = min(rotationAngleAnimation, get_wind_per_level_angle_rot_max()[idx]);
+
+      float3 dirFromRoot = (oldPos - branchPivotPos);
+      float alongBranch = dot(dirFromRoot, branchDir);
+      float falloff = getMotionDampeningFalloffRadius(idx) * branchExtent;
+      float motionMask = saturate(alongBranch / falloff);
+
+      float rotationAngle = rotationAngleAnimation * motionMask;
+
+      float3 rotationAxis = cross(branchDir, windDirectionScaleNormalized);
+      rotationAngle *= length(rotationAxis);
+      //Protect cross-product from returning 0
+      rotationAxis = lerp(branchDir, rotationAxis, saturate(windSpeed / 0.001));
+      rotationAxis = normalize(rotationAxis);
+
+      rotQuat = makeQuat(rotationAxis, rotationAngle * PI / 180);
+      float3 newPos = quatRotate(rotQuat, oldPos-branchPivotPos) + branchPivotPos;
+
+      return newPos - oldPos; //offset
+    }
+
     void applyWindAnimationOffset(float3 oldPos, inout float3 inOutNormal, HierarchyData input, float time, float weight,
-                                  out float3 currNewPos, out float3 prevNewPos)
+                                  out float3 currNewPos, out float3 prevNewPos, out float maxAnimation)
     {
       float currParentAngleAnimation = 0.0, prevParentAngleAnimation = 0.0;
       float3 currOffset = 0.0;
@@ -183,61 +215,29 @@ macro USE_PIVOT_PAINTER()
         float branchExtent = input.branchDirExtent[revIdx].w;
 
         float3 branchTipPos = branchPivotPos + branchDir*branchExtent;
+        float4 rotQuat = float4(0, 0, 0, 0);
+        float rotationAngleAnimation = 0;
         { // evaluate current wind animation
           float3 windDirectionScale = weight * sampleWindCurrentTime(branchTipPos, getWindSpeedMult(idx), 0);
           float windSpeed = length(windDirectionScale);
+          float3 windDirectionScaleNormalized = windDirectionScale / max(windSpeed, 0.001);
 
-          float rotationAngleAnimation = 0;
-          rotationAngleAnimation += windSpeed * getAngleRotationRate(idx);
-          rotationAngleAnimation += saturate(windSpeed) * currParentAngleAnimation * get_wind_parent_contrib();
-          rotationAngleAnimation = min(rotationAngleAnimation, get_wind_per_level_angle_rot_max()[idx]);
-
-          float3 dirFromRoot = (oldPos - branchPivotPos);
-          float alongBranch = dot(dirFromRoot, branchDir);
-          float falloff = getMotionDampeningFalloffRadius(idx) * branchExtent;
-          float motionMask = saturate(alongBranch / falloff);
-
-          float rotationAngle = rotationAngleAnimation * motionMask;
-
-          float3 rotationAxis = cross(branchDir, windDirectionScale / max(windSpeed, 0.001));
-          rotationAngle *= length(rotationAxis);
-          //Protect cross-product from returning 0
-          rotationAxis = lerp(branchDir, rotationAxis, saturate(windSpeed / 0.001));
-          rotationAxis = normalize(rotationAxis);
-
-          float4 rotQuat = makeQuat(rotationAxis, rotationAngle * PI / 180);
-          float3 newPos = quatRotate(rotQuat, oldPos-branchPivotPos) + branchPivotPos;
+          currOffset += evaluate_wind_animation(windDirectionScaleNormalized, windSpeed, idx, branchPivotPos,
+                                                branchDir, branchExtent, oldPos, currParentAngleAnimation,
+                                                rotationAngleAnimation, rotQuat);
 
           normal = quatRotate(rotQuat, normal);
-          currOffset += newPos - oldPos;
           currParentAngleAnimation += rotationAngleAnimation;
         }
         { // evaluate previous wind animation
           float3 windDirectionScale = weight * sampleWindPreviousTime(branchTipPos, getWindSpeedMult(idx), 0);
           float windSpeed = length(windDirectionScale);
+          float3 windDirectionScaleNormalized = windDirectionScale / max(windSpeed, 0.001);
 
-          float rotationAngleAnimation = 0;
-          rotationAngleAnimation += windSpeed * getAngleRotationRate(idx);
-          rotationAngleAnimation += saturate(windSpeed) * prevParentAngleAnimation * get_wind_parent_contrib();
-          rotationAngleAnimation = min(rotationAngleAnimation, get_wind_per_level_angle_rot_max()[idx]);
+          prevOffset += evaluate_wind_animation(windDirectionScaleNormalized, windSpeed, idx, branchPivotPos,
+                                                branchDir, branchExtent, oldPos, prevParentAngleAnimation,
+                                                rotationAngleAnimation, rotQuat);
 
-          float3 dirFromRoot = (oldPos - branchPivotPos);
-          float alongBranch = dot(dirFromRoot, branchDir);
-          float falloff = getMotionDampeningFalloffRadius(idx) * branchExtent;
-          float motionMask = saturate(alongBranch / falloff);
-
-          float rotationAngle = rotationAngleAnimation * motionMask;
-
-          float3 rotationAxis = cross(branchDir, windDirectionScale / max(windSpeed, 0.001));
-          rotationAngle *= length(rotationAxis);
-          //Protect cross-product from returning 0
-          rotationAxis = lerp(branchDir, rotationAxis, saturate(windSpeed / 0.001));
-          rotationAxis = normalize(rotationAxis);
-
-          float4 rotQuat = makeQuat(rotationAxis, rotationAngle * PI / 180);
-          float3 newPos = quatRotate(rotQuat, oldPos-branchPivotPos) + branchPivotPos;
-
-          prevOffset += newPos - oldPos;
           prevParentAngleAnimation += rotationAngleAnimation;
         }
       }
@@ -245,6 +245,28 @@ macro USE_PIVOT_PAINTER()
       inOutNormal = normal;
       currNewPos = oldPos + currOffset;
       prevNewPos = oldPos + prevOffset;
+      maxAnimation = max(prevParentAngleAnimation, currParentAngleAnimation);
+    }
+    void applyWindAnimationOffset(float3 oldPos, inout float3 inOutNormal, HierarchyData input, float time, float weight,
+                                  out float3 currNewPos, out float3 prevNewPos)
+    {
+      float maxAnimation;
+      applyWindAnimationOffset(oldPos, inOutNormal, input, time, weight, currNewPos, prevNewPos, maxAnimation);
     }
   }
+endmacro
+
+macro USE_PIVOT_PAINTER()
+  (vs) {
+    pp_pos_tex@static = pp_position;
+    pp_dir_tex@static = pp_direction;
+  }
+
+  hlsl(vs)
+  {
+    float4 sample_pp_pos_tex(float2 tc) { return tex2DLodBindless(get_pp_pos_tex(), float4(tc, 0, 0)); }
+    float4 sample_pp_dir_tex(float2 tc) { return tex2DLodBindless(get_pp_dir_tex(), float4(tc, 0, 0)); }
+  }
+
+  USE_PIVOT_PAINTER_BASE(vs)
 endmacro

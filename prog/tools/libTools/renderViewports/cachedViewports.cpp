@@ -1,8 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/renderViewports/cachedViewports.h>
 #include <libTools/renderViewports/renderViewport.h>
 #include <3d/dag_render.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_tex3d.h>
 
 #include <debug/dag_debug.h>
 #include <util/dag_string.h>

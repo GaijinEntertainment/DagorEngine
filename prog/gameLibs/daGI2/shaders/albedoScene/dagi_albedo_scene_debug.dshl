@@ -1,0 +1,154 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "dagi_albedo_scene_common.dshl"
+include "postfx_inc.dshl"
+include "viewVecVS.dshl"
+include "globtm.dshl"
+
+shader dagi_albedo_scene_debug
+{
+  supports global_const_block;
+  supports global_frame;
+  supports none;
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+  ENABLE_ASSERT(ps)
+  USE_AND_INIT_VIEW_VEC_VS()
+  POSTFX_VS_TEXCOORD_VIEWVEC(1, texcoord, viewvec)
+  (ps) {debug_world_view_pos@f3 = world_view_pos;}
+
+  INIT_AND_USE_GLOBTM(ps)
+  DAGI_ALBEDO_SAMPLE(ps)
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+  hlsl(ps) {
+    struct Output
+    {
+      float4 color : SV_Target;
+    };
+
+    void getAlbedoVoxelBox(uint cascade, out float3 bmin, out float3 bmax)
+    {
+      float internalBlockSize = dagi_albedo_block_world_size(cascade);
+      float voxelOffset = 0.5/DAGI_ALBEDO_INTERNAL_BLOCK_SIZE;
+      bmin = (sample_dagi_albedo_clipmap_lt_coord(cascade).xzy+voxelOffset)*internalBlockSize;
+      bmax = bmin + float3(dagi_albedo_get_clip_size().xyx-2.*voxelOffset)*internalBlockSize;
+    }
+    float getAlbedoVoxelSize(uint cascade)
+    {
+      return dagi_albedo_block_world_size(cascade)/DAGI_ALBEDO_INTERNAL_BLOCK_SIZE;
+    }
+
+    #include <base_wooray3d.hlsl>
+    float2 get_box_offset(uint cascade, float3 wpos, float3 wdir)
+    {
+      float3 bmin, bmax;
+      getAlbedoVoxelBox(cascade, bmin, bmax);
+      return rayBoxIntersect(bmin, bmax, wpos, wdir);
+    }
+
+    bool dagi_load_albedo_coord(int3 texelCoord, uint cascade, inout float3 albedo)
+    {
+      int4 lt = sample_dagi_albedo_clipmap_lt_coord(cascade);
+      int3 blockCoord = floor(float3(texelCoord+0.5)/DAGI_ALBEDO_BLOCK_SIZE);
+      if (any(uint3(blockCoord - lt.xyz) >= dagi_albedo_get_clip_size().xxy))
+        return false;
+
+      uint blockAddr = dagi_albedo_indirection_from_abs_coord_unsafe(dagi_albedo_indirection__free_indices_list, blockCoord, cascade);
+      if (blockAddr != INVALID_DAGI_ALBEDO_BLOCK_INDEX)
+      {
+        int3 blockI = texelCoord - blockCoord*DAGI_ALBEDO_BLOCK_SIZE;
+        uint3 inBlockOffsetInAtlas = dagi_decode_block_coord_from(blockAddr);
+        float4 color = texture3DAt(dagi_albedo_atlas, (inBlockOffsetInAtlas*DAGI_ALBEDO_BLOCK_SIZE) + blockI);
+        if (color.a == 1)
+        {
+          albedo = color.xyz/color.a;
+          //uint h = pcg_hash(blockAddr);
+          //albedo = float3(uint3(h, h >> 8, h>>10)&255)/255.;
+          return true;
+        }
+      }
+      return false;
+    }
+
+    bool raycast_woo(uint cascade, float3 wpos, float3 wdir, float maxDist, inout float dist, inout float3 result)
+    {
+      result = 0;
+      float2 startEnd = get_box_offset(cascade, wpos, wdir);
+      float startT = max(dist, startEnd.x);
+      if (startT >= startEnd.y)
+        return false;
+      //pt = 0;
+      //result = dist*0.01;
+      //dist = startEnd.y;
+      //return true;
+      maxDist = min(startEnd.y, maxDist) - startT;
+
+      float3 bmin, bmax;
+      getAlbedoVoxelBox(cascade, bmin, bmax);
+
+      float3 worldPos = wpos + startT*wdir;
+      float bwd = getAlbedoVoxelSize(cascade);
+      WooRay3d ray = initWoo(worldPos.xzy, wdir.xzy, bwd);
+      int3 diff = abs(int3(floor((worldPos.xzy + wdir.xzy*maxDist)/bwd)) - ray.pt);
+
+      int n = 4*dot(diff, 1)+1;
+      float t = 0;
+
+      int cnt = n;
+      result = 0;
+      LOOP
+      for (;n;n--) {
+        if (dagi_load_albedo_coord(ray.pt, cascade, result))
+        {
+          float3 bbmin = ray.pt.xzy*bwd;
+          result *= 1 - 0.5*pow8(1-abs(dot(ray_box_intersect_normal(wpos, wdir, bbmin, bbmin+bwd), wdir)));
+          dist = startT + t;
+          return true;
+        }
+        nextCell(ray, t);
+
+        if (t >= maxDist)
+          break;
+      }
+      dist = maxDist + startT;
+      return false;//half4(0,1,0,1);
+    }
+
+    #define MAX_DIST 800
+    //#define FIXED_LOOP_COUNT 1
+
+    #include <pixelPacking/ColorSpaceUtility.hlsl>
+    half4 lit_raycast_woo(float3 wpos, float3 wdir, inout float t)
+    {
+      half3 color = 0;
+      for (uint cascade = 0; cascade < dagi_albedo_get_clip_count(); ++cascade)
+      {
+        t = max(0, t - sqrt(3.)*getAlbedoVoxelSize(cascade));
+        if (raycast_woo(cascade, wpos, wdir, MAX_DIST, t, color))
+          return half4(ApplySRGBCurve_Fast(color.rgb), 1);
+      }
+      return 0;
+    }
+
+    Output debug_rasterize_ps(VsOutput IN)
+    {
+      Output output;
+      float3 viewDir = normalize(IN.viewvec);
+      float t = 0;
+      output.color = lit_raycast_woo(debug_world_view_pos, viewDir, t);
+      clip(output.color.a-0.001);
+      float4 imagePos = mulPointTm(debug_world_view_pos + viewDir*t, globtm);
+      //output.color = imagePos.w/200;
+      output.color.rgb = output.color.rgb;
+      float depth = imagePos.z/imagePos.w;
+      if (readGbufferDepth(IN.texcoord) > depth)
+        discard;
+      return output;
+    }
+  }
+  compile("target_ps", "debug_rasterize_ps");
+}

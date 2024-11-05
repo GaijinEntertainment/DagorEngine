@@ -186,6 +186,7 @@ let removeSelectedByEditorTemplate = @(tname) tname.replace("+daeditor_selected+
 function listRow(eid, idx) {
   return watchElemState(function(sf) {
     let isSelected = selectionState.value?[eid]
+    let textColor = isSelected ? colors.TextDefault : colors.TextDarker
     let color = isSelected ? colors.Active
       : sf & S_TOP_HOVER ? colors.GridRowHover
       : colors.GridBg[idx % colors.GridBg.len()]
@@ -263,6 +264,7 @@ function listRow(eid, idx) {
       children = {
         rendObj = ROBJ_TEXT
         text = $"{eid}  {div}  {name} {extra}"
+        color = textColor
         margin = fsh(0.5)
       }
     }
@@ -279,8 +281,8 @@ function listRowMoreLeft(num, idx) {
       children = {
         rendObj = ROBJ_TEXT
         text = $"{num} more ..."
+        color = colors.TextReadOnly
         margin = fsh(0.5)
-        color = Color(160,160,160,160)
       }
     }
   })

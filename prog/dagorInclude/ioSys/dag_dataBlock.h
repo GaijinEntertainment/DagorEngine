@@ -1,17 +1,17 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <util/dag_stdint.h>
 #include <EASTL/unique_ptr.h>
 #include <generic/dag_span.h>
+#include <generic/dag_carray.h>
 #include <dag/dag_relocatable.h>
 #include <util/dag_bitFlagsMask.h>
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 class DataBlock;
 struct DataBlockShared;
@@ -73,6 +73,10 @@ template <typename Cb>
 static inline void iterate_blocks_lev(const DataBlock &db, Cb cb, int lev = 0);
 template <typename Cb>
 static inline void iterate_params(const DataBlock &db, Cb cb);
+
+// will compare blocks as in operator==, but float values will be compared with epsilon
+bool are_approximately_equal(const DataBlock &lhs, const DataBlock &rhs, float eps = 1e-5f);
+
 } // namespace dblk
 
 
@@ -145,6 +149,8 @@ public:
   static KRNLIMP void setIncludeResolver(IIncludeFileResolver *f_resolver);
   //! installs simple root include resolver (resolves "#name.inc" as $(Root)/name.inc)
   static KRNLIMP void setRootIncludeResolver(const char *root);
+  //! resolve include path based on include resolver, returns true if can resolve path
+  static KRNLIMP bool resolveIncludePath(String &inout_fname);
 
 
 public:
@@ -419,6 +425,10 @@ public:
   /// Returns false on error.
   KRNLIMP bool removeBlock(uint32_t i);
 
+  /// Swaps two blocks with specified indices.
+  /// Returns false on error.
+  KRNLIMP bool swapBlocks(uint32_t i1, uint32_t i2);
+
   /// Similar to addNewBlock(const DataBlock *copy_from, const char *as_name),
   /// but removes existing sub-blocks with the same name first.
   DataBlock *setBlock(const DataBlock *blk, const char *as_name = NULL)
@@ -530,6 +540,10 @@ public:
 
   /// @}
 
+  /// Swaps two blocks with specified indices.
+  /// Returns false on error.
+  KRNLIMP bool swapParams(uint32_t i1, uint32_t i2);
+
   KRNLIMP void appendNamemapToSharedNamemap(DBNameMap &shared_nm, const DBNameMap *skip = nullptr) const;
   KRNLIMP bool saveBinDumpWithSharedNamemap(IGenSave &cwr, const DBNameMap *shared_nm, bool pack = false,
     const ZSTD_CDict_s *dict = nullptr) const;
@@ -569,7 +583,7 @@ protected:
   friend void dblk::iterate_blocks_lev(const DataBlock &db, Cb cb, int lev);
   template <typename Cb>
   friend void dblk::iterate_params(const DataBlock &db, Cb cb);
-
+  friend bool dblk::are_approximately_equal(const DataBlock &lhs, const DataBlock &rhs, float eps);
   uint32_t getNameIdIncreased() const { return nameIdAndFlags & NAME_ID_MASK; }
 
 protected:
@@ -855,6 +869,10 @@ template <typename Cb>
 static inline void iterate_blocks_by_name_id(const DataBlock &db, int name_id, Cb cb);
 template <typename Cb>
 static inline void iterate_blocks_by_name(const DataBlock &db, const char *nm, Cb cb);
+template <typename Cb>
+static inline void iterate_blocks_by_name_id_list(const DataBlock &db, dag::ConstSpan<int> name_ids, Cb &&cb);
+template <int N, typename Cb>
+static inline void iterate_blocks_by_name_list(const DataBlock &db, const carray<const char *, N> &const_names, Cb &&cb);
 
 template <typename Cb>
 static inline void iterate_params(const DataBlock &db, Cb cb);
@@ -1034,6 +1052,30 @@ static inline void dblk::iterate_blocks_by_name(const DataBlock &db, const char 
 }
 
 template <typename Cb>
+static inline void dblk::iterate_blocks_by_name_id_list(const DataBlock &blk, dag::ConstSpan<int> name_ids, Cb &&cb)
+{
+  if (eastl::find(name_ids.begin(), name_ids.end(), blk.getBlockNameId()) != name_ids.end())
+    cb(blk);
+  dblk::iterate_child_blocks(blk, [&](const DataBlock &b) { iterate_blocks_by_name_id_list(b, name_ids, cb); });
+}
+
+template <int N, typename Cb>
+static inline void dblk::iterate_blocks_by_name_list(const DataBlock &blk, const carray<const char *, N> &const_names, Cb &&cb)
+{
+  carray<int, N> nameIds;
+  int cnt = 0;
+  for (int i = 0; i < N; i++)
+  {
+    const int id = blk.getNameId(const_names[i]);
+    if (id != -1)
+      nameIds[cnt++] = id;
+  }
+  if (cnt == 0)
+    return;
+  iterate_blocks_by_name_id_list(blk, make_span_const(nameIds.data(), cnt), eastl::forward<Cb>(cb));
+}
+
+template <typename Cb>
 static inline void dblk::iterate_params(const DataBlock &db, Cb cb)
 {
   const DataBlock::Param *s = db.getParamsPtr(), *e = s + db.paramsCount;
@@ -1082,7 +1124,7 @@ static inline void dblk::iterate_params_by_name_and_type(const DataBlock &db, co
     iterate_params_by_name_id_and_type(db, name_id, type, cb);
 }
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>
 
 /// @}
 

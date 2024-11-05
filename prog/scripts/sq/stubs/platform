@@ -7,6 +7,7 @@ return {
   get_console_model_revision = @(_consoleModel) ""
   get_platform_sdk = @() get_arg_value_by_name("sdk") ?? "none"
   get_default_lang = @() "English"
+  is_gdk_used = @() false
   XBOXONE = "XBOXONE"
   XBOXONE_S = "XBOXONE_S"
   XBOXONE_X = "XBOXONE_X"
@@ -14,5 +15,6 @@ return {
   XBOX_ANACONDA = "XBOX_ANACONDA"
   PS4 = "PS4"
   PS4_PRO = "PS4_PRO"
+  PS5_PRO = "PS5_PRO"
   NINTENDO_SWITCH = "NINTENDO_SWITCH"
 }

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gamePhys/collision/collisionLinks.h>
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_oaHashNameMap.h>
@@ -79,11 +81,16 @@ void generate_collisions(const TMatrix &tm, const Point2 &ori_param, const Colli
   curTm.col3 = v_zero(); // To local coords
   for (const auto &link : links)
     curTm = generate_collisions(curTm, ori_param, link, out_collisions);
-  if (!out_collisions.empty())
+  // To world coords
+  vec3f vtmcol3 = v_ldu(tm.m[3]);
+  if (DAGOR_LIKELY(out_collisions.size() == 2))
   {
-    G_FAST_ASSERT(out_collisions.back().haveCollision); // Last is assumed to be effective one
-    out_collisions.back().tm.col[3] += tm.getcol(3);    // To world coords
+    v_stu_p3(&out_collisions[0].tm.m[3][0], v_add(v_ldu(out_collisions[0].tm.m[3]), vtmcol3));
+    v_stu_p3(&out_collisions[1].tm.m[3][0], v_add(v_ldu(out_collisions[1].tm.m[3]), vtmcol3));
   }
+  else
+    for (auto &coll : out_collisions)
+      v_stu_p3(&coll.tm.m[3][0], v_add(v_ldu(coll.tm.m[3]), vtmcol3));
 }
 
 void lerp_collisions(tmp_collisions_t &a_collisions, const tmp_collisions_t &b_collisions, float factor)

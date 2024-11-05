@@ -1,4 +1,4 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <supp/dag_android_native_app_glue.h>
@@ -23,6 +23,7 @@ private:
   static jmethodID s_IsDeviceChanged;
   static jmethodID s_IsGamepadConnected;
   static jmethodID s_GetConnectedGamepadVendorId;
+  static jmethodID s_GetConnectedGamepadProductId;
   static jmethodID s_GetDisplayRotation;
 
   static void stopListeningGamepads();
@@ -41,6 +42,7 @@ public:
   static bool isDeviceChanged();
   static bool isGamepadConnected();
   static int getConnectedGamepadVendorId();
+  static int getConnectedGamepadProductId();
   static int getRotation();
   static bool acquireDeviceChanges();
 };

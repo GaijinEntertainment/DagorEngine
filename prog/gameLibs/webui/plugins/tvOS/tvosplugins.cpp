@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <webui/httpserver.h>
 #include <errno.h>
 
@@ -9,9 +11,8 @@
 #include <util/dag_console.h>
 #include <ioSys/dag_genIo.h>
 #include <gui/dag_visConsole.h>
-#include <3d/dag_drv3dCmd.h>
 #include <image/dag_jpeg.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <ioSys/dag_memIo.h>
 #include <osApiWrappers/dag_vromfs.h>
 #include <osApiWrappers/dag_direct.h>

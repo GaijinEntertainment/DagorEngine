@@ -1,0 +1,165 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "viewVecVS.dshl"
+
+buffer projectors_data;
+// atmosphereDensity, noiseScale, noiseStrength
+float4 atmosphere_params = (1.0, 1.0, 0.0, 0.0);
+float4 atmosphere_shift = (0.0, 0.0, 0.0, 0.0);
+float projector_depth_fade_dist = 2.0;
+interval projector_depth_fade_dist: no < 0.001, yes;
+
+shader projectors
+{
+  ENABLE_ASSERT(ps)
+  supports global_frame;
+
+  z_write = false;
+  z_test = true;
+  blend_src = 1; blend_dst = 1;
+
+  (vs) {
+    globtm@f44 = globtm;
+    density_tan_addition@f1 = (atmosphere_params.x * 0.03, 0, 0, 0);
+    projectors_data@cbuf = projectors_data hlsl {
+      #include <projectors.hlsli>
+      cbuffer projectors_data@cbuf {
+        ProjectorsData projData;
+      }
+    };
+    sigma@f1 = (atmosphere_params.x * 0.5, 0, 0, 0);
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 color : COLOR;
+      // Scatter coord, light coord.
+      float4 texcoord : TEXCOORD0;
+      float3 worldPos : TEXCOORD1;
+    };
+  }
+
+  hlsl (vs) {
+    void getTriangleBillboardTransform(
+      float3 bottomPos, float3 upPos, float tanHalfAngle, out float4x4 result)
+    {
+      float upWidthHalf = length(upPos - bottomPos) * tanHalfAngle;
+      float3 m3 = bottomPos;
+      float3 m2 = float3(0.0, 0.0, 1.0); // Doesn't matters since we transform a triangle from XY space.
+      float3 m1 = upPos - bottomPos;
+      float3 prod = cross(m1, upPos - world_view_pos);
+      float3 m0 = upWidthHalf * prod / length(prod);
+      result[0] = float4(m0, 0.0);
+      result[1] = float4(m1, 0.0);
+      result[2] = float4(m2, 0.0);
+      result[3] = float4(m3, 1.0);
+    }
+
+    float4 decode_float4_save_order(uint2 ival)
+    {
+      return float4(f16tof32(ival), f16tof32(ival>>16)).xzyw;
+    }
+
+    VsOutput projectors_vs(uint vertexId : SV_VertexID)
+    {
+      float4 pos = float4(0.0, 0.0, 0.0, 1.0);
+      if (vertexId % 3 == 1)
+        pos.xy = float2(-1.0, 1.0);
+      else if (vertexId % 3 == 2)
+        pos.xy = float2(1.0, 1.0);
+
+      uint instId = vertexId / 3;
+
+      float4x4 modelTransform;
+      float4 posAng = projData.data[instId].pos_angle;
+      float4 dirLen = decode_float4_save_order(projData.data[instId].dir_length);
+      float4 colW = decode_float4_save_order(projData.data[instId].color_sourceWidth);
+
+      float tanHalfAngle = tan(posAng.w * 0.5);
+      float scatterCoeff = (density_tan_addition + tanHalfAngle) / tanHalfAngle;
+
+      float tanHalfScatterAngle = tanHalfAngle * scatterCoeff;
+      float negLen = colW.w * 0.5 / tanHalfScatterAngle;
+      float3 bottomPos = posAng.xyz - dirLen.xyz * negLen;
+      float3 upPos = posAng.xyz + dirLen.xyz * dirLen.w;
+      getTriangleBillboardTransform(bottomPos, upPos, tanHalfScatterAngle, modelTransform);
+
+      VsOutput output;
+      float4 worldPos = mul(pos, modelTransform);
+      output.worldPos = worldPos.xyz;
+      output.pos = mul(worldPos, globtm);
+      output.color = colW.rgb * 0.25;
+      if (pos.y < 0.5) // In this case the same as pos.y == 0.
+        output.texcoord = float4(pos.xyx, -negLen / dirLen.w);
+      else
+        output.texcoord = float4(pos.xy, pos.x * scatterCoeff, pos.y);
+      const float EPS = 0.000001;
+      output.texcoord.yw += EPS;
+      output.texcoord.w *= 1.0 / 0.3;
+      output.texcoord.z *= 1.0 / sigma;
+      output.texcoord.x *= 1.0 / 0.4;
+      return output;
+    }
+  }
+
+  (ps) {
+    perlin_strength@f1 = (atmosphere_params.z * 0.5, 0, 0, 0);
+    perlin_shift_scale@f4 = (
+      -atmosphere_shift.x / atmosphere_params.y,
+      -atmosphere_shift.y / atmosphere_params.y,
+      -atmosphere_shift.z / atmosphere_params.y,
+      1 / atmosphere_params.y);
+  }
+  if (projector_depth_fade_dist == yes)
+  {
+    INIT_LOAD_DEPTH_GBUFFER()
+    USE_LOAD_DEPTH_GBUFFER()
+    INIT_ZNZFAR()
+    VIEW_VEC_SCREENPOS(ps)
+    (ps){projector_depth_fade_dist_inv@f1 = (1.0 / projector_depth_fade_dist);}
+  }
+
+  hlsl (ps) {
+    #include "noise/Perlin3D.hlsl"
+
+    float3 projectors_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      if (input.texcoord.w <= 0.0)
+        discard;
+
+      float2 sCrd = input.texcoord.xy;
+      float2 lCrd = input.texcoord.zw;
+
+      float y = lCrd.y;
+      float x = abs(lCrd.x / sCrd.y);
+
+      float mainColorWeight = exp(- y * y - x * x);
+
+      y = lCrd.y;
+      x = abs(sCrd.x / sCrd.y);
+
+      float scatterColorWeight = exp(- y * y - x * x);
+
+      float noise = (noise_Perlin3D(input.worldPos * perlin_shift_scale.w + perlin_shift_scale.xyz) + 1.0);
+      float3 result = max(input.color * (3 * mainColorWeight + scatterColorWeight) * (1.0 - noise * perlin_strength), 0);
+
+      ##if projector_depth_fade_dist == yes
+        float4 screenPos = GET_SCREEN_POS(input.pos);
+        float gbufDepth = loadGbufferDepth(screenPos.xy);
+        float linearGbufferDepth = linearize_z(gbufDepth, zn_zfar.zw);
+        float linearObjectDepth = screenPos.w;
+        float3 viewVec = getViewVecScreenpos(screenPos.xy);
+        float distToGbuf = (linearGbufferDepth - linearObjectDepth) * length(viewVec);
+        float fadeMul = saturate(distToGbuf * projector_depth_fade_dist_inv);
+        result *= fadeMul;
+      ##endif
+
+      return result;
+    }
+  }
+
+  compile("target_vs", "projectors_vs");
+  compile("target_ps", "projectors_ps");
+}

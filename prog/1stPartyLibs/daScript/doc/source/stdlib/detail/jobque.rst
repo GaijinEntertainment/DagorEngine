@@ -79,5 +79,6 @@
 
 .. |function-jobque-with_atomic64| replace:: Creates `Atomic64`, makes it available inside the scope of the block.
 
+.. |function-jobque-new_debugger_thread| replace:: Creates a new thread for debugging purposes (tick thread).
 
 

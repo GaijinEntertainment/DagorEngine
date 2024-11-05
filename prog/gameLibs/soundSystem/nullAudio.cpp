@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <sound/dag_genAudio.h>
 #include <stdint.h>
 

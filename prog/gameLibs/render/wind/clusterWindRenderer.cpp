@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <render/wind/clusterWindRenderer.h>
 #include <render/wind/clusterWindCascade.h>
@@ -5,7 +6,7 @@
 #include <render/wind/clusterWind.h>
 
 #include <3d/dag_sbufferIDHolder.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <shaders/dag_shaders.h>
 #include <memory/dag_framemem.h>
 
@@ -20,9 +21,6 @@ static SbufferIDHolderWithVar cluster_buf_prev;
 static int treeBendingMultVarId = -1;
 static int impostorBendingMultVarId = -1;
 static int grassBendingMultVarId = -1;
-static int treeBendingDirectionalWindVarId = -1;
-static int impostorBendingDirectionalWindVarId = -1;
-static int grassBendingDirectionalWindVarId = -1;
 static int treeBendingAnimationMultVarId = -1;
 static int grassBendingAnimationMultVarId = -1;
 static int cascadeNumVarId = -1;
@@ -31,13 +29,6 @@ static unsigned int pack_value(float value, float precision, float min, float ma
 {
   int endValue = roundf((value - min) / (max - min) * precision);
   return endValue;
-}
-
-static float get2DAngle(Point3 a, Point3 b)
-{
-  float angle = atan2f(a.x * b.z - a.z * b.x, a.x * b.x + a.z * b.z);
-  angle += angle < 0.0f ? PI * 2.0f : 0.0f;
-  return angle;
 }
 
 void ClusterWindRenderer::updateClusterBuffer(const void *clusters, int num)
@@ -55,12 +46,8 @@ void ClusterWindRenderer::updateClusterBuffer(const void *clusters, int num)
     float maxHalfPrecision = (precision - 1.0) * 0.5;
     float minHalfPrecision = -maxHalfPrecision;
 
-    Point2 dir = normalize(Point2(tempArr[i].direction.x, tempArr[i].direction.z));
-    float angle = get2DAngle(Point3(0.0f, 0.0f, 1.0f), Point3(dir.x, 0.0, dir.y));
+    clusterDesc.time = (unsigned int)pack_value(tempArr[i].time / tempArr[i].maxTime, BYTE_2, 0.0f, 1.0f) << SHIFT_2_BYTES;
 
-    clusterDesc.time = (unsigned int)pack_value(angle, precision, 0.0f, 2.0f * PI) << SHIFT_2_BYTES;
-    clusterDesc.time += (unsigned int)pack_value(tempArr[i].time / tempArr[i].maxTime, BYTE_1, 0.0f, 1.0f) << SHIFT_1_BYTES;
-    clusterDesc.time += (unsigned int)pack_value(tempArr[i].directionnalId, BYTE_1, -1, 1);
     clusterDesc.sphere.x = (unsigned int)pack_value(tempArr[i].sphere.x, precision, minHalfPrecision, maxHalfPrecision)
                            << SHIFT_2_BYTES;
     clusterDesc.sphere.x += (unsigned int)pack_value(tempArr[i].sphere.y, precision, minHalfPrecision, maxHalfPrecision);
@@ -106,6 +93,15 @@ void ClusterWindRenderer::updateClusterWindGridsDesc(const Tab<ClusterWindCascad
   ShaderGlobal::set_int(cascadeNumVarId, clustersGrids.size());
 }
 
+void ClusterWindRenderer::updateSecondClusterWindGridsDesc()
+{
+  cascadeDescArr[(currentClusterIndex + 1u) % 2].resize(cascadeDescArr[currentClusterIndex].size());
+  for (int i = 0; i < cascadeDescArr[currentClusterIndex].size(); ++i)
+  {
+    cascadeDescArr[(currentClusterIndex + 1u) % 2][i] = cascadeDescArr[currentClusterIndex][i];
+  }
+}
+
 void ClusterWindRenderer::updateRenderer()
 {
   TIME_PROFILE(ClusterWindUpdateGPU);
@@ -149,19 +145,21 @@ void ClusterWindRenderer::updateRenderer()
   cluster_buf_prev.setVar();
 }
 
-void ClusterWindRenderer::loadBendingMultConst(float treeMult, float impostorMult, float grassMult, float treeStaticMult,
-  float impostorStaticMult, float grassStaticMult, float treeAnimationMult, float grassAnimationMult)
+void ClusterWindRenderer::loadBendingMultConst(float treeMult, float impostorMult, float grassMult, float treeAnimationMult,
+  float grassAnimationMult)
 {
   ShaderGlobal::set_real(treeBendingMultVarId, treeMult);
   ShaderGlobal::set_real(impostorBendingMultVarId, impostorMult);
   ShaderGlobal::set_real(grassBendingMultVarId, grassMult);
 
-  ShaderGlobal::set_real(treeBendingDirectionalWindVarId, treeStaticMult);
-  ShaderGlobal::set_real(impostorBendingDirectionalWindVarId, impostorStaticMult);
-  ShaderGlobal::set_real(grassBendingDirectionalWindVarId, grassStaticMult);
-
   ShaderGlobal::set_real(treeBendingAnimationMultVarId, treeAnimationMult);
   ShaderGlobal::set_real(grassBendingAnimationMultVarId, grassAnimationMult);
+}
+
+void ClusterWindRenderer::updateCurrentRendererIndex()
+{
+  updateSecondClusterWindGridsDesc(); // update on thread safe space
+  currentClusterIndex = ((currentClusterIndex + 1u) % 2u);
 }
 
 bool ClusterWindRenderer::getClusterDescForCpuSim(int num, ClusterDescGpu &outputClusterDescGpu)
@@ -174,7 +172,7 @@ bool ClusterWindRenderer::getClusterDescForCpuSim(int num, ClusterDescGpu &outpu
 
 bool ClusterWindRenderer::getClusterGridsIdForCpuSim(int num, uint4 &outGridsId)
 {
-  if (num >= gridsIdArr[(currentClusterIndex + 1u) % 2u].size())
+  if (num >= gridsIdArr[(currentClusterIndex + 1u) % 2u].size() * 4u)
     return false;
   outGridsId = gridsIdArr[(currentClusterIndex + 1u) % 2u][num / 4];
   return true;
@@ -187,15 +185,11 @@ ClusterWindRenderer::ClusterWindRenderer(bool need_historical_buffer)
   cluster_buf.set(d3d::buffers::create_persistent_cb(bufferSize, "cluster_buf"), "cluster_buf");
 
   if (need_historical_buffer)
-    cluster_buf_prev.set(d3d::create_sbuffer(sizeof(uint4), bufferSize, SBCF_BIND_CONSTANT, 0, "cluster_buf_prev"),
-      "cluster_buf_prev");
+    cluster_buf_prev.set(d3d::buffers::create_persistent_cb(bufferSize, "cluster_buf_prev"), "cluster_buf_prev");
 
   treeBendingMultVarId = get_shader_variable_id("cluster_wind_tree_bending_mult");
   impostorBendingMultVarId = get_shader_variable_id("cluster_wind_impostor_bending_mult");
   grassBendingMultVarId = get_shader_variable_id("cluster_wind_grass_bending_mult");
-  treeBendingDirectionalWindVarId = get_shader_variable_id("cluster_directional_wind_tree_bending_mult");
-  impostorBendingDirectionalWindVarId = get_shader_variable_id("cluster_directional_wind_impostor_bending_mult");
-  grassBendingDirectionalWindVarId = get_shader_variable_id("cluster_directional_wind_grass_bending_mult");
 
   treeBendingAnimationMultVarId = get_shader_variable_id("cluster_wind_tree_animation_mult");
   grassBendingAnimationMultVarId = get_shader_variable_id("cluster_wind_grass_animation_mult");

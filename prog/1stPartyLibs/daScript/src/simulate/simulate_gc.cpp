@@ -43,6 +43,9 @@ namespace das
                     return t.first==ps && t.second==info->hash;
                 }) == visited_handles.end();
         }
+        virtual bool canVisitPointer ( TypeInfo * ti ) override {
+            return ti->flags & gcFlags;
+        }
 
         virtual bool canVisitArrayData ( TypeInfo * ti, uint32_t ) override {
             return ti->flags & gcFlags;
@@ -164,6 +167,8 @@ namespace das
 
         using DataWalker::walk;
 
+        virtual void beforeIterator ( Iterator * ) {}
+
         virtual void walk ( char * pa, TypeInfo * info ) override {
             if ( pa == nullptr ) {
             } else if ( info->flags & TypeInfo::flag_ref ) {
@@ -192,7 +197,7 @@ namespace das
                         }
                         break;
                     case Type::tString:     String(*((char **)pa)); break;
-                    case Type::tPointer: {
+                    case Type::tPointer: if ( canVisitPointer(info) ) {
                             if ( info->firstType && info->firstType->type!=Type::tVoid ) {
                                 beforePtr(pa, info);
                                 walk(*(char**)pa, info->firstType);
@@ -211,6 +216,7 @@ namespace das
                     case Type::tIterator: {
                             auto ll = (Sequence *) pa;
                             if ( ll->iter ) {
+                                beforeIterator(ll->iter);
                                 ll->iter->walk(*this);
                             }
                         }
@@ -386,8 +392,8 @@ namespace das
             popRange();
         }
         virtual void beforeTable ( Table * PT, TypeInfo * ti ) override {
-            auto tsize = (ti->firstType->size + ti->secondType->size + sizeof(uint64_t)) * PT->capacity;
-            DAS_ASSERT(tsize==(getTypeSize(ti->firstType)+getTypeSize(ti->secondType)+sizeof(uint64_t))*PT->capacity);
+            auto tsize = (ti->firstType->size + ti->secondType->size + sizeof(TableHashKey)) * PT->capacity;
+            DAS_ASSERT(tsize==(getTypeSize(ti->firstType)+getTypeSize(ti->secondType)+sizeof(TableHashKey))*PT->capacity);
             char * pa = PT->data;
             PtrRange rdata(pa, tsize);
             if ( reportHeap && tsize && markRange(rdata) ) {
@@ -527,6 +533,9 @@ namespace das
                     return t.first==ps && t.second==info->hash;
                 }) == visited_handles.end();
         }
+        virtual bool canVisitPointer ( TypeInfo * ti ) override {
+            return (ti->flags | gcAlways) & gcFlags;
+        }
         virtual void String ( char * & st ) override {
             if ( !reportStringHeap ) return;
             if ( !st ) return;
@@ -621,6 +630,12 @@ namespace das
                     count ++;
                 }
             }
+        }
+
+        virtual void beforeIterator ( Iterator * iter ) override {
+            char * ptr = ((char *) iter) - 16;
+            uint32_t size = *((uint32_t *)ptr);
+            markRange(PtrRange(ptr, size+16));
         }
     };
 
@@ -721,237 +736,6 @@ namespace das
         }
     }
 
-    struct GcMarkStringHeap final : BaseGcDataWalker {
-        bool validate = false;
-        GcMarkStringHeap () {
-            gcFlags = TypeInfo::flag_stringHeapGC;
-            gcStructFlags = StructInfo::flag_stringHeapGC;
-        }
-        using loop_point = pair<void *,uint64_t>;
-        das_set<char *> failed;
-
-        virtual void beforeStructure ( char * ps, StructInfo * info ) override {
-            visited.emplace_back(make_pair(ps,info->hash));
-        }
-        virtual void afterStructure ( char *, StructInfo * ) override {
-            visited.pop_back();
-        }
-        virtual void beforeHandle ( char * ps, TypeInfo * ti ) override {
-            visited_handles.emplace_back(make_pair(ps,ti->hash));
-        }
-        virtual void afterHandle ( char *, TypeInfo * ) override {
-            visited_handles.pop_back();
-        }
-        virtual void String ( char * & st ) override {
-            DataWalker::String(st);
-            if ( !st ) return;
-            if ( context->constStringHeap->isOwnPtr(st) ) return;
-            uint32_t len = uint32_t(strlen(st)) + 1;
-            len = (len + 15) & ~15;
-            if ( validate ) {
-                if ( context->stringHeap->isOwnPtr(st, len) ) {
-                    if ( context->stringHeap->isValidPtr(st, len) ) {
-                        context->stringHeap->mark(st, len);
-                    } else {
-                        failed.insert(st);
-                    }
-                }
-            } else {
-                context->stringHeap->mark(st, len);
-            }
-        }
-
-        // fastest versions, without any before/after
-
-        virtual void walk_tuple ( char * ps, TypeInfo * ti ) override {
-            int fieldOffset = 0;
-            for ( uint32_t i=0, is=ti->argCount; i!=is; ++i ) {
-                TypeInfo * vi = ti->argTypes[i];
-                auto fa = getTypeAlign(vi) - 1;
-                fieldOffset = (fieldOffset + fa) & ~fa;
-                char * pf = ps + fieldOffset;
-                walk(pf, vi);
-                fieldOffset += vi->size;
-            }
-        }
-
-        virtual void walk_variant ( char * ps, TypeInfo * ti ) override {
-            int32_t fidx = *((int32_t *)ps);
-            DAS_ASSERTF(uint32_t(fidx)<ti->argCount,"invalid variant index");
-            int fieldOffset = getTypeBaseSize(Type::tInt);
-            TypeInfo * vi = ti->argTypes[fidx];
-            auto fa = getTypeAlign(ti) - 1;
-            fieldOffset = (fieldOffset + fa) & ~fa;
-            char * pf = ps + fieldOffset;
-            walk(pf, vi);
-        }
-
-        virtual void walk_dim ( char * pa, TypeInfo * ti ) override {
-            TypeInfo copyInfo = *ti;
-            DAS_ASSERT(copyInfo.dimSize);
-            copyInfo.size = ti->dim[0] ? copyInfo.size / ti->dim[0] : copyInfo.size;
-            copyInfo.dimSize --;
-            vector<uint32_t> udim;
-            if ( copyInfo.dimSize ) {
-                for ( uint32_t i=0, is=copyInfo.dimSize; i!=is; ++i) {
-                    udim.push_back(ti->dim[i+1]);
-                }
-                copyInfo.dim = udim.data();
-            } else {
-                copyInfo.dim = nullptr;
-            }
-            uint32_t stride = copyInfo.size;
-            uint32_t count = ti->dim[0];
-            walk_array(pa, stride, count, &copyInfo);
-        }
-
-        using DataWalker::walk;
-
-        virtual void walk ( char * pa, TypeInfo * info ) override {
-            if ( pa == nullptr ) {
-            } else if ( info->flags & TypeInfo::flag_ref ) {
-                beforeRef(pa,info);
-                TypeInfo ti = *info;
-                ti.flags &= ~TypeInfo::flag_ref;
-                walk(*(char **)pa, &ti);
-                ti.flags |= TypeInfo::flag_ref;
-                afterRef(pa,info);
-            } else if ( info->dimSize ) {
-                walk_dim(pa, info);
-            } else {
-                switch ( info->type ) {
-                    case Type::tArray: {
-                            auto arr = (Array *) pa;
-                            walk_array(arr->data, info->firstType->size, arr->size, info->firstType);
-                        }
-                        break;
-                    case Type::tTable: {
-                            auto tab = (Table *) pa;
-                            walk_table(tab, info);
-                        }
-                        break;
-                    case Type::tString:     String(*((char **)pa)); break;
-                    case Type::tPointer: {
-                            if ( info->firstType && info->firstType->type!=Type::tVoid ) {
-                                walk(*(char**)pa, info->firstType);
-                            }
-                        }
-                        break;
-                    case Type::tStructure:  walk_struct(pa, info->structType); break;
-                    case Type::tTuple:      walk_tuple(pa, info); break;
-                    case Type::tVariant:    walk_variant(pa, info); break;
-                    case Type::tLambda: {
-                            auto ll = (Lambda *) pa;
-                            walk ( ll->capture, ll->getTypeInfo() );
-                        }
-                        break;
-                    case Type::tIterator: {
-                            auto ll = (Sequence *) pa;
-                            if ( ll->iter ) {
-                                ll->iter->walk(*this);
-                            }
-                        }
-                        break;
-                    case Type::tHandle:
-                        if ( canVisitHandle(pa, info) ) {
-                            beforeHandle(pa, info);
-                            info->getAnnotation()->walk(*this, pa);
-                            afterHandle(pa, info);
-                        }
-                        break;
-                    default: break;
-                }
-            }
-        }
-    };
-
-    void Context::collectStringHeap ( LineInfo * at, bool validate ) {
-        // clean up, so that all small allocations are marked as 'free'
-        if ( !stringHeap->mark() ) return;
-        // now
-        GcMarkStringHeap walker;
-        walker.context = this;
-        walker.validate = validate;
-        // mark GC roots
-        foreach_gc_root([&](void * _pa, TypeInfo * ti) {
-            char * pa = (char *) _pa;
-            if ( ti ) {
-                walker.walk(pa, ti);
-            } else {
-                Lambda lmb(pa);
-                walker.walk((char *)&lmb, &lambda_type_info);
-            }
-        });
-        // mark globals
-        if ( sharedOwner ) {
-            for ( int i=0, is=totalVariables; i!=is; ++i ) {
-                auto & pv = globalVariables[i];
-                if ( !pv.shared ) continue;
-                walker.walk(shared + pv.offset, pv.debugInfo);
-            }
-        }
-        for ( int i=0, is=totalVariables; i!=is; ++i ) {
-            auto & pv = globalVariables[i];
-            if ( pv.shared ) continue;
-            walker.walk(globals + pv.offset, pv.debugInfo);
-        }
-        // mark stack
-        char * sp = stack.ap();
-        const LineInfo * lineAt = at;
-        while (  sp < stack.top() ) {
-            Prologue * pp = (Prologue *) sp;
-            Block * block = nullptr;
-            FuncInfo * info = nullptr;
-            char * SP = sp;
-            if ( pp->info ) {
-                intptr_t iblock = intptr_t(pp->block);
-                if ( iblock & 1 ) {
-                    block = (Block *) (iblock & ~1);
-                    info = block->info;
-                    SP = stack.bottom() + block->stackOffset;
-                } else {
-                    info = pp->info;
-                }
-            }
-            if ( info ) {
-                for ( uint32_t i=0, is=info->count; i!=is; ++i ) {
-                    walker.walk(pp->arguments[i], info->fields[i]);
-                }
-                if ( info->locals ) {
-                    for ( uint32_t i=0, is=info->localCount; i!=is; ++i ) {
-                        auto lv = info->locals[i];
-                        bool inScope = lineAt ? lineAt->inside(lv->visibility) : false;
-                        if ( !inScope ) continue;
-                        char * addr = nullptr;
-                        if ( lv->cmres ) {
-                            addr = (char *)pp->cmres;
-                        } else {
-                            addr = SP + lv->stackTop;
-                        }
-                        if ( addr ) {
-                            walker.walk(addr, lv);
-                        }
-                    }
-                }
-            }
-            lineAt = info ? pp->line : nullptr;
-            sp += info ? info->stackSize : pp->stackSize;
-        }
-        // sweep
-        stringHeap->sweep();
-        // report errors
-        if ( !walker.failed.empty() ) {
-            reportAnyHeap(at, true, false, false, true);
-            TextWriter tw;
-            tw << "string GC failed on the following dangling pointers:" << HEX;
-            for ( auto f : walker.failed ) {
-                tw << " " << uint64_t(f);
-            }
-            auto etext = stringHeap->allocateString(tw.str());
-            throw_error_at(at, "%s", etext);
-        }
-    }
-
     struct GcMarkAnyHeap final : BaseGcDataWalker {
         vector<PtrRange>    ptrRangeStack;
         PtrRange            currentRange;
@@ -1016,7 +800,7 @@ namespace das
             popRange();
         }
         virtual void beforeTable ( Table * PT, TypeInfo * ti ) override {
-            PtrRange rdata(PT->data, (ti->firstType->size+ti->secondType->size+sizeof(uint64_t))*size_t(PT->capacity));
+            PtrRange rdata(PT->data, (ti->firstType->size+ti->secondType->size+sizeof(TableHashKey))*size_t(PT->capacity));
             markAndPushRange(rdata);
         }
         virtual void afterTable ( Table *, TypeInfo * ) override {
@@ -1086,6 +870,12 @@ namespace das
             }
         }
 
+        virtual void beforeIterator ( Iterator * iter ) override {
+            char * ptr = ((char *) iter) - 16;
+            uint32_t size = *((uint32_t *)ptr);
+            markAndPushRange(PtrRange(ptr, size+16));
+        }
+
         using DataWalker::walk;
 
         virtual void walk ( char * pa, TypeInfo * info ) override {
@@ -1116,7 +906,7 @@ namespace das
                         }
                         break;
                     case Type::tString:     String(*((char **)pa)); break;
-                    case Type::tPointer: if ( *(char**)pa && info->firstType ) {
+                    case Type::tPointer: if ( canVisitPointer(info) && *(char**)pa && info->firstType ) {
                             if ( info->firstType->type==Type::tStructure ) {
                                 auto *si = info->firstType->structType;
                                 auto tsize = info->firstType->size;
@@ -1133,7 +923,7 @@ namespace das
                                     // walk_struct(*(char**)pa, info->firstType->structType);
                                     ps = *(char**)pa;
                                     if ( canVisitStructure(ps, si) ) {
-                                        visited.emplace_back(make_pair(pa,si->hash));
+                                        visited.emplace_back(make_pair(ps,si->hash));
                                         for ( uint32_t i=si->firstGcField, is=si->count; i!=is; ) {
                                             VarInfo * vi = si->fields[i];
                                             char * pf = ps + vi->offset;
@@ -1162,6 +952,7 @@ namespace das
                     case Type::tIterator: {
                             auto ll = (Sequence *) pa;
                             if ( ll->iter ) {
+                                beforeIterator(ll->iter);
                                 ll->iter->walk(*this);
                             }
                         }
@@ -1179,10 +970,16 @@ namespace das
         }
     };
 
-
+    struct GcGuard {
+        GcGuard(Context * c) : ctx(c) { dapiOnBeforeGC(*ctx); }
+        ~GcGuard() { dapiOnAfterGC(*ctx); }
+        Context * ctx = nullptr;
+    };
 
     void Context::collectHeap ( LineInfo * at, bool sheap, bool validate ) {
+        GcGuard guard(this);
         // clean up, so that all small allocations are marked as 'free'
+        stringDisposeQue = nullptr;
         if ( sheap && !stringHeap->mark() ) return;
         if ( !heap->mark() ) return;
         // now
@@ -1271,9 +1068,8 @@ namespace das
             for ( auto f : walker.failed ) {
                 tw << " " << uint64_t(f);
             }
-            auto etext = stringHeap->allocateString(tw.str());
+            auto etext = allocateString(tw.str(),at);
             throw_error_at(at, "%s", etext);
         }
     }
 }
-

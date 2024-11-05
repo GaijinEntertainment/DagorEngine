@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -46,7 +45,7 @@ public:
   const T *getProps(int prop_id) const
   {
 #if DAGOR_DBGLEVEL > 0
-    if (EASTL_UNLIKELY((unsigned)prop_id >= propsRegistry.size()))
+    if (DAGOR_UNLIKELY((unsigned)prop_id >= propsRegistry.size()))
     {
       logerr("%s|%s: unsigned(%d) >= %d", __FUNCTION__, debugPropsClassName, prop_id, (int)propsRegistry.size());
       return nullptr;

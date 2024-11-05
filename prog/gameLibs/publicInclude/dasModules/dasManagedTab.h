@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -170,7 +169,7 @@ namespace das
 template <typename VectorType>
 struct TabIterator : Iterator
 {
-  TabIterator(VectorType *ar) : array(ar), end(nullptr) {}
+  TabIterator(VectorType *ar, LineInfo *at) : Iterator(at), array(ar), end(nullptr) {}
 
   virtual bool first(Context &, char *_value) override
   {
@@ -196,7 +195,7 @@ struct TabIterator : Iterator
       iterator_type *value = (iterator_type *)_value;
       *value = nullptr;
     }
-    context.heap->free((char *)this, sizeof(TabIterator));
+    context.freeIterator((char *)this, debugInfo);
   }
 
   VectorType *array;

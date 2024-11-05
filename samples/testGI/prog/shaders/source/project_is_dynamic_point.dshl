@@ -1,0 +1,34 @@
+include "gbuffer.dshl"
+
+macro PROJECT_DO_NOT_UPDATE_FROM_POINT_NO_GBUF(code)
+  hlsl(code) {
+    #define POINT_DYNAMIC 0
+    #define POINT_TRANSLUCENT 1
+    #define POINT_OPAQUE 3
+    uint get_project_update_from_point(float3 worldPos, float linearDepth, float2 tc, uint2 coord, ProcessedGbuffer gbuf)
+    {
+      //if (has_physobj_in_cascade &&
+      //    isInsideBbox(worldPos, ssgi_restricted_update_bbox_min, ssgi_restricted_update_bbox_max))
+      //  return true;
+      return gbuf.dynamic ? POINT_DYNAMIC : gbuf.material == SHADING_FOLIAGE || gbuf.translucency > 0 ? POINT_TRANSLUCENT : POINT_OPAQUE;
+      //return gbuf.dynamic || gbuf.translucency > 0;
+    }
+    uint get_project_update_from_point(float3 worldPos, float linearDepth, float2 tc, uint2 coord)
+    {
+      //if (has_physobj_in_cascade &&
+      //    isInsideBbox(worldPos, ssgi_restricted_update_bbox_min, ssgi_restricted_update_bbox_max))
+      //  return true;
+      return get_project_update_from_point(worldPos, linearDepth, tc, coord, loadProcessedGbuffer(coord));
+    }
+    bool get_project_is_dynamic_pixel(uint2 coord)
+    {
+      return loadProcessedGbuffer(coord).dynamic;
+    }
+  }
+endmacro
+
+macro PROJECT_DO_NOT_UPDATE_FROM_POINT(code)
+  INIT_LOAD_GBUFFER_BASE(code)
+  USE_LOAD_GBUFFER_BASE(code, 0)
+  PROJECT_DO_NOT_UPDATE_FROM_POINT_NO_GBUF(code)
+endmacro

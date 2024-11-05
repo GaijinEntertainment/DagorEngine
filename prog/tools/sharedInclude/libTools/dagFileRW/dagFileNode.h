@@ -1,6 +1,4 @@
-
-#ifndef __DAGOR_NODE_H
-#define __DAGOR_NODE_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <generic/dag_tab.h>
@@ -70,6 +68,7 @@ public:
 #define NODEFLG_HIDDEN     16
 #define NODEFLG_FADE       32
 #define NODEFLG_FADENULL   64
+#define NODEFLG_POINTCLOUD 128
 
 class Node
 {
@@ -143,6 +142,3 @@ enum
 
 
 int load_ascene(const char *fn, AScene &sc, int flg = 0, bool fatal_on_error = true, PtrTab<MaterialData> *mat_list = nullptr);
-
-
-#endif

@@ -1,7 +1,9 @@
-include "dafx_shaders.dshl"
 include "dafx_helpers.dshl"
+include "dafx_shaders.dshl"
 include "shader_global.dshl"
 include "viewVecVS.dshl"
+
+INIT_WATER_FLOWMAP()
 
 shader dafx_modfx_emission, dafx_modfx_simulation, dafx_modfx_emission_adv, dafx_modfx_simulation_adv
 {
@@ -23,7 +25,10 @@ shader dafx_modfx_emission, dafx_modfx_simulation, dafx_modfx_emission_adv, dafx
   {
     DAFXEX_USE_DEPTH_ABOVE(cs)
     DAFXEX_USE_HMAP(cs)
+    DAFXEX_USE_WATER_FLOWMAP(cs)
   }
+
+  DAFXEX_USE_CFD_WIND(cs)
 
   hlsl(cs)
   {

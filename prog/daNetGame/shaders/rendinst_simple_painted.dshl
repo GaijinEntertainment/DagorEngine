@@ -1,0 +1,54 @@
+include "rendinst_simple_inc.dshl"
+include "simple_painted_inc.dshl"
+include "simple_inc.dshl"
+
+shader rendinst_simple_painted
+{
+  ENABLE_ASSERT(ps)
+
+  RENDINST_OVERLAY_COLOR_MAP(vs, shader == rendinst_simple_painted, get_paint_palette_row_index().x)
+
+  COMMON_RENDINST_SIMPLE_INIT()
+
+  INIT_SIMPLE_PAINTED()
+  COMMON_RENDINST_INIT_PAINT(false)
+
+  texture tex = material.texture.diffuse;
+  texture normal = material.texture[2];
+  texture detail = material.texture[3];
+  texture secondary_detail = material.texture[4];
+
+  static float4 detail_scale_offset;
+  (ps) { detail_scale_offset@f4 = detail_scale_offset; }
+
+  static float4 secondary_detail_scale_offset;
+  (ps) { secondary_detail_scale_offset@f4 = secondary_detail_scale_offset; }
+
+  static int atest = 0;
+  interval atest: atestOff < 1, atestOn;
+
+  COMMON_RENDINST_ATEST_DEFINES()
+
+  INIT_AND_USE_DETAIL()
+
+  COMMON_RENDINST_VS_IO_DEFINES()
+
+  hlsl {
+    struct VsOutput
+    {
+        COMMON_RENDINST_VS_OUTPUT_MEMBERS
+    };
+  }
+
+  COMMON_RENDINST_VS_INPUT()
+  COMMON_RENDINST_VS()
+
+  COMMON_RENDINST_PS_PREP(true)
+
+  if (!rendinst_render_is_shadow_or_depth)
+  {
+    SIMPLE_PAINTED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo))
+  }
+
+  COMPILE_RI_VS_TARGET("simple_vs")
+}

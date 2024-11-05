@@ -1,0 +1,3 @@
+int gi_quality = -1;
+interval gi_quality : off < 0, only_ao < 1, colored < 2, screen_probes;
+

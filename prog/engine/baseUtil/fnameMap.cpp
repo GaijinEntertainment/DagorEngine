@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/fnameMap.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <util/dag_fastNameMapTS.h>

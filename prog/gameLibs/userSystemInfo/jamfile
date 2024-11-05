@@ -1,0 +1,76 @@
+Root      ?= ../../.. ;
+Location   = prog/gameLibs/userSystemInfo ;
+TargetType = lib ;
+Target     = gameLibs/userSystemInfo.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/compressionUtils
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+  $(Root)/prog/3rdPartyLibs
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/tools/sharedInclude # FIXME_BROKEN_DEP
+;
+
+Sources =
+  systemInfo.cpp
+  userSystemInfo.cpp
+  uuidgen.cpp
+;
+if [ GLOB $(Root)/$(Location) : systemInfo_private.cpp ] {
+  Sources += systemInfo_private.cpp ;
+} else if $(ProjectProvidesSysInfo) != yes {
+  Sources += systemInfo_stubext.cpp ;
+}
+
+if $(UseSystemOpenSSL) != yes {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/openssl-$(OpenSSLVer)/include ;
+}
+
+if $(Platform) in windows {
+  AddLibs +=
+    iphlpapi.lib
+    rpcrt4.lib
+    wbemuuid.lib
+  ;
+}
+
+if $(Platform) in macOS {
+  Sources +=
+    macosx_spec.mm
+  ;
+
+  AddLibs += -framework DiskArbitration ;
+}
+
+if $(Platform) in iOS {
+  UseProgLibs += gameLibs/ios/net_reachability ;
+
+  Sources +=
+    ios_spec.mm
+  ;
+}
+
+if $(Dedicated) != yes && $(Autotest) != yes {
+  if $(UseSteam) = yes && $(Platform) in windows linux macOS {
+    UseProgLibs += gameLibs/steam ;
+    CPPopt      += -DUSE_STEAMWORKS ;
+    Target = $(Target:S=~s.lib) ;
+  }
+  if $(UseEpic) = yes && $(Platform) in windows {
+    UseProgLibs += gameLibs/epic ;
+    CPPopt      += -DUSE_EPIC_GAME_STORE ;
+    Target = $(Target:S=~e.lib) ;
+  }
+}
+
+if $(Platform) in android linux macOS ps4 ps5 scarlett xboxOne windows && $(PlatformArch) != e2k {
+  UseProgLibs += 3rdPartyLibs/cpu_features ;
+  CPPopt += -DUSE_CPU_FEATURES=1 ;
+}
+
+
+include $(Root)/prog/_jBuild/build.jam ;

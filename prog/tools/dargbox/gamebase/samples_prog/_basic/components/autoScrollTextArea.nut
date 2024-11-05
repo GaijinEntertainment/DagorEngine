@@ -1,5 +1,5 @@
 from "daRg" import *
-from "%darg/darg_library.nut" import hdpx
+from "%darg/darg_library.nut" import hdpx, Behaviors
 
 let autoScrollTextArea = @(params) {
   size = [flex(), SIZE_TO_CONTENT]

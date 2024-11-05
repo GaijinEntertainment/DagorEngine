@@ -1,7 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "texMgrData.h"
-#include <3d/dag_tex3d.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <debug/dag_log.h>
 #include <debug/dag_debug.h>
 #include <osApiWrappers/dag_atomic.h>
@@ -121,7 +124,7 @@ void release_managed_res_impl(D3DRESID rid, D3dResource *cmp)
   }
   if (new_rc < 0)
   {
-    logerr_ctx("trying to release texture 0x%x='%s' with refcount = %d!", rid, RMGR.getName(idx), new_rc + 1);
+    LOGERR_CTX("trying to release texture 0x%x='%s' with refcount = %d!", rid, RMGR.getName(idx), new_rc + 1);
     RMGR.incRefCount(idx);
     return;
   }

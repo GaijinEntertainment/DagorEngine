@@ -1,5 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <EASTL/string.h>
 #include <render/genericLUT/genericLUT.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_shaders.h>
@@ -12,7 +19,8 @@ static int lut_sizeVarId = -1, first_lut_rsliceVarId = -1, tonemap_sim_rtVarId =
 static bool check_compute_support()
 {
   auto &drvDesc = d3d::get_driver_desc();
-  return drvDesc.shaderModel >= 5.0_sm && !drvDesc.issues.hasComputeCanNotWrite3DTex;
+  return drvDesc.shaderModel >= 5.0_sm && !drvDesc.issues.hasComputeCanNotWrite3DTex &&
+         !drvDesc.issues.hasBrokenComputeFormattedOutput;
 }
 
 static uint32_t get_color_format(GenericTonemapLUT::HDROutput hdr)
@@ -53,9 +61,13 @@ bool GenericTonemapLUT::init(const char *lut_name, const char *render_shader_nam
   lut_sizeVarId = get_shader_variable_id("lut_size", true);
 
   lut = dag::create_voltex(lutSize, lutSize, lutSize, flag, 1, lut_name);
-  if (auto voltex = lut.getVolTex())
+  if (lut)
   {
-    voltex->texaddr(TEXADDR_CLAMP);
+    eastl::string samplerName(eastl::string::CtorSprintf(), "%s_samplerstate", lut_name);
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    ShaderGlobal::set_sampler(get_shader_variable_id(samplerName.c_str(), true), d3d::request_sampler(smpInfo));
+    lut->disableSampler();
     return true;
   }
 

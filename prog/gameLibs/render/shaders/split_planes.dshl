@@ -1,0 +1,40 @@
+include "postfx_inc.dshl"
+include "shader_global.dshl"
+
+texture linear_tex;
+
+shader split_planes
+{
+
+  cull_mode = none;
+  z_test = false;
+  z_write = false;
+  no_ablend;
+
+  (ps) {
+    linear_tex@tex2d = linear_tex;
+  }
+
+  ENABLE_ASSERT(ps)
+  POSTFX_VS(1)
+
+  hlsl (ps)
+  {
+    struct PsOutput
+    {
+      half r : SV_Target0;
+      half g : SV_Target1;
+      half b : SV_Target2;
+    };
+
+    PsOutput split_planes(VsOutput input)
+    {
+      half3 texel = texelFetch(linear_tex, input.pos.xy, 0).rgb;
+      PsOutput planes = {
+        texel.r, texel.g, texel.b
+      };
+      return planes;
+    }
+  }
+  compile("target_ps", "split_planes");
+}

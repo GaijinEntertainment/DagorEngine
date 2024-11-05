@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/dagorTexture3d.h>
 #include <daScript/ast/ast_policy_types.h>
 

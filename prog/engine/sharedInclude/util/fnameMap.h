@@ -1,7 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 //! clears global map (all pointers/IDs returned earlier become invalid after clear)
 KRNLIMP void dagor_fname_map_clear();
@@ -17,4 +17,4 @@ KRNLIMP const char *dagor_fname_map_resolve_id(int id);
 //! returns number of registered filenames (and, optionally, memory consumption)
 KRNLIMP int dagor_fname_map_count(int *out_mem_allocated = 0, int *out_mem_used = 0);
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

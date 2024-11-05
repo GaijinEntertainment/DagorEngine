@@ -301,6 +301,7 @@ public:
   bool use_hmap;
   bool use_depth_above;
   bool use_water;
+  bool use_water_flowmap;
   bool use_normal;
 
 
@@ -309,13 +310,14 @@ public:
   void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 1);
+    CHECK_FX_VERSION(ptr, len, 2);
 
     enabled = readType<int>(ptr, len);
     placement_threshold = readType<real>(ptr, len);
     use_hmap = readType<int>(ptr, len);
     use_depth_above = readType<int>(ptr, len);
     use_water = readType<int>(ptr, len);
+    use_water_flowmap = readType<int>(ptr, len);
     use_normal = readType<int>(ptr, len);
   }
 };
@@ -428,16 +430,14 @@ public:
   }
 };
 
-class FxColor
+class FxAlphaByVelocity
 {
 public:
   bool enabled;
-  bool allow_game_override;
-  E3DCOLOR col_min;
-  E3DCOLOR col_max;
-  FxValueGradOpt grad_over_part_life;
-  FxColorCurveOpt curve_over_part_life;
-  FxMaskedCurveOpt curve_over_part_idx;
+  real vel_min;
+  real vel_max;
+  bool use_emitter_velocity;
+  FxValueCurveOpt velocity_alpha_curve;
 
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
@@ -445,15 +445,46 @@ public:
   void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 3);
+    CHECK_FX_VERSION(ptr, len, 2);
+
+    enabled = readType<int>(ptr, len);
+    vel_min = readType<real>(ptr, len);
+    vel_max = readType<real>(ptr, len);
+    use_emitter_velocity = readType<int>(ptr, len);
+    velocity_alpha_curve.load(ptr, len, load_cb);
+  }
+};
+
+class FxColor
+{
+public:
+  bool enabled;
+  bool allow_game_override;
+  bool gamma_correction;
+  E3DCOLOR col_min;
+  E3DCOLOR col_max;
+  FxValueGradOpt grad_over_part_life;
+  FxColorCurveOpt curve_over_part_life;
+  FxMaskedCurveOpt curve_over_part_idx;
+  FxAlphaByVelocity alpha_by_velocity;
+
+
+  static ScriptHelpers::TunedElement *createTunedElement(const char *name);
+
+  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  {
+    G_UNREFERENCED(load_cb);
+    CHECK_FX_VERSION(ptr, len, 5);
 
     enabled = readType<int>(ptr, len);
     allow_game_override = readType<int>(ptr, len);
+    gamma_correction = readType<int>(ptr, len);
     col_min = readType<E3DCOLOR>(ptr, len);
     col_max = readType<E3DCOLOR>(ptr, len);
     grad_over_part_life.load(ptr, len, load_cb);
     curve_over_part_life.load(ptr, len, load_cb);
     curve_over_part_idx.load(ptr, len, load_cb);
+    alpha_by_velocity.load(ptr, len, load_cb);
   }
 };
 
@@ -622,6 +653,13 @@ public:
   real energy_loss;
   real emitter_deadzone;
   real collision_decay;
+  bool collide_with_depth;
+  bool collide_with_depth_above;
+  bool collide_with_hmap;
+  bool collide_with_water;
+  real collision_fadeout_radius_min;
+  real collision_fadeout_radius_max;
+  bool stop_rotation_on_collision;
 
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
@@ -629,7 +667,7 @@ public:
   void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 3);
+    CHECK_FX_VERSION(ptr, len, 5);
 
     enabled = readType<int>(ptr, len);
     radius_mod = readType<real>(ptr, len);
@@ -637,6 +675,13 @@ public:
     energy_loss = readType<real>(ptr, len);
     emitter_deadzone = readType<real>(ptr, len);
     collision_decay = readType<real>(ptr, len);
+    collide_with_depth = readType<int>(ptr, len);
+    collide_with_depth_above = readType<int>(ptr, len);
+    collide_with_hmap = readType<int>(ptr, len);
+    collide_with_water = readType<int>(ptr, len);
+    collision_fadeout_radius_min = readType<real>(ptr, len);
+    collision_fadeout_radius_max = readType<real>(ptr, len);
+    stop_rotation_on_collision = readType<int>(ptr, len);
   }
 };
 
@@ -787,6 +832,25 @@ public:
   }
 };
 
+class FxCameraVelocity
+{
+public:
+  bool enabled;
+  real velocity_weight;
+
+
+  static ScriptHelpers::TunedElement *createTunedElement(const char *name);
+
+  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  {
+    G_UNREFERENCED(load_cb);
+    CHECK_FX_VERSION(ptr, len, 1);
+
+    enabled = readType<int>(ptr, len);
+    velocity_weight = readType<real>(ptr, len);
+  }
+};
+
 class FxVelocity
 {
 public:
@@ -805,6 +869,8 @@ public:
   FxCollision collision;
   FxVelocityGpuPlacement gpu_hmap_limiter;
   FxWind wind;
+  FxCameraVelocity camera_velocity;
+  int gravity_zone;
 
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
@@ -812,7 +878,7 @@ public:
   void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 10);
+    CHECK_FX_VERSION(ptr, len, 14);
 
     enabled = readType<int>(ptr, len);
     mass = readType<real>(ptr, len);
@@ -829,6 +895,33 @@ public:
     collision.load(ptr, len, load_cb);
     gpu_hmap_limiter.load(ptr, len, load_cb);
     wind.load(ptr, len, load_cb);
+    camera_velocity.load(ptr, len, load_cb);
+    gravity_zone = readType<int>(ptr, len);
+  }
+};
+
+class FxPlacement
+{
+public:
+  bool enabled;
+  real placement_threshold;
+  bool use_hmap;
+  bool use_depth_above;
+  real align_normals_offset;
+
+
+  static ScriptHelpers::TunedElement *createTunedElement(const char *name);
+
+  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  {
+    G_UNREFERENCED(load_cb);
+    CHECK_FX_VERSION(ptr, len, 2);
+
+    enabled = readType<int>(ptr, len);
+    placement_threshold = readType<real>(ptr, len);
+    use_hmap = readType<int>(ptr, len);
+    use_depth_above = readType<int>(ptr, len);
+    align_normals_offset = readType<real>(ptr, len);
   }
 };
 
@@ -940,6 +1033,8 @@ public:
   real frame_scale;
   int start_frame_min;
   int start_frame_max;
+  bool flip_x;
+  bool flip_y;
   bool random_flip_x;
   bool random_flip_y;
   bool disable_loop;
@@ -953,7 +1048,7 @@ public:
   void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 3);
+    CHECK_FX_VERSION(ptr, len, 4);
 
     enabled = readType<int>(ptr, len);
     enable_aniso = readType<int>(ptr, len);
@@ -964,6 +1059,8 @@ public:
     frame_scale = readType<real>(ptr, len);
     start_frame_min = readType<int>(ptr, len);
     start_frame_max = readType<int>(ptr, len);
+    flip_x = readType<int>(ptr, len);
+    flip_y = readType<int>(ptr, len);
     random_flip_x = readType<int>(ptr, len);
     random_flip_y = readType<int>(ptr, len);
     disable_loop = readType<int>(ptr, len);
@@ -1236,25 +1333,6 @@ public:
   }
 };
 
-class FxRenderShaderAboveDepth
-{
-public:
-  real placement_threshold;
-  bool terrain_only;
-
-
-  static ScriptHelpers::TunedElement *createTunedElement(const char *name);
-
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
-  {
-    G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 2);
-
-    placement_threshold = readType<real>(ptr, len);
-    terrain_only = readType<int>(ptr, len);
-  }
-};
-
 class FxRenderVolfogInjection
 {
 public:
@@ -1281,6 +1359,7 @@ class FxRenderShader
 public:
   bool reverse_part_order;
   bool shadow_caster;
+  bool allow_screen_proj_discard;
   int shader;
   FxRenderShaderDummy modfx_bboard_render;
   FxRenderShaderDummy modfx_bboard_render_atest;
@@ -1288,7 +1367,6 @@ public:
   FxRenderShaderVolShape modfx_bboard_vol_shape;
   FxRenderShaderDummy modfx_bboard_rain;
   FxRenderShaderDistortion modfx_bboard_rain_distortion;
-  FxRenderShaderAboveDepth modfx_bboard_above_depth_placement;
 
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
@@ -1296,10 +1374,11 @@ public:
   void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 8);
+    CHECK_FX_VERSION(ptr, len, 11);
 
     reverse_part_order = readType<int>(ptr, len);
     shadow_caster = readType<int>(ptr, len);
+    allow_screen_proj_discard = readType<int>(ptr, len);
     shader = readType<int>(ptr, len);
     modfx_bboard_render.load(ptr, len, load_cb);
     modfx_bboard_render_atest.load(ptr, len, load_cb);
@@ -1307,7 +1386,6 @@ public:
     modfx_bboard_vol_shape.load(ptr, len, load_cb);
     modfx_bboard_rain.load(ptr, len, load_cb);
     modfx_bboard_rain_distortion.load(ptr, len, load_cb);
-    modfx_bboard_above_depth_placement.load(ptr, len, load_cb);
   }
 };
 

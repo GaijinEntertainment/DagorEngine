@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_events.h>
 #include <osApiWrappers/dag_sockets.h>
@@ -51,7 +53,10 @@ public:
   eastl::unique_ptr<ioevents::IOEventsPoll> iopoll;
   WinCritSec iopollMutex;
 
-  SocketsPollThread() : DaThread("UdpPoll"), iopoll(ioevents::create_poll()) { os_event_create(&wakeupEvent); }
+  SocketsPollThread() : DaThread("UdpPoll", DEFAULT_STACK_SZ, 0, WORKER_THREADS_AFFINITY_MASK), iopoll(ioevents::create_poll())
+  {
+    os_event_create(&wakeupEvent);
+  }
 
   ~SocketsPollThread()
   {
@@ -61,13 +66,13 @@ public:
 
   void execute() override
   {
-    while (!terminating)
+    while (!isThreadTerminating())
     {
       {
         WinAutoLock lock(iopollMutex);
         iopoll->poll();
       }
-      int waitMs = sockets_num > 0 ? 1 : 10;
+      int waitMs = interlocked_relaxed_load(sockets_num) > 0 ? 1 : 10;
       os_event_wait(&wakeupEvent, waitMs);
     }
   }
@@ -125,19 +130,21 @@ static void update(void *)
     int port = os_socket_addr_get_port(&p.from, sizeof(p.from));
     os_socket_addr_to_string(&p.from, sizeof(p.from), addr, sizeof(addr));
 
-    if (HSQUIRRELVM vm = sqeventbus::get_vm())
-    {
-      Sqrat::Table evt(vm);
-      evt.SetValue("recvTime", p.recvTime);
-      evt.SetValue("host", addr);
-      evt.SetValue("port", port);
-      evt.SetValue("socketId", p.sinfo->id);
-      SQUserPointer destPtr = sqstd_createblob(vm, p.data.size());
-      memcpy(destPtr, p.data.data(), p.data.size());
-      evt.SetValue("data", Sqrat::Var<Sqrat::Object>(vm, -1).value);
-      sq_pop(vm, 1);
-      sqeventbus::send_event("udp.on_packet", evt);
-    }
+    sqeventbus::do_with_vm([&](HSQUIRRELVM vm) {
+      if (vm)
+      {
+        Sqrat::Table evt(vm);
+        evt.SetValue("recvTime", p.recvTime);
+        evt.SetValue("host", addr);
+        evt.SetValue("port", port);
+        evt.SetValue("socketId", p.sinfo->id);
+        SQUserPointer destPtr = sqstd_createblob(vm, p.data.size());
+        memcpy(destPtr, p.data.data(), p.data.size());
+        evt.SetValue("data", Sqrat::Var<Sqrat::Object>(vm, -1).value);
+        sq_pop(vm, 1);
+        sqeventbus::send_event("udp.on_packet", evt);
+      }
+    });
   }
   input_buffer->clear();
 }
@@ -149,7 +156,6 @@ void init()
   input_buffer->clear();
   poll_thread = eastl::make_unique<SocketsPollThread>();
   poll_thread->start();
-  poll_thread->setAffinity(WORKER_THREADS_AFFINITY_MASK);
   register_regular_action_to_idle_cycle(update, nullptr);
 }
 
@@ -269,11 +275,13 @@ static eastl::string socket_error(eastl::string_view socket_id)
 void bind(SqModules *module_mgr)
 {
   Sqrat::Table apiNs(module_mgr->getVM());
-  apiNs.Func("send", send)
+  apiNs //
+    .Func("send", send)
     .Func("bind", socket_bind)
     .Func("close_socket", close_socket)
     .Func("socket_error", socket_error)
-    .Func("last_error", last_error);
+    .Func("last_error", last_error)
+    /**/;
 
 
   module_mgr->addNativeModule("dagor.udp", apiNs);

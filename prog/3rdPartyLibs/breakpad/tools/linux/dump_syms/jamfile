@@ -1,14 +1,14 @@
 Root    ?= ../../../../../.. ;
 BreakpadRoot = prog/3rdPartyLibs/breakpad ;
 Location = $(BreakpadRoot)/tools/linux/dump_syms ;
-Platform ?= linux64 ;
+Platform ?= linux ;
 
 FullOOPEnabled = yes ;
 
 TargetType  = exe ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
-if $(Platform) in linux64 {
+if $(Platform) in linux {
   Target      = 3rdPartyLibs/breakpad/tools/linux/dump_syms ;
 
   AddIncludes += $(Root)/$(BreakpadRoot) ;

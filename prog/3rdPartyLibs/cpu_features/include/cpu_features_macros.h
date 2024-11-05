@@ -39,7 +39,7 @@
 #define CPU_FEATURES_ARCH_ARM
 #endif
 
-#if defined(__aarch64__)
+#if (defined(__aarch64__) || defined(_M_ARM64))
 #define CPU_FEATURES_ARCH_AARCH64
 #endif
 
@@ -63,6 +63,10 @@
 #define CPU_FEATURES_ARCH_PPC
 #endif
 
+#if defined(__s390x__)
+#define CPU_FEATURES_ARCH_S390X
+#endif
+
 #if defined(__riscv)
 #define CPU_FEATURES_ARCH_RISCV
 #endif
@@ -77,6 +81,10 @@
 
 #if defined(__riscv) && defined(__riscv_xlen) && __riscv_xlen == 128
 #define CPU_FEATURES_ARCH_RISCV128
+#endif
+
+#if defined(__loongarch64)
+#define CPU_FEATURES_ARCH_LOONGARCH
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////

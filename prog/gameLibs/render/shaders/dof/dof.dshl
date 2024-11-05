@@ -126,7 +126,7 @@ shader dof_downsample
       float linearDepth = linearize_z(rawDepth, zn_zfar.zw);
       float3 viewVec = getViewVecOptimized(uv);
       float3 cameraToPoint = viewVec * linearDepth;
-      return get_reprojected_motion_vector(uv, cameraToPoint, prevViewProjTm);
+      return get_reprojected_motion_vector(float3(uv, linearDepth), cameraToPoint, prevViewProjTm).xy;
     }
 
     OutDownscaleDof dof_downsample_ps(VsOutput IN HW_USE_SCREEN_POS)
@@ -699,8 +699,6 @@ shader dof_composite
 
 texture downsampled_depth_with_transparency;
 texture downsampled_transparent_frame;
-
-texture downsampled_close_depth_tex;
 
 shader downsample_depth_for_far_dof
 {

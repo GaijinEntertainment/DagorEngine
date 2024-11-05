@@ -1,0 +1,9 @@
+int world_sdf_support_uav_load;
+interval world_sdf_support_uav_load : off<1, on;
+
+hlsl {
+  ##if world_sdf_support_uav_load == on
+    #define TYPED_UAV_LOAD 1
+  ##endif
+}
+

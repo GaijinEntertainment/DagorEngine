@@ -412,11 +412,14 @@ static SQInteger sqdagor_printerror(HSQUIRRELVM v)
   return 0;
 }
 
-static void _sqdagor_compiler_error(HSQUIRRELVM v,const SQChar *sErr,const SQChar *sSource,SQInteger line,SQInteger column, const SQChar *extra)
+static void _sqdagor_compiler_message(HSQUIRRELVM v,SQMessageSeverity severity,const SQChar *sErr,const SQChar *sSource,SQInteger line,SQInteger column, const SQChar *extra)
 {
   SQPRINTFUNCTION pf = sq_geterrorfunc(v);
   if (pf) {
-    pf(v, _SC("%s line = (%d) column = (%d) : error %s\n"), sSource, (int)line, (int)column, sErr);
+    const SQChar *sevName = "error";
+    if (severity == SEV_HINT) sevName = "hint";
+    else if (severity == SEV_WARNING) sevName = "warning";
+    pf(v, _SC("%s line = (%d) column = (%d) : %s %s\n"), sSource, (int)line, (int)column, sevName, sErr);
     if (extra)
       pf(v, _SC("%s\n"), extra);
   }
@@ -424,7 +427,7 @@ static void _sqdagor_compiler_error(HSQUIRRELVM v,const SQChar *sErr,const SQCha
 
 void sqdagor_seterrorhandlers(HSQUIRRELVM v)
 {
-  sq_setcompilererrorhandler(v,_sqdagor_compiler_error);
+  sq_setcompilererrorhandler(v,_sqdagor_compiler_message);
   sq_newclosure(v,_dag_handle_err_wrapper,0);
   sq_seterrorhandler(v);
 }

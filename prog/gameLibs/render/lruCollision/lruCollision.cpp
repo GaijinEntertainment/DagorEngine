@@ -1,14 +1,23 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <render/lruCollision.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_dispatch.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_driver.h>
 #include <perfMon/dag_statDrv.h>
 #include <gameRes/dag_collisionResource.h>
 #include <rendInst/riexHandle.h>
-#include <render/lruCollision.h>
+#include <scene/dag_physMat.h>
 #include <render/primitiveObjects.h>
 #include <math/dag_mathUtils.h>
 #include <../shaders/gi_voxelize_inc.hlsli>
 #include <3d/dag_lockSbuffer.h>
 #include <util/dag_convar.h>
 #include <generic/dag_smallTab.h>
+#include <dag/dag_vectorSet.h>
 
 // todo: use clusters may be?
 // todo: classification
@@ -17,8 +26,12 @@
 //  that fit into one voxel)
 // todo: KD-tree (top & bottom structures)
 // todo: gpu submission on DX12/VK/Metal at least
-static constexpr bool can_voxelize_in_compute = false;
-static constexpr bool use_geom_shader = false;
+static constexpr bool can_voxelize_in_compute = true;
+
+static inline bool is_transparent(uint32_t phys_mat_id)
+{
+  return uint32_t(phys_mat_id) < PhysMat::physMatCount() && PhysMat::getMaterial(phys_mat_id).lightTransparent;
+}
 
 CONSOLE_BOOL_VAL("render", gi_voxelize_cs, false);
 CONSOLE_BOOL_VAL("render", gi_voxelize_md, true);
@@ -43,9 +56,13 @@ uint32_t LRURendinstCollision::getMaxBatchSize() const { return MAX_VOXELIZATION
 static constexpr uint32_t compute_vb_flags = (can_voxelize_in_compute ? SBCF_BIND_SHADER_RES | SBCF_MISC_ALLOW_RAW : 0);
 static int ssgi_scene_common_color_reg_no_const = 6, ssgi_scene_common_alpha_reg_no_const = 5;
 
+bool LRURendinstCollision::useSRVBuffers = false;
+
 LRURendinstCollision::LRURendinstCollision() :
-  vbAllocator(SbufferHeapManager("vb_collision_", 4, compute_vb_flags | SBCF_BIND_VERTEX)),
-  ibAllocator(SbufferHeapManager("ib_collision_", 4, compute_vb_flags | SBCF_BIND_INDEX))
+  vbAllocator(SbufferHeapManager("vb_collision_", 4,
+    compute_vb_flags | SBCF_BIND_VERTEX | (useSRVBuffers ? SBCF_BIND_SHADER_RES | SBCF_MISC_ALLOW_RAW : 0))),
+  ibAllocator(SbufferHeapManager("ib_collision_", 4,
+    compute_vb_flags | SBCF_BIND_INDEX | (useSRVBuffers ? SBCF_BIND_SHADER_RES | SBCF_MISC_ALLOW_RAW : 0)))
 {
   create_cubic_indices(make_span((uint8_t *)boxIndices.data(), COLLISION_BOX_INDICES_NUM * sizeof(uint16_t)), 1, false);
   ShaderGlobal::get_int_by_name("ssgi_scene_common_color_reg_no", ssgi_scene_common_color_reg_no_const);
@@ -92,6 +109,7 @@ LRURendinstCollision::RiDataInfo LRURendinstCollision::getRiData(uint32_t type)
   uint32_t oldSize = riInfo.size();
   if (type >= oldSize)
   {
+    G_ASSERTF(type < (1 << 21), "%d", type);
     riInfo.resize(type + 1);
     for (uint32_t i = oldSize, ei = riInfo.size(); i < ei; ++i)
     {
@@ -105,6 +123,9 @@ LRURendinstCollision::RiDataInfo LRURendinstCollision::getRiData(uint32_t type)
           continue;
 
         if (!node->checkBehaviorFlags(CollisionNode::TRACEABLE))
+          continue;
+
+        if (is_transparent(node->physMatId))
           continue;
         if (node->type == COLLISION_NODE_TYPE_BOX)
         {
@@ -261,12 +282,14 @@ bool LRURendinstCollision::updateLRU(dag::ConstSpan<rendinst::riex_handle_t> ri)
   uint32_t currentFrame = ::dagor_frame_no();
   eastl::bitvector<framemem_allocator> processed;
   processed.reserve(2048);
-  typedef eastl::vector_set<uint32_t, eastl::less<uint32_t>, framemem_allocator> entry_map_t;
+  typedef dag::VectorSet<uint32_t, eastl::less<uint32_t>, framemem_allocator> entry_map_t;
   entry_map_t nonExistent;
 
   for (auto h : ri)
   {
     const uint32_t type = lru_collision_get_type(h);
+    if (type == ~0u)
+      continue;
     if (processed.test(type, false))
       continue;
     if (riToLRUmap.size() <= type)
@@ -323,6 +346,8 @@ bool LRURendinstCollision::updateLRU(dag::ConstSpan<rendinst::riex_handle_t> ri)
     {
       const CollisionNode *node = collRes->getNode(ni);
       if (!node || !node->checkBehaviorFlags(CollisionNode::TRACEABLE))
+        continue;
+      if (is_transparent(node->physMatId))
         continue;
       if (node->type == COLLISION_NODE_TYPE_BOX)
       {
@@ -401,7 +426,7 @@ bool LRURendinstCollision::updateLRU(dag::ConstSpan<rendinst::riex_handle_t> ri)
 }
 
 void LRURendinstCollision::batchInstances(const rendinst::riex_handle_t *begin, const rendinst::riex_handle_t *end,
-  eastl::function<void(uint32_t start_instance, const uint32_t *types_counts, uint32_t count)> cb)
+  batch_instances_cb_t cb)
 {
   FRAMEMEM_REGION;
   SmallTab<uint32_t, framemem_allocator> instanceTypesCounts;
@@ -423,10 +448,28 @@ void LRURendinstCollision::batchInstances(const rendinst::riex_handle_t *begin, 
     // it is beter use bi-partioning buffer to avoid ever call with DISCARD. However, in a reality even with a free camera and 30fps we
     // can't go over that limit of 6 frames
     uint32_t actualInstances = 0;
+    // count amount of instances ahead to make precise lock
+    for (auto iter = begin; iter < (begin + handlesBatchSize); ++iter)
+    {
+      const rendinst::riex_handle_t h = *iter;
+      const uint32_t type = lru_collision_get_type(h);
+      if (riToLRUmap.size() <= type)
+        continue;
+      const LRUEntry &lruEntry = riToLRUmap[type];
+      if (!lruEntry.vb || !lruEntry.ib)
+        continue;
+      actualInstances++;
+    }
+    if (!actualInstances)
+    {
+      lastUpdatedInstance = startInstance;
+      begin += handlesBatchSize;
+      continue;
+    }
+
     auto fillInstances = [&](Point4 *dataPtr) {
       auto batchEnd = begin + handlesBatchSize;
       uint32_t prevType = ~0u;
-      uint32_t addedInstances = 0;
       for (; begin < batchEnd; ++begin)
       {
         const rendinst::riex_handle_t h = *begin;
@@ -444,11 +487,10 @@ void LRURendinstCollision::batchInstances(const rendinst::riex_handle_t *begin, 
         mat43f tm = lru_collision_get_transform(h);
         memcpy(dataPtr, &tm, sizeof(tm));
         dataPtr += sizeof(mat43f) / sizeof(vec4f);
-        addedInstances++;
         instanceTypesCounts.back()++;
       }
-      return addedInstances;
     };
+
     const uint32_t offsetBytes = startInstance * sizeof(mat43f);
     if (!supportNoOverwrite) // Win7 codepath
     {
@@ -457,17 +499,16 @@ void LRURendinstCollision::batchInstances(const rendinst::riex_handle_t *begin, 
       //  which is often it is faster and less memory
       SmallTab<Point4, framemem_allocator> updateDataCopy;
       updateDataCopy.resize(handlesBatchSize * sizeof(mat43f) / sizeof(vec4f));
-      actualInstances = fillInstances(updateDataCopy.data());
-      if (actualInstances)
-        instanceTms.getBuf()->updateData(offsetBytes, actualInstances * sizeof(mat43f), updateDataCopy.data(), VBLOCK_WRITEONLY);
+      fillInstances(updateDataCopy.data());
+      instanceTms.getBuf()->updateData(offsetBytes, actualInstances * sizeof(mat43f), updateDataCopy.data(), VBLOCK_WRITEONLY);
     }
     else
     {
       const uint32_t flags = (startInstance != 0 || bufferWasNotUsedRecently) ? VBLOCK_NOOVERWRITE : VBLOCK_DISCARD;
-      if (auto data = lock_sbuffer<Point4>(instanceTms.getBuf(), offsetBytes, handlesBatchSize * sizeof(mat43f) / sizeof(Point4),
+      if (auto data = lock_sbuffer<Point4>(instanceTms.getBuf(), offsetBytes, actualInstances * sizeof(mat43f) / sizeof(Point4),
             flags | VBLOCK_WRITEONLY))
       {
-        actualInstances = fillInstances(data.get());
+        fillInstances(data.get());
       }
       else
       {
@@ -476,13 +517,12 @@ void LRURendinstCollision::batchInstances(const rendinst::riex_handle_t *begin, 
       }
     }
     lastUpdatedInstance = startInstance + actualInstances;
-    if (actualInstances)
-      cb(startInstance, instanceTypesCounts.begin(), instanceTypesCounts.size() / 2);
+    cb(startInstance, instanceTypesCounts.begin(), instanceTypesCounts.size() / 2);
   }
 }
 
 void LRURendinstCollision::drawInstances(dag::ConstSpan<rendinst::riex_handle_t> handles, VolTexture *color, VolTexture *alpha,
-  uint32_t instMul, ShaderElement &elem) // expect sorted
+  uint32_t instMul, ShaderElement &elem, bool primitives) // expect sorted
 {
   TIME_D3D_PROFILE(LRU_draw_instances);
   if (alpha)
@@ -490,18 +530,29 @@ void LRURendinstCollision::drawInstances(dag::ConstSpan<rendinst::riex_handle_t>
   if (color)
     d3d::set_rwtex(STAGE_PS, ssgi_scene_common_color_reg_no_const, color, 0, 0);
 
-  d3d::setind(ibAllocator.getHeap().getBuf());
-  d3d::setvsrc_ex(0, vbAllocator.getHeap().getBuf(), 0, sizeof(CollisionVertex)); // we can set with different offset, but we rely on
-                                                                                  // same vertex size
-  auto inds = serialBuf.get();
-  d3d::setvsrc_ex(1, inds.get(), 0, sizeof(uint32_t));
-
-  ShaderGlobal::set_int(gi_voxelize_with_instancingVarId, 1);
+  if (primitives)
+  {
+    ShaderGlobal::set_buffer(gi_voxelization_vbufferVarId, vbAllocator.getHeap().getBufId());
+    ShaderGlobal::set_buffer(gi_voxelization_ibufferVarId, ibAllocator.getHeap().getBufId());
+    d3d::setvsrc_ex(0, nullptr, 0, sizeof(CollisionVertex)); // we can set with different offset, but we rely on
+                                                             // same vertex size
+  }
+  else
+  {
+    d3d::setind(ibAllocator.getHeap().getBuf());
+    d3d::setvsrc_ex(0, vbAllocator.getHeap().getBuf(), 0, sizeof(CollisionVertex)); // we can set with different offset, but we rely on
+                                                                                    // same vertex size
+    auto inds = serialBuf.get();
+    d3d::setvsrc_ex(1, inds.get(), 0, sizeof(uint32_t));
+  }
+  ShaderGlobal::set_int(gi_voxelize_with_instancingVarId, primitives ? 2 : 1);
+  ShaderGlobal::set_int(gi_voxelize_use_multidrawVarId, (multiDrawBuf.getBuf() && gi_voxelize_md.get() && !primitives) ? 1 : 0);
   instanceTms.setVar();
   elem.setStates(0, true);
 
+  const uint32_t prims_inst = uint32_t(primitives) | (instMul << 1);
   batchInstances(handles.begin(), handles.end(), [&](uint32_t start_instance, const uint32_t *types_counts, uint32_t count) {
-    drawInstances(start_instance, types_counts, count, color, alpha, instMul);
+    drawInstances(start_instance, types_counts, count, color, alpha, prims_inst >> 1, prims_inst & 1);
   });
   d3d::setind(nullptr);
   d3d::setvsrc(0, 0, 0); // we can set with different offset, but we rely on same vertex size
@@ -510,18 +561,18 @@ void LRURendinstCollision::drawInstances(dag::ConstSpan<rendinst::riex_handle_t>
     d3d::set_rwtex(STAGE_PS, ssgi_scene_common_color_reg_no_const, 0, 0, 0);
   if (alpha)
     d3d::set_rwtex(STAGE_PS, ssgi_scene_common_alpha_reg_no_const, 0, 0, 0);
+  ShaderGlobal::set_int(gi_voxelize_with_instancingVarId, 0);
 }
 
 void LRURendinstCollision::drawInstances(uint32_t start_instance, const uint32_t *types_counts, uint32_t batches, VolTexture *color,
-  VolTexture *alpha, uint32_t instMul)
+  VolTexture *alpha, uint32_t instMul, bool primitives)
 {
   uint32_t offset = start_instance * instMul;
-  if (multiDrawBuf.getBuf() && gi_voxelize_md.get())
+  if (multiDrawBuf.getBuf() && gi_voxelize_md.get() && !primitives)
   {
     TIME_D3D_PROFILE(LRU_gathered_instances_md);
-    ShaderGlobal::set_int(gi_voxelize_use_multidrawVarId, 1);
-    d3d::set_immediate_const(STAGE_VS, &offset, 1);                  // for conformance with no md codepath
-    eastl::vector<DrawIndexedIndirectArgs, framemem_allocator> data; // todo: replace me with full gpu submission
+    d3d::set_immediate_const(STAGE_VS, &offset, 1);                // for conformance with no md codepath
+    dag::Vector<DrawIndexedIndirectArgs, framemem_allocator> data; // todo: replace me with full gpu submission
     data.resize(batches);
     auto dataPtr = data.data(); // data.get();
     uint32_t instances = 0;
@@ -550,11 +601,11 @@ void LRURendinstCollision::drawInstances(uint32_t start_instance, const uint32_t
       d3d::resource_barrier({color, RB_NONE, 0, 0});
     if (alpha)
       d3d::resource_barrier({alpha, RB_NONE, 0, 0});
+    d3d::set_immediate_const(STAGE_VS, nullptr, 0);
     return;
   }
   //
   TIME_D3D_PROFILE(LRU_gathered_instances);
-  ShaderGlobal::set_int(gi_voxelize_use_multidrawVarId, 0);
   for (uint32_t ti = 0; ti < batches; ++ti, types_counts += 2)
   {
     const uint32_t type = types_counts[0];
@@ -563,15 +614,25 @@ void LRURendinstCollision::drawInstances(uint32_t start_instance, const uint32_t
     const LRUEntry &lruEntry = riToLRUmap[type];
     auto vbInfo = vbAllocator.get(lruEntry.vb), ibInfo = ibAllocator.get(lruEntry.ib);
     G_ASSERT(vbInfo.size && ibInfo.size);
-    d3d::set_immediate_const(STAGE_VS, &offset, 1);
-    d3d::drawind_instanced(PRIM_TRILIST, ibInfo.offset / sizeof(uint16_t), ibInfo.size / (3 * sizeof(uint16_t)),
-      vbInfo.offset / sizeof(CollisionVertex), instCount);
+    if (primitives)
+    {
+      uint32_t offsets[3] = {offset, uint32_t(ibInfo.offset / sizeof(uint16_t)), uint32_t(vbInfo.offset / sizeof(CollisionVertex))};
+      d3d::set_immediate_const(STAGE_VS, offsets, 3);
+      d3d::draw_instanced(PRIM_TRILIST, 0, ibInfo.size / (3 * sizeof(uint16_t)), instCount, 0);
+    }
+    else
+    {
+      d3d::set_immediate_const(STAGE_VS, &offset, 1);
+      d3d::drawind_instanced(PRIM_TRILIST, ibInfo.offset / sizeof(uint16_t), ibInfo.size / (3 * sizeof(uint16_t)),
+        vbInfo.offset / sizeof(CollisionVertex), instCount);
+    }
     offset += instCount;
     if (color)
       d3d::resource_barrier({color, RB_NONE, 0, 0});
     if (alpha)
       d3d::resource_barrier({alpha, RB_NONE, 0, 0});
   }
+  d3d::set_immediate_const(STAGE_VS, nullptr, 0);
 }
 
 void LRURendinstCollision::dispatchInstances(const uint32_t start_instance, const uint32_t *types_counts, uint32_t batches,
@@ -600,6 +661,7 @@ void LRURendinstCollision::dispatchInstances(const uint32_t start_instance, cons
     if (alpha)
       d3d::resource_barrier({alpha, RB_NONE, 0, 0});
   }
+  d3d::set_immediate_const(STAGE_CS, nullptr, 0);
   // debug("triCount = %d instances = %d", triCount, offset);
   // d3d::set_immediate_const(STAGE_CS, &offset, 1);
   // d3d::dispatch((offset+31)/32,1,1);
@@ -618,6 +680,7 @@ void LRURendinstCollision::dispatchInstances(dag::ConstSpan<rendinst::riex_handl
 
   ShaderGlobal::set_buffer(gi_voxelization_vbufferVarId, vbAllocator.getHeap().getBufId());
   ShaderGlobal::set_buffer(gi_voxelization_ibufferVarId, ibAllocator.getHeap().getBufId());
+  cs.setStates();
   batchInstances(handles.begin(), handles.end(), [&](uint32_t start_instance, const uint32_t *types_counts, uint32_t count) {
     dispatchInstances(start_instance, types_counts, count, color, alpha, cs.getThreadGroupSizes()[0]);
   });
@@ -628,10 +691,10 @@ void LRURendinstCollision::dispatchInstances(dag::ConstSpan<rendinst::riex_handl
 }
 
 void LRURendinstCollision::draw(dag::ConstSpan<rendinst::riex_handle_t> handles, VolTexture *color, VolTexture *alpha,
-  uint32_t inst_mul, ShaderElement &elem)
+  uint32_t inst_mul, ShaderElement &elem, bool prims)
 {
   if (!handles.empty())
-    drawInstances(handles, color, alpha, inst_mul, elem);
+    drawInstances(handles, color, alpha, inst_mul, elem, prims);
 }
 
 void LRURendinstCollision::voxelize(dag::ConstSpan<rendinst::riex_handle_t> handles, VolTexture *color, VolTexture *alpha)
@@ -648,7 +711,7 @@ void LRURendinstCollision::voxelize(dag::ConstSpan<rendinst::riex_handle_t> hand
   else
   {
     if (voxelizeCollisionElem)
-      drawInstances(handles, color, alpha, use_geom_shader ? 1 : 3, *voxelizeCollisionElem);
+      drawInstances(handles, color, alpha, 3, *voxelizeCollisionElem, false);
   }
 }
 
@@ -656,4 +719,26 @@ void LRURendinstCollision::clearRiInfo()
 {
   reset();
   riInfo = {};
+}
+
+eastl::optional<LRURendinstCollision::MeshData> LRURendinstCollision::getModelData(int modelId) const
+{
+  if (uint32_t(modelId) >= riToLRUmap.size())
+    return eastl::nullopt;
+
+  const LRUEntry &lruEntry = riToLRUmap[modelId];
+  auto vbInfo = vbAllocator.get(lruEntry.vb);
+  auto ibInfo = ibAllocator.get(lruEntry.ib);
+
+  MeshData ret;
+  ret.vertices = vbAllocator.getHeap().getBuf();
+  ret.indices = ibAllocator.getHeap().getBuf();
+  ret.baseVertex = vbInfo.offset / sizeof(CollisionVertex);
+  ret.startIndex = ibInfo.offset / sizeof(uint16_t);
+  ret.vertexCount = vbInfo.size / sizeof(CollisionVertex);
+  ret.indexCount = ibInfo.size / sizeof(uint16_t);
+  ret.vertexStride = sizeof(CollisionVertex);
+  ret.positionOffset = 0;
+  ret.positionFormat = VSDT_HALF4;
+  return ret;
 }

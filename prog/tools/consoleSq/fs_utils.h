@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <EASTL/string.h>
 
 #ifndef _MAX_DIR

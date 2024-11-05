@@ -1,0 +1,32 @@
+projectors_manager{
+  _singleton:b=yes
+  _use:t="replicating"
+  projectors_manager__atmosphereDensity:r=1
+  projectors_manager__atmosphereMoveDir:p3=1, 0, 0
+  projectors_manager__atmosphereMoveSpeed:r=0
+  projectors_manager__noiseScale:r=1
+  projectors_manager__noiseStrength:r=0 // resultColor = color * (1.0 - noise * noiseStrength)
+
+  projectors_manager{
+    _tags:t="render"
+  }
+  "projectors_node:dabfg::NodeHandle"{
+    _tags:t="render"
+  }
+}
+
+projector{
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  _use:t="replicating"
+  projector__id:i=-1
+  projector__color:p3=1, 1, 1
+  projector__angle:r=3 // In degrees.
+  projector__length:r=1000
+  projector__sourceWidth:r=1
+  // Animation parameters.
+  projector__phase:r=0
+  projector__period:r=1 // Negative values are acceptible.
+  // So the beam will rotate in the opposite direction.
+  projector__xAngleAmplitude:r=0 // Angle amplitudes in degrees.
+  projector__zAngleAmplitude:r=0
+}

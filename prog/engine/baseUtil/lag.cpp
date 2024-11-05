@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_lag.h>
 #include <util/dag_baseDef.h>
 #include <debug/dag_debug.h>
@@ -37,8 +39,7 @@ void LagTestThread::begin(int wait_ms, bool print_stack)
   startWaitMs = get_time_msec();
   stopWaitMs = startWaitMs + wait_ms;
   printStack = print_stack;
-  if (start())
-    setAffinity(WORKER_THREADS_AFFINITY_MASK);
+  start();
 }
 
 int LagTestThread::end(bool print_time)

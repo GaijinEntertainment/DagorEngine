@@ -1,26 +1,41 @@
-if ! [ GLOB $(_DEVTOOL)/mac/SDKs/iPhoneOS.platform/iPhoneOS$(iOSVer).sdk : * ] && $(Platform) = iOS && $(iOSArch) in armv7 armv7s arm64 arm64e {
-  local ver = 17.0 16.5 16.4 16.3 16.2 16.1 16.0 15.5 15.4 15.3 15.2 15.0 14.5 14.4 14.3 14.2 14.1 14.0 13.5 13.4 13.3 13.2 13.1 13.0 12.2 12.1 12.0 11.4 11.3 11.2 11.1 11.0 10.3 10.2 10.1 10.0 9.3 9.2 9.1 9.0 8.1 8.0 7.1 7.0 ;
-  for v in $(ver) {
-    if [ GLOB $(_DEVTOOL)/mac/SDKs/iPhoneOS.platform/iPhoneOS$(v).sdk : * ] {
-      echo iOSVer SDK $(iOSVer) not found, switching to $(v) with -miphoneos-version-min=$(iOSMinVer) ;
-      iOSVer = $(v) ;
-      break ;
+rule FindIOSVersionInFolder
+{
+  local sdkPath = $(1) ;
+  local sdkPrefix = $(2) ;
+
+  local versions = 25 24 23 22 21 20 19 18 17 16 15 ;
+  local subVersions = 9 8 7 6 5 4 3 2 1 0 ;
+  local passedMinVersion = no ;
+  for v in $(versions) {
+    for sV in $(subVersions) {
+      local fullVer = $(v).$(sV) ;
+      if $(fullVer) = $(iOSMinVer) {
+        passedMinVersion = yes ;
+      }
+
+      local sdkName = $(sdkPrefix)$(fullVer).sdk ;
+      if [ GLOB $(sdkPath)/$(sdkName) : * ] {
+        if $(passedMinVersion) = yes {
+          iOSMinVer = $(fullVer) ;
+          echo iOSMinVer lowered to $(iOSMinVer) ;
+        }
+
+        echo iOSVer SDK $(iOSVer) not found, switching to $(fullVer) with -miphoneos-version-min=$(iOSMinVer) ;
+        iOSVer = $(fullVer) ;
+        return ;
+      }
     }
   }
+
   if ! [ GLOB $(_DEVTOOL)/mac/SDKs/iPhoneOS.platform/iPhoneOS$(iOSVer).sdk : * ] && ! $(GLOBAL_BuildDevtool) {
     Exit iOSVer SDK $(iOSVer) not found ;
   }
 }
-if ! [ GLOB $(_DEVTOOL)/mac/SDKs/iPhoneSimulator.platform/iPhoneSimulator$(iOSVer).sdk : * ] && $(Platform) = iOS && $(iOSArch) = i386 {
-  local ver = 17.0 16.5 16.4 16.3 16.2 16.1 16.0 15.5 15.4 15.0 14.5 14.4 14.3 14.2 14.1 14.0 13.5 13.4 13.3 13.2 13.1 13.0 12.2 12.1 12.0 11.4 11.3 11.2 11.1 11.0 10.3 10.2 9.3 9.2 9.1 9.0 8.3 8.2 8.1 8.0 7.1 7.0 ;
-  for v in $(ver) {
-    if [ GLOB $(_DEVTOOL)/mac/SDKs/iPhoneSimulator.platform/iPhoneSimulator$(v).sdk : * ] {
-      echo iOSVer SDK $(iOSVer) not found, switching to $(v) ;
-      iOSVer = $(v) ;
-      break ;
-    }
-  }
-  if ! [ GLOB $(_DEVTOOL)/mac/SDKs/iPhoneSimulator.platform/iPhoneSimulator$(iOSVer).sdk : * ] && ! $(GLOBAL_BuildDevtool) {
-    Exit iOSVer SDK $(iOSVer) not found ;
-  }
+
+if ! [ GLOB $(_DEVTOOL)/mac/SDKs/iPhoneOS.platform/iPhoneOS$(iOSVer).sdk : * ] && $(Platform) = iOS && $(PlatformArch) in armv7 armv7s arm64 arm64e {
+  [ FindIOSVersionInFolder $(_DEVTOOL)/mac/SDKs/iPhoneOS.platform : iPhoneOS ] ;
+}
+
+if ! [ GLOB $(_DEVTOOL)/mac/SDKs/iPhoneSimulator.platform/iPhoneSimulator$(iOSVer).sdk : * ] && $(Platform) = iOS && $(PlatformArch) = i386 {
+  [ FindIOSVersionInFolder $(_DEVTOOL)/mac/SDKs/iPhoneSimulator.platform : iPhoneSimulator ] ;
 }

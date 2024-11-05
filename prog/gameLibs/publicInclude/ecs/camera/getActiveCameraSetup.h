@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -31,6 +30,12 @@ struct CameraSetup
   ecs::EntityId camEid;
 };
 
+struct HorVerFov
+{
+  float horFov;
+  float verFov;
+};
+
 //! retrieves properties of active camera (checks that only one camera entity is active at one time)
 namespace ecs
 {
@@ -46,7 +51,10 @@ TMatrix4 calc_active_camera_globtm();
 void calc_camera_values(const CameraSetup &camera_setup, TMatrix &view_tm, Driver3dPerspective &persp, int &view_w, int &view_h);
 //! Detailed calculation functions
 TMatrix calc_camera_view_tm(const TMatrix &view_itm);
+HorVerFov calc_hor_ver_fov(const float fov_degree, const FovMode mode, const int view_w, const int view_h);
 Driver3dPerspective calc_camera_perspective(const CameraSetup &camera_setup, int view_w, int view_h);
+Driver3dPerspective calc_camera_perspective(const float fov_degree, const FovMode fov_mode, const float z_near, const float z_far,
+  int view_w, int view_h);
 
 //! sets camera parameters to D3D
 void apply_camera_setup(const CameraSetup &camera_setup, TMatrix &out_view_tm, TMatrix &out_view_itm);

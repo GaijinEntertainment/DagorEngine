@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <supp/dag_comPtr.h>
@@ -50,6 +51,9 @@ inline const char *to_string(D3D12_HEAP_TYPE type)
     case D3D12_HEAP_TYPE_UPLOAD: return "upload";
     case D3D12_HEAP_TYPE_READBACK: return "read back";
     case D3D12_HEAP_TYPE_CUSTOM: return "custom";
+#if _TARGET_PC_WIN && (D3D12_SDK_VERSION >= 610)
+    case D3D12_HEAP_TYPE_GPU_UPLOAD: return "gpu upload";
+#endif
   }
   return "??";
 }
@@ -131,7 +135,7 @@ inline char *resource_state_mask_as_string(D3D12_RESOURCE_STATES mask, char (&cb
   return cbuf;
 }
 
-inline D3D12_PRIMITIVE_TOPOLOGY pimitive_type_to_primtive_topology(D3D_PRIMITIVE pt, D3D12_PRIMITIVE_TOPOLOGY initial)
+inline D3D12_PRIMITIVE_TOPOLOGY primitive_type_to_primtive_topology(D3D_PRIMITIVE pt, D3D12_PRIMITIVE_TOPOLOGY initial)
 {
   if (pt >= D3D_PRIMITIVE_1_CONTROL_POINT_PATCH && pt <= D3D_PRIMITIVE_32_CONTROL_POINT_PATCH)
     return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(

@@ -172,16 +172,13 @@ shader apply_aurora_borealis
 
   POSTFX_VS_TEXCOORD(0, uv)
 
+  // In compatibility mode, INIT_HDR(ps) is in <global_frame> block
   if (compatibility_mode == compatibility_mode_off)
   {
-    SKY_HDR()
-  }
-  else
-  {
-    // In compatibility mode, INIT_HDR_STCODE() is in <global_frame> block
-    USE_HDR()
+    INIT_HDR(ps)
   }
 
+  USE_HDR(ps)
   USE_CUSTOM_FOG_SKY(ps)
 
   (ps) {

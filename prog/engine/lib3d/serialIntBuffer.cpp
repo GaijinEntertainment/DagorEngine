@@ -1,4 +1,9 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_info.h>
 #include <osApiWrappers/dag_atomic.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <osApiWrappers/dag_miscApi.h>
@@ -144,5 +149,5 @@ void stop_use_serial(Sbuffer *s)
 void reset_buffers(bool) { reset(); }
 } // namespace serial_buffer
 
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_resetDevice.h>
 REGISTER_D3D_AFTER_RESET_FUNC(serial_buffer::reset_buffers);

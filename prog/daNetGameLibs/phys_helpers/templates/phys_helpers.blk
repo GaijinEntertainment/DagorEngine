@@ -1,0 +1,10 @@
+ri_phys_world_adder {
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  ri_phys_world_adder__boxExtends:p3=10, 10, 10
+  ri_phys_world_adder__timer:r=1
+  ri_phys_world_adder__nextAt:r=0
+}
+
+terrain_roughness_vis {
+  terrain_roughness_vis__baseStep:r=0.25
+}

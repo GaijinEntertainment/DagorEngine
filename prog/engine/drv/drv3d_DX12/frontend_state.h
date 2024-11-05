@@ -1,14 +1,21 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
 #include <generic/dag_bitset.h>
 #include <generic/dag_enumerate.h>
+#include <generic/dag_variantArray.h>
 #include <math/dag_adjpow2.h>
 #include <math/dag_lsbVisitor.h>
 #include <perfMon/dag_graphStat.h>
 
+#include "device.h"
+#include "device_context.h"
 #include "texture.h"
 #include "shader.h"
+#include "const_register_type.h"
+#include "viewport_state.h"
 #include "resource_manager/raytrace_acceleration_structure.h"
 
 
@@ -16,21 +23,41 @@ namespace drv3d_dx12
 {
 struct FrontendState
 {
+  struct Vacant
+  {
+    friend bool operator==(const Vacant &, const Vacant &) { return true; }
+    friend bool operator!=(const Vacant &, const Vacant &) { return false; }
+  };
+  using TRegisterStates = dag::VariantArray<dxil::MAX_T_REGISTERS, Vacant, BaseTex *, GenericBufferInterface *
+#if D3D_HAS_RAY_TRACING
+    ,
+    RaytraceAccelerationStructure *
+#endif
+    >;
+  struct URegisterTexture
+  {
+    BaseTex *tex;
+    ImageViewState view;
+
+    friend bool operator==(const URegisterTexture &lhs, const URegisterTexture &rhs)
+    {
+      return lhs.tex == rhs.tex && lhs.view == rhs.view;
+    }
+    friend bool operator!=(const URegisterTexture &lhs, const URegisterTexture &rhs) { return !(lhs == rhs); }
+  };
+  using URegisterStates = dag::VariantArray<dxil::MAX_U_REGISTERS, Vacant, URegisterTexture, GenericBufferInterface *>;
+
   struct StageResourcesState
   {
     Sbuffer *bRegisterBuffers[dxil::MAX_B_REGISTERS] = {};
     uint32_t bRegisterOffsets[dxil::MAX_B_REGISTERS] = {};
     uint32_t bRegisterSizes[dxil::MAX_B_REGISTERS] = {};
-    BaseTex *tRegisterTextures[dxil::MAX_T_REGISTERS] = {};
-    ImageViewState tRegisterTextureViews[dxil::MAX_T_REGISTERS] = {};
+
+    TRegisterStates tRegisterResources;
+
     d3d::SamplerHandle sRegisterSamplers[dxil::MAX_S_REGISTERS] = {};
-    Sbuffer *tRegisterBuffers[dxil::MAX_T_REGISTERS] = {};
-#if D3D_HAS_RAY_TRACING
-    RaytraceAccelerationStructure *tRegisterRaytraceAccelerataionStructures[dxil::MAX_T_REGISTERS] = {};
-#endif
-    BaseTex *uRegisterTextures[dxil::MAX_U_REGISTERS] = {};
-    ImageViewState uRegisterTextureViews[dxil::MAX_U_REGISTERS] = {};
-    Sbuffer *uRegisterBuffers[dxil::MAX_U_REGISTERS] = {};
+
+    URegisterStates uRegisterResources;
 
     ShaderStageResouceUsageMask dirtyMasks{~0ul};
 
@@ -78,7 +105,7 @@ struct FrontendState
       COUNT,
       INVALID = COUNT
     };
-    typedef eastl::bitset<COUNT> Type;
+    using Type = eastl::bitset<COUNT>;
   };
   struct ResourceDirtyState
   {
@@ -118,7 +145,7 @@ struct FrontendState
       COUNT,
       INVALID = COUNT
     };
-    typedef eastl::bitset<COUNT> Type;
+    using Type = eastl::bitset<COUNT>;
   };
 
   // returns set
@@ -142,7 +169,7 @@ struct FrontendState
   {
     Driver3dRenderTarget result;
     result.setBackbufColor();
-    result.setBackbufDepth();
+    result.removeDepth();
     return result;
   }
 
@@ -202,9 +229,9 @@ struct FrontendState
   D3D12_SHADING_RATE_COMBINER pixelShadingRateCombiner = D3D12_SHADING_RATE_COMBINER_PASSTHROUGH;
 #endif
 
-  OSSpinlock resourceBindingGuard;
+  mutable OSSpinlock resourceBindingGuard;
 
-  static void updateRenderTargetBindingStates(DeviceContext &ctx, const Driver3dRenderTarget &rts, bool in_use)
+  static void updateRenderTargetBindingStates(const Driver3dRenderTarget &rts, bool in_use)
   {
     for (auto i : LsbVisitor{rts.used & Driver3dRenderTarget::COLOR_MASK})
     {
@@ -216,10 +243,7 @@ struct FrontendState
     if (rts.isDepthUsed())
     {
       auto tex = cast_to_texture_base(rts.getDepth().tex);
-      if (!tex)
-      {
-        tex = ctx.getSwapchainDepthStencilTextureAnySize();
-      }
+      G_ASSERTF(tex, "Depth is used, but depth dexture is set to null");
       tex->setDsvBinding(in_use);
     }
   }
@@ -276,25 +300,33 @@ struct FrontendState
       if (auto gbuf = (GenericBufferInterface *)target.bRegisterBuffers[i])
       {
         gbuf->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsConstOrVertexBuffer(); });
-        ctx.setConstBuffer(stage, i, {get_any_buffer_ref(gbuf), target.bRegisterOffsets[i], target.bRegisterSizes[i]});
+        ConstBufferSetupInformationStream info;
+        info.buffer = {get_any_buffer_ref(gbuf), target.bRegisterOffsets[i], target.bRegisterSizes[i]};
+#if DX12_VALIDATE_STREAM_CB_USAGE_WITHOUT_INITIALIZATION
+        info.lastDiscardFrameIdx = gbuf->getDiscardFrame();
+        info.isStreamBuffer = gbuf->isStreamBuffer();
+#endif
+        ctx.setConstBuffer(stage, i, info, gbuf->getResName());
       }
       else
       {
-        ctx.setConstBuffer(stage, i, {});
+        ctx.setConstBuffer(stage, i, {}, "");
       }
     }
 
     // have to check all slots regardless of mask, a state of a texture might has changed
     for (auto i : updateMask.tRegisterMask)
     {
-      if (auto gbuf = (GenericBufferInterface *)target.tRegisterBuffers[i])
+      if (auto maybeBuf = target.tRegisterResources.getIf<GenericBufferInterface *>(i))
       {
+        auto gbuf = *maybeBuf;
         gbuf->updateDeviceBuffer(update_srv_buffer);
         G_ASSERT(!gbuf->isStreamBuffer());
         ctx.setSRVBuffer(stage, i, gbuf->getDeviceBuffer());
       }
-      else if (auto texture = target.tRegisterTextures[i])
+      else if (auto maybeTex = target.tRegisterResources.getIf<BaseTex *>(i))
       {
+        auto texture = *maybeTex;
         // if it is right now a stub texture then use it explicitly to avoid a race
         if (texture->isStub())
         {
@@ -305,9 +337,9 @@ struct FrontendState
         ctx.setSRVTexture(stage, i, texture, view, is_const_ds(texture, view));
       }
 #if D3D_HAS_RAY_TRACING
-      else if (auto as = target.tRegisterRaytraceAccelerataionStructures[i])
+      else if (auto maybeAs = target.tRegisterResources.getIf<RaytraceAccelerationStructure *>(i))
       {
-        ctx.setRaytraceAccelerationStructure(stage, i, as);
+        ctx.setRaytraceAccelerationStructure(stage, i, *maybeAs);
       }
 #endif
       else
@@ -319,13 +351,13 @@ struct FrontendState
     // have to check all slots regardless of mask, a state of a texture might has changed
     for (auto i : updateMask.sRegisterMask)
     {
-      if (auto sampler = target.sRegisterSamplers[i])
+      if (auto sampler = target.sRegisterSamplers[i]; sampler != d3d::INVALID_SAMPLER_HANDLE)
       {
         ctx.setSamplerHandle(stage, i, sampler);
       }
-      else if (auto texture = target.tRegisterTextures[i])
+      else if (auto maybeTexture = target.tRegisterResources.getIf<BaseTex *>(i))
       {
-        ctx.setSampler(stage, i, texture->getDeviceSampler());
+        ctx.setSampler(stage, i, (*maybeTexture)->getDeviceSampler());
       }
       else
       {
@@ -335,15 +367,16 @@ struct FrontendState
 
     for (auto i : updateMask.uRegisterMask)
     {
-      if (auto gbuf = (GenericBufferInterface *)target.uRegisterBuffers[i])
+      if (auto maybeBuf = target.uRegisterResources.getIf<GenericBufferInterface *>(i))
       {
+        auto gbuf = *maybeBuf;
         gbuf->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsUAVBuffer(); });
         G_ASSERT(!gbuf->isStreamBuffer());
         ctx.setUAVBuffer(stage, i, gbuf->getDeviceBuffer());
       }
-      else if (auto texture = target.uRegisterTextures[i])
+      else if (auto maybeTex = target.uRegisterResources.getIf<URegisterTexture>(i))
       {
-        ctx.setUAVTexture(stage, i, texture->getDeviceImage(), target.uRegisterTextureViews[i]);
+        ctx.setUAVTexture(stage, i, maybeTex->tex->getDeviceImage(), maybeTex->view);
       }
       else
       {
@@ -369,40 +402,20 @@ struct FrontendState
   }
 
   template <typename T>
-  void getRenderTargets(T clb)
+  void getRenderTargets(T clb) const
   {
     OSSpinlockScopedLock resourceBindingLock{resourceBindingGuard};
     // ensure that the input is of const ref and disallows modifications
     clb(const_cast<const Driver3dRenderTarget &>(renderTargets));
   }
 
-  Extent2D getFramebufferExtent(DeviceContext &ctx)
+  Extent2D getFramebufferExtent(DeviceContext &ctx) const
   {
     OSSpinlockScopedLock resourceBindingLock{resourceBindingGuard};
     return getFramebufferExtentInternal(ctx);
   }
 
-  void markDirtyIfMatchesInTRegister(uint32_t stage, BaseTex *texture, MipMapIndex mip, ArrayLayerIndex face,
-    eastl::bitset<dxil::MAX_T_REGISTERS> slots)
-  {
-    G_UNUSED(texture); // can be used to validate
-    StageResourcesState &target = stageResources[stage];
-    auto start = slots.find_first();
-    auto stop = slots.find_last();
-    for (; start <= stop; ++start)
-    {
-      if (slots.test(start))
-      {
-        auto tex = target.tRegisterTextures[start];
-        ImageViewState view = tex->getViewInfo();
-        auto mipRange = view.getMipRange();
-        auto arrayRange = view.getArrayRange();
-        target.markDirtyT(start, mipRange.isInside(mip) && arrayRange.isInside(face));
-      }
-    }
-  }
-
-  bool isConstDepthStencilTarget(BaseTex *texture, ImageViewState view)
+  bool isConstDepthStencilTarget(BaseTex *texture, ImageViewState view) const
   {
     if (renderTargets.depth.tex != texture)
       return false;
@@ -415,44 +428,18 @@ struct FrontendState
            view.getArrayRange().isInside(ArrayLayerIndex::make(renderTargets.depth.layer));
   }
 
-  void removeImageFromRenderTargets(DeviceContext &ctx, BaseTexture *texture, ImageViewState view)
-  {
-    const auto mipRange = view.getMipRange();
-    const auto arrayRange = view.getArrayRange();
-
-    for (uint32_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT && 0 != ((renderTargets.used & Driver3dRenderTarget::COLOR_MASK) >> i);
-         ++i)
-    {
-      if (renderTargets.isColorUsed(i) && renderTargets.color[i].tex == texture &&
-          mipRange.isInside(MipMapIndex::make(renderTargets.color[i].level)) &&
-          arrayRange.isInside(ArrayLayerIndex::make(renderTargets.color[i].layer)))
-      {
-        removeColorTarget(i);
-      }
-    }
-
-    if (renderTargets.isDepthUsed())
-    {
-      if (renderTargets.depth.tex == texture && mipRange.isInside(MipMapIndex::make(renderTargets.depth.level)) &&
-          arrayRange.isInside(ArrayLayerIndex::make(renderTargets.depth.layer)))
-      {
-        removeDepthStencilTarget(ctx);
-      }
-    }
-  }
-
-  BaseTexture *getColorTarget(uint32_t index)
+  BaseTexture *getColorTarget(uint32_t index) const
   {
     OSSpinlockScopedLock resourceBindingLock{resourceBindingGuard};
     return renderTargets.color[index].tex;
   }
 
-  void setRenderTargets(DeviceContext &ctx, const Driver3dRenderTarget &rt)
+  void setRenderTargets(const Driver3dRenderTarget &rt)
   {
     OSSpinlockScopedLock resourceBindingLock{resourceBindingGuard};
     resourceDirtyState.set(ResourceDirtyState::FRAMEBUFFER, true);
-    updateRenderTargetBindingStates(ctx, renderTargets, false);
-    updateRenderTargetBindingStates(ctx, rt, true);
+    updateRenderTargetBindingStates(renderTargets, false);
+    updateRenderTargetBindingStates(rt, true);
     renderTargets = rt;
     for (auto i : LsbVisitor{renderTargets.used & Driver3dRenderTarget::COLOR_MASK})
     {
@@ -519,56 +506,30 @@ struct FrontendState
     }
     renderTargets.setBackbufColor();
   }
-  void setDepthStencilTarget(DeviceContext &ctx, BaseTex *texture, uint32_t face_index, bool read_only)
+  void setDepthStencilTarget(BaseTex *texture, uint32_t face_index, bool read_only)
   {
     OSSpinlockScopedLock resourceBindingLock{resourceBindingGuard};
     resourceDirtyState.set(ResourceDirtyState::FRAMEBUFFER, true);
     if (renderTargets.isDepthUsed())
     {
       auto ot = cast_to_texture_base(renderTargets.getDepth().tex);
-      if (!ot)
-      {
-        ot = ctx.getSwapchainDepthStencilTextureAnySize();
-      }
+      G_ASSERTF(ot, "Depth is used in RT state, but depth texture is null");
       ot->setDsvBinding(false);
     }
     texture->setDsvBinding(true);
     renderTargets.setDepth(texture, face_index, read_only);
   }
-  void removeDepthStencilTarget(DeviceContext &ctx)
+  void removeDepthStencilTarget()
   {
     OSSpinlockScopedLock resourceBindingLock{resourceBindingGuard};
     resourceDirtyState.set(ResourceDirtyState::FRAMEBUFFER, true);
     if (renderTargets.isDepthUsed())
     {
       auto ot = cast_to_texture_base(renderTargets.getDepth().tex);
-      if (!ot)
-      {
-        ot = ctx.getSwapchainDepthStencilTextureAnySize();
-      }
+      G_ASSERTF(ot, "Depth is used in RT state, but depth texture is null");
       ot->setDsvBinding(false);
     }
     renderTargets.removeDepth();
-  }
-  void resetDepthStencilToBackBuffer(DeviceContext &ctx)
-  {
-    OSSpinlockScopedLock resourceBindingLock{resourceBindingGuard};
-    resourceDirtyState.set(ResourceDirtyState::FRAMEBUFFER, true);
-    if (renderTargets.isDepthUsed())
-    {
-      auto ot = cast_to_texture_base(renderTargets.getDepth().tex);
-      if (ot)
-      {
-        ot->setDsvBinding(false);
-      }
-    }
-    renderTargets.setBackbufDepth();
-    // can be null when the window just got destroyed and the splashsceen thread still draws stuff...
-    auto swDST = ctx.getSwapchainDepthStencilTextureAnySize();
-    if (swDST)
-    {
-      swDST->setDsvBinding(true);
-    }
   }
 
   void setVertexBuffer(uint32_t stream, Sbuffer *buffer, uint32_t offset, uint32_t stride)
@@ -611,80 +572,84 @@ struct FrontendState
     target.bRegisterSizes[index] = size;
   }
 
-  void setStageTRegisterBuffer(uint32_t stage, uint32_t index, Sbuffer *buffer)
+  void setStageTRegisterBuffer(uint32_t stage, uint32_t index, GenericBufferInterface *buffer)
   {
     G_ASSERT(stage < countof(stageResources));
     StageResourcesState &target = stageResources[stage];
-    G_ASSERT(index < countof(target.tRegisterBuffers));
+
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
-    if (target.tRegisterTextures[index])
-    {
-      target.tRegisterTextures[index]->setSrvBinding(stage, index, false);
-      target.tRegisterTextures[index] = nullptr;
-    }
-    target.markDirtyT(index, target.tRegisterBuffers[index] != buffer);
-    target.tRegisterBuffers[index] = buffer;
-#if D3D_HAS_RAY_TRACING
-    target.tRegisterRaytraceAccelerataionStructures[index] = nullptr;
-#endif
+
+    if (auto maybeTex = target.tRegisterResources.getIf<BaseTex *>(index))
+      (*maybeTex)->setSrvBinding(stage, index, false);
+
+    target.markDirtyT(index, target.tRegisterResources[index] != buffer);
+
+    if (buffer)
+      target.tRegisterResources.emplace<GenericBufferInterface *>(index, buffer);
+    else
+      target.tRegisterResources.emplace<Vacant>(index);
   }
 
-  void setStageURegisterBuffer(uint32_t stage, uint32_t index, Sbuffer *buffer)
+  void setStageURegisterBuffer(uint32_t stage, uint32_t index, GenericBufferInterface *buffer)
   {
     G_ASSERT(stage < countof(stageResources));
     StageResourcesState &target = stageResources[stage];
-    G_ASSERT(index < countof(target.uRegisterBuffers));
+
     GenericBufferInterface *prevBuf = nullptr;
     {
       OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
-      if (target.uRegisterTextures[index])
-      {
-        target.uRegisterTextures[index]->setUavBinding(stage, index, false);
-        target.uRegisterTextures[index] = nullptr;
-      }
-      target.markDirtyU(index, target.uRegisterBuffers[index] != buffer);
-      if (target.uRegisterBuffers[index])
-        prevBuf = (GenericBufferInterface *)target.uRegisterBuffers[index];
-      target.uRegisterBuffers[index] = buffer;
+
+      if (auto maybeTex = target.uRegisterResources.getIf<URegisterTexture>(index))
+        maybeTex->tex->setUavBinding(stage, index, false);
+      else if (auto maybeBuf = target.uRegisterResources.getIf<GenericBufferInterface *>(index))
+        prevBuf = *maybeBuf;
+
+      target.markDirtyU(index, target.uRegisterResources[index] != buffer);
+
+      if (buffer)
+        target.uRegisterResources.emplace<GenericBufferInterface *>(index, buffer);
+      else
+        target.uRegisterResources.emplace<Vacant>(index);
     }
-    if (buffer != prevBuf)
+    if (buffer != prevBuf && prevBuf)
     {
-      if (prevBuf)
-      {
-        auto flags = prevBuf->getFlags();
-        notifyDiscard(target.uRegisterBuffers[index], SBCF_BIND_VERTEX & flags, SBCF_BIND_CONSTANT & flags,
-          SBCF_BIND_SHADER_RES & flags, SBCF_BIND_UNORDERED & flags);
-      }
+      auto flags = prevBuf->getFlags();
+      markBufferStagesDirty(prevBuf, SBCF_BIND_VERTEX & flags, SBCF_BIND_CONSTANT & flags, SBCF_BIND_SHADER_RES & flags,
+        SBCF_BIND_UNORDERED & flags);
     }
   }
 
-  void setStageSRVTexture(uint32_t stage, uint32_t index, BaseTex *texture)
+  void setStageSRVTexture(uint32_t stage, uint32_t index, BaseTex *texture, bool use_sampler)
   {
     G_ASSERT(stage < countof(stageResources));
     StageResourcesState &target = stageResources[stage];
-    G_ASSERT(index < countof(target.tRegisterTextures));
+
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
+
     if (texture)
     {
       texture->dirtyBoundUavsNoLock();
       texture->dirtyBoundRtvsNoLock();
     }
-    target.markDirtyT(index, target.tRegisterTextures[index] != texture);
-    target.markDirtyS(index, target.tRegisterTextures[index] != texture);
-    if (target.tRegisterTextures[index])
+
+    if (auto maybeTex = target.tRegisterResources.getIf<BaseTex *>(index))
+      (*maybeTex)->setSrvBinding(stage, index, false);
+
+    const bool changed = target.tRegisterResources[index] != texture;
+    target.markDirtyT(index, changed);
+    if (use_sampler)
     {
-      target.tRegisterTextures[index]->setSrvBinding(stage, index, false);
+      target.markDirtyS(index, changed);
+      target.sRegisterSamplers[index] = {};
     }
+
     if (texture)
-    {
+      target.tRegisterResources.emplace<BaseTex *>(index, texture);
+    else
+      target.tRegisterResources.emplace<Vacant>(index);
+
+    if (texture)
       texture->setSrvBinding(stage, index, true);
-    }
-    target.tRegisterTextures[index] = texture;
-    target.tRegisterBuffers[index] = nullptr;
-    target.sRegisterSamplers[index] = {};
-#if D3D_HAS_RAY_TRACING
-    target.tRegisterRaytraceAccelerataionStructures[index] = nullptr;
-#endif
   }
 
   void setStageSampler(uint32_t stage, uint32_t index, d3d::SamplerHandle handle)
@@ -701,25 +666,27 @@ struct FrontendState
   {
     G_ASSERT(stage < countof(stageResources));
     StageResourcesState &target = stageResources[stage];
-    G_ASSERT(index < countof(target.uRegisterTextures));
+
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
     if (texture)
     {
       texture->dirtyBoundSrvsNoLock();
       texture->dirtyBoundRtvsNoLock();
     }
-    target.markDirtyU(index, target.uRegisterTextures[index] != texture || target.uRegisterTextureViews[index] != view);
-    if (target.uRegisterTextures[index])
-    {
-      target.uRegisterTextures[index]->setUavBinding(stage, index, false);
-    }
+
+
+    if (auto maybeTex = target.tRegisterResources.getIf<BaseTex *>(index))
+      (*maybeTex)->setSrvBinding(stage, index, false);
+
+    target.markDirtyU(index, target.uRegisterResources[index] != URegisterTexture{texture, view});
+
     if (texture)
-    {
+      target.uRegisterResources.emplace<URegisterTexture>(index, texture, view);
+    else
+      target.uRegisterResources.emplace<Vacant>(index);
+
+    if (texture)
       texture->setUavBinding(stage, index, true);
-    }
-    target.uRegisterTextures[index] = texture;
-    target.uRegisterTextureViews[index] = view;
-    target.uRegisterBuffers[index] = nullptr;
   }
 
   void setIndexBuffer(Ibuffer *buffer)
@@ -939,22 +906,9 @@ struct FrontendState
       ImageViewState &targetView = newViews[Driver3dRenderTarget::MAX_SIMRT];
       Image *&targetImage = newImages[Driver3dRenderTarget::MAX_SIMRT];
       BaseTex *depthTex = cast_to_texture_base(renderTargets.depth.tex);
-      if (depthTex && depthTex != ctx.getSwapchainDepthStencilTextureAnySize())
-      {
-        targetView = depthTex->getViewInfoRenderTarget(MipMapIndex::make(renderTargets.depth.level),
-          ArrayLayerIndex::make(renderTargets.depth.layer), renderTargets.isDepthReadOnly());
-      }
-      else
-      {
-        depthTex = ctx.getSwapchainDepthStencilTexture(getFramebufferExtentInternal(ctx));
-        targetView.setFormat(ctx.getSwapchainDepthStencilFormat());
-        targetView.isArray = 0;
-        targetView.isCubemap = 0;
-        targetView.setSingleMipMapRange(MipMapIndex::make(0));
-        targetView.setSingleArrayRange(ArrayLayerIndex::make(0));
-        targetView.setDSV(renderTargets.isDepthReadOnly());
-      }
-
+      G_ASSERTF(depthTex, "Depth is used in RT state, but depth texture is null");
+      targetView = depthTex->getViewInfoRenderTarget(MipMapIndex::make(renderTargets.depth.level),
+        ArrayLayerIndex::make(renderTargets.depth.layer), renderTargets.isDepthReadOnly());
       targetImage = depthTex->getDeviceImage();
     }
     ctx.setFramebuffer(newImages, newViews, renderTargets.isDepthReadOnly());
@@ -1005,9 +959,9 @@ struct FrontendState
         {
           // no one is writing to it, complain!
           // This can be very spamy!
-          logerr("Draw call is not producing any output, ps output mask 0x%02X, render target "
-                 "color slot mask 0x%02X, no depth target is set and no UAVs are accessed by any "
-                 "shader",
+          D3D_ERROR("Draw call is not producing any output, ps output mask 0x%02X, render target "
+                    "color slot mask 0x%02X, no depth target is set and no UAVs are accessed by any "
+                    "shader",
             outputMask, targetMask);
         }
       }
@@ -1266,16 +1220,18 @@ struct FrontendState
   {
     G_ASSERT(stage < countof(stageResources));
     StageResourcesState &target = stageResources[stage];
-    G_ASSERT(index < countof(target.tRegisterRaytraceAccelerataionStructures));
+
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
-    if (target.tRegisterTextures[index])
-    {
-      target.tRegisterTextures[index]->setSrvBinding(stage, index, false);
-      target.tRegisterTextures[index] = nullptr;
-    }
-    target.markDirtyT(index, target.tRegisterRaytraceAccelerataionStructures[index] != as);
-    target.tRegisterRaytraceAccelerataionStructures[index] = as;
-    target.tRegisterBuffers[index] = nullptr;
+
+    if (auto maybeTex = target.tRegisterResources.getIf<BaseTex *>(index))
+      (*maybeTex)->setSrvBinding(stage, index, false);
+
+    target.markDirtyT(index, target.tRegisterResources[index] != as);
+
+    if (as)
+      target.tRegisterResources.emplace<RaytraceAccelerationStructure *>(index, as);
+    else
+      target.tRegisterResources.emplace<Vacant>(index);
   }
 
   void flushRaytrace(DeviceContext &ctx)
@@ -1384,9 +1340,14 @@ struct FrontendState
     }
   }
 
-  void notifyDiscard(Sbuffer *buffer, bool check_vb, bool check_const, bool check_tex, bool check_storage)
+  void markBufferStagesDirty(GenericBufferInterface *buffer, bool check_vb, bool check_const, bool check_srv, bool check_uav)
   {
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
+    markBufferStagesDirtyNoLock(buffer, check_vb, check_const, check_srv, check_uav);
+  }
+
+  void markBufferStagesDirtyNoLock(GenericBufferInterface *buffer, bool check_vb, bool check_const, bool check_srv, bool check_uav)
+  {
     if (indexBuffer == buffer)
     {
       markResourceDirty(ResourceDirtyState::INDEX_BUFFER, true);
@@ -1413,9 +1374,9 @@ struct FrontendState
           }
         }
       }
-      if (check_tex)
+      if (check_srv)
       {
-        for (auto [j, tBuffer] : enumerate(stage.tRegisterBuffers))
+        for (auto [j, tBuffer] : enumerate(stage.tRegisterResources))
         {
           if (tBuffer == buffer)
           {
@@ -1423,9 +1384,9 @@ struct FrontendState
           }
         }
       }
-      if (check_storage)
+      if (check_uav)
       {
-        for (auto [j, uBuffer] : enumerate(stage.uRegisterBuffers))
+        for (auto [j, uBuffer] : enumerate(stage.uRegisterResources))
         {
           if (uBuffer == buffer)
           {
@@ -1436,12 +1397,11 @@ struct FrontendState
     }
   }
 
-  void notifyDelete(Sbuffer *buffer)
+  void notifyDelete(GenericBufferInterface *buffer)
   {
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
     if (indexBuffer == buffer)
     {
-      logdbg("Active index buffer <%s> was deleted...", buffer->getBufName());
       markResourceDirty(ResourceDirtyState::INDEX_BUFFER, true);
       indexBuffer = nullptr;
     }
@@ -1449,7 +1409,6 @@ struct FrontendState
     {
       if (vBuffer == buffer)
       {
-        logdbg("Active vertex buffer <%s> (slot %u) deleted...", buffer->getBufName(), i);
         markResourceDirty(ResourceDirtyState::Bits(i), true);
         vertexBuffers[i] = nullptr;
         vertexBufferOffsets[i] = 0;
@@ -1462,7 +1421,6 @@ struct FrontendState
       {
         if (stage.bRegisterBuffers[j] == buffer)
         {
-          logdbg("Active const buffer <%s> (stage %u, slot %u) deleted...", buffer->getBufName(), i, j);
           stage.markDirtyB(j, true);
           stage.bRegisterBuffers[j] = nullptr;
           stage.bRegisterOffsets[j] = 0;
@@ -1471,31 +1429,24 @@ struct FrontendState
       }
       for (uint32_t j = 0; j < dxil::MAX_T_REGISTERS; ++j)
       {
-        if (stage.tRegisterBuffers[j] == buffer)
+        if (stage.tRegisterResources[j] == buffer)
         {
-          logdbg("Active texture buffer <%s> (stage %u, slot %u) deleted...", buffer->getBufName(), i, j);
           stage.markDirtyT(j, true);
-          stage.tRegisterBuffers[j] = nullptr;
-          stage.tRegisterTextures[j] = nullptr;
-#if D3D_HAS_RAY_TRACING
-          stage.tRegisterRaytraceAccelerataionStructures[j] = nullptr;
-#endif
+          stage.tRegisterResources.emplace<Vacant>(j);
         }
       }
       for (uint32_t j = 0; j < dxil::MAX_U_REGISTERS; ++j)
       {
-        if (stage.uRegisterBuffers[j] == buffer)
+        if (stage.uRegisterResources[j] == buffer)
         {
-          logdbg("Active storage buffer <%s> (stage %u, slot %u) deleted...", buffer->getBufName(), i, j);
           stage.markDirtyU(j, true);
-          stage.uRegisterBuffers[j] = nullptr;
-          stage.uRegisterTextures[j] = nullptr;
+          stage.uRegisterResources.emplace<Vacant>(j);
         }
       }
     }
   }
 
-  void removeTRegisterBuffer(Sbuffer *buffer)
+  void removeTRegisterBuffer(GenericBufferInterface *buffer)
   {
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
     // for (auto [i, stage] : enumerate(stageResources))
@@ -1503,15 +1454,11 @@ struct FrontendState
     {
       for (uint32_t j = 0; j < dxil::MAX_T_REGISTERS; ++j)
       {
-        if (stage.tRegisterBuffers[j] == buffer)
+        if (stage.tRegisterResources[j] == buffer)
         {
           // logdbg("Active texture buffer (stage %u, slot %u) bound as UAV...", i, j);
           stage.markDirtyT(j, true);
-          stage.tRegisterBuffers[j] = nullptr;
-          stage.tRegisterTextures[j] = nullptr;
-#if D3D_HAS_RAY_TRACING
-          stage.tRegisterRaytraceAccelerataionStructures[j] = nullptr;
-#endif
+          stage.tRegisterResources.emplace<Vacant>(j);
         }
       }
     }
@@ -1592,49 +1539,25 @@ struct FrontendState
     }
   }
 
-  void dirtyRendertTargetNoLock([[maybe_unused]] BaseTex *texture, const Bitset<Driver3dRenderTarget::MAX_SIMRT> &slots)
+  void dirtyRenderTargetNoLock([[maybe_unused]] BaseTex *texture, const Bitset<Driver3dRenderTarget::MAX_SIMRT> &slots)
   {
-    if (slots.any() /*|| dsv*/)
+    if (slots.any())
       resourceDirtyState.set(ResourceDirtyState::FRAMEBUFFER, true);
     toggleBits.set(ToggleState::FORCE_SET_BACKBUFFER);
   }
 
-  /*
-    void dirtyAll(BaseTex *texture, const eastl::bitset<dxil::MAX_T_REGISTERS> *srvs,
-                  const eastl::bitset<dxil::MAX_U_REGISTERS> *uavs,
-                  eastl::bitset<Driver3dRenderTarget::MAX_SIMRT> rtvs, bool dsv)
+  void markTextureStagesDirtyNoLock(BaseTex *texture, const eastl::bitset<dxil::MAX_T_REGISTERS> *srvs,
+    const eastl::bitset<dxil::MAX_U_REGISTERS> *uavs, eastl::bitset<Driver3dRenderTarget::MAX_SIMRT> rtvs, [[maybe_unused]] bool dsv)
+  {
+    for (uint32_t s = 0; s < STAGE_MAX_EXT; ++s)
     {
-      G_UNUSED(texture); // can be used to validate
-      OSSpinlockScopedLock resourceBindingLock{resourceBindingGuard};
-      for (uint32_t s = 0; s < STAGE_MAX_EXT; ++s)
-      {
-        auto &st = stageResources[s];
-        if (srvs[s].any())
-        {
-          auto start = srvs[s].find_first();
-          auto stop = srvs[s].find_last();
-          for (; start <= stop; ++start)
-          {
-            st.markDirtyT(start, srvs[s].test(start));
-            st.markDirtyS(start, srvs[s].test(start));
-          }
-        }
-        if (uavs[s].any())
-        {
-          auto start = uavs[s].find_first();
-          auto stop = uavs[s].find_last();
-          for (; start <= stop; ++start)
-          {
-            st.markDirtyU(start, uavs[s].test(start));
-          }
-        }
-      }
-      if (rtvs.any() || dsv)
-      {
-        resourceDirtyState.set(ResourceDirtyState::FRAMEBUFFER, true);
-        toggleBits.set(ToggleState::FORCE_SET_BACKBUFFER);
-      }
-    }*/
+      if (srvs[s].any())
+        dirtySRVandSamplerNoLock(texture, s, srvs[s]);
+      if (uavs[s].any())
+        dirtyUAVNoLock(texture, s, uavs[s]);
+    }
+    dirtyRenderTargetNoLock(texture, rtvs);
+  }
 
   void notifyDelete(BaseTex *texture, const Bitset<dxil::MAX_T_REGISTERS> *srvs, const Bitset<dxil::MAX_U_REGISTERS> *uavs,
     const Bitset<Driver3dRenderTarget::MAX_SIMRT> &rtvs, bool dsv)
@@ -1643,17 +1566,17 @@ struct FrontendState
 
     for (auto [s, st] : enumerate(stageResources))
     {
-      if (auto srv = srvs[s]; srv.any())
+      for (auto i : srvs[s])
       {
-        st.tRegisterTextures[s] = nullptr; // no need to notify S
-        st.dirtyMasks.tRegisterMask |= srv;
+        st.tRegisterResources.emplace<Vacant>(i); // no need to notify S
       }
+      st.dirtyMasks.tRegisterMask |= srvs[s];
 
-      if (auto uav = uavs[s]; uav.any())
+      for (auto i : uavs[s])
       {
-        st.uRegisterTextures[s] = nullptr;
-        st.dirtyMasks.uRegisterMask |= uav;
+        st.uRegisterResources.emplace<Vacant>(i);
       }
+      st.dirtyMasks.uRegisterMask |= uavs[s];
     }
 
     for (auto i : LsbVisitor{renderTargets.used & Driver3dRenderTarget::COLOR_MASK})

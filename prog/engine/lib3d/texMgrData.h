@@ -1,12 +1,9 @@
-
-#ifndef __DAGOR_TEX_MGR_DATA_H
-#define __DAGOR_TEX_MGR_DATA_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <3d/dag_texMgr.h>
 #include <3d/dag_texMgrTags.h>
-#include <3d/dag_tex3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_tex3d.h>
 #include <util/dag_simpleString.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_atomic.h>
@@ -18,6 +15,8 @@
 #include <3d/tql.h>
 #include <EASTL/vector.h>
 #include <startup/dag_globalSettings.h>
+
+enum class Drv3dCommand;
 
 namespace ddsx
 {
@@ -52,7 +51,7 @@ extern int mt_enabled;
 extern CritSecStorage crit_sec;
 extern WinCritSec rec_lock; // Intentionally not spinlock, since waiting times might be quite long (>1ms) e.g. within
                             // unload_tex_to_reserve
-extern int (*drv3d_cmd)(int command, void *par1, void *par2, void *par3);
+extern int (*drv3d_cmd)(Drv3dCommand command, void *par1, void *par2, void *par3);
 extern bool auto_add_tex_on_get_id;
 extern bool disable_add_warning;
 extern int def_texq;
@@ -70,7 +69,7 @@ extern bool (*should_release_tex)(BaseTexture *b);
 extern void (*stop_bkg_tex_loading)(int sleep_quant); //< =NULL by default
 extern void (*hook_on_get_texture_id)(TEXTUREID id);
 
-extern bool (*d3d_load_genmip_sysmemcopy)(TEXTUREID tid, TEXTUREID base_tid, const ddsx::Header &h, IGenLoad &r, int q_id);
+extern TexLoadRes (*d3d_load_genmip_sysmemcopy)(TEXTUREID tid, TEXTUREID base_tid, const ddsx::Header &h, IGenLoad &r, int q_id);
 } // namespace texmgr_internal
 
 namespace tql
@@ -212,6 +211,7 @@ public:
     levDesc[idx] = 0x0010;
     texDesc[idx].init();
     interlocked_release_store(texImportance[idx], 0);
+    texSamplers[idx] = d3d::INVALID_SAMPLER_HANDLE;
     interlocked_release_store(refCount[idx], 0);
   }
   // cleanup unregistered entry
@@ -232,12 +232,43 @@ public:
     levDesc[idx] = 0x0000;
     texDesc[idx].term();
     interlocked_release_store(texImportance[idx], 0);
+    texSamplers[idx] = d3d::INVALID_SAMPLER_HANDLE;
   }
 
   // entries count gettors
   static unsigned getRelaxedIndexCount() { return unsigned(interlocked_relaxed_load(indexCount)); }
   static unsigned getAccurateIndexCount() { return unsigned(interlocked_acquire_load(indexCount)); }
   static unsigned getMaxTotalIndexCount() { return unsigned(interlocked_relaxed_load(maxTotalIndexCount)); }
+
+  void updateDowngradeRange(unsigned &start, unsigned &end, unsigned budget_usec)
+  {
+    start = unsigned(indexDowngradeStart);
+    const unsigned maxEnd = getRelaxedIndexCount();
+    if (start >= maxEnd)
+      start = 0;
+    unsigned count = max<uint32_t>(budget_usec * downgradeTexturesPerUsec, 512u);
+    end = min<unsigned>(start + count, maxEnd);
+    indexDowngradeStart = end;
+  }
+  void setDowngradeBudget(unsigned count, unsigned usecPassed)
+  {
+    downgradeTexturesPerUsec = max<unsigned>(count / max(1u, usecPassed), 1u);
+  }
+
+  void updateImportanceRange(unsigned &start, unsigned &end, unsigned budget_usec)
+  {
+    start = unsigned(indexImportanceStart);
+    const unsigned maxEnd = getRelaxedIndexCount();
+    if (start >= maxEnd)
+      start = 0;
+    unsigned count = max<uint32_t>(budget_usec * importanceTexturesPerUsec, 512u);
+    end = min<unsigned>(start + count, maxEnd);
+    indexImportanceStart = end;
+  }
+  void setImportanceBudget(unsigned count, unsigned usecPassed)
+  {
+    importanceTexturesPerUsec = max<unsigned>(count / max(1u, usecPassed), 1u);
+  }
 
   // main refcount management
   using D3dResManagerData::getRefCount;
@@ -367,7 +398,8 @@ public:
 
   // texture loads management
   static bool scheduleReading(int idx, TextureFactory *f);
-  static bool readDdsxTex(TEXTUREID tid, const ddsx::Header &hdr, IGenLoad &crd, int quality_id);
+  static TexLoadRes readDdsxTex(TEXTUREID tid, const ddsx::Header &hdr, IGenLoad &crd, int quality_id,
+    on_tex_slice_loaded_cb_t on_tex_slice_loaded_cb = nullptr);
   static void finishReading(int idx);
   static void cancelReading(int idx);
   static bool startReading(int idx, unsigned rd_lev)
@@ -589,6 +621,10 @@ protected:
   int readyForDiscardTexCount = 0, readyForDiscardTexSzKB = 0;
   int readyForDiscardBdCount = 0, readyForDiscardBdSzKB = 0, totalBdCount = 0, totalBdSzKB = 0;
 
+  int indexDowngradeStart = 0;
+  unsigned downgradeTexturesPerUsec = 64;
+  int indexImportanceStart = 0;
+  unsigned importanceTexturesPerUsec = 64;
   // entry allocation/deallocation overflow handlers
   int onEntryOverflow(int idx);
   void onFreeListOverflow(unsigned idx);
@@ -606,6 +642,9 @@ public:
   static TexUsedSz *__restrict texUsedSz;
   static uint8_t *__restrict maxReqLevelPrev;
   static uint16_t *__restrict texImportance;
+  static d3d::SamplerHandle *__restrict texSamplers;
+
+  friend void ::enable_res_mgr_mt(bool enable, int max_tex_entry_count);
 };
 
 namespace texmgr_internal
@@ -647,11 +686,9 @@ void register_ddsx_load_implementation();
 #if DAGOR_DBGLEVEL > 0
 #define DEV_FATAL DAG_FATAL
 #else
-#define DEV_FATAL logerr_ctx
+#define DEV_FATAL LOGERR_CTX
 #endif
 
 #define TEX_REC_LOCK()      texmgr_internal::rec_lock.lock("texMgrRex")
 #define TEX_REC_UNLOCK()    texmgr_internal::rec_lock.unlock()
 #define TEX_REC_AUTO_LOCK() TRAL trAL
-
-#endif

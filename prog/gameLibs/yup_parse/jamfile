@@ -1,0 +1,28 @@
+Root           ?= ../../.. ;
+Location        = prog/gameLibs/yup_parse ;
+StrictCompile  = yes ;
+
+TargetType      = lib ;
+Target          = gameLibs/yup_parse.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+#UsePCH          = yes ;
+#PrecompiledName = stdafx ;
+
+
+AddIncludes = 
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/bencode
+  $(Root)/prog/engine/dagorInclude
+;
+
+Sources =
+  yup.cpp
+;
+
+UseProgLibs +=
+  3rdPartyLibs/bencode
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "collisionUtils.h"
 #include <util/dag_string.h>
 
@@ -24,6 +26,9 @@ bool add_verts_and_indices_from_node(const dag::ConstSpan<CollisionNode> &nodes,
   {
     if (node_name == node.name.c_str())
     {
+      if (node.vertices.empty())
+        logerr("Node <%s> don't have vertices for merge. This node can be used only for box or sphere collision type creation.",
+          node_name);
       const auto vertsSize = verts.size();
       for (const auto &vertex : node.vertices)
       {

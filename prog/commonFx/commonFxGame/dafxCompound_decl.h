@@ -114,6 +114,7 @@ public:
   real mod_velocity_drag;
   real mod_velocity_drag_to_rad;
   real mod_velocity_mass;
+  real mod_velocity_wind_scale;
   E3DCOLOR mod_color;
   real global_life_time_min;
   real global_life_time_max;
@@ -127,7 +128,7 @@ public:
   void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 9);
+    CHECK_FX_VERSION(ptr, len, 10);
 
     ref_slot = readType<int>(ptr, len);
     offset = readType<Point3>(ptr, len);
@@ -144,6 +145,7 @@ public:
     mod_velocity_drag = readType<real>(ptr, len);
     mod_velocity_drag_to_rad = readType<real>(ptr, len);
     mod_velocity_mass = readType<real>(ptr, len);
+    mod_velocity_wind_scale = readType<real>(ptr, len);
     mod_color = readType<E3DCOLOR>(ptr, len);
     global_life_time_min = readType<real>(ptr, len);
     global_life_time_max = readType<real>(ptr, len);

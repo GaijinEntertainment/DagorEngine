@@ -1,0 +1,7 @@
+return {
+  get_auth_data_async = @(_evtname) null
+  check_age_restrictions = @() true
+  check_parental_control = @() true
+  check_psn_logged_in = @() true
+  is_new_package_available = @() false
+}

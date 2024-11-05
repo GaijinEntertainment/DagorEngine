@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "camera_controller.h"
 
 #include "../../de_appwnd.h"

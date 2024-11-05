@@ -199,7 +199,7 @@ namespace das {
         virtual void preVisitModule ( Module * mod ) override {
             Visitor::preVisitModule(mod);
             if ( !mod->name.empty() && !isValidModuleName(mod->name) ) {
-                program->error("invalid module name " + mod->name, "", "",
+                program->error("invalid module name '" + mod->name + "'", "", "",
                     LineInfo(), CompilationError::invalid_name );
             }
         }
@@ -212,7 +212,7 @@ namespace das {
         void lintType ( TypeDecl * td ) {
             for ( auto & name : td->argNames ) {
                 if (!isValidVarName(name)) {
-                    program->error("invalid type argument name " + name, "", "",
+                    program->error("invalid type argument name '" + name + "'", "", "",
                         td->at, CompilationError::invalid_name );
                 }
             }
@@ -226,22 +226,24 @@ namespace das {
         }
         virtual void preVisitAlias ( TypeDecl * td, const string & name ) override {
             Visitor::preVisitAlias(td,name);
-            if ( td->getSizeOf64()>0x7fffffff ) {
-                program->error("alias " + name + " is too big", "", "",
-                    td->at, CompilationError::invalid_type );
+            if ( !td->isAuto() ) {
+                if ( td->getSizeOf64()>0x7fffffff ) {
+                    program->error("alias '" + name + "' is too big", "", "",
+                        td->at, CompilationError::invalid_type );
+                }
             }
         }
         virtual void preVisit ( Enumeration * enu ) override {
             Visitor::preVisit(enu);
             if (!isValidEnumName(enu->name)) {
-                program->error("invalid enumeration name " + enu->name, "", "",
+                program->error("invalid enumeration name '" + enu->name + "'", "", "",
                     enu->at, CompilationError::invalid_name );
             }
         }
         virtual void preVisitEnumerationValue ( Enumeration * enu, const string & name, Expression * value, bool last ) override {
             Visitor::preVisitEnumerationValue(enu,name,value,last);
             if (!isValidEnumValueName(name)) {
-                program->error("invalid enumeration value name " + name, "", "",
+                program->error("invalid enumeration value name '" + name + "'", "", "",
                     enu->at, CompilationError::invalid_name );
             }
         }
@@ -251,23 +253,26 @@ namespace das {
         virtual void preVisit ( Structure * var ) override {
             Visitor::preVisit(var);
             if (!isValidStructureName(var->name)) {
-                program->error("invalid structure name " + var->name, "", "",
+                program->error("invalid structure name '" + var->name + "'", "", "",
                     var->at, CompilationError::invalid_name );
             }
             if ( var->getSizeOf64()>0x7fffffff ) {
-                program->error("structure " + var->name + " is too big", "", "",
+                program->error("structure '" + var->name + "' is too big", "", "",
                     var->at, CompilationError::invalid_type );
             }
         }
         virtual void preVisitExpression ( Expression * expr ) override {
-            if ( expr->alwaysSafe && expr->userSaidItsSafe ) {
+            if ( expr->alwaysSafe && expr->userSaidItsSafe && !expr->generated ) {
                 auto origin = func->getOrigin();
-                auto fnMod = origin ? origin->module : func->module;
-                if ( fnMod == program->thisModule.get() ) {
-                    anyUnsafe = true;
-                    if ( checkUnsafe ) {
-                        program->error("unsafe function " + func->getMangledName(), "unsafe functions are prohibited by CodeOfPolicies", "",
-                            expr->at, CompilationError::unsafe_function);
+                if ( !(origin && origin->generated) && !func->generated )
+                {
+                    auto fnMod = origin ? origin->module : func->module;
+                    if ( fnMod == program->thisModule.get() ) {
+                        anyUnsafe = true;
+                        if ( checkUnsafe ) {
+                            program->error("unsafe function '" + func->getMangledName() + "'", "unsafe functions are prohibited by CodeOfPolicies", "",
+                                expr->at, CompilationError::unsafe_function);
+                        }
                     }
                 }
             }
@@ -283,7 +288,7 @@ namespace das {
             }
             if ( noLocalClassMembers ) {
                 if ( !decl.type->ref && decl.type->hasClasses() ) {
-                    program->error("class can't contain local class declarations", decl.name + " : " + decl.type->describe(), "",
+                    program->error("class can't contain local class declarations", decl.name + ": " + decl.type->describe(), "",
                         decl.at, CompilationError::invalid_structure_field_type);
                 }
             }
@@ -291,37 +296,37 @@ namespace das {
         virtual void preVisitGlobalLet ( const VariablePtr & var ) override {
             Visitor::preVisitGlobalLet(var);
             if (!isValidVarName(var->name)) {
-                program->error("invalid variable name " + var->name, "", "",
+                program->error("invalid variable name '" + var->name + "'", "", "",
                     var->at, CompilationError::invalid_name );
             }
             if ( checkNoGlobalVariables && !var->generated ) {
                 if ( checkNoGlobalVariablesAtAll ) {
-                    program->error("variable " + var->name + " is disabled via option no_global_variables_at_all", "", "",
+                    program->error("variable '" + var->name + "' is disabled via option no_global_variables_at_all", "", "",
                         var->at, CompilationError::no_global_variables );
                 } else if ( !var->type->isConst() ) {
-                    program->error("variable " + var->name + " is not a constant, which is disabled via option no_global_variables", "", "",
+                    program->error("variable '" + var->name + "' is not a constant, which is disabled via option no_global_variables", "", "",
                         var->at, CompilationError::no_global_variables );
                 }
             }
             if ( checkNoGlobalHeap ) {
                 if ( !var->type->isNoHeapType() ) { // note: this is too dangerous to allow even with generated
-                    program->error("variable " + var->name + " uses heap, which is disabled via option no_global_heap", "", "",
+                    program->error("variable '" + var->name + "' uses heap, which is disabled via option no_global_heap", "", "",
                         var->at, CompilationError::no_global_heap );
                 }
             }
             if ( !var->init ) {
                 if ( needAvoidNullPtr(var->type,true) ) {
-                    program->error("global variable of type " + var->type->describe() + " needs to be initialized to avoid null pointer", "", "",
+                    program->error("global variable of type '" + var->type->describe() + "' needs to be initialized to avoid null pointer", "", "",
                         var->at, CompilationError::cant_be_null);
                 }
             } else {
                 if ( needAvoidNullPtr(var->type,false) && var->init->rtti_isNullPtr() ) {
-                    program->error("global variable of type " + var->type->describe() + " can't be initialized with null", "", "",
+                    program->error("global variable of type '" + var->type->describe() + "' can't be initialized with null", "", "",
                         var->init->at, CompilationError::cant_be_null);
                 }
             }
             if ( var->type->getSizeOf64()>0x7fffffff ) {
-                program->error("global variable " + var->name + " is too big", "", "",
+                program->error("global variable '" + var->name + "' is too big", "", "",
                     var->at,CompilationError::invalid_variable_type);
             }
         }
@@ -620,13 +625,18 @@ namespace das {
             }
         }
         virtual void preVisit ( ExprUnsafe * expr ) override {
-            auto origin = func->getOrigin();
-            auto fnMod = origin ? origin->module : func->module;
-            if ( fnMod == program->thisModule.get() ) {
-                anyUnsafe = true;
-                if ( checkUnsafe ) {
-                    program->error("unsafe function " + func->getMangledName(), "unsafe functions are prohibited by CodeOfPolicies", "",
-                        expr->at, CompilationError::unsafe_function);
+            if ( !expr->generated ) {
+                auto origin = func->getOrigin();
+                if ( !(origin && origin->generated) && !func->generated )
+                {
+                    auto fnMod = origin ? origin->module : func->module;
+                    if ( fnMod == program->thisModule.get() ) {
+                        anyUnsafe = true;
+                        if ( checkUnsafe ) {
+                            program->error("unsafe function " + func->getMangledName(), "unsafe functions are prohibited by CodeOfPolicies", "",
+                                expr->at, CompilationError::unsafe_function);
+                        }
+                    }
                 }
             }
         }
@@ -761,13 +771,18 @@ namespace das {
         "strict_smart_pointers",        Type::tBool,
         "no_init",                      Type::tBool,
         "no_local_class_members",       Type::tBool,
+        "report_invisible_functions",   Type::tBool,
+        "report_private_functions",     Type::tBool,
+        "strict_properties",            Type::tBool,
     // memory
         "stack",                        Type::tInt,
         "intern_strings",               Type::tBool,
         "multiple_contexts",            Type::tBool,
         "persistent_heap",              Type::tBool,
         "heap_size_hint",               Type::tInt,
+        "heap_size_limit",              Type::tInt,
         "string_heap_size_hint",        Type::tInt,
+        "string_heap_size_limit",       Type::tInt,
         "gc",                           Type::tBool,
         "solid_context",                Type::tBool,    // we will not have AOT or patches
     // aot
@@ -799,18 +814,22 @@ namespace das {
         "print_ref",                    Type::tBool,
         "print_var_access",             Type::tBool,
         "print_c_style",                Type::tBool,
+        "print_func_use",               Type::tBool,
+        "gen2_make_syntax",             Type::tBool,
     // rtti
         "rtti",                         Type::tBool,
     // optimization
         "optimize",                     Type::tBool,
         "fusion",                       Type::tBool,
         "remove_unused_symbols",        Type::tBool,
+        "no_fast_call",                 Type::tBool,
     // language
         "always_export_initializer",    Type::tBool,
         "infer_time_folding",           Type::tBool,
         "disable_run",                  Type::tBool,
         "max_infer_passes",             Type::tInt,
         "indenting",                    Type::tInt,
+        "no_unsafe_uninitialized_structures", Type::tBool,
     // debugger
         "debugger",                     Type::tBool,
     // profiler
@@ -864,12 +883,12 @@ namespace das {
                 }
             }
             if ( optT!=Type::none && optT!=opt.type ) {
-                error("invalid option type for " + opt.name
-                      + ", unexpected " + das_to_string(opt.type)
-                      + ", expecting " + das_to_string(optT), "", "",
+                error("invalid option type for '" + opt.name
+                      + "', unexpected '" + das_to_string(opt.type)
+                      + "', expecting '" + das_to_string(optT) + "'", "", "",
                         LineInfo(), CompilationError::invalid_option);
             } else if ( optT==Type::none ){
-                error("invalid option " + opt.name,  "", "",
+                error("invalid option '" + opt.name + "'",  "", "",
                     LineInfo(), CompilationError::invalid_option);
             }
         }

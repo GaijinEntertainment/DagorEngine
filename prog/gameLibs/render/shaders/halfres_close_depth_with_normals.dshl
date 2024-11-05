@@ -1,0 +1,19 @@
+
+//according to downsampleDepth.dshl, we want have normals for close depth!
+
+macro INIT_HALF_RES_CLOSE_DEPTH(stage)
+  (stage) { half_res_close_depth@smp2d = downsampled_close_depth_tex; }
+endmacro
+
+macro INIT_HALF_RES_CLOSE_DEPTH_NORMALS(stage)
+  (stage) { half_res_close_depth_normals@smp2d = downsampled_normals; }
+endmacro
+
+macro INIT_HALF_RES_CLOSE_DEPTH_TEX(stage)
+  (stage) { half_res_close_depth@tex2d = downsampled_close_depth_tex; }
+endmacro
+
+macro INIT_HALF_RES_CLOSE_DEPTH_NORMALS_TEX(stage)
+  (stage) { half_res_close_depth_normals@tex2d = downsampled_normals; }
+endmacro
+

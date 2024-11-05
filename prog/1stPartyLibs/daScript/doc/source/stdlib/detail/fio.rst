@@ -79,3 +79,9 @@
 .. |function-fio-get_env_variable| replace:: returns value of the environment variable.
 
 .. |function-fio-sanitize_command_line| replace:: sanitizes command line arguments.
+
+.. |function-fio-rename| replace:: renames file.
+
+.. |function-fio-chdir| replace:: changes current directory.
+
+.. |function-fio-getcwd| replace:: returns current working directory.

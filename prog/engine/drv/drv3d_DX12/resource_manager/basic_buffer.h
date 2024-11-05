@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <supp/dag_comPtr.h>
@@ -65,11 +66,11 @@ struct BasicBuffer
     return errorCode;
   }
 
-  void reset(ResourceMemoryHeapProvider *heap)
+  void reset(ResourceMemoryHeapProvider *heap, bool update_defragmentation_generation = false)
   {
     if (bufferMemory && 0 == bufferMemory.getHeapID().isAlias)
     {
-      heap->free(bufferMemory);
+      heap->free(bufferMemory, update_defragmentation_generation);
       bufferMemory = {};
     }
     buffer.Reset();

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -64,9 +63,14 @@ struct Frustum
   __forceinline int testSphere(const Point3 &c, real rad) const { return testSphere(v_ldu(&c.x), v_splats(rad)); }
 
   int testSphere(const Point3 &center, float radius, unsigned int &last_plane, unsigned int in_mask, unsigned int &out_mask) const;
-  bool testSweptSphere(const Point3 &c, real rad, const Point3 &sweepDir) const;
 
-  bool testSweptSphere(const BSphere3 &sphere, const Point3 &sweepDir) const { return testSweptSphere(sphere.c, sphere.r, sweepDir); }
+  bool testSweptSphere(const BSphere3 &sphere, const Point3 &sweep_dir) const
+  {
+    return testSweptSphere(sphere.c, sphere.r, sweep_dir);
+  }
+  bool testSweptSphere(const Point3 &sphere_center, float sphere_radius, const Point3 &sweep_dir) const;
+  bool testSweptSphere(vec4f sphere_center, vec4f sphere_radius, vec4f sweep_dir) const;
+
   int testSphere(const BSphere3 &sphere) const { return testSphere(sphere.c, sphere.r); }
   // return only true:false
   int testBoxExtentB(vec4f center2, vec4f extent2) const; //(bmax+bmin), (bmax-bmin)
@@ -122,12 +126,14 @@ struct Frustum
 
 inline int Frustum::testSphereB(vec3f center, vec3f r) const
 {
-  return v_is_visible_sphere(center, r, plane03X, plane03Y, plane03Z, plane03W, camPlanes[4], camPlanes[5]);
+  return v_is_visible_sphere(center, r, plane03X, plane03Y, plane03Z, plane03W, camPlanes[Frustum::FARPLANE],
+    camPlanes[Frustum::NEARPLANE]);
 }
 
 inline int Frustum::testSphere(vec3f center, vec3f r) const
 {
-  return v_sphere_intersect(center, r, plane03X, plane03Y, plane03Z, plane03W, camPlanes[4], camPlanes[5]);
+  return v_sphere_intersect(center, r, plane03X, plane03Y, plane03Z, plane03W, camPlanes[Frustum::FARPLANE],
+    camPlanes[Frustum::NEARPLANE]);
 }
 
 // in ortho frustum, each odd plane is faced backwards to prev even plane. save dot product
@@ -215,7 +221,7 @@ inline int Frustum::testBoxExtent(vec4f center, vec4f extent) const // center an
   return v_box_frustum_intersect_extent2(center, extent, plane03X, plane03Y, plane03Z, plane03W2, plane4W2, plane5W2);
 }
 
-// zfar_plane should be normalized and faced towards camera origin. camPlanes[4] in Frustum is of that kind
+// zfar_plane should be normalized and faced towards camera origin. camPlanes[Frustum::FARPLANE] in Frustum is of that kind
 // v_plane_dist(zfar_plane, cur_view_pos) - should be positive!
 inline plane3f shrink_zfar_plane(plane3f zfar_plane, vec4f cur_view_pos, vec4f max_z_far_dist)
 {
@@ -225,7 +231,7 @@ inline plane3f shrink_zfar_plane(plane3f zfar_plane, vec4f cur_view_pos, vec4f m
   return v_perm_xyzd(zfar_plane, v_add(zfar_plane, ofsDist));
 }
 
-// znear_plane should be normalized and faced backwards  camera origin. camPlanes[5] in Frustum is of that kind
+// znear_plane should be normalized and faced backwards  camera origin. camPlanes[Frustum::NEARPLANE] in Frustum is of that kind
 // max_z_near_dist - is positive
 // v_plane_dist(znear_plane, cur_view_pos) - should be negative!
 inline plane3f expand_znear_plane(plane3f znear_plane, vec4f cur_view_pos, vec4f max_z_near_dist)
@@ -238,9 +244,9 @@ inline plane3f expand_znear_plane(plane3f znear_plane, vec4f cur_view_pos, vec4f
 
 inline void shrink_frustum_zfar(Frustum &frustum, vec4f cur_view_pos, vec4f max_z_far_dist)
 {
-  vec4f originalFarPlane = frustum.camPlanes[4];
-  frustum.camPlanes[4] = shrink_zfar_plane(originalFarPlane, cur_view_pos, max_z_far_dist);
-  frustum.plane4W2 = v_perm_xyzd(frustum.plane4W2, v_add(frustum.camPlanes[4], frustum.camPlanes[4]));
+  vec4f originalFarPlane = frustum.camPlanes[Frustum::FARPLANE];
+  frustum.camPlanes[Frustum::FARPLANE] = shrink_zfar_plane(originalFarPlane, cur_view_pos, max_z_far_dist);
+  frustum.plane4W2 = v_perm_xyzd(frustum.plane4W2, v_add(frustum.camPlanes[Frustum::FARPLANE], frustum.camPlanes[Frustum::FARPLANE]));
 }
 
 /// World aligned box test

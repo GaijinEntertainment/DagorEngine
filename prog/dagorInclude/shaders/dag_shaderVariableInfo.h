@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -17,7 +16,8 @@ class Point2;
 class Point3;
 class Point4;
 
-static void after_shaders_reload();
+struct RaytraceTopAccelerationStructure;
+
 struct ShaderVariableInfo
 {
 #define CHECK_SET_VAR_TYPE(tp)    \
@@ -118,6 +118,18 @@ struct ShaderVariableInfo
     set_buffer_ool(v);
     return true;
   }
+  bool set_tlas(RaytraceTopAccelerationStructure *v) const
+  {
+    CHECK_SET_VAR_TYPE(SHVT_TLAS);
+    (RaytraceTopAccelerationStructure *&)*data = v;
+    return true;
+  }
+  bool set_sampler(d3d::SamplerHandle v) const
+  {
+    CHECK_SET_VAR_TYPE(SHVT_SAMPLER);
+    (d3d::SamplerHandle &)*data = v;
+    return true;
+  }
   bool set_float4x4(const TMatrix4 &v) const
   {
     CHECK_SET_VAR_TYPE(SHVT_FLOAT4X4);
@@ -161,6 +173,11 @@ struct ShaderVariableInfo
   {
     CHECK_GET_VAR_TYPE(SHVT_BUFFER, BAD_D3DRESID);
     return *(const D3DRESID *)data; // offset verified in cpp
+  }
+  RaytraceTopAccelerationStructure *get_tlas() const
+  {
+    CHECK_GET_VAR_TYPE(SHVT_TLAS, nullptr);
+    return *(RaytraceTopAccelerationStructure *const *)data;
   }
   const TMatrix4 &get_float4x4() const
   {
@@ -229,7 +246,7 @@ protected:
   static char zero[64];
   ShaderVariableInfo *next = nullptr;
   static ShaderVariableInfo *head;
-  friend void after_shaders_reload();
+  friend struct ScriptedShadersBinDumpOwner;
 };
 
 namespace ShaderGlobal
@@ -248,11 +265,16 @@ inline bool set_int(const ShaderVariableInfo &v, int val) { return v.set_int(val
 inline bool set_real(const ShaderVariableInfo &v, float val) { return v.set_real(val); }
 inline bool set_color4(const ShaderVariableInfo &v, const Color4 &val) { return v.set_color4(val); }
 inline bool set_color4_array(const ShaderVariableInfo &v, const Color4 *val, int count) { return v.set_color4_array(val, count); }
+inline bool set_color4_array(const ShaderVariableInfo &v, const Point4 *val, int count)
+{
+  return v.set_color4_array((const Color4 *)val, count); // -V1027
+}
 inline bool set_int4(const ShaderVariableInfo &v, const IPoint4 &val) { return v.set_int4(val); }
 inline bool set_int4(const ShaderVariableInfo &v, const vec4i &val) { return v.set_int4_array((const IPoint4 *)&val, 1); } // -V1027
 inline bool set_int4_array(const ShaderVariableInfo &v, const IPoint4 *val, int count) { return v.set_int4_array(val, count); }
 inline bool set_texture(const ShaderVariableInfo &v, TEXTUREID val) { return v.set_texture(val); }
 inline bool set_buffer(const ShaderVariableInfo &v, D3DRESID val) { return v.set_buffer(val); }
+inline bool set_sampler(const ShaderVariableInfo &v, d3d::SamplerHandle val) { return v.set_sampler(val); }
 inline bool set_float4x4(const ShaderVariableInfo &v, const TMatrix4 &val) { return v.set_float4x4(val); }
 inline bool set_color4(const ShaderVariableInfo &v, float r, float g, float b = 0, float a = 0) { return v.set_color4(r, g, b, a); }
 inline bool set_color4(const ShaderVariableInfo &v, const Point4 &c) { return v.set_color4((const Color4 &)c); }          // -V1027

@@ -173,11 +173,14 @@ struct ModfxDeclFrameInfo
   uint boundary_id_offset;
   float inv_scale;
 };
-#define MODFX_FRAME_FLAGS_RANDOM_FLIP_X ( 1 << 0 )
-#define MODFX_FRAME_FLAGS_RANDOM_FLIP_Y ( 1 << 1 )
+#define MODFX_FRAME_FLAGS_FLIP_X ( 1 << 0 )
+#define MODFX_FRAME_FLAGS_FLIP_Y ( 1 << 1 )
 #define MODFX_FRAME_FLAGS_DISABLE_LOOP ( 1 << 2 )
+#define MODFX_FRAME_FLAGS_RANDOM_FLIP_X ( 1 << 3 )
+#define MODFX_FRAME_FLAGS_RANDOM_FLIP_Y ( 1 << 4 )
 
 #define MODFX_SIM_FLAGS_COLLIDED 1
+#define MODFX_SIM_FLAGS_SHOULD_STOP_ROTATION 2
 
 struct ModfxDeclPosInitBox
 {
@@ -235,8 +238,9 @@ struct ModfxDeclPosInitGpuPlacement
 
 struct ModfxDeclRenderPlacementParams
 {
-  uint terrain_only; // we can use more flags here if needed
+  uint flags;
   float placement_threshold;
+  float align_normals_offset;
 };
 
 struct ModfxDeclRadiusInitRnd
@@ -323,12 +327,21 @@ struct ModfxDeclFrameAnimInit
   float speed_max;
 };
 
+#define MODFX_COLLIDE_WITH_DEPTH         0x1
+#define MODFX_COLLIDE_WITH_DEPTH_ABOVE   0x2
+#define MODFX_COLLIDE_WITH_HMAP          0x4
+#define MODFX_COLLIDE_WITH_WATER         0x8
+#define MODFX_STOP_ROTATION_ON_COLLISION 0x10
+
 struct ModfxDeclCollision
 {
   float radius_k;
   float reflect_power;
   float reflect_energy;
   float emitter_deadzone;
+  uint  collide_flags;
+  float fadeout_radius_min;
+  float fadeout_radius_max;
 };
 
 struct ModfxDeclCollisionDecay
@@ -345,6 +358,11 @@ struct ModfxDeclWind
   float turbulence_freq;
 
   float impulse_force;
+};
+
+struct ModfxDeclCameraVelocity
+{
+  float velocity_weight;
 };
 
 struct ModfxDeclShapeStaticAlignedInit
@@ -452,6 +470,14 @@ struct ModfxDeclServiceUniqueId
   uint particles_emitted;
 };
 
+struct ModfxDeclAlphaByVelocity
+{
+  float vel_max;
+  float vel_min;
+  float inv_vel_diff;
+  float neg_minvel_div_by_diff;
+};
+
 #ifdef __cplusplus
 static_assert(sizeof(ModfxDeclServiceTrail) == MODFX_SERVICE_TRAIL_SIZE);
 static_assert(sizeof(ModfxDeclServiceUniqueId) == MODFX_SERVICE_UNIQUE_ID_SIZE);
@@ -472,6 +498,7 @@ static_assert(sizeof(ModfxDeclServiceUniqueId) == MODFX_SERVICE_UNIQUE_ID_SIZE);
 #define MODFX_RFLAG_DEPTH_MASK_USE_PART_RADIUS 11
 #define MODFX_RFLAG_EXTERNAL_LIGHTS_ENABLED 12
 #define MODFX_RFLAG_RIBBON_UV_STATIC 13
+#define MODFX_RFLAG_GAMMA_CORRECTION 14
 
 #define MODFX_RFLAG_BLEND_ADD 29
 #define MODFX_RFLAG_BLEND_ABLEND 30
@@ -641,7 +668,14 @@ void dafx_preload_parent_ren_data( BufferData_cref buf, uint parent_rofs, DAFX_O
 
 #define MODFX_SMOD_COLLISION_DECAY 51
 
-#define MODFX_SMOD_TOTAL_COUNT 52
+#define MODFX_SMOD_ALPHA_BY_VELOCITY 52
+#define MODFX_SMOD_ALPHA_BY_VELOCITY_CURVE 53
+
+#define MODFX_SMOD_CAMERA_VELOCITY 54
+
+#define MODFX_SMOD_GRAVITY_TM 55
+
+#define MODFX_SMOD_TOTAL_COUNT 56
 
 #define MODFX_SFLAG_VELOCITY_APPLY_GRAVITY 0
 #define MODFX_SFLAG_VELOCITY_APPLY_GRAVITY_TRANSFORM 1
@@ -655,6 +689,10 @@ void dafx_preload_parent_ren_data( BufferData_cref buf, uint parent_rofs, DAFX_O
 #define MODFX_SFLAG_COLOR_GRAD_USE_PART_IDX_AS_KEY 9
 #define MODFX_SFLAG_COLOR_CURVE_USE_PART_IDX_AS_KEY 10
 #define MODFX_SFLAG_TOROIDAL_MOVEMENT 11
+#define MODFX_SFLAG_WATER_FLOWMAP 12
+#define MODFX_SFLAG_ALPHA_BY_EMITTER_VELOCITY 13
+#define MODFX_SFLAG_GRAVITY_ZONE_PER_EMITTER 14
+#define MODFX_SFLAG_GRAVITY_ZONE_PER_PARTICLE 15
 
 struct ModfxParentSimData
 {
@@ -745,6 +783,13 @@ void dafx_preload_parent_sim_data( BufferData_cref buf, uint parent_sofs, DAFX_O
   _LL( MODFX_SMOD_VELOCITY_FORCE_FIELD_NOISE_CURVE );
 
   _LL( MODFX_SMOD_COLLISION_DECAY );
+
+  _LL( MODFX_SMOD_ALPHA_BY_VELOCITY );
+  _LL( MODFX_SMOD_ALPHA_BY_VELOCITY_CURVE );
+
+  _LL( MODFX_SMOD_CAMERA_VELOCITY );
+
+  _LL( MODFX_SMOD_GRAVITY_TM );
 }
 
 #undef _LL

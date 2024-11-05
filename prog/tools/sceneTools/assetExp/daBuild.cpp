@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #ifndef _TARGET_DABUILD_STATIC
 #include <startup/dag_dllMain.inc.cpp>
 #endif
@@ -73,11 +75,10 @@ static int get_pack_id(Tab<AssetPack *> &packs, int pk_id, const char *pack_name
   packs.push_back(new AssetPack(buf, pk_id));
   return packs.size() - 1;
 }
-static void makePack(DagorAssetMgr &mgr, dag::ConstSpan<bool> exp_types_mask, const DataBlock &expblk, Tab<AssetPack *> &tex_pack,
-  Tab<AssetPack *> &grp_pack, FastNameMapEx &addPackages, ILogWriter &log, bool tex, bool res, const char *target_str,
-  const char *profile)
+static void makePack(DagorAssetMgr &mgr, dag::ConstSpan<DagorAsset *> assets, dag::ConstSpan<bool> exp_types_mask,
+  const DataBlock &expblk, Tab<AssetPack *> &tex_pack, Tab<AssetPack *> &grp_pack, FastNameMapEx &addPackages, ILogWriter &log,
+  bool tex, bool res, const char *target_str, const char *profile)
 {
-  dag::ConstSpan<DagorAsset *> assets = mgr.getAssets();
   Tab<GrpAndTexPackId> folder_map(tmpmem);
   folder_map.reserve(64);
   int tex_type = mgr.getTexAssetTypeId();
@@ -181,11 +182,11 @@ static void makePack(DagorAssetMgr &mgr, dag::ConstSpan<bool> exp_types_mask, co
   }
 }
 
-void preparePacks(DagorAssetMgr &mgr, dag::ConstSpan<bool> exp_types_mask, const DataBlock &expblk, Tab<AssetPack *> &tex_pack,
-  Tab<AssetPack *> &grp_pack, FastNameMapEx &addPackages, ILogWriter &log, bool tex, bool res, const char *target_str,
-  const char *profile)
+void preparePacks(DagorAssetMgr &mgr, dag::ConstSpan<DagorAsset *> assets, dag::ConstSpan<bool> exp_types_mask,
+  const DataBlock &expblk, Tab<AssetPack *> &tex_pack, Tab<AssetPack *> &grp_pack, FastNameMapEx &addPackages, ILogWriter &log,
+  bool tex, bool res, const char *target_str, const char *profile)
 {
-  makePack(mgr, exp_types_mask, expblk, tex_pack, grp_pack, addPackages, log, tex, res, target_str, profile);
+  makePack(mgr, assets, exp_types_mask, expblk, tex_pack, grp_pack, addPackages, log, tex, res, target_str, profile);
 }
 
 bool isAssetExportable(DagorAssetMgr &mgr, DagorAsset *asset, dag::ConstSpan<bool> exp_types_mask)
@@ -317,7 +318,8 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
   FastNameMapEx addPackages;
   char target_str[6];
   strcpy(target_str, mkbindump::get_target_str(targetCode));
-  makePack(mgr, exp_types_mask, expblk, tex_pack, grp_pack, addPackages, log, export_tex, export_res, target_str, profile);
+  makePack(mgr, mgr.getAssets(), exp_types_mask, expblk, tex_pack, grp_pack, addPackages, log, export_tex, export_res, target_str,
+    profile);
 
   AssetExportCache::setSdkRoot(app_dir, "develop");
   AssetExportCache gdc;
@@ -972,6 +974,7 @@ bool checkUpToDate(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode,
   dag::ConstSpan<const char *> packs_to_check, dag::ConstSpan<bool> exp_types_mask, const DataBlock &appblk,
   IGenericProgressIndicator &pbar, ILogWriter &log)
 {
+  TIME_PROFILE(checkUpToDate);
   const DataBlock &expblk = *appblk.getBlockByNameEx("assets")->getBlockByNameEx("export");
 
   const char *addTexPfx = expblk.getStr("addTexPrefix", "");
@@ -980,7 +983,7 @@ bool checkUpToDate(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode,
   FastNameMapEx addPackages;
   char target_str[6];
   strcpy(target_str, mkbindump::get_target_str(targetCode));
-  makePack(mgr, exp_types_mask, expblk, tex_pack, grp_pack, addPackages, log, true, true, target_str, profile);
+  makePack(mgr, mgr.getAssets(), exp_types_mask, expblk, tex_pack, grp_pack, addPackages, log, true, true, target_str, profile);
 
   AssetExportCache::setSdkRoot(app_dir, "develop");
   AssetExportCache gdc;
@@ -1225,7 +1228,7 @@ void dabuild_list_extra_packs(const char *app_dir, const DataBlock &appblk, Dago
   FastNameMapEx addPackages;
   char target_str[6];
   strcpy(target_str, mkbindump::get_target_str(targetCode));
-  makePack(mgr, expTypesMask, expblk, tex_pack, grp_pack, addPackages, log, true, true, target_str, profile);
+  makePack(mgr, mgr.getAssets(), expTypesMask, expblk, tex_pack, grp_pack, addPackages, log, true, true, target_str, profile);
 
   if (!assethlp::validate_exp_blk(addPackages.nameCount() > 0, expblk, target_str, profile, log))
   {
@@ -1311,7 +1314,8 @@ void dabuild_list_packs(const char *app_dir, const DataBlock &appblk, DagorAsset
   FastNameMapEx addPackages;
   char target_str[6];
   strcpy(target_str, mkbindump::get_target_str(targetCode));
-  makePack(mgr, expTypesMask, expblk, tex_pack, grp_pack, addPackages, log, export_tex, export_res, target_str, profile);
+  makePack(mgr, mgr.getAssets(), expTypesMask, expblk, tex_pack, grp_pack, addPackages, log, export_tex, export_res, target_str,
+    profile);
 
   sort(grp_pack, &cmp_res_pack_name);
   sort(tex_pack, &cmp_tex_pack_name);

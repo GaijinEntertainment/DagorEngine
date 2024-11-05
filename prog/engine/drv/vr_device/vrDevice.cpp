@@ -1,7 +1,15 @@
-#include "drivers/dag_vr.h"
-#include "3d/dag_drv3d.h"
-#include "3d/dag_drv3dReset.h"
-#include "3d/dag_tex3d.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/dag_vr.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_resetDevice.h>
+#include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_variableRateShading.h>
 #include "shaders/dag_postFxRenderer.h"
 #include "shaders/dag_overrideStates.h"
 #include "shaders/dag_shaders.h"
@@ -9,10 +17,20 @@
 #include "3d/dag_texMgr.h"
 #include "perfMon/dag_statDrv.h"
 #include "math/integer/dag_IPoint2.h"
+#include "math/dag_mathAng.h"
+#include "util/dag_convar.h"
 
 #if _TARGET_PC_WIN && DAGOR_DBGLEVEL > 0 // TODO: remove mask render toggle from here
 #include "Windows.h"
 #endif
+
+#if 0
+  // Use this to enable VRS mask rendering. Disabled until it is evaluated.
+  CONSOLE_FLOAT_VAL_MINMAX("xr", vrs_inner_factor, 0.75, 0, 1);
+#else
+CONSOLE_FLOAT_VAL_MINMAX("xr", vrs_inner_factor, 1, 0, 1);
+#endif
+CONSOLE_FLOAT_VAL_MINMAX("xr", vrs_outer_factor, 0.90, 0, 1);
 
 VRDevice *create_vr_device(VRDevice::RenderingAPI, const VRDevice::ApplicationData &);
 VRDevice *create_emulator();
@@ -91,6 +109,19 @@ static RectInt calc_viewport(float srcAspect, const RectInt &dst)
 
   RectInt resultTXC; // (left, top, right, bottom) in texel space
 #if _TARGET_C2
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -246,12 +277,8 @@ bool VRDevice::shouldBeEnabled()
 
 bool VRDevice::isPresenceSensorForcedToBeOn()
 {
-#if DAGOR_DBGLEVEL > 0
   static bool forced = dgs_get_settings()->getBlockByNameEx("xr")->getBool("forcePresence", false);
   return forced;
-#else
-  return false;
-#endif
 }
 
 void VRDevice::setEnabled(bool enabled) { enableXr = enabled; }
@@ -282,7 +309,7 @@ static void vr_after_reset(bool full_reset)
     vr_instance->afterSoftDeviceReset();
 }
 
-bool VRDevice::renderScreenMask(const TMatrix4 &projection, int view_index)
+bool VRDevice::renderScreenMask(const TMatrix4 &projection, int view_index, float scale, int value)
 {
   if (!hasScreenMask())
     return false;
@@ -298,6 +325,12 @@ bool VRDevice::renderScreenMask(const TMatrix4 &projection, int view_index)
 
   if (!screenMaskVertexBuffer[view_index].getBuf() || !screenMaskIndexBuffer[view_index].getBuf())
     return false;
+
+  static int openxr_screen_mask_scaleVarId = get_shader_variable_id("openxr_screen_mask_scale");
+  static int openxr_screen_mask_valueVarId = get_shader_variable_id("openxr_screen_mask_value");
+
+  ShaderGlobal::set_real(openxr_screen_mask_scaleVarId, scale);
+  ShaderGlobal::set_int(openxr_screen_mask_valueVarId, value);
 
   d3d::setvdecl(screenMaskVertexDeclaration);
   d3d::setvsrc(0, screenMaskVertexBuffer[view_index].getBuf(), screenMaskVertexStride);
@@ -388,6 +421,16 @@ void VRDevice::prepareScreenMask(const TMatrix4 &projection, int view_index)
   ib.getBuf()->unlock();
 }
 
+void VRDevice::changeState(State newState)
+{
+  if (currentState == newState)
+    return;
+
+  currentState = newState;
+  if (stateChangeListener)
+    stateChangeListener(newState);
+}
+
 void VRDevice::forceDisableScreenMask(bool disable) { disableScreenMask = disable; }
 
 float VRDevice::calcBoundingView(FrameData &frameData)
@@ -418,6 +461,12 @@ float VRDevice::calcBoundingView(FrameData &frameData)
   bounding.position = f;
 
   return t;
+}
+
+VRDevice::State VRDevice::setStateChangeListener(StateChangeListerer listener)
+{
+  stateChangeListener = listener;
+  return currentState;
 }
 
 void VRDevice::fovValuesToDriverPerspective(float fovLeft, float fovRight, float fovUp, float fovDown, float zNear, float zFar,
@@ -529,6 +578,135 @@ bool VRDevice::setRenderingDevice()
     stereoMode = StereoMode::Multipass;
 
   return setRenderingDeviceImpl();
+}
+
+void VRDevice::prepareVrsMask(FrameData &frameData)
+{
+  if (!hasScreenMask())
+    return;
+
+  if (vrs_inner_factor != current_vrs_inner_factor || vrs_outer_factor != current_vrs_outer_factor)
+    for (auto &mask : vrs_mask_textures)
+      mask.close();
+
+  if (vrs_mask_textures[0])
+    return;
+
+  int vrsTileSize = d3d::get_driver_desc().variableRateTextureTileSizeX;
+  if (vrsTileSize == 0)
+    return;
+
+  current_vrs_inner_factor = vrs_inner_factor;
+  current_vrs_outer_factor = vrs_outer_factor;
+
+  if (current_vrs_inner_factor >= 1) //-V1051
+    return;
+
+  TIME_D3D_PROFILE(prepare_vrs_mask);
+
+  bool hasAdditionalShadingRates = d3d::get_driver_desc().caps.hasVariableRateShadingBy4;
+
+  int viewWidth, viewHeight;
+  getViewResolution(viewWidth, viewHeight);
+
+  int remX = viewWidth % vrsTileSize;
+  int remY = viewHeight % vrsTileSize;
+
+  viewWidth = ceil(float(viewWidth) / vrsTileSize);
+  viewHeight = ceil(float(viewHeight) / vrsTileSize);
+
+  UniqueTex vrs_mask_texture_gen =
+    dag::create_tex(nullptr, viewWidth, viewHeight, TEXFMT_R8UI | TEXCF_RTARGET, 1, "vrs_mask_texture_gen");
+
+  for (auto ix : {0, 1})
+  {
+    d3d::setview(0, 0, viewWidth, viewHeight, 0, 1);
+    d3d::setscissor(0, 0, viewWidth, viewHeight);
+    d3d::set_render_target(vrs_mask_texture_gen.getTex2D(), 0);
+    d3d::clearview(CLEAR_TARGET, 0, 0, 0);
+
+    auto &persp = frameData.views[ix].projection;
+    TMatrix4 projTm = matrix_perspective_reverse(persp.wk, persp.hk, persp.zn, persp.zf);
+    projTm(2, 0) += persp.ox;
+    projTm(2, 1) += persp.oy;
+
+    renderScreenMask(projTm, ix, current_vrs_inner_factor, 2);
+    if (hasAdditionalShadingRates)
+      renderScreenMask(projTm, ix, eastl::max(current_vrs_outer_factor, current_vrs_inner_factor), 4);
+
+    eastl::string name;
+    name.sprintf("vrs_mask_texture_%s", ix ? "right" : "left");
+    vrs_mask_textures[ix] = dag::create_tex(nullptr, viewWidth, viewHeight, TEXFMT_R8UI | TEXCF_UPDATE_DESTINATION, 1, name.data());
+    vrs_mask_textures[ix]->update(vrs_mask_texture_gen.getTex2D());
+  }
+
+  if (getStereoMode() != VRDevice::StereoMode::Multipass)
+  {
+    int targetWidth, targetHeight;
+    getViewResolution(targetWidth, targetHeight);
+    switch (getStereoMode())
+    {
+      case VRDevice::StereoMode::SideBySideHorizontal: targetWidth *= 2; break;
+      case VRDevice::StereoMode::SideBySideVertical: targetHeight *= 2; break;
+      default: break;
+    }
+
+    targetWidth = ceil(float(targetWidth) / vrsTileSize);
+    targetHeight = ceil(float(targetHeight) / vrsTileSize);
+
+    vrs_mask_textures[2] =
+      dag::create_tex(nullptr, targetWidth, targetHeight, TEXFMT_R8UI | TEXCF_UPDATE_DESTINATION, 1, "vrs_mask_texture_target");
+
+    vrs_mask_textures[2]->updateSubRegion(vrs_mask_textures[0].getTex2D(), 0, 0, 0, 0, viewWidth, viewHeight, 1, 0, 0, 0, 0);
+    switch (getStereoMode())
+    {
+      case VRDevice::StereoMode::SideBySideHorizontal:
+      {
+        bool left = remX >= vrsTileSize / 2;
+        vrs_mask_textures[2]->updateSubRegion(vrs_mask_textures[1].getTex2D(), 0, 0, 0, 0, viewWidth, viewHeight, 1, 0,
+          left ? viewWidth - 1 : viewWidth, 0, 0);
+        break;
+      }
+      case VRDevice::StereoMode::SideBySideVertical:
+      {
+        bool up = remY >= vrsTileSize / 2;
+        vrs_mask_textures[2]->updateSubRegion(vrs_mask_textures[1].getTex2D(), 0, 0, 0, 0, viewWidth, viewHeight, 1, 0, 0,
+          up ? viewHeight - 1 : viewHeight, 0);
+        break;
+      }
+      default: break;
+    }
+  }
+}
+
+void VRDevice::enableVrsMask(StereoIndex stereo_index, bool combined)
+{
+  if (!vrs_mask_textures[0])
+    return;
+
+  G_ASSERT(!combined || getStereoMode() != VRDevice::StereoMode::Multipass);
+
+  d3d::set_variable_rate_shading(1, 1, VariableRateShadingCombiner::VRS_PASSTHROUGH, VariableRateShadingCombiner::VRS_OVERRIDE);
+  d3d::set_variable_rate_shading_texture(vrs_mask_textures[combined ? 2 : (stereo_index == StereoIndex::Left ? 0 : 1)].getTex2D());
+}
+
+void VRDevice::disableVrsMask()
+{
+  if (!vrs_mask_textures[0])
+    return;
+
+  d3d::set_variable_rate_shading(1, 1, VariableRateShadingCombiner::VRS_PASSTHROUGH, VariableRateShadingCombiner::VRS_PASSTHROUGH);
+  d3d::set_variable_rate_shading_texture(nullptr);
+}
+
+const ManagedTex *VRDevice::getVrsMask(StereoIndex stereo_index, bool combined) const
+{
+  if (!vrs_mask_textures[0])
+    return nullptr;
+
+  G_ASSERT(!combined || getStereoMode() != VRDevice::StereoMode::Multipass);
+
+  return &vrs_mask_textures[combined ? 2 : (stereo_index == StereoIndex::Left ? 0 : 1)];
 }
 
 REGISTER_D3D_BEFORE_RESET_FUNC(vr_before_reset);

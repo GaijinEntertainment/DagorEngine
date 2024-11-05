@@ -108,3 +108,39 @@ footer {
 iframe {
   max-width: 100%;
 }
+
+/* Bar charts on the performance page.*/
+/* Licensed with MIT license from https://github.com/wren-lang/wren */
+
+table.chart {
+  margin: 4px 0 0 0;
+  padding: 5px 0 5px 25px;
+}
+
+table.chart td, th {
+  line-height: 18px;
+  margin: 0;
+  padding: 1px 0;
+}
+
+table.chart th {
+  font-size: 14px;
+  width: 200px;
+}
+
+table.chart .chart-bar {
+  display: inline-block;
+  font: 12px;
+  color: #222222;
+  background: hsl(200, 60%, 50%);
+  border-bottom: solid 1px hsl(210, 60%, 20%);
+  text-align: right;
+  border-radius: 2px;
+}
+
+table.chart .chart-bar.featured {
+  background: hsl(200, 60%, 70%);
+  border-bottom: solid 1px hsl(210, 60%, 20%);
+}
+
+/* End of wren style */

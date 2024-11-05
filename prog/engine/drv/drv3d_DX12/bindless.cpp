@@ -1,70 +1,95 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "device.h"
+#include "frontend_state.h"
 
 using namespace drv3d_dx12;
 
 #if DX12_REPORT_BINDLESS_HEAP_ACTIVITY
-#define BINDLESS_REPORT debug
+#define BINDLESS_REPORT logdbg
 #else
 #define BINDLESS_REPORT(...)
 #endif
 
+void frontend::BindlessManager::init(DeviceContext &ctx, SamplerDescriptorAndState default_bindless_sampler)
+{
+  // need to take the lock here to keep consistent ordering
+  ScopedCommitLock ctxLock{ctx};
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+
+  state.samplerTable.clear();
+  state.samplerTable.push_back(default_bindless_sampler.state);
+
+  const uint32_t defaultSamplerBindlessIdx = 0;
+  ctx.bindlessSetSamplerDescriptorNoLock(defaultSamplerBindlessIdx, default_bindless_sampler.sampler);
+}
+
 uint32_t frontend::BindlessManager::registerSampler(Device &device, DeviceContext &ctx, BaseTex *texture)
 {
+  // need to take the lock here to keep consistent ordering
+  ScopedCommitLock ctxLock{ctx};
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+
   auto sampler = texture->samplerState;
 
   uint32_t newIndex;
-  {
-    auto stateAccess = state.access();
-    auto ref = eastl::find(begin(stateAccess->samplerTable), end(stateAccess->samplerTable), sampler);
-    if (ref != end(stateAccess->samplerTable))
-    {
-      return static_cast<uint32_t>(ref - begin(stateAccess->samplerTable));
-    }
+  auto ref = eastl::find(begin(state.samplerTable), end(state.samplerTable), sampler);
+  if (ref != end(state.samplerTable))
+    return static_cast<uint32_t>(ref - begin(state.samplerTable));
 
-    newIndex = static_cast<uint32_t>(stateAccess->samplerTable.size());
-    stateAccess->samplerTable.push_back(sampler);
-  }
-  ctx.bindlessSetSamplerDescriptor(newIndex, device.getSampler(sampler));
+  newIndex = state.samplerTable.size();
+  state.samplerTable.push_back(sampler);
+  ctx.bindlessSetSamplerDescriptorNoLock(newIndex, device.getSampler(sampler));
   return newIndex;
 }
 
-void frontend::BindlessManager::unregisterBufferDescriptors(eastl::span<const D3D12_CPU_DESCRIPTOR_HANDLE> descriptors)
+uint32_t frontend::BindlessManager::registerSampler(DeviceContext &ctx, SamplerDescriptorAndState sampler)
 {
-  auto stateAccess = state.access();
-  for (auto descriptor : descriptors)
+  // need to take the lock here to keep consistent ordering
+  ScopedCommitLock ctxLock{ctx};
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+
+  uint32_t newIndex;
+
+  auto ref = eastl::find(begin(state.samplerTable), end(state.samplerTable), sampler.state);
+  if (ref != end(state.samplerTable))
   {
-    auto ref = eastl::find_if(begin(stateAccess->resourceSlotInfo), end(stateAccess->resourceSlotInfo),
-      [descriptor](auto &var) //
-      {
-        auto *bufferInfo = eastl::get_if<BufferSlotUsage>(&var);
-        if (!bufferInfo)
-        {
-          return false;
-        }
-        return bufferInfo->descriptor == descriptor;
-      });
-    if (ref != end(stateAccess->resourceSlotInfo))
-    {
-      freeBindlessResourceRange(eastl::distance(begin(stateAccess->resourceSlotInfo), ref), 1);
-      *ref = eastl::monostate{};
-    }
+    return static_cast<uint32_t>(ref - begin(state.samplerTable));
   }
+
+  newIndex = state.samplerTable.size();
+  state.samplerTable.push_back(sampler.state);
+
+  ctx.bindlessSetSamplerDescriptorNoLock(newIndex, sampler.sampler);
+  return newIndex;
+}
+
+void frontend::BindlessManager::resetBufferReferences(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE descriptor,
+  const NullResourceTable &null_table)
+{
+  const auto nullDescriptor = null_table.table[NullResourceTable::SRV_BUFFER];
+  resetReferences<BufferSlotUsage>(ctx, nullDescriptor,
+    [descriptor](const BufferSlotUsage &info) { return info.descriptor == descriptor; });
 }
 
 uint32_t frontend::BindlessManager::allocateBindlessResourceRange(uint32_t count)
 {
-  auto stateAccess = state.access();
-  auto range = free_list_allocate_smallest_fit<uint32_t>(stateAccess->freeSlotRanges, count);
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+
+  return allocateBindlessResourceRangeNoLock(count);
+}
+
+uint32_t frontend::BindlessManager::allocateBindlessResourceRangeNoLock(uint32_t count)
+{
+  auto range = free_list_allocate_smallest_fit<uint32_t>(state.freeSlotRanges, count);
   if (range.empty())
   {
-    auto r = stateAccess->resourceSlotInfo.size();
-    stateAccess->resourceSlotInfo.resize(r + count, eastl::monostate{});
+    auto r = state.resourceSlotInfo.size();
+    state.resourceSlotInfo.resize(r + count, eastl::monostate{});
     return r;
   }
-  else
-  {
-    return range.front();
-  }
+
+  return range.front();
 }
 
 uint32_t frontend::BindlessManager::resizeBindlessResourceRange(DeviceContext &ctx, uint32_t index, uint32_t current_count,
@@ -75,57 +100,87 @@ uint32_t frontend::BindlessManager::resizeBindlessResourceRange(DeviceContext &c
     return index;
   }
 
+  // need to take the lock here to keep consistent ordering
+  ScopedCommitLock ctxLock{ctx};
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+
+  checkBindlessRangeAllocatedNoLock(index, current_count);
+
   uint32_t newIndex;
+  uint32_t rangeEnd = index + current_count;
+  if (rangeEnd == state.resourceSlotInfo.size())
   {
-    auto stateAccess = state.access();
-    uint32_t range_end = index + current_count;
-    if (range_end == stateAccess->resourceSlotInfo.size())
-    {
-      // the range is in the end of the heap, so we just update the heap size
-      stateAccess->resourceSlotInfo.resize(index + new_count, eastl::monostate{});
-      return index;
-    }
-
-    if (free_list_try_resize(stateAccess->freeSlotRanges, make_value_range(index, current_count), new_count))
-    {
-      return index;
-    }
-
-    // we are unable to expand the resource range, so we have to reallocate elsewhere and copy the
-    // existing descriptors :/
-    newIndex = allocateBindlessResourceRange(new_count);
-    freeBindlessResourceRange(index, current_count);
+    // the range is in the end of the heap, so we just update the heap size
+    state.resourceSlotInfo.resize(index + new_count, eastl::monostate{});
+    return index;
   }
-  ctx.bindlessCopyResourceDescriptors(index, newIndex, current_count);
+
+  if (free_list_try_resize(state.freeSlotRanges, make_value_range(index, current_count), new_count))
+  {
+    return index;
+  }
+
+  // we are unable to expand the resource range, so we have to reallocate elsewhere and copy the
+  // existing descriptors :/
+  newIndex = allocateBindlessResourceRangeNoLock(new_count);
+  freeBindlessResourceRangeNoLock(index, current_count);
+  ctx.bindlessCopyResourceDescriptorsNoLock(index, newIndex, current_count);
 
   return newIndex;
 }
 
 void frontend::BindlessManager::freeBindlessResourceRange(uint32_t index, uint32_t count)
 {
-  auto stateAccess = state.access();
-  G_ASSERTF_RETURN(index + count <= stateAccess->resourceSlotInfo.size(), ,
-    "DX12: freeBindlessResourceRange tried to free out of range slots, range %u - "
-    "%u, bindless count %u",
-    index, index + count, stateAccess->resourceSlotInfo.size());
-  eastl::fill_n(begin(stateAccess->resourceSlotInfo) + index, count, ResourceSlotInfoType{eastl::monostate{}});
-  if (index + count != stateAccess->resourceSlotInfo.size())
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+
+  freeBindlessResourceRangeNoLock(index, count);
+}
+
+void frontend::BindlessManager::freeBindlessResourceRangeNoLock(uint32_t index, uint32_t count)
+{
+  checkBindlessRangeAllocatedNoLock(index, count);
+  eastl::fill_n(state.resourceSlotInfo.begin() + index, count, eastl::monostate{});
+  if (index + count != state.resourceSlotInfo.size())
   {
-    free_list_insert_and_coalesce(stateAccess->freeSlotRanges, make_value_range(index, count));
+    free_list_insert_and_coalesce(state.freeSlotRanges, make_value_range(index, count));
     return;
   }
 
-  stateAccess->resourceSlotInfo.resize(index, eastl::monostate{});
+  state.resourceSlotInfo.resize(index, eastl::monostate{});
   // Now check if we can further shrink the heap
-  if (!stateAccess->freeSlotRanges.empty() && (stateAccess->freeSlotRanges.back().stop == index))
+  if (!state.freeSlotRanges.empty() && (state.freeSlotRanges.back().stop == index))
   {
-    stateAccess->resourceSlotInfo.resize(stateAccess->freeSlotRanges.back().start, eastl::monostate{});
-    stateAccess->freeSlotRanges.pop_back();
+    state.resourceSlotInfo.resize(state.freeSlotRanges.back().start, eastl::monostate{});
+    state.freeSlotRanges.pop_back();
   }
 }
 
+void frontend::BindlessManager::checkBindlessRangeAllocatedNoLock(uint32_t index, uint32_t count) const
+{
+  G_UNUSED(index);
+  G_UNUSED(count);
+#if DAGOR_DBGLEVEL > 0
+  G_ASSERT(count > 0);
+  G_ASSERTF(index + count <= state.resourceSlotInfo.size(),
+    "DX12: Bindless slot is not allocated (index: %d, count: %d, total slots: %d)", index, count, state.resourceSlotInfo.size());
+  const auto it = eastl::find_if(begin(state.freeSlotRanges), end(state.freeSlotRanges), [index, count](const auto &range) {
+    return range.overlaps(ValueRange{index, index + count});
+  });
+  G_ASSERTF(it == state.freeSlotRanges.end(), "DX12: Bindless slot is not allocated (index: %d, count: %d, free range found: %d-%d)",
+    index, count, it != state.freeSlotRanges.end() ? it->start : 0, it != state.freeSlotRanges.end() ? it->stop : 0);
+#endif
+}
+
+OSSpinlock &frontend::BindlessManager::get_state_guard() { return get_resource_binding_guard(); }
+
 void frontend::BindlessManager::updateBindlessBuffer(DeviceContext &ctx, uint32_t index, Sbuffer *buffer)
 {
+  // need to take the lock here to keep consistent ordering
+  ScopedCommitLock ctxLock{ctx};
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+
+  checkBindlessRangeAllocatedNoLock(index, 1);
+
   auto buf = (GenericBufferInterface *)buffer;
   auto descriptor = BufferResourceReferenceAndShaderResourceView{buf->getDeviceBuffer()}.srv;
 
@@ -133,263 +188,15 @@ void frontend::BindlessManager::updateBindlessBuffer(DeviceContext &ctx, uint32_
   info.buffer = buffer;
   info.descriptor = descriptor;
 
+  // if this slot already used the given descriptor, then we skip the update, no point in rewriting the same thing
+  const auto bufferInfo = state.resourceSlotInfo.getIf<BufferSlotUsage>(index);
+  if (bufferInfo && buffer == bufferInfo->buffer && descriptor == bufferInfo->descriptor)
   {
-    auto stateAccess = state.access();
-    // if this slot already used the given descriptor, then we skip the update, no point in rewriting the same thing
-    auto &slot = stateAccess->resourceSlotInfo[index];
-    auto bufferInfo = eastl::get_if<BufferSlotUsage>(&slot);
-    if (bufferInfo)
-    {
-      if (buffer == bufferInfo->buffer && descriptor == bufferInfo->descriptor)
-      {
-        return;
-      }
-    }
-    slot = info;
+    return;
   }
+  state.resourceSlotInfo[index] = info;
 
-  ctx.bindlessSetResourceDescriptor(index, descriptor);
-}
-
-void frontend::BindlessManager::updateBindlessTexture(DeviceContext &ctx, uint32_t index, BaseTex *texture)
-{
-  auto view = texture->getViewInfo();
-  auto image = texture->getDeviceImage();
-
-  TextureSlotUsage info;
-  info.texture = texture;
-  info.image = image;
-  info.view = view;
-
-  {
-    auto stateAccess = state.access();
-    auto &slot = stateAccess->resourceSlotInfo[index];
-    // if this slot already used the given view, then we skip the update, no point in rewriting the same thing
-    auto imageInfo = eastl::get_if<TextureSlotUsage>(&slot);
-    if (imageInfo)
-    {
-      if (texture == imageInfo->texture && image == imageInfo->image && view == imageInfo->view)
-      {
-        return;
-      }
-    }
-    slot = info;
-  }
-
-#if DAGOR_DBGLEVEL > 0
-  texture->setWasUsed();
-#endif
-
-  ctx.bindlessSetResourceDescriptor(index, image, view);
-}
-
-frontend::BindlessManager::CheckTextureImagePairResultType frontend::BindlessManager::checkTextureImagePair(BaseTex *tex, Image *image)
-{
-  CheckTextureImagePairResultType result;
-  // Find first entry with tex
-  auto stateAccess = state.access();
-  auto ref = eastl::find_if(begin(stateAccess->resourceSlotInfo), end(stateAccess->resourceSlotInfo), [tex](auto &slot) {
-    auto info = eastl::get_if<TextureSlotUsage>(&slot);
-    return info && info->texture == tex;
-  });
-  if (ref != end(stateAccess->resourceSlotInfo))
-  {
-    auto &info = eastl::get<TextureSlotUsage>(*ref);
-    result.firstFound = eastl::distance(begin(stateAccess->resourceSlotInfo), ref);
-    // See if we are matching
-    result.mismatchFound = (info.image != image);
-  }
-  if (!result.mismatchFound)
-  {
-    result.matchCount = 1;
-    // This keeps looking until we reach the end or we found a mismatch, then we update the result
-    // and stop
-    for (++ref; ref != end(stateAccess->resourceSlotInfo); ++ref)
-    {
-      auto info = eastl::get_if<TextureSlotUsage>(&*ref);
-      if (!info)
-      {
-        continue;
-      }
-      if (info->texture != tex)
-      {
-        continue;
-      }
-      if (info->image != image)
-      {
-        result.mismatchFound = true;
-        break;
-      }
-      ++result.matchCount;
-    }
-  }
-
-  return result;
-}
-
-void frontend::BindlessManager::updateTextureReferences(DeviceContext &ctx, BaseTex *tex, Image *old_image, Image *new_image,
-  uint32_t search_offset, uint32_t change_count)
-{
-  for (; change_count; --change_count)
-  {
-    uint32_t index;
-    ImageViewState view;
-    {
-      auto stateAccess = state.access();
-      if (search_offset >= stateAccess->resourceSlotInfo.size())
-      {
-        break;
-      }
-      auto ref = eastl::find_if(begin(stateAccess->resourceSlotInfo) + search_offset, end(stateAccess->resourceSlotInfo),
-        [tex, old_image](const auto &slot) {
-          auto info = eastl::get_if<TextureSlotUsage>(&slot);
-          if (!info)
-          {
-            return false;
-          }
-          return tex == info->texture && old_image == info->image;
-        });
-      if (end(stateAccess->resourceSlotInfo) == ref)
-      {
-        break;
-      }
-      view = eastl::get<TextureSlotUsage>(*ref).view;
-      index = eastl::distance(begin(stateAccess->resourceSlotInfo), ref);
-      search_offset = index + 1;
-    }
-    ctx.bindlessSetResourceDescriptor(index, new_image, view);
-    {
-      auto stateAccess = state.access();
-      auto info = eastl::get_if<TextureSlotUsage>(&stateAccess->resourceSlotInfo[index]);
-      if (info)
-      {
-        info->image = new_image;
-      }
-      else
-      {
-        // This should never happen but who knows...
-        logwarn(
-          "DX12: frontend::BindlessManager::updateTextureReferences slot %u was identified as texture slot and descriptor update "
-          "was send to device context, but on later slot update it was no longer a texture slot!",
-          index);
-      }
-    }
-  }
-}
-
-void frontend::BindlessManager::updateBufferReferences(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE old_descriptor,
-  D3D12_CPU_DESCRIPTOR_HANDLE new_descriptor)
-{
-  uint32_t nextIndex = 0;
-  for (;;)
-  {
-    uint32_t index;
-    {
-      auto stateAccess = state.access();
-      auto ref =
-        eastl::find_if(begin(stateAccess->resourceSlotInfo), end(stateAccess->resourceSlotInfo), [old_descriptor](const auto &slot) {
-          auto info = eastl::get_if<BufferSlotUsage>(&slot);
-          if (!info)
-          {
-            return false;
-          }
-          return old_descriptor == info->descriptor;
-        });
-      if (end(stateAccess->resourceSlotInfo) == ref)
-      {
-        break;
-      }
-      index = eastl::distance(begin(stateAccess->resourceSlotInfo), ref);
-      nextIndex = index + 1;
-    }
-    ctx.bindlessSetResourceDescriptor(index, new_descriptor);
-    {
-      auto stateAccess = state.access();
-      auto info = eastl::get_if<BufferSlotUsage>(&stateAccess->resourceSlotInfo[index]);
-      if (info)
-      {
-        info->descriptor = new_descriptor;
-      }
-      else
-      {
-        // This should never happen but who knows...
-        logwarn("DX12: frontend::BindlessManager::updateBufferReferences slot %u was identified as buffer slot and descriptor update "
-                "was send to device context, but on later slot update it was no longer a buffer slot!",
-          index);
-      }
-    }
-  }
-}
-
-bool frontend::BindlessManager::hasTextureReference(BaseTex *tex)
-{
-  auto stateAccess = state.access();
-  return end(stateAccess->resourceSlotInfo) !=
-         eastl::find_if(begin(stateAccess->resourceSlotInfo), end(stateAccess->resourceSlotInfo), [tex](auto &slot) {
-           auto info = eastl::get_if<TextureSlotUsage>(&slot);
-           return info && info->texture == tex;
-         });
-}
-
-bool frontend::BindlessManager::hasTextureImageReference(BaseTex *tex, Image *image)
-{
-  auto stateAccess = state.access();
-
-  return end(stateAccess->resourceSlotInfo) !=
-         eastl::find_if(begin(stateAccess->resourceSlotInfo), end(stateAccess->resourceSlotInfo), [tex, image](auto &slot) {
-           auto info = eastl::get_if<TextureSlotUsage>(&slot);
-           return info && info->texture == tex && info->image == image;
-         });
-}
-
-bool frontend::BindlessManager::hasTextureImageViewReference(BaseTex *tex, Image *image, ImageViewState view)
-{
-  auto stateAccess = state.access();
-  return end(stateAccess->resourceSlotInfo) !=
-         eastl::find_if(begin(stateAccess->resourceSlotInfo), end(stateAccess->resourceSlotInfo), [tex, image, view](auto &slot) {
-           auto info = eastl::get_if<TextureSlotUsage>(&slot);
-           return info && info->texture == tex && info->image == image && info->view == view;
-         });
-}
-
-bool frontend::BindlessManager::hasImageReference(Image *image)
-{
-  auto stateAccess = state.access();
-  return end(stateAccess->resourceSlotInfo) !=
-         eastl::find_if(begin(stateAccess->resourceSlotInfo), end(stateAccess->resourceSlotInfo), [image](auto &slot) {
-           auto info = eastl::get_if<TextureSlotUsage>(&slot);
-           return info && info->image == image;
-         });
-}
-
-bool frontend::BindlessManager::hasImageViewReference(Image *image, ImageViewState view)
-{
-  auto stateAccess = state.access();
-  return end(stateAccess->resourceSlotInfo) !=
-         eastl::find_if(begin(stateAccess->resourceSlotInfo), end(stateAccess->resourceSlotInfo), [image, view](auto &slot) {
-           auto info = eastl::get_if<TextureSlotUsage>(&slot);
-           return info && info->image == image && info->view == view;
-         });
-}
-
-bool frontend::BindlessManager::hasBufferReference(Sbuffer *buf)
-{
-  auto stateAccess = state.access();
-  return end(stateAccess->resourceSlotInfo) !=
-         eastl::find_if(begin(stateAccess->resourceSlotInfo), end(stateAccess->resourceSlotInfo), [buf](auto &slot) {
-           auto info = eastl::get_if<BufferSlotUsage>(&slot);
-           return info && info->buffer == buf;
-         });
-}
-
-bool frontend::BindlessManager::hasBufferViewReference(Sbuffer *buf, D3D12_CPU_DESCRIPTOR_HANDLE view)
-{
-  auto stateAccess = state.access();
-  return end(stateAccess->resourceSlotInfo) !=
-         eastl::find_if(begin(stateAccess->resourceSlotInfo), end(stateAccess->resourceSlotInfo), [buf, view](auto &slot) {
-           auto info = eastl::get_if<BufferSlotUsage>(&slot);
-           return info && info->buffer == buf && info->descriptor == view;
-         });
+  ctx.bindlessSetResourceDescriptorNoLock(index, descriptor);
 }
 
 namespace
@@ -410,62 +217,277 @@ uint32_t res_type_to_null_resource_table_entry(int res_type)
 }
 } // namespace
 
-void frontend::BindlessManager::onTextureDeletion(DeviceContext &ctx, BaseTex *texture, const NullResourceTable &null_table)
+void frontend::BindlessManager::updateBindlessTexture(DeviceContext &ctx, uint32_t index, BaseTex *texture,
+  const NullResourceTable &null_table)
 {
-  auto descriptor = null_table.table[res_type_to_null_resource_table_entry(texture->restype())];
-  uint32_t nextIndex = 0;
-  for (;;)
+  // need to take the lock here to keep consistent ordering
+  ScopedCommitLock ctxLock{ctx};
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+
+  checkBindlessRangeAllocatedNoLock(index, 1);
+
+  if (texture->isStub())
+    texture = texture->getStubTex();
+
+  if (!texture->getDeviceImage())
   {
-    uint32_t index;
+    state.resourceSlotInfo[index] = eastl::monostate{};
+    ctx.bindlessSetResourceDescriptorNoLock(index, null_table.table[res_type_to_null_resource_table_entry(texture->restype())]);
+    logwarn("DX12: frontend::BindlessManager::updateBindlessTexture slot %u was updated to null descriptor (texture is not valid)",
+      index);
+    return;
+  }
+
+  auto view = texture->getViewInfo();
+  auto image = texture->getDeviceImage();
+
+  TextureSlotUsage info;
+  info.texture = texture;
+  info.image = image;
+  info.view = view;
+
+  // if this slot already used the given view, then we skip the update, no point in rewriting the same thing
+  const auto imageInfo = state.resourceSlotInfo.getIf<TextureSlotUsage>(index);
+  if (imageInfo && texture == imageInfo->texture && image == imageInfo->image && view == imageInfo->view)
+  {
+    return;
+  }
+  state.resourceSlotInfo[index] = info;
+
+#if DAGOR_DBGLEVEL > 0
+  texture->setWasUsed();
+#endif
+
+  ctx.bindlessSetResourceDescriptorNoLock(index, image, view);
+}
+
+frontend::BindlessManager::CheckTextureImagePairResultType frontend::BindlessManager::checkTextureImagePairNoLock(BaseTex *tex,
+  Image *image)
+{
+  CheckTextureImagePairResultType result;
+  // Find first entry with tex
+  const auto bot = state.resourceSlotInfo.beginOf<TextureSlotUsage>();
+  const auto eot = state.resourceSlotInfo.endOf<TextureSlotUsage>();
+  auto ref = eastl::find_if(bot, eot, [tex](const auto &info) { return info.texture == tex; });
+  if (ref == eot)
+  {
+    return result;
+  }
+
+  result.firstFound = eastl::distance(state.resourceSlotInfo.begin(), ref.asUntyped());
+  // See if we are matching
+  result.mismatchFound = (ref->image != image);
+
+  if (!result.mismatchFound)
+  {
+    result.matchCount = 1;
+    // This keeps looking until we reach the end or we found a mismatch, then we update the result
+    // and stop
+    for (++ref; ref != eot; ++ref)
     {
-      auto stateAccess = state.access();
-      auto ref = eastl::find_if(begin(stateAccess->resourceSlotInfo) + nextIndex, end(stateAccess->resourceSlotInfo),
-        [texture](const auto &slot) {
-          auto info = eastl::get_if<TextureSlotUsage>(&slot);
-          if (!info)
-          {
-            return false;
-          }
-          return texture == info->texture;
-        });
-      if (end(stateAccess->resourceSlotInfo) == ref)
+      if (ref->texture != tex)
       {
+        continue;
+      }
+      if (ref->image != image)
+      {
+        result.mismatchFound = true;
         break;
       }
-      index = eastl::distance(begin(stateAccess->resourceSlotInfo), ref);
-      nextIndex = index + 1;
-    }
-    // reset slots descriptor to the corresponding null descriptor to make it safe to still read from
-    // NOTE calls to ctx methods while having access to state may result in a deadlock, so we have to unlock first to send the command
-    ctx.bindlessSetResourceDescriptor(index, descriptor);
-    {
-      auto stateAccess = state.access();
-      // reset slot to empty, has to be done after we send the reset descriptor command, otherwise we risk overwriting valid
-      // descriptors on a race condition
-      stateAccess->resourceSlotInfo[index] = eastl::monostate{};
+      ++result.matchCount;
     }
   }
+
+  return result;
+}
+
+void frontend::BindlessManager::updateTextureReferencesNoLock(DeviceContext &ctx, BaseTex *tex, Image *old_image, Image *new_image,
+  uint32_t search_offset, uint32_t change_max_count, bool ignore_previous_view)
+{
+  const auto bot = state.resourceSlotInfo.beginOfStartingAt<TextureSlotUsage>(search_offset);
+  const auto eot = state.resourceSlotInfo.endOf<TextureSlotUsage>();
+  auto at = bot;
+  for (; change_max_count; --change_max_count, ++at)
+  {
+    at = eastl::find_if(at, eot, [tex, old_image](const auto &info) { return tex == info.texture && old_image == info.image; });
+    if (eot == at)
+    {
+      break;
+    }
+    const auto previousView = at->view;
+    const auto index = eastl::distance(state.resourceSlotInfo.begin(), at.asUntyped());
+
+    const auto adjustedPreviousView =
+      adjust_previous_view(previousView, old_image->getMipLevelRange().count(), new_image->getMipLevelRange().count());
+    const auto newView = ignore_previous_view ? tex->getViewInfo() : adjustedPreviousView;
+    ctx.bindlessSetResourceDescriptorNoLock(index, new_image, newView);
+
+    at->image = new_image;
+    at->view = newView;
+  }
+}
+
+void frontend::BindlessManager::updateBufferReferencesNoLock(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE old_descriptor,
+  D3D12_CPU_DESCRIPTOR_HANDLE new_descriptor)
+{
+  const auto bot = state.resourceSlotInfo.beginOf<BufferSlotUsage>();
+  const auto eot = state.resourceSlotInfo.endOf<BufferSlotUsage>();
+  auto at = bot;
+  for (;; ++at)
+  {
+    at = eastl::find_if(at, eot, [old_descriptor](const auto &info) { return old_descriptor == info.descriptor; });
+    if (eot == at)
+    {
+      break;
+    }
+    const auto index = eastl::distance(state.resourceSlotInfo.begin(), at.asUntyped());
+
+    ctx.bindlessSetResourceDescriptorNoLock(index, new_descriptor);
+
+    at->descriptor = new_descriptor;
+  }
+}
+
+bool frontend::BindlessManager::hasTextureReference(BaseTex *tex)
+{
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+
+  const auto bot = state.resourceSlotInfo.beginOf<TextureSlotUsage>();
+  const auto eot = state.resourceSlotInfo.endOf<TextureSlotUsage>();
+  return eot != eastl::find_if(bot, eot, [tex](const auto &info) { return info.texture == tex; });
+}
+
+bool frontend::BindlessManager::hasTextureImageReference(BaseTex *tex, Image *image)
+{
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+
+  const auto bot = state.resourceSlotInfo.beginOf<TextureSlotUsage>();
+  const auto eot = state.resourceSlotInfo.endOf<TextureSlotUsage>();
+  return eot != eastl::find_if(bot, eot, [tex, image](const auto &info) { return info.texture == tex && info.image == image; });
+}
+
+bool frontend::BindlessManager::hasTextureImageViewReference(BaseTex *tex, Image *image, ImageViewState view)
+{
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+
+  const auto bot = state.resourceSlotInfo.beginOf<TextureSlotUsage>();
+  const auto eot = state.resourceSlotInfo.endOf<TextureSlotUsage>();
+  return eot != eastl::find_if(bot, eot,
+                  [tex, image, view](const auto &info) { return info.texture == tex && info.image == image && info.view == view; });
+}
+
+bool frontend::BindlessManager::hasImageReference(Image *image)
+{
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+
+  const auto bot = state.resourceSlotInfo.beginOf<TextureSlotUsage>();
+  const auto eot = state.resourceSlotInfo.endOf<TextureSlotUsage>();
+  return eot != eastl::find_if(bot, eot, [image](const auto &info) { return info.image == image; });
+}
+
+bool frontend::BindlessManager::hasImageViewReference(Image *image, ImageViewState view)
+{
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+
+  const auto bot = state.resourceSlotInfo.beginOf<TextureSlotUsage>();
+  const auto eot = state.resourceSlotInfo.endOf<TextureSlotUsage>();
+  return eot != eastl::find_if(bot, eot, [image, view](const auto &info) { return info.image == image && info.view == view; });
+}
+
+bool frontend::BindlessManager::hasBufferReference(Sbuffer *buf)
+{
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+
+  const auto bot = state.resourceSlotInfo.beginOf<BufferSlotUsage>();
+  const auto eot = state.resourceSlotInfo.endOf<BufferSlotUsage>();
+  return eot != eastl::find_if(bot, eot, [buf](const auto &info) { return info.buffer == buf; });
+}
+
+bool frontend::BindlessManager::hasBufferViewReference(Sbuffer *buf, D3D12_CPU_DESCRIPTOR_HANDLE view)
+{
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+
+  const auto bot = state.resourceSlotInfo.beginOf<BufferSlotUsage>();
+  const auto eot = state.resourceSlotInfo.endOf<BufferSlotUsage>();
+  return eot != eastl::find_if(bot, eot, [buf, view](const auto &info) { return info.buffer == buf && info.descriptor == view; });
+}
+
+bool frontend::BindlessManager::hasBufferViewReference(D3D12_CPU_DESCRIPTOR_HANDLE view)
+{
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+
+  const auto bot = state.resourceSlotInfo.beginOf<BufferSlotUsage>();
+  const auto eot = state.resourceSlotInfo.endOf<BufferSlotUsage>();
+  return eot != eastl::find_if(bot, eot, [view](const auto &info) { return info.descriptor == view; });
+}
+
+void frontend::BindlessManager::resetTextureReferences(DeviceContext &ctx, BaseTex *texture, const NullResourceTable &null_table)
+{
+  const auto nullDescriptor = null_table.table[res_type_to_null_resource_table_entry(texture->restype())];
+  resetReferences<TextureSlotUsage>(ctx, nullDescriptor, [texture](const auto &info) { return texture == info.texture; });
 }
 
 void frontend::BindlessManager::updateBindlessNull(DeviceContext &ctx, uint32_t resource_type, uint32_t index, uint32_t count,
   const NullResourceTable &null_table)
 {
-  {
-    auto stateAccess = state.access();
-    eastl::fill_n(stateAccess->resourceSlotInfo.begin() + index, count, eastl::monostate{});
-  }
+  // need to take the lock here to keep consistent ordering
+  ScopedCommitLock ctxLock{ctx};
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+
+  checkBindlessRangeAllocatedNoLock(index, count);
+
+  eastl::fill_n(state.resourceSlotInfo.begin() + index, count, eastl::monostate{});
   for (uint32_t i = index; i < index + count; ++i)
   {
-    ctx.bindlessSetResourceDescriptor(i, null_table.table[res_type_to_null_resource_table_entry(resource_type)]);
+    ctx.bindlessSetResourceDescriptorNoLock(i, null_table.table[res_type_to_null_resource_table_entry(resource_type)]);
   }
 }
 
 void frontend::BindlessManager::preRecovery()
 {
-  auto stateAccess = state.access();
-  for (auto &slot : stateAccess->resourceSlotInfo)
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+
+  eastl::fill(state.resourceSlotInfo.begin(), state.resourceSlotInfo.end(), eastl::monostate{});
+}
+
+ImageViewState frontend::BindlessManager::adjust_previous_view(ImageViewState previous_view, int old_count, int new_count)
+{
+  const int newBaseMipIndex = clamp(static_cast<int>(previous_view.getMipBase().index()), 0, new_count - 1);
+  const int previousLastMipInverseIndex = old_count - (previous_view.getMipBase().index() + previous_view.getMipCount());
+  const int newLastMipIndex = clamp((new_count - 1) - previousLastMipInverseIndex, newBaseMipIndex, old_count - 1);
+  const int newMipCount = newLastMipIndex - newBaseMipIndex + 1;
+  auto adjustedView = previous_view;
+  adjustedView.setMipMapRange(MipMapIndex::make(newBaseMipIndex), newMipCount);
+  return adjustedView;
+}
+
+template <typename SlotType, typename CheckerType>
+void frontend::BindlessManager::resetReferences(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE nullDescriptor,
+  const CheckerType &checker)
+{
+  // need to take the lock here to keep consistent ordering
+  ScopedCommitLock ctxLock{ctx};
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+
+  auto at = state.resourceSlotInfo.beginOf<SlotType>();
+  const auto typedEnd = state.resourceSlotInfo.endOf<SlotType>();
+  for (;; ++at)
   {
-    slot = eastl::monostate{};
+    at = eastl::find_if(at, typedEnd, checker);
+    if (at == typedEnd)
+    {
+      break;
+    }
+    auto untypedAt = at.asUntyped();
+    auto index = eastl::distance(state.resourceSlotInfo.begin(), untypedAt);
+
+    // reset slots descriptor to the corresponding null descriptor to make it safe to still read from
+    // NOTE calls to ctx methods while having access to state may result in a deadlock, so we have to unlock first to send the command
+    ctx.bindlessSetResourceDescriptorNoLock(index, nullDescriptor);
+
+    // reset slot to empty, has to be done after we send the reset descriptor command, otherwise we risk overwriting valid
+    // descriptors on a race condition
+    *untypedAt = eastl::monostate{};
   }
 }
 
@@ -506,7 +528,7 @@ void backend::BindlessSetManager::preRecovery()
   samplerHeap.Reset();
 }
 
-void backend::BindlessSetManager::recover(ID3D12Device *device, const eastl::vector<D3D12_CPU_DESCRIPTOR_HANDLE> &bindless_samplers)
+void backend::BindlessSetManager::recover(ID3D12Device *device, const dag::Vector<D3D12_CPU_DESCRIPTOR_HANDLE> &bindless_samplers)
 {
   init(device);
   // not very optimal, but good enough for now

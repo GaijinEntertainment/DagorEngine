@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/util/daKernel.h>
 #include <util/dag_oaHashNameMap.h>
 #include <generic/dag_tab.h>
@@ -15,8 +17,9 @@ void *dakernel::get_named_pointer(const char *name)
 
 void dakernel::set_named_pointer(const char *name, void *p)
 {
+  int prev_names_count = names.nameCount();
   int id = names.addNameId(name);
-  if (id == names.nameCount() - 1)
+  if (names.nameCount() > prev_names_count)
     ptrs.push_back(NULL);
   G_ASSERT(ptrs.size() == names.nameCount());
   ptrs[id] = p;

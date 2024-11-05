@@ -1,7 +1,12 @@
-#include "device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "state_field_render_pass.h"
 #include "render_pass_resource.h"
 #include "texture.h"
+#include <drv/3d/dag_renderTarget.h>
+#include "backend.h"
+#include "execution_context.h"
+#include "device_context.h"
 
 namespace drv3d_vulkan
 {
@@ -11,6 +16,7 @@ VULKAN_TRACKED_STATE_FIELD_REF(StateFieldRenderPassResource, resource, FrontRend
 VULKAN_TRACKED_STATE_FIELD_REF(StateFieldRenderPassResource, nativeRenderPass, BackGraphicsStateStorage);
 VULKAN_TRACKED_STATE_FIELD_REF(StateFieldRenderPassSubpassIdx, subpassIndex, FrontRenderPassStateStorage);
 VULKAN_TRACKED_STATE_FIELD_REF(StateFieldRenderPassArea, area, FrontRenderPassStateStorage);
+VULKAN_TRACKED_STATE_FIELD_REF(StateFieldRenderPassIndex, index, FrontRenderPassStateStorage);
 
 template <>
 void StateFieldRenderPassTarget::applyTo(uint32_t index, FrontRenderPassStateStorage &state, ExecutionState &target) const
@@ -21,7 +27,7 @@ void StateFieldRenderPassTarget::applyTo(uint32_t index, FrontRenderPassStateSto
   // clear to null
   att.view = VulkanImageViewHandle();
 #if VK_KHR_imageless_framebuffer
-  if (get_device().hasImagelessFramebuffer())
+  if (Globals::cfg.has.imagelessFramebuffer)
     att.info = {VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO_KHR, nullptr};
 #endif
 
@@ -65,11 +71,11 @@ void StateFieldRenderPassTarget::applyTo(uint32_t index, FrontRenderPassStateSto
 
   target.getExecutionContext().verifyResident(image);
 
-  att.view = get_device().getImageView(image, ivs);
+  att.view = image->getImageView(ivs);
   att.layers = ivs.isArray ? ivs.getArrayCount() : 1;
 
 #if VK_KHR_imageless_framebuffer
-  if (get_device().hasImagelessFramebuffer())
+  if (Globals::cfg.has.imagelessFramebuffer)
   {
     att.info.usage = image->getUsage();
     att.info.flags = image->getCreateFlags();
@@ -126,13 +132,13 @@ void StateFieldRenderPassResource::dumpLog(const FrontRenderPassStateStorage &) 
 }
 
 template <>
-void StateFieldRenderPassResource::applyTo(BackGraphicsStateStorage &, ExecutionContext &target) const
+void StateFieldRenderPassResource::applyTo(BackGraphicsStateStorage &, ExecutionContext &) const
 {
   if (!ptr)
     return;
 
   ptr->checkDead();
-  ptr->useWithAttachments(&target.back.executionState.get<BackGraphicsState, BackGraphicsState>().nativeRenderPassAttachments);
+  ptr->useWithAttachments(&Backend::State::exec.get<BackGraphicsState, BackGraphicsState>().nativeRenderPassAttachments);
 }
 
 template <>
@@ -227,7 +233,8 @@ void StateFieldRenderPassTarget::set(const StateFieldRenderPassTarget &v)
 
 void StateFieldRenderPassTarget::set(const RenderPassTarget &v)
 {
-  image = v.resource.tex ? cast_to_texture_base(v.resource.tex)->getDeviceImage(true) : nullptr;
+  BaseTex *texture = cast_to_texture_base(v.resource.tex);
+  image = texture ? texture->getDeviceImage() : nullptr;
   layer = v.resource.layer;
   mipLevel = v.resource.mip_level;
   clearValue = v.clearValue;
@@ -235,7 +242,8 @@ void StateFieldRenderPassTarget::set(const RenderPassTarget &v)
 
 bool StateFieldRenderPassTarget::diff(const RenderPassTarget &v) const
 {
-  if (image != (v.resource.tex ? cast_to_texture_base(v.resource.tex)->getDeviceImage(true) : nullptr))
+  BaseTex *texture = cast_to_texture_base(v.resource.tex);
+  if (image != (v.resource.tex ? texture->getDeviceImage() : nullptr))
     return true;
   if (layer != v.resource.layer)
     return true;
@@ -250,4 +258,21 @@ bool StateFieldRenderPassTarget::diff(const RenderPassTarget &v) const
 bool StateFieldRenderPassTarget::diff(const StateFieldRenderPassTarget &v) const
 {
   return v.image != image || v.layer != layer || v.mipLevel != mipLevel;
+}
+
+template <>
+void StateFieldRenderPassIndex::applyTo(FrontRenderPassStateStorage &, ExecutionState &) const
+{}
+
+template <>
+void StateFieldRenderPassIndex::transit(FrontRenderPassStateStorage &, DeviceContext &target) const
+{
+  CmdSetRenderPassIndex cmd{data};
+  target.dispatchCommandNoLock(cmd);
+}
+
+template <>
+void StateFieldRenderPassIndex::dumpLog(const FrontRenderPassStateStorage &) const
+{
+  debug("index: %u", data);
 }

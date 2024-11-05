@@ -1,11 +1,11 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "joy_android.h"
 
 #include <util/dag_globDef.h>
-#include <humanInput/dag_hiJoystick.h>
-#include <humanInput/dag_hiDeclDInput.h>
+#include <drv/hid/dag_hiJoystick.h>
+#include <drv/hid/dag_hiDeclDInput.h>
 #include <osApiWrappers/dag_wndProcComponent.h>
 #include <string.h>
 
@@ -105,6 +105,8 @@ public:
   virtual void setStickDeadZoneScale(int stick_idx, float scale) override;
   virtual float getStickDeadZoneAbs(int stick_idx) const override;
 
+  virtual void setVendorId(int id) { vendorId = id; }
+
 protected:
   IGenJoystickClient *client;
   JoystickRawState state, nextState;
@@ -118,6 +120,7 @@ protected:
   int accel[3], gyro[3], gravity[5];
 
   int deviceId;
+  int vendorId = 0;
 
   static const char *btnName[BTN_NUM];
   static const char *axisName[AXES_NUM];

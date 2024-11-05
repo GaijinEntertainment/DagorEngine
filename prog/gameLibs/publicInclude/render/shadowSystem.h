@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -14,10 +13,12 @@
 #include <PowerOfTwoBinPack.h>
 #include <3d/dag_resPtr.h>
 #include <EASTL/vector_set.h>
+#include <EASTL/string.h>
 #include <shaders/dag_overrideStateId.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <math/integer/dag_IPoint2.h>
-#include <render/dynamicShadowRenderGPUObjects.h>
+#include <render/dynamicShadowRender.h>
+#include <render/dynamicShadowRenderExtensions.h>
 
 class ShadowSystem
 {
@@ -26,7 +27,7 @@ public:
 
   void setOverrideState(const shaders::OverrideState &baseState);
   void close();
-  ShadowSystem();
+  ShadowSystem(const char *name_suffix = "");
   ~ShadowSystem() { close(); }
   static const int MAX_PRIORITY = 15; // 15 times more important than anything else
   // priority - the higher, the better. keep in mind, that with very high value you can steal all updates from other volumes
@@ -44,7 +45,7 @@ public:
   // is better, than none. however, currently we store the final worldToTexture matrix, and so, shadow volume has to always be "bigger"
   // than light (enclose the light). may be it makes sense to separate atlas position from shadow projection matrix, but will require
   // additional constant in constant buffer (atlas position and scale)
-  void setShadowVolume(uint32_t id, mat44f_cref &invView, float zn, float zf, float wk, bbox3f_cref box);
+  void setShadowVolume(uint32_t id, mat44f_cref invView, float zn, float zf, float wk, bbox3f_cref box);
   void setOctahedralShadowVolume(uint32_t id, vec3f pos, float zn, float zf, bbox3f_cref box);
   void setShadowVolumeContentChanged(uint32_t id, bool invalidate); // all content changed, but volume itself has not
   void setShadowVolumeDynamicContentChanged(uint32_t id);           // dynamic content changed, everything else is same
@@ -59,26 +60,20 @@ public:
   // useShadowOnFrame should be called for any light which should be called
   void useShadowOnFrame(int id); // hint that we need shadow now,in this frame
 
-  // will dynamically change shadow resolution, etc.
-  // prepares volumesToRender list
-
   // should be called before endPrepareShadows, but after all visible/used casters are added
   void setDynamicObjectsContent(const bbox3f *boxes, int count); // dynamic content within those boxes
   void invalidateStaticObjects(bbox3f_cref box);                 // invalidate static content within box
 
-  void endPrepareShadows(int max_shadow_volumes_to_update, float max_area_part_to_update, const Point3 &viewPos, float hk,
-    mat44f_cref &viewproj);
-
-
-  // return list prepared in endPrepareShadows.
-  // now we can update all shadows
-  dag::ConstSpan<uint16_t> getShadowVolumesToRender() const { return volumesToRender; }
+  // will dynamically change shadow resolution, etc.
+  // prepares volumesToRender list
+  void endPrepareShadows(dynamic_shadow_render::VolumesVector &volumesToRender, int max_shadow_volumes_to_update,
+    float max_area_part_to_update, const Point3 &viewPos, float hk, mat44f_cref viewproj);
 
   const Frustum &getVolumeFrustum(uint16_t id) const { return volumesFrustum[id]; }
   const mat44f &getVolumeTexMatrix(uint16_t id) const { return volumesTexTM[id]; }
   const Point4 &getOctahedralVolumeTexData(uint16_t id) const { return volumesOctahedralData[id]; }
   const bbox3f &getVolumeBox(uint16_t id) const { return volumesBox[id]; }
-  void startRenderVolumes();
+  void startRenderVolumes(const dag::ConstSpan<uint16_t> &volumesToRender);
 
   enum RenderFlags
   {
@@ -87,6 +82,10 @@ public:
     RENDER_DYNAMIC = 2,
     RENDER_ALL = RENDER_DYNAMIC | RENDER_STATIC
   };
+
+  void getVolumeUpdateData(uint32_t id, dynamic_shadow_render::FrameUpdate &result);
+  RenderFlags getVolumeRenderFlags(uint32_t id);
+
   // returns the number of sub-views required
   uint32_t startRenderVolume(uint32_t id, mat44f &proj, RenderFlags &render_flags);
   void startRenderVolumeView(uint32_t id, uint32_t view_id, mat44f &viewItm, mat44f &view, RenderFlags render_flags,
@@ -99,7 +98,7 @@ public:
   void startRenderDynamic(uint32_t id);
   void endRenderVolumeView(uint32_t id, uint32_t view_id);
   void endRenderVolume(uint32_t id);
-  void endRenderVolumes(); // clear list of volumesToRender
+  void endRenderVolumes();
 
   void pruneFreeVolumes();
   void validateConsistency(); // in dev build only
@@ -130,8 +129,8 @@ protected:
   // dag::ConstSpan<uint16_t> getShadowVolumesToUpdate() const {return volumesToUpdate;}
 
   rbp::PowerOfTwoBinPack atlas;
-  UniqueTexHolder dynamic_light_shadows;
-  UniqueTexHolder octahedral_temp_shadow;
+  UniqueTex dynamic_light_shadows;
+  UniqueTex octahedral_temp_shadow;
   PostFxRenderer octahedralPacker;
   // temp Copy is used for static scene shadow caching. When we have static scene
   // should not be used on PS4/Vulkan, where we can alias
@@ -169,10 +168,10 @@ protected:
     uint32_t lastFrameUpdated = 1;
     DynamicShadowRenderGPUObjects renderGPUObjects = DynamicShadowRenderGPUObjects::NO;
     uint32_t getNumViews() const;
-    inline void invalidate();
-    inline void buildProj(mat44f &proj);
-    inline void buildView(mat44f &view, mat44f &invVIew, uint32_t view_id);
-    inline void buildViewProj(mat44f &viewproj, uint32_t view_id);
+    void invalidate();
+    void buildProj(mat44f &proj) const;
+    void buildView(mat44f &view, mat44f &invVIew, uint32_t view_id) const;
+    void buildViewProj(mat44f &viewproj, uint32_t view_id) const;
     bool isOctahedral() const { return octahedral; }
 
     // hasOnlyStaticCasters() should be in practical ways behave equal as isDynamic() (except no dynamic data should be rendered to)
@@ -216,7 +215,6 @@ protected:
   // SoA-
   Tab<uint16_t> freeVolumes;
   eastl::vector_set<uint16_t> volumesToUpdate;
-  Tab<uint16_t> volumesToRender;
   bbox3f activeShadowVolume;
 
   uint16_t atlasWidth = 0;
@@ -231,6 +229,14 @@ protected:
   } currentState = UPDATE_ENDED;
   float notEnoughSpaceMul = 1.0f;
   uint32_t lastFrameQualityUpgraded = 1, lastFrameQualityDegraded = 1;
+
+  eastl::string nameSuffix;
+
+  // append nameSuffix to this name to get unique d3d names
+  eastl::string getResName(const char *name) const
+  {
+    return eastl::string(eastl::string::CtorSprintf{}, "%s%s", name, nameSuffix.c_str());
+  }
 
   int appendVolume();
   void resizeVolumes(int cnt);
@@ -263,4 +269,6 @@ protected:
   uint32_t lastFrameStaticLightsOptimized = 0;
   bool degradeQuality();
   bool upgradeQuality();
+
+  d3d::SamplerHandle shadowSampler;
 };

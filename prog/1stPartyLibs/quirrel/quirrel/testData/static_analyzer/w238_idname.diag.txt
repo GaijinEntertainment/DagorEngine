@@ -7,4 +7,4 @@ CALLSTACK
 LOCALS
 [state] TABLE={}
 [vargv] ARRAY=[]
-[this] TABLE={}
+[this] NULL

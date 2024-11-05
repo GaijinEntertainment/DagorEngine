@@ -1,4 +1,9 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_lock.h>
 #include <util/dag_stlqsort.h>
 #include "shadowDepthScroller.h"
 #include "staticShadowsViewMatrices.h"
@@ -20,6 +25,12 @@ void ToroidalStaticShadows::invalidateBox(const BBox3 &box)
 {
   for (auto &s : cascades)
     s.invalidateBox(box);
+}
+
+void ToroidalStaticShadows::invalidateBoxes(const BBox3 *box, uint32_t cnt)
+{
+  for (auto &s : cascades)
+    s.invalidateBoxes(box, cnt);
 }
 
 void ToroidalStaticShadows::enableTransitionCascade(int cascade_id, bool en)
@@ -86,10 +97,26 @@ ToroidalStaticShadows::ToroidalStaticShadows(int tsz, int cnt, float dist, float
   TexPtr tex = is_array ? dag::create_array_tex(texSize, texSize, cnt, fmt, 1, "static_shadow_tex_arr")
                         : dag::create_tex(nullptr, texSize, texSize, fmt, 1, "static_shadow_tex2d");
   staticShadowTex = UniqueTexHolder(eastl::move(tex), "static_shadow_tex");
-  staticShadowTex->texfilter(TEXFILTER_COMPARE);
+  restoreShadowSampler();
+  staticShadowTex->disableSampler();
   clearTexture();
   static_shadows_cascades = get_shader_variable_id("static_shadows_cascades", true);
+  // @NOTE: this check is enough as long as we never resize cascades anywhere but here
+  if (ShaderGlobal::is_var_assumed(static_shadows_cascades))
+  {
+    int assumedVal = ShaderGlobal::get_interval_assumed_value(static_shadows_cascades);
+    int desiredVal = cascadesCount();
+    if (assumedVal != desiredVal)
+      logerr("static_shadows_cascades was assumed to =%d, but using %d cascades", assumedVal, desiredVal);
+  }
   setSunDir(Point3(0, 1, 0), 2, 2); // to force non-zero matrices in cascades
+}
+
+void ToroidalStaticShadows::restoreShadowSampler()
+{
+  d3d::SamplerInfo smpInfo;
+  smpInfo.filter_mode = d3d::FilterMode::Compare;
+  ShaderGlobal::set_sampler(get_shader_variable_id("static_shadow_tex_samplerstate", true), d3d::request_sampler(smpInfo));
 }
 
 ToroidalStaticShadowCascade::BeforeRenderReturned ToroidalStaticShadows::updateOriginAndRender(const Point3 &origin,

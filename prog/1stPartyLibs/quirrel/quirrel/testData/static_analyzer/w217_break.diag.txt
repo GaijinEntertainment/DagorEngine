@@ -12,7 +12,7 @@ testData/static_analyzer/w217_break.nut:8:4
 
     break;
     z--;
-    ^---
+    ^--
   }
 
 

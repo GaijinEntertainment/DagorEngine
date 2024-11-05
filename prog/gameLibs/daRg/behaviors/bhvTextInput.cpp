@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "bhvTextInput.h"
 
 #include <daRg/dag_element.h>
@@ -5,10 +7,10 @@
 #include <daRg/dag_properties.h>
 #include <daRg/dag_stringKeys.h>
 #include <daRg/dag_scriptHandlers.h>
-#include <humanInput/dag_hiCreate.h> // for _TARGET_HAS_IME
-#include <humanInput/dag_hiKeybIds.h>
-#include <humanInput/dag_hiKeyboard.h>
-#include <humanInput/dag_hiXInputMappings.h>
+#include <drv/hid/dag_hiCreate.h> // for _TARGET_HAS_IME
+#include <drv/hid/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiKeyboard.h>
+#include <drv/hid/dag_hiXInputMappings.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <osApiWrappers/dag_clipboard.h>
 #include <osApiWrappers/dag_unicode.h>
@@ -39,6 +41,7 @@ static int utf_to_wchar(const char *utf_str, int utf_len, Tab<wchar_t> &wtext)
   wtext.resize(utf_len + 2);
   int wlen = utf8_to_wcs_ex(utf_str, utf_len, wtext.data(), wtext.size() - 1);
   wtext.resize(wlen + 1);
+  wtext[wlen] = 0;
   return wlen;
 }
 
@@ -349,25 +352,16 @@ void BhvTextInput::scroll_to_cursor(Element *elem)
   }
 }
 
-
 void BhvTextInput::position_cursor_on_click(Element *elem, const Point2 &click_pos)
 {
   Tab<wchar_t> wtext(framemem_ptr());
   get_displayed_text_u(elem, wtext);
 
-  GuiVertexTransform gvtm, invtm;
-  elem->calcFullTransform(gvtm);
-  GuiVertexTransform::inverseViewTm(invtm.vtm, gvtm.vtm);
-
-  float xt = invtm.transformComponent(click_pos.x * GUI_POS_SCALE, click_pos.y * GUI_POS_SCALE, 0);
-  float relClickPos = xt - elem->screenCoord.screenPos.x + elem->screenCoord.scrollOffs.x;
-  int newPos = text_width_to_char_idx_u(elem, relClickPos, wtext);
+  Point2 localCoord = elem->screenPosToElemLocal(click_pos);
+  int newPos = text_width_to_char_idx_u(elem, localCoord.x, wtext);
 
   elem->props.storage.SetValue(elem->csk->cursorPos, newPos);
-
-#if !_TARGET_PC
   open_ime(elem);
-#endif
 }
 
 int BhvTextInput::get_displayed_text_u(Element *elem, Tab<wchar_t> &wtext)
@@ -476,7 +470,7 @@ void BhvTextInput::onDetach(Element *elem, DetachMode) { close_ime(elem); }
 
 #if _TARGET_HAS_IME
 
-void BhvTextInput::on_ime_finish(void *ud, const char *str, int status)
+void BhvTextInput::on_ime_finish(void *ud, const char *str, int cursor, int status)
 {
   if (status < 0)
     return;
@@ -517,7 +511,9 @@ void BhvTextInput::on_ime_finish(void *ud, const char *str, int status)
     }
 
     apply_new_value(elem, str);
-    elem->props.storage.SetValue(elem->csk->cursorPos, elem->props.text.length());
+
+    elem->props.storage.SetValue(elem->csk->cursorPos, cursor < 0 ? elem->props.text.length() : cursor);
+
     close_ime(elem);
   }
 
@@ -531,7 +527,7 @@ void BhvTextInput::on_ime_finish(void *ud, const char *str, int status)
 
 #else
 
-void BhvTextInput::on_ime_finish(void *, const char *, int) {}
+void BhvTextInput::on_ime_finish(void *, const char *, int, int) {}
 
 #endif
 
@@ -564,6 +560,12 @@ void BhvTextInput::open_ime(Element *elem)
       params.setStr("type", inputType.GetVar<const SQChar *>().value);
     else if (inputType.GetType() != OT_NULL)
       darg_assert_trace_var("inputType must be string", elem->props.scriptDesc, elem->csk->inputType);
+
+    Tab<wchar_t> wtext(framemem_ptr());
+    int wlen = get_displayed_text_u(elem, wtext);
+    int cursorPos = elem->props.storage.RawGetSlotValue(elem->csk->cursorPos, wlen);
+    cursorPos = clamp(cursorPos, 0, wlen);
+    params.setInt("optCursorPos", cursorPos);
 
     HumanInput::showScreenKeyboard_IME(params, on_ime_finish, elem);
   }

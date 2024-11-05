@@ -70,9 +70,9 @@ let sampleJsonObjPostButton = mkhttpButton("JSON as obj POST",{
 })
 
 let blobStream = blob()
-blobStream.writen('A', 'c')
-blobStream.writen('B', 'c')
-blobStream.writen('C', 'c')
+blobStream.writen('A', 'b')
+blobStream.writen('B', 'b')
+blobStream.writen('C', 'b')
 
 
 let sampleBlobPostButton = mkhttpButton("Blob POST",{

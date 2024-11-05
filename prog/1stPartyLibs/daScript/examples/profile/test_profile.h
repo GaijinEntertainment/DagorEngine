@@ -20,6 +20,15 @@ struct Object {
 typedef das::vector<Object> ObjectArray;
 
 namespace das {
+    template <>
+    struct typeName<ObjectArray> {
+        constexpr static const char * name() {
+            return "ObjectArray";
+        }
+    };
+}
+
+namespace das {
     template<>
     struct SimPolicy<Object>
     {
@@ -27,6 +36,9 @@ namespace das {
         static __forceinline bool Equ     ( vec4f a, vec4f b, Context &, LineInfo * ) { return to(a) == to(b); }
         static __forceinline bool NotEqu  ( vec4f a, vec4f b, Context &, LineInfo * ) { return to(a) != to(b); }
     };
+
+    __forceinline bool objEqu ( const Object & a, const Object & b ) { return a == b; }
+    __forceinline bool objNeq ( const Object & a, const Object & b ) { return a != b; }
 }
 
 int AddOne(int a);
@@ -44,6 +56,7 @@ int testPrimes(int n);
 void testTryCatch(das::Context * context, das::LineInfoArg * at);
 int testTree();
 uint32_t testMaxFrom1s(uint32_t x);
+void testTableSort ( das::TArray<int32_t> & tab );
 
 void testManagedInt(const das::TBlock<void, const das::vector<int32_t>> & blk, das::Context * context, das::LineInfoArg * at);
 

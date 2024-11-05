@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -43,8 +42,7 @@ public:
   RenderObject() = default;
   virtual ~RenderObject() = default;
 
-  virtual void renderCustom(StdGuiRender::GuiContext &ctx, const Element *, const ElemRenderData *,
-    const RenderState &render_state) = 0;
+  virtual void render(StdGuiRender::GuiContext &ctx, const Element *, const ElemRenderData *, const RenderState &render_state) = 0;
   virtual void postRender(StdGuiRender::GuiContext &, const Element *) {}
 };
 
@@ -72,8 +70,11 @@ public:
 class RobjParamsColorOnly : public RendObjParams
 {
 public:
-  E3DCOLOR color = E3DCOLOR(255, 255, 255, 255);
+  static const E3DCOLOR defColor;
+  E3DCOLOR color = defColor;
   float brightness = 1.0f;
+
+  bool load(const Element *elem, E3DCOLOR def_color);
 
   virtual bool load(const Element *elem) override;
   virtual bool getAnimColor(AnimProp prop, E3DCOLOR **ptr) override;

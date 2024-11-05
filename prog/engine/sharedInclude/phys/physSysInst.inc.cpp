@@ -4,6 +4,8 @@
 #include <scene/dag_physMat.h>
 #include <osApiWrappers/dag_localConv.h>
 #include <debug/dag_debug.h>
+#include <phys/dag_physDecl.h>
+#include <vecmath/dag_vecMath.h>
 
 
 PhysSystemInstance::PhysSystemInstance(PhysicsResource *res, PhysWorld *world, const TMatrix *tm, void *userData, uint16_t fgroup,
@@ -133,6 +135,92 @@ int PhysSystemInstance::findBodyIdByName(const char *name) const
       return i;
   return -1;
 }
+
+void PhysSystemInstance::setJointsMotorSettings(float twistFrequeny, float twistDamping, float swingFrequeny, float swingDamping)
+{
+  for (int i = 0; i < joints.size(); ++i)
+  {
+    PhysRagdollBallJoint *joint = PhysRagdollBallJoint::cast(joints[i]);
+    if (joint == nullptr || joints[i]->jointType != PhysJoint::PJ_CONE_TWIST)
+      continue;
+
+    joint->setTwistSwingMotorSettings(twistFrequeny, twistDamping, swingFrequeny, swingDamping);
+  }
+}
+
+void PhysSystemInstance::driveBodiesToAnimcharPose(const dag::Span<mat44f *> &skeletonWtms)
+{
+  auto &res_joints = resource->rdBallJoints;
+  for (int i = 0; i < joints.size(); ++i)
+  {
+    PhysRagdollBallJoint *joint = PhysRagdollBallJoint::cast(joints[i]);
+
+    // Only PJ_CONE_TWIST supports driving to pose for now
+    // Luckily this can be enough for ragdolls
+    if (joint == nullptr || joints[i]->jointType != PhysJoint::PJ_CONE_TWIST)
+      continue;
+
+    const int &b1idx = res_joints[i].body1;
+    const int &b2idx = res_joints[i].body2;
+
+    if (b1idx >= skeletonWtms.size() || b2idx >= skeletonWtms.size())
+    {
+      LOGERR_ONCE(
+        "driveBodiesToAnimcharPose: Joint body index out of range. Joint: %d, Body1 idx: %d, Body2 idx: %d, skeletonWtms.size: %d", i,
+        b1idx, b2idx, skeletonWtms.size());
+      continue;
+    }
+
+    // Animations are done on the skeleton and we want to drive physics bodies attached to the skeleton to the pose from skeletonWtms.
+    // Joint's 'setTargetOrientation' function expects the orientation of body2 in body1's space.
+    // physSystem resource has a tmHelper for each body which is defined like this:
+    // skeletonWtm = bodyWtm * helperTm
+    //
+    // So the naive solution looks like this:
+    // bodyWTMFromSkeleton1 = skeletonWtm1 * inverse(helperTm1)
+    // bodyWTMFromSkeleton2 = skeletonWtm2 * inverse(helperTm2)
+    // orientation = inverse(bodyWTMFromSkeleton1) * bodyWTMFromSkeleton2
+    //
+    // But this has one additional maxtrix inverse which we can simplify out
+    // orientation = inverse(skeletonWtm1 * inverse(helperTm1)) * bodyWTMFromSkeleton2
+    // orientation = inverse(inverse(helperTm1)) * inverse(skeletonWtm1) * bodyWTMFromSkeleton2
+    // orientation = helperTm1 * inverse(skeletonWtm1) * bodyWTMFromSkeleton2
+    // orientation = helperTm1 * inverse(skeletonWtm1) * skeletonWtm2 * inverse(helperTm2)
+
+    const mat44f *s1 = skeletonWtms[b1idx];
+    const mat44f *s2 = skeletonWtms[b2idx];
+
+    // We might have some bodies in the resource which are missing a skeleton node.
+    // These nodes have a nullptr in the skeletonWtms array, skip them.
+    if (!s1 || !s2)
+      continue;
+
+    // One body might guide multiple skeleton nodes, i.e. hand body has all finger nodes and the hand itself.
+    // But the first helper is always for the node we are attached to, hence the 0 index.
+    TMatrix &helper1Tm = resource->bodies[res_joints[i].body1].tmHelpers[0].tm;
+    TMatrix &helper2Tm = resource->bodies[res_joints[i].body2].tmHelpers[0].tm;
+
+    mat44f res, h1, h2;
+    v_mat44_make_from_43cu(h1, helper1Tm.array);
+    v_mat44_make_from_43cu(h2, helper2Tm.array);
+
+    v_mat44_inverse43(res, *s1);
+    v_mat44_inverse43(h2, h2);
+
+    // helperTm1 * inverse(skeletonWtm1)
+    // res contains inverse(skeletonWtm1)
+    v_mat44_mul43(res, h1, res);
+    // * skeletonWtm2
+    v_mat44_mul43(res, res, *s2);
+    // * inverse(helperTm2)
+    v_mat44_mul43(res, res, h2);
+
+    TMatrix tm;
+    v_mat_43cu_from_mat44(tm.array, res);
+    joint->setTargetOrientation(tm);
+  }
+}
+
 
 bool PhysSystemInstance::removeJoint(const char *body1, const char *body2)
 {

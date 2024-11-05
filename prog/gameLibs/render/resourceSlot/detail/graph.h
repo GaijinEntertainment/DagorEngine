@@ -1,7 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <detail/autoGrowVector.h>
-#include <detail/ids.h>
+#include <render/resourceSlot/detail/ids.h>
 
 namespace resource_slot::detail
 {

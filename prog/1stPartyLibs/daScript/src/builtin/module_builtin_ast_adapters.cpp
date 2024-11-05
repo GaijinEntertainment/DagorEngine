@@ -721,6 +721,17 @@ namespace das {
             }
         }
         // CALL
+        virtual bool canVisitLooksLikeCallArg ( ExprLooksLikeCall * call, Expression * arg, bool last ) override {
+            if ( auto fnCanVisit = get_canVisitLooksLikeCallArgument(classPtr) ) {
+                bool result = true;
+                runMacroFunction(context, "canVisitLooksLikeCallArg", [&]() {
+                    result = invoke_canVisitLooksLikeCallArgument(context,fnCanVisit,classPtr,call,arg,last);
+                });
+                return result;
+            } else {
+                return true;
+            }
+        }
         virtual void preVisitLooksLikeCallArg ( ExprLooksLikeCall * call, Expression * arg, bool last ) override {
             if ( auto fnPreVisit = get_preVisitExprLooksLikeCallArgument(classPtr) ) {
                 runMacroFunction(context, "preVisitLooksLikeCallArg", [&]() {
@@ -891,7 +902,7 @@ namespace das {
                 });
             }
         }
-        virtual void preVisitForBody ( ExprFor * expr, Expression * that ) override {
+        virtual void preVisitForBody ( ExprFor * expr, Expression * /*that*/ ) override {
             if ( auto fnPreVisit = get_preVisitExprForBody(classPtr) ) {
                 runMacroFunction(context, "preVisitForBody", [&]() {
                     invoke_preVisitExprForBody(context,fnPreVisit,classPtr,expr); // TODO: pass that
@@ -968,30 +979,24 @@ namespace das {
                 return decl;
             }
         }
-        /*
-        TODO: implement
         virtual void preVisitMakeStructureBlock ( ExprMakeStruct * expr, Expression * blk ) override {
-            if ( auto fnPreVisit = get_preVisitExprMakeStructBlock(classPtr) ) {
+            if ( auto fnPreVisit = get_preVisitMakeStructureBlock(classPtr) ) {
                 runMacroFunction(context, "preVisitMakeStructureBlock", [&]() {
-                    invoke_preVisitExprMakeStructBlock(context,fnPreVisit,classPtr,expr,blk);
+                    invoke_preVisitMakeStructureBlock(context,fnPreVisit,classPtr,expr,blk);
                 });
             }
         }
-        */
-        /*
-        // TODO: implement
         virtual ExpressionPtr visitMakeStructureBlock ( ExprMakeStruct * expr, Expression * blk ) override {
-            if ( auto fnVisit = get_visitExprMakeStructBlock(classPtr) ) {
+            if ( auto fnVisit = get_visitMakeStructureBlock(classPtr) ) {
                 ExpressionPtr result;
                 runMacroFunction(context, "visitMakeStructureBlock", [&]() {
-                    result = invoke_visitExprMakeStructBlock(context,fnVisit,classPtr,expr,blk);
+                    result = invoke_visitMakeStructureBlock(context,fnVisit,classPtr,expr,blk);
                 });
                 return return_smart(result,blk);
             } else {
                 return blk;
             }
         }
-        */
         // MAKE ARRAY
         virtual void preVisitMakeArrayIndex ( ExprMakeArray * expr, int index, Expression * init, bool lastIndex ) override {
             if ( auto fnPreVisit = get_preVisitExprMakeArrayIndex(classPtr) ) {
@@ -1634,9 +1639,36 @@ namespace das {
         Context *   context;
     };
 
+    struct TypeMacroAdapter : TypeMacro, AstTypeMacro_Adapter {
+        TypeMacroAdapter ( const string & n, char * pClass, const StructInfo * info, Context * ctx )
+            : TypeMacro(n), AstTypeMacro_Adapter(info), classPtr(pClass), context(ctx) {
+        }
+        virtual TypeDeclPtr visit ( Program * prog, Module * mod, const TypeDeclPtr & typ, const TypeDeclPtr & passT ) override {
+            if ( auto fnVisit = get_visit(classPtr) ) {
+                TypeDeclPtr result;
+                runMacroFunction(context, "visit", [&]() {
+                    result = invoke_visit(context,fnVisit,classPtr,prog,mod,typ,passT);
+                });
+                return result;
+            } else {
+                return nullptr;
+            }
+        }
+    protected:
+        void *      classPtr;
+        Context *   context;
+    };
+
     struct AstCaptureMacroAnnotation : ManagedStructureAnnotation<CaptureMacro,false,true> {
         AstCaptureMacroAnnotation(ModuleLibrary & ml)
             : ManagedStructureAnnotation ("CaptureMacro", ml) {
+            addField<DAS_BIND_MANAGED_FIELD(name)>("name");
+        }
+    };
+
+    struct AstTypeMacroAnnotation : ManagedStructureAnnotation<TypeMacro,false,true> {
+        AstTypeMacroAnnotation(ModuleLibrary & ml)
+            : ManagedStructureAnnotation ("TypeMacro", ml) {
             addField<DAS_BIND_MANAGED_FIELD(name)>("name");
         }
     };
@@ -1682,6 +1714,18 @@ namespace das {
     struct ReaderMacroAdapter : ReaderMacro, AstReaderMacro_Adapter {
         ReaderMacroAdapter ( const string & n, char * pClass, const StructInfo * info, Context * ctx )
             : ReaderMacro(n), AstReaderMacro_Adapter(info), classPtr(pClass), context(ctx) {
+        }
+        virtual char * suffix ( Program * prog, Module * mod, ExprReader * expr, int & nextLine, FileInfo * & finfo, const LineInfo & info ) override {
+            finfo = nullptr;
+            if ( auto fnSuffix = get_suffix(classPtr) ) {
+                char * result = nullptr;
+                runMacroFunction(context, "suffix", [&]() {
+                    result = invoke_suffix(context,fnSuffix,classPtr,prog,mod,expr,info,nextLine,finfo);
+                });
+                return result;
+            } else {
+                return nullptr;
+            }
         }
         virtual bool accept ( Program * prog, Module * mod, ExprReader * expr, int Ch, const LineInfo & info ) override {
             if ( auto fnAccept = get_accept(classPtr) ) {
@@ -1853,10 +1897,90 @@ namespace das {
                 });
             }
         }
+        virtual void beforeTuple ( const LineInfo & info ) override {
+            if ( auto fnTuple = get_beforeTuple(classPtr) ) {
+                runMacroFunction(context, "beforeTuple", [&]() {
+                    invoke_beforeTuple(context,fnTuple,classPtr,
+                        daScriptEnvironment::bound->g_Program,
+                        daScriptEnvironment::bound->g_Program->thisModule.get(),
+                            info);
+                });
+            }
+        }
+        virtual void beforeTupleEntries ( const LineInfo & info ) override {
+            if ( auto fnTuple = get_beforeTupleEntries(classPtr) ) {
+                runMacroFunction(context, "beforeTupleEntries", [&]() {
+                    invoke_beforeTupleEntries(context,fnTuple,classPtr,
+                        daScriptEnvironment::bound->g_Program,
+                        daScriptEnvironment::bound->g_Program->thisModule.get(),
+                            info);
+                });
+            }
+        }
+        virtual void afterTupleEntry ( const char * name, const LineInfo & info ) override {
+            if ( auto fnTuple = get_afterTupleEntry(classPtr) ) {
+                runMacroFunction(context, "afterTupleEntry", [&]() {
+                    invoke_afterTupleEntry(context,fnTuple,classPtr,
+                        (char *) name, daScriptEnvironment::bound->g_Program,
+                        daScriptEnvironment::bound->g_Program->thisModule.get(),
+                            info);
+                });
+            }
+        }
+        virtual void afterTupleEntries ( const LineInfo & info ) override {
+            if ( auto fnTuple = get_afterTupleEntries(classPtr) ) {
+                runMacroFunction(context, "afterTupleEntries", [&]() {
+                    invoke_afterTupleEntries(context,fnTuple,classPtr,
+                        daScriptEnvironment::bound->g_Program,
+                        daScriptEnvironment::bound->g_Program->thisModule.get(),
+                            info);
+                });
+            }
+        }
+        virtual void afterTuple ( const char * name, const LineInfo & info ) override {
+            if ( auto fnTuple = get_afterTuple(classPtr) ) {
+                runMacroFunction(context, "afterTuple", [&]() {
+                    invoke_afterTuple(context,fnTuple,classPtr,
+                        (char *) name, daScriptEnvironment::bound->g_Program,
+                        daScriptEnvironment::bound->g_Program->thisModule.get(),
+                            info);
+                });
+            }
+        }
         virtual void beforeVariant ( const LineInfo & info ) override {
             if ( auto fnVariant = get_beforeVariant(classPtr) ) {
                 runMacroFunction(context, "beforeVariant", [&]() {
                     invoke_beforeVariant(context,fnVariant,classPtr,
+                        daScriptEnvironment::bound->g_Program,
+                        daScriptEnvironment::bound->g_Program->thisModule.get(),
+                            info);
+                });
+            }
+        }
+        virtual void beforeVariantEntries ( const LineInfo & info ) override {
+            if ( auto fnVariant = get_beforeVariantEntries(classPtr) ) {
+                runMacroFunction(context, "beforeVariantEntries", [&]() {
+                    invoke_beforeVariantEntries(context,fnVariant,classPtr,
+                        daScriptEnvironment::bound->g_Program,
+                        daScriptEnvironment::bound->g_Program->thisModule.get(),
+                            info);
+                });
+            }
+        }
+        virtual void afterVariantEntry ( const char * name, const LineInfo & info ) override {
+            if ( auto fnVariant = get_afterVariantEntry(classPtr) ) {
+                runMacroFunction(context, "afterVariantEntry", [&]() {
+                    invoke_afterVariantEntry(context,fnVariant,classPtr,
+                        (char *) name, daScriptEnvironment::bound->g_Program,
+                        daScriptEnvironment::bound->g_Program->thisModule.get(),
+                            info);
+                });
+            }
+        }
+        virtual void afterVariantEntries ( const LineInfo & info ) override {
+            if ( auto fnVariant = get_afterVariantEntries(classPtr) ) {
+                runMacroFunction(context, "afterVariantEntries", [&]() {
+                    invoke_afterVariantEntries(context,fnVariant,classPtr,
                         daScriptEnvironment::bound->g_Program,
                         daScriptEnvironment::bound->g_Program->thisModule.get(),
                             info);
@@ -1873,10 +1997,90 @@ namespace das {
                 });
             }
         }
+        virtual void beforeBitfield ( const LineInfo & info ) override {
+            if ( auto fnBitfield = get_beforeBitfield(classPtr) ) {
+                runMacroFunction(context, "beforeBitfield", [&]() {
+                    invoke_beforeBitfield(context,fnBitfield,classPtr,
+                        daScriptEnvironment::bound->g_Program,
+                        daScriptEnvironment::bound->g_Program->thisModule.get(),
+                            info);
+                });
+            }
+        }
+        virtual void beforeBitfieldEntries ( const LineInfo & info ) override {
+            if ( auto fnBitfield = get_beforeBitfieldEntries(classPtr) ) {
+                runMacroFunction(context, "beforeBitfieldEntries", [&]() {
+                    invoke_beforeBitfieldEntries(context,fnBitfield,classPtr,
+                        daScriptEnvironment::bound->g_Program,
+                        daScriptEnvironment::bound->g_Program->thisModule.get(),
+                            info);
+                });
+            }
+        }
+        virtual void afterBitfieldEntry ( const char * name, const LineInfo & info ) override {
+            if ( auto fnBitfield = get_afterBitfieldEntry(classPtr) ) {
+                runMacroFunction(context, "afterBitfieldEntry", [&]() {
+                    invoke_afterBitfieldEntry(context,fnBitfield,classPtr,
+                        (char *) name, daScriptEnvironment::bound->g_Program,
+                        daScriptEnvironment::bound->g_Program->thisModule.get(),
+                            info);
+                });
+            }
+        }
+        virtual void afterBitfieldEntries ( const LineInfo & info ) override {
+            if ( auto fnBitfield = get_afterBitfieldEntries(classPtr) ) {
+                runMacroFunction(context, "afterBitfieldEntries", [&]() {
+                    invoke_afterBitfieldEntries(context,fnBitfield,classPtr,
+                        daScriptEnvironment::bound->g_Program,
+                        daScriptEnvironment::bound->g_Program->thisModule.get(),
+                            info);
+                });
+            }
+        }
+        virtual void afterBitfield ( const char * name, const LineInfo & info ) override {
+            if ( auto fnBitfield = get_afterBitfield(classPtr) ) {
+                runMacroFunction(context, "afterBitfield", [&]() {
+                    invoke_afterBitfield(context,fnBitfield,classPtr,
+                        (char *) name, daScriptEnvironment::bound->g_Program,
+                        daScriptEnvironment::bound->g_Program->thisModule.get(),
+                            info);
+                });
+            }
+        }
         virtual void beforeEnumeration ( const LineInfo & info ) override {
             if ( auto fnEnum = get_beforeEnumeration(classPtr) ) {
                 runMacroFunction(context, "beforeEnumeration", [&]() {
                     invoke_beforeEnumeration(context,fnEnum,classPtr,
+                        daScriptEnvironment::bound->g_Program,
+                        daScriptEnvironment::bound->g_Program->thisModule.get(),
+                            info);
+                });
+            }
+        }
+        virtual void beforeEnumerationEntries ( const LineInfo & info ) override {
+            if ( auto fnEnum = get_beforeEnumerationEntries(classPtr) ) {
+                runMacroFunction(context, "beforeEnumerationEntries", [&]() {
+                    invoke_beforeEnumerationEntries(context,fnEnum,classPtr,
+                        daScriptEnvironment::bound->g_Program,
+                        daScriptEnvironment::bound->g_Program->thisModule.get(),
+                            info);
+                });
+            }
+        }
+        virtual void afterEnumerationEntry ( const char * name, const LineInfo & info ) override {
+            if ( auto fnEnum = get_afterEnumerationEntry(classPtr) ) {
+                runMacroFunction(context, "afterEnumerationEntry", [&]() {
+                    invoke_afterEnumerationEntry(context,fnEnum,classPtr,
+                        (char *) name, daScriptEnvironment::bound->g_Program,
+                        daScriptEnvironment::bound->g_Program->thisModule.get(),
+                            info);
+                });
+            }
+        }
+        virtual void afterEnumerationEntries ( const LineInfo & info ) override {
+            if ( auto fnEnum = get_afterEnumerationEntries(classPtr) ) {
+                runMacroFunction(context, "afterEnumerationEntries", [&]() {
+                    invoke_afterEnumerationEntries(context,fnEnum,classPtr,
                         daScriptEnvironment::bound->g_Program,
                         daScriptEnvironment::bound->g_Program->thisModule.get(),
                             info);
@@ -2095,6 +2299,19 @@ namespace das {
     void addModuleCaptureMacro ( Module * module, CaptureMacroPtr & _newM, Context * ) {
         CaptureMacroPtr newM = das::move(_newM);
         module->captureMacros.push_back(newM);
+    }
+
+    TypeMacroPtr makeTypeMacro ( const char * name, const void * pClass, const StructInfo * info, Context * context ) {
+        return make_smart<TypeMacroAdapter>(name,(char *)pClass,info,context);
+    }
+
+    void addModuleTypeMacro ( Module * module, TypeMacroPtr & _newM, Context * ctx, LineInfoArg * at ) {
+        auto it = module->typeMacros.find(_newM->name);
+        if ( it != module->typeMacros.end() ) {
+            ctx->throw_error_at(at, "type macro %s already exists in module %s", _newM->name.c_str(), module->name.c_str());
+        }
+        string name = _newM->name;
+        module->typeMacros[name] = das::move(_newM);
     }
 
     SimulateMacroPtr makeSimulateMacro ( const char * name, const void * pClass, const StructInfo * info, Context * context ) {
@@ -2460,6 +2677,14 @@ namespace das {
         addExtern<DAS_BIND_FUN(addModuleCaptureMacro)>(*this, lib,  "add_capture_macro",
             SideEffects::modifyExternal, "addModuleCaptureMacro")
                 ->args({"module","annotation","context"});
+        // type macro
+        addAnnotation(make_smart<AstTypeMacroAnnotation>(lib));
+        addExtern<DAS_BIND_FUN(makeTypeMacro)>(*this, lib,  "make_type_macro",
+            SideEffects::modifyExternal, "makeTypeMacro")
+                ->args({"name","class","info","context"});
+        addExtern<DAS_BIND_FUN(addModuleTypeMacro)>(*this, lib,  "add_type_macro",
+            SideEffects::modifyExternal, "addModuleTypeMacro")
+                ->args({"module","annotation","context","at"});
         // simulate macro macro
         addAnnotation(make_smart<AstSimulateMacroAnnotation>(lib));
         addExtern<DAS_BIND_FUN(makeSimulateMacro)>(*this, lib,  "make_simulate_macro",

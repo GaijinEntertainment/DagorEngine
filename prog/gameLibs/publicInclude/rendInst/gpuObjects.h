@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -26,10 +25,11 @@ void add(const eastl::string &name, int cell_tile, int grid_size, float cell_siz
 void erase_inside_sphere(const Point3 &center, const float radius);
 void update(const Point3 &origin);
 
+bool has_manager();
 bool has_pending();
+void flush_pending();
 void change_parameters(const eastl::string &name, const gpu_objects::PlacingParameters &parameters);
 void change_grid(const eastl::string &name, int cell_tile, int grid_size, float cell_size);
-void validate_displaced(float displacement_tex_range);
 void invalidate();
 void invalidate_inside_bbox(const BBox2 &bbox);
 void set_allow_gpu_ri_cb(AllowGpuRiCb cb);

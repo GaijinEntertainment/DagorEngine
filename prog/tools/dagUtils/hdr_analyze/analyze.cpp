@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <startup/dag_restart.h>
 #include <3d/dag_materialData.h>
 #include <libTools/dagFileRW/dagFileNode.h>

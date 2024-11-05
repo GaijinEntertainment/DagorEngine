@@ -1,8 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_dataBlock.h>
 #include <nodeBasedShaderManager/nodeBasedShaderManager.h>
 #include <shaders/dag_shaders.h>
 
 #include <render/nodeBasedShader.h>
+#include <drv/3d/dag_dispatch.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_shader.h>
 
 void NodeBasedShader::dispatch(int xdim, int ydim, int zdim) const
 {

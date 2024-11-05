@@ -5,6 +5,7 @@ require DagorMath
 // piecewise linear curve
 def get_value_on_2d_pl_curve(t : float; curve : Array) : float
   let curveChunks = curve |> length() - 1
+  let curvePoints = curve |> length()
   if curveChunks < 1
     return 0.0
 
@@ -16,7 +17,7 @@ def get_value_on_2d_pl_curve(t : float; curve : Array) : float
     if secondPoint == null
       return 0.0
     if t > (*secondPoint).x
-      if i + 1 < curveChunks
+      if i + 1 < curvePoints
         firstPoint = secondPoint
         continue
       else //last point

@@ -1,0 +1,31 @@
+;
+mount = %sqstd=../../scripts/sq/std
+base_path = ../../scripts/sq/stubs/
+base_path = stubs/
+base_path = .
+
+use_libs_by_default = no ; what to do if library not found in this config
+sqrat_bind_dagor_math_module = yes
+sqstd_register_io_lib = yes
+sqstd_register_system_lib = no
+sqstd_register_base_libs = yes
+sqrat_bind_datablock_module = yes
+register_dagor_fs = yes ; dagor.scan_folder
+register_dagor_time_module = yes
+sqrat_bind_dagor_logsys = yes ; dagor.debug, dagor.assertf, dagor.debug_dump_stack ...
+register_reg_exp = yes ; class regexp2, regexp2.match, regexp2.replace ...
+register_utf8 = yes ; class utf8, utf8.strtr, utf8.charCount ...
+register_json = yes ; parse_json, string_to_json
+sqrat_bind_dagor_math = yes ; Point2, Point3, TMatrix, Color4 ... and random
+register_dagor_http = yes ; HTTP client
+register_frp = yes
+register_jwt = yes
+register_base64 = yes
+
+use_real_root = no
+
+function_result_must_be_utilized = tryLoad
+function_should_return_something_prefix = mk
+function_calls_lambda_inplace = sharedWatched combine update
+function_can_return_string = loc
+forbidden_function = dlog wdlog

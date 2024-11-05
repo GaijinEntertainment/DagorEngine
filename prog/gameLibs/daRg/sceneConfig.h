@@ -1,9 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <math/dag_e3dColor.h>
 #include <generic/dag_tab.h>
 #include <sqrat.h>
-#include <humanInput/dag_hiXInputMappings.h>
+#include <drv/hid/dag_hiXInputMappings.h>
 
 #include <daRg/dag_guiScene.h>
 
@@ -33,6 +34,7 @@ public:
   float gamepadCursorHoverMaxMul = 0.8f;
 
   E3DCOLOR defSceneBgColor = E3DCOLOR(10, 10, 10, 160);
+  E3DCOLOR defTextColor = E3DCOLOR(160, 160, 160, 160);
   bool reportNestedWatchedUpdate = false;
 
   int gamepadCursorAxisH = HumanInput::JOY_XINPUT_REAL_AXIS_L_THUMB_H;
@@ -59,8 +61,10 @@ public:
   bool actionClickByBehavior = false;
 
   void setDefSceneBgColor(SQInteger color) { defSceneBgColor = E3DCOLOR((unsigned int)color); }
-
   SQInteger getDefSceneBgColor() const { return defSceneBgColor.u; }
+
+  void setDefTextColor(SQInteger color) { defTextColor = E3DCOLOR((unsigned int)color); }
+  SQInteger getDefTextColor() const { return defTextColor.u; }
 
   bool isClickButton(InputDevice dev_id, int btn_id) const;
 

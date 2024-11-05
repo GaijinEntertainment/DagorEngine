@@ -1,9 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef __DAGOR_E3DCOLOR_H__
-#define __DAGOR_E3DCOLOR_H__
-
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 /// @addtogroup baseclasses
 /// @{
@@ -86,5 +82,3 @@ inline void SWAP_RB(E3DCOLOR &c)
 /// @}
 
 /// @}
-
-#endif

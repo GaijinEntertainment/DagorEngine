@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <perfMon/dag_perfTimer.h>
 #include <perfMon/dag_pix.h>
 #if _TARGET_C1 | _TARGET_C2

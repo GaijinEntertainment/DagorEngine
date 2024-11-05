@@ -1,11 +1,19 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #if DAGOR_DBGLEVEL > 0
 #include "debug_ui.h"
+
 #include <EASTL/sort.h>
 #include <dag/dag_vector.h>
 #include <gui/dag_imgui.h>
-#include "device.h"
+#include <perfMon/dag_graphStat.h>
+
 #include "imgui.h"
 #include "implot.h"
+#include "globals.h"
+#include "pipeline/manager.h"
+#include "device_context.h"
+#include "execution_timings.h"
 
 using namespace drv3d_vulkan;
 
@@ -14,8 +22,36 @@ namespace
 constexpr uint32_t TOTAL_TIMINGS = 5;
 constexpr uint32_t MAX_TIMELINES = 10;
 
+constexpr uint32_t FRAME_TIMINGS_HISTORY = 256;
+enum
+{
+  TIMING_PRESENT_TO_PRESENT = 0,
+  TIMING_PRESENT_TO_WORKER_PRESENT = 1,
+  TIMING_WAIT_FOR_WORKER = 2,
+  TIMING_WORKER_WAIT = 3,
+  TIMING_GPU_FENCE_WAIT = 4,
+  TIMING_PRESENT_SUBMIT = 5,
+  TIMING_SWAPCHAIN_ACQUIRE = 6,
+  TIMING_LATENCY_GPU_WAIT = 7,
+  FRAME_TIMINGS = 8
+};
+
+const char *timingsStrings[FRAME_TIMINGS] = {"PresentToPresent", "PresentToWorkerPresent", "WaitForWorker", "WorkerWait",
+  "GPUFenceWait", "PresentSubmit", "SwapchainAcquire", "LatencyGPUWait"};
+UiPlotScrollBuffer<FRAME_TIMINGS_HISTORY, ImU64> frameTimingsGraphs[FRAME_TIMINGS];
+uint64_t trackingFrameIdx = 0;
+
 ImS64 timelineCpuGraph[TOTAL_TIMINGS * MAX_TIMELINES];
 ImS64 timelineGpuGraph[TOTAL_TIMINGS * MAX_TIMELINES];
+
+struct FrameHashHistoryEntry
+{
+  uint64_t hash;
+  uint64_t cnt;
+};
+Tab<FrameHashHistoryEntry> frameHashesHistory;
+bool freezeFrameHashHistory = false;
+constexpr uint32_t MAX_FRAME_HASHES_HISTORY_SIZE = 64;
 
 DrawStatSingle stat3dRecord = {};
 
@@ -55,6 +91,86 @@ eastl::array<ProgramTypeData, 1 << program_type_bits> progTypeDatas
 
 const char *timeline_plot_legend[] = {"acquire", "submit", "process", "wait", "cleanup"};
 
+void drawFrameHashesHistory()
+{
+  if (!freezeFrameHashHistory)
+  {
+    uint64_t currentHashes[GPU_TIMELINE_HISTORY_SIZE];
+
+    Globals::timelines.get<TimelineManager::GpuExecute>().enumerate([&](size_t index, const FrameInfo &ctx) //
+      { currentHashes[index] = ctx.execTracker.getPrevJobHash(); });
+
+    for (uint64_t &itr : currentHashes)
+      for (FrameHashHistoryEntry &cmp : frameHashesHistory)
+      {
+        if (cmp.hash == itr)
+        {
+          itr = 0;
+          ++cmp.cnt;
+          break;
+        }
+      }
+
+    for (int i = 0; i < GPU_TIMELINE_HISTORY_SIZE; ++i)
+      for (int j = i + 1; j < GPU_TIMELINE_HISTORY_SIZE; ++j)
+      {
+        if (currentHashes[i] == currentHashes[j])
+          currentHashes[j] = 0;
+      }
+
+    eastl::sort(eastl::begin(frameHashesHistory), eastl::end(frameHashesHistory),
+      [](const FrameHashHistoryEntry &l, const FrameHashHistoryEntry &r) //
+      { return l.cnt > r.cnt; });
+
+    if (frameHashesHistory.size() < MAX_FRAME_HASHES_HISTORY_SIZE)
+    {
+      for (uint64_t itr : currentHashes)
+      {
+        if (itr == 0)
+          continue;
+        frameHashesHistory.push_back({itr, 1});
+      }
+    }
+    else
+      ImGui::Text("Max hash history size reached!");
+  }
+
+  ImGui::Checkbox("Freeze", &freezeFrameHashHistory);
+
+  if (ImGui::Button("Clear hash history"))
+    clear_and_shrink(frameHashesHistory);
+  for (FrameHashHistoryEntry &itr : frameHashesHistory)
+    ImGui::Text("GPU job hash %" PRIX64 " cnt: %zu", itr.hash, itr.cnt);
+}
+
+void drawTimings()
+{
+  const Drv3dTimings &timings = Frontend::timings.get(0);
+
+  float msTimingVal[FRAME_TIMINGS] = {profile_usec_from_ticks_delta(timings.frontendUpdateScreenInterval) / 1000.0f,
+    profile_usec_from_ticks_delta(timings.frontendToBackendUpdateScreenLatency) / 1000.0f,
+    profile_usec_from_ticks_delta(timings.frontendBackendWaitDuration) / 1000.0f,
+    profile_usec_from_ticks_delta(timings.backendFrontendWaitDuration) / 1000.0f,
+    profile_usec_from_ticks_delta(timings.gpuWaitDuration) / 1000.0f, profile_usec_from_ticks_delta(timings.presentDuration) / 1000.0f,
+    profile_usec_from_ticks_delta(timings.backbufferAcquireDuration) / 1000.0f,
+    profile_usec_from_ticks_delta(timings.frontendWaitForSwapchainDuration) / 1000.0f};
+  for (int i = 0; i < FRAME_TIMINGS; ++i)
+  {
+    ImGui::Text("%s %0.2f ms", timingsStrings[i], msTimingVal[i]);
+    frameTimingsGraphs[i].addPoint(trackingFrameIdx, msTimingVal[i]);
+  }
+
+  ImPlot::SetNextAxisLimits(ImAxis_X1, trackingFrameIdx < FRAME_TIMINGS_HISTORY ? 0 : trackingFrameIdx - FRAME_TIMINGS_HISTORY,
+    trackingFrameIdx, ImGuiCond_Always);
+  if (ImPlot::BeginPlot("##Frame timings plot", nullptr, "Period, ms"))
+  {
+    for (int i = 0; i < FRAME_TIMINGS; ++i)
+      ImPlot::PlotLine(timingsStrings[i], &frameTimingsGraphs[i].xData[0], &frameTimingsGraphs[i].yData[0],
+        frameTimingsGraphs[i].xData.size(), ImPlotLineFlags_None, frameTimingsGraphs[i].offset);
+    ImPlot::EndPlot();
+  }
+}
+
 } // namespace
 
 void drv3d_vulkan::debug_ui_frame()
@@ -68,13 +184,27 @@ void drv3d_vulkan::debug_ui_frame()
   ImGui::Text("INST: %u", stat3dRecord.val[DRAWSTAT_INS]);
   ImGui::Text("Logical render pass count: %u", stat3dRecord.val[DRAWSTAT_RENDERPASS_LOGICAL]);
 
+  if (ImGui::TreeNode("FrameHashes##1"))
+  {
+    drawFrameHashesHistory();
+    ImGui::TreePop();
+  }
+
+  if (ImGui::TreeNode("FrameTimings##1"))
+  {
+    drawTimings();
+    ImGui::TreePop();
+  }
+
+  trackingFrameIdx++;
+
   Stat3D::startStatSingle(stat3dRecord);
 }
 
 void timelineGraphFill(TimelineHistoryIndex idx, const uint64_t *timestamps, ImS64 *graph)
 {
   G_ASSERT(MAX_TIMELINES > idx);
-  const uint32_t ST_CNT = (uint32_t)TimelineHisotryState::COUNT;
+  const uint32_t ST_CNT = (uint32_t)TimelineHistoryState::COUNT;
   static ImS64 tsBuf[ST_CNT];
   static ImS64 timingsBuf[ST_CNT];
 
@@ -82,15 +212,15 @@ void timelineGraphFill(TimelineHistoryIndex idx, const uint64_t *timestamps, ImS
   memcpy(&tsBuf[0], &timestamps[0], sizeof(uint64_t) * ST_CNT);
 
   // init to acq -> acquire time
-  timingsBuf[0] = tsBuf[(uint32_t)TimelineHisotryState::ACQUIRED] - tsBuf[(uint32_t)TimelineHisotryState::INIT];
+  timingsBuf[0] = tsBuf[(uint32_t)TimelineHistoryState::ACQUIRED] - tsBuf[(uint32_t)TimelineHistoryState::INIT];
   // acq to ready -> submit time
-  timingsBuf[1] = tsBuf[(uint32_t)TimelineHisotryState::READY] - tsBuf[(uint32_t)TimelineHisotryState::ACQUIRED];
+  timingsBuf[1] = tsBuf[(uint32_t)TimelineHistoryState::READY] - tsBuf[(uint32_t)TimelineHistoryState::ACQUIRED];
   // ready to progress -> process time
-  timingsBuf[2] = tsBuf[(uint32_t)TimelineHisotryState::IN_PROGRESS] - tsBuf[(uint32_t)TimelineHisotryState::READY];
+  timingsBuf[2] = tsBuf[(uint32_t)TimelineHistoryState::IN_PROGRESS] - tsBuf[(uint32_t)TimelineHistoryState::READY];
   // progress to done -> wait time
-  timingsBuf[3] = tsBuf[(uint32_t)TimelineHisotryState::DONE] - tsBuf[(uint32_t)TimelineHisotryState::IN_PROGRESS];
+  timingsBuf[3] = tsBuf[(uint32_t)TimelineHistoryState::DONE] - tsBuf[(uint32_t)TimelineHistoryState::IN_PROGRESS];
   // done to init -> cleanup time
-  timingsBuf[4] = tsBuf[(uint32_t)TimelineHisotryState::INIT] - tsBuf[(uint32_t)TimelineHisotryState::DONE];
+  timingsBuf[4] = tsBuf[(uint32_t)TimelineHistoryState::INIT] - tsBuf[(uint32_t)TimelineHistoryState::DONE];
 
   for (int i = 0; i < TOTAL_TIMINGS; ++i)
   {
@@ -101,7 +231,7 @@ void timelineGraphFill(TimelineHistoryIndex idx, const uint64_t *timestamps, ImS
 
 void drv3d_vulkan::debug_ui_timeline()
 {
-  TimelineManager &tman = get_device().timelineMan;
+  TimelineManager &tman = Globals::timelines;
 
   if (ImPlot::BeginPlot("##Timeline CPU replay", nullptr, "Delta, ms"))
   {
@@ -165,7 +295,7 @@ void drv3d_vulkan::debug_ui_update_pipelines_data()
   WinAutoLock lock(pipeline_ui::mutex);
   pipeline_ui::debugInfos.clear();
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
-  PipelineManager &pipeMan = get_device().pipeMan;
+  PipelineManager &pipeMan = Globals::pipelines;
 
   pipeMan.enumerate<ComputePipeline>(UniversalPipeInfoCb{});
   pipeMan.enumerate<VariatedGraphicsPipeline>(UniversalPipeInfoCb{});
@@ -182,7 +312,7 @@ void drv3d_vulkan::debug_ui_pipelines()
 #else
 
   if (ImGui::Button("Update"))
-    get_device().getContext().updateDebugUIPipelinesData();
+    Globals::ctx.updateDebugUIPipelinesData();
 
   ImGui::SameLine();
   ImGui::SetNextItemWidth(250);
@@ -292,8 +422,8 @@ void drv3d_vulkan::debug_ui_pipelines()
       // See https://github.com/ocornut/imgui/issues/211#issuecomment-902751145
       if (ImGui::Checkbox(String(0, "##program%d", info.program.get()).c_str(), &info.enabled))
       {
-        get_device().getContext().setPipelineUsability(info.program, info.enabled);
-        get_device().getContext().updateDebugUIPipelinesData();
+        Globals::ctx.setPipelineUsability(info.program, info.enabled);
+        Globals::ctx.updateDebugUIPipelinesData();
       }
     }
 
@@ -335,7 +465,12 @@ void drv3d_vulkan::debug_ui_pipelines()
 void drv3d_vulkan::debug_ui_misc()
 {
   if (ImGui::Button("Generate fault report"))
-    get_device().getContext().generateFaultReportAtFrameEnd();
+    Globals::ctx.generateFaultReportAtFrameEnd();
+
+  ImGui::TextUnformatted(Globals::ctx.isWorkerRunning() ? "Execution: threaded" : "Execution: deferred");
+
+  if (ImGui::Button("Switch execution mode"))
+    Globals::ctx.toggleWorkerThread();
 }
 
 #endif

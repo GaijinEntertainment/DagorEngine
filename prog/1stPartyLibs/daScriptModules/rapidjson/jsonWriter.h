@@ -182,13 +182,13 @@ public:
   char * das_result()
   {
     G_ASSERT(context);
-    return context->stringHeap->allocateString(result());
+    return context->allocateString(result(), /*at*/nullptr);
   }
 
   char * das_getLastError() const
   {
     G_ASSERT(context);
-    return context->stringHeap->allocateString(lastError.c_str());
+    return context->allocateString(lastError.c_str(), /*at*/nullptr);
   }
 
   const das::string & getLastError() const

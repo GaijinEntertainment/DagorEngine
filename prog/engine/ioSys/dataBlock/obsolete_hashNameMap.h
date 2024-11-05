@@ -1,5 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 // required only for blk_writeBBF3.cpp
 

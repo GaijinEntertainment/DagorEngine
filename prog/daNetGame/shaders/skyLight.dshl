@@ -1,0 +1,63 @@
+include "skyLightParams.dshl"
+
+macro INIT_SKY_DIFFUSE_BASE(stage)
+  (stage) {
+    enviSPH0@f4 = (enviSPH0*skylight_params.y);
+    enviSPH1@f4 = (enviSPH1*skylight_params.y);
+    enviSPH2@f4 = (enviSPH2*skylight_params.y);
+    enviSPH3@f4 = (enviSPH3*skylight_params.y);
+    enviSPH4@f4 = (enviSPH4*skylight_params.y);
+    enviSPH5@f4 = (enviSPH5*skylight_params.y);
+    enviSPH6@f4 = (enviSPH6*skylight_params.y);
+  }
+endmacro
+macro INIT_SKY_DIFFUSE()
+  INIT_SKY_DIFFUSE_BASE(ps)
+endmacro
+macro INIT_SKY()
+  INIT_SKY_DIFFUSE()
+endmacro
+
+macro INIT_SKY_COMPAT()
+  INIT_SKY()
+endmacro
+
+macro FROM_SUN_DIR_SOURCE_COMPAT()
+  supports global_const_block;
+endmacro
+
+macro INIT_SKY_UP_DIFFUSE(stage)
+  (stage) {
+    enviUp@f3 = (
+      (enviSPH0.y+enviSPH0.w) * skylight_params.y,
+      (enviSPH1.y+enviSPH1.w) * skylight_params.y,
+      (enviSPH2.y+enviSPH2.w) * skylight_params.y,
+      0);
+  }
+endmacro
+
+macro INIT_SIMPLE_AMBIENT(stage)
+  (stage) {
+    amb_color@f3 = (
+      (enviSPH0.y + enviSPH0.w) * skylight_params.y,
+      (enviSPH1.y + enviSPH1.w) * skylight_params.y,
+      (enviSPH2.y + enviSPH2.w) * skylight_params.y,
+      0);
+  }
+endmacro
+
+macro INIT_ENVI_SPECULAR_SAMPLE(stage)
+  (stage) {
+    envi_outdoor_factor_darkening@f1 = (skylight_params.y, 0, 0, 0);
+  }
+endmacro
+
+macro USE_ENVI_SPECULAR_SAMPLE(stage)
+  hlsl(stage) {
+    half4 sample_envi_probe(half4 tc)
+    {
+      return half4(texCUBElod(envi_probe_specular, tc) * envi_outdoor_factor_darkening);
+    }
+  }
+endmacro
+include "skyLightBase.dshl"

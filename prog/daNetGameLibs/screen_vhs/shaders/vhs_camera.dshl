@@ -1,0 +1,170 @@
+include "shader_global.dshl"
+
+texture frame_tex;
+
+float vhs_camera__downscale;
+float vhs_camera__saturation;
+float vhs_camera__noise_strength;
+float vhs_camera__dynamic_range_min;
+float vhs_camera__dynamic_range_max;
+float vhs_camera__dynamic_range_gamma;
+float vhs_camera__scanline_height;
+
+int vhs_camera__sharpen;
+interval vhs_camera__sharpen: no<1, yes;
+
+int vhs_camera__noise;
+interval vhs_camera__noise: no<1, grayscale<2, color;
+
+int vhs_camera__chromaticAberration;
+interval vhs_camera__chromaticAberration: no<1, yes;
+
+int vhs_camera__scanlines;
+interval vhs_camera__scanlines: no<1, simple<2, noisy;
+
+
+// Basically this video but in code
+// https://www.youtube.com/watch?v=ElauAIU4qks
+// Also some creative additions for a more modern, digital look
+
+shader vhs_camera
+{
+  cull_mode = none;
+
+  hlsl{
+    #define USE_TEXCOORD tc
+  }
+
+  local float4 downscaled_frame_resolution = get_dimensions(frame_tex, 0) * vhs_camera__downscale;
+  (ps) {
+    frame_tex@smp2d = frame_tex;
+    current_time@f1 = (time_phase(0, 0));
+
+    resolution@f2      = (downscaled_frame_resolution.xy, 0, 0);
+    inv_resolution@f2  = (1.0 / downscaled_frame_resolution.xy, 0, 0);
+    saturation@f1      = vhs_camera__saturation;
+    noise_strength@f1  = vhs_camera__noise_strength;
+
+    dyn_range_min@f1   = vhs_camera__dynamic_range_min;
+    dyn_range_max@f1   = vhs_camera__dynamic_range_max;
+    dyn_range_gamma@f1 = vhs_camera__dynamic_range_gamma;
+    scanline_height@f1 = vhs_camera__scanline_height;
+  }
+
+  POSTFX_VS(0)
+
+  hlsl(ps) {
+    #include <hsv_rgb_conversion.hlsl>
+
+    float rand(float3 co, float3 dir)
+    {
+      return frac(sin(dot(co, dir)) * 143758.5453);
+    }
+
+    float rand_r(float3 co) { return rand(co, float3(12.989, 78.233, 37.719)); }
+    float rand_g(float3 co) { return rand(co, float3(39.346, 11.135, 83.155)); }
+    float rand_b(float3 co) { return rand(co, float3(73.156, 52.235,  9.151)); }
+
+    float3 rand3(float3 co)
+    {
+      return float3(
+        rand_r(co),
+        rand_g(co),
+        rand_b(co)
+      );
+    }
+
+    static const float3x3 kernel = float3x3(
+       0, -1,  0,
+      -1,  5, -1,
+       0, -1,  0
+    );
+
+    float3 pre_convolution_color(float2 uv)
+    {
+      ##if vhs_camera__chromaticAberration == yes
+        const float ca_amount = length(uv - float2(0.5, 0.5)) * 0.01;
+        const float3 inputColor =
+          float3(
+            tex2D(frame_tex, uv + float2(ca_amount, 0)).r,
+            tex2D(frame_tex, uv).g,
+            tex2D(frame_tex, uv - float2(ca_amount, 0)).b);
+      ##else
+        const float3 inputColor =
+          tex2D(frame_tex, uv).rgb;
+      ##endif
+
+      const float distToCenter = length(uv - float2(0.5, 0.5));
+
+      const float3 adjustedColor =
+        dyn_range_min
+        + pow(inputColor, 1.0/dyn_range_gamma)
+          * (dyn_range_max - dyn_range_min)
+        + float3(0.5, 0.25, 0.1)*distToCenter/5.0;
+
+
+      const float3 saturatedColor = hsv_to_rgb(rgb_to_hsv(adjustedColor) * float3(1, saturation, 1));
+
+      ##if vhs_camera__noise == color
+        const float3 noise = rand3(float3(uv, sin(current_time)));
+      ##elif vhs_camera__noise == grayscale
+        const float3 noise = rand_r(float3(uv, sin(current_time)));
+      ##else
+        const float3 noise = 0;
+      ##endif
+
+      const float3 noisyColor = saturatedColor + noise_strength*noise;
+
+      return noisyColor;
+    }
+
+    float4 vhs_camera_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      float2 uv = input.tc;
+
+      ##if vhs_camera__scanlines == simple
+        UNROLL for (uint k = 0; k < 3; ++k)
+        {
+          const float pos = 5.0*frac(current_time/5.0 + 100*frac(k*31415.926535)) - 2.5;
+          const float progr = (uv.y - pos) / scanline_height;
+          FLATTEN if (0 < progr && progr < 1) {
+            uv.x -= 4.0*inv_resolution.x;
+            uv.y = pos + (progr/2.0)*scanline_height;
+          }
+        }
+        const bool even = floor(uv.y*resolution.y)%2;
+        uv.x += even * 10*noise_strength*frac(sin(current_time)*2793289) * inv_resolution.x;
+      ##elif vhs_camera__scanlines == noisy
+        UNROLL for (uint k = 0; k < 4; ++k)
+        {
+          const float pos = 5.0*frac(current_time * (1 + 10*noise_strength) + 100*frac(k*31415.926535)) - 2.5;
+          const float progr = (uv.y - pos) / (scanline_height * (1 + 10*noise_strength));
+          const float down = max(1, resolution.x
+            * pow(saturate(rand_r(float3(k, uv.y, current_time))
+              / (noise_strength*50)
+              * (1 - sin(progr*3.1415926435))), 0.5)
+            );
+          FLATTEN if (progr > 0 && progr < 1) {
+            uv.x = floor((uv.x - 4.0*inv_resolution.x) * down) / down;
+          }
+        }
+      ##endif
+
+      ##if vhs_camera__sharpen == yes
+        float3 color = 0;
+        UNROLL for (uint i = 0; i < 3; ++i)
+        {
+          UNROLL for (uint j = 0; j < 3; ++j)
+          {
+            color += pre_convolution_color(uv + float2(i, j)*inv_resolution)*kernel[i][j];
+          }
+        }
+      ##else
+        float3 color = pre_convolution_color(uv);
+      ##endif
+
+      return float4(color, 1.0);
+    }
+  }
+  compile("target_ps", "vhs_camera_ps");
+}

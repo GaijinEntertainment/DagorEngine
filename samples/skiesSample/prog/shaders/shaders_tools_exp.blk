@@ -1,7 +1,7 @@
 include shaders_tools11.blk
 
-"@override:outDumpName":t="../../tools/common/compiledShaders/tools.exp"
-outMiniDumpName:t="../../tools/common/compiledShaders/tools.exp"
+"@override:outDumpName":t="../../tools/tools.exp"
+outMiniDumpName:t="../../tools/tools.exp"
 
 "@delete:source" {}
 source

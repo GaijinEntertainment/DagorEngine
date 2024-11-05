@@ -1,7 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "ms_classdrv_win.h"
 #include "ms_device_win.h"
-#include <humanInput/dag_hiGlobals.h>
-#include <humanInput/dag_hiCreate.h>
+#include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiCreate.h>
 #include <debug/dag_debug.h>
 #include <util/dag_string.h>
 using namespace HumanInput;

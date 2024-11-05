@@ -1,4 +1,4 @@
-
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #import <Metal/Metal.h>
@@ -93,6 +93,7 @@ class ShadersPreCache
     Program::RenderState rstate;
     id<MTLRenderPipelineState> pso = nil;
     uint32_t discard = 0;
+    uint32_t output_mask = 0;
   };
 
   struct CachedComputePipelineState
@@ -148,6 +149,7 @@ class ShadersPreCache
 
 public:
   ShadersPreCache();
+  ~ShadersPreCache();
 
   void init(uint32_t version);
 

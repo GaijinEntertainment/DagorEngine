@@ -1,7 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "bitfield.h"
 #include "format_store.h"
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_consts.h>
 
 
 namespace drv3d_dx12
@@ -161,9 +164,9 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
         {
           if (isArray)
           {
-            result.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
             if (!is_multisampled)
             {
+              result.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
               auto &target = result.Texture2DArray;
               target.MostDetailedMip = getMipBase().index();
               target.MipLevels = getMipCount();
@@ -174,6 +177,7 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
             }
             else
             {
+              result.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY;
               auto &target = result.Texture2DMSArray;
               target.FirstArraySlice = getArrayBase().index();
               target.ArraySize = getArrayCount();
@@ -181,9 +185,9 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
           }
           else
           {
-            result.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
             if (!is_multisampled)
             {
+              result.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
               auto &target = result.Texture2D;
               target.MostDetailedMip = getMipBase().index();
               target.MipLevels = getMipCount();
@@ -192,6 +196,7 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
             }
             else
             {
+              result.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
               auto &target = result.Texture2DMS;
               G_UNUSED(target);
             }

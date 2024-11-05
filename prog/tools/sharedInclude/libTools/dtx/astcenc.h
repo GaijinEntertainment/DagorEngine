@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #if _TARGET_PC_WIN
@@ -83,6 +84,10 @@ struct ASTCEncoderHelperContext
       strcpy(tmpNameTGA, tmpNameTemplate);
     }
 #endif
+    if (strchr(tmpNameTGA, ' '))
+      for (char *p = tmpNameTGA; *p; p++)
+        if (*p == ' ')
+          *p = '~';
     strcpy(tmpNameASTC, tmpNameTGA);
     strcat_s(tmpNameTGA, L_tmpnam_s, ".tga");
     strcat_s(tmpNameASTC, L_tmpnam_s, ".astc");
@@ -216,13 +221,7 @@ struct ASTCEncoderHelperContext
     if (char *p = strrchr(astcencExePath, '/'))
       *p = '\0';
 
-#if _TARGET_PC_WIN
-    strcat(astcencExePath, "/../bin64/astcenc");
-#elif _TARGET_PC_LINUX
-    strcat(astcencExePath, "/../bin-linux64/astcenc");
-#elif _TARGET_PC_MACOSX
-    strcat(astcencExePath, "/../bin-macosx/astcenc");
-#endif
+    strcat(astcencExePath, "/astcenc");
 #if _TARGET_PC_WIN | _TARGET_PC_LINUX
     if (cpu_feature_avx2_checked)
       strcat(astcencExePath, "-avx2");

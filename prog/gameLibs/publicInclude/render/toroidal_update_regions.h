@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -37,7 +36,8 @@ inline int split_region_to_size(int max_texels_area, const IBBox2 &region, IBBox
 //    ignored (if it is completely within any of current boxes)
 //    splitted in boxes that are not intersecting any of current boxes
 // called recursively
-inline void add_non_intersected_box(Tab<IBBox2> &boxes, const IBBox2 &ibox);
+template <class IBBox2Container>
+inline void add_non_intersected_box(IBBox2Container &boxes, const IBBox2 &ibox, int start_at = 0);
 
 inline IBBox2 get_texture_box(const ToroidalHelper &helper)
 {
@@ -302,58 +302,108 @@ inline int split_region_to_size_linear(int desiredSide, const IBBox2 &region, IB
 
 #undef SPLIT
 
-inline void add_non_intersected_box(Tab<IBBox2> &boxes, const IBBox2 &ibox)
+__forceinline bool unsafe_intersects(const IBBox2 &a, const IBBox2 &b)
 {
-  // debug("add box = %@ to array of %d", ibox, boxes.size());
-  for (int i = 0; i < boxes.size(); ++i)
+  if (b.lim[0].x > a.lim[1].x)
+    return false;
+  if (b.lim[1].x < a.lim[0].x)
+    return false;
+  if (b.lim[0].y > a.lim[1].y)
+    return false;
+  if (b.lim[1].y < a.lim[0].y)
+    return false;
+  return true;
+}
+
+inline bool shrink_box_by_obstacle(IBBox2 &to_shrink, const IBBox2 &obstacle)
+{
+  if (to_shrink[0].x >= obstacle[0].x && to_shrink[1].x <= obstacle[1].x) // shrink by Y
   {
-    if (!(boxes[i] & ibox))
+    if (to_shrink[0].y < obstacle[0].y && to_shrink[1].y <= obstacle[1].y)
+      to_shrink[1].y = obstacle[0].y - 1;
+    else if (to_shrink[1].y > obstacle[1].y && to_shrink[0].y >= obstacle[0].y)
+      to_shrink[0].y = obstacle[1].y + 1;
+    else
+      return false;
+  }
+  else if (to_shrink[0].y >= obstacle[0].y && to_shrink[1].y <= obstacle[1].y) // shrink by X
+  {
+    if (to_shrink[0].x < obstacle[0].x && to_shrink[1].x <= obstacle[1].x)
+      to_shrink[1].x = obstacle[0].x - 1;
+    else if (to_shrink[1].x > obstacle[1].x && to_shrink[0].x >= obstacle[0].x)
+      to_shrink[0].x = obstacle[1].x + 1;
+    else
+      return false;
+  }
+  else
+    return false;
+  return true;
+}
+
+template <class Container>
+inline void add_non_intersected_box(Container &boxes, const IBBox2 &ibox_, int start_at)
+{
+  if (ibox_.isEmpty())
+    return;
+  IBBox2 ibox = ibox_;
+  // debug("add box = %@ to array of %d", ibox, boxes.size());
+  for (int i = start_at, ie = boxes.size(); i < ie; ++i)
+  {
+    auto &box = boxes[i];
+    if (!unsafe_intersects(box, ibox))
       continue;
-    if (is_box_inside_other(boxes[i], ibox)) // new box is bigger
+    if (is_box_inside_other(box, ibox)) // new box is bigger
     {
       // debug("new box =%@ is bigger than old one [%d] = %@", ibox, i, boxes[i]);
       erase_items(boxes, i, 1);
-      i--;
+      --i;
+      --ie;
       continue; // it can be bigger than other boxes as well
     }
-    else if (is_box_inside_other(ibox, boxes[i])) // old box is bigger, we need completely ignore new one
+    else if (is_box_inside_other(ibox, box)) // old box is bigger, we need completely ignore new one
     {
       // debug("new box =%@ is smaller than old one [%d] = %@", ibox, i, boxes[i]);
       return;
     }
 
+    // three major cases.
+    // A. Only one corner of one box is inside other box (and visa verse)
+    // B. none of corners of box is inside other
+    // C. Two corners of one box is inside other box.
+    // A&B both results in box splitted into two boxes
+    // C - doesn't require splitting, we can just update (shrank) one of the boxes
+    if (shrink_box_by_obstacle(box, ibox) || shrink_box_by_obstacle(ibox, box)) // case C!
+      continue;
+    // case A or B
+    const IBBox2 oldBox = box;
     // boxes are intersected
-    // we need split new box into one, two or three non-intersecting box
-    const IBBox2 oldBox = boxes[i];
-#define SPLIT(attr)                                         \
-  if (ibox[0].x <= oldBox[1].x && ibox[1].x >= oldBox[0].x) \
-  {                                                         \
-    if (ibox[0].attr < oldBox[0].attr)                      \
-    {                                                       \
-      IBBox2 nbox = ibox;                                   \
-      nbox[1].attr = oldBox[0].attr - 1;                    \
-      add_non_intersected_box(boxes, nbox);                 \
-      nbox = ibox;                                          \
-      nbox[0].attr = oldBox[0].attr;                        \
-      add_non_intersected_box(boxes, nbox);                 \
-      return;                                               \
-    }                                                       \
-    else if (ibox[1].attr > oldBox[1].attr)                 \
-    {                                                       \
-      IBBox2 nbox = ibox;                                   \
-      nbox[0].attr = oldBox[1].attr + 1;                    \
-      add_non_intersected_box(boxes, nbox);                 \
-      nbox = ibox;                                          \
-      nbox[1].attr = oldBox[1].attr;                        \
-      add_non_intersected_box(boxes, nbox);                 \
-      return;                                               \
-    }                                                       \
+    // we need split new box into two non-intersecting boxes
+#define SPLIT(attr)                                                                         \
+  {                                                                                         \
+    if (ibox[0].attr < oldBox[0].attr)                                                      \
+    {                                                                                       \
+      IBBox2 nbox = ibox;                                                                   \
+      nbox[1].attr = oldBox[0].attr - 1;                                                    \
+      add_non_intersected_box(boxes, nbox, i + 1);                                          \
+      ibox[0].attr = (ibox[1].attr > oldBox[1].attr) ? oldBox[1].attr + 1 : oldBox[0].attr; \
+      --i;                                                                                  \
+      ie = boxes.size();                                                                    \
+      continue;                                                                             \
+    }                                                                                       \
+    else if (ibox[1].attr > oldBox[1].attr)                                                 \
+    {                                                                                       \
+      IBBox2 nbox = ibox;                                                                   \
+      nbox[0].attr = oldBox[1].attr + 1;                                                    \
+      add_non_intersected_box(boxes, nbox, i + 1);                                          \
+      ibox[1].attr = oldBox[1].attr;                                                        \
+      --i;                                                                                  \
+      ie = boxes.size();                                                                    \
+      continue;                                                                             \
+    }                                                                                       \
   }
     SPLIT(x)
     SPLIT(y)
 #undef SPLIT
-    G_ASSERT(0);
-    return;
   }
   boxes.push_back(ibox);
 }

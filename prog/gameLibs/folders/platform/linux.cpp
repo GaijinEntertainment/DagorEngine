@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "internal.h"
 
 #include <osApiWrappers/dag_direct.h>

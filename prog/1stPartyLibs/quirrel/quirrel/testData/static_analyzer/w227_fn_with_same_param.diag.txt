@@ -1,7 +1,7 @@
 WARNING: w227 (ident-hides-ident) parameter 'txt' hides function with the same name.
-testData/static_analyzer/w227_fn_with_same_param.nut:3:17
+testData/static_analyzer/w227_fn_with_same_param.nut:3:13
 
-let function txt(txt) {} //-declared-never-used
-                 ^--
+function txt(txt) {} //-declared-never-used
+             ^--
 
 

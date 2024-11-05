@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -136,7 +135,7 @@ protected:
   void updateComponentToLTInternal();
   void updateComponentToLT()
   {
-    if (EASTL_LIKELY(NULL == LTComponentList::tail))
+    if (DAGOR_LIKELY(NULL == LTComponentList::tail))
       return;
     updateComponentToLTInternal();
   }

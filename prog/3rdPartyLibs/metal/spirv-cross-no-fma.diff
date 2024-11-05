@@ -67,7 +67,7 @@ diff --git a/prog/3rdPartyLibs/metal/spirv2Metal/spirv_msl.hpp b/prog/3rdPartyLi
 index b1abd12afdd..7a938cafccb 100644
 --- a/prog/3rdPartyLibs/metal/spirv2Metal/spirv_msl.hpp
 +++ b/prog/3rdPartyLibs/metal/spirv2Metal/spirv_msl.hpp
-@@ -341,6 +341,9 @@ public:
+@@ -341,5 +341,8 @@ public:
  		// Enables use of "fma" intrinsic for invariant float math
  		bool invariant_float_math = false;
  

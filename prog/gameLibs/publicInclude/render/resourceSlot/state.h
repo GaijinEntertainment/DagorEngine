@@ -1,18 +1,27 @@
+//
+// Dagor Engine 6.5 - Game Libraries
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+//
 #pragma once
 
-#include <render/resourceSlot/detail/registerAccess.h>
-#include <render/resourceSlot/resolveAccess.h>
+#include <render/daBfg/nameSpace.h>
+
+namespace dabfg
+{
+NameSpace root();
+} // namespace dabfg
 
 namespace resource_slot
 {
 
 /** State of slots storage.
  *
- * Size is 1 int, can be copied to declaration_callback.
+ * Size is kept small, can be copied to declaration_callback.
  */
 struct State
 {
-  State() = delete;
+  State();
+
   State(const State &) = default;
   State &operator=(const State &) = default;
   State(State &&) = default;
@@ -38,14 +47,20 @@ struct State
    */
   const char *resourceToCreateFor(const char *slot_name) const;
 
+  uint16_t orderInChain() const { return order; }
+  uint16_t sizeOfChain() const { return size; }
+  bool isNodeLastInChain() const { return order == size - 1; }
+
 private:
   dabfg::NameSpace nameSpace;
   int nodeId;
+  uint16_t order;
+  uint16_t size;
 
-  State(dabfg::NameSpace ns, int node_id);
-  friend void resource_slot::resolve_access();
+  State(dabfg::NameSpace ns, int node_id, uint16_t order_in_chain, uint16_t size_of_chain);
+  friend void resolve_access();
 };
 
-static_assert(sizeof(State) == sizeof(int) * 2);
+static_assert(sizeof(State) == sizeof(int) * 3);
 
 } // namespace resource_slot

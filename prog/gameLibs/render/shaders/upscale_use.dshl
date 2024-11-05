@@ -3,9 +3,8 @@ buffer upscale_sampling_weights;
 
 macro INIT_UPSCALE_SAMPLING_BASE(code)
   (code) {
-    upscale_sampling_tex@tex = upscale_sampling_tex
-    hlsl {
-        Texture2D<float>upscale_sampling_tex@tex;
+    upscale_sampling_tex@tex = upscale_sampling_tex hlsl {
+      Texture2D<uint> upscale_sampling_tex@tex;
     }
     upscale_sampling_weights@cbuf = upscale_sampling_weights hlsl {
       #include "upscale_sampling_weights.hlsli"
@@ -24,10 +23,21 @@ endmacro
 macro USE_UPSCALE_SAMPLING_BASE(code)
   ENABLE_ASSERT(code)
   hlsl(code) {
-    float4 SampleUpscaleWeight(int2 screenpos)
+    float4 sampleUpscaleWeightIndex(uint2 screenpos, uint weightIdx)
     {
-      int weightIdx = texelFetch(upscale_sampling_tex, screenpos, 0).x * 255.0;
-      return upscale_sampling_weights[weightIdx];
+      float4 weights = upscale_sampling_weights[weightIdx];
+      float4 bilWeights = select(screenpos.xyxy&1, float4(0.75,0.75, 0.25, 0.25), float4(0.25, 0.25, 0.75,0.75));
+      bilWeights = bilWeights.zxzx*bilWeights.yyww;
+      weights = weights*bilWeights.wzxy;
+      return weights * rcp(dot(weights,1));
+    }
+    float4 SampleUpscaleWeight(uint2 screenpos)
+    {
+      return sampleUpscaleWeightIndex(screenpos, texelFetch(upscale_sampling_tex, screenpos, 0).x&0xF);
+    }
+    float4 sampleCloseUpscaleWeight(uint2 screenpos)
+    {
+      return sampleUpscaleWeightIndex(screenpos, texelFetch(upscale_sampling_tex, screenpos, 0).x>>4);
     }
   }
 endmacro

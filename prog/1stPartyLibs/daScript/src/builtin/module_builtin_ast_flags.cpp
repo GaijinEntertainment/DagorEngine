@@ -20,7 +20,7 @@ namespace das {
     TypeDeclPtr makeExprLetFlagsFlags() {
         auto ft = make_smart<TypeDecl>(Type::tBitfield);
         ft->alias = "ExprLetFlags";
-        ft->argNames = { "inScope", "hasEarlyOut" };
+        ft->argNames = { "inScope", "hasEarlyOut", "itTupleExpansion" };
         return ft;
     }
 
@@ -50,7 +50,8 @@ namespace das {
         ft->alias = "ExprBlockFlags";
         ft->argNames = { "isClosure", "hasReturn", "copyOnReturn", "moveOnReturn",
             "inTheLoop", "finallyBeforeBody", "finallyDisabled","aotSkipMakeBlock",
-            "aotDoNotSkipAnnotationData", "isCollapseable", "needCollapse", "hasMakeBlock", "hasEarlyOut" };
+            "aotDoNotSkipAnnotationData", "isCollapseable", "needCollapse", "hasMakeBlock",
+            "hasEarlyOut", "forLoop" };
         return ft;
     }
 
@@ -79,7 +80,8 @@ namespace das {
     TypeDeclPtr makeExprMakeStructFlags() {
         auto ft = make_smart<TypeDecl>(Type::tBitfield);
         ft->alias = "ExprMakeStructFlags";
-        ft->argNames = { "useInitializer", "isNewHandle", "usedInitializer" };
+        ft->argNames = { "useInitializer", "isNewHandle", "usedInitializer", "nativeClassInitializer",
+            "isNewClass", "forceClass", "forceStruct", "forceVariant", "forceTuple", "alwaysUseInitializer" };
         return ft;
     }
 
@@ -100,7 +102,7 @@ namespace das {
         auto ft = make_smart<TypeDecl>(Type::tBitfield);
         ft->alias = "ExprVarFlags";
         ft->argNames = { "local", "argument", "_block",
-            "thisBlock", "r2v", "r2cr", "write" };
+            "thisBlock", "r2v", "r2cr", "write", "under_clone" };
         return ft;
     }
 
@@ -114,7 +116,7 @@ namespace das {
     TypeDeclPtr makeExprFieldFieldFlags() {
         auto ft = make_smart<TypeDecl>(Type::tBitfield);
         ft->alias = "ExprFieldFieldFlags";
-        ft->argNames = { "r2v", "r2cr", "write", "no_promotion" };
+        ft->argNames = { "r2v", "r2cr", "write", "no_promotion", "under_clone" };
         return ft;
     }
 
@@ -153,7 +155,8 @@ namespace das {
         ft->argNames = { "ref", "constant", "temporary", "_implicit",
             "removeRef", "removeConstant", "removeDim",
             "removeTemporary", "explicitConst", "aotAlias", "smartPtr",
-            "smartPtrNative", "isExplicit", "isNativeDim", "isTag", "explicitRef" };
+            "smartPtrNative", "isExplicit", "isNativeDim", "isTag", "explicitRef",
+            "isPrivateAlias", "autoToAlias" };
         return ft;
     }
 
@@ -161,7 +164,8 @@ namespace das {
         auto ft = make_smart<TypeDecl>(Type::tBitfield);
         ft->alias = "FieldDeclarationFlags";
         ft->argNames = { "moveSemantics", "parentType", "capturedConstant",
-            "generated", "capturedRef", "doNotDelete", "privateField", "_sealed", "implemented" };
+            "generated", "capturedRef", "doNotDelete", "privateField", "_sealed",
+            "implemented" };
         return ft;
     }
 
@@ -171,7 +175,8 @@ namespace das {
         ft->argNames = { "isClass", "genCtor", "cppLayout", "cppLayoutNotPod",
             "generated", "persistent", "isLambda", "privateStructure",
             "macroInterface", "_sealed", "skipLockCheck", "circular",
-            "_generator", "hasStaticMembers", "hasStaticFunctions" };
+            "_generator", "hasStaticMembers", "hasStaticFunctions",
+            "hasInitFields", "safeWhenUninitialized" };
         return ft;
     }
 
@@ -193,7 +198,8 @@ namespace das {
         ft->argNames = {
             "macroFunction", "needStringCast", "aotHashDeppendsOnArguments", "lateInit", "requestJit",
             "unsafeOutsideOfFor", "skipLockCheck", "safeImplicit", "deprecated", "aliasCMRES", "neverAliasCMRES",
-            "addressTaken", "propertyFunction", "pinvoke", "jitOnly", "isStaticClassMethod", "requestNoJit", "jitContextAndLineInfo"
+            "addressTaken", "propertyFunction", "pinvoke", "jitOnly", "isStaticClassMethod", "requestNoJit",
+            "jitContextAndLineInfo", "nodiscard", "captureString", "callCaptureString", "hasStringBuilder"
         };
         return ft;
     }
@@ -228,7 +234,7 @@ namespace das {
     TypeDeclPtr makeExprCopyFlags() {
         auto ft = make_smart<TypeDecl>(Type::tBitfield);
         ft->alias = "CopyFlags";
-        ft->argNames = { "allowCopyTemp", "takeOverRightStack" };
+        ft->argNames = { "allowCopyTemp", "takeOverRightStack", "promoteToClone" };
         return ft;
     }
 
@@ -243,6 +249,13 @@ namespace das {
         auto ft = make_smart<TypeDecl>(Type::tBitfield);
         ft->alias = "IfFlags";
         ft->argNames = { "isStatic", "doNotFold" };
+        return ft;
+    }
+
+    TypeDeclPtr makeExprStringBuilderFlags() {
+        auto ft = make_smart<TypeDecl>(Type::tBitfield);
+        ft->alias = "StringBuilderFlags";
+        ft->argNames = { "isTempString" };
         return ft;
     }
 

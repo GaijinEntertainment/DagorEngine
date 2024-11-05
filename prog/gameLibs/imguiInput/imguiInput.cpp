@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "imgui/imguiInput.h"
 
 #include "imguiInputHandler.h"
@@ -8,11 +10,12 @@
 #include <gui/dag_imgui.h>
 #include <util/dag_console.h>
 #include <math/integer/dag_IPoint2.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_driver.h>
 #include <daInput/input_api.h>
-#include <humanInput/dag_hiKeybIds.h>
-#include <humanInput/dag_hiJoystick.h>
-#include <humanInput/dag_hiXInputMappings.h>
+#include <drv/hid/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiJoystick.h>
+#include <drv/hid/dag_hiXInputMappings.h>
 
 static eastl::unique_ptr<DearImGuiInputHandler> imgui_input_handler;
 static GlobalInputHandler imgui_global_input_handler;

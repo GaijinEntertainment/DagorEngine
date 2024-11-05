@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daNet/daNetEchoManager.h>
 
 #include <daNet/getTime.h>
@@ -91,7 +93,7 @@ extern "C"
       const int receiveLength = ret; // positive result of receive is the length of received data
 
       const EchoNetPacket *echoNetPacket = static_cast<const EchoNetPacket *>(buffers->data); // the host is expected to always be LE
-      if (EASTL_LIKELY(receiveLength != sizeof(EchoNetPacket)) || echoNetPacket->marker != ECHO_PACKET_MARKER)
+      if (DAGOR_LIKELY(receiveLength != sizeof(EchoNetPacket)) || echoNetPacket->marker != ECHO_PACKET_MARKER)
         break; // not an echo, will be processed by enet
 
       receive_echo_impl(socket, address, *echoNetPacket);

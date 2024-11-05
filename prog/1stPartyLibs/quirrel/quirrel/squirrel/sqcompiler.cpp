@@ -52,7 +52,15 @@ SqASTData *ParseToAST(SQVM *vm, const char *sourceText, size_t sourceTextSize, c
     comments = new (commentsPtr) Comments(_ss(vm)->_alloc_ctx);
   }
 
-  RootBlock *r = parseASTImpl(astArena, vm, sourceText, sourceTextSize, sourcename, comments, raiseerror);
+  SqASTData *astData = (SqASTData *)sq_vm_malloc(_ss(vm)->_alloc_ctx, sizeof(SqASTData));
+  if (sourcename) {
+    strncpy(astData->sourceName, sourcename, sizeof(astData->sourceName));
+    astData->sourceName[sizeof(astData->sourceName) / sizeof(astData->sourceName[0]) - 1] = 0;
+  }
+  else
+    astData->sourceName[0] = 0;
+
+  RootBlock *r = parseASTImpl(astArena, vm, sourceText, sourceTextSize, astData->sourceName, comments, raiseerror);
 
   if (!r) {
     if (comments) {
@@ -61,24 +69,19 @@ SqASTData *ParseToAST(SQVM *vm, const char *sourceText, size_t sourceTextSize, c
     }
     astArena->~Arena();
     sq_vm_free(_ss(vm)->_alloc_ctx, astArena, sizeof(Arena));
+    sq_vm_free(_ss(vm)->_alloc_ctx, astData, sizeof(SqASTData));
     return nullptr;
   }
 
-  SqASTData *astData = (SqASTData *)sq_vm_malloc(_ss(vm)->_alloc_ctx, sizeof(SqASTData));
-
   astData->astArena = astArena;
   astData->root = r;
-  astData->sourceName = sourcename;
   astData->comments = comments;
 
   return astData;
 }
 
-bool CompileWithAst(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror, bool lineinfo)
+bool Compile(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror, bool lineinfo)
 {
-    if (vm->_on_compile_file)
-      vm->_on_compile_file(vm, sourcename);
-
     Arena astArena(_ss(vm)->_alloc_ctx, "AST");
 
     RootBlock *r = parseASTImpl(&astArena, vm, sourceText, sourceTextSize, sourcename, nullptr, raiseerror);
@@ -91,10 +94,6 @@ bool CompileWithAst(SQVM *vm, const char *sourceText, size_t sourceTextSize, con
     CodegenVisitor codegen(&cgArena, bindings, vm, sourcename, ctx, lineinfo);
 
     return codegen.generate(r, out);
-}
-
-bool Compile(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror, bool lineinfo) {
-    return CompileWithAst(vm, sourceText, sourceTextSize, bindings, sourcename, out, raiseerror, lineinfo);
 }
 
 static bool TranslateASTToBytecodeImpl(SQVM *vm, RootBlock *ast, const HSQOBJECT *bindings, const SQChar *sourcename, const char *sourceText, size_t sourceTextSize, SQObjectPtr &out, const Comments *comments, bool raiseerror, bool lineinfo)

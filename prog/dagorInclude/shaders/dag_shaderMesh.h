@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -10,7 +9,9 @@
 ************************************************************************/
 
 #include <3d/dag_texMgr.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_buffers.h>
 #include <generic/dag_DObject.h>
 #include <generic/dag_patchTab.h>
 #include <generic/dag_smallTab.h>
@@ -117,6 +118,12 @@ public:
   unsigned getIbPackedSize() const { return iPackedSz; }
   unsigned getLodIndex() const { return (cflags & VDATA_LOD_MASK) >> __bsf(VDATA_LOD_MASK); }
 
+  bool isRenderable(bool &has_indices) const
+  {
+    has_indices = !!indices;
+    return !!vb;
+  }
+
   // explicit constructor
   void initGvd(const char *name, unsigned vNum, unsigned vStride, unsigned idxPacked, unsigned idxSize, unsigned flags, IGenLoad *crd,
     Tab<uint8_t> &tmp_decoder_stor);
@@ -198,7 +205,7 @@ class ShaderMatVdata : public DObject, public Sbuffer::IReloadData
 public:
   decl_class_name(ShaderMatVdata);
 
-  static ShaderMatVdata *create(int tex_num, int mat_num, int vdata_num, int mvhdr_sz);
+  static ShaderMatVdata *create(int tex_num, int mat_num, int vdata_num, int mvhdr_sz, unsigned model_type = 0);
 
   static ShaderMatVdata *make_tmp_copy(ShaderMatVdata *smv, int apply_skip_first_lods_cnt = -1);
   static void update_vdata_from_tmp_copy(ShaderMatVdata *dest, ShaderMatVdata *src);
@@ -221,7 +228,6 @@ public:
 
   void unpackBuffersTo(dag::Span<Sbuffer *> buf, int *buf_byte_ofs, dag::Span<int> start_end_stride, Tab<uint8_t> &buf_stor);
   void clearVdataSrc();
-  void reloadVdataSrc();
   bool isReloadable() const { return matVdataSrcRef.fname != nullptr; }
 
   bool areLodsSplit() const { return lodsAreSplit; }
@@ -252,16 +258,64 @@ public:
   void reloadD3dRes(Sbuffer *) override;
   void destroySelf() override {}
 
+  struct ModelLoadStats
+  {
+    unsigned reloadTimeMsec = 0;
+    unsigned reloadDataSizeKb = 0;
+    unsigned reloadDataCount = 0;
+  };
+  static const ModelLoadStats &get_model_load_stats(unsigned model_type) { return modelLoadStats[model_type <= 2 ? model_type : 0]; }
+
 protected:
-  ShaderMatVdata(int tex_num, int mat_num, int vdata_num, int mvhdr_sz);
+  static ModelLoadStats modelLoadStats[1 + 2];
+
+protected:
+  ShaderMatVdata(int tex_num, int mat_num, int vdata_num, int mvhdr_sz, unsigned model_type);
   ~ShaderMatVdata();
 
   dag::Span<TEXTUREID> tex;
   dag::Span<ShaderMaterial *> mat;
   dag::Span<GlobalVertexData> vdata;
-  SmallTab<uint8_t, MidmemAlloc> matVdataSrc;
+  struct MatVdataSrc // Note: vector-like class that does `tryAlloc` on `resize`
+  {
+    using value_type = uint8_t;
+
+    MatVdataSrc() = default;
+    MatVdataSrc(const MatVdataSrc &) = delete;
+    MatVdataSrc &operator=(MatVdataSrc &&o)
+    {
+      eastl::swap(ptr, o.ptr);
+      eastl::swap(count, o.count);
+      return *this;
+    }
+    ~MatVdataSrc()
+    {
+      if (ptr)
+        delete[] ptr;
+    }
+    bool empty() const { return !count; }
+    uint32_t size() const { return count; }
+    bool resize(uint32_t sz)
+    {
+      delete[] ptr;
+      ptr = sz ? new (std::nothrow) uint8_t[sz] : nullptr; // Note: tryAlloc
+      count = ptr ? sz : 0;
+      return !!ptr;
+    }
+    uint8_t *data() { return ptr; }
+    void clear()
+    {
+      delete[] ptr;
+      ptr = nullptr;
+      count = 0;
+    }
+
+  private:
+    uint8_t *ptr = nullptr;
+    uint32_t count = 0;
+  } matVdataSrc;
   int matVdataHdrSz;
-  unsigned lodsAreSplit : 1, _resv : 23, vdataFullCount : 8;
+  unsigned lodsAreSplit : 1, modelType : 2, _resv : 21, vdataFullCount : 8;
   struct VdataSrcRef
   {
     const char *fname;
@@ -322,6 +376,8 @@ public:
     }
     void renderWithElem(const ShaderElement &elem) const { elem.render(sv, numv, si, numf, baseVertex); }
     void render() const { renderWithElem(*e); }
+
+    uint8_t getPrimitive() const { return si != RELEM_NO_INDEX_BUFFER ? PRIM_TRILIST : PRIM_POINTLIST; }
 
     RElem() = delete;
     RElem(const RElem &) = delete;
@@ -387,7 +443,7 @@ public:
     duplicateMat(prev_m, make_span(elems), old_mat, new_mat);
   }
 
-  bool getVbInfo(RElem &elem, int usage, int usage_index, unsigned int &stride, unsigned int &offset, int &type) const;
+  bool getVbInfo(RElem &elem, int usage, int usage_index, unsigned int &stride, unsigned int &offset, int &type, int &mod) const;
 
   void acquireTexRefs();
   void releaseTexRefs();

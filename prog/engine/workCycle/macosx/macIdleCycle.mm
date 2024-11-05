@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <workCycle/dag_workCycle.h>
 #include <workCycle/dag_delayedAction.h>
 #include <perfMon/dag_statDrv.h>

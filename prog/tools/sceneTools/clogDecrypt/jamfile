@@ -1,4 +1,4 @@
-if $(OS) = NT { Platform  ?= win64 ; }
+PlatformArch_windows ?= x86_64 ;
 Config     = rel ;
 ConsoleExe = yes ;
 
@@ -7,10 +7,7 @@ Location = prog/tools/sceneTools/clogDecrypt ;
 
 TargetType  = exe ;
 Target     ?= clogDecrypt ;
-
-include $(Root)/prog/_jBuild/defaults.jam ;
-if $(Platform) in win64 { OutDir ?= $(Root)/tools/dagor3_cdk/util64 ; }
-if $(Platform) in linux64 macosx { OutDir ?= $(Root)/tools/dagor3_cdk/util-$(Platform) ; }
+if ! $(OutDir) { include $(Root)/prog/tools/tools_setup_outdir_util.jam ; }
 
 logCryptKey ?=
   0x81, 0x18, 0x82, 0x28, 0x83, 0x38, 0x84, 0x48, 0x85, 0x58, 0x86, 0x68, 0x87, 0x78, 0x88, 0x01,

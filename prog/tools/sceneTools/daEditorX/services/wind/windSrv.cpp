@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_WindService.h>
 #include <render/wind/ambientWind.h>
 #include <ioSys/dag_dataBlock.h>
@@ -6,7 +8,7 @@
 #include <oldEditor/de_workspace.h>
 #include <osApiWrappers/dag_direct.h>
 
-// Keep these values in-sync with skyquake/prog/main/weather.cpp
+// Keep these values in-sync with skyquake/prog/render/weather.cpp
 const float MIN_BEAUFORT_SCALE = 0.0f;
 const float MAX_BEAUFORT_SCALE = 12.0f;
 

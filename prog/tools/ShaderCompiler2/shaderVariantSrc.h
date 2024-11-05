@@ -1,9 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 /************************************************************************
   shader variants for compilation
 /************************************************************************/
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef __SHADERVARIANTSRC_H
-#define __SHADERVARIANTSRC_H
 
 #include "shaderVariant.h"
 #include <shaders/dag_shaderCommon.h>
@@ -152,5 +152,3 @@ private:
 };
 } // namespace ShaderVariant
 DAG_DECLARE_RELOCATABLE(ShaderVariant::VariantSrc);
-
-#endif //__SHADERVARIANTSRC_H

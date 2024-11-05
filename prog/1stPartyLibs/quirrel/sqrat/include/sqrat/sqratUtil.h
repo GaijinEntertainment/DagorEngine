@@ -285,7 +285,7 @@ using remove_pointer_t = typename SQRAT_STD::remove_pointer<T>::type;
 template <typename T>
 using remove_const_t = typename SQRAT_STD::remove_const<T>::type;
 
-#if __cplusplus < 201703L
+#if !defined(SQRAT_STD_CPP17)
 template <typename...>
 struct __or;
 
@@ -359,7 +359,7 @@ struct member_function_signature<R (C::*)(A...) volatile const>
   using type = R(A...);
 };
 
-#if (__cplusplus >= 201703L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) // c++17
+#if defined(SQRAT_STD_CPP17)
 
 template <typename C, typename R, typename... A>
 struct member_function_signature<R (C::*)(A...) noexcept>
@@ -385,7 +385,7 @@ struct member_function_signature<R (C::*)(A...) volatile const noexcept>
   using type = R(A...);
 };
 
-#endif // c++17
+#endif // SQRAT_STD_CPP17
 
 template<typename T>
 using member_function_signature_t = typename member_function_signature<T>::type;

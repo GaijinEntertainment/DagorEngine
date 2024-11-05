@@ -52,8 +52,8 @@ Sources =
 	tif_stream.cxx
 ;
 
-if $(Platform) in win32 win64 { Sources += tif_win32.c ; }
-if $(Platform) in linux64 macosx { Sources += tif_unix.c ; }
+if $(Platform) in windows { Sources += tif_win32.c ; }
+if $(Platform) in linux macOS { Sources += tif_unix.c ; }
 
 AddIncludes =
   $(Root)/prog/3rdPartyLibs/image/tiff-4.4.0
@@ -67,6 +67,12 @@ UseProgLibs =
 ;
 
 Copt = ;
-if $(PlatformSpec) in clang clang64 { Copt += -Wno-format-extra-args ; }
+if $(PlatformSpec) = clang { Copt += -Wno-format-extra-args ; }
+
+if ! $(Platform) in windows macOS linux android {
+  if $(PlatformSpec) = clang {
+    Copt += -include stdlib_stub.h ;
+  }
+}
 
 include $(Root)/prog/_jBuild/build.jam ;

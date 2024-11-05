@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/dtx/ddsxPlugin.h>
 #include <libTools/util/conLogWriter.h>
 #include <libTools/util/fileUtils.h>
@@ -205,15 +207,7 @@ int DagorWinMain(bool debugmode)
 
   char start_dir[260];
   dag_get_appmodule_dir(start_dir, sizeof(start_dir));
-#if _TARGET_PC_LINUX
-  int pc = ddsx::load_plugins(String(260, "%s/../bin-linux64/plugins/ddsx", start_dir));
-#elif _TARGET_PC_MACOSX
-  int pc = ddsx::load_plugins(String(260, "%s/../bin-macosx/plugins/ddsx", start_dir));
-#elif _TARGET_64BIT
-  int pc = ddsx::load_plugins(String(260, "%s/../bin64/plugins/ddsx", start_dir));
-#else
-  int pc = ddsx::load_plugins(String(260, "%s/../bin/plugins/ddsx", start_dir));
-#endif
+  int pc = ddsx::load_plugins(String(260, "%s/plugins/ddsx", start_dir));
   if (!quiet)
     printf("Loaded %d plugin(s)\n", pc);
 

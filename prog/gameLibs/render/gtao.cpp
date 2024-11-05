@@ -1,18 +1,25 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/gtao.h>
 #include <render/viewVecs.h>
 #include <render/set_reprojection.h>
-#include <3d/dag_drv3d_multi.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_shaders.h>
 
-#define GLOBAL_VARS_LIST        \
-  VAR(gtao_tex_size)            \
-  VAR(gtao_temporal_directions) \
-  VAR(gtao_temporal_offset)     \
-  VAR(raw_gtao_tex)             \
-  VAR(gtao_prev_tex)            \
-  VAR(gtao_tex)                 \
+#define GLOBAL_VARS_LIST          \
+  VAR(gtao_tex_size)              \
+  VAR(gtao_temporal_directions)   \
+  VAR(gtao_temporal_offset)       \
+  VAR(raw_gtao_tex)               \
+  VAR(raw_gtao_tex_samplerstate)  \
+  VAR(gtao_prev_tex)              \
+  VAR(gtao_prev_tex_samplerstate) \
+  VAR(gtao_tex)                   \
+  VAR(gtao_tex_samplerstate)      \
   VAR(ssao_tex)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
@@ -30,7 +37,7 @@ GTAORenderer::GTAORenderer(int w, int h, int views, uint32_t flags, bool use_own
 
   ShaderGlobal::set_int(gtao_tex_sizeVarId, min(w, h));
 
-  uint32_t cflags = ssao_detail::creation_flags_to_format(flags);
+  uint32_t cflags = ssao_detail::creation_flags_to_format(ssao_detail::consider_shader_assumes(flags));
 
   if (use_own_textures && d3d::should_use_compute_for_image_processing({cflags}))
   {
@@ -57,6 +64,16 @@ GTAORenderer::GTAORenderer(int w, int h, int views, uint32_t flags, bool use_own
   aoRenderer.reset(create_postfx_renderer(gtao_sh_name));
   spatialFilterRenderer.reset(create_postfx_renderer(spatial_filter_sh_name));
   temporalFilterRenderer.reset(create_postfx_renderer(temporal_filter_sh_name));
+
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    smpInfo.border_color = d3d::BorderColor::Color::OpaqueWhite;
+    d3d::SamplerHandle sampler = d3d::request_sampler(smpInfo);
+    ShaderGlobal::set_sampler(raw_gtao_tex_samplerstateVarId, sampler);
+    ShaderGlobal::set_sampler(gtao_prev_tex_samplerstateVarId, sampler);
+    ShaderGlobal::set_sampler(gtao_tex_samplerstateVarId, sampler);
+  }
 }
 
 
@@ -177,8 +194,8 @@ void GTAORenderer::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseT
   const ManagedTex &spatialTex = tmp_tex ? *tmp_tex : gtaoTex[spatialTargetIdx];
 
   Afr &afr = afrs.current();
-  set_reprojection(view_tm, proj_tm, afr.prevWorldPos, afr.prevGlobTm, afr.prevViewVecLT, afr.prevViewVecRT, afr.prevViewVecLB,
-    afr.prevViewVecRB, world_pos);
+  set_reprojection(view_tm, proj_tm, afr.prevProjTm, afr.prevWorldPos, afr.prevGlobTm, afr.prevViewVecLT, afr.prevViewVecRT,
+    afr.prevViewVecLB, afr.prevViewVecRB, world_pos);
 
   ShaderGlobal::set_texture(gtao_texVarId, BAD_TEXTUREID);
   ShaderGlobal::set_texture(raw_gtao_texVarId, BAD_TEXTUREID);

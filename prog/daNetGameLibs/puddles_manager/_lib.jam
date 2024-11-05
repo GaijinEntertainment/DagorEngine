@@ -1,0 +1,5 @@
+if $(HaveRenderer) = yes {
+  gamePulls += daNetGameLibs_puddles_manager_DAS_pull_AOT ;
+  gamePulls += framework_puddles_manager_pull ;
+  UseProgLibs += daNetGameLibs/puddles_manager ;
+}

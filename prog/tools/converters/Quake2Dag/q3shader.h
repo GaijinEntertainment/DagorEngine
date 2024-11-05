@@ -1,6 +1,5 @@
-#ifndef Q3SHADER_H
-
-#define Q3SHADER_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 // ############################################################################
 // ##                                                                        ##
@@ -96,5 +95,3 @@ private:
 
   static QuakeShaderFactory *gSingleton; // global instance of data
 };
-
-#endif

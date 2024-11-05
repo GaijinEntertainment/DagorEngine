@@ -1,0 +1,6 @@
+return {
+  logFirebaseEvent = @(_) null
+  logFirebaseEventWithJson = @(_,__) null
+  setFirebaseUID = @(_) null
+  setFirebaseConsent = @(_) null
+  setCollectionEnabled = @(_) null

@@ -1,0 +1,110 @@
+include "sky_shader_global.dshl"
+include "sq_clouds_shadow.dshl"
+include "radiance_cache_common.dshl"
+include "dagi_rad_grid_common.dshl"
+include "dagi_lit_scene_helper.dshl"
+include "dagi_media_scene_common.dshl"
+include "world_sdf.dshl"
+include "gbuffer.dshl"
+
+hlsl {
+  #include "radiance_cache_common_math.hlsl"
+}
+
+macro NOISE(code)
+  hlsl(code) {
+    #include <pcg_hash.hlsl>
+    //[-0.5 0.5] texel
+    float2 rand3D_radiance_probe(uint3 v, uint2 oct_coord, uint w = RADIANCE_CACHE_RADIANCE_RES, uint frame = 0)
+    {
+      uint3 rand = pcg3d_hash_16bit((v<<3) + uint3(oct_coord, frame));
+      return ((rand.xy&15) - 7.5)/(8*w);
+      return float2(rand.xy*(1./65535)/w - 0.5/w);
+    }
+  }
+endmacro
+
+macro RADIANCE_CACHE_STEP_OUT(code)
+  WORLD_SDF_STEP_OUT(code)
+  hlsl(code) {
+    bool world_sdf_trace_stepOut(inout float3 worldPos, float stepOutSize, float voxelStepOutSize, out int clip)
+    {
+      return world_sdf_step_out(worldPos, clip, stepOutSize, voxelStepOutSize) && world_sdf_step_out(worldPos, clip, stepOutSize, voxelStepOutSize);
+    }
+  }
+endmacro
+
+macro RADIANCE_CACHE_TRACE_PROBE(code)
+  READ_WORLD_SDF(code)
+  RADIANCE_CACHE_STEP_OUT(code)
+  NOISE(code)
+  PROJECT_GET_WORLD_RADIANCE_AT(code)
+  DAGI_RAD_GRID_SAMPLE(code)
+  DAGI_MEDIA_SCENE_SAMPLE(code)
+  hlsl(code) {
+    float3 Round_R11G11B10_FLOAT( float3 rgb )//use rounding when convert to r11g11b10. HW uses truncation, causing yellowish picture
+    {
+      return float3(f16tof32((f32tof16(rgb.xy) +  8) & 0x7FF0), f16tof32((f32tof16(rgb.z) + 16) & 0x7FE0));
+    }
+
+    void traceProbe(int3 probeWorldCoordClip, uint radianceCacheClip, uint2 octCoord, uint frameId, out float3 radiance, out float occluder_distance, uint radiance_res = RADIANCE_CACHE_RADIANCE_RES)
+    {
+      float2 octTC = (octCoord + 0.5)/radiance_res;
+
+      float t = 0;
+      float2 jitteredOctTC = octTC;
+      //uint3 rand = pcg3d_hash_16bit(probeWorldCoordClip.xyz*radiance_res + uint3(octCoord, frame));
+      //fixme: bad pattern. We need some blue noise
+      jitteredOctTC += rand3D_radiance_probe(probeWorldCoordClip.xyz, octCoord, radiance_res, frameId);
+      //jitteredOctTC = (octCoord*4 + (uint2(frameId, frameId>>2)&3) + 0.5)/(4*radiance_res);
+      float3 rayDir = radiance_cache_dir_decode(jitteredOctTC*2-1);
+
+      float3 worldPos = radiance_cache_probe_world_pos_from_abs_coord(probeWorldCoordClip.xyz, radianceCacheClip);
+      float probeSize = radiance_cache_probe_world_size(radianceCacheClip);
+      float maxT = 128.;//fixme: make me parameter
+      #define USE_RADIANCE_GRID 1
+      #if USE_RADIANCE_GRID
+        //sample higher grid if we are inside it
+        //this allows optimize a
+        const float featureToCaptureSize = 4.f; // solid angle of feature (both dark and bright) that we can miss is 1./4 (0.25)
+        //compared to 128 it is still ~16meters, i.e. 8 times less traces, plus additional blurring
+        uint radGridClip = dagi_rad_grid_get_best_enclosing_clip_border(worldPos, 0, featureToCaptureSize + .5f);
+        maxT = radGridClip < dagi_rad_grid_get_clip_count() ? dagi_rad_grid_probe_size(radGridClip)*featureToCaptureSize : maxT;
+      #endif
+
+      //world_sdf_trace_stepOut(worldPos, max(0.125*voxelSize, 0.01), 0.5, startClip);
+      uint sdfStartClip = 0, sdfClip;
+      if (//startClip < MAX_WORLD_SDF_CLIPS &&
+        //world_sdf_step_out(worldPos, sdfStartClip, 0.05, 0.5) &&
+        world_sdf_trace_stepOut(worldPos, max(0.125*probeSize, 0.01), 0.5, sdfStartClip) &&
+        world_sdf_trace_start(sdfStartClip, worldPos, rayDir, maxT, t, sdfClip))
+      {
+        float3 worldPosAt = worldPos + rayDir*t;
+        float3 gradient = world_sdf_sample_gradient(sdfClip, worldPosAt);
+        float gradLen = length(gradient);
+        float3 worldNormal = gradLen > 0 ? -gradient.xzy/gradLen : -rayDir;
+        FLATTEN
+        if (dot(worldNormal, rayDir) > 0)
+          worldNormal = -rayDir;
+        //radiance = dagi_get_radiance_at(worldPosAt - rayDir*min(t, world_sdf_voxel_size(sdfClip)*0.5), worldNormal);
+        radiance = dagi_get_radiance_at(worldPosAt, worldNormal);
+        occluder_distance = t;
+      } else
+      {
+        t = maxT;
+        float3 worldPosAt = worldPos + rayDir*t;
+        #if USE_RADIANCE_GRID
+          if (radGridClip < dagi_rad_grid_get_clip_count())
+            radiance = dagi_trilinear_sample_radiance_grid_cascade_unsafe(radGridClip, rayDir, worldPosAt).xyz;
+          else
+        #endif
+            radiance = dagi_get_sky_radiance_at(worldPosAt, rayDir);
+        occluder_distance = maxT;
+      }
+      half4 light_transmittance = dagi_trace_media_scene(worldPos, rayDir, t);;
+      radiance.xyz = light_transmittance.w*radiance.xyz + light_transmittance.xyz;
+      occluder_distance /= RADIANCE_CACHE_MAX_ENCODED_DIST;
+    }
+  }
+endmacro
+

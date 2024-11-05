@@ -1,0 +1,142 @@
+include_optional "project_dagi_lit_scene_helper.dshl"//for PROJECT_GET_WORLD_RADIANCE_AT
+include "project_light_point.dshl" // for PROJECT_LIGHT_POINT_TRACE_HIT
+include "dagi_albedo_scene_common.dshl"
+include "dagi_lit_scene_voxels.dshl"
+
+define_macro_if_not_defined PROJECT_LIGHT_POINT_TRACE_HIT(code) // when tracing radiance for probe
+  hlsl(code) {
+    float3 project_get_lit_color_at_trace_hit(float3 worldPos, float3 worldNormal, float3 albedo) {return albedo*0.1;}
+  }
+endmacro
+
+define_macro_if_not_defined PROJECT_GET_WORLD_VOXELS_LIT_SCENE_AT(code)
+  DAGI_SAMPLE_VOXEL_LIT_SCENE_INIT(code)
+  DAGI_SAMPLE_VOXEL_LIT_SCENE_USE(code)
+
+  hlsl(code) {
+    //when ray we hit the scene
+    uint3 dagi_lit_scene_atlas_voxels_resolution() {return uint3(dagi_lit_voxel_scene_res.xx, dagi_lit_scene_voxels_full_atlas_res_d());}
+    bool dagi_get_voxels_lit_scene_radiance_at(float3 worldPos, float3 worldNormal, inout float3 radiance)
+    {
+      //fixme add per-project ray hit result (as some of ray hits can return additional info)
+      uint cascade = 0;
+      uint maxCascade = dagi_lit_scene_voxels_clip_count();
+
+      //float oneClipSizeWithBorderInTexels = dagi_lit_voxel_scene_to_sdf_clips.z;
+      //float oneAxisSliceSizeWithBorderInTexels = dagi_lit_voxel_scene_to_sdf_clips.w;
+      //float oneAxisSliceSizeWithoutBorderInTexels = dagi_lit_voxel_scene_res.y;
+      //float fullAtlasSizeInTexels = dagi_lit_scene_voxels_full_atlas_res_d();
+      //float4 lit_scene_to_atlas_decode = float4(oneAxisSliceSizeWithoutBorderInTexels, oneClipSizeWithBorderInTexels, oneAxisSliceSizeWithBorderInTexels, 1) / fullAtlasSizeInTexels;
+      float3 w = worldNormal*worldNormal;
+      float3 coordF;
+      for (;;)
+      {
+        uint sdfCascade = cascade + dagi_lit_scene_voxels_first_sdf_clip();
+        float3 borderVoxelSize = world_sdf_voxel_size(sdfCascade)*(log2(rcp(dagi_lit_voxel_scene_to_sdf.xyx)));//fixme: log2(rcp(const))
+        if (all(and(worldPos > world_sdf_get_lt(sdfCascade)+borderVoxelSize, worldPos < world_sdf_get_rb(sdfCascade)-borderVoxelSize)))
+        {
+          uint axis = 0;
+          float3 tc = world_pos_to_world_sdf_tc(sdfCascade, worldPos);
+          float3 atlasTc = float3(tc.xy, frac(tc.z)*dagi_lit_scene_to_atlas_decode.x + cascade*dagi_lit_scene_to_atlas_decode.y + dagi_lit_scene_to_atlas_decode.w);
+          if (!dagi_lit_scene_voxels_has_anisotropy())
+          {
+            float alpha;
+            alpha = tex3Dlod(dagi_lit_voxel_scene_alpha, float4(atlasTc, 0)).x;
+            if (alpha > 1e-3)
+            {
+              radiance = tex3Dlod(dagi_lit_voxel_scene, float4(atlasTc, 0)).xyz/alpha;
+              return true;
+            }
+          } else
+          {
+            //ambient cube sampling (3 axises from normal)!
+            uint3 axis = dagi_axis_from_normal_signs(worldNormal);
+            float3 alpha;
+            float3 tcZ = axis*dagi_lit_scene_to_atlas_decode.z;
+            alpha.x = tex3Dlod(dagi_lit_voxel_scene_alpha, float4(atlasTc + float3(0,0,tcZ.x), 0)).x;
+            alpha.y = tex3Dlod(dagi_lit_voxel_scene_alpha, float4(atlasTc + float3(0,0,tcZ.y), 0)).x;
+            alpha.z = tex3Dlod(dagi_lit_voxel_scene_alpha, float4(atlasTc + float3(0,0,tcZ.z), 0)).x;
+            alpha = select(w > 0, alpha, float3(0,0,0));
+            if (any(alpha > 1e-4))
+            {
+              w *= alpha > 1e-4;
+              w *= rcp(dot(w, 1));
+              alpha = max(alpha, 1e-4);
+              radiance = tex3Dlod(dagi_lit_voxel_scene, float4(atlasTc + float3(0,0,tcZ.x), 0)).xyz*(w.x/alpha.x)+
+                         tex3Dlod(dagi_lit_voxel_scene, float4(atlasTc + float3(0,0,tcZ.y), 0)).xyz*(w.y/alpha.y)+
+                         tex3Dlod(dagi_lit_voxel_scene, float4(atlasTc + float3(0,0,tcZ.z), 0)).xyz*(w.z/alpha.z);
+              return true;
+            }
+          }
+        }
+        ++cascade;
+        if (cascade >= dagi_lit_scene_voxels_clip_count())
+        {
+          return false;
+        }
+      }
+      //avoid using return from mid function, as dx11 compilers is going crazy about unitialized variables
+      return false;
+    }
+  }
+endmacro
+
+
+define_macro_if_not_defined PROJECT_GET_SKY_RADIANCE_AT(code)
+  (code) { envi_probe_specular@smpCube = envi_probe_specular; }//todo: use pre-averaged octahedral of a reasonable resolution!
+  hlsl(code) {
+    //when ray miss the scene
+    float3 dagi_get_sky_radiance_at(float3 worldPosAt, float3 rayDir)
+    {
+      return texCUBElod(envi_probe_specular, float4(rayDir, 1)).rgb;// todo: better use preintegrated octahedral!
+    }
+  }
+endmacro
+
+define_macro_if_not_defined PROJECT_GET_WORLD_RADIANCE_AT(code)
+  PROJECT_GET_SKY_RADIANCE_AT(code)
+  PROJECT_GET_WORLD_VOXELS_LIT_SCENE_AT(code)
+  DAGI_ALBEDO_SAMPLE(code)
+  PROJECT_LIGHT_POINT_TRACE_HIT(code)
+
+  hlsl(code) {
+    //when ray we hit the scene
+    float3 dagi_get_radiance_at(float3 worldPos, float3 worldNormal)
+    {
+      //fixme add per-project ray hit result (as some of ray hits can return additional info)
+      uint cascade = 0;
+      uint maxCascade = dagi_lit_scene_voxels_clip_count();
+
+      //float oneClipSizeWithBorderInTexels = dagi_lit_voxel_scene_to_sdf_clips.z;
+      //float oneAxisSliceSizeWithBorderInTexels = dagi_lit_voxel_scene_to_sdf_clips.w;
+      //float oneAxisSliceSizeWithoutBorderInTexels = dagi_lit_voxel_scene_res.y;
+      //float fullAtlasSizeInTexels = dagi_lit_scene_voxels_full_atlas_res_d();
+      //float4 lit_scene_to_atlas_decode = float4(oneAxisSliceSizeWithoutBorderInTexels, oneClipSizeWithBorderInTexels, oneAxisSliceSizeWithBorderInTexels, 1) / fullAtlasSizeInTexels;
+      float3 radiance;
+      if (!dagi_get_voxels_lit_scene_radiance_at(worldPos, worldNormal, radiance))
+      {
+        #ifndef DAGI_RADIANCE_AT_SKIP_ALBEDO
+          float3 albedo = DAGI_MISSED_ALBEDO;
+          dagi_sample_albedo_best(worldPos, albedo);
+          radiance = project_get_lit_color_at_trace_hit(worldPos, worldNormal, albedo);
+        #else
+          radiance = DAGI_RADIANCE_AT_SKIP_ALBEDO;
+        #endif
+      }
+      //avoid using return from mid function, as dx11 compilers is going crazy about unitialized variables
+      return radiance;
+    }
+
+    float3 dagi_get_radiance_at_with_albedo(float3 worldPos, float3 worldNormal, float3 albedo)
+    {
+      uint cascade = 0;
+      uint maxCascade = dagi_lit_scene_voxels_clip_count();
+      float3 radiance;
+      if (!dagi_get_voxels_lit_scene_radiance_at(worldPos, worldNormal, radiance))
+        radiance = project_get_lit_color_at_trace_hit(worldPos, worldNormal, albedo);
+      //avoid using return from mid function, as dx11 compilers is going crazy about unitialized variables
+      return radiance;
+    }
+  }
+endmacro
+

@@ -1,0 +1,69 @@
+// .x - update in total of frames
+// .y - old age (how many times should we recalc probe before we consider it old enough)
+// .z multiplier of .x frames - how often we recalc converged probes that are not really used in this frame
+//   beware! 'used' is misleading. It can be stil used this very frame for sampling end ray. It is just not marked this frame.
+// .w - max temporal probes count (approximately get_radiance_cache_total_atlas_size()/.x)
+int4 radiance_cache_temporal_recalc_params;
+
+//.x radiance_cache_current_frame/radiance_cache_temporal_recalc_params.x
+//.y radiance_cache_current_frame%radiance_cache_temporal_recalc_params.x
+//.x (radiance_cache_current_frame/radiance_cache_temporal_recalc_params.x)/radiance_cache_temporal_recalc_params.z
+//.y (radiance_cache_current_frame/radiance_cache_temporal_recalc_params.x)%radiance_cache_temporal_recalc_params.z
+int4 radiance_cache_temporal_recalc_params2;
+buffer new_radiance_cache_probes_needed;
+buffer radiance_cache_selected_temporal_probes;
+
+macro RADIANCE_CACHE_TEMPORAL_RECALC_MATH(code)
+  hlsl(code) {
+    #define RADIANCE_CACHE_TEMPORAL_RECALC_PROBE_INDEX_BITS 20
+    #define RADIANCE_CACHE_TEMPORAL_RECALC_PROBE_INDEX_MASK ((1<<RADIANCE_CACHE_TEMPORAL_RECALC_PROBE_INDEX_BITS) - 1)
+    #define RADIANCE_CACHE_TEMPORAL_RECALC_AGE_SHIFT RADIANCE_CACHE_TEMPORAL_RECALC_PROBE_INDEX_BITS
+    #define RADIANCE_CACHE_TEMPORAL_RECALC_AGE_BITS 6
+    #define RADIANCE_CACHE_TEMPORAL_RECALC_AGE_MASK ((1<<RADIANCE_CACHE_TEMPORAL_RECALC_AGE_BITS)-1)
+    #define RADIANCE_CACHE_TEMPORAL_RECALC_MAX_TEMPORAL_AGE RADIANCE_CACHE_TEMPORAL_RECALC_AGE_MASK
+    #define RADIANCE_CACHE_TEMPORAL_RECALC_FRAME_SHIFT (RADIANCE_CACHE_TEMPORAL_RECALC_AGE_BITS+RADIANCE_CACHE_TEMPORAL_RECALC_PROBE_INDEX_BITS)
+    #define RADIANCE_CACHE_TEMPORAL_RECALC_FRAME_BITS (32 - RADIANCE_CACHE_TEMPORAL_RECALC_FRAME_SHIFT)
+    #define RADIANCE_CACHE_TEMPORAL_RECALC_FRAME_MASK ((1<<RADIANCE_CACHE_TEMPORAL_RECALC_FRAME_BITS)-1)
+    struct EncodedSelectedTemporalRecalcRadianceCacheProbe
+    {
+      uint radianceCacheProbeIndex, temporalAge, currentUpdateFrame;
+    };
+    uint radiance_cache_selected_temporal_buffer_pos(uint i) {return i*4 + 12;}
+    EncodedSelectedTemporalRecalcRadianceCacheProbe radiance_cache_decode_selected_temporal_recalc(uint encodedProbeIndexFrameAge)
+    {
+      EncodedSelectedTemporalRecalcRadianceCacheProbe ret;
+      ret.radianceCacheProbeIndex = encodedProbeIndexFrameAge&RADIANCE_CACHE_TEMPORAL_RECALC_PROBE_INDEX_MASK;
+      ret.temporalAge = (encodedProbeIndexFrameAge>>RADIANCE_CACHE_TEMPORAL_RECALC_AGE_SHIFT)&RADIANCE_CACHE_TEMPORAL_RECALC_AGE_MASK;
+      ret.currentUpdateFrame = encodedProbeIndexFrameAge>>RADIANCE_CACHE_TEMPORAL_RECALC_FRAME_SHIFT;
+      return ret;
+    }
+    uint radiance_cache_encode_selected_temporal_recalc(uint radianceCacheProbeIndex, uint temporalAge, uint currentUpdateFrame)
+    {
+      return radianceCacheProbeIndex |
+        (min(temporalAge, RADIANCE_CACHE_TEMPORAL_RECALC_MAX_TEMPORAL_AGE)<<RADIANCE_CACHE_TEMPORAL_RECALC_AGE_SHIFT) |
+        ((currentUpdateFrame&RADIANCE_CACHE_TEMPORAL_RECALC_FRAME_MASK)<<RADIANCE_CACHE_TEMPORAL_RECALC_FRAME_SHIFT);
+    }
+  }
+endmacro
+
+macro RADIANCE_CACHE_TEMPORAL_RECALC(code)
+  (code)
+  {
+    radiance_cache_temporal_recalc_params@i4 = radiance_cache_temporal_recalc_params;
+    radiance_cache_selected_temporal_probes@buf = radiance_cache_selected_temporal_probes hlsl {
+      ByteAddressBuffer radiance_cache_selected_temporal_probes@buf;
+    }
+  }
+  RADIANCE_CACHE_TEMPORAL_RECALC_MATH(code)
+  hlsl(code)
+  {
+    uint radiance_cache_read_selected_encoded_probe_unsafe(uint i)
+    {
+       return loadBuffer(radiance_cache_selected_temporal_probes, radiance_cache_selected_temporal_buffer_pos(i));
+    }
+    EncodedSelectedTemporalRecalcRadianceCacheProbe radiance_cache_read_selected_temporal_recalc_unsafe(uint i)
+    {
+      return radiance_cache_decode_selected_temporal_recalc(radiance_cache_read_selected_encoded_probe_unsafe(i));
+    }
+  }
+endmacro

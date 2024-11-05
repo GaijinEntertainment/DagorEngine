@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_frustum.h>
 #include <math/dag_vecMathCompatibility.h>
 #include <math/dag_plane3.h>
@@ -220,7 +222,13 @@ int Frustum::testBox(vec4f bmin, vec4f bmax, unsigned int &last_start_plane, uns
 // Frustum::testSweptSphere() tests if the projection of a bounding sphere
 // along the light direction intersects the view frustum.
 
-bool Frustum::testSweptSphere(const Point3 &sc, float sr, const Point3 &sweepDir) const
+bool Frustum::testSweptSphere(const Point3 &sphere_center, float sphere_radius, const Point3 &sweep_dir) const
+{
+  return testSweptSphere(v_ldu(reinterpret_cast<const float *>(&sphere_center)), v_splats(sphere_radius),
+    v_ldu(reinterpret_cast<const float *>(&sweep_dir)));
+}
+
+bool Frustum::testSweptSphere(vec4f sphere_center, vec4f sphere_radius, vec4f sweep_dir) const
 {
   // Algorithm -- get all 12 intersection points of the swept sphere with the view frustum
   // for all points >0, displace sphere along the sweep direction. If the displaced sphere
@@ -254,16 +262,16 @@ bool Frustum::testSweptSphere(const Point3 &sc, float sr, const Point3 &sweepDir
   LOAD_PLANE_SOA(4);
   LOAD_PLANE_SOA(5);
 
-  vec4f sweepDirX = v_splats(sweepDir.x);
-  vec4f sweepDirY = v_splats(sweepDir.y);
-  vec4f sweepDirZ = v_splats(sweepDir.z);
+  vec4f sweepDirX = v_splat_x(sweep_dir);
+  vec4f sweepDirY = v_splat_y(sweep_dir);
+  vec4f sweepDirZ = v_splat_z(sweep_dir);
 
-  vec4f scX = v_splats(sc.x);
-  vec4f scY = v_splats(sc.y);
-  vec4f scZ = v_splats(sc.z);
+  vec4f scX = v_splat_x(sphere_center);
+  vec4f scY = v_splat_y(sphere_center);
+  vec4f scZ = v_splat_z(sphere_center);
 
-  vec4f srSoa = v_splats(sr);
-  vec4f sr11 = v_splats(sr * 1.1f);
+  vec4f srSoa = sphere_radius;
+  vec4f sr11 = v_mul(srSoa, v_splats(1.1f));
 
   vec4f disp03, disp47, disp8b;
   vec4f res03, res47, res8b;

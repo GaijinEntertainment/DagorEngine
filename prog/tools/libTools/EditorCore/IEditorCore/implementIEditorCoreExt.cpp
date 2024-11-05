@@ -1,9 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "implementIEditorCore.h"
 #include <EditorCore/captureCursor.h>
-#include <EditorCore/ec_ObjectEditor.h>
 #include <EditorCore/ec_ObjectCreator.h>
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
 
 #include <shaders/dag_dynSceneRes.h>

@@ -18,59 +18,84 @@ require daslib/macro_boost
 
 
 def operator ?[] ( a : json::JsonValue? == const; key:string ) : JsonValue? const
+    //! Returns the value of the key in the JSON object, if it exists.
     return a != null && a.value is _object ? (a.value as _object)?[key] ?? JVNull() : JVNull()
 
 def operator ?[] ( var a : json::JsonValue? == const; key:string ) : JsonValue?
+    //! Returns the value of the key in the JSON object, if it exists.
     return a != null && a.value is _object ? (a.value as _object)?[key] ?? JVNull() : JVNull()
 
 def operator ?. ( a : json::JsonValue? == const; key:string ) : JsonValue? const
+    //! Returns the value of the key in the JSON object, if it exists.
     return a != null && a.value is _object ? (a.value as _object)?[key] ?? JVNull() : JVNull()
 
 def operator ?. ( var a : json::JsonValue? == const; key:string ) : JsonValue?
+    //! Returns the value of the key in the JSON object, if it exists.
     return a != null && a.value is _object ? (a.value as _object)?[key] ?? JVNull() : JVNull()
 
 def operator ?[] ( a : json::JsonValue? == const; idx:int ) : JsonValue? const
+    //! Returns the value of the index in the JSON array, if it exists.
     return a != null && a.value is _array ? (a.value as _array)?[idx] ?? JVNull() : JVNull()
 
 def operator ?[] ( var a : json::JsonValue? == const; idx:int ) : JsonValue?
+    //! Returns the value of the index in the JSON array, if it exists.
     return a != null && a.value is _array ? (a.value as _array)?[idx] ?? JVNull() : JVNull()
 
 def operator ?? ( a : json::JsonValue?; val:double ) : double
+    //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? a.value as _number : val
 
 def operator ?? ( a : json::JsonValue?; val:float ) : float
+    //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? float(a.value as _number) : val
 
 def operator ?? ( a : json::JsonValue?; val:int8 ) : int8
+    //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? int8(a.value as _number) : val
 
 def operator ?? ( a : json::JsonValue?; val:int16 ) : int16
+    //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? int16(a.value as _number) : val
 
 def operator ?? ( a : json::JsonValue?; val:int ) : int
+    //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? int(a.value as _number) : val
 
 def operator ?? ( a : json::JsonValue?; val:int64 ) : int64
+    //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? int64(a.value as _number) : val
 
 def operator ?? ( a : json::JsonValue?; val:uint8 ) : uint8
+    //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? uint8(a.value as _number) : val
 
 def operator ?? ( a : json::JsonValue?; val:uint16 ) : uint16
+    //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? uint16(a.value as _number) : val
 
 def operator ?? ( a : json::JsonValue?; val:uint ) : uint
+    //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? uint(a.value as _number) : val
 
 def operator ?? ( a : json::JsonValue?; val:uint64 ) : uint64
+    //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? uint64(a.value as _number) : val
 
 def operator ?? ( a : json::JsonValue?; val:bool ) : bool
+    //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _bool ? a.value as _bool : val
 
 def operator ?? ( a : json::JsonValue?; val:string ) : string
+    //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _string ? a.value as _string : val
 
+def operator ?. value ( a : JsonValue? == const ) : JsValue const?
+    //! Returns the value of the JSON object, if it exists.
+    return a . ?. value
+
+def operator ?. value ( var a : JsonValue? == const ) : JsValue?
+    //! Returns the value of the JSON object, if it exists.
+    return a . ?. value
 
 [macro_function]
 def private is_json_ptr_value ( td : TypeDeclPtr )
@@ -142,18 +167,25 @@ class private JsonReader : AstReaderMacro
 [expect_any_enum(ent), template(ent)]
 def from_JV ( v:JsonValue explicit?; ent : auto(EnumT); defV : EnumT = [[EnumT]] ) : EnumT
     //! Parse a JSON value and return the corresponding native value.
-    if v==null || !(v.value is _string)
+    if v==null || !((v.value is _string) || (v.value is _number))
         return defV
-    let name = v.value as _string
-    var res : auto(EnumTT) = [[EnumT]]
-    var ti = typeinfo(rtti_typeinfo type<EnumT>)
-    for ef in *ti.enumType
-        if name==ef.name
-            unsafe
-                res = reinterpret<EnumTT> (ef.value)
-            return res
-    panic("not a valid enumeration {name} in {typeinfo(typename type<EnumT>)}")
-    return res
+    if v.value is _string
+        let name = v.value as _string
+        var res : auto(EnumTT) = [[EnumT]]
+        var ti = typeinfo(rtti_typeinfo type<EnumT>)
+        for ef in *ti.enumType
+            if name==ef.name
+                unsafe
+                    res = reinterpret<EnumTT> (ef.value)
+                return res
+        panic("not a valid enumeration {name} in {typeinfo(typename type<EnumT>)}")
+    else
+        let intValue = int(v.value as _number)
+        for it in each_enum(defV)
+            if intValue == int(it)
+                return it
+        panic("not a valid enumeration {intValue} in {typeinfo(typename type<EnumT>)}")
+    return defV
 
 [generic,template(ent)]
 def from_JV ( var v : JsonValue explicit?; ent:string; defV:string="" )
@@ -298,36 +330,36 @@ def from_JV ( var v:JsonValue explicit?; anything : table< auto(KT);auto(VT) > )
     return <- ret
 
 def from_JV ( var v:JsonValue explicit?; anything : auto(TT) )
-	static_if typeinfo(is_dim anything)
+    static_if typeinfo(is_dim anything)
         var ret : TT[typeinfo(dim anything)]
-		if v==null || !(v.value is _array)
-			return <- ret
-		unsafe
-			var arr & = v.value as _array
-			if arr |> length != typeinfo(dim anything)
-				return <- ret
+        if v==null || !(v.value is _array)
+            return <- ret
+        unsafe
+            var arr & = v.value as _array
+            if arr |> length != typeinfo(dim anything)
+                return <- ret
             for i in 0..typeinfo(dim anything)
                 move_to_ref ( ret[i], _::from_JV(arr[i], decltype_noref(anything[0])) )
-			return <- ret
-	static_elif typeinfo(is_struct anything) || typeinfo(is_tuple anything)
-		var ret : TT
-	    if v==null || !(v.value is _object)
-			return <- ret
-		apply(ret) <| $ ( name:string; var field )
+            return <- ret
+    static_elif typeinfo(is_struct anything) || typeinfo(is_tuple anything)
+        var ret <- [[TT -const()]]
+        if v==null || !(v.value is _object)
+            return <- ret
+        apply(ret) <| $ ( name:string; var field )
             move_to_ref ( field, _::from_JV((v as _object)[name], decltype_noref(field)) )
-		return <- ret
+        return <- ret
     static_elif typeinfo(is_array anything)
         var ret : TT
-		if v==null || !(v.value is _array)
+        if v==null || !(v.value is _array)
             return <- ret
-		unsafe
-			var arr & = v.value as _array
+        unsafe
+            var arr & = v.value as _array
             for i in range(arr |> length)
                 if typeinfo(can_copy anything[0])
                     ret |> push_clone <| _::from_JV(arr[i], decltype_noref(anything[0]))
                 else
                     ret |> emplace <| _::from_JV(arr[i], decltype_noref(anything[0]))
-			return <- ret
+            return <- ret
     static_elif typeinfo(is_variant anything)
         var ret : TT
         if v==null || !(v.value is _object)
@@ -337,10 +369,10 @@ def from_JV ( var v:JsonValue explicit?; anything : auto(TT) )
             return <- ret
         unsafe
             set_variant_index(ret, int(vv.value as _number))
-		apply(ret) <| $ ( name:string; var field )
+        apply(ret) <| $ ( name:string; var field )
             move_to_ref ( field, _::from_JV((v as _object)[name], decltype_noref(field)) )
         return <- ret
-	else
+    else
         concept_assert(false, "unsupported json serialization type. missing 'fromJV")
 
 def JV ( v : float )

@@ -101,6 +101,14 @@ namespace das
     Module_BuiltIn::Module_BuiltIn() : Module("$") {
         DAS_PROFILE_SECTION("Module_Builtin");
         ModuleLibrary lib(this);
+        // lets check maths
+        #if DAS_FAST_INTEGER_MOD
+        {
+            Context dummyContext;
+            volatile int32_t A98 = 98, B98 = 98;
+            DAS_VERIFY(SimPolicy<int32_t>::Mod(A98,B98,dummyContext,nullptr)==0);
+        }
+        #endif
         // max function arguments
         addConstant<int>(*this, "DAS_MAX_FUNCTION_ARGUMENTS", DAS_MAX_FUNCTION_ARGUMENTS);
         // boolean

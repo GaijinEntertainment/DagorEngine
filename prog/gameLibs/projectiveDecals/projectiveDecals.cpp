@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_TMatrix.h>
 #include <math/dag_frustum.h>
 #include <projectiveDecals/projectiveDecals.h>
@@ -6,12 +8,15 @@
 #include <shaders/dag_computeShaders.h>
 #include <math/integer/dag_IPoint4.h>
 #include <3d/dag_quadIndexBuffer.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_resPtr.h>
 
 #include <projectiveDecals/projective_decals_const.hlsli>
+#include <frustumCulling/frustumPlanes.h>
 
-void set_frustum_planes(const Frustum &frustum);
 
 static const int INDICIES_PER_PARTICLE = 6 * 6;
 

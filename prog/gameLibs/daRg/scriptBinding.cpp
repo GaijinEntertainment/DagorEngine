@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "scriptBinding.h"
 #include "guiScene.h"
 #include "dargDebugUtils.h"
@@ -39,6 +41,8 @@
 #include "behaviors/bhvTrackMouse.h"
 #include "behaviors/bhvMoveToArea.h"
 #include "behaviors/bhvProcessPointingInput.h"
+#include "behaviors/bhvProcessGesture.h"
+#include "behaviors/bhvTextAreaEdit.h"
 #include "guiGlobals.h"
 
 #include "scriptUtil.h"
@@ -52,6 +56,7 @@
 
 #include "textLayout.h"
 #include "textUtil.h"
+#include "editableText.h"
 
 #include "dasScripts.h"
 
@@ -59,7 +64,8 @@
 #include <sound/dag_genAudio.h>
 
 #include <sqModules/sqModules.h>
-#include <humanInput/dag_hiXInputMappings.h>
+#include <drv/hid/dag_hiXInputMappings.h>
+#include <gesture/gestureDetector.h>
 
 using namespace sqfrp;
 
@@ -106,16 +112,18 @@ namespace binding
 
 static void register_constants(HSQUIRRELVM vm)
 {
-#define CONST(x)             .Const(#x, x)
-#define EASING(x)            .Const(#x, easing::x)
-#define ELEM_CONST(x)        .Const(#x, Element::x)
-#define MOVE_RESIZE(x)       .Const(#x, BhvMoveResize::x)
-#define PREFORMATTED_FLAG(x) .Const(#x, textlayout::x)
-#define AXIS(x)              .Const(#x, HumanInput::JOY_XINPUT_REAL_##x)
+#define CONST(x)             Const(#x, x)
+#define EASING(x)            Const(#x, easing::x)
+#define ELEM_CONST(x)        Const(#x, Element::x)
+#define MOVE_RESIZE(x)       Const(#x, BhvMoveResize::x)
+#define PREFORMATTED_FLAG(x) Const(#x, textlayout::x)
+#define AXIS(x)              Const(#x, HumanInput::JOY_XINPUT_REAL_##x)
 
   Sqrat::ConstTable constTbl = Sqrat::ConstTable(vm);
   ///@module daRg
-  constTbl CONST(FLOW_PARENT_RELATIVE) CONST(FLOW_HORIZONTAL) CONST(FLOW_VERTICAL)
+  constTbl.CONST(FLOW_PARENT_RELATIVE)
+    .CONST(FLOW_HORIZONTAL)
+    .CONST(FLOW_VERTICAL)
 
     .Const("ALIGN_LEFT", ALIGN_LEFT)
     .Const("ALIGN_TOP", ALIGN_TOP)
@@ -123,211 +131,246 @@ static void register_constants(HSQUIRRELVM vm)
     .Const("ALIGN_BOTTOM", ALIGN_BOTTOM)
     .Const("ALIGN_CENTER", ALIGN_CENTER)
 
-      CONST(VECTOR_WIDTH) CONST(VECTOR_COLOR) CONST(VECTOR_FILL_COLOR) CONST(VECTOR_MID_COLOR) CONST(VECTOR_OUTER_LINE)
-        CONST(VECTOR_CENTER_LINE) CONST(VECTOR_INNER_LINE) CONST(VECTOR_TM_OFFSET) CONST(VECTOR_TM_SCALE) CONST(VECTOR_LINE)
-          CONST(VECTOR_LINE_INDENT_PX) CONST(VECTOR_LINE_INDENT_PCT) CONST(VECTOR_ELLIPSE) CONST(VECTOR_SECTOR) CONST(VECTOR_RECTANGLE)
-            CONST(VECTOR_POLY) CONST(VECTOR_INVERSE_POLY) CONST(VECTOR_OPACITY) CONST(VECTOR_LINE_DASHED) CONST(VECTOR_NOP)
-              CONST(VECTOR_QUADS)
+    .CONST(VECTOR_WIDTH)
+    .CONST(VECTOR_COLOR)
+    .CONST(VECTOR_FILL_COLOR)
+    .CONST(VECTOR_MID_COLOR)
+    .CONST(VECTOR_OUTER_LINE)
+    .CONST(VECTOR_CENTER_LINE)
+    .CONST(VECTOR_INNER_LINE)
+    .CONST(VECTOR_TM_OFFSET)
+    .CONST(VECTOR_TM_SCALE)
+    .CONST(VECTOR_LINE)
+    .CONST(VECTOR_LINE_INDENT_PX)
+    .CONST(VECTOR_LINE_INDENT_PCT)
+    .CONST(VECTOR_ELLIPSE)
+    .CONST(VECTOR_SECTOR)
+    .CONST(VECTOR_RECTANGLE)
+    .CONST(VECTOR_POLY)
+    .CONST(VECTOR_INVERSE_POLY)
+    .CONST(VECTOR_OPACITY)
+    .CONST(VECTOR_LINE_DASHED)
+    .CONST(VECTOR_NOP)
+    .CONST(VECTOR_QUADS)
 
-                CONST(FFT_NONE) CONST(FFT_SHADOW) CONST(FFT_GLOW) CONST(FFT_BLUR) CONST(FFT_OUTLINE)
+    .CONST(FFT_NONE)
+    .CONST(FFT_SHADOW)
+    .CONST(FFT_GLOW)
+    .CONST(FFT_BLUR)
+    .CONST(FFT_OUTLINE)
 
-                  CONST(O_HORIZONTAL) CONST(O_VERTICAL)
+    .CONST(O_HORIZONTAL)
+    .CONST(O_VERTICAL)
 
-                    CONST(TOVERFLOW_CLIP) CONST(TOVERFLOW_CHAR) CONST(TOVERFLOW_WORD) CONST(TOVERFLOW_LINE)
+    .CONST(TOVERFLOW_CLIP)
+    .CONST(TOVERFLOW_CHAR)
+    .CONST(TOVERFLOW_WORD)
+    .CONST(TOVERFLOW_LINE)
 
-                      CONST(DIR_UP) CONST(DIR_DOWN) CONST(DIR_LEFT) CONST(DIR_RIGHT)
+    .CONST(DIR_UP)
+    .CONST(DIR_DOWN)
+    .CONST(DIR_LEFT)
+    .CONST(DIR_RIGHT)
 
     .Const("EVENT_BREAK", GuiScene::EVENT_BREAK)
     .Const("EVENT_CONTINUE", GuiScene::EVENT_CONTINUE)
 
+    .Const("GESTURE_DETECTOR_DRAG", GestureDetector::Type::DRAG)
+    .Const("GESTURE_DETECTOR_PINCH", GestureDetector::Type::PINCH)
+    .Const("GESTURE_DETECTOR_ROTATE", GestureDetector::Type::ROTATE)
+
     ///@const Linear
     /// Easing function for prebuilt animations functions.
-    EASING(Linear)
+    .EASING(Linear)
     ///@const InQuad
     /// Easing function for prebuilt animations functions.
-    EASING(InQuad)
+    .EASING(InQuad)
     ///@const OutQuad
     /// Easing function for prebuilt animations functions.
-    EASING(OutQuad)
+    .EASING(OutQuad)
     ///@const InOutQuad
     /// Easing function for prebuilt animations functions.
-    EASING(InOutQuad)
+    .EASING(InOutQuad)
     ///@const InCubic
     /// Easing function for prebuilt animations functions.
-    EASING(InCubic)
+    .EASING(InCubic)
     ///@const OutCubic
     /// Easing function for prebuilt animations functions.
-    EASING(OutCubic)
+    .EASING(OutCubic)
     ///@const InOutCubic
     /// Easing function for prebuilt animations functions.
-    EASING(InOutCubic)
+    .EASING(InOutCubic)
     ///@const InQuintic
     /// Easing function for prebuilt animations functions.
-    EASING(InQuintic)
+    .EASING(InQuintic)
     ///@const OutQuintic
     /// Easing function for prebuilt animations functions.
-    EASING(OutQuintic)
+    .EASING(OutQuintic)
     ///@const InOutQuintic
     /// Easing function for prebuilt animations functions.
-    EASING(InOutQuintic)
+    .EASING(InOutQuintic)
     ///@const InQuart
     /// Easing function for prebuilt animations functions.
-    EASING(InQuart)
+    .EASING(InQuart)
     ///@const OutQuart
     /// Easing function for prebuilt animations functions.
-    EASING(OutQuart)
+    .EASING(OutQuart)
     ///@const InOutQuart
     /// Easing function for prebuilt animations functions.
-    EASING(InOutQuart)
+    .EASING(InOutQuart)
     ///@const InSine
     /// Easing function for prebuilt animations functions.
-    EASING(InSine)
+    .EASING(InSine)
     ///@const OutSine
     /// Easing function for prebuilt animations functions.
-    EASING(OutSine)
+    .EASING(OutSine)
     ///@const InOutSine
     /// Easing function for prebuilt animations functions.
-    EASING(InOutSine)
+    .EASING(InOutSine)
     ///@const InCirc
     /// Easing function for prebuilt animations functions.
-    EASING(InCirc)
+    .EASING(InCirc)
     ///@const OutCirc
     /// Easing function for prebuilt animations functions.
-    EASING(OutCirc)
+    .EASING(OutCirc)
     ///@const InOutCirc
     /// Easing function for prebuilt animations functions.
-    EASING(InOutCirc)
+    .EASING(InOutCirc)
     ///@const InExp
     /// Easing function for prebuilt animations functions.
-    EASING(InExp)
+    .EASING(InExp)
     ///@const OutExp
     /// Easing function for prebuilt animations functions.
-    EASING(OutExp)
+    .EASING(OutExp)
     ///@const InOutExp
     /// Easing function for prebuilt animations functions.
-    EASING(InOutExp)
+    .EASING(InOutExp)
     ///@const InElastic
     /// Easing function for prebuilt animations functions.
-    EASING(InElastic)
+    .EASING(InElastic)
     ///@const OutElastic
     /// Easing function for prebuilt animations functions.
-    EASING(OutElastic)
+    .EASING(OutElastic)
     ///@const InOutElastic
     /// Easing function for prebuilt animations functions.
-    EASING(InOutElastic)
+    .EASING(InOutElastic)
     ///@const InBack
     /// Easing function for prebuilt animations functions.
-    EASING(InBack)
+    .EASING(InBack)
     ///@const OutBack
     /// Easing function for prebuilt animations functions.
-    EASING(OutBack)
+    .EASING(OutBack)
     ///@const InOutBack
     /// Easing function for prebuilt animations functions.
-    EASING(InOutBack)
+    .EASING(InOutBack)
     ///@const InBounce
     /// Easing function for prebuilt animations functions.
-    EASING(InBounce)
+    .EASING(InBounce)
     ///@const OutBounce
     /// Easing function for prebuilt animations functions.
-    EASING(OutBounce)
+    .EASING(OutBounce)
     ///@const InOutBounce
     /// Easing function for prebuilt animations functions.
-    EASING(InOutBounce)
+    .EASING(InOutBounce)
     ///@const InOutBezier
     /// Easing function for prebuilt animations functions.
-    EASING(InOutBezier)
+    .EASING(InOutBezier)
     ///@const CosineFull
     /// Easing function for prebuilt animations functions.
-    EASING(CosineFull)
+    .EASING(CosineFull)
     ///@const InStep
     /// Easing function for prebuilt animations functions.
-    EASING(InStep)
+    .EASING(InStep)
     ///@const OutStep
     /// Easing function for prebuilt animations functions.
-    EASING(OutStep)
+    .EASING(OutStep)
     ///@const Blink
     /// Easing function for prebuilt animations functions.
-    EASING(Blink)
+    .EASING(Blink)
     ///@const DoubleBlink
     /// Easing function for prebuilt animations functions.
-    EASING(DoubleBlink)
+    .EASING(DoubleBlink)
     ///@const BlinkSin
     /// Easing function for prebuilt animations functions.
-    EASING(BlinkSin)
+    .EASING(BlinkSin)
     ///@const BlinkCos
     /// Easing function for prebuilt animations functions.
-    EASING(BlinkCos)
+    .EASING(BlinkCos)
     ///@const Discrete8
     /// Easing function for prebuilt animations functions.
-    EASING(Discrete8)
+    .EASING(Discrete8)
     ///@const Shake4
     /// Easing function for prebuilt animations functions.
-    EASING(Shake4)
+    .EASING(Shake4)
     ///@const Shake6
     /// Easing function for prebuilt animations functions.
-    EASING(Shake6)
+    .EASING(Shake6)
 
-      ELEM_CONST(S_KB_FOCUS)
+    .ELEM_CONST(S_KB_FOCUS)
     /// State flag for keyboard focus.
-    ELEM_CONST(S_HOVER)
+    .ELEM_CONST(S_HOVER)
     /// state flag for hover with pointing device (mouse)
-    ELEM_CONST(S_TOP_HOVER)
+    .ELEM_CONST(S_TOP_HOVER)
     /// state flag for hover with pointing device (mouse)
-    ELEM_CONST(S_ACTIVE)
+    .ELEM_CONST(S_ACTIVE)
     /// state flag for 'pressed' button.
-    ELEM_CONST(S_MOUSE_ACTIVE)
+    .ELEM_CONST(S_MOUSE_ACTIVE)
     /// state flag for 'pressed' button with mouse.
-    ELEM_CONST(S_KBD_ACTIVE)
+    .ELEM_CONST(S_KBD_ACTIVE)
     /// state flag for 'pressed' button with keyboard.
-    ELEM_CONST(S_HOTKEY_ACTIVE)
+    .ELEM_CONST(S_HOTKEY_ACTIVE)
     /// state flag for 'pressed' button with hotkey.
-    ELEM_CONST(S_TOUCH_ACTIVE)
+    .ELEM_CONST(S_TOUCH_ACTIVE)
     /// state flag for pressed button with touch device.
-    ELEM_CONST(S_JOYSTICK_ACTIVE)
+    .ELEM_CONST(S_JOYSTICK_ACTIVE)
     /// state flag for pressed button with joystick/gamepad device.
-    ELEM_CONST(S_VR_ACTIVE)
+    .ELEM_CONST(S_VR_ACTIVE)
     /// state flag for pressed button with VR controller.
-    ELEM_CONST(S_DRAG)
+    .ELEM_CONST(S_DRAG)
     /// state flag for dragged state.
 
     ///@const MR_NONE
-    /// MOVE_RESIZE Beahvior constants, to define where was point started move or resize
+    /// .MOVE_RESIZE Beahvior constants, to define where was point started move or resize
     /// R(ight), L(eft), B(ottom), T(op). Area is for point in the box (for Move).
-    MOVE_RESIZE(MR_NONE)
+    .MOVE_RESIZE(MR_NONE)
     ///@const MR_T
-    MOVE_RESIZE(MR_T)
+    .MOVE_RESIZE(MR_T)
     ///@const MR_R
-    MOVE_RESIZE(MR_R)
+    .MOVE_RESIZE(MR_R)
     ///@const MR_B
-    MOVE_RESIZE(MR_B)
+    .MOVE_RESIZE(MR_B)
     ///@const MR_L
-    MOVE_RESIZE(MR_L)
+    .MOVE_RESIZE(MR_L)
     ///@const MR_LT
-    MOVE_RESIZE(MR_LT)
+    .MOVE_RESIZE(MR_LT)
     ///@const MR_RT
-    MOVE_RESIZE(MR_RT)
+    .MOVE_RESIZE(MR_RT)
     ///@const MR_LB
-    MOVE_RESIZE(MR_LB)
+    .MOVE_RESIZE(MR_LB)
     ///@const MR_RB
-    MOVE_RESIZE(MR_RB)
+    .MOVE_RESIZE(MR_RB)
     ///@const MR_AREA
-    MOVE_RESIZE(MR_AREA)
+    .MOVE_RESIZE(MR_AREA)
 
     ///@const FMT_NO_WRAP
-    PREFORMATTED_FLAG(FMT_NO_WRAP)
+    .PREFORMATTED_FLAG(FMT_NO_WRAP)
     ///@const FMT_KEEP_SPACES
-    PREFORMATTED_FLAG(FMT_KEEP_SPACES)
+    .PREFORMATTED_FLAG(FMT_KEEP_SPACES)
     ///@const FMT_IGNORE_TAGS
-    PREFORMATTED_FLAG(FMT_IGNORE_TAGS)
+    .PREFORMATTED_FLAG(FMT_IGNORE_TAGS)
     ///@const FMT_HIDE_ELLIPSIS
-    PREFORMATTED_FLAG(FMT_HIDE_ELLIPSIS)
+    .PREFORMATTED_FLAG(FMT_HIDE_ELLIPSIS)
     ///@const FMT_AS_IS
-    PREFORMATTED_FLAG(FMT_AS_IS)
+    .PREFORMATTED_FLAG(FMT_AS_IS)
 
-      CONST(DEVID_KEYBOARD) CONST(DEVID_MOUSE) CONST(DEVID_JOYSTICK) CONST(DEVID_TOUCH) CONST(DEVID_VR)
+    .CONST(DEVID_KEYBOARD)
+    .CONST(DEVID_MOUSE)
+    .CONST(DEVID_JOYSTICK)
+    .CONST(DEVID_TOUCH)
+    .CONST(DEVID_VR)
 
     ///@const KEEP_ASPECT_NONE
-    CONST(KEEP_ASPECT_NONE)
+    .CONST(KEEP_ASPECT_NONE)
     /** @const KEEP_ASPECT_FIT
 For Picture.
 
@@ -335,7 +378,7 @@ Keeps Aspect ratio and fit component size (so there can be fields around picture
 but only in one direction, like on top and bottom or right and left.
 
     */
-    CONST(KEEP_ASPECT_FIT)
+    .CONST(KEEP_ASPECT_FIT)
     /** @const KEEP_ASPECT_FILL
 For Picture.
 
@@ -343,25 +386,26 @@ Keeps Aspect ratio and cover all component size. So image can be outside compone
 (You can clip them with clipChildren = true in component above)
 
     */
-    CONST(KEEP_ASPECT_FILL)
+    .CONST(KEEP_ASPECT_FILL)
     ///@const AXIS_L_THUMB_H
-    AXIS(AXIS_L_THUMB_H)
+    .AXIS(AXIS_L_THUMB_H)
     ///@const AXIS_L_THUMB_V
-    AXIS(AXIS_L_THUMB_V)
+    .AXIS(AXIS_L_THUMB_V)
     ///@const AXIS_R_THUMB_H
-    AXIS(AXIS_R_THUMB_H)
+    .AXIS(AXIS_R_THUMB_H)
     ///@const AXIS_R_THUMB_V
-    AXIS(AXIS_R_THUMB_V)
+    .AXIS(AXIS_R_THUMB_V)
     ///@const AXIS_L_TRIGGER
-    AXIS(AXIS_L_TRIGGER)
+    .AXIS(AXIS_L_TRIGGER)
     ///@const AXIS_R_TRIGGER
-    AXIS(AXIS_R_TRIGGER)
+    .AXIS(AXIS_R_TRIGGER)
     ///@const AXIS_LR_TRIGGER
-    AXIS(AXIS_LR_TRIGGER)
+    .AXIS(AXIS_LR_TRIGGER)
 
-      CONST(XMB_STOP) CONST(XMB_CONTINUE)
+    .CONST(XMB_STOP)
+    .CONST(XMB_CONTINUE)
 
-        CONST(R_PROCESSED);
+    .CONST(R_PROCESSED);
 
   ///@const daRg/SIZE_TO_CONTENT
   script_set_userpointer_to_slot(constTbl, "SIZE_TO_CONTENT", (SQUserPointer)SizeSpec::CONTENT); //-V566
@@ -369,6 +413,7 @@ Keeps Aspect ratio and cover all component size. So image can be outside compone
 #undef CONST
 #undef EASING
 #undef ELEM_CONST
+#undef PREFORMATTED_FLAG
 #undef MOVE_RESIZE
 #undef AXIS
 }
@@ -417,7 +462,8 @@ static void register_anim_props(HSQUIRRELVM vm)
 {
   Sqrat::Table tblAnimProp(vm);
   ///@enum daRg/AnimProp
-  tblAnimProp.SetValue("color", AP_COLOR)
+  tblAnimProp //
+    .SetValue("color", AP_COLOR)
     .SetValue("bgColor", AP_BG_COLOR)
     .SetValue("fgColor", AP_FG_COLOR)
     .SetValue("fillColor", AP_FILL_COLOR)
@@ -428,7 +474,8 @@ static void register_anim_props(HSQUIRRELVM vm)
     .SetValue("translate", AP_TRANSLATE)
     .SetValue("fValue", AP_FVALUE)
     .SetValue("picSaturate", AP_PICSATURATE)
-    .SetValue("brightness", AP_BRIGHTNESS);
+    .SetValue("brightness", AP_BRIGHTNESS)
+    /**/;
   ///@resetscope
   Sqrat::Table(Sqrat::ConstTable(vm)).SetValue("AnimProp", tblAnimProp);
 }
@@ -468,11 +515,23 @@ SQInteger make_size<SizeSpec::FLEX>(HSQUIRRELVM vm)
 }
 
 
-static void register_std_behaviors(HSQUIRRELVM vm)
+static void register_std_behaviors(SqModules *module_mgr)
 {
-  Sqrat::Table tblBhv = Sqrat::Table(Sqrat::ConstTable(vm)).RawGetSlot("Behaviors");
-  if (tblBhv.IsNull())
-    tblBhv = Sqrat::Table(vm);
+  HSQUIRRELVM vm = module_mgr->getVM();
+
+#define REG_BHV_DATA(name) Sqrat::Class<name, Sqrat::NoConstructor<name>> sq##name(vm, #name);
+  REG_BHV_DATA(BhvButtonData)
+  REG_BHV_DATA(BhvPannableData)
+  REG_BHV_DATA(BhvSwipeScrollData)
+  REG_BHV_DATA(BhvPannable2touchData)
+  REG_BHV_DATA(BhvTransitionSizeData)
+  REG_BHV_DATA(BhvMarqueeData)
+  REG_BHV_DATA(BhvSliderData)
+  REG_BHV_DATA(BhvMoveResizeData)
+  REG_BHV_DATA(BhvPieMenuData)
+#undef REG_BHV_DATA
+
+  Sqrat::Table tblBhv(vm);
 
 #define BHV(name, obj) tblBhv.SetValue(#name, (darg::Behavior *)&obj);
   ///@table daRg/Behaviors
@@ -516,9 +575,28 @@ static void register_std_behaviors(HSQUIRRELVM vm)
   BHV(LatencyBar, bhv_latency_bar)
   ///@const OverlayTransparency
   BHV(OverlayTransparency, bhv_overlay_transparency)
-  ///@const BoundToArea
+  /** @const BoundToArea
+    place object inside an area (like placing tooltip under cursor BUT inside screen)
+  */
   BHV(BoundToArea, bhv_bound_to_area)
-  ///@const Movie
+  /** @const Movie
+
+    fields in component description:
+
+    @code:
+      movie:string = <path to movie file in .ivf file format>
+      loop:boolean = default true. Should video be looped
+      sound:string = path to .mp3 sound file. By default movie file with .mp3 added (like "<video_file_name_with_ext>.mp3".).
+      enableSound:boolean = default true. Will play sound if sound track exists. Note: sound is not synced with video.
+      onStart: function  = optional callback, called when movie started
+      onError: function = optional callback, called when playback failed to start
+      onFinish: function = optional callback, called when movie finished/terminated (can be used to remove it from layout)
+    code@
+
+    @note
+      Note: sound is played only for one-shot video.
+    note@
+  */
   BHV(Movie, bhv_movie)
   ///@const Parallax
   BHV(Parallax, bhv_parallax)
@@ -532,12 +610,39 @@ static void register_std_behaviors(HSQUIRRELVM vm)
   BHV(MoveToArea, bhv_move_to_area)
   ///@const ProcessPointingInput
   BHV(ProcessPointingInput, bhv_process_pointing_input)
+  ///@const ProcessGesture
+  BHV(ProcessGesture, bhv_process_gesture)
   ///@const EatInput
   BHV(EatInput, bhv_eat_input)
+  ///@const TextAreaEdit
+  BHV(TextAreaEdit, bhv_text_area_edit)
 
 #undef BHV
   ///@resetscope
-  Sqrat::Table(Sqrat::ConstTable(vm)).SetValue("Behaviors", tblBhv);
+
+  module_mgr->addNativeModule("daRg.behaviors", tblBhv);
+}
+
+static SQInteger resolve_button(HSQUIRRELVM vm)
+{
+  GuiScene *scene = GuiScene::get_from_sqvm(vm);
+  const Hotkeys &hotkeys = scene->getHotkeys();
+
+  const char *btnStr = nullptr;
+  sq_getstring(vm, 2, &btnStr);
+
+  HotkeyButton btn = hotkeys.resolveButton(btnStr);
+  if (btn.devId == DEVID_NONE)
+    return 0;
+
+  sq_newtableex(vm, 2);
+  sq_pushstring(vm, "devId", 5);
+  sq_pushinteger(vm, btn.devId);
+  G_VERIFY(SQ_SUCCEEDED(sq_rawset(vm, -3)));
+  sq_pushstring(vm, "btnId", 5);
+  sq_pushinteger(vm, btn.btnId);
+  G_VERIFY(SQ_SUCCEEDED(sq_rawset(vm, -3)));
+  return 1;
 }
 
 
@@ -699,32 +804,36 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
   G_ASSERT(sqvm == exports.GetVM());
 
   ///@class daRg/ScrollHandler
-  Sqrat::DerivedClass<ScrollHandler, BaseObservable> scrollHandler(sqvm, "ScrollHandler");
-  scrollHandler.SquirrelCtor(scrollhandler_ctor, 1, "x")
+  Sqrat::DerivedClass<ScrollHandler, BaseObservable, Sqrat::NoCopy<ScrollHandler>> scrollHandler(sqvm, "ScrollHandler");
+  scrollHandler //
+    .SquirrelCtor(scrollhandler_ctor, 1, "x")
     .Func("scrollToX", &ScrollHandler::scrollToX)
     .Func("scrollToY", &ScrollHandler::scrollToY)
     .Func("scrollToChildren", &ScrollHandler::scrollToChildren)
-    .Prop("elem", &ScrollHandler::getElem);
+    .Prop("elem", &ScrollHandler::getElem)
+    /**/;
 
   ///@class daRg/JoystickAxisObservable
   Sqrat::DerivedClass<JoystickAxisObservable, BaseObservable> joyAxisObservable(sqvm, "JoystickAxisObservable");
-  joyAxisObservable.Prop("value", &JoystickAxisObservable::getValue)
+  joyAxisObservable //
+    .Prop("value", &JoystickAxisObservable::getValue)
     .Var("resolution", &JoystickAxisObservable::resolution)
-    .Var("deadzone", &JoystickAxisObservable::deadzone);
+    .Var("deadzone", &JoystickAxisObservable::deadzone)
+    /**/;
 
   ///@class daRg/ElemGroup
-  Sqrat::Class<ElemGroup> elemGroup(sqvm, "ElemGroup");
+  Sqrat::Class<ElemGroup, Sqrat::NoCopy<ElemGroup>> elemGroup(sqvm, "ElemGroup");
 
   ///@class daRg/Behavior
   Sqrat::Class<Behavior, Sqrat::NoConstructor<Behavior>> behaviorClass(sqvm, "Behavior");
 
   ///@class daRg/Picture
-  Sqrat::Class<Picture> pictureClass(sqvm, "Picture");
+  Sqrat::Class<Picture, Sqrat::NoCopy<Picture>> pictureClass(sqvm, "Picture");
   pictureClass.SquirrelCtor(picture_script_ctor<Picture>, 0, ".o|s");
 
   ///@class daRg/Immediate
   ///@extends Picture
-  Sqrat::DerivedClass<PictureImmediate, Picture> immediatePictureClass(sqvm, "PictureImmediate");
+  Sqrat::DerivedClass<PictureImmediate, Picture, Sqrat::NoCopy<PictureImmediate>> immediatePictureClass(sqvm, "PictureImmediate");
   immediatePictureClass.SquirrelCtor(picture_script_ctor<PictureImmediate>, 0, ".o|s");
 
   ///@class daRg/FormattedText
@@ -748,9 +857,18 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
 
   ///@class daRg/MouseClickEventData
   Sqrat::Class<MouseClickEventData, Sqrat::DefaultAllocator<MouseClickEventData>> sqMouseClickEventData(sqvm, "MouseClickEventData");
-#define V(n) .Var(#n, &MouseClickEventData::n)
-  sqMouseClickEventData V(screenX) V(screenY) V(button) V(ctrlKey) V(shiftKey) V(altKey) V(devId) V(target).Prop("targetRect",
-    &MouseClickEventData::getTargetRect);
+#define V(n) Var(#n, &MouseClickEventData::n)
+  sqMouseClickEventData //
+    .V(screenX)
+    .V(screenY)
+    .V(button)
+    .V(ctrlKey)
+    .V(shiftKey)
+    .V(altKey)
+    .V(devId)
+    .V(target)
+    .Prop("targetRect", &MouseClickEventData::getTargetRect)
+    /**/;
 #undef V
 
   ///@class daRg/HotkeyEventData
@@ -764,23 +882,14 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
   Sqrat::Class<AllTransitionsConfig> sqTransitAll(sqvm, "TransitAll");
   sqTransitAll.Ctor<const Sqrat::Object &>();
 
-#define REG_BHV_DATA(name) Sqrat::Class<name, Sqrat::NoConstructor<name>> sq##name(sqvm, #name);
-  REG_BHV_DATA(BhvButtonData)
-  REG_BHV_DATA(BhvPannableData)
-  REG_BHV_DATA(BhvSwipeScrollData)
-  REG_BHV_DATA(BhvPannable2touchData)
-  REG_BHV_DATA(BhvTransitionSizeData)
-  REG_BHV_DATA(BhvMarqueeData)
-  REG_BHV_DATA(BhvSliderData)
-  REG_BHV_DATA(BhvMoveResizeData)
-  REG_BHV_DATA(BhvPieMenuData)
-#undef REG_BHV_DATA
+  EditableText::bind_script(exports);
 
   ///@class daRg/MoveToAreaTarget
   Sqrat::Class<BhvMoveToAreaTarget> sqBhvMoveToAreaTarget(sqvm, "BhvMoveToAreaTarget");
-  sqBhvMoveToAreaTarget // comments to supress clang-format and allow qdox to generate doc
+  sqBhvMoveToAreaTarget //
     .Func("set", &BhvMoveToAreaTarget::set)
-    .Func("clear", &BhvMoveToAreaTarget::clear);
+    .Func("clear", &BhvMoveToAreaTarget::clear)
+    /**/;
 
   exports.Bind("ElemGroup", elemGroup);
   exports.Bind("ScrollHandler", scrollHandler);
@@ -789,7 +898,8 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
   exports.Bind("TransitAll", sqTransitAll);
   exports.Bind("MoveToAreaTarget", sqBhvMoveToAreaTarget);
   ///@module daRg
-  exports.SquirrelFunc("Color", encode_e3dcolor, -4, ".nnnn")
+  exports //
+    .SquirrelFunc("Color", encode_e3dcolor, -4, ".nnnn")
     .Func("sw", calc_screen_w_percent)
     .Func("sh", calc_screen_h_percent)
     .SquirrelFunc("flex", make_size<SizeSpec::FLEX>, -1, ".n")
@@ -801,6 +911,7 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
     .SquirrelFunc("locate_element_source", locate_element_source, 2, ".x")
     .SquirrelFunc("get_element_info", get_element_info, 2, ".x")
     .SquirrelFunc("get_font_metrics", get_font_metrics, -2, ".i")
+    .SquirrelFunc("resolve_button", resolve_button, 2, ".s")
     /**
     @param fontId i
     @param fontHt f : optional, default is _def_fontHt font height set in font
@@ -820,18 +931,19 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
     .Func("setFontDefHt", sq_set_def_font_ht)
     .Func("getFontDefHt", sq_get_def_font_ht)
     .Func("getFontInitialHt", sq_get_initial_font_ht)
-    .SquirrelFunc("calc_str_box", calc_str_box, -2, ". s|t|c t|c|o");
-  /**
-    @param element_or_text s|c|t : should be string of text or darg component description with 'text' in it
-    @param element_or_style t|c|o : optional, if first element is text, it should be provided with font properties
-    @return a : return array of two objects with width and height of text
-  */
+    .SquirrelFunc("calc_str_box", calc_str_box, -2, ". s|t|c t|c|o")
+    /**
+      @param element_or_text s|c|t : should be string of text or darg component description with 'text' in it
+      @param element_or_style t|c|o : optional, if first element is text, it should be provided with font properties
+      @return a : return array of two objects with width and height of text
+    */
+    /**/;
 
   register_constants(sqvm);
   register_fonts(exports);
   register_anim_props(sqvm);
 
-  register_std_behaviors(sqvm);
+  register_std_behaviors(module_mgr);
 
   register_rendobj_script_ids(sqvm);
 

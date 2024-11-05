@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #if !_TARGET_ANDROID
 !compile error;
 #endif
@@ -12,6 +14,7 @@
 #include <unistd.h>
 
 char debug_internal::dbgFilepath[DAGOR_MAX_PATH];
+static char logDirPath[DAGOR_MAX_PATH];
 
 using namespace debug_internal;
 
@@ -61,29 +64,32 @@ static void rotate_debug_files(const char *debugPath, const int count)
 void setup_debug_system(const char *exe_fname, const char *prefix, bool datetime_name, const size_t rotatedCount)
 {
 #if DAGOR_FORCE_LOGS && DAGOR_DBGLEVEL == 0
+  const char *logFilename = "debug.clog";
   crypt_debug_setup(get_dagor_log_crypt_key(), 60 << 20 /* MAX_LOGS_FILE_SIZE */);
+#else
+  const char *logFilename = "debug";
 #endif
 
   char lastDbgPath[DAGOR_MAX_PATH];
   memset(dbgFilepath, 0, sizeof(dbgFilepath));
-  char buf[1024];
   prefix = prefix ? prefix : "";
 
   SNPRINTF(lastDbgPath, sizeof(lastDbgPath), "%s/logs/last_debug", prefix);
-  SNPRINTF(buf, sizeof(buf), "%s/logs/%s", prefix, dd_get_fname(exe_fname));
+  SNPRINTF(logDirPath, sizeof(logDirPath), "%s/logs/%s", prefix, dd_get_fname(exe_fname));
 
   if (datetime_name)
   {
     DagorDateTime t;
     get_local_time(&t);
-    int sb = i_strlen(buf);
-    SNPRINTF(buf + sb, sizeof(buf) - sb - 1, "-%04d.%02d.%02d-%02d.%02d.%02d", t.year, t.month, t.day, t.hour, t.minute, t.second);
+    int sb = i_strlen(logDirPath);
+    SNPRINTF(logDirPath + sb, sizeof(logDirPath) - sb - 1, "-%04d.%02d.%02d-%02d.%02d.%02d", t.year, t.month, t.day, t.hour, t.minute,
+      t.second);
   }
   else
   {
-    rotate_debug_files(buf, rotatedCount);
+    rotate_debug_files(logDirPath, rotatedCount);
   }
-  SNPRINTF(dbgFilepath, DAGOR_MAX_PATH, "%s/debug", buf);
+  SNPRINTF(dbgFilepath, DAGOR_MAX_PATH, "%s/%s", logDirPath, logFilename);
   dd_mkpath(dbgFilepath);
   dd_mkpath(lastDbgPath);
   FILE *fp2 = fopen(lastDbgPath, "wt");
@@ -119,7 +125,7 @@ void setup_debug_system(const char *exe_fname, const char *prefix, bool datetime
 }
 
 const char *debug_internal::get_logfilename_for_sending() { return dbgFilepath; }
-const char *debug_internal::get_logging_directory() { return ""; }
+const char *debug_internal::get_logging_directory() { return logDirPath; }
 
 
 #ifdef __cplusplus

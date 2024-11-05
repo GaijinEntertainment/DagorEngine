@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "emitters.h"
 #include "context.h"
 #include <math/random/dag_random.h>
@@ -216,18 +218,23 @@ void update_emitters(Context &ctx, float dt, int begin_sid, int end_sid)
   TIME_PROFILE(dafx_update_emitters);
   InstanceGroups &stream = ctx.instances.groups;
 
-  const uint32_t reqFlags = SYS_ENABLED | SYS_EMITTER_REQ;
   for (int i = begin_sid; i < end_sid; ++i)
   {
     uint32_t &flags = stream.get<INST_FLAGS>(i);
 
-    if ((flags & reqFlags) != reqFlags)
+    if (!(flags & SYS_ENABLED))
       continue;
 
     G_FAST_ASSERT(flags & SYS_VALID);
     stat_inc(ctx.stats.updateEmitters);
 
     EmitterState &emitter = stream.get<INST_EMITTER_STATE>(i);
+    if (emitter.globalLifeLimitRef > 0)
+      emitter.globalLifeLimit -= dt;
+
+    if (!(flags & SYS_EMITTER_REQ))
+      continue;
+
     float ldt = dt * emitter.totalTickRate;
 
     InstanceState &instState = stream.get<INST_ACTIVE_STATE>(i);
@@ -235,9 +242,6 @@ void update_emitters(Context &ctx, float dt, int begin_sid, int end_sid)
 
     int spawnStep = 0;
     int shrinkStep = 0;
-
-    if (emitter.globalLifeLimitRef > 0)
-      emitter.globalLifeLimit -= dt;
 
     bool allowSpawn = ldt > 0 && emitter.globalLifeLimit >= 0;
 
@@ -270,36 +274,29 @@ void update_emitters(Context &ctx, float dt, int begin_sid, int end_sid)
       if (allowSpawn && (distSq > emitter.distSq || spawnStep > 0))
       {
         lp = np;
-        spawnStep = max(spawnStep, int(sqrtf(distSq) / emitter.dist));
+        int distSpawnStep = int(sqrtf(distSq) / emitter.dist);
+        spawnStep = max(spawnStep, ctx.app_was_inactive ? min(distSpawnStep, 1) : distSpawnStep);
 
-        for (int j = 0; j < spawnStep; ++j)
-          emitter.timeStamps.push(emitter.generation);
+        emitter.timeStamps.get_container().resize(emitter.timeStamps.size() + spawnStep, emitter.generation);
 
         emitter.spawnTick = 0;
       }
 
       // shrink
-      while (!emitter.timeStamps.empty())
-      {
-        float g = emitter.timeStamps.front();
-        if ((g + emitter.lifeLimit) < emitter.generation)
-        {
-          emitter.timeStamps.pop();
-          shrinkStep++;
-        }
-        else
-        {
-          break;
-        }
-      }
+      auto firstToNotDelete = eastl::find_if(emitter.timeStamps.get_container().begin(), emitter.timeStamps.get_container().end(),
+        [&emitter](float g) { return g + emitter.lifeLimit >= emitter.generation; });
+      shrinkStep = firstToNotDelete - emitter.timeStamps.get_container().begin();
+      emitter.timeStamps.get_container().erase(emitter.timeStamps.get_container().begin(), firstToNotDelete);
 
       // force shrink if we are over the limit
       int overLimit = (instState.aliveCount + spawnStep - shrinkStep) - instState.aliveLimit;
       if (overLimit > 0)
       {
         shrinkStep += overLimit;
-        for (int i = 0, ie = min(overLimit, (int)emitter.timeStamps.size()); i < ie; ++i)
-          emitter.timeStamps.pop();
+        int stampsIntSize = emitter.timeStamps.size();
+        int deleteNum = min(overLimit, stampsIntSize);
+        emitter.timeStamps.get_container().erase(emitter.timeStamps.get_container().begin(),
+          emitter.timeStamps.get_container().begin() + deleteNum);
       }
     }
 
@@ -320,8 +317,7 @@ void update_emitters(Context &ctx, float dt, int begin_sid, int end_sid)
       emitter.shrinkTick = emitter.shrinkTickRef;
       allowSpawn = false;
 
-      while (!emitter.timeStamps.empty())
-        emitter.timeStamps.pop();
+      emitter.timeStamps.get_container().clear();
     }
 
     // if emitter cannot emit then finish early

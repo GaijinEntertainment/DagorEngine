@@ -1,5 +1,4 @@
-#ifndef __GAIJIN_EDITORCORE_EC_I_OBJECT_CREATOR_H__
-#define __GAIJIN_EDITORCORE_EC_I_OBJECT_CREATOR_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <math/dag_TMatrix.h>
@@ -86,5 +85,3 @@ protected:
   bool stateFinished;
   bool stateOk;
 };
-
-#endif //__GAIJIN_EDITORCORE_EC_I_OBJECT_CREATOR_H__

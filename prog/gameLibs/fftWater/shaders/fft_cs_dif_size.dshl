@@ -1,11 +1,15 @@
 include "fft_cs_defaults.dshl"
 include "fft_cs_compression.dshl"
 
+const_buffer fft_water_cbuffer;
+
 macro CBUFFER()
-  hlsl(cs) {
-    cbuffer MyConstantBuffer : register(b0) 
-    {
-      #include <fft_water_cbuffer.hlsl>
+  (cs) {
+    water_cbuffer@cbuf = fft_water_cbuffer hlsl {
+      cbuffer water_cbuffer@cbuf
+      {
+        #include <fft_water_cbuffer.hlsl>
+      }
     }
   }
 endmacro
@@ -180,8 +184,10 @@ shader fftH_cs, fftV_cs, fftH_cs_android, fftV_cs_android
         }
       }
 
+      ##assert(m_resolution <= CS_MAX_FFT_RESOLUTION);
+
       [unroll(MAX_FFT_RESOLUTION_SHIFT-WARP_WIDTH_SHIFT)] // log2(MAX_FFT_RESOLUTION) - log2(WARP_WIDTH)
-      for(uint stride = WARP_WIDTH; stride < m_resolution; stride <<= 1, scale *= 0.5f)
+      for(uint stride = WARP_WIDTH; stride < min(m_resolution, CS_MAX_FFT_RESOLUTION); stride <<= 1, scale *= 0.5f)
       {
         if(threadIdx < m_half_resolution)
         {

@@ -134,6 +134,8 @@ string      <MAIN> ==> string;
 'blend_adst' <MAIN> => blend_adst;
 'blend_src' <MAIN> => blend_src;
 'blend_dst' <MAIN> => blend_dst;
+'blend_op' <MAIN> => blend_op;
+'blend_aop' <MAIN> => blend_aop;
 'channel' <MAIN> => channel;
 'int4' <MAIN> => int4;
 'float4x4' <MAIN> => float4x4;
@@ -165,6 +167,8 @@ string      <MAIN> ==> string;
 'metaliOS' <MAIN> => metaliOS;
 'fsh_4_0' <MAIN> => fsh_4_0;
 'fsh_5_0' <MAIN> => fsh_5_0;
+'fsh_6_0' <MAIN> => fsh_6_0;
+'fsh_6_6' <MAIN> => fsh_6_6;
 'bindless' <MAIN> => bindless;
 'globtm' <MAIN> => globtm;
 'projtm' <MAIN> => projtm;
@@ -204,6 +208,7 @@ string      <MAIN> ==> string;
 'sampler' <MAIN> => sampler;
 'buffer' <MAIN> => buffer;
 'const_buffer' <MAIN> => const_buffer;
+'tlas' <MAIN> => tlas;
 'render_stage' <MAIN> => render_stage;
 'render_trans' <MAIN> => render_trans;
 'true' <MAIN> => _true;
@@ -266,6 +271,8 @@ keyword ->
   'blend_adst' |
   'blend_src' |
   'blend_dst' |
+  'blend_op' |
+  'blend_aop' |
   'channel' |
   'int4' |
   'float4x4' |
@@ -297,6 +304,8 @@ keyword ->
   'ps5' |
   'fsh_4_0' |
   'fsh_5_0' |
+  'fsh_6_0' |
+  'fsh_6_6' |
   'bindless' |
   'globtm' |
   'projtm' |
@@ -342,6 +351,7 @@ keyword ->
   'sampler' |
   'buffer' |
   'const_buffer' |
+  'tlas' |
   'render_stage' |
   'render_trans' |
   'true' |
@@ -444,7 +454,7 @@ code_in_token_enum={
 code_in_class            = {
 private:
   bool were_errors;
-  int make_error(char *e);
+  int make_error(const char *e);
   int braceCount;
 
 public:
@@ -486,9 +496,9 @@ code_in_cpp              = {
 #define SHTOK_TerminalError TerminalError
 #define SHTOK_TerminalEOF TerminalEOF
 
-#define copy(from,start_pos,end_pos,to) to.insert(to.end(),&from[start_pos],&from[end_pos])
+#define copy(from,start_pos,end_pos,to) to.insert(to.end(),from.begin() + start_pos,from.begin() + end_pos)
 
-int ShaderLexParser::make_error(char *e) {
+int ShaderLexParser::make_error(const char *e) {
   were_errors=true;
   set_error(get_cur_file(),get_cur_line(),get_cur_column(),e);
   return SHTOK_TerminalError;

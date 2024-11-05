@@ -1,4 +1,11 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <shaders/dag_computeShaders.h>
 #include <render/smokeTracers.h>
 #include <gameRes/dag_stdGameRes.h>
@@ -6,14 +13,13 @@
 #include <ioSys/dag_dataBlock.h>
 #include <perfMon/dag_statDrv.h>
 #include <workCycle/dag_workCycle.h>
+#include <frustumCulling/frustumPlanes.h>
 
 #define GLOBAL_VARS_LIST VAR(smoke_trace_current_time)
 
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_VARS_LIST
 #undef VAR
-
-void set_frustum_planes(const Frustum &frustum);
 
 void SmokeTracerManager::updateAlive()
 {

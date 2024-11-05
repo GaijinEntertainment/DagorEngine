@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "../av_plugin.h"
@@ -5,7 +6,7 @@
 
 #include <EditorCore/ec_interface.h>
 
-#include <propPanel2/c_control_event_handler.h>
+#include <propPanel/c_control_event_handler.h>
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_index16.h>
 
@@ -14,7 +15,7 @@ class BaseTexture;
 class GeomNodeTree;
 
 
-class NodesPlugin : public IGenEditorPlugin, public ControlEventHandler
+class NodesPlugin : public IGenEditorPlugin, public PropPanel::ControlEventHandler
 {
 public:
   enum PresentationType
@@ -60,12 +61,12 @@ public:
 
   virtual bool supportAssetType(const DagorAsset &asset) const;
 
-  virtual void fillPropPanel(PropertyContainerControlBase &panel);
+  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel);
   virtual void postFillPropPanel() {}
 
   // ControlEventHandler
-  virtual void onChange(int pid, PropertyContainerControlBase *panel);
-  virtual void onClick(int pcb_id, PropertyContainerControlBase *panel) override;
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl *panel);
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
   void handleViewportPaint(IGenViewportWnd *wnd)
@@ -92,6 +93,6 @@ private:
 
   void drawObjects(IGenViewportWnd *wnd);
 
-  void applyMask(int index, PropertyContainerControlBase *panel);
-  void updateAllMaskFilters(PropertyContainerControlBase *panel);
+  void applyMask(int index, PropPanel::ContainerPropertyControl *panel);
+  void updateAllMaskFilters(PropPanel::ContainerPropertyControl *panel);
 };

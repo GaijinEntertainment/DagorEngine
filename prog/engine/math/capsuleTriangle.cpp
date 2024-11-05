@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <vecmath/dag_vecMath.h>
 #include "math/dag_capsuleTriangle.h"
 #include "math/dag_capsuleTriangleCached.h"
@@ -135,7 +137,7 @@ bool clipCapsuleTriangle(const Capsule &c, Point3 &cp1, Point3 &cp2, real &md, c
   real d0 = _d0, d1 = _d1;
   real dmin = (d1 - d0) * t0 + d0;
   real dmax = (d1 - d0) * t1 + d0;
-  // debug_ctx ( "dmin=%.3f dmax=%.3f, c.r=%.3f md=%.3f, t0=%.3f, t1=%.3f", dmin, dmax, c.r, md, t0, t1 );
+  // DEBUG_CTX("dmin=%.3f dmax=%.3f, c.r=%.3f md=%.3f, t0=%.3f, t1=%.3f", dmin, dmax, c.r, md, t0, t1);
   if (dmin <= -c.r)
   {
     if (dmax <= -c.r)
@@ -331,7 +333,7 @@ bool clipCapsuleTriangleCached(const Capsule &c, Point3 &cp1, Point3 &cp2, real 
   real d0 = _d0, d1 = _d1;
   real dmin = (d1 - d0) * t0 + d0;
   real dmax = (d1 - d0) * t1 + d0;
-  // debug_ctx ( "dmin=%.3f dmax=%.3f, c.r=%.3f md=%.3f, t0=%.3f, t1=%.3f", dmin, dmax, c.r, md, t0, t1 );
+  // DEBUG_CTX("dmin=%.3f dmax=%.3f, c.r=%.3f md=%.3f, t0=%.3f, t1=%.3f", dmin, dmax, c.r, md, t0, t1);
   if (dmin <= -c.r)
   {
     if (dmax <= -c.r)
@@ -502,13 +504,6 @@ bool test_capsule_triangle_intersection(const Capsule &capsule, const TriangleFa
 VECTORCALL bool test_capsule_triangle_intersection(vec3f from, vec3f dir, vec3f v0, vec3f v1, vec3f v2, float radius, float &t,
   vec3f &out_norm, vec3f &out_pos, bool no_cull)
 {
-  // fast bounding check
-  vec3f center = v_mul(v_add(v0, v_add(v1, v2)), v_splats(1.f / 3.f));
-  vec4f rad = v_length3_sq_x(v_sub(center, v0));
-  vec4f extRad = v_add_x(v_set_x(radius), rad);
-  if (!v_test_ray_sphere_intersection(from, dir, v_splats(t), center, v_mul_x(extRad, extRad)))
-    return false;
-
   int col = -1;
   vec3f edge0 = v_sub(v1, v0);
   vec3f edge1 = v_sub(v2, v0);
@@ -636,13 +631,6 @@ VECTORCALL bool test_capsule_triangle_intersection(vec3f from, vec3f dir, vec3f 
 
 VECTORCALL bool test_capsule_triangle_hit(vec3f from, vec3f dir, vec3f v0, vec3f v1, vec3f v2, float radius, float t, bool no_cull)
 {
-  // fast bounding check
-  vec3f center = v_mul(v_add(v0, v_add(v1, v2)), v_splats(1.f / 3.f));
-  vec4f rad = v_length3_sq_x(v_sub(center, v0));
-  vec4f extRad = v_add_x(v_set_x(radius), rad);
-  if (!v_test_ray_sphere_intersection(from, dir, v_splats(t), center, v_mul_x(extRad, extRad)))
-    return false;
-
   vec3f edge0 = v_sub(v1, v0);
   vec3f edge1 = v_sub(v2, v0);
   vec3f vNorm = v_norm3(v_cross3(edge1, edge0));

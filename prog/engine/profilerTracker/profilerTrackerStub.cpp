@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <3d/dag_profilerTracker.h>
 
 void profiler_tracker::init() {}

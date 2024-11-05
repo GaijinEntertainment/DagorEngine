@@ -1,0 +1,24 @@
+
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/quirrel/sqSysInfo ;
+StrictCompile = yes ;
+UseQuirrel = sq3r ;
+
+TargetType  = lib ;
+Target      = gameLibs/sqSysInfo.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/engine/sharedInclude
+;
+
+Sources =
+  sqSysInfo.cpp
+;
+
+UseProgLibs =
+  gameLibs/userSystemInfo
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

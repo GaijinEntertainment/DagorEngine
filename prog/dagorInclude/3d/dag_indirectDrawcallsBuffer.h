@@ -1,13 +1,13 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <EASTL/string.h>
 
 #include <3d/dag_resPtr.h>
+#include <drv/3d/dag_info.h>
 #include <3d/dag_lockSbuffer.h>
 #include <generic/dag_span.h>
 

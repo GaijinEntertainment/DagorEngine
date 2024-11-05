@@ -1,0 +1,9 @@
+return {
+  get_map = @() null
+  get_config_revision = @() 1
+  get_config = @() {}
+  save_config = @() {}
+  reset_to_default = @() null
+  restore_saved_config = @() null
+  get_sens_scale = @() {}
+}

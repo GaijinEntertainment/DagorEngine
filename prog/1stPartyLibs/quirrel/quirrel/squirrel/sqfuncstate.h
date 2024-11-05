@@ -11,7 +11,6 @@ struct SQFuncState
     SQFuncState(SQSharedState *ss,SQFuncState *parent,SQCompilationContext &ctx);
     ~SQFuncState();
 
-    void Error(const SQChar *err);
     SQFuncState *PushChildState(SQSharedState *ss);
     void PopChildState();
     void AddInstruction(SQOpcode _op,SQInteger arg0=0,SQInteger arg1=0,SQInteger arg2=0,SQInteger arg3=0){SQInstruction i(_op,arg0,arg1,arg2,arg3);AddInstruction(i);}
@@ -20,10 +19,10 @@ struct SQFuncState
     void SetInstructionParam(SQInteger pos,SQInteger arg,SQInteger val);
     SQInstruction &GetInstruction(SQInteger pos){return _instructions[pos];}
     void PopInstructions(SQInteger size){for(SQInteger i=0;i<size;i++)_instructions.pop_back();}
-    SQInstruction &LastInstruction() { return _instructions.back(); }
     void SetStackSize(SQInteger n);
     SQInteger CountOuters(SQInteger stacksize);
     void SnoozeOpt(){_optimization=false;}
+    void RestoreOpt(){_optimization=true;}
     void AddDefaultParam(SQInteger trg) { _defaultparams.push_back(trg); }
     SQInteger GetDefaultParamCount() { return _defaultparams.size(); }
     SQInteger GetCurrentPos(){return _instructions.size()-1;}
@@ -31,14 +30,11 @@ struct SQFuncState
     SQInteger GetNumericConstant(const SQFloat cons);
     SQInteger PushLocalVariable(const SQObject &name, bool assignable);
     void AddParameter(const SQObject &name);
-    //void AddOuterValue(const SQObject &name);
     SQInteger GetLocalVariable(const SQObject &name, bool &is_assignable);
     void MarkLocalAsOuter(SQInteger pos);
     SQInteger GetOuterVariable(const SQObject &name, bool &is_assignable);
-    SQInteger GenerateCode();
     SQInteger GetStackSize();
-    SQInteger CalcStackFrameSize();
-    void AddLineInfos(SQInteger line,bool lineop,bool force=false);
+    void AddLineInfos(SQInteger line, bool lineop, bool force);
     SQFunctionProto *BuildProto();
     SQInteger AllocStackPos();
     SQInteger PushTarget(SQInteger n=-1);
@@ -49,9 +45,6 @@ struct SQFuncState
     bool IsLocal(SQUnsignedInteger stkpos);
     SQObject CreateString(const SQChar *s,SQInteger len = -1);
     SQObject CreateTable();
-    bool IsConstant(const SQObject &name,SQObject &e);
-    bool IsLocalConstant(const SQObject &name,SQObject &e);
-    bool IsGlobalConstant(const SQObject &name,SQObject &e);
     SQUnsignedInteger lang_features;
     SQInteger _returnexp;
     SQLocalVarInfoVec _vlocals;
@@ -73,7 +66,6 @@ struct SQFuncState
     SQInteger _nliterals;
     SQLineInfoVec _lineinfos;
     SQFuncState *_parent;
-    SQIntVec _scope_blocks;
     SQIntVec _breaktargets;
     SQIntVec _continuetargets;
     SQIntVec _blockstacksizes;
@@ -85,7 +77,7 @@ struct SQFuncState
     bool _optimization;
     SQSharedState *_sharedstate;
     sqvector<SQFuncState*> _childstates;
-    SQInteger GetConstant(const SQObject &cons);
+    SQInteger GetConstant(const SQObject &cons, int max_const_no = 0x7FFFFFFF);//will return value <= max_const_no, or -1
 private:
     SQCompilationContext &_ctx;
     SQSharedState *_ss;

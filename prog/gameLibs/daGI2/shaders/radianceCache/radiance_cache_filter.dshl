@@ -1,0 +1,26 @@
+include "radiance_cache_filter_common.dshl"
+
+shader filter_temporal_radiance_cache_cs
+{
+  hlsl(cs) {
+    RWTexture2D<float3> current_radiance_cache: register(u0);
+  }
+  GET_SPATIAL_FILTERED_RADIANCE_CACHE(cs)
+  RADIANCE_CACHE_TEMPORAL_RECALC(cs)
+  hlsl(cs) {
+    [numthreads(RADIANCE_CACHE_RADIANCE_RES, RADIANCE_CACHE_RADIANCE_RES, 1)]
+    void filter_temporal_radiance_cache_cs(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint tid:SV_GroupIndex)
+    {
+      if (gId >= uint(radiance_cache_temporal_recalc_params.w))
+        return;
+
+      uint radianceCacheProbeIndex = radiance_cache_decode_selected_temporal_recalc(radiance_cache_read_selected_encoded_probe_unsafe(gId)).radianceCacheProbeIndex;
+      uint2 targetCoord;
+      float3 radiance = get_spatial_filtered_radiance(radianceCacheProbeIndex, gtId, targetCoord);
+      GroupMemoryBarrierWithGroupSync();
+      texture2DAt(current_radiance_cache, targetCoord) = radiance_cache_encode_texture_radiance(radiance);
+    }
+  }
+  compile("target_cs", "filter_temporal_radiance_cache_cs");
+}
+

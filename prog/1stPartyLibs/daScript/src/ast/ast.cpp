@@ -124,6 +124,9 @@ namespace das {
         case Type::tInt:
         case Type::tUInt:
             return Type::tEnumeration;
+        case Type::tInt64:
+        case Type::tUInt64:
+            return Type::tEnumeration64;
         default:
             DAS_ASSERTF(0, "we should not be here. unsupported enumeration base type.");
             return Type::none;
@@ -142,6 +145,9 @@ namespace das {
         case Type::tInt:
         case Type::tUInt:
             res = make_smart<TypeDecl>(Type::tEnumeration); break;
+        case Type::tInt64:
+        case Type::tUInt64:
+            res = make_smart<TypeDecl>(Type::tEnumeration64); break;
         default:
             DAS_ASSERTF(0, "we should not be here. unsupported enumeration base type.");
             return nullptr;
@@ -211,6 +217,16 @@ namespace das {
 
     // structure
 
+    uint64_t Structure::getOwnSemanticHash(HashBuilder & hb, das_set<Structure *> & dep, das_set<Annotation *> & adep) const {
+        hb.updateString(getMangledName());
+        hb.update(fields.size());
+        for ( auto & fld : fields ) {
+            hb.updateString(fld.name);
+            hb.update(fld.type->getOwnSemanticHash(hb, dep, adep));
+        }
+        return hb.getHash();
+    }
+
     StructurePtr Structure::clone() const {
         auto cs = make_smart<Structure>(name);
         cs->fields.reserve(fields.size());
@@ -229,20 +245,14 @@ namespace das {
         if (this == &castS) {
             return true;
         }
-        if ( castS.fields.size() < fields.size() ) {
-            return false;
-        }
-        for ( size_t i=0; i!=fields.size(); ++i ) {
-            auto & fd = fields[i];
-            auto & cfd = castS.fields[i];
-            if ( fd.name != cfd.name ) {
-                return false;
+        auto *parentS = castS.parent;
+        while ( parentS ) {
+            if ( parentS == this ) {
+                return true;
             }
-            if ( !fd.type->isSameType(*cfd.type, RefMatters::yes, ConstMatters::yes, TemporaryMatters::yes) ) {
-                return false;
-            }
+            parentS = parentS->parent;
         }
-        return true;
+        return false;
     }
 
     bool Structure::hasAnyInitializers() const {
@@ -381,6 +391,15 @@ namespace das {
         return module ? module->name+"::"+name : name;
     }
 
+    bool Structure::unsafeInit ( das_set<Structure *> & dep ) const {
+        if ( safeWhenUninitialized ) return false;
+        for ( const auto & fd : fields ) {
+            if ( fd.init ) return true;
+            if ( fd.type && fd.type->unsafeInit(dep) ) return true;
+        }
+        return false;
+    }
+
     bool Structure::needInScope(das_set<Structure *> & dep) const {   // &&
         for ( const auto & fd : fields ) {
             if ( fd.type && fd.type->needInScope(dep) ) {
@@ -451,6 +470,15 @@ namespace das {
             }
         }
         return true;
+    }
+
+    bool Structure::hasStringData( das_set<void*> & dep ) const { // ||
+        for ( const auto & fd : fields ) {
+            if ( fd.type && fd.type->hasStringData(dep) ) {
+                return true;
+            }
+        }
+        return false;
     }
 
     bool Structure::hasClasses(das_set<Structure *> & dep) const {    // ||
@@ -608,17 +636,19 @@ namespace das {
         }
         ss << name;
         if ( arguments.size() ) {
-            ss << " ( ";
+            ss << "(";
             for ( auto & arg : arguments ) {
-                ss << arg->name << " : " << *arg->type;
+                ss << arg->name << ": " << *arg->type;
                 if ( extra==DescribeExtra::yes && arg->init ) {
                     ss << " = " << *arg->init;
                 }
                 if ( arg != arguments.back() ) ss << "; ";
             }
-            ss << " )";
+            ss << ")";
         }
-        ss << " : " << result->describe();
+        if ( result ) {
+            ss << ": " << result->describe();
+        }
         return ss.str();
     }
 
@@ -759,12 +789,39 @@ namespace das {
         return this;
     }
 
+    FunctionPtr Function::setTempResult() {
+        result->temporary = true;
+        return this;
+    }
+
+    FunctionPtr Function::setCaptureString() {
+        captureString = true;
+        return this;
+    }
+
+    FunctionPtr Function::setNoDiscard() {
+        nodiscard = true;
+        return this;
+    }
+
     FunctionPtr Function::addToModule ( Module & mod, SideEffects seFlags ) {
         setSideEffects(seFlags);
         if (!mod.addFunction(this)) {
             DAS_FATAL_ERROR("addExtern(%s) failed in module %s\n", name.c_str(), mod.name.c_str());
         }
         return this;
+    }
+
+    Function * Function::getOriginPtr() const {
+        if ( fromGeneric ) {
+            auto origin = fromGeneric.get();
+            while ( origin->fromGeneric ) {
+                origin = origin->fromGeneric.get();
+            }
+            return origin;
+        } else {
+            return nullptr;
+        }
     }
 
     FunctionPtr Function::getOrigin() const {
@@ -1029,6 +1086,7 @@ namespace das {
         auto cexpr = clonePtr<ExprPtr2Ref>(expr);
         Expression::clone(cexpr);
         cexpr->subexpr = subexpr->clone();
+        cexpr->assumeNoAlias = assumeNoAlias;
         return cexpr;
     }
 
@@ -1130,6 +1188,15 @@ namespace das {
         cexpr->value = value;
         cexpr->text = text;
         return cexpr;
+    }
+
+    string TypeDecl::typeMacroName() const {
+        if ( dimExpr.size()<1 ) return "";
+        if ( dimExpr[0]->rtti_isStringConstant() ) {
+            return ((ExprConstString *)dimExpr[0].get())->text;
+        } else {
+            return "";
+        }
     }
 
     // ExprStaticAssert
@@ -1576,28 +1643,30 @@ namespace das {
 
     ExpressionPtr ExprBlock::visit(Visitor & vis) {
         vis.preVisit(this);
-        for ( auto it = arguments.begin(); it != arguments.end(); ) {
-            auto & arg = *it;
-            vis.preVisitBlockArgument(this, arg, arg==arguments.back());
-            if ( arg->type ) {
-                vis.preVisit(arg->type.get());
-                arg->type = arg->type->visit(vis);
-                arg->type = vis.visit(arg->type.get());
-            }
-            if ( arg->init ) {
-                vis.preVisitBlockArgumentInit(this, arg, arg->init.get());
-                arg->init = arg->init->visit(vis);
-                if ( arg->init ) {
-                    arg->init = vis.visitBlockArgumentInit(this, arg, arg->init.get());
-                }
-            }
-            arg = vis.visitBlockArgument(this, arg, arg==arguments.back());
-            if ( arg ) ++it; else it = arguments.erase(it);
-        }
-        if ( returnType ) {
-            vis.preVisit(returnType.get());
-            returnType = returnType->visit(vis);
-            returnType = vis.visit(returnType.get());
+        if ( isClosure ) {
+          for ( auto it = arguments.begin(); it != arguments.end(); ) {
+              auto & arg = *it;
+              vis.preVisitBlockArgument(this, arg, arg==arguments.back());
+              if ( arg->type ) {
+                  vis.preVisit(arg->type.get());
+                  arg->type = arg->type->visit(vis);
+                  arg->type = vis.visit(arg->type.get());
+              }
+              if ( arg->init ) {
+                  vis.preVisitBlockArgumentInit(this, arg, arg->init.get());
+                  arg->init = arg->init->visit(vis);
+                  if ( arg->init ) {
+                      arg->init = vis.visitBlockArgumentInit(this, arg, arg->init.get());
+                  }
+              }
+              arg = vis.visitBlockArgument(this, arg, arg==arguments.back());
+              if ( arg ) ++it; else it = arguments.erase(it);
+          }
+          if ( returnType ) {
+              vis.preVisit(returnType.get());
+              returnType = returnType->visit(vis);
+              returnType = vis.visit(returnType.get());
+          }
         }
         if ( finallyBeforeBody ) {
             visitFinally(vis);
@@ -2322,6 +2391,7 @@ namespace das {
         auto cexpr = clonePtr<ExprCallMacro>(expr);
         ExprLooksLikeCall::clone(cexpr);
         cexpr->macro = macro;
+        cexpr->inFunction = inFunction;
         return cexpr;
     }
 
@@ -2330,9 +2400,11 @@ namespace das {
     ExpressionPtr ExprLooksLikeCall::visit(Visitor & vis) {
         vis.preVisit(this);
         for ( auto & arg : arguments ) {
-            vis.preVisitLooksLikeCallArg(this, arg.get(), arg==arguments.back());
-            arg = arg->visit(vis);
-            arg = vis.visitLooksLikeCallArg(this, arg.get(), arg==arguments.back());
+            if ( vis.canVisitLooksLikeCallArg(this, arg.get(), arg==arguments.back()) ) {
+                vis.preVisitLooksLikeCallArg(this, arg.get(), arg==arguments.back());
+                arg = arg->visit(vis);
+                arg = vis.visitLooksLikeCallArg(this, arg.get(), arg==arguments.back());
+            }
         }
         return vis.visit(this);
     }
@@ -2350,7 +2422,7 @@ namespace das {
 
     string ExprLooksLikeCall::describe() const {
         TextWriter stream;
-        stream << name << " ( ";
+        stream << name << "(";
         for ( auto & arg : arguments ) {
             if ( arg->type )
                 stream << *arg->type;
@@ -2360,7 +2432,7 @@ namespace das {
                 stream << ", ";
             }
         }
-        stream << " )";
+        stream << ")";
         return stream.str();
     }
 
@@ -2602,6 +2674,7 @@ namespace das {
         cexpr->exprFor = exprFor->clone();
         cexpr->subexpr = subexpr->clone();
         cexpr->generatorSyntax = generatorSyntax;
+        cexpr->tableSyntax = tableSyntax;
         if ( exprWhere ) {
             cexpr->exprWhere = exprWhere->clone();
         }
@@ -2740,10 +2813,18 @@ namespace das {
     }
 
     TypeDecl * Program::makeTypeDeclaration(const LineInfo &at, const string &name) {
-        auto structs = library.findStructure(name,thisModule.get());
-        auto handles = library.findAnnotation(name,thisModule.get());
-        auto enums = library.findEnum(name,thisModule.get());
-        auto aliases = library.findAlias(name,thisModule.get());
+
+        das::vector<das::StructurePtr> structs;
+        das::vector<das::AnnotationPtr> handles;
+        das::vector<das::EnumerationPtr> enums;
+        das::vector<das::TypeDeclPtr> aliases;
+        library.findWithCallback(name, thisModule.get(), [&](Module * pm, const string &name, Module * inWhichModule) {
+            library.findStructure(structs, pm, name, inWhichModule);
+            library.findAnnotation(handles, pm, name, inWhichModule);
+            library.findEnum(enums, pm, name, inWhichModule);
+            library.findAlias(aliases, pm, name, inWhichModule);
+        });
+
         if ( ((structs.size()!=0)+(handles.size()!=0)+(enums.size()!=0)+(aliases.size()!=0)) > 1 ) {
             string candidates = describeCandidates(structs);
             candidates += describeCandidates(handles, false);
@@ -2924,6 +3005,15 @@ namespace das {
             count ++;
         }
         return vis.visit(penum);
+    }
+
+    void Program::visitModules(Visitor & vis, bool visitGenerics) {
+        vis.preVisitProgram(this);
+        library.foreach([&](Module * pm) -> bool {
+            visitModule(vis, pm, visitGenerics);
+            return true;
+        }, "*");
+        vis.visitProgram(this);
     }
 
     void Program::visitModulesInOrder(Visitor & vis, bool visitGenerics) {

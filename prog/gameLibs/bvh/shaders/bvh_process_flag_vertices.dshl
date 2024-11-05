@@ -1,0 +1,172 @@
+include "shader_global.dshl"
+
+int bvh_process_target_offset;
+int bvh_process_flag_vertices_start;
+int bvh_process_flag_vertices_stride;
+int bvh_process_flag_vertices_count;
+int bvh_process_flag_vertices_processed_stride;
+int bvh_process_flag_vertices_position_offset;
+int bvh_process_flag_vertices_normal_offset;
+int bvh_process_flag_vertices_color_offset;
+int bvh_process_flag_vertices_texcoord_offset;
+int bvh_process_flag_vertices_texcoord_size;
+
+float4x4 bvh_process_flag_vertices_wtm;
+float4x4 bvh_process_flag_vertices_itm;
+
+int bvh_process_flag_vertices_hash_val;
+int bvh_process_flag_vertices_wind_type;
+float4 bvh_process_flag_vertices_frequency_amplitude;
+float4 bvh_process_flag_vertices_wind_direction;
+float bvh_process_flag_vertices_wind_strength;
+float bvh_process_flag_vertices_wave_length;
+float4 bvh_process_flag_vertices_flagpole_pos_0;
+float4 bvh_process_flag_vertices_flagpole_pos_1;
+float bvh_process_flag_vertices_stiffness;
+float bvh_process_flag_vertices_flag_movement_scale;
+float bvh_process_flag_vertices_bend;
+float bvh_process_flag_vertices_deviation;
+float bvh_process_flag_vertices_stretch;
+float bvh_process_flag_vertices_flag_length;
+float bvh_process_flag_vertices_sway_speed;
+int bvh_process_flag_vertices_width_type;
+
+interval bvh_process_flag_vertices_texcoord_size: zero < 1, four < 8, eight;
+interval bvh_process_flag_vertices_normal_offset: no < 1, yes;
+
+interval bvh_process_flag_vertices_wind_type: fixedWind < 1, globalWindIngoreVcol < 2, globalWind;
+interval bvh_process_flag_vertices_width_type: zero_width < 1, has_width;
+
+shader bvh_process_flag_vertices
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+  (cs) {
+    target_offset@u1 = bvh_process_target_offset;
+    start_vertex@i1 = bvh_process_flag_vertices_start;
+    vertex_stride@i1 = bvh_process_flag_vertices_stride;
+    vertex_count@i1 = bvh_process_flag_vertices_count;
+    processed_vertex_stride@i1 = bvh_process_flag_vertices_processed_stride;
+    position_offset@i1 = bvh_process_flag_vertices_position_offset;
+    color_offset@i1 = bvh_process_flag_vertices_color_offset;
+    normal_offset@i1 = bvh_process_flag_vertices_normal_offset;
+    texcoord_offset@i1 = bvh_process_flag_vertices_texcoord_offset;
+    texcoord_size@i1 = bvh_process_flag_vertices_texcoord_size;
+    wtm@f44 = bvh_process_flag_vertices_wtm;
+    itm@f44 = bvh_process_flag_vertices_itm;
+    hash_val@u1 = bvh_process_flag_vertices_hash_val;
+    frequency_amplitude@f4 = (bvh_process_flag_vertices_frequency_amplitude.x,
+                              bvh_process_flag_vertices_frequency_amplitude.y - bvh_process_flag_vertices_frequency_amplitude.x,
+                              bvh_process_flag_vertices_frequency_amplitude.z,
+                              bvh_process_flag_vertices_frequency_amplitude.w - bvh_process_flag_vertices_frequency_amplitude.z);
+    wind_direction@f4 = bvh_process_flag_vertices_wind_direction;
+    wind_strength@f1 = bvh_process_flag_vertices_wind_strength;
+    wave_length@f1 = bvh_process_flag_vertices_wave_length;
+    wind_time@f1 = time_phase(1000, 0) * 1000;
+    flagpole_pos_0@f3 = bvh_process_flag_vertices_flagpole_pos_0;
+    flagpole_pos_1@f3 = bvh_process_flag_vertices_flagpole_pos_1;
+    stiffness@f1 = bvh_process_flag_vertices_stiffness;
+    flag_movement_scale@f1 = bvh_process_flag_vertices_flag_movement_scale;
+    bend@f1 = bvh_process_flag_vertices_bend;
+    deviation@f1 = bvh_process_flag_vertices_deviation;
+    stretch@f1 = bvh_process_flag_vertices_stretch;
+    flag_length@f1 = bvh_process_flag_vertices_flag_length;
+    sway_speed@f1 = bvh_process_flag_vertices_sway_speed;
+  }
+
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    #pragma wave32
+
+    ByteAddressBuffer source : register(t6);
+    RWByteAddressBuffer output : register(u0);
+
+    #define STATIC_RADIUS 1.0f
+
+    // From rendinst_flag_*
+
+    void apply_wind(inout float3 world_pos, float movement_scale, float3 direction, uint hashVal)
+    {
+      float randValue = float(hashVal) * 1e-32;
+      float2 instance_amp_freq = randValue * frequency_amplitude.wy + frequency_amplitude.zx;
+      float3 displacement = float3(0, 0, 0);
+      float omega = PI * instance_amp_freq.y;
+      float resist = 0.2;
+      float omega_d = omega * sqrt(1 - resist*resist);
+
+      displacement.xz = -0.5 * wind_strength * movement_scale * instance_amp_freq.x *
+                     exp(-resist * sin(2.5 * wind_time) * cos(wind_time)) *
+                        cos(omega_d * wind_time - world_pos.z / wave_length);
+
+      if (abs(direction.y) > 0.999)
+      {
+        displacement.y = -0.5 * wind_strength * movement_scale * movement_scale * instance_amp_freq.x *
+                        exp(-resist * sin(2.5 * wind_time) * cos(wind_time)) *
+                        cos(omega_d * wind_time - world_pos.x / wave_length);
+      }
+      else
+      {
+        displacement.y = movement_scale;
+        direction.y = 0.5 * min(abs(displacement.z)*direction.z,
+                                abs(displacement.x)*direction.x);
+      }
+      displacement *= direction;
+      world_pos += displacement;
+    }
+
+    [numthreads( 32, 1, 1 )]
+    void bvh_process_flag_vertices(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint vertexId = dtId.x;
+      if (vertexId >= vertex_count)
+        return;
+
+      float3 worldLocalX = wtm[0].xyz;
+      float3 worldLocalY = wtm[1].xyz;
+      float3 worldLocalZ = wtm[2].xyz;
+
+      int vertexStart = (start_vertex + vertexId) * vertex_stride;
+
+      const uint4 INPUT_ENCODING_OFFSET = uint4(16, 8, 0, 24);
+
+      uint packedColor = source.Load(vertexStart + color_offset);
+      float4 inputColor = float4((packedColor >> INPUT_ENCODING_OFFSET) & 255) / 255;
+
+      float3 modelPos = asfloat(source.Load3(vertexStart + position_offset));
+      float3 worldPos = mul(float4(modelPos, 1), wtm).xyz;
+
+      ##if ( bvh_process_flag_vertices_wind_type == globalWind || bvh_process_flag_vertices_wind_type == globalWindIngoreVcol)
+      ##else
+        float movementScale = inputColor.x;
+        float3 direction = normalize(wind_direction.x * worldLocalX + wind_direction.y * worldLocalY + wind_direction.z * worldLocalZ);
+        apply_wind(worldPos, movementScale, direction, hash_val);
+      ##endif
+
+      modelPos = mul(float4(worldPos, 1), itm).xyz;
+
+      output.Store3(target_offset + vertexId * processed_vertex_stride, asuint(modelPos));
+
+      uint offset = 12;
+
+      ##if bvh_process_flag_vertices_texcoord_size == four
+        output.Store(target_offset + vertexId * processed_vertex_stride + offset, source.Load(vertexStart + texcoord_offset));
+        offset += 4;
+      ##elif bvh_process_flag_vertices_texcoord_size == eight
+        output.Store2(target_offset + vertexId * processed_vertex_stride + offset, source.Load2(vertexStart + texcoord_offset));
+        offset += 8;
+      ##endif
+
+      ##if bvh_process_flag_vertices_normal_offset == yes
+        output.Store(target_offset + vertexId * processed_vertex_stride + offset, source.Load(vertexStart + normal_offset));
+        offset += 4;
+      ##endif
+
+      output.Store(target_offset + vertexId * processed_vertex_stride + offset, packedColor);
+      offset += 4;
+    }
+  }
+
+  compile("target_cs", "bvh_process_flag_vertices");
+}

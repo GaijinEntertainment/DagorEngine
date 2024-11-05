@@ -1,6 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <landMesh/landRayTracer.h>
 #include <rendInst/rendInstGen.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <3d/dag_texMgrTags.h>
 #include <osApiWrappers/dag_files.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -37,6 +41,8 @@
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <scene/dag_physMat.h>
 #include <util/fnameMap.h>
+#include <supp/dag_alloca.h>
+#include <physMap/physMapLoad.h>
 
 #define MIN_TILE_SIZE 0.5
 
@@ -77,17 +83,8 @@ static int get_texture_id_in_array(const char *name, TexturesInArray &texInArray
     if (it != detailsIds[dType].end())
       texInArray.id = it->second;
     else
-    {
       texInArray.id = (int)detailsIds[dType].size();
-      detailsIds[dType][detName] = texInArray.id;
-    }
-    if (dType != 0)
-    {
-      G_ASSERTF(current == texInArray.id,
-        "all tuples (albedo, normal, etc) should be unique. You can't use same albedo with different normal."
-        "land class %s: %s=%s, %s=%s",
-        name, detailTypeNames[dType], detName, detailTypeNames[dType - 1], texInArray.names[dType - 1]);
-    }
+    detailsIds[dType][detName] = texInArray.id;
   }
   return texInArray.id;
 }
@@ -109,7 +106,8 @@ static void set_land_selfillum_parameters_to_shaders(const DataBlock &params_blk
 }
 
 static bool load_land_class(LandClassDetailTextures &land, const char *name, const DataBlock &blk, const DataBlock &grassMaskBlk,
-  DetailsMap &arrayDetailsIds, DetailsMap &standardDetailsIds, LandClassData data_needed, bool validate_name)
+  DetailsMap &arrayDetailsIds, DetailsMap &standardDetailsIds, LandClassData data_needed, bool validate_name,
+  Tab<int> &detailGroupToPhysMats)
 {
   bool ret = true;
   land.editorId = blk.getInt("editorId", 0);
@@ -232,9 +230,13 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
         }
 
         clear_and_shrink(land.lcDetailGroupNames);
+        clear_and_shrink(detailGroupToPhysMats);
 
         for (int bi = detailsBlk.findBlock(detailGroupsNameId); bi != -1; bi = detailsBlk.findBlock(detailGroupsNameId, bi))
+        {
           land.lcDetailGroupNames.push_back(detailsBlk.getBlock(bi)->getStr("name"));
+          detailGroupToPhysMats.push_back(PhysMat::getMaterialId(detailsBlk.getBlock(bi)->getStr("physMat", nullptr)));
+        }
 
         clear_and_shrink(land.lcDetailGroupIndices);
 
@@ -526,7 +528,7 @@ void LandMeshManager::DetailMap::load(int i, IGenLoad &cb)
       e.tex1 = NULL;
     }
   }
-  DAGOR_CATCH(IGenLoad::LoadException exc) { G_ASSERT(false); }
+  DAGOR_CATCH(const IGenLoad::LoadException &exc) { G_ASSERT(false); }
 }
 
 void LandMeshManager::DetailMap::getLandDetailTexture(int index, TEXTUREID &tex1, TEXTUREID &tex2, uint8_t detail_tex_ids[DET_TEX_NUM])
@@ -566,10 +568,8 @@ LandMeshManager::~LandMeshManager() { close(); }
 
 void LandMeshManager::CellData::clear()
 {
-  for (int i = 0; i < land.size(); ++i)
-    del_it(land[i]);
-  del_it(decal);
-  del_it(combined);
+  for (auto &m : meshes)
+    del_it(m);
   clear_and_shrink(isCombinedBig);
 }
 
@@ -630,18 +630,15 @@ void LandMeshManager::close()
 }
 #undef RELEASE_MANAGED_TEX
 
-void LandMeshManager::replaceVdecls() {}
-
 bool LandMeshManager::loadMeshData(IGenLoad &cb)
 {
-  const bool decode_vertices = true;
   int tmp[4];
   cb.read(tmp, sizeof(int) * 4);
   int vdataCount = tmp[2];
   smvd = ShaderMatVdata::create(tmp[0], tmp[1], tmp[2], tmp[3]);
   smvd->loadTexStr(cb, false); //?
   // smvd->loadTexIdx ( cb, texMap );//?
-  smvd->loadMatVdata("landmesh", cb, decode_vertices ? VDATA_NO_IBVB : 0);
+  smvd->loadMatVdata("landmesh", cb, VDATA_NO_IBVB);
 
   clear_and_resize(cells, mapSizeX * mapSizeY);
   cb.beginBlock();
@@ -711,9 +708,6 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
     landBbox[1].y += VERY_SMALL_NUMBER;
 
   cb.endBlock();
-
-  if (!decode_vertices)
-    return true;
 
   // decode vertices:
   int64_t reft;
@@ -999,6 +993,22 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
     debug("vdata %d %p", i, smvd->getGlobVData(i));
     int *ibData = (int *)smvd->getGlobVData(i)->getIBMem();
     int *vbData = (int *)smvd->getGlobVData(i)->getVBMem();
+    // print first indices for future debug in renderdoc/pix
+    if (smvd->getGlobVData(i)->getIbSize())
+    {
+      const int DEBUG_PAIR_COUNT_MAX = 4;
+      const int idxStride = smvd->getGlobVData(i)->getIbElemSz();
+      const int DEBUG_PAIR_COUNT = min(DEBUG_PAIR_COUNT_MAX, *ibData / idxStride / 2);
+      debug("  ib size = %d, stride = %d, first %d indices:", *ibData, idxStride, DEBUG_PAIR_COUNT * 2);
+      const int16_t *idxPtr16 = (int16_t *)(ibData + 1);
+      const int *idxPtr32 = ibData + 1;
+      for (int j = 0; j < 2 * DEBUG_PAIR_COUNT; j += 2)
+      {
+        const int firstIdx = idxStride == 2 ? idxPtr16[j] : idxPtr32[j];
+        const int secondIdx = idxStride == 2 ? idxPtr16[j + 1] : idxPtr32[j + 1];
+        debug("    0x%x, 0x%x", firstIdx, secondIdx);
+      }
+    }
     if (vdataUsage[i] & (VDATA_DECAL | VDATA_PATCHES))
     {
       G_ASSERT(i > firstLmeshVdata + maxLodUsed || i < firstLmeshVdata);
@@ -1029,7 +1039,6 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
     Color4(0.5 / 32767. * landCellSize, landCellSize, landCellSize * (origin.x + 0.5f) + offset.x,
       landCellSize * (origin.y + 0.5f) + offset.z));
   ShaderGlobal::set_color4(get_shader_variable_id("landCellShortDecodeY", true), Color4(yscale / 32767., yofs, 0, 0));
-  replaceVdecls();
 
   return true;
 }
@@ -1202,7 +1211,7 @@ void LandMeshManager::loadLandClasses(IGenLoad &cb)
     }
 
     if (!load_land_class(landClasses[i], nm, blk, grassMaskBlk, arrayDetailsIds, standardDetailsIds, getRenderDataNeeded(),
-          !toolsInternal))
+          !toolsInternal, detailGroupsToPhysMats))
     {
       logerr("errors in landclass = <%s>", nm);
       landClasses[i].lcType = LC_SIMPLE;
@@ -1214,7 +1223,9 @@ void LandMeshManager::loadLandClasses(IGenLoad &cb)
         landClasses[i].offset - Point2::xy(origin) * landCellSize, safediv(1.0f, landClasses[i].tile));
     landClasses[i].offset.x -= origin.x * landCellSize;
     landClasses[i].offset.y -= origin.y * landCellSize;
-    if (ends_with(landClasses[i].name, "_det"))
+    static int inEditorGvId = ::get_shader_glob_var_id("in_editor", true);
+    static int inEditor = ShaderGlobal::get_int_fast(inEditorGvId);
+    if (ends_with(landClasses[i].name, "_det") || (!strcmp(landClasses[i].shader_name, "landmesh_indexed_landclass") && inEditor > 0))
     {
       BaseTexture *lcTex = ::acquire_managed_tex(landClasses[i].lcTextures[0]);
       G_ASSERT_RETURN(lcTex != nullptr, );
@@ -1225,6 +1236,12 @@ void LandMeshManager::loadLandClasses(IGenLoad &cb)
       float worldLcTexelSize = landSize / lcTexInfo.w;
 
       ShaderGlobal::set_texture(::get_shader_variable_id("biomeIndicesTex", true), landClasses[i].lcTextures[0]);
+      {
+        d3d::SamplerInfo smpInfo;
+        smpInfo.filter_mode = d3d::FilterMode::Point;
+        smpInfo.mip_map_mode = d3d::MipMapMode::Disabled;
+        ShaderGlobal::set_sampler(::get_shader_variable_id("biomeIndicesTex_samplerstate", true), d3d::request_sampler(smpInfo));
+      }
       ShaderGlobal::set_color4(::get_shader_variable_id("biome_indices_tex_size", true), lcTexInfo.w, lcTexInfo.h, 1.0f / lcTexInfo.w,
         1.0f / lcTexInfo.h);
       ShaderGlobal::set_color4(::get_shader_variable_id("land_detail_mul_offset", true), landClasses[i].tile, -landClasses[i].tile,
@@ -1282,6 +1299,31 @@ void LandMeshManager::loadDetailData(IGenLoad &cb)
   detailMap.load(cb, baseDataOffset, toolsInternal);
 }
 
+PhysMap *LandMeshManager::loadPhysMap(IGenLoad &loadCb, bool lmp2)
+{
+  PhysMap *physMap = nullptr;
+  for (;;)
+  {
+    if (loadCb.tell() == loadCb.getTargetDataSize())
+      break;
+    int tag = loadCb.beginTaggedBlock();
+
+    debug("[BIN] tag %c%c%c%c sz %dk", _DUMP4C(tag), loadCb.getBlockLength() >> 10);
+
+    if (tag == _MAKE4C('LMpm') || tag == _MAKE4C('LMp2'))
+    {
+      debug("Loading LMpm");
+      physMap = ::load_phys_map_with_decals(loadCb, tag == _MAKE4C('LMp2'));
+      loadCb.endBlock();
+      break;
+    }
+    loadCb.endBlock();
+  }
+
+  if (physMap)
+    make_grid_decals(*physMap, 32);
+  return physMap;
+}
 
 bool LandMeshManager::loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator, bool load_render_data)
 {
@@ -1587,7 +1629,7 @@ bool LandMeshManager::loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator, 
       vertDetTexId = BAD_TEXTUREID;
     }
   }
-  DAGOR_CATCH(IGenLoad::LoadException e)
+  DAGOR_CATCH(const IGenLoad::LoadException &e)
   {
 #ifdef DAGOR_EXCEPTIONS_ENABLED
     textag_mark_end();

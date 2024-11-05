@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <string.h>
 #ifdef __GNUC__
 #include <stdlib.h>
@@ -15,6 +17,13 @@ inline size_t sys_malloc_usable_size(void *p) { return malloc_size(p); }
 inline size_t sys_malloc_usable_size(void *p) { return p ? _msize(p) : 0; }
 #endif
 
+#if _TARGET_PC_WIN && !_TARGET_64BIT
+#define MALLOC_MIN_ALIGNMENT 8
+#elif _TARGET_C1 | _TARGET_C2
+
+#else
+#define MALLOC_MIN_ALIGNMENT 16
+#endif
 class MinRtlStdAllocator : public IMemAlloc
 {
 public:
@@ -25,7 +34,7 @@ public:
 
   void *alloc(size_t sz) override { return tryAlloc(sz); }
   void *tryAlloc(size_t sz) override { return ::malloc(sz); }
-  void *allocAligned(size_t sz, size_t al) override { return al <= 8 ? alloc(sz) : nullptr; }
+  void *allocAligned(size_t sz, size_t al) override { return al <= MALLOC_MIN_ALIGNMENT ? alloc(sz) : nullptr; }
   bool resizeInplace(void *p, size_t sz) override { return false; }
   void *realloc(void *p, size_t sz) override { return ::realloc(p, sz); }
   void free(void *p) override { ::free(p); }
@@ -56,5 +65,7 @@ char *str_dup(const char *s, IMemAlloc *a)
 IMemAlloc *framemem_ptr() { return &mem; }
 extern "C" void *memalloc_default(size_t sz) { return mem.alloc(sz); }
 extern "C" void memfree_default(void *p) { mem.free(p); }
+extern "C" void *memalloc_aligned_default(size_t sz, size_t al) { return mem.allocAligned(sz, al); }
+extern "C" void memfree_aligned_default(void *p) { mem.freeAligned(p); }
 extern "C" void *memrealloc_default(void *p, size_t sz) { return mem.realloc(p, sz); }
 extern "C" int memresizeinplace_default(void *p, size_t sz) { return 0; }

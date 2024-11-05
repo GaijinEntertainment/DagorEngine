@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_flyMode.h>
 #include <math/dag_math3d.h>
 
@@ -29,15 +31,16 @@ public:
     itm.identity();
     tmValid = false;
 
+    posPrecise = DPoint3(0, 0, 0);
     linVel = Point3(0, 0, 0);
     ang = Point3(0, 0, 0);
     angVel = Point3(0, 0, 0);
     memset(&keys, 0, sizeof(keys));
   }
 
-  virtual void integrate(real dt, real and_dx, real ang_dy)
+  virtual void integrate(real dt, real ang_dx, real ang_dy)
   {
-    real hspeed = -and_dx * angSpdScaleH;
+    real hspeed = -ang_dx * angSpdScaleH;
     real vspeed = -ang_dy * angSpdScaleV;
     real hin = (fabsf(angVel.x) > fabsf(hspeed) || angVel.x * hspeed < 0) ? angStopInertiaH : angInertiaH;
     real vin = (fabsf(angVel.y) > fabsf(vspeed) || angVel.y * vspeed < 0) ? angStopInertiaV : angInertiaV;
@@ -62,9 +65,8 @@ public:
       else if (ang.y > HALFPI)
         ang.y = HALFPI;
 
-      const Point3 p = itm.getcol(3);
       itm = rotyTM(ang.x) * rotxTM(ang.y) * rotzTM(ang.z);
-      itm.setcol(3, p);
+      itm.setcol(3, posPrecise);
 
       tmValid = false;
     }
@@ -96,7 +98,8 @@ public:
     linVel = linVel * in + mov * (v * (1 - in));
     if (lengthSq(linVel) > 1.0E-8)
     {
-      itm.setcol(3, itm.getcol(3) + linVel * dt);
+      posPrecise += linVel * dt;
+      itm.setcol(3, Point3(posPrecise));
       tmValid = false;
     }
   }
@@ -116,6 +119,7 @@ public:
   {
     itm = in_itm;
     tm = inverse(itm);
+    posPrecise = itm.getcol(3);
     tmValid = true;
     Point3 dir = itm.getcol(2);
     ang.x = -safe_atan2(dir.x, dir.z);
@@ -125,6 +129,7 @@ public:
 
 protected:
   TMatrix itm, tm;
+  DPoint3 posPrecise;
   Point3 linVel;
   Point3 ang, angVel;
   bool tmValid;

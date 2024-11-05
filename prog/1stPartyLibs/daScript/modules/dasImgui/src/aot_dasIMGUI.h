@@ -46,7 +46,7 @@ namespace das {
     void InsertChars(ImGuiInputTextCallbackData & data, int pos, const char* text );
     void SetNextWindowSizeConstraints(vec4f snwscc, const ImVec2& size_min, const ImVec2& size_max, Context * context, LineInfoArg * at );
     void SetNextWindowSizeConstraintsNoCallback(const ImVec2& size_min, const ImVec2& size_max);
-    ImGuiSortDirection_ SortDirection ( const ImGuiTableColumnSortSpecs & specs );
+    ImGuiSortDirection SortDirection ( const ImGuiTableColumnSortSpecs & specs );
     ImVec2 CalcTextSize(const char* text,bool hide_text_after_double_hash, float wrap_width);
     bool Combo ( vec4f cg, const char * label, int * current_item, int items_count, int popup_max_height_in_items, Context * ctx, LineInfoArg * at );
     void PlotLines ( vec4f igpg, const char* label, int values_count, int values_offset, const char* overlay_text,

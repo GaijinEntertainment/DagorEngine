@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -12,7 +11,7 @@
 
 #include <render/daBfg/virtualResourceRequest.h>
 #include <render/daBfg/detail/access.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_tex3d.h>
 
 
 namespace dabfg
@@ -228,8 +227,89 @@ public:
   VirtualPassRequest depthRoAndBindToShaderVars(DepthRoAndSvBindVirtualAttachmentRequest attachment,
     std::initializer_list<const char *> shader_var_names) &&;
 
-  // NOT IMPLEMENTED
+  /**
+   * \brief Specifies that the \p attachment should be cleared with
+   * \p color at the beginning of this pass.
+   *
+   * \warning This causes a low-level pass break, so should be used
+   * sparingly.
+   *
+   * \param attachment The attachment to clear.
+   * \param color The color to clear it with.
+   */
   VirtualPassRequest clear(RwVirtualAttachmentRequest attachment, ResourceClearValue color) &&;
+
+  /**
+   * \brief Specifies that the \p attachment should be cleared with
+   * the color contained in the \p color_blob at the beginning of this
+   * pass.
+   * \details The requested blob's type is inferred from the projector's
+   * argument type.
+   *
+   * \warning This causes a low-level pass break, so should be used
+   * sparingly.
+   *
+   * \param attachment The attachment to clear.
+   * \param color The name of the blob to grab the color from.
+   */
+  VirtualPassRequest clear(RwVirtualAttachmentRequest attachment, const char *color_blob) &&
+  {
+    blobClearImpl(attachment, tag_for<ResourceClearValue>(), color_blob, detail::identity_projector);
+    return *this;
+  }
+
+  /**
+   * \brief Specifies that the \p attachment should be cleared with
+   * the color contained in the \p color_blob at the beginning of this
+   * pass.
+   * \details The requested blob's type is inferred from the projector's
+   * argument type.
+   *
+   * \warning This causes a low-level pass break, so should be used
+   * sparingly.
+   *
+   * \tparam projector A function to extract the color from the blob.
+   *   Can be a pointer-to-member, i.e. `&BlobType::field` or a (pure)
+   *   function pointer.
+   * \param attachment The attachment to clear.
+   * \param color The name of the blob to grab the color from.
+   */
+  template <auto projector>
+  VirtualPassRequest clear(RwVirtualAttachmentRequest attachment, const char *color_blob) &&
+  {
+    using ProjectedType = detail::ProjectedType<projector>;
+    using ProjecteeType = detail::ProjecteeType<projector>;
+    static_assert(eastl::is_same_v<ProjectedType, ResourceClearValue>, "Expected the projector to return a ResourceClearValue!");
+    blobClearImpl(attachment, tag_for<ProjecteeType>(), color_blob, detail::erase_projector_type<projector, ProjecteeType>());
+    return *this;
+  }
+
+  /**
+   * \brief Specifies that the attachment \p from is a MSAA texture that
+   * should be resolved to the texture \p to at the end of this pass.
+   * \note The resource \p from must have been previously requested as
+   * either a color or a depth attachment.
+   *
+   * \param from The attachment to resolve.
+   * \param to The resource to resolve it to.
+   */
+  VirtualPassRequest resolve(RwVirtualAttachmentRequest from, RwVirtualAttachmentRequest to) &&;
+
+  /**
+   * \brief Specifies the VRS rate texture attachment for this virtual pass.
+   * \details The specified resource request MUST be a read. See
+   * \inlinerst :cpp:func:`d3d::set_variable_rate_shading_texture` \endrst
+   * for further details.
+   * Call this with either a resource request object or an object name.
+   * You can also optionally specify mip/layer using braces:
+   * `{"cube", 0, 1}`.
+   * \warning Currently, no driver supports mips/layers for VRS textures.
+   *
+   * \param attachment The attachment to use as a VRS rate.
+   *   This method should be usable without understanding the internals
+   *   of detail::VirtualAttachmentRequest most of the time.
+   */
+  VirtualPassRequest vrsRate(RoVirtualAttachmentRequest attachment) &&;
 
   /* NOT IMPLEMENTED
    * \brief Sets a custom render area for this pass, also known as a
@@ -245,13 +325,14 @@ public:
 
   // TODO: implement this stuff for mobile (huge task)
   // VirtualPassRequest input(std::initializer_list<RoAttachmentRequest> attachments) &&;
-  // VirtualPassRequest resolve(std::initializer_list<RwAttachmentRequest> attachments) &&;
   // VirtualPassRequest preserve(std::initializer_list<RoAttachmentRequest> attachments) &&;
 
 private:
   template <RRP disallowPolicies, RRP requirePolicies>
-  detail::ResUid processAttachment(detail::VirtualAttachmentRequest<disallowPolicies, requirePolicies> attachment,
-    Access accessOverride);
+  detail::ResUid getResUidForAttachment(detail::VirtualAttachmentRequest<disallowPolicies, requirePolicies> attachment);
+
+  void blobClearImpl(RwVirtualAttachmentRequest attachment, ResourceSubtypeTag projectee, const char *blob,
+    detail::TypeErasedProjector projector);
 
   NodeNameId nodeId;
   InternalRegistry *registry;

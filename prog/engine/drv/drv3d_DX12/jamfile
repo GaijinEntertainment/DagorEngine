@@ -1,4 +1,4 @@
-Platform ?= win64 ;
+PlatformArch_windows ?= x86_64 ;
 
 Root    ?= ../../../.. ;
 Location = prog/engine/drv/drv3d_DX12 ;
@@ -25,9 +25,13 @@ Sources =
   bindless.cpp
   resource_memory_heap.cpp
   resource_manager/heap_components.cpp
+  resource_manager/buffer_components.cpp
+  resource_manager/rtx_components.cpp
+  resource_manager/host_shared_components.cpp
   resource_update_buffer.cpp
   resource_usage_debugger.cpp
   pipeline/blk_cache.cpp
+  shader_library.cpp
 ;
 
 CPPopt = -DINSIDE_DRIVER ;
@@ -35,9 +39,13 @@ CPPopt = -DINSIDE_DRIVER ;
 CPPopt += -DD3DX12_NO_STATE_OBJECT_HELPERS ;
 
 if [ GLOB $(Root)/prog/3rdPartyLibs/nvapi : * ]     { CPPopt += -DHAS_NVAPI ; }
-if [ GLOB $(Root)/prog/3rdPartyLibs/nvsdk_ngx : * ] { CPPopt += -DHAS_NVSDK_NGX ; }
 
-if $(Platform) in win32 win64 {
+if $(Config) != rel {
+  Sources +=
+    debug/debug_types.cpp ;
+}
+
+if $(Platform) in windows {
   Sources +=
     platform_pc.cpp
     debug/gpu_capture.cpp
@@ -47,9 +55,15 @@ if $(Platform) in win32 win64 {
     debug/gpu_postmortem_microsoft_dred.cpp
     debug/pipeline_resource_reporter.cpp
   ;
+  if $(PlatformArch) in arm64 { CPPopt = [ StripStrings $(CPPopt) : -DHAS_NVAPI ] ; }
   if [ GLOB $(Root)/prog/3rdPartyLibs/aftermath : * ] {
     CPPopt += -DHAS_GF_AFTERMATH ;
     Sources += debug/gpu_postmortem_nvidia_aftermath.cpp ;
+  }
+  if [ GLOB $(Root)/prog/3rdPartyLibs/ags_sdk : * ] && $(Platform)-$(PlatformArch) = windows-x86_64 && $(AgsEnabled) = yes {
+    CPPopt += -DHAS_AMD_GPU_SERVICES ;
+    Sources += debug/gpu_postmortem_ags_trace.cpp ;
+    AddLibs += $(Root)/prog/3rdPartyLibs/ags_sdk/lib/amd_ags_x64.lib ;
   }
 } else if $(Platform) in xboxOne scarlett {
   CPPopt += /wd4062 ; # enumerator 'XXX' in switch of enum 'YYY' is not handled
@@ -64,56 +78,29 @@ if $(Platform) in win32 win64 {
   ;
 }
 
-if $(Platform) in win32 win64 xboxOne scarlett {
+if $(Platform) in windows xboxOne scarlett {
   CPPopt += -FId3d_config.h ;
-}
-
-if ( $(Platform) in win32 win64 xboxOne scarlett ) {
   CPPopt += -DUSE_RESOURCE_HEAPS=1 ;
-}
-
-if $(Config) != rel {
-  UseProgLibs += gameLibs/imguiInput ;
-} else {
-  UseProgLibs += gameLibs/imguiInput/stub ;
-}
-
-if $(EnableBreakpad) = yes {
-  UseProgLibs += gameLibs/breakpad/binder ;
-} else {
-  UseProgLibs += gameLibs/breakpad/stub ;
 }
 
 AddIncludes =
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/engine/drv/drv3d_commonCode
-  $(Root)/prog/engine/drv/drv3d_dx12
+  $(Root)/prog/engine/drv/drv3d_DX12
   $(Root)/prog/engine/shaders
-  $(Root)/prog/gameLibs/publicInclude
-  $(Root)/prog/3rdPartyLibs/d3dx12
-  $(Root)/prog/3rdPartyLibs/aftermath/2022.2.0.22145/include
+  $(Root)/prog/dagorInclude
+  $(Root)/prog/3rdPartyLibs/aftermath/2024.1.0.24075/include
   $(Root)/prog/3rdPartyLibs/imgui
 ;
 
-if $(Platform) in win64 && [ GLOB $(Root)/prog/3rdPartyLibs/winpixeventruntime : * ] {
+if $(Platform)-$(PlatformArch) = windows-x86_64 && [ GLOB $(Root)/prog/3rdPartyLibs/winpixeventruntime : * ] {
   CPPopt += -DUSE_PIX=1 ;
   AddLibs += $(Root)/prog/3rdPartyLibs/winpixeventruntime/bin/x64/WinPixEventRuntime.lib ;
   AddLibs += delayimp.lib -delayload:WinPixEventRuntime.dll ;
   AddIncludes += $(Root)/prog/3rdPartyLibs/winpixeventruntime/Include ;
 }
 
-if $(DlssEnabled) = yes && $(Platform) = win64 {
-  Target = $(Target:B) ~dlss ;
-  Target = $(Target:J="") ;
-  Target = $(Target:S=.lib) ;
-  Sources += ngx_wrapper.cpp ;
-  CPPopt += -DNV_WINDOWS ;
-  CPPopt += -DNGX_ENABLE_DEPRECATED_GET_PARAMETERS ; # remove this line once GetParameters is removed from DLSS
-} else {
-  Sources += ngx_wrapper_stub.cpp ;
-}
-
-if $(XessEnabled) = yes && $(Platform) = win64 && [ GLOB $(Root)/prog/3rdPartyLibs/xess_sdk : * ] {
+if $(XessEnabled) = yes && $(Platform)-$(PlatformArch) = windows-x86_64 && [ GLOB $(Root)/prog/3rdPartyLibs/xess_sdk : * ] {
   Target = $(Target:B) ~xess ;
   Target = $(Target:J="") ;
   Target = $(Target:S=.lib) ;
@@ -122,7 +109,7 @@ if $(XessEnabled) = yes && $(Platform) = win64 && [ GLOB $(Root)/prog/3rdPartyLi
   Sources += xess_wrapper_stub.cpp ;
 }
 
-if $(Fsr2Enabled) = yes && $(Platform) = win64 {
+if $(Fsr2Enabled) = yes && $(Platform)-$(PlatformArch) = windows-x86_64 {
   Target = $(Target:B)~fsr2.lib ;
   Sources += fsr2_wrapper.cpp ;
   UseProgLibs += 3rdPartyLibs/fsr2 ;
@@ -130,12 +117,28 @@ if $(Fsr2Enabled) = yes && $(Platform) = win64 {
   Sources += fsr2_wrapper_stub.cpp ;
 }
 
-AddIncludes += $(Root)/prog/3rdPartyLibs/nvsdk_ngx/Include ;
+if $(Platform)-$(PlatformArch) = windows-x86_64 {
+  Sources += amdFsrD3D12_windows.cpp ;
+  AddIncludes += $(Root)/prog/3rdPartyLibs/fsr3.1/include ;
+}
+else if $(Platform) in xboxOne scarlett {
+  Sources += amdFsrD3D12_xbox.cpp ;
+  AddIncludes += $(Root)/prog/3rdPartyLibs/fsr2_xbox ;
+}
+
+if $(Platform) in windows {
+  local AgilitySdkDir = $(_DEVTOOL)/Agility.SDK.$(AgilitySdkVer) ;
+
+  if ! [ GLOB $(AgilitySdkDir) : * ] { exit FATAL\: \"$(AgilitySdkDir)\" not found!  Please, update DEVTOOLS ; }
+
+  pre_opt on $(Sources) = -I$(AgilitySdkDir)/include ;
+
+  AddIncludes += $(AgilitySdkDir)/include/d3dx12 ;
+}
 
 # for GPU crash dump sending
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   UseProgLibs +=
-    gameLibs/eventLog
     1stPartyLibs/jsoncpp ;
 
   AddIncludes += $(Root)/prog/1stPartyLibs/jsoncpp/include ;
@@ -144,7 +147,6 @@ if $(Platform) in win32 win64 {
 UseProgLibs +=
   engine/drv/drv3d_commonCode
   engine/shaders
-  gameLibs/dxil
 ;
 
 if $(PlatformSpec) = clang && ! $(CLangVer) in 15.0.7 14.0.6 12.0.1 11.0.0 10.0.0 { # >= 16 implied

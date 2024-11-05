@@ -1,0 +1,8 @@
+return {
+  CmdAddRotAnim = @(_endQuat, _endScale, flag) assert(type(flag) == "bool")
+  CmdResetRotAnim = @(_startQuat, _startTime, _mask) null
+  CmdResetAttrFloatAnim = @(_startVal, _endVal, _flag) null
+  CmdAddAttrFloatAnim = @(_startVal, _endVal, _flag) null
+  CmdResetPosAnim = @(_startVal, _endVal, _flag) null
+  CmdAddPosAnim = @(_startVal, _endVal, _flag) null
+}

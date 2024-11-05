@@ -7,7 +7,7 @@ struct GlobalData
   float water_level; uint un00;
   float4x4 globtm;
   float4x4 globtm_prev;
-  float3 world_view_pos; uint un02;
+  float3 world_view_pos; uint gravity_zone_count;
   float3 view_dir_x; uint un03;
   float3 view_dir_y; uint un04;
   float3 view_dir_z; uint un05;
@@ -22,6 +22,7 @@ struct GlobalData
   float3 wind_speed; float znear_offset;
   float2 wind_dir; float wind_power; float wind_scroll;
   float2 depth_size_for_collision; float2 depth_size_rcp_for_collision;
+  float3 camera_velocity; uint un12;
 };
 
 #ifndef __cplusplus
@@ -43,6 +44,7 @@ struct GlobalData
     o.globtm_prev[3] = asfloat( dafx_global_data[8] );
 
     o.world_view_pos = asfloat( dafx_global_data[9].xyz );
+    o.gravity_zone_count = dafx_global_data[9].w;
 
     o.view_dir_x = asfloat( dafx_global_data[10].xyz );
     o.view_dir_y = asfloat( dafx_global_data[11].xyz );
@@ -76,6 +78,8 @@ struct GlobalData
 
     o.depth_size_for_collision = asfloat(dafx_global_data[23].xy);
     o.depth_size_rcp_for_collision = asfloat(dafx_global_data[23].zw);
+
+    o.camera_velocity = asfloat( dafx_global_data[24].xyz );
 
     return o;
   }

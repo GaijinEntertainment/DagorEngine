@@ -1,0 +1,24 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/daGI2 ;
+
+TargetType  = lib ;
+Target      = gameLibs/daGI2.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+  $(Root)/$(Location)/shaders
+;
+
+local AllSources = [ GLOB $(Root)/$(Location) : *.cpp ] ;
+Sources = $(AllSources:D=) ;
+
+UseProgLibs +=
+  engine/lib3d
+  gameLibs/daSDF
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

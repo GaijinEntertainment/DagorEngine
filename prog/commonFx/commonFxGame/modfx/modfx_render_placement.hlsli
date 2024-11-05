@@ -9,8 +9,9 @@ ModfxDeclRenderPlacementParams ModfxDeclRenderPlacementParams_load( BufferData_c
   return *(ModfxDeclRenderPlacementParams*)( buf + ofs );
 #else
   ModfxDeclRenderPlacementParams pp;
-  pp.terrain_only = dafx_load_1ui(buf, ofs);
+  pp.flags = dafx_load_1ui(buf, ofs);
   pp.placement_threshold = dafx_load_1f(buf, ofs);
+  pp.align_normals_offset = dafx_load_1f(buf, ofs);
   return pp;
 #endif
 }

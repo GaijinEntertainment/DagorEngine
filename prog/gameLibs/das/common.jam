@@ -1,5 +1,4 @@
 include $(Root)/prog/_jBuild/defaults.jam ;
-if $(GLOBAL_DependOnJam) { DependOnJams += $(Root)/prog/gameLibs/das/common.jam ; } # to handle depjam case
 
 SetupOutputDir ;
 

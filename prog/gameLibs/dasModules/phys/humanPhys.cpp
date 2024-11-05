@@ -1,10 +1,14 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daScript/daScript.h>
 #include <dasModules/aotHumanPhys.h>
+#include <dasModules/aotGamePhys.h>
 #include <gamePhys/phys/walker/humanPhys.h>
+#include <ecs/phys/netPhysResync.h>
 
 DAS_BASE_BIND_ENUM_98(HUMoveState, HUMoveState, EMS_STAND, EMS_WALK, EMS_RUN, EMS_SPRINT, EMS_ROTATE_LEFT, EMS_ROTATE_RIGHT);
 DAS_BASE_BIND_ENUM_98(HUStandState, HUStandState, ESS_STAND, ESS_CROUCH, ESS_CRAWL, ESS_DOWNED, ESS_SWIM, ESS_SWIM_UNDERWATER,
-  ESS_CLIMB, ESS_CLIMB_THROUGH);
+  ESS_CLIMB, ESS_CLIMB_THROUGH, ESS_CLIMB_OVER, ESS_CLIMB_LADDER, ESS_EXTERNALLY_CONTROLLED, ESS_NUM);
 DAS_BASE_BIND_ENUM(HumanPhysState::StateFlag, StateFlag, ST_JUMP, ST_CROUCH, ST_CRAWL, ST_ON_GROUND, ST_SPRINT, ST_WALK, ST_SWIM,
   ST_DOWNED);
 DAS_BASE_BIND_ENUM(HumanControlState::DodgeState, DodgeState, No, Left, Right, Back);
@@ -64,8 +68,6 @@ struct HumanWeaponParamsAnnotation : das::ManagedStructureAnnotation<HumanWeapon
     addField<DAS_BIND_MANAGED_FIELD(equipSpeedMult)>("equipSpeedMult");
     addField<DAS_BIND_MANAGED_FIELD(holsterSwapSpeedMult)>("holsterSwapSpeedMult");
 
-    addField<DAS_BIND_MANAGED_FIELD(offsFromNode)>("offsFromNode");
-    addField<DAS_BIND_MANAGED_FIELD(offsFromNodeCrouch)>("offsFromNodeCrouch");
     addField<DAS_BIND_MANAGED_FIELD(offsAimNode)>("offsAimNode");
     addField<DAS_BIND_MANAGED_FIELD(offsCheckLeftNode)>("offsCheckLeftNode");
     addField<DAS_BIND_MANAGED_FIELD(offsCheckRightNode)>("offsCheckRightNode");
@@ -139,10 +141,12 @@ struct HumanPhysStateAnnotation : das::ManagedStructureAnnotation<HumanPhysState
     addField<DAS_BIND_MANAGED_FIELD(deltaVelIgnoreAmount)>("deltaVelIgnoreAmount");
     addField<DAS_BIND_MANAGED_FIELD(staminaDrainMult)>("staminaDrainMult");
     addField<DAS_BIND_MANAGED_FIELD(moveSpeedMult)>("moveSpeedMult");
+    addField<DAS_BIND_MANAGED_FIELD(isWishToMove)>("isWishToMove");
     addField<DAS_BIND_MANAGED_FIELD(swimmingSpeedMult)>("swimmingSpeedMult");
     addField<DAS_BIND_MANAGED_FIELD(jumpSpeedMult)>("jumpSpeedMult");
     addField<DAS_BIND_MANAGED_FIELD(climbingSpeedMult)>("climbingSpeedMult");
     addField<DAS_BIND_MANAGED_FIELD(staminaSprintDrainMult)>("staminaSprintDrainMult");
+    addField<DAS_BIND_MANAGED_FIELD(staminaClimbDrainMult)>("staminaClimbDrainMult");
     addField<DAS_BIND_MANAGED_FIELD(accelerationMult)>("accelerationMult");
     addField<DAS_BIND_MANAGED_FIELD(maxStaminaMult)>("maxStaminaMult");
     addField<DAS_BIND_MANAGED_FIELD(restoreStaminaMult)>("restoreStaminaMult");
@@ -235,7 +239,7 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
     addField<DAS_BIND_MANAGED_FIELD(unapprovedCT)>("unapprovedCT");
     addField<DAS_BIND_MANAGED_FIELD(previousState)>("previousState");
     addField<DAS_BIND_MANAGED_FIELD(currentState)>("currentState");
-    addField<DAS_BIND_MANAGED_FIELD(authorityApprovedState)>("authorityApprovedState");
+    addProperty<DAS_BIND_MANAGED_PROP(getAuthorityApprovedState)>("authorityApprovedState", "getAuthorityApprovedState");
     addField<DAS_BIND_MANAGED_FIELD(authorityApprovedPartialState)>("authorityApprovedPartialState");
     addField<DAS_BIND_MANAGED_FIELD(visualLocation)>("visualLocation");
     // NOTE: please add new field according to fields order
@@ -270,6 +274,7 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
     addField<DAS_BIND_MANAGED_FIELD(canClimb)>("canClimb");
     addField<DAS_BIND_MANAGED_FIELD(canSprint)>("canSprint");
     addField<DAS_BIND_MANAGED_FIELD(canJump)>("canJump");
+    addField<DAS_BIND_MANAGED_FIELD(canMove)>("canMove");
     addField<DAS_BIND_MANAGED_FIELD(canSwitchWeapon)>("canSwitchWeapon");
     addField<DAS_BIND_MANAGED_FIELD(hasGuns)>("hasGuns");
     addField<DAS_BIND_MANAGED_FIELD(hasExternalHeight)>("hasExternalHeight");
@@ -288,7 +293,6 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
     addProperty<DAS_BIND_MANAGED_PROP(getClimbStaminaDrain)>("getClimbStaminaDrain");
     addProperty<DAS_BIND_MANAGED_PROP(calcCcdPos)>("ccdPos", "calcCcdPos");
     addProperty<DAS_BIND_MANAGED_PROP(getMaxObstacleHeight)>("maxObstacleHeight", "getMaxObstacleHeight");
-    addProperty<DAS_BIND_MANAGED_PROP(getFeetCollision)>("feetCollision", "getFeetCollision");
     addProperty<DAS_BIND_MANAGED_PROP(getTorsoCollision)>("torsoCollision", "getTorsoCollision");
     addProperty<DAS_BIND_MANAGED_PROP(getClimberCollision)>("climberCollision", "getClimberCollision");
     addProperty<DAS_BIND_MANAGED_PROP(getWallJumpCollision)>("wallJumpCollision", "getWallJumpCollision");
@@ -464,17 +468,19 @@ public:
     das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_state_set_isExternalControlled)>(*this, lib,
       "human_phys_state_set_isExternalControlled", das::SideEffects::modifyArgument,
       "bind_dascript::human_phys_state_set_isExternalControlled");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_state_get_torso_contacts)>(*this, lib, "human_phys_state_get_torso_contacts",
+      das::SideEffects::accessExternal, "bind_dascript::human_phys_state_get_torso_contacts");
 
 
-    using method_setWeaponOffs = DAS_CALL_MEMBER(HumanPhys::setWeaponOffs);
-    das::addExtern<DAS_CALL_METHOD(method_setWeaponOffs)>(*this, lib, "human_phys_setWeaponOffs", das::SideEffects::modifyArgument,
-      DAS_CALL_MEMBER_CPP(HumanPhys::setWeaponOffs));
     using method_setWeaponLen = DAS_CALL_MEMBER(HumanPhys::setWeaponLen);
     das::addExtern<DAS_CALL_METHOD(method_setWeaponLen)>(*this, lib, "human_phys_setWeaponLen", das::SideEffects::modifyArgument,
       DAS_CALL_MEMBER_CPP(HumanPhys::setWeaponLen));
     using method_getWalkSpeed = DAS_CALL_MEMBER(HumanPhys::getWalkSpeed);
     das::addExtern<DAS_CALL_METHOD(method_getWalkSpeed)>(*this, lib, "human_phys_getWalkSpeed", das::SideEffects::none,
       DAS_CALL_MEMBER_CPP(HumanPhys::getWalkSpeed));
+    using method_setWalkSpeed = DAS_CALL_MEMBER(HumanPhys::setWalkSpeed);
+    das::addExtern<DAS_CALL_METHOD(method_setWalkSpeed)>(*this, lib, "human_phys_setWalkSpeed", das::SideEffects::modifyArgument,
+      DAS_CALL_MEMBER_CPP(HumanPhys::setWalkSpeed));
     using method_tryClimbing = DAS_CALL_MEMBER(HumanPhys::tryClimbing);
     das::addExtern<DAS_CALL_METHOD(method_tryClimbing)>(*this, lib, "human_phys_tryClimbing", das::SideEffects::modifyArgument,
       DAS_CALL_MEMBER_CPP(HumanPhys::tryClimbing));
@@ -539,6 +545,13 @@ public:
     using method_isAiming = DAS_CALL_MEMBER(HumanPhys::isAiming);
     das::addExtern<DAS_CALL_METHOD(method_isAiming)>(*this, lib, "human_phys_isAiming", das::SideEffects::none,
       DAS_CALL_MEMBER_CPP(HumanPhys::isAiming));
+
+    das::addExtern<DAS_BIND_FUN(bind_dascript::registerCustomPhysStateSyncer<HumanPhys>)>(*this, lib, "registerCustomPhysStateSyncer",
+      das::SideEffects::modifyArgument, "bind_dascript::registerCustomPhysStateSyncer<HumanPhys>");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::unregisterCustomPhysStateSyncer<HumanPhys>)>(*this, lib,
+      "unregisterCustomPhysStateSyncer", das::SideEffects::modifyArgument,
+      "bind_dascript::unregisterCustomPhysStateSyncer<HumanPhys>");
+
     verifyAotReady();
   }
   das::ModuleAotType aotRequire(das::TextWriter &tw) const override

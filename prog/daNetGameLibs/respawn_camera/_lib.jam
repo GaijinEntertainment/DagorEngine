@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_respawn_camera_pull ;
+  UseProgLibs += daNetGameLibs/respawn_camera ;
+}

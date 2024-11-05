@@ -1,10 +1,14 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/dag_drv3dConsts.h>
-#include "shader.h"
-#include "vulkan_device.h"
+#include <drv/3d/dag_consts.h>
 #include <EASTL/vector_map.h>
 #include <EASTL/vector_multimap.h>
+#include <osApiWrappers/dag_critSec.h>
+#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
+
+#include "shader.h"
+#include "vulkan_device.h"
 
 namespace drv3d_vulkan
 {
@@ -352,7 +356,5 @@ private:
   void attachDebugInfo(ShaderID shader, const ShaderDebugInfo &debugInfo);
 #endif
 };
-
-ShaderProgramDatabase &get_shader_program_database();
 
 } // namespace drv3d_vulkan

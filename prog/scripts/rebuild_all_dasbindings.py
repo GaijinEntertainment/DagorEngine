@@ -17,25 +17,25 @@ def shell(cmd, print_stdout=True):
 
 bindings_checks = [
   {"wdir":"../../skyquake/prog","cmds":
-    ("jam  -sPlatform=win64 -sRoot=../.. -f aot/jamfile",)
+    ("jam  -sPlatformArch=x86_64 -sRoot=../.. -f aot/jamfile",)
   },
   {"wdir":"../../skyquake/prog/scripts","cmds":
     ("genDasevents.bat",)
   },
   {"wdir":"../../enlisted/prog","cmds":
-    ("jam  -sPlatform=win64 -sRoot=../.. -f aot/jamfile", "genDasevents.bat")
+    ("jam  -sPlatformArch=x86_64 -sRoot=../.. -f aot/jamfile", "genDasevents.bat")
   },
   {"wdir":"../../active_matter/prog","cmds":
-    ("jam  -sPlatform=win64 -sRoot=../.. -f aot/jamfile", "genDasevents.bat")
+    ("jam  -sPlatformArch=x86_64 -sRoot=../.. -f aot/jamfile", "genDasevents.bat")
   },
   {"wdir":"../../cuisine_royale/prog","cmds":
-    ("jam  -sPlatform=win64 -sRoot=../.. -f aot/jamfile", "genDasevents.bat")
+    ("jam  -sPlatformArch=x86_64 -sRoot=../.. -f aot/jamfile", "genDasevents.bat")
   },
   {"wdir":"../../modern_conflict/prog","cmds":
-    ("jam  -sPlatform=win64 -sRoot=../.. -f aot/jamfile", "genDasevents.bat")
+    ("jam  -sPlatformArch=x86_64 -sRoot=../.. -f aot/jamfile", "genDasevents.bat")
   },
   {"wdir":"../../to_the_sky/prog","cmds":
-    ("jam  -sPlatform=win64 -sRoot=../.. -f aot/jamfile", "genDasevents.bat")
+    ("jam  -sPlatformArch=x86_64 -sRoot=../.. -f aot/jamfile", "genDasevents.bat")
   },
 ]
 

@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <sqrat.h>
@@ -13,7 +14,8 @@ class Element;
 
 void script_print_func(HSQUIRRELVM v, const SQChar *s, ...);
 void script_err_print_func(HSQUIRRELVM v, const SQChar *s, ...);
-void compile_error_handler(HSQUIRRELVM v, const SQChar *desc, const SQChar *source, SQInteger line, SQInteger column, const SQChar *);
+void compile_error_handler(HSQUIRRELVM v, SQMessageSeverity severity, const SQChar *desc, const SQChar *source, SQInteger line,
+  SQInteger column, const SQChar *);
 SQInteger runtime_error_handler(HSQUIRRELVM v);
 SQInteger encode_e3dcolor(HSQUIRRELVM vm);
 bool decode_e3dcolor(const Sqrat::Object &val, E3DCOLOR &color, const char **err_msg);

@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <supp/dag_android_native_app_glue.h>
 #include <osApiWrappers/dag_progGlobals.h>
-#include <humanInput/dag_hiCreate.h>
+#include <drv/hid/dag_hiCreate.h>
 #include <ioSys/dag_dataBlock.h>
 #include <jni.h>
 #include "ime_android_attr.h"
@@ -47,7 +49,8 @@ static jmethodID s_HideID = NULL;
 static jmethodID s_IsShownID = NULL;
 
 static bool attach(void *activity = nullptr);
-static bool show(const char *initalText, const char *hint, uint32_t editFlags, uint32_t imeOptions);
+static bool show(const char *initalText, const char *hint, uint32_t editFlags, uint32_t imeOptions, int cursorPos = 0,
+  int maxText = 0);
 static void hide();
 static bool isShown();
 }; // namespace nvsoftinput
@@ -61,7 +64,7 @@ void HumanInput::showScreenKeyboard(bool show)
     softinput::hide(0);
 }
 
-static void (*ime_finish_cb)(void *userdata, const char *str, int status) = NULL;
+static void (*ime_finish_cb)(void *userdata, const char *str, int cursor, int status) = NULL;
 static void *ime_finish_userdata = NULL;
 static bool ime_started = false;
 
@@ -77,8 +80,8 @@ void android_hide_soft_input()
 }
 
 bool HumanInput::isImeAvailable() { return nvsoftinput::s_Inited; }
-bool HumanInput::showScreenKeyboard_IME(const DataBlock &init_params, void(on_finish_cb)(void *userdata, const char *str, int status),
-  void *userdata)
+bool HumanInput::showScreenKeyboard_IME(const DataBlock &init_params,
+  void(on_finish_cb)(void *userdata, const char *str, int cursor, int status), void *userdata)
 {
   if (!init_params.paramCount() && !on_finish_cb && userdata)
   {
@@ -140,12 +143,13 @@ bool HumanInput::showScreenKeyboard_IME(const DataBlock &init_params, void(on_fi
     edit_flags |= TYPE_TEXT_FLAG_CAP_WORDS;
   if (init_params.getBool("optNoLearning", false))
     edit_flags |= TYPE_TEXT_FLAG_NO_SUGGESTIONS;
-  // init_params.getInt("maxChars", 128));
+  int max_chars = init_params.getInt("maxChars", 128);
+  int cursor_pos = init_params.getInt("optCursorPos", 0);
 
   // debug("show: str=<%s> hint=<%s> flg=%08X ime=%08X (%s,%s)", init_params.getStr("str"), init_params.getStr("hint", ""), edit_flags,
   // ime_flags,
   //   init_params.getStr("type", NULL), init_params.getStr("label", NULL));
-  return nvsoftinput::show(init_params.getStr("str"), init_params.getStr("hint", ""), edit_flags, ime_flags);
+  return nvsoftinput::show(init_params.getStr("str"), init_params.getStr("hint", ""), edit_flags, ime_flags, cursor_pos, max_chars);
 }
 
 int HumanInput::getScreenKeyboardStatus_android()
@@ -343,7 +347,7 @@ bool nvsoftinput::attach(void *activity)
   if (!s_NvSoftInputClass)
     return false;
 
-  s_ShowID = s_Jni->GetStaticMethodID(s_NvSoftInputClass, "Show", "(Landroid/app/Activity;Ljava/lang/String;Ljava/lang/String;II)V");
+  s_ShowID = s_Jni->GetStaticMethodID(s_NvSoftInputClass, "Show", "(Landroid/app/Activity;Ljava/lang/String;Ljava/lang/String;IIII)V");
   s_HideID = s_Jni->GetStaticMethodID(s_NvSoftInputClass, "Hide", "()V");
   s_IsShownID = s_Jni->GetStaticMethodID(s_NvSoftInputClass, "IsShown", "()Z");
 
@@ -353,7 +357,7 @@ bool nvsoftinput::attach(void *activity)
   return s_Inited;
 }
 
-bool nvsoftinput::show(const char *initalText, const char *hint, uint32_t editFlags, uint32_t imeOptions)
+bool nvsoftinput::show(const char *initalText, const char *hint, uint32_t editFlags, uint32_t imeOptions, int cursorPos, int maxText)
 {
   if (!attach())
     return false;
@@ -364,7 +368,7 @@ bool nvsoftinput::show(const char *initalText, const char *hint, uint32_t editFl
   jstring strHint = s_Jni->NewStringUTF(hint);
 
   s_Jni->CallStaticVoidMethod(s_NvSoftInputClass, s_ShowID, android::get_activity_class(s_AttachedActivity), strText, strHint,
-    editFlags, imeOptions);
+    editFlags, imeOptions, cursorPos, maxText);
 
   return true;
 }
@@ -376,7 +380,7 @@ void nvsoftinput::hide()
     s_Jni->CallStaticVoidMethod(s_NvSoftInputClass, s_HideID);
     if (ime_finish_cb)
     {
-      ime_finish_cb(ime_finish_userdata, "", -1);
+      ime_finish_cb(ime_finish_userdata, "", 0, -1);
       ime_finish_cb = NULL;
       ime_finish_userdata = NULL;
     }
@@ -394,34 +398,36 @@ bool nvsoftinput::isShown()
 
 extern "C" // private static native void nativeTextReport(String text, boolean isCancelled);
   JNIEXPORT void JNICALL
-  Java_com_nvidia_Helpers_NvSoftInput_nativeTextReport(JNIEnv *jni, jclass cls, jstring text, jboolean isCancelled)
+  Java_com_nvidia_Helpers_NvSoftInput_nativeTextReport(JNIEnv *jni, jclass cls, jstring text, jint cursorPos, jboolean isCancelled)
 {
   if (ime_finish_cb)
   {
     struct FinishAction : public DelayedAction
     {
-      void (*finish_cb)(void *userdata, const char *str, int status);
+      void (*finish_cb)(void *userdata, const char *str, int _cursor, int status);
       void *finish_userdata;
       SimpleString utf8;
       bool confirm;
+      int cursor;
 
-      FinishAction(const char *text_utf8, bool _confirm)
+      FinishAction(const char *text_utf8, int _cursorPos, bool _confirm)
       {
         utf8 = text_utf8;
         finish_cb = ime_finish_cb;
         finish_userdata = ime_finish_userdata;
         confirm = _confirm;
+        cursor = _cursorPos;
       }
 
       virtual void performAction()
       {
         // debug("text=%s confirm=%d", utf8, confirm);
-        finish_cb(finish_userdata, utf8, confirm);
+        finish_cb(finish_userdata, utf8, cursor, confirm);
       }
     };
 
     const char *text_utf8 = jni->GetStringUTFChars(text, NULL);
-    FinishAction *a = new FinishAction(text_utf8, isCancelled ? 0 : 1);
+    FinishAction *a = new FinishAction(text_utf8, cursorPos, isCancelled ? 0 : 1);
     jni->ReleaseStringUTFChars(text, text_utf8);
 
     ime_started = false;

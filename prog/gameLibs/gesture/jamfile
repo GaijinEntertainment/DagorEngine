@@ -1,0 +1,17 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/gesture ;
+StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = gameLibs/gesture.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+Sources =
+  gestureDetector.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

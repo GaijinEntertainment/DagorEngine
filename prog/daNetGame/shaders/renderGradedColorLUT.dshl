@@ -1,0 +1,6 @@
+include "gradedColorLUT.dshl"
+
+shader render_graded_color_lut
+{
+  RENDER_FULL_TONEMAP_LUT()
+}

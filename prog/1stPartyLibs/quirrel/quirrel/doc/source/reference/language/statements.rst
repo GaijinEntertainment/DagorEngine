@@ -181,30 +181,6 @@ Executes a statement as long as a condition is different than false.::
         println("loops forever")
     }
 
-.. index::
-    pair: range-loop; statement
-
-::
-
-    stat:= 'for' '(' variable ':' [startValue ',' ] limitValue [ ',' step] ')' statement
-    stat:= 'for' '(' count ')' statement
-    stat:= 'for' '(' [startValue ',' ] limitValue ')' statement
-
-This is currently just syntax sugar over regular 'for' loop which are being desugared into the following general form:::
-
-    for (variable = startValue; variable < limitValue; variable += step)
-        println($"indexed range loop: {variable}")
-    //or
-    for ($i = 0; $i < count; ++$i)
-        println("count range loop")
-    //or
-    for ($i = startValue; $i < limitValue; ++$i)
-        println("bounded range loop")
-
-Here if 'startValue' is not explicitly provided it is '0' by default. If 'step' is not provided it is '1' by default.
-'step' can only be integer literal.
-
-
 ^^^^^^^^
 foreach
 ^^^^^^^^
@@ -337,8 +313,8 @@ So if you see somewhere in function scope let foo =  you can be sure that foo wi
 .. note::
   While named bindings looks like constants they do not provide immutability. Named bindings can reference mutable objects (like array or instance or table)
 
-
-
+  
+  
 --------------------
 Function declaration
 --------------------
@@ -363,7 +339,7 @@ Class declaration
 ::
 
     memberdecl := id '=' exp [';'] |    '[' exp ']' '=' exp [';'] | functionstat | 'constructor' functionexp
-    stat:= 'class' derefexp ['extends' derefexp] '{'
+    stat:= 'class' derefexp ['(' derefexp ')'] '{'
             [memberdecl]
         '}'
 

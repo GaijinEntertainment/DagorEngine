@@ -1,15 +1,22 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "texMgrData.h"
+#include <generic/dag_fixedVectorMap.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_localConv.h>
 #include <osApiWrappers/dag_atomic.h>
+#include <osApiWrappers/dag_spinlock.h>
+#include <osApiWrappers/dag_rwLock.h>
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
 #include <util/dag_texMetaData.h>
 #include <util/dag_string.h>
+#include <memory/dag_framemem.h>
 #include <debug/dag_log.h>
 #include <debug/dag_debug.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_tex3d.h>
 #include <3d/fileTexFactory.h>
 #include <math/dag_adjpow2.h>
 
@@ -33,12 +40,10 @@ TEXTUREID add_managed_texture(const char *name, TextureFactory *factory)
   if (idx >= 0)
   {
     TEX_REC_LOCK();
-    if (!factory)
-      factory = default_tex_mgr_factory;
     if (!RMGR.getFactory(idx) && !RMGR.getD3dRes(idx))
-      RMGR.setFactory(idx, factory);
-    else if (RMGR.getFactory(idx) != factory && !disable_add_warning)
-      logerr_ctx("%s(%s), idx=0x%x: factory already set (%p, %p)", __FUNCTION__, name, idx, RMGR.getFactory(idx), factory);
+      RMGR.setFactory(idx, factory ? factory : default_tex_mgr_factory);
+    else if (factory && RMGR.getFactory(idx) != factory && !disable_add_warning)
+      LOGERR_CTX("%s(%s), idx=0x%x: factory already set (%p, %p)", __FUNCTION__, name, idx, RMGR.getFactory(idx), factory);
     if (RMGR.isScheduledForRemoval(idx))
     {
       TEX_REC_UNLOCK();
@@ -47,6 +52,7 @@ TEXTUREID add_managed_texture(const char *name, TextureFactory *factory)
       return BAD_TEXTUREID;
     }
     TEX_REC_UNLOCK();
+    mark_texture_rec(idx);
   }
 
   release_texmgr_lock();
@@ -67,7 +73,7 @@ D3DRESID register_managed_res(const char *name, D3dResource *res)
       apply_mip_bias_rules(RMGR.baseTexture(idx), RMGR.getName(idx));
     }
     else
-      logerr_ctx("add_managed_texture_basetex: <%s> texture id already used; refCount=%d forRemove=%d name=%s", name,
+      LOGERR_CTX("add_managed_texture_basetex: <%s> texture id already used; refCount=%d forRemove=%d name=%s", name,
         RMGR.getRefCount(idx), RMGR.isScheduledForRemoval(idx), RMGR.getName(idx));
     if (RMGR.isScheduledForRemoval(idx))
     {
@@ -82,6 +88,8 @@ D3DRESID register_managed_res(const char *name, D3dResource *res)
   }
 
   release_texmgr_lock();
+  if (hook_on_get_texture_id && idx >= 0)
+    hook_on_get_texture_id(tid);
   return tid;
 }
 TEXTUREID register_managed_tex(const char *name, BaseTexture *texture) { return register_managed_res(name, texture); }
@@ -195,12 +203,20 @@ int texmgr_internal::find_texture_rec(const char *name, bool auto_add, TextureFa
     return -1;
 
   TextureMetaData tmd;
-  String stor;
-  SimpleString nm(tmd.decode(name, &stor));
-  dd_simplify_fname_c(nm);
-  dd_strlwr(nm);
+  String stor(framemem_ptr());
+  char *nm = (char *)tmd.decode(name, &stor);
+  if (nm != stor.c_str())
+  {
+    stor = nm;
+    nm = stor.c_str();
+  }
+  if (strncmp(nm, "b64://", sizeof("b64://") - 1) != 0)
+  {
+    dd_simplify_fname_c(nm);
+    dd_strlwr(nm);
+  }
 
-  int idx = managed_tex_map_by_name.getStrId(nm.str());
+  int idx = managed_tex_map_by_name.getStrId(nm);
   if (idx >= 0)
     return idx;
 
@@ -215,7 +231,7 @@ int texmgr_internal::find_texture_rec(const char *name, bool auto_add, TextureFa
   TEX_REC_UNLOCK();
 
   const char *stored_name = nullptr;
-  managed_tex_map_by_name.addStrId(nm.str(), idx, stored_name);
+  managed_tex_map_by_name.addStrId(nm, idx, stored_name);
   G_ASSERT(stored_name);
   if (DAGOR_UNLIKELY(idx >= managed_tex_map_by_idx.size()))
   {
@@ -334,7 +350,8 @@ void reset_anisotropy(const char *tex_name_filter)
         continue;
       TextureMetaData tmd;
       tmd.decode(name, &stor);
-      bt->setAnisotropy(tmd.calcAnisotropy(::dgs_tex_anisotropy));
+      if (bt->isSamplerEnabled())
+        bt->setAnisotropy(tmd.calcAnisotropy(::dgs_tex_anisotropy));
     }
 }
 
@@ -360,6 +377,20 @@ void set_add_lod_bias(float add, const char *required_part)
     lod_bias_change_cb();
 }
 
+void set_add_lod_bias_batch(dag::Span<const LODBiasRule> rules)
+{
+  for (auto &rule : rules)
+    add_mip_bias_rule(rule.substring, rule.bias);
+
+  for (unsigned i = 0, ie = RMGR.getRelaxedIndexCount(); i < ie; i++)
+    if (RMGR.getRefCount(i) >= 0)
+      apply_mip_bias_rules(RMGR.baseTexture(i), RMGR.getName(i));
+
+  if (!lod_bias_change_cb)
+    logerr("lod_bias_change_cb is not set! Samplers for materials are incorrect.");
+  else
+    lod_bias_change_cb();
+}
 
 // textag marks
 struct TexTagMarkCtx
@@ -506,7 +537,7 @@ bool texmgr_internal::D3dResMgrDataFinal::scheduleReading(int idx, TextureFactor
         if (!hasTexBaseData(bt_tid.index()))
         {
           RMGR.updateResReqLev(bt_tid, bt_tid.index(), resQS[idx].getMaxReqLev());
-          scheduleReading(bt_tid.index(), RMGR.factory[bt_tid.index()]);
+          scheduleReading(bt_tid.index(), RMGR.getFactory(bt_tid.index()));
         }
       }
 
@@ -540,7 +571,8 @@ unsigned texmgr_internal::D3dResMgrDataFinal::calcTexMemSize(int idx, int target
 
   return total * a + (target_lev > 1 ? 4096 : 0);
 }
-bool texmgr_internal::D3dResMgrDataFinal::readDdsxTex(TEXTUREID tid, const ddsx::Header &hdr, IGenLoad &crd, int quality_id)
+TexLoadRes texmgr_internal::D3dResMgrDataFinal::readDdsxTex(TEXTUREID tid, const ddsx::Header &hdr, IGenLoad &crd, int quality_id,
+  on_tex_slice_loaded_cb_t on_tex_slice_loaded_cb)
 {
   unsigned idx = tid.index();
   bool should_skip_reading = false;
@@ -581,7 +613,7 @@ bool texmgr_internal::D3dResMgrDataFinal::readDdsxTex(TEXTUREID tid, const ddsx:
   {
     RMGR_TRACE("%d: skip_reading(rd_lev=%d): %s", idx, rd_lev, getName(idx));
     resQS[idx].setRdLev(rd_lev = resQS[idx].getLdLev()); // skip reading, leave state as is
-    return true;
+    return TexLoadRes::OK;
   }
   if (!(hdr.flags & (hdr.FLG_GENMIP_BOX | hdr.FLG_GENMIP_KAIZER)))
   {
@@ -597,7 +629,7 @@ bool texmgr_internal::D3dResMgrDataFinal::readDdsxTex(TEXTUREID tid, const ddsx:
     max((hdr.flags & hdr.FLG_VOLTEX) ? texDesc[idx].dim.d >> skip : ((hdr.flags & hdr.FLG_CUBTEX) ? 6 : texDesc[idx].dim.d), 1);
   unsigned l = texDesc[idx].dim.l - skip;
   TEXTUREID base_tid = pairedBaseTexId[idx];
-  bool ret = false;
+  TexLoadRes ret = TexLoadRes::ERR;
 
   if (incRefCount(idx) == 1)
     RMGR.decReadyForDiscardTex(idx);
@@ -614,15 +646,15 @@ bool texmgr_internal::D3dResMgrDataFinal::readDdsxTex(TEXTUREID tid, const ddsx:
       resQS[idx].setRdLev(rd_lev = resQS[idx].getLdLev()); // since texture is missing we should mark ldLev=1 afterwards
     }
     else
-      ret = true;
+      ret = TexLoadRes::OK;
   }
   else if (cur_ql == TQL_stub || !t->ressize())
   {
     if (BaseTexture *tmp_tex = t->makeTmpTexResCopy(w, h, d, l))
     {
       tmp_tex->texmiplevel(target_lev - rd_lev, l - 1);
-      ret = d3d_load_ddsx_tex_contents(tmp_tex, tid, base_tid, hdr, crd, quality_id, target_lev - rd_lev, 0);
-      if (ret)
+      ret = d3d_load_ddsx_tex_contents(tmp_tex, tid, base_tid, hdr, crd, quality_id, target_lev - rd_lev, 0, on_tex_slice_loaded_cb);
+      if (ret == TexLoadRes::OK)
         t->replaceTexResObject(tmp_tex);
       else
         del_d3dres(tmp_tex);
@@ -635,12 +667,14 @@ bool texmgr_internal::D3dResMgrDataFinal::readDdsxTex(TEXTUREID tid, const ddsx:
     unsigned ld_lev = resQS[idx].getLdLev();
     if (tql::resizeTexture(t, w, h, d, l, ld_lev))
     {
-      ret = rd_lev > ld_lev ? d3d_load_ddsx_tex_contents(t, tid, base_tid, hdr, crd, quality_id, target_lev - rd_lev, ld_lev) : true;
-      if (ret)
+      ret = rd_lev > ld_lev
+              ? d3d_load_ddsx_tex_contents(t, tid, base_tid, hdr, crd, quality_id, target_lev - rd_lev, ld_lev, on_tex_slice_loaded_cb)
+              : TexLoadRes::OK;
+      if (ret == TexLoadRes::OK)
         t->texmiplevel(target_lev - rd_lev, l - 1);
     }
   }
-  if (!ret)
+  if (ret != TexLoadRes::OK)
     resQS[idx].setRdLev(rd_lev = resQS[idx].getLdLev()); // failed to read, leave state as is
   if (t)
   {
@@ -700,7 +734,7 @@ void textag_clear_tag(int textag)
   release_texmgr_lock();
 }
 
-void mark_managed_textures_important(dag::ConstSpan<TEXTUREID> id, unsigned add_importance)
+void mark_managed_textures_important(dag::ConstSpan<TEXTUREID> id, unsigned add_importance, int min_lev_for_dyn_decrease)
 {
   for (TEXTUREID tid : id)
   {
@@ -709,8 +743,15 @@ void mark_managed_textures_important(dag::ConstSpan<TEXTUREID> id, unsigned add_
     {
       if (interlocked_add(RMGR.texImportance[idx], add_importance) > (48 << 10))
         interlocked_release_store(RMGR.texImportance[idx], (48 << 10));
-      if (RMGR.resQS[idx].getMaxLev() < RMGR.resQS[idx].getQLev())
-        RMGR.changeTexMaxLev(idx, RMGR.resQS[idx].getQLev());
+      int max_lev = RMGR.resQS[idx].getQLev();
+      if (tql::dyn_qlev_decrease > 0 && max_lev >= min_lev_for_dyn_decrease)
+      {
+        max_lev--;
+        if (RMGR.resQS[idx].getMaxLev() != max_lev)
+          RMGR.changeTexMaxLev(idx, max_lev);
+      }
+      else if (RMGR.resQS[idx].getMaxLev() < max_lev)
+        RMGR.changeTexMaxLev(idx, max_lev);
     }
   }
 }
@@ -720,7 +761,7 @@ const TexTagInfo &textag_get_info(int textag) { return texmgr_internal::textagIn
 void textag_get_list(int textag, Tab<TEXTUREID> &out_list, bool skip_unused)
 {
   G_ASSERT(textag >= 0 && textag < TEXTAG__COUNT);
-  int cnt = texmgr_internal::textagInfo[textag].texCount;
+  int cnt = interlocked_acquire_load(texmgr_internal::textagInfo[textag].texCount);
   out_list.clear();
   out_list.reserve(cnt);
   acquire_texmgr_lock();
@@ -738,4 +779,56 @@ void textag_get_list(int textag, Tab<TEXTUREID> &out_list, bool skip_unused)
       break;
   }
   release_texmgr_lock();
+}
+
+TextureMetaData get_texture_meta_data(TEXTUREID id)
+{
+  int idx = RMGR.toIndex(id);
+  const char *name = RMGR.getName(idx);
+
+  TextureMetaData tmd;
+  tmd.decode(name);
+  return tmd;
+}
+
+d3d::SamplerInfo get_sampler_info(const TextureMetaData &texture_meta_data, bool force_addr_from_tmd)
+{
+  uint32_t colorRGB = texture_meta_data.borderCol & 0xFFFFFF ? 0xFFFFFF : 0;
+  uint32_t colorA = texture_meta_data.borderCol & 0xFF000000 ? 0xFF000000 : 0;
+  d3d::SamplerInfo samplerInfo = {
+    static_cast<d3d::MipMapMode>(texture_meta_data.d3dMipFilter()),
+    static_cast<d3d::FilterMode>(texture_meta_data.d3dTexFilter()),
+    d3d::AddressMode::Wrap,
+    d3d::AddressMode::Wrap,
+    d3d::AddressMode::Wrap,
+    static_cast<d3d::BorderColor::Color>(colorA | colorRGB),
+    static_cast<float>(texture_meta_data.calcAnisotropy(::dgs_tex_anisotropy)),
+    texture_meta_data.lodBias / 1000.0f,
+  };
+  if (force_addr_from_tmd || (texture_meta_data.flags & texture_meta_data.FLG_OVERRIDE))
+  {
+    samplerInfo.address_mode_u = static_cast<d3d::AddressMode>(texture_meta_data.d3dTexAddr(texture_meta_data.addrU));
+    samplerInfo.address_mode_v = static_cast<d3d::AddressMode>(texture_meta_data.d3dTexAddr(texture_meta_data.addrV));
+    samplerInfo.address_mode_w = static_cast<d3d::AddressMode>(texture_meta_data.d3dTexAddr(texture_meta_data.addrW));
+  }
+  return samplerInfo;
+}
+
+d3d::SamplerHandle get_texture_separate_sampler(TEXTUREID id)
+{
+  int idx = RMGR.toIndex(id);
+  if (DAGOR_UNLIKELY(idx < 0))
+    return d3d::INVALID_SAMPLER_HANDLE;
+
+  return RMGR.texSamplers[idx];
+}
+
+bool set_texture_separate_sampler(TEXTUREID id, const d3d::SamplerInfo &sampler_info)
+{
+  int idx = RMGR.toIndex(id);
+  if (idx < 0)
+    return false;
+
+  RMGR.texSamplers[idx] = d3d::request_sampler(sampler_info);
+  return true;
 }

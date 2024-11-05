@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_watchDir.h>
 #if _TARGET_PC_WIN
 #include <osApiWrappers/dag_atomic.h>

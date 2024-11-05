@@ -7,8 +7,10 @@ namespace das {
 
     class VarCMRes : public Visitor {
     public:
-        VarCMRes( const ProgramPtr & prog ) {
+        VarCMRes( const ProgramPtr & prog, bool everything ) {
             program = prog;
+            isEverything = everything
+;
         }
     protected:
         vector<ExprBlock *>     blocks;
@@ -16,7 +18,10 @@ namespace das {
         FunctionPtr             func;
         VariablePtr             cmresVAR;
         bool                    failedToCMRES = false;
+        bool                    isEverything = false;
     protected:
+        virtual bool canVisitGlobalVariable ( Variable * var ) override { return isEverything || var->used; }
+        virtual bool canVisitFunction ( Function * fun ) override { return isEverything || fun->used; }
     // function
         virtual void preVisit ( Function * f ) override {
             Visitor::preVisit(f);
@@ -77,14 +82,17 @@ namespace das {
 
     class AllocateStack : public Visitor {
     public:
-        AllocateStack( const ProgramPtr & prog, TextWriter & ls ) : logs(ls) {
+        AllocateStack( const ProgramPtr & prog, bool permanent, bool everything, TextWriter & ls ) : logs(ls) {
             program = prog;
             log = prog->options.getBoolOption("log_stack");
             log_var_scope = prog->options.getBoolOption("log_var_scope");
             optimize = prog->getOptimize();
+            noFastCall = prog->options.getBoolOption("no_fast_call", prog->policies.no_fast_call);
             if( log ) {
                 logs << "\nSTACK INFORMATION in " << prog->thisModule->name << ":\n";
             }
+            isPermanent = permanent;
+            isEverything = everything;
         }
     protected:
         ProgramPtr              program;
@@ -98,6 +106,22 @@ namespace das {
         bool                    optimize = false;
         TextWriter &            logs;
         bool                    inStruct = false;
+        bool                    noFastCall = false;
+        bool                    isPermanent = false;
+        bool                    isEverything = false;
+    protected:
+        virtual bool canVisitGlobalVariable ( Variable * var ) override {
+            if ( var->stackResolved ) return false;
+            if ( !var->used && !isEverything ) return false;
+            var->stackResolved = isPermanent;
+            return true;
+        }
+        virtual bool canVisitFunction ( Function * fun ) override {
+            if ( fun->stackResolved ) return false;
+            if ( !fun->used && !isEverything ) return false;
+            fun->stackResolved = isPermanent;
+            return true;
+        }
     protected:
         uint32_t allocateStack ( uint32_t size ) {
             auto result = stackTop;
@@ -133,11 +157,15 @@ namespace das {
                     auto cll = static_pointer_cast<ExprCall>(var->init);
                     if ( cll->allowCmresSkip() ) {
                         cll->doesNotNeedSp = true;
+                    } else {
+                        cll->doesNotNeedSp = false;
                     }
                 } else if ( var->init->rtti_isInvoke() ) {
                     auto cll = static_pointer_cast<ExprInvoke>(var->init);
                     if ( cll->allowCmresSkip() ) {
                         cll->doesNotNeedSp = true;
+                    } else {
+                        cll->doesNotNeedSp = false;
                     }
                 }
             }
@@ -148,6 +176,9 @@ namespace das {
             return Visitor::visitGlobalLet(var);
         }
     // function
+        virtual bool canVisitArgumentInit ( Function *, const VariablePtr &, Expression * ) override {
+            return false;
+        }
         virtual void preVisit ( Function * f ) override {
             Visitor::preVisit(f);
             func = f;
@@ -161,7 +192,7 @@ namespace das {
             func->totalStackSize = das::max(func->totalStackSize, stackTop);
             // detecting fastcall
             func->fastCall = false;
-            if ( !program->getDebugger() && !program->getProfiler() ) {
+            if ( !program->getDebugger() && !program->getProfiler() && !noFastCall ) {
                 if ( !func->exports && !func->addr && func->totalStackSize==sizeof(Prologue) && func->arguments.size()<=32 ) {
                     if (func->body->rtti_isBlock()) {
                         auto block = static_pointer_cast<ExprBlock>(func->body);
@@ -220,17 +251,25 @@ namespace das {
                     if ( cll->allowCmresSkip() ) {
                         cll->doesNotNeedSp = true;
                         expr->returnCallCMRES = true;
+                    } else {
+                        cll->doesNotNeedSp = false;
+                        expr->returnCallCMRES = false;
                     }
                 } else if ( expr->subexpr->rtti_isInvoke() ) {
                     auto cll = static_pointer_cast<ExprInvoke>(expr->subexpr);
                     if ( cll->allowCmresSkip() ) {
                         cll->doesNotNeedSp = true;
                         expr->returnCallCMRES = true;
+                    } else {
+                        cll->doesNotNeedSp = false;
+                        expr->returnCallCMRES = false;
                     }
                 } else if ( expr->subexpr->rtti_isVar() ) {
                     auto evar = static_pointer_cast<ExprVar>(expr->subexpr);
                     if ( evar->variable->aliasCMRES ) {
                         expr->returnCMRES = true;
+                    } else {
+                        expr->returnCMRES = false;
                     }
                 }
             }
@@ -301,6 +340,21 @@ namespace das {
     // ExprCall
         virtual void preVisit ( ExprCall * expr ) override {
             Visitor::preVisit(expr);
+            // what we do here is check, if the function can't possibly capture string
+            // and if so, we mark the LAST string builder as temporary
+            auto efun = expr->func;
+            if ( !efun ) return;
+            if ( /*efun->builtIn &&*/       // BBATKIN: if captureString side effects are not calculated correctly, this will blow up!!!
+                 !efun->policyBased && !efun->invoke && !efun->captureString ) {
+                for ( int ai=int(expr->arguments.size())-1; ai>=0; ai-- ) {
+                    auto & arg = expr->arguments[ai];
+                    if ( arg->rtti_isStringBuilder() ) {
+                        auto sb = static_pointer_cast<ExprStringBuilder>(arg);
+                        sb->isTempString = true;
+                        break;
+                    }
+                }
+            }
             if ( inStruct ) return;
             if ( !expr->doesNotNeedSp ) {
                 if ( expr->func->copyOnReturn || expr->func->moveOnReturn ) {
@@ -384,11 +438,15 @@ namespace das {
                     auto cll = static_pointer_cast<ExprCall>(var->init);
                     if ( (cll->func->copyOnReturn || cll->func->moveOnReturn) && !cll->func->aliasCMRES ) { // note: let never aliases!!!
                         cll->doesNotNeedSp = true;
+                    } else {
+                        cll->doesNotNeedSp = false;
                     }
                 } else if ( var->init->rtti_isInvoke() ) {
                     auto cll = static_pointer_cast<ExprInvoke>(var->init);
                     if ( cll->isCopyOrMove() ) {
                         cll->doesNotNeedSp = true;
+                    } else {
+                        cll->doesNotNeedSp = false;
                     }
                 }
             }
@@ -524,11 +582,15 @@ namespace das {
                 auto cll = static_pointer_cast<ExprCall>(expr->right);
                 if ( cll->allowCmresSkip() ) {
                     cll->doesNotNeedSp = true;
+                } else {
+                    cll->doesNotNeedSp = false;
                 }
             } else if ( expr->right->rtti_isInvoke() ) {
                 auto cll = static_pointer_cast<ExprInvoke>(expr->right);
                 if ( cll->allowCmresSkip() ) {
                     cll->doesNotNeedSp = true;
+                } else {
+                    cll->doesNotNeedSp = false;
                 }
             }
         }
@@ -553,11 +615,15 @@ namespace das {
                 auto cll = static_pointer_cast<ExprCall>(expr->right);
                 if ( cll->allowCmresSkip() ) {
                     cll->doesNotNeedSp = true;
+                } else {
+                    cll->doesNotNeedSp = false;
                 }
             } else if ( expr->right->rtti_isInvoke() ) {
                 auto cll = static_pointer_cast<ExprInvoke>(expr->right);
                 if ( cll->allowCmresSkip() ) {
                     cll->doesNotNeedSp = true;
+                } else  {
+                    cll->doesNotNeedSp = false;
                 }
             }
         }
@@ -568,6 +634,8 @@ namespace das {
         uint32_t bytesTotal = 0;
         das_hash_set<string>    uniStr;
     public:
+        virtual bool canVisitGlobalVariable ( Variable * var ) override { return var->used; }
+        virtual bool canVisitFunction ( Function * fun ) override { return fun->used; }
         void allocateString ( const string & message ) {
             if ( !message.empty() ) {
                 if ( uniStr.find(message)==uniStr.end() ) {
@@ -586,7 +654,7 @@ namespace das {
 
     // program
 
-    void Program::allocateStack(TextWriter & logs) {
+    void Program::allocateStack(TextWriter & logs, bool permanent, bool everything) {
         // string heap
         AllocateConstString vstr;
         for (auto & pm : library.modules) {
@@ -603,10 +671,10 @@ namespace das {
         }
         globalStringHeapSize = vstr.bytesTotal;
         // move some variables to CMRES
-        VarCMRes vcm(this);
+        VarCMRes vcm(this, everything);
         visit(vcm);
         // allocate stack for the rest of them
-        AllocateStack context(this, logs);
+        AllocateStack context(this, permanent, everything, logs);
         visit(context);
         // adjust stack size for all the used variables
         for (auto & pm : library.modules) {
@@ -736,7 +804,7 @@ namespace das {
                         }
                     }
                     auto elet = static_pointer_cast<ExprLet>(expr->clone());
-                    elet->variables = move(expr->variables);
+                    elet->variables = std::move(expr->variables);
                     for ( auto & evar : elet->variables ) {
                         evar->init = nullptr;
                     }

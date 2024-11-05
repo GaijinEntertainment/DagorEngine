@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 using splineclass::Attr;
 
 static void recalcLoftLighting(StaticGeometryContainer &geom)
@@ -57,7 +59,6 @@ void SplineGenEntity::generateLoftSegments(BezierSpline3d &effSpline, const char
   bool place_on_collision, dag::ConstSpan<splineclass::Attr> splineScales, float scaleTcAlong)
 {
   const splineclass::LoftGeomGenData *asset = splineClass ? splineClass->genGeom : nullptr, *assetEnd = NULL;
-  float zeroOpacityDistAtEnds = splineClass ? splineClass->zeroOpacityDistAtEnds : 0;
   IAssetService *assetSrv = EDITORCORE->queryEditorInterface<IAssetService>();
 
   if (!asset)
@@ -98,6 +99,7 @@ void SplineGenEntity::generateLoftSegments(BezierSpline3d &effSpline, const char
       continue;
 
     {
+      float zeroOpacityDistAtEnds = loft.zeroOpacityDistAtEnds;
       for (int materialNo = 0; materialNo < loft.matNames.size(); materialNo++)
       {
         Ptr<MaterialData> material;
@@ -115,7 +117,8 @@ void SplineGenEntity::generateLoftSegments(BezierSpline3d &effSpline, const char
         if (!assetSrv->createLoftMesh(mesh, asset, j, effSpline, start_idx, end_idx, place_on_collision, scaleTcAlong, materialNo,
               splineScales, store_segs ? &loftSeg : NULL, name,
               (start_idx == 0 && zeroOpacityDistAtEnds > 0) ? zeroOpacityDistAtEnds : 0,
-              (end_idx == effSpline.segs.size() && zeroOpacityDistAtEnds > 0) ? zeroOpacityDistAtEnds : 0))
+              (end_idx == effSpline.segs.size() && zeroOpacityDistAtEnds > 0) ? zeroOpacityDistAtEnds : 0, //
+              loft.marginAtStart, loft.marginAtEnd))
         {
           del_it(themesh);
           goto final_release;
@@ -195,7 +198,6 @@ void SplineGenEntity::gatherLoftLandPts(Tab<Point3> &loft_pt_cloud, BezierSpline
     return;
 
   const splineclass::LoftGeomGenData *asset = splineClass ? splineClass->genGeom : nullptr;
-  float zeroOpacityDistAtEnds = splineClass ? splineClass->zeroOpacityDistAtEnds : 0;
 
   Tab<Point2> tmp_l2(tmpmem), tmp_r2(tmpmem);
   Tab<Point3> tmp_l3(tmpmem), tmp_r3(tmpmem);
@@ -216,6 +218,7 @@ void SplineGenEntity::gatherLoftLandPts(Tab<Point3> &loft_pt_cloud, BezierSpline
       continue;
 
     bool zero_sweep = (loft.shapePts.size() > 1 && fabsf(loft.shapePts[0].x - loft.shapePts.back().x) < 1e-3f);
+    float zeroOpacityDistAtEnds = loft.zeroOpacityDistAtEnds;
 
     {
       if (loft.waterSurface && !bspw_inited)
@@ -226,7 +229,8 @@ void SplineGenEntity::gatherLoftLandPts(Tab<Point3> &loft_pt_cloud, BezierSpline
 
       assetSrv->createLoftMesh(mesh, asset, j, loft.waterSurface ? bspw : effSpline, start_idx, end_idx, place_on_collision, 1.0f, -1,
         splineScales, NULL, name, (start_idx == 0 && zeroOpacityDistAtEnds > 0) ? zeroOpacityDistAtEnds : 0,
-        (end_idx == effSpline.segs.size() && zeroOpacityDistAtEnds > 0) ? zeroOpacityDistAtEnds : 0);
+        (end_idx == effSpline.segs.size() && zeroOpacityDistAtEnds > 0) ? zeroOpacityDistAtEnds : 0, //
+        loft.marginAtStart, loft.marginAtEnd);
 
       int prev_c = loft_pt_cloud.size();
 
@@ -291,6 +295,7 @@ void SplineGenEntity::gatherLoftLandPts(Tab<Point3> &loft_pt_cloud, BezierSpline
     if (loft.makeDelaunayPtCloud || !loft.waterSurface)
       continue;
 
+    float zeroOpacityDistAtEnds = loft.zeroOpacityDistAtEnds;
     if (!bspw_inited)
       bspw_inited = make_spline_x0z(bspw, splineXZ, water_level);
 
@@ -300,7 +305,8 @@ void SplineGenEntity::gatherLoftLandPts(Tab<Point3> &loft_pt_cloud, BezierSpline
 
       assetSrv->createLoftMesh(mesh, asset, j, bspw, start_idx, end_idx, place_on_collision, 1.0f, -1, splineScales, NULL, name,
         (start_idx == 0 && zeroOpacityDistAtEnds > 0) ? zeroOpacityDistAtEnds : 0,
-        (end_idx == effSpline.segs.size() && zeroOpacityDistAtEnds > 0) ? zeroOpacityDistAtEnds : 0);
+        (end_idx == effSpline.segs.size() && zeroOpacityDistAtEnds > 0) ? zeroOpacityDistAtEnds : 0, //
+        loft.marginAtStart, loft.marginAtEnd);
 
       tmp_l3.clear();
       tmp_l3.reserve(mesh.vert.size() / 2);

@@ -1,0 +1,6 @@
+return {
+  change_mode = @(...) null
+  LOADING = 0
+  GAME_SESSION = 1
+  LOBBY = 2
+}

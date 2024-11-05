@@ -1,0 +1,18 @@
+float4 projtm_psf_0;
+float4 projtm_psf_1;
+float4 projtm_psf_2;
+float4 projtm_psf_3;
+int shadow_frame = 0;
+float contact_shadow_len = 0.2;
+
+macro CONTACT_SHADOWS_BASE(code)
+  (code) { projectionMatrix@f44 = {projtm_psf_0, projtm_psf_1, projtm_psf_2, projtm_psf_3}; }
+  hlsl(code) {
+    #include "interleavedGradientNoise.hlsl"
+    #include "contactShadows.hlsl"
+  }
+endmacro
+
+macro CONTACT_SHADOWS()
+  CONTACT_SHADOWS_BASE(ps)
+endmacro

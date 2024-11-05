@@ -1,9 +1,14 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "bhvWheelScroll.h"
 
 #include <daRg/dag_element.h>
 #include <daRg/dag_inputIds.h>
 #include <daRg/dag_stringKeys.h>
 #include <daRg/dag_properties.h>
+
+#include "scriptUtil.h"
+#include "dargDebugUtils.h"
 
 
 namespace darg
@@ -28,6 +33,19 @@ int BhvWheelScroll::mouseEvent(ElementTree * /*etree*/, Element *elem, InputDevi
       elem->scroll(Point2(0, -data * wheelStep));
     else
       elem->scroll(Point2(-data * wheelStep, 0));
+
+    Sqrat::Table &scriptDesc = elem->props.scriptDesc;
+    Sqrat::Function onWheelScroll(scriptDesc.GetVM(), scriptDesc, scriptDesc.RawGetSlot(elem->csk->onWheelScroll));
+    if (!onWheelScroll.IsNull())
+    {
+      SQInteger nparams = 0, nfreevars = 0;
+      G_VERIFY(get_closure_info(onWheelScroll, &nparams, &nfreevars));
+
+      if (nparams == 2)
+        onWheelScroll(data * wheelStep);
+      else
+        darg_assert_trace_var("onWheelScroll must have 1 param", scriptDesc, elem->csk->onWheelScroll);
+    }
 
     result = R_PROCESSED;
   }

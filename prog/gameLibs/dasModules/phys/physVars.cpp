@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/aotPhysVars.h>
 
 struct PhysVarsAnnotation : das::ManagedStructureAnnotation<PhysVars, false>

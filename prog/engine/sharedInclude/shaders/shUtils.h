@@ -1,9 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 /************************************************************************
   some shader util functions
 ************************************************************************/
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef __SHUTILS_H
-#define __SHUTILS_H
 
 #include "shader_layout.h"
 
@@ -29,6 +29,3 @@ const char *fshVerToString(int fsh);
 void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals = nullptr,
   const shaderbindump::VarList *locals = nullptr, dag::ConstSpan<uint32_t> stVarMap = {}, bool embrace_dump = true);
 } // namespace ShUtils
-
-
-#endif //__SHUTILS_H

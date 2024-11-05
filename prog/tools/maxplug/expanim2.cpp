@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <max.h>
 #include "expanim.h"
 #include "expanim2.h"

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -65,8 +64,10 @@ struct LadderInfo
   Point3 from, to;
   Point3 base, forw;
   float hmin, hmax;
+  bool isSideExit;
 };
-static inline void tilecache_calc_ladder_info(LadderInfo &out_info, mat44f_cref ladder_tm, float from_dist, float to_dist)
+static inline void tilecache_calc_ladder_info(LadderInfo &out_info, mat44f_cref ladder_tm, float from_dist, float to_dist,
+  bool for_side_exit = false)
 {
   const float pt1[] = {0.0f, -0.5f, 0.0f, 0.0f};
   const float pt2[] = {0.0f, 0.5f, 0.0f, 0.0f};
@@ -76,10 +77,21 @@ static inline void tilecache_calc_ladder_info(LadderInfo &out_info, mat44f_cref 
   out_info.to.set(v_extract_x(to), v_extract_y(to), v_extract_z(to));
   out_info.base.set(v_extract_x(ladder_tm.col3), v_extract_y(ladder_tm.col3), v_extract_z(ladder_tm.col3));
   out_info.forw.set(v_extract_x(ladder_tm.col0), v_extract_y(ladder_tm.col0), v_extract_z(ladder_tm.col0));
+  out_info.forw.normalize();
   Point3 into(v_extract_x(ladder_tm.col0), 0.f, v_extract_z(ladder_tm.col0));
   into.normalize();
   out_info.from -= into * from_dist;
-  out_info.to += into * to_dist;
+  out_info.isSideExit = for_side_exit;
+  if (for_side_exit)
+  {
+    Point3 intoSide(v_extract_x(ladder_tm.col2), 0.f, v_extract_z(ladder_tm.col2));
+    intoSide.normalize();
+    out_info.to += intoSide * to_dist - into * from_dist;
+  }
+  else
+  {
+    out_info.to += into * to_dist;
+  }
   out_info.hmin = v_extract_y(from);
   out_info.hmax = v_extract_y(to);
 }

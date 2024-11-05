@@ -1,3 +1,7 @@
+//
+// Dagor Engine 6.5 - Game Libraries
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+//
 #pragma once
 
 #include <render/resourceSlot/state.h>
@@ -58,7 +62,7 @@ template <class F>
 [[nodiscard]] resource_slot::NodeHandleWithSlotsAccess register_access(dabfg::NameSpace ns, const char *name,
   const char *source_location, resource_slot::detail::ActionList &&action_list, F &&declaration_callback)
 {
-  return resource_slot::detail::register_access(ns, name, source_location, eastl::move(action_list),
+  return resource_slot::detail::register_access(ns, name, eastl::move(action_list),
     [ns, declCb = eastl::forward<F>(declaration_callback), name, source_location](resource_slot::State s) mutable {
       return ns.registerNode(name, source_location,
         [declCb2 = eastl::forward<F>(declCb), s](dabfg::Registry r) { return declCb2(eastl::move(s), r); });

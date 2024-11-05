@@ -1,14 +1,19 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <generic/dag_tab.h>
 #include <generic/dag_staticTab.h>
+#include <math/dag_lsbVisitor.h>
+#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
+
 #include "descriptor_set.h"
 #include "render_pass.h"
 #include "buffer_resource.h"
 #include "image_resource.h"
 #include "state_field_resource_binds.h"
 #include "util/backtrace.h"
-#include <math/dag_lsbVisitor.h>
 #include "descriptor_table.h"
+#include "dummy_resources.h"
 
 namespace drv3d_vulkan
 {
@@ -96,8 +101,7 @@ struct PipelineStageStateBase
   // missing bind = shader used some resource at bind X but resource was not provided
 
   // TODO: promote this method do dev only! (need to invest time and cleanup many places)
-  void checkForMissingBinds(const spirv::ShaderHeader &hdr, const ResourceDummySet &dummy_resource_table, ExecutionContext &ctx,
-    ShaderStage stage);
+  void checkForMissingBinds(const spirv::ShaderHeader &hdr, const ResourceDummySet &dummy_resource_table, ExtendedShaderStage stage);
 
 #if VULKAN_TRACK_DEAD_RESOURCE_USAGE > 0
   void checkForDeadResources(const spirv::ShaderHeader &hdr);
@@ -122,16 +126,18 @@ struct PipelineStageStateBase
   void invalidateState();
   template <typename T>
   void apply(VulkanDevice &device, const ResourceDummySet &dummy_resource_table, size_t frame_index, DescriptorSet &registers,
-    ExecutionContext &ctx, ShaderStage target_stage, T bind);
+    ExtendedShaderStage target_stage, T bind);
 
   template <typename T>
   void applyNoDiff(VulkanDevice &device, const ResourceDummySet &dummy_resource_table, size_t frame_index, DescriptorSet &registers,
-    ExecutionContext &ctx, ShaderStage target_stage, T bind);
+    ExtendedShaderStage target_stage, T bind);
 
 
   template <typename T>
   void bindDescriptor(const spirv::ShaderHeader &hdr, VulkanDescriptorSetHandle ds_handle, T cb)
   {
+    if (ds_handle == DescriptorSet::dummyHandle)
+      return;
     uint32_t dynamicOffsets[spirv::B_REGISTER_INDEX_MAX];
     uint32_t dynamicOffsetCount = 0;
     for (uint32_t i : LsbVisitor{hdr.bRegisterUseMask})
@@ -143,7 +149,7 @@ struct PipelineStageStateBase
 // this needs to be here, or it will fail to compile because of incomplete types
 template <typename T>
 void PipelineStageStateBase::apply(VulkanDevice &device, const ResourceDummySet &dummy_resource_table, size_t frame_index,
-  DescriptorSet &registers, ExecutionContext &ctx, ShaderStage target_stage, T bind)
+  DescriptorSet &registers, ExtendedShaderStage target_stage, T bind)
 {
   const auto &header = registers.header;
 
@@ -171,7 +177,7 @@ void PipelineStageStateBase::apply(VulkanDevice &device, const ResourceDummySet 
 
   if ((header.tRegisterUseMask & tBinds.emptyMask) || (header.uRegisterUseMask & uBinds.emptyMask) ||
       (header.bRegisterUseMask & bBinds.emptyMask))
-    checkForMissingBinds(header, dummy_resource_table, ctx, target_stage);
+    checkForMissingBinds(header, dummy_resource_table, target_stage);
 
   lastDescriptorSet = registers.getSet(device, frame_index, &dtab.arr[0]);
   clearDirty(header);
@@ -180,14 +186,14 @@ void PipelineStageStateBase::apply(VulkanDevice &device, const ResourceDummySet 
 
 template <typename T>
 void PipelineStageStateBase::applyNoDiff(VulkanDevice &device, const ResourceDummySet &dummy_resource_table, size_t frame_index,
-  DescriptorSet &registers, ExecutionContext &ctx, ShaderStage target_stage, T bind)
+  DescriptorSet &registers, ExtendedShaderStage target_stage, T bind)
 {
   const auto &header = registers.header;
   checkForDeadResources(header);
 
   if ((header.tRegisterUseMask & tBinds.emptyMask) || (header.uRegisterUseMask & uBinds.emptyMask) ||
       (header.bRegisterUseMask & bBinds.emptyMask))
-    checkForMissingBinds(header, dummy_resource_table, ctx, target_stage);
+    checkForMissingBinds(header, dummy_resource_table, target_stage);
 
   bindDescriptor(header, registers.getSet(device, frame_index, &dtab.arr[0]), bind);
 }

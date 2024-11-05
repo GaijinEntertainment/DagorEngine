@@ -30,7 +30,7 @@ AddIncludes = $(Root)/$(Location)/include $(Root)/$(Location)/mimalloc/include ;
 
 CPPopt = -DMI_DEBUG=$(MimDebug) ;
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   AddLibs += Advapi32.lib ;
   Sources += src/prim/windows/prim.c ;
   CPPopt += -wd4055 -wd4054 ;

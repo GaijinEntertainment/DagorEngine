@@ -1,14 +1,12 @@
-#ifndef __GAIJIN_EDITORCORE_EC_OBJECT_EDITOR_H__
-#define __GAIJIN_EDITORCORE_EC_OBJECT_EDITOR_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_interface_ex.h>
 #include <EditorCore/ec_rendEdObject.h>
 
-#include <propPanel2/c_panel_base.h>
-#include <propPanel2/comWnd/panel_window.h>
+#include <propPanel/control/container.h>
+#include <propPanel/control/panelWindow.h>
 #include <sepGui/wndPublic.h>
 
 #include <util/dag_globDef.h>
@@ -37,7 +35,7 @@ class ObjectEditor : public IGizmoClient,
                      public IGenEventHandler,
                      public IObjectsList,
                      public IWndManagerWindowHandler,
-                     public ControlEventHandler
+                     public PropPanel::ControlEventHandler
 {
   friend class ObjectEditorWrap;
 
@@ -77,7 +75,7 @@ public:
 
   /// Fill ToolBar with buttons (called from initUi()).
   /// Override to add custom buttons to toolbar.
-  virtual void fillToolBar(PropertyContainerControlBase *toolbar);
+  virtual void fillToolBar(PropPanel::ContainerPropertyControl *toolbar);
 
   /// Add button to toolbar.
   /// @param[in] tb - pointer to toolbar
@@ -85,7 +83,7 @@ public:
   /// @param[in] bmp_name - pointer to button's bitmap name
   /// @param[in] hint - pointer to hint string
   /// @param[in] check - is check button
-  virtual void addButton(PropertyContainerControlBase *tb, int id, const char *bmp_name, const char *hint, bool check = false);
+  virtual void addButton(PropPanel::ContainerPropertyControl *tb, int id, const char *bmp_name, const char *hint, bool check = false);
 
   /// Enable button.
   /// @param[in] id - button ID
@@ -127,6 +125,8 @@ public:
 
   /// Show/hide Property Panel
   virtual void showPanel();
+
+  bool isPanelShown() const { return objectPropBar != nullptr; }
 
   /// Get Edit Mode.
   virtual int getEditMode() { return editMode; }
@@ -189,6 +189,8 @@ public:
   virtual void renderTrans();
   //@}
 
+  virtual void updateImgui();
+
 
   //*****************************************************************
   /// @name Editing objects (object count, get objects, etc).
@@ -234,7 +236,7 @@ public:
   /// @name Editing objects (edit selected objects).
   //@{
   /// Update object selection list in accordance with their FLG_SELECTED flags.
-  void updateSelection();
+  virtual void updateSelection();
 
   /// Get selected objects count.
   /// @return selected objects count
@@ -249,6 +251,9 @@ public:
       return NULL;
     return selection[index];
   }
+
+  /// Can the object selected by the user. For example hidden objects cannot be selected.
+  virtual bool canSelectObj(RenderableEditableObject *o);
 
   /// Unselect all objects.
   virtual void unselectAll();
@@ -370,6 +375,8 @@ public:
   virtual void createObjectBySample(RenderableEditableObject *sample);
   //@}
 
+  virtual void registerViewportAccelerators(IWndManager &wndManager);
+
 protected:
   String objListOwnerName;
 
@@ -392,21 +399,23 @@ protected:
   IObjectCreator *creator;
   ObjectEditorPropPanelBar *objectPropBar;
 
+
+  virtual void onAddObject(RenderableEditableObject &obj);
   virtual void _addObjects(RenderableEditableObject **obj, int num, bool use_undo);
+  virtual void onRemoveObject(RenderableEditableObject &obj);
   virtual void _removeObjects(RenderableEditableObject **obj, int num, bool use_undo);
-  virtual bool canSelectObj(RenderableEditableObject *o);
 
   virtual Point3 getSurfMoveGizmoPos(const Point3 &obj_pos) const;
 
   virtual ObjectEditorPropPanelBar *createEditorPropBar(void *handle);
 
   // IWndManagerWindowHandler
-  virtual IWndEmbeddedWindow *onWmCreateWindow(void *handle, int type);
-  virtual bool onWmDestroyWindow(void *handle);
+  virtual void *onWmCreateWindow(int type) override;
+  virtual bool onWmDestroyWindow(void *window) override;
 
   // ControlEventHandler
-  virtual void onClick(int pcb_id, PropertyContainerControlBase *panel);
-  virtual void onChange(int pcb_id, PropertyContainerControlBase *panel);
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
 
   virtual void moveObjects(PtrTab<RenderableEditableObject> &obj, const Point3 &delta, IEditorCoreEngine::BasisType basis);
 
@@ -494,22 +503,22 @@ private:
 
 // ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
 
-class ObjectEditorPropPanelBar : public ControlEventHandler
+class ObjectEditorPropPanelBar : public PropPanel::ControlEventHandler
 {
 public:
   ObjectEditorPropPanelBar(ObjectEditor *obj_ed, void *hwnd, const char *caption);
   ~ObjectEditorPropPanelBar();
 
   // ControlEventHandler
-  virtual void onChange(int pcb_id, PropertyContainerControlBase *panel);
-  virtual void onClick(int pcb_id, PropertyContainerControlBase *panel);
-  virtual void onPostEvent(int pcb_id, PropPanel2 *panel);
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  virtual void onPostEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel);
 
   virtual void fillPanel();
   virtual void refillPanel();
   virtual void updateName(const char *name);
 
-  CPanelWindow *getPanel()
+  PropPanel::PanelWindowPropertyControl *getPanel()
   {
     G_ASSERT(propPanel);
     return propPanel;
@@ -519,11 +528,9 @@ protected:
   ObjectEditor *objEd;
   PtrTab<RenderableEditableObject> objects;
 
-  CPanelWindow *propPanel;
+  PropPanel::PanelWindowPropertyControl *propPanel;
 
   void getObjects();
 };
 
 // ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
-
-#endif

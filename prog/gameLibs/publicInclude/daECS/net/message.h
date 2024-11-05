@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -44,6 +43,7 @@ enum MessageFlags : uint8_t
   MF_DISCARD_IF_NO_ENTITY = 1 << 1, // Don't queue this message up if there is no entity to deliver it to (on reception)
   MF_DONT_COMPRESS = 1 << 2,        // Don't try to compress this message
   MF_TIMED = 1 << 3,                // Actual message class is descendant of IMessageTimed (and will get 'rcvTime')
+  MF_OPTIONAL = 1 << 4,             // Does not influence net proto (unless there are no free slots in `numClassIdBits`)
 
   MF_DEFAULT_FLAGS = 0,
 };
@@ -57,6 +57,7 @@ public:
                            // overwritten)
 
   IMessage() = default;
+  IMessage(const IMessage &) = default;
   virtual ~IMessage() = default;
 
   virtual const MessageClass &getMsgClass() const = 0;

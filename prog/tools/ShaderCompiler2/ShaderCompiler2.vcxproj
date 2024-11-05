@@ -25,6 +25,30 @@
       <Configuration>rel_win64</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="dbg_ps4|x64">
+      <Configuration>dbg_ps4</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="dev_ps4|x64">
+      <Configuration>dev_ps4</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="rel_ps4|x64">
+      <Configuration>rel_ps4</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="dbg_ps5|x64">
+      <Configuration>dbg_ps5</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="dev_ps5|x64">
+      <Configuration>dev_ps5</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="rel_ps5|x64">
+      <Configuration>rel_ps5</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="dbg_android|x64">
       <Configuration>dbg_android</Configuration>
       <Platform>x64</Platform>
@@ -43,7 +67,7 @@
     <ProjectRootDir>$(SolutionDir)prog\tools\</ProjectRootDir>
     <ReplaceWildcardsInProjectItems>true</ReplaceWildcardsInProjectItems>
     <GameType>tool</GameType>
-    <GameDir>$(SolutionDir)enlisted\prog\shaders\</GameDir>
+    <GameDir>$(SolutionDir)enlisted\prog\shaders\</GameDir> <!--  FIXME_BROKEN_DEP -->
     <ProjectName>dsc2</ProjectName>
   </PropertyGroup>
   <Import Project="$(SolutionDir)prog\_jBuild\msbuild\projectConfigurations.props" />
@@ -55,12 +79,18 @@
   <PropertyGroup Label="Configuration">
     <ToolAdditionalName Condition="'$(OPlatform)' == 'win32'">hlsl11</ToolAdditionalName>
     <ToolAdditionalName Condition="'$(OPlatform)' == 'win64'">dx12</ToolAdditionalName>
+    <ToolAdditionalName Condition="'$(OPlatform)' == 'ps4'">ps4</ToolAdditionalName>
+    <ToolAdditionalName Condition="'$(OPlatform)' == 'ps5'">ps5</ToolAdditionalName>
     <ToolAdditionalName Condition="'$(OPlatform)' == 'android'">spirv</ToolAdditionalName>
     <NMakeIncludeSearchPath>$(NMakeIncludeSearchPath);ShaderCompiler2</NMakeIncludeSearchPath>
+    <NMakeIncludeSearchPath Condition="'$(OPlatform)' == 'ps4'">$(NMakeIncludeSearchPath);$(PS4SDKROOT)\target\include_common;$(PS4SDKROOT)\target\src</NMakeIncludeSearchPath>
+    <NMakeIncludeSearchPath Condition="'$(OPlatform)' == 'ps5'">$(NMakeIncludeSearchPath);$(PS5SDKROOT)host_tools\include;$(PS5SDKROOT)target\include_common</NMakeIncludeSearchPath>
     <NMakeIncludeSearchPath Condition="'$(OPlatform)' == 'android'">$(NMakeIncludeSearchPath);$(_3rdPartyDir)vulkan\glslang;$(_3rdPartyDir)vulkan\include;$(_3rdPartyDir)vulkan\smol-v\source;$(_3rdPartyDir)vulkan\hlslcc\include;$(_3rdPartyDir)vulkan\spirv-tools\include</NMakeIncludeSearchPath>
     <NMakePreprocessorDefinitions>$(NMakePreprocessorDefinitions);DAGOR_DBGLEVEL=1;DAGOR_EXCEPTIONS_ENABLED=1;_TARGET_STATIC_LIB=1;BINDUMP_TARGET_BE=0;_CRT_SECURE_NO_DEPRECATE;_HAS_EXCEPTIONS=0;_SECURE_SCL=0;EXCLUDE_PSTDINT;USE_BINDLESS_FOR_STATIC_TEX=1</NMakePreprocessorDefinitions>
     <NMakePreprocessorDefinitions Condition="'$(OPlatform)' == 'win32'">$(NMakePreprocessorDefinitions);_CROSS_TARGET_DX11=1</NMakePreprocessorDefinitions>
     <NMakePreprocessorDefinitions Condition="'$(OPlatform)' == 'win64'">$(NMakePreprocessorDefinitions);_CROSS_TARGET_DX12=1</NMakePreprocessorDefinitions>
+    <NMakePreprocessorDefinitions Condition="'$(OPlatform)' == 'ps4'">$(NMakePreprocessorDefinitions);_CROSS_TARGET_PS4=1;_PS4_SDK_VER=$(PS4SdkVer)</NMakePreprocessorDefinitions>
+    <NMakePreprocessorDefinitions Condition="'$(OPlatform)' == 'ps5'">$(NMakePreprocessorDefinitions);_CROSS_TARGET_PS5=1;_PS5_SDK_VER=$(PS5SdkVer)</NMakePreprocessorDefinitions>
     <NMakePreprocessorDefinitions Condition="'$(OPlatform)' == 'android'">$(NMakePreprocessorDefinitions);_CROSS_TARGET_SPIRV=1</NMakePreprocessorDefinitions>
     <JamBuildCommandLine>jam -sConfig=$(daConfig) -sRoot=../.. -fShaderCompiler2/jamfile-$(ToolAdditionalName) $(AdjunctOptions) $(daBuildAdditionalOptions)</JamBuildCommandLine>
     <CppLanguageStandard>stdcpp17</CppLanguageStandard>
@@ -74,7 +104,7 @@
   <Import Project="$(MSBuildToolsDir)common.targets" />
   <ItemGroup>
     <ConfigPerDirectory Include="nodeBased\">
-      <AdditionalIncludeDirectories>ShaderCompiler2\hlsl2spirv;ShaderCompiler2\hlsl11transcode;ShaderCompiler2\dx12;$(SolutionDir)prog\engine\drv\drv3d_pc_multi</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>ShaderCompiler2\hlsl2spirv;ShaderCompiler2\ps4transcode;ShaderCompiler2\ps5transcode;ShaderCompiler2\hlsl11transcode;ShaderCompiler2\dx12;$(SolutionDir)prog\engine\drv\drv3d_pc_multi</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>IS_OFFLINE_SHADER_COMPILER=1</PreprocessorDefinitions>
     </ConfigPerDirectory>
   </ItemGroup>

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -13,7 +12,10 @@
 #include <dasModules/dasModulesCommon.h>
 #include <dasModules/dasManagedTab.h>
 #include <memory/dag_framemem.h>
-#include "util/dag_simpleString.h"
+#include <util/dag_simpleString.h>
+#include <util/dag_convar.h>
+
+DAS_BIND_ENUM_CAST(ConVarType);
 
 struct ConsoleProcessorHint
 {
@@ -66,4 +68,30 @@ inline const char *console_get_edit_text_before_modify()
   console::IVisualConsoleDriver *console = console::get_visual_driver();
   return console ? console->getEditTextBeforeModify() : nullptr;
 }
+
+inline bool find_console_var(const das::TBlock<bool, das::TTemporary<const char *>, ConVarType, float> &block, das::Context *context,
+  das::LineInfoArg *at)
+{
+  bool found = false;
+  vec4f args[3];
+  context->invokeEx(
+    block, args, nullptr,
+    [&](das::SimNode *code) {
+      ConVarIterator it;
+      while (auto v = it.nextVar())
+      {
+        args[0] = das::cast<const char *>::from(v->getName());
+        args[1] = das::cast<ConVarType>::from(v->getType());
+        args[2] = das::cast<float>::from(v->getBaseValue());
+        if (code->evalBool(*context))
+        {
+          found = true;
+          break;
+        }
+      }
+    },
+    at);
+  return found;
+}
+
 } // namespace bind_dascript

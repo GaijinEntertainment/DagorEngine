@@ -1,0 +1,2 @@
+int render_with_normalmap = 0;
+interval render_with_normalmap: no_normalmap<1, has_normalmap<2, render_displacement;

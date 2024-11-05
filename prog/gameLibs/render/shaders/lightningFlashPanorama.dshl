@@ -1,4 +1,5 @@
 texture clouds_depth_downsampled_panorama_tex;
+texture clouds_depth_downsampled_panorama_patch_tex;
 
 float4 lightning_point_light_pos = (0, 0, 0, 0);
 float4 lightning_point_light_color = (0.8, 0.8, 0.8, 0);
@@ -7,15 +8,17 @@ float lightning_additional_point_light_strength = 1.0;
 int lightning_render_additional_point_light = 0;
 
 interval lightning_render_additional_point_light: no<1, yes;
+bool use_panorama_lightning = clouds_depth_downsampled_panorama_tex != NULL && lightning_render_additional_point_light == yes;
 
 macro INIT_PANORAMA_LIGHTNING_FLASH()
-  if (clouds_depth_downsampled_panorama_tex != NULL && lightning_render_additional_point_light == yes)
+  if (use_panorama_lightning)
   {
     (ps) {
       lightning_flash_params@f2 = (lightning_additional_point_light_strength, lightning_additional_point_light_radius, 0, 0);
       lightning_pos@f3 = lightning_point_light_pos;
       lightning_color@f3 = lightning_point_light_color;
       clouds_depth_panorama_tex@smp2d = clouds_depth_downsampled_panorama_tex;
+      clouds_depth_panorama_patch_tex@smp2d = clouds_depth_downsampled_panorama_patch_tex;
     }
   }
 endmacro
@@ -23,19 +26,38 @@ endmacro
 macro USE_PANORAMA_LIGHTNING_FLASH()
   hlsl(ps)
   {
-    void apply_lightning_flash(float2 sky_uv, float3 view, inout half3 color)
+    ##if use_panorama_lightning
+      float sample_clouds_depth_panorama(float2 sky_uv, float3 viewDirection)
+      {
+        float panorama = tex2Dlod(clouds_depth_panorama_tex, float4(sky_uv, 0, 0)).x;
+
+        // Similar logic is also present in applyPanorama.dshl
+        ##if sky_panorama_patch == on
+          float patch_vignette = max(abs(viewDirection.x),abs(viewDirection.z));
+          BRANCH
+          if (patch_vignette < PANORAMA_PATCH_THRESHOLD && viewDirection.y>0)
+          {
+            float2 patchTc = viewDirection.xz*(0.5/PANORAMA_PATCH_THRESHOLD)+0.5;
+            half ptch = tex2Dlod( clouds_depth_panorama_patch_tex, float4(patchTc,0,0) ).x;
+            panorama = lerp(panorama, ptch, saturate((-1.f/(1-PANORAMA_PATCH_LERP_AMOUNT))*patch_vignette + PANORAMA_PATCH_THRESHOLD*PANORAMA_PATCH_LERP_AMOUNT/(1-PANORAMA_PATCH_LERP_AMOUNT) ));
+          }
+        ##endif
+        return panorama;
+      }
+    ##endif
+    void apply_lightning_flash(float2 sky_uv, float3 view, float3 original_view, inout half3 color)
     {
-      ##if clouds_depth_downsampled_panorama_tex != NULL && lightning_render_additional_point_light == yes
+      ##if use_panorama_lightning
         //TODO: move some of the calculations to preshader
         float3 viewDirectionFlash = lightning_pos.xyz - skies_world_view_pos;
         float viewDistFlash = length(viewDirectionFlash);
         viewDirectionFlash = normalize(viewDirectionFlash);
         float2 fragPanoramaUV = sky_uv;
-        float fragdDepth = tex2Dlod(clouds_depth_panorama_tex, float4(fragPanoramaUV, 0, 0)).x;
+        float fragdDepth = sample_clouds_depth_panorama(fragPanoramaUV, view);
         float2 flashPanoramaUV = get_panorama_uv(skies_world_view_pos, viewDirectionFlash);
-        float flashDepth = tex2Dlod(clouds_depth_panorama_tex, float4(flashPanoramaUV, 0, 0)).x;
+        float flashDepth = sample_clouds_depth_panorama(flashPanoramaUV, viewDirectionFlash);
         float maxDist = viewDistFlash / flashDepth;
-        float3 fragPos = view * fragdDepth * maxDist;
+        float3 fragPos = original_view * fragdDepth * maxDist;
         float3 flashPos = lightning_pos.xyz;
         float flashDist = length(fragPos - flashPos);
         float x = flashDist / lightning_flash_params.y;

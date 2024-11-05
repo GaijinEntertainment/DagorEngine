@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #if _TARGET_PC_WIN
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -8,7 +10,9 @@
 #include <stdlib.h>
 #include <ioSys/dag_dataBlock.h>
 #include <shaders/dag_dynSceneRes.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <debug/dag_debug3d.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_cpuJobs.h>
@@ -38,8 +42,8 @@
 #include <startup/dag_fatalHandler.inc.cpp>
 #include <util/dag_threadPool.h>
 
-#include <humanInput/dag_hiGlobals.h>
-#include <humanInput/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiKeybIds.h>
 
 #if USE_MEQON_PHYSICS
 // #include <meq_remotedebug.h>
@@ -63,7 +67,7 @@
 #include <startup/dag_linuxMain.inc.cpp>
 #endif
 #include "../commonFramework/de3_freeCam.h"
-#include "../commonFramework/de3_splash.h"
+#include "../commonFramework/de3_splashScreen.h"
 #include "../commonFramework/de3_dbgPhys.h"
 #include <phys/dag_vehicle.h>
 
@@ -311,7 +315,7 @@ IPhysVehicle *constructCar(const TMatrix &car_tm, float mass, float wheel_mass, 
 IPhysVehicle *constructCar(const TMatrix &, float mass, float wheel_mass, const Point3 &dim, float mc_ofs, const Point3 &spr_ofs,
   float wheel_rad, float wheel_frict, float wheel_dump)
 {
-  debug_ctx("not implemented");
+  DEBUG_CTX("not implemented");
   return NULL;
 }
 #endif
@@ -940,7 +944,7 @@ static void initPhysTestScene()
 
 static void initPhysics()
 {
-  debug_ctx("init physics");
+  DEBUG_CTX("init physics");
   init_physics_engine();
 
 #if USE_MEQON_PHYSICS
@@ -952,9 +956,9 @@ static void initPhysics()
   physWorld = new PhysWorld(0.9f, 0.7f, 0.5f, 1.0f); //, worldSize);
   physdbg::init<PhysWorld>();
 
-  debug_ctx("init test scene");
+  DEBUG_CTX("init test scene");
   initPhysTestScene();
-  debug_ctx("inited");
+  DEBUG_CTX("inited");
 
   physics_init_draw_debug(physWorld);
   debug_flush(false);
@@ -1879,7 +1883,7 @@ static void post_shutdown_handler()
 {
   unload_splash();
   dagor_select_game_scene(NULL);
-  debug_ctx("shutdown!");
+  DEBUG_CTX("shutdown!");
   shutdown_game(RESTART_INPUT);
   shutdown_game(RESTART_ALL);
   cpujobs::term(true);
@@ -1927,9 +1931,6 @@ int DagorWinMain(int nCmdShow, bool debugmode)
   ::startup_gui_base("gui/fonts.blk");
   startup_game(RESTART_ALL);
 
-  gui_cursor = create_gui_cursor_lite();
-  startup_game(RESTART_ALL);
-
   PhysMat::init("scenes/physmat.blk");
   startupPhysTest();
 
@@ -1943,5 +1944,5 @@ int DagorWinMain(int nCmdShow, bool debugmode)
 #include <landMesh/lmeshHoles.h>
 bool LandMeshHolesManager::check(const Point2 &) const { return false; }
 
-#include <render/dag_cur_view.h>
+#include "dag_cur_view.h"
 DagorCurView grs_cur_view;

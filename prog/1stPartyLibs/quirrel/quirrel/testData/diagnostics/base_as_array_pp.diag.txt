@@ -2,6 +2,6 @@ ERROR: argument of inc/dec operation is not assignable
 testData/diagnostics/base_as_array_pp.nut:1:0
 
 base[0]++
-^--------
+^------
 
 

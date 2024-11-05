@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #if !_TARGET_PC_WIN
 #error PC Win32/win64 only.
 #endif

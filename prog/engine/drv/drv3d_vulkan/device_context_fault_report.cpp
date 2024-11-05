@@ -1,4 +1,5 @@
-#include "device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "swapchain.h"
 #include <osApiWrappers/dag_files.h>
 #include <EASTL/sort.h>
@@ -7,10 +8,17 @@
 #include "buffer.h"
 #include "texture.h"
 #include "util/fault_report.h"
+#include "globals.h"
+#include "pipeline/manager.h"
+#include "physical_device_set.h"
+#include "execution_markers.h"
+#include "backend.h"
+#include "frontend.h"
+#include "device_context.h"
 
 using namespace drv3d_vulkan;
 
-void dumpDeviceFaultExtData(Device &drvDev, FaultReportDump &dump)
+void dumpDeviceFaultExtData(FaultReportDump &dump)
 {
   enum
   {
@@ -22,7 +30,7 @@ void dumpDeviceFaultExtData(Device &drvDev, FaultReportDump &dump)
     ID_REPORT_DATA
   };
 
-  if (!drvDev.getDeviceProperties().hasDeviceFaultFeature)
+  if (!Globals::VK::phy.hasDeviceFaultFeature)
   {
     dump.addTagged(FaultReportDump::GlobalTag::TAG_EXT_FAULT, ID_STATUS, String("ext is not available"));
     return;
@@ -30,7 +38,7 @@ void dumpDeviceFaultExtData(Device &drvDev, FaultReportDump &dump)
 
 #if VK_EXT_device_fault
 
-  VulkanDevice &vkDev = drvDev.getVkDevice();
+  VulkanDevice &vkDev = Globals::VK::dev;
 
   VkDeviceFaultCountsEXT counts = {VK_STRUCTURE_TYPE_DEVICE_FAULT_COUNTS_EXT, nullptr, 0, 0, 0};
   if (VULKAN_FAIL(vkDev.vkGetDeviceFaultInfoEXT(vkDev.get(), &counts, nullptr)))
@@ -40,7 +48,7 @@ void dumpDeviceFaultExtData(Device &drvDev, FaultReportDump &dump)
   }
 
   // sanity check
-  if (!drvDev.getDeviceProperties().hasDeviceFaultVendorInfo)
+  if (!Globals::VK::phy.hasDeviceFaultVendorInfo)
   {
     counts.vendorInfoCount = 0;
     counts.vendorBinarySize = 0;
@@ -71,7 +79,7 @@ void dumpDeviceFaultExtData(Device &drvDev, FaultReportDump &dump)
   dump.addTagged(FaultReportDump::GlobalTag::TAG_EXT_FAULT, ID_RECIVED,
     String(64, "recived %u-%u-%u records", counts.addressInfoCount, counts.vendorInfoCount, counts.vendorBinarySize));
 
-  // counts content can be changed, avoid reading garbadge
+  // counts content can be changed, avoid reading garbage
   addressInfos.resize(counts.addressInfoCount);
   vendorInfos.resize(counts.vendorInfoCount);
   vendorDump.resize(counts.vendorBinarySize);
@@ -81,7 +89,7 @@ void dumpDeviceFaultExtData(Device &drvDev, FaultReportDump &dump)
   int idCounter = ID_REPORT_DATA;
   for (const auto &i : addressInfos)
     dump.addTagged(FaultReportDump::GlobalTag::TAG_EXT_FAULT, ++idCounter,
-      String(64, "addr: type %u, val %u prec %u", i.addressType, i.reportedAddress, i.addressPrecision));
+      String(64, "addr: type %u, val %llX prec %u", i.addressType, i.reportedAddress, i.addressPrecision));
 
   for (const auto &i : vendorInfos)
     dump.addTagged(FaultReportDump::GlobalTag::TAG_EXT_FAULT, ++idCounter,
@@ -89,7 +97,7 @@ void dumpDeviceFaultExtData(Device &drvDev, FaultReportDump &dump)
 
   if (counts.vendorBinarySize)
   {
-    FILE *f = fopen("vk_fault_vendor_dump.bin", "wb");
+    FILE *f = fopen(Globals::cfg.getFaultVendorDumpFile(), "wb");
     if (f)
     {
       fwrite(vendorDump.data(), 1, counts.vendorBinarySize, f);
@@ -104,12 +112,6 @@ void dumpDeviceFaultExtData(Device &drvDev, FaultReportDump &dump)
 #else // VK_EXT_device_fault
   G_ASSERTF(0, "vulkan: device fault: feature is available while it should not!");
 #endif
-}
-
-void DeviceContext::generateFaultReportAtFrameEnd()
-{
-  VULKAN_LOCK_FRONT();
-  front.replayRecord->generateFaultReport = true;
 }
 
 namespace
@@ -149,29 +151,44 @@ void DeviceContext::generateFaultReport()
 {
   debug("vulkan: GPU fault or invalid API command stream detected, generating report");
 
+  // mark that we recived GPU fault for future runs
+  {
+    file_ptr_t f = df_open(Globals::cfg.getLastRunWasGPUFaultMarkerFile(), DF_WRITE | DF_CREATE | DF_IGNORE_MISSING);
+    if (f)
+    {
+      uint8_t v = 1;
+      df_write(f, &v, 1);
+      df_close(f);
+    }
+  }
+
   FaultReportDump dump;
+
+  const bool dumpDetailedInfo = (DAGOR_DBGLEVEL > 0);
 
   {
     debug("vulkan: === state dump");
 
     debug("\n\nvulkan: ==== front pipelineState");
-    front.pipelineState.dumpLog();
+    Frontend::State::pipe.dumpLog();
     debug("\n\nvulkan: ==== back pipelineState");
-    back.pipelineState.dumpLog();
+    Backend::State::pipe.dumpLog();
     debug("\n\nvulkan: ==== back executionState");
-    back.executionState.dumpLog();
+    Backend::State::exec.dumpLog();
   }
 
+  if (dumpDetailedInfo)
   {
     debug("vulkan: === objects dump");
     reportAlliveObjects(dump);
   }
 
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
+  if (dumpDetailedInfo)
   {
     debug("vulkan: === pipe dump");
 
-    PipelineManager &pipeMan = get_device().pipeMan;
+    PipelineManager &pipeMan = Globals::pipelines;
 
     pipeMan.enumerate<ComputePipeline>(PipelineInfoDumpCb{dump});
     pipeMan.enumerate<VariatedGraphicsPipeline>(PipelineInfoDumpCb{dump});
@@ -181,17 +198,19 @@ void DeviceContext::generateFaultReport()
   }
 #endif
 
+  if (dumpDetailedInfo)
   {
     debug("vulkan: === execution markers dump");
-    device.execMarkers.check();
-    device.execMarkers.dumpFault(dump);
+    Globals::gpuExecMarkers.check();
+    Globals::gpuExecMarkers.dumpFault(dump);
   }
 
+  if (dumpDetailedInfo)
   {
     debug("vulkan: === cpu replay dump");
     // only called when we are about to crash on the worker thread, so back member is owned by the
     // executing thread by default
-    device.timelineMan.get<TimelineManager::CpuReplay>().enumerate([&](size_t index, const RenderWork &ctx) //
+    Globals::timelines.get<TimelineManager::CpuReplay>().enumerate([&](size_t index, const RenderWork &ctx) //
       {
         dump.addTagged(FaultReportDump::GlobalTag::TAG_WORK_ITEM, ctx.id, String(32, "work item ring index %u", index));
         ctx.dumpData(dump);
@@ -202,7 +221,20 @@ void DeviceContext::generateFaultReport()
 
   {
     debug("vulkan: === device fault ext dump");
-    dumpDeviceFaultExtData(device, dump);
+    dumpDeviceFaultExtData(dump);
+  }
+
+  {
+    debug("vulkan: === GPU jobs dump");
+    // only called when we are about to crash on the worker thread, so back member is owned by the
+    // executing thread by default
+    Globals::timelines.get<TimelineManager::GpuExecute>().enumerate([&](size_t index, const FrameInfo &ctx) //
+      {
+        FaultReportDump::RefId mark =
+          dump.addTagged(FaultReportDump::GlobalTag::TAG_GPU_JOB_ITEM, ctx.index, String(32, "GPU job ring index %u", index));
+        dump.addRef(mark, FaultReportDump::GlobalTag::TAG_WORK_ITEM, ctx.replayId);
+        ctx.execTracker.dumpFaultData(dump);
+      });
   }
 
   dump.dumpLog();

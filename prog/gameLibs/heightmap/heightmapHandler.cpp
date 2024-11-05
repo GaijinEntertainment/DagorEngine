@@ -1,15 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <heightmap/heightmapHandler.h>
 #include <heightMapLand/dag_hmlGetHeight.h>
-#include <heightMapLand/dag_hmlTraceRay.h>
-#include <ioSys/dag_baseIo.h>
-#include <ioSys/dag_fileIo.h>
-#include <ioSys/dag_lzmaIo.h>
-#include <ioSys/dag_zstdIo.h>
-#include <ioSys/dag_oodleIo.h>
-#include <ioSys/dag_btagCompr.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
 #include <math/dag_bounds2.h>
-#include <math/dag_frustum.h>
 #include <math/dag_mathUtils.h>
 #include <shaders/dag_shaders.h>
 #include <math/dag_adjpow2.h>
@@ -20,16 +16,17 @@
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
 #include <3d/dag_lockTexture.h>
+#include <drv/3d/dag_info.h>
 
 #include <perfMon/dag_statDrv.h>
 
+// for NV 551 workaround
+#include <3d/dag_gpuConfig.h>
+CONSOLE_BOOL_VAL("hmap", nvidia_551_workaround, true);
 
 // Used for dynamic terraforms
 #define ENABLE_RENDER_HMAP_MODIFICATION    1
 #define ENABLE_RENDER_HMAP_SUB_TESSELATION 1
-
-
-static int hmapLdetailVarId = -1;
 
 static int heightmapTexVarId = -1, world_to_hmap_lowVarId = -1, tex_hmap_inv_sizesVarId = -1;
 static int heightmap_scaleVarId = -1;
@@ -46,30 +43,8 @@ static uint32_t select_hmap_tex_fmt()
   logerr("no suitable vertex texture found");
   return TEXFMT_L16;
 }
-static int select_hmap_tex_levels(const IPoint2 &hmapWidth) { return min(get_log2i(hmapWidth.x), get_log2i(hmapWidth.y)); }
 
-#define PHYS_MEM_THRESHOLD_SIZE (32 << 20)
-
-static inline void *alloc_hmap_data(size_t sz)
-{
-#if _TARGET_STATIC_LIB
-  using namespace dagor_phys_memory;
-  if (sz >= PHYS_MEM_THRESHOLD_SIZE)
-    return alloc_phys_mem(sz, PM_ALIGN_PAGE, PM_PROT_CPU_ALL, /*cpu_cached*/ true);
-  else
-#endif
-    return tmpmem->tryAlloc(sz);
-}
-
-static inline void free_hmap_data(void *ptr, size_t sz)
-{
-#if _TARGET_STATIC_LIB
-  if (sz >= PHYS_MEM_THRESHOLD_SIZE)
-    dagor_phys_memory::free_phys_mem(ptr);
-  else
-#endif
-    memfree(ptr, tmpmem);
-}
+static int get_mip_levels(const IPoint2 &hmapWidth) { return min(get_log2i(hmapWidth.x), get_log2i(hmapWidth.y)) + 1; }
 
 bool HeightmapHandler::loadDump(IGenLoad &loadCb, bool load_render_data, GlobalSharedMemStorage *sharedMem)
 {
@@ -96,76 +71,68 @@ bool HeightmapHandler::loadDump(IGenLoad &loadCb, bool load_render_data, GlobalS
     ShaderGlobal::set_color4(heightmap_scaleVarId, Color4(hScale, hMin, hScale, hMin));
 
     renderData.reset(new HeightmapRenderData);
-    uint32_t texFMT = select_hmap_tex_fmt();
-    int level_count = select_hmap_tex_levels(hmapWidth);
-    debug("heightmap tex format = 0x%X", texFMT);
-    renderData->heightmap = UniqueTex(
-      dag::create_tex(NULL, hmapWidth.x, hmapWidth.y, texFMT | TEXCF_MAYBELOST | TEXCF_UPDATE_DESTINATION, level_count, "hmapMain"),
+
+    const int levelCount = get_mip_levels(hmapWidth) - 1; // Last mip is 2x2.
+    renderData->texFMT = select_hmap_tex_fmt();
+    renderData->heightmap = UniqueTex(dag::create_tex(NULL, hmapWidth.x, hmapWidth.y,
+                                        renderData->texFMT | TEXCF_UPDATE_DESTINATION | TEXCF_MAYBELOST, levelCount, "hmapMain"),
       "land_heightmap_tex");
-    renderData->heightmap->texaddr(TEXADDR_CLAMP);
+    renderData->heightmap->disableSampler();
+    {
+      d3d::SamplerInfo smpInfo;
+      smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+      ShaderGlobal::set_sampler(get_shader_variable_id("tex_hmap_low_samplerstate"), d3d::request_sampler(smpInfo));
+    }
     d3d_err(renderData->heightmap.getTex2D());
 
-    renderData->diamondSubDiv = (texFMT == TEXFMT_L16 && (d3d::get_texformat_usage(texFMT) & d3d::USAGE_FILTER));
-    debug("use diamond sub div = %d", renderData->diamondSubDiv);
+    renderData->diamondSubDiv =
+      (renderData->texFMT == TEXFMT_L16 && (d3d::get_texformat_usage(renderData->texFMT) & d3d::USAGE_FILTER));
+    debug("hmap: use diamond sub div = %d", renderData->diamondSubDiv);
 
-    hmapBuffer = dag::create_tex(NULL, HMAP_BSIZE, HMAP_BSIZE, texFMT | TEXCF_DYNAMIC, 1, "hmap_buffer");
-    hmapBuffer.getTex2D()->texaddr(TEXADDR_CLAMP);
+    fillHmapTexturesNeeded = true;
 
-    fillHmapTextures();
-
+    hmapUploadTex = dag::create_tex(NULL, enabledMipsUpdating ? 3 * HMAP_BSIZE / 2 : HMAP_BSIZE, HMAP_BSIZE,
+      renderData->texFMT | TEXCF_WRITEONLY | TEXCF_MAYBELOST, 1, "hmap_upload_tex_region");
+    lastRegionUpdated_NVworkaround = -1;
     renderer.setRenderClip(&worldBox2);
+
+    debug("hmap: initialized");
   }
   return true;
 }
 
-static void copy_texture_data(uint8_t *dst, const uint16_t *src, uint32_t texFMT, int stride, IPoint2 src_pivot, int src_pitch,
-  IPoint2 region_width)
+static void upload_texture_data(uint8_t *dst, int dst_stride, uint32_t dst_frm, const uint16_t *src, IPoint2 src_size)
 {
-  src += src_pivot.y * src_pitch + src_pivot.x;
-  if (texFMT == TEXFMT_L16)
+  G_ASSERT(src_size.x <= dst_stride);
+  if (dst_frm == TEXFMT_L16)
   {
-    for (int y = 0; y < region_width.y; ++y, dst += stride, src += src_pitch)
-      memcpy(dst, src, region_width.x * sizeof(uint16_t));
+    for (int y = 0; y < src_size.y; ++y, dst += dst_stride, src += src_size.x)
+      memcpy(dst, src, src_size.x * sizeof(uint16_t));
   }
-  else if (texFMT == TEXFMT_R32F)
+  else if (dst_frm == TEXFMT_R32F)
   {
-    for (int y = 0; y < region_width.y; ++y, dst += stride, src += src_pitch)
-      for (int x = 0; x < region_width.x; ++x)
+    for (int y = 0; y < src_size.y; ++y, dst += dst_stride, src += src_size.x)
+      for (int x = 0; x < src_size.x; ++x)
         ((float *)dst)[x] = src[x] / float(UINT16_MAX);
   }
-  else // if (texFMT == TEXFMT_R16F)
+  else // if (dst_frm == TEXFMT_R16F)
   {
-    for (int y = 0; y < region_width.y; ++y, dst += stride, src += src_pitch)
-      for (int x = 0; x < region_width.x; ++x)
+    for (int y = 0; y < src_size.y; ++y, dst += dst_stride, src += src_size.x)
+      for (int x = 0; x < src_size.x; ++x)
         ((uint16_t *)dst)[x] = float_to_half(src[x] / float(UINT16_MAX));
   }
 }
 
-static void copy_texture_data(uint8_t *dst, const CompressedHeightmap &src, uint32_t texFMT, int stride, IPoint2 src_pivot,
+static void get_texture_data(eastl::span<uint16_t> dst, const CompressedHeightmap &src, int elements_stride, IPoint2 src_pivot,
   IPoint2 region_width)
 {
-  if (texFMT == TEXFMT_L16)
-  {
-    for (int y = 0, sy = src_pivot.y; y < region_width.y; ++y, dst += stride, ++sy)
-      for (int x = 0, sx = src_pivot.x; x < region_width.x; ++x, ++sx)
-        ((uint16_t *)dst)[x] = src.decodePixelUnsafe(sx, sy);
-  }
-  else if (texFMT == TEXFMT_R32F)
-  {
-    for (int y = 0, sy = src_pivot.y; y < region_width.y; ++y, dst += stride, ++sy)
-      for (int x = 0, sx = src_pivot.x; x < region_width.x; ++x, ++sx)
-        ((float *)dst)[x] = src.decodePixelUnsafe(sx, sy) / float(UINT16_MAX);
-  }
-  else // if (texFMT == TEXFMT_R16F)
-  {
-    for (int y = 0, sy = src_pivot.y; y < region_width.y; ++y, dst += stride, ++sy)
-      for (int x = 0, sx = src_pivot.x; x < region_width.x; ++x, ++sx)
-        ((uint16_t *)dst)[x] = float_to_half(src.decodePixelUnsafe(sx, sy) / float(UINT16_MAX));
-  }
+  for (int y = 0, sy = src_pivot.y; y < region_width.y; ++y, ++sy)
+    for (int x = 0, sx = src_pivot.x; x < region_width.x; ++x, ++sx)
+      dst[y * elements_stride + x] = src.decodePixelUnsafe(sx, sy);
 }
 
-static void copy_visual_heights(uint8_t *dst, const ska::flat_hash_map<uint32_t, uint16_t> &visualHeights, uint32_t texFMT, int stride,
-  IPoint2 src_pivot, int src_pitch, IPoint2 region_width)
+static void get_visual_heights(eastl::span<uint16_t> dst, const ska::flat_hash_map<uint32_t, uint16_t> &visualHeights,
+  int elements_stride, IPoint2 src_pivot, int src_pitch, IPoint2 region_width)
 {
   // update only mip level 0 with visualHeights
   // for simplicity
@@ -177,176 +144,137 @@ static void copy_visual_heights(uint8_t *dst, const ska::flat_hash_map<uint32_t,
     if (!(regionBox & cell))
       continue;
     cell -= src_pivot;
-    if (texFMT == TEXFMT_L16)
-      *reinterpret_cast<uint16_t *>(dst + cell.y * stride + cell.x * sizeof(uint16_t)) = iter.second;
-    else if (texFMT == TEXFMT_R32F)
-      *reinterpret_cast<float *>(dst + cell.y * stride + cell.x * sizeof(float)) = iter.second / float(UINT16_MAX);
-    else // if (texFMT == TEXFMT_R16F)
-      *reinterpret_cast<uint16_t *>(dst + cell.y * stride + cell.x * sizeof(uint16_t)) =
-        float_to_half(iter.second / float(UINT16_MAX));
+    dst[cell.y * elements_stride + cell.x] = iter.second;
   }
 }
 
+void HeightmapHandler::fillHmapTextures()
+{
+  TIME_D3D_PROFILE(hmap_fillHmapTextures);
 
-void HeightmapHandler::fillHmapTextures() { fillHmapRegion(-1); }
+  IPoint2 quadWidth = hmapWidth / 2;
+  SmallTab<uint16_t, TmpmemAlloc> tempMem;
+  clear_and_resize(tempMem, 3 * quadWidth.x * quadWidth.y / 2);
 
-void HeightmapHandler::fillHmapRegion(int region_index)
+  // Break update into 4 quads in order avoid exceeding device's Texture2D dimension limits.
+  for (int i = 0; i < 4; ++i)
+  {
+    String uploadTempName(128, "hmap_upload_tex_quad_%d", i);
+    UniqueTex uploadTemp = dag::create_tex(NULL, 3 * quadWidth.x / 2, quadWidth.y,
+      renderData->texFMT | TEXCF_WRITEONLY | TEXCF_MAYBELOST, 1, uploadTempName);
+
+    IPoint2 quadPivot = IPoint2::ZERO;
+    if (i % 2 != 0)
+      quadPivot.x += quadWidth.x;
+    if (i / 2 != 0)
+      quadPivot.y += quadWidth.y;
+
+    if (auto lock = lock_texture(uploadTemp.getTex2D(), 0, TEXLOCK_WRITE))
+      fillHmapRegionDetailed(quadPivot, quadWidth, true, uploadTemp.getTex2D(), eastl::move(lock), tempMem);
+    else
+      logerr("hmap: Could not lock %s during fillHmapTextures! Part of hmap will be missing!", uploadTempName);
+  }
+}
+
+bool HeightmapHandler::fillHmapRegion(int region_index, bool NVworkaround_applyOnNextFrame)
 {
   TIME_D3D_PROFILE(hmap_fillHmapRegion);
-  bool isRegion = region_index != -1;
-  int regionStride = hmapWidth.x / HMAP_BSIZE;
-  const IPoint2 regionPivot =
-    isRegion ? IPoint2((region_index % regionStride) * HMAP_BSIZE, (region_index / regionStride) * HMAP_BSIZE) : IPoint2(0, 0);
-  const IPoint2 regionWidth = isRegion ? IPoint2(HMAP_BSIZE, HMAP_BSIZE) : IPoint2(hmapWidth.x, hmapWidth.y);
 
-  uint32_t texFMT = select_hmap_tex_fmt(); // as we can't get format from texture now!
-  int level_count = renderData->heightmap.getTex2D()->level_count();
-  Texture *destTex = isRegion ? hmapBuffer.getTex2D() : renderData->heightmap.getTex2D();
+  G_ASSERT(region_index >= 0);
+  const int regionStride = hmapWidth.x / HMAP_BSIZE;
+  const IPoint2 regionPivot = IPoint2((region_index % regionStride) * HMAP_BSIZE, (region_index / regionStride) * HMAP_BSIZE);
+  const IPoint2 regionWidth = IPoint2(HMAP_BSIZE, HMAP_BSIZE);
 
-#if _TARGET_XBOX
-  const bool useUpdateBufferRegion = isRegion; // it works for full update as well, but needs extra VRAM for the allocation
-#else
-  const bool useUpdateBufferRegion = false; // TODO: enable it if Xbox works fine
-#endif
-
-  if (useUpdateBufferRegion)
+  // Keep in mind that above log2(HMAP_BSIZE) + 1 = log2(32) + 1 = 6th mip level heights won't update.
+  auto tryLock = lock_texture(hmapUploadTex.getTex2D(), 0, TEXLOCK_WRITE | TEXLOCK_DISCARD);
+  if (tryLock)
   {
-    if (d3d::ResUpdateBuffer *rub = d3d::allocate_update_buffer_for_tex_region(renderData->heightmap.getTex2D(), 0, 0, regionPivot.x,
-          regionPivot.y, 0, regionWidth.x, regionWidth.y, 1))
-    {
-      uint8_t *data = (uint8_t *)d3d::get_update_buffer_addr_for_write(rub);
-      int stride = d3d::get_update_buffer_pitch(rub);
-
-      if (!data)
-      {
-        if (!d3d::is_in_device_reset_now())
-          logerr("%s can't lock heightmapTex '%s'", __FUNCTION__, d3d::get_last_error());
-        return;
-      }
-
-      copy_texture_data(data, compressed, texFMT, stride, regionPivot, regionWidth);
-      copy_visual_heights(data, visualHeights, texFMT, stride, regionPivot, hmapWidth.x, regionWidth);
-
-      if (!d3d::update_texture_and_release_update_buffer(rub))
-      {
-        if (!d3d::is_in_device_reset_now())
-          logerr("%s can't update heightmapTex '%s'", __FUNCTION__, d3d::get_last_error());
-        return;
-      }
-      d3d::release_update_buffer(rub);
-    }
-    else
-    {
-      if (!d3d::is_in_device_reset_now())
-        logerr("%s can't lock heightmapTex '%s'", __FUNCTION__, d3d::get_last_error());
-      return;
-    }
+    alignas(16) carray<uint16_t, 3 * HMAP_BSIZE * HMAP_BSIZE / 2> tempMem;
+    fillHmapRegionDetailed(regionPivot, regionWidth, enabledMipsUpdating, hmapUploadTex.getTex2D(), eastl::move(tryLock), tempMem,
+      NVworkaround_applyOnNextFrame);
+    return true;
   }
   else
   {
-    if (auto lockedTex = lock_texture(destTex, 0,
-          TEXLOCK_WRITE | (isRegion ? TEXLOCK_DISCARD : (level_count > 1 ? TEXLOCK_DONOTUPDATEON9EXBYDEFAULT : 0))))
-    {
-      uint8_t *data = lockedTex.get();
-      copy_texture_data(data, compressed, texFMT, lockedTex.getByteStride(), regionPivot, regionWidth);
-      copy_visual_heights(data, visualHeights, texFMT, lockedTex.getByteStride(), regionPivot, hmapWidth.x, regionWidth);
-    }
-
-    if (isRegion)
-      renderData->heightmap->updateSubRegion(hmapBuffer.getTex2D(), 0, 0, 0, 0, regionWidth.x, regionWidth.y, 1, 0, regionPivot.x,
-        regionPivot.y, 0);
+    logwarn("hmap: Could not lock hmap_upload_tex_region (aka hmapUploadTex). Skipping fillHmapRegion for now.");
+    return false;
   }
+}
 
-  // !isRegion means initial (or after reset) filling
-  if (!isRegion || enabledMipsUpdating)
+void HeightmapHandler::fillHmapRegionDetailed(IPoint2 region_pivot, IPoint2 region_width, bool update_mips, BaseTexture *upload_tex,
+  LockedImage2D upload_texlock, const eastl::span<uint16_t> temp_mem, bool NVworkaround_applyOnNextFrame)
+{
+  const int levelCount = min<int>(update_mips ? get_mip_levels(region_width) : 1, renderData->heightmap.getTex2D()->level_count());
+  const int elementsStride = levelCount > 1 ? 3 * region_width.x / 2 : region_width.x;
+
+  auto getFlatMipPivot = [](int mip, IPoint2 texSize) -> IPoint2 {
+    // Starting from mip1, we place mip on the right of the previous if mip index is odd number, bellow otherwise.
+    // For example, if mip0 is 32*32, origin of mip0=(0,0), mip1=(32, 0), mip2=(32, 16), mip3=(40, 16), mip4=(40, 20), mip5=(42, 20).
+    G_ASSERT_RETURN(mip >= 0, IPoint2(0, 0));
+
+    // Geometric Progression Sum for R=1/4 is Sn = a0*(1 - 1/4^n) / (3/4) = a0*(4^n - 1) / 3*4^(n-1) = a0*(2^(2*n) - 1) / 3*2^(2*(n-1))
+    // For n = 0, we make sure Sn = getNumerator(0) / getDenominator(0) = 0 and avoid UB, thus max operation at "getDenominator".
+    auto getNumerator = [](int n) -> uint32_t { return (1 << (2 * n)) - 1; };
+    auto getDenominator = [](int n) -> uint32_t { return 3 * (1 << (2 * max(n - 1, 0))); };
+
+    int rightSteps = (mip + 1) / 2;
+    int downSteps = mip / 2;
+
+    IPoint2 a0 = IPoint2(texSize.x, texSize.y / 2);
+    return IPoint2(((uint32_t)a0.x * getNumerator(rightSteps)) / getDenominator(rightSteps),
+      ((uint32_t)a0.y * getNumerator(downSteps)) / getDenominator(downSteps));
+  };
+
+  // Get mip0 without visual heights.
+  get_texture_data(temp_mem, compressed, elementsStride, region_pivot, region_width);
+
+  // Create mip-chain where we skip visual heights.
+  IPoint2 prevRegionFlatMipPivot = getFlatMipPivot(0, region_width);
+  for (int l = 1; l < levelCount; ++l)
   {
-    SmallTab<uint16_t, TmpmemAlloc> downsampledData;
-    clear_and_resize(downsampledData, (regionWidth.y * regionWidth.x) >> 2);
-    for (int l = 1, w = regionWidth.x >> 1, h = regionWidth.y >> 1; min(h, w) > 0 && l < level_count; ++l, w >>= 1, h >>= 1)
-    {
-      uint16_t *destDownData = downsampledData.data();
-      for (int y = 0; y < h; ++y, destDownData += w)
-        if (l == 1)
-        {
-          int sy = regionPivot.y + y * 2;
-          for (int x = 0, sx = regionPivot.x; x < w; ++x, sx += 2)
-            destDownData[x] = (compressed.decodePixelUnsafe(sx + 0, sy + 0) + compressed.decodePixelUnsafe(sx + 1, sy + 0) +
-                                compressed.decodePixelUnsafe(sx + 0, sy + 1) + compressed.decodePixelUnsafe(sx + 1, sy + 1)) /
-                              4;
-        }
-        else
-        {
-          int srcStride = w << 1;
-          uint16_t *srcData = &downsampledData[(y << 1) * srcStride];
-          for (int x = 0; x < w; ++x, srcData += 2)
-            destDownData[x] = (srcData[0] + srcData[1] + srcData[srcStride] + srcData[srcStride + 1]) / 4;
-        }
-      destDownData = downsampledData.data();
+    auto [w, h] = region_width >> l;
+    IPoint2 regionFlatMipPivot = getFlatMipPivot(l, region_width);
 
-      if (useUpdateBufferRegion)
+    for (int y = 0; y < h; ++y)
+      for (int x = 0; x < w; ++x)
       {
-        if (d3d::ResUpdateBuffer *rub = d3d::allocate_update_buffer_for_tex_region(renderData->heightmap.getTex2D(), l, 0,
-              regionPivot.x >> l, regionPivot.y >> l, 0, w, h, 1))
-        {
-          uint8_t *data = (uint8_t *)d3d::get_update_buffer_addr_for_write(rub);
-          int stride = d3d::get_update_buffer_pitch(rub);
-
-          if (!data)
-          {
-            if (!d3d::is_in_device_reset_now())
-              logerr("%s can't lock heightmapTex '%s'", __FUNCTION__, d3d::get_last_error());
-            continue;
-          }
-
-          copy_texture_data(data, destDownData, texFMT, stride, IPoint2::ZERO, w, IPoint2(w, h));
-
-          if (!d3d::update_texture_and_release_update_buffer(rub))
-          {
-            if (!d3d::is_in_device_reset_now())
-              logerr("%s can't update heightmapTex '%s'", __FUNCTION__, d3d::get_last_error());
-            continue;
-          }
-          d3d::release_update_buffer(rub);
-        }
-        else
-        {
-          if (!d3d::is_in_device_reset_now())
-            logerr("%s can't lock heightmapTex '%s'", __FUNCTION__, d3d::get_last_error());
-          continue;
-        }
+        unsigned sum = 0;
+        sum += temp_mem[(prevRegionFlatMipPivot.y + 2 * y) * elementsStride + (prevRegionFlatMipPivot.x + 2 * x)];
+        sum += temp_mem[(prevRegionFlatMipPivot.y + 2 * y) * elementsStride + (prevRegionFlatMipPivot.x + 2 * x + 1)];
+        sum += temp_mem[(prevRegionFlatMipPivot.y + 2 * y + 1) * elementsStride + (prevRegionFlatMipPivot.x + 2 * x)];
+        sum += temp_mem[(prevRegionFlatMipPivot.y + 2 * y + 1) * elementsStride + (prevRegionFlatMipPivot.x + 2 * x + 1)];
+        temp_mem[(regionFlatMipPivot.y + y) * elementsStride + (regionFlatMipPivot.x + x)] = static_cast<uint16_t>(sum / 4);
       }
-      else
-      {
-        uint32_t stagingBufferMip = isRegion ? 0 : l;
-        if (auto lockedTex = lock_texture(destTex, stagingBufferMip,
-              TEXLOCK_WRITE |
-                (isRegion ? TEXLOCK_DISCARD : (l == level_count - 1 ? TEXLOCK_DELSYSMEMCOPY : TEXLOCK_DONOTUPDATEON9EXBYDEFAULT))))
-        {
-          uint8_t *data = lockedTex.get();
 
-          if (!data)
-          {
-            if (!d3d::is_in_device_reset_now())
-              logerr("%s can't lock heightmapTex '%s'", __FUNCTION__, d3d::get_last_error());
-            continue;
-          }
-
-          copy_texture_data(data, destDownData, texFMT, lockedTex.getByteStride(), IPoint2::ZERO, w, IPoint2(w, h));
-        }
-
-        if (isRegion)
-          renderData->heightmap->updateSubRegion(hmapBuffer.getTex2D(), stagingBufferMip, 0, 0, 0, w, h, 1, l, regionPivot.x >> l,
-            regionPivot.y >> l, 0);
-      }
-    }
+    prevRegionFlatMipPivot = regionFlatMipPivot;
   }
+
+  // Get mip0 visual heights.
+  get_visual_heights(temp_mem, visualHeights, elementsStride, region_pivot, hmapWidth.x, region_width);
+
+  // Copy temp_mem to upload_tex.
+  upload_texture_data(upload_texlock.get(), upload_texlock.getByteStride(), renderData->texFMT, temp_mem.data(),
+    IPoint2(elementsStride, region_width.y));
+  upload_texlock.close();
+
+  // Copy upload_tex regions to proper hmap mips.
+  for (int l = 0; l < levelCount && !NVworkaround_applyOnNextFrame; ++l)
+  {
+    auto [w, h] = region_width >> l;
+    IPoint2 regionMipPivot = region_pivot >> l;
+    IPoint2 regionFlatMipPivot = getFlatMipPivot(l, region_width);
+    renderData->heightmap->updateSubRegion(upload_tex, 0, regionFlatMipPivot.x, regionFlatMipPivot.y, 0, w, h, 1, l, regionMipPivot.x,
+      regionMipPivot.y, 0);
+  }
+
   terrainStateVersion++;
 }
 
 void HeightmapHandler::close()
 {
-  hmapBuffer.close();
+  hmapUploadTex.close();
   ShaderGlobal::set_texture(heightmapTexVarId, BAD_TEXTUREID);
+  ShaderGlobal::set_color4(world_to_hmap_lowVarId, Color4(10e+3, 10e+3, 10e+10, 10e+10)); // 1mm^2 at (-10000Km, -10000Km)
   renderData.reset();
   renderer.close();
   heightmapHeightCulling.reset();
@@ -356,17 +284,16 @@ void HeightmapHandler::close()
 void HeightmapHandler::afterDeviceReset()
 {
   renderer.close();
-  renderer.init("heightmap", "", false, hmapDimBits);
+  renderer.init("heightmap", "", "hmap_tess_factor", false, hmapDimBits);
 }
 
 bool HeightmapHandler::init()
 {
   hmapDimBits = ::dgs_get_settings()->getBlockByNameEx("graphics")->getInt("heightmapDimBits", default_patch_bits);
 
-  if (!renderer.init("heightmap", "", false, hmapDimBits))
+  if (!renderer.init("heightmap", "", "hmap_tess_factor", false, hmapDimBits))
     return false;
 
-  hmapLdetailVarId = get_shader_variable_id("hmap_ldetail", true);
   return true;
 }
 
@@ -410,6 +337,12 @@ bool HeightmapHandler::prepare(const Point3 &world_pos, float camera_height, flo
 {
   if (!heightmapHeightCulling)
     invalidateCulling(IBBox2{{0, 0}, {hmapWidth.x - 1, hmapWidth.y - 1}});
+  if (fillHmapTexturesNeeded)
+  {
+    fillHmapTextures();
+    heightChangesIndex.clear();
+    fillHmapTexturesNeeded = false;
+  }
   preparedOriginPos = world_pos;
   preparedCameraHeight = camera_height;
   preparedWaterLevel = water_level;
@@ -418,21 +351,31 @@ bool HeightmapHandler::prepare(const Point3 &world_pos, float camera_height, flo
   if (lengthSq(getClippedOrigin(world_pos) - world_pos) > distanceToSwitch * distanceToSwitch)
     return false;
 
-#if ENABLE_RENDER_HMAP_MODIFICATION
-  if (!heightChangesIndex.empty())
-  {
-#if _TARGET_APPLE
-    // Workaround for terraforming bug
-    fillHmapTextures();
-    heightChangesIndex.clear();
-#else
-    fillHmapRegion(*heightChangesIndex.begin());
-    heightChangesIndex.erase(heightChangesIndex.begin());
-#endif
-  }
-#endif
+  if (pushHmapModificationOnPrepare)
+    prepareHmapModificaton();
 
   return true;
+}
+
+void HeightmapHandler::prepareHmapModificaton()
+{
+  G_ASSERTF_RETURN(!fillHmapTexturesNeeded, , "prepareHmapModificaton: Full fillHmapTextures is needed");
+#if ENABLE_RENDER_HMAP_MODIFICATION
+  const bool applyOnNextFrame = nvidia_551_workaround && d3d_get_gpu_cfg().multipleCopySubresourceWorkaround;
+  if (applyOnNextFrame && lastRegionUpdated_NVworkaround != -1)
+  {
+    fillHmapRegion(lastRegionUpdated_NVworkaround, false);
+    lastRegionUpdated_NVworkaround = -1;
+  }
+  else if (!heightChangesIndex.empty())
+  {
+    if (fillHmapRegion(*heightChangesIndex.begin(), applyOnNextFrame))
+    {
+      lastRegionUpdated_NVworkaround = *heightChangesIndex.begin();
+      heightChangesIndex.erase(heightChangesIndex.begin());
+    }
+  }
+#endif
 }
 
 void HeightmapHandler::render(int min_tank_lod)
@@ -440,26 +383,14 @@ void HeightmapHandler::render(int min_tank_lod)
   mat44f globtm;
   d3d::getglobtm(globtm);
   LodGridCullData defaultCullData(framemem_ptr());
-  frustumCulling(defaultCullData, preparedOriginPos, preparedCameraHeight, Frustum(globtm), min_tank_lod, NULL, 0);
+  frustumCulling(defaultCullData, preparedOriginPos, preparedCameraHeight, preparedWaterLevel, Frustum(globtm), min_tank_lod, NULL, 0);
   renderCulled(defaultCullData);
-}
-
-void HeightmapHandler::setVsSampler()
-{
-  if (hmapLdetailVarId >= 0)
-    ShaderGlobal::set_texture(hmapLdetailVarId, renderData->heightmap);
-}
-
-void HeightmapHandler::resetVsSampler()
-{
-  if (hmapLdetailVarId >= 0)
-    ShaderGlobal::set_texture(hmapLdetailVarId, BAD_TEXTUREID);
 }
 
 // float hm_scale = 1.0f;
 
-void HeightmapHandler::frustumCulling(LodGridCullData &cull_data, const Point3 &world_pos, float camera_height, const Frustum &frustum,
-  int min_tank_lod, const Occlusion *occlusion, int lod0subdiv, float lod0scale)
+void HeightmapHandler::frustumCulling(LodGridCullData &cull_data, const Point3 &world_pos, float camera_height, float water_level,
+  const Frustum &frustum, int min_tank_lod, const Occlusion *occlusion, int lod0subdiv, float lod0scale)
 {
   if (!frustum.testBoxB(vecbox.bmin, vecbox.bmax))
   {
@@ -493,8 +424,9 @@ void HeightmapHandler::frustumCulling(LodGridCullData &cull_data, const Point3 &
     float lod0AreaSize = 0.f;
     Point3 clippedOrigin = getClippedOrigin(world_pos);
     cull_lod_grid(cull_data.lodGrid, cull_data.lodGrid.lodsCount - min_tank_lod, clippedOrigin.x, clippedOrigin.z, scale, scale, align,
-      align, worldBox[0].y, worldBox[1].y, &frustum, &worldBox2, cull_data, occlusion, lod0AreaSize, renderer.getDim(), true,
-      heightmapHeightCulling.get(), hmtd, nullptr, preparedWaterLevel, &world_pos);
+      align, worldBox[0].y, worldBox[1].y, &frustum, &worldBox2, cull_data, occlusion, lod0AreaSize,
+      renderer.get_hmap_tess_factorVarId(), renderer.getDim(), true, heightmapHeightCulling.get(), hmtd, nullptr, water_level,
+      &world_pos);
 #if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
   };
   if (!hmtd)
@@ -514,9 +446,7 @@ void HeightmapHandler::renderCulled(const LodGridCullData &cullData)
 {
   if (!cullData.patches.size())
     return;
-  setVsSampler();
   renderer.render(cullData.lodGrid, cullData);
-  resetVsSampler();
 }
 
 void HeightmapHandler::renderOnePatch()
@@ -525,9 +455,5 @@ void HeightmapHandler::renderOnePatch()
   d3d::getglobtm(globtm);
   if (!Frustum(globtm).testBoxB(vecbox.bmin, vecbox.bmax))
     return;
-  if (hmapLdetailVarId >= 0)
-    ShaderGlobal::set_texture(hmapLdetailVarId, renderData->heightmap);
   renderer.renderOnePatch(Point2::xz(worldBox[0]), Point2::xz(worldBox[1]));
-  if (hmapLdetailVarId >= 0)
-    ShaderGlobal::set_texture(hmapLdetailVarId, BAD_TEXTUREID);
 }

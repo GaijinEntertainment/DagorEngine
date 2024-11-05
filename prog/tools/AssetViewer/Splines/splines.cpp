@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "../av_plugin.h"
 #include <EditorCore/ec_interface.h>
 #include <assets/asset.h>
@@ -11,7 +13,7 @@
 #include <math/dag_e3dColor.h>
 #include <de3_huid.h>
 #include <de3_assetService.h>
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/control/container.h>
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/staticGeom/staticGeometry.h>
 #include <libTools/staticGeom/staticGeometryContainer.h>
@@ -24,7 +26,7 @@ enum
 static int rendEntGeomMask = -1;
 static int collisionMask = -1;
 
-class SplineViewPlugin : public IGenEditorPlugin, public ControlEventHandler
+class SplineViewPlugin : public IGenEditorPlugin, public PropPanel::ControlEventHandler
 {
 public:
   SplineViewPlugin() : entPool(midmem), spline(NULL), splineLen(0.f), assetName(""), presentationType(FIG_TYPE__FIRST)
@@ -144,11 +146,11 @@ public:
 
   virtual bool supportAssetType(const DagorAsset &asset) const { return strcmp(asset.getTypeStr(), "spline") == 0; }
 
-  virtual void fillPropPanel(PropertyContainerControlBase &panel)
+  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel)
   {
     panel.setEventHandler(this);
 
-    PropertyContainerControlBase *rg = panel.createRadioGroup(PID_SPLINE_TYPE_GROUP, "spline presentation type:");
+    PropPanel::ContainerPropertyControl *rg = panel.createRadioGroup(PID_SPLINE_TYPE_GROUP, "spline presentation type:");
     rg->createRadio(FIG_TYPE_LINE, "line");
     rg->createRadio(FIG_TYPE_TRIANGLE, "rounded triangle");
     rg->createRadio(FIG_TYPE_CROWN, "crown");
@@ -158,7 +160,7 @@ public:
 
   virtual void postFillPropPanel() {}
 
-  virtual void onChange(int pid, PropertyContainerControlBase *panel)
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl *panel)
   {
     if (!spline || assetName.empty())
       return;
@@ -426,7 +428,6 @@ protected:
             DAEDITOR3.conError("<%s>: invalid material <%s> for loft", assetName, loft.matNames[materialNo].str());
             continue;
           }
-          StaticGeometryContainer *g = new StaticGeometryContainer;
 
           Mesh *mesh = new Mesh;
 
@@ -440,7 +441,7 @@ protected:
           }
 
           if (!assetSrv->createLoftMesh(*mesh, adata->genGeom, j, spline, 0, segCnt, true, 1.0f, materialNo, splineScales, NULL,
-                assetName, 0, 0))
+                assetName, 0, 0, 0, 0))
           {
             delete mesh;
             continue;
@@ -449,6 +450,7 @@ protected:
           MaterialDataList mat;
           mat.addSubMat(material);
 
+          StaticGeometryContainer *g = new StaticGeometryContainer;
           ObjCreator3d::addNode(assetName, mesh, &mat, *g);
 
           for (int i = 0; i < g->nodes.size(); ++i)

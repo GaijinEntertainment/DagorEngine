@@ -1,6 +1,4 @@
-
-#ifndef __DAGOR_LOAD3D_H
-#define __DAGOR_LOAD3D_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <3d/dag_materialData.h>
@@ -50,6 +48,7 @@ struct ImpMat
 #define IMP_NF_RENDERABLE 1
 #define IMP_NF_CASTSHADOW 2
 #define IMP_NF_RCVSHADOW  4
+#define IMP_NF_POINTCLOUD 8
 
 class ImpSceneCB
 {
@@ -99,6 +98,3 @@ int load_scene(const char *fn, ImpSceneCB &);
 // controls how relative paths are handled during DAG loading
 void disable_relative_textures_path_expansion();
 void enable_relative_textures_path_expansion();
-
-
-#endif

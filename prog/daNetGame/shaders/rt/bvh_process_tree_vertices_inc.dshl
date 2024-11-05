@@ -1,0 +1,38 @@
+include "wind/wind_simulation_inc.dshl"
+
+macro BVH_TREE_ANIMATION()
+  INIT_COMBINED_WIND(cs)
+  USE_COMBINED_WIND(cs)
+  USE_PIVOT_PAINTER_BASE(cs)
+  hlsl(cs) {
+    void bvh_tree_animation(float2 indirect_texcoord,
+                            float4 input_color,
+                            float4x4 wtm,
+                            float3 input_pos,
+                            float4 tree_wind_params,
+                            uint per_instance_render_data_offset,
+                            out float4 world_pos,
+                            inout float3 world_normal)
+    {
+      float3 worldLocalX = wtm[0].xyz;
+      float3 worldLocalY = wtm[1].xyz;
+      float3 worldLocalZ = wtm[2].xyz;
+      float3 worldLocalPos = wtm[3].xyz;
+
+      world_pos.xyz = input_pos.x * worldLocalX + input_pos.y * worldLocalY + input_pos.z * worldLocalZ + worldLocalPos;
+      world_pos.w = 1.0;
+      // TODO Figure this out!!!!!
+      // ##if instancing_type == pos_vb || instancing_type == pos_cb
+      //   float4 pos_and_scale = float4(world_local_pos,length(worldLocalX));
+      //   world_pos = apply_ground_align(world_pos, input_pos, world_local_pos, pos_and_scale);
+      // ##endif
+
+      ##if (bvh_process_tree_vertices_is_pivoted == yes)
+        static const float AnimWindScale = 0.25;
+        HierarchyData Data = fetchHierarchyData(indirect_texcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
+        float3 prevWorldPos;
+        applyWindAnimationOffset(world_pos.xyz, world_normal, Data, tree_wind_params.x, AnimWindScale, world_pos.xyz, prevWorldPos);
+      ##endif
+    }
+  }
+endmacro

@@ -1,0 +1,80 @@
+include "clusteredViewLights.dshl"
+include "light_mask_helpers.dshl"
+include "out_of_frustum_grid.dshl"
+
+//gives omni&spot lights with lambert lighting (no specular)
+//requires  ClusteredLights::cullOutOfFrustumLights() & setOutOfFrustumLightsToShader() to be called
+
+macro GI_OUT_OF_SCREEN_VOXELIZE_LIGHT_HELPER(code)
+  hlsl(code) {
+    #define LAMBERT_LIGHT 1
+    #define DYNAMIC_LIGHTS_SPECULAR 0
+    #define DYNAMIC_LIGHTS_SSS 0
+    #define EXIT_STATEMENT continue
+    #define OMNI_DYNAMIC_LIGHTS_EARLY_EXIT 0 // because we do it manually
+    #define DYNAMIC_LIGHTS_EARLY_EXIT 1
+    #define SPOT_SHADOWS 1
+    #define OMNI_SHADOWS 1
+    #define SIMPLE_PCF_SHADOW 1
+    #define SPECULAR_DISABLED 1
+    #define SHEEN_SPECULAR 0
+    #define BRDF_DIFFUSE 0
+    #define GI_HAS_DYNAMIC_LIGHTS 1
+    #define __MICRO_SHADOW_INCLUDED__ 1
+    #define calc_micro_shadow(NoL, ao) (1)
+  }
+  INIT_CLUSTERED_VIEW_LIGHTS(code)
+  //USE_SPOT_LIGHT_MASK(code)
+  //USE_OMNI_LIGHT_MASK(code)
+  USE_CLUSTERED_LIGHTS(code)
+  USE_PHOTOMETRY_TEXTURES(code)
+  USE_LIGHT_SHADOWS(code)
+  USE_OMNI_LIGHTS_CB(code)
+  USE_COMMON_LIGHTS_SHADOWS_CB(code)
+  hlsl(code) {
+    #include "pbr/pbr.hlsl"
+    #include "clustered/punctualLights.hlsl"
+    #define EXIT_STATEMENT continue
+  }
+
+  INIT_OOF_LIGHTS_GRID(code)
+  USE_OOF_LIGHTS_GRID(code)
+
+  hlsl(code) {
+    half3 getGiDynamicLighting(ProcessedGbuffer gbuffer, float3 worldPos, float2 screenpos, float2 screenTc, float linearDepth)
+    {
+      float3 view = 0, specularColor = 0;float NoV = 0;
+      float dynamicLightsSpecularStrength = 0;
+      float ao = 1;
+      return get_oof_dynamic_lighting(gbuffer, worldPos, dynamicLightsSpecularStrength, ao, view, specularColor, NoV);
+    }
+  }
+endmacro
+
+// requires GI_DYNLIGHTS_MIN_PROCESSED_GBUFFER or PACK_UNPACK gbuffer to be present.
+// Works with clustered lights
+
+macro GI_COMMON_SCREEN_DYNAMIC_LIGHTS(code)
+  hlsl(code) {
+    #define SPECULAR_DISABLED 1
+    #define BRDF_DIFFUSE 0
+    #define DYNAMIC_LIGHTS_SPECULAR 0
+    #define DYNAMIC_LIGHTS_SSS 0
+    #define LAMBERT_LIGHT 1
+    #define GI_HAS_DYNAMIC_LIGHTS 1
+    #include <BRDF.hlsl>
+  }
+  USE_SPOT_LIGHT_MASK(code)
+  USE_OMNI_LIGHT_MASK(code)
+  INIT_CLUSTERED_VIEW_LIGHTS(code)
+  USE_CLUSTERED_VIEW_LIGHTS(code)
+  hlsl(code) {
+    half3 getGiDynamicLighting(ProcessedGbuffer gbuf, float3 worldPos, float2 screenpos, float2 screenTc, float linearDepth)
+    {
+      float NoV = 0;//not used if no specular
+      float3 view = 0;//not used if no specular
+      gbuf.diffuseColor = gbuf.albedo;
+      return get_dynamic_lighting(gbuf, worldPos, view, linearDepth, screenpos, NoV, 0, screenTc, gbuf.ao);
+    }
+  }
+endmacro

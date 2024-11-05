@@ -1,0 +1,39 @@
+R"(/* stcode dll unified code */
+#include <shaders/stcode/defines.stcode.h>
+
+#include "glob_shadervars.stcode.gen.cpp"
+
+// #include-s for all .stcode.gen.cpp files, containing local routines for unity build, or .stcode.gen.h for incremental build
+%s
+
+#include <shaders/stcode/callbackTable.h>
+#include <shaders/stcode/callbacks.stcode.h>
+
+namespace stcode::cpp
+{
+CallbackTable internalCbTable = {};
+}
+
+typedef void (*RoutinePtr)(const void *, bool);
+
+using namespace stcode::cpp;
+
+static const RoutinePtr routines[] = {
+// Pointers to all routines defined above
+%s
+};
+
+CPPSTCODE_DLL_EXPORT const RoutinePtr *init_dll_and_get_routines(void *cb_table)
+{
+  // Set the callbacks for internal use @TODO: validate
+  CallbackTable &src = *reinterpret_cast<CallbackTable *>(cb_table);
+  internalCbTable = src;
+
+  // Fetch the shadervar pointers from the bindump through the callback
+  init_shadervar_ptrs();
+
+  // Return pointer to routines array, the callee fetches the size from the bindump
+  return routines;
+}
+
+)"

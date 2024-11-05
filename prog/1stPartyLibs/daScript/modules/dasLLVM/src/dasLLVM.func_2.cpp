@@ -13,60 +13,80 @@ namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_2() {
 // from D:\Work\libclang\include\llvm-c/BitWriter.h:45:5
-	addExtern< int (*)(LLVMOpaqueModule *,int) , LLVMWriteBitcodeToFileHandle >(*this,lib,"LLVMWriteBitcodeToFileHandle",SideEffects::worstDefault,"LLVMWriteBitcodeToFileHandle")
-		->args({"M","Handle"});
+	makeExtern< int (*)(LLVMOpaqueModule *,int) , LLVMWriteBitcodeToFileHandle , SimNode_ExtFuncCall >(lib,"LLVMWriteBitcodeToFileHandle","LLVMWriteBitcodeToFileHandle")
+		->args({"M","Handle"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/BitWriter.h:48:21
-	addExtern< LLVMOpaqueMemoryBuffer * (*)(LLVMOpaqueModule *) , LLVMWriteBitcodeToMemoryBuffer >(*this,lib,"LLVMWriteBitcodeToMemoryBuffer",SideEffects::worstDefault,"LLVMWriteBitcodeToMemoryBuffer")
-		->args({"M"});
+	makeExtern< LLVMOpaqueMemoryBuffer * (*)(LLVMOpaqueModule *) , LLVMWriteBitcodeToMemoryBuffer , SimNode_ExtFuncCall >(lib,"LLVMWriteBitcodeToMemoryBuffer","LLVMWriteBitcodeToMemoryBuffer")
+		->args({"M"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Comdat.h:46:15
-	addExtern< LLVMComdat * (*)(LLVMOpaqueModule *,const char *) , LLVMGetOrInsertComdat >(*this,lib,"LLVMGetOrInsertComdat",SideEffects::worstDefault,"LLVMGetOrInsertComdat")
-		->args({"M","Name"});
+	makeExtern< LLVMComdat * (*)(LLVMOpaqueModule *,const char *) , LLVMGetOrInsertComdat , SimNode_ExtFuncCall >(lib,"LLVMGetOrInsertComdat","LLVMGetOrInsertComdat")
+		->args({"M","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Comdat.h:53:15
-	addExtern< LLVMComdat * (*)(LLVMOpaqueValue *) , LLVMGetComdat >(*this,lib,"LLVMGetComdat",SideEffects::worstDefault,"LLVMGetComdat")
-		->args({"V"});
+	makeExtern< LLVMComdat * (*)(LLVMOpaqueValue *) , LLVMGetComdat , SimNode_ExtFuncCall >(lib,"LLVMGetComdat","LLVMGetComdat")
+		->args({"V"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Comdat.h:60:6
-	addExtern< void (*)(LLVMOpaqueValue *,LLVMComdat *) , LLVMSetComdat >(*this,lib,"LLVMSetComdat",SideEffects::worstDefault,"LLVMSetComdat")
-		->args({"V","C"});
+	makeExtern< void (*)(LLVMOpaqueValue *,LLVMComdat *) , LLVMSetComdat , SimNode_ExtFuncCall >(lib,"LLVMSetComdat","LLVMSetComdat")
+		->args({"V","C"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Comdat.h:67:25
-	addExtern< LLVMComdatSelectionKind (*)(LLVMComdat *) , LLVMGetComdatSelectionKind >(*this,lib,"LLVMGetComdatSelectionKind",SideEffects::worstDefault,"LLVMGetComdatSelectionKind")
-		->args({"C"});
+	makeExtern< LLVMComdatSelectionKind (*)(LLVMComdat *) , LLVMGetComdatSelectionKind , SimNode_ExtFuncCall >(lib,"LLVMGetComdatSelectionKind","LLVMGetComdatSelectionKind")
+		->args({"C"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Comdat.h:74:6
-	addExtern< void (*)(LLVMComdat *,LLVMComdatSelectionKind) , LLVMSetComdatSelectionKind >(*this,lib,"LLVMSetComdatSelectionKind",SideEffects::worstDefault,"LLVMSetComdatSelectionKind")
-		->args({"C","Kind"});
+	makeExtern< void (*)(LLVMComdat *,LLVMComdatSelectionKind) , LLVMSetComdatSelectionKind , SimNode_ExtFuncCall >(lib,"LLVMSetComdatSelectionKind","LLVMSetComdatSelectionKind")
+		->args({"C","Kind"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/ErrorHandling.h:42:6
-	addExtern< void (*)() , LLVMResetFatalErrorHandler >(*this,lib,"LLVMResetFatalErrorHandler",SideEffects::worstDefault,"LLVMResetFatalErrorHandler");
+	makeExtern< void (*)() , LLVMResetFatalErrorHandler , SimNode_ExtFuncCall >(lib,"LLVMResetFatalErrorHandler","LLVMResetFatalErrorHandler")
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/ErrorHandling.h:49:6
-	addExtern< void (*)() , LLVMEnablePrettyStackTrace >(*this,lib,"LLVMEnablePrettyStackTrace",SideEffects::worstDefault,"LLVMEnablePrettyStackTrace");
-// from D:\Work\libclang\include\llvm-c/Core.h:480:6
-	addExtern< void (*)() , LLVMShutdown >(*this,lib,"LLVMShutdown",SideEffects::worstDefault,"LLVMShutdown");
-// from D:\Work\libclang\include\llvm-c/Core.h:484:7
-	addExtern< char * (*)(const char *) , LLVMCreateMessage >(*this,lib,"LLVMCreateMessage",SideEffects::worstDefault,"LLVMCreateMessage")
-		->args({"Message"});
-// from D:\Work\libclang\include\llvm-c/Core.h:485:6
-	addExtern< void (*)(char *) , LLVMDisposeMessage >(*this,lib,"LLVMDisposeMessage",SideEffects::worstDefault,"LLVMDisposeMessage")
-		->args({"Message"});
-// from D:\Work\libclang\include\llvm-c/Core.h:508:16
-	addExtern< LLVMOpaqueContext * (*)() , LLVMContextCreate >(*this,lib,"LLVMContextCreate",SideEffects::worstDefault,"LLVMContextCreate");
-// from D:\Work\libclang\include\llvm-c/Core.h:513:16
-	addExtern< LLVMOpaqueContext * (*)() , LLVMGetGlobalContext >(*this,lib,"LLVMGetGlobalContext",SideEffects::worstDefault,"LLVMGetGlobalContext");
-// from D:\Work\libclang\include\llvm-c/Core.h:530:7
-	addExtern< void * (*)(LLVMOpaqueContext *) , LLVMContextGetDiagnosticContext >(*this,lib,"LLVMContextGetDiagnosticContext",SideEffects::worstDefault,"LLVMContextGetDiagnosticContext")
-		->args({"C"});
-// from D:\Work\libclang\include\llvm-c/Core.h:545:10
-	addExtern< int (*)(LLVMOpaqueContext *) , LLVMContextShouldDiscardValueNames >(*this,lib,"LLVMContextShouldDiscardValueNames",SideEffects::worstDefault,"LLVMContextShouldDiscardValueNames")
-		->args({"C"});
-// from D:\Work\libclang\include\llvm-c/Core.h:555:6
-	addExtern< void (*)(LLVMOpaqueContext *,int) , LLVMContextSetDiscardValueNames >(*this,lib,"LLVMContextSetDiscardValueNames",SideEffects::worstDefault,"LLVMContextSetDiscardValueNames")
-		->args({"C","Discard"});
-// from D:\Work\libclang\include\llvm-c/Core.h:562:6
-	addExtern< void (*)(LLVMOpaqueContext *,int) , LLVMContextSetOpaquePointers >(*this,lib,"LLVMContextSetOpaquePointers",SideEffects::worstDefault,"LLVMContextSetOpaquePointers")
-		->args({"C","OpaquePointers"});
-// from D:\Work\libclang\include\llvm-c/Core.h:570:6
-	addExtern< void (*)(LLVMOpaqueContext *) , LLVMContextDispose >(*this,lib,"LLVMContextDispose",SideEffects::worstDefault,"LLVMContextDispose")
-		->args({"C"});
-// from D:\Work\libclang\include\llvm-c/Core.h:578:7
-	addExtern< char * (*)(LLVMOpaqueDiagnosticInfo *) , LLVMGetDiagInfoDescription >(*this,lib,"LLVMGetDiagInfoDescription",SideEffects::worstDefault,"LLVMGetDiagInfoDescription")
-		->args({"DI"});
+	makeExtern< void (*)() , LLVMEnablePrettyStackTrace , SimNode_ExtFuncCall >(lib,"LLVMEnablePrettyStackTrace","LLVMEnablePrettyStackTrace")
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:482:6
+	makeExtern< void (*)() , LLVMShutdown , SimNode_ExtFuncCall >(lib,"LLVMShutdown","LLVMShutdown")
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:492:6
+	makeExtern< void (*)(unsigned int *,unsigned int *,unsigned int *) , LLVMGetVersion , SimNode_ExtFuncCall >(lib,"LLVMGetVersion","LLVMGetVersion")
+		->args({"Major","Minor","Patch"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:496:7
+	makeExtern< char * (*)(const char *) , LLVMCreateMessage , SimNode_ExtFuncCall >(lib,"LLVMCreateMessage","LLVMCreateMessage")
+		->args({"Message"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:497:6
+	makeExtern< void (*)(char *) , LLVMDisposeMessage , SimNode_ExtFuncCall >(lib,"LLVMDisposeMessage","LLVMDisposeMessage")
+		->args({"Message"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:520:16
+	makeExtern< LLVMOpaqueContext * (*)() , LLVMContextCreate , SimNode_ExtFuncCall >(lib,"LLVMContextCreate","LLVMContextCreate")
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:525:16
+	makeExtern< LLVMOpaqueContext * (*)() , LLVMGetGlobalContext , SimNode_ExtFuncCall >(lib,"LLVMGetGlobalContext","LLVMGetGlobalContext")
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:542:7
+	makeExtern< void * (*)(LLVMOpaqueContext *) , LLVMContextGetDiagnosticContext , SimNode_ExtFuncCall >(lib,"LLVMContextGetDiagnosticContext","LLVMContextGetDiagnosticContext")
+		->args({"C"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:557:10
+	makeExtern< int (*)(LLVMOpaqueContext *) , LLVMContextShouldDiscardValueNames , SimNode_ExtFuncCall >(lib,"LLVMContextShouldDiscardValueNames","LLVMContextShouldDiscardValueNames")
+		->args({"C"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:567:6
+	makeExtern< void (*)(LLVMOpaqueContext *,int) , LLVMContextSetDiscardValueNames , SimNode_ExtFuncCall >(lib,"LLVMContextSetDiscardValueNames","LLVMContextSetDiscardValueNames")
+		->args({"C","Discard"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:574:6
+	makeExtern< void (*)(LLVMOpaqueContext *,int) , LLVMContextSetOpaquePointers , SimNode_ExtFuncCall >(lib,"LLVMContextSetOpaquePointers","LLVMContextSetOpaquePointers")
+		->args({"C","OpaquePointers"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:582:6
+	makeExtern< void (*)(LLVMOpaqueContext *) , LLVMContextDispose , SimNode_ExtFuncCall >(lib,"LLVMContextDispose","LLVMContextDispose")
+		->args({"C"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

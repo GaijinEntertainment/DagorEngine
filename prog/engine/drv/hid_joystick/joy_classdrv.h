@@ -1,9 +1,7 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef _GAIJIN_DRV_HID_JOYSTICK_JOY_CLASSDRV_H
-#define _GAIJIN_DRV_HID_JOYSTICK_JOY_CLASSDRV_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <humanInput/dag_hiJoystick.h>
+#include <drv/hid/dag_hiJoystick.h>
 #include <generic/dag_tab.h>
 #include <osApiWrappers/dag_wndProcComponent.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -85,5 +83,3 @@ protected:
   eastl::unique_ptr<AsyncDeviceListChecker> deviceListChecker;
 };
 } // namespace HumanInput
-
-#endif

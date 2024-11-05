@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <util/dag_globDef.h>
@@ -170,17 +171,7 @@ public:
 
   void destroyObject();
 
-  int texaddr(int a);
-  int texaddru(int a);
-  int texaddrv(int a);
-  int texaddrw(int a);
-  int texbordercolor(E3DCOLOR c);
-  int texfilter(int m);
-  int texmipmap(int m);
-  // default is set in cfg. Sets texture lod bias
-  int texlod(float mipmaplod);
   int texmiplevel(int minlev, int maxlev);
-  int setAnisotropy(int level);
   void setReadStencil(bool on) override
   {
     read_stencil = on && is_stencil_format_flg(cflg);
@@ -230,5 +221,16 @@ private:
   BaseTex(const BaseTex &) = delete;
   BaseTex &operator=(const BaseTex &) = delete;
   ~BaseTex();
+
+protected:
+  int texaddrImpl(int a) override;
+  int texaddruImpl(int a) override;
+  int texaddrvImpl(int a) override;
+  int texaddrwImpl(int a) override;
+  int texbordercolorImpl(E3DCOLOR c) override;
+  int texfilterImpl(int m) override;
+  int texmipmapImpl(int m) override;
+  int texlodImpl(float mipmaplod) override;
+  int setAnisotropyImpl(int level) override;
 };
 }; // namespace drv3d_dx11

@@ -70,7 +70,7 @@ def describe_bitfield(bf;merger:string = "")
     else
         concept_assert(false,"requires bitfield")
 
-def describe_function_short(func:FunctionPtr)
+def describe_function_short(func:FunctionPtr|Function?)
     var args <- [{for x in func.arguments; "{x.name}:{describe(x._type,false)}" }]
     let res = "{func.name} ({join(args,";")}) : {describe(func.result,false)}"
     delete args
@@ -344,6 +344,9 @@ class SetupForLoopMacro : SetupAnyAnnotation
 class SetupCaptureMacro : SetupAnyAnnotation
     override annotation_function_call : string = "add_new_capture_macro"
 
+class SetupTypeMacro : SetupAnyAnnotation
+    override annotation_function_call : string = "add_new_type_macro"
+
 class SetupSimulateMacro : SetupAnyAnnotation
     override annotation_function_call : string = "add_new_simulate_macro"
 
@@ -566,23 +569,27 @@ def private walk_and_convert_basic ( data : uint8?; info:TypeDeclPtr; at:LineInf
             return new [[ExprConstURange64() at=at, value=*reinterpret<urange64?> data]]
         elif info.baseType == Type tString
             return new [[ExprConstString() at=at, value:=*reinterpret<string?> data]]
+        elif info.baseType == Type tBitfield
+            return new [[ExprConstBitfield() at=at, value=*reinterpret<bitfield?> data]]
         else
             panic("unsupported {info.baseType}")
             return [[ExpressionPtr]]
 
 def private walk_and_convert_enumeration ( data : uint8?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
-    var eval = 0
+    var eval = 0l
     if info.baseType == Type tEnumeration
-        unsafe
-            eval = int(* reinterpret<uint?> data)
+        eval = int64(*unsafe(reinterpret<int?> data))
     elif info.baseType == Type tEnumeration8
-        eval = int(* data)
+        eval = int64(*data)
     elif info.baseType == Type tEnumeration16
-        unsafe
-            eval = int(* reinterpret<uint16?> data)
+        eval = int64(*unsafe(reinterpret<int16?> data))
+    elif info.baseType == Type tEnumeration64
+        eval = *unsafe(reinterpret<int64?> data)
     else
         panic("unsupported enumeration")
-    return <- new [[ExprConstEnumeration() enumType:=info.enumType, value:=info.enumType.list[eval].name]]
+    let name = info.enumType |> find_enum_name(eval)
+    panic("can't find name of enum value {eval} in {describe(info)}")  if name == ""
+    return <- new [[ExprConstEnumeration() enumType:=info.enumType, value:=name]]
 
 def private walk_and_convert ( data : uint8?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
 	// print("0x{intptr(data)} {describe(info)}\n")
@@ -606,7 +613,7 @@ def private walk_and_convert ( data : uint8?; info:TypeDeclPtr; at:LineInfo ) : 
 		return <- walk_and_convert_tuple(data,info,at)
 	elif info.baseType == Type tTable
 		return <- walk_and_convert_table(data,info,at)
-    elif info.baseType == Type tEnumeration8 || info.baseType == Type tEnumeration16 || info.baseType == Type tEnumeration
+    elif info.baseType == Type tEnumeration8 || info.baseType == Type tEnumeration16 || info.baseType == Type tEnumeration64 || info.baseType == Type tEnumeration
         return <- walk_and_convert_enumeration(data,info,at)
     else
         return <- walk_and_convert_basic(data,info,at)
@@ -778,6 +785,7 @@ def private setup
         add_new_structure_annotation("variant_macro",new SetupVariantMacro())
         add_new_structure_annotation("for_loop_macro",new SetupForLoopMacro())
         add_new_structure_annotation("capture_macro",new SetupCaptureMacro())
+        add_new_structure_annotation("type_macro",new SetupTypeMacro())
         add_new_structure_annotation("simulate_macro",new SetupSimulateMacro())
         add_new_structure_annotation("tag_structure",new TagStructureAnnotation())
         add_new_structure_annotation("tag_function_macro",new TagFunctionMacro())
@@ -820,7 +828,7 @@ def public get_workhorse_types
     return [[auto
         Type tBool;             Type tInt8;             Type tUInt8;            Type tInt16;
         Type tUInt16;           Type tInt64;            Type tUInt64;           Type tEnumeration;
-        Type tEnumeration8;     Type tEnumeration16;    Type tInt;              Type tInt2;
+        Type tEnumeration8;     Type tEnumeration16;    Type tEnumeration64;    Type tInt;              Type tInt2;
         Type tInt3;             Type tInt4;             Type tUInt;             Type tBitfield;
         Type tUInt2;            Type tUInt3;            Type tUInt4;            Type tFloat;
         Type tFloat2;           Type tFloat3;           Type tFloat4;           Type tRange;

@@ -1,3 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 #include <libTools/util/undo.h>
 #include <EASTL/unique_ptr.h>
 

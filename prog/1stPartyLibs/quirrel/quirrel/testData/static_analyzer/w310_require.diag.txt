@@ -1,0 +1,7 @@
+WARNING: w310 (destructured-type) Destructured type mismatch, right side is table.
+testData/static_analyzer/w310_require.nut:4:0
+
+let [ foo bar ] = require("testData/static_analyzer/foo.nut")
+^-----
+
+

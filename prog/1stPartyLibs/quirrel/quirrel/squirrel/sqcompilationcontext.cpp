@@ -46,9 +46,6 @@ SQCompilationContext::SQCompilationContext(SQVM *vm, Arena *arena, const SQChar 
   , _raiseError(raiseError)
   , _errorjmp()
 {
-    if (code) {
-        buildLineMap();
-    }
 }
 
 SQCompilationContext::~SQCompilationContext()
@@ -70,6 +67,8 @@ const Comments::LineCommentsList &Comments::lineComment(int line) const {
   assert(0 <= line && line < _commentsList.size());
   return _commentsList[line];
 }
+
+bool SQCompilationContext::do_report_missing_modules = false;
 
 std::vector<std::string> SQCompilationContext::function_forbidden;
 std::vector<std::string> SQCompilationContext::format_function_name;
@@ -160,7 +159,8 @@ void SQCompilationContext::resetConfig() {
   function_can_return_null = {
     "indexof",
     "findindex",
-    "findvalue"
+    "findvalue",
+    "require_optional"
   };
 
   function_takes_boolean_lambda = {
@@ -253,6 +253,8 @@ bool SQCompilationContext::loadConfigFile(const char *configFile) {
 }
 
 bool SQCompilationContext::loadConfigFile(const KeyValueFile &config) {
+  do_report_missing_modules = config.getBool("report_missing_modules", false);
+
   //for (auto && v : config.getValuesList("format_function_name"))
   //{
   //  string functionName(v);
@@ -306,7 +308,7 @@ void SQCompilationContext::buildLineMap() {
 
   for (size_t i = 0; i < _codeSize; ++i) {
     if (prev == '\n') {
-      _linemap.push_back(&_code[i]);
+      _linemap.push_back(i);
     }
 
     prev = _code[i];
@@ -314,11 +316,14 @@ void SQCompilationContext::buildLineMap() {
 }
 
 const char *SQCompilationContext::findLine(int lineNo) {
+  if (_linemap.empty())
+    buildLineMap();
+
   lineNo -= 1;
   if (lineNo < 0 || lineNo >= _linemap.size())
     return nullptr;
 
-  return _linemap[lineNo];
+  return _code + _linemap[lineNo];
 }
 
 
@@ -370,6 +375,19 @@ void SQCompilationContext::switchSyntaxWarningsState(bool state) {
       diag.disabled = !state;
     }
   }
+}
+
+bool SQCompilationContext::isRequireDisabled(int line, int col) {
+  if (!_comments)
+    return false;
+
+  auto &lineCmts = _comments->lineComment(line);
+  for (auto &comment : lineCmts) {
+    if (strstr(comment.text, "-skip-require"))
+      return true;
+  }
+
+  return false;
 }
 
 bool SQCompilationContext::isDisabled(enum DiagnosticsId id, int line, int pos) {
@@ -521,7 +539,7 @@ void SQCompilationContext::vreportDiagnostic(enum DiagnosticsId diagId, int32_t 
       extra = extraInfo.c_str();
     }
 
-    auto errorFunc = _ss(_vm)->_compilererrorhandler;
+    auto messageFunc = _ss(_vm)->_compilererrorhandler;
 
     const char *msg = message.c_str();
 
@@ -539,8 +557,11 @@ void SQCompilationContext::vreportDiagnostic(enum DiagnosticsId diagId, int32_t 
       diagMsgFunc(_vm, &cm);
     }
 
-    if (_raiseError && errorFunc) {
-      errorFunc(_vm, msg, _sourceName, line, pos, extra);
+    if (_raiseError && messageFunc) {
+      SQMessageSeverity sev = SEV_ERROR;
+      if (desc.severity == DS_HINT) sev = SEV_HINT;
+      else if (desc.severity == DS_WARNING) sev = SEV_WARNING;
+      messageFunc(_vm, sev, msg, _sourceName, line, pos, extra);
     }
     if (isError) {
       _vm->_lasterror = SQString::Create(_ss(_vm), msg, message.length());

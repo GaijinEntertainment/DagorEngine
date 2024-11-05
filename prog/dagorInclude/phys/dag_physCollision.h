@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -243,7 +242,7 @@ public:
   unsigned getChildrenCount() const { return coll.size(); }
   void clear()
   {
-    for (auto c : coll)
+    for (auto &c : coll)
     {
       PhysCollision::clearAllocatedData(*c.c);
       delete c.c;

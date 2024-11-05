@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/pageAsg/asg_data.h>
 #include <libTools/pageAsg/asg_nodes.h>
 #include <libTools/pageAsg/asg_scheme.h>
@@ -121,14 +123,14 @@ bool AsgStatesGraph::load(const DataBlock &blk, const DataBlock *blk_tree, const
   // validate gt>0 && chan>0
   if (gt.size() == 0)
   {
-    debug_ctx("warning: graph thread count = 0");
+    DEBUG_CTX("warning: graph thread count = 0");
     i = append_items(gt, 1);
     gt[i].name = "Main";
     gt[i].startNodeName = "Root";
   }
   if (chan.size() == 0)
   {
-    debug_ctx("warning: anim channel count = 0");
+    DEBUG_CTX("warning: anim channel count = 0");
     i = append_items(chan, 1);
     chan[i].name = "General";
     chan[i].fifoCtrl = "fifo3";
@@ -363,7 +365,7 @@ bool AsgStatesGraph::buildAndSave(const char *blk_fname, const char *rel_pdl, co
 
   if (!blk.saveToTextFile(blk_fname))
   {
-    debug_ctx("can't write <%s>", blk_fname);
+    DEBUG_CTX("can't write <%s>", blk_fname);
     page_sys_hlp->postMsg(true, "Build error", "Failed to write graph BLK\n%s", blk_fname);
     return false;
   }
@@ -739,7 +741,7 @@ void AnimGraphState::load(const DataBlock &blk)
   // validate anim channels read
   if (j == 0 && animNode.size() > 0)
   {
-    debug_ctx("warning: no animNode found!");
+    DEBUG_CTX("warning: no animNode found!");
     animNode[0] = blk.getStr("animNodeName", "");
   }
 

@@ -1,5 +1,6 @@
 from "iostream" import blob
-let {file} = require("io")
+from "io" import file
+from "underscore.nut" import do_in_scope
 
 function readFileAsBlob(fileName, mode = "") {
   let f = file(fileName, $"r{mode}")
@@ -25,9 +26,17 @@ function writeStringToFile(fileName, contentsStr, mode = "") {
   return writeBlobToFile(fileName, contents, mode)
 }
 
+function doInFile(filePath, flags, action){
+  do_in_scope({
+    __enter__ = @() file(filePath, flags)
+    __exit__ = @(file_handle) file_handle.close()
+  }, action)
+}
+
 return {
   readFileAsBlob
   readFileAsString
   writeBlobToFile
   writeStringToFile
+  doInFile
 }

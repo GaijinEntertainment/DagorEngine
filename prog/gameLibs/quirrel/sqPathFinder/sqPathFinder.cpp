@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <sqModules/sqModules.h>
 
@@ -77,7 +79,8 @@ void sqrat_bind_path_finder(SqModules *module_mgr)
 
   Sqrat::Table nsTbl(vm);
   ///@module pathfinder
-  nsTbl.Func("project_to_nearest_navmesh_point", sq_project_to_nearest_navmesh_point)
+  nsTbl //
+    .Func("project_to_nearest_navmesh_point", sq_project_to_nearest_navmesh_point)
     .Func("project_to_nearest_navmesh_point_no_obstacles", sq_project_to_nearest_navmesh_point_no_obstacles)
     .Func("check_path", sq_check_path)
     .SquirrelFunc("find_path", sq_find_path, -5, ".xxfff")
@@ -85,7 +88,9 @@ void sqrat_bind_path_finder(SqModules *module_mgr)
     .SetValue("POLYFLAG_GROUND", pathfinder::POLYFLAG_GROUND)
     .SetValue("POLYFLAG_OBSTACLE", pathfinder::POLYFLAG_OBSTACLE)
     .SetValue("POLYFLAG_LADDER", pathfinder::POLYFLAG_LADDER)
-    .SetValue("POLYFLAG_JUMP", pathfinder::POLYFLAG_JUMP);
+    .SetValue("POLYFLAG_JUMP", pathfinder::POLYFLAG_JUMP)
+    .SetValue("POLYFLAG_BLOCKED", pathfinder::POLYFLAG_BLOCKED)
+    /**/;
 
   module_mgr->addNativeModule("pathfinder", nsTbl);
 }

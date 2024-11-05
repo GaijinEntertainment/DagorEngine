@@ -1,10 +1,8 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef _GAIJIN_DRV_HID_JOYSTICK_JOY_DEVICE_H
-#define _GAIJIN_DRV_HID_JOYSTICK_JOY_DEVICE_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <humanInput/dag_hiJoystick.h>
-#include <humanInput/dag_hiDeclDInput.h>
+#include <drv/hid/dag_hiJoystick.h>
+#include <drv/hid/dag_hiDeclDInput.h>
 #include <util/dag_string.h>
 #include <generic/dag_tab.h>
 
@@ -134,5 +132,3 @@ private:
   int getVirtualPOVAxis(int hat_id, int axis_id) const;
 };
 } // namespace HumanInput
-
-#endif

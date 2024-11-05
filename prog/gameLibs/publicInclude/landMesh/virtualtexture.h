@@ -1,45 +1,30 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <math/dag_Point2.h>
-#include <math/dag_color.h>
-#include <math/dag_bounds2.h>
-#include <math/integer/dag_IPoint2.h>
 #include <3d/dag_resPtr.h>
-#include <3d/dag_eventQueryHolder.h>
-#include <osApiWrappers/dag_cpuJobs.h>
-#include <generic/dag_tab.h>
-#include <generic/dag_smallTab.h>
-#include <generic/dag_carray.h>
-#include <generic/dag_staticTab.h>
-#include <util/dag_simpleString.h>
-#include <math/dag_Point3.h>
-#include <math/dag_Point4.h>
-#include <3d/dag_drv3d.h>
-#include <shaders/dag_postFxRenderer.h>
-#include <shaders/dag_computeShaders.h>
-#include <EASTL/bitset.h>
-
+#include <math/integer/dag_IPoint2.h>
 
 class ClipmapImpl;
-
+class TMatrix4;
+class Point4;
+class Point3;
+class Point2;
+class BBox2;
 
 enum class HWFeedbackMode
 {
-  INVALID,
-  DEFAULT,
-  DEFAULT_OPTIMIZED,
-  ZOOM_CHANGED,
-  OFFSET_CHANGED,
-  DEBUG_COMPARE,
+  DEFAULT = 0,
+  OPTIMIZED = 1,
+  DEBUG_COMPARE = 2,
+  INVALID = -1,
 };
 
 enum
 {
+  MIN_TEX_TILE_BORDER = 1,
   MAX_TEX_TILE_BORDER = 16, // no sense to have more than 16
                             // TEX_TILE_BORDER = 16,//for parallax shadow we need 16, if no parallax - 8 is enough (for 8x anisotropy,
                             // which is already slow)! TEX_TILE_INNER_SIZE = TEX_TILE_SIZE - 2*TEX_TILE_BORDER, TILE_WIDTH =
@@ -56,22 +41,6 @@ enum
   FEEDBACK_DEFAULT_WIDTH = 320,
   FEEDBACK_DEFAULT_HEIGHT = 192
 };
-
-struct TexTileIndirection
-{
-  uint8_t x, y;
-  uint8_t mip;
-  uint8_t tag;
-  TexTileIndirection() : x(0), y(0), mip(0), tag(0) {}
-  TexTileIndirection(int X, int Y, int MIP, int TAG)
-  {
-    x = X;
-    y = Y;
-    mip = MIP;
-    tag = TAG;
-  }
-};
-
 
 class ClipmapRenderer
 {
@@ -115,23 +84,14 @@ public:
   // pages_dim*pages_dim is amount of pages allocated for fallback
   void initFallbackPage(int pages_dim, float fallback_texel_size);
 
-  bool canUseOptimizedReadback(int captureTargetIdx) const;
-  HWFeedbackMode getHWFeedbackMode(int captureTargetIdx) const;
-
-  void updateFromFeedback(HWFeedbackMode hw_feedback_mode, TMatrix4 &globtm, char *feedbackCharPtr, char *feedbackTilePtr,
-    int feedbackTileCnt, int oldXOffset, int oldYOffset, int oldZoom, const Point4 &uv2l, bool force_update);
-  void prepareTileInfoFromTextureFeedback(HWFeedbackMode hw_feedback_mode, TMatrix4 &globtm, char *feedbackCharPtr, int oldXOffset,
-    int oldYOffset, int oldZoom, const Point4 &uv2l, bool force_update);
-
   bool changeXYOffset(int nx, int ny);                  // return true if chaned
   bool changeZoom(int newZoom, const Point3 &position); // return true if chaned
-  void update(bool force_update);
-  void updateMip(HWFeedbackMode hw_feedback_mode, bool force_update);
-  void updateCache(bool force_update);
+  void update();
+  void updateCache();
   void checkConsistency();
+  bool checkClipmapInited();
 
-  void restoreIndirectionFromLRU(SmallTab<TexTileIndirection, MidmemAlloc> *tiles); // debug
-  void GPUrestoreIndirectionFromLRUFull();                                          // restore completely
+  void GPUrestoreIndirectionFromLRUFull(); // restore completely
   void GPUrestoreIndirectionFromLRU();
   int getTexMips() const;
   int getAlignMips() const;
@@ -139,21 +99,20 @@ public:
   int getZoom() const;
   float getPixelRatio() const;
 
-  TexTileIndirection &atTile(SmallTab<TexTileIndirection, MidmemAlloc> *tiles, int mip, int addr);
   void setTexMips(int tex_mips);
-  Clipmap(const char *postfix = NULL, bool use_uav_feedback = true,
-    FeedbackProperties feedback_properties = getDefaultFeedbackProperties());
+  Clipmap(bool use_uav_feedback = true);
   ~Clipmap();
   // sz - texture size of each clip, clip_count - number of clipmap stack. multiplayer - size of next clip
   // size in meters of latest clip, virtual_texture_mip_cnt - amount of mips(lods) of virtual texture containing tiles
-  void init(float st_texel_size, uint32_t feedbackType, int texMips = 6,
+  void init(float st_texel_size, uint32_t feedbackType, FeedbackProperties feedback_properties = getDefaultFeedbackProperties(),
+    int texMips = 6,
 #if _TARGET_IOS || _TARGET_ANDROID || _TARGET_C3
     int tex_tile_size = 128
 #else
     int tex_tile_size = 256
 #endif
     ,
-    int virtual_texture_mip_cnt = 1, int virtual_texture_anisotropy = ::dgs_tex_anisotropy, int min_tex_tile_border = 1);
+    int virtual_texture_mip_cnt = 1, int virtual_texture_anisotropy = ::dgs_tex_anisotropy);
   void close();
 
   // returns bits of rendered clip, or 0 if no clip was rendered
@@ -163,16 +122,19 @@ public:
   void setStartTexelSize(float st_texel_size);
 
   void setTargetSize(int w, int h, float mip_bias);
-  void prepareRender(ClipmapRenderer &render, bool force_update = false, bool turn_off_decals_on_fallback = false);
-  void prepareFeedback(ClipmapRenderer &render, const Point3 &viewer_pos, const TMatrix &view_itm, const TMatrix4 &globtm,
-    float height, float maxDist0 = 0.f, float maxDist1 = 0.f, float approx_ht = 0.f, bool force_update = false,
+  void prepareRender(ClipmapRenderer &render, bool turn_off_decals_on_fallback = false);
+  void prepareFeedback(const Point3 &viewer_pos, const TMatrix &view_itm, const TMatrix4 &globtm, float height, float maxDist0 = 0.f,
+    float maxDist1 = 0.f, float approx_ht = 0.f, bool force_update = false,
     bool low_tpool_prio = true); // for software feeback only
+  void renderFallbackFeedback(ClipmapRenderer &renderer, const TMatrix4 &globtm);
   void finalizeFeedback();
 
   void invalidatePointi(int tx, int ty, int lastMip = 0xFF); // not forces redraw!  (int tile coords)
   void invalidatePoint(const Point2 &world_xz);              // not forces redraw!
   void invalidateBox(const BBox2 &world_xz);                 // not forces redraw!
   void invalidate(bool force_redraw = true);
+
+  void recordCompressionErrorStats(bool enable);
   void dump();
 
   bool getBBox(BBox2 &ret) const;
@@ -191,9 +153,23 @@ public:
   const UniqueTex &getIndirection() const;
   void createCaches(const uint32_t *formats, const uint32_t *uncompressed_formats, uint32_t cnt, const uint32_t *buffer_formats,
     uint32_t buffer_cnt);
+  // Used to temporarily reduce amount of caches/buffers used in baking without complete reinit
+  // For example, when transitioned to a unit type where full clipmap is unnecessary (plane)
+  // Negative arguments signal to restore original cache/buffer count, previously registered in createCaches
+  void setCacheBufferCount(int cache_count, int buffer_count);
+  void beforeReset();
   void afterReset();
 
+  int getLastUpdatedTileCount() const;
+
   static bool is_uav_supported();
+
+  // debug
+  void toggleManualUpdate(bool manual_update);
+  void requestManualUpdates(int count);
+
+  void getRiLandclassIndices(dag::Vector<int> &ri_landclass_indices);
+  Point3 getMappedRelativeRiPos(int ri_offset, const Point3 &viewer_position, float &dist_to_ground) const;
 
 private:
   eastl::unique_ptr<ClipmapImpl> clipmapImpl;

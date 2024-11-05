@@ -1,0 +1,1 @@
+include %daslib/static_let.das

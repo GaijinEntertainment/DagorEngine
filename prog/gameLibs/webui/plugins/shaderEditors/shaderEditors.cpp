@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <webui/shaderEditors.h>
 
 #if !NBSM_COMPILE_ONLY
@@ -5,8 +7,9 @@
 #include <webui/helpers.h>
 #include "webui/graphEditorPlugin.h"
 #include <osApiWrappers/dag_direct.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3d_platform.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_platform.h>
 #include <shaders/dag_shaders.h>
 #include <startup/dag_globalSettings.h>
 #endif
@@ -17,6 +20,7 @@
 #include <EASTL/vector.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
+#include <perfMon/dag_cpuFreq.h>
 
 
 ShaderGraphRecompiler *create_fog_shader_recompiler();
@@ -281,7 +285,7 @@ void ShaderGraphRecompiler::init(NodeBasedShaderType shader, const char *subgrap
   };
   shader_editor->onNeedReloadGraphsCallback = refreshShaders;
 
-  String fname = webui::GraphEditor::findFileInParentDir("tools/dagor3_cdk/commonData/graphEditor/builder/shaderNodes.js");
+  String fname = webui::GraphEditor::findFileInParentDir("tools/dagor_cdk/commonData/graphEditor/builder/shaderNodes.js");
   String inlinedShaderNodes = webui::GraphEditor::readFileToString(fname);
 
   shader_editor->setNodesSettingsText(inlinedShaderNodes);
@@ -308,29 +312,24 @@ void ShaderGraphRecompiler::recompile()
   shaderBlk.loadText(shaderBlkText.str(), shaderBlkText.length());
 
 #if _TARGET_PC_WIN
-  if (d3d::get_driver_code().is(d3d::dx11))
+  uint32_t variantCnt = get_shader_variant_count(shaderType);
+  for (uint32_t variantId = 0; variantId < variantCnt; ++variantId)
   {
-    uint32_t variantCnt = get_shader_variant_count(shaderType);
-    for (uint32_t variantId = 0; variantId < variantCnt; ++variantId)
+    String shaderTemplateText = (String)shaderGetSrcCallback(variantId);
+    String code = substitute(shaderBlk, shaderTemplateText);
+    String errors;
+    bool ok = shaderCompilerCallback(variantCnt, currentShaderName, code, shaderBlk, errors);
+    if (!ok)
     {
-      String shaderTemplateText = (String)shaderGetSrcCallback(variantId);
-      String code = substitute(shaderBlk, shaderTemplateText);
-      String errors;
-      bool ok = shaderCompilerCallback(variantCnt, currentShaderName, code, shaderBlk, errors);
-      if (!ok)
-      {
-        shader_editor->sendCommand(String(1024, "error: in shader #%d, variant #%d: %s", (int)shaderType, variantId, errors.str()));
-        lastCompileError = errors;
-        return;
-      }
+      shader_editor->sendCommand(String(1024, "error: in shader #%d, variant #%d: %s", (int)shaderType, variantId, errors.str()));
+      lastCompileError = errors;
+      return;
     }
-
-    shader_editor->sendCommand("compiled");
   }
-  else
-    shader_editor->sendCommand("error: shader can be compiled only on DX11");
+
+  shader_editor->sendCommand("compiled");
 #else
-  shader_editor->sendCommand("error: shader can be compiled only on Windows + DX11");
+  shader_editor->sendCommand("error: shader can be compiled only on Windows");
 #endif
 }
 
@@ -366,16 +365,20 @@ void ShaderGraphRecompiler::update(float dt)
       String shaderCode = webui::GraphEditor::getSubstring(s.str(), "/*HLSL_GRAPH_START*/", "/*HLSL_GRAPH_END*/");
       shaderBlkText.replaceAll("[[shader_name]]", currentShaderName.str());
 
-
       if (inessentional == false)
-      {
         shouldRecompile = true;
-        recompile();
-      }
     }
 
     // TODO: update graph
     // createCompilerProcess();
+  }
+
+
+  if (shouldRecompile && abs(lastRecompileTimeMsec - get_time_msec()) > 300)
+  {
+    recompile();
+    shouldRecompile = false;
+    lastRecompileTimeMsec = get_time_msec();
   }
 
 

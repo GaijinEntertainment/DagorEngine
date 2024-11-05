@@ -1,0 +1,109 @@
+clips{
+  default_animation_mask:t="full_body";
+  lower_stand{ nextClip:t="lower_stand" }
+  enlisted_idle_04{} // FIXME_BROKEN_DEP
+
+  stand_turn_left_on_spot{
+    in_place_animation{ rotation_delta:r=-55 }
+    use_foot_ik_locker{
+      velocity_threshold:r=0.4
+      median_filter_radius:i=3
+    }
+    nextClip:t="stand_turn_left_on_spot"
+  }
+
+  stand_turn_right_on_spot{
+    in_place_animation{ rotation_delta:r=65 }
+    use_foot_ik_locker{
+      velocity_threshold:r=0.4
+      median_filter_radius:i=3
+    }
+    nextClip:t="stand_turn_right_on_spot"
+  }
+
+  lower_run{
+    in_place_animation{ velocity_magnitude:r=3.5 }
+    use_foot_ik_locker{ velocity_threshold:r=0.45 }
+    play_speed_multiplier_range:p2=0.5,2.0
+    nextClip:t="lower_run"
+  }
+
+  lower_run_45{
+    in_place_animation{
+      velocity_direction:r=45
+      velocity_magnitude:r=4.0
+    }
+    use_foot_ik_locker{ velocity_threshold:r=0.45 }
+    nextClip:t="lower_run_45"
+  }
+
+  lower_run_315{
+    in_place_animation{
+      velocity_direction:r=315
+      velocity_magnitude:r=4.0
+    }
+    use_foot_ik_locker{ velocity_threshold:r=0.45 }
+    nextClip:t="lower_run_315"
+  }
+
+  walk_90{
+    in_place_animation{
+      velocity_direction:r=90
+      velocity_magnitude:r=2.0
+    }
+    use_foot_ik_locker{}
+    nextClip:t="walk_90"
+  }
+
+  walk_135{
+    in_place_animation{
+      velocity_direction:r=135
+      velocity_magnitude:r=2.0
+    }
+    use_foot_ik_locker{}
+    nextClip:t="walk_135"
+  }
+
+  walk_180{
+    in_place_animation{
+      velocity_direction:r=180
+      velocity_magnitude:r=2.0
+    }
+    use_foot_ik_locker{}
+    nextClip:t="walk_180"
+  }
+
+  walk_225{
+    in_place_animation{
+      velocity_direction:r=225
+      velocity_magnitude:r=2.0
+    }
+    use_foot_ik_locker{}
+    nextClip:t="walk_225"
+  }
+
+  walk_270{
+    in_place_animation{
+      velocity_direction:r=270
+      velocity_magnitude:r=2.0
+    }
+    use_foot_ik_locker{}
+    nextClip:t="walk_270"
+  }
+
+/*
+  walk_0{
+    velocity_direction:r=0
+    velocity_magnitude:r=1.8
+  }
+
+  walk_45{
+    velocity_direction:r=45
+    velocity_magnitude:r=1.8
+  }
+
+  walk_315{
+    velocity_direction:r=315
+    velocity_magnitude:r=1.8
+  } */
+}

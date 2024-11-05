@@ -1,5 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <shaders/shLimits.h>
 #include <shaders/dag_shaders.h>
+#include <shaders/dag_stcode.h>
 #include "shadersBinaryData.h"
 #include "shStateBlk.h"
 #include "shStateBlock.h"
@@ -19,11 +22,8 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 #include "shaders/sh_vars.h"
-#if _TARGET_PC_WIN
-#include <malloc.h>
-#elif defined(__GNUC__)
-#include <stdlib.h>
-#endif
+#include <supp/dag_alloca.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
 
 //
 
@@ -109,6 +109,15 @@ void ShaderGlobal::reset_textures(bool removed_tex_only)
     }
   }
 }
+
+void ShaderGlobal::reset_stale_vars()
+{
+  auto &vl = shBinDumpRW().globVars;
+  for (int i = 0, e = vl.size(); i < e; i++)
+    if (vl.getType(i) == SHVT_TLAS)
+      vl.set<RaytraceTopAccelerationStructure *>(i, nullptr);
+}
+
 void ShaderGlobal::reset_from_vars(TEXTUREID id)
 {
   if (id == BAD_TEXTUREID)
@@ -280,7 +289,7 @@ static VDECL internal_add_shader_vdecl_from_vsd(ShaderVDeclVsd &&vsd)
   shader_vdecl_map_mutex.lock();
   auto it = shader_vdecl_map.lower_bound(vsd);
   if (it != shader_vdecl_map.end())
-    if (EASTL_UNLIKELY(it->first == vsd)) // we look up again, as it could be already added
+    if (DAGOR_UNLIKELY(it->first == vsd)) // we look up again, as it could be already added
     {
       VDECL ret = it->second.vdecl;
       shader_vdecl_map_mutex.unlock();
@@ -485,7 +494,7 @@ static void build_shaderdump_filename(char fname[DAGOR_MAX_PATH], const char *sr
       .map(d3d::vulkan, d3d::get_driver_desc().caps.hasBindless ? "%sSpirV.bindless.%s.shdump.bin" : "%sSpirV.%s.shdump.bin")
       .map(d3d::ps4, "%sPS4.%s.shdump.bin")
       .map(d3d::ps5, "%sPS5.%s.shdump.bin")
-      .map(d3d::metal, "%sMTL.%s.shdump.bin")
+      .map(d3d::metal, d3d::get_driver_desc().caps.hasBindless ? "%sMTL.bindless.%s.shdump.bin" : "%sMTL.%s.shdump.bin")
       .map(d3d::any, "%s.%s.shdump.bin");
 
   _snprintf(fname, sizeof_fname, format, src_filename, verStr);
@@ -496,6 +505,8 @@ static void build_shaderdump_filename(char fname[DAGOR_MAX_PATH], const char *sr
 static bool load_shaders_bindump(const char *src_filename, d3d::shadermodel::Version shader_model_version,
   ScriptedShadersBinDumpOwner &dest)
 {
+  stcode::unload();
+
   shaders_internal::init_stateblocks();
   char fname[DAGOR_MAX_PATH];
   build_shaderdump_filename(fname, src_filename, shader_model_version);
@@ -510,7 +521,7 @@ static bool load_shaders_bindump(const char *src_filename, d3d::shadermodel::Ver
     debug("[SH] Loading precompiled shaders from VROMFS::'%s'...[%p]", fname, dump_data.data());
     if (dest.loadData((uint8_t *)dump_data.data(), data_size(dump_data)))
     {
-      return true;
+      return stcode::load(fname);
     }
   }
   if (!shaders_internal::shader_reload_allowed && dest.getDump() && dest->classes.size())
@@ -567,11 +578,12 @@ static bool load_shaders_bindump(const char *src_filename, d3d::shadermodel::Ver
         prev_sh.clear();
         if (dest.getDump() == &shBinDump())
           shglobvars::init_varids_loaded();
-        return true;
+
+        return stcode::load(fname);
       }
     }
   }
-  DAGOR_CATCH(IGenLoad::LoadException e) { debug("[SH] exception while loading %s!", fname); }
+  DAGOR_CATCH(const IGenLoad::LoadException &e) { debug("[SH] exception while loading %s!", fname); }
 
   dest.clear();
   dest = eastl::move(prev_sh);
@@ -594,7 +606,7 @@ bool load_shaders_bindump(const char *src_filename, d3d::shadermodel::Version sh
   String &dump = last_loaded_dump[sec_dump_for_exp ? 1 : 0];
   if (src_filename)
     dump = src_filename;
-  return load_shaders_bindump(dump.c_str(), shader_model_version, shBinDumpOwner(!sec_dump_for_exp));
+  return load_shaders_bindump(dump.c_str(), shader_model_version, shBinDumpExOwner(!sec_dump_for_exp));
 }
 
 bool load_shaders_bindump_with_fence(const char *src_filename, d3d::shadermodel::Version shader_model_version)
@@ -608,12 +620,14 @@ bool load_shaders_bindump_with_fence(const char *src_filename, d3d::shadermodel:
 
 static void unload_shaders_bindump(ScriptedShadersBinDumpOwner &dest)
 {
+  stcode::unload();
+
   dest.clear();
 #if DAGOR_DBGLEVEL > 0
   shaderbindump::resetInvalidVariantMarks();
 #endif
 }
-void unload_shaders_bindump(bool sec_dump_for_exp) { unload_shaders_bindump(shBinDumpOwner(!sec_dump_for_exp)); }
+void unload_shaders_bindump(bool sec_dump_for_exp) { unload_shaders_bindump(shBinDumpExOwner(!sec_dump_for_exp)); }
 
 static d3d::shadermodel::Version forceFSH = d3d::smAny;
 
@@ -647,7 +661,11 @@ public:
     ShadersResetOnDriverReset() : SRestartProc(RESTART_VIDEODRV) { inited = 1; }
 
     void startup() { shaders_internal::reload_shaders_materials_on_driver_reset(); }
-    void shutdown() { ShaderGlobal::reset_textures(true); }
+    void shutdown()
+    {
+      ShaderGlobal::reset_textures(true);
+      ShaderGlobal::reset_stale_vars();
+    }
   };
   SimpleString fileName;
   d3d::shadermodel::Version maxFshVer = d3d::smAny;
@@ -732,6 +750,7 @@ public:
       G_UNUSED(vars_resolved);
       G_UNUSED(glob_vars_resolved);
     }
+
     unload_shaders_bindump();
   }
 };

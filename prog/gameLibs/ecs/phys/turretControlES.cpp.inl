@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ecs/core/entityManager.h>
 #include <ecs/core/attributeEx.h>
 #include <daECS/core/coreEvents.h>
@@ -136,70 +138,6 @@ bool TurretState::operator==(const TurretState &rhs) const { return remote == rh
 
 bool TurretAimDrivesMult::operator==(const TurretAimDrivesMult &rhs) const { return packed == rhs.packed; }
 
-template <typename Callable>
-inline void turret_gun_ecs_query(ecs::EntityId eid, Callable c);
-
-ECS_TAG(netClient)
-ECS_ON_EVENT(on_appear)
-static __forceinline void turret_control_init_guns_es_event_handler(const ecs::Event &, const ecs::EidList &turret_control__gunEids)
-{
-  for (const ecs::EntityId &gunEid : turret_control__gunEids)
-    turret_gun_ecs_query(gunEid, [&](ecs::EntityManager &manager, ecs::EntityId eid ECS_REQUIRE(ecs::auto_type gun)) {
-      manager.sendEvent(eid, EventOnTurretControlCreated());
-    });
-}
-
-ECS_TAG(server)
-ECS_ON_EVENT(on_appear)
-static __forceinline void turret_control_create_guns_es_event_handler(const ecs::Event &, ecs::EntityManager &manager,
-  const ecs::EntityId eid, ECS_SHARED(ecs::Array) turret_control__turretInfo, ecs::Array *turretsInitialComponents,
-  ecs::EidList &turret_control__gunEids)
-{
-  turret_control__gunEids.resize(turret_control__turretInfo.size());
-  int turretCompsSize = turretsInitialComponents ? turretsInitialComponents->size() : 0;
-
-  for (int turretNo = 0; turretNo < turret_control__gunEids.size(); ++turretNo)
-  {
-    const ecs::Object &obj = turret_control__turretInfo[turretNo].get<ecs::Object>();
-
-    eastl::fixed_string<char, 256> gunTempl(obj[ECS_HASH("gun")].get<ecs::string>().c_str());
-
-    ecs::ComponentsInitializer attrs;
-    attrs[ECS_HASH("gun__salt")] = obj.getMemberOr(ECS_HASH("salt"), 0);
-    attrs[ECS_HASH("turret__id")] = turretNo;
-    attrs[ECS_HASH("turret__name")] = obj.getMemberOr(ECS_HASH("turretName"), "");
-    attrs[ECS_HASH("turret__owner")] = eid;
-    if (obj.hasMember("turretGroup"))
-    {
-      gunTempl += "+turret_with_group";
-
-      const char *group = obj[ECS_HASH("turretGroup")].getStr();
-      attrs[ECS_HASH("turret__groupName")] = group;
-      attrs[ECS_HASH("turret__groupHash")] = (int)ECS_HASH_SLOW(group).hash;
-    }
-
-    if (turretsInitialComponents && turretNo < turretCompsSize)
-      for (const auto &kv : (*turretsInitialComponents)[turretNo].get<ecs::Object>())
-        attrs[ECS_HASH_SLOW(kv.first.c_str())] = kv.second;
-
-    turret_control__gunEids[turretNo] = manager.createEntityAsync(gunTempl.c_str(), eastl::move(attrs));
-  }
-}
-
-ECS_TAG(server)
-ECS_ON_EVENT(on_disappear)
-static __forceinline void turret_control_destroy_guns_es_event_handler(const ecs::Event, ecs::EntityManager &manager,
-  const ecs::EntityId eid, ecs::EidList &turret_control__gunEids)
-{
-  if (!turret_control__gunEids.empty())
-  {
-    ecs::EntityId ownerEid = ECS_GET_OR(turret_control__gunEids[0], turret__owner, ecs::INVALID_ENTITY_ID);
-    if (ownerEid != ecs::INVALID_ENTITY_ID)
-      manager.sendEvent(ownerEid, EventOnGunsPayloadDestroyed(eid));
-  }
-  for (ecs::EntityId &gunEid : turret_control__gunEids)
-    manager.destroyEntity(gunEid);
-}
 
 template <typename Callable>
 inline void turret_payload_gun_ammo_ecs_query(ecs::EntityId eid, Callable c);

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/net/compBlacklist.h>
 #include <daECS/core/entityManager.h>
 #include <ska_hash_map/flat_hash_map2.hpp>

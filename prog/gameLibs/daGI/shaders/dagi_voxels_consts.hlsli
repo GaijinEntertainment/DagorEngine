@@ -27,7 +27,7 @@
     #define MIN_REPRESENTABLE_SCENE_VALUE (1./255)
     #define SCENE_VOXELS_OVERBRIGHT 4.
     float3 decode_scene_voxels_color(float3 color) {return color*SCENE_VOXELS_OVERBRIGHT;}
-    float3 encode_scene_voxels_color(float3 color) {return floor(255*accurateLinearToSRGB(saturate(color/SCENE_VOXELS_OVERBRIGHT))+0.25)/255;}//instead of round factorization, to keep it darker
+    float3 encode_scene_voxels_color(float3 color) {return floor(255*ApplySRGBCurve(saturate(color/SCENE_VOXELS_OVERBRIGHT))+0.25)/255;}//instead of round factorization, to keep it darker
   #elif SCENE_VOXELS_COLOR == SCENE_VOXELS_R11G11B10
     #define MIN_REPRESENTABLE_SCENE_VALUE 0.000030517578125
     float3 decode_scene_voxels_color(float3 color) {return color;}

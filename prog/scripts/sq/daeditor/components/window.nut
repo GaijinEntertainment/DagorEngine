@@ -27,7 +27,7 @@ let mkWindow = kwarg(function(id, content,
   return @() {
     onAttach
     rendObj = ROBJ_WORLD_BLUR_PANEL
-    color = Color(150,150,150,250)
+    fillColor = Color(50,50,50,220)
     onMoveResize = onMoveResize
     size = windowState.value.size
     pos = windowState.value.pos

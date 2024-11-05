@@ -1,10 +1,14 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <generic/dag_carray.h>
-#include <generic/dag_staticTab.h>
+#include <generic/dag_tab.h>
 #include <EASTL/bitset.h>
+#include <drv/3d/dag_info.h>
+
 #include "driver.h"
 #include "vulkan_loader.h"
+#include "vk_entry_points.h"
+#include "extension_utils.h"
 
 namespace drv3d_vulkan
 {
@@ -183,6 +187,7 @@ VULKAN_END_EXTENSION_FUCTION_PACK(SurfaceViNN);
 VULKAN_DECLARE_EXTENSION(SurfaceViNN, NN_VI_SURFACE);
 #endif
 
+#if VK_KHR_display
 
 DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanDisplayKHRHandle, VkDisplayKHR);
 DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanDisplayModeKHRHandle, VkDisplayModeKHR);
@@ -209,6 +214,7 @@ VULKAN_END_EXTENSION_FUCTION_PACK(DisplayKHR);
 #undef VK_FUNC_LIST
 
 VULKAN_DECLARE_EXTENSION(DisplayKHR, KHR_DISPLAY);
+#endif
 
 #if VK_EXT_debug_report
 DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanDebugReportCallbackEXTHandle, VkDebugReportCallbackEXT);
@@ -302,14 +308,19 @@ public:
     activeApiVersion = ici.pApplicationInfo->apiVersion;
     loader = &vk_loader;
 
-    if (VULKAN_CHECK_FAIL(vk_loader.vkCreateInstance(&ici, nullptr, ptr(instance))))
+    VkResult rc = vk_loader.vkCreateInstance(&ici, nullptr, ptr(instance));
+    if (VULKAN_CHECK_FAIL(rc))
+    {
+      logwarn("vulkan: instance create failed with error %08lX:%s", rc, vulkan_error_string(rc));
       return false;
+    }
 
 #if !_TARGET_C3
 #define VK_DEFINE_ENTRY_POINT(name)                                                                                     \
   *reinterpret_cast<PFN_vkVoidFunction *>(&name) = VULKAN_LOG_CALL_R(vk_loader.vkGetInstanceProcAddr(instance, #name)); \
   if (!name)                                                                                                            \
   {                                                                                                                     \
+    logwarn("vulkan: no instance entrypoint for %s", #name);                                                            \
     shutdown();                                                                                                         \
     return false;                                                                                                       \
   }
@@ -367,7 +378,7 @@ public:
   template <typename T>
   void disableExtension()
   {
-    if (hasExtension())
+    if (hasExtension<T>())
       extensionShutdown<T>();
   }
   template <typename T>
@@ -383,65 +394,71 @@ template <typename... E>
 const char *VulkanInstanceCore<E...>::ExtensionNames[VulkanInstanceCore<E...>::ExtensionCount] = //
   {extension_name<E>()...};
 
-typedef VulkanInstanceCore<SurfaceKHR
-#if 0 // currently only supported on linux, only interesting for fullscreen, but fullscreen works
-      // without it
-    , DisplayKHR
+class VulkanInstance : public VulkanInstanceCore<SurfaceKHR
+#if VK_KHR_display
+                         ,
+                         DisplayKHR
 #endif
 #if VK_EXT_debug_report
-  ,
-  DebugReport
+                         ,
+                         DebugReport
 #endif
 #if VK_KHR_win32_surface
-  ,
-  SurfaceWin32KHR
+                         ,
+                         SurfaceWin32KHR
 #endif
 #if VK_KHR_android_surface
-  ,
-  SurfaceAndroidKHR
+                         ,
+                         SurfaceAndroidKHR
 #endif
 #if VK_KHR_mir_surface
-  ,
-  SurfaceMirKHR
+                         ,
+                         SurfaceMirKHR
 #endif
 #if VK_KHR_wayland_surface
-  ,
-  SurfaceWaylandKHR
+                         ,
+                         SurfaceWaylandKHR
 #endif
 #if VK_KHR_xcb_surface
-  ,
-  SurfaceXcbKHR
+                         ,
+                         SurfaceXcbKHR
 #endif
 #if VK_KHR_xlib_surface
-  ,
-  SurfaceXlibKHR
+                         ,
+                         SurfaceXlibKHR
 #endif
 #if VK_NN_vi_surface
-  ,
-  SurfaceViNN
+                         ,
+                         SurfaceViNN
 #endif
 #if VK_KHR_get_physical_device_properties2
-  ,
-  GetPhysicalDeviceProperties2KHR
+                         ,
+                         GetPhysicalDeviceProperties2KHR
 #endif
 #if VK_MVK_ios_surface
-  ,
-  SurfaceIosMVK
+                         ,
+                         SurfaceIosMVK
 #endif
 #if VK_MVK_macos_surface
-  ,
-  SurfaceMacosMVK
+                         ,
+                         SurfaceMacosMVK
 #endif
 #if VK_EXT_debug_utils
-  ,
-  DebugUtilsEXT
+                         ,
+                         DebugUtilsEXT
 #endif
 #if VK_GOOGLE_surfaceless_query
-  ,
-  SurfacelessQueryGOOGLE
+                         ,
+                         SurfacelessQueryGOOGLE
 #endif
-  >
-  VulkanInstance;
+                         >
+{
+public:
+  VulkanInstance(const VulkanInstance &) = delete;
+  VulkanInstance &operator=(const VulkanInstance &) = delete;
+
+  VulkanInstance() = default;
+};
 
 // checks if all required extensions are in the given list and returns true if they are all
 // included.

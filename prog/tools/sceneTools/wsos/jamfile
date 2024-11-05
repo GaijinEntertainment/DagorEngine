@@ -5,17 +5,7 @@ ConsoleExe = yes ;
 
 TargetType  = exe ;
 Target      = tools/wsos ;
-
-if $(OS) = LINUX {
-    Platform ?= linux64 ;
-} else {
-    Platform ?= win32 ;
-}
-
-
-OutDir = $(Root)/tools/dagor3_cdk/util ;
-if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
-if $(Platform) = linux64 { OutDir = $(OutDir)-linux64 ; }
+include $(Root)/prog/tools/tools_setup_outdir_util.jam ;
 
 AddIncludes     = $(Root)/prog/tools/sharedInclude ;
 
@@ -39,6 +29,6 @@ UseProgLibs =
   tools/libTools/util
 ;
 
-if $(Platform) = linux64 { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
+if $(Platform) = linux { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

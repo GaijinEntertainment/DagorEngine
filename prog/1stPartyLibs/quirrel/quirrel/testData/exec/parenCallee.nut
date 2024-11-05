@@ -1,6 +1,6 @@
 
 let f = @(v) v + 1
 
-let function foo() {
+function foo() {
     return ((((f))))(10)
 }

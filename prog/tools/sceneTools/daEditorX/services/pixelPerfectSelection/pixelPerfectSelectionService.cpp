@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_pixelPerfectSelectionService.h>
 #include "pixelPerfectSelection.h"
 #include <assets/asset.h>

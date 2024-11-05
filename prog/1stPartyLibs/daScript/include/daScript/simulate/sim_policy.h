@@ -135,8 +135,37 @@ namespace  das {
         static __forceinline TT Mad   ( TT a, TT b, TT c, Context &, LineInfo * ) { return a*b + c; }
     };
 
+#if DAS_FAST_INTEGER_MOD
+    struct SimPolicy_Int : SimPolicy_IntBin<int32_t,uint32_t,INT32_MIN>, SimPolicy_MathTT<int32_t> {
+         static __forceinline int32_t Mod ( int32_t a, int32_t b, Context & context, LineInfo * at ) {
+            if ( b==0 ) context.throw_error_at(at, "division by zero in modulo");
+            double A = a, B = b;
+            return a - int32_t(A/B)*b;
+        }
+        static __forceinline void SetMod    ( int32_t & a, int32_t b, Context & context, LineInfo * at ) {
+            if ( b==0 ) context.throw_error_at(at, "division by zero in modulo");
+            double A = a, B = b;
+            a = a - int32_t(A/B)*b;
+        }
+    };
+
+    struct SimPolicy_UInt : SimPolicy_Bin<uint32_t,uint32_t>, SimPolicy_MathTT<uint32_t> {
+        static __forceinline int32_t Mod ( uint32_t a, uint32_t b, Context & context, LineInfo * at ) {
+            if ( b==0 ) context.throw_error_at(at, "division by zero in modulo");
+            double A = a, B = b;
+            return a - uint32_t(A/B)*b;
+        }
+        static __forceinline void SetMod    ( uint32_t & a, uint32_t b, Context & context, LineInfo * at ) {
+            if ( b==0 ) context.throw_error_at(at, "division by zero in modulo");
+            double A = a, B = b;
+            a = a - uint32_t(A/B)*b;
+        }
+    };
+#else
     struct SimPolicy_Int : SimPolicy_IntBin<int32_t,uint32_t,INT32_MIN>, SimPolicy_MathTT<int32_t> {};
     struct SimPolicy_UInt : SimPolicy_Bin<uint32_t,uint32_t>, SimPolicy_MathTT<uint32_t> {};
+#endif
+
     struct SimPolicy_Int64 : SimPolicy_IntBin<int64_t,uint64_t,INT64_MIN>, SimPolicy_MathTT<int64_t> {};
     struct SimPolicy_UInt64 : SimPolicy_Bin<uint64_t,uint64_t>, SimPolicy_MathTT<uint64_t> {};
 
@@ -185,7 +214,13 @@ namespace  das {
         }
         static __forceinline vec4f Clamp ( vec4f t, vec4f a, vec4f b, Context & ctx, LineInfo * at ) { return Max(a, Min(t, b, ctx, at), ctx, at); }
         static __forceinline vec4f Abs   ( vec4f a, Context &, LineInfo * ) { return a; }
-        static __forceinline vec4f Sign  ( vec4f, Context &, LineInfo * ) { return v_zero(); }
+        static __forceinline vec4f Sign  ( vec4f t, Context &, LineInfo * ) {
+            auto a = v_cast_vec4i(t);
+            auto res = v_cmp_eqi(a, v_zeroi());
+            auto invbits = v_andi(v_splatsi(1), res);
+            auto setbits = v_xori(v_splatsi(1), invbits);
+            return v_cast_vec4f(setbits);
+        }
     };
 
     struct SimPolicy_MathFloat {
@@ -193,13 +228,14 @@ namespace  das {
         static __forceinline float Abs      ( float a, Context &, LineInfo * )          { return v_extract_x(v_abs(v_set_x(a))); }
         static __forceinline float Floor    ( float a, Context &, LineInfo * )          { return v_extract_x(v_floor(v_set_x(a))); }
         static __forceinline float Ceil     ( float a, Context &, LineInfo * )          { return v_extract_x(v_ceil(v_set_x(a))); }
+        static __forceinline float Round    ( float a, Context &, LineInfo * )          { return v_extract_x(v_round(v_set_x(a))); }
         static __forceinline float Fract    ( float a, Context &, LineInfo * )          { return a - v_extract_x(v_floor(v_set_x(a))); }
         static __forceinline float Sqrt     ( float a, Context &, LineInfo * )          { return v_extract_x(v_sqrt_x(v_set_x(a))); }
         static __forceinline float RSqrt    ( float a, Context &, LineInfo * )          { return v_extract_x(v_rsqrt_x(v_set_x(a))); }
-        static __forceinline float RSqrtEst ( float a, Context &, LineInfo * )          { return v_extract_x(v_rsqrt_fast_x(v_set_x(a))); }
+        static __forceinline float RSqrtEst ( float a, Context &, LineInfo * )          { return v_extract_x(v_rsqrt_est_x(v_set_x(a))); }
         static __forceinline float Min      ( float a, float b, Context &, LineInfo * ) { return a < b ? a : b; }
         static __forceinline float Max      ( float a, float b, Context &, LineInfo * ) { return a > b ? a : b; }
-        static __forceinline float Sat      ( float a, Context &, LineInfo * )          { return a > 0 ? (a < 1 ? a : 1) : 0; }
+        static __forceinline float Sat      ( float a, Context &, LineInfo * )          { return a > 0 ? (a < 1.0f ? a : 1.0f) : 0.0f; }
         static __forceinline float Mad      ( float a, float b, float c, Context &, LineInfo * ) { return a*b + c; }
         static __forceinline float Lerp     ( float a, float b, float t, Context &, LineInfo * ) { return (b-a)*t +a; }
         static __forceinline float Clamp    ( float t, float a, float b, Context &, LineInfo * ) { return t>a ? (t<b ? t : b) : a; }
@@ -245,16 +281,17 @@ namespace  das {
         static __forceinline vec4f Floor    ( vec4f a, Context &, LineInfo * )          { return v_floor(a); }
         static __forceinline vec4f Ceil     ( vec4f a, Context &, LineInfo * )          { return v_ceil(a); }
         static __forceinline vec4f Fract    ( vec4f a, Context &, LineInfo * )          { return v_sub(a, v_floor(a)); }
-        static __forceinline vec4f Sqrt     ( vec4f a, Context &, LineInfo * )          { return v_sqrt4(a); }
-        static __forceinline vec4f RSqrt    ( vec4f a, Context &, LineInfo * )          { return v_rsqrt4(a); }
-        static __forceinline vec4f RSqrtEst ( vec4f a, Context &, LineInfo * )          { return v_rsqrt4_fast(a); }
+        static __forceinline vec4f Round    ( vec4f a, Context &, LineInfo * )          { return v_round(a); }
+        static __forceinline vec4f Sqrt     ( vec4f a, Context &, LineInfo * )          { return v_sqrt(a); }
+        static __forceinline vec4f RSqrt    ( vec4f a, Context &, LineInfo * )          { return v_rsqrt(a); }
+        static __forceinline vec4f RSqrtEst ( vec4f a, Context &, LineInfo * )          { return v_rsqrt_est(a); }
         static __forceinline vec4f Min      ( vec4f a, vec4f b, Context &, LineInfo * ) { return v_min(a,b); }
         static __forceinline vec4f Max      ( vec4f a, vec4f b, Context &, LineInfo * ) { return v_max(a,b); }
-        static __forceinline vec4f Sat      ( vec4f a, Context &, LineInfo * )          { return v_min(v_max(a,v_zero()),v_splats(1.0f)); }
-        static __forceinline vec4f Clamp    ( vec4f a, vec4f r0, vec4f r1, Context &, LineInfo * ) { return v_max(v_min(a,r1), r0); }
+        static __forceinline vec4f Sat      ( vec4f a, Context &, LineInfo * )          { return v_saturate(a); }
+        static __forceinline vec4f Clamp    ( vec4f a, vec4f r0, vec4f r1, Context &, LineInfo * ) { return v_clamp(a,r0,r1); }
         static __forceinline vec4f Mad      ( vec4f a, vec4f b, vec4f c, Context &, LineInfo * ) { return v_madd(a,b,c); }
         static __forceinline vec4f MadS     ( vec4f a, vec4f b, vec4f c, Context &, LineInfo * ) { return v_madd(a,v_perm_xxxx(b),c); }
-        static __forceinline vec4f Lerp     ( vec4f a, vec4f b, vec4f t, Context &, LineInfo * ) { return v_madd(v_sub(b,a),t,a); }
+        static __forceinline vec4f Lerp     ( vec4f a, vec4f b, vec4f t, Context &, LineInfo * ) { return v_lerp_vec4f(t,a,b); }
 
         static __forceinline vec4f Exp   ( vec4f a, Context &, LineInfo * )          { return v_exp(a); }
         static __forceinline vec4f Log   ( vec4f a, Context &, LineInfo * )          { return v_log(a); }

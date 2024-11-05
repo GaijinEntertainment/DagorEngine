@@ -16,6 +16,25 @@ class TunedElement;
 
 #include <dafxEmitter_decl.h>
 
+class SparkFxValueCurveOpt
+{
+public:
+  bool enabled;
+  CubicCurveSampler curve;
+
+
+  static ScriptHelpers::TunedElement *createTunedElement(const char *name);
+
+  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  {
+    G_UNREFERENCED(load_cb);
+    CHECK_FX_VERSION(ptr, len, 1);
+
+    enabled = readType<int>(ptr, len);
+    curve.load(ptr, len);
+  }
+};
+
 class DafxLinearDistribution
 {
 public:
@@ -129,7 +148,7 @@ class DafxSparksSimParams
 {
 public:
   DafxCubeDistribution pos;
-  DafxLinearDistribution width;
+  DafxLinearDistribution width__mm;
   DafxLinearDistribution life;
   int seed;
   DafxSectorDistribution velocity;
@@ -138,6 +157,7 @@ public:
   E3DCOLOR color0;
   E3DCOLOR color1;
   real color1Portion;
+  real hdrBias;
   E3DCOLOR colorEnd;
   real velocityBias;
   real dragCoefficient;
@@ -149,6 +169,7 @@ public:
   DafxCubeDistribution spawnNoisePos;
   real hdrScale1;
   real windForce;
+  int gravity_zone;
 
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
@@ -156,10 +177,10 @@ public:
   void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 6);
+    CHECK_FX_VERSION(ptr, len, 12);
 
     pos.load(ptr, len, load_cb);
-    width.load(ptr, len, load_cb);
+    width__mm.load(ptr, len, load_cb);
     life.load(ptr, len, load_cb);
     seed = readType<int>(ptr, len);
     velocity.load(ptr, len, load_cb);
@@ -168,6 +189,7 @@ public:
     color0 = readType<E3DCOLOR>(ptr, len);
     color1 = readType<E3DCOLOR>(ptr, len);
     color1Portion = readType<real>(ptr, len);
+    hdrBias = readType<real>(ptr, len);
     colorEnd = readType<E3DCOLOR>(ptr, len);
     velocityBias = readType<real>(ptr, len);
     dragCoefficient = readType<real>(ptr, len);
@@ -179,6 +201,7 @@ public:
     spawnNoisePos.load(ptr, len, load_cb);
     hdrScale1 = readType<real>(ptr, len);
     windForce = readType<real>(ptr, len);
+    gravity_zone = readType<int>(ptr, len);
   }
 };
 
@@ -187,6 +210,7 @@ class DafxSparksRenParams
 public:
   int blending;
   real motionScale;
+  real motionScaleMax;
   real hdrScale;
   real arrowShape;
 
@@ -196,10 +220,11 @@ public:
   void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 3);
+    CHECK_FX_VERSION(ptr, len, 4);
 
     blending = readType<int>(ptr, len);
     motionScale = readType<real>(ptr, len);
+    motionScaleMax = readType<real>(ptr, len);
     hdrScale = readType<real>(ptr, len);
     arrowShape = readType<real>(ptr, len);
   }
@@ -214,6 +239,7 @@ public:
   real emission_min;
   real one_point_number;
   real one_point_radius;
+  int transform_type;
 
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
@@ -221,7 +247,7 @@ public:
   void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 1);
+    CHECK_FX_VERSION(ptr, len, 2);
 
     spawn_range_limit = readType<real>(ptr, len);
     max_instances = readType<int>(ptr, len);
@@ -229,6 +255,26 @@ public:
     emission_min = readType<real>(ptr, len);
     one_point_number = readType<real>(ptr, len);
     one_point_radius = readType<real>(ptr, len);
+    transform_type = readType<int>(ptr, len);
+  }
+};
+
+class DafxSparksOptionalModifiers
+{
+public:
+  SparkFxValueCurveOpt widthOverLife;
+  bool allowScreenProjDiscard;
+
+
+  static ScriptHelpers::TunedElement *createTunedElement(const char *name);
+
+  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  {
+    G_UNREFERENCED(load_cb);
+    CHECK_FX_VERSION(ptr, len, 2);
+
+    widthOverLife.load(ptr, len, load_cb);
+    allowScreenProjDiscard = readType<int>(ptr, len);
   }
 };
 

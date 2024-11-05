@@ -1,17 +1,22 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/globe.h>
 #include <render/primitiveObjects.h>
 #include <debug/dag_debug3d.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderBlock.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_materialData.h>
 #include <3d/dag_render.h>
 #include <gameRes/dag_gameResources.h>
 #include <math/dag_mathUtils.h>
 #include <math/dag_approachWindowed.h>
 #include <startup/dag_inpDevClsDrv.h>
-#include <humanInput/dag_hiPointing.h>
-#include <humanInput/dag_hiGlobals.h>
+#include <drv/hid/dag_hiPointing.h>
+#include <drv/hid/dag_hiGlobals.h>
 #include <daSkies2/daSkies.h>
 #include <render/dynmodelRenderer.h>
 #include <perfMon/dag_statDrv.h>
@@ -19,7 +24,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <astronomy/astronomy.h>
 
-GlobeRenderer::GlobeRenderer(Parameters &&parameters) : params(parameters)
+GlobeRenderer::GlobeRenderer(Parameters &&parameters) : params(eastl::move(parameters))
 {
   starsJulianDay = 2457388.5; // 2016-01-01:00
 

@@ -1,16 +1,21 @@
-#ifndef __GAIJIN_EDITORCORE_EC_INTERFACE_EX_H__
-#define __GAIJIN_EDITORCORE_EC_INTERFACE_EX_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-
 #include <EditorCore/ec_interface.h>
-
+#include <scene/dag_visibility.h>
 
 // external classes forward declaration
 class DataBlock;
 class IGenSave;
 class String;
 
+// Interface for VisibilityFinder
+class IVisibilityFinderProvider
+{
+public:
+  static constexpr unsigned HUID = 0x509D8ABEu; // IVisibilityFinderProvider
+  virtual VisibilityFinder &getVisibilityFinder() = 0;
+};
 
 // Interface to perform staged 3D rendering
 class IRenderingService
@@ -29,9 +34,11 @@ public:
     STG_RENDER_DYNAMIC_TRANS,
     STG_RENDER_STATIC_DISTORTION,
     STG_RENDER_DYNAMIC_DISTORTION,
+    STG_RENDER_FX_LOWRES,
     STG_RENDER_FX,
     STG_RENDER_FX_DISTORTION,
     STG_RENDER_SHADOWS_VSM,
+    STG_RENDER_SHADOWS_FOM,
     STG_RENDER_TO_CLIPMAP,
     STG_RENDER_TO_CLIPMAP_LATE,
 
@@ -49,6 +56,18 @@ public:
   virtual void renderUI() {}
   virtual int setSubDiv(int) { return 0; }
   virtual void prepare(const Point3 &center_pos, const BBox3 &box){};
+};
+
+
+class IMainWindowImguiRenderingService
+{
+public:
+  static constexpr unsigned HUID = 0x30B1B0D1u;
+
+  // Called before ImGui::NewFrame.
+  virtual void beforeUpdateImgui() {}
+
+  virtual void updateImgui() {}
 };
 
 
@@ -337,6 +356,3 @@ public:
   ///         @b false in other case
   virtual bool isUniqName(const char *name) = 0;
 };
-
-
-#endif

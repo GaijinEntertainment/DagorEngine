@@ -10,6 +10,7 @@ float4 panoramaTemporalWorldOffset=(0,0,0,1);
 float4 currentPanoramaWorldOffset = (0,0,0,0);
 float4 currentPanoramaWorldOffset2;
 float skies_panorama_mu_horizon;
+float skies_panorama_sun_opposite_tc_x = 0;
 
 float rgbm_panorama_scale_factor = 1;
 
@@ -19,6 +20,7 @@ hlsl {
   #define PANORAMA_VIEW_THRESHOLD_INV_SCALE (1-PANORAMA_VIEW_THRESHOLD)
   #define PANORAMA_VIEW_THRESHOLD_SCALE (1.0/PANORAMA_VIEW_THRESHOLD_INV_SCALE)
   #define PANORAMA_PATCH_THRESHOLD 0.2
+  #define PANORAMA_PATCH_LERP_AMOUNT 0.99
   #define PANORAMA_TC_FROM_VIEW(viewY) \
    (PANORAMA_VIEW_THRESHOLD_TC + \
     (viewY<PANORAMA_VIEW_THRESHOLD ? \

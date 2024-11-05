@@ -1,0 +1,7 @@
+file:t = "./screenProbes/screenspace_probes_filtering.dshl"
+file:t = "screenProbes/screenspace_probes_placement.dshl"
+file:t = "screenProbes/screenspace_probes_debug.dshl"
+file:t = "screenProbes/screenspace_probes_trace.dshl"
+file:t = "screenProbes/screenspace_probes_irradiance.dshl"
+file:t = "screenProbes/screenspace_probes_draw_sequence.dshl"
+file:t = "screenProbes/screenspace_probes_indirect.dshl"

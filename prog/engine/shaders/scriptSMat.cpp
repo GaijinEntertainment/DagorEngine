@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #if !_TARGET_PC_WIN
 #undef _DEBUG_TAB_ // exec_stcode if called too frequently to allow any perfomance penalty there
 #endif
@@ -13,6 +15,8 @@
 #include <osApiWrappers/dag_localConv.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <3d/dag_texIdSet.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_info.h>
 #include <debug/dag_debug.h>
 #include <debug/dag_log.h>
 #include <shaders/dag_shMaterialUtils.h>
@@ -30,7 +34,7 @@ static TEXTUREID get_diffuse_mipmap_tex(TEXTUREID tex_id);
 static inline TEXTUREID get_diffuse_mipmap_tex(TEXTUREID tex_id) { return tex_id; }
 #endif
 
-bool shader_exists(const char *shader_name) { return shBinDump(true).findShaderClass(shader_name) != nullptr; }
+bool shader_exists(const char *shader_name) { return shBinDump().findShaderClass(shader_name) != nullptr; }
 
 ShaderMaterial *new_shader_material(const MaterialData &m, bool sec_dump_for_exp, bool do_log)
 {
@@ -41,7 +45,7 @@ ShaderMaterial *new_shader_material(const MaterialData &m, bool sec_dump_for_exp
     return NULL;
   }
 
-  const shaderbindump::ShaderClass *sc = shBinDump(!sec_dump_for_exp).findShaderClass(m.className);
+  const shaderbindump::ShaderClass *sc = shBinDumpEx(!sec_dump_for_exp).findShaderClass(m.className);
   if (!sc)
   {
     if (do_log)
@@ -60,7 +64,7 @@ ShaderMaterial *new_shader_material(const MaterialData &m, bool sec_dump_for_exp
 
 ShaderMaterial *new_shader_material_by_name_optional(const char *shader_name, const char *mat_script, bool sec_dump_for_exp)
 {
-  const shaderbindump::ShaderClass *sc = shBinDump(!sec_dump_for_exp).findShaderClass(shader_name);
+  const shaderbindump::ShaderClass *sc = shBinDumpEx(!sec_dump_for_exp).findShaderClass(shader_name);
   if (!sc)
     return NULL;
 
@@ -291,18 +295,18 @@ void ScriptedShaderMaterial::updateStVar(int prop_stvar_id)
     varElem->update_stvar(*this, prop_stvar_id);
 }
 
-#define SET_VARIABLE(var_type, param)                                     \
-  if (variable_id < 0 || variable_id >= ScriptedShadersBinDump::MAX_VARS) \
-    return false;                                                         \
-  int vid = props.shBinDump().varIdx[variable_id];                        \
-  if (vid >= ScriptedShadersBinDump::VARIDX_ABSENT)                       \
-    return false;                                                         \
-  int id = props.sclass->localVars.findVar(vid);                          \
-  if (id < 0)                                                             \
-    return false;                                                         \
-  if (props.sclass->localVars.v[id].type != var_type)                     \
-    return false;                                                         \
-  props.stvar[id].param = v;                                              \
+#define SET_VARIABLE(var_type, param)                                      \
+  if (uint32_t(variable_id) >= uint32_t(ScriptedShadersBinDump::MAX_VARS)) \
+    return false;                                                          \
+  int vid = props.shBinDump().varIdx[variable_id];                         \
+  if (vid >= ScriptedShadersBinDump::VARIDX_ABSENT)                        \
+    return false;                                                          \
+  int id = props.sclass->localVars.findVar(vid);                           \
+  if (id < 0)                                                              \
+    return false;                                                          \
+  if (props.sclass->localVars.v[id].type != var_type)                      \
+    return false;                                                          \
+  props.stvar[id].param = v;                                               \
   updateStVar(id);
 
 bool ScriptedShaderMaterial::set_int_param(const int variable_id, const int v)
@@ -335,16 +339,16 @@ bool ScriptedShaderMaterial::set_texture_param(const int variable_id, const TEXT
 
 #undef SET_VARIABLE
 
-#define GET_VARIABLE(GET_FUNC)                                            \
-  if (variable_id < 0 || variable_id >= ScriptedShadersBinDump::MAX_VARS) \
-    return false;                                                         \
-  int vid = props.shBinDump().varIdx[variable_id];                        \
-  if (vid >= ScriptedShadersBinDump::VARIDX_ABSENT)                       \
-    return false;                                                         \
-  int id = props.sclass->localVars.findVar(vid);                          \
-  if (id < 0)                                                             \
-    return false;                                                         \
-  value = GET_FUNC(id);                                                   \
+#define GET_VARIABLE(GET_FUNC)                                             \
+  if (uint32_t(variable_id) >= uint32_t(ScriptedShadersBinDump::MAX_VARS)) \
+    return false;                                                          \
+  int vid = props.shBinDump().varIdx[variable_id];                         \
+  if (vid >= ScriptedShadersBinDump::VARIDX_ABSENT)                        \
+    return false;                                                          \
+  int id = props.sclass->localVars.findVar(vid);                           \
+  if (id < 0)                                                              \
+    return false;                                                          \
+  value = GET_FUNC(id);                                                    \
   return true;
 
 bool ScriptedShaderMaterial::hasVariable(const int variable_id) const
@@ -452,7 +456,9 @@ const shaderbindump::ShaderCode *ScriptedShaderMaterial::find_variant() const
   }
 
 #if DAGOR_DBGLEVEL > 0
-  const_cast<shaderbindump::ShaderClass *>(props.sclass)->code[id].codeFlags |= 0x8000;
+  auto &codeFlags = const_cast<shaderbindump::ShaderClass *>(props.sclass)->code[id].codeFlags;
+  G_FAST_ASSERT(uintptr_t(&codeFlags) % sizeof(codeFlags) == 0); // Otherwise atomic might crash on ARM
+  interlocked_or(codeFlags, shaderbindump::ShaderCode::CF_USED);
 #endif
   return &props.sclass->code[id];
 }
@@ -464,7 +470,7 @@ bool ScriptedShaderMaterial::enum_channels(ShaderChannelsEnumCB &cb, int &ret_co
   if (!code)
     return false;
 
-  ret_code_flags = code->codeFlags & 0x7FFF;
+  ret_code_flags = code->codeFlags & ~shaderbindump::ShaderCode::CF_USED;
   if (!(ret_code_flags & SC_NEW_STAGE_FMT))
   {
     if (ret_code_flags & 1)
@@ -479,6 +485,19 @@ bool ScriptedShaderMaterial::enum_channels(ShaderChannelsEnumCB &cb, int &ret_co
     cb.enum_shader_channel(c.u, c.ui, c.t, c.vbu, c.vbui, c.mod);
   }
   return true;
+}
+
+bool ScriptedShaderMaterial::isPositionPacked() const
+{
+  // All variants of the shader should have the same packing
+  G_FAST_ASSERT(props.sclass && !props.sclass->code.empty());
+  auto &code = props.sclass->code[0];
+
+  for (auto &channel : code.channel)
+    if (channel.mod == ChannelModifier::CMOD_BOUNDING_PACK)
+      return true;
+
+  return false;
 }
 
 ShaderElement *ScriptedShaderMaterial::make_elem(bool acq_tex_ref, const char *info)
@@ -522,28 +541,50 @@ bool ScriptedShaderMaterial::checkChannels(CompiledShaderChannelId *ch, int ch_c
   return true;
 }
 
+static const char *attrib_type_name(int type)
+{
+  switch (type)
+  {
+    case SHVT_INT: return "SHVT_INT";
+    case SHVT_REAL: return "SHVT_REAL";
+    case SHVT_COLOR4: return "SHVT_COLOR4";
+    case SHVT_TEXTURE: return "SHVT_TEXTURE";
+    case SHVT_BUFFER: return "SHVT_BUFFER";
+    case SHVT_INT4: return "SHVT_INT4";
+    case SHVT_FLOAT4X4: return "SHVT_FLOAT4X4";
+    case SHVT_SAMPLER: return "SHVT_SAMPLER";
+    default: return "UNKNOWN";
+  }
+}
+
+static const char *attrib_name(int name_id) { return (const char *)shBinDump().varMap[name_id]; }
+
+#define CHECK_TYPE(t)                     \
+  auto &v = props.sclass->localVars.v[i]; \
+  G_ASSERTF(v.type == t, "In %s, %s is not %s, but %s", getShaderClassName(), attrib_name(v.nameId), #t, attrib_type_name(v.type));
+
 Color4 ScriptedShaderMaterial::get_color4_stvar(int i) const
 {
   G_ASSERT(i >= 0 && i < props.sclass->localVars.v.size());
-  G_ASSERT(props.sclass->localVars.v[i].type == SHVT_COLOR4);
+  CHECK_TYPE(SHVT_COLOR4);
   return props.stvar[i].c4();
 }
 real ScriptedShaderMaterial::get_real_stvar(int i) const
 {
   G_ASSERT(i >= 0 && i < props.sclass->localVars.v.size());
-  G_ASSERT(props.sclass->localVars.v[i].type == SHVT_REAL);
+  CHECK_TYPE(SHVT_REAL);
   return props.stvar[i].r;
 }
 int ScriptedShaderMaterial::get_int_stvar(int i) const
 {
   G_ASSERT(i >= 0 && i < props.sclass->localVars.v.size());
-  G_ASSERT(props.sclass->localVars.v[i].type == SHVT_INT);
+  CHECK_TYPE(SHVT_INT);
   return props.stvar[i].i;
 }
 TEXTUREID ScriptedShaderMaterial::get_tex_stvar(int i) const
 {
   G_ASSERT(i >= 0 && i < props.sclass->localVars.v.size());
-  G_ASSERT(props.sclass->localVars.v[i].type == SHVT_TEXTURE);
+  CHECK_TYPE(SHVT_TEXTURE);
   return props.stvar[i].texId;
 }
 
@@ -677,7 +718,7 @@ void ShaderMaterialProperties::patchNonSharedData(void *base, dag::Span<TEXTUREI
 {
   stvar.patch(base);
   const char *shname = (char *)base + sclassNameOfs;
-  sclass = ::shBinDump(true).findShaderClass(shname);
+  sclass = ::shBinDump().findShaderClass(shname);
 
   if (!sclass)
     DAG_FATAL("shader <%s> not found!", shname);
@@ -904,7 +945,7 @@ void enable_diffuse_mipmaps_debug(bool en)
   }
 }
 #else
-void enable_diffuse_mipmaps_debug(bool /*en*/) { debug_ctx("n/a"); }
+void enable_diffuse_mipmaps_debug(bool /*en*/) { DEBUG_CTX("n/a"); }
 #endif
 
 void enable_assert_on_shader_mat_vars(bool en) { assert_on_vars = en; }

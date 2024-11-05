@@ -1,6 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_console.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3d_res.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_res.h>
 #include <shaders/dag_shaders.h>
 #include <osApiWrappers/dag_direct.h>
 #include <generic/dag_initOnDemand.h>
@@ -14,12 +19,14 @@
 #include <util/dag_string.h>
 #include <osApiWrappers/dag_files.h>
 #include <startup/dag_globalSettings.h>
+#include "profileStcode.h"
 
 extern void dump_exec_stcode_time();
 class ShadersReloadProcessor : public console::ICommandProcessor
 {
 public:
-  ShadersReloadProcessor() : console::ICommandProcessor(1000) {}
+  ShadersReloadProcessor(const ShaderReloadCb &shader_reload_cb) : console::ICommandProcessor(1000), reloadCb(shader_reload_cb) {}
+
   void destroy() {}
 
   virtual bool processCommand(const char *argv[], int argc)
@@ -45,14 +52,19 @@ public:
           continue;
         }
         console::print_d("reloaded %s, ver=%s", last_loaded_shaders_bindump(false), version.psName);
+        reloadCb(true);
         return true;
       }
       console::print_d("failed to reload %s", last_loaded_shaders_bindump(false));
+      reloadCb(false);
       return true;
     }
 
     return found;
   }
+
+private:
+  ShaderReloadCb reloadCb;
 };
 
 class ShadersCmdProcessor : public console::ICommandProcessor
@@ -162,6 +174,11 @@ public:
             console::print_d(" buf:#%d = <%s> ", val, get_managed_res_name(val));
           }
           break;
+          case SHVT_SAMPLER:
+          {
+            d3d::SamplerHandle val = ShaderGlobal::get_sampler(id);
+            console::print_d(" sampler: 0x%llX ", eastl::to_underlying(val));
+          }
           default: break;
         };
     }
@@ -313,6 +330,7 @@ public:
     }
 #endif
     CONSOLE_CHECK_NAME("app", "stcode", 1, 1) { dump_exec_stcode_time(); }
+    CONSOLE_CHECK_NAME("app", "stcode_avg_perf_dump", 1, 1) { stcode::profile::dump_avg_time(); }
     CONSOLE_CHECK_NAME("render", "reset_device", 1, 1) { dagor_d3d_force_driver_reset = true; }
     CONSOLE_CHECK_NAME("render", "hang_device", 2, 2)
     {
@@ -347,7 +365,7 @@ public:
           {
             auto buf = eastl::make_unique<uint8_t[]>(length);
             df_read(file, buf.get(), length);
-            d3d::driver_command(DRV3D_COMMAND_SEND_GPU_CRASH_DUMP, const_cast<char *>(dumpType), buf.get(),
+            d3d::driver_command(Drv3dCommand::SEND_GPU_CRASH_DUMP, const_cast<char *>(dumpType), buf.get(),
               reinterpret_cast<void *>(length));
           }
           df_close(file);
@@ -371,7 +389,7 @@ public:
 static InitOnDemand<ShadersCmdProcessor> shaders_consoleproc;
 static InitOnDemand<ShadersReloadProcessor> shaders_reload_consoleproc;
 
-void shaders_register_console(bool allow_reload)
+void shaders_register_console(bool allow_reload, const ShaderReloadCb &after_reload_cb)
 {
 #if (_TARGET_IOS | _TARGET_TVOS | _TARGET_ANDROID | _TARGET_C3) || DAGOR_DBGLEVEL == 0
   shaders_internal::shader_reload_allowed = false;
@@ -386,7 +404,7 @@ void shaders_register_console(bool allow_reload)
   add_con_proc(shaders_consoleproc);
   if (allow_reload)
   {
-    shaders_reload_consoleproc.demandInit();
+    shaders_reload_consoleproc.demandInit(after_reload_cb);
     add_con_proc(shaders_reload_consoleproc);
   }
 }

@@ -12,6 +12,6 @@ Sources =
   trace.cpp
 ;
 
-if $(DriverLinkage) != dynamic { UseProgLibs += engine/kernel ; }
+if $(KernelLinkage) != dynamic { UseProgLibs += engine/kernel ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

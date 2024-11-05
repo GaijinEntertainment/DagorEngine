@@ -1,5 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <generic/dag_tab.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_commands.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>
 #include <debug/dag_debug.h>
@@ -9,35 +15,16 @@
 #include <util/dag_string.h>
 #include <util/dag_watchdog.h>
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 
 #include <validate_sbuf_flags.h>
 
 #include "render.h"
+#include "drv_log_defs.h"
 
 using namespace drv3d_metal;
 
 extern bool dirty_render_target();
-
-/*bool d3d::setStreamFreq(int stream, int type)
-{
-  if (type == VSTREAMSRC_NORMAL_DATA)
-  {
-    render.setVBuffStep(stream, Program::VBSTEP_PERVERTEX);
-  }
-  else
-  if (type == VSTREAMSRC_INDEXED_DATA)
-  {
-    render.setVBuffStep(stream, Program::VBSTEP_PERVERTEX);
-  }
-  else
-  if (type == VSTREAMSRC_INSTANCE_DATA)
-  {
-    render.setVBuffStep(stream, Program::VBSTEP_PERINSTANCE);
-  }
-
-  return true;
-}*/
 
 VDECL d3d::create_vdecl(VSDTYPE* d)
 {
@@ -78,8 +65,10 @@ Sbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsi
 bool set_buffer_ex(unsigned shader_stage, BufferType buf_type, int slot, Buffer *vb, int offset, int stride)
 {
   Buffer* bufMetal = (Buffer*)vb;
-  if (bufMetal && buf_type == RW_BUFFER)
-    bufMetal->last_locked_frame = render.frame;
+  // yet another special case, don't invalidate readback frame if the buffer has readback flag
+  // it should be read back by async readback lock magic call
+  if (bufMetal && buf_type == RW_BUFFER && (bufMetal->bufFlags & SBCF_USAGE_READ_BACK) == 0)
+    bufMetal->last_locked_submit = render.submits_scheduled;
   render.setBuff(shader_stage, buf_type, slot, bufMetal, offset, stride);
 
   return true;

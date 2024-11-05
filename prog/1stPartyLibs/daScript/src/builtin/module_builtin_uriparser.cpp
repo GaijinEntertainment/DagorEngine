@@ -1,6 +1,8 @@
 #include "daScript/misc/platform.h"
 
 #include "module_builtin_uriparser.h"
+#include "daScript/simulate/aot.h"
+#include "daScript/simulate/aot_builtin_string.h"
 #include "daScript/simulate/aot_builtin_uriparser.h"
 
 #include "daScript/ast/ast.h"
@@ -22,49 +24,43 @@ IMPLEMENT_EXTERNAL_TYPE_FACTORY(UriPathSegmentStructA,UriPathSegmentStructA)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(UriUriA,UriUriA)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(Uri,das::Uri)
 
+
+// We shall honor ITU-T Recommendation X.667 and keep our generated uuids lowercase:
+// 6.5.4 Software generating the hexadecimal representation of a UUID shall not use upper case letters.
+// https://www.itu.int/rec/T-REC-X.667-201210-I/en
+
 #if defined(_MSC_VER) && !defined(_GAMING_XBOX) && !defined(_DURANGO)
 
 #include <rpc.h>
 #pragma comment(lib,"Rpcrt4")
 
 char * das::makeNewGuid( das::Context * context, LineInfoArg * at ) {
-	UUID id;
-	if ( UuidCreate(&id)!=RPC_S_OK ) context->throw_error_at(at, "can't create UUID");
+    UUID id;
+    if ( UuidCreate(&id)!=RPC_S_OK ) context->throw_error_at(at, "can't create UUID");
     CHAR* uuidstr = NULL;
     if ( UuidToStringA(&id, (RPC_CSTR *)&uuidstr)!=RPC_S_OK ) context->throw_error_at(at, "can't convert UUID to string");
-    char * res = context->stringHeap->allocateString(uuidstr);
+    // UuidToStringA is not guaranteed to yield a lowercase string, even though currently it does
+    das::builtin_string_tolower_in_place(uuidstr);
+    char * res = context->allocateString(uuidstr, at);
     RpcStringFreeA((RPC_CSTR *)&uuidstr);
     return res;
 }
 
-#elif defined(__linux__) && defined(LINUX_UUID) || defined __HAIKU__
+#elif defined(__linux__) && defined(LINUX_UUID) || defined __HAIKU__ || defined(__APPLE__)
 
 #include <uuid/uuid.h>
 
-char * das::makeNewGuid( das::Context * context, LineInfoArg * ) {
-    union {
-        unsigned char   data[16];
-        uint32_t        data32[4];
-    } data;
-    uuid_generate(data.data);
-    TextWriter tw;
-    tw << HEX << data.data32[0] << "-" << data.data32[1] << "-" << data.data32[2] << "-" << data.data32[3] << DEC;
-    return context->stringHeap->allocateString(tw.str());
-}
+// older versions of libuuid do not define that
+#ifndef UUID_STR_LEN
+#define UUID_STR_LEN 37
+#endif
 
-#elif defined(__APPLE__)
-
-#include <uuid/uuid.h>
-
-char * das::makeNewGuid( das::Context * context, LineInfoArg * ) {
-    union {
-        unsigned char   data[16];
-        uint32_t        data32[4];
-    } data;
-    uuid_generate(data.data);
-    TextWriter tw;
-    tw << HEX << data.data32[0] << "-" << data.data32[1] << "-" << data.data32[2] << "-" << data.data32[3] << DEC;
-    return context->stringHeap->allocateString(tw.str());
+char * das::makeNewGuid( das::Context * context, LineInfoArg * at ) {
+    uuid_t uuid;
+    char uuidStr[UUID_STR_LEN];
+    uuid_generate(uuid);
+    uuid_unparse_lower(uuid, uuidStr);
+    return context->allocateString(uuidStr, at);
 }
 
 #else
@@ -77,67 +73,67 @@ char * das::makeNewGuid( Context * context, LineInfoArg * at ) {
 #endif
 namespace das {
 
-char * uri_to_unix_file_name ( char * uristr, Context * context ) {
+char * uri_to_unix_file_name ( char * uristr, Context * context, LineInfoArg * at ) {
     if ( !uristr ) return nullptr;
     int len = stringLength(*context,uristr);
     auto buf = new char[len + 1];
     char * result = nullptr;
     if ( uriUriStringToUnixFilenameA(uristr, buf) == URI_SUCCESS ) {
-        result = context->stringHeap->allocateString(buf, uint32_t(strlen(buf)));
+        result = context->allocateString(buf, uint32_t(strlen(buf)), at);
     }
     delete [] buf;
     return result;
 }
 
-char * uri_to_windows_file_name ( char * uristr, Context * context ) {
+char * uri_to_windows_file_name ( char * uristr, Context * context, LineInfoArg * at ) {
     if ( !uristr ) return nullptr;
     int len = stringLength(*context,uristr);
     auto buf = new char[len + 1];
     char * result = nullptr;
     if ( uriUriStringToWindowsFilenameA(uristr, buf) == URI_SUCCESS ) {
-        result = context->stringHeap->allocateString(buf, uint32_t(strlen(buf)));
+        result = context->allocateString(buf, uint32_t(strlen(buf)), at);
     }
     delete [] buf;
     return result;
 }
 
-char * unix_file_name_to_uri ( char * uristr, Context * context ) {
+char * unix_file_name_to_uri ( char * uristr, Context * context, LineInfoArg * at ) {
     if ( !uristr ) return nullptr;
     int len = stringLength(*context,uristr);
     auto buf = new char[3 * len + 1];
     char * result = nullptr;
     if ( uriUnixFilenameToUriStringA(uristr, buf) == URI_SUCCESS ) {
-        result = context->stringHeap->allocateString(buf, uint32_t(strlen(buf)));
+        result = context->allocateString(buf, uint32_t(strlen(buf)), at);
     }
     delete [] buf;
     return result;
 }
 
-char * windows_file_name_to_uri ( char * uristr, Context * context ) {
+char * windows_file_name_to_uri ( char * uristr, Context * context, LineInfoArg * at ) {
     if ( !uristr ) return nullptr;
     int len = stringLength(*context,uristr);
     auto buf = new char[8 + 3 * len + 1];
     char * result = nullptr;
     if ( uriWindowsFilenameToUriStringA(uristr, buf) == URI_SUCCESS ) {
-        result = context->stringHeap->allocateString(buf, uint32_t(strlen(buf)));
+        result = context->allocateString(buf, uint32_t(strlen(buf)), at);
     }
     delete [] buf;
     return result;
 }
 
-char * escape_uri ( char * uristr, bool spaceToPlus, bool normalizeBreaks, Context * context ) {
+char * escape_uri ( char * uristr, bool spaceToPlus, bool normalizeBreaks, Context * context, LineInfoArg * at ) {
     if ( !uristr ) return nullptr;
     int len = stringLength(*context,uristr);
     auto buf = new char[len*6];
     char * result = nullptr;
     if ( uriEscapeA(uristr, buf, spaceToPlus, normalizeBreaks) ) {
-        result = context->stringHeap->allocateString(buf, uint32_t(strlen(buf)));
+        result = context->allocateString(buf, uint32_t(strlen(buf)), at);
     }
     delete [] buf;
     return result;
 }
 
-char * unescape_uri ( char * uristr,Context * context ) {
+char * unescape_uri ( char * uristr,Context * context, LineInfoArg * at ) {
     if ( !uristr ) return nullptr;
     int len = stringLength(*context,uristr);
     char * buf = new char[len+1];
@@ -145,13 +141,13 @@ char * unescape_uri ( char * uristr,Context * context ) {
     buf[len] = 0;
     char * result = nullptr;
     if ( uriUnescapeInPlaceA(buf) ) {
-        result = context->stringHeap->allocateString(buf, uint32_t(strlen(buf)));
+        result = context->allocateString(buf, uint32_t(strlen(buf)), at);
     }
     delete [] buf;
     return result;
 }
 
-char* normalize_uri(char* uristr, Context* context) {
+char* normalize_uri(char* uristr, Context* context, LineInfoArg * at) {
     if (!uristr) return nullptr;
     UriUriA uri;
     char* result = nullptr;
@@ -171,7 +167,7 @@ char* normalize_uri(char* uristr, Context* context) {
     charsRequired++;
     char* buf = new char[charsRequired];
     if (uriToStringA(buf, &uri, charsRequired, nullptr) == URI_SUCCESS) {
-        result = context->stringHeap->allocateString(buf, uint32_t(strlen(buf)));
+        result = context->allocateString(buf, uint32_t(strlen(buf)), at);
     }
     delete[] buf;
     uriFreeUriMembersA(&uri);
@@ -252,28 +248,28 @@ void clone_uri ( Uri & uri, const Uri & uriS ) {
     uri = uriS;
 }
 
-char * uri_to_string ( const Uri & uri, Context * context ) {
-    return context->stringHeap->allocateString(uri.str());
+char * uri_to_string ( const Uri & uri, Context * context, LineInfoArg * at ) {
+    return context->allocateString(uri.str(), at);
 }
 
-char * text_range_to_string ( const UriTextRangeA & trange, Context * context ) {
+char * text_range_to_string ( const UriTextRangeA & trange, Context * context, LineInfoArg * at ) {
     if ( auto slen = trange.afterLast - trange.first ) {
-        return context->stringHeap->allocateString(trange.first, uint32_t(slen));
+        return context->allocateString(trange.first, uint32_t(slen), at);
     } else {
         return nullptr;
     }
 }
 
-char * to_unix_file_name ( const Uri & uri, Context * context ) {
-    return context->stringHeap->allocateString(uri.toUnixFileName());
+char * to_unix_file_name ( const Uri & uri, Context * context, LineInfoArg * at ) {
+    return context->allocateString(uri.toUnixFileName(), at);
 }
 
-char * to_windows_file_name ( const Uri & uri, Context * context ) {
-    return context->stringHeap->allocateString(uri.toWindowsFileName());
+char * to_windows_file_name ( const Uri & uri, Context * context, LineInfoArg * at ) {
+    return context->allocateString(uri.toWindowsFileName(), at);
 }
 
-char * to_file_name ( const Uri & uri, Context * context ) {
-    return context->stringHeap->allocateString(uri.toFileName());
+char * to_file_name ( const Uri & uri, Context * context, LineInfoArg * at ) {
+    return context->allocateString(uri.toFileName(), at);
 }
 
 Uri from_file_name ( const char * str ) {
@@ -344,19 +340,19 @@ public:
                 ->args({"uri"});
         addExtern<DAS_BIND_FUN(uri_to_string)>(*this, lib, "string",
             SideEffects::none, "uri_to_string")
-                ->args({"uri","context"});
+                ->args({"uri","context","at"});
         addExtern<DAS_BIND_FUN(text_range_to_string)>(*this, lib, "string",
             SideEffects::none, "text_range_to_string")
-                ->args({"range","context"});
+                ->args({"range","context","at"});
         addExtern<DAS_BIND_FUN(to_unix_file_name)>(*this, lib, "to_unix_file_name",
             SideEffects::none, "to_unix_file_name")
-                ->args({"uri","context"});
+                ->args({"uri","context","at"});
         addExtern<DAS_BIND_FUN(to_windows_file_name)>(*this, lib, "to_windows_file_name",
             SideEffects::none, "to_windows_file_name")
-                ->args({"uri","context"});
+                ->args({"uri","context","at"});
         addExtern<DAS_BIND_FUN(to_file_name)>(*this, lib, "to_file_name",
             SideEffects::none, "to_file_name")
-                ->args({"uri","context"});
+                ->args({"uri","context","at"});
         addExtern<DAS_BIND_FUN(from_file_name),SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "uri_from_file_name",
             SideEffects::none, "from_file_name")
                 ->args({"filename"});
@@ -375,40 +371,40 @@ public:
                 ->args({"context","at"});
         addExtern<DAS_BIND_FUN(uri_to_unix_file_name)> (*this, lib, "uri_to_unix_file_name",
             SideEffects::none, "uri_to_unix_file_name")
-                ->args({"uriStr","context"});
+                ->args({"uriStr","context","at"});
         addExtern<DAS_BIND_FUN(uri_to_windows_file_name)> (*this, lib, "uri_to_windows_file_name",
             SideEffects::none, "uri_to_windows_file_name")
-                ->args({"uriStr","context"});
+                ->args({"uriStr","context","at"});
         addExtern<DAS_BIND_FUN(unix_file_name_to_uri)> (*this, lib, "unix_file_name_to_uri",
             SideEffects::none, "unix_file_name_to_uri")
-                ->args({"uriStr","context"});
+                ->args({"uriStr","context","at"});
         addExtern<DAS_BIND_FUN(windows_file_name_to_uri)> (*this, lib, "windows_file_name_to_uri",
             SideEffects::none, "windows_file_name_to_uri")
-                ->args({"uriStr","context"});
+                ->args({"uriStr","context","at"});
 #ifdef _WIN32
         addExtern<DAS_BIND_FUN(uri_to_windows_file_name)> (*this, lib, "uri_to_file_name",
             SideEffects::none, "uri_to_windows_file_name")
-                ->args({"uriStr","context"});
+                ->args({"uriStr","context","at"});
         addExtern<DAS_BIND_FUN(windows_file_name_to_uri)> (*this, lib, "file_name_to_uri",
             SideEffects::none, "windows_file_name_to_uri")
-                ->args({"uriStr","context"});
+                ->args({"uriStr","context","at"});
 #else
         addExtern<DAS_BIND_FUN(uri_to_unix_file_name)> (*this, lib, "uri_to_file_name",
             SideEffects::none, "uri_to_unix_file_name")
-                ->args({"uriStr","context"});
+                ->args({"uriStr","context","at"});
         addExtern<DAS_BIND_FUN(unix_file_name_to_uri)> (*this, lib, "file_name_to_uri",
             SideEffects::none, "unix_file_name_to_uri")
-                ->args({"uriStr","context"});
+                ->args({"uriStr","context","at"});
 #endif
         addExtern<DAS_BIND_FUN(escape_uri)> (*this, lib, "escape_uri",
             SideEffects::none, "escape_uri")
-                ->args({"uriStr","spaceToPlus","normalizeBreaks","context"});
+                ->args({"uriStr","spaceToPlus","normalizeBreaks","context","at"});
         addExtern<DAS_BIND_FUN(unescape_uri)> (*this, lib, "unescape_uri",
             SideEffects::none, "unescape_uri")
-                ->args({"uriStr","context"});
+                ->args({"uriStr","context","at"});
         addExtern<DAS_BIND_FUN(normalize_uri)> (*this, lib, "normalize_uri",
             SideEffects::none, "normalize_uri")
-                ->args({"uriStr","context"});
+                ->args({"uriStr","context","at"});
     }
     virtual ModuleAotType aotRequire ( TextWriter & tw ) const override {
         tw << "#include \"daScript/simulate/aot_builtin_uriparser.h\"\n";

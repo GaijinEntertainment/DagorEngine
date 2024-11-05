@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/fastPhysData/fp_edbone.h>
 #include <libTools/fastPhysData/fp_edpoint.h>
 
@@ -47,7 +49,7 @@ E3DCOLOR FPObjectBone::boneConeColor(255, 150, 150);
 FPObjectBone::FPObjectBone(FpdObject *obj, FastPhysEditor &editor) : IFPObject(obj, editor) {}
 
 
-void FPObjectBone::refillPanel(PropPanel2 *panel)
+void FPObjectBone::refillPanel(PropPanel::ContainerPropertyControl *panel)
 {
   FpdBone *boneObject = (FpdBone *)getObject();
   G_ASSERT(boneObject);
@@ -64,7 +66,7 @@ void FPObjectBone::refillPanel(PropPanel2 *panel)
     panel->createCheckBox(PID_USELOOKATBONECTRL, "Use look at bone controller", boneObject->ctrlAction->useLookAtMode);
 
   // bone constr
-  PropPanel2 *rgrp = panel->createRadioGroup(PID_CO_TYPE, "Constraint type:");
+  PropPanel::ContainerPropertyControl *rgrp = panel->createRadioGroup(PID_CO_TYPE, "Constraint type:");
   rgrp->createRadio(FpdBoneConstraintAction::DIRECTIONAL, "directional");
   rgrp->createRadio(FpdBoneConstraintAction::LENCONSTR, "undirected");
   panel->setInt(PID_CO_TYPE, boneObject->constrAction->type);
@@ -108,7 +110,7 @@ void FPObjectBone::refillPanel(PropPanel2 *panel)
 }
 
 
-void FPObjectBone::onChange(int pcb_id, PropPanel2 *panel)
+void FPObjectBone::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   FpdBone *boneObject = (FpdBone *)getObject();
   G_ASSERT(boneObject);

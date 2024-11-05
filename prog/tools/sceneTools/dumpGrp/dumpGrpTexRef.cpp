@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <rendInst/rendInstGen.h>
 #include <shaders/dag_dynSceneRes.h>
 #include <gameRes/dag_collisionResource.h>
@@ -5,7 +7,7 @@
 #include <gameRes/dag_gameResHooks.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <gameRes/dag_grpMgr.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <startup/dag_startupTex.h>
 #include <util/dag_texMetaData.h>
 #include <util/dag_oaHashNameMap.h>

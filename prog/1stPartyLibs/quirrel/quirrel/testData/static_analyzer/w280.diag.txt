@@ -1,5 +1,5 @@
 WARNING: w280 (forbidden-parent-dir) Access to the parent directory is forbidden in this function.
-testData/static_analyzer/w280.nut:3:9
+testData/static_analyzer/w280.nut:6:9
 
 let _x = require_optional("../a.nut")
          ^---------------------------

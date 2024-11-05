@@ -1,11 +1,10 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_tex3d.h>
 #include <3d/dag_texMgr.h>
 #include <3d/dag_resPtr.h>
 #include <3d/dag_resourcePool.h>
@@ -55,7 +54,7 @@ public:
     float significant_wave_height, int frame_no, bool change_projection);
   bool render(IWwaterProjFxRenderHelper *render_helper);
   bool render(IWwaterProjFxRenderHelper *render_helper, dag::Span<const TextureIDPair> targets,
-    dag::Span<const TextureIDPair> taaTemp0 = {}, dag::Span<const TextureIDPair> taaTemp1 = {});
+    dag::Span<const TextureIDPair> taa_temp = {}, dag::Span<const TextureIDPair> taa_history = {});
   void clear(bool forceClear = false);
 
   // It's assumed that the targets won't be modified outside of this class if they're owned by this class.
@@ -89,6 +88,7 @@ private:
 
   bool taaEnabled;
   RTargetPool::Ptr taaRtTempPools[MAX_TARGETS];
+  RTarget::Ptr taaHistory[MAX_TARGETS];
   PostFxRenderer taaRenderer;
 
   int globalFrameId;

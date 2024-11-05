@@ -228,8 +228,8 @@ shader wfx_render_height, wfx_render_height_distorted, wfx_render_foam, wfx_rend
 
   if ((shader == wfx_render_foam_distorted) || (shader == wfx_render_height_distorted) || (shader == wfx_render_foam_mask))
   {
-    INIT_WATER_GRADIENTS()
-    USE_WATER_GRADIENTS(1)
+    INIT_WATER_GRADIENTS(ps)
+    USE_WATER_GRADIENTS(ps, 1)
 
     (ps) {
       wfx_diffuse@smp2d = wfx_diffuse;
@@ -271,9 +271,10 @@ shader wfx_render_height, wfx_render_height_distorted, wfx_render_foam, wfx_rend
       float3 worldPos = input.worldPos;
 
       float worldPosDistance = 1.0;
-      float4 nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23, nvsf_tex_coord_cascade45, nvsf_blendfactors0123, nvsf_blendfactors4567;
-      get_blend_factor(worldPos.xzy, worldPosDistance, nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23,
-                      nvsf_tex_coord_cascade45, nvsf_blendfactors0123, nvsf_blendfactors4567);
+      float4 nvsf_blendfactors0123 = 1;
+      float4 nvsf_blendfactors4567 = 1;
+      float4 nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23, nvsf_tex_coord_cascade45;
+      get_cascades(worldPos.xz, nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23, nvsf_tex_coord_cascade45);
 
       float nvsf_foam_turbulent_energy, nvsf_foam_surface_folding, nvsf_foam_wave_hats;
       float3 nvsf_normal;

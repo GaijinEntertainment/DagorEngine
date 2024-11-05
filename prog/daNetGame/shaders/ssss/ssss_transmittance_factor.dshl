@@ -1,0 +1,145 @@
+// Heavily relying on Separable Subsurface Scattering by Jorge Jimenez:
+// http://www.iryoku.com/separable-sss/
+// https://github.com/iryoku/separable-sss
+
+// With additional Multi-Sampled Transmittance technique from "Next-Generation Character Rendering"
+//   - Slides: http://www.iryoku.com/stare-into-the-future
+//   - Talk: https://www.gdcvault.com/play/1018270/Next-Generation-Character
+
+/**
+ * Copyright (C) 2012 Jorge Jimenez (jorge@iryoku.com)
+ * Copyright (C) 2012 Diego Gutierrez (diegog@unizar.es)
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *    1. Redistributions of source code must retain the above copyright notice,
+ *       this list of conditions and the following disclaimer.
+ *
+ *    2. Redistributions in binary form must reproduce the following disclaimer
+ *       in the documentation and/or other materials provided with the
+ *       distribution:
+ *
+ *       "Uses Separable SSS. Copyright (C) 2012 by Jorge Jimenez and Diego
+ *        Gutierrez."
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS
+ * IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL COPYRIGHT HOLDERS OR CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ * The views and conclusions contained in the software and documentation are
+ * those of the authors and should not be interpreted as representing official
+ * policies, either expressed or implied, of the copyright holders.
+ */
+
+include "ssss/ssss_common.dshl"
+
+float ssss_transmittance_thickness_bias = 0;
+float ssss_transmittance_thickness_min = 0.001;
+float ssss_transmittance_thickness_scale = 110;
+float ssss_transmittance_translucency_scale = 0.99;
+float ssss_transmittance_blur_scale = 0.003;
+float ssss_normal_offset = 0.015;
+
+int ssss_transmittance_sample_count = 1;
+
+macro INIT_SSSS_TRANSMITTANCE_FACTOR_CALC(stage)
+  (stage)
+  {
+    ssss_transmittance_params_0@f4 = (ssss_transmittance_thickness_bias,
+                                      ssss_transmittance_thickness_min,
+                                      ssss_transmittance_thickness_scale * 100, // x100 so we are able to tweak param in a more reasonable range
+                                      ssss_transmittance_blur_scale);
+    ssss_transmittance_params_1@f4 = (ssss_transmittance_translucency_scale,
+                                      0.07 * time_phase(1, 0),
+                                      ssss_transmittance_sample_count,
+                                      ssss_normal_offset);
+  }
+endmacro
+
+macro USE_SSSS_TRANSMITTANCE_FACTOR_CALC(stage)
+  hlsl(stage)
+  {
+    #define ssss_transmittance_thickness_bias ssss_transmittance_params_0.x
+    #define ssss_transmittance_thickness_min ssss_transmittance_params_0.y
+    #define ssss_transmittance_thickness_scale ssss_transmittance_params_0.z
+    #define ssss_transmittance_blur_scale ssss_transmittance_params_0.w
+    #define ssss_transmittance_translucency_scale ssss_transmittance_params_1.x
+    #define ssss_time ssss_transmittance_params_1.y
+    #define ssss_normal_offset ssss_transmittance_params_1.w
+    #define ssss_transmittance_sample_count uint(ssss_transmittance_params_1.z)
+
+    float3 ssss_calculate_world_pos(float3 worldPos, float3 normal)
+    {
+      return worldPos - ssss_normal_offset * normal;
+    }
+
+    static const float2 poisson_offsets[] =
+    {
+        float2( 0.019369,  0.395482),
+        float2(-0.066918, -0.367739),
+        float2(-0.955010,  0.372377),
+        float2( 0.800057,  0.120602)
+    };
+
+    // Uniformly distributed, normalized rand, [0;1)
+    // from: https://www.shadertoy.com/view/4ssXRX
+    float nrand( float2 n )
+    {
+      return frac(sin(dot(n.xy, float2(12.9898, 78.233)))* 43758.5453);
+    }
+
+    float ssss_get_transmittance_factor(float translucency, float2 screenUv, Texture2D shadow_map, float2 shadowMapDim, float3 shadow_coords, ShadowDescriptor shadow_desc)
+    {
+      BRANCH
+      if (ssss_transmittance_sample_count < 1)
+        return 0;
+      translucency *= ssss_transmittance_translucency_scale;
+      float linearDepth = ssss_linearize_sample(shadow_coords.z, shadow_desc);
+      linearDepth += ssss_bias_scale(linearDepth, shadow_desc) * ssss_transmittance_thickness_bias;
+
+      float angle = nrand(screenUv + ssss_time) * (2.0 * 3.14159);
+      float2 jitter; // Could be precalculated into a texture as "Next-Generation Character Rendering" talk suggests (slide 171)
+      sincos(angle, jitter.y, jitter.x);
+      float2x2 rotationMatrix = {  jitter.x, jitter.y,
+                                  -jitter.y, jitter.x };
+      float uvRadius = ssss_transmittance_blur_scale * ssss_get_meter_to_uv(linearDepth, shadow_desc);
+      float2x2 transmittanceRotationMatrix = uvRadius * rotationMatrix;
+
+      float transmittance = 0;
+      float thicknessScale = (1.0 - translucency) * ssss_transmittance_thickness_scale;
+      int validSampleCount = 0;
+      for (int i = 0; i < ssss_transmittance_sample_count; i++)
+      {
+        float2 jitteredPos = shadow_coords.xy + mul(poisson_offsets[i], transmittanceRotationMatrix);
+        if (!ssss_is_uv_valid(jitteredPos, shadow_desc))
+          continue;
+        validSampleCount++;
+
+        // Manual point filter
+        int2 tc = jitteredPos * shadowMapDim;
+        tc = clamp(tc, int2(0,0), int2(shadowMapDim - 1));
+        float blocker = shadow_map[tc].r;
+
+        float blockerDepth = ssss_linearize_sample(blocker, shadow_desc);
+        float thickness = linearDepth - blockerDepth;
+        thickness = thicknessScale * max(thickness, ssss_transmittance_thickness_min);
+
+        transmittance += exp(-thickness * thickness);
+      }
+      if (validSampleCount > 0)
+        transmittance *= 1.0 / validSampleCount;
+
+      return transmittance;
+    }
+  }
+endmacro

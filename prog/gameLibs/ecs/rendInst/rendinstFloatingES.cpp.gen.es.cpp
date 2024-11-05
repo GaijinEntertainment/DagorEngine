@@ -71,6 +71,26 @@ static ecs::EntitySystemDesc floating_phys_ripples_render_debug_es_es_desc
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoRenderDebug::STAGE)
 ,"dev,render",nullptr,"*");
+//static constexpr ecs::ComponentDesc move_floating_rendinsts_es_comps[] ={};
+static void move_floating_rendinsts_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  G_FAST_ASSERT(evt.is<EventMoveRiEx>());
+  move_floating_rendinsts_es(static_cast<const EventMoveRiEx&>(evt)
+        );
+}
+static ecs::EntitySystemDesc move_floating_rendinsts_es_es_desc
+(
+  "move_floating_rendinsts_es",
+  "prog/gameLibs/ecs/rendInst/./rendinstFloatingES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, move_floating_rendinsts_es_all_events),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<EventMoveRiEx>::build(),
+  0
+,"gameClient");
 static constexpr ecs::ComponentDesc update_floating_rendinsts_es_comps[] =
 {
 //start of 4 ro components at [0]

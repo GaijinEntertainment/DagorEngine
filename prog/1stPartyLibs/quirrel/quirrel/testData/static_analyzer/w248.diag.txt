@@ -1,5 +1,5 @@
 WARNING: w248 (access-potentially-nulled) 'a' can be null, but is used as a function without checking.
-testData/static_analyzer/w248.nut:8:4
+testData/static_analyzer/w248.nut:11:4
 
 } else {
     a()
@@ -8,18 +8,9 @@ testData/static_analyzer/w248.nut:8:4
 
 
 WARNING: w248 (access-potentially-nulled) 'a' can be null, but is used as a function without checking.
-testData/static_analyzer/w248.nut:11:7
+testData/static_analyzer/w248.nut:14:7
 
 return a()
        ^
 
 
-
-AN ERROR HAS OCCURRED [the index 'x' does not exist]
-
-CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w248.nut line [3]
-
-LOCALS
-[vargv] ARRAY=[]
-[this] TABLE={}

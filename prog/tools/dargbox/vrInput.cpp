@@ -1,13 +1,17 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "vrInput.h"
 #include "vr.h"
 #include "main.h"
-#include <humanInput/dag_hiVrInput.h>
-#include <3d/dag_drv3d.h>
+#include <drv/hid/dag_hiVrInput.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_stereoIndex.h>
 #include <vr/vrGuiSurface.h>
 #include <debug/dag_debug3d.h>
 #include <startup/dag_inpDevClsDrv.h>
-#include <humanInput/dag_hiPointing.h>
+#include <drv/hid/dag_hiPointing.h>
 #include <daRg/dag_guiScene.h>
 #include <gui/dag_visualLog.h>
 

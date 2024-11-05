@@ -1,0 +1,544 @@
+<html>
+<meta charset="utf-8"/>
+<script src="./src/vendor/simple-jsonrpc-js.js"></script>
+<script src="./src/vendor/jsonrpc.js"></script>
+<script src="./src/vendor/vue.js"></script>
+
+
+<link rel="stylesheet" href="./src/filter_log.css?version=1">
+
+<body>
+
+  <div :class="getBGClass()" id="app">
+    <div :class="getTopPanelClass()">
+      <button v-on:click="toggleCollapse" class="collapseBtn">{{collapseButtonCaption}}</button>
+      <div :class="getESReloadClass()">ES were reloaded</div>
+      <div v-if="collapse" class="searchBox">
+        <div>
+          <span>include:</span>
+          <input v-model="includeText" type="text" :class="getErrorNotifClass_i()"/>
+          <span>exclude:</span>
+          <input v-model="excludeText" type="text" :class="getErrorNotifClass_e()"/>
+          <span>Showing {{filteredEntries.length}} / {{entries.length}}</span>
+          <div class="spacer70"></div>
+        </div>
+        <div class="horList">
+          <div class="tooltipContainer">
+            <span class="settingsLabel">Settings</span>
+            <div class="tooltipContent gridContainer">
+              <label><input type="checkbox" v-model="isRegExp">RegExp</label>
+              <span>Treat <i>include</i> and <i>exclude</i> fields as regExp. <br>
+                Use slashes notation (<b>/myregexp/i</b>) if you want to specify flags. <br>
+                Use single '<b>\</b>' to escape a character. <br>
+                <a href="https://regex101.com/">Click here for a debugger</a>
+              </span>
+
+              <label><input type="checkbox" v-model="scrollText">Scroll</label>
+              <span>Auto scroll down on every update</span>
+
+              <label><input type="checkbox" v-model="autoskip">Autoskip</label>
+              <span>Display only the latest batch of filtered entries. <br>
+                When a new batch of data arrives that passes the filters the old entries are automatically hidden.</span>
+
+              <label><input type="checkbox" v-model="skipOnReload">Skip on ES Reload</label>
+              <span>Autoskip when ES have been reloaded (e.g. scripts hot-reloaded) even if this didn't change the displayed log entries.</span>
+
+              <label><input type="checkbox" v-model="refresh">Refresh</label>
+              <span>Uncheck to pause updating the log.</span>
+
+              <label><input type="checkbox" v-model="highlight">Highlight</label>
+              <span>Highlight the first occurrence of the inlude text</span>
+
+              <label><input type="checkbox" v-model="highlightWE">[W] & [E]</label>
+              <span>Highlight warnings and errors</span>
+
+              <label><input type="checkbox" v-model="removeDasPaths">- das paths</label>
+              <span>Remove .das paths from log entries</span>
+
+              <div>
+                <span>port:</span>
+                <input v-model="portText" type="text" :class="getPortInputClass()"/>
+              </div>
+              <span><i>23456</i> is the default. <br>To specify this port when launching an exe use <br><i>-config:debug/WebUIPort:i=_____</i><br> or <br><i>-config:debug/dedicatedWebUIPort:i=_____</i></span>
+ 
+              <div>
+                <span>Paste log:</span>
+                <textarea v-model="pastedLog" class=shortInput></textarea>
+              </div>
+              <span>Paste a log here if you want to process it using this tool. Consider disabling refreshing. Else it will be overwritten on the next successfull update.</i></span>
+
+            </div>
+          </div>
+          <div class="spacer30"></div>
+          <div class="tooltipContainer">
+            <span class="tooltipContent">Hide/unhide entries that predate the current time.</span>
+            <button v-if="skipLabel.length > 0" v-on:click="toggleSkip">{{skipLabel}}</button>
+          </div>
+          <div class="spacer30"></div>
+          <span>Compiled: {{compileTime}}</span>
+          <span>Launched: {{lanchTime}}</span>
+          <span>{{isRequestInProgress ? "..." : ""}}</span>
+        </div>
+      </div>
+    </div>
+    <div :class="getLogMsgClass()" v-html=message></div>
+  </div>
+
+  <script>
+    const REFRESH_PERIOD = 1500
+    let LOCATION = "unspecified"
+    let ERROR_REG_EXP = /\[E\]/
+    let WARNING_REG_EXP = /\[W\]/
+
+    let app = new Vue({
+      el: '#app',
+      data: {
+      rawText : "",
+      entries : [],
+      lastBatchLifetime : 0,
+      includes : null,
+      excludes : null,
+      hasParsingErrors_i : false,
+      hasParsingErrors_e : false,
+      includeText : "",
+      excludeText : "",
+      skipPoint : 0,
+      isRequestInProgress : false,
+      scrollText : false,
+      autoskip : false,
+      skipOnReload : false,
+      compileTime : "-",
+      lanchTime : "-",
+      lastResponse : 0,
+      lastRequest : 0,
+      isConnected : false,
+      isRegExp: false,
+      refresh: true,
+      highlight: true,
+      portText: "",
+      lastEntry: -1,
+      bookmarkEntry: -1,
+      collapse: false,
+      highlightWE: false,
+      removeDasPaths: false,
+      esReloaded: false,
+      pastedLog: ""
+    },
+    watch: {
+      includeText: function (newValue, oldValue) {
+        this.hasParsingErrors_i = false
+        try {
+          this.includes = parseRegexp(newValue)
+        }
+        catch(e) {
+          console.error(e)
+          this.hasParsingErrors_i = true
+          this.includes = null
+        }
+        this.saveSettings()
+        this.skipPoint = 0
+      },
+      excludeText: function (newValue, oldValue) {
+        this.hasParsingErrors_e = false
+        try {
+          this.excludes  = parseRegexp(newValue)
+        }
+        catch(e) {
+          console.error(e)
+          this.hasParsingErrors_e = true
+          this.excludes = null
+        }
+        this.saveSettings()
+        this.skipPoint = 0
+      },
+      scrollText: function (newValue, oldValue) {
+        this.saveSettings()
+      },
+      autoskip: function (newValue, oldValue) {
+        this.saveSettings()
+      },
+      skipOnReload: function (newValue, oldValue) {
+        this.saveSettings()
+      },
+      isRegExp: function (newValue, oldValue) {
+        this.saveSettings()
+      },
+      refresh: function (newValue, oldValue) {
+        this.saveSettings()
+      },
+      highlight: function (newValue, oldValue) {
+        this.saveSettings()
+      },
+      portText: function (newValue, oldValue) {
+        this.saveSettings()
+      },
+      collapse: function (newValue, oldValue) {
+        this.saveSettings()
+      },
+      highlightWE: function (newValue, oldValue) {
+        this.saveSettings()
+      },
+      removeDasPaths: function (newValue, oldValue) {
+        this.saveSettings()
+      },
+      message: function (n, o) {
+      if (this.scrollText)
+        setTimeout(()=>{window.scrollTo(0, document.body.scrollHeight)}, 50)
+      },
+      filteredEntries: function (n, o) {
+        if (this.autoskip && n.length > o.length) {
+          if (this.lastBatchLifetime > 0 && o.length > 0) {
+            this.skipPoint = this.bookmarkEntry + 1
+            this.bookmarkEntry = this.lastEntry
+          }
+          this.lastBatchLifetime = 0
+        }
+        else {
+          this.lastBatchLifetime++
+          this.bookmarkEntry = this.lastEntry
+        }
+      },
+      entries: function (n,o) {
+        const compileRegex = /BUILD TIMESTAMP:   [A-Za-z]+ +\d+ \d+ ([\d:]+)/
+        const launchRegex = /started at ([A-Za-z]+ [A-Za-z]+ +\d+ [\d:]+ [\d:]+)/
+        const resetRegex = /\[D\]  reset ES/
+        if (n.length > 0) {
+          let result = n[0].match(compileRegex)
+          this.compileTime = result ? result[1] : "-"
+        }
+        this.lanchTime = "-"
+        for (let i = 0; i < 10 && i < n.length; i++) {//Look for the launch time in the first 10 lines. It's probably in the [4] one
+          let result = n[i].match(launchRegex)
+          if (result) {
+            let date = new Date(result[1])
+            date = new Date(date.getTime() - date.getTimezoneOffset()*60*1000)
+            this.lanchTime = `${date.getHours()}:${('0' + date.getMinutes()).slice(-2)}:${('0' + date.getSeconds()).slice(-2)}`
+            break;
+          }
+        }
+        this.esReloaded = false
+        for (let i = o.length; i > 0 && i < n.length; i++) {
+          if (n[i].match(resetRegex)) {
+            this.esReloaded = true;
+            break;
+          }
+        }
+        if (this.esReloaded && this.skipOnReload)
+          this.skipPoint = o.length //skip all existing entries but not the new ones
+      },
+      lastResponse: function(n,o) {
+        this.isConnected = true
+      },
+      pastedLog: function(n,o) {
+        if (n.length == 0)
+          return
+        this.setFullLogData(n)
+        this.pastedLog = ""
+
+      }
+    },
+    computed: {
+      filteredEntries: function () {
+        let filteredData = this.isRegExp ? filterRegExp(this.entries, this.includes, this.excludes,
+                                                        this.skipPoint, this.highlight, this.highlightWE, this.removeDasPaths) :
+                                           filterSubstr(this.entries, this.includeText.toLowerCase(),
+                                                        this.excludeText.toLowerCase(), this.skipPoint,
+                                                        this.highlight, this.highlightWE, this.removeDasPaths)
+        this.lastEntry = filteredData.lastEntry //dirty dirty side effect :/ but should work fine since this value is not used reactivly
+        return filteredData.entries
+      },
+      message: function () {
+        return this.filteredEntries.join("\n");
+      },
+      beforeLastEntry: function() {
+        return this.rawText.length - this.entries[this.entries.length - 1].length
+      },
+      skipLabel: function() {
+        if (this.filteredEntries.length > 0)
+          return "skip current"
+        else if (this.skipPoint > 0)
+          return "unskip"
+        else
+          return ""
+      },
+      port: function() {
+        try {
+          let p = Number(this.portText)
+          if (p > 0 && p <= 65535)
+            return p
+        }
+        catch(e) {}
+        return "23456"
+      },
+      collapseButtonCaption () {
+        return this.collapse ? "<" : ">"
+      }
+    },
+    mounted() {
+      let params = window.location.search.substr(1).split("&")
+      for (p of params) {
+        let kv = p.split("=")
+        if (kv.length > 1 && kv[0] == "key")
+          LOCATION = kv[1]
+      }
+      let localData = JSON.parse(localStorage.getItem(LOCATION) ?? "{}")
+
+      this.includeText = localData['includeText'] ?? ""
+      this.excludeText = localData['excludeText'] ?? ""
+      this.scrollText = localData['scrollText'] ?? false
+      this.autoskip = localData['autoskip'] ?? false
+      this.isRegExp = localData['isRegExp'] ?? false
+      this.refresh = localData['refresh'] ?? true
+      this.highlight = localData['highlight'] ?? false
+      this.portText = localData['portText'] ?? "23456"
+      this.collapse = localData['collapse'] ?? false
+      this.highlightWE = localData['highlightWE'] ?? false
+      this.skipOnReload = localData['skipOnReload'] ?? false
+      this.removeDasPaths = localData['removeDasPaths'] ?? false
+      setInterval(this.updateLog, REFRESH_PERIOD);
+      setInterval(this.monitorConnection, REFRESH_PERIOD);
+      this.updateLog();
+    },
+    methods: {
+      updateLog() {
+        if (this.isRequestInProgress || !this.refresh)
+          return;
+        this.isRequestInProgress = true;
+
+        this.lastRequest = new Date().getTime()
+        getLog(this.port, 0, 3000)
+        .then((result) => {
+          if (this.entries.length > 0 && this.rawText.substr(0, result.length) == result) {
+            getLog(this.port, this.beforeLastEntry, -1)
+            .then((result2) => {
+              this.setPartialLogData(result2)
+              this.resetRequest()
+            })
+            .catch((err)=>{
+              this.resetRequest()
+            })
+          }
+          else {
+            this.entries = []
+            getLog(this.port, 0, -1)
+            .then((result2) => {
+              this.setFullLogData(result2)
+              this.resetRequest()
+            })
+            .catch((err)=>{
+              this.resetRequest()
+            })
+          }
+        })
+        .catch((err)=>{
+          this.resetRequest()
+        })
+      },
+      setPartialLogData(data) {
+        let beforeLastEntry = this.beforeLastEntry
+        this.entries.pop();
+        let newEntries = data.split(/\n(?= *\d+\.\d+ )/)
+        this.entries = this.entries.concat(newEntries)
+        this.rawText = this.rawText.substr(0, beforeLastEntry) + data
+        this.lastResponse = new Date().getTime()
+
+      },
+      setFullLogData(data) {
+        this.entries = data.split(/\n(?= *\d+\.\d+ )/)
+        this.rawText = data
+        this.skipPoint = 0
+        this.lastResponse = new Date().getTime()
+      },
+      resetRequest() {
+        this.isRequestInProgress = false
+      },
+      toggleSkip() {
+        if (this.filteredEntries.length > 0)
+          this.skipPoint = this.entries.length
+        else
+          this.skipPoint = 0
+      },
+      toggleCollapse() {
+        this.collapse = !this.collapse
+      },
+      saveSettings() {
+        let data = {
+          includeText : this.includeText,
+          excludeText : this.excludeText,
+          scrollText : this.scrollText,
+          autoskip : this.autoskip,
+          isRegExp : this.isRegExp,
+          refresh : this.refresh,
+          highlight : this.highlight,
+          portText : this.portText,
+          collapse : this.collapse,
+          highlightWE : this.highlightWE,
+          skipOnReload : this.skipOnReload,
+          removeDasPaths : this.removeDasPaths
+        }
+        localStorage.setItem(LOCATION, JSON.stringify(data));
+      },
+      monitorConnection() {
+        let time = new Date().getTime()
+        if (this.lastResponse < this.lastRequest && time - this.lastRequest > REFRESH_PERIOD)
+          this.isConnected = false
+      },
+      getBGClass() {
+        return {
+          disconnectedBG: !this.isConnected,
+        }
+      },
+      getTopPanelClass() {
+        return {
+          topPanel: true,
+          inactive: !this.refresh
+        }
+      },
+      getPortInputClass() {
+        return {
+          shortInput: true,
+          parsingErrorsBG: this.port != this.portText
+        }
+      },
+      getErrorNotifClass_i() {
+        return {
+          includeInput: true,
+          parsingErrorsBG: this.isRegExp && this.hasParsingErrors_i,
+        }
+      },
+      getErrorNotifClass_e() {
+        return {
+          excludeInput: true,
+          parsingErrorsBG: this.isRegExp && this.hasParsingErrors_e,
+        }
+      },
+      getLogMsgClass() {
+        return {
+          logMsg: true,
+          collapsedLogMsg: !this.collapse,
+        }
+      },
+      getESReloadClass() {
+        return {
+          eSReloadPanel: true,
+          eSReloadVisible: this.esReloaded,
+          eSReloadInvisible: !this.esReloaded,
+        }
+      }
+    }
+  })
+
+  function getLog(port, from, to) {
+    return new Promise((resolve, reject) => {
+      let request = new XMLHttpRequest();
+      request.open("GET", ["http://", location.hostname, ":", port, "/log?up_to=", to, "&start_from=", from].join(""));
+      request.onload = (e) => {
+        if (request.status == 200)
+          resolve(request.responseText)
+        else
+          reject(request.responseText)
+      }
+      request.onerror = (e) => {
+        reject(e.toString())
+      }
+      request.send(null);
+    })
+  }
+
+  function filterRegExp(entries, includes, excludes, startFrom, highlight, highlightWE, removeDasPaths) {
+    let result = []
+    let lastEntry = -1
+    for (let i = startFrom; i < entries.length; i++) {
+      if (!includes && (!excludes || !E.match(excludes))) {
+        let entry = removeDasPaths ? getEntryWithoutDasPath(entries[i]) : entries[i]
+        result.push(getHighlightWE(entry, highlightWE) + escapeHtml(entry))
+        lastEntry = i
+      }
+      if (!excludes || !entries[i].match(excludes)) {
+        let includeMatch = entries[i].match(includes)
+        if (includeMatch && !highlight) {
+          let entry = removeDasPaths ? getEntryWithoutDasPath(entries[i]) : entries[i]
+          result.push(getHighlightWE(entry, highlightWE) + escapeHtml(entry))
+          lastEntry = i
+        }
+        else if (includeMatch) {
+          let entry = removeDasPaths ? getEntryWithoutDasPath(entries[i]) : entries[i]
+          result.push(getHighlightWE(entry, highlightWE) + highlightOccurrence(entry, includeMatch[0], entry.indexOf(includeMatch[0])))
+          lastEntry = i
+        }
+      }
+    }
+    return {entries:result, lastEntry:lastEntry}
+  }
+
+  function filterSubstr(entries, includes, excludes, startFrom, highlight, highlightWE, removeDasPaths) {
+    let result = []
+    let lastEntry = -1
+    for (let i = startFrom; i < entries.length; i++) {
+      let entry = removeDasPaths ? getEntryWithoutDasPath(entries[i]) : entries[i]
+      let e = entry.toLowerCase()
+      let includeIndex = e.indexOf(includes)
+      let excludeIndex = excludes.length > 0 ? e.indexOf(excludes) : -1
+      if (includeIndex == -1 || excludeIndex != -1)
+        continue;
+      lastEntry = i
+      if (highlight)
+        result.push(getHighlightWE(entry, highlightWE) + highlightOccurrence(entry, includes, includeIndex))
+      else
+        result.push(getHighlightWE(entry, highlightWE) + escapeHtml(entry))
+    }
+    return {entries:result, lastEntry:lastEntry};
+  }
+
+  function parseRegexp(newValue) {
+    if (newValue.length == 0)
+      return null
+    if (newValue[0] != "/")
+      return new RegExp(newValue, "g")
+    let parts = newValue.split("/")
+      return new RegExp(parts[1], parts[2].indexOf("g") == -1 ? parts[2] + "g" : parts[2])
+  }
+
+  function highlightOccurrence(source, occurrence, index) {
+    return [
+      escapeHtml(source.substr(0, index)),
+      "<span class=\"highlighted\">",
+      escapeHtml(source.substr(index, occurrence.length)),
+      "</span>",
+      escapeHtml(source.substr(index + occurrence.length))
+    ].join("")
+  }
+
+  function escapeHtml(unsafe) {
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+  }
+
+  function getHighlightWE(entry, apply) {
+    if (!apply)
+      return ""
+    let eMatch = entry.match(ERROR_REG_EXP)
+    if (eMatch && eMatch.index < 50) {
+      return "<span class=\"highlightedE\">⬤ </span>"
+    }
+    let wMatch = entry.match(WARNING_REG_EXP)
+    if (wMatch && wMatch.index < 50) {
+      return "<span class=\"highlightedW\">⬤ </span>"
+    }
+    return ""
+  }
+
+  function getEntryWithoutDasPath(entry_with_path) {
+    return entry_with_path.replace(/^(.{0,50}?)(\s*\S*\.das:\d+:\s*)/, function(match, p1, p2) {
+        return p1 + ' ';
+    });
+  }
+  </script>
+</body>
+
+
+</html>

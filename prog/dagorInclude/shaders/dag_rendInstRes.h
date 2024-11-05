@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -144,6 +143,7 @@ public:
     Point4 crownCenter1 = Point4(0, 0, 0, 0), invCrownRad1 = Point4(0, 0, 0, 0);
     Point4 crownCenter2 = Point4(0, 0, 0, 0), invCrownRad2 = Point4(0, 0, 0, 0);
     bool preshadowEnabled = true;
+    float bottomGradient = 0.0;
     bool hasBakedTexture() const { return horizontalSamples != 0; }
   };
 
@@ -157,6 +157,8 @@ public:
     const DataBlock *desc = nullptr);
   static RenderableInstanceLodsResource *makeStubRes(const DataBlock *b = NULL);
 
+  using ImpostorTextureCallback = void (*)(const RenderableInstanceLodsResource *);
+  static void setImpostorTextureCallback(ImpostorTextureCallback callback);
 
   void gatherUsedTex(TextureIdSet & tex_id_list) const;
   void gatherUsedMat(Tab<ShaderMaterial *> & mat_list) const;
@@ -278,6 +280,11 @@ public:
 
   unsigned getQlMinAllowedLod() const { return qlMinAllowedLod; }
 
+  unsigned incQlReloadCnt() { return interlocked_increment(qlReloadCnt); }
+  unsigned getQlReloadCnt() const { return interlocked_acquire_load(qlReloadCnt); }
+  unsigned incQlDiscardCnt() { return interlocked_increment(qlDiscardCnt); }
+  unsigned getQlDiscardCnt() const { return interlocked_acquire_load(qlDiscardCnt); }
+
 protected:
   void setQlReqLod(uint16_t new_lod) { interlocked_release_store(qlReqLod, new_lod); }
   void setQlReqLFU(int frame_no) { interlocked_release_store(qlReqLFU, frame_no); }
@@ -312,9 +319,11 @@ protected:
   unsigned char rotationPaletteSize = 1;
   unsigned char qlMinAllowedLod = 0;
   volatile unsigned short qlReqLod = qlReqLodInitialValue, qlReqLodPrev = qlReqLodInitialValue;
+  volatile unsigned short qlReloadCnt = 0, qlDiscardCnt = 0;
   int qlReqLFU = 0;
-  PATCHABLE_64BIT_PAD32(_resv);
+  mutable uint32_t bvhId = 0;
   Ptr<ShaderMatVdata> smvd;
+  PATCHABLE_32BIT_PAD32(_resv[3]);
 
 public:
   PatchableTab<Lod> lods;
@@ -344,6 +353,9 @@ protected:
   };
 
 public:
+  uint32_t getBvhId() const { return bvhId; }
+  void setBvhId(uint32_t id) const { bvhId = id; }
+
   void loadImpostorData(const char *name);
   bool hasImpostor() const
   {

@@ -1,0 +1,238 @@
+include "shader_global.dshl"
+include "viewVecVS.dshl"
+include "gbuffer.dshl"
+include "depth_above.dshl"
+include "wetness_inc.dshl"
+include "normaldetail.dshl"
+include "fake_static_shadow.dshl"
+include "optional_puddle_access.dshl"
+include "heightmap_common.dshl"
+
+float rain_ripples_max_radius = 0.15;
+
+shader rain_ripples
+{
+  static int writemask = 112;//(7<<4) - normal
+  color_write = static writemask;
+  // We need all static variables to be defined before dont_render, otherwise we have logerr
+  // about static vars count mismatch when reload shaders to compatibility.
+
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;//currently not support
+  }
+  supports global_frame;
+  z_write = false;
+  z_test = false;
+  cull_mode = none;
+  blend_src = sa; blend_dst = isa;
+  blend_asrc = one; blend_adst = isa;
+
+
+
+  INIT_ZNZFAR()
+  WRITE_GBUFFER()
+  USE_DECODE_DEPTH()
+  INIT_READ_DEPTH_GBUFFER()
+  USE_AND_INIT_VIEW_VEC_VS()
+  USE_AND_INIT_VIEW_VEC_PS()
+  INIT_DEPTH_ABOVE(ps, blurred_depth_transparent)
+  USE_DEPTH_ABOVE(ps, blurred_depth_transparent)
+  (ps) {
+    screen_size@f4 = (1. / screen_pos_to_texcoord.x, 1. / screen_pos_to_texcoord.y, screen_pos_to_texcoord.x, screen_pos_to_texcoord.y);
+    time_in_cell__max_radius_inv@f2 = ((time_phase(0, 0) * 1 + 10) * 1.41421356237 * rain_ripples_max_radius, 1. / rain_ripples_max_radius, 0, 0);
+  }
+
+  POSTFX_VS_TEXCOORD_VIEWVEC(0, texcoord, viewVect)
+
+  USE_WETNESS()
+  INIT_WRITE_GBUFFER_WETNESS()
+  WRITE_GBUFFER_WETNESS()
+  USE_CUBE_RAIN_DROPLETS(1)
+
+  INIT_WORLD_HEIGHTMAP_PS()
+  USE_HEIGHTMAP_COMMON_PS()
+  INIT_PUDDLE(ps)
+  USE_PUDDLE(ps)
+
+  USE_READ_DEPTH_GBUFFER()
+
+  hlsl(ps) {
+    #include <psh_tangent.hlsl>
+    #include <normaldetail.hlsl>
+
+    float hash12(float2 p)
+    {
+      return frac(sin(dot(p, float2(12.9898, 78.233))) * 43758.5453);
+    }
+
+    void add_ring_ripple(float3 world_pos, inout float3 normal, inout float wetMaterial)
+    {
+      const int MAX_LAYERS_COUNT = 32;
+      //We use only 4 layers.
+      const int LAYERS_COUNT = 4;
+      float influence = 0;
+
+      float angleInfl = saturate((normal.y - 0.8) * 10);
+
+      BRANCH
+      if (angleInfl > 0)
+      {
+        float ringWidthInv = 1. / 0.005;
+
+        float radius = time_in_cell__max_radius_inv.y;
+        float radiusInvDouble = 2 / radius;
+        float timeInCell = time_in_cell__max_radius_inv.x;
+
+        float4 fromCenter_stage_diff = 0;
+
+        float2 tc = world_pos.xz * 0.5 * radius;
+
+        float2 layers_shifts[MAX_LAYERS_COUNT] =
+        {
+          float2(0.0, 1.0),
+          float2(0.8414709848078965, 0.5403023058681398),
+          float2(0.9092974268256817, -0.4161468365471424),
+          float2(0.1411200080598672, -0.9899924966004454),
+          float2(-0.7568024953079282, -0.6536436208636119),
+          float2(-0.9589242746631385, 0.28366218546322625),
+          float2(-0.27941549819892586, 0.960170286650366),
+          float2(0.6569865987187891, 0.7539022543433046),
+          float2(0.9893582466233818, -0.14550003380861354),
+          float2(0.4121184852417566, -0.9111302618846769),
+          float2(-0.5440211108893698, -0.8390715290764524),
+          float2(-0.9999902065507035, 0.004425697988050785),
+          float2(-0.5365729180004349, 0.8438539587324921),
+          float2(0.4201670368266409, 0.9074467814501962),
+          float2(0.9906073556948704, 0.1367372182078336),
+          float2(0.6502878401571168, -0.7596879128588213),
+          float2(-0.2879033166650653, -0.9576594803233847),
+          float2(-0.9613974918795568, -0.27516333805159693),
+          float2(-0.750987246771676, 0.6603167082440802),
+          float2(0.14987720966295234, 0.9887046181866692),
+          float2(0.9129452507276277, 0.40808206181339196),
+          float2(0.8366556385360561, -0.5477292602242684),
+          float2(-0.008851309290403876, -0.9999608263946371),
+          float2(-0.8462204041751706, -0.5328330203333975),
+          float2(-0.9055783620066239, 0.424179007336997),
+          float2(-0.13235175009777303, 0.9912028118634736),
+          float2(0.7625584504796027, 0.6469193223286404),
+          float2(0.956375928404503, -0.2921388087338362),
+          float2(0.27090578830786904, -0.9626058663135666),
+          float2(-0.6636338842129675, -0.7480575296890003),
+          float2(-0.9880316240928618, 0.15425144988758405),
+          float2(-0.404037645323065, 0.9147423578045313)
+        };
+
+        UNROLL
+        for (int i = 0; i < LAYERS_COUNT; ++i)
+        {
+          float2 uv = tc + layers_shifts[i] * radius;
+          float2 center = ceil(uv - 0.5);
+          float cellHash = hash12(center);
+          float2 fromCenter = (center - uv) * radiusInvDouble;
+          float stage = length(fromCenter) * lerp(1., 1.5, frac(1000 * cellHash));
+          float cellPhase = cellHash;
+          float inCellTimeStage = frac(timeInCell + cellPhase);
+          float stageDiffScaled = (inCellTimeStage - stage) * ringWidthInv;
+          float infl = 1. - saturate(abs(stageDiffScaled));
+          infl *= (1. - stage * radius);
+
+          infl = saturate(infl);
+          FLATTEN
+          if (infl > influence) {
+            influence = infl;
+            fromCenter_stage_diff.xy = fromCenter;
+            fromCenter_stage_diff.z = stage;
+            fromCenter_stage_diff.w = stageDiffScaled;
+          }
+        }
+
+        if (fromCenter_stage_diff.z > 1e-4)
+        {
+          normal = lerp(0, float3(fromCenter_stage_diff.x, 0, fromCenter_stage_diff.y) / fromCenter_stage_diff.z, fromCenter_stage_diff.w * pow(influence, 0.125));
+          wetMaterial = max(wetMaterial, influence * angleInfl);
+        }
+      }
+    }
+
+    GBUFFER_OUTPUT rain_ripples_ps(VsOutput input)
+    {
+      float sceneDepth = linearize_z(readGbufferDepth(input.texcoord), zn_zfar.zw);
+      float3 viewVect = lerp_view_vec(input.texcoord);
+      float3 cameraToPoint = sceneDepth * viewVect;
+      float3 worldPos = world_view_pos + cameraToPoint;
+
+      float3 normal = normalize(cross(ddx(cameraToPoint), ddy(cameraToPoint)));
+
+      float depthVignette = 0;
+      float3 biasedWorldPos = worldPos + normal;
+      float depthAbove = getWorldBlurredDepth(biasedWorldPos, depthVignette);
+
+      float depthInfl = 1 - saturate(depthAbove - biasedWorldPos.y);
+      BRANCH
+      if (depthInfl < 0.0001)
+        discard;
+
+      UnpackedGbuffer output;
+      init_gbuffer(output);
+
+      float waterBorder;
+      float wetness = get_base_wetness(worldPos, normal, waterBorder);
+      if (waterBorder < -0.99)
+        discard;
+      depthInfl *= saturate(waterBorder + 1.0);
+
+      float wetMaterial = 0;
+      if (wetness > 0)
+      {
+        BRANCH
+        if (hpuddles_gfade.x == 0.0)
+        {
+          wetMaterial = get_wet_material(wetness, waterBorder);
+        }
+
+        float puddleHmap = get_height_for_puddle(worldPos);
+        float puddleHmapOverride = worldPos.y;
+        float puddleHmapOffset = puddleHmapOverride - puddleHmap;
+        float puddle, worldPosYPuddleOffset, puddleHeight;
+        getPuddleData(worldPos.y, worldPos, puddleHmapOverride, puddle, worldPosYPuddleOffset, puddleHeight);
+        const float puddleFadeoutDistance = 0.05;
+        const float invPuddleFadeoutDistance = 1.0/puddleFadeoutDistance;
+        float fadeoutFactor = saturate((worldPos.y - (puddleHeight - puddleHmapOffset)) * invPuddleFadeoutDistance);
+        // This is a workaround:
+        //  - It allows applying puddles on top of RI clipmap (these are not in the hmap, so no puddles are generated on top of them)
+        //  - It avoids placing puddles on vertical walls (puddles from flat terrain might be projected onto a vertical wall above, while using puddleHmapOverride as base height)
+        puddle *= lerp(1, saturate(normal.y), fadeoutFactor);
+
+        wetMaterial = max(puddle, wetMaterial);
+
+        BRANCH
+        if (check_rain_ripples_condition())
+        {
+          float4 ripplesTc;
+          float3 ripplesTcDx, ripplesTcDy;
+          get_rain_ripples_tc(worldPos, normal, wetMaterial, ripplesTc, ripplesTcDx, ripplesTcDy);
+          float3 ripplesNorm;
+          get_rain_ripples(ripplesTc, worldPos, normal, wetMaterial, hpuddles_gfade.y, ripplesNorm, ripplesTcDx, ripplesTcDy);
+          normal = ripplesNorm * float3(1, puddle, 1); // We use previously used float3(1, 0, 1) as multiplier so that droplets
+                                                             // don't "vericalize" normals on tilted or vertical surfaces. But for puddles
+                                                             // there shouldn't be multiplication. So use ripplesAmount to blend
+                                                             // between these states.
+        }
+        else
+        {
+          add_ring_ripple(worldPos, normal, wetMaterial);
+        }
+      }
+
+      init_normal(output, normal);
+
+      GBUFFER_OUTPUT gbuf = encode_gbuffer(output, -cameraToPoint, GET_SCREEN_POS(input.pos));
+      gbuf.normal_material.w = wetMaterial * depthInfl;
+      return gbuf;
+    }
+  }
+
+  compile("target_ps", "rain_ripples_ps");
+}

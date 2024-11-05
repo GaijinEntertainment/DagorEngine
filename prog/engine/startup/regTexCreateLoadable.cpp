@@ -1,7 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <startup/dag_startupTex.h>
 #include <3d/dag_createTex.h>
 #include <image/dag_loadImage.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_lock.h>
 #include <3d/dag_texMgr.h>
 #include <image/dag_texPixel.h>
 #include <util/dag_texMetaData.h>
@@ -13,6 +17,7 @@
 #include <osApiWrappers/dag_direct.h>
 #include <debug/dag_log.h>
 #include <math/dag_adjpow2.h>
+#include <util/dag_hash.h>
 
 static inline void tex_premul_alpha(TexImage32 *im)
 {
@@ -209,6 +214,8 @@ public:
 
   setup_tex_props:
     apply_gen_tex_props(t, tmd);
+    TEXTUREID tid = get_managed_texture_id(fn);
+    set_texture_separate_sampler(tid, get_sampler_info(tmd));
     if (!(flg & TEXCF_SYSTEXCOPY))
       set_img_reloadable_callback(t, fn, fn_ext, (tmd.flags & tmd.FLG_PREMUL_A) ? true : false);
     return t;

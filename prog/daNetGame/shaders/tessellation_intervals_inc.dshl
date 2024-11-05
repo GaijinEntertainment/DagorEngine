@@ -1,0 +1,2 @@
+float object_tess_factor = 0;
+interval object_tess_factor : object_tess_factor_off < 1, object_tess_factor_on;

@@ -17,4 +17,4 @@ LOCALS
 [x] TABLE={bar="T"}
 [foo] CLOSURE=FN:foo
 [vargv] ARRAY=[]
-[this] TABLE={}
+[this] NULL

@@ -1,0 +1,101 @@
+include "shader_global.dshl"
+
+int bvh_process_target_offset;
+int bvh_process_leaves_vertices_start;
+int bvh_process_leaves_vertices_stride;
+int bvh_process_leaves_vertices_count;
+
+float4x4 bvh_process_leaves_vertices_wtm;
+float4x4 bvh_process_leaves_vertices_itm;
+
+shader bvh_process_leaves_vertices
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    target_offset@u1 = bvh_process_target_offset;
+    start_vertex@i1 = bvh_process_leaves_vertices_start;
+    vertex_stride@i1 = bvh_process_leaves_vertices_stride;
+    vertex_count@i1 = bvh_process_leaves_vertices_count;
+
+    from_sun_direction@f3 = from_sun_direction;
+
+    wind_array@f4[] = { windMatrix1X, windMatrix1Y, windMatrix1Z,
+                        windMatrix2X, windMatrix2Y, windMatrix2Z,
+                        windMatrix3X, windMatrix3Y, windMatrix3Z,
+                        windMatrix4X, windMatrix4Y, windMatrix4Z };
+    wtm@f44 = bvh_process_leaves_vertices_wtm;
+    itm@f44 = bvh_process_leaves_vertices_itm;
+  }
+
+  hlsl(cs) {
+    ByteAddressBuffer source : register(t6);
+    RWByteAddressBuffer output : register(u0);
+
+    [numthreads( 64, 1, 1 )]
+    void bvh_process_impostor_vertices(uint3 dtId : SV_DispatchThreadID)
+    {
+      // This is made for shadow purposes. These trees are seen in air battles, and we are not seeing them
+      // in reflections for instance. So we align them towards the sun, so they can cast shadows on the ground.
+      // If we need to make them work for rendering for instance, we might need to duplicate the triangles,
+      // and make the odd ones to face the camera.
+
+      uint vertexId = dtId.x;
+      if (vertexId >= vertex_count)
+        return;
+
+      int vertexStart = (start_vertex + vertexId) * vertex_stride;
+
+      uint2 inputPosPack = source.Load2(vertexStart);
+      uint texcoord = source.Load(vertexStart + 8);
+      uint2 texcoord2Pack = source.Load2(vertexStart + 12);
+      uint normalPack = source.Load(vertexStart + 20);
+
+      float3 pos = f16tof32(uint3(inputPosPack.x, inputPosPack.x >> 16, inputPosPack.y));
+      float4 tc2 = f16tof32(uint4(texcoord2Pack.x, texcoord2Pack.x >> 16, texcoord2Pack.y, texcoord2Pack.y >> 16));
+
+      float3 worldLocalX   = wtm[0].xyz;
+      float3 worldLocalY   = wtm[1].xyz;
+      float3 worldLocalZ   = wtm[2].xyz;
+      float3 worldLocalPos = wtm[3].xyz;
+
+      float3 delta = tc2.xyz;
+      int windNo = int(tc2.w);
+
+      float deltaLen = length(delta.xy);
+
+      float3 delta_w;
+      delta_w  = wind_array[windNo + 0].xyz * delta.x;
+      delta_w += wind_array[windNo + 1].xyz * delta.y;
+      delta_w += wind_array[windNo + 2].xyz * delta.z;
+
+      pos.x += dot(normalize(worldLocalX), delta_w);
+      pos.y += dot(normalize(worldLocalY), delta_w);
+      pos.z += dot(normalize(worldLocalZ), delta_w);
+
+      float4 worldPos4 = float4(pos.x * worldLocalX + pos.y * worldLocalY + pos.z * worldLocalZ + worldLocalPos, 1);
+
+      // facing leaves are using pos instancing, so it faster to get pos_and_scale.w
+      // instead of calculating length of worldLocalX (because even with pos instancing, we apply rotation to them)
+
+      // It is for shadows, so push them away from the sun.
+      worldPos4.xyz += from_sun_direction.xyz * deltaLen * length(worldLocalX);
+
+      float3 animatedLocalPos = mul(worldPos4, itm).xyz;
+
+      uint4 outputPosPack = f32tof16(float4(animatedLocalPos, 1));
+
+      static const uint processedVertexStride = 16; // half4 + short2 + uint
+
+      output.Store2(target_offset + vertexId * processedVertexStride + 0, uint2(outputPosPack.x | (outputPosPack.y << 16), outputPosPack.z | (outputPosPack.w << 16)));
+      output.Store(target_offset + vertexId * processedVertexStride + 8, texcoord);
+      output.Store(target_offset + vertexId * processedVertexStride + 12, normalPack);
+    }
+  }
+
+  compile("target_cs", "bvh_process_impostor_vertices");
+}

@@ -1,21 +1,7 @@
-// this file is generated via daScript automatic C++ binder
+// this file is generated via Daslang automatic C++ binder
 // all user modifications will be lost after this file is re-generated
 
-class Enumeration_ax_NodeEditor_SaveReasonFlags : public das::Enumeration {
-public:
-	Enumeration_ax_NodeEditor_SaveReasonFlags() : das::Enumeration("SaveReasonFlags") {
-		external = true;
-		cppName = "ax::NodeEditor::SaveReasonFlags";
-		baseType = (das::Type) das::ToBasicType<uint32_t>::type;
-		addIEx("None", "None", int64_t(ax::NodeEditor::SaveReasonFlags::None), das::LineInfo());
-		addIEx("Navigation", "Navigation", int64_t(ax::NodeEditor::SaveReasonFlags::Navigation), das::LineInfo());
-		addIEx("Position", "Position", int64_t(ax::NodeEditor::SaveReasonFlags::Position), das::LineInfo());
-		addIEx("Size", "Size", int64_t(ax::NodeEditor::SaveReasonFlags::Size), das::LineInfo());
-		addIEx("Selection", "Selection", int64_t(ax::NodeEditor::SaveReasonFlags::Selection), das::LineInfo());
-		addIEx("User", "User", int64_t(ax::NodeEditor::SaveReasonFlags::User), das::LineInfo());
-	}
-};
-
+// from imgui-node-editor/imgui_node_editor.h:46:12
 class Enumeration_ax_NodeEditor_PinKind : public das::Enumeration {
 public:
 	Enumeration_ax_NodeEditor_PinKind() : das::Enumeration("PinKind") {
@@ -27,6 +13,50 @@ public:
 	}
 };
 
+// from imgui-node-editor/imgui_node_editor.h:52:12
+class Enumeration_ax_NodeEditor_FlowDirection : public das::Enumeration {
+public:
+	Enumeration_ax_NodeEditor_FlowDirection() : das::Enumeration("FlowDirection") {
+		external = true;
+		cppName = "ax::NodeEditor::FlowDirection";
+		baseType = (das::Type) das::ToBasicType<int>::type;
+		addIEx("Forward", "Forward", int64_t(ax::NodeEditor::FlowDirection::Forward), das::LineInfo());
+		addIEx("Backward", "Backward", int64_t(ax::NodeEditor::FlowDirection::Backward), das::LineInfo());
+	}
+};
+
+// from imgui-node-editor/imgui_node_editor.h:58:12
+class Enumeration_ax_NodeEditor_CanvasSizeMode : public das::Enumeration {
+public:
+	Enumeration_ax_NodeEditor_CanvasSizeMode() : das::Enumeration("CanvasSizeMode") {
+		external = true;
+		cppName = "ax::NodeEditor::CanvasSizeMode";
+		baseType = (das::Type) das::ToBasicType<int>::type;
+		addIEx("FitVerticalView", "FitVerticalView", int64_t(ax::NodeEditor::CanvasSizeMode::FitVerticalView), das::LineInfo());
+		addIEx("FitHorizontalView", "FitHorizontalView", int64_t(ax::NodeEditor::CanvasSizeMode::FitHorizontalView), das::LineInfo());
+		addIEx("CenterOnly", "CenterOnly", int64_t(ax::NodeEditor::CanvasSizeMode::CenterOnly), das::LineInfo());
+	}
+};
+
+// from imgui-node-editor/imgui_node_editor.h:67:12
+class Enumeration_ax_NodeEditor_SaveReasonFlags : public das::Enumeration {
+public:
+	Enumeration_ax_NodeEditor_SaveReasonFlags() : das::Enumeration("SaveReasonFlags") {
+		external = true;
+		cppName = "ax::NodeEditor::SaveReasonFlags";
+		baseType = (das::Type) das::ToBasicType<uint32_t>::type;
+		addIEx("None", "None", int64_t(ax::NodeEditor::SaveReasonFlags::None), das::LineInfo());
+		addIEx("Navigation", "Navigation", int64_t(ax::NodeEditor::SaveReasonFlags::Navigation), das::LineInfo());
+		addIEx("Position", "Position", int64_t(ax::NodeEditor::SaveReasonFlags::Position), das::LineInfo());
+		addIEx("Size", "Size", int64_t(ax::NodeEditor::SaveReasonFlags::Size), das::LineInfo());
+		addIEx("Selection", "Selection", int64_t(ax::NodeEditor::SaveReasonFlags::Selection), das::LineInfo());
+		addIEx("AddNode", "AddNode", int64_t(ax::NodeEditor::SaveReasonFlags::AddNode), das::LineInfo());
+		addIEx("RemoveNode", "RemoveNode", int64_t(ax::NodeEditor::SaveReasonFlags::RemoveNode), das::LineInfo());
+		addIEx("User", "User", int64_t(ax::NodeEditor::SaveReasonFlags::User), das::LineInfo());
+	}
+};
+
+// from imgui-node-editor/imgui_node_editor.h:130:6
 class Enumeration_ax_NodeEditor_StyleColor : public das::Enumeration {
 public:
 	Enumeration_ax_NodeEditor_StyleColor() : das::Enumeration("StyleColor") {
@@ -43,6 +73,7 @@ public:
 		addIEx("NodeSelRectBorder", "StyleColor_NodeSelRectBorder", int64_t(ax::NodeEditor::StyleColor::StyleColor_NodeSelRectBorder), das::LineInfo());
 		addIEx("HovLinkBorder", "StyleColor_HovLinkBorder", int64_t(ax::NodeEditor::StyleColor::StyleColor_HovLinkBorder), das::LineInfo());
 		addIEx("SelLinkBorder", "StyleColor_SelLinkBorder", int64_t(ax::NodeEditor::StyleColor::StyleColor_SelLinkBorder), das::LineInfo());
+		addIEx("HighlightLinkBorder", "StyleColor_HighlightLinkBorder", int64_t(ax::NodeEditor::StyleColor::StyleColor_HighlightLinkBorder), das::LineInfo());
 		addIEx("LinkSelRect", "StyleColor_LinkSelRect", int64_t(ax::NodeEditor::StyleColor::StyleColor_LinkSelRect), das::LineInfo());
 		addIEx("LinkSelRectBorder", "StyleColor_LinkSelRectBorder", int64_t(ax::NodeEditor::StyleColor::StyleColor_LinkSelRectBorder), das::LineInfo());
 		addIEx("PinRect", "StyleColor_PinRect", int64_t(ax::NodeEditor::StyleColor::StyleColor_PinRect), das::LineInfo());
@@ -55,6 +86,7 @@ public:
 	}
 };
 
+// from imgui-node-editor/imgui_node_editor.h:155:6
 class Enumeration_ax_NodeEditor_StyleVar : public das::Enumeration {
 public:
 	Enumeration_ax_NodeEditor_StyleVar() : das::Enumeration("StyleVar") {
@@ -84,6 +116,10 @@ public:
 		addIEx("PinArrowWidth", "StyleVar_PinArrowWidth", int64_t(ax::NodeEditor::StyleVar::StyleVar_PinArrowWidth), das::LineInfo());
 		addIEx("GroupRounding", "StyleVar_GroupRounding", int64_t(ax::NodeEditor::StyleVar::StyleVar_GroupRounding), das::LineInfo());
 		addIEx("GroupBorderWidth", "StyleVar_GroupBorderWidth", int64_t(ax::NodeEditor::StyleVar::StyleVar_GroupBorderWidth), das::LineInfo());
+		addIEx("HighlightConnectedLinks", "StyleVar_HighlightConnectedLinks", int64_t(ax::NodeEditor::StyleVar::StyleVar_HighlightConnectedLinks), das::LineInfo());
+		addIEx("SnapLinkToPinDir", "StyleVar_SnapLinkToPinDir", int64_t(ax::NodeEditor::StyleVar::StyleVar_SnapLinkToPinDir), das::LineInfo());
+		addIEx("HoveredNodeBorderOffset", "StyleVar_HoveredNodeBorderOffset", int64_t(ax::NodeEditor::StyleVar::StyleVar_HoveredNodeBorderOffset), das::LineInfo());
+		addIEx("SelectedNodeBorderOffset", "StyleVar_SelectedNodeBorderOffset", int64_t(ax::NodeEditor::StyleVar::StyleVar_SelectedNodeBorderOffset), das::LineInfo());
 		addIEx("Count", "StyleVar_Count", int64_t(ax::NodeEditor::StyleVar::StyleVar_Count), das::LineInfo());
 	}
 };

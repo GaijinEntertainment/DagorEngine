@@ -1,8 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/dag_tex3d.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_lock.h>
 #include <ioSys/dag_fastSeqRead.h>
 #include <ioSys/dag_memIo.h>
 #include <perfMon/dag_perfTimer.h>
@@ -112,9 +112,11 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
         RMGR.hasTexBaseData(RMGR.pairedBaseTexId[tid.index()]));
       {
         d3d::LoadingAutoLock loadingLock;
-        if (!RMGR.readDdsxTex(tid, *hdr, crd, texQ))
+
+        TexLoadRes ldRet = RMGR.readDdsxTex(tid, *hdr, crd, texQ);
+        if (ldRet == TexLoadRes::ERR)
           if (!d3d::is_in_device_reset_now())
-            logwarn("failed loading tex '%s' from pack '%s'", texName, packName);
+            logerr("failed loading tex '%s' from pack '%s'", texName, packName);
       }
 
       tmpmem->free(data);
@@ -136,7 +138,7 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
     DDSxDecodeCtxBase *ctx;
     unsigned wIdx = 0;
 
-    DecThread() : DaThread("DDSX decoder", 128 << 10), ctx(NULL)
+    DecThread() : DaThread("DDSX decoder", 128 << 10, 0, WORKER_THREADS_AFFINITY_MASK), ctx(NULL)
     {
       stripStackInMinidump();
       os_event_create(&event, NULL);
@@ -145,12 +147,12 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
 
     void execute() override
     {
-      while (!interlocked_acquire_load(terminating))
+      while (!isThreadTerminating())
       {
         interlocked_or(ctx->maybeIdle, 1 << wIdx);
         int wres = os_event_wait(&event, cpujobs::DEFAULT_IDLE_TIME_SEC / 2 * 1000);
         interlocked_and(ctx->maybeIdle, ~(1 << wIdx));
-        if (interlocked_acquire_load(terminating))
+        if (isThreadTerminating())
           break;
 
         cpujobs::IJob *job = ctx->q.pop();
@@ -172,7 +174,7 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
           DDSxDecodeCtx::updateWorkerUsedMask(static_cast<TexCreateJob *>(job)->prio, wIdx);
           G_ASSERT(interlocked_acquire_load(job->done) == 0);
           interlocked_release_store(job->done, 1);
-          if (interlocked_acquire_load(terminating)) // check quit request
+          if (isThreadTerminating()) // check quit request
             return;
           job = ctx->q.pop();
         }
@@ -232,7 +234,6 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
         workers[i].terminate(true); // ZOMBIE -> DEAD
       G_VERIFY(os_event_set(&workers[i].event) == 0);
       G_VERIFY(workers[i].start());
-      workers[i].setAffinity(WORKER_THREADS_AFFINITY_MASK);
       return true;
     }
     return false;
@@ -296,6 +297,6 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
 
   static void clearWorkerUsedMask(int prio) { interlocked_release_store(prioWorkerUsedMask[prio], 0); }
   static void updateWorkerUsedMask(int prio, unsigned t) { interlocked_or(prioWorkerUsedMask[prio], 1 << t); }
-  static uint32_t getWorkerUsedMask(int prio) { return prioWorkerUsedMask[prio]; }
-  static uint32_t getWorkerUsedCount(int prio) { return __popcount(prioWorkerUsedMask[prio]); }
+  static uint32_t getWorkerUsedMask(int prio) { return interlocked_acquire_load(prioWorkerUsedMask[prio]); }
+  static uint32_t getWorkerUsedCount(int prio) { return __popcount(interlocked_acquire_load(prioWorkerUsedMask[prio])); }
 };

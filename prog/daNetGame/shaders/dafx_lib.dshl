@@ -1,0 +1,42 @@
+include "dafx_shaders.dshl"
+include "shader_global.dshl"
+
+texture downsampled_depth;
+
+shader dafx_flowps2_emission, dafx_flowps2_simulation, dafx_flowps2_emission_gpu_features, dafx_flowps2_simulation_gpu_features
+{
+  include "hardware_defines.dshl"
+
+  ENABLE_ASSERT(cs)
+  DAFX_COMPUTE_INIT()
+
+  (cs) {g_depth_tex@smp2d = downsampled_depth; }
+  (cs) {g_normals_tex@smp2d = downsampled_normals; }
+
+  hlsl
+  {
+    ##if shader == dafx_flowps2_emission_gpu_features || shader == dafx_flowps2_simulation_gpu_features
+    #define FLOWPS2_GPU_FEATURES 1
+    ##endif
+  }
+
+  hlsl(cs)
+  {
+    #include "dafx_hlsl_funcs.hlsli"
+    #include "dafx_globals.hlsli"
+    #include "dafx_random.hlsli"
+    #include "dafx_packers.hlsli"
+    #include "dafx_loaders.hlsli"
+    #include "dafx_flowps2_decl.hlsli"
+    #include "dafx_flowps2.hlsli"
+  }
+
+  if ( shader == dafx_flowps2_emission || shader == dafx_flowps2_emission_gpu_features )
+  {
+    DAFX_EMISSION_USE()
+  }
+  if ( shader == dafx_flowps2_simulation || shader == dafx_flowps2_simulation_gpu_features )
+  {
+    DAFX_SIMULATION_USE()
+  }
+}

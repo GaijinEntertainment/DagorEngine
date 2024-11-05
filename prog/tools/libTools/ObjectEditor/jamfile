@@ -4,17 +4,21 @@ Location = prog/tools/libTools/objectEditor ;
 TargetType  = lib ;
 Target      = tools/libTools/objectEditor.lib ;
 
-AddIncludes     = $(Root)/prog/tools/sharedInclude ;
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditorX/include
+  $(Root)/prog/tools/sharedInclude
+;
 
 
 Sources =
   ec_objectEditor.cpp
   ec_rendEdObject.cpp
   ec_ObjectEditorBar.cpp
+  ec_brush.cpp
 ;
 
 
-if $(DriverLinkage) != dynamic { UseProgLibs = engine/baseUtil ; } # for watchdog
+if $(KernelLinkage) != dynamic { UseProgLibs = engine/baseUtil ; } # for watchdog
 
 CPPopt = ;
 

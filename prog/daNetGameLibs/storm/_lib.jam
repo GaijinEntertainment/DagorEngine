@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_storm_pull ;
+  UseProgLibs += daNetGameLibs/storm ;
+}

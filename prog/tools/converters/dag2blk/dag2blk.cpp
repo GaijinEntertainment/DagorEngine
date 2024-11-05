@@ -1,4 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/dagFileRW/dagFileExport.h>
 #include <libTools/dagFileRW/dagFileNode.h>
 #include <libTools/dagFileRW/dagExporter.h>

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/net/serialize.h>
 #include <daECS/core/component.h>
 #include <daECS/core/componentTypes.h>
@@ -12,6 +14,7 @@
 #include <generic/dag_tab.h>
 #include <memory/dag_framemem.h>
 #include <limits.h>
+#include <supp/dag_alloca.h>
 
 namespace ecs
 {
@@ -156,7 +159,7 @@ bool BitstreamDeserializer::read(void *to, size_t sz_in_bits, ecs::component_typ
       if (!str)
         return false;
       auto &item = obj.insert(str); // insert before deserialization since 'str' might be reused in next calls
-      if (ecs::MaybeChildComponent maybeComp = ecs::deserialize_child_component(*this))
+      if (ecs::MaybeChildComponent maybeComp = ecs::deserialize_child_component(*this, mgr))
         item = eastl::move(*maybeComp);
       else
         return false;
@@ -180,12 +183,12 @@ bool BitstreamDeserializer::skip(ecs::component_index_t cidx, const ecs::DataCom
 {
   if (compInfo.componentType == ecs::INVALID_COMPONENT_TYPE_INDEX)
     return false;
-  auto &componentTypes = g_entity_mgr->getComponentTypes();
+  auto &componentTypes = mgr.getComponentTypes();
   const ecs::ComponentType componentTypeInfo = componentTypes.getTypeInfo(compInfo.componentType);
   const bool isPod = ecs::is_pod(componentTypeInfo.flags);
   ecs::ComponentSerializer *typeIO = nullptr;
   if (compInfo.flags & ecs::DataComponent::HAS_SERIALIZER)
-    typeIO = g_entity_mgr->getDataComponents().getComponentIO(cidx);
+    typeIO = mgr.getDataComponents().getComponentIO(cidx);
   if (!typeIO && has_io(componentTypeInfo.flags))
     typeIO = componentTypes.getTypeIO(compInfo.componentType);
   void *tempData = alloca(componentTypeInfo.size);
@@ -196,7 +199,7 @@ bool BitstreamDeserializer::skip(ecs::component_index_t cidx, const ecs::DataCom
     G_ASSERTF(ctm, "type manager for type 0x%X (%d) missing", compInfo.componentTypeName, compInfo.componentType);
   }
   if (ctm)
-    ctm->create(tempData, *g_entity_mgr.get(), ecs::INVALID_ENTITY_ID, ecs::ComponentsMap(), compInfo.componentType);
+    ctm->create(tempData, mgr, ecs::INVALID_ENTITY_ID, ecs::ComponentsMap(), compInfo.componentType);
   else if (!isPod)
     memset(tempData, 0, componentTypeInfo.size);
   bool isBoxed = (componentTypeInfo.flags & ecs::COMPONENT_TYPE_BOXED) != 0;
@@ -231,7 +234,7 @@ void BitstreamSerializer::write(const void *from, size_t sz_in_bits, ecs::compon
       for (auto &it : obj)
       {
         write_string(bs, ecs::get_key_string(it.first), *objectKeys, OBJECT_KEY_BITS);
-        ecs::serialize_child_component(it.second, *this);
+        ecs::serialize_child_component(it.second, *this, mgr);
       }
     }
     else
@@ -239,7 +242,7 @@ void BitstreamSerializer::write(const void *from, size_t sz_in_bits, ecs::compon
       for (auto &it : obj)
       {
         write_raw_string(bs, ecs::get_key_string(it.first));
-        ecs::serialize_child_component(it.second, *this);
+        ecs::serialize_child_component(it.second, *this, mgr);
       }
     }
   }
@@ -249,25 +252,26 @@ void BitstreamSerializer::write(const void *from, size_t sz_in_bits, ecs::compon
     bs.WriteBits((const uint8_t *)from, sz_in_bits);
 }
 
-void serialize_comp_nameless(ecs::component_t name, const ecs::EntityComponentRef &comp, danet::BitStream &bs)
+void serialize_comp_nameless(ecs::EntityManager &mgr, ecs::component_t name, const ecs::EntityComponentRef &comp, danet::BitStream &bs)
 {
-  BitstreamSerializer serializer(bs);
+  BitstreamSerializer serializer(mgr, bs);
   serializer.bs.Write(name);
   ecs::component_type_t userType = comp.getUserType();
   serializer.write(&userType, sizeof(userType) * 8, 0);
   // todo: write and read component index
   serialize_entity_component_ref_typeless(comp.getRawData(), ecs::INVALID_COMPONENT_INDEX, comp.getUserType(), comp.getTypeId(),
-    serializer);
+    serializer, mgr);
 }
 
-ecs::MaybeChildComponent deserialize_comp_nameless(ecs::component_t &name, const danet::BitStream &bs) // todo: replace with component
-                                                                                                       // index
+ecs::MaybeChildComponent deserialize_comp_nameless(ecs::EntityManager &mgr, ecs::component_t &name,
+  const danet::BitStream &bs) // todo: replace with component
+                              // index
 {
-  BitstreamDeserializer deserializer(bs);
+  BitstreamDeserializer deserializer(mgr, bs);
   ecs::component_type_t userType = 0;
   // todo: write and read component index
   if (deserializer.bs.Read(name) && deserializer.read(&userType, sizeof(userType) * CHAR_BIT, 0))
-    return ecs::deserialize_init_component_typeless(userType, ecs::INVALID_COMPONENT_INDEX, deserializer);
+    return ecs::deserialize_init_component_typeless(userType, ecs::INVALID_COMPONENT_INDEX, deserializer, mgr);
   else
     return ecs::MaybeChildComponent();
 }
@@ -288,14 +292,13 @@ bool Connection::serializeComponentReplication(ecs::EntityId eid, const ecs::Ent
   {
     G_UNUSED(eid);
     logerr("Attempt to serialize not-yet synced component <%s> of type <%s>, was entity %d<%s> re-created?",
-      g_entity_mgr->getDataComponents().getComponentNameById(comp.getComponentId()),
-      g_entity_mgr->getComponentTypes().getTypeNameById(comp.getTypeId()), (ecs::entity_id_t)eid,
-      g_entity_mgr->getEntityTemplateName(eid));
+      mgr.getDataComponents().getComponentNameById(comp.getComponentId()), mgr.getComponentTypes().getTypeNameById(comp.getTypeId()),
+      (ecs::entity_id_t)eid, mgr.getEntityTemplateName(eid));
     return false;
   }
   write_component_index(comp.getComponentId(), bs);
-  BitstreamSerializer serializer(bs);
-  ecs::serialize_entity_component_ref_typeless(comp, serializer);
+  BitstreamSerializer serializer(mgr, bs);
+  ecs::serialize_entity_component_ref_typeless(comp, serializer, mgr);
   return true;
 }
 
@@ -310,15 +313,15 @@ bool Connection::deserializeComponentReplication(ecs::EntityId eid, const danet:
   if (clientCidx == ecs::INVALID_COMPONENT_INDEX) // we can't deserialize it, which means type was unknown!
     return false;
   BitSize_t beforeReadPos = bs.GetReadOffset();
-  BitstreamDeserializer bsds(bs, &objectKeys);
-  ecs::EntityComponentRef cref = g_entity_mgr->getComponentRefRW(eid, clientCidx);
+  BitstreamDeserializer bsds(mgr, bs, &objectKeys);
+  ecs::EntityComponentRef cref = mgr.getComponentRefRW(eid, clientCidx);
   bool crefIsNull = cref.isNull();
-  if (EASTL_LIKELY(!crefIsNull && deserialize_component_typeless(cref, bsds)))
+  if (DAGOR_LIKELY(!crefIsNull && deserialize_component_typeless(cref, bsds, mgr)))
   {
     replicated_component_on_client_deserialize(eid, clientCidx);
     return true;
   }
-  ecs::DataComponent compInfo = g_entity_mgr->getDataComponents().getComponentById(clientCidx);
+  ecs::DataComponent compInfo = mgr.getDataComponents().getComponentById(clientCidx);
   int loglev;
   const char *logmsg;
   if (crefIsNull)
@@ -337,10 +340,9 @@ bool Connection::deserializeComponentReplication(ecs::EntityId eid, const danet:
     bs.SetReadOffset(beforeReadPos);
   }
   logmessage(loglev, "%s: %s <%s|#%X>(ccidx=%d|scidx=%d) of type <%s>(%#X|%d) entity %d<%s>", __FUNCTION__, logmsg,
-    g_entity_mgr->getDataComponents().getComponentNameById(clientCidx),
-    g_entity_mgr->getDataComponents().getComponentTpById(clientCidx), clientCidx, serverCidx,
-    g_entity_mgr->getComponentTypes().getTypeNameById(compInfo.componentType), compInfo.componentTypeName, compInfo.componentType,
-    (ecs::entity_id_t)eid, g_entity_mgr->getEntityTemplateName(eid));
+    mgr.getDataComponents().getComponentNameById(clientCidx), mgr.getDataComponents().getComponentTpById(clientCidx), clientCidx,
+    serverCidx, mgr.getComponentTypes().getTypeNameById(compInfo.componentType), compInfo.componentTypeName, compInfo.componentType,
+    (ecs::entity_id_t)eid, mgr.getEntityTemplateName(eid));
   return bsds.skip(clientCidx, compInfo);
 }
 
@@ -353,10 +355,10 @@ bool Connection::syncReadComponent(ecs::component_index_t serverCidx, const dane
   ecs::component_type_t type = 0;
   if (!(bs.Read(name) && bs.Read(type)))
     return false;
-  ecs::component_index_t clientCidx = g_entity_mgr->getDataComponents().findComponentId(name); // try to immediately resolve component
-  if (clientCidx == ecs::INVALID_COMPONENT_INDEX)                                              // component is missing on client
+  ecs::component_index_t clientCidx = mgr.getDataComponents().findComponentId(name); // try to immediately resolve component
+  if (clientCidx == ecs::INVALID_COMPONENT_INDEX)                                    // component is missing on client
   {
-    const ecs::type_index_t typeIdx = g_entity_mgr->getComponentTypes().findType(type);
+    const ecs::type_index_t typeIdx = mgr.getComponentTypes().findType(type);
     if (error)
     {
       int loglev = typeIdx != ecs::INVALID_COMPONENT_TYPE_INDEX ? LOGLEVEL_WARN : LOGLEVEL_ERR;
@@ -365,11 +367,10 @@ bool Connection::syncReadComponent(ecs::component_index_t serverCidx, const dane
       loglev = LOGLEVEL_ERR;
 #endif
       logmessage(loglev, "component scidx=%d, name=0x%X type=0x%X(%s) is missing in template <%s> on client", serverCidx, name, type,
-        g_entity_mgr->getComponentTypes().getTypeNameById(typeIdx), serverTemplates[templateId].c_str());
+        mgr.getComponentTypes().getTypeNameById(typeIdx), serverTemplates[templateId].c_str());
     }
     if (typeIdx != ecs::INVALID_COMPONENT_TYPE_INDEX)
-      clientCidx =
-        g_entity_mgr->createComponent(ecs::HashedConstString{nullptr, name}, typeIdx, dag::Span<ecs::component_t>(), nullptr, 0);
+      clientCidx = mgr.createComponent(ecs::HashedConstString{nullptr, name}, typeIdx, dag::Span<ecs::component_t>(), nullptr, 0);
   }
   if (serverCidx >= serverToClientCidx.size())
     serverToClientCidx.resize(serverCidx + 1, ecs::INVALID_COMPONENT_INDEX);
@@ -388,9 +389,9 @@ bool Connection::syncReadTemplate(const danet::BitStream &bs, ecs::template_t te
   if (!bs.Read(serverTemplates[templateId])) // ref to template
     return false;
 
-  const int templId = g_entity_mgr->buildTemplateIdByName(serverTemplates[templateId].c_str());
+  const int templId = mgr.buildTemplateIdByName(serverTemplates[templateId].c_str());
   if (templId >= 0)
-    g_entity_mgr->instantiateTemplate(templId);
+    mgr.instantiateTemplate(templId);
   else
   {
     // todo: create this template instead! we know everything from server side!
@@ -496,7 +497,7 @@ static const char *replace_local_to_remote(const char *templ_name, S &tmps)
   static const char LOCAL[] = "_local";
   static const char REMOTE[] = "_remote";
   const char *lpos = strstr(templ_name, LOCAL);
-  if (EASTL_LIKELY(!lpos))
+  if (DAGOR_LIKELY(!lpos))
     return templ_name;
   tmps = templ_name;
   lpos = tmps.c_str() + (lpos - templ_name);
@@ -513,14 +514,14 @@ static const char *replace_local_to_remote(const char *templ_name, S &tmps)
 void Connection::serializeTemplate(danet::BitStream &bs, ecs::template_t templateIdx, eastl::bitvector<> &componentsSyncedTmp) const
 {
   ecs::template_t templateId = serverIdxToTemplates[templateIdx];
-  uint32_t archetype = g_entity_mgr->getArchetypeByTemplateId(templateId);
+  uint32_t archetype = mgr.getArchetypeByTemplateId(templateId);
 
   auto iterateReplicatable = [&](auto fn) {
-    int componentsCount = g_entity_mgr->getArchetypeNumComponents(archetype);
+    int componentsCount = mgr.getArchetypeNumComponents(archetype);
     for (int cid = 0; cid < componentsCount; ++cid)
     {
-      ecs::component_index_t cidx = g_entity_mgr->getArchetypeComponentIndex(archetype, cid);
-      if (ecs::should_replicate(cidx)) // never written
+      ecs::component_index_t cidx = mgr.getArchetypeComponentIndex(archetype, cid);
+      if (ecs::should_replicate(cidx, mgr)) // never written
         fn(cidx);
     }
   };
@@ -528,7 +529,7 @@ void Connection::serializeTemplate(danet::BitStream &bs, ecs::template_t templat
   bs.WriteCompressed(templateIdx); // ref to template
   {
     eastl::fixed_string<char, 128, true, framemem_allocator> tmps;
-    bs.Write(replace_local_to_remote(g_entity_mgr->getTemplateName(templateId), tmps)); // _local -> _remote
+    bs.Write(replace_local_to_remote(mgr.getTemplateName(templateId), tmps)); // _local -> _remote
   }
 
   const BitSize_t blockSizePos = bs.GetWriteOffset();
@@ -540,11 +541,38 @@ void Connection::serializeTemplate(danet::BitStream &bs, ecs::template_t templat
     if (!componentsSyncedTmp.test(cidx, false))
     {
       // 8 bytes, if component is first time synced
-      bs.Write(g_entity_mgr->getDataComponents().getComponentTpById(cidx));
-      bs.Write(g_entity_mgr->getDataComponents().getComponentById(cidx).componentTypeName);
+      bs.Write(mgr.getDataComponents().getComponentTpById(cidx));
+      bs.Write(mgr.getDataComponents().getComponentById(cidx).componentTypeName);
       componentsSyncedTmp.set(cidx, true);
     }
   });
+  bs.WriteAt(componentsInTemplate, blockSizePos);
+}
+
+// see writeClientReplayKeyFrame
+void Connection::serializeTemplateForClientReplay(danet::BitStream &bs, ecs::template_t templateIdx,
+  eastl::bitvector<> &componentsSyncedTmp) const
+{
+  bs.WriteCompressed(templateIdx); // ref to template
+  bs.Write(serverTemplates[templateIdx].c_str());
+
+  const BitSize_t blockSizePos = bs.GetWriteOffset();
+  uint16_t componentsInTemplate = 0;
+  bs.Write(componentsInTemplate);
+  for (ecs::component_index_t cidx : clientTemplatesComponents[templateIdx])
+  {
+    int serverCidx = find_value_idx(serverToClientCidx, cidx);
+    G_ASSERT_CONTINUE(serverCidx != -1);
+    componentsInTemplate++;
+    write_component_index(serverCidx, bs);
+    if (!componentsSyncedTmp.test(cidx, false))
+    {
+      // 8 bytes, if component is first time synced
+      bs.Write(mgr.getDataComponents().getComponentTpById(cidx));
+      bs.Write(mgr.getDataComponents().getComponentById(cidx).componentTypeName);
+      componentsSyncedTmp.set(cidx, true);
+    }
+  }
   bs.WriteAt(componentsInTemplate, blockSizePos);
 }
 
@@ -553,8 +581,8 @@ void Connection::serializeConstruction(ecs::EntityId eid, danet::BitStream &bs, 
 #if NET_STAT_PROFILE_INITIAL_SIZES
   BitSize_t beginWr = bs.GetWriteOffset();
 #endif
-  const int componentsCount = g_entity_mgr->getNumComponents(eid);
-  const ecs::template_t templateId = g_entity_mgr->getEntityTemplateId(eid);
+  const int componentsCount = mgr.getNumComponents(eid);
+  const ecs::template_t templateId = mgr.getEntityTemplateId(eid);
 
   Object *object = Object::getByEid(eid);
   ObjectReplica *replica = getReplicaByEid(eid);
@@ -562,8 +590,8 @@ void Connection::serializeConstruction(ecs::EntityId eid, danet::BitStream &bs, 
   auto iterateReplicatable = [&, componentsCount](auto fn) {
     for (int cid = 0; cid < componentsCount; ++cid)
     {
-      auto comp = g_entity_mgr->getEntityComponentRef(eid, cid);
-      if (should_replicate(comp)) // never written
+      auto comp = mgr.getEntityComponentRef(eid, cid);
+      if (should_replicate(comp, mgr)) // never written
         fn(comp, cid);
     }
   };
@@ -585,7 +613,7 @@ void Connection::serializeConstruction(ecs::EntityId eid, danet::BitStream &bs, 
     bs.WriteCompressed(serverWrittenIdx); // ref to template
     {
       eastl::fixed_string<char, 128, true, framemem_allocator> tmps;
-      bs.Write(replace_local_to_remote(g_entity_mgr->getTemplateName(templateId), tmps)); // _local -> _remote
+      bs.Write(replace_local_to_remote(mgr.getTemplateName(templateId), tmps)); // _local -> _remote
     }
     // todo: actually, we'd better serialize template, if it is different on server and client. Would require some state to check.
     const BitSize_t blockSizePos = bs.GetWriteOffset();
@@ -598,7 +626,7 @@ void Connection::serializeConstruction(ecs::EntityId eid, danet::BitStream &bs, 
       if (!componentsSynced.test(cidx, false))
       {
         // 8 bytes, if component is first time synced
-        bs.Write(g_entity_mgr->getDataComponents().getComponentTpById(cidx));
+        bs.Write(mgr.getDataComponents().getComponentTpById(cidx));
         bs.Write(comp.getUserType());
         componentsSynced.set(cidx, true);
       }
@@ -616,7 +644,7 @@ void Connection::serializeConstruction(ecs::EntityId eid, danet::BitStream &bs, 
     ignoredComponentsE = ignoredComponents + nComp;
   }
 
-  BitstreamSerializer serializer(bs, &objectKeys);
+  BitstreamSerializer serializer(mgr, bs, &objectKeys);
   const BitSize_t countSizePos = bs.GetWriteOffset();
   const bool lessThan256 = serverTemplateComponentsCount[serverWrittenIdx] < 256;
   uint16_t componentsInTemplate = 0, prevComponent = 0, writtenComponents = 0;
@@ -629,7 +657,7 @@ void Connection::serializeConstruction(ecs::EntityId eid, danet::BitStream &bs, 
     auto beginWrComp = serializer.bs.GetWriteOffset();
 #endif
     if ((ignoredComponents != nullptr && eastl::binary_search(ignoredComponents, ignoredComponentsE, comp.getComponentId())) ||
-        g_entity_mgr->isEntityComponentSameAsTemplate(eid, comp, cid) ||
+        mgr.isEntityComponentSameAsTemplate(eid, comp, cid) ||
         (canSkipInitial == CanSkipInitial::Yes && object->skipInitialReplication(comp.getComponentId(), this, replica)))
     {
       // skip
@@ -645,7 +673,7 @@ void Connection::serializeConstruction(ecs::EntityId eid, danet::BitStream &bs, 
       }
       else
         serializer.bs.WriteCompressed(ofs); // write compressed ofs
-      ecs::serialize_entity_component_ref_typeless(comp, serializer);
+      ecs::serialize_entity_component_ref_typeless(comp, serializer, mgr);
       prevComponent = componentsInTemplate;
     }
     componentsInTemplate++;
@@ -658,9 +686,9 @@ void Connection::serializeConstruction(ecs::EntityId eid, danet::BitStream &bs, 
   G_ASSERT(lessThan256 == (componentsInTemplate < 256));
 
   // Remove this check when we sure enough that it's not happens and use bitmap for storing info about count < 256 instead
-  if (EASTL_UNLIKELY(componentsInTemplate != serverTemplateComponentsCount[serverWrittenIdx]))
+  if (DAGOR_UNLIKELY(componentsInTemplate != serverTemplateComponentsCount[serverWrittenIdx]))
     logerr("Inconsistent replication components count %d (cur) != %d (initial) in template %d<%s>", componentsInTemplate,
-      serverTemplateComponentsCount[serverWrittenIdx], templateId, g_entity_mgr->getEntityTemplateName(eid));
+      serverTemplateComponentsCount[serverWrittenIdx], templateId, mgr.getEntityTemplateName(eid));
 
   if (lessThan256)
     bs.WriteAt(uint8_t(writtenComponents), countSizePos);
@@ -675,7 +703,7 @@ void Connection::serializeConstruction(ecs::EntityId eid, danet::BitStream &bs, 
 bool Connection::deserializeComponentConstruction(ecs::template_t server_template, const danet::BitStream &bs,
   ecs::ComponentsInitializer &init, int &out_ncomp)
 {
-  BitstreamDeserializer deserializer(bs, &objectKeys);
+  BitstreamDeserializer deserializer(mgr, bs, &objectKeys);
   uint16_t compCount = 0;
   const uint16_t templateComponentsCount = clientTemplatesComponents[server_template].size();
   if (templateComponentsCount < 256)
@@ -709,9 +737,9 @@ bool Connection::deserializeComponentConstruction(ecs::template_t server_templat
     ecs::component_index_t cidx = clientTemplatesComponents[server_template][comp];
     if (cidx == ecs::INVALID_COMPONENT_INDEX)
       return false;
-    ecs::component_type_t componentTypeName = g_entity_mgr->getDataComponents().getComponentById(cidx).componentTypeName;
-    ecs::component_t componentNameHash = g_entity_mgr->getDataComponents().getComponentTpById(cidx);
-    if (ecs::MaybeChildComponent mbcomp = deserialize_init_component_typeless(componentTypeName, cidx, deserializer))
+    ecs::component_type_t componentTypeName = mgr.getDataComponents().getComponentById(cidx).componentTypeName;
+    ecs::component_t componentNameHash = mgr.getDataComponents().getComponentTpById(cidx);
+    if (ecs::MaybeChildComponent mbcomp = deserialize_init_component_typeless(componentTypeName, cidx, deserializer, mgr))
     {
       if (!mbcomp->isNull())
         init[ecs::HashedConstString({"!net_replicated!", componentNameHash})] = eastl::move(*mbcomp);
@@ -744,7 +772,7 @@ ecs::EntityId Connection::deserializeConstruction(const danet::BitStream &bs, ec
   if (!deserializeComponentConstruction(serverTemplate, bs, ainit, ncomp))
     return ecs::INVALID_ENTITY_ID;
 
-  const ecs::Template *templ = g_entity_mgr->buildTemplateByName(templName);
+  const ecs::Template *templ = mgr.buildTemplateByName(templName);
   if (!templ)
   {
     logerr("Unknown template <%s> for server entity <%d>", templName, serverId);
@@ -756,13 +784,12 @@ ecs::EntityId Connection::deserializeConstruction(const danet::BitStream &bs, ec
 
   ecs::EntityId srvEid(serverId);
   DAECS_EXT_ASSERTF(srvEid.index() <= ecs::MAX_RESERVED_EID_IDX, "%d", serverId);
-  g_entity_mgr->forceServerEidGeneration(srvEid);
+  mgr.forceServerEidGeneration(srvEid);
 
 #if DAGOR_DBGLEVEL > 0
-  G_ASSERT(g_entity_mgr->doesEntityExist(srvEid));
-  G_ASSERTF(!g_entity_mgr->getEntityTemplateName(srvEid),
-    "entity %d, server %d already has a template <%s> while trying to create <%s>!", ecs::entity_id_t(srvEid), serverId,
-    g_entity_mgr->getEntityTemplateName(srvEid), templName);
+  G_ASSERT(mgr.doesEntityExist(srvEid));
+  G_ASSERTF(!mgr.getEntityTemplateName(srvEid), "entity %d, server %d already has a template <%s> while trying to create <%s>!",
+    ecs::entity_id_t(srvEid), serverId, mgr.getEntityTemplateName(srvEid), templName);
 #endif
 #if DAECS_EXTENSIVE_CHECKS
   if (!templ->hasComponent(ECS_HASH("noECSDebug")))
@@ -770,7 +797,7 @@ ecs::EntityId Connection::deserializeConstruction(const danet::BitStream &bs, ec
       serverId, templDeserialized ? "initial " : "", templName, sz, ncomp, clientTemplatesComponents[serverTemplate].size(), cratio,
       constructionPacketSequence);
 #endif
-  G_VERIFY(srvEid == g_entity_mgr->reCreateEntityFromAsync(srvEid, templName, eastl::move(ainit), eastl::move(amap), eastl::move(cb)));
+  G_VERIFY(srvEid == mgr.reCreateEntityFromAsync(srvEid, templName, eastl::move(ainit), eastl::move(amap), eastl::move(cb)));
   return srvEid;
 }
 

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "de_IDagorPhysImpl.h"
 
 #include <oldEditor/de_clipping.h>

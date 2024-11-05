@@ -1,11 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "gamepadCursor.h"
 #include "guiScene.h"
 
-#include <humanInput/dag_hiHidClassDrv.h>
-#include <humanInput/dag_hiPointing.h>
-#include <humanInput/dag_hiGlobals.h>
-#include <humanInput/dag_hiComposite.h>
-#include <humanInput/dag_hiXInputMappings.h>
+#include <drv/hid/dag_hiHidClassDrv.h>
+#include <drv/hid/dag_hiPointing.h>
+#include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiComposite.h>
+#include <drv/hid/dag_hiXInputMappings.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <startup/dag_globalSettings.h>
 

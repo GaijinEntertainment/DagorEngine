@@ -12,7 +12,7 @@ testData/static_analyzer/w217_continue.nut:8:4
 
     continue;
     x--;
-    ^---
+    ^--
   } while (x)
 
 

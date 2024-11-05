@@ -1,48 +1,52 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <3d/dag_d3dResource.h>
-#include <3d/dag_resId.h>
+#include <drv/3d/dag_d3dResource.h>
+#include <drv/3d/dag_resId.h>
 #include <osApiWrappers/dag_atomic.h>
 #include <util/dag_stdint.h>
 #include <startup/dag_globalSettings.h>
 
-// Glossary:
-//   level - feature of texture size, computed as log2(max(tex.dimensions))=log2(max(tex.w, tex.h, tex.d));
-//           level=1 means smallest possing size (2x2x2) and is commonly used to denote smallest quality
-//           level=15 means maximum possible size (up to 32767x32768, but current GPUs don't handle such res)
-//           level=2..15 means some non-stub quality
-//           variables for holding level usually have suffix Lev or _lev
-//
-//   QL    - quality level (or TQL - texture quality level), do not mix it with 'level'
-//           some predefined quality preset of texture (stub, thumbnail, base, high, ultrahigh, etc.)
-//           enumerated later with TexQL enum (TQL_*)
-//           variables for holding quality level usually have suffix QL or _ql
-//
-//   LFU   - last frame used, ordinary rendered frame counter (generally from game start) where texture was
-//           referenced last time
-//
-//   levDesc - levels descriptor that maps QL to real levels (e.g. TQL_thumb -> level=6, TQL_base -> level=9)
+//! \file dag_resMgr.h
+//! \brief Automatic resource manager for D3D resources.
+//! \details
+//! Glossary:
+//!   - level - feature of texture size, computed as `log2(max(tex.dimensions)) = log2(max(tex.w, tex.h, tex.d))`:
+//!     -# level=1 means smallest possing size (2x2x2) and is commonly used to denote smallest quality;
+//!     -# level=15 means maximum possible size (up to 32767x32768, but current GPUs don't handle such res);
+//!     -# level=2..15 means some non-stub quality.
+//!     Variables for holding level usually have suffix Lev or _lev
+//!
+//!   - QL - quality level (or TQL - texture quality level), do not confuse it with 'level'.
+//!     Some predefined quality preset of texture (stub, thumbnail, base, high, ultrahigh, etc.)
+//!     Enumerated later with TexQL enum (TQL_*).
+//!     Variables for holding quality level usually have suffix QL or _ql.
+//!
+//!   - LFU - last frame used, ordinary rendered frame counter
+//!     (generally from game start) where texture was referenced last time
+//!
+//!   - levDesc - levels descriptor that maps QL to real levels
+//!     (e.g. TQL_thumb -> level=6, TQL_base -> level=9)
 
 
-//! Quality levels for textures (QL)
+//! \brief Quality levels for textures (QL)
 enum TexQL : unsigned
 {
-  TQL_stub = 0xFu, // stub (shared 1x1 placeholder)
-  TQL_thumb = 0u,  // thumbnail quality (upto 64x64, total mem size <= 4K)
-  TQL_base,        // base quality (low split)
-  TQL_high,        // full quality (HQ)
-  TQL_uhq,         // ultra high quality
+  TQL_stub = 0xFu, //!< stub (shared 1x1 placeholder)
+  TQL_thumb = 0u,  //!< thumbnail quality (upto 64x64, total mem size <= 4K)
+  TQL_base,        //!< base quality (low split)
+  TQL_high,        //!< full quality (HQ)
+  TQL_uhq,         //!< ultra high quality
 
-  TQL__COUNT,
+  TQL__COUNT, //!< enum item count
   TQL__FIRST = 0,
   TQL__LAST = TQL__COUNT - 1
 };
 
+//! \cond DETAIL
 struct D3dResManagerData
 {
   //! D3DRESID and its index validation
@@ -84,8 +88,8 @@ struct D3dResManagerData
   }
   //! convenience wrapper to get BaseTexture for D3DRESID resource (just reinterpret cast, to type checking!)
   static __forceinline BaseTexture *getBaseTex(D3DRESID id) { return (BaseTexture *)getD3dRes(id); }
-  //! returns registered typed texture for D3DRESID resource; nullptr value means missing, unregistered, unreferenced or non-tex
-  //! resource
+  //! returns registered typed texture for D3DRESID resource;
+  //! nullptr value means missing, unregistered, unreferenced or non-tex resource
   template <int TYPE>
   static __forceinline BaseTexture *getD3dTex(D3DRESID id)
   {
@@ -213,49 +217,64 @@ protected:
       require_tex_load(id);
   }
 };
+//! \endcond
 
-// Registers external D3D resource as specified 'name' and returns D3DRESID for it;
-// Specified resource becomes owned by manager, no factory is assigned to it;
-// RefCount is set to 1 and resource will be destroyed when refCount goes to 0 (name is also unregistered on refCount=0)
-// (use release_managed_res() or release_managed_res_verified() to del ref and finally destroy)
+//! \brief Registers external D3D resource with the specified \p name as managed and returns the D3DRESID for it.
+//! \details Specified resource becomes owned by the manager, no factory is assigned to it.
+//! RefCount is set to 1 and when it eventually reaches 0, the resource is automatically destroyed and the name is evicted.
+//! Use release_managed_res() or release_managed_res_verified() to del ref and finally destroy.
+//! \warning Resource name is case-insensitive and must be unique.
+//! \param name the name to register the resource under
+//! \param res the resource to register
+//! \returns the D3DRESID for the registered resource
 D3DRESID register_managed_res(const char *name, D3dResource *res);
 
-// Returns true when creation/release factory is set for D3DRESID
-// (e.g. it returns false for D3DRESID got with register_managed_res())
+//! \brief Checks whether creation/release factory is set for D3DRESID
+//! \details E.g. for an ID that was acquired from register_managed_res(), it will return false.
+//! \param id the D3DRESID to check
+//! \returns true if a factory was specified for the D3DRESID
 bool is_managed_res_factory_set(D3DRESID id);
 
-// Acquires resource object and increments resource reference count;
-// If resource was not referenced yet, it is created;
-// Returns NULL when resource is unavailable (bad ID)
-// (when factory fails to create texture, *missing* texture handling may be applied);
-// Logically paired with release_managed_res()
+//! \brief Acquires resource object and increments resource reference count.
+//! \details If resource was not referenced yet, it is created. If it is unavailable (bad ID), nullptr is returned.
+//! Logically paired with release_managed_res().
+//! \note When factory fails to create texture, *missing* texture handling may be applied.
+//! \param id the managed ID to acquire
+//! \returns the acquired resource object or nullptr if the ID is invalid
 D3dResource *acquire_managed_res(D3DRESID id);
 
-// Releases resource object and decrements resource reference count;
-// When reference count reaches 0, resource may be released;
-// Logically paired with acquire_managed_res()
+//! \brief Releases resource object and decrements resource reference count.
+//! \details When reference count reaches 0, resource may be released.
+//! Logically paired with acquire_managed_res()
+//! \param id the managed ID to release
 void release_managed_res(D3DRESID id);
 
-// Releases resource object and decrements resource reference count;
-// When reference count reaches 0, resource may be released;
-// Does additional check that managed res is the same as check_res;
-// Logically paired with acquire_managed_res()
-// On resource destruction (when name is unregistered) id is set to BAD_D3DRESID
+//! \brief Releases resource object and decrements resource reference count,
+//! but additionally checks that the managed resource is the same as \p check_res.
+//! \details When reference count reaches 0, resource may be released.
+//! Logically paired with acquire_managed_res()
+//! On resource destruction (when name is unregistered) id is set to BAD_D3DRESID
+//! \param id the managed ID to release
+//! \param check_res the resource to check against
 void release_managed_res_verified(D3DRESID &id, D3dResource *check_res);
 
-// helpers for textures (derived from D3dResource)
+//! \copydoc acquire_managed_res()
 BaseTexture *acquire_managed_tex(D3DRESID id);
+//! \copydoc release_managed_res()
 static inline void release_managed_tex(D3DRESID id) { release_managed_res(id); }
 template <class T>
+//! \copydoc release_managed_res_verified()
 static inline void release_managed_tex_verified(D3DRESID &id, T &tex)
 {
   release_managed_res_verified(id, static_cast<D3dResource *>(tex));
   tex = nullptr;
 }
 
-// helpers for buffers (derived from D3dResource)
+//! \copydoc acquire_managed_res()
 Sbuffer *acquire_managed_buf(D3DRESID id);
+//! \copydoc release_managed_res()
 static inline void release_managed_buf(D3DRESID id) { release_managed_res(id); }
+//! \copydoc release_managed_res_verified()
 template <class T>
 static inline void release_managed_buf_verified(D3DRESID &id, T &buf)
 {
@@ -263,39 +282,76 @@ static inline void release_managed_buf_verified(D3DRESID &id, T &buf)
   buf = nullptr;
 }
 
-// Returns managed resource name by ID, or NULL if ID is invalid.
+//! \brief Gets the name for a managed resource by ID, or nullptr if ID is invalid.
+//! \param id the D3DRESID to get the name for
+//! \returns the name of the managed resource with ID \p id or nullptr
 const char *get_managed_res_name(D3DRESID id);
 
-// Returns managed resource ID by name, or BAD_D3DRESID if name is invalid.
+//! \brief Gets managed resource ID by its name, or BAD_D3DRESID if name is invalid.
+//! \param res_name the name of the resource to get the ID for
+//! \returns the managed resource ID that corresponds to \p res_name or BAD_D3DRESID if the name is invalid
 D3DRESID get_managed_res_id(const char *res_name);
 
-// Returns managed resource reference count.
+
+//! \brief Gets the reference count for a managed resource by ID
+//! \param id the ID to get the reference count for
+//! \returns the reference count for the D3DRESID resource or a
+//!   negative value if the resource is missing
 inline int get_managed_res_refcount(D3DRESID id) { return D3dResManagerData::getRefCount(id); }
 
-//! returns last-frame-used (LFU) for D3DRESID
+//! \brief Gets the last-frame-used (LFU) counter for a managed ID
+//! \param id the ID to get the LFU counter for
+//! \returns the last-frame-used counter for the D3DRESID resource or 0 if the resource is missing/unregistered
 inline unsigned get_managed_res_lfu(D3DRESID id) { return D3dResManagerData::getResLFU(id); }
 
-//! returns current quality level (TQL_*) for D3DRESID resource
+//! \brief Gets the current quality level (TQL_*) for a managed ID
+//! \param id the ID to get the quality level for
+//! \returns the current quality level for the D3DRESID resource or TQL_stub if the resource is missing/unregistered
 inline TexQL get_managed_res_cur_tql(D3DRESID id) { return D3dResManagerData::getResCurQL(id); }
-//! returns maximum available quality level (TQL_*) for D3DRESID resource
+
+//! \brief Gets the maximum available quality level (TQL_*) for a managed ID
+//! \param id the D3DRESID to get the quality level for
+//! \returns the current quality level for the D3DRESID resource or TQL_stub if the resource is missing/unregistered
 inline TexQL get_managed_res_max_tql(D3DRESID id) { return D3dResManagerData::getResMaxQL(id); }
 
-//! returns current loaded-level for D3DRESID resource
+//! \brief Gets the maximum requested level for a managed ID, i.e. log2(tex.dimension). Do not confuse it with QL!
+//! \param id the D3DRESID to get the loaded level for
+//! \returns the current loaded level for \p id or 0 if the resource is missing/unregistered
 inline unsigned get_managed_res_maxreq_lev(D3DRESID id) { return D3dResManagerData::getResMaxReqLev(id); }
-//! returns maximum requested-level for D3DRESID resource
+
+//! \brief Gets the current loaded level for a managed ID, i.e. log2(tex.dimension). Do not confuse it with QL!
+//! \param id the D3DRESID to get the loaded level for
+//! \returns the current loaded level for \p id or 0 if the resource is missing/unregistered
 inline unsigned get_managed_res_loaded_lev(D3DRESID id) { return D3dResManagerData::getResLoadedLev(id); }
 
-
-//! enables/disables multithreading support for resource manager and
-//! preallocates internal to handle upto ' max_res_entry_count' resource entries without reallocations
-//! enable_res_mgr_mt(false, -1); will disable multithreading support and shrink entries array to used size
+//! \brief Enables or disables multithreading support for resource manager and preallocates internal structures
+//! to handle upto \p max_res_entry_count resource entries without reallocations.
+//! \details enable_res_mgr_mt(false, -1) will disable multithreading support and shrink entries array to used size
+//! \param enable whether to enable multithreading support
+//! \param max_res_entry_count the maximum number of resource entries to preallocate or -1 to shrink to fit
 void enable_res_mgr_mt(bool enable, int max_res_entry_count);
 
-//! iterates managed d3dres; returns ID of next res after 'after_rid' that has refCount>=min_ref_count;
-//! returns BAD_TEXTUREID when iterate is done
+
+//! \brief Utility for iterating all managed resources.
+//! \details Managed resources form a linked list, so for an arbitrary ID, this function returns the "next" ID
+//! in the list. Hence one is supposed to call this function in a loop until it returns BAD_D3DRESID.
+//! \param after_rid ID of the texture to get the next texture for. Use BAD_D3DRESID to start iteration.
+//! \param min_ref_count Minimum reference count filter
+//! \returns Some ID that follows \p after_rid and has refCount >= \p min_ref_count OR BAD_RESID if the iteration is done.
 D3DRESID iterate_all_managed_d3dres(D3DRESID after_rid, int min_ref_count);
 
-//! inline helpers for pattern like:
-//!   for (D3DRESID id = first_managed_d3dres(); id != BAD_D3DRESID; id = next_managed_d3dres(id))
+//! \name Helper wrappers
+//! \brief See iterate_all_managed_d3dres(). Use as follows:
+//! \code for (D3DRESID id = first_managed_d3dres(); id != BAD_D3DRESID; id = next_managed_d3dres(id)) \endcode
+//!@{
+//! \brief Get the first managed resource ID for iteration
+//! \param min_rc Minimum reference count filter
+//! \returns First managed resource ID with refCount >= \p min_rc
 inline D3DRESID first_managed_d3dres(int min_rc = 0) { return iterate_all_managed_d3dres(BAD_D3DRESID, min_rc); }
+
+//! \brief Get the next managed resource ID for iteration
+//! \param prev_id ID of the previous resource
+//! \param min_rc Minimum reference count filter
+//! \returns Next managed resource ID after \p prev_id with refCount >= \p min_rc
 inline D3DRESID next_managed_d3dres(D3DRESID prev_id, int min_rc = 0) { return iterate_all_managed_d3dres(prev_id, min_rc); }
+//!@}

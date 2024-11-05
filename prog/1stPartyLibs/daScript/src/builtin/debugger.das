@@ -22,6 +22,14 @@ class DapiDebugAgent
     def abstract onTick : void
     def abstract onCollect ( var ctx:Context; at:LineInfo ) : void
     def abstract onLog ( context : Context?; at : LineInfo const?; level:int; text:string# ) : bool
+    def abstract onBeforeGC ( var ctx:Context ) : void
+    def abstract onAfterGC ( var ctx:Context ) : void
+    def abstract onUserCommand ( command : string# ) : bool
+    def abstract onAllocate ( var ctx:Context; data:void?; size:uint64; at:LineInfo ) : void
+    def abstract onReallocate ( var ctx:Context; data:void?; size:uint64; newData:void?; newSize:uint64; at:LineInfo ) : void
+    def abstract onFree ( var ctx:Context; data:void?; at:LineInfo ) : void
+    def abstract onAllocateString ( var ctx:Context; data:void?; size:uint64; at:LineInfo ) : void
+    def abstract onFreeString ( var ctx:Context; data:void?; at:LineInfo ) : void
     [[do_not_delete]] thisAgent:DebugAgent?
 
 def install_new_debug_agent ( var agentPtr; category:string )
@@ -58,8 +66,6 @@ struct DapiArray
 struct DapiTable : DapiArray
     keys : void?
     hashes : uint?
-    maxLookups : uint
-    shift : uint
 
 // das::Block
 struct DapiBlock
@@ -162,6 +168,7 @@ class DapiDataWalker
     def abstract WalkEnumeration ( var value:int &; ei:EnumInfo ) : void
     def abstract WalkEnumeration8  ( var value:int8 &; ei:EnumInfo ) : void
     def abstract WalkEnumeration16 ( var value:int16 &; ei:EnumInfo ) : void
+    def abstract WalkEnumeration64 ( var value:int64 &; ei:EnumInfo ) : void
     def abstract FakeContext ( var value:Context ) : void
     def abstract InvalidData : void
 

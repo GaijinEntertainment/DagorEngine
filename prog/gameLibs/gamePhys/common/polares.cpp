@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_mathUtils.h>
 #include <math/dag_TMatrix4.h>
 #include <util/dag_string.h>
@@ -131,11 +133,14 @@ struct CalcCy
   const Polares &polares;
   float cy;
   float ang;
-  CalcCy(const Polares &polares_in, float cy_in, float ang_in) : polares(polares_in), cy(cy_in), ang(ang_in) {}
-  inline float operator()(float aoa) const { return gamephys::calc_c(polares, aoa, aoa - ang).y - cy; }
+  bool convertAoa;
+  CalcCy(const Polares &polares_in, float cy_in, float ang_in, bool convert_aoa) :
+    polares(polares_in), cy(cy_in), ang(ang_in), convertAoa(convert_aoa)
+  {}
+  inline float operator()(float aoa) const { return gamephys::calc_c(polares, aoa, convertAoa ? ang : aoa - ang).y - cy; }
 };
 
-bool gamephys::calc_aoa(const Polares &polares, float cy, float ang, float &out_aoa)
+bool gamephys::calc_aoa(const Polares &polares, float cy, float ang, bool convert_aoa, float &out_aoa)
 {
   if (cy > polares.cyCritH * polares.clKq - 1.0E-3f)
   {
@@ -149,7 +154,7 @@ bool gamephys::calc_aoa(const Polares &polares, float cy, float ang, float &out_
   }
   else
   {
-    const CalcCy calcCy = {polares, cy, ang};
+    const CalcCy calcCy = {polares, cy, ang, convert_aoa};
     float aoa = 0.0f;
     if (solve_newton(calcCy, 0.0f, 0.01f, 0.01f, 15u, aoa))
     {
@@ -396,9 +401,8 @@ void gamephys::interpolate(const gamephys::PolaresProps &a, const gamephys::Pola
     out.machFactor[i].multMachMax = lerp(a.machFactor[i].multMachMax, b.machFactor[i].multMachMax, k);
     out.machFactor[i].multLineCoeff = lerp(a.machFactor[i].multLineCoeff, b.machFactor[i].multLineCoeff, k);
     out.machFactor[i].multLimit = lerp(a.machFactor[i].multLimit, b.machFactor[i].multLimit, k);
-    for (int j = 0; j < 4; ++j)
-      out.machFactor[i].machCoeffs[j] = lerp(a.machFactor[i].machCoeffs[j], b.machFactor[i].machCoeffs[j], k);
   }
+  recalc_mach_factor(out);
   out.combinedCl = k < 0.5f ? a.combinedCl : b.combinedCl;
 
   // Cl to Cm

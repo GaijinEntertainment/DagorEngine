@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_outdated_effects_pull ;
+  UseProgLibs += daNetGameLibs/outdated_effects ;
+}

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_messageBox.h>
 #include <osApiWrappers/dag_progGlobals.h>
 #include <osApiWrappers/dag_miscApi.h>
@@ -210,19 +212,13 @@ int mac_message_box_internal(const char *utf8_text, const char *utf8_caption, in
     return os_message_box_impl(utf8_text, utf8_caption, flags);
 
   debug("trying to show messahe box on main thread");
-  struct MessageBoxAction: public DelayedAction
+  __block int res = 0;
+  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  dispatch_async(dispatch_get_main_queue(), ^
   {
-    char text[4096], caption[512];
-    int flags;
-    int &result;
-    MessageBoxAction(const char *utf8_text, const char *utf8_caption, int flg, int &out_res): flags(flg), result(out_res)
-    {
-      strncpy(text, utf8_text, sizeof(text)-1); text[sizeof(text)-1] = 0;
-      strncpy(caption, utf8_caption, sizeof(caption)-1); caption[sizeof(caption)-1] = 0;
-    }
-    virtual void performAction() { result = os_message_box_impl(text, caption, flags); }
-  };
-  int res = 0;
-  execute_delayed_action_on_main_thread(new MessageBoxAction(utf8_text, utf8_caption, flags, res));
+      res = os_message_box_impl(utf8_text, utf8_caption, flags);
+      dispatch_semaphore_signal(semaphore);
+  });
+  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
   return res;
 }

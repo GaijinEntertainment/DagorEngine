@@ -1,0 +1,485 @@
+int4 dagi_albedo_atlas_sizei;//atlasMaskInBlocks(W,H), atlasShiftInBlocks(W,H), atlasSliceShiftInBlocks == atlasShiftInBlocks(W,H)*2, atlasDimD (in blocks)
+int4 dagi_albedo_clipmap_sizei;//w,d,clips,w*w*d*clips*4
+int4 dagi_albedo_clipmap_sizei_np2;//w,d, w*N, d*N
+int4 dagi_albedo_clipmap_lt_coord_0;
+int4 dagi_albedo_clipmap_lt_coord_1;
+int4 dagi_albedo_clipmap_lt_coord_2;
+int4 dagi_albedo_clipmap_lt_coord_3;
+
+float4 dagi_albedo_inv_atlas_size_blocks_texels;//inv size in blocks: w,d, inv size in texels: w,d
+
+//.xy = DAGI_ALBEDO_INTERNAL_BLOCK_SIZE*(dagi_albedo_inv_atlas_size_in_blocks/BLOCK_SIZE)
+//.zw = DAGI_ALBEDO_BORDER*dagi_albedo_inv_atlas_size.zw
+float4 dagi_albedo_internal_block_size_tc_border;
+
+buffer dagi_albedo_indirection__free_indices_list;
+texture dagi_albedo_atlas;
+
+int4 dagi_albedo_clipmap_update_lt_coord;
+int4 dagi_albedo_clipmap_update_sz_coord;
+int4 dagi_albedo_clipmap_update_box_lt;
+int4 dagi_albedo_clipmap_update_box_sz;
+int4 dagi_albedo_clipmap_update_old_lt;
+
+hlsl {
+  #include <dagi_albedo_scene.hlsli>
+  #define INVALID_DAGI_ALBEDO_BLOCK_INDEX (~0u)
+  #define DAGI_MISSED_ALBEDO 0.18 // asphalt
+}
+
+macro DAGI_ALBEDO_CLIPMAP_SIZE_INIT(code)
+  (code) {
+    dagi_albedo_clipmap_sizei@i4 = dagi_albedo_clipmap_sizei;
+  }
+endmacro
+
+macro DAGI_ALBEDO_CLIPMAP_SIZE_USE(code)
+  hlsl (code) {
+    uint2 dagi_albedo_get_clip_size() {return uint2(dagi_albedo_clipmap_sizei.xy);}
+    uint dagi_albedo_get_clip_count() {return dagi_albedo_clipmap_sizei.z;}
+    uint dagi_albedo_get_free_list_ofs() {return uint(dagi_albedo_clipmap_sizei.w);}
+    uint dagi_albedo_get_buffer_addr(uint3 clipPos, uint clipId) {
+      return clipPos.x + dagi_albedo_get_clip_size().x*(clipPos.y + dagi_albedo_get_clip_size().x*(clipPos.z + clipId*dagi_albedo_get_clip_size().y));
+    }
+    uint4 decode_dagi_albedo_buffer_addr(uint addr) {
+      return uint4(addr%dagi_albedo_get_clip_size().x,
+        (addr/dagi_albedo_get_clip_size().x)%dagi_albedo_get_clip_size().x,
+        (addr/(dagi_albedo_get_clip_size().x*dagi_albedo_get_clip_size().x))%dagi_albedo_get_clip_size().y,//fixme const
+        addr/(dagi_albedo_get_clip_size().x*dagi_albedo_get_clip_size().x*dagi_albedo_get_clip_size().y));//fixme const
+    }
+  }
+endmacro
+
+macro DAGI_ALBEDO_CLIPMAP_MATH_INIT(code)
+  DAGI_ALBEDO_CLIPMAP_SIZE_INIT(code)
+  (code) {
+    dagi_albedo_clipmap_sizei_np2@i4 = dagi_albedo_clipmap_sizei_np2;
+    dagi_albedo_clipmap_lt_coord@i4[] = {dagi_albedo_clipmap_lt_coord_0, dagi_albedo_clipmap_lt_coord_1, dagi_albedo_clipmap_lt_coord_2, dagi_albedo_clipmap_lt_coord_3};
+  }
+endmacro
+macro DAGI_ALBEDO_CLIPMAP_MATH_USE(code)
+  DAGI_ALBEDO_CLIPMAP_SIZE_USE(code)
+  hlsl (code) {
+
+    #define sample_dagi_albedo_clipmap_lt_coord(clip) _sample_dagi_albedo_clipmap_lt_coord(clip, _FILE_, __LINE__)
+    int4 _sample_dagi_albedo_clipmap_lt_coord(uint clip, int file, int ln)
+    {
+      // 4 is hardcoded currently. TODO: support array size in preshader for such checks.
+      ##assert(clip < 4, "[%s:%.f] Out of bounds: Buffer 'dagi_albedo_clipmap_lt_coord' has size 4, but access to (%.f)", file, ln, clip);
+      return dagi_albedo_clipmap_lt_coord[clip];
+    }
+
+    float dagi_albedo_block_world_size(uint clip) {return asfloat(sample_dagi_albedo_clipmap_lt_coord(clip).w);}
+    float dagi_albedo_voxel_size(uint clip) {return dagi_albedo_block_world_size(clip)*1./DAGI_ALBEDO_INTERNAL_BLOCK_SIZE;}
+
+    float3 dagi_albedo_block_world_pos_to_abs_coord(float3 worldPos, int4 lt_voxel_size)
+    {
+      return worldPos.xzy/asfloat(lt_voxel_size.w) + DAGI_ALBEDO_BORDER/DAGI_ALBEDO_INTERNAL_BLOCK_SIZE;
+    }
+    float3 dagi_albedo_block_world_pos_to_abs_coord(float3 worldPos, uint clip)
+    {
+      return dagi_albedo_block_world_pos_to_abs_coord(worldPos, sample_dagi_albedo_clipmap_lt_coord(clip));
+    }
+
+    uint3 dagi_albedo_wrapped_coord_from_abs_coord(int3 abs_coord)
+    {
+      #if DAGI_ALBEDO_ALLOW_NON_POW2
+      //non-pow2
+      return uint3(dagi_albedo_clipmap_sizei_np2.zzw + abs_coord)%uint3(dagi_albedo_clipmap_sizei_np2.xxy);
+      #endif
+      //pow2
+      return uint3(abs_coord)%dagi_albedo_get_clip_size().xxy;
+    }
+
+    int3 dagi_albedo_abs_coord_from_wrapped_coord(uint3 wrapped, int3 clip_lt)
+    {
+      #if DAGI_ALBEDO_ALLOW_NON_POW2
+      //non-pow2
+      return clip_lt + int3(uint3(int3(wrapped) - clip_lt.xyz + dagi_albedo_clipmap_sizei_np2.zzw)%uint3(dagi_albedo_clipmap_sizei_np2.xxy));
+      //return clip_lt + int3(uint3(int3(dagi_albedo_get_clip_size().xxy) + (int3(wrapped) - clip_lt.xyz)%int3(dagi_albedo_get_clip_size().xxy))%dagi_albedo_get_clip_size().xxy);
+      #endif
+      //pow2
+      return clip_lt + int3(uint3(int3(wrapped) - clip_lt.xyz)%dagi_albedo_get_clip_size().xxy);
+    }
+
+    int3 dagi_albedo_abs_coord_from_wrapped_coord(uint3 wrapped, uint clip)
+    {
+      return dagi_albedo_abs_coord_from_wrapped_coord(wrapped, sample_dagi_albedo_clipmap_lt_coord(clip).xyz);
+    }
+
+    uint dagi_albedo_indirection_from_clip_addr(ByteAddressBuffer indirection, uint clip_addr)
+    {
+      return loadBuffer(indirection, clip_addr*4);
+    }
+    uint dagi_albedo_indirection_from_clip_addr(RWByteAddressBuffer indirection, uint clip_addr)
+    {
+      return loadBuffer(indirection, clip_addr*4);
+    }
+    uint dagi_albedo_indirection_from_wrapped_coord(ByteAddressBuffer indirection, uint3 wrapped, uint clip)
+    {
+      return dagi_albedo_indirection_from_clip_addr(indirection, dagi_albedo_get_buffer_addr(wrapped, clip));
+    }
+    uint dagi_albedo_indirection_from_wrapped_coord(RWByteAddressBuffer indirection, uint3 wrapped, uint clip)
+    {
+      return dagi_albedo_indirection_from_clip_addr(indirection, dagi_albedo_get_buffer_addr(wrapped, clip));
+    }
+
+    uint dagi_albedo_indirection_from_abs_coord_unsafe(ByteAddressBuffer indirection, int3 coord, uint clip)
+    {
+      return dagi_albedo_indirection_from_wrapped_coord(indirection, dagi_albedo_wrapped_coord_from_abs_coord(coord), clip);
+      //safe
+      //return (all(dagi_albedo_clip_pos_from_abs_coord(coord, clip) < dagi_albedo_get_clip_size().xxy)) ? dagi_albedo_indirection_from_abs_coord_unsafe(indirection, coord, clip) : INVALID_DAGI_ALBEDO_BLOCK_INDEX;
+    }
+    uint dagi_albedo_indirection_from_abs_coord_unsafe(RWByteAddressBuffer indirection, int3 coord, uint clip)
+    {
+      return dagi_albedo_indirection_from_wrapped_coord(indirection, dagi_albedo_wrapped_coord_from_abs_coord(coord), clip);
+      //safe
+      //return (all(dagi_albedo_clip_pos_from_abs_coord(coord, clip) < dagi_albedo_get_clip_size().xxy)) ? dagi_albedo_indirection_from_abs_coord_unsafe(indirection, coord, clip) : INVALID_DAGI_ALBEDO_BLOCK_INDEX;
+    }
+    uint dagi_albedo_get_best_enclosing_clip(float3 worldPos, uint start = 0)
+    {
+      uint i = start;
+      LOOP
+      do {
+        int4 lt = sample_dagi_albedo_clipmap_lt_coord(i);
+        float3 blockCoordF = dagi_albedo_block_world_pos_to_abs_coord(worldPos, lt);
+        int3 blockCoord = floor(blockCoordF);
+        if (all(uint3(blockCoord - lt.xyz) < dagi_albedo_get_clip_size().xxy))
+          return i;
+        ++i;// moving that to while () causes invalid sahder compilation on dx11
+      } while (i < dagi_albedo_get_clip_count());
+      return DAGI_MAX_ALBEDO_CLIPS;
+    }
+  }
+endmacro
+
+macro DAGI_ALBEDO_CLIPMAP_MATH(code)
+  DAGI_ALBEDO_CLIPMAP_MATH_INIT(code)
+  DAGI_ALBEDO_CLIPMAP_MATH_USE(code)
+endmacro
+
+macro DAGI_ALBEDO_ATLAS_MATH_INIT(code)
+  (code) {
+    dagi_albedo_atlas_sizei@i4 = dagi_albedo_atlas_sizei;
+    dagi_albedo_inv_atlas_size_blocks_texels@f4 = dagi_albedo_inv_atlas_size_blocks_texels;
+    dagi_albedo_internal_block_size_tc_border@f4 = dagi_albedo_internal_block_size_tc_border;
+  }
+endmacro
+
+macro DAGI_ALBEDO_ATLAS_MATH_USE(code)
+  hlsl (code) {
+    float2 dagi_albedo_inv_atlas_size_in_blocks() {return dagi_albedo_inv_atlas_size_blocks_texels.xy;}
+    float2 dagi_albedo_inv_atlas_size_in_texels() {return dagi_albedo_inv_atlas_size_blocks_texels.zw;}
+    float2 dagi_albedo_internal_block_size_tc() {return dagi_albedo_internal_block_size_tc_border.xy;}
+    float2 dagi_albedo_internal_block_border() {return dagi_albedo_internal_block_size_tc_border.zw;}
+    uint dagi_albedo_get_atlas_blocks_wh_mask() {return dagi_albedo_atlas_sizei.x;}
+    uint dagi_albedo_get_atlas_blocks_wh_dim() {return dagi_albedo_atlas_sizei.x+1;}
+    uint dagi_albedo_get_atlas_blocks_wh_shift() {return dagi_albedo_atlas_sizei.y;}
+    uint dagi_albedo_get_atlas_blocks_slice_shift() {return dagi_albedo_atlas_sizei.z;}
+    uint dagi_albedo_get_atlas_blocks_d_dim() {return dagi_albedo_atlas_sizei.w;}
+    uint dagi_albedo_get_total_atlas_size() {
+      return dagi_albedo_get_atlas_blocks_d_dim()<<dagi_albedo_get_atlas_blocks_slice_shift();
+    }
+
+    uint2 dagi_albedo_get_atlas_blocks_dim() {return dagi_albedo_atlas_sizei.xy+1;}
+    uint3 dagi_decode_block_coord_from(uint blockAddr) {return uint3(uint2(blockAddr, blockAddr>>dagi_albedo_get_atlas_blocks_wh_shift())&dagi_albedo_get_atlas_blocks_wh_mask(), blockAddr>>dagi_albedo_get_atlas_blocks_slice_shift());}
+    uint dagi_encode_block_coord_from_addr(uint3 blockCoord) {return blockCoord.x | (blockCoord.y<<dagi_albedo_get_atlas_blocks_wh_shift()) | (blockCoord.z<<dagi_albedo_get_atlas_blocks_slice_shift());}
+  }
+
+endmacro
+
+macro DAGI_ALBEDO_ATLAS_MATH(code)
+  DAGI_ALBEDO_ATLAS_MATH_INIT(code)
+  DAGI_ALBEDO_ATLAS_MATH_USE(code)
+endmacro
+
+macro DAGI_ALBEDO_INDIRECTION_SRV(code)
+  (code) {
+    dagi_albedo_indirection__free_indices_list@buf = dagi_albedo_indirection__free_indices_list hlsl {
+      ByteAddressBuffer dagi_albedo_indirection__free_indices_list@buf;
+    }
+  }
+endmacro
+
+int dagi_albedo_atlas_reg_no = 5 always_referenced;
+int dagi_albedo_indirection__free_indices_list_reg_no = 4 always_referenced;
+
+macro DAGI_ALBEDO_TEXTURE_WRITE(code)
+  hlsl(code) {
+    #if !_HARDWARE_PS5 && !_HARDWARE_PS4 && !_HARDWARE_XBOX && !_HARDWARE_SCARLETT // consoles have typed uav load
+    #define ALBEDO_UAV_UINT 1
+    #endif
+    #if ALBEDO_UAV_UINT
+    #define ALBEDO_UAV_TYPE uint
+    #else
+    #define ALBEDO_UAV_TYPE float4
+    #endif
+    RWTexture3D<ALBEDO_UAV_TYPE> dagi_albedo_atlas:register(u5);
+  }
+/*  (code) {
+    dagi_albedo_atlas@uav = dagi_albedo_atlas hlsl {
+      RWTexture3D<float4> dagi_albedo_atlas@uav;
+    };
+  }
+*/
+endmacro
+
+macro DAGI_ALBEDO_FREE_INDICES_WRITE_INIT(code)
+/*  (code) {
+    dagi_albedo_indirection__free_indices_list@uav = dagi_albedo_indirection__free_indices_list hlsl {
+      globallycoherent RWByteAddressBuffer dagi_albedo_indirection__free_indices_list@uav;
+    };
+  }
+*/
+endmacro
+macro DAGI_ALBEDO_FREE_INDICES_WRITE_DECL(code)
+  hlsl(code) {
+    #ifndef DAGI_ALBEDO_COHERENCY
+      #if _HARDWARE_PS4
+        #define DAGI_ALBEDO_COHERENCY RWByteAddressBuffer
+      #elif _HARDWARE_PS5
+        #define DAGI_ALBEDO_COHERENCY RW_ByteBuffer<CacheFlags::kGL2Only>
+      #else
+        #define DAGI_ALBEDO_COHERENCY globallycoherent RWByteAddressBuffer
+      #endif
+    #endif
+    DAGI_ALBEDO_COHERENCY dagi_albedo_indirection__free_indices_list:register(u4);
+  }
+endmacro
+
+macro DAGI_ALBEDO_FREE_BLOCK_USE(code)
+  hlsl(code) {
+    void dagi_albedo_free_block(uint blockIndex)
+    {
+      if (blockIndex == INVALID_DAGI_ALBEDO_BLOCK_INDEX)
+        return;
+      uint freeIndexAt;
+      dagi_albedo_indirection__free_indices_list.InterlockedAdd(dagi_albedo_get_free_list_ofs(), 1, freeIndexAt);
+      if (freeIndexAt < dagi_albedo_get_total_atlas_size())// false could not be happening, safety
+      {
+        storeBuffer(dagi_albedo_indirection__free_indices_list, dagi_albedo_get_free_list_ofs() + freeIndexAt*4 + 4, blockIndex);
+      }
+    }
+  }
+endmacro
+
+macro DAGI_ALBEDO_ALLOCATE_BLOCK_USE(code)
+  DAGI_ALBEDO_FREE_INDICES_WRITE_DECL(code)
+  hlsl(code) {
+    bool dagi_albedo_allocate_new_block(inout uint blockIndex)
+    {
+      //allocate new block
+      int freeIndexAt;
+      dagi_albedo_indirection__free_indices_list.InterlockedAdd(dagi_albedo_get_free_list_ofs(), -1, freeIndexAt);
+      freeIndexAt--;
+      if (freeIndexAt < 0)
+      {
+        //we'd increase back counter only once in one fix up step, before freing blocks
+        return false;
+      }
+      blockIndex = dagi_albedo_indirection__free_indices_list.Load(dagi_albedo_get_free_list_ofs() + freeIndexAt*4 + 4);
+      return true;
+    }
+  }
+endmacro
+
+macro DAGI_ALBEDO_WRITE_INIT(code)
+  DAGI_ALBEDO_CLIPMAP_MATH_INIT(code)
+  DAGI_ALBEDO_ATLAS_MATH_INIT(code)
+  (code) {
+    dagi_albedo_clipmap_update_box_lt@i4 = dagi_albedo_clipmap_update_box_lt;
+    dagi_albedo_clipmap_update_box_sz@i4 = dagi_albedo_clipmap_update_box_sz;
+  }
+  DAGI_ALBEDO_FREE_INDICES_WRITE_INIT(code)
+endmacro
+
+macro DAGI_ALBEDO_WRITE_USE(code)
+  DAGI_ALBEDO_CLIPMAP_MATH_USE(code)
+  DAGI_ALBEDO_ATLAS_MATH_USE(code)
+
+  DAGI_ALBEDO_ALLOCATE_BLOCK_USE(code)
+  DAGI_ALBEDO_TEXTURE_WRITE(code)
+
+  hlsl(code) {
+    #include <pixelPacking/ColorSpaceUtility.hlsl>
+    uint SRGBAtoUint(float4 color) {
+      uint4 a = (saturate(color)*255. + 0.5);
+      return (a.w<<24)|(a.x<<16)|(a.y<<8)|(a.z);
+    }
+    float4 UintToSRGBA(uint a) {
+      return float4(uint4(a>>16, a>>8, a, a>>24)&0xFF)*(1./255);
+    }
+
+    #if ALBEDO_UAV_UINT
+    uint UintToSRGBA_uav(uint a) {return a;}
+    bool uav_color_empty(uint a) {return (a>>24) != 0xFF;}
+    uint SRGBToSRGB_uav(float3 color) {
+      uint3 a = uint3(saturate(color)*255. + 0.5);
+      return (a.x<<16)|(a.y<<8)|(a.z);
+    }
+    uint SRGBToSRGB_uav1(float3 color) {
+      return SRGBToSRGB_uav(color)|(0xff<<24);
+    }
+    uint SRGBAToSRGBA_uav(float4 color) {return SRGBAtoUint(color);}
+    float4 decode_uav_color(uint a) { return UintToSRGBA(a); }
+    float3 decode_uav_color_rgb(uint a) {
+      return float3(uint3(a>>16, a>>8, a)&0xFF)*(1./255);
+    }
+    #else
+    float4 UintToSRGBA_uav(uint a) {return UintToSRGBA(a);}
+    bool uav_color_empty(float4 a) {return a.a < 1;}
+    float3 SRGBToSRGB_uav(float3 color) {
+      return color;
+    }
+    float4 SRGBToSRGB_uav1(float3 color) {
+      return float4(color, 1);
+    }
+    float4 SRGBAToSRGBA_uav(float4 color) {
+      return color;
+    }
+    float4 decode_uav_color(float4 a) {return a;}
+    float3 decode_uav_color_rgb(float4 a) {return a.xyz;}
+    #endif
+    bool dagi_write_albedo_unsafe(float3 worldPos, float3 albedo, uint i, float oldW = 0)
+    {
+      int4 lt = sample_dagi_albedo_clipmap_lt_coord(i);
+      float3 blockCoordF = dagi_albedo_block_world_pos_to_abs_coord(worldPos, lt);
+      int3 blockCoord = floor(blockCoordF);
+      if (all(uint3(blockCoord - lt.xyz) < dagi_albedo_get_clip_size().xxy))
+      {
+        uint wrappedAddr = dagi_albedo_get_buffer_addr(dagi_albedo_wrapped_coord_from_abs_coord(blockCoord), i);
+        uint blockIndex;
+        const uint TOKEN = INVALID_DAGI_ALBEDO_BLOCK_INDEX - 1;
+        uint prevAddress = INVALID_DAGI_ALBEDO_BLOCK_INDEX;
+        dagi_albedo_indirection__free_indices_list.InterlockedCompareExchange(wrappedAddr*4, INVALID_DAGI_ALBEDO_BLOCK_INDEX, TOKEN, blockIndex);
+
+        //todo: check active threads with same wrappedAddr, and perform allocation and CAS only on first active thread!
+        //fixme: this would significantly reduce contention and atomic operations
+        BRANCH
+        if (blockIndex == INVALID_DAGI_ALBEDO_BLOCK_INDEX) // we obtained token, token is written
+        {
+          dagi_albedo_allocate_new_block(blockIndex);
+          uint originalValue;
+          dagi_albedo_indirection__free_indices_list.InterlockedExchange(wrappedAddr*4, blockIndex, originalValue);
+          //assert(originalValue == TOKEN);
+        }
+
+        [loop] [fastopt] [allow_uav_condition]
+        for (int i = 0; i < 32 && blockIndex != TOKEN; ++i) {
+          dagi_albedo_indirection__free_indices_list.InterlockedCompareExchange(wrappedAddr*4, INVALID_DAGI_ALBEDO_BLOCK_INDEX, INVALID_DAGI_ALBEDO_BLOCK_INDEX, blockIndex);
+        };
+
+        if (blockIndex >= TOKEN)// could not allocate
+          return false;
+        {
+          uint3 inBlockOffsetInAtlas = dagi_decode_block_coord_from(blockIndex);
+          float3 blockTC = blockCoordF - float3(blockCoord);
+          uint3 texelCoord = inBlockOffsetInAtlas<<DAGI_ALBEDO_BLOCK_SHIFT;
+          #if DAGI_ALBEDO_SMOOTH_TRILINEAR
+            texelCoord += floor(blockTC.xyz*DAGI_ALBEDO_INTERNAL_BLOCK_SIZE + 0.5);
+          #else
+            texelCoord += floor(blockTC.xyz*DAGI_ALBEDO_BLOCK_SIZE);
+          #endif
+          albedo = ApplySRGBCurve_Fast(albedo);
+          if (oldW == 0)
+          {
+            texture3DAt(dagi_albedo_atlas, texelCoord) = SRGBToSRGB_uav1(albedo);
+          }
+          else
+          {
+            //we use asuint in dx11 hw!
+            ALBEDO_UAV_TYPE oldColorUI = texture3DAt(dagi_albedo_atlas, texelCoord);
+            texture3DAt(dagi_albedo_atlas, texelCoord) = SRGBToSRGB_uav1(lerp(albedo, decode_uav_color_rgb(oldColorUI), uav_color_empty(oldColorUI) ? 0 : oldW));
+          }
+          return true;
+        }
+      }
+      return false;
+    }
+    bool dagi_write_albedo(float3 worldPos, float3 albedo, uint i, float oldW = 0)
+    {
+      return (i < dagi_albedo_get_clip_count()) ? dagi_write_albedo_unsafe(worldPos, albedo, i, oldW) : false;
+    }
+    bool dagi_write_updated_albedo(float3 worldPos, float3 albedo, float oldW = 0)
+    {
+      return dagi_write_albedo_unsafe(worldPos, albedo, dagi_albedo_clipmap_update_box_lt.w, oldW);
+    }
+    bool dagi_is_writing_albedo_legacy()
+    {
+      return uint(dagi_albedo_clipmap_update_box_lt.w) < dagi_albedo_get_clip_count();
+    }
+    bool dagi_should_write_albedo(float3 worldPos)
+    {
+      if (uint(dagi_albedo_clipmap_update_box_lt.w) >= dagi_albedo_get_clip_count())
+        return false;
+      int4 lt = sample_dagi_albedo_clipmap_lt_coord(dagi_albedo_clipmap_update_box_lt.w);
+      float3 blockCoordF = dagi_albedo_block_world_pos_to_abs_coord(worldPos, lt);
+      int3 blockCoord = floor(blockCoordF);
+      return all(uint3(blockCoord - lt.xyz) < dagi_albedo_get_clip_size().xxy);
+    }
+    bool dagi_write_updated_albedo_legacy(float3 worldPos, float3 albedo, float oldW = 0)
+    {
+      return dagi_write_albedo(worldPos, albedo, dagi_albedo_clipmap_update_box_lt.w, oldW);
+    }
+  }
+endmacro
+
+macro DAGI_ALBEDO_WRITE(code)
+  DAGI_ALBEDO_WRITE_INIT(code)
+  DAGI_ALBEDO_WRITE_USE(code)
+endmacro
+
+macro DAGI_ALBEDO_SAMPLE(code)
+  DAGI_ALBEDO_CLIPMAP_MATH(code)
+  DAGI_ALBEDO_ATLAS_MATH(code)
+  DAGI_ALBEDO_INDIRECTION_SRV(code)
+  (code) {
+    dagi_albedo_atlas@smp3d = dagi_albedo_atlas;
+  }
+  hlsl(code) {
+    //#include <pcg_hash.hlsl>
+    bool dagi_sample_albedo_coord(float3 blockCoordF, uint cascade, int4 lt, inout float3 albedo)
+    {
+      int3 blockCoord = floor(blockCoordF);
+      if (any(uint3(blockCoord - lt.xyz) >= dagi_albedo_get_clip_size().xxy))
+        return false;
+
+      uint blockAddr = dagi_albedo_indirection_from_abs_coord_unsafe(dagi_albedo_indirection__free_indices_list, blockCoord, cascade);
+      if (blockAddr != INVALID_DAGI_ALBEDO_BLOCK_INDEX)
+      {
+        float3 blockTC = blockCoordF - float3(blockCoord);
+        #if !DAGI_ALBEDO_SMOOTH_TRILINEAR
+        blockTC = clamp(blockTC, 0.5/DAGI_ALBEDO_BLOCK_SIZE, 1-0.5/DAGI_ALBEDO_BLOCK_SIZE);
+        #endif
+
+        uint3 inBlockOffsetInAtlas = dagi_decode_block_coord_from(blockAddr);
+        float3 atlasTC = blockTC.xyz * dagi_albedo_internal_block_size_tc().xxy + (inBlockOffsetInAtlas * dagi_albedo_inv_atlas_size_in_blocks().xxy + dagi_albedo_internal_block_border().xxy);
+        float4 color = tex3Dlod(dagi_albedo_atlas, float4(atlasTC, 0));
+        if (color.a > 1e-4)
+        {
+          albedo = color.xyz/color.a;
+          //uint h = pcg_hash(blockAddr);
+          //albedo = float3(uint3(h, h >> 8, h>>10)&255)/255.;
+          return true;
+        }
+      }
+      return false;
+    }
+    bool dagi_sample_albedo(float3 worldPos, inout float3 albedo, uint start_clip, uint end_clip)
+    {
+      LOOP
+      for (uint i = start_clip; i < end_clip; ++i)
+      {
+        int4 lt = sample_dagi_albedo_clipmap_lt_coord(i);
+        float3 blockCoordF = dagi_albedo_block_world_pos_to_abs_coord(worldPos, lt);
+        if (dagi_sample_albedo_coord(blockCoordF, i, lt, albedo))
+          return true;
+      }
+      return false;
+    }
+    bool dagi_sample_albedo_best(float3 worldPos, inout float3 albedo)
+    {
+      return dagi_sample_albedo(worldPos, albedo, 0, dagi_albedo_get_clip_count());
+    }
+  }
+endmacro

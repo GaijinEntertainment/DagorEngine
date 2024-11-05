@@ -43,6 +43,9 @@ float4 water_vertical_lod = (0,0,0,0);
 float4 water_grad_mul_to_four = (1, 0.13, 0.021, 0.0051);
 float4 water_fold_mul_to_four = (1, 0.65, 0.44, 0.44);
 
+float4 perlin_cascade_factors1 = (1, 1, 1, 1);
+float4 perlin_cascade_factors2 = (1, 1, 1, 1);
+
 hlsl {
   #define NO_GEOMORPHLODS 0
   #define FULL_GEOMORPH_LODS 1
@@ -166,14 +169,13 @@ macro USE_WATER_COMMON(stage)
 
   hlsl(stage) {
     // WaveWorks related functions
-    void get_blend_factor(float3 worldPos, float nvsf_distance, out float4 nvsf_tex_coord_cascade01, out float4 nvsf_tex_coord_cascade23,
-                          out float4 nvsf_tex_coord_cascade45, out float4 nvsf_blendfactors0123, out float4 nvsf_blendfactors4567)
+    void get_cascades(float2 worldPosXZ, out float4 nvsf_tex_coord_cascade01, out float4 nvsf_tex_coord_cascade23, out float4 nvsf_tex_coord_cascade45)
     {
       // UVs
-      nvsf_tex_coord_cascade01 = worldPos.xyxy * UVScaleCascade0123.xxyy;
-      nvsf_tex_coord_cascade23 = worldPos.xyxy * UVScaleCascade0123.zzww;
+      nvsf_tex_coord_cascade01 = worldPosXZ.xyxy * UVScaleCascade0123.xxyy;
+      nvsf_tex_coord_cascade23 = worldPosXZ.xyxy * UVScaleCascade0123.zzww;
       ##if water_cascades == five
-        nvsf_tex_coord_cascade45 = worldPos.xyxy * UVScaleCascade4567.xxyy;
+        nvsf_tex_coord_cascade45 = worldPosXZ.xyxy * UVScaleCascade4567.xxyy;
       ##else
         nvsf_tex_coord_cascade45 = float4(0.0, 0.0, 0.0, 0.0);
       ##endif
@@ -182,9 +184,6 @@ macro USE_WATER_COMMON(stage)
       nvsf_tex_coord_cascade01 += 0.5 * cascadePixelSize;
       nvsf_tex_coord_cascade23 += 0.5 * cascadePixelSize;
       nvsf_tex_coord_cascade45 += 0.5 * cascadePixelSize;
-
-      nvsf_blendfactors0123 = 1;
-      nvsf_blendfactors4567 = 1;
     }
   }
 endmacro
@@ -200,9 +199,9 @@ macro USE_WATER_DISPLACEMENT(stage, surf)
     void WaveWorks_GetDisplacedVertex(float3 worldPos, float worldPosDistance, float4 blend_factors0123, float4 blend_factors4567,
       out float3 nvsf_displacement, out float4 nvsf_tex_coord_cascade01, out float4 nvsf_tex_coord_cascade23, out float4 nvsf_tex_coord_cascade45)
     {
-      float4 nvsf_blendfactors0123, nvsf_blendfactors4567;
-      get_blend_factor(worldPos, worldPosDistance, nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23, nvsf_tex_coord_cascade45,
-                       nvsf_blendfactors0123, nvsf_blendfactors4567);
+      float4 nvsf_blendfactors0123 = 1;
+      float4 nvsf_blendfactors4567 = 1;
+      get_cascades(worldPos.xy, nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23, nvsf_tex_coord_cascade45);
       nvsf_blendfactors0123 *= blend_factors0123;
       nvsf_blendfactors4567 *= blend_factors4567;
 
@@ -256,9 +255,9 @@ macro USE_WATER_DISPLACEMENT(stage, surf)
 ##if compatibility_mode == compatibility_mode_off
       else
       {
-        float4 nvsf_blendfactors0123, nvsf_blendfactors4567;
-        get_blend_factor(world_pos, view_dist, tex_coord_cascade01, tex_coord_cascade23, tex_coord_cascade45,
-                        nvsf_blendfactors0123, nvsf_blendfactors4567);
+        float4 nvsf_blendfactors0123 = 1;
+        float4 nvsf_blendfactors4567 = 1;
+        get_cascades(world_pos.xy, tex_coord_cascade01, tex_coord_cascade23, tex_coord_cascade45);
       }
 ##endif
 
@@ -275,8 +274,8 @@ macro USE_WATER_DISPLACEMENT(stage, surf)
   }
 endmacro
 
-macro INIT_WATER_GRADIENTS()
-  (ps) {
+macro INIT_WATER_GRADIENTS(stage)
+  (stage) {
     water_gradients_tex0@smpArray = water_gradients_tex0;
     cascadesTexelScale0123@f4 = cascadesTexelScale0123;
     cascadesTexelScale4567@f4 = cascadesTexelScale4567;
@@ -284,15 +283,17 @@ macro INIT_WATER_GRADIENTS()
     details_weight@f4 = (1.0 / (details_weight.y - details_weight.x), -details_weight.x / (details_weight.y - details_weight.x), 1.0 / (details_weight.w - details_weight.z), -details_weight.z / (details_weight.w - details_weight.z));
     water_grad_mul_to_four@f4 = water_grad_mul_to_four;
     water_fold_mul_to_four@f4 = water_fold_mul_to_four;
+    perlin_cascade_factors1@f4 = perlin_cascade_factors1;
+    perlin_cascade_factors2@f4 = perlin_cascade_factors2;
   }
 endmacro
 
-macro USE_WATER_GRADIENTS(surf)
-  USE_WATER_COMMON(ps)
-  INIT_SHORE(ps)
-  USE_SHORE(ps, 1, surf)
+macro USE_WATER_GRADIENTS(stage, surf)
+  USE_WATER_COMMON(stage)
+  INIT_SHORE(stage)
+  USE_SHORE(stage, 1, surf)
 
-  hlsl(ps) {
+  hlsl(stage) {
     #ifndef NORMALIZE_FFTWATER_NORMAL
       #define NORMALIZE_FFTWATER_NORMAL 1
     #endif
@@ -445,23 +446,24 @@ macro USE_WATER_GRADIENTS(surf)
       float foam_wave_hats;
     };
 
-    GradientsData getWaterGradients(float3 world_pos, float view_dist, float perlin, float3 weights, ShoreData shore_data)
+    GradientsData getWaterGradients(float3 world_pos, float view_dist, float perlin, float3 weights, ShoreData shore_data, float perlinSpotInfluence = 0.0)
     {
-      float4 nvsf_blendfactors0123, nvsf_blendfactors4567;
+      float4 nvsf_blendfactors0123 = 1;
+      float4 nvsf_blendfactors4567 = 1;
       float4 nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23, nvsf_tex_coord_cascade45;
-      get_blend_factor(world_pos.xzy, view_dist, nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23,
-                  nvsf_tex_coord_cascade45, nvsf_blendfactors0123, nvsf_blendfactors4567);
+      get_cascades(world_pos.xz, nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23, nvsf_tex_coord_cascade45);
       nvsf_blendfactors0123 *= float4(weights.x, 0.8 * weights.x + 0.2, 1, 1) * weights.y;
       nvsf_blendfactors0123 *= float4(shore_data.oceanWavesMultiplier.xx, shore_data.oceanDetailsMultiplier.xx);
       nvsf_blendfactors4567 *= shore_data.oceanDetailsMultiplier.x * weights.y;
 
-      // First tow cascades create physical waves thus damp them only if they are small
-      // Last two cascades do not make any contribution to physics therefore it safe to dump them
-      float4 perlinWaves = saturate(5 * pow2(perlin));
-      perlinWaves.x = 1.0;
-      float nearDetailsWeight = saturate(view_dist * details_weight.x + details_weight.y);
-      nvsf_blendfactors0123 *= lerp(perlinWaves, float4(1, 1, 1, 1), nearDetailsWeight);
-      nvsf_blendfactors4567 *= lerp(perlinWaves, float4(1, 1, 1, 1), nearDetailsWeight);
+      #if has_perlin_noise
+        // First tow cascades create physical waves thus damp them only if they are small
+        // Last two cascades do not make any contribution to physics therefore it safe to dump them
+        float4 perlinWaves = saturate(5 * pow2(perlin));
+        perlinWaves.x = 1.0;
+        nvsf_blendfactors0123 *= lerp(float4(1, 1, 1, 1), perlinWaves * perlin_cascade_factors1, perlinSpotInfluence);
+        nvsf_blendfactors4567 *= lerp(float4(1, 1, 1, 1), perlinWaves * perlin_cascade_factors2, perlinSpotInfluence);
+      #endif
 
       GradientsData Output;
       get_gradients(nvsf_tex_coord_cascade01 * weights.z, nvsf_tex_coord_cascade23 * weights.z, nvsf_tex_coord_cascade45 * weights.z,

@@ -147,7 +147,7 @@ void LandMeshCullingState::cullDataWithBbox(LandMeshCullingData &dest_data, cons
 
 void LandMeshCullingState::frustumCulling(LandMeshManager &provider, const Frustum &frustum, const Occlusion *occlusion,
   LandMeshCullingData &data, const IBBox2 *regions_array, int regions_count, const Point3 &hmap_origin, float hmap_camera_height,
-  int hmapTankDetail, int hmap_lod0_subdiv, float hmap_lod0_scale)
+  float hmap_water_level, int hmapTankDetail, int hmap_lod0_subdiv, float hmap_lod0_scale)
 {
   TIME_PROFILE(lmesh_frustum_cull);
 
@@ -265,8 +265,8 @@ void LandMeshCullingState::frustumCulling(LandMeshManager &provider, const Frust
     // front-to-back sorting and cullingMng
     if (!provider.isInTools() && useExclBox && provider.getHmapHandler() && hmapTankDetail >= 0)
     {
-      provider.getHmapHandler()->frustumCulling(data.heightmapData, hmap_origin, hmap_camera_height, frustum, hmapTankDetail,
-        occlusion, hmap_lod0_subdiv, hmap_lod0_scale);
+      provider.getHmapHandler()->frustumCulling(data.heightmapData, hmap_origin, hmap_camera_height, hmap_water_level, frustum,
+        hmapTankDetail, occlusion, hmap_lod0_subdiv, hmap_lod0_scale);
     }
     startCell.x = max(cellBox.lim[0].x, min(cellBox.lim[1].x, startCell.x));
     startCell.y = max(cellBox.lim[0].y, min(cellBox.lim[1].y, startCell.y));

@@ -19,6 +19,6 @@ Sources =
 
 CPPopt = ;
 
-if $(Platform) in linux64 macosx ps4 ps5 iOS android { CPPopt += -Wno-switch ; }
+if $(Platform) in linux macOS ps4 ps5 iOS android { CPPopt += -Wno-switch ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

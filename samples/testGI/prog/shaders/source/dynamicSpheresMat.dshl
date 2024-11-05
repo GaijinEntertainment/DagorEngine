@@ -1,0 +1,77 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "psh_derivate.dshl"
+include "psh_tangent.dshl"
+
+float sphere_time = 1;
+
+shader draw_debug_dynamic_spheres
+{
+  no_ablend;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 metallness_roghness:  TEXCOORD0;
+      float3 worldPos:  TEXCOORD1;
+      float3 norm:  TEXCOORD2;
+      float3 color: TEXCOORD3;
+    };
+  }
+
+  (vs)
+  {
+    globtm@f44 = globtm;
+    world_view_pos@f3 = world_view_pos;
+    time@f1= (sphere_time,0,0,0);
+  }
+
+  hlsl(vs) {
+
+    #include "spheres_vertices.hlsl"
+    VsOutput test_vs(uint id : SV_InstanceID, uint vertId : SV_VertexID)
+    {
+      VsOutput output;
+      float3 totalOfs = float3(-4,0,-1.2);
+      totalOfs.xz += float2(id%4, id/4)*2;
+      totalOfs.y += 0.25 + 7*abs(sin(time*2*PI + id*0.7));
+      float3 inputPos = get_sphere_vertex_pos(vertId);
+      float3 pos = inputPos*0.5f + totalOfs;
+      float3 normal = inputPos;
+
+      output.pos = mul(float4(pos, 1), globtm);
+      output.worldPos = pos;
+      output.norm = normal;
+      #define MATERIALS 6
+      float3 colors[MATERIALS] = {float3(0.8,0.2,0.2), float3(0.2,0.8,0.2), float3(0.2,0.2,0.8), float3(0.2,0.2,0.2), float3(0.1,0.1,0.1), float3(0.8,0.8,0.8)};
+      float2 met_roughness[MATERIALS] = {float2(0, 1), float2(0, 1), float2(0, 0.75), float2(0, 0), float2(0, 1), float2(1,0)};
+      output.metallness_roghness = met_roughness[id%MATERIALS];
+      output.color = colors[id%MATERIALS];
+      return output;
+    }
+  }
+
+  WRITE_GBUFFER()
+
+  hlsl(ps) {
+    GBUFFER_OUTPUT test_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      UnpackedGbuffer result;
+      init_gbuffer(result);
+      float3 normal = normalize(input.norm);// + float3(0.005*(2*rand2(floor(input.worldPos.xz*2111)/2111)-1),0) );
+      float2 metallness_roghness = input.metallness_roghness;
+      float3 color = input.color;
+      init_dynamic(result, true);
+      init_albedo(result, color);
+      init_smoothness(result, 1-metallness_roghness.y);
+      init_normal(result, normal);
+      init_metalness(result, metallness_roghness.x);
+      init_ao(result, 1);
+      return encode_gbuffer(result, input.pointToEye, screenpos);
+    }
+  }
+  compile("target_vs", "test_vs");
+  compile("target_ps", "test_ps");
+}

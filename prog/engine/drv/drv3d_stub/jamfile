@@ -11,11 +11,12 @@ Sources =
 ;
 
 CPPopt = -DD3DSTUBBED=1  -DINSIDE_DRIVER ;
-if $(Platform) in win32 win64 xboxOne scarlett { CPPopt += -FId3d_config.h ; } else { CPPopt += -include $(Root)/$(Location)/d3d_config.h ; }
+if $(Platform) in windows xboxOne scarlett { CPPopt += -FId3d_config.h ; } else { CPPopt += -include $(Root)/$(Location)/d3d_config.h ; }
 
 AddIncludes =
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/engine/drv/drv3d_commonCode
+  $(Root)/prog/engine/drv/drv3d_stub
 ;
 
 UseProgLibs = engine/drv/drv3d_commonCode ;

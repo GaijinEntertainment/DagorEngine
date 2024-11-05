@@ -35,7 +35,7 @@ Sources =
   iesReader.cpp
 ;
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   Sources +=
     dagUuid.cpp
     str_util_shlwapi.cpp

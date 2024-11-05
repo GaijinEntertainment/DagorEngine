@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daInput/input_api.h>
 #include <daInput/config_api.h>
 #include <ioSys/dag_dataBlock.h>

@@ -46,7 +46,7 @@ shader postfx
     frame_tex@smp2d = frame_tex;
     //raycast_envi_cube@smpCube = raycast_envi_cube;
     //raycast_local_cube@smpCube = raycast_local_cube;
-    exposure@f1 = (exposure);
+    exposure@f3 = (exposure,pre_exposure,exposure/pre_exposure,0);
   }
 
   hlsl(ps) {
@@ -126,7 +126,7 @@ shader postfx
       #else
         half3 frame = sampleSceneColor(input.tc);//fixed exposure of 0.25!
       #endif
-      return tonemap(frame*exposure).rgbr;//we write to srgb, so accurateLinearToSRGB not needed
+      return ApplySRGBCurve(tonemap(frame*exposure.z)).rgbr;//we write to srgb, so ApplySRGBCurve not needed
     }
   }
 

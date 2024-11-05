@@ -1,0 +1,10 @@
+outdated_effects{
+  _singleton:b=yes
+  _tags:t="render"
+  outdated_effects__check_once:b=true // show only one logerr per effect type
+  outdated_effects__check_all_effects:b=false // false=check only ecs effects; true=check not ecs effects too
+  _tracked:t="outdated_effects__check_once"
+  _tracked:t="outdated_effects__check_all_effects"
+  "outdated_effects:list<t>"{
+  }
+}

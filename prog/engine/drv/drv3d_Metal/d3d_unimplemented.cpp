@@ -1,19 +1,29 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <ioSys/dag_memIo.h>
 #include <ioSys/dag_zlibIo.h>
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_tiledResource.h>
+#include <drv/3d/dag_heap.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_shader.h>
+#include <drv/3d/dag_bindless.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_shaderLibrary.h>
 #include "drv_utils.h"
 
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
 #include <resUpdateBufferGeneric.h>
 #include <util/dag_string.h>
-#include <renderPassGeneric.h>
 #include <resourceActivationGeneric.h>
 
 #if _TARGET_PC_MACOSX
-#include <3d/dag_drv3d_pc.h>
+#include <drv/3d/dag_platform_pc.h>
 #endif
 
 void getCodeFromZ(const char *source, int sz, Tab<char> &code)
@@ -68,11 +78,6 @@ void *d3d::get_device() { return 0; }
 void *d3d::get_context() { return 0; }
 
 // Render states
-bool d3d::setantialias(int aa_type) { return false; }
-
-int d3d::getantialias() { return 0; }
-
-void d3d::discard_managed_textures() {}
 
 void d3d::change_screen_aspect_ratio(float ar) {}
 
@@ -111,57 +116,13 @@ void d3d::end_conditional_render(int id) {}
 
 bool d3d::set_depth_bounds(float zmin, float zmax) { return false; }
 
-// returns true if hardware supports depth bounds. same as get_driver_desc().caps.hasDepthBoundsTest
-bool d3d::supports_depth_bounds() { return false; }
-
-bool d3d::set_tex_usage_hint(int w, int h, int mips, const char *format, unsigned int tex_num) { return false; }
-
 Texture *d3d::get_backbuffer_tex() { return nullptr; }
 Texture *d3d::get_secondary_backbuffer_tex() { return nullptr; }
-Texture *d3d::get_backbuffer_tex_depth() { return nullptr; }
 
 // Immediate constant buffers - valid within min(driver acquire, frame)
 // to unbind, use NULL, 0 params
 // if slot = 0 is empty (PS/VS stages), buffered constants are used
 bool d3d::set_const_buffer(unsigned stage, unsigned slot, const float *data, unsigned num_regs) { return false; }
-
-d3d::SamplerHandle d3d::create_sampler(const d3d::SamplerInfo &sampler_info) { return 0; }
-void d3d::destroy_sampler(d3d::SamplerHandle sampler) {}
-
-void d3d::set_sampler(unsigned shader_stage, unsigned slot, d3d::SamplerHandle sampler) {}
-
-uint32_t d3d::register_bindless_sampler(BaseTexture *)
-{
-  G_ASSERTF(false, "d3d::register_bindless_sampler called on API without support");
-  return 0;
-}
-
-uint32_t d3d::allocate_bindless_resource_range(uint32_t, uint32_t)
-{
-  G_ASSERTF(false, "d3d::allocate_bindless_resource_range called on API without support");
-  return 0;
-}
-
-uint32_t d3d::resize_bindless_resource_range(uint32_t, uint32_t, uint32_t, uint32_t)
-{
-  G_ASSERTF(false, "d3d::resize_bindless_resource_range called on API without support");
-  return 0;
-}
-
-void d3d::free_bindless_resource_range(uint32_t, uint32_t, uint32_t)
-{
-  G_ASSERTF(false, "d3d::free_bindless_resource_range called on API without support");
-}
-
-void d3d::update_bindless_resource(uint32_t, D3dResource *)
-{
-  G_ASSERTF(false, "d3d::update_bindless_resource called on API without support");
-}
-
-void d3d::update_bindless_resources_to_null(uint32_t, uint32_t, uint32_t)
-{
-  G_ASSERTF(false, "d3d::update_bindless_resource_to_null called on API without support");
-}
 
 ResourceAllocationProperties d3d::get_resource_allocation_properties(const ResourceDescription &desc)
 {
@@ -176,7 +137,7 @@ ResourceHeap *d3d::create_resource_heap(ResourceHeapGroup *heap_group, size_t si
   return nullptr;
 }
 void d3d::destroy_resource_heap(ResourceHeap *heap) { G_UNUSED(heap); }
-Sbuffer *d3d::place_buffere_in_resource_heap(ResourceHeap *heap, const ResourceDescription &desc, size_t offset,
+Sbuffer *d3d::place_buffer_in_resource_heap(ResourceHeap *heap, const ResourceDescription &desc, size_t offset,
   const ResourceAllocationProperties &alloc_info, const char *name)
 {
   G_UNUSED(heap);
@@ -217,6 +178,15 @@ TextureTilingInfo d3d::get_texture_tiling_info(BaseTexture *tex, size_t subresou
 
 bool d3d::get_vrr_supported() { return false; }
 
+ShaderLibrary d3d::create_shader_library(const ShaderLibraryCreateInfo &) { return InvalidShaderLibrary; }
+
+void d3d::destroy_shader_library(ShaderLibrary) {}
+
+void d3d::wait_for_async_present(bool force) { G_UNUSED(force); }
+
+void d3d::gpu_latency_wait() {}
+
 IMPLEMENT_D3D_RESOURCE_ACTIVATION_API_USING_GENERIC();
 IMPLEMENT_D3D_RUB_API_USING_GENERIC()
-IMPLEMENT_D3D_RENDER_PASS_API_USING_GENERIC()
+
+#include <legacyCaptureImpl.cpp.inl>

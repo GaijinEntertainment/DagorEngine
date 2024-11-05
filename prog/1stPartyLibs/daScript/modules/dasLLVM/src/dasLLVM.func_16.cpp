@@ -12,66 +12,86 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_16() {
-// from D:\Work\libclang\include\llvm-c/Core.h:2007:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,const char *) , LLVMConstRealOfString >(*this,lib,"LLVMConstRealOfString",SideEffects::worstDefault,"LLVMConstRealOfString")
-		->args({"RealTy","Text"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2012:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,const char *,unsigned int) , LLVMConstRealOfStringAndSize >(*this,lib,"LLVMConstRealOfStringAndSize",SideEffects::worstDefault,"LLVMConstRealOfStringAndSize")
-		->args({"RealTy","Text","SLen"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2020:20
-	addExtern< unsigned long long (*)(LLVMOpaqueValue *) , LLVMConstIntGetZExtValue >(*this,lib,"LLVMConstIntGetZExtValue",SideEffects::worstDefault,"LLVMConstIntGetZExtValue")
-		->args({"ConstantVal"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2027:11
-	addExtern< long long (*)(LLVMOpaqueValue *) , LLVMConstIntGetSExtValue >(*this,lib,"LLVMConstIntGetSExtValue",SideEffects::worstDefault,"LLVMConstIntGetSExtValue")
-		->args({"ConstantVal"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2035:8
-	addExtern< double (*)(LLVMOpaqueValue *,int *) , LLVMConstRealGetDouble >(*this,lib,"LLVMConstRealGetDouble",SideEffects::worstDefault,"LLVMConstRealGetDouble")
-		->args({"ConstantVal","losesInfo"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2054:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueContext *,const char *,unsigned int,int) , LLVMConstStringInContext >(*this,lib,"LLVMConstStringInContext",SideEffects::worstDefault,"LLVMConstStringInContext")
-		->args({"C","Str","Length","DontNullTerminate"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2066:14
-	addExtern< LLVMOpaqueValue * (*)(const char *,unsigned int,int) , LLVMConstString >(*this,lib,"LLVMConstString",SideEffects::worstDefault,"LLVMConstString")
-		->args({"Str","Length","DontNullTerminate"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2074:10
-	addExtern< int (*)(LLVMOpaqueValue *) , LLVMIsConstantString >(*this,lib,"LLVMIsConstantString",SideEffects::worstDefault,"LLVMIsConstantString")
-		->args({"c"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2081:13
-	addExtern< const char * (*)(LLVMOpaqueValue *,size_t *) , LLVMGetAsString >(*this,lib,"LLVMGetAsString",SideEffects::worstDefault,"LLVMGetAsString")
-		->args({"c","Length"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2088:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueContext *,LLVMOpaqueValue **,unsigned int,int) , LLVMConstStructInContext >(*this,lib,"LLVMConstStructInContext",SideEffects::worstDefault,"LLVMConstStructInContext")
-		->args({"C","ConstantVals","Count","Packed"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2100:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue **,unsigned int,int) , LLVMConstStruct >(*this,lib,"LLVMConstStruct",SideEffects::worstDefault,"LLVMConstStruct")
-		->args({"ConstantVals","Count","Packed"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2108:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,LLVMOpaqueValue **,unsigned int) , LLVMConstArray >(*this,lib,"LLVMConstArray",SideEffects::worstDefault,"LLVMConstArray")
-		->args({"ElementTy","ConstantVals","Length"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2116:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,LLVMOpaqueValue **,unsigned int) , LLVMConstNamedStruct >(*this,lib,"LLVMConstNamedStruct",SideEffects::worstDefault,"LLVMConstNamedStruct")
-		->args({"StructTy","ConstantVals","Count"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2128:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,unsigned int) , LLVMGetAggregateElement >(*this,lib,"LLVMGetAggregateElement",SideEffects::worstDefault,"LLVMGetAggregateElement")
-		->args({"C","Idx"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2136:18
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,unsigned int) , LLVMGetElementAsConstant >(*this,lib,"LLVMGetElementAsConstant",SideEffects::worstDefault,"LLVMGetElementAsConstant")
-		->args({"C","idx"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2144:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue **,unsigned int) , LLVMConstVector >(*this,lib,"LLVMConstVector",SideEffects::worstDefault,"LLVMConstVector")
-		->args({"ScalarConstantVals","Size"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2159:12
-	addExtern< LLVMOpcode (*)(LLVMOpaqueValue *) , LLVMGetConstOpcode >(*this,lib,"LLVMGetConstOpcode",SideEffects::worstDefault,"LLVMGetConstOpcode")
-		->args({"ConstantVal"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2160:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *) , LLVMAlignOf >(*this,lib,"LLVMAlignOf",SideEffects::worstDefault,"LLVMAlignOf")
-		->args({"Ty"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2161:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *) , LLVMSizeOf >(*this,lib,"LLVMSizeOf",SideEffects::worstDefault,"LLVMSizeOf")
-		->args({"Ty"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2162:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMConstNeg >(*this,lib,"LLVMConstNeg",SideEffects::worstDefault,"LLVMConstNeg")
-		->args({"ConstantVal"});
+// from D:\Work\libclang\include\llvm-c/Core.h:2014:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,const char *,unsigned int,unsigned char) , LLVMConstIntOfStringAndSize , SimNode_ExtFuncCall >(lib,"LLVMConstIntOfStringAndSize","LLVMConstIntOfStringAndSize")
+		->args({"IntTy","Text","SLen","Radix"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2020:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,double) , LLVMConstReal , SimNode_ExtFuncCall >(lib,"LLVMConstReal","LLVMConstReal")
+		->args({"RealTy","N"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2028:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,const char *) , LLVMConstRealOfString , SimNode_ExtFuncCall >(lib,"LLVMConstRealOfString","LLVMConstRealOfString")
+		->args({"RealTy","Text"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2033:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,const char *,unsigned int) , LLVMConstRealOfStringAndSize , SimNode_ExtFuncCall >(lib,"LLVMConstRealOfStringAndSize","LLVMConstRealOfStringAndSize")
+		->args({"RealTy","Text","SLen"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2041:20
+	makeExtern< unsigned long long (*)(LLVMOpaqueValue *) , LLVMConstIntGetZExtValue , SimNode_ExtFuncCall >(lib,"LLVMConstIntGetZExtValue","LLVMConstIntGetZExtValue")
+		->args({"ConstantVal"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2048:11
+	makeExtern< long long (*)(LLVMOpaqueValue *) , LLVMConstIntGetSExtValue , SimNode_ExtFuncCall >(lib,"LLVMConstIntGetSExtValue","LLVMConstIntGetSExtValue")
+		->args({"ConstantVal"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2056:8
+	makeExtern< double (*)(LLVMOpaqueValue *,int *) , LLVMConstRealGetDouble , SimNode_ExtFuncCall >(lib,"LLVMConstRealGetDouble","LLVMConstRealGetDouble")
+		->args({"ConstantVal","losesInfo"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2075:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueContext *,const char *,unsigned int,int) , LLVMConstStringInContext , SimNode_ExtFuncCall >(lib,"LLVMConstStringInContext","LLVMConstStringInContext")
+		->args({"C","Str","Length","DontNullTerminate"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2087:14
+	makeExtern< LLVMOpaqueValue * (*)(const char *,unsigned int,int) , LLVMConstString , SimNode_ExtFuncCall >(lib,"LLVMConstString","LLVMConstString")
+		->args({"Str","Length","DontNullTerminate"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2095:10
+	makeExtern< int (*)(LLVMOpaqueValue *) , LLVMIsConstantString , SimNode_ExtFuncCall >(lib,"LLVMIsConstantString","LLVMIsConstantString")
+		->args({"c"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2102:13
+	makeExtern< const char * (*)(LLVMOpaqueValue *,size_t *) , LLVMGetAsString , SimNode_ExtFuncCall >(lib,"LLVMGetAsString","LLVMGetAsString")
+		->args({"c","Length"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2109:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueContext *,LLVMOpaqueValue **,unsigned int,int) , LLVMConstStructInContext , SimNode_ExtFuncCall >(lib,"LLVMConstStructInContext","LLVMConstStructInContext")
+		->args({"C","ConstantVals","Count","Packed"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2121:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue **,unsigned int,int) , LLVMConstStruct , SimNode_ExtFuncCall >(lib,"LLVMConstStruct","LLVMConstStruct")
+		->args({"ConstantVals","Count","Packed"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2129:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,LLVMOpaqueValue **,unsigned int) , LLVMConstArray , SimNode_ExtFuncCall >(lib,"LLVMConstArray","LLVMConstArray")
+		->args({"ElementTy","ConstantVals","Length"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2137:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *,LLVMOpaqueValue **,unsigned int) , LLVMConstNamedStruct , SimNode_ExtFuncCall >(lib,"LLVMConstNamedStruct","LLVMConstNamedStruct")
+		->args({"StructTy","ConstantVals","Count"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2149:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,unsigned int) , LLVMGetAggregateElement , SimNode_ExtFuncCall >(lib,"LLVMGetAggregateElement","LLVMGetAggregateElement")
+		->args({"C","Idx"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2157:18
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,unsigned int) , LLVMGetElementAsConstant , SimNode_ExtFuncCall >(lib,"LLVMGetElementAsConstant","LLVMGetElementAsConstant")
+		->args({"C","idx"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2165:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue **,unsigned int) , LLVMConstVector , SimNode_ExtFuncCall >(lib,"LLVMConstVector","LLVMConstVector")
+		->args({"ScalarConstantVals","Size"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2180:12
+	makeExtern< LLVMOpcode (*)(LLVMOpaqueValue *) , LLVMGetConstOpcode , SimNode_ExtFuncCall >(lib,"LLVMGetConstOpcode","LLVMGetConstOpcode")
+		->args({"ConstantVal"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2181:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueType *) , LLVMAlignOf , SimNode_ExtFuncCall >(lib,"LLVMAlignOf","LLVMAlignOf")
+		->args({"Ty"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

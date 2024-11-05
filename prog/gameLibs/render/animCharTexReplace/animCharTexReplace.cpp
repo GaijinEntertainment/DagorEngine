@@ -1,4 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <animChar/dag_animCharacter2.h>
+#include <shaders/dag_dynSceneRes.h>
 
 #include "render/animCharTexReplace.h"
 #include <gameRes/dag_stdGameResId.h>

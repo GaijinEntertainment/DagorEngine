@@ -1,8 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/backBufferHolder.h>
 #include <render/hdrRender.h>
 #include <shaders/dag_shaders.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_resetDevice.h>
+#include <ioSys/dag_dataBlock.h>
 
 eastl::unique_ptr<BackBufferHolder> BackBufferHolder::holder;
 
@@ -32,6 +37,13 @@ BackBufferHolder::BackBufferHolder() { init(); }
 
 void BackBufferHolder::create()
 {
+  bool readable =
+    ::dgs_get_settings() && ::dgs_get_settings()->getBlockByNameEx("graphics")->getBool("backbufferHolderReadable", true);
+  if (!readable)
+  {
+    holder.reset();
+    return;
+  }
   if (holder)
     return;
   holder.reset(new BackBufferHolder());
@@ -39,28 +51,29 @@ void BackBufferHolder::create()
 
 void BackBufferHolder::update()
 {
-  G_ASSERT(holder);
+  if (!holder)
+    return;
   holder->close();
   holder->init();
 }
 
 void BackBufferHolder::destroy() { holder.reset(); }
 
-const TextureIDPair BackBufferHolder::getTex(bool force_copy)
+const TextureIDPair BackBufferHolder::getTex()
 {
-  G_ASSERT(holder);
+  if (!holder)
+    return TextureIDPair();
 
   if (hdrrender::is_hdr_enabled())
     return TextureIDPair(hdrrender::get_render_target_tex(), hdrrender::get_render_target_tex_id());
 
-  if (!holder->readable && force_copy)
+  if (!holder->readable)
   {
     SCOPE_RENDER_TARGET;
     d3d::set_render_target();
     d3d::copy_from_current_render_target(holder->srgbFrame.getTex2D());
   }
-
-  if (holder->readable)
+  else
   {
     G_ASSERT(holder->srgbFrame.getId() == BAD_TEXTUREID && !holder->srgbFrame.getTex2D());
     Texture *backBuffer = d3d::get_backbuffer_tex();
@@ -75,7 +88,7 @@ const TextureIDPair BackBufferHolder::getTex(bool force_copy)
 
 void BackBufferHolder::releaseTex()
 {
-  if (!hdrrender::is_hdr_enabled() && holder->readable)
+  if (holder && !hdrrender::is_hdr_enabled() && holder->readable)
     holder->srgbFrame.releaseAndEvictTexId();
 }
 

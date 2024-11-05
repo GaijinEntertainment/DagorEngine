@@ -16,6 +16,7 @@ namespace das {
     void * das_get_jit_invoke_block ( );
     void * das_get_jit_invoke_block_with_cmres ( );
     void * das_get_jit_string_builder ();
+    void * das_get_jit_string_builder_temp ();
     void * das_get_jit_get_global_mnh ();
     void * das_get_jit_alloc_heap ();
     void * das_get_jit_alloc_persistent ();
@@ -28,6 +29,7 @@ namespace das {
     void * das_get_jit_table_find ( int32_t baseType, Context * context, LineInfoArg * at );
     void * das_get_jit_str_cmp ();
     void * das_get_jit_str_cat ();
+    void * das_get_jit_ast_typedecl ();
     void * das_get_jit_prologue ();
     void * das_get_jit_epilogue ();
     void * das_get_jit_make_block ();
@@ -35,9 +37,14 @@ namespace das {
     void * das_get_jit_iterator_iterate();
     void * das_get_jit_iterator_delete();
     void * das_get_jit_iterator_close();
+    void * das_get_jit_iterator_first();
+    void * das_get_jit_iterator_next();
     void * das_get_builtin_function_address ( Function * fn, Context * context, LineInfoArg * at );
     void * das_make_interop_node ( Context & ctx, ExprCallFunc * call, Context * context, LineInfoArg * at );
     void * das_sb_make_interop_node ( Context & ctx, ExprStringBuilder * call, Context * context, LineInfoArg * at );
     void * das_get_jit_new ( TypeDeclPtr htype, Context * context, LineInfoArg * at );
     void * das_get_jit_delete ( TypeDeclPtr htype, Context * context, LineInfoArg * at );
+    void * das_get_jit_debug_enter ();
+    void * das_get_jit_debug_exit ();
+    void * das_get_jit_debug_line ();
 }

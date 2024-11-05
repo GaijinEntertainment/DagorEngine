@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <shaders/dag_dynSceneRes.h>
 #include <3d/dag_render.h>
 #include <shaders/dag_shSkinMesh.h>
@@ -17,19 +19,22 @@
 #include <shaders/dag_shaderBlock.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <stdio.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_shaderConstants.h>
 #if DAGOR_DBGLEVEL > 0
 #include <debug/dag_log.h>
 #endif
 
 using namespace shglobvars;
+static constexpr unsigned VDATA_MT_DYNMODEL = 1;
 
 
 static bool hasBindPoseBuffer(const ShaderSkinnedMesh &skin)
 {
-  int bindposeVar = ::get_shader_variable_id("bind_pose_indicator_dummy", true);
+  static ShaderVariableInfo bindposeVar("bind_pose_indicator_dummy", /*opt*/ true);
   for (const ShaderMesh::RElem &elem : skin.getShaderMesh().getAllElems())
   {
-    if (elem.mat->hasVariable(bindposeVar))
+    if (elem.mat->hasVariable((int)bindposeVar))
       return true;
   }
   return false;
@@ -49,6 +54,8 @@ void DynamicRenderableSceneLodsResource::updateBindposes()
   for (int i = 0; i < lods.size(); ++i)
     lods[i].scene->updateBindposes();
 }
+
+void DynamicRenderableSceneLodsResource::closeBindposeBuffer() { bindPoseBufferManager.closeHeap(); }
 
 int DynamicRenderableSceneResource::getBindposeBufferIndex(int bone_idx) const
 {
@@ -168,7 +175,7 @@ void DynamicRenderableSceneResource::patchAndLoadData(IGenLoad &crd, int flags, 
         logerr("%s: material with shader class <%s> info <%s> has not zero num_bones (%d)", crd.getTargetName(),
           mat->getShaderClassName(), mat->getInfo().str(), num_bones);
 #endif
-        mat->set_int_param(num_bones_varId, 0); //!!!workaround for invalid build;
+        mat->set_int_param(num_bones_varId, 0); // workaround for invalid build;
         is_valid_bones = false;
       }
     }
@@ -529,24 +536,39 @@ bool DynamicRenderableSceneResource::hasRigidMesh(int node_id)
   return ro && ro->mesh;
 }
 
-dag::Vector<int> DynamicRenderableSceneResource::getNodesWithMaterials(dag::ConstSpan<const char *> material_names) const
+void DynamicRenderableSceneResource::findRigidNodesWithMaterials(dag::ConstSpan<const char *> material_names,
+  const eastl::fixed_function<2 * sizeof(void *), void(int)> &cb) const
 {
-  dag::Vector<int> nodes;
-
   auto checkRigid = [&](const RigidObject &ro) {
     for (auto &elem : ro.mesh->getMesh()->getAllElems())
       for (auto name : material_names)
         if (strcmp(elem.mat->getShaderClassName(), name) == 0)
         {
-          nodes.emplace_back(ro.nodeId);
+          cb(ro.nodeId);
           return;
         }
   };
 
   for (auto &ro : rigids)
     checkRigid(ro);
+}
 
-  return nodes;
+void DynamicRenderableSceneResource::findSkinNodesWithMaterials(dag::ConstSpan<const char *> material_names,
+  const eastl::fixed_function<2 * sizeof(void *), void(int)> &cb) const
+{
+  auto checkSkin = [&](int skinIndex) {
+    const auto &sm = *skins[skinIndex];
+    for (auto &elem : sm.getMesh()->getShaderMesh().getAllElems())
+      for (auto name : material_names)
+        if (strcmp(elem.mat->getShaderClassName(), name) == 0)
+        {
+          cb(skinNodes[skinIndex]);
+          return;
+        }
+  };
+
+  for (int i = 0; i < skins.size(); i++)
+    checkSkin(i);
 }
 
 void DynamicRenderableSceneResource::getMeshes(Tab<ShaderMeshResource *> &meshes, Tab<int> &nodeIds, Tab<BSphere3> *bsph)
@@ -782,12 +804,12 @@ DynamicRenderableSceneLodsResource *DynamicRenderableSceneLodsResource::loadReso
         crd.getTargetName(), desc, texBlk, matRBlk);
       return nullptr;
     }
-    smvd = ShaderMatVdata::create(texBlk->paramCount(), matRBlk->blockCount(), tmp[2], tmp[3]);
+    smvd = ShaderMatVdata::create(texBlk->paramCount(), matRBlk->blockCount(), tmp[2], tmp[3], VDATA_MT_DYNMODEL);
     smvd->makeTexAndMat(*texBlk, *matRBlk);
   }
   else
   {
-    smvd = ShaderMatVdata::create(tmp[0], tmp[1], tmp[2], tmp[3]);
+    smvd = ShaderMatVdata::create(tmp[0], tmp[1], tmp[2], tmp[3], VDATA_MT_DYNMODEL);
     smvd->loadTexStr(crd, flags & SRLOAD_SYMTEX);
   }
 #if DAGOR_DBGLEVEL > 0 || _TARGET_PC_WIN
@@ -801,6 +823,8 @@ DynamicRenderableSceneLodsResource *DynamicRenderableSceneLodsResource::loadReso
   unsigned vdataFlags = 0;
   if (flags & SRLOAD_SRC_ONLY)
     vdataFlags |= VDATA_SRC_ONLY;
+  if (flags & SRLOAD_BIND_SHADER_RES)
+    vdataFlags |= VDATA_BIND_SHADER_RES;
   smvd->loadMatVdata(vname, crd, vdataFlags);
 
   bool modern_data_fmt_detected = (smvd->getGlobVDataCount() == 0);
@@ -977,12 +1001,12 @@ void DynamicRenderableSceneLodsResource::loadSkins(IGenLoad &crd, int flags, con
         crd.getTargetName(), desc, texBlk, matSBlk);
       return;
     }
-    smvdS = ShaderMatVdata::create(texBlk->paramCount(), matSBlk->blockCount(), tmp[2], tmp[3]);
+    smvdS = ShaderMatVdata::create(texBlk->paramCount(), matSBlk->blockCount(), tmp[2], tmp[3], VDATA_MT_DYNMODEL);
     smvdS->makeTexAndMat(*texBlk, *matSBlk);
   }
   else
   {
-    smvdS = ShaderMatVdata::create(tmp[0], tmp[1], tmp[2], tmp[3]);
+    smvdS = ShaderMatVdata::create(tmp[0], tmp[1], tmp[2], tmp[3], VDATA_MT_DYNMODEL);
     smvdS->getTexIdx(*smvdR);
   }
   unsigned vdataFlags = 0;
@@ -1031,6 +1055,8 @@ DynamicRenderableSceneLodsResource::DynamicRenderableSceneLodsResource(const Dyn
   smvdS = from.smvdS;
   // don't touch (write) bpC254/bpC255 unless boundPackUsed==1; resSize MAY BE smaller than offset between lods and end of bpC255!
 
+  bvhId = from.bvhId;
+
   void *new_base = &lods;
   const void *old_base = &from.lods;
 
@@ -1050,7 +1076,9 @@ DynamicRenderableSceneLodsResource::DynamicRenderableSceneLodsResource(const Dyn
 DynamicRenderableSceneLodsResource *DynamicRenderableSceneLodsResource::clone() const
 {
   void *mem = memalloc(dumpStartOfs() + getResSize(), midmem);
-  return new (mem, _NEW_INPLACE) DynamicRenderableSceneLodsResource(*this);
+  auto copy = new (mem, _NEW_INPLACE) DynamicRenderableSceneLodsResource(*this);
+  copy->bvhId = 0;
+  return copy;
 }
 
 void DynamicRenderableSceneLodsResource::clearData()
@@ -1087,8 +1115,14 @@ void DynamicRenderableSceneLodsResource::clearData()
   }
   G_ASSERT(!originalRes && !nextClonedRes);
 }
-void DynamicRenderableSceneLodsResource::lockClonesList() { dynres_clones_list_spinlock.lock(); }
-void DynamicRenderableSceneLodsResource::unlockClonesList() { dynres_clones_list_spinlock.unlock(); }
+void DynamicRenderableSceneLodsResource::lockClonesList() DAG_TS_ACQUIRE(dynres_clones_list_spinlock)
+{
+  dynres_clones_list_spinlock.lock();
+}
+void DynamicRenderableSceneLodsResource::unlockClonesList() DAG_TS_RELEASE(dynres_clones_list_spinlock)
+{
+  dynres_clones_list_spinlock.unlock();
+}
 
 
 DynamicRenderableSceneResource *DynamicRenderableSceneLodsResource::getLod(real range)
@@ -1151,6 +1185,7 @@ int DynamicRenderableSceneLodsResource::Lod::getAllElems(Tab<dag::ConstSpan<Shad
 
 // ZZZ  DynamicRenderableSceneInstance  ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
 
+static uint32_t dynres_unique_id_gen = 0;
 
 DynamicRenderableSceneInstance::DynamicRenderableSceneInstance(DynamicRenderableSceneLodsResource *res, bool activate_instance) :
   lods(res),
@@ -1162,8 +1197,10 @@ DynamicRenderableSceneInstance::DynamicRenderableSceneInstance(DynamicRenderable
   bestLodLimit(-1),
   curLodNo(-1),
   origin(0.f, 0.f, 0.f),
-  originPrev(0, 0, 0)
+  originPrev(0, 0, 0),
+  uniqueId(interlocked_increment(dynres_unique_id_gen))
 {
+
   G_ASSERT(lods);
   if (activate_instance)
     activateInstance();
@@ -1266,13 +1303,13 @@ void DynamicRenderableSceneInstance::setLod(int lod)
 
 void DynamicRenderableSceneInstance::setBestLodLimit(int lod) { bestLodLimit = min(lod, max((int)lods->lods.size() - 1, 0)); }
 
-int DynamicRenderableSceneInstance::chooseLod(const Point3 &camera_pos)
+int DynamicRenderableSceneInstance::chooseLod(const Point3 &camera_pos, float dist_mul)
 {
   if (getNodeCount() > 0)
-    return chooseLodByDistSq((camera_pos - nodeWtm()[0].getcol(3)).lengthSq());
+    return chooseLodByDistSq((camera_pos - nodeWtm()[0].getcol(3)).lengthSq(), dist_mul);
   return lods->lods.size() - 1;
 }
-int DynamicRenderableSceneInstance::chooseLodByDistSq(float dist_sq)
+int DynamicRenderableSceneInstance::chooseLodByDistSq(float dist_sq, float dist_mul)
 {
   distSq = dist_sq;
   if (forceLod >= 0)
@@ -1282,7 +1319,7 @@ int DynamicRenderableSceneInstance::chooseLodByDistSq(float dist_sq)
   }
   else
   {
-    curLodNo = lods->getLodNoForDistSq(sqr(lodDistanceScale) * dist_sq);
+    curLodNo = lods->getLodNoForDistSq(sqr(lodDistanceScale * dist_mul) * dist_sq);
     if (curLodNo >= 0)
     {
       curLodNo = max(curLodNo, bestLodLimit);
@@ -1408,11 +1445,11 @@ void DynamicRenderableSceneInstance::clipNodes(const Frustum &frustum, dag::Vect
   }
 }
 
-eastl::optional<dag::Vector<int>> DynamicRenderableSceneInstance::getNodesWithMaterials(
-  dag::ConstSpan<const char *> material_names) const
+void DynamicRenderableSceneInstance::findRigidNodesWithMaterials(dag::ConstSpan<const char *> material_names,
+  const eastl::fixed_function<2 * sizeof(void *), void(int)> &cb) const
 {
   if (!sceneResource)
-    return eastl::nullopt;
+    return;
 
-  return sceneResource->getNodesWithMaterials(material_names);
+  return sceneResource->findRigidNodesWithMaterials(material_names, cb);
 }

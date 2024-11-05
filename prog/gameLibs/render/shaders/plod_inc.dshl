@@ -1,0 +1,94 @@
+buffer plod_output;
+
+int plod_output_no = 5;
+
+macro PLOD_GEN_COMMON(enable, channel_count)
+  static int plod_gen = 0;
+  static float plod_level = 5.0 no_warnings; // TODO: Should depend on cloud density and be set explicitly.
+  interval plod_gen : plod_gen_off < 1, plod_gen_on;
+  if (enable && plod_gen == plod_gen_on)
+  {
+    hlsl {
+      #define PERTURB_NORMAL_DISABLE 1
+      #define PLOD_VS_OUTPUT nointerpolation uint plodIdx : BLENDINDICES0;
+      #define PLOD_VS_GEN(output, value) output.plodIdx = value; output.pos = 0.f;
+      #define SAMPLE_TEX(tex, tc) tex2DLodBindless(tex, float4(tc, 0.0f, get_plod_level()))
+    }
+    (ps) {
+      plod_level@f1 = plod_level;
+      plod_output@uav : register(plod_output_no)
+      hlsl {
+        struct PLOD_CHANNELS
+        {
+          float4 channel[channel_count];
+        };
+        RWStructuredBuffer<PLOD_CHANNELS> plod_output@uav;
+      }
+    }
+    hlsl(ps) {
+      void plod_store(PLOD_CHANNELS gbuf, uint id)
+      {
+        plod_output[id] = gbuf;
+      }
+    }
+  }
+  else
+  {
+    hlsl {
+      #define PLOD_VS_OUTPUT
+      #define PLOD_VS_GEN(output, value)
+    }
+  }
+endmacro
+
+macro PLOD_GBUF_GEN_INIT(enable)
+  PLOD_GEN_COMMON(enable, 3)
+  if (enable)
+  {
+    if (plod_gen == plod_gen_on)
+    {
+      hlsl {
+        #define PLOD_PS_GEN(input, output, normal_map)  \
+          PLOD_CHANNELS plod;                           \
+          plod.channel[0] = output.albedo_ao;           \
+          plod.channel[1].w = output.normal_material.w; \
+          plod.channel[1].xyz = normal_map.xyz;         \
+          plod.channel[2] = output.smoothness_reflectance_metallTranslucency_shadow; \
+          plod_store(plod, input.plodIdx);
+      }
+    }
+    else
+    {
+      hlsl {
+        #define PLOD_PS_GEN(input, output, normal_map)
+      }
+    }
+  }
+endmacro
+
+macro PLOD_PERLIN_GEN_INIT(enable)
+  PLOD_GEN_COMMON(enable, 6)
+  if (enable)
+  {
+    if (plod_gen == plod_gen_on)
+    {
+      hlsl {
+        #define PLOD_PS_GEN(input, c, c1, c2, n, n1, n2)  \
+          PLOD_CHANNELS plod;                             \
+          plod.channel[0] = c;                            \
+          plod.channel[1] = c1;                           \
+          plod.channel[2] = c2;                           \
+          plod.channel[3] = n;                            \
+          plod.channel[4] = n1;                           \
+          plod.channel[5] = n2;                           \
+          plod_store(plod, input.plodIdx);
+      }
+    }
+    else
+    {
+      hlsl {
+        #define PLOD_PS_GEN(input, c, c1, c2, n, n1, n2)
+      }
+    }
+  }
+endmacro

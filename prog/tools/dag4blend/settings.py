@@ -2,14 +2,23 @@ import bpy, os
 
 from bpy                import context as C
 
-from bpy.props          import StringProperty, BoolProperty, EnumProperty,CollectionProperty,IntProperty,PointerProperty
-from bpy.types          import PropertyGroup,Operator,AddonPreferences,Panel
+from bpy.props          import (StringProperty,
+                                BoolProperty,
+                                EnumProperty,
+                                CollectionProperty,
+                                IntProperty,
+                                PointerProperty,
+                                FloatProperty,
+                                )
+from bpy.types          import PropertyGroup, Operator, AddonPreferences, Panel, Collection
 from bpy.utils          import user_resource
 from os                 import listdir
 from os.path            import exists, splitext, isfile, join
 
 from .read_config       import read_config
 from .helpers.popup     import show_popup
+
+classes = []
 
 #projects interaction#####################################################
 def get_projects(self, context):
@@ -58,6 +67,7 @@ def upd_palettes(self, context):
             palette_1.source = 'GENERATED'
     return
 
+
 #Updaters
 def upd_project(self,context):
     upd_palettes(self,context)
@@ -85,8 +95,8 @@ def upd_imp_path(self,context):
     if self.dirpath.find('"')>-1:
         self.dirpath=self.dirpath.replace('"','')
     if self.dirpath.endswith('.dag'):
-        self.masks = os.path.basename(self.dirpath) #dag name turned to mask for batch import
-        self.dirpath = os.path.dirname(self.dirpath) # dag name removed from path
+        self.masks = os.path.basename(self.dirpath)  # dag name turned to mask for batch import
+        self.dirpath = os.path.dirname(self.dirpath)  # dag name removed from path
     if not self.dirpath.endswith(os.sep):
         self.dirpath = self.dirpath+os.sep
     return
@@ -97,6 +107,15 @@ def upd_exp_path(self,context):
     if not self.dirpath.endswith(os.sep):
         self.dirpath+=os.sep
     return
+
+#Getters
+
+def get_modes(self, context):
+    modes = (
+                ('UV_TO_UV', 'Self Bake', "Bake from one UV channel to another"),
+                ('HP_TO_LP', 'HP to LP', "Bake from different geometry"),
+            )
+    return modes
 
 def get_resolutions(self, context):
     start = 128
@@ -118,6 +137,8 @@ class DAG_OT_RemoveProject(Operator):
         if len(pref.projects) > index:
             pref.projects.remove(index)
         return {'FINISHED'}
+classes.append(DAG_OT_RemoveProject)
+
 
 class DagProject(PropertyGroup):
     name:               StringProperty()
@@ -129,8 +150,14 @@ class DagProject(PropertyGroup):
     #UI parameters
     maximized:          BoolProperty(default = False)
     palettes_maximized: BoolProperty(default = False)
+classes.append(DagProject)
+
+
 
 class DAG_OT_AddProject(Operator):
+    '''
+    Create new project with entered name and path
+    '''
     bl_idname = "dt.add_project"
     bl_label = "Add"
     def execute(self, context):
@@ -140,20 +167,28 @@ class DAG_OT_AddProject(Operator):
         new.path = pref.new_project_path
         show_popup(message=f'Project added: {new.name}')
         return {'FINISHED'}
+classes.append(DAG_OT_AddProject)
+
 
 #shader classes###########################################################
 
 class DagShaderProp(PropertyGroup):
     name:   StringProperty()
     type:   StringProperty()
+classes.append(DagShaderProp)
+
 
 class DagShader(PropertyGroup):
     name:   bpy.props.StringProperty()
     props:  CollectionProperty(type = DagShaderProp)
+classes.append(DagShader)
+
 
 class DagShaderClass(PropertyGroup):
     name:    StringProperty()
     shaders: CollectionProperty(type = DagShader)
+classes.append(DagShaderClass)
+
 
 def get_obj_prop_presets(self, context):
     pref=bpy.context.preferences.addons[__package__].preferences
@@ -164,6 +199,39 @@ def get_obj_prop_presets(self, context):
         i = (splitext(f)[0])
         items.append((i,i,i))
     return items
+
+#TOOLS
+class Dag_Tools_Props(PropertyGroup):
+    #SAVE TOOLS
+    save_textures_dirpath:  StringProperty(name = "", default = 'C:\\tmp\\', subtype = 'DIR_PATH')
+    save_proxymats_dirpath: StringProperty(name = "", default = 'C:\\tmp\\', subtype = 'DIR_PATH')
+    #DESTR SETUP
+    destr_materialName:     StringProperty(default = 'wood', description = "physmat of destr colliders")
+    destr_density:          IntProperty   (default = 100, description = "density of colliders")
+    #DEFORM SETUP
+    configure_shaders:      BoolProperty(default = False, name = "Configure Mats",
+        description = "write default values of 'dynamic_deformed' shader(s)")
+    preview_deformation:    BoolProperty(default = False, name = "Preview Deformation",
+        description = "Apply Geometry Nodes to preview VCol deformation")
+    #MESH TOOLS
+    vert_threshold:         FloatProperty(default = 1, min = 0, max = 180)
+    vert_cleanup_mode:      EnumProperty(
+            #(identifier, name, description)
+        items = [('SELECT','Select','Select unnecessary vertices'),
+                 ('DISSOLVE','Dissolve','Dissolve unnecessary vertices'),
+                 ],
+        default = 'SELECT')
+
+    tri_legacy_mode:        BoolProperty(default = True, name = "Legacy Mode",
+        description = "Use the same search algorithm as dabuild")
+    tri_destructive:        BoolProperty(default = True, name = "Destructive",
+        description = "Triangulate polygons that produce degenerates on export")
+    tri_area_threshold:     FloatProperty(default = 1e-3, min = 1e-4, name = "Area",
+        description = "Area less than")
+    tri_ratio_threshold:    FloatProperty(default = 1e-3, min = 1e-4, name = "Ratio",
+        description = "Area/Perimeter less than")
+classes.append(Dag_Tools_Props)
+
 
 #IMPORTER
 class Dag_Import_Props(PropertyGroup):
@@ -183,17 +251,25 @@ class Dag_Import_Props(PropertyGroup):
                         description = 'name should contain at least one to be imported. Split by";"')
     excludes        :StringProperty(name="Excludes",default='',
                         description = 'name should not contain any to be imported. Split by";"')
+classes.append(Dag_Import_Props)
+
 
 #EXPORTER
 class Dag_Export_Props(PropertyGroup):
     filename        :StringProperty(name="Name", default='Filename', description = 'Name for exported .dag file')
-    dirpath         :StringProperty(name="Path", default='C:\\tmp\\', subtype = 'DIR_PATH', description = "Where your .dag files should be saved?",update=upd_exp_path)
-    modifiers       :BoolProperty(name="applyMods", default=True, description = 'Export meshes with effects of modifiers')
-    mopt            :BoolProperty(name="Optimize Materials", default=True, description = 'Remove unused slots; merge similar materials')
+    dirpath         :StringProperty(name="Path", default='C:\\tmp\\', subtype = 'DIR_PATH',
+                        description = "Where your .dag files should be saved?",update=upd_exp_path)
+    modifiers       :BoolProperty(name="applyMods", default=True,
+                        description = 'Export meshes with effects of modifiers')
+    mopt            :BoolProperty(name="Optimize Materials", default=True,
+                        description = 'Remove unused slots; merge similar materials')
     vnorm           :BoolProperty(name="vNormals", default=True, description = 'Export of custom vertex normals')
-    orphans         :BoolProperty(name="exportOrphans", default=False, description = 'Export of objects not in the bottom of hierarchy as separate .dags')
-    collection      :PointerProperty(type = bpy.types.Collection, name = '',description = 'Drag&Drop collection here or select it from list. Keep it empty to use Scene Collection instead')
-    cleanup_names   :BoolProperty(name="Cleanup Names", default=False, description = "Remove indices and node types from names. Use only for cmp palettes!")
+    orphans         :BoolProperty(name="exportOrphans", default=False,
+                        description = 'Export of objects not in the bottom of hierarchy as separate .dags')
+    collection      :PointerProperty(type = Collection, name = '',
+        description = 'Drag&Drop collection here or select it from list. Keep it empty to use Scene Collection instead')
+    cleanup_names   :BoolProperty(name="Cleanup Names", default=False,
+                        description = "Remove indices and node types from names. Use only for cmp palettes!")
     limit_by        :EnumProperty(
             #(identifier, name, description)
         items = [('Visible','Visible','Export everithing as one dag'),
@@ -203,56 +279,85 @@ class Dag_Export_Props(PropertyGroup):
                  ('Col.Joined','Col.Joined','Objects from chosen collection and subcollections as one .dag')],
         name = "Limit by",
         default = 'Col.Separated')
+classes.append(Dag_Export_Props)
+
 
 #TEXTURE BAKER
 class Dag_Baking_Props(PropertyGroup):
-#img realted
-    x:      EnumProperty(items = get_resolutions)
-    y:      EnumProperty(items = get_resolutions)
-    dirpath:StringProperty(subtype='DIR_PATH', default = 'C:\\tmp\\')
+#outputs
+    bake_width:         EnumProperty(items = get_resolutions)
+    bake_height:        EnumProperty(items = get_resolutions)
+    tex_d:              BoolProperty(default = False, description = 'RGB: Diffuse; A:Height Map')
+    tex_n:              BoolProperty(default = False, description = 'RG: Normal Map; B: Metallness; A: Roughness')
+    tex_dirpath:        StringProperty(subtype='DIR_PATH', default = 'C:\\tmp\\',
+                            description = "Directory for baked textures")
+    proxymat:           BoolProperty(default = False, name = "Create Proxymat File",
+                            description = "Save rendinst_simple proxymat with baked textures")
+    apply_proxymat:     BoolProperty(default = False, name = "Apply Proxymat",
+                            description = "Apply saved proxymat to the model")
+    proxymat_dirpath:   StringProperty(subtype='DIR_PATH', default = 'C:\\tmp\\',
+                            description = "Directory for proxymats")
 #mode related
-    self_bake:          BoolProperty(default = False)
-    lp_collection:      PointerProperty(type = bpy.types.Collection)
-    hp_collection:      PointerProperty(type = bpy.types.Collection)
-#list of textures
-    tex_d:              BoolProperty(default = False, description = 'diffuse')
-    tex_d_alpha:        BoolProperty(default = False, description = 'heightmap, should be stored in alpha of tex_d')
-    tex_n:              BoolProperty(default = False, description = 'RG - normal map, B-metallic')
-    tex_n_alpha:        BoolProperty(default = False, description = 'glossiness, should be stored in alpha of tex_n')
-    normal:             BoolProperty(default = False, description = 'simple normal map, baked from "highpoly" object(s) G is pre-inverted')
-    tex_met_gloss:      BoolProperty(default = False, description = 'R - metallic, G - glossiness')
-    tex_mask:           BoolProperty(default = False, description = 'mask to generate padding in Substance Designer')
+    mode:               EnumProperty(items =get_modes)
+    lp_collection:      PointerProperty(type = Collection)
+    hp_collection:      PointerProperty(type = Collection)
+    recursive:          BoolProperty(default = False, name = "Recursive",
+                            description = "Include objects from children collections")
+    reveal_result:      BoolProperty(default = True, name = "Reveal Result",
+                            description = "Open directory with textures when baking is finished")
 #ui stuff
-    settings_maximized: BoolProperty(default = True)
-    tex_maximized:      BoolProperty(default = True)
+    settings_maximized: BoolProperty(default = False)
+    render_maximized:   BoolProperty(default = True)
+    output_maximized:   BoolProperty(default = True)
+    input_maximized:    BoolProperty(default = True)
+    operators_maximized:BoolProperty(default = True)
+    node_maximized:     BoolProperty(default = False)
+classes.append(Dag_Baking_Props)
+
 
 #COMPOSITS
 class Dag_CMP_Import_Props(PropertyGroup):
-    filepath:       StringProperty  (name="cmp import path", default='C:\\tmp\\', subtype = 'FILE_PATH', description = "Path to composit", update=upd_cmp_i_path)
+    filepath:       StringProperty  (name="cmp import path", default='C:\\tmp\\', subtype = 'FILE_PATH',
+                        description = "Path to composit", update=upd_cmp_i_path)
     with_sub_cmp:   BoolProperty    (name="recursive", default=False, description = 'Search for sub-composits as well')
-    with_dags:      BoolProperty    (name="with dags", default=False, description = 'Import dags (!MIGHT BE REALLY SLOW!)')
-    refresh_cache:  BoolProperty    (name="refresh cache", default=True, description = 'Collect paths to all resources or use previously collected?')
-    with_lods:      BoolProperty    (name="with lods", default=False, description = 'Import dags (!MIGHT BE EVEN SLOWER!)')
+    with_dags:      BoolProperty    (name="with dags", default=False,
+                        description = 'Import dags (!MIGHT BE REALLY SLOW!)')
+    refresh_cache:  BoolProperty    (name="refresh cache", default=True,
+                        description = 'Collect paths to all resources or use previously collected?')
+    with_lods:      BoolProperty    (name="with lods", default=False,
+                        description = 'Import dags (!MIGHT BE EVEN SLOWER!)')
+classes.append(Dag_CMP_Import_Props)
+
 
 class Dag_CMP_Export_Props(PropertyGroup):
-    collection: PointerProperty (type = bpy.types.Collection, name = '', description = 'Drag&Drop collection here or select it from list')
-    dirpath:    StringProperty  (name="cmp export path", default='C:\\tmp\\', subtype = 'DIR_PATH', description = "Path to save your composit",  update=upd_cmp_e_path)
+    collection: PointerProperty (type = bpy.types.Collection, name = '',
+                    description = 'Drag&Drop collection here or select it from list')
+    dirpath:    StringProperty  (name="cmp export path", default='C:\\tmp\\', subtype = 'DIR_PATH',
+                    description = "Path to save your composit",  update=upd_cmp_e_path)
+classes.append(Dag_CMP_Export_Props)
+
 
 class Dag_CMP_Tools_Props(PropertyGroup):
     node:       PointerProperty (type = bpy.types.Collection, name = 'Node')
+classes.append(Dag_CMP_Tools_Props)
+
 
 #CMP JOINED
 class Dag_CMP_Props(PropertyGroup):
     importer:   PointerProperty(type = Dag_CMP_Import_Props)
     exporter:   PointerProperty(type = Dag_CMP_Export_Props)
     tools:      PointerProperty(type = Dag_CMP_Tools_Props)
+classes.append(Dag_CMP_Props)
+
 
 #ALL JOINED
 class dag4blend_props(PropertyGroup):
+    tools:      PointerProperty(type = Dag_Tools_Props)
     importer:   PointerProperty(type = Dag_Import_Props)
     exporter:   PointerProperty(type = Dag_Export_Props)
     baker:      PointerProperty(type = Dag_Baking_Props)
     cmp:        PointerProperty(type = Dag_CMP_Props)
+classes.append(dag4blend_props)
 
 #UI#######################################################################
 class DagSettings(AddonPreferences):
@@ -260,10 +365,10 @@ class DagSettings(AddonPreferences):
     def_path='C:\\replace_by_correct_path\\'
     def_cfg_path=bpy.utils.user_resource('SCRIPTS') + f"\\addons\\{__package__}\\dagorShaders.cfg"
 #global
-    assets_path:        StringProperty(default=def_path,     subtype = 'DIR_PATH', description = 'assets location')
-    props_presets_path: StringProperty(subtype = 'DIR_PATH',
-            default = bpy.utils.user_resource('SCRIPTS') + f"\\addons\\{__package__}\\object_properties\\presets")
-    cfg_path:           StringProperty(default=def_cfg_path, subtype = 'FILE_PATH',description = 'dagorShaders.cfg location')
+    assets_path:        StringProperty(default=def_path,     subtype = 'DIR_PATH',
+                            description = 'assets location')
+    cfg_path:           StringProperty(default=def_cfg_path, subtype = 'FILE_PATH',
+                            description = 'dagorShaders.cfg location')
 
     new_project_name:   StringProperty(description = 'name of project')
     new_project_path:   StringProperty(description = 'where assets(dags, textures, composits) of that project stored?',
@@ -277,7 +382,6 @@ class DagSettings(AddonPreferences):
     projects_maximized:     BoolProperty(default=False,description='Projects')
     experimental_maximized: BoolProperty(default=False,description='Experimental features')
     use_cmp_editor:         BoolProperty(default=False,description='Composit editor')
-    use_tex_baker:          BoolProperty(default=False,description='Baking tools for dag shaders')
     guess_dag_type:         BoolProperty(default=False,description='Guess what asset tipe .dag should be, based on name and shader types. Would be used to check shader types on import and export')
     type_maximized:         BoolProperty(default=False,description='')
 #UI/smoothing groups
@@ -285,6 +389,9 @@ class DagSettings(AddonPreferences):
     sg_set_maximized:       BoolProperty(default=False,description='Assign smoothing group to selected polygons')
     sg_select_maximized:    BoolProperty(default=False,description='Select polygonsby smoothing group')
 #UI/props
+    props_presets_path: StringProperty(subtype = 'DIR_PATH',
+            default = bpy.utils.user_resource('SCRIPTS') + f"\\addons\\{__package__}\\object_properties\\presets")
+    props_path_editing:     BoolProperty(default = False, description = "Change props presets directory")
     props_maximized:        BoolProperty(default=True)
     props_preset_maximized: BoolProperty(default=True)
     props_tools_maximized:  BoolProperty(default=True)
@@ -305,19 +412,26 @@ class DagSettings(AddonPreferences):
 
 
 #UI/dagormat/tools
-    process_all:            BoolProperty(default=False, description = 'Process every element instead of active only')
+    process_materials:      EnumProperty(
+            #(identifier, name, description)
+        items = [('ACTIVE','Active material','Active material only'),
+                 ('ALL','All materials','All supported materials'),
+                 ],
+        default = 'ACTIVE')
 
 #UI/View3D_tools
-    matbox_maximized:       BoolProperty(default=True)
-    searchbox_maximized:    BoolProperty(default=True)
-    savebox_maximized:      BoolProperty(default=True)
-    meshbox_maximized:      BoolProperty(default=True)
-    scenebox_maximized:     BoolProperty(default=True)
-    destrbox_maximized:     BoolProperty(default=True)
+    matbox_maximized:       BoolProperty(default = True)
+    searchbox_maximized:    BoolProperty(default = True)
+    savebox_maximized:      BoolProperty(default = True)
+    meshbox_maximized:      BoolProperty(default = True)
+    scenebox_maximized:     BoolProperty(default = True)
+    destrbox_maximized:     BoolProperty(default = True)
 
-#UI/extra_tools
-    destr_materialName:     StringProperty(default='wood', description = "physmat of destr colliders")
-    destr_density:          IntProperty   (default = 100,  description = "density of colliders")
+#UI/View3D_mesh_tools
+    cleanup_maximized:      BoolProperty(default = True)
+    vert_cleanup_maximized: BoolProperty(default = True)
+    tris_cleanup_maximized: BoolProperty(default = True)
+
 
 #UI/Composits
     cmp_imp_maximized:      BoolProperty(default=True)
@@ -338,29 +452,45 @@ class DagSettings(AddonPreferences):
         paths.prop(self, 'cfg_path', text = "dagorShaders.cfg")
         projects = l.box()
         header = projects.row()
-        header.prop(self, 'projects_maximized', text = 'Projects',icon = 'DOWNARROW_HLT'if self.projects_maximized else 'RIGHTARROW_THIN',
-                emboss=False,expand=True)
+        header.prop(self, 'projects_maximized', text = 'Projects',
+                icon = 'DOWNARROW_HLT'if self.projects_maximized else 'RIGHTARROW_THIN',
+                emboss=False, expand=True)
         if self.projects_maximized:
             box = projects.box()
             new=box.row()
             new.prop (self,'new_project_name',text='Name')
             new.prop (self,'new_project_path',text='Path')
-            new.operator('dt.add_project',icon='ADD',text='ADD Project')
+            can_create = True
+            if self.new_project_path == "":
+                can_create = False
+            if not exists(self.new_project_path):
+                can_create = False
+            if self.new_project_name.__len__() == 0:
+                can_create = False
+            if can_create:
+                button = box.row()
+                button.scale_y = 2
+                button.operator('dt.add_project',icon='ADD',text='ADD Project')
+            else:
+                box.label(icon = 'ERROR', text = "Please enter the correct name and path!")
             index=0
             for project in self.projects:
                 box = projects.box()
                 header = box.row()
-                header.prop(project, 'maximized', text = project['name'],icon = 'DOWNARROW_HLT'if project.maximized else 'RIGHTARROW_THIN',
+                header.prop(project, 'maximized', text = project['name'],
+                    icon = 'DOWNARROW_HLT'if project.maximized else 'RIGHTARROW_THIN',
                     emboss=False,expand=True)
                 header.operator('dt.remove_project',icon='TRASH',text='').index = index
                 if project.maximized:
                     box.prop(project, 'path')
                     mode = box.row()
                     mode.label(text = 'Shading mode:')
-                    mode.prop(project, 'mode', text = 'Enlisted-like' if project.mode else 'WT-like',emboss = False, expand=True)
+                    mode.prop(project, 'mode', text = 'daNetGame-like' if project.mode else 'War Thunder-like',
+                        emboss = False, expand=True)
                     palettes = box.box()
                     subheader = palettes.row()
-                    subheader.prop(project, 'palettes_maximized', text = 'Palettes',icon = 'DOWNARROW_HLT'if project.palettes_maximized else 'RIGHTARROW_THIN',
+                    subheader.prop(project, 'palettes_maximized', text = 'Palettes',
+                        icon = 'DOWNARROW_HLT'if project.palettes_maximized else 'RIGHTARROW_THIN',
                         emboss=False,expand=True)
                     subheader.label(text = '', icon = 'IMAGE')
                     if project.palettes_maximized:
@@ -368,7 +498,8 @@ class DagSettings(AddonPreferences):
                         palettes.prop(project, 'palette_local',  icon = 'IMAGE', text = '')
                 index+=1
         exp=l.box()
-        exp.prop(self,'experimental_maximized',text='Experimental Features',icon = 'DOWNARROW_HLT'if self.experimental_maximized else 'RIGHTARROW_THIN',
+        exp.prop(self,'experimental_maximized',text='Experimental Features',
+                icon = 'DOWNARROW_HLT'if self.experimental_maximized else 'RIGHTARROW_THIN',
                 emboss=False,expand=True)
         if self.experimental_maximized:
             warning = exp.box()
@@ -377,7 +508,8 @@ class DagSettings(AddonPreferences):
             wrow.label(text='Might be unstable. Use it on your own risk')
             wrow.label(text = '', icon = 'ERROR')
             exp.prop(self,'use_cmp_editor',text='Use composit editor')
-            exp.prop(self,'use_tex_baker',text='Use baking tools')
+classes.append(DagSettings)
+
 
 class DAG_OT_SetSearchFolder(Operator):
     bl_idname = "dt.set_search_path"
@@ -388,8 +520,11 @@ class DAG_OT_SetSearchFolder(Operator):
         i=int(pref.project_active)
         bpy.data.scenes[0].dag4blend.importer.dirpath=pref.projects[i].path
         bpy.data.scenes[0].dag4blend.importer.with_subfolders=True
-        show_popup(message='Import without full name of an asset as mask will be extremely slow!',title='WARNING!', icon='INFO')
+        show_popup(message='Import without full name of an asset as mask will be extremely slow!',
+            title='WARNING!', icon='INFO')
         return {'FINISHED'}
+classes.append(DAG_OT_SetSearchFolder)
+
 
 class DAG_PT_project(Panel):
     bl_space_type = "PROPERTIES"
@@ -412,24 +547,9 @@ class DAG_PT_project(Panel):
             box.prop(pref.projects[index], 'palette_local',  text='', icon = 'IMAGE')
         if exists(bpy.utils.user_resource('SCRIPTS',path=f'addons\\{__package__}\\importer')):
             layout.operator('dt.set_search_path',text='Apply as search path',icon='ERROR')
+        return
+classes.append(DAG_PT_project)
 
-classes = [DagProject,
-            DAG_OT_AddProject,
-            DAG_OT_RemoveProject,
-            DAG_PT_project,
-            DAG_OT_SetSearchFolder,
-            DagShaderProp,
-            DagShader,
-            DagShaderClass,
-            Dag_CMP_Import_Props,
-            Dag_CMP_Export_Props,
-            Dag_CMP_Tools_Props,
-            Dag_CMP_Props,
-            Dag_Import_Props,
-            Dag_Export_Props,
-            Dag_Baking_Props,
-            dag4blend_props,
-            DagSettings]
 
 def init_shader_categories():
     shader_categories=bpy.context.preferences.addons[__package__].preferences.shader_categories

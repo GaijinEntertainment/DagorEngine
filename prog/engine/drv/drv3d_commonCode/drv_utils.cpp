@@ -1,21 +1,27 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #if _TARGET_PC_WIN
 #include <windows.h>
 #endif
 
 #include "drv_utils.h"
+#include "drv_log_defs.h"
 
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/integer/dag_IPoint2.h>
 #include <osApiWrappers/dag_unicode.h>
 #include <osApiWrappers/dag_progGlobals.h>
+#include <osApiWrappers/dag_messageBox.h>
 #include <util/dag_parseResolution.h>
 #include "gpuConfig.h"
 
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_lock.h>
+#include "drv/3d/dag_resetDevice.h"
 #include "drv_returnAddrStore.h"
 #include <util/dag_string.h>
+#include <util/dag_watchdog.h>
 
 #include <ioSys/dag_memIo.h>
 #include <memory/dag_framemem.h>
@@ -30,6 +36,9 @@ bool get_settings_resolution(int &width, int &height, bool &is_retina, int def_w
   const char *res_max_str = blk_video.getStr("max_resolution", def_max_res);
   int cur_w, cur_h, max_w, max_h;
 
+  if (dgs_get_window_mode() == WindowMode::WINDOWED_RESIZABLE && win32_get_main_wnd())
+    res_str = nullptr; // Ignore the resolution setting in resizable window mode. It is controlled by user's mouse.
+
   if (res_str && res_str[0] == 'x')
   {
     float scale = atof(res_str + 1);
@@ -43,6 +52,23 @@ bool get_settings_resolution(int &width, int &height, bool &is_retina, int def_w
     width -= width % 16; // Grant a 4 pixel alignment for quarter-res targets.
     height -= height % 16;
     out_is_auto = false;
+  }
+  else if (res_str && res_str[0] && res_str[strlen(res_str) - 1] == 'p')
+  {
+    height = min(def_height, atoi(res_str));
+    if (height)
+    {
+      width = height * def_width / def_height;
+      width -= width % 8; // 16 is a good alignment, but it doesn't meet most native resolutions, so let it be 8.
+      height -= height % 8;
+      out_is_auto = false;
+    }
+    else
+    {
+      width = def_width;
+      height = def_height;
+      out_is_auto = true;
+    }
   }
   else if (res_str && get_resolution_from_str(res_str, cur_w, cur_h))
   {
@@ -162,6 +188,25 @@ void get_current_display_screen_mode(int &out_def_left, int &out_def_top, int &o
   }
 }
 
+void get_current_main_window_rect(int &out_def_left, int &out_def_top, int &out_def_width, int &out_def_height)
+{
+  out_def_left = 0;
+  out_def_top = 0;
+  out_def_width = FALLBACK_SCREEN_WIDTH;
+  out_def_height = FALLBACK_SCREEN_HEIGHT;
+  RECT rect = {};
+  if (!GetWindowRect((HWND)win32_get_main_wnd(), &rect))
+  {
+    logwarn("get_current_main_window_rect - GetWindowRect failed (fallback values is used)");
+    return;
+  }
+  debug("get_current_display_screen_mode - GetWindowRect: %d,%d-%d,%d", rect.left, rect.top, rect.right, rect.bottom);
+  out_def_left = rect.left;
+  out_def_top = rect.top;
+  out_def_width = rect.right - rect.left;
+  out_def_height = rect.bottom - rect.top;
+}
+
 void get_render_window_settings(RenderWindowSettings &p, Driver3dInitCallback *cb)
 {
   const DataBlock &blk_video = *dgs_get_settings()->getBlockByNameEx("video");
@@ -169,7 +214,11 @@ void get_render_window_settings(RenderWindowSettings &p, Driver3dInitCallback *c
   int scr_wdt, scr_hgt;
   int base_scr_wdt, base_scr_hgt;
   int base_scr_left, base_scr_top;
-  get_current_display_screen_mode(base_scr_left, base_scr_top, base_scr_wdt, base_scr_hgt);
+  const auto windowMode = dgs_get_window_mode();
+  if (windowMode == WindowMode::WINDOWED_RESIZABLE && win32_get_main_wnd())
+    get_current_main_window_rect(base_scr_left, base_scr_top, base_scr_wdt, base_scr_hgt);
+  else
+    get_current_display_screen_mode(base_scr_left, base_scr_top, base_scr_wdt, base_scr_hgt);
   scr_wdt = base_scr_wdt;
   scr_hgt = base_scr_hgt;
 
@@ -178,17 +227,24 @@ void get_render_window_settings(RenderWindowSettings &p, Driver3dInitCallback *c
   bool isAutoResolution = false, isRetina = false;
   G_VERIFY(get_settings_resolution(scr_wdt, scr_hgt, isRetina, base_scr_wdt, base_scr_hgt, isAutoResolution));
 
-  auto windowMode = dgs_get_window_mode();
   bool verifyResolution = blk_video.getBool("verifyResolution", true);
   if (verifyResolution && cb)
-    cb->verifyResolutionSettings(scr_wdt, scr_hgt, base_scr_wdt, base_scr_hgt, windowMode == WindowMode::WINDOWED);
+    cb->verifyResolutionSettings(scr_wdt, scr_hgt, base_scr_wdt, base_scr_hgt,
+      windowMode == WindowMode::WINDOWED || windowMode == WindowMode::WINDOWED_RESIZABLE);
 
   bool force_window_caption_visible = blk_video.getBool("force_window_caption_visible", false);
 
   RECT wr = {0}, cr = {0};
   p.winStyle = WS_POPUP;
-  if (windowMode == WindowMode::WINDOWED)
+  if (windowMode == WindowMode::WINDOWED || windowMode == WindowMode::WINDOWED_RESIZABLE)
     p.winStyle |= WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_BORDER;
+  if (windowMode == WindowMode::WINDOWED_RESIZABLE)
+  {
+    p.winStyle |= WS_THICKFRAME | WS_MAXIMIZEBOX;
+    if (!win32_get_main_wnd() && isAutoResolution)
+      p.winStyle |= WS_MAXIMIZE; // In windowed resizable mode by default we use work area size. So it is better to use maximized
+                                 // window.
+  }
 
   if (windowMode == WindowMode::WINDOWED_FULLSCREEN)
   {
@@ -310,7 +366,7 @@ bool set_render_window_params(RenderWindowParams &p, const RenderWindowSettings 
         int err = GetLastError();
         if (err && err != ERROR_ALREADY_EXISTS && err != ERROR_CLASS_ALREADY_EXISTS)
         {
-          logerr("Can't register window class (%08X)", err);
+          D3D_ERROR("Can't register window class (%08X)", err);
           return false;
         }
       }
@@ -324,7 +380,7 @@ bool set_render_window_params(RenderWindowParams &p, const RenderWindowSettings 
 
     if (!p.hwnd)
     {
-      logerr("Can't create window (%08X)", GetLastError());
+      D3D_ERROR("Can't create window (%08X)", GetLastError());
       return false;
     }
 
@@ -347,16 +403,18 @@ bool set_render_window_params(RenderWindowParams &p, const RenderWindowSettings 
 
           SetWindowPos((HWND)p.hwnd, HWND_TOP, s.winRectLeft, s.winRectTop, s.winRectRight - s.winRectLeft + addW,
             s.winRectBottom - s.winRectTop + addH, SWP_SHOWWINDOW);
+          set_window_size_has_been_changed_programmatically(true);
         }
       }
     }
   }
-  else
+  else if (!is_window_resizing_by_mouse())
   {
     bool isVisible = IsWindowVisible((HWND)p.rwnd);
     SetWindowLong((HWND)p.rwnd, GWL_STYLE, s.winStyle);
     SetWindowPos((HWND)p.rwnd, HWND_TOP, s.winRectLeft, s.winRectTop, s.winRectRight - s.winRectLeft, s.winRectBottom - s.winRectTop,
       isVisible ? SWP_SHOWWINDOW : 0); // don't change visibility for hidden windows
+    set_window_size_has_been_changed_programmatically(true);
   }
 
   return true;
@@ -401,7 +459,7 @@ int set_display_device_mode(bool inwin, int res_x, int res_y, int scr_bpp, DEVMO
 
   if (!mode_ok)
   {
-    logerr("No suitable mode found (%dx%dx%d requested)", res_x, res_y, scr_bpp);
+    D3D_ERROR("No suitable mode found (%dx%dx%d requested)", res_x, res_y, scr_bpp);
     return 0;
   }
 
@@ -411,9 +469,9 @@ int set_display_device_mode(bool inwin, int res_x, int res_y, int scr_bpp, DEVMO
   if (res != DISP_CHANGE_SUCCESSFUL)
   {
     if (res == DISP_CHANGE_RESTART)
-      logerr("You should set display mode %dx%dx%d manually", mode_w, mode_h, mode_b);
+      D3D_ERROR("You should set display mode %dx%dx%d manually", mode_w, mode_h, mode_b);
     else
-      logerr("Error setting display mode %dx%dx%d", mode_w, mode_h, mode_b);
+      D3D_ERROR("Error setting display mode %dx%dx%d", mode_w, mode_h, mode_b);
     return 0;
   }
 
@@ -539,8 +597,11 @@ bool get_enable_hdr_from_settings(const char *name)
 #else
   const char *drvName = "directx";
 #endif
+  const DataBlock *hdrSupport = blk_video.getBlockByNameEx("hdrSupport");
+  bool gameSupportsHDROnDriver = hdrSupport->getBool(d3d::get_driver_name(), true);
   const DataBlock &blkDrv = *dgs_get_settings()->getBlockByNameEx(drvName);
-  return blk_video.getBool("enableHdr", blkDrv.getBool("enableHdr", false)) && !isHDRBlackListed(blkDrv, name);
+  return gameSupportsHDROnDriver && blk_video.getBool("enableHdr", blkDrv.getBool("enableHdr", false)) &&
+         !isHDRBlackListed(blkDrv, name);
 }
 
 const char *get_monitor_name_from_settings()
@@ -559,13 +620,24 @@ const char *resolve_monitor_name(const char *displayName)
   return nullptr;
 }
 
-namespace d3d
+int drv_message_box(const char *utf8_text, const char *utf8_caption, int flags)
 {
-GpuAutoLock::GpuAutoLock()
+#if _TARGET_STATIC_LIB // No os_message_box in daKernel.
+  // Worst case: the current thread blocks other threads, while the user does not interact with the message box.
+  ScopeSetWatchdogTimeout _wd(WATCHDOG_DISABLE);
+
+  if (!::dgs_execute_quiet)
+    return os_message_box(utf8_text, utf8_caption, flags);
+#endif
+
+  debug("%s(%s, %s, %d)", __FUNCTION__, utf8_text, utf8_caption, flags);
+  return GUI_MB_CLOSE;
+}
+
+d3d::GpuAutoLock::GpuAutoLock()
 {
   BEFORE_LOCK();
-  driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, NULL, NULL, NULL);
+  driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
   AFTER_SUCCESSFUL_LOCK();
 }
-GpuAutoLock ::~GpuAutoLock() { driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL); }
-} // namespace d3d
+d3d::GpuAutoLock::~GpuAutoLock() { driver_command(Drv3dCommand::RELEASE_OWNERSHIP); }

@@ -1,6 +1,16 @@
 // this file is generated via daScript automatic C++ binder
 // all user modifications will be lost after this file is re-generated
 
+// from C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\inttypes.h:29:9
+struct _Lldiv_t_GeneratedAnnotation : ManagedStructureAnnotation<_Lldiv_t> {
+	_Lldiv_t_GeneratedAnnotation(ModuleLibrary & ml) : ManagedStructureAnnotation ("_Lldiv_t", ml, "_Lldiv_t") {
+	}
+	void init () {
+		addField<DAS_BIND_MANAGED_FIELD(quot)>("quot","quot");
+		addField<DAS_BIND_MANAGED_FIELD(rem)>("rem","rem");
+	}
+};
+
 // from D:\Work\libclang\include\llvm-c/DisassemblerTypes.h:72:8
 struct LLVMOpInfoSymbol1_GeneratedAnnotation : ManagedStructureAnnotation<LLVMOpInfoSymbol1> {
 	LLVMOpInfoSymbol1_GeneratedAnnotation(ModuleLibrary & ml) : ManagedStructureAnnotation ("LLVMOpInfoSymbol1", ml, "LLVMOpInfoSymbol1") {

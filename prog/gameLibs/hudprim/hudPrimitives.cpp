@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <hudprim/dag_hudPrimitives.h>
 #include <gui/dag_stdGuiRender.h>
 
@@ -6,8 +8,8 @@
 #include <math/dag_Point4.h>
 #include <math/integer/dag_IPoint2.h>
 #include <math/dag_bounds2.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3d_platform.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_platform.h>
 #include <shaders/dag_shaderBlock.h>
 #include <osApiWrappers/dag_unicode.h>
 #include <math/dag_Matrix3.h>
@@ -18,11 +20,11 @@
 #include <generic/dag_smallTab.h>
 #include <math/dag_mathUtils.h>
 #include <ioSys/dag_dataBlock.h>
-#include <3d/dag_drv3dCmd.h>
 #include <render/whiteTex.h>
 #include <wchar.h>
 #include <gameMath/screenProjection.h>
 #include <3d/dag_resPtr.h>
+#include <drv/3d/dag_renderStates.h>
 
 typedef StdGuiRender::IndexType HudIndexType;
 
@@ -52,14 +54,10 @@ static inline float scaleByAspect(float aspect, int width)
   return (int(aspect * float(width)) + 1) & ~1; // divisible by 2
 }
 
-static int textureVarId = -1;
-static int blueToAlphaVarId = -1;
-static int blendToWhiteVarId = -1;
-static int maskTexVarId = -1;
-static int maskMatrixLine0VarId = -1;
-static int maskMatrixLine1VarId = -1;
-static int writeToZVarId = -1;
-static int testDepthVarId = -1;
+static ShaderVariableInfo maskMatrixLine0VarId("mask_matrix_line_0", true), maskMatrixLine1VarId("mask_matrix_line_1", true),
+  textureVarId("tex", true), maskTexVarId("mask_tex", true), guiTextDepthVarId("gui_text_depth", true),
+  writeToZVarId("gui_write_to_z", true), testDepthVarId("gui_test_depth", true), blueToAlphaVarId("blue_to_alpha_mul", true);
+
 static int renderModeVarId = -1;
 static int guiAcesObjectBlockId = -1;
 
@@ -78,13 +76,6 @@ void HudShader::channels(const CompiledShaderChannelId *&channels, int &num_chan
 void HudShader::link()
 {
   G_STATIC_ASSERT(sizeof(*this) <= sizeof(ExtState));
-  textureVarId = ::get_shader_variable_id("tex");
-  maskTexVarId = ::get_shader_variable_id("mask_tex");
-  maskMatrixLine0VarId = ::get_shader_variable_id("mask_matrix_line_0");
-  maskMatrixLine1VarId = ::get_shader_variable_id("mask_matrix_line_1");
-  blueToAlphaVarId = ::get_shader_variable_id("blue_to_alpha_mul");
-  writeToZVarId = ::get_shader_variable_id("gui_write_to_z");
-  testDepthVarId = ::get_shader_variable_id("gui_test_depth");
 
   renderModeVarId = VariableMap::getVariableId("render_mode");
 
@@ -95,21 +86,19 @@ void HudShader::cleanup()
 {
   if (!material)
     return;
-  material->set_texture_param(textureVarId, BAD_TEXTUREID);
-  material->set_texture_param(maskTexVarId, BAD_TEXTUREID);
+  ShaderGlobal::set_texture(textureVarId, BAD_TEXTUREID);
+  ShaderGlobal::set_texture(maskTexVarId, BAD_TEXTUREID);
 }
 
 void HudShader::setStates(const float viewport[5], const GuiState &guiState, const ExtState *extState, bool viewport_changed,
-  bool /*guistate_changed*/, bool /*extstate_changed*/, ShaderMaterial *mat, ShaderElement *elem, int targetW, int targetH)
+  bool /*guistate_changed*/, bool /*extstate_changed*/, int targetW, int targetH)
 {
   G_UNREFERENCED(viewport);
   G_UNREFERENCED(viewport_changed);
   G_UNREFERENCED(targetH);
   G_UNREFERENCED(targetW);
-  if (mat == NULL)
-    mat = material;
-  if (elem == NULL)
-    elem = element;
+  ShaderMaterial *mat = material;
+  ShaderElement *elem = element;
 
   const FontFxAttr &fontAttr = guiState.fontAttr;
   const ExtStateLocal &st = *(const ExtStateLocal *)extState;
@@ -440,9 +429,9 @@ void HudPrimitives::afterReset() {}
 
 // stereo_depth for driver-side 3D
 
-#define PREPARE_FILL_PARAMS()                                               \
-  float viewOfsX = (float(viewX) + HALF_TEXEL_OFSF) * -viewWidthRcp2 - 1.f; \
-  float viewOfsY = (float(viewY) + HALF_TEXEL_OFSF) * viewHeightRcp2 + 1.f;
+#define PREPARE_FILL_PARAMS()                             \
+  float viewOfsX = (float(viewX)) * -viewWidthRcp2 - 1.f; \
+  float viewOfsY = (float(viewY)) * viewHeightRcp2 + 1.f;
 
 #define FILL_GUIVTX(data, idx, xx, yy, zz, ww, tcx, tcy, stereo_depth, cc)  \
   data[idx].pos.x = stereo_depth * (xx * viewWidthRcp2 + viewOfsX);         \
@@ -456,10 +445,9 @@ void HudPrimitives::afterReset() {}
 void HudPrimitives::updateProjectedQuadVB(HudVertex *data, const E3DCOLOR &color, const Point4 &p0, const Point4 &p1, const Point4 &p2,
   const Point4 &p3, const Point2 &tc0, const Point2 &tc1, const Point2 &tc2, const Point2 &tc3, const E3DCOLOR *vertex_colors)
 {
-#define SET_GUI_VTX(data, idx, p, tc, cc)                                                                                         \
-  data[idx].pos =                                                                                                                 \
-    Point4(p.x - (viewX + HALF_TEXEL_OFSF) * viewWidthRcp2, (p.y + (viewY + HALF_TEXEL_OFSF) * viewHeightRcp2) * 1.0f, p.z, p.w); \
-  data[idx].tuv = tc;                                                                                                             \
+#define SET_GUI_VTX(data, idx, p, tc, cc)                                                               \
+  data[idx].pos = Point4(p.x - (viewX)*viewWidthRcp2, (p.y + (viewY)*viewHeightRcp2) * 1.0f, p.z, p.w); \
+  data[idx].tuv = tc;                                                                                   \
   data[idx].color = cc;
 
   SET_GUI_VTX(data, 0, p0, tc0, vertex_colors ? vertex_colors[0] : color);
@@ -967,9 +955,15 @@ void HudPrimitives::renderTextFx(float x, float y, int font_no, E3DCOLOR color, 
     buffer = &textBuffers[hash];
   }
 
+  // ZMode is set externally to text rendering and we MUST restore it after changing buffers:
+  // otherwise calls to setZMode become useless each time we renderTextFx in the middle of the frame,
+  // e.g. some parts of depth-tested HUD will be rendered with depth test and some not, depending on call order.
+  bool oldWriteToZ = guiContext->guiState.fontAttr.writeToZ;
+  int oldTestDepth = guiContext->guiState.fontAttr.testDepth;
   // flush();
   // FIXME: lazy buffer change
   guiContext->setBuffer(0);
+  guiContext->setZMode(oldWriteToZ, oldTestDepth);
 
   fx_color.a = (int)fx_color.a * color.a / 255;
   guiContext->set_draw_str_attr((FontFxType)fx_type, fx_offset, fx_offset, fx_color, fx_scale);
@@ -984,16 +978,19 @@ void HudPrimitives::renderTextFx(float x, float y, int font_no, E3DCOLOR color, 
 
     if (font_tex_2)
     {
-      TEXTUREID &fontTex2 = guiContext->guiState.fontAttr.tex2;
+      TEXTUREID fontTex2 = guiContext->guiState.fontAttr.getTex2();
       TEXTUREID t2 = add_managed_texture(font_tex_2);
+      d3d::SamplerHandle fontSampler2 = guiContext->guiState.fontAttr.getTex2Sampler();
       if (t2 != fontTex2)
       {
         if (fontTex2 != BAD_TEXTUREID)
           release_managed_tex(fontTex2);
         fontTex2 = t2;
+        fontSampler2 = get_texture_separate_sampler(fontTex2);
         acquire_managed_tex(fontTex2);
+        guiContext->guiState.fontAttr.setTex2(fontTex2, fontSampler2);
       }
-      guiContext->set_draw_str_texture(fontTex2);
+      guiContext->set_draw_str_texture(fontTex2, fontSampler2);
     }
 
     guiContext->set_font(font_no);
@@ -1009,9 +1006,9 @@ void HudPrimitives::renderTextFx(float x, float y, int font_no, E3DCOLOR color, 
     guiContext->set_font(font_no);
     Point2 textSize = get_str_bbox(text, len).width() * (scale > 0.f ? scale : 1.f);
     if (align == 0 || align == 1)
-      x = (align ? (x - textSize.x + HALF_TEXEL_OFSF) : (x - textSize.x / 2 + HALF_TEXEL_OFSF));
+      x = (align ? (x - textSize.x) : (x - textSize.x / 2));
     if (valign == 0 || valign == 1)
-      y = (valign ? (y - textSize.y + HALF_TEXEL_OFSF) : (y + textSize.y / 2 + HALF_TEXEL_OFSF));
+      y = (valign ? (y - textSize.y) : (y + textSize.y / 2));
 
     if (round_coords)
     {
@@ -1029,6 +1026,7 @@ void HudPrimitives::renderTextFx(float x, float y, int font_no, E3DCOLOR color, 
   }
 
   guiContext->setBuffer(1);
+  guiContext->setZMode(oldWriteToZ, oldTestDepth);
   guiContext->reset_draw_str_texture();
 }
 

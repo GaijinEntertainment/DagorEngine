@@ -1,11 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_zstdIo.h>
 #include <util/dag_globDef.h>
 #include <ioSys/dag_genIo.h>
 #include <memory/dag_physMem.h>
 #define ZSTD_STATIC_LINKING_ONLY  1
 #define ZDICT_STATIC_LINKING_ONLY 1
-#include <arc/zstd-1.4.5/zstd.h>
-#include <arc/zstd-1.4.5/dictBuilder/zdict.h>
+#include <zstd.h>
+#include <dictBuilder/zdict.h>
 #include <memory/dag_framemem.h>
 #include <generic/dag_smallTab.h>
 #include <generic/dag_span.h>
@@ -14,26 +16,32 @@
   if (ZSTD_isError(enc_sz))   \
     logerr("%s err=%08X %s srcSz=%d", __FUNCTION__, enc_sz, ZSTD_getErrorName(enc_sz), srcSize);
 
-// Both compression & decompression on higher clevels require huge amount of memory
-#define PHYS_MEM_THRESHOLD_SIZE (24 << 20)
+enum ZstdAllocMethod
+{
+  TryAlloc = -1,
+  PhysMem,
+  Alloc
+};
 
 template <IMemAlloc *(mem_ptr)()>
 static void *zstd_alloc(void *, size_t size)
 {
 #if _TARGET_STATIC_LIB
   using namespace dagor_phys_memory;
+  size += sizeof(size_t) * 2; // To consider: may be alignment 8 is enough?
+  // There is no much point to fallback to phys mem for small allocations - if we can't alloc at least
+  // this much memory we will likely fail later anyway
+  int i = size < (512 << 10) ? Alloc : TryAlloc;
   void *ptr = nullptr;
-  if (size >= PHYS_MEM_THRESHOLD_SIZE)
-    ptr = alloc_phys_mem(size + sizeof(size_t) * 2, PM_ALIGN_PAGE, PM_PROT_CPU_ALL, /*cpu_cached*/ true);
-  if (!ptr)
-    ptr = mem_ptr()->tryAlloc(size + sizeof(size_t) * 2);
-  if (ptr)
-  {
-    *(size_t *)ptr = size;
-    return (size_t *)ptr + 2;
-  }
-  else
-    return nullptr;
+  for (; !ptr; ++i)
+    switch (i)
+    {
+      case TryAlloc: ptr = mem_ptr()->tryAlloc(size); break;
+      case PhysMem: ptr = alloc_phys_mem(size, PM_ALIGN_PAGE, PM_PROT_CPU_ALL, /*cpu*/ true, /*logfail*/ false); break;
+      default: ptr = mem_ptr()->alloc(size);
+    }
+  *(size_t *)ptr = --i;
+  return (size_t *)ptr + 2;
 #else
   return mem_ptr()->alloc(size);
 #endif
@@ -42,11 +50,12 @@ template <IMemAlloc *(mem_ptr)()>
 static void zstd_free(void *, void *ptr)
 {
 #if _TARGET_STATIC_LIB
-  size_t *pSize = (size_t *)ptr - 2;
-  if (*pSize < PHYS_MEM_THRESHOLD_SIZE)
-    mem_ptr()->free(pSize);
+  size_t *pPtr = (size_t *)ptr - 2;
+  G_FAST_ASSERT(*pPtr == TryAlloc || *pPtr == PhysMem || *pPtr == Alloc);
+  if (*pPtr != PhysMem)
+    mem_ptr()->free(pPtr);
   else
-    dagor_phys_memory::free_phys_mem(pSize);
+    dagor_phys_memory::free_phys_mem(pPtr);
 #else
   mem_ptr()->free(ptr);
 #endif
@@ -501,7 +510,7 @@ void ZstdSaveCB::compress(const void *ptr, int sz)
     size_t ret = ZSTD_compressStream(zstdStream, &outBuf, &inBuf);
     if (ZSTD_isError(ret))
     {
-      logerr_ctx("err=%08X %s", ret, ZSTD_getErrorName(ret));
+      LOGERR_CTX("err=%08X %s", ret, ZSTD_getErrorName(ret));
       DAGOR_THROW(SaveException("ZSTD_compressStream error", (int)ret));
       return;
     }
@@ -533,7 +542,7 @@ void ZstdSaveCB::finish()
     }
     if (ZSTD_isError(ret))
     {
-      logerr_ctx("err=%08X %s", ret, ZSTD_getErrorName(ret));
+      LOGERR_CTX("err=%08X %s", ret, ZSTD_getErrorName(ret));
       DAGOR_THROW(SaveException("ZSTD_endStream error", (int)ret));
       return;
     }
@@ -541,6 +550,35 @@ void ZstdSaveCB::finish()
       break;
   }
   zstdBufUsed = 0;
+}
+
+void ZstdSaveCB::flush()
+{
+  ZSTD_outBuffer outBuf;
+
+  outBuf.dst = wrBuf + BUFFER_SIZE;
+  outBuf.size = zstdBufSize;
+  outBuf.pos = zstdBufUsed;
+
+  for (;;)
+  {
+    const size_t ret = ZSTD_flushStream(zstdStream, &outBuf);
+    if (outBuf.pos)
+    {
+      cwrDest->write(outBuf.dst, outBuf.pos);
+      outBuf.pos = 0;
+    }
+    if (!ret)
+      break;
+    if (ZSTD_isError(ret))
+    {
+      LOGERR_CTX("err=%08X %s", ret, ZSTD_getErrorName(ret));
+      DAGOR_THROW(SaveException("flushStream error", (int)ret));
+      return;
+    }
+  }
+  zstdBufUsed = 0;
+  cwrDest->flush();
 }
 
 #define EXPORT_PULL dll_pull_iosys_zstdIo

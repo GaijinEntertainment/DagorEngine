@@ -1,6 +1,7 @@
 #include "phys.h"
 #include <de3_lightService.h>
 #include <3d/dag_render.h>
+#include <shaders/dag_dynSceneRes.h>
 #include <render/dag_cur_view.h>
 #include <EditorCore/ec_interface.h>
 #include <phys/physRagdoll.inc.cpp>
@@ -90,7 +91,7 @@ static __forceinline void phys_create_phys_world(DynamicPhysObjectData *base_obj
   if (!interval)
   {
     BBox3 box;
-    for (auto m : base_obj->models)
+    for (auto &m : base_obj->models)
       box += m->getLocalBoundingBox();
     if (scene_type == physsimulator::SCENE_TYPE_STACK)
       interval = box.width().y * 1.05;

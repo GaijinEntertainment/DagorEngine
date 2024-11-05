@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daScript/daScript.h>
 #include <daScript/daScriptModule.h>
 #include <daScript/simulate/fs_file_info.h>

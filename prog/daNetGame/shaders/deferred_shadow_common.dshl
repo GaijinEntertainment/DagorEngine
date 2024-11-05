@@ -1,0 +1,614 @@
+include "sky_shader_global.dshl"
+include "pbr.dshl"
+include "gbuffer.dshl"
+include "monteCarlo.dshl"
+include "roughToMip.dshl"
+include "ssao_use.dshl"
+
+include "ssr_use.dshl"
+
+include "normaldetail.dshl"
+include "viewVecVS.dshl"
+include "invGlobTm.dshl"
+include "clouds_vars.dshl"
+include "sq_clouds_shadow.dshl"
+include "static_shadow.dshl"
+include "fom_shadows.dshl"
+include "use_prefiltered_gf.dshl"
+include "contact_shadows.dshl"
+include "dagi_quality.dshl"
+include "depth_above.dshl"
+include "gi_demo.dshl"
+include "sparkles.dshl"
+include "use_tiled_lights.dshl"
+include "vr_reprojection.dshl"
+include "gbuffer_resolve_modifier.dshl"
+include "ssss/ssss_transmittance_profile.dshl"
+include "clustered/simple_point_light.dshl"
+include "deferred_snow_cover.dshl"
+include "water_heightmap.dshl"
+include "use_gi.dshl"
+include "night_light.dshl"
+
+float4 stereo_params = (0, 0, 0, 0);
+
+float4 globtm_no_ofs_psf_0;
+float4 globtm_no_ofs_psf_1;
+float4 globtm_no_ofs_psf_2;
+float4 globtm_no_ofs_psf_3;
+texture combined_shadows;
+float4 blood_ss_profile = (0.95,0.3,0.25,0);
+float4 leaves_ss_profile = (1.0,0.8,0.5,0);
+texture specular_tex;
+float grass_ambient_ss_shadow = 0.25;
+
+///////////////////////////////////////////////////////////////
+
+texture current_ambient;
+texture water_heightmap_lowres;
+texture noise_128_tex_hash;
+
+float4 sheen_color = float4(1.0, 1.0, 1.0, 1.0);
+float4 lightning_scene_illumination_color = (0.8, 0.8, 0.8, 0);
+float4 lightning_scene_illumination_dir = (1.0, 1.0, 1.0, 1.0);
+int lightning_scene_illumination = 0;
+
+float4 depth_bounds = float4(0, 1, 0, 0);
+int combined_shadows_has_caustics;
+
+float4 tank_cockpit__bsphere = float4(0., 0., 0., 0.);
+float tank_cockpit_fake_ambient_light_strength = 0.25;
+
+macro COMMON_RESOLVE_SIMPLE(code)
+  (code) {
+    leaves_ss_profile_gamb@f4 = (leaves_ss_profile.x, leaves_ss_profile.y, leaves_ss_profile.z, grass_ambient_ss_shadow);
+    blood_ss_profile@f3 = blood_ss_profile;
+    water_heightmap_lowres@smp2d = water_heightmap_lowres;
+    sheen_color@f3 = sheen_color;
+    shadow_params__shadow_frame@f1 = (shadow_frame, 0, 0, 0);
+  }
+  INIT_WORLD_TO_WATER_HEIGHTMAP(code)
+  hlsl(code) {
+    #define leaves_ss_profile (leaves_ss_profile_gamb.xyz)
+    #define grass_ambient_ss_shadow (leaves_ss_profile_gamb.w)
+    #define sheen_ss_profile (sheen_color.rgb)
+    #undef BLOOD_SSS_FACTOR
+    #undef LEAVES_SSS_FACTOR
+    #undef SHEEN_SSS_FACTOR
+    #define BLOOD_SSS_FACTOR blood_ss_profile
+    #define LEAVES_SSS_FACTOR leaves_ss_profile
+    #define SHEEN_SSS_FACTOR sheen_ss_profile
+    #define shadow_frame shadow_params__shadow_frame
+  }
+
+  INIT_HDR(code)
+  USE_HDR(code)
+  SHEEN_BRDF_SHADING(code)
+  STANDARD_BRDF_SHADING_BASE(code)
+
+  USE_ROUGH_TO_MIP()
+  INIT_SKYLIGHT_PARAMS(code)
+  USE_SKYLIGHT_PARAMS(code)
+  INIT_SKY_DIFFUSE_BASE(code)
+  USE_SKY_DIFFUSE_BASE(code)
+  INIT_BRUNETON_FOG(code)
+  BASE_USE_BRUNETON_FOG(code)
+  INIT_ZNZFAR_STAGE(code)
+  INIT_AND_USE_NIGHT_LIGHT(code)
+endmacro
+
+define_macro_if_not_defined INIT_GBUFFER_MODIFIER(code)
+endmacro
+
+define_macro_if_not_defined USE_GBUFFER_MODIFIER(code)
+  hlsl(code) {
+    void patch_gbuffer(inout ProcessedGbuffer gbuffer, float3 world_pos, float ao) {}
+  }
+endmacro
+
+macro COMMON_RESOLVE_EXTENDED(code)
+  COMMON_RESOLVE_SIMPLE(code)
+
+  GI_DEMO(code)
+  INIT_UPSCALE_SAMPLING_BASE(code)
+  USE_UPSCALE_SAMPLING_BASE(code)
+  INIT_SSAO_BASE(code)
+  USE_SSAO_UPSCALE_BASE_WITH_SMP(code, ssao_tex_samplerstate)
+
+  hlsl(code) {
+    #define SSR_UPSCALE_MODE SSR_UPSCALE_MISS_HIT_AWARE
+    #define getSSAO getSSAOUpscale
+  }
+  USING_SSR_BASE(code)
+  if (gi_quality != off)
+  {
+    (code) {
+      current_ambient@smp2d = current_ambient;
+      specular_tex@tex2d = specular_tex;
+    }
+  } else
+  {
+    INIT_VR_REPROJECTION(code)
+    USE_VR_REPROJECTION(code)
+    INIT_LOCAL_SPECULAR_BASE(code)
+    USE_SKY_SPECULAR_BASE(code)
+  }
+
+  if (dynamic_lights_count != lights_off)
+  {
+    (code) {
+      viewProjectionMatrixNoOfs@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
+      screen_size@f4 = (1. / screen_pos_to_texcoord.x, 1. / screen_pos_to_texcoord.y, screen_pos_to_texcoord.x, screen_pos_to_texcoord.y);
+    }
+  }
+  (code) {
+    combined_shadows@smp2d = combined_shadows;
+    combined_shadows_has_caustics@i1 = combined_shadows_has_caustics;
+    downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
+    tank_cockpit_fake_ambient_light_strength@f1 = tank_cockpit_fake_ambient_light_strength;
+    tank_cockpit__bsphere@f4 = tank_cockpit__bsphere;
+  }
+
+  USE_VOLFOG_DITHERING_NOISE(code)
+  CUSTOM_FOG(code)
+
+  INIT_PREINTEGRATED_GF(code)
+  BASE_USE_PREINTEGRATED_GF(code)
+
+  hlsl(code) {
+    #define OMNI_CONTACT_SHADOWS 1
+    #define SPOT_CONTACT_SHADOWS 1
+  }
+  CONTACT_SHADOWS_BASE(code)
+
+  if (gi_quality == off)
+  {
+    INIT_ENVI_SPECULAR_SAMPLE(code)
+    USE_ENVI_SPECULAR_SAMPLE(code)
+  }
+  PACK_UNPACK_GBUFFER_BASE(code)
+
+  USE_SSSS_TRANSMITTANCE_PROFILE(code)
+  USE_SSSS_TRANSMITTANCE_DECODE(code)
+
+  if (in_editor_assume == no)
+  {
+    INIT_AND_USE_TILED_LIGHTS(code)
+  }
+  else
+  {
+    INIT_AND_USE_SIMPLE_POINT_LIGHT(code)
+  }
+
+  if (gi_quality != off)
+  {
+    if (gi_quality == only_ao)
+    {
+      DAGI_SKY_VIS_SAMPLE(code)
+    } else if (gi_quality == colored)
+    {
+      hlsl {
+        #define DAGI_IRRADIANCE_GRID_TYPE DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE
+      }
+      DAGI_IRRADIANCE_GRID_SAMPLE(code)
+    } else
+    {
+      SAMPLE_IRRADIANCE_SP(code)
+    }
+  }
+
+  if (envi_cover == envi_cover_on)
+  {
+    INIT_BLURRED_DEPTH_ABOVE(code)
+    USE_BLURRED_DEPTH_ABOVE(code)
+    INIT_DEFERRED_SNOW_COVER(code, true, false, 0)
+    USE_DEFERRED_SNOW_COVER(code)
+  }
+
+  (code) {
+    underwater_light_fade_params@f4 = (underwater_fade.x, underwater_fade.y,  underwater_fade.z, water_level);
+  }
+  hlsl(code) {
+    #define underwater_fade (underwater_light_fade_params.xyz)
+  }
+  (code) {
+    lightning_color@f3 = (lightning_scene_illumination_color);
+    lightning_dir@f3 = (lightning_scene_illumination_dir);
+    lightning_scene_illumination@i1 = (lightning_scene_illumination);
+  }
+  INIT_GBUFFER_MODIFIER(code)
+  USE_GBUFFER_MODIFIER(code)
+endmacro
+
+macro SPECIAL_RESOLVE_EXTENDED(code)
+  COMMON_RESOLVE_SIMPLE(code)
+
+  if (dynamic_lights_count != lights_off)
+  {
+    (code) {
+      viewProjectionMatrixNoOfs@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
+      screen_size@f4 = (1. / screen_pos_to_texcoord.x, 1. / screen_pos_to_texcoord.y, screen_pos_to_texcoord.x, screen_pos_to_texcoord.y);
+    }
+  }
+  PACK_UNPACK_GBUFFER_BASE(code)
+
+  if (in_editor_assume == no)
+  {
+    INIT_AND_USE_TILED_LIGHTS(code)
+  }
+  else
+  {
+    INIT_AND_USE_SIMPLE_POINT_LIGHT(code)
+  }
+endmacro
+
+macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
+  hlsl(code) {
+    #define __XBOX_WAVESIM_ITERATION 1
+    #define __XBOX_IMPROVE_MAD 1
+
+    #include "noise/Perlin3D.hlsl"
+
+    half3 MultiBounce(half AO, half3 Albedo)
+    {
+      half3 A = 2 * Albedo - 0.33;
+      half3 B = -4.8 * Albedo + 0.64;
+      half3 C = 2.75 * Albedo + 0.69;
+      return max(AO, ((AO * A + B) * AO + C) * AO);
+    }
+
+    void get_combined_shadows_sample(float2 uv, out float csmShadow, out float ssssTransmittance, out float base_caustics, out float cloudShadow)
+    {
+      ##if (combined_shadows == NULL) && (in_editor_assume == yes)
+        csmShadow = 1;
+        ssssTransmittance = base_caustics = cloudShadow = 0;
+      ##else
+        float4 sampledValues = tex2Dlod(combined_shadows, float4(uv, 0, 0));
+        csmShadow = sampledValues.x;
+        ##if use_ssss != off
+          ssssTransmittance = decode_ssss_transmittance(sampledValues.y);
+        ##else
+          ssssTransmittance = 0;
+        ##endif
+        base_caustics = combined_shadows_has_caustics ? sampledValues.z : 0;
+        cloudShadow = combined_shadows_has_caustics ? sampledValues.w : 0;
+      ##endif
+    }
+
+    float2 resolve_caustics(float base_caustics, float3 worldPos, float water_level)
+    {
+      base_caustics = pow2(base_caustics);
+      half2 caustics=half2(1, 0); // underwater and upperwater components
+      float causticScale=saturate(water_level-worldPos.y-0.3);
+      caustics.x=lerp(1, 0.2+base_caustics*3.8, causticScale); // underwater multiplier
+      causticScale=saturate(2*(water_level-worldPos.y+0.5));
+      caustics.y=lerp(base_caustics*2, 0, causticScale);  // additive
+      return caustics;
+    }
+
+    half4 deferred_shadow_per_sample(float2 screenpos, float3 viewVect, float2 curViewTc, float w,
+                                     ProcessedGbuffer gbuffer, float rawDepth)
+    {
+      float3 pointToEye = -viewVect * w;
+      float3 pointToEyeOfs = pointToEye;
+      float4 worldPos = float4(world_view_pos.xyz - pointToEyeOfs, 1);
+
+      float distSq = dot(pointToEye,pointToEye);
+      float invRsqrt = rsqrt(distSq);
+      float3 view  = pointToEye*invRsqrt;
+      float dist = rcp(invRsqrt);
+
+      // Translucency is used to store SSS eye fake shadow mask, so we must assume SSS eye material to have 0 translucency.
+      half sssEyeFakeShadowMask = gbuffer.translucency;
+
+##if (envi_cover == envi_cover_on)
+      if (!isEmissiveShader(gbuffer.material) && (!gbuffer.dynamic || isFoliageShader(gbuffer.material)) && !gbuffer.isLandscape)
+      {
+        float snowInfluence = apply_snow_cover(worldPos.xyz, gbuffer.normal, skylight_progress, gbuffer.diffuseColor, gbuffer.specularColor,
+          gbuffer.translucencyColor, gbuffer.translucency, gbuffer.linearRoughness, gbuffer.ggx_alpha);
+        if (snowInfluence > 0)
+          gbuffer.material = SHADING_SUBSURFACE;
+      }
+##endif
+
+      /*float waterLevel = 0;//fixme:
+      float wetnessAbove = 0.1;
+      float wetness = saturate((waterLevel+wetnessAbove-worldPos.y)/wetnessAbove);
+      apply_wetness(wetness, gbuffer.diffuseColor, gbuffer.linearRoughness, gbuffer.ao, gbuffer.normal);
+      gbuffer.ggx_alpha = gbuffer.linearRoughness*gbuffer.linearRoughness;
+      wetness_metalness(wetness, gbuffer.metalness);
+      wetness_specular(wetness, gbuffer.specularColor);*/
+
+      //float viewWaterDepth = abs(view.y)>0.001 ? (waterLevel-worldPos.y)/view.y : (worldPos.y>waterLevel ? 0 : 10000);
+      //float sunWaterDepth = (waterLevel-worldPos.y)/-from_sun_direction.y;
+
+      /*
+        fixme: apply underwater
+        half waterDepth = (water_depth_to_opacity__water_level.w-worldPos.y);
+        half3 waterLightOpacity = saturate(pow(water_depth_to_opacity__water_level.xyz, waterDepth));
+        ao *= waterLightOpacity;
+      */
+      float4 weights = sampleCloseUpscaleWeight(screenpos);
+      SSAO_TYPE ssao = getSSAOUpscaleWeighted(weights, screenpos);
+      half4 ssrReflections = getSSRWeighted(gbuffer.linearRoughness, curViewTc, screenpos, weights);
+      //SSAO_TYPE ssao = getSSAO(w, screenpos);
+
+      patch_gbuffer(gbuffer, worldPos.xyz, ssao.x);
+      //ssao = 1;
+      //gbuffer.diffuseColor = 0.5;
+      //gbuffer.translucencyColor = gbuffer.diffuseColor*gbuffer.translucency;
+
+      //gbuffer.specularColor = 0;
+
+      float geometryFactor = 1;
+
+      half translucencyStrength = isSubSurfaceProfileValid(gbuffer.sss_profile) ? gbuffer.translucency : 0;
+
+      // zero and disabled if not subsurface and sss profile is not cloth, see processGbuffer
+      float sheenStrength = gbuffer.sheen;
+      float3 sheenColor = gbuffer.translucencyColor;
+
+      float NdotV = dot(gbuffer.normal, view);
+      float saturated_NdotV = saturate(NdotV);
+      float3 reflectionVec = 2 * NdotV * gbuffer.normal - view;
+      float NoV = abs( NdotV ) + 1e-5;
+      float ggx_alpha = gbuffer.ggx_alpha;
+
+      half enviAO = gbuffer.ao*ssao.x;//we still modulate by albedo color, so we don't need micro AO
+
+      half specularAOcclusion = computeSpecOcclusion(saturate(NdotV), enviAO, ggx_alpha);// dice spec occlusion
+      //return enviAO;
+      //specularAOcclusion = max(0.5 * enviAO, specularAOcclusion);//this should not be needed if ao is correct
+      half3 specularColor = gbuffer.specularColor*specularAOcclusion;
+      //SUN
+      float3 lightDir = -from_sun_direction.xyz;
+      half3 lightColor = sun_color_1.rgb;
+
+      float3 verticalUnderwaterMul = float3(1.0, 1.0, 1.0);
+      ##if water_heightmap_lowres != NULL
+      float2 water_heightmap_lowres_uv = worldPos.xz * world_to_water_heightmap.zw + world_to_water_heightmap.xy;
+      float water_level = tex2Dlod(water_heightmap_lowres, float4(water_heightmap_lowres_uv, 0, 0)).r;
+      ##else
+      #define water_level (underwater_light_fade_params.w)
+      ##endif
+      FLATTEN
+      if (water_level > worldPos.y)
+      {
+        float3 fadeExponent = underwater_fade * (worldPos.y - water_level);
+        lightColor *= exp(fadeExponent / max(0.001, lightDir.y));
+        verticalUnderwaterMul = exp(fadeExponent);
+      }
+
+      float NoL = dot(gbuffer.normal, lightDir);
+      half3 result = 0;
+      bool isValidSubsurface = isSubSurfaceShader(gbuffer.material) && isSubSurfaceProfileValid(gbuffer.sss_profile);
+
+      float csmShadow, ssssTransmittance, base_caustics, cloudShadow;
+      get_combined_shadows_sample(curViewTc, csmShadow, ssssTransmittance, base_caustics, cloudShadow);
+
+      //half trees_shadow = min(cloudShadow, vsmShadow);
+      //float apperture = 2*pow2(gbuffer.ao);
+      FLATTEN
+      if (!isValidSubsurface)
+        gbuffer.shadow *= calc_micro_shadow(NoL, gbuffer.ao);
+      csmShadow = min(csmShadow, gbuffer.shadow);
+      half SSSshadow = csmShadow;
+
+      ##if ssao_contact_shadows
+      half contactShadows = ssao. CONTACT_SHADOWS_ATTR;
+      //FLATTEN
+      //contactShadows = (gbuffer.material == SHADING_FOLIAGE) ? contactShadows*0.8 + 0.2 : contactShadows;
+      //contactShadows = (gbuffer.material == SHADING_FOLIAGE) ? contactShadows*0.8 + 0.2 : contactShadows;
+      //contactShadows = contactShadows*0.8 + 0.2 : contactShadows;
+      //contactShadows = contactShadows*0.8 + 0.2;
+      csmShadow *= lerp(contactShadows*contactShadows, contactShadows, translucencyStrength);
+      SSSshadow *= lerp(contactShadows, contactShadows*0.75 + 0.25, translucencyStrength);
+      ##endif
+
+      half shadow = csmShadow*saturate(NoL * 6 - 0.2);//fake: reduce shadow artifacts in specular!
+      //if ssr disabled, envi probe reflection should be dimmed when objects are in shadow
+      ##if ssr_target == NULL
+        #define MIN_ENVI_SSR 0.25
+        half enviSSR = MIN_ENVI_SSR + shadow * (1 - MIN_ENVI_SSR);
+      ##else
+        half enviSSR = (1-ssrReflections.a);
+      ##endif
+
+      float2 caustics = resolve_caustics(base_caustics, worldPos.xyz, water_level);
+
+      //make sss shadow less visible closer to caster
+      /*
+      //very high-end (can be moved to combine shadows though, if we have separate channel for SSSshadow)
+      //we not just sample and compare shadow, but also assume that closer obstacles do not obscure SSSshadow
+      float4 camldPos4 = float4(-pointToEye, 1);
+      float3 t0 = float3(dot(camldPos4, shadow_cascade_tm[0*3]), dot(camldPos4, shadow_cascade_tm[0*3+1]), dot(camldPos4, shadow_cascade_tm[0*3+2]));
+      float3 t1 = float3(dot(camldPos4, shadow_cascade_tm[1*3]), dot(camldPos4, shadow_cascade_tm[1*3+1]), dot(camldPos4, shadow_cascade_tm[1*3+2]));
+      float3 t2 = float3(dot(camldPos4, shadow_cascade_tm[2*3]), dot(camldPos4, shadow_cascade_tm[2*3+1]), dot(camldPos4, shadow_cascade_tm[2*3+2]));
+      float3 t3 = float3(dot(camldPos4, shadow_cascade_tm[3*3]), dot(camldPos4, shadow_cascade_tm[3*3+1]), dot(camldPos4, shadow_cascade_tm[3*3+2]));
+      int cascade_id = 6;
+      bool b3 = all(abs(t3)<HALF);
+      bool b2 = all(abs(t2)<HALF);
+      bool b1 = all(abs(t1)<HALF);
+      bool b0 = all(abs(t0)<HALF);
+      cascade_id = b3 ? 3 : cascade_id;
+      cascade_id = b2 ? 2 : cascade_id;
+      cascade_id = b1 ? 1 : cascade_id;
+      cascade_id = b0 ? 0 : cascade_id;
+      float3 t = 2;
+      t = b3 ? t3 : t;
+      t = b2 ? t2 : t;
+      t = b1 ? t1 : t;
+      t = b0 ? t0 : t;
+      float3 uv = cascade_id < 4 ? TRANSFORM(t, cascade_id) : 2;
+      if ( uv.z<1)
+      {
+        float shadowD = shadow_cascade_depth_tex.SampleLevel(combined_shadows_samplerstate, uv, 0).x;
+        float4x4 shadowTM4 = float4x4(shadow_cascade_tm[cascade_id*3+0], shadow_cascade_tm[cascade_id*3+1], shadow_cascade_tm[cascade_id*3+2], float4(0,0,0,1));
+        shadowTM4 = inverse(shadowTM4);
+        float4 shadowcamLdPos4 = mul(shadowTM4, float4(t.xy, shadowD-0.5,1));
+        float3 move = shadowcamLdPos4.xyz+pointToEye.xyz;
+        float depth2=dot(move,move)*pow2(1);
+        SSSshadow = 1-saturate(depth2)*(1-SSSshadow);
+      }*/
+
+      //SUN
+      BRANCH
+      if (shadow > 0)
+      {
+        result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, gbuffer.specularColor, enviSSR*gbuffer.extracted_albedo_ao, lightDir, view, gbuffer.normal, sheenColor, sheenStrength)*(shadow)*lightColor*caustics.x;
+        float lightningNoL = dot(gbuffer.normal, lightning_dir);
+        BRANCH
+        if (lightning_scene_illumination && lightningNoL > 0)
+        {
+          result += standardBRDF( NoV, lightningNoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, gbuffer.specularColor, enviSSR*gbuffer.extracted_albedo_ao, lightning_dir, view, gbuffer.normal, sheenColor, sheenStrength)*(shadow)*lightning_color;
+        }
+      }
+      result += get_dynamic_lighting(gbuffer, worldPos.xyz, -viewVect, w, screenpos, NoV, specularColor, curViewTc, enviAO);
+      result += gbuffer.diffuseColor*caustics.y*lightColor*cloudShadow*pow3(saturate(enviAO*1.3));
+
+      /*BRANCH
+      if (gbuffer.material == SHADING_SUBSURFACE && (SSSshadow > 0))
+      {
+        //SSSshadow = 1;
+        float3 H = normalize(view + lightDir);
+
+        // to get an effect when you see through the material
+        // hard coded pow constant
+        float InScatter = pow(saturate(dot(lightDir, -view)), 12) * lerp(3, .1f, gbuffer.translucency);
+        // wrap around lighting, /(PI*2) to be energy consistent (hack do get some view dependnt and light dependent effect)
+        float OpacityFactor = gbuffer.translucency;
+        // Opacity of 0 gives no normal dependent lighting, Opacity of 1 gives strong normal contribution
+        float NormalContribution = saturate(dot(gbuffer.normal, H) * OpacityFactor + 1 - OpacityFactor);
+        float BackScatter = gbuffer.ao * NormalContribution / (PI * 2);
+
+        half backShading = lerp(BackScatter, 1, InScatter);
+        result += (gbuffer.ao * backShading * SSSshadow) * lightColor * gbuffer.translucencyColor;
+        // lerp to never exceed 1 (energy conserving)
+      }*/
+
+      //return 0;
+      //SUN-
+      //envi
+      //specularColor *=specularAOcclusion;
+      //specularColor *= 0.5+0.5*specularAOcclusion;//hack: other
+      float3 lightProbeReflectionVec = reflectionVec;
+      //half3 enviBRDF = EnvBRDFApprox(specularColor, gbuffer.linearRoughness, NoV);
+      half3 AB = getEnviBRDF_AB_LinearRoughness(gbuffer.linearRoughness, NoV);
+      half3 enviBRDF = gbuffer.specularColor * AB.x + saturate( 50 * gbuffer.specularColor.g ) * AB.y;
+
+      /*FLATTEN
+      if (gbuffer.material == SHADING_FOLIAGE)
+      {
+        enviBRDF *= float3(0.3,0.5,0.3);
+      }
+        enviBRDF = 1;
+        roughMip = 0;
+        roughR = reflectionVec;*/
+      //half3 environmentAmbientReflection = gamma_to_linear(texCUBElod(envi_probe_specular, float4(reflectionVec, 0)).rgb);
+      //half3 environmentAmbientReflection = gamma_to_linear(texCUBElod(envi_probe_specular, float4(roughR, roughMip)).rgb)*enviBRDF;
+      //half3 environmentAmbientReflection = geometryFactor*gamma_to_linear(texCUBElod(envi_probe_specular, float4(roughR, roughMip)).rgb)*enviBRDF;
+      //environmentAmbientReflection *= 0.8 + 0.2*shadow;
+      //return environmentAmbientReflection.rgbr;
+      //return distToIntersect > 0 ? environmentAmbientReflection.rgbr : 0;
+
+      float3 enviLightingNormal = normalize(getDiffuseDominantDir(gbuffer.normal, view, saturated_NdotV, ggx_alpha ));
+      //half3 environmentAmbientUnoccludedLighting = lerp3(localLightProbeAmbient1, localLightProbeAmbient2, GetSkySHDiffuse(enviLightingNormal), ambientWeights) * gbuffer.diffuseColor;
+      float fake_light_strength = 0.25;
+      ##if (gi_quality != off)
+        half3 enviLight = unpack_hdr(texelFetch(current_ambient, screenpos, 0).rgb);
+      ##else
+        half3 enviLight = GetSkySHDiffuse(enviLightingNormal);
+      ##endif
+
+      float distToTankCockpitSq = dot(tank_cockpit__bsphere.xyz - worldPos.xyz, tank_cockpit__bsphere.xyz - worldPos.xyz);
+      float fragmentNotInCockpit = float(distToTankCockpitSq >= tank_cockpit__bsphere.w);
+      enviLight *= fragmentNotInCockpit;
+      fake_light_strength *= fragmentNotInCockpit;
+      fake_light_strength += tank_cockpit_fake_ambient_light_strength * (1. - fragmentNotInCockpit);
+
+      half3 environmentAmbientUnoccludedLighting =  enviLight * gbuffer.diffuseColor;
+      //use albedo instead of diffuseColor, so fake light affects metal
+      environmentAmbientUnoccludedLighting += fakeNightLight(gbuffer.albedo, fake_light_strength, saturated_NdotV, distSq);
+
+      //from GTAO paper. Result doesn't seem to be correct (too bright).
+      // If we square ssao, result is also incorrect (dark places become too dark)
+      //use SSGI instead.
+      //half3 environmentAmbientLighting = (geometryFactor*gbuffer.ao) * MultiBounce(ssao.x, gbuffer.diffuseColor)*environmentAmbientUnoccludedLighting;
+      half3 environmentAmbientLighting = (enviAO * geometryFactor)*environmentAmbientUnoccludedLighting;
+      environmentAmbientLighting *= AB.z;
+      //environmentAmbientReflection *= lerp(1, enviAO, gbuffer.translucency);//g.amelihin asked for that hack
+      ##if (gi_quality != off)
+        half3 totalReflection = (unpack_hdr(texelFetch(specular_tex, screenpos, 0).rgb)*(specularAOcclusion*enviSSR) + ssrReflections.rgb)*enviBRDF;
+      ##else
+        float3 roughR = getRoughReflectionVec(lightProbeReflectionVec.xyz, gbuffer.normal, ggx_alpha);
+        float roughMip = ComputeReflectionCaptureMipFromRoughness(gbuffer.linearRoughness);
+        half3 environmentAmbientReflection = sample_envi_probe(float4(roughR, roughMip)).rgb;
+        half3 totalReflection = (environmentAmbientReflection*enviSSR*specularAOcclusion + ssrReflections.rgb)*enviBRDF;//enviBRDF
+        //totalReflection *= specularAOcclusion;
+      ##endif
+
+
+      bool isSubSurfaceFoliage = isFoliageShader(gbuffer.material) && translucencyStrength > 1.0/255;
+      BRANCH
+      if (isSubSurfaceFoliage)
+      {
+        if ((SSSshadow > 0)) {
+          result += (gbuffer.ao * foliageSSS(NoL, view, lightDir) * SSSshadow) * lightColor * gbuffer.translucencyColor;
+        }
+        half3 backAmbientLight = GetSkySHDiffuse(-gbuffer.normal);
+        half3 giBackAmbient = backAmbientLight;
+        half giAmount = 1;
+        ##if (gi_quality == screen_probes)
+          sample_bilinear_irradiance_envi_normal(-gbuffer.normal, w, worldPos.xyz, gbuffer.normal, screenpos, giBackAmbient);
+        ##elif (gi_quality == colored)
+          float ofs = max(dist*0.04, 0.25*dagi_irrad_grid_probe_size(0));
+          float3 filteredWorldPos = worldPos.xyz + view*ofs;
+          giAmount = dagi_irrad_grid_diffuse_biased_smooth(world_view_pos.xyz, filteredWorldPos, -gbuffer.normal, view, max(0, dist-ofs), gbuffer.normal, 0, giBackAmbient);
+          //ambient = volumetric_gi_calc_diffuse_uvw(input.texcoord.xy, 0.95*w, enviLightingNormal);
+        ##elif (gi_quality == only_ao)
+          float ofs = max(dist*0.04, 0.25*dagi_sky_vis_probe_size(0));
+          float3 filteredWorldPos = worldPos.xyz + view*ofs;
+          float4 sh1 = dagi_get_sky_visibility_smooth_sh1(world_view_pos.xyz, filteredWorldPos, view, max(0, dist-ofs), gbuffer.normal, 0 );
+          giAmount = 0;
+          if (all(sh1 != 1))
+          {
+            giBackAmbient = GetSHFunctionValueSimple(enviLightingNormal, enviSPH0*sh1.wyzx, enviSPH1*sh1.wyzx, enviSPH2*sh1.wyzx);
+            giAmount = 1;
+          }
+        ##endif
+        //half giAmount = get_ambient3d_unfiltered_cascade(worldPos.xyz, gbuffer.normal*gbuffer.normal, gbuffer.normal>0 ? 1./6.0 : 0, backAmbientLight, giBackAmbient, 1, 0, false);
+        //giAmount *= get_gi_param(curViewTc.x) * eclipse_gi_weight_atten;
+        //backAmbientLight = lerp(backAmbientLight, giBackAmbient, giAmount);
+        backAmbientLight = giBackAmbient * skylight_gi_weight_atten;
+        environmentAmbientLighting += enviAO*backAmbientLight*gbuffer.translucencyColor;
+      }
+
+      //half3 reflection = totalReflection+environmentAmbientLighting;//correct
+      half3 reflection = (environmentAmbientLighting + totalReflection) * verticalUnderwaterMul;//*enviAO - tri-ace formula
+      //return reflection.rgbr;
+      //half3 reflection = totalReflection+environmentAmbientLighting;//correct
+      result += reflection;
+
+      // We apply additional ao for a final color (except emission and fog) for eyes.
+      // This approach is not physically correct.
+      // It makes an image more realistic and eyes don't look too bright.
+      // It also could be done with additional contact shadows pass, but it is more difficult way.
+      // This effect has to be reduced at some distance, otherwise, AO due to objects at the front can make eyes appear to be black.
+      // The effect reduction happens linearly to avoid sudden change in eyes appearance.
+      // Also, to avoid sharp changes with emissive eye material (eg. for caustics), its effect is masked where the material changes.
+      if (gbuffer.sss_profile == SSS_PROFILE_EYES)
+      {
+        half effectiveEyeSsao = lerp(pow2(ssao.x), ssao.x, saturate(w - 0.5));
+        result *= lerp(effectiveEyeSsao, 1, sssEyeFakeShadowMask);
+      }
+
+      result += gbuffer.emissionColor;
+
+      //envi-
+
+      float2 jitteredVolfogTc = get_volfog_dithered_screen_tc(screenpos.xy, curViewTc);
+      apply_volfog_with_scattering(result.rgb, curViewTc, jitteredVolfogTc, view, dist, w);
+      return half4(pack_hdr(result),1);
+    }
+  }
+endmacro

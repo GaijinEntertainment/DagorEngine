@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dataBlockUtils/blkUtils.h>
 
 #include <ioSys/dag_dataBlock.h>

@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <gpuObjects/gpuObjects.h>
@@ -18,6 +19,7 @@ struct GpuObjectsEntry
 };
 
 void startup();
+void init_r();
 void shutdown();
 void after_device_reset();
 

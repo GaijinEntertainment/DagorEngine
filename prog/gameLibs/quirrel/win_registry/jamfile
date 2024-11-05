@@ -1,0 +1,22 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/quirrel/win_registry ;
+StrictCompile = yes ;
+UseQuirrel = sq3r ;
+
+TargetType  = lib ;
+Target      = gameLibs/quirrel/win_registry.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+;
+
+#UseProgLibs =
+#  gameLibs/quirrel/quirrel_json
+#;
+
+Sources =
+  win_registry.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

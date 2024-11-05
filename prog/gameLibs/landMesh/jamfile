@@ -32,6 +32,7 @@ AddIncludes =
 
 UseProgLibs =
   gameLibs/heightmap
+  gameLibs/physMap
   3rdPartyLibs/eastl
 ;
 

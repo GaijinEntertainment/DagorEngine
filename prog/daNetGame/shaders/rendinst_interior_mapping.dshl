@@ -1,0 +1,28 @@
+include "rendinst_interior_mapping_inc.dshl"
+
+shader rendinst_interior_mapping
+{
+  INIT_RENDINST_INTERIOR_MAPPING()
+
+  static int shadow_caster = 1;
+  interval shadow_caster : no < 1, yes;
+
+  if ((shadow_caster == no && rendinst_render_pass == rendinst_render_pass_to_shadow)
+    || rendinst_render_pass == rendinst_render_pass_impostor_color
+    || rendinst_render_pass == rendinst_render_pass_impostor_shadow
+    || rendinst_render_pass == rendinst_render_pass_grassify
+    || rendinst_render_pass == rendinst_render_pass_to_heightmap)
+  {
+    dont_render;
+  }
+
+  hlsl{
+  ##if rendinst_render_pass != rendinst_render_pass_depth && rendinst_render_pass != rendinst_render_pass_to_shadow
+  #define RENDINST_FULL_VDECL 1
+  ##endif
+  #define VS_OUT_QUALIFIER PRECISE
+  #define handle_if_two_sided(gbuffer)
+  }
+
+  USE_RENDINST_INTERIOR_MAPPING(camera_base_offset)
+}

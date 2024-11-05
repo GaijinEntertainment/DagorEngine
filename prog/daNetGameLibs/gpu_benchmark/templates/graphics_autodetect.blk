@@ -1,0 +1,8 @@
+graphics_autodetect{
+  _tags:t="render"
+  _singleton:b=yes
+  "graphics_auto_detect:GraphicsAutodetectWrapper"{}
+  "graphics_auto_detect_tex:UniqueTex"{}
+  "graphics_auto_detect_depth:UniqueTex"{}
+  selfdestruct:b=false
+}

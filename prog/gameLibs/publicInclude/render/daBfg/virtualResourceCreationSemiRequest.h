@@ -1,10 +1,10 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
+#include <debug/dag_log.h>
 #include <render/daBfg/virtualResourceRequest.h>
 
 
@@ -18,7 +18,7 @@ namespace dabfg
  * should be used for further specification.
  * Never re-use objects of this type for several requests.
  */
-class VirtualResourceCreationSemiRequest
+class [[nodiscard]] VirtualResourceCreationSemiRequest
   /// \cond DETAIL
   : private detail::VirtualResourceRequestBase
 /// \endcond
@@ -31,11 +31,22 @@ class VirtualResourceCreationSemiRequest
 
 public:
   /**
-   * \brief Specifies the request to be a texture creation one.
+   * \brief Specifies the request to be a 2D texture creation one.
    *
-   * \param info The texture creation info.
+   * \param info The 2D texture creation info.
    */
   VirtualResourceRequest<BaseTexture, RRP::None> texture(const Texture2dCreateInfo &info) &&
+  {
+    Base::texture(info);
+    return {resUid, nodeId, registry};
+  }
+
+  /**
+   * \brief Specifies the request to be a 3D texture creation one.
+   *
+   * \param info The 3D texture creation info.
+   */
+  VirtualResourceRequest<BaseTexture, RRP::None> texture(const Texture3dCreateInfo &info) &&
   {
     Base::texture(info);
     return {resUid, nodeId, registry};
@@ -48,7 +59,7 @@ public:
    *
    * \param info The buffer creation info.
    */
-  VirtualResourceRequest<BaseTexture, RRP::None> buffer(const BufferCreateInfo &info) &&
+  VirtualResourceRequest<Sbuffer, RRP::None> buffer(const BufferCreateInfo &info) &&
   {
     Base::buffer(info);
     return {resUid, nodeId, registry};
@@ -61,13 +72,6 @@ public:
    * interface, see functions in namespace \inlinerst :cpp:type:`d3d::buffers` \endrst
    */
   ///@{
-
-  VirtualResourceRequest<Sbuffer, RRP::None> bufferCb(uint32_t register_count) &&
-  {
-    BufferCreateInfo ci{d3d::buffers::CBUFFER_REGISTER_SIZE, register_count, SBCF_CB_ONE_FRAME, 0};
-    Base::buffer(ci);
-    return {resUid, nodeId, registry};
-  }
 
   VirtualResourceRequest<Sbuffer, RRP::None> byteAddressBufferUaSr(uint32_t size_in_dwords) &&
   {
@@ -114,13 +118,6 @@ public:
     return {resUid, nodeId, registry};
   }
 
-  VirtualResourceRequest<Sbuffer, RRP::None> stagingBuffer(uint32_t size_in_bytes) &&
-  {
-    BufferCreateInfo ci{1, size_in_bytes, SBCF_STAGING_BUFFER, 0};
-    Base::buffer(ci);
-    return {resUid, nodeId, registry};
-  }
-
   ///@}
 
   /**
@@ -134,7 +131,45 @@ public:
     Base::blob(BlobDescription{tag_for<T>(), sizeof(T), alignof(T),
       // IMPORTANT: {} zero-initializes structs
       +[](void *ptr) { new (ptr) T{}; }, //
-      +[](void *ptr) { eastl::destroy_at<T>(reinterpret_cast<T *>(ptr)); }});
+      +[](void *ptr) { eastl::destroy_at<T>(reinterpret_cast<T *>(ptr)); },
+      +[](void *ptr, const void *from) {
+        if constexpr (eastl::is_copy_constructible<T>::value)
+        {
+          new (ptr) T(*reinterpret_cast<const T *>(from));
+        }
+        else
+        {
+          logerr("daBFG: blob type is NOT copy constructible, constructing NEW blob instead");
+          new (ptr) T{};
+        }
+      }});
+
+    return {resUid, nodeId, registry};
+  }
+
+  /**
+   * \brief Specifies the request to be a blob creation one.
+   *
+   * \tparam T The type of the CPU data blob
+   *
+   * \param defaultValue The default value to initialize the blob with.
+   */
+  template <class T>
+  VirtualResourceRequest<T, RRP::None> blob(const T defaultValue) &&
+  {
+    Base::blob(BlobDescription{tag_for<T>(), sizeof(T), alignof(T), [defaultValue](void *ptr) { new (ptr) T{defaultValue}; }, //
+      +[](void *ptr) { eastl::destroy_at<T>(reinterpret_cast<T *>(ptr)); },
+      +[](void *ptr, const void *from) {
+        if constexpr (eastl::is_copy_constructible<T>::value)
+        {
+          new (ptr) T(*reinterpret_cast<const T *>(from));
+        }
+        else
+        {
+          logerr("daBFG: blob type is NOT copy constructible, constructing NEW blob instead");
+          new (ptr) T{};
+        }
+      }});
 
     return {resUid, nodeId, registry};
   }

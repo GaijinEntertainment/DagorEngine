@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "riGen/riExtraPool.h"
@@ -26,6 +27,7 @@ struct RiGenExtraVisibility
   SmallTab<SmallTab<Order>> riexLarge[LARGE_LOD_CNT]; // temp array
   SmallTab<SmallTab<vec4f>> riexData[rendinst::RiExtraPool::MAX_LODS];
   SmallTab<float> minSqDistances[rendinst::RiExtraPool::MAX_LODS];
+  SmallTab<float> minAllowedSqDistances[rendinst::RiExtraPool::MAX_LODS];
   SmallTab<IPoint2> vbOffsets[rendinst::RiExtraPool::MAX_LODS]; // after copied to buffer
   SmallTab<unsigned short> riexPoolOrder;
 
@@ -40,7 +42,8 @@ struct RiGenExtraVisibility
     uint32_t lod : 4, instanceId : 28;
     uint16_t poolId, poolOrder;
     int vbOffset;
-    float dist2;
+    uint32_t partitionFlagDist2; // MSB is partitionFlag, the other 31 bits represent dist2. use it as float
   };
   SmallTab<PerInstanceElem> sortedTransparentElems;
+  uint32_t partitionedElemsCount = 0;
 };

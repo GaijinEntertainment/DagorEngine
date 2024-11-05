@@ -529,7 +529,7 @@ texture cloud_layers_non_empty;
 
 macro USE_REFINE_ALTITUDES(stage)
   (stage) {
-    cloud_layers_non_empty@smp = cloud_layers_non_empty hlsl { Texture2D<float> cloud_layers_non_empty@smp; }
+    cloud_layers_non_empty@tex = cloud_layers_non_empty hlsl { Texture2D<float> cloud_layers_non_empty@tex; }
     clouds_field_res@f2 = (clouds_field_res.y, 1./clouds_field_res.y, 0,0);
     clouds_layer_info@f3 = (clouds_start_altitude2, clouds_thickness2, skies_planet_radius, 0);
   }

@@ -1,0 +1,40 @@
+include "shader_global.dshl"
+include "viewVecVS.dshl"
+include "postfx_inc.dshl"
+
+float4 envi_probe_rotation = (1, 0, 0, 0);
+float envi_probe_mul = 1;
+texture envi_probe_source;
+
+shader custom_envi_probe_transform
+{
+  cull_mode = none;
+  z_test = false;
+  z_write = false;
+  no_ablend;
+
+  supports none;
+
+  USE_AND_INIT_VIEW_VEC_VS()
+  POSTFX_VS_VIEWVEC(0, viewvec)
+
+  (ps)
+  {
+    envi_probe_rotation@f4 = envi_probe_rotation;
+    envi_probe_mul@f1 = (envi_probe_mul);
+    envi_probe_source@smpCube = envi_probe_source;
+  }
+  hlsl(ps)
+  {
+    float4 transform_cubemap_ps(VsOutput input) : SV_Target
+    {
+      float2x2 matX = float2x2(envi_probe_rotation.x, envi_probe_rotation.y, -envi_probe_rotation.y, envi_probe_rotation.x);
+      float2x2 matY = float2x2(envi_probe_rotation.z, envi_probe_rotation.w, -envi_probe_rotation.w, envi_probe_rotation.z);
+      float3 viewvec = input.viewvec;
+      viewvec.zy = mul(viewvec.zy, matX);
+      viewvec.xz = mul(viewvec.xz, matY);
+      return texCUBE(envi_probe_source, viewvec) * envi_probe_mul;
+    }
+  }
+  compile("target_ps", "transform_cubemap_ps");
+}

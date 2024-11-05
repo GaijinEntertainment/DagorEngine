@@ -20,7 +20,7 @@ define_macro_if_not_defined tonemappedColorToDevice(code)
     #include <pixelPacking/ColorSpaceUtility.hlsl>
     float3 toDevice(float3 tonemapedColor, float3 linearColor, float3 balancedColor, float3 gradedColor )
     {
-      return accurateLinearToSRGB(tonemapedColor);
+      return ApplySRGBCurve(tonemapedColor);
       //if ACES1000
       //return linearToST2084(ACESOutputTransforms1000( gradedColor ));
     }
@@ -114,12 +114,12 @@ macro FULL_TONEMAP_COMPUTE()
 
   (cs) { lut_size@f2=(lut_size, 1.0/(lut_size-1),0,0); }
   hlsl(cs) {
-    RWTexture3D<float3>  lut : register(u0);
+    RWTexture3D<float4>  lut : register(u0);
 
     [numthreads(4, 4, 4)]
     void make_lut_cs(uint3 tId : SV_DispatchThreadID)
     {
-      lut[tId] = makeTonemap(lut_size.y*float3(tId));
+      lut[tId].rgba = float4(makeTonemap(lut_size.y*float3(tId)), 1.0);
     }
   }
   compile("target_cs", "make_lut_cs");

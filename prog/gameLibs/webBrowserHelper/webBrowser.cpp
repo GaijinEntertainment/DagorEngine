@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_log.h>
 #include <webbrowser/webbrowser.h>
 #include <webBrowserHelper/webBrowser.h>
@@ -201,6 +203,7 @@ TEXTUREID WebBrowserHelper::getTexture()
   return tex_buf->getActiveTextureId();
 }
 
+d3d::SamplerHandle WebBrowserHelper::getSampler() const { return tex_buf->getActiveSampler(); }
 
 void WebBrowserHelper::goBack()
 {

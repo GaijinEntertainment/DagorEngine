@@ -7,12 +7,11 @@
 
 namespace das {
 
-    class StringBuilderWriter : public StringWriter<VectorAllocationPolicy> {
+    uint64_t getCancelLimit();
+
+    class StringBuilderWriter : public TextWriter {
     public:
         StringBuilderWriter() { }
-        __forceinline char * c_str() const {
-            return (char *) data.data();
-        }
     };
 
     template <typename Writer>
@@ -23,7 +22,18 @@ namespace das {
         vector<loop_point> visited;
         vector<loop_point> visited_handles;
         DebugDataWalker() = delete;
-        DebugDataWalker ( Writer & sss, PrintFlags f ) : ss(sss), flags(f) {}
+        DebugDataWalker ( Writer & sss, PrintFlags f ) : ss(sss), flags(f), limit(getCancelLimit()) {}
+        uint64_t limit = 0;
+    // we cancel
+        __forceinline bool cancel() override {
+            if ( _cancel ) return true;
+            if ( limit==0 ) return false;
+            if ( ss.tellp()>limit ) {
+                _cancel = true;
+                return true;
+            }
+            return false;
+        }
     // data structures
         __forceinline void br() {
             if ( int(flags) & int(PrintFlags::namesAndDimensions) ) {
@@ -305,21 +315,35 @@ namespace das {
             }
         }
         virtual void Float ( float & f ) override {
-            if ( int(flags) & int(PrintFlags::fixedFloatingPoint) )
-                ss << FIXEDFP << f << SCIENTIFIC;
-            else
-                ss << f;
-            if ( int(flags) & int(PrintFlags::typeQualifiers) ) {
-                ss << "f";
+            bool typeQualifiers = int(flags) & int(PrintFlags::typeQualifiers);
+            if ( typeQualifiers && isnan(f) ) {
+                ss << "nan";
+            } else if ( typeQualifiers && isinf(f) ) {
+                ss << (f>0 ? "inf" : "-inf");
+            } else {
+                if ( int(flags) & int(PrintFlags::fixedFloatingPoint) )
+                    ss << FIXEDFP << f << SCIENTIFIC;
+                else
+                    ss << f;
+                if ( typeQualifiers ) {
+                    ss << "f";
+                }
             }
         }
         virtual void Double ( double & f ) override {
-            if ( int(flags) & int(PrintFlags::fixedFloatingPoint) )
-                ss << FIXEDFP << f << SCIENTIFIC;
-            else
-                ss << f;
-            if ( int(flags) & int(PrintFlags::typeQualifiers) ) {
-                ss << "lf";
+            bool typeQualifiers = int(flags) & int(PrintFlags::typeQualifiers);
+            if ( typeQualifiers && isnan(f) ) {
+                ss << "nan";
+            } else if ( typeQualifiers && isinf(f) ) {
+                ss << (f>0 ? "inf" : "-inf");
+            } else {
+                if ( int(flags) & int(PrintFlags::fixedFloatingPoint) )
+                    ss << FIXEDFP << f << SCIENTIFIC;
+                else
+                    ss << f;
+                if ( typeQualifiers ) {
+                    ss << "lf";
+                }
             }
         }
         virtual void Int ( int32_t & i ) override {
@@ -429,6 +453,15 @@ namespace das {
             ss << "enum " << value;
         }
         virtual void WalkEnumeration16 ( int16_t & value, EnumInfo * info ) override {
+            for ( uint32_t t=0, ts=info->count; t!=ts; ++t ) {
+                if ( value == info->fields[t]->value ) {
+                    ss << info->fields[t]->name;
+                    return;
+                }
+            }
+            ss << "enum " << value;
+        }
+        virtual void WalkEnumeration64 ( int64_t & value, EnumInfo * info ) override {
             for ( uint32_t t=0, ts=info->count; t!=ts; ++t ) {
                 if ( value == info->fields[t]->value ) {
                     ss << info->fields[t]->name;

@@ -1,7 +1,7 @@
 Root    ?= ../../../../.. ;
 BreakpadRoot = prog/3rdPartyLibs/breakpad ;
 Location = $(BreakpadRoot)/common/dwarf ;
-Platform ?= linux64 ;
+Platform ?= linux ;
 FullOOPEnabled = yes ; # for dynamic_cast
 
 TargetType  = lib ;
@@ -9,7 +9,7 @@ Target      = 3rdPartyLibs/breakpad/common/dwarf.lib ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
-if $(Platform) in linux64 macosx {
+if $(Platform) in linux macOS {
   AddIncludes += $(Root)/$(BreakpadRoot) ;
   Sources =
     bytereader.cc

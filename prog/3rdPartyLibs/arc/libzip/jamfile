@@ -129,7 +129,7 @@ Sources =
 ;
 
 
-if $(Platform) in win32 win64 xboxOne scarlett {
+if $(Platform) in windows xboxOne scarlett {
   Sources +=
     lib/zip_random_win32.c
     lib/zip_source_win32handle.c

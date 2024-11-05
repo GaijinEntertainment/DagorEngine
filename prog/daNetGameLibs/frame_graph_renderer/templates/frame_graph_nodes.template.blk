@@ -1,0 +1,44 @@
+debug_visualization_node {
+  _singleton:b=true
+  _group{
+      _tags:t="render"
+    "debug_visualization_node:dabfg::NodeHandle"{}
+  }
+}
+
+gbuffer_diffuse_override_debug_node {
+  _singleton:b=true
+  _group{
+      _tags:t="render"
+    "gbuffer_diffuse_override:dabfg::NodeHandle"{}
+
+    "debug_fill_gbuffer:PostFxRenderer"{}
+    debug_fill_gbuffer_name:t="debug_fill_gbuffer"
+    debug_fill_color:p4=0.5, 0.5, 0.5, 0.5
+  }
+}
+
+gbuffer_specular_override_debug_node {
+  _singleton:b=true
+  _group{
+      _tags:t="render"
+    "gbuffer_specular_override:dabfg::NodeHandle"{}
+
+    "debug_fill_gbuffer:PostFxRenderer"{}
+    debug_fill_gbuffer_name:t="debug_fill_gbuffer"
+    debug_fill_color:p4=0, 0, 0, 0
+  }
+}
+
+upscale_node {
+  _singleton:b=true
+  _tags:t="render"
+
+  "upscale_tex_gen_node:dabfg::NodeHandle"{}
+
+  "upscale_shader:PostFxRenderer"{}
+  upscale_shader_name:t="upscale_sampling"
+
+  "upscale_weights_buffer:UniqueBufHolder"{}
+
+}

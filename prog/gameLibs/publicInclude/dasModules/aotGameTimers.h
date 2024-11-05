@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -15,10 +14,10 @@ inline game::timer_handle_t game_timer_set(const das::Lambda &callback, float de
   das::LineInfoArg *line_info)
 {
   das::SimFunction **fnMnh = (das::SimFunction **)callback.capture;
-  if (EASTL_UNLIKELY(!fnMnh))
+  if (DAGOR_UNLIKELY(!fnMnh))
     context->throw_error_at(line_info, "invoke null lambda");
   das::SimFunction *simFunc = *fnMnh;
-  if (EASTL_UNLIKELY(!simFunc))
+  if (DAGOR_UNLIKELY(!simFunc))
     context->throw_error_at(line_info, "invoke null function");
   auto pCapture = callback.capture;
   ContextLockGuard lockg{*context};

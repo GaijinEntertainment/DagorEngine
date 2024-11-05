@@ -12,4 +12,4 @@ LOCALS
 [cr] NULL
 [c] NULL
 [vargv] ARRAY=[]
-[this] TABLE={}
+[this] NULL

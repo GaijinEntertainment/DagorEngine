@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <daRg/dag_behavior.h>
@@ -31,7 +32,7 @@ private:
   static void apply_new_value(Element *elem, const char *new_value);
   static void open_ime(Element *elem);
   static void close_ime(Element *elem);
-  static void on_ime_finish(void *ud, const char *str, int status);
+  static void on_ime_finish(void *ud, const char *str, int cursor, int status);
   static void position_cursor_on_click(Element *elem, const Point2 &click_pos);
   static int get_displayed_text_u(Element *elem, Tab<wchar_t> &wtext);
   static int text_width_to_char_idx_u(Element *elem, int width_px, Tab<wchar_t> &wtext);

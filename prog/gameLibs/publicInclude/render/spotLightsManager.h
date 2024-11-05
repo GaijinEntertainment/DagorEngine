@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -88,10 +87,12 @@ public:
     RenderSpotLight ret;
     ret.lightPosRadius = (const float4 &)l.pos_radius;
     ret.lightColorAngleScale = (const float4 &)l.color_atten;
-    ret.lightColorAngleScale.w = lightAngleScale * (l.contactShadows ? -1 : 1);
-    ret.lightDirectionAngleOffset = (const float4 &)l.dir_angle;
+    ret.lightColorAngleScale.w = lightAngleScale;
+    ret.lightDirectionAngleOffset = (const float4 &)l.dir_tanHalfAngle;
     ret.lightDirectionAngleOffset.w = lightAngleOffset;
-    ret.texId_scale = (const float4 &)l.texId_scale;
+    ret.texId_scale_shadow_contactshadow = (const float4 &)l.texId_scale;
+    ret.texId_scale_shadow_contactshadow.z = l.shadows ? 1 : 0;
+    ret.texId_scale_shadow_contactshadow.w = l.contactShadows ? 1 : 0;
     return ret;
   }
 
@@ -130,13 +131,13 @@ public:
   Point4 getLightPosRadius(unsigned int id) const { return rawLights[id].pos_radius; }
   void getLightView(unsigned int id, mat44f &viewITM);
   void getLightPersp(unsigned int id, mat44f &proj);
-  void setLightDirAngle(unsigned int id, const Point4 &dir_angle)
+  void setLightDirAngle(unsigned int id, const Point4 &dir_tanHalfAngle)
   {
-    rawLights[id].dir_angle = dir_angle;
+    rawLights[id].dir_tanHalfAngle = dir_tanHalfAngle;
     resetLightOptimization(id);
     updateBoundingSphere(id);
   }
-  const Point4 &getLightDirAngle(unsigned int id) const { return rawLights[id].dir_angle; }
+  const Point4 &getLightDirAngle(unsigned int id) const { return rawLights[id].dir_tanHalfAngle; }
   void setLightCol(unsigned int id, const Color3 &col)
   {
     rawLights[id].color_atten.r = col.r;
@@ -165,6 +166,7 @@ public:
     rawLights[id].culling_radius = radius;
     updateBoundingSphere(id);
   }
+  void setLightShadows(unsigned int id, bool shadows) { rawLights[id].shadows = shadows; }
 
   void removeEmpty();
   int maxIndex() const { return maxLightIndex; }

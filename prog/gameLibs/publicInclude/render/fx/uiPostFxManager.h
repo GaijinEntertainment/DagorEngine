@@ -1,11 +1,11 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <3d/dag_resId.h>
+#include <drv/3d/dag_resId.h>
+#include <drv/3d/dag_samplerHandle.h>
 
 class IPoint2;
 class IBBox2;
@@ -15,6 +15,9 @@ class UiPostFxManager
 public:
   static bool isBloomEnabled();
   static TEXTUREID getUiBlurTexId();
+  static TEXTUREID getUiBlurSdrTexId();
+  static d3d::SamplerHandle getUiBlurSampler();
+  static d3d::SamplerHandle getUiBlurSdrSampler();
 
   static bool isBlurRequested();
   static void resetBlurRequest();

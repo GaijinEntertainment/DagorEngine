@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <assets/daBuildInterface.h>
 #include "daBuild.h"
 #include <assets/assetExpCache.h>
@@ -54,12 +56,71 @@ static bool checkCacheChanged(AssetExportCache &c4, DagorAsset &a, IDagorAssetEx
 
   Tab<SimpleString> a_files(tmpmem);
   exp->gatherSrcDataFiles(a, a_files);
+  // A lot of assets add the asset itself to the list of src data files.
+  // checkFileChanged is quite slow and we checked this asset already above.
+  // Removing this asset from gather list is faster then calling checkFileChanged one extra time
+  if (a_files.size() > 0 && strcmp(a_files[0].c_str(), a.getTargetFilePath().c_str()) == 0)
+    a_files.erase(a_files.begin());
   int cnt = a_files.size();
   for (int j = 0; j < cnt; j++)
     if (c4.checkFileChanged(a_files[j]))
       curChanged = true;
 
   return curChanged;
+}
+
+static bool is_asset_in_pack(dag::ConstSpan<AssetPack *> pack, int package_id, const char *target_str, const char *profile,
+  const DagorAsset *asset)
+{
+  Tab<DagorAsset *> asset_list(tmpmem);
+  for (const AssetPack *assetPack : pack)
+  {
+    if (!assetPack->exported || assetPack->packageId != package_id)
+      continue;
+
+    asset_list.clear();
+    if (!get_exported_assets(asset_list, assetPack->assets, target_str, profile))
+      continue;
+
+    if (eastl::find(asset_list.begin(), asset_list.end(), asset) != asset_list.end())
+      return true;
+  }
+
+  return false;
+}
+
+String get_name_of_package_containing_asset(const DataBlock &app_blk, DagorAssetMgr &mgr, unsigned target_code, const char *profile,
+  ILogWriter &log, DagorAsset *asset)
+{
+  const DataBlock &expblk = *app_blk.getBlockByNameEx("assets")->getBlockByNameEx("export");
+  Tab<bool> expTypesMask(tmpmem);
+  make_exp_types_mask(expTypesMask, mgr, expblk, log);
+
+  Tab<AssetPack *> grpPack(tmpmem), texPack(tmpmem);
+  FastNameMapEx packages;
+  char targetStr[6];
+  strcpy(targetStr, mkbindump::get_target_str(target_code));
+  preparePacks(mgr, make_span_const<DagorAsset *>(&asset, 1), expTypesMask, expblk, texPack, grpPack, packages, log,
+    /*export_tex = */ true, /*export_res = */ true, targetStr, profile);
+
+  String packageName;
+  if (assethlp::validate_exp_blk(packages.nameCount() > 0, expblk, targetStr, profile, log))
+  {
+    for (int packageId = -1; packageId < packages.nameCount(); ++packageId)
+    {
+      if (is_asset_in_pack(texPack, packageId, targetStr, profile, asset) ||
+          is_asset_in_pack(grpPack, packageId, targetStr, profile, asset))
+      {
+        packageName = packageId >= 0 ? packages.getName(packageId) : "MAIN";
+        break;
+      }
+    }
+  }
+
+  clear_all_ptr_items(texPack);
+  clear_all_ptr_items(grpPack);
+
+  return packageName;
 }
 
 static QuietProgressIndicator null_pbar;
@@ -113,20 +174,12 @@ public:
     loadExporterPlugins();
 #endif
     // load DDSx export plugins
-#if _TARGET_PC_LINUX
-    const char *ddsxPluginsPathBase = "../bin-linux64/plugins/ddsx";
-#elif _TARGET_PC_MACOSX
-    const char *ddsxPluginsPathBase = "../bin-macosx/plugins/ddsx";
-#elif _TARGET_64BIT
-    const char *ddsxPluginsPathBase = "../bin64/plugins/ddsx";
-#else
-    const char *ddsxPluginsPathBase = "../bin/plugins/ddsx";
-#endif
+    const char *ddsxPluginsPathBase = "plugins/ddsx";
     ddsx::load_plugins(String(260, "%s/%s", startDir.str(), ddsxPluginsPath ? ddsxPluginsPath : ddsxPluginsPathBase));
 
     // init texture conversion cache
     texconvcache::init(m, appblk, startdir, dabuild_dry_run, reqFastConv);
-    debug_ctx("texconvcache::init for reqFastConv=%d", reqFastConv);
+    DEBUG_CTX("texconvcache::init for reqFastConv=%d", reqFastConv);
 
     return exp_cnt;
   }
@@ -263,6 +316,11 @@ public:
   virtual const char *__stdcall getPackNameFromFolder(int fld_idx, bool tex_or_res)
   {
     return mgr->getFolderPackName(fld_idx, tex_or_res, NULL);
+  }
+
+  virtual String __stdcall getPkgName(DagorAsset *asset) override
+  {
+    return get_name_of_package_containing_asset(appBlk, *mgr, /*target_code = */ _MAKE4C('PC'), /*profile = */ nullptr, *log, asset);
   }
 
   virtual bool __stdcall checkUpToDate(dag::ConstSpan<unsigned> tc, dag::Span<int> tc_flags,

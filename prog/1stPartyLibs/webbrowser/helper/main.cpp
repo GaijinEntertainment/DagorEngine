@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "cef/app.h"
 #include <cef_version.h>
 #include "endpoint.h"

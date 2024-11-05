@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hotkeys.h"
 #include "scriptUtil.h"
 #include "behaviorHelpers.h"
@@ -13,10 +15,10 @@
 #include <wctype.h>
 
 #include <startup/dag_inpDevClsDrv.h>
-#include <humanInput/dag_hiKeyboard.h>
-#include <humanInput/dag_hiXInputMappings.h>
-#include <humanInput/dag_hiJoystick.h>
-#include <humanInput/dag_hiPointing.h>
+#include <drv/hid/dag_hiKeyboard.h>
+#include <drv/hid/dag_hiXInputMappings.h>
+#include <drv/hid/dag_hiJoystick.h>
+#include <drv/hid/dag_hiPointing.h>
 
 #include <memory/dag_framemem.h>
 
@@ -155,12 +157,10 @@ void Hotkeys::collectJoystickButtonNames(FastStrMapT<EncodedKey> &name_map)
   ADD_BTN("J:Start", JOY_XINPUT_REAL_BTN_START);
   ADD_BTN("J:Back", JOY_XINPUT_REAL_BTN_BACK);
 
-  ADD_BTN("J:L.Thumb", JOY_XINPUT_REAL_BTN_L_THUMB_CENTER);
-  ADD_BTN("J:LS", JOY_XINPUT_REAL_BTN_L_THUMB_CENTER);
-  ADD_BTN("J:R.Thumb", JOY_XINPUT_REAL_BTN_R_THUMB_CENTER);
-  ADD_BTN("J:RS", JOY_XINPUT_REAL_BTN_R_THUMB_CENTER);
-  ADD_BTN("J:LS.Tilted", JOY_XINPUT_REAL_BTN_L_THUMB);
-  ADD_BTN("J:RS.Tilted", JOY_XINPUT_REAL_BTN_R_THUMB);
+  ADD_BTN("J:L.Thumb", JOY_XINPUT_REAL_BTN_L_THUMB);
+  ADD_BTN("J:LS", JOY_XINPUT_REAL_BTN_L_THUMB);
+  ADD_BTN("J:R.Thumb", JOY_XINPUT_REAL_BTN_R_THUMB);
+  ADD_BTN("J:RS", JOY_XINPUT_REAL_BTN_R_THUMB);
   ADD_BTN("J:L.Shoulder", JOY_XINPUT_REAL_BTN_L_SHOULDER);
   ADD_BTN("J:LB", JOY_XINPUT_REAL_BTN_L_SHOULDER);
   ADD_BTN("J:R.Shoulder", JOY_XINPUT_REAL_BTN_R_SHOULDER);
@@ -266,7 +266,7 @@ void Hotkeys::parseButtonsString(const char *str, Tab<Tab<HotkeyButton>> &out_bu
       if (eventStart)
       {
         if (!currentEvent.empty())
-          logerr_ctx("Invalid hotkey string '%s' - event %s must be separated", str, currentEvent.c_str());
+          LOGERR_CTX("Invalid hotkey string '%s' - event %s must be separated", str, currentEvent.c_str());
         else
           currentEvent.setStr(eventStart, p - eventStart);
         eventStart = nullptr;
@@ -279,7 +279,7 @@ void Hotkeys::parseButtonsString(const char *str, Tab<Tab<HotkeyButton>> &out_bu
         EncodedKey ek = btnNameMap.getStrId(tmp);
         if (ek < 0)
         {
-          logerr_ctx("Can't find hotkey button '%s'", tmp.str());
+          LOGERR_CTX("Can't find hotkey button '%s'", tmp.str());
           isCurSetValid = false;
           clear_and_shrink(currentButtons);
         }
@@ -342,12 +342,17 @@ void Hotkeys::parseButtonsString(const char *str, Tab<Tab<HotkeyButton>> &out_bu
 void Hotkeys::loadCombos(const StringKeys *csk, const Sqrat::Table &comp_desc, const Sqrat::Array &hotkeys_data,
   dag::Vector<eastl::unique_ptr<HotkeyCombo>> &out) const
 {
-  if (hotkeys_data.IsNull())
+  G_ASSERT(out.empty());
+
+  if (hotkeys_data.GetType() != OT_ARRAY)
     return;
 
   HSQUIRRELVM vm = hotkeys_data.GetVM();
 
   int len = hotkeys_data.Length();
+  G_ASSERT_RETURN(len >= 0, );
+  len = ::min(len, 64); // more than a reasonable limit
+
   out.reserve(len); // guess
 
   Tab<Tab<HotkeyButton>> buttonsTmp(framemem_ptr());
@@ -371,7 +376,7 @@ void Hotkeys::loadCombos(const StringKeys *csk, const Sqrat::Table &comp_desc, c
       SQInteger arrLen = arr.Length();
       if (arrLen < 1)
       {
-        logerr_ctx("Empty hotkey item array");
+        LOGERR_CTX("Empty hotkey item array");
         continue;
       }
       key = arr.RawGetSlot(SQInteger(0));
@@ -451,9 +456,9 @@ void Hotkeys::loadCombos(const StringKeys *csk, const Sqrat::Table &comp_desc, c
         combo->soundKey = soundKey;
         combo->ignoreConsumerCallback = ignoreConsumerCallback; //-V547 False positive: equivalent to the 'var = false'
 
-        // debug_ctx("@#@ loaded hotkey combo [%s] evt = %s:", buttonsString.value, combo->eventName.c_str());
+        // DEBUG_CTX("@#@ loaded hotkey combo [%s] evt = %s:", buttonsString.value, combo->eventName.c_str());
         // for (int i=0; i<combo->buttons.size(); ++i)
-        //   debug_ctx("* %d:%d", combo->buttons[i].devId, combo->buttons[i].btnId);
+        //   DEBUG_CTX("* %d:%d", combo->buttons[i].devId, combo->buttons[i].btnId);
 
         out.emplace_back(combo);
       }
@@ -469,7 +474,7 @@ void Hotkeys::loadCombos(const StringKeys *csk, const Sqrat::Table &comp_desc, c
         combo->soundKey = soundKey;
         combo->ignoreConsumerCallback = ignoreConsumerCallback; //-V547 False positive: equivalent to the 'var = false'
 
-        // debug_ctx("@#@ loaded hotkey combo [%s] evt = %s:", buttonsString.value, combo->eventName.c_str());
+        // DEBUG_CTX("@#@ loaded hotkey combo [%s] evt = %s:", buttonsString.value, combo->eventName.c_str());
 
         out.emplace_back(combo);
       }

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EASTL/fixed_vector.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <ioSys/dag_dataBlock.h>

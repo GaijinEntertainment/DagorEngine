@@ -1,9 +1,7 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef _GAIJIN_DRV_HID_GAMEPAD_STEAM_GAMEPAD_CLASSDRV_H
-#define _GAIJIN_DRV_HID_GAMEPAD_STEAM_GAMEPAD_CLASSDRV_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <humanInput/dag_hiJoystick.h>
+#include <drv/hid/dag_hiJoystick.h>
 #include <perfMon/dag_cpuFreq.h>
 
 namespace HumanInput
@@ -76,5 +74,3 @@ protected:
   static const char *gamepadName[GAMEPAD_MAX];
 };
 } // namespace HumanInput
-
-#endif

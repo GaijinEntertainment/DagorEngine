@@ -1,16 +1,19 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include "driver.h"
+#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
+
 #include "device_memory.h"
 #include "util/backtrace.h"
+#include "logic_address.h"
 
 namespace drv3d_vulkan
 {
 
 struct ResourceMemory;
 class Resource;
-struct ContextBackend;
 class ExecutionContext;
+class MemoryHeapResource;
 
 enum class ResourceType
 {
@@ -18,6 +21,7 @@ enum class ResourceType
   IMAGE,
   RENDER_PASS,
   SAMPLER,
+  HEAP,
 #if D3D_HAS_RAY_TRACING
   AS,
 #endif
@@ -231,6 +235,8 @@ class Resource
 
 protected:
   void setHandle(VulkanHandle new_handle);
+  void reportToTQL(bool is_allocating);
+  void setMemoryId(ResourceMemoryId ext_mem_id) { memoryId = ext_mem_id; }
 
 public:
   Resource(const Resource &) = delete;
@@ -265,18 +271,18 @@ public:
 #endif
   bool tryAllocMemory(const AllocationDesc &dsc);
   bool tryReuseHandle(const AllocationDesc &dsc);
-  void markForEviction();
+  void markForEviction() { evicting = true; }
   void freeMemory();
-  ResourceMemoryId getMemoryId() { return memoryId; }
+  ResourceMemoryId getMemoryId() const { return memoryId; }
   // this call is thread unsafe, resource manager / res algo should be in calling stack
   const ResourceMemory &getMemory() const;
 
   String printStatLog();
-  VulkanHandle getBaseHandle() const;
-  bool isResident();
-  bool isManaged();
-  bool isHandleShared() { return sharedHandle; }
-  bool isEvicting() { return evicting; }
+  VulkanHandle getBaseHandle() const { return handle; }
+  bool isResident() const { return resident || !managed; }
+  bool isManaged() const { return managed; }
+  bool isHandleShared() const { return sharedHandle; }
+  bool isEvicting() const { return evicting; }
 #if DAGOR_DBGLEVEL > 0
   void setUsedInRendering() { usedInRendering = true; }
   void clearUsedInRendering() { usedInRendering = false; }
@@ -292,7 +298,7 @@ public:
   {
     if (markedDead)
     {
-      logerr("vulkan: using dead resource %s-%p:%s", resTypeString(), this, getDebugName());
+      D3D_ERROR("vulkan: using dead resource %s-%p:%s", resTypeString(), this, getDebugName());
       return true;
     }
     return false;
@@ -307,6 +313,8 @@ public:
   bool isBuffer() const { return tid == ResourceType::BUFFER; }
   bool isImage() const { return tid == ResourceType::IMAGE; }
   bool isRenderPass() const { return tid == ResourceType::RENDER_PASS; }
+  bool isSampler() const { return tid == ResourceType::SAMPLER; }
+  bool isHeap() const { return tid == ResourceType::HEAP; }
 #if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
   bool isAccelerationStruct() const { return tid == ResourceType::AS; }
 #endif
@@ -314,6 +322,41 @@ public:
   void reportOutOfMemory();
 
   static const char *resTypeString(ResourceType type_id);
+};
+
+struct ResourcePlaceableExtend
+{
+#if DAGOR_DBGLEVEL > 0
+  MemoryHeapResource *heap = nullptr;
+  void setHeap(MemoryHeapResource *in_heap);
+  void releaseHeap();
+  // workaround for global state cleanup issues
+  void releaseHeapEarly(const char *res_name)
+  {
+    debug("vulkan: early release for state referenced resource %s placed in heap %p", res_name, heap);
+    releaseHeap();
+  };
+#else
+  void releaseHeapEarly(const char *) {}
+  void setHeap(MemoryHeapResource *){};
+  void releaseHeap() {}
+#endif
+};
+
+struct ResourceBindlessExtend
+{
+  void addBindlessSlot(uint32_t slot) { bindlessSlots.push_back(slot); }
+
+  void removeBindlessSlot(uint32_t slot)
+  {
+    bindlessSlots.erase(eastl::remove_if(begin(bindlessSlots), end(bindlessSlots), [slot](uint32_t r_slot) { return r_slot == slot; }),
+      end(bindlessSlots));
+  }
+
+  bool isUsedInBindless() { return bindlessSlots.size() > 0; }
+
+protected:
+  eastl::vector<uint32_t> bindlessSlots;
 };
 
 class ResourceExecutionSyncableExtend
@@ -327,6 +370,7 @@ class ResourceExecutionSyncableExtend
     bool requested : 1;
     bool active : 1;
     size_t gpuWorkId;
+    LogicAddress reads;
 #if EXECUTION_SYNC_TRACK_CALLER > 0
     uint64_t requestCaller;
     uint64_t activateCaller;
@@ -334,14 +378,13 @@ class ResourceExecutionSyncableExtend
   } roSeal;
 
 public:
-  ResourceExecutionSyncableExtend() : roSeal
-  {
-    false, false, 0
+  ResourceExecutionSyncableExtend() :
+    roSeal{false, false, 0, {VK_PIPELINE_STAGE_NONE, VK_ACCESS_NONE}
 #if EXECUTION_SYNC_TRACK_CALLER > 0
       ,
       0, 0
 #endif
-  }
+    }
   {}
   ~ResourceExecutionSyncableExtend() {}
 
@@ -363,24 +406,6 @@ public:
     lastSyncOp = e;
   }
 
-  void requestRoSeal(size_t gpu_work_id)
-  {
-    roSeal.requested = true;
-    roSeal.gpuWorkId = gpu_work_id;
-#if EXECUTION_SYNC_TRACK_CALLER > 0
-    roSeal.requestCaller = backtrace::get_hash();
-#endif
-  }
-
-  void activateRoSeal()
-  {
-    roSeal.requested = false;
-    roSeal.active = true;
-#if EXECUTION_SYNC_TRACK_CALLER > 0
-    roSeal.activateCaller = backtrace::get_hash();
-#endif
-  }
-
 #if EXECUTION_SYNC_TRACK_CALLER > 0
   String getCallers()
   {
@@ -393,14 +418,10 @@ public:
 
   bool hasRoSeal() { return roSeal.active; }
   bool requestedRoSeal(size_t gpu_work_id) { return roSeal.requested && roSeal.gpuWorkId == gpu_work_id; }
-  bool tryRemoveRoSeal(size_t gpu_work_id)
+  bool removeRoSealSilently(size_t gpu_work_id)
   {
-    if (roSeal.gpuWorkId != gpu_work_id)
-    {
-      roSeal.active = false;
-      return true;
-    }
-    return false;
+    roSeal.active = false;
+    return roSeal.gpuWorkId != gpu_work_id;
   }
 
   // opportunistic ro seal set, will fail if someone already writed to object or writes to it later on
@@ -409,9 +430,22 @@ public:
     if (lastSyncOp == invalid_sync_op)
     {
       roSeal.gpuWorkId = gpu_work_id;
-      activateRoSeal();
+      roSeal.reads = {VK_PIPELINE_STAGE_NONE, VK_ACCESS_NONE};
+      roSeal.requested = false;
+      roSeal.active = true;
+#if EXECUTION_SYNC_TRACK_CALLER > 0
+      roSeal.activateCaller = backtrace::get_hash();
+#endif
     }
   }
+
+  void updateRoSeal(uint32_t gpu_work_id, LogicAddress laddr)
+  {
+    roSeal.gpuWorkId = gpu_work_id;
+    roSeal.reads.merge(laddr);
+  }
+
+  LogicAddress getRoSealReads() { return roSeal.reads; }
 };
 
 // template for resource implementation

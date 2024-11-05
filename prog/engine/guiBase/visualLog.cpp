@@ -1,7 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gui/dag_visualLog.h>
 #include <generic/dag_tab.h>
 #include <gui/dag_stdGuiRender.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <util/dag_delayedAction.h>

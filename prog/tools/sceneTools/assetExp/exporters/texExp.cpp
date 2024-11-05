@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <assets/daBuildExpPluginChain.h>
 #include <util/dag_string.h>
 #include <assets/assetPlugin.h>
@@ -58,6 +60,7 @@ static DataBlock appBlkCopy;
 static DataBlock blkAssetsBuildTex;
 static bool texRtMipGenAllowed = true;
 static bool preferZstdPacking = false, allowOodlePacking = false;
+static bool pcAllowsASTC = false, pcAllowsASTC_to_ARGB = false;
 static int(__stdcall *write_built_dds_final)(IGenSave &, DagorAsset &, unsigned, const char *, ILogWriter *) = NULL;
 static DataBlock *buildResultsBlk = NULL;
 
@@ -237,7 +240,7 @@ static TexImage32 *create_ies_image(DagorAsset &a, ILogWriter &log, const IesRea
     for (int j = 0; j < img.width; ++j)
     {
       IesReader::Real intensity = img.data[i * img.width + j];
-      // LinearToSRGB_Fast
+      // ApplySRGBCurve_Fast
       intensity = intensity < 0.0031308 ? 12.92 * intensity : 1.13005 * sqrt(intensity - 0.00228) - 0.13448 * intensity + 0.005719;
       uint8_t value = uint8_t(intensity * eastl::numeric_limits<uint8_t>::max() + 0.5);
       TexPixel32 texel;
@@ -801,7 +804,7 @@ public:
       comprOptions.setQuality(nvtt::Quality_Highest);
 
     unsigned tc_format = 0;
-    if (cwr.getTarget() == _MAKE4C('iOS') || cwr.getTarget() == _MAKE4C('and'))
+    if (cwr.getTarget() == _MAKE4C('iOS') || cwr.getTarget() == _MAKE4C('and') || (cwr.getTarget() == _MAKE4C('PC') && pcAllowsASTC))
     {
       const char *suf = "";
       if (stricmp(fmt, "ASTC") == 0)
@@ -998,6 +1001,15 @@ public:
     else if (strcmp(pow2mode, "next") == 0)
       inpOptions.setRoundMode(nvtt::RoundMode_ToNextPowerOfTwo);
 
+    if (tc_format && (!is_pow_of2(eff_img_w) || !is_pow_of2(eff_img_h)) && strcmp(pow2mode, "none") == 0 &&
+        (cwr.getTarget() == _MAKE4C('PC') && pcAllowsASTC_to_ARGB))
+    {
+      fmt = "ARGB";
+      comprOptions.setFormat(nvtt::Format_RGBA);
+      tc_format = 0;
+      auto_alpha_fmt = AAF_off;
+    }
+
     if (GET_PROP(Bool, "bcFmtExpandImageTransp", false))
       if (strstr(fmt, "DXT") || strstr(fmt, "BC") || strstr(fmt, "ATI"))
       {
@@ -1180,7 +1192,7 @@ public:
           break;
 
         default:
-          log.addMessage(log.WARNING, "%s: unexpected auto_alpha_fmt=%d, fallback to DXT5", a.getName());
+          log.addMessage(log.WARNING, "%s: unexpected auto_alpha_fmt=%d, fallback to DXT5", a.getName(), auto_alpha_fmt);
           comprOptions.setFormat(nvtt::Format_DXT5);
           return false;
       }
@@ -1424,6 +1436,51 @@ public:
 
         if (!processMips(image.ptr(), aim.imageMips, *b, original_swizzle, a, log))
           return false;
+      }
+
+      if (const DataBlock *b = a.props.getBlockByName("mipFade"))
+      {
+        Point4 mipFadeColor = b->getPoint4("mipFadeColor", Point4(-1, -1, -1, -1)) * 255;
+        E3DCOLOR mipFadeStart = b->getE3dcolor("mipFadeStart", E3DCOLOR(0, 0, 0, 0));
+        E3DCOLOR mipFadeEnd = b->getE3dcolor("mipFadeEnd", E3DCOLOR(0, 0, 0, 0));
+
+        Point4 mipStepValue =
+          Point4((safeinv(float(mipFadeEnd.r) - float(mipFadeStart.r))), (safeinv(float(mipFadeEnd.g) - float(mipFadeStart.g))),
+            safeinv((float(mipFadeEnd.b) - float(mipFadeStart.b))), (safeinv(float(mipFadeEnd.a) - float(mipFadeStart.a))));
+        Point4 mipWeightValue = Point4(0.0f, 0.0f, 0.0f, 0.0f);
+        if (stricmp(swizzle, "ARGB") != 0)
+        {
+          recodeRGBA32((unsigned *)image->pixels(), image->width() * image->height(), rs, gs, bs, as, andm, orm);
+          for (int i = 0; i < aim.imageMips.size(); i++)
+            recodeRGBA32((unsigned *)aim.imageMips[i]->pixels(), aim.imageMips[i]->width() * aim.imageMips[i]->height(), rs, gs, bs,
+              as, andm, orm);
+          swizzle = "ARGB";
+        }
+        for (int i = 0; i < aim.imageMips.size(); i++)
+        {
+          if (i > mipFadeStart.r && i <= mipFadeEnd.r)
+            mipWeightValue.x += mipStepValue.x;
+          else if ((i == mipFadeStart.r) && (mipFadeEnd.r == mipFadeStart.r))
+            mipWeightValue.x = 1.0;
+
+          if (i > mipFadeStart.g && i <= mipFadeEnd.g)
+            mipWeightValue.y += mipStepValue.y;
+          else if ((i == mipFadeStart.g) && (mipFadeEnd.g == mipFadeStart.g))
+            mipWeightValue.y = 1.0;
+
+          if (i > mipFadeStart.b && i <= mipFadeEnd.b)
+            mipWeightValue.z += mipStepValue.z;
+          else if ((i == mipFadeStart.b) && (mipFadeEnd.b == mipFadeStart.b))
+            mipWeightValue.z = 1.0;
+
+          if (i > mipFadeStart.a && i <= mipFadeEnd.a)
+            mipWeightValue.w += mipStepValue.w;
+          else if ((i == mipFadeStart.a) && (mipFadeEnd.a == mipFadeStart.a))
+            mipWeightValue.w = 1.0;
+
+          int size = aim.imageMips[i]->width() * aim.imageMips[i]->height();
+          mip_fade_image((TexPixel32 *)aim.imageMips[i]->pixels(), size, mipWeightValue, mipFadeColor);
+        }
       }
 
 #define CALC_ALPHA_COVERAGE()                                    \
@@ -2826,6 +2883,21 @@ public:
     }
   }
 
+  static void mip_fade_image(TexPixel32 *img, int size, Point4 fadeFactor, Point4 mipFadeColor)
+  {
+    for (TexPixel32 *de = img + size; img < de; img++)
+    {
+      if (mipFadeColor.x > 0)
+        img->r = int(lerp(float(img->r), mipFadeColor.x, fadeFactor.x));
+      if (mipFadeColor.y > 0)
+        img->g = int(lerp(float(img->g), mipFadeColor.y, fadeFactor.y));
+      if (mipFadeColor.z > 0)
+        img->b = int(lerp(float(img->b), mipFadeColor.z, fadeFactor.z));
+      if (mipFadeColor.w > 0)
+        img->a = int(lerp(float(img->a), mipFadeColor.w, fadeFactor.w));
+    }
+  }
+
   static bool resolve_base_image_fname(DagorAsset &a, const char *bimg_nm, String &bfn, const char *tag, ILogWriter &log)
   {
     String bimg_nm_stor;
@@ -3375,7 +3447,6 @@ public:
       {32, 0x00000000, 0xff0000, 0xff00, 0xff, D3DFMT_X8B8G8R8, DDPF_RGB},
       {16, 0x00000000, 0x0000ff, 0xff00, 0x00, D3DFMT_V8U8, DDPF_BUMPDUDV},
       {16, 0x0000ff00, 0x0000ff, 0x0000, 0x00, D3DFMT_A8L8, DDPF_LUMINANCE | DDPF_ALPHA},
-      {32, 0x00000000, 0xFFFF, 0xFFFF0000, 0, D3DFMT_V16U16, DDPF_BUMPDUDV},
       {16, 0x00000000, 0xFFFF, 0x00000000, 0, D3DFMT_L16, DDPF_LUMINANCE},
     };
     static const int dxgi_format_bc4_unorm = 80; // DXGI_FORMAT_BC4_UNORM
@@ -3508,6 +3579,19 @@ public:
     {
       allowOodlePacking = true;
       debug("texExp allows OODLE");
+    }
+    if (auto *b = appBlkCopy.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("tex")->getBlockByName("PC"))
+    {
+      if (b->getBool("allowASTC", false))
+      {
+        pcAllowsASTC = true;
+        debug("texExp allows ASTC for PC");
+      }
+      if (b->getBool("allowASTC_fallback_to_ARGB_non_pow_2", false))
+      {
+        pcAllowsASTC_to_ARGB = true;
+        debug("texExp allows fallback from ASTC to ARGB for non-pow-2 tex for PC");
+      }
     }
 
     ASTCEncoderHelperContext::setupAstcEncExePathname();

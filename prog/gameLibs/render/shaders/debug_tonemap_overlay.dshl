@@ -61,7 +61,7 @@ shader debug_tonemap_overlay
     float4 draw_tonemap(VsOutput input) : SV_Target
     {
       float3 sourceColor = tonemap_debug_color.rgb * input.texcoord.x;
-      float3 mappedColor = accurateSRGBToLinear(performLUTTonemap(sourceColor));
+      float3 mappedColor = RemoveSRGBCurve(performLUTTonemap(sourceColor));
       float distance = sqrt(length(mappedColor - tonemap_debug_color.rgb * input.texcoord.y));
       float resultIntensity = 1 - distance;
       float3 diff = abs(mappedColor - sourceColor);

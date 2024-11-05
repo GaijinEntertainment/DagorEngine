@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gamePhys/props/physMatDamageModelProps.h>
 
 #include <propsRegistry/commonPropsRegistry.h>

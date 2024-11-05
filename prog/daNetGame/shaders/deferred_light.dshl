@@ -1,0 +1,79 @@
+include "deferred_light_common.dshl"
+
+int depth_bounds_support = 0;
+interval depth_bounds_support: no<1, yes;
+
+shader deferredLight
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;//not needed
+  }
+  supports global_frame;
+  z_write = false;
+  z_test = false;
+  //fixme: in case of (depth_bounds_support == no_bounds)
+  //z_test = false should be true ONLY for cascade other than [0, something]
+  cull_mode = none;
+
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+  USE_DECODE_DEPTH()
+
+  INIT_READ_GBUFFER()
+  USE_READ_GBUFFER()
+
+  USE_AND_INIT_VIEW_VEC(vs)
+
+  INIT_AND_USE_DEFERRED_LIGHT_COMMON(ps)
+
+  POSTFX_VS_TEXCOORD_VIEWVEC(1, texcoord, viewVect)
+
+  (ps) {
+    frame@f1 = (shadow_frame, 0, 0, 0);
+    perlin_noise3d@smp3d = perlin_noise3d;
+    current_time@f1 = (time_phase(0, 0));
+  }
+
+  hlsl(ps) {
+    struct MRT_OUTPUT
+    {
+      float3 specular:SV_Target0;
+##if gi_quality != off
+      float3 ambient:SV_Target1;
+##endif
+    };
+
+    MRT_OUTPUT deferred_light_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      MRT_OUTPUT ret;
+
+      float rawDepth = readGbufferDepth(input.texcoord.xy);
+
+##if depth_bounds_support == no
+      BRANCH
+      if (rawDepth <= 0 || rawDepth >= 1)
+        return (MRT_OUTPUT)0;
+##endif
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+      ProcessedGbuffer gbuffer = readProcessedGbuffer(input.texcoord.xy);
+      float3 viewVect = input.viewVect;
+      float3 pointToEye = -viewVect * w;
+      float3 pointToEyeOfs = pointToEye;
+      float3 worldPos = world_view_pos.xyz - pointToEyeOfs;
+
+      float3 computedSpecular, computedAmbient;
+      ComputeDeferredLight(gbuffer, worldPos, rawDepth, input.texcoord.xy, screenpos.xy, pointToEye, computedSpecular, computedAmbient);
+
+      ret.specular = computedSpecular;
+##if gi_quality != off
+      ret.ambient = computedAmbient;
+##endif
+      return ret;
+    }
+  }
+
+  compile("target_ps", "deferred_light_ps");
+}
+

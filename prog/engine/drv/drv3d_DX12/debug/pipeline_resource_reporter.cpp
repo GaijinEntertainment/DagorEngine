@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "device.h"
 
 using namespace drv3d_dx12;
@@ -12,7 +14,7 @@ void report_resources_impl(const PipelineStageStateBase &state, uint32_t b_reg_m
     auto gpuPointer = state.bRegisters[i].BufferLocation;
     if (gpuPointer)
     {
-      auto &bufferResource = state.bRegisterBuffers[i];
+      auto &bufferResource = state.bRegisterBuffers[i].buffer;
       logdbg("DX12: ...B register slot %u with %p / %u @ %u...", i, gpuPointer, bufferResource.buffer, bufferResource.resourceId,
         gpuPointer - bufferResource.buffer->GetGPUVirtualAddress());
     }

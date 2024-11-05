@@ -28,7 +28,7 @@ function isValueTextValid(comp_type, text) {
     return simpleTypeFunc(text)
 
   let nFields = {Point2=2, Point3=3, DPoint3=3, Point4=4, TMatrix=3}.map(@(v) [v, isStrFloat]).__update(
-        {IPoint2=2, IPoint3=3, E3DCOLOR=4}
+        {IPoint2=2, IPoint3=3, IPoint4=4, E3DCOLOR=4}
         .map(@(v) [v, isStrInt])
       )?[comp_type]
 
@@ -63,6 +63,7 @@ let dagorMathClassFields = {
   Point4 = ["x", "y", "z", "w"],
   IPoint2 = ["x", "y"],
   IPoint3 = ["x", "y", "z"]
+  IPoint4 = ["x", "y", "z", "w"]
 }
 
 
@@ -98,7 +99,7 @@ function convertTextToVal(cur_value, comp_type, text) {
   if (floatDagorMathTypes.indexof(comp_type) != null)
     return convertTextToValForDagorClass(comp_type, fields.map(pipe(strip, tofloat)))
 
-  let intDagorMathTypes = ["IPoint2", "IPoint3"]
+  let intDagorMathTypes = ["IPoint2", "IPoint3", "IPoint4"]
   if (intDagorMathTypes.indexof(comp_type) != null)
     return convertTextToValForDagorClass(comp_type, fields.map(pipe(strip, tointeger)))
 
@@ -136,6 +137,7 @@ let map_class_to_str = {
   [dagorMath.Point4] = @(v) format("%.4f, %.4f, %.4f, %.4f", v.x, v.y, v.z, v.w),
   [dagorMath.IPoint2] = @(v) format("%d, %d", v.x, v.y),
   [dagorMath.IPoint3] = @(v) format("%d, %d, %d", v.x, v.y, v.z),
+  [dagorMath.IPoint4] = @(v) format("%d, %d, %d, %d", v.x, v.y, v.z, v.w),
   [dagorMath.E3DCOLOR] = @(v) format("%d, %d, %d, %d", v.r, v.g, v.b, v.a),
   [dagorMath.TMatrix] = function(v){
     let pos = v[3]
@@ -260,6 +262,7 @@ let exports = {
     [TYPE_POINT4] = "Point4",
     [TYPE_IPOINT2] = "IPoint2",
     [TYPE_IPOINT3] = "IPoint3",
+    [TYPE_IPOINT4] = "IPoint4",
     [TYPE_BOOL] = "bool",
     [TYPE_COLOR] = "E3DCOLOR",
     [TYPE_MATRIX] = "TMatrix",

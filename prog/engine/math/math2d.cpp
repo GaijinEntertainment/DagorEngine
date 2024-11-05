@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_math2d.h>
 
 VECTORCALL bool isect_line_box(Point2 p0, Point2 dir, const BBox2 &box, real &min_t, real &max_t)
@@ -259,6 +261,26 @@ VECTORCALL real distance_point_to_line_segment(Point2 pt, Point2 p1, Point2 p2)
     return length(pt - p2);
 
   return rabs(dp * Point2(dir.y, -dir.x)) / sqrtf(len2);
+}
+
+VECTORCALL real distance_point_to_line_segment_square(Point2 pt, Point2 p1, Point2 p2)
+{
+  Point2 dp = pt - p1;
+  Point2 dir = p2 - p1;
+  real len2 = lengthSq(dir);
+
+  if (len2 == 0)
+    return lengthSq(dp);
+
+  real t = (dp * dir) / len2;
+
+  if (t <= 0)
+    return lengthSq(dp);
+  if (t >= 1)
+    return lengthSq(pt - p2);
+
+  float mult = dp * Point2(dir.y, -dir.x);
+  return mult * mult / len2;
 }
 
 //==============================================================================

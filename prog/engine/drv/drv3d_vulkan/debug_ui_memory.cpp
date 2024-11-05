@@ -1,11 +1,19 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #if DAGOR_DBGLEVEL > 0
 #include "debug_ui.h"
 #include <gui/dag_imgui.h>
 #include <imgui.h>
 #include <implot.h>
-#include "device.h"
 #include <dag/dag_vector.h>
 #include <util/dag_string.h>
+#include "globals.h"
+#include "device_memory.h"
+#include "resource_manager.h"
+#include "render_work.h"
+#include "timelines.h"
+#include "temp_buffers.h"
+#include "device_context.h"
 
 using namespace drv3d_vulkan;
 
@@ -22,15 +30,21 @@ UiPlotScrollBuffer<USAGE_HISTORY_LEN, ImU64> budgetPlot;
 UiPlotScrollBuffer<USAGE_HISTORY_LEN, ImU64> imgUploadPlot;
 UiPlotScrollBuffer<USAGE_HISTORY_LEN, ImU64> bufUploadPlot;
 
+UiPlotScrollBuffer<USAGE_HISTORY_LEN, ImU64> frameMemAllocPlot;
+UiPlotScrollBuffer<USAGE_HISTORY_LEN, ImU64> frameMemUsagePlot;
+
+UiPlotScrollBuffer<USAGE_HISTORY_LEN, ImU64> totalVkAllocsPlot;
+
 uint64_t trackingFrameIdx = 0;
 bool data_initialized = false;
 
+UiPlotScrollBuffer<USAGE_HISTORY_LEN, ImU64> tempBufferAllocPlot;
+
 } // anonymous namespace
 
-#define DEV_MEM()                          \
-  Device &drvDev = get_device();           \
-  GuardedObjectAutoLock lk(drvDev.memory); \
-  DeviceMemoryPool &devMem = drvDev.memory.get();
+#define DEV_MEM()                      \
+  WinAutoLock lk(Globals::Mem::mutex); \
+  DeviceMemoryPool &devMem = Globals::Mem::pool;
 
 void initData()
 {
@@ -45,7 +59,7 @@ void initData()
     memCfg = "host shared auto";
 #endif
 
-  const PhysicalDeviceSet &devInfo = drvDev.getDeviceProperties();
+  const PhysicalDeviceSet &devInfo = Globals::VK::phy;
 #if VK_EXT_memory_budget
   if (devInfo.memoryBudgetInfoAvailable)
     memBudgeting = "budget aware";
@@ -74,9 +88,9 @@ void initData()
 
 void setPlotLimitsVarY(uint64_t default_max)
 {
-  ImPlot::SetNextPlotLimitsX(trackingFrameIdx < USAGE_HISTORY_LEN ? 0 : trackingFrameIdx - USAGE_HISTORY_LEN, trackingFrameIdx,
-    ImGuiCond_Always);
-  ImPlot::SetNextPlotLimitsY(0, default_max, ImGuiCond_Once);
+  ImPlot::SetNextAxisLimits(ImAxis_X1, trackingFrameIdx < USAGE_HISTORY_LEN ? 0 : trackingFrameIdx - USAGE_HISTORY_LEN,
+    trackingFrameIdx, ImGuiCond_Always);
+  ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, default_max, ImGuiCond_Once);
 }
 
 void setPlotLimits() { setPlotLimitsVarY(maxHeapLimitMb); }
@@ -103,21 +117,19 @@ void drawUsage()
   {
     for (int i = 0; i < heapUsagePlots.size(); ++i)
       ImPlot::PlotLine(String(32, "Heap %u", i), &heapUsagePlots[i].xData[0], &heapUsagePlots[i].yData[0],
-        heapUsagePlots[i].xData.size(), heapUsagePlots[i].offset);
+        heapUsagePlots[i].xData.size(), ImPlotLineFlags_None, heapUsagePlots[i].offset);
     ImPlot::EndPlot();
   }
   ImGui::Checkbox("Clean memory every work item", &RenderWork::cleanUpMemoryEveryWorkItem);
   if (ImGui::Button("Trigger soft OOM signal"))
   {
-    drvDev.resources.triggerOutOfMemorySignal();
+    Globals::Mem::res.triggerOutOfMemorySignal();
   }
 }
 
 void drawBudget()
 {
-  Device &drvDev = get_device();
-
-  uint32_t freeDeviceLocalMemoryKb = drvDev.getCurrentAvailableMemoryKb();
+  uint32_t freeDeviceLocalMemoryKb = Globals::Mem::pool.getCurrentAvailableDeviceKb();
   if (!freeDeviceLocalMemoryKb)
   {
     ImGui::Text("Budget is not available");
@@ -129,7 +141,8 @@ void drawBudget()
   setPlotLimits();
   if (ImPlot::BeginPlot("##GPU memory budget", nullptr, "Free memory, Mb"))
   {
-    ImPlot::PlotLine("GPU mem", &budgetPlot.xData[0], &budgetPlot.yData[0], budgetPlot.xData.size(), budgetPlot.offset);
+    ImPlot::PlotLine("GPU mem", &budgetPlot.xData[0], &budgetPlot.yData[0], budgetPlot.xData.size(), ImPlotLineFlags_None,
+      budgetPlot.offset);
     ImPlot::EndPlot();
   }
 }
@@ -137,11 +150,10 @@ void drawBudget()
 void drawUploadInfo()
 {
   // find and use one of last finished work items with offset that guarantie we not using this work
-  const size_t finishedWorkOffset = MAX_PENDING_WORK_ITEMS + 1;
+  const size_t finishedWorkOffset = MAX_PENDING_REPLAY_ITEMS + 1;
   const uint64_t defaultYLim = 100;
-  Device &drvDev = get_device();
   size_t maxId = 0;
-  drvDev.timelineMan.get<TimelineManager::CpuReplay>().enumerate([&maxId](size_t, const RenderWork &ctx) //
+  Globals::timelines.get<TimelineManager::CpuReplay>().enumerate([&maxId](size_t, const RenderWork &ctx) //
     {
       if (maxId < ctx.id)
         maxId = ctx.id;
@@ -149,7 +161,7 @@ void drawUploadInfo()
   const RenderWork *lastWork = nullptr;
   if (maxId < finishedWorkOffset)
     return;
-  drvDev.timelineMan.get<TimelineManager::CpuReplay>().enumerate(
+  Globals::timelines.get<TimelineManager::CpuReplay>().enumerate(
     [maxId, finishedWorkOffset, &lastWork](size_t, const RenderWork &ctx) //
     {
       if (ctx.id == (maxId - finishedWorkOffset))
@@ -162,8 +174,64 @@ void drawUploadInfo()
   setPlotLimitsVarY(defaultYLim);
   if (ImPlot::BeginPlot("##Uploads amounts", nullptr, "Uploads, count"))
   {
-    ImPlot::PlotLine("Buf", &bufUploadPlot.xData[0], &bufUploadPlot.yData[0], bufUploadPlot.xData.size(), bufUploadPlot.offset);
-    ImPlot::PlotLine("Img", &imgUploadPlot.xData[0], &imgUploadPlot.yData[0], imgUploadPlot.xData.size(), imgUploadPlot.offset);
+    ImPlot::PlotLine("Buf", &bufUploadPlot.xData[0], &bufUploadPlot.yData[0], bufUploadPlot.xData.size(), ImPlotLineFlags_None,
+      bufUploadPlot.offset);
+    ImPlot::PlotLine("Img", &imgUploadPlot.xData[0], &imgUploadPlot.yData[0], imgUploadPlot.xData.size(), ImPlotLineFlags_None,
+      imgUploadPlot.offset);
+    ImPlot::EndPlot();
+  }
+}
+
+void drawFrameMemInfo()
+{
+  uint32_t alloc, usage;
+  Frontend::frameMemBuffers.getMemUsageInfo(alloc, usage);
+  frameMemAllocPlot.addPoint(trackingFrameIdx, alloc >> 10);
+  frameMemUsagePlot.addPoint(trackingFrameIdx, usage >> 10);
+
+  const uint64_t defaultYLim = 10;
+  setPlotLimitsVarY(defaultYLim);
+  if (ImPlot::BeginPlot("##Framemem usage & alloc", nullptr, "FrameMem, Kb"))
+  {
+    ImPlot::PlotLine("Alloc", &frameMemAllocPlot.xData[0], &frameMemAllocPlot.yData[0], frameMemAllocPlot.xData.size(),
+      ImPlotLineFlags_None, frameMemAllocPlot.offset);
+    ImPlot::PlotLine("Usage, approx", &frameMemUsagePlot.xData[0], &frameMemUsagePlot.yData[0], frameMemUsagePlot.xData.size(),
+      ImPlotLineFlags_None, frameMemUsagePlot.offset);
+    ImPlot::EndPlot();
+  }
+
+  if (ImGui::Button("Purge framemem"))
+    Frontend::frameMemBuffers.purge();
+}
+
+void drawTempBuffersInfo()
+{
+  tempBufferAllocPlot.addPoint(trackingFrameIdx, Frontend::tempBuffers.getLastAllocSize() >> 10);
+
+  const uint64_t defaultYLim = 10;
+  setPlotLimitsVarY(defaultYLim);
+  if (ImPlot::BeginPlot("##TempBuffers alloc", nullptr, "TempBuffers alloc, Kb"))
+  {
+    ImPlot::PlotLine("Update", &tempBufferAllocPlot.xData[0], &tempBufferAllocPlot.yData[0], tempBufferAllocPlot.xData.size(),
+      ImPlotLineFlags_None, tempBufferAllocPlot.offset);
+    ImPlot::EndPlot();
+  }
+}
+
+void drawVkMemAllocsInfo()
+{
+  DEV_MEM();
+
+  uint32_t newPoint = devMem.getAllocationCounter();
+  totalVkAllocsPlot.addPoint(trackingFrameIdx, newPoint);
+  ImPlot::SetNextAxisLimits(ImAxis_X1, trackingFrameIdx < USAGE_HISTORY_LEN ? 0 : trackingFrameIdx - USAGE_HISTORY_LEN,
+    trackingFrameIdx, ImGuiCond_Always);
+  const uint32_t viewDelta = 100;
+  ImPlot::SetNextAxisLimits(ImAxis_Y1, newPoint > viewDelta ? (newPoint - viewDelta) : 0, newPoint + viewDelta, ImGuiCond_Always);
+  if (ImPlot::BeginPlot("##VkMemAllocsCalls", nullptr, "VK mem alloc calls"))
+  {
+    ImPlot::PlotLine("Allocs", &totalVkAllocsPlot.xData[0], &totalVkAllocsPlot.yData[0], totalVkAllocsPlot.xData.size(),
+      ImPlotLineFlags_None, totalVkAllocsPlot.offset);
     ImPlot::EndPlot();
   }
 }
@@ -191,9 +259,27 @@ void drv3d_vulkan::debug_ui_memory()
     ImGui::TreePop();
   }
 
-  if (ImGui::TreeNode("Upload##3"))
+  if (ImGui::TreeNode("Upload##4"))
   {
     drawUploadInfo();
+    ImGui::TreePop();
+  }
+
+  if (ImGui::TreeNode("FrameMem##5"))
+  {
+    drawFrameMemInfo();
+    ImGui::TreePop();
+  }
+
+  if (ImGui::TreeNode("TempBuffers##6"))
+  {
+    drawTempBuffersInfo();
+    ImGui::TreePop();
+  }
+
+  if (ImGui::TreeNode("VkAllocs"))
+  {
+    drawVkMemAllocsInfo();
     ImGui::TreePop();
   }
 

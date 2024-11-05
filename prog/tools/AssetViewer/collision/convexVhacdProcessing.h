@@ -1,8 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "collisionNodesSettings.h"
 #include <math/vhacd/VHACD.h>
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/control/container.h>
 
 class ConvexVhacdProcessing
 {
@@ -23,7 +24,7 @@ public:
   dag::Vector<VHACD::IVHACD *> interfaces;
   bool showConvexVHACD = true;
 
-  void init(CollisionResource *collision_res, PropertyContainerControlBase *prop_panel);
+  void init(CollisionResource *collision_res, PropPanel::ContainerPropertyControl *prop_panel);
   void calcSelectedInterface();
   void calcInterface(const ConvexVhacdSettings &settings);
   void setSelectedNodesSettings(SelectedNodesSettings &&selected_nodes);
@@ -36,6 +37,6 @@ public:
   void fillConvexVhacdPanel();
 
 private:
-  PropertyContainerControlBase *panel = nullptr;
+  PropPanel::ContainerPropertyControl *panel = nullptr;
   CollisionResource *collisionRes = nullptr;
 };

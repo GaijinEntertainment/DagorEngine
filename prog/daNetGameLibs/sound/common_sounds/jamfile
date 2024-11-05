@@ -1,0 +1,32 @@
+ModuleDependsOnVars = HaveSound PhysName ;
+HaveSound ?= yes ;
+
+Root    ?= ../../../.. ;
+Module = common_sounds ;
+Location = prog/daNetGameLibs/sound/$(Module) ;
+local DasModule = daNetGameLibs_common_sounds_DAS_pull_AOT ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+  $(Root)/prog/daNetGameLibs
+  $(Root)/prog/1stPartyLibs/daScript/include
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+  $(Root)/prog/1stPartyLibs/rapidJsonUtils/include
+;
+
+UseProgLibs =
+  daNetGameLibs/sound/sound_utils
+;
+
+local AllSrcFolder_DAS = ;
+
+if $(HaveSound) = yes {
+  AllSrcFolder_ES += . ;
+  AllSrcFolder_DAS +=
+    modules
+    es
+  ;
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

@@ -147,13 +147,13 @@ function compose(...){
 /*
   tryCatch(tryer function, catcher function) return function that will operate on input safely
 */
-function tryCatch(tryer, catcher){
+function tryCatch(tryer, catcher=null){
   return function(...) {
     try{
       return tryer.pacall([null].extend(vargv))
     }
     catch(e)
-      return catcher(e)
+      return catcher?(e)
    }
 }
 
@@ -214,6 +214,7 @@ function curry(fn) {
 let NullKey = persist("NullKey", @() {})
 let Leaf = persist("Leaf", @() {})
 let NO_VALUE = persist("NO_VALUE", @() {})
+let listOfCaches = persist("listOfCaches", @() [])
 
 function setValInCacheVargved(path, value, cache) {
   local curTbl = cache
@@ -270,6 +271,7 @@ function getValInCache(path, cache) {
 const DEF_MAX_CACHE_ENTRIES = 10000
 function memoize(func, hashfunc = null, cacheExternal=null, maxCacheNum=DEF_MAX_CACHE_ENTRIES) {
   let cache = cacheExternal ?? {}
+  listOfCaches.append(cache)
   local simpleCache = null
   local simpleCacheUsed = false
   let {parameters=null, varargs=0, defparams=null} = func.getfuncinfos()
@@ -506,6 +508,7 @@ let combine = @(...) @() vargv.each(@(v) v.call(null))
 
 function mkMemoizedMapSet(func){
   let cache = {}
+  listOfCaches.append(cache)
   let funcParams = func.getfuncinfos().parameters.len()-1
   return function memoizedMapSet(set){
     foreach (k, v in set){
@@ -525,6 +528,11 @@ function mkMemoizedMapSet(func){
 }
 
 
+function clearMemoizeCaches(){
+  foreach (cache in listOfCaches)
+    cache.clear()
+}
+
 return {
   partial
   pipe
@@ -543,4 +551,5 @@ return {
   combine
   tryCatch
   mkMemoizedMapSet
+  clearMemoizeCaches
 }

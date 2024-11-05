@@ -69,7 +69,7 @@ void modfx_apply_sim(
   {
     bool fullSim = !attach_last_part && !is_emission;
     if (fullSim || (rdeclPosOffset && !attach_last_part)) // we cant rollback lag dt for velocity, otherwise they will apeears in front of emitter
-      modfx_velocity_sim( parent_sdata, buf, gdata, sdata.rnd_seed, sdata.life_norm, fullSim ? dt : 0, etm, etm_enabled, rdata.radius, rdata.pos, rdata.pos_offset, sdata.flags, sdata.velocity, sdata.collision_time_norm );
+      modfx_velocity_sim( parent_sdata, buf, gdata, sdata.rnd_seed, sdata.life_norm, fullSim ? dt : 0, etm, etm_enabled, rdata.radius, rdata.pos, rdata.pos_offset, sdata.flags, sdata.velocity, sdata.collision_time_norm, cdesc.lifeLimit );
   }
 
   if ( sdeclVelocity )
@@ -93,11 +93,16 @@ void modfx_apply_sim(
     modfx_velocity_to_render( parent_sdata, buf, sdata.velocity, rdata.up_vec, rdata.velocity_length );
   }
 
+#if MODFX_GPU_FEATURES_ENABLED
+  if ( FLAG_ENABLED( parent_sdata.flags, MODFX_SFLAG_WATER_FLOWMAP ) )
+    modfx_pos_add_water_flowmap(rdata.pos, rdata.pos_offset, dt);
+#endif
+
   if ( MODFX_RDECL_ANGLE_ENABLED( parent_rdata.decls ) ) // MODFX_SDECL_COLLISION_TIME_ENABLED(decls) is implicitly true
   {
     float angle_life_k = sdata.life_norm;
 #ifndef __cplusplus // only for gpu sim collision
-    if (sdata.flags & MODFX_SIM_FLAGS_COLLIDED)
+    if ((sdata.flags & MODFX_SIM_FLAGS_SHOULD_STOP_ROTATION))
       angle_life_k = sdata.collision_time_norm; // rollback life to collision time
 #endif
     modfx_rotation_sim( parent_sdata, buf, sdata.rnd_seed, angle_life_k, rdata.angle );
@@ -119,6 +124,9 @@ void modfx_apply_sim(
 
   if ( FLAG_ENABLED( parent_sdata.flags, MODFX_SFLAG_TOROIDAL_MOVEMENT ) && etm_enabled )
     modfx_toroidal_movement_sim( parent_sdata, buf, float3( etm[3][0], etm[3][1], etm[3][2] ), rdata.pos );
+
+  if ( MOD_ENABLED( parent_sdata.mods, MODFX_SMOD_ALPHA_BY_VELOCITY ) )
+    modfx_color_alpha_by_velocity( parent_sdata, parent_rdata, buf, parent_sdata.mods_offsets[MODFX_SMOD_ALPHA_BY_VELOCITY], rdata.color, rdata.velocity_length );
 
   if ( dead )
     rdata.radius = 0;
@@ -157,6 +165,8 @@ BBox dafx_emission_shader_cb(
   sdata.velocity = float3( 0, 0, 0 );
   sdata.em_color = float4( 1.f, 1.f, 1.f, 1.f );
   sdata.collision_time_norm = 0;
+
+  float dt = cdesc.lod * gdata.dt;
 
   bool apply_etm = !FLAG_ENABLED( parent_rdata.flags,MODFX_RFLAG_USE_ETM_AS_WTM );
   float4x4 etm = dafx_get_44mat( buf, parent_rdata.mods_offsets[MODFX_RMOD_INIT_TM] );
@@ -198,8 +208,16 @@ BBox dafx_emission_shader_cb(
   float3 pos_v = float3( 0, 0, 0 );
   modfx_pos_init( parent_sdata, buf, sdata.rnd_seed, cdesc.rndSeed, rdata.pos, pos_v );
 
+#if DAFX_USE_GRAVITY_ZONE
+  float3x3 gravityTm = modfx_gravity_zone_tm(parent_sdata, buf, gdata, rdata.pos);
+#endif
+
   if ( apply_etm )
     rdata.pos = float_xyz( mul( float4( rdata.pos, 1.f ), etm ) );
+#if DAFX_USE_GRAVITY_ZONE
+  else
+    rdata.pos = mul(rdata.pos, gravityTm);
+#endif
 
 #if MODFX_GPU_FEATURES_ENABLED
   bool allow_spawn = modfx_pos_gpu_placement(parent_sdata, buf, etm[3].y, rdata.pos, gdata);
@@ -213,6 +231,10 @@ BBox dafx_emission_shader_cb(
 
     if ( apply_etm )
       sdata.velocity = float_xyz( mul( float4( sdata.velocity, 0 ), etm ) );
+#if DAFX_USE_GRAVITY_ZONE
+    else
+      sdata.velocity = mul(sdata.velocity, gravityTm);
+#endif
   }
 
   if ( parent_sdata.mods_offsets[MODFX_SMOD_VELOCITY_INIT_ADD_STATIC_VEC] )
@@ -260,7 +282,7 @@ BBox dafx_emission_shader_cb(
 
   bool attach_last_part = FLAG_ENABLED( parent_sdata.flags, MODFX_SFLAG_ATTACH_LAST_PART_TO_EMITTER ) && ( cdesc.idx == cdesc.count - 1 );
   modfx_apply_sim(
-    cdesc, buf, parent_rdata, parent_sdata, rdata, sdata, lag_comp * gdata.dt, etm, apply_etm, attach_last_part, true, gdata );
+    cdesc, buf, parent_rdata, parent_sdata, rdata, sdata, lag_comp * dt, etm, apply_etm, attach_last_part, true, gdata );
 
   sdata.rnd_seed = stable_rnd_seed;
   modfx_save_ren_data(buf, cdesc.dataRenOffsetCurrent, parent_rdata.decls, parent_sdata.flags, true, rdata);
@@ -303,6 +325,8 @@ BBox dafx_simulation_shader_cb(
   DAFX_CREF(ModfxParentSimData) parent_sdata,
   GlobalData_cref gdata )
 {
+  float dt = cdesc.lod * gdata.dt;
+
   ModfxSimData sdata;
   modfx_load_sim_data(buf, cdesc.dataSimOffsetCurrent, parent_sdata.decls, sdata);
 
@@ -337,7 +361,7 @@ BBox dafx_simulation_shader_cb(
   }
 
   modfx_apply_sim(
-    cdesc, buf, parent_rdata, parent_sdata, rdata, sdata, gdata.dt, etm, apply_etm, attach_last_part, false, gdata );
+    cdesc, buf, parent_rdata, parent_sdata, rdata, sdata, dt, etm, apply_etm, attach_last_part, false, gdata );
 
   modfx_save_ren_data(buf, cdesc.dataRenOffsetCurrent, parent_rdata.decls, parent_sdata.flags, false, rdata);
   modfx_save_sim_data(buf, cdesc.dataSimOffsetCurrent, parent_sdata.decls, false, sdata);

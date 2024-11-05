@@ -1,10 +1,8 @@
-#include "device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#if _TARGET_ANDROID
-#if ENABLE_SWAPPY
-#include <swappy/swappyVk.h>
-#endif
-#endif
+#include "device_queue.h"
+#include "frame_info.h"
+#include "vulkan_device.h"
 
 using namespace drv3d_vulkan;
 
@@ -111,16 +109,15 @@ eastl::vector<FlatQueueInfo>::iterator find_best_match(eastl::vector<FlatQueueIn
 bool select_queue(eastl::vector<FlatQueueInfo> &set, DeviceQueueType type, VulkanInstance &instance, VulkanPhysicalDeviceHandle device,
   VulkanSurfaceKHRHandle display_surface, FlatQueueInfo &selection)
 {
-  debug("vulkan: selecting %s queue...", queue_type_to_name(type));
   auto selected = find_best_match(set, type, instance, device, display_surface);
   if (selected != end(set))
   {
     selection = *selected;
     set.erase(selected);
-    debug("vulkan: using family %u index %u as %s queue...", selection.family, selection.index, queue_type_to_name(type));
+    debug("vulkan: using %u-%u as %s queue", selection.family, selection.index, queue_type_to_name(type));
     return true;
   }
-  debug("vulkan: no dedicated queue as %s queue found...", queue_type_to_name(type));
+  debug("vulkan: no dedicated queue as %s queue found", queue_type_to_name(type));
   return false;
 }
 } // namespace
@@ -212,15 +209,6 @@ DeviceQueueGroup::DeviceQueueGroup(VulkanDevice &device, const Info &info) : com
       for (int j = i + 1; j < info.group.size(); ++j)
         if (info.group[i] == info.group[j])
           group[j] = group[i];
-
-#if ENABLE_SWAPPY
-      if (i == int(DeviceQueueType::GRAPHICS))
-      {
-        debug("vulkan: Setting queue family index for Swappy");
-        SwappyVk_setQueueFamilyIndex(device.get(), queue, info.group[i].family);
-        debug("vulkan: Setting queue family index for Swappy is done");
-      }
-#endif
     }
   }
 }
@@ -259,9 +247,22 @@ StaticTab<VkDeviceQueueCreateInfo, uint32_t(DeviceQueueType::COUNT)> build_queue
   return result;
 }
 
-VkResult DeviceQueue::present(VulkanDevice &device, const TrimmedPresentInfo &presentInfo)
+void DeviceQueue::consumeWaitSemaphores(FrameInfo &gpu_frame)
 {
   WinAutoLock lock{mutex};
+
+  for (VulkanSemaphoreHandle i : submitSemaphores)
+    gpu_frame.addPendingSemaphore(i);
+
+  clearSubmitSemaphores();
+}
+
+VkResult DeviceQueue::present(VulkanDevice &device, FrameInfo &gpu_frame, const TrimmedPresentInfo &presentInfo)
+{
+  WinAutoLock lock{mutex};
+
+  for (VulkanSemaphoreHandle i : submitSemaphores)
+    gpu_frame.addPendingSemaphore(i);
 
   VkPresentInfoKHR pi = {};
   pi.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -272,16 +273,32 @@ VkResult DeviceQueue::present(VulkanDevice &device, const TrimmedPresentInfo &pr
   pi.pSwapchains = presentInfo.pSwapchains;
   pi.pImageIndices = presentInfo.pImageIndices;
 
-  VkResult ret;
-#if ENABLE_SWAPPY
-  if (presentInfo.enableSwappy)
-    ret = SwappyVk_queuePresent(handle, &pi);
-  else
-#endif
-    ret = VULKAN_LOG_CALL_R(device.vkQueuePresentKHR(handle, &pi));
+  VkResult ret = VULKAN_LOG_CALL_R(device.vkQueuePresentKHR(handle, &pi));
   // TODO: check if it considered waited on error or not, as it can bug out sync pretty easily
-  clear_and_shrink(submitSemaphores);
-  clear_and_shrink(submitSemaphoresLocation);
+  clearSubmitSemaphores();
   return ret;
 }
+
+void DeviceQueue::submit(VulkanDevice &device, FrameInfo &gpu_frame, const TrimmedSubmitInfo &trimmed_info, VulkanFenceHandle fence)
+{
+  WinAutoLock lock{mutex};
+
+  for (VulkanSemaphoreHandle i : submitSemaphores)
+    gpu_frame.addPendingSemaphore(i);
+
+  VkSubmitInfo si = {};
+  si.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  si.pWaitSemaphores = ary(submitSemaphores.data());
+  si.waitSemaphoreCount = submitSemaphores.size();
+  si.pWaitDstStageMask = submitSemaphoresLocation.data();
+
+  si.pCommandBuffers = trimmed_info.pCommandBuffers;
+  si.commandBufferCount = trimmed_info.commandBufferCount;
+  si.pSignalSemaphores = trimmed_info.pSignalSemaphores;
+  si.signalSemaphoreCount = trimmed_info.signalSemaphoreCount;
+
+  VULKAN_EXIT_ON_FAIL(device.vkQueueSubmit(handle, 1, &si, fence));
+  clearSubmitSemaphores();
+}
+
 } // namespace drv3d_vulkan

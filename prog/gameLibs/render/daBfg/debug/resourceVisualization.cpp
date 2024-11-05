@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "backendDebug.h"
 
 #include <frontend/internalRegistry.h>
@@ -7,7 +9,7 @@
 #include <EASTL/queue.h>
 #include <dag/dag_vector.h>
 #include <dag/dag_vectorSet.h>
-#include <humanInput/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiKeybIds.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 
 #include <ioSys/dag_fileIo.h>
@@ -161,11 +163,18 @@ void update_resource_visualization(const InternalRegistry &registry, eastl::span
   node_names.clear();
   node_names.reserve(node_execution_order.size());
   for (auto nodeId : node_execution_order)
-    node_names.emplace_back(registry.knownNames.getName(nodeId));
+    if (nodeId != NodeNameId::Invalid)
+      node_names.emplace_back(registry.knownNames.getName(nodeId));
+    else
+      node_names.emplace_back("<internal>");
 
   for (int nodeExecIdx = 0; nodeExecIdx < node_execution_order.size(); ++nodeExecIdx)
   {
-    const auto &node = registry.nodes[node_execution_order[nodeExecIdx]];
+    const auto nodeNameId = node_execution_order[nodeExecIdx];
+    if (nodeNameId == NodeNameId::Invalid)
+      continue;
+
+    const auto &node = registry.nodes[nodeNameId];
 
     for (int frame = 0; frame < RES_RECORD_WINDOW; ++frame)
     {
@@ -222,7 +231,11 @@ void update_resource_visualization(const InternalRegistry &registry, eastl::span
 
   for (int nodeExecIdx = 0; nodeExecIdx < node_execution_order.size(); ++nodeExecIdx)
   {
-    const auto &node = registry.nodes[node_execution_order[nodeExecIdx]];
+    const auto nodeNameId = node_execution_order[nodeExecIdx];
+    if (nodeNameId == NodeNameId::Invalid)
+      continue;
+
+    const auto &node = registry.nodes[nodeNameId];
 
     for (int frame = 0; frame < RES_RECORD_WINDOW; ++frame)
     {
@@ -266,6 +279,9 @@ extern ConVarT<bool, false> recompile_graph;
 
 static void visualize_resource_lifetimes()
 {
+  if (ImGui::IsWindowCollapsed())
+    return;
+
   const bool showTooltips = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
   const size_t nodeCount = dabfg::node_names.size();
 
@@ -298,7 +314,7 @@ static void visualize_resource_lifetimes()
 
   ImGui::TextUnformatted("Use mouse wheel to pan/zoom. Hold LSHIFT to show usages or change vertical scale.");
 
-  ImGui::BeginChild("scrolling_region", ImVec2(0, 0), true,
+  ImGui::BeginChild("scrolling_region", ImVec2(0, 0), ImGuiChildFlags_Border,
     ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoMove);
   ImGui::PushItemWidth(120.0f);
 
@@ -496,7 +512,7 @@ static void visualize_resource_lifetimes()
   if (showTooltips && hoveredResourceId != dabfg::ResNameId::Invalid)
   {
     const auto &info = dabfg::per_resource_infos[hoveredResourceOwnerFrame][hoveredResourceId];
-    if (ImGui::IsKeyDown(HumanInput::DKEY_LSHIFT))
+    if (ImGui::IsKeyDown(ImGuiKey_LeftShift))
     {
       const float mouseX = (ImGui::GetMousePos().x - viewOffset.x) / viewScaling + NODE_HORIZONTAL_HALFSIZE;
       const float totalFrameWidth = nodeCount * NODE_HORIZONTAL_SIZE + GAP_BETWEEN_FRAMES_SIZE;
@@ -546,7 +562,7 @@ static void visualize_resource_lifetimes()
 
     if (ImGui::GetIO().MouseWheel != 0)
     {
-      if (ImGui::IsKeyDown(HumanInput::DKEY_LSHIFT))
+      if (ImGui::IsKeyDown(ImGuiKey_LeftShift))
       {
         const float prevVertScaling = verticalScaling;
         verticalScaling = eastl::clamp(verticalScaling + 20.f * ImGui::GetIO().MouseWheel, 100.f, 2000.f);

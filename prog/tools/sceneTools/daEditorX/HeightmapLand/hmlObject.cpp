@@ -1,8 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hmlPlugin.h"
 #include "hmlSplineObject.h"
 #include "hmlSplinePoint.h"
 #include "hmlEntity.h"
 #include "hmlLight.h"
+#include "hmlOutliner.h"
 #include "hmlSnow.h"
 #include "entityCopyDlg.h"
 
@@ -18,7 +21,7 @@
 #include <de3_genObjData.h>
 #include <de3_hmapService.h>
 
-#include <dllPluginCore/core.h>
+#include <EditorCore/ec_IEditorCore.h>
 
 #include <coolConsole/coolConsole.h>
 
@@ -28,12 +31,14 @@
 #include <libTools/dagFileRW/splineShape.h>
 #include <libTools/dagFileRW/dagFileShapeObj.h>
 #include <EditorCore/ec_ObjectCreator.h>
-#include <EditorCore/ec_IEditorCore.h>
+#include <EditorCore/ec_outliner.h>
 
 #include <math/dag_math2d.h>
 #include <math/dag_mathBase.h>
 #include <math/dag_rayIntersectBox.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <shaders/dag_overrideStates.h>
 #include <shaders/dag_shaderBlock.h>
 #include <util/dag_fastIntList.h>
@@ -47,6 +52,12 @@
 
 #include <winGuiWrapper/wgw_input.h>
 #include <winGuiWrapper/wgw_dialogs.h>
+
+using editorcore_extapi::dagGeom;
+using editorcore_extapi::dagRender;
+using editorcore_extapi::make_full_start_path;
+
+using heightmapland::CopyDlg;
 
 #define OBJECT_SPLINE  "Splines"
 #define OBJECT_POLYGON "Polygons"
@@ -147,6 +158,7 @@ HmapLandObjectEditor::HmapLandObjectEditor() :
   objCreator = NULL;
   areLandHoleBoxesVisible = true;
   hideSplines = false;
+  showPhysMat = showPhysMatColors = false;
   autoUpdateSpline = true;
   usePixelPerfectSelection = false;
   selectOnlyIfEntireObjectInRect = false;
@@ -226,16 +238,34 @@ void HmapLandObjectEditor::clearToDefaultState()
   selectMode = -1;
 }
 
-CPanelWindow *HmapLandObjectEditor::getCurrentPanelFor(RenderableEditableObject *obj)
+PropPanel::PanelWindowPropertyControl *HmapLandObjectEditor::getCurrentPanelFor(RenderableEditableObject *obj)
 {
   if (selectedCount() != 1 || getSelected(0) != obj || !objectPropBar)
     return NULL;
   return objectPropBar->getPanel();
 }
 
-void HmapLandObjectEditor::fillToolBar(PropertyContainerControlBase *toolbar)
+PropPanel::PanelWindowPropertyControl *HmapLandObjectEditor::getObjectPropertiesPanel()
 {
-  PropertyContainerControlBase *tb1 = toolbar->createToolbarPanel(0, "");
+  return objectPropBar ? objectPropBar->getPanel() : nullptr;
+}
+
+void HmapLandObjectEditor::addButton(PropPanel::ContainerPropertyControl *tb, int id, const char *bmp_name, const char *hint,
+  bool check)
+{
+  // In the Landscape editor instead of the "Select objects by name" dialog we show the Outliner.
+  if (id == CM_OBJED_SELECT_BY_NAME)
+  {
+    hint = "Outliner (H)";
+    check = true;
+  }
+
+  ObjectEditor::addButton(tb, id, bmp_name, hint, check);
+}
+
+void HmapLandObjectEditor::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
+{
+  PropPanel::ContainerPropertyControl *tb1 = toolbar->createToolbarPanel(0, "");
 
   addButton(tb1, CM_SHOW_PANEL, "show_hml_panel", "Show properties panel (P)", true);
   //  addButton(tb1, CM_SHOW_LAND_OBJECTS, "show_bounds", "Show land hole boxes", true);
@@ -252,11 +282,12 @@ void HmapLandObjectEditor::fillToolBar(PropertyContainerControlBase *toolbar)
 
   ObjectEditor::fillToolBar(toolbar);
 
-  PropertyContainerControlBase *tb2 = toolbar->createToolbarPanel(0, "");
+  PropPanel::ContainerPropertyControl *tb2 = toolbar->createToolbarPanel(0, "");
 
   tb2->createSeparator();
-  addButton(tb2, CM_LAYERS_DLG, "layers", "Show/hide layers dialog", true);
   addButton(tb2, CM_HIDE_SPLINES, "hide_splines", "Hide splines (Ctrl+0)", true);
+  addButton(tb2, CM_SHOW_PHYSMAT, "show_physmat", "Show physmat", true);
+  addButton(tb2, CM_SHOW_PHYSMAT_COLORS, "show_physmat_colors", "Show physmat color", true);
   tb2->createSeparator();
   addButton(tb2, CM_SELECT_PT, "select_vertex", "Select only points (Ctrl+1)", true);
   addButton(tb2, CM_SELECT_SPLINES, "select_spline", "Select only splines (Ctrl+2)", true);
@@ -326,8 +357,10 @@ void HmapLandObjectEditor::updateToolbarButtons()
   setRadioButton(CM_CREATE_SNOW_SOURCE, getEditMode());
   setButton(CM_SHOW_LAND_OBJECTS, areLandHoleBoxesVisible);
   setButton(CM_HIDE_SPLINES, hideSplines);
+  setButton(CM_SHOW_PHYSMAT, showPhysMat);
+  setButton(CM_SHOW_PHYSMAT_COLORS, showPhysMatColors);
   setButton(CM_MANUAL_SPLINE_REGEN_MODE, !autoUpdateSpline);
-  setButton(CM_LAYERS_DLG, layersDlg.isVisible());
+  setButton(CM_OBJED_SELECT_BY_NAME, isOutlinerWindowOpen());
   setButton(CM_USE_PIXEL_PERFECT_SELECTION, usePixelPerfectSelection);
   setButton(CM_SELECT_ONLY_IF_ENTIRE_OBJECT_IN_RECT, selectOnlyIfEntireObjectInRect);
 
@@ -969,6 +1002,8 @@ void HmapLandObjectEditor::_removeObjects(RenderableEditableObject **obj, int nu
   }
   if (rebuild_hmap_modif)
     HmapLandPlugin::self->applyHmModifiers();
+
+  HmapLandPlugin::self->onObjectsRemove();
 }
 
 
@@ -1010,6 +1045,25 @@ bool HmapLandObjectEditor::canSelectObj(RenderableEditableObject *o)
   }
 
   return false;
+}
+
+
+void HmapLandObjectEditor::onObjectFlagsChange(RenderableEditableObject *obj, int changed_flags)
+{
+  ObjectEditor::onObjectFlagsChange(obj, changed_flags);
+
+  if ((changed_flags & RenderableEditableObject::FLG_SELECTED) != 0 && outlinerWindow)
+    outlinerWindow->onObjectSelectionChanged(getMainObjectForOutliner(*obj));
+}
+
+
+void HmapLandObjectEditor::updateSelection()
+{
+  ObjectEditor::updateSelection();
+
+  if (outlinerWindow)
+    for (int i = 0; i < objects.size(); ++i)
+      outlinerWindow->onObjectSelectionChanged(getMainObjectForOutliner(*objects[i]));
 }
 
 

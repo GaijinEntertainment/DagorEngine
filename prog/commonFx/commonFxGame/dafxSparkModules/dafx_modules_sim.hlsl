@@ -4,6 +4,8 @@
 #pragma warning(disable:4189)
 #endif
 
+#include <dafx_gravity_zone_funcs.hlsli>
+
 #define SIM_MODULE_DATA_AGE_NORM (SIM_MODULE_LIFE)
 #define SIM_MODULE_DATA_COLLISION (SIM_MODULE_DEPTH_COLLISION)
 #define SIM_MODULE_DATA_FORCE (SIM_MODULE_RESOLVE_FORCES)
@@ -61,6 +63,24 @@ struct SimModuleData
   G_UNREFERENCED( sparams); \
   G_UNREFERENCED( gparams )
 
+#if DAFX_USE_GRAVITY_ZONE && SIM_MODULE_GRAVITY_ZONE
+DAFX_INLINE
+float3x3 sparkfx_gravity_zone_tm(SIM_MODULE_CONTEXT)
+{
+  UNREF_INPUT_SIM_CONTEXT;
+  float3x3 gravityTm = m33_ident();
+  BRANCH
+  if (sparams.gravity_zone == GRAVITY_ZONE_DEFAULT || sparams.gravity_zone == GRAVITY_ZONE_PER_EMITTER)
+    gravityTm = sparams.gravityTm;
+  else BRANCH if (sparams.gravity_zone == GRAVITY_ZONE_PER_PARTICLE) {
+    float3 wpos = rparams.localSpaceFlag ? mul_get_f3(float_xyz1(rp.pos), rparams.tm) : rp.pos;
+    gravityTm = dafx_gravity_zone_tm(wpos, gparams.gravity_zone_count);
+  }
+
+  return gravityTm;
+}
+#endif
+
 DAFX_INLINE
 void init_sim_module(SIM_MODULE_CONTEXT)
 {
@@ -84,15 +104,19 @@ void init_sim_module(SIM_MODULE_CONTEXT)
 }
 
 DAFX_INLINE
-float4 finish_sim_module(SIM_MODULE_CONTEXT)
+float4 finish_sim_module(SIM_MODULE_CONTEXT, float dt)
 {
-  rp.pos += rp.velocity * gparams.dt;
+  rp.pos += rp.velocity * dt;
 
-  float4 p4 = float4(rp.pos, 1);
-  float3 wpos = float3(
-    dot(p4, rparams.fxTm[0]),
-    dot(p4, rparams.fxTm[1]),
-    dot(p4, rparams.fxTm[2]));
+  float3 wpos = rp.pos;
+  if (rparams.localSpaceFlag)
+  {
+    float4 p4 = float4(rp.pos, 1);
+    wpos = float3(
+      dot(p4, rparams.tm[0]),
+      dot(p4, rparams.tm[1]),
+      dot(p4, rparams.tm[2]));
+  }
   return float4(
     wpos.x,
     wpos.y,
@@ -104,9 +128,9 @@ float4 finish_sim_module(SIM_MODULE_CONTEXT)
 
 #if SIM_MODULE_LIFE
 DAFX_INLINE
-bool sim_module_life(SIM_MODULE_CONTEXT)
+bool sim_module_life(SIM_MODULE_CONTEXT, float dt)
 {
-  sp.age = sp.age + gparams.dt;
+  sp.age = sp.age + dt;
   md.ageNorm = saturate(sp.age / max(sp.lifeTime, 0.0001f));
   return sp.age <= sp.lifeTime;
   UNREF_INPUT_SIM_CONTEXT;
@@ -117,7 +141,8 @@ bool sim_module_life(SIM_MODULE_CONTEXT)
 DAFX_INLINE
 void sim_module_gravity(SIM_MODULE_CONTEXT)
 {
-  md.force += float_xyz(mul(float_xyz0(gdata_gravity), rparams.fxTm)) * PARTICLE_MASS;
+  float3 gravityVec = rparams.localSpaceFlag ? float_xyz(mul(float_xyz0(gdata_gravity), rparams.tm)) : gdata_gravity;
+  md.force += gravityVec * PARTICLE_MASS;
   UNREF_INPUT_SIM_CONTEXT;
 }
 #endif
@@ -126,20 +151,21 @@ void sim_module_gravity(SIM_MODULE_CONTEXT)
 DAFX_INLINE
 void sim_module_lift(SIM_MODULE_CONTEXT)
 {
-  md.force += float_xyz(mul(float_xyz0(sparams.liftForce), rparams.fxTm)) * (1.0 - saturate((sp.age - sparams.liftTime + LIFT_FADE_TIME) / LIFT_FADE_TIME));
+  float3 forceVec = rparams.localSpaceFlag ? float_xyz(mul(float_xyz0(sparams.liftForce), rparams.tm)) : sparams.liftForce;
+  md.force += forceVec * (1.0 - saturate((sp.age - sparams.liftTime + LIFT_FADE_TIME) / LIFT_FADE_TIME));
   UNREF_INPUT_SIM_CONTEXT;
 }
 #endif
 
 #if SIM_MODULE_DEPTH_COLLISION
 DAFX_INLINE
-void sim_module_depth_collision(SIM_MODULE_CONTEXT)
+void sim_module_depth_collision(SIM_MODULE_CONTEXT, float dt)
 {
 #ifndef __cplusplus
   float restitution = saturate(sparams.restitution + RESTITUTION_NOISE * sp.fPhase.x);
   float friction = saturate(sparams.friction + FRICTION_NOISE * sp.fPhase.y);
   #if USE_DEPTH_COLLISION
-  md.isCollided = apply_depth_collision(gparams, rp.pos, rp.velocity, restitution, friction, rp.pos, rp.velocity, md.minCollisionDist);
+  md.isCollided = apply_depth_collision(gparams, dt, rp.pos, rp.velocity, restitution, friction, rp.pos, rp.velocity, md.minCollisionDist);
   #else
   md.isCollided = false;
   #endif
@@ -149,6 +175,7 @@ void sim_module_depth_collision(SIM_MODULE_CONTEXT)
 #endif
 #endif
   UNREF_INPUT_SIM_CONTEXT;
+  G_UNREFERENCED(dt);
 }
 #endif
 
@@ -156,7 +183,9 @@ void sim_module_depth_collision(SIM_MODULE_CONTEXT)
 DAFX_INLINE
 void sim_module_directional_wind(SIM_MODULE_CONTEXT)
 {
-  md.windVelocity += float_xyz(mul(float4(gparams.wind_dir.x, 0.f, gparams.wind_dir.y, 0.f), rparams.fxTm)) * sparams.windForce * gparams.wind_power;
+  float3 windDir = float3(gparams.wind_dir.x, 0.f, gparams.wind_dir.y);
+  float3 windVec = rparams.localSpaceFlag ? float_xyz(mul(float_xyz0(windDir), rparams.tm)) : windDir;
+  md.windVelocity += windVec * sparams.windForce * gparams.wind_power;
   UNREF_INPUT_SIM_CONTEXT;
 }
 #endif
@@ -177,9 +206,12 @@ void sim_module_turbulent_wind(SIM_MODULE_CONTEXT)
 
 #if SIM_MODULE_RESOLVE_FORCES
 DAFX_INLINE
-void sim_module_resolve_forces(SIM_MODULE_CONTEXT)
+void sim_module_resolve_forces(SIM_MODULE_CONTEXT, float dt)
 {
-  float dt = gparams.dt;
+#if DAFX_USE_GRAVITY_ZONE && SIM_MODULE_GRAVITY_ZONE
+  md.force = mul(md.force, sparkfx_gravity_zone_tm(SIM_MODULE_ARGS));
+#endif
+
   // resolve velocity before drag
   rp.velocity += md.force * dt * md.massInv;
   md.force = float3(0, 0, 0);
@@ -229,7 +261,57 @@ void sim_module_color(SIM_MODULE_CONTEXT)
   float impulseEnd = make_impulse_curve(sp.age, lerp(0.25, 1.0, ageEnd), sp.fPhase.x, 0.7 * ageEnd);
   float4 finalColor = lerp(colorStart, colorEnd, ageEnd * impulseEnd);
   rp.color = finalColor;
-  rp.hdrScale = lerp(sparams.hdrScale1, rparams.hdrScale, calc_biased_random(sp.fPhase.y, color1Bias));
+
+  float hdrBias = saturate(1.0 - sparams.hdrBias);
+  rp.hdrScale = lerp(sparams.hdrScale1, rparams.hdrScale, calc_biased_random(sp.fPhase.y, hdrBias));
+
+  UNREF_INPUT_SIM_CONTEXT;
+}
+#endif
+
+#if SIM_MODULE_WIDTH_MODIFIER
+DAFX_INLINE
+float calc_curve_weight( uint steps, float life_k, uint_ref k0, uint_ref k1 )
+{
+  uint s = steps - 1;
+  float k = s * life_k;
+
+  k0 = (uint)k;
+  k1 = min( k0 + 1, s );
+  return k - (float)k0;
+}
+
+DAFX_INLINE
+float sparkfx_get_1f_curve( CurveData curve_data, float life_k )
+{
+  life_k = saturate(life_k);
+
+  uint k0, k1;
+  float w = calc_curve_weight( 32, life_k, k0, k1 );
+
+  // 1byte components
+  uint w0 = curve_data.packedCurveData[k0 / 4];
+  uint w1 = curve_data.packedCurveData[k1 / 4];
+
+  uint4 b0 = unpack_4b( w0 );
+  uint4 b1 = unpack_4b( w1 );
+
+  float v0 = unpack_byte_to_n1f( b0[k0 % 4] );
+  float v1 = unpack_byte_to_n1f( b1[k1 % 4] );
+
+  return lerp( v0, v1, w );
+}
+
+DAFX_INLINE
+void sim_module_width_modifier(SIM_MODULE_CONTEXT)
+{
+  rp.widthModifier = 1;
+
+  BRANCH
+  if (!sparams.widthOverLifeCurve.enabled)
+    return;
+
+  rp.widthModifier = sparkfx_get_1f_curve(sparams.widthOverLifeCurve, md.ageNorm);
   UNREF_INPUT_SIM_CONTEXT;
 }
 #endif
@@ -240,13 +322,15 @@ float4 dafx_simulation_shader_cb( ComputeCallDesc_cref cdesc, BufferData_ref lda
   ParentRenData rparams = unpack_parent_ren_data( ldata, cdesc.parentRenOffset );
   ParentSimData sparams = unpack_parent_sim_data( ldata, cdesc.parentSimOffset );
 
+  float dt = cdesc.lod * gparams.dt;
+
   RenData rp = unpack_ren_data( ldata, cdesc.dataRenOffsetCurrent );
   SimData sp = unpack_sim_data( ldata, cdesc.dataSimOffsetCurrent );
 
   SimModuleData md;
   init_sim_module(SIM_MODULE_ARGS);
 
-  bool is_alive = sim_module_life(SIM_MODULE_ARGS);
+  bool is_alive = sim_module_life(SIM_MODULE_ARGS, dt);
 
   if ( !is_alive )
   {
@@ -255,6 +339,10 @@ float4 dafx_simulation_shader_cb( ComputeCallDesc_cref cdesc, BufferData_ref lda
     pack_sim_data( sp, ldata, cdesc.dataSimOffsetCurrent );
     return float4( 0, 0, 0, 0 );
   }
+
+#if SIM_MODULE_WIDTH_MODIFIER
+  sim_module_width_modifier(SIM_MODULE_ARGS);
+#endif
 
 #if SIM_MODULE_GRAVITY
   sim_module_gravity(SIM_MODULE_ARGS);
@@ -265,7 +353,7 @@ float4 dafx_simulation_shader_cb( ComputeCallDesc_cref cdesc, BufferData_ref lda
 #endif
 
 #if SIM_MODULE_DEPTH_COLLISION
-  sim_module_depth_collision(SIM_MODULE_ARGS);
+  sim_module_depth_collision(SIM_MODULE_ARGS, dt);
 #endif
 
 #if SIM_MODULE_DIRECTIONAL_WIND
@@ -277,14 +365,14 @@ float4 dafx_simulation_shader_cb( ComputeCallDesc_cref cdesc, BufferData_ref lda
 #endif
 
 #if SIM_MODULE_RESOLVE_FORCES
-  sim_module_resolve_forces(SIM_MODULE_ARGS);
+  sim_module_resolve_forces(SIM_MODULE_ARGS, dt);
 #endif
 
 #if SIM_MODULE_COLOR
   sim_module_color(SIM_MODULE_ARGS);
 #endif
 
-  float4 cull = finish_sim_module(SIM_MODULE_ARGS);
+  float4 cull = finish_sim_module(SIM_MODULE_ARGS, dt);
   pack_ren_data( rp, ldata, cdesc.dataRenOffsetCurrent );
   pack_sim_data( sp, ldata, cdesc.dataSimOffsetCurrent );
   return cull;

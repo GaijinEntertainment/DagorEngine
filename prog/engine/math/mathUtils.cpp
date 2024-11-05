@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <supp/dag_math.h>
 #include <math/dag_mathUtils.h>
 #include <vecmath/dag_vecMath.h>
@@ -18,7 +20,7 @@ void lookAt(const Point3 &eye, const Point3 &at, const Point3 &up, TMatrix &resu
   resultTm.setcol(1, Point3(xaxis.y, yaxis.y, zaxis.y));
   resultTm.setcol(2, Point3(xaxis.z, yaxis.z, zaxis.z));
   resultTm.setcol(3, Point3(-(xaxis * eye), -(yaxis * eye), -(zaxis * eye)));
-  resultTm = inverse(resultTm);
+  resultTm = orthonormalized_inverse(resultTm);
 }
 
 #ifdef DAGOR_EXPF_NOINLINE
@@ -57,5 +59,6 @@ bool check_bbox_intersection(const BBox3 &box0, const TMatrix &tm0, const BBox3 
 
 int does_line_intersect_box_side(const BBox3 &box, const Point3 &line_start, const Point3 &line_end, real &at)
 {
-  return v_segment_box_intersection_side(v_ldu(&line_start.x), v_ldu(&line_end.x), v_ldu_bbox3(box), at);
+  float atMax;
+  return v_segment_box_intersection_side(v_ldu(&line_start.x), v_ldu(&line_end.x), v_ldu_bbox3(box), at, atMax);
 }

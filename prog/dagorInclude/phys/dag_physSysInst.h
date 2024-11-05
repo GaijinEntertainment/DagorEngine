@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -10,6 +9,7 @@
 #include <phys/dag_physResource.h>
 #include <phys/dag_physDecl.h>
 #include <EASTL/unique_ptr.h>
+#include <vecmath/dag_vecMathDecl.h>
 
 
 class PhysSystemInstance
@@ -29,6 +29,8 @@ public:
 
   void updateTms();
 
+  void driveBodiesToAnimcharPose(const dag::Span<mat44f *> &skeletonWtms);
+  void setJointsMotorSettings(float twistFrequeny, float twistDamping, float swingFrequeny, float swingDamping);
 
   bool setBodyTmByTmHelper(const char *helper_name, const TMatrix &wtm);
   bool setBodyTmAndVelByTmHelper(const char *helper_name, const TMatrix &wtm_prev, const TMatrix &wtm, real dt);

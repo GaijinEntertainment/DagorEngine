@@ -62,11 +62,7 @@ static FORCE_INLINE unsigned long find_clear_lsb(unsigned int *mask)
 #define SIMD_LANES        4
 #define TILE_HEIGHT_SHIFT 2
 
-#define SIMD_LANE_IDX \
-  (int32x4_t)         \
-  {                   \
-    0, 1, 2, 3        \
-  }
+#define SIMD_LANE_IDX DECL_VECUINT4(0, 1, 2, 3)
 
 #define SIMD_SUB_TILE_COL_OFFSET   v_make_vec4i(0, SUB_TILE_WIDTH, SUB_TILE_WIDTH * 2, SUB_TILE_WIDTH * 3)
 #define SIMD_SUB_TILE_ROW_OFFSET   vdupq_n_s32(0)
@@ -158,7 +154,7 @@ FORCE_INLINE float32x4_t _mm_shuffle_ps(float32x4_t a, float32x4_t b)
 #define _mmw_add_epi32          vaddq_s32
 #define _mmw_sub_epi32          vsubq_s32
 #define _mmw_subs_epu16(a, b)   vreinterpretq_s32_u16(vqsubq_u16(vreinterpretq_u16_s32(a), vreinterpretq_u16_s32(b)))
-#define _mmw_cmpeq_epi32        (int32x4_t)(vceqq_s32)
+#define _mmw_cmpeq_epi32        (int32x4_t) vceqq_s32
 #define _mmw_cmpgt_epi32        vcgtq_s32
 FORCE_INLINE int32x4_t _mmw_srai_epi32(int32x4_t a, int imm)
 {
@@ -199,7 +195,11 @@ FORCE_INLINE int32x4_t _mmw_srli_epi32(int32x4_t a, int imm)
 
 FORCE_INLINE float32x4_t _mmw_setr_ps(float w, float z, float y, float x)
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+  alignas(16) float data[4] = {w, z, y, x};
+#else
   float __attribute__((aligned(16))) data[4] = {w, z, y, x};
+#endif
   return vld1q_f32(data);
 }
 
@@ -248,6 +248,7 @@ FORCE_INLINE float32x4_t simd_cast<float32x4_t>(int32x4_t A)
 {
   return vreinterpretq_f32_s32(A);
 }
+#if !(defined(_M_ARM64) && defined(_MSC_VER) && !defined(__clang__))
 template <>
 FORCE_INLINE float32x4_t simd_cast<float32x4_t>(float32x4_t A)
 {
@@ -268,6 +269,7 @@ FORCE_INLINE int32x4_t simd_cast<int32x4_t>(int32x4_t A)
 {
   return A;
 }
+#endif
 
 #define MAKE_ACCESSOR(name, simd_type, base_type, is_const, elements)   \
   FORCE_INLINE is_const base_type *name(is_const simd_type &a)          \
@@ -344,7 +346,11 @@ FORCE_INLINE int32x4_t _mm_srli_epi16(int32x4_t a, int imm)
 FORCE_INLINE int32x4_t _mmw_transpose_epi8(int32x4_t v)
 {
   // Perform transpose through two 16->8 bit pack and byte shifts
+#if defined(_MSC_VER) && !defined(__clang__)
+  alignas(16) int8_t data[16] = {~0, 0, ~0, 0, ~0, 0, ~0, 0, ~0, 0, ~0, 0, ~0, 0, ~0, 0};
+#else
   int8_t __attribute__((aligned(16))) data[16] = {~0, 0, ~0, 0, ~0, 0, ~0, 0, ~0, 0, ~0, 0, ~0, 0, ~0, 0};
+#endif
   const int32x4_t mask = vld1q_s8(data);
 
 #define _mm_packus_epi16(a, b) \
@@ -361,7 +367,11 @@ FORCE_INLINE int32x4_t _mmw_transpose_epi8(int32x4_t v)
 
 FORCE_INLINE int32x4_t _mmw_setr_epi32(int32_t w, int32_t z, int32_t y, int32_t x)
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+  alignas(16) int32_t data[4] = {w, z, y, x};
+#else
   int32_t __attribute__((aligned(16))) data[4] = {w, z, y, x};
+#endif
   return vld1q_s32(data);
 }
 
@@ -396,7 +406,7 @@ typedef MaskedOcclusionCulling::pfnAlignedFree pfnAlignedFree;
 MaskedOcclusionCulling *CreateMaskedOcclusionCulling(pfnAlignedAlloc alignedAlloc, pfnAlignedFree alignedFree)
 {
   auto *object = (MaskedOcclusionCullingPrivate *)alignedAlloc(64, sizeof(MaskedOcclusionCullingPrivate));
-  new (object) MaskedOcclusionCullingPrivate(alignedAlloc, alignedFree);
+  new (object, _NEW_INPLACE) MaskedOcclusionCullingPrivate(alignedAlloc, alignedFree);
   return object;
 }
 } // namespace masked_occlusion_culling_neon

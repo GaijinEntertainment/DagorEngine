@@ -6,7 +6,7 @@ function foo() {}
 let func = foo()
 let leading = foo()
 
-let function _throttled(...){
+function _throttled(...){
   let doWait = curAction != null
   curAction = @() func.acall([null].extend(vargv))
   if (doWait) {

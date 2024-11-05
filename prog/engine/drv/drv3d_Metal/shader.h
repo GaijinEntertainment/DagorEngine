@@ -1,4 +1,4 @@
-
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #import <Metal/Metal.h>
@@ -47,7 +47,7 @@ public:
   VA va[16];
 
   int num_tex;
-  uint8_t tex_type[g_max_textures_in_shader];
+  EncodedMetalImageType tex_type[g_max_textures_in_shader];
   uint8_t tex_binding[g_max_textures_in_shader];
   uint8_t tex_remap[g_max_textures_in_shader];
 
@@ -60,6 +60,7 @@ public:
   uint8_t acceleration_structure_remap[BUFFER_POINT_COUNT];
   uint8_t acceleration_structure_binding[BUFFER_POINT_COUNT];
 
+  uint32_t output_mask = ~0u;
   uint64_t shader_hash = 0;
 
   Shader();

@@ -1,9 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "implementIEditorCore.h"
 #include <EditorCore/captureCursor.h>
-#include <EditorCore/ec_ObjectEditor.h>
 #include <EditorCore/ec_ObjectCreator.h>
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
 
@@ -125,6 +126,22 @@ int EcRender::setTextFont(int font_id, int font_kern) const { return StdGuiRende
 
 
 //==================================================================================================
+void EcRender::getFontAscentAndDescent(int &ascent, int &descent) const
+{
+  ascent = StdGuiRender::get_font_ascent();
+  descent = StdGuiRender::get_font_descent();
+}
+
+
+//==================================================================================================
+void EcRender::drawSolidRectangle(real left, real top, real right, real bottom, E3DCOLOR color) const
+{
+  StdGuiRender::set_color(color);
+  StdGuiRender::render_box(left, top, right, bottom);
+}
+
+
+//==================================================================================================
 void EcRender::renderLine(const Point3 &p0, const Point3 &p1, E3DCOLOR color) const { ::draw_cached_debug_line(p0, p1, color); }
 
 
@@ -166,6 +183,13 @@ void EcRender::renderXZCircle(const Point3 &center, real radius, E3DCOLOR col, i
 
 //==================================================================================================
 void EcRender::renderCapsuleW(const Capsule &cap, E3DCOLOR c) const { ::draw_debug_capsule_w(cap, c); }
+
+
+//==================================================================================================
+void EcRender::renderCylinder(const TMatrix &tm, float rad, float height, E3DCOLOR c) const
+{
+  ::draw_cached_debug_cylinder(tm, rad, height, c);
+}
 
 
 DebugPrimitivesVbuffer *EcRender::newDebugPrimitivesVbuffer(const char *name, IMemAlloc *alloc) const

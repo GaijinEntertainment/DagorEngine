@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <supp/_platform.h>
 #include <workCycle/dag_workCycle.h>
 #include <workCycle/dag_gameSettings.h>
@@ -65,9 +67,6 @@ static bool pump_messages(bool)
 void dagor_process_sys_messages(bool input_only)
 {
 #if _TARGET_PC_WIN | _TARGET_XBOX
-  if (workcycle_internal::inInternalWinLoop)
-    return;
-
   bool were_events = pump_messages(input_only);
 
   update_xbox_keyboard();

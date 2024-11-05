@@ -1,0 +1,1343 @@
+buffer bvh_meta;
+buffer bvh_per_instance_data;
+buffer bvh_particle_data;
+
+tlas bvh_main;
+tlas bvh_terrain;
+tlas bvh_particles;
+
+int bvh_textures_range_start = 0;
+int bvh_buffers_range_start = 0;
+int bvh_samplers_range_start = 0;
+
+float4 bvh_origin;
+
+float bvh_mip_range;
+float bvh_mip_scale;
+float bvh_mip_bias;
+
+float bvh_max_water_distance;
+float bvh_water_fade_power;
+
+int bvh_debug_value = 0;
+
+hlsl
+{
+  #define INF 1e6
+}
+
+macro INIT_MAIN_BVH(stage, coherent_rays, thirty_two_waves)
+  (stage)
+  {
+    bvh_debug_value@i1 = bvh_debug_value;
+    bvh_textures_range_start@i1 = bvh_textures_range_start;
+    bvh_buffers_range_start@i1 = bvh_buffers_range_start;
+    bvh_origin@f3 = bvh_origin;
+    bvh_mip_range@f1 = bvh_mip_range;
+    bvh_mip_scale@f1 = bvh_mip_scale;
+    bvh_mip_bias@f1 = bvh_mip_bias;
+    bvh_meta@buf = bvh_meta hlsl
+    {
+      struct BVHMeta
+      {
+        float4 materialData1;
+        float4 materialData2;
+        uint4 layerData;
+        uint materialType;
+        uint indexBitAndTexcoordFormat;
+        uint texcoordNormalColorOffsetAndVertexStride;
+        uint indexAndVertexBufferIndex;
+        uint albedoTextureAndSamplerIndex;
+        uint alphaTextureAndSamplerIndex;
+        uint normalTextureAndSamplerIndex;
+        uint extraTextureAndSamplerIndex;
+        uint startIndex;
+        uint startVertex;
+        float texcoordScale;
+        uint atlasTileSize;
+        uint atlasFirstLastTile;
+        uint vertexOffset;
+        uint pad1;
+        uint pad2;
+      };
+      StructuredBuffer<BVHMeta> bvh_meta@buf;
+    }
+    bvh_per_instance_data@buf = bvh_per_instance_data hlsl
+    {
+      StructuredBuffer<float4> bvh_per_instance_data@buf;
+    }
+
+    bvhMain@tlas = bvh_main;
+  }
+
+  hlsl(stage) {
+    BINDLESS_TEX_ARRAY(Texture2D, bvh_textures, 2);
+    BINDLESS_TEX_ARRAY(TextureCube, bvh_cube_textures, 3);
+    BINDLESS_BUF_ARRAY(ByteAddressBuffer, bvh_geometry, 4);
+    BINDLESS_SMP_ARRAY(SamplerState, bvh_samplers, 2);
+
+    #pragma hlsl2021
+
+    ##if hardware.scarlett
+      ##if thirty_two_waves
+        #pragma wave32
+        #define RT_GROUP_SIZE [numthreads(8, 4, 1)]
+        #define XDXR_TRAVERSAL_WAVE_SIZE 32
+      ##else
+        #pragma wave64
+        #define RT_GROUP_SIZE [numthreads(8, 8, 1)]
+        #define XDXR_TRAVERSAL_WAVE_SIZE 64
+      ##endif
+      #define AHSLambda : InlineAHSBaseLambda
+      #define GenericRayQuery(flags, lambda) XboxRayQuery<flags, lambda>
+      #if coherent_rays
+        #include "XDXRStandaloneTraverseHT.hlsli"
+      #else
+        #include "XDXRStandaloneTraverseShortStackNoMultibox.hlsli"
+      #endif
+    ##else
+      #define RT_GROUP_SIZE [numthreads(16, 8, 1)]
+      #define AHSLambda
+      #define GenericRayQuery(flags, lambda) RayQuery<flags>
+    ##endif
+
+    #define AHSArgs float3 ray_origin, float3 ray_direction, float ray_t, uint triangleIx, uint instanceId, uint instanceContributionToHitGroupIndex, float2 barycentrics2, float3x4 to_world, bool isFrontFace
+    #define ForwardAHSParams ray_origin, ray_direction, ray_t, triangleIx, instanceId, instanceContributionToHitGroupIndex, barycentrics2, to_world, isFrontFace
+    #define PassAHSParams query.WorldRayOrigin(),                               \
+                          query.WorldRayDirection(),                            \
+                          query.CandidateTriangleRayT(),                        \
+                          query.CandidatePrimitiveIndex(),                      \
+                          query.CandidateInstanceID(),                          \
+                          query.CandidateInstanceContributionToHitGroupIndex(), \
+                          query.CandidateTriangleBarycentrics(),                \
+                          query.CandidateObjectToWorld3x4(),                    \
+                          query.CandidateTriangleFrontFace()
+  }
+endmacro
+
+macro INIT_BVH(stage, coherent_rays, thirty_two_waves)
+  INIT_MAIN_BVH(stage, coherent_rays, thirty_two_waves)
+  (stage)
+  {
+    bvh_particle_data@buf = bvh_particle_data hlsl
+    {
+      #include "modfx/modfx_bvh.hlsli"
+      StructuredBuffer<ModfxBVHParticleData> bvh_particle_data@buf;
+    }
+    bvhTerrain@tlas = bvh_terrain;
+    bvhParticles@tlas = bvh_particles;
+  }
+endmacro
+
+macro USE_BVH_ATTRIBUTE_FUNCTIONS(stage)
+  hlsl(stage)
+  {
+    static const uint bvhAttributeFloat1 = 0 << 16;
+    static const uint bvhAttributeFloat2 = 1 << 16;
+    static const uint bvhAttributeFloat3 = 2 << 16;
+    static const uint bvhAttributeFloat4 = 3 << 16;
+
+    static const uint bvhAttributeColor = 4 << 16;
+
+    static const uint bvhAttributeShort2   = 6  << 16;
+    static const uint bvhAttributeShort4   = 7  << 16;
+    static const uint bvhAttributeShort2N  = 9  << 16;
+    static const uint bvhAttributeShort4N  = 10 << 16;
+    static const uint bvhAttributeUShort2N = 11 << 16;
+    static const uint bvhAttributeUShort4N = 12 << 16;
+
+    static const uint bvhAttributeShort2TC = 25 << 16;
+
+    int ShortToIntLow(uint u)
+    {
+      int result = asuint(u & 0xFFFF);
+      if (result & 0x8000)
+        result |= 0xFFFF0000;
+      return result;
+    }
+
+    int ShortToIntHigh(uint u)
+    {
+      int result = asuint(u >> 16);
+      if (result & 0x8000)
+        result |= 0xFFFF0000;
+      return result;
+    }
+
+    void LoadAttribute(ByteAddressBuffer vb, uint attributeBase, uint attributeFormat, out float2 attribute)
+    {
+      switch (attributeFormat)
+      {
+        case bvhAttributeFloat2:
+          attribute = asfloat(vb.Load2(attributeBase));
+          break;
+        case bvhAttributeShort2TC:
+          {
+            uint packed = vb.Load(attributeBase);
+            attribute.x = ShortToIntLow(packed) / 4096.0;
+            attribute.y = ShortToIntHigh(packed) / 4096.0;
+            break;
+          }
+          break;
+        case bvhAttributeShort2N:
+          {
+            uint packed = vb.Load(attributeBase);
+            attribute.x = ShortToIntLow(packed);
+            attribute.y = ShortToIntHigh(packed);
+            attribute = (attribute - 32767) / 32767.0;
+            break;
+          }
+          break;
+        case bvhAttributeUShort2N:
+          {
+            uint packed = vb.Load(attributeBase);
+            attribute = float2(packed & 0xFFFF, packed >> 16) / 65535.0;
+            break;
+          }
+          break;
+      }
+    }
+
+    void LoadAttribute(ByteAddressBuffer vb, uint attributeBase, uint attributeFormat, out float3 attribute)
+    {
+      switch (attributeFormat)
+      {
+        case bvhAttributeColor:
+          {
+            const uint4 INPUT_ENCODING_OFFSET = uint4(16, 8, 0, 24);
+
+            uint packed = vb.Load(attributeBase);
+            attribute = ((packed >> INPUT_ENCODING_OFFSET).xyz & 255) / 255.0;
+            break;
+          }
+          break;
+        case bvhAttributeFloat3:
+          attribute = asfloat(vb.Load3(attributeBase));
+          break;
+      }
+    }
+  }
+endmacro
+
+macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face, handle_translucent, first_hit, terrain_has_normal, gen_face_normal)
+  USE_BVH_ATTRIBUTE_FUNCTIONS(stage)
+  hlsl(stage)
+  {
+    static const uint bvhMaterialTerrain  = 0;
+    static const uint bvhMaterialRendinst = 1;
+    static const uint bvhMaterialInterior = 2;
+    static const uint bvhMaterialParticle = 3;
+
+    static const uint bvhMaterialAlphaTest = 1 << 16;
+    static const uint bvhMaterialPainted = 1 << 17;
+    static const uint bvhMaterialImpostor = 1 << 18;
+    static const uint bvhMaterialAtlas = 1 << 19;
+    static const uint bvhInstanceColor = 1 << 20;
+    static const uint bvhMaterialCamo = 1 << 21;
+    static const uint bvhMaterialLayered = 1 << 22;
+    static const uint bvhMaterialGrass = 1 << 23;
+
+    static const uint bvhMaterialTypeMask = (1 << 16) - 1;
+
+    static const uint bvhGroupTerrain   = 1 << 0;
+    static const uint bvhGroupRiGen     = 1 << 1;
+    static const uint bvhGroupRiExtra   = 1 << 2;
+    static const uint bvhGroupDynrend   = 1 << 3;
+    static const uint bvhGroupGrass     = 1 << 4;
+    static const uint bvhGroupImpostor  = 1 << 5;
+
+    static const uint bvhGroupAll = 0xff;
+
+    static const uint bvhGroupRender     = bvhGroupAll;
+    static const uint bvhGroupSoftShadow = bvhGroupAll & ~bvhGroupTerrain;
+    static const uint bvhGroupHardShadow = bvhGroupAll & ~bvhGroupTerrain & ~bvhGroupGrass;
+    static const uint bvhGroupAO         = bvhGroupAll;
+
+    struct LayerData
+    {
+      float2 maskGamma;
+      float3 maskTile;
+      float4 detailTile;
+      float  objectScale;
+    };
+
+    uint get_material_type(uint material)
+    {
+      return material & bvhMaterialTypeMask;
+    }
+    bool has_material_painted(uint material)
+    {
+      return material & bvhMaterialPainted;
+    }
+    bool is_impostor(uint material)
+    {
+      return material & bvhMaterialImpostor;
+    }
+    bool is_atlas(uint material)
+    {
+      return material & bvhMaterialAtlas;
+    }
+    bool is_camo(uint material)
+    {
+      return material & bvhMaterialCamo;
+    }
+    bool is_layered(uint material)
+    {
+      return material & bvhMaterialLayered;
+    }
+    bool is_grass(uint material)
+    {
+      return material & bvhMaterialGrass;
+    }
+    bool has_second_texcoord(uint material)
+    {
+      return is_camo(material) || is_layered(material);
+    }
+    bool has_instance_color(uint material)
+    {
+      return material & bvhInstanceColor;
+    }
+    uint get_vertex_offset(BVHMeta meta)
+    {
+      return meta.vertexOffset;
+    }
+    uint get_texcoord_offset(BVHMeta meta)
+    {
+      return meta.texcoordNormalColorOffsetAndVertexStride >> 24;
+    }
+    uint get_sec_texcoord_offset(BVHMeta meta)
+    {
+      return is_layered(meta.materialType) ? meta.texcoordScale + 0.5f : meta.atlasTileSize;
+    }
+    uint get_texcoord_format(BVHMeta meta)
+    {
+      return meta.indexBitAndTexcoordFormat & 0x7FFFFFFFU;
+    }
+    uint get_normal_offset(BVHMeta meta)
+    {
+      return (meta.texcoordNormalColorOffsetAndVertexStride >> 16) & 0xFF;
+    }
+    uint get_color_offset(BVHMeta meta)
+    {
+      return (meta.texcoordNormalColorOffsetAndVertexStride >> 8) & 0xFF;
+    }
+    uint get_vertex_stride(BVHMeta meta)
+    {
+      return meta.texcoordNormalColorOffsetAndVertexStride & 255;
+    }
+    uint get_index_buffer_index(BVHMeta meta)
+    {
+      return meta.indexAndVertexBufferIndex >> 16;
+    }
+    uint get_vertex_buffer_index(BVHMeta meta)
+    {
+      return meta.indexAndVertexBufferIndex & 0xFFFF;
+    }
+    uint get_index_format(BVHMeta meta)
+    {
+      // 2 or 4 if the MSB is set
+      return (meta.indexBitAndTexcoordFormat >> 31) * 2 + 2;
+    }
+    uint get_texture_index(uint packed, out uint sampler_index)
+    {
+      sampler_index = packed & 0xFFFF;
+      return packed >> 16;
+    }
+    uint get_albedo_texture_index(BVHMeta meta, out uint sampler_index)
+    {
+      return get_texture_index(meta.albedoTextureAndSamplerIndex, sampler_index);
+    }
+    uint get_alpha_texture_index(BVHMeta meta, out uint sampler_index)
+    {
+      return get_texture_index(meta.alphaTextureAndSamplerIndex, sampler_index);
+    }
+    uint get_normal_texture_index(BVHMeta meta, out uint sampler_index)
+    {
+      return get_texture_index(meta.normalTextureAndSamplerIndex, sampler_index);
+    }
+    uint get_extra_texture_index(BVHMeta meta, out uint sampler_index)
+    {
+      return get_texture_index(meta.extraTextureAndSamplerIndex, sampler_index);
+    }
+    float get_texcoord_scale(BVHMeta meta)
+    {
+      return is_layered(meta.materialType) ? 1 : meta.texcoordScale;
+    }
+    LayerData get_layer_data(BVHMeta meta, float3x4 to_world)
+    {
+      float gs = f16tof32(meta.layerData.x);
+      float ge = f16tof32(meta.layerData.x >> 16);
+
+      float mu = f16tof32(meta.layerData.y);
+      float mv = f16tof32(meta.layerData.y >> 16);
+
+      float3 ay = to_world[1].xyz;
+      float3 az = to_world[2].xyz;
+
+      LayerData data;
+      data.maskGamma.x = ge - gs - 0.001f;
+      data.maskGamma.y = gs + 0.001f;
+      data.maskTile.x = abs(mu);
+      data.maskTile.y = mv;
+      data.maskTile.z = mu;
+      data.detailTile.x = f16tof32(meta.layerData.z);
+      data.detailTile.y = f16tof32(meta.layerData.z >> 16);
+      data.detailTile.z = f16tof32(meta.layerData.w);
+      data.detailTile.w = f16tof32(meta.layerData.w >> 16);
+      data.objectScale = max(sqrt(0.5 * (dot(ay, ay) + dot(az, az))), 1);
+      return data;
+    }
+
+    struct HitInfo
+    {
+      float t;
+
+      float3 centerWorldPos;
+
+      float3 position;
+      float2 texcoord;
+      float2 secTexcoord;
+      half3 normal;
+      half3 color;
+
+      uint material;
+
+      half translucency;
+
+      float4 materialData1;
+      float4 materialData2;
+
+      float4 perInstanceData;
+
+      uint albedoTextureIndex;
+      uint alphaTextureIndex;
+      uint normalTextureIndex;
+      uint extraTextureIndex;
+
+      uint albedoSamplerIndex;
+      uint alphaSamplerIndex;
+      uint normalSamplerIndex;
+      uint extraSamplerIndex;
+
+      uint hashVal;
+
+      bool isImpostor;
+      bool isCamo;
+      bool isLayered;
+      bool isGrass;
+
+      uint4 rawLayerData;
+
+      LayerData layerData;
+    };
+
+    bool IsAlphaGreaterThan(HitInfo hit_info, float mip_level, float treshold)
+    {
+      float alpha;
+
+      [branch]
+      if (hit_info.alphaTextureIndex == 0xFFFF)
+        alpha = bvh_textures[bvh_textures_range_start + hit_info.albedoTextureIndex].SampleLevel(bvh_samplers[hit_info.albedoSamplerIndex], hit_info.texcoord, mip_level).a;
+      else
+        alpha = bvh_textures[bvh_textures_range_start + hit_info.alphaTextureIndex].SampleLevel(bvh_samplers[hit_info.alphaSamplerIndex], hit_info.texcoord, mip_level).r;
+
+      return alpha > treshold;
+    }
+
+    uint3 LoadIndices(ByteAddressBuffer ib, uint ibBase, uint indexFormat)
+    {
+      uint3 indices;
+      if (indexFormat == 2)
+      {
+        if ((ibBase & 3) == 0)
+        {
+          // Aligned for 4-byte
+          uint2 packedIndices = ib.Load2(ibBase);
+          indices.x = packedIndices.x & 0xFFFF;
+          indices.y = packedIndices.x >> 16;
+          indices.z = packedIndices.y & 0xFFFF;
+        }
+        else
+        {
+          // Aligned for 2-byte
+          uint2 packedIndices = ib.Load2(ibBase - 2);
+          indices.x = packedIndices.x >> 16;
+          indices.y = packedIndices.y & 0xFFFF;
+          indices.z = packedIndices.y >> 16;
+        }
+      }
+      else
+      {
+        indices = ib.Load3(ibBase);
+      }
+      return indices;
+    }
+
+    // This function is tailored for collision geometry. Everything else should have its own normal precalculated.
+    float3 calc_face_normal(ByteAddressBuffer vb, uint stride, uint vb_base, uint3 indices)
+    {
+      float3 positions[ 3 ];
+
+      uint2 packed;
+      packed = vb.Load2(vb_base + indices.x * stride);
+      positions[ 0 ] = float3(f16tof32(packed.x), f16tof32(packed.x >> 16), f16tof32(packed.y));
+      packed = vb.Load2(vb_base + indices.y * stride);
+      positions[ 1 ] = float3(f16tof32(packed.x), f16tof32(packed.x >> 16), f16tof32(packed.y));
+      packed = vb.Load2(vb_base + indices.z * stride);
+      positions[ 2 ] = float3(f16tof32(packed.x), f16tof32(packed.x >> 16), f16tof32(packed.y));
+
+      float3 e1 = positions[ 1 ] - positions[ 0 ];
+      float3 e2 = positions[ 2 ] - positions[ 0 ];
+      return normalize(cross(e1, e2));
+    }
+
+    float calc_mip_level(float d, bool for_atest = false)
+    {
+      return bvh_mip_bias + saturate(sqrt(d / bvh_mip_range)) * bvh_mip_scale * (for_atest ? 0.5 : 1);
+    }
+
+    HitInfo CalcHitInfo( float3 ray_origin, float3 ray_direction, float ray_t, uint triangleIx, uint instanceId, uint instanceContributionToHitGroupIndex, float2 barycentrics2, float3x4 to_world, bool isFrontFace, half3 defaultColor )
+    {
+      HitInfo hitInfo = (HitInfo)0;
+
+      hitInfo.t = ray_t;
+      hitInfo.position = ray_origin + ray_direction * ray_t;
+
+      hitInfo.centerWorldPos = to_world._14_24_34 + bvh_origin;
+
+      // The instance ID is 24 bits.
+      // The most significant bit tells if the instance has translucency.
+      // If it has, the next 8 bits are the translucency value
+      bool hasTranslucency = instanceId >> 23;
+      uint translucency = hasTranslucency ? ((instanceId >> 15) & 0xFF) : 0;
+      instanceId = hasTranslucency ? (instanceId & 0x7FFF) : instanceId;
+
+      BVHMeta meta = bvh_meta[ instanceId ];
+      hitInfo.material = meta.materialType;
+      hitInfo.albedoTextureIndex = get_albedo_texture_index(meta, hitInfo.albedoSamplerIndex);
+      hitInfo.alphaTextureIndex = get_alpha_texture_index(meta, hitInfo.alphaSamplerIndex);
+      hitInfo.normalTextureIndex = get_normal_texture_index(meta, hitInfo.normalSamplerIndex);
+      hitInfo.extraTextureIndex = get_extra_texture_index(meta, hitInfo.extraSamplerIndex);
+      hitInfo.translucency = half(translucency / 255.0);
+      hitInfo.materialData1 = meta.materialData1;
+      hitInfo.materialData2 = meta.materialData2;
+      hitInfo.isImpostor = is_impostor(meta.materialType);
+      hitInfo.isCamo = is_camo(meta.materialType);
+      hitInfo.isLayered = is_layered(meta.materialType);
+      hitInfo.isGrass = is_grass(meta.materialType);
+      hitInfo.perInstanceData = bvh_per_instance_data[instanceContributionToHitGroupIndex];
+      hitInfo.rawLayerData = meta.layerData;
+
+      if (hitInfo.isLayered)
+        hitInfo.layerData = get_layer_data(meta, to_world);
+
+      if (instanceContributionToHitGroupIndex && all(hitInfo.perInstanceData.yzw == float3(80, 7, 14)))
+        hitInfo.albedoTextureIndex = get_texture_index(asuint(hitInfo.perInstanceData.x), hitInfo.albedoSamplerIndex);
+
+      if (get_material_type(meta.materialType) == bvhMaterialTerrain)
+      {
+        hitInfo.texcoord = 0;
+        hitInfo.color = 1;
+
+        #if terrain_has_normal
+          float3 normals[3];
+
+          uint ibSlotIndex = get_index_buffer_index(meta);
+          uint vbSlotIndex = get_vertex_buffer_index(meta);
+
+          ByteAddressBuffer vb = bvh_geometry[bvh_buffers_range_start + vbSlotIndex];
+          ByteAddressBuffer ib = bvh_geometry[bvh_buffers_range_start + ibSlotIndex];
+
+          uint vertexStride = 16; // float3 + uint
+
+          uint ibBase = triangleIx * 6;
+          uint3 indices = LoadIndices(ib, ibBase, 2);
+
+          uint vbBase = 12; // float3
+
+          LoadAttribute(vb, vbBase + indices.x * vertexStride, bvhAttributeColor, normals[0]);
+          LoadAttribute(vb, vbBase + indices.y * vertexStride, bvhAttributeColor, normals[1]);
+          LoadAttribute(vb, vbBase + indices.z * vertexStride, bvhAttributeColor, normals[2]);
+
+          half3 barycentrics = half3( 1.0 - barycentrics2.x - barycentrics2.y, barycentrics2.x, barycentrics2.y );
+
+          hitInfo.normal = half3( normals[0] * barycentrics.x
+                                + normals[1] * barycentrics.y
+                                + normals[2] * barycentrics.z );
+          hitInfo.normal = normalize(hitInfo.normal * 2 - 1);
+          hitInfo.normal = isFrontFace ? hitInfo.normal : -hitInfo.normal;
+        #endif
+      }
+      else
+      {
+        uint ibSlotIndex = get_index_buffer_index(meta);
+        uint vbSlotIndex = get_vertex_buffer_index(meta);
+
+        ByteAddressBuffer vb = bvh_geometry[bvh_buffers_range_start + vbSlotIndex];
+
+        uint vertexStride = get_vertex_stride(meta);
+
+        uint3 indices;
+
+        if (ibSlotIndex == 0xFFFF)
+        {
+          indices.x = triangleIx * 3 + 0;
+          indices.y = triangleIx * 3 + 1;
+          indices.z = triangleIx * 3 + 2;
+        }
+        else
+        {
+          ByteAddressBuffer ib = bvh_geometry[bvh_buffers_range_start + ibSlotIndex];
+          uint indexFormat = get_index_format(meta);
+          uint ibBase = (meta.startIndex + triangleIx * 3) * indexFormat;
+
+          indices = LoadIndices(ib, ibBase, indexFormat);
+        }
+
+        float3 barycentrics = float3( 1.0 - barycentrics2.x - barycentrics2.y, barycentrics2.x, barycentrics2.y );
+
+        #if need_textures
+          if (get_texcoord_offset(meta) != 255)
+          {
+            float2 texcoords[3];
+            uint texcoordFormat = get_texcoord_format(meta);
+            uint vbBase = get_vertex_offset(meta) + meta.startVertex * vertexStride + get_texcoord_offset(meta);
+            LoadAttribute(vb, vbBase + indices.x * vertexStride, texcoordFormat, texcoords[0]);
+            LoadAttribute(vb, vbBase + indices.y * vertexStride, texcoordFormat, texcoords[1]);
+            LoadAttribute(vb, vbBase + indices.z * vertexStride, texcoordFormat, texcoords[2]);
+
+            hitInfo.texcoord = texcoords[ 0 ] * barycentrics.x
+                             + texcoords[ 1 ] * barycentrics.y
+                             + texcoords[ 2 ] * barycentrics.z;
+            hitInfo.texcoord *= get_texcoord_scale(meta);
+
+            if (is_atlas(meta.materialType))
+            {
+              float4 atlasParams = float4(f16tof32(meta.atlasTileSize), f16tof32(meta.atlasTileSize >> 16), meta.atlasFirstLastTile & 0xFFFFU, meta.atlasFirstLastTile >> 16);
+              float2 uv_inside_tile = frac(hitInfo.texcoord / atlasParams.xy) * atlasParams.xy;
+              float obj_unique_index = floor(dot(hitInfo.centerWorldPos.xz, hitInfo.centerWorldPos.xz));
+              float tile_i = atlasParams.z + fmod(obj_unique_index, atlasParams.w);
+              float row_i = floor(tile_i * atlasParams.x);
+              float coll_i = tile_i - row_i / atlasParams.x;
+              float2 tile_ij = float2(coll_i, row_i) * atlasParams.xy;
+              hitInfo.texcoord = tile_ij + uv_inside_tile;
+            }
+
+            if (has_second_texcoord(meta.materialType))
+            {
+              uint vbBase = get_vertex_offset(meta) + meta.startVertex * vertexStride + get_sec_texcoord_offset(meta);
+              LoadAttribute(vb, vbBase + indices.x * vertexStride, texcoordFormat, texcoords[0]);
+              LoadAttribute(vb, vbBase + indices.y * vertexStride, texcoordFormat, texcoords[1]);
+              LoadAttribute(vb, vbBase + indices.z * vertexStride, texcoordFormat, texcoords[2]);
+
+              hitInfo.secTexcoord = texcoords[ 0 ] * barycentrics.x
+                                  + texcoords[ 1 ] * barycentrics.y
+                                  + texcoords[ 2 ] * barycentrics.z;
+              hitInfo.secTexcoord *= get_texcoord_scale(meta);
+            }
+            else
+              hitInfo.secTexcoord = 0;
+          }
+          else
+          {
+            hitInfo.texcoord = 0;
+            hitInfo.secTexcoord = 0;
+          }
+        #endif
+
+        #if need_normal
+          if (get_normal_offset(meta) == 255)
+          {
+            #if gen_face_normal
+              uint vbBase = get_vertex_offset(meta) + meta.startVertex * vertexStride;
+              float3 normal = calc_face_normal(vb, vertexStride, vbBase, indices);
+              hitInfo.normal = (half3)normalize(mul((float3x3) to_world, normal));
+              hitInfo.normal = isFrontFace ? hitInfo.normal : -hitInfo.normal;
+            #else
+              hitInfo.normal = half3(0, 1, 0);
+            #endif
+          }
+          else
+          {
+            float3 normals[3];
+            uint vbBase = get_vertex_offset(meta) + meta.startVertex * vertexStride + get_normal_offset(meta);
+            LoadAttribute(vb, vbBase + indices.x * vertexStride, bvhAttributeColor, normals[0]);
+            LoadAttribute(vb, vbBase + indices.y * vertexStride, bvhAttributeColor, normals[1]);
+            LoadAttribute(vb, vbBase + indices.z * vertexStride, bvhAttributeColor, normals[2]);
+
+            float3 normal = normals[ 0 ] * barycentrics.x
+                          + normals[ 1 ] * barycentrics.y
+                          + normals[ 2 ] * barycentrics.z;
+            hitInfo.normal = (half3)normalize(mul((float3x3)to_world, normal * 2 - 1));
+            if (hitInfo.isImpostor)
+              hitInfo.normal.xz = isFrontFace ? hitInfo.normal.xz : -hitInfo.normal.xz;
+            else
+              hitInfo.normal = isFrontFace ? hitInfo.normal : -hitInfo.normal;
+          }
+        #endif
+
+        if ((need_color || hitInfo.isImpostor) && get_color_offset(meta) != 255)
+        {
+          float3 colors[3];
+          uint vbBase = get_vertex_offset(meta) + meta.startVertex * vertexStride + get_color_offset(meta);
+          uint colorFormat = hitInfo.isImpostor ? bvhAttributeFloat3 : bvhAttributeColor;
+          LoadAttribute(vb, vbBase + indices.x * vertexStride, colorFormat, colors[0]);
+          LoadAttribute(vb, vbBase + indices.y * vertexStride, colorFormat, colors[1]);
+          LoadAttribute(vb, vbBase + indices.z * vertexStride, colorFormat, colors[2]);
+
+          hitInfo.color = half3( colors[ 0 ] * barycentrics.x
+                               + colors[ 1 ] * barycentrics.y
+                               + colors[ 2 ] * barycentrics.z );
+
+          if (hitInfo.isImpostor)
+          {
+            hitInfo.materialData1.rgb = hitInfo.color;
+            hitInfo.color = defaultColor;
+          }
+
+        }
+        else
+          hitInfo.color = defaultColor;
+
+        if (has_instance_color(hitInfo.material))
+        {
+          hitInfo.color = half3(hitInfo.perInstanceData.rgb);
+          hitInfo.color = pow(hitInfo.color * 4, 2.2);
+        }
+      }
+
+      return hitInfo;
+    }
+
+    bool need_clip_impostor(float2 uv, float4 slice_lines)
+    {
+      if (any(or(uv.xy < 0, uv.xy > 1)))
+        return true;
+
+      float2 xClipping = slice_lines.xy * uv.y + slice_lines.zw;
+      float2 clippingInfo = float2(2 * uv.x - (xClipping.y + xClipping.x), xClipping.y - xClipping.x);
+
+      return abs(clippingInfo.x) > abs(clippingInfo.y);
+    }
+
+    bool need_clip_impostor(float2 clipping_info)
+    {
+      return abs(clipping_info.x) > abs(clipping_info.y);
+    }
+
+    bool need_clip_impostor(HitInfo hitInfo)
+    {
+      if (!hitInfo.isImpostor)
+        return false;
+
+      float4 sliceData = float4(hitInfo.texcoord, hitInfo.materialData1.rg);
+      return need_clip_impostor(sliceData.zw) || any(or(sliceData.xy < 0, sliceData.xy > 1));
+    }
+
+    struct IsObstructedAHSLambda AHSLambda
+    {
+      float primaryT;
+      half3 defaultColor;
+
+      bool InlineAHSImpl(AHSArgs)
+      {
+        HitInfo hitInfo = CalcHitInfo(ForwardAHSParams, defaultColor);
+
+        [branch]
+        if (need_clip_impostor(hitInfo))
+          return false;
+
+        [branch]
+        if (IsAlphaGreaterThan(hitInfo, calc_mip_level(primaryT + hitInfo.t, true), 0.5))
+          return true;
+
+        return false;
+      }
+
+      ##if hardware.scarlett
+        void InlineAHS(inout XboxRayQueryProxy query)
+        {
+          if (InlineAHSImpl(PassAHSParams))
+            query.CommitNonOpaqueTriangleHit();
+        }
+      ##endif
+    };
+
+    bool is_obstructed(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, uint group_mask, half3 defaultColor = 1)
+    {
+      const uint flags = RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_CULL_BACK_FACING_TRIANGLES | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES;
+
+      GenericRayQuery(flags, IsObstructedAHSLambda) query;
+
+      RayDesc ray;
+      ray.Origin    = ray_origin;
+      ray.Direction = ray_direction;
+      ray.TMin      = ray_min;
+      ray.TMax      = ray_max;
+
+      query.TraceRayInline(bvh, flags, group_mask, ray);
+
+      IsObstructedAHSLambda lambda;
+      lambda.primaryT = primaryT;
+      lambda.defaultColor = defaultColor;
+
+      ##if hardware.scarlett
+        query.Proceed(lambda);
+      ##else
+        while (query.Proceed())
+        {
+          // Can only be CANDIDATE_NON_OPAQUE_TRIANGLE
+          if (lambda.InlineAHSImpl(PassAHSParams))
+            query.CommitNonOpaqueTriangleHit();
+        }
+      ##endif
+
+      return query.CommittedStatus() == COMMITTED_TRIANGLE_HIT;
+    }
+
+    struct TraceRayAHSLambda AHSLambda
+    {
+      float primaryT;
+      half3 rayColor;
+      half3 defaultColor;
+      float translucentT;
+
+      bool InlineAHSImpl(AHSArgs)
+      {
+        #if handle_translucent
+          HitInfo hitInfo = CalcHitInfo(ForwardAHSParams, defaultColor);
+
+          [branch]
+          if (need_clip_impostor(hitInfo))
+            return false;
+
+          [branch]
+          if (IsAlphaGreaterThan(hitInfo, calc_mip_level(primaryT + hitInfo.t, true), 0.5))
+          {
+            if (hitInfo.translucency > 0)
+            {
+              translucentT = max(translucentT, ray_t);
+              rayColor = lerp(0, rayColor, hitInfo.translucency);
+            }
+            else
+              return true;
+          }
+        #endif
+        return false;
+      }
+
+      ##if hardware.scarlett
+        void InlineAHS(inout XboxRayQueryProxy query)
+        {
+          if (InlineAHSImpl(PassAHSParams))
+            query.CommitNonOpaqueTriangleHit();
+        }
+      ##endif
+    };
+
+    bool trace_ray(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, uint group_mask, out HitInfo hit_info, out half3 ray_color, out float translucent_t, half3 defaultColor = 1, uint extra_flags = 0)
+    {
+      hit_info = (HitInfo)0;
+
+      const uint flags = RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES
+                       | (handle_translucent ? RAY_FLAG_NONE : RAY_FLAG_FORCE_OPAQUE)
+                       | (first_hit ? RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH : RAY_FLAG_NONE)
+                       | (cull_back_face ? RAY_FLAG_CULL_BACK_FACING_TRIANGLES : RAY_FLAG_NONE);
+
+      GenericRayQuery(flags, TraceRayAHSLambda) query;
+
+      RayDesc ray;
+      ray.Origin    = ray_origin;
+      ray.Direction = ray_direction;
+      ray.TMin      = ray_min;
+      ray.TMax      = ray_max;
+
+      translucent_t = 0;
+      ray_color = 1;
+
+      query.TraceRayInline(bvh, flags | extra_flags, group_mask, ray);
+
+      TraceRayAHSLambda lambda;
+      lambda.primaryT = primaryT;
+      lambda.rayColor = ray_color;
+      lambda.translucentT = translucent_t;
+      lambda.defaultColor = defaultColor;
+      ##if hardware.scarlett
+        query.Proceed(lambda);
+      ##else
+        while (query.Proceed())
+        {
+          // Can only be CANDIDATE_NON_OPAQUE_TRIANGLE
+          if (lambda.InlineAHSImpl(PassAHSParams))
+            query.CommitNonOpaqueTriangleHit();
+        }
+      ##endif
+
+      ray_color = lambda.rayColor;
+      translucent_t = lambda.translucentT;
+
+      if (query.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+      {
+        hit_info = CalcHitInfo(query.WorldRayOrigin(),
+                               query.WorldRayDirection(),
+                               query.CommittedRayT(),
+                               query.CommittedPrimitiveIndex(),
+                               query.CommittedInstanceID(),
+                               query.CommittedInstanceContributionToHitGroupIndex(),
+                               query.CommittedTriangleBarycentrics(),
+                               query.CommittedObjectToWorld3x4(),
+                               query.CommittedTriangleFrontFace(),
+                               defaultColor);
+        ray_color = 0;
+        return true;
+      }
+
+      hit_info.t = INF;
+      return false;
+    }
+
+    bool trace_ray(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, uint group_mask, out HitInfo hit_info, half3 defaultColor = 1)
+    {
+      half3 rayColor;
+      float translucentT;
+      return trace_ray(bvh, ray_origin, ray_direction, ray_min, ray_max, primaryT, group_mask, hit_info, rayColor, translucentT, defaultColor);
+    }
+  }
+endmacro
+
+macro USE_PARTICLE_BVH(stage)
+  hlsl(stage)
+  {
+    HitInfo CalcParticleHitInfo( float3 ray_origin, float3 ray_direction, float ray_t, uint triangleIx, uint instanceId, uint instanceContributionToHitGroupIndex, float2 barycentrics2, float3x4 to_world, bool isFrontFace )
+    {
+      HitInfo hitInfo = (HitInfo)0;
+
+      hitInfo.t = ray_t;
+      hitInfo.position = ray_origin + ray_direction * ray_t;
+
+      hitInfo.centerWorldPos = to_world._14_24_34 + bvh_origin;
+
+      BVHMeta meta = bvh_meta[ instanceId ];
+      hitInfo.material = meta.materialType;
+      hitInfo.albedoTextureIndex = get_albedo_texture_index(meta, hitInfo.albedoSamplerIndex);
+
+      // For particles, the instanceContributionToHitGroupIndex is the particle data index
+      hitInfo.normalSamplerIndex = instanceContributionToHitGroupIndex;
+      ModfxBVHParticleData pd = structuredBufferAt(bvh_particle_data, instanceContributionToHitGroupIndex);
+
+      hitInfo.color = half3(pd.color.xyz);
+      hitInfo.translucency = half(1 - pd.color.w);
+
+      uint ibSlotIndex = get_index_buffer_index(meta);
+      uint vbSlotIndex = get_vertex_buffer_index(meta);
+
+      ByteAddressBuffer vb = bvh_geometry[bvh_buffers_range_start + vbSlotIndex];
+      ByteAddressBuffer ib = bvh_geometry[bvh_buffers_range_start + ibSlotIndex];
+
+      uint indexFormat = get_index_format(meta);
+      uint ibBase = (meta.startIndex + triangleIx * 3) * indexFormat;
+
+      uint3 indices = LoadIndices(ib, ibBase, indexFormat);
+
+      float3 barycentrics = float3( 1.0 - barycentrics2.x - barycentrics2.y, barycentrics2.x, barycentrics2.y );
+
+      uint vertexStride = get_vertex_stride(meta);
+
+      float2 texcoords[3];
+      uint texcoordFormat = get_texcoord_format(meta);
+      uint vbBase = meta.startVertex * vertexStride + get_texcoord_offset(meta);
+      LoadAttribute(vb, vbBase + indices.x * vertexStride, texcoordFormat, texcoords[0]);
+      LoadAttribute(vb, vbBase + indices.y * vertexStride, texcoordFormat, texcoords[1]);
+      LoadAttribute(vb, vbBase + indices.z * vertexStride, texcoordFormat, texcoords[2]);
+
+      hitInfo.texcoord = texcoords[ 0 ] * barycentrics.x
+                       + texcoords[ 1 ] * barycentrics.y
+                       + texcoords[ 2 ] * barycentrics.z;
+
+      hitInfo.materialData1.zw = hitInfo.texcoord;
+      hitInfo.materialData1.w  = 1 - hitInfo.materialData1.w;
+
+
+      // The second frame UV for frame blend
+      float2 t = lerp(pd.texcoord3.zw, pd.texcoord2.zw, hitInfo.texcoord.x);
+      float2 b = lerp(pd.texcoord0.zw, pd.texcoord1.zw, hitInfo.texcoord.x);
+      hitInfo.materialData1.xy = lerp(t, b, hitInfo.texcoord.y);
+
+      // The first frame UV for frame blend
+      t = lerp(pd.texcoord3.xy, pd.texcoord2.xy, hitInfo.texcoord.x);
+      b = lerp(pd.texcoord0.xy, pd.texcoord1.xy, hitInfo.texcoord.x);
+      hitInfo.texcoord = lerp(t, b, hitInfo.texcoord.y);
+
+      return hitInfo;
+    }
+  }
+endmacro
+
+macro USE_BVH(stage, need_textures, need_normal, need_color, cull_back_face, handle_translucent, first_hit, terrain_has_normal, gen_face_normal)
+  USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face, handle_translucent, first_hit, terrain_has_normal, gen_face_normal)
+  USE_PARTICLE_BVH(stage)
+endmacro
+
+macro USE_BVH_FX_RENDER(stage)
+  hlsl(stage) {
+    float wboit_weight(float z, float a)
+    {
+      // https://jcgt.org/published/0002/02/09/paper.pdf
+      //return a * max(pow(10.f, -2.f), min(3*pow(10.f, 3.f), 10.f / (pow(10.f, -5.f) + pow(abs(z)/5.f, 2.f) + pow(abs(z)/200.f, 6.f))));
+      return a * max(0.00001, min(1000.f, 10.f / (1e-05 + pow((z)/5.f, 2.f) + pow((z)/200.f, 6.f))));
+    }
+
+    half3 calc_particle_color(half4 texel, HitInfo hit_info, ModfxBVHParticleData pd, half alpha, half vol_alpha)
+    {
+      #define MODFX_LIGHTING_TYPE_UNIFORM 0
+      #define MODFX_LIGHTING_TYPE_DISC 1
+      #define MODFX_LIGHTING_TYPE_SPHERE 2
+      #define MODFX_LIGHTING_TYPE_NORMALMAP 3
+
+      half3 emissive_part;
+      half3 lighting_part;
+      if (pd.flags & UseColorMatrix)
+      {
+        float4 c;
+        c.r = dot(texel, pd.color_matrix_r);
+        c.g = dot(texel, pd.color_matrix_g);
+        c.b = dot(texel, pd.color_matrix_b);
+        c.a = dot(texel, pd.color_matrix_a);
+
+        texel = half4(saturate(c));
+      }
+
+      if (pd.flags & UseColorRemap)
+      {
+        // TODO: color remap
+        half3 c = texel.ggg * hit_info.color;
+        emissive_part = c * half(pd.emission.g);
+        lighting_part = half(saturate(1.f - pd.emission.g)) * c;
+      }
+      else
+      {
+        half3 c = texel.rgb * hit_info.color;
+        emissive_part = c * half3(pd.emission.rgb);
+        lighting_part = c;
+      }
+
+      lighting_part *= vol_alpha;
+      emissive_part *= vol_alpha;
+
+      if (pd.flags & UseLighting)
+      {
+        half3 fwd_dir = half3(cross(pd.upDir, pd.rightDir));
+
+        half ndl;
+        half3 wnorm = 0;
+        if ( pd.lighting_type == MODFX_LIGHTING_TYPE_UNIFORM )
+          wnorm = half3( 0, 1, 0 );
+        else if ( pd.lighting_type == MODFX_LIGHTING_TYPE_DISC || pd.lighting_type == MODFX_LIGHTING_TYPE_NORMALMAP )
+          wnorm = fwd_dir;
+        else if ( pd.lighting_type == MODFX_LIGHTING_TYPE_SPHERE )
+        {
+          float2 delta = hit_info.materialData1.zw;
+          delta = float2(delta.x - 0.5, -delta.y + 0.5) * 2.f;
+
+          half3 sphere_normal;
+          sphere_normal.xy = half2(delta / pd.sphere_normal_radius);
+          sphere_normal.z = sqrt( half(pd.sphere_normal_radius * pd.sphere_normal_radius) - dot( sphere_normal.xy, sphere_normal.xy ) );
+          sphere_normal.y = -sphere_normal.y;
+          sphere_normal = lerp( half3( 0, 0, 1 ), sphere_normal, half(pd.sphere_normal_power) );
+          sphere_normal = normalize( sphere_normal );
+          sphere_normal = fwd_dir * sphere_normal.z + half3(pd.rightDir) * sphere_normal.x + half3(pd.upDir) * sphere_normal.y;
+
+          wnorm = sphere_normal;
+        }
+
+        ndl = saturate( dot( half3(-from_sun_direction.xyz), wnorm ) );
+
+        half specular = 0;
+        //if ( FLAG_ENABLED( flags, MODFX_RFLAG_LIGHTING_SPECULART_ENABLED ) )
+        //{
+        //  float3 h = normalize( input.view_dir - gdata.from_sun_direction );
+        //  float ndh = saturate( dot( wnorm, h ) );
+        //  specular = pow( ndh, pp.specular_power ) * ( pp.specular_strength / 255.f );
+        //}
+
+        ndl = ndl * ( 1.0 - half(pd.sphere_normal_softness) ) + half(pd.sphere_normal_softness);
+        ndl = lerp( ndl, 1.h, saturate( dot( half3(from_sun_direction.xyz), fwd_dir ) ) * half(pd.lighting_translucency) );
+
+        half3 lighting = ndl * half3(sun_color_0.rgb) * half(pd.shadow) + half3(pd.ambient) + half3(pd.lighting.rgb);
+
+        lighting_part *= lighting;
+        lighting_part += specular * half3(sun_color_0.rgb) * alpha;
+      }
+
+      return lighting_part + emissive_part;
+    }
+
+    struct TraceRayFxTranslucentAHSLambda AHSLambda
+    {
+      static const uint maxColorCount = 8;
+
+      bool clipColor;
+      float primaryT;
+      float rayMax;
+      float alphas[maxColorCount];
+      float distances[maxColorCount];
+      uint cursor;
+
+      float4 resultColor;
+      float3 defaultColor;
+      float resultAlpha;
+
+      void InlineAHSImpl(AHSArgs)
+      {
+        // This can only be a particle
+        if (ray_t >= rayMax)
+          return;
+
+        HitInfo hitInfo = CalcParticleHitInfo(ForwardAHSParams);
+
+        ModfxBVHParticleData pd = structuredBufferAt(bvh_particle_data, hitInfo.normalSamplerIndex);
+
+        float mipLevel = calc_mip_level(primaryT + hitInfo.t);
+
+        float4 texel1 = bvh_textures[bvh_textures_range_start + hitInfo.albedoTextureIndex].SampleLevel(bvh_samplers[hitInfo.albedoSamplerIndex], hitInfo.texcoord, mipLevel);
+        float4 texel2 = bvh_textures[bvh_textures_range_start + hitInfo.albedoTextureIndex].SampleLevel(bvh_samplers[hitInfo.albedoSamplerIndex], hitInfo.materialData1.xy, mipLevel);
+        half4 texel = half4(lerp(texel1, texel2, pd.frameBlend));
+        half alpha = texel.a * (1.0 - hitInfo.translucency);
+        if (pd.flags & UseAlphaTreshold)
+          alpha = saturate(texel.a - hitInfo.translucency);
+
+        half volAlpha = half(saturate(hitInfo.t) * saturate(rayMax - hitInfo.t));
+
+        alpha *= volAlpha;
+
+        if (alpha > 0)
+        {
+          half3 color = calc_particle_color(texel, hitInfo, pd, alpha, volAlpha);
+          if (clipColor)
+            color = saturate(color);
+
+          // Pick the maxColorCount hits with the meanest alpha
+          if (cursor < maxColorCount)
+          {
+            alphas[cursor] = alpha;
+            distances[cursor] = hitInfo.t;
+            cursor++;
+          }
+          else
+          {
+            // Find the lowest alpha value in colors and replace it
+            int minAlphaIndex = 0;
+            for (int i = 1; i < maxColorCount; i++)
+              if (alphas[i] < alphas[minAlphaIndex])
+                minAlphaIndex = i;
+
+            if (alpha > alphas[minAlphaIndex])
+            {
+              alphas[minAlphaIndex] = alpha;
+              distances[minAlphaIndex] = hitInfo.t;
+            }
+          }
+
+          // WBOIT borrowed from the particle system
+          float t = max(hitInfo.t - pd.radius, 0.001);
+          resultColor.xyz += color * wboit_weight(t, alpha);
+          resultColor.w *= (1.0 - alpha);
+          resultAlpha += alpha * wboit_weight(t, alpha);
+        }
+      }
+
+      ##if hardware.scarlett
+        void InlineAHS(inout XboxRayQueryProxy query)
+        {
+          InlineAHSImpl(PassAHSParams);
+        }
+      ##endif
+    };
+
+    void trace_ray_fx_translucent(float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, inout float3 color_inout, inout float translucent_t, float3 defaultColor = 1, bool clip_color = false)
+    {
+      // Translucent tracing is done after the opaque tracing, because this is the only way to
+      // ignore translucent hits that are behind opaque ones.
+
+      const uint flags = RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES;
+
+      GenericRayQuery(flags, TraceRayFxTranslucentAHSLambda) query;
+
+      RayDesc ray;
+      ray.Origin    = ray_origin;
+      ray.Direction = ray_direction;
+      ray.TMin      = ray_min;
+      ray.TMax      = ray_max;
+
+      query.TraceRayInline(bvhParticles, flags, bvhGroupAll, ray);
+
+      TraceRayFxTranslucentAHSLambda lambda;
+      lambda.clipColor = clip_color;
+      lambda.primaryT = primaryT;
+      lambda.rayMax = ray_max;
+      lambda.cursor = 0;
+      lambda.resultColor = float4(0, 0, 0, 1);
+      lambda.defaultColor = defaultColor;
+      lambda.resultAlpha = 0;
+
+      ##if hardware.scarlett
+        query.Proceed(lambda);
+      ##else
+        while (query.Proceed())
+        {
+          // Can only be a particle
+          lambda.InlineAHSImpl(PassAHSParams);
+        }
+      ##endif
+
+      // WBOIT borrowed from the particle system
+      for (uint k = 0; k < lambda.cursor; k++)
+      {
+        translucent_t = max(translucent_t, lambda.distances[k]);
+
+        float3 col = lambda.resultColor.rgb / clamp(lambda.resultAlpha, 0.0000001, 1000);
+        float a = 1 - lambda.resultColor.a;
+        float4 blend = float4(col * a, a) * lambda.alphas[k] * a;
+
+        color_inout.rgb = color_inout.rgb * (1 - blend.a) + blend.rgb;
+      }
+    }
+  }
+endmacro
+
+macro USE_BVH_FOR_RENDER(stage)
+  USE_BVH(stage, 1, 1, 1, 1, 1, 0, 0, 0)
+endmacro
+
+macro USE_BVH_FOR_SHADOW(stage)
+  USE_BVH(stage, 1, 0, 1, 1, 1, 0, 0, 0)
+endmacro
+
+macro USE_BVH_FOR_AO(stage)
+  USE_BVH(stage, 1, 0, 0, 1, 1, 0, 0, 0)
+endmacro
+
+macro USE_BVH_FOR_REFLECTION(stage)
+  USE_BVH(stage, 1, 1, 0, 1, 1, 0, 0, 0)
+endmacro
+
+macro USE_CALC_CAMERA_RELATIVE_POS(stage)
+  hlsl(stage) {
+    float3 calc_camera_relative_pos(uint2 dtid, float w, float2 inv_resolution)
+    {
+      float2 pixelCenter = float2(dtid) + 0.5;
+      float2 uv = pixelCenter * inv_resolution;
+      float3 viewVect = lerp_view_vec(uv);
+
+      float3 cameraToPoint = viewVect * w;
+      float3 pointToEye = -cameraToPoint;
+      return 0 - pointToEye;
+    }
+  }
+endmacro
+
+macro USE_CALC_WORLD_POS(stage)
+  hlsl(stage) {
+    float3 calc_world_pos(uint2 dtid, float w, float2 inv_resolution, float3 view_pos)
+    {
+      float2 pixelCenter = float2(dtid) + 0.5;
+      float2 uv = pixelCenter * inv_resolution;
+      float3 viewVect = lerp_view_vec(uv);
+
+      float3 cameraToPoint = viewVect * w;
+      float3 pointToEye = -cameraToPoint;
+      return view_pos - pointToEye;
+    }
+  }
+endmacro
+
+macro USE_CALC_GEOMETRY_NORMAL(stage)
+  USE_CALC_CAMERA_RELATIVE_POS(stage)
+  (stage) {
+    half_res_depth_tex@tex2d = downsampled_close_depth_tex;
+  }
+  hlsl (stage) {
+    float3 getHalfDepth(uint2 tci)
+    {
+      return float3(half_res_depth_tex[tci].r,
+        half_res_depth_tex[tci + int2(1, 0)].r,
+        half_res_depth_tex[tci + uint2(0, 1)].r);
+    }
+
+    float3 getDepth(uint2 tci)
+    {
+      return float3(loadGbufferDepth(tci + uint2(0, 0)),
+        loadGbufferDepth(tci + uint2(1, 0)),
+        loadGbufferDepth(tci + uint2(0, 1)));
+    }
+
+    half3 calc_geometry_normal_depth(uint2 tci, float2 inv_resolution, float3 depth)
+    {
+      float3 wm = calc_camera_relative_pos(tci + uint2(0, 0), linearize_z(depth.x, zn_zfar.zw), inv_resolution);
+      float3 wx = calc_camera_relative_pos(tci + uint2(1, 0), linearize_z(depth.y, zn_zfar.zw), inv_resolution);
+      float3 wy = calc_camera_relative_pos(tci + uint2(0, 1), linearize_z(depth.z, zn_zfar.zw), inv_resolution);
+
+      float3 dx = wx - wm;
+      float3 dy = wy - wm;
+
+      float3 worldNormal = normalize(cross(dx, dy));
+      return (half3)worldNormal;
+    }
+
+    half3 calc_geometry_normal(uint2 tci, float2 inv_resolution)
+    {
+      return calc_geometry_normal_depth(tci, inv_resolution, getDepth(tci));
+    }
+
+    half3 calc_geometry_normal_half(uint2 tci, float2 inv_resolution)
+    {
+      return calc_geometry_normal_depth(tci, inv_resolution, getHalfDepth(tci));
+    }
+  }
+endmacro
+
+macro INIT_BVH_WATER_FADE(stage)
+  (stage) {
+    water_level@f1 = water_level;
+    bvh_max_water_distance@f1 = bvh_max_water_distance;
+    bvh_water_fade_power@f1 = bvh_water_fade_power;
+  }
+endmacro
+
+macro USE_BVH_WATER_FADE(stage)
+  USE_CALC_WORLD_POS(stage)
+  hlsl(stage) {
+    half calc_underwater_fade(float w, uint2 dtid, float2 inv_resolution, float3 view_pos)
+    {
+      float3 worldPos = calc_world_pos(dtid, w, inv_resolution, view_pos);
+      float depth = worldPos.y - water_level;
+      if (depth >= 0)
+        return 1;
+
+      float rate = dot(normalize(view_pos - worldPos), float3(0, 1, 0));
+      half fade = 1.h - half(min(-depth / pow(rate, bvh_water_fade_power), bvh_max_water_distance) / bvh_max_water_distance);
+      return fade;
+    }
+  }
+endmacro
+
+macro USE_COSINE_SAMPLING(stage)
+  hlsl(stage) {
+    float2 hash2(inout float seed)
+    {
+      float s1 = seed += 1;
+      float s2 = seed += 1;
+      return float2(frac(sin(float2(s1, s2)) * float2(43758.5453123, 22578.1459123)));
+    }
+
+    half3 cosine_sample_hemisphere(half3 n, inout float seed, half scale = 1)
+    {
+      half2 u = (half2) hash2(seed);
+      half r = sqrt(u.x) * scale;
+      half theta = 2 * PIh * u.y;
+      half3 B = normalize(cross(n, half3(0.h, 1.h, 1.h)));
+      half3 T = cross(B, n);
+      return normalize(r * sin(theta) * B + sqrt(1.h - u.x) * n + r * cos(theta) * T);
+    }
+  }
+endmacro

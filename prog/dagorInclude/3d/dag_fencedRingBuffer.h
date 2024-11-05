@@ -1,13 +1,13 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <EASTL/deque.h>
 #include <stdint.h>
 #include <debug/dag_assert.h>
+#include <drv/3d/dag_query.h>
 
 template <class FenceType = D3dEventQuery *>
 class FencedRingBuffer

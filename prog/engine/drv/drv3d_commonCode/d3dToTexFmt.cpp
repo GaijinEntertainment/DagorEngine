@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "basetexture.h"
 #include <3d/ddsFormat.h>
 
@@ -14,7 +16,6 @@ uint32_t d3dformat_to_texfmt(/*D3DFORMAT*/ uint32_t fmt)
     case D3DFMT_A16B16G16R16F: return TEXFMT_A16B16G16R16F;
     case D3DFMT_A32B32G32R32F: return TEXFMT_A32B32G32R32F;
     case D3DFMT_G16R16: return TEXFMT_G16R16;
-    case D3DFMT_V16U16: return TEXFMT_V16U16;
     case D3DFMT_L16: return TEXFMT_L16;
     case D3DFMT_A8: return TEXFMT_A8;
     case D3DFMT_L8: return TEXFMT_R8;
@@ -70,7 +71,6 @@ uint32_t texfmt_to_d3dformat(/*D3DFORMAT*/ uint32_t fmt)
     case TEXFMT_A16B16G16R16F: return D3DFMT_A16B16G16R16F;
     case TEXFMT_A32B32G32R32F: return D3DFMT_A32B32G32R32F;
     case TEXFMT_G16R16: return D3DFMT_G16R16;
-    case TEXFMT_V16U16: return D3DFMT_V16U16;
     case TEXFMT_L16: return D3DFMT_L16;
     case TEXFMT_A8: return D3DFMT_A8;
     case TEXFMT_R8: return D3DFMT_L8;

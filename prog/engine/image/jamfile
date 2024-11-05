@@ -20,6 +20,7 @@ Sources =
   savePng.cpp
   loadTiff.cpp
   saveTiff.cpp
+  saveExr.cpp
   loadImage.cpp
   loadDds.cpp
   imgAlloc.cpp
@@ -35,7 +36,7 @@ Sources =
   regImageLoadAvif.cpp
 ;
 
-if ( $(Platform) in win32 win64 ps4 ps5 macosx linux64 xboxOne scarlett nswitch android ) {
+if $(Platform) in windows ps4 ps5 macOS linux xboxOne scarlett nswitch android {
   Sources +=
     dxtCompress.cpp
   ;
@@ -75,7 +76,5 @@ UseProgLibs +=
 ;
 
 ExplicitLicenseUsed += $(Root)/prog/3rdPartyLibs/nanosvg ;
-
-CPPopt += -D__B_CORE ;
 
 include $(Root)/prog/_jBuild/build.jam ;

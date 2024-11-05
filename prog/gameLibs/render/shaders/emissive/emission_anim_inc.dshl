@@ -35,3 +35,42 @@ macro INIT_AND_USE_EMISSIVE_ANIM( illum_program_texno, phase_shift_texno)
     }
   }
 endmacro
+
+macro INIT_AND_USE_EMISSIVE_FRAMES( illum_program_texno, distortion_texno)
+  texture illum_program = material.texture[illum_program_texno];
+  texture distortion_tex = material.texture[distortion_texno];
+
+  static int illum_frame_count = 1;
+  static float illum_scroll_speed = 1.0;
+  static float use_additive_blend = 0.0;
+
+  if (distortion_tex != NULL)
+  {
+    (ps) { distortion_tex@static = distortion_tex; }
+  }
+  (ps) { illum_program@static = illum_program; }
+  (ps) { scroll_param@f4 = (illum_scroll_speed, 1.0/illum_frame_count, illum_frame_count, use_additive_blend); }
+
+
+  hlsl(ps) {
+    void get_emissive_frame(in float2 texcoord, in float in_time, inout float4 diffuseColor, inout float emissionStrength)
+    {
+      //read emission strength and program
+      ##if (distortion_tex != NULL)
+        float3 distortion = tex2DLodBindless(get_distortion_tex(), float4(in_time * get_scroll_param().x, texcoord.y, 0.0f, 0.0f)).rgb;
+      ##else
+        float3 distortion = 1;
+      ##endif
+
+      float phase = floor(in_time * get_scroll_param().x * get_scroll_param().z) * get_scroll_param().y;
+      float3 emissionColor = distortion * tex2DLodBindless(get_illum_program(), float4(phase + texcoord.x * get_scroll_param().y, texcoord.y, 0.0f, 0.0f)).rgb * diffuseColor.a;
+      emissionStrength = length(emissionColor.rgb);
+      emissionColor.rgb+=0.0001f; // to avoid zero value
+      BRANCH
+      if (get_scroll_param().w > 0.0f)
+        diffuseColor.rgb = diffuseColor.rgb + emissionColor.rgb;
+      else
+        diffuseColor.rgb = lerp(diffuseColor.rgb, diffuseColor.rgb*normalize(emissionColor.rgb), saturate(2*emissionStrength));
+    }
+  }
+endmacro

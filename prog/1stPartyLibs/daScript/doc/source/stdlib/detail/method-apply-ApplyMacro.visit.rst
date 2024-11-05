@@ -1,2 +1,2 @@
 need value inferred
-make a call
+make a collection of calls

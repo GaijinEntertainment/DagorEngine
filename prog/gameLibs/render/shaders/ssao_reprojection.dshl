@@ -1,7 +1,8 @@
-include "hero_matrix_inc.dshl"
 include "taa_inc.dshl"
+include "ssao_use.dshl"
 include "reprojected_motion_vectors.dshl"
 include "force_ignore_history.dshl"
+include "hero_matrix_inc.dshl"
 
 float4 prev_globtm_no_ofs_psf_0;
 float4 prev_globtm_no_ofs_psf_1;
@@ -12,7 +13,7 @@ float4 prev_view_vecLT;
 float4 prev_view_vecRT;
 float4 prev_view_vecLB;
 float4 prev_view_vecRB;
-float4 prev_world_view_pos;
+float4 prev_zn_zfar;
 
 texture downsampled_motion_vectors_tex;
 texture prev_downsampled_motion_vectors_tex;
@@ -22,20 +23,25 @@ float4 move_world_view_pos;
 float ssao_reprojection_neighborhood_bias_tight = 0.0;
 float ssao_reprojection_neighborhood_bias_wide = 0.05;
 float ssao_reprojection_neighborhood_velocity_difference_scale = 100;
+texture prev_downsampled_close_depth_tex;
 
 macro SSAO_REPROJECTION(stage, prev_tex_name)
+local float4 prev_downsampled_close_depth_tex_dim = get_dimensions(prev_downsampled_close_depth_tex, 0);
 (stage) {
   ssao_prev_tex@smp2d = prev_tex_name;
   prev_globtm_no_ofs_psf@f44 = { prev_globtm_no_ofs_psf_0, prev_globtm_no_ofs_psf_1, prev_globtm_no_ofs_psf_2, prev_globtm_no_ofs_psf_3 };
-  prev_downsampled_far_depth_tex@smp2d = prev_downsampled_far_depth_tex;
+  prev_downsampled_close_depth_tex@smp2d = prev_downsampled_close_depth_tex;
   prev_view_vecLT@f3 = prev_view_vecLT;
   prev_view_vecRT_minus_view_vecLT@f3 = (prev_view_vecRT-prev_view_vecLT);
   prev_view_vecLB_minus_view_vecLT@f3 = (prev_view_vecLB-prev_view_vecLT);
   prev_view_vecRT@f3 = prev_view_vecRT;
   prev_view_vecLB@f3 = prev_view_vecLB;
   prev_view_vecRB@f3 = prev_view_vecRB;
-  prev_world_view_pos@f3 = prev_world_view_pos;
+  //prev_zn_zfar@f4 = (prev_zn_zfar.x, prev_zn_zfar.y, prev_zn_zfar.x/(prev_zn_zfar.x * prev_zn_zfar.y), (prev_zn_zfar.y-prev_zn_zfar.x)/(prev_zn_zfar.x * prev_zn_zfar.y));
+  prev_zn_zfar@f4 = (zn_zfar.x, zn_zfar.y, zn_zfar.x/(zn_zfar.x * zn_zfar.y), (zn_zfar.y-zn_zfar.x)/(zn_zfar.x * zn_zfar.y));
+
   prev_move_world_view_pos@f3= (-move_world_view_pos.x, -move_world_view_pos.y, -move_world_view_pos.z,0);
+  prev_downsampled_close_depth_tex_target_size@f4 = (prev_downsampled_close_depth_tex_dim.x, prev_downsampled_close_depth_tex_dim.y, 1/max(1, prev_downsampled_close_depth_tex_dim.x), 1/max(1, prev_downsampled_close_depth_tex_dim.y));
   neighborhood_params@f3 = (ssao_reprojection_neighborhood_bias_tight,
                             ssao_reprojection_neighborhood_bias_wide,
                             ssao_reprojection_neighborhood_velocity_difference_scale,
@@ -55,14 +61,10 @@ if (downsampled_motion_vectors_tex != NULL)
     downsampled_motion_vectors_tex@smp2d = downsampled_motion_vectors_tex;
     prev_downsampled_motion_vectors_tex@smp2d = prev_downsampled_motion_vectors_tex;
   }
-  INIT_MOTION_VEC_DECODE(stage)
-  USE_MOTION_VEC_DECODE(stage)
   bool has_prev_motion_vectors = prev_downsampled_motion_vectors_tex != NULL;
 } else if (motion_gbuf != NULL)
 {
   (stage) { motion_gbuf@smp2d = motion_gbuf; }
-  INIT_MOTION_VEC_DECODE(stage)
-  USE_MOTION_VEC_DECODE(stage)
 }
 
 INIT_HERO_MATRIX(stage)
@@ -88,77 +90,89 @@ hlsl(stage) {
     return prev_view_vecLT + prev_view_vecRT_minus_view_vecLT*tc.x + prev_view_vecLB_minus_view_vecLT*tc.y;
   }
 
-  float2 get_motion_vector(float2 uv, float3 eye_to_point)
+  float2 get_motion_vector(float3 uvz, float3 eye_to_point)
   {
 ##if downsampled_motion_vectors_tex != NULL
-    return decode_motion_vector(tex2Dlod(downsampled_motion_vectors_tex, float4(uv, 0, 0)).rg);
+    return tex2Dlod(downsampled_motion_vectors_tex, float4(uvz.xy, 0, 0)).rg;
 ##else
-    float2 ret = get_reprojected_motion_vector(uv, eye_to_point, prev_globtm_no_ofs_psf);
+    float2 ret = get_reprojected_motion_vector1(uvz, eye_to_point, prev_globtm_no_ofs_psf).xy;
 ##if motion_gbuf != NULL
-    float2 motionVector = tex2Dlod(motion_gbuf, float4(uv, 0, 0)).rg;
+    float2 motionVector = tex2Dlod(motion_gbuf, float4(uvz.xy, 0, 0)).rg;
     if (motionVector.x != 0)
-      ret = decode_motion_vector(motionVector);
+      ret = motionVector;
 ##endif
     return ret;
 ##endif
   }
+  void get_ssao_disocclusion_weight(float2 historyUV, float prev_linear_depth, inout SSAO_TYPE historySample, inout float newFrameWeight)
+  {
+#if FIX_DISCONTINUTIES
+    float4 depths = prev_downsampled_close_depth_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, historyUV).wzxy;
+    float4 linearDepths = linearize_z4(depths, prev_zn_zfar.zw);
+    float4 depthDiff = abs(linearDepths - prev_linear_depth);
+    float threshold = 0.05*prev_linear_depth;
+    float4 weights = depthDiff < threshold;
+    float2 historyCrdf = historyUV*prev_downsampled_close_depth_tex_target_size.xy - 0.5;
+    float2 fractCrd = frac(historyCrdf);
+    if (all(weights)) // valid
+    {
+      historySample = tex2Dlod(ssao_prev_tex, float4(historyUV, 0, 0)).SSAO_ATTRS;
+    } else
+    {
+      float4 bil = float4(fractCrd, 1-fractCrd);
+      weights *= float4(bil.zx*bil.w, bil.zx*bil.y) + 1e-4;
+      float sumW = dot(weights, 1);
+      newFrameWeight = sumW > 0.00001 ? newFrameWeight : 1;
+      weights *= rcp(max(1e-6, sumW));
+      //float2 uv = (floor(historyCrdf) + 0.5)*prev_downsampled_close_depth_tex_target_size.zw;//todo: one madd
+      //we need to use same sampler and same uv, otherwise they can diverge
+      float2 uv = historyUV;
+      historySample.x = dot(ssao_prev_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, uv).wzxy, weights);
+
+      #if SSAO_HAS_GREEN
+      historySample.y = dot(ssao_prev_tex.GatherGreen(prev_downsampled_close_depth_tex_samplerstate, uv).wzxy, weights);
+      #endif
+
+      #if SSAO_HAS_BLUE
+      historySample.z = dot(ssao_prev_tex.GatherBlue(prev_downsampled_close_depth_tex_samplerstate, uv).wzxy, weights);
+      #endif
+    }
+#else
+    historySample = tex2Dlod(ssao_prev_tex, float4(historyUV, 0, 0)).SSAO_ATTRS;
+#endif
+  }
 
   void reproject_ssao(inout SSAO_TYPE ssao, float3 cameraToOrigin, float2 screenTC, float linear_depth)
   {
-    bool isHero = apply_hero_matrix(cameraToOrigin);
+    bool isHero = apply_hero_matrix(screenTC, cameraToOrigin);
 
-    float defaultBlend = 0.93;
-
-    float2 motionVector = get_motion_vector(screenTC, cameraToOrigin);
+    float2 motionVector = get_motion_vector(float3(screenTC, linear_depth), cameraToOrigin);
     float2 historyUV = screenTC + motionVector;
 
-    SSAO_TYPE historyWeight = 1;
+    float4 prevClip = mul(float4(cameraToOrigin, 1), prev_globtm_no_ofs_psf);
+    float linearPrevDepth = linearize_z(prevClip.w > 1e-5 ? prevClip.z/prevClip.w : 0, prev_zn_zfar.zw);
 
-#if FIX_DISCONTINUTIES
-    #if READ_W_DEPTH
-      float prevDepth1 = tex2Dlod(prev_downsampled_far_depth_tex, float4(historyUV, 0, 0)).x;
-    #else
-      float prevDepth1 = linearize_z(tex2Dlod(prev_downsampled_far_depth_tex, float4(historyUV, 0, 0)).x, zn_zfar.zw);
-    #endif
-    float3 prevViewVect = getPrevViewVecOptimized(historyUV);
-    float3 depthPrevViewVec = prev_move_world_view_pos + prevViewVect * prevDepth1;//todo: (prev_world_view_pos-world_view_pos) to be passed as constant and calculated in double!!!
-    float3 move = depthPrevViewVec - cameraToOrigin;
+    float newFrameWeight = 0.07;
+    SSAO_TYPE ssaoHistory = 1;
+    get_ssao_disocclusion_weight(historyUV, linearPrevDepth, ssaoHistory, newFrameWeight);
 
-    float invalidate_move = pow2(8);
-    historyWeight = saturate(1 - sqrt(dot(move, move)*invalidate_move)*rcp(linear_depth));
-    float prevDepthSame = linearize_z(tex2Dlod(prev_downsampled_far_depth_tex, float4(screenTC.xy, 0, 0)).x, zn_zfar.zw);
-    float2 distToScreenEnd = screenTC.xy - float2(0.5, 1);
-    if (abs(prevDepthSame - linear_depth) < 0.01 && linear_depth < 0.5 && !isHero && dot(distToScreenEnd, distToScreenEnd) < 0.125)//hands
-    {
-      historyUV.xy = screenTC.xy;
-      historyWeight = 0.9;
-    }
-#endif
+    //if previous history is invalid or current pixel is inside safe margin (filter) and previous was not
+    newFrameWeight = any(abs(historyUV * 2 - 1) >= 1) ? 1 : newFrameWeight;
+    newFrameWeight = any(abs(screenTC * 2 - 1) < 0.99 && abs(historyUV * 2 - 1) >= 0.99) ? saturate(newFrameWeight + 0.5) : newFrameWeight;
 
-    float prevTcAbs = max(abs(historyUV.x * 2 - 1), abs(historyUV.y * 2 - 1));
-    float curTcAbs = max(abs(screenTC.x * 2 - 1), abs(screenTC.y * 2 - 1));
-    historyWeight *= prevTcAbs < 0.97 || curTcAbs >= 0.97 ? defaultBlend : 0;
-
-    SSAO_TYPE historySample = tex2Dlod(ssao_prev_tex, float4(historyUV, 0, 0)).SSAO_ATTRS;
 
 #if DIFFERENCE_CLAMPING
     #define VALUE_CLAMP_RANGE 0.5f
     #define VALUE_CLAMP_OFFSET 0.5f
-    SSAO_TYPE diff = ssao - historySample;
+    SSAO_TYPE diff = ssao - ssaoHistory;
     SSAO_TYPE valueClampFactor = saturate(diff * (1.0f / VALUE_CLAMP_RANGE) - VALUE_CLAMP_OFFSET);
-    historyWeight *= 1.0f - valueClampFactor;
+    SSAO_TYPE newFrameWeightSSAO = newFrameWeight;
+    newFrameWeightSSAO = 1 - (1.0f - valueClampFactor)*(1-newFrameWeightSSAO);
+#else
+    float newFrameWeightSSAO = newFrameWeight;
 #endif
-    ssao = fp16_aware_lerp(historySample, ssao, 1-historyWeight, 1/0.03);
+    ssao = fp16_aware_lerp(ssaoHistory, ssao, newFrameWeightSSAO, 1/0.03);
     //ssao = lerp(ssao, historySample, historyWeight);
-  }
-
-  float get_disocclusion(float linear_depth, float2 history_uv)
-  {
-    float historyDepth = tex2Dlod(prev_downsampled_far_depth_tex, float4(history_uv, 0, 0)).x;
-    #if !READ_W_DEPTH
-      historyDepth = linearize_z(historyDepth, zn_zfar.zw);
-    #endif
-    return saturate(linear_depth - historyDepth); // Could be scaled but scale of 1.0 seems fine;
   }
 
   float get_velocity_weight(float2 current_velocity, float2 history_velocity)
@@ -172,24 +186,22 @@ hlsl(stage) {
     if (force_ignore_history == 1)
       return;
 ##if downsampled_motion_vectors_tex == NULL && motion_gbuf == NULL
-    apply_hero_matrix(eye_to_point);
+    apply_hero_matrix(uv, eye_to_point);
 ##endif
 
-    float2 mv = get_motion_vector(uv, eye_to_point);
+    float4 prevClip = mul(float4(eye_to_point, 1), prev_globtm_no_ofs_psf);
+    float linearPrevDepth = linearize_z(prevClip.w > 1e-5 ? prevClip.z/prevClip.w : 0, prev_zn_zfar.zw);
+
+    float2 mv = get_motion_vector(float3(uv, linearize_z(depth, zn_zfar.zw)), eye_to_point);
     float2 historyUV = uv + mv;
+    //historyUV = uv;
 
-    SSAO_TYPE ssaoHistory = tex2Dlod(ssao_prev_tex, float4(historyUV, 0, 0)).SSAO_ATTRS;
+    SSAO_TYPE ssaoHistory = 1;
+    float newFrameWeight = 0;
+    get_ssao_disocclusion_weight(historyUV, linearPrevDepth, ssaoHistory, newFrameWeight);
 
-    ##if maybe(ssao_contact_shadows) || !maybe(has_prev_motion_vectors)
-      float disocclusion = get_disocclusion(depth, historyUV);
-    ##endif
-
-    // Reject history for disoccluded pixels, but only for contact shadows
-    // - For AO, it produces more unwanted noise than useful anti-ghosting
-    // - Contact shadows cause trailing shadow outlines without this
-    ##if maybe(ssao_contact_shadows)
-      ssaoHistory.CONTACT_SHADOWS_ATTR = lerp(ssaoHistory.CONTACT_SHADOWS_ATTR, ssao.CONTACT_SHADOWS_ATTR, disocclusion);
-    ##endif
+    newFrameWeight = any(abs(historyUV * 2 - 1) >= 1) ? 1 : newFrameWeight;
+    newFrameWeight = any(abs(uv * 2 - 1) < 0.99 && abs(historyUV * 2 - 1) >= 0.99) ? saturate(newFrameWeight + 0.5) : newFrameWeight;
 
     // Neighborhood clamp
     {
@@ -197,27 +209,20 @@ hlsl(stage) {
         // Velocity weighting if motion vectors history is available
         float2 currentVelocity = mv;
         float2 rawHistoryVelocity = tex2Dlod(prev_downsampled_motion_vectors_tex, float4(historyUV, 0, 0)).rg;
-        float2 historyVelocity = decode_motion_vector(rawHistoryVelocity);
+        float2 historyVelocity = rawHistoryVelocity;
         float velocityWeight = get_velocity_weight(currentVelocity, historyVelocity);
         float neighborhoodBiasWeight = velocityWeight;
       ##else
         // Use disocclusion for neighborhood tightening if motion vectors history is not available
-        float neighborhoodBiasWeight = disocclusion;
+        float neighborhoodBiasWeight = newFrameWeight;
       ##endif
       float neighborhoodBias = lerp(neighborhood_bias_wide, neighborhood_bias_tight, neighborhoodBiasWeight);
-      min_ao -= neighborhoodBias;
-      max_ao += neighborhoodBias;
+      min_ao = saturate(min_ao - neighborhoodBias);
+      max_ao = saturate(max_ao + neighborhoodBias);
       ssaoHistory = clamp(ssaoHistory, min_ao, max_ao);
     }
 
-    // Clip off-screen history
-    {
-      float historyUvAbs = max(abs(historyUV.x * 2 - 1), abs(historyUV.y * 2 - 1));
-      FLATTEN if (historyUvAbs > 1)
-        ssaoHistory = ssao;
-    }
-
-    ssao = fp16_aware_lerp(ssaoHistory, ssao, 1-0.93, 1/0.03);
+    ssao = fp16_aware_lerp(ssaoHistory, ssao, saturate(newFrameWeight + 0.07), 1/0.03);
   }
 }
 endmacro

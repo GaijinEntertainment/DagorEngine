@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_console.h>
 #include "texMgrData.h"
 
@@ -122,6 +124,8 @@ static bool texmgr_dbgcontrol_console_handler(const char *argv[], int argc)
         else
           verbose_tex_info(idx);
       }
+      else if (min_rc == -1)
+        console::print_d("%d: rc=%d tid=0x%x gen=%d", idx, RMGR.getRefCount(idx), RMGR.toId(idx), RMGR.getCurGeneration(idx));
     if (argc == 1)
       console::print("usage: tex.list [/rc:MIN_RC] [/verbose] [name_substr]");
   }

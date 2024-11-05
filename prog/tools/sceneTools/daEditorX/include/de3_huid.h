@@ -1,7 +1,6 @@
 //
 // DaEditorX
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -16,8 +15,9 @@ static constexpr unsigned HUID_IBitMaskImageMgr = 0xEA2182A6u; // IBitMaskImageM
 static constexpr unsigned HUID_IAssetService = 0xC2729EFFu;    // IAssetService
 static constexpr unsigned HUID_IFmodService = 0x222857A0u;     // IFmodService
 
-static constexpr unsigned HUID_ISceneLightService = 0x6683CB46u; // ISceneLightService
-static constexpr unsigned HUID_IFileChangeTracker = 0xFAA4F86Bu; // IFileChangeTracker
+static constexpr unsigned HUID_IVisibilityFinderProvider = 0x509D8ABEu; // IVisibilityFinder
+static constexpr unsigned HUID_ISceneLightService = 0x6683CB46u;        // ISceneLightService
+static constexpr unsigned HUID_IFileChangeTracker = 0xFAA4F86Bu;        // IFileChangeTracker
 
 
 static constexpr unsigned HUID_IWriteAddLtinputData = 0xFDB7238Du;  // IWriteAddLtinputData

@@ -1,8 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "joy_drv.h"
 
-#include <humanInput/dag_hiCreate.h>
-#include <humanInput/dag_hiDInput.h>
-#include <humanInput/dag_hiJoystick.h>
+#include <drv/hid/dag_hiCreate.h>
+#include <drv/hid/dag_hiDInput.h>
+#include <drv/hid/dag_hiJoystick.h>
 #include <startup/dag_restart.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <ioSys/dag_genIo.h>

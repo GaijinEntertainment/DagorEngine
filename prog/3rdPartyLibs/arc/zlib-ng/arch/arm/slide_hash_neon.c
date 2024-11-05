@@ -9,7 +9,7 @@
  */
 
 #if defined(ARM_NEON_SLIDEHASH)
-#ifdef _M_ARM64
+#if defined(_MSC_VER) && (defined(_M_ARM64) || defined(_M_ARM64EC)) && !defined(__clang__)
 #  include <arm64_neon.h>
 #else
 #  include <arm_neon.h>

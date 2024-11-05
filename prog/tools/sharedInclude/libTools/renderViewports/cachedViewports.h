@@ -1,5 +1,5 @@
-#ifndef __DAGOR_TOOLS_CACHED_VIEWPORTS_H__
-#define __DAGOR_TOOLS_CACHED_VIEWPORTS_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #include <generic/dag_tab.h>
 #include <math/integer/dag_IPoint2.h>
@@ -90,5 +90,3 @@ protected:
   Point2 texScale;
   Driver3dRenderTarget *lastRt;
 };
-
-#endif

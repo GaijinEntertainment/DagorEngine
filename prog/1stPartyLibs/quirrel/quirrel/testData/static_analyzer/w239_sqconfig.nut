@@ -1,6 +1,6 @@
 //expect:w239
 
-let function returnBoolFunctionName() { //-declared-never-used
+function returnBoolFunctionName() { //-declared-never-used
   if (::serverName == "")
     return
 

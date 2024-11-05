@@ -1,62 +1,49 @@
-
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <util/dag_stdint.h>
 #include <atomic>
+#include "backend.h"
+#include "backend_interop.h"
 
 namespace drv3d_vulkan
 {
-struct ContextBackend;
 
 class AsyncCompletionState
 {
-  enum class State : uint32_t
-  {
-    INITIAL,
-    PENDING,
-    COMPLETED,
-  };
-  std::atomic<State> state{State::INITIAL};
+  size_t pendingForReplayId = 0;
+  bool requested = false;
 
 public:
-  static constexpr int CLEANUP_DESTROY = 0;
-
-  template <int Tag>
-  void onDelayedCleanupBackend(drv3d_vulkan::ContextBackend &)
-  {}
-
-  template <int Tag>
-  void onDelayedCleanupFrontend()
-  {}
-
-  template <int Tag>
-  void onDelayedCleanupFinish()
-  {
-    delete this;
-  }
-
   AsyncCompletionState() = default;
   ~AsyncCompletionState() = default;
 
   AsyncCompletionState(const AsyncCompletionState &) = delete;
   AsyncCompletionState &operator=(const AsyncCompletionState &) = delete;
 
-  bool isPendingOrCompleted() const { return State::INITIAL != state.load(std::memory_order_seq_cst); }
-  bool isPendingOrCompletedFast() const { return State::INITIAL != state.load(std::memory_order_relaxed); }
 
-  bool isCompleted() const { return State::COMPLETED == state.load(std::memory_order_seq_cst); }
-  bool isCompletedFast() const { return State::COMPLETED == state.load(std::memory_order_relaxed); }
+  bool isRequested() const { return requested; }
 
-  bool isPending() const { return State::PENDING == state.load(std::memory_order_seq_cst); }
-  bool isPendingFast() const { return State::PENDING == state.load(std::memory_order_relaxed); }
+  bool isCompletedOrNotRequested() const
+  {
+    if (!requested)
+      return true;
+    return pendingForReplayId <= Backend::interop.lastGPUCompletedReplayWorkId.load(std::memory_order_acquire);
+  }
 
-  // only called by owning thread, no sync needed
-  void reset() { state.store(State::INITIAL, std::memory_order_relaxed); }
-  // may be called by different thread than checking thread, needs sequential consistency
-  void completed() { state.store(State::COMPLETED, std::memory_order_seq_cst); }
-  // called on owning thread, no sync needed
-  void pending() { state.store(State::PENDING, std::memory_order_relaxed); }
+  bool isCompleted() const
+  {
+    G_ASSERTF(requested, "vulkan: AsyncCompletionState %p queried without request!", this);
+    return pendingForReplayId <= Backend::interop.lastGPUCompletedReplayWorkId.load(std::memory_order_acquire);
+  }
 
-  const char *resTypeString() { return "AsyncCompletionState"; }
+  void reset() { requested = false; }
+  void request(size_t cur_replay_id)
+  {
+    G_ASSERTF(!requested, "vulkan: reused AsyncCompletionState %p without reset!", this);
+    pendingForReplayId = cur_replay_id;
+    requested = true;
+  }
 };
 
 } // namespace drv3d_vulkan

@@ -34,11 +34,11 @@ Collection of all structure and enumeration types that are used in the AST.
 Collecting type information
 +++++++++++++++++++++++++++
 
-  *  :ref:`collect_used_types (vfun:array\<ast::Function?\> const;vvar:array\<ast::Variable?\> const;blk:block\<(usedTypes:ast_used::OnlyUsedTypes const):void\> const) : void <function-_at_ast_used_c__c_collect_used_types_C1_ls_1_ls_H_ls_ast_c__c_Function_gr__gr_?_gr_A_C1_ls_1_ls_H_ls_ast_c__c_Variable_gr__gr_?_gr_A_CN_ls_usedTypes_gr_0_ls_CS_ls_ast_used_c__c_OnlyUsedTypes_gr__gr_1_ls_v_gr__builtin_>` 
+  *  :ref:`collect_used_types (vfun:array\<ast::Function?\> const;vvar:array\<ast::Variable?\> const;blk:block\<(usedTypes:ast_used::OnlyUsedTypes const):void\> const) : void <function-_at_ast_used_c__c_collect_used_types_C1_ls_1_ls_H_ls_ast_c__c_Function_gr__gr__qm__gr_A_C1_ls_1_ls_H_ls_ast_c__c_Variable_gr__gr__qm__gr_A_CN_ls_usedTypes_gr_0_ls_CS_ls_ast_used_c__c_OnlyUsedTypes_gr__gr_1_ls_v_gr__builtin_>` 
 
-.. _function-_at_ast_used_c__c_collect_used_types_C1_ls_1_ls_H_ls_ast_c__c_Function_gr__gr_?_gr_A_C1_ls_1_ls_H_ls_ast_c__c_Variable_gr__gr_?_gr_A_CN_ls_usedTypes_gr_0_ls_CS_ls_ast_used_c__c_OnlyUsedTypes_gr__gr_1_ls_v_gr__builtin_:
+.. _function-_at_ast_used_c__c_collect_used_types_C1_ls_1_ls_H_ls_ast_c__c_Function_gr__gr__qm__gr_A_C1_ls_1_ls_H_ls_ast_c__c_Variable_gr__gr__qm__gr_A_CN_ls_usedTypes_gr_0_ls_CS_ls_ast_used_c__c_OnlyUsedTypes_gr__gr_1_ls_v_gr__builtin_:
 
-.. das:function:: collect_used_types(vfun: array<ast::Function?> const; vvar: array<ast::Variable?> const; blk: block<(usedTypes:ast_used::OnlyUsedTypes const):void> const)
+.. das:function:: collect_used_types(vfun: array<Function?> const; vvar: array<Variable?> const; blk: block<(usedTypes:OnlyUsedTypes const):void> const)
 
 +--------+----------------------------------------------------------------------------------------------------+
 +argument+argument type                                                                                       +

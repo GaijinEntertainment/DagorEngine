@@ -1,11 +1,11 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <3d/dag_resPtr.h>
+#include <generic/dag_span.h>
 
 class TextureIDPair;
 
@@ -41,7 +41,7 @@ void downsamplePS(const TextureIDPair &from_depth, int w, int h, const TextureID
   const TextureIDPair *far_normals, const TextureIDPair *motion_vectors = nullptr, const TextureIDPair *checkerboard_depth = nullptr,
   bool external_barriers = false, const Point4 &source_uv_transform = Point4(1, 1, 0, 0));
 
-void downsamplePS(const TextureIDPair &from_depth, int w, int h, const TextureIDPair *far_depth_mips, int far_depth_mip_count,
+void downsamplePS(const TextureIDPair &from_depth, int w, int h, dag::Span<const TextureIDPair> far_depth_mips,
   const TextureIDPair *close_depth, const TextureIDPair *far_normals, const TextureIDPair *motion_vectors = nullptr,
   const TextureIDPair *checkerboard_depth = nullptr, bool external_barriers = false,
   const Point4 &source_uv_transform = Point4(1, 1, 0, 0));

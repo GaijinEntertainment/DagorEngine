@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "compositeEditor.h"
 #include "../av_cm.h"
 #include "../av_appwnd.h"
@@ -9,8 +11,11 @@
 #include <de3_dataBlockIdHolder.h>
 #include <de3_interface.h>
 #include <EditorCore/ec_cm.h>
+#include <assets/assetUtils.h>
 #include <libTools/util/strUtil.h>
 #include <osApiWrappers/dag_clipboard.h>
+#include <propPanel/control/treeInterface.h>
+#include <propPanel/control/menu.h>
 #include <util/dag_delayedAction.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 
@@ -25,6 +30,7 @@ enum
   CM_COPY_ASSET_FILEPATH_TO_CLIPBOARD,
   CM_COPY_ASSET_NAME_TO_CLIPBOARD,
   CM_DELETE_NODE,
+  CM_REVEAL_ASSET_IN_EXPLORER,
 };
 
 CompositeEditor::ReloadHelper::ReloadHelper(CompositeEditor &editor, const DagorAsset &asset,
@@ -191,7 +197,7 @@ void CompositeEditor::selectTreeNodeByDataBlockId(unsigned dataBlockId)
   updateGizmo();
 }
 
-void CompositeEditor::onChange(int pcb_id, PropPanel2 *panel)
+void CompositeEditor::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   if (!compositePropPanel || !selectedTreeDataNode)
     return;
@@ -213,7 +219,7 @@ bool CompositeEditor::saveComposit()
     const int dialogResult = wingw::message_box(wingw::MBS_EXCL | wingw::MBS_YESNO, "WARNING",
       "The original composit contains an #include block. Saving the asset might cause data loss. Continue?");
 
-    if (dialogResult != DIALOG_ID_YES)
+    if (dialogResult != PropPanel::DIALOG_ID_YES)
       return false;
   }
 
@@ -261,7 +267,7 @@ void CompositeEditor::deleteSelectedNode(bool needsConfirmation)
     const int dialogResult = wingw::message_box(wingw::MBS_EXCL | wingw::MBS_YESNO, "Delete node?",
       "Are you sure that you want to delete the selected node?");
 
-    if (dialogResult != DIALOG_ID_YES)
+    if (dialogResult != PropPanel::DIALOG_ID_YES)
       return;
   }
 
@@ -322,17 +328,17 @@ bool CompositeEditor::canSwitchToAnotherAsset()
   const int dialogResult = wingw::message_box(wingw::MBS_QUEST | wingw::MBS_YESNOCANCEL, "Composit properties",
     "You have changed the composit. Do you want to save the changes?");
 
-  if (dialogResult == DIALOG_ID_YES)
+  if (dialogResult == PropPanel::DIALOG_ID_YES)
   {
     return saveComposit();
   }
-  else if (dialogResult == DIALOG_ID_NO)
+  else if (dialogResult == PropPanel::DIALOG_ID_NO)
   {
     revertChanges();
     return true;
   }
 
-  G_ASSERT(dialogResult == DIALOG_ID_CANCEL);
+  G_ASSERT(dialogResult == PropPanel::DIALOG_ID_CANCEL);
   return false;
 }
 
@@ -364,7 +370,23 @@ void CompositeEditor::updateAssetFromTree(CompositeEditorRefreshType refreshType
     add_delayed_callback((delayed_callback)&CompositeEditor::onDelayedRefreshEntityAndCompositEditor, editedAsset);
 }
 
-void CompositeEditor::onClick(int pcb_id, PropPanel2 *panel)
+void CompositeEditor::toggleSnapMode(int pcb_id)
+{
+  GridObject &grid = IEditorCoreEngine::get()->getGrid();
+
+  if (pcb_id == CM_VIEW_GRID_MOVE_SNAP)
+    grid.setMoveSnap(!grid.getMoveSnap());
+  else if (pcb_id == CM_VIEW_GRID_ANGLE_SNAP)
+    grid.setRotateSnap(!grid.getRotateSnap());
+  else if (pcb_id == CM_VIEW_GRID_SCALE_SNAP)
+    grid.setScaleSnap(!grid.getScaleSnap());
+  else
+    G_ASSERT(false);
+
+  toolbar.updateSnapToolbarButtons();
+}
+
+void CompositeEditor::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   if (pcb_id == ID_COMPOSITE_EDITOR_COMPOSIT_SAVE_CHANGES)
   {
@@ -398,12 +420,17 @@ void CompositeEditor::onClick(int pcb_id, PropPanel2 *panel)
     setGizmo(IEditorCoreEngine::ModeType::MODE_Scale);
     focusViewport();
   }
+  else if (pcb_id == CM_VIEW_GRID_MOVE_SNAP || pcb_id == CM_VIEW_GRID_ANGLE_SNAP || pcb_id == CM_VIEW_GRID_SCALE_SNAP)
+  {
+    toggleSnapMode(pcb_id);
+    focusViewport();
+  }
   else if (compositePropPanel && selectedTreeDataNode)
   {
     if (pcb_id == ID_COMPOSITE_EDITOR_ENTITY_ACTIONS)
     {
       const int action = compositePropPanel->getInt(pcb_id);
-      if (action == EXT_BUTTON_REMOVE)
+      if (action == PropPanel::EXT_BUTTON_REMOVE)
         deleteSelectedNode(false);
     }
     else
@@ -521,11 +548,23 @@ int CompositeEditor::onMenuItemClick(unsigned id)
 
     return 0;
   }
+  else if (id == CM_REVEAL_ASSET_IN_EXPLORER)
+  {
+    G_ASSERT(selectedTreeDataNode);
+    if (!selectedTreeDataNode)
+      return 0;
+
+    DagorAsset *asset = DAEDITOR3.getAssetByName(selectedTreeDataNode->getAssetName());
+    if (asset)
+      dag_reveal_in_explorer(asset);
+
+    return 0;
+  }
 
   return 1;
 }
 
-void CompositeEditor::onTvSelectionChange(TreeBaseWindow &tree, TLeafHandle new_sel)
+void CompositeEditor::onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle new_sel)
 {
   if (ignoreTreeSelectionChangePanelRefresh)
     return;
@@ -542,11 +581,12 @@ void CompositeEditor::onDelayedSelectAsset(const DagorAsset *asset)
     get_app().selectAsset(*asset, true);
 }
 
-bool CompositeEditor::onTvContextMenu(TreeBaseWindow &tree, TLeafHandle under_mouse, IMenu &menu)
+bool CompositeEditor::onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree)
 {
   if (!selectedTreeDataNode)
     return false;
 
+  PropPanel::IMenu &menu = tree.createContextMenu();
   menu.setEventHandler(this);
 
   const bool isRootNode = selectedTreeDataNode == &treeData.rootNode;
@@ -580,9 +620,11 @@ bool CompositeEditor::onTvContextMenu(TreeBaseWindow &tree, TLeafHandle under_mo
     if (selectedTreeDataNode->hasNameParameter())
     {
       menu.addSeparator(ROOT_MENU_ITEM);
-      menu.addItem(ROOT_MENU_ITEM, CM_COPY_ASSET_FILEPATH_TO_CLIPBOARD, "Copy asset filepath to clipboard");
-      menu.addItem(ROOT_MENU_ITEM, CM_COPY_ASSET_NAME_TO_CLIPBOARD, "Copy asset name to clipboard");
+      menu.addItem(ROOT_MENU_ITEM, CM_COPY_ASSET_FILEPATH_TO_CLIPBOARD, "Copy filepath");
+      menu.addItem(ROOT_MENU_ITEM, CM_COPY_ASSET_NAME_TO_CLIPBOARD, "Copy name");
       menu.addItem(ROOT_MENU_ITEM, CM_OPEN_ASSET, "Open asset");
+      menu.addSeparator(ROOT_MENU_ITEM);
+      menu.addItem(ROOT_MENU_ITEM, CM_REVEAL_ASSET_IN_EXPLORER, "Reveal in Explorer");
     }
   }
 
@@ -659,7 +701,7 @@ void CompositeEditor::updateGizmo()
   if (newMode != oldMode)
     IEditorCoreEngine::get()->setGizmo(&gizmoClient, newMode);
 
-  toolbar.updateToolbarButtons(canTransform);
+  toolbar.updateGizmoToolbarButtons(canTransform);
 }
 
 void CompositeEditor::updateToolbarVisibility()

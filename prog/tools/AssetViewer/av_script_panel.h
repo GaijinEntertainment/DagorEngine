@@ -1,7 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <scriptPanelWrapper/spw_interface.h>
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/control/container.h>
 #include <util/dag_simpleString.h>
 #include <ioSys/dag_dataBlock.h>
 #include <winGuiWrapper/wgw_timer.h>
@@ -17,7 +18,7 @@ public:
 
   static void initVars();
 
-  void createPanel(PropPanel2 &panel);
+  void createPanel(PropPanel::ContainerPropertyControl &panel);
   void destroyPanel();
 
   void load(DagorAsset *asset);

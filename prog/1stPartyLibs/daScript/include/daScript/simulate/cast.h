@@ -261,6 +261,12 @@ namespace das
             static __forceinline vec4f from ( size_t x )         { return v_cast_vec4f(v_seti_x(x)); }
         };
     #endif
+
+    template <>
+    struct cast <long> {
+        static __forceinline long to ( vec4f x )               { return (long) v_extract_xi64(v_cast_vec4i(x)); }
+        static __forceinline vec4f from ( long x )             { return v_cast_vec4f(v_ldui_half(&x)); }
+    };
 #endif
 
     template <>
@@ -269,7 +275,7 @@ namespace das
         static __forceinline vec4f from ( uint64_t x )         { return v_cast_vec4f(v_ldui_half(&x)); }
     };
 
-#if defined(__linux__) || defined __HAIKU__
+#if defined(__linux__) || defined __HAIKU__ || defined(_TARGET_C1) || defined(_TARGET_C2)
     template <>
     struct cast <long long int> {
         static __forceinline long long int to ( vec4f x )            { return v_extract_xi64(v_cast_vec4i(x)); }

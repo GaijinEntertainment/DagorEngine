@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <daECS/core/internal/dataComponentManager.h>
@@ -46,7 +47,7 @@ inline void DataComponentManager::removeChunk(uint32_t c)
   if (c >= getChunksCount())
     return;
   G_ASSERT(totalEntitiesCapacity >= getChunk(c).getCapacity());
-  if (EASTL_UNLIKELY(getChunkUsed(c)))
+  if (DAGOR_UNLIKELY(getChunkUsed(c)))
   {
     G_ASSERTF(0, "removing used chunk=%d(out of %d)! %d used", c, getChunksCount(), getChunkUsed(c));
     return;
@@ -65,7 +66,7 @@ inline DataComponentManager::Chunk &DataComponentManager::allocateEmpty(chunk_ty
   G_ASSERT(chunk->getUsed() < eastl::numeric_limits<eastl::remove_reference<decltype(id)>::type>::max());
 #endif
   const uint32_t cUsed = chunk->getUsed();
-  if (EASTL_LIKELY(cUsed < chunk->getCapacity() && isUnlocked())) // current chunk has no sufficient memory
+  if (DAGOR_LIKELY(cUsed < chunk->getCapacity() && isUnlocked())) // current chunk has no sufficient memory
   {
     // do the allocation
     id = cUsed; // we always add to the end

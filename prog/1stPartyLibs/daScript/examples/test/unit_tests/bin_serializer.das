@@ -10,6 +10,7 @@ struct Bar
     t : string = "blah"
     ta : array<float> <- make_10()
 
+[safe_when_uninitialized]
 struct Foo
     data_bool:bool=true
     data_int:int = 1

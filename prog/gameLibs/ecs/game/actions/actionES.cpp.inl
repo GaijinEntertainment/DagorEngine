@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ecs/game/actions/action.h>
 #include <memory/dag_framemem.h>
 #include <ecs/core/entityManager.h>

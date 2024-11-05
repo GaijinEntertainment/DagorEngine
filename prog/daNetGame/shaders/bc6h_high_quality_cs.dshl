@@ -1,0 +1,82 @@
+include "bc6h_compression_inc.dshl"
+include "shader_global.dshl"
+
+float bc6h_cs_src_mip;
+float bc6h_cs_src_face;
+texture bc6h_cs_src_tex;
+
+shader bc6h_high_quality_cs
+{
+  (cs) {
+    src_mip_face@f2 = (bc6h_cs_src_mip, bc6h_cs_src_face, 0, 0);
+    src_tex@smpCube = bc6h_cs_src_tex;
+  }
+
+  USE_BC6H_COMPRESSION(cs)
+
+  hlsl(cs) {
+    #include <get_cubemap_vector.hlsl>
+    static const int ENCODING_VARIANTS_COUNT = 32;
+
+    RWTexture2DArray<uint4> CompressedTexture : register(u0);
+
+    groupshared uint4 encodedVariants[ENCODING_VARIANTS_COUNT];
+    groupshared float4 variantsMSLE[ENCODING_VARIANTS_COUNT];
+
+
+    [numthreads(ENCODING_VARIANTS_COUNT, 1, 1)]
+    void main(uint variantId : SV_GroupThreadID, uint3 groupCoords : SV_GroupID)
+    {
+      float2 texDim;
+      src_tex.GetDimensions(texDim.x, texDim.y);
+      float2 size = texDim / exp2(src_mip_face.x);
+      float2 invSize = 1 / size;
+      float2 coords = groupCoords.xy * invSize * 4;
+
+      float src_mip = src_mip_face.x;
+      int src_face = src_mip_face.y;
+
+      float3 texels[16];
+      #define GET_TEXEL(x, y) texels[y * 4 + x] = texCUBElod(src_tex, float4(GetCubemapVector2(coords + (float2(x, y) + 0.5) * invSize, groupCoords.z), src_mip)).rgb;
+      GET_TEXEL(0, 0); GET_TEXEL(1, 0); GET_TEXEL(2, 0); GET_TEXEL(3, 0);
+      GET_TEXEL(0, 1); GET_TEXEL(1, 1); GET_TEXEL(2, 1); GET_TEXEL(3, 1);
+      GET_TEXEL(0, 2); GET_TEXEL(1, 2); GET_TEXEL(2, 2); GET_TEXEL(3, 2);
+      GET_TEXEL(0, 3); GET_TEXEL(1, 3); GET_TEXEL(2, 3); GET_TEXEL(3, 3);
+      #undef GET_TEXEL
+
+      float blockMSLE = 0.0f;
+      uint4 block = uint4(0, 0, 0, 0);
+
+      EncodeP1(block, blockMSLE, texels);
+      EncodeP2Pattern(block, blockMSLE, variantId, texels);
+
+      encodedVariants[variantId] = block;
+      variantsMSLE[variantId] = blockMSLE;
+      GroupMemoryBarrierWithGroupSync();
+      if (variantId < 32)
+      {
+      // Workaround for compiler crash.
+      // Version of dxcompiler_x.dll, newbe.dll, scdxil.dll: 2019.10901.12000.10000
+      #ifndef SHADER_COMPILER_DXC
+        UNROLL
+      #endif
+        for (uint i = 16; i > 0; i >>= 1)
+        {
+          if (variantId < i)
+          {
+            float4 localMSLE = variantsMSLE[variantId];
+            float4 anotherMSLE = variantsMSLE[variantId + i];
+            if (localMSLE.x > anotherMSLE.x)
+            {
+              variantsMSLE[variantId] = anotherMSLE;
+              encodedVariants[variantId] = encodedVariants[variantId + i];
+            }
+          }
+        }
+      }
+      if (variantId == 0)
+        CompressedTexture[groupCoords.xyz] = encodedVariants[0];
+    }
+  }
+  compile("cs_5_0", "main");
+}

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <rendInst/rendInstGenRtTools.h>
 #include <rendInst/rendInstGenRender.h>
 #include "riGen/riGenData.h"
@@ -6,8 +8,7 @@
 #include "riGen/riUtil.h"
 #include "riGen/riRotationPalette.h"
 
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_lock.h>
 #include <3d/dag_texPackMgr2.h>
 #include <math/dag_vecMathCompatibility.h>
 #include <math/dag_Point4.h>
@@ -37,14 +38,9 @@ static void updateGlobalShadows()
   if (!is_managed_textures_streaming_load_on_demand())
     ddsx::tex_pack2_perform_delayed_data_loading();
 
-  d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, nullptr, nullptr, nullptr);
-
-  {
-    SCOPE_VIEW_PROJ_MATRIX;
-    rendinst::render::renderRIGenGlobalShadowsToTextures(curSunDir);
-  }
-
-  d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, nullptr, nullptr, nullptr);
+  d3d::GpuAutoLock gpuLock;
+  SCOPE_VIEW_PROJ_MATRIX;
+  rendinst::render::renderRIGenGlobalShadowsToTextures(curSunDir);
 }
 
 static bool check_ht_tight_enough(RendInstGenData *rgl, int idx, RendInstGenData::CellRtData *crt)
@@ -76,7 +72,7 @@ static RendInstGenData::CellRtData *validate_generated_cell(RendInstGenData *rgl
 {
   for (int try_cnt = 3; !check_ht_tight_enough(rgl, idx, crt) && try_cnt > 0; try_cnt--)
   {
-    del_it(crt->sysMemData);
+    crt->sysMemData.reset();
     crt = rgl->generateCell(cx, cz);
   }
   return crt;
@@ -204,6 +200,8 @@ int rendinst::register_rt_pregen_ri(RenderableInstanceLodsResource *ri_res, int 
     rgl->pregenEnt[idx].colPair[1] = ct;
     rgl->pregenEnt[idx].posInst = ri_res->hasImpostor();
     rgl->pregenEnt[idx].paletteRotation = ri_res->isBakedImpostor() ? 1 : 0;
+    rgl->pregenEnt[idx].zeroInstSeeds = 0;
+    rgl->pregenEnt[idx]._resv29 = 0;
     rgl->pregenEnt[idx].paletteRotationCount = ri_res->getRotationPaletteSize();
 
     rgl->pregenEnt.init(rgl->pregenEnt.data(), idx + 1);
@@ -369,7 +367,9 @@ void rendinst::set_rigen_sweep_mask(rendinst::EditableHugeBitmask *bm, float ox,
   rendinst::gen::destrExcl.ox = ox;
   rendinst::gen::destrExcl.oz = oz;
   rendinst::gen::destrExcl.scale = scale;
+#if _TARGET_PC_TOOLS_BUILD
   rendinst::gen::destrExcl.constBm = true;
+#endif
   G_STATIC_ASSERT(sizeof(*bm) == sizeof(rendinst::gen::destrExcl.bm));
   if (bm)
     memcpy(&rendinst::gen::destrExcl.bm, bm, sizeof(*bm));
@@ -467,7 +467,7 @@ bool rendinst::compute_rt_rigen_tight_ht_limits(int layer_idx, int cx, int cz, f
 
 static void gen_rt_rigen_cells(RendInstGenData *rgl, const BBox3 &area)
 {
-  debug_cp();
+  DEBUG_CP();
   float csz = rgl->grid2world * rgl->cellSz;
   float ox = rgl->world0x();
   float oz = rgl->world0z();
@@ -492,7 +492,7 @@ static void gen_rt_rigen_cells(RendInstGenData *rgl, const BBox3 &area)
       if (rgl->cells[idx].isReady())
         rgl->rtData->loadedCellsBBox += IPoint2(cx, cz);
     }
-  debug_cp();
+  DEBUG_CP();
 }
 void rendinst::generate_rt_rigen_main_cells(const BBox3 &area)
 {
@@ -561,13 +561,15 @@ static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, 
   for (int i = 0; i < rgl->pregenEnt.size(); i++)
     if (rgl->pregenEnt[i].riRes)
     {
+      bool posInst = rgl->pregenEnt[i].posInst;
       bool paletteRotation = rgl->pregenEnt[i].paletteRotation;
+      bool zeroInstSeeds = rgl->pregenEnt[i].zeroInstSeeds;
       int base = i * SUBCELL_DIV * SUBCELL_DIV;
       memset(per_sc, 0, sizeof(per_sc));
-      if (rgl->pregenEnt[i].posInst && !paletteRotation)
+      if (posInst && !paletteRotation)
       {
         int start = poolP4.size();
-        riGenGatherPosCB(poolP4, poolPerInstDataP4, riIndices[i], i | flg, ox, oz, ox + cell_xz_sz, oz + cell_xz_sz);
+        riGenGatherPosCB(poolP4, poolPerInstDataP4, !zeroInstSeeds, riIndices[i], i | flg, ox, oz, ox + cell_xz_sz, oz + cell_xz_sz);
         for (int j = start; j < poolP4.size(); j++)
         {
           int cx = clamp<int>((poolP4[j].x - ox) / box_sz, 0, SUBCELL_DIV - 1);
@@ -578,7 +580,7 @@ static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, 
       else
       {
         int start = poolTM.size();
-        riGenGatherTmCB(poolTM, poolPerInstDataTM, riIndices[i], i | flg, ox, oz, ox + cell_xz_sz, oz + cell_xz_sz);
+        riGenGatherTmCB(poolTM, poolPerInstDataTM, !zeroInstSeeds, riIndices[i], i | flg, ox, oz, ox + cell_xz_sz, oz + cell_xz_sz);
         for (int j = start; j < poolTM.size(); j++)
         {
           int cx = clamp<int>((poolTM[j][3][0] - ox) / box_sz, 0, SUBCELL_DIV - 1);
@@ -589,11 +591,6 @@ static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, 
     }
   if (poolP4.size() + poolTM.size() == 0)
     return;
-  G_ASSERTF(poolPerInstDataP4.size() == poolP4.size() * per_inst_data_dwords,
-    "poolPerInstDataP4.count=%d poolP4.count=%d per_inst_data_dword=%d", poolPerInstDataP4.size(), poolP4.size(),
-    per_inst_data_dwords);
-  G_ASSERTF(poolPerInstDataTM.size() == poolTM.size() * per_inst_data_dwords,
-    "poolPerInstDataTM.count=%d poolTM=%d per_inst_data_dword=%d", poolPerInstDataTM.size(), poolTM.size(), per_inst_data_dwords);
 
   bool need_one_more_pass = false;
   // per_inst_data_dwords is manually added
@@ -606,10 +603,12 @@ static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, 
       {
         dag::ConstSpan<int> idx = riLdCnt[j * SUBCELL_DIV * SUBCELL_DIV + s];
         RendInstGenData::PregenEntCounter cnt;
-        int stride = (rgl->pregenEnt[j].posInst ? 4 : (rendinst::tmInst12x32bit ? 24 : 12)) + per_inst_data_dwords * 2;
+        bool posInst = rgl->pregenEnt[j].posInst;
+        bool paletteRotation = rgl->pregenEnt[j].paletteRotation;
+        bool zeroInstSeeds = rgl->pregenEnt[j].zeroInstSeeds;
+        int stride = (posInst ? 4 : (rendinst::tmInst12x32bit ? 24 : 12)) + (zeroInstSeeds ? 0 : per_inst_data_dwords * 2);
         int stor_s = crt.pregenAdd->dataStor.size();
         cnt.set(j, idx.size());
-        bool paletteRotation = rgl->pregenEnt[j].paletteRotation;
 
         crt.pregenAdd->cntStor.push_back(cnt);
         crt.pregenAdd->dataStor.reserve(cnt.riCount * stride);
@@ -642,7 +641,7 @@ static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, 
             int id = append_items(crt.pregenAdd->dataStor, size / sizeof(int16_t));
             rendinst::gen::pack_entity_pos_inst_16(packData, Point3::xyz(posScale), posScale.w, palette_id,
               &crt.pregenAdd->dataStor[id]);
-            if (per_inst_data_dwords)
+            if (per_inst_data_dwords && !zeroInstSeeds)
               append_items(crt.pregenAdd->dataStor, per_inst_data_dwords * 2, (int16_t *)&poolPerInstDataTM[idx[k]]);
           }
         }
@@ -667,7 +666,7 @@ static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, 
               inplace_min(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmin).y, y);
             int id = append_items(crt.pregenAdd->dataStor, size / sizeof(int16_t));
             rendinst::gen::pack_entity_pos_inst_16(packData, Point3(p.x, p.y, p.z), p.w, -1, &crt.pregenAdd->dataStor[id]);
-            if (per_inst_data_dwords)
+            if (per_inst_data_dwords && !zeroInstSeeds)
               append_items(crt.pregenAdd->dataStor, per_inst_data_dwords * 2, (int16_t *)&poolPerInstDataP4[idx[k]]);
           }
         }
@@ -693,7 +692,7 @@ static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, 
 
             int id = append_items(crt.pregenAdd->dataStor, size / sizeof(int16_t));
             rendinst::gen::pack_entity_tm_16(packData, tm, &crt.pregenAdd->dataStor[id]);
-            if (per_inst_data_dwords)
+            if (per_inst_data_dwords && !zeroInstSeeds)
               append_items(crt.pregenAdd->dataStor, per_inst_data_dwords * 2, (int16_t *)&poolPerInstDataTM[idx[k]]);
           }
         }
@@ -720,7 +719,7 @@ static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, 
 
             int id = append_items(crt.pregenAdd->dataStor, 24);
             rendinst::gen::pack_entity_tm_32(packData, tm, &crt.pregenAdd->dataStor[id]);
-            if (per_inst_data_dwords)
+            if (per_inst_data_dwords && !zeroInstSeeds)
               append_items(crt.pregenAdd->dataStor, per_inst_data_dwords * 2, (int16_t *)&poolPerInstDataTM[idx[k]]);
           }
         }
@@ -846,8 +845,8 @@ rendinst::GetRendInstMatrixByRiIdxResult rendinst::get_rendinst_matrix_by_ri_idx
   if (!cellRt)
     return rendinst::GetRendInstMatrixByRiIdxResult::NonReady;
 
-  const bool posInst = cellRt->rtData->riPosInst[ri_idx] ? 1 : 0;
-  const unsigned int stride = RIGEN_STRIDE_B(posInst, riGen->perInstDataDwords);
+  const unsigned int stride =
+    RIGEN_STRIDE_B(cellRt->rtData->riPosInst[ri_idx], cellRt->rtData->riZeroInstSeeds[ri_idx], riGen->perInstDataDwords);
 
   if (cellRt->pools[ri_idx].total - cellRt->pools[ri_idx].avail < 1)
     return rendinst::GetRendInstMatrixByRiIdxResult::Failure;
@@ -859,7 +858,7 @@ rendinst::GetRendInstMatrixByRiIdxResult rendinst::get_rendinst_matrix_by_ri_idx
   {
     rendinst::RendInstDesc riDesc(cellIdx, i, ri_idx, 0, layer_idx);
 
-    const int16_t *data = (int16_t *)(cellRt->sysMemData + cellRt->pools[ri_idx].baseOfs + i * stride);
+    const int16_t *data = (int16_t *)(cellRt->sysMemData.get() + cellRt->pools[ri_idx].baseOfs + i * stride);
     mat44f tm44;
     if (!riutil::get_rendinst_matrix(riDesc, const_cast<RendInstGenData *>(riGen), data, &cell, tm44))
       continue;

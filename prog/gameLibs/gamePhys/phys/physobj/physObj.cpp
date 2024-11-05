@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gamePhys/phys/physObj/physObj.h>
 #include <gamePhys/collision/collisionLib.h>
 #include <gamePhys/collision/contactData.h>
@@ -13,6 +15,9 @@
 #include <gamePhys/phys/queries.h>
 #include <gamePhys/collision/cachedCollisionObject.h>
 #include <util/dag_finally.h>
+
+// This ensure faster copy/relocation code path. Can be removed if _really_ needed.
+static_assert(eastl::is_trivially_destructible_v<PhysObjState>);
 
 void PhysObjState::reset()
 {
@@ -146,6 +151,7 @@ void PhysObj::loadPhysParams(const DataBlock *blk)
   minSpeedForBounce = blk->getReal("minSpeedForBounce", 0.f);
   momentOfInertia = blk->getPoint3("momentOfInertia", Point3(1.f, 1.f, 1.f));
   gravityMult = blk->getReal("gravityMult", gravityMult);
+  gravityCollisionMultDotRange = blk->getPoint2("gravityCollisionMultDotRange", gravityCollisionMultDotRange);
 }
 
 void PhysObj::loadLimits(const DataBlock *blk)
@@ -186,13 +192,15 @@ void PhysObj::loadCollisionSettings(const DataBlock *blk, const CollisionResourc
   ignoreCollision = blk->getBool("ignoreCollision", ignoreCollision);
   addToWorld = blk->getBool("addToWorld", addToWorld);
   ccdClipVelocityMult = blk->getReal("ccdClipVelocityMult", ccdClipVelocityMult);
+  ccdCollisionMarginMult = blk->getReal("ccdCollisionMarginMult", ccdCollisionMarginMult);
 
   using namespace dacoll;
   const int physLayer = blk->getInt("physLayer", PhysLayer::EPL_KINEMATIC);
   const int physMask = blk->getInt("physMask", DEFAULT_DYN_COLLISION_MASK);
   const DataBlock *collisionBlk = blk->getBlockByNameEx("collision");
   for (int i = 0; i < collisionBlk->blockCount(); ++i)
-    collision.push_back(add_dynamic_collision(*collisionBlk->getBlock(i), nullptr, false, addToWorld));
+    collision.push_back(
+      add_dynamic_collision_with_mask(*collisionBlk->getBlock(i), nullptr, false, false, /*auto_mask*/ false, physMask));
   const DataBlock *collResBlk = blk->getBlockByNameEx("collisionResource", nullptr);
   if (collResBlk)
   {
@@ -201,9 +209,11 @@ void PhysObj::loadCollisionSettings(const DataBlock *blk, const CollisionResourc
     CollisionObject co;
     if (!collResBlk->getBool("normalizeCenter", false))
     {
-      int addcoflags = addToWorld ? ACO_ADD_TO_WORLD : ACO_NONE;
+      int addcoflags = ACO_NONE;
       if (collResBlk->getBool("kinematic", false))
         addcoflags |= ACO_KINEMATIC;
+      if (collResBlk->getBool("forceConvexHull", false))
+        addcoflags |= ACO_FORCE_CONVEX_HULL;
       co = add_dynamic_collision_from_coll_resource(collPropsBlk, coll_res, nullptr, addcoflags, physLayer, physMask);
     }
     else
@@ -211,7 +221,7 @@ void PhysObj::loadCollisionSettings(const DataBlock *blk, const CollisionResourc
       TMatrix collisionNodeInModelTm = TMatrix::IDENT;
       Point3 outCenter;
       co = add_simple_dynamic_collision_from_coll_resource(*collPropsBlk, coll_res, nullptr, collResBlk->getReal("margin", 0.0),
-        collResBlk->getReal("scale", 1.0), outCenter, collisionNodeTm, collisionNodeInModelTm);
+        collResBlk->getReal("scale", 1.0), outCenter, collisionNodeTm, collisionNodeInModelTm, /* add to world */ false);
 
       collisionNodeTm *= inverse(collisionNodeInModelTm);
 
@@ -222,7 +232,8 @@ void PhysObj::loadCollisionSettings(const DataBlock *blk, const CollisionResourc
           collisionNodes.push_back() = nodeId;
       }
     }
-    collision.push_back(co);
+    if (co.isValid())
+      collision.push_back(co);
   }
   const DataBlock *ccdBlk = blk->getBlockByNameEx("ccdSpheres");
   for (int i = 0; i < ccdBlk->paramCount(); ++i)
@@ -248,7 +259,7 @@ void PhysObj::loadFromBlk(const DataBlock *blk, const CollisionResource *coll_re
     const int physMask = blk->getInt("physMask", dacoll::DEFAULT_DYN_COLLISION_MASK);
     const float density = blk->getReal("density", -1.f);
     dacoll::PhysBodyProperties bodyProperties;
-    CollisionObject co = dacoll::build_dynamic_collision_from_coll_resource(coll_res, addToWorld, physLayer, physMask, bodyProperties);
+    CollisionObject co = dacoll::build_dynamic_collision_from_coll_resource(coll_res, false, physLayer, physMask, bodyProperties);
     centerOfMass = bodyProperties.centerOfMass;
     if (density > 0.f && bodyProperties.volume > 0.f)
     {
@@ -261,6 +272,15 @@ void PhysObj::loadFromBlk(const DataBlock *blk, const CollisionResource *coll_re
   }
 }
 
+void PhysObj::addCollisionToWorld()
+{
+  if (!addToWorld)
+    return;
+  for (CollisionObject &co : collision)
+    dacoll::set_obj_active(co, true);
+}
+
+
 static inline bool apply_impulse_to_ri(rendinst::RendInstDesc &ri_desc, float at_time, Point3 &velocity, float impulse,
   const Point3 &impulse_dir, const Point3 &contact_pos, float speed)
 {
@@ -270,19 +290,25 @@ static inline bool apply_impulse_to_ri(rendinst::RendInstDesc &ri_desc, float at
   if (!riCollisionInfo)
     return false;
   float destructionImpulse = riCollisionInfo->getDestructionImpulse();
-  if (impulse < destructionImpulse)
-    return false;
-  riCollisionInfo->onImpulse(impulse, impulse_dir, contact_pos, speed);
-  velocity *= (1.0f - safediv(destructionImpulse, impulse));
-  return true;
+  if (impulse >= destructionImpulse)
+  {
+    riCollisionInfo->onImpulse(impulse, impulse_dir, contact_pos, speed, -impulse_dir);
+    velocity *= (1.0f - safediv(destructionImpulse, impulse));
+    return true;
+  }
+
+  riCollisionInfo->onImpulse(impulse, impulse_dir, contact_pos, speed, -impulse_dir, gamephys::CollisionObjectInfo::CIF_NO_DAMAGE);
+  return false;
 }
 
-static inline bool solve_ccd(const Point3 &from, const Point3 &to, float rad, Point3 &offset, Point3 &vel, float collision_margin,
-  int phys_mat_id, dag::ConstSpan<CollisionObject> collision, dag::ConstSpan<int> ignore_objs, float energy_conservation,
-  float clip_velocity_mult, Point3 &contactPointOffset, rendinst::RendInstDesc *out_desc = nullptr, Point3 *out_ray_hit_pos = nullptr)
+static inline bool solve_ccd(const Point3 &from, const Point3 &to, float rad, Point3 &offset, float &offset_len, Point3 &vel,
+  float collision_margin, int phys_mat_id, dag::ConstSpan<CollisionObject> collision, dag::ConstSpan<int> ignore_objs,
+  float energy_conservation, float clip_velocity_mult, Point3 &contact_point, rendinst::RendInstDesc *out_desc = nullptr,
+  Point3 *out_ray_hit_pos = nullptr)
 {
   offset.zero();
-  contactPointOffset.zero();
+  offset_len = 0.0f;
+
   Point3 dir = to - from;
   float lenSq = lengthSq(dir);
   if (lenSq < 1e-5f)
@@ -309,11 +335,15 @@ static inline bool solve_ccd(const Point3 &from, const Point3 &to, float rad, Po
   int mask = dacoll::EPL_ALL & ~(dacoll::EPL_CHARACTER | dacoll::EPL_DEBRIS);
   if (dacoll::sphere_cast_ex(from, to, rad, sphQuery, phys_mat_id, ignore_coll_objs, nullptr, mask))
   {
-    float unrestricted = (1.f - sphQuery.t) * len;
-    offset = -dir * (unrestricted + collision_margin);
-    contactPointOffset = sphQuery.res - (from + dir * sphQuery.t * len);
+    float penetration = (1.f - sphQuery.t) * len;
+    offset_len = min(len, penetration + collision_margin + rad);
+    offset = -dir * offset_len;
+
+    const Point3 projectileHitPos = (from + dir * sphQuery.t * len);
+    Point3 contactPointOffset = sphQuery.res - projectileHitPos;
     contactPointOffset -= dir * dot(contactPointOffset, dir); // Contact point offset should not overshoot projectile position.
     // clip velocity by normal
+    contact_point = to + offset + contactPointOffset;
     vel = vel - (vel * sphQuery.norm * sphQuery.norm) * clip_velocity_mult;
     if (energy_conservation < 1.f)
       vel = normalize(vel) * sqrtf(lengthSq(vel) * energy_conservation);
@@ -331,8 +361,11 @@ static inline bool solve_ccd(const Point3 &from, const Point3 &to, float rad, Po
     *out_ray_hit_pos = from + dir * t;
   if (t <= sphereCastHitDist)
   {
-    offset = dir * (t - len - collision_margin - rad);
-    contactPointOffset.zero();
+    float penetration = len - t;
+    offset_len = min(len, penetration + collision_margin + rad);
+    offset = -dir * offset_len;
+    contact_point = to + offset;
+
     // clip velocity by normal
     vel = vel - (vel * norm * norm) * clip_velocity_mult;
     if (energy_conservation < 1.f)
@@ -396,17 +429,17 @@ void PhysObj::resolveCollision(float dt, dag::ConstSpan<gamephys::CollisionConta
   Tab<gamephys::SeqImpulseInfo> collisions(framemem_ptr());
   daphys::convert_contacts_to_solver_data(cogPos, orient, contacts, collisions, safeinv(mass), invMoi, contactParams);
   daphys::energy_conservation_vel_patch(collisions, vel, omega, contactParams);
-  daphys::apply_cached_contacts(cogPos, orient, vel, omega, make_span_const(currentState.cachedContacts), collisions, invMass, invMoi,
-    contactParams);
+  daphys::apply_cached_contacts(cogPos, orient, vel, omega,
+    make_span_const(currentState.cachedContacts.data(), currentState.numCachedContacts), collisions, invMass, invMoi, contactParams);
   daphys::resolve_contacts(orient, vel, omega, collisions, invMass, invMoi, contactParams, 10);
 
   if (warmstartingFactor > 0.f)
   {
     Tab<gamephys::CachedContact> cachedContacts(framemem_ptr());
     daphys::cache_solved_contacts(collisions, cachedContacts, MAX_CACHED_CONTACTS);
-    currentState.cachedContacts.clear();
-    if (!cachedContacts.empty())
-      currentState.cachedContacts.insert(currentState.cachedContacts.begin(), cachedContacts.begin(), cachedContacts.end());
+    currentState.numCachedContacts = cachedContacts.size();
+    if (currentState.numCachedContacts)
+      mem_copy_to(cachedContacts, currentState.cachedContacts.data());
   }
   if (erp > 0.f) // skip penetration if we don't have any erp at all
     daphys::resolve_penetration(cogPos, orient, contacts, invMass, invMoi, dt, useFutureContacts, 10, linearSlop, erp);
@@ -461,7 +494,7 @@ void PhysObj::updatePhys(float at_time, float dt, bool)
   for (CollisionObject &co : collision)
     dacoll::set_collision_object_tm(co, tm);
 
-  if (EASTL_LIKELY(!ignoreCollision))
+  if (DAGOR_LIKELY(!ignoreCollision))
     for (CollisionObject &co : collision)
     {
       if (dacoll::test_collision_frt(co, contacts, physMatId))
@@ -475,13 +508,20 @@ void PhysObj::updatePhys(float at_time, float dt, bool)
       {
         if (!contacts[i].objectInfo)
           continue;
+
         float destructionImpulse = contacts[i].objectInfo->getDestructionImpulse();
-        if (linearImpulse < destructionImpulse)
+
+        if (linearImpulse >= destructionImpulse)
+        {
+          contacts[i].objectInfo->onImpulse(linearImpulse, impulseDir, contacts[i].wpos, speed, contacts[i].wnormB);
+          currentState.velocity *= (1.0f - max(0.f, safediv(destructionImpulse, linearImpulse)));
+          gamephys::remove_contact(contacts, i--);
+          hasRiDestroyingCollision = true;
           continue;
-        contacts[i].objectInfo->onImpulse(linearImpulse, impulseDir, contacts[i].wpos, speed);
-        currentState.velocity *= (1.0f - max(0.f, safediv(destructionImpulse, linearImpulse)));
-        gamephys::remove_contact(contacts, i--);
-        hasRiDestroyingCollision = true;
+        }
+
+        contacts[i].objectInfo->onImpulse(linearImpulse, impulseDir, contacts[i].wpos, speed, contacts[i].wnormB,
+          gamephys::CollisionObjectInfo::CIF_NO_DAMAGE);
       }
 
       int prevCount = contacts.size();
@@ -500,7 +540,27 @@ void PhysObj::updatePhys(float at_time, float dt, bool)
   if (useMovementDamping && lengthSq(currentState.velocity) < movementDampingThreshold && onlySupportedFromBelow)
     currentState.velocity.zero();
   else
-    currentState.velocity += currentState.gravDirection * gamephys::atmosphere::g() * gravityMult * dt;
+  {
+    float minGravContactDot = 1.0f;
+    for (const auto &c : contacts)
+      minGravContactDot = min(minGravContactDot, dot(c.wnormB, currentState.gravDirection));
+
+    float currentGravityMult = gravityMult;
+
+    // Gravity collision multiplier
+    if (minGravContactDot < gravityCollisionMultDotRange.x)
+    {
+      if (minGravContactDot < gravityCollisionMultDotRange.y)
+        currentGravityMult = 0.0f;
+      else
+      {
+        float collisionMult = cvt(minGravContactDot, gravityCollisionMultDotRange.x, gravityCollisionMultDotRange.y, 1.0f, 0.0f);
+        currentGravityMult *= collisionMult;
+      }
+    }
+
+    currentState.velocity += currentState.gravDirection * gamephys::atmosphere::g() * currentGravityMult * dt;
+  }
 
   if (shouldTraceGround)
   {
@@ -520,7 +580,6 @@ void PhysObj::updatePhys(float at_time, float dt, bool)
         c.userPtrA = nullptr;
         c.userPtrB = nullptr;
         c.matId = -1;
-        c.objectInfo = nullptr;
 
         hasGroundCollisionPoint = true;
         groundCollisionPoint = c.wpos;
@@ -551,12 +610,6 @@ void PhysObj::updatePhys(float at_time, float dt, bool)
 
   currentState.velocity *= 1.0f / (1.0f + dt * linearDamping);
   currentState.omega *= 1.0f / (1.0f + dt * angularDamping);
-  if (currentState.velocity.lengthSq() + currentState.omega.lengthSq() < 1e-6) // if zero
-  {
-    currentState.sleepTimer += dt;
-    if (currentState.sleepTimer > sleepDelay)
-      putToSleep(); // zero-out velocity/omega as well to avoid denomals
-  }
 
   G_ASSERT(!check_nan(currentState.addForce));
   G_ASSERT(!check_nan(currentState.addMoment));
@@ -590,16 +643,16 @@ void PhysObj::updatePhys(float at_time, float dt, bool)
       contactsLog.push_back(coll);
   }
 
-  gamephys::Loc prevLoc = currentState.location;
-
   resolveCollision(dt, contacts);
 
   Point3 orientationInc = currentState.omega * dt;
   Quat quatInc = Quat(orientationInc, length(orientationInc));
 
+  currentState.contactPoint = currentState.location.P;
   currentState.hadContact = !contacts.empty();
-  Point3 contactPointOffset = ZERO<Point3>();
-  Point3 constrainedVelocity = currentState.velocity;
+
+  // CCD
+  bool hasCcdContact = false;
   if (lengthSq(currentState.velocity) > 1e-5f)
   {
     Point3 ccdHitPos;
@@ -607,58 +660,80 @@ void PhysObj::updatePhys(float at_time, float dt, bool)
     dag::ConstSpan<int> ignoreObjsSlice;
     if ((currentState.ignoreGameObjsUntilTime == 0.0f) || (at_time < currentState.ignoreGameObjsUntilTime))
       ignoreObjsSlice = ignoreGameObjs;
+
+    gamephys::Loc nextState = currentState.location;
+    nextState.P += currentState.velocity * dt;
+    nextState.O.setQuat(normalize(nextState.O.getQuat() * quatInc));
+
+    float maxCcdOffset = 0.0f;
+    Point3 ccdOffset = ZERO<Point3>();
+    Point3 ccdContactPoint = ZERO<Point3>();
+    Point3 ccdResultVelocity = ZERO<Point3>();
+
+    Point3 offset = ZERO<Point3>();
+    float offsetLen = 0.0f;
+    Point3 contactPoint = ZERO<Point3>();
+
     for (const BSphere3 &ccd : ccdSpheres)
     {
-      dacoll::ShapeQueryOutput sphQuery;
+      Point3 constrainedVelocity = currentState.velocity;
+
       Point3 pos = ccd.c;
-      Point3 posTo = ccd.c;
-      prevLoc.transform(pos);
-      currentState.location.transform(posTo);
-      Point3 offset;
-      Point3 tempCpOffset;
-      bool ok = solve_ccd(pos, posTo, ccd.r, offset, constrainedVelocity, ccd.r * 0.3f, physMatId, collision, ignoreObjsSlice,
-        energyConservation, ccdClipVelocityMult, tempCpOffset, &ri_desc, &ccdHitPos);
-      currentState.hadContact |= ok;
-      if (ok)
-        contactPointOffset = tempCpOffset + (pos - prevLoc.P);
-      hasRiDestroyingCollision |=
-        apply_impulse_to_ri(ri_desc, at_time, currentState.velocity, linearImpulse, impulseDir, ccdHitPos, speed);
-      ri_desc.invalidate();
-      if (currentState.logCCD)
-        ccdLog.push_back(CCDCheck(pos, posTo, offset));
-      currentState.location.P += dpoint3(offset);
-
-      pos = ccd.c;
       currentState.location.transform(pos);
-      gamephys::Loc nextState = currentState.location;
-      nextState.P += constrainedVelocity * dt;
-      nextState.O.setQuat(normalize(nextState.O.getQuat() * quatInc));
 
-      posTo = ccd.c;
+      Point3 posTo = ccd.c;
       nextState.transform(posTo);
-      ok = solve_ccd(pos, posTo, ccd.r, offset, constrainedVelocity, ccd.r * 0.3f, physMatId, collision, ignoreObjsSlice,
-        energyConservation, ccdClipVelocityMult, tempCpOffset, &ri_desc, &ccdHitPos);
-      currentState.hadContact |= ok;
-      if (ok)
-        contactPointOffset = tempCpOffset + (pos - currentState.location.P);
+
+      bool ok = solve_ccd(pos, posTo, ccd.r, offset, offsetLen, constrainedVelocity, ccd.r * ccdCollisionMarginMult, physMatId,
+        collision, ignoreObjsSlice, energyConservation, ccdClipVelocityMult, contactPoint, &ri_desc, &ccdHitPos);
+
       hasRiDestroyingCollision |=
         apply_impulse_to_ri(ri_desc, at_time, currentState.velocity, linearImpulse, impulseDir, ccdHitPos, speed);
       ri_desc.invalidate();
+
       if (currentState.logCCD)
         ccdLog.push_back(CCDCheck(pos, posTo, offset));
-      currentState.location.P += dpoint3(offset);
+
+      if (ok && offsetLen > maxCcdOffset)
+      {
+        hasCcdContact = true;
+        maxCcdOffset = offsetLen;
+        ccdOffset = offset;
+        ccdContactPoint = contactPoint;
+        ccdResultVelocity = constrainedVelocity;
+      }
+    }
+
+    if (hasCcdContact)
+    {
+      currentState.location.P = nextState.P + dpoint3(ccdOffset);
+      currentState.velocity = ccdResultVelocity;
+
+      if (!currentState.hadContact)
+        currentState.contactPoint = ccdContactPoint;
+      currentState.hadContact = true;
     }
   }
-  if (currentState.hadContact)
-  {
-    currentState.contactPoint = currentState.location.P + dpoint3(currentState.velocity * dt + contactPointOffset);
-    currentState.velocity = constrainedVelocity;
-  }
-  currentState.location.P += constrainedVelocity * dt;
+
+  if (!hasCcdContact)
+    currentState.location.P += currentState.velocity * dt;
+
   DPoint3 centerOfMassInWorldBefore = dpoint3(currentState.location.O.getQuat() * centerOfMass);
   currentState.location.O.setQuat(normalize(currentState.location.O.getQuat() * quatInc));
-  DPoint3 centerOfMassInWorldAfter = dpoint3(currentState.location.O.getQuat() * centerOfMass);
-  currentState.location.P += centerOfMassInWorldBefore - centerOfMassInWorldAfter;
+
+  if (!hasCcdContact)
+  {
+    DPoint3 centerOfMassInWorldAfter = dpoint3(currentState.location.O.getQuat() * centerOfMass);
+    currentState.location.P += centerOfMassInWorldBefore - centerOfMassInWorldAfter;
+  }
+
+  // Sleep
+  if (currentState.velocity.lengthSq() + currentState.omega.lengthSq() < 1e-6) // if zero
+  {
+    currentState.sleepTimer += dt;
+    if (currentState.sleepTimer > sleepDelay)
+      putToSleep(); // zero-out velocity/omega as well to avoid denomals
+  }
 
   update_current_state_tick(currentState, appliedCT, at_time, dt, timeStep);
 }
@@ -704,7 +779,7 @@ void PhysObj::drawDebug()
     TMatrix tm;
     currentState.location.toTM(tm);
     Point3 cogPos = tm * centerOfMass;
-    for (const gamephys::CachedContact &contact : currentState.cachedContacts)
+    for (auto &contact : make_span_const(currentState.cachedContacts.data(), currentState.numCachedContacts))
     {
       draw_debug_sph(BSphere3(contact.wpos, max(fabsf(contact.depth), 0.01f)), contact.depth > 0.f ? outsideCache : insideCache);
       draw_debug_line(contact.wpos, contact.wpos + contact.wnorm * 0.2f, insideCache);
@@ -726,6 +801,23 @@ void PhysObj::addForce(const Point3 &arm, const Point3 &force)
   G_ASSERT(lengthSq(force) < sqr(10000.f));
   apply_force(force, arm, getCenterOfMass(), currentState.addForce, currentState.addMoment);
   wakeUp();
+}
+
+void PhysObj::addForceWorld(const Point3 &pos, const Point3 &force)
+{
+  const TMatrix itm = inverse(currentState.location.makeTM());
+  apply_force(itm % force, itm * pos, getCenterOfMass(), currentState.addForce, currentState.addMoment);
+  wakeUp();
+}
+
+void PhysObj::addImpulseWorld(const Point3 &point, const Point3 &impulse)
+{
+  const TMatrix itm = inverse(currentState.location.makeTM());
+  const Point3 invMoi(safeinv(momentOfInertia.x * mass), safeinv(momentOfInertia.y * mass), safeinv(momentOfInertia.z * mass));
+  currentState.velocity += impulse * safeinv(mass);
+  const Point3 arm = itm * point;
+  const Point3 armCrossImpulse = (arm - getCenterOfMass()) % (itm % impulse);
+  currentState.omega += hadamard_product(armCrossImpulse, invMoi);
 }
 
 void PhysObj::addSoundShockImpulse(float val) { soundShockImpulse += val; }

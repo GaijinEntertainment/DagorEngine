@@ -13,7 +13,7 @@ AddIncludes =
 
 Copt += -DHAVE_CONFIG_H ;
 
-if $(Platform) in win32 win64 xboxOne scarlett {
+if $(Platform) in windows xboxOne scarlett {
   AddIncludes += $(Root)/$(Location)/win32 ;
   Copt += /wd4267 ;
 }
@@ -26,22 +26,18 @@ if $(Platform) in ps4 ps5 {
 }
 
 
-if $(Platform) in win32 win64 xboxOne scarlett {
+if $(Platform) in windows xboxOne scarlett {
   Copt += -FI../speex_mangle.h ;
-} else if $(Platform) in ps4 ps5 linux64 macosx iOS tvOS android nswitch {
+} else if $(Platform) in ps4 ps5 linux macOS iOS tvOS android nswitch {
   Copt += -include ../speex_mangle.h ;
 } else {
   Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
 }
 
-if $(Platform) in ps4 ps5 linux64 || ( $(Platform) = macosx && $(MacOSXArch) = x86_64 )  {
+if $(Platform) in ps4 ps5 linux macOS && $(PlatformArch) in x86_64 {
   Copt += -DUSE_SSE -DUSE_SSE2 ;
 }
-if ( $(Platform) = android && $(AndroidArch) = arm64-v8a ) ||
-   ( $(Platform) = nswitch ) ||
-   ( $(Platform) = macosx && $(MacOSXArch) = arm64 ) ||
-   ( $(Platform) = iOS && $(iOSArch) = arm64 ) ||
-   ( $(Platform) = tvOS && $(tvOSArch) = arm64 ) {
+if $(PlatformArch) in arm64 arm64e arm64-v8a {
   Copt += -DUSE_NEON ;
 }
 

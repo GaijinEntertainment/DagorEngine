@@ -1,0 +1,6 @@
+float hmap_tess_factor = 0;
+interval hmap_tess_factor : hmap_tess_factor_off < 2, hmap_tess_factor_on;
+
+// for hmap-like objects
+float hmap_object_tess_factor = 0;
+interval hmap_object_tess_factor : hmap_object_tess_factor_off < 1, hmap_object_tess_factor_on;

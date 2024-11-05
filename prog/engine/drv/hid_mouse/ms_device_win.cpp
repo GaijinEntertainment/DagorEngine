@@ -1,4 +1,6 @@
-#include <humanInput/dag_hiGlobals.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/hid/dag_hiGlobals.h>
 #include "ms_device_win.h"
 #include <generic/dag_tab.h>
 #include <debug/dag_fatal.h>
@@ -7,7 +9,9 @@
 #include <startup/dag_globalSettings.h>
 #include "api_wrappers.h"
 #include <perfMon/dag_cpuFreq.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_driver.h>
+#include "drv/3d/dag_resetDevice.h"
 #include <startup/dag_inpDevClsDrv.h>
 #include <debug/dag_debug.h>
 #include <debug/dag_traceInpDev.h>
@@ -197,7 +201,7 @@ WinMouseDevice::WinMouseDevice()
 
   hidden = true;
 
-  debug_ctx("init start");
+  DEBUG_CTX("init start");
 #if _TARGET_PC_WIN
   areButtonsSwapped = GetSystemMetrics(SM_SWAPBUTTON);
   dgs_inpdev_rawinput_mouse_inited = false;
@@ -210,8 +214,13 @@ WinMouseDevice::WinMouseDevice()
     GetRegisteredRawInputDevices(rid, &ridNum, sizeof(RAWINPUTDEVICE));
 
     for (int i = 0; i < ridNum; i++)
+    {
       if (rid[i].usUsagePage == 0x01 && rid[i].usUsage == 0x02)
+      {
+        delete[] rid;
         return; // mouse device already registered
+      }
+    }
 
     // add HID mouse
     rid[ridNum].usUsagePage = 0x01;
@@ -265,7 +274,7 @@ WinMouseDevice::WinMouseDevice()
 #else
   dgs_inpdev_rawinput_mouse_inited = true;
 #endif
-  debug_ctx("init done");
+  DEBUG_CTX("init done");
 
   POINT pt;
   overWnd = getCursorPos(pt);
@@ -469,6 +478,10 @@ IWndProcComponent::RetCode WinMouseDevice::process(void *hwnd, unsigned msg, uin
         state.mouse.deltaZ += (short)ri.data.mouse.usButtonData;
         raw_state_pnt.mouse.deltaZ += (short)ri.data.mouse.usButtonData;
       }
+
+      if (client)
+        client->gmcMouseMove(this, ri.data.mouse.lLastX, ri.data.mouse.lLastY); // Some subsystems can still benefit from the cursor
+                                                                                // position update.
 
       return PROCEED_DEF_WND_PROC;
     }
@@ -906,7 +919,8 @@ void WinMouseDevice::setPosition(int x, int y)
   clampStateCoord();
   raw_state_pnt.mouse.x = state.mouse.x;
   raw_state_pnt.mouse.y = state.mouse.y;
-  deviceSetPosition(state.mouse.x, state.mouse.y);
+  if (!is_window_resizing_by_mouse())
+    deviceSetPosition(state.mouse.x, state.mouse.y);
 
 #if _TARGET_PC_MACOSX
   ignoreNextDelta = true;

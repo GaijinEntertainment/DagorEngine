@@ -7,8 +7,36 @@ include "mulPointTm_inc.dshl"
 include "global_consts.dshl"
 
 float water_level = 0;
+float pre_exposure = 1;
+macro INIT_PRE_EXPOSURE(code)
+  (code) {
+    pre_exposure@f2 = (pre_exposure, 1./pre_exposure, 0,0);
+  }
+endmacro
+macro USE_PRE_EXPOSURE(code)
+  hlsl(code) {
+    half3 pre_exposure_encode(half3 v) {return v*pre_exposure.x;}
+    half3 pre_exposure_decode(half3 v) {return v*pre_exposure.y;}
+  }
+endmacro
+
+float prev_pre_exposure = 1;
+macro INIT_PREV_PRE_EXPOSURE(code)
+  (code) {
+    prev_pre_exposure@f2 = (prev_pre_exposure, 1./prev_pre_exposure, 0,0);
+  }
+endmacro
+macro USE_PREV_PRE_EXPOSURE(code)
+  hlsl(code) {
+    half3 prev_pre_exposure_encode(half3 v) {return v*prev_pre_exposure.x;}
+    half3 prev_pre_exposure_decode(half3 v) {return v*prev_pre_exposure.y;}
+  }
+endmacro
 
 texture downsampled_far_depth_tex;
+texture downsampled_close_depth_tex;
+texture downsampled_normals; // from pixels with downsampled_close_depth_tex
+float4 lowres_tex_size = (0, 0, 0, 0);
 
 float4 world_view_pos;
 float global_transp_r;
@@ -34,6 +62,9 @@ interval use_postfx : off<1, on;
 
 int use_extended_global_frame_block = 0;
 interval use_extended_global_frame_block: no < 1, yes;
+
+int impostor_normal_mip = 0;
+buffer cables_buf;
 
 float4 screen_pos_to_texcoord = (0, 0, 0, 0);
 macro USE_SCREENPOS_TO_TC()
@@ -145,6 +176,23 @@ hlsl {
   {
     return rcp(decode_depth.x + decode_depth.y * rawDepth);
   }
+  float4 linearize_z4(float4 rawDepth, float2 decode_depth)
+  {
+    return rcp(decode_depth.x + decode_depth.y * rawDepth);
+  }
+  float inv_linearizeZ(float d, float4 zn_zfar)
+  {
+    return (zn_zfar.y*rcp(d) - 1) * zn_zfar.x * rcp(zn_zfar.y - zn_zfar.x);
+  }
+  // These are aliasis for the linearize_z and inv_linearizeZ functions
+  float linearize_distance(float rawDistance, float2 decode_depth)
+  {
+    return linearize_z(rawDistance, decode_depth);
+  }
+  float inv_linearize_distance(float d, float4 zn_zfar)
+  {
+    return inv_linearizeZ(d, zn_zfar);
+  }
 }
 
 float4 zn_zfar = (1, 20000, 0, 0);
@@ -175,10 +223,20 @@ macro INIT_LINEARIZE_HIRES_SKY_DEPTH()
     float linearizeSkyDepthHigh(float rawd){return linearize_z(rawd, zn_zfar.zw);}
   }
 endmacro
+macro INIT_HDR(code)
+  INIT_PRE_EXPOSURE(code)
+endmacro
+
+macro USE_HDR(code)
+  USE_PRE_EXPOSURE(code)
+  hlsl(code) {half3 pack_hdr(half3 a) {return pre_exposure_encode(a);}}
+  hlsl(code) {half3 unpack_hdr(half3 a) {return pre_exposure_decode(a);}}
+endmacro
+
 
 macro SKY_HDR()
-  hlsl(ps) {half3 pack_hdr(half3 a) {return a;}}
-  hlsl(ps) {half3 unpack_hdr(half3 a) {return a;}}
+  INIT_HDR(ps)
+  USE_HDR(ps)
 endmacro
 
 macro USE_HDR_SH()
@@ -232,11 +290,28 @@ macro USE_DECODE_DEPTH_BASE(suffix, code)
 endmacro
 
 macro USE_DECODE_DEPTH_STAGE(code)
+  hlsl(code) {
+    float4 linearize_z4(float4 rawDepth)
+    {
+      return rcp(zn_zfar.zzzz + zn_zfar.w*rawDepth);
+    }
+  }
 endmacro
 
 macro USE_DECODE_DEPTH()
   USE_DECODE_DEPTH_STAGE(ps)
 endmacro
+
+macro INIT_WORLD_VIEW_POS_AND_GLOBTM()
+  (ps) {world_view_pos@f3 =world_view_pos;}
+  (vs) {
+    globtm@f44 = globtm;
+    world_view_pos@f3 = world_view_pos;
+  }
+  INIT_HDR(ps)
+  USE_HDR(ps)
+endmacro
+
 
 int support_texture_array = 0;//should be assumed
 interval support_texture_array : off<1, on;

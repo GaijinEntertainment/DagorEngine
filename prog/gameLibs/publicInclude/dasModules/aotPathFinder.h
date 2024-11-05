@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -56,6 +55,16 @@ inline pathfinder::FindPathResult find_path_req(pathfinder::FindRequest &req, fl
 {
   Tab<Point3> path(framemem_ptr());
   const pathfinder::FindPathResult res = pathfinder::findPath(path, req, step_size, slop, nullptr);
+
+  find_path_common(path, block, context, at);
+  return res;
+}
+inline pathfinder::FindPathResult find_path_req_custom(pathfinder::FindRequest &req, float step_size, float slop,
+  const pathfinder::CustomNav *custom_nav, const das::TBlock<void, const das::TTemporary<const das::TArray<Point3>>> &block,
+  das::Context *context, das::LineInfoArg *at)
+{
+  Tab<Point3> path(framemem_ptr());
+  const pathfinder::FindPathResult res = pathfinder::findPath(path, req, step_size, slop, custom_nav);
 
   find_path_common(path, block, context, at);
   return res;
@@ -138,9 +147,17 @@ inline bool check_path_ex_req(int nav_mesh_idx, pathfinder::FindRequest &req, fl
   return pathfinder::check_path_ex(nav_mesh_idx, req, horz_threshold, max_vert_dist);
 }
 inline int tilecache_obstacle_add(const TMatrix &tm, const BBox3 &oobb) { return pathfinder::tilecache_obstacle_add(tm, oobb); }
+inline int tilecache_obstacle_add_with_type(const TMatrix &tm, const BBox3 &oobb, bool block)
+{
+  return pathfinder::tilecache_obstacle_add(tm, oobb, ZERO<Point2>(), block);
+}
 inline void tilecache_obstacle_move(int handle, const TMatrix &tm, const BBox3 &oobb)
 {
   pathfinder::tilecache_obstacle_move(handle, tm, oobb);
+}
+inline void tilecache_obstacle_move_with_type(int handle, const TMatrix &tm, const BBox3 &oobb, bool block)
+{
+  pathfinder::tilecache_obstacle_move(handle, tm, oobb, ZERO<Point2>(), block);
 }
 inline bool tilecache_obstacle_remove(int handle) { return pathfinder::tilecache_obstacle_remove(handle); }
 inline bool tilecache_ri_obstacle_add(rendinst::riex_handle_t ri_handle, const BBox3 &oobb_inflate)
@@ -412,6 +429,60 @@ inline void for_each_nmesh_poly(const das::TBlock<void, dtPolyRef> &block, das::
       context->invoke(block, &arg, nullptr, at);
     }
   }
+}
+
+inline void change_navpolys_flags_in_box(int nav_mesh_idx, const TMatrix &transform, unsigned short set_flags,
+  unsigned short reset_flags, unsigned short incl_flags, unsigned short excl_flags, int ignore_area, bool check_only_centers,
+  const das::TBlock<uint8_t, uint8_t, uint16_t> &area_cb_block, das::Context *context, das::LineInfoArg *at)
+{
+  static const BBox3 identBox3d(Point3(-0.5f, -0.5f, -0.5f), Point3(0.5f, 0.5f, 0.5f));
+  const BBox3 box3d = transform * identBox3d;
+  const Point2 bmin = Point2(box3d.lim[0].x, box3d.lim[0].z);
+  const Point2 bmax = Point2(box3d.lim[1].x, box3d.lim[1].z);
+  const BBox2 area(bmin, bmax);
+
+  auto area_cb = [&](uint8_t was_area, uint16_t flags) {
+    vec4f args[] = {das::cast<uint8_t>::from(was_area), das::cast<uint16_t>::from(flags)};
+    vec4f res = context->invoke(area_cb_block, args, nullptr, at);
+    return das::cast<uint8_t>::to(res);
+  };
+
+  pathfinder::change_navpolys_flags_in_box(nav_mesh_idx, area, set_flags, reset_flags, incl_flags, excl_flags, ignore_area,
+    check_only_centers, area_cb);
+}
+
+inline void change_navpolys_flags_in_box_no_area_cb(int nav_mesh_idx, const TMatrix &transform, unsigned short set_flags,
+  unsigned short reset_flags, unsigned short incl_flags, unsigned short excl_flags, int ignore_area, bool check_only_centers)
+{
+  static const BBox3 identBox3d(Point3(-0.5f, -0.5f, -0.5f), Point3(0.5f, 0.5f, 0.5f));
+  const BBox3 box3d = transform * identBox3d;
+  const Point2 bmin = Point2(box3d.lim[0].x, box3d.lim[0].z);
+  const Point2 bmax = Point2(box3d.lim[1].x, box3d.lim[1].z);
+  const BBox2 area(bmin, bmax);
+  pathfinder::change_navpolys_flags_in_box(nav_mesh_idx, area, set_flags, reset_flags, incl_flags, excl_flags, ignore_area,
+    check_only_centers, pathfinder::default_area_cb);
+}
+
+inline void change_navpolys_flags_in_poly(int nav_mesh_idx, const ecs::Point2List &points, unsigned short set_flags,
+  unsigned short reset_flags, unsigned short incl_flags, unsigned short excl_flags, int ignore_area,
+  float max_length_to_check_only_center, const das::TBlock<uint8_t, uint8_t, uint16_t> &area_cb_block, das::Context *context,
+  das::LineInfoArg *at)
+{
+  auto area_cb = [&](uint8_t was_area, uint16_t flags) {
+    vec4f args[] = {das::cast<uint8_t>::from(was_area), das::cast<uint16_t>::from(flags)};
+    vec4f res = context->invoke(area_cb_block, args, nullptr, at);
+    return das::cast<uint8_t>::to(res);
+  };
+  pathfinder::change_navpolys_flags_in_poly(nav_mesh_idx, points.data(), points.size(), set_flags, reset_flags, incl_flags, excl_flags,
+    ignore_area, max_length_to_check_only_center, area_cb);
+}
+
+inline void change_navpolys_flags_in_poly_no_area_cb(int nav_mesh_idx, const ecs::Point2List &points, unsigned short set_flags,
+  unsigned short reset_flags, unsigned short incl_flags, unsigned short excl_flags, int ignore_area,
+  float max_length_to_check_only_center)
+{
+  pathfinder::change_navpolys_flags_in_poly(nav_mesh_idx, points.data(), points.size(), set_flags, reset_flags, incl_flags, excl_flags,
+    ignore_area, max_length_to_check_only_center, pathfinder::default_area_cb);
 }
 
 } // namespace bind_dascript

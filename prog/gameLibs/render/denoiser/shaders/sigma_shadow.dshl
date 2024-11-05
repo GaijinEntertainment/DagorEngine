@@ -1,0 +1,67 @@
+int rtsm_render_mode;
+interval rtsm_render_mode: hard < 1, denoised < 2, denoised_translucent;
+
+hlsl(cs) {
+  #include "NRDEncoding.hlsli"
+
+  #pragma hlsl2021
+}
+
+macro HANDLE_TRANSLUCENCY()
+  if (rtsm_render_mode == denoised_translucent) {
+    hlsl(cs) {
+      #define SIGMA_TRANSLUCENT 1
+    }
+  }
+endmacro
+
+shader nrd_sigma_shadow_classify_tiles
+{
+  HANDLE_TRANSLUCENCY()
+  hlsl(cs) {
+    #pragma wave32
+    #include "SIGMA_Shadow_ClassifyTiles.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_sigma_shadow_smooth_tiles
+{
+  HANDLE_TRANSLUCENCY()
+  hlsl(cs) {
+    #include "SIGMA_Shadow_SmoothTiles.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_sigma_shadow_blur
+{
+  HANDLE_TRANSLUCENCY()
+  hlsl(cs) {
+    #include "SIGMA_Shadow_Blur.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_sigma_shadow_post_blur
+{
+  HANDLE_TRANSLUCENCY()
+  hlsl(cs) {
+    #include "SIGMA_Shadow_PostBlur.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_sigma_shadow_stabilize
+{
+  HANDLE_TRANSLUCENCY()
+  hlsl(cs) {
+    #include "SIGMA_Shadow_TemporalStabilization.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}

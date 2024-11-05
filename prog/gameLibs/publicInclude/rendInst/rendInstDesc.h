@@ -1,11 +1,11 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <rendInst/riexHandle.h>
+#include <EASTL/fixed_function.h>
 
 namespace rendinst
 {
@@ -55,4 +55,7 @@ struct RendInstDesc
 bool isRiGenDescValid(const RendInstDesc &desc);
 float getTtl(const RendInstDesc &desc);
 bool isRgLayerPrimary(const RendInstDesc &desc);
+
+using IgnoreFunc = eastl::fixed_function<sizeof(void *) * 3, bool(const RendInstDesc &)>;
+bool ignoreTraceRiExtra(const RendInstDesc &desc, IgnoreFunc f);
 } // namespace rendinst

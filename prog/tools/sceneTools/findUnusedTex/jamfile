@@ -1,15 +1,12 @@
 Root    ?= ../../../.. ;
 Location = prog/tools/sceneTools/findUnusedTex ;
-DriverLinkage = dynamic ;
+KernelLinkage = dynamic ;
 include $(Root)/prog/tools/tools_setup.jam ;
 ConsoleExe      = yes ;
-Platform ?= win64 ;
 
 TargetType  = exe ;
 Target      = tools/findUnusedTex.exe ;
-
-OutDir = $(Root)/tools/dagor3_cdk/bin ;
-if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+include $(Root)/prog/tools/tools_setup_outdir_bin.jam ;
 
 
 Sources =

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <jsonUtils/jsonUtils.h>
 #include <jsonUtils/decodeJwt.h>
 

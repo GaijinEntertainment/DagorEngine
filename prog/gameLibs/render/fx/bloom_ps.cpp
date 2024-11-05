@@ -1,4 +1,8 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_driver.h>
 #include <math/integer/dag_IPoint2.h>
 #include <math/dag_adjpow2.h>
 #include <shaders/dag_shaders.h>
@@ -7,18 +11,24 @@
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_overrideStates.h>
+#include <util/dag_convar.h>
 
 #define GLOBAL_VARS_BLOOM \
   VAR(bloom_mul)          \
   VAR(blur_src_tex)       \
   VAR(blur_src_tex_size)  \
   VAR(blur_pixel_offset)  \
-  VAR(bloom_upsample_params)
+  VAR(bloom_upsample_mip_scale)
 
-#define VAR(a) static int a##VarId = -1;
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_BLOOM
 #undef VAR
 
+CONSOLE_INT_VAL("bloom", halation_mip_end_start, 1, 0, 100); // 1 - ensure last mip is not affected. good default
+CONSOLE_FLOAT_VAL_MINMAX("bloom", halation_mip_factor, 1.0, 0, 10);
+CONSOLE_FLOAT_VAL_MINMAX("bloom", halation_colorR, 0, 0, 4);
+CONSOLE_FLOAT_VAL_MINMAX("bloom", halation_colorG, 0, 0, 4);
+CONSOLE_FLOAT_VAL_MINMAX("bloom", halation_colorB, 0, 0, 4);
 
 void BloomPS::close()
 {
@@ -43,9 +53,6 @@ void BloomPS::init(int w, int h)
   downsample_4.init("bloom_downsample_lq");
   upSample.init("bloom_upsample");
   blur_4.init("bloom_blur_4");
-#define VAR(a) a##VarId = get_shader_variable_id(#a);
-  GLOBAL_VARS_BLOOM
-#undef VAR
 }
 
 
@@ -146,17 +153,23 @@ void BloomPS::perform(ManagedTexView downsampled_frame)
 
   {
     TIME_D3D_PROFILE(upsample_mips);
-    uint8_t bf = real2uchar(settings.upSample);
-    for (int i = mipsCount - 1; i > 0; --i)
+    Color3 halationColor(halation_colorR, halation_colorG, halation_colorB);
+    const int lastMipWithHalation = clamp<int>(mipsCount - halation_mip_end_start, 0, mipsCount);
+    const float upsample_factor = settings.upSample;
+    ShaderGlobal::set_color4(bloom_upsample_mip_scaleVarId, upsample_factor, upsample_factor, upsample_factor, 0);
+    for (int mip = mipsCount - 1; mip > 0; --mip)
     {
-      d3d::resource_barrier({bloomMips.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, unsigned(i), 1});
-      int w = (width / 2) >> i, h = (height / 2) >> i;
-      d3d::set_render_target(bloomMips.getTex2D(), i - 1);
-      bloomMips.getTex2D()->texmiplevel(i, i);
+      d3d::resource_barrier({bloomMips.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, unsigned(mip), 1});
+      // int w = (width / 2) >> i, h = (height / 2) >> i;
+      // ShaderGlobal::set_color4(bloom_upsample_paramsVarId, settings.radius / w, settings.radius / h, 1. / w, 1. / h);
+      d3d::set_render_target(bloomMips.getTex2D(), mip - 1);
+      bloomMips.getTex2D()->texmiplevel(mip, mip);
       ShaderGlobal::set_texture(blur_src_texVarId, bloomMips);
 
-      d3d::set_blend_factor(E3DCOLOR(bf, bf, bf, bf));
-      ShaderGlobal::set_color4(bloom_upsample_paramsVarId, settings.radius / w, settings.radius / h, 1. / w, 1. / h);
+      const float dstMipAddTint = mip - 1 >= lastMipWithHalation ? 0 : exp2f(-halation_mip_factor * (mip - 1));
+      Color3 dstColorTint = (Color3(1, 1, 1) + halationColor * dstMipAddTint) * (1 - upsample_factor);
+      d3d::set_blend_factor(e3dcolor(dstColorTint, 255));
+
       upSample.render();
     }
   }

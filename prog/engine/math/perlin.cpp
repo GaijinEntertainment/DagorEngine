@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 //
 // From "Texturing and Modeling A Procedural Approach"
 //

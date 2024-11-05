@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -11,6 +10,8 @@
 #include <util/dag_simpleString.h>
 #include <util/dag_globDef.h>
 #include <util/dag_pull_console_proc.h>
+#include <EASTL/vector.h>
+#include <EASTL/string.h>
 
 //************************************************************************
 //* game console
@@ -30,6 +31,7 @@ enum LineType
 
 extern unsigned main_background_color;
 extern unsigned tips_background_color;
+extern unsigned pinned_commands_background_color;
 extern int max_tips;
 extern bool print_logerr_to_console;
 
@@ -38,10 +40,23 @@ extern bool to_bool(const char *s);
 extern int to_int(const char *s);
 extern int to_int_from_hex(const char *s);
 extern real to_real(const char *s);
+
+struct CommandOptions
+{
+  SimpleString name;
+  eastl::vector<CommandOptions> subOptions;
+  CommandOptions(const char *name_, eastl::vector<CommandOptions> &&subOptions_ = {}) :
+    subOptions(eastl::forward<eastl::vector<CommandOptions>>(subOptions_))
+  {
+    name = name_;
+  }
+};
+
 class CommandStruct
 {
 public:
   SimpleString command, description, argsDescription, varValue;
+  eastl::vector<CommandOptions> commandOptions;
   int minArgs;
   int maxArgs;
 
@@ -52,10 +67,12 @@ public:
     description = "";
     argsDescription = "";
     varValue = "";
+    commandOptions = {};
   }
 
   CommandStruct(const char *c, int minArgs_, int maxArgs_, const char *description_ = "", const char *argsDescription_ = "",
-    const char *varValue_ = "")
+    const char *varValue_ = "", eastl::vector<CommandOptions> &&commandOptions_ = {}) :
+    commandOptions(eastl::forward<eastl::vector<CommandOptions>>(commandOptions_))
   {
     command = c;
     minArgs = minArgs_;
@@ -69,7 +86,7 @@ public:
 };
 
 typedef Tab<CommandStruct> CommandList;
-using ConsoleOutputCallback = eastl::function<void(const char *)>;
+using ConsoleOutputCallback = eastl::function<void(const char *, LineType)>;
 
 //************************************************************************
 //* command processor with argument dispatch
@@ -163,10 +180,19 @@ inline const char *get_command_hookless(const char *command)
 
 // get list of commands filtered by prefix
 void get_filtered_command_list(console::CommandList &commands, const String &prefix);
+bool search_suboptions(const eastl::string &search, int wspaceLocation, const console::CommandStruct &command);
+void validate_and_add_cached_command(const CommandStruct &command, const char *searchString);
 
 bool find_console_command(const char *cmd, CommandStruct &info);
 
 real get_con_speed();
+
+void add_pinned_command(const char *cmd);
+const Tab<SimpleString> &get_pinned_command_list();
+void remove_pinned_command(const char *cmd);
+bool is_command_pinned(const char *cmd);
+void clear_pinned_commands();
+int get_pinned_command_count();
 
 void add_history_command(const char *cmd);
 const char *top_history_command();
@@ -180,7 +206,7 @@ const Tab<SimpleString> &get_command_history();
 
 //! returns 1 on match, 0 on no-match-continue, -1 on arg count mismatch
 int collector_cmp(const char *arg, int ac, const char *cmd, int min_ac, int max_ac, const char *description = "",
-  const char *argsDescription = "");
+  const char *argsDescription = "", const char *varValue = "", eastl::vector<CommandOptions> &&cmdOptions = {});
 
 class FuncCommandProcessor;
 typedef bool (*console_function_cb)(const char *argv[], int argc);
@@ -207,6 +233,17 @@ protected:
   if (found == -1)                                                                                         \
     return false;                                                                                          \
   if (found == 1)
+
+
+#define CONSOLE_CHECK_NAME_WITH_OPTIONS(domain, name, min_args, max_args, options)                                    \
+  if (found > 0)                                                                                                      \
+    return true;                                                                                                      \
+  found = console::collector_cmp(argv[0], argc, domain[0] ? (domain "." name) : name, min_args, max_args, "", "", "", \
+    eastl::move(options));                                                                                            \
+  if (found == -1)                                                                                                    \
+    return false;                                                                                                     \
+  if (found == 1)
+
 
 #define CONSOLE_CHECK_NAME_EX(domain, name, min_args, max_args, description, argsDescription)                                      \
   if (found > 0)                                                                                                                   \
@@ -240,4 +277,4 @@ bool find_con_proc(console::ICommandProcessor *proc);
 
 #define REGISTER_CONSOLE_HANDLER(func) \
   REGISTER_CONSOLE_PULL_VAR_NAME(func) \
-  static console::FuncLinkedList DAG_CONSOLE_CC1(console_handler, __LINE__)(func)
+  static console::FuncLinkedList DAG_CONCAT(console_handler, __LINE__)(func)

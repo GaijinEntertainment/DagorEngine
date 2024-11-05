@@ -1,23 +1,22 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <ioSys/dag_baseIo.h>
 #include <util/dag_stdint.h>
-#include <math/dag_mathBase.h> // for clamp
+#include <math/dag_mathBase.h>
 #include <debug/dag_debug.h>
-#include <daNet/bitStream.h>
 #include <generic/dag_carray.h>
-#include <memory/dag_framemem.h>
+#include <generic/dag_tab.h>
 
-class String;
 class Point3;
 class DataBlock;
 class Bitarray;
-class SimpleString;
+namespace danet
+{
+class BitStream;
+}
 
 // NOTE:
 // all this code has nothing with network. This is few (de)serialization and (un)packing methods.
@@ -122,6 +121,10 @@ inline float UNPACK(T s, float _min, float _max)
 unsigned int pack_euler(const Point3 &euler);
 void unpack_euler(unsigned int packed, Point3 &res);
 
+// shortcut to quat_to/from_euler & pack/unpack_euler
+unsigned int pack_quat(const Quat &quat);
+void unpack_quat(unsigned int packed, Quat &res);
+
 // pack/unpack euler angles to 3x16 bits
 carray<int16_t, 3> pack_euler_16(const Point3 &euler);
 void unpack_euler_16(carray<int16_t, 3> packed, Point3 &res);
@@ -189,89 +192,6 @@ bool read_bitarray(const danet::BitStream &bs, Bitarray &ba);
 void write_euler(danet::BitStream &bs, const Point3 &euler);
 bool read_euler(const danet::BitStream &bs, Point3 &euler);
 
-/// === serialize === (legacy)
-
-enum SerializeMode
-{
-  READ,
-  WRITE
-};
-
-template <class T, class = eastl::disable_if_t<eastl::is_const_v<T>>>
-bool serialize(danet::BitStream &bs, T &val, SerializeMode mode) //-V659
-{
-  bool done = true;
-
-  if (mode == WRITE)
-    bs.Write(val);
-  else
-    done = bs.Read(val);
-
-  return done;
-}
-
-// The overload is needed because BitStream::Read won't compile if provided with a const argument
-template <class T>
-bool serialize(danet::BitStream &bs, const T &val, SerializeMode mode) //-V659
-{
-  bool done = true;
-
-  if (mode == WRITE)
-    bs.Write(val);
-  else
-    G_VERIFYF(0, "Can't read into const");
-
-  return done;
-}
-
-/// serialize array supporting stl-compatibility syntax
-template <class Array, class SerializeFunc>
-inline bool serialize_array(danet::BitStream &bs, Array &array, SerializeMode mode, SerializeFunc serialize_func)
-{
-  bool done = true;
-
-  uint32_t size = mode == WRITE ? (uint32_t)array.size() : 0u;
-  if (mode == WRITE)
-    bs.WriteCompressed(size);
-  else
-    done = bs.ReadCompressed(size);
-  if (done)
-  {
-    if (mode == READ)
-      array.resize(size);
-
-    for (int i = 0; i < size; ++i)
-      done &= serialize_func(bs, array[i], mode);
-  }
-
-  return done;
-}
-
-/// serialize array supporting stl-compatibility syntax with default element serialization
-template <class Array>
-inline bool serialize_array(danet::BitStream &bs, Array &array, SerializeMode mode)
-{
-  return serialize_array(bs, array, mode,
-    [](danet::BitStream &bs, auto &val, SerializeMode mode) -> bool { return serialize(bs, val, mode); });
-}
-
-bool serialize(danet::BitStream &bs, uint16_t &val, SerializeMode mode);
-bool serialize_bitarray(danet::BitStream &bs, Bitarray &val, SerializeMode mode);
-bool serialize_int_compressed(danet::BitStream &bs, int &val, SerializeMode mode, int min);
-bool serialize_int_compressed(danet::BitStream &bs, int16_t &val, SerializeMode mode, int min);
-template <typename T = int16_t>
-bool serialize_float_compressed(danet::BitStream &bs, float &val, SerializeMode mode, float max);
-bool serialize_positive_float_compressed(danet::BitStream &bs, float &val, SerializeMode mode, float max);
-bool serialize_vec_compressed(danet::BitStream &bs, Point3 &pos, SerializeMode mode, float max);
-inline bool serialize_pos_compressed(danet::BitStream &bs, Point3 &pos, SerializeMode mode, float max)
-{
-  return serialize_vec_compressed(bs, pos, mode, max);
-}
-bool serialize_dir_compressed(danet::BitStream &bs, Point3 &dir, SerializeMode mode);
-bool serialize_simple_string(danet::BitStream &bs, SimpleString &str, SerializeMode mode);
-inline bool serialize_idx(danet::BitStream &bs, int &val, SerializeMode mode) { return serialize_int_compressed(bs, val, mode, -1); }
-inline bool serialize_idx(danet::BitStream &bs, int16_t &val, SerializeMode mode)
-{
-  return serialize_int_compressed(bs, val, mode, -1);
-}
+void write_vector(danet::BitStream &bs, const Point3 &pos, float max);
+bool read_vector(const danet::BitStream &bs, Point3 &pos, float max);
 } // namespace netutils

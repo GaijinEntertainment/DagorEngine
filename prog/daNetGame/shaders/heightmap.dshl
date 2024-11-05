@@ -1,0 +1,917 @@
+include "heightmap_tessellation_inc.dshl"
+include "normaldetail.dshl"
+include "psh_derivate.dshl"
+include "gbuffer.dshl"
+include "gbuffer_forward.dshl"
+include "toroidal_heightmap.dshl"
+include "heightmap_common.dshl"
+include "heightmap_ofs.dshl"
+include "frustum.dshl"
+include "optional_puddle_access.dshl"
+include "biomes.dshl"
+include "wetness_inc.dshl"
+include "deform_hmap_common.dshl"
+include "sparkles.dshl"
+include "edge_tesselation.dshl"
+include "static_shadow.dshl"
+include "vertex_density_overlay_inc.dshl"
+include "viewVecVS.dshl"
+
+float4 world_to_bw_mask = (1,1,0,0);
+int requires_uav = 1 always_referenced;
+
+int hmap_puddle_enabled = 0;
+interval hmap_puddle_enabled: no<1, yes;
+int hmap_use_fake_vert_normals = 0;
+interval hmap_use_fake_vert_normals: no<1, yes;
+int use_satellite_rendering;
+interval use_satellite_rendering: no<1, yes;
+
+float4 hmap_ofs_thickness_map = (1/2048,1/2048,0,0);
+texture hmap_ofs_thickness;
+
+texture blue_white_mask_tex;
+
+texture detailAlbedoTex;
+texture detailNormalTex;
+texture detailReflectanceTex;
+texture hmap_colormap;
+texture hmap_splatting;
+float4 hmap_detailArraySlices;
+float4 hmap_land_detail_detail_mul = (0.125, 0.125, 0.125, 0.125);
+float4 hmap_land_detail_mul_offset = (-1/512, -1/512, 0.5, 0.5);
+
+float4 lod0_center;
+
+int aim_ruler_physmat;
+float4 phys_map_coords;
+texture phys_map_tex;
+
+float static_shadow_compatibility_bias = 1.0;
+
+float4 camera_base_offset = (0, 0, 0, 0);
+
+shader heightmap
+{
+  VERTEX_DENSITY_INIT_VS()
+  VERTEX_DENSITY_WRITE()
+
+  (vs) { camera_base_offset@f4 = camera_base_offset; }
+
+  if (lmesh_rendering_mode == rendering_clipmap || lmesh_rendering_mode == grass_mask)
+  {
+    dont_render;
+  }
+
+  if (in_editor_assume == yes)
+  {
+    (vs) { globtm@f44 = globtm; }
+  }
+
+  if (hmap_tess_factor == hmap_tess_factor_on && hardware.metal)
+  {
+    dont_render;
+  }
+
+  INIT_WORLD_HEIGHTMAP_VS()
+  USE_HEIGHTMAP_COMMON_VS()
+  USE_HEIGHTMAP_INSTANCING()
+  USE_WETNESS()
+  INIT_HMAP_HOLES(vs)
+  USE_HMAP_HOLES(vs)
+
+  if (lmesh_rendering_mode == rendering_depth)
+  {
+    supports land_mesh_render_depth;
+    color_write = false;
+    no_ablend;
+    NO_COLOR_WRITE_PS()
+    INIT_HEIGHTMAP_OFS(vs)
+    USE_HEIGHTMAP_OFS(vs)
+
+    hlsl(vs) {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+      };
+      VsOutput heightmap_land_vs(INPUT_VERTEXID_POSXZ USE_INSTANCE_ID)
+      {
+        DECODE_VERTEXID_POSXZ
+        VsOutput output;
+
+        float2 gradXZ;
+        float3 worldPos = getWorldPosGrad(posXZ, gradXZ USED_INSTANCE_ID);
+        float hmapOfs = world_to_hmap_tex_ofs.w;//displacement down as much as possible
+        //float hmapOfs = get_hmap_ofs(worldPos.xz);//uncomment this line if you have same subdiv in shadows (slow)
+        ##if in_editor_assume == no
+        worldPos.xyz += getWorldNormal(worldPos)*hmapOfs;
+        ##endif
+        float samplingStep = max(gradXZ.x, gradXZ.y);
+        if (checkHeightmapHolesStep(worldPos.xyz, samplingStep))
+          output.pos = NaN;
+        else
+          output.pos = mulPointTm(worldPos + camera_base_offset.xyz, globtm);
+
+        return output;
+      }
+    }
+    compile("target_vs", "heightmap_land_vs");
+  } else if (lmesh_rendering_mode == rendering_heightmap)
+  {
+    supports land_mesh_render_depth;
+    cull_mode = none;
+    blend_src = one; blend_dst = one;
+    INIT_WORLD_HEIGHTMAP_PS()
+    USE_HEIGHTMAP_COMMON_PS()
+    INIT_HMAP_HOLES(ps)
+    USE_HMAP_HOLES(ps)
+
+    hlsl {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+        //float packedHeight : TEXCOORD0;
+        float2 worldPosXZ:TEXCOORD0;
+      };
+    }
+
+
+    (ps) { heightmap_min_max@f2 = heightmap_min_max; }
+    hlsl(ps) {
+      float heightmap_heightmap_ps(VsOutput input) : SV_Depth
+      {
+        float ht = getWorldHeight(input.worldPosXZ);//todo:support high detail for editor
+        if (checkHeightmapHoles(float3(input.worldPosXZ.x, 0, input.worldPosXZ.y)))
+          discard;
+        return ht*heightmap_min_max.x+heightmap_min_max.y;
+      }
+    }
+
+    (vs) { heightmap_min_max@f4 = heightmap_min_max; }
+    hlsl(vs) {
+      VsOutput heightmap_heightmap_vs(INPUT_VERTEXID_POSXZ USE_INSTANCE_ID)
+      {
+        DECODE_VERTEXID_POSXZ
+        VsOutput output;
+
+        //float4 worldPos = float4(getWorldPos(posXZ USED_INSTANCE_ID), 1.);
+        //output.packedHeight = worldPos.y * heightmap_min_max.x + heightmap_min_max.y;
+        float3 worldPos;
+        worldPos.xz = decodeWorldPosXZ(posXZ USED_INSTANCE_ID);
+        worldPos.xz = clamp(worldPos.xz, heightmap_region.xy, heightmap_region.zw);
+        worldPos.y = heightmap_min_max.z*0.5 + heightmap_min_max.w;
+        output.worldPosXZ = worldPos.xz;
+        output.pos = mulPointTm(worldPos + camera_base_offset.xyz, globtm);
+
+        return output;
+      }
+    }
+    compile("target_vs", "heightmap_heightmap_vs");
+    compile("target_ps", "heightmap_heightmap_ps");
+  } else if (lmesh_rendering_mode == rendering_shadow)
+  {
+    supports land_mesh_render_depth;
+    cull_mode=none;
+
+    hlsl {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+        float2 worldPosXZ: TEXCOORD0;
+      };
+    }
+
+    if ((compatibility_mode == compatibility_mode_on) && hardware.dx11)
+    {
+      supports global_const_block;
+      (vs) {
+        static_shadow_compatibility_bias@f1 = (static_shadow_compatibility_bias);
+      }
+
+      compile("ps_null", "null_ps");
+    }
+    else
+    {
+      (ps) {
+        globtm_psf@f44 = { globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3 };
+        heightmap_min_max@f4 = (0,0,0,heightmap_min_max.w - 0.15);//should be minus static shadow texel size. I assume it is about 18 cm
+        local_view_z@f3 = local_view_z;
+        camera_base_offset@f4 = camera_base_offset;
+      }
+      INIT_WORLD_HEIGHTMAP_PS()
+      USE_HEIGHTMAP_COMMON_PS()
+
+      hlsl(ps) {
+        void heightmap_vsm_ps(VsOutput input, out float depth : SV_Depth)
+        {
+          float3 worldPos = float3(input.worldPosXZ, getWorldHeight(input.worldPosXZ)+heightmap_min_max.w).xzy;
+          float3 normal = getWorldNormal(worldPos);
+          float NoL = abs(dot(normal, local_view_z));
+          worldPos -= (0.4*(1-NoL)+0.08)*normal;
+          float2 p1 = mul(float4(worldPos, 1.0) + camera_base_offset, globtm_psf).zw;
+          depth = p1.x/p1.y;
+        }
+      }
+
+      compile("target_ps", "heightmap_vsm_ps");
+    }
+
+    hlsl(vs) {
+      VsOutput heightmap_vsm_vs(INPUT_VERTEXID_POSXZ USE_INSTANCE_ID)
+      {
+        DECODE_VERTEXID_POSXZ
+        float2 gradXZ;
+        float3 worldPos = getWorldPosGrad(posXZ, gradXZ USED_INSTANCE_ID);
+        VsOutput output;
+
+        ##if (compatibility_mode == compatibility_mode_on) && hardware.dx11
+          worldPos += from_sun_direction * static_shadow_compatibility_bias;
+        ##endif
+        float samplingStep = max(gradXZ.x, gradXZ.y);
+        if (checkHeightmapHolesStep(worldPos.xyz, samplingStep))
+          output.pos = NaN;
+        else
+          output.pos = mulPointTm(worldPos + camera_base_offset.xyz, globtm);
+        output.worldPosXZ = worldPos.xz;
+
+        return output;
+      }
+    }
+
+    compile("target_vs", "heightmap_vsm_vs");
+  } else if (lmesh_rendering_mode == rendering_reflection || lmesh_rendering_mode == rendering_landmesh)
+  {
+    bool use_hw_tessellation = lmesh_rendering_mode == rendering_landmesh && hmap_tess_factor == hmap_tess_factor_on;
+    if (lmesh_rendering_mode == rendering_reflection)
+    {
+      supports land_mesh_with_clipmap_reflection;
+      supports global_const_block;
+    } else if (lmesh_rendering_mode == rendering_landmesh)
+    {
+      supports land_mesh_with_clipmap;
+      INIT_HEIGHTMAP_OFS(vs)
+      USE_HEIGHTMAP_OFS(vs)
+
+      if (hmap_tess_factor == hmap_tess_factor_on)
+      {
+        INIT_AND_USE_FRUSTUM_CHECK_BASE(vs)
+        // then `use_hw_tessellation = true`.
+      }
+    }
+    NO_VERTICAL_TEX_USE()
+    VIEW_VEC_SCREENPOS(ps)
+    if (lmesh_rendering_mode == rendering_reflection)
+    {
+      USE_CLIPMAP_LAST()
+      NO_UAV_RENDERING_FEEDBACK()
+      PACK_UNPACK_GBUFFER_BASE(ps)
+      INIT_GBUFFER_FORWARD()
+      WRITE_GBUFFER_FORWARD()
+      INIT_BRUNETON_FOG(ps)
+      USE_BRUNETON_FOG()
+    } else if (lmesh_rendering_mode == rendering_landmesh)
+    {
+      USE_CLIPMAP_NORMAL()
+      USE_NORMAL_DETAIL()
+      //USE_CLIPMAP_SHADOW()
+      USE_UAV_RENDERING_FEEDBACK()
+      DETECT_LAND_SELFILLUM()
+      WRITE_GBUFFER()
+      if (phys_map_tex != NULL)
+      {
+        (ps) {
+          phys_map_coords@f4 = (phys_map_coords.x, phys_map_coords.y, phys_map_coords.z, aim_ruler_physmat);
+          phys_map_tex@tex = phys_map_tex hlsl { Texture2D<uint> phys_map_tex@tex; }
+        }
+      }
+    }
+
+    hlsl {
+    ##if use_hw_tessellation
+      struct HsInput
+      {
+        uint vertexInstanceId_patchTessFactor : TEXCOORD0;
+      };
+    ##endif
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+        ##if (lmesh_rendering_mode == rendering_landmesh)
+        float2 tcWorldPos                   : TEXCOORD1;
+        float scaledDeformedHeight          : TEXCOORD2;
+        float heightForPuddle               : TEXCOORD3;
+        ##endif
+        ##if use_satellite_rendering == yes
+        float3 wpos                         : TEXCOORD4;
+        ##endif
+      };
+    }
+    //land normal
+    USE_DERIVATIVE_MAPS()
+    INIT_WORLD_HEIGHTMAP_PS()
+    USE_HEIGHTMAP_COMMON_PS()
+    /*
+    (ps) { lightmap_tex@smp2d = lightmap_tex; }
+    USE_LAND_NORMAL()
+    hlsl(ps) {
+      half3 getWorldNormal(float3 worldPos)
+      {
+        return get_land_normal_from_normalmap(worldPos);
+      }
+    }*/
+    //land normal
+    if (lmesh_rendering_mode == rendering_landmesh && compatibility_mode == compatibility_mode_on)
+    {
+      hlsl(ps) {
+        #define ROUGHNESS_BASED_LIGHT 1
+        #define PBR_FORWARD_SIMPLE_SHADING 1
+        #define FORWARD_NO_STATIC_SHADOW 1
+      }
+    }
+    INIT_STATIC_SHADOW_PS()
+
+    if (lmesh_rendering_mode == rendering_landmesh)
+    {
+      INIT_PUDDLE(vs)
+      USE_PUDDLE(vs)
+    }
+
+    if (in_editor == yes && blue_white_mask_tex != NULL)//in editor
+    {
+      (ps) {
+        blue_white_mask_tex@smp2d = blue_white_mask_tex;
+        world_to_bw_mask@f4 = world_to_bw_mask;
+      }
+        //USE_LAND_NORMAL()
+      hlsl(ps) {
+
+        GBUFFER_OUTPUT main_ps_heightmap_land(VsOutput input HW_USE_SCREEN_POS)
+        {
+          float4 screenpos = GET_SCREEN_POS(input.pos);
+          float3 pointToEye = getPointToEye(screenpos.xy, screenpos.w);
+          float3 worldPos = world_view_pos-pointToEye;
+          float3 worldNormal = getWorldNormal(worldPos);
+          half2 shadowBuffer = 1;
+          //worldNormal = get_land_normal_from_normalmap(worldPos);
+          float2 maskTC = worldPos.xz*world_to_bw_mask.xy+world_to_bw_mask.zw;
+          float mask = tex2D(blue_white_mask_tex, maskTC).x;
+          half4 diffuseColor = half4(mask,mask,1,1);
+          half2 maskAbs = abs(maskTC*2 - half2(1,1));
+          diffuseColor = max(maskAbs.x, maskAbs.y) > 1 ? 0 : diffuseColor;
+
+          UnpackedGbuffer result;
+          init_gbuffer(result);
+          init_albedo(result, diffuseColor);
+          init_smoothness(result, 0);
+          init_normal(result, worldNormal);
+          return encode_gbuffer(result, pointToEye, GET_SCREEN_POS(input.pos));
+        }
+      }
+    } else if (lmesh_rendering_mode == rendering_reflection || lmesh_rendering_mode == rendering_landmesh)
+    {
+      if (lmesh_rendering_mode == rendering_landmesh)
+      {
+        USE_LAND_MICRODETAILS_PS()
+        USE_LAND_MICRODETAIL_PARAMS_PS()
+        INIT_LAND_SHORE()
+        USE_LAND_SHORE()
+        INIT_DEFORM_HMAP(ps)
+        USE_DEFORM_HMAP(ps)
+        INIT_HEIGHTMAP_OFS(ps)
+        INIT_SPARKLES()
+        USE_SPARKLES()
+        HEIGHTMAP_CALCULATIONS()
+        USE_AND_CALCULATE_PUDDLES()
+        (ps) { wetness_above_rcp@f1 = (1.0 / wetness_above, 0, 0, 0); }
+      }
+
+      hlsl(ps) {
+
+        GLOBAL_UAV_FEEDBACK
+        GBUFFER_OUTPUT main_ps_heightmap_land(VsOutput input HW_USE_SCREEN_POS)
+        {
+          float4 screenpos = GET_SCREEN_POS(input.pos);
+
+          ##if use_satellite_rendering == no
+            float3 pointToEye = getPointToEye(screenpos.xy, screenpos.w);
+            float3 worldPos = world_view_pos.xyz-pointToEye.xyz;
+          ##else
+            float3 worldPos = input.wpos;
+            float3 pointToEye = float3(0, world_view_pos.y - worldPos.y, 0);
+          ##endif
+
+          float2 htTc = calcTcLow(worldPos.xz);
+
+          ##if hmap_use_fake_vert_normals == yes
+            float3 worldNormal = half3(0,1,0);
+          ##else
+            float3 worldNormal = getNormalLow(htTc).xyz;
+          ##endif
+
+          float dist = length(pointToEye);
+          float3 pointToEyeNorm = pointToEye.xyz * rcp(dist);
+
+          //worldNormal = get_land_normal_from_normalmap(worldPos);
+          half3 verticalNormal = worldNormal;
+
+          half4 diffuse;
+          UnpackedGbuffer result;
+          init_gbuffer(result);
+          init_normal(result, worldNormal);
+          half emission;
+          half shadow=1;
+
+          ##if mobile_render != off
+            float preciseWorldHeight = getWorldHeight(worldPos.xz);
+            half3 preciseWorldPos = half3(worldPos.x, preciseWorldHeight, worldPos.z);
+          ##endif
+
+          ##if (lmesh_rendering_mode == rendering_landmesh)
+            float4 tcWorldPosGradients = float4(ddx(input.tcWorldPos), ddy(input.tcWorldPos));
+            WRITE_UAV_FEEDBACK(input.tcWorldPos, 0, tcWorldPosGradients)
+            DetailDesc detailNo;
+            half2 clipNormalXY = 0;
+            sample_clipmaps(input.tcWorldPos, tcWorldPosGradients , result.albedo.rgb, clipNormalXY,
+                            result.smoothness, result.ao, result.reflectance, emission, detailNo, smooth_mip);
+
+            ##if (compatibility_mode == compatibility_mode_on) && (mobile_render == off)
+              const float HMAP_DETAILED_DISTANCE = 50.0;
+              BRANCH
+              if (dist <= HMAP_DETAILED_DISTANCE)
+              {
+            ##endif
+            ##if in_editor_assume == no && mobile_render == off
+              float deformFactor = max(0, -getDeformHeight(worldPos, 1));
+              result.normal = getDeformNormal(worldPos, result.normal, world_to_hmap_tex_ofs.z);
+              verticalNormal = result.normal;
+              result.albedo.rgb *= 1.0f - deformFactor * 0.5f; // to make deformed snow look darker
+            ##endif
+            half3 clipmapColor;
+            half porosity, sparkles, normalWetness;
+            float wetness;
+            UvWithDerivates uvDeriv = microdetails_get_uv_and_derivates(input.tcWorldPos);
+            calculateHeightmapDetails(result, detailNo, worldPos, verticalNormal, pointToEyeNorm,
+                                      clipNormalXY, clipmapColor, porosity, sparkles, normalWetness, wetness);
+            ##if mobile_render == off
+              computeSnowSparkle(worldPos, world_view_pos, sparkles, result.normal, result.smoothness);
+            ##endif
+            calculateHeightmapMicrodetails_no_grad(result, detailNo, uvDeriv, worldPos, verticalNormal, clipNormalXY,
+                                          porosity, normalWetness, wetness);
+            ##if hmap_puddle_enabled == no
+              half puddle = 0;
+            ##else
+              ##if mobile_render == deferred
+                //use hmap precise Y for proper puddles, because triangle size & interpolated difference is too big
+                half puddle = addPuddles(result, preciseWorldPos, preciseWorldHeight + input.scaledDeformedHeight, htTc, porosity, input.heightForPuddle);
+              ##else
+                half puddle = addPuddles(result, worldPos, input.scaledDeformedHeight, htTc, porosity, input.heightForPuddle);
+              ##endif
+            ##endif
+            clipmapColor.rgb = puddle>0 ? float3(1000, 1000, 1000) : clipmapColor.rgb;
+            SET_LAND_SELFILLUM_PARAMS(clipmapColor.rgb, result, worldPos, emission, detailNo)
+            ##if (compatibility_mode == compatibility_mode_on) && (mobile_render == off)
+              }
+              else // dist > HMAP_DETAILED_DISTANCE
+              {
+                //apply only wetness, other stuff doesn`t look so noticeable
+                half3 clipmapColor;
+                float wetness, porosity, sparkles, normalWetness;
+                calculateHeightmapDetails(result, detailNo, worldPos, verticalNormal, pointToEyeNorm,
+                                          clipNormalXY, clipmapColor, porosity, sparkles, normalWetness, wetness);
+                applyHeightmapWetness(result, worldPos, porosity, wetness);
+
+                // fixme: We do it in puddles, but we shouldn`t apply wetness 2 times.
+                // Without second apply river coasts and swamp look too much different.
+                float waterBorder;
+                float wetness2 = get_base_wetness(worldPos, worldNormal, waterBorder);
+                wetness_diffuse(wetness2, porosity, result.albedo.rgb);
+              }
+            ##endif
+
+            ##if (phys_map_tex != NULL)
+              uint index = phys_map_tex[uint2(floor((input.tcWorldPos - phys_map_coords.xy) * phys_map_coords.z))];
+              if (index == phys_map_coords.w)
+                result.albedo.rgb = float3(1, 0, 0);
+              else
+                result.albedo.rgb = RemoveSRGBCurve(float3(0, noise_Value2D(float2(index, 42)), noise_Value2D(float2(index, 315))));
+            ##endif
+          ##else
+            half3 microDetail = 1;
+            half porosity = 0;
+            diffuse.rgb = sample_lastclip(worldPos.xyz);
+            diffuse.a = 1;
+            half clipmapHorAmount = applyVerticalTexture(verticalNormal, result.normal, diffuse, worldPos, false);
+            result.albedo.rgb = diffuse.rgb;
+            half reflectance = 0.5*pow5(saturate(0.9 - (result.albedo.g-max(result.albedo.r, result.albedo.b))));
+            init_reflectance(result, reflectance);
+            half smoothness = 0;
+            half translucency = 0;
+          ##endif
+          //underwater
+
+          //diffuse.rgb *= lerp(1, saturate((worldPos.y-(averageHeight-0.05))*10), saturate(verticalNormal.y*2-1));
+          //diffuse.rgb *= saturate((worldPos.y-(averageHeight-0.05))*10);
+          /*if (diffuseColor.a<0.25)
+          {
+            float wet = 1-pow2(1-saturate(1-diffuseColor.a*4));
+            diffuse.rgb *= lerp(1, lerp(0.1, 0.8, smoothness), wet);
+            wet *= wet;
+            init_reflectance(result, lerp(0.04, 0.02, wet));
+            wet = pow2(wet);
+            smoothness = lerp(smoothness, 1, wet);
+            worldNormal = normalize(lerp(worldNormal, float3(0,1,0), (1-pow4(1-smoothness))*wet));
+          }*/
+          //init_albedo(result, diffuseColor.a);//diffuse.rgb
+          ##if mobile_render == forward
+            //terrain LOD out on forward is more aggressive and causes mismatch between shadowmap baked Y
+            //and VS interpolated Y, so sample it precisely
+            init_shadow(result, shadow * getStaticShadow(preciseWorldPos));//fixme: microshadow!
+          ##else
+            init_shadow(result, shadow);//fixme: microshadow!
+          ##endif
+          init_isLandscape(result, 1);
+
+          GBUFFER_OUTPUT output = encode_gbuffer(result, pointToEye, GET_SCREEN_POS(input.pos));
+          ##if lmesh_rendering_mode == rendering_reflection
+            output.color.rgb = apply_fog(output.color.rgb, pointToEye);
+          ##endif
+          return output;
+        }
+      }
+    }
+
+    if (in_editor_assume == yes)
+    {
+      INIT_TOROIDAL_HEIGHTMAP(vs)
+      USE_TOROIDAL_HEIGHTMAP_VS()
+    }
+
+    INIT_HEIGHTMAP_DISPLACEMENT(vs)
+    INIT_DEFORM_HMAP(vs)
+    USE_DEFORM_HMAP(vs)
+
+    if (lmesh_rendering_mode == rendering_landmesh)
+    {
+      hlsl {
+        #define LANDMESH 1
+      }
+    }
+    NORMAL_CORRECTION(vs)
+    hlsl(vs) {
+    ##if use_hw_tessellation
+      HsInput main_vs_heightmap_land(INPUT_VERTEXID_POSXZ USE_INSTANCE_ID)
+      {
+        HsInput output;
+        output.vertexInstanceId_patchTessFactor = (vertexId << 16) | instance_id;
+        return output;
+      }
+    ##else
+      VsOutput main_vs_heightmap_land(INPUT_VERTEXID_POSXZ USE_INSTANCE_ID)
+      {
+        DECODE_VERTEXID_POSXZ
+        VsOutput output;
+        float2 gradXZ;
+        float4 worldPos = float4(getWorldPosGrad(posXZ, gradXZ USED_INSTANCE_ID), 1.);
+        float3 worldNormal = float3(0,1,0);
+        float displacementEffect = 0;
+        float deformAmount = 0;
+
+        ##if (lmesh_rendering_mode == rendering_landmesh)
+        output.tcWorldPos = worldPos.xz;
+        worldPos.xyz = worldPosNormalCorrection(worldPos.xyz, 0, worldNormal, displacementEffect, deformAmount).xyz;
+        ##endif
+
+        output.pos = mulPointTm(worldPos.xyz + camera_base_offset.xyz, globtm);
+        float3 verticalNormal = worldNormal;
+        ##if (lmesh_rendering_mode == rendering_landmesh)
+          float heightForPuddle = get_height_for_puddle(worldPos.xyz);
+          float puddle, worldPosYPuddleOffset, puddleHeight;
+          getPuddleData(worldPos.y, worldPos.xyz, heightForPuddle, puddle, worldPosYPuddleOffset, puddleHeight);
+          ##if mobile_render == deferred
+            //use precise height in PS
+            output.scaledDeformedHeight = 100-100*displacementEffect;
+          ##else
+            output.scaledDeformedHeight = worldPos.y+(100-100*displacementEffect);
+          ##endif
+          output.scaledDeformedHeight -= deformAmount;
+          output.heightForPuddle = heightForPuddle;
+          //FIXME: this line does not affect output (!) but in tesselated terrain same line is affecting output
+          worldPos.y += worldPosYPuddleOffset*displacementEffect;
+        ##endif
+
+        float samplingStep = max(gradXZ.x, gradXZ.y);
+        if (checkHeightmapHolesStep(worldPos.xyz, samplingStep))
+          output.pos = NaN;
+
+        ##if use_satellite_rendering == yes
+          output.wpos = worldPos.xyz;
+        ##endif
+
+        writeVertexDensityPos(output.pos);
+
+        return output;
+      }
+    ##endif
+    }
+
+    if (hmap_tess_factor == hmap_tess_factor_on && lmesh_rendering_mode == rendering_landmesh)
+    {
+      hlsl(vs) {
+        struct HsPatchData
+        {
+          float edges[4] : SV_TessFactor;
+          float inside[2] : SV_InsideTessFactor;
+        };
+
+        struct HsControlPoint
+        {
+          float2 pos : POSITION0;
+        };
+
+        float3 restoreWorldPosNoPatches(float2 posXZ)
+        {
+          float3 worldPos = float3(posXZ.x, 0, posXZ.y);
+          worldPos.y = getHeight(worldPos.xz);
+          return worldPos;
+        }
+        float3 restoreWorldPos(float2 posXZ)
+        {
+          float3 worldPos = restoreWorldPosNoPatches(posXZ);
+          apply_height_patches(worldPos.xz, worldPos.y);
+          return worldPos;
+        }
+      }
+
+      (vs) {
+        hmap_tess_factor@f1 = (hmap_tess_factor);
+        lod0_center@f2 = (lod0_center.x, lod0_center.y, 0, 0);
+      }
+
+      PATCH_CONSTANT_DATA_CALCULATION()
+      hlsl(hs) {
+        HsPatchData HullShaderPatchConstant(OutputPatch<HsControlPoint, 4> controlPoints)
+        {
+          float maxDisplacement = max(abs(world_to_hmap_tex_ofs.z + world_to_hmap_tex_ofs.w), abs(world_to_hmap_tex_ofs.w));
+          return HullShaderPatchConstantCommon(controlPoints, maxDisplacement);
+        }
+
+        [domain("quad")]
+        [outputtopology("triangle_cw")]
+        [outputcontrolpoints(4)]
+        [partitioning("integer")]
+        [patchconstantfunc("HullShaderPatchConstant")]
+        HsControlPoint hmap_tessellation_hs(InputPatch<HsInput, 4> inputPatch, uint tid : SV_OutputControlPointID)
+        {
+          HsControlPoint output;
+
+          uint vertexId = inputPatch[tid].vertexInstanceId_patchTessFactor >> 16;
+          uint instance_id = inputPatch[tid].vertexInstanceId_patchTessFactor & ((1U << 16) - 1);
+          DECODE_VERTEXID_POSXZ
+          output.pos = decodeWorldPosXZ(posXZ USED_INSTANCE_ID);
+          return output;
+        }
+      }
+      compile("hs_5_0", "hmap_tessellation_hs");
+
+      hlsl(ds) {
+        float2 Bilerp(float2 v0, float2 v1, float2 v2, float2 v3, float2 i)
+        {
+          float2 bottom = lerp(v0, v3, i.x);
+          float2 top = lerp(v1, v2, i.x);
+          float2 result = lerp(bottom, top, i.y);
+          return result;
+        }
+
+        [domain("quad")]
+        VsOutput hmap_tessellation_ds(HsPatchData patchData, const OutputPatch<HsControlPoint, 4> input, float2 coords : SV_DomainLocation)
+        {
+          VsOutput output;
+          float2 posXZ = Bilerp(input[0].pos, input[1].pos, input[2].pos, input[3].pos, coords.yx);
+
+          //transform and output data
+          float3 worldPos = restoreWorldPos(posXZ);
+          worldPos.xz = clamp(worldPos.xz, heightmap_region.xy, heightmap_region.zw);
+          output.tcWorldPos = worldPos.xz;
+          float3 worldNormal;
+          float displacementEffect = 0;
+          float deformAmount = 0;
+          worldPos = worldPosNormalCorrection(worldPos, 0, worldNormal, displacementEffect, deformAmount);
+
+          float heightForPuddle = get_height_for_puddle(worldPos.xyz);
+          float puddle, worldPosYPuddleOffset, puddleHeight;
+          getPuddleData(worldPos.y, worldPos, heightForPuddle, puddle, worldPosYPuddleOffset, puddleHeight);
+          output.scaledDeformedHeight = worldPos.y+(100-100*displacementEffect);
+          output.scaledDeformedHeight -= deformAmount;
+          output.heightForPuddle = heightForPuddle;
+          worldPos.y += displacementEffect*worldPosYPuddleOffset;
+
+          output.pos = mulPointTm(worldPos + camera_base_offset.xyz, globtm);
+
+          if (checkHeightmapHoles(worldPos.xyz))
+            output.pos = NaN;
+
+          ##if use_satellite_rendering == yes
+            output.wpos = worldPos.xyz;
+          ##endif
+
+          return output;
+        }
+      }
+      compile("ds_5_0", "hmap_tessellation_ds");
+    }
+    if (hmap_tess_factor == hmap_tess_factor_on)
+    {
+      compile("target_vs_for_tess", "main_vs_heightmap_land");
+    }
+    else
+    {
+      compile("target_vs", "main_vs_heightmap_land");
+    }
+    if (lmesh_rendering_mode == rendering_landmesh)
+    {
+      compile("ps_5_0", "main_ps_heightmap_land");
+    } else
+    {
+      compile("target_ps", "main_ps_heightmap_land");
+    }
+  } else
+  {
+    dont_render;
+  }
+}
+
+int num_biome_groups_slot = 10 always_referenced;
+int biome_results_offset_slot = 11 always_referenced;
+buffer biome_query_input_buf;
+int biome_query_results_buf_slot = 0 always_referenced;
+float min_sample_scale_radius = (9); // MIN_SAMPLE_SCALE_RADIUS_TEXEL_SPACE
+
+shader biome_query_cs
+{
+  INIT_BIOMES(cs)
+  USE_BIOMES(cs)
+  INIT_CLIPMAP_FALLBACK_ALBEDO(cs)
+  USE_CLIPMAP_FALLBACK_ALBEDO(cs)
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    input_buffer@buf = biome_query_input_buf hlsl {
+      #include "landMesh/biome_query.hlsli"
+      StructuredBuffer<BiomeQueryInput> input_buffer@buf;
+    };
+    min_sample_scale_radius@f1 = (min_sample_scale_radius);
+  }
+
+  hlsl(cs) {
+    #include "landMesh/biome_query.hlsli"
+    #include "hammersley.hlsl"
+
+    uint numBiomeGroups : register(c10);
+    uint resultsOffset : register(c11);
+    RWStructuredBuffer<BiomeQueryResult> resultsBuffer : register(u0);
+    groupshared int indexFrequencies[MAX_BIOME_GROUPS*MAX_BIOME_QUERIES_PER_DISPATCH];
+
+    [numthreads(BIOME_QUERY_WARP_SIZE, BIOME_QUERY_WARP_SIZE, 1)]
+    void biome_query_cs(uint flat_idx : SV_GroupIndex, uint query_id : SV_GroupID)
+    {
+      uint groupOffset = query_id*MAX_BIOME_QUERIES_PER_DISPATCH;
+      if (flat_idx < numBiomeGroups)
+        indexFrequencies[groupOffset+flat_idx] = 0;
+
+      uint dataIndex = resultsOffset+query_id;
+
+      GroupMemoryBarrierWithGroupSync();
+
+      BiomeQueryInput input = structuredBufferAt(input_buffer, dataIndex);
+      float sampleScaleRadius = max(min_sample_scale_radius, input.radius);
+      const float maxNumSamples = BIOME_QUERY_WARP_SIZE * BIOME_QUERY_WARP_SIZE;
+      half2 worldPosOffset = hammersley_hemisphere_cos(flat_idx, maxNumSamples).xy * sampleScaleRadius;
+
+      BRANCH
+      if (dot(worldPosOffset, worldPosOffset) < input.radius * input.radius)
+      {
+        float3 worldPos = float3(input.worldPos.x + worldPosOffset.x, 0, input.worldPos.z + worldPosOffset.y);
+        int biomeGroupIndex = getBiomeGroupIndex(worldPos);
+        InterlockedAdd(indexFrequencies[groupOffset+biomeGroupIndex], 1);
+      }
+
+      GroupMemoryBarrierWithGroupSync();
+
+      if (flat_idx != 0)
+        return;
+
+      int mostFrequentBiomeGroupIndex = -1;
+      int mostFrequentBiomeCount = 0;
+      int secondMostFrequentBiomeGroupIndex = -1;
+      int secondMostFrequentBiomeCount = 0;
+      int sumSamples = 0;
+
+      for (uint i = 0; i < numBiomeGroups; i++)
+      {
+        if (indexFrequencies[groupOffset+i] > mostFrequentBiomeCount)
+        {
+          secondMostFrequentBiomeCount = mostFrequentBiomeCount;
+          secondMostFrequentBiomeGroupIndex = mostFrequentBiomeGroupIndex;
+          mostFrequentBiomeCount = indexFrequencies[groupOffset+i];
+          mostFrequentBiomeGroupIndex = i;
+        }
+        else if (indexFrequencies[groupOffset+i] > secondMostFrequentBiomeCount)
+        {
+          secondMostFrequentBiomeCount = indexFrequencies[groupOffset+i];
+          secondMostFrequentBiomeGroupIndex = i;
+        }
+        sumSamples += indexFrequencies[groupOffset+i];
+      }
+
+      if (secondMostFrequentBiomeCount == 0)
+      {
+        secondMostFrequentBiomeGroupIndex = mostFrequentBiomeGroupIndex;
+        secondMostFrequentBiomeCount = mostFrequentBiomeCount;
+      }
+
+      BiomeQueryResult result;
+      result.mostFrequentBiomeGroupIndex = mostFrequentBiomeGroupIndex;
+      result.mostFrequentBiomeGroupWeight = float(mostFrequentBiomeCount) / sumSamples;
+      result.secondMostFrequentBiomeGroupIndex = secondMostFrequentBiomeGroupIndex;
+      result.secondMostFrequentBiomeGroupWeight = float(secondMostFrequentBiomeCount) / sumSamples;
+      result.averageBiomeColor = half4(sampleFallBackAlbdeoLod0(input.worldPos), 1.0f);
+      structuredBufferAt(resultsBuffer, dataIndex) = result;
+    }
+  }
+
+  compile("target_cs", "biome_query_cs");
+}
+
+
+
+
+
+
+int hmap_query_dispatch_cnt_const_no = 15 always_referenced;
+int hmap_query_dispatch_results_offset_no = 16 always_referenced;
+int hmap_query_dispatch_buf_const_no = 0 always_referenced;
+buffer heightmap_query_input_buf;
+
+
+shader heightmap_query_cs
+{
+  hlsl {
+    #define NO_GRADIENTS_IN_SHADER 1
+  }
+
+  INIT_WORLD_HEIGHTMAP_BASE(cs)
+  USE_HEIGHTMAP_COMMON_BASE(cs)
+
+  INIT_HEIGHTMAP_OFS(cs)
+  USE_HEIGHTMAP_OFS(cs)
+
+  INIT_DEFORM_HMAP(cs)
+  USE_DEFORM_HMAP(cs)
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    input_buffer@buf = heightmap_query_input_buf hlsl {
+      #include "landMesh/heightmap_query.hlsli"
+      StructuredBuffer<HeightmapQueryInput> input_buffer@buf;
+    };
+  }
+
+  hlsl(cs) {
+    #include "landMesh/heightmap_query.hlsli"
+
+    uint dispatchCnt : register(c15);
+    uint resultsOffset : register(c16);
+    RWStructuredBuffer<HeightmapQueryResult> resultsBuffer : register(u0);
+
+
+    HeightmapQueryResult calcQueryResult(HeightmapQueryInput input)
+    {
+      float worldHeight = getWorldHeight(input.worldPos2d);
+      float3 worldPos = float3(input.worldPos2d.x, worldHeight, input.worldPos2d.y);
+      float3 worldNormal = getWorldNormal(worldPos);
+
+      // This is not entirely correct, because terrain is displaced along normal and not only upwards (but good enough)
+      float offsetedHeight = worldHeight + worldNormal.y * get_hmap_ofs_no_grass_vignette(input.worldPos2d);
+
+      float deformAmount = getDeformHeight(worldPos, world_to_hmap_tex_ofs.z);
+      float deformedHeight = offsetedHeight + deformAmount;
+
+      HeightmapQueryResult result = (HeightmapQueryResult)0;
+      result.heightNoOffset = worldHeight;
+      result.heightWithOffset = offsetedHeight;
+      result.heightWithOffsetDeform = deformedHeight;
+      return result;
+    }
+
+    [numthreads(HEIGHTMAP_QUERY_WARP_SIZE, 1, 1)]
+    void heightmap_query_cs(uint id : SV_DispatchThreadID)
+    {
+      if (id >= dispatchCnt)
+        return;
+      structuredBufferAt(resultsBuffer, resultsOffset + id) = calcQueryResult(structuredBufferAt(input_buffer, id));
+    }
+  }
+
+  compile("target_cs", "heightmap_query_cs");
+}
+

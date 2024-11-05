@@ -9,10 +9,10 @@ Sources =
 ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
-if $(Platform) in ps4 ps5 macosx iOS { CPPopt = -Wno-unused ; }
+if $(Platform) in ps4 ps5 macOS iOS { CPPopt = -Wno-unused ; }
 if $(PlatformSpec) = clang && $(Platform) in xboxOne scarlett { CPPopt = -Wno-unused ; }
 
-if $(Platform) in win32 win64 && $(PlatformSpec) = clang {
+if $(Platform) in windows && $(PlatformSpec) = clang {
   CPPopt += -Wno-unused-value ; # multiple printf, wprintf
 }
 

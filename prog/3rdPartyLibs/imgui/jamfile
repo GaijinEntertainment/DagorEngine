@@ -5,16 +5,18 @@ TargetType      = lib ;
 Target          = 3rdPartyLibs/imgui.lib ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
+if $(FreeTypeVer) != $(DefFreeTypeVer) { Target = $(Target:S=~ft$(FreeTypeVer)$(Target:S)) ; }
 
 AddIncludes =
   $(Root)/$(Location)
+  $(Root)/prog/3rdPartyLibs/freetype/freetype-$(FreeTypeVer)/include
 ;
 
 if $(Platform) in ps4 ps5 {
   AddIncludes += $(Root)/prog/3rdPartyLibs/posix/include/ps4 ;
 }
 
-if $(Platform) = macosx {
+if $(Platform) = macOS {
   CPPopt += -Wno-deprecated-declarations ;
 }
 
@@ -27,6 +29,11 @@ Sources =
   implot.cpp
   implot_demo.cpp
   implot_items.cpp
+  misc/freetype/imgui_freetype.cpp
+;
+
+UseProgLibs =
+  3rdPartyLibs/freetype/freetype-$(FreeTypeVer)
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

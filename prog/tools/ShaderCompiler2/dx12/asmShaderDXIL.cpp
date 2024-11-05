@@ -1,9 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 // clang-format off
 #include "asmShaderDXIL.h"
 #include "../encodedBits.h"
 
 #include <dxil/compiler.h>
-#include <dxil/utility.h>
+#include <drv/shadersMetaData/dxil/utility.h>
 
 #include <generic/dag_smallTab.h>
 
@@ -191,17 +193,28 @@ public:
 };
 
 // this is a signature generator for compute
-eastl::string generate_root_signature_string(const ::dxil::ShaderResourceUsageTable &header)
+eastl::string generate_root_signature_string(bool has_acceleration_structure, const ::dxil::ShaderResourceUsageTable &header)
 {
   struct GeneratorCallback
   {
     eastl::string result;
-    void begin()
-    {
-      result += "\"";
-      result += "RootFlags(0)"; // compute has no flags
-    }
+    void begin() { result += "\""; }
     void end() { result += "\""; }
+    void beginFlags() { result += "RootFlags("; }
+    void endFlags()
+    {
+      if (result.back() == '(')
+      {
+        result += "0";
+      }
+      result += ")";
+    }
+    void hasAccelerationStructure()
+    {
+      if (result.back() != '(')
+        result += " | ";
+      result += "XBOX_RAYTRACING";
+    }
     void rootConstantBuffer(uint32_t space, uint32_t index, uint32_t dwords)
     {
       result += ", RootConstants(num32BitConstants = ";
@@ -223,7 +236,6 @@ eastl::string generate_root_signature_string(const ::dxil::ShaderResourceUsageTa
       result += eastl::to_string(space);
       result += ")";
     }
-    void hasAccelerationStructure() {}
     void beginSamplers() { result += ", DescriptorTable("; }
     void endSamplers() { result += ")"; }
     void sampler(uint32_t space, uint32_t slot, uint32_t linear_index)
@@ -296,13 +308,13 @@ eastl::string generate_root_signature_string(const ::dxil::ShaderResourceUsageTa
     }
   };
   GeneratorCallback generator;
-  decode_compute_root_signature(false, header, generator);
+  decode_compute_root_signature(has_acceleration_structure, header, generator);
   return generator.result;
 }
 
-eastl::string generate_root_signature_string(uint32_t vertex_shader_input_mask, const ::dxil::ShaderResourceUsageTable &vs,
-  const ::dxil::ShaderResourceUsageTable &hs, const ::dxil::ShaderResourceUsageTable &ds, const ::dxil::ShaderResourceUsageTable &gs,
-  const ::dxil::ShaderResourceUsageTable &ps)
+eastl::string generate_root_signature_string(bool has_acceleration_structure, uint32_t vertex_shader_input_mask,
+  const ::dxil::ShaderResourceUsageTable &vs, const ::dxil::ShaderResourceUsageTable &hs, const ::dxil::ShaderResourceUsageTable &ds,
+  const ::dxil::ShaderResourceUsageTable &gs, const ::dxil::ShaderResourceUsageTable &ps)
 {
   struct GeneratorCallback
   {
@@ -350,7 +362,12 @@ eastl::string generate_root_signature_string(uint32_t vertex_shader_input_mask, 
         result += " | ";
       result += "ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT";
     }
-    void hasAccelerationStructure() {}
+    void hasAccelerationStructure()
+    {
+      if (result.back() != '(')
+        result += " | ";
+      result += "XBOX_RAYTRACING";
+    }
     void noVertexShaderResources()
     {
       if (result.back() != '(')
@@ -567,12 +584,12 @@ eastl::string generate_root_signature_string(uint32_t vertex_shader_input_mask, 
     }
   };
   GeneratorCallback generator;
-  decode_graphics_root_signature(0 != vertex_shader_input_mask, false, vs, ps, hs, ds, gs, generator);
+  decode_graphics_root_signature(0 != vertex_shader_input_mask, has_acceleration_structure, vs, ps, hs, ds, gs, generator);
   return generator.result;
 }
 
-eastl::string generate_mesh_root_signature_string(bool has_amplification_stage, const ::dxil::ShaderResourceUsageTable &ms,
-  const ::dxil::ShaderResourceUsageTable &as, const ::dxil::ShaderResourceUsageTable &ps)
+eastl::string generate_mesh_root_signature_string(bool has_acceleration_structure, bool has_amplification_stage,
+  const ::dxil::ShaderResourceUsageTable &ms, const ::dxil::ShaderResourceUsageTable &as, const ::dxil::ShaderResourceUsageTable &ps)
 {
   struct GeneratorCallback
   {
@@ -614,8 +631,18 @@ eastl::string generate_mesh_root_signature_string(bool has_amplification_stage, 
       }
       result += ")";
     }
-    void hasAccelerationStructure() {}
-    void hasAmplificationStage() { result += "XBOX_FORCE_MEMORY_BASED_ABI"; }
+    void hasAccelerationStructure()
+    {
+      if (result.back() != '(')
+        result += " | ";
+      result += "XBOX_RAYTRACING";
+    }
+    void hasAmplificationStage()
+    {
+      if (result.back() != '(')
+        result += " | ";
+      result += "XBOX_FORCE_MEMORY_BASED_ABI";
+    }
     void noMeshShaderResources()
     {
       if (result.back() != '(')
@@ -818,7 +845,7 @@ eastl::string generate_mesh_root_signature_string(bool has_amplification_stage, 
     }
   };
   GeneratorCallback generator;
-  decode_graphics_mesh_root_signature(false, ms, ps, has_amplification_stage ? &as : nullptr, generator);
+  decode_graphics_mesh_root_signature(has_acceleration_structure, ms, ps, has_amplification_stage ? &as : nullptr, generator);
   return generator.result;
 }
 
@@ -857,9 +884,9 @@ struct PlatformInfo
 // clang-format off
 static const PlatformInfo platform_table[] = //
 {
-  {L"pc",            "dxcompiler.dll",   "d3dCompiler_47_new.dll",  dxil::DXCVersion::PC},
-  {L"xbox_one",      "dxcompiler_x.dll", nullptr,                   dxil::DXCVersion::XBOX_ONE},
-  {L"xbox_scarlett", "dxcompiler_xs.dll", nullptr,                  dxil::DXCVersion::XBOX_SCARLETT},
+  {L"dxc-dx12/pc",            "dxcompiler.dll",   "d3dCompiler_47_new.dll",  dxil::DXCVersion::PC},
+  {L"dxc-dx12/xbox_one",      "dxcompiler_x.dll", nullptr,                   dxil::DXCVersion::XBOX_ONE},
+  {L"dxc-dx12/xbox_scarlett", "dxcompiler_xs.dll", nullptr,                  dxil::DXCVersion::XBOX_SCARLETT},
 };
 // clang-format on
 
@@ -886,14 +913,20 @@ struct LibraryRouter
 
 namespace
 {
-eastl::wstring get_program_path()
+
+// If this function is in a dll, gets the dll address instead
+eastl::wstring get_module_path()
 {
+  HMODULE hModule = nullptr;
+  GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)&get_module_path,
+    &hModule);
+
   eastl::vector<wchar_t> buffer;
   do
   {
     // 0x7FFF should suffice, as it is the limit for extended file path length
     buffer.resize(0x7FFF + buffer.size());
-    buffer.resize(GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size())));
+    buffer.resize(GetModuleFileNameW(hModule, buffer.data(), static_cast<DWORD>(buffer.size())));
     // unfortunately there is no other way to see if it was truncated
     // there is also different behavior between win xp and later versions
     // xp always returns ERROR_SUCCESS but does not terminate the string when it truncated the name
@@ -902,6 +935,7 @@ eastl::wstring get_program_path()
   } while (GetLastError() == ERROR_INSUFFICIENT_BUFFER);
   return {buffer.data(), buffer.data() + buffer.size() - 1};
 }
+
 } // namespace
 
 bool is_mesh_profile(const char *profile) { return ('m' == profile[0]) || ('a' == profile[0]); }
@@ -909,12 +943,12 @@ bool is_mesh_profile(const char *profile) { return ('m' == profile[0]) || ('a' =
 ShaderCompileResult compileShader(dag::ConstSpan<char> source, const char *profile, const char *entry, bool hlsl2021, bool enableFp16,
   bool skipValidation, bool optimize, bool debug_info, wchar_t *pdb_dir, ::dx12::dxil::Platform platform,
   eastl::string_view root_signature_def, unsigned phase, bool pipeline_has_ts, bool pipeline_has_gs, bool scarlett_w32,
-  bool warnings_as_errors, DebugLevel debug_level)
+  bool warnings_as_errors, DebugLevel debug_level, bool embed_source)
 {
   ShaderCompileResult result = {};
 
   const auto &platformInfo = platform_table[static_cast<uint32_t>(platform)];
-  auto platformLibPath = get_program_path();
+  auto platformLibPath = get_module_path();
   // result is path to executable, so chop off the file name
   platformLibPath.resize(platformLibPath.rfind(L'\\') + 1);
   platformLibPath += platformInfo.subDirectory;
@@ -933,11 +967,11 @@ ShaderCompileResult compileShader(dag::ConstSpan<char> source, const char *profi
   // Those files act as pdb for shaders, shaders know the name of the file and tools like PIX will
   // pick them up if configured correctly.
   compileConfig.PDBBasePath = pdb_dir;
-  if ((debug_level == DebugLevel::FULL_DEBUG_INFO) || (debug_level == DebugLevel::AFTERMATH))
+  if ((debug_level == DebugLevel::FULL_DEBUG_INFO) || (debug_level == DebugLevel::AFTERMATH) || embed_source)
     compileConfig.pdbMode = ::dxil::PDBMode::FULL;
   else if (debug_level == DebugLevel::BASIC)
     compileConfig.pdbMode = ::dxil::PDBMode::SMALL;
-  compileConfig.saveHlslToBlob = debug_level == DebugLevel::FULL_DEBUG_INFO;
+  compileConfig.saveHlslToBlob = debug_level == DebugLevel::FULL_DEBUG_INFO || embed_source;
 
   // on xbox we have to compile shaders in two phases:
   // 1) without root signature to be able to query shader header to later generate root signature
@@ -1082,7 +1116,7 @@ ShaderCompileResult compileShader(dag::ConstSpan<char> source, const char *profi
 
 eastl::vector<uint8_t> recompile_shader(const char *encoded_shader_source, const ::dxil::ShaderHeader &header,
   const eastl::string &root_signature_def, ::dx12::dxil::Platform platform, bool pipeline_has_ts, bool pipeline_has_gs,
-  wchar_t *pdb_dir, DebugLevel debug_level)
+  wchar_t *pdb_dir, DebugLevel debug_level, bool embed_source)
 {
   bool skipValidation = encoded_shader_source[encoded_bits::SkipValidation] > '0';
   bool optimize = encoded_shader_source[encoded_bits::Optimize] > '0';
@@ -1098,7 +1132,7 @@ eastl::vector<uint8_t> recompile_shader(const char *encoded_shader_source, const
   // TODO could avoid strlen when encoded_shader_source would be a slice
   auto compileResult = ::compileShader(make_span(sourceStart, strlen(sourceStart)), profileBuf, entryStart, hlsl2021, enableFp16,
     skipValidation, optimize, debugInfo, pdb_dir, platform, root_signature_def, 2, pipeline_has_ts, pipeline_has_gs, scarlettW32,
-    false, debug_level);
+    false, debug_level, embed_source);
   if (compileResult.dxil.empty() && compileResult.dxbc.empty())
   {
     debug("recompile_shader failed: %s", compileResult.errorLog.c_str());
@@ -1110,12 +1144,23 @@ eastl::vector<uint8_t> recompile_shader(const char *encoded_shader_source, const
 
 #define REPLACE_REGISTER_WITH_MACRO 0
 
+namespace
+{
+bool has_acceleration_structure(const dxil::ShaderHeader &header)
+{
+  for (int i = 0; i < dxil::MAX_T_REGISTERS; ++i)
+    if (static_cast<D3D_SHADER_INPUT_TYPE>(header.tRegisterTypes[i] & 0xF) == 12 /*D3D_SIT_RTACCELERATIONSTRUCTURE*/)
+      return true;
+  return false;
+}
+} // namespace
+
 CompileResult dx12::dxil::compileShader(dag::ConstSpan<char> source, const char *profile, const char *entry, bool need_disasm,
   bool hlsl2021, bool enableFp16, bool skipValidation, bool optimize, bool debug_info, wchar_t *pdb_dir, int max_constants_no,
-  int bones_const_used, const char *name, Platform platform, bool scarlett_w32, bool warnings_as_errors, DebugLevel debug_level)
+  const char *name, Platform platform, bool scarlett_w32, bool warnings_as_errors, DebugLevel debug_level, bool embed_source)
 {
   auto compileResult = ::compileShader(source, profile, entry, hlsl2021, enableFp16, skipValidation, optimize, debug_info, pdb_dir,
-    platform, {}, 1, true, true, scarlett_w32, warnings_as_errors, debug_level);
+    platform, {}, 1, true, true, scarlett_w32, warnings_as_errors, debug_level, embed_source);
 
   CompileResult result;
   if (compileResult.dxil.empty())
@@ -1126,7 +1171,7 @@ CompileResult dx12::dxil::compileShader(dag::ConstSpan<char> source, const char 
 
   auto stage = get_shader_stage_from_profile(profile);
   auto headerCompileResult =
-    ::dxil::compileHeaderFromReflectionData(stage, compileResult.reflectionData, max_constants_no, bones_const_used, pinDxcLib.get());
+    ::dxil::compileHeaderFromReflectionData(stage, compileResult.reflectionData, max_constants_no, pinDxcLib.get());
 
   if (!headerCompileResult.isOk)
   {
@@ -1139,6 +1184,9 @@ CompileResult dx12::dxil::compileShader(dag::ConstSpan<char> source, const char 
     result.computeShaderInfo.threadGroupSizeX = headerCompileResult.computeShaderInfo.threadGroupSizeX;
     result.computeShaderInfo.threadGroupSizeY = headerCompileResult.computeShaderInfo.threadGroupSizeY;
     result.computeShaderInfo.threadGroupSizeZ = headerCompileResult.computeShaderInfo.threadGroupSizeZ;
+#if _CROSS_TARGET_DX12
+    result.computeShaderInfo.scarlettWave32 = scarlett_w32;
+#endif
   }
 
   if (need_disasm)
@@ -1154,10 +1202,12 @@ CompileResult dx12::dxil::compileShader(dag::ConstSpan<char> source, const char 
     // finished and can be recompiled with combined root signature.
     if (::dxil::ShaderStage::COMPUTE == stage)
     {
+      bool hasAccelerationStructure = has_acceleration_structure(headerCompileResult.header);
       // compute is on its own, so we can compile phase two right now
-      auto rootSignatureDefine = generate_root_signature_string(headerCompileResult.header.resourceUsageTable);
+      auto rootSignatureDefine =
+        generate_root_signature_string(hasAccelerationStructure, headerCompileResult.header.resourceUsageTable);
       compileResult = ::compileShader(source, profile, entry, hlsl2021, enableFp16, skipValidation, optimize, debug_info, pdb_dir,
-        platform, rootSignatureDefine, 2, false, false, scarlett_w32, warnings_as_errors, debug_level);
+        platform, rootSignatureDefine, 2, false, false, scarlett_w32, warnings_as_errors, debug_level, embed_source);
       if (compileResult.dxil.empty())
       {
         result.errors.sprintf("Error while recompiling compute shader with root signature: "
@@ -1241,7 +1291,9 @@ void dx12::dxil::combineShaders(SmallTab<unsigned, TmpmemAlloc> &target, dag::Co
 
   auto packed = create_shader_container(eastl::move(writer.mData), type);
 
-  target.resize((packed.size() + elem_size(target)) / elem_size(target) + 1);
+  const size_t dwordsToFitPacked = (packed.size() - 1) / elem_size(target) + 1;
+  target.resize(dwordsToFitPacked + 1); // +1 for id at the beginning
+
   target[0] = id;
   eastl::copy(packed.begin(), packed.end(), (uint8_t *)&target[1]);
 }
@@ -1256,6 +1308,7 @@ dx12::dxil::RootSignatureStore dx12::dxil::generateRootSignatureDefinition(dag::
   result.isMesh = ::dxil::ShaderStage::MESH == static_cast<::dxil::ShaderStage>(vsDecoded.shader.shaderHeader.shaderType);
   result.hasAmplificationStage = result.isMesh && (gs.size() > 0);
   result.vsResources = vsDecoded.shader.shaderHeader.resourceUsageTable;
+  result.hasAccelerationStructure = has_acceleration_structure(vsDecoded.shader.shaderHeader);
 
   if (hs.empty() != ds.empty())
   {
@@ -1267,24 +1320,28 @@ dx12::dxil::RootSignatureStore dx12::dxil::generateRootSignatureDefinition(dag::
   {
     auto hsDecoded = decode_shader_container(hs, false);
     result.hsResources = hsDecoded.shader.shaderHeader.resourceUsageTable;
+    result.hasAccelerationStructure = result.hasAccelerationStructure || has_acceleration_structure(hsDecoded.shader.shaderHeader);
   }
 
   if (ds.size())
   {
     auto dsDecoded = decode_shader_container(ds, false);
     result.dsResources = dsDecoded.shader.shaderHeader.resourceUsageTable;
+    result.hasAccelerationStructure = result.hasAccelerationStructure || has_acceleration_structure(dsDecoded.shader.shaderHeader);
   }
 
   if (gs.size())
   {
     auto gsDecoded = decode_shader_container(gs, false);
     result.gsResources = gsDecoded.shader.shaderHeader.resourceUsageTable;
+    result.hasAccelerationStructure = result.hasAccelerationStructure || has_acceleration_structure(gsDecoded.shader.shaderHeader);
   }
 
   if (!ps.empty())
   {
     auto psDecoded = decode_shader_container(ps, false);
     result.psResources = psDecoded.shader.shaderHeader.resourceUsageTable;
+    result.hasAccelerationStructure = result.hasAccelerationStructure || has_acceleration_structure(psDecoded.shader.shaderHeader);
   }
 
   return result;
@@ -1323,7 +1380,8 @@ namespace
 bool operator==(const dx12::dxil::RootSignatureStore &l, const dx12::dxil::RootSignatureStore &r)
 {
   return l.vsResources == r.vsResources && l.hsResources == r.hsResources && l.dsResources == r.dsResources &&
-         l.gsResources == r.gsResources && l.psResources == r.psResources && l.hasVertexInput == r.hasVertexInput;
+         l.gsResources == r.gsResources && l.psResources == r.psResources && l.hasVertexInput == r.hasVertexInput &&
+         l.hasAmplificationStage == r.hasAmplificationStage && l.hasAccelerationStructure == r.hasAccelerationStructure;
 }
 
 bool operator!=(const dx12::dxil::RootSignatureStore &l, const dx12::dxil::RootSignatureStore &r) { return !(l == r); }
@@ -1468,7 +1526,7 @@ eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>> dx12::dxil::combinePhaseOnePi
 }
 
 eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::recompileVertexProgram(dag::ConstSpan<unsigned> source,
-  Platform platform, wchar_t *pdb_dir, DebugLevel debug_level)
+  Platform platform, wchar_t *pdb_dir, DebugLevel debug_level, bool embed_source)
 {
   auto *header = bindump::map<VertexProgramPhaseOne>((const uint8_t *)source.data());
   if (!header)
@@ -1483,14 +1541,15 @@ eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::
   eastl::string progSignature;
   if (header->rootSignature.isMesh)
   {
-    progSignature = generate_mesh_root_signature_string(header->rootSignature.hasAmplificationStage, header->rootSignature.vsResources,
-      header->rootSignature.gsResources, header->rootSignature.psResources);
+    progSignature =
+      generate_mesh_root_signature_string(header->rootSignature.hasAccelerationStructure, header->rootSignature.hasAmplificationStage,
+        header->rootSignature.vsResources, header->rootSignature.gsResources, header->rootSignature.psResources);
   }
   else
   {
-    progSignature = generate_root_signature_string(header->rootSignature.hasVertexInput, header->rootSignature.vsResources,
-      header->rootSignature.hsResources, header->rootSignature.dsResources, header->rootSignature.gsResources,
-      header->rootSignature.psResources);
+    progSignature = generate_root_signature_string(header->rootSignature.hasAccelerationStructure,
+      header->rootSignature.hasVertexInput, header->rootSignature.vsResources, header->rootSignature.hsResources,
+      header->rootSignature.dsResources, header->rootSignature.gsResources, header->rootSignature.psResources);
   }
 
   auto vsDecoded = decode_shader_container(header->vertexShader, true);
@@ -1499,7 +1558,7 @@ eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::
   auto gsDecoded = decode_shader_container(header->geomentryShader, true);
 
   auto rebuildVS = recompile_shader(vsDecoded.source.data(), vsDecoded.shader.shaderHeader, progSignature, platform,
-    hsDecoded.source.size() && dsDecoded.source.size(), gsDecoded.source.size(), pdb_dir, debug_level);
+    hsDecoded.source.size() && dsDecoded.source.size(), gsDecoded.source.size(), pdb_dir, debug_level, embed_source);
 
   if (rebuildVS.empty())
   {
@@ -1510,7 +1569,7 @@ eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::
   if (hsDecoded.source.size())
   {
     rebuildHS = recompile_shader(hsDecoded.source.data(), hsDecoded.shader.shaderHeader, progSignature, platform, true,
-      gsDecoded.source.size(), pdb_dir, debug_level);
+      gsDecoded.source.size(), pdb_dir, debug_level, embed_source);
     if (rebuildHS.empty())
     {
       return eastl::nullopt;
@@ -1521,7 +1580,7 @@ eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::
   if (dsDecoded.source.size())
   {
     rebuildDS = recompile_shader(dsDecoded.source.data(), dsDecoded.shader.shaderHeader, progSignature, platform, true,
-      gsDecoded.source.size(), pdb_dir, debug_level);
+      gsDecoded.source.size(), pdb_dir, debug_level, embed_source);
     if (rebuildDS.empty())
     {
       return eastl::nullopt;
@@ -1532,7 +1591,7 @@ eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::
   if (gsDecoded.source.size())
   {
     rebuildGS = recompile_shader(gsDecoded.source.data(), gsDecoded.shader.shaderHeader, progSignature, platform,
-      hsDecoded.source.size() && dsDecoded.source.size(), true, pdb_dir, debug_level);
+      hsDecoded.source.size() && dsDecoded.source.size(), true, pdb_dir, debug_level, embed_source);
     if (rebuildGS.empty())
     {
       return eastl::nullopt;
@@ -1564,7 +1623,7 @@ eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::
 }
 
 eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::recompilePixelSader(dag::ConstSpan<unsigned> source,
-  Platform platform, wchar_t *pdb_dir, DebugLevel debug_level)
+  Platform platform, wchar_t *pdb_dir, DebugLevel debug_level, bool embed_source)
 {
   auto *header = bindump::map<PixelShaderPhaseOne>((const uint8_t *)source.data());
   if (!header)
@@ -1579,14 +1638,15 @@ eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::
   eastl::string progSignature;
   if (header->rootSignature.isMesh)
   {
-    progSignature = generate_mesh_root_signature_string(header->rootSignature.hasAmplificationStage, header->rootSignature.vsResources,
-      header->rootSignature.gsResources, header->rootSignature.psResources);
+    progSignature =
+      generate_mesh_root_signature_string(header->rootSignature.hasAccelerationStructure, header->rootSignature.hasAmplificationStage,
+        header->rootSignature.vsResources, header->rootSignature.gsResources, header->rootSignature.psResources);
   }
   else
   {
-    progSignature = generate_root_signature_string(header->rootSignature.hasVertexInput, header->rootSignature.vsResources,
-      header->rootSignature.hsResources, header->rootSignature.dsResources, header->rootSignature.gsResources,
-      header->rootSignature.psResources);
+    progSignature = generate_root_signature_string(header->rootSignature.hasAccelerationStructure,
+      header->rootSignature.hasVertexInput, header->rootSignature.vsResources, header->rootSignature.hsResources,
+      header->rootSignature.dsResources, header->rootSignature.gsResources, header->rootSignature.psResources);
   }
 
   DecodedShaderContainer psDecoded;
@@ -1612,7 +1672,7 @@ eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::
   bool hasTS = 0 != (header->compilationFlags & COMPILATION_FLAG_HAS_HD_DS);
   bool hasGS = 0 != (header->compilationFlags & COMPILATION_FLAG_HAS_GS);
   auto rebuildPS = recompile_shader(psDecoded.source.data(), psDecoded.shader.shaderHeader, progSignature, platform, hasTS, hasGS,
-    pdb_dir, debug_level);
+    pdb_dir, debug_level, embed_source);
 
   if (rebuildPS.empty())
   {

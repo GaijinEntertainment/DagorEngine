@@ -1,4 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+#include <generic/dag_span.h>
+#include <EASTL/algorithm.h>
+
+#include "util/type_lists.h"
 
 namespace drv3d_vulkan
 {
@@ -33,8 +39,8 @@ struct ExtensionAdaptor
 {
   static bool has(dag::ConstSpan<const char *> ext_list)
   {
-    return end(ext_list) !=
-           eastl::find_if(begin(ext_list), end(ext_list), [](const char *e_name) { return 0 == strcmp(extension_name<T>(), e_name); });
+    return eastl::end(ext_list) != eastl::find_if(eastl::begin(ext_list), eastl::end(ext_list),
+                                     [](const char *e_name) { return 0 == strcmp(extension_name<T>(), e_name); });
   }
 
   static uint32_t filter(const char **ext_list, uint32_t count)

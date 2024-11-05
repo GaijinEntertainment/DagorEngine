@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "daStars.h"
 #include <ioSys/dag_dataBlock.h>
 #include <astronomy/astronomy.h>
@@ -5,6 +7,9 @@
 #include <perfMon/dag_statDrv.h>
 #include <daSkies2/daScattering.h>
 #include <3d/dag_lockSbuffer.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
 
 static int starIntensityGlobVarId = -1;
 static int starsScaleVarId = -1;
@@ -47,6 +52,7 @@ void DaStars::init(const char *stars, const char *moon)
   stars_lattitudeVarId = get_shader_variable_id("stars_lattitude");
   stars_lstVarId = get_shader_variable_id("stars_lst");
   starsTex = dag::get_tex_gameres(stars, "stars_tex");
+  ShaderGlobal::set_sampler(get_shader_variable_id("stars_tex_samplerstate", true), d3d::request_sampler({}));
   G_ASSERTF(starsTex, "Texture '%s' for stars not found.", stars);
 
   moonSize = 0.02f;

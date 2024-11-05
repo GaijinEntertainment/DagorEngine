@@ -1,5 +1,4 @@
-#ifndef __DAGOR_ANIM_V20_FIFO_H
-#define __DAGOR_ANIM_V20_FIFO_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 static constexpr int USE_DEBUG = 0;
@@ -10,6 +9,7 @@ static constexpr int USE_DEBUG = 0;
 #include <ioSys/dag_genIo.h>
 #include <debug/dag_debug.h>
 #include <util/dag_simpleString.h>
+#include <math/dag_mathUtils.h>
 
 
 namespace AnimV20
@@ -90,16 +90,16 @@ public:
 
   void enqueueItem(real ctime, IPureAnimStateHolder &st, IAnimBlendNode *n, real overlap_time, real max_lag)
   {
-    if (overlap_time < 0.0)
-      overlap_time = 0.0;
+    if (overlap_time < 0.0f)
+      overlap_time = 0.0f;
 
     (void)(max_lag);
     if (USE_DEBUG)
-      debug_ctx("%p.enqueue: state=%d, ctime=%.3f t0=%.3f n=%p mt=%.3f max_lag=%.3f", this, state, ctime, t0, n, overlap_time,
+      DEBUG_CTX("%p.enqueue: state=%d, ctime=%.3f t0=%.3f n=%p mt=%.3f max_lag=%.3f", this, state, ctime, t0, n, overlap_time,
         max_lag);
 
-    // debug_ctx ( "enqueue: state=%d, ctime=%.3f t0=%.3f n=%p mt=%.3f max_lag=%.3f\n  node=%p %p %p\n  morph=   %.3f %.3f", state,
-    // ctime, t0, n, overlap_time, max_lag, node[0], node[1], node[2], morphTime[0], morphTime[1] );
+    // DEBUG_CTX("enqueue: state=%d, ctime=%.3f t0=%.3f n=%p mt=%.3f max_lag=%.3f\n  node=%p %p %p\n  morph=   %.3f %.3f",
+    //   state, ctime, t0, n, overlap_time, max_lag, node[0], node[1], node[2], morphTime[0], morphTime[1]);
     switch (state)
     {
       case ST_0:
@@ -111,7 +111,7 @@ public:
         if (node[0] == n)
           break;
 
-        if (overlap_time > 0.0)
+        if (overlap_time > 0.0f)
         {
           node[1] = n;
           morphTime[0] = overlap_time;
@@ -138,9 +138,9 @@ public:
         if (node[0] == n)
         {
           // reverse blending
-          if (overlap_time > 0.0)
+          if (overlap_time > 0.0f)
           {
-            real a1 = (ctime - t0) / morphTime[0], a0 = 1 - a1;
+            real a1 = (ctime - t0) / morphTime[0], a0 = max(1 - a1, 0.f);
 
             // swap node0 and node1 and setup new morph time
             node[0] = node[1];
@@ -183,7 +183,7 @@ public:
   void update(IPureAnimStateHolder &st, real ctime, real /*dt*/)
   {
     if (USE_DEBUG)
-      debug_ctx("%p.update: state=%d, ctime=%.3f t0=%.3f", this, state, ctime, t0);
+      DEBUG_CTX("%p.update: state=%d, ctime=%.3f t0=%.3f", this, state, ctime, t0);
 
     if (state <= ST_1)
       return;
@@ -220,7 +220,7 @@ public:
   void buildBlendingList(IAnimBlendNode::BlendCtx &bctx, real ctime, real w0)
   {
     if (USE_DEBUG)
-      debug_ctx("%p.bbl: state=%d, ctime=%.3f t0=%.3f", this, state, ctime, t0);
+      DEBUG_CTX("%p.bbl: state=%d, ctime=%.3f t0=%.3f", this, state, ctime, t0);
 
     if (state == ST_0)
       return;
@@ -231,7 +231,7 @@ public:
       return;
     }
 
-    if (morphTime[0] < 1e-6)
+    if (morphTime[0] < 1e-6f)
     {
       if (node[1])
         node[1]->buildBlendingList(bctx, w0);
@@ -239,7 +239,7 @@ public:
     }
 
     // ST_1_2 case
-    real a1 = (ctime - t0) / morphTime[0];
+    real a1 = saturate((ctime - t0) / morphTime[0]);
     node[0]->buildBlendingList(bctx, w0 * (1 - a1));
     if (state > ST_1 && node[1])
       node[1]->buildBlendingList(bctx, w0 * a1);
@@ -252,11 +252,11 @@ public:
     if (state == ST_1)
       return node[0] == n ? 1 : 0;
 
-    if (morphTime[0] < 1e-6)
+    if (morphTime[0] < 1e-6f)
       return node[1] == n ? 1 : 0;
 
     // ST_1_2 case
-    real a1 = (ctime - t0) / morphTime[0];
+    real a1 = saturate((ctime - t0) / morphTime[0]);
     if (node[0] == n)
       return (1 - a1);
     if (state > ST_1 && node[1] == n)
@@ -265,5 +265,3 @@ public:
   }
 };
 } // end of namespace AnimV20
-
-#endif

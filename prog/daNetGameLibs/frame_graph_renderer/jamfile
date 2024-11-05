@@ -1,0 +1,29 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = frame_graph_renderer ;
+Location = prog/daNetGameLibs/$(Module) ;
+local DasModule = daNetGameLibs_frame_graph_renderer_DAS_pull_AOT ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/render/daBfg
+  $(Root)/prog/daNetGame
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+
+local AllSrcFolder_CPP = ;
+local AllSrcFolder_ES = ;
+local AllSrcFolder_DAS = ;
+
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_DAS +=
+    render
+  ;
+}
+
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

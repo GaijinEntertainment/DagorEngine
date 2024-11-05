@@ -1,0 +1,26 @@
+float const_frame_exposure = 1;//todo: move me to gbuffer write
+buffer Exposure;
+
+macro INIT_EXPOSURE(code)
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    //we should probably use this branch for all modes, including full deferred, if we have one CB for frame. optimizes set resources
+    (code) { exposureBuf@f4 = (const_frame_exposure, 1./const_frame_exposure,1, 1./const_frame_exposure);}
+  } else
+  {
+    (code) {
+      exposureBuf@buf = Exposure hlsl {
+        StructuredBuffer<float> exposureBuf@buf;
+      };
+    }
+  }
+endmacro
+
+macro USE_EXPOSURE(code)
+  hlsl(code){
+    half getExposureScale() { return half(exposureBuf[0]); } // for encoding
+    half getInvExposureScale() { return half(exposureBuf[1]); } // for decoding
+    half getPrevExposureRatio() { return half(exposureBuf[2]); } // for decoding previous frame and immediately encoding it as current
+    half getPrevInvExposure() { return half(exposureBuf[3]); } // for decoding previous frame
+  }
+endmacro

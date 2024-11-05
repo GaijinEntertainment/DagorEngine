@@ -1,9 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/coreEvents.h>
 #include <daECS/core/componentTypes.h>
 
-#define LOGLEVEL_DEBUG _MAKE4C('ECS ')
+#define debug(...) logmessage(_MAKE4C('ECS '), __VA_ARGS__)
 
 ECS_DEF_PULL_VAR(ecs_debug);
 

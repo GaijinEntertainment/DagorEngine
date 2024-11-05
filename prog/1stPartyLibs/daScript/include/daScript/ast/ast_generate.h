@@ -11,8 +11,8 @@ namespace das {
     // ExprConstPtr, where value is nullptr
     bool isExpressionNull(const ExpressionPtr & expr);
 
-    // check if block is inferred enough to be promoted to lambda\local_function
-    bool isFullyInferredBlock ( ExprBlock * block );
+    // check if block is inferred enough to be promoted to lambda\local_function, return uninferred value or nullptr
+    TypeDecl *isFullyInferredBlock ( ExprBlock * block );
 
     // make sure generated code contains line information etc
     void verifyGenerated ( const ExpressionPtr & expr );
@@ -79,7 +79,7 @@ namespace das {
      def STRUCT_NAME
         return [[STRUCT_NAME field1=init1, field2=init2, ...]]
      */
-    FunctionPtr makeConstructor ( Structure * str );
+    FunctionPtr makeConstructor ( Structure * str, bool isPrivate );
 
     /*
      def clone(var a:STRUCT_NAME; b:STRUCT_NAME)
@@ -226,7 +226,7 @@ namespace das {
              return temp
     */
     struct ExprArrayComprehension;
-    ExpressionPtr generateComprehension ( ExprArrayComprehension * expr );
+    ExpressionPtr generateComprehension ( ExprArrayComprehension * expr, bool tableSyntax );
 
     /*
          array comprehension [[ for x in src; x_expr; where x_expr ]]

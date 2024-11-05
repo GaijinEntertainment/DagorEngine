@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -81,7 +80,7 @@ class IMemAlloc;
 #endif
 
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 /// analog of standard strdup()
 KRNLIMP char *str_dup(const char *s, IMemAlloc *a);
@@ -111,4 +110,4 @@ __forceinline void *secure_zero_memory(void *ptr, size_t cnt)
 }
 
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

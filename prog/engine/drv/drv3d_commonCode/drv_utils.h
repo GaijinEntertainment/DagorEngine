@@ -1,4 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+#if _TARGET_PC_WIN
+#include <windows.h>
+#endif
 
 #include <util/dag_stdint.h>
 #include <util/dag_compilerDefs.h>
@@ -19,6 +24,7 @@ bool get_settings_use_retina();
 #endif
 
 #if _TARGET_PC_WIN
+void get_current_main_window_rect(int &out_def_left, int &out_def_top, int &out_def_width, int &out_def_height);
 void get_current_display_screen_mode(int &out_def_left, int &out_def_top, int &out_def_width, int &out_def_height);
 
 struct RenderWindowSettings
@@ -71,3 +77,5 @@ bool get_enable_hdr_from_settings(const char *name = nullptr);
 const char *get_monitor_name_from_settings();
 /* Returns with the displayName's or nullptr if it is "auto". */
 const char *resolve_monitor_name(const char *displayName);
+
+int drv_message_box(const char *utf8_text, const char *utf8_caption, int flags = 0);

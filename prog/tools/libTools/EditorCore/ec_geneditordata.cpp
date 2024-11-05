@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "ec_cachedRender.h"
 
 #include <EditorCore/ec_geneditordata.h>
@@ -29,10 +31,7 @@ GeneralEditorData::~GeneralEditorData()
 
 void GeneralEditorData::addViewport(void *parent, IGenEventHandler *eh, IWndManager *manager, ViewportWindow *v)
 {
-  IMenu *menu = manager->getMenu(parent);
-  G_ASSERT(menu && "can't get viewport menu!");
-
-  v->init(menu, eh);
+  v->init(eh);
 
   hdpi::Px menu_w, menu_h;
   v->getMenuAreaSize(menu_w, menu_h);
@@ -147,10 +146,10 @@ int GeneralEditorData::findViewportIndex(IGenViewportWnd *w) const
 }
 
 
-void GeneralEditorData::act()
+void GeneralEditorData::act(real dt)
 {
   for (int i = 0; i < getViewportCount(); ++i)
-    vpw[i]->act();
+    vpw[i]->act(dt);
 
   tbManager->act();
 

@@ -7,7 +7,7 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 TargetType  = lib ;
 Target      = engine/osApiWrappers/messageBox/stub.lib ;
 
-CPPopt = -D__B_MINICORE -D__B_NO_MEM_BASE_INCLUDE=1 ;
+CPPopt = -D__B_KERNEL_LIB -D__B_NO_MEM_BASE_INCLUDE ;
 
 Sources =
   messageBox.cpp

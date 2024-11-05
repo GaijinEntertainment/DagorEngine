@@ -1,0 +1,745 @@
+include "sky_shader_global.dshl"
+include "screenspace_probes_common.dshl"
+include "dagi_warp64.dshl"
+
+int sp_irradiance_oct_quality = 3;
+interval sp_irradiance_oct_quality: irradiance_3x3_rad_4x4<1, irradiance_34_rad_56<2, irradiance_5x5_radiance_7x7<3, same_as_radiance_8 < 4, radiance_downsample;
+
+hlsl {
+##if sp_irradiance_oct_quality == same_as_radiance_8 || sp_irradiance_oct_quality == radiance_downsample
+  #define SP_IRRADIANCE_SIZE_IS_CONST 1
+  #define SP_IRRADIANCE_RES 6
+  #define SP_IRRADIANCE_RES_WITH_BORDER (SP_IRRADIANCE_RES+2)
+  #define SP_IRRADIANCE_WARP_SIZE (SP_IRRADIANCE_RES_WITH_BORDER*SP_IRRADIANCE_RES_WITH_BORDER)
+  #define SP_ONE_IRRADIANCE_PROBE_PER_WARP 1
+  ##if sp_irradiance_oct_quality == radiance_downsample
+    #define SP_RADIANCE_DOWNSAMPLE 1
+    #define SP_RADIANCE_RES_UP_USE 8
+  ##else
+    #define SP_RADIANCE_OCT_W 8
+    #define SP_RADIANCE_SIZE_IS_CONST 1
+  ##endif
+##else
+  #define SP_IRRADIANCE_WARP_SIZE 64
+  ##if sp_irradiance_oct_quality == irradiance_3x3_rad_4x4
+    #define SP_IRRADIANCE_TO_RADIANCE_MUL 2
+    #define IRRADIANCE_RES_LOWEST 3
+    #define SP_RADIANCE_OCT_W 4
+    #define SP_IRRADIANCE_RES 3
+    #define SP_IRRADIANCE_RES_WITH_BORDER (SP_IRRADIANCE_RES+2)
+    #define SP_RADIANCE_SIZE_IS_CONST 1
+  ##elif sp_irradiance_oct_quality == irradiance_34_rad_56
+    #define SP_IRRADIANCE_TO_RADIANCE_MUL 3
+    #define IRRADIANCE_RES_LOWEST 3
+    #define SP_RADIANCE_RES_UP_USE 6
+  ##elif sp_irradiance_oct_quality == irradiance_5x5_radiance_7x7
+    #define SP_IRRADIANCE_TO_RADIANCE_MUL 2
+    #define IRRADIANCE_RES_LOWEST 5
+    #define SP_RADIANCE_OCT_W 7
+    #define SP_IRRADIANCE_RES 5
+    #define SP_IRRADIANCE_RES_WITH_BORDER (SP_IRRADIANCE_RES+2)
+    #define SP_RADIANCE_SIZE_IS_CONST 1
+  ##endif
+##endif
+  #ifdef SP_RADIANCE_OCT_W
+    #define SP_RADIANCE_RES_UP_USE SP_RADIANCE_OCT_W
+  #endif
+  #include <sp_calc_common.hlsl>
+}
+
+/*
+include "sq_clouds_shadow.dshl"
+include "dagi_volmap_gi.dshl"
+include "dagi_helpers.dshl"
+include "dagi_volmap_common_25d.dshl"
+macro SAMPLE_GRID_IRRADIANCE(code)
+  INIT_SKY_DIFFUSE_BASE(cs)
+  USE_SKY_DIFFUSE_BASE(cs)
+  INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(cs)
+  SAMPLE_INIT_VOLMAP_25D(cs)
+  SAMPLE_VOLMAP_25D(cs)
+  SSGI_USE_VOLMAP_GI(cs)
+  hlsl(code) {
+    float3 getGridIrradiance(float3 worldPos, float3 normal)
+    {
+      float3 filteredWorldPos = worldPos;
+      float useProbeSize = 0.5*lerp(ssgi_ambient_volmap_crd_to_world0_xyz(1).x, ssgi_ambient_volmap_crd_to_world0_xyz(0).x, getAmbientVignette(worldPos, 0));
+      filteredWorldPos = worldPos + normalize(sp_world_view_pos - worldPos)*useProbeSize;
+      worldPos = filteredWorldPos;
+      half3 enviLight = GetSkySHDiffuse(normal);
+      half3 ambient = enviLight;
+      float giAmount = get_ambient3d(worldPos, normal, enviLight, ambient);
+      BRANCH
+      if (giAmount < 1)
+      {
+        half3 ambient25d = enviLight;
+        half ambient25dAmount = sample_25d_volmap(worldPos, normal, ambient25d);
+        enviLight = lerp(enviLight, ambient25d, ambient25dAmount);
+      }
+      return lerp(enviLight, ambient, giAmount);
+    }
+  }
+endmacro
+*/
+
+buffer screenspace_tile_classificator;
+buffer screenspace_encoded_radiance;
+shader calc_screenspace_irradiance_cs
+{
+  (cs) {
+    screenprobes_current_radiance@smp2d = screenprobes_current_radiance;
+
+    screenspace_tile_classificator@buf = screenspace_tile_classificator hlsl {
+      ByteAddressBuffer screenspace_tile_classificator@buf;
+    }
+    screenspace_encoded_radiance@buf = screenspace_encoded_radiance hlsl {
+      StructuredBuffer<uint> screenspace_encoded_radiance@buf;
+    }
+    screenspace_probe_radiance_res_decode@f4 = (1./screenspace_probe_res.w, 0.5/screenspace_probe_res.w, 2./screenspace_probe_res.w, 1/screenspace_probe_res.w - 1);
+    sp_irradiance_res@i4 = sp_irradiance_res;
+    screenspace_probe_resf@f4 = screenspace_probe_res;
+    sp_downsampled_irradiance_res_decode@f4 = (1./(sp_irradiance_resf+2), 0.5/(sp_irradiance_resf+2), 2./sp_irradiance_resf, 1./sp_irradiance_resf - 1.);
+    sp_radiance_res_clamp@f2 = (0.5/screenspace_probe_res.w, 1 - 0.5/screenspace_probe_res.w,0,0);
+    sp_radiance_area@i1 = sp_radiance_area;
+  }
+  ENABLE_ASSERT(cs)
+  SCREENSPACE_PROBES_POSITIONS(cs)
+  SREENSPACE_PROBES_OCTAHEDRAL(cs)
+  //SAMPLE_GRID_IRRADIANCE(cs)
+  if (sp_irradiance_oct_quality == same_as_radiance_8 || sp_irradiance_oct_quality == radiance_downsample)
+  {
+    // to optimize amount of permutations.
+    // will ofc cancel runtime option then
+    // dont_render;
+  }
+
+
+  hlsl(cs) {
+    #pragma hlsl2021
+    RWTexture2D<float3> sp_irradiance: register(u0);
+    //depending on what occupancy is better, we choose SP_IRRADIANCE_RES_WITH_BORDER or SP_IRRADIANCE_RES
+    //write now, we have irradiance of 6(+2 border), so 8x8 is better
+    // if we would have irradiance of 7..8 or 5x5(+2 border), SP_IRRADIANCE_RES would be better
+    // however, preprocessor is incapable
+    // todo: interval in c++ (we can also use warp size cap there)
+    groupshared uint sharedEncodedProbe;
+    #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
+      #if !SP_RADIANCE_DOWNSAMPLE
+        #define SHARED_RAD_SIZE (SP_RADIANCE_OCT_W*SP_RADIANCE_OCT_W)
+      #else
+        #define RADIANCE_DOWNSAMPLED_RES 8
+        #define SHARED_RAD_SIZE (RADIANCE_DOWNSAMPLED_RES*RADIANCE_DOWNSAMPLED_RES)
+      #endif
+    #else
+      #define SP_RADIANCE_RES_UP_USE_AREA (SP_RADIANCE_RES_UP_USE*SP_RADIANCE_RES_UP_USE)
+      #define MAX_PROBES_PER_WARP (SP_IRRADIANCE_WARP_SIZE/(IRRADIANCE_RES_LOWEST*IRRADIANCE_RES_LOWEST))
+      #define SHARED_RAD_SIZE SP_RADIANCE_RES_UP_USE_AREA*MAX_PROBES_PER_WARP
+    #endif
+
+    #define SHARED_RAD_DIRS_SIZE (SP_RADIANCE_RES_UP_USE*SP_RADIANCE_RES_UP_USE)
+    groupshared float4 shared_radiance_dirs[SHARED_RAD_DIRS_SIZE];
+    groupshared float4 sharedRadiance[SHARED_RAD_SIZE]; // if solid angle is equal, .w is not used. however, making it array of float3 made the shader 6x times slower!
+
+    #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
+      #define SP_IRR_WARP_X SP_IRRADIANCE_RES_WITH_BORDER
+      #define SP_IRR_WARP_Y SP_IRRADIANCE_RES_WITH_BORDER
+    #else
+      #define SP_IRR_WARP_X SP_IRRADIANCE_WARP_SIZE
+      #define SP_IRR_WARP_Y 1
+    #endif
+    float sp_getRadianceResf() {return screenspace_probe_resf.w;}
+    float3 sample_texture_radiance(uint2 tci, float2 uv)
+    {
+      return sp_decode_texture_radiance(tex2Dlod(screenprobes_current_radiance, float4((tci + clamp(uv, sp_radiance_res_clamp.x, sp_radiance_res_clamp.y))*screenspace_probe_atlas_size.zw,0,0)).xyz);
+    }
+    void writeSharedRadiance(uint tid, uint2 atlasProbeCoordOfs, uint sharedRadianceProbeOffset, uint sourceRadianceRes)
+    {
+      uint2 rCoord;
+      rCoord.y = tid/sourceRadianceRes; rCoord.x = tid - rCoord.y*sourceRadianceRes;
+
+      //assert(uint(sp_irradiance_res.w) >= sourceRadianceResArea);
+      uint index = sharedRadianceProbeOffset + tid;
+      if (tid < uint(sp_radiance_area) && index < SHARED_RAD_SIZE)
+      {
+        sharedRadiance[index].xyz = sp_decode_texture_radiance(texture2DAt(screenprobes_current_radiance, atlasProbeCoordOfs + rCoord).xyz);
+      }
+    }
+
+
+    [numthreads(SP_IRR_WARP_X, SP_IRR_WARP_Y, 1)]
+    void calc_grid_irradiance(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint2 dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
+    {
+      #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
+        uint atlasProbeIndex = gId;
+        if (tid == 0)
+          sharedEncodedProbe = sp_loadEncodedProbe(screenspace_probe_pos, atlasProbeIndex);
+        GroupMemoryBarrierWithGroupSync();
+        uint encodedProbe = sharedEncodedProbe;
+        if (!encodedProbe)
+          return;
+      #else
+        sharedEncodedProbe = 0;
+        GroupMemoryBarrierWithGroupSync();
+        uint encodedProbe = 0;
+        uint probesPerWarp = SP_IRRADIANCE_WARP_SIZE/uint(sp_irradiance_res.z);
+        uint probeInWarp = tid/uint(sp_irradiance_res.z);
+        uint tidInProbe = tid - probeInWarp*uint(sp_irradiance_res.z);
+        uint atlasProbeIndex = gId*probesPerWarp + probeInWarp;
+        if (atlasProbeIndex < sp_getNumTotalProbes() && probeInWarp < probesPerWarp)
+          encodedProbe = sp_loadEncodedProbe(screenspace_probe_pos, atlasProbeIndex);
+        InterlockedOr(sharedEncodedProbe, encodedProbe);
+        GroupMemoryBarrierWithGroupSync();
+        if (!sharedEncodedProbe)
+          return;
+      #endif
+
+      //load shared radiance here
+
+      uint2 atlasProbeCoord = uint2(atlasProbeIndex%uint(screenspace_probe_res.x), atlasProbeIndex/uint(screenspace_probe_res.x));
+      DecodedProbe probe = sp_decodeProbeInfo(encodedProbe);
+
+      #if SP_IRRADIANCE_SIZE_IS_CONST
+      uint irradianceProbeResolution = SP_IRRADIANCE_RES;
+      uint irradianceProbeResolutionWithBorder = SP_IRRADIANCE_RES_WITH_BORDER;
+      #else
+      uint irradianceProbeResolution = sp_irradiance_res.x;
+      uint irradianceProbeResolutionWithBorder = sp_irradiance_res.y;
+      #endif
+
+      float2 radiance_res_dir_decode = screenspace_probe_radiance_res_decode.zw;
+      float2 radiance_res_uv_decode = screenspace_probe_radiance_res_decode.xy;
+      #if RADIANCE_DOWNSAMPLED_RES
+      radiance_res_dir_decode = float2(2./RADIANCE_DOWNSAMPLED_RES, 1./RADIANCE_DOWNSAMPLED_RES-1);
+      radiance_res_uv_decode = float2(1./RADIANCE_DOWNSAMPLED_RES, 0.5/RADIANCE_DOWNSAMPLED_RES);
+      uint sourceRadianceRes = RADIANCE_DOWNSAMPLED_RES;
+      uint sourceRadianceResArea = sourceRadianceRes*sourceRadianceRes;
+      #elif SP_RADIANCE_SIZE_IS_CONST
+      uint sourceRadianceRes = SP_RADIANCE_OCT_W;
+      uint sourceRadianceResArea = sourceRadianceRes*sourceRadianceRes;
+      #else
+      uint sourceRadianceRes = sp_getRadianceRes();
+      uint sourceRadianceResArea = sp_radiance_area;
+      #endif
+      if (tid < sourceRadianceResArea)
+      {
+        ##assert(tid < SHARED_RAD_DIRS_SIZE, "[%s:%.f] Out of bounds: Buffer 'sharedRadiance' has size %.f, but access to (%.f)", _FILE_, __LINE__, SHARED_RAD_DIRS_SIZE, tid);
+
+        uint y = tid/sourceRadianceRes, x = tid - y*sourceRadianceRes;
+        float3 dir = screenspace_probe_dir_decode(float2(x, y)*radiance_res_dir_decode.x + radiance_res_dir_decode.y);
+        float angle = dagi_octahedral_solid_angle_fast(float2(x, y)*radiance_res_uv_decode.x + radiance_res_uv_decode.y, radiance_res_uv_decode.x);
+        #if DAGI_USE_EQUAL_AREA_OCTAHEDRAL
+        shared_radiance_dirs[tid].xyz = dir;
+        #else
+        shared_radiance_dirs[tid] = float4(dir, angle);
+        #endif
+      }
+
+      #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
+        uint2 irradianceTargetCoord = gtId;
+        uint2 irradianceTexelCoord = octahedral_map_border_to_octhedral(irradianceTargetCoord, irradianceProbeResolutionWithBorder);
+      #else
+        uint2 irradianceTexelCoord;
+        irradianceTexelCoord.y = tidInProbe/uint(sp_irradiance_res.x);
+        irradianceTexelCoord.x = tidInProbe - irradianceTexelCoord.y*uint(sp_irradiance_res.x);
+      #endif
+
+      float3 irradianceDirection = screenspace_probe_dir_decode(irradianceTexelCoord*sp_downsampled_irradiance_res_decode.z + sp_downsampled_irradiance_res_decode.w);
+
+      float3 irradiance = 0;
+      float totalWeight = 0;
+      #if SP_ONE_IRRADIANCE_PROBE_PER_WARP && !SP_RADIANCE_DOWNSAMPLE
+      {
+        uint2 rCoord = irradianceTargetCoord;
+
+        //assert(uint(sp_irradiance_res.w) >= sourceRadianceResArea);
+        {
+          float3 readRadiance = sp_decode_texture_radiance(texture2DAt(screenprobes_current_radiance, atlasProbeCoord*sourceRadianceRes + rCoord).xyz);
+          ##assert(tid < SHARED_RAD_SIZE, "[%s:%.f] Out of bounds: Buffer 'sharedRadiance' has size %.f, but access to (%.f)", _FILE_, __LINE__, SHARED_RAD_SIZE, tid);
+          sharedRadiance[tid].xyz = readRadiance;
+        }
+      }
+      uint sharedRadianceProbeOffset = 0;
+      #elif SP_RADIANCE_DOWNSAMPLE
+      {
+        uint2 rCoord = irradianceTargetCoord;
+        //assert(uint(sp_irradiance_res.w) >= sourceRadianceResArea);
+        float3 readRadiance = sample_texture_radiance(atlasProbeCoord, rCoord*radiance_res_uv_decode.x + radiance_res_uv_decode.y);
+        ##assert(tid < SHARED_RAD_SIZE, "[%s:%.f] Out of bounds: Buffer 'sharedRadiance' has size %.f, but access to (%.f)", _FILE_, __LINE__, SHARED_RAD_SIZE, tid);
+        sharedRadiance[tid].xyz = readRadiance;
+      }
+      uint sharedRadianceProbeOffset = 0;
+      #else
+        uint sharedRadianceProbeOffset = probeInWarp*sp_radiance_area;
+        uint2 atlasProbeCoordOfs = min(atlasProbeCoord, uint2(screenspace_probe_atlas_size.xy - 1))*sourceRadianceRes;
+        #if SP_IRRADIANCE_TO_RADIANCE_MUL == 2
+          writeSharedRadiance(tidInProbe*2, atlasProbeCoordOfs, sharedRadianceProbeOffset, sourceRadianceRes);
+          writeSharedRadiance(tidInProbe*2 + 1, atlasProbeCoordOfs, sharedRadianceProbeOffset, sourceRadianceRes);
+        #else
+          writeSharedRadiance(tidInProbe*3, atlasProbeCoordOfs, sharedRadianceProbeOffset, sourceRadianceRes);
+          writeSharedRadiance(tidInProbe*3 + 1, atlasProbeCoordOfs, sharedRadianceProbeOffset, sourceRadianceRes);
+          writeSharedRadiance(tidInProbe*3 + 2, atlasProbeCoordOfs, sharedRadianceProbeOffset, sourceRadianceRes);
+        #endif
+      #endif
+      GroupMemoryBarrierWithGroupSync();
+
+      for (uint i = 0, ie = sourceRadianceResArea; i < ie; ++i)
+      {
+        //float3 radianceDirection = screenspace_probe_dir_decode(float2(x, y)*radiance_res_dir_decode.x + radiance_res_dir_decode.y);
+        ##assert(i < SHARED_RAD_DIRS_SIZE, "[%s:%.f] Out of bounds: Buffer 'sharedRadiance' has size %.f, but access to (%.f)", _FILE_, __LINE__, SHARED_RAD_DIRS_SIZE, i);
+        float NoL = saturate(dot(irradianceDirection, shared_radiance_dirs[i].xyz));
+
+        #if DAGI_USE_EQUAL_AREA_OCTAHEDRAL
+        float solidAngle = 1;
+        float3 radianceAngle = 0;
+        if (sharedRadianceProbeOffset + i < SHARED_RAD_SIZE)
+          radianceAngle = sharedRadiance[sharedRadianceProbeOffset + i].xyz;
+        #else
+        float solidAngle = shared_radiance_dirs[i].w;
+        float4 radianceAngle = float4(0,0,0,0);
+        if (sharedRadianceProbeOffset + i < SHARED_RAD_SIZE)
+          radianceAngle = sharedRadiance[sharedRadianceProbeOffset + i];
+        #endif
+        float sampleWeight = NoL * solidAngle;
+        irradiance += radianceAngle.xyz * sampleWeight;
+        totalWeight += sampleWeight;
+      }
+      //fixme: add pre-exposure, based on frame average
+      float currentExposure = 1; // fixme
+      irradiance *= currentExposure / totalWeight;
+      float3 minIradiance = f16tof32(uint3(16,16,32));
+      irradiance = select(irradiance >= minIradiance, irradiance, minIradiance);//do not allow 0 or NaN in irradiance!
+      uint2 irradianceProbeAtlasCoord = atlasProbeCoord*irradianceProbeResolutionWithBorder;
+
+      #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
+        texture2DAt(sp_irradiance, irradianceProbeAtlasCoord + irradianceTargetCoord) = irradiance;
+      #else
+        if (tidInProbe < uint(sp_irradiance_res.z) && encodedProbe && probeInWarp < probesPerWarp)
+        {
+          texture2DAt(sp_irradiance, irradianceProbeAtlasCoord + irradianceTexelCoord + 1) = irradiance;
+          //fixme: that's incorrect
+          uint2 clampedCoord = select(irradianceTexelCoord == 0, uint2(0,0), irradianceProbeResolution + 1u);
+          bool2 border = or(irradianceTexelCoord == 0, irradianceTexelCoord == irradianceProbeResolution - 1);
+          if (border.x)
+            texture2DAt(sp_irradiance, irradianceProbeAtlasCoord + uint2(clampedCoord.x, irradianceProbeResolution - irradianceTexelCoord.y)) = irradiance;
+          if (border.y)
+            texture2DAt(sp_irradiance, irradianceProbeAtlasCoord + uint2(irradianceProbeResolution - irradianceTexelCoord.x, clampedCoord.y)) = irradiance;
+
+          if (border.x && border.y)
+            texture2DAt(sp_irradiance, irradianceProbeAtlasCoord + uint2(select(irradianceTexelCoord == 0, irradianceProbeResolution + 1u, uint2(0,0)))) = irradiance;
+        }
+      #endif
+    }
+  }
+  compile("target_cs", "calc_grid_irradiance");
+}
+
+shader calc_screenspace_irradiance_sph3_cs
+{
+  (cs) {
+    screenprobes_current_radiance@smp2d = screenprobes_current_radiance;
+
+    screenspace_tile_classificator@buf = screenspace_tile_classificator hlsl {
+      ByteAddressBuffer screenspace_tile_classificator@buf;
+    }
+    screenspace_encoded_radiance@buf = screenspace_encoded_radiance hlsl {
+      StructuredBuffer<uint> screenspace_encoded_radiance@buf;
+    }
+    screenspace_probe_radiance_res_decode@f4 = (1./screenspace_probe_res.w, 0.5/screenspace_probe_res.w, 2./screenspace_probe_res.w, 1/screenspace_probe_res.w - 1);
+    sp_irradiance_res@i4 = sp_irradiance_res;
+    screenspace_probe_resf@f4 = screenspace_probe_res;
+    sp_downsampled_irradiance_res_decode@f4 = (1./(sp_irradiance_resf+2), 0.5/(sp_irradiance_resf+2), 2./sp_irradiance_resf, 1./sp_irradiance_resf - 1.);
+    sp_radiance_res_clamp@f2 = (0.5/screenspace_probe_res.w, 1 - 0.5/screenspace_probe_res.w,0,0);
+    sp_radiance_area@i1 = sp_radiance_area;
+    sp_fixed_solid_angle@f2 = ((4.*PI)/(screenspace_probe_res.w*screenspace_probe_res.w),4./(screenspace_probe_res.w*screenspace_probe_res.w),0,0);
+  }
+  ENABLE_ASSERT(cs)
+  SCREENSPACE_PROBES_POSITIONS(cs)
+  SREENSPACE_PROBES_OCTAHEDRAL(cs)
+  //SAMPLE_GRID_IRRADIANCE(cs)
+  if (sp_irradiance_oct_quality != same_as_radiance_8 && sp_irradiance_oct_quality != radiance_downsample)
+  {
+    // it actually works slower, than direct computations
+    // so omit permutations
+    dont_render;
+  }
+
+  hlsl(cs) {
+    #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
+      #define SP_IRR_WARP_X SP_IRRADIANCE_RES_WITH_BORDER
+      #define SP_IRR_WARP_Y SP_IRRADIANCE_RES_WITH_BORDER
+    #else
+      #define SP_IRR_WARP_X SP_IRRADIANCE_WARP_SIZE
+      #define SP_IRR_WARP_Y 1
+    #endif
+
+    ##if dagi_warp64_irradiance == on
+    #define DAGI_IRRADIANCE_ONE_WARP 1
+    ##endif
+
+    ##if (sp_irradiance_oct_quality == same_as_radiance_8 || sp_irradiance_oct_quality == radiance_downsample)
+      #define MAX_PROBES_PER_WARP 1
+      ##if sp_irradiance_oct_quality == radiance_downsample
+      #define RADIANCE_DOWNSAMPLED_RES 8
+      ##endif
+    ##else
+
+      #undef DAGI_IRRADIANCE_ONE_WARP // not nessessarily needed. we can calculate n probes in n waves. and for 4x4 and 5x5 and 32 warp we can do 32 warps with 1..2 probes per warp
+      #define MAX_PROBES_PER_WARP (SP_IRRADIANCE_WARP_SIZE/(IRRADIANCE_RES_LOWEST*IRRADIANCE_RES_LOWEST))
+      #define SHARED_RAD_DIRS_SIZE (SP_RADIANCE_RES_UP_USE*SP_RADIANCE_RES_UP_USE)
+      groupshared float4 shared_radiance_dirs[SHARED_RAD_DIRS_SIZE];
+    ##endif
+    #if !WAVE_INTRINSICS
+      #undef DAGI_IRRADIANCE_ONE_WARP
+    #endif
+
+    RWTexture2D<float3> sp_irradiance: register(u0);
+
+    float3 sample_texture_radiance(uint2 tci, float2 uv)
+    {
+      return sp_decode_texture_radiance(tex2Dlod(screenprobes_current_radiance, float4((tci + clamp(uv, sp_radiance_res_clamp.x, sp_radiance_res_clamp.y))*screenspace_probe_atlas_size.zw,0,0)).xyz);
+    }
+
+    #include "sh3.hlsl"
+
+    groupshared uint sharedEncodedProbe;
+#if WAVE_INTRINSICS
+    float4 WaveActiveSum4(float4 a)
+    {
+      return float4(WaveAllSum_F32(a.x), WaveAllSum_F32(a.y), WaveAllSum_F32(a.z), WaveAllSum_F32(a.w));
+    }
+    SH3RGB dagi_add_sh3_active_wave(SH3RGB sampleSH3)
+    {
+      SH3RGB resultSH3;
+      resultSH3.R.v0 = WaveActiveSum4(sampleSH3.R.v0);
+      resultSH3.G.v0 = WaveActiveSum4(sampleSH3.G.v0);
+      resultSH3.B.v0 = WaveActiveSum4(sampleSH3.B.v0);
+
+      resultSH3.R.v1 = WaveActiveSum4(sampleSH3.R.v1);
+      resultSH3.G.v1 = WaveActiveSum4(sampleSH3.G.v1);
+      resultSH3.B.v1 = WaveActiveSum4(sampleSH3.B.v1);
+
+      resultSH3.R.v2 = WaveAllSum_F32(sampleSH3.R.v2);
+      resultSH3.G.v2 = WaveAllSum_F32(sampleSH3.G.v2);
+      resultSH3.B.v2 = WaveAllSum_F32(sampleSH3.B.v2);
+      return resultSH3;
+    }
+#endif
+#if DAGI_IRRADIANCE_ONE_WARP
+    SH3RGB dagi_calc_sh3_shared(uint probe, uint probes, SH3RGB sampleSH3)
+    {
+      return dagi_add_sh3_active_wave(sampleSH3);
+    }
+    SH3RGB dagi_calc_sh3_shared(uint probe, uint probes, float3 radianceDirection, float3 radiance, out float normalization)
+    {
+      normalization = 1;
+      return dagi_calc_sh3_shared(probe, probes, mul_sh3(sh3_basis(radianceDirection), radiance));
+    }
+    float dagi_calc_normalization_shared(uint probe, uint probes, float3 radiance) {return 1;}
+    void init_common_shared_vars(){}
+#else
+    float3 readSharedRadiance(uint tid, uint2 atlasProbeCoordOfs, uint sourceRadianceRes)
+    {
+      uint2 rCoord;
+      rCoord.y = tid/sourceRadianceRes; rCoord.x = tid - rCoord.y*sourceRadianceRes;
+      //atlasProbeCoord = min(atlasProbeCoord, uint2(screenspace_probe_atlas_size.xy - 1));
+      if (tid < uint(sp_radiance_area))
+      {
+        return sp_decode_texture_radiance(texture2DAt(screenprobes_current_radiance, atlasProbeCoordOfs + rCoord).xyz);
+      }
+      return 0;
+    }
+
+    #define INTERLOCKED_ADD4(a, bv) {int4 b = bv; InterlockedAdd(a .x, b .x);InterlockedAdd(a .y, b .y);InterlockedAdd(a .z, b .z);InterlockedAdd(a .w, b .w);}
+    #define INTERLOCKED_ADD3(a, bv) {int3 b = bv; InterlockedAdd(a .x, b .x);InterlockedAdd(a .y, b .y);InterlockedAdd(a .z, b .z);}
+    //groupshared uint shared_sh3_radiance_min;
+    groupshared uint shared_sh3_radiance_max[MAX_PROBES_PER_WARP];
+    groupshared int4 shared_sh3_v0_r[MAX_PROBES_PER_WARP], shared_sh3_v1_r[MAX_PROBES_PER_WARP], shared_sh3_v0_g[MAX_PROBES_PER_WARP], shared_sh3_v1_g[MAX_PROBES_PER_WARP], shared_sh3_v0_b[MAX_PROBES_PER_WARP], shared_sh3_v1_b[MAX_PROBES_PER_WARP];
+    groupshared int4 shared_sh3_v2[MAX_PROBES_PER_WARP];
+
+    static const float SH3_SHARED_MASK = 1<<23;//fixed point. Up to 16x16 radiance will work correctly with that
+    int4 to_sh3_normalized_f4(float4 vec, float4 maxV)
+    {
+      return int4(clamp(floor(vec*(SH3_SHARED_MASK/maxV) + 0.5), -SH3_SHARED_MASK, SH3_SHARED_MASK));
+    }
+    float4 from_sh3_normalized_f4(int4 vec, float4 maxV)
+    {
+      return vec*(maxV/SH3_SHARED_MASK);
+    }
+    void init_common_shared_vars()
+    {
+      UNROLL
+      for (uint i = 0; i < MAX_PROBES_PER_WARP; ++i)
+      {
+        shared_sh3_radiance_max[i] = 0;
+        //shared_sh3_radiance_min = asuint(1e12f);
+        shared_sh3_v0_r[i] = 0;
+        shared_sh3_v1_r[i] = 0;
+        shared_sh3_v0_g[i] = 0;
+        shared_sh3_v1_g[i] = 0;
+        shared_sh3_v0_b[i] = 0;
+        shared_sh3_v1_b[i] = 0;
+        shared_sh3_v2[i] = 0;
+      }
+    }
+
+    SH3RGB dagi_calc_sh3_shared(uint probe, uint probes, SH3RGB sampleSH3)
+    {
+      SH3RGB resultSH3;
+      if (probe < probes)
+      {
+        INTERLOCKED_ADD4(shared_sh3_v0_r[probe], to_sh3_normalized_f4(sampleSH3.R.v0, sh3_basis(1).v0.xzzz));
+        INTERLOCKED_ADD4(shared_sh3_v1_r[probe], to_sh3_normalized_f4(sampleSH3.R.v1, sh3_basis(1).v1.x));
+        INTERLOCKED_ADD4(shared_sh3_v0_g[probe], to_sh3_normalized_f4(sampleSH3.G.v0, sh3_basis(1).v0.xzzz));
+        INTERLOCKED_ADD4(shared_sh3_v1_g[probe], to_sh3_normalized_f4(sampleSH3.G.v1, sh3_basis(1).v1.x));
+        INTERLOCKED_ADD4(shared_sh3_v0_b[probe], to_sh3_normalized_f4(sampleSH3.B.v0, sh3_basis(1).v0.xzzz));
+        INTERLOCKED_ADD4(shared_sh3_v1_b[probe], to_sh3_normalized_f4(sampleSH3.B.v1, sh3_basis(1).v1.x));
+        INTERLOCKED_ADD3(shared_sh3_v2[probe], to_sh3_normalized_f4(float4(sampleSH3.R.v2, sampleSH3.G.v2, sampleSH3.B.v2,0), sh3_basis(1).v1.x).xyz);
+      }
+      GroupMemoryBarrierWithGroupSync();
+      if (probe < probes)
+      {
+        resultSH3.R.v0 = from_sh3_normalized_f4(shared_sh3_v0_r[probe], sh3_basis(1).v0.xzzz);
+        resultSH3.R.v1 = from_sh3_normalized_f4(shared_sh3_v1_r[probe], sh3_basis(1).v1.x);
+        resultSH3.G.v0 = from_sh3_normalized_f4(shared_sh3_v0_g[probe], sh3_basis(1).v0.xzzz);
+        resultSH3.G.v1 = from_sh3_normalized_f4(shared_sh3_v1_g[probe], sh3_basis(1).v1.x);
+        resultSH3.B.v0 = from_sh3_normalized_f4(shared_sh3_v0_b[probe], sh3_basis(1).v0.xzzz);
+        resultSH3.B.v1 = from_sh3_normalized_f4(shared_sh3_v1_b[probe], sh3_basis(1).v1.x);
+        float3 v2 = from_sh3_normalized_f4(uint4(shared_sh3_v2[probe].xyz, 0), sh3_basis(1).v1.x).xyz;
+        resultSH3.R.v2 = v2.x;
+        resultSH3.G.v2 = v2.y;
+        resultSH3.B.v2 = v2.z;
+      } else
+        resultSH3 = (SH3RGB)0;
+      return resultSH3;
+    }
+    float dagi_calc_normalization_shared(uint probe, uint probes, float3 radiance)
+    {
+      if (probe < probes)
+        InterlockedMax(shared_sh3_radiance_max[probe], asuint(max3(radiance.x, radiance.y, radiance.z)));
+      //InterlockedMin(shared_sh3_radiance_min, asuint(min3(radiance.x, radiance.y, radiance.z)));
+      GroupMemoryBarrierWithGroupSync();
+      if (probe < probes)
+        return max(1e-6, asfloat(shared_sh3_radiance_max[probe]));
+      return 1;
+    }
+    SH3RGB dagi_calc_sh3_shared(uint probe, uint probes, float3 radianceDirection, float3 radiance, out float normalization)
+    {
+      normalization = dagi_calc_normalization_shared(probe, probes, radiance);
+      radiance = radiance/normalization;
+      return dagi_calc_sh3_shared(probe, probes, mul_sh3(sh3_basis(radianceDirection), radiance));
+    }
+#endif
+    #pragma hlsl2021
+
+    [numthreads(SP_IRR_WARP_X, SP_IRR_WARP_Y, 1)]
+    void calc_screenspace_irradiance_sph3_cs(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint2 dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
+    {
+      if (tid == 0)
+      {
+        init_common_shared_vars();
+      }
+      #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
+        uint atlasProbeIndex = gId;
+        if (tid == 0)
+        {
+          sharedEncodedProbe = sp_loadEncodedProbe(screenspace_probe_pos, atlasProbeIndex);
+        }
+        GroupMemoryBarrierWithGroupSync();
+        uint encodedProbe = sharedEncodedProbe;
+        const uint probeInWarp = 0;
+        const uint probesPerWarp = 1;
+        if (!encodedProbe)
+          return;
+      #else
+        sharedEncodedProbe = 0;
+        GroupMemoryBarrierWithGroupSync();
+        uint encodedProbe = 0;
+        uint probesPerWarp = SP_IRRADIANCE_WARP_SIZE/uint(sp_irradiance_res.z);
+        uint probeInWarp = tid/uint(sp_irradiance_res.z);
+        uint tidInProbe = tid - probeInWarp*uint(sp_irradiance_res.z);
+        uint atlasProbeIndex = gId*probesPerWarp + probeInWarp;
+        if (atlasProbeIndex < sp_getNumTotalProbes() && probeInWarp < probesPerWarp)
+          encodedProbe = sp_loadEncodedProbe(screenspace_probe_pos, atlasProbeIndex);
+        InterlockedOr(sharedEncodedProbe, encodedProbe);
+        GroupMemoryBarrierWithGroupSync();
+        if (!sharedEncodedProbe)
+          return;
+      #endif
+
+      //load shared radiance here
+
+      uint2 atlasProbeCoord = uint2(atlasProbeIndex%uint(screenspace_probe_res.x), atlasProbeIndex/uint(screenspace_probe_res.x));
+      DecodedProbe probe = sp_decodeProbeInfo(encodedProbe);
+
+      #if SP_IRRADIANCE_SIZE_IS_CONST
+      uint irradianceProbeResolution = SP_IRRADIANCE_RES;
+      uint irradianceProbeResolutionWithBorder = SP_IRRADIANCE_RES_WITH_BORDER;
+      #else
+      uint irradianceProbeResolution = sp_irradiance_res.x;
+      uint irradianceProbeResolutionWithBorder = sp_irradiance_res.y;
+      #endif
+
+      #if RADIANCE_DOWNSAMPLED_RES
+      uint sourceRadianceRes = RADIANCE_DOWNSAMPLED_RES;
+      uint sourceRadianceResArea = sourceRadianceRes*sourceRadianceRes;
+      #elif SP_RADIANCE_SIZE_IS_CONST
+      const uint sourceRadianceRes = SP_RADIANCE_OCT_W;
+      const uint sourceRadianceResArea = sourceRadianceRes*sourceRadianceRes;
+      #else
+      uint sourceRadianceRes = sp_getRadianceRes();
+      uint sourceRadianceResArea = sp_radiance_area;
+      #endif
+
+      #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
+        uint2 irradianceTargetCoord = gtId;
+        uint2 irradianceTexelCoord = octahedral_map_border_to_octhedral(irradianceTargetCoord, irradianceProbeResolutionWithBorder);
+      #else
+        uint2 irradianceTexelCoord;
+        irradianceTexelCoord.y = tidInProbe/uint(sp_irradiance_res.x);
+        irradianceTexelCoord.x = tidInProbe - irradianceTexelCoord.y*uint(sp_irradiance_res.x);
+      #endif
+
+      #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
+        float3 readRadiance;
+        float2 radiance_res_dir_decode = screenspace_probe_radiance_res_decode.zw;
+        #if !SP_RADIANCE_DOWNSAMPLE
+        {
+          //assert(uint(sp_irradiance_res.w) >= sourceRadianceResArea);
+          {
+            readRadiance = sp_decode_texture_radiance(texture2DAt(screenprobes_current_radiance, atlasProbeCoord*sourceRadianceRes + gtId).xyz);
+            #if !DAGI_USE_EQUAL_AREA_OCTAHEDRAL
+            readRadiance *= dagi_octahedral_solid_angle_fast(gtId*screenspace_probe_radiance_res_decode.x + screenspace_probe_radiance_res_decode.y, screenspace_probe_radiance_res_decode.x);
+            //#else
+            //readRadiance *= sp_fixed_solid_angle.x;
+            #endif
+          }
+        }
+        #else
+        {
+          float2 uv = gtId*(1./RADIANCE_DOWNSAMPLED_RES) + 0.5/RADIANCE_DOWNSAMPLED_RES;
+          radiance_res_dir_decode = float2(2./RADIANCE_DOWNSAMPLED_RES, 1./RADIANCE_DOWNSAMPLED_RES-1);
+          //assert(uint(sp_irradiance_res.w) >= sourceRadianceResArea);
+          readRadiance = sample_texture_radiance(atlasProbeCoord, uv);
+          #if !DAGI_USE_EQUAL_AREA_OCTAHEDRAL
+          readRadiance *= dagi_octahedral_solid_angle_fast(uv, 1.f/RADIANCE_DOWNSAMPLED_RES);
+          #endif
+        }
+        #endif
+        float3 radianceDirection = screenspace_probe_dir_decode(gtId*radiance_res_dir_decode.x + radiance_res_dir_decode.y);
+        float normalization;
+        SH3RGB radianceSH3 = dagi_calc_sh3_shared(0, 1, radianceDirection, readRadiance, normalization);
+      #else
+        if (tid < sourceRadianceResArea)
+        {
+          ##assert(tid < SHARED_RAD_DIRS_SIZE, "[%s:%.f] Out of bounds: Buffer 'sharedRadiance' has size %.f, but access to (%.f)", _FILE_, __LINE__, SHARED_RAD_DIRS_SIZE, i);
+
+          uint y = tid/sourceRadianceRes, x = tid - y*sourceRadianceRes;
+          float3 dir = screenspace_probe_dir_decode(float2(x, y)*screenspace_probe_radiance_res_decode.z + screenspace_probe_radiance_res_decode.w);
+          float angle = dagi_octahedral_solid_angle_fast(float2(x, y)*screenspace_probe_radiance_res_decode.x + screenspace_probe_radiance_res_decode.y, screenspace_probe_radiance_res_decode.x);
+          #if DAGI_USE_EQUAL_AREA_OCTAHEDRAL
+          shared_radiance_dirs[tid].xyz = dir;
+          #else
+          shared_radiance_dirs[tid] = float4(dir, angle);
+          #endif
+        }
+        uint2 atlasProbeCoordOfs = min(atlasProbeCoord, uint2(screenspace_probe_atlas_size.xy - 1))*sourceRadianceRes;
+        #if SP_IRRADIANCE_TO_RADIANCE_MUL == 2
+          float3 rad0 = readSharedRadiance(tidInProbe*2, atlasProbeCoordOfs, sourceRadianceRes);
+          float3 rad1 = readSharedRadiance(tidInProbe*2 + 1, atlasProbeCoordOfs, sourceRadianceRes);
+          float normalization = dagi_calc_normalization_shared(probeInWarp, probesPerWarp, rad0.xyz + rad1.xyz );
+          //normalization = 1;
+          float invNorm = rcp(normalization);
+          rad0.xyz *= invNorm;
+          rad1.xyz *= invNorm;
+          float3 radianceDir0 = 0, radianceDir1 = 0;
+          if (tidInProbe*SP_IRRADIANCE_TO_RADIANCE_MUL < sourceRadianceResArea)
+          {
+            radianceDir0 = shared_radiance_dirs[tidInProbe*SP_IRRADIANCE_TO_RADIANCE_MUL].xyz;
+            #if !DAGI_USE_EQUAL_AREA_OCTAHEDRAL
+            rad0 *= shared_radiance_dirs[tidInProbe*SP_IRRADIANCE_TO_RADIANCE_MUL].w;
+            #endif
+          }
+          if (tidInProbe*SP_IRRADIANCE_TO_RADIANCE_MUL + 1 < sourceRadianceResArea)
+          {
+            radianceDir1 = shared_radiance_dirs[tidInProbe*SP_IRRADIANCE_TO_RADIANCE_MUL + 1].xyz;
+            #if !DAGI_USE_EQUAL_AREA_OCTAHEDRAL
+            rad1 *= shared_radiance_dirs[tidInProbe*SP_IRRADIANCE_TO_RADIANCE_MUL + 1].w;
+            #endif
+          }
+          SH3RGB sampleSH3 = add_sh3(mul_sh3(sh3_basis(radianceDir0), rad0.xyz), mul_sh3(sh3_basis(radianceDir1), rad1.xyz));
+        #else
+          float3 rad0 = readSharedRadiance(tidInProbe*3, atlasProbeCoordOfs, sourceRadianceRes);
+          float3 rad1 = readSharedRadiance(tidInProbe*3 + 1, atlasProbeCoordOfs, sourceRadianceRes);
+          float3 rad2 = readSharedRadiance(tidInProbe*3 + 2, atlasProbeCoordOfs, sourceRadianceRes);
+          float normalization = dagi_calc_normalization_shared(probeInWarp, probesPerWarp, rad0.xyz + rad1.xyz + rad2.xyz );
+          float invNorm = rcp(normalization);
+          rad0.xyz *= invNorm;
+          rad1.xyz *= invNorm;
+          rad2.xyz *= invNorm;
+          float3 radianceDir0 = 0, radianceDir1 = 0;
+          if (tidInProbe*SP_IRRADIANCE_TO_RADIANCE_MUL < sourceRadianceResArea)
+          {
+            radianceDir0 = shared_radiance_dirs[tidInProbe*SP_IRRADIANCE_TO_RADIANCE_MUL].xyz;
+            #if !DAGI_USE_EQUAL_AREA_OCTAHEDRAL
+            rad0 *= shared_radiance_dirs[tidInProbe*SP_IRRADIANCE_TO_RADIANCE_MUL].w;
+            #endif
+          }
+          if (tidInProbe*SP_IRRADIANCE_TO_RADIANCE_MUL + 1 < sourceRadianceResArea)
+          {
+            radianceDir1 = shared_radiance_dirs[tidInProbe*SP_IRRADIANCE_TO_RADIANCE_MUL + 1].xyz;
+            #if !DAGI_USE_EQUAL_AREA_OCTAHEDRAL
+            rad1 *= shared_radiance_dirs[tidInProbe*SP_IRRADIANCE_TO_RADIANCE_MUL + 1].w;
+            #endif
+          }
+          SH3RGB sampleSH3 = add_sh3(mul_sh3(sh3_basis(radianceDir0), rad0.xyz), mul_sh3(sh3_basis(radianceDir1), rad1.xyz));
+          float3 radianceDir2 = 0;
+          if (tidInProbe*SP_IRRADIANCE_TO_RADIANCE_MUL + 2 < sourceRadianceResArea)
+          {
+            radianceDir2 = shared_radiance_dirs[tidInProbe*SP_IRRADIANCE_TO_RADIANCE_MUL + 2].xyz;
+            #if !DAGI_USE_EQUAL_AREA_OCTAHEDRAL
+            rad2 *= shared_radiance_dirs[tidInProbe*SP_IRRADIANCE_TO_RADIANCE_MUL + 2].w;
+            #endif
+          }
+          sampleSH3 = add_sh3(sampleSH3, mul_sh3(sh3_basis(radianceDir2), rad2.xyz));
+        #endif
+        SH3RGB radianceSH3 = dagi_calc_sh3_shared(probeInWarp, probesPerWarp, sampleSH3);
+      #endif
+      float3 irradianceDirection = screenspace_probe_dir_decode(irradianceTexelCoord*sp_downsampled_irradiance_res_decode.z + sp_downsampled_irradiance_res_decode.w);
+
+      SH3Scalar diffuseTransfer = diffuse_transfer_sh3(irradianceDirection, 1);
+      float currentExposure = 1;
+      #if DAGI_USE_EQUAL_AREA_OCTAHEDRAL
+      //we apply * sp_fixed_solid_angle now
+      float irrMul = currentExposure * normalization * sp_fixed_solid_angle.y;
+      #else
+      //solid angle is 4 pi, we keep result divided by PI
+      float irrMul = currentExposure * normalization * (1. / PI);
+      #endif
+      float3 irradiance = irrMul * dot_sh3(radianceSH3, diffuseTransfer);
+      //*/
+      //fixme: add pre-exposure, based on frame average
+      float3 minIradiance = f16tof32(uint3(16,16,32));
+      irradiance = select(irradiance >= minIradiance, irradiance, minIradiance);//do not allow 0 or NaN in irradiance!
+      uint2 irradianceProbeAtlasCoord = atlasProbeCoord*irradianceProbeResolutionWithBorder;
+
+      #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
+        texture2DAt(sp_irradiance, irradianceProbeAtlasCoord + irradianceTargetCoord) = irradiance;
+      #else
+        if (tidInProbe < uint(sp_irradiance_res.z) && encodedProbe && probeInWarp < probesPerWarp)
+        {
+          texture2DAt(sp_irradiance, irradianceProbeAtlasCoord + irradianceTexelCoord + 1) = irradiance;
+          uint2 clampedCoord = select(irradianceTexelCoord == 0, uint2(0,0), irradianceProbeResolution + 1u);
+          bool2 border = or(irradianceTexelCoord == 0, irradianceTexelCoord == irradianceProbeResolution - 1);
+          if (border.x)
+            texture2DAt(sp_irradiance, irradianceProbeAtlasCoord + uint2(clampedCoord.x, irradianceProbeResolution - irradianceTexelCoord.y)) = irradiance;
+          if (border.y)
+            texture2DAt(sp_irradiance, irradianceProbeAtlasCoord + uint2(irradianceProbeResolution - irradianceTexelCoord.x, clampedCoord.y)) = irradiance;
+
+          if (border.x && border.y)
+            texture2DAt(sp_irradiance, irradianceProbeAtlasCoord + uint2(select(irradianceTexelCoord == 0, irradianceProbeResolution + 1u, uint2(0,0)))) = irradiance;
+        }
+      #endif
+    }
+  }
+  compile("target_cs", "calc_screenspace_irradiance_sph3_cs");
+}

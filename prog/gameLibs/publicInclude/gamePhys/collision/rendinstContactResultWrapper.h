@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -11,8 +10,14 @@
 #include <phys/dag_physDecl.h>
 
 #include <gamePhys/collision/collisionObject.h>
-#include <gamePhys/collision/collisionLib.h>
 #include <gamePhys/collision/contactResultWrapper.h>
+
+namespace gamephys
+{
+struct CollisionContactData;
+};
+
+struct RendinstCollisionUserInfo;
 
 struct WrapperRendinstContactResultCB : public WrapperContactResultCB
 {
@@ -36,6 +41,7 @@ struct WrapperRendinstContactResultCB : public WrapperContactResultCB
       applyRiGenDamage();
   }
 
-  float addSingleResult(contact_data_t &cp, obj_user_data_t *userPtrA, obj_user_data_t *userPtrB,
-    gamephys::CollisionObjectInfo *obj_info);
+  void addSingleResult(contact_data_t &cp, obj_user_data_t *userPtrA, obj_user_data_t *userPtrB);
+  void addSingleResult(contact_data_t &cp, obj_user_data_t *userPtrA, obj_user_data_t *userPtrB,
+    const RendinstCollisionUserInfo *userInfo, gamephys::CollisionObjectInfo *obj_info = nullptr);
 };

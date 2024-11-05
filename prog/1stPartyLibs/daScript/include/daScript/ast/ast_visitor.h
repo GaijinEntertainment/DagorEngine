@@ -10,6 +10,8 @@ namespace das {
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable:4100)    // unreferenced formal parameter
+#elif defined(__EDG__)
+#pragma diag_suppress 826
 #elif defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -111,6 +113,7 @@ namespace das {
         virtual void preVisitCallArg ( ExprCall * call, Expression * arg, bool last ) {}
         virtual ExpressionPtr visitCallArg ( ExprCall * call, Expression * arg , bool last ) { return arg; }
         // CALL
+        virtual bool canVisitLooksLikeCallArg ( ExprLooksLikeCall * call, Expression * arg, bool last ) { return true; }
         virtual void preVisitLooksLikeCallArg ( ExprLooksLikeCall * call, Expression * arg, bool last ) {}
         virtual ExpressionPtr visitLooksLikeCallArg ( ExprLooksLikeCall * call, Expression * arg , bool last ) { return arg; }
         // NULL COAELESCING
@@ -276,6 +279,8 @@ namespace das {
     };
 #if defined(_MSC_VER)
 #pragma warning(pop)
+#elif defined(__EDG__)
+#pragma diag_default 826
 #elif defined(__GNUC__)
 #pragma GCC diagnostic pop
 #elif defined(__clang__)

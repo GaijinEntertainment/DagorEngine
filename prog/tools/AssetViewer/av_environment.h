@@ -1,8 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <math/dag_color.h>
 #include <math/dag_Point2.h>
+#include <math/dag_Point3.h>
 #include <util/dag_simpleString.h>
 #include <ioSys/dag_dataBlock.h>
 
@@ -11,6 +12,7 @@ struct SunLightProps;
 struct Color4;
 class IObjEntity;
 class BaseTexture;
+class DagorAsset;
 
 
 struct AssetLightData
@@ -51,7 +53,7 @@ public:
   }
 
   void setReflectionTexture();
-  void setEnvironmentTexture();
+  void setEnvironmentTexture(bool require_lighting_update = true);
   void setPaintDetailsTexture();
   void applyMicrodetailFromLevelBlk();
 
@@ -81,4 +83,6 @@ bool isUsingSinglePaintColor();
 void setSinglePaintColor(E3DCOLOR color);
 E3DCOLOR getSinglePaintColor();
 void updatePaintColorTexture();
+
+void on_asset_changed(const DagorAsset &asset, AssetLightData &ald);
 }; // namespace environment

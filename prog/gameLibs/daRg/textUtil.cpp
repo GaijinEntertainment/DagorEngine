@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "textUtil.h"
 
 #include <daRg/dag_element.h>
@@ -5,6 +7,7 @@
 #include <gui/dag_stdGuiRender.h>
 #include <osApiWrappers/dag_unicode.h>
 #include "behaviors/bhvTextInput.h"
+#include "behaviors/bhvTextAreaEdit.h"
 
 
 namespace darg
@@ -45,6 +48,18 @@ int get_prev_char_size(const char *str, int len)
     i++;
   }
   return 1;
+}
+
+
+int utf_calc_bytes_for_symbols(const char *str, int utf_len, int n_symbols)
+{
+  int i = 0, n = 0;
+  for (i = 0; i < utf_len && n < n_symbols;)
+  {
+    ++n;
+    i += get_next_char_size(str + i);
+  }
+  return i;
 }
 
 
@@ -136,7 +151,7 @@ Point2 calc_text_size_u(const wchar_t *str, int len, int font_id, int spacing, i
 bool is_text_input(const Element *elem)
 {
   for (const Behavior *bhv : elem->behaviors)
-    if (bhv == &bhv_text_input)
+    if (bhv == &bhv_text_input || bhv == &bhv_text_area_edit)
       return true;
   return false;
 }

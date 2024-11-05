@@ -1,0 +1,112 @@
+#  Setup for Visual C/C++ 2015 compiler for Windows (to be included from jBuild.jam)
+
+_OBJ_SUFFIX  = .obj ;
+
+_CLANG_DIR   = $(_DEVTOOL)/LLVM-$(CLangVer) ;
+
+_VC_DIR      = $(_DEVTOOL)/vc2015 ;
+if $(VCUpdateVer) { _VC_DIR = $(_VC_DIR).$(VCUpdateVer) ; }
+_VC_CRT_TYPE = $(_GlobCopt_CRT) ;
+_VC_CRT_TYPE ?= -MT ;
+_VC_DIR_BIN  = $(_VC_DIR)/bin ;
+_VC_DIR_LIB  = $(_VC_DIR)/lib ;
+if $(PlatformArch) = x86_64 {
+  _WIN_SDK_TARGET_SUFFIX = x64 ;
+  _VC_DIR_BIN = $(_VC_DIR_BIN)/amd64 ;
+  _VC_DIR_LIB = $(_VC_DIR_LIB)/amd64 ;
+}
+include $(Root)/prog/_jBuild/_vc/win_sdk.jam ;
+
+local _DEF_C_CMDLINE = -X /c /nologo /Zc:wchar_t /Zp8 /J /D_USING_V110_SDK71_ ;
+switch $(PlatformArch) {
+  case x86 :    _DEF_C_CMDLINE += /DWIN32 ;
+  case x86_64 : _DEF_C_CMDLINE += /DWIN64 ;
+}
+if $(BuildDagorEngineIndependentCode) != yes {
+  _DEF_C_CMDLINE +=
+    /D_TARGET_PC=1 -D_TARGET_PC_WIN=1 /Dasm=__asm /DWIN32_LEAN_AND_MEAN= /D_USE_MATH_DEFINES
+    /DNOMINMAX
+    -D_TARGET_SIMD_SSE=$(SSEVersion) -D_ALLOW_KEYWORD_MACROS=
+    /DDELAYIMP_INSECURE_WRITABLE_HOOKS
+    /Zc:forScope
+    /Zc:inline /bigobj
+  ;
+  switch $(PlatformArch) {
+    case x86 :    _DEF_C_CMDLINE += -D__IA32__=1 -D_TARGET_CPU_IA32=1 -Di_strlen=strlen ;
+    case x86_64 : _DEF_C_CMDLINE += -D_TARGET_64BIT=1 -Di_strlen=(int)strlen ; #-D_STD_RTL_MEMORY=1
+  }
+} else {
+  _DEF_C_CMDLINE += /FS ;
+}
+if $(Analyze) = yes { _DEF_C_CMDLINE = [ StripStrings $(_DEF_C_CMDLINE) : /D_USING_V110_SDK71_ ] -analyze -WX ; }
+
+if $(UseWholeOpt) = yes {
+  UseLLDLink = no ;
+}
+
+if $(UseLLDLink) != yes {
+  _LINK         = $(_VC_DIR_BIN)/link.exe ;
+} else {
+  _LINK         = $(_CLANG_DIR)/bin/lld-link.exe ;
+}
+_LIB          = $(_VC_DIR_BIN)/lib.exe ;
+
+_CPP_COMPILER = $(_VC_DIR_BIN)/cl.exe $(_DEF_C_CMDLINE) ;
+_C_COMPILER   = $(_VC_DIR_BIN)/cl.exe $(_DEF_C_CMDLINE) ;
+
+_DEP_COMPILER = $(Root)/prog/_jBuild/fastdep-g.exe --cVC80 /D_TARGET_PC=1 -D_TARGET_PC_WIN=1 ;
+
+_RC_COMPILER    = $(_WIN_SDK_BIN)/rc.exe /x /i$(_WIN_SDK_INC) /i$(_VC_DIR)/Include ;
+_MT_UTIL        = $(_WIN_SDK_BIN)/mt.exe ;
+_CVTRES_EXE     = $(_VC_DIR)/bin/cvtres.exe /NOLOGO ;
+
+# these defaults are applied only for WinSdkVer != win.sdk.100
+if $(VCUpdateVer) = 3 {
+  _UCRT_LIB    ?= $(_DEVTOOL)/win.sdk.100/Lib/10.0.10586.0/ucrt/x64 ;
+  _UCRT_INC    ?= $(_DEVTOOL)/win.sdk.100/Include/10.0.10586.0/ucrt ;
+} else {
+  _UCRT_LIB    ?= $(_DEVTOOL)/win.sdk.100/Lib/10.0.10240.0/ucrt/x64 ;
+  _UCRT_INC    ?= $(_DEVTOOL)/win.sdk.100/Include/10.0.10240.0/ucrt ;
+}
+
+switch $(PlatformArch) {
+  case x86 :
+    _LINK += /machine:x86 ;
+    _LIB  += /machine:x86 ;
+    _ASM_COMPILER  = $(_DEVTOOL)/nasm/nasm.exe -f win32 ;
+    _MASM_COMPILER = $(_VC_DIR_BIN)/ml.exe -c -nologo ;
+    _DEP_COMPILER += /DWIN32 /D__IA32__=1 ;
+    _CVTRES_EXE   += /MACHINE:x86 ;
+
+  case x86_64 :
+    _LINK += /machine:x64 ;
+    _LIB  += /machine:x64 ;
+    _ASM_COMPILER  = $(_DEVTOOL)/nasm/nasm.exe -f win64 ;
+    _MASM_COMPILER = $(_VC_DIR_BIN)/ml64.exe -c -nologo ;
+    _DEP_COMPILER += /DWIN64 ;
+    _CVTRES_EXE   += /MACHINE:x64 ;
+
+  case arm64 : exit Platform=$(Platform) PlatformArch=$(PlatformArch) is not supported by PlatformSpec=$(PlatformSpec) ;
+}
+
+_INCLUDE      = $(_WIN_SDK_INC) $(_VC_DIR)/include $(_UCRT_INC) ;
+_LIBPATH      = $(_UCRT_LIB) $(_WIN_SDK_LIB) $(_VC_DIR_LIB) $(_UM_LIB) ;
+
+# make linker cmd-line ###
+for lib in $(_LIBPATH) {
+  _LINK += -libpath:$(lib) ;
+  _LIB += -libpath:$(lib) ;
+}
+
+# make compiler cmd-line ###
+_CPP_BASE_INCLUDES = -I$(MasterPreInclude) -I$(Root)/prog/dagorInclude -I$(Root)/prog/1stPartyLibs -I$(Root)/prog/3rdPartyLibs -I$(Root)/prog/3rdPartyLibs/eastl/include ;
+_C_BASE_INCLUDES   = -I$(MasterPreInclude) -I$(Root)/prog/dagorInclude -I$(Root)/prog/1stPartyLibs -I$(Root)/prog/3rdPartyLibs ;
+if $(BuildDagorEngineIndependentCode) = yes { _CPP_BASE_INCLUDES = -I$(MasterPreInclude) ; _C_BASE_INCLUDES = -I$(MasterPreInclude) ; }
+
+for inc in $(_INCLUDE) {
+  _CPP_BASE_INCLUDES += -I$(inc) ;
+  _C_BASE_INCLUDES   += -I$(inc) ;
+  _DEP_COMPILER += --x$(inc) ;
+}
+
+_DEF_C_CMDLINE = ;

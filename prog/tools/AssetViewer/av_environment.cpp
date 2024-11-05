@@ -1,11 +1,14 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "av_appwnd.h"
 #include "av_environment.h"
 
 #include <libTools/util/strUtil.h>
 #include <3d/dag_render.h>
 #include <3d/dag_texMgr.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3d_pc.h>
+#include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_platform_pc.h>
 #include <3d/dag_lockTexture.h>
 #include <gui/dag_stdGuiRenderEx.h>
 #include <de3_lightService.h>
@@ -21,8 +24,8 @@
 #include <shaders/dag_shaderDbg.h>
 
 #include <EditorCore/ec_interface.h>
-#include <propPanel2/comWnd/dialog_window.h>
-#include <propPanel2/c_indirect.h>
+#include <propPanel/commonWindow/dialogWindow.h>
+#include <propPanel/c_indirect.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <ioSys/dag_findFiles.h>
 #include <debug/dag_debug.h>
@@ -188,7 +191,7 @@ static void detectRenderDebug()
   supportRenderDebug = VariableMap::isGlobVariablePresent(rdbgEnabledGvid);
 }
 
-static void applyRenderDebug(AssetLightData &ald, bool repaint = true)
+static void applyRenderDebug(AssetLightData &ald)
 {
   int en = ald.rdbgType > 0 || !ald.rdbgUseNmap || !ald.rdbgUseDtex || !ald.rdbgUseLt || !ald.rdbgUseChrome;
   ShaderGlobal::set_int_fast(rdbgEnabledGvid, en);
@@ -198,8 +201,6 @@ static void applyRenderDebug(AssetLightData &ald, bool repaint = true)
   ShaderGlobal::set_int_fast(rdbgUseLtGvid, ald.rdbgUseLt);
   ShaderGlobal::set_int_fast(rdbgUseChromeGvid, ald.rdbgUseChrome);
   enable_diffuse_mipmaps_debug(ald.rdbgType == -1);
-  if (repaint)
-    EDITORCORE->queryEditorInterface<IDynRenderService>()->renderViewportFrame(NULL);
 }
 
 void set_texture(TEXTUREID tex_id)
@@ -293,18 +294,17 @@ void renderEnvironment(bool ortho)
       EDITORCORE->queryEditorInterface<IDynRenderService>()->renderEnviBkgTexture(texture, scales);
     else if (texture->restype() == RES3D_VOLTEX)
     {
-      static int hdr_overbrightGVarId = ::get_shader_glob_var_id("hdr_overbright", true);
       float z = 1.0f - abs(512 - (get_time_msec() / 8) % 1024) / 512.0f;
-      float inv_br = hdr_overbrightGVarId < 0 ? 1 : safeinv(ShaderGlobal::get_real_fast(hdr_overbrightGVarId));
-      EDITORCORE->queryEditorInterface<IDynRenderService>()->renderEnviVolTexture(texture, Color4(1, 1, 1, 1) * inv_br,
+      float exposure = EDITORCORE->queryEditorInterface<IDynRenderService>()->getExposure();
+      EDITORCORE->queryEditorInterface<IDynRenderService>()->renderEnviVolTexture(texture, Color4(1, 1, 1, 1) * exposure,
         Color4(0, 0, 0, 1), scales, z);
     }
   }
   else if (texture->restype() == RES3D_CUBETEX && !ortho)
   {
-    static int hdr_overbrightGVarId = ::get_shader_glob_var_id("hdr_overbright", true);
-    EDITORCORE->queryEditorInterface<IDynRenderService>()->renderEnviCubeTexture(texture,
-      Color4(1, 1, 1, 1) * safeinv(ShaderGlobal::get_real_fast(hdr_overbrightGVarId)), Color4(0, 0, 0, 1));
+    float exposure = EDITORCORE->queryEditorInterface<IDynRenderService>()->getExposure();
+    EDITORCORE->queryEditorInterface<IDynRenderService>()->renderEnviCubeTexture(texture, Color4(1, 1, 1, 1) * exposure,
+      Color4(0, 0, 0, 1));
   }
 
   shaders::overrides::reset_master_state();
@@ -422,25 +422,25 @@ void updatePaintColorTexture()
 
 //---------------------------------------------------------------------------
 
-class EnvSetDlg : public CDialogWindow
+class EnvSetDlg : public PropPanel::DialogWindow
 {
 public:
   EnvSetDlg(void *handle, SunLightProps *sun_props, AssetLightData *al_data) :
-    CDialogWindow(handle, _pxScaled(540), _pxScaled(760 - (supportRenderDebug ? 0 : 120)), "Environment Settings"),
+    DialogWindow(handle, _pxScaled(540), _pxScaled(760 - (supportRenderDebug ? 0 : 120)), "Environment Settings"),
     sunProps(sun_props),
     ald(al_data)
   {
     IDynRenderService *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>();
-    PropertyContainerControlBase *_panel = getPanel();
+    PropPanel::ContainerPropertyControl *_panel = getPanel();
     G_ASSERT(_panel && "No panel in EnvSetDlg");
 
     G_ASSERT(sun_props && "Sun properties is NULL in EnvSetDlg");
     G_ASSERT(al_data && "AlData is NULL in EnvSetDlg");
 
-    PropertyContainerControlBase *_settings = drSrv->hasEnvironmentSnapshot()
-                                                ? NULL
-                                                : (av_skies_srv ? _panel->createGroup(PID_SETTINGS_GROUP, "Settings")
-                                                                : _panel->createGroupBox(PID_SETTINGS_GROUP, "Settings"));
+    PropPanel::ContainerPropertyControl *_settings = drSrv->hasEnvironmentSnapshot()
+                                                       ? NULL
+                                                       : (av_skies_srv ? _panel->createGroup(PID_SETTINGS_GROUP, "Settings")
+                                                                       : _panel->createGroupBox(PID_SETTINGS_GROUP, "Settings"));
     if (_settings)
     {
       _settings->createTrackFloat(PID_SUN_AZIMUT, "sun azimut", RadToDeg(sunProps->azimuth), -180.f, 180.f, 0.1);
@@ -454,12 +454,12 @@ public:
       _settings->createEditFloat(PID_AMB_BRIGHTNESS, "ambient brightness", sky.brightness, 2);
     }
 
-    PropertyContainerControlBase *_dbgShow =
+    PropPanel::ContainerPropertyControl *_dbgShow =
       (drSrv && drSrv->getDebugShowTypeNames().size() > 1) ? _panel->createGroup(PID_DBGSHOW_GRP, "Debug settings") : NULL;
     if (_dbgShow)
     {
       dag::ConstSpan<const char *> modes = drSrv->getDebugShowTypeNames();
-      PropertyContainerControlBase *_dbgShowRG = _dbgShow->createRadioGroup(PID_DBGSHOW_MODE, "Debug show mode");
+      PropPanel::ContainerPropertyControl *_dbgShowRG = _dbgShow->createRadioGroup(PID_DBGSHOW_MODE, "Debug show mode");
       for (int i = 0; i < modes.size(); i++)
         _dbgShowRG->createRadio(i, modes[i]);
       _dbgShow->setInt(PID_DBGSHOW_MODE, drSrv->getDebugShowType());
@@ -468,8 +468,8 @@ public:
 
     if (supportRenderDebug)
     {
-      PropertyContainerControlBase &ltDbgGrp = *_panel->createGroup(PID_RDBG_GROUP, "Render debug");
-      PropertyContainerControlBase &ltGrp = *ltDbgGrp.createRadioGroup(PID_LTDBG_GROUP, "Debug mode");
+      PropPanel::ContainerPropertyControl &ltDbgGrp = *_panel->createGroup(PID_RDBG_GROUP, "Render debug");
+      PropPanel::ContainerPropertyControl &ltGrp = *ltDbgGrp.createRadioGroup(PID_LTDBG_GROUP, "Debug mode");
       ltGrp.createRadio(0, "Final render (no debug)");
       ltGrp.createRadio(-1, "Debug mipmaps (mips 0..5=RGBCMY)");
 
@@ -492,7 +492,7 @@ public:
       ltDbgGrp.setInt(PID_LTDBG_GROUP, ald->rdbgType);
     }
 
-    PropertyContainerControlBase *_tex = _panel->createGroup(PID_TEX_GROUP, "Environment textures");
+    PropPanel::ContainerPropertyControl *_tex = _panel->createGroup(PID_TEX_GROUP, "Environment textures");
     {
       Tab<String> _masks(tmpmem);
       _masks.push_back() = "Environment BLK files|envi.blk";
@@ -587,7 +587,7 @@ public:
     _panel->createButton(PID_ENV_SELECT_ENTITY, ald->renderEnviEntAsset.empty() ? "-- no envi entity --" : ald->renderEnviEntAsset);
     _panel->createPoint3(PID_ENV_ENTITY_POS, "render envi entity at", ald->renderEnviEntPos);
   }
-  void setAmbientWindPanel(PropertyContainerControlBase *_panel)
+  void setAmbientWindPanel(PropPanel::ContainerPropertyControl *_panel)
   {
     _panel->setBool(PID_WIND_ENABLED, windPreview.enabled);
     _panel->setFloat(PID_WIND_DIR, windPreview.windAzimuth);
@@ -600,9 +600,9 @@ public:
 
     enableAmbientWindPanel(_panel);
   }
-  void addAmbientWindPanel(PropertyContainerControlBase *_panel)
+  void addAmbientWindPanel(PropPanel::ContainerPropertyControl *_panel)
   {
-    PropertyContainerControlBase *_wind = _panel->createGroup(PID_WIND_GROUP, "Ambient wind settings");
+    PropPanel::ContainerPropertyControl *_wind = _panel->createGroup(PID_WIND_GROUP, "Ambient wind settings");
     _wind->createCheckBox(PID_WIND_ENABLED, "Enabled", false);
     _wind->createTrackFloat(PID_WIND_DIR, "Direction", 0, 0, 360, 1);
     _wind->createTrackFloat(PID_WIND_STRENGTH, "Strength (Beaufort)", 0, 0, 12, 0.1);
@@ -614,7 +614,7 @@ public:
 
     setAmbientWindPanel(_panel);
   }
-  void enableAmbientWindPanel(PropertyContainerControlBase *_panel)
+  void enableAmbientWindPanel(PropPanel::ContainerPropertyControl *_panel)
   {
     bool enableOverride = windPreview.enabled;
     _panel->setEnabledById(PID_WIND_DIR, enableOverride);
@@ -626,11 +626,11 @@ public:
 
     _panel->setEnabledById(PID_WIND_LEVEL, enableOverride && av_wind_srv && av_wind_srv->isLevelEcsSupported());
   }
-  bool addWeatherPanel(PropertyContainerControlBase *_panel, IDynRenderService *drSrv)
+  bool addWeatherPanel(PropPanel::ContainerPropertyControl *_panel, IDynRenderService *drSrv)
   {
     if (av_skies_srv && !drSrv->hasEnvironmentSnapshot())
     {
-      PropertyContainerControlBase *_skies = _panel->createGroup(PID_SKIES_GROUP, "Sky/weather settings");
+      PropPanel::ContainerPropertyControl *_skies = _panel->createGroup(PID_SKIES_GROUP, "Sky/weather settings");
       Tab<String> preset(midmem), env(midmem), wtype(midmem);
       av_skies_srv->fillPresets(preset, env, wtype);
 
@@ -650,7 +650,7 @@ public:
   }
 
 
-  virtual void onClick(int pcb_id, PropertyContainerControlBase *panel)
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
   {
     switch (pcb_id)
     {
@@ -661,7 +661,6 @@ public:
           panel->setCaption(pcb_id, ald->renderEnviEntAsset.empty() ? "-- no envi entity --" : ald->renderEnviEntAsset);
           destroy_it(ald->renderEnviEntity);
           environment::renderEnviEntity(*ald);
-          EDITORCORE->queryEditorInterface<IDynRenderService>()->renderViewportFrame(NULL);
         }
         break;
       case PID_PAINT_DETAILS_TEXTURE:
@@ -670,14 +669,13 @@ public:
           ald->paintDetailsTexAsset = asset;
           panel->setCaption(pcb_id, ald->paintDetailsTexAsset.empty() ? "-- no palette tex --" : ald->paintDetailsTexAsset);
           ald->setPaintDetailsTexture();
-          EDITORCORE->queryEditorInterface<IDynRenderService>()->renderViewportFrame(NULL);
         }
         break;
     }
   }
 
 
-  virtual void onChange(int pcb_id, PropertyContainerControlBase *panel)
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
   {
     IDynRenderService *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>();
     switch (pcb_id)
@@ -917,11 +915,10 @@ public:
           if (scheme->getParams(schemeGrp, ShGlobVars))
             ShaderGlobal::set_vars_from_blk(ShGlobVars);
     }
-    drSrv->renderViewportFrame(NULL);
   }
 
-  PropPanelScheme *scheme;
-  PropPanel2 *schemeGrp;
+  PropPanel::PropPanelScheme *scheme;
+  PropPanel::ContainerPropertyControl *schemeGrp;
 
 protected:
   SunLightProps *sunProps;
@@ -957,16 +954,19 @@ void show_environment_settings(void *handle, AssetLightData *ald)
 
   EnvSetDlg envSetDlg(handle, defSun, ald);
 
+  // ImGui scrolls to the focused item, which in this case is at the bottom and requires scrolling. Prevent that.
+  envSetDlg.setInitialFocus(PropPanel::DIALOG_ID_NONE);
+
   // global shader vars fill
 
-  PropPanel2 *grp = envSetDlg.getPanel()->createGroup(PID_SHGLVAR_GRP, "Shader global vars");
+  PropPanel::ContainerPropertyControl *grp = envSetDlg.getPanel()->createGroup(PID_SHGLVAR_GRP, "Shader global vars");
   grp->setEventHandler(&envSetDlg);
 
   DataBlock appBlk(::get_app().getWorkspace().getAppPath());
   DataBlock schemeBlk;
   schemeBlk.setFrom(appBlk.getBlockByNameEx("shader_glob_vars_scheme"));
 
-  PropPanelScheme *scheme = grp->createSceme();
+  PropPanel::PropPanelScheme *scheme = grp->createSceme();
   scheme->load(schemeBlk, true);
   scheme->setParams(grp, ShGlobVars);
   grp->setBoolValue(true);
@@ -977,7 +977,7 @@ void show_environment_settings(void *handle, AssetLightData *ald)
 
   // show dialog
 
-  if (envSetDlg.showDialog() == DIALOG_ID_CANCEL)
+  if (envSetDlg.showDialog() == PropPanel::DIALOG_ID_CANCEL)
   {
     *defSun = savedSunProps;
     destroy_it(ald->renderEnviEntity);
@@ -989,7 +989,7 @@ void show_environment_settings(void *handle, AssetLightData *ald)
       drSrv->setRenderOptEnabled(i, saved_ropt[i]);
     drSrv->setShadowQuality(savedShadowQ);
 
-    ald->setEnvironmentTexture();
+    ald->setEnvironmentTexture(false);
     ald->applyMicrodetailFromLevelBlk();
     applyRenderDebug(*ald);
     ShGlobVars = old_ShGlobVars;
@@ -1077,7 +1077,7 @@ void load_settings(DataBlock &blk, AssetLightData *ald, const AssetLightData *al
 
   updateLight();
   detectRenderDebug();
-  applyRenderDebug(*ald, false);
+  applyRenderDebug(*ald);
 
   // load global shader vars
 
@@ -1242,6 +1242,15 @@ void environment::save_skies_settings(DataBlock &blk)
   blk.setStr("wtype", av_skies_wtype);
 }
 
+void environment::on_asset_changed(const DagorAsset &asset, AssetLightData &ald)
+{
+  if (strcmp(asset.getName(), ald.paintDetailsTexAsset) != 0 && strcmp(asset.getName(), "assets_color_global_tex_palette") != 0)
+    return;
+
+  logdbg("Updating paint details texture asset %s", asset.getName());
+  ald.setPaintDetailsTexture();
+}
+
 void AssetLightData::setReflectionTexture()
 {
   if (!shaderVar.empty() && !textureName.empty())
@@ -1272,7 +1281,7 @@ static void decode_rel_fname(String &dest, const char *src)
     dest = src;
 }
 
-void AssetLightData::setEnvironmentTexture()
+void AssetLightData::setEnvironmentTexture(bool require_lighting_update)
 {
   if (!envTextureName.empty())
   {
@@ -1290,7 +1299,8 @@ void AssetLightData::setEnvironmentTexture()
   if (!envBlkFn.empty())
     decode_rel_fname(loc_path, envBlkFn);
   EDITORCORE->queryEditorInterface<IDynRenderService>()->setEnvironmentSnapshot(loc_path, envTextureName.empty());
-  EDITORCORE->queryEditorInterface<IDynRenderService>()->onLightingSettingsChanged();
+  if (require_lighting_update)
+    EDITORCORE->queryEditorInterface<IDynRenderService>()->onLightingSettingsChanged();
 }
 
 void AssetLightData::setPaintDetailsTexture()

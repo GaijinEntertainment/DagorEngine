@@ -123,10 +123,10 @@ def read_cmp_hierarchy(lines,assets):
                 active=active.parent
             elif line.find('name:t=')>=0:
                 name=line.split('=')[1].replace('"','')
-                name_type=name.split(':')
+                name_type=name.lower().split(':')
                 active.name=name_type[0]
                 try:
-                    active.type=name_type[1].lower()
+                    active.type=name_type[1]
                 except:
                     if name !="":
                         active.type = assets[active.name][0][0]

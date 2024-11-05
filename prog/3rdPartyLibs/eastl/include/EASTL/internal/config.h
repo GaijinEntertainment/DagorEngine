@@ -462,7 +462,7 @@ namespace eastl
 ///////////////////////////////////////////////////////////////////////////////
 
 #ifndef EASTL_EMPTY_REFERENCE_ASSERT_ENABLED
-	#define EASTL_EMPTY_REFERENCE_ASSERT_ENABLED 0 //Gaijin
+	#define EASTL_EMPTY_REFERENCE_ASSERT_ENABLED EASTL_ASSERT_ENABLED
 #endif
 
 

@@ -1,0 +1,147 @@
+include "rendinst_opaque_inc.dshl"
+include "rendinst_voxelize_albedo_inc.dshl"
+include "simple_inc.dshl"
+include "monochrome_inc.dshl"
+shader rendinst_monochrome
+{
+  assume instancing_type = tm_vb;
+  if (rendinst_render_pass == rendinst_render_pass_impostor_color  ||
+      rendinst_render_pass == rendinst_render_pass_impostor_shadow ||
+      rendinst_render_pass == rendinst_render_pass_grassify ||
+      rendinst_render_pass == rendinst_render_pass_to_heightmap)
+  {
+    dont_render;
+  }
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+  NO_DYNSTCODE()
+
+  static float4 color = (1, 1, 1, 1);
+  static float metalness = 0;
+  static float smoothness = 0;
+  static float reflectance = 0.5;
+
+
+  static int atest = 0;
+  interval atest: atestOff < 1, atestOn;
+
+  hlsl {
+    ##if ((atest==atestOn) || (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo))
+      #define HLSL_FULL_VS_OUTPUT 1
+    ##endif
+  }
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+  channel float2 tc[0] = tc[0];
+  ENABLE_MULTI_DRAW(rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
+
+  RENDINST_BLOCK()
+  RI_VOXELIZE_ALBEDO()
+  RENDINST_INSTANCING()
+  ENABLE_ASSERT(ps)
+
+  hlsl (ps){
+    #if HLSL_FULL_VS_OUTPUT
+      #define IS_DYNAMIC input.diffuseTexcoord.z
+      #define FORCE_AUTO_MOTION_VECTOR 1
+    #endif
+  }
+  hlsl {
+    struct VsOutput
+    {
+      PRECISE VS_OUT_POSITION(pos)
+
+      #if HLSL_FULL_VS_OUTPUT
+        float3 diffuseTexcoord            : TEXCOORD0;
+        float3 normal                     : TEXCOORD1;
+        VOXEL_CENTROID float4 pointToEye  : TEXCOORD2;
+      #else
+        ##if (rendinst_render_pass == rendinst_render_pass_depth)
+          float4 normal                   : TEXCOORD1;
+        ##endif
+      #endif
+      ##if !(rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
+      VSOUT_DRAW_ID
+      ##endif
+    };
+  }
+
+
+  hlsl(vs) {
+
+    INSTANCING_BUFFERS
+
+    struct VsInput
+    {
+      float3 pos                  : POSITION;
+      ##if !(rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
+      float3 normal               : NORMAL;
+      ##endif
+      #if HLSL_FULL_VS_OUTPUT
+      float2 diffuseTexcoord      : TEXCOORD0;
+      #endif
+    };
+
+    VsOutput simple_vs(VsInput input  HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+      #endif
+
+      ##if (rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
+        float3 localNormal = 1; //warning fix, need not 0 value because of normalize(localNormal) in VB_PERFORM_INSTANCING
+      ##else
+        float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+      ##endif
+
+      float3 localPos = input.pos;
+      float opacity = 1;
+      VB_PERFORM_INSTANCING
+
+      float3 pointToEye = world_view_pos-worldPos;
+      output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+
+      #if HLSL_FULL_VS_OUTPUT
+        output.diffuseTexcoord.xy = input.diffuseTexcoord;
+        output.diffuseTexcoord.z = IS_DYNAMIC_RI;
+
+        output.normal.xyz = worldNormal;
+        output.pointToEye.xyz = pointToEye;
+        output.pointToEye.w = 0; //avoid compilation warnings
+
+        ##if (rendinst_render_pass != rendinst_render_pass_to_shadow)
+          output.pointToEye.w = worldPos.y - worldLocalPos.y;
+        ##endif
+      #else
+        ##if (rendinst_render_pass != rendinst_render_pass_to_shadow)
+          output.normal.w = worldPos.y - worldLocalPos.y;
+          output.normal.xyz = float3(0,0,0); //avoid compilation warnings
+        ##endif
+      #endif
+
+      PROCESS_OUTPUT(output.pos, worldPos.xyz);
+      return output;
+    }
+  }
+
+  if (rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
+  {
+    (ps) {stub@f1 = smoothness; } //FIXME if there is no variables in pixel shader, it does not compile
+    compile("ps_null", "rendinst_render_depth_black_ps");
+  }
+  else
+  {
+    if (rendinst_render_pass != rendinst_render_pass_voxelize_albedo)
+    {
+      WRITE_GBUFFER()
+    }
+    MONOCHROME_PS()
+  }
+  COMPILE_RI_VS_TARGET("simple_vs")
+}

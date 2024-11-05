@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <memory/dag_MspaceAlloc.h>
 #include "stdRtlMemUsage.h"
 #include <debug/dag_fatal.h>

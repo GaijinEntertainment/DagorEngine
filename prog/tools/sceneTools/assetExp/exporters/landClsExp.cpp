@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <assets/daBuildExpPluginChain.h>
 #include <assets/assetPlugin.h>
 #include <assets/assetExporter.h>
@@ -88,7 +90,7 @@ public:
     // clean up land BLK
     landBlk = a.props;
     processAssetBlk(landBlk, a.getMgr(), true, a.getName(), &log);
-    if (!validateLandBlk(landBlk, log, a.getName()))
+    if (!validateLandBlk(landBlk, log, a.getName(), a.props.getBool("allowEqualSeed", false)))
       return false;
     landBlk.setBool("hasHash", true);
 
@@ -375,7 +377,7 @@ public:
     return ri_list;
   }
 
-  bool validateLandBlk(const DataBlock &land, ILogWriter &log, const char *a_name)
+  bool validateLandBlk(const DataBlock &land, ILogWriter &log, const char *a_name, bool allowEqualSeed)
   {
     bool valid = true;
     int nid_resources = land.getNameId("resources");
@@ -416,7 +418,7 @@ public:
             }
           plant_blk.push_back(cwr.takeMem());
 
-          if (!found_eq && !land.getBool("allowEqualSeed", false))
+          if (!found_eq && !allowEqualSeed)
             for (int j = 0; j < i; j++)
               if (land.getBlock(j)->getBlockNameId() == nid_obj_plant_generate &&
                   land.getBlock(i)->getInt("rseed", 12345) == land.getBlock(j)->getInt("rseed", 12345))

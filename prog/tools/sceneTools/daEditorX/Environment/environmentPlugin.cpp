@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <astronomy/astronomy.h>
 #include "environmentCommands.h"
 #include "environmentPlugin.h"
@@ -6,9 +8,12 @@
 #include "hdrSettingsDlg.h"
 
 #include <sepGui/wndPublic.h>
-#include <propPanel2/comWnd/panel_window.h>
-#include <propPanel2/comWnd/dialog_window.h>
-#include <propPanel2/comWnd/curve_color_dialog.h>
+#include <propPanel/commonWindow/color_correction_info.h>
+#include <propPanel/commonWindow/curveColorDialog.h>
+#include <propPanel/commonWindow/dialogWindow.h>
+#include <propPanel/commonWindow/dialogWindow.h>
+#include <propPanel/control/menu.h>
+#include <propPanel/control/panelWindow.h>
 
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <winGuiWrapper/wgw_input.h>
@@ -16,8 +21,6 @@
 #include <gui/dag_stdGuiRenderEx.h>
 
 #include <coolConsole/coolConsole.h>
-
-#include <dllPluginCore/core.h>
 
 #include <oldEditor/de_util.h>
 #include <oldEditor/exportToLightTool.h>
@@ -30,6 +33,7 @@
 #include <de3_editorEvents.h>
 #include <de3_dynRenderService.h>
 #include <de3_windService.h>
+#include <de3_hmapService.h>
 
 #include <EditorCore/ec_ObjectCreator.h>
 #include <EditorCore/ec_colors.h>
@@ -41,9 +45,14 @@
 #include <scene/dag_visibility.h>
 
 #include <ioSys/dag_dataBlock.h>
+#include <ioSys/dag_dataBlockUtils.h>
 #include <math/dag_capsule.h>
 #include <osApiWrappers/dag_direct.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
 #include <math/dag_colorMatrix.h>
@@ -63,7 +72,6 @@
 
 #include <libTools/renderViewports/cachedViewports.h>
 #include "../de_appwnd.h"
-#include <propPanel2/comWnd/color_correction_info.h>
 #include <sepGui/wndGlobal.h>
 
 #include <winsock2.h>
@@ -207,7 +215,7 @@ EnvironmentPlugin::EnvironmentPlugin() :
   for (int i = 0; i < 256; ++i)
     channel[i] = i;
   prepareColorTex(channel, channel, channel);
-  ccInfo = new ColorCorrectionInfo();
+  ccInfo = new PropPanel::ColorCorrectionInfo();
 
   WSADATA wsaData;
   if (WSAStartup(MAKEWORD(2, 2), &wsaData) != NO_ERROR)
@@ -242,7 +250,6 @@ void EnvironmentPlugin::registered()
 
 
   isVisible = true;
-  cursorTexId = ::add_managed_texture("../commonData/tex/cross");
 
   if (!isAcesPlugin)
   {
@@ -291,7 +298,7 @@ bool EnvironmentPlugin::catchEvent(unsigned ev_huid, void *userData)
 //==============================================================================
 bool EnvironmentPlugin::begin(int toolbar_id, unsigned menu_id)
 {
-  IMenu *mainMenu = DAGORED2->getWndManager()->getMainMenu();
+  PropPanel::IMenu *mainMenu = DAGORED2->getMainMenu();
 
   if (!isAcesPlugin)
   {
@@ -317,11 +324,11 @@ bool EnvironmentPlugin::begin(int toolbar_id, unsigned menu_id)
   }
 
   toolBarId = toolbar_id;
-  PropertyContainerControlBase *toolbar = DAGORED2->getCustomPanel(toolbar_id);
+  PropPanel::ContainerPropertyControl *toolbar = DAGORED2->getCustomPanel(toolbar_id);
   G_ASSERT(toolbar);
   toolbar->setEventHandler(this);
 
-  PropertyContainerControlBase *tool = toolbar->createToolbarPanel(CM_TOOL, "");
+  PropPanel::ContainerPropertyControl *tool = toolbar->createToolbarPanel(CM_TOOL, "");
 
   tool->createButton(CM_IMPORT, "Import DAG (Ctrl+O)");
   tool->setButtonPictures(CM_IMPORT, "import_dag");
@@ -534,7 +541,7 @@ const char *EnvironmentPlugin::onConsoleCommandHelp(const char *cmd)
   return NULL;
 }
 
-bool EnvironmentPlugin::onPluginMenuClick(unsigned id)
+bool EnvironmentPlugin::onPluginMenuClickInternal(unsigned id, PropPanel::ContainerPropertyControl *panel)
 {
   switch (id)
   {
@@ -573,12 +580,12 @@ bool EnvironmentPlugin::onPluginMenuClick(unsigned id)
 
     case CM_COLOR_CORRECTION:
     {
-      CurveColorDialog dialog(DAGORED2->getWndManager()->getMainWindow(), "Color correction");
+      PropPanel::CurveColorDialog dialog(DAGORED2->getWndManager()->getMainWindow(), "Color correction");
       int rChannel[256], gChannel[256], bChannel[256];
       prepareColorStats(rChannel, gChannel, bChannel);
       dialog.setColorStats(rChannel, gChannel, bChannel);
       dialog.setCorrectionInfo(*ccInfo);
-      if (dialog.showDialog() == DIALOG_ID_OK)
+      if (dialog.showDialog() == PropPanel::DIALOG_ID_OK)
       {
         unsigned char r_tbl[256], g_tbl[256], b_tbl[256];
         dialog.getColorTables(r_tbl, g_tbl, b_tbl);
@@ -591,6 +598,10 @@ bool EnvironmentPlugin::onPluginMenuClick(unsigned id)
 
   return false;
 }
+
+
+//==============================================================================
+bool EnvironmentPlugin::onPluginMenuClick(unsigned id) { return onPluginMenuClickInternal(id, nullptr); }
 
 
 //==============================================================================
@@ -656,7 +667,7 @@ void EnvironmentPlugin::autoSaveObjects(DataBlock &local_data)
   DataBlock &autoBlk = *local_data.addBlock("panel_state");
   autoBlk.setFrom(&mainPanelState);
 
-  CurveColorDialog::savePresets(::make_full_path(sgg::get_exe_path(), "../commonData/color_presets.blk"));
+  PropPanel::CurveColorDialog::savePresets(::make_full_path(sgg::get_exe_path(), "../.local/color_presets.blk"));
 }
 
 
@@ -941,6 +952,27 @@ void EnvironmentPlugin::setSettingsToPlugins()
   onLightingSettingsChanged();
   ltService->updateShaderVars();
 
+  IHmapService *hmlService = EDITORCORE->queryEditorInterface<IHmapService>();
+  if (skiesSrv && hmlService)
+  {
+    static int puddles_powerVarId = ::get_shader_glob_var_id("puddles_power", true);
+    static int puddles_seedVarId = ::get_shader_glob_var_id("puddles_seed", true);
+    static int puddles_noise_influenceVarId = ::get_shader_glob_var_id("puddles_noise_influence", true);
+
+    float powerScale, seed, noiseInfluence;
+    hmlService->getPuddlesParams(powerScale, seed, noiseInfluence);
+
+    float puddlesPower = get_point2lerp_or_real(*skiesSrv->getWeatherTypeBlk(), "puddlesPower", 0.0f, ets.rndSeed);
+    puddlesPower *= powerScale;
+
+    ShaderGlobal::set_real(puddles_powerVarId, puddlesPower);
+
+    ShaderGlobal::set_real(puddles_noise_influenceVarId, noiseInfluence);
+    ShaderGlobal::set_real(puddles_seedVarId, seed);
+
+    hmlService->invalidateClipmap(false, false);
+  }
+
   if (skiesSrv && windSrv)
   {
     Point2 windDir = levelBlk.getPoint2("windDir", Point2(0.6, 0.8));
@@ -1133,7 +1165,7 @@ void EnvironmentPlugin::loadObjects(const DataBlock &blk, const DataBlock &local
 
   fillPanel();
 
-  CurveColorDialog::loadPresets(::make_full_path(sgg::get_exe_path(), "../commonData/color_presets.blk"));
+  PropPanel::CurveColorDialog::loadPresets(::make_full_path(sgg::get_exe_path(), "../.local/color_presets.blk"));
 }
 
 
@@ -1395,6 +1427,26 @@ void EnvironmentPlugin::renderTransObjects()
   // renderColorTex(); // DEBUG
 }
 
+void EnvironmentPlugin::updateImgui()
+{
+  if (DAGORED2->curPlugin() == this)
+  {
+    if (propPanel)
+    {
+      bool open = true;
+      DAEDITOR3.imguiBegin(*propPanel, &open);
+      propPanel->updateImgui();
+      DAEDITOR3.imguiEnd();
+
+      if (!open && propPanel)
+      {
+        showPanel();
+        EDITORCORE->managePropPanels();
+      }
+    }
+  }
+}
+
 bool EnvironmentPlugin::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
 
 bool EnvironmentPlugin::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
@@ -1412,7 +1464,7 @@ bool EnvironmentPlugin::handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, b
   return false;
 }
 
-bool EnvironmentPlugin::buildLmEnviScene(ILogWriter &rep, PropPanel2 *panel, unsigned target)
+bool EnvironmentPlugin::buildLmEnviScene(ILogWriter &rep, PropPanel::ContainerPropertyControl *panel, unsigned target)
 {
   if (isAcesPlugin)
     return true;
@@ -1494,10 +1546,10 @@ bool EnvironmentPlugin::exportLms(const char *dag_file, const char *lms_file, Co
 }
 
 
-void EnvironmentPlugin::fillExportPanel(PropPanel2 &params) {}
+void EnvironmentPlugin::fillExportPanel(PropPanel::ContainerPropertyControl &params) {}
 
 
-bool EnvironmentPlugin::validateBuild(int target, ILogWriter &rep, PropPanel2 *params)
+bool EnvironmentPlugin::validateBuild(int target, ILogWriter &rep, PropPanel::ContainerPropertyControl *params)
 {
   if (isAcesPlugin)
     return true;
@@ -1526,7 +1578,7 @@ bool EnvironmentPlugin::addUsedTextures(ITextureNumerator &tn)
 }
 
 
-bool EnvironmentPlugin::buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel2 *params)
+bool EnvironmentPlugin::buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *params)
 {
   if (isAcesPlugin)
     return true;
@@ -1674,7 +1726,7 @@ void EnvironmentPlugin::fillPanel()
   propPanel->clear();
   propPanel->disableFillAutoResize();
 
-  PropertyContainerControlBase *grp = NULL;
+  PropPanel::ContainerPropertyControl *grp = NULL;
 
   if (isAcesPlugin)
     grp = propPanel->createGroup(CM_PID_ENVIRONMENTS, "Environments");
@@ -1922,22 +1974,19 @@ void EnvironmentPlugin::updateLight()
 }
 
 
-IWndEmbeddedWindow *EnvironmentPlugin::onWmCreateWindow(void *handle, int type)
+void *EnvironmentPlugin::onWmCreateWindow(int type)
 {
   switch (type)
   {
     case PROPBAR_ENVIRONMENT_WTYPE:
     {
       if (propPanel)
-        return NULL;
+        return nullptr;
 
-      IWndManager *manager = DAGORED2->getWndManager();
-      manager->setCaption(handle, "Properties");
-
-      propPanel = DAGORED2->createPropPanel(this, handle);
+      propPanel = IEditorCoreEngine::get()->createPropPanel(this, "Properties");
       fillPanel();
 
-      PropertyContainerControlBase *toolbar = DAGORED2->getCustomPanel(toolBarId);
+      PropPanel::ContainerPropertyControl *toolbar = DAGORED2->getCustomPanel(toolBarId);
       if (toolbar)
         toolbar->setBool(CM_SHOW_PANEL, true);
 
@@ -1948,73 +1997,67 @@ IWndEmbeddedWindow *EnvironmentPlugin::onWmCreateWindow(void *handle, int type)
     case POSTFX_ENVIRONMENT_WTYPE:
     {
       if (postfxPanel)
-        return NULL;
+        return nullptr;
 
-      IWndManager *manager = DAGORED2->getWndManager();
-      manager->setCaption(handle, "PostFX settings");
-
-      postfxPanel = new PostfxPanel(*this, handle);
+      postfxPanel = new PostfxPanel(*this, nullptr);
       postfxPanel->fillPanel();
 
-      PropertyContainerControlBase *toolbar = DAGORED2->getCustomPanel(toolBarId);
+      PropPanel::ContainerPropertyControl *toolbar = DAGORED2->getCustomPanel(toolBarId);
       if (toolbar)
         toolbar->setBool(CM_SHOW_POSTFX_PANEL, true);
 
-      return postfxPanel->getPanel();
+      return postfxPanel;
     }
     break;
 
     case SHADERGV_ENVIRONMENT_WTYPE:
     {
       if (shgvPanel)
-        return NULL;
+        return nullptr;
 
-      IWndManager *manager = DAGORED2->getWndManager();
-      manager->setCaption(handle, "Shader Global Vars");
-
-      shgvPanel = new ShaderGlobVarsPanel(*this, handle);
+      shgvPanel = new ShaderGlobVarsPanel(*this, nullptr);
       shgvPanel->fillPanel();
 
-      PropertyContainerControlBase *toolbar = DAGORED2->getCustomPanel(toolBarId);
+      PropPanel::ContainerPropertyControl *toolbar = DAGORED2->getCustomPanel(toolBarId);
       if (toolbar)
         toolbar->setBool(CM_SHOW_SHGV_PANEL, true);
 
-      return shgvPanel->getPanel();
+      return shgvPanel;
     }
     break;
   }
 
-  return NULL;
+  return nullptr;
 }
 
 
-bool EnvironmentPlugin::onWmDestroyWindow(void *handle)
+bool EnvironmentPlugin::onWmDestroyWindow(void *window)
 {
-  if (propPanel && propPanel->getParentWindowHandle() == handle)
+  if (window == propPanel)
   {
     mainPanelState.reset();
     propPanel->saveState(mainPanelState);
 
     del_it(propPanel);
-    PropertyContainerControlBase *toolbar = DAGORED2->getCustomPanel(toolBarId);
+    PropPanel::ContainerPropertyControl *toolbar = DAGORED2->getCustomPanel(toolBarId);
     if (toolbar)
       toolbar->setBool(CM_SHOW_PANEL, false);
     return true;
   }
 
-  if (postfxPanel && postfxPanel->getPanel()->getParentWindowHandle() == handle)
+  if (window == postfxPanel)
   {
     del_it(postfxPanel);
-    PropertyContainerControlBase *toolbar = DAGORED2->getCustomPanel(toolBarId);
+    PropPanel::ContainerPropertyControl *toolbar = DAGORED2->getCustomPanel(toolBarId);
     if (toolbar)
       toolbar->setBool(CM_SHOW_POSTFX_PANEL, false);
     return true;
   }
 
-  if (shgvPanel && shgvPanel->getPanel()->getParentWindowHandle() == handle)
+  if (window == shgvPanel)
   {
     del_it(shgvPanel);
-    PropertyContainerControlBase *toolbar = DAGORED2->getCustomPanel(toolBarId);
+    PropPanel::ContainerPropertyControl *toolbar = DAGORED2->getCustomPanel(toolBarId);
     if (toolbar)
       toolbar->setBool(CM_SHOW_SHGV_PANEL, false);
     return true;
@@ -2024,9 +2067,9 @@ bool EnvironmentPlugin::onWmDestroyWindow(void *handle)
 }
 
 
-void EnvironmentPlugin::onClick(int pcb_id, PropPanel2 *panel)
+void EnvironmentPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
-  if (onPluginMenuClick(pcb_id))
+  if (onPluginMenuClickInternal(pcb_id, panel))
     return;
 
   switch (pcb_id)
@@ -2049,7 +2092,7 @@ void EnvironmentPlugin::onClick(int pcb_id, PropPanel2 *panel)
   }
 }
 
-void EnvironmentPlugin::onChange(int pcb_id, PropPanel2 *panel)
+void EnvironmentPlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
 #define CASE_SET_VAL(id, val, func) \
   case id: val = panel->func(id); break;
@@ -2059,6 +2102,7 @@ void EnvironmentPlugin::onChange(int pcb_id, PropPanel2 *panel)
     case CM_PID_WEATHER_PRESETS_LIST:
     case CM_PID_WEATHER_TYPES_LIST:
     case CM_PID_ENVIRONMENTS_LIST:
+    {
       if (selectedEnvironmentNo >= 0 && selectedWeatherPreset >= 0 && selectedWeatherPreset >= 0)
         getSettingsFromPlugins();
 
@@ -2077,6 +2121,7 @@ void EnvironmentPlugin::onChange(int pcb_id, PropPanel2 *panel)
       if (shgvPanel)
         recreateShGVPanel();
       break;
+    }
 
       CASE_SET_VAL(CM_PID_SCENE_ROTY, envParams.rotY, getFloat)
       CASE_SET_VAL(CM_PID_SCENE_EXPORT, envParams.exportEnviScene, getBool)
@@ -2214,7 +2259,7 @@ void EnvironmentPlugin::onChange(int pcb_id, PropPanel2 *panel)
       E3DCOLOR col = panel->getColor(PID_DIR_SKY_COLOR);
       float mul = panel->getFloat(PID_DIR_SKY_COLOR_MUL);
 
-      debug_cp();
+      DEBUG_CP();
       ltService->getSky().ambCol = ::color3(col) * mul;
 
       ltService->updateShaderVars();
@@ -2337,12 +2382,12 @@ void EnvironmentPlugin::setFogDefaults()
 
 
 //==================================================================================================
-void EnvironmentPlugin::recreatePanel(CPanelWindow *panel, int wtype_id)
+void EnvironmentPlugin::recreatePanel(PropPanel::PanelWindowPropertyControl *panel, int wtype_id)
 {
   if (!panel)
     EDITORCORE->addPropPanel(wtype_id, hdpi::_pxScaled(PROPBAR_WIDTH));
   else
-    EDITORCORE->removePropPanel(panel->getParentWindowHandle());
+    EDITORCORE->removePropPanel(panel);
 }
 
 
@@ -2368,7 +2413,7 @@ void EnvironmentPlugin::hdrViewSettings()
 
   HdrViewSettingsDialog dlg(hdrBlk);
 
-  if (dlg.showDialog() == DIALOG_ID_OK)
+  if (dlg.showDialog() == PropPanel::DIALOG_ID_OK)
   {
     const char *hdr_mode = hdrBlk->getStr("mode", "none");
     if (isAcesPlugin)
@@ -2446,10 +2491,11 @@ update_envi_fail:
 
 void EnvironmentPlugin::connectToGameHttpServer()
 {
-  CDialogWindow *dlg = DAGORED2->createDialog(hdpi::_pxScaled(250), hdpi::_pxScaled(120), "Connect To Game Http Server");
-  PropPanel2 *panel = dlg->getPanel();
+  eastl::unique_ptr<PropPanel::DialogWindow> dlg(
+    DAGORED2->createDialog(hdpi::_pxScaled(250), hdpi::_pxScaled(120), "Connect To Game Http Server"));
+  PropPanel::ContainerPropertyControl *panel = dlg->getPanel();
   panel->createEditBox(337, "Address Connect To:", "");
-  if (dlg->showDialog() != DIALOG_ID_OK)
+  if (dlg->showDialog() != PropPanel::DIALOG_ID_OK)
     return;
 
   SOCKET s = INVALID_SOCKET;

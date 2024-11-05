@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/grassify.h>
 
 #include <EASTL/tuple.h>
@@ -9,6 +11,10 @@
 #include <perfMon/dag_statDrv.h>
 #include <render/gpuGrass.h>
 #include <util/dag_convar.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <shaders/dag_overrideStates.h>
 
 static int globalFrameBlockId = -1;
 
@@ -25,8 +31,8 @@ GLOBAL_VARS_LIST
 
 struct GrassMaskSliceHelper
 {
-  GrassMaskSliceHelper(float texelSize, IPoint2 maskSize, const IPoint2 &offset, const Point2 &halfPixelOffset) :
-    texelSize(texelSize), offset(offset), maskSize(maskSize), halfPixelOffset(halfPixelOffset)
+  GrassMaskSliceHelper(float texelSize, IPoint2 maskSize, const IPoint2 &offset) :
+    texelSize(texelSize), offset(offset), maskSize(maskSize)
   {
     copy_grass_decals.init("copy_grass_decals");
 
@@ -39,12 +45,11 @@ struct GrassMaskSliceHelper
       dag::create_tex(nullptr, maskSize.x, maskSize.y, TEXCF_SRGBREAD | TEXCF_SRGBWRITE | TEXCF_RTARGET, 1, "grass_color_islands_tex");
   };
 
-  void renderMask(IRandomGrassRenderHelper &grassRenderHelper, GrassPreRenderCallback pre_render_cb);
+  void renderMask(IRandomGrassRenderHelper &grassRenderHelper);
 
   float texelSize;
   IPoint2 maskSize;
   IPoint2 offset;
-  Point2 halfPixelOffset;
   UniqueTexHolder maskTex, colorTex;
   shaders::UniqueOverrideStateId flipCullStateId;
   PostFxRenderer copy_grass_decals;
@@ -63,8 +68,8 @@ struct GrassGenerateHelper
 
   ~GrassGenerateHelper() { rendinst::destroyRIGenVisibility(rendinstVisibility); }
 
-  void generate(const Point3 &position, const IPoint2 &grassOffset, const IPoint2 &grassMaskSize, const Point2 &halfPixelOffset,
-    float grassMaskTexelSize, const TMatrix &view_itm, const GPUGrassBase &gpuGrassBase);
+  void generate(const Point3 &position, const IPoint2 &grassOffset, const IPoint2 &grassMaskSize, float grassMaskTexelSize,
+    const TMatrix &view_itm, const GPUGrassBase &gpuGrassBase);
   void render(const Point3 &position, const TMatrix &view_itm, const GPUGrassBase &gpuGrassBase);
 
 private:
@@ -79,12 +84,11 @@ private:
   int rendinstGrassifySceneBlockId = ShaderGlobal::getBlockId("rendinst_grassify_scene");
 };
 
-void GrassMaskSliceHelper::renderMask(IRandomGrassRenderHelper &grassRenderHelper, GrassPreRenderCallback pre_render_cb)
+void GrassMaskSliceHelper::renderMask(IRandomGrassRenderHelper &grassRenderHelper)
 {
   TIME_D3D_PROFILE(grassify_mask)
 
-  MaskRenderCallback maskcb(texelSize, grassRenderHelper, maskTex.getTex2D(), colorTex.getTex2D(), &copy_grass_decals,
-    eastl::move(pre_render_cb));
+  MaskRenderCallback maskcb(texelSize, grassRenderHelper, maskTex.getTex2D(), colorTex.getTex2D(), &copy_grass_decals);
 
   shaders::overrides::set(flipCullStateId);
 
@@ -113,7 +117,7 @@ TMatrix4 GrassGenerateHelper::getProjectionMatrix(const Point3 &position) const
 }
 
 void GrassGenerateHelper::generate(const Point3 &position, const IPoint2 &grassMaskOffset, const IPoint2 &grassMaskSize,
-  const Point2 &halfPixelOffset, float grassMaskTexelSize, const TMatrix &, const GPUGrassBase &gpuGrassBase)
+  float grassMaskTexelSize, const TMatrix &, const GPUGrassBase &gpuGrassBase)
 {
   TIME_D3D_PROFILE(grassify_generate);
 
@@ -157,7 +161,7 @@ void GrassGenerateHelper::generate(const Point3 &position, const IPoint2 &grassM
     };
 
     ShaderGlobal::set_color4(world_to_grass_sliceVarId, 1.0f / grassMaskDistance.x, 1.0f / grassMaskDistance.y,
-      (-grassMaskOffset.x - halfPixelOffset.x) / grassMaskDistance.x, (-grassMaskOffset.y - halfPixelOffset.y) / grassMaskDistance.y);
+      -grassMaskOffset.x / grassMaskDistance.x, -grassMaskOffset.y / grassMaskDistance.y);
 
     // todo: generate lods in one pass
     gpuGrassBase.renderGrassLods(renderGrassLod);
@@ -185,10 +189,10 @@ Grassify::Grassify(const DataBlock &, int grassMaskResolution, float grassDistan
 }
 
 void Grassify::generate(const Point3 &pos, const TMatrix &view_itm, Texture *grass_mask, IRandomGrassRenderHelper &grassRenderHelper,
-  GrassPreRenderCallback pre_render_cb, const GPUGrassBase &gpuGrassBase)
+  const GPUGrassBase &gpuGrassBase)
 {
   if (!grassMaskHelper)
-    generateGrassMask(grassRenderHelper, eastl::move(pre_render_cb));
+    generateGrassMask(grassRenderHelper);
 
   // There is no any render to this target, but we need any target to set as a render target,
   // and we need to keep the same texel size between regular grass and grassify, so we use same targets.
@@ -197,11 +201,11 @@ void Grassify::generate(const Point3 &pos, const TMatrix &view_itm, Texture *gra
   grassMaskHelper->maskTex.setVar();
   grassMaskHelper->colorTex.setVar();
 
-  grassGenHelper->generate(pos, grassMaskHelper->offset, grassMaskHelper->maskSize, grassMaskHelper->halfPixelOffset,
-    grassMaskHelper->texelSize, view_itm, gpuGrassBase);
+  grassGenHelper->generate(pos, grassMaskHelper->offset, grassMaskHelper->maskSize, grassMaskHelper->texelSize, view_itm,
+    gpuGrassBase);
 }
 
-void Grassify::generateGrassMask(IRandomGrassRenderHelper &grassRenderHelper, GrassPreRenderCallback pre_render_cb)
+void Grassify::generateGrassMask(IRandomGrassRenderHelper &grassRenderHelper)
 {
   Color4 rendinst_landscape_area_left_top_right_bottom = ShaderGlobal::get_color4(rendinst_landscape_area_left_top_right_bottomVarId);
 
@@ -213,7 +217,6 @@ void Grassify::generateGrassMask(IRandomGrassRenderHelper &grassRenderHelper, Gr
     IPoint2(min(rendinst_landscape_area_left_top_right_bottom.b, rendinst_landscape_area_left_top_right_bottom.r),
       min(rendinst_landscape_area_left_top_right_bottom.a, rendinst_landscape_area_left_top_right_bottom.g));
 
-  Point2 grassifyMaskHalfPixelOffset = Point2(sign(grassifyMaskDistance.x), sign(grassifyMaskDistance.y)) * 0.5f;
   grassifyMaskDistance = abs(grassifyMaskDistance);
   IPoint2 grassifyMaskSize = IPoint2(grassifyMaskDistance.x / texelSize, grassifyMaskDistance.y / texelSize);
 
@@ -238,7 +241,6 @@ void Grassify::generateGrassMask(IRandomGrassRenderHelper &grassRenderHelper, Gr
   }
   G_ASSERT(grassifyMaskSize.x > 0 && grassifyMaskSize.y > 0);
 
-  grassMaskHelper =
-    eastl::make_unique<GrassMaskSliceHelper>(texelSize, grassifyMaskSize, grassifyMaskOffset, grassifyMaskHalfPixelOffset);
-  grassMaskHelper->renderMask(grassRenderHelper, eastl::move(pre_render_cb));
+  grassMaskHelper = eastl::make_unique<GrassMaskSliceHelper>(texelSize, grassifyMaskSize, grassifyMaskOffset);
+  grassMaskHelper->renderMask(grassRenderHelper);
 }

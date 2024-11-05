@@ -1,0 +1,11 @@
+
+return {
+  createNotificationChannel = function(_id,_name,_description) { return false }
+  isNotificationChannelExist = function(_id) { return false }
+  addLocalNotification = function(_time, _icon, _title, _text, _data, _channel) { return 0 }
+  cancelLocalNotification = function(_id) { return 0 }
+  clearAndCancelAllLocalNotifications = function() {}
+  clearReceivedLocalNotifications = function() {}
+  getNotificationsCount = function() { return 0 }
+  isNotificationsEnabled = function() {}
+}

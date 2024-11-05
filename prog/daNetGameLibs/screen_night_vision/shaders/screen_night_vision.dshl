@@ -1,0 +1,151 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "viewVecVS.dshl"
+
+texture frame_tex;
+texture noise_64_tex_l8;
+
+int screen_night_vision__mode = 2;
+interval screen_night_vision__mode : mono<1, binocular<2, connected;
+
+float4 screen_night_vision__dark_color = (0, 0.0, 0.0, 0);
+float4 screen_night_vision__light_color = (0, 0.9, 0.1, 0);
+float screen_night_vision__light_multiplier = 1.0;
+float screen_night_vision__gamma_correction = 1.0;
+float4 screen_night_vision__luminance_rgb_coef = (0.299, 0.587, 0.114, 0);
+float4 screen_night_vision__fog_color = (0, 0.2, 0.0, 0);
+float screen_night_vision__fog_clear_distance = 20;
+float screen_night_vision__fog_opaque_distance = 250;
+float4 screen_night_vision__left_ocular = (0.25, 0.5, 0, 0);
+float screen_night_vision__ocular_radius = 0.25;
+float4 screen_night_vision__border_color = (0, 0.01, 0.02, 0);
+float screen_night_vision__border_blur = 0.8;
+float screen_night_vision__border_opacity = 1.0;
+float screen_night_vision__line_opacity = 0.03;
+float screen_night_vision__line_height = 0.9;
+float screen_night_vision__line_blur = 0.9;
+float screen_night_vision__noise_fps = 240.0;
+float screen_night_vision__noise_low_strength = 0.06;
+float screen_night_vision__noise_high_strength = 0.8;
+float screen_night_vision__noise_threshold = 0.0002;
+float screen_night_vision__noise_pixelize = 2.0;
+
+shader screen_night_vision
+{
+  ENABLE_ASSERT(ps)
+
+  cull_mode = none;
+
+  hlsl{
+    #define USE_TEXCOORD tc
+  }
+
+  USE_AND_INIT_VIEW_VEC_VS()
+  POSTFX_VS_TEXCOORD_VIEWVEC(0, tc, viewVect)
+  INIT_LOAD_DEPTH_GBUFFER()
+  USE_LOAD_DEPTH_GBUFFER()
+  INIT_ZNZFAR()
+
+  (ps) {
+    frame_tex@smp2d = frame_tex;
+    frame_resolution@f2 = get_dimensions(frame_tex, 0);
+    // Depth resolution may vary from frame_resolution, if tsr is on
+    depth_resolution@f2 = get_dimensions(depth_gbuf, 0); // This is not correct for multiview rendering, will need to be addressed when there will be for daNetGame!
+    light_color@f3 = screen_night_vision__light_color;
+    dark_color@f3 = screen_night_vision__dark_color;
+    light_multiplier@f1 = screen_night_vision__light_multiplier;
+    gamma_correction@f1 = screen_night_vision__gamma_correction;
+    fog_color@f3 = screen_night_vision__fog_color;
+    border_color@f3 = screen_night_vision__border_color;
+    fog_clear_distance@f1 = screen_night_vision__fog_clear_distance;
+    fog_opaque_distance@f1 = screen_night_vision__fog_opaque_distance;
+    left_ocular@f2 = screen_night_vision__left_ocular;
+    ocular_radius@f1 = screen_night_vision__ocular_radius;
+    border_blur@f1 = (0.001 + screen_night_vision__border_blur * screen_night_vision__ocular_radius, 0, 0, 0);
+    border_opacity@f1 = screen_night_vision__border_opacity;
+    line_opacity@f1 = screen_night_vision__line_opacity;
+    line_height@f1 = (screen_night_vision__line_height * screen_night_vision__ocular_radius, 0, 0, 0);
+    line_blur@f1 = (0.001 + screen_night_vision__line_blur * screen_night_vision__line_height * screen_night_vision__ocular_radius, 0, 0, 0);
+    luminance_rgb_coef@f3 = screen_night_vision__luminance_rgb_coef;
+    noise_64_tex_l8@tex2d = noise_64_tex_l8;
+    noise_fps@f1 = (screen_night_vision__noise_fps * time_phase(0, 0), 0, 0, 0);
+    noise_low_strength@f1 = screen_night_vision__noise_low_strength;
+    noise_high_strength@f1 = (screen_night_vision__noise_high_strength / screen_night_vision__noise_threshold, 0, 0, 0);
+    noise_threshold@f2 = (1.0 - screen_night_vision__noise_threshold, 1.0 / (1.0 - screen_night_vision__noise_threshold));
+    noise_pixelize@f1 = (1.0 / screen_night_vision__noise_pixelize, 0, 0, 0);
+  }
+
+  hlsl(ps) {
+    #include <noise/uint_noise1D.hlsl>
+
+    half4 screen_night_vision_ps(VsOutput input) : SV_Target0
+    {
+      const half2 tc = input.tc;
+      float2 frameTc = tc * frame_resolution;
+      const half3 frame = texelFetch(frame_tex, frameTc, 0).rgb;
+      half light = pow(dot(frame, luminance_rgb_coef), gamma_correction) * light_multiplier;
+
+      // Noise
+      uint2 noiseTc = uint2(frameTc * noise_pixelize);
+      const uint FLOAT_EXACT_PRECISION = (1 << 23);
+      uint uintNoise = uint_noise2D(noiseTc.x, noiseTc.y, noise_fps);
+      float noise = asfloat((uintNoise & 0x7fffffU) | 0x3f000000U); // from 0.0 to 1.0
+
+      FLATTEN
+      if (noise >= noise_threshold.x)
+      {
+        noise -= noise_threshold.x;
+        noise *= noise_high_strength;
+      }
+      else
+      {
+        noise = pow4(noise * noise_threshold.y);
+        noise *= noise_low_strength;
+      }
+
+      light += noise;
+
+      half3 color = lerp(dark_color, light_color, light);
+
+      // Fog
+      const float rawDepth = loadGbufferDepth(tc * depth_resolution);
+      const float w = linearize_z(rawDepth, zn_zfar.zw);
+      float depth = length(input.viewVect) * w;
+      const half fog_opacity = smoothstep(fog_clear_distance, fog_opaque_distance, depth);
+      color = lerp(color, fog_color, fog_opacity);
+
+      // Border
+      const half2 right_ocular = half2(1.0 - left_ocular.x, left_ocular.y);
+      half2 sdf_tc = tc;
+
+##if screen_night_vision__mode == connected
+      FLATTEN
+      if (sdf_tc.x >= left_ocular.x && sdf_tc.x <= right_ocular.x) {
+        sdf_tc.x = left_ocular.x;
+      }
+##endif
+
+      const half frame_ratio = frame_resolution.y / frame_resolution.x;
+      half ocular_sdf = clamp(ocular_radius - length((sdf_tc - left_ocular) * float2(1, frame_ratio)), 0, 1);
+
+      const half right_ocular_sdf = clamp(ocular_radius - length((sdf_tc - right_ocular) * float2(1, frame_ratio)), 0, 1);
+
+##if screen_night_vision__mode == connected
+      ocular_sdf = max(ocular_sdf, right_ocular_sdf);
+##elif screen_night_vision__mode == binocular
+      ocular_sdf = 1 - (1 - ocular_sdf) * (1 - right_ocular_sdf);
+##endif
+
+      half border_opac = 1.0 - smoothstep(0, border_blur, ocular_sdf);
+
+      const half line_sdf = line_height / frame_ratio - abs(tc.y - left_ocular.y);
+      const half line_opac = 1.0 - smoothstep(0, line_blur, line_sdf) * line_opacity;
+      border_opac = min(min(border_opac, line_opac), border_opacity);
+
+      color = lerp(color, border_color, border_opac);
+
+      return half4(color, 1.0);
+    }
+  }
+  compile("target_ps", "screen_night_vision_ps");
+}

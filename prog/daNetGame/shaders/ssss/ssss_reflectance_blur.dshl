@@ -1,0 +1,278 @@
+// Heavily relying on Separable Subsurface Scattering by Jorge Jimenez:
+// http://www.iryoku.com/separable-sss/
+// https://github.com/iryoku/separable-sss
+
+/**
+ * Copyright (C) 2012 Jorge Jimenez (jorge@iryoku.com)
+ * Copyright (C) 2012 Diego Gutierrez (diegog@unizar.es)
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *    1. Redistributions of source code must retain the above copyright notice,
+ *       this list of conditions and the following disclaimer.
+ *
+ *    2. Redistributions in binary form must reproduce the following disclaimer
+ *       in the documentation and/or other materials provided with the
+ *       distribution:
+ *
+ *       "Uses Separable SSS. Copyright (C) 2012 by Jorge Jimenez and Diego
+ *        Gutierrez."
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS
+ * IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL COPYRIGHT HOLDERS OR CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ * The views and conclusions contained in the software and documentation are
+ * those of the authors and should not be interpreted as representing official
+ * policies, either expressed or implied, of the copyright holders.
+ */
+
+include "ssss/ssss_common.dshl"
+
+float ssss_reflectance_blur_width = 0.008;
+int ssss_reflectance_blur_quality = 1;
+interval ssss_reflectance_blur_quality : low<1, medium<2, high;
+int ssss_reflectance_follow_surface = 0;
+interval ssss_reflectance_follow_surface : no<1, yes;
+
+float ssss_reflectance_vertical_fov = 1; // Not angle, but: 1.0 / tan(0.5 * vertical_fov_in_rad)
+int ssss_reflectance_blur_pass = 1;
+
+macro INIT_SSSS_REFLECTANCE_BLUR(stage)
+  (stage)
+  {
+    ssss_reflectance_blur_params@f4 = (ssss_reflectance_blur_width,
+                                       ssss_reflectance_vertical_fov,
+                                       ssss_reflectance_blur_pass,
+                                       1.0 - ssss_reflectance_blur_pass);
+  }
+endmacro
+
+macro USE_SSSS_REFLECTANCE_BLUR(stage)
+  hlsl(stage)
+  {
+    #define ssss_reflectance_blur_width ssss_reflectance_blur_params.x
+    #define ssss_distance_to_proj_window ssss_reflectance_blur_params.y
+    #define ssss_blur_dir ssss_reflectance_blur_params.zw
+
+    //-----------------------------------------------------------------------------
+    // Configurable Defines
+
+    #ifndef SSSS_LINEARIZE_DEPTH
+    #define SSSS_LINEARIZE_DEPTH(raw_depth) (raw_depth)
+    #endif
+
+    /**
+    * Light diffusion should occur on the surface of the object, not in a screen
+    * oriented plane. Setting SSSS_FOLLOW_SURFACE to 1 will ensure that diffusion
+    * is more accurately calculated, at the expense of more memory accesses.
+    */
+    ##if ssss_reflectance_follow_surface == yes
+      #define SSSS_FOLLOW_SURFACE 1
+    ##else
+      #define SSSS_FOLLOW_SURFACE 0
+    ##endif
+
+    /**
+    * Here you have ready-to-use kernels for quickstarters. Three kernels are
+    * readily available, with varying quality.
+    * To create new kernels take a look into SSS::calculateKernel, or simply
+    * push CTRL+C in the demo to copy the customized kernel into the clipboard.
+    *
+    * Note: these preset kernels are not used by the demo. They are calculated on
+    * the fly depending on the selected values in the interface, by directly using
+    * SSS::calculateKernel.
+    *
+    * Quality ranges from 0 to 2, being 2 the highest quality available.
+    * The quality is with respect to 1080p; for 720p Quality=0 suffices.
+    */
+    ##if ssss_reflectance_blur_quality == low
+      #define SSSS_QUALITY 0
+    ##elif ssss_reflectance_blur_quality == medium
+      #define SSSS_QUALITY 1
+    ##elif ssss_reflectance_blur_quality == high
+      #define SSSS_QUALITY 2
+    ##endif
+
+    #if SSSS_QUALITY == 2
+    #define SSSS_N_SAMPLES 25
+    static const float4 kernel[] = {
+        float4(0.530605, 0.613514, 0.739601, 0),
+        float4(0.000973794, 1.11862e-005, 9.43437e-007, -3),
+        float4(0.00333804, 7.85443e-005, 1.2945e-005, -2.52083),
+        float4(0.00500364, 0.00020094, 5.28848e-005, -2.08333),
+        float4(0.00700976, 0.00049366, 0.000151938, -1.6875),
+        float4(0.0094389, 0.00139119, 0.000416598, -1.33333),
+        float4(0.0128496, 0.00356329, 0.00132016, -1.02083),
+        float4(0.017924, 0.00711691, 0.00347194, -0.75),
+        float4(0.0263642, 0.0119715, 0.00684598, -0.520833),
+        float4(0.0410172, 0.0199899, 0.0118481, -0.333333),
+        float4(0.0493588, 0.0367726, 0.0219485, -0.1875),
+        float4(0.0402784, 0.0657244, 0.04631, -0.0833333),
+        float4(0.0211412, 0.0459286, 0.0378196, -0.0208333),
+        float4(0.0211412, 0.0459286, 0.0378196, 0.0208333),
+        float4(0.0402784, 0.0657244, 0.04631, 0.0833333),
+        float4(0.0493588, 0.0367726, 0.0219485, 0.1875),
+        float4(0.0410172, 0.0199899, 0.0118481, 0.333333),
+        float4(0.0263642, 0.0119715, 0.00684598, 0.520833),
+        float4(0.017924, 0.00711691, 0.00347194, 0.75),
+        float4(0.0128496, 0.00356329, 0.00132016, 1.02083),
+        float4(0.0094389, 0.00139119, 0.000416598, 1.33333),
+        float4(0.00700976, 0.00049366, 0.000151938, 1.6875),
+        float4(0.00500364, 0.00020094, 5.28848e-005, 2.08333),
+        float4(0.00333804, 7.85443e-005, 1.2945e-005, 2.52083),
+        float4(0.000973794, 1.11862e-005, 9.43437e-007, 3),
+    };
+    #elif SSSS_QUALITY == 1
+    #define SSSS_N_SAMPLES 17
+    static const float4 kernel[] = {
+        float4(0.536343, 0.624624, 0.748867, 0),
+        float4(0.00317394, 0.000134823, 3.77269e-005, -2),
+        float4(0.0100386, 0.000914679, 0.000275702, -1.53125),
+        float4(0.0144609, 0.00317269, 0.00106399, -1.125),
+        float4(0.0216301, 0.00794618, 0.00376991, -0.78125),
+        float4(0.0347317, 0.0151085, 0.00871983, -0.5),
+        float4(0.0571056, 0.0287432, 0.0172844, -0.28125),
+        float4(0.0582416, 0.0659959, 0.0411329, -0.125),
+        float4(0.0324462, 0.0656718, 0.0532821, -0.03125),
+        float4(0.0324462, 0.0656718, 0.0532821, 0.03125),
+        float4(0.0582416, 0.0659959, 0.0411329, 0.125),
+        float4(0.0571056, 0.0287432, 0.0172844, 0.28125),
+        float4(0.0347317, 0.0151085, 0.00871983, 0.5),
+        float4(0.0216301, 0.00794618, 0.00376991, 0.78125),
+        float4(0.0144609, 0.00317269, 0.00106399, 1.125),
+        float4(0.0100386, 0.000914679, 0.000275702, 1.53125),
+        float4(0.00317394, 0.000134823, 3.77269e-005, 2),
+    };
+    #elif SSSS_QUALITY == 0
+    #define SSSS_N_SAMPLES 11
+    static const float4 kernel[] = {
+        float4(0.560479, 0.669086, 0.784728, 0),
+        float4(0.00471691, 0.000184771, 5.07566e-005, -2),
+        float4(0.0192831, 0.00282018, 0.00084214, -1.28),
+        float4(0.03639, 0.0130999, 0.00643685, -0.72),
+        float4(0.0821904, 0.0358608, 0.0209261, -0.32),
+        float4(0.0771802, 0.113491, 0.0793803, -0.08),
+        float4(0.0771802, 0.113491, 0.0793803, 0.08),
+        float4(0.0821904, 0.0358608, 0.0209261, 0.32),
+        float4(0.03639, 0.0130999, 0.00643685, 0.72),
+        float4(0.0192831, 0.00282018, 0.00084214, 1.28),
+        float4(0.00471691, 0.000184771, 5.07565e-005, 2),
+    };
+    #else
+    #error Quality must be one of {0,1,2}
+    #endif
+
+    //-----------------------------------------------------------------------------
+    // Separable SSS Reflectance Pixel Shader
+
+    float4 ssss_reflectance_blur(
+            /**
+            * The usual quad texture coordinates.
+            */
+            float2 texcoord,
+
+            /**
+            * The desired SSS strength should be stored in the alpha channel
+            * (1 for full strength, 0 for disabling SSS).
+            */
+            float sssStrength,
+
+            /**
+            * This is a SRGB or HDR color input buffer, which should be the final
+            * color frame, resolved in case of using multisampling. The desired
+            * SSS strength should be stored in the alpha channel (1 for full
+            * strength, 0 for disabling SSS).
+            *
+            * When using non-SRGB buffers, you
+            * should convert to linear before processing, and back again to gamma
+            * space before storing the pixels (see Chapter 24 of GPU Gems 3 for
+            * more info)
+            *
+            * IMPORTANT: WORKING IN A NON-LINEAR SPACE WILL TOTALLY RUIN SSS!
+            */
+            Texture2D colorTex,
+            SamplerState colorTex_samplerstate,
+
+            /**
+            * The linear depth buffer of the scene, resolved in case of using
+            * multisampling. The resolve should be a simple average to avoid
+            * artifacts in the silhouette of objects.
+            */
+            Texture2D depthTex,
+            SamplerState depthTex_samplerstate
+
+            /**
+            * This parameter specifies the global level of subsurface scattering
+            * or, in other words, the width of the filter. It's specified in
+            * world space units.
+            */
+            // We set it directly from ssss_reflectance_blur_width const instead of function param
+            //float sssWidth,
+
+            /**
+            * Direction of the blur:
+            *   - First pass:   float2(1.0, 0.0)
+            *   - Second pass:  float2(0.0, 1.0)
+            */
+            // We set it directly from ssss_blur_dir const instead of function param
+            //float2 dir,
+            ) {
+
+        // Fetch color of current pixel:
+        float4 colorM = tex2Dlod(colorTex, float4(texcoord, 0, 0));
+
+        // Fetch linear depth of current pixel:
+        float depthM = SSSS_LINEARIZE_DEPTH(tex2Dlod(depthTex, float4(texcoord, 0, 0)).r);
+
+        // Calculate the sssWidth scale (1.0 for a unit plane sitting on the
+        // projection window):
+        float scale = ssss_distance_to_proj_window / depthM;
+
+        // Calculate the final step to fetch the surrounding pixels:
+        float2 finalStep = ssss_reflectance_blur_width * scale * ssss_blur_dir;
+        finalStep *= sssStrength; // Modulate it using SSS strength.
+        finalStep *= 1.0 / 3.0; // Divide by 3 as the kernels range from -3 to 3.
+
+        // Accumulate the center sample:
+        float4 colorBlurred = colorM;
+        colorBlurred.rgb *= kernel[0].rgb;
+
+        // Accumulate the other samples:
+        UNROLL
+        for (int i = 1; i < SSSS_N_SAMPLES; i++) {
+            // Fetch color and depth for current sample:
+            float2 offset = texcoord + kernel[i].a * finalStep;
+            float4 color = tex2Dlod(colorTex, float4(offset, 0, 0));
+
+            #if SSSS_FOLLOW_SURFACE == 1
+            // If the difference in depth is huge, we lerp color back to "colorM":
+            float rawDepth = tex2Dlod(depthTex, float4(offset, 0, 0)).r;
+            FLATTEN
+            if (rawDepth > 0 && rawDepth < 1)
+            {
+              float depth = SSSS_LINEARIZE_DEPTH(rawDepth);
+              float s = saturate(300.0f * ssss_distance_to_proj_window * ssss_reflectance_blur_width * abs(depthM - depth));
+              color.rgb = lerp(color.rgb, colorM.rgb, s);
+            } else
+              color.rgb = colorM.rgb;
+            #endif
+
+            // Accumulate:
+            colorBlurred.rgb += kernel[i].rgb * color.rgb;
+        }
+
+        return colorBlurred;
+    }
+  }
+endmacro

@@ -78,16 +78,16 @@ if $(IncludeEncoder) = yes {
   Sources += lib/enc/encoder_disabled.c ;
 }
 
-if $(Platform) = win32 {
+if $(Platform)-$(PlatformArch) = windows-x86 {
   Sources += lib/dec/$(dec_asm_src) ;
   Copt    += -DUSE_ASM ;
   if $(IncludeEncoder) = yes { Sources += lib/enc/$(enc_asm_src) ; }
 }
 
 # warning 4554| '>>' : check operator precedence for possible error; use parentheses to clarify precedence
-if $(Platform) in win32 win64 xboxOne scarlett { Copt += /wd4554 ; }
+if $(Platform) in windows xboxOne scarlett { Copt += /wd4554 ; }
 if $(Platform) in ps4 ps5 { Copt += -Wno-shift-op-parentheses ; }
-if $(PlatformSpec) in clang clang64 { Copt += -Wno-logical-op-parentheses -Wno-parentheses -Wno-tautological-compare ; }
+if $(PlatformSpec) = clang { Copt += -Wno-logical-op-parentheses -Wno-parentheses -Wno-tautological-compare ; }
 
 if $(PlatformSpec) in gcc clang {
   CPPopt += -Wno-unused-parameter ;

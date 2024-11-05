@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #import <Cocoa/Cocoa.h>
 
 #include "../sender.h"

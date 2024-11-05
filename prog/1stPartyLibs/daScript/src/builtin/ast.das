@@ -29,6 +29,7 @@ typedef
     TypeInfoMacroPtr = smart_ptr<TypeInfoMacro>
     ForLoopMacroPtr = smart_ptr<ForLoopMacro>
     CaptureMacroPtr = smart_ptr<CaptureMacro>
+    TypeMacroPtr = smart_ptr<TypeMacro>
     SimulateMacroPtr = smart_ptr<SimulateMacro>
 
 [generic]
@@ -47,20 +48,20 @@ def describe ( expr : smart_ptr<Expression> )
 def describe ( expr : smart_ptr<Function> )
     return describe_function(expr)
 
-def ExpressionPtr ( expr : smart_ptr<auto(TT)> ) : ExpressionPtr
-    static_if starts_with(typeinfo(fulltypename expr),"smart_ptr<ast::Expr")
-        return <- unsafe(reinterpret<smart_ptr<Expression>> expr)
-    else
-        concept_assert(false, "not derived from ast::Expression")
-        return <- [[ExpressionPtr]]
+def clone_function ( fn : Function? ) : FunctionPtr
+    return <- clone_function(unsafe(reinterpret<FunctionPtr> fn))
 
-[generic]
-def FunctionPtr ( fun : Function? ) : FunctionPtr
-    return <- unsafe(reinterpret<FunctionPtr> fun)
+def get_mangled_name ( fn : Function? )
+    return get_mangled_name(unsafe(reinterpret<FunctionPtr> fn))
 
-[generic]
-def StructurePtr ( stru : Structure? ) : StructurePtr
-    return <- unsafe(reinterpret<StructurePtr> stru)
+def get_mangled_name ( decl : TypeDecl? )
+    return get_mangled_name(unsafe(reinterpret<TypeDeclPtr> decl))
+
+def get_mangled_name ( decl : Variable? )
+    return get_mangled_name(unsafe(reinterpret<VariablePtr> decl))
+
+def get_mangled_name ( decl : ExprBlock? )
+    return get_mangled_name(unsafe(reinterpret<smart_ptr<ExprBlock>> decl))
 
 [macro_interface]
 class AstFunctionAnnotation
@@ -112,6 +113,10 @@ class AstCaptureMacro
     def abstract captureFunction ( prog:Program?; mod:Module?; var lcs:Structure?; var fun:FunctionPtr ) : void
 
 [macro_interface]
+class AstTypeMacro
+    def abstract visit ( prog:ProgramPtr; mod:Module?; td,passT:TypeDeclPtr ) : TypeDeclPtr
+
+[macro_interface]
 class AstSimulateMacro
     def abstract preSimulate ( prog:Program?; ctx:Context? ) : bool
     def abstract simulate ( prog:Program?; ctx:Context? ) : bool
@@ -119,6 +124,7 @@ class AstSimulateMacro
 [macro_interface]
 class AstReaderMacro
     def abstract accept ( prog:ProgramPtr; mod:Module?; expr:ExprReader?; ch:int; info:LineInfo ) : bool
+    def abstract suffix ( prog:ProgramPtr; mod:Module?; expr:ExprReader?; info:LineInfo; var outLine:int&; var outFile:FileInfo?& ) : string
     def abstract visit ( prog:ProgramPtr; mod:Module?; expr:smart_ptr<ExprReader> ) : ExpressionPtr
 
 [macro_interface]
@@ -137,8 +143,24 @@ class AstCommentReader
     def abstract afterGlobalVariable ( name:string; prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
     def abstract afterGlobalVariables ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
     def abstract beforeVariant ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
+    def abstract beforeVariantEntries ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
+    def abstract afterVariantEntry ( name:string; prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
+    def abstract afterVariantEntries ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
     def abstract afterVariant ( name:string; prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
+    def abstract beforeTuple ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
+    def abstract beforeTupleEntries ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
+    def abstract afterTupleEntry ( name:string; prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
+    def abstract afterTupleEntries ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
+    def abstract afterTuple ( name:string; prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
+    def abstract beforeBitfield ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
+    def abstract beforeBitfieldEntries ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
+    def abstract afterBitfieldEntry ( name:string; prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
+    def abstract afterBitfieldEntries ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
+    def abstract afterBitfield ( name:string; prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
     def abstract beforeEnumeration ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
+    def abstract beforeEnumerationEntries ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
+    def abstract afterEnumerationEntry ( name:string; prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
+    def abstract afterEnumerationEntries ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
     def abstract afterEnumeration ( name:string; prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
     def abstract beforeAlias ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
     def abstract afterAlias ( name:string; prog:ProgramPtr; mod:Module?; info:LineInfo ) : void
@@ -249,6 +271,7 @@ class AstVisitor
 // looks like call (debug,assert,verify,erase,find,key_exists,keys,values,invoke,memzero etc)
     def abstract preVisitExprLooksLikeCall(expr:smart_ptr<ExprLooksLikeCall>): void
     def abstract visitExprLooksLikeCall(expr:smart_ptr<ExprLooksLikeCall>) : ExpressionPtr
+    def abstract canVisitLooksLikeCallArgument(expr:smart_ptr<ExprLooksLikeCall>;arg:ExpressionPtr;last:bool): bool
     def abstract preVisitExprLooksLikeCallArgument(expr:smart_ptr<ExprLooksLikeCall>;arg:ExpressionPtr;last:bool): void
     def abstract visitExprLooksLikeCallArgument(expr:smart_ptr<ExprLooksLikeCall>;arg:ExpressionPtr;last:bool) : ExpressionPtr
 // call
@@ -338,6 +361,8 @@ class AstVisitor
     def abstract visitExprMakeStructIndex(expr:smart_ptr<ExprMakeStruct>;index:int;last:bool) : void
     def abstract preVisitExprMakeStructField(expr:smart_ptr<ExprMakeStruct>;index:int;decl:MakeFieldDeclPtr;last:bool) : void
     def abstract visitExprMakeStructField(expr:smart_ptr<ExprMakeStruct>;index:int;decl:MakeFieldDeclPtr;last:bool) : MakeFieldDeclPtr
+    def abstract preVisitMakeStructureBlock(expr:smart_ptr<ExprMakeStruct>;blk:smart_ptr<Expression>) : void
+    def abstract visitMakeStructureBlock(expr:smart_ptr<ExprMakeStruct>;blk:smart_ptr<Expression>) : ExpressionPtr
 // make array
     def abstract preVisitExprMakeArray(expr:smart_ptr<ExprMakeArray>) : void
     def abstract visitExprMakeArray(expr:smart_ptr<ExprMakeArray>) : ExpressionPtr
@@ -717,6 +742,15 @@ def make_capture_macro ( name : string; someClassPtr ) : CaptureMacroPtr
         concept_assert(false,"expecting pointer to class")
         return <- [[CaptureMacroPtr]]
 
+[macro_function]
+def make_type_macro ( name : string; someClassPtr ) : TypeMacroPtr
+    static_if typeinfo(is_pointer someClassPtr) && typeinfo(is_class *someClassPtr)
+        let classInfo = class_info(*someClassPtr)
+        return <- make_type_macro(name, someClassPtr, classInfo)
+    else
+        concept_assert(false,"expecting pointer to class")
+        return <- [[TypeMacroPtr]]
+
 var private gc_root_AstSimulateMacro : array<AstSimulateMacro?>
 
 [macro_function]
@@ -768,6 +802,11 @@ def add_new_for_loop_macro ( name:string; someClassPtr )
 def add_new_capture_macro ( name:string; someClassPtr )
     var inscope ann <- make_capture_macro(name, someClassPtr)
     this_module() |> add_capture_macro(ann)
+
+[macro_function]
+def add_new_type_macro ( name:string; someClassPtr )
+    var inscope ann <- make_type_macro(name, someClassPtr)
+    this_module() |> add_type_macro(ann)
 
 [macro_function]
 def add_new_simulate_macro ( name:string; someClassPtr )
@@ -825,7 +864,7 @@ def find_module(prog:smart_ptr<Program>; name:string) : Module?
         if string(mod.name)==name
             rm = mod
     if rm==null
-        panic("module `{name}` not found")
+        panic("module '{name}' not found")
     return rm
 
 [generic]

@@ -1,0 +1,1022 @@
+include "fx_render_mode.dshl"
+include "depth_mask.dshl"
+include "psh_tangent.dshl"
+include "dafx_shaders.dshl"
+include "trails_aces_blocks.dshl"
+include "refraction.dshl"
+include "roughToMip.dshl"
+include "indoor_light_probes.dshl"
+include "skyLight.dshl"
+include "taa_inc.dshl"
+include "reprojected_motion_vectors.dshl"
+include "static_shadow.dshl"
+
+hlsl {
+  #define DO_NOT_FILTER_GI_AMBIENT_BY_NORMAL_WEIGHT 1
+}
+texture low_resolution_fx_depth_tex;
+float softness_depth_rcp = 10;
+
+int use_dafx = 0;
+interval use_dafx: no < 1, yes;
+
+int fx_apply_volfog_per_pixel = 0;
+interval fx_apply_volfog_per_pixel: no < 1, yes;
+
+int fom_double_intensity = 0;
+interval fom_double_intensity: no < 1, yes;
+
+float4 fx_world_tm_0 = (1, 0, 0, 0);
+float4 fx_world_tm_1 = (0, 1, 0, 0);
+float4 fx_world_tm_2 = (0, 0, 1, 0);
+
+float fade_scale = 1;
+float color_scale = 1;
+float4 cloud_blend_params = (1, 0, 0, 0);
+
+//float animplanes_bias = 0.0005;
+
+//float softness_distance = 0;
+//interval softness_distance : animplanes_bias_off < 0.0001, animplanes_bias_on;
+
+//int depth_downsample_pass = 0;
+//interval depth_downsample_pass : depth_downsample_pass_2x < 1, depth_downsample_pass_4x<2, depth_downsample_pass_2x_max_only;
+
+float effects_fresnel_min = 0.2;
+float effects_fresnel_max = 1.0;
+
+int haze_render_mode_id  = 5 always_referenced;
+int haze_apply_is_manual = 0 always_referenced;
+
+int has_motion_vectors = 0;
+interval has_motion_vectors: no < 1, yes;
+float4 prevViewProjTm0;
+float4 prevViewProjTm1;
+float4 prevViewProjTm2;
+float4 prevViewProjTm3;
+macro FX_WRITE_MOTION_VECTORS()
+  if (has_motion_vectors == yes)
+  {
+    INIT_REPROJECTED_MOTION_VECTORS(ps)
+    USE_REPROJECTED_MOTION_VECTORS(ps)
+    USE_MOTION_VEC_ENCODE(ps)
+
+    (ps) {
+      prevViewProjTm@f44 = {prevViewProjTm0, prevViewProjTm1, prevViewProjTm2, prevViewProjTm3};
+      gbuf_texel_size@f2 = (rendering_res.z, rendering_res.w, 0, 0);
+    }
+
+    hlsl(ps){
+      #define MOTION_VECTORS_ENABLED
+    }
+  }
+endmacro
+
+int softness_depth_rcp_c_no = 55;
+int effects_tex_c_no = 10;
+int effects_nm_tex_c_no = 11 always_referenced;
+macro USE_HARDCODED_PS()
+if (in_editor_assume == no)
+{
+  hlsl(ps) {
+    float softness_depth_rcp_reg : register(c55);
+    Texture2D tex:register(t10);
+    SamplerState tex_samplerstate:register(s10);
+    Texture2D tex_nm:register(t11);
+    SamplerState tex_nm_samplerstate:register(s11);
+  }
+} else {
+  (ps)
+  {
+    tex@smp2d = tex;
+    tex_nm@smp2d = tex_nm;
+    softness_depth_rcp_reg@f1 = (softness_depth_rcp,0,0,0);
+  }
+}
+endmacro
+
+int fade_scale_c_no = 50;
+macro USE_HARDCODED_VS()
+if (in_editor_assume == no)
+{
+} else {
+  (vs)
+  {
+    fade_color_scale@f2 = (fade_scale);
+    fx_world_tm_0@f4=fx_world_tm_0;
+    fx_world_tm_1@f4=fx_world_tm_1;
+    fx_world_tm_2@f4=fx_world_tm_1;
+    cloud_blend_params@f2=cloud_blend_params;
+    src_color_scale@f1 = (color_scale, 0, 0, 0);
+  }
+  hlsl(vs) {
+    #define light_color_reg (0);
+    #define light_pos_reg (0);
+  }
+}
+
+hlsl
+{
+  #define sky_color_reg sky_color
+  #define sun_color_reg sun_color_0
+}
+endmacro
+
+macro PER_SHADER_VARS()
+  USE_HARDCODED_PS()
+  USE_HARDCODED_VS()
+endmacro
+
+macro FOG_VS_STCODE()
+endmacro
+macro FOG_VS_NO_STCODE()
+hlsl(vs) {
+  void get_fog(float3 point_to_eye, out float3 mul, out float3 add)
+  {
+    mul=1;
+    add=0;//fixme:yet to be implemented
+  }
+}
+endmacro
+
+
+macro GBUFFER_PATCH_PS()
+hlsl(ps)
+{
+  GBUFFER_OUTPUT gbuffer_patch_ps(VsOutput input)
+  {
+    float4 result = tex2D(tex, input.texcoord.xy);
+    float alpha = result.w;
+
+    UnpackedGbuffer gbuffer;
+    init_gbuffer(gbuffer);
+    init_albedo(gbuffer, result.xyz);
+##if compatibility_mode == compatibility_mode_off
+    return encode_gbuffer_alpha(gbuffer, saturate(alpha * input.color.a), input.pointToEye, GET_SCREEN_POS(input.pos));
+##else
+    //FIXME: it does not compile for some reason
+    //init_normal(gbuffer, float3(0,0,1));
+    //return encode_gbuffer_alpha(gbuffer, saturate(alpha * input.color.a), input.pointToEye);
+    discard;
+    return (GBUFFER_OUTPUT)0;
+##endif
+  }
+}
+endmacro
+
+macro FX_PS()
+
+  if ((use_postfx == off) && (shader != gbuffer_atest_particles_aces) && (shader != gbuffer_patch_aces)
+      && (shader != gbuffer_atest_particles) )
+  {
+    USE_FULL_TONEMAP_LUT(ps)
+    hlsl (ps) {
+      #define FX_USE_LUT 1
+
+      //with postfx we have: A = LUT(blend(frame, fx))
+      //without postfx we have: B = blend(LUT(frame), LUT(fx))
+      //A != B due to fact that LUT is not linear causing very overbright & wrong results
+      //we can't reconstruct proper value here (without postfx pass)
+      //even artificial hacks will not work, as error accumulates over intersected quads
+      half3 applyLUT(half3 v)
+      {
+        //return performLUTTonemap(v);
+        return v;
+      }
+    }
+  }
+  else
+  {
+    hlsl (ps) {
+      #define FX_USE_LUT 0
+    }
+  }
+
+  INIT_HDR(ps)
+  if (shader != atest_particles_refraction && shader != atest_particles_refraction_aces)
+  {
+    USE_HDR(ps)
+  }
+
+  (ps) {
+    volfog_ff_initial_media_rw@uav : register(volfog_ff_initial_media_const_no) hlsl {
+      #define VOLFOG_FF_INITIAL_MEDIA RWTexture3D<float4> volfog_ff_initial_media_rw@uav;
+    }
+  }
+  hlsl(ps)
+  {
+    VOLFOG_FF_INITIAL_MEDIA;
+  }
+
+  hlsl
+  {
+#if USE_DAFX
+    #define FX_NEED_SOFTNESS_DEPTH_RCP 1
+    #define FX_IS_PREMULTALPHA_DYNAMIC 1
+    #define IS_PREMULTALPHA input.shaderId == 4
+    #define IS_ADDITIVE input.shaderId == 1
+    #define IS_ABLEND input.shaderId == 0
+#endif
+
+    #define FX_USE_FRAME_BLEND 1
+##if in_editor_assume == yes
+    #define FX_IS_EDITOR 1
+##endif
+
+##if shader == additive_trails_aces || shader == addsmooth_particles_aces || shader == additive_trails || shader == addsmooth_particles || shader == fom_additive_particles_aces
+    #define FX_IS_ADDITIVE 1
+##endif
+
+  ##if shader == gbuffer_atest_particles || shader == gbuffer_atest_particles_aces
+    #define FX_NEED_POINT_TO_EYE 1
+    #define FX_SHADER_GBUFFER_ATEST 1
+    #ifdef MOTION_VECTORS_ENABLED
+      #define FX_WRITE_MOTION_VECTORS 1
+    #endif
+  ##elif shader == atest_particles_refraction || shader == atest_particles_refraction_aces
+    #define FX_NEED_POINT_TO_EYE 1
+    #define FX_NEED_SCREEN_TC 1
+    #define FX_REFRACTION 1
+  ##elif shader == fom_particles_aces || shader == fom_additive_particles_aces || fx_render_mode == fx_render_mode_fom
+    #define FX_NEED_SCREEN_TC 1
+    #define FX_SHADER_FOM 1
+    ##if fom_double_intensity == yes
+      #define FX_FOM_DOUBLE_INTESITY 1
+    ##endif
+  ##elif shader == volmedia_particles_aces || fx_render_mode == fx_render_mode_volmedia
+    #define FX_NEED_SCREEN_TC 1
+    #define FX_SHADER_VOLMEDIA 1
+  ##elif shader == haze_particles_aces || fx_render_mode == fx_render_mode_haze
+    #undef FX_USE_FRAME_BLEND
+    #define FX_NEED_SCREEN_TC 1
+    #define FX_SHADER_HAZE 1
+    #undef FX_IS_PREMULTALPHA_DYNAMIC
+  ##elif shader == premultalpha_particles || shader == premultalpha_particles_aces
+    #define FX_NEED_SCREEN_TC 1
+    #define FX_USE_DEPTH_MASK 1
+    #define FX_IS_PREMULTALPHA 1
+    #define FX_USE_LIGHTING 1
+    #define FX_NEED_FOG_ADD 1
+    #define FX_SHADER_PREMULTALPHA 1
+    #if FX_IS_PREMULTALPHA_DYNAMIC
+      #define FX_NEED_SHADER_ID 1
+    #endif
+  ##elif shader == additive_trails_aces || shader == addsmooth_particles_aces || shader == additive_trails || shader == addsmooth_particles
+    #define FX_NEED_SCREEN_TC 1
+    #define FX_USE_DEPTH_MASK 1
+    #define FX_USE_LIGHTING 1
+    #define FX_SHADER_ADDITIVE 1
+    ##if shader == additive_trails_aces || shader == additive_trails
+      #if FX_IS_PREMULTALPHA_DYNAMIC
+        #define FX_FORCE_INVALID_TEX 1 // remapped
+      #endif
+    ##endif
+  ##elif shader == ablend_particles || shader == ablend_particles_aces
+    #define FX_NEED_SCREEN_TC 1
+    #define FX_USE_DEPTH_MASK 1
+    #define FX_USE_LIGHTING 1
+    #define FX_NEED_FOG_ADD 1
+    #define FX_SHADER_ABLEND 1
+    #if FX_IS_PREMULTALPHA_DYNAMIC
+      #define FX_FORCE_INVALID_TEX 1 // remapped
+    #endif
+  ##elif shader == atest_particles || shader == atest_particles_aces
+    #define FX_NEED_SCREEN_TC 1
+    #define FX_USE_DEPTH_MASK 1
+    #define FX_USE_LIGHTING 1
+    #define FX_NEED_FOG_ADD 1
+    #define FX_SHADER_ABLEND 1
+  ##elif shader == gbuffer_patch
+    ##if compatibility_mode == compatibility_mode_on
+      #define FX_NEED_POINT_TO_EYE 1
+    ##endif
+  ##else
+    // #define FX_SHADER_NONE 1
+  ##endif
+
+    #define FX_NEED_FOG_REQ (FX_USE_LIGHTING && !FX_IS_EDITOR && !FX_SPECIAL_VISION)
+
+    #if FX_NEED_FOG_REQ && FX_USE_FOG_PS_APPLY
+      #undef FX_NEED_POINT_TO_EYE
+      #define FX_NEED_POINT_TO_EYE 1
+      #undef FX_NEED_SCREEN_TC
+      #define FX_NEED_SCREEN_TC 1
+    #endif
+
+    #define FX_DECL 1
+    #include "trails_aces_inc.hlsl"
+    #undef FX_DECL
+  }
+
+  USE_PIXEL_TANGENT_SPACE()
+
+  hlsl(ps)
+  {
+    #define fx_pack_hdr(a) pack_hdr(a)
+
+    #define FX_PS 1
+    #include "trails_aces_inc.hlsl"
+    #undef FX_PS
+  }
+
+endmacro
+
+
+
+shader additive_trails, ablend_particles, addsmooth_particles, atest_particles, premultalpha_particles, gbuffer_atest_particles, atest_particles_refraction, gbuffer_patch
+{
+  if (shader != atest_particles_refraction && shader != gbuffer_patch && in_editor_assume == no)
+  {
+    dont_render;
+  }
+
+  ENABLE_ASSERT(ps)
+  if (fx_apply_volfog_per_pixel == yes)
+  {
+    hlsl
+    {
+      #define FX_USE_FOG_PS_APPLY 1
+    }
+  }
+
+  if (shader == gbuffer_patch)
+  {
+    hlsl {
+      #define BLEND_GBUFFER 1
+    }
+  }
+  if (shader == gbuffer_atest_particles || shader == gbuffer_patch)
+  {
+    if (shader == gbuffer_patch && compatibility_mode == compatibility_mode_on)
+    {
+      dont_render;
+    }
+
+    supports render_particles_to_gbuffer_block;
+    if (shader == gbuffer_atest_particles)
+    {
+      FX_WRITE_MOTION_VECTORS()
+    }
+    INIT_STATIC_SHADOW_PS()
+    WRITE_GBUFFER()
+    if (fx_render_mode != fx_render_mode_normal)
+    {
+      dont_render;
+    }
+  } else if (shader == atest_particles_refraction)
+  {
+    if (fx_render_mode != fx_render_mode_normal)
+    {
+      dont_render;
+    }
+    supports dynamic_scene_trans;
+    supports global_const_block;
+    (ps) {
+      envi_probe_specular@smpCube = envi_probe_specular;
+    }
+    INIT_FETCH_REFRACTED_PIXEL()
+    USE_FETCH_REFRACTED_PIXEL()
+    USE_ROUGH_TO_MIP()
+    USE_INDOOR_LIGHT_PROBES(ps, false)
+    INIT_SKYLIGHT_PARAMS(ps)
+    USE_SKYLIGHT_PARAMS(ps)
+    INIT_ENVI_SPECULAR_SAMPLE(ps)
+    USE_ENVI_SPECULAR_SAMPLE(ps)
+    INIT_SKY_DIFFUSE_BASE(ps)
+    USE_SKY_DIFFUSE_BASE(ps)
+  } else if (fx_render_mode == fx_render_mode_fom)
+  {
+    supports dynamic_scene_trans_fom;
+  } else if (fx_render_mode == fx_render_mode_volmedia)
+  {
+    supports dynamic_scene_trans_volmedia;
+  } else
+  {
+    supports dynamic_scene_trans;
+    supports global_const_block;
+    USE_BRUNETON_FOG_VS()
+    USE_BRUNETON_FOG()
+    if (in_editor_assume == no)
+    {
+      INIT_ZNZFAR_STAGE(vs) // needed for USE_VOLUMETRIC_LIGHT_TRANSPARENT
+      USE_VOLUMETRIC_LIGHT_TRANSPARENT(vs)
+      USE_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
+      USE_STATIC_SHADOW_VS_ONE_CASCADE()
+      SQ_CLOUDS_SHADOW(vs)
+    }
+    GET_DEPTH_MASK()
+    USE_FOM_SHADOWS(vs)
+  }
+
+  if (fx_render_mode == fx_render_mode_haze)
+  {
+    z_write = true;
+    z_test = true;
+  }
+  else if (!((shader == atest_particles || shader == gbuffer_atest_particles || shader == atest_particles_refraction) && fx_render_mode == fx_render_mode_normal))
+  {
+    z_write=false;
+  }
+
+  cull_mode=none;
+
+  if (fx_render_mode == fx_render_mode_haze)
+  {
+    blend_src = 1; blend_dst = 1;
+    blend_asrc = 1; blend_adst = 1;
+    USE_ATEST_1()
+  }
+  else if (fx_render_mode == fx_render_mode_fom)
+  {
+    blend_src = 1; blend_dst = 1;
+    USE_ATEST_1()
+  } else if (fx_render_mode == fx_render_mode_volmedia)
+  {
+    z_test=false;//todo:remove me, we should use z_test
+    USE_ATEST_1()
+    if (shader != ablend_particles)
+    {
+      dont_render;
+    }
+  } else
+  {
+    if (shader != gbuffer_atest_particles && shader != atest_particles_refraction && shader != gbuffer_patch)
+    {
+      INIT_SKYLIGHT_PARAMS(vs)
+      USE_SKYLIGHT_PARAMS(vs)
+      USE_VOLUMETRIC_GI(vs)
+    }
+    if (shader == ablend_particles)
+    {
+      blend_src = sa; blend_dst = isa;
+      blend_asrc = zero; blend_adst = isa;
+      USE_ATEST_1()
+    }
+    else if (shader==premultalpha_particles)
+    {
+      blend_src=1; blend_dst=isa;
+      blend_asrc=1; blend_adst=1;
+      NO_ATEST()
+    }
+    else if (shader == addsmooth_particles)
+    {
+      blend_src=one; blend_dst=isc;
+      blend_asrc=zero; blend_adst=isa;
+      USE_ATEST_1()
+    }
+    else if (shader == atest_particles)
+    {
+      blend_src=sa; blend_dst=isa;
+      blend_asrc=zero; blend_adst=isa;
+      USE_ATEST_HALF()
+    }
+    else if (shader == gbuffer_atest_particles)
+    {
+      USE_ATEST_HALF()
+    }
+    else if (shader == atest_particles_refraction)
+    {
+      USE_ATEST_HALF()
+    }
+    else if (shader == gbuffer_patch)
+    {
+      blend_src=sa; blend_dst=isa;
+      blend_asrc = 0; blend_adst = 1;
+      color_write = 7; // writing albedo color only
+      NO_ATEST()
+    }
+    else  // additive_trails
+    {
+      blend_src=one; blend_dst=one;
+      blend_asrc=zero; blend_adst=one;
+      USE_ATEST_1()
+    }
+  }
+
+  if (in_editor_assume == yes)
+  {
+    dynamic texture tex;
+    dynamic texture tex_nm;
+  }
+
+  channel float3 pos=pos;
+  channel color8 vcol=vcol;
+  channel float3 tc[0] = tc[0];
+  channel float3 tc[1] = tc[1];
+  PER_SHADER_VARS()
+
+  DECL_POSTFX_TC_VS_RT()//fixme: should depend on where we render
+  ENABLE_ASSERT(ps)
+  FX_PS()
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float4 pos: POSITION;
+      float4 color : COLOR0;
+      float3 texcoord : TEXCOORD0;
+      float3 next_texcoord_blend : TEXCOORD1;
+    };
+  }
+  if (fx_render_mode == fx_render_mode_volmedia)
+  {
+    hlsl(vs) {
+      VsOutput fx_common_vs(VsInput input)
+      {
+        VsOutput output;
+        output.framesBlend = input.next_texcoord_blend.z;
+
+        output.pos = mulPointTm(input.pos.xyz, globtm);
+        float3 pointToEye = world_view_pos - input.pos.xyz;
+
+        float4 unpackedOutputPos = output.pos;
+
+        output.texcoord.xy = input.texcoord.xy;
+        output.texcoord.zw = input.next_texcoord_blend.xy;
+        output.color = input.color;
+
+  #if FX_NEED_SCREEN_TC
+        output.screenTexcoord = float4(
+          unpackedOutputPos.xy * RT_SCALE_HALF + float2(0.5000, 0.5000) * unpackedOutputPos.w,
+          unpackedOutputPos.z,
+          unpackedOutputPos.w);
+  #endif
+
+        return output;
+      }
+    }
+  } else
+  {
+    hlsl(vs) {
+
+      VsOutput fx_common_vs(VsInput input)
+      {
+        VsOutput output;
+        output.framesBlend = input.next_texcoord_blend.z;
+
+        float3 worldPos = input.pos.xyz;
+        output.pos = mulPointTm(worldPos, globtm);
+        float3 pointToEye = world_view_pos - worldPos;
+
+  #if FX_NEED_WORLD_POS
+        output.worldPos_specFade = float4(worldPos, input.texcoord.z);
+  #endif
+
+        float4 unpackedOutputPos = output.pos;
+
+        output.texcoord.xy = input.texcoord.xy;
+        output.texcoord.zw = input.next_texcoord_blend.xy;
+        output.color = input.color;
+        ##if (shader == ablend_particles || shader == atest_particles) && fx_render_mode == fx_render_mode_normal && in_editor_assume != yes
+          float3 rvec = worldPos - light_pos_reg.xyz;
+          float attenF = dot(rvec, rvec) * rcp(pow2(max(light_pos_reg.w, 0.01)));
+          float atten = pow2(saturate(1. - pow2(attenF)));
+          float shadow = getStaticShadow(worldPos)*getFOMShadow(worldPos)*clouds_shadow(worldPos);
+
+          half3 ambient = get_undirectional_volumetric_ambient(world_view_pos, output.pos.xy/max(1e-6, output.pos.w)*float2(0.5, -0.5) + 0.5, max(0, output.pos.w), worldPos, normalize(pointToEye), length(pointToEye));
+          ambient *= skylight_gi_weight_atten;
+          //ambient = lerp(sky_color_reg, ambient, giAmount);
+          float3 lighting = (saturate(dot(float3(0., 1., 0.), -from_sun_direction.xyz)) *shadow) * sun_color_reg.xyz + ambient +
+                              atten * light_color_reg.xyz;
+
+          output.color.rgb *= lighting;
+          //output.color.rgb = atten > 0.01;
+        output.color.rgb *= src_color_scale;
+        ##endif
+
+  ##if shader != gbuffer_atest_particles && shader != atest_particles_refraction && shader != gbuffer_patch
+        ##if fx_render_mode == fx_render_mode_normal
+        #if FX_USE_FOG_PS_APPLY
+          output.scatteringColor = 1;
+          output.scatteringBase = float4(0,0,0,1);
+        #elif FX_NEED_FOG_ADD
+          output.fogAdd = 0;
+        #endif
+          ##if in_editor_assume == no
+
+            float2 screenTc = output.pos.w > 0 ? float2(output.pos.xy / output.pos.w * float2(0.5, -0.5) + float2(0.5, 0.5)) : 0;
+            #if FX_USE_FOG_PS_APPLY
+              float dist2 = dot(pointToEye, pointToEye);
+              float rdist = rsqrt(dist2);
+              float3 view = pointToEye * rdist;
+              float dist = dist2 * rdist;
+              float tcZ;
+              output.scatteringBase = get_scattering_tc_scatter_loss(screenTc, view, dist, tcZ);
+              output.scatteringColor = get_fog_prepared_tc(getPreparedScatteringTc(view.y, dist));
+            #else
+              half3 fogMul, fogAdd;
+              get_volfog_with_scattering(screenTc, screenTc, pointToEye, output.pos.w, fogMul, fogAdd);
+              output.color.rgb *= fogMul;
+              #if FX_NEED_FOG_ADD
+                output.fogAdd = fogAdd;
+              #endif
+            #endif
+          ##endif
+        ##endif
+  ##endif
+
+  #if FX_NEED_SCREEN_TC
+        output.screenTexcoord = float4(
+          unpackedOutputPos.xy * RT_SCALE_HALF + float2(0.5000, 0.5000) * unpackedOutputPos.w,
+          unpackedOutputPos.z,
+          unpackedOutputPos.w);
+  #endif
+
+        return output;
+      }
+    }
+  }
+  if (shader != gbuffer_patch)
+  {
+    compile("target_ps", "fx_ps");
+  }
+  else
+  {
+    GBUFFER_PATCH_PS()
+    compile("target_ps", "gbuffer_patch_ps");
+  }
+  compile("target_vs", "fx_common_vs");
+}
+
+
+int particles_buffer_id = 12;
+interval particles_buffer_id: off<0, on;
+int baseParticleId_const_no = 62 always_referenced;
+
+shader additive_trails_aces, ablend_particles_aces, addsmooth_particles_aces, atest_particles_aces, premultalpha_particles_aces, gbuffer_atest_particles_aces, gbuffer_patch_aces, atest_particles_refraction_aces, haze_particles_aces, volmedia_particles_aces, fom_particles_aces, fom_additive_particles_aces
+{
+  ENABLE_ASSERT(ps)
+  if (fx_apply_volfog_per_pixel == yes)
+  {
+    hlsl
+    {
+      #define FX_USE_FOG_PS_APPLY 1
+    }
+  }
+
+  if (shader == gbuffer_patch_aces)
+  {
+    hlsl {
+      #define BLEND_GBUFFER 1
+    }
+  }
+  if ( use_dafx == yes )
+  {
+    DAFX_RENDER_INIT()
+
+    hlsl
+    {
+      #define USE_DAFX 1
+      #include "dafx_hlsl_funcs.hlsli"
+      #include "dafx_packers.hlsli"
+      #include "dafx_loaders.hlsli"
+      #include "dafx_flowps2_decl.hlsli"
+    }
+
+    DAFX_RENDER_USE()
+  }
+  if (shader == gbuffer_atest_particles_aces || shader == gbuffer_patch_aces)
+  {
+    if (fx_render_mode != fx_render_mode_normal)
+    {
+      dont_render;
+    }
+    supports render_particles_to_gbuffer_block;
+    if (shader == gbuffer_atest_particles_aces)
+    {
+      FX_WRITE_MOTION_VECTORS()
+    }
+    INIT_STATIC_SHADOW_PS()
+    WRITE_GBUFFER()
+  } else if (shader == atest_particles_refraction_aces)
+  {
+    if (fx_render_mode != fx_render_mode_normal)
+    {
+      dont_render;
+    }
+    supports dynamic_scene_trans;
+    supports global_const_block;
+    (ps) {
+      envi_probe_specular@smpCube = envi_probe_specular;
+    }
+    INIT_FETCH_REFRACTED_PIXEL()
+    USE_FETCH_REFRACTED_PIXEL()
+    USE_ROUGH_TO_MIP()
+    USE_INDOOR_LIGHT_PROBES(ps, false)
+    INIT_SKYLIGHT_PARAMS(ps)
+    USE_SKYLIGHT_PARAMS(ps)
+    INIT_ENVI_SPECULAR_SAMPLE(ps)
+    USE_ENVI_SPECULAR_SAMPLE(ps)
+    INIT_SKY_DIFFUSE_BASE(ps)
+    USE_SKY_DIFFUSE_BASE(ps)
+  } else if (fx_render_mode == fx_render_mode_fom || shader == fom_particles_aces || shader == fom_additive_particles_aces)
+  {
+    supports dynamic_scene_trans_fom;
+  } else if (fx_render_mode == fx_render_mode_volmedia || shader == volmedia_particles_aces)
+  {
+    supports dynamic_scene_trans_volmedia;
+  } else
+  {
+    supports dynamic_scene_trans;
+    (vs) {
+      from_sun_direction@f3 = from_sun_direction;
+      sun_color_0@f3 = sun_color_0;
+    }
+    USE_FOM_SHADOWS(vs)
+    GET_DEPTH_MASK()
+    USE_BRUNETON_FOG_VS()
+    USE_BRUNETON_FOG()
+    if (in_editor_assume == no)
+    {
+      INIT_ZNZFAR_STAGE(vs) // needed for USE_VOLUMETRIC_LIGHT_TRANSPARENT
+      USE_VOLUMETRIC_LIGHT_TRANSPARENT(vs)
+      USE_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
+      USE_STATIC_SHADOW_VS_ONE_CASCADE()
+      SQ_CLOUDS_SHADOW(vs)
+    }
+  }
+
+  if (shader == haze_particles_aces)
+  {
+    z_write = true;
+    z_test = true;
+  }
+  else if (!((shader == atest_particles_aces || shader == gbuffer_atest_particles_aces || shader == atest_particles_refraction_aces) && fx_render_mode == fx_render_mode_normal))
+  {
+    z_write=false;
+  }
+
+  cull_mode=none;
+
+  if (fx_render_mode == fx_render_mode_fom || shader == fom_particles_aces || shader == fom_additive_particles_aces)
+  {
+    blend_src = 1; blend_dst = 1;
+    USE_ATEST_1()
+  } else if (fx_render_mode == fx_render_mode_volmedia || shader == volmedia_particles_aces)
+  {
+    z_test = false;//fixme: we should use z_test
+    USE_ATEST_1()
+    if (shader != ablend_particles_aces && shader != volmedia_particles_aces)
+    {
+      dont_render;
+    }
+  } else
+  {
+    if (shader != gbuffer_atest_particles_aces && shader != atest_particles_refraction_aces && shader != gbuffer_patch_aces)
+    {
+      // trails_aces_inc.hlsl is not aware of eclipse, we may have to solve this
+      // for these shaders if we experience any too bright particles during eclipse
+      INIT_SIMPLE_AMBIENT(vs)
+      USE_VOLUMETRIC_GI(vs)
+    }
+    if (shader == ablend_particles_aces)
+    {
+      blend_src = sa; blend_dst = isa;
+      blend_asrc = zero; blend_adst = isa;
+      USE_ATEST_1()
+    }
+    else if (shader == premultalpha_particles_aces)
+    {
+      blend_src=1; blend_dst=isa;
+      blend_asrc = zero; blend_adst = isa;
+      NO_ATEST()
+    }
+    else if (shader == addsmooth_particles_aces)
+    {
+      blend_src=one; blend_dst=isc;
+      blend_asrc = zero; blend_adst = isa;
+      USE_ATEST_1()
+    }
+    else if (shader == atest_particles_aces)
+    {
+      blend_src=sa; blend_dst=isa;
+      blend_asrc = zero; blend_adst = isa;
+      USE_ATEST_HALF()
+    }
+    else if (shader == gbuffer_atest_particles_aces)
+    {
+      USE_ATEST_HALF()
+    }
+    else if (shader == gbuffer_patch_aces)
+    {
+      blend_src=sa; blend_dst=isa;
+      blend_asrc = 0; blend_adst = 1;
+      color_write = 7; // writing albedo color only
+      NO_ATEST()
+    }
+    else if (shader == atest_particles_refraction_aces)
+    {
+      USE_ATEST_HALF()
+    }
+    else if (shader == haze_particles_aces)
+    {
+      USE_ATEST_1()
+    }
+    else  // additive_trails_aces
+    {
+      blend_src=one; blend_dst=one;
+      blend_asrc = zero; blend_adst = one;
+      USE_ATEST_1()
+    }
+  }
+
+  if (in_editor_assume == yes)
+  {
+    dynamic texture tex;
+    dynamic texture tex_nm;
+  }
+  channel float3 pos = pos;         // Point3 pos;
+  channel color8 tc[0] = tc[0];     // E3DCOLOR deltaAndCloud;
+  channel color8 tc[1] = tc[1];     // E3DCOLOR texcoordAndAngle;
+  channel color8 tc[2] = tc[2];     // E3DCOLOR color;
+  channel half4 tc[3] = tc[3];     // Point3 vel_radius;
+
+  if ( use_dafx == yes )
+  {
+  }
+  else if (particles_buffer_id == off)
+  {
+    hlsl(vs) {
+      struct VsInput
+      {
+        float4 pos: POSITION;
+        float4 tcSizes : TEXCOORD0;
+        float4 texcoordAndAngle : TEXCOORD1;
+        float4 color : TEXCOORD2;
+        float4 lengtheningRadius : TEXCOORD3;
+      };
+      #define VERTEX_BUFFER_PARTICLES 1
+    }
+  } else
+  {
+    hlsl(vs) {
+      struct Particle
+      {
+        float3 pos;
+        uint tcSizes, texcoordAndAngle, color;
+        uint2 lengtheningRadius;
+      };
+      StructuredBuffer<Particle> particles : register(t12);
+    }
+  }
+
+
+  PER_SHADER_VARS()
+  DECL_POSTFX_TC_VS_RT()//fixme: should depend on where we render
+  FX_PS()
+
+  (vs) {
+    fx_sun_backlight@f1 = (fx_sun_backlight);
+  }
+
+  hlsl(vs)
+  {
+    #define amb_phase (1./4)
+
+
+
+##if shader == gbuffer_patch_aces
+    #define FX_PLANAR_PROJECTED 1
+    #define FX_USE_TM_AXIS 1
+##endif
+
+    #define FX_COMMON_VS 1
+    #define FX_VS 1
+    #include "trails_aces_inc.hlsl"
+    #undef FX_COMMON_VS
+    #undef FX_VS
+  }
+
+  hlsl(vs) {
+
+    #if USE_DAFX
+      #define VSINPUT uint vertex_id : SV_VertexID, uint draw_call_id : TEXCOORD0 HW_USE_INSTANCE_ID
+    #elif VERTEX_BUFFER_PARTICLES
+      #define VSINPUT VsInput input
+    #else
+      uint baseParticleId:register(c62);
+      #define VSINPUT uint particleVertexId : SV_VertexID
+    #endif
+
+    VsOutput fx_aces_vs(VSINPUT) {
+
+      VsUnpackedInput buf;
+
+    #if USE_DAFX
+
+      Flowps2RenPart p;
+      Flowps2RenParams params;
+      uint gid;
+      uint data_ofs;
+      uint parent_ofs;
+      dafx_gen_render_data_flowp2s(instance_id, vertex_id, draw_call_id, gid, data_ofs, parent_ofs );
+
+
+      unpack_ren_data( p, 0, data_ofs );
+      flowps2_ren_params_load( params, 0, parent_ofs );
+
+      buf.vertex_id = vertex_id;
+      buf.pos = float4( p.pos, 1.f );
+
+      buf.color = p.color;
+      buf.angle = p.angle;
+
+      buf.texFramesX = params.framesX;
+      buf.texFramesY = params.framesY;
+
+      buf.sizeU = 1.f / buf.texFramesX;
+      buf.sizeV = 1.f / buf.texFramesY;
+
+      buf.curFrame = p.frameNo;
+
+      buf.specularFade = 1;
+      buf.radius = p.radius;
+
+      buf.lengthening = p.lengthening;
+      buf.framesBlend = p.frameDuration;
+
+      buf.light_pos = params.lightPos;
+      buf.light_color = params.lightParam;
+
+      buf.fade_scale = params.fadeScale;
+      buf.color_scale = params.colorScale;
+
+      buf.softness_depth_rcp = params.softnessDepthRcp;
+      buf.part_rnd = p.rnd;
+      buf.shaderId = params.shader;
+
+      buf.world_tm_0 = params.fxTm[0];
+      buf.world_tm_1 = params.fxTm[1];
+      buf.world_tm_2 = params.fxTm[2];
+    #else
+      #if VERTEX_BUFFER_PARTICLES
+        buf.texFramesX = BGRA_SWIZZLE(input.tcSizes).z * 255;
+        buf.texFramesY = BGRA_SWIZZLE(input.tcSizes).w * 255;
+        buf.sizeU = 1.f / buf.texFramesX;
+        buf.sizeV = 1.f / buf.texFramesY;
+        buf.curFrame = BGRA_SWIZZLE(input.texcoordAndAngle).x * 255;
+
+        buf.specularFade = BGRA_SWIZZLE(input.tcSizes).y;
+        int decodedVertexId = int(BGRA_SWIZZLE(input.tcSizes).x * 255.1);
+        buf.vertex_id = min(int(decodedVertexId/4), 3);
+        // bool noTrick = decodedVertexId%2;
+        // bool otherAxis = (decodedVertexId-noTrick)%4;
+
+        buf.radius = input.lengtheningRadius.w;
+        buf.lengthening = input.lengtheningRadius.xyz;
+        buf.framesBlend = BGRA_SWIZZLE(input.texcoordAndAngle).y;
+        buf.pos = input.pos;
+        buf.color = input.color;
+        buf.angle = (input.texcoordAndAngle.b + input.texcoordAndAngle.a / 256.)  * 6.283185 - 3.141593;
+      #else
+        uint particleId = particleVertexId/4 + baseParticleId;
+        buf.vertex_id = particleVertexId%4;
+        // VsInput input;
+        buf.pos = float4(particles[particleId].pos, 1);
+
+        float4 lengtheningRadius = float4(f16tof32(particles[particleId].lengtheningRadius), f16tof32(particles[particleId].lengtheningRadius>>16)).xzyw;
+        buf.specularFade = ((particles[particleId].tcSizes>>8)&0xFF)*(1./255.0);
+        //bool noTrick = (particles[particleId].tcSizes>>16)&1;
+        //bool otherAxis = (particles[particleId].tcSizes>>17)&1;
+        float4 texcoordAndAngle = decode_e3dcolor(particles[particleId].texcoordAndAngle);
+        buf.texFramesX = (particles[particleId].tcSizes & 0xFF);
+        buf.texFramesY = (particles[particleId].tcSizes >> 24);
+        buf.sizeU = 1.f / buf.texFramesX;
+        buf.sizeV = 1.f / buf.texFramesY;
+        buf.curFrame = (particles[particleId].texcoordAndAngle >> 16) & 0xFF;
+        float4 color = decode_e3dcolor(particles[particleId].color);
+        buf.radius = lengtheningRadius.w;
+        buf.lengthening = lengtheningRadius.xyz;
+        buf.framesBlend = ((particles[particleId].texcoordAndAngle >> 8) & 0xFF) / 255.f;
+        buf.color = color;
+        buf.angle = (texcoordAndAngle.b + texcoordAndAngle.a / 256.)  * 6.283185 - 3.141593;
+      #endif
+
+        buf.light_pos = light_pos_reg;
+        buf.light_color = light_color_reg;
+        buf.fade_scale = fade_color_scale.x;
+        buf.color_scale = src_color_scale;
+        buf.softness_depth_rcp = 0;
+        buf.part_rnd = 0;
+        buf.shaderId = 0;
+        buf.world_tm_0 = fx_world_tm_0;
+        buf.world_tm_1 = fx_world_tm_1;
+        buf.world_tm_2 = fx_world_tm_2;
+    #endif
+
+      buf.self_illum = 0;
+      return fx_common_vs(buf);
+    }
+  }
+  if (shader == gbuffer_patch_aces)
+  {
+    GBUFFER_PATCH_PS()
+    compile("target_ps", "gbuffer_patch_ps");
+  }
+  else
+  {
+    compile("target_ps", "fx_ps");
+  }
+  compile("target_vs", "fx_aces_vs");
+}
+

@@ -1,0 +1,28 @@
+let { Point2, Point3 } = require("dagor.math")
+
+local class MinimapContext {
+  function setup(config) {
+    assert(type(config)=="table")
+  }
+}
+
+
+local class MinimapState {
+  constructor(_params) {}
+  ctx={}
+
+  getVisibleRadius = @() 0.
+  setVisibleRadius = @(_radius) null
+  setTargetVisibleRadius = @(_radius) null
+  mapToWorld = @(_x, _y) Point3()
+  worldToMap = @(_worldPos) Point2()
+
+  isHeroCentered = false
+  panWolrdPos = Point3()
+}
+
+
+return {
+  MinimapContext
+  MinimapState
+}

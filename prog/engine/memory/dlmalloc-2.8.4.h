@@ -1,3 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 /*
   Default header file for malloc-2.8.x, written by Doug Lea
   and released to the public domain, as explained at

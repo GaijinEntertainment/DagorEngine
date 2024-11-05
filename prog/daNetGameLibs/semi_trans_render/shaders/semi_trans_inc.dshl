@@ -1,0 +1,23 @@
+macro SEMI_TRANS_PS()
+  USE_ROUGH_TO_MIP()
+  hlsl (ps) {
+    float4 semi_trans_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      float3 view = normalize(input.pointToEye);
+      float NdotV = max(0, dot(view, input.normal));
+      float opacity = 1.0 - NdotV;
+##if (shader == rendinst_semi_trans)
+      float3 color = placing_color;
+      ##if (diffuse_rendinst_tex != NULL)
+        color *= dot(tex2D(diffuse_rendinst_tex, input.diffuseTexcoord).rgb, float3(0.2126, 0.7152, 0.0722));
+      ##else
+        color *= opacity;
+      ##endif
+##else// if (shader == dynamic_semi_trans)
+      float3 color = opacity * input.placingColor;
+##endif
+      return float4(pack_hdr(color), opacity);
+    }
+  }
+  compile("target_ps", "semi_trans_ps");
+endmacro

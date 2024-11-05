@@ -16,29 +16,26 @@ Sources =
   blake3_portable.c
 ;
 
-if ( $(Platform) in win32 ) || ( $(Platform) = linux64 && $(LinuxArch) = e2k ) {
+if $(PlatformArch) in x86 e2k {
   Copt = -DBLAKE3_NO_SSE2 -DBLAKE3_NO_SSE41 -DBLAKE3_NO_AVX2 -DBLAKE3_NO_AVX512 ;
-} else if $(Platform) in win64 xboxOne scarlett  {
+} else if $(PlatformArch) in x86_64 && $(Platform) in windows xboxOne scarlett {
   Sources +=
     blake3_sse2_x86-64_windows_msvc.masm
     blake3_sse41_x86-64_windows_msvc.masm
     blake3_avx2_x86-64_windows_msvc.masm
   ;
   Copt = -DBLAKE3_NO_AVX512 ; #-DBLAKE3_NO_AVX2 
-} else if $(Platform) in ps4 ps5 linux64 || ( $(Platform) = macosx && $(MacOSXArch) = x86_64 ) {
+} else if $(PlatformArch) in x86_64 {
   Sources +=
     blake3_avx2_x86-64_unix.S
     blake3_avx512_x86-64_unix.S
     blake3_sse2_x86-64_unix.S
     blake3_sse41_x86-64_unix.S
   ;
-} else if $(Platform) in iOS tvOS nswitch android || ( $(Platform) = macosx && $(MacOSXArch) = arm64 ) {
+  if $(Platform) = macOS { ASMopt += -mmacosx-version-min=$(MacOSXMinVer) ; }
+} else if $(PlatformArch) in arm64 arm64e arm64-v8a armv7 armv7s armeabi-v7a {
   Sources += blake3_neon.c ;
   Copt = -DBLAKE3_USE_NEON ;
-}
-
-if $(Platform) = macosx && $(MacOSXArch) = x86_64 {
-  ASMopt += -mmacosx-version-min=$(MacOSXMinVer) ;
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -1,5 +1,4 @@
-#ifndef __DRV3D_DX11_TEXTURE_H
-#define __DRV3D_DX11_TEXTURE_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "basetex.h"
@@ -28,4 +27,3 @@ Texture *create_backbuffer_depth_tex(uint32_t w, uint32_t h);
 
 void clear_textures_pool_garbage();
 } // namespace drv3d_dx11
-#endif

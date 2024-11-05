@@ -56,8 +56,6 @@ texture clouds_prev_taa_weight;
 //although it is very noise input
 
 float clouds_restart_taa;
-int clouds_infinite_skies;
-interval clouds_infinite_skies:no < 1, yes;
 float clouds_taa_min_new_frame_weight = 0.0;
 
 macro CLOUDS_TAA(code)
@@ -107,12 +105,16 @@ macro CLOUDS_TAA(code)
       #define TAA_DEBUG_DISABLE_CLAMPING 1
       #define TAA_NEW_FRAME_WEIGHT_BLUR 1
       //#define TAA_ALWAYS_BLUR 1
-      #define TAA_BILINEAR 0
     ##else
       #define TAA_ALWAYS_BLUR_WHERE_ALLOWED 1//#define TAA_NEW_FRAME_WEIGHT_BLUR_WHERE_ALLOWED 1
       #define TAA_NEW_FRAME_WEIGHT 0.06
-      #define TAA_BILINEAR 0
     ##endif
+
+    #if SIMPLER_CLOUDS_TAA
+      #define TAA_BILINEAR 1
+    #else
+      #define TAA_BILINEAR 0
+    #endif
 
     ##if clouds_use_fullres == yes
       #define CLOUDS_FULLRES 1

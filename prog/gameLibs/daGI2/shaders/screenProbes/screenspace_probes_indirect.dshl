@@ -1,0 +1,76 @@
+include "sky_shader_global.dshl"
+include "screenspace_probes_common.dshl"
+include "sp_calc_radiance_quality.dshl"
+
+int sp_probes_per_warp_irradiance = 1;
+
+shader screenspace_probes_create_dispatch_indirect_cs
+{
+  ENABLE_ASSERT(cs)
+  SP_USE_BUFFERS_LIST(cs)
+  (cs) {
+    sp_radiance_area@i1 = sp_radiance_area;
+    //sp_irradiance_res@i4 = sp_irradiance_res;
+    sp_probes_per_warp_irradiance@i1 = sp_probes_per_warp_irradiance;
+    screenspace_probe_pos@buf = screenspace_probe_pos hlsl {
+      ByteAddressBuffer screenspace_probe_pos@buf;
+    }
+  }
+  INIT_SCREENSPACE_PROBES_RES(cs)
+  hlsl(cs) {
+    #include "screenprobes_indirect.hlsli"
+    RWByteAddressBuffer dispatchIndirectBuffer: register(u0);
+    [numthreads(SP_INDIRECT_BUFFER_SIZE, 1, 1)]
+    void screenspace_probes_create_dispatch_indirect_cs(uint2 gtId : SV_GroupThreadID, uint2 gId : SV_GroupID, uint2 dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
+    {
+      uint numScreenProbes = sp_getNumScreenProbes();
+      uint totalAtlasProbes = sp_getNumTotalProbes();
+      uint numAddProbes = sp_getNumAdaptiveProbes();
+      uint addedCount = loadBuffer(screenspace_probe_pos, sp_additionalProbesCounterByteAt());
+      addedCount = min(addedCount, numAddProbes);
+      uint activeCount = addedCount + numScreenProbes;
+      uint dest = tid;
+      //can be different for different things
+      //for example, we can differently filter screen probes and added probes (using different search/kernel)
+      //we can differently trace screen probes and added probes (more/less rays)
+      //finally, we can have a full list of active probes old and new probes and use different filtering (history and spatial)
+      uint write = 1;
+      FLATTEN
+      if (tid == SP_TRACE_INDIRECT_OFFSET)
+        write = (activeCount*sp_radiance_area + SP_TRACE_WARP_SIZE-1)/SP_TRACE_WARP_SIZE;
+
+      FLATTEN
+      if (tid == SP_FILTER_INDIRECT_OFFSET)
+        write = (activeCount*sp_radiance_area + SP_FILTER_WARP_SIZE-1)/SP_FILTER_WARP_SIZE;
+
+      FLATTEN
+      if (tid == SP_IRRADIANCE_INDIRECT_OFFSET)
+      {
+        uint probesPerWarp = sp_probes_per_warp_irradiance;//SP_IRRADIANCE_WARP_SIZE/uint(sp_irradiance_res.z);
+        write = uint(activeCount+probesPerWarp-1)/probesPerWarp;
+      }
+
+      uint2 selectedAndHistoryCount = loadBuffer2(screenspace_probes_list, 0);
+      FLATTEN
+      if (tid == SP_TRACE_SELECTED_OFS)
+        write = (selectedAndHistoryCount.x*sp_radiance_area + SP_TRACE_WARP_SIZE-1)/SP_TRACE_WARP_SIZE;
+
+      FLATTEN
+      if (tid == SP_TRACE_ONLY_HISTORY_OFS)
+        write = (selectedAndHistoryCount.y*sp_radiance_area + SP_TRACE_WARP_SIZE-1)/SP_TRACE_WARP_SIZE;
+
+      FLATTEN
+      if (tid == SP_TEMPORAL_SELECTED_OFS)
+        write = (selectedAndHistoryCount.x*sp_radiance_area + SP_FILTER_WARP_SIZE-1)/SP_FILTER_WARP_SIZE;
+
+      FLATTEN
+      if (tid == SP_TEMPORAL_HISTORY_OFS)
+        write = (selectedAndHistoryCount.y*sp_radiance_area + SP_FILTER_WARP_SIZE-1)/SP_FILTER_WARP_SIZE;
+
+      if (tid < SP_INDIRECT_BUFFER_SIZE)
+        storeBuffer(dispatchIndirectBuffer, tid * 4, write);
+    }
+  }
+  compile("target_cs", "screenspace_probes_create_dispatch_indirect_cs");
+}
+

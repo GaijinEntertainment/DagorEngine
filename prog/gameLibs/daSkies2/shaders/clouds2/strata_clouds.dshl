@@ -32,7 +32,8 @@ shader strata_clouds//, strata_clouds_panorama
     (ps) { tc_pos_ofs@f4 = panoramaTC; skies_panorama_mu_horizon@f1 = (skies_panorama_mu_horizon);}
   } else
   {
-    SKY_HDR()
+    INIT_HDR(ps)
+    USE_HDR(ps)
     USE_AND_INIT_VIEW_VEC_VS()
   }
 
@@ -59,8 +60,15 @@ shader strata_clouds//, strata_clouds_panorama
   USE_STRATA_CLOUDS(ps)
 
   hlsl(ps) {
+
+    #ifndef CHECK_RENDER_STRATA_CLOUDS
+      #define CHECK_RENDER_STRATA_CLOUDS
+    #endif
+
     float4 clouds_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target
     {
+      CHECK_RENDER_STRATA_CLOUDS
+
       float4 screenpos = GET_SCREEN_POS(input.pos);
       float3 viewVect = input.viewVect;
 

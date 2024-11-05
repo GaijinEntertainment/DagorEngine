@@ -1,22 +1,23 @@
-#ifndef __GAIJIN_DAGORED_POSTFX_PANEL_H__
-#define __GAIJIN_DAGORED_POSTFX_PANEL_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include "environmentPlugin.h"
 
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/control/container.h>
 
-class CPanelWindow;
+namespace PropPanel
+{
+class PanelWindowPropertyControl;
+}
 
 
-class EnvironmentPlugin::PostfxPanel : public ControlEventHandler
+class EnvironmentPlugin::PostfxPanel : public PropPanel::ControlEventHandler
 {
 public:
   PostfxPanel(EnvironmentPlugin &plugin, void *hwnd);
   ~PostfxPanel();
 
-  CPanelWindow *getPanel()
+  PropPanel::PanelWindowPropertyControl *getPanel()
   {
     G_ASSERT(propPanel);
     return propPanel;
@@ -29,13 +30,11 @@ private:
   void getSchemeBlk(DataBlock &blk);
 
   // ControlEventHandler
-  virtual void onChange(int pcb_id, PropPanel2 *panel);
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
 
-  CPanelWindow *propPanel;
+  PropPanel::PanelWindowPropertyControl *propPanel;
   EnvironmentPlugin &plugin;
-  PropPanelScheme *scheme;
+  PropPanel::PropPanelScheme *scheme;
 
   DataBlock *pluginPostfxBlk;
 };
-
-#endif

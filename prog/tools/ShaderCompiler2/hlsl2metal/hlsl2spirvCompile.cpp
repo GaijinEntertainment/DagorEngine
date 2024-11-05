@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hlsl2spirvCompile.h"
 
 #include <array>
@@ -6,7 +8,7 @@
 #include <unordered_map>
 
 #include <spirv/compiler.h>
-#include <spirv/compiled_meta_data.h>
+#include <drv/shadersMetaData/spirv/compiled_meta_data.h>
 #include <osApiWrappers/dag_localConv.h>
 
 #include <debug/dag_debug.h>
@@ -55,7 +57,7 @@ void applyD3DMacros(std::string &view, bool should_use_half)
   view = macros + view;
 }
 
-Hlsl2SpirvResult hlsl2spirv(const char *source, const char *profile, const char *entry, bool skip_validation,
+Hlsl2SpirvResult hlsl2spirv(const char *source, const char *profile, const char *entry, bool enable_fp16, bool skip_validation,
   CompileResult &compile_result)
 {
   Hlsl2SpirvResult result;
@@ -64,13 +66,12 @@ Hlsl2SpirvResult hlsl2spirv(const char *source, const char *profile, const char 
   std::string codeCopy(source);
 
   eastl::vector<eastl::string_view> disabledSpirvOptims = scanDisabledSpirvOptimizations(source);
-
-  bool is_half = dd_stricmp("ps_5_0_half", profile) == 0 || dd_stricmp("vs_5_0_half", profile) == 0;
-  applyD3DMacros(codeCopy, is_half);
+  applyD3DMacros(codeCopy, enable_fp16);
 
   auto sourceRange = make_span(codeCopy.c_str(), codeCopy.size());
   auto finalSpirV = spirv::compileHLSL_DXC(sourceRange, entry, profile,
-    spirv::CompileFlags::OUTPUT_REFLECTION | spirv::CompileFlags::OVERWRITE_DESCRIPTOR_SETS | spirv::CompileFlags::ENABLE_HALFS,
+    spirv::CompileFlags::OUTPUT_REFLECTION | spirv::CompileFlags::OVERWRITE_DESCRIPTOR_SETS | spirv::CompileFlags::ENABLE_HALFS |
+      spirv::CompileFlags::ENABLE_WAVE_INTRINSICS,
     disabledSpirvOptims);
   result.byteCode = finalSpirV.byteCode;
   auto &spirv = result.byteCode;

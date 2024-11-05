@@ -1,36 +1,38 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <astronomy/astronomy.h>
 #include <perfMon/dag_perfTimer.h>
 #include <osApiWrappers/dag_direct.h>
-#include <util/dag_parallelForInline.h>
-#include <util/dag_parallelFor.h>
 #include <debug/dag_logSys.h>
 #include <ioSys/dag_dataBlock.h>
 #include <workCycle/dag_gameScene.h>
 #include <workCycle/dag_workCycle.h>
 #include <workCycle/dag_gameSettings.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3d_platform.h>
-#include <3d/dag_drv3dCmd.h>
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_platform.h>
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <shaders/dag_shaderMesh.h>
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_dynSceneRes.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameRes.h>
-#include <shaders/dag_computeShaders.h>
 #include <3d/dag_texPackMgr2.h>
 #include <3d/dag_picMgr.h>
 
 #include "test_main.h"
 #include <startup/dag_inpDevClsDrv.h>
 #include <startup/dag_globalSettings.h>
-#include <humanInput/dag_hiGlobals.h>
-#include <humanInput/dag_hiKeybIds.h>
-#include <humanInput/dag_hiPointing.h>
+#include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiPointing.h>
 #include "de3_freeCam.h"
 #include <gui/dag_stdGuiRender.h>
-#include <debug/dag_debug3d.h>
 #include <perfMon/dag_perfMonStat.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <osApiWrappers/dag_vromfs.h>
@@ -40,12 +42,11 @@
 #include <util/dag_console.h>
 #include <render/debugTexOverlay.h>
 #include <util/dag_convar.h>
-#include <render/primitiveObjects.h>
 #include <render/sphHarmCalc.h>
+#include <render/cameraPositions.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <render/cascadeShadows.h>
 #include <render/ssao.h>
-#include <render/omniLightsManager.h>
 #include <math/dag_TMatrix4.h>
 #include <math/dag_cube_matrix.h>
 #include <math/dag_frustum.h>
@@ -77,7 +78,6 @@
 #include "de3_hmapTex.h"
 #include <render/scopeRenderTarget.h>
 #include <fftWater/fftWater.h>
-#include <workCycle/dag_genGuiMgr.h>
 
 #include <startup/dag_startupTex.h>
 #include <image/dag_dds.h>
@@ -88,8 +88,6 @@
 #include <render/fx/auroraBorealis.h>
 #include <render/noiseTex.h>
 #include <render/spheres_consts.hlsli>
-
-#include <dag/dag_vectorSet.h>
 
 #include "de3_benchmark.h"
 
@@ -108,25 +106,19 @@ PULL_CONSOLE_PROC(profiler_console_handler)
 
 #define GLOBAL_VARS_LIST      \
   VAR(water_level)            \
-  VAR(view_vecLT)             \
-  VAR(view_vecRT)             \
-  VAR(view_vecLB)             \
-  VAR(view_vecRB)             \
-  VAR(prev_world_view_pos)    \
   VAR(world_view_pos)         \
   VAR(from_sun_direction)     \
-  VAR(downsample_depth_type)  \
   VAR(plane)                  \
   VAR(screen_pos_to_texcoord) \
   VAR(screen_size)            \
-  VAR(albedo_gbuf)            \
-  VAR(normal_gbuf)            \
-  VAR(material_gbuf)          \
-  VAR(depth_gbuf)
+  VAR(zn_zfar)
 
-#define VAR(a) static int a##VarId = -1;
+namespace shvars
+{
+#define VAR(a) static ShaderVariableInfo a(#a);
 GLOBAL_VARS_LIST
 #undef VAR
+} // namespace shvars
 
 extern bool grs_draw_wire;
 bool exit_button_pressed = false;
@@ -151,7 +143,7 @@ static void init_webui(const DataBlock *debug_block)
 #if USE_WEBUI_VAR_EDITOR == 1
       webui::editvar_http_plugin,
 #endif
-      NULL
+      nullptr
     };
     // webui::plugin_lists[1] = aces_http_plugins;
     webui::plugin_lists[0] = webui::dagor_http_plugins;
@@ -177,34 +169,6 @@ static const char *depth_tex_name = "depth_gbuf";
 static const char *normal_tex_name = "normal_gbuf";
 static const char *gbuf_tex_names[] = {"albedo_gbuf", normal_tex_name, "material_gbuf"};
 
-enum
-{
-  SHOW_GBUF_RESULT = -1,
-  SHOW_GBUF_DIFFUSE,
-  SHOW_GBUF_SPECULAR,
-  SHOW_GBUF_NORMAL,
-  SHOW_GBUF_ROUGHNESS,
-  SHOW_GBUF_METALLNESS,
-  SHOW_GBUF_MATERIAL,
-  SHOW_GBUF_SSAO,
-  SHOW_GBUF_AO,
-  SHOW_GBUF_FINAL_AO,
-  SHOW_GBUF_TRANSLUCENCY,
-  SHOW_GBUF_TRANSLUCENCY_COLOR,
-  SHOW_GBUF_SSR,
-  SHOW_GBUF_SSR_STRENGTH,
-  SHOW_GBUF_RAW_ALBEDO,
-  SHOW_GBUF_RAW_NORMAL,
-  SHOW_GBUF_RAW_ROUGHNESS,
-  SHOW_GBUF_RAW_METALLNESS,
-  SHOW_GBUF_RAW_AO,
-  SHOW_GBUF_RAW_SSR,
-  SHOW_GBUF_RAW_SSAO,
-  SHOW_GBUF_RAW_LIGHT_COUNT,
-  SHOW_GBUF_RAW_LAST
-};
-
-static int show_gbuffer = SHOW_GBUF_RESULT;
 CONSOLE_INT_VAL("skies", precompute_orders, 3, 1, 5);
 CONSOLE_BOOL_VAL("skies", always_precompute, false);
 CONSOLE_BOOL_VAL("render", ssao_blur, true);
@@ -215,16 +179,13 @@ CONSOLE_INT_VAL("render", waterAnisotropy, 1, 0, 5);
 CONSOLE_BOOL_VAL("gui", render_debug, true);
 
 
-ConVarI sleep_msec_val("sleep_msec", 0, 0, 1000, NULL);
+ConVarI sleep_msec_val("sleep_msec", 0, 0, 1000, nullptr);
 
 struct IRenderDynamicCubeFace2
 {
   virtual void renderLightProbeOpaque() = 0;
   virtual void renderLightProbeEnvi() = 0;
 };
-
-// #include "clouds2.h"
-// #include "scattering2.h"
 
 class RenderDynamicCube
 {
@@ -243,7 +204,7 @@ public:
   }
   void init(int cube_size)
   {
-    shadedTarget = dag::create_tex(NULL, cube_size, cube_size, TEXFMT_A16B16G16R16F | TEXCF_RTARGET, 1, "dynamic_cube_tex_target");
+    shadedTarget = dag::create_tex(nullptr, cube_size, cube_size, TEXFMT_A16B16G16R16F | TEXCF_RTARGET, 1, "dynamic_cube_tex_target");
     copy.init("copy_tex");
     // return;
     target = eastl::make_unique<DeferredRenderTarget>("cube_deferred_shading", "cube", cube_size, cube_size,
@@ -251,14 +212,13 @@ public:
   }
   void update(const ManagedTex *cubeTarget, IRenderDynamicCubeFace2 &cb, const Point3 &pos)
   {
-    ShaderGlobal::set_color4(world_view_posVarId, pos.x, pos.y, pos.z, 1);
+    shvars::world_view_pos.set_color4(pos.x, pos.y, pos.z, 1);
     Driver3dRenderTarget prevRT;
     d3d::get_render_target(prevRT);
     float zn = 0.5, zf = 100;
-    static int zn_zfarVarId = get_shader_variable_id("zn_zfar", true);
-    ShaderGlobal::set_color4(zn_zfarVarId, zn, zf, 0, 0);
-    static int light_robe_posVarId = get_shader_variable_id("light_probe_pos", true);
-    ShaderGlobal::set_color4(light_robe_posVarId, pos.x, pos.y, pos.z, 1);
+    shvars::zn_zfar.set_color4(zn, zf, 0, 0);
+    static ShaderVariableInfo light_probe_pos("light_probe_pos", true);
+    light_probe_pos.set_color4(pos.x, pos.y, pos.z, 1);
     for (int i = 0; i < 6; ++i)
     {
       target->setRt();
@@ -331,34 +291,44 @@ inline TMatrix4 oblique_projection_matrix_reverse2(const TMatrix4 &proj, const T
 
 class DemoGameScene;
 
-const char *REFL_TEX_NAME = "water_reflection_tex";
-const char *REFL_TMP_TEX_NAME = "water_reflection_tex_temp";
 
-
-dabfg::NodeHandle make_blur_meta_node(eastl::string node_name, eastl::string input_name, eastl::string output_name, uint16_t w,
-  uint16_t h)
+struct Camera
 {
-  return dabfg::register_node(node_name.c_str(), DABFG_PP_NODE_SRC,
-    [inputName = eastl::move(input_name), outputName = eastl::move(output_name), w, h](dabfg::Registry registry) {
-      registry.read(inputName.c_str()).texture().atStage(dabfg::Stage::PS).bindToShaderVar("blur_source");
+  TMatrix viewItm = TMatrix::IDENT;
+  TMatrix viewTm = TMatrix::IDENT;
+  TMatrix4_vec4 projTm = TMatrix4::IDENT;
+  TMatrix4_vec4 globTm = TMatrix4::IDENT;
 
-      auto outputReq = registry.create(outputName.c_str(), dabfg::History::No)
-                         .texture(dabfg::Texture2dCreateInfo{TEXFMT_A16B16G16R16F | TEXCF_RTARGET, IPoint2{w, h}, 1});
+  Driver3dPerspective persp = {};
+  Frustum frustum;
 
-      registry.requestRenderPass().color({outputReq});
+  Point3 worldPos = {};
+  ViewVecs viewVecs = {};
+};
 
-      return [w, h, blur = PostFxRenderer("blur_tex"), source_sizeVarId = ::get_shader_variable_id("blur_source_size")]() {
-        ShaderGlobal::set_color4(source_sizeVarId, Color4(w, h, 1.f / w, 1.f / h));
-        blur.render();
-      };
-    });
+const Point4 &get_view_vec_LT(const Camera &cam) { return cam.viewVecs.viewVecLT; }
+const Point4 &get_view_vec_RT(const Camera &cam) { return cam.viewVecs.viewVecRT; }
+const Point4 &get_view_vec_LB(const Camera &cam) { return cam.viewVecs.viewVecLB; }
+const Point4 &get_view_vec_RB(const Camera &cam) { return cam.viewVecs.viewVecRB; }
+
+auto bind_camera(dabfg::Registry registry, const char *name)
+{
+  return registry.read(name)
+    .blob<Camera>()
+    .bindAsView<&Camera::viewTm>()
+    .bindAsProj<&Camera::projTm>()
+    .bindToShaderVar<&Camera::worldPos>("world_view_pos")
+    .bindToShaderVar<get_view_vec_LT>("view_vecLT")
+    .bindToShaderVar<get_view_vec_RT>("view_vecRT")
+    .bindToShaderVar<get_view_vec_LB>("view_vecLB")
+    .bindToShaderVar<get_view_vec_RB>("view_vecRB");
 }
 
 class DemoGameScene : public DagorGameScene, public IRenderDynamicCubeFace2, public ICascadeShadowsClient
 {
 public:
-  DebugTexOverlay *debugTexOverlay;
-  CascadeShadows *csm;
+  eastl::unique_ptr<DebugTexOverlay> debugTexOverlay;
+  eastl::unique_ptr<CascadeShadows> csm;
 
   enum
   {
@@ -366,27 +336,20 @@ public:
     CLOUD_VOLUME_H = 16,
     CLOUD_VOLUME_D = 32
   };
-  UniqueTexHolder cloudVolume;
 
-  eastl::vector<dabfg::NodeHandle> newFramegraphNodes;
-  dabfg::NodeHandle persistentUselessNode;
-  dabfg::NodeHandle blobHistoryCheckerNode;
-  dabfg::NodeHandle persistentCsmNode;
-
-  static const int resolvedImageBlurNodesCount = 3;
-
-
-  virtual void getCascadeShadowAnchorPoint(float cascade_from, Point3 &out_anchor)
+  virtual Point4 getCascadeShadowAnchor(int cascade_no)
   {
     TMatrix itm;
     curCamera->getInvViewMatrix(itm);
-    out_anchor = -itm.getcol(3);
+    return Point4::xyz0(-itm.getcol(3));
   }
   virtual void renderCascadeShadowDepth(int cascade_no, const Point2 &)
   {
+    const auto &globtm = csm->getWorldRenderMatrix(cascade_no);
     d3d::settm(TM_VIEW, TMatrix::IDENT);
-    d3d::settm(TM_PROJ, &csm->getWorldRenderMatrix(cascade_no));
-    renderOpaque(false);
+    d3d::settm(TM_PROJ, &globtm);
+    const auto &camPos = csm->getRenderCameraWorldViewPos(cascade_no);
+    renderOpaque(Frustum(globtm), camPos);
   }
 
   virtual void getCascadeShadowSparseUpdateParams(int cascade_no, const Frustum &, float &out_min_sparse_dist,
@@ -421,152 +384,125 @@ public:
     }
   }
   int width = 0, height = 0;
-  eastl::unique_ptr<ShadingResolver> resolveShading;
-  eastl::unique_ptr<DeferredRenderTarget> target, reflectionGbuffer;
-  PostFxRenderer clipWaterReflection;
-  carray<UniqueTex, 2> farDownsampledDepth;
-  UniqueTexHolder downsampledNormals;
-  int currentDownsampledDepth;
 
-  UniqueTexHolder prevFrame;
-  PostFxRenderer postfx;
-  eastl::unique_ptr<ScreenSpaceReflections> ssr;
-  eastl::unique_ptr<SSAORenderer> ssao;
-
-  PostFxRenderer cpuFogRender;
   TEXTUREID waterFoamTexId, perlinTexId;
-  // Clouds2 clouds2;
-  // CloudsRendererData mainRenderData;
+
   void createMainPovData()
   {
-    if (main_pov_data)
-      daSkies.destroy_skies_data(main_pov_data);
-    main_pov_data = daSkies.createSkiesData("main",
-      PreparedSkiesParams{render_quality_panel.skies_lut_quality, render_quality_panel.scattering_screen_quality,
-        render_quality_panel.scattering_depth_slices, render_quality_panel.colored_transmittance_quality,
-        render_quality_panel.scattering_range_scale, render_quality_panel.scattering_min_range, PreparedSkiesParams::Panoramic::OFF,
-        PreparedSkiesParams::Reprojection::ON}); // required for each point of view (or the only one if panorama, for panorama center)
+    main_pov_data.reset();
+
+    // required for each point of view (or the only one if panorama, for panorama center)
+    PreparedSkiesParams params{render_quality_panel.skies_lut_quality, render_quality_panel.scattering_screen_quality,
+      render_quality_panel.scattering_depth_slices, render_quality_panel.colored_transmittance_quality,
+      render_quality_panel.scattering_range_scale, render_quality_panel.scattering_min_range, PreparedSkiesParams::Panoramic::OFF,
+      PreparedSkiesParams::Reprojection::ON};
+
+    main_pov_data =
+      eastl::unique_ptr<SkiesData, SkiesDataDeleter>(daSkies.createSkiesData("main", params), SkiesDataDeleter{&daSkies});
   }
 
-  DemoGameScene() : main_pov_data(NULL), refl_pov_data(NULL), cube_pov_data(NULL)
+  DemoGameScene()
   {
     d3d::get_render_target_size(width, height, nullptr);
 
-    cloudVolume = dag::create_voltex(CLOUD_VOLUME_W, CLOUD_VOLUME_H, CLOUD_VOLUME_D, TEXFMT_L8 | TEXCF_RTARGET | TEXCF_UNORDERED, 1,
-      "cloud_volume");
-
     setDirToSun();
     cpujobs::start_job_manager(1, 128 << 10);
-    visualConsoleDriver = NULL;
-    debugTexOverlay = NULL;
     unloaded_splash = false;
-    test = NULL;
     Point3 min_r, max_r;
     init_and_get_perlin_noise_3d(min_r, max_r);
 
     dabfg::startup();
-    dabfg::set_resolution("main_view", {width, height});
-    dabfg::set_resolution("display", {width, height});
-    // clouds2.init();
-    // mainRenderData.init(w/2,h/2);
-    postfx.init("postfx");
-    // target = eastl::make_unique<DeferredRenderTarget>("deferred_shading", "main", w, h, DeferredRT::StereoMode::MonoOrMultipass, 0,
-    // gbuf_rt, gbuf_fmts, TEXFMT_DEPTH32);
-    resolveShading = eastl::make_unique<ShadingResolver>("deferred_shading");
+    dabfg::set_resolution("main_view", IPoint2{width, height});
+    dabfg::set_resolution("display", IPoint2{width, height});
 
     const int reflW = width / 6, reflH = height / 6;
-    reflectionGbuffer = eastl::make_unique<DeferredRenderTarget>("cube_deferred_shading", "waterReflection", reflW, reflH,
-      DeferredRT::StereoMode::MonoOrMultipass, 0, gbuf_rt, gbuf_fmts, TEXFMT_DEPTH24);
-    clipWaterReflection.init("clip_water_reflection");
+
     PreparedSkiesParams refl_params;
-    refl_pov_data = daSkies.createSkiesData("refl", refl_params); // required for each point of view (or the only one if panorama, for
-                                                                  // panorama center)
-    daSkies.changeSkiesData(1, 1, false, reflW, reflH, refl_pov_data);
+    // required for each point of view (or the only one if panorama, for panorama center)
+    refl_pov_data =
+      eastl::unique_ptr<SkiesData, SkiesDataDeleter>(daSkies.createSkiesData("refl", refl_params), SkiesDataDeleter{&daSkies});
+    daSkies.changeSkiesData(1, 1, false, reflW, reflH, refl_pov_data.get());
 
     int halfW = width / 2, halfH = height / 2;
-    ShaderGlobal::set_color4(::get_shader_variable_id("lowres_rt_params", true), halfW, halfH, HALF_TEXEL_OFSF / halfW,
-      HALF_TEXEL_OFSF / halfH);
+    static ShaderVariableInfo lowres_rt_params("lowres_rt_params", true);
+    lowres_rt_params.set_color4(halfW, halfH, 0, 0);
 
-    ShaderGlobal::set_color4(get_shader_variable_id("rendering_res", true), width, height, 1.0f / width, 1.0f / height);
-    ssr = eastl::make_unique<ScreenSpaceReflections>(width / 2, height / 2);
-    ssao = eastl::make_unique<SSAORenderer>(width / 2, height / 2, 1);
+    static ShaderVariableInfo rendering_res("rendering_res", true);
+    rendering_res.set_color4(width, height, 1.0f / width, 1.0f / height);
     aurora.reset(new AuroraBorealis());
 
-    currentDownsampledDepth = 0;
     CascadeShadows::Settings csmSettings;
     csmSettings.cascadeWidth = 512;
     csmSettings.splitsW = csmSettings.splitsH = 2;
-    csm = CascadeShadows::make(this, csmSettings);
+    csmSettings.resourceAccessStrategy = CascadeShadows::Settings::ResourceAccessStrategy::External;
+    csm.reset(CascadeShadows::make(this, csmSettings));
 
-    if (ssao) //||ssr||dynamicLighting
-    {
-      downsample_depth::init("downsample_depth2x");
-      int numMips = min(get_log2w(width / 2), get_log2w(height / 2)) - 1;
-      numMips = max(numMips, 4);
-      debug("numMips = %d", numMips);
-      int rfmt = 0;
-      if ((d3d::get_texformat_usage(TEXFMT_R32F) & d3d::USAGE_RTARGET))
-        rfmt = TEXFMT_R32F;
-      else if ((d3d::get_texformat_usage(TEXFMT_R16F) & d3d::USAGE_RTARGET))
-        rfmt = TEXFMT_R16F;
-      else
-        rfmt = TEXFMT_R16F; // fallback to any supported format?
-      for (int i = 0; i < farDownsampledDepth.size(); ++i)
-      {
-        String name(128, "far_downsampled_depth%d", i);
-        farDownsampledDepth[i] = dag::create_tex(NULL, width / 2, height / 2, rfmt | TEXCF_RTARGET, numMips, name);
-        farDownsampledDepth[i]->texaddr(TEXADDR_BORDER);
-        farDownsampledDepth[i]->texbordercolor(0);
-        farDownsampledDepth[i]->texfilter(TEXFILTER_POINT);
-      }
-    }
-    uint32_t rtFmt = TEXFMT_R11G11B10F;
-    if (!(d3d::get_texformat_usage(rtFmt) & d3d::USAGE_RTARGET))
-      rtFmt = TEXFMT_A16B16G16R16F;
-
-    prevFrame = dag::create_tex(NULL, width / 2, height / 2, rtFmt | TEXCF_RTARGET, 1, "prev_frame_tex");
+    downsample_depth::init("downsample_depth2x");
 
     if (global_cls_drv_pnt)
       global_cls_drv_pnt->getDevice(0)->setClipRect(0, 0, width, height);
-    sphereMat = NULL;
-    sphereElem = NULL;
-    enviProbe = NULL;
-
-#define VAR(a) a##VarId = get_shader_variable_id(#a);
-    GLOBAL_VARS_LIST
-#undef VAR
 
     daSkies.initSky();
 
     createMainPovData();
+
     PreparedSkiesParams cubeParams;
     cubeParams.panoramic = PreparedSkiesParams::Panoramic::ON;
     cubeParams.reprojection = PreparedSkiesParams::Reprojection::OFF;
-    cube_pov_data = daSkies.createSkiesData("cube", cubeParams); // required for each point of view (or the only one if panorama, for
-                                                                 // panorama center)
-    cpuFogRender.init("cpuFogRender");
+    // required for each point of view (or the only one if panorama, for panorama center)
+    cube_pov_data =
+      eastl::unique_ptr<SkiesData, SkiesDataDeleter>(daSkies.createSkiesData("cube", cubeParams), SkiesDataDeleter{&daSkies});
+
     fft_water::init();
 
-    const char *foamTexName = "water_surface_foam_tex";
-    waterFoamTexId = ::get_tex_gameres(foamTexName); // mem leak
-    G_ASSERTF(waterFoamTexId != BAD_TEXTUREID, "water foam texture '%s' not found.", foamTexName);
-    ShaderGlobal::set_texture(get_shader_variable_id("foam_tex"), waterFoamTexId);
+    {
+      const char *foamTexName = "water_surface_foam_tex";
+      waterFoamTexId = ::get_tex_gameres(foamTexName); // mem leak
+      G_ASSERTF(waterFoamTexId != BAD_TEXTUREID, "water foam texture '%s' not found.", foamTexName);
+      static ShaderVariableInfo foam_tex("foam_tex");
+      foam_tex.set_texture(waterFoamTexId);
+    }
 
-    const char *perlinName = "water_perlin";
-    perlinTexId = ::get_tex_gameres(perlinName); // mem leak
-    G_ASSERTF(perlinTexId != BAD_TEXTUREID, "water perlin noise texture '%s' not found.", perlinName);
-    ShaderGlobal::set_texture(get_shader_variable_id("perlin_noise"), perlinTexId);
+    {
+      const char *perlinName = "water_perlin";
+      perlinTexId = ::get_tex_gameres(perlinName); // mem leak
+      G_ASSERTF(perlinTexId != BAD_TEXTUREID, "water perlin noise texture '%s' not found.", perlinName);
+      static ShaderVariableInfo perlin_noise("perlin_noise");
+      perlin_noise.set_texture(perlinTexId);
+    }
 
-    water = fft_water::create_water(fft_water::RENDER_GOOD, water_panel.fft_period);
-    fft_water::setWaterCell(water, 1.0f, true);
-    fft_water::apply_wave_preset(water, 3.0f, Point2(1.0f, 0.0f), fft_water::Spectrum::UNIFIED_DIRECTIONAL);
-    reloadUiWaves();
+    {
+      fftWater.reset(fft_water::create_water(fft_water::RENDER_GOOD, water_panel.fft_period));
+      fft_water::setWaterCell(fftWater.get(), 1.0f, true);
+      fft_water::apply_wave_preset(fftWater.get(), 3.0f, Point2(1.0f, 0.0f), fft_water::Spectrum::UNIFIED_DIRECTIONAL);
+      reloadUiWaves();
+    }
 
-    setupNodes();
+    heightmapRenderer.init("heightmap", "", "hmap_tess_factor", true, 4);
+
+    frameGraph = makeFrameGraph();
   }
 
-  FFTWater *water;
-  SkiesData *main_pov_data, *cube_pov_data, *refl_pov_data;
+  struct WaterDeleter
+  {
+    void operator()(FFTWater *water) { fft_water::delete_water(water); }
+  };
+  eastl::unique_ptr<FFTWater, WaterDeleter> fftWater;
+
+  struct SkiesDataDeleter
+  {
+    DaSkies *owner = nullptr;
+    void operator()(SkiesData *data)
+    {
+      if (owner)
+        owner->destroy_skies_data(data);
+      else
+        G_ASSERT(!data);
+    }
+  };
+  eastl::unique_ptr<SkiesData, SkiesDataDeleter> main_pov_data;
+  eastl::unique_ptr<SkiesData, SkiesDataDeleter> cube_pov_data;
+  eastl::unique_ptr<SkiesData, SkiesDataDeleter> refl_pov_data;
 
   ~DemoGameScene()
   {
@@ -575,31 +511,16 @@ public:
     ShaderGlobal::reset_from_vars(waterFoamTexId);
     release_managed_tex(waterFoamTexId);
 
-    daSkies.destroy_skies_data(main_pov_data);
-    daSkies.destroy_skies_data(cube_pov_data);
-    daSkies.destroy_skies_data(refl_pov_data);
-    ssao.reset();
-    ssr.reset();
-    del_it(csm);
-    for (int i = 0; i < farDownsampledDepth.size(); ++i)
-      farDownsampledDepth[i].close();
     downsample_depth::close();
-    aurora.reset();
 
     release_perline_noise_3d();
-    del_it(test);
-    del_it(visualConsoleDriver);
-    del_it(debugTexOverlay);
-    del_it(sphereMat);
-    light_probe::destroy(enviProbe);
-    sphereElem = NULL;
-    closeHeightmap();
+
+    heightmap.close();
+    heightmapRenderer.close();
 
     cpujobs::stop_job_manager(1, true);
-    fft_water::delete_water(water);
     fft_water::close();
     de3_imgui_term();
-    del_it(freeCam);
   }
 
 
@@ -668,8 +589,7 @@ public:
           layered_fog.mie2_thickness = sky_panel.mie2_thickness;
           layered_fog.mie2_altitude = sky_panel.mie2_altitude;
           layered_fog.mie2_scale = sky_panel.mie2_scale;
-          //((DaSkies::CloudsGen&)clouds_gen) = daSkies.getCloudsGen();
-          //((DaSkies::CloudsPosition&)clouds_panel) = daSkies.getCloudsPosition();
+
           clouds_rendering2 = daSkies.getCloudsRendering();
           clouds_weather_gen2 = daSkies.getWeatherGen();
           clouds_game_params = daSkies.getCloudsGameSettingsParams();
@@ -696,7 +616,7 @@ public:
       {
         DataBlock blk;
         fft_water::WavePreset wavePreset;
-        fft_water::get_wave_preset(water, wavePreset);
+        fft_water::get_wave_preset(fftWater.get(), wavePreset);
         fft_water::save_wave_preset(&blk, wavePreset);
         if (!blk.saveToTextFile(fileName))
         {
@@ -721,7 +641,7 @@ public:
           fft_water::WavePreset preset;
           fft_water::load_wave_preset(&blk, preset);
           float windDirX = cosf(DegToRad(render_panel.windDir)), windDirZ = sinf(DegToRad(render_panel.windDir));
-          fft_water::apply_wave_preset(water, preset, Point2(windDirX, windDirZ));
+          fft_water::apply_wave_preset(fftWater.get(), preset, Point2(windDirX, windDirZ));
 
           reloadUiWaves();
           lastExportName = fileName;
@@ -801,8 +721,6 @@ public:
     extern bool g_ssao_blur;
     g_ssao_blur = ssao_blur.get();
 
-    // uncomment to run synthetic FG tests
-    // setupSyntheticTestNodes();
     dabfg::update_external_state(dabfg::ExternalState{::grs_draw_wire, false});
     dabfg::run_nodes();
 
@@ -811,139 +729,11 @@ public:
       reloadCube(false);
     firstCubeUpdate = true;
 
+    // framegraph resets bound targets to nullptr upon exiting of LegacyBackbufferPass
+    // force set backbuffer to render imgui/ui
+    d3d::set_render_target();
+
     de3_imgui_render();
-  }
-
-  void renderSkies(VolTexture *clouds_volume, const int w, const int h)
-  {
-    TMatrix itm;
-    curCamera->getInvViewMatrix(itm);
-    TMatrix viewTm;
-    TMatrix4 projTm;
-    d3d::gettm(TM_VIEW, viewTm);
-    d3d::gettm(TM_PROJ, &projTm);
-
-    {
-      TIME_D3D_PROFILE(cloudsVolumeForParticles)
-      daSkies.renderCloudVolume(clouds_volume, 30000, viewTm, projTm);
-    }
-    {
-      TIME_D3D_PROFILE(changeData)
-      if (render_quality_panel != old_quality_panel)
-      {
-        old_quality_panel = render_quality_panel;
-        createMainPovData();
-      }
-      daSkies.changeSkiesData(render_quality_panel.sky_res_divisor, render_quality_panel.clouds_res_divisor,
-        !render_panel.infinite_skies, w, h, main_pov_data);
-
-      daSkies.useFog(itm.getcol(3), main_pov_data, viewTm, projTm);
-    }
-  }
-
-  void setupSkies()
-  {
-    newFramegraphNodes.emplace_back(dabfg::register_node("render_skies", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      registry.orderMeBefore("render_envi");
-
-      return [this]() { renderSkies(cloudVolume.getVolTex(), width, height); };
-    }));
-  }
-
-  void setupGbufferPass()
-  {
-    newFramegraphNodes.emplace_back(dabfg::register_node("fill_gbuffer", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      auto depth = registry.createTexture2d(depth_tex_name, dabfg::History::No,
-        dabfg::Texture2dCreateInfo{TEXFMT_DEPTH32 | TEXCF_RTARGET, registry.getResolution("main_view")});
-
-      for (int i = 0; i < gbuf_rt; ++i)
-        registry.createTexture2d(gbuf_tex_names[i], dabfg::History::No,
-          dabfg::Texture2dCreateInfo{gbuf_fmts[i] | TEXCF_RTARGET, registry.getResolution("main_view")});
-
-      registry.requestState().allowWireframe();
-
-      registry.requestRenderPass().color({gbuf_tex_names[0], gbuf_tex_names[1], gbuf_tex_names[2]}).depthRw(depth);
-
-      return [this]() {
-        d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, 0x00FFFFFF, 0, 0);
-        ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
-
-        renderOpaque(true);
-      };
-    }));
-  }
-
-  void setupDeferredShadingPass()
-  {
-    newFramegraphNodes.emplace_back(dabfg::register_node("deferred_shading", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      auto depthHandle = registry.readTexture(depth_tex_name).atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("depth_gbuf").handle();
-
-      for (int i = 0; i < gbuf_rt; ++i)
-        registry.readTexture(gbuf_tex_names[i]).atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
-
-      uint32_t rtFmt = TEXFMT_R11G11B10F;
-      if (!(d3d::get_texformat_usage(rtFmt) & d3d::USAGE_RTARGET))
-        rtFmt = TEXFMT_A16B16G16R16F;
-
-      auto resolvedHandle = registry
-                              .createTexture2d("resolved_frame", dabfg::History::No,
-                                dabfg::Texture2dCreateInfo{rtFmt | TEXCF_RTARGET, registry.getResolution("main_view")})
-                              .atStage(dabfg::Stage::POST_RASTER)
-                              .useAs(dabfg::Usage::COLOR_ATTACHMENT)
-                              .handle();
-
-      registry.orderMeAfter({"SSR", "SSAO", "CSM"});
-
-      return [depthHandle, resolvedHandle, this]() {
-        TextureInfo info;
-        depthHandle.ref().getinfo(info);
-
-        ShaderGlobal::set_color4(screen_pos_to_texcoordVarId, 1.f / info.w, 1.f / info.h, HALF_TEXEL_OFSF / info.w,
-          HALF_TEXEL_OFSF / info.h);
-        ShaderGlobal::set_color4(screen_sizeVarId, info.w, info.h, 1.0 / info.w, 1.0 / info.h);
-        TMatrix viewTm;
-        TMatrix4 projTm;
-        d3d::gettm(TM_VIEW, viewTm);
-        d3d::gettm(TM_PROJ, &projTm);
-
-        set_inv_globtm_to_shader(viewTm, projTm, true);
-        set_viewvecs_to_shader(viewTm, projTm);
-
-        csm->setCascadesToShader();
-
-        resolveShading->resolve(resolvedHandle.get(), viewTm, projTm);
-      };
-    }));
-
-    // Node that does nothing, for testing FG node culling
-    persistentUselessNode = dabfg::register_node("useless_node", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      registry.orderMeAfter("CSM");
-
-      auto fakeReq = registry.createTexture2d("fake_output", dabfg::History::No,
-        dabfg::Texture2dCreateInfo{TEXCF_RTARGET, registry.getResolution("main_view")});
-
-      registry.requestRenderPass().color({fakeReq});
-
-      // Not supposed to be ever run!
-      return []() { G_ASSERT(false); };
-    });
-
-    blobHistoryCheckerNode = dabfg::register_node("blob_hist_checker", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      auto currentHndl = registry.create("magic_counter", dabfg::History::ClearZeroOnFirstFrame).blob<uint32_t>().handle();
-      auto prevHndl = registry.historyFor("magic_counter").blob<uint32_t>().handle();
-
-      // don't prune me please
-      registry.executionHas(dabfg::SideEffects::External);
-
-      return [currentHndl, prevHndl]() {
-        static uint32_t counter = 0;
-
-        const auto prev = prevHndl.ref();
-        if (prev != counter)
-          LOGERR_ONCE("Blob history preservation is broken!");
-        currentHndl.ref() = ++counter;
-      };
-    });
   }
 
   void mainRenderTrans() { renderTrans(); }
@@ -1003,7 +793,7 @@ public:
         for (int cascadeNo = 0; cascadeNo < 4; ++cascadeNo)
         {
           float period = 0.0f, windowIn = 0.0f, windowOut = 0.0f;
-          fft_water::get_cascade_period(water, cascadeNo, period, windowIn, windowOut);
+          fft_water::get_cascade_period(fftWater.get(), cascadeNo, period, windowIn, windowOut);
           StdGuiRender::goto_xy(400, base_line + font_ht * (3 + cascadeNo));
           StdGuiRender::draw_str(
             String(128, "fft[%d]: period=%0.1f windowIn=%0.1f windowOut=%0.1f", cascadeNo, period, windowIn, windowOut));
@@ -1026,7 +816,8 @@ public:
   virtual void beforeDrawScene(int realtime_elapsed_usec, float gametime_elapsed_sec)
   {
     TIME_D3D_PROFILE(beforeDraw);
-    ShaderGlobal::set_int(get_shader_variable_id("enable_god_rays_from_land", true), render_panel.enable_god_rays_from_land);
+    static ShaderVariableInfo enable_god_rays_from_land("enable_god_rays_from_land", true);
+    enable_god_rays_from_land.set_int(render_panel.enable_god_rays_from_land);
 
     static float currentTime = 0;
     eastl::vector<Point4> balls;
@@ -1080,31 +871,38 @@ public:
 
     if (render_panel.render_type == PANORAMA)
     {
-      daSkies.initPanorama(main_pov_data, render_panel.panorama_blending, render_panel.panoramaResolution);
+      daSkies.initPanorama(main_pov_data.get(), render_panel.panorama_blending, render_panel.panoramaResolution);
     }
     else
       daSkies.closePanorama();
     // debug("regen = %d force_update = %d", sky_panel.regen, force_update);
     // sky_panel.regen  = false;
     daSkies.projectUses2DShadows(render_panel.shadows_2d);
-    ShaderGlobal::set_int(get_shader_variable_id("skies_use_2d_shadows", true), render_panel.shadows_2d);
+
+    static ShaderVariableInfo skies_use_2d_shadows("skies_use_2d_shadows", true);
+    skies_use_2d_shadows.set_int(render_panel.shadows_2d);
+
     daSkies.prepare(dir_to_sun, false, gametime_elapsed_sec);
     daSkies.setPanoramaReprojectionWeight(render_panel.panoramaReprojection);
     dir_to_sun = daSkies.getPrimarySunDir();
-    ShaderGlobal::set_color4(from_sun_directionVarId, -dir_to_sun.x, -dir_to_sun.y, -dir_to_sun.z, 0);
+    shvars::from_sun_direction.set_color4(-dir_to_sun.x, -dir_to_sun.y, -dir_to_sun.z, 0);
     Color3 sun, amb, moon, moonamb;
     float sunCos, moonCos;
     if (daSkies.currentGroundSunSkyColor(sunCos, moonCos, sun, amb, moon, moonamb))
     {
       sun = lerp(moon, sun, daSkies.getCurrentSunEffect());
       amb = lerp(moonamb, amb, daSkies.getCurrentSunEffect());
-      ShaderGlobal::set_color4(get_shader_variable_id("sun_light_color"), color4(sun / PI, 0));
-      ShaderGlobal::set_color4(get_shader_variable_id("amb_light_color", true), color4(amb, 0));
-      if (water)
+      static ShaderVariableInfo sun_light_color("sun_light_color");
+      sun_light_color.set_color4(color4(sun / PI, 0));
+      static ShaderVariableInfo amb_light_color("amb_light_color", true);
+      amb_light_color.set_color4(color4(amb, 0));
+      if (fftWater)
       {
-        ShaderGlobal::set_color4(get_shader_variable_id("sun_color_0"), color4(sun / PI, 0));
-        ShaderGlobal::set_color4(get_shader_variable_id("sky_color", true), color4(amb, 0));
-        ShaderGlobal::set_color4(from_sun_directionVarId, -dir_to_sun.x, -dir_to_sun.y, -dir_to_sun.z, 0);
+        static ShaderVariableInfo sun_color_0("sun_color_0");
+        sun_color_0.set_color4(color4(sun / PI, 0));
+        static ShaderVariableInfo sky_color("sky_color");
+        sky_color.set_color4(color4(amb, 0));
+        shvars::from_sun_direction.set_color4(-dir_to_sun.x, -dir_to_sun.y, -dir_to_sun.z, 0);
       }
     }
     else
@@ -1113,7 +911,7 @@ public:
     }
 
 
-    if (water && water_panel.enabled)
+    if (auto water = fftWater.get(); water && water_panel.enabled)
     {
       fft_water::set_wind_speed(water, water_panel.water_strength, Point2(windDirX, windDirZ));
       fft_water::set_roughness(water, water_panel.roughness, 0.0f);
@@ -1167,9 +965,8 @@ public:
 
     Driver3dPerspective p;
     G_VERIFY(d3d::getpersp(p));
-    static int zn_zfarVarId = get_shader_variable_id("zn_zfar", true);
-    ShaderGlobal::set_color4(zn_zfarVarId, p.zn, p.zf, 0, 0);
-    // target.prepare();
+    shvars::zn_zfar.set_color4(p.zn, p.zf, 0, 0);
+
     TMatrix4 globtm;
     d3d::getglobtm(globtm);
     /*TMatrix4 globtmTr = globtm.transpose();
@@ -1179,12 +976,11 @@ public:
     ShaderGlobal::set_color4(globtm_psf_3VarId,Color4(globtmTr[3]));*/
     TMatrix itm;
     curCamera->getInvViewMatrix(itm);
-    curCameraPos = itm.getcol(3);
     DA_PROFILE_TAG_LINE(camera_pos, 0xFF00FF, "%g %g %g", P3D(itm.getcol(3)));
 
     if (test)
       test->setLod(test->chooseLod(itm.getcol(3)));
-    ShaderGlobal::set_color4(world_view_posVarId, Color4(itm.getcol(3).x, itm.getcol(3).y, itm.getcol(3).z, 1));
+    shvars::world_view_pos.set_color4(Color4(itm.getcol(3).x, itm.getcol(3).y, itm.getcol(3).z, 1));
     CascadeShadows::ModeSettings mode;
     mode.powWeight = 0.8;
     mode.maxDist = 100;
@@ -1198,15 +994,16 @@ public:
 
     static double water_time = 0;
     water_time += gametime_elapsed_sec;
-    if (water && water_panel.enabled)
+    if (fftWater && water_panel.enabled)
     {
       TIME_D3D_PROFILE(water_simulate);
       // water_time = 0;
-      fft_water::simulate(water, water_time);
-      fft_water::before_render(water);
+      fft_water::simulate(fftWater.get(), water_time);
+      fft_water::before_render(fftWater.get());
     }
-    static int foam_time_id = get_shader_glob_var_id("foam_time", true);
-    ShaderGlobal::set_real(foam_time_id, water_time);
+
+    static ShaderVariableInfo foam_time("foam_time");
+    foam_time.set_real(water_time);
   }
 
   virtual void sceneSelected(DagorGameScene * /*prev_scene*/) { loadScene(); }
@@ -1214,7 +1011,7 @@ public:
   virtual void sceneDeselected(DagorGameScene * /*new_scene*/)
   {
     webui::shutdown();
-    console::set_visual_driver(NULL, NULL);
+    console::set_visual_driver(nullptr, nullptr);
     delete this;
     dabfg::shutdown();
   }
@@ -1225,28 +1022,28 @@ public:
     if (!land_panel.plane)
       return;
     TIME_D3D_PROFILE(plane);
-    ShaderGlobal::set_int(planeVarId, 1);
+    shvars::plane.set_int(1);
     sphereElem->setStates(0, true);
     d3d::draw_instanced(PRIM_TRILIST, 0, 6, 1);
-    //Point3 vert[4] = {Point3(-1, -2, -1), Point3(-1, -2, +1), Point3(+1, -2, -1), Point3(+1, -2, +1)};
-    //d3d::draw_up(PRIM_TRISTRIP, 2, vert, sizeof(Point3));
+    // Point3 vert[4] = {Point3(-1, -2, -1), Point3(-1, -2, +1), Point3(+1, -2, -1), Point3(+1, -2, +1)};
+    // d3d::draw_up(PRIM_TRISTRIP, 2, vert, sizeof(Point3));
   }
   void drawSpheres()
   {
     if (!land_panel.spheres)
       return;
     TIME_D3D_PROFILE(spheres);
-    ShaderGlobal::set_int(planeVarId, 0);
+    shvars::plane.set_int(0);
     sphereElem->setStates(0, true);
-    d3d::setvsrc_ex(0, NULL, 0, 0);
+    d3d::setvsrc_ex(0, nullptr, 0, 0);
     d3d::draw_instanced(PRIM_TRILIST, 0, SPHERES_INDICES_TO_DRAW, NUM_ROUGHNESS * NUM_METALLIC);
   }
-  HeightmapRenderer meshRenderer;
+  HeightmapRenderer heightmapRenderer;
   UniqueTexHolder heightmap;
-  Point3 curCameraPos = ZERO<Point3>();
+
   float heightmapCellSize = 1.f, heightmapScale = 1.f, heightmapMin = 0.f, hmapMaxHt = 1.f;
 
-  void drawHeightmap()
+  void drawHeightmap(const Frustum &frustum, const Point3 &cur_camera_pos)
   {
     if (!land_panel.enabled)
       return;
@@ -1255,25 +1052,18 @@ public:
     heightmapMin = land_panel.heightMin * land_panel.heightScale;
     if (!heightmap)
       return;
-    if (!meshRenderer.isInited())
-      meshRenderer.init("heightmap", "", true, 4);
-    mat44f globtm;
-    d3d::getglobtm(globtm);
-    Frustum frustum(globtm);
 
-    // cull_lod_grid(lodGrid, lod, origin.x, origin.z,
-    //   waterCellSize, waterCellSize, align, align, &frustum, NULL, defaultCullData);
     int lodCount = 8;
     const int lodRad = 1, lastLodRad = 3;
     int lod = 0;
-    static int heightmap_scaleVarId = get_shader_variable_id("heightmap_scale");
-    static int world_to_hmap_lowVarId = get_shader_variable_id("world_to_hmap_low");
-    ShaderGlobal::set_color4(heightmap_scaleVarId, heightmapScale, heightmapMin, 0, 0);
-    static int tex_hmap_inv_sizesVarId = get_shader_variable_id("tex_hmap_inv_sizes");
-    Color4 inv_width = ShaderGlobal::get_color4_fast(tex_hmap_inv_sizesVarId);
+    static ShaderVariableInfo heightmap_scale("heightmap_scale");
+    heightmap_scale.set_color4(heightmapScale, heightmapMin, 0, 0);
+    static ShaderVariableInfo tex_hmap_inv_sizes("tex_hmap_inv_sizes");
+    Color4 inv_width = tex_hmap_inv_sizes.get_color4();
     Point2 origin(land_panel.hmapCenterOfsX + 0.5f, land_panel.hmapCenterOfsZ + 0.5f);
     Point2 invWorldSize = Point2(inv_width.r / heightmapCellSize, inv_width.g / heightmapCellSize);
-    ShaderGlobal::set_color4(world_to_hmap_lowVarId, Color4(invWorldSize.x, invWorldSize.y, origin.x, origin.y));
+    static ShaderVariableInfo world_to_hmap_low("world_to_hmap_low");
+    world_to_hmap_low.set_color4(invWorldSize.x, invWorldSize.y, origin.x, origin.y);
 
     LodGrid lodGrid;
     lodGrid.init(lodCount - lod, lodRad, 0, lastLodRad);
@@ -1282,19 +1072,15 @@ public:
     float minHt = heightmapMin;
     float maxHt = heightmapMin + hmapMaxHt * heightmapScale;
     float lod0Size = 0;
-    cull_lod_grid(lodGrid, lodGrid.lodsCount, floorf(curCameraPos.x + 0.5f), floorf(curCameraPos.z + 0.5f), scaledCell, scaledCell, -1,
-      -1, minHt, maxHt, &frustum, NULL, defaultCullData, NULL, lod0Size, meshRenderer.getDim(), true);
+    cull_lod_grid(lodGrid, lodGrid.lodsCount, floorf(cur_camera_pos.x + 0.5f), floorf(cur_camera_pos.z + 0.5f), scaledCell, scaledCell,
+      -1, -1, minHt, maxHt, &frustum, nullptr, defaultCullData, nullptr, lod0Size, heightmapRenderer.get_hmap_tess_factorVarId(),
+      heightmapRenderer.getDim(), true);
     if (!defaultCullData.getCount())
       return;
     heightmap.setVar();
-    static int hmap_ldetail_gvid = get_shader_variable_id("hmap_ldetail", true);
-    ShaderGlobal::set_texture(hmap_ldetail_gvid, heightmap);
-    meshRenderer.render(lodGrid, defaultCullData);
-  }
-  void closeHeightmap()
-  {
-    heightmap.close();
-    meshRenderer.close();
+    static ShaderVariableInfo hmap_ldetail("hmap_ldetail", true);
+    hmap_ldetail.set_texture(heightmap.getTexId());
+    heightmapRenderer.render(lodGrid, defaultCullData);
   }
 
   void renderTrees()
@@ -1305,13 +1091,13 @@ public:
     if (test)
       test->render();
   }
-  void renderOpaque(bool render_decals)
+  void renderOpaque(const Frustum &frustum, const Point3 &camera_pos)
   {
     TIME_D3D_PROFILE(opaque);
     drawPlane();
     drawSpheres();
     renderTrees();
-    drawHeightmap();
+    drawHeightmap(frustum, camera_pos);
   }
   void renderLightProbeOpaque()
   {
@@ -1321,7 +1107,7 @@ public:
     TMatrix4 projTm;
     d3d::gettm(TM_PROJ, &projTm);
     itm = orthonormalized_inverse(view);
-    daSkies.useFog(itm.getcol(3), cube_pov_data, view, projTm);
+    daSkies.useFog(itm.getcol(3), cube_pov_data.get(), view, projTm);
     drawPlane();
   }
 
@@ -1336,9 +1122,9 @@ public:
     d3d::getpersp(persp);
     itm = orthonormalized_inverse(view);
     daSkies.renderEnvi(render_panel.infinite_skies, dpoint3(itm.getcol(3)), dpoint3(itm.getcol(2)), 2, UniqueTex{}, UniqueTex{},
-      BAD_TEXTUREID, cube_pov_data, view, projTm, persp);
+      BAD_TEXTUREID, cube_pov_data.get(), view, projTm, persp);
   }
-  static inline void calc_water_reflection_matrix(TMatrix &tm, TMatrix &itm, TMatrix &ivtm, Point3 &pos, float water_level)
+  static inline void calc_water_reflection_matrix(TMatrix &tm, TMatrix &itm, const TMatrix &ivtm, Point3 &pos, float water_level)
   {
     TMatrix reflection;
     reflection.setcol(0, 1.f, 0.f, 0.f);
@@ -1352,91 +1138,451 @@ public:
     pos = itm.getcol(3);
   }
 
-  void resolveReflection(Texture *resolveTarget)
+  int calc_resolved_frame_texfmt()
   {
-    TMatrix vtm;
-    TMatrix reflectedVTM, reflectedIVTM;
-    Point3 reflectionPos;
-    TMatrix itm;
-    curCamera->getInvViewMatrix(itm);
-    calc_water_reflection_matrix(reflectedVTM, reflectedIVTM, itm, reflectionPos, water_panel.water_level);
-    ShaderGlobal::set_color4(world_view_posVarId, reflectionPos.x, reflectionPos.y, reflectionPos.z, 1);
-    d3d::gettm(TM_VIEW, vtm);
-    d3d::settm(TM_VIEW, reflectedVTM);
-    Driver3dPerspective p;
-    G_VERIFY(d3d::getpersp(p));
-    TMatrix4 proj;
-    d3d::gettm(TM_PROJ, &proj);
-
-    reflectionGbuffer->resolve(resolveTarget, reflectedVTM, proj);
-
-    d3d::set_render_target(resolveTarget, 0);
-    d3d::set_depth(reflectionGbuffer->getDepth(), DepthAccess::SampledRO);
-
-    daSkies.renderEnvi(false, dpoint3(reflectionPos), dpoint3(reflectedIVTM.getcol(2)), 0, reflectionGbuffer->getDepthAll(),
-      UniqueTex{}, reflectionGbuffer->getDepthId(), refl_pov_data, reflectedVTM, proj, p);
-
-    d3d::settm(TM_VIEW, vtm);
-    G_VERIFY(d3d::setpersp(p));
-
-    ShaderGlobal::set_color4(world_view_posVarId, itm.getcol(3).x, itm.getcol(3).y, itm.getcol(3).z, 1);
-
-    d3d::set_render_target();
+    uint32_t rtFmt = TEXFMT_R11G11B10F;
+    if (!(d3d::get_texformat_usage(rtFmt) & d3d::USAGE_RTARGET))
+      rtFmt = TEXFMT_A16B16G16R16F;
+    return rtFmt;
   }
 
-  void prepareReflection()
+
+  struct FrameGraph
   {
-    if (!(water && water_panel.enabled))
-      return;
-    TIME_D3D_PROFILE(reflection)
-    SCOPE_RENDER_TARGET;
+    // A backbone is the base set of nodes that represents the core rendering
+    // architecture of an application. Everything else that the app wants to do
+    // is optional and can be added on top of this backbone.
+    // The less this backbone is responsible for, the better.
+    // Note that right now, a lot of stuff is hard-wired into the backbone, but
+    // it should be decoupled as much as possible.
+    struct Backbone
+    {
+      dabfg::NodeHandle makeCamera;
 
-    reflectionGbuffer->setRt();
-    TMatrix vtm;
-    TMatrix reflectedVTM, reflectedIVTM;
-    Point3 reflectionPos;
-    TMatrix itm;
-    curCamera->getInvViewMatrix(itm);
-    calc_water_reflection_matrix(reflectedVTM, reflectedIVTM, itm, reflectionPos, water_panel.water_level);
-    ShaderGlobal::set_color4(world_view_posVarId, reflectionPos.x, reflectionPos.y, reflectionPos.z, 1);
-    d3d::gettm(TM_VIEW, vtm);
-    d3d::settm(TM_VIEW, reflectedVTM);
-    Driver3dPerspective p;
-    G_VERIFY(d3d::getpersp(p));
-    TMatrix4 proj;
-    d3d::gettm(TM_PROJ, &proj);
-    Point4 worldClipPlane(0, 1, 0, -water_panel.water_level);
+      struct Opaque
+      {
+        dabfg::NodeHandle makeGbuf;
+        dabfg::NodeHandle deferredShading;
+      } opaque;
 
-    TMatrix4 waterProj = oblique_projection_matrix_reverse2<true>(proj, reflectedIVTM, Point4(0, 1, 0, -water_panel.water_level));
-    if (fabs(det4x4(waterProj)) > 1e-15) // near plane is not perpendicular to water plane
-      d3d::settm(TM_PROJ, &waterProj);
+      struct Lighting
+      {
+        dabfg::NodeHandle ssao;
+        dabfg::NodeHandle ssr;
+      } lighting;
 
-    d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
-    renderOpaque(false);
+      struct Shadows
+      {
+        dabfg::NodeHandle csm;
+      } shadows;
 
-    d3d::settm(TM_VIEW, vtm);
-    G_VERIFY(d3d::setpersp(p));
+      dabfg::NodeHandle downsampleDepth;
 
-    ShaderGlobal::set_color4(world_view_posVarId, itm.getcol(3).x, itm.getcol(3).y, itm.getcol(3).z, 1);
+      dabfg::NodeHandle startTransparent;
+
+      dabfg::NodeHandle copyFrame;
+
+      dabfg::NodeHandle renderPostFx;
+    } backbone;
+
+    // Miscelaneous stuff that extends the backbone. Preferrably, such
+    // nodes should be stored inside the storage of the subsystem that
+    // they are related to.
+    dag::Vector<dabfg::NodeHandle> opaqueRendering;
+    dag::Vector<dabfg::NodeHandle> transparentRendering;
+
+    // These nodes are needed to always display at least something on the
+    // screen, specifically the debug GUI, and so they are not part of the
+    // backbone. We can also display a "broken FG" message through these in
+    // case the programmer messes up the backbone.
+    struct FinalPresent
+    {
+      dabfg::NodeHandle createBackbuffer;
+      dabfg::NodeHandle debugTexOverlay;
+      dabfg::NodeHandle renderGui;
+    } finalPresent;
+
+    struct Envi
+    {
+      dabfg::NodeHandle renderCloudVolumeForParticles;
+      dabfg::NodeHandle updateSkiesData;
+      dabfg::NodeHandle prepareSkies;
+      dabfg::NodeHandle renderSky;
+      dabfg::NodeHandle renderClouds;
+    } envi;
+
+    struct Water
+    {
+      struct Reflections
+      {
+        dabfg::NodeHandle makeReflCamera;
+        dabfg::NodeHandle makeReflGbuf;
+        dag::Vector<dabfg::NodeHandle> renderOpaque;
+        dabfg::NodeHandle waterReflResolve;
+        dabfg::NodeHandle waterReflPrepareEnvi;
+        dabfg::NodeHandle waterReflEnvi;
+        dabfg::NodeHandle clipWaterRefl;
+      } reflections;
+
+      dabfg::NodeHandle render;
+    } water;
+  } frameGraph;
+
+  [[nodiscard]] FrameGraph::Backbone::Opaque makeOpaqueBackbone()
+  {
+    FrameGraph::Backbone::Opaque result;
+
+    result.makeGbuf = dabfg::register_node("make_gbuf", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      registry.createTexture2d(depth_tex_name, dabfg::History::No,
+        dabfg::Texture2dCreateInfo{TEXFMT_DEPTH32 | TEXCF_RTARGET, registry.getResolution<2>("main_view")});
+
+      for (int i = 0; i < gbuf_rt; ++i)
+        registry.createTexture2d(gbuf_tex_names[i], dabfg::History::No,
+          dabfg::Texture2dCreateInfo{gbuf_fmts[i] | TEXCF_RTARGET, registry.getResolution<2>("main_view")});
+
+      registry.requestRenderPass()
+        .color({gbuf_tex_names[0], gbuf_tex_names[1], gbuf_tex_names[2]})
+        .depthRw(depth_tex_name)
+        .clear(gbuf_tex_names[0], make_clear_value(0.f, 0.f, 0.f, 0.f))
+        .clear(gbuf_tex_names[1], make_clear_value(0.f, 0.f, 0.f, 0.f))
+        .clear(gbuf_tex_names[2], make_clear_value(0.f, 0.f, 0.f, 0.f))
+        .clear(depth_tex_name, make_clear_value(0.f, 0));
+    });
+
+    result.deferredShading = dabfg::register_node("deferred_shading", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      auto camHndl = bind_camera(registry, "main_camera").handle();
+
+      auto depthHandle = registry.readTexture(depth_tex_name).atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("depth_gbuf").handle();
+
+      for (int i = 0; i < gbuf_rt; ++i)
+        registry.readTexture(gbuf_tex_names[i]).atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
+
+      auto mainViewRes = registry.getResolution<2>("main_view");
+
+      const auto rtFmt = calc_resolved_frame_texfmt();
+      auto resolvedHandle =
+        registry.createTexture2d("resolved_frame", dabfg::History::No, dabfg::Texture2dCreateInfo{rtFmt | TEXCF_RTARGET, mainViewRes})
+          .atStage(dabfg::Stage::POST_RASTER)
+          .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+          .handle();
+
+      registry.read("ssr_target").texture().atStage(dabfg::Stage::PS).bindToShaderVar();
+      registry.read("ssao_tex").texture().atStage(dabfg::Stage::PS).bindToShaderVar();
+      registry.read("csm").texture().atStage(dabfg::Stage::PS).bindToShaderVar("shadow_cascade_depth_tex");
+
+      auto resShading = eastl::make_unique<ShadingResolver>("deferred_shading");
+      return [this, depthHandle, resolvedHandle, mainViewRes, camHndl, resolveShading = eastl::move(resShading)]() {
+        auto res = mainViewRes.get();
+        shvars::screen_pos_to_texcoord.set_color4(1.f / res.x, 1.f / res.y, 0, 0);
+        shvars::screen_size.set_color4(res.x, res.y, 1.0 / res.x, 1.0 / res.y);
+
+        const auto &cam = camHndl.ref();
+        set_inv_globtm_to_shader(cam.viewTm, cam.projTm, true);
+
+        csm->setCascadesToShader();
+
+        resolveShading->resolve(resolvedHandle.get(), cam.viewTm, cam.projTm);
+      };
+    });
+
+    return result;
   }
 
-  void setupMainRenderPasses()
+  [[nodiscard]] FrameGraph::Envi makeEnviNodes()
   {
-    //
-    // Resembles flow of the function above
-    //
+    FrameGraph::Envi result;
 
-    setupSkies();
-    setupGbufferPass();
+    result.renderCloudVolumeForParticles =
+      dabfg::register_node("render_clouds_volume_for_particles", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+        auto camHndl = bind_camera(registry, "main_camera").handle();
 
-    newFramegraphNodes.emplace_back(dabfg::register_node("downsample_depth", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+        // This texture should be used for faking order independent transparent
+        // rendering of particles inside clouds (i.e. explosions). This sample
+        // currently does not in fact use it for anything, but we leave it
+        // here to get at least a semblence of correct resource-based ordering
+        // of FG nodes.
+        auto cloudVolumeHndl = registry.create("cloud_volume", dabfg::History::No)
+                                 .texture(dabfg::Texture3dCreateInfo{TEXFMT_L8 | TEXCF_RTARGET | TEXCF_UNORDERED,
+                                   IPoint3{CLOUD_VOLUME_W, CLOUD_VOLUME_H, CLOUD_VOLUME_D}, 1})
+                                 .atStage(dabfg::Stage::PS_OR_CS)
+                                 .useAs(dabfg::Usage::SHADER_RESOURCE)
+                                 .handle();
+
+        return [this, camHndl, cloudVolumeHndl]() {
+          const auto &cam = camHndl.ref();
+          TIME_D3D_PROFILE(cloudsVolumeForParticles)
+          daSkies.renderCloudVolume(cloudVolumeHndl.get(), 30000, cam.viewTm, cam.projTm);
+        };
+      });
+
+    result.updateSkiesData = dabfg::register_node("update_skies_data", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      bind_camera(registry, "main_camera");
+
+      auto mainSkiesDataHndl = registry.create("main_cam_skies_data", dabfg::History::No).blob<SkiesData *>().handle();
+
+      return [this, mainSkiesDataHndl]() {
+        if (render_quality_panel != old_quality_panel)
+        {
+          old_quality_panel = render_quality_panel;
+          createMainPovData();
+        }
+        daSkies.changeSkiesData(render_quality_panel.sky_res_divisor, render_quality_panel.clouds_res_divisor,
+          !render_panel.infinite_skies, width, height, main_pov_data.get());
+
+        mainSkiesDataHndl.ref() = main_pov_data.get();
+      };
+    });
+
+    result.prepareSkies = dabfg::register_node("prepare_skies", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      auto camHndl = bind_camera(registry, "main_camera").handle();
+
+      auto mainSkiesDataHndl = registry.modify("main_cam_skies_data").blob<SkiesData *>().handle();
+
+      auto fddHandle = registry.readTexture("far_downsampled_depth")
+                         .atStage(dabfg::Stage::PS_OR_CS)
+                         .bindToShaderVar("downsampled_far_depth_tex")
+                         .handle();
+      auto prevFddHandle = registry.readTextureHistory("far_downsampled_depth")
+                             .atStage(dabfg::Stage::PS_OR_CS)
+                             .bindToShaderVar("prev_downsampled_far_depth_tex")
+                             .handle();
+
+      return [this, camHndl, mainSkiesDataHndl, fddHandle, prevFddHandle]() {
+        const auto &cam = camHndl.ref();
+        daSkies.prepareSkyAndClouds(render_panel.infinite_skies, dpoint3(cam.worldPos), dpoint3(cam.viewItm.getcol(2)), 3,
+          fddHandle.view(), prevFddHandle.view(), mainSkiesDataHndl.ref(), cam.viewTm, cam.projTm, true, false, 20.0f, aurora.get());
+      };
+    });
+
+    result.renderSky = dabfg::register_node("render_sky", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      auto camHndl = bind_camera(registry, "main_camera").handle();
+
+      auto mainSkiesDataHndl = registry.read("main_cam_skies_data").blob<SkiesData *>().handle();
+
+      registry.read("far_downsampled_depth").texture().atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("downsampled_far_depth_tex");
+      registry.historyFor("far_downsampled_depth")
+        .texture()
+        .atStage(dabfg::Stage::PS_OR_CS)
+        .bindToShaderVar("prev_downsampled_far_depth_tex");
+
+      auto resolvedFrameHndl =
+        registry.modify("resolved_frame").texture().atStage(dabfg::Stage::POST_RASTER).useAs(dabfg::Usage::COLOR_ATTACHMENT).handle();
+      auto depthHndl =
+        registry.read("depth_gbuf").texture().atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::DEPTH_ATTACHMENT).handle();
+
+      return [resolvedFrameHndl, depthHndl, mainSkiesDataHndl, camHndl, this]() {
+        // TODO: This is a dirty hack due to the fact taht daSkies is not
+        // mobile-friendly yet and breaks render passes all over the place.
+        d3d::set_render_target({depthHndl.view().getBaseTex()}, DepthAccess::SampledRO, {{resolvedFrameHndl.get()}});
+
+        const auto &cam = camHndl.ref();
+
+        depthHndl.view()->texfilter(TEXFILTER_POINT);
+
+        daSkies.renderSky(mainSkiesDataHndl.ref(), cam.viewTm, cam.projTm, cam.persp, true, aurora.get());
+      };
+    });
+
+    result.renderClouds = dabfg::register_node("render_clouds", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      auto camHndl = bind_camera(registry, "main_camera").handle();
+
+      auto fddHandle = registry.readTexture("far_downsampled_depth")
+                         .atStage(dabfg::Stage::PS_OR_CS)
+                         .bindToShaderVar("downsampled_far_depth_tex")
+                         .handle();
+      auto prevFddHandle = registry.readTextureHistory("far_downsampled_depth")
+                             .atStage(dabfg::Stage::PS_OR_CS)
+                             .bindToShaderVar("prev_downsampled_far_depth_tex")
+                             .handle();
+
+      auto mainSkiesDataHndl = registry.read("main_cam_skies_data").blob<SkiesData *>().handle();
+
+
+      auto depthReq = registry.read("depth_for_transparent").texture();
+      registry.requestRenderPass().color({"color_for_transparent"}).depthRo(depthReq);
+      auto depthHndl =
+        eastl::move(depthReq).atStage(dabfg::Stage::POST_RASTER).useAs(dabfg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE).handle();
+
+      return [depthHndl, fddHandle, prevFddHandle, mainSkiesDataHndl, camHndl, this]() {
+        const auto &cam = camHndl.ref();
+
+        fddHandle.view()->texfilter(TEXFILTER_POINT);
+        prevFddHandle.view()->texfilter(TEXFILTER_LINEAR);
+        prevFddHandle.view()->texaddr(TEXADDR_CLAMP);
+        depthHndl.view()->texfilter(TEXFILTER_POINT);
+
+        daSkies.renderClouds(render_panel.infinite_skies, fddHandle.view(), depthHndl.d3dResId(), mainSkiesDataHndl.ref(), cam.viewTm,
+          cam.projTm);
+
+        prevFddHandle.view()->texaddr(TEXADDR_BORDER);
+      };
+    });
+
+    return result;
+  }
+
+  [[nodiscard]] FrameGraph::Backbone::Lighting makeLightingBackbone()
+  {
+    FrameGraph::Backbone::Lighting result;
+
+    result.ssr = dabfg::register_node("SSR", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      bind_camera(registry, "main_camera");
+
+      registry.readTexture("downsampled_normals").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
+      auto fddHandle = registry.readTexture("far_downsampled_depth")
+                         .atStage(dabfg::Stage::PS_OR_CS)
+                         .bindToShaderVar("downsampled_far_depth_tex")
+                         .handle();
+      auto prevFddHandle = registry.readTextureHistory("far_downsampled_depth")
+                             .atStage(dabfg::Stage::PS_OR_CS)
+                             .bindToShaderVar("prev_downsampled_far_depth_tex")
+                             .handle();
+
+      uint32_t fmt = 0;
+      SSRQuality tmpQuality = SSRQuality::Low;
+      ScreenSpaceReflections::getRealQualityAndFmt(fmt, tmpQuality);
+      fmt |= TEXCF_RTARGET;
+      const auto mipCount = static_cast<uint32_t>(ScreenSpaceReflections::getMipCount(SSRQuality::Low));
+
+      auto ssrTargetHndl = registry.create("ssr_target", dabfg::History::ClearZeroOnFirstFrame)
+                             .texture({fmt, registry.getResolution<2>("main_view", 0.5f), mipCount})
+                             .atStage(dabfg::Stage::PS_OR_CS)
+                             .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+                             .handle();
+      auto ssrTargetHistHndl =
+        registry.historyFor("ssr_target").texture().atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+
+      auto ssr = eastl::make_unique<ScreenSpaceReflections>(width / 2, height / 2, 1, fmt, SSRQuality::Low, SSRFlag::None);
+      return [this, fddHandle, prevFddHandle, ssrTargetHndl, ssrTargetHistHndl, ssr = eastl::move(ssr)]() {
+        fddHandle.view()->texfilter(TEXFILTER_POINT);
+        prevFddHandle.view()->texfilter(TEXFILTER_LINEAR);
+
+        TMatrix itm;
+        curCamera->getInvViewMatrix(itm);
+        const DPoint3 worldPos = DPoint3(itm.getcol(3));
+
+        TMatrix viewTm;
+        TMatrix4 projTm;
+        d3d::gettm(TM_VIEW, viewTm);
+        d3d::gettm(TM_PROJ, &projTm);
+        ssr->render(viewTm, projTm, worldPos, SubFrameSample::Single, ssrTargetHndl.view(), ssrTargetHistHndl.view(),
+          ssrTargetHndl.view(), ::dagor_frame_no());
+      };
+    });
+
+    result.ssao = dabfg::register_node("SSAO", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      bind_camera(registry, "main_camera");
+
+      registry.readTexture("downsampled_normals").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
+      auto fddHandle = registry.readTexture("far_downsampled_depth")
+                         .atStage(dabfg::Stage::PS_OR_CS)
+                         .bindToShaderVar("downsampled_far_depth_tex")
+                         .handle();
+      auto prevFddHandle = registry.readTextureHistory("far_downsampled_depth")
+                             .atStage(dabfg::Stage::PS_OR_CS)
+                             .bindToShaderVar("prev_downsampled_far_depth_tex")
+                             .handle();
+
+      const auto halfMainViewRes = registry.getResolution<2>("main_view", 0.5f);
+      const auto fmt = ssao_detail::creation_flags_to_format(SSAO_NONE);
+
+      auto ssaoHndl = registry.create("ssao_tex", dabfg::History::ClearZeroOnFirstFrame)
+                        .texture({fmt | TEXCF_RTARGET, halfMainViewRes})
+                        .atStage(dabfg::Stage::PS)
+                        .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+                        .handle();
+
+      auto ssaoHistHndl =
+        registry.historyFor("ssao_tex").texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+
+      auto ssaoTmpHndl = registry.create("ssao_tmp_tex", dabfg::History::No)
+                           .texture({fmt | TEXCF_RTARGET, halfMainViewRes})
+                           .atStage(dabfg::Stage::PS)
+                           .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+                           .handle();
+
+      auto ssao = eastl::make_unique<SSAORenderer>(width / 2, height / 2, 1, SSAO_NONE, false);
+      return [this, fddHandle, prevFddHandle, ssaoHndl, ssaoHistHndl, ssaoTmpHndl, ssao = eastl::move(ssao)]() {
+        fddHandle.view()->texfilter(TEXFILTER_POINT);
+        prevFddHandle.view()->texfilter(TEXFILTER_LINEAR);
+
+        TMatrix itm;
+        curCamera->getInvViewMatrix(itm);
+        const DPoint3 worldPos = DPoint3(itm.getcol(3));
+
+        TMatrix viewTm;
+        TMatrix4 projTm;
+        d3d::gettm(TM_VIEW, viewTm);
+        d3d::gettm(TM_PROJ, &projTm);
+        auto ssaoView = ssaoHndl.view();
+        auto prevSsaoView = ssaoHistHndl.view();
+        auto tmpTexView = ssaoTmpHndl.view();
+        ssao->render(viewTm, projTm, fddHandle.view().getBaseTex(), &ssaoView, &prevSsaoView, &tmpTexView, worldPos,
+          SubFrameSample::Single);
+      };
+    });
+
+    return result;
+  }
+
+  [[nodiscard]] FrameGraph::Backbone::Shadows makeShadowsBackbone()
+  {
+    FrameGraph::Backbone::Shadows result;
+
+    result.csm = dabfg::register_node("CSM", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      const auto info = csm->getShadowCascadeTexInfo();
+      auto csmHndl = registry.create("csm", dabfg::History::No)
+                       .texture(dabfg::Texture2dCreateInfo{info.cflg, IPoint2{info.w, info.h}, info.mipLevels})
+                       .atStage(dabfg::Stage::POST_RASTER)
+                       .useAs(dabfg::Usage::DEPTH_ATTACHMENT)
+                       .handle();
+      return [this, csmHndl]() {
+        auto csmView = csmHndl.view();
+        csm->renderShadowsCascadesCb(
+          [this, csmView](int num_cascades_to_render, bool clear_per_view) {
+            for (int i = 0; i < num_cascades_to_render; ++i)
+              csm->renderShadowCascadeDepth(i, clear_per_view, csmView);
+          },
+          csmView);
+
+        csmView->texfilter(TEXFILTER_COMPARE);
+        csmView->texaddr(TEXADDR_CLAMP);
+      };
+    });
+    return result;
+  }
+
+  [[nodiscard]] FrameGraph::Backbone makeBackbone()
+  {
+    FrameGraph::Backbone result;
+
+    result.makeCamera = dabfg::register_node("make_camera", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      auto camHndl = registry.create("main_camera", dabfg::History::No).blob<Camera>().handle();
+      return [this, camHndl]() {
+        auto &cam = camHndl.ref();
+        curCamera->getInvViewMatrix(cam.viewItm);
+        // Disgusting hack, common samples framework needs to be reworked
+        curCamera->setView();
+        d3d::gettm(TM_VIEW, cam.viewTm);
+        d3d::gettm(TM_PROJ, (mat44f &)cam.projTm);
+        d3d::getglobtm((mat44f &)cam.globTm);
+        d3d::getpersp(cam.persp);
+        cam.frustum = Frustum(cam.globTm);
+        cam.worldPos = cam.viewItm.getcol(3);
+        cam.viewVecs = calc_view_vecs(cam.viewTm, cam.projTm);
+      };
+    });
+
+    result.opaque = makeOpaqueBackbone();
+
+    result.downsampleDepth = dabfg::register_node("downsample_depth", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
       auto gbufDepthHandle = registry.readTexture(depth_tex_name).atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar().handle();
 
       registry.readTexture(normal_tex_name).atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
 
       auto downsampledNormalsHandle = registry
                                         .createTexture2d("downsampled_normals", dabfg::History::No,
-                                          dabfg::Texture2dCreateInfo{TEXCF_RTARGET, registry.getResolution("main_view", 0.5)})
+                                          dabfg::Texture2dCreateInfo{TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5)})
                                         .atStage(dabfg::Stage::POST_RASTER)
                                         .useAs(dabfg::Usage::COLOR_ATTACHMENT)
                                         .handle();
@@ -1455,7 +1601,7 @@ public:
       auto farDownsampledDepthHandle =
         registry
           .createTexture2d("far_downsampled_depth", dabfg::History::DiscardOnFirstFrame,
-            dabfg::Texture2dCreateInfo{rfmt | TEXCF_RTARGET, registry.getResolution("main_view", 0.5), numMips})
+            dabfg::Texture2dCreateInfo{rfmt | TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5), numMips})
           .atStage(dabfg::Stage::POST_RASTER)
           .useAs(dabfg::Usage::COLOR_ATTACHMENT)
           .handle();
@@ -1473,152 +1619,43 @@ public:
         downsample_depth::downsample(gbufDepthHandle.view(), width, height, farDownsampledDepth, ManagedTexView{} /* closest_depth */,
           downsampledNormalsHandle.view(), ManagedTexView{}, ManagedTexView{}, true);
       };
-    }));
+    });
 
+    result.copyFrame = dabfg::register_node("copy_frame", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      auto hndl = registry.readTexture("resolved_frame").atStage(dabfg::Stage::TRANSFER).useAs(dabfg::Usage::BLIT).handle();
+      const auto rtFmt = calc_resolved_frame_texfmt();
+      auto copyHndl = registry.create("prev_frame", dabfg::History::ClearZeroOnFirstFrame)
+                        .texture(dabfg::Texture2dCreateInfo{rtFmt | TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5f)})
+                        .atStage(dabfg::Stage::TRANSFER)
+                        .useAs(dabfg::Usage::BLIT)
+                        .handle();
 
-    newFramegraphNodes.emplace_back(dabfg::register_node("SSR", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      registry.readTexture("downsampled_normals").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
-      auto fddHandle = registry.readTexture("far_downsampled_depth")
-                         .atStage(dabfg::Stage::PS_OR_CS)
-                         .bindToShaderVar("downsampled_far_depth_tex")
-                         .handle();
-      auto prevFddHandle = registry.readTextureHistory("far_downsampled_depth")
-                             .atStage(dabfg::Stage::PS_OR_CS)
-                             .bindToShaderVar("prev_downsampled_far_depth_tex")
-                             .handle();
-
-      return [fddHandle, prevFddHandle, this]() {
-        fddHandle.view()->texfilter(TEXFILTER_POINT);
-        prevFddHandle.view()->texfilter(TEXFILTER_SMOOTH);
-
-        TMatrix viewTm;
-        TMatrix4 projTm;
-        d3d::gettm(TM_VIEW, viewTm);
-        d3d::gettm(TM_PROJ, &projTm);
-        ssr->render(viewTm, projTm);
-      };
-    }));
-
-    newFramegraphNodes.emplace_back(dabfg::register_node("SSAO", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      registry.readTexture("downsampled_normals").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
-      auto fddHandle = registry.readTexture("far_downsampled_depth")
-                         .atStage(dabfg::Stage::PS_OR_CS)
-                         .bindToShaderVar("downsampled_far_depth_tex")
-                         .handle();
-      auto prevFddHandle = registry.readTextureHistory("far_downsampled_depth")
-                             .atStage(dabfg::Stage::PS_OR_CS)
-                             .bindToShaderVar("prev_downsampled_far_depth_tex")
-                             .handle();
-
-      return [fddHandle, prevFddHandle, this]() {
-        fddHandle.view()->texfilter(TEXFILTER_POINT);
-        prevFddHandle.view()->texfilter(TEXFILTER_SMOOTH);
-
-        if (ssao)
-        {
-          TMatrix viewTm;
-          TMatrix4 projTm;
-          d3d::gettm(TM_VIEW, viewTm);
-          d3d::gettm(TM_PROJ, &projTm);
-          ssao->render(viewTm, projTm, farDownsampledDepth[currentDownsampledDepth]);
-        }
-      };
-    }));
-
-    persistentCsmNode = dabfg::register_node("CSM", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      return [this]() {
-        csm->renderShadowsCascades();
-        csm->setCascadesToShader();
+      return [hndl, copyHndl]() {
+        TIME_D3D_PROFILE(copy_frame);
+        d3d::stretch_rect(hndl.view().getBaseTex(), copyHndl.get());
       };
     });
 
-    setupDeferredShadingPass();
+    result.startTransparent = dabfg::register_node("start_transparent", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+      registry.rename("resolved_frame", "color_for_transparent", dabfg::History::No);
+      registry.rename("depth_gbuf", "depth_for_transparent", dabfg::History::No);
+    });
 
-    newFramegraphNodes.emplace_back(dabfg::register_node("render_envi", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      auto fddHandle = registry.readTexture("far_downsampled_depth")
-                         .atStage(dabfg::Stage::PS_OR_CS)
-                         .bindToShaderVar("downsampled_far_depth_tex")
-                         .handle();
-      auto prevFddHandle = registry.readTextureHistory("far_downsampled_depth")
-                             .atStage(dabfg::Stage::PS_OR_CS)
-                             .bindToShaderVar("prev_downsampled_far_depth_tex")
-                             .handle();
+    result.lighting = makeLightingBackbone();
+    result.shadows = makeShadowsBackbone();
 
+    result.renderPostFx = dabfg::register_node("render_postfx", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      registry.readTexture("color_for_transparent").atStage(dabfg::Stage::PS).bindToShaderVar("frame_tex");
 
-      auto resolvedTexReq = registry.renameTexture("resolved_frame", "resolved_with_envi", dabfg::History::No);
-      auto depthReq = registry.readTexture(depth_tex_name);
+      registry.requestRenderPass().color({"backbuffer"});
 
-      registry.requestRenderPass().color({resolvedTexReq}).depthRo(depthReq);
-
-      // This is a dirty hack due to daSkies not being framegraphied.
-      auto depthHandle =
-        eastl::move(depthReq).atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE).handle();
-
-      return [depthHandle, fddHandle, prevFddHandle, this]() {
-        fddHandle.view()->texfilter(TEXFILTER_POINT);
-        prevFddHandle.view()->texfilter(TEXFILTER_SMOOTH);
-        prevFddHandle.view()->texaddr(TEXADDR_CLAMP);
-
-        {
-          TIME_D3D_PROFILE(envi)
-          TMatrix itm;
-          curCamera->getInvViewMatrix(itm);
-          TMatrix viewTm;
-          TMatrix4 projTm;
-          Driver3dPerspective persp;
-          d3d::gettm(TM_VIEW, viewTm);
-          d3d::gettm(TM_PROJ, &projTm);
-          d3d::getpersp(persp);
-          depthHandle.view()->texfilter(TEXFILTER_POINT);
-          daSkies.renderEnvi(render_panel.infinite_skies, dpoint3(itm.getcol(3)), dpoint3(itm.getcol(2)), 3, fddHandle.view(),
-            prevFddHandle.view(), depthHandle.d3dResId(), main_pov_data, viewTm, projTm, persp, true, false, 20.0F, aurora.get());
-          prevFddHandle.view()->texaddr(TEXADDR_BORDER);
-        }
+      return [this, postfx = PostFxRenderer("postfx")]() {
+        TIME_D3D_PROFILE(postfx)
+        postfx.render();
       };
-    }));
+    });
 
-
-    newFramegraphNodes.emplace_back(dabfg::register_node("render_water", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      auto fddHandle =
-        registry.readTexture("far_downsampled_depth").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("depth_tex").handle();
-      registry.readTexture(REFL_TEX_NAME).atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
-
-      auto resolvedTexReq = registry.renameTexture("resolved_with_envi", "resolved_with_water", dabfg::History::No);
-      auto depthReq = registry.renameTexture(depth_tex_name, "depth_with_water", dabfg::History::No);
-
-      registry.requestRenderPass().color({resolvedTexReq}).depthRw(depthReq);
-
-      registry.requestState().allowWireframe();
-
-      return [fddHandle, this]() {
-        ShaderGlobal::set_texture(::get_shader_variable_id("water_refraction_tex", true), prevFrame);
-        fddHandle.view()->texfilter(TEXFILTER_POINT);
-
-        renderWater(nullptr);
-
-        ShaderGlobal::set_texture(::get_shader_variable_id("water_refraction_tex", true), BAD_TEXTUREID);
-      };
-    }));
-  }
-
-  void renderWater(BaseTexture *depthTex)
-  {
-    if (water && water_panel.enabled)
-    {
-      TMatrix itm;
-      curCamera->getInvViewMatrix(itm);
-      TIME_D3D_PROFILE(water_render);
-      ShaderGlobal::set_real(water_levelVarId, water_panel.water_level);
-      fft_water::set_level(water, water_panel.water_level);
-
-      float dimensions = 30;
-      ShaderGlobal::set_color4(::get_shader_variable_id("water_heightmap_min_max", true), 1.f / dimensions,
-        -(water_panel.water_level - 0.5 * dimensions) / dimensions, dimensions, water_panel.water_level - 0.5 * dimensions);
-
-      TMatrix4 globtm;
-      d3d::getglobtm(globtm);
-      fft_water::render(water, itm.getcol(3), BAD_TEXTUREID, globtm, fft_water::GEOM_NORMAL);
-    }
+    return result;
   }
 
   virtual void renderTrans()
@@ -1635,209 +1672,272 @@ public:
 
   virtual void renderWaterRefraction() {}
 
-  void setupSyntheticTestNodes()
+  [[nodiscard]] FrameGraph::Water::Reflections makeWaterReflectionNodes()
   {
-    newFramegraphNodes.clear();
-    persistentCsmNode = {};
-    persistentUselessNode = {};
+    FrameGraph::Water::Reflections result;
+
+    auto reflNs = dabfg::root() / "water_refl";
+
+    result.makeReflCamera = reflNs.registerNode("make_refl_camera", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      auto mainCamHndl = registry.read("main_camera").blob<Camera>().handle();
+      auto reflCamHndl = registry.create("refl_camera", dabfg::History::No).blob<Camera>().handle();
+
+      return [this, reflCamHndl, mainCamHndl]() {
+        if (!(fftWater && water_panel.enabled))
+          return;
+
+        const auto &mainCam = mainCamHndl.ref();
+
+        auto &reflCam = reflCamHndl.ref();
+
+        calc_water_reflection_matrix(reflCam.viewTm, reflCam.viewItm, mainCam.viewItm, reflCam.worldPos, water_panel.water_level);
+
+        Point4 worldClipPlane(0, 1, 0, -water_panel.water_level);
+
+        TMatrix4 waterProj = oblique_projection_matrix_reverse2<true>(mainCam.projTm, reflCam.viewItm, worldClipPlane);
+        if (fabs(det4x4(waterProj)) > 1e-15) // near plane is not perpendicular to water plane
+          reflCam.projTm = waterProj;
+
+        // TODO: this is a hack, we can calculate globTm and persp without
+        // setting the matrices
+        d3d::settm(TM_VIEW, reflCam.viewTm);
+        d3d::settm(TM_PROJ, (mat44f &)reflCam.projTm);
+        d3d::getglobtm((mat44f &)reflCam.globTm);
+        d3d::getpersp(reflCam.persp);
+        reflCam.frustum = Frustum(reflCam.globTm);
+        reflCam.viewVecs = calc_view_vecs(reflCam.viewTm, reflCam.projTm);
+      };
+    });
+
+    result.makeReflGbuf = reflNs.registerNode("make_refl_gbuf", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+      auto resolution = registry.getResolution<2>("main_view", 1.f / 6.f);
+
+      registry.createTexture2d("depth_gbuf_refl", dabfg::History::No,
+        dabfg::Texture2dCreateInfo{TEXFMT_DEPTH24 | TEXCF_RTARGET, resolution});
+
+      constexpr char const *const refl_gbuf_names[] = {"albedo_gbuf_refl", "normal_gbuf_refl", "material_gbuf_refl"};
+      for (int i = 0; i < gbuf_rt; ++i)
+        registry.createTexture2d(refl_gbuf_names[i], dabfg::History::No,
+          dabfg::Texture2dCreateInfo{gbuf_fmts[i] | TEXCF_RTARGET, resolution});
+
+      registry.requestRenderPass()
+        .color({refl_gbuf_names[0], refl_gbuf_names[1], refl_gbuf_names[2]})
+        .depthRw("depth_gbuf_refl")
+        .clear(refl_gbuf_names[0], make_clear_value(0.f, 0.f, 0.f, 0.f))
+        .clear(refl_gbuf_names[1], make_clear_value(0.f, 0.f, 0.f, 0.f))
+        .clear(refl_gbuf_names[2], make_clear_value(0.f, 0.f, 0.f, 0.f))
+        .clear("depth_gbuf_refl", make_clear_value(0.f, 0));
+    });
+
+    result.waterReflResolve = reflNs.registerNode("water_reflections_resolve", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      auto camHndl = bind_camera(registry, "refl_camera").handle();
+
+      auto resolution = registry.getResolution<2>("main_view", 1.f / 6.f);
+
+      registry.read("albedo_gbuf_refl").texture().atStage(dabfg::Stage::PS).bindToShaderVar("albedo_gbuf");
+      registry.read("normal_gbuf_refl").texture().atStage(dabfg::Stage::PS).bindToShaderVar("normal_gbuf");
+      registry.read("material_gbuf_refl").texture().atStage(dabfg::Stage::PS).bindToShaderVar("material_gbuf");
+      registry.read("depth_gbuf_refl").texture().atStage(dabfg::Stage::PS).bindToShaderVar("depth_gbuf");
+
+      auto reflHandle = registry
+                          .createTexture2d("water_reflection_tex_temp", dabfg::History::No,
+                            dabfg::Texture2dCreateInfo{TEXFMT_A16B16G16R16F | TEXCF_RTARGET, resolution})
+                          .atStage(dabfg::Stage::POST_RASTER)
+                          .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+                          .handle();
+
+      auto reflResolver = eastl::make_unique<ShadingResolver>("cube_deferred_shading");
+
+      return [this, reflHandle, camHndl, reflResolver = eastl::move(reflResolver)]() {
+        reflResolver->resolve(reflHandle.get(), camHndl.ref().viewTm, camHndl.ref().projTm);
+      };
+    });
+
+    result.waterReflPrepareEnvi = reflNs.registerNode("water_refl_perpare_envi", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      auto camHndl = bind_camera(registry, "refl_camera").handle();
+
+      auto reflSkiesDataHndl = registry.create("refl_cam_skies_data", dabfg::History::No).blob<SkiesData *>().handle();
+
+      auto depthHndl =
+        registry.read("depth_gbuf_refl").texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+      return [this, camHndl, depthHndl, reflSkiesDataHndl]() {
+        reflSkiesDataHndl.ref() = refl_pov_data.get();
+        const auto &cam = camHndl.ref();
+        daSkies.prepareSkyAndClouds(render_panel.infinite_skies, dpoint3(cam.worldPos), dpoint3(cam.viewItm.getcol(2)), 3,
+          depthHndl.view(), ManagedTexView{}, reflSkiesDataHndl.ref(), cam.viewTm, cam.projTm, true, false, 20.0f, aurora.get());
+      };
+    });
+
+    result.waterReflEnvi = reflNs.registerNode("water_refl_envi", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      auto camHndl = bind_camera(registry, "refl_camera").handle();
+
+      auto reflSkiesDataHndl = registry.read("refl_cam_skies_data").blob<SkiesData *>().handle();
+
+      auto depthReq = registry.read("depth_gbuf_refl").texture();
+      registry.requestRenderPass().color({"water_reflection_tex_temp"}).depthRo(depthReq);
+      auto depthHndl =
+        eastl::move(depthReq).atStage(dabfg::Stage::PS).useAs(dabfg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE).handle();
+      return [this, camHndl, depthHndl, reflSkiesDataHndl]() {
+        const auto &cam = camHndl.ref();
+
+        daSkies.renderSky(reflSkiesDataHndl.ref(), cam.viewTm, cam.projTm, cam.persp, true, aurora.get());
+        daSkies.renderClouds(render_panel.infinite_skies, depthHndl.view(), depthHndl.d3dResId(), reflSkiesDataHndl.ref(), cam.viewTm,
+          cam.projTm);
+      };
+    });
 
 
-    static constexpr int RESOURCE_COUNT = 100;
+    result.clipWaterRefl = reflNs.registerNode("clip_water_reflection", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      auto resolution = registry.getResolution<2>("main_view", 1.f / 6.f);
 
-    auto nameForRes = [](int i) { return eastl::string(eastl::string::CtorSprintf{}, "synthResource%d", i); };
+      auto reflTexReq = registry.createTexture2d("water_reflection_tex", dabfg::History::No,
+        dabfg::Texture2dCreateInfo{TEXFMT_A16B16G16R16F | TEXCF_RTARGET, resolution});
 
-    // Dirty hack
-    extern ConVarT<bool, false> randomize_order;
-    randomize_order = true;
+      registry.requestRenderPass().color({reflTexReq});
 
+      registry.readTexture("water_reflection_tex_temp").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
 
-    struct SharedState
-    {
-      int newResCounter = 0;
-      dag::VectorSet<int> availableForModification;
-      dag::VectorSet<int> availableForRead;
-    };
+      return [this, clipWaterReflection = PostFxRenderer("clip_water_reflection")]() { clipWaterReflection.render(); };
+    });
 
-    auto state = eastl::make_shared<SharedState>();
-
-    for (int i = 0; i < RESOURCE_COUNT; ++i)
-    {
-      newFramegraphNodes.push_back(
-        dabfg::register_node(String(0, "producer%d", i).c_str(), DABFG_PP_NODE_SRC, [nameForRes, state](dabfg::Registry registry) {
-          const auto res = state->newResCounter++;
-
-          if (!state->availableForRead.empty() && dagor_random::rnd_int(0, 1) == 0)
-          {
-            const int consumedIdx = dagor_random::rnd_int(0, state->availableForRead.size() - 1);
-            const int consumed = state->availableForRead[consumedIdx];
-
-            registry.renameTexture(nameForRes(consumed).c_str(), nameForRes(res).c_str(), dabfg::History::No);
-            state->availableForRead.erase(consumed);
-            state->availableForModification.insert(res);
-          }
-          else
-          {
-            registry
-              .createTexture2d(nameForRes(res).c_str(), dabfg::History::No,
-                dabfg::Texture2dCreateInfo{TEXCF_RTARGET | TEXFMT_A16B16G16R16F, IPoint2{256, 256}, 1})
-              .atStage(dabfg::Stage::POST_RASTER)
-              .useAs(dabfg::Usage::COLOR_ATTACHMENT);
-            state->availableForModification.insert(res);
-          }
-
-          for (auto i : state->availableForRead)
-            if (i != res && dagor_random::rnd_int(0, 1) == 0)
-              registry.readTexture(nameForRes(i).c_str());
-
-          registry.executionHas(dabfg::SideEffects::External);
-
-          return []() {};
-        }));
-
-      const int modifiers = dagor_random::rnd_int(0, 10);
-
-      for (int j = 0; j < modifiers; ++j)
-      {
-        newFramegraphNodes.push_back(dabfg::register_node(String(0, "modifier%d%d", i, j).c_str(), DABFG_PP_NODE_SRC,
-          [nameForRes, state](dabfg::Registry registry) {
-            for (auto i : state->availableForRead)
-              if (dagor_random::rnd_int(0, 1) == 0)
-                registry.readTexture(nameForRes(i).c_str());
-
-            if (!state->availableForModification.empty())
-            {
-              const int modifyIdx = dagor_random::rnd_int(0, state->availableForModification.size() - 1);
-              const auto res = state->availableForModification[modifyIdx];
-              registry.modifyTexture(nameForRes(res).c_str());
-
-              if (dagor_random::rnd_int(0, 1) == 0)
-              {
-                state->availableForModification.erase(res);
-                state->availableForRead.insert(res);
-              }
-            }
-            registry.executionHas(dabfg::SideEffects::External);
-
-            return []() {};
-          }));
-      }
-    }
+    return result;
   }
 
-  void setupNodes()
+  [[nodiscard]] FrameGraph::Water makeWaterNodes()
   {
-    newFramegraphNodes.clear();
+    FrameGraph::Water result;
 
-    setupMainRenderPasses();
+    result.reflections = makeWaterReflectionNodes();
 
-    //////////////////
+    result.render = dabfg::register_node("render_water", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      auto camHndl = bind_camera(registry, "main_camera").handle();
 
-    const int reflW = width / 6, reflH = height / 6;
+      auto fddHandle =
+        registry.readTexture("far_downsampled_depth").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("depth_tex").handle();
 
-    newFramegraphNodes.emplace_back(dabfg::register_node("prepare_water_reflection", DABFG_PP_NODE_SRC,
-      [this](dabfg::Registry registry) { return [this]() { prepareReflection(); }; }));
+      (registry.root() / "water_refl").readTexture("water_reflection_tex").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
 
-    newFramegraphNodes.emplace_back(
-      dabfg::register_node("water_reflection_resolve", DABFG_PP_NODE_SRC, [reflW, reflH, this](dabfg::Registry registry) {
-        auto reflHandle = registry
-                            .createTexture2d(REFL_TMP_TEX_NAME, dabfg::History::No,
-                              dabfg::Texture2dCreateInfo{TEXFMT_A16B16G16R16F | TEXCF_RTARGET, IPoint2{reflW, reflH}})
-                            .atStage(dabfg::Stage::POST_RASTER)
-                            .useAs(dabfg::Usage::COLOR_ATTACHMENT)
-                            .handle();
+      registry.setPriority(-100);
+      registry.requestRenderPass().color({"color_for_transparent"}).depthRo("depth_for_transparent");
 
-        registry.orderMeAfter("prepare_water_reflection");
+      registry.requestState().allowWireframe();
 
-        return [reflHandle, this]() { resolveReflection(reflHandle.get()); };
-      }));
+      registry.readTextureHistory("prev_frame").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("water_refraction_tex");
 
-    newFramegraphNodes.emplace_back(
-      dabfg::register_node("clip_water_reflection", DABFG_PP_NODE_SRC, [reflW, reflH, this](dabfg::Registry registry) {
-        auto reflTexReq = registry.createTexture2d(REFL_TEX_NAME, dabfg::History::No,
-          dabfg::Texture2dCreateInfo{TEXFMT_A16B16G16R16F | TEXCF_RTARGET, IPoint2{reflW, reflH}});
+      return [fddHandle, camHndl, this]() {
+        fddHandle.view()->texfilter(TEXFILTER_POINT);
 
-        registry.requestRenderPass().color({reflTexReq});
+        if (!(fftWater && water_panel.enabled))
+          return;
 
-        registry.readTexture(REFL_TMP_TEX_NAME).atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar(REFL_TMP_TEX_NAME);
+        TIME_D3D_PROFILE(water_render);
+        shvars::water_level.set_real(water_panel.water_level);
+        fft_water::set_level(fftWater.get(), water_panel.water_level);
 
-        return [this]() { clipWaterReflection.render(); };
-      }));
+        float dimensions = 30;
+        static ShaderVariableInfo water_heightmap_min_max("water_heightmap_min_max", true);
+        water_heightmap_min_max.set_color4(1.f / dimensions, -(water_panel.water_level - 0.5 * dimensions) / dimensions, dimensions,
+          water_panel.water_level - 0.5 * dimensions);
 
-    newFramegraphNodes.emplace_back(dabfg::register_node("render_trans", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      auto resolvedTexReq = registry.renameTexture("resolved_with_water", "resolved_with_trans", dabfg::History::No);
+        const auto &cam = camHndl.ref();
+        fft_water::render(fftWater.get(), cam.worldPos, BAD_TEXTUREID, cam.globTm, cam.persp, fft_water::GEOM_NORMAL);
+      };
+    });
 
-      registry.requestRenderPass().color({resolvedTexReq});
+
+    return result;
+  }
+
+  [[nodiscard]] FrameGraph::FinalPresent makeFinalPresentNodes()
+  {
+    FrameGraph::FinalPresent result;
+
+    result.createBackbuffer = dabfg::register_node("create_backbuffer", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      auto bbReq = registry.registerBackBuffer("backbuffer");
+      registry.requestRenderPass().color({bbReq});
+    });
+
+    result.debugTexOverlay = dabfg::register_node("debug_tex_overlay", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      registry.requestRenderPass().color({registry.rename("backbuffer", "backbuffer_with_debug", dabfg::History::No).texture()});
+
+      return [this]() {
+        d3d::set_srgb_backbuffer_write(true);
+        if (debugTexOverlay)
+          debugTexOverlay->render();
+        d3d::set_srgb_backbuffer_write(false);
+      };
+    });
+
+    result.renderGui = dabfg::register_node("render_gui", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      registry.requestRenderPass().color({registry.rename("backbuffer_with_debug", "final_backbuffer", dabfg::History::No).texture()});
+      return [this]() { renderGui(); };
+    });
+
+    dabfg::update_externally_consumed_resource_set({"final_backbuffer"});
+
+    return result;
+  }
+
+  [[nodiscard]] FrameGraph makeFrameGraph()
+  {
+    FrameGraph result;
+
+    // Stuff that is 100% required to draw at least an error message
+    result.finalPresent = makeFinalPresentNodes();
+
+    // Basic FG skeleton, extended by optional nodes
+    result.backbone = makeBackbone();
+
+    ////////////////// optional nodes //////////////////
+
+    result.water = makeWaterNodes();
+    result.envi = makeEnviNodes();
+
+    result.opaqueRendering.emplace_back(dabfg::register_node("render_opaque", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      auto camHndl = bind_camera(registry, "main_camera").handle();
+
+      registry.requestState().allowWireframe();
+
+      registry.requestRenderPass().color({gbuf_tex_names[0], gbuf_tex_names[1], gbuf_tex_names[2]}).depthRw(depth_tex_name);
+
+      return [this, camHndl]() {
+        const auto &cam = camHndl.ref();
+        renderOpaque(cam.frustum, cam.worldPos);
+      };
+    }));
+
+    result.transparentRendering.emplace_back(dabfg::register_node("render_trans", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      registry.requestRenderPass().color({"color_for_transparent"}).depthRo("depth_for_transparent");
+
+      // Pretend that we are actually rendering particles here
+      registry.read("cloud_volume").texture().atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
 
       return [this]() { mainRenderTrans(); };
     }));
 
-    newFramegraphNodes.emplace_back(dabfg::register_node("copy_frame", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      auto hndl = registry.readTexture("resolved_with_envi").atStage(dabfg::Stage::TRANSFER).useAs(dabfg::Usage::BLIT).handle();
+    result.water.reflections.renderOpaque.emplace_back(
+      (dabfg::root() / "water_refl").registerNode("render_opaque_refl", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+        auto camHndl = bind_camera(registry, "refl_camera").handle();
 
-      return [hndl, this]() {
-        TIME_D3D_PROFILE(copy_frame);
-        d3d::stretch_rect(hndl.view().getBaseTex(), prevFrame.getBaseTex());
-      };
-    }));
+        registry.requestRenderPass().color({"albedo_gbuf_refl", "normal_gbuf_refl", "material_gbuf_refl"}).depthRw("depth_gbuf_refl");
 
-    for (uint32_t i = 0; i < resolvedImageBlurNodesCount; ++i)
-    {
-      eastl::string nodeName = eastl::string(eastl::string::CtorSprintf(), "blur_node_%d", i);
-      eastl::string input = i > 0 ? eastl::string(eastl::string::CtorSprintf(), "blur_result_%d", i - 1) : "resolved_with_envi";
-      eastl::string output = i < resolvedImageBlurNodesCount - 1 ? eastl::string(eastl::string::CtorSprintf(), "blur_result_%d", i)
-                                                                 : "blured_resolved_frame";
-      newFramegraphNodes.emplace_back(make_blur_meta_node(nodeName, input, output, width, height));
-    }
+        return [this, camHndl]() {
+          if (!(fftWater && water_panel.enabled))
+            return;
 
-    newFramegraphNodes.emplace_back(dabfg::register_node("render_postfx", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      registry.readTexture("resolved_with_trans").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("frame_tex");
+          const auto &cam = camHndl.ref();
+          renderOpaque(cam.frustum, cam.worldPos);
+        };
+      }));
 
-      // NOTE: this texture isn't actually used here.
-      // This is here so that blur nodes are not culled out
-      // (they are used for testing)
-      registry.readTexture("blured_resolved_frame");
-
-      return [this]() {
-        d3d::set_render_target();
-        d3d::set_srgb_backbuffer_write(true);
-
-        if (show_gbuffer == SHOW_GBUF_RESULT)
-        {
-          TIME_D3D_PROFILE(postfx)
-          postfx.render();
-        }
-        else if (show_gbuffer < SHOW_GBUF_RAW_ALBEDO)
-        {
-          target->debugRender(show_gbuffer);
-        }
-        else if (show_gbuffer == SHOW_GBUF_RAW_ALBEDO)
-          d3d::stretch_rect(target->getRt(GBUF_ALBEDO_AO), NULL);
-        else if (show_gbuffer == SHOW_GBUF_RAW_NORMAL)
-          d3d::stretch_rect(target->getRt(GBUF_NORMAL_ROUGH_MET), NULL);
-        else if (show_gbuffer == SHOW_GBUF_RAW_SSAO && ssao)
-          d3d::stretch_rect(ssao->getSSAOTex(), NULL);
-
-        d3d::set_render_target();
-
-        debugTexOverlay->render();
-
-        d3d::set_srgb_backbuffer_write(false);
-      };
-    }));
-
-    newFramegraphNodes.emplace_back(dabfg::register_node("render_gui", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      registry.orderMeAfter("render_postfx");
-      registry.executionHas(dabfg::SideEffects::External);
-      return [this]() { renderGui(); };
-    }));
+    return result;
   }
 
   void reinitCube(int ew)
   {
     d3d::GpuAutoLock gpu_al;
     cube.init(ew);
-    light_probe::destroy(enviProbe);
-    enviProbe = light_probe::create("envi", ew, TEXFMT_A16B16G16R16F);
+    enviProbe.reset(light_probe::create("envi", ew, TEXFMT_A16B16G16R16F));
     reloadCube(true);
   }
 
@@ -1850,28 +1950,28 @@ public:
       SCOPE_RENDER_TARGET;
       for (int i = 0; i < 6; ++i)
       {
-        d3d::set_render_target(light_probe::getManagedTex(enviProbe)->getCubeTex(), i, 0);
+        d3d::set_render_target(light_probe::getManagedTex(enviProbe.get())->getCubeTex(), i, 0);
         d3d::clearview(CLEAR_TARGET, 0, 0, 0);
       }
       for (int i = 0; i < SphHarmCalc::SPH_COUNT; ++i)
         ShaderGlobal::set_color4(get_shader_variable_id(String(128, "enviSPH%d", i)), 0, 0, 0, 0);
-      light_probe::update(enviProbe, NULL);
+      light_probe::update(enviProbe.get(), nullptr);
     }
     {
       TIME_D3D_PROFILE(cubeRender)
       TMatrix itm;
       curCamera->getInvViewMatrix(itm);
-      cube.update(light_probe::getManagedTex(enviProbe), *this, itm.getcol(3));
+      cube.update(light_probe::getManagedTex(enviProbe.get()), *this, itm.getcol(3));
     }
     {
       TIME_D3D_PROFILE(lightProbeSpecular)
-      light_probe::update(enviProbe, NULL);
+      light_probe::update(enviProbe.get(), nullptr);
     }
     {
       TIME_D3D_PROFILE(lightProbeDiffuse)
-      if (light_probe::calcDiffuse(enviProbe, NULL, 1, 1, true))
+      if (light_probe::calcDiffuse(enviProbe.get(), nullptr, 1, 1, true))
       {
-        const Color4 *sphHarm = light_probe::getSphHarm(enviProbe);
+        const Color4 *sphHarm = light_probe::getSphHarm(enviProbe.get());
         for (int i = 0; i < SphHarmCalc::SPH_COUNT; ++i)
           ShaderGlobal::set_color4(get_shader_variable_id(String(128, "enviSPH%d", i)), sphHarm[i]);
 
@@ -1880,7 +1980,7 @@ public:
         Point3 intermediate0, intermediate1, intermediate2;
 
         // sph.w - constant frequency band 0, sph.xyz - linear frequency band 1
-        Point4 *sphHarm4 = (Point4 *)sphHarm;
+        const Point4 *sphHarm4 = (const Point4 *)sphHarm;
 
         intermediate0.x = sphHarm4[0] * normal1;
         intermediate0.y = sphHarm4[1] * normal1;
@@ -1904,13 +2004,15 @@ public:
         G_ASSERT(0);
       }
     }
+    static ShaderVariableInfo envi_probe_specular("envi_probe_specular", true);
+    envi_probe_specular.set_texture(light_probe::getManagedTex(enviProbe.get())->getTexId());
   }
 
   IGameCamera *curCamera; // for console made publuc
-  IFreeCameraDriver *freeCam = NULL;
+  eastl::unique_ptr<IFreeCameraDriver> freeCam;
 
 protected:
-  DynamicRenderableSceneInstance *test;
+  eastl::unique_ptr<DynamicRenderableSceneInstance> test;
 
   bool unloaded_splash;
 
@@ -1922,7 +2024,7 @@ protected:
     freeCam = create_gamepad_free_camera();
 #else
     global_cls_drv_pnt->getDevice(0)->setRelativeMovementMode(true);
-    freeCam = create_mskbd_free_camera();
+    freeCam.reset(create_mskbd_free_camera());
     freeCam->scaleSensitivity(4, 2);
 #endif
     IFreeCameraDriver::zNear = 0.6;
@@ -2149,7 +2251,7 @@ protected:
       de3_imgui_save_values(env_stg);
     }
 
-    curCamera = freeCam;
+    curCamera = freeCam.get();
     ::set_camera_pos(*curCamera, dgs_get_settings()->getPoint3("camPos", Point3(0, 0, 0)));
 
     samplebenchmark::setupBenchmark(curCamera, []() {
@@ -2161,13 +2263,13 @@ protected:
     ddsx::tex_pack2_perform_delayed_data_loading(); // or it will crash here
     d3d::GpuAutoLock gpu_al;
     d3d::set_render_target();
-    visualConsoleDriver = new VisualConsoleDriver;
-    console::set_visual_driver(visualConsoleDriver, NULL);
-    scheduleHeightmapLoad(dgs_get_settings()->getStr("heightmap", NULL));
-    scheduleDynModelLoad(&test, dgs_get_settings()->getStr("model", "test"), dgs_get_settings()->getStr("model_skel", NULL),
+    visualConsoleDriver.reset(new VisualConsoleDriver);
+    console::set_visual_driver(visualConsoleDriver.get(), nullptr);
+    scheduleHeightmapLoad(dgs_get_settings()->getStr("heightmap", nullptr));
+    scheduleDynModelLoad(test, dgs_get_settings()->getStr("model", "test"), dgs_get_settings()->getStr("model_skel", nullptr),
       dgs_get_settings()->getPoint3("model_pos", Point3(0, 0, 0)));
 
-    debugTexOverlay = new DebugTexOverlay(Point2(w, h));
+    debugTexOverlay.reset(new DebugTexOverlay(Point2(w, h)));
 
     setDirToSun();
     sky_panel.moon_color = sky_colors.moon_color;
@@ -2196,8 +2298,10 @@ protected:
     float sunCos, moonCos;
     if (daSkies.currentGroundSunSkyColor(sunCos, moonCos, sun, amb, moon, moonamb))
     {
-      ShaderGlobal::set_color4(get_shader_variable_id("sun_light_color"), color4(sun, 0));
-      ShaderGlobal::set_color4(get_shader_variable_id("amb_light_color", true), color4(amb, 0));
+      static ShaderVariableInfo sun_light_color("sun_light_color");
+      sun_light_color.set_color4(color4(sun, 0));
+      static ShaderVariableInfo amb_light_color("amb_light_color", true);
+      amb_light_color.set_color4(color4(amb, 0));
     }
     else
     {
@@ -2208,26 +2312,6 @@ protected:
   }
 
 public:
-  void renderEnvi(BaseTexture *depthTex)
-  {
-    TIME_D3D_PROFILE(envi)
-    TMatrix itm;
-    curCamera->getInvViewMatrix(itm);
-    TMatrix viewTm;
-    TMatrix4 projTm;
-    Driver3dPerspective persp;
-    d3d::gettm(TM_VIEW, viewTm);
-    d3d::gettm(TM_PROJ, &projTm);
-    d3d::getpersp(persp);
-    depthTex->texfilter(TEXFILTER_POINT);
-    farDownsampledDepth[currentDownsampledDepth]->texfilter(TEXFILTER_POINT);
-    farDownsampledDepth[1 - currentDownsampledDepth]->texaddr(TEXADDR_CLAMP);
-    daSkies.renderEnvi(render_panel.infinite_skies, dpoint3(itm.getcol(3)), dpoint3(itm.getcol(2)), 3,
-      farDownsampledDepth[currentDownsampledDepth], farDownsampledDepth[1 - currentDownsampledDepth], depthTex->getTID(),
-      main_pov_data, viewTm, projTm, persp, true, false, 20.0F, aurora.get());
-    farDownsampledDepth[1 - currentDownsampledDepth]->texaddr(TEXADDR_BORDER);
-  }
-
   struct FilePanel
   {
     bool save, load, export_min, export_max, import_minmax, export_water, import_water;
@@ -2404,18 +2488,17 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
   eastl::unique_ptr<AuroraBorealis> aurora;
 
   RenderDynamicCube cube;
-  light_probe::Cube *enviProbe;
+  eastl::unique_ptr<light_probe::Cube, void (*)(light_probe::Cube *)> enviProbe{nullptr, &light_probe::destroy};
+
   void createSpheres()
   {
-
     sphereMat = new_shader_material_by_name("sphereMaterial");
-    sphereMat->addRef();
     sphereElem = sphereMat->make_elem();
   }
 
-  ShaderMaterial *sphereMat;
-  ShaderElement *sphereElem;
-  console::IVisualConsoleDriver *visualConsoleDriver;
+  Ptr<ShaderMaterial> sphereMat;
+  Ptr<ShaderElement> sphereElem;
+  eastl::unique_ptr<console::IVisualConsoleDriver> visualConsoleDriver;
 
   void scheduleHeightmapLoad(const char *name)
   {
@@ -2429,7 +2512,8 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
         float cell_sz = 1.0f, scale = 100.0f, h0 = 0.0f;
         TexPtr tex = strcmp(dd_get_fname_ext(name), ".mtw") == 0 ? create_tex_from_mtw(name, &cell_sz, &s.hmapMaxHt, &scale, &h0)
                                                                  : create_tex_from_raw_hmap_file(name);
-        Color4 invSz = ShaderGlobal::get_color4_fast(get_shader_variable_id("tex_hmap_inv_sizes"));
+        static ShaderVariableInfo tex_hmap_inv_sizes("tex_hmap_inv_sizes");
+        Color4 invSz = tex_hmap_inv_sizes.get_color4();
         int tex_w = safeinv(invSz.r), tex_h = safeinv(invSz.g);
 
         s.land_panel.cellSize = s.heightmapCellSize = dgs_get_settings()->getReal("heightmapCell", cell_sz);
@@ -2470,21 +2554,22 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
       cpujobs::add_job(1, new LoadJob(*this, name));
   }
 
-  void scheduleDynModelLoad(DynamicRenderableSceneInstance **dm, const char *name, const char *skel_name, const Point3 &pos)
+  void scheduleDynModelLoad(eastl::unique_ptr<DynamicRenderableSceneInstance> &dm, const char *name, const char *skel_name,
+    const Point3 &pos)
   {
     struct LoadJob : cpujobs::IJob
     {
-      DynamicRenderableSceneInstance **dm;
+      eastl::unique_ptr<DynamicRenderableSceneInstance> &dm;
       SimpleString name, skelName;
       Point3 pos;
 
-      LoadJob(DynamicRenderableSceneInstance **_dm, const char *_name, const char *_skel_name, const Point3 &_pos) :
+      LoadJob(eastl::unique_ptr<DynamicRenderableSceneInstance> &_dm, const char *_name, const char *_skel_name, const Point3 &_pos) :
         dm(_dm), name(_name), skelName(_skel_name), pos(_pos)
       {}
       virtual void doJob()
       {
         GameResHandle handle = GAMERES_HANDLE_FROM_STRING(name);
-        DynamicRenderableSceneInstance *val = NULL;
+        DynamicRenderableSceneInstance *val = nullptr;
 
         FastNameMap rrl;
         rrl.addNameId(name);
@@ -2536,11 +2621,14 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
 
         struct UpdatePtr : public DelayedAction
         {
-          DynamicRenderableSceneInstance **dest, *val;
-          UpdatePtr(DynamicRenderableSceneInstance **_dest, DynamicRenderableSceneInstance *_val) : dest(_dest), val(_val) {}
+          eastl::unique_ptr<DynamicRenderableSceneInstance> &dest;
+          DynamicRenderableSceneInstance *val;
+          UpdatePtr(eastl::unique_ptr<DynamicRenderableSceneInstance> &_dest, DynamicRenderableSceneInstance *_val) :
+            dest(_dest), val(_val)
+          {}
           virtual void performAction()
           {
-            *dest = val;
+            dest.reset(val);
             cpujobs::release_done_jobs();
           }
         };
@@ -2548,14 +2636,14 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
       }
       virtual void releaseJob() { delete this; }
     };
-    *dm = NULL;
+    dm.reset();
     cpujobs::add_job(1, new LoadJob(dm, name, skel_name, pos));
   }
 
   void reloadUiWaves()
   {
     fft_water::WavePreset preset;
-    fft_water::get_wave_preset(water, preset);
+    fft_water::get_wave_preset(fftWater.get(), preset);
     water_panel.water_strength = preset.wind;
     water_panel.fft_period = preset.period;
     water_panel.roughness = preset.roughness;
@@ -2610,48 +2698,6 @@ static bool tobool(const char *s)
     return atoi(s);
 }
 
-__forceinline int calc_loop(uint32_t beg, uint32_t end)
-{
-  int result = 0;
-  for (; beg != end; ++beg)
-    result += int(100 * asinf(sinf(cosf(double(beg)))));
-  return result;
-}
-
-template <typename Cb>
-__forceinline void profile_me(const char *name, uint32_t runs, Cb cb)
-{
-  int result = 0;
-  int64_t times[256];
-  runs = min(runs, (uint32_t)(sizeof(times) / sizeof(times[0])));
-  runs = max(runs, 1u);
-  for (int run = 0; run < runs; ++run)
-  {
-    int64_t ref = profile_ref_ticks();
-    result += cb();
-    times[run] = profile_ref_ticks() - ref;
-  }
-  double avg = 0;
-  double best = 1e9;
-  double dtimes[256];
-  for (int run = 0; run < runs; ++run)
-  {
-    dtimes[run] = times[run] * (1e6 / profile_ticks_frequency());
-    best = min(best, dtimes[run]);
-    avg += dtimes[run];
-  }
-  avg /= runs;
-  double var = 0;
-  if (runs > 1)
-  {
-    for (int run = 0; run < runs; ++run)
-      var += (dtimes[run] - avg) * (dtimes[run] - avg);
-    var /= (runs - 1);
-    var = sqrtf(var);
-  }
-  console::print_d("%s best = %gus avg = %gus, stddev=%gus ret %d", name, best, avg, var, result);
-}
-
 static void toggle_or_set_bool_arg(bool &b, int argn, int argc, const char *argv[])
 {
   if (argn < argc)
@@ -2681,49 +2727,15 @@ bool TestConsole::processCommand(const char *argv[], int argc)
   CONSOLE_CHECK_NAME("app", "dflush", 1, 1) { debug_flush(false); }
   CONSOLE_CHECK_NAME("camera", "save", 1, 2)
   {
-    unsigned int slotNo = 0;
-    if (argc == 2)
-      slotNo = to_int(argv[1]);
-
-    DataBlock cameraPositions;
-    if (dd_file_exist("cameraPositions.blk"))
-      cameraPositions.load("cameraPositions.blk");
-
     TMatrix camTm;
     ((DemoGameScene *)dagor_get_current_game_scene())->curCamera->getInvViewMatrix(camTm);
-
-
-    DataBlock *slotBlk = cameraPositions.getBlockByName(String(100, "slot%d", slotNo));
-
-    if (!slotBlk)
-      slotBlk = cameraPositions.addNewBlock(String(100, "slot%d", slotNo));
-
-    slotBlk->setPoint3("tm0", camTm.getcol(0));
-    slotBlk->setPoint3("tm1", camTm.getcol(1));
-    slotBlk->setPoint3("tm2", camTm.getcol(2));
-    slotBlk->setPoint3("tm3", camTm.getcol(3));
-
-    cameraPositions.saveToTextFile("cameraPositions.blk");
+    save_camera_position("cameraPositions.blk", argc > 1 ? argv[1] : "slot0", camTm);
   }
   CONSOLE_CHECK_NAME("camera", "restore", 1, 2)
   {
-    unsigned int slotNo = 0;
-    if (argc == 2)
-      slotNo = to_int(argv[1]);
-
-    DataBlock cameraPositions;
-    if (dd_file_exist("cameraPositions.blk"))
-      cameraPositions.load("cameraPositions.blk");
-
     TMatrix camTm;
-    const DataBlock *slotBlk = cameraPositions.getBlockByNameEx(String(100, "slot%d", slotNo));
-
-    camTm.setcol(0, slotBlk->getPoint3("tm0", Point3(1.f, 0.f, 0.f)));
-    camTm.setcol(1, slotBlk->getPoint3("tm1", Point3(0.f, 1.f, 0.f)));
-    camTm.setcol(2, slotBlk->getPoint3("tm2", Point3(0.f, 0.f, 1.f)));
-    camTm.setcol(3, slotBlk->getPoint3("tm3", ZERO<Point3>()));
-
-    ((DemoGameScene *)dagor_get_current_game_scene())->curCamera->setInvViewMatrix(camTm);
+    if (load_camera_position("cameraPositions.blk", argc > 1 ? argv[1] : "slot0", camTm))
+      ((DemoGameScene *)dagor_get_current_game_scene())->curCamera->setInvViewMatrix(camTm);
   }
   CONSOLE_CHECK_NAME("camera", "pos", 1, 4)
   {
@@ -2749,57 +2761,12 @@ bool TestConsole::processCommand(const char *argv[], int argc)
     extern bool use_cs_water;
     toggle_or_set_bool_arg(use_cs_water, 1, argc, argv);
   }
-  CONSOLE_CHECK_NAME("render", "gbuffer", 1, 2)
-  {
-    const char *commands[] = {"result", "diffuse", "specular", "normal", "smoothness", "base_color", "metallness", "material", "ssao",
-      "ao", "albedo_ao", "final_ao", "preshadow", "translucency", "tr_color", "ssr", "ssr_strength", "raw_albedo", "raw_normal",
-      "raw_roughness", "raw_metallness", "raw_ao", "raw_ssr", "raw_ssao", "raw_light_count", NULL};
-    int command = -1;
-    String all_commands;
-    for (int i = 0; commands[i]; ++i)
-    {
-      if (argc >= 2 && strncmp(commands[i], argv[1], strlen(argv[1])) == 0)
-      {
-        command = i;
-        break;
-      }
-      all_commands.aprintf(128, "<%s> ", commands[i]);
-    }
-    if (argc < 2 || command == -1)
-    {
-      if (argc >= 2)
-        console::print("invalid command <%s>", argv[1]);
-      console::print("valid commands are: %s", all_commands);
-      if (argc < 2)
-      {
-        show_gbuffer = SHOW_GBUF_RESULT;
-        console::print("showing result");
-      }
-    }
-    else
-    {
-      console::print("valid commands are: %s\nshowing %s (%d)", all_commands, commands[command], show_gbuffer);
-      show_gbuffer = command - 1;
-    }
-  }
-  CONSOLE_CHECK_NAME("app", "show_tex", 1, DebugTexOverlay::MAX_CONSOLE_ARGS_CNT)
+  CONSOLE_CHECK_NAME("render", "show_tex", 1, DebugTexOverlay::MAX_CONSOLE_ARGS_CNT)
   {
     DemoGameScene *scene = (DemoGameScene *)dagor_get_current_game_scene();
     String output = scene->debugTexOverlay->processConsoleCmd(argv, argc);
     if (!output.empty())
       console::print(output);
-  }
-  CONSOLE_CHECK_NAME("app", "parallel_for", 1, 2)
-  {
-    int iter = argc > 1 ? atoi(argv[1]) : 200000;
-    int runs = 50;
-    profile_me("pfor", runs, [&]() {
-      int result = 0;
-      threadpool::parallel_for_inline(0, iter, 256,
-        [&](uint32_t beg, uint32_t end, uint32_t) { interlocked_add(result, calc_loop(beg, end)); });
-      return result;
-    });
-    profile_me("single", runs, [&]() { return calc_loop(0, iter); });
   }
   /*CONSOLE_CHECK_NAME("clouds", "cloudsOffset", 2, 2)
   {
@@ -2822,18 +2789,19 @@ bool TestConsole::processCommand(const char *argv[], int argc)
   CONSOLE_CHECK_NAME("water", "wind", 2, 4)
   {
     DemoGameScene *scene = (DemoGameScene *)dagor_get_current_game_scene();
-    if (!scene->water)
+    auto water = scene->fftWater.get();
+    if (!water)
       return true;
 
     float windDirX = cosf(DegToRad(scene->getRenderPanel().windDir)), windDirZ = sinf(DegToRad(scene->getRenderPanel().windDir));
     Point2 wind_dir = Point2(windDirX, windDirZ);
     if (argc > 3)
       wind_dir = normalize(Point2(atof(argv[2]), atof(argv[3])));
-    fft_water::apply_wave_preset(scene->water, atof(argv[1]), wind_dir, fft_water::Spectrum::UNIFIED_DIRECTIONAL);
+    fft_water::apply_wave_preset(water, atof(argv[1]), wind_dir, fft_water::Spectrum::UNIFIED_DIRECTIONAL);
 
-    fft_water::set_fft_resolution(scene->water, 7);
-    fft_water::setWaterCell(scene->water, 1.0f, true);
-    fft_water::set_water_dim(scene->water, 5);
+    fft_water::set_fft_resolution(water, 7);
+    fft_water::setWaterCell(water, 1.0f, true);
+    fft_water::set_water_dim(water, 5);
 
     console::print_d("water wind %g beaufort %g %g dir", atof(argv[1]), wind_dir.x, wind_dir.y);
   }
@@ -2843,7 +2811,7 @@ bool TestConsole::processCommand(const char *argv[], int argc)
     /*fft_water::setWaterCell(scene->water,
       argc > 1 && atoi(argv[1]) == 2 ? 0.25f :
       (argc > 1 && atoi(argv[1]) == 1 ? 0.5f : 1.0f), true);*/
-    fft_water::set_water_dim(scene->water, argc > 1 && atoi(argv[1]) == 2 ? 7 : (argc > 1 && atoi(argv[1]) == 1 ? 6 : 5));
+    fft_water::set_water_dim(scene->fftWater.get(), argc > 1 && atoi(argv[1]) == 2 ? 7 : (argc > 1 && atoi(argv[1]) == 1 ? 6 : 5));
   }
   return found;
 }
@@ -2887,7 +2855,6 @@ void game_demo_init()
   df_close(file);*/
 
   debug("[DEMO] registering factories");
-  d3d::driver_command(DRV3D_COMMAND_ENABLE_MT, NULL, NULL, NULL);
   ::enable_tex_mgr_mt(true, 1024);
   if (!cpujobs::is_inited())
     cpujobs::init();
@@ -2906,7 +2873,7 @@ void game_demo_init()
 
   const char *res_vrom = "res/grp_hdr.vromfs.bin";
   const char *res_list = "res/respacks.blk";
-  VirtualRomFsData *vrom = res_vrom ? ::load_vromfs_dump(res_vrom, tmpmem) : NULL;
+  VirtualRomFsData *vrom = res_vrom ? ::load_vromfs_dump(res_vrom, tmpmem) : nullptr;
   if (vrom)
     ::add_vromfs(vrom);
   ::load_res_packs_from_list(res_list);
@@ -2918,7 +2885,7 @@ void game_demo_init()
 
   ::dgs_limit_fps = blk.getBool("limitFps", false);
   dagor_set_game_act_rate(blk.getInt("actRate", -60));
-  init_webui(NULL);
+  init_webui(nullptr);
 
   PictureManager::init();
 
@@ -2928,7 +2895,7 @@ void game_demo_init()
 
 void game_demo_close()
 {
-  dagor_select_game_scene(NULL);
+  dagor_select_game_scene(nullptr);
   PictureManager::release();
 }
 

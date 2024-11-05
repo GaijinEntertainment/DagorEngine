@@ -1,0 +1,39 @@
+include "hardware_defines.dshl"
+
+int scope_vrs_mask_tile_x = 8;
+int scope_vrs_mask_tile_y = 8;
+int scope_vrs_mask_rate = 5; // 2x2
+texture scope_mask;
+texture scope_lens_mask;
+
+shader scope_vrs_mask_cs
+{
+  if (hardware.metal)
+  {
+    dont_render;
+  }
+
+  (cs) {
+    step_x__step_y__rate@f3 = (scope_vrs_mask_tile_x, scope_vrs_mask_tile_y, scope_vrs_mask_rate, 0);
+    scope_mask@smp2d = scope_mask;
+    scope_lens_mask@smp2d = scope_lens_mask;
+    scope_mask_tex_size@f2 = get_dimensions(scope_mask, 0);
+  }
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    #include "scope_mask_common.hlsli"
+    RWTexture2D<uint> scopeVRSMaskTex : register(u0);
+
+    [numthreads(SCOPE_MASK_NUMTHREADS, SCOPE_MASK_NUMTHREADS, 1 )]
+    void main(uint gId : SV_GroupIndex, uint3 dtId : SV_DispatchThreadID )
+    {
+      int2 step = int2(step_x__step_y__rate.x, step_x__step_y__rate.y);
+      int2 loc = dtId.xy * step + (step >> 1);
+      loc = clamp(loc, int2(0, 0), int2(scope_mask_tex_size - 1));
+      float v1 = texelFetch(scope_mask, loc, 0).r;
+      float v2 = texelFetch(scope_lens_mask, loc, 0).r;
+      scopeVRSMaskTex[dtId.xy] = v1 > 0 || v2 > 0 ? 0 : step_x__step_y__rate.z;
+    }
+  }
+  compile("target_cs", "main");
+}

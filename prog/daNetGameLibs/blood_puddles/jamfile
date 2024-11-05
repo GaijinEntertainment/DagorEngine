@@ -1,0 +1,41 @@
+ModuleDependsOnVars = HaveRenderer PhysName ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = blood_puddles ;
+Location = prog/daNetGameLibs/$(Module) ;
+
+include $(Root)/prog/_jBuild/jCommonRules.jam ;
+
+AddIncludes =
+  $(Root)/prog/daNetGameLibs
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+local AllSrcFolder_CPP = ;
+local AllSrcFolder_ES = ;
+local AllSrcFolder_DAS = ;
+
+AllSrcFolder_CPP += private/dasModules ;
+
+SourceDAS =
+  private/dasModules/bloodPuddles.das
+;
+
+for s in $(SourceDAS) { StringifySourceFile $(s) : $(s).inl : $(s:S=.cpp) ; }
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_ES += private/render ;
+  AllSrcFolder_CPP += private/render ;
+
+  if $(Config) in dbg dev {
+    AllSrcFolder_ES += debug/render ;
+  }
+
+} else {
+  AllSrcFolder_CPP += private/dasModules/stub ;
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <recastTools/recastTools.h>
 
 #include <generic/dag_staticTab.h>
@@ -348,7 +350,7 @@ bool is_line_walkable(const rcCompactHeightfield *chf, const Point3 &sp, const P
 
   for (int i = 0; i < nsamples; i++)
   {
-    const float u = (float)i / (float)(nsamples - 1);
+    const float u = (float)i / (float)max(nsamples - 1, 1);
     Point3 pt = lerp(sp, sq, u);
 
     float height = 0.f;

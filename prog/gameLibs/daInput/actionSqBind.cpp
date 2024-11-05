@@ -1,12 +1,14 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <sqModules/sqModules.h>
 #include "actionData.h"
 #include <daInput/config_api.h>
 #include <ioSys/dag_dataBlock.h>
 
-#include <humanInput/dag_hiKeyboard.h>
-#include <humanInput/dag_hiPointing.h>
-#include <humanInput/dag_hiJoystick.h>
+#include <drv/hid/dag_hiKeyboard.h>
+#include <drv/hid/dag_hiPointing.h>
+#include <drv/hid/dag_hiJoystick.h>
 
 
 static const char *format_ctrl_name(String &out_name, int dev, int btn_or_axis, bool is_btn)
@@ -448,9 +450,9 @@ static void sq_install_digital_event_progress_monitor(Sqrat::Function func)
 #define SQ_IMPLEMENT_PROP_BOOL(STRUCT, MEMBER)  SQ_IMPLEMENT_PROP_TYPED(STRUCT, MEMBER, SQBool, bool)
 #define SQ_IMPLEMENT_PROP_FLOAT(STRUCT, MEMBER) SQ_IMPLEMENT_PROP_TYPED(STRUCT, MEMBER, SQFloat, float)
 
-#define SQ_BIND_PROP(STRUCT, MEMBER) .SquirrelProp(#MEMBER, STRUCT##_get_##MEMBER, STRUCT##_set_##MEMBER)
+#define SQ_BIND_PROP(STRUCT, MEMBER) SquirrelProp(#MEMBER, STRUCT##_get_##MEMBER, STRUCT##_set_##MEMBER)
 
-#define SQ_BIND_MEMBER_VAR(STRUCT, MEMBER) .Var(#MEMBER, &STRUCT::MEMBER)
+#define SQ_BIND_MEMBER_VAR(STRUCT, MEMBER) Var(#MEMBER, &STRUCT::MEMBER)
 
 /// @module dainput2
 ///@class SingleButtonId
@@ -556,7 +558,6 @@ void dainput::bind_sq_api(SqModules *moduleMgr)
 #define DEF_CONSTANT_EX(name, nsp) dainp.SetValue(#name, nsp::name)
 #define DEF_CONSTANT(name)         DEF_CONSTANT_EX(name, dainput)
 
-  // clang-format off
   /// @const DEV_none
   DEF_CONSTANT(DEV_none);
   /// @const DEV_kbd
@@ -643,7 +644,7 @@ void dainput::bind_sq_api(SqModules *moduleMgr)
   /// @const GAMEPAD_VENDOR_NINTENDO
   DEF_CONSTANT_EX(GAMEPAD_VENDOR_NINTENDO, HumanInput);
 
-  dainp
+  dainp //
     .Func("set_long_press_time", set_long_press_time)
     .Func("get_long_press_time", get_long_press_time)
     .Func("set_double_click_time", set_double_click_time)
@@ -755,84 +756,83 @@ void dainput::bind_sq_api(SqModules *moduleMgr)
     .Func("dump_action_sets_stack", sq_dump_action_sets_stack)
     .Func("dump_action_set", sq_dump_action_set)
 #endif
-  ;
+    /**/;
 
   Sqrat::Class<SingleButtonId> sqSingleButtonId(vm, "SingleButtonId");
-  sqSingleButtonId
-    SQ_BIND_PROP(SingleButtonId, devId)
-    SQ_BIND_PROP(SingleButtonId, btnId)
-  ;
+  sqSingleButtonId //
+    .SQ_BIND_PROP(SingleButtonId, devId)
+    .SQ_BIND_PROP(SingleButtonId, btnId)
+    /**/;
 
-  Sqrat::Class<DigitalActionBinding>(vm, "DigitalActionBinding")
-    SQ_BIND_PROP(DigitalActionBinding, devId)
-    SQ_BIND_PROP(DigitalActionBinding, ctrlId)
-    SQ_BIND_PROP(DigitalActionBinding, eventType)
-    SQ_BIND_PROP(DigitalActionBinding, axisCtrlThres)
-    SQ_BIND_PROP(DigitalActionBinding, btnCtrl)
-    SQ_BIND_PROP(DigitalActionBinding, stickyToggle)
-    SQ_BIND_PROP(DigitalActionBinding, unordCombo)
-    SQ_BIND_PROP(DigitalActionBinding, modCnt)
-    SQ_BIND_PROP(DigitalActionBinding, mod)
-  ;
+  Sqrat::Class<DigitalActionBinding>(vm, "DigitalActionBinding") //
+    .SQ_BIND_PROP(DigitalActionBinding, devId)
+    .SQ_BIND_PROP(DigitalActionBinding, ctrlId)
+    .SQ_BIND_PROP(DigitalActionBinding, eventType)
+    .SQ_BIND_PROP(DigitalActionBinding, axisCtrlThres)
+    .SQ_BIND_PROP(DigitalActionBinding, btnCtrl)
+    .SQ_BIND_PROP(DigitalActionBinding, stickyToggle)
+    .SQ_BIND_PROP(DigitalActionBinding, unordCombo)
+    .SQ_BIND_PROP(DigitalActionBinding, modCnt)
+    .SQ_BIND_PROP(DigitalActionBinding, mod)
+    /**/;
 
-  Sqrat::Class<AnalogAxisActionBinding>(vm, "AnalogAxisActionBinding")
-    SQ_BIND_PROP(AnalogAxisActionBinding, devId)
-    SQ_BIND_PROP(AnalogAxisActionBinding, axisId)
-    SQ_BIND_PROP(AnalogAxisActionBinding, invAxis)
-    SQ_BIND_PROP(AnalogAxisActionBinding, axisRelativeVal)
-    SQ_BIND_PROP(AnalogAxisActionBinding, instantIncDecBtn)
-    SQ_BIND_PROP(AnalogAxisActionBinding, quantizeValOnIncDecBtn)
+  Sqrat::Class<AnalogAxisActionBinding>(vm, "AnalogAxisActionBinding") //
+    .SQ_BIND_PROP(AnalogAxisActionBinding, devId)
+    .SQ_BIND_PROP(AnalogAxisActionBinding, axisId)
+    .SQ_BIND_PROP(AnalogAxisActionBinding, invAxis)
+    .SQ_BIND_PROP(AnalogAxisActionBinding, axisRelativeVal)
+    .SQ_BIND_PROP(AnalogAxisActionBinding, instantIncDecBtn)
+    .SQ_BIND_PROP(AnalogAxisActionBinding, quantizeValOnIncDecBtn)
 
-    SQ_BIND_PROP(AnalogAxisActionBinding, modCnt)
-    SQ_BIND_PROP(AnalogAxisActionBinding, mod)
-    SQ_BIND_PROP(AnalogAxisActionBinding, minBtn)
-    SQ_BIND_PROP(AnalogAxisActionBinding, maxBtn)
-    SQ_BIND_PROP(AnalogAxisActionBinding, incBtn)
-    SQ_BIND_PROP(AnalogAxisActionBinding, decBtn)
-    SQ_BIND_PROP(AnalogAxisActionBinding, deadZoneThres)
-    SQ_BIND_PROP(AnalogAxisActionBinding, nonLin)
-    SQ_BIND_PROP(AnalogAxisActionBinding, maxVal)
-    SQ_BIND_PROP(AnalogAxisActionBinding, relIncScale)
-  ;
+    .SQ_BIND_PROP(AnalogAxisActionBinding, modCnt)
+    .SQ_BIND_PROP(AnalogAxisActionBinding, mod)
+    .SQ_BIND_PROP(AnalogAxisActionBinding, minBtn)
+    .SQ_BIND_PROP(AnalogAxisActionBinding, maxBtn)
+    .SQ_BIND_PROP(AnalogAxisActionBinding, incBtn)
+    .SQ_BIND_PROP(AnalogAxisActionBinding, decBtn)
+    .SQ_BIND_PROP(AnalogAxisActionBinding, deadZoneThres)
+    .SQ_BIND_PROP(AnalogAxisActionBinding, nonLin)
+    .SQ_BIND_PROP(AnalogAxisActionBinding, maxVal)
+    .SQ_BIND_PROP(AnalogAxisActionBinding, relIncScale)
+    /**/;
 
-  Sqrat::Class<AnalogStickActionBinding>(vm, "AnalogStickActionBinding")
-    SQ_BIND_PROP(AnalogStickActionBinding, devId)
-    SQ_BIND_PROP(AnalogStickActionBinding, axisXId)
-    SQ_BIND_PROP(AnalogStickActionBinding, axisYId)
-    SQ_BIND_PROP(AnalogStickActionBinding, axisXinv)
-    SQ_BIND_PROP(AnalogStickActionBinding, axisYinv)
-    SQ_BIND_PROP(AnalogStickActionBinding, modCnt)
-    SQ_BIND_PROP(AnalogStickActionBinding, mod)
-    SQ_BIND_PROP(AnalogStickActionBinding, minXBtn)
-    SQ_BIND_PROP(AnalogStickActionBinding, maxXBtn)
-    SQ_BIND_PROP(AnalogStickActionBinding, minYBtn)
-    SQ_BIND_PROP(AnalogStickActionBinding, maxYBtn)
-    SQ_BIND_PROP(AnalogStickActionBinding, deadZoneThres)
-    SQ_BIND_PROP(AnalogStickActionBinding, axisSnapAngK)
-    SQ_BIND_PROP(AnalogStickActionBinding, nonLin)
-    SQ_BIND_PROP(AnalogStickActionBinding, maxVal)
-    SQ_BIND_PROP(AnalogStickActionBinding, sensScale)
-  ;
+  Sqrat::Class<AnalogStickActionBinding>(vm, "AnalogStickActionBinding") //
+    .SQ_BIND_PROP(AnalogStickActionBinding, devId)
+    .SQ_BIND_PROP(AnalogStickActionBinding, axisXId)
+    .SQ_BIND_PROP(AnalogStickActionBinding, axisYId)
+    .SQ_BIND_PROP(AnalogStickActionBinding, axisXinv)
+    .SQ_BIND_PROP(AnalogStickActionBinding, axisYinv)
+    .SQ_BIND_PROP(AnalogStickActionBinding, modCnt)
+    .SQ_BIND_PROP(AnalogStickActionBinding, mod)
+    .SQ_BIND_PROP(AnalogStickActionBinding, minXBtn)
+    .SQ_BIND_PROP(AnalogStickActionBinding, maxXBtn)
+    .SQ_BIND_PROP(AnalogStickActionBinding, minYBtn)
+    .SQ_BIND_PROP(AnalogStickActionBinding, maxYBtn)
+    .SQ_BIND_PROP(AnalogStickActionBinding, deadZoneThres)
+    .SQ_BIND_PROP(AnalogStickActionBinding, axisSnapAngK)
+    .SQ_BIND_PROP(AnalogStickActionBinding, nonLin)
+    .SQ_BIND_PROP(AnalogStickActionBinding, maxVal)
+    .SQ_BIND_PROP(AnalogStickActionBinding, sensScale)
+    /**/;
 
-  Sqrat::Class<DigitalAction>(vm, "DigitalAction")
-    SQ_BIND_MEMBER_VAR(DigitalAction, bState)
-    SQ_BIND_MEMBER_VAR(DigitalAction, bActive)
-    SQ_BIND_MEMBER_VAR(DigitalAction, bActivePrev)
-  ;
+  Sqrat::Class<DigitalAction>(vm, "DigitalAction") //
+    .SQ_BIND_MEMBER_VAR(DigitalAction, bState)
+    .SQ_BIND_MEMBER_VAR(DigitalAction, bActive)
+    .SQ_BIND_MEMBER_VAR(DigitalAction, bActivePrev)
+    /**/;
 
-  Sqrat::Class<AnalogAxisAction>(vm, "AnalogAxisAction")
-    SQ_BIND_MEMBER_VAR(AnalogAxisAction, x)
-    SQ_BIND_MEMBER_VAR(AnalogAxisAction, bActive)
-    SQ_BIND_MEMBER_VAR(AnalogAxisAction, bActivePrev)
-  ;
+  Sqrat::Class<AnalogAxisAction>(vm, "AnalogAxisAction") //
+    .SQ_BIND_MEMBER_VAR(AnalogAxisAction, x)
+    .SQ_BIND_MEMBER_VAR(AnalogAxisAction, bActive)
+    .SQ_BIND_MEMBER_VAR(AnalogAxisAction, bActivePrev)
+    /**/;
 
-  Sqrat::Class<AnalogStickAction>(vm, "AnalogStickAction")
-    SQ_BIND_MEMBER_VAR(AnalogStickAction, x)
-    SQ_BIND_MEMBER_VAR(AnalogStickAction, y)
-    SQ_BIND_MEMBER_VAR(AnalogStickAction, bActive)
-    SQ_BIND_MEMBER_VAR(AnalogStickAction, bActivePrev)
-  ;
-  // clang-format on
+  Sqrat::Class<AnalogStickAction>(vm, "AnalogStickAction") //
+    .SQ_BIND_MEMBER_VAR(AnalogStickAction, x)
+    .SQ_BIND_MEMBER_VAR(AnalogStickAction, y)
+    .SQ_BIND_MEMBER_VAR(AnalogStickAction, bActive)
+    .SQ_BIND_MEMBER_VAR(AnalogStickAction, bActivePrev)
+    /**/;
 
   dainp.Bind("SingleButtonId", sqSingleButtonId);
 

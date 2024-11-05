@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -55,10 +54,12 @@ BITMASK_DECLARE_FLAGS_OPERATORS(TraceFlag);
 
 enum class AddRIFlag
 {
+  None,
   UseShadow = 1 << 0,
   Immortal = 1 << 1,
   ForceDebris = 1 << 2,
-  Dynamic = 1 << 3
+  Dynamic = 1 << 3,
+  GameresPreLoaded = 1 << 4, // Note: Set this bit to avoid using `get_one_game_resource_ex`
 };
 using AddRIFlags = BitFlagsMask<AddRIFlag>;
 BITMASK_DECLARE_FLAGS_OPERATORS(AddRIFlag);

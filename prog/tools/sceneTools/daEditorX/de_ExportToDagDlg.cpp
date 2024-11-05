@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "de_ExportToDagDlg.h"
 #include <oldEditor/de_interface.h>
 #include <oldEditor/de_common_interface.h>
@@ -9,7 +11,7 @@
 
 //==============================================================================
 ExportToDagDlg::ExportToDagDlg(Tab<String> &sel_names, bool visual, const char *name) :
-  CDialogWindow(DAGORED2->getWndManager()->getMainWindow(), hdpi::_pxScaled(280), hdpi::_pxScaled(400), name), plugs(midmem)
+  DialogWindow(DAGORED2->getWndManager()->getMainWindow(), hdpi::_pxScaled(280), hdpi::_pxScaled(400), name), plugs(midmem)
 {
   mDPanel = getPanel();
   G_ASSERT(mDPanel && "ExportToDagDlg::ExportToDagDlg: NO PANEL FOUND!");

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <startup/dag_startupTex.h>
 #include <image/dag_loadImage.h>
 #include <image/dag_texPixel.h>
@@ -150,10 +152,10 @@ public:
       pic_adjust_dim(h, w, -pic_h, src_aspect, keep_ar);
     int wi = (int)max(1.f, floorf(w + 0.5f)), hi = (int)max(1.0f, floorf(h + 0.5f));
 
-    TexImage32 *img = TexImage32::create(wi, hi, mem);
-    if (!img)
+    TexImage32 *img = TexImage32::tryCreate(wi, hi, mem);
+    if (DAGOR_UNLIKELY(!img))
     {
-      logerr("failed to create image %dx%d for %s", wi, hi, fn);
+      logerr("failed to alloc image %dx%d for %s", wi, hi, fn);
       return NULL;
     }
     nsvgRasterize(nsvg.rast, nsvg.image, 0, 0, w / nsvg.image->width, h / nsvg.image->height, (uint8_t *)img->getPixels(), wi, hi,

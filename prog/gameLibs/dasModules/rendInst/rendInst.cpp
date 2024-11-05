@@ -1,4 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/aotRendInst.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
 #include <ecs/phys/collRes.h>
 
 
@@ -123,9 +126,6 @@ public:
     das::addExtern<DAS_BIND_FUN(rendinst::getRIGenExtra44)>(*this, lib, "getRIGenExtra44",
       das::SideEffects::modifyArgumentAndAccessExternal, "rendinst::getRIGenExtra44");
 
-    das::addExtern<DAS_BIND_FUN(get_collres_slice_mean_and_dispersion)>(*this, lib, "get_collres_slice_mean_and_dispersion",
-      das::SideEffects::none, "get_collres_slice_mean_and_dispersion");
-
     das::addExtern<DAS_BIND_FUN(gather_ri_gen_extra_collidable)>(*this, lib, "gather_ri_gen_extra_collidable",
       das::SideEffects::accessExternal, "bind_dascript::gather_ri_gen_extra_collidable");
     das::addExtern<DAS_BIND_FUN(gather_ri_gen_extra_collidable_in_transformed_box)>(*this, lib, "gather_ri_gen_extra_collidable",
@@ -217,6 +217,8 @@ public:
       "rendinst::delRIGenExtra");
     das::addExtern<DAS_BIND_FUN(rendinst_foreachRIGenInBox)>(*this, lib, "rendinst_foreachRIGenInBox",
       das::SideEffects::accessExternal, "bind_dascript::rendinst_foreachRIGenInBox");
+    das::addExtern<DAS_BIND_FUN(rendinst::setMaxNumRiCollisionCb)>(*this, lib, "setMaxNumRiCollisionCb",
+      das::SideEffects::modifyExternal, "rendinst::setMaxNumRiCollisionCb");
     das::addExtern<DAS_BIND_FUN(rendinst::moveToOriginalScene)>(*this, lib, "rendinst_moveToOriginalScene",
       das::SideEffects::modifyExternal, "rendinst::moveToOriginalScene");
     das::addExtern<DAS_BIND_FUN(rendinst::applyTiledScenesUpdateForRIGenExtra)>(*this, lib, "applyTiledScenesUpdateForRIGenExtra",

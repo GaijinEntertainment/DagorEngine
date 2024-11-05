@@ -1,7 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <memory/dag_framemem.h>
 #include <3d/dag_resPtr.h>
-#include <3d/dag_tex3d.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <daGI/daGI.h>
 #include <perfMon/dag_statDrv.h>
 #include <math/dag_TMatrix4.h>
@@ -23,8 +27,6 @@ public:
   bool isValid() const { return currentCount == activeList.size(); }
   void invalidate() { centerPos += Point3(10000, -1000, 10000); }
   void updatePos(const Point3 &pos);
-  void set(int stg, int slot);
-  void unset(int stg, int slot);
   eastl::unique_ptr<class scene::TiledScene> walls;
   Point3 centerPos = {-10000, 1000, -10000};
   float dist = 128.f;

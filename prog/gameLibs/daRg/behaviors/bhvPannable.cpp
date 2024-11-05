@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "bhvPannable.h"
 
 #include <daRg/dag_element.h>
@@ -101,7 +103,7 @@ int BhvPannable::pointingEvent(ElementTree *etree, Element *elem, InputDevice de
 
   if (event == INP_EV_PRESS)
   {
-    if (!bhvData->isActive() && elem->hitTest(pos))
+    if (!bhvData->isActive() && elem->hitTest(pos) && !(accum_res & R_STOPPED))
     {
       elem->setGroupStateFlags(activeStateFlag);
 
@@ -119,7 +121,18 @@ int BhvPannable::pointingEvent(ElementTree *etree, Element *elem, InputDevice de
 
       Point2 scrollVel = bhvData->kineticTracker.curVelocity();
       if (lengthSq(scrollVel) > 0)
+      {
+        float kineticAxisLockAngle = elem->props.scriptDesc.RawGetSlotValue("kineticAxisLockAngle", 0.0f);
+        if (kineticAxisLockAngle > 0.0f)
+        {
+          float angle = atan2f(scrollVel.y, scrollVel.x);
+          float nearestAxisAngle = floorf(angle / HALFPI + 0.5f) * HALFPI;
+          if (fabsf(angle - nearestAxisAngle) < kineticAxisLockAngle * DEG_TO_RAD)
+            scrollVel = Point2(cosf(nearestAxisAngle), sinf(nearestAxisAngle)) * length(scrollVel);
+        }
+
         etree->startKineticScroll(elem, scrollVel);
+      }
 
       bhvData->finish();
 

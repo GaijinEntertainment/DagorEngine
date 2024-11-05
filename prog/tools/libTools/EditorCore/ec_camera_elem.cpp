@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EditorCore/ec_camera_elem.h>
 #include <EditorCore/ec_camera_dlg.h>
 
@@ -115,6 +117,18 @@ void CCameraElem::actInternal()
     setAboveSurf();
     setAboveSurfFuture = false;
   }
+}
+
+void CCameraElem::stop()
+{
+  setAboveSurfFuture = true;
+  forwardZFuture = 0;
+  rotateXFuture = 0.f;
+  rotateYFuture = 0.f;
+  strifeXFuture = 0;
+  strifeYFuture = 0;
+  upYFuture = 0;
+  bow = false;
 }
 
 void CCameraElem::render() {}
@@ -292,9 +306,13 @@ void CCameraElem::rotate(real deltaX, real deltaY, bool multiplySencetive, bool 
   TMatrix rotation = rotyTM(deltaX) * cameraRotation * rotxTM(deltaY) * inverse(cameraRotation);
   TMatrix newCameraTm = rotationSpace * rotation * inverse(rotationSpace) * cameraTm;
 
+  // Do not allow rolling over the limit, but allow coming out of a roll that is over the limit. The
+  // latter can happen by clicking the Y label on the viewport axis gizmo, or using the top/bottom
+  // ortho camera view.
   const real PINCH_MIN_LIMIT = 0.1;
-
-  if (::fabs(newCameraTm.getcol(2).y) > cos(PINCH_MIN_LIMIT) || newCameraTm.getcol(1).y < 0)
+  const real oldRoll = ::fabs(cameraTm.getcol(2).y);
+  const real newRoll = ::fabs(newCameraTm.getcol(2).y);
+  if ((newRoll > cos(PINCH_MIN_LIMIT) && newRoll >= oldRoll) || newCameraTm.getcol(1).y < 0)
     newCameraTm = rotationSpace * rotyTM(deltaX) * inverse(rotationSpace) * cameraTm;
 
   vpw->setCameraTransform(newCameraTm);
@@ -935,6 +953,9 @@ void TpsCameraElem::strife(real dx, real dy, bool multiply_sensitive, bool confi
 //=====================================================================================
 void MaxCameraElem::handleKeyPress(int vk)
 {
+  if (wingw::is_special_pressed())
+    return;
+
   switch (vk)
   {
     case 'Z': EDITORCORE->zoomAndCenter(); break;

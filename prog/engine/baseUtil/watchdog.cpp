@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_watchdog.h>
 #include <osApiWrappers/dag_threads.h>
 #include <osApiWrappers/dag_events.h>
@@ -5,7 +7,6 @@
 #include <debug/dag_fatal.h>
 #include <util/dag_console.h>
 #include <util/dag_stdint.h>
-#include <3d/dag_drv3dCmd.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <debug/dag_debug.h>
@@ -67,7 +68,7 @@ public:
   eastl::fixed_vector<intptr_t, 4> dumpThreadIds;
   OSSpinlock dumpThreadIdMutex;
 
-  WatchDogThread(WatchdogConfig *cfg_) : DaThread("WatchDogThread", 128 << 10), lastUpdateTimeMs(0u)
+  WatchDogThread(WatchdogConfig *cfg_) : DaThread("WatchDogThread", 128 << 10, 0, WORKER_THREADS_AFFINITY_MASK), lastUpdateTimeMs(0u)
   {
     os_event_create(&sleepEvent);
     memset(&cfg, 0, sizeof(cfg));
@@ -100,7 +101,7 @@ public:
       int ret = os_event_wait(&sleepEvent, sleep_time_ms);
       (void)ret;
       G_ASSERTF(ret == OS_WAIT_OK || ret == OS_WAIT_TIMEOUTED, "%d", ret);
-      if (interlocked_acquire_load(terminating))
+      if (isThreadTerminating())
         break;
       triggering_threshold_ms = interlocked_acquire_load(cfg.triggering_threshold_ms);
 
@@ -126,7 +127,11 @@ public:
           e_time > WATCHDOG_OS_RESUMED_THRESHOLD)
         goto keep_sleeping;
 
-      bool freeze = e_time >= triggering_threshold_ms + (cfg.flags & WATCHDOG_SWAP_HANDICAP ? activeSwapHandicapMs : 0);
+      // In some cases (such as autotests on a busy server) we may experience a lot of pageFaults during a real freeze,
+      // which will delay freeze=true to an uknown point in time.
+      // Therefore, after no kicks for a time, equal to several freeze timeouts, we give up and consider this a freeze
+      const bool freeze = (e_time >= triggering_threshold_ms + (cfg.flags & WATCHDOG_SWAP_HANDICAP ? activeSwapHandicapMs : 0)) ||
+                          (e_time >= triggering_threshold_ms * 4);
       if (e_time > interlocked_acquire_load(cfg.dump_threads_threshold_ms))
       {
         if (dgs_last_suspend_at != 0 && dgs_last_resume_at != 0 &&
@@ -182,6 +187,10 @@ public:
         cfg.sleep_time_ms, activeSwapHandicapMs);
 
       debug_flush(false);
+
+      if (cfg.on_freeze_cb)
+        cfg.on_freeze_cb();
+
       sleep_msec(100);
 
       if (!(cfg.flags & WATCHDOG_NO_FATAL))
@@ -203,7 +212,6 @@ void watchdog_init(WatchdogConfig *cfg)
   G_ASSERT(!interlocked_acquire_load_ptr(watchdog_thread));
   WatchDogThread *thread = new WatchDogThread(cfg);
   thread->start();
-  thread->setAffinity(WORKER_THREADS_AFFINITY_MASK); // Exclude core where the main thread runs to avoid scheduling it out.
   interlocked_release_store_ptr(watchdog_thread, thread);
 }
 
@@ -278,7 +286,12 @@ intptr_t watchdog_set_option(int option, intptr_t p0, intptr_t p1)
 }
 
 #if _TARGET_PC_WIN
-bool is_watchdog_thread(uintptr_t thread_id) { return GetThreadId(*(HANDLE *)watchdog_thread->getCurrentThreadIdPtr()) == thread_id; }
+bool is_watchdog_thread(uintptr_t thread_id)
+{
+  if (!watchdog_thread)
+    return false;
+  return GetThreadId(*(HANDLE *)watchdog_thread->getCurrentThreadIdPtr()) == thread_id;
+}
 #endif
 
 #define EXPORT_PULL dll_pull_baseutil_watchdog

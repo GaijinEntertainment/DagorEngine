@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -13,6 +12,7 @@
 #include <soundSystem/vars.h>
 #include <soundSystem/events.h>
 #include <soundSystem/visualLabels.h>
+#include <soundSystem/eventInstanceStealing.h>
 #include <ecs/sound/soundComponent.h>
 #include <ecs/sound/soundGroup.h>
 
@@ -21,6 +21,7 @@ MAKE_TYPE_FACTORY(SoundEventHandle, sndsys::EventHandle);
 MAKE_TYPE_FACTORY(SoundVarId, SoundVarId);
 MAKE_TYPE_FACTORY(SoundEventGroup, SoundEventGroup);
 MAKE_TYPE_FACTORY(VisualLabel, sndsys::VisualLabel);
+MAKE_TYPE_FACTORY(SoundEventsPreload, SoundEventsPreload);
 
 DAS_BIND_VECTOR(VisualLabels, sndsys::VisualLabels, sndsys::VisualLabel, " ::sndsys::VisualLabels")
 
@@ -99,15 +100,27 @@ inline void add_sound(SoundEventGroup &group, sndsys::event_id_t id, sndsys::Eve
 {
   ::add_sound(group, id, {}, handle);
 }
+inline void __add_sound(SoundEventGroup &group, sndsys::event_id_t id, const SoundEvent &sound_event)
+{
+  ::add_sound(group, id, {}, sound_event.handle);
+}
 inline void add_sound_with_pos(SoundEventGroup &group, sndsys::event_id_t id, Point3 pos, sndsys::EventHandle handle,
   int max_instances)
 {
   ::add_sound(group, id, pos, handle, max_instances);
 }
+inline void __add_sound_with_pos(SoundEventGroup &group, sndsys::event_id_t id, Point3 pos, const SoundEvent &sound_event,
+  int max_instances)
+{
+  ::add_sound(group, id, pos, sound_event.handle, max_instances);
+}
+
 inline void remove_sound(SoundEventGroup &group, sndsys::EventHandle handle) { ::remove_sound(group, handle); }
+inline void __remove_sound(SoundEventGroup &group, const SoundEvent &sound_event) { ::remove_sound(group, sound_event.handle); }
 inline void release_all_sounds(SoundEventGroup &group) { ::release_all_sounds(group); }
 inline void abandon_all_sounds(SoundEventGroup &group) { ::abandon_all_sounds(group); }
 inline void reject_sound(SoundEventGroup &group, sndsys::event_id_t id) { ::reject_sound(group, id, false); }
+inline void abandon_sound(SoundEventGroup &group, sndsys::event_id_t id) { ::abandon_sound(group, id); }
 inline void reject_sound_with_stop(SoundEventGroup &group, sndsys::event_id_t id, bool stop) { ::reject_sound(group, id, stop); }
 inline void release_sound(SoundEventGroup &group, sndsys::event_id_t id) { ::release_sound(group, id); }
 inline sndsys::EventHandle get_sound(const SoundEventGroup &group, sndsys::event_id_t id) { return ::get_sound(group, id); }
@@ -123,7 +136,16 @@ inline int get_max_capacity(const SoundEventGroup &group) { return ::get_max_cap
 
 inline void update_sounds(SoundEventGroup &group) { ::update_sounds(group); }
 
-inline bool is_valid_event_handle(const sndsys::EventHandle &handle) { return (bool)handle; }
+inline void __reset(SoundEvent &sound_event, sndsys::EventHandle handle) { sound_event.reset(handle); }
+
+inline void __move(SoundEvent &target, SoundEvent &source)
+{
+  target.reset(source.handle);
+  source.handle = sndsys::EventHandle{};
+}
+
+inline bool is_valid_event_handle_value(const sndsys::EventHandle &handle) { return (bool)handle; }
+inline bool is_valid_event_value(const SoundEvent &sound_event) { return (bool)sound_event.handle; }
 inline sndsys::EventHandle invalid_sound_event_handle() { return {}; }
 
 inline sndsys::EventHandle play_with_name(const char *name) { return sndsys::play(name); }
@@ -158,6 +180,30 @@ inline void play_sound_with_name_pos_vol(SoundEvent &sound_event, const char *na
 {
   sound_event.reset(sndsys::play(name, nullptr, pos, volume));
 }
+inline void play_sound_with_name_pos_delayed(SoundEvent &sound_event, const char *name, Point3 pos, float delay)
+{
+  sound_event.reset(sndsys::delayed_play(name, nullptr, pos, delay));
+}
+
+inline bool play_or_release_sound_with_name_pos(SoundEvent &sound_event, const char *name, Point3 pos, bool play)
+{
+  return sound_event.play(name, nullptr, pos, play, false);
+}
+
+inline bool play_or_abandon_sound_with_name_pos(SoundEvent &sound_event, const char *name, Point3 pos, bool play)
+{
+  return sound_event.play(name, nullptr, pos, play, true);
+}
+
+inline bool play_or_release_sound_with_name(SoundEvent &sound_event, const char *name, bool play)
+{
+  return sound_event.play(name, play, false);
+}
+
+inline bool play_or_abandon_sound_with_name(SoundEvent &sound_event, const char *name, bool play)
+{
+  return sound_event.play(name, play, true);
+}
 
 inline void oneshot_with_name_pos(const char *name, Point3 pos) { sndsys::play_one_shot(name, pos); }
 inline void oneshot_with_name_pos_far(const char *name, Point3 pos, bool allow_far_oneshots)
@@ -175,49 +221,106 @@ inline bool should_play(Point3 pos) { return sndsys::should_play(pos); }
 inline bool should_play_ex(Point3 pos, float dist_threshold) { return sndsys::should_play(pos, dist_threshold); }
 
 inline bool is_oneshot(sndsys::EventHandle handle) { return sndsys::is_one_shot(handle); }
+inline bool __is_oneshot(const SoundEvent &sound_event) { return sndsys::is_one_shot(sound_event.handle); }
 inline bool is_playing(sndsys::EventHandle handle) { return sndsys::is_playing(handle); }
+inline bool __is_playing(const SoundEvent &sound_event) { return sndsys::is_playing(sound_event.handle); }
 inline bool is_valid_event(sndsys::EventHandle handle) { return sndsys::is_valid_handle(handle); }
+inline bool __is_valid_event(const SoundEvent &sound_event) { return sndsys::is_valid_handle(sound_event.handle); }
 inline bool is_valid_event_instance(sndsys::EventHandle handle) { return sndsys::is_valid_event_instance(handle); }
+inline bool __is_valid_event_instance(const SoundEvent &sound_event) { return sndsys::is_valid_event_instance(sound_event.handle); }
+
+inline int get_num_event_instances(sndsys::EventHandle handle) { return sndsys::get_num_event_instances(handle); }
+inline int __get_num_event_instances(const SoundEvent &sound_event) { return sndsys::get_num_event_instances(sound_event.handle); }
+inline int get_num_event_instances_with_name_path(const char *name, const char *path)
+{
+  return sndsys::get_num_event_instances(name, path);
+}
 
 inline bool has(const char *name, const char *path) { return sndsys::has_event(name, path); }
 
 inline void set_pos(sndsys::EventHandle handle, Point3 pos) { sndsys::set_3d_attr(handle, pos); }
+inline void __set_pos(const SoundEvent &sound_event, Point3 pos) { sndsys::set_3d_attr(sound_event.handle, pos); }
+inline void __set_pos_and_ori(SoundEvent &sound_event, const Point3 &pos, const Point3 &vel, const Point3 &forward, const Point3 &up)
+{
+  sndsys::set_3d_attr(sound_event.handle, pos, vel, forward, up);
+}
+
+
 inline void set_var(sndsys::EventHandle handle, const char *var_name, float value) { sndsys::set_var(handle, var_name, value); }
+inline void __set_var(const SoundEvent &sound_event, const char *var_name, float value)
+{
+  sndsys::set_var(sound_event.handle, var_name, value);
+}
+
 inline void set_var_optional(sndsys::EventHandle handle, const char *var_name, float value)
 {
   sndsys::set_var_optional(handle, var_name, value);
 }
+inline void __set_var_optional(const SoundEvent &sound_event, const char *var_name, float value)
+{
+  sndsys::set_var_optional(sound_event.handle, var_name, value);
+}
+
 inline void set_var_global(const char *var_name, float value) { sndsys::set_var_global(var_name, value); }
 inline void set_var_global_with_id(SoundVarId var_id, float value) { sndsys::set_var_global(var_id, value); }
 inline SoundVarId invalid_sound_var_id() { return {}; }
 inline SoundVarId get_var_id_global(const char *var_name) { return sndsys::get_var_id_global(var_name); }
 
 inline void set_volume(sndsys::EventHandle handle, float vol) { sndsys::set_volume(handle, vol); }
+inline void __set_volume(const SoundEvent &sound_event, float vol) { sndsys::set_volume(sound_event.handle, vol); }
 
 inline void set_pitch(sndsys::EventHandle handle, float pitch) { sndsys::set_pitch(handle, pitch); }
+inline void __set_pitch(const SoundEvent &sound_event, float pitch) { sndsys::set_pitch(sound_event.handle, pitch); }
 
 inline void set_timeline_position(sndsys::EventHandle handle, int position) { sndsys::set_timeline_position(handle, position); }
+inline void __set_timeline_position(const SoundEvent &sound_event, int position)
+{
+  sndsys::set_timeline_position(sound_event.handle, position);
+}
 
 inline int get_timeline_position(sndsys::EventHandle handle) { return sndsys::get_timeline_position(handle); }
+inline int __get_timeline_position(const SoundEvent &sound_event) { return sndsys::get_timeline_position(sound_event.handle); }
 
-inline int get_length(const char *name)
+inline int get_length_by_path(const char *name)
 {
   int len = 0;
   sndsys::get_length(name, len);
   return len;
 }
 
+inline const char *get_sample_loading_state_by_path(const char *path) { return sndsys::get_sample_loading_state(path); }
+inline bool load_sample_data_by_path(const char *path) { return sndsys::load_sample_data(path); }
+inline bool unload_sample_data_by_path(const char *path) { return sndsys::unload_sample_data(path); }
+
+inline const char *get_sample_loading_state(sndsys::EventHandle handle) { return sndsys::get_sample_loading_state(handle); }
+inline bool load_sample_data(sndsys::EventHandle handle) { return sndsys::load_sample_data(handle); }
+inline bool unload_sample_data(sndsys::EventHandle handle) { return sndsys::unload_sample_data(handle); }
+
 inline void release_immediate(sndsys::EventHandle &handle) { sndsys::release_immediate(handle); }
+inline void __release_immediate(SoundEvent &sound_event) { sndsys::release_immediate(sound_event.handle); }
+
 inline void release(sndsys::EventHandle &handle) { sndsys::release(handle); }
+inline void __release(SoundEvent &sound_event) { sndsys::release(sound_event.handle); }
 
 inline void abandon_immediate(sndsys::EventHandle &handle) { sndsys::abandon_immediate(handle); }
+inline void __abandon_immediate(SoundEvent &sound_event) { sndsys::abandon_immediate(sound_event.handle); }
+
 inline void abandon(sndsys::EventHandle &handle) { sndsys::abandon(handle); }
+inline void __abandon(SoundEvent &sound_event) { sndsys::abandon(sound_event.handle); }
+
 inline void abandon_with_delay(sndsys::EventHandle &handle, float delay) { sndsys::abandon_delayed(handle, delay); }
+inline void __abandon_with_delay(SoundEvent &sound_event, float delay) { sndsys::abandon_delayed(sound_event.handle, delay); }
+
 inline bool keyoff(sndsys::EventHandle handle) { return sndsys::keyoff(handle); }
+inline bool __keyoff(const SoundEvent &sound_event) { return sndsys::keyoff(sound_event.handle); }
+
 inline bool is_3d(sndsys::EventHandle handle) { return sndsys::is_3d(handle); }
+inline bool __is_3d(const SoundEvent &sound_event) { return sndsys::is_3d(sound_event.handle); }
 
 inline float get_max_distance(sndsys::EventHandle handle) { return sndsys::get_max_distance(handle); }
-inline float get_max_distance_name(const char *name) { return sndsys::get_max_distance(name); }
+inline float __get_max_distance(const SoundEvent &sound_event) { return sndsys::get_max_distance(sound_event.handle); }
+
+inline float get_max_distance_by_name(const char *name) { return sndsys::get_max_distance(name); }
 
 inline bool das_query_visual_labels(const das::TBlock<void, const das::TTemporary<const das::TArray<sndsys::VisualLabel>>> &block,
   das::Context *context, das::LineInfoArg *at)
@@ -234,5 +337,22 @@ inline bool das_query_visual_labels(const das::TBlock<void, const das::TTemporar
   context->invoke(block, &arg, nullptr, at);
   return true;
 }
+
+inline int create_event_instance_stealing_group(const char *group_name, int target_instances, float fade_in_out_speed)
+{
+  return sndsys::create_event_instance_stealing_group(group_name, target_instances, fade_in_out_speed);
+}
+
+inline void update_event_instance_stealing(sndsys::EventHandle handle, int group_id, float dt)
+{
+  sndsys::update_event_instance_stealing(handle, group_id, dt);
+}
+
+inline void sound_events_load(SoundEventsPreload &sound_events_preload, const das::TArray<char *> &paths)
+{
+  sound_events_preload.load(make_span((const char **)paths.data, paths.size));
+}
+
+inline void sound_events_unload(SoundEventsPreload &sound_events_preload) { sound_events_preload.unload(); }
 
 } // namespace soundevent_bind_dascript

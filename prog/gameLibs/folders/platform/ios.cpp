@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "internal.h"
 
 #include <stdlib.h>
@@ -7,7 +9,7 @@ namespace folders
 {
 namespace internal
 {
-static String game_name;
+String game_name;
 
 void platform_initialize(const char *app_name) { game_name = app_name; }
 
@@ -18,14 +20,6 @@ String get_game_dir()
   String dir;
   get_current_work_dir(dir);
   return dir;
-}
-
-String get_gamedata_dir()
-{
-  G_ASSERT_RETURN(!game_name.empty(), {});
-  String gameData;
-  gameData.printf(260, "%s/%s/%s", getenv("HOME"), "Documents", game_name);
-  return gameData;
 }
 
 String get_temp_dir() { return String("/tmp/"); }

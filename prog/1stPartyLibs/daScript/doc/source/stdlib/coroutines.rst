@@ -110,8 +110,8 @@ The idea is that coroutine or generator can continuesly yield from another sub-c
 Top level coroutine evaluation
 ++++++++++++++++++++++++++++++
 
-  *  :ref:`cr_run (a:iterator\<bool\> -const) : void <function-_at_coroutines_c__c_cr_run_Y_ls_Coroutine_gr_1_ls_b_gr_G>`
-  *  :ref:`cr_run_all (a:array\<iterator\<bool\>\> -const) : void <function-_at_coroutines_c__c_cr_run_all_Y_ls_Coroutines_gr_1_ls_Y_ls_Coroutine_gr_1_ls_b_gr_G_gr_A>`
+  *  :ref:`cr_run (a:iterator\<bool\> -const) : void <function-_at_coroutines_c__c_cr_run_Y_ls_Coroutine_gr_1_ls_b_gr_G>` 
+  *  :ref:`cr_run_all (a:array\<iterator\<bool\>\> -const) : void <function-_at_coroutines_c__c_cr_run_all_Y_ls_Coroutines_gr_1_ls_Y_ls_Coroutine_gr_1_ls_b_gr_G_gr_A>` 
 
 .. _function-_at_coroutines_c__c_cr_run_Y_ls_Coroutine_gr_1_ls_b_gr_G:
 

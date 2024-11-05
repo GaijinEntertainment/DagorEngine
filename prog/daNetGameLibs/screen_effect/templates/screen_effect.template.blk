@@ -1,0 +1,29 @@
+screen_effect_renderer{
+  _tags:t="render"
+  _singleton:b=yes
+
+  "screen_effect__buffer:UniqueBufHolder"{}
+
+  screen_effect__countVar:i = -1
+  "screen_effect__texVars:list<i>" {}
+  screen_effect_renderer__enable:b=yes
+  screen_effect__is_active:b=false
+  _tracked:t="screen_effect__is_active"
+  "screenEffect:resource_slot::NodeHandleWithSlotsAccess"{}
+}
+
+screen_effect_generic{
+  _use:t="replicated_game_effect"
+
+  screen_effect__diffuse:p4 = 1, 1, 1, 1
+  screen_effect__uvScale:r = 1
+  screen_effect__roughness:r = 1
+  screen_effect__opacity:r = 1
+  screen_effect__intensity:r = 0
+  screen_effect__weight:r = 1
+  screen_effect__borderOffset:r=0.2
+  screen_effect__borderSaturation:r=0.1
+  "screen_effect__texture:SharedTex"{_tags:t="render"}
+  screen_effect__texture_res:t=""
+
+}

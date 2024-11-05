@@ -1,0 +1,26 @@
+
+include "clouds2/cloud_volume_mask.dshl"
+include "vr_reprojection.dshl"
+
+macro GET_CLOUD_VOLUME_MASK()
+  if (cloud_volume != NULL)
+  {
+    INIT_BOUNDING_VIEW_REPROJECTION(ps)
+    USE_BOUNDING_VIEW_REPROJECTION(ps)
+
+    CLOUD_VOLUME_MASK()
+    hlsl(ps) {
+      half get_cloud_volume_mask(float4 scrTexcoord)
+      {
+        return get_screen_cloud_volume_mask(scrTexcoord.xy/scrTexcoord.w, scrTexcoord.w);
+      }
+    }
+  } else
+  {
+    hlsl(ps) {
+      #define get_screen_cloud_volume_mask(scrTex, w) 1
+      #define get_cloud_volume_mask(scrTex) 1
+    }
+  }
+endmacro
+

@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_static_flares_pull StaticFlaresModule_pull ;
+  UseProgLibs += daNetGameLibs/static_flares ;
+}

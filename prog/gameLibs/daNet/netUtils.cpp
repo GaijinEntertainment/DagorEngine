@@ -1,12 +1,16 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daNet/dag_netUtils.h>
 #include <daNet/daNetTypes.h>
 
+#include <daNet/bitStream.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_memIo.h>
 #include <ioSys/dag_zstdIo.h>
 #include <memory/dag_framemem.h>
 #include <math/dag_Point3.h>
 #include <math/dag_Point2.h>
+#include <math/dag_Quat.h>
 #include <math/dag_mathAng.h>
 #include <util/dag_bitArray.h>
 #include <util/dag_simpleString.h>
@@ -82,9 +86,11 @@ bool readCompressedBlk(const danet::BitStream *message, DataBlock &blk)
   return ret;
 }
 
+#if defined(_MSC_VER) || defined(__clang__)
 #if !(_TARGET_APPLE || _TARGET_C3) || (_TARGET_PC_MACOSX && !_TARGET_SIMD_NEON)
 #pragma float_control(push)
 #pragma float_control(precise, on)
+#endif
 #endif
 
 unsigned int pack_euler(const Point3 &euler)
@@ -137,6 +143,26 @@ void unpack_euler(unsigned int packed, Point3 &res)
   res.x = bank;
   res.y = heading;
   res.z = attitude;
+}
+
+unsigned int pack_quat(const Quat &quat)
+{
+  Point3 euler;
+  ::quat_to_euler(quat, euler.y, euler.z, euler.x);
+  euler.x = (euler.x + PI) / TWOPI;
+  euler.x = (euler.x - floorf(euler.x)) * TWOPI - PI;
+  euler.y = (euler.y + PI) / TWOPI;
+  euler.y = (euler.y - floorf(euler.y)) * TWOPI - PI;
+  euler.z = clamp(euler.z, -HALFPI, HALFPI);
+  return pack_euler(euler);
+}
+
+void unpack_quat(unsigned int packed, Quat &res)
+{
+  Point3 euler;
+  unpack_euler(packed, euler);
+  euler_to_quat(euler.y, euler.z, euler.x, res);
+  res = normalize(res);
 }
 
 carray<int16_t, 3> pack_euler_16(const Point3 &euler)
@@ -268,216 +294,31 @@ void unpack_velocity(unsigned int packed, Point3 &vel, float maxSpeed)
   }
 }
 
+#if defined(_MSC_VER) || defined(__clang__)
 #if !(_TARGET_APPLE || _TARGET_C3) || (_TARGET_PC_MACOSX && !_TARGET_SIMD_NEON)
 #pragma float_control(pop)
 #endif
+#endif
 
-bool serialize_bitarray(danet::BitStream &bs, Bitarray &ba, SerializeMode mode)
+void write_vector(danet::BitStream &bs, const Point3 &pos, float max)
 {
-  bool done = true;
-
-  uint32_t sizeBits = 0;
-  if (mode == WRITE)
-  {
-    sizeBits = ba.size();
-    bs.WriteCompressed(sizeBits);
-    if (sizeBits > 0)
-      bs.WriteBits((const uint8_t *)ba.getPtr(), sizeBits);
-  }
-  else
-  {
-    done &= bs.ReadCompressed(sizeBits);
-    if (done && sizeBits > 0)
-    {
-      Tab<uint8_t> readBuffer(framemem_ptr());
-      readBuffer.resize(BITS_TO_BYTES_WORD_ALIGNED(sizeBits));
-      done &= bs.ReadBits(readBuffer.data(), sizeBits);
-      if (done)
-        ba.setPtr((const Bitarraybits *)readBuffer.data(), sizeBits);
-    }
-  }
-
-  return done;
+  bs.Write(PACK_S16(pos.x, max));
+  bs.Write(PACK_S16(pos.y, max));
+  bs.Write(PACK_S16(pos.z, max));
 }
 
-bool serialize_int_compressed(danet::BitStream &bs, int &val, SerializeMode mode, int min)
+bool read_vector(const danet::BitStream &bs, Point3 &pos, float max)
 {
-  bool done = true;
-
-  if (mode == WRITE)
-  {
-    bs.WriteCompressed(uint32_t(clamp(val - min, 0, 0xFFFF)));
-  }
-  else
-  {
-    uint32_t ui = 0;
-    done = bs.ReadCompressed(ui);
-    if (done)
-      val = int(ui) + min;
-  }
+  int16_t x = 0;
+  int16_t y = 0;
+  int16_t z = 0;
+  bool done = bs.Read(x);
+  done &= bs.Read(y);
+  done &= bs.Read(z);
+  if (done)
+    pos.set(netutils::UNPACKS<int16_t>(x, max), netutils::UNPACKS<int16_t>(y, max), netutils::UNPACKS<int16_t>(z, max));
 
   return done;
-}
-
-bool serialize_int_compressed(danet::BitStream &bs, int16_t &val, SerializeMode mode, int min)
-{
-  bool done = true;
-
-  if (mode == WRITE)
-  {
-    bs.WriteCompressed(uint16_t(clamp(val - min, 0, 0xFFFF)));
-  }
-  else
-  {
-    uint16_t ui = 0;
-    done = bs.ReadCompressed(ui);
-    if (done)
-      val = int(ui) + min;
-  }
-
-  return done;
-}
-
-template <>
-bool serialize_float_compressed<int16_t>(danet::BitStream &bs, float &val, SerializeMode mode, float max)
-{
-  bool done = true;
-
-  if (mode == WRITE)
-  {
-    bs.Write(PACK_S16(clamp(val, -max, max), max));
-  }
-  else
-  {
-    int16_t i16 = 0;
-    done = bs.Read(i16);
-    if (done)
-      val = netutils::UNPACKS<int16_t>(i16, max);
-  }
-
-  return done;
-}
-
-template <>
-bool serialize_float_compressed<int8_t>(danet::BitStream &bs, float &val, SerializeMode mode, float max)
-{
-  bool done = true;
-
-  if (mode == WRITE)
-  {
-    bs.Write(PACK_S8(clamp(val, -max, max), max));
-  }
-  else
-  {
-    int8_t i8 = 0;
-    done = bs.Read(i8);
-    if (done)
-      val = netutils::UNPACKS<int8_t>(i8, max);
-  }
-
-  return done;
-}
-
-bool serialize_positive_float_compressed(danet::BitStream &bs, float &val, SerializeMode mode, float max)
-{
-  bool done = true;
-
-  if (mode == WRITE)
-  {
-    bs.WriteCompressed(PACK_U16(clamp(val, 0.f, max), max));
-  }
-  else
-  {
-    uint16_t ui16 = 0;
-    done = bs.ReadCompressed(ui16);
-    if (done)
-      val = netutils::UNPACK<uint16_t>(ui16, max);
-  }
-
-  return done;
-}
-
-bool serialize_vec_compressed(danet::BitStream &bs, Point3 &pos, SerializeMode mode, float max)
-{
-  bool done = true;
-
-  if (mode == WRITE)
-  {
-    bs.Write(PACK_S16(pos.x, max));
-    bs.Write(PACK_S16(pos.y, max));
-    bs.Write(PACK_S16(pos.z, max));
-  }
-  else
-  {
-    int16_t x = 0;
-    int16_t y = 0;
-    int16_t z = 0;
-    done &= bs.Read(x);
-    done &= bs.Read(y);
-    done &= bs.Read(z);
-
-    if (done)
-      pos.set(netutils::UNPACKS<int16_t>(x, max), netutils::UNPACKS<int16_t>(y, max), netutils::UNPACKS<int16_t>(z, max));
-  }
-
-  return done;
-}
-
-bool serialize_dir_compressed(danet::BitStream &bs, Point3 &dir, SerializeMode mode)
-{
-  bool done = true;
-  uint8_t dirPacked[] = {0, 0, 0};
-
-  if (mode == WRITE)
-  {
-    netutils::pack_dir(dir, dirPacked);
-    bs.WriteArray(dirPacked, countof(dirPacked));
-  }
-  else
-  {
-    done &= bs.ReadArray(dirPacked, countof(dirPacked));
-    if (done)
-      netutils::unpack_dir(dirPacked, dir);
-  }
-
-  return done;
-}
-
-bool serialize_simple_string(danet::BitStream &bs, SimpleString &str, SerializeMode mode)
-{
-  bool done = true;
-
-  uint32_t size = 0;
-  if (mode == WRITE)
-  {
-    size = str.length();
-    bs.WriteCompressed(size);
-    if (size > 0)
-      bs.WriteArray(str.c_str(), size);
-  }
-  else
-  {
-    done &= bs.ReadCompressed(size);
-    if (done && size > 0)
-    {
-      Tab<char> readBuffer(framemem_ptr());
-      readBuffer.resize(size);
-      done &= bs.ReadArray(readBuffer.data(), size);
-      if (done)
-        str.setStr(readBuffer.data(), size);
-    }
-  }
-
-  return done;
-}
-
-bool serialize(danet::BitStream &bs, uint16_t &val, SerializeMode mode)
-{
-  if (mode == READ)
-    return bs.ReadCompressed(val);
-
-  bs.WriteCompressed(val);
-  return true;
 }
 
 void write_float(danet::BitStream &bs, float val, const FloatSerializeProps &props)

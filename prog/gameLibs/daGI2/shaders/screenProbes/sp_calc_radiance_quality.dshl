@@ -1,0 +1,31 @@
+int sp_radiance_oct_res = 8;
+interval sp_radiance_oct_res: lowest < 5, low < 8, exact < 9, high < 16, highest;
+
+hlsl {
+#ifndef SP_CALC_RADIANCE_QUALITY
+#define SP_CALC_RADIANCE_QUALITY 1
+
+  ##if sp_radiance_oct_res == highest
+    #define SP_RADIANCE_OCT_W 16
+  ##elif sp_radiance_oct_res == exact
+    #define SP_RADIANCE_OCT_W 8
+  ##elif sp_radiance_oct_res == lowest
+    #define SP_RADIANCE_OCT_W 4
+  ##endif
+
+  #if defined(SP_RADIANCE_OCT_W) && SP_RADIANCE_OCT_W > 4
+    #define SP_RADIANCE_SIZE_IS_CONST 1
+    #define SP_RADIANCE_SIZE_IS_WARP 1
+  #endif
+
+  #if !SP_RADIANCE_SIZE_IS_WARP
+    #define SP_FILTER_WARP_SIZE 64
+    #define SP_TRACE_WARP_SIZE 64
+  #else
+    #define SP_FILTER_WARP_SIZE (SP_RADIANCE_OCT_W*SP_RADIANCE_OCT_W)
+    #define SP_TRACE_WARP_SIZE (SP_RADIANCE_OCT_W*SP_RADIANCE_OCT_W)
+  #endif
+
+  #include <sp_calc_common.hlsl>
+#endif
+}

@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include "util/tracked_state.h"
 #include "state_field_render_pass.h"
 
@@ -11,6 +13,7 @@ struct FrontRenderPassStateStorage
   StateFieldRenderPassTargets targets;
   StateFieldRenderPassSubpassIdx subpassIndex;
   StateFieldRenderPassArea area;
+  StateFieldRenderPassIndex index;
 
   void reset() {}
   void dumpLog() const { debug("RenderPassStateStorage end"); }
@@ -18,7 +21,7 @@ struct FrontRenderPassStateStorage
 };
 
 class FrontRenderPassState : public TrackedState<FrontRenderPassStateStorage, StateFieldRenderPassTargets, StateFieldRenderPassArea,
-                               StateFieldRenderPassResource, StateFieldRenderPassSubpassIdx>
+                               StateFieldRenderPassResource, StateFieldRenderPassSubpassIdx, StateFieldRenderPassIndex>
 {
 public:
   VULKAN_TRACKED_STATE_DEFAULT_NESTED_FIELD_CB();

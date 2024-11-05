@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <streaming/dag_streamingCtrl.h>
 #include <streaming/dag_streamingMgr.h>
 #include <debug/dag_debug3d.h>

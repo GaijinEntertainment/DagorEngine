@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -10,6 +9,7 @@
 #include <math/dag_Point3.h>
 #include <math/dag_Point2.h>
 #include <math/dag_mathUtils.h>
+#include <dag/dag_relocatable.h>
 #include "humanWeapState.h"
 #include <gameMath/quantization.h>
 
@@ -78,7 +78,7 @@ struct HumanControlState //-V730
   {
     // packedState
     EWS_SHIFT = HCT_NUM,
-    EWS_BITS = hinternal::log2ceil(EWS_NUM),
+    EWS_BITS = hinternal::log2ceil(EWS_NUM - 1u),
     EWS_MASK = (1 << EWS_BITS) - 1,
     PS_HAS_EXT_STATE = 1 << (sizeof(decltype(packedState)) * CHAR_BIT - 1),
 
@@ -285,6 +285,7 @@ public:
       setControlBit((HumanPhysControlType)i, false);
   }
 };
+DAG_DECLARE_RELOCATABLE(HumanControlState);
 
 inline void HumanControlState::setChosenWeapon(HUWeaponSlots slot)
 {

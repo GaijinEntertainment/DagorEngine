@@ -1,6 +1,6 @@
-let function foo(x, y) {
-    let function bar(a, b) {
-        let function qux(c, d) {
+function foo(x, y) {
+    function bar(a, b) {
+        function qux(c, d) {
             return c(d)
         }
 

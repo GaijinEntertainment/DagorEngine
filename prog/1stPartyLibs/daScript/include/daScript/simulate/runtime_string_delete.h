@@ -6,7 +6,7 @@
 namespace das
 {
     struct StringIterator : Iterator {
-        StringIterator ( char * st ) : str(st) {}
+        StringIterator ( char * st, LineInfo * at ) : Iterator(at), str(st) {}
         virtual bool first ( Context & context, char * value ) override;
         virtual bool next  ( Context & context, char * value ) override;
         virtual void close ( Context & context, char * value ) override;

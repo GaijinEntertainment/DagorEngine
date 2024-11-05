@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -25,6 +24,7 @@ namespace sndsys
 {
 bool has_event(const char *name, const char *path = nullptr);
 int get_num_event_instances(const char *name, const char *path = nullptr);
+int get_num_event_instances(EventHandle event_handle);
 
 enum InitEventFlags
 {
@@ -54,7 +54,7 @@ __forceinline EventHandle init_event(const char *name) { return init_event(name,
 EventHandle init_event(const FMODGUID &event_id, const Point3 *position = nullptr);
 bool has_event(const FMODGUID &event_id);
 
-bool get_event_id(const char *name, const char *path, bool is_snapshot, FMODGUID &event_id);
+bool get_event_id(const char *name, const char *path, bool is_snapshot, FMODGUID &event_id, bool debug_trace = true);
 bool preload(const FMODGUID &event_id);
 bool unload(const FMODGUID &event_id, bool is_strict = true);
 void release_immediate(EventHandle &event_handle, bool is_stop = true);
@@ -142,6 +142,8 @@ void set_3d_attr(EventHandle event_handle, const TMatrix &tm, const Point3 &vel)
 bool get_3d_attr(EventHandle event_handle, TMatrix &tm, Point3 &vel);
 bool get_3d_attr(EventHandle event_handle, Point3 &pos);
 
+__forceinline void set_pos(EventHandle event_handle, const Point3 &pos) { set_3d_attr(event_handle, pos); }
+
 bool is_3d(EventHandle event_handle);
 bool are_of_the_same_desc(EventHandle first_handle, EventHandle second_handle);
 
@@ -160,6 +162,18 @@ void get_info(size_t &used_handles, size_t &total_handles);
 bool get_length(EventHandle event_handle, int &length);
 bool get_length(const FMODGUID &event_id, int &length);
 bool get_length(const char *name, int &length);
+
+const char *get_sample_loading_state(const char *path);
+bool load_sample_data(const char *path);
+bool unload_sample_data(const char *path);
+
+const char *get_sample_loading_state(EventHandle event_handle);
+bool load_sample_data(EventHandle event_handle);
+bool unload_sample_data(EventHandle event_handle);
+
+const char *get_sample_loading_state(const FMODGUID &event_id);
+bool load_sample_data(const FMODGUID &event_id);
+bool unload_sample_data(const FMODGUID &event_id);
 
 __forceinline EventHandle play(const char *name)
 {

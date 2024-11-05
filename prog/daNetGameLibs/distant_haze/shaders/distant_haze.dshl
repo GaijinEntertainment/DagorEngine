@@ -1,0 +1,146 @@
+include "shader_global.dshl"
+include "heightmap_common.dshl"
+
+int    distant_haze_geometry_slices;
+float   distant_haze_minh;
+float   distant_haze_maxh;
+float   distant_haze_radius;
+float   distant_haze_fade_in;
+float   distant_haze_fade_out;
+float   distant_haze_height;
+float   distant_haze_density;
+float   distant_haze_strength;
+float   distant_haze_blur;
+float4 distant_haze_speed;
+float4 distant_haze_center;
+float4 inv_distortion_resolution;
+
+texture perlin_noise3d;
+texture haze_scene_depth_tex;
+float haze_scene_depth_tex_lod;
+
+shader distant_haze
+{
+  supports none;
+  supports global_frame;
+
+  cull_mode = none;
+
+  (vs)
+  {
+    globtm@f44 = globtm;
+    haze_geometry_slices@i1 = (distant_haze_geometry_slices);
+    haze_radius_height_minh_maxh@f4 = (distant_haze_radius, distant_haze_height, distant_haze_minh, distant_haze_maxh);
+    haze_center@f2 = (distant_haze_center);
+    camera_position@f3 = world_view_pos;
+  }
+
+  (ps)
+  {
+    perlin_noise3d@smp3d = perlin_noise3d;
+    haze_radius_height_minh_maxh@f4 = (distant_haze_radius, distant_haze_height, distant_haze_minh, distant_haze_maxh);
+    haze_density_strength_blur@f4 = (distant_haze_density, distant_haze_strength, distant_haze_blur, 1.0 / distant_haze_density);
+    haze_fade@f4 = (distant_haze_fade_in, distant_haze_fade_out, 1.0 / distant_haze_fade_in, 1.0 / distant_haze_fade_out)
+    haze_offset@f3 = (distant_haze_speed * time_phase(0, 0));
+    inv_distortion_resolution@f2 = (inv_distortion_resolution);
+    haze_scene_depth_tex@smp2d   = haze_scene_depth_tex;
+    haze_scene_depth_tex_lod@f1  = (haze_scene_depth_tex_lod);
+  }
+
+  hlsl(vs)
+  {
+    #define NO_GRADIENTS_IN_SHADER 1
+  }
+
+  INIT_WORLD_HEIGHTMAP_BASE(vs)
+  INIT_WORLD_HEIGHTMAP_BASE(ps)
+  USE_HEIGHTMAP_COMMON_BASE(vs)
+  USE_HEIGHTMAP_COMMON_BASE(ps)
+
+  hlsl
+  {
+    #define haze_radius haze_radius_height_minh_maxh.x
+    #define haze_height haze_radius_height_minh_maxh.y
+    #define haze_minh   haze_radius_height_minh_maxh.z
+    #define haze_maxh   haze_radius_height_minh_maxh.w
+
+    #define haze_density     haze_density_strength_blur.x
+    #define haze_strength    haze_density_strength_blur.y
+    #define haze_blur        haze_density_strength_blur.z
+    #define haze_density_inv haze_density_strength_blur.w
+
+    #define haze_fade_in      haze_fade.x
+    #define haze_fade_out     haze_fade.y
+    #define haze_fade_in_inv  haze_fade.z
+    #define haze_fade_out_inv haze_fade.w
+
+    struct HazeVertex
+    {
+      VS_OUT_POSITION(position)
+      float4 worldPosition_globalEffect : TEXCOORD1;
+    };
+  }
+
+  hlsl(vs)
+  {
+    HazeVertex distant_haze_vs(uint vertex_id : SV_VertexID)
+    {
+      HazeVertex v = (HazeVertex)0;
+
+      float t = (float(vertex_id / 2) / haze_geometry_slices) * PI * 2;
+      float3 worldPosition;
+      worldPosition.x = sin(t) * haze_radius + haze_center.x;
+      worldPosition.z = cos(t) * haze_radius + haze_center.y;
+      worldPosition.y = (vertex_id % 2) ? haze_maxh + haze_height : haze_minh;
+
+      float effectHeight  = 30;
+      float terrainHeight = getWorldHeight(camera_position.xz);
+      float globalEffect  = 1.0 - pow4(saturate((camera_position.y - terrainHeight) / effectHeight));
+
+      v.position = mul(float4(worldPosition, 1), globtm);
+      v.worldPosition_globalEffect = float4(worldPosition, globalEffect);
+
+      return v;
+    }
+  }
+
+  hlsl(ps)
+  {
+    float4 distant_haze_ps(HazeVertex v HW_USE_SCREEN_POS) : SV_Target0
+    {
+      float2 screenTC   = GET_SCREEN_POS(v.position).xy * inv_distortion_resolution;
+      float  depthScene = tex2Dlod(haze_scene_depth_tex, float4(screenTC,0,haze_scene_depth_tex_lod)).x;
+      float  depthHaze  = GET_SCREEN_POS(v.position).z;
+
+      BRANCH
+      if (depthHaze <= depthScene)
+      {
+        discard;
+        return 0;
+      }
+
+      float terrainHeight = getWorldHeight(v.worldPosition_globalEffect.xz);
+      float overTerrain   = v.worldPosition_globalEffect.y - terrainHeight;
+      float fadeStartTop  = haze_height - haze_fade_out;
+      float t;
+      if (overTerrain < haze_fade_in)
+        t = saturate(overTerrain * haze_fade_in_inv);
+      else if (overTerrain > fadeStartTop)
+        t = saturate(1 - (overTerrain - fadeStartTop) * haze_fade_out_inv);
+      else
+        t = 1;
+
+      t *= v.worldPosition_globalEffect.w;
+
+      float3 noiseTc      = v.worldPosition_globalEffect.xyz * haze_density_inv + haze_offset;
+      float2 offset       = (tex3D(perlin_noise3d, noiseTc).xy * 2 - 1) * haze_strength * t;
+      float  noiseWeight  = 0;
+      float  blurStrength = haze_blur * t;
+
+      return float4(offset, noiseWeight, blurStrength);
+    }
+  }
+
+  compile("target_vs", "distant_haze_vs");
+  compile("target_ps", "distant_haze_ps");
+}

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_progGlobals.h>
 #include <osApiWrappers/setProgGlobals.h>
 #if _TARGET_PC_WIN
@@ -16,6 +18,7 @@ void win32_set_main_wnd(void *hwnd) { prog_hwnd = hwnd; }
 
 bool win32_rdp_compatible_mode = false;
 void *win32_empty_mouse_cursor = nullptr;
+void *win32_current_mouse_cursor = nullptr;
 int win32_system_dpi = 96;
 
 void *win32_init_empty_mouse_cursor()

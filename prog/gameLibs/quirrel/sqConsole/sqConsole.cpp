@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_console.h>
 #include <quirrel/sqConsole/sqConsole.h>
 #include <quirrel/sqConsole/sqPrintCollector.h>
@@ -122,12 +124,14 @@ public:
     module_mgr->bindBaseLib(interactiveEnv.GetObject());
     ///@module console
     Sqrat::Table exports(sqvm);
-    exports.SquirrelFunc("register_command", sqRegisterCommand, -2, ".csss")
+    exports //
+      .SquirrelFunc("register_command", sqRegisterCommand, -2, ".csss")
       .SquirrelFunc("console_register_command", sqRegisterCommand, -2, ".csss")
       .SquirrelFunc("setObjPrintFunc", setObjPrintFunc, 2, ".c|o")
       .SquirrelFunc("setConsoleObjPrintFunc", setObjPrintFunc, 2, ".c|o")
       .Func("console_command", console::command)
-      .Func("command", console::command);
+      .Func("command", console::command)
+      /**/;
 
     module_mgr->addNativeModule("console", exports);
 
@@ -234,7 +238,7 @@ private:
 
     HSQOBJECT bindings = interactiveEnv;
 
-    if (SQ_SUCCEEDED(sq_compilebuffer(vm, scriptSrc.c_str(), scriptSrc.length(), "interactive", true, &bindings)))
+    if (SQ_SUCCEEDED(sq_compile(vm, scriptSrc.c_str(), scriptSrc.length(), "interactive", true, &bindings)))
     {
       HSQOBJECT scriptClosure;
       sq_getstackobj(vm, -1, &scriptClosure);

@@ -268,7 +268,7 @@ typedef MaskedOcclusionCulling::pfnAlignedFree pfnAlignedFree;
 MaskedOcclusionCulling *CreateMaskedOcclusionCulling(pfnAlignedAlloc alignedAlloc, pfnAlignedFree alignedFree)
 {
   auto *object = (MaskedOcclusionCullingPrivate *)alignedAlloc(64, sizeof(MaskedOcclusionCullingPrivate));
-  new (object) MaskedOcclusionCullingPrivate(alignedAlloc, alignedFree);
+  new (object, _NEW_INPLACE) MaskedOcclusionCullingPrivate(alignedAlloc, alignedFree);
   return object;
 }
 } // namespace masked_occlusion_culling_avx2
@@ -277,107 +277,107 @@ unsigned long long get_xcr_feature_mask() { return _xgetbv(0); }
 
 #ifdef MOC_SINGLE_IMPLEMENTATION
 
-#define MOC_STATIC_UPCAST(x)       static_cast<masked_occlusion_culling_avx2::MaskedOcclusionCullingPrivate *>(x)
-#define MOC_STATIC_UPCAST_CONST(x) static_cast<const masked_occlusion_culling_avx2::MaskedOcclusionCullingPrivate *>(x)
+#define MOC_STATIC_DOWNCAST(x)       static_cast<masked_occlusion_culling_avx2::MaskedOcclusionCullingPrivate *>(x)
+#define MOC_STATIC_DOWNCAST_CONST(x) static_cast<const masked_occlusion_culling_avx2::MaskedOcclusionCullingPrivate *>(x)
 
 void MaskedOcclusionCulling::SetResolution(unsigned int width, unsigned int height)
 {
-  MOC_STATIC_UPCAST(this)->SetResolution(width, height);
+  MOC_STATIC_DOWNCAST(this)->SetResolution(width, height);
 }
 
 void MaskedOcclusionCulling::GetResolution(unsigned int &width, unsigned int &height) const
 {
-  MOC_STATIC_UPCAST_CONST(this)->GetResolution(width, height);
+  MOC_STATIC_DOWNCAST_CONST(this)->GetResolution(width, height);
 }
 
 void MaskedOcclusionCulling::ComputeBinWidthHeight(unsigned int nBinsW, unsigned int nBinsH, unsigned int &outBinWidth,
   unsigned int &outBinHeight)
 {
-  MOC_STATIC_UPCAST(this)->ComputeBinWidthHeight(nBinsW, nBinsH, outBinWidth, outBinHeight);
+  MOC_STATIC_DOWNCAST(this)->ComputeBinWidthHeight(nBinsW, nBinsH, outBinWidth, outBinHeight);
 }
 
-void MaskedOcclusionCulling::SetNearClipPlane(float nearDist) { MOC_STATIC_UPCAST(this)->SetNearClipPlane(nearDist); }
+void MaskedOcclusionCulling::SetNearClipPlane(float nearDist) { MOC_STATIC_DOWNCAST(this)->SetNearClipPlane(nearDist); }
 
-float MaskedOcclusionCulling::GetNearClipPlane() const { return MOC_STATIC_UPCAST_CONST(this)->GetNearClipPlane(); }
+float MaskedOcclusionCulling::GetNearClipPlane() const { return MOC_STATIC_DOWNCAST_CONST(this)->GetNearClipPlane(); }
 
-void MaskedOcclusionCulling::ClearBuffer() { MOC_STATIC_UPCAST(this)->ClearBuffer(); }
+void MaskedOcclusionCulling::ClearBuffer() { MOC_STATIC_DOWNCAST(this)->ClearBuffer(); }
 
-void MaskedOcclusionCulling::MergeBuffer(MaskedOcclusionCulling *BufferB) { MOC_STATIC_UPCAST(this)->MergeBuffer(BufferB); }
+void MaskedOcclusionCulling::MergeBuffer(MaskedOcclusionCulling *BufferB) { MOC_STATIC_DOWNCAST(this)->MergeBuffer(BufferB); }
 
 MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::RenderTriangles(const float *inVtx, const unsigned short *inTris,
   int nTris, const float *modelToClipMatrix, BackfaceWinding bfWinding, ClipPlanes clipPlaneMask)
 {
-  return MOC_STATIC_UPCAST(this)->RenderTriangles(inVtx, inTris, nTris, modelToClipMatrix, bfWinding, clipPlaneMask);
+  return MOC_STATIC_DOWNCAST(this)->RenderTriangles(inVtx, inTris, nTris, modelToClipMatrix, bfWinding, clipPlaneMask);
 }
 
 MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::TestRect(float xmin, float ymin, float xmax, float ymax,
   float wmin) const
 {
-  return MOC_STATIC_UPCAST_CONST(this)->TestRect(xmin, ymin, xmax, ymax, wmin);
+  return MOC_STATIC_DOWNCAST_CONST(this)->TestRect(xmin, ymin, xmax, ymax, wmin);
 }
 
 MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::TestTriangles(const float *inVtx, const unsigned short *inTris,
   int nTris, const float *modelToClipMatrix, BackfaceWinding bfWinding, ClipPlanes clipPlaneMask)
 {
-  return MOC_STATIC_UPCAST(this)->TestTriangles(inVtx, inTris, nTris, modelToClipMatrix, bfWinding, clipPlaneMask);
+  return MOC_STATIC_DOWNCAST(this)->TestTriangles(inVtx, inTris, nTris, modelToClipMatrix, bfWinding, clipPlaneMask);
 }
 
 void MaskedOcclusionCulling::BinTriangles(const float *inVtx, const unsigned short *inTris, int nTris, TriList *triLists,
   unsigned int nBinsW, unsigned int nBinsH, const float *modelToClipMatrix, BackfaceWinding bfWinding, ClipPlanes clipPlaneMask)
 {
-  MOC_STATIC_UPCAST(this)->BinTriangles(inVtx, inTris, nTris, triLists, nBinsW, nBinsH, modelToClipMatrix, bfWinding, clipPlaneMask);
+  MOC_STATIC_DOWNCAST(this)->BinTriangles(inVtx, inTris, nTris, triLists, nBinsW, nBinsH, modelToClipMatrix, bfWinding, clipPlaneMask);
 }
 
 void MaskedOcclusionCulling::RenderTrilist(const TriList &triList, const ScissorRect *scissor)
 {
-  MOC_STATIC_UPCAST(this)->RenderTrilist(triList, scissor);
+  MOC_STATIC_DOWNCAST(this)->RenderTrilist(triList, scissor);
 }
 
 void MaskedOcclusionCulling::ComputePixelDepthBuffer(float *depthData, bool flipY)
 {
-  MOC_STATIC_UPCAST(this)->ComputePixelDepthBuffer(depthData, flipY);
+  MOC_STATIC_DOWNCAST(this)->ComputePixelDepthBuffer(depthData, flipY);
 }
 
 MaskedOcclusionCulling::OcclusionCullingStatistics MaskedOcclusionCulling::GetStatistics()
 {
-  return MOC_STATIC_UPCAST(this)->GetStatistics();
+  return MOC_STATIC_DOWNCAST(this)->GetStatistics();
 }
 
 MaskedOcclusionCulling::Implementation MaskedOcclusionCulling::GetImplementation()
 {
-  return MOC_STATIC_UPCAST(this)->GetImplementation();
+  return MOC_STATIC_DOWNCAST(this)->GetImplementation();
 }
 
 void MaskedOcclusionCulling::CombinePixelDepthBuffer2W(float *depthData, int w, int h)
 {
-  MOC_STATIC_UPCAST(this)->CombinePixelDepthBuffer2W(depthData, w, h);
+  MOC_STATIC_DOWNCAST(this)->CombinePixelDepthBuffer2W(depthData, w, h);
 }
 
 void MaskedOcclusionCulling::DecodePixelDepthBuffer2W(float *depthData, int w, int h)
 {
-  MOC_STATIC_UPCAST(this)->DecodePixelDepthBuffer2W(depthData, w, h);
+  MOC_STATIC_DOWNCAST(this)->DecodePixelDepthBuffer2W(depthData, w, h);
 }
 
 void MaskedOcclusionCulling::mergeOcclusions(MaskedOcclusionCulling **another_occl, uint32_t occl_count, uint32_t first_tile,
   uint32_t last_tile)
 {
-  MOC_STATIC_UPCAST(this)->mergeOcclusions(another_occl, occl_count, first_tile, last_tile);
+  MOC_STATIC_DOWNCAST(this)->mergeOcclusions(another_occl, occl_count, first_tile, last_tile);
 }
 
 void MaskedOcclusionCulling::mergeOcclusionsZmin(MaskedOcclusionCulling **another_occl, uint32_t occl_count, uint32_t first_tile,
   uint32_t last_tile)
 {
-  MOC_STATIC_UPCAST(this)->mergeOcclusionsZmin(another_occl, occl_count, first_tile, last_tile);
+  MOC_STATIC_DOWNCAST(this)->mergeOcclusionsZmin(another_occl, occl_count, first_tile, last_tile);
 }
 
-uint32_t MaskedOcclusionCulling::getTilesCount() const { return MOC_STATIC_UPCAST_CONST(this)->getTilesCount(); }
+uint32_t MaskedOcclusionCulling::getTilesCount() const { return MOC_STATIC_DOWNCAST_CONST(this)->getTilesCount(); }
 
 void MaskedOcclusionCulling::Destroy(MaskedOcclusionCulling *moc)
 {
   if (!moc)
     return;
   pfnAlignedFree alignedFreeCallback = moc->mAlignedFreeCallback;
-  MOC_STATIC_UPCAST(moc)->~MaskedOcclusionCullingPrivate();
+  MOC_STATIC_DOWNCAST(moc)->~MaskedOcclusionCullingPrivate();
   alignedFreeCallback(moc);
 }
 

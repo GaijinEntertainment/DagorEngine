@@ -9,6 +9,7 @@ namespace das {
     DataWalkerPtr makeDataWalker ( const void * pClass, const StructInfo * info, Context * context );
     void dapiWalkData ( DataWalkerPtr walker, void * data, const TypeInfo & info );
     void dapiWalkDataV ( DataWalkerPtr walker, float4 data, const TypeInfo & info );
+    void dapiWalkDataS ( DataWalkerPtr walker, void * data, const StructInfo & info );
 
     StackWalkerPtr makeStackWalker ( const void * pClass, const StructInfo * info, Context * context );
 
@@ -20,6 +21,7 @@ namespace das {
     vec4f get_global_variable ( Context & context, SimNode_CallBase * call, vec4f * args );
     vec4f get_global_variable_by_index ( Context & context, SimNode_CallBase * node, vec4f * args );
 
+    void instrument_context_allocations ( Context & ctx, bool isInstrumenting );
     void instrument_context_node ( Context & ctx, bool isInstrumenting, const TBlock<bool,LineInfo> & blk );
     void instrument_function ( Context & ctx, Func fn, bool isInstrumenting, uint64_t userData, Context * context, LineInfoArg * arg );
     void instrument_all_functions ( Context & ctx );

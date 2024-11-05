@@ -4,6 +4,8 @@ Location = prog/engine/shaders ;
 TargetType  = lib ;
 Target      = engine/shaders.lib ;
 
+CamStub ?= yes ;
+
 Sources =
   shaderVariableInfo.cpp
   overrideStates.cpp
@@ -66,14 +68,41 @@ UseProgLibs +=
   3rdPartyLibs/meshoptimizer
 ;
 
-CPPopt = -D__B_CORE ;
-if $(ShadersAllowAltBindump) = yes  {
+if $(ShadersAllowAltBindump) = yes || $(BuildingTools) = yes {
   Target = $(Target:S=-2.lib) ;
   CPPopt += -DSHADERS_ALLOW_2_BINDUMP ;
 }
 if $(ShadersMeasurePerf) = yes {
   Target = $(Target:S=-p.lib) ;
   CPPopt += -DMEASURE_STCODE_PERF ;
+}
+
+if $(CppStcode) = enable {
+  Target = $(Target:S=-stcpp.lib) ;
+  Sources +=
+    stcode.cpp
+    stcode/stcodeCallbacksImpl.cpp
+  ;
+  CPPopt += -DCPP_STCODE_PROTOTYPE=1 ;
+} else if $(CppStcode) = validate {
+  Target = $(Target:S=-stcpp_val.lib) ;
+  Sources +=
+    stcode.cpp
+    stcode/stcodeCallbacksImpl.cpp
+    stcode/compareStcode.cpp
+  ;
+  CPPopt += -DCPP_STCODE_PROTOTYPE=1 -DVALIDATE_CPP_STCODE=1 ;
+}
+
+if $(CamStub) = yes {
+  Target = $(Target:S=-cs.lib) ;
+  CPPopt += -DCAM_STUB=1 ;
+}
+
+if $(ProfileStcode) = yes {
+  Target = $(Target:S=-sp.lib) ;
+  Sources += profileStcode.cpp ;
+  CPPopt += -DPROFILE_STCODE=1 ;
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,69 @@
+include "shader_global.dshl"
+include "dafx_shaders.dshl"
+include "upscale_use.dshl"
+
+
+texture lowres_fx_source_tex;
+float lowres_fx_overbright = 1;
+
+shader apply_lowres_fx, fast_apply_lowres_fx
+{
+  ENABLE_ASSERT(ps)
+  supports global_frame;
+
+  cull_mode  = none;
+  z_test=false;
+  z_write = false;
+  blend_src = one; blend_dst = sa;
+
+  INIT_ZNZFAR()
+  INIT_UPSCALE_SAMPLING()
+  USE_UPSCALE_SAMPLING()
+  USE_SCREENPOS_TO_LOWRES_TC()
+
+  (ps)
+  {
+    lowres_fx_source_tex@smp2d = lowres_fx_source_tex;
+    lowres_fx_overbright@f1 = (lowres_fx_overbright);
+  }
+
+  POSTFX_VS(1)
+
+  hlsl(ps) {
+    struct PsOutput
+    {
+      float4 color : SV_Target0;
+      float reactive : SV_Target1;
+    };
+
+    PsOutput apply_fx_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      PsOutput result;
+
+      float2 screenpos = GET_SCREEN_POS(input.pos).xy;
+      float2 tc = screen_pos_to_lowres_tc(screenpos);
+
+##if shader == fast_apply_lowres_fx
+      half4 lowResColorCenter = h4tex2Dlod(lowres_fx_source_tex, float4(tc, 0, 0));
+      result.color = float4(lowResColorCenter.rgb * lowres_fx_overbright, lowResColorCenter.a);
+      result.reactive = 1-lowResColorCenter.a;
+      return result;
+##endif
+
+      half4 lowResR = lowres_fx_source_tex.GatherRed(lowres_fx_source_tex_samplerstate, tc);
+      half4 lowResG = lowres_fx_source_tex.GatherGreen(lowres_fx_source_tex_samplerstate, tc);
+      half4 lowResB = lowres_fx_source_tex.GatherBlue(lowres_fx_source_tex_samplerstate, tc);
+      half4 lowResA = lowres_fx_source_tex.GatherAlpha(lowres_fx_source_tex_samplerstate, tc);
+
+      float4 weight = SampleUpscaleWeight(screenpos.xy);
+
+      float4 res = float4(dot(lowResR,weight),dot(lowResG,weight),dot(lowResB,weight),dot(lowResA,weight));
+
+      result.color = float4(res.rgb * lowres_fx_overbright, res.a);
+      result.reactive = 1-res.a;
+      return result;
+    }
+  }
+
+  compile("target_ps", "apply_fx_ps");
+}

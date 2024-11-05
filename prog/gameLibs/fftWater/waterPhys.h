@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <FFT_CPU_Simulation.h>
@@ -10,6 +11,7 @@
 #include "getDisplacement.h"
 #include "waterCommon.h"
 #include <fftWater/fftWater.h>
+#include <atomic>
 
 class WaterNVPhysics : public cpujobs::IJob
 {
@@ -26,7 +28,7 @@ protected:
   Cascade *cascades;
   const fft_water::WaterHeightmap *waterHeightmap;
   carray<float, MAX_FIFO> fifoMaxZ = {0};
-  float allFifoMaxZ = 0.f;
+  std::atomic<float> allFifoMaxZ = 0.f;
   fft_water::SimulationParams fftSimulationParams;
   int numCascades;
   float cascadeWindowLength;
@@ -94,6 +96,7 @@ public:
   int getDisplaceData(int destFifo, int start, int count);
 
   bool isAsyncRunning() const;
+  void wait();
   void increaseTime(double time);
 
 
@@ -102,7 +105,7 @@ public:
     double fifoT = time / tickRate, fifoFloored = floor(fifoT);
     fifo1 = fifoT;
 
-    int currentLastTick = lastTick; // save locally, so there are no racing conditions
+    int currentLastTick = interlocked_relaxed_load(lastTick); // save locally, so there are no racing conditions
     int firstTick = currentLastTick - MAX_FIFO + 1;
     fifo2 = (fifo1 + 1);
 
@@ -117,7 +120,7 @@ public:
       fifo2 = fifo1 = currentLastTick;
       fifo2Part = 0.f;
     }
-    int localUpdatingFifo = interlocked_acquire_load(updatingFifo); // save locally, so there are no racing conditions
+    int localUpdatingFifo = interlocked_relaxed_load(updatingFifo); // save locally, so there are no racing conditions
     if (localUpdatingFifo == (fifo1 % MAX_FIFO))
     {
       fifo1 = fifo2;
@@ -161,7 +164,7 @@ public:
 
   void getDisplacementsBilinear(int cascade, vec3f &disp1, vec3f &disp2, vec4f xz, int fifo1, int fifo2) const
   {
-    if (cascade >= numCascades)
+    if (cascade >= numCascades || fifo1 < 0 || fifo2 < 0)
       disp1 = disp2 = v_zero();
     else
     {
@@ -175,7 +178,7 @@ public:
 
   void getDisplacementsNearest(int cascade, vec3f &disp1, vec3f &disp2, vec4f xz, int fifo1, int fifo2) const
   {
-    if (cascade >= numCascades)
+    if (cascade >= numCascades || fifo1 < 0 || fifo2 < 0)
       disp1 = disp2 = v_zero();
     else
     {
@@ -188,6 +191,9 @@ public:
   void getDisplacements(vec3f &disp1, vec3f &disp2, vec4f xz, int fifo1, int fifo2) const
   {
     disp1 = disp2 = v_zero();
+    if (!cascades || fifo1 < 0 || fifo2 < 0)
+      return;
+
     for (int i = 0; i < numCascades; ++i)
     {
       const int bits = cascades[i].fft.getParams().fft_resolution_bits;

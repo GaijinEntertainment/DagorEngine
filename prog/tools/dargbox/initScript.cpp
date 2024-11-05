@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <sqrat.h>
 #include <sqModules/sqModules.h>
 #include <util/dag_string.h>
@@ -25,12 +27,20 @@ static void script_err_print_func(HSQUIRRELVM v, const SQChar *s, ...)
 }
 
 
-static void compile_error_handler(HSQUIRRELVM v, const SQChar *desc, const SQChar *source, SQInteger line, SQInteger column,
-  const SQChar *)
+static void compile_error_handler(HSQUIRRELVM v, SQMessageSeverity sev, const SQChar *desc, const SQChar *source, SQInteger line,
+  SQInteger column, const SQChar *)
 {
+  const SQChar *sevName = "error";
+  if (sev == SEV_HINT)
+    sevName = "hint";
+  else if (sev == SEV_WARNING)
+    sevName = "warning";
   String str;
-  str.printf(128, "Squirrel compile error %s (%d:%d): %s", source, line, column, desc);
-  DAG_FATAL(str);
+  str.printf(128, "Squirrel compile %s %s (%d:%d): %s", sevName, source, line, column, desc);
+  if (sev == SEV_HINT)
+    clogmessage(LOGLEVEL_DEBUG, "%s", str.c_str());
+  else
+    DAG_FATAL(str);
 }
 
 

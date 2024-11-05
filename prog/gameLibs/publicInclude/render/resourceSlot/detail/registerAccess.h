@@ -1,3 +1,7 @@
+//
+// Dagor Engine 6.5 - Game Libraries
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+//
 #pragma once
 
 #include <render/resourceSlot/nodeHandleWithSlotsAccess.h>
@@ -23,8 +27,8 @@ namespace detail
 inline constexpr size_t MAX_CALLBACK_SIZE = 128;
 typedef dag::FixedMoveOnlyFunction<MAX_CALLBACK_SIZE, dabfg::NodeHandle(resource_slot::State)> AccessCallback;
 
-[[nodiscard]] NodeHandleWithSlotsAccess register_access(dabfg::NameSpace ns, const char *name, const char *source_location,
-  ActionList &&action_list, AccessCallback &&declaration_callback);
+[[nodiscard]] NodeHandleWithSlotsAccess register_access(dabfg::NameSpace ns, const char *name, ActionList &&action_list,
+  AccessCallback &&declaration_callback);
 
 } // namespace detail
 

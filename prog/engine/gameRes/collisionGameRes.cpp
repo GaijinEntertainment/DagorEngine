@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gameRes/dag_collisionResource.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <math/dag_triangleBoxIntersection.h>
@@ -579,7 +581,7 @@ template <CollisionResource::IterationMode trace_mode, CollisionResource::Collis
   typename callback_t>
 __forceinline bool CollisionResource::forEachIntersectedNode(mat44f tm, const GeomNodeTree *geom_node_tree, vec3f from, vec3f dir,
   float len, bool calc_normal, float bsphere_scale, uint8_t behavior_filter, const filter_t &filter, const callback_t &callback,
-  TraceCollisionResourceStats *out_stats) const
+  TraceCollisionResourceStats *out_stats, bool force_no_cull) const
 {
   CollisionTrace in;
   in.vFrom = from;
@@ -590,15 +592,15 @@ __forceinline bool CollisionResource::forEachIntersectedNode(mat44f tm, const Ge
 
   dag::Span<CollisionTrace> traces(&in, 1);
   return forEachIntersectedNode<trace_mode, trace_type, true /*is_single_ray*/>(tm, geom_node_tree, traces, calc_normal, bsphere_scale,
-    behavior_filter, filter, callback, out_stats);
+    behavior_filter, filter, callback, out_stats, force_no_cull);
 }
 
 // Heavy all-in-one node iterator, calculations unused by caller and deadcode will be automatically stripped by compiler
 template <CollisionResource::IterationMode trace_mode, CollisionResource::CollisionTraceType trace_type, bool is_single_ray,
   typename filter_t, typename callback_t>
-__forceinline bool CollisionResource::forEachIntersectedNode(const mat44f original_tm, const GeomNodeTree *geom_node_tree,
-  dag::Span<CollisionTrace> &traces, bool calc_normal, float bsphere_scale, uint8_t behavior_filter, const filter_t &filter,
-  const callback_t &callback, TraceCollisionResourceStats *out_stats) const
+__forceinline bool CollisionResource::forEachIntersectedNode(mat44f original_tm, const GeomNodeTree *geom_node_tree,
+  dag::Span<CollisionTrace> traces, bool calc_normal, float bsphere_scale, uint8_t behavior_filter, const filter_t &filter,
+  const callback_t &callback, TraceCollisionResourceStats *out_stats, bool force_no_cull) const
 {
   TIME_PROFILE_DEV(collres_trace);
 
@@ -635,7 +637,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f origin
         vec4f vExtBsphR = v_add_x(v_sqrt_x(vBsphR2), v_set_x(trace.capsuleRadius));
         vExtBsphR2 = v_mul_x(vExtBsphR, vExtBsphR);
       }
-      trace.isectBounding = EASTL_LIKELY(trace.t > VERY_SMALL_NUMBER) &&
+      trace.isectBounding = DAGOR_LIKELY(trace.t > VERY_SMALL_NUMBER) &&
                             v_test_ray_sphere_intersection(trace.vFrom, trace.vDir, v_splats(trace.t), vBsphCenter, vExtBsphR2);
 
 #if defined(_WIN32) && DAGOR_DBGLEVEL > 0 && defined(_M_IX86_FP) && _M_IX86_FP == 0
@@ -644,7 +646,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f origin
 #endif
 
       float dirLenSq = v_extract_x(v_length3_sq_x(trace.vDir));
-      if (EASTL_UNLIKELY(fabsf(dirLenSq - 1.f) > 0.01f))
+      if (DAGOR_UNLIKELY(fabsf(dirLenSq - 1.f) > 0.01f))
       {
         if (dirLenSq > VERY_SMALL_NUMBER)
           logerr("Not normalized dir " FMT_P3 " lenSq=%f used in collres.traceRay (tm scale=%f)", V3D(trace.vDir), dirLenSq,
@@ -661,15 +663,11 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f origin
   bool res = false;
   if (anyTraceIntersectsBounding)
   {
+    // 0.05m of absolute error on average https://www.desmos.com/calculator/cdw6uasxlo
+    const float eps = eastl::min(0.008f, 0.1f / getBoundingSphereRad());
     // Scaled tm requires more complicated norm calculation code and additional T conversion from world to local basis and back
-    const float eps = 5e-3;
     vec3f otmMask = v_and(v_cmp_gt(xyzzScaleSq, v_splats(1.f - eps)), v_cmp_lt(xyzzScaleSq, v_splats(1.f + eps)));
-#if _TARGET_SIMD_SSE
-    bool bIsOrthonormalizedTm = v_signmask(otmMask) == 15;
-#else
-    vec4i iotmMask = v_cast_vec4i(otmMask);
-    bool bIsOrthonormalizedTm = (v_extract_xi(iotmMask) & v_extract_yi(iotmMask) & v_extract_zi(iotmMask)) != 0;
-#endif
+    bool bIsOrthonormalizedTm = v_check_xyzw_all_not_zeroi(otmMask);
 
 #if VERIFY_TRACE_RESULTS
     dag::Vector<CollisionTrace> initialTraces(traces.begin(), traces.end());
@@ -708,12 +706,12 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f origin
       return callback(trace_id, node, t, normal, pos);
     };
 
-    if (EASTL_LIKELY(bIsOrthonormalizedTm))
+    if (DAGOR_LIKELY(bIsOrthonormalizedTm))
       res = forEachIntersectedNode<true, trace_mode, trace_type, is_single_ray>(tm, 1.f /* max_tm_scale_sq */, woffset, geom_node_tree,
-        traces, calc_normal, behavior_filter, filter, cb_wrapper, out_stats);
+        traces, calc_normal, behavior_filter, filter, cb_wrapper, out_stats, force_no_cull);
     else
       res = forEachIntersectedNode<false, trace_mode, trace_type, is_single_ray>(tm, v_extract_x(maxScaleSq), woffset, geom_node_tree,
-        traces, calc_normal, behavior_filter, filter, cb_wrapper, out_stats);
+        traces, calc_normal, behavior_filter, filter, cb_wrapper, out_stats, force_no_cull);
   }
 
 #if DAGOR_DBGLEVEL > 0
@@ -735,15 +733,12 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f origin
 #pragma warning(disable : 4701) // potentially uninitialized local variable 'XXX' used
 #endif
 
-template <bool orthonormalized_instance_tm, CollisionResource::IterationMode trace_mode_extended,
+template <bool orthonormalized_instance_tm, CollisionResource::IterationMode trace_mode,
   CollisionResource::CollisionTraceType trace_type, bool is_single_ray, typename filter_t, typename callback_t>
 __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, float max_tm_scale_sq, vec3f woffset,
-  const GeomNodeTree *geom_node_tree, dag::Span<CollisionTrace> &traces, bool calc_normal, uint8_t behavior_filter,
-  const filter_t &filter, const callback_t &callback, TraceCollisionResourceStats *out_stats) const
+  const GeomNodeTree *geom_node_tree, dag::Span<CollisionTrace> traces, bool calc_normal, uint8_t behavior_filter,
+  const filter_t &filter, const callback_t &callback, TraceCollisionResourceStats *out_stats, bool force_no_cull) const
 {
-  constexpr auto trace_mode = trace_mode_extended == ALL_INTERSECTIONS_NO_CULL ? ALL_INTERSECTIONS : trace_mode_extended;
-  constexpr bool force_no_cull = trace_mode_extended == ALL_INTERSECTIONS_NO_CULL;
-
   bool hasCollision = false;
   bool isTraceByCapsule = trace_type == CollisionTraceType::TRACE_CAPSULE || trace_type == CollisionTraceType::CAPSULE_HIT;
   calc_normal &= trace_type == CollisionTraceType::TRACE_RAY || trace_type == CollisionTraceType::TRACE_CAPSULE;
@@ -776,7 +771,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
         v_bbox3_add_pt(traceBox, rMax);
       }
     }
-    for (const CollisionNode *meshNode = meshNodesHead; EASTL_LIKELY(meshNode); meshNode = meshNode->nextNode)
+    for (const CollisionNode *meshNode = meshNodesHead; DAGOR_LIKELY(meshNode); meshNode = meshNode->nextNode)
     {
       if (!filter(meshNode))
         continue;
@@ -808,7 +803,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       if (DAGOR_LIKELY(isOrthouniformTm))
       {
         v_mat44_orthonormal_inverse43(nodeItm, nodeTm);
-        if (EASTL_UNLIKELY(!isOrthonormalizedTm))
+        if (DAGOR_UNLIKELY(!isOrthonormalizedTm))
         {
           vec4f scale = v_splat_x(v_rcp_x(v_set_x(meshNode->cachedMaxTmScale)));
           nodeItm.col0 = v_mul(nodeItm.col0, scale);
@@ -841,7 +836,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
           vec4f vNodeLocalT = v_length3(vNodeLocalFullDir);
           vNodeLocalDir = v_div(vNodeLocalFullDir, vNodeLocalT);
           localT = v_extract_x(vNodeLocalT);
-          if (EASTL_UNLIKELY(localT < VERY_SMALL_NUMBER))
+          if (DAGOR_UNLIKELY(localT < VERY_SMALL_NUMBER))
             continue;
         }
         float localCapsuleRadius = isTraceByCapsule ? trace.capsuleRadius * (localT / trace.t) : 0.f;
@@ -864,6 +859,9 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
         IF_CONSTEXPR (trace_mode != ALL_INTERSECTIONS || trace_type == CollisionTraceType::RAY_HIT ||
                       trace_type == CollisionTraceType::CAPSULE_HIT)
         {
+          if (out_stats && meshNode->nodeIndex < out_stats->size())
+            (*out_stats)[meshNode->nodeIndex]++;
+
           float inOutLocalT = localT;
           vec3f vNodeLocalNorm, vNodeLocalCapsuleHitPos;
           vec3f *normPtr = calc_normal ? &vNodeLocalNorm : nullptr;
@@ -904,7 +902,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
             }
             if (calc_normal)
             {
-              if (EASTL_LIKELY(isOrthouniformTm))
+              if (DAGOR_LIKELY(isOrthouniformTm))
                 vIntersectionNorm = v_mat44_mul_vec3v(nodeTm, vNodeLocalNorm);
               else
               {
@@ -919,11 +917,6 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
             {
               // For capsule trace we have custom intersection pos output, which often lie not on a ray
               vIntersectionPos = v_mat44_mul_vec3p(nodeTm, vNodeLocalCapsuleHitPos);
-            }
-            if (out_stats)
-            {
-              out_stats->nodeCount++;
-              out_stats->triangleCount += (meshNode->indices.size() / 3);
             }
             profileStats.meshTrianglesHits++;
             callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos);
@@ -945,6 +938,9 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
                              // and need to be redesigned. Maybe return only the best node IN and OUT positions?
             continue;
           }
+
+          if (out_stats && meshNode->nodeIndex < out_stats->size())
+            (*out_stats)[meshNode->nodeIndex]++;
 
           all_nodes_ret_t ret;
           bool isLightNode = meshNode->indices.size() < traceMeshNodeLocalApi.threshold;
@@ -970,16 +966,11 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
               {
                 mat33f normTm;
                 v_mat33_from_mat44(normTm, nodeTm);
-                if (EASTL_UNLIKELY(!isOrthouniformTm))
+                if (DAGOR_UNLIKELY(!isOrthouniformTm))
                   normTm = titm33;
                 vIntersectionNorm = v_norm3(v_mat33_mul_vec3(normTm, n_t));
               }
               callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos);
-            }
-            if (out_stats)
-            {
-              out_stats->nodeCount++;
-              out_stats->triangleCount += (meshNode->indices.size() / 3);
             }
             profileStats.meshTrianglesHits += ret.size();
           }
@@ -987,7 +978,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       }   // traces loop
     }     // mesh nodes loop
 
-    if (EASTL_LIKELY(!boxNodesHead && !sphereNodesHead && !capsuleNodesHead))
+    if (DAGOR_LIKELY(!boxNodesHead && !sphereNodesHead && !capsuleNodesHead))
       return hasCollision;
   } // if (!tracer)
 
@@ -1024,7 +1015,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       vec4f vLocalT = v_length3(vLocalDir);
       vLocalDir = v_div(vLocalDir, vLocalT);
       localT = v_extract_x(vLocalT);
-      if (EASTL_UNLIKELY(localT < VERY_SMALL_NUMBER))
+      if (DAGOR_UNLIKELY(localT < VERY_SMALL_NUMBER))
         continue;
     }
     float localCapsuleRadius = isTraceByCapsule ? trace.capsuleRadius * (localT / trace.t) : 0.f;
@@ -1032,96 +1023,145 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
     if (tracer && !isTraceByCapsule)
     {
       TIME_PROFILE_DEV(collres_trace_mesh_grid);
+#if DA_PROFILER_ENABLED
+      int tris = getTrianglesCount(behavior_filter);
+      DA_PROFILE_TAG(tris, ": %u", tris);
+#endif
 
       // moved it in (tracer) block for rendinsts only, because in most cases we have not more than one not-mesh node
       // don't forget to extend vFullBBox by localCapsuleRadius if you want to change it
       if (!v_test_segment_box_intersection(vLocalFrom, vLocalTo, vFullBBox))
         continue;
 
-      vec3f vGridLocalFrom = vLocalFrom;
-      float gridLocalT = localT;
-      float incT = 0.f;
-      int fromFaceId = -1;
-      for (;;)
+      IF_CONSTEXPR (trace_mode != ALL_INTERSECTIONS || trace_type == CollisionTraceType::RAY_HIT)
       {
-        int faceId = -1;
-        switch (trace_type)
+        vec3f vGridLocalFrom = vLocalFrom;
+        float gridLocalT = localT;
+        float incT = 0.f;
+        int lastFaceId = -1;
+        for (;;)
         {
-          case CollisionTraceType::TRACE_RAY:
-            faceId = tracer->tracerayNormalized(vGridLocalFrom, vLocalDir, gridLocalT, fromFaceId);
-            break;
-          case CollisionTraceType::RAY_HIT: faceId = tracer->rayhitNormalizedIdx(vGridLocalFrom, vLocalDir, gridLocalT); break;
-          default: G_ASSERTF(false, "CollisionResource trace failed: unsupported trace_type");
-        }
-        fromFaceId = faceId;
-        if (faceId < 0)
-          break;
-
-        int nodeIndex = getNodeIndexByFaceId(faceId, behavior_filter);
-        if (EASTL_LIKELY(nodeIndex >= 0))
-        {
-          const CollisionNode *meshNode = &allNodesList[nodeIndex];
-          if (filter(meshNode))
+          int faceId = -1;
+          switch (trace_type)
           {
-            hasCollision = true;
-            float localIntersectionT = gridLocalT + incT;
-            float intersectionT = trace.t * (localIntersectionT / localT);
-            vec3f vIntersectionNorm = v_zero();
-            vec3f vIntersectionPos = v_madd(trace.vDir, v_splats(intersectionT), trace.vFrom);
-            if (trace_mode == FIND_BEST_INTERSECTION)
+            case CollisionTraceType::TRACE_RAY:
+              faceId = tracer->tracerayNormalized(vGridLocalFrom, vLocalDir, gridLocalT, lastFaceId);
+              break;
+            case CollisionTraceType::RAY_HIT:
+              faceId = tracer->rayhitNormalizedIdx(vGridLocalFrom, vLocalDir, gridLocalT, lastFaceId);
+              break;
+            default: G_ASSERTF(false, "CollisionResource trace failed: unsupported trace_type");
+          }
+          if (faceId < 0)
+            break;
+          lastFaceId = faceId;
+
+          int nodeIndex = getNodeIndexByFaceId(faceId, behavior_filter);
+          if (DAGOR_LIKELY(nodeIndex >= 0))
+          {
+            const CollisionNode *meshNode = &allNodesList[nodeIndex];
+            if (filter(meshNode))
             {
-              trace.t = intersectionT;
-              localT = localIntersectionT;
-              vLocalTo = v_madd(vLocalDir, v_splats(localT), vLocalFrom);
-            }
-            if (calc_normal)
-            {
-              vec3f vLocalNorm = tracer->getNormal(faceId);
-              if (orthonormalized_instance_tm)
-                vIntersectionNorm = v_mat44_mul_vec3v(tm, vLocalNorm);
-              else
+              hasCollision = true;
+              float localIntersectionT = gridLocalT + incT;
+              float intersectionT = trace.t * (localIntersectionT / localT);
+              vec3f vIntersectionNorm = v_zero();
+              vec3f vIntersectionPos = v_madd(trace.vDir, v_splats(intersectionT), trace.vFrom);
+              if (trace_mode == FIND_BEST_INTERSECTION)
               {
-                if (!titmCalculated)
+                trace.t = intersectionT;
+                localT = localIntersectionT;
+                vLocalTo = v_madd(vLocalDir, v_splats(localT), vLocalFrom);
+              }
+              if (calc_normal)
+              {
+                vec3f vLocalNorm = tracer->getNormal(faceId);
+                if (orthonormalized_instance_tm)
+                  vIntersectionNorm = v_mat44_mul_vec3v(tm, vLocalNorm);
+                else
                 {
-                  mat33f itm33;
-                  v_mat33_from_mat44(itm33, itm);
-                  v_mat33_transpose(titm33, itm33);
-                  titmCalculated = true;
+                  if (!titmCalculated)
+                  {
+                    mat33f itm33;
+                    v_mat33_from_mat44(itm33, itm);
+                    v_mat33_transpose(titm33, itm33);
+                    titmCalculated = true;
+                  }
+                  vIntersectionNorm = v_norm3(v_mat33_mul_vec3(titm33, vLocalNorm));
                 }
-                vIntersectionNorm = v_norm3(v_mat33_mul_vec3(titm33, vLocalNorm));
+              }
+              callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos);
+              if (trace_mode == ANY_ONE_INTERSECTION)
+                return hasCollision;
+              if (trace_mode == FIND_BEST_INTERSECTION && intersectionT < VERY_SMALL_NUMBER)
+                goto next_trace;
+              break; // we iterate by grid, next cell will be definitely worst than current
+            }
+          }
+
+          // continue from intersection pos
+          const float threshold = 0.001f;
+          float tt = gridLocalT + threshold;
+          vGridLocalFrom = v_madd(vLocalDir, v_splats(tt), vGridLocalFrom);
+          incT += tt;
+          gridLocalT = localT - incT;
+        } // intersected faces loop
+      }
+      else IF_CONSTEXPR (trace_mode == ALL_INTERSECTIONS)
+      {
+        G_ASSERT(trace_type == CollisionTraceType::TRACE_RAY); // capsule is not supported
+        all_faces_ret_t hits;
+        bool isHit = tracer->tracerayNormalized(vLocalFrom, vLocalDir, localT, hits);
+        if (isHit)
+        {
+          hasCollision = true;
+          if (!orthonormalized_instance_tm && !titmCalculated)
+          {
+            mat33f itm33;
+            v_mat33_from_mat44(itm33, itm);
+            v_mat33_transpose(titm33, itm33);
+            titmCalculated = true;
+          }
+          for (auto hit : hits)
+          {
+            int nodeIndex = getNodeIndexByFaceId(hit.faceId, behavior_filter);
+            if (DAGOR_LIKELY(nodeIndex >= 0))
+            {
+              const CollisionNode *meshNode = &allNodesList[nodeIndex];
+              if (filter(meshNode))
+              {
+                float intersectionT = trace.t * (hit.t / localT);
+                vec3f vIntersectionNorm = v_zero();
+                vec3f vIntersectionPos = v_madd(trace.vDir, v_splats(intersectionT), trace.vFrom);
+                if (calc_normal)
+                {
+                  vec3f vLocalNorm = tracer->getNormal(hit.faceId);
+                  mat33f normTm;
+                  v_mat33_from_mat44(normTm, tm);
+                  if (!orthonormalized_instance_tm)
+                    normTm = titm33;
+                  vIntersectionNorm = v_norm3(v_mat33_mul_vec3(normTm, vLocalNorm));
+                }
+                callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos);
               }
             }
-            callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos);
-            if (trace_mode == ANY_ONE_INTERSECTION)
-              return hasCollision;
-            if (trace_mode == FIND_BEST_INTERSECTION && intersectionT < VERY_SMALL_NUMBER)
-              goto next_trace;
-            if (trace_mode != ALL_INTERSECTIONS)
-              break;
           }
         }
-
-        // continue from intersection pos
-        const float threshold = 0.001f;
-        float tt = gridLocalT + threshold;
-        vGridLocalFrom = v_madd(vLocalDir, v_splats(tt), vGridLocalFrom);
-        incT += tt;
-        gridLocalT = localT - incT;
-      } // intersected faces loop
+      } // one hit or all intersections
     }   // if (tracer)
 
     for (const CollisionNode *boxNode = boxNodesHead; boxNode; boxNode = boxNode->nextNode)
     {
       if (!filter(boxNode))
         continue;
-      float at = 1.f; // [0; 1]
+      float atMin = 1.f, atMax = 1.f; // [0; 1]
       int side = 0;
       bool isHit = false;
       bbox3f modelBBox = v_ldu_bbox3(boxNode->modelBBox);
       switch (trace_type)
       {
         case CollisionTraceType::TRACE_RAY:
-          side = v_segment_box_intersection_side(vLocalFrom, vLocalTo, modelBBox, at);
+          side = v_segment_box_intersection_side(vLocalFrom, vLocalTo, modelBBox, atMin, atMax);
           isHit = side != -1;
           break;
         case CollisionTraceType::TRACE_CAPSULE:
@@ -1138,12 +1178,12 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       if (isHit)
       {
         hasCollision = true;
-        float intersectionT = trace.t * at;
+        float intersectionT = trace.t * atMin;
         vec3f vIntersectionPos = v_madd(trace.vDir, v_splats(intersectionT), trace.vFrom);
         vec3f vIntersectionNorm = v_zero();
         if (trace_mode == FIND_BEST_INTERSECTION)
         {
-          localT *= at; // warning: localT is ref to trace.t if (orthonormalized_instance_tm==true)
+          localT *= atMin; // warning: localT is ref to trace.t if (orthonormalized_instance_tm==true)
           trace.t = intersectionT;
           vLocalTo = v_madd(vLocalDir, v_splats(localT), vLocalFrom);
         }
@@ -1313,26 +1353,6 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
 #pragma warning(pop)
 #endif
 
-bool CollisionResource::traceRay(const TMatrix &instance_tm, const Point3 &from, const Point3 &dir, float &in_out_t,
-  Point3 *out_normal, int &out_mat_id) const
-{
-  alignas(EA_CACHE_LINE_SIZE) mat44f tm;
-  v_mat44_make_from_43cu_unsafe(tm, instance_tm.m[0]);
-  uint8_t behaviorFilter = CollisionNode::TRACEABLE;
-
-  auto nodeFilter = [&](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(behaviorFilter); };
-
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/) {
-    in_out_t = t;
-    if (out_normal)
-      v_stu_p3(&out_normal->x, normal);
-    out_mat_id = node->physMatId;
-  };
-
-  return forEachIntersectedNode<FIND_BEST_INTERSECTION, CollisionTraceType::TRACE_RAY>(tm, nullptr /*geom_node_tree*/, v_ldu(&from.x),
-    v_ldu(&dir.x), in_out_t, out_normal != nullptr, 1.f /*bsphere_scale*/, behaviorFilter, nodeFilter, callback, nullptr /*stats*/);
-}
-
 bool CollisionResource::traceRay(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir,
   float &in_out_t, Point3 *out_normal, int &out_mat_id, int &out_node_id) const
 {
@@ -1351,7 +1371,8 @@ bool CollisionResource::traceRay(const TMatrix &instance_tm, const GeomNodeTree 
   };
 
   return forEachIntersectedNode<FIND_BEST_INTERSECTION, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, v_ldu(&from.x),
-    v_ldu(&dir.x), in_out_t, out_normal != nullptr, 1.f /*bsphere_scale*/, behaviorFilter, nodeFilter, callback, nullptr /*stats*/);
+    v_ldu(&dir.x), in_out_t, out_normal != nullptr, 1.f /*bsphere_scale*/, behaviorFilter, nodeFilter, callback, nullptr /*stats*/,
+    false /*force_no_cull*/);
 }
 
 bool CollisionResource::traceRay(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir,
@@ -1375,7 +1396,8 @@ bool CollisionResource::traceRay(const TMatrix &instance_tm, const GeomNodeTree 
   };
 
   return forEachIntersectedNode<FIND_BEST_INTERSECTION, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, v_ldu(&from.x),
-    v_ldu(&dir.x), in_out_t, out_normal != nullptr, 1.f /*bsphere_scale*/, behavior_filter, nodeFilter, callback, nullptr /*stats*/);
+    v_ldu(&dir.x), in_out_t, out_normal != nullptr, 1.f /*bsphere_scale*/, behavior_filter, nodeFilter, callback, nullptr /*stats*/,
+    false /*force_no_cull*/);
 }
 
 bool CollisionResource::traceRay(const mat44f &tm, const Point3 &from, const Point3 &dir, float &in_out_t, Point3 *out_normal,
@@ -1394,12 +1416,13 @@ bool CollisionResource::traceRay(const mat44f &tm, const Point3 &from, const Poi
   };
 
   return forEachIntersectedNode<FIND_BEST_INTERSECTION, CollisionTraceType::TRACE_RAY>(tm, nullptr /*geom_node_tree*/, v_ldu(&from.x),
-    v_ldu(&dir.x), in_out_t, out_normal != nullptr, 1.f /*bsphere_scale*/, behavior_filter, nodeFilter, callback, nullptr /*stats*/);
+    v_ldu(&dir.x), in_out_t, out_normal != nullptr, 1.f /*bsphere_scale*/, behavior_filter, nodeFilter, callback, nullptr /*stats*/,
+    false /*force_no_cull*/);
 }
 
 bool CollisionResource::traceRay(const mat44f &tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir,
   float in_t, CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, uint8_t behavior_filter,
-  const CollisionNodeMask *collision_node_mask, bool no_cull) const
+  const CollisionNodeMask *collision_node_mask, bool force_no_cull) const
 {
   intersected_nodes_list.clear();
 
@@ -1415,12 +1438,8 @@ bool CollisionResource::traceRay(const mat44f &tm, const GeomNodeTree *geom_node
     inode->collisionNodeId = node->nodeIndex;
   };
 
-  if (EASTL_UNLIKELY(no_cull))
-    forEachIntersectedNode<ALL_INTERSECTIONS_NO_CULL, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, v_ldu(&from.x), v_ldu(&dir.x),
-      in_t, true /*calc_normal*/, 1.f /*bsphere_scale*/, behavior_filter, nodeFilter, callback, nullptr /*out_stats*/);
-  else
-    forEachIntersectedNode<ALL_INTERSECTIONS, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, v_ldu(&from.x), v_ldu(&dir.x), in_t,
-      true /*calc_normal*/, 1.f /*bsphere_scale*/, behavior_filter, nodeFilter, callback, nullptr /*out_stats*/);
+  forEachIntersectedNode<ALL_INTERSECTIONS, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, v_ldu(&from.x), v_ldu(&dir.x), in_t,
+    true /*calc_normal*/, 1.f /*bsphere_scale*/, behavior_filter, nodeFilter, callback, nullptr /*out_stats*/, force_no_cull);
 
   if (sort_intersections)
     sort_collres_intersections(intersected_nodes_list);
@@ -1450,7 +1469,7 @@ bool CollisionResource::traceRay(const TMatrix &instance_tm, const GeomNodeTree 
   };
 
   forEachIntersectedNode<ALL_INTERSECTIONS, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, v_ldu(&from.x), v_ldu(&dir.x), in_t,
-    true /*calc_normal*/, bsphere_scale, behaviorFilter, nodeFilter, callback, out_stats);
+    true /*calc_normal*/, bsphere_scale, behaviorFilter, nodeFilter, callback, out_stats, false /*force_no_cull*/);
 
   if (sort_intersections)
     sort_collres_intersections(intersected_nodes_list);
@@ -1493,7 +1512,7 @@ bool CollisionResource::traceCapsule(const TMatrix &instance_tm, const GeomNodeT
   constexpr bool is_single_ray = true;
   dag::Span<CollisionTrace> traces(&in, 1);
   return forEachIntersectedNode<ALL_NODES_INTERSECTIONS, CollisionTraceType::TRACE_CAPSULE, is_single_ray>(tm, geom_node_tree, traces,
-    true /*calc_normal*/, bsphere_scale, behavior_filter, nodeFilter, callback, nullptr /*out_stats*/);
+    true /*calc_normal*/, bsphere_scale, behavior_filter, nodeFilter, callback, nullptr /*out_stats*/, false /*force_no_cull*/);
 }
 
 bool CollisionResource::traceCapsule(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from,
@@ -1522,7 +1541,8 @@ bool CollisionResource::traceCapsule(const TMatrix &instance_tm, const GeomNodeT
 
   dag::Span<CollisionTrace> traces(&in, 1);
   return forEachIntersectedNode<FIND_BEST_INTERSECTION, CollisionTraceType::TRACE_CAPSULE, true /*is_single_ray*/>(tm, geom_node_tree,
-    traces, true /*out_normal*/, 1.f /*bsphere_scale*/, behaviorFilter, nodeFilter, callback, nullptr /*stats*/);
+    traces, true /*out_normal*/, 1.f /*bsphere_scale*/, behaviorFilter, nodeFilter, callback, nullptr /*stats*/,
+    false /*force_no_cull*/);
 }
 
 bool CollisionResource::traceCapsule(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from,
@@ -1559,10 +1579,10 @@ bool CollisionResource::traceCapsule(const TMatrix &instance_tm, const GeomNodeT
   constexpr bool is_single_ray = true;
   dag::Span<CollisionTrace> traces(&in, 1);
   return forEachIntersectedNode<ALL_NODES_INTERSECTIONS, CollisionTraceType::TRACE_CAPSULE, is_single_ray>(tm, geom_node_tree, traces,
-    true /*calc_normal*/, bsphere_scale, behavior_filter, nodeFilter, callback, nullptr /*out_stats*/);
+    true /*calc_normal*/, bsphere_scale, behavior_filter, nodeFilter, callback, nullptr /*out_stats*/, false /*force_no_cull*/);
 }
 
-bool CollisionResource::traceMultiRay(const mat44f &tm, dag::Span<CollisionTrace> &traces, int ray_mat_id,
+bool CollisionResource::traceMultiRay(const mat44f &tm, dag::Span<CollisionTrace> traces, int ray_mat_id,
   uint8_t behavior_filter) const
 {
   auto nodeFilter = [&](const CollisionNode *node) -> bool {
@@ -1586,13 +1606,12 @@ bool CollisionResource::traceMultiRay(const mat44f &tm, dag::Span<CollisionTrace
   }
 
   return forEachIntersectedNode<FIND_BEST_INTERSECTION, CollisionTraceType::TRACE_RAY>(tm, nullptr /*geom_node_tree*/, traces,
-    true /*calc_normal*/, 1.f /*bsphere_scale*/, behavior_filter, nodeFilter, callback, nullptr /*stats*/);
+    true /*calc_normal*/, 1.f /*bsphere_scale*/, behavior_filter, nodeFilter, callback, nullptr /*stats*/, false /*force_no_cull*/);
 }
 
-bool CollisionResource::traceMultiRay(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree,
-  dag::Span<CollisionTrace> &traces, MultirayCollResIntersectionsType &intersected_nodes_list, bool sort_intersections,
-  float bsphere_scale, uint8_t behavior_filter, const CollisionNodeMask *collision_node_mask,
-  TraceCollisionResourceStats *out_stats) const
+bool CollisionResource::traceMultiRay(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, dag::Span<CollisionTrace> traces,
+  MultirayCollResIntersectionsType &intersected_nodes_list, bool sort_intersections, float bsphere_scale, uint8_t behavior_filter,
+  const CollisionNodeMask *collision_node_mask, TraceCollisionResourceStats *out_stats) const
 {
   alignas(EA_CACHE_LINE_SIZE) mat44f tm;
   v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
@@ -1621,7 +1640,7 @@ bool CollisionResource::traceMultiRay(const TMatrix &instance_tm, const GeomNode
   }
 
   forEachIntersectedNode<ALL_INTERSECTIONS, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, traces, true /*calc_normal*/,
-    bsphere_scale, behavior_filter, nodeFilter, callback, out_stats);
+    bsphere_scale, behavior_filter, nodeFilter, callback, out_stats, false /*force_no_cull*/);
 
   if (sort_intersections)
     sort_collres_intersections(intersected_nodes_list);
@@ -1642,6 +1661,40 @@ VECTORCALL bool CollisionResource::traceRayMeshNodeLocal(const CollisionNode &no
   return (isLightNode
             ? traceMeshNodeLocalApi.light.pfnTraceRayMeshNodeLocalCullCCW
             : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalCullCCW)(node, v_local_from, v_local_dir, in_out_t, v_out_norm);
+}
+
+
+VECTORCALL bool CollisionResource::traceRayMeshNodeLocalAllHits(const CollisionNode &node, const Point3 &from, const Point3 &dir,
+  float in_t, CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, bool force_no_cull) const
+{
+  if (!node.checkBehaviorFlags(CollisionNode::TRACEABLE))
+    return false;
+  const vec4f vLocalFrom = v_ldu_p3(&from.x);
+  const vec4f vLocalDir = v_ldu_p3(&dir.x);
+  const bbox3f bbox = v_ldu_bbox3(node.modelBBox);
+  if (!v_test_ray_box_intersection_unsafe(vLocalFrom, vLocalDir, v_set_x(in_t), bbox))
+    return false;
+
+  all_nodes_ret_t allNodes;
+  const bool isLightNode = node.indices.size() < traceMeshNodeLocalApi.threshold;
+  // -V::601 for some reason PVS glitches and fails with "The 'true' value becomes a class object" on calc_normal parameter
+  const bool res = (isLightNode ? traceMeshNodeLocalApi.light.pfnTraceRayMeshNodeLocalAllHits
+                                : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalAllHits)(node, vLocalFrom, vLocalDir, in_t, true,
+    force_no_cull, allNodes);
+
+  intersected_nodes_list.reserve(allNodes.size());
+  for (const vec4f &normAndT : allNodes)
+  {
+    auto &n = intersected_nodes_list.push_back();
+    n.intersectionT = v_extract_w(normAndT);
+    v_stu_p3(&n.intersectionPos.x, v_madd(vLocalDir, v_splat_w(normAndT), vLocalFrom));
+    v_stu_p3(&n.normal.x, normAndT);
+    n.collisionNodeId = node.nodeIndex;
+  }
+  if (sort_intersections)
+    sort_collres_intersections(intersected_nodes_list);
+
+  return res;
 }
 
 bool CollisionResource::testSphereIntersection(const CollisionNodeFilter &filter, const BSphere3 &sphere, const Point3 &dir_norm,
@@ -1769,7 +1822,7 @@ VECTORCALL DAGOR_NOINLINE bool CollisionResource::traceRayMeshNodeLocalCullCCW(c
   const uint32_t batchSize = 4;
 
   uint32_t i;
-  for (i = 0; EASTL_LIKELY(int(i) < int(indicesSize - (batchSize * 3 - 1))); i += batchSize * 3)
+  for (i = 0; DAGOR_LIKELY(int(i) < int(indicesSize - (batchSize * 3 - 1))); i += batchSize * 3)
   {
     bbox3f box;
     v_bbox3_init(box, v_ld(&vertices[indices[i]].x));
@@ -1781,7 +1834,7 @@ VECTORCALL DAGOR_NOINLINE bool CollisionResource::traceRayMeshNodeLocalCullCCW(c
       v_bbox3_add_pt(box, vert[j][2] = v_ld(&vertices[indices[i + j * 3 + 2]].x));
     }
 
-    if (check_bounding && EASTL_LIKELY(!v_test_ray_box_intersection_unsafe(v_local_from, v_local_dir, v_set_x(in_out_t), box)))
+    if (check_bounding && DAGOR_LIKELY(!v_test_ray_box_intersection_unsafe(v_local_from, v_local_dir, v_set_x(in_out_t), box)))
       continue;
 
     int ret = traceray4TrianglesCullCCW(v_local_from, v_local_dir, in_out_t, vert, batchSize);
@@ -1789,7 +1842,7 @@ VECTORCALL DAGOR_NOINLINE bool CollisionResource::traceRayMeshNodeLocalCullCCW(c
       resultIdx = i + ret * 3;
   }
 
-  if (EASTL_UNLIKELY(i < indicesSize))
+  if (DAGOR_UNLIKELY(i < indicesSize))
   {
     alignas(EA_CACHE_LINE_SIZE) vec4f vert[batchSize][3];
     uint32_t count = 0;
@@ -1829,11 +1882,20 @@ VECTORCALL DAGOR_NOINLINE bool CollisionResource::traceCapsuleMeshNodeLocalCullC
 
   // float bestScore = FLT_MIN;
 
-  for (uint32_t i = 0; EASTL_LIKELY(i < indicesSize); i += 3)
+  for (uint32_t i = 0; DAGOR_LIKELY(i < indicesSize); i += 3)
   {
     vec3f v0 = v_ld(&vertices[indices[i + 0]].x);
     vec3f v1 = v_ld(&vertices[indices[i + 1]].x);
     vec3f v2 = v_ld(&vertices[indices[i + 2]].x);
+
+    // fast bounding check
+    bbox3f bbox;
+    v_bbox3_init(bbox, v0);
+    v_bbox3_add_pt(bbox, v1);
+    v_bbox3_add_pt(bbox, v2);
+    if (!v_test_ray_box_intersection_unsafe(v_local_from, v_local_dir, v_set_x(in_out_t), bbox))
+      continue;
+
     vec4f norm, pos;
     float t = in_out_t;
     if (!test_capsule_triangle_intersection(v_local_from, v_local_dir, v0, v1, v2, radius, t, norm, pos, false))
@@ -1856,17 +1918,17 @@ template <bool check_bounding>
 VECTORCALL DAGOR_NOINLINE bool CollisionResource::traceRayMeshNodeLocalAllHits(const CollisionNode &node,
   const vec4f &v_local_from, // better to hold it in memory
   const vec4f &v_local_dir,  // it prevents inefficient loop optimizations
-  float in_t, bool calc_normal, bool noCull, all_nodes_ret_t &ret_array)
+  float in_t, bool calc_normal, bool force_no_cull, all_nodes_ret_t &ret_array)
 {
   const uint16_t *__restrict indices = node.indices.data();
   const Point3_vec4 *__restrict vertices = node.vertices.data();
   const uint32_t indicesSize = node.indices.size();
-  noCull |= node.checkBehaviorFlags(CollisionNode::SOLID);
+  bool noCull = force_no_cull || node.checkBehaviorFlags(CollisionNode::SOLID);
 
   const uint32_t batchSize = 4;
 
   uint32_t i;
-  for (i = 0; EASTL_LIKELY(int(i) < int(indicesSize - (batchSize * 3 - 1))); i += batchSize * 3)
+  for (i = 0; DAGOR_LIKELY(int(i) < int(indicesSize - (batchSize * 3 - 1))); i += batchSize * 3)
   {
     bbox3f box;
     v_bbox3_init(box, v_ld(&vertices[indices[i]].x));
@@ -1878,12 +1940,12 @@ VECTORCALL DAGOR_NOINLINE bool CollisionResource::traceRayMeshNodeLocalAllHits(c
       v_bbox3_add_pt(box, vert[j][2] = v_ld(&vertices[indices[i + j * 3 + 2]].x));
     }
 
-    if (check_bounding && EASTL_LIKELY(!v_test_ray_box_intersection_unsafe(v_local_from, v_local_dir, v_set_x(in_t), box)))
+    if (check_bounding && DAGOR_LIKELY(!v_test_ray_box_intersection_unsafe(v_local_from, v_local_dir, v_set_x(in_t), box)))
       continue;
 
     vec4f vInOutT = v_splats(in_t);
     int ret = traceray4TrianglesMask(v_local_from, v_local_dir, vInOutT, vert, noCull);
-    if (EASTL_UNLIKELY(ret != 0))
+    if (DAGOR_UNLIKELY(ret != 0))
     {
       alignas(16) float outT[batchSize];
       v_st(outT, vInOutT);
@@ -1892,7 +1954,7 @@ VECTORCALL DAGOR_NOINLINE bool CollisionResource::traceRayMeshNodeLocalAllHits(c
 #endif
       for (uint32_t j = 0; j < batchSize; j++, ret >>= 1)
       {
-        if (EASTL_UNLIKELY(ret & 1u))
+        if (DAGOR_UNLIKELY(ret & 1u))
         {
           vec3f vNorm = v_zero();
           if (calc_normal)
@@ -1909,7 +1971,7 @@ VECTORCALL DAGOR_NOINLINE bool CollisionResource::traceRayMeshNodeLocalAllHits(c
   }
 
   // tail
-  if (EASTL_UNLIKELY(i < indicesSize))
+  if (DAGOR_UNLIKELY(i < indicesSize))
   {
     alignas(EA_CACHE_LINE_SIZE) vec4f vert[batchSize][3];
     uint32_t count = 0;
@@ -1926,7 +1988,7 @@ VECTORCALL DAGOR_NOINLINE bool CollisionResource::traceRayMeshNodeLocalAllHits(c
 
     vec4f vInOutT = v_splats(in_t);
     int ret = traceray4TrianglesMask(v_local_from, v_local_dir, vInOutT, vert, noCull);
-    if (EASTL_UNLIKELY(ret != 0))
+    if (DAGOR_UNLIKELY(ret != 0))
     {
       alignas(16) float outT[batchSize];
       v_st(outT, vInOutT);
@@ -1935,7 +1997,7 @@ VECTORCALL DAGOR_NOINLINE bool CollisionResource::traceRayMeshNodeLocalAllHits(c
 #endif
       for (uint32_t j = 0; j < count; j++, ret >>= 1)
       {
-        if (EASTL_UNLIKELY(ret & 1u))
+        if (DAGOR_UNLIKELY(ret & 1u))
         {
           vec3f vNorm = v_zero();
           if (calc_normal)
@@ -1964,7 +2026,7 @@ VECTORCALL DAGOR_NOINLINE bool CollisionResource::rayHitMeshNodeLocalCullCCW(con
   const uint32_t batchSize = 4;
 
   uint32_t i;
-  for (i = 0; EASTL_LIKELY(int(i) < int(indicesSize - (batchSize * 3 - 1))); i += batchSize * 3)
+  for (i = 0; DAGOR_LIKELY(int(i) < int(indicesSize - (batchSize * 3 - 1))); i += batchSize * 3)
   {
     bbox3f box;
     v_bbox3_init(box, v_ld(&vertices[indices[i]].x));
@@ -1976,14 +2038,14 @@ VECTORCALL DAGOR_NOINLINE bool CollisionResource::rayHitMeshNodeLocalCullCCW(con
       v_bbox3_add_pt(box, vert[j][2] = v_ld(&vertices[indices[i + j * 3 + 2]].x));
     }
 
-    if (check_bounding && EASTL_LIKELY(!v_test_ray_box_intersection_unsafe(v_local_from, v_local_dir, v_set_x(in_t), box)))
+    if (check_bounding && DAGOR_LIKELY(!v_test_ray_box_intersection_unsafe(v_local_from, v_local_dir, v_set_x(in_t), box)))
       continue;
 
     if (rayhit4TrianglesCullCCW(v_local_from, v_local_dir, in_t, vert, batchSize))
       return true;
   }
 
-  if (EASTL_UNLIKELY(i < indicesSize))
+  if (DAGOR_UNLIKELY(i < indicesSize))
   {
     alignas(EA_CACHE_LINE_SIZE) vec4f vert[batchSize][3];
     uint32_t count = 0;
@@ -2011,11 +2073,20 @@ VECTORCALL DAGOR_NOINLINE bool CollisionResource::capsuleHitMeshNodeLocalCullCCW
   const Point3_vec4 *__restrict vertices = node.vertices.data();
   const uint32_t indicesSize = node.indices.size();
 
-  for (uint32_t i = 0; EASTL_LIKELY(i < indicesSize); i += 3)
+  for (uint32_t i = 0; DAGOR_LIKELY(i < indicesSize); i += 3)
   {
     vec3f v0 = v_ld(&vertices[indices[i + 0]].x);
     vec3f v1 = v_ld(&vertices[indices[i + 1]].x);
     vec3f v2 = v_ld(&vertices[indices[i + 2]].x);
+
+    // fast bounding check
+    bbox3f bbox;
+    v_bbox3_init(bbox, v0);
+    v_bbox3_add_pt(bbox, v1);
+    v_bbox3_add_pt(bbox, v2);
+    if (!v_test_ray_box_intersection_unsafe(v_local_from, v_local_dir, v_set_x(in_t), bbox))
+      continue;
+
     if (test_capsule_triangle_hit(v_local_from, v_local_dir, v0, v1, v2, radius, in_t, false))
       return true;
   }
@@ -2368,7 +2439,8 @@ VECTORCALL bool CollisionResource::rayHit(const mat44f &tm, const Point3 &from, 
   };
 
   return forEachIntersectedNode<ANY_ONE_INTERSECTION, CollisionTraceType::RAY_HIT>(tm, nullptr /*geom_node_tree*/, v_ldu(&from.x),
-    v_ldu(&dir.x), in_t, false /*out_normal*/, 1.f /*bsphere_scale*/, behaviorFilter, nodeFilter, callback, nullptr /*stats*/);
+    v_ldu(&dir.x), in_t, false /*out_normal*/, 1.f /*bsphere_scale*/, behaviorFilter, nodeFilter, callback, nullptr /*stats*/,
+    false /*force_no_cull*/);
 }
 
 VECTORCALL bool CollisionResource::rayHit(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from,
@@ -2388,7 +2460,55 @@ VECTORCALL bool CollisionResource::rayHit(const TMatrix &instance_tm, const Geom
   };
 
   return forEachIntersectedNode<ANY_ONE_INTERSECTION, CollisionTraceType::RAY_HIT>(tm, geom_node_tree, v_ldu(&from.x), v_ldu(&dir.x),
-    in_t, false /*out_normal*/, bsphere_scale, behaviorFilter, nodeFilter, callback, nullptr /*stats*/);
+    in_t, false /*out_normal*/, bsphere_scale, behaviorFilter, nodeFilter, callback, nullptr /*stats*/, false /*force_no_cull*/);
+}
+
+bool CollisionResource::capsuleHit(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from,
+  const Point3 &dir, float in_t, float radius, CollResHitNodesType &nodes_hit) const
+{
+  alignas(EA_CACHE_LINE_SIZE) mat44f tm;
+  v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
+  uint8_t behaviorFilter = CollisionNode::TRACEABLE;
+
+  CollisionTrace in;
+  in.vFrom = v_ldu(&from.x);
+  in.vDir = v_ldu(&dir.x);
+  in.vTo = v_madd(in.vDir, v_splats(in_t), in.vFrom);
+  in.t = in_t;
+  in.capsuleRadius = radius;
+  in.isectBounding = false;
+
+  auto nodeFilter = [&](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(behaviorFilter); };
+
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float, vec3f, vec3f) { nodes_hit.push_back(node->nodeIndex); };
+
+  constexpr bool is_single_ray = true;
+  dag::Span<CollisionTrace> traces(&in, 1);
+  return forEachIntersectedNode<ALL_NODES_INTERSECTIONS, CollisionTraceType::CAPSULE_HIT, is_single_ray>(tm, geom_node_tree, traces,
+    false /*calc_normal*/, 1.f /*bsphere_scale*/, behaviorFilter, nodeFilter, callback, nullptr /*out_stats*/,
+    false /*force_no_cull*/);
+}
+
+bool CollisionResource::multiRayHit(const TMatrix &instance_tm, dag::Span<CollisionTrace> traces) const
+{
+  alignas(EA_CACHE_LINE_SIZE) mat44f tm;
+  v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
+  uint8_t behaviorFilter = CollisionNode::TRACEABLE;
+
+  auto nodeFilter = [&](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(behaviorFilter); };
+
+  auto callback = [&](int trace_id, const CollisionNode *, float, vec3f, vec3f) { traces[trace_id].isHit = true; };
+
+  for (CollisionTrace &trace : traces)
+  {
+    trace.vTo = v_madd(trace.vDir, v_splats(trace.t), trace.vFrom);
+    trace.isectBounding = false;
+    trace.isHit = false;
+  }
+
+  return forEachIntersectedNode<ANY_ONE_INTERSECTION, CollisionTraceType::RAY_HIT>(tm, nullptr /*geom_node_tree*/, traces,
+    false /*calc_normal*/, 1.f /*bsphere_scale*/, behaviorFilter, nodeFilter, callback, nullptr /*out_stats*/,
+    false /*force_no_cull*/);
 }
 
 void CollisionResource::initializeWithGeomNodeTree(const GeomNodeTree &geom_node_tree)
@@ -2569,7 +2689,7 @@ private:
   tracer_t *b_tracer;
   uint32_t a_nodes_count;
   eastl::bitvector<framemem_allocator> outsideOfBounding;
-  eastl::fixed_vector<mat44f, 40> aWtms;
+  dag::RelocatableFixedVector<mat44f, 40> aWtms;
   Tab<int> nodeBfaces;
 };
 
@@ -2712,17 +2832,16 @@ public:
 
         for (size_t nodeAIndex = 0u, countA = nodeA->indices.size(); nodeAIndex < countA; nodeAIndex += 3u)
         {
-          Point3_vec4 a0b, a1b, a2b;
           vec3f a0 = v_ldu(&nodeA->vertices[nodeA->indices[nodeAIndex + 0]].x);
           vec3f a1 = v_ldu(&nodeA->vertices[nodeA->indices[nodeAIndex + 1]].x);
           vec3f a2 = v_ldu(&nodeA->vertices[nodeA->indices[nodeAIndex + 2]].x);
-          v_st(&a0b.x, v_mat44_mul_vec3p(tmAToB, a0));
-          v_st(&a1b.x, v_mat44_mul_vec3p(tmAToB, a1));
-          v_st(&a2b.x, v_mat44_mul_vec3p(tmAToB, a2));
+          vec3f a0b = v_mat44_mul_vec3p(tmAToB, a0);
+          vec3f a1b = v_mat44_mul_vec3p(tmAToB, a1);
+          vec3f a2b = v_mat44_mul_vec3p(tmAToB, a2);
 
-          if (test_triangle_sphere_intersection(a0b, a1b, a2b, nodeB->boundingSphere))
+          if (v_test_triangle_sphere_intersection(a0b, a1b, a2b, v_ldu(&nodeB->boundingSphere.c.x), v_set_x(nodeB->boundingSphere.r2)))
           {
-            vec3f ac = v_mul(v_add(a0, v_add(a1, a2)), v_splats(1 / 3.f));
+            vec3f ac = v_mul(v_add(a0, v_add(a1, a2)), v_splats(1.f / 3.f));
             v_stu_p3(&collisionPointA.x, v_mat44_mul_vec3p(vWtmA, ac));
             collisionPointB = nodeB->boundingSphere.c;
             return true;
@@ -3533,7 +3652,7 @@ int CollisionResource::getTrianglesCount(uint8_t behavior_filter) const
   return count;
 }
 
-DAGOR_NOINLINE void CollisionResource::addTracesProfileTag(dag::Span<CollisionTrace> &traces)
+DAGOR_NOINLINE void CollisionResource::addTracesProfileTag(dag::Span<CollisionTrace> traces)
 {
   unsigned activeTraces = 0;
   for (CollisionTrace &trace : traces)

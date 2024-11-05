@@ -1,8 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/dynamicQuality.h>
 
 #include <debug/dag_debug.h>
 #include <debug/dag_assert.h>
-#include <3d/dag_drv3dCmd.h>
 #include <ecs/core/entityManager.h>
 #include <util/dag_delayedAction.h>
 

@@ -1,5 +1,5 @@
-#ifndef __OS_H__
-#define __OS_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #ifdef WIN32
 static const char cPathSep = '\\';
@@ -24,5 +24,3 @@ static inline bool is_path_relative(const char *path) { return *path != '/'; }
 
 void simplify_fname_c(char *s);
 char *get_fname_location(char *buf, const char *filename);
-
-#endif // __OS_H__

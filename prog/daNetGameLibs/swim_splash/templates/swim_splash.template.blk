@@ -1,0 +1,14 @@
+human_swimsplash_fx
+{
+  swimsplash__maxDistanceFromCameraToUpdate:r=30
+  swimsplash__offset:p3=0, 0.15, 0
+  swimsplash__scaleMul:r=0.165
+  swimsplash__minTimeBetweenSplashes:r=0.033
+  swimsplash__maxRenderingSpeed:r=30
+  swimsplash__fx:t="water_hit_swimming_cmps_fx"
+
+  swimsplash
+  {
+    _tags:t="render"
+  }
+}

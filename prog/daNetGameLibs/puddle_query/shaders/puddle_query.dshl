@@ -1,0 +1,46 @@
+include "shader_global.dshl"
+include "heightmap_common.dshl"
+include "puddles_manager/shaders/puddles.dshl"
+
+int num_puddle_points_const_no = 10 always_referenced;
+int puddle_results_offset_no = 11 always_referenced;
+int puddle_buf_const_no = 0 always_referenced;
+buffer puddle_query_input_buf;
+
+shader puddle_query_cs
+{
+  INIT_WORLD_HEIGHTMAP_BASE(cs)
+  USE_HEIGHTMAP_COMMON_BASE(cs)
+
+  INIT_PUDDLE(cs)
+  USE_PUDDLE(cs)
+
+  (cs) {
+    points_buf@buf = puddle_query_input_buf hlsl {
+      StructuredBuffer<float4> points_buf@buf;
+    };
+  }
+
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    #include "puddle_query.hlsli"
+
+    uint num_puddle_points : register(c10);
+    uint resultsOffset : register(c11);
+    RWStructuredBuffer<float> puddle_buf : register(u0);
+
+    [numthreads( PUDDLE_QUERY_WARP_SIZE, 1, 1 )]
+    void main(uint id : SV_DispatchThreadID)
+    {
+      if (id >= num_puddle_points)
+        return;
+
+      float3 worldPos = structuredBufferAt(points_buf, id).xyz;
+      float puddle, worldPosYPuddleOffset, puddleHeight;
+      getPuddleData(worldPos.y, worldPos, puddle, worldPosYPuddleOffset, puddleHeight);
+      structuredBufferAt(puddle_buf, resultsOffset+id) = puddle;
+    }
+  }
+
+  compile("target_cs", "main");
+}

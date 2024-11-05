@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <vecmath/dag_vecMath.h>
 #include <math/integer/dag_IPoint2.h>
 #include <scene/dag_occlusionMap.h>
@@ -176,7 +178,7 @@ bool OcclusionMap::prepare(Occlusion &occlusion)
     vec3f centerVec = v_sub(center, viewPos);
     vec3f dist2 = v_length3_sq_x(centerVec);
     // vec3f invDist2 = v_rcp(dist2);
-    // vec4f approxSolidAngle = v_mul(v_splat4(&boxRadiusSq[i]), invDist2);
+    // vec4f approxSolidAngle = v_mul(v_splats(boxRadiusSq[i]), invDist2);
     // if (v_test_vec_x_lt(approxSolidAngle, minBoxApprox2))
     if (v_test_vec_x_lt(v_splats(boxRadiusSq[i]), v_mul_x(dist2, minBoxApprox2)))
       continue;

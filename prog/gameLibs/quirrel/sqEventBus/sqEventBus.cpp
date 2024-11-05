@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <quirrel/sqEventBus/sqEventBus.h>
 #include <quirrel/sqCrossCall/sqCrossCall.h>
 #include <EASTL/hash_map.h>
@@ -14,10 +16,15 @@
 #include <sqrat/sqratFunction.h>
 #include <sqext.h>
 #include <dag/dag_vector.h>
+#include <osApiWrappers/dag_rwLock.h>
+#include <osApiWrappers/dag_spinlock.h>
+#include <osApiWrappers/dag_atomic.h>
 
 
 namespace sqeventbus
 {
+
+static constexpr SQInteger NO_PAYLOAD = 999999;
 
 NativeEventHandler g_native_event_handler = nullptr;
 
@@ -53,15 +60,19 @@ struct BoundVm
   ProcessingMode processingMode;
   HandlersMap handlers;
   dag::Vector<QueuedEvent> queue, queueCurrent;
+  OSReadWriteLock handlersLock;
+  OSSpinlock queueLock;
 };
 
 static eastl::hash_map<HSQUIRRELVM, BoundVm> vms;
-static int is_iterating_vms = 0;
+static OSReentrantReadWriteLock vmsLock;
+static volatile int is_in_send = 0;
 
 
 static bool collect_handlers(BoundVm &vm_data, const char *evt_name, const char *source_id, Tab<Sqrat::Function> &handlers_out)
 {
   G_ASSERT(handlers_out.empty());
+  ScopedLockWriteTemplate guard(vm_data.handlersLock);
 
   auto handlersRange = vm_data.handlers.equal_range(evt_name);
   for (auto itHandler = handlersRange.first; itHandler != handlersRange.second;)
@@ -85,6 +96,7 @@ static bool collect_handlers(BoundVm &vm_data, const char *evt_name, const char 
 
 static bool has_listeners_in_vm(BoundVm &vm_data, const char *evt_name, const char *source_id)
 {
+  ScopedLockReadTemplate guard(vm_data.handlersLock);
   auto handlersRange = vm_data.handlers.equal_range(evt_name);
   for (auto itHandler = handlersRange.first; itHandler != handlersRange.second;)
   {
@@ -97,6 +109,7 @@ static bool has_listeners_in_vm(BoundVm &vm_data, const char *evt_name, const ch
 
 static SQInteger has_listeners_internal(HSQUIRRELVM vm_from, const char *evt_name, bool foreign_only, const char *source_id)
 {
+  ScopedLockReadTemplate guard(vmsLock);
   for (auto itVm = vms.begin(); itVm != vms.end(); ++itVm)
   {
     HSQUIRRELVM vm_to = itVm->first;
@@ -124,18 +137,20 @@ static SQRESULT throw_send_error(HSQUIRRELVM vm_from, const char *err_msg, const
 }
 
 
-static SQInteger send_internal(HSQUIRRELVM vm_from, const char *evt_name, SQInteger idx, bool foreign_only, const char *source_id)
+static SQInteger send_internal(HSQUIRRELVM vm_from, const char *evt_name, SQInteger payload_idx, bool foreign_only,
+  const char *source_id)
 {
   SQInteger handledCount = 0;
   int prevTopFrom = sq_gettop(vm_from);
   G_UNUSED(prevTopFrom);
   String repushErrMsg;
-  ++is_iterating_vms;
 
-  FINALLY([] { --is_iterating_vms; });
+  interlocked_increment(is_in_send);
+  FINALLY([] { interlocked_decrement(is_in_send); });
 
   Tab<Sqrat::Function> handlersCopy(framemem_ptr());
 
+  ScopedLockReadTemplate guard(vmsLock);
   for (auto itVm = vms.begin(); itVm != vms.end(); ++itVm)
   {
     HSQUIRRELVM vm_to = itVm->first;
@@ -151,36 +166,47 @@ static SQInteger send_internal(HSQUIRRELVM vm_from, const char *evt_name, SQInte
 
     for (Sqrat::Function &handler : handlersCopy)
     {
-      int prevTopTo = sq_gettop(vm_to);
-      if (!sq_cross_push(vm_from, idx, vm_to, &repushErrMsg))
-      {
-        sq_poptop(vm_to);
-        String errMsg(0, "Cross-push failed, target VM = %p: %s", vm_to, repushErrMsg.c_str());
-        return throw_send_error(vm_from, errMsg.c_str(), Sqrat::Var<Sqrat::Object>(vm_from, idx).value);
-      }
+      Sqrat::Object msgDst(vm_to);
 
-      HSQOBJECT hMsg;
-      sq_getstackobj(vm_to, -1, &hMsg);
-      Sqrat::Object msg = Sqrat::Object(hMsg, vm_to);
-      sq_settop(vm_to, prevTopTo);
+      if (payload_idx != NO_PAYLOAD)
+      {
+        int prevTopTo = sq_gettop(vm_to);
+        if (!sq_cross_push(vm_from, payload_idx, vm_to, &repushErrMsg))
+        {
+          sq_poptop(vm_to);
+          String errMsg(0, "Cross-push failed, target VM = %p: %s", vm_to, repushErrMsg.c_str());
+          return throw_send_error(vm_from, errMsg.c_str(), Sqrat::Var<Sqrat::Object>(vm_from, payload_idx).value);
+        }
+
+        HSQOBJECT hMsg;
+        sq_getstackobj(vm_to, -1, &hMsg);
+        msgDst = Sqrat::Object(hMsg, vm_to);
+        sq_settop(vm_to, prevTopTo);
+      }
 
       if (target.processingMode == ProcessingMode::IMMEDIATE)
       {
-        if (!handler.Execute(msg))
+        if (!handler.Execute(msgDst))
         {
           SQFunctionInfo fi;
           sq_ext_getfuncinfo(handler.GetFunc(), &fi);
           String errMsg(0, "Subscriber %s call failed, target VM = %p | %p", fi.name, handler.GetVM(), vm_to);
-          return throw_send_error(vm_from, errMsg.c_str(), Sqrat::Var<Sqrat::Object>(vm_from, idx).value);
+          Sqrat::Object msgSrc;
+          if (payload_idx != NO_PAYLOAD)
+            msgSrc = Sqrat::Var<Sqrat::Object>(vm_from, payload_idx).value;
+          return throw_send_error(vm_from, errMsg.c_str(), msgSrc);
         }
       }
       else
       {
         QueuedEvent qevt;
         qevt.handler = handler;
-        qevt.value = msg;
+        qevt.value = msgDst;
         qevt.timestamp = get_time_msec();
-        target.queue.push_back(qevt);
+        {
+          OSSpinlockScopedLock queueGuard(target.queueLock);
+          target.queue.push_back(qevt);
+        }
       }
       ++handledCount;
     }
@@ -194,7 +220,6 @@ static SQInteger send_internal(HSQUIRRELVM vm_from, const char *evt_name, SQInte
 
 void send_event(const char *event_name, const Sqrat::Object &data, const char *source_id)
 {
-  G_ASSERT(is_main_thread());
   G_ASSERT_RETURN(source_id, );
   if (g_native_event_handler)
   {
@@ -214,40 +239,16 @@ void send_event(const char *event_name, const Sqrat::Object &data, const char *s
   stackCheck.restore();
 }
 
-void send_immediate_event(const char *event_name, const Json::Value &data, const char *source_id)
-{
-  G_ASSERT(is_main_thread());
-  if (g_native_event_handler)
-    g_native_event_handler(event_name, data, source_id, /*immediate*/ true);
-  for (auto &v : vms)
-  {
-    HSQUIRRELVM vm_to = v.first;
-    BoundVm &target = v.second;
-
-    SqStackChecker stackCheck(vm_to);
-
-    Tab<Sqrat::Function> handlersCopy(framemem_ptr());
-    if (!collect_handlers(target, event_name, source_id, handlersCopy))
-      continue;
-
-    for (Sqrat::Function &handler : handlersCopy)
-    {
-      Sqrat::Object msg = jsoncpp_to_quirrel(vm_to, data);
-      if (!handler.Execute(msg))
-      {
-        SQFunctionInfo fi;
-        sq_ext_getfuncinfo(handler.GetFunc(), &fi);
-        logerr("Subscriber %s call failed, target VM = %p", fi.name, handler.GetVM());
-      }
-    }
-  }
-}
 
 void send_event(const char *event_name, const Json::Value &data, const char *source_id)
 {
-  G_ASSERT(is_main_thread());
+  interlocked_increment(is_in_send);
+  FINALLY([] { interlocked_decrement(is_in_send); });
+
   if (g_native_event_handler)
     g_native_event_handler(event_name, data, source_id, /*immediate*/ false);
+
+  ScopedLockReadTemplate guard(vmsLock);
   for (auto &v : vms)
   {
     HSQUIRRELVM vm_to = v.first;
@@ -277,16 +278,20 @@ void send_event(const char *event_name, const Json::Value &data, const char *sou
         qevt.handler = handler;
         qevt.value = msg;
         qevt.timestamp = get_time_msec();
-        target.queue.push_back(qevt);
+        {
+          OSSpinlockScopedLock queueGuard(target.queueLock);
+          target.queue.push_back(qevt);
+        }
       }
     }
   }
 }
 
+void send_event(const char *event_name, const char *source_id) { send_event(event_name, Json::Value(), source_id); }
 
 bool has_listeners(const char *event_name, const char *source_id)
 {
-  G_ASSERT(is_main_thread());
+  ScopedLockReadTemplate guard(vmsLock);
   for (auto &v : vms)
   {
     BoundVm &target = v.second;
@@ -297,24 +302,21 @@ bool has_listeners(const char *event_name, const char *source_id)
 }
 
 
-static SQInteger send(HSQUIRRELVM vm_from)
+static SQInteger sq_send_impl(HSQUIRRELVM vm_from, bool foreign_only)
 {
+  bool hasPayload = sq_gettop(vm_from) > 3;
+
   const char *eventName = nullptr;
   sq_getstring(vm_from, 2, &eventName);
   const char *vmId = nullptr;
-  G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm_from, 4, &vmId)));
-  return send_internal(vm_from, eventName, 3, false, vmId);
+  G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm_from, hasPayload ? 4 : 3, &vmId)));
+  SQInteger payloadIdx = hasPayload ? 3 : NO_PAYLOAD;
+  return send_internal(vm_from, eventName, payloadIdx, foreign_only, vmId);
 }
 
+static SQInteger send(HSQUIRRELVM vm_from) { return sq_send_impl(vm_from, false); }
 
-static SQInteger send_foreign(HSQUIRRELVM vm_from)
-{
-  const char *eventName = nullptr;
-  sq_getstring(vm_from, 2, &eventName);
-  const char *vmId = nullptr;
-  G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm_from, 4, &vmId)));
-  return send_internal(vm_from, eventName, 3, true, vmId);
-}
+static SQInteger send_foreign(HSQUIRRELVM vm_from) { return sq_send_impl(vm_from, true); }
 
 
 static SQInteger has_listeners(HSQUIRRELVM vm_from)
@@ -339,14 +341,18 @@ static SQInteger has_foreign_listeners(HSQUIRRELVM vm_from)
 
 void process_events(HSQUIRRELVM vm)
 {
+  ScopedLockReadTemplate guard(vmsLock);
+
   auto itVm = vms.find(vm);
   G_ASSERTF_RETURN(itVm != vms.end(), , "VM is not bound");
 
   BoundVm &vmData = itVm->second;
   G_ASSERT_RETURN(vmData.processingMode == ProcessingMode::MANUAL_PUMP, );
 
-  G_ASSERT(vmData.queueCurrent.empty());
-  vmData.queueCurrent.swap(vmData.queue);
+  {
+    OSSpinlockScopedLock queueGuard(vmData.queueLock);
+    vmData.queueCurrent.swap(vmData.queue);
+  }
 
   for (QueuedEvent &qevt : vmData.queueCurrent)
   {
@@ -357,6 +363,7 @@ void process_events(HSQUIRRELVM vm)
       logerr("Subscriber %s call failed, target VM = %p", fi.name, qevt.handler.GetVM());
     }
   }
+
   vmData.queueCurrent.clear();
 }
 
@@ -370,7 +377,11 @@ static SQInteger subscribe_impl(HSQUIRRELVM vm, bool onehit)
 
   Sqrat::Function f(vm, Sqrat::Object(vm), funcObj);
 
-  HandlersMap &handlers = vms[vm].handlers;
+  ScopedLockReadTemplate vmGuard(vmsLock);
+  auto &boundVm = vms[vm];
+
+  ScopedLockWriteTemplate handlerGuard(boundVm.handlersLock);
+  HandlersMap &handlers = boundVm.handlers;
 
   // prevent duplicate subscribe
   auto itRange = handlers.equal_range(evtName);
@@ -435,6 +446,7 @@ static SQInteger subscribe_onehit(HSQUIRRELVM vm) { return subscribe_impl(vm, tr
 
 static SQInteger unsubscribe(HSQUIRRELVM vm)
 {
+  ScopedLockReadTemplate vmGuard(vmsLock);
   auto itVm = vms.find(vm);
   if (itVm == vms.end())
   {
@@ -449,6 +461,7 @@ static SQInteger unsubscribe(HSQUIRRELVM vm)
   sq_getstackobj(vm, 3, &hFunc);
   Sqrat::Function func(vm, Sqrat::Object(vm), hFunc);
 
+  ScopedLockWriteTemplate handlerGuard(itVm->second.handlersLock);
   HandlersMap &handlers = itVm->second.handlers;
   auto itRange = handlers.equal_range(eventName);
 
@@ -471,6 +484,7 @@ void bind(SqModules *module_mgr, const char *vm_id, ProcessingMode mode)
 {
   HSQUIRRELVM vm = module_mgr->getVM();
 
+  ScopedLockWriteTemplate guard(vmsLock);
   G_ASSERT(vms.find(vm) == vms.end());
   BoundVm &vmData = vms[vm];
   vmData.processingMode = mode;
@@ -481,22 +495,23 @@ void bind(SqModules *module_mgr, const char *vm_id, ProcessingMode mode)
 
   Sqrat::Table api(vm);
 
-  ///@module eventbus
   api
     .SquirrelFunc("subscribe", subscribe, -3, ".sc a|s") // alias for backward compatibility
-    .SquirrelFunc("eventbus_subscribe", subscribe, -3, ".sc a|s")
     .SquirrelFunc("subscribe_onehit", subscribe_onehit, -3, ".sc a|s")
-    .SquirrelFunc("eventbus_subscribe_onehit", subscribe_onehit, -3, ".sc a|s")
     .SquirrelFunc("unsubscribe", unsubscribe, 3, ".sc")
-    .SquirrelFunc("eventbus_unsubscribe", unsubscribe, 3, ".sc")
-    .SquirrelFunc("send", send, 3, ".s.", nullptr, 1, &sqVmId)
-    .SquirrelFunc("eventbus_send", send, 3, ".s.", nullptr, 1, &sqVmId)
-    .SquirrelFunc("send_foreign", send_foreign, 3, ".s.", nullptr, 1, &sqVmId)
-    .SquirrelFunc("eventbus_send_foreign", send_foreign, 3, ".s.", nullptr, 1, &sqVmId)
-    .SquirrelFunc("eventbus_has_listeners", has_listeners, 2, ".s", nullptr, 1, &sqVmId)
+    .SquirrelFunc("send", send, -2, ".s.", nullptr, 1, &sqVmId)
+    .SquirrelFunc("send_foreign", send_foreign, -2, ".s.", nullptr, 1, &sqVmId)
     .SquirrelFunc("has_listeners", has_listeners, 2, ".s", nullptr, 1, &sqVmId)
     .SquirrelFunc("has_foreign_listeners", has_foreign_listeners, 2, ".s", nullptr, 1, &sqVmId)
-    .SquirrelFunc("eventbus_has_foreign_listeners", has_foreign_listeners, 2, ".s", nullptr, 1, &sqVmId);
+    ///@module eventbus
+    .SquirrelFunc("eventbus_subscribe", subscribe, -3, ".sc a|s")
+    .SquirrelFunc("eventbus_subscribe_onehit", subscribe_onehit, -3, ".sc a|s")
+    .SquirrelFunc("eventbus_unsubscribe", unsubscribe, 3, ".sc")
+    .SquirrelFunc("eventbus_send", send, -2, ".s.", nullptr, 1, &sqVmId)
+    .SquirrelFunc("eventbus_send_foreign", send_foreign, -2, ".s.", nullptr, 1, &sqVmId)
+    .SquirrelFunc("eventbus_has_listeners", has_listeners, 2, ".s", nullptr, 1, &sqVmId)
+    .SquirrelFunc("eventbus_has_foreign_listeners", has_foreign_listeners, 2, ".s", nullptr, 1, &sqVmId)
+    /**/;
 
   module_mgr->addNativeModule("eventbus", api);
 }
@@ -504,26 +519,33 @@ void bind(SqModules *module_mgr, const char *vm_id, ProcessingMode mode)
 
 void unbind(HSQUIRRELVM vm)
 {
-  G_ASSERT(!is_iterating_vms);
+  ScopedLockWriteTemplate guard(vmsLock);
+  G_ASSERT(!interlocked_acquire_load(is_in_send));
   vms.erase(vm);
 }
 
 
 void clear_on_reload(HSQUIRRELVM vm)
 {
-  G_ASSERT(!is_iterating_vms);
+  ScopedLockReadTemplate guard(vmsLock);
+  G_ASSERT(!interlocked_acquire_load(is_in_send));
   auto itVm = vms.find(vm);
   if (itVm != vms.end())
+  {
+    ScopedLockWriteTemplate handlerGuard(itVm->second.handlersLock);
     itVm->second.handlers.clear();
+  }
 }
 
 
-HSQUIRRELVM get_vm()
+void do_with_vm(const eastl::function<void(HSQUIRRELVM)> &callback)
 {
+  ScopedLockReadTemplate guard(vmsLock);
   // return any VM to allow creating script objects that will be passed to all VMs
   auto it = vms.begin();
-  return it != vms.end() ? it->first : nullptr;
+  callback(it != vms.end() ? it->first : nullptr);
 }
+
 
 void set_native_event_handler(NativeEventHandler handler) { g_native_event_handler = handler; }
 

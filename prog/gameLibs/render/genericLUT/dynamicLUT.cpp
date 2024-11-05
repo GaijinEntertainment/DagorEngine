@@ -1,5 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/genericLUT/genericLUT.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_computeShaders.h>
 #include <render/genericLUT/dynamicLut.h>
@@ -447,7 +449,7 @@ void DynamicLutManager::showLutWindow(double star_julian_day, double &minute_cha
   if (ImGui::Button(" save "))
     save();
 
-  if (ImGui::InputFloat("", &valueMinute))
+  if (ImGui::InputFloat("##", &valueMinute))
     ImGui::SameLine();
   if (ImGui::Button("add Minute"))
   {

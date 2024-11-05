@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "imguiInputHandler.h"
 
 #include "imgui/imguiInput.h"
@@ -5,10 +7,11 @@
 #include <imgui/imgui.h>
 
 #include <gui/dag_imgui.h>
-#include <humanInput/dag_hiKeybIds.h>
-#include <humanInput/dag_hiKeybData.h>
-#include <humanInput/dag_hiJoystick.h>
-#include <humanInput/dag_hiXInputMappings.h>
+#include <drv/hid/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiKeybData.h>
+#include <drv/hid/dag_hiJoystick.h>
+#include <drv/hid/dag_hiXInputMappings.h>
+#include <drv/hid/dag_hiPointingData.h>
 
 DearImGuiInputHandler::DearImGuiInputHandler()
 {
@@ -19,29 +22,6 @@ DearImGuiInputHandler::DearImGuiInputHandler()
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NavEnableGamepad;
   io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
   io.BackendPlatformName = "imgui_impl_dagor";
-
-  io.KeyMap[ImGuiKey_Tab] = HumanInput::DKEY_TAB;
-  io.KeyMap[ImGuiKey_LeftArrow] = HumanInput::DKEY_LEFT;
-  io.KeyMap[ImGuiKey_RightArrow] = HumanInput::DKEY_RIGHT;
-  io.KeyMap[ImGuiKey_UpArrow] = HumanInput::DKEY_UP;
-  io.KeyMap[ImGuiKey_DownArrow] = HumanInput::DKEY_DOWN;
-  io.KeyMap[ImGuiKey_PageUp] = HumanInput::DKEY_PRIOR;
-  io.KeyMap[ImGuiKey_PageDown] = HumanInput::DKEY_NEXT;
-  io.KeyMap[ImGuiKey_Home] = HumanInput::DKEY_HOME;
-  io.KeyMap[ImGuiKey_End] = HumanInput::DKEY_END;
-  io.KeyMap[ImGuiKey_Insert] = HumanInput::DKEY_INSERT;
-  io.KeyMap[ImGuiKey_Delete] = HumanInput::DKEY_DELETE;
-  io.KeyMap[ImGuiKey_Backspace] = HumanInput::DKEY_BACK;
-  io.KeyMap[ImGuiKey_Space] = HumanInput::DKEY_SPACE;
-  io.KeyMap[ImGuiKey_Enter] = HumanInput::DKEY_RETURN;
-  io.KeyMap[ImGuiKey_Escape] = HumanInput::DKEY_ESCAPE;
-  io.KeyMap[ImGuiKey_KeyPadEnter] = HumanInput::DKEY_NUMPADENTER;
-  io.KeyMap[ImGuiKey_A] = HumanInput::DKEY_A;
-  io.KeyMap[ImGuiKey_C] = HumanInput::DKEY_C;
-  io.KeyMap[ImGuiKey_V] = HumanInput::DKEY_V;
-  io.KeyMap[ImGuiKey_X] = HumanInput::DKEY_X;
-  io.KeyMap[ImGuiKey_Y] = HumanInput::DKEY_Y;
-  io.KeyMap[ImGuiKey_Z] = HumanInput::DKEY_Z;
 }
 
 bool DearImGuiInputHandler::ehIsActive() const { return imgui_get_state() == ImGuiState::ACTIVE; }
@@ -82,12 +62,18 @@ bool DearImGuiInputHandler::gkehButtonDown(const Context &ctx, int btn_idx, bool
   if (imgui_handle_special_keys_down(ctrl, shift, alt, btn_idx, ctx.keyModif))
     return true;
   ImGuiIO &io = ImGui::GetIO();
+
+  io.AddKeyEvent(ImGuiMod_Ctrl, ctrl);
+  io.AddKeyEvent(ImGuiMod_Shift, shift);
+  io.AddKeyEvent(ImGuiMod_Alt, alt);
+
   if (wchar != 0)
     io.AddInputCharacterUTF16(wchar);
-  io.KeysDown[btn_idx] = 1;
-  io.KeyCtrl = ctrl;
-  io.KeyShift = shift;
-  io.KeyAlt = alt;
+
+  eastl::optional<ImGuiKey> imgui_key = map_dagor_key_to_imgui(btn_idx);
+  if (imgui_key.has_value())
+    io.AddKeyEvent(imgui_key.value(), true);
+
   return !hybridInput || ImGui::GetIO().WantCaptureKeyboard;
 }
 
@@ -98,10 +84,15 @@ bool DearImGuiInputHandler::gkehButtonUp(const Context &ctx, int btn_idx)
   if (imgui_handle_special_keys_up(ctrl, shift, alt, btn_idx, ctx.keyModif))
     return true;
   ImGuiIO &io = ImGui::GetIO();
-  io.KeysDown[btn_idx] = 0;
-  io.KeyCtrl = ctrl;
-  io.KeyShift = shift;
-  io.KeyAlt = alt;
+
+  io.AddKeyEvent(ImGuiMod_Ctrl, ctrl);
+  io.AddKeyEvent(ImGuiMod_Shift, shift);
+  io.AddKeyEvent(ImGuiMod_Alt, alt);
+
+  eastl::optional<ImGuiKey> imgui_key = map_dagor_key_to_imgui(btn_idx);
+  if (imgui_key.has_value())
+    io.AddKeyEvent(imgui_key.value(), false);
+
   return !hybridInput || ImGui::GetIO().WantCaptureKeyboard;
 }
 
@@ -112,26 +103,25 @@ bool DearImGuiInputHandler::gjehStateChanged(const Context &ctx, HumanInput::IGe
 
   ImGuiIO &io = ImGui::GetIO();
 
-  auto mapButton = [&](ImGuiNavInput_ nav, int btn_id) { io.NavInputs[nav] = joy->getButtonState(btn_id) ? 1.f : 0.f; };
-  mapButton(ImGuiNavInput_Activate, HumanInput::JOY_XINPUT_REAL_BTN_A);
-  mapButton(ImGuiNavInput_Cancel, HumanInput::JOY_XINPUT_REAL_BTN_B);
-  mapButton(ImGuiNavInput_Menu, HumanInput::JOY_XINPUT_REAL_BTN_X);
-  mapButton(ImGuiNavInput_Input, HumanInput::JOY_XINPUT_REAL_BTN_Y);
-  mapButton(ImGuiNavInput_DpadLeft, HumanInput::JOY_XINPUT_REAL_BTN_D_LEFT);
-  mapButton(ImGuiNavInput_DpadRight, HumanInput::JOY_XINPUT_REAL_BTN_D_RIGHT);
-  mapButton(ImGuiNavInput_DpadUp, HumanInput::JOY_XINPUT_REAL_BTN_D_UP);
-  mapButton(ImGuiNavInput_DpadDown, HumanInput::JOY_XINPUT_REAL_BTN_D_DOWN);
-  mapButton(ImGuiNavInput_FocusPrev, HumanInput::JOY_XINPUT_REAL_BTN_L_SHOULDER);
-  mapButton(ImGuiNavInput_FocusNext, HumanInput::JOY_XINPUT_REAL_BTN_R_SHOULDER);
-  mapButton(ImGuiNavInput_TweakSlow, HumanInput::JOY_XINPUT_REAL_BTN_L_SHOULDER);
-  mapButton(ImGuiNavInput_TweakFast, HumanInput::JOY_XINPUT_REAL_BTN_R_SHOULDER);
+  auto mapButton = [&](ImGuiKey nav, int btn_id) { io.AddKeyEvent(nav, joy->getButtonState(btn_id)); };
+  mapButton(ImGuiKey_GamepadFaceDown, HumanInput::JOY_XINPUT_REAL_BTN_A);
+  mapButton(ImGuiKey_GamepadFaceRight, HumanInput::JOY_XINPUT_REAL_BTN_B);
+  mapButton(ImGuiKey_GamepadFaceLeft, HumanInput::JOY_XINPUT_REAL_BTN_X);
+  mapButton(ImGuiKey_GamepadFaceUp, HumanInput::JOY_XINPUT_REAL_BTN_Y);
+  mapButton(ImGuiKey_GamepadDpadLeft, HumanInput::JOY_XINPUT_REAL_BTN_D_LEFT);
+  mapButton(ImGuiKey_GamepadDpadRight, HumanInput::JOY_XINPUT_REAL_BTN_D_RIGHT);
+  mapButton(ImGuiKey_GamepadDpadUp, HumanInput::JOY_XINPUT_REAL_BTN_D_UP);
+  mapButton(ImGuiKey_GamepadDpadDown, HumanInput::JOY_XINPUT_REAL_BTN_D_DOWN);
+  mapButton(ImGuiKey_GamepadL1, HumanInput::JOY_XINPUT_REAL_BTN_L_SHOULDER);
+  mapButton(ImGuiKey_GamepadR1, HumanInput::JOY_XINPUT_REAL_BTN_R_SHOULDER);
 
   const float lAxisH = joy->getAxisPosRaw(HumanInput::JOY_XINPUT_REAL_AXIS_L_THUMB_H) / float(HumanInput::JOY_XINPUT_MAX_AXIS_VAL);
   const float lAxisV = joy->getAxisPosRaw(HumanInput::JOY_XINPUT_REAL_AXIS_L_THUMB_V) / float(HumanInput::JOY_XINPUT_MAX_AXIS_VAL);
-  io.NavInputs[ImGuiNavInput_LStickLeft] = -lAxisH;
-  io.NavInputs[ImGuiNavInput_LStickRight] = +lAxisH;
-  io.NavInputs[ImGuiNavInput_LStickUp] = +lAxisV;
-  io.NavInputs[ImGuiNavInput_LStickDown] = -lAxisV;
+
+  io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickLeft, lAxisH < 0.f, -lAxisH);
+  io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickRight, lAxisH > 0.f, +lAxisH);
+  io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickUp, lAxisV < 0.f, -lAxisV);
+  io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickDown, lAxisV > 0.f, +lAxisV);
 
   return true;
 }
@@ -141,7 +131,8 @@ bool DearImGuiInputHandler::gtehTouchBegan(const Context &, HumanInput::IGenPoin
 {
   if (activeTouchIdx >= 0)
     return false;
-  enableTouchMode();
+  if (touch.touchSrc != HumanInput::PointingRawState::Touch::TS_emuTouchScreen)
+    enableTouchMode();
   activeTouchIdx = touch_idx;
   ImGui::GetIO().MousePos = ImVec2(touch.x0 + viewPortOffsetX, touch.y0 + viewPortOffsetY);
   ImGui::GetIO().MouseDown[ImGuiMouseButton_Left] = true;
@@ -153,7 +144,8 @@ bool DearImGuiInputHandler::gtehTouchMoved(const Context &, HumanInput::IGenPoin
 {
   if (activeTouchIdx != touch_idx)
     return false;
-  enableTouchMode();
+  if (touch.touchSrc != HumanInput::PointingRawState::Touch::TS_emuTouchScreen)
+    enableTouchMode();
   ImGui::GetIO().MousePos = ImVec2(touch.x + viewPortOffsetX, touch.y + viewPortOffsetY);
   return true;
 }
@@ -163,7 +155,8 @@ bool DearImGuiInputHandler::gtehTouchEnded(const Context &, HumanInput::IGenPoin
 {
   if (activeTouchIdx != touch_idx)
     return false;
-  enableTouchMode();
+  if (touch.touchSrc != HumanInput::PointingRawState::Touch::TS_emuTouchScreen)
+    enableTouchMode();
   ImGui::GetIO().MousePos = ImVec2(touch.x + viewPortOffsetX, touch.y + viewPortOffsetY);
   ImGui::GetIO().MouseDown[ImGuiMouseButton_Left] = false;
   activeTouchIdx = -1;

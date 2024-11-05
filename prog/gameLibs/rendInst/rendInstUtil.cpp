@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "riGen/riUtil.h"
 #include "riGen/genObjUtil.h"
 #include "riGen/riGenData.h"
@@ -91,12 +93,15 @@ int16_t *riutil::get_data_by_desc(const rendinst::RendInstDesc &desc, RendInstGe
     return nullptr;
 
   RendInstGenData::CellRtData &crt = *cell->rtData;
+  G_ASSERTF(!crt.scsRemap.empty(), "Please make full dump");
+  if (crt.scsRemap.empty())
+    return nullptr;
   const RendInstGenData::CellRtData::SubCellSlice &scs = crt.getCellSlice(desc.pool, desc.idx);
   if (!scs.sz || int(desc.offs) < 0 ||
-      (int16_t *)(crt.sysMemData + scs.ofs + desc.offs) >= (int16_t *)(crt.sysMemData + scs.ofs + scs.sz))
+      (int16_t *)(crt.sysMemData.get() + scs.ofs + desc.offs) >= (int16_t *)(crt.sysMemData.get() + scs.ofs + scs.sz))
     return nullptr;
 
-  return (int16_t *)(crt.sysMemData + scs.ofs + desc.offs);
+  return (int16_t *)(crt.sysMemData.get() + scs.ofs + desc.offs);
 }
 
 bool riutil::is_rendinst_data_destroyed(const rendinst::RendInstDesc &desc)
@@ -127,33 +132,29 @@ bool riutil::get_rendinst_matrix(const rendinst::RendInstDesc &desc, RendInstGen
   bool palette_rotation = ri_gen->rtData->riPaletteRotation[desc.pool];
   if (ri_gen->rtData->riPosInst[desc.pool])
   {
-    if (rendinst::is_pos_rendinst_data_destroyed(data))
-      return false;
-
     if (palette_rotation)
     {
       vec4f v_pos, v_scale;
       vec4i v_palette_id;
-      rendinst::gen::unpack_tm_pos(v_pos, v_scale, data, v_cell_add, v_cell_mul, palette_rotation, &v_palette_id);
+      if (!rendinst::gen::unpack_tm_pos(v_pos, v_scale, data, v_cell_add, v_cell_mul, palette_rotation, &v_palette_id))
+        return false;
 
       rendinst::gen::RotationPaletteManager::Palette palette =
         rendinst::gen::get_rotation_palette_manager()->getPalette({crt.rtData->layerIdx, desc.pool});
       quat4f v_rot = rendinst::gen::RotationPaletteManager::get_quat(palette, v_extract_xi(v_palette_id));
 
       v_mat44_compose(out_tm, v_pos, v_rot, v_scale);
+      return true;
     }
     else
     {
-      rendinst::gen::unpack_tm_pos(out_tm, data, v_cell_add, v_cell_mul, palette_rotation);
+      return rendinst::gen::unpack_tm_pos(out_tm, data, v_cell_add, v_cell_mul, palette_rotation);
     }
   }
   else
   {
-    if (rendinst::is_tm_rendinst_data_destroyed(data))
-      return false;
-    rendinst::gen::unpack_tm_full(out_tm, data, v_cell_add, v_cell_mul);
+    return rendinst::gen::unpack_tm_full(out_tm, data, v_cell_add, v_cell_mul);
   }
-  return true;
 }
 
 bool riutil::get_cell_by_desc(const rendinst::RendInstDesc &desc, RendInstGenData::Cell *&cell)
@@ -188,10 +189,10 @@ int16_t *riutil::get_data_by_desc_no_subcell(const rendinst::RendInstDesc &desc,
   const RendInstGenData::CellRtData::SubCellSlice &lastScs =
     crt.getCellSlice(desc.pool, RendInstGenData::SUBCELL_DIV * RendInstGenData::SUBCELL_DIV - 1);
   if (int(desc.offs) < 0 ||
-      (int16_t *)(crt.sysMemData + firstScs.ofs + desc.offs) >= (int16_t *)(crt.sysMemData + lastScs.ofs + lastScs.sz))
+      (int16_t *)(crt.sysMemData.get() + firstScs.ofs + desc.offs) >= (int16_t *)(crt.sysMemData.get() + lastScs.ofs + lastScs.sz))
     return nullptr;
 
-  return (int16_t *)(crt.sysMemData + firstScs.ofs + desc.offs);
+  return (int16_t *)(crt.sysMemData.get() + firstScs.ofs + desc.offs);
 }
 
 int riutil::get_data_offs_from_start(const rendinst::RendInstDesc &desc)
@@ -235,21 +236,15 @@ bool riutil::extract_buffer_data(const rendinst::RendInstDesc &desc, RendInstGen
   return true;
 }
 
-void riutil::remove_rendinst(const rendinst::RendInstDesc &desc, RendInstGenData *ri_gen, bbox3f_cref crt_bbox, int16_t *data)
+void riutil::remove_rendinst(const rendinst::RendInstDesc &desc, RendInstGenData *ri_gen, RendInstGenData::CellRtData &crt,
+  int16_t *data)
 {
   if (desc.isRiExtra())
     return; //== what should it DO?
+  auto mrange = make_span_const(crt.sysMemData.get(), crt.vbSize);
   if (ri_gen->rtData->riPosInst[desc.pool])
-  {
-    if (rendinst::is_pos_rendinst_data_destroyed(data))
-      return;
-    rendinst::destroy_pos_rendinst_data(data);
-  }
+    rendinst::destroy_pos_rendinst_data(data, mrange);
   else
-  {
-    if (rendinst::is_tm_rendinst_data_destroyed(data))
-      return;
-    rendinst::destroy_tm_rendinst_data(data);
-  }
-  world_version_inc(crt_bbox);
+    rendinst::destroy_tm_rendinst_data(data, mrange);
+  world_version_inc(crt.bbox[0]);
 }

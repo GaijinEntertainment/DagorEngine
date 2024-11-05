@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <consoleKeyBindings/consoleKeyBindings.h>
 
 namespace console_keybindings

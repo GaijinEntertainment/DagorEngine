@@ -1,0 +1,208 @@
+#  to be included in jBuild.jam
+
+rule ProcessCompileTarget
+{
+  #  basic opts: warning/remark suppressing, additional includes etc.
+  local _SUPPRESS_OPT = ;
+  local _CONFIG_OPT = ;
+  local pre_opt = ;
+  local post_opt = ;
+
+  if $(StrictCompile) = yes
+  {
+    #  suppressed warnigs list (marked with x are not suppressed now):
+    #   C4265  'XXX' : class has virtual functions, but destructor is not virtual
+    #   C4127  conditional expression is constant
+    # x C4100  'XXX' : unreferenced formal parameter
+    # x   981  operands are evaluated in unspecified order
+    # x   383  value copied to temporary, reference to temporary used
+    # x   310  old-style parameter list (anachronism)
+    # x   174  expression has no effect
+    # x   111  statement is unreachable
+    # x   271  trailing comma is nonstandard
+    #   C4514  'XXX' : unreferenced inline function has been removed
+    #   C4061  enumerator 'XXX' in switch of enum 'YYY' is not explicitly handled by a case label
+    #   C4062  enumerator 'XXX' in switch of enum 'YYY' is not handled
+    #   C4820  'XXX' : 'N' bytes padding added after data member 'XXX::YYY'
+    #   C4324  'XXX' : structure was padded due to __declspec(align())
+    #   C4668  'XXX' is not defined as a preprocessor macro, replacing with '0' for '#if/#elif'
+    #   C4619  pragma warning : there is no warning number 'NNN'
+    #   C4365  'XXX' : conversion from 'TYPE1' to 'TYPE2', signed/unsigned mismatch
+    #   C4302  'type cast' : truncation from 'TYPE1' to 'TYPE2'
+    #   C4244  '=' : conversion from 'TYPE1' to 'TYPE2', possible loss of data
+    #   C4242  'argument' : conversion from 'TYPE1' to 'TYPE2', possible loss of data
+    #   C4245  'argument' : conversion from 'TYPE1' to 'TYPE2', signed/unsigned mismatch
+    #   C4101  'XXX' : unreferenced local variable
+    #   C4201  nonstandard extension used : nameless struct/union
+    #   C4625  'XXX' : copy constructor could not be generated because a base class copy constructor is inaccessible
+    #   C4626  'XXX' : assignment operator could not be generated because a base class assignment operator is inaccessible
+    #   C4800  'int' : forcing value to bool 'true' or 'false' (performance warning)
+    #   C4018  '<' : signed/unsigned mismatch
+    #   C4710  'XXX' : function not inlined
+    #   C4291  'void *operator new(size_t,IMemAlloc *)' : no matching operator delete found; memory will not be freed if initialization throws an exception
+    #   C4389  '!=' : signed/unsigned mismatch
+    #   C4200  nonstandard extension used : zero-sized array in struct/union
+    #   C4255  'XXX' : no function prototype given: converting '()' to '(void)'
+    #   C4711  function 'XXX' selected for automatic inline expansion
+    #   C4355  'this' : used in base member initializer list
+    #   C4640  'XXX' : construction of local static object is not thread-safe
+    # x C4714  function 'XXX' marked as __forceinline not inlined
+    #   C4305  'initializing' : truncation from 'double' to 'real'
+    #   C4511  'XXX' : copy constructor could not be generated
+    #   C4512  'XXX' : assignment operator could not be generated
+    #   C4305  'XXX' : truncation from 'double' to 'float'
+    #   C4738  storing 32-bit float result in memory, possible loss of performance
+    #   C4996  'stricmp' was declared deprecated
+    #   C4740  macro redefinition
+    #   C4702  unreachable code
+    #   C4826: Conversion from 'const void *' to 'void * __ptr64' is sign-extended. This may cause unexpected runtime behavior.
+    #   C4503  decorated name length exceeded, name was truncated
+    #   C4748: /GS can not protect parameters and local variables from local buffer overrun because optimizations are disabled in function
+    #   C4987: nonstandard extension used: 'throw (...)'
+    #   C4574: '_SECURE_SCL' is defined to be '0': did you mean to use '#if _SECURE_SCL'?
+    #   C4554: '>>' : check operator precedence for possible error; use parentheses to clarif
+    #   C4471: 'bar' : a forward declaration of an unscoped enumeration must have an underlying type (int assumed)
+    #   C4350: behavior change: 'std::...' called instead of 'std::...'
+    #   C4370  layout of class has changed from a previous version of the compiler due to better packing
+    #   C4371  layout of class may have changed from a previous version of the compiler due to better packing of member
+
+    _SUPPRESS_OPT = -Wall -WX /wd4514 /wd4061 /wd4820 /wd4668 /wd4619
+                    /wd4365 /wd4127 /wd4302 /wd4242 /wd4244 /wd4265
+                    /wd4101 /wd4201 /wd4625 /wd4626 /wd4800 /wd4018
+                    /wd4710 /wd4245 /wd4291 /wd4389 /wd4200 /wd4255
+                    /wd4711 /wd4062 /wd4355 /wd4640 /wd4305 /wd4324
+                    /wd4511 /wd4512 /wd4305 /wd4738 /wd4996 /wd4005
+                    /wd4740 /wd4702 /wd4826 /wd4503 /wd4748 /wd4987
+                    /wd4574 /wd4554 /wd4471 /wd4350 /wd4370 /wd4371
+                    #/wd444 /wd279 /wd981 /wd383 /wd310 /wd174 /wd111 /wd271 /wd4714 ;
+    ;
+  }
+  else
+  {
+    _SUPPRESS_OPT = -W3 /wd4244 /wd4101 /wd4800 /wd4018 /wd4291 /wd4200 /wd4355 /wd4305
+                    /wd4996 /wd4005 /wd4740 /wd4748 /wd4324 /wd4503 /wd4574 /wd4554
+                    #warning C4263: 'void B::f(int)' : member function does not override any base class virtual member function
+                    #/w14263
+                    #warning C4264: 'void A::f(void)' : no override available for virtual member function from base 'A'; function is hidden
+                    #/w14264
+    ;
+  }
+
+  switch $(Config) {
+    case dev :
+      _CONFIG_OPT = /Ox /GF /Gy /Oi /Ot /Zi /Oy-  -DDAGOR_DBGLEVEL=1 ;           # /Ob0 - internal compiler error workaround.
+    case rel :
+      _CONFIG_OPT = /Ox /GF /Gy /Oi /Ot /Zi /Oy- -DDAGOR_DBGLEVEL=0 -DNDEBUG=1 -D_SECURE_SCL=0 ;
+    case irel :
+      _CONFIG_OPT = /Ox /GF /Gy /Oi /Ot /Zi /Oy- -DDAGOR_DBGLEVEL=-1 -DNDEBUG=1 -D_SECURE_SCL=0 ;
+    case dbg :
+      _CONFIG_OPT = /Zi /Od /RTC1 -DDAGOR_DBGLEVEL=2 ;
+    case * :
+      _CONFIG_OPT = ;
+  }
+  if $(BuildDagorEngineIndependentCode) = yes {
+    _CONFIG_OPT = $(_GlobCopt_Optimize) ;
+    if $(Config) in rel irel { _CONFIG_OPT += -DNDEBUG=1 -D_SECURE_SCL=0 ; }
+  }
+
+  if $(Exceptions) != yes {
+    _CONFIG_OPT += -D_HAS_EXCEPTIONS=0 -DEA_COMPILER_NO_NOEXCEPT ;
+  } else {
+    if $(CatchSEH) != yes {
+      _CONFIG_OPT += /EHsc -DDAGOR_EXCEPTIONS_ENABLED=1 ;
+    } else {
+      _CONFIG_OPT += /EHac -DDAGOR_EXCEPTIONS_ENABLED=1 ;
+    }
+  }
+
+  if $(Rtti) != yes {
+    _CONFIG_OPT += /GR- ;
+  }
+
+  if $(Config) != dbg {
+    _CONFIG_OPT += $(_VC_CRT_TYPE) ;
+  } else {
+    _CONFIG_OPT += $(_VC_CRT_TYPE)d ;
+  }
+
+  if $(BuildDagorEngineIndependentCode) != yes && $(KernelLinkage) = static { _CONFIG_OPT += -D_TARGET_STATIC_LIB=1 ; }
+  if $(UseWholeOpt) = yes      { _CONFIG_OPT += /GL ; }
+
+  _CPP_OPT = -I$(AddIncludes) $(_CONFIG_OPT) $(_SUPPRESS_OPT) $(CPPopt) $(GlobalCPPopt) ;
+
+  include $(Root)/prog/_jBuild/_vc/add_fp_fast.jam ;
+  $(Target)__CPP_OPT = -FImemory/dag_memBase.h $(post_opt) $(_CPP_OPT) -TP ;
+  if $(BuildDagorEngineIndependentCode) = yes { $(Target)__CPP_OPT = $(post_opt) $(_CPP_OPT) -TP ; }
+  $(Target)__C_OPT   = $(post_opt) $(Copt) $(_CPP_OPT) ;
+  $(Target)__ASM_OPT = -I$(AddIncludes) $(ASMopt) ;
+  $(Target)__PRE_OPT = $(pre_opt) ;
+  include $(Root)/prog/_jBuild/_vc/add_fd_opt.jam ;
+}
+
+
+rule DepRule
+{
+  local changed_dep = ;
+
+  # add $(Root) prefix when needed
+  for dep in $(>)
+  {
+    switch $(dep)
+    {
+      case ?:* : changed_dep += $(dep) ;   # absolute path with drive
+      case \\* : changed_dep += $(dep) ;   # absolute path with root foolder (\)
+      case /*  : changed_dep += $(dep) ;   # absolute path with root foolder (/)
+      case *   : changed_dep += $(Root)/$(dep) ; # relative path, add $(Root) prefix
+    }
+  }
+  Includes $(<) : $(changed_dep) ;
+  null_action $(changed_dep) ;
+}
+
+
+rule CheckHeaders
+{
+  Depends $(<) : $(>) ;
+  NoCare $(>) ; # tolerant to .d absence
+  NOUPDATE $(>) ; # tolerant to .d timestamp
+
+  # scan line for header, skipping any ../ at the beginning [will be prefixed with $(Root)]
+  HDRSCAN   on $(>) = "^.*: [\.\\\/]*([^\
+]*).*$" ;
+  HDRRULE   on $(>) = DepRule ;
+}
+
+
+actions together quietly compile_cpp
+{
+#async
+  $(VC_START_SHOW_INCLUDES_FILTER)
+  set_filter $(1:S=.d) /$(VC_SHOW_INCLUDES_FILTER_PREFIX)(.+)/d1 $(1:G=:D=): $1
+  call_filtered $(_CPP_COMPILER) $(pre_opt) $(_CPP_BASE_INCLUDES) $(cpp_opt) -showIncludes #\(-Fo$(1) $(2:G=))\#
+  if errorlevel 1 goto failed
+  if not exist $(1) goto failed
+  goto end
+  :failed
+  set ERRORLEVEL=13
+  :end
+
+  clr_filters
+}
+
+actions together quietly compile_c
+{
+#async
+  $(VC_START_SHOW_INCLUDES_FILTER)
+  set_filter $(1:S=.d) /$(VC_SHOW_INCLUDES_FILTER_PREFIX)(.+)/d1 $(1:G=:D=): $1
+  call_filtered $(_C_COMPILER) $(pre_opt) $(_C_BASE_INCLUDES) $(c_opt) -showIncludes #\(-Fo$(1) $(2:G=))\#
+  if errorlevel 1 goto failed
+  if not exist $(1) goto failed
+  goto end
+  :failed
+  set ERRORLEVEL=13
+  :end
+
+  clr_filters
+}
+
+include $(Root)/prog/_jBuild/_vc/win_rc.jam ;

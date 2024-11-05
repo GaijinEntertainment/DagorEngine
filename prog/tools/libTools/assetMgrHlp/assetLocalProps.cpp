@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <assets/assetHlp.h>
 #include <assets/asset.h>
 #include <osApiWrappers/dag_direct.h>

@@ -56,7 +56,7 @@ namespace das {
         TypeDecl(const StructurePtr & sp) : baseType(Type::tStructure), structType(sp.get()) {}
         TypeDecl(const EnumerationPtr & ep);
         TypeDeclPtr visit ( Visitor & vis );
-        friend TextWriter& operator<< (TextWriter& stream, const TypeDecl & decl);
+        friend StringWriter& operator<< (StringWriter& stream, const TypeDecl & decl);
         string getMangledName ( bool fullName=false ) const;
         void getMangledName ( FixedBufferTextWriter & tw, bool fullName=false ) const;
         bool canAot() const;
@@ -93,6 +93,7 @@ namespace das {
         bool isShareable(das_set<Structure*> & dep) const;
         bool isShareable() const;
         bool isIndex() const;
+        bool isIndexExt() const;
         bool isBool() const;
         bool isInteger() const;
         bool isSignedInteger() const;
@@ -104,6 +105,7 @@ namespace das {
         bool isNumericStorage() const;
         bool isNumericComparable() const;
         __forceinline bool isPointer() const;
+        __forceinline bool isSmartPointer() const;
         __forceinline bool isVoidPointer() const;
         __forceinline bool isIterator() const;
         __forceinline bool isLambda() const;
@@ -148,6 +150,7 @@ namespace das {
         bool isRawPod() const;
         bool isNoHeapType() const;
         bool isWorkhorseType() const; // we can return this, or pass this
+        bool isTableKeyType() const;  // workhorse or by value annotation
         bool isPolicyType() const;
         bool isVecPolicyType() const;
         bool isReturnType() const;
@@ -162,6 +165,7 @@ namespace das {
         bool isAutoOrAlias() const;
         bool isAutoWithoutOptions(bool & appendHasOptions) const;
         bool isAotAlias () const;
+        bool isAliasOrA2A(bool a2a) const;
         bool isAlias() const;
         bool isAliasOrExpr() const;
         __forceinline bool isVectorType() const;
@@ -185,8 +189,12 @@ namespace das {
         bool hasNonTrivialCopy( das_set<Structure*> & dep ) const;
         bool canBePlacedInContainer() const;
         bool canBePlacedInContainer( das_set<Structure*> & dep ) const;
+        bool unsafeInit() const;
+        bool unsafeInit( das_set<Structure*> & dep ) const;
         bool needInScope() const;
         bool needInScope( das_set<Structure*> & dep ) const;
+        bool hasStringData() const;
+        bool hasStringData( das_set<void*> & dep ) const;
         Annotation * isPointerToAnnotation() const;
         Type getVectorBaseType() const;
         int getVectorDim() const;
@@ -212,6 +220,11 @@ namespace das {
         void collectAliasing ( TypeAliasMap & aliases, das_set<Structure *> & dep, bool viaPointer ) const;
         void collectContainerAliasing ( TypeAliasMap & aliases, das_set<Structure *> & dep, bool viaPointer ) const;
         void serialize ( AstSerializer & ser );
+        string typeMacroName() const;
+        uint64_t getOwnSemanticHash() const;
+        uint64_t getOwnSemanticHash(HashBuilder & hb, das_set<Structure *> & dep, das_set<Annotation *> & adep) const;
+        uint64_t getSemanticHash() const;
+        uint64_t getSemanticHash(HashBuilder & hb) const;
     public:
         Type                    baseType = Type::tVoid;
         Structure *             structType = nullptr;
@@ -241,6 +254,8 @@ namespace das {
                 bool    isNativeDim : 1;
                 bool    isTag: 1;
                 bool    explicitRef : 1;
+                bool    isPrivateAlias : 1;    // this is a private alias. only matters in the context of module aliasTypes (for now)
+                bool    autoToAlias : 1;       // this allows conversion of auto to alias
             };
             uint32_t flags = 0;
         };
@@ -255,6 +270,14 @@ namespace das {
 #endif
     };
 
+    struct MatchingOptionError {
+        TypeDeclPtr optionType;
+        TypeDeclPtr option1;
+        TypeDeclPtr option2;
+    };
+
+    void findMatchingOptions ( const TypeDeclPtr & type, vector<MatchingOptionError> & matching );
+
     template <typename TT> struct ToBasicType {
         enum { type = Type::none };
         static_assert( int(type)!=int(Type::none),"This type is not supported or not bound. For the bound type missing or not included are "
@@ -265,6 +288,7 @@ namespace das {
     template<> struct ToBasicType<EnumStub>     { enum { type = Type::tEnumeration }; };
     template<> struct ToBasicType<EnumStub8>    { enum { type = Type::tEnumeration8 }; };
     template<> struct ToBasicType<EnumStub16>   { enum { type = Type::tEnumeration16 }; };
+    template<> struct ToBasicType<EnumStub64>   { enum { type = Type::tEnumeration64 }; };
     template<> struct ToBasicType<Sequence>     { enum { type = Type::tIterator }; };
     template<> struct ToBasicType<Sequence *>   { enum { type = Type::tIterator }; };
     template<> struct ToBasicType<void *>       { enum { type = Type::tPointer }; };
@@ -294,7 +318,7 @@ namespace das {
     template<> struct ToBasicType<long double>      { enum { type = Type::tDouble }; };
     template<> struct ToBasicType<wchar_t>          { enum { type = Type::tUInt16 }; };
 #endif
-#if defined(__linux__)
+#if defined(__linux__) || defined(_TARGET_C1) || defined(_TARGET_C2)
     template<> struct ToBasicType<long long int>      { enum { type = Type::tInt64 }; };
     template<> struct ToBasicType<unsigned long long int>     { enum { type = Type::tUInt64 }; };
 #endif
@@ -630,7 +654,7 @@ namespace das {
 
     bool isCircularType ( const TypeDeclPtr & type );
     bool hasImplicit ( const TypeDeclPtr & type );
-    bool isMatchingArgumentType (TypeDeclPtr argType, TypeDeclPtr passType);
+    bool isMatchingArgumentType ( const TypeDeclPtr & argType, const TypeDeclPtr & passType );
 
     enum class CpptSubstitureRef { no, yes };
     enum class CpptSkipRef { no, yes };
@@ -681,7 +705,7 @@ namespace das {
     }
 
     __forceinline bool TypeDecl::isTempType(bool refMatters) const {
-        return (ref && refMatters) || isRefType() || isPointer() || isString() || baseType==Type::tIterator;
+        return (ref && refMatters) || isRefType() || isPointer() || isString() || baseType==Type::tIterator || baseType==Type::autoinfer || baseType==Type::alias;
     }
 
     __forceinline bool TypeDecl::isHandle() const {
@@ -711,7 +735,7 @@ namespace das {
     __forceinline bool TypeDecl::isSimpleType() const {
         if ( baseType==Type::none || baseType==Type::tVoid
             || baseType==Type::autoinfer || baseType==Type::alias || baseType==Type::option
-            || baseType==Type::anyArgument ) return false;
+            || baseType==Type::anyArgument || baseType==Type::typeDecl || baseType==Type::typeMacro ) return false;
         return !isRefType();
     }
 
@@ -755,6 +779,10 @@ namespace das {
         return (baseType==Type::tPointer) && (dim.size()==0);
     }
 
+    __forceinline bool TypeDecl::isSmartPointer() const {
+        return (baseType==Type::tPointer) && (smartPtr) && (dim.size()==0);
+    }
+
     __forceinline bool TypeDecl::isVoidPointer() const {
         return isPointer() && (!firstType || firstType->isVoid());
     }
@@ -773,7 +801,7 @@ namespace das {
 
     __forceinline bool TypeDecl::isEnumT() const {
         return (baseType==Type::tEnumeration) || (baseType==Type::tEnumeration8)
-            || (baseType==Type::tEnumeration16);
+            || (baseType==Type::tEnumeration16) || (baseType==Type::tEnumeration64);
     }
 
     __forceinline bool TypeDecl::isEnum() const {

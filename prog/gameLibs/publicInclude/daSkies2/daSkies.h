@@ -1,11 +1,11 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <3d/dag_resPtr.h>
+#include <drv/3d/dag_renderPass.h>
 #include <generic/dag_carray.h>
 #include <generic/dag_smallTab.h>
 #include <shaders/dag_postFxRenderer.h>
@@ -245,7 +245,7 @@ public:
   void skiesDataScatteringVolumeBarriers(SkiesData *data);
   // if sky_quality_div>1, additional textures required
   void changeSkiesData(int sky_detail_level, int clouds_detail_level, bool fly_through_clouds, int targetW, int targetH,
-    SkiesData *data, CloudsResolution clouds_resolution = CloudsResolution::Default);
+    SkiesData *data, CloudsResolution clouds_resolution = CloudsResolution::Default, bool use_blurred_clouds = false);
   void initSky(int clouds_fog_resolution = 32, uint32_t skyfmt = 0xFFFFFFFF, bool useHole = true);
   void closeSky();
   void updateCloudsOrigin();
@@ -273,10 +273,12 @@ public:
   // won't affect wind and other cloudsOffset
   // hole_target_pos - that wont be in shadow, density - amount of shadow
   void resetCloudsHole(const Point3 &hole_target_pos, const float &hole_density = 0);
-  void resetCloudsHole();                     // but basically removes clouds hole. call updatePanorama right after, if you have one
-  void setUseCloudsHole(bool set);            // finding hole can be disabled to avoid sky jumping around while changing params
+  void resetCloudsHole();          // but basically removes clouds hole. call updatePanorama right after, if you have one
+  void setUseCloudsHole(bool set); // finding hole can be disabled to avoid sky jumping around while changing params
+  bool getUseCloudsHole() const;
   Point2 getCloudsHolePosition() const;       // that's for debug only!
   void setCloudsHolePosition(const Point2 &); // that's for debug only!
+  void setExternalWeatherTexture(TEXTUREID tid);
 
   DPoint2 getCloudsOrigin() const { return DPoint2(cloudsOrigin.x, cloudsOrigin.z); }
   DPoint2 getStrataCloudsOrigin() const { return DPoint2(cloudsOrigin.strataX, cloudsOrigin.strataZ); }
@@ -340,7 +342,7 @@ public:
   void closePanorama();
   void initPanorama(SkiesData *main, bool blend_two, int resolutionW, int resolutionH = 0, // if resolutionH <=0 it will be
                                                                                            // resolutionW/2
-    bool compress_panorama = false, bool sky_panorama_patch_enabled = true);
+    bool compress_panorama = false, bool sky_panorama_patch_enabled = true, bool allow_async_pipelines_feedback = false);
   bool panoramaEnabled() const
   {
     return (bool(cloudsPanoramaTex[0]) || bool(compressedCloudsPanoramaTex)) && !panoramaTemporarilyDisabled;
@@ -423,6 +425,7 @@ public:
 
   // volumetric cloud raymarching can skip samples with low thickness
   float getMinCloudThickness() const { return minCloudThickness; }
+  void setMinCloudThickness(float v) { minCloudThickness = v; }
 
   void enablePanoramaDownsampledDepth(bool state)
   {
@@ -486,14 +489,19 @@ protected:
 
   bool updatePanorama(const Point3 &origin, const TMatrix &view_tm, const TMatrix4 &proj_tm);
   void renderPanorama(const Point3 &origin, const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp);
-  void downsamplePanoramaDepth();
+  void downsamplePanoramaDepth(UniqueTex &depth, UniqueTexHolder &downsampled_depth);
+  void createPanoramaDepthTexHelper(UniqueTex &depth, const char *depth_name, UniqueTexHolder &downsampled_depth,
+    const char *downsampled_depth_name, int w, int h, int addru, int addrv);
   void createPanoramaDepthTex();
+  void createDepthPanoramaPatchTex();
 
   void createCloudsPanoramaTex(bool blend_two, int resolution_width, int resolution_height);
   void clearUncompressedPanoramaTex();
 
   void startUseOfCompressedTex();
   void initPanoramaCompression(int width, int height);
+
+  virtual bool canRenderStars() const { return skyStars; }
 
   bool isPanoramaDepthTexReady = false;
   struct CloudsOrigin
@@ -527,14 +535,15 @@ protected:
 
   UniqueTex cloudsPanoramaSplitTex;
   bool cleanupPanoramaSplitTex = false;
+  bool allowCloudsPanoramaSplit = false;
   d3d::RenderPass *cloudsPanoramaSplitRP = nullptr;
   void createCloudsPanoramaSplitResources(int resolution_width, int resolution_height);
   void destroyCloudsPanoramaSplitResources();
   void createCloudsPanoramaSplitTex(int resolution_width, int resolution_height);
 
   carray<UniqueTex, 3> cloudsPanoramaTex, cloudsPanoramaPatchTex; // fixme: we need couple for blending + 1 for 'volume fog'
-  UniqueTex cloudsDepthPanoramaTex;
-  UniqueTexHolder cloudsDepthDownsampledPanoramaTex;
+  UniqueTex cloudsDepthPanoramaTex, cloudsDepthPanoramaPatchTex;
+  UniqueTexHolder cloudsDepthDownsampledPanoramaTex, cloudsDepthDownsampledPanoramaPatchTex;
   UniqueTexHolder cloudsAlphaPanoramaTex;
   UniqueTexHolder skyPanoramaTex;
   UniqueTexHolder cloudsPanoramaMipTex;
@@ -589,6 +598,7 @@ protected:
   Point3 panorama_sun_light_dir = {0, 0, 0};
   Point3 panorama_render_origin = {0, 0, 0};
   float panoramaReprojectionWeight = 0.5f; // 0 - we don't use reprojection, 1 - we fully reproject
+  bool panoramaAllowAsyncPipelineFeedback = false;
 
   Point3 real_skies_sun_light_dir;
   float moonEffect = 0, sunEffect = 1;

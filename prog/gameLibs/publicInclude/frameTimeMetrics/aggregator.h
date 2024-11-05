@@ -1,12 +1,14 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
+#include <math/integer/dag_IPoint2.h>
+
 #include <EASTL/string.h>
 #include <EASTL/fixed_string.h>
+#include <EASTL/optional.h>
 
 class HudPrimitives;
 
@@ -20,7 +22,7 @@ enum class PerfDisplayMode
 
 class FrameTimeMetricsAggregator
 {
-  eastl::fixed_string<char, 48> fpsText;
+  eastl::fixed_string<char, 64> fpsText;
   eastl::string latencyText;
   // This ensures that all instances refresh in sync
   int lastPeriod = 0;
@@ -39,6 +41,7 @@ class FrameTimeMetricsAggregator
   float lastAverageLatencyR = 0.f;
   PerfDisplayMode displayMode = PerfDisplayMode::OFF;
   bool achtung = false;
+  eastl::optional<IPoint2> renderingResolution;
 
 public:
   void update(float current_time_msec, uint32_t frame_no, float dt, PerfDisplayMode display_mode);
@@ -54,6 +57,7 @@ public:
   float getLastAverageRenderLatency() const { return lastAverageLatencyR; }
   PerfDisplayMode getDisplayMode() const { return displayMode; }
   uint32_t getColorForFpsInfo() const;
+  void setRenderingResolution(const eastl::optional<IPoint2> &resolution) { renderingResolution = resolution; }
 };
 
 enum QualityColors

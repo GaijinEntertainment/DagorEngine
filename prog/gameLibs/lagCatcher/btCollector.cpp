@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "btCollector.h"
 #include <new>
 #include <string.h>

@@ -1,0 +1,142 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "dagi_media_scene_common.dshl"
+include "postfx_inc.dshl"
+include "viewVecVS.dshl"
+include "globtm.dshl"
+
+shader dagi_media_scene_debug, dagi_media_scene_trace_debug
+{
+  ENABLE_ASSERT(ps)
+  supports global_const_block;
+  supports global_frame;
+  supports none;
+  cull_mode = none;
+  USE_AND_INIT_VIEW_VEC_VS()
+  POSTFX_VS_VIEWVEC(1, viewvec)
+  (ps) {debug_world_view_pos@f3 = world_view_pos;}
+
+  INIT_ZNZFAR()
+  USE_DECODE_DEPTH()
+  INIT_LOAD_DEPTH_GBUFFER()
+  USE_LOAD_DEPTH_GBUFFER()
+  DAGI_MEDIA_SCENE_SAMPLE_ON(ps)
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  blend_src = 1;
+  blend_dst = sa;
+
+  hlsl(ps) {
+    void getMediaVoxelBox(uint cascade, out float3 bmin, out float3 bmax)
+    {
+      int4 lt = sample_dagi_media_scene_clipmap_lt_coord(cascade);
+      float voxelSize = asfloat(lt.w);
+      bmin = lt.xzy*voxelSize;
+      bmax = bmin + dagi_media_scene_get_clip_size().xyx*voxelSize;
+    }
+    float getMediaVoxelSize(uint cascade)
+    {
+      return dagi_media_scene_voxel_size(cascade);
+    }
+
+    #include <base_wooray3d.hlsl>
+    float2 get_box_offset(uint cascade, float3 wpos, float3 wdir)
+    {
+      float3 bmin, bmax;
+      getMediaVoxelBox(cascade, bmin, bmax);
+      return rayBoxIntersect(bmin, bmax, wpos, wdir);
+    }
+
+    float4 dagi_load_media(int3 texelCoord, uint cascade)
+    {
+      int4 lt = sample_dagi_media_scene_clipmap_lt_coord(cascade);
+      if (any(uint3(texelCoord - lt.xyz) >= dagi_media_scene_get_clip_size().xxy))
+        return 0;
+      uint3 targetCoord = dagi_media_scene_wrapped_coord_from_abs_coord(texelCoord);
+      targetCoord.z += 1 + cascade*dagi_media_scene_get_clip_size_with_border();
+      return texture3DAt(dagi_media_scene, targetCoord);
+    }
+
+    bool raycast_woo(uint cascade, float3 wpos, float3 wdir, float maxDist, inout float dist, inout float4 result)
+    {
+      float2 startEnd = get_box_offset(cascade, wpos, wdir);
+      float startT = max(dist, startEnd.x);
+      if (startT >= startEnd.y)
+        return false;
+      //pt = 0;
+      //result = dist*0.01;
+      //dist = startEnd.y;
+      //return true;
+      maxDist = min(startEnd.y, maxDist) - startT;
+
+      float3 bmin, bmax;
+      getMediaVoxelBox(cascade, bmin, bmax);
+
+      float3 worldPos = wpos + startT*wdir;
+      float bwd = getMediaVoxelSize(cascade);
+      WooRay3d ray = initWoo(worldPos.xzy, wdir.xzy, bwd);
+      int3 diff = abs(int3(floor((worldPos.xzy + wdir.xzy*maxDist)/bwd)) - ray.pt);
+
+      int n = 4*dot(diff, 1)+1;
+      float t = 0, oldT = 0;
+
+      int cnt = n;
+      LOOP
+      for (;n;n--) {
+        float4 media = dagi_load_media(ray.pt, cascade);
+        if (all(result.w < 1e-5))
+          return true;
+        nextCell(ray, t);
+
+        float delta = t - oldT;oldT = t;
+        //result *= exp2(-dist*media);
+        half sigmaE = max(1e-6, media.w);
+        half3 S = media.xyz;// incoming light
+        float stepTransmittance = exp2(-sigmaE * delta);
+        half3 Sint = (S - S * stepTransmittance) / sigmaE;   // integrate along the current step segment
+        result.rgb += result.w * Sint; // accumulate and also take into account the transmittance from previous steps
+        result.w *= stepTransmittance;
+
+        if (t >= maxDist)
+          break;
+      }
+      dist = maxDist + startT;
+      return false;//half4(0,1,0,1);
+    }
+
+
+    #define MAX_DIST 200
+    //#define FIXED_LOOP_COUNT 1
+
+    #include <pixelPacking/ColorSpaceUtility.hlsl>
+    half4 lit_raycast_woo(float3 wpos, float3 wdir, float maxT, inout float t)
+    {
+      half4 color = half4(0,0,0,1);
+      for (uint cascade = 0; cascade < dagi_media_scene_get_clip_count(); ++cascade)
+      {
+        t = max(0, t - sqrt(3.)*getMediaVoxelSize(cascade));
+        if (raycast_woo(cascade, wpos, wdir, maxT, t, color))
+          break;
+      }
+      return color;
+    }
+
+    float4 debug_rasterize_ps(VsOutput IN HW_USE_SCREEN_POS) : SV_Target
+    {
+      float3 viewDir = normalize(IN.viewvec);
+      float t = 0;
+      float4 screenpos = GET_SCREEN_POS(IN.pos);
+      float maxT = linearize_z(loadGbufferDepth(screenpos.xy), zn_zfar.zw);
+      maxT = 200;
+      ##if shader == dagi_media_scene_trace_debug
+      //return dagi_trace_media_scene_short(debug_world_view_pos, viewDir, maxT);
+      float4 r = dagi_trace_media_scene(debug_world_view_pos, viewDir, maxT);
+      ##else
+      float4 r = lit_raycast_woo(debug_world_view_pos, viewDir, maxT, t);
+      ##endif
+      r.rgb = pack_hdr(r.rgb);
+      return r;
+    }
+  }
+  compile("target_ps", "debug_rasterize_ps");
+}

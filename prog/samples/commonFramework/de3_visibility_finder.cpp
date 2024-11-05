@@ -1,7 +1,11 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <scene/dag_visibility.h>
-#include <render/dag_cur_view.h>
+#include <scene/dag_occlusion.h>
 #include "de3_visibility_finder.h"
+#include "dag_cur_view.h"
 
 void update_visibility_finder(VisibilityFinder &vf) // legacy
 {
@@ -16,10 +20,5 @@ void update_visibility_finder(VisibilityFinder &vf) // legacy
   Frustum f;
   f.construct(pv);
   d3d::getpersp(p);
-  vf.set(v_ldu(&::grs_cur_view.pos.x), f, 0, 0, 1, p.hk, true);
-}
-void update_visibility_finder()
-{
-  if (visibility_finder)
-    update_visibility_finder(*visibility_finder);
+  vf.set(v_ldu(&::grs_cur_view.pos.x), f, 0, 0, 1, p.hk, current_occlusion);
 }

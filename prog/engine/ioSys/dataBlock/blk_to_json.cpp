@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "blk_shared.h"
 #include <ioSys/dag_chainedMemIo.h>
 #include <math/integer/dag_IPoint2.h>
@@ -313,7 +315,7 @@ bool dblk::export_to_json_text_stream(const DataBlock &blk, IGenSave &cwr, bool 
   JsonCtx jctx = {0, max_ppl, max_bpl, allow_unq, false};
 
   DAGOR_TRY { exportJsonText(cwr, blk, jctx); }
-  DAGOR_CATCH(IGenSave::SaveException) { return false; }
+  DAGOR_CATCH(const IGenSave::SaveException &) { return false; }
 
   return true;
 }

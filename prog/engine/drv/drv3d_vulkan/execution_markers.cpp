@@ -1,16 +1,21 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "execution_markers.h"
-#include "device.h"
+#include "globals.h"
+#include "debug_naming.h"
+#include "device_context.h"
+#include "device_queue.h"
 
 using namespace drv3d_vulkan;
 
 void ExecutionMarkers::init()
 {
 #if VK_AMD_buffer_marker
-  if (get_device().getVkDevice().hasExtension<BufferMarkerAMD>())
+  if (Globals::VK::dev.hasExtension<BufferMarkerAMD>())
   {
-    executionMarkerBuffer = get_device().createBuffer(MAX_DEBUG_MARKER_BUFFER_ENTRIES * sizeof(uint32_t),
+    executionMarkerBuffer = Buffer::create(MAX_DEBUG_MARKER_BUFFER_ENTRIES * sizeof(uint32_t),
       DeviceMemoryClass::HOST_RESIDENT_HOST_READ_ONLY_BUFFER, 1, BufferMemoryFlags::DEDICATED);
-    get_device().setBufName(executionMarkerBuffer, "amd marker buffer");
+    Globals::Dbg::naming.setBufName(executionMarkerBuffer, "amd marker buffer");
   }
 #endif
 }
@@ -19,7 +24,8 @@ void ExecutionMarkers::shutdown()
 {
 #if VK_AMD_buffer_marker
   if (executionMarkerBuffer)
-    get_device().getContext().destroyBuffer(executionMarkerBuffer);
+    Globals::ctx.destroyBuffer(executionMarkerBuffer);
+  executionMarkerBuffer = nullptr;
 #endif
 }
 
@@ -74,10 +80,10 @@ void ExecutionMarkers::check()
   }
 #endif
 #if VK_NV_device_diagnostic_checkpoints
-  VulkanDevice &vkDev = get_device().getVkDevice();
+  VulkanDevice &vkDev = Globals::VK::dev;
   if (vkDev.hasExtension<DiagnosticCheckpointsNV>())
   {
-    VulkanQueueHandle grQueue = get_device().getQueue(DeviceQueueType::GRAPHICS).getHandle();
+    VulkanQueueHandle grQueue = Globals::VK::que[DeviceQueueType::GRAPHICS].getHandle();
 
     debug("Checking execution makers - VK_NV_device_diagnostic_checkpoints:");
     debug("Next id would be: %08lX", commandIndex);
@@ -161,7 +167,7 @@ void ExecutionMarkers::write(VulkanCommandBufferHandle cb, VkPipelineStageFlagBi
   G_UNUSED(stage);
 
 #if VK_AMD_buffer_marker | VK_NV_device_diagnostic_checkpoints
-  VulkanDevice &vkDev = get_device().getVkDevice();
+  VulkanDevice &vkDev = Globals::VK::dev;
 #endif
 
 #if VK_AMD_buffer_marker

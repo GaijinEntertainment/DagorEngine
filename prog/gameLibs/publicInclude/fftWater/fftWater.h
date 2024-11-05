@@ -1,14 +1,15 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <generic/dag_carray.h>
 #include <generic/dag_tab.h>
-#include <3d/dag_resId.h>
+#include <drv/3d/dag_resId.h>
 #include <3d/dag_resPtr.h>
+#include <3d/dag_resourcePool.h>
+#include <3d/dag_lockTexture.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
@@ -138,7 +139,18 @@ struct WavePresets
   WavePreset &operator[](int index) { return presets[index]; }
 };
 
-struct FlowmapParams
+struct WaterFlowmapCascade
+{
+  Point4 flowmapArea = Point4(1, 1, 0, 0);
+  UniqueTex texA, texB;
+  UniqueTex blurTexA, blurTexB;
+  UniqueTex tempTex;
+  int frameCount = 0;
+  int frameTime = -1;
+  float frameRate = 30;
+};
+
+struct WaterFlowmap
 {
   bool enabled = false;
   String texName;
@@ -146,22 +158,36 @@ struct FlowmapParams
   float windStrength = 0.2f;
   float flowmapRange = 100;
   float flowmapFading = 3;
+  float flowmapDamping = 0.9f;
   Point4 flowmapStrength = Point4(1, 5, 0.5f, 0);
-  Point4 flowmapStrengthAdd = Point4(0.5f, 1, 1, 0.3f);
+  Point4 flowmapStrengthAdd = Point4(0.5f, 1, 1, 0.1f);
   Point4 flowmapFoam = Point4(5, 10, 0.5f, 0.1f);
+  float flowmapFoamReflectivityMin = 0.0f;
   Point3 flowmapFoamColor = Point3(1, 1, 1);
   float flowmapFoamTiling = 1;
+  float flowmapFoamDisplacement = 0.1f;
+  float flowmapFoamDetail = 1;
   Point4 flowmapDepth = Point4(1, 0.1f, 0.3f, 1);
   float flowmapSlope = 1;
+  Point2 flowmapWaveFade = Point2(1, 5);
+  bool flowmapDetail = true;
   bool usingFoamFx = false;
 
   SharedTexHolder tex;
-  UniqueTex texA, texB;
   PostFxRenderer builder;
-  int frame = 0;
-  eastl::vector<FlowmapWind> winds;
-  UniqueBufHolder windsBuf;
+  PostFxRenderer fluidSolver;
+  PostFxRenderer flowmapBlurX, flowmapBlurY;
+
+  dag::Vector<FlowmapCircularObstacle> circularObstacles;
+  dag::Vector<FlowmapRectangularObstacle> rectangularObstacles;
+  UniqueBufHolder circularObstaclesBuf;
+  UniqueBufHolder rectangularObstaclesBuf;
+  PostFxRenderer circularObstaclesRenderer;
+  PostFxRenderer rectangularObstaclesRenderer;
+
+  dag::Vector<WaterFlowmapCascade> cascades;
 };
+
 struct WaterHeightmap
 {
   static const int PATCHES_GRID_SIZE = 512;
@@ -192,10 +218,11 @@ enum RenderMode
   WATER_SSR_SHADER,
   MAX
 };
-FFTWater *create_water(RenderQuality quality, float period = 1000.f, int res_bits = 7, bool ssr_renderer = false,
-  bool one_to_four_cascades = false, int min_render_res_bits = 6, RenderQuality geom_quality = (RenderQuality)-1);
-void init_render(FFTWater *, int quality, bool ssr_renderer, bool one_to_four_cascades,
-  RenderQuality geom_quality = (RenderQuality)-1);
+FFTWater *create_water(RenderQuality quality, float period = 1000.f, int res_bits = 7, bool depth_renderer = false,
+  bool ssr_renderer = false, bool one_to_four_cascades = false, int min_render_res_bits = 6,
+  RenderQuality geom_quality = RenderQuality::UNDEFINED);
+void init_render(FFTWater *, int quality, bool depth_renderer, bool ssr_renderer, bool one_to_four_cascades,
+  RenderQuality geom_quality = RenderQuality::UNDEFINED);
 bool one_to_four_render_enabled(FFTWater *handle);
 void set_grid_lod0_additional_tesselation(FFTWater *a, float amount);
 void set_grid_lod0_area_radius(FFTWater *a, float radius);
@@ -207,8 +234,9 @@ void delete_water(FFTWater *&);
 void simulate(FFTWater *handle, double time);
 void before_render(FFTWater *handle);
 void set_render_quad(FFTWater *handle, const BBox2 &quad);
-void render(FFTWater *handle, const Point3 &pos, TEXTUREID distance_tex_id, const Frustum &frustum, int geom_lod_quality = GEOM_NORMAL,
-  int survey_id = -1, IWaterDecalsRenderHelper *decals_renderer = NULL, RenderMode render_mode = WATER_SHADER);
+void render(FFTWater *handle, const Point3 &pos, TEXTUREID distance_tex_id, const Frustum &frustum, const Driver3dPerspective &persp,
+  int geom_lod_quality = GEOM_NORMAL, int survey_id = -1, IWaterDecalsRenderHelper *decals_renderer = NULL,
+  RenderMode render_mode = WATER_SHADER);
 float getGridLod0AreaSize(FFTWater *handle);
 void setGridLod0AdditionalTesselation(FFTWater *handle, float additional_tesselation);
 void setAnisotropy(FFTWater *handle, int aniso, float mip_bias = 0.f);
@@ -243,22 +271,25 @@ void enable_graphic_feature(FFTWater *handle, GraphicFeature feature, bool enabl
 void get_cascade_period(FFTWater *handle, int cascade_no, float &out_period, float &out_window_in, float &out_window_out);
 
 void build_distance_field(UniqueTexHolder &, int texture_size, int heightmap_texture_size, float detect_rivers_width,
-  RiverRendererCB *riversCB); // if reiversCB == 0, it won't be used. if detect_rivers_width<=0 it won't be used
-void build_flowmap(FFTWater *handle, FlowmapParams &flowmap_params, int flowmap_texture_size, int heightmap_texture_size,
-  const Point3 &camera_pos, float range);
-void set_flowmap_tex(FlowmapParams &flowmap_params);
-void set_flowmap_params(FlowmapParams &flowmap_params);
-void set_flowmap_foam_params(FlowmapParams &flowmap_params);
-void close_flowmap(FlowmapParams &flowmap_params);
-bool is_flowmap_active(const FlowmapParams &flowmap_params);
-void flowmap_floodfill(int texSize, Texture *heightmapTex, Texture *floodfillTex, uint16_t heightmapLevel);
+  RiverRendererCB *riversCB, bool high_precision_distance_field = true); // if reiversCB == 0, it won't be used. if
+                                                                         // detect_rivers_width<=0 it won't be used
+void build_flowmap(FFTWater *handle, int flowmap_texture_size, int heightmap_texture_size, const Point3 &camera_pos, int cascade,
+  bool obstacles);
+void set_flowmap_tex(FFTWater *handle);
+void set_flowmap_params(FFTWater *handle);
+void set_flowmap_foam_params(FFTWater *handle);
+void close_flowmap(FFTWater *handle);
+bool is_flowmap_active(FFTWater *handle);
+void flowmap_floodfill(int texSize, const LockedImage2DView<const uint16_t> &heightmapTexView,
+  LockedImage2DView<uint16_t> &floodfillTexView, uint16_t heightmapLevel);
 void deferred_wet_ground(FFTWater *handle, const Point3 &pos);
 void prepare_refraction(FFTWater *handle, Texture *scene_target_tex);
 void set_current_time(FFTWater *handle, double time); // remove me! should not be used!
 void reset_physics(FFTWater *handle);
+void wait_physics(FFTWater *handle);
 bool validate_next_time_tick(FFTWater *handle, double next_time);
 void reset_render(FFTWater *handle); // if device is lost
-void set_render_quality(FFTWater *handle, int quality, bool ssr_renderer);
+void set_render_quality(FFTWater *handle, int quality, bool depth_renderer, bool ssr_renderer);
 float get_level(FFTWater *handle);
 void set_level(FFTWater *handle, float level);
 float get_height(FFTWater *handle, const Point3 &point);
@@ -272,7 +303,6 @@ float get_significant_wave_height(FFTWater *handle);
 void set_wave_displacement_distance(FFTWater *handle, const Point2 &value);
 void shore_enable(FFTWater *handle, bool enable);
 bool is_shore_enabled(FFTWater *handle);
-void set_shore_waves_dist(FFTWater *handle, const Point2 &value);
 float get_shore_wave_threshold(FFTWater *handle);
 void set_shore_wave_threshold(FFTWater *handle, float value);
 int get_fft_resolution(FFTWater *handle);
@@ -331,6 +361,10 @@ void apply_wave_preset(FFTWater *water, float bf_scale, const Point2 &wind_dir, 
 
 void get_wave_preset(FFTWater *water, WavePreset &out_preset);
 void set_wind(FFTWater *handle, float bf_scale, const Point2 &wind_dir);
+
+WaterFlowmap *get_flowmap(FFTWater *handle);
+void create_flowmap(FFTWater *handle);
+void remove_flowmap(FFTWater *handle);
 
 const WaterHeightmap *get_heightmap(FFTWater *water);
 void set_heightmap(FFTWater *water, eastl::unique_ptr<WaterHeightmap> &&heightmap);

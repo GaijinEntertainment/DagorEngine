@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <soundSystem/quirrel/sqSoundSystem.h>
 
 namespace sound::sqapi

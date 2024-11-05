@@ -1,5 +1,4 @@
-#ifndef __DAGOR_LIBTOOLS_VIEWMATRIX_H
-#define __DAGOR_LIBTOOLS_VIEWMATRIX_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <math/dag_math3d.h>
@@ -55,5 +54,3 @@ inline void view_matrix_from_look(const Point3 &look, TMatrix &tm, int cub5_face
       tm.setcol(0, -tm.getcol(0));
   }
 }
-
-#endif

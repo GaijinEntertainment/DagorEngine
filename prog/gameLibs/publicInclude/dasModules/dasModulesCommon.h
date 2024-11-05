@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -12,6 +11,7 @@
 #include <math/integer/dag_IPoint2.h>
 #include <math/integer/dag_IPoint3.h>
 #include <math/integer/dag_IPoint4.h>
+#include <vecmath/dag_vecMath.h>
 
 namespace das
 {
@@ -49,6 +49,55 @@ MAKE_TYPE_FACTORY_ALIAS(IPoint3, tInt3, int3)
 MAKE_TYPE_FACTORY_ALIAS(IPoint2, tInt2, int2)
 
 #undef MAKE_TYPE_FACTORY_ALIAS
+
+#define MAKE_POINT_TYPE_WRAPPER(TYPE) \
+                                      \
+  template <>                         \
+  struct WrapType<TYPE>               \
+  {                                   \
+    enum                              \
+    {                                 \
+      value = true                    \
+    };                                \
+    typedef vec4f type;               \
+    typedef vec4f rettype;            \
+  };                                  \
+                                      \
+  template <>                         \
+  struct WrapRetType<TYPE>            \
+  {                                   \
+    typedef TYPE##_WrapArg type;      \
+  };                                  \
+                                      \
+  template <>                         \
+  struct WrapArgType<TYPE>            \
+  {                                   \
+    typedef TYPE##_WrapArg type;      \
+  };
+
+struct Point4_WrapArg : Point4
+{
+  Point4_WrapArg(vec4f t) : Point4(v_extract_x(t), v_extract_y(t), v_extract_z(t), v_extract_w(t)) {}
+  operator vec4f() const { return das::vec_loadu(&x); }
+};
+
+struct Point3_WrapArg : Point3
+{
+  Point3_WrapArg(vec4f t) : Point3(v_extract_x(t), v_extract_y(t), v_extract_z(t)) {}
+  operator vec4f() const { return das::vec_loadu(&x); }
+};
+
+struct Point2_WrapArg : Point2
+{
+  Point2_WrapArg(vec4f t) : Point2(v_extract_x(t), v_extract_y(t)) {}
+  operator vec4f() const { return das::vec_loadu(&x); }
+};
+
+MAKE_POINT_TYPE_WRAPPER(Point4)
+MAKE_POINT_TYPE_WRAPPER(Point3)
+MAKE_POINT_TYPE_WRAPPER(Point2)
+
+#undef MAKE_POINT_TYPE_WRAPPER
 
 template <>
 struct das_alias<TMatrix> : das::das_alias_vec<TMatrix, float3x4>
@@ -101,6 +150,30 @@ struct typeName<TMatrix4>
 {
   static string name() { return "TMatrix4"; }
 };
+
+
+template <>
+struct das_alias<Matrix3> : das::das_alias_vec<Matrix3, float3x3>
+{};
+
+template <>
+struct typeFactory<Matrix3>
+{
+  static TypeDeclPtr make(const ModuleLibrary &lib)
+  {
+    auto t = typeFactory<das::float3x3>::make(lib);
+    t->alias = "Matrix3";
+    t->aotAlias = true;
+    return t;
+  }
+};
+
+template <>
+struct typeName<Matrix3>
+{
+  static string name() { return "Matrix3"; }
+};
+
 
 template <>
 struct cast<E3DCOLOR> : cast<uint32_t>

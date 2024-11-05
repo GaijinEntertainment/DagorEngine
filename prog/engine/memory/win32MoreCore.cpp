@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "stdRtlMemUsage.h"
 #ifndef _STD_RTL_MEMORY
 #include "dlmalloc-setup.h"

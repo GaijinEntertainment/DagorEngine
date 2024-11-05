@@ -1,0 +1,195 @@
+include "shader_global.dshl"
+include "radiance_cache_common.dshl"
+include "radiance_cache_sample.dshl"
+include "frustum.dshl"
+
+shader radiance_cache_indirection_draw_debug
+{
+  supports global_const_block;
+  supports global_frame;
+  supports none;
+  (vs) {
+    globtm@f44 = globtm;
+  }
+  RADIANCE_CACHE_INDIRECTION_SRV(vs)
+  INIT_AND_USE_FRUSTUM_CHECK_BASE(vs)
+  RADIANCE_CACHE_POSITIONS_SRV(vs)
+  RADIANCE_CACHE_AGE_SRV(vs)
+  RADIANCE_CACHE_CLIPMAP_ATLAS_MATH(vs)
+  RADIANCE_CACHE_AGE_READ(vs)
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  hlsl {
+    #include "spheres_vertices.hlsl"
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 norm:  TEXCOORD1;
+      nointerpolation uint3 radianceCacheIndex : TEXCOORD3;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput test_vs(uint iId : SV_InstanceID, uint vertId : SV_VertexID)
+    {
+      VsOutput output = (VsOutput)0;
+      output.pos = NaN;
+
+      uint clipAddr = iId;
+      if (clipAddr >= get_radiance_cache_total_clipmap_size())
+        return output;
+      uint4 clipPosClipId = decode_radiance_cache_buffer_addr(clipAddr);
+      uint radianceCacheIndex = structuredBufferAt(radiance_cache_indirection_clipmap, clipAddr);
+      if (radianceCacheIndex == INVALID_RADIANCE_CACHE_PROBE_INDEX)
+        return output;
+
+      int4 lt = sample_radiance_cache_clipmap_lt_coord(clipPosClipId.w);
+      float probeSize = asfloat(lt.w);
+      int3 worldCoord = radiance_cache_abs_coord_from_wrapped_coord(clipPosClipId.xyz, clipPosClipId.w);
+      float3 center = (worldCoord.xzy+0.5f)*probeSize;
+
+      float size_scale = 0.05*probeSize;
+      if (!testSphereB(center, size_scale))
+        return output;
+      float3 pos = get_sphere_vertex_pos_low(vertId);
+      float3 worldPos = center + pos * size_scale;
+
+      uint lastUsedFrame = radiance_cache_get_last_frame_used(radianceCacheIndex);
+      output.radianceCacheIndex = uint3(radianceCacheIndex, clipPosClipId.w, lastUsedFrame);
+      output.norm = pos;
+      output.pos = mul(float4(worldPos, 1), globtm);
+      return output;
+    }
+  }
+
+  (ps) {
+    radiance_cache_current_frame@i1 = radiance_cache_current_frame;
+    current_radiance_cache@smp2d = current_radiance_cache;
+  }
+  RADIANCE_CACHE_ATLAS_MATH(ps)
+  hlsl(ps) {
+    #include "radiance_cache_common_math.hlsl"
+    half3 test_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    {
+      uint radianceCacheIndex = input.radianceCacheIndex.x;
+      uint2 radianceCacheCoord = uint2(radianceCacheIndex%get_radiance_cache_atlas_dim().x, radianceCacheIndex/get_radiance_cache_atlas_dim().x);
+      if (1)
+      {
+        float2 dirTC = clamp(radiance_cache_dir_encode(input.norm)*0.5+0.5, 0.5/RADIANCE_CACHE_RADIANCE_RES, 1-0.5/RADIANCE_CACHE_RADIANCE_RES);
+        return pack_hdr(radiance_cache_decode_texture_radiance(tex2Dlod(current_radiance_cache, float4((dirTC + radianceCacheCoord)/get_radiance_cache_atlas_dim(), 0,0)).xyz));
+      }
+      //
+      float3 colors[8] = {float3(1,0,0),float3(0,1,0), float3(0,0,1), float3(1,1,0), float3(1,0,1), float3(0,1,1), float3(1,1,1), float3(0,0,0)};
+      int age = radiance_cache_current_frame - input.radianceCacheIndex.z;
+      return colors[input.radianceCacheIndex.y&7]*saturate((1 - age/16.)*0.5 + 0.5);
+      return input.radianceCacheIndex.x == ~0u ? float3(1,0,0) : float3(0,1,0);
+    }
+  }
+  compile("target_vs", "test_vs");
+  compile("target_ps", "test_ps");
+}
+
+shader radiance_cache_probes_draw_debug
+{
+  supports global_const_block;
+  supports global_frame;
+  supports none;
+  (vs) {
+    globtm@f44 = globtm;
+    radiance_cache_current_frame@i1 = radiance_cache_current_frame;
+  }
+  RADIANCE_CACHE_POSITIONS_SRV(vs)
+  RADIANCE_CACHE_CLIPMAP_ATLAS_MATH(vs)
+  RADIANCE_CACHE_AGE_SRV(vs)
+  RADIANCE_CACHE_POSITIONS_READ(vs)
+  RADIANCE_CACHE_AGE_READ(vs)
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  hlsl {
+    #include "spheres_vertices.hlsl"
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 norm:  TEXCOORD1;
+      float3 center:  TEXCOORD2;
+      nointerpolation uint4 radianceCacheIndex : TEXCOORD3;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput test_vs(uint iId : SV_InstanceID, uint vertId : SV_VertexID)
+    {
+      VsOutput output = (VsOutput)0;
+      output.pos = NaN;
+
+      uint radianceCacheIndex = iId;
+      uint4 wrappedCoordId = radiance_cache_get_wrapped_coord(radianceCacheIndex);
+      if (wrappedCoordId.w >= MAX_RADIANCE_CACHE_CLIPS)
+        return output;
+
+      int3 worldCoord = radiance_cache_abs_coord_from_wrapped_coord(wrappedCoordId.xyz, wrappedCoordId.w);
+      uint lastUsedFrame = radiance_cache_get_last_frame_used(radianceCacheIndex);
+      uint age = radiance_cache_get_temporal_age_and_frame_used(radianceCacheIndex);
+      //if (age == ~0)
+      //  return output;
+      //if (lastUsedFrame == radiance_cache_current_frame - 1)
+      //  return output;
+      uint clipId = wrappedCoordId.w;
+      float probeSize = radiance_cache_probe_world_size(clipId);
+      float3 center = radiance_cache_probe_world_pos_from_abs_coord(worldCoord.xyz, clipId);
+
+
+      float size_scale = 0.05*probeSize;
+      float3 pos = get_sphere_vertex_pos_low(vertId);
+      float3 worldPos = center + pos * size_scale;
+      output.radianceCacheIndex = uint4(radianceCacheIndex, clipId, lastUsedFrame, age);
+      output.norm = pos;
+      output.center = center;
+      output.pos = mul(float4(worldPos, 1), globtm);
+      return output;
+    }
+  }
+  (ps) {
+    radiance_cache_current_frame@i1 = radiance_cache_current_frame;
+    current_radiance_cache@smp2d = current_radiance_cache;
+  }
+  RADIANCE_CACHE_ATLAS_MATH(ps)
+  SAMPLE_RADIANCE_CACHE_CODE(ps)
+  RADIANCE_CACHE_INDIRECTION_SRV(ps)
+  RADIANCE_CACHE_CLIPMAP_MATH(ps)
+  hlsl(ps) {
+    #include "radiance_cache_common_math.hlsl"
+    half3 test_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    {
+      if (0) {
+        uint4 probeIndices0, probeIndices1;
+        float3 probeW0;
+        int3 baseWorldCoordI;
+        uint clipIndex = radiance_cache_find_clip_for_sample(radiance_cache_indirection_clipmap, input.center-0.001, probeIndices0, probeIndices1, probeW0, baseWorldCoordI, input.radianceCacheIndex.y, 4);
+        //return length(input.center - radiance_cache_probe_world_pos_from_abs_coord(baseWorldCoordI, clipIndex));
+        float3 rayDir = normalize(input.norm.xyz);
+        uint2 octCoord = clamp((radiance_cache_dir_encode(rayDir)*0.5+0.5)*RADIANCE_CACHE_RADIANCE_RES, 0, RADIANCE_CACHE_RADIANCE_RES-1);
+        return sample_trilinear_radiance_cache_safe(probeIndices0, probeIndices1, probeW0, octCoord, input.center, rayDir);
+      }
+
+      uint radianceCacheIndex = input.radianceCacheIndex.x;
+      uint2 radianceCacheCoord = uint2(radianceCacheIndex%get_radiance_cache_atlas_dim().x, radianceCacheIndex/get_radiance_cache_atlas_dim().x);
+      if (1)
+      {
+        float2 dirTC = clamp(radiance_cache_dir_encode(input.norm)*0.5+0.5, 0.5/RADIANCE_CACHE_RADIANCE_RES, 1-0.5/RADIANCE_CACHE_RADIANCE_RES);
+        return pack_hdr(radiance_cache_decode_texture_radiance(tex2Dlod(current_radiance_cache, float4((dirTC + radianceCacheCoord)/get_radiance_cache_atlas_dim(), 0,0)).xyz));
+      }
+      float3 colors[8] = {float3(1,0,0),float3(0,1,0), float3(0,0,1), float3(1,1,0), float3(1,0,1), float3(0,1,1), float3(1,1,1), float3(0,0,0)};
+      int age = radiance_cache_current_frame - input.radianceCacheIndex.z;
+      uint temporalAge, temporalFrame;
+      decode_temporal_age_and_frame(input.radianceCacheIndex.w, temporalAge, temporalFrame);
+      //return saturate(1 - temporalAge/16.);
+      age = radiance_cache_current_frame - temporalFrame;
+      //return colors[input.radianceCacheIndex.y&7]*saturate((1 - temporalAge/16.)*0.5 + 0.5);
+      return colors[input.radianceCacheIndex.y&7]*saturate((1 - age/16.)*0.5 + 0.5);
+      return 1;
+    }
+  }
+  compile("target_vs", "test_vs");
+  compile("target_ps", "test_ps");
+}

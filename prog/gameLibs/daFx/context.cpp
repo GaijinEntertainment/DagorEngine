@@ -1,6 +1,18 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "context.h"
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_info.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <util/dag_convar.h>
+
+namespace convar
+{
+CONSOLE_INT_VAL("dafx", force_sim_lod, -1, -1, 7);
+CONSOLE_BOOL_VAL("dafx", allow_sim_lods, true);
+CONSOLE_BOOL_VAL("dafx", allow_visibility_sim_lods, true);
+CONSOLE_FLOAT_VAL("dafx", visibility_sim_lod_min_fps, 0);
+} // namespace convar
 
 namespace dafx
 {
@@ -13,6 +25,31 @@ void swap_command_queue(Context &ctx);
 void clear_command_queue(Context &ctx);
 void clear_all_command_queues_locked(Context &ctx);
 void populate_free_instances(Context &ctx);
+
+SamplerHandles::SamplerHandles(float in_mipBias) : mipBias(in_mipBias)
+{
+  d3d::SamplerInfo samplerInfo;
+  samplerInfo.address_mode_u = d3d::AddressMode::Clamp;
+  samplerInfo.address_mode_v = d3d::AddressMode::Clamp;
+  samplerInfo.mip_map_mode = d3d::MipMapMode::Linear;
+  samplerInfo.mip_map_bias = mipBias;
+  samplerInfo.anisotropic_max = 1.f;
+  samplerBilinear = d3d::request_sampler(samplerInfo);
+
+  samplerInfo.anisotropic_max = float(::dgs_tex_anisotropy);
+  samplerAniso = d3d::request_sampler(samplerInfo);
+}
+void SamplerHandles::close() { mipBias = invalidMipBias; }
+SamplerHandles::~SamplerHandles() { close(); }
+SamplerHandles::SamplerHandles(SamplerHandles &&other) noexcept { *this = eastl::move(other); }
+SamplerHandles &SamplerHandles::operator=(SamplerHandles &&other) noexcept
+{
+  eastl::swap(mipBias, other.mipBias);
+  eastl::swap(samplerBilinear, other.samplerBilinear);
+  eastl::swap(samplerAniso, other.samplerAniso);
+  other.close();
+  return *this;
+}
 
 static inline void start_job(const Config &cfg, cpujobs::IJob &job, bool wake = true)
 {
@@ -27,7 +64,7 @@ ContextId create_context(const Config &cfg)
 {
   DBG_OPT("create_context - start");
 
-  d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, NULL, NULL, NULL);
+  d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
 
   ContextId cid = g_ctx_list.emplaceOne();
   Context *ctx = g_ctx_list.get(cid);
@@ -46,15 +83,25 @@ ContextId create_context(const Config &cfg)
   v &= init_buffer_pool(ctx->cpuBufferPool, cfg.data_buffer_size);
   v &= init_culling(*ctx);
 
+  ctx->frameBoundaryBufferManager.init(cfg.use_render_sbuffer);
+
   ctx->supportsNoOverwrite = d3d::get_driver_desc().caps.hasNoOverwriteOnShaderResourceBuffers;
   debug("dafx: using %d threads", ctx->cfg.use_async_thread ? ctx->cfg.max_async_threads : 0);
+  debug("dafx: sbuffer support: %d, multidraw: %d", cfg.use_render_sbuffer ? 1 : 0, cfg.multidraw_enabled ? 1 : 0);
 
   ctx->asyncCpuComputeJobs.reserve(ctx->cfg.max_async_threads);
   ctx->asyncCpuCullJobs.reserve(ctx->cfg.max_async_threads);
 
   ShaderGlobal::set_int(::get_shader_variable_id("dafx_sbuffer_supported", true), cfg.use_render_sbuffer ? 1 : 0);
 
-  d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL);
+  // we are using instancing helper even for non-multidraw, to keep shaders the same
+  VSDTYPE desc[] = {VSD_STREAM_PER_INSTANCE_DATA(0), VSD_REG(VSDR_TEXC0, VSDT_UINT1), VSD_END};
+  ctx->instancingVdecl = d3d::create_vdecl(desc);
+  G_ASSERT(ctx->instancingVdecl != BAD_VDECL);
+
+  ctx->serialBuf.init(ctx->cfg.multidraw_enabled ? ctx->cfg.max_multidraw_batch_size : 1);
+
+  d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);
 
   os_spinlock_init(&ctx->queueLock);
 
@@ -92,7 +139,7 @@ void shrink_instances(ContextId cid, int keep_allocated_count)
   GET_CTX();
   for (int i = 0; i < ctx.instances.list.totalSize(); ++i)
   {
-    InstanceId iid = ctx.instances.list.createReferenceFromIdx(i);
+    InstanceId iid = ctx.instances.list.getRefByIdx(i);
     if (!iid)
       continue;
 
@@ -105,6 +152,8 @@ void shrink_instances(ContextId cid, int keep_allocated_count)
 
   flush_command_queue(cid);
   populate_free_instances(ctx);
+  exec_delayed_page_destroy(ctx.gpuBufferPool);
+
   G_ASSERT(ctx.instances.list.empty());
   G_ASSERT(ctx.instances.groups.size() == ctx.instances.freeIndicesAvailable.size());
   G_ASSERT(ctx.cpuBufferPool.pages.empty());
@@ -138,9 +187,10 @@ void release_all_systems(ContextId cid)
   finish_async_update(ctx);
   shrink_instances(cid, 0);
 
+  G_ASSERT(interlocked_acquire_load(ctx.systemsLockCounter) == 0);
   for (int i = 0; i < ctx.systems.list.totalSize(); ++i)
   {
-    SystemId rid = ctx.systems.list.createReferenceFromIdx(i);
+    SystemId rid = ctx.systems.list.getRefByIdx(i);
     if (rid)
       release_system(cid, rid);
   }
@@ -154,12 +204,13 @@ void release_context(ContextId cid)
 
   finish_async_update(ctx);
   ctx.staging.ring.reset(0);
+  d3d::delete_vdecl(ctx.instancingVdecl);
 
   if (!ctx.cullingStates.empty())
   {
     for (int i = 0; i < ctx.cullingStates.totalSize(); ++i)
     {
-      CullingId cullId = ctx.cullingStates.createReferenceFromIdx(i);
+      CullingId cullId = ctx.cullingStates.getRefByIdx(i);
       if (cullId)
         destroy_culling_state(cid, cullId);
     }
@@ -171,12 +222,6 @@ void release_context(ContextId cid)
   os_spinlock_destroy(&ctx.queueLock);
 
   g_ctx_list.destroyReference(cid);
-}
-
-void set_custom_depth(ContextId cid, BaseTexture *tex)
-{
-  GET_CTX();
-  ctx.customDepth = tex;
 }
 
 void before_reset_device(ContextId cid)
@@ -201,6 +246,7 @@ void after_reset_device(ContextId cid)
   finish_async_update(ctx); // we need to finish emitters async job, before instance reset
   reset_instances_after_reset(ctx);
 
+  ctx.samplersCache.clear();
   ctx.frameBoundaryBufferManager.afterDeviceReset();
 
   for (int i = 0, ie = ctx.renderBuffers.size(); i < ie; ++i)
@@ -214,16 +260,85 @@ void after_reset_device(ContextId cid)
   clear_internal_workers(ctx, false);
 }
 
-void prepare_workers(Context &ctx, bool main_pass, int begin_sid, int end_sid, bool gpu_fetch)
+void prepare_sim_lods(Context &ctx, float dt, int begin_sid, int end_sid)
+{
+  bool allowSimulationLods = ctx.cfg.sim_lods_enabled && convar::allow_sim_lods;
+  bool allowVisibilitySimLods =
+    allowSimulationLods && ctx.cfg.gen_sim_lods_for_invisible_instances && convar::allow_visibility_sim_lods;
+
+  InstanceGroups &stream = ctx.instances.groups;
+
+  int maxAllowedLod = Config::max_simulation_lods - 1;
+  float minSimLodDtTick =
+    convar::visibility_sim_lod_min_fps > 0 ? 1.f / convar::visibility_sim_lod_min_fps : ctx.cfg.min_sim_lod_dt_tick;
+  for (int i = 1; i <= Config::max_simulation_lods; ++i)
+  {
+    int lodOfs = 1 << i;
+    if (dt * lodOfs > minSimLodDtTick)
+    {
+      maxAllowedLod = i - 1;
+      break;
+    }
+  }
+
+#if DAGOR_DBGLEVEL > 0
+  // we need to clear debug lods on those console command
+  if (convar::allow_sim_lods.pullValueChange() || convar::allow_visibility_sim_lods.pullValueChange())
+  {
+    for (int i = begin_sid; i < end_sid; ++i)
+      stream.get<INST_LOD>(i) = 0;
+  }
+#endif
+
+  const uint32_t cpuSimMask = SYS_ENABLED | SYS_CPU_SIMULATION_REQ | SYS_ALLOW_SIMULATION_LODS;
+  const uint32_t gpuSimMask = SYS_ENABLED | SYS_GPU_SIMULATION_REQ | SYS_ALLOW_SIMULATION_LODS;
+  const uint32_t allSimMask = cpuSimMask | gpuSimMask;
+
+  if (allowVisibilitySimLods)
+  {
+    for (int i = begin_sid; i < end_sid; ++i)
+    {
+      uint32_t flags = stream.get<INST_FLAGS>(i);
+      uint32_t m = flags & allSimMask;
+      if (m == cpuSimMask || m == gpuSimMask)
+      {
+        stream.get<INST_LOD>(i) = flags & SYS_VISIBLE ? 0 : (uint8_t)maxAllowedLod;
+      }
+    }
+  }
+
+#if DAGOR_DBGLEVEL > 0
+  if (allowSimulationLods && convar::force_sim_lod >= 0)
+  {
+    for (int i = begin_sid; i < end_sid; ++i)
+    {
+      uint32_t flags = stream.get<INST_FLAGS>(i);
+      uint32_t m = flags & allSimMask;
+      if (m == cpuSimMask || m == gpuSimMask)
+        stream.get<INST_LOD>(i) = (uint8_t)convar::force_sim_lod;
+    }
+  }
+#else
+  G_UNUSED(allowSimulationLods);
+#endif
+
+  stat_set(ctx.stats.genVisibilityLod, maxAllowedLod);
+}
+
+void prepare_workers(Context &ctx, float dt, bool main_pass, int begin_sid, int end_sid, bool gpu_fetch)
 {
   //
   // TODO: fetch prev culling data at start so we can perform inital bbox filling in thread
   //
+
   TIME_PROFILE(dafx_prepare_workers);
   InstanceGroups &stream = ctx.instances.groups;
+
+  prepare_sim_lods(ctx, dt, begin_sid, end_sid);
+
   for (int i = begin_sid; i < end_sid; ++i)
   {
-    const uint32_t &flags = stream.get<INST_FLAGS>(i);
+    const uint32_t flags = stream.get<INST_FLAGS>(i);
     if (!(flags & SYS_ENABLED))
       continue;
 
@@ -246,7 +361,18 @@ void prepare_workers(Context &ctx, bool main_pass, int begin_sid, int end_sid, b
       ctx.allEmissionWorkers.push_back(i);
     }
 
-    if (simulationState.count > 0)
+    bool doSimulation = simulationState.count > 0;
+    uint8_t simLod = stream.get<INST_LOD>(i);
+    uint32_t newFlags = flags & ~SYS_SKIP_SIMULATION_ON_THIS_FRAME;
+    if (doSimulation && simLod > 0)
+    {
+      unsigned int frame = ctx.currentFrame + i; // mixing instance stream idx for better job balancing
+      doSimulation = frame % (1 << simLod) == 0;
+      newFlags |= (doSimulation ? 0 : SYS_SKIP_SIMULATION_ON_THIS_FRAME);
+    }
+    stream.get<INST_FLAGS>(i) = newFlags;
+
+    if (doSimulation)
     {
       if (flags & SYS_CPU_SIMULATION_REQ)
         ctx.cpuSimulationWorkers[depth].push_back(i);
@@ -300,6 +426,7 @@ void prepare_render_buffers_state(Context &ctx)
 
   // Allow overwrite of previous buffers data
   ctx.currentRenderDispatchBuffer = 0;
+  ctx.currentMutltidrawBuffer = 0;
   ctx.beforeRenderUpdatedTags = 0;
 
   // Reset SYS_RENDER_BUF_TAKEN state
@@ -644,14 +771,14 @@ void warmup_instance_from_queue(Context &ctx)
     gather_warmup_instances(ctx, *psid, subinstances);
 
     float ldt = cq.time / simSteps;
-    set_global_value(ctx, ctx.cfg.dt_global_id, sizeof(ctx.cfg.dt_global_id) - 1, &ldt, sizeof(float));
+    set_global_value(ctx, ctx.cfg.dt_global_id, &ldt, sizeof(float));
 
     for (int sub : subinstances)
     {
       for (int i = 0; i < simSteps; ++i)
       {
         update_emitters(ctx, ldt, sub, sub + 1);
-        prepare_workers(ctx, false, sub, sub + 1, false);
+        prepare_workers(ctx, ldt, false, sub, sub + 1, false);
         prepare_cpu_culling(ctx, false);
 
         for (int d = 0; d < ctx.cfg.max_system_depth; ++d)
@@ -680,13 +807,14 @@ void warmup_instance_from_queue(Context &ctx)
 
   ctx.allRenderWorkers.clear();
 
-  set_global_value(ctx, ctx.cfg.dt_global_id, sizeof(ctx.cfg.dt_global_id) - 1, &origDt, sizeof(float));
+  set_global_value(ctx, ctx.cfg.dt_global_id, &origDt, sizeof(float));
 
   ctx.commandQueue.instanceWarmup.clear();
 }
 
-void start_next_cpu_cull_threads(ContextId cid)
+static void start_next_cpu_cull_threads(ContextId cid)
 {
+  TIME_PROFILE(dafx_process_cpu_culling);
   GET_CTX();
 
   if (ctx.culling.cpuWorkers.empty())
@@ -707,39 +835,42 @@ void start_next_cpu_cull_threads(ContextId cid)
     job.cid = cid;
     job.start = i * step;
     job.count = i < threads - 1 ? step : step + tail;
-    start_job(ctx.cfg, job, /*wake*/ false);
+    job.doJob(); // Note: it's small enough to be executed synchronously
   }
-  if (ctx.cfg.use_async_thread)
-    threadpool::wake_up_all();
 }
 
-static void start_next_cpu_compute_threads(ContextId cid, int depth, bool is_emission)
+static int find_next_non_empty_workers(const Context &ctx, int depth, bool &is_emission)
 {
-  TIME_PROFILE(start_next_cpu_compute_threads);
-  GET_CTX();
-
-  G_ASSERT(interlocked_acquire_load(ctx.asyncCounter) == 0);
-
-  if (depth == ctx.cfg.max_system_depth)
+  for (; depth <= ctx.cfg.max_system_depth; ++depth)
   {
-    if (is_emission)
+    if (depth != ctx.cfg.max_system_depth)
     {
-      depth = 0;
+      if (!(is_emission ? ctx.cpuEmissionWorkers[depth] : ctx.cpuSimulationWorkers[depth]).empty())
+        break;
+    }
+    else if (is_emission)
+    {
+      depth = -1; // 0 on next iter
       is_emission = false;
     }
     else // both emission and simulation are done, start culling phase
-    {
-      start_next_cpu_cull_threads(cid);
-      return;
-    }
+      return -1;
   }
+  return depth;
+}
+
+static void start_next_cpu_compute_threads(ContextId cid, int depth = 0, bool is_emission = true)
+{
+  TIME_PROFILE(dafx_start_next_cpu_compute_threads);
+  GET_CTX();
+
+  G_ASSERT(interlocked_acquire_load(ctx.asyncCounter) == 0);
+  depth = find_next_non_empty_workers(ctx, depth, is_emission);
+  if (depth < 0)
+    return start_next_cpu_cull_threads(cid);
 
   eastl::vector<int> &workers = is_emission ? ctx.cpuEmissionWorkers[depth] : ctx.cpuSimulationWorkers[depth];
-  if (workers.empty())
-  {
-    start_next_cpu_compute_threads(cid, depth + 1, is_emission);
-    return;
-  }
+  G_ASSERT(!workers.empty());
 
   if (!ctx.cfg.use_async_thread)
   {
@@ -758,6 +889,8 @@ static void start_next_cpu_compute_threads(ContextId cid, int depth, bool is_emi
 
   G_STATIC_ASSERT(sizeof(EmissionState) == sizeof(SimulationState)); // they should be same, structure-wise
 
+  // to balance thread load
+  // this way all threads should have similar amount of work
   if (is_emission)
     eastl::sort(workers.begin(), workers.end(), [&](int l, int r) {
       return ctx.instances.groups.cget<INST_EMISSION_STATE>(l).count > ctx.instances.groups.cget<INST_EMISSION_STATE>(r).count;
@@ -788,8 +921,8 @@ static void start_next_cpu_compute_threads(ContextId cid, int depth, bool is_emi
     job.threadId = t;
 
     eastl::vector<int> &dst = ctx.workersByThreads[t];
-    dst.reserve(workers.size() / threads + 1); // rough estimation
-    for (int i = t, ie = workers.size(); i < ie; i += threads)
+    dst.reserve(workers.size() / threads + 1);                 // rough estimation
+    for (int i = t, ie = workers.size(); i < ie; i += threads) // threads balancing
       dst.emplace_back(workers[i]);
   }
 
@@ -817,10 +950,11 @@ void AsyncPrepareJob::doJob()
   ctx.culling.cpuCullIdx = 0;
   ctx.culling.gpuCullIdx = 0;
   update_emitters(ctx, dt, 0, ctx.instances.groups.size());
-  prepare_workers(ctx, true, 0, ctx.instances.groups.size(), gpu_fetch);
+  prepare_workers(ctx, dt, true, 0, ctx.instances.groups.size(), gpu_fetch);
   sort_shader_tasks(ctx);
   prepare_cpu_culling(ctx, true);
-  start_next_cpu_compute_threads(cid, 0, true);
+  start_next_cpu_compute_threads(cid);
+  ctx.app_was_inactive = false;
 }
 
 void AsyncCpuComputeJob::doJob()
@@ -842,14 +976,19 @@ void AsyncCpuComputeJob::doJob()
   else
     parts = update_cpu_simulation(ctx, workers, 0, workers.size());
 
-  DA_PROFILE_TAG(dafx_cpu_compute_tasks, "em:%d, count:%d, parts:%d", emission ? 1 : 0, (int)workers.size(), parts);
+  DA_PROFILE_TAG(dafx_cpu_compute_tasks, "em:%d, depth:%d, cnt:%d, parts:%d", (int)emission, depth, (int)workers.size(), parts);
 
   // all workers of current depth are done
   if (interlocked_decrement(ctx.asyncCounter) == 0)
   {
-    // Do it via separate job instance in order to be able safely re-use cpu compute job instances
-    bool wake = threadpool::get_current_worker_id() < 0;
-    start_job(ctx.cfg, *ctx.startNextComputeBatchJob.prepare(cid, depth + 1, emission), wake);
+    if (int nd = find_next_non_empty_workers(ctx, depth + 1, emission); nd >= 0)
+    {
+      // Do it via separate job instance in order to be able safely re-use cpu compute job instances
+      bool wake = threadpool::get_current_worker_id() < 0;
+      start_job(ctx.cfg, *ctx.startNextComputeBatchJob.prepare(cid, nd, emission), wake);
+    }
+    else
+      start_next_cpu_cull_threads(cid);
   }
 }
 
@@ -874,7 +1013,7 @@ void AsyncCpuCullJob::doJob()
 void start_update(ContextId cid, float dt, bool update_gpu, bool tp_wake_up)
 {
 #if DAFX_FLUSH_BEFORE_UPDATE
-  d3d::driver_command(DRV3D_COMMAND_D3D_FLUSH, NULL, NULL, NULL);
+  d3d::driver_command(Drv3dCommand::D3D_FLUSH);
 #endif
   TIME_D3D_PROFILE(dafx_start_update);
   G_ASSERTF(dt >= 0, "invalid dt: %.2f", dt);
@@ -893,11 +1032,13 @@ void start_update(ContextId cid, float dt, bool update_gpu, bool tp_wake_up)
   ctx.updateInProgress = true;
 
   if (dt == 0.f || (ctx.debugFlags & DEBUG_DISABLE_SIMULATION))
+  {
+    ctx.simulationIsPaused = true;
     return;
+  }
 
+  ctx.simulationIsPaused = false;
   ctx.allRenderWorkers.clear();
-
-  ctx.currentFrame++;
 
   ctx.asyncPrepareJob.cid = cid;
   ctx.asyncPrepareJob.dt = dt;
@@ -928,6 +1069,14 @@ void finish_update_cpu_only(ContextId cid)
   flush_command_queue(cid);
 }
 
+void gather_system_usage_stats(Context &ctx);
+
+void set_was_inactive(ContextId cid)
+{
+  GET_CTX();
+  ctx.app_was_inactive = true;
+}
+
 void finish_update_gpu_only(ContextId cid, bool update_gpu_fetch, bool beforeRenderFrameFrameBoundary)
 {
   TIME_D3D_PROFILE(dafx_finish_update_gpu);
@@ -947,33 +1096,33 @@ void finish_update_gpu_only(ContextId cid, bool update_gpu_fetch, bool beforeRen
 
   ctx.updateInProgress = false;
 
-  // main thread
-  d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, NULL, NULL, NULL);
-
-  if (!beforeRenderFrameFrameBoundary)
-    update_frame_boundary(ctx);
-
-  update_gpu_transfer(ctx);
-  update_global_data(ctx);
-
-  bool issueFeedback = false;
-  if (update_gpu_fetch)
-    issueFeedback = prepare_gpu_culling(ctx, true);
-
-  ShaderGlobal::set_int(ctx.updateGpuCullingVarId, issueFeedback);
-
-  update_gpu_compute_tasks(ctx);
-  prepare_next_emitters(ctx);
-
-  if (issueFeedback)
-    issue_culling_feedback(ctx);
-  if (update_gpu_fetch)
   {
-    fetch_culling(ctx);
-    process_gpu_culling(ctx);
-  }
+    d3d::GpuAutoLock gpuLock; // main thread
+    exec_delayed_page_destroy(ctx.gpuBufferPool);
 
-  d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL);
+    if (!beforeRenderFrameFrameBoundary)
+      update_frame_boundary(ctx);
+
+    update_gpu_transfer(ctx);
+    update_global_data(ctx);
+
+    bool issueFeedback = false;
+    if (update_gpu_fetch)
+      issueFeedback = prepare_gpu_culling(ctx, true);
+
+    ShaderGlobal::set_int(ctx.updateGpuCullingVarId, issueFeedback);
+
+    update_gpu_compute_tasks(ctx);
+    prepare_next_emitters(ctx);
+
+    if (issueFeedback)
+      issue_culling_feedback(ctx);
+    if (update_gpu_fetch)
+    {
+      fetch_culling(ctx);
+      process_gpu_culling(ctx);
+    }
+  }
 
   prepare_render_buffers_state(ctx);
 
@@ -984,6 +1133,10 @@ void finish_update_gpu_only(ContextId cid, bool update_gpu_fetch, bool beforeRen
   stat_add(ctx.stats.gpuElemProcessed, ctx.asyncStats.gpuElemProcessed);
   stat_add(ctx.stats.cpuDispatchCalls, ctx.asyncStats.cpuDispatchCalls);
   stat_add(ctx.stats.gpuDispatchCalls, ctx.asyncStats.gpuDispatchCalls);
+
+  gather_system_usage_stats(ctx);
+  if (!ctx.simulationIsPaused)
+    ctx.currentFrame++;
 }
 
 void populate_free_instances(Context &ctx)
@@ -1011,6 +1164,7 @@ void swap_command_queue(Context &ctx)
   SW(instanceEmissionRate);
   SW(instanceValue);
   SW(instanceValueDirect);
+  SW(instanceValueFromSystemScaled);
 
   SW(instanceValueData);
   SW(instanceWarmup);
@@ -1026,7 +1180,8 @@ void exec_command_queue(Context &ctx)
   ctx.stats.queue[0].setInstancePos += ctx.commandQueue.instancePos.size();
   ctx.stats.queue[0].setInstanceStatus += ctx.commandQueue.instanceStatus.size();
   ctx.stats.queue[0].setInstanceEmissionRate += ctx.commandQueue.instanceEmissionRate.size();
-  ctx.stats.queue[0].setInstanceValue += ctx.commandQueue.instanceValue.size() + ctx.commandQueue.instanceValueDirect.size();
+  ctx.stats.queue[0].setInstanceValue += ctx.commandQueue.instanceValue.size() + ctx.commandQueue.instanceValueDirect.size() +
+                                         ctx.commandQueue.instanceValueFromSystemScaled.size();
   ctx.stats.queue[0].setInstanceValueTotalSize += ctx.commandQueue.instanceValueData.size();
 
   create_instances_from_queue(ctx);
@@ -1048,6 +1203,7 @@ void clear_command_queue(Context &ctx)
   ctx.commandQueue.resetInstance.clear();
   ctx.commandQueue.instanceValue.clear();
   ctx.commandQueue.instanceValueDirect.clear();
+  ctx.commandQueue.instanceValueFromSystemScaled.clear();
   ctx.commandQueue.instanceStatus.clear();
   ctx.commandQueue.instanceVisibility.clear();
   ctx.commandQueue.instancePos.clear();
@@ -1142,6 +1298,8 @@ bool set_config(ContextId cid, const Config &cfg)
   }
 
   ctx.cfg.vrs_enabled &= d3d::get_driver_desc().caps.hasVariableRateShading ? 1 : 0;
+  ctx.cfg.multidraw_enabled &= d3d::get_driver_desc().caps.hasWellSupportedIndirect;
+  ctx.cfg.multidraw_enabled &= ctx.cfg.use_render_sbuffer; // no need to even try on old hw
 
   ctx.workersByThreads.resize(ctx.cfg.max_async_threads);
 
@@ -1204,6 +1362,7 @@ void get_stats_as_string(ContextId cid, eastl::string &out_s)
   ADDV(renderSwitchShaders);
   ADDV(renderSwitchTextures);
   ADDV(renderSwitchDispatches);
+  ADDV(renderSwitchRenderState);
 
   ADDV(cpuCullElems);
   ADDV(gpuCullElems);
@@ -1212,6 +1371,8 @@ void get_stats_as_string(ContextId cid, eastl::string &out_s)
 
   ADDV(gpuTransferCount);
   ADDV(gpuTransferSize);
+
+  ADDV(genVisibilityLod);
 
   ADDV(totalInstances);
   ADDV(activeInstances);
@@ -1237,6 +1398,51 @@ void get_stats_as_string(ContextId cid, eastl::string &out_s)
   out_s.append_sprintf("instances tuple: count: %4d / size: %4dKb\n", ctx.instances.groups.size(),
     ctx.instances.groups.size() * sizeof(InstanceStream::value_tuple) / 1024);
 
+  for (int i = 0; i < ctx.stats.drawCallsByRenderTags.size(); ++i)
+  {
+    eastl::string tagName = get_render_tag_by_id(ctx.shaders, i);
+    if (!tagName.empty() && ctx.stats.drawCallsByRenderTags[i] > 0)
+      out_s.append_sprintf("tag: '%s' draw calls: %d\n", tagName.c_str(), ctx.stats.drawCallsByRenderTags[i]);
+  }
+
 #undef ADDV
+}
+
+#if DAGOR_DBGLEVEL > 0
+void gather_system_usage_stats(Context &ctx)
+{
+  if (!(ctx.debugFlags & DEBUG_ENABLE_SYSTEM_USAGE_STATS))
+    return;
+
+  eastl::vector_map<int, eastl::pair<int, int>> map;
+  InstanceGroups &stream = ctx.instances.groups;
+  for (int i = 0; i < stream.size(); ++i)
+  {
+    int flags = stream.cget<INST_FLAGS>(i);
+    if ((flags & SYS_ENABLED) && (flags & (SYS_CPU_SIMULATION_REQ | SYS_GPU_SIMULATION_REQ)))
+    {
+      const InstanceState &activeState = stream.get<INST_ACTIVE_STATE>(i);
+      auto it = map.insert(eastl::pair{stream.cget<INST_GAMERES_ID>(i), eastl::pair{1, activeState.aliveCount}});
+      G_ASSERT(it.first != map.end());
+      if (!it.second)
+      {
+        it.first->second.first++;
+        it.first->second.second += activeState.aliveCount;
+      }
+    }
+  }
+
+  ctx.systemUsageStats.clear();
+  for (auto it : map)
+    ctx.systemUsageStats.push_back({it.first, it.second.first, it.second.second});
+}
+#else
+void gather_system_usage_stats(Context &) {}
+#endif
+
+dag::ConstSpan<SystemUsageStat> get_system_usage_stats(ContextId cid)
+{
+  GET_CTX_RET(make_span<SystemUsageStat>(nullptr, 0));
+  return make_span(ctx.systemUsageStats);
 }
 } // namespace dafx

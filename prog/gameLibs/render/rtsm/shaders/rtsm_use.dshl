@@ -1,0 +1,58 @@
+int rtsm_bindless_slot = -1;
+
+macro CHECKING_RTSM(stage)
+  if (use_hw_raytracing)
+  {
+    (stage) {
+      rtsm_bindless_slot@i1 = rtsm_bindless_slot;
+    }
+
+    hlsl (stage) {
+      bool isRTSMEnabled()
+      {
+        return rtsm_bindless_slot >= 0;
+      }
+    }
+  }
+  else
+  {
+    hlsl (stage) {
+      bool isRTSMEnabled()
+      {
+        return false;
+      }
+    }
+  }
+endmacro
+
+macro USING_RTSM(stage)
+  CHECKING_RTSM(stage)
+
+  if (use_hw_raytracing)
+  {
+    hlsl (stage) {
+      #define HAS_RTSM 1
+
+      #include <rt_texture_outputs.inc.hlsli>
+
+      #include <Include/NRDEncoding.hlsli>
+      #include <Include/NRD.hlsli>
+
+      half3 getRTSM(uint2 tci)
+      {
+        half4 shadowTexel = rt_texture_outputs[rtsm_bindless_slot][tci];
+        half4 shadowData = SIGMA_BackEnd_UnpackShadow(shadowTexel);
+        return lerp(shadowData.yzw, 1.0, shadowData.x);
+      }
+    }
+  }
+  else
+  {
+    hlsl (stage) {
+      half3 getRTSM(uint2 tci)
+      {
+        return 0;
+      }
+    }
+  }
+endmacro

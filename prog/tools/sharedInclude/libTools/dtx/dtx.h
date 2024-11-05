@@ -1,9 +1,7 @@
-#ifndef __GAIJIN_DTX_H__
-#define __GAIJIN_DTX_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-
-#include <3d/dag_tex3d.h> // for TEXADDR_*
+#include <drv/3d/dag_tex3d.h> // for TEXADDR_*
 #include <util/dag_string.h>
 
 
@@ -129,6 +127,3 @@ bool getDdsInfo(const char *filename, int *src_type, int *src_format, int *src_m
 
 // FIX: need move from dtx..
 bool tgaWithAlpha(const char *filename);
-
-
-#endif

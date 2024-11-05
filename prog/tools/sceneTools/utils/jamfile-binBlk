@@ -5,14 +5,10 @@ ConsoleExe = yes ;
 Config = rel ;
 
 TargetType  = exe ;
+Target = tools/sceneTools/binBlk ;
+include $(Root)/prog/tools/tools_setup_outdir_util.jam ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
-
-OutDir = $(Root)/tools/dagor3_cdk/util ;
-if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
-if $(Platform) in linux64 macosx { OutDir = $(OutDir)-$(Platform) ; }
-
-Target = tools/sceneTools/binBlk ;
 
 AddIncludes = $(Root)/prog/tools/sharedInclude  ;
 
@@ -26,8 +22,8 @@ UseProgLibs =
   engine/baseUtil
   tools/libTools/util
 ;
-if $(Platform) = linux64 { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
-if $(Platform) = macosx { UseProgLibs += engine/perfMon/daProfilerStub ; }
+if $(Platform) = linux { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
+if $(Platform) = macOS { UseProgLibs += engine/perfMon/daProfilerStub ; }
 
 if $(UseSystemOpenSSL) != yes {
   AddIncludes += $(Root)/prog/3rdPartyLibs/openssl-$(OpenSSLVer)/include ;

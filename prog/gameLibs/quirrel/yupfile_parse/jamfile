@@ -1,0 +1,33 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/quirrel/yupfile_parse ;
+StrictCompile = yes ;
+UseQuirrel = sq3r ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = gameLibs/quirrel/yupfile_parse.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/gameLibs/yup_parse
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/gameLibs/publicInclude/quirrel/yupfile_parse
+;
+
+
+Sources =
+  yupfile_parse.cpp
+;
+
+UseProgLibs =
+  engine/coreUtil
+;
+
+if $(Platform) in windows {
+  CPPopt += /wd4548 ; # devtools\win.sdk.100\Include\10.0.10586.0\ucrt\malloc.h(160): warning C4548: expression before comma has no effect; expected expression with side-effect
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

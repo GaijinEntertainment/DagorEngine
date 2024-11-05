@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <memory/dag_framemem.h>
 #include <EASTL/fixed_string.h>
 #include <ioSys/dag_dataBlock.h>
@@ -12,6 +14,7 @@
 #include <soundSystem/vars.h>
 #include <soundSystem/debug.h>
 #include <soundSystem/visualLabels.h>
+#include <soundSystem/banks.h>
 #include "internal/fmodCompatibility.h"
 #include "internal/framememString.h"
 #include "internal/attributes.h"
@@ -37,6 +40,7 @@ struct Event
   EventInstanceCallback instanceCb = nullptr;
   void *instanceCbData = nullptr;
   dag::Index16 nodeId;
+  uint8_t stealingVolume = 0;
 
   Event(FMOD::Studio::EventDescription &event_description, FMOD::Studio::EventInstance &event_instance) :
     eventDescription(event_description), eventInstance(event_instance)
@@ -80,6 +84,16 @@ void increment_programmer_sounds_generation()
 }
 
 void block_programmer_sounds(bool do_block) { g_block_programmer_sounds = do_block; }
+
+static FrameStr guid_to_str(const FMODGUID &id)
+{
+  char hex[2 * sizeof(id) + 1] = {0};
+  id.hex(hex, sizeof(hex));
+
+  FrameStr str;
+  str.sprintf("{%s} [%ull,%ull]", hex, id.bits[0], id.bits[1]);
+  return str;
+}
 
 static inline sound_handle_t get_sound_handle(const FMOD::Studio::EventInstance &event_instance)
 {
@@ -181,7 +195,20 @@ static inline FMOD::Studio::EventDescription *get_event_description_impl(const F
   FMOD_RESULT fmodResult = get_studio_system()->getEventByID((FMOD_GUID *)&event_id, &eventDescription);
   if (FMOD_OK != fmodResult)
   {
-    debug_trace_warn("get event failed: '%s'", FMOD_ErrorString(fmodResult));
+    debug_trace_warn("get event %s failed: '%s'", guid_to_str(event_id).c_str(), FMOD_ErrorString(fmodResult));
+    return nullptr;
+  }
+  G_ASSERT(eventDescription != nullptr);
+  return eventDescription;
+}
+
+static inline FMOD::Studio::EventDescription *get_event_description_impl(const char *full_path)
+{
+  FMOD::Studio::EventDescription *eventDescription = nullptr;
+  const FMOD_RESULT fmodResult = get_studio_system()->getEvent(full_path, &eventDescription);
+  if (FMOD_OK != fmodResult)
+  {
+    debug_trace_warn("get event '%s' failed: '%s'", full_path, FMOD_ErrorString(fmodResult));
     return nullptr;
   }
   G_ASSERT(eventDescription != nullptr);
@@ -230,8 +257,7 @@ void release_all_instances(const char *path)
   SNDSYS_IF_NOT_INITED_RETURN;
   FrameStr eventPath;
   eventPath.sprintf("event:/%s", path);
-  FMOD::Studio::EventDescription *eventDescription = nullptr;
-  if (FMOD_OK == get_studio_system()->getEvent(eventPath.c_str(), &eventDescription))
+  if (FMOD::Studio::EventDescription *eventDescription = get_event_description_impl(eventPath.c_str()))
     eventDescription->releaseAllInstances();
 }
 
@@ -385,21 +411,6 @@ static bool allow_event_init(ieff_t flags, const Point3 *position, const EventAt
   return true;
 }
 
-static FMOD::Studio::EventDescription *get_event_description_impl(const char *full_path)
-{
-  FMOD::Studio::EventDescription *eventDescription = nullptr;
-  FMOD_RESULT fmodResult = get_studio_system()->getEvent(full_path, &eventDescription);
-  if (FMOD_OK != fmodResult)
-  {
-    debug_trace_warn("get event \"%s\" failed: '%s'", full_path, FMOD_ErrorString(fmodResult));
-    return nullptr;
-  }
-  if (!eventDescription)
-    debug_trace_warn("get event \"%s\" failed", full_path);
-  return eventDescription;
-}
-
-
 static DescAndInstance init_event_impl(const FrameStr &full_path, ieff_t flags, const Point3 *position, EventAttributes &attributes)
 {
   TIME_PROFILE_DEV(init_event_impl);
@@ -409,6 +420,11 @@ static DescAndInstance init_event_impl(const FrameStr &full_path, ieff_t flags, 
   attributes = find_event_attributes(full_path.c_str(), full_path.length());
   if (!attributes)
   {
+    if (!banks::is_valid_event(full_path.c_str()))
+    {
+      debug_trace_warn("init event '%s' failed: event is not valid", full_path.c_str());
+      return {};
+    }
     eventDescription = get_event_description_impl(full_path.c_str());
     if (!eventDescription)
       return {};
@@ -428,7 +444,22 @@ static DescAndInstance init_event_impl(const FrameStr &full_path, ieff_t flags, 
   }
 #if DAGOR_DBGLEVEL > 0 && _TARGET_PC_WIN
   EventAttributes fmodAttributes = make_event_attributes(*eventDescription);
-  G_ASSERTF(attributes == fmodAttributes, "Cached attributes are not equal to real FMOD event attributes!");
+  if (!(attributes == fmodAttributes))
+  {
+    if (attributes.getMaxDistance() != fmodAttributes.getMaxDistance())
+      logerr("Cached attributes.getMaxDistance() is not equal to current FMOD attributes!");
+    else if (attributes.getVisualLabelIdx() != fmodAttributes.getVisualLabelIdx())
+      logerr("Cached attributes.getVisualLabelIdx() is not equal to current FMOD attributes!");
+    else if (attributes.isOneshot() != fmodAttributes.isOneshot())
+      // may happen after var(parameter) set -> fmod snapshot attached -> event.isOneshot=false (fmod bug)
+      logerr("Cached attributes.isOneshot() is not equal to current FMOD attributes!");
+    else if (attributes.is3d() != fmodAttributes.is3d())
+      logerr("Cached attributes.is3d() is not equal to current FMOD attributes!");
+    else if (attributes.hasSustainPoint() != fmodAttributes.hasSustainPoint())
+      logerr("Cached attributes.hasSustainPoint() is not equal to current FMOD attributes!");
+    else
+      logerr("Cached attributes are not equal to current FMOD attributes!");
+  }
 #endif
 
   G_ASSERT(eventDescription);
@@ -486,6 +517,17 @@ int get_num_event_instances(const char *name, const char *path)
   return numInstances;
 }
 
+int get_num_event_instances(EventHandle event_handle)
+{
+  if (const FMOD::Studio::EventDescription *eventDescription = get_event_description_impl(event_handle))
+  {
+    int numInstances = 0;
+    if (FMOD_OK == eventDescription->getInstanceCount(&numInstances))
+      return numInstances;
+  }
+  return 0;
+}
+
 EventHandle init_event(const FMODGUID &event_id, const Point3 *position /* = nullptr*/)
 {
   SNDSYS_IF_NOT_INITED_RETURN_({});
@@ -494,6 +536,8 @@ EventHandle init_event(const FMODGUID &event_id, const Point3 *position /* = nul
   EventAttributes attributes = find_event_attributes(event_id);
   if (!attributes)
   {
+    if (!banks::is_valid_event(event_id))
+      return {};
     eventDescription = get_event_description_impl(event_id);
     if (!eventDescription)
       return {};
@@ -543,7 +587,7 @@ bool has_event(const FMODGUID &event_id)
   return fmodResult == FMOD_OK && eventDescription != nullptr;
 }
 
-bool get_event_id(const char *name, const char *path, bool is_snapshot, FMODGUID &event_id)
+bool get_event_id(const char *name, const char *path, bool is_snapshot, FMODGUID &event_id, bool debug_trace)
 {
   G_STATIC_ASSERT(sizeof(FMODGUID) == sizeof(FMOD_GUID));
   SNDSYS_IF_NOT_INITED_RETURN_(false);
@@ -557,7 +601,8 @@ bool get_event_id(const char *name, const char *path, bool is_snapshot, FMODGUID
   FMOD_RESULT fmodResult = get_studio_system()->getEvent(completeEventPath, &eventDescription);
   if (FMOD_OK != fmodResult)
   {
-    debug_trace_warn("get event \"%s\" failed: '%s'", completeEventPath, FMOD_ErrorString(fmodResult));
+    if (debug_trace)
+      debug_trace_warn("get event \"%s\" failed: '%s'", completeEventPath, FMOD_ErrorString(fmodResult));
     return false;
   }
   SOUND_VERIFY_AND_DO(eventDescription->getID((FMOD_GUID *)&event_id), return false);
@@ -736,10 +781,13 @@ static inline bool keyoff_impl(FMOD::Studio::EventInstance &event_instance, cons
     {
 #if FMOD_VERSION >= 0x00020200
       SOUND_VERIFY_AND_DO(event_instance.keyOff(), return false);
-      event_instance.keyOff(); // workaround for https://youtrack.gaijin.team/issue/EEX-749
+      event_instance.keyOff(); // workaround for https://youtrack.gaijin.team/issue/EEX-749,
+                               // https://youtrack.gaijin.team/issue/MCT-10202
 #else
       SOUND_VERIFY_AND_DO(event_instance.triggerCue(), return false);
 #endif
+      // expecting that playback will pass all sustaining pts and will stop&release automatically, so don't need to call
+      // event_instance.stop()
       return true;
     }
   }
@@ -1173,6 +1221,181 @@ bool get_length(const FMODGUID &event_id, int &length)
   return true;
 }
 
+const char *get_sample_loading_state(const FMOD::Studio::EventDescription &event_description)
+{
+  FMOD_STUDIO_LOADING_STATE state = {};
+  const FMOD_RESULT result = event_description.getSampleLoadingState(&state);
+  if (result == FMOD_OK)
+  {
+    if (state == FMOD_STUDIO_LOADING_STATE_UNLOADING)
+      return "unloading";
+    if (state == FMOD_STUDIO_LOADING_STATE_UNLOADED)
+      return "unloaded";
+    if (state == FMOD_STUDIO_LOADING_STATE_LOADING)
+      return "loading";
+    if (state == FMOD_STUDIO_LOADING_STATE_LOADED)
+      return "loaded";
+    if (state == FMOD_STUDIO_LOADING_STATE_ERROR)
+      return "error";
+  }
+  return "";
+}
+
+#if DAGOR_DBGLEVEL > 0
+static eastl::vector<DbgSampleDataRef> dbg_sample_data_descs;
+static void dbg_sample_data_add_ref_count(const FMOD::Studio::EventDescription &event_description)
+{
+  debug("[FMOD] load_sample_data for '%s'", get_debug_name(event_description).c_str());
+
+  FMODGUID id;
+  const FMOD_RESULT result = event_description.getID((FMOD_GUID *)&id);
+  if (result != FMOD_OK)
+  {
+    logerr("[SNDSYS] FMOD error '%s'", FMOD_ErrorString(result));
+    return;
+  }
+  auto pred = [&id](const auto &it) { return it.first == id; };
+  auto it = eastl::find_if(dbg_sample_data_descs.begin(), dbg_sample_data_descs.end(), pred);
+  if (it != dbg_sample_data_descs.end())
+    ++it->second;
+  else
+    dbg_sample_data_descs.push_back({id, 1});
+}
+static void dbg_sample_data_sub_ref_count(const FMOD::Studio::EventDescription &event_description)
+{
+  debug("[FMOD] unload_sample_data for '%s'", get_debug_name(event_description).c_str());
+
+  FMODGUID id;
+  const FMOD_RESULT result = event_description.getID((FMOD_GUID *)&id);
+  if (result != FMOD_OK)
+  {
+    logerr("[SNDSYS] FMOD error '%s'", FMOD_ErrorString(result));
+    return;
+  }
+  auto pred = [&id](const auto &it) { return it.first == id; };
+  auto it = eastl::find_if(dbg_sample_data_descs.begin(), dbg_sample_data_descs.end(), pred);
+  G_ASSERT(it != dbg_sample_data_descs.end());
+  if (it != dbg_sample_data_descs.end())
+  {
+    --it->second;
+    if (!it->second)
+      dbg_sample_data_descs.erase(it);
+  }
+  else
+    logerr("[SNDSYS] sample_data load/unload ref count mismatch %s", guid_to_str(id).c_str());
+}
+static void dbg_sample_data_verify_ref_count()
+{
+  for (const auto &it : dbg_sample_data_descs)
+  {
+    if (it.second != 0)
+      logerr("[SNDSYS] sample_data load/unload ref count(%d) mismatch %s", it.second, guid_to_str(it.first).c_str());
+  }
+}
+const dag::Span<DbgSampleDataRef> dbg_get_sample_data_refs()
+{
+  return make_span(dbg_sample_data_descs.begin(), dbg_sample_data_descs.size());
+}
+#else
+static void dbg_sample_data_add_ref_count(const FMOD::Studio::EventDescription &) {}
+static void dbg_sample_data_sub_ref_count(const FMOD::Studio::EventDescription &) {}
+static void dbg_sample_data_verify_ref_count() {}
+const dag::Span<DbgSampleDataRef> dbg_get_sample_data_refs() { return {}; }
+#endif
+
+static bool load_sample_data_impl(FMOD::Studio::EventDescription &event_description)
+{
+  const FMOD_RESULT result = event_description.loadSampleData();
+  if (result != FMOD_OK)
+  {
+    logerr("[SNDSYS] FMOD error '%s'", FMOD_ErrorString(result));
+    return false;
+  }
+  dbg_sample_data_add_ref_count(event_description);
+  return true;
+}
+
+static bool unload_sample_data_impl(FMOD::Studio::EventDescription &event_description)
+{
+  const FMOD_RESULT result = event_description.unloadSampleData();
+  if (result != FMOD_OK)
+  {
+    logerr("[SNDSYS] FMOD error '%s'", FMOD_ErrorString(result));
+    return false;
+  }
+  dbg_sample_data_sub_ref_count(event_description);
+  return true;
+}
+
+const char *get_sample_loading_state(const char *path)
+{
+  FrameStr fullPath;
+  fullPath.sprintf("event:/%s", path);
+  if (FMOD::Studio::EventDescription *eventDescription = get_event_description_impl(fullPath.c_str()))
+    return get_sample_loading_state(*eventDescription);
+  return "";
+}
+
+bool load_sample_data(const char *path)
+{
+  FrameStr fullPath;
+  fullPath.sprintf("event:/%s", path);
+  if (FMOD::Studio::EventDescription *eventDescription = get_event_description_impl(fullPath.c_str()))
+    return load_sample_data_impl(*eventDescription);
+  return false;
+}
+
+bool unload_sample_data(const char *path)
+{
+  FrameStr fullPath;
+  fullPath.sprintf("event:/%s", path);
+  if (FMOD::Studio::EventDescription *eventDescription = get_event_description_impl(fullPath.c_str()))
+    return unload_sample_data_impl(*eventDescription);
+  return false;
+}
+
+const char *get_sample_loading_state(EventHandle event_handle)
+{
+  if (FMOD::Studio::EventDescription *eventDescription = get_event_description_impl(event_handle))
+    return get_sample_loading_state(*eventDescription);
+  return "";
+}
+
+bool load_sample_data(EventHandle event_handle)
+{
+  if (FMOD::Studio::EventDescription *eventDescription = get_event_description_impl(event_handle))
+    return load_sample_data_impl(*eventDescription);
+  return false;
+}
+
+bool unload_sample_data(EventHandle event_handle)
+{
+  if (FMOD::Studio::EventDescription *eventDescription = get_event_description_impl(event_handle))
+    return unload_sample_data_impl(*eventDescription);
+  return false;
+}
+
+const char *get_sample_loading_state(const FMODGUID &event_id)
+{
+  if (FMOD::Studio::EventDescription *eventDescription = get_event_description_impl(event_id))
+    return get_sample_loading_state(*eventDescription);
+  return "";
+}
+
+bool load_sample_data(const FMODGUID &event_id)
+{
+  if (FMOD::Studio::EventDescription *eventDescription = get_event_description_impl(event_id))
+    return load_sample_data_impl(*eventDescription);
+  return false;
+}
+
+bool unload_sample_data(const FMODGUID &event_id)
+{
+  if (FMOD::Studio::EventDescription *eventDescription = get_event_description_impl(event_id))
+    return unload_sample_data_impl(*eventDescription);
+  return false;
+}
+
 bool is_3d(EventHandle event_handle) { return get_event_attributes_impl(event_handle).is3d(); }
 
 bool are_of_the_same_desc(EventHandle first_handle, EventHandle second_handle)
@@ -1204,6 +1427,8 @@ float get_max_distance(const FMODGUID &event_id)
     return attributes.getMaxDistance();
   else
   {
+    if (!banks::is_valid_event(event_id))
+      return -1.f;
     FMOD::Studio::EventDescription *eventDescription = nullptr;
     G_STATIC_ASSERT(sizeof(FMODGUID) == sizeof(FMOD_GUID));
     FMOD_RESULT fmodResult = get_studio_system()->getEventByID((FMOD_GUID *)&event_id, &eventDescription);
@@ -1288,6 +1513,7 @@ static inline auto events_close_impl()
 void events_close()
 {
   SNDSYS_IS_MAIN_THREAD;
+  dbg_sample_data_verify_ref_count();
   auto instances = events_close_impl();
   for (FMOD::Studio::EventInstance *instance : instances)
     release_event_instance(*instance, true);
@@ -1334,6 +1560,34 @@ FrameStr get_debug_name(EventHandle event_handle)
   return "";
 }
 
+float adjust_stealing_volume(EventHandle event_handle, float delta)
+{
+  FMOD::Studio::EventInstance *eventInstance = nullptr;
+  int volume = 0;
+  for (;;)
+  {
+    SNDSYS_POOL_BLOCK;
+    Event *event = all_events.get((sound_handle_t)event_handle);
+    if (event && event->eventInstance.isValid())
+    {
+      G_STATIC_ASSERT((eastl::is_same<decltype(event->stealingVolume), uint8_t>::value));
+
+      volume = delta < 0.f ? max(int(event->stealingVolume) - int(ceil(-delta * 0xff)), 0)
+                           : min(int(event->stealingVolume) + int(ceil(delta * 0xff)), 0xff);
+
+      if (event->stealingVolume != volume)
+      {
+        event->stealingVolume = volume;
+        eventInstance = &event->eventInstance;
+      }
+    }
+    break;
+  }
+  if (eventInstance)
+    SOUND_VERIFY(eventInstance->setVolume(float(volume) / 0xff));
+  return volume;
+}
+
 namespace fmodapi
 {
 static FMOD::Studio::EventInstance *set_instance_cb_impl(EventHandle event_handle, EventInstanceCallback cb, void *cb_data)
@@ -1371,14 +1625,12 @@ FMOD::Studio::EventInstance *get_instance(EventHandle event_handle) { return get
 
 FMOD::Studio::EventDescription *get_description(EventHandle event_handle) { return get_event_description_impl(event_handle); }
 
+FMOD::Studio::EventDescription *get_description(const FMODGUID &event_id) { return get_event_description_impl(event_id); }
+
 FMOD::Studio::EventDescription *get_description(const char *name, const char *path)
 {
   SNDSYS_IF_NOT_INITED_RETURN_(nullptr);
-  const FrameStr fullPath = make_path(name, path);
-  FMOD::Studio::EventDescription *eventDescription = nullptr;
-  FMOD_RESULT fmodResult = get_studio_system()->getEvent(fullPath.c_str(), &eventDescription);
-  return FMOD_OK == fmodResult ? eventDescription : nullptr;
+  return get_event_description_impl(make_path(name, path).c_str());
 }
-
 } // namespace fmodapi
 } // namespace sndsys

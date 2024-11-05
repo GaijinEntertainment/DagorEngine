@@ -1,0 +1,9 @@
+return {
+  get_kongzhong_fcm = @() 0
+  get_kongzhong_accountid = @() ""
+  get_kongzhong_authenticated_url = function(url, evt_name) {
+    assert(type(evt_name)=="string")
+    return url
+  }
+  login_kongzhong = @(_params, _id) null
+}

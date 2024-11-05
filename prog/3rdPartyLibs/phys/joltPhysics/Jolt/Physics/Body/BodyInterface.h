@@ -109,7 +109,7 @@ public:
 	/// @return Created body ID or an invalid ID when out of bodies
 	BodyID						CreateAndAddSoftBody(const SoftBodyCreationSettings &inSettings, EActivation inActivationMode);
 
-	/// Broadphase add state handle, used to keep track of a batch while ading to the broadphase.
+	/// Broadphase add state handle, used to keep track of a batch while adding to the broadphase.
 	using AddState = void *;
 
 	///@name Batch adding interface, see Broadphase for further documentation.
@@ -129,6 +129,7 @@ public:
 	void						DeactivateBody(const BodyID &inBodyID);
 	void						DeactivateBodies(const BodyID *inBodyIDs, int inNumber);
 	bool						IsActive(const BodyID &inBodyID) const;
+	void						ResetSleepTimer(const BodyID &inBodyID);
 	///@}
 
 	/// Create a two body constraint
@@ -199,10 +200,10 @@ public:
 
 	///@name Add forces to the body
 	///@{
-	void						AddForce(const BodyID &inBodyID, Vec3Arg inForce); ///< See Body::AddForce
-	void						AddForce(const BodyID &inBodyID, Vec3Arg inForce, RVec3Arg inPoint); ///< Applied at inPoint
-	void						AddTorque(const BodyID &inBodyID, Vec3Arg inTorque); ///< See Body::AddTorque
-	void						AddForceAndTorque(const BodyID &inBodyID, Vec3Arg inForce, Vec3Arg inTorque); ///< A combination of Body::AddForce and Body::AddTorque
+	void						AddForce(const BodyID &inBodyID, Vec3Arg inForce, EActivation inActivationMode = EActivation::Activate); ///< See Body::AddForce
+	void						AddForce(const BodyID &inBodyID, Vec3Arg inForce, RVec3Arg inPoint, EActivation inActivationMode = EActivation::Activate); ///< Applied at inPoint
+	void						AddTorque(const BodyID &inBodyID, Vec3Arg inTorque, EActivation inActivationMode = EActivation::Activate); ///< See Body::AddTorque
+	void						AddForceAndTorque(const BodyID &inBodyID, Vec3Arg inForce, Vec3Arg inTorque, EActivation inActivationMode = EActivation::Activate); ///< A combination of Body::AddForce and Body::AddTorque
 	///@}
 
 	///@name Add an impulse to the body
@@ -210,6 +211,7 @@ public:
 	void						AddImpulse(const BodyID &inBodyID, Vec3Arg inImpulse); ///< Applied at center of mass
 	void						AddImpulse(const BodyID &inBodyID, Vec3Arg inImpulse, RVec3Arg inPoint); ///< Applied at inPoint
 	void						AddAngularImpulse(const BodyID &inBodyID, Vec3Arg inAngularImpulse);
+	bool						ApplyBuoyancyImpulse(const BodyID &inBodyID, RVec3Arg inSurfacePosition, Vec3Arg inSurfaceNormal, float inBuoyancy, float inLinearDrag, float inAngularDrag, Vec3Arg inFluidVelocity, Vec3Arg inGravity, float inDeltaTime);
 	///@}
 
 	///@name Body type
@@ -250,6 +252,12 @@ public:
 	float						GetGravityFactor(const BodyID &inBodyID) const;
 	///@}
 
+	///@name Manifold reduction
+	///@{
+	void						SetUseManifoldReduction(const BodyID &inBodyID, bool inUseReduction);
+	bool						GetUseManifoldReduction(const BodyID &inBodyID) const;
+	///@}
+
 	/// Get transform and shape for this body, used to perform collision detection
 	TransformedShape			GetTransformedShape(const BodyID &inBodyID) const;
 
@@ -264,6 +272,9 @@ public:
 	void						InvalidateContactCache(const BodyID &inBodyID);
 
 private:
+	/// Helper function to activate a single body
+	JPH_INLINE void				ActivateBodyInternal(Body &ioBody) const;
+
 	BodyLockInterface *			mBodyLockInterface = nullptr;
 	BodyManager *				mBodyManager = nullptr;
 	BroadPhase *				mBroadPhase = nullptr;

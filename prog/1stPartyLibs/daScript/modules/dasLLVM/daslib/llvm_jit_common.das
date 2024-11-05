@@ -14,48 +14,65 @@ require daslib/enum_trait
 require fio
 require jit
 
-let public LLVM_JIT_ENABLED = llvm_config::llvm_jit_enabled()
-let public LLVM_JIT_ALL_FUNCTIONS = llvm_config::llvm_jit_all_functions()
+let public LLVM_JIT_ENABLED = false || llvm_config::llvm_jit_enabled()
+let public LLVM_JIT_ALL_FUNCTIONS = false || llvm_config::llvm_jit_all_functions()
 
-let public LLVM_DEBUG_RESULT = llvm_config::llvm_debug_result()
-let public LLVM_DEBUG_EVERYTHING = llvm_config::llvm_debug_everything()
+let public LLVM_DEBUG_RESULT = false || llvm_config::llvm_debug_result()
+let public LLVM_DEBUG_EVERYTHING = false || llvm_config::llvm_debug_everything()
+
+let public LLVM_DEBUG_TRACES = false
+let public LLVM_DEBUG_LINE_TRACES = false
 
 let public LLVM_JIT_LOG = false || LLVM_DEBUG_EVERYTHING
 let public LLVM_DEBUG_INFO = false || LLVM_DEBUG_EVERYTHING
 
 let public LLVM_JIT_ALWAYS_SOLID = llvm_config::llvm_jit_always_solid()
-let public LLVM_JIT_ALLOW_UNALIGNED_VECTOR_READ_OUT_OF_BOUNDS = (
-    llvm_config::llvm_jit_allow_unaligned_vector_read_out_of_bounds()
-)
+var public LLVM_JIT_ALLOW_UNALIGNED_VECTOR_READ_OUT_OF_BOUNDS = false
+
+let public LLVM_OUTPUT_OJBECT_FILE = false
+let public LLVM_OUTPUT_OJBECT_FILE_NAME = "output.o"
+
+let public LLVM_ENABLE_DLL_LOADING = true
+let public JIT_DLL_OUTPUT = "output.dll"
+let public DASCRIPT_LIBRARY = "libDaScript.lib" // liblibDaScript.a on linux
 
 let public LLVM_ENABLE_OPT_PASS = LLVM_DEBUG_EVERYTHING ? false : true
-let public LLVM_OPT_LEVEL = LLVM_DEBUG_EVERYTHING ? 0u : 2u
-let public LLVM_SIZE_LEVEL = LLVM_DEBUG_EVERYTHING ? 0u : 0u
-let public LLVM_JIT_OPT_LEVEL = LLVM_DEBUG_EVERYTHING ? 0u : 2u
+let public LLVM_OPT_LEVEL = LLVM_DEBUG_EVERYTHING ? 0u : 3u
+let public LLVM_SIZE_LEVEL = LLVM_DEBUG_EVERYTHING ? 0u : 3u
+let public LLVM_JIT_OPT_LEVEL = LLVM_DEBUG_EVERYTHING ? 0u : 3u
 let public LLVM_LOG_RESULT = LLVM_DEBUG_EVERYTHING || LLVM_DEBUG_RESULT
 let public LLVM_INLINE_THRESHOLD = 1024u // 225u
 
-let public FN_JIT_EXCEPTION = "`jit`exception`"
-let public FN_JIT_CALL_OR_FASTCALL = "`jit`call_or_fastcall`"
-let public FN_JIT_CALL_WITH_CMRES = "`jit`call_with_cmres`"
-let public FN_JIT_INVOKE_BLOCK = "`jit`invoke_block`"
-let public FN_JIT_INVOKE_BLOCK_WITH_CMRES = "`jit`invoke_block_with_cmres`"
-let public FN_JIT_STRING_BUILDER = "`jit`string_builder`"
-let public FN_JIT_GET_GLOBAL_MNH = "`jit`get_global_mnh`"
-let public FN_JIT_ALLOC_HEAP = "`jit`alloc_heap`"
-let public FN_JIT_ALLOC_PERSISTENT = "`jit`alloc_persistent`"
-let public FN_JIT_FREE_HEAP = "`jit`free_heap`"
-let public FN_JIT_FREE_PERSISTENT = "`jit`free_persistent`"
-let public FN_JIT_ARRAY_LOCK = "`jit`array_lock`"
-let public FN_JIT_ARRAY_UNLOCK = "`jit`array_unlock`"
-let public FN_JIT_STR_CMP = "`jit`str_cmp`"
-let public FN_JIT_PROLOGUE = "`jit`prologue`"
-let public FN_JIT_EPILOGUE = "`jit`epilogue`"
-let public FN_JIT_MAKE_BLOCK = "`jit`make_block`"
-let public FN_JIT_DEBUG = "`jit`debug`"
-let public FN_JIT_ITERATOR_ITERATE = "`jit`iterator_iterate`"
-let public FN_JIT_ITERATOR_DELETE = "`jit`iterator_delete`"
-let public FN_JIT_ITERATOR_CLOSE = "`jit`iterator_close`"
+let public FN_JIT_EXCEPTION         = "jit_exception"
+let public FN_JIT_CALL_OR_FASTCALL  = "jit_call_or_fastcall"
+let public FN_JIT_CALL_WITH_CMRES   = "jit_call_with_cmres"
+let public FN_JIT_INVOKE_BLOCK      = "jit_invoke_block"
+let public FN_JIT_INVOKE_BLOCK_WITH_CMRES = "jit_invoke_block_with_cmres"
+let public FN_JIT_STRING_BUILDER    = "jit_string_builder"
+let public FN_JIT_STRING_BUILDER_TEMP    = "jit_string_builder_temp"
+let public FN_JIT_GET_GLOBAL_MNH    = "jit_get_global_mnh"
+let public FN_JIT_GET_SHARED_MNH    = "jit_get_shared_mnh"
+let public FN_JIT_ALLOC_HEAP        = "jit_alloc_heap"
+let public FN_JIT_ALLOC_PERSISTENT  = "jit_alloc_persistent"
+let public FN_JIT_FREE_HEAP         = "jit_free_heap"
+let public FN_JIT_FREE_PERSISTENT   = "jit_free_persistent"
+let public FN_JIT_ARRAY_LOCK        = "jit_array_lock"
+let public FN_JIT_ARRAY_UNLOCK      = "jit_array_unlock"
+let public FN_JIT_STR_CMP           = "jit_str_cmp"
+let public FN_JIT_STR_CAT           = "jit_str_cat"
+let public FN_JIT_PROLOGUE          = "jit_prologue"
+let public FN_JIT_EPILOGUE          = "jit_epilogue"
+let public FN_JIT_MAKE_BLOCK        = "jit_make_block"
+let public FN_JIT_DEBUG             = "jit_debug"
+let public FN_JIT_ITERATOR_ITERATE  = "jit_iterator_iterate"
+let public FN_JIT_ITERATOR_DELETE   = "jit_iterator_delete"
+let public FN_JIT_ITERATOR_CLOSE    = "jit_iterator_close"
+let public FN_JIT_ITERATOR_FIRST    = "jit_iterator_first"
+let public FN_JIT_ITERATOR_NEXT     = "jit_iterator_next"
+let public FN_JIT_DEBUG_ENTER       = "jit_debug_enter"
+let public FN_JIT_DEBUG_EXIT        = "jit_debug_exit"
+let public FN_JIT_DEBUG_LINE        = "jit_debug_line"
+let public FN_JIT_AST_TYPEDECL      = "jit_ast_typedecl"
 
 struct JitEngine
     mod : LLVMOpaqueModule?
@@ -67,6 +84,8 @@ var public g_mod : LLVMOpaqueModule?
 var public g_engine : LLVMExecutionEngineRef
 var public g_failed : bool = false
 var public g_errors : array<string>
+var public g_dynamic_lib_handle : void?
+var public g_loading_from_dll : bool = true
 
 var public g_t_simFunction : LLVMOpaqueType?
 var public g_t_function : LLVMOpaqueType?
@@ -93,8 +112,6 @@ enum public JIT_TABLE
     FLAGS
     KEYS
     HASHES
-    MAX_LOOKUPS
-    SHIFT
 
 enum public JIT_SIMFUNCTION
     NAME
@@ -134,15 +151,22 @@ def public FN_JIT_TABLE_ERASE(t:Type)
 def public FN_JIT_TABLE_FIND(t:Type)
     return "`jit`table_find`{t}`"
 
+var public g_fn_types : table<string; LLVMTypeRef>
+
+def public LLVMAddFunctionWithType( mod : LLVMModuleRef; name : string; typ : LLVMTypeRef )
+    var rv = LLVMAddFunction(mod, name, typ)
+    g_fn_types[name] = typ
+    return rv
 
 [macro_function]
 def public init_jit
     return if is_in_completion() || is_compiling_macros()
     return if g_mod != null    // prevent double init
-    LLVMContextSetOpaquePointers(LLVMGetGlobalContext(), 0)
+    LLVMContextSetOpaquePointers(LLVMGetGlobalContext(), 1)
     if LLVM_DEBUG_INFO
         set_context_diagnostics_to_log(LLVMGetGlobalContext())
     g_failed = false
+    g_fn_types |> clear()
     g_mod = LLVMModuleCreateWithName("llvm_jit_module")
     LLVMLinkInMCJIT()
     LLVMInitializeNativeTarget()
@@ -162,70 +186,84 @@ def public init_jit
     var nocapture = LLVMGetEnumAttribute("nocapture")
     build_jit_types()
     // add default functions
-    var jit_exception = LLVMAddFunction(g_mod, FN_JIT_EXCEPTION,    // jit_exception(text,context *)
+    var jit_exception = LLVMAddFunctionWithType(g_mod, FN_JIT_EXCEPTION,    // jit_exception(text,context *,lineinfo *)
         LLVMFunctionType(LLVMVoidType(),
-            [[LLVMTypeRef get_type_string(); LLVMPointerType(LLVMVoidType(),0u)]]))
+            [[LLVMTypeRef get_type_string(); LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u)]]))
     LLVMAddGlobalMapping(g_engine, jit_exception, get_jit_exception())
     LLVMAddAttributeToFunction(jit_exception, noreturn)
     LLVMAddAttributeToFunctionArgumentRange(jit_exception, urange(0,2), nocapture)
     // jit_call_or_fastcall(func,args *,context *)
-    var jit_call_or_fastcall = LLVMAddFunction(g_mod, FN_JIT_CALL_OR_FASTCALL,
+    var jit_call_or_fastcall = LLVMAddFunctionWithType(g_mod, FN_JIT_CALL_OR_FASTCALL,
         LLVMFunctionType(LLVMFloat4Type(),
             [[LLVMTypeRef LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMFloat4Type(),0u); LLVMPointerType(LLVMVoidType(),0u)]]))
     LLVMAddGlobalMapping(g_engine, jit_call_or_fastcall, get_jit_call_or_fastcall())
     LLVMAddAttributeToFunctionArgumentRange(jit_call_or_fastcall, urange(0,3), nocapture)
     LLVMAddAttributesToFunction(jit_call_or_fastcall, [[auto nounwind; willreturn]])
     // jit_call_with_cmres(func,args *,cmres *,context *)
-    var jit_call_with_cmres = LLVMAddFunction(g_mod, FN_JIT_CALL_WITH_CMRES,
+    var jit_call_with_cmres = LLVMAddFunctionWithType(g_mod, FN_JIT_CALL_WITH_CMRES,
         LLVMFunctionType(LLVMFloat4Type(),
             [[LLVMTypeRef LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMFloat4Type(),0u); LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u)]]))
     LLVMAddGlobalMapping(g_engine, jit_call_with_cmres, get_jit_call_with_cmres())
     LLVMAddAttributeToFunctionArgumentRange(jit_call_with_cmres, urange(0,4), nocapture)
     LLVMAddAttributesToFunction(jit_call_with_cmres, [[auto nounwind; willreturn]])
     // vec4f jit_invoke_block ( const Block & blk, vec4f * args, Context * context )
-    var jit_invoke_block = LLVMAddFunction(g_mod, FN_JIT_INVOKE_BLOCK,
+    var jit_invoke_block = LLVMAddFunctionWithType(g_mod, FN_JIT_INVOKE_BLOCK,
         LLVMFunctionType(LLVMFloat4Type(),
             [[LLVMTypeRef LLVMPointerType(g_t_block,0u); LLVMPointerType(LLVMFloat4Type(),0u); LLVMPointerType(LLVMVoidType(),0u)]]))
     LLVMAddGlobalMapping(g_engine, jit_invoke_block, get_jit_invoke_block())
     LLVMAddAttributeToFunctionArgumentRange(jit_invoke_block, urange(0,3), nocapture)
     LLVMAddAttributesToFunction(jit_invoke_block, [[auto nounwind; willreturn]])
     // vec4f jit_invoke_block_with_cmres ( const Block & blk, vec4f * args, void * cmres, Context * context )
-    var jit_invoke_block_with_cmres = LLVMAddFunction(g_mod, FN_JIT_INVOKE_BLOCK_WITH_CMRES,
+    var jit_invoke_block_with_cmres = LLVMAddFunctionWithType(g_mod, FN_JIT_INVOKE_BLOCK_WITH_CMRES,
         LLVMFunctionType(LLVMFloat4Type(),
             [[LLVMTypeRef LLVMPointerType(g_t_block,0u); LLVMPointerType(LLVMFloat4Type(),0u); LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u)]]))
     LLVMAddGlobalMapping(g_engine, jit_invoke_block_with_cmres, get_jit_invoke_block_with_cmres())
     LLVMAddAttributeToFunctionArgumentRange(jit_invoke_block_with_cmres, urange(0,4), nocapture)
     LLVMAddAttributesToFunction(jit_invoke_block_with_cmres, [[auto nounwind; willreturn]])
     // jit_string_builder ( context *, node *, args * )
-    var jit_string_builder = LLVMAddFunction(g_mod, FN_JIT_STRING_BUILDER,
+    var jit_string_builder = LLVMAddFunctionWithType(g_mod, FN_JIT_STRING_BUILDER,
         LLVMFunctionType(get_type_string(),
             [[LLVMTypeRef LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMFloat4Type(),0u) ]]))
     LLVMAddGlobalMapping(g_engine, jit_string_builder, get_jit_string_builder())
-    LLVMAddAttributesToFunction(jit_string_builder, [[auto nounwind; willreturn; readonly]])
+    LLVMAddAttributesToFunction(jit_string_builder, [[auto nounwind; willreturn]])
     LLVMAddAttributeToFunctionArgumentRange(jit_string_builder, urange(0,3), nocapture)
-    // jit_get_global_mnh ( uint64_t mnh, context * )
-    var jit_get_global_mnh = LLVMAddFunction(g_mod, FN_JIT_GET_GLOBAL_MNH,
+    // jit_string_builder_temp ( context *, node *, args * )
+    var jit_string_builder_temp = LLVMAddFunctionWithType(g_mod, FN_JIT_STRING_BUILDER_TEMP,
+        LLVMFunctionType(get_type_string(),
+            [[LLVMTypeRef LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMFloat4Type(),0u) ]]))
+    LLVMAddGlobalMapping(g_engine, jit_string_builder_temp, get_jit_string_builder_temp())
+    LLVMAddAttributesToFunction(jit_string_builder_temp, [[auto nounwind; willreturn]])
+    LLVMAddAttributeToFunctionArgumentRange(jit_string_builder_temp, urange(0,3), nocapture)
+    // void * jit_get_global_mnh ( uint64_t mnh, context * )
+    var jit_get_global_mnh = LLVMAddFunctionWithType(g_mod, FN_JIT_GET_GLOBAL_MNH,
         LLVMFunctionType(LLVMPointerType(LLVMVoidType(),0u),
             [[LLVMTypeRef LLVMInt64Type(); LLVMPointerType(LLVMVoidType(),0u) ]]))
     LLVMAddGlobalMapping(g_engine, jit_get_global_mnh, get_jit_get_global_mnh())
-    LLVMAddAttributesToFunction(jit_get_global_mnh, [[auto nounwind; willreturn; readonly]])
+    LLVMAddAttributesToFunction(jit_get_global_mnh, [[auto nounwind; willreturn]])
     LLVMAddAttributeToFunctionArgument(jit_get_global_mnh, 1u, nocapture)
+    // void * jit_get_shared_mnh ( uint64_t mnh, context * )
+    var jit_get_shared_mnh = LLVMAddFunctionWithType(g_mod, FN_JIT_GET_SHARED_MNH,
+        LLVMFunctionType(LLVMPointerType(LLVMVoidType(),0u),
+            [[LLVMTypeRef LLVMInt64Type(); LLVMPointerType(LLVMVoidType(),0u) ]]))
+    LLVMAddGlobalMapping(g_engine, jit_get_shared_mnh, get_jit_get_shared_mnh())
+    LLVMAddAttributesToFunction(jit_get_shared_mnh, [[auto nounwind; willreturn]])
+    LLVMAddAttributeToFunctionArgument(jit_get_shared_mnh, 1u, nocapture)
     // jit_alloc_heap ( uint64_t mnh, context * )
-    var jit_alloc_heap = LLVMAddFunction(g_mod, FN_JIT_ALLOC_HEAP,
+    var jit_alloc_heap = LLVMAddFunctionWithType(g_mod, FN_JIT_ALLOC_HEAP,
         LLVMFunctionType(LLVMPointerType(LLVMVoidType(),0u),
             [[LLVMTypeRef LLVMInt32Type(); LLVMPointerType(LLVMVoidType(),0u) ]]))
     LLVMAddGlobalMapping(g_engine, jit_alloc_heap, get_jit_alloc_heap())
-    LLVMAddAttributesToFunction(jit_alloc_heap, [[auto nounwind; willreturn; readonly]])
+    LLVMAddAttributesToFunction(jit_alloc_heap, [[auto nounwind; willreturn]])
     LLVMAddAttributeToFunctionArgument(jit_alloc_heap, 1u, nocapture)
     // jit_alloc_persistent ( uint64_t mnh, context * )
-    var jit_alloc_persistent = LLVMAddFunction(g_mod, FN_JIT_ALLOC_PERSISTENT,
+    var jit_alloc_persistent = LLVMAddFunctionWithType(g_mod, FN_JIT_ALLOC_PERSISTENT,
         LLVMFunctionType(LLVMPointerType(LLVMVoidType(),0u),
             [[LLVMTypeRef LLVMInt32Type(); LLVMPointerType(LLVMVoidType(),0u) ]]))
     LLVMAddGlobalMapping(g_engine, jit_alloc_persistent, get_jit_alloc_persistent())
-    LLVMAddAttributesToFunction(jit_alloc_persistent, [[auto nounwind; willreturn; readonly]])
+    LLVMAddAttributesToFunction(jit_alloc_persistent, [[auto nounwind; willreturn]])
     LLVMAddAttributeToFunctionArgument(jit_alloc_persistent, 1u, nocapture)
     // void jit_free_heap ( void * bytes, uint32_t size, Context * context )
-    var jit_free_heap = LLVMAddFunction(g_mod, FN_JIT_FREE_HEAP,
+    var jit_free_heap = LLVMAddFunctionWithType(g_mod, FN_JIT_FREE_HEAP,
         LLVMFunctionType(LLVMPointerType(LLVMVoidType(),0u),
             [[LLVMTypeRef LLVMPointerType(LLVMVoidType(),0u); LLVMInt32Type(); LLVMPointerType(LLVMVoidType(),0u) ]]))
     LLVMAddGlobalMapping(g_engine, jit_free_heap, get_jit_free_heap())
@@ -233,21 +271,21 @@ def public init_jit
     LLVMAddAttributeToFunctionArgument(jit_free_heap, 0u, nocapture)
     LLVMAddAttributeToFunctionArgument(jit_free_heap, 2u, nocapture)
     // void jit_free_persistent ( void * bytes, Context * context )
-    var jit_free_persistent = LLVMAddFunction(g_mod, FN_JIT_FREE_PERSISTENT,
+    var jit_free_persistent = LLVMAddFunctionWithType(g_mod, FN_JIT_FREE_PERSISTENT,
         LLVMFunctionType(LLVMPointerType(LLVMVoidType(),0u),
             [[LLVMTypeRef LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u) ]]))
     LLVMAddGlobalMapping(g_engine, jit_free_persistent, get_jit_free_persistent())
     LLVMAddAttributesToFunction(jit_free_persistent, [[auto nounwind; willreturn]])
     LLVMAddAttributeToFunctionArgumentRange(jit_free_persistent, urange(0,2), nocapture)
     // void jit_array_lock ( Array & array, Context * context )
-    var jit_array_lock = LLVMAddFunction(g_mod, FN_JIT_ARRAY_LOCK,
+    var jit_array_lock = LLVMAddFunctionWithType(g_mod, FN_JIT_ARRAY_LOCK,
         LLVMFunctionType(LLVMPointerType(LLVMVoidType(),0u),
             [[LLVMTypeRef LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u) ]]))
     LLVMAddGlobalMapping(g_engine, jit_array_lock, get_jit_array_lock())
     LLVMAddAttributesToFunction(jit_array_lock, [[auto nounwind; willreturn]])
     LLVMAddAttributeToFunctionArgumentRange(jit_array_lock, urange(0,2), nocapture)
     // void jit_array_unlock ( Array & array, Context * context )
-    var jit_array_unlock = LLVMAddFunction(g_mod, FN_JIT_ARRAY_UNLOCK,
+    var jit_array_unlock = LLVMAddFunctionWithType(g_mod, FN_JIT_ARRAY_UNLOCK,
         LLVMFunctionType(LLVMPointerType(LLVMVoidType(),0u),
             [[LLVMTypeRef LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u) ]]))
     LLVMAddGlobalMapping(g_engine, jit_array_unlock, get_jit_array_unlock())
@@ -256,7 +294,7 @@ def public init_jit
     // table functions
     for t in get_workhorse_types()
         // int32_t jit_table_at ( Table * tab, KeyType key, int32_t valueTypeSize, Context * context )
-        var jit_table_at = LLVMAddFunction(g_mod, FN_JIT_TABLE_AT(t),
+        var jit_table_at = LLVMAddFunctionWithType(g_mod, FN_JIT_TABLE_AT(t),
             LLVMFunctionType(LLVMInt32Type(),   // int32_t result
                 [[LLVMTypeRef LLVMPointerType(LLVMVoidType(),0u);   // table ptr
                 base_type_to_llvm_type(t);                          // key
@@ -268,7 +306,7 @@ def public init_jit
         LLVMAddAttributeToFunctionArgument(jit_table_at, 0u, nocapture)
         LLVMAddAttributeToFunctionArgument(jit_table_at, 3u, nocapture)
         // int32_t jit_table_find ( Table * tab, KeyType key, int32_t valueTypeSize, Context * context )
-        var jit_table_find = LLVMAddFunction(g_mod, FN_JIT_TABLE_FIND(t),
+        var jit_table_find = LLVMAddFunctionWithType(g_mod, FN_JIT_TABLE_FIND(t),
             LLVMFunctionType(LLVMInt32Type(),   // int32_t result
                 [[LLVMTypeRef LLVMPointerType(LLVMVoidType(),0u);   // table ptr
                 base_type_to_llvm_type(t);                          // key
@@ -276,11 +314,11 @@ def public init_jit
                 LLVMPointerType(LLVMVoidType(),0u)                  // context
                 ]]))
         LLVMAddGlobalMapping(g_engine, jit_table_find, get_jit_table_find(unsafe(reinterpret<int> t)))
-        LLVMAddAttributesToFunction(jit_table_find, [[auto nounwind; willreturn; readonly]])
+        LLVMAddAttributesToFunction(jit_table_find, [[auto nounwind; willreturn]])
         LLVMAddAttributeToFunctionArgument(jit_table_find, 0u, nocapture)
         LLVMAddAttributeToFunctionArgument(jit_table_find, 3u, nocapture)
         // bool jit_table_erase ( Table * tab, KeyType key, int32_t valueTypeSize, Context * context )
-        var jit_table_erase = LLVMAddFunction(g_mod, FN_JIT_TABLE_ERASE(t),
+        var jit_table_erase = LLVMAddFunctionWithType(g_mod, FN_JIT_TABLE_ERASE(t),
             LLVMFunctionType(LLVMInt1Type(),                        // bool result
                 [[LLVMTypeRef LLVMPointerType(LLVMVoidType(),0u);   // table ptr
                 base_type_to_llvm_type(t);                          // key
@@ -292,63 +330,113 @@ def public init_jit
         LLVMAddAttributeToFunctionArgument(jit_table_erase, 0u, nocapture)
         LLVMAddAttributeToFunctionArgument(jit_table_erase, 3u, nocapture)
     // int jit_str_cmp ( char * a, char * b )
-    var jit_str_cmp = LLVMAddFunction(g_mod, FN_JIT_STR_CMP,
+    var jit_str_cmp = LLVMAddFunctionWithType(g_mod, FN_JIT_STR_CMP,
         LLVMFunctionType(LLVMInt32Type(),
             [[LLVMTypeRef LLVMPointerType(LLVMInt8Type(),0u); LLVMPointerType(LLVMInt8Type(),0u) ]]))
     LLVMAddGlobalMapping(g_engine, jit_str_cmp, get_jit_str_cmp())
-    LLVMAddAttributesToFunction(jit_str_cmp, [[auto nounwind; willreturn; readonly]])
+    LLVMAddAttributesToFunction(jit_str_cmp, [[auto nounwind; willreturn]])
     LLVMAddAttributeToFunctionArgumentRange(jit_str_cmp, urange(0,2), nocapture)
-    // void jit_prologue ( int32_t stackSize, JitStackState * stackState, Context * context )
-    var jit_prologue = LLVMAddFunction(g_mod, FN_JIT_PROLOGUE,
+    // char * jit_str_cat ( char * a, char * b, Copntext * context )
+    var jit_str_cat = LLVMAddFunctionWithType(g_mod, FN_JIT_STR_CAT,
+        LLVMFunctionType(LLVMPointerType(LLVMInt8Type(),0u),
+            [[LLVMTypeRef LLVMPointerType(LLVMInt8Type(),0u); LLVMPointerType(LLVMInt8Type(),0u); LLVMPointerType(LLVMVoidType(),0u) ]]))
+    LLVMAddGlobalMapping(g_engine, jit_str_cat, get_jit_str_cat())
+    LLVMAddAttributesToFunction(jit_str_cat, [[auto nounwind; willreturn]])
+    LLVMAddAttributeToFunctionArgumentRange(jit_str_cat, urange(0,3), nocapture)
+    // void jit_prologue ( void * line_info, int32_t stackSize, JitStackState * stackState, Context * context )
+    var jit_prologue = LLVMAddFunctionWithType(g_mod, FN_JIT_PROLOGUE,
         LLVMFunctionType(LLVMVoidType(),
-            [[LLVMTypeRef LLVMInt32Type(); LLVMPointerType(g_t_stack_state,0u); LLVMPointerType(LLVMVoidType(),0u) ]]))
+            [[LLVMTypeRef LLVMPointerType(LLVMVoidType(),0u); LLVMInt32Type(); LLVMPointerType(g_t_stack_state,0u); LLVMPointerType(LLVMVoidType(),0u) ]]))
     LLVMAddGlobalMapping(g_engine, jit_prologue, get_jit_prologue())
     LLVMAddAttributesToFunction(jit_prologue, [[auto nounwind; willreturn]])
-    LLVMAddAttributeToFunctionArgumentRange(jit_prologue, urange(1,3), nocapture)
+    LLVMAddAttributeToFunctionArgumentRange(jit_prologue, urange(2,4), nocapture)
     // void jit_epilogue ( JitStackState * stackState, Context * context )
-    var jit_epilogue = LLVMAddFunction(g_mod, FN_JIT_EPILOGUE,
+    var jit_epilogue = LLVMAddFunctionWithType(g_mod, FN_JIT_EPILOGUE,
         LLVMFunctionType(LLVMVoidType(),
             [[LLVMTypeRef LLVMPointerType(g_t_stack_state,0u); LLVMPointerType(LLVMVoidType(),0u) ]]))
     LLVMAddGlobalMapping(g_engine, jit_epilogue, get_jit_epilogue())
     LLVMAddAttributesToFunction(jit_epilogue, [[auto nounwind; willreturn]])
     LLVMAddAttributeToFunctionArgumentRange(jit_epilogue, urange(0,2), nocapture)
-    // void jit_make_block ( Block * blk, int32_t argStackTop, void * bodyNode, void * jitImpl, void * funcInfo, Context * context )
-    var jit_make_block = LLVMAddFunction(g_mod, FN_JIT_MAKE_BLOCK,
+    // void jit_make_block ( Block * blk, int32_t argStackTop, uint64_t annotationData, void * bodyNode, void * jitImpl, void * funcInfo, Context * context )
+    var jit_make_block = LLVMAddFunctionWithType(g_mod, FN_JIT_MAKE_BLOCK,
         LLVMFunctionType(LLVMVoidType(),
-            [[LLVMTypeRef LLVMPointerType(g_t_block,0u); LLVMInt32Type(); LLVMPointerType(LLVMVoidType(),0u);
+            [[LLVMTypeRef LLVMPointerType(g_t_block,0u); LLVMInt32Type(); LLVMInt64Type(); LLVMPointerType(LLVMVoidType(),0u);
                 LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u) ]]))
     LLVMAddGlobalMapping(g_engine, jit_make_block, get_jit_make_block())
     LLVMAddAttributesToFunction(jit_make_block, [[auto nounwind; willreturn]])
     LLVMAddAttributeToFunctionArgument(jit_make_block, 0u, nocapture)
-    LLVMAddAttributeToFunctionArgumentRange(jit_make_block, urange(2,6), nocapture)
-    // void jit_debug ( vec4f res, TypeInfo * typeInfo, char * message, Context * )
-    var jit_debug = LLVMAddFunction(g_mod, FN_JIT_DEBUG,
+    LLVMAddAttributeToFunctionArgumentRange(jit_make_block, urange(3,7), nocapture)
+    // void jit_debug ( vec4f res, TypeInfo * typeInfo, char * message, Context * context, LineInfoArg * at )
+    var jit_debug = LLVMAddFunctionWithType(g_mod, FN_JIT_DEBUG,
         LLVMFunctionType(LLVMVoidType(),
-            [[LLVMTypeRef LLVMFloat4Type(); LLVMPointerType(LLVMVoidType(),0u); get_type_string(); LLVMPointerType(LLVMVoidType(),0u)]]))
+            [[LLVMTypeRef LLVMFloat4Type(); LLVMPointerType(LLVMVoidType(),0u); get_type_string(); LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u)]]))
     LLVMAddGlobalMapping(g_engine, jit_debug, get_jit_debug())
     LLVMAddAttributesToFunction(jit_debug, [[auto nounwind; willreturn]])
-    LLVMAddAttributeToFunctionArgumentRange(jit_debug, urange(1,4), nocapture)
+    LLVMAddAttributeToFunctionArgumentRange(jit_debug, urange(1,5), nocapture)
     // bool builtin_iterator_iterate ( const Sequence & it, void * data, Context * context ) {
-    var jit_iterator_iterate = LLVMAddFunction(g_mod, FN_JIT_ITERATOR_ITERATE,
+    var jit_iterator_iterate = LLVMAddFunctionWithType(g_mod, FN_JIT_ITERATOR_ITERATE,
         LLVMFunctionType(LLVMInt1Type(),
             [[LLVMTypeRef LLVMPointerType(g_t_sequence,0u); LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u)]]))
     LLVMAddGlobalMapping(g_engine, jit_iterator_iterate, get_jit_iterator_iterate())
     LLVMAddAttributesToFunction(jit_iterator_iterate, [[auto nounwind; willreturn]])
     LLVMAddAttributeToFunctionArgumentRange(jit_iterator_iterate, urange(0,3), nocapture)
     // void builtin_iterator_delete ( const Sequence & it, Context * context ) {
-    var jit_iterator_delete = LLVMAddFunction(g_mod, FN_JIT_ITERATOR_DELETE,
+    var jit_iterator_delete = LLVMAddFunctionWithType(g_mod, FN_JIT_ITERATOR_DELETE,
         LLVMFunctionType(LLVMInt1Type(),
             [[LLVMTypeRef LLVMPointerType(g_t_sequence,0u); LLVMPointerType(LLVMVoidType(),0u)]]))
     LLVMAddGlobalMapping(g_engine, jit_iterator_delete, get_jit_iterator_delete())
     LLVMAddAttributesToFunction(jit_iterator_delete, [[auto nounwind; willreturn]])
     LLVMAddAttributeToFunctionArgumentRange(jit_iterator_delete, urange(0,2), nocapture)
+    // bool builtin_iterator_first ( const Sequence & it, void * data, Context * context, LineInfoArg * at ) {
+    var jit_iterator_first = LLVMAddFunctionWithType(g_mod, FN_JIT_ITERATOR_FIRST,
+        LLVMFunctionType(LLVMInt1Type(),
+            [[LLVMTypeRef LLVMPointerType(g_t_sequence,0u); LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u)]]))
+    LLVMAddGlobalMapping(g_engine, jit_iterator_first, get_jit_iterator_first())
+    LLVMAddAttributesToFunction(jit_iterator_first, [[auto nounwind; willreturn]])
+    LLVMAddAttributeToFunctionArgumentRange(jit_iterator_first, urange(0,4), nocapture)
+    // bool builtin_iterator_next ( const Sequence & it, void * data, Context * context, LineInfoArg * at ) {
+    var jit_iterator_next = LLVMAddFunctionWithType(g_mod, FN_JIT_ITERATOR_NEXT,
+        LLVMFunctionType(LLVMInt1Type(),
+            [[LLVMTypeRef LLVMPointerType(g_t_sequence,0u); LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u)]]))
+    LLVMAddGlobalMapping(g_engine, jit_iterator_next, get_jit_iterator_next())
+    LLVMAddAttributesToFunction(jit_iterator_next, [[auto nounwind; willreturn]])
+    LLVMAddAttributeToFunctionArgumentRange(jit_iterator_next, urange(0,4), nocapture)
     // void builtin_iterator_close ( const Sequence & it, void * data, Context * context ) {
-    var jit_iterator_close = LLVMAddFunction(g_mod, FN_JIT_ITERATOR_CLOSE,
+    var jit_iterator_close = LLVMAddFunctionWithType(g_mod, FN_JIT_ITERATOR_CLOSE,
         LLVMFunctionType(LLVMVoidType(),
             [[LLVMTypeRef LLVMPointerType(g_t_sequence,0u); LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u)]]))
     LLVMAddGlobalMapping(g_engine, jit_iterator_close, get_jit_iterator_close())
     LLVMAddAttributesToFunction(jit_iterator_close, [[auto nounwind; willreturn]])
     LLVMAddAttributeToFunctionArgumentRange(jit_iterator_close, urange(0,3), nocapture)
+    // void das_jit_debug_enter ( char * message, Context * context, LineInfoArg * at ) {
+    var jit_debug_enter = LLVMAddFunctionWithType(g_mod, FN_JIT_DEBUG_ENTER,
+        LLVMFunctionType(LLVMVoidType(),
+            [[LLVMTypeRef LLVMPointerType(LLVMInt8Type(),0u); LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u)]]))
+    LLVMAddGlobalMapping(g_engine, jit_debug_enter, get_jit_debug_enter())
+    LLVMAddAttributesToFunction(jit_debug_enter, [[auto nounwind; willreturn]])
+    LLVMAddAttributeToFunctionArgumentRange(jit_debug_enter, urange(0,3), nocapture)
+    // void das_jit_debug_exit ( char * message, Context * context, LineInfoArg * at ) {
+    var jit_debug_exit = LLVMAddFunctionWithType(g_mod, FN_JIT_DEBUG_EXIT,
+        LLVMFunctionType(LLVMVoidType(),
+            [[LLVMTypeRef LLVMPointerType(LLVMInt8Type(),0u); LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u)]]))
+    LLVMAddGlobalMapping(g_engine, jit_debug_exit, get_jit_debug_exit())
+    LLVMAddAttributesToFunction(jit_debug_exit, [[auto nounwind; willreturn]])
+    LLVMAddAttributeToFunctionArgumentRange(jit_debug_exit, urange(0,3), nocapture)
+    // void das_jit_debug_line ( char * message, Context * context, LineInfoArg * at ) {
+    var jit_debug_line = LLVMAddFunctionWithType(g_mod, FN_JIT_DEBUG_LINE,
+        LLVMFunctionType(LLVMVoidType(),
+            [[LLVMTypeRef LLVMPointerType(LLVMInt8Type(),0u); LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u)]]))
+    LLVMAddGlobalMapping(g_engine, jit_debug_line, get_jit_debug_line())
+    LLVMAddAttributesToFunction(jit_debug_line, [[auto nounwind; willreturn]])
+    LLVMAddAttributeToFunctionArgumentRange(jit_debug_line, urange(0,3), nocapture)
+    // void * jit_ast_typedecl ( uint64_t hash, Context * context, LineInfoArg * at )
+    var jit_ast_typedecl = LLVMAddFunctionWithType(g_mod, FN_JIT_AST_TYPEDECL,
+        LLVMFunctionType(LLVMPointerType(LLVMVoidType(),0u),
+            [[LLVMTypeRef LLVMInt64Type(); LLVMPointerType(LLVMVoidType(),0u); LLVMPointerType(LLVMVoidType(),0u)]]))
+    LLVMAddGlobalMapping(g_engine, jit_ast_typedecl, get_jit_ast_typedecl())
+    LLVMAddAttributesToFunction(jit_ast_typedecl, [[auto nounwind; willreturn]])
+    LLVMAddAttributeToFunctionArgumentRange(jit_ast_typedecl, urange(1,3), nocapture)
+
 
 def private build_jit_types
     // simfunction type
@@ -407,12 +495,52 @@ def public build_block_type
     }]
 
 [macro_function]
+def public with_default_target_machine ( blk : block<(LLVMTargetMachineRef):void> )
+    LLVMInitializeAllTargetInfos()
+    LLVMInitializeAllTargets()
+    LLVMInitializeAllTargetMCs()
+    LLVMInitializeAllAsmPrinters()
+
+    // let triple = "x86_64-pc-linux-gnu"
+    let triple = LLVMGetDefaultTargetTriple()
+
+    // Find the target using the triple
+    var target : LLVMTarget?
+    let error : string?
+    unsafe
+        LLVMGetTargetFromTriple(triple, addr(target), error)
+
+    let targetMachine = LLVMCreateTargetMachine(
+        target,
+        triple,
+        "", // CPU
+        "", // Features
+        LLVMCodeGenOptLevel LLVMCodeGenLevelDefault,
+        LLVMRelocMode LLVMRelocPIC, // PIC in order to have shared object
+        LLVMCodeModel Default
+    )
+
+    invoke(blk, targetMachine)
+
+    LLVMDisposeMessage(triple)
+    LLVMDisposeTargetMachine(targetMachine)
+
+
+[macro_function]
 def public finalize_jit
     return if is_in_completion() || is_compiling_macros()
     return if g_mod == null    // prevent double finalize
     if LLVM_LOG_RESULT
         LLVMDumpModule(g_mod)
         fflush(fstderr())
+    if LLVM_OUTPUT_OJBECT_FILE
+        with_default_target_machine <| $ ( targetMachine : LLVMTargetMachineRef )
+            let error : string?
+            let file = LLVM_OUTPUT_OJBECT_FILE_NAME
+            let filetype = LLVMCodeGenFileType LLVMObjectFile
+            LLVMTargetMachineEmitToFile(targetMachine, g_mod, file, filetype, error)
+            create_shared_library(file, JIT_DLL_OUTPUT, DASCRIPT_LIBRARY)
+    g_engine |> LLVMRunStaticConstructors()
     g_all_engines |> push([[ JitEngine
         mod <- g_mod,
         engine <- g_engine
@@ -463,6 +591,8 @@ def public get_type_string : LLVMOpaqueType?
     return LLVMPointerType(LLVMInt8Type(), 0u)
 
 def public get_string_constant_ptr ( builder:LLVMOpaqueBuilder?; message:string )
+    if message |> length == 0
+        return LLVMConstPointerNull(get_type_string())
     var str = build_string_constant(message)
     return LLVMBuildPointerCast(builder, str, get_type_string(), "string_constant {message}")
 
@@ -534,6 +664,8 @@ def public type_to_llvm_abi_type ( t:TypeDeclPtr )
                 failed("internal error. expecting workhorse type from `get_underlying_value_type` for {describe(t)} at {describe(t.at)}")
                 return LLVMInt32Type()
             return type_to_llvm_abi_type(tp)
+    elif t.baseType==Type anyArgument
+        return LLVMFloat4Type()
     else
         failed("type_to_llvm_abi_type: unsupported type {describe(t)} at {describe(t.at)}")
         return LLVMInt32Type()
@@ -559,7 +691,7 @@ def public type_to_llvm_type ( t:TypeDeclPtr )
     elif t.baseType == Type tFunction
         res = g_t_function
     elif t.baseType == Type tLambda
-        res = LLVMPointerType(g_t_lambda,0u)
+        res = LLVMPointerType(LLVMVoidType(),0u)
     elif t.baseType == Type tIterator
         res = g_t_sequence
     elif t.baseType == Type tBlock
@@ -586,8 +718,7 @@ def public type_to_llvm_type ( t:TypeDeclPtr )
             LLVMInt32Type();                    // uint32_t flags
             LLVMPointerType(LLVMVoidType(),0u); // char * keys
             LLVMPointerType(LLVMVoidType(),0u); // char * hashes
-            LLVMInt32Type();                    // uint32_t maxLookup
-            LLVMInt32Type()                     // uint32_t shift
+            LLVMInt32Type();                    // uint32_t tombstones
         ]]
         if t.firstType!=null
             table_fields[int(JIT_TABLE KEYS)] = LLVMPointerType(type_to_llvm_type(t.firstType),0u)
@@ -630,16 +761,9 @@ def public build_broadcast_vector ( builder:LLVMOpaqueBuilder?; opType:TypeDeclP
     else
         return right
 
-def public LLVMBuildLoadDataAligned ( builder:LLVMOpaqueBuilder?; ptr:LLVMOpaqueValue?; alignment:uint; name:string )
-    var typ = LLVMGetElementType(LLVMTypeOf(ptr))
-    if LLVM_JIT_ALLOW_UNALIGNED_VECTOR_READ_OUT_OF_BOUNDS && LLVMIsVector3(typ)
-        return LLVMBuildLoadVector3(builder, ptr, name)
-    else
-        return LLVMBuildLoadAligned(builder, ptr, alignment, name)
-
-def public LLVMBuildLoadData2Aligned ( builder:LLVMOpaqueBuilder?; typ:LLVMOpaqueType?; ptr:LLVMOpaqueValue?; alignment:uint; name:string )
+def public LLVMBuildLoadData2Aligned ( builder:LLVMOpaqueBuilder?; var typ:LLVMOpaqueType?; ptr:LLVMOpaqueValue?; alignment:uint; name:string )
     if LLVM_JIT_ALLOW_UNALIGNED_VECTOR_READ_OUT_OF_BOUNDS && alignment!=16u && LLVMIsVector3(typ)
-        return LLVMBuildLoadVector3(builder, ptr, name)
+        return LLVMBuildLoadVector3(builder, typ, ptr, name)
     else
         return LLVMBuildLoad2Aligned(builder, typ, ptr, alignment, name)
 
@@ -650,16 +774,3 @@ def public expand_scalar ( builder:LLVMOpaqueBuilder?; scalar:LLVMOpaqueValue?; 
         vec = LLVMBuildInsertElement(builder, vec, scalar, idx, "")
     return vec
 
-def public build_lifetime ( g_builder:LLVMOpaqueBuilder?; size:uint64; ptr:LLVMOpaqueValue?; begin:bool ) : LLVMOpaqueValue?
-    let lifetime_name = begin ? "llvm.lifetime.start" : "llvm.lifetime.end"
-    var args <- [{auto[]
-        LLVMConstInt(LLVMInt64Type(), size, 0);
-        ptr
-    }]
-    var argTypes <- [{auto LLVMTypeOf(ptr) }]
-    var id = LLVMLookupIntrinsicID(lifetime_name)
-    var decl = LLVMGetIntrinsicDeclaration(g_mod, id, argTypes)
-    if decl==null
-        failed("missing intrinsic {lifetime_name}")
-        return null
-    return LLVMBuildCall(g_builder, decl, args, "")

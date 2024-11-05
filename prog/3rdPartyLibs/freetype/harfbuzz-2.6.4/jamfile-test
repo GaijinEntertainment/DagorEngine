@@ -57,6 +57,6 @@ UseProgLibs =
 ;
 
 CPPopt = -D__B_NO_MEM_BASE_INCLUDE=1 -D_CRT_SECURE_NO_WARNINGS -DHAVE_FREETYPE ;
-if $(Platform) in linux64 { CPPopt += -DHAVE_PTHREAD ; }
+if $(Platform) in linux { CPPopt += -DHAVE_PTHREAD ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

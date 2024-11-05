@@ -1,0 +1,4 @@
+  include common_tools_var_ref.blk
+
+  ref:t=effects_tex_c_no
+  ref:t=effects_nm_tex_c_no

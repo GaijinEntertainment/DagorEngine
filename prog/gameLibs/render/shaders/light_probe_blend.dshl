@@ -25,7 +25,6 @@ shader blend_light_probes
     dynamic_cube_tex_2@smpCube = dynamic_cube_tex_2;
     dynamic_cube_tex_blend_level@f2 = (dynamic_cube_tex_blend, dynamic_cube_tex_level,0,0);
   }
-  USE_HDR_SH()
   USE_POSTFX_VERTEX_POSITIONS()
 
   hlsl {

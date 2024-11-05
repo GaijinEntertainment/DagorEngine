@@ -6,13 +6,9 @@ LinuxUseX11 ?= yes ;
 TargetType  = lib ;
 Target      = engine/drv/drv3d_vulkan.lib ;
 
-if $(Platform) = android && $(UseOpenGL) {
-  Exit drv3d_vulkan for $(Platform) requires unset UseOpenGL ;
-}
-
 include $(Root)/prog/_jBuild/defaults.jam ;
 
-if $(Platform) = linux64 && $(LinuxUseX11) != yes { Exit $(Target) requires LinuxUseX11\=yes under $(Platform) ; }
+if $(Platform) = linux && $(KernelLinkage) != dynamic && $(LinuxUseX11) != yes { Exit $(Target) requires LinuxUseX11\=yes under $(Platform) ; }
 
 Sources =
   #utils
@@ -20,34 +16,55 @@ Sources =
   util/fault_report.cpp
 
   #engine visible interface
-  vulkan.cpp
-  d3d_resource_update_buffer.cpp
-  d3d_framebuffer.cpp
-  d3d_render_pass.cpp
-  d3d_bindless.cpp
-  d3d_samplers.cpp
-  d3d_unimplemented.cpp
+  d3d/resource_update_buffer.cpp
+  d3d/framebuffer.cpp
+  d3d/render_pass.cpp
+  d3d/bindless.cpp
+  d3d/resource_heap.cpp
+  d3d/screen_capture.cpp
+  d3d/global_const_buffer.cpp
+  d3d/unimplemented.cpp
+  d3d/init.cpp
+  d3d/clear.cpp
+  d3d/command.cpp
+  d3d/compute.cpp
+  d3d/conditional.cpp
+  d3d/debug.cpp
+  d3d/draw.cpp
+  d3d/error_code.cpp
+  d3d/event_query.cpp
+  d3d/format.cpp
+  d3d/frame_state_tm.cpp
+  d3d/info.cpp
+  d3d/resources.cpp
+  d3d/screen.cpp
+  d3d/shaders.cpp
+  d3d/state.cpp
+  d3d/sync.cpp
+  d3d/transfer.cpp
   init_d3di.cpp
   buffer.cpp
   buffer_locktransfer.cpp
   texture.cpp
 
   #common stuff
+  globals.cpp
+  backend.cpp
+  frontend.cpp
+  driver_config.cpp
   driver.cpp
   swapchain.cpp
+  device_featureset.cpp
   vulkan_loader.cpp
   vulkan_instance.cpp
   vulkan_device.cpp
-
-  #platform/vendor
-  vendor_nvidia.cpp
-  vendor_amd.cpp
+  format_store.cpp
+  vk_to_string.cpp
 
   #execution
   device_context.cpp
   device_context_fault_report.cpp
   device_context/execution_context.cpp
-  device_context/base_context.cpp
   device_context/render_pass.cpp
   render_work.cpp
   timelines.cpp
@@ -55,10 +72,10 @@ Sources =
   temp_buffers.cpp
   cleanup_queue.cpp
   execution_sync.cpp
-  execution_sync_laddr.cpp
   execution_sync_buffer.cpp
   execution_sync_image.cpp
   execution_sync_acceleration_structure.cpp
+  device_execution_tracker.cpp
 
   #shader
   shader/program.cpp
@@ -67,15 +84,18 @@ Sources =
   shader/spirv_extractor.cpp
   shader/debug_program.cpp
   shader/shader_info.cpp
+  shader/module.cpp
 
   #pipeline
   raytrace/pipeline.cpp
+  pipeline/base_pipeline.cpp
   pipeline/manager.cpp
   pipeline/stage_state_base.cpp
   pipeline/main_pipelines.cpp
   pipeline/variated_graphics.cpp
   pipeline/compiler.cpp
   render_state_system.cpp
+  pipeline_cache.cpp
 
   #resources & memory
   bindless.cpp
@@ -91,12 +111,17 @@ Sources =
   render_pass_resource_fb.cpp
   render_pass_resource_convert.cpp
   sampler_resource.cpp
+  memory_heap_resource.cpp
+  dummy_resources.cpp
+  sampler_cache.cpp
 
   #debug stuff
   execution_markers.cpp
   debug_ui.cpp
   debug_ui_memory.cpp
   debug_ui_resources.cpp
+  debug_naming.cpp
+  debug_callbacks.cpp
 
   #state
   graphics_state.cpp
@@ -124,33 +149,46 @@ Sources =
   device_queue.cpp
   subpass_dependency.cpp
   pipeline_cache_file.cpp
+  logic_address.cpp
+  vk_format_utils.cpp
+  vk_error.cpp
+  buffer_alignment.cpp
 
   #uncat
+  timestamp_queries.cpp
   query_pools.cpp
-  device.cpp
   render_pass.cpp
   descriptor_set.cpp
   device_memory_report.cpp
+  raytrace_scratch_buffer.cpp
+  predicted_latency_waiter.cpp
+  resource_upload_limit.cpp
 ;
+
+if $(Platform) in nswitch {
+  Sources += d3d/raytrace_stub.cpp ;
+} else {
+  Sources += d3d/raytrace.cpp ;
+}
 
 CPPopt = -DINSIDE_DRIVER ;
 if [ GLOB $(Root)/prog/3rdPartyLibs/nvapi : * ]     { CPPopt += -DHAS_NVAPI ; }
-if [ GLOB $(Root)/prog/3rdPartyLibs/nvsdk_ngx : * ] { CPPopt += -DHAS_NVSDK_NGX ; }
 
-if $(Platform) in android win32 win64 linux32 linux64 && $(Config) != rel {
+if $(Platform) in android windows linux && $(Config) != rel {
   Sources += renderDoc_capture_module.cpp ;
 } else {
   Sources += renderDoc_capture_module_stub.cpp ;
 }
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   Sources +=
     os_win32.cpp
   ;
   AddLibs +=
     Wintrust.lib
   ;
-} else if $(Platform) in linux32 linux64 {
+  if $(PlatformArch) in arm64 { CPPopt = [ StripStrings $(CPPopt) : -DHAS_NVAPI ] ; }
+} else if $(Platform) in linux {
   Sources +=
     os_linux.cpp
   ;
@@ -170,16 +208,31 @@ if $(Platform) in win32 win64 {
   ;
 }
 
-if $(Config) != rel {
-  UseProgLibs += gameLibs/imguiInput ;
-} else {
-  UseProgLibs += gameLibs/imguiInput/stub ;
+if $(Platform)-$(PlatformArch) = windows-x86_64 {
+  Sources += amdFsrVulkan.cpp ;
+  AddIncludes += $(Root)/prog/3rdPartyLibs/fsr3.1/include ;
 }
 
-if $(Platform) in win32 win64 xboxOne scarlett { CPPopt += -FId3d_config.h ; } else { CPPopt += -include $(Root)/$(Location)/d3d_config.h ; }
-if $(Platform) = linux64 { CPPopt += -DUSE_X11 ; }
+if $(Config) != rel {
+  UseProgLibs += engine/imgui ;
+} else {
+  UseProgLibs += engine/imgui/stub ;
+}
 
-AddIncludes =
+if $(Platform) in windows xboxOne scarlett {
+  CPPopt +=
+    -FId3d/config.h
+    -FIdriver_defs.h
+  ;
+} else {
+  CPPopt +=
+    -include $(Root)/$(Location)/d3d/config.h
+    -include $(Root)/$(Location)/driver_defs.h
+  ;
+}
+if $(Platform) = linux { CPPopt += -DUSE_X11 ; }
+
+AddIncludes +=
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/engine/drv/drv3d_commonCode
   $(Root)/prog/engine/drv/drv3d_vulkan
@@ -187,27 +240,9 @@ AddIncludes =
   $(Root)/prog/3rdPartyLibs/nvapi
   $(Root)/prog/3rdPartyLibs/vulkan/smol-v/source
   $(Root)/prog/3rdPartyLibs/vulkan/spirv-tools/include
-  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/dagorInclude
   $(Root)/prog/3rdPartyLibs/imgui
 ;
-
-if $(Platform) in android {
-  AddIncludes += $(_DEVTOOL)/agdk/include ;
-  if $(AndroidNdkVer) in r23b {
-    if $(AndroidApiVer) in 29 {
-      AddLibs += $(_DEVTOOL)/agdk/libs/arm64-v8a_API29_NDK23_cpp_static_Release/libswappy_static.a ;
-    } else if $(AndroidApiVer) in 31 {
-      AddLibs += $(_DEVTOOL)/agdk/libs/arm64-v8a_API31_NDK23_cpp_static_Release/libswappy_static.a ;
-    } else {
-      Exit Add libraries for AGDK for Android API $(AndroidApiVer) and NDK $(AndroidNdkVer) ;
-    }
-  } else if $(AndroidNdkVer) in r25c {
-    # published original agdk has another libs structure without NDK and API dependencies
-    # if you want to use it then update AGDK and set correct lib here
-  } else {
-    Exit Add libraries for AGDK for Android API $(AndroidApiVer) and NDK $(AndroidNdkVer) ;
-  }
-}
 
 UseProgLibs +=
   engine/drv/drv3d_commonCode

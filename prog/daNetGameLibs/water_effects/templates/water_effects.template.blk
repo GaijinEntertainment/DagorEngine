@@ -1,0 +1,9 @@
+water_effects {
+  _tags:t="render"
+  _singleton:b=true
+  "water_effects:WaterEffects"{}
+  "water_effects__init_res_node:dabfg::NodeHandle"{}
+  "water_effects__node:dabfg::NodeHandle"{}
+  should_use_wfx_textures:b=false
+  use_foam_tex:b=false
+}

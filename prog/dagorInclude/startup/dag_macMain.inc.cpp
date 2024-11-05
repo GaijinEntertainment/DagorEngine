@@ -1,6 +1,5 @@
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #pragma once
 
@@ -13,6 +12,7 @@
 #include <debug/dag_logSys.h>
 #include <debug/dag_debug.h>
 #include <unistd.h>
+#include <locale.h>
 #include "dag_addBasePathDef.h"
 #include "dag_loadSettings.h"
 #include <mach-o/dyld.h>
@@ -31,6 +31,7 @@ int main(int argc, char *argv[])
 {
   measure_cpu_freq();
   stderr = freopen("/dev/null", "wt", stderr);
+  setlocale(LC_NUMERIC, "C");
 
   // replace any relative or non-full path with fully qualified module path
   {
@@ -52,6 +53,7 @@ int main(int argc, char *argv[])
   dgs_init_argv(argc, argv);
   dgs_report_fatal_error = messagebox_report_fatal_error;
   apply_hinstance(NULL, NULL);
+  ::dgs_execute_quiet = ::dgs_get_argv("quiet");
 
 #if DAGOR_DBGLEVEL != 0
   char stamp_buf[256];

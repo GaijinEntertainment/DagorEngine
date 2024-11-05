@@ -331,6 +331,7 @@ namespace proto
           PROTO_VALIDATE_INTERNAL(position < restorePosition);
 
           stream.seekBegin(position);
+          [[fallthrough]];
       case StreamTag::VAR_LENGTH:
           {
             ConstBuffer::TSize size;

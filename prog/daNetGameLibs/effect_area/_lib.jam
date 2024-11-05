@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_effect_area_pull ;
+  UseProgLibs += daNetGameLibs/effect_area ;
+}

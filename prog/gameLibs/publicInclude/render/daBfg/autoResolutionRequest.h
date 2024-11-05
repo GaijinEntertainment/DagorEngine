@@ -1,3 +1,7 @@
+//
+// Dagor Engine 6.5 - Game Libraries
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+//
 #pragma once
 
 #include <render/daBfg/detail/autoResTypeNameId.h>
@@ -12,11 +16,28 @@ struct ResourceProvider;
 namespace detail
 {
 struct VirtualResourceRequestBase;
-}
+
+template <int D>
+struct IPointImpl;
+template <>
+struct IPointImpl<2>
+{
+  using Value = IPoint2;
+};
+template <>
+struct IPointImpl<3>
+{
+  using Value = IPoint3;
+};
+
+} // namespace detail
+
+template <int D>
+using IPoint = typename detail::IPointImpl<D>::Value;
 
 /**
  * \brief This class represents a daBfg-managed automatic resolution
- * type for a 2D texture. If this resolution is specified for a texture,
+ * type for a texture. If this resolution is specified for a texture,
  * the actual texture's resolution at runtime will be the dynamic
  * resolution scaled by the multiplier, but the consumed memory will
  * always be equal to the static resolution times the multiplier.
@@ -25,7 +46,9 @@ struct VirtualResourceRequestBase;
  * callback and used to access the actual resolution on a particular
  * frame, but the resolution should NEVER be accessed in the declaration
  * callback, as the value will be undefined.
+ * \tparam D -- dimensionality of the resolution, either 2 or 3.
  */
+template <int D>
 class AutoResolutionRequest
 {
   friend class NameSpaceRequest;
@@ -43,7 +66,7 @@ public:
    *
    * \return The current dynamic resolution for this type.
    */
-  IPoint2 get() const;
+  IPoint<D> get() const;
 
 private:
   AutoResTypeNameId autoResTypeId;

@@ -1,0 +1,228 @@
+include "dynamic_simple_inc.dshl"
+include "static_shadow.dshl"
+include "init_projective_wounds.dshl"
+include "wind/wind_simulation_inc.dshl"
+include "dynamic_render_deform_hmap_inc.dshl"
+include "cloth_optional.dshl"
+include "overlay_color_map_inc.dshl"
+
+texture paint_details_tex;
+texture dynamic_decals_atlas;
+texture perlin_noise3d;
+
+int tank_render_to_ui = 0;
+float4 burnt_tank_color = (0.235, 0.196, 0.196, 1.0);
+float4 burnt_tank_params = (0.3, -1.0, 0.0, 50.0);
+int is_hero_cockpit = 0;
+float4 tank_cockpit__bsphere = float4(0., 0., 0., 0.);
+float tank_cockpit_fake_ambient_light_strength = 0.25;
+
+int disable_dynmat_params = 0;
+
+macro XRAY_DEPTH_PS()
+  hlsl(ps) {
+    float4 render_depth_ps() : SV_Target
+    {
+      return half4(0,0,0,0);
+    }
+  }
+  compile("target_ps", "render_depth_ps");
+endmacro
+
+macro SPECIAL_RENDER_ALPHATEST_USE()
+
+  if (dyn_model_render_pass == render_to_depth)
+  {
+    hlsl(ps) {
+      void render_depth_ps(VsOutput input)
+      {
+        #if SET_UP_MULTIDRAW
+          INIT_MULTIDRAW(input);
+          SET_DRAW_CALL_ID(GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK);
+        #endif
+        half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord);
+        clip_alpha(diffuseColor.a);
+      }
+    }
+    compile("target_ps", "render_depth_ps");
+  }
+  else if (dyn_model_render_pass == render_to_deform_hmap)
+  {
+    RENDER_DEFORM_HMAP_PS()
+  }
+endmacro
+
+macro SPECIAL_RENDER_NOALPHATEST()
+
+  if (dyn_model_render_pass == render_to_depth)
+  {
+    compile("ps_null", "null_ps");
+  }
+  else if (dyn_model_render_pass == render_to_deform_hmap)
+  {
+    RENDER_DEFORM_HMAP_PS()
+  }
+endmacro
+
+
+
+macro SPECIAL_RENDER_ALPHATEST_CHOOSE()
+  if (atest == atestOn)
+  {
+    SPECIAL_RENDER_ALPHATEST_USE()
+  } else
+  {
+    SPECIAL_RENDER_NOALPHATEST()
+  }
+endmacro
+
+macro INIT_TANK_COCKPIT_LIGHTING()
+  if (compatibility_mode == compatibility_mode_on && mobile_render == off)
+  {
+    (ps) {
+      tank_cockpit__bsphere@f4 = tank_cockpit__bsphere;
+      tank_cockpit_fake_ambient_light_strength@f1 = tank_cockpit_fake_ambient_light_strength;
+    }
+  }
+endmacro
+
+block(scene) dynamic_scene
+{
+  DYNAMIC_SIMPLE_VS_SHARED_DECL()
+  DYNAMIC_SIMPLE_SHARED_DECL(ps)
+  INIT_BURNED_DIFFUSE_FUNCTION_BLOCK()
+  INIT_PROJECTIVE_WOUNDS_BLOCK()
+  INIT_AMBIENT_WIND(vs)
+  INIT_AMBIENT_WIND_BASE(ps)
+  CLOTH_WIND_COMMON()
+
+  INIT_FLUID_WIND(vs)
+  (vs)
+  {
+    perlin_noise3d@smp3d = perlin_noise3d;
+  }
+
+  (vs) {
+    prevViewProjTm@f44 = {prevViewProjTm0, prevViewProjTm1, prevViewProjTm2, prevViewProjTm3};
+    paint_details_tex@smp2d = paint_details_tex;
+  }
+
+  (ps) {
+    tank_render_to_ui@f1 = (tank_render_to_ui);
+    burnt_tank_color@f4 = burnt_tank_color;
+    burnt_tank_params@f4 = burnt_tank_params;
+    is_hero_cockpit@i1 = (is_hero_cockpit);
+    vehicle_decals_atlas@tex2d = dynamic_decals_atlas;
+    special_vision@i1 = special_vision;
+    disable_dynmat_params@i1 = disable_dynmat_params;
+  }
+  INIT_USE_CHARACTER_MICRODETAIL()
+  INIT_DYNAMICS_WETNESS()
+
+  if (mobile_render != off)
+  {
+    INIT_STATIC_SHADOW_PS()
+  }
+  INIT_TANK_COCKPIT_LIGHTING()
+}
+
+block(scene) dynamic_depth_scene
+{
+  DYNAMIC_SIMPLE_VS_SHARED_DECL()
+  INIT_PROJECTIVE_WOUNDS_BLOCK()
+  INIT_AMBIENT_WIND(vs)
+  INIT_AMBIENT_WIND_BASE(ps)
+  CLOTH_WIND_COMMON()
+  INIT_FLUID_WIND(vs)
+  (vs)
+  {
+    perlin_noise3d@smp3d = perlin_noise3d;
+  }
+}
+
+macro DYNAMIC_BLOCK()
+if (dyn_model_render_pass == render_pass_normal)
+{
+  supports dynamic_scene;
+
+  hlsl(ps) {
+    #define GBUFFER_IS_HERO_COCKPIT is_hero_cockpit
+    #define vehicle_decals_atlas_samplerstate character_micro_details_samplerstate
+  }
+}
+else if (dyn_model_render_pass == render_to_depth || dyn_model_render_pass == render_to_deform_hmap)
+{
+  supports dynamic_depth_scene;
+}
+endmacro
+
+macro DYNAMIC_BLOCK_XRAY()
+  if (shader == hatching_simple || shader == hatching_sphere)
+  {
+    supports global_frame;
+
+    (vs) {
+      world_local_x@f3 = world_local_x;
+      world_local_y@f3 = world_local_y;
+      world_local_z@f3 = world_local_z;
+      world_local_pos@f3 = world_local_pos;
+    }
+    (ps) {
+      is_hero_cockpit@i1 = (is_hero_cockpit); // just in case we want to use xray + cockpit
+    }
+    hlsl(ps) {
+      #define GBUFFER_IS_HERO_COCKPIT is_hero_cockpit
+    }
+  }
+  else
+  {
+    DYNAMIC_BLOCK()
+  }
+
+  INIT_XRAY_RENDER()
+
+  channel float3 pos = pos;
+  USE_FLOAT_POS_PACKING()
+
+  hlsl(vs) {
+    #define SETUP_RENDER_VARS(a)
+  }
+endmacro
+
+macro DYNAMIC_SIMPLE_HELPER_PS()
+  hlsl(ps) {
+    void dynamic_simple_ps_helper(VsOutput input){
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(input);
+        SET_DRAW_CALL_ID(GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK);
+      #endif
+      discard_torn_wound(input.fragPos, input.fragNormal, input.tornWoundParams);
+    }
+  }
+endmacro
+
+macro DYNAMIC_SIMPLE_CLIP_ALPHA_DISCRAD_WOUNDS_PS()
+DYNAMIC_SIMPLE_HELPER_PS()
+  hlsl(ps) {
+    void dynamic_simple_ps(VsOutput input)
+    {
+      dynamic_simple_ps_helper(input);
+      ##if atest == atestOn
+      half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy);
+      clip_alpha(diffuseColor.a);
+      ##endif
+    }
+  }
+  compile("target_ps", "dynamic_simple_ps");
+endmacro
+
+macro DYNAMIC_SIMPLE_DISCRAD_WOUNDS_PS()
+  DYNAMIC_SIMPLE_HELPER_PS()
+  hlsl(ps) {
+    void dynamic_simple_ps(VsOutput input)
+    {
+      dynamic_simple_ps_helper(input);
+    }
+  }
+  compile("target_ps", "dynamic_simple_ps");
+endmacro

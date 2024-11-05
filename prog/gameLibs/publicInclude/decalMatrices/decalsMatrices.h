@@ -1,11 +1,10 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <3d/dag_drv3dConsts.h>
+#include <drv/3d/dag_consts.h>
 #include <3d/dag_resPtr.h>
 #include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
@@ -79,6 +78,9 @@ class DecalsMatrices
 
     // remove any associations with this item
     void resetItem(uint32_t item);
+
+    // returns the number of items associated with the matrix
+    int getMatrixItemCount(uint32_t matrix) const;
   } itemMap;
 
 public:
@@ -104,6 +106,10 @@ public:
   void setMatrix(uint32_t matrix_id, const TMatrix &matrix);
   const DecalMatrix &getMatrix(uint32_t id) const;
   bool isMatrixUsed(uint32_t id) const;
+
+  // Return true when this matrix is used by 2 or more different decals which should have their
+  // own matrices, but there was no empty space in the buffer with matrices.
+  bool isMatrixAliased(uint32_t id) const;
   void reset() { matricesInvalid = true; }
   void clearItems();
   void clearAll();
@@ -113,6 +119,7 @@ public:
   uint32_t numRemovedMatrices() const;
   eastl::optional<uint32_t> popReusableItem() { return itemMap.popReusableItem(); }
   void resetItem(uint32_t item_id) { itemMap.resetItem(item_id); }
+  int getMatrixItemCount(uint32_t matrix_id) const;
 
   uint32_t registerMatrix(ecs::EntityId eid, const TMatrix &tm);
   uint32_t getMatrixId(ecs::EntityId eid) const;

@@ -1,6 +1,4 @@
-#Platform ?= xbox360 ;
-#Platform ?= ps3 ;
-#Platform ?= macosx ;
+#Platform ?= macOS ;
 
 UseD3DMultiList    = D3D_ALL ;
 
@@ -8,15 +6,13 @@ Root    ?= ../../.. ;
 Location = samples/skiesSample/prog ;
 UseD3DMulti ?= yes ;
 
-if $(OS) = NT {
-  Platform ?= win64 ;
-  PlatformSpec ?= clang ;
-}
+PlatformArch_windows ?= x86_64 ;
+PlatformSpec_windows ?= clang ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 TargetType  = exe ;
-Target      = samples/skiesSample-$(Platform) ;
+Target      = samples/skiesSample-$(LegacyPlatformSuffix) ;
 
 #UseQuirrel = sq3r ;
 
@@ -30,7 +26,7 @@ if $(UseWholeOpt) != yes {
   UseLLDLink ?= yes ;
 }
 
-if $(Platform) in win32 win64 && $(Config) != rel && $(Sanitize) != address { UseMemoryDebugLevel = dbg ; }
+if $(Platform) in windows && $(Config) != rel && $(Sanitize) != address { UseMemoryDebugLevel = dbg ; }
 
 OutDir = $(Root)/$(Location)/../game ;
 
@@ -68,7 +64,6 @@ UseProgLibs =
 
 
   gameLibs/webui
-  gameLibs/metaballsSystem
   gameLibs/daSkies2
   gameLibs/render
   gameLibs/visualConsole
@@ -79,7 +74,7 @@ UseProgLibs =
   gameLibs/folders
 ;
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   UseProgLibs +=
     engine/drv/hid_mouse
     engine/drv/hid_keyboard
@@ -89,7 +84,9 @@ if $(Platform) in win32 win64 {
   AddLibs +=
     Ws2_32.lib ;
 
-} else if $(Platform) = linux64 {
+  include $(Root)/prog/engine/drv/drv3d_DX12/copy_bundles.jam ;
+
+} else if $(Platform) = linux {
   BundleName = SkiesSample ;
   UseProgLibs +=
     engine/drv/drv3d_pc_multi
@@ -99,7 +96,7 @@ if $(Platform) in win32 win64 {
     engine/osApiWrappers/messageBox
   ;
 
-} else if $(Platform) = macosx {
+} else if $(Platform) = macOS {
   BundleName = SkiesSample ;
   Sources += macosx_main.mm ;
   UseProgLibs +=

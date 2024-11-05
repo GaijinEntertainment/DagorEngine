@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -32,17 +31,15 @@ namespace dabfg::detail
 struct VirtualResourceRequestBase
 {
   void texture(const Texture2dCreateInfo &info);
+  void texture(const Texture3dCreateInfo &info);
   void buffer(const BufferCreateInfo &info);
   void blob(const BlobDescription &desc);
 
   void markWithTag(ResourceSubtypeTag tag);
 
   void optional();
-  void bindToShaderVar(const char *shader_var_name, ResourceSubtypeTag projectedTag = ResourceSubtypeTag::Unknown);
   void bindToShaderVar(const char *shader_var_name, ResourceSubtypeTag projectedTag, TypeErasedProjector projector);
-  void bindAsView(ResourceSubtypeTag projectedTag);
   void bindAsView(ResourceSubtypeTag projectedTag, TypeErasedProjector projector);
-  void bindAsProj(ResourceSubtypeTag projectedTag);
   void bindAsProj(ResourceSubtypeTag projectedTag, TypeErasedProjector projector);
   void atStage(Stage stage);
   void useAs(Usage type);

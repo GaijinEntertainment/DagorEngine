@@ -1,0 +1,28 @@
+float shader_gamma = 1.0;
+
+macro INIT_SHADER_GAMMA()
+  (ps)
+  {
+    shader_gamma@f3 = (shader_gamma, 1.0 / shader_gamma, 0, 0);
+  }
+endmacro
+
+macro USE_SHADER_GAMMA()
+  hlsl (ps)
+  {
+    float3 apply_shader_gamma(float3 color)
+    {
+      return pow(color, shader_gamma.y);
+    }
+
+    float3 apply_shader_gamma_gui(float3 color, float alpha)
+    {
+      return pow(color, 1.0 / ((shader_gamma.x - 1) * alpha + 1));
+    }
+
+    float3 undo_shader_gamma(float3 color)
+    {
+      return pow(color, shader_gamma.x);
+    }
+  }
+endmacro

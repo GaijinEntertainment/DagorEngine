@@ -1,0 +1,365 @@
+include "shader_global.dshl"
+include "dagi_albedo_scene_common.dshl"
+include "project_base_albedo.dshl"
+
+define_macro_if_not_defined PROJECT_BASE_ALBEDO(code)
+  hlsl (code) {
+    float4 dagi_project_get_albedo(float3 worldPos, float albedoVoxelSize){return 0;}
+    bool dagi_project_is_albedo_needed(float3 bmin, float3 bmax, float albedoVoxelSize){return false;}
+  }
+endmacro
+
+
+int dagi_albedo_update_ofs;
+macro DAGI_UPDATE_OTHER(code)
+  (code) {
+    dagi_albedo_update_ofs@i1 = dagi_albedo_update_ofs;
+  }
+  hlsl(code) {
+    uint dagi_albedo_get_update_list_ofs_bytes() {return uint(dagi_albedo_update_ofs.x);}
+  }
+endmacro
+
+//called on invalid history
+shader dagi_clear_albedo_freelist_cs
+{
+  DAGI_ALBEDO_CLIPMAP_MATH(cs)
+  DAGI_ALBEDO_ATLAS_MATH(cs)
+  DAGI_ALBEDO_FREE_INDICES_WRITE_INIT(cs)
+  DAGI_ALBEDO_ALLOCATE_BLOCK_USE(cs)
+  DAGI_UPDATE_OTHER(cs)
+  hlsl(cs) {
+    [numthreads(64, 1, 1)]
+    void dagi_clear_albedo_freelist_cs(uint dtId : SV_DispatchThreadID)
+    {
+      uint totalAtlasSize = dagi_albedo_get_total_atlas_size();
+      if (dtId == 0)
+      {
+        dagi_albedo_indirection__free_indices_list.Store(dagi_albedo_get_free_list_ofs(), totalAtlasSize);
+        dagi_albedo_indirection__free_indices_list.Store(dagi_albedo_get_update_list_ofs_bytes(), 0);
+      }
+
+      if (dtId < dagi_albedo_get_free_list_ofs()/16)
+        dagi_albedo_indirection__free_indices_list.Store4(dtId*16, INVALID_DAGI_ALBEDO_BLOCK_INDEX);
+
+      if (dtId < totalAtlasSize)
+      {
+        dagi_albedo_indirection__free_indices_list.Store(dagi_albedo_get_free_list_ofs() + dtId*4 + 4, totalAtlasSize - 1 - dtId);
+      }
+    }
+  }
+  compile("target_cs", "dagi_clear_albedo_freelist_cs");
+}
+
+shader dagi_clear_albedo_texture_cs
+{
+  ENABLE_ASSERT(cs)
+  DAGI_ALBEDO_TEXTURE_WRITE(cs)
+  hlsl(cs) {
+    [numthreads(DAGI_ALBEDO_BLOCK_SIZE, DAGI_ALBEDO_BLOCK_SIZE, 1)]
+    void dagi_clear_albedo_texture_cs(uint3 dtId : SV_DispatchThreadID)
+    {
+      UNROLL
+      for (uint i = 0; i < DAGI_ALBEDO_BLOCK_SIZE; ++i)
+        texture3DAt(dagi_albedo_atlas, uint3(dtId.xy, dtId.z*DAGI_ALBEDO_BLOCK_SIZE + i)) = 0;
+    }
+  }
+  compile("target_cs", "dagi_clear_albedo_texture_cs");
+}
+
+shader dagi_albedo_toroidal_movement_cs
+{
+  hlsl {
+    #define DAGI_ALBEDO_COHERENCY RWByteAddressBuffer
+  }
+  ENABLE_ASSERT(cs)
+  DAGI_ALBEDO_WRITE(cs)
+  DAGI_ALBEDO_FREE_BLOCK_USE(cs)
+  DAGI_UPDATE_OTHER(cs)
+  (cs) {
+    dagi_albedo_clipmap_update_lt_coord@i4 = dagi_albedo_clipmap_update_lt_coord;
+    dagi_albedo_clipmap_update_sz_coord@i4 = dagi_albedo_clipmap_update_sz_coord;
+  }
+  PROJECT_BASE_ALBEDO(cs)
+  hlsl(cs) {
+    [numthreads(64, 1, 1)]
+    void dagi_albedo_toroidal_movement_cs(uint dtId : SV_DispatchThreadID)
+    {
+      uint3 ucoord = uint3(dtId%uint(dagi_albedo_clipmap_update_sz_coord.x),
+                          (dtId/uint(dagi_albedo_clipmap_update_sz_coord.x))%uint(dagi_albedo_clipmap_update_sz_coord.y),
+                          (dtId/uint(dagi_albedo_clipmap_update_sz_coord.w)));
+      if (ucoord.z >= uint(dagi_albedo_clipmap_update_sz_coord.z))
+        return;
+      int3 absCoord = int3(ucoord) + dagi_albedo_clipmap_update_lt_coord.xyz;
+
+      uint3 targetCoord = dagi_albedo_wrapped_coord_from_abs_coord(absCoord);
+      float blockSize = asfloat(dagi_albedo_clipmap_update_box_sz.w);
+      float voxelSize = blockSize*(1./DAGI_ALBEDO_INTERNAL_BLOCK_SIZE);
+      float3 blockBMin = (absCoord.xzy - DAGI_ALBEDO_BORDER/DAGI_ALBEDO_INTERNAL_BLOCK_SIZE)*blockSize;
+      bool isBlockNeeded = dagi_project_is_albedo_needed(blockBMin, blockBMin + voxelSize*DAGI_ALBEDO_BLOCK_SIZE, voxelSize);
+      uint wrappedAddr = dagi_albedo_get_buffer_addr(targetCoord, dagi_albedo_clipmap_update_box_lt.w);
+      uint blockIndex = dagi_albedo_indirection_from_clip_addr(dagi_albedo_indirection__free_indices_list, wrappedAddr);
+      if (blockIndex == INVALID_DAGI_ALBEDO_BLOCK_INDEX && !isBlockNeeded) // indirection is empty, and this block is not needed
+        return;
+
+      if (!isBlockNeeded)
+      {
+        dagi_albedo_free_block(blockIndex);
+        storeBuffer(dagi_albedo_indirection__free_indices_list, wrappedAddr*4, INVALID_DAGI_ALBEDO_BLOCK_INDEX);
+      }
+      uint at;
+      dagi_albedo_indirection__free_indices_list.InterlockedAdd(dagi_albedo_get_update_list_ofs_bytes(), 1, at);
+      if (at < dagi_albedo_get_total_atlas_size())
+        storeBuffer(dagi_albedo_indirection__free_indices_list, dagi_albedo_get_update_list_ofs_bytes() + 4 + at*4, isBlockNeeded ? wrappedAddr : (blockIndex|(1<<31)));
+    }
+  }
+  compile("target_cs", "dagi_albedo_toroidal_movement_cs");
+}
+
+shader dagi_albedo_after_toroidal_movement_create_indirect_cs
+{
+  hlsl {
+    #define DAGI_ALBEDO_COHERENCY RWByteAddressBuffer
+  }
+  ENABLE_ASSERT(cs)
+  DAGI_ALBEDO_CLIPMAP_MATH_INIT(cs)
+  DAGI_ALBEDO_CLIPMAP_MATH_USE(cs)
+  DAGI_ALBEDO_FREE_INDICES_WRITE_DECL(cs)
+  DAGI_UPDATE_OTHER(cs)
+  DAGI_ALBEDO_ATLAS_MATH(cs)
+  hlsl(cs) {
+    RWByteAddressBuffer dagi_albedo_indirect_args:register(u0);
+    [numthreads(1, 1, 1)]
+    void dagi_albedo_after_toroidal_movement_create_indirect_cs(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint tid:SV_GroupIndex)
+    {
+      uint count;
+      dagi_albedo_indirection__free_indices_list.InterlockedExchange(dagi_albedo_get_update_list_ofs_bytes(), 0, count);
+      storeBuffer3(dagi_albedo_indirect_args, 0, uint3(min(count,dagi_albedo_get_total_atlas_size()),1,1));
+    }
+  }
+  compile("target_cs", "dagi_albedo_after_toroidal_movement_create_indirect_cs");
+}
+
+shader dagi_albedo_fix_insufficient_cs
+{
+  ENABLE_ASSERT(cs)
+  DAGI_ALBEDO_FREE_INDICES_WRITE_DECL(cs)
+  DAGI_ALBEDO_CLIPMAP_SIZE_INIT(cs)
+  DAGI_ALBEDO_CLIPMAP_SIZE_USE(cs)
+  hlsl(cs) {
+    [numthreads(1, 1, 1)]
+    void dagi_albedo_fix_insufficient_cs(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint tid:SV_GroupIndex)
+    {
+      int count = dagi_albedo_indirection__free_indices_list.Load(dagi_albedo_get_free_list_ofs());
+      if (count < 0)
+        dagi_albedo_indirection__free_indices_list.Store(dagi_albedo_get_free_list_ofs(), 0);
+      //interlocked variant. We use globallycoherent buffer anyway, so no need
+      /*
+      int count;
+      dagi_albedo_indirection__free_indices_list.InterlockedCompareExchange(dagi_albedo_get_free_list_ofs(), 0, 0, count);
+      if (count < 0)
+      {
+        uint old;
+        dagi_albedo_indirection__free_indices_list.InterlockedExchange(dagi_albedo_get_free_list_ofs(), 0, old);
+      }
+      */
+    }
+  }
+  compile("target_cs", "dagi_albedo_fix_insufficient_cs");
+}
+
+
+
+shader dagi_albedo_allocate_after_toroidal_movement_cs
+{
+  hlsl {
+    #define DAGI_ALBEDO_COHERENCY RWByteAddressBuffer
+  }
+  ENABLE_ASSERT(cs)
+  DAGI_ALBEDO_WRITE(cs)
+  DAGI_ALBEDO_FREE_BLOCK_USE(cs)
+  DAGI_UPDATE_OTHER(cs)
+  PROJECT_BASE_ALBEDO(cs)
+  hlsl(cs) {
+    #if _HARDWARE_JUST_DX11
+    groupshared uint use_shared_address;
+    #else
+    #define use_shared_address shared_is_used
+    #endif
+    groupshared uint shared_is_used;
+    [numthreads(DAGI_ALBEDO_BLOCK_SIZE, DAGI_ALBEDO_BLOCK_SIZE, 1)]
+    void dagi_albedo_allocate_after_toroidal_movement_cs(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint tid:SV_GroupIndex)
+    {
+      if (tid == 0)
+        use_shared_address = loadBuffer(dagi_albedo_indirection__free_indices_list, dagi_albedo_get_update_list_ofs_bytes() + 4 + gId*4);
+      GroupMemoryBarrierWithGroupSync();
+      uint wrappedAddress = use_shared_address;
+      //uint2 blockindex_wrap = loadBuffer2(dagi_albedo_indirection__free_indices_list, dagi_albedo_get_update_list_ofs_bytes() + 4 + gId*8);
+      //uint blockIndex = blockindex_wrap.x;
+      //uint wrappedAddress = blockindex_wrap.y;
+      BRANCH
+      if (wrappedAddress>>31)
+        return;
+
+      float voxelSize = asfloat(dagi_albedo_clipmap_update_box_sz.w)*(1./DAGI_ALBEDO_INTERNAL_BLOCK_SIZE);
+      uint4 wrappedCoord = decode_dagi_albedo_buffer_addr(wrappedAddress);
+      int3 absCoord = dagi_albedo_abs_coord_from_wrapped_coord(wrappedCoord.xyz, wrappedCoord.w)*DAGI_ALBEDO_INTERNAL_BLOCK_SIZE;//fixme
+      bool isUsed = false;
+      uint atlasZ[DAGI_ALBEDO_BLOCK_SIZE];
+      uint i;
+      uint lastAlbedo = 0;
+      UNROLL
+      for (i = 0; i < DAGI_ALBEDO_BLOCK_SIZE; ++i)
+      {
+        #if PROJECT_DAGI_HMAP_ALBEDO
+        if (lastAlbedo == 0)
+        #endif
+        {
+          int3 absVoxelCoord = int3(gtId, DAGI_ALBEDO_BLOCK_SIZE-1-i) + absCoord;
+          float3 worldPos = (float3(absVoxelCoord.xzy) - DAGI_ALBEDO_BORDER + 0.5)*voxelSize;
+          float4 albedo = dagi_project_get_albedo(worldPos, voxelSize);
+          FLATTEN
+          if (albedo.a == 0)
+            albedo = 0;
+          albedo.rgb = ApplySRGBCurve_Fast(albedo.rgb);
+          isUsed = isUsed || albedo.a > 0;
+          albedo.a = albedo.a > 0;
+          lastAlbedo = SRGBAtoUint(albedo);
+        }
+        uint index = DAGI_ALBEDO_BLOCK_SIZE - 1 - i;
+        ##assert(index < DAGI_ALBEDO_BLOCK_SIZE, "[%s:%.f] Out of bounds: Buffer 'atlasZ' has size DAGI_ALBEDO_BLOCK_SIZE, but access to (%.f)", _FILE_, __LINE__, index);
+        atlasZ[index] = lastAlbedo;
+      }
+
+      if (tid == 0)
+        shared_is_used = 0;
+      GroupMemoryBarrierWithGroupSync();
+
+      if (isUsed)
+        InterlockedOr(shared_is_used, 1);//fixme:waveActiveAny
+      GroupMemoryBarrierWithGroupSync();
+      isUsed = shared_is_used;
+
+      BRANCH
+      if (tid == 0)
+      {
+        uint oldBlockIndex = dagi_albedo_indirection_from_clip_addr(dagi_albedo_indirection__free_indices_list, wrappedAddress);
+        //uint oldBlockIndex = loadBuffer(dagi_albedo_indirection__free_indices_list, 4*wrappedAddress);
+        uint blockIndex = oldBlockIndex;
+        if (oldBlockIndex == INVALID_DAGI_ALBEDO_BLOCK_INDEX && isUsed)
+        {
+          //there was no block and we need one!
+          dagi_albedo_allocate_new_block(blockIndex);
+        }
+        //there was some block and we don't need one (clear it in second pass)!
+        bool clearInNextPass = oldBlockIndex != INVALID_DAGI_ALBEDO_BLOCK_INDEX && !isUsed;
+        FLATTEN
+        if (clearInNextPass)
+          blockIndex = INVALID_DAGI_ALBEDO_BLOCK_INDEX;
+        if (blockIndex != oldBlockIndex)
+          storeBuffer(dagi_albedo_indirection__free_indices_list, wrappedAddress*4, blockIndex);
+        shared_is_used = blockIndex;
+        // we have processed this address and either updated or not needed. Skip it or clear it next time.
+        storeBuffer(dagi_albedo_indirection__free_indices_list, dagi_albedo_get_update_list_ofs_bytes() + 4 + gId*4,
+          clearInNextPass ? (oldBlockIndex|(3u<<30)) : 0u);
+      }
+      GroupMemoryBarrierWithGroupSync();
+      uint blockIndex = shared_is_used;
+      if (blockIndex == INVALID_DAGI_ALBEDO_BLOCK_INDEX)//there is nothing we need to do
+        return;
+
+      uint3 texelCoord = dagi_decode_block_coord_from(blockIndex)<<DAGI_ALBEDO_BLOCK_SHIFT;
+      texelCoord.xy += gtId;
+      UNROLL
+      for (i = 0; i < DAGI_ALBEDO_BLOCK_SIZE; ++i)
+      {
+        ##assert(i < DAGI_ALBEDO_BLOCK_SIZE, "[%s:%.f] Out of bounds: Buffer 'atlasZ' has size DAGI_ALBEDO_BLOCK_SIZE, but access to (%.f)", _FILE_, __LINE__, i);
+        texture3DAt(dagi_albedo_atlas, texelCoord + uint3(0,0, i)) = UintToSRGBA_uav(atlasZ[i]);
+      }
+    }
+  }
+  compile("target_cs", "dagi_albedo_allocate_after_toroidal_movement_cs");
+}
+
+shader dagi_albedo_allocate_after_toroidal_movement_pass2_cs
+{
+  hlsl {
+    #define DAGI_ALBEDO_COHERENCY RWByteAddressBuffer
+  }
+  ENABLE_ASSERT(cs)
+  DAGI_ALBEDO_WRITE(cs)
+  DAGI_ALBEDO_FREE_BLOCK_USE(cs)
+  DAGI_UPDATE_OTHER(cs)
+  PROJECT_BASE_ALBEDO(cs)
+  hlsl(cs) {
+    [numthreads(DAGI_ALBEDO_BLOCK_SIZE, DAGI_ALBEDO_BLOCK_SIZE, 1)]
+    void dagi_albedo_allocate_after_toroidal_movement_pass2_cs(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint tid:SV_GroupIndex)
+    {
+      uint wrappedAddress = loadBuffer(dagi_albedo_indirection__free_indices_list, dagi_albedo_get_update_list_ofs_bytes() + 4 + gId*4);
+      BRANCH
+      if (!(wrappedAddress>>31))//was already processed
+        return;
+      uint blockIndex = wrappedAddress&((1<<30)-1);
+      uint3 texelCoord = dagi_decode_block_coord_from(blockIndex)<<DAGI_ALBEDO_BLOCK_SHIFT;
+      texelCoord.xy += gtId;
+      UNROLL
+      for (uint i = 0; i < DAGI_ALBEDO_BLOCK_SIZE; ++i)
+        texture3DAt(dagi_albedo_atlas, texelCoord + uint3(0,0, i)) = 0;
+      if (((wrappedAddress>>30)==3) && tid == 0)
+        dagi_albedo_free_block(blockIndex);
+    }
+  }
+  compile("target_cs", "dagi_albedo_allocate_after_toroidal_movement_pass2_cs");
+}
+
+int4 dagi_albedo_scene_update_count;
+shader dagi_fix_empty_alpha_cs
+{
+  ENABLE_ASSERT(cs)
+  DAGI_ALBEDO_WRITE(cs)
+  (cs) {
+    dagi_albedo_scene_update_count@i2 = dagi_albedo_scene_update_count;
+  }
+  hlsl(cs) {
+    #define TOTAL_BLOCK_SIZE (DAGI_ALBEDO_BLOCK_SIZE*DAGI_ALBEDO_BLOCK_SIZE*DAGI_ALBEDO_BLOCK_SIZE)
+    #define WARP_SIZE 64
+    [numthreads(WARP_SIZE, 1, 1)]
+    void dagi_fix_empty_alpha_cs(uint dtId : SV_DispatchThreadID, uint gId:SV_GroupID, uint gtId:SV_GroupThreadID)
+    {
+      uint frame = dagi_albedo_scene_update_count.y;
+      uint updateSize = dagi_albedo_scene_update_count.x;;
+      uint blockPixelId = (dtId + frame*updateSize)%(dagi_albedo_get_total_atlas_size()*TOTAL_BLOCK_SIZE);
+      uint blockId = blockPixelId/TOTAL_BLOCK_SIZE;
+      uint3 blockCoord = uint3(blockId&dagi_albedo_get_atlas_blocks_wh_mask(),
+                              (blockId>>dagi_albedo_get_atlas_blocks_wh_shift())&dagi_albedo_get_atlas_blocks_wh_mask(),
+                              blockId>>dagi_albedo_get_atlas_blocks_slice_shift());
+      if (blockCoord.z >= dagi_albedo_get_atlas_blocks_d_dim())
+        return;
+      uint3 inBlockCoord = uint3(blockPixelId, blockPixelId>>DAGI_ALBEDO_BLOCK_SHIFT, blockPixelId>>(2*DAGI_ALBEDO_BLOCK_SHIFT))&DAGI_ALBEDO_BLOCK_MASK;
+      uint3 texel = (blockCoord<<DAGI_ALBEDO_BLOCK_SHIFT) + inBlockCoord;
+      ALBEDO_UAV_TYPE curColor = texture3DAt(dagi_albedo_atlas, texel);
+      if (!uav_color_empty(curColor)) // written
+        return;
+      float4 color = decode_uav_color(curColor);
+      #define PADDING_W 254./255
+      #define SAMPLE_PADDING_W 0.5
+      UNROLL
+      for (uint i = 0; i < 6; ++i)
+      {
+        uint axis = i>>1, sign = i&1;
+        int3 ofs = bool3(axis == 0, axis == 1, axis == 2) ? (int(sign*2)-1) : 0;
+        //int3 ofs = int3(uint3(i, i/3, i/9)%3) - 1;
+        ofs = uint3(ofs + int3(inBlockCoord)) >= DAGI_ALBEDO_BLOCK_SIZE ? 0 : ofs;
+        FLATTEN
+        if (any(ofs != 0))
+        {
+          float4 neighboor = decode_uav_color(texture3DAt(dagi_albedo_atlas, int3(texel) + ofs));
+          color += neighboor*(neighboor.w == 1 ? 1 : SAMPLE_PADDING_W);
+        }
+      }
+      if (color.w > 0)
+        texture3DAt(dagi_albedo_atlas, texel) = SRGBAToSRGBA_uav(color*(PADDING_W/color.w));
+    }
+  }
+  compile("target_cs", "dagi_fix_empty_alpha_cs");
+}

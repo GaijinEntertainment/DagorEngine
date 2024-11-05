@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EditorCore/ec_rendEdObject.h>
 #include <EditorCore/ec_ObjectEditor.h>
 #include <EditorCore/ec_rect.h>
@@ -299,7 +301,7 @@ void RenderableEditableObject::putScaleUndo()
 }
 
 
-void RenderableEditableObject::fillProps(PropertyContainerControlBase &op, DClassID for_class_id,
+void RenderableEditableObject::fillProps(PropPanel::ContainerPropertyControl &op, DClassID for_class_id,
   dag::ConstSpan<RenderableEditableObject *> objects)
 {}
 

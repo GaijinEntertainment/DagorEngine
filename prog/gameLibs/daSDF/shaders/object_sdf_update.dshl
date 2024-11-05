@@ -1,0 +1,151 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "object_sdf.dshl"
+include "postfx_inc.dshl"
+include "globtm.dshl"
+
+buffer sdf_indirection_update_commands_buf;
+buffer sdf_indirection_update_buf;
+int sdf_indirection_update_commands_buf_size;
+
+shader sdf_indirection_update_cs {
+  (cs) {
+    sdf_indirection_update_commands_buf_size@i1 = sdf_indirection_update_commands_buf_size;
+    sdf_indirection_update_buf@buf = sdf_indirection_update_buf hlsl {
+      ByteAddressBuffer sdf_indirection_update_buf@buf;
+    }
+
+    sdf_indirection_update_commands_buf@buf = sdf_indirection_update_commands_buf hlsl {
+      #include "objects_sdf.hlsli"
+      StructuredBuffer<IndirectionCommand> sdf_indirection_update_commands_buf@buf;
+    }
+  }
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    RWByteAddressBuffer object_sdf_mips_indirection_lut : register(u0);
+    //run 8 groups with loops unrolled with 8
+    #define SIMD_SIZE 8
+    [numthreads(SIMD_SIZE, 8, 1)]
+    void sdf_indirection_update_cs(uint3 dtId: SV_DispatchThreadID, uint3 gId : SV_GroupThreadID)
+    {
+      uint cmdId = dtId.y;
+      if (cmdId >= uint(sdf_indirection_update_commands_buf_size))
+        return;
+      IndirectionCommand cmd = structuredBufferAt(sdf_indirection_update_commands_buf, cmdId);
+      uint threadOfs = gId.x*4;
+      for (uint i = cmd.sourcePosition + threadOfs, e = cmd.sourcePosition + cmd.count, to = cmd.destPosition + threadOfs; i < e; i += 4*SIMD_SIZE, to += 4*SIMD_SIZE)
+      {
+        storeBuffer(object_sdf_mips_indirection_lut, to, loadBuffer(sdf_indirection_update_buf, i));
+      }
+    }
+  }
+  compile("cs_5_0", "sdf_indirection_update_cs");
+}
+
+buffer sdf_info_update_commands_buf;
+int sdf_info_update_commands_buf_size;
+hlsl(cs) {
+  #include "objects_sdf.hlsli"
+  void fill_empty_sdf_mip(out float4 extent__maxEncodedDist, out float4 decode_mul__indirection, out float4 decode_add__offset)
+  {
+    uint indirectionDim;
+    indirectionDim = 1|(1<<SDF_MAX_INDIRECTION_DIM_BITS) | (1<<(SDF_MAX_INDIRECTION_DIM_BITS*2)); // resolution
+
+    decode_mul__indirection = float4(0,0,0, asfloat(indirectionDim));
+    extent__maxEncodedDist.xyz = 0;
+    extent__maxEncodedDist.w = 1e6f;
+    decode_add__offset = 0;
+  }
+}
+
+shader sdf_info_update_cs {
+  (cs) {
+    sdf_info_update_commands_buf_size@i1 = sdf_info_update_commands_buf_size;
+    sdf_info_update_commands_buf@buf = sdf_info_update_commands_buf hlsl {
+      struct PackedMip{float4 a1, a2, a3;};
+      StructuredBuffer<PackedMip> sdf_info_update_commands_buf@buf;
+    }
+  }
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    #include "objects_sdf.hlsli"
+    RWStructuredBuffer<float4> object_sdf_mips : register(u0);
+    [numthreads(64, 1, 1)]
+    void sdf_info_update_cs(uint from: SV_DispatchThreadID)
+    {
+      if (from >= uint(sdf_info_update_commands_buf_size))
+        return;
+      PackedMip mip = structuredBufferAt(sdf_info_update_commands_buf, from);
+      uint dist__to = asuint(mip.a1.w);
+      uint to = (dist__to>>16)*SDF_PACKED_MIP_SIZE;
+      mip.a1.w = f16tof32(dist__to);
+      structuredBufferAt(object_sdf_mips, to + 0) = mip.a1;
+      structuredBufferAt(object_sdf_mips, to + 1) = mip.a2;
+      structuredBufferAt(object_sdf_mips, to + 2) = mip.a3;
+    }
+  }
+  compile("cs_5_0", "sdf_info_update_cs");
+}
+
+int object_sdf_mips_count;
+shader sdf_info_clear_cs {
+  (cs) {
+    object_sdf_mips_count@i1 = object_sdf_mips_count;
+  }
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    #include "objects_sdf.hlsli"
+    RWStructuredBuffer<float4> object_sdf_mips : register(u0);
+    [numthreads(64, 1, 1)]
+    void sdf_info_clear_cs(uint to: SV_DispatchThreadID)
+    {
+      if (to >= uint(object_sdf_mips_count))
+        return;
+      to *= SDF_PACKED_MIP_SIZE;
+      float4 decode_mul__indirection, decode_add__offset, extent__maxEncodedDist;
+      fill_empty_sdf_mip(extent__maxEncodedDist, decode_mul__indirection, decode_add__offset);
+      structuredBufferAt(object_sdf_mips, to + 0) = extent__maxEncodedDist;
+      structuredBufferAt(object_sdf_mips, to + 1) = decode_mul__indirection;
+      structuredBufferAt(object_sdf_mips, to + 2) = decode_add__offset;
+    }
+  }
+  compile("cs_5_0", "sdf_info_clear_cs");
+}
+
+buffer sdf_block_update_commands_buf;
+shader sdf_blocks_update_cs {
+  (cs) {
+    sdf_atlas_size_in_blocks@f3 = (1./sdf_inv_atlas_size_in_blocks.x, 1./sdf_inv_atlas_size_in_blocks.y, 1./sdf_inv_atlas_size_in_blocks.z, 0);
+    sdf_block_update_commands_buf@buf = sdf_block_update_commands_buf hlsl {
+      ByteAddressBuffer sdf_block_update_commands_buf@buf;
+    }
+  }
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    #include "objects_sdf.hlsli"
+    RWTexture3D<float> object_sdf_mip_atlas : register(u0);
+    #define BLOCK_UPDATE_COMMAND_SIZE (SDF_BLOCK_VOLUME+4)
+    //todo: increase parallelizm. Read only one uint in one thread, i.e. z can be partially in a group
+    [numthreads(1, SDF_BLOCK_SIZE, SDF_BLOCK_SIZE)]
+    void sdf_indirection_update_cs(uint3 gtId : SV_GroupThreadID, uint3 gId : SV_GroupID)
+    {
+      uint at = gId.x*BLOCK_UPDATE_COMMAND_SIZE;
+      uint to = loadBuffer(sdf_block_update_commands_buf, at);//todo: same for all threads, can be loaded and broadcasted for all threads
+      uint2 val = loadBuffer2(sdf_block_update_commands_buf, at + 4 + (gtId.z*SDF_BLOCK_SIZE + gtId.y)*SDF_BLOCK_SIZE);
+      uint3 sizeInBlocks = uint3(sdf_atlas_size_in_blocks);
+      uint3 blockAddr = uint3(to%sizeInBlocks.x, (to/sizeInBlocks.x)%sizeInBlocks.y, (to/(sizeInBlocks.x*sizeInBlocks.y))%sizeInBlocks.z);
+      uint3 texAddr = blockAddr*8 + uint3(0, gtId.y, gtId.z);
+      // todo : we can parallelize this more, each thread can copy just one half of row
+      texture3DAt(object_sdf_mip_atlas, texAddr + uint3(0,0,0)) = (val.x&0xFF)/255.0;
+      texture3DAt(object_sdf_mip_atlas, texAddr + uint3(1,0,0)) = ((val.x>>8)&0xFF)/255.0;
+      texture3DAt(object_sdf_mip_atlas, texAddr + uint3(2,0,0)) = ((val.x>>16)&0xFF)/255.0;
+      texture3DAt(object_sdf_mip_atlas, texAddr + uint3(3,0,0)) = ((val.x>>24))/255.0;
+
+      texture3DAt(object_sdf_mip_atlas, texAddr + uint3(4,0,0)) = (val.y&0xFF)/255.0;
+      texture3DAt(object_sdf_mip_atlas, texAddr + uint3(5,0,0)) = ((val.y>>8)&0xFF)/255.0;
+      texture3DAt(object_sdf_mip_atlas, texAddr + uint3(6,0,0)) = ((val.y>>16)&0xFF)/255.0;
+      texture3DAt(object_sdf_mip_atlas, texAddr + uint3(7,0,0)) = ((val.y>>24))/255.0;
+    }
+  }
+  compile("cs_5_0", "sdf_indirection_update_cs");
+}

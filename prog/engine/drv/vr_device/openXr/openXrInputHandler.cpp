@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "openXrInputHandler.h"
 
 #include <debug/dag_assert.h>
@@ -106,164 +108,6 @@ ActionBindings get_binding_sources(XrSession session, XrInstance instance, XrAct
   return bindings;
 }
 
-constexpr const char *known_binding_paths[] = {
-  "/user/hand/left/pose/grip",
-  "/user/hand/left/pose/aim",
-  "/user/hand/left/input/a/click",
-  "/user/hand/left/input/a/touch",
-  "/user/hand/left/input/b/click",
-  "/user/hand/left/input/b/touch",
-  "/user/hand/left/input/back/click",
-  "/user/hand/left/input/menu/click",
-  "/user/hand/left/input/select/click",
-  "/user/hand/left/input/squeeze/click",
-  "/user/hand/left/input/squeeze/force",
-  "/user/hand/left/input/squeeze/value",
-  "/user/hand/left/input/system/click",
-  "/user/hand/left/input/system/touch",
-  "/user/hand/left/input/thumbrest/touch",
-  "/user/hand/left/input/thumbstick/click",
-  "/user/hand/left/input/thumbstick/touch",
-  "/user/hand/left/input/thumbstick/x",
-  "/user/hand/left/input/thumbstick/y",
-  "/user/hand/left/input/trackpad/click",
-  "/user/hand/left/input/trackpad/force",
-  "/user/hand/left/input/trackpad/touch",
-  "/user/hand/left/input/trackpad/x",
-  "/user/hand/left/input/trackpad/y",
-  "/user/hand/left/input/trigger/click",
-  "/user/hand/left/input/trigger/touch",
-  "/user/hand/left/input/trigger/value",
-  "/user/hand/left/input/x/click",
-  "/user/hand/left/input/x/touch",
-  "/user/hand/left/input/y/click",
-  "/user/hand/left/input/y/touch",
-  "/user/hand/right/pose/grip",
-  "/user/hand/right/pose/aim",
-  "/user/hand/right/input/a/click",
-  "/user/hand/right/input/a/touch",
-  "/user/hand/right/input/b/click",
-  "/user/hand/right/input/b/touch",
-  "/user/hand/right/input/back/click",
-  "/user/hand/right/input/menu/click",
-  "/user/hand/right/input/select/click",
-  "/user/hand/right/input/squeeze/click",
-  "/user/hand/right/input/squeeze/force",
-  "/user/hand/right/input/squeeze/value",
-  "/user/hand/right/input/system/click",
-  "/user/hand/right/input/system/touch",
-  "/user/hand/right/input/thumbrest/touch",
-  "/user/hand/right/input/thumbstick/click",
-  "/user/hand/right/input/thumbstick/touch",
-  "/user/hand/right/input/thumbstick/x",
-  "/user/hand/right/input/thumbstick/y",
-  "/user/hand/right/input/trackpad/click",
-  "/user/hand/right/input/trackpad/force",
-  "/user/hand/right/input/trackpad/touch",
-  "/user/hand/right/input/trackpad/x",
-  "/user/hand/right/input/trackpad/y",
-  "/user/hand/right/input/trigger/click",
-  "/user/hand/right/input/trigger/touch",
-  "/user/hand/right/input/trigger/value",
-  "/user/hand/left/input/x",
-  "/user/hand/left/input/y",
-  "/user/hand/left/input/a",
-  "/user/hand/left/input/b",
-  "/user/hand/left/input/back",
-  "/user/hand/left/input/menu",
-  "/user/hand/left/input/select",
-  "/user/hand/left/input/squeeze",
-  "/user/hand/left/input/system",
-  "/user/hand/left/input/thumbrest",
-  "/user/hand/left/input/thumbstick",
-  "/user/hand/left/input/trackpad",
-  "/user/hand/left/input/trigger",
-  "/user/hand/right/input/a",
-  "/user/hand/right/input/b",
-  "/user/hand/right/input/back",
-  "/user/hand/right/input/menu",
-  "/user/hand/right/input/select",
-  "/user/hand/right/input/squeeze",
-  "/user/hand/right/input/system",
-  "/user/hand/right/input/thumbrest",
-  "/user/hand/right/input/thumbstick",
-  "/user/hand/right/input/trackpad",
-  "/user/hand/right/input/trigger",
-  "/user/gamepad/input/x",
-  "/user/gamepad/input/y",
-  "/user/gamepad/input/a",
-  "/user/gamepad/input/b",
-  "/user/gamepad/input/dpad_down",
-  "/user/gamepad/input/dpad_left",
-  "/user/gamepad/input/dpad_right",
-  "/user/gamepad/input/dpad_up",
-  "/user/gamepad/input/menu",
-  "/user/gamepad/input/shoulder_left",
-  "/user/gamepad/input/shoulder_right",
-  "/user/gamepad/input/thumbstick_left",
-  "/user/gamepad/input/thumbstick_right",
-  "/user/gamepad/input/trigger_left",
-  "/user/gamepad/input/trigger_right",
-  "/user/gamepad/input/view",
-  "/user/gamepad/input/a/click",
-  "/user/gamepad/input/b/click",
-  "/user/gamepad/input/dpad_down/click",
-  "/user/gamepad/input/dpad_left/click",
-  "/user/gamepad/input/dpad_right/click",
-  "/user/gamepad/input/dpad_up/click",
-  "/user/gamepad/input/menu/click",
-  "/user/gamepad/input/shoulder_left/click",
-  "/user/gamepad/input/shoulder_right/click",
-  "/user/gamepad/input/thumbstick_left/click",
-  "/user/gamepad/input/thumbstick_left/x",
-  "/user/gamepad/input/thumbstick_left/y",
-  "/user/gamepad/input/thumbstick_right/click",
-  "/user/gamepad/input/thumbstick_right/x",
-  "/user/gamepad/input/thumbstick_right/y",
-  "/user/gamepad/input/trigger_left/value",
-  "/user/gamepad/input/trigger_right/value",
-  "/user/gamepad/input/view/click",
-  "/user/gamepad/input/x/click",
-  "/user/gamepad/input/y/click",
-
-  // Steam's stuff that does not match XR spec:
-  "/user/hand/left/input/application_menu", // Normally just menu
-  "/user/hand/right/input/application_menu",
-  "/user/hand/left/input/application_menu/click",
-  "/user/hand/right/input/application_menu/click",
-  "/user/hand/left/input/grip", // Normally squeeze
-  "/user/hand/right/input/grip",
-  "/user/hand/left/input/grip/value",
-  "/user/hand/right/input/grip/value",
-  "/user/hand/left/input/grip/click",
-  "/user/hand/right/input/grip/click",
-  "/user/hand/left/pose/tip", // Normally aim
-  "/user/hand/right/pose/tip",
-  "/user/hand/left/pose/openxr_grip", // Normally grip, reports for Touch controllers
-  "/user/hand/right/pose/openxr_grip",
-
-  // Oculus's stuff that doesn't match XR spec:
-  "/user/hand/left/input/aim/pose",
-  "/user/hand/left/input/grip/pose",
-  "/user/hand/right/input/aim/pose",
-  "/user/hand/right/input/grip/pose",
-
-  // WMR stuff that doesn't match XR spec:
-  "/user/hand/left/input/joystick/x",
-  "/user/hand/left/input/joystick/y",
-  "/user/hand/right/input/joystick/x",
-  "/user/hand/right/input/joystick/y",
-};
-
-
-eastl::array<eastl::pair<XrPath, uint16_t>, countof(known_binding_paths)> binding_masks;
-void update_binding_masks(XrInstance instance)
-{
-  for (int i = 0; i < countof(known_binding_paths); ++i)
-    binding_masks[i] = {as_xr_path(instance, known_binding_paths[i]), i};
-  eastl::sort(binding_masks.begin(), binding_masks.end(), [](auto lhs, auto rhs) { return lhs.first < rhs.first; });
-}
-
 } // namespace
 
 
@@ -291,8 +135,6 @@ void OpenXrInputHandler::init(XrInstance i, XrSession s, bool enable_hand_tracki
 
   sub_paths[Hands::Left] = as_xr_path(instance, "/user/hand/left");
   sub_paths[Hands::Right] = as_xr_path(instance, "/user/hand/right");
-
-  update_binding_masks(i);
 
   if (enable_hand_tracking)
   {
@@ -663,23 +505,40 @@ void OpenXrInputHandler::updateCurrentBindings()
   currentBindingMasks.clear();
   currentBindingMasks.resize(actions.size());
 
+  // Runtime can dynamically re-assign our suggestions and in general we don't know the full possible set of src paths
+  // so we gather all unique currently bound sources and mask according to their order.
+  int boundActions = 0;
+  eastl::vector_set<XrPath> uniqueSources{};
   for (int i = 0; i < actions.size(); ++i)
   {
+    int boundSources = 0;
     currentBindings[i].second = get_binding_sources(session, instance, actions[i]);
-    for (XrPath b : currentBindings[i].second)
-      if (b != VrInput::INVALID_ACTION_BINDING_ID)
-        updateBindingMask(i, b);
+    for (ActionBindingId src : currentBindings[i].second)
+      if (src != INVALID_ACTION_BINDING_ID)
+      {
+        uniqueSources.insert(src);
+        boundSources++;
+      }
+
+    if (boundSources > 0)
+      boundActions++;
   }
+  debug("[XR][HID] %llu unique action paths currently bound for %d actions", uniqueSources.size(), boundActions);
+
+  for (int i = 0; i < actions.size(); ++i)
+    for (XrPath src : currentBindings[i].second)
+      if (src != INVALID_ACTION_BINDING_ID)
+        updateBindingMask(i, src, uniqueSources);
 }
 
 
-void OpenXrInputHandler::updateBindingMask(ActionIndex action_idx, XrPath binding)
+void OpenXrInputHandler::updateBindingMask(ActionIndex action_idx, XrPath binding, const eastl::vector_set<XrPath> &known_bindings)
 {
-  auto found = eastl::find_if(binding_masks.begin(), binding_masks.end(), [binding](auto v) { return v.first == binding; });
-  G_ASSERTF_RETURN(found != binding_masks.end(), , "[XR][HID] unknown binding %llu: %s", binding,
-    xr_path_as_string(instance, binding));
+  auto found = eastl::find(known_bindings.begin(), known_bindings.end(), binding);
+  G_ASSERTF_RETURN(found != known_bindings.end(), , "[XR][HID] unknown binding %llu: %s", binding,
+    getLocalizedBindingName(binding)); // workaround Meta Runtime v66 failing xrPathToString for re-bound sources
 
-  const uint16_t bit = found->second;
+  const uint16_t bit = found - known_bindings.begin();
   currentBindingMasks[action_idx].set(bit);
 }
 

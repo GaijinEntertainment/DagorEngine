@@ -15,6 +15,16 @@ namespace SQCompilation {
 
 class SQParser
 {
+    enum SQExpressionContext {
+        SQE_REGULAR = 0,
+        SQE_IF,
+        SQE_SWITCH,
+        SQE_LOOP_CONDITION,
+        SQE_FUNCTION_ARG,
+        SQE_RVALUE,
+        SQE_ARRAY_ELEM,
+    };
+
     Arena *_astArena;
 
     template<typename N, typename ... Args>
@@ -69,15 +79,14 @@ class SQParser
     SQInteger column() const { return _lex._tokencolumn; }
     SQInteger width() const { return _lex._currentcolumn - _lex._tokencolumn; }
 
-    void checkSuspicciousUnaryOp(SQInteger prevTok, SQInteger tok, unsigned prevFlags);
-    void checkSuspicciousBraket();
+    void checkSuspiciousUnaryOp(SQInteger prevTok, SQInteger tok, unsigned prevFlags);
+    void checkSuspiciousBracket();
 public:
     SQCompilationContext &_ctx;
 
     void reportDiagnostic(int32_t id, ...);
 
     uint32_t _depth;
-    uint32_t _rangeIteratorId;
 
     SQParser(SQVM *v, const char *sourceText, size_t sourceTextSize, const SQChar* sourcename, Arena *astArena, SQCompilationContext &ctx, Comments *comments);
 
@@ -134,8 +143,6 @@ public:
     ForStatement* parseForStatement();
     ForeachStatement* parseForEachStatement();
     SwitchStatement* parseSwitchStatement();
-    FunctionDecl* parseFunctionStatement();
-    ClassDecl* parseClassStatement();
     Expr *parseStringTemplate();
     LiteralExpr* ExpectScalar();
     ConstDecl* parseConstStatement(bool global);

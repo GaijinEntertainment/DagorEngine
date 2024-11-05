@@ -1,0 +1,18 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/grsCurView ;
+
+TargetType  = lib ;
+Target      = tools/libTools/grsCurView.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  cur_view.cpp
+;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,15 +1,14 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <generic/dag_staticTab.h>
 #include <soundSystem/eventId.h>
 #include <soundSystem/handle.h>
-#include <soundSystem/eventInstanceStealing.h>
 #include <daECS/core/component.h>
+#include <math/dag_Point3.h>
 
 struct SoundEventGroup
 {
@@ -26,6 +25,9 @@ struct SoundEventGroup
   static constexpr int capacity = 24;
   static constexpr int def_max_instances = 4;
   StaticTab<Sound, capacity> sounds;
+  SoundEventGroup() = default;
+  SoundEventGroup(SoundEventGroup &&) = default;
+  SoundEventGroup &operator=(SoundEventGroup &&) = default;
   ~SoundEventGroup();
 };
 
@@ -45,6 +47,7 @@ bool has_sound(const SoundEventGroup &group, const char *name, const char *path)
 // keep and update sound in group and then automatically release and remove from group on play finished
 void reject_sound(SoundEventGroup &group, sndsys::event_id_t id, bool stop = false);
 
+void abandon_sound(SoundEventGroup &group, sndsys::event_id_t id);
 void release_sound(SoundEventGroup &group, sndsys::event_id_t id);
 void abandon_all_sounds(SoundEventGroup &group);
 void release_all_sounds(SoundEventGroup &group);
@@ -59,6 +62,3 @@ void remove_sound(SoundEventGroup &group, const sndsys::EventHandle &handle);
 int get_num_sounds(const SoundEventGroup &group, sndsys::event_id_t id);
 int get_num_sounds(const SoundEventGroup &group);
 inline int get_max_capacity(const SoundEventGroup &) { return SoundEventGroup::capacity; }
-
-using SoundInstanceStealingGroup = sndsys::EventInstanceStealingGroup;
-ECS_DECLARE_RELOCATABLE_TYPE(SoundInstanceStealingGroup);

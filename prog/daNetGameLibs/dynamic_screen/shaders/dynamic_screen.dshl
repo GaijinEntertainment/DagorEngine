@@ -1,0 +1,111 @@
+include "shader_global.dshl"
+include "dynamic_opaque_inc.dshl"
+include "normaldetail.dshl"
+include "emissive.dshl"
+
+shader dynamic_screen
+{
+  ENABLE_ASSERT(ps)
+  DYNAMIC_BLOCK()
+  DECLARE_DYNAMIC_MATERIAL_PARAMS()
+  texture normal = material.texture[2];
+  texture lcd_pattern = material.texture[3];
+  static float lcd_pattern_opacity = 1;
+  static float lcd_pattern_tile = 10;
+  static int use_alpha_for_emission_mask = 1;
+  //TODO: assume off this interval, after making compiler properly process this case
+  interval use_alpha_for_emission_mask: no < 1, yes;
+  static int nightly = 0;
+
+  (ps) {
+    lcd_pattern_opacity@f1 = (lcd_pattern_opacity);
+    lcd_pattern_tile@f1 = (lcd_pattern_tile);
+  }
+
+  hlsl(ps) {
+    #define OVERRIDE_NIGHT_SUN_COS 1
+    #include "light_consts.hlsli"
+  }
+
+  INIT_EMISSIVE_ANIMCHAR_DYNMAT_PARAMS()
+  NO_DEFORM_HMAP()
+  supports global_const_block;
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    hlsl {
+      #define MOTION_VECTORS_ENABLED
+    }
+  }
+
+  DYNAMIC_SIMPLE_VS_NOATEST()
+
+  dynamic texture dynamic_screen_tex;
+
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    SPECIAL_RENDER_NOALPHATEST()
+  }
+  else
+  {
+    hlsl(ps) {
+      #include "pixelPacking/ColorSpaceUtility.hlsl"
+
+      #define IS_DYNAMIC 1
+      ##if lcd_pattern != NULL
+        float4 mixScreenColor(float3 ui_color, float2 uv)
+        {
+          float3 lcdPatternColor = tex2DBindless(get_lcd_pattern_tex(), uv * get_lcd_pattern_tile()).rgb;
+          lcdPatternColor = lerp(float3(1,1,1), lcdPatternColor, get_lcd_pattern_opacity());
+          return float4(RemoveSRGBCurve_Fast(lcdPatternColor * ui_color),1);
+        }
+      ##else
+        float4 mixScreenColor(float3 ui_color, float2 uv)
+        {
+          return float4(RemoveSRGBCurve_Fast(ui_color),1);
+        }
+      ##endif
+      ##if in_editor_assume == no
+        #define DYNAMIC_EMISSIVE_DIFFUSE_SRC(input_tc) mixScreenColor(tex2D(dynamic_screen_tex, input_tc).rgb, input_tc)
+      ##else
+        // for artists to properly setup things and check visually without much effort
+        float3 testScreen(float2 tc)
+        {
+          int colorCnt = 9;
+          float3 colors[9] = {
+            float3(1,1,1),
+            float3(0.5,0.5,0.5),
+            float3(0,0,0),
+            float3(1,0,0),
+            float3(0,1,0),
+            float3(0,0,1),
+            float3(1,1,0),
+            float3(0,1,1),
+            float3(1,0,1)
+          };
+          int rows = 3;
+          int2 scaledIntTC = abs(tc * float2(rows, rows));
+          int colorIdx = clamp(scaledIntTC.x + scaledIntTC.y*rows, 0, colorCnt-1);
+          return colors[colorIdx];
+        }
+        #define DYNAMIC_EMISSIVE_DIFFUSE_SRC(input_tc) mixScreenColor(testScreen(input_tc), input_tc)
+      ##endif
+    }
+    (ps)
+    {
+      dynamic_screen_tex@smp2d = dynamic_screen_tex;
+      normal_tex@static = normal;
+      lcd_pattern_tex@static = lcd_pattern;
+      nightly@i1 = nightly;
+      real_skies_sun_light_dir@f4 = real_skies_sun_light_dir;
+    }
+    USE_PIXEL_TANGENT_SPACE()
+    WRITE_GBUFFER()
+    USE_EMISSIVE_ANIMCHAR_DYNMAT_PARAMS()
+    EMISSIVE_PS_BODY()
+    compile("target_ps", "simple_ps");
+  }
+}

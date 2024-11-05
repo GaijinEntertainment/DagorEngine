@@ -1,5 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/omniLightsManager.h>
-#include <3d/dag_drv3dCmd.h>
 #include <math/dag_frustum.h>
 #include <generic/dag_sort.h>
 #include <scene/dag_occlusion.h>
@@ -10,13 +11,13 @@
 #include <shaders/dag_shaderVar.h>
 #include <shaders/dag_shaders.h>
 #include <util/dag_texMetaData.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include "smallLights.h"
 
 #include <EASTL/algorithm.h>
 #include <EASTL/unique_ptr.h>
 
-OmniLightsManager::OmniLightsManager() : maxLightIndex(-1)
+OmniLightsManager::OmniLightsManager()
 {
   G_STATIC_ASSERT(1ULL << (sizeof(*freeLightIds.data()) * 8) >= MAX_LIGHTS);
 
@@ -63,11 +64,12 @@ void OmniLightsManager::prepare(const Frustum &frustum, Tab<uint16_t> &lightsIns
   eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *occlusion, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane,
   const StaticTab<uint16_t, MAX_LIGHTS> &shadows, float markSmallLightsAsFarLimit, vec3f cameraPos, mask_type_t accept_mask) const
 {
-  int reserveSize = (maxLightIndex + 1) / 2;
+  int maxIdx = maxIndex();
+  int reserveSize = (maxIdx + 1) / 2;
   lightsInside.reserve(reserveSize);
   lightsOutside.reserve(reserveSize);
   vec4f rad_scale = v_splats(1.1f);
-  for (int i = 0; i <= maxLightIndex; ++i)
+  for (int i = 0; i <= maxIdx; ++i)
   {
     if (!(accept_mask & masks[i]))
       continue;
@@ -114,7 +116,8 @@ void OmniLightsManager::prepare(const Frustum &frustum, Tab<uint16_t> &lightsIns
 
 void OmniLightsManager::drawDebugInfo()
 {
-  for (int i = 0; i <= maxLightIndex; ++i)
+  int maxIdx = maxIndex();
+  for (int i = 0; i <= maxIdx; ++i)
   {
     const RawLight &l = rawLights[i];
     if (l.pos_radius.w <= 0)
@@ -126,7 +129,8 @@ void OmniLightsManager::drawDebugInfo()
 void OmniLightsManager::renderDebugBboxes()
 {
   begin_draw_cached_debug_lines();
-  for (int i = 0; i <= maxLightIndex; ++i)
+  int maxIdx = maxIndex();
+  for (int i = 0; i <= maxIdx; ++i)
   {
     const RawLight &l = rawLights[i];
     if (l.pos_radius.w <= 0)
@@ -141,6 +145,7 @@ void OmniLightsManager::renderDebugBboxes()
 
 int OmniLightsManager::addLight(int priority, const RawLight &l)
 {
+  OSSpinlockScopedLock lock(lightAllocationSpinlock);
   int id = -1;
   if (freeLightIds.size())
   {
@@ -167,18 +172,9 @@ struct AscCompare
   bool operator()(const uint16_t a, const uint16_t b) const { return a < b; }
 };
 
-void OmniLightsManager::removeEmpty()
-{
-  fast_sort(freeLightIds, AscCompare());
-  for (int i = freeLightIds.size() - 1; i >= 0 && maxLightIndex == freeLightIds[i]; --i)
-  {
-    freeLightIds.pop_back();
-    maxLightIndex--;
-  }
-}
-
 void OmniLightsManager::destroyLight(unsigned int id)
 {
+  OSSpinlockScopedLock lock(lightAllocationSpinlock);
   G_ASSERT_RETURN(id <= maxLightIndex, );
 
   memset(&rawLights[id], 0, sizeof(rawLights[id]));
@@ -186,7 +182,7 @@ void OmniLightsManager::destroyLight(unsigned int id)
 
   if (id == maxLightIndex)
   {
-    maxLightIndex--;
+    --maxLightIndex;
     return;
   }
 
@@ -204,6 +200,7 @@ void OmniLightsManager::destroyLight(unsigned int id)
 
 void OmniLightsManager::destroyAllLights()
 {
+  OSSpinlockScopedLock lock(lightAllocationSpinlock);
   maxLightIndex = -1;
   freeLightIds.clear();
 }

@@ -1,0 +1,23 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = underwater_postfx ;
+Location = prog/daNetGameLibs/$(Module) ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+  $(Root)/prog/daNetGameLibs
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+  $(Root)/prog/1stPartyLibs/rapidJsonUtils/include
+;
+
+local AllSrcFolder_ES = ;
+if $(HaveRenderer) = yes {
+  AllSrcFolder_ES +=
+    render
+  ;
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

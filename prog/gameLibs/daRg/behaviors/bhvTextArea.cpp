@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "bhvTextArea.h"
 
 #include <daRg/dag_element.h>
@@ -172,7 +174,7 @@ void BhvTextArea::recalc_content(const Element *elem, int /*axis*/, const Point2
   {
     float styleMaxWidth = props.getFloat(elem->csk->maxContentWidth, VERY_BIG_NUMBER);
     if (styleMaxWidth == VERY_BIG_NUMBER)
-      styleMaxWidth = elem->sizeSpecToPixels(elem->layout.maxSize[0], 0, false);
+      styleMaxWidth = elem->sizeSpecToPixels(elem->layout.maxSize[0], 0);
 
     FormatParams params = {};
     params.defFontId = props.getFontId();

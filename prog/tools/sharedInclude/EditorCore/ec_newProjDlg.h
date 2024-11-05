@@ -1,13 +1,12 @@
-#ifndef __GAIJIN_EDITORCORE_EC_COMMON_DLG_H__
-#define __GAIJIN_EDITORCORE_EC_COMMON_DLG_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <math/dag_math3d.h>
 #include <util/dag_string.h>
 
-#include <propPanel2/comWnd/dialog_window.h>
+#include <propPanel/commonWindow/dialogWindow.h>
 
-class NewProjectDialog : public CDialogWindow
+class NewProjectDialog : public PropPanel::DialogWindow
 {
 public:
   NewProjectDialog(void *phandle, const char *caption, const char *name_label = NULL, const char *_note = NULL);
@@ -18,11 +17,9 @@ public:
   void setName(const char *s);
   void setLocation(const char *s);
 
-  virtual void onChange(int pcb_id, PropertyContainerControlBase *panel);
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
   virtual bool onOk();
 
 private:
   String mName, mLocation;
 };
-
-#endif

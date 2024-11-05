@@ -1,0 +1,22 @@
+ModuleDependsOnVars = Dedicated ;
+Dedicated ?= no ;
+
+Root    ?= ../../.. ;
+Module = route_prober ;
+Location = prog/daNetGameLibs/$(Module) ;
+local DasModule = daNetGameLibs_route_prober_DAS_pull_AOT ;
+
+AddIncludes =
+  $(Root)/prog/daNetGame
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/daScript/include
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+;
+local AllSrcFolder_DAS = ;
+if $(Dedicated) = no {
+  AllSrcFolder_DAS +=
+    main
+  ;
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

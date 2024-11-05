@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hmlLight.h"
 #include <de3_interface.h>
-#include <dllPluginCore/core.h>
+#include <EditorCore/ec_IEditorCore.h>
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/staticGeom/staticGeometryContainer.h>
 #include <libTools/staticGeom/matFlags.h>
@@ -12,6 +14,9 @@
 #include <util/dag_globDef.h>
 #include <debug/dag_debug.h>
 #include "hmlObjectsEditor.h"
+
+using editorcore_extapi::dagGeom;
+using editorcore_extapi::dagRender;
 
 enum
 {
@@ -205,7 +210,8 @@ void SphereLightObject::renderObject()
   }
 }
 
-void SphereLightObject::fillProps(PropPanel2 &op, DClassID for_class_id, dag::ConstSpan<RenderableEditableObject *> objects)
+void SphereLightObject::fillProps(PropPanel::ContainerPropertyControl &op, DClassID for_class_id,
+  dag::ConstSpan<RenderableEditableObject *> objects)
 {
   bool one_type = true;
 
@@ -266,7 +272,8 @@ void SphereLightObject::fillProps(PropPanel2 &op, DClassID for_class_id, dag::Co
   }
 }
 
-void SphereLightObject::onPPChange(int pid, bool edit_finished, PropPanel2 &panel, dag::ConstSpan<RenderableEditableObject *> objects)
+void SphereLightObject::onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
+  dag::ConstSpan<RenderableEditableObject *> objects)
 {
 #define CHANGE_VAL(type, pname, getfunc)                               \
   {                                                                    \

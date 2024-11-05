@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "nodesProcessing.h"
 #include "propPanelPids.h"
 #include <util/dag_delayedAction.h>
@@ -5,6 +7,8 @@
 #include <assets/asset.h>
 #include <assets/assetMgr.h>
 #include <scene/dag_physMat.h>
+#include <propPanel/commonWindow/dialogWindow.h>
+#include <propPanel/control/container.h>
 
 NodesProcessing::NodesProcessing()
 {
@@ -12,16 +16,17 @@ NodesProcessing::NodesProcessing()
   selectedPanelGroup = PID_COLLISION_INFO_GROUP;
 }
 
-void NodesProcessing::init(DagorAsset *asset, CollisionResource *collision_res)
+void NodesProcessing::init(DagorAsset *asset, CollisionResource *collision_res, PropPanel::ITreeControlEventHandler *event_handler)
 {
   curAsset = asset;
   collisionRes = collision_res;
+  treeEventHandler = event_handler;
   selectionNodesProcessing.init(asset, collision_res);
   if (selectionNodesProcessing.calcCollisionAfterReject)
     calcCollisionsAfterReject();
 }
 
-void NodesProcessing::setPropPanel(PropertyContainerControlBase *prop_panel)
+void NodesProcessing::setPropPanel(PropPanel::ContainerPropertyControl *prop_panel)
 {
   panel = prop_panel;
   combinedNodesProcessing.init(collisionRes, prop_panel);
@@ -145,7 +150,9 @@ void NodesProcessing::saveExportedCollisionNodes()
 void NodesProcessing::fillCollisionInfoPanel()
 {
   auto *group = panel->createGroup(PID_COLLISION_INFO_GROUP, "Collision nodes");
-  auto *tree = group->createTree(PID_COLLISION_NODES_TREE, "Collision nodes", hdpi::_pxScaled(300));
+  auto *tree = group->createMultiSelectTreeCheckbox(PID_COLLISION_NODES_TREE, "Collision nodes", hdpi::_pxScaled(300));
+  PropPanel::ContainerPropertyControl *treeContainer = tree->getContainer();
+  treeContainer->setTreeEventHandler(treeEventHandler);
 
   selectionNodesProcessing.fillInfoTree(tree);
 
@@ -175,7 +182,7 @@ void NodesProcessing::fillEditNodeInfoPanel()
   for (const PhysMat::MaterialData &data : PhysMat::getMaterials())
     materialTypes.emplace_back(data.name);
 
-  PropertyContainerControlBase *group = panel->createGroup(PID_EDIT_COLLISION_NODE_GROUP, "Create new node");
+  PropPanel::ContainerPropertyControl *group = panel->createGroup(PID_EDIT_COLLISION_NODE_GROUP, "Create new node");
   group->createMultiSelectList(PID_SELECTABLE_NODES_LIST, nodes, hdpi::_pxScaled(304));
   group->createEditBox(PID_NEW_NODE_NAME, "New node name");
   group->createCheckBox(PID_REPLACE_NODE, "Replace selected nodes", true);
@@ -220,6 +227,27 @@ void NodesProcessing::setPanelAfterReject()
       combinedNodesProcessing.calcSelectedCombinedNode();
       break;
   }
+}
+
+bool NodesProcessing::canChangeAsset()
+{
+  if (selectionNodesProcessing.haveUnsavedChanges())
+  {
+    const int dialogResult = wingw::message_box(wingw::MBS_QUEST | wingw::MBS_YESNOCANCEL, "Collision properties",
+      "You have changed collision properties. Do you want to save the changes to the collision?");
+
+    switch (dialogResult)
+    {
+      case PropPanel::DIALOG_ID_CANCEL: return false;
+      case PropPanel::DIALOG_ID_YES:
+        saveCollisionNodes();
+        if (!curAsset->isVirtual())
+          curAsset->getMgr().callAssetChangeNotifications(*curAsset, curAsset->getNameId(), curAsset->getType());
+        break;
+    }
+  }
+
+  return true;
 }
 
 void NodesProcessing::calcCollisionsAfterReject()
@@ -478,7 +506,7 @@ static void find_ref_nodes_idxs(const SelectedNodesSettings &settings, const Tab
 }
 
 static void set_settings_on_panel(const SelectedNodesSettings &settings, Tab<String> &nodes, Tab<int> &sels,
-  PropertyContainerControlBase *panel)
+  PropPanel::ContainerPropertyControl *panel)
 {
   panel->setStrings(PID_SELECTABLE_NODES_LIST, nodes);
   panel->setSelection(PID_SELECTABLE_NODES_LIST, sels);
@@ -580,8 +608,8 @@ void NodesProcessing::delete_flags_prefix(String &node_name)
 
 void NodesProcessing::editCollisionNode()
 {
-  PropertyContainerControlBase *tree = panel->getById(PID_COLLISION_NODES_TREE)->getContainer();
-  TLeafHandle leaf = tree->getSelLeaf();
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_COLLISION_NODES_TREE)->getContainer();
+  PropPanel::TLeafHandle leaf = tree->getSelLeaf();
   if (!leaf || !tree->getChildCount(leaf))
     return;
 
@@ -630,8 +658,8 @@ void NodesProcessing::editCollisionNode(const String &node_name)
 
 void NodesProcessing::deleteCollisionNode()
 {
-  PropertyContainerControlBase *tree = panel->getById(PID_COLLISION_NODES_TREE)->getContainer();
-  TLeafHandle leaf = tree->getSelLeaf();
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_COLLISION_NODES_TREE)->getContainer();
+  PropPanel::TLeafHandle leaf = tree->getSelLeaf();
   String nodeName = tree->getCaption(leaf);
   if (nodeName.empty() || !tree->getChildCount(leaf))
     return;
@@ -654,6 +682,7 @@ void NodesProcessing::deleteCollisionNode()
     }
     curAsset->getMgr().callAssetChangeNotifications(*curAsset, curAsset->getNameId(), curAsset->getType());
   }
+  checkSelectedTreeLeaf();
   selectionNodesProcessing.updateHiddenNodes();
 }
 
@@ -698,12 +727,12 @@ void NodesProcessing::checkCreatedNode()
 
 void NodesProcessing::checkSelectedTreeLeaf()
 {
-  PropertyControlBase *treeControl = panel->getById(PID_COLLISION_NODES_TREE);
+  PropPanel::PropertyControlBase *treeControl = panel->getById(PID_COLLISION_NODES_TREE);
   if (!treeControl)
     return;
 
-  PropertyContainerControlBase *tree = treeControl->getContainer();
-  TLeafHandle leaf = tree->getSelLeaf();
+  PropPanel::ContainerPropertyControl *tree = treeControl->getContainer();
+  PropPanel::TLeafHandle leaf = tree->getSelLeaf();
   const bool isButtonEnabled = leaf && tree->getChildCount(leaf) && !tree->getCaption(leaf).empty();
   panel->setEnabledById(PID_EDIT_NODE, isButtonEnabled);
   panel->setEnabledById(PID_DELETE_NODE, isButtonEnabled);

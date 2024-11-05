@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -47,6 +46,7 @@ decl_dclassid(0x20000317, DefClampParamCtrl);
 decl_dclassid(0x20000318, AnimPostBlendRotateAroundCtrl);
 decl_dclassid(0x20000319, AnimPostBlendNodeLookatNodeCtrl);
 decl_dclassid(0x2000031A, DeltaRotateShiftCtrl);
+decl_dclassid(0x2000031B, FootLockerIKCtrl);
 
 //
 // Controller to compute node's rotation and shift
@@ -499,7 +499,7 @@ class AnimPostBlendAimCtrl : public AnimPostBlendCtrl
 
     void init();
 
-    void updateDstAngles(const vec4f &target_local_pos);
+    void updateDstAngles(vec4f target_local_pos);
     void clampAngles(const AimDesc &desc, float &yaw_in_out, float &pitch_in_out);
     void updateRotation(const AimDesc &desc, float stab_error, bool stab_yaw, bool stab_pitch, float stab_yaw_mult,
       float stab_pitch_mult, float &prev_yaw, float &prev_pitch);
@@ -587,7 +587,6 @@ private:
   Tab<RemapRec> mapRec;
   Tab<ParamOp> ops;
   int wtPid;
-  int lastDtPid;
 
 public:
   ApbParamCtrl(AnimationGraph &g, const char *param_name);
@@ -891,25 +890,21 @@ public:
 //
 class AnimPostBlendNodeLookatNodeCtrl : public AnimPostBlendCtrl
 {
-  struct NodeDesc
+  struct LocalData
   {
-    SimpleString name;
-  };
-  struct NodeId
-  {
-    dag::Index16 target;
-    short nodeRemap = -1;
+    dag::Index16 lookatNodeId;
+    dag::Index16 upNodeId;
+    dag::Index16 targetNodeId;
   };
 
-  Tab<NodeDesc> targetNodes;
+  SimpleString targetNode;
   SimpleString lookatNodeName;
   SimpleString upNodeName;
-  dag::Index16 lookatNodeId;
-  dag::Index16 upNodeId;
   int lookatAxis = -1, upAxis = -1;
   bool negAxes[3] = {false};
   int varId = -1;
   bool valid = false;
+  Point3 upVector;
 
 public:
   AnimPostBlendNodeLookatNodeCtrl(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
@@ -1196,6 +1191,118 @@ public:
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendTwistCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
 
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+
+  static void createNode(AnimationGraph &graph, const DataBlock &blk);
+};
+
+//
+// Controller to compute eyelids transforms from eye look direction vector
+//
+class AnimPostBlendEyeCtrl : public AnimPostBlendCtrl
+{
+  float horizontalReactionFactor = 1;
+  float blinkingReactionFactor = 1;
+  Point2 verticalReactionFactor;
+
+  SimpleString eyeDirectionNodeName;
+  dag::Index16 eyeDirectionNodeId;
+
+  SimpleString eyelidStartTopNodeName;
+  dag::Index16 eyelidStartTopNodeId;
+
+  SimpleString eyelidStartBottomNodeName;
+  dag::Index16 eyelidStartBottomNodeId;
+
+  SimpleString eyelidHorizontalReactionNodeName;
+  dag::Index16 eyelidHorizontalReactionNodeId;
+
+  SimpleString eyelidVerticalTopReactionNodeName;
+  dag::Index16 eyelidVerticalTopReactionNodeId;
+
+  SimpleString eyelidVerticalBottomReactionNodeName;
+  dag::Index16 eyelidVerticalBottomReactionNodeId;
+
+  SimpleString eyelidBlinkSourceNodeName;
+  dag::Index16 eyelidBlinkSourceNodeId;
+
+  SimpleString eyelidBlinkTopNodeName;
+  dag::Index16 eyelidBlinkTopNodeId;
+
+  SimpleString eyelidBlinkBottomNodeName;
+  dag::Index16 eyelidBlinkBottomNodeId;
+
+public:
+  AnimPostBlendEyeCtrl(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
+
+  virtual void destroy() {}
+  virtual void reset(IPureAnimStateHolder &) {}
+  virtual void init(IPureAnimStateHolder &, const GeomNodeTree &);
+
+  const char *class_name() const override { return "AnimPostBlendEyeCtrl"; }
+  virtual bool isSubOf(DClassID id) { return id == AnimPostBlendTwistCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
+
+  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+
+  static void createNode(AnimationGraph &graph, const DataBlock &blk);
+};
+
+//
+// Controller to lock foot (toe actually) at some point in world space when leg is on the ground in animation
+//
+class FootLockerIKCtrl : public AnimPostBlendCtrl
+{
+  struct LegNodeNames
+  {
+    SimpleString hip, knee, ankle, toe;
+  };
+
+  Tab<LegNodeNames> legsNodeNames;
+  float unlockViscosity = 0;
+  float maxReachScale = 1;
+  float unlockRadius = 0;
+  float unlockWhenUnreachableRadius = 0;
+  float toeNodeHeight = 0;
+  float ankleNodeHeight = 0;
+
+  float maxFootUp = 0;
+  float maxFootDown = 0;
+  float maxToeMoveUp = 0;
+  float maxToeMoveDown = 0;
+  float footRaisingSpeed = 0;
+  float footInclineViscosity = 0;
+  float maxAnkleAnlgeCos = 0;
+  float maxHipMoveDown = 0;
+  float hipMoveViscosity = 0;
+
+  int legsDataVarId = -1;
+  int hipMoveDownVarId = -1;
+
+public:
+  struct LegData
+  {
+    dag::Index16 toeNodeId;
+    dag::Index16 ankleNodeId;
+    dag::Index16 kneeNodeId;
+    dag::Index16 hipNodeId;
+
+    Point3 lockedPosition;
+    Point3 posOffset;
+    float ankleVerticalMove = 0;
+    float ankleTargetMove = 0;
+    bool isLocked = false;
+    bool needLock = false; // updated outside
+  };
+  FootLockerIKCtrl(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
+
+  virtual void destroy() {}
+  virtual void reset(IPureAnimStateHolder & /*st*/) {}
+
+  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void advance(IPureAnimStateHolder & /*st*/, real /*dt*/){};
+
+  const char *class_name() const override { return "FootLockerIKCtrl"; }
+  virtual bool isSubOf(DClassID id) { return id == FootLockerIKCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
 
   static void createNode(AnimationGraph &graph, const DataBlock &blk);
 };

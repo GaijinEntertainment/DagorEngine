@@ -1,10 +1,6 @@
-#Platform ?= xbox360 ;
-#Platform ?= ps3 ;
-#Platform ?= macosx ;
-if $(OS) = NT {
-  Platform ?= win64 ;
-  PlatformSpec ?= clang ;
-}
+#Platform ?= macOS ;
+PlatformArch_windows ?= x86_64 ;
+PlatformSpec_windows ?= clang ;
 
 Root    ?= ../../.. ;
 Location = samples/testGI/prog ;
@@ -14,10 +10,20 @@ UseD3DMulti ?= yes ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 TargetType  = exe ;
-Target      = samples/testGI-$(Platform) ;
+Target      = samples/testGI-$(LegacyPlatformSuffix) ;
 
 if $(UseWholeOpt) != yes {
   UseLLDLink ?= yes ;
+}
+
+if $(Platform)-$(PlatformArch) in windows-x86_64 linux-x86_64 || $(Platform) in ps5 {
+  BVHSupport = yes ;
+  BVHRi = no ;
+  BVHRandomGrass = no ;
+  BVHGpuObjects = no ;
+  BVHDynRend = no ;
+  BVHFx = no ;
+  BVHCables = no ;
 }
 
 OutDir = $(Root)/$(Location)/../game ;
@@ -66,12 +72,19 @@ UseProgLibs =
   gameLibs/heightmap
   engine/consoleProc
   gameLibs/daEditorE
+  gameLibs/daGI2
+  gameLibs/render/voxelizationTarget
   gameLibs/daGI
+  gameLibs/bvh
+  gameLibs/render/rtsm
+  gameLibs/render/denoiser
+  gameLibs/render/upscale
+  gameLibs/profileEventsGUI
 ;
 
 #UseRootLibs = xblades2/prog/anim ;
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   UseProgLibs +=
     engine/drv/hid_mouse
     engine/drv/hid_keyboard
@@ -81,7 +94,9 @@ if $(Platform) in win32 win64 {
   AddLibs +=
     Ws2_32.lib ;
 
-} else if $(Platform) = linux64 {
+  include $(Root)/prog/engine/drv/drv3d_DX12/copy_bundles.jam ;
+
+} else if $(Platform) = linux {
   BundleName = SkiesSample ;
   UseProgLibs +=
     engine/drv/drv3d_pc_multi
@@ -91,7 +106,7 @@ if $(Platform) in win32 win64 {
     engine/osApiWrappers/messageBox
   ;
 
-} else if $(Platform) = macosx {
+} else if $(Platform) = macOS {
   BundleName = testGI ;
   Sources += macosx_main.mm ;
   UseProgLibs +=
@@ -102,11 +117,27 @@ if $(Platform) in win32 win64 {
 
   include $(Root)/prog/samples/macOS-testApp-res/macOS-common.jam ;
 
-} else if $(Platform) in ps4 ps5 {
+} else if $(Platform) in ps4 {
   UseProgLibs +=
     engine/drv/hid_sony
     engine/drv/drv3d_ps4
   ;
+} else if $(Platform) = ps5 {
+  UseProgLibs +=
+    engine/drv/hid_sony
+    engine/drv/drv3d_ps5
+  ;
+} else if $(Platform) in xboxOne scarlett {
+  UseProgLibs += engine/drv/drv3d_DX12 ;
+  UseProgLibs += engine/drv/hid_gamepad_xinput engine/drv/hid_keyboard engine/drv/hid_nulldrv ;
+
+  OutDir = $(OutDir)/../game/$(Platform).loose ;
+
+  XboxTitleName = testGI ;
+  XboxTitlePublisher = "CN=Anton Yudintsev, OU=Gaijin Distribution Kft, O=Gaijin Entertainment Holdings, L=Budapest, S=Budapest, C=HU" ;
+  XboxTitleDisplayName = "testGI" ;
+  XboxTitlePublisherDisplayName = "Gaijin Distribution Kft" ;
+  XboxTitleDesc = "Test bed for GI" ;
 } else if $(Platform) = android {
   UseProgLibs +=
     engine/drv/drv3d_vulkan
@@ -124,5 +155,7 @@ if $(Platform) in win32 win64 {
 } else {
   Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
 }
+
+if $(Platform) in windows && $(Config) != rel && $(Sanitize) != address { UseMemoryDebugLevel = dbg ; }
  
 include $(Root)/prog/_jBuild/build.jam ;

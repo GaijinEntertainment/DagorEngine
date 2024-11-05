@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 class SplineEntity : public IObjEntity, public IRandomSeedHolder, public ISplineEntity
 {
 public:

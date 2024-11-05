@@ -1,10 +1,7 @@
-#ifndef _DAGOR_GAMELIB_SOUNDSYSTEM_SOUNDSYSTEMINTERNAL_H_
-#define _DAGOR_GAMELIB_SOUNDSYSTEM_SOUNDSYSTEMINTERNAL_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 namespace sndsys
 {
 int get_max_channels();
 } // namespace sndsys
-
-#endif

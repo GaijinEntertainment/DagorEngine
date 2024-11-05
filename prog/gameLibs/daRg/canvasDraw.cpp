@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "canvasDraw.h"
 
 #include <sqext.h>
@@ -17,6 +19,24 @@ SQUserPointer RenderCanvasContext::get_type_tag() { return &type_tag_dummy; }
 template <size_t N>
 using TmpPoint2Vector = dag::RelocatableFixedVector<Point2, N, true, framemem_allocator, uint32_t, false>;
 
+
+inline void RenderCanvasContext::convertToScreenCoordinates(Point2 *points, int count) const
+{
+  if (lineAlign == 0.0f)
+  {
+    for (int i = 0; i < count; i++)
+      points[i] = offset + Point2(points[i].x * scale.x, points[i].y * scale.y);
+  }
+  else
+  {
+    float d = -max(lineWidth, 0.0f) * lineAlign;
+    Point2 dOffset = offset + Point2(d, d);
+    Point2 dScale = scale - Point2(d * 0.02f, d * 0.02f);
+    for (int i = 0; i < count; i++)
+      points[i] = dOffset + Point2(points[i].x * dScale.x, points[i].y * dScale.y);
+  }
+}
+
 void RenderCanvasContext::renderLine(const Sqrat::Array &cmd, const Point2 &line_indent) const
 {
   bool isValidParams = cmd.Length() > 3 && cmd.Length() % 2 == 1;
@@ -34,8 +54,7 @@ void RenderCanvasContext::renderLine(const Sqrat::Array &cmd, const Point2 &line
     return;
   }
 
-  for (int i = 0; i < points.size(); i++)
-    points[i] = offset + Point2(points[i].x * scale.x, points[i].y * scale.y);
+  convertToScreenCoordinates(&points[0], points.size());
 
   ctx->render_line_aa(points.data(), points.size(), /*is_closed*/ false, lineWidth, line_indent, color);
 }
@@ -47,28 +66,24 @@ void RenderCanvasContext::renderLineDashed(const Sqrat::Array &cmd) const
 
   if (!isValidParams)
   {
-    darg_assert_trace_var("invalid number of parameters for VECTOR_LINE", cmd, 0);
+    darg_assert_trace_var("invalid number of parameters for VECTOR_LINE_DASHED. Expected 7 ([VECTOR_LINE_DASHED, p1.x, p1.y, p2.x, "
+                          "p2.y, dash_length, space_length])",
+      cmd, 0);
     return;
   }
 
   Tab<Point2> points(framemem_ptr());
-  int numPts = (cmd.Length() - 3) / 2;
-  if (numPts != 2)
-  {
-    darg_assert_trace_var("VECTOR_LINE_DASHED requires 2 points", cmd, 0);
-    return;
-  }
+  const int numPts = 2;
 
   points.resize(numPts);
 
   if (sq_ext_get_array_floats(cmd.GetObject(), 1, numPts * 2, &points[0].x) != SQ_OK)
   {
-    darg_assert_trace_var("cannot read params of VECTOR_LINE", cmd, 0);
+    darg_assert_trace_var("cannot read params of VECTOR_LINE_DASHED", cmd, 0);
     return;
   }
 
-  for (int i = 0; i < numPts; i++)
-    points[i] = offset + Point2(points[i].x * scale.x, points[i].y * scale.y);
+  convertToScreenCoordinates(&points[0], points.size());
 
   const float dash = cmd[cmd.Length() - 2].Cast<float>();
   const float space = cmd[cmd.Length() - 1].Cast<float>();
@@ -99,8 +114,7 @@ void RenderCanvasContext::renderFillPoly(const Sqrat::Array &cmd) const
     return;
   }
 
-  for (int i = 0; i < points.size(); i++)
-    points[i] = offset + Point2(points[i].x * scale.x, points[i].y * scale.y);
+  convertToScreenCoordinates(&points[0], points.size());
 
   ctx->render_poly(points, fillColor);
   ctx->render_line_aa(points, true, lineWidth, Point2(0, 0), color);
@@ -131,8 +145,7 @@ void RenderCanvasContext::renderFillInversePoly(const Sqrat::Array &cmd) const
 
   const float bound = (1 << 22);
 
-  for (int idx = 0; idx < count; idx++)
-    points[idx] = offset + Point2(points[idx].x * scale.x, points[idx].y * scale.y);
+  convertToScreenCoordinates(&points[0], points.size());
 
   ctx->render_inverse_poly(make_span_const(points), fillColor, Point2(-bound, -bound), Point2(bound, bound));
   ctx->render_line_aa(points.data(), points.size(), true, lineWidth, Point2(0, 0), color);
@@ -601,7 +614,7 @@ void RenderCanvasContext::bind_script_api(Sqrat::Table &api)
   G_ASSERT(api.Length() == 0);
 
   api.Clear();
-  api
+  api //
     .SquirrelFunc("line", line_sq, 4, "u a n .")
     /// function comment
     .SquirrelFunc("line_dashed", line_dashed_sq, 6, "u a nnn .")
@@ -609,7 +622,8 @@ void RenderCanvasContext::bind_script_api(Sqrat::Table &api)
     .SquirrelFunc("fill_inverse_poly", fill_inverse_poly_sq, 5, "u a n ..")
     .SquirrelFunc("ellipse", ellipse_sq, 9, "u nn nn n ...")
     .SquirrelFunc("sector", sector_sq, 11, "u nn nn nn n ...")
-    .SquirrelFunc("rect", rect_sq, 9, "u nn nn n ...");
+    .SquirrelFunc("rect", rect_sq, 9, "u nn nn n ...")
+    /**/;
 }
 
 } // namespace darg

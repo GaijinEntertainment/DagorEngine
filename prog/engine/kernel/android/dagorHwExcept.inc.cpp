@@ -9,6 +9,7 @@
 #include <startup/dag_globalSettings.h>
 #include <debug/dag_logSys.h>
 #include <debug/dag_debug.h>
+#include <EASTL/utility.h>
 
 static const int android_crash_signals[] = {SIGABRT, SIGTERM, SIGFPE, SIGSEGV, SIGILL, SIGBUS, SIGSTKFLT, SIGTRAP};
 

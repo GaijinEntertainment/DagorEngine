@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/daBfg/bfg.h>
 #include <runtime/runtime.h>
 
@@ -41,5 +43,7 @@ void run_nodes() { Runtime::get().runNodes(); }
 void startup() { Runtime::startup(); }
 
 void shutdown() { Runtime::shutdown(); }
+
+void invalidate_history() { Runtime::get().invalidateHistory(); }
 
 } // namespace dabfg

@@ -1,5 +1,4 @@
-#ifndef  _SQCOMPILATIONCONTEXT_H_
-#define _SQCOMPILATIONCONTEXT_H_ 1
+#pragma once
 
 #include <string>
 #include <stdint.h>
@@ -45,7 +44,6 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(EXPECTED_LINENUM, ERROR, SYNTAX, -1, "", "expected line number after #pos:"), \
   DEF_DIAGNOSTIC(EXPECTED_COLNUM, ERROR, SYNTAX, -1, "", "expected column number after #pos:<line>:"), \
   DEF_DIAGNOSTIC(TOO_BIG_AST, ERROR, SYNTAX, -1, "", "AST too big. Consider simplifying it"), \
-  DEF_DIAGNOSTIC(INCORRECT_INTRA_ASSIGN, ERROR, SYNTAX, -1, "", ": intra-expression assignment can be used only in 'if', 'for', 'while' or 'switch'"), \
   DEF_DIAGNOSTIC(ASSIGN_INSIDE_FORBIDDEN, ERROR, SYNTAX, -1, "", "'=' inside '%s' is forbidden"), \
   DEF_DIAGNOSTIC(BROKEN_SLOT_DECLARATION, ERROR, SYNTAX, -1, "", "cannot break deref/or comma needed after [exp]=exp slot declaration"), \
   DEF_DIAGNOSTIC(ROOT_TABLE_FORBIDDEN, ERROR, SYNTAX, -1, "", "Access to root table is forbidden"), \
@@ -68,12 +66,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(INVALID_SLOT_INIT, ERROR, SEMA, -1, "", "Invalid slot initializer '%s' - no such variable/constant or incorrect expression"), \
   DEF_DIAGNOSTIC(CANNOT_DELETE, ERROR, SEMA, -1, "", "can't delete %s"), \
   DEF_DIAGNOSTIC(CONFLICTS_WITH, ERROR, SEMA, -1, "", "%s name '%s' conflicts with %s"), \
-  DEF_DIAGNOSTIC(LOCAL_CLASS_SYNTAX, ERROR, SEMA, -1, "", "cannot create a local class with the syntax (class <local>)"), \
-  DEF_DIAGNOSTIC(INVALID_CLASS_NAME, ERROR, SEMA, -1, "", "invalid class name or context"), \
   DEF_DIAGNOSTIC(INC_DEC_NOT_ASSIGNABLE, ERROR, SEMA, -1, "", "argument of inc/dec operation is not assignable"), \
-  DEF_DIAGNOSTIC(SUSPICIOUS_SYNTAX_RANGE_LOOP, ERROR, SEMA, -1, "", "Very suspicious range-loop syntax construction"), \
-  DEF_DIAGNOSTIC(ID_RANGE_LOOP, ERROR, SEMA, -1, "", "iterator name (identifier) is expected in 'for ([variable:] [from,] to[, step])', got 'expression'"), \
-  DEF_DIAGNOSTIC(COMMA_RANGE_LOOP, ERROR, SEMA, -1, "", "too many expressions separated by comma in '%s' - loop"), \
   DEF_DIAGNOSTIC(SPACE_SEP_FIELD_NAME, ERROR, SEMA, -1, "", "Separate access operator '%s' with it's following name is forbidden"), \
   DEF_DIAGNOSTIC(TOO_MANY_SYMBOLS, ERROR, SEMA, -1, "", "internal compiler error: too many %s"), \
   DEF_DIAGNOSTIC(PAREN_IS_FUNC_CALL, WARNING, SYNTAX, 190, "paren-is-function-call", "'(' on a new line parsed as function call."), \
@@ -141,13 +134,12 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(MISMATCH_LOOP_VAR, WARNING, SEMA, 279, "mismatch-loop-variable", "The variable used in for-loop does not match the initialized one."), \
   DEF_DIAGNOSTIC(FORBIDDEN_PARENT_DIR, WARNING, SEMA, 280, "forbidden-parent-dir", "Access to the parent directory is forbidden in this function."), \
   DEF_DIAGNOSTIC(UNWANTED_MODIFICATION, WARNING, SEMA, 281, "unwanted-modification", "Function '%s' modifies object. You probably didn't want to modify the object here."), \
-  DEF_DIAGNOSTIC(INEXPR_PRIORITY, WARNING, SEMA, 282, "inexpr-assign-priority", "Operator ':=' has lower priority. Perhaps parentheses are missing?."), \
   DEF_DIAGNOSTIC(USELESS_NULLC, WARNING, SEMA, 283, "useless-null-coalescing", "The expression to the right of the '??""' is null."), \
   DEF_DIAGNOSTIC(CAN_BE_SIMPLIFIED, WARNING, SEMA, 284, "can-be-simplified", "Expression can be simplified."), \
   DEF_DIAGNOSTIC(EXPR_NOT_NULL, WARNING, SEMA, 285, "expr-cannot-be-null", "The expression to the left of the '%s' cannot be null."), \
   DEF_DIAGNOSTIC(DECL_IN_EXPR, WARNING, SEMA, 286, "decl-in-expression", "Declaration used in arith expression as operand."), \
   DEF_DIAGNOSTIC(RANGE_CHECK, WARNING, SEMA, 287, "range-check", "It looks like the range boundaries are not checked correctly. Pay attention to checking with minimum and maximum index."), \
-  DEF_DIAGNOSTIC(PARAM_COUNT_MISMATCH, WARNING, SEMA, 288, "param-count", "Function '%s' is called with the wrong number of parameters."),\
+  DEF_DIAGNOSTIC(PARAM_COUNT_MISMATCH, WARNING, SEMA, 288, "param-count", "Function '%s' (%d..%d parameters) is called with the wrong number of arguments (%d)."),\
   DEF_DIAGNOSTIC(PARAM_POSITION_MISMATCH, WARNING, SEMA, 289, "param-pos", "The function parameter '%s' seems to be in the wrong position."), \
   DEF_DIAGNOSTIC(INVALID_UNDERSCORE, WARNING, SEMA, 291, "invalid-underscore", "The name of %s '%s' is invalid. The identifier is marked as an unused with a prefix underscore, but it is used."), \
   DEF_DIAGNOSTIC(MODIFIED_CONTAINER, WARNING, SEMA, 292, "modified-container", "The container was modified within the loop."), \
@@ -161,7 +153,13 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(RELATIVE_CMP_BOOL, WARNING, SEMA, 305, "relative-bool-cmp", "Relative comparison non-boolean with boolean. It is potential runtime error"), \
   DEF_DIAGNOSTIC(EQ_PAREN_MISSED, WARNING, SEMA, 306, "eq-paren-miss", "Suspicious expression, probably parens are missed."), \
   DEF_DIAGNOSTIC(GLOBAL_NAME_REDEF, WARNING, SEMA, 307, "global-id-redef", "Redefinition of existed global name '%s'."), \
-  DEF_DIAGNOSTIC(BOOL_LAMBDA_REQUIRED, WARNING, SEMA, 308, "bool-lambda-required", "Function '%s' reuires lambda which returns boolean.")
+  DEF_DIAGNOSTIC(BOOL_LAMBDA_REQUIRED, WARNING, SEMA, 308, "bool-lambda-required", "Function '%s' requires lambda which returns boolean."), \
+  DEF_DIAGNOSTIC(MISSING_DESTRUCTURED_VALUE, WARNING, SEMA, 309, "missing-destructured-value", "No value for '%s' in destructured declaration."), \
+  DEF_DIAGNOSTIC(DESTRUCTURED_TYPE_MISMATCH, WARNING, SEMA, 310, "destructured-type", "Destructured type mismatch, right side is %s."), \
+  DEF_DIAGNOSTIC(WRONG_TYPE, WARNING, SEMA, 311, "wrong-type", "Wrong type: expected %s, got %s."), \
+  DEF_DIAGNOSTIC(MISSING_FIELD, WARNING, SEMA, 312, "missing-field", "No field '%s' in %s."), \
+  DEF_DIAGNOSTIC(MISSING_MODULE, HINT, SEMA, 313, "missing-module", "Module '%s' not found, or it returns null."), \
+  DEF_DIAGNOSTIC(SEE_OTHER, HINT, SEMA, 314, "see-other", "You can find %s here.")
 
 namespace SQCompilation {
 
@@ -230,12 +228,14 @@ public:
   const SQChar *sourceName() const { return _sourceName; }
 
   SQAllocContext allocContext() const { return _ss(_vm)->_alloc_ctx; }
+  SQVM *getVm() const { return _vm; }
 
   static void vrenderDiagnosticHeader(enum DiagnosticsId diag, std::string &msg, va_list args);
   static void renderDiagnosticHeader(enum DiagnosticsId diag, std::string *msg, ...);
   void vreportDiagnostic(enum DiagnosticsId diag, int32_t line, int32_t pos, int32_t width, va_list args);
   void reportDiagnostic(enum DiagnosticsId diag, int32_t line, int32_t pos, int32_t width, ...);
   bool isDisabled(enum DiagnosticsId id, int line, int pos);
+  bool isRequireDisabled(int line, int col);
 
   static void printAllWarnings(FILE *ostream);
   static void flipWarningsState();
@@ -248,6 +248,8 @@ public:
   static void resetConfig();
   static bool loadConfigFile(const KeyValueFile &configBlk);
   static bool loadConfigFile(const char *configFile);
+
+  static bool do_report_missing_modules;
 
   static std::vector<std::string> function_can_return_string;
   static std::vector<std::string> function_should_return_bool_prefix;
@@ -284,10 +286,8 @@ private:
 
   bool _raiseError;
 
-  sqvector<const char *> _linemap;
+  sqvector<int> _linemap;
   const Comments *_comments;
 };
 
 } // namespace SQCompilation
-
-#endif // ! _SQCOMPILATIONCONTEXT_H_

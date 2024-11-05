@@ -1,5 +1,5 @@
 // https://github.com/CedricGuillemet/ImGuizmo
-// v 1.83
+// v 1.89 WIP
 //
 // The MIT License(MIT)
 //
@@ -24,10 +24,10 @@
 // SOFTWARE.
 //
 
-#include "imgui.h"
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
+#include "imgui.h"
 #include "imgui_internal.h"
 #include "ImGuizmo.h"
 
@@ -42,12 +42,14 @@
 // includes patches for multiview from
 // https://github.com/CedricGuillemet/ImGuizmo/issues/15
 
-namespace ImGuizmo
+namespace IMGUIZMO_NAMESPACE
 {
    static const float ZPI = 3.14159265358979323846f;
    static const float RAD2DEG = (180.f / ZPI);
    static const float DEG2RAD = (ZPI / 180.f);
    const float screenRotateSize = 0.06f;
+   // scale a bit so translate axis do not touch when in universal
+   const float rotationDisplayFactor = 1.2f;
 
    static OPERATION operator&(OPERATION lhs, OPERATION rhs)
    {
@@ -57,11 +59,6 @@ namespace ImGuizmo
    static bool operator!=(OPERATION lhs, int rhs)
    {
      return static_cast<int>(lhs) != rhs;
-   }
-
-   static bool operator==(OPERATION lhs, int rhs)
-   {
-     return static_cast<int>(lhs) == rhs;
    }
 
    static bool Intersects(OPERATION lhs, OPERATION rhs)
@@ -222,7 +219,7 @@ namespace ImGuizmo
       const vec_t& operator + () const { return (*this); }
       float Length() const { return sqrtf(x * x + y * y + z * z); };
       float LengthSq() const { return (x * x + y * y + z * z); };
-      vec_t Normalize() { (*this) *= (1.f / Length()); return (*this); }
+      vec_t Normalize() { (*this) *= (1.f / ( Length() > FLT_EPSILON ? Length() : FLT_EPSILON ) ); return (*this); }
       vec_t Normalize(const vec_t& v) { this->Set(v.x, v.y, v.z, v.w); this->Normalize(); return (*this); }
       vec_t Abs() const;
 
@@ -267,7 +264,7 @@ namespace ImGuizmo
 
       float& operator [] (size_t index) { return ((float*)&x)[index]; }
       const float& operator [] (size_t index) const { return ((float*)&x)[index]; }
-      bool operator!=(const vec_t& other) const { return memcmp(this, &other, sizeof(vec_t)); }
+      bool operator!=(const vec_t& other) const { return memcmp(this, &other, sizeof(vec_t)) != 0; }
    };
 
    vec_t makeVect(float _x, float _y, float _z = 0.f, float _w = 0.f) { vec_t res; res.x = _x; res.y = _y; res.z = _z; res.w = _w; return res; }
@@ -320,9 +317,6 @@ namespace ImGuizmo
          } v;
          vec_t component[4];
       };
-
-      matrix_t(const matrix_t& other) { memcpy(&m16[0], &other.m16[0], sizeof(float) * 16); }
-      matrix_t() {}
 
       operator float* () { return m16; }
       operator const float* () const { return m16; }
@@ -640,6 +634,36 @@ namespace ImGuizmo
    // Matches MT_MOVE_AB order
    static const OPERATION TRANSLATE_PLANS[3] = { TRANSLATE_Y | TRANSLATE_Z, TRANSLATE_X | TRANSLATE_Z, TRANSLATE_X | TRANSLATE_Y };
 
+   Style::Style()
+   {
+      // default values
+      TranslationLineThickness   = 3.0f;
+      TranslationLineArrowSize   = 6.0f;
+      RotationLineThickness      = 2.0f;
+      RotationOuterLineThickness = 3.0f;
+      ScaleLineThickness         = 3.0f;
+      ScaleLineCircleSize        = 6.0f;
+      HatchedAxisLineThickness   = 6.0f;
+      CenterCircleSize           = 6.0f;
+
+      // initialize default colors
+      Colors[DIRECTION_X]           = ImVec4(0.666f, 0.000f, 0.000f, 1.000f);
+      Colors[DIRECTION_Y]           = ImVec4(0.000f, 0.666f, 0.000f, 1.000f);
+      Colors[DIRECTION_Z]           = ImVec4(0.000f, 0.000f, 0.666f, 1.000f);
+      Colors[PLANE_X]               = ImVec4(0.666f, 0.000f, 0.000f, 0.380f);
+      Colors[PLANE_Y]               = ImVec4(0.000f, 0.666f, 0.000f, 0.380f);
+      Colors[PLANE_Z]               = ImVec4(0.000f, 0.000f, 0.666f, 0.380f);
+      Colors[SELECTION]             = ImVec4(1.000f, 0.500f, 0.062f, 0.541f);
+      Colors[INACTIVE]              = ImVec4(0.600f, 0.600f, 0.600f, 0.600f);
+      Colors[TRANSLATION_LINE]      = ImVec4(0.666f, 0.666f, 0.666f, 0.666f);
+      Colors[SCALE_LINE]            = ImVec4(0.250f, 0.250f, 0.250f, 1.000f);
+      Colors[ROTATION_USING_BORDER] = ImVec4(1.000f, 0.500f, 0.062f, 1.000f);
+      Colors[ROTATION_USING_FILL]   = ImVec4(1.000f, 0.500f, 0.062f, 0.500f);
+      Colors[HATCHED_AXIS_LINES]    = ImVec4(0.000f, 0.000f, 0.000f, 0.500f);
+      Colors[TEXT]                  = ImVec4(1.000f, 1.000f, 1.000f, 1.000f);
+      Colors[TEXT_SHADOW]           = ImVec4(0.000f, 0.000f, 0.000f, 1.000f);
+   }
+
    struct Context
    {
       Context() : mbUsing(false), mbEnable(true), mbUsingBounds(false)
@@ -647,15 +671,18 @@ namespace ImGuizmo
       }
 
       ImDrawList* mDrawList;
+      Style mStyle;
 
       MODE mMode;
       matrix_t mViewMat;
       matrix_t mProjectionMat;
       matrix_t mModel;
+      matrix_t mModelLocal; // orthonormalized model
       matrix_t mModelInverse;
       matrix_t mModelSource;
       matrix_t mModelSourceInverse;
       matrix_t mMVP;
+      matrix_t mMVPLocal; // MVP with full model matrix whereas mMVP's model matrix might only be translation in case of World space edition
       matrix_t mViewProjection;
 
       vec_t mModelScaleOrigin;
@@ -676,7 +703,7 @@ namespace ImGuizmo
 
       bool mbUsing;
       bool mbEnable;
-
+      bool mbMouseOver;
       bool mReversed; // reversed projection matrix
 
       // translation
@@ -701,6 +728,9 @@ namespace ImGuizmo
       bool mBelowAxisLimit[3];
       bool mBelowPlaneLimit[3];
       float mAxisFactor[3];
+
+      float mAxisLimit=0.0025f;
+      float mPlaneLimit=0.02f;
 
       // bounds stretching
       vec_t mBoundsPivot;
@@ -727,7 +757,7 @@ namespace ImGuizmo
 
       int mActualID = -1;
       int mEditingID = -1;
-      OPERATION mOperation = OPERATION(-1);
+      OPERATION mOperation = OPERATION(0);
 
       bool mAllowAxisFlip = true;
       float mGizmoSizeClipSpace = 0.1f;
@@ -736,13 +766,6 @@ namespace ImGuizmo
    static Context gContext;
 
    static const vec_t directionUnary[3] = { makeVect(1.f, 0.f, 0.f), makeVect(0.f, 1.f, 0.f), makeVect(0.f, 0.f, 1.f) };
-   static const ImU32 directionColor[3] = { IM_COL32(0xAA, 0, 0, 0xFF), IM_COL32(0, 0xAA, 0, 0xFF), IM_COL32(0, 0, 0xAA, 0XFF) };
-
-   // Alpha: 100%: FF, 87%: DE, 70%: B3, 54%: 8A, 50%: 80, 38%: 61, 12%: 1F
-   static const ImU32 planeColor[3] = { IM_COL32(0xAA, 0, 0, 0x61), IM_COL32(0, 0xAA, 0, 0x61), IM_COL32(0, 0, 0xAA, 0x61) };
-   static const ImU32 selectionColor = IM_COL32(0xFF, 0x80, 0x10, 0x8A);
-   static const ImU32 inactiveColor = IM_COL32(0x99, 0x99, 0x99, 0x99);
-   static const ImU32 translationLineColor = IM_COL32(0xAA, 0xAA, 0xAA, 0xAA);
    static const char* translationInfoMask[] = { "X : %5.3f", "Y : %5.3f", "Z : %5.3f",
       "Y : %5.3f Z : %5.3f", "X : %5.3f Z : %5.3f", "X : %5.3f Y : %5.3f",
       "X : %5.3f Y : %5.3f Z : %5.3f" };
@@ -760,6 +783,17 @@ namespace ImGuizmo
    static int GetMoveType(OPERATION op, vec_t* gizmoHitProportion);
    static int GetRotateType(OPERATION op);
    static int GetScaleType(OPERATION op);
+
+   Style& GetStyle()
+   {
+      return gContext.mStyle;
+   }
+
+   static ImU32 GetColorU32(int idx)
+   {
+      IM_ASSERT(idx < COLOR::COUNT);
+      return ImGui::ColorConvertFloat4ToU32(gContext.mStyle.Colors[idx]);
+   }
 
    static ImVec2 worldToPos(const vec_t& worldPos, const matrix_t& mat, ImVec2 position = ImVec2(gContext.mX, gContext.mY), ImVec2 size = ImVec2(gContext.mWidth, gContext.mHeight))
    {
@@ -796,24 +830,28 @@ namespace ImGuizmo
       rayDir = Normalized(rayEnd - rayOrigin);
    }
 
-   static float GetSegmentLengthClipSpace(const vec_t& start, const vec_t& end)
+   static float GetSegmentLengthClipSpace(const vec_t& start, const vec_t& end, const bool localCoordinates = false)
    {
       vec_t startOfSegment = start;
-      startOfSegment.TransformPoint(gContext.mMVP);
+      const matrix_t& mvp = localCoordinates ? gContext.mMVPLocal : gContext.mMVP;
+      startOfSegment.TransformPoint(mvp);
       if (fabsf(startOfSegment.w) > FLT_EPSILON) // check for axis aligned with camera direction
       {
          startOfSegment *= 1.f / startOfSegment.w;
       }
 
       vec_t endOfSegment = end;
-      endOfSegment.TransformPoint(gContext.mMVP);
+      endOfSegment.TransformPoint(mvp);
       if (fabsf(endOfSegment.w) > FLT_EPSILON) // check for axis aligned with camera direction
       {
          endOfSegment *= 1.f / endOfSegment.w;
       }
 
       vec_t clipSpaceAxis = endOfSegment - startOfSegment;
-      clipSpaceAxis.y /= gContext.mDisplayRatio;
+      if (gContext.mDisplayRatio < 1.0)
+         clipSpaceAxis.x *= gContext.mDisplayRatio;
+      else
+         clipSpaceAxis.y /= gContext.mDisplayRatio;
       float segmentLengthInClipSpace = sqrtf(clipSpaceAxis.x * clipSpaceAxis.x + clipSpaceAxis.y * clipSpaceAxis.y);
       return segmentLengthInClipSpace;
    }
@@ -864,8 +902,8 @@ namespace ImGuizmo
 
    static float IntersectRayPlane(const vec_t& rOrigin, const vec_t& rVector, const vec_t& plan)
    {
-      float numer = plan.Dot3(rOrigin) - plan.w;
-      float denom = plan.Dot3(rVector);
+      const float numer = plan.Dot3(rOrigin) - plan.w;
+      const float denom = plan.Dot3(rVector);
 
       if (fabsf(denom) < FLT_EPSILON)  // normal is orthogonal to vector, cant intersect
       {
@@ -883,6 +921,19 @@ namespace ImGuizmo
    static bool IsInContextRect(ImVec2 p)
    {
       return IsWithin(p.x, gContext.mX, gContext.mXMax) && IsWithin(p.y, gContext.mY, gContext.mYMax);
+   }
+
+   static bool IsHoveringWindow()
+   {
+      ImGuiContext& g = *ImGui::GetCurrentContext();
+      ImGuiWindow* window = ImGui::FindWindowByName(gContext.mDrawList->_OwnerName);
+      if (g.HoveredWindow == window)   // Mouse hovering drawlist window
+         return true;
+      if (g.HoveredWindow != NULL)     // Any other window is hovered
+         return false;
+      if (ImGui::IsMouseHoveringRect(window->InnerRect.Min, window->InnerRect.Max, false))   // Hovering drawlist window rect, while no other window is hovered (for _NoInputs windows)
+         return true;
+      return false;
    }
 
    void SetRect(float x, float y, float width, float height)
@@ -937,6 +988,11 @@ namespace ImGuizmo
 
    bool IsUsing()
    {
+      return (gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID)) || gContext.mbUsingBounds;
+   }
+
+   bool IsUsingAny()
+   {
       return gContext.mbUsing || gContext.mbUsingBounds;
    }
 
@@ -983,11 +1039,14 @@ namespace ImGuizmo
       gContext.mMode = mode;
       gContext.mViewMat = *(matrix_t*)view;
       gContext.mProjectionMat = *(matrix_t*)projection;
+      gContext.mbMouseOver = IsHoveringWindow();
+
+      gContext.mModelLocal = *(matrix_t*)matrix;
+      gContext.mModelLocal.OrthoNormalize();
 
       if (mode == LOCAL)
       {
-         gContext.mModel = *(matrix_t*)matrix;
-         gContext.mModel.OrthoNormalize();
+         gContext.mModel = gContext.mModelLocal;
       }
       else
       {
@@ -1000,6 +1059,7 @@ namespace ImGuizmo
       gContext.mModelSourceInverse.Inverse(gContext.mModelSource);
       gContext.mViewProjection = gContext.mViewMat * gContext.mProjectionMat;
       gContext.mMVP = gContext.mModel * gContext.mViewProjection;
+      gContext.mMVPLocal = gContext.mModelLocal * gContext.mViewProjection;
 
       matrix_t viewInverse;
       viewInverse.Inverse(gContext.mViewMat);
@@ -1037,14 +1097,16 @@ namespace ImGuizmo
    {
       if (gContext.mbEnable)
       {
+         ImU32 selectionColor = GetColorU32(SELECTION);
+
          switch (operation)
          {
          case TRANSLATE:
             colors[0] = (type == MT_MOVE_SCREEN) ? selectionColor : IM_COL32_WHITE;
             for (int i = 0; i < 3; i++)
             {
-               colors[i + 1] = (type == (int)(MT_MOVE_X + i)) ? selectionColor : directionColor[i];
-               colors[i + 4] = (type == (int)(MT_MOVE_YZ + i)) ? selectionColor : planeColor[i];
+               colors[i + 1] = (type == (int)(MT_MOVE_X + i)) ? selectionColor : GetColorU32(DIRECTION_X + i);
+               colors[i + 4] = (type == (int)(MT_MOVE_YZ + i)) ? selectionColor : GetColorU32(PLANE_X + i);
                colors[i + 4] = (type == MT_MOVE_SCREEN) ? selectionColor : colors[i + 4];
             }
             break;
@@ -1052,14 +1114,15 @@ namespace ImGuizmo
             colors[0] = (type == MT_ROTATE_SCREEN) ? selectionColor : IM_COL32_WHITE;
             for (int i = 0; i < 3; i++)
             {
-               colors[i + 1] = (type == (int)(MT_ROTATE_X + i)) ? selectionColor : directionColor[i];
+               colors[i + 1] = (type == (int)(MT_ROTATE_X + i)) ? selectionColor : GetColorU32(DIRECTION_X + i);
             }
             break;
+         case SCALEU:
          case SCALE:
             colors[0] = (type == MT_SCALE_XYZ) ? selectionColor : IM_COL32_WHITE;
             for (int i = 0; i < 3; i++)
             {
-               colors[i + 1] = (type == (int)(MT_SCALE_X + i)) ? selectionColor : directionColor[i];
+               colors[i + 1] = (type == (int)(MT_SCALE_X + i)) ? selectionColor : GetColorU32(DIRECTION_X + i);
             }
             break;
          // note: this internal function is only called with three possible values for operation
@@ -1069,6 +1132,7 @@ namespace ImGuizmo
       }
       else
       {
+         ImU32 inactiveColor = GetColorU32(INACTIVE);
          for (int i = 0; i < 7; i++)
          {
             colors[i] = inactiveColor;
@@ -1076,7 +1140,7 @@ namespace ImGuizmo
       }
    }
 
-   static void ComputeTripodAxisAndVisibility(int axisIndex, vec_t& dirAxis, vec_t& dirPlaneX, vec_t& dirPlaneY, bool& belowAxisLimit, bool& belowPlaneLimit)
+   static void ComputeTripodAxisAndVisibility(const int axisIndex, vec_t& dirAxis, vec_t& dirPlaneX, vec_t& dirPlaneY, bool& belowAxisLimit, bool& belowPlaneLimit, const bool localCoordinates = false)
    {
       dirAxis = directionUnary[axisIndex];
       dirPlaneX = directionUnary[(axisIndex + 1) % 3];
@@ -1095,14 +1159,14 @@ namespace ImGuizmo
       else
       {
          // new method
-         float lenDir = GetSegmentLengthClipSpace(makeVect(0.f, 0.f, 0.f), dirAxis);
-         float lenDirMinus = GetSegmentLengthClipSpace(makeVect(0.f, 0.f, 0.f), -dirAxis);
+         float lenDir = GetSegmentLengthClipSpace(makeVect(0.f, 0.f, 0.f), dirAxis, localCoordinates);
+         float lenDirMinus = GetSegmentLengthClipSpace(makeVect(0.f, 0.f, 0.f), -dirAxis, localCoordinates);
 
-         float lenDirPlaneX = GetSegmentLengthClipSpace(makeVect(0.f, 0.f, 0.f), dirPlaneX);
-         float lenDirMinusPlaneX = GetSegmentLengthClipSpace(makeVect(0.f, 0.f, 0.f), -dirPlaneX);
+         float lenDirPlaneX = GetSegmentLengthClipSpace(makeVect(0.f, 0.f, 0.f), dirPlaneX, localCoordinates);
+         float lenDirMinusPlaneX = GetSegmentLengthClipSpace(makeVect(0.f, 0.f, 0.f), -dirPlaneX, localCoordinates);
 
-         float lenDirPlaneY = GetSegmentLengthClipSpace(makeVect(0.f, 0.f, 0.f), dirPlaneY);
-         float lenDirMinusPlaneY = GetSegmentLengthClipSpace(makeVect(0.f, 0.f, 0.f), -dirPlaneY);
+         float lenDirPlaneY = GetSegmentLengthClipSpace(makeVect(0.f, 0.f, 0.f), dirPlaneY, localCoordinates);
+         float lenDirMinusPlaneY = GetSegmentLengthClipSpace(makeVect(0.f, 0.f, 0.f), -dirPlaneY, localCoordinates);
 
          // For readability
          bool & allowFlip = gContext.mAllowAxisFlip;
@@ -1114,11 +1178,11 @@ namespace ImGuizmo
          dirPlaneY *= mulAxisY;
 
          // for axis
-         float axisLengthInClipSpace = GetSegmentLengthClipSpace(makeVect(0.f, 0.f, 0.f), dirAxis * gContext.mScreenFactor);
+         float axisLengthInClipSpace = GetSegmentLengthClipSpace(makeVect(0.f, 0.f, 0.f), dirAxis * gContext.mScreenFactor, localCoordinates);
 
          float paraSurf = GetParallelogram(makeVect(0.f, 0.f, 0.f), dirPlaneX * gContext.mScreenFactor, dirPlaneY * gContext.mScreenFactor);
-         belowPlaneLimit = (paraSurf > 0.0025f);
-         belowAxisLimit = (axisLengthInClipSpace > 0.02f);
+         belowPlaneLimit = (paraSurf > gContext.mAxisLimit);
+         belowAxisLimit = (axisLengthInClipSpace > gContext.mPlaneLimit);
 
          // and store values
          gContext.mAxisFactor[axisIndex] = mulAxis;
@@ -1155,6 +1219,14 @@ namespace ImGuizmo
       }
    }
 
+   // DAGOR PATCH
+   static float roundToZero(float value, float threshold)
+   {
+      if (fabsf(value) < threshold)
+         return 0.f;
+      return value;
+   }
+
    static float ComputeAngleOnPlan()
    {
       const float len = IntersectRayPlane(gContext.mRayOrigin, gContext.mRayVector, gContext.mTranslationPlan);
@@ -1166,7 +1238,7 @@ namespace ImGuizmo
       float acosAngle = Clamp(Dot(localPos, gContext.mRotationVectorSource), -1.f, 1.f);
       float angle = acosf(acosAngle);
       angle *= (Dot(localPos, perpendicularVector) < 0.f) ? 1.f : -1.f;
-      return angle;
+      return roundToZero(angle, 0.001);
    }
 
    static void DrawRotationGizmo(OPERATION op, int type)
@@ -1186,7 +1258,7 @@ namespace ImGuizmo
       {
          matrix_t viewInverse;
          viewInverse.Inverse(*(matrix_t*)&gContext.mViewMat);
-         cameraToModelNormalized = viewInverse.v.dir;
+         cameraToModelNormalized = -viewInverse.v.dir;
       }
       else
       {
@@ -1198,23 +1270,29 @@ namespace ImGuizmo
       gContext.mRadiusSquareCenter = screenRotateSize * gContext.mHeight;
 
       bool hasRSC = Intersects(op, ROTATE_SCREEN);
-      int circleMul = hasRSC ? 1 : 2;
       for (int axis = 0; axis < 3; axis++)
       {
          if(!Intersects(op, static_cast<OPERATION>(ROTATE_Z >> axis)))
          {
             continue;
          }
-         ImVec2* circlePos = (ImVec2*) alloca(sizeof(ImVec2) * (circleMul * halfCircleSegmentCount + 1));
+         const bool usingAxis = (gContext.mbUsing && type == MT_ROTATE_Z - axis);
+         const int circleMul = (hasRSC && !usingAxis ) ? 1 : 2;
+
+         ImVec2* circlePos = (ImVec2*)alloca(sizeof(ImVec2) * (circleMul * halfCircleSegmentCount + 1));
 
          float angleStart = atan2f(cameraToModelNormalized[(4 - axis) % 3], cameraToModelNormalized[(3 - axis) % 3]) + ZPI * 0.5f;
 
          for (int i = 0; i < circleMul * halfCircleSegmentCount + 1; i++)
          {
-            float ng = angleStart + circleMul * ZPI * ((float)i / (float)halfCircleSegmentCount);
+            float ng = angleStart + (float)circleMul * ZPI * ((float)i / (float)(circleMul * halfCircleSegmentCount));
             vec_t axisPos = makeVect(cosf(ng), sinf(ng), 0.f);
-            vec_t pos = makeVect(axisPos[axis], axisPos[(axis + 1) % 3], axisPos[(axis + 2) % 3]) * gContext.mScreenFactor;
+            vec_t pos = makeVect(axisPos[axis], axisPos[(axis + 1) % 3], axisPos[(axis + 2) % 3]) * gContext.mScreenFactor * rotationDisplayFactor;
             circlePos[i] = worldToPos(pos, gContext.mMVP);
+         }
+         if (!gContext.mbUsing || usingAxis)
+         {
+            drawList->AddPolyline(circlePos, circleMul* halfCircleSegmentCount + 1, colors[3 - axis], false, gContext.mStyle.RotationLineThickness);
          }
 
          float radiusAxis = sqrtf((ImLengthSqr(worldToPos(gContext.mModel.v.position, gContext.mViewProjection) - circlePos[0])));
@@ -1222,12 +1300,10 @@ namespace ImGuizmo
          {
             gContext.mRadiusSquareCenter = radiusAxis;
          }
-
-         drawList->AddPolyline(circlePos, circleMul * halfCircleSegmentCount + 1, colors[3 - axis], false, 2);
       }
-      if(hasRSC)
+      if(hasRSC && (!gContext.mbUsing || type == MT_ROTATE_SCREEN))
       {
-         drawList->AddCircle(worldToPos(gContext.mModel.v.position, gContext.mViewProjection), gContext.mRadiusSquareCenter, colors[0], 64, 3.f);
+         drawList->AddCircle(worldToPos(gContext.mModel.v.position, gContext.mViewProjection), gContext.mRadiusSquareCenter, colors[0], 64, gContext.mStyle.RotationOuterLineThickness);
       }
 
       if (gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID) && IsRotateType(type))
@@ -1235,37 +1311,43 @@ namespace ImGuizmo
          ImVec2 circlePos[halfCircleSegmentCount + 1];
 
          circlePos[0] = worldToPos(gContext.mModel.v.position, gContext.mViewProjection);
-         for (unsigned int i = 1; i < halfCircleSegmentCount; i++)
+         for (unsigned int i = 1; i < halfCircleSegmentCount + 1; i++)
          {
             float ng = gContext.mRotationAngle * ((float)(i - 1) / (float)(halfCircleSegmentCount - 1));
             matrix_t rotateVectorMatrix;
             rotateVectorMatrix.RotationAxis(gContext.mTranslationPlan, ng);
             vec_t pos;
             pos.TransformPoint(gContext.mRotationVectorSource, rotateVectorMatrix);
-            pos *= gContext.mScreenFactor;
+            pos *= gContext.mScreenFactor * rotationDisplayFactor;
             circlePos[i] = worldToPos(pos + gContext.mModel.v.position, gContext.mViewProjection);
          }
-         drawList->AddConvexPolyFilled(circlePos, halfCircleSegmentCount, IM_COL32(0xFF, 0x80, 0x10, 0x80));
-         drawList->AddPolyline(circlePos, halfCircleSegmentCount, IM_COL32(0xFF, 0x80, 0x10, 0xFF), true, 2);
+         drawList->AddConvexPolyFilled(circlePos, halfCircleSegmentCount + 1, GetColorU32(ROTATION_USING_FILL));
+         drawList->AddPolyline(circlePos, halfCircleSegmentCount + 1, GetColorU32(ROTATION_USING_BORDER), true, gContext.mStyle.RotationLineThickness);
 
          ImVec2 destinationPosOnScreen = circlePos[1];
          char tmps[512];
          ImFormatString(tmps, sizeof(tmps), rotationInfoMask[type - MT_ROTATE_X], (gContext.mRotationAngle / ZPI) * 180.f, gContext.mRotationAngle);
-         drawList->AddText(ImVec2(destinationPosOnScreen.x + 15, destinationPosOnScreen.y + 15), IM_COL32_BLACK, tmps);
-         drawList->AddText(ImVec2(destinationPosOnScreen.x + 14, destinationPosOnScreen.y + 14), IM_COL32_WHITE, tmps);
+         drawList->AddText(ImVec2(destinationPosOnScreen.x + 15, destinationPosOnScreen.y + 15), GetColorU32(TEXT_SHADOW), tmps);
+         drawList->AddText(ImVec2(destinationPosOnScreen.x + 14, destinationPosOnScreen.y + 14), GetColorU32(TEXT), tmps);
       }
    }
 
    static void DrawHatchedAxis(const vec_t& axis)
    {
+      if (gContext.mStyle.HatchedAxisLineThickness <= 0.0f)
+      {
+         return;
+      }
+
       for (int j = 1; j < 10; j++)
       {
          ImVec2 baseSSpace2 = worldToPos(axis * 0.05f * (float)(j * 2) * gContext.mScreenFactor, gContext.mMVP);
          ImVec2 worldDirSSpace2 = worldToPos(axis * 0.05f * (float)(j * 2 + 1) * gContext.mScreenFactor, gContext.mMVP);
-         gContext.mDrawList->AddLine(baseSSpace2, worldDirSSpace2, IM_COL32(0, 0, 0, 0x80), 6.f);
+         gContext.mDrawList->AddLine(baseSSpace2, worldDirSSpace2, GetColorU32(HATCHED_AXIS_LINES), gContext.mStyle.HatchedAxisLineThickness);
       }
    }
 
+   // DAGOR PATCH - additive scale
    static void DrawScaleGizmo(OPERATION op, int type)
    {
       ImDrawList* drawList = gContext.mDrawList;
@@ -1284,49 +1366,54 @@ namespace ImGuizmo
 
       if (gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID))
       {
-         scaleDisplay = gContext.mScale;
+         scaleDisplay += gContext.mScale;
       }
 
-      for (unsigned int i = 0; i < 3; i++)
+      for (int i = 0; i < 3; i++)
       {
          if(!Intersects(op, static_cast<OPERATION>(SCALE_X << i)))
          {
             continue;
          }
-         vec_t dirPlaneX, dirPlaneY, dirAxis;
-         bool belowAxisLimit, belowPlaneLimit;
-         ComputeTripodAxisAndVisibility(i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit);
-
-         // draw axis
-         if (belowAxisLimit)
+         const bool usingAxis = (gContext.mbUsing && type == MT_SCALE_X + i);
+         if (!gContext.mbUsing || usingAxis)
          {
-            bool hasTranslateOnAxis = Contains(op, static_cast<OPERATION>(TRANSLATE_X << i)) ;
-            float markerScale = hasTranslateOnAxis ? 1.4f : 1.0f;
-            ImVec2 baseSSpace = worldToPos(dirAxis * 0.1f * gContext.mScreenFactor, gContext.mMVP);
-            ImVec2 worldDirSSpaceNoScale = worldToPos(dirAxis * markerScale * gContext.mScreenFactor, gContext.mMVP);
-            ImVec2 worldDirSSpace = worldToPos((dirAxis * markerScale * scaleDisplay[i]) * gContext.mScreenFactor, gContext.mMVP);
+            vec_t dirPlaneX, dirPlaneY, dirAxis;
+            bool belowAxisLimit, belowPlaneLimit;
+            ComputeTripodAxisAndVisibility(i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit, true);
 
-            if (gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID))
+            // draw axis
+            if (belowAxisLimit)
             {
-               drawList->AddLine(baseSSpace, worldDirSSpaceNoScale, IM_COL32(0x40, 0x40, 0x40, 0xFF), 3.f);
-               drawList->AddCircleFilled(worldDirSSpaceNoScale, 6.f, IM_COL32(0x40, 0x40, 0x40, 0xFF));
-            }
+               bool hasTranslateOnAxis = Contains(op, static_cast<OPERATION>(TRANSLATE_X << i));
+               float markerScale = hasTranslateOnAxis ? 1.4f : 1.0f;
+               ImVec2 baseSSpace = worldToPos(dirAxis * 0.1f * gContext.mScreenFactor, gContext.mMVP);
+               ImVec2 worldDirSSpaceNoScale = worldToPos(dirAxis * markerScale * gContext.mScreenFactor, gContext.mMVP);
+               ImVec2 worldDirSSpace = worldToPos((dirAxis * markerScale * scaleDisplay[i]) * gContext.mScreenFactor, gContext.mMVP);
 
-            if(!hasTranslateOnAxis || gContext.mbUsing)
-            {
-              drawList->AddLine(baseSSpace, worldDirSSpace, colors[i + 1], 3.f);
-            }
-            drawList->AddCircleFilled(worldDirSSpace, 6.f, colors[i + 1]);
+               if (gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID))
+               {
+                  ImU32 scaleLineColor = GetColorU32(SCALE_LINE);
+                  drawList->AddLine(baseSSpace, worldDirSSpaceNoScale, scaleLineColor, gContext.mStyle.ScaleLineThickness);
+                  drawList->AddCircleFilled(worldDirSSpaceNoScale, gContext.mStyle.ScaleLineCircleSize, scaleLineColor);
+               }
 
-            if (gContext.mAxisFactor[i] < 0.f)
-            {
-               DrawHatchedAxis(dirAxis * scaleDisplay[i]);
+               if (!hasTranslateOnAxis || gContext.mbUsing)
+               {
+                  drawList->AddLine(baseSSpace, worldDirSSpace, colors[i + 1], gContext.mStyle.ScaleLineThickness);
+               }
+               drawList->AddCircleFilled(worldDirSSpace, gContext.mStyle.ScaleLineCircleSize, colors[i + 1]);
+
+               if (gContext.mAxisFactor[i] < 0.f)
+               {
+                  DrawHatchedAxis(dirAxis * scaleDisplay[i]);
+               }
             }
          }
       }
 
       // draw screen cirle
-      drawList->AddCircleFilled(gContext.mScreenSquareCenter, 6.f, colors[0], 32);
+      drawList->AddCircleFilled(gContext.mScreenSquareCenter, gContext.mStyle.CenterCircleSize, colors[0], 32);
 
       if (gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID) && IsScaleType(type))
       {
@@ -1342,12 +1429,97 @@ namespace ImGuizmo
          char tmps[512];
          //vec_t deltaInfo = gContext.mModel.v.position - gContext.mMatrixOrigin;
          int componentInfoIndex = (type - MT_SCALE_X) * 3;
-         ImFormatString(tmps, sizeof(tmps), scaleInfoMask[type - MT_SCALE_X], scaleDisplay[translationInfoIndex[componentInfoIndex]]);
-         drawList->AddText(ImVec2(destinationPosOnScreen.x + 15, destinationPosOnScreen.y + 15), IM_COL32_BLACK, tmps);
-         drawList->AddText(ImVec2(destinationPosOnScreen.x + 14, destinationPosOnScreen.y + 14), IM_COL32_WHITE, tmps);
+         ImFormatString(tmps, sizeof(tmps), scaleInfoMask[type - MT_SCALE_X], scaleDisplay[translationInfoIndex[componentInfoIndex]] - 1.f);
+         drawList->AddText(ImVec2(destinationPosOnScreen.x + 15, destinationPosOnScreen.y + 15), GetColorU32(TEXT_SHADOW), tmps);
+         drawList->AddText(ImVec2(destinationPosOnScreen.x + 14, destinationPosOnScreen.y + 14), GetColorU32(TEXT), tmps);
       }
    }
 
+
+   // DAGOR PATCH - additive scale
+   static void DrawScaleUniveralGizmo(OPERATION op, int type)
+   {
+      ImDrawList* drawList = gContext.mDrawList;
+
+      if (!Intersects(op, SCALEU))
+      {
+         return;
+      }
+
+      // colors
+      ImU32 colors[7];
+      ComputeColors(colors, type, SCALEU);
+
+      // draw
+      vec_t scaleDisplay = { 1.f, 1.f, 1.f, 1.f };
+
+      if (gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID))
+      {
+         scaleDisplay += gContext.mScale;
+      }
+
+      for (int i = 0; i < 3; i++)
+      {
+         if (!Intersects(op, static_cast<OPERATION>(SCALE_XU << i)))
+         {
+            continue;
+         }
+         const bool usingAxis = (gContext.mbUsing && type == MT_SCALE_X + i);
+         if (!gContext.mbUsing || usingAxis)
+         {
+            vec_t dirPlaneX, dirPlaneY, dirAxis;
+            bool belowAxisLimit, belowPlaneLimit;
+            ComputeTripodAxisAndVisibility(i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit, true);
+
+            // draw axis
+            if (belowAxisLimit)
+            {
+               bool hasTranslateOnAxis = Contains(op, static_cast<OPERATION>(TRANSLATE_X << i));
+               float markerScale = hasTranslateOnAxis ? 1.4f : 1.0f;
+               //ImVec2 baseSSpace = worldToPos(dirAxis * 0.1f * gContext.mScreenFactor, gContext.mMVPLocal);
+               //ImVec2 worldDirSSpaceNoScale = worldToPos(dirAxis * markerScale * gContext.mScreenFactor, gContext.mMVP);
+               ImVec2 worldDirSSpace = worldToPos((dirAxis * markerScale * scaleDisplay[i]) * gContext.mScreenFactor, gContext.mMVPLocal);
+
+#if 0
+               if (gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID))
+               {
+                  drawList->AddLine(baseSSpace, worldDirSSpaceNoScale, IM_COL32(0x40, 0x40, 0x40, 0xFF), 3.f);
+                  drawList->AddCircleFilled(worldDirSSpaceNoScale, 6.f, IM_COL32(0x40, 0x40, 0x40, 0xFF));
+               }
+               /*
+               if (!hasTranslateOnAxis || gContext.mbUsing)
+               {
+                  drawList->AddLine(baseSSpace, worldDirSSpace, colors[i + 1], 3.f);
+               }
+               */
+#endif
+               drawList->AddCircleFilled(worldDirSSpace, 12.f, colors[i + 1]);
+            }
+         }
+      }
+
+      // draw screen cirle
+      drawList->AddCircle(gContext.mScreenSquareCenter, 20.f, colors[0], 32, gContext.mStyle.CenterCircleSize);
+
+      if (gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID) && IsScaleType(type))
+      {
+         //ImVec2 sourcePosOnScreen = worldToPos(gContext.mMatrixOrigin, gContext.mViewProjection);
+         ImVec2 destinationPosOnScreen = worldToPos(gContext.mModel.v.position, gContext.mViewProjection);
+         /*vec_t dif(destinationPosOnScreen.x - sourcePosOnScreen.x, destinationPosOnScreen.y - sourcePosOnScreen.y);
+         dif.Normalize();
+         dif *= 5.f;
+         drawList->AddCircle(sourcePosOnScreen, 6.f, translationLineColor);
+         drawList->AddCircle(destinationPosOnScreen, 6.f, translationLineColor);
+         drawList->AddLine(ImVec2(sourcePosOnScreen.x + dif.x, sourcePosOnScreen.y + dif.y), ImVec2(destinationPosOnScreen.x - dif.x, destinationPosOnScreen.y - dif.y), translationLineColor, 2.f);
+         */
+         char tmps[512];
+         //vec_t deltaInfo = gContext.mModel.v.position - gContext.mMatrixOrigin;
+         int componentInfoIndex = (type - MT_SCALE_X) * 3;
+         ImFormatString(tmps, sizeof(tmps), scaleInfoMask[type - MT_SCALE_X], scaleDisplay[translationInfoIndex[componentInfoIndex]] - 1.f);
+         drawList->AddText(ImVec2(destinationPosOnScreen.x + 15, destinationPosOnScreen.y + 15), GetColorU32(TEXT_SHADOW), tmps);
+         drawList->AddText(ImVec2(destinationPosOnScreen.x + 14, destinationPosOnScreen.y + 14), GetColorU32(TEXT), tmps);
+      }
+   }
 
    static void DrawTranslationGizmo(OPERATION op, int type)
    {
@@ -1371,55 +1543,62 @@ namespace ImGuizmo
       // draw
       bool belowAxisLimit = false;
       bool belowPlaneLimit = false;
-      for (unsigned int i = 0; i < 3; ++i)
+      for (int i = 0; i < 3; ++i)
       {
          vec_t dirPlaneX, dirPlaneY, dirAxis;
          ComputeTripodAxisAndVisibility(i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit);
 
-         // draw axis
-         if (belowAxisLimit && Intersects(op, static_cast<OPERATION>(TRANSLATE_X << i)))
+         if (!gContext.mbUsing || (gContext.mbUsing && type == MT_MOVE_X + i))
          {
-            ImVec2 baseSSpace = worldToPos(dirAxis * 0.1f * gContext.mScreenFactor, gContext.mMVP);
-            ImVec2 worldDirSSpace = worldToPos(dirAxis * gContext.mScreenFactor, gContext.mMVP);
-
-            drawList->AddLine(baseSSpace, worldDirSSpace, colors[i + 1], 3.f);
-
-            // Arrow head begin
-            ImVec2 dir(origin - worldDirSSpace);
-
-            float d = sqrtf(ImLengthSqr(dir));
-            dir /= d; // Normalize
-            dir *= 6.0f;
-
-            ImVec2 ortogonalDir(dir.y, -dir.x); // Perpendicular vector
-            ImVec2 a(worldDirSSpace + dir);
-            drawList->AddTriangleFilled(worldDirSSpace - dir, a + ortogonalDir, a - ortogonalDir, colors[i + 1]);
-            // Arrow head end
-
-            if (gContext.mAxisFactor[i] < 0.f)
+            // draw axis
+            if (belowAxisLimit && Intersects(op, static_cast<OPERATION>(TRANSLATE_X << i)))
             {
-               DrawHatchedAxis(dirAxis);
+               ImVec2 baseSSpace = worldToPos(dirAxis * 0.1f * gContext.mScreenFactor, gContext.mMVP);
+               ImVec2 worldDirSSpace = worldToPos(dirAxis * gContext.mScreenFactor, gContext.mMVP);
+
+               drawList->AddLine(baseSSpace, worldDirSSpace, colors[i + 1], gContext.mStyle.TranslationLineThickness);
+
+               // Arrow head begin
+               ImVec2 dir(origin - worldDirSSpace);
+
+               float d = sqrtf(ImLengthSqr(dir));
+               dir /= d; // Normalize
+               dir *= gContext.mStyle.TranslationLineArrowSize;
+
+               ImVec2 ortogonalDir(dir.y, -dir.x); // Perpendicular vector
+               ImVec2 a(worldDirSSpace + dir);
+               drawList->AddTriangleFilled(worldDirSSpace - dir, a + ortogonalDir, a - ortogonalDir, colors[i + 1]);
+               // Arrow head end
+
+               if (gContext.mAxisFactor[i] < 0.f)
+               {
+                  DrawHatchedAxis(dirAxis);
+               }
             }
          }
-
          // draw plane
-         if (belowPlaneLimit && Contains(op, TRANSLATE_PLANS[i]))
+         if (!gContext.mbUsing || (gContext.mbUsing && type == MT_MOVE_YZ + i))
          {
-            ImVec2 screenQuadPts[4];
-            for (int j = 0; j < 4; ++j)
+            if (belowPlaneLimit && Contains(op, TRANSLATE_PLANS[i]))
             {
-               vec_t cornerWorldPos = (dirPlaneX * quadUV[j * 2] + dirPlaneY * quadUV[j * 2 + 1]) * gContext.mScreenFactor;
-               screenQuadPts[j] = worldToPos(cornerWorldPos, gContext.mMVP);
+               ImVec2 screenQuadPts[4];
+               for (int j = 0; j < 4; ++j)
+               {
+                  vec_t cornerWorldPos = (dirPlaneX * quadUV[j * 2] + dirPlaneY * quadUV[j * 2 + 1]) * gContext.mScreenFactor;
+                  screenQuadPts[j] = worldToPos(cornerWorldPos, gContext.mMVP);
+               }
+               drawList->AddPolyline(screenQuadPts, 4, GetColorU32(DIRECTION_X + i), true, 1.0f);
+               drawList->AddConvexPolyFilled(screenQuadPts, 4, colors[i + 4]);
             }
-            drawList->AddPolyline(screenQuadPts, 4, directionColor[i], true, 1.0f);
-            drawList->AddConvexPolyFilled(screenQuadPts, 4, colors[i + 4]);
          }
       }
 
-      drawList->AddCircleFilled(gContext.mScreenSquareCenter, 6.f, colors[0], 32);
+      drawList->AddCircleFilled(gContext.mScreenSquareCenter, gContext.mStyle.CenterCircleSize, colors[0], 32);
 
       if (gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID) && IsTranslateType(type))
       {
+         ImU32 translationLineColor = GetColorU32(TRANSLATION_LINE);
+
          ImVec2 sourcePosOnScreen = worldToPos(gContext.mMatrixOrigin, gContext.mViewProjection);
          ImVec2 destinationPosOnScreen = worldToPos(gContext.mModel.v.position, gContext.mViewProjection);
          vec_t dif = { destinationPosOnScreen.x - sourcePosOnScreen.x, destinationPosOnScreen.y - sourcePosOnScreen.y, 0.f, 0.f };
@@ -1433,8 +1612,8 @@ namespace ImGuizmo
          vec_t deltaInfo = gContext.mModel.v.position - gContext.mMatrixOrigin;
          int componentInfoIndex = (type - MT_MOVE_X) * 3;
          ImFormatString(tmps, sizeof(tmps), translationInfoMask[type - MT_MOVE_X], deltaInfo[translationInfoIndex[componentInfoIndex]], deltaInfo[translationInfoIndex[componentInfoIndex + 1]], deltaInfo[translationInfoIndex[componentInfoIndex + 2]]);
-         drawList->AddText(ImVec2(destinationPosOnScreen.x + 15, destinationPosOnScreen.y + 15), IM_COL32_BLACK, tmps);
-         drawList->AddText(ImVec2(destinationPosOnScreen.x + 14, destinationPosOnScreen.y + 14), IM_COL32_WHITE, tmps);
+         drawList->AddText(ImVec2(destinationPosOnScreen.x + 15, destinationPosOnScreen.y + 15), GetColorU32(TEXT_SHADOW), tmps);
+         drawList->AddText(ImVec2(destinationPosOnScreen.x + 14, destinationPosOnScreen.y + 14), GetColorU32(TEXT), tmps);
       }
    }
 
@@ -1463,7 +1642,7 @@ namespace ImGuizmo
       {
          numAxes = 0;
          float bestDot = 0.f;
-         for (unsigned int i = 0; i < 3; i++)
+         for (int i = 0; i < 3; i++)
          {
             vec_t dirPlaneNormalWorld;
             dirPlaneNormalWorld.TransformVector(directionUnary[i], gContext.mModelSource);
@@ -1545,9 +1724,9 @@ namespace ImGuizmo
             float boundDistance = sqrtf(ImLengthSqr(worldBound1 - worldBound2));
             int stepCount = (int)(boundDistance / 10.f);
             stepCount = min(stepCount, 1000);
-            float stepLength = 1.f / (float)stepCount;
             for (int j = 0; j < stepCount; j++)
             {
+               float stepLength = 1.f / (float)stepCount;
                float t1 = (float)j * stepLength;
                float t2 = (float)j * stepLength + stepLength * 0.5f;
                ImVec2 worldBoundSS1 = ImLerp(worldBound1, worldBound2, ImVec2(t1, t1));
@@ -1583,6 +1762,8 @@ namespace ImGuizmo
                overBigAnchor = false;
                overSmallAnchor = false;
             }
+
+            ImU32 selectionColor = GetColorU32(SELECTION);
 
             unsigned int bigAnchorColor = overBigAnchor ? selectionColor : (IM_COL32(0xAA, 0xAA, 0xAA, 0) + anchorAlpha);
             unsigned int smallAnchorColor = overSmallAnchor ? selectionColor : (IM_COL32(0xAA, 0xAA, 0xAA, 0) + anchorAlpha);
@@ -1686,13 +1867,13 @@ namespace ImGuizmo
             // info text
             char tmps[512];
             ImVec2 destinationPosOnScreen = worldToPos(gContext.mModel.v.position, gContext.mViewProjection);
-            ImFormatString(tmps, sizeof(tmps), "X: %.2f Y: %.2f Z:%.2f"
+            ImFormatString(tmps, sizeof(tmps), "X: %.2f Y: %.2f Z: %.2f"
                , (bounds[3] - bounds[0]) * gContext.mBoundsMatrix.component[0].Length() * scale.component[0].Length()
                , (bounds[4] - bounds[1]) * gContext.mBoundsMatrix.component[1].Length() * scale.component[1].Length()
                , (bounds[5] - bounds[2]) * gContext.mBoundsMatrix.component[2].Length() * scale.component[2].Length()
             );
-            drawList->AddText(ImVec2(destinationPosOnScreen.x + 15, destinationPosOnScreen.y + 15), IM_COL32_BLACK, tmps);
-            drawList->AddText(ImVec2(destinationPosOnScreen.x + 14, destinationPosOnScreen.y + 14), IM_COL32_WHITE, tmps);
+            drawList->AddText(ImVec2(destinationPosOnScreen.x + 15, destinationPosOnScreen.y + 15), GetColorU32(TEXT_SHADOW), tmps);
+            drawList->AddText(ImVec2(destinationPosOnScreen.x + 14, destinationPosOnScreen.y + 14), GetColorU32(TEXT), tmps);
          }
 
          if (!io.MouseDown[0]) {
@@ -1711,6 +1892,10 @@ namespace ImGuizmo
 
    static int GetScaleType(OPERATION op)
    {
+      if (gContext.mbUsing)
+      {
+         return MT_NONE;
+      }
       ImGuiIO& io = ImGui::GetIO();
       int type = MT_NONE;
 
@@ -1723,7 +1908,7 @@ namespace ImGuizmo
       }
 
       // compute
-      for (unsigned int i = 0; i < 3 && type == MT_NONE; i++)
+      for (int i = 0; i < 3 && type == MT_NONE; i++)
       {
          if(!Intersects(op, static_cast<OPERATION>(SCALE_X << i)))
          {
@@ -1731,19 +1916,19 @@ namespace ImGuizmo
          }
          vec_t dirPlaneX, dirPlaneY, dirAxis;
          bool belowAxisLimit, belowPlaneLimit;
-         ComputeTripodAxisAndVisibility(i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit);
-         dirAxis.TransformVector(gContext.mModel);
-         dirPlaneX.TransformVector(gContext.mModel);
-         dirPlaneY.TransformVector(gContext.mModel);
+         ComputeTripodAxisAndVisibility(i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit, true);
+         dirAxis.TransformVector(gContext.mModelLocal);
+         dirPlaneX.TransformVector(gContext.mModelLocal);
+         dirPlaneY.TransformVector(gContext.mModelLocal);
 
-         const float len = IntersectRayPlane(gContext.mRayOrigin, gContext.mRayVector, BuildPlan(gContext.mModel.v.position, dirAxis));
+         const float len = IntersectRayPlane(gContext.mRayOrigin, gContext.mRayVector, BuildPlan(gContext.mModelLocal.v.position, dirAxis));
          vec_t posOnPlan = gContext.mRayOrigin + gContext.mRayVector * len;
 
          const float startOffset = Contains(op, static_cast<OPERATION>(TRANSLATE_X << i)) ? 1.0f : 0.1f;
          const float endOffset = Contains(op, static_cast<OPERATION>(TRANSLATE_X << i)) ? 1.4f : 1.0f;
          const ImVec2 posOnPlanScreen = worldToPos(posOnPlan, gContext.mViewProjection);
-         const ImVec2 axisStartOnScreen = worldToPos(gContext.mModel.v.position + dirAxis * gContext.mScreenFactor * startOffset, gContext.mViewProjection);
-         const ImVec2 axisEndOnScreen = worldToPos(gContext.mModel.v.position + dirAxis * gContext.mScreenFactor * endOffset, gContext.mViewProjection);
+         const ImVec2 axisStartOnScreen = worldToPos(gContext.mModelLocal.v.position + dirAxis * gContext.mScreenFactor * startOffset, gContext.mViewProjection);
+         const ImVec2 axisEndOnScreen = worldToPos(gContext.mModelLocal.v.position + dirAxis * gContext.mScreenFactor * endOffset, gContext.mViewProjection);
 
          vec_t closestPointOnAxis = PointOnSegment(makeVect(posOnPlanScreen), makeVect(axisStartOnScreen), makeVect(axisEndOnScreen));
 
@@ -1752,17 +1937,58 @@ namespace ImGuizmo
             type = MT_SCALE_X + i;
          }
       }
+
+      // universal
+
+      vec_t deltaScreen = { io.MousePos.x - gContext.mScreenSquareCenter.x, io.MousePos.y - gContext.mScreenSquareCenter.y, 0.f, 0.f };
+      float dist = deltaScreen.Length();
+      if (Contains(op, SCALEU) && dist >= 17.0f && dist < 23.0f)
+      {
+         type = MT_SCALE_XYZ;
+      }
+
+      for (int i = 0; i < 3 && type == MT_NONE; i++)
+      {
+         if (!Intersects(op, static_cast<OPERATION>(SCALE_XU << i)))
+         {
+            continue;
+         }
+
+         vec_t dirPlaneX, dirPlaneY, dirAxis;
+         bool belowAxisLimit, belowPlaneLimit;
+         ComputeTripodAxisAndVisibility(i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit, true);
+
+         // draw axis
+         if (belowAxisLimit)
+         {
+            bool hasTranslateOnAxis = Contains(op, static_cast<OPERATION>(TRANSLATE_X << i));
+            float markerScale = hasTranslateOnAxis ? 1.4f : 1.0f;
+            //ImVec2 baseSSpace = worldToPos(dirAxis * 0.1f * gContext.mScreenFactor, gContext.mMVPLocal);
+            //ImVec2 worldDirSSpaceNoScale = worldToPos(dirAxis * markerScale * gContext.mScreenFactor, gContext.mMVP);
+            ImVec2 worldDirSSpace = worldToPos((dirAxis * markerScale) * gContext.mScreenFactor, gContext.mMVPLocal);
+
+            float distance = sqrtf(ImLengthSqr(worldDirSSpace - io.MousePos));
+            if (distance < 12.f)
+            {
+               type = MT_SCALE_X + i;
+            }
+         }
+      }
       return type;
    }
 
    static int GetRotateType(OPERATION op)
    {
+      if (gContext.mbUsing)
+      {
+         return MT_NONE;
+      }
       ImGuiIO& io = ImGui::GetIO();
       int type = MT_NONE;
 
       vec_t deltaScreen = { io.MousePos.x - gContext.mScreenSquareCenter.x, io.MousePos.y - gContext.mScreenSquareCenter.y, 0.f, 0.f };
       float dist = deltaScreen.Length();
-      if (Intersects(op, ROTATE_SCREEN) && dist >= (gContext.mRadiusSquareCenter - 1.0f) && dist < (gContext.mRadiusSquareCenter + 1.0f))
+      if (Intersects(op, ROTATE_SCREEN) && dist >= (gContext.mRadiusSquareCenter - 4.0f) && dist < (gContext.mRadiusSquareCenter + 4.0f))
       {
          type = MT_ROTATE_SCREEN;
       }
@@ -1772,7 +1998,7 @@ namespace ImGuizmo
       vec_t modelViewPos;
       modelViewPos.TransformPoint(gContext.mModel.v.position, gContext.mViewMat);
 
-      for (unsigned int i = 0; i < 3 && type == MT_NONE; i++)
+      for (int i = 0; i < 3 && type == MT_NONE; i++)
       {
          if(!Intersects(op, static_cast<OPERATION>(ROTATE_X << i)))
          {
@@ -1794,7 +2020,7 @@ namespace ImGuizmo
          const vec_t localPos = intersectWorldPos - gContext.mModel.v.position;
          vec_t idealPosOnCircle = Normalized(localPos);
          idealPosOnCircle.TransformVector(gContext.mModelInverse);
-         const ImVec2 idealPosOnCircleScreen = worldToPos(idealPosOnCircle * gContext.mScreenFactor, gContext.mMVP);
+         const ImVec2 idealPosOnCircleScreen = worldToPos(idealPosOnCircle * rotationDisplayFactor * gContext.mScreenFactor, gContext.mMVP);
 
          //gContext.mDrawList->AddCircle(idealPosOnCircleScreen, 5.f, IM_COL32_WHITE);
          const ImVec2 distanceOnScreen = idealPosOnCircleScreen - io.MousePos;
@@ -1811,7 +2037,7 @@ namespace ImGuizmo
 
    static int GetMoveType(OPERATION op, vec_t* gizmoHitProportion)
    {
-      if(!Intersects(op, TRANSLATE))
+      if(!Intersects(op, TRANSLATE) || gContext.mbUsing || !gContext.mbMouseOver)
       {
         return MT_NONE;
       }
@@ -1829,7 +2055,7 @@ namespace ImGuizmo
       const vec_t screenCoord = makeVect(io.MousePos - ImVec2(gContext.mX, gContext.mY));
 
       // compute
-      for (unsigned int i = 0; i < 3 && type == MT_NONE; i++)
+      for (int i = 0; i < 3 && type == MT_NONE; i++)
       {
          vec_t dirPlaneX, dirPlaneY, dirAxis;
          bool belowAxisLimit, belowPlaneLimit;
@@ -1871,27 +2097,32 @@ namespace ImGuizmo
       {
         return false;
       }
-      ImGuiIO& io = ImGui::GetIO();
-      bool applyRotationLocaly = gContext.mMode == LOCAL || type == MT_MOVE_SCREEN;
+      const ImGuiIO& io = ImGui::GetIO();
+      const bool applyRotationLocaly = gContext.mMode == LOCAL || type == MT_MOVE_SCREEN;
       bool modified = false;
 
       // move
       if (gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID) && IsTranslateType(gContext.mCurrentOperation))
       {
+#if IMGUI_VERSION_NUM >= 18723
+         ImGui::SetNextFrameWantCaptureMouse(true);
+#else
          ImGui::CaptureMouseFromApp();
-         const float len = fabsf(IntersectRayPlane(gContext.mRayOrigin, gContext.mRayVector, gContext.mTranslationPlan)); // near plan
-         vec_t newPos = gContext.mRayOrigin + gContext.mRayVector * len;
+#endif
+         const float signedLength = IntersectRayPlane(gContext.mRayOrigin, gContext.mRayVector, gContext.mTranslationPlan);
+         const float len = fabsf(signedLength); // near plan
+         const vec_t newPos = gContext.mRayOrigin + gContext.mRayVector * len;
 
          // compute delta
-         vec_t newOrigin = newPos - gContext.mRelativeOrigin * gContext.mScreenFactor;
+         const vec_t newOrigin = newPos - gContext.mRelativeOrigin * gContext.mScreenFactor;
          vec_t delta = newOrigin - gContext.mModel.v.position;
 
          // 1 axis constraint
          if (gContext.mCurrentOperation >= MT_MOVE_X && gContext.mCurrentOperation <= MT_MOVE_Z)
          {
-            int axisIndex = gContext.mCurrentOperation - MT_MOVE_X;
+            const int axisIndex = gContext.mCurrentOperation - MT_MOVE_X;
             const vec_t& axisValue = *(vec_t*)&gContext.mModel.m[axisIndex];
-            float lengthOnAxis = Dot(axisValue, delta);
+            const float lengthOnAxis = Dot(axisValue, delta);
             delta = axisValue * lengthOnAxis;
          }
 
@@ -1931,7 +2162,7 @@ namespace ImGuizmo
             memcpy(deltaMatrix, deltaMatrixTranslation.m16, sizeof(float) * 16);
          }
 
-         matrix_t res = gContext.mModelSource * deltaMatrixTranslation;
+         const matrix_t res = gContext.mModelSource * deltaMatrixTranslation;
          *(matrix_t*)matrix = res;
 
          if (!io.MouseDown[0])
@@ -1948,7 +2179,11 @@ namespace ImGuizmo
          type = GetMoveType(op, &gizmoHitProportion);
          if (type != MT_NONE)
          {
+#if IMGUI_VERSION_NUM >= 18723
+            ImGui::SetNextFrameWantCaptureMouse(true);
+#else
             ImGui::CaptureMouseFromApp();
+#endif
          }
          if (CanActivate() && type != MT_NONE)
          {
@@ -1978,9 +2213,10 @@ namespace ImGuizmo
       return modified;
    }
 
+   // DAGOR PATCH - scale is additive, not exponential
    static bool HandleScale(float* matrix, float* deltaMatrix, OPERATION op, int& type, const float* snap)
    {
-      if(!Intersects(op, SCALE) || type != MT_NONE)
+      if((!Intersects(op, SCALE) && !Intersects(op, SCALEU)) || type != MT_NONE || !gContext.mbMouseOver)
       {
          return false;
       }
@@ -1993,7 +2229,11 @@ namespace ImGuizmo
          type = GetScaleType(op);
          if (type != MT_NONE)
          {
+#if IMGUI_VERSION_NUM >= 18723
+            ImGui::SetNextFrameWantCaptureMouse(true);
+#else
             ImGui::CaptureMouseFromApp();
+#endif
          }
          if (CanActivate() && type != MT_NONE)
          {
@@ -2007,7 +2247,7 @@ namespace ImGuizmo
             const float len = IntersectRayPlane(gContext.mRayOrigin, gContext.mRayVector, gContext.mTranslationPlan);
             gContext.mTranslationPlanOrigin = gContext.mRayOrigin + gContext.mRayVector * len;
             gContext.mMatrixOrigin = gContext.mModel.v.position;
-            gContext.mScale.Set(1.f, 1.f, 1.f);
+            gContext.mScale.Set(0.f, 0.f, 0.f);
             gContext.mRelativeOrigin = (gContext.mTranslationPlanOrigin - gContext.mModel.v.position) * (1.f / gContext.mScreenFactor);
             gContext.mScaleValueOrigin = makeVect(gContext.mModelSource.v.right.Length(), gContext.mModelSource.v.up.Length(), gContext.mModelSource.v.dir.Length());
             gContext.mSaveMousePosx = io.MousePos.x;
@@ -2016,29 +2256,33 @@ namespace ImGuizmo
       // scale
       if (gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID) && IsScaleType(gContext.mCurrentOperation))
       {
+#if IMGUI_VERSION_NUM >= 18723
+         ImGui::SetNextFrameWantCaptureMouse(true);
+#else
          ImGui::CaptureMouseFromApp();
+#endif
          const float len = IntersectRayPlane(gContext.mRayOrigin, gContext.mRayVector, gContext.mTranslationPlan);
          vec_t newPos = gContext.mRayOrigin + gContext.mRayVector * len;
          vec_t newOrigin = newPos - gContext.mRelativeOrigin * gContext.mScreenFactor;
-         vec_t delta = newOrigin - gContext.mModel.v.position;
+         vec_t delta = newOrigin - gContext.mModelLocal.v.position;
 
          // 1 axis constraint
          if (gContext.mCurrentOperation >= MT_SCALE_X && gContext.mCurrentOperation <= MT_SCALE_Z)
          {
             int axisIndex = gContext.mCurrentOperation - MT_SCALE_X;
-            const vec_t& axisValue = *(vec_t*)&gContext.mModel.m[axisIndex];
+            const vec_t& axisValue = *(vec_t*)&gContext.mModelLocal.m[axisIndex];
             float lengthOnAxis = Dot(axisValue, delta);
             delta = axisValue * lengthOnAxis;
 
-            vec_t baseVector = gContext.mTranslationPlanOrigin - gContext.mModel.v.position;
-            float ratio = Dot(axisValue, baseVector + delta) / Dot(axisValue, baseVector);
+            vec_t baseVector = gContext.mTranslationPlanOrigin - gContext.mModelLocal.v.position;
+            float ratio = Dot(axisValue, delta) / Dot(axisValue, baseVector);
 
-            gContext.mScale[axisIndex] = max(ratio, 0.001f);
+            gContext.mScale[axisIndex] = ratio;
          }
          else
          {
             float scaleDelta = (io.MousePos.x - gContext.mSaveMousePosx) * 0.01f;
-            gContext.mScale.Set(max(1.f + scaleDelta, 0.001f));
+            gContext.mScale.Set(scaleDelta);
          }
 
          // snap
@@ -2047,10 +2291,11 @@ namespace ImGuizmo
             float scaleSnap[] = { snap[0], snap[0], snap[0] };
             ComputeSnap(gContext.mScale, scaleSnap);
          }
-
+         // TODO: rewrite ImGuizmo to operate without matricies, as they become degenerate with zero scale
          // no 0 allowed
          for (int i = 0; i < 3; i++)
-            gContext.mScale[i] = max(gContext.mScale[i], 0.001f);
+            if (gContext.mScale[i] + gContext.mScaleValueOrigin[i] < 0.001f)
+               gContext.mScale[i] = 0.001f - gContext.mScaleValueOrigin[i];
 
          if (gContext.mScaleLast != gContext.mScale)
          {
@@ -2060,30 +2305,27 @@ namespace ImGuizmo
 
          // compute matrix & delta
          matrix_t deltaMatrixScale;
-         deltaMatrixScale.Scale(gContext.mScale * gContext.mScaleValueOrigin);
+         vec_t deltaScale = gContext.mScale + gContext.mScaleValueOrigin;
+         deltaMatrixScale.Scale(deltaScale);
 
-         matrix_t res = deltaMatrixScale * gContext.mModel;
+         matrix_t res = deltaMatrixScale * gContext.mModelLocal;
          *(matrix_t*)matrix = res;
 
          if (deltaMatrix)
          {
-            vec_t deltaScale = gContext.mScale * gContext.mScaleValueOrigin;
-
             vec_t originalScaleDivider;
             originalScaleDivider.x = 1 / gContext.mModelScaleOrigin.x;
             originalScaleDivider.y = 1 / gContext.mModelScaleOrigin.y;
             originalScaleDivider.z = 1 / gContext.mModelScaleOrigin.z;
 
-            deltaScale = deltaScale * originalScaleDivider;
-
-            deltaMatrixScale.Scale(deltaScale);
+            deltaMatrixScale.Scale(deltaScale * originalScaleDivider);
             memcpy(deltaMatrix, deltaMatrixScale.m16, sizeof(float) * 16);
          }
 
          if (!io.MouseDown[0])
          {
             gContext.mbUsing = false;
-            gContext.mScale.Set(1.f, 1.f, 1.f);
+            gContext.mScale.Set(0.f, 0.f, 0.f);
          }
 
          type = gContext.mCurrentOperation;
@@ -2093,7 +2335,7 @@ namespace ImGuizmo
 
    static bool HandleRotation(float* matrix, float* deltaMatrix, OPERATION op, int& type, const float* snap)
    {
-      if(!Intersects(op, ROTATE) || type != MT_NONE)
+      if(!Intersects(op, ROTATE) || type != MT_NONE || !gContext.mbMouseOver)
       {
         return false;
       }
@@ -2107,7 +2349,11 @@ namespace ImGuizmo
 
          if (type != MT_NONE)
          {
+#if IMGUI_VERSION_NUM >= 18723
+            ImGui::SetNextFrameWantCaptureMouse(true);
+#else
             ImGui::CaptureMouseFromApp();
+#endif
          }
 
          if (type == MT_ROTATE_SCREEN)
@@ -2141,7 +2387,11 @@ namespace ImGuizmo
       // rotation
       if (gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID) && IsRotateType(gContext.mCurrentOperation))
       {
+#if IMGUI_VERSION_NUM >= 18723
+         ImGui::SetNextFrameWantCaptureMouse(true);
+#else
          ImGui::CaptureMouseFromApp();
+#endif
          gContext.mRotationAngle = ComputeAngleOnPlan();
          if (snap)
          {
@@ -2166,7 +2416,7 @@ namespace ImGuizmo
 
          if (applyRotationLocaly)
          {
-            *(matrix_t*)matrix = scaleOrigin * deltaRotation * gContext.mModel;
+            *(matrix_t*)matrix = scaleOrigin * deltaRotation * gContext.mModelLocal;
          }
          else
          {
@@ -2251,9 +2501,31 @@ namespace ImGuizmo
      gContext.mAllowAxisFlip = value;
    }
 
-   bool Manipulate(const float* view, const float* projection, OPERATION operation, MODE mode, float* matrix, float* deltaMatrix, const float* snap, const float* localBounds, const float* boundsSnap)
+   void SetAxisLimit(float value)
    {
-      ComputeContext(view, projection, matrix, mode);
+     gContext.mAxisLimit=value;
+   }
+
+   void SetPlaneLimit(float value)
+   {
+     gContext.mPlaneLimit = value;
+   }
+
+   // DAGOR PATCH
+   static bool isContextInFrustum(const ImGuizmo::Context &context)
+   {
+      vec_t camSpacePosition;
+      camSpacePosition.TransformPoint(makeVect(0.f, 0.f, 0.f), context.mMVP);
+      vec_t projectedPosition = camSpacePosition * (1.f / camSpacePosition.w); // took into account .w component, clip gizmo when it out of view
+      bool XYInBounds = (abs(projectedPosition.x) <= 1.f && abs(projectedPosition.y) <= 1.f) || context.mbUsing;
+      return (context.mIsOrthographic && XYInBounds) || (!context.mIsOrthographic && projectedPosition.z >= 0.0f && XYInBounds);
+   }
+
+   // DAGOR PATCH
+   bool Manipulate(const float* view, const float* projection, OPERATION operation, MODE mode, float* matrix, float* deltaMatrix, const float* snapTranslation, const float* snapRotation, const float* snapScale, const float* localBounds, const float* boundsSnap)
+   {
+      // Scale is always local or matrix will be skewed when applying world scale or oriented matrix
+      ComputeContext(view, projection, matrix, (operation & SCALE) ? LOCAL : mode);
 
       // set delta to identity
       if (deltaMatrix)
@@ -2264,8 +2536,7 @@ namespace ImGuizmo
       // behind camera
       vec_t camSpacePosition;
       camSpacePosition.TransformPoint(makeVect(0.f, 0.f, 0.f), gContext.mMVP);
-      vec_t projectedPosition = camSpacePosition * (1.f / camSpacePosition.w); // took into account .w component, clip gizmo when it out of view
-      if (!gContext.mIsOrthographic && !(projectedPosition.z >= 0.0f && abs(projectedPosition.x) <= 1.f && abs(projectedPosition.y) <= 1.f))
+      if (!gContext.mIsOrthographic && (camSpacePosition.z / camSpacePosition.w) < 0.f && !gContext.mbUsing)
       {
          return false;
       }
@@ -2277,9 +2548,9 @@ namespace ImGuizmo
       {
          if (!gContext.mbUsingBounds)
          {
-            manipulated = HandleTranslation(matrix, deltaMatrix, operation, type, snap) ||
-                          HandleScale(matrix, deltaMatrix, operation, type, snap) ||
-                          HandleRotation(matrix, deltaMatrix, operation, type, snap);
+            manipulated = HandleTranslation(matrix, deltaMatrix, operation, type, snapTranslation) ||
+                          HandleScale(matrix, deltaMatrix, operation, type, snapScale) ||
+                          HandleRotation(matrix, deltaMatrix, operation, type, snapRotation);
          }
       }
 
@@ -2289,11 +2560,15 @@ namespace ImGuizmo
       }
 
       gContext.mOperation = operation;
-      if (!gContext.mbUsingBounds)
+
+      const bool inFrustum = isContextInFrustum(gContext);
+
+      if (!gContext.mbUsingBounds && inFrustum)
       {
          DrawRotationGizmo(operation, type);
          DrawTranslationGizmo(operation, type);
          DrawScaleGizmo(operation, type);
+         DrawScaleUniveralGizmo(operation, type);
       }
       return manipulated;
    }
@@ -2429,7 +2704,9 @@ namespace ImGuizmo
             {
                cubeFace.faceCoordsScreen[iCoord] = worldToPos(faceCoords[iCoord] * 0.5f * invert, res);
             }
-            cubeFace.color = directionColor[normalIndex] | IM_COL32(0x80, 0x80, 0x80, 0);
+
+            ImU32 directionColor = GetColorU32(DIRECTION_X + normalIndex);
+            cubeFace.color = directionColor | IM_COL32(0x80, 0x80, 0x80, 0);
 
             cubeFace.z = centerPositionVP.z / centerPositionVP.w;
             cubeFaceCount++;
@@ -2510,6 +2787,13 @@ namespace ImGuizmo
       }
    }
 
+   void ViewManipulate(float* view, const float* projection, OPERATION operation, MODE mode, float* matrix, float length, ImVec2 position, ImVec2 size, ImU32 backgroundColor)
+   {
+      // Scale is always local or matrix will be skewed when applying world scale or oriented matrix
+      ComputeContext(view, projection, matrix, (operation & SCALE) ? LOCAL : mode);
+      ViewManipulate(view, length, position, size, backgroundColor);
+   }
+
    void ViewManipulate(float* view, float length, ImVec2 position, ImVec2 size, ImU32 backgroundColor)
    {
       static bool isDraging = false;
@@ -2561,6 +2845,7 @@ namespace ImGuizmo
 
       // tag faces
       bool boxes[27]{};
+      static int overBox = -1;
       for (int iPass = 0; iPass < 2; iPass++)
       {
          for (int iFace = 0; iFace < 6; iFace++)
@@ -2617,53 +2902,24 @@ namespace ImGuizmo
                }
 
                const ImVec2 panelCorners[2] = { panelPosition[iPanel], panelPosition[iPanel] + panelSize[iPanel] };
-               bool insidePanel = localx > panelCorners[0].x && localx < panelCorners[1].x&& localy > panelCorners[0].y && localy < panelCorners[1].y;
+               bool insidePanel = localx > panelCorners[0].x && localx < panelCorners[1].x && localy > panelCorners[0].y && localy < panelCorners[1].y;
                int boxCoordInt = int(boxCoord.x * 9.f + boxCoord.y * 3.f + boxCoord.z);
-               G_ASSERT(boxCoordInt < 27);//dagor cpecific change
-               boxes[boxCoordInt] |= insidePanel && (!isDraging);
+               IM_ASSERT(boxCoordInt < 27);
+               boxes[boxCoordInt] |= insidePanel && (!isDraging) && gContext.mbMouseOver;
 
                // draw face with lighter color
                if (iPass)
                {
-                  gContext.mDrawList->AddConvexPolyFilled(faceCoordsScreen, 4, (directionColor[normalIndex] | IM_COL32(0x80, 0x80, 0x80, 0x80)) | (isInside ? IM_COL32(0x08, 0x08, 0x08, 0) : 0));
+                  ImU32 directionColor = GetColorU32(DIRECTION_X + normalIndex);
+                  gContext.mDrawList->AddConvexPolyFilled(faceCoordsScreen, 4, (directionColor | IM_COL32(0x80, 0x80, 0x80, 0x80)) | (isInside ? IM_COL32(0x08, 0x08, 0x08, 0) : 0));
                   if (boxes[boxCoordInt])
                   {
                      gContext.mDrawList->AddConvexPolyFilled(faceCoordsScreen, 4, IM_COL32(0xF0, 0xA0, 0x60, 0x80));
 
-                     if (!io.MouseDown[0] && !isDraging && isClicking)
-                     {
-                        // apply new view direction
-                        int cx = boxCoordInt / 9;
-                        int cy = (boxCoordInt - cx * 9) / 3;
-                        int cz = boxCoordInt % 3;
-                        interpolationDir = makeVect(1.f - cx, 1.f - cy, 1.f - cz);
-                        interpolationDir.Normalize();
-
-                        if (fabsf(Dot(interpolationDir, referenceUp)) > 1.0f - 0.01f)
-                        {
-                           vec_t right = viewInverse.v.right;
-                           if (fabsf(right.x) > fabsf(right.z))
-                           {
-                              right.z = 0.f;
-                           }
-                           else
-                           {
-                              right.x = 0.f;
-                           }
-                           right.Normalize();
-                           interpolationUp = Cross(interpolationDir, right);
-                           interpolationUp.Normalize();
-                        }
-                        else
-                        {
-                           interpolationUp = referenceUp;
-                        }
-                        interpolationFrames = 40;
-                        isClicking = false;
-                     }
-                     if (io.MouseDown[0] && !isDraging)
-                     {
+                     if (io.MouseDown[0] && !isClicking && !isDraging && GImGui->ActiveId == 0) {
+                        overBox = boxCoordInt;
                         isClicking = true;
+                        isDraging = true;
                      }
                   }
                }
@@ -2684,18 +2940,50 @@ namespace ImGuizmo
          vec_t newEye = camTarget + newDir * length;
          LookAt(&newEye.x, &camTarget.x, &newUp.x, view);
       }
-      isInside = ImRect(position, position + size).Contains(io.MousePos);
+      isInside = gContext.mbMouseOver && ImRect(position, position + size).Contains(io.MousePos);
 
-      // drag view
-      if (!isDraging && io.MouseDown[0] && isInside && (fabsf(io.MouseDelta.x) > 0.f || fabsf(io.MouseDelta.y) > 0.f))
+      if (io.MouseDown[0] && (fabsf(io.MouseDelta[0]) || fabsf(io.MouseDelta[1])) && isClicking)
       {
-         isDraging = true;
          isClicking = false;
       }
-      else if (isDraging && !io.MouseDown[0])
+
+      if (!io.MouseDown[0])
       {
+         if (isClicking)
+         {
+            // apply new view direction
+            int cx = overBox / 9;
+            int cy = (overBox - cx * 9) / 3;
+            int cz = overBox % 3;
+            interpolationDir = makeVect(1.f - (float)cx, 1.f - (float)cy, 1.f - (float)cz);
+            interpolationDir.Normalize();
+
+            if (fabsf(Dot(interpolationDir, referenceUp)) > 1.0f - 0.01f)
+            {
+               vec_t right = viewInverse.v.right;
+               if (fabsf(right.x) > fabsf(right.z))
+               {
+                  right.z = 0.f;
+               }
+               else
+               {
+                  right.x = 0.f;
+               }
+               right.Normalize();
+               interpolationUp = Cross(interpolationDir, right);
+               interpolationUp.Normalize();
+            }
+            else
+            {
+               interpolationUp = referenceUp;
+            }
+            interpolationFrames = 40;
+
+         }
+         isClicking = false;
          isDraging = false;
       }
+
 
       if (isDraging)
       {

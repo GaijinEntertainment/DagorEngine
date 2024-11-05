@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_globDef.h>
 #include "old_animChannels.h"
 #include <ioSys/dag_fileIo.h>
@@ -204,7 +206,7 @@ bool AnimData::load(IGenLoad &cb, class IMemAlloc *ma)
   cb.read(&hdr, sizeof(hdr));
   if (hdr.label != MAKE4C('A', 'N', 'I', 'M'))
   {
-    debug_ctx("unrecognized label %c%c%c%c", hdr.label >> 24, hdr.label >> 16, hdr.label >> 8, hdr.label);
+    DEBUG_CTX("unrecognized label %c%c%c%c", hdr.label >> 24, hdr.label >> 16, hdr.label >> 8, hdr.label);
     return false;
   }
   if (hdr.ver <= 0x150)
@@ -212,7 +214,7 @@ bool AnimData::load(IGenLoad &cb, class IMemAlloc *ma)
   else if (hdr.ver == 0x200)
     return loadV200(cb, ma, hdr);
 
-  debug_ctx("unsupported version 0x%p", hdr.ver);
+  DEBUG_CTX("unsupported version 0x%p", hdr.ver);
   return false;
 }
 
@@ -225,7 +227,7 @@ bool AnimData::loadV200(IGenLoad &cb, class IMemAlloc *ma, AnimDataHeader &hdr)
   const unsigned hdrSize = sizeof(hdr) + sizeof(hdrV200);
   if (hdr.hdrSize != hdrSize)
   {
-    debug_ctx("incorrect hdrSize=%d for ver 0x100 (should be =%d)", hdr.hdrSize, sizeof(hdr));
+    DEBUG_CTX("incorrect hdrSize=%d for ver 0x100 (should be =%d)", hdr.hdrSize, sizeof(hdr));
     return false;
   }
 
@@ -297,7 +299,7 @@ bool AnimData::loadLessV150(IGenLoad &cb, class IMemAlloc *ma, AnimDataHeader &h
   const unsigned hdrSize = sizeof(hdr) + sizeof(hdrLessV150);
   if (hdr.ver == 0x100 && (hdr.hdrSize) == hdrSize - 8)
   {
-    debug_ctx("loading anim rev 1.00   vvv");
+    DEBUG_CTX("loading anim rev 1.00   vvv");
     // for backward compatibility with rev 1.00
     hdr.ver = 0x150;
     hdr.hdrSize = hdrSize;
@@ -308,12 +310,12 @@ bool AnimData::loadLessV150(IGenLoad &cb, class IMemAlloc *ma, AnimDataHeader &h
 
   if (hdr.ver != 0x150)
   {
-    debug_ctx("unsupported version 0x%p", hdr.ver);
+    DEBUG_CTX("unsupported version 0x%p", hdr.ver);
     return false;
   }
   if (hdr.hdrSize != hdrSize)
   {
-    debug_ctx("incorrect hdrSize=%d for ver 0x100 (should be =%d)", hdr.hdrSize, sizeof(hdr));
+    DEBUG_CTX("incorrect hdrSize=%d for ver 0x100 (should be =%d)", hdr.hdrSize, sizeof(hdr));
     return false;
   }
 
@@ -464,7 +466,7 @@ bool AnimData::loadLessV150(IGenLoad &cb, class IMemAlloc *ma, AnimDataHeader &h
   // check integrity
   if (posPoolN != hdrLessV150.totalKeyPosNum || sclPoolN != hdrLessV150.totalKeySclNum || rotPoolN != hdrLessV150.totalKeyRotNum)
   {
-    debug_ctx("incorrect counters: posPoolN=%d != %d=hdr.totalKeyPosNum || sclPoolN=%d != %d=hdr.totalKeySclNum || rotPoolN=%d != "
+    DEBUG_CTX("incorrect counters: posPoolN=%d != %d=hdr.totalKeyPosNum || sclPoolN=%d != %d=hdr.totalKeySclNum || rotPoolN=%d != "
               "%d=hdr.totalKeyRotNum",
       posPoolN, hdrLessV150.totalKeyPosNum, sclPoolN, hdrLessV150.totalKeySclNum, rotPoolN, hdrLessV150.totalKeyRotNum);
     return false;

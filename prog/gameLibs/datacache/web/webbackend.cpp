@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "webbackend.h"
 #include "../file/filebackend.h"
 #include <util/dag_globDef.h>

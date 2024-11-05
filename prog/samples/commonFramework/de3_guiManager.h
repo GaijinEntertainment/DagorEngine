@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <stdio.h>
@@ -18,19 +19,12 @@ public:
     frameTimeMetrics.update(::get_time_msec(), ::dagor_frame_no(), ticks_usec / 1000.f / 1000.f, PerfDisplayMode::FPS);
   }
 
-  virtual void act() {}
-
-  virtual void draw(int /*ticks*/) {}
-  virtual void changeRenderSettings(bool & /*draw_scene*/, bool & /*clr_scene*/) {}
-  virtual bool canActScene() { return true; }
   virtual bool canCloseNow()
   {
-    debug_ctx("closing window");
+    DEBUG_CTX("closing window");
     debug_flush(false);
     return true;
   }
-
-  virtual void drawCopyrightMessage(int /*ticks*/) {}
 
   virtual void drawFps(float minfps, float maxfps, float lastfps)
   {

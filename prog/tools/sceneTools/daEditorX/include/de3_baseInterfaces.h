@@ -1,7 +1,6 @@
 //
 // DaEditorX
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -29,9 +28,13 @@ namespace mkbindump
 {
 class BinDumpSaveCB;
 };
-using mkbindump::BinDumpSaveCB;
 
-typedef class PropertyContainerControlBase PropPanel2;
+namespace PropPanel
+{
+class ContainerPropertyControl;
+}
+
+using mkbindump::BinDumpSaveCB;
 
 //! Textures numerator (works like namemap)
 class ITextureNumerator
@@ -52,18 +55,18 @@ public:
   static constexpr unsigned HUID = 0x0B2E4A51u; // IBinaryDataBuilder
 
   //! called first to check prequisites before build/export binary data
-  virtual bool validateBuild(int target, ILogWriter &rep, PropPanel2 *params) = 0;
+  virtual bool validateBuild(int target, ILogWriter &rep, PropPanel::ContainerPropertyControl *params) = 0;
   //! called after validation pass done to gather all used textures
   virtual bool addUsedTextures(ITextureNumerator &tn) = 0;
   //! finally called to build and write binary data to output stream
-  virtual bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel2 *pp) = 0;
+  virtual bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *pp) = 0;
 
   //! checks custom data metrics specified in datablock
   virtual bool checkMetrics(const DataBlock &metrics_blk) = 0;
 
   //! optional interface to provide export-time filled parameters
   virtual bool useExportParameters() const { return false; }
-  virtual void fillExportPanel(PropPanel2 &params) {}
+  virtual void fillExportPanel(PropPanel::ContainerPropertyControl &params) {}
 };
 
 

@@ -1,0 +1,661 @@
+include "world_sdf.dshl"
+include "sky_shader_global.dshl"
+include "sq_clouds_shadow.dshl"
+include "screenspace_probes_common.dshl"
+include "screenspace_probes_reprojection.dshl"
+include "project_is_dynamic_point.dshl"
+include "gbuffer.dshl"
+
+hlsl {
+  #include <sp_calc_common.hlsl>
+}
+
+macro SP_GET_DEPTH_MIN_MAX(code)
+  (code) {
+    downsampled_close_depth_tex@smp2d = downsampled_close_depth_tex;
+    downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
+  }
+  hlsl(code) {
+    bool getNativeDepthCloseFar(float2 screenCenter, float sampleQuadSize, inout float closeNativeDepth, inout float farNativeDepth)
+    {
+      uint screenLod = max(ceil(log2(sampleQuadSize)), 1);//fixme: constant
+      uint2 lodDim;
+      uint numLevels;
+      uint downsampledLod = screenLod - 1;
+      downsampled_close_depth_tex.GetDimensions(downsampledLod, lodDim.x, lodDim.y, numLevels);
+      bool ret = false;
+      if (all(lodDim) > 0)
+      {
+        uint2 downsampledCenter = screenCenter/(1u<<screenLod);
+        float2 uv = (downsampledCenter+0.5)/lodDim;
+        closeNativeDepth = tex2Dlod(downsampled_close_depth_tex, float4(uv, 0, downsampledLod)).x;
+        farNativeDepth = tex2Dlod(downsampled_far_depth_tex, float4(uv, 0, downsampledLod)).x;
+        ret = true;
+      }
+      return ret;
+    }
+  }
+endmacro
+
+hlsl {
+  #define SP_EXPLICIT_LIST 1
+}
+
+shader initial_probes_placement_cs
+{
+  INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
+  USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+  HISTORY_ONLY_PROBE(cs)
+  hlsl(cs) {
+    RWByteAddressBuffer screenspace_probe_pos: register(u0);
+    RWByteAddressBuffer screenspace_tile_classificator: register(u1);
+    RWByteAddressBuffer linked_list_additional_screenspace_probes: register(u2);
+    RWByteAddressBuffer screenspace_probes_list: register(u3);
+  }
+  (cs) {
+    sp_globtm_from_campos@f44 = sp_globtm_from_campos;
+  }
+  SCREENSPACE_PROBES_POSITIONS_COMMON(cs)
+  SAMPLE_PREV_AGE_SP(cs)
+  SP_GET_DEPTH_MIN_MAX(cs)
+  PROJECT_DO_NOT_UPDATE_FROM_POINT(cs)
+  hlsl(cs) {
+    #include "screenspace_probes_temporal_list_add.hlsl"
+    float wFromCenter(int2 fromCenter)
+    {
+      return exp2(-0.01*dot(fromCenter,fromCenter));
+    }
+    [numthreads(8, 8, 1)]
+    void calc_screenspace_position_cs(uint2 gtId : SV_GroupThreadID, uint2 gId : SV_GroupID, uint2 dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
+    {
+      uint2 screen_tile_coord = dtId;
+      if (any(screen_tile_coord >= uint2(screenspace_probe_res.xy)))
+        return;
+
+      uint screen_probe_index = screen_tile_coord.x + screen_tile_coord.y*screenspace_probe_res.x;
+      uint2 screenCoord = min(screen_tile_coord*screenspace_probe_res.z + uint(screenspace_probe_res.z)/2, uint2(gbuffer_depth_size_load.xy-1));
+
+      if (sp_is_valid_history())
+      {
+        // now, with TAA jitter, we can constantly place probe very far from old position, which will stop temporality for probe and causes some blinking
+        // in order to fight that, check previous probe position and if it's current screen coord position is acceptable (+/- one pixel for jitter), use it instead
+        // probably faster would be store subpixel position (i.e. not pixel offset, but 1/8 pixel or something like that WITH jitter)
+        // and just round it
+        // may be just remove current jitter and use that
+        uint encodedPrevProbe = sp_loadEncodedProbe(prev_screenspace_probe_pos, screen_probe_index);
+        uint encodedPrevProbeNormalCoord = sp_loadEncodedProbeNormalCoord(prev_screenspace_probe_pos, screen_probe_index, sp_getPrevNumTotalProbes());
+        DecodedProbe prevProbe = sp_decodeProbeInfo(encodedPrevProbe);
+        uint2 prevCoordOfs = decodeCoordOfs(encodedPrevProbeNormalCoord);
+        float2 prevTc = screenICoordToScreenUV(screen_tile_coord*prev_screenspace_probe_res.z + prevCoordOfs);
+        float3 curCamPos = -sp_prev_camera_pos_movement + (sp_prev_zn_zfar.y*prevProbe.normalizedW)*sp_getPrevViewVecOptimized(prevTc);
+        float4 curPosNDC = mul(float4(curCamPos, 1.0), sp_globtm_from_campos);
+        float3 curPosSTCW = curPosNDC.w > 0 ? float3(curPosNDC.xy/curPosNDC.w, curPosNDC.w) : float3(4, 4, curPosNDC.w);
+        float3 curTCW = float3(curPosSTCW.xy*float2(0.5, -0.5) + 0.5, curPosSTCW.z);
+        float2 reprojectedScreenTC = curTCW.xy*gbuffer_depth_size_load.xy;
+        #define USE_BEST_OF4 1
+        #if USE_BEST_OF4
+        //int2 curSCI = floor(curTCW.xy*gbuffer_depth_size_load.xy - 0.5);
+        int2 curSCI = reprojectedScreenTC;
+        uint maxAllowed = 3;
+        #else
+        int2 curSCI = reprojectedScreenTC;
+        uint maxAllowed = 2;
+        #endif
+        uint2 cOfs = uint2(curSCI - screen_tile_coord*screenspace_probe_res.z);
+
+        //if (all(abs(curSCI - screen_tile_coord*screenspace_probe_res.z - (uint(screenspace_probe_res.z)/2)) < maxAllowed))
+        if (all(cOfs < uint(screenspace_probe_res.z-1) && cOfs > 0))
+        {
+          //fixme: redundant load! we later like to load exactly same value if we reprojected
+          float rawDepthCenter = loadGbufferDepth(curSCI);
+          #if USE_BEST_OF4
+          //float4 centers = depth_gbuf_load.GatherRed((curSCI+0.5)/gbuffer_depth_size_load.xy).wzxy;
+          float4 centers,centers2;
+          centers.x = texture2DAt(depth_gbuf_load, curSCI+int2(-1,0)).x;
+          centers.y = texture2DAt(depth_gbuf_load, curSCI+int2(+1,0)).x;
+          centers.z = texture2DAt(depth_gbuf_load, curSCI+int2(0,-1)).x;
+          centers.w = texture2DAt(depth_gbuf_load, curSCI+int2(0,+1)).x;
+          centers2.x = texture2DAt(depth_gbuf_load, curSCI+int2(-1,-1)).x;
+          centers2.y = texture2DAt(depth_gbuf_load, curSCI+int2(+1,-1)).x;
+          centers2.z = texture2DAt(depth_gbuf_load, curSCI+int2(-1,+1)).x;
+          centers2.w = texture2DAt(depth_gbuf_load, curSCI+int2(+1,+1)).x;
+
+          float4 linearDepthCenters = rcp(sp_zn_zfar.z + sp_zn_zfar.w*centers);
+          float4 linearDepthCenters2 = rcp(sp_zn_zfar.z + sp_zn_zfar.w*centers2);
+          float invW = rcp(curTCW.z);
+          int2 fromCenter = cOfs - (uint(screenspace_probe_res.z)/2);
+          float dExp = -1000;
+          float4 w = exp2(dExp*pow2(1 - linearDepthCenters*invW));
+          w *= float4(wFromCenter(fromCenter + int2(-1,0)), wFromCenter(fromCenter + int2(+1,0)),
+                      wFromCenter(fromCenter + int2(0,-1)), wFromCenter(fromCenter + int2(0,+1)));
+          float4 w2 = exp2(dExp*pow2(1 - linearDepthCenters2*invW));
+          w2 *= float4(wFromCenter(fromCenter + int2(-1,-1)), wFromCenter(fromCenter + int2(+1,-1)),
+                       wFromCenter(fromCenter + int2(-1,+1)), wFromCenter(fromCenter + int2(+1,+1)));
+
+          float wCenter = exp2(dExp*pow2(1-linearize_z(rawDepthCenter, sp_zn_zfar.zw)*invW)) * wFromCenter(fromCenter);
+          float4 w12 = max(w, w2);
+          //float4 w12 = w;
+          float maxW = max3(max(w12.x, w12.y), max(w12.z, w12.w), wCenter);
+          if (maxW > 0.01)
+          {
+            //screenCoord = maxW == wCenter ? curSCI : (maxW == w.x ? curSCI + int2(-1,0) : (maxW == w.y ? curSCI + int2(1,0) : maxW == w.z ? curSCI + int2(0,-1) : curSCI + int2(0,1)));
+            screenCoord = maxW == wCenter ? curSCI : (maxW == w.x ? curSCI + int2(-1,0) : (maxW == w.y ? curSCI + int2(1,0) : maxW == w.z ? curSCI + int2(0,-1) : maxW == w.w ? curSCI + int2(0,1) :
+              (maxW == w2.x ? curSCI + int2(-1,-1) : (maxW == w2.y ? curSCI + int2(+1,-1) : maxW == w2.z ? curSCI + int2(-1,+1) : curSCI + int2(1,1)))));
+          }
+          #else
+          float linearDepthCenter = linearize_z(rawDepthCenter, sp_zn_zfar.zw);
+          if (exp2(-1000*pow2(1-curTCW.z/linearDepthCenter)) > 0.01)
+          {
+            screenCoord = curSCI;
+          }
+          #endif
+        }
+      }
+
+      float rawDepthFar = 0, rawDepthVeryClose = 0;
+      getNativeDepthCloseFar(screenCoord+0.5, screenspace_probe_res.z, rawDepthVeryClose, rawDepthFar);
+
+      float2 screenUv = screenICoordToScreenUV(screenCoord);
+
+      float rawDepthCenter = loadGbufferDepth(screenCoord);
+      float linearDepthCenter;
+      float3 sceneNormal;
+      float3 viewVect = sp_getViewVecOptimized(screenUv);
+      bool isDynamic = false;
+      BRANCH
+      if (rawDepthCenter == 0) //sky
+      {
+        rawDepthCenter = rawDepthVeryClose;
+        sceneNormal = -normalize(viewVect);
+      } else
+      {
+        loadPackedGbufferNormal(screenCoord, sceneNormal);
+        //FLATTEN
+        //if (dot(sceneNormal, normalize(viewVect)) > 0.5)
+        //  sceneNormal = -sceneNormal;
+        isDynamic = get_project_is_dynamic_pixel(screenCoord);
+      }
+      uint store = 0;
+      if (rawDepthCenter != 0) //not sky
+      {
+        float linearDepthCenter = linearize_z(rawDepthCenter, sp_zn_zfar.zw);
+        float veryCloseW = linearize_z(rawDepthVeryClose, sp_zn_zfar.zw);
+        float farthestDepthW = linearize_z(rawDepthFar, sp_zn_zfar.zw);
+        DecodedProbe baseProbe;
+        baseProbe.allTag = 0;
+        baseProbe.normalizedW = linearDepthCenter/sp_zn_zfar.y;
+        uint2 coord_ofs = min(uint2(screenCoord - screen_tile_coord*screenspace_probe_res.z), uint(screenspace_probe_res.z-1));
+        uint encodedNormal = encodeProbeNormalAndOfs(sceneNormal, coord_ofs);
+        sceneNormal = decodeProbeNormal(encodedNormal);
+        store = sp_encodeNormalizedW(baseProbe.normalizedW);
+        baseProbe.normalizedW = sp_decodeProbeInfo(store).normalizedW;
+
+        float probeLinearW = baseProbe.normalizedW*sp_zn_zfar.y;
+        float3 camPos = sp_getViewVecOptimizedNormalized(getScreenProbeCenterScreenUV(screen_tile_coord))*baseProbe.normalizedW;
+
+        uint revAge = sp_is_valid_history() ? sample_history_rev_age(probeLinearW, camPos, sceneNormal) : SP_TAG_BORN_HISTORY_AGE;
+
+        #if SP_EXPLICIT_LIST
+        uint onlyHistoryProbe = revAge != SP_TAG_BORN_HISTORY_AGE && sp_history_only_probe(screen_probe_index);
+        revAge = onlyHistoryProbe ? revAge : max(0, int(revAge) - 1);
+        uint listAt = add_screenspace_probes_list(screen_probe_index, onlyHistoryProbe);
+        #else
+        revAge = max(0, int(revAge) - 1);
+        #endif
+
+        uint tagAge = sp_encodeTagRevAge(revAge);
+
+        store |= sp_encodeTag(tagAge|sp_encodeTagMoving(isDynamic));
+        if (exp2(depth_exp_precision(SP_DEFAULT_BILINEAR_DEPTH_EXP, linearDepthCenter, sp_zn_zfar.y)*max(pow2(1-farthestDepthW/linearDepthCenter), pow2(1-veryCloseW/linearDepthCenter))) < 0.01)//not effective, but rather cheap check if we need to place additional probes in this tile at all
+          screenspace_tile_classificator.InterlockedOr((screen_probe_index>>5)*4, 1u<<(screen_probe_index&31));
+        storeBuffer(screenspace_probe_pos, (screen_probe_index + sp_getNumTotalProbes())*4, encodedNormal);
+      }
+      {
+       // todo:
+       // else add skipped, to reuse underallocated probes
+      }
+      storeBuffer(screenspace_probe_pos, screen_probe_index*4, store);
+      storeBuffer(linked_list_additional_screenspace_probes, screen_probe_index*4 + 4, 0);//also clear additional count
+    }
+  }
+  compile("target_cs", "calc_screenspace_position_cs");
+}
+
+int4 sp_placement_iteration;
+shader additional_probes_placement_cs
+{
+  HISTORY_ONLY_PROBE(cs)
+  INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
+  USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+  PROJECT_DO_NOT_UPDATE_FROM_POINT(cs)
+  hlsl(cs) {
+    RWByteAddressBuffer screenspace_probe_pos: register(u0);
+    RWByteAddressBuffer screenspace_tile_classificator: register(u1);
+
+    RWByteAddressBuffer linked_list_additional_screenspace_probes: register(u2);
+    RWByteAddressBuffer screenspace_probes_list: register(u3);
+  }
+  SCREENSPACE_PROBES_POSITIONS_COMMON(cs)
+  SAMPLE_PREV_AGE_SP(cs)
+  SP_GET_DEPTH_MIN_MAX(cs)
+  (cs) {
+    sp_placement_iteration@i2 = sp_placement_iteration;
+    downsampled_normals@tex2d = downsampled_normals;
+  }
+  hlsl(cs) {
+    #include "screenspace_probes_temporal_list_add.hlsl"
+
+    float calc_upsample_weights_threshold(RWByteAddressBuffer linkedList, UAVBufferInfo srvInfo, ViewInfo vInfo, UpsamplePointInfo pointInfo, float depth_exp, uint skip_iteration, float threshold)
+    {
+      float2 probeCoord2DF = pointInfo.screenCoord.xy*screenspace_probe_screen_coord_to_probe_coord.x + screenspace_probe_screen_coord_to_probe_coord.y;
+      uint2 probeCoord2D = uint2(clamp(probeCoord2DF, 0, screenspace_probe_res.xy - 2));
+      //uint2 probeCoord2D = uint2(max(probeCoord2DF, 0));
+      float2 probeCoordFract = saturate(probeCoord2DF - float2(probeCoord2D));
+      //bilinear weights enhanced a bit, to avoid being 0
+      pointInfo.bilinearExpand = SP_BILINEAR_EXPAND;
+      if (pointInfo.bilinearExpand)
+        probeCoordFract = saturate((pointInfo.screenCoord.xy - ((probeCoord2D+0.5)*screenspace_probe_res.z+0.5) + SP_BILINEAR_EXPAND)/(screenspace_probe_res.z + 2*pointInfo.bilinearExpand));
+
+      float4 bilWeights = max(1e-3, float4(1-probeCoordFract, probeCoordFract));
+      float4 scenePlane = float4(pointInfo.worldNormal, dot(pointInfo.camPos, pointInfo.worldNormal)) / pointInfo.sceneLinearDepth;
+      #if DEPTH_ONLY_WEIGHTENING
+      scenePlane = -float4(sp_view_z, dot(pointInfo.camPos, sp_view_z)) / pointInfo.sceneLinearDepth;
+      #endif
+
+      UpsampleCornerWeights corners = (UpsampleCornerWeights)0;
+      corners.sampleBilWeights = float4(bilWeights.x*bilWeights.y, bilWeights.z*bilWeights.y, bilWeights.x*bilWeights.w, bilWeights.z*bilWeights.w);
+      corners.depthWeights = corners.normalizedLinearDepth = 0;
+      //scenePlane *= depth_exp_precision_scale(pointInfo.sceneLinearDepth/sp_zn_zfar.y);
+      depth_exp *= depth_exp_precision_scale(pointInfo.sceneLinearDepth, sp_zn_zfar.y);
+      corners.relDepth = 1e6;
+
+      uint4 encodedScreenProbes = load_encoded_screen_probes(srvInfo, probeCoord2D, vInfo.screenspace_probe_res.x);
+      {
+        UNROLL
+        for (uint i = 0; i < 4; ++i)
+        {
+          uint2 coordOffset = uint2(i&1, (i&2)>>1);
+          uint2 sampleProbeCoord = coordOffset + probeCoord2D;
+          uint2 atlasSampleProbeCoord = sampleProbeCoord;
+          uint screenProbeIndex = sampleProbeCoord.x + screenspace_probe_res.x*sampleProbeCoord.y;
+          uint encodedProbe = encodedScreenProbes[i];
+          FLATTEN
+          if (!encodedProbe)
+            corners.sampleBilWeights[i] = 0;
+          else
+          {
+            DecodedProbe baseProbe = sp_decodeProbeInfo(encodedProbe);
+            float3 probeCamPos = baseProbe.normalizedW*getViewVecFromTc(getScreenProbeCenterScreenUV(sampleProbeCoord), vInfo.lt, vInfo.hor, vInfo.ver);
+            corners.relDepth[i] = pow2(dot(float4(probeCamPos, -1), scenePlane));
+            corners.depthWeights[i] = exp2(depth_exp*corners.relDepth[i]);
+          }
+        }
+      }
+      corners.cornerDepthBilWeights = max(1e-5, corners.depthWeights)*corners.sampleBilWeights;
+      float w = dot(corners.cornerDepthBilWeights, 1);
+      BRANCH
+      if (w >= threshold || skip_iteration == 0)
+        return w;
+
+
+      UNROLL
+      for (uint i = 0; i < 4; ++i)
+      {
+        uint2 coordOffset = uint2(i&1, (i&2)>>1);
+        uint2 sampleProbeCoord = coordOffset + probeCoord2D;
+        uint screenProbeIndex = sampleProbeCoord.x + screenspace_probe_res.x*sampleProbeCoord.y;
+        uint encodedProbe = encodedScreenProbes[i];
+        if (encodedProbe&(SP_TAG_HAS_ADDITIONAL<<SP_TAG_BITS_SHIFT))
+        {
+          for (uint iteration = 0, addProbeIndexAndIteration = loadBuffer(linkedList, screenProbeIndex*4 + 4); iteration < skip_iteration; ++iteration)
+          {
+            uint addProbeIndex = (addProbeIndexAndIteration&SP_ADDITIONAL_PROBE_INDEX_MASK) - 1;
+            if (addProbeIndex == ~0u)
+              break;
+            uint2 nextAndProbe = loadBuffer2(linkedList, sp_getNumScreenProbes()*4 + 4 + addProbeIndex*4*3);
+            DecodedProbe additionalProbe = sp_decodeProbeInfo(nextAndProbe.y);
+
+            uint probeIterationIndex = addProbeIndexAndIteration>>SP_ADDITIONAL_ITERATION_INDEX_SHIFT;
+            if (probeIterationIndex != skip_iteration)
+              processAdditionalProbe(additionalProbe, vInfo, sampleProbeCoord, scenePlane, depth_exp, corners, i);
+            addProbeIndexAndIteration = nextAndProbe.x;
+          }
+        }
+      }
+
+      corners.cornerDepthBilWeights = max(1e-5, corners.depthWeights)*corners.sampleBilWeights;
+      return dot(corners.cornerDepthBilWeights, 1);
+    }
+
+    #define TILE_SIZE 8
+    float getCloseDepth(uint2 screenCoord)
+    {
+      BRANCH
+      if (sp_placement_iteration.x == 0 && uint(screenspace_probe_res.z) > TILE_SIZE)//one constant, fixme
+        return texelFetch(downsampled_close_depth_tex, screenCoord >> 1, 0).x;
+      return loadGbufferDepth(screenCoord);
+    }
+
+    groupshared uint tileSharedDynamic;
+    groupshared uint tileSharedAddProbesCount;
+    groupshared uint tileClass;
+    groupshared uint2 shared_bestProbeAndNormal;
+    groupshared uint tileSharedMinW;
+    groupshared uint tileSharedMinCenterW;
+    [numthreads(TILE_SIZE, TILE_SIZE, 1)]
+    void calc_screenspace_position_cs(uint2 gtId : SV_GroupThreadID, uint2 gId : SV_GroupID, uint2 dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
+    {
+      uint2 screen_tile_coord = gId;
+      //uint2 screen_tile_coord = dtId;
+      uint screen_probe_index = uint(screen_tile_coord.x) + screen_tile_coord.y*uint(screenspace_probe_res.x);
+      if (tid == 0)
+        tileClass = loadBuffer(screenspace_tile_classificator, (screen_probe_index>>5)*4);
+      GroupMemoryBarrierWithGroupSync();
+      if (!(tileClass&(1u<<(screen_probe_index&31))))
+        return;
+
+      uint numScreenProbes = sp_getNumScreenProbes();
+      uint totalAtlasProbes = sp_getNumTotalProbes();
+
+      UAVBufferInfo upsampleBuffers;
+      upsampleBuffers.posBuffer = screenspace_probe_pos;
+      float warpToTileRatio = screenspace_probe_res.z/float(TILE_SIZE);//fixme: const
+      float iterationOffset = (sp_placement_iteration.x>>1);
+      float2 idealScreenCoord = screen_tile_coord*uint(screenspace_probe_res.z) + min((gtId + 0.5)*warpToTileRatio + iterationOffset*saturate(warpToTileRatio-1), screenspace_probe_res.z-0.5);
+      uint2 screenCoord = idealScreenCoord;
+      float2 screenUv = screenICoordToScreenUV(screenCoord);
+
+      //fixme: this is correct only for tile_size == TILE_SIZE
+      float rawDepthCenter = all(screenCoord < uint2(gbuffer_depth_size_load.xy)) ? getCloseDepth(screenCoord) : 0;
+      bool isDynamic = all(screenCoord < uint2(gbuffer_depth_size_load.xy)) && rawDepthCenter != 0 && get_project_is_dynamic_pixel(screenCoord);
+
+      if (tid == 0)
+      {
+        tileSharedAddProbesCount = 0;
+        tileSharedMinW = asuint(1e9f);
+        tileSharedMinCenterW = ~0u;
+        tileSharedDynamic = 0;
+        //tileSharedMinW = f32tof16(60000.f)<<16;
+      }
+      GroupMemoryBarrierWithGroupSync();
+
+      if (isDynamic)
+        InterlockedOr(tileSharedDynamic, 1);
+
+      GroupMemoryBarrierWithGroupSync();
+
+      float rawDepth = rawDepthCenter;
+
+      bool sampleCloseFar = sp_placement_iteration.x != 0;
+      if (uint(screenspace_probe_res.z) > TILE_SIZE && sampleCloseFar)
+      {
+        //uint4 encodedScreenProbes = load_encoded_screen_probes(upsampleBuffers, screen_tile_coord);
+        //todo:
+        //on first iteration check the 'worst' out of three, rawDepthFar (if != 0), rawDepthVeryClose and rawDepthCenter
+        //if rawDepthFar == 0, than we can't use normal
+        float rawDepthFar = 0, rawDepthVeryClose = 0;
+        if (getNativeDepthCloseFar(idealScreenCoord, warpToTileRatio, rawDepthVeryClose, rawDepthFar))
+        {
+          if (rawDepthFar == 0)
+            rawDepthFar = rawDepthCenter;
+          if (rawDepthFar == 0)
+            rawDepthFar = rawDepthVeryClose;
+          //rawDepthCenter = rawDepthFar;
+          if (rawDepthCenter == 0 || sp_placement_iteration.x != 0)
+            rawDepth = (sp_placement_iteration.x&1) ? rawDepthVeryClose : rawDepthFar;
+        }
+      }
+      UpsamplePointInfo pointInfo;
+      pointInfo.sceneLinearDepth = linearize_z(rawDepth, sp_zn_zfar.zw);
+      float3 viewVect = sp_getViewVecOptimized(screenUv);
+      pointInfo.camPos = pointInfo.sceneLinearDepth*viewVect;
+      pointInfo.screenCoord = screenCoord + 0.5;
+      if (rawDepthCenter != 0 && exp2(-1000*pow2(1-linearize_z(rawDepthCenter, sp_zn_zfar.zw)/pointInfo.sceneLinearDepth)) > 0.1)//if we dont clear normal, even sky will have reasonable (smudged) normal, so we can always do that
+      {
+        BRANCH
+        if (sp_placement_iteration.x == 0 && uint(screenspace_probe_res.z) > TILE_SIZE)//one constant, fixme
+          pointInfo.worldNormal = normalize(texelFetch(downsampled_normals, screenCoord >> 1, 0).xyz * 2 - 1);
+        else
+          loadPackedGbufferNormal(screenCoord, pointInfo.worldNormal);
+        //FLATTEN
+        //if (dot(pointInfo.worldNormal, normalize(viewVect)) > 0.5)
+        //  pointInfo.worldNormal = -pointInfo.worldNormal;
+      } else
+        pointInfo.worldNormal = -normalize(viewVect);
+
+      float weightThreshold = 0.01;
+      float curW = 1e6;
+      BRANCH
+      if (rawDepth != 0) //not sky
+      {
+        curW = calc_upsample_weights_threshold(linked_list_additional_screenspace_probes, upsampleBuffers, sp_getScreenViewInfo(), pointInfo, SP_DEFAULT_BILINEAR_DEPTH_EXP, sp_placement_iteration.x, weightThreshold);
+        if (curW < weightThreshold)
+          InterlockedMin(tileSharedMinW, asuint(curW));
+      }
+
+      GroupMemoryBarrierWithGroupSync();
+      float minWeight = asfloat(tileSharedMinW);
+      //uint minTheWeight = tileSharedMinW;
+      //float minWeight = f16tof32(minTheWeight>>16)*weightThreshold;
+
+      bool reclassify = sp_placement_iteration.y && (uint(screenspace_probe_res.z) <= TILE_SIZE || (sp_placement_iteration.x&1) == 0);
+
+      if (minWeight >= weightThreshold)
+      {
+        if (reclassify)
+          screenspace_tile_classificator.InterlockedAnd((screen_probe_index>>5)*4, ~(1u<<(screen_probe_index&31)));
+        return;
+      }
+
+      int2 centerDir = int2(gtId) - TILE_SIZE/2;
+      uint centerDist = (dot(centerDir, centerDir)<<16)|tid;
+      if (curW <= minWeight)
+        InterlockedMin(tileSharedMinCenterW, centerDist);
+
+      GroupMemoryBarrierWithGroupSync();
+      bool isSelectedProbe = tileSharedMinCenterW == centerDist;
+
+      DecodedProbe bestProbe;
+      bestProbe.allTag = 0;//we check age later, when adding (one probe)
+      bestProbe.normalizedW = pointInfo.sceneLinearDepth/sp_zn_zfar.y;
+      uint2 coord_ofs = screenCoord - screen_tile_coord*screenspace_probe_res.z;
+      float3 bestProbeCamPos = bestProbe.normalizedW*sp_getViewVecOptimizedNormalized(getScreenProbeCenterScreenUV(screen_tile_coord));
+
+      uint2 bestProbeAndNormal = uint2(sp_encodeProbeInfo(bestProbe), encodeProbeNormalAndOfs(pointInfo.worldNormal, coord_ofs));
+
+      //for reclassification
+      if (isSelectedProbe)
+      {
+        shared_bestProbeAndNormal = bestProbeAndNormal;
+        uint additionalAt;
+        linked_list_additional_screenspace_probes.InterlockedAdd(0, 1, additionalAt);
+        if (additionalAt < sp_getNumAdaptiveProbes())
+        {
+          //for (uint ai = 0; ai < additionalCount; ++ai)
+          uint addedProbeIndex = sp_getNumScreenProbes() + additionalAt;
+
+          uint revAge = sp_is_valid_history() ? sample_history_rev_age(sp_decodeProbeInfo(bestProbeAndNormal.x).normalizedW*sp_zn_zfar.y, bestProbeCamPos, pointInfo.worldNormal) : SP_TAG_BORN_HISTORY_AGE;
+
+          #if SP_EXPLICIT_LIST
+          uint onlyHistoryProbe = revAge != SP_TAG_BORN_HISTORY_AGE && sp_history_only_probe(addedProbeIndex);
+          revAge = onlyHistoryProbe ? revAge : max(0, int(revAge) - 1);
+          uint listAt = add_screenspace_probes_list(addedProbeIndex, onlyHistoryProbe);
+          #else
+          revAge = max(0, int(revAge) - 1);
+          #endif
+          uint tagAge = sp_encodeTagRevAge(revAge);
+
+          bestProbeAndNormal.x |= sp_encodeTag(tagAge|sp_encodeTagMoving(tileSharedDynamic));
+
+
+
+          uint oldHead = 0;
+          uint newHead = (additionalAt + 1)|(sp_placement_iteration.x<<SP_ADDITIONAL_ITERATION_INDEX_SHIFT);
+
+          //this should be happening only on first iteration, as long as TILE_SIZE
+
+          screenspace_probe_pos.InterlockedOr(screen_probe_index*4, SP_TAG_HAS_ADDITIONAL<<SP_TAG_BITS_SHIFT);// so we find additional probes during iteration
+          if (sp_placement_iteration.x == 0)
+          {
+            //first iteration is write-only
+            //screenspace_probe_pos.InterlockedOr(screen_probe_index*4, SP_TAG_HAS_ADDITIONAL<<SP_TAG_BITS_SHIFT);// so we find additional probes during iteration
+            storeBuffer3(linked_list_additional_screenspace_probes, sp_getNumScreenProbes()*4 + 4 + additionalAt*12, uint3(oldHead, bestProbeAndNormal.xy));
+            storeBuffer(linked_list_additional_screenspace_probes, screen_probe_index*4 + 4, newHead);
+            if (uint(screenspace_probe_res.z) <= TILE_SIZE)
+              linked_list_additional_screenspace_probes.InterlockedExchange(screen_probe_index*4 + 4, newHead, oldHead);
+          } else
+          {
+            //if (uint(screenspace_probe_res.z) > TILE_SIZE)
+            //  screenspace_probe_pos.InterlockedOr(screen_probe_index*4, SP_TAG_HAS_ADDITIONAL<<SP_TAG_BITS_SHIFT);// so we find additional probes during iteration
+            //1+ iteration is read-write. In theory it requires globallycoherent RWBuffer
+            //we get away without it, due to the following:
+            // * We use Load for old data, since we flush uav between placements, and we only ever write in one thread/one group
+            //  (we can implement InterlockedLoad with InterlockedCompareExchange (to read oldNext).)
+            // * we then write interlocked next (current head) node two linked list.
+            //   (we can implement InterlockedStore with InterlockedExchange)
+            // * we then write head to linked list using normal Store. Again, we can do with InterlockedStore/InterlockedExchange, but that's not important, as we don't even want to read this data in other threadgroups!
+            //  Now, ideally we want to skip this new nodes in iteration over
+            //InterlockedLoad
+            oldHead = loadBuffer(linked_list_additional_screenspace_probes, screen_probe_index*4 + 4);
+            //if we write those two with interlocked Store, we can even iterate through this node in other threads (don't skip this iteration)
+            //however, it will create race and probes won't appear each N thread
+            storeBuffer2(linked_list_additional_screenspace_probes, sp_getNumScreenProbes()*4 + 4 + additionalAt*12 + 4, bestProbeAndNormal.xy);
+
+            //old Head should be guaranteed to be written, by the time any thread is reading newHead, so we iterate over old
+            uint unused;
+            linked_list_additional_screenspace_probes.InterlockedExchange(sp_getNumScreenProbes()*4 + 4 + additionalAt*12, oldHead, unused);
+            //linked_list_additional_screenspace_probes.InterlockedExchange(screen_probe_index*4 + 4, newHead, oldHead);
+            storeBuffer(linked_list_additional_screenspace_probes, screen_probe_index*4 + 4, newHead);
+          }
+        }
+      }
+      //re classify
+      if (reclassify)//todo: if (uint(screenspace_probe_res.z) > TILE_SIZE) we can only re-classify, if we are at first iteration or on even (so both far&close depths are processed)
+      {
+        GroupMemoryBarrierWithGroupSync();
+        bestProbeAndNormal = shared_bestProbeAndNormal;
+        bestProbe = sp_decodeProbeInfo(bestProbeAndNormal.x);
+        float3 bestProbeCamPos = sp_decodeProbeInfo(bestProbeAndNormal.x).normalizedW*sp_getViewVecOptimizedNormalized(getScreenProbeCenterScreenUV(screen_tile_coord));
+        tileSharedAddProbesCount = asuint(1.f);
+        GroupMemoryBarrierWithGroupSync();
+        if (curW < weightThreshold && !isSelectedProbe)
+        {
+          float4 scenePlane = float4(pointInfo.worldNormal, dot(pointInfo.camPos, pointInfo.worldNormal)) / pointInfo.sceneLinearDepth;
+          #if DEPTH_ONLY_WEIGHTENING
+          scenePlane = -float4(sp_view_z, dot(pointInfo.worldPos, sp_view_z)) / pointInfo.sceneLinearDepth;
+          #endif
+
+          float newRelativeDepthDifference  = pow2(dot(float4(bestProbeCamPos, -1), scenePlane));
+          float newDepthWeight = exp2(depth_exp_precision(SP_DEFAULT_BILINEAR_DEPTH_EXP, pointInfo.sceneLinearDepth, sp_zn_zfar.y)*newRelativeDepthDifference);
+          InterlockedMin(tileSharedAddProbesCount, asuint(newDepthWeight));//todo: wave intrinsic (WaveMin)
+        }
+        GroupMemoryBarrierWithGroupSync();
+        if (asfloat(tileSharedAddProbesCount) >= weightThreshold)
+          screenspace_tile_classificator.InterlockedAnd((screen_probe_index>>5)*4, ~(1u<<(screen_probe_index&31)));
+      }
+    }
+  }
+  compile("target_cs", "calc_screenspace_position_cs");
+}
+
+buffer linked_list_additional_screenspace_probes;
+
+shader rearrange_additional_probes_placement_cs
+{
+  ENABLE_ASSERT(cs)
+  INIT_SCREENSPACE_PROBES_RES(cs)
+  (cs) {
+    linked_list_additional_screenspace_probes@buf = linked_list_additional_screenspace_probes hlsl {
+      ByteAddressBuffer linked_list_additional_screenspace_probes@buf;
+    }
+  }
+  hlsl(cs) {
+    RWByteAddressBuffer screenspace_probe_pos: register(u0);
+    RWByteAddressBuffer screenspace_tile_classificator: register(u1);
+  }
+  hlsl(cs) {
+    #include <screenprobes_consts.hlsli>
+    #include <screen_probes_octahedral_common.hlsl>
+    [numthreads(64, 1, 1)]
+    void rearrange_additional_probes_placement_cs(uint2 gtId : SV_GroupThreadID, uint2 gId : SV_GroupID, uint2 dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
+    {
+      //fixme: better add probes to process
+      uint screenProbeIndex = dtId.x;
+      if (screenProbeIndex >= sp_getNumScreenProbes())
+        return;
+      uint2 probesLoaded[SP_MAX_ADDITIONAL_PROBES_COUNT];
+      uint addedProbes = 0;
+      for (uint addProbeIndex = loadBuffer(linked_list_additional_screenspace_probes, screenProbeIndex*4 + 4); addedProbes < SP_MAX_ADDITIONAL_PROBES_COUNT; addedProbes++)
+      {
+        addProbeIndex = (addProbeIndex&SP_ADDITIONAL_PROBE_INDEX_MASK)-1;
+        if (addProbeIndex == ~0u)
+          break;
+        uint3 nextProbeAndNormal = loadBuffer3(linked_list_additional_screenspace_probes, sp_getNumScreenProbes()*4 + 4 + addProbeIndex*12);
+        probesLoaded[addedProbes] = nextProbeAndNormal.yz;
+        addProbeIndex = nextProbeAndNormal.x;
+      }
+      uint atCount = 0;
+      if (addedProbes)
+      {
+        uint at;
+        screenspace_probe_pos.InterlockedAdd(sp_additionalProbesCounterByteAt(), addedProbes, at);//todo: use wave add
+        addedProbes = clamp(int(addedProbes), 0, int(sp_getNumAdaptiveProbes()) - int(at));
+        FLATTEN
+        if (addedProbes == 0)
+          at = 0;
+
+        atCount = at|(addedProbes<<24);
+        for (uint i = 0; i < addedProbes; ++i)
+        {
+          uint atlasProbeIndex = sp_getNumScreenProbes() + at + i;
+          uint revI = addedProbes - 1 - i;
+          ##assert(revI < SP_MAX_ADDITIONAL_PROBES_COUNT, "[%s:%.f] Out of bounds: Buffer 'probesLoaded' has size %.f, but access to (%.f)", _FILE_, __LINE__, SP_MAX_ADDITIONAL_PROBES_COUNT, revI);
+          storeBuffer(screenspace_probe_pos, atlasProbeIndex*4, probesLoaded[revI].x);
+          storeBuffer(screenspace_probe_pos, (atlasProbeIndex + sp_getNumTotalProbes())*4, probesLoaded[revI].y);//normal and ofs
+          storeBuffer(screenspace_tile_classificator, (sp_getScreenTileClassificatorOffsetDwords() + at + i)*4, screenProbeIndex);//trace&filter info, index of screen tile
+        }
+      }
+      storeBuffer(screenspace_probe_pos, screenProbeIndex*4 + sp_additionalProbesByteAt(), atCount);
+    }
+  }
+  compile("target_cs", "rearrange_additional_probes_placement_cs");
+}
+
+buffer screenspace_tile_classificator;
+
+shader clear_additional_screenspace_probes_count_cs
+{
+  ENABLE_ASSERT(cs)
+  INIT_SCREENSPACE_PROBES_RES(cs)
+  hlsl(cs) {
+    RWByteAddressBuffer screenspace_tile_classificator: register(u0);
+    RWByteAddressBuffer linked_list_additional_screenspace_probes: register(u1);
+    RWByteAddressBuffer screenspace_probe_pos: register(u2);
+    RWByteAddressBuffer screenspace_probes_list: register(u3);
+    [numthreads(64, 1, 1)]
+    void clear_additional_screenspace_probes_count_cs(uint2 gtId : SV_GroupThreadID, uint2 gId : SV_GroupID, uint2 dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
+    {
+      uint numScreenProbes = sp_getNumScreenProbes();
+      uint totalAtlasProbes = sp_getNumTotalProbes();
+      uint numAddProbes = sp_getNumAdaptiveProbes();
+      if (dtId.x == 0)//move me out
+      {
+        storeBuffer(linked_list_additional_screenspace_probes, 0, 0);//also clear
+        storeBuffer(screenspace_probe_pos, sp_additionalProbesCounterByteAt(), 0);//also clear
+      }
+      /*if (dtId.x < (sp_getScreenTileClassificatorOffsetDwords() + 3)/4)
+        storeBuffer4(screenspace_tile_classificator, dtId.x*16, 0u);
+      if (dtId.x < (numAddProbes+3)/4)
+        storeBuffer4(screenspace_tile_classificator, (sp_getScreenTileClassificatorOffsetDwords() + totalAtlasProbes)*4 + dtId.x*16, ~0u);
+      */
+      if (dtId.x < (sp_getScreenTileClassificatorOffsetDwords()+3)/4)
+        storeBuffer4(screenspace_tile_classificator, dtId.x*16, 0u);
+      if (dtId.x < (numAddProbes+3)/4)
+      {
+        storeBuffer4(screenspace_tile_classificator, (sp_getScreenTileClassificatorOffsetDwords() + dtId.x*4)*4, ~0u);//trace&filter info, index of screen tile
+      }
+      storeBuffer2(screenspace_probes_list, 0,0);
+    }
+  }
+  compile("target_cs", "clear_additional_screenspace_probes_count_cs");
+}

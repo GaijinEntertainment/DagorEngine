@@ -4,8 +4,8 @@
 
 #include <Jolt/Jolt.h>
 
-#include <Jolt/Physics/PhysicsSettings.h>
 #include <Jolt/Physics/Body/BodyManager.h>
+#include <Jolt/Physics/PhysicsSettings.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyLock.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
@@ -120,7 +120,7 @@ void BodyManager::Init(uint inMaxBodies, uint inNumBodyMutexes, const BroadPhase
 	}
 
 	// Allocate space for sequence numbers
-	mBodySequenceNumbers.resize(inMaxBodies);
+	mBodySequenceNumbers.resize(inMaxBodies, 0);
 
 	// Keep layer interface
 	mBroadPhaseLayerInterface = &inLayerInterface;
@@ -198,10 +198,14 @@ Body *BodyManager::AllocateBody(const BodyCreationSettings &inBodyCreationSettin
 	body->mMotionType = inBodyCreationSettings.mMotionType;
 	if (inBodyCreationSettings.mIsSensor)
 		body->SetIsSensor(true);
-	if (inBodyCreationSettings.mSensorDetectsStatic)
-		body->SetSensorDetectsStatic(true);
+	if (inBodyCreationSettings.mCollideKinematicVsNonDynamic)
+		body->SetCollideKinematicVsNonDynamic(true);
 	if (inBodyCreationSettings.mUseManifoldReduction)
 		body->SetUseManifoldReduction(true);
+	if (inBodyCreationSettings.mApplyGyroscopicForce)
+		body->SetApplyGyroscopicForce(true);
+	if (inBodyCreationSettings.mEnhancedInternalEdgeRemoval)
+		body->SetEnhancedInternalEdgeRemoval(true);
 	SetBodyObjectLayerInternal(*body, inBodyCreationSettings.mObjectLayer);
 	body->mObjectLayer = inBodyCreationSettings.mObjectLayer;
 	body->mCollisionGroup = inBodyCreationSettings.mCollisionGroup;
@@ -213,14 +217,16 @@ Body *BodyManager::AllocateBody(const BodyCreationSettings &inBodyCreationSettin
 		mp->SetAngularDamping(inBodyCreationSettings.mAngularDamping);
 		mp->SetMaxLinearVelocity(inBodyCreationSettings.mMaxLinearVelocity);
 		mp->SetMaxAngularVelocity(inBodyCreationSettings.mMaxAngularVelocity);
-		mp->SetLinearVelocity(inBodyCreationSettings.mLinearVelocity); // Needs to happen after setting the max linear/angular velocity
+		mp->SetMassProperties(inBodyCreationSettings.mAllowedDOFs, inBodyCreationSettings.GetMassProperties());
+		mp->SetLinearVelocity(inBodyCreationSettings.mLinearVelocity); // Needs to happen after setting the max linear/angular velocity and setting allowed DOFs
 		mp->SetAngularVelocity(inBodyCreationSettings.mAngularVelocity);
 		mp->SetGravityFactor(inBodyCreationSettings.mGravityFactor);
+		mp->SetNumVelocityStepsOverride(inBodyCreationSettings.mNumVelocityStepsOverride);
+		mp->SetNumPositionStepsOverride(inBodyCreationSettings.mNumPositionStepsOverride);
 		mp->mMotionQuality = inBodyCreationSettings.mMotionQuality;
 		mp->mAllowSleeping = inBodyCreationSettings.mAllowSleeping;
 		JPH_IF_ENABLE_ASSERTS(mp->mCachedBodyType = body->mBodyType;)
 		JPH_IF_ENABLE_ASSERTS(mp->mCachedMotionType = body->mMotionType;)
-		mp->SetMassProperties(inBodyCreationSettings.mAllowedDOFs, inBodyCreationSettings.GetMassProperties());
 	}
 
 	// Position body
@@ -406,7 +412,7 @@ Body *BodyManager::RemoveBodyInternal(const BodyID &inBodyID)
 	return body;
 }
 
-#if defined(_DEBUG) && defined(JPH_ENABLE_ASSERTS)
+#if defined(JPH_DEBUG) && defined(JPH_ENABLE_ASSERTS)
 
 void BodyManager::ValidateFreeList() const
 {
@@ -420,7 +426,7 @@ void BodyManager::ValidateFreeList() const
 	JPH_ASSERT(mNumBodies == mBodies.size() - num_freed);
 }
 
-#endif // defined(_DEBUG) && _defined(JPH_ENABLE_ASSERTS)
+#endif // defined(JPH_DEBUG) && _defined(JPH_ENABLE_ASSERTS)
 
 void BodyManager::RemoveBodies(const BodyID *inBodyIDs, int inNumber, Body **outBodies)
 {
@@ -450,9 +456,9 @@ void BodyManager::RemoveBodies(const BodyID *inBodyIDs, int inNumber, Body **out
 		}
 	}
 
-#if defined(_DEBUG) && defined(JPH_ENABLE_ASSERTS)
+#if defined(JPH_DEBUG) && defined(JPH_ENABLE_ASSERTS)
 	ValidateFreeList();
-#endif // defined(_DEBUG) && _defined(JPH_ENABLE_ASSERTS)
+#endif // defined(JPH_DEBUG) && _defined(JPH_ENABLE_ASSERTS)
 }
 
 void BodyManager::DestroyBodies(const BodyID *inBodyIDs, int inNumber)
@@ -476,9 +482,9 @@ void BodyManager::DestroyBodies(const BodyID *inBodyIDs, int inNumber)
 		sDeleteBody(body);
 	}
 
-#if defined(_DEBUG) && defined(JPH_ENABLE_ASSERTS)
+#if defined(JPH_DEBUG) && defined(JPH_ENABLE_ASSERTS)
 	ValidateFreeList();
-#endif // defined(_DEBUG) && _defined(JPH_ENABLE_ASSERTS)
+#endif // defined(JPH_DEBUG) && _defined(JPH_ENABLE_ASSERTS)
 }
 
 void BodyManager::AddBodyToActiveBodies(Body &ioBody)
@@ -550,17 +556,20 @@ void BodyManager::ActivateBodies(const BodyID *inBodyIDs, int inNumber)
 			JPH_ASSERT(body.GetID() == body_id);
 			JPH_ASSERT(body.IsInBroadPhase());
 
-			if (!body.IsStatic()
-				&& body.mMotionProperties->mIndexInActiveBodies == Body::cInactiveIndex)
+			if (!body.IsStatic())
 			{
-				// Reset sleeping
-				body.ResetSleepTestSpheres();
+				// Reset sleeping timer so that we don't immediately go to sleep again
+				body.ResetSleepTimer();
 
-				AddBodyToActiveBodies(body);
+				// Check if we're sleeping
+				if (body.mMotionProperties->mIndexInActiveBodies == Body::cInactiveIndex)
+				{
+					AddBodyToActiveBodies(body);
 
-				// Call activation listener
-				if (mActivationListener != nullptr)
-					mActivationListener->OnBodyActivated(body_id, body.GetUserData());
+					// Call activation listener
+					if (mActivationListener != nullptr)
+						mActivationListener->OnBodyActivated(body_id, body.GetUserData());
+				}
 			}
 		}
 }
@@ -1073,11 +1082,23 @@ void BodyManager::Draw(const DrawSettings &inDrawSettings, const PhysicsSettings
 				if (inDrawSettings.mDrawSoftBodyVertices)
 					mp->DrawVertices(inRenderer, com);
 
+				if (inDrawSettings.mDrawSoftBodyVertexVelocities)
+					mp->DrawVertexVelocities(inRenderer, com);
+
 				if (inDrawSettings.mDrawSoftBodyEdgeConstraints)
-					mp->DrawEdgeConstraints(inRenderer, com);
+					mp->DrawEdgeConstraints(inRenderer, com, inDrawSettings.mDrawSoftBodyConstraintColor);
+
+				if (inDrawSettings.mDrawSoftBodyBendConstraints)
+					mp->DrawBendConstraints(inRenderer, com, inDrawSettings.mDrawSoftBodyConstraintColor);
 
 				if (inDrawSettings.mDrawSoftBodyVolumeConstraints)
-					mp->DrawVolumeConstraints(inRenderer, com);
+					mp->DrawVolumeConstraints(inRenderer, com, inDrawSettings.mDrawSoftBodyConstraintColor);
+
+				if (inDrawSettings.mDrawSoftBodySkinConstraints)
+					mp->DrawSkinConstraints(inRenderer, com, inDrawSettings.mDrawSoftBodyConstraintColor);
+
+				if (inDrawSettings.mDrawSoftBodyLRAConstraints)
+					mp->DrawLRAConstraints(inRenderer, com, inDrawSettings.mDrawSoftBodyConstraintColor);
 
 				if (inDrawSettings.mDrawSoftBodyPredictedBounds)
 					mp->DrawPredictedBounds(inRenderer, com);
@@ -1112,7 +1133,7 @@ void BodyManager::ValidateContactCacheForAllBodies()
 	mBodiesCacheInvalid.clear();
 }
 
-#ifdef _DEBUG
+#ifdef JPH_DEBUG
 void BodyManager::ValidateActiveBodyBounds()
 {
 	UniqueLock lock(mActiveBodiesMutex JPH_IF_ENABLE_ASSERTS(, this, EPhysicsLockTypes::ActiveBodiesList));
@@ -1126,6 +1147,6 @@ void BodyManager::ValidateActiveBodyBounds()
 			JPH_ASSERT(cached == calculated);
 		}
 }
-#endif // _DEBUG
+#endif // JPH_DEBUG
 
 JPH_NAMESPACE_END

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "texMgrData.h"
 #include <debug/dag_fatal.h>
 #include <debug/dag_debug.h>
@@ -5,6 +7,7 @@
 #include <ioSys/dag_genIo.h>
 #include <math/dag_adjpow2.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <osApiWrappers/dag_stackHlp.h>
 #include <3d/ddsxTex.h>
 #include <memory/dag_memStat.h>
 #include <util/dag_string.h>
@@ -38,6 +41,7 @@ DECL_RESMGR_PRIVATE_DATA(texBaseData);
 DECL_RESMGR_PRIVATE_DATA(texUsedSz);
 DECL_RESMGR_PRIVATE_DATA(maxReqLevelPrev);
 DECL_RESMGR_PRIVATE_DATA(texImportance);
+DECL_RESMGR_PRIVATE_DATA(texSamplers);
 #undef DECL_RESMGR_PRIVATE_DATA
 using texmgr_internal::RMGR;
 
@@ -81,9 +85,12 @@ void texmgr_internal::D3dResMgrDataFinal::init(int max_res_entry_count)
   ALLOC_DATA_Z(texUsedSz);
   ALLOC_DATA_Z(maxReqLevelPrev);
   ALLOC_DATA_Z(texImportance);
+  ALLOC_DATA_V(texSamplers, d3d::INVALID_SAMPLER_HANDLE);
 #undef ALLOC_DATA
 #undef ALLOC_DATA_0
 #undef ALLOC_DATA_V
+
+  logdbg("texmgr_internal::D3dResMgrDataFinal::init: RMGR resources have been initialized.");
 
   FREE_LIST_BMASK = get_bigger_pow2(max_res_entry_count) - 1;
   unsigned half_shift = sizeof(freeListRdPos) * 4;
@@ -107,6 +114,8 @@ void texmgr_internal::D3dResMgrDataFinal::term()
     BaseData::free(texBaseData[i]);
   }
 
+  logdbg("texmgr_internal::D3dResMgrDataFinal::term: RMGR resources release.");
+
 #define RELEASE_DATA(NM)       \
   memfree((void *)NM, inimem); \
   NM = nullptr
@@ -127,6 +136,7 @@ void texmgr_internal::D3dResMgrDataFinal::term()
   RELEASE_DATA(texUsedSz);
   RELEASE_DATA(maxReqLevelPrev);
   RELEASE_DATA(texImportance);
+  RELEASE_DATA(texSamplers);
 #undef RELEASE_DATA
   maxTotalIndexCount = 0;
   indexCount = 0;
@@ -201,7 +211,7 @@ static struct RmgrTerminator
 } rmgrTerminator;
 CritSecStorage crit_sec;
 WinCritSec rec_lock;
-int (*drv3d_cmd)(int command, void *par1, void *par2, void *par3) = NULL;
+int (*drv3d_cmd)(Drv3dCommand command, void *par1, void *par2, void *par3) = NULL;
 }; // namespace texmgr_internal
 
 Tab<BaseTexture *> tql::texStub(inimem);
@@ -270,24 +280,28 @@ namespace ddsx
 int hq_tex_priority = 0;
 }
 
-static bool skip_load_ddsx_tex_contents(BaseTexture *, TEXTUREID, TEXTUREID, const ddsx::Header &hdr, IGenLoad &crd, int, int,
-  unsigned)
+static TexLoadRes skip_load_ddsx_tex_contents(BaseTexture *, TEXTUREID, TEXTUREID, const ddsx::Header &hdr, IGenLoad &crd, int, int,
+  unsigned, on_tex_slice_loaded_cb_t)
 {
   crd.seekrel(hdr.compressionType() ? hdr.packedSz : hdr.memSz);
-  return true;
+  return TexLoadRes::OK;
 }
-static bool skip_load_ddsx_to_slice(BaseTexture *, int, const ddsx::Header &, IGenLoad &, int, int, unsigned) { return true; }
-static bool skip_load_genmip_sysmemcopy(TEXTUREID, TEXTUREID, const ddsx::Header &, IGenLoad &, int) { return true; }
+static TexLoadRes skip_load_ddsx_to_slice(BaseTexture *, int, const ddsx::Header &, IGenLoad &, int, int, unsigned)
+{
+  return TexLoadRes::OK;
+}
+static TexLoadRes skip_load_genmip_sysmemcopy(TEXTUREID, TEXTUREID, const ddsx::Header &, IGenLoad &, int) { return TexLoadRes::OK; }
 
-bool (*d3d_load_ddsx_tex_contents)(BaseTexture *, TEXTUREID, TEXTUREID, const ddsx::Header &, IGenLoad &, int, int,
-  unsigned) = &skip_load_ddsx_tex_contents;
-bool (*d3d_load_ddsx_to_slice)(BaseTexture *, int, const ddsx::Header &, IGenLoad &, int, int, unsigned) = &skip_load_ddsx_to_slice;
-bool (*texmgr_internal::d3d_load_genmip_sysmemcopy)(TEXTUREID, TEXTUREID, const ddsx::Header &, IGenLoad &,
+TexLoadRes (*d3d_load_ddsx_tex_contents_impl)(BaseTexture *, TEXTUREID, TEXTUREID, const ddsx::Header &, IGenLoad &, int, int,
+  unsigned, on_tex_slice_loaded_cb_t) = &skip_load_ddsx_tex_contents;
+TexLoadRes (*d3d_load_ddsx_to_slice)(BaseTexture *, int, const ddsx::Header &, IGenLoad &, int, int,
+  unsigned) = &skip_load_ddsx_to_slice;
+TexLoadRes (*texmgr_internal::d3d_load_genmip_sysmemcopy)(TEXTUREID, TEXTUREID, const ddsx::Header &, IGenLoad &,
   int) = &skip_load_genmip_sysmemcopy;
 
 bool texmgr_internal::is_gpu_mem_enough_to_load_hq_tex()
 {
-  int actual_quota_kb = tql::mem_quota_kb - tql::mem_used_persistent_kb - tql::mem_quota_reserve_kb;
+  int actual_quota_kb = tql::mem_quota_kb - interlocked_relaxed_load(tql::mem_used_persistent_kb) - tql::mem_quota_reserve_kb;
   int overuse = tql::mem_quota_reserve_kb / 4;
   return actual_quota_kb + overuse > RMGR.getTotalUsedTexSzKB() + min(RMGR.getTotalAddMemNeededSzKB(), overuse) ||
          !texmgr_internal::texq_load_on_demand;
@@ -351,7 +365,14 @@ void texmgr_internal::apply_mip_bias_rules(BaseTexture *tex, const char *name)
   }
   TextureMetaData tmd;
   tmd.decode(name);
-  tex->texlod(tmd.lodBias / 1000.0f + additionalMipBias);
+  if (tex->isSamplerEnabled())
+    tex->texlod(tmd.lodBias / 1000.0f + additionalMipBias);
+  if (get_texture_separate_sampler(tex->getTID()) != d3d::INVALID_SAMPLER_HANDLE)
+  {
+    auto samplerInfo = get_sampler_info(tmd);
+    samplerInfo.mip_map_bias = tmd.lodBias / 1000.0f + additionalMipBias;
+    set_texture_separate_sampler(tex->getTID(), samplerInfo);
+  }
 }
 
 void texmgr_internal::remove_from_managed_tex_map(int idx)

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -41,6 +40,8 @@ void draw_cached_debug_line(const Point3 *p0, int nm, E3DCOLOR color);
 
 void draw_cached_debug_box(const BBox3 &box, E3DCOLOR color);
 
+void draw_cached_debug_box(const BBox3 &box, E3DCOLOR color, TMatrix tm);
+
 void draw_cached_debug_box(const Point3 &p0, const Point3 &ax, const Point3 &ay, const Point3 &az, E3DCOLOR color);
 
 void draw_cached_debug_sphere(const Point3 &c, real rad, E3DCOLOR col, int segs = 24);
@@ -59,6 +60,8 @@ void draw_cached_debug_capsule_w(const Capsule &cap, E3DCOLOR c);
 void draw_cached_debug_capsule(const Capsule &cap, E3DCOLOR c, const TMatrix &wtm);
 
 void draw_cached_debug_cylinder(const TMatrix &wtm, float rad, float height, E3DCOLOR c);
+void draw_cached_debug_cylinder(const TMatrix &tm, Point3 &a, Point3 &b, float rad, E3DCOLOR c);
+void draw_cached_debug_cylinder_w(Point3 &a, Point3 &b, float rad, E3DCOLOR c);
 
 void draw_cached_debug_cone(const Point3 &p0, const Point3 &p1, real angleRad, E3DCOLOR col, int segs = 24);
 
@@ -77,9 +80,9 @@ void draw_cached_debug_hex(const TMatrix &view_itm, const Point3 &pos, real rad,
 void draw_cached_debug_quad(const Point3 p[4], E3DCOLOR c = E3DCOLOR_MAKE(255, 255, 64, 255));
 void draw_cached_debug_solid_triangle(const Point3 p[3], E3DCOLOR c);
 
-struct Frustum2;
+struct Frustum;
 void draw_cached_debug_quad(vec4f &p0, vec4f &p1, vec4f &p2, vec4f &p3, E3DCOLOR col);
-void draw_debug_frustum(const Frustum2 &fr, E3DCOLOR col);
+void draw_debug_frustum(const Frustum &fr, E3DCOLOR col);
 
 void draw_cached_debug_proj_matrix(const TMatrix4 &tm, E3DCOLOR nearplaneColor = E3DCOLOR_MAKE(0, 255, 0, 255),
   E3DCOLOR farplaneColor = E3DCOLOR_MAKE(255, 0, 0, 255), E3DCOLOR sideColor = E3DCOLOR_MAKE(255, 255, 255, 255));
@@ -240,6 +243,9 @@ void draw_debug_tehedron_buffered(const Point3 &c, real radius, E3DCOLOR col = E
   size_t frames = DEBUG3D_DEFAULT_FRAMES_TO_BUFFER);
 void flush_buffered_debug_lines(bool game_is_paused = false);
 void clear_buffered_debug_lines();
+void draw_debug_cylinder_buffered(const Point3 &p0, const Point3 &p1, float radius, E3DCOLOR col, int segs, size_t frames);
+void draw_debug_cylinder_buffered(const Point3 &p0, const Point3 &p1, float radius1, float radius2, E3DCOLOR col, int segs,
+  size_t frames);
 
 void draw_debug_capsule_buffered(const Point3 &p0, const Point3 &p1, real rad, E3DCOLOR col, int segs = 24,
   size_t frames = DEBUG3D_DEFAULT_FRAMES_TO_BUFFER);

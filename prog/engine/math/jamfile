@@ -37,7 +37,7 @@ UseProgLibs =
   3rdPartyLibs/eastl
 ;
 
-if $(Platform) in win32 win64 linux64 ps4 ps5 xboxOne scarlett || ( $(Platform) = macosx && $(MacOSXArch) = x86_64 ) {
+if $(PlatformArch) in x86 x86_64 {
   Sources +=
     dxtDecompressSimd.cpp
   ;
@@ -48,15 +48,14 @@ if $(Platform) in win32 win64 linux64 ps4 ps5 xboxOne scarlett || ( $(Platform) 
 }
 
 
-if $(DriverLinkage) = static {
+if $(KernelLinkage) = static {
   Sources +=
     rndSeed.cpp
     gaussTbl.cpp
   ;
 }
 
-CPPopt = -D__B_CORE ;
-if $(DriverLinkage) = dynamic && $(Platform) in win32 win64 { CPPopt += -D_DEBUG_TAB_ ; }
+if $(KernelLinkage) = dynamic && $(Platform) in windows { CPPopt += -D_DEBUG_TAB_ ; }
 
 if $(DagorMath_MEASURE_PERF) {
   local suf = ~pm$(DagorMath_MEASURE_PERF) ;  if $(DagorMath_MEASURE_PERF_FRAMES) { suf = $(suf)-$(DagorMath_MEASURE_PERF_FRAMES) ; }

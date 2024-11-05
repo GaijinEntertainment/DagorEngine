@@ -27,6 +27,7 @@ actions together quietly convert_plist_file
 actions together quietly convert_strings_file
 {
   echo * converting loc strings: $(1)
+  mkdir $(1:D)
   call plutil -convert binary1 -o $(1) $(2)
   if not exist $(1) set errorlevel=13
 }
@@ -63,6 +64,31 @@ actions together quietly move_target_to_framework
   if not exist $(dst) set errorlevel=13
 }
 
+actions together quietly copy_framework
+{
+  echo * copy Framework to: $(dst)
+  call $(PYTHON_EXE) $(Root)/prog/_jBuild/$(Platform)/copy_framework.py $(src) $(dst)
+  if not exist $(dst) set errorlevel=13
+}
+
+rule ProcessEmbeddedFrameworks
+{
+  local srcFramework = $(1[1]) ;
+  local dstFramework = $(OutDir)/Frameworks/$(srcFramework:B).framework ;
+
+  LINKopt += -F$(srcFramework:D) -framework $(srcFramework:B) ;
+  CPPopt += -F$(srcFramework:D) ;
+
+  if $(SignTarget) { Depends $(SignTarget) : $(dstFramework) ; } else { Depends all : $(dstFramework) ; }
+
+  Depends $(dstFramework) : $(srcFramework) ;
+
+  src on $(dstFramework) = $(srcFramework) ;
+  dst on $(dstFramework) = $(OutDir)/Frameworks/$(srcFramework:B).framework ;
+  copy_framework $(dstFramework) ;
+
+  if $(1[2]) { ProcessEmbeddedFrameworks $(1[2-]) ; }
+}
 
 rule MakeAndSignFramework
 {
@@ -107,7 +133,7 @@ rule SignPackageRule
 
   Depends $(SignTarget) : $(OutDir)/$(Target) ;
   Depends all : $(SignTarget) ;
-  if $(iOSArch) != i386 && $(SignatureOpt) {
+  if $(PlatformArch) != i386 && $(SignatureOpt) {
     dir on $(SignTarget) = $(OutDir) ;
     opt on $(SignTarget) = $(SignatureOpt) ;
     sign_package $(SignTarget) ;
@@ -205,9 +231,9 @@ rule ProcessBundlePlist
   devOrient     ?= <string>UIInterfaceOrientationLandscapeLeft</string>\ <string>UIInterfaceOrientationLandscapeRight</string> ;
   devOrientIpad ?= <string>UIInterfaceOrientationLandscapeLeft</string>\ <string>UIInterfaceOrientationLandscapeRight</string> ;
 
-  local dest_arch = $(iOSArch) ;
+  local dest_arch = $(PlatformArch) ;
   local dest_rapi = metal ;
-  if $(iOSArch) = i386 { dest_arch = armv7 ; }
+  if $(PlatformArch) = i386 { dest_arch = armv7 ; }
 
   local executable = $(BundleExe) ;
   executable ?= $(Target:B) ;
@@ -255,7 +281,7 @@ rule CopyFrameworkResBundle
 {
   for t in $(1) {
     local src = $(t).bundle ;
-    local dst = $(OutDir)/$(t:D=).bunlde ;
+    local dst = $(OutDir)/$(t:D=).bundle ;
     CopyDepsRecursively $(OutDir)/$(Target) : $(src) $(dst) : ;
   }
 }
@@ -265,4 +291,4 @@ rule CopySignatures
 # do nothing
 }
 
-include $(Root)/prog/_jBuild/macosx/mkdevtools.jam ;
+include $(Root)/prog/_jBuild/macOS/mkdevtools.jam ;

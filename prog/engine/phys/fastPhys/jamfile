@@ -12,8 +12,6 @@ Sources =
 ;
 
 
-CPPopt = -D__B_CORE ;
-
 if $(DagorFastPhys_MEASURE_PERF) {
   local suf = ~pm$(DagorFastPhys_MEASURE_PERF) ;  if $(DagorFastPhys_MEASURE_PERF_FRAMES) { suf = $(suf)-$(DagorFastPhys_MEASURE_PERF_FRAMES) ; }
   Target = $(Target:S=)$(suf).lib ;

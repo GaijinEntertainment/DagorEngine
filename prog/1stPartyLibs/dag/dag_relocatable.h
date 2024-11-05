@@ -1,14 +1,8 @@
-/*
- * Dagor Engine
- * Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
- *
- * (for conditions of use see prog/license.txt)
- */
-
-#ifndef _DAGOR_DAG_RELOCATABLE_H_
-#define _DAGOR_DAG_RELOCATABLE_H_
+//
+// Dagor Engine 6.5 - 1st party libs
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+//
 #pragma once
-
 
 #include <EASTL/type_traits.h>
 #include <EASTL/utility.h>
@@ -39,5 +33,3 @@ struct is_type_init_constructing : public eastl::true_type
   template <>                                                  \
   struct dag::is_type_relocatable<C> : public eastl::true_type \
   {}
-
-#endif

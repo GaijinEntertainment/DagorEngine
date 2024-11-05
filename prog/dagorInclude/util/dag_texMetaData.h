@@ -1,12 +1,12 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <util/dag_stdint.h>
 #include <util/dag_simpleString.h>
+#include <util/dag_globDef.h>
 #include <debug/dag_assert.h>
 
 class DataBlock;
@@ -42,7 +42,7 @@ class String;
 // sample file string: data/tex/sample.dds?AcNa4Q0-2-4Z0
 
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 struct TextureMetaData
 {
@@ -134,7 +134,7 @@ struct TextureMetaData
 #endif
     if (anisoFunc > AFUNC_ABS)
       return false;
-    if (anisoFactor > 32)
+    if (anisoFactor > 16)
       return false;
     if (anisoFunc == AFUNC_DIV && anisoFactor == 0)
       return false;
@@ -152,7 +152,7 @@ struct TextureMetaData
     switch (anisoFunc)
     {
       case AFUNC_MIN: return anisoFactor < base_aniso ? anisoFactor : base_aniso;
-      case AFUNC_MUL: return base_aniso * anisoFactor;
+      case AFUNC_MUL: return min(base_aniso * anisoFactor, 16);
       case AFUNC_DIV: return base_aniso / anisoFactor;
       case AFUNC_ABS: return anisoFactor;
     }
@@ -222,4 +222,4 @@ struct TextureMetaData
   KRNLIMP static const char *decodeBaseTexName(const char *fstring);
 };
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

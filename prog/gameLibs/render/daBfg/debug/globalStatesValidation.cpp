@@ -1,7 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <frontend/internalRegistry.h>
-#include <frontend/nameResolver.h>
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_shaderBlock.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_info.h>
+#include <math/dag_dxmath.h>
+#include <backend/blobBindingHelpers.h>
 
 
 namespace dabfg
@@ -15,6 +20,25 @@ constexpr auto shaderBlockValidationMessage =
   "Frame graph node %s expected the %s layer to contain the shader block %s, "
   "but it was spuriously changed to %s while executing the node! Please remove the spurious set, "
   "or reset it back to the expected value at the end of the function execution!";
+
+constexpr auto shaderVarBlobValidationMessage =
+  "Frame graph node %s spuriously changed a bound shader variable's value %s while executing the node."
+  "Please remove the spurious set, or reset it back to the expected value at the end of the function execution!";
+
+template <typename ProjectedType, auto bindGetter>
+static void validateBlob(const InternalRegistry &registry, NodeNameId node_id, int var_id, const BlobView &blob,
+  const detail::TypeErasedProjector &projector)
+{
+  auto expectedValue = *static_cast<const eastl::remove_reference_t<ProjectedType> *>((projector)(blob.data));
+  auto actualValue = bindGetter(var_id);
+  if (!ShaderVarBindingValidationHelper<typename eastl::remove_cv<decltype(expectedValue)>::type,
+        typename eastl::remove_cv<decltype(actualValue)>::type>::validate(expectedValue, actualValue))
+  {
+    const char *nodeName = registry.knownNames.getName(node_id);
+    const char *shaderVarName = VariableMap::getVariableName(var_id);
+    logerr(shaderVarBlobValidationMessage, nodeName, shaderVarName);
+  }
+}
 
 void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
 {
@@ -51,8 +75,27 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
         }
         else if (auto blobView = eastl::get_if<BlobView>(&it->second))
         {
+          switch (ShaderGlobal::get_var_type(shVar))
+          {
+#define SHV_CASE(shVarType)     case shVarType:
+#define SHV_CASE_END(shVarType) break;
+#define TAG_CASE(projType, shVarSetter, shVarGetter)                                        \
+  if (res.projectedTag == tag_for<projType>())                                              \
+  {                                                                                         \
+    validateBlob<projType, shVarGetter>(registry, nodeId, shVar, *blobView, res.projector); \
+    break;                                                                                  \
+  }
+            SHV_BIND_BLOB_LIST
+#undef SHV_BIND_BLOB_LIST
+#undef SHV_CASE
+#undef SHV_CASE_END
+#undef TAG_CASE
+          }
           continue;
         }
+        if (eastl::holds_alternative<MissingOptionalResource>(it->second) &&
+            nodeData.resourceRequests.find(res.resource)->second.optional)
+          continue;
       }
     }
 
@@ -94,7 +137,9 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
   validateBlock(nodeData.shaderBlockLayers.sceneLayer, ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE), "scene");
   validateBlock(nodeData.shaderBlockLayers.objectLayer, ShaderGlobal::getBlock(ShaderGlobal::LAYER_OBJECT), "object");
 
-  if (nodeData.renderingRequirements.has_value())
+  // Only check on platforms that use generic RP implementation
+  if (nodeData.renderingRequirements.has_value() && !d3d::get_driver_code().is(d3d::stub) &&
+      !d3d::get_driver_desc().caps.hasNativeRenderPassSubPasses)
   {
     const auto &expectedRts = *nodeData.renderingRequirements;
 
@@ -109,7 +154,7 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
       BaseTexture *expectedTex = nullptr;
       if (it != provided.end())
         if (auto view = eastl::get_if<ManagedTexView>(&it->second))
-          expectedTex = view->getTex2D();
+          expectedTex = view->getBaseTex();
 
       const auto expectedName = expectedTex ? expectedTex->getTexName() : "NULL";
       const auto observedName = maybeObserved.has_value() && maybeObserved->tex ? maybeObserved->tex->getTexName() : "NULL";

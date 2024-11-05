@@ -1,16 +1,11 @@
-ReproducibleExeBuild = yes ;
 Root    ?= ../../../.. ;
 Location = prog/tools/sceneTools/resClean ;
+include $(Root)/prog/tools/tools_setup.jam ;
 ConsoleExe = yes ;
 
 TargetType  = exe ;
 Target      = tools/resCleanUtil ;
-
-include $(Root)/prog/_jBuild/defaults.jam ;
-
-OutDir = $(Root)/tools/dagor3_cdk/util ;
-if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
-if $(Platform) in linux64 macosx { OutDir = $(OutDir)-$(Platform) ; }
+include $(Root)/prog/tools/tools_setup_outdir_util.jam ;
 
 Sources =
   resCleanUtil.cpp
@@ -33,6 +28,6 @@ UseProgLibs =
   tools/libTools/util
 ;
 
-if $(Platform) = linux64 { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
+if $(Platform) = linux { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

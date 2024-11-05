@@ -38,7 +38,6 @@ Sources =
   sharedMem.cpp
   mmap.cpp
   virtualMem.cpp
-  dynLib.cpp
   sockets.cpp
   wildcards.cpp
   findFilePosix.cpp
@@ -48,9 +47,9 @@ Sources =
   cpuFeatures.cpp
 ;
 
-CPPopt = -D__B_MINICORE ;
+CPPopt = -D__B_KERNEL_LIB ;
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   Sources +=
     dbgStr.cpp
     findFile.cpp
@@ -61,7 +60,19 @@ if $(Platform) in win32 win64 {
     winHwExceptUtils.cpp
     winXStateFeatures.cpp
     asyncRead.cpp
+    dynLib.cpp
   ;
+
+  if $(UseGDK) != no {
+    Sources +=
+      xbox/app.cpp
+      xbox/network.cpp
+      xbox/queues.cpp
+      xbox/storage.cpp
+      xbox/handlesDebug.cpp
+      xbox/wer.cpp
+    ;
+  }
 
   UseProgLibs =
     engine/osApiWrappers/messageBox
@@ -80,9 +91,11 @@ if $(Platform) in win32 win64 {
     winClipboard.cpp
     winHwExceptUtils.cpp
     asyncRead.cpp
+    dynLib.cpp
     xbox/app.cpp
     xbox/plm.cpp
     xbox/window.cpp
+    xbox/network.cpp
     xbox/queues.cpp
     xbox/storage.cpp
     xbox/gameinput.cpp
@@ -93,7 +106,7 @@ if $(Platform) in win32 win64 {
     engine/osApiWrappers/messageBox
   ;
   if $(Config) != rel {
-    CPPopt += -DXBOX_GDK_CALLSTACKS=1 -DSymGetLineFromAddr=SymGetLineFromAddr64 ;
+    CPPopt += -DSymGetLineFromAddr=SymGetLineFromAddr64 ;
   }
 } else if $(Platform) in ps4 ps5 {
   Sources +=
@@ -108,6 +121,7 @@ if $(Platform) in win32 win64 {
     sony/dialogs/systemMessageDialog.cpp
     sony/dialogs/messageBoxDialog.cpp
     sony/asyncRead.cpp
+    sony/dynLib.cpp
   ;
 
   if $(Platform) = ps4 {
@@ -127,7 +141,7 @@ if $(Platform) in win32 win64 {
     3rdPartyLibs/posix
     engine/osApiWrappers/messageBox
   ;
-} else if $(Platform) in macosx iOS tvOS {
+} else if $(Platform) in macOS iOS tvOS {
   if $(Platform) in iOS {
     Sources +=
       ios/iOS_shell.mm
@@ -136,7 +150,7 @@ if $(Platform) in win32 win64 {
       engine/osApiWrappers/messageBox
     ;
   }
-  else if $(Platform) in macosx {
+  else if $(Platform) in macOS {
     Sources +=
       macosx/mac_shell.mm
     ;
@@ -168,6 +182,7 @@ if $(Platform) in win32 win64 {
     macosx/macSetTitle.mm
     macosx/macClipboard.mm
     convertUTF.cpp
+    dynLib.cpp
   ;
   CPPopt += -Wno-error ;
 } else if $(Platform) in nswitch {
@@ -179,21 +194,23 @@ if $(Platform) in win32 win64 {
     dbgStr.cpp
     stackHlpFill.cpp
     stackHlpGet.cpp
+    dynLib.cpp
   ;
   UseProgLibs += 3rdPartyLibs/posix ;
-} else if $(Platform) in linux64 android {
+} else if $(Platform) in linux android {
   Sources +=
     dbgStr.cpp
     stackHlpFill.cpp
     stackHlpGet.cpp
-    linux/linuxClipboard.cpp
     linux/linuxSetTitle.cpp
+    dynLib.cpp
     convertUTF.cpp
   ;
 
   if $(Platform) = android {
     Sources +=
       posix/posixThreadAsyncRead.cpp
+      android/androidClipboard.cpp
     ;
     if $(UseAndroidNativeMessageBox) = yes {
       UseProgLibs += engine/osApiWrappers/messageBox ;
@@ -205,9 +222,11 @@ if $(Platform) in win32 win64 {
     UseProgLibs += 3rdPartyLibs/libunwind ;
   }
 
-  if $(Platform) in linux64 {
+  if $(Platform) in linux {
     Sources +=
       posix/posixAIOAsyncRead.cpp
+      linux/linuxClipboard.cpp
+
     ;
     if $(LinuxUseX11) = yes {
       CPPopt += -DUSE_X11 ;

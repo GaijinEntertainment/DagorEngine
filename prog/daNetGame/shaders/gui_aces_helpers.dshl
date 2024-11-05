@@ -1,0 +1,7 @@
+macro USE_GUI_ACES_HELPERS()
+  hlsl(ps) {
+    #define OGL_DEPTH_TEST_FOR_INPUT(input)
+    #define pack_hdr(result) result
+    #define gui_hdr_tonemap(result) result
+  }
+endmacro

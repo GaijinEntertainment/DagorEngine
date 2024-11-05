@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_events.h>
 #if _TARGET_PC_WIN | _TARGET_XBOX
 #include <supp/_platform.h>
@@ -10,8 +12,9 @@
 #endif
 #include <util/dag_globDef.h>
 
-void os_event_create(os_event_t *e, const char *name)
+void os_event_create(os_event_t *e, const char *name, bool manual_reset, bool init)
 {
+  G_UNUSED(manual_reset);
   int ret = -1;
   G_ASSERT(e);
 #if _TARGET_PC_WIN | _TARGET_XBOX
@@ -20,7 +23,7 @@ void os_event_create(os_event_t *e, const char *name)
   G_STATIC_ASSERT(OS_WAIT_TIMEOUTED == WAIT_TIMEOUT);
   G_STATIC_ASSERT(sizeof(os_event_t) == sizeof(HANDLE));
   ((void)name); // be aware of side effect events with same name on multiple application instances
-  *e = CreateEvent(NULL, FALSE, FALSE, NULL);
+  *e = CreateEvent(NULL, manual_reset, init, NULL);
   ret = *e ? 0 : GetLastError();
 #elif _TARGET_C1 | _TARGET_C2
 
@@ -42,7 +45,7 @@ void os_event_create(os_event_t *e, const char *name)
   }
   if (pca)
     pthread_condattr_destroy(pca);
-  e->raised = 0;
+  e->raised = init;
 #endif
   if (ret != 0)
     DAG_FATAL("failed to create os event '%s' with error %d (0x%x)", name, ret, ret);
@@ -93,12 +96,33 @@ int os_event_set(os_event_t *e)
   return ret;
 }
 
-int os_event_wait(os_event_t *e, unsigned timeout_ms)
+int os_event_reset(os_event_t *e)
 {
   int ret;
   if (!e)
     return -1;
 #if _TARGET_PC_WIN | _TARGET_XBOX
+  ret = ResetEvent(*e) ? 0 : -1;
+#elif _TARGET_C1 | _TARGET_C2
+
+#elif defined(__GNUC__)
+  ret = pthread_mutex_lock(&e->mutex);
+  if (ret == 0)
+  {
+    e->raised = 0;
+    ret = pthread_mutex_unlock(&e->mutex);
+  }
+#endif
+  return ret;
+}
+
+static int os_event_wait_impl(os_event_t *e, unsigned timeout_ms, bool auto_reset)
+{
+  int ret;
+  if (!e)
+    return -1;
+#if _TARGET_PC_WIN | _TARGET_XBOX
+  G_UNUSED(auto_reset); // Used the one specified on creation
   ret = WaitForSingleObjectEx(*e, timeout_ms, TRUE);
 #elif _TARGET_C1 | _TARGET_C2
 
@@ -147,19 +171,24 @@ int os_event_wait(os_event_t *e, unsigned timeout_ms)
 #endif
         } while (!e->raised && ret == 0);
       }
-      if (ret == 0) // we only acquire event if wait succeeded
+      if (ret == 0 && auto_reset) // we only acquire event if wait succeeded
         e->raised = 0;
     }
     else
     {
       ret = OS_WAIT_OK;
-      e->raised = 0;
+      if (auto_reset)
+        e->raised = 0;
     }
     pthread_mutex_unlock(&e->mutex);
   }
 #endif
   return ret;
 }
+
+int os_event_wait(os_event_t *e, unsigned timeout_ms) { return os_event_wait_impl(e, timeout_ms, true); }
+
+int os_event_wait_noreset(os_event_t *e, unsigned timeout_ms) { return os_event_wait_impl(e, timeout_ms, false); }
 
 #define EXPORT_PULL dll_pull_osapiwrappers_events
 #include <supp/exportPull.h>

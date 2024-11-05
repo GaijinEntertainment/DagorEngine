@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -33,4 +32,6 @@ struct DestroyedCellData
 
   const DestroyedPoolData *getPool(uint16_t pool_idx) const;
 };
+
+void debug_print_destrs(const Tab<rendinst::DestroyedCellData> &cellsNewDestrInfo);
 } // namespace rendinst

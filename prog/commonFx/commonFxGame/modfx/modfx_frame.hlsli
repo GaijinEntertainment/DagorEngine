@@ -23,14 +23,14 @@ void modfx_frame_init( ModfxParentSimData_cref parent_sdata, BufferData_cref buf
 
   o_frame = lerp( (float)finit.start_frame_min, (float)finit.start_frame_max, dafx_frnd( rnd_seed ) );
   o_frame = round( o_frame );
-  o_flags = 0;
+  o_flags = finit.flags & 0x0003;
   o_disable_loop = finit.flags & MODFX_FRAME_FLAGS_DISABLE_LOOP;
 
   if ( finit.flags & MODFX_FRAME_FLAGS_RANDOM_FLIP_X )
-    o_flags |= dafx_frnd( rnd_seed ) > 0.5 ? MODFX_FRAME_FLAGS_RANDOM_FLIP_X : 0;
+    o_flags |= dafx_frnd( rnd_seed ) > 0.5 ? MODFX_FRAME_FLAGS_FLIP_X : 0;
 
   if ( finit.flags & MODFX_FRAME_FLAGS_RANDOM_FLIP_Y )
-    o_flags |= dafx_frnd( rnd_seed ) > 0.5 ? MODFX_FRAME_FLAGS_RANDOM_FLIP_Y : 0;
+    o_flags |= dafx_frnd( rnd_seed ) > 0.5 ? MODFX_FRAME_FLAGS_FLIP_Y : 0;
 }
 
 DAFX_INLINE

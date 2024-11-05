@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #define FontUtil_CID       Class_ID(0x3409613e, 0x754e4800)
 #define DagorMat_CID       Class_ID(0x70a066e2, 0x18a04e07)

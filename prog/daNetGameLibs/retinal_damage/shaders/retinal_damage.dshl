@@ -1,0 +1,177 @@
+include "shader_global.dshl"
+
+texture retinal_damage_tex;
+
+float4 retinal_damage_screen_position = float4(0.5, 0.5, 0., 0.);
+float screen_aspect_ratio = 16. / 9.;
+float retinal_damage_effect_scale = 1.5;
+float ring_radius = 0.2;
+float ring_thickness = 0.012;
+float half_thickness = 0.006;
+float retinal_damage_remaining_time_fraction = 0.0;
+float retinal_damage_opacity = 0.0;
+float retinal_damage_scale_increase_rate = 0.2;
+float4 retinal_damage_seeds = float4(0., 0., 0., 0.);
+
+shader retinal_damage_init
+{
+  cull_mode = none;
+
+  POSTFX_VS_TEXCOORD(0, uv)
+
+  (ps) {
+    retinal_damage_screen_position@f2 = retinal_damage_screen_position.xy;
+    retinal_damage_seeds@f4 = retinal_damage_seeds;
+    screen_aspect_ratio@f1 = screen_aspect_ratio;
+    effect_scale@f1 = retinal_damage_effect_scale;
+    ring_radius@f1    = (ring_radius    * retinal_damage_effect_scale, 0, 0, 0);
+    ring_thickness@f1 = (ring_thickness * retinal_damage_effect_scale, 0, 0, 0);
+    half_thickness@f1 = (half_thickness * retinal_damage_effect_scale, 0, 0, 0);
+  }
+
+  hlsl(ps)
+  {
+    #define RED        float3(1.5, 0.15, 0.0)
+    #define YELLOW     float3(1.0, 1.0 , 0.2)
+    #define WHITE      float3(1.0, 1.0 , 1.0)
+    #define RING_COLOR float3(0.4, 0.0 , 0.0)
+
+    // some arbitary values with which retinal damage effect looks decent
+    #define PARAM_A 40.
+    #define PARAM_B 100.
+    #define PARAM_C 8.
+    #define PARAM_D 7.
+    #define PARAM_E 30.
+  }
+
+  hlsl(ps)
+  {
+    #include "noise/Perlin2D.hlsl"
+
+    float noise_Perlin2D_scaled(float2 p)
+    {
+      return 0.5 * (noise_Perlin2D(p) + 1.);
+    }
+
+    float relu_pow8(float x)
+    {
+      x = max(0.0, x);
+      x *= x;
+      x *= x;
+      return x * x;
+    }
+
+    float3 draw_spot(float2 uv) {
+      float spot_scale = 2.0;
+
+      float d = length(uv) * spot_scale / effect_scale;
+      uv *= PARAM_A * spot_scale * d / effect_scale;
+
+      float value = PARAM_B * noise_Perlin2D_scaled(uv + retinal_damage_seeds.x);
+      value *= relu_pow8(1.0 - d);
+      value = max(0.0, value - PARAM_C);
+
+      float t = smoothstep(PARAM_D, PARAM_E, value);
+      float t1 = smoothstep(0.0, 1., t);
+      float t2 = smoothstep(0.5, 1., t);
+
+      float3 color = (1. - t1) * RED + t1 * YELLOW;
+      color = (1. - t2) * color + t2 * WHITE;
+      return t * color;
+    }
+
+    float3 draw_ring(float2 coords, float radius)
+    {
+      float d = distance(coords, radius) / radius;
+      float l = length(coords);
+      float inner_circle = smoothstep(radius, radius - half_thickness, l);
+      float outer_circle = smoothstep(radius, radius + ring_thickness, l);
+
+      float value = (1.0 - inner_circle - outer_circle) * (1.0 - d / 3.0);
+      return value * RING_COLOR;
+    }
+
+    float4 retinal_damage_init_ps(VsOutput input) : SV_Target
+    {
+      float2 uv = input.uv - retinal_damage_screen_position;
+      uv.x *= screen_aspect_ratio;
+      float radius = ring_radius;
+
+      float2 small_ring_shift = 0.05 * radius *  retinal_damage_seeds.yz;
+      float3 small_ring = draw_ring(uv + small_ring_shift, ring_radius * 0.5);
+      float3 ring = draw_ring(uv, ring_radius);
+      float3 spot = draw_spot(uv);
+
+      float3 output = 0.5 * small_ring + ring;
+      output += spot;
+      return float4(output, 1.0);
+    }
+  }
+  compile("target_ps", "retinal_damage_init_ps");
+}
+
+
+shader retinal_damage_update
+{
+  cull_mode = none;
+
+  POSTFX_VS_TEXCOORD(0, uv)
+  blend_src = sa; blend_dst = isa;
+
+  (ps) {
+    retinal_damage_screen_position@f2 = retinal_damage_screen_position.xy;
+    retinal_damage_tex@smp2d = retinal_damage_tex;
+    remaining_time_fraction@f1 = retinal_damage_remaining_time_fraction;
+    effect_opacity@f1 = retinal_damage_opacity;
+    retinal_damage_scale_increase_rate@f1 = retinal_damage_scale_increase_rate;
+  }
+
+  hlsl(ps)
+  {
+    #define NOISE_SCALE 0.03 // value that decently reduces banding and at the same time taa artifacts
+  }
+
+  hlsl(ps)
+  {
+    float noise(float2 coords)
+    {
+      float rand = frac(sin(dot(coords, float2(12.9898, 78.233))) * 43758.5453);
+      return lerp(-NOISE_SCALE, NOISE_SCALE, rand);
+    }
+
+    float4 extract_alpha(float3 color_in)
+    {
+      float4 color_out;
+      float max_value = min(max(max(color_in.r, color_in.g), color_in.b), 1.0);
+      if (max_value > 1e-5)
+      {
+        color_out.rgb = color_in.rgb * (1.0 / max_value);
+        color_out.a = max_value * max_value;
+      }
+      else
+        color_out = float4(0, 0, 0, 0);
+      return color_out;
+    }
+
+    float4 retinal_damage_update_ps(VsOutput input) : SV_Target
+    {
+      float4 retinal_damage = float4(0., 0., 0., 0.);
+      BRANCH
+      if (remaining_time_fraction > 0.0)
+      {
+        float2 retinal_damage_uv = input.uv - retinal_damage_screen_position;
+        retinal_damage_uv /= (1. + retinal_damage_scale_increase_rate * (1. - remaining_time_fraction));
+        retinal_damage_uv += retinal_damage_screen_position;
+
+        retinal_damage = tex2D(retinal_damage_tex, retinal_damage_uv);
+        retinal_damage = extract_alpha(retinal_damage.rgb * (0.3 + 0.7 * effect_opacity));
+        retinal_damage = saturate(retinal_damage);
+        retinal_damage.a *= sqrt(effect_opacity);
+        // taa produces very noticeable banding effect, noise is needed to somewhat mitigate it
+        retinal_damage.a *= (1. + noise(retinal_damage_uv));
+      }
+      return retinal_damage;
+    }
+  }
+  compile("target_ps", "retinal_damage_update_ps");
+}

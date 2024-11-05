@@ -53,10 +53,9 @@ if $(LOTTIE_USE_INTERNAL_STBI) = yes {
   Sources += src/vector/stb/stb_image.cpp ;
 }
 
-if $(Platform) in win32 win64 linux64 xboxOne scarlett ps4 ps5 || ( $(Platform) = macosx && $(MacOSXArch) = x86_64 ) {
+if $(PlatformArch) in x86 x86_64 e2k {
   Sources += src/vector/vdrawhelper_sse2.cpp ;
-}
-if $(Platform) in android iOS tvOS nswitch || ( $(Platform) = macosx && $(MacOSXArch) = arm64 ) {
+} else if $(PlatformArch) in arm64 arm64e arm64-v8a armv7 armv7s armeabi-v7a {
   Sources += src/vector/vdrawhelper_neon.cpp ;
   CPPopt += -D__NO_GAS_WITH_CPP__ ;
 }

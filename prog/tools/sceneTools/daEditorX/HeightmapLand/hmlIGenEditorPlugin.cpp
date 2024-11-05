@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hmlPlugin.h"
 #include "hmlCm.h"
 #include "hmlPanel.h"
@@ -24,7 +26,7 @@
 #include <de3_prefabs.h>
 #include <assets/asset.h>
 
-#include <dllPluginCore/core.h>
+#include <EditorCore/ec_IEditorCore.h>
 
 #include <libTools/util/iLogWriter.h>
 #include <libTools/util/colorUtil.h>
@@ -33,7 +35,11 @@
 #include "editorLandRayTracer.h"
 
 #include <3d/dag_render.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <render/dag_cur_view.h>
 #include <perfMon/dag_cpuFreq.h>
 
@@ -76,13 +82,20 @@
 
 #include <winGuiWrapper/wgw_dialogs.h>
 
-#include <propPanel2/c_control_event_handler.h>
-#include <propPanel2/c_panel_base.h>
-#include <propPanel2/comWnd/dialog_window.h>
+#include <propPanel/c_control_event_handler.h>
+#include <propPanel/control/container.h>
+#include <propPanel/commonWindow/dialogWindow.h>
+#include <propPanel/control/panelWindow.h>
 #include <heightmap/heightmapHandler.h>
 #include "renderLandNormals.h"
 
 #include <libTools/util/binDumpTreeBitmap.h>
+
+using editorcore_extapi::dagConsole;
+using editorcore_extapi::dagGeom;
+using editorcore_extapi::dagRender;
+using editorcore_extapi::dagTools;
+using editorcore_extapi::make_full_start_path;
 
 using hdpi::_pxScaled;
 
@@ -100,7 +113,6 @@ extern bool allow_debug_bitmap_dump;
 
 #define BLUR_LM_KEREL_SIZE 1
 #define BLUR_LM_SIGMA      0.7
-
 
 static class DefNewHMParams
 {
@@ -278,6 +290,13 @@ void HmapLandPlugin::unregistered()
   self = NULL;
 }
 
+void HmapLandPlugin::loadSettings(const DataBlock &global_settings)
+{
+  objEd.loadOutlinerSettings(*global_settings.getBlockByNameEx("outliner"));
+}
+
+void HmapLandPlugin::saveSettings(DataBlock &global_settings) { objEd.saveOutlinerSettings(*global_settings.addNewBlock("outliner")); }
+
 bool HmapLandPlugin::onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params)
 {
   CoolConsole &con = DAGORED2->getConsole();
@@ -348,7 +367,7 @@ bool HmapLandPlugin::begin(int toolbar_id, unsigned menu_id)
   toolbarId = toolbar_id;
   createPropPanel();
 
-  PropertyContainerControlBase *toolbar = DAGORED2->getCustomPanel(toolbar_id);
+  PropPanel::ContainerPropertyControl *toolbar = DAGORED2->getCustomPanel(toolbar_id);
   G_ASSERT(toolbar);
   objEd.initUi(toolbar_id);
   // objEd.objectPropBar->hidePanel();
@@ -362,10 +381,15 @@ bool HmapLandPlugin::begin(int toolbar_id, unsigned menu_id)
 
   brushDlg = DAGORED2->createDialog(_pxScaled(220), _pxScaled(440), "Heightmap brush");
   brushDlg->showButtonPanel(false);
-  PropertyContainerControlBase *_panel = brushDlg->getPanel();
+  brushDlg->setPreventNavigationWithTheTabKey();
+  PropPanel::ContainerPropertyControl *_panel = brushDlg->getPanel();
   _panel->setEventHandler(this);
 
   updateSnowSources();
+
+  navmeshAreasProcessing.resize(MAX_NAVMESHES);
+  for (int i = 0; i < MAX_NAVMESHES; i++)
+    navmeshAreasProcessing[i].init(&objEd, &navMeshProps[i], i);
 
   return true;
 }
@@ -390,20 +414,16 @@ bool HmapLandPlugin::end()
 //==============================================================================
 
 
-IWndEmbeddedWindow *HmapLandPlugin::onWmCreateWindow(void *handle, int type)
+void *HmapLandPlugin::onWmCreateWindow(int type)
 {
   switch (type)
   {
     case PROPBAR_EDITOR_WTYPE:
     {
       if (propPanel->getPanelWindow())
-        return NULL;
+        return nullptr;
 
-      IWndManager *manager = IEditorCoreEngine::get()->getWndManager();
-      manager->setCaption(handle, "Properties");
-
-      CPanelWindow *_panel_window = IEditorCoreEngine::get()->createPropPanel(this, handle);
-
+      PropPanel::PanelWindowPropertyControl *_panel_window = IEditorCoreEngine::get()->createPropPanel(this, "Properties");
       if (_panel_window)
       {
         propPanel->setPanelWindow(_panel_window);
@@ -411,32 +431,32 @@ IWndEmbeddedWindow *HmapLandPlugin::onWmCreateWindow(void *handle, int type)
         propPanel->fillPanel(false);
       }
 
-      PropertyContainerControlBase *tool_bar = DAGORED2->getCustomPanel(toolbarId);
+      PropPanel::ContainerPropertyControl *tool_bar = DAGORED2->getCustomPanel(toolbarId);
       if (tool_bar)
         tool_bar->setBool(CM_SHOW_PANEL, true);
 
-      return propPanel->getPanelWindow();
+      return _panel_window;
     }
     break;
   }
 
-  return NULL;
+  return nullptr;
 }
 
 
-bool HmapLandPlugin::onWmDestroyWindow(void *handle)
+bool HmapLandPlugin::onWmDestroyWindow(void *window)
 {
-  if (propPanel->getPanelWindow() && propPanel->getPanelWindow()->getParentWindowHandle() == handle)
+  if (window == propPanel->getPanelWindow())
   {
     mainPanelState.reset();
     propPanel->getPanelWindow()->saveState(mainPanelState);
 
-    CPanelWindow *_panel_window = propPanel->getPanelWindow();
+    PropPanel::PanelWindowPropertyControl *_panel_window = propPanel->getPanelWindow();
     propPanel->setPanelWindow(NULL);
 
     IEditorCoreEngine::get()->deleteCustomPanel(_panel_window);
 
-    PropertyContainerControlBase *tool_bar = DAGORED2->getCustomPanel(toolbarId);
+    PropPanel::ContainerPropertyControl *tool_bar = DAGORED2->getCustomPanel(toolbarId);
     if (tool_bar)
       tool_bar->setBool(CM_SHOW_PANEL, false);
 
@@ -631,6 +651,23 @@ void HmapLandPlugin::rebuildLandmeshManager()
       landMeshManager->cullingState.useExclBox = false;
   }
   clearTexCache();
+}
+void HmapLandPlugin::rebuildLandmeshPhysMap()
+{
+  mkbindump::BinDumpSaveCB cwr(32 << 20, _MAKE4C('PC'), false);
+  buildAndWritePhysMap(cwr);
+  MemoryLoadCB crd(cwr.getRawWriter().getMem(), false);
+  for (int i = 0; i < physMaps.size(); ++i)
+    del_it(physMaps[i]);
+  physMaps.resize(0);
+  while (true)
+  {
+    PhysMap *physMap = hmlService->loadPhysMap(landMeshManager, crd);
+    if (!physMap)
+      break;
+    objEd.setPhysMap(physMap);
+    physMaps.push_back(physMap);
+  }
 }
 void HmapLandPlugin::delayedResetRenderer()
 {
@@ -1231,7 +1268,7 @@ bool HmapLandPlugin::exportLightmapToFile(const char *file_name, int target_code
 
   ddstexture::Converter cnv;
   cnv.format = ddstexture::Converter::fmtDXT5;
-  if (target_code == _MAKE4C('iOS'))
+  if (HmapLandPlugin::useASTC(target_code))
     cnv.format = ddstexture::Converter::fmtASTC4;
   cnv.mipmapType = ddstexture::Converter::mipmapGenerate;
   cnv.mipmapCount = ddstexture::Converter::AllMipMaps;
@@ -1289,7 +1326,603 @@ bool HmapLandPlugin::exportLightmapToFile(const char *file_name, int target_code
 
 extern bool game_res_sys_v2;
 
-bool HmapLandPlugin::buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel2 *params)
+void HmapLandPlugin::buildAndWritePhysMap(BinDumpSaveCB &cwr)
+{
+  String tmp_stor;
+  int phys_li = hmlService->getBitLayerIndexByName(getLayersHandle(), "phys");
+  if (phys_li < 0)
+  {
+    phys_li = hmlService->getBitLayerIndexByName(getLayersHandle(), "land");
+  }
+  HmapBitLayerDesc layer = landClsLayer[phys_li];
+  SmallTab<unsigned char, TmpmemAlloc> pmMap;
+  SmallTab<unsigned char, TmpmemAlloc> pmIndexedMap;
+  FastNameMap pmNames;
+
+  SmallTab<unsigned char, TmpmemAlloc> physMap;
+  int physMap_w = detDivisor ? detRectC.width().x : 0, physMap_h = detDivisor ? detRectC.width().y : 0;
+
+  clear_and_resize(pmMap, 5 << (layer.bitCount + 1));
+  mem_set_0(pmMap);
+  pmNames.addNameId(hmlService->getLandPhysMatName(0));
+  for (int i = 0; i < pmMap.size(); i += 5)
+    if (landclass::AssetData *d = getLandClassMgr().getLandClass(phys_li, i / 5))
+    {
+      pmMap[i + 0] = pmNames.addNameId(hmlService->getLandPhysMatName(d->physMatId[0]));
+      pmMap[i + 1] = pmNames.addNameId(hmlService->getLandPhysMatName(d->physMatId[1]));
+      pmMap[i + 2] = pmNames.addNameId(hmlService->getLandPhysMatName(d->physMatId[2]));
+      pmMap[i + 3] = pmNames.addNameId(hmlService->getLandPhysMatName(d->physMatId[3]));
+      pmMap[i + 4] = pmNames.addNameId(hmlService->getLandPhysMatName(d->physMatId[4]));
+    }
+  clear_and_resize(pmIndexedMap, 64 << (layer.bitCount + 1));
+  mem_set_0(pmIndexedMap);
+  for (int i = 0; i < pmIndexedMap.size(); i += 64)
+    if (landclass::AssetData *d = getLandClassMgr().getLandClass(phys_li, i / 64))
+      for (int j = 0; j < 64; j++)
+        pmIndexedMap[i + j] = pmNames.addNameId(hmlService->getLandPhysMatName(d->indexedPhysMatId[j]));
+
+  if (detDivisor)
+  {
+    clear_and_resize(physMap, physMap_w * physMap_h);
+    mem_set_0(physMap);
+
+    SmallTab<TexImage32 *, TmpmemAlloc> stexMap;
+    SmallTab<int, TmpmemAlloc> splattingTypesMap;
+    int texTypeId = DAEDITOR3.getAssetTypeId("tex");
+
+    clear_and_resize(stexMap, 1 << layer.bitCount);
+    mem_set_ff(stexMap);
+
+    enum
+    {
+      UNDEFINED = 0,
+      RGB_SPLATTING = 1,
+      INDEXED_SPLATTING = 2
+    };
+
+    clear_and_resize(splattingTypesMap, 1 << layer.bitCount);
+    for (int i = 0; i < splattingTypesMap.size(); i++)
+      splattingTypesMap[i] = UNDEFINED;
+
+    for (int y = detRectC[0].y; y < detRectC[1].y; y++)
+      for (int x = detRectC[0].x; x < detRectC[1].x; x++)
+      {
+        int land = layer.getLayerData(landClsMap.getData(x * lcmScale / detDivisor, y * lcmScale / detDivisor));
+        physMap[(y - detRectC[0].y) * physMap_w + x - detRectC[0].x] = pmMap[5 * land];
+        if (intptr_t(stexMap[land]) == intptr_t(-1)) //-V1051
+        {
+          stexMap[land] = NULL;
+          if (landclass::AssetData *d = getLandClassMgr().getLandClass(phys_li, land))
+          {
+            if (d->detTex && d->detTex->getStr("splattingmap", nullptr))
+            {
+              const char *splattingMap = d->detTex->getStr("splattingmap");
+              if (splattingMap[0] == '*')
+              {
+                SimpleString nm(splattingMap + 1);
+                if (char *p = strchr(nm.str(), ':'))
+                  *p = '\0';
+                String fn(0, "%s/%s", DAGORED2->getPluginFilePath(this, "elc"), nm);
+                // debug("load %s", fn);
+                stexMap[land] = try_find_and_load_tga_or_tiff(fn, tmpmem);
+                splattingTypesMap[land] = RGB_SPLATTING;
+              }
+              else if (DagorAsset *a = DAEDITOR3.getAssetByName(splattingMap, texTypeId))
+              {
+                String fn(a->getTargetFilePath());
+                if (is_tga_or_tiff(fn))
+                {
+                  // debug("load %s", fn);
+                  stexMap[land] = load_tga_or_tiff(fn, tmpmem);
+                  splattingTypesMap[land] = RGB_SPLATTING;
+                }
+                else
+                  DAEDITOR3.conError("texture asset <%s> refernces to non-compatible %s", a->getName(), fn);
+              }
+              else
+                DAEDITOR3.conError("failed to resolve texture asset <%s> referenced by detailMap in landclass", splattingMap);
+            }
+            else if (d->indicesTex && d->indicesTex->getStr("indices"))
+            {
+              const char *indicesMap = d->indicesTex->getStr("indices");
+              if (indicesMap[0] == '*')
+              {
+                SimpleString nm(indicesMap + 1);
+                if (char *p = strchr(nm.str(), ':'))
+                  *p = '\0';
+                String fn(0, "%s/%s", DAGORED2->getPluginFilePath(this, "elc"), nm);
+                // debug("load %s", fn);
+                stexMap[land] = try_find_and_load_tga_or_tiff(fn, tmpmem);
+                splattingTypesMap[land] = INDEXED_SPLATTING;
+              }
+              else if (DagorAsset *a = DAEDITOR3.getAssetByName(indicesMap, texTypeId))
+              {
+                String fn(a->getTargetFilePath());
+                if (is_tga_or_tiff(fn))
+                {
+                  // debug("load %s", fn);
+                  stexMap[land] = load_tga_or_tiff(fn, tmpmem);
+                  splattingTypesMap[land] = INDEXED_SPLATTING;
+                }
+                else
+                  DAEDITOR3.conError("texture asset <%s> refernces to non-compatible %s", a->getName(), fn);
+              }
+              else
+                DAEDITOR3.conError("failed to resolve texture asset <%s> referenced by detailMap in landclass", indicesMap);
+            }
+          }
+          if (stexMap[land] && intptr_t(stexMap[land]) != intptr_t(-1))
+          {
+            // We need to reverse image in vertical way
+            TexPixel32 *pix = stexMap[land]->getPixels();
+            Tab<TexPixel32> tempBuffer;
+            tempBuffer.resize(stexMap[land]->w);
+            for (int y = 0; y < stexMap[land]->h / 2; ++y)
+            {
+              memcpy(tempBuffer.data(), &pix[(stexMap[land]->h - y - 1) * stexMap[land]->w], data_size(tempBuffer));
+              memcpy(&pix[(stexMap[land]->h - y - 1) * stexMap[land]->w], &pix[y * stexMap[land]->w], data_size(tempBuffer));
+              memcpy(&pix[y * stexMap[land]->w], tempBuffer.data(), data_size(tempBuffer));
+            }
+          }
+          // debug("stexMap[%d]=%p", land, stexMap[land]);
+        }
+        if (stexMap[land] && intptr_t(stexMap[land]) != intptr_t(-1))
+        {
+          landclass::AssetData *d = getLandClassMgr().getLandClass(phys_li, land);
+          // fixme: this is awful copy paste of 'opaque' landclass logic in order to create physmap
+          float tile = safediv(1.f, d->detTex->getPoint2("size", Point2(1, 1)).x);
+          Point2 offset = d->detTex->getPoint2("offset", Point2(0, 0)); // mask origin relative to main HMAP origin
+          //
+          const TexPixel32 *pix = stexMap[land]->getPixels();
+
+          int w = stexMap[land]->w, h = stexMap[land]->h;
+          float fx = -0.001f + fmodf(((x + 0.5f) * gridCellSize / detDivisor - offset.x) * tile, 1.0f) * w;
+          float fy = -0.001f + fmodf(((y + 0.5f) * gridCellSize / detDivisor - offset.y) * tile, 1.0f) * h;
+
+          if (fx < 0)
+            fx += w;
+          if (fy < 0)
+            fy += h;
+          int ix = floorf(fx), iy = floorf(fy);
+          float tx = fx - ix, ty = fy - iy;
+
+          E3DCOLOR p00(pix[iy * w + ix].u);
+          E3DCOLOR p10(pix[iy * w + ((ix + 1) % w)].u);
+          E3DCOLOR p01(pix[((iy + 1) % h) * w + ix].u);
+          E3DCOLOR p11(pix[((iy + 1) % h) * w + ((ix + 1) % w)].u);
+
+          if (splattingTypesMap[land] == RGB_SPLATTING) // mega landclass
+          {
+            float ch[4];
+            ch[0] = ((p00.r * (1 - tx) + p01.r * tx) * (1 - ty) + (p10.r * (1 - tx) + p11.r * tx) * ty) / 255.0f;
+            ch[1] = ((p00.g * (1 - tx) + p01.g * tx) * (1 - ty) + (p10.g * (1 - tx) + p11.g * tx) * ty) / 255.0f;
+            ch[2] = ((p00.b * (1 - tx) + p01.b * tx) * (1 - ty) + (p10.b * (1 - tx) + p11.b * tx) * ty) / 255.0f;
+            ch[3] = clamp(1 - ch[0] - ch[1] - ch[2], 0.f, 1.f);
+
+            unsigned char phys0, phys1, phys2, phys3;
+            phys0 = pmMap[5 * land + 1 + 0];
+            phys1 = pmMap[5 * land + 2 + 0];
+            phys2 = pmMap[5 * land + 3 + 0];
+            phys3 = pmMap[5 * land + 4 + 0];
+
+            float maxWeight = max(max(ch[0], ch[1]), max(ch[2], ch[3]));
+
+            unsigned char mat = phys0;
+            mat = maxWeight == ch[1] ? phys1 : mat;
+            mat = maxWeight == ch[2] ? phys2 : mat;
+            mat = maxWeight == ch[3] ? phys3 : mat;
+
+            physMap[(y - detRectC[0].y) * physMap_w + x - detRectC[0].x] = mat;
+          }
+          if (splattingTypesMap[land] == INDEXED_SPLATTING) // indexed landclass
+          {
+            int index00 = floorf(p00.r + 0.1f);
+            int index01 = floorf(p01.r + 0.1f);
+            int index10 = floorf(p10.r + 0.1f);
+            int index11 = floorf(p11.r + 0.1f);
+            float weight00 = (1.0f - tx) * (1.0f - ty);
+            float weight01 = tx * (1.0f - ty);
+            float weight10 = (1.0f - tx) * ty;
+            float weight11 = tx * ty;
+
+            unsigned char phys00, phys01, phys10, phys11;
+            phys00 = pmIndexedMap[64 * land + index00];
+            phys01 = pmIndexedMap[64 * land + index01];
+            phys10 = pmIndexedMap[64 * land + index10];
+            phys11 = pmIndexedMap[64 * land + index11];
+
+            // physmats can be the same, so choose not from individual weights of indicies, but from physmat weights
+            float Sweight00 = weight00 + (phys00 == phys01) * weight01 + (phys00 == phys10) * weight10 + (phys00 == phys11) * weight11;
+            float Sweight01 = weight01 + (phys01 == phys10) * weight10 + (phys01 == phys11) * weight11;
+            float Sweight10 = weight10 + (phys10 == phys11) * weight11;
+            float Sweight11 = weight11;
+
+            float maxWeight = max(max(Sweight00, Sweight01), max(Sweight10, Sweight11));
+            unsigned char mat = phys00;
+            mat = maxWeight == Sweight01 ? phys01 : mat;
+            mat = maxWeight == Sweight10 ? phys10 : mat;
+            mat = maxWeight == Sweight11 ? phys11 : mat;
+
+            physMap[(y - detRectC[0].y) * physMap_w + x - detRectC[0].x] = mat;
+          }
+        }
+      }
+    for (int i = 0; i < stexMap.size(); i++)
+      if (stexMap[i] && intptr_t(stexMap[i]) != intptr_t(-1))
+        memfree(stexMap[i], tmpmem);
+  }
+
+  bool full_zero = true;
+  for (int i = 0; i < physMap.size() && full_zero; i += 8)
+    if ((*(int64_t *)&physMap[i]))
+      full_zero = false;
+
+  if (allow_debug_bitmap_dump)
+  {
+    if (physMap_w && physMap_h)
+    {
+      IBitMaskImageMgr::BitmapMask img;
+      bitMaskImgMgr->createBitMask(img, physMap_w, physMap_h, 8);
+      for (int y = 0; y < physMap_h; y++)
+        for (int x = 0; x < physMap_w; x++)
+          img.setMaskPixel8(x, y, physMap[y * physMap_w + x] * 8);
+      bitMaskImgMgr->saveImage(img, ".", "pmMap2");
+      bitMaskImgMgr->destroyImage(img);
+    }
+  }
+  StaticGeometryContainer *geoCont = dagGeom->newStaticGeometryContainer();
+  for (int i = 0; i < DAGORED2->getPluginCount(); ++i)
+  {
+    IGenEditorPlugin *plugin = DAGORED2->getPlugin(i);
+    IGatherStaticGeometry *geom = plugin->queryInterface<IGatherStaticGeometry>();
+    if (!geom)
+      continue;
+    geom->gatherStaticVisualGeometry(*geoCont);
+  }
+
+  struct TexturePhysInfo
+  {
+    int alphaThreshold;
+    bool heightAbove; // invert alpha
+  };
+
+  Tab<StaticGeometryNode *> decalNodes(tmpmem);
+  Tab<SmallTab<int, TmpmemAlloc>> physMatIds(tmpmem);
+  Tab<SmallTab<int, TmpmemAlloc>> bitmapIds(tmpmem);
+  FastNameMap textureNames;
+  Tab<TexturePhysInfo> texturePhysInfos(tmpmem);
+  Tab<int> hasAtLeastOneSolidMat(tmpmem);
+  decalNodes.reserve(geoCont->nodes.size());
+  int hasAtLeastOneSolidMatCounter = 0;
+  for (int i = 0; i < geoCont->nodes.size(); ++i)
+  {
+    StaticGeometryNode *node = geoCont->nodes[i];
+
+    if (!node)
+      continue;
+    if (!node->mesh->mesh.check_mesh())
+      continue;
+
+    SmallTab<int, TmpmemAlloc> phMatIds;
+    SmallTab<int, TmpmemAlloc> bmpIds;
+    dag::Vector<bool> isSolidMat;
+    clear_and_resize(phMatIds, node->mesh->mats.size());
+    mem_set_ff(phMatIds);
+    clear_and_resize(bmpIds, node->mesh->mats.size());
+    mem_set_ff(bmpIds);
+    clear_and_resize(isSolidMat, node->mesh->mats.size());
+    mem_set_0(isSolidMat);
+    bool nodeAdded = false;
+    int solidMatCounter = 0;
+    for (int mi = 0; mi < node->mesh->mats.size(); ++mi)
+    {
+      if (!node->mesh->mats[mi])
+        continue;
+      bool isDecal = false;
+      CfgReader c;
+      c.getdiv_text(String(128, "[q]\r\n%s\r\n", node->mesh->mats[mi]->scriptText.str()), "q");
+      if (strstr(node->mesh->mats[mi]->className.str(), "decal"))
+        isDecal = true;
+      else if (strstr(node->mesh->mats[mi]->scriptText.str(), "render_landmesh_combined") && !c.getbool("render_landmesh_combined", 1))
+        isDecal = true;
+      if (isDecal)
+      {
+        const char *physMatName = c.getstr("phmat", NULL);
+        if (!physMatName)
+          continue;
+        phMatIds[mi] = pmNames.addNameId(physMatName);
+        if (hmlService->getIsSolidByPhysMatName(physMatName))
+        {
+          isSolidMat[mi] = true;
+          solidMatCounter++;
+        }
+        if (!nodeAdded)
+          decalNodes.push_back(node);
+        const char *textureName = node->mesh->mats[mi]->textures[0]->fileName.str();
+        if (textureNames.getNameId(textureName) < 0)
+        {
+          TexturePhysInfo &physInfo = texturePhysInfos.push_back();
+          physInfo.alphaThreshold = c.getint("alpha_threshold", 127);
+          physInfo.heightAbove = c.getint("height_above", 1);
+        }
+        bmpIds[mi] = textureNames.addNameId(textureName);
+        nodeAdded = true;
+        full_zero = false;
+      }
+    }
+    if (nodeAdded)
+    {
+      if (solidMatCounter > 0)
+      {
+        int listSize = phMatIds.size();
+        // We will copy solid ids to end of vector, so reserve space for them now
+        phMatIds.reserve(solidMatCounter + listSize);
+        bmpIds.reserve(solidMatCounter + listSize);
+        // copy soft ids to begin of vector and solid ids to end of vector
+        int copyTo = 0;
+        for (int i = 0; i < listSize; i++)
+        {
+          if (isSolidMat[i])
+          {
+            // Make a copy of solid mat at the end of vector
+            phMatIds.push_back(phMatIds[i]);
+            bmpIds.push_back(bmpIds[i]);
+          }
+          else
+          {
+            if (i != copyTo)
+            {
+              phMatIds[copyTo] = phMatIds[i];
+              bmpIds[copyTo] = bmpIds[i];
+            }
+            copyTo++;
+          }
+        }
+        // Values in interval [copyTo..listSize) contain just part of initial vector;
+        // all these values were copied to [0..copyTo) or [listSize..newSize) intervals. So this interval can be removed now.
+        phMatIds.erase(phMatIds.begin() + copyTo, phMatIds.begin() + listSize);
+        bmpIds.erase(bmpIds.begin() + copyTo, bmpIds.begin() + listSize);
+        hasAtLeastOneSolidMatCounter++;
+        hasAtLeastOneSolidMat.push_back(1);
+      }
+      else
+      {
+        hasAtLeastOneSolidMat.push_back(0);
+      }
+      physMatIds.push_back(phMatIds);
+      bitmapIds.push_back(bmpIds);
+    }
+  }
+  // making sort in order that solid physmats are drawn last
+  int listSize = physMatIds.size();
+  // We will copy solid ids to end of vector, so reserve space for them now
+  physMatIds.reserve(hasAtLeastOneSolidMatCounter + listSize);
+  bitmapIds.reserve(hasAtLeastOneSolidMatCounter + listSize);
+  decalNodes.reserve(hasAtLeastOneSolidMatCounter + listSize);
+  // copy soft ids to begin of vector and solid ids to end of vector
+  int copyTo = 0;
+  for (int i = 0; i < listSize; i++)
+  {
+    if (hasAtLeastOneSolidMat[i])
+    {
+      // Make a copy of solid mat at the end of vector
+      physMatIds.push_back(physMatIds[i]);
+      bitmapIds.push_back(bitmapIds[i]);
+      decalNodes.push_back(decalNodes[i]);
+    }
+    else
+    {
+      if (i != copyTo)
+      {
+        physMatIds[copyTo] = physMatIds[i];
+        bitmapIds[copyTo] = bitmapIds[i];
+        decalNodes[copyTo] = decalNodes[i];
+      }
+      copyTo++;
+    }
+  }
+  // Values in interval [copyTo..listSize) contain just part of initial vector;
+  // all these values were copied to [0..copyTo) or [listSize..newSize) intervals. So this interval can be removed now.
+  physMatIds.erase(physMatIds.begin() + copyTo, physMatIds.begin() + listSize);
+  bitmapIds.erase(bitmapIds.begin() + copyTo, bitmapIds.begin() + listSize);
+  decalNodes.erase(decalNodes.begin() + copyTo, decalNodes.begin() + listSize);
+
+  if (!full_zero)
+  {
+    // write physmat map
+    cwr.beginTaggedBlock(_MAKE4C('LMp2'));
+    int st_pos = cwr.tell();
+
+    int version = 1;
+    cwr.writeInt32e(version);
+    cwr.writeInt32e(pmNames.nameCount());
+    for (int i = 0; i < pmNames.nameCount(); i++)
+      cwr.writeDwString(pmNames.getName(i));
+
+    cwr.writeInt32e(physMap_w);
+    cwr.writeInt32e(physMap_h);
+    cwr.writeFloat32e(detDivisor ? detRect[0].x : 0);
+    cwr.writeFloat32e(detDivisor ? detRect[0].y : 0);
+    cwr.writeFloat32e(detDivisor ? gridCellSize / detDivisor : 0);
+
+    mkbindump::BinDumpSaveCB cwr_pm(2 << 10, cwr.getTarget(), cwr.WRITE_BE);
+
+    TreeBitmapNode physMapParent;
+    physMapParent.create(physMap, IPoint2(physMap_w, physMap_h));
+    mkbindump::save_tree_bitmap(cwr_pm, &physMapParent);
+
+    // write meshes
+    debug("decal nodes %d", decalNodes.size());
+    cwr_pm.writeInt16e(decalNodes.size());
+    for (int i = 0; i < decalNodes.size(); ++i)
+    {
+      StaticGeometryNode *node = decalNodes[i];
+
+      // Prepare
+      Mesh tempMesh = node->mesh->mesh;
+      tempMesh.transform(node->wtm);
+
+      // Optimize
+      Bitarray usedFaces;
+      usedFaces.resize(tempMesh.face.size());
+      usedFaces.reset();
+      for (int fidx = 0; fidx < tempMesh.face.size(); ++fidx)
+        if (physMatIds[i][tempMesh.face[fidx].mat] >= 0)
+          usedFaces.set(fidx);
+      tempMesh.removeFacesFast(usedFaces);
+      tempMesh.kill_unused_verts();
+      tempMesh.kill_bad_faces();
+      tempMesh.sort_faces_by_mat();
+
+      // Simplify
+      SmallTab<Point2, TmpmemAlloc> vertices;
+      SmallTab<Point2, TmpmemAlloc> texCoords;
+      clear_and_resize(vertices, tempMesh.vert.size());
+      for (int vert = 0; vert < tempMesh.vert.size(); ++vert)
+        vertices[vert] = Point2::xz(tempMesh.vert[vert]);
+      cwr_pm.writeInt16e(vertices.size());
+      cwr_pm.writeRaw(vertices.data(), data_size(vertices));
+      cwr_pm.writeInt16e(tempMesh.tvert[0].size());
+      cwr_pm.writeRaw(tempMesh.tvert[0].data(), data_size(tempMesh.tvert[0]));
+
+      if (tempMesh.face.empty())
+      {
+        cwr_pm.writeInt8e(0);  // 0 mat
+        cwr_pm.writeInt16e(0); // 0 faces
+        // useless node actually for some reason
+        continue;
+      }
+      int curPhysMat = -1;
+      int curFaceIdx = 0;
+      int faceNumOffset = -1;
+      for (int fi = 0; fi < tempMesh.face.size(); ++fi)
+      {
+        int physMat = physMatIds[i][tempMesh.face[fi].mat];
+        if (physMat != curPhysMat)
+        {
+          cwr_pm.writeInt8e(physMat);
+          curPhysMat = physMat;
+          if (faceNumOffset >= 0)
+          {
+            cwr_pm.seekto(faceNumOffset);
+            cwr_pm.writeInt16e(fi - curFaceIdx);
+            cwr_pm.seekToEnd();
+            cwr_pm.writeInt16e(bitmapIds[i][tempMesh.face[fi].mat]);
+            for (int tfi = curFaceIdx; tfi < fi; ++tfi)
+            {
+              cwr_pm.writeInt16e(tempMesh.tface[0][tfi].t[0]);
+              cwr_pm.writeInt16e(tempMesh.tface[0][tfi].t[1]);
+              cwr_pm.writeInt16e(tempMesh.tface[0][tfi].t[2]);
+            }
+          }
+          faceNumOffset = cwr_pm.tell();
+          curFaceIdx = fi;
+          cwr_pm.writeInt16e(0); // 0 faces, we don't know number yet
+        }
+        cwr_pm.writeInt16e(tempMesh.face[fi].v[0]);
+        cwr_pm.writeInt16e(tempMesh.face[fi].v[1]);
+        cwr_pm.writeInt16e(tempMesh.face[fi].v[2]);
+      }
+      if (!tempMesh.tface[0].empty())
+        cwr_pm.writeInt16e(bitmapIds[i][tempMesh.face.back().mat]);
+      for (int tfi = curFaceIdx; tfi < tempMesh.tface[0].size(); ++tfi)
+      {
+        cwr_pm.writeInt16e(tempMesh.tface[0][tfi].t[0]);
+        cwr_pm.writeInt16e(tempMesh.tface[0][tfi].t[1]);
+        cwr_pm.writeInt16e(tempMesh.tface[0][tfi].t[2]);
+      }
+      cwr_pm.seekto(faceNumOffset);
+      cwr_pm.writeInt16e(tempMesh.face.size() - curFaceIdx);
+      cwr_pm.seekToEnd();
+
+      // stop
+      cwr_pm.writeInt8e(0);
+      cwr_pm.writeInt16e(0);
+    }
+
+    const int delta = (EXTENDED_DECAL_BITMAP_SZ - DECAL_BITMAP_SZ) / 2;
+    cwr_pm.writeInt16e(textureNames.nameCount());
+    int texTypeId = DAEDITOR3.getAssetTypeId("tex");
+    for (int i = 0; i < textureNames.nameCount(); ++i)
+    {
+      int numOfDrawedPixels = 0;
+      HmapLandPlugin::PackedDecalBitmap bitmap;
+      HmapLandPlugin::ExtendedDecalBitmap accumulated_bitmap;
+      mem_set_0(bitmap);
+      mem_set_0(accumulated_bitmap);
+      String aname(DagorAsset::fpath2asset(TextureMetaData::decodeFileName(textureNames.getName(i), &tmp_stor)));
+      if (aname.length() > 0 && aname[aname.length() - 1] == '*')
+        erase_items(aname, aname.length() - 1, 1);
+      DagorAsset *a = DAEDITOR3.getAssetByName(aname.str(), texTypeId);
+      String fname;
+      if (a)
+        fname = eastl::move(a->getTargetFilePath());
+      if (!fname.empty() && (is_tga_or_tiff(fname)))
+      {
+        TexImage32 *image = load_tga_or_tiff(fname, tmpmem);
+        TexPixel32 *pixels = image->getPixels();
+        for (int y = 0; y < DECAL_BITMAP_SZ; ++y)
+        {
+          for (int x = 0; x < DECAL_BITMAP_SZ; ++x)
+          {
+            float accumulatedAlpha = 0.f;
+            for (int yy = (y * image->h) / DECAL_BITMAP_SZ; yy < ((y + 1) * image->h) / DECAL_BITMAP_SZ; ++yy)
+              for (int xx = (x * image->w) / DECAL_BITMAP_SZ; xx < ((x + 1) * image->w) / DECAL_BITMAP_SZ; ++xx)
+                accumulatedAlpha += pixels[yy * image->w + xx].a;
+
+            const TexturePhysInfo &physInfo = texturePhysInfos[i];
+            float threshold = physInfo.alphaThreshold;
+            accumulatedAlpha *= float(sqr(DECAL_BITMAP_SZ)) / float(image->h * image->w);
+            if ((accumulatedAlpha > threshold) == physInfo.heightAbove)
+            {
+              accumulated_bitmap[((y + delta) * EXTENDED_DECAL_BITMAP_SZ) + (x + delta)] = 1;
+              numOfDrawedPixels++;
+            }
+          }
+        }
+        // assume that if less then 10% of bitmap are filled with physmat value then something is strange happened
+        // we do it before closing process to understand how many pixels we have from alpha texture
+        if (numOfDrawedPixels <= (DECAL_BITMAP_SZ * DECAL_BITMAP_SZ) * 0.1f)
+        {
+          DAEDITOR3.conWarning("There is something strange with texture \"%s\"\nBitmap filled only %d pixel of 1024\n"
+                               "Please check alpha texture or params in mat.blk \n",
+            textureNames.getName(i), numOfDrawedPixels);
+        }
+
+        applyClosingPostProcess(accumulated_bitmap);
+        bitmap = to_1bit_bitmap(accumulated_bitmap);
+      }
+      else
+      {
+        DAEDITOR3.conError("Unsuported texture '%s' used in decal for PhysMap, only tga's or tiff's supported",
+          textureNames.getName(i));
+        if (fname)
+          DAEDITOR3.conError("Texture was tried to be loaded from '%s'", fname);
+      }
+      cwr_pm.write32ex(bitmap.data(), data_size(bitmap));
+    }
+
+    cwr.beginBlock();
+    MemoryLoadCB mcrd(cwr_pm.getMem(), false);
+    if (preferZstdPacking && allowOodlePacking)
+    {
+      cwr.writeInt32e(cwr_pm.getSize());
+      oodle_compress_data(cwr.getRawWriter(), mcrd, cwr_pm.getSize());
+    }
+    else if (preferZstdPacking)
+      zstd_compress_data(cwr.getRawWriter(), mcrd, cwr_pm.getSize(), 1 << 20, 19);
+    else
+      lzma_compress_data(cwr.getRawWriter(), 9, mcrd, cwr_pm.getSize());
+    cwr.endBlock(preferZstdPacking ? (allowOodlePacking ? btag_compr::OODLE : btag_compr::ZSTD) : btag_compr::UNSPECIFIED);
+
+    cwr.align8();
+    cwr.endBlock();
+    debug("LMpm written, %d packed, %d unpacked", cwr.tell() - st_pos, cwr_pm.getSize());
+  }
+  dagGeom->deleteStaticGeometryContainer(geoCont);
+}
+
+bool HmapLandPlugin::buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *params)
 {
   // Temporary show not exported RIs for buildAndWriteNavmesh
   for (uint32_t i = 0; i < EditLayerProps::layerProps.size(); ++i)
@@ -1301,7 +1934,6 @@ bool HmapLandPlugin::buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &
   storeLayerTex();
 
   int st_mask = DAEDITOR3.getEntitySubTypeMask(IObjEntityFilter::STMASK_TYPE_EXPORT);
-  String tmp_stor;
 
   const int edMode = objEd.getEditMode();
   if (edMode == CM_CREATE_ENTITY)
@@ -1595,590 +2227,7 @@ bool HmapLandPlugin::buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &
     generateLandMeshMap(landMeshMap, DAGORED2->getConsole(), false, NULL);
 #endif
 
-    if (true)
-    {
-      int phys_li = hmlService->getBitLayerIndexByName(getLayersHandle(), "phys");
-      if (phys_li < 0)
-      {
-        phys_li = hmlService->getBitLayerIndexByName(getLayersHandle(), "land");
-      }
-      HmapBitLayerDesc layer = landClsLayer[phys_li];
-      SmallTab<unsigned char, TmpmemAlloc> pmMap;
-      SmallTab<unsigned char, TmpmemAlloc> pmIndexedMap;
-      FastNameMap pmNames;
-
-      SmallTab<unsigned char, TmpmemAlloc> physMap;
-      int physMap_w = detDivisor ? detRectC.width().x : 0, physMap_h = detDivisor ? detRectC.width().y : 0;
-
-      clear_and_resize(pmMap, 5 << (layer.bitCount + 1));
-      mem_set_0(pmMap);
-      pmNames.addNameId(hmlService->getLandPhysMatName(0));
-      for (int i = 0; i < pmMap.size(); i += 5)
-        if (landclass::AssetData *d = getLandClassMgr().getLandClass(phys_li, i / 5))
-        {
-          pmMap[i + 0] = pmNames.addNameId(hmlService->getLandPhysMatName(d->physMatId[0]));
-          pmMap[i + 1] = pmNames.addNameId(hmlService->getLandPhysMatName(d->physMatId[1]));
-          pmMap[i + 2] = pmNames.addNameId(hmlService->getLandPhysMatName(d->physMatId[2]));
-          pmMap[i + 3] = pmNames.addNameId(hmlService->getLandPhysMatName(d->physMatId[3]));
-          pmMap[i + 4] = pmNames.addNameId(hmlService->getLandPhysMatName(d->physMatId[4]));
-        }
-      clear_and_resize(pmIndexedMap, 64 << (layer.bitCount + 1));
-      mem_set_0(pmIndexedMap);
-      for (int i = 0; i < pmIndexedMap.size(); i += 64)
-        if (landclass::AssetData *d = getLandClassMgr().getLandClass(phys_li, i / 64))
-          for (int j = 0; j < 64; j++)
-            pmIndexedMap[i + j] = pmNames.addNameId(hmlService->getLandPhysMatName(d->indexedPhysMatId[j]));
-
-      if (detDivisor)
-      {
-        clear_and_resize(physMap, physMap_w * physMap_h);
-        mem_set_0(physMap);
-
-        SmallTab<TexImage32 *, TmpmemAlloc> stexMap;
-        SmallTab<int, TmpmemAlloc> splattingTypesMap;
-        int texTypeId = DAEDITOR3.getAssetTypeId("tex");
-
-        clear_and_resize(stexMap, 1 << layer.bitCount);
-        mem_set_ff(stexMap);
-
-        enum
-        {
-          UNDEFINED = 0,
-          RGB_SPLATTING = 1,
-          INDEXED_SPLATTING = 2
-        };
-
-        clear_and_resize(splattingTypesMap, 1 << layer.bitCount);
-        for (int i = 0; i < splattingTypesMap.size(); i++)
-          splattingTypesMap[i] = UNDEFINED;
-
-        for (int y = detRectC[0].y; y < detRectC[1].y; y++)
-          for (int x = detRectC[0].x; x < detRectC[1].x; x++)
-          {
-            int land = layer.getLayerData(landClsMap.getData(x * lcmScale / detDivisor, y * lcmScale / detDivisor));
-            physMap[(y - detRectC[0].y) * physMap_w + x - detRectC[0].x] = pmMap[5 * land];
-            if (intptr_t(stexMap[land]) == intptr_t(-1))
-            {
-              stexMap[land] = NULL;
-              if (landclass::AssetData *d = getLandClassMgr().getLandClass(phys_li, land))
-              {
-                if (d->detTex && d->detTex->getStr("splattingmap", nullptr))
-                {
-                  const char *splattingMap = d->detTex->getStr("splattingmap");
-                  if (splattingMap[0] == '*')
-                  {
-                    SimpleString nm(splattingMap + 1);
-                    if (char *p = strchr(nm.str(), ':'))
-                      *p = '\0';
-                    String fn(0, "%s/%s", DAGORED2->getPluginFilePath(this, "elc"), nm);
-                    // debug("load %s", fn);
-                    stexMap[land] = try_find_and_load_tga_or_tiff(fn, tmpmem);
-                    splattingTypesMap[land] = RGB_SPLATTING;
-                  }
-                  else if (DagorAsset *a = DAEDITOR3.getAssetByName(splattingMap, texTypeId))
-                  {
-                    String fn(a->getTargetFilePath());
-                    if (is_tga_or_tiff(fn))
-                    {
-                      // debug("load %s", fn);
-                      stexMap[land] = load_tga_or_tiff(fn, tmpmem);
-                      splattingTypesMap[land] = RGB_SPLATTING;
-                    }
-                    else
-                      DAEDITOR3.conError("texture asset <%s> refernces to non-compatible %s", a->getName(), fn);
-                  }
-                  else
-                    DAEDITOR3.conError("failed to resolve texture asset <%s> referenced by detailMap in landclass", splattingMap);
-                }
-                else if (d->indicesTex && d->indicesTex->getStr("indices"))
-                {
-                  const char *indicesMap = d->indicesTex->getStr("indices");
-                  if (indicesMap[0] == '*')
-                  {
-                    SimpleString nm(indicesMap + 1);
-                    if (char *p = strchr(nm.str(), ':'))
-                      *p = '\0';
-                    String fn(0, "%s/%s", DAGORED2->getPluginFilePath(this, "elc"), nm);
-                    // debug("load %s", fn);
-                    stexMap[land] = try_find_and_load_tga_or_tiff(fn, tmpmem);
-                    splattingTypesMap[land] = INDEXED_SPLATTING;
-                  }
-                  else if (DagorAsset *a = DAEDITOR3.getAssetByName(indicesMap, texTypeId))
-                  {
-                    String fn(a->getTargetFilePath());
-                    if (is_tga_or_tiff(fn))
-                    {
-                      // debug("load %s", fn);
-                      stexMap[land] = load_tga_or_tiff(fn, tmpmem);
-                      splattingTypesMap[land] = INDEXED_SPLATTING;
-                    }
-                    else
-                      DAEDITOR3.conError("texture asset <%s> refernces to non-compatible %s", a->getName(), fn);
-                  }
-                  else
-                    DAEDITOR3.conError("failed to resolve texture asset <%s> referenced by detailMap in landclass", indicesMap);
-                }
-              }
-              if (stexMap[land] && intptr_t(stexMap[land]) != intptr_t(-1))
-              {
-                // We need to reverse image in vertical way
-                TexPixel32 *pix = stexMap[land]->getPixels();
-                Tab<TexPixel32> tempBuffer;
-                tempBuffer.resize(stexMap[land]->w);
-                for (int y = 0; y < stexMap[land]->h / 2; ++y)
-                {
-                  memcpy(tempBuffer.data(), &pix[(stexMap[land]->h - y - 1) * stexMap[land]->w], data_size(tempBuffer));
-                  memcpy(&pix[(stexMap[land]->h - y - 1) * stexMap[land]->w], &pix[y * stexMap[land]->w], data_size(tempBuffer));
-                  memcpy(&pix[y * stexMap[land]->w], tempBuffer.data(), data_size(tempBuffer));
-                }
-              }
-              // debug("stexMap[%d]=%p", land, stexMap[land]);
-            }
-            if (stexMap[land] && intptr_t(stexMap[land]) != intptr_t(-1))
-            {
-              landclass::AssetData *d = getLandClassMgr().getLandClass(phys_li, land);
-              // fixme: this is awful copy paste of 'opaque' landclass logic in order to create physmap
-              float tile = safediv(1.f, d->detTex->getPoint2("size", Point2(1, 1)).x);
-              Point2 offset = d->detTex->getPoint2("offset", Point2(0, 0)); // mask origin relative to main HMAP origin
-              //
-              const TexPixel32 *pix = stexMap[land]->getPixels();
-
-              int w = stexMap[land]->w, h = stexMap[land]->h;
-              float fx = -0.001f + fmodf(((x + 0.5f) * gridCellSize / detDivisor - offset.x) * tile, 1.0f) * w;
-              float fy = -0.001f + fmodf(((y + 0.5f) * gridCellSize / detDivisor - offset.y) * tile, 1.0f) * h;
-
-              if (fx < 0)
-                fx += w;
-              if (fy < 0)
-                fy += h;
-              int ix = floorf(fx), iy = floorf(fy);
-              float tx = fx - ix, ty = fy - iy;
-
-              E3DCOLOR p00(pix[iy * w + ix].u);
-              E3DCOLOR p10(pix[iy * w + ((ix + 1) % w)].u);
-              E3DCOLOR p01(pix[((iy + 1) % h) * w + ix].u);
-              E3DCOLOR p11(pix[((iy + 1) % h) * w + ((ix + 1) % w)].u);
-
-              if (splattingTypesMap[land] == RGB_SPLATTING) // mega landclass
-              {
-                float ch[4];
-                ch[0] = ((p00.r * (1 - tx) + p01.r * tx) * (1 - ty) + (p10.r * (1 - tx) + p11.r * tx) * ty) / 255.0f;
-                ch[1] = ((p00.g * (1 - tx) + p01.g * tx) * (1 - ty) + (p10.g * (1 - tx) + p11.g * tx) * ty) / 255.0f;
-                ch[2] = ((p00.b * (1 - tx) + p01.b * tx) * (1 - ty) + (p10.b * (1 - tx) + p11.b * tx) * ty) / 255.0f;
-                ch[3] = clamp(1 - ch[0] - ch[1] - ch[2], 0.f, 1.f);
-                for (int i = 0; i < 4; i++)
-                  if (ch[i] > 0.5)
-                    physMap[(y - detRectC[0].y) * physMap_w + x - detRectC[0].x] = pmMap[5 * land + 1 + i];
-              }
-              if (splattingTypesMap[land] == INDEXED_SPLATTING) // indexed landclass
-              {
-                int index00 = floorf(p00.r + 0.1f);
-                int index01 = floorf(p01.r + 0.1f);
-                int index10 = floorf(p10.r + 0.1f);
-                int index11 = floorf(p11.r + 0.1f);
-                float weight00 = (1.0f - tx) * (1.0f - ty);
-                float weight01 = tx * (1.0f - ty);
-                float weight10 = (1.0f - tx) * ty;
-                float weight11 = tx * ty;
-
-                unsigned char phys00, phys01, phys10, phys11;
-                phys00 = pmIndexedMap[64 * land + index00];
-                phys01 = pmIndexedMap[64 * land + index01];
-                phys10 = pmIndexedMap[64 * land + index10];
-                phys11 = pmIndexedMap[64 * land + index11];
-
-                // physmats can be the same, so choose not from individual weights of indicies, but from physmat weights
-                float Sweight00 =
-                  weight00 + (phys00 == phys01) * weight01 + (phys00 == phys10) * weight10 + (phys00 == phys11) * weight11;
-                float Sweight01 = weight01 + (phys01 == phys10) * weight10 + (phys01 == phys11) * weight11;
-                float Sweight10 = weight10 + (phys10 == phys11) * weight11;
-                float Sweight11 = weight11;
-
-                float maxWeight = max(max(Sweight00, Sweight01), max(Sweight10, Sweight11));
-                unsigned char mat = phys00;
-                mat = maxWeight == Sweight01 ? phys01 : mat;
-                mat = maxWeight == Sweight10 ? phys10 : mat;
-                mat = maxWeight == Sweight11 ? phys11 : mat;
-
-                physMap[(y - detRectC[0].y) * physMap_w + x - detRectC[0].x] = mat;
-              }
-            }
-          }
-        for (int i = 0; i < stexMap.size(); i++)
-          if (stexMap[i] && intptr_t(stexMap[i]) != intptr_t(-1))
-            memfree(stexMap[i], tmpmem);
-      }
-
-      bool full_zero = true;
-      for (int i = 0; i < physMap.size() && full_zero; i += 8)
-        if ((*(int64_t *)&physMap[i]))
-          full_zero = false;
-
-      if (allow_debug_bitmap_dump)
-      {
-        if (physMap_w && physMap_h)
-        {
-          IBitMaskImageMgr::BitmapMask img;
-          bitMaskImgMgr->createBitMask(img, physMap_w, physMap_h, 8);
-          for (int y = 0; y < physMap_h; y++)
-            for (int x = 0; x < physMap_w; x++)
-              img.setMaskPixel8(x, y, physMap[y * physMap_w + x] * 8);
-          bitMaskImgMgr->saveImage(img, ".", "pmMap2");
-          bitMaskImgMgr->destroyImage(img);
-        }
-      }
-      StaticGeometryContainer *geoCont = dagGeom->newStaticGeometryContainer();
-      for (int i = 0; i < DAGORED2->getPluginCount(); ++i)
-      {
-        IGenEditorPlugin *plugin = DAGORED2->getPlugin(i);
-        IGatherStaticGeometry *geom = plugin->queryInterface<IGatherStaticGeometry>();
-        if (!geom)
-          continue;
-        geom->gatherStaticVisualGeometry(*geoCont);
-      }
-
-      struct TexturePhysInfo
-      {
-        int alphaThreshold;
-        bool heightAbove; // invert alpha
-      };
-
-      Tab<StaticGeometryNode *> decalNodes(tmpmem);
-      Tab<SmallTab<int, TmpmemAlloc>> physMatIds(tmpmem);
-      Tab<SmallTab<int, TmpmemAlloc>> bitmapIds(tmpmem);
-      FastNameMap textureNames;
-      Tab<TexturePhysInfo> texturePhysInfos(tmpmem);
-      Tab<int> hasAtLeastOneSolidMat(tmpmem);
-      decalNodes.reserve(geoCont->nodes.size());
-      int hasAtLeastOneSolidMatCounter = 0;
-      for (int i = 0; i < geoCont->nodes.size(); ++i)
-      {
-        StaticGeometryNode *node = geoCont->nodes[i];
-
-        if (!node)
-          continue;
-        if (!node->mesh->mesh.check_mesh())
-          continue;
-
-        SmallTab<int, TmpmemAlloc> phMatIds;
-        SmallTab<int, TmpmemAlloc> bmpIds;
-        dag::Vector<bool> isSolidMat;
-        clear_and_resize(phMatIds, node->mesh->mats.size());
-        mem_set_ff(phMatIds);
-        clear_and_resize(bmpIds, node->mesh->mats.size());
-        mem_set_ff(bmpIds);
-        clear_and_resize(isSolidMat, node->mesh->mats.size());
-        mem_set_0(isSolidMat);
-        bool nodeAdded = false;
-        int solidMatCounter = 0;
-        for (int mi = 0; mi < node->mesh->mats.size(); ++mi)
-        {
-          if (!node->mesh->mats[mi])
-            continue;
-          bool isDecal = false;
-          CfgReader c;
-          c.getdiv_text(String(128, "[q]\r\n%s\r\n", node->mesh->mats[mi]->scriptText.str()), "q");
-          if (strstr(node->mesh->mats[mi]->className.str(), "decal"))
-            isDecal = true;
-          else if (
-            strstr(node->mesh->mats[mi]->scriptText.str(), "render_landmesh_combined") && !c.getbool("render_landmesh_combined", 1))
-            isDecal = true;
-          if (isDecal)
-          {
-            const char *physMatName = c.getstr("phmat", NULL);
-            if (!physMatName)
-              continue;
-            phMatIds[mi] = pmNames.addNameId(physMatName);
-            if (hmlService->getIsSolidByPhysMatName(physMatName))
-            {
-              isSolidMat[mi] = true;
-              solidMatCounter++;
-            }
-            if (!nodeAdded)
-              decalNodes.push_back(node);
-            const char *textureName = node->mesh->mats[mi]->textures[0]->fileName.str();
-            if (textureNames.getNameId(textureName) < 0)
-            {
-              TexturePhysInfo &physInfo = texturePhysInfos.push_back();
-              physInfo.alphaThreshold = c.getint("alpha_threshold", 127);
-              physInfo.heightAbove = c.getint("height_above", 1);
-            }
-            bmpIds[mi] = textureNames.addNameId(textureName);
-            nodeAdded = true;
-            full_zero = false;
-          }
-        }
-        if (nodeAdded)
-        {
-          if (solidMatCounter > 0)
-          {
-            int listSize = phMatIds.size();
-            // We will copy solid ids to end of vector, so reserve space for them now
-            phMatIds.reserve(solidMatCounter + listSize);
-            bmpIds.reserve(solidMatCounter + listSize);
-            // copy soft ids to begin of vector and solid ids to end of vector
-            int copyTo = 0;
-            for (int i = 0; i < listSize; i++)
-            {
-              if (isSolidMat[i])
-              {
-                // Make a copy of solid mat at the end of vector
-                phMatIds.push_back(phMatIds[i]);
-                bmpIds.push_back(bmpIds[i]);
-              }
-              else
-              {
-                if (i != copyTo)
-                {
-                  phMatIds[copyTo] = phMatIds[i];
-                  bmpIds[copyTo] = bmpIds[i];
-                }
-                copyTo++;
-              }
-            }
-            // Values in interval [copyTo..listSize) contain just part of initial vector;
-            // all these values were copied to [0..copyTo) or [listSize..newSize) intervals. So this interval can be removed now.
-            phMatIds.erase(phMatIds.begin() + copyTo, phMatIds.begin() + listSize);
-            bmpIds.erase(bmpIds.begin() + copyTo, bmpIds.begin() + listSize);
-            hasAtLeastOneSolidMatCounter++;
-            hasAtLeastOneSolidMat.push_back(1);
-          }
-          else
-          {
-            hasAtLeastOneSolidMat.push_back(0);
-          }
-          physMatIds.push_back(phMatIds);
-          bitmapIds.push_back(bmpIds);
-        }
-      }
-      // making sort in order that solid physmats are drawn last
-      int listSize = physMatIds.size();
-      // We will copy solid ids to end of vector, so reserve space for them now
-      physMatIds.reserve(hasAtLeastOneSolidMatCounter + listSize);
-      bitmapIds.reserve(hasAtLeastOneSolidMatCounter + listSize);
-      decalNodes.reserve(hasAtLeastOneSolidMatCounter + listSize);
-      // copy soft ids to begin of vector and solid ids to end of vector
-      int copyTo = 0;
-      for (int i = 0; i < listSize; i++)
-      {
-        if (hasAtLeastOneSolidMat[i])
-        {
-          // Make a copy of solid mat at the end of vector
-          physMatIds.push_back(physMatIds[i]);
-          bitmapIds.push_back(bitmapIds[i]);
-          decalNodes.push_back(decalNodes[i]);
-        }
-        else
-        {
-          if (i != copyTo)
-          {
-            physMatIds[copyTo] = physMatIds[i];
-            bitmapIds[copyTo] = bitmapIds[i];
-            decalNodes[copyTo] = decalNodes[i];
-          }
-          copyTo++;
-        }
-      }
-      // Values in interval [copyTo..listSize) contain just part of initial vector;
-      // all these values were copied to [0..copyTo) or [listSize..newSize) intervals. So this interval can be removed now.
-      physMatIds.erase(physMatIds.begin() + copyTo, physMatIds.begin() + listSize);
-      bitmapIds.erase(bitmapIds.begin() + copyTo, bitmapIds.begin() + listSize);
-      decalNodes.erase(decalNodes.begin() + copyTo, decalNodes.begin() + listSize);
-
-      if (!full_zero)
-      {
-        // write physmat map
-        cwr.beginTaggedBlock(_MAKE4C('LMp2'));
-        int st_pos = cwr.tell();
-
-        int version = 1;
-        cwr.writeInt32e(version);
-        cwr.writeInt32e(pmNames.nameCount());
-        for (int i = 0; i < pmNames.nameCount(); i++)
-          cwr.writeDwString(pmNames.getName(i));
-
-        cwr.writeInt32e(physMap_w);
-        cwr.writeInt32e(physMap_h);
-        cwr.writeFloat32e(detDivisor ? detRect[0].x : 0);
-        cwr.writeFloat32e(detDivisor ? detRect[0].y : 0);
-        cwr.writeFloat32e(detDivisor ? gridCellSize / detDivisor : 0);
-
-        mkbindump::BinDumpSaveCB cwr_pm(2 << 10, cwr.getTarget(), cwr.WRITE_BE);
-
-        TreeBitmapNode physMapParent;
-        physMapParent.create(physMap, IPoint2(physMap_w, physMap_h));
-        mkbindump::save_tree_bitmap(cwr_pm, &physMapParent);
-
-        // write meshes
-        debug("decal nodes %d", decalNodes.size());
-        cwr_pm.writeInt16e(decalNodes.size());
-        for (int i = 0; i < decalNodes.size(); ++i)
-        {
-          StaticGeometryNode *node = decalNodes[i];
-
-          // Prepare
-          Mesh tempMesh = node->mesh->mesh;
-          tempMesh.transform(node->wtm);
-
-          // Optimize
-          Bitarray usedFaces;
-          usedFaces.resize(tempMesh.face.size());
-          usedFaces.reset();
-          for (int fidx = 0; fidx < tempMesh.face.size(); ++fidx)
-            if (physMatIds[i][tempMesh.face[fidx].mat] >= 0)
-              usedFaces.set(fidx);
-          tempMesh.removeFacesFast(usedFaces);
-          tempMesh.kill_unused_verts();
-          tempMesh.kill_bad_faces();
-          tempMesh.sort_faces_by_mat();
-
-          // Simplify
-          SmallTab<Point2, TmpmemAlloc> vertices;
-          SmallTab<Point2, TmpmemAlloc> texCoords;
-          clear_and_resize(vertices, tempMesh.vert.size());
-          for (int vert = 0; vert < tempMesh.vert.size(); ++vert)
-            vertices[vert] = Point2::xz(tempMesh.vert[vert]);
-          cwr_pm.writeInt16e(vertices.size());
-          cwr_pm.writeRaw(vertices.data(), data_size(vertices));
-          cwr_pm.writeInt16e(tempMesh.tvert[0].size());
-          cwr_pm.writeRaw(tempMesh.tvert[0].data(), data_size(tempMesh.tvert[0]));
-
-          if (tempMesh.face.empty())
-          {
-            cwr_pm.writeInt8e(0);  // 0 mat
-            cwr_pm.writeInt16e(0); // 0 faces
-            // useless node actually for some reason
-            continue;
-          }
-          int curPhysMat = -1;
-          int curFaceIdx = 0;
-          int faceNumOffset = -1;
-          for (int fi = 0; fi < tempMesh.face.size(); ++fi)
-          {
-            int physMat = physMatIds[i][tempMesh.face[fi].mat];
-            if (physMat != curPhysMat)
-            {
-              cwr_pm.writeInt8e(physMat);
-              curPhysMat = physMat;
-              if (faceNumOffset >= 0)
-              {
-                cwr_pm.seekto(faceNumOffset);
-                cwr_pm.writeInt16e(fi - curFaceIdx);
-                cwr_pm.seekToEnd();
-                cwr_pm.writeInt16e(bitmapIds[i][tempMesh.face[fi].mat]);
-                for (int tfi = curFaceIdx; tfi < fi; ++tfi)
-                {
-                  cwr_pm.writeInt16e(tempMesh.tface[0][tfi].t[0]);
-                  cwr_pm.writeInt16e(tempMesh.tface[0][tfi].t[1]);
-                  cwr_pm.writeInt16e(tempMesh.tface[0][tfi].t[2]);
-                }
-              }
-              faceNumOffset = cwr_pm.tell();
-              curFaceIdx = fi;
-              cwr_pm.writeInt16e(0); // 0 faces, we don't know number yet
-            }
-            cwr_pm.writeInt16e(tempMesh.face[fi].v[0]);
-            cwr_pm.writeInt16e(tempMesh.face[fi].v[1]);
-            cwr_pm.writeInt16e(tempMesh.face[fi].v[2]);
-          }
-          if (!tempMesh.tface[0].empty())
-            cwr_pm.writeInt16e(bitmapIds[i][tempMesh.face.back().mat]);
-          for (int tfi = curFaceIdx; tfi < tempMesh.tface[0].size(); ++tfi)
-          {
-            cwr_pm.writeInt16e(tempMesh.tface[0][tfi].t[0]);
-            cwr_pm.writeInt16e(tempMesh.tface[0][tfi].t[1]);
-            cwr_pm.writeInt16e(tempMesh.tface[0][tfi].t[2]);
-          }
-          cwr_pm.seekto(faceNumOffset);
-          cwr_pm.writeInt16e(tempMesh.face.size() - curFaceIdx);
-          cwr_pm.seekToEnd();
-
-          // stop
-          cwr_pm.writeInt8e(0);
-          cwr_pm.writeInt16e(0);
-        }
-
-        const int delta = (EXTENDED_DECAL_BITMAP_SZ - DECAL_BITMAP_SZ) / 2;
-        cwr_pm.writeInt16e(textureNames.nameCount());
-        int texTypeId = DAEDITOR3.getAssetTypeId("tex");
-        for (int i = 0; i < textureNames.nameCount(); ++i)
-        {
-          int numOfDrawedPixels = 0;
-          HmapLandPlugin::PackedDecalBitmap bitmap;
-          HmapLandPlugin::ExtendedDecalBitmap accumulated_bitmap;
-          mem_set_0(bitmap);
-          mem_set_0(accumulated_bitmap);
-          String aname(DagorAsset::fpath2asset(TextureMetaData::decodeFileName(textureNames.getName(i), &tmp_stor)));
-          if (aname.length() > 0 && aname[aname.length() - 1] == '*')
-            erase_items(aname, aname.length() - 1, 1);
-          DagorAsset *a = DAEDITOR3.getAssetByName(aname.str(), texTypeId);
-          String fname;
-          if (a)
-            fname = eastl::move(a->getTargetFilePath());
-          if (!fname.empty() && (is_tga_or_tiff(fname)))
-          {
-            TexImage32 *image = load_tga_or_tiff(fname, tmpmem);
-            TexPixel32 *pixels = image->getPixels();
-            for (int y = 0; y < DECAL_BITMAP_SZ; ++y)
-            {
-              for (int x = 0; x < DECAL_BITMAP_SZ; ++x)
-              {
-                float accumulatedAlpha = 0.f;
-                for (int yy = (y * image->h) / DECAL_BITMAP_SZ; yy < ((y + 1) * image->h) / DECAL_BITMAP_SZ; ++yy)
-                  for (int xx = (x * image->w) / DECAL_BITMAP_SZ; xx < ((x + 1) * image->w) / DECAL_BITMAP_SZ; ++xx)
-                    accumulatedAlpha += pixels[yy * image->w + xx].a;
-
-                const TexturePhysInfo &physInfo = texturePhysInfos[i];
-                float threshold = physInfo.alphaThreshold;
-                accumulatedAlpha *= float(sqr(DECAL_BITMAP_SZ)) / float(image->h * image->w);
-                if ((accumulatedAlpha > threshold) == physInfo.heightAbove)
-                {
-                  accumulated_bitmap[((y + delta) * EXTENDED_DECAL_BITMAP_SZ) + (x + delta)] = 1;
-                  numOfDrawedPixels++;
-                }
-              }
-            }
-            // assume that if less then 10% of bitmap are filled with physmat value then something is strange happened
-            // we do it before closing process to understand how many pixels we have from alpha texture
-            if (numOfDrawedPixels <= (DECAL_BITMAP_SZ * DECAL_BITMAP_SZ) * 0.1f)
-            {
-              DAEDITOR3.conWarning("There is something strange with texture \"%s\"\nBitmap filled only %d pixel of 1024\n"
-                                   "Please check alpha texture or params in mat.blk \n",
-                textureNames.getName(i), numOfDrawedPixels);
-            }
-
-            applyClosingPostProcess(accumulated_bitmap);
-            bitmap = to_1bit_bitmap(accumulated_bitmap);
-          }
-          else
-          {
-            DAEDITOR3.conError("Unsuported texture '%s' used in decal for PhysMap, only tga's or tiff's supported",
-              textureNames.getName(i));
-            if (fname)
-              DAEDITOR3.conError("Texture was tried to be loaded from '%s'", fname);
-          }
-          cwr_pm.write32ex(bitmap.data(), data_size(bitmap));
-        }
-
-        cwr.beginBlock();
-        MemoryLoadCB mcrd(cwr_pm.getMem(), false);
-        if (preferZstdPacking && allowOodlePacking)
-        {
-          cwr.writeInt32e(cwr_pm.getSize());
-          oodle_compress_data(cwr.getRawWriter(), mcrd, cwr_pm.getSize());
-        }
-        else if (preferZstdPacking)
-          zstd_compress_data(cwr.getRawWriter(), mcrd, cwr_pm.getSize(), 1 << 20, 19);
-        else
-          lzma_compress_data(cwr.getRawWriter(), 9, mcrd, cwr_pm.getSize());
-        cwr.endBlock(preferZstdPacking ? (allowOodlePacking ? btag_compr::OODLE : btag_compr::ZSTD) : btag_compr::UNSPECIFIED);
-
-        cwr.align8();
-        cwr.endBlock();
-        debug("LMpm written, %d packed, %d unpacked", cwr.tell() - st_pos, cwr_pm.getSize());
-      }
-      dagGeom->deleteStaticGeometryContainer(geoCont);
-    }
+    buildAndWritePhysMap(cwr);
 
     IWaterService *waterSrv = EDITORCORE->queryEditorInterface<IWaterService>();
     if (waterSrv)
@@ -2440,6 +2489,14 @@ void HmapLandPlugin::getHeightmapData(int x0, int y0, int step, int x_size, int 
       for (int x = 0, xc = x0; x < x_size; ++x, xc += step, ptr += stride_bytes)
         *(real *)ptr = heightMap.getInitialData(xc, yc);
   }
+}
+
+BBox3 HmapLandPlugin::getBBoxWithHMapWBBox() const
+{
+  if (!landMeshManager)
+    return BBox3();
+
+  return hmlService->getBBoxWithHMapWBBox(*landMeshManager);
 }
 
 
@@ -2773,7 +2830,7 @@ int HmapLandPlugin::loadLandDetailTexture(unsigned targetCode, int x0, int y0, c
   {
     ddstexture::Converter cnv;
     cnv.format = ddstexture::Converter::fmtDXT1a;
-    if (targetCode == _MAKE4C('iOS'))
+    if (HmapLandPlugin::useASTC(targetCode))
       cnv.format = ddstexture::Converter::fmtASTC8, stride2 = stride2 / 2;
     cnv.mipmapType = ddstexture::Converter::mipmapNone;
     cnv.mipmapCount = 0;
@@ -2978,7 +3035,7 @@ int HmapLandPlugin::getMostUsedDetTex(int x0, int y0, int texDataSize, uint8_t *
 }
 
 // ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
-void autocenterHM(PropPanel2 &panel)
+void autocenterHM(PropPanel::ContainerPropertyControl &panel)
 {
   bool autocenter = panel.getBool(PID_HEIGHTMAP_AUTOCENTER);
   if (autocenter)
@@ -2995,12 +3052,12 @@ void autocenterHM(PropPanel2 &panel)
 
 void HmapLandPlugin::createHeightmap()
 {
-  class CreateHeightmapEventHandler : public ControlEventHandler
+  class CreateHeightmapEventHandler : public PropPanel::ControlEventHandler
   {
   public:
     CreateHeightmapEventHandler(HmapLandPlugin *plugin) : mPlugin(plugin) {}
 
-    void onChange(int pcb_id, PropPanel2 *panel)
+    void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
     {
       Point2 p2;
 
@@ -3047,12 +3104,12 @@ void HmapLandPlugin::createHeightmap()
   CreateHeightmapEventHandler eventHandler(this);
 
 
-  CDialogWindow *myDlg = DAGORED2->createDialog(_pxScaled(280), _pxScaled(600), "Create heightmap...");
-  PropertyContainerControlBase *myPanel = myDlg->getPanel();
+  eastl::unique_ptr<PropPanel::DialogWindow> myDlg(DAGORED2->createDialog(_pxScaled(280), _pxScaled(600), "Create heightmap..."));
+  PropPanel::ContainerPropertyControl *myPanel = myDlg->getPanel();
   myPanel->setEventHandler(&eventHandler);
 
 
-  PropertyContainerControlBase *grp = myPanel->createGroupBox(-1, "Heightmap size");
+  PropPanel::ContainerPropertyControl *grp = myPanel->createGroupBox(-1, "Heightmap size");
 
   grp->createPoint2(PID_HM_SIZE_PIXELS, "Size in pixels:", ::defaultHM.sizePixels);
   grp->createPoint2(PID_HM_SIZE_METERS, "Size in meters:", ::defaultHM.sizeMeters, 0);
@@ -3065,7 +3122,7 @@ void HmapLandPlugin::createHeightmap()
   grp->createPoint2(PID_HEIGHTMAP_OFFSET, "Origin offset:", ::defaultHM.originOffset, !::defaultHM.doAutocenter);
   grp->createCheckBox(PID_HEIGHTMAP_AUTOCENTER, "Autocenter", ::defaultHM.doAutocenter);
 
-  PropertyContainerControlBase *subGrp = grp->createGroupBox(-1, "Preload collision area");
+  PropPanel::ContainerPropertyControl *subGrp = grp->createGroupBox(-1, "Preload collision area");
 
   subGrp->createPoint2(PID_HM_COLLISION_OFFSET, "Offset (in %):", ::defaultHM.collisionOffset);
   subGrp->createPoint2(PID_HM_COLLISION_SIZE, "Size (in %):", ::defaultHM.collisionSize);
@@ -3080,7 +3137,7 @@ void HmapLandPlugin::createHeightmap()
   // myPanel->setText(PID_SCRIPT_FILE, DAGORED2->getSdkDir());
 
 
-  if (myDlg->showDialog() == DIALOG_ID_OK)
+  if (myDlg->showDialog() == PropPanel::DIALOG_ID_OK)
   {
     const char *scriptPath = ::defaultHM.scriptPath;
 
@@ -3149,8 +3206,6 @@ void HmapLandPlugin::createHeightmap()
     resetRenderer();
     onLandSizeChanged();
   }
-
-  DAGORED2->deleteDialog(myDlg);
 }
 
 
@@ -3194,7 +3249,7 @@ void HmapLandPlugin::importHeightmap()
     }
     if (stricmp(ext, ".r32") != 0 && stricmp(ext, ".height") != 0)
     {
-      class HmapImportSizeDlg : public ControlEventHandler
+      class HmapImportSizeDlg : public PropPanel::ControlEventHandler
       {
         enum
         {
@@ -3207,7 +3262,7 @@ void HmapLandPlugin::importHeightmap()
         {
           mDialog = DAGORED2->createDialog(_pxScaled(240), _pxScaled(170), "Import HMAP data range");
 
-          PropPanel2 &panel = *mDialog->getPanel();
+          PropPanel::ContainerPropertyControl &panel = *mDialog->getPanel();
           panel.setEventHandler(this);
 
           if (minHeight > MAX_REAL / 2 && heightRange > MAX_REAL / 2)
@@ -3224,9 +3279,9 @@ void HmapLandPlugin::importHeightmap()
         {
           int ret = mDialog->showDialog();
 
-          if (ret == DIALOG_ID_OK)
+          if (ret == PropPanel::DIALOG_ID_OK)
           {
-            PropPanel2 &panel = *mDialog->getPanel();
+            PropPanel::ContainerPropertyControl &panel = *mDialog->getPanel();
             minHeight = panel.getFloat(ID_MIN_HEIGHT);
             heightRange = panel.getFloat(ID_HEIGHT_RANGE);
             return true;
@@ -3238,7 +3293,7 @@ void HmapLandPlugin::importHeightmap()
         float &minHeight;
         float &heightRange;
 
-        CDialogWindow *mDialog;
+        PropPanel::DialogWindow *mDialog;
       };
 
       HmapImportSizeDlg dlg(lastMinHeight[import_det_hmap], lastHeightRange[import_det_hmap]);
@@ -3369,8 +3424,8 @@ void HmapLandPlugin::importWaterHeightmap(bool det)
     ID_HEIGHT_RANGE,
   };
   eastl::string dialogText{eastl::string::CtorSprintf{}, "Importing water %s heightmap.", det ? "DET" : "MAIN"};
-  CDialogWindow *dialog = DAGORED2->createDialog(_pxScaled(240), _pxScaled(170), dialogText.c_str());
-  PropPanel2 &panel = *dialog->getPanel();
+  eastl::unique_ptr<PropPanel::DialogWindow> dialog(DAGORED2->createDialog(_pxScaled(240), _pxScaled(170), dialogText.c_str()));
+  PropPanel::ContainerPropertyControl &panel = *dialog->getPanel();
   panel.setEventHandler(this);
   Point2 *waterHeightMinRange = &waterHeightMinRangeDet;
   HeightMapStorage *waterHeightmap = &waterHeightmapDet;
@@ -3387,9 +3442,9 @@ void HmapLandPlugin::importWaterHeightmap(bool det)
   panel.createEditFloat(ID_MIN_HEIGHT, "Minimal height:", waterHeightMinRange->x);
   panel.createEditFloat(ID_HEIGHT_RANGE, "Height range:", waterHeightMinRange->y);
   int ret = dialog->showDialog();
-  if (ret == DIALOG_ID_OK)
+  if (ret == PropPanel::DIALOG_ID_OK)
   {
-    PropPanel2 &panel = *dialog->getPanel();
+    PropPanel::ContainerPropertyControl &panel = *dialog->getPanel();
     waterHeightMinRange->x = panel.getFloat(ID_MIN_HEIGHT);
     waterHeightMinRange->y = panel.getFloat(ID_HEIGHT_RANGE);
     String path;
@@ -3397,7 +3452,6 @@ void HmapLandPlugin::importWaterHeightmap(bool det)
     if (initialPath.empty())
       initialPath = lastWaterHeightmapImportPath;
     path = wingw::file_open_dlg(NULL, "Import heightmap", hmapImportCaption, "r32", initialPath);
-    del_it(dialog);
 
     if (path.length())
     {
@@ -3436,15 +3490,15 @@ void HmapLandPlugin::eraseWaterHeightmap()
     ID_REMOVE_DET,
   };
   eastl::string dialogText{eastl::string::CtorSprintf{}, "Choose heightmaps for erase."};
-  CDialogWindow *dialog = DAGORED2->createDialog(_pxScaled(240), _pxScaled(170), dialogText.c_str());
-  PropPanel2 &panel = *dialog->getPanel();
+  eastl::unique_ptr<PropPanel::DialogWindow> dialog(DAGORED2->createDialog(_pxScaled(240), _pxScaled(170), dialogText.c_str()));
+  PropPanel::ContainerPropertyControl &panel = *dialog->getPanel();
   panel.setEventHandler(this);
   panel.createCheckBox(ID_REMOVE_MAIN, "Erase MAIN hmap");
   panel.createCheckBox(ID_REMOVE_DET, "Erase DET hmap");
   int ret = dialog->showDialog();
-  if (ret == DIALOG_ID_OK)
+  if (ret == PropPanel::DIALOG_ID_OK)
   {
-    PropPanel2 &panel = *dialog->getPanel();
+    PropPanel::ContainerPropertyControl &panel = *dialog->getPanel();
     bool removeCheckboxes[2] = {panel.getBool(ID_REMOVE_MAIN), panel.getBool(ID_REMOVE_DET)};
     HeightMapStorage *waterHeightmap[2] = {&waterHeightmapMain, &waterHeightmapDet};
     for (int i = 0; i < 2; i++)
@@ -3685,7 +3739,7 @@ void HmapLandPlugin::exportHeightmap()
 }
 
 
-void HmapLandPlugin::autocenterHeightmap(PropPanel2 *panel, bool reset_render)
+void HmapLandPlugin::autocenterHeightmap(PropPanel::ContainerPropertyControl *panel, bool reset_render)
 {
   Point2 oldOffset = heightMapOffset;
 
@@ -5101,6 +5155,8 @@ void HmapLandPlugin::beforeMainLoop()
   for (int i = 0; i < objEd.objectCount(); i++)
     if (LandscapeEntityObject *o = RTTI_cast<LandscapeEntityObject>(objEd.getObject(i)))
       o->setGizmoTranformMode(false);
+  rebuildLandmeshPhysMap();
+  LandscapeEntityObject::rePlaceAllEntitiesOverRI(objEd);
 }
 
 
@@ -5289,7 +5345,7 @@ void HmapLandPlugin::updateHeightMapTex(bool det_hmap, const IBBox2 *dirty_box)
 
   if (!tex)
   {
-    logerr_ctx("failed to create HMAP tex");
+    LOGERR_CTX("failed to create HMAP tex");
     return;
   }
 
@@ -6103,6 +6159,7 @@ void HmapLandPlugin::actObjects(float dt)
       delayedResetRenderer();
       hmlService->invalidateClipmap(true);
       pendingLandmeshRebuild = false;
+      rebuildLandmeshPhysMap();
     }
     if (pendingResetRenderer)
       delayedResetRenderer();
@@ -6294,7 +6351,7 @@ void HmapLandPlugin::beforeRenderObjects(IGenViewportWnd *vp)
     else
       landMeshManager->cullingState.useExclBox = false;
   }
-
+  hmlService->beforeRender();
   objEd.beforeRender();
 
   if (distFieldInvalid && waterService && get_time_msec() > distFieldBuiltAt + 1000 && useMeshSurface && !landMeshMap.isEmpty() &&
@@ -6339,7 +6396,6 @@ void HmapLandPlugin::renderGeometry(Stage stage)
     case STG_BEFORE_RENDER:
     {
       updateHeightMapConstants();
-
 #if defined(USE_HMAP_ACES)
       Driver3dPerspective p(0, 0, 1, 40000, 0, 0);
       if (!d3d::getpersp(p))
@@ -6352,6 +6408,10 @@ void HmapLandPlugin::renderGeometry(Stage stage)
       setZTransformPersp(p.zn, p.zf);
       if (landMeshRenderer && landMeshManager)
       {
+        PhysMap *oldPhysMap = landMeshRenderer->physMap;
+        landMeshRenderer->physMap = objEd.shouldShowPhysMatColors() && !physMaps.empty() ? physMaps.back() : nullptr;
+        if (oldPhysMap != landMeshRenderer->physMap)
+          hmlService->invalidateClipmap(true);
         Point3 p = dagRender->curView().pos;
         float height = p.y;
         if (getHeightmapPointHt(p, NULL))
@@ -6588,6 +6648,32 @@ void HmapLandPlugin::renderTransObjects()
     DAGORED2->renderBrush();
 }
 
+void HmapLandPlugin::updateImgui()
+{
+  if (DAGORED2->curPlugin() == this)
+  {
+    PropPanel::PanelWindowPropertyControl *panelWindow = propPanel ? propPanel->getPanelWindow() : nullptr;
+    if (panelWindow)
+    {
+      bool open = true;
+      DAEDITOR3.imguiBegin(*panelWindow, &open);
+      panelWindow->updateImgui();
+      DAEDITOR3.imguiEnd();
+
+      if (!open && propPanel)
+      {
+        propPanel->showPropPanel(false);
+        EDITORCORE->managePropPanels();
+      }
+    }
+
+    objEd.updateImgui();
+  }
+
+  if (brushDlgHideRequestFrameCountdown > 0 && --brushDlgHideRequestFrameCountdown == 0 && brushDlg)
+    brushDlg->hide();
+}
+
 
 //==============================================================================
 IGenEventHandler *HmapLandPlugin::getEventHandler() { return this; }
@@ -6624,6 +6710,7 @@ void *HmapLandPlugin::queryInterfacePtr(unsigned huid)
   RETURN_INTERFACE(huid, IBinaryDataBuilder);
   RETURN_INTERFACE(huid, ILightingChangeClient);
   RETURN_INTERFACE(huid, IHeightmap);
+  RETURN_INTERFACE(huid, ILandmesh);
   RETURN_INTERFACE(huid, IRoadsProvider);
   RETURN_INTERFACE(huid, IWriteAddLtinputData);
   RETURN_INTERFACE(huid, IRenderingService);
@@ -6734,12 +6821,20 @@ void HmapLandPlugin::selectLayerObjects(int lidx, bool sel)
   objEd.getUndoSystem()->accept(
     String(0, "%s layer \"%s\" objects", sel ? "Select" : "Deselect", EditLayerProps::layerProps[lidx].name()));
 }
-void HmapLandPlugin::moveObjectsToLayer(int lidx)
+void HmapLandPlugin::moveObjectsToLayer(int lidx, dag::Span<RenderableEditableObject *> objects)
 {
+  // We are only interested in layer changes initiated by the user, that is why the onObjectEditLayerChanged is called
+  // one by one instead of being added to setEditLayerIdx.
+
   class UndoLayerChange : public UndoRedoObject
   {
     Ptr<RenderableEditableObject> obj;
     int oldLayerIdx = -1, newLayerIdx = -1;
+
+    static void onObjectEditLayerChanged(RenderableEditableObject &obj)
+    {
+      static_cast<HmapLandObjectEditor *>(obj.getObjEditor())->onObjectEditLayerChanged(obj);
+    }
 
   public:
     UndoLayerChange(RenderableEditableObject *o, int old_l, int new_l) : obj(o), oldLayerIdx(old_l), newLayerIdx(new_l) {}
@@ -6750,6 +6845,8 @@ void HmapLandPlugin::moveObjectsToLayer(int lidx)
         o->setEditLayerIdx(oldLayerIdx);
       else if (SplineObject *o = RTTI_cast<SplineObject>(obj))
         o->setEditLayerIdx(oldLayerIdx);
+
+      onObjectEditLayerChanged(*obj);
     }
     virtual void redo()
     {
@@ -6757,6 +6854,8 @@ void HmapLandPlugin::moveObjectsToLayer(int lidx)
         o->setEditLayerIdx(newLayerIdx);
       else if (SplineObject *o = RTTI_cast<SplineObject>(obj))
         o->setEditLayerIdx(newLayerIdx);
+
+      onObjectEditLayerChanged(*obj);
     }
 
     virtual size_t size() { return sizeof(*this); }
@@ -6767,31 +6866,34 @@ void HmapLandPlugin::moveObjectsToLayer(int lidx)
   objEd.getUndoSystem()->begin();
   if (EditLayerProps::layerProps[lidx].type == EditLayerProps::ENT)
   {
-    for (int i = 0; i < objEd.selectedCount(); i++)
-      if (LandscapeEntityObject *o = RTTI_cast<LandscapeEntityObject>(objEd.getSelected(i)))
+    for (int i = 0; i < objects.size(); i++)
+      if (LandscapeEntityObject *o = RTTI_cast<LandscapeEntityObject>(objects[i]))
       {
         objEd.getUndoSystem()->put(new UndoLayerChange(o, o->getEditLayerIdx(), lidx));
         o->setEditLayerIdx(lidx);
+        objEd.onObjectEditLayerChanged(*o);
       }
   }
   else if (EditLayerProps::layerProps[lidx].type == EditLayerProps::SPL)
   {
-    for (int i = 0; i < objEd.selectedCount(); i++)
-      if (SplineObject *o = RTTI_cast<SplineObject>(objEd.getSelected(i)))
+    for (int i = 0; i < objects.size(); i++)
+      if (SplineObject *o = RTTI_cast<SplineObject>(objects[i]))
         if (!o->isPoly())
         {
           objEd.getUndoSystem()->put(new UndoLayerChange(o, o->getEditLayerIdx(), lidx));
           o->setEditLayerIdx(lidx);
+          objEd.onObjectEditLayerChanged(*o);
         }
   }
   else if (EditLayerProps::layerProps[lidx].type == EditLayerProps::PLG)
   {
-    for (int i = 0; i < objEd.selectedCount(); i++)
-      if (SplineObject *o = RTTI_cast<SplineObject>(objEd.getSelected(i)))
+    for (int i = 0; i < objects.size(); i++)
+      if (SplineObject *o = RTTI_cast<SplineObject>(objects[i]))
         if (o->isPoly())
         {
           objEd.getUndoSystem()->put(new UndoLayerChange(o, o->getEditLayerIdx(), lidx));
           o->setEditLayerIdx(lidx);
+          objEd.onObjectEditLayerChanged(*o);
         }
   }
   objEd.getUndoSystem()->accept(String(0, "Move objects to layer \"%s\"", EditLayerProps::layerProps[lidx].name()));

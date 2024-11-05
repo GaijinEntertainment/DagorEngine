@@ -1,12 +1,14 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include "compositeEditorGizmoClient.h"
 #include "compositeEditorRefreshType.h"
 #include "compositeEditorToolbar.h"
 #include "compositeEditorTreeData.h"
 #include <EASTL/unique_ptr.h>
 #include <EditorCore/ec_interface.h>
-#include <propPanel2/comWnd/treeview_panel.h>
-#include <propPanel2/c_control_event_handler.h>
+#include <propPanel/c_control_event_handler.h>
+#include <propPanel/commonWindow/treeviewPanel.h>
 #include <sepGui/wndMenuInterface.h>
 
 class CompositeEditorTree;
@@ -14,7 +16,7 @@ class CompositeEditorPanel;
 class DagorAsset;
 class IEntityViewPluginInterface;
 
-class CompositeEditor : public ControlEventHandler, public IMenuEventHandler, public ITreeViewEventHandler
+class CompositeEditor : public PropPanel::ControlEventHandler, public IMenuEventHandler, public PropPanel::ITreeViewEventHandler
 {
 public:
   bool begin(DagorAsset *asset, IObjEntity *entity);
@@ -34,6 +36,8 @@ public:
   bool getPreventUiUpdatesWhileUsingGizmo() const { return preventUiUpdatesWhileUsingGizmo; }
   void setPreventUiUpdatesWhileUsingGizmo(bool prevent, bool wasCloning = false);
 
+  void toggleSnapMode(int pcb_id);
+
   void setEntityViewPluginInterface(IEntityViewPluginInterface &inEntityViewPluginInterface);
   IEntityViewPluginInterface &getEntityViewPluginInterface() const;
 
@@ -45,8 +49,6 @@ public:
   eastl::unique_ptr<CompositeEditorTree> compositeTreeView;
   eastl::unique_ptr<CompositeEditorPanel> compositePropPanel;
   bool autoShow = false;
-  int treeLastHeight = 0;
-  int propPanelLastHeight = 0;
 
 private:
   // This is mostly for sanity check to ensure that after requesting (or expecting) a reload it really happens.
@@ -63,15 +65,15 @@ private:
   };
 
   // ControlEventHandler
-  virtual void onChange(int pcb_id, PropPanel2 *panel) override;
-  virtual void onClick(int pcb_id, PropPanel2 *panel) override;
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   // IMenuEventHandler
   virtual int onMenuItemClick(unsigned id) override;
 
   // ITreeViewEventHandler
-  virtual void onTvSelectionChange(TreeBaseWindow &tree, TLeafHandle new_sel) override;
-  virtual bool onTvContextMenu(TreeBaseWindow &tree, TLeafHandle under_mouse, IMenu &menu) override;
+  virtual void onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle new_sel) override;
+  virtual bool onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree) override;
 
   void fillCompositeTreeInternal(bool keepExpansionState);
   void fillCompositePropPanel();

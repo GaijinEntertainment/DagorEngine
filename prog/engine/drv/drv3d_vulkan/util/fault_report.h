@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <debug/dag_debug.h>
 #include <util/dag_string.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
@@ -20,6 +22,12 @@ public:
     TAG_EXT_FAULT,
     TAG_CALLER_HASH,
     TAG_PIPE,
+    TAG_GPU_ADDR,
+    TAG_OBJ_MEM_SIZE,
+    TAG_GPU_JOB_ITEM,
+    TAG_GPU_EXEC_MARKER,
+    TAG_CPU_EXEC_MARKER,
+    TAG_GPU_JOB_HASH,
     TAG_MAX
   };
 

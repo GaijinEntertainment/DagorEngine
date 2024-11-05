@@ -1,0 +1,228 @@
+include "hardware_defines.dshl"
+include "project_dagi_lit_scene_voxels_config.dshl"
+// if project has predefined fixed anisotropy on or off (for example for powerful/old platform)
+// it can implement project_dagi_lit_scene_voxels_config.sh with
+// macro PROJECT_DAGI_VOXEL_LIT_SCENE_ANISOTROPY(code)
+//  hlsl(code) {
+//    #include <dagi_lit_scene_voxels_consts.hlsli>
+//    #define DAGI_VOXEL_LIT_SCENE_ANISOTROPY DAGI_VOXEL_LIT_SCENE_ANISOTROPY_(OFF|ON)
+// }
+// endmacro
+// this optimizes performance a bit, at no cost
+
+hlsl {
+  #if _HARDWARE_DX11
+    #define DAGI_LIT_SCENE_TYPED_UAV_LOAD 1//fixme
+  #else
+    #define DAGI_LIT_SCENE_TYPED_UAV_LOAD 1
+  #endif
+}
+
+texture dagi_lit_voxel_scene_alpha;
+texture dagi_lit_voxel_scene;
+
+int4 dagi_lit_voxel_scene_res_np2;
+int4 dagi_lit_voxel_scene_res;
+int4 dagi_lit_voxel_scene_to_sdf_clips;
+float4 dagi_lit_voxel_scene_to_sdf;
+float4 dagi_lit_scene_to_atlas_decode;
+int dagi_lit_voxel_scene_luma_only = 0;
+
+macro DAGI_VOXEL_LIT_SCENE_MATH_INIT(code)
+  (code) {
+    dagi_lit_voxel_scene_res@i4 = dagi_lit_voxel_scene_res;
+    dagi_lit_voxel_scene_res_np2@i4 = dagi_lit_voxel_scene_res_np2;
+    dagi_lit_voxel_scene_to_sdf_clips@i4 = dagi_lit_voxel_scene_to_sdf_clips;
+    dagi_lit_voxel_scene_to_sdf@f4 = dagi_lit_voxel_scene_to_sdf;
+    dagi_lit_scene_to_atlas_decode@f4 = dagi_lit_scene_to_atlas_decode;
+  }
+endmacro
+
+define_macro_if_not_defined PROJECT_DAGI_VOXEL_LIT_SCENE_ANISOTROPY(code)
+endmacro
+
+macro DAGI_VOXEL_LIT_SCENE_MATH_USE(code)
+  PROJECT_DAGI_VOXEL_LIT_SCENE_ANISOTROPY(code)
+  hlsl(code) {
+    #include <dagi_lit_scene_voxels_consts.hlsli>
+    #ifndef DAGI_VOXEL_LIT_SCENE_ANISOTROPY
+      #define DAGI_VOXEL_LIT_SCENE_ANISOTROPY DAGI_VOXEL_LIT_SCENE_ANISOTROPY_CONFIG
+    #endif
+    #ifndef DAGI_WRITE_VOXEL_LIT_SCENE_MATH_USED
+    #define DAGI_WRITE_VOXEL_LIT_SCENE_MATH_USED 1
+    #if DAGI_VOXEL_LIT_SCENE_ANISOTROPY == DAGI_VOXEL_LIT_SCENE_ANISOTROPY_ON
+    uint dagi_lit_scene_voxels_has_anisotropy() {return 1;}
+    uint dagi_lit_scene_voxels_axis_atlas_resolution() {return dagi_lit_voxel_scene_to_sdf_clips.w;}
+    #elif DAGI_VOXEL_LIT_SCENE_ANISOTROPY == DAGI_VOXEL_LIT_SCENE_ANISOTROPY_OFF
+    uint dagi_lit_scene_voxels_has_anisotropy() {return 0;}
+    uint dagi_lit_scene_voxels_axis_atlas_resolution() {return 0;}
+    #else
+    uint dagi_lit_scene_voxels_has_anisotropy() {return dagi_lit_voxel_scene_res.w;}
+    uint dagi_lit_scene_voxels_axis_atlas_resolution() {return dagi_lit_voxel_scene_to_sdf_clips.w;}
+    #endif
+    uint3 dagi_lit_scene_voxels_abs_coord_to_wrap_coord(int3 abs_coord)
+    {
+      return uint3(dagi_lit_voxel_scene_res_np2.zzw + abs_coord)%uint3(dagi_lit_voxel_scene_res_np2.xxy);
+    }
+
+    int3 dagi_lit_scene_voxels_wrap_coord_to_abs_coord(uint3 wrapped, int3 clip_lt)
+    {
+      return clip_lt + int3(uint3(int3(wrapped) - clip_lt.xyz + dagi_lit_voxel_scene_res_np2.zzw)%uint3(dagi_lit_voxel_scene_res_np2.xxy));
+    }
+    uint3 dagi_lit_scene_voxels_resolution() {return dagi_lit_voxel_scene_res.xxy;}
+    uint dagi_lit_scene_voxels_clip_count() {return dagi_lit_voxel_scene_res.z;}
+    int dagi_lit_scene_voxels_first_sdf_clip() {return dagi_lit_voxel_scene_to_sdf_clips.x;}
+    uint dagi_lit_scene_voxels_full_atlas_res_d() {return dagi_lit_voxel_scene_to_sdf_clips.y;}
+    uint dagi_lit_scene_voxels_clip_atlas_resolution() {return dagi_lit_voxel_scene_to_sdf_clips.z;}
+    uint3 dagi_lit_scene_unsafe_atlas_coord(uint3 coord, uint sceneClip)
+    {
+      // we offset by +1 for trilinear filtering border
+      // and we offset by clip*clipResolution and we offset by axis*axisResolution
+      // axisResolution = anisotropy ? dagi_lit_voxel_scene_res.y+2 : 0;
+      // clipResolution = (dagi_lit_voxel_scene_res.y+2)*(anisotropy ? 6 : 1)
+      // +2 is trilinear filtering border
+      return coord + uint3(0,0, 1u + sceneClip*dagi_lit_scene_voxels_clip_atlas_resolution());//  + axis*dagi_lit_scene_voxels_axis_atlas_resolution()
+    }
+    uint3 dagi_axis_from_normal_signs(float3 geomNormal)
+    {
+      return uint3(0,2,4) + (geomNormal < 0);
+    }
+    uint dagi_main_axis_from_normal(float3 geomNormal)
+    {
+      float3 absNormal = abs(geomNormal); float maxNormal = max3(absNormal.x, absNormal.y, absNormal.z);
+      return absNormal.x == maxNormal ? (geomNormal.x<0) : absNormal.y == maxNormal ? 2 + (geomNormal.y<0) : 4 + (geomNormal.z<0);
+    }
+    #endif
+  }
+endmacro
+
+macro DAGI_SAMPLE_VOXEL_LIT_SCENE_INIT(code)
+  DAGI_VOXEL_LIT_SCENE_MATH_INIT(code)
+  (code) {
+    dagi_lit_voxel_scene_alpha@smp3d = dagi_lit_voxel_scene_alpha;
+    dagi_lit_voxel_scene@tex3d = dagi_lit_voxel_scene;
+  }
+  hlsl (code) { #define dagi_lit_voxel_scene_samplerstate dagi_lit_voxel_scene_alpha_samplerstate }
+endmacro
+
+macro DAGI_SAMPLE_VOXEL_LIT_SCENE_USE(code)
+  DAGI_VOXEL_LIT_SCENE_MATH_USE(code)
+endmacro
+
+macro DAGI_WRITE_VOXEL_LIT_SCENE_INIT(code)
+  DAGI_VOXEL_LIT_SCENE_MATH_INIT(code)
+  (code) {
+    dagi_lit_voxel_scene_luma_only@i1 = dagi_lit_voxel_scene_luma_only;
+    dagi_lit_voxel_scene_alpha@uav = dagi_lit_voxel_scene_alpha hlsl {
+      RWTexture3D<unorm float> dagi_lit_voxel_scene_alpha@uav;
+    };
+    dagi_lit_voxel_scene@uav = dagi_lit_voxel_scene hlsl {
+      RWTexture3D<float3> dagi_lit_voxel_scene@uav;
+    };
+  }
+endmacro
+
+macro DAGI_WRITE_VOXEL_LIT_SCENE_WRITE(code)
+  DAGI_VOXEL_LIT_SCENE_MATH_USE(code)
+  hlsl(code) {
+    #if DAGI_VOXEL_LIT_SCENE_LUMA_ONLY
+    bool dagi_lit_voxel_scene_has_luma_only() {return true;}
+    #elif defined(DAGI_VOXEL_LIT_SCENE_LUMA_ONLY)
+    bool dagi_lit_voxel_scene_has_luma_only() {return false;}
+    #else
+    bool dagi_lit_voxel_scene_has_luma_only() {return dagi_lit_voxel_scene_luma_only;}
+    #endif
+    void dagi_lit_scene_voxels_clear(float3 sdf_coord, int sdf_clip, float3 radiance = 0, float alpha = 0)
+    {
+      uint sceneClip = sdf_clip - dagi_lit_scene_voxels_first_sdf_clip();
+      if (sceneClip >= dagi_lit_scene_voxels_clip_count())
+        return;
+
+      int3 sdf_coordI = int3(floor(sdf_coord));
+      if (any(uint3(sdf_coordI - world_sdf_get_update_lt()) >= uint3(world_sdf_get_update_sz())))
+        return;
+
+      int3 voxel_scene_coord = floor(sdf_coord*dagi_lit_voxel_scene_to_sdf.xxy);
+      uint3 voxel_scene_coordI = dagi_lit_scene_voxels_abs_coord_to_wrap_coord(voxel_scene_coord);
+      uint3 targetCoord = dagi_lit_scene_unsafe_atlas_coord(voxel_scene_coordI, sceneClip);
+      FLATTEN
+      if (dagi_lit_voxel_scene_has_luma_only())
+        radiance = luminance(radiance);
+      radiance *= alpha;
+      texture3DAt(dagi_lit_voxel_scene_alpha, targetCoord) = alpha; texture3DAt(dagi_lit_voxel_scene, targetCoord) = radiance;
+
+      if (dagi_lit_scene_voxels_has_anisotropy())
+      {
+        targetCoord.z += dagi_lit_scene_voxels_axis_atlas_resolution();
+        texture3DAt(dagi_lit_voxel_scene_alpha, targetCoord) = alpha; texture3DAt(dagi_lit_voxel_scene, targetCoord) = radiance;
+
+        targetCoord.z += dagi_lit_scene_voxels_axis_atlas_resolution();
+        texture3DAt(dagi_lit_voxel_scene_alpha, targetCoord) = alpha; texture3DAt(dagi_lit_voxel_scene, targetCoord) = radiance;
+
+        targetCoord.z += dagi_lit_scene_voxels_axis_atlas_resolution();
+        texture3DAt(dagi_lit_voxel_scene_alpha, targetCoord) = alpha; texture3DAt(dagi_lit_voxel_scene, targetCoord) = radiance;
+
+        targetCoord.z += dagi_lit_scene_voxels_axis_atlas_resolution();
+        texture3DAt(dagi_lit_voxel_scene_alpha, targetCoord) = alpha; texture3DAt(dagi_lit_voxel_scene, targetCoord) = radiance;
+
+        targetCoord.z += dagi_lit_scene_voxels_axis_atlas_resolution();
+        texture3DAt(dagi_lit_voxel_scene_alpha, targetCoord) = alpha; texture3DAt(dagi_lit_voxel_scene, targetCoord) = radiance;
+      }
+    }
+    void dagi_lit_scene_voxels_write_lit_color_unsafe(float3 sdf_coord, uint sceneClip, float3 lit_color, float3 geomNormal)
+    {
+      int3 voxel_scene_coord = floor(sdf_coord*dagi_lit_voxel_scene_to_sdf.xxy);
+      uint3 voxel_scene_coordI = dagi_lit_scene_voxels_abs_coord_to_wrap_coord(voxel_scene_coord);
+      uint3 targetCoord = dagi_lit_scene_unsafe_atlas_coord(voxel_scene_coordI, sceneClip);
+      FLATTEN
+      if (dagi_lit_voxel_scene_has_luma_only())
+        lit_color = luminance(lit_color);
+      float alpha = 32./255;lit_color *= alpha;//so updated from gbuf weighs more than initial voxelization
+      if (!dagi_lit_scene_voxels_has_anisotropy())
+      {
+        texture3DAt(dagi_lit_voxel_scene_alpha, targetCoord) = alpha;
+        texture3DAt(dagi_lit_voxel_scene, targetCoord) = lit_color;
+      } else
+      {
+        uint3 axis = dagi_axis_from_normal_signs(geomNormal);
+        #if DAGI_LIT_SCENE_TYPED_UAV_LOAD
+        uint mainAxis = dagi_main_axis_from_normal(geomNormal);
+        uint3 c = targetCoord + uint3(0,0,axis.x*dagi_lit_scene_voxels_axis_atlas_resolution());
+        if (axis.x == mainAxis || texture3DAt(dagi_lit_voxel_scene_alpha, c) == 0)
+        {
+          texture3DAt(dagi_lit_voxel_scene_alpha, c) = alpha; texture3DAt(dagi_lit_voxel_scene, c) = lit_color;
+        }
+        c = targetCoord + uint3(0,0,axis.y*dagi_lit_scene_voxels_axis_atlas_resolution());
+        if (axis.y == mainAxis || texture3DAt(dagi_lit_voxel_scene_alpha, c) == 0)
+        {
+          texture3DAt(dagi_lit_voxel_scene_alpha, c) = alpha; texture3DAt(dagi_lit_voxel_scene, c) = lit_color;
+        }
+        c = targetCoord + uint3(0,0,axis.z*dagi_lit_scene_voxels_axis_atlas_resolution());
+        if (axis.z == mainAxis || texture3DAt(dagi_lit_voxel_scene_alpha, c) == 0)
+        {
+          texture3DAt(dagi_lit_voxel_scene_alpha, c) = alpha; texture3DAt(dagi_lit_voxel_scene, c) = lit_color;
+        }
+        #else
+        uint3 c = targetCoord + uint3(0,0,axis.x*dagi_lit_scene_voxels_axis_atlas_resolution());
+        texture3DAt(dagi_lit_voxel_scene_alpha, c) = alpha; texture3DAt(dagi_lit_voxel_scene, c) = lit_color;
+        c = targetCoord + uint3(0,0,axis.y*dagi_lit_scene_voxels_axis_atlas_resolution());
+        texture3DAt(dagi_lit_voxel_scene_alpha, c) = alpha; texture3DAt(dagi_lit_voxel_scene, c) = lit_color;
+        c = targetCoord + uint3(0,0,axis.z*dagi_lit_scene_voxels_axis_atlas_resolution());
+        texture3DAt(dagi_lit_voxel_scene_alpha, c) = alpha; texture3DAt(dagi_lit_voxel_scene, c) = lit_color;
+        #endif
+      }
+    }
+
+    void dagi_lit_scene_voxels_write_lit_color(float3 sdf_coord, int sdf_clip, float3 lit_color, float3 geomNormal)
+    {
+      uint sceneClip = sdf_clip - dagi_lit_scene_voxels_first_sdf_clip();
+      if (sceneClip >= dagi_lit_scene_voxels_clip_count())
+        return;
+
+      int3 sdf_coordI = int3(floor(sdf_coord));//has to be in different line, otherwise metal is not working correctly
+      if (any(uint3(sdf_coordI - world_sdf_get_update_lt()) >= uint3(world_sdf_get_update_sz())))
+        return;
+      dagi_lit_scene_voxels_write_lit_color_unsafe(sdf_coord, sceneClip, lit_color, geomNormal);
+    }
+  }
+endmacro

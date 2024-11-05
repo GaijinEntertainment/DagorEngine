@@ -9,8 +9,6 @@
 // 7. Additional parameters can be calculated freely in proxy_struct_fields and fields_barycentric_values (like pointToEye after tesselation)
 // 8. After all of this, include USE_PN_TRIANGULATION()
 
-int pn_triangulation = 0;
-interval pn_triangulation : pn_triangulation_off < 1, pn_triangulation_on;
 
 macro INIT_PN_TRIANGULATION(smoothing)
 hlsl {
@@ -53,18 +51,36 @@ hlsl {
     float w = uvw.z;
 
   #ifndef GET_DRAW_CALL_ID_TRIANGULATION
-    #define GET_DRAW_CALL_ID_TRIANGULATION GET_DRAW_CALL_ID
+    #define GET_DRAW_CALL_ID_TRIANGULATION(src) GET_DRAW_CALL_ID
   #endif
 }
 endmacro
 
-macro USE_PN_TRIANGULATION()
+macro INIT_AND_USE_EDGE_LENGTH_BASED_TESS_FACTORS(max_tessellation_factor)
+  hlsl(hs)
+  {
+    float edgeLod(float3 pos1, float3 pos2)
+    {
+      return max_tessellation_factor / length(world_view_pos - (pos1 + pos2) * 0.5);
+    }
+
+    float calc_tess_factor(inout HsPatchData patch, OutputPatch<HsControlPoint, 3> controlPoints, uint tid)
+    {
+      int next = (1U << tid) & 3; // (tid + 1) % 3
+      next = (1U << next) & 3;
+
+      return max(1, min(edgeLod(controlPoints[tid].pos1, controlPoints[next].pos1),max_tessellation_factor));
+    }
+  }
+endmacro
+
+macro USE_PN_TRIANGULATION(world_pos_offset_param)
 hlsl(hs) {
   //patch constant data
   HsPatchData HullShaderPatchConstant(OutputPatch<HsControlPoint, 3> controlPoints)
   {
     #if SET_UP_MULTIDRAW
-      DRAW_CALL_ID = GET_DRAW_CALL_ID_TRIANGULATION;
+      DRAW_CALL_ID = GET_DRAW_CALL_ID_TRIANGULATION(controlPoints[0]);
     #endif
     HsPatchData patch = (HsPatchData)0;
     //calculate Tessellation factors
@@ -88,7 +104,7 @@ hlsl(hs) {
   HsControlPoint pn_triangulation_hs(InputPatch<HsInput, 3> inputPatch, uint tid : SV_OutputControlPointID)
   {
     #if SET_UP_MULTIDRAW
-      DRAW_CALL_ID = GET_DRAW_CALL_ID_TRIANGULATION;
+      DRAW_CALL_ID = GET_DRAW_CALL_ID_TRIANGULATION(inputPatch[tid]);
     #endif
     int next = (1U << tid) & 3; // (tid + 1) % 3
     float3 p1 = inputPatch[tid].pos.xyz;
@@ -124,7 +140,7 @@ hlsl(ds) {
   VsOutput pn_triangulation_ds(HsPatchData patchData, const OutputPatch<HsControlPoint, 3> input, float3 uvw : SV_DomainLocation)
   {
     #if SET_UP_MULTIDRAW
-      DRAW_CALL_ID = GET_DRAW_CALL_ID_TRIANGULATION;
+      DRAW_CALL_ID = GET_DRAW_CALL_ID_TRIANGULATION(input[0]);
     #endif
     VsOutput output;
     float u = uvw.x;
@@ -146,9 +162,14 @@ hlsl(ds) {
     output.normal = 0;
     output.normal.xyz = normalize(nor);
     fields_barycentric_values(input, output, uvw);
-    output.pos = mulPointTm(output.pos.xyz, globtm);
+    output.pos = mulPointTm(output.pos.xyz + world_pos_offset_param, globtm);
     return output;
   }
 }
 compile("ds_5_0", "pn_triangulation_ds");
+endmacro
+
+macro USE_PN_TRIANGULATION_WITH_EDGE_LENGTH_BASED_TESS_FACTORS(world_pos_offset_param, max_tessellation_factor)
+  INIT_AND_USE_EDGE_LENGTH_BASED_TESS_FACTORS(max_tessellation_factor)
+  USE_PN_TRIANGULATION(world_pos_offset_param)
 endmacro

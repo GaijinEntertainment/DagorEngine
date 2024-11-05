@@ -1,6 +1,7 @@
 include "shader_global.dshl"
 include "gbuffer.dshl"
 include "taa_inc.dshl"
+include "motion_vectors_type.dshl"
 
 float4 downsample_from = (1280, 720,0,0);
 float4 downsample_to = (1280, 720,0,0);
@@ -32,6 +33,7 @@ texture resolved_motion_vectors;
 float4x4 motion_vec_reproject_tm;
 int resolve_motion_vectors = 0;
 interval resolve_motion_vectors: no < 1, yes;
+float4 prev_zn_zfar;
 
 macro DOWNSAMPLE_DEPTH2X_CORE(code)
   ENABLE_ASSERT(code)
@@ -47,7 +49,7 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
       if (resolve_motion_vectors == no)
       {
         if (resolved_motion_vectors != NULL) {
-          (code) { downsample_motion_from@smp2d = resolved_motion_vectors; }
+          (code) { downsample_motion_from@tex2d = resolved_motion_vectors; }
           hlsl (code) { #define motion_uv_transform float4(1, 1, 0, 0) }
         }
         else {
@@ -59,9 +61,8 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
       }
       else
       {
-        INIT_READ_MOTION_BUFFER_BASE(code)
-        USE_READ_MOTION_BUFFER_BASE(code)
-        INIT_MOTION_VEC_ENCODE(code)
+        INIT_LOAD_MOTION_BUFFER_BASE(code)
+        USE_LOAD_MOTION_BUFFER_BASE(code)
         USE_MOTION_VEC_ENCODE(code)
 
         (code) {
@@ -70,13 +71,24 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
         hlsl { #define PROJECT_MOTION_VEC 1 }
       }
     }
+
     if (has_normal == yes)
     {
       hlsl { #define HAS_NORMAL 1 }
-      INIT_READ_GBUFFER_BASE(code)
+      INIT_LOAD_GBUFFER_BASE(code)
       hlsl {#define decodeEmissionColor(a) float3(0,0,0)}
-      USE_READ_GBUFFER_NORMAL_BASE(code)
+      USE_LOAD_GBUFFER_BASE(code, 0)
     }
+  }
+  MOTION_VECTORS_TYPE(code)
+  hlsl (code) {
+    #if MOTION_VECTORS_3D
+      #define motion_rt_type float4
+      #define write_motion_to_rt(m) float4(m, 1)
+    #else
+      #define motion_rt_type float2
+      #define write_motion_to_rt(m) m
+   #endif
   }
 
   bool has_close_depth = downsample_depth_type == gbuf_depth_far_close || downsample_depth_type == mip_far_close;
@@ -127,6 +139,9 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
     downsample_to@f4 = (downsample_to.x, downsample_to.y, 1.0/downsample_to.x, 1.0/downsample_to.y);
     downsample_uv_transform@f4 = downsample_uv_transform;
     downsample_uv_transformi@i2 = downsample_uv_transformi;
+    //prev_zn_zfar@f4 = (prev_zn_zfar.x, prev_zn_zfar.y, prev_zn_zfar.x/(prev_zn_zfar.x * prev_zn_zfar.y), (prev_zn_zfar.y-prev_zn_zfar.x)/(prev_zn_zfar.x * prev_zn_zfar.y));
+    prev_zn_zfar@f4 = (zn_zfar.x, zn_zfar.y, zn_zfar.x/(zn_zfar.x * zn_zfar.y), (zn_zfar.y-zn_zfar.x)/(zn_zfar.x * zn_zfar.y));
+    zn_zfar@f4 = (zn_zfar.x, zn_zfar.y, zn_zfar.x/(zn_zfar.x * zn_zfar.y), (zn_zfar.y-zn_zfar.x)/(zn_zfar.x * zn_zfar.y));
   }
 
   //fixme: that is only correct if we downsample from exactly 2x size of current rt.
@@ -138,7 +153,7 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
       float  closeDepth;
       float  checkerDepth;
       float4 normal;
-      float2 motion;
+      motion_type motion;
     };
 
     #define depth_min(a,b) max(a,b)
@@ -180,41 +195,39 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
         result.checkerDepth = ((checkerboard_jitter + (scr.x >> 1) + (scr.y >> 1)) & 1) ? closeDepth : farDepth;
       #endif
 
+      #if HAS_CLOSE_DEPTH
+        float depthToCheck = result.closeDepth;
+      #elif HAS_CHECKER_DEPTH
+        float depthToCheck = result.checkerDepth;
+      #else
+        float depthToCheck = result.farDepth;
+      #endif
+      int2 nrmTcOfst = depthToCheck == src0 ? int2(0,0) : (depthToCheck == src1 ? int2(1,0) : (depthToCheck == src2 ? int2(0,1) : int2(1,1)));
+      int2 depthTargetScr = scr + nrmTcOfst;
+
       #if HAS_NORMAL
-        #if HAS_CHECKER_DEPTH
-          float depthToCheck = result.checkerDepth;
-        #else
-          float depthToCheck = result.farDepth;
-        #endif
-        int2 nrmTcOfst = depthToCheck == src0 ? int2(0,0) : (depthToCheck == src1 ? int2(1,0) : (depthToCheck == src2 ? int2(0,1) : int2(1,1)));
         float3 normal;
         half smoothness;
-        // downsample_from.zw is based on the size of a view. With a side-by-side view, we make sure to get to the
-        // range of downsample_from.zw, then transform back.
-        float2 normalUV = scr - downsample_uv_transformi;
-        normalUV = (float2(normalUV+nrmTcOfst)+float2(0.5,0.5))*downsample_from.zw;
-        readPackedGbufferNormalSmoothness(normalUV, normal, smoothness);
-        result.normal = float4(normal*0.5+0.5, farDepth == 0 ? 0 : smoothness);
+        loadPackedGbufferNormalSmoothness(depthTargetScr, normal, smoothness);
+        result.normal = float4(normal*0.5+0.5, depthToCheck == 0 ? 0 : smoothness);
       #endif
 
       #if HAS_MOTION_VEC
         #if PROJECT_MOTION_VEC
-          float2 uv = (scr - downsample_uv_transformi + float2(0.5, 0.5)) * downsample_from.zw;
-          if(getDynamic(uv))
+          if(loadDynamic(depthTargetScr))
           {
-            result.motion = readMotionBuffer(uv);
+            result.motion.motion_attr = loadMotionBuffer(depthTargetScr).motion_attr;
           }
           else
           {
+            float2 uv = (depthTargetScr - downsample_uv_transformi + float2(0.5, 0.5)) * downsample_from.zw;
             float4 prevUV = mul(motion_vec_reproject_tm, float4(uv, src0, 1.0f));
-            prevUV.xy /= prevUV.w;
+            prevUV.xyz /= prevUV.w;
             prevUV.xy += downsample_uv_transform.zw;
-            float2 motionUV = prevUV.xy - uv;
-            result.motion = encode_motion_vector(float2(motionUV.x * 2.0f, motionUV.y * -2.0f));
+            result.motion.motion_attr = (float3(prevUV.xy, linearize_z(prevUV.z, prev_zn_zfar.zw)) - float3(uv, linearize_z(depthToCheck, zn_zfar.zw))).motion_attr;
           }
         #else
-          float2 motionTc = tc * motion_uv_transform.xy + motion_uv_transform.zw;
-          result.motion = tex2Dlod(downsample_motion_from, float4(motionTc, 0, 0)).xy;
+          result.motion.motion_attr = texelFetch(downsample_motion_from, depthTargetScr, 0).motion_attr;
         #endif
       #endif
 
@@ -267,7 +280,7 @@ shader downsample_depth2x
         float4 normal : SV_Target3;
       #endif
       #if HAS_MOTION_VEC
-        float2 motion : SV_Target4;
+        motion_rt_type motion : SV_Target4;
       #endif
     };
 
@@ -310,7 +323,7 @@ shader downsample_depth2x
       #endif
 
       #if HAS_MOTION_VEC
-        result.motion = ds.motion;
+        result.motion = write_motion_to_rt(ds.motion);
       #endif
 
       return result;
@@ -339,7 +352,7 @@ shader downsample_depth2x_cs
         RWTexture2D< float4 > normal : register(u3);
       #endif
       #if HAS_MOTION_VEC
-        RWTexture2D< float2 > motion : register(u4);
+        RWTexture2D< motion_type > motion : register(u4);
       #endif
 
       [numthreads( 8, 8, 1 )]

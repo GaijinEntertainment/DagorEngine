@@ -5,7 +5,7 @@
 //
 // When you enter a canvas ImGui is moved to virtual space which mean:
 //   - ImGui::GetCursorScreenPos() return (0, 0) and which correspond to top left corner
-//     of the canvas on the screen (this can be changed usign CanvasView()).
+//     of the canvas on the screen (this can be changed using CanvasView()).
 //   - Mouse input is brought to canvas space, so widgets works as usual.
 //   - Everything you draw with ImDrawList will be in virtual space.
 //
@@ -23,7 +23,7 @@
 // as usual in ImGui.
 //
 // While drawing inside canvas you can translate position from world (usual ImGui space)
-// to virtual space and back usign CanvasFromWorld()/CanvasToWorld().
+// to virtual space and back using CanvasFromWorld()/CanvasToWorld().
 //
 // Canvas can be nested in each other (they are regular widgets after all). There
 // is a way to transform position between current and parent canvas with
@@ -34,6 +34,8 @@
 //
 // Note:
 //     It is not valid to call canvas API outside of BeginCanvas() / EndCanvas() scope.
+//
+// VERSION 0.1
 //
 // LICENSE
 //   This software is dual-licensed to the public domain and under the following
@@ -48,6 +50,10 @@
 
 # include <imgui.h>
 # include <imgui_internal.h> // ImRect, ImFloor
+
+#ifndef IMGUIEX_CANVAS_API
+#define IMGUIEX_CANVAS_API
+#endif
 
 namespace ImGuiEx {
 
@@ -104,13 +110,13 @@ struct Canvas
     //
     // You can query size of the canvas while it is being drawn
     // by calling Rect().
-    bool Begin(const char* id, const ImVec2& size);
-    bool Begin(ImGuiID id, const ImVec2& size);
+    IMGUIEX_CANVAS_API bool Begin(const char* id, const ImVec2& size);
+    IMGUIEX_CANVAS_API bool Begin(ImGuiID id, const ImVec2& size);
 
     // Ends interaction with canvas plane.
     //
     // Must be called only when Begin() retuned true.
-    void End();
+    IMGUIEX_CANVAS_API void End();
 
     // Sets visible region of canvas plane.
     //
@@ -118,50 +124,50 @@ struct Canvas
     // corner of the canvas.
     //
     // Scale greater than 1 make canvas content be bigger, less than 1 smaller.
-    void SetView(const ImVec2& origin, float scale);
-    void SetView(const CanvasView& view);
+    IMGUIEX_CANVAS_API void SetView(const ImVec2& origin, float scale);
+    IMGUIEX_CANVAS_API void SetView(const CanvasView& view);
 
     // Centers view over specific point on canvas plane.
     //
     // View will be centered on specific point by changing origin
     // but not scale.
-    void CenterView(const ImVec2& canvasPoint);
+    IMGUIEX_CANVAS_API void CenterView(const ImVec2& canvasPoint);
 
     // Calculates view over specific point on canvas plane.
-    CanvasView CalcCenterView(const ImVec2& canvasPoint) const;
+    IMGUIEX_CANVAS_API CanvasView CalcCenterView(const ImVec2& canvasPoint) const;
 
     // Centers view over specific rectangle on canvas plane.
     //
     // Whole rectangle will fit in canvas view. This will affect both
     // origin and scale.
-    void CenterView(const ImRect& canvasRect);
+    IMGUIEX_CANVAS_API void CenterView(const ImRect& canvasRect);
 
     // Calculates view over specific rectangle on canvas plane.
-    CanvasView CalcCenterView(const ImRect& canvasRect) const;
+    IMGUIEX_CANVAS_API CanvasView CalcCenterView(const ImRect& canvasRect) const;
 
     // Suspends canvas by returning to normal ImGui transformation space.
     // While suspended UI will not be drawn on canvas plane.
     //
     // Calls to Suspend()/Resume() are symetrical. Each call to Suspend()
     // must be matched with call to Resume().
-    void Suspend();
-    void Resume();
+    IMGUIEX_CANVAS_API void Suspend();
+    IMGUIEX_CANVAS_API void Resume();
 
     // Transforms point from canvas plane to ImGui.
-    ImVec2 FromLocal(const ImVec2& point) const;
-    ImVec2 FromLocal(const ImVec2& point, const CanvasView& view) const;
+    IMGUIEX_CANVAS_API ImVec2 FromLocal(const ImVec2& point) const;
+    IMGUIEX_CANVAS_API ImVec2 FromLocal(const ImVec2& point, const CanvasView& view) const;
 
     // Transforms vector from canvas plant to ImGui.
-    ImVec2 FromLocalV(const ImVec2& vector) const;
-    ImVec2 FromLocalV(const ImVec2& vector, const CanvasView& view) const;
+    IMGUIEX_CANVAS_API ImVec2 FromLocalV(const ImVec2& vector) const;
+    IMGUIEX_CANVAS_API ImVec2 FromLocalV(const ImVec2& vector, const CanvasView& view) const;
 
     // Transforms point from ImGui to canvas plane.
-    ImVec2 ToLocal(const ImVec2& point) const;
-    ImVec2 ToLocal(const ImVec2& point, const CanvasView& view) const;
+    IMGUIEX_CANVAS_API ImVec2 ToLocal(const ImVec2& point) const;
+    IMGUIEX_CANVAS_API ImVec2 ToLocal(const ImVec2& point, const CanvasView& view) const;
 
     // Transforms vector from ImGui to canvas plane.
-    ImVec2 ToLocalV(const ImVec2& vector) const;
-    ImVec2 ToLocalV(const ImVec2& vector, const CanvasView& view) const;
+    IMGUIEX_CANVAS_API ImVec2 ToLocalV(const ImVec2& vector) const;
+    IMGUIEX_CANVAS_API ImVec2 ToLocalV(const ImVec2& vector, const CanvasView& view) const;
 
     // Returns widget bounds.
     //
@@ -173,7 +179,7 @@ struct Canvas
     const ImRect& ViewRect() const { return m_ViewRect; }
 
     // Calculates visible region for view.
-    ImRect CalcViewRect(const CanvasView& view) const;
+    IMGUIEX_CANVAS_API ImRect CalcViewRect(const CanvasView& view) const;
 
     // Returns current view.
     const CanvasView& View() const { return m_View; }
@@ -248,8 +254,16 @@ private:
     ImVec2 m_WindowCursorMaxBackup;
 
 # if defined(IMGUI_HAS_VIEWPORT)
+    ImVec2 m_WindowPosBackup;
     ImVec2 m_ViewportPosBackup;
     ImVec2 m_ViewportSizeBackup;
+# if IMGUI_VERSION_NUM > 18002
+    ImVec2 m_ViewportWorkPosBackup;
+    ImVec2 m_ViewportWorkSizeBackup;
+# else
+    ImVec2 m_ViewportWorkOffsetMinBackup;
+    ImVec2 m_ViewportWorkOffsetMaxBackup;
+# endif
 # endif
 };
 

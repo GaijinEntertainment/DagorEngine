@@ -1,25 +1,33 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/dstReadbackLights.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drvDecl.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/find_max_depth_2d.hlsli>
 
 #define SHADER_VARS_LIST VAR(proj_values)
 
-#define VAR(a) static int a##VarId = -1;
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 SHADER_VARS_LIST
 #undef VAR
 
-DistanceReadbackLights::DistanceReadbackLights(ShadowSystem *shadowSystem, SpotLightsManager *spotLights) :
+DistanceReadbackLights::DistanceReadbackLights(ShadowSystem *shadowSystem, SpotLightsManager *spotLights, const char *name_suffix) :
   lightShadows(shadowSystem), spotLights(spotLights), lastNonOptId(-1), processing(false)
 {
   findMaxDepth2D.reset(new_compute_shader("find_max_depth_2d"));
-  resultRingBuffer.init(sizeof(float), 4, 1, "max_depth_value", SBCF_UA_STRUCTURED_READBACK, 0, false);
-
-#define VAR(a) a##VarId = get_shader_variable_id(#a, true);
-  SHADER_VARS_LIST
-#undef VAR
+  if (!findMaxDepth2D)
+  {
+    logerr("missing shader find_max_depth_2d");
+    return;
+  }
+  String uniqueName(32, "find_max_depth_2d%s", name_suffix);
+  resultRingBuffer.init(sizeof(float), 4, 1, uniqueName.c_str(), SBCF_UA_STRUCTURED_READBACK, 0, false);
 }
 
 void DistanceReadbackLights::update(eastl::fixed_function<sizeof(void *) * 2, RenderStaticCallback> render_static)
@@ -32,13 +40,16 @@ void DistanceReadbackLights::update(eastl::fixed_function<sizeof(void *) * 2, Re
 
 void DistanceReadbackLights::dispatchQuery(eastl::fixed_function<sizeof(void *) * 2, RenderStaticCallback> render_static)
 {
+  if (!findMaxDepth2D)
+    return;
   TIME_D3D_PROFILE(find_light_max_depth)
   if (!spotLights->tryGetNonOptimizedLightId(lastNonOptId))
     return;
 
   mat44f view, proj, viewItm;
-  float prevValue = spotLights->getLight(lastNonOptId).pos_radius.w;
-  if (prevValue <= 0.0) // This shouldn't be true, but it can
+  const SpotLight &light = spotLights->getLight(lastNonOptId);
+  float prevValue = light.pos_radius.w;
+  if (prevValue <= 0.0 || !light.requiresCullRadiusOptimization) // This shouldn't be true, but it can (or can be explicitly disabled)
   {
     // Perspective matrix is wrong, skip this light
     spotLights->setLightOptimized(lastNonOptId);
@@ -66,7 +77,10 @@ void DistanceReadbackLights::dispatchQuery(eastl::fixed_function<sizeof(void *) 
     mat44f globTm;
     v_mat44_mul(globTm, proj, view);
 
-    render_static(globTm, viewItmS, DynamicShadowRenderGPUObjects::NO);
+    // Don't use shadow render extensions for distance readback.
+    constexpr int NO_INDEX = -1;
+
+    render_static(globTm, viewItmS, NO_INDEX, NO_INDEX, DynamicShadowRenderGPUObjects::NO);
     lightShadows->endRenderTempShadow();
     d3d::set_render_target();
   }
@@ -101,6 +115,8 @@ void DistanceReadbackLights::dispatchQuery(eastl::fixed_function<sizeof(void *) 
 
 void DistanceReadbackLights::completeQuery()
 {
+  if (!findMaxDepth2D)
+    return;
   int stride;
   uint32_t frame;
   float *data = reinterpret_cast<float *>(resultRingBuffer.lock(stride, frame, true));

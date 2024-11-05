@@ -1,8 +1,0 @@
-ERROR: expected '{'
-testData/diagnostics/extends_kw_pragma.nut.txt:4:9
-
-class D1 (B) { }
-class D2 extends B { } // FP 1
-         ^------
-
-

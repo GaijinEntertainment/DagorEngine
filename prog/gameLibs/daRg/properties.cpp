@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daRg/dag_properties.h>
 #include <daRg/dag_stringKeys.h>
 #include <daRg/dag_picture.h>
@@ -151,7 +153,6 @@ E3DCOLOR Properties::getColor(const Sqrat::Object &key, E3DCOLOR def) const
   GuiScene *guiScene = GuiScene::get_from_sqvm(scriptDesc.GetVM());
   StringKeys *csk = guiScene->getStringKeys();
 
-  applyColorOverrides(csk, res);
   applyTint(csk, res);
 
   return res;
@@ -228,21 +229,6 @@ float Properties::getFontSize() const
   GuiScene *guiScene = GuiScene::get_from_sqvm(scriptDesc.GetVM());
   StringKeys *csk = guiScene->getStringKeys();
   return getFloat(csk->fontSize, guiScene->getConfig()->defaultFontSize);
-}
-
-
-void Properties::applyColorOverrides(const StringKeys *csk, E3DCOLOR &color) const
-{
-  float saturation = getFloat(csk->saturation, 1.0);
-
-  saturation = saturation < 0 ? 0 : saturation;
-
-  if (std::abs(saturation - 1.0) > FLT_EPSILON)
-  {
-    ColorHsva hsva = rgb2hsv(Color4(color));
-    hsva.s = clamp<real>(hsva.s * saturation, 0, 1.0f);
-    color = e3dcolor(hsv2rgb(hsva));
-  }
 }
 
 

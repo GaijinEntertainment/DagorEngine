@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "landClassData.h"
@@ -209,58 +210,15 @@ struct GenObjCB
     }
     else
     {
-      uint64_t *curCu = (uint64_t *)cu[0];
-      const unsigned *bits = l->getBits();
-      for (const unsigned *endBits = bits + (CSZ * CSZ / 32); bits != endBits; bits++, curCu += 4)
-      {
-        if (*bits == ~0u)
+      uint8_t *curCu = cu[0];
+      const uint32_t *bits = l->getBits();
+      for (const uint32_t *endBits = bits + (CSZ * CSZ / 32); bits != endBits; bits++, curCu += 32)
+        for (int i = 0; i < 32; i++)
         {
-          memset(curCu, ADD, sizeof(curCu[0]) * 4);
-          numc += 32;
-          continue;
+          bool isSet = (*bits >> i) & 1;
+          numc += isSet;
+          curCu[i] = ADD * isSet;
         }
-        memset(curCu, FREE, sizeof(curCu[0]) * 4);
-        if (*bits == 0)
-          continue;
-        uint8_t *cuP = (uint8_t *)curCu;
-        int i = 0;
-        unsigned val = *bits;
-#if HAS_BIT_SCAN_FORWARD
-        i = __bsf_unsafe(val);
-        cuP += i;
-        val >>= i;
-        do
-        {
-          if ((val & 0xF) == 0xF)
-          {
-            cuP[0] = cuP[1] = cuP[2] = cuP[3] = ADD;
-            val >>= 4;
-            cuP += 4;
-            numc += 4;
-          }
-          else
-          {
-            *cuP = ADD;
-            val >>= 1;
-            cuP++;
-            numc++;
-          }
-          if (!(val & 1) && val)
-          {
-            int j = __bsf_unsafe(val);
-            cuP += j;
-            val >>= j;
-          }
-        } while (val);
-#else
-        for (; val; val >>= 1, i++, cuP++)
-          if (val & 1)
-          {
-            *cuP = ADD;
-            numc++;
-          }
-#endif
-      }
     }
     if (!numc)
       return;

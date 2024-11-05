@@ -1,0 +1,75 @@
+include "deferred_light_common.dshl"
+
+shader deferred_light_compute
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;//deferred are not used in compatibility
+  }
+
+  INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
+  USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+  INIT_RENDERING_RESOLUTION(cs)
+  INIT_LOAD_GBUFFER_BASE(cs)
+  USE_LOAD_GBUFFER_BASE(cs, 0)
+  VIEW_VEC_OPTIMIZED(cs)
+  USE_EMISSION_DECODE_COLOR_MAP(cs)
+
+  INIT_AND_USE_DEFERRED_LIGHT_COMMON(cs)
+
+  (cs) {
+    frame@f1 = (shadow_frame, 0, 0, 0);
+    perlin_noise3d@smp3d = perlin_noise3d;
+    current_time@f1 = (time_phase(0, 0));
+    world_view_pos@f4 = world_view_pos;
+    depth_bounds@f2 = depth_bounds;
+  }
+
+  hlsl(cs) {
+    #include <deferred_light_compute_inc.hlsli>
+
+    RWTexture2D<float3> g_specular : register(u0);
+##if gi_quality != off
+    RWTexture2D<float3> g_ambient : register(u1);
+##endif
+
+    [numthreads(DEFERRED_LIGHT_COMPUTE_GRP_SIZE_X, DEFERRED_LIGHT_COMPUTE_GRP_SIZE_Y, 1)]
+    void deferred_light_cs( uint3 Groupid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint GI : SV_GroupIndex )
+    {
+      if (DTid.x >= uint(rendering_res.x) || DTid.y >= uint(rendering_res.y))
+        return;
+
+      float rawDepth = loadGbufferDepth(DTid.xy);
+
+      BRANCH
+      if (rawDepth <= depth_bounds.x || rawDepth >= depth_bounds.y)
+      {
+        g_specular[DTid.xy] = float3(0, 0, 0);
+##if gi_quality != off
+        g_ambient[DTid.xy] = float3(0, 0, 0);
+##endif
+        return;
+      }
+
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+      ProcessedGbuffer gbuffer = loadProcessedGbuffer(DTid.xy);
+
+      float2 screenCoordCenter = DTid.xy + float2(0.5, 0.5);
+      float2 curViewTc = saturate(screenCoordCenter * rendering_res.zw);
+      float3 viewVect = getViewVecOptimized(curViewTc);
+      float3 pointToEye = -viewVect * w;
+      float3 pointToEyeOfs = pointToEye;
+      float3 worldPos = world_view_pos.xyz - pointToEyeOfs;
+
+      float3 computedSpecular, computedAmbient;
+      ComputeDeferredLight(gbuffer, worldPos, rawDepth, curViewTc, screenCoordCenter, pointToEye, computedSpecular, computedAmbient);
+
+      g_specular[DTid.xy] = computedSpecular;
+##if gi_quality != off
+      g_ambient[DTid.xy] = computedAmbient;
+##endif
+    }
+  }
+
+  compile("cs_5_0", "deferred_light_cs");
+}

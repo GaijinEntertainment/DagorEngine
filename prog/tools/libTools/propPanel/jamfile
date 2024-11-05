@@ -1,0 +1,52 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/propPanel ;
+
+TargetType  = lib ;
+Target      = tools/libTools/propPanel.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  propPanel.cpp
+  c_indirect.cpp
+  c_util.cpp
+  colorChangeBuffer.cpp
+  contextMenuInternal.cpp
+  focusHelper.cpp
+  imageHelper.cpp
+  imguiHelper.cpp
+  menuInternal.cpp
+  messageQueueInternal.cpp
+  tooltipHelper.cpp
+
+  commonWindow/color_correction_info.cpp
+  commonWindow/colorCurveControl.cpp
+  commonWindow/colorDialog.cpp
+  commonWindow/curveColorDialog.cpp
+  commonWindow/dialogManagerInternal.cpp
+  commonWindow/dialogWindow.cpp
+  commonWindow/gradientPlotControl.cpp
+  commonWindow/listDialog.cpp
+  commonWindow/multiListDialog.cpp
+  commonWindow/paletteCellControl.cpp
+  commonWindow/treeviewPanel.cpp
+  commonWindow/twoColorIndicatorControl.cpp
+  commonWindow/w_curve_math.cpp
+  control/container.cpp
+  control/curveControlStandalone.cpp
+  control/filteredComboBoxStandalone.cpp
+  control/gradientControlStandalone.cpp
+  control/panelWindow.cpp
+  control/propertyControlBase.cpp
+  control/spinEditStandalone.cpp
+;
+
+UseProgLibs =
+  3rdPartyLibs/imgui
+  3rdPartyLibs/math/srcc_msu
+  engine/imgui/util
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

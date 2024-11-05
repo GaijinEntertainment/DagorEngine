@@ -78,13 +78,13 @@ shader skies_prepare_transmittance_for_altitude_ps
   PREPARE_TRANSMITTANCE(ps)
 
   hlsl(ps) {
-    float3 skies_gen_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    float4 skies_gen_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target0
     {
       float4 screenpos = GET_SCREEN_POS(input.pos);
       float2 texcoord = input.texcoord.xy;
       Length d = scattering_TcToDist_Km(input.texcoord.x, preparedScatteringDistToTc);
       Number mu = scattering_tcToViewZ(input.texcoord.y);
-      return getTransmittance(int2(screenpos.xy), d, mu);
+      return float4(getTransmittance(int2(screenpos.xy), d, mu), 0.0);
     }
   }
   compile("target_ps", "skies_gen_ps")
@@ -98,14 +98,14 @@ shader skies_prepare_transmittance_for_altitude_cs
   }
 
   hlsl(cs) {
-    RWTexture2D<float3> output : register(u0);
+    RWTexture2D<float4> output : register(u0);
     [numthreads(8, 8, 1)]
     void skies_gen_cs(uint3 dtId : SV_DispatchThreadID)
     {
       float2 texcoord = (dtId.xy+0.5)*prepare_resolution;
       Length d = scattering_TcToDist_Km(texcoord.x, preparedScatteringDistToTc);
       Number mu = scattering_tcToViewZ(texcoord.y);
-      output[dtId.xy] = getTransmittance(dtId.xy, d, mu);
+      output[dtId.xy] = float4(getTransmittance(dtId.xy, d, mu), 0.0);
     }
   }
   compile("cs_5_0", "skies_gen_cs")

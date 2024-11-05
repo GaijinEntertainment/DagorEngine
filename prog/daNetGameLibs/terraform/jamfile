@@ -1,0 +1,27 @@
+Module = terraform ;
+Root    ?= ../../.. ;
+Location = prog/daNetGameLibs/$(Module) ;
+UseQuirrel = sq3r ;
+
+local AllSrcFolder_CPP =
+  .
+  ./dasModules
+;
+
+local AllSrcFolder_ES =
+  .
+;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+  $(Root)/prog/daNetGameLibs
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+UseProgLibs =
+  gameLibs/terraform
+  gameLibs/ecs/terraform
+;
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

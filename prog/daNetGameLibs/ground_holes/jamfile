@@ -1,0 +1,28 @@
+ModuleDependsOnVars = HaveRenderer PhysName ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = ground_holes ;
+Location = prog/daNetGameLibs/$(Module) ;
+
+AddIncludes =
+  $(Root)/$(Location)
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+local AllSrcFolder_CPP = . ;
+local AllSrcFolder_ES = ;
+local AllSrcFolder_DAS = ;
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_ES +=
+    render
+  ;
+}
+AllSrcFolder_ES +=
+  main
+;
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

@@ -1,7 +1,5 @@
-#ifndef __GAIJIN_OBJ_CREATOR_3D__
-#define __GAIJIN_OBJ_CREATOR_3D__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <math/dag_color.h>
 #include <math/dag_mesh.h>
@@ -141,6 +139,3 @@ private:
 
   static Mesh *generateCapsuleMesh(int sides, int segments);
 };
-
-
-#endif //__GAIJIN_OBJ_CREATOR_3D__

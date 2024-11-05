@@ -1,0 +1,5 @@
+local R = prog/daNetGameLibs/puddle_query ;
+Sources +=
+  $(R)/dasModules/puddleQueryManager.cpp
+  $(R)/_aot/stub.cpp
+;

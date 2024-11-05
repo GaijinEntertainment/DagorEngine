@@ -1,22 +1,25 @@
-#include "compositeEditorCopyDlg.h"
-#include <propPanel2/comWnd/panel_window.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-CompositeEditorCopyDlg::CompositeEditorCopyDlg() : CDialogWindow(nullptr, hdpi::_pxScaled(290), hdpi::_pxScaled(290), "Clone object")
+#include "compositeEditorCopyDlg.h"
+#include <propPanel/commonWindow/dialogWindow.h>
+#include <propPanel/control/container.h>
+
+CompositeEditorCopyDlg::CompositeEditorCopyDlg() : DialogWindow(nullptr, hdpi::_pxScaled(290), hdpi::_pxScaled(290), "Clone object")
 {
-  mPropertiesPanel->createEditInt(PID_CLONE_COUNT, "Count of clones:", 1);
+  propertiesPanel->createEditInt(PID_CLONE_COUNT, "Count of clones:", 1);
 }
 
 int CompositeEditorCopyDlg::execute()
 {
-  if (showDialog() != DIALOG_ID_OK)
+  if (showDialog() != PropPanel::DIALOG_ID_OK)
     return 0;
 
-  return mPropertiesPanel->getInt(PID_CLONE_COUNT);
+  return propertiesPanel->getInt(PID_CLONE_COUNT);
 }
 
 void CompositeEditorCopyDlg::show()
 {
   autoSize();
 
-  CDialogWindow::show();
+  DialogWindow::show();
 }

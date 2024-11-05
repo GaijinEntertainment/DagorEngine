@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <rendInst/rendInstGen.h>
 #include "riGen/riGenData.h"
 #include "riGen/riRotationPalette.h"
@@ -14,13 +16,18 @@
 #include <math/dag_mathUtils.h>
 #include <math/dag_bounds2.h>
 #include <render/bcCompressor.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_lock.h>
 #include <EASTL/optional.h>
 #include <3d/dag_resPtr.h>
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_resetDevice.h>
 
 
-#define LOGLEVEL_DEBUG _MAKE4C('RGEN')
+#define debug(...) logmessage(_MAKE4C('RGEN'), __VA_ARGS__)
 
 static constexpr float CLIPMAP_SHADOW_SPHERE_SCALE = 1.5f;
 
@@ -349,7 +356,7 @@ bool render_clipmap_shadow_pool(rendinst::render::RtPoolData &pool, RenderableIn
   cb.setOpacity(0, 1);
   cb.setCrossDissolveRange(0);
   cb.setBoundingSphere(0, 0, 1, 1, 0);
-  cb.setInstancing(pool.hasImpostor() ? 3 : 0, pool.hasImpostor() ? 1 : 3, impostor_buffer_offset);
+  cb.setInstancing(pool.hasImpostor() ? 3 : 0, pool.hasImpostor() ? 1 : 3, 0, impostor_buffer_offset);
   cb.flushPerDraw();
   d3d::set_immediate_const(STAGE_VS, ZERO_PTR<uint32_t>(), 1);
 
@@ -662,7 +669,8 @@ void RendInstGenData::renderRendinstShadowsToClipmap(const BBox2 &region, int ne
 
         rendinst::render::setCoordType(posInst ? rendinst::render::COORD_TYPE_POS : rendinst::render::COORD_TYPE_TM);
 
-        unsigned int stride = RIGEN_STRIDE_B(posInst, perInstDataDwords);
+        unsigned int stride = RIGEN_STRIDE_B(posInst, rtData->riZeroInstSeeds[ri_idx], perInstDataDwords);
+        unsigned int flags = (rtData->riZeroInstSeeds[ri_idx] == 0) && (perInstDataDwords != 0) ? 2 : 0;
 
         ShaderGlobal::set_texture_fast(rendinst::render::rendinstShadowTexVarId, pool.rendinstClipmapShadowTexId);
         // ShaderGlobal::set_color4_fast(rendinst::render::boundingSphereVarId, 0.f, 0.f, 0.f, pool.sphereRadius *
@@ -703,7 +711,7 @@ void RendInstGenData::renderRendinstShadowsToClipmap(const BBox2 &region, int ne
           uint32_t impostorOffset = pool.hasImpostor() ? rendinst::gen::get_rotation_palette_manager()->getImpostorDataBufferOffset(
                                                            {rtData->layerIdx, int(ri_idx)}, pool.impostorDataOffsetCache)
                                                        : 0;
-          cb.setInstancing(vbInfo.offset / RENDER_ELEM_SIZE + (ofs * vectorsCnt) / stride, vectorsCnt, impostorOffset);
+          cb.setInstancing(vbInfo.offset / RENDER_ELEM_SIZE + (ofs * vectorsCnt) / stride, vectorsCnt, flags, impostorOffset);
           cb.flushPerDraw();
           d3d_err(d3d::drawind_instanced(PRIM_TRILIST, 0, 2, 0, count));
         }

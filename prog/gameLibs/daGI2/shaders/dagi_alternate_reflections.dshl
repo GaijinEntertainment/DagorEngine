@@ -1,0 +1,90 @@
+include "world_sdf.dshl"
+include "dagi_lit_scene_helper.dshl"
+include "dagi_media_scene_common.dshl"
+include "dagi_quality.dshl"
+
+macro GET_TRANSLUCENT_ALTERNATE_REFLECTIONS(code)
+  if (gi_quality >= colored)
+  {
+    (code) {
+      dagi_media_scene@tex3d = dagi_media_scene;
+    }
+    hlsl(code) {
+      #define dagi_media_scene_samplerstate world_sdf_clipmap_samplerstate
+    }
+    DAGI_MEDIA_SCENE_SAMPLE_ON_NO_SRV(code)
+    hlsl(code) {
+      #define TRANSLUCENT_ALTERNATE_REFLECTIONS 1
+      half4 get_translucent_alternate_reflections(float3 cameraToPoint, float3 rayDir, float dist)
+      {
+        return dagi_trace_media_scene(cameraToPoint*0.98 + world_view_pos.xyz, rayDir, dist);
+      }
+    }
+  } else
+  {
+    hlsl(code) {
+      half4 get_translucent_alternate_reflections(float3 cameraToPoint, float3 rayDir, float dist) {return 0;}
+    }
+  }
+endmacro
+
+macro GET_ALTERNATE_REFLECTIONS(code)
+  if (gi_quality >= colored)
+  {
+    READ_WORLD_SDF(code)
+    WORLD_SDF_STEP_OUT(code)
+    PROJECT_GET_WORLD_VOXELS_LIT_SCENE_AT(code)
+    DAGI_ALBEDO_SAMPLE(code)
+    PROJECT_LIGHT_POINT_TRACE_HIT(code)
+
+    hlsl(code) {
+      #define ALTERNATE_REFLECTIONS 1
+      #include <interleavedGradientNoise.hlsl>
+      //opaque only
+      void get_alternate_reflections(inout half4 newTarget, inout float rayHitDist, uint2 pixelPos, float3 rayDir, float3 cameraToPoint, float3 normal, bool hit, bool hit_not_zfar)
+      {
+        float maxT = 200;//?
+        rayHitDist = maxT;
+        BRANCH
+        if (!hit)
+        {
+          float len = length(cameraToPoint);
+          float3 origin = cameraToPoint*0.98 + world_view_pos.xyz + rayDir*max(0.01, len*0.02)*interleavedGradientNoiseFramed(pixelPos.xy, uint(SSRParams.z));
+
+          uint startClip = world_sdf_find_clip(origin);
+          float sdfVoxelSize = startClip < MAX_WORLD_SDF_CLIPS ? world_sdf_voxel_size(startClip) : 1;
+          origin += normal*0.25*sdfVoxelSize;
+          world_sdf_step_out_clip(origin, startClip, 0.0, 0.5);
+
+          float t = maxT;
+          uint cascade;
+          if (world_sdf_trace(origin, rayDir, maxT, t, cascade, 1, true))
+          {
+            rayHitDist = t;
+            float3 worldPos = origin + rayDir*t;
+            float3 gradient = world_sdf_sample_gradient(cascade, worldPos);
+            float gradLen = length(gradient);
+            float3 hitNorm = gradLen > 0 ? -gradient.xzy/gradLen : -rayDir;
+            if (!dagi_get_voxels_lit_scene_radiance_at(worldPos, hitNorm, newTarget.rgb))
+            {
+              float3 albedo = DAGI_MISSED_ALBEDO;
+              dagi_sample_albedo_best(worldPos, albedo);
+              newTarget.rgb = project_get_lit_color_at_trace_hit(worldPos, hitNorm, albedo);
+            }
+            newTarget.a = 1;
+          } else
+          {
+            newTarget = 0;
+            rayHitDist = maxT;
+          }
+        }
+      }
+    }
+  }
+  else
+  {
+    hlsl(code) {
+      void get_alternate_reflections(inout half4 newTarget, inout float rayHitDist, uint2 pixelPos, float3 rayDir, float3 cameraToPoint, float3 normal, bool hit, bool hit_not_zfar){}
+    }
+  }
+endmacro

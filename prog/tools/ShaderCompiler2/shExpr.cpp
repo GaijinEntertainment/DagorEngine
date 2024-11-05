@@ -1,6 +1,9 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <float.h>
 #include "shExpr.h"
+#include "cppStcodeAssembly.h"
+#include "cppStcodeUtils.h"
 #include "shcode.h"
 #include "assemblyShader.h"
 #include <debug/dag_debug.h>
@@ -67,14 +70,15 @@ Register Expression::addReg(AssembleShaderEvalCB &owner)
     case shexpr::VT_REAL: return owner.add_reg();
     case shexpr::VT_COLOR4: return owner.add_vec_reg();
     default:
-      owner.error(String(128, "registers in expression of value type '%s' %d, are invalid!", __getName(vt), vt), getTerminal());
+      owner.error(String(128, "registers in expression of value type '%s' %d, are invalid!", __getName(vt), vt), getParserSymbol());
       return {};
   }
 }
 
 
 // assembly this expression
-bool Expression::assembly(AssembleShaderEvalCB &owner, CodeTable &code, Register &dest_reg, bool is_integer)
+bool Expression::assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr, Register &dest_reg,
+  bool is_integer)
 {
   // assembly unary operator
   if (getUnaryOperator() == shexpr::UOP_NEGATIVE)
@@ -85,12 +89,14 @@ bool Expression::assembly(AssembleShaderEvalCB &owner, CodeTable &code, Register
       code.push_back(shaderopcode::makeOp2(SHCOD_INVERSE, int(dest_reg), 4));
   }
 
+  cpp_expr.specifyNextExprUnaryOp(getUnaryOperator());
+
   return true;
 }
 
 
 // assembly numeric constant
-void Expression::assemblyConstant(CodeTable &code, real v, int dest_reg, bool is_integer)
+void Expression::assemblyConstant(CodeTable &code, real v, int dest_reg, bool is_integer, StcodeExpression *cpp_expr)
 {
   int vx = *(int *)&v;
   if (is_integer)
@@ -105,11 +111,20 @@ void Expression::assemblyConstant(CodeTable &code, real v, int dest_reg, bool is
     code.push_back(shaderopcode::makeOp1(SHCOD_IMM_REAL, dest_reg));
     code.push_back(vx);
   }
+
+  if (cpp_expr)
+  {
+    float val = is_integer ? (int)v : v;
+    cpp_expr->specifyNextExprElement(StcodeExpression::ElementType::REAL_CONST, &val);
+  }
 }
 
 
-void Expression::assemblyConstant(CodeTable &code, const Color4 &v, int dest_reg)
+void Expression::assemblyConstant(CodeTable &code, const Color4 &v, int dest_reg, StcodeExpression *cpp_expr)
 {
+  if (cpp_expr)
+    cpp_expr->specifyNextExprElement(StcodeExpression::ElementType::COLOR_CONST, &v.r, &v.g, &v.b, &v.a);
+
   int *col = (int *)&v.r;
   if (col[0] == col[1] && col[0] == col[2] && col[0] == col[3] && (col[0] & 0xFFFF) == 0)
   {
@@ -152,6 +167,11 @@ bool Expression::evaluate(Color4 &out_value)
   return true;
 }
 
+bool Expression::canConvert(shexpr::ValueType vt) const
+{
+  return getValueType() == vt || (vt == shexpr::VT_COLOR4 && getValueType() == shexpr::VT_REAL);
+}
+
 // dump to debug
 void Expression::dump(int level) const
 {
@@ -184,8 +204,8 @@ void Expression::dump_internal(int level, const char *tabs) const
  *
  *********************************/
 // ctor/dtor
-ComplexExpression::ComplexExpression(shexpr::ValueType vt, int channel) :
-  binOp(midmem), baseValueType(vt), operands(midmem), currentChannel(channel)
+ComplexExpression::ComplexExpression(Symbol *parser_sym, shexpr::ValueType vt, int channel) :
+  Expression(parser_sym), binOp(midmem), baseValueType(vt), operands(midmem), currentChannel(channel)
 {
   resizeOperands(1);
 }
@@ -195,12 +215,15 @@ ComplexExpression::~ComplexExpression() { tabutils::deleteAll(operands); }
 
 
 // assembly this expression
-bool ComplexExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code, Register &dest_reg, bool is_integer)
+bool ComplexExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr, Register &dest_reg,
+  bool is_integer)
 {
   if (operands.size() == 1)
   {
+    cpp_expr.specifyNextExprElement(StcodeExpression::ElementType::COMPLEX_SINGLE_OP);
+
     Register original_dest = dest_reg;
-    if (operands[shexpr::OPER_LEFT]->assembly(owner, code, dest_reg, is_integer))
+    if (operands[shexpr::OPER_LEFT]->assembly(owner, code, cpp_expr, dest_reg, is_integer))
     {
       if (operands[0]->getValueType() == shexpr::VT_REAL && baseValueType == shexpr::VT_COLOR4)
       {
@@ -208,10 +231,13 @@ bool ComplexExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code, R
         code.push_back(shaderopcode::makeData2(int(dest_reg), int(dest_reg)));
         dest_reg = original_dest;
       }
-      return Expression::assembly(owner, code, dest_reg, is_integer);
+      return Expression::assembly(owner, code, cpp_expr, dest_reg, is_integer);
     }
     return false;
   }
+
+  int numOps = operands.size() - 1;
+  cpp_expr.specifyNextExprElement(StcodeExpression::ElementType::COMPLEX_MULTIPLE_OPS, binOp.data() + 1, &numOps);
 
   // assembly operands
   eastl::vector<Register> opRegs;
@@ -220,7 +246,7 @@ bool ComplexExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code, R
   {
     opRegs.emplace_back(addReg(owner));
     Register original_dest = opRegs[i];
-    if (!operands[i]->assembly(owner, code, opRegs[i], is_integer))
+    if (!operands[i]->assembly(owner, code, cpp_expr, opRegs[i], is_integer))
       return false;
 
     if (operands[i]->getValueType() == shexpr::VT_REAL && baseValueType == shexpr::VT_COLOR4)
@@ -264,7 +290,7 @@ bool ComplexExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code, R
     srcRegL = destReg;
   }
 
-  return Expression::assembly(owner, code, dest_reg, is_integer);
+  return Expression::assembly(owner, code, cpp_expr, dest_reg, is_integer);
 }
 
 
@@ -382,7 +408,7 @@ bool ComplexExpression::evaluate(real &out_value)
         {
           if (value == 0)
           {
-            ExpressionParser::getStatic().error("divide by zero error!", NULL);
+            ExpressionParser::getStatic().error("divide by zero error!", getParserSymbol());
             return false;
           }
           out_value /= value;
@@ -434,22 +460,22 @@ bool ComplexExpression::evaluate(Color4 &out_value)
           debug("%.4f %.4f %.4f %.4f", out_value.r, out_value.g, out_value.b, out_value.a);
           if (value.r == 0)
           {
-            ExpressionParser::getStatic().error("divide by zero error - color4.r = 0!", NULL);
+            ExpressionParser::getStatic().error("divide by zero error - color4.r = 0!", getParserSymbol());
             return false;
           }
           if (value.g == 0)
           {
-            ExpressionParser::getStatic().error("divide by zero error - color4.g = 0!", NULL);
+            ExpressionParser::getStatic().error("divide by zero error - color4.g = 0!", getParserSymbol());
             return false;
           }
           if (value.b == 0)
           {
-            ExpressionParser::getStatic().error("divide by zero error - color4.b = 0!", NULL);
+            ExpressionParser::getStatic().error("divide by zero error - color4.b = 0!", getParserSymbol());
             return false;
           }
           if (value.a == 0)
           {
-            ExpressionParser::getStatic().error("divide by zero error - color4.a = 0!", NULL);
+            ExpressionParser::getStatic().error("divide by zero error - color4.a = 0!", getParserSymbol());
             return false;
           }
 
@@ -554,7 +580,7 @@ bool ComplexExpression::collapseNumbers()
           if (op->evaluate(v))
           {
             // replace with constant color4 value
-            Terminal *t = op->getTerminal();
+            Terminal *t = getTerminal();
             delete op;
             setOperand(shexpr::OperandType(i), new ConstColor4Value(t, v));
           }
@@ -566,7 +592,7 @@ bool ComplexExpression::collapseNumbers()
         if (op->evaluate(v.r))
         {
           // replace with constant real value
-          Terminal *t = op->getTerminal();
+          Terminal *t = getTerminal();
           delete op;
           setOperand(shexpr::OperandType(i), new ConstRealValue(t, v.r));
         }
@@ -594,80 +620,81 @@ bool ComplexExpression::isDynamic() const
   return false;
 }
 
+bool ComplexExpression::validate() const
+{
+  int dim = 1;
+  for (auto operand : operands)
+  {
+    // Make sure that all operands have the same channel cnt
+    int opDim = operand->getChannels();
+    if (dim == 1)
+      dim = opDim;
+    if (opDim != 1 && opDim != dim)
+    {
+      ExpressionParser::getStatic().error(
+        String(128, "Complex expression operands have incompatible dimensions %d and %d", dim, opDim), getParserSymbol());
+      return false;
+    }
+  }
 
+  return true;
+}
+
+Symbol *ComplexExpression::hasDynamicAndMaterialTermsAt() const
+{
+  bool hasStatic = false;
+  bool hasDynamic = false;
+  for (auto operand : operands)
+  {
+    // Generate warnings if bindless is on and static and dynamic operands are used
+    if (!operand->isConst())
+    {
+      if (Symbol *s = operand->hasDynamicAndMaterialTermsAt())
+        return s;
+
+      if (operand->isDynamic())
+        hasDynamic = true;
+      else
+        hasStatic = true;
+    }
+  }
+
+  return hasDynamic && hasStatic ? getParserSymbol() : nullptr;
+}
 // class ComplexExpression
 //
 
 
 /*********************************
  *
- * class ColorChannelExpression
+ * class SingleColorChannelExpression
  *
  *********************************/
 // ctor/dtor
-ColorChannelExpression::ColorChannelExpression(Terminal *s, shexpr::ColorChannel cc) : t(s), colorChannel(cc) {}
-
-ColorChannelExpression::~ColorChannelExpression() {}
-
-
-// return value type
-shexpr::ValueType ColorChannelExpression::getValueType() const
+SingleColorChannelExpression::SingleColorChannelExpression(Terminal *s, shexpr::ColorChannel cc) :
+  ColorChannelExpression(s), colorChannel(cc)
 {
-  return (colorChannel == shexpr::_CC_UNDEFINED) ? child->getValueType() : shexpr::VT_REAL;
+  G_ASSERT(cc != shexpr::_CC_UNDEFINED);
 }
 
 
 // assembly this expression
-bool ColorChannelExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code, Register &dest_reg, bool is_integer)
+bool SingleColorChannelExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr,
+  Register &dest_reg, bool is_integer)
 {
   Register srcReg = owner.add_vec_reg();
-  if (!child->assembly(owner, code, srcReg, is_integer))
+
+  cpp_expr.specifyNextExprElement(StcodeExpression::ElementType::SINGLE_CHANNEL_MASK, &colorChannel);
+
+  if (!child->assembly(owner, code, cpp_expr, srcReg, is_integer))
     return false;
   dest_reg.reset(int(srcReg) + colorChannel);
   return true;
 }
 
 
-// check convertion - if fail, report error & return false
-bool ColorChannelExpression::canConvert(shexpr::ValueType vt) const
-{
-  // real to color - accept only if used in multiply or div on the right side
-  if (vt == shexpr::VT_COLOR4)
-  {
-    Expression *p = getParent();
-    if (p->getType() == shexpr::E_COMPLEX)
-    {
-      ComplexExpression *cp = static_cast<ComplexExpression *>(p);
-      shexpr::BinaryOperator binOp = cp->getBinOperator(this);
-      if ((cp->getOperand(shexpr::OPER_LEFT) != this) && ((binOp == shexpr::OP_MUL) || (binOp == shexpr::OP_DIV)))
-      {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // check by default
-  if (colorChannel == shexpr::_CC_UNDEFINED)
-  {
-    return child->canConvert(vt);
-  }
-  else
-  {
-    return getValueType() == vt;
-  }
-}
-
-// return true, if expression has only numeric constants and constant local variables
-bool ColorChannelExpression::isConst() const { return child->isConst(); }
-
-
-// return true, if expression - is a dynamic expression
-bool ColorChannelExpression::isDynamic() const { return child->isDynamic(); }
-
-
 // evaluate this expression as real
-bool ColorChannelExpression::evaluate(real &out_value)
+bool SingleColorChannelExpression::evaluate(real &out_value)
 {
   // cannot evaluate dynamic expressions
   if (isDynamic())
@@ -677,7 +704,7 @@ bool ColorChannelExpression::evaluate(real &out_value)
   {
     ExpressionParser::getStatic().error(String(128, "cannot convert from '%s' to '%s' here", Expression::__getName(getValueType()),
                                           Expression::__getName(shexpr::VT_REAL)),
-      t);
+      getParserSymbol());
     return false;
   }
 
@@ -706,7 +733,7 @@ bool ColorChannelExpression::evaluate(real &out_value)
 
 
 // evaluate this expression as color4
-bool ColorChannelExpression::evaluate(Color4 &out_value)
+bool SingleColorChannelExpression::evaluate(Color4 &out_value)
 {
   // cannot evaluate dynamic expressions
   if (isDynamic())
@@ -716,7 +743,7 @@ bool ColorChannelExpression::evaluate(Color4 &out_value)
   {
     ExpressionParser::getStatic().error(String(128, "cannot convert from '%s' to '%s' here", Expression::__getName(getValueType()),
                                           Expression::__getName(shexpr::VT_COLOR4)),
-      t);
+      getParserSymbol());
     return false;
   }
 
@@ -742,23 +769,106 @@ bool ColorChannelExpression::evaluate(Color4 &out_value)
 
 
 // dump to debug
-void ColorChannelExpression::dump_internal(int level, const char *tabs) const
+void SingleColorChannelExpression::dump_internal(int level, const char *tabs) const
 {
-  debug("%s<ColorChannelExpression>-%s", tabs, Expression::__getName(colorChannel));
+  debug("%s<SingleColorChannelExpression>-%s", tabs, Expression::__getName(colorChannel));
   Expression::dump_internal(level, tabs);
 
   child->dump(level + 1);
 
-  debug("%s</ColorChannelExpression>", tabs);
+  debug("%s</SingleColorChannelExpression>", tabs);
 }
 
 
-// evaluate all avalible branches; return false if error occuried
-bool ColorChannelExpression::collapseNumbers() { return child->collapseNumbers(); }
-
-
-// class ColorChannelExpression
+// class SingleColorChannelExpression
 //
+
+
+/*********************************
+ *
+ * class MultiColorChannelExpression
+ *
+ *********************************/
+// ctor/dtor
+MultiColorChannelExpression::MultiColorChannelExpression(Terminal *s, ChannelMask mask) : ColorChannelExpression(s)
+{
+  G_ASSERT(mask.size() >= 2);
+  channels = mask;
+}
+
+// assembly this expression
+bool MultiColorChannelExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr,
+  Register &dest_reg, bool is_integer)
+{
+  cpp_expr.specifyNextExprElement(StcodeExpression::ElementType::MULTIPLE_CHANNEL_MASK, getTerminal()->text);
+
+  Register srcReg = owner.add_vec_reg();
+  if (!child->assembly(owner, code, cpp_expr, srcReg, is_integer))
+    return false;
+
+  // If not vec4, fill all other places with ones so as not to have div problems
+  Register oneReg;
+  if (channels.size() < 4)
+  {
+    oneReg = owner.add_reg();
+    Expression::assemblyConstant(code, 1.0, int(oneReg), false);
+  }
+
+  // make vector
+  code.push_back(shaderopcode::makeOp3(SHCOD_MAKE_VEC, int(dest_reg), int(srcReg) + channels[0], int(srcReg) + channels[1]));
+
+  switch (channels.size())
+  {
+    case 2: code.push_back(shaderopcode::makeData2(int(oneReg), int(oneReg))); break;
+    case 3: code.push_back(shaderopcode::makeData2(int(srcReg) + channels[2], int(oneReg))); break;
+    case 4: code.push_back(shaderopcode::makeData2(int(srcReg) + channels[2], int(srcReg) + channels[3])); break;
+    default: G_ASSERT(0);
+  }
+
+  return true;
+}
+
+
+// evaluate this expression as color4
+bool MultiColorChannelExpression::evaluate(Color4 &out_value)
+{
+  // cannot evaluate dynamic expressions
+  if (isDynamic())
+    return false;
+
+  if (!canConvert(shexpr::VT_COLOR4))
+  {
+    ExpressionParser::getStatic().error(String(128, "cannot convert from '%s' to '%s' here", Expression::__getName(getValueType()),
+                                          Expression::__getName(shexpr::VT_COLOR4)),
+      getParserSymbol());
+    return false;
+  }
+
+  Color4 v;
+  if (!child->evaluate(v))
+    return false;
+
+  out_value = Color4(1.0, 1.0, 1.0, 1.0);
+  for (int i = 0; i < channels.size(); i++)
+    out_value[i] = v[channels[i]];
+
+  return true;
+}
+
+
+// dump to debug
+void MultiColorChannelExpression::dump_internal(int level, const char *tabs) const
+{
+  debug("%s<MultiColorChannelExpression>-%s%s%s%s", tabs, Expression::__getName(channels[0]),
+    channels.size() >= 2 ? Expression::__getName(channels[1]) + 1 : "",
+    channels.size() >= 3 ? Expression::__getName(channels[2]) + 1 : "",
+    channels.size() >= 4 ? Expression::__getName(channels[3]) + 1 : "");
+  Expression::dump_internal(level, tabs);
+
+  child->dump(level + 1);
+
+  debug("%s</MultiColorChannelExpression>", tabs);
+}
 
 
 /*********************************
@@ -767,22 +877,29 @@ bool ColorChannelExpression::collapseNumbers() { return child->collapseNumbers()
  *
  *********************************/
 // ctor/dtor
-ConstRealValue::ConstRealValue(Terminal *s, real v) : t(s), value(v) {}
+ConstRealValue::ConstRealValue(Terminal *s, real v) : Expression(s), value(v) {}
 
 
 ConstRealValue::~ConstRealValue() {}
 
 
 // assembly this expression
-bool ConstRealValue::assembly(AssembleShaderEvalCB &owner, CodeTable &code, Register &dest_reg, bool is_integer)
+bool ConstRealValue::assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr, Register &dest_reg,
+  bool is_integer)
 {
-  Expression::assemblyConstant(code, value, int(dest_reg), is_integer);
+  Expression::assemblyConstant(code, value, int(dest_reg), is_integer, &cpp_expr);
   return true;
 }
 
 
 // set associated value
-void ConstRealValue::setValue(const real v) { value = v; }
+void ConstRealValue::setValue(const real v, bool validate_nan)
+{
+  if (validate_nan && check_nan(v))
+    ExpressionParser::getStatic().error("Encountered NAN in const real val", getParserSymbol());
+
+  value = v;
+}
 
 
 // get converted value to specified type
@@ -799,9 +916,6 @@ const Color4 &ConstRealValue::getConvertedColor() const
 
 const real ConstRealValue::getConvertedReal() const { return value; }
 
-
-// check convertion - if fail, report error & return false
-bool ConstRealValue::canConvert(shexpr::ValueType vt) const { return true; }
 
 // evaluate this expression as real
 bool ConstRealValue::evaluate(real &out_value)
@@ -849,16 +963,17 @@ void ConstRealValue::dump_internal(int level, const char *tabs) const
  *
  *********************************/
 // ctor/dtor
-ConstColor4Value::ConstColor4Value(Terminal *s, const Color4 &v) : t(s), value(v) {}
+ConstColor4Value::ConstColor4Value(Terminal *s, const Color4 &v) : Expression(s), value(v) {}
 
 
 ConstColor4Value::~ConstColor4Value() {}
 
 
 // assembly this expression
-bool ConstColor4Value::assembly(AssembleShaderEvalCB &owner, CodeTable &code, Register &dest_reg, bool is_integer)
+bool ConstColor4Value::assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr, Register &dest_reg,
+  bool is_integer)
 {
-  Expression::assemblyConstant(code, value, int(dest_reg));
+  Expression::assemblyConstant(code, value, int(dest_reg), &cpp_expr);
   return true;
 }
 
@@ -874,16 +989,6 @@ const Color4 &ConstColor4Value::getConvertedColor() const { return value; }
 const real ConstColor4Value::getConvertedReal() const { return value.r; }
 
 
-// check convertion - if fail, report error & return false
-bool ConstColor4Value::canConvert(shexpr::ValueType vt) const
-{
-  if (vt == getValueType())
-    return true;
-
-  // color to real - never accepted
-  return false;
-}
-
 // evaluate this expression as real
 bool ConstColor4Value::evaluate(real &out_value)
 {
@@ -895,7 +1000,7 @@ bool ConstColor4Value::evaluate(real &out_value)
   {
     ExpressionParser::getStatic().error(String(128, "cannot convert from '%s' to '%s' here", Expression::__getName(getValueType()),
                                           Expression::__getName(shexpr::VT_REAL)),
-      t);
+      getParserSymbol());
     return false;
   }
 
@@ -913,7 +1018,7 @@ bool ConstColor4Value::evaluate(Color4 &out_value)
   {
     ExpressionParser::getStatic().error(String(128, "cannot convert from '%s' to '%s' here", Expression::__getName(getValueType()),
                                           Expression::__getName(shexpr::VT_COLOR4)),
-      t);
+      getParserSymbol());
     return false;
   }
 
@@ -944,7 +1049,7 @@ void ConstColor4Value::dump_internal(int level, const char *tabs) const
  *
  *********************************/
 // ctor/dtor
-ColorValueExpression::ColorValueExpression(Terminal *s) : ComplexExpression(shexpr::VT_COLOR4), t(s) { resizeOperands(4); }
+ColorValueExpression::ColorValueExpression(Terminal *s) : ComplexExpression(s, shexpr::VT_COLOR4) { resizeOperands(4); }
 
 // evaluate this expression as real
 bool ColorValueExpression::evaluate(real &out_value)
@@ -979,30 +1084,6 @@ bool ColorValueExpression::evaluate(Color4 &out_value)
   if (!getOperand(shexpr::OperandType(3))->evaluate(out_value.a))
     return false;
 
-  if (check_nan(out_value.r))
-  {
-    ExpressionParser::getStatic().error("error in argument #1 - value is NAN!", t);
-    return false;
-  }
-
-  if (check_nan(out_value.g))
-  {
-    ExpressionParser::getStatic().error("error in argument #2 - value is NAN!", t);
-    return false;
-  }
-
-  if (check_nan(out_value.b))
-  {
-    ExpressionParser::getStatic().error("error in argument #3 - value is NAN!", t);
-    return false;
-  }
-
-  if (check_nan(out_value.a))
-  {
-    ExpressionParser::getStatic().error("error in argument #4 - value is NAN!", t);
-    return false;
-  }
-
   return Expression::evaluate(out_value);
 }
 
@@ -1018,15 +1099,18 @@ void ColorValueExpression::dump_internal(int level, const char *tabs) const
 
 
 // assembly this expression
-bool ColorValueExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code, Register &dest_reg, bool is_integer)
+bool ColorValueExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr, Register &dest_reg,
+  bool is_integer)
 {
+  cpp_expr.specifyNextExprElement(StcodeExpression::ElementType::COLORVAL);
+
   // assembly operands
   eastl::vector<Register> opRegs;
   opRegs.reserve(getOperandCount());
   for (int i = 0; i < getOperandCount(); i++)
   {
     opRegs.emplace_back(owner.add_reg());
-    if (!getOperand(shexpr::OperandType(i))->assembly(owner, code, opRegs[i], is_integer))
+    if (!getOperand(shexpr::OperandType(i))->assembly(owner, code, cpp_expr, opRegs[i], is_integer))
       return false;
   }
 
@@ -1077,7 +1161,7 @@ bool ColorValueExpression::collapseNumbers()
  *
  *********************************/
 // ctor/dtor
-LVarValueExpression::LVarValueExpression(Terminal *s, int _var, LocalVarTable &_vars) : t(s), var(_var), vars(_vars)
+LVarValueExpression::LVarValueExpression(Terminal *s, int _var, LocalVarTable &_vars) : Expression(s), var(_var), vars(_vars)
 {
   LocalVar *locVar = vars.getVariableById(var);
   G_ASSERT(locVar);
@@ -1089,11 +1173,12 @@ LVarValueExpression::~LVarValueExpression() {}
 
 
 // assembly this expression
-bool LVarValueExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code, Register &dest_reg, bool is_integer)
+bool LVarValueExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr, Register &dest_reg,
+  bool is_integer)
 {
   if (var < 0)
   {
-    owner.error("local variable not found!", t);
+    owner.error("local variable not found!", getParserSymbol());
     return false;
   }
 
@@ -1114,7 +1199,8 @@ bool LVarValueExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code,
   else
     dest_reg.reset(locVar->reg);
 
-  return Expression::assembly(owner, code, dest_reg, is_integer);
+  cpp_expr.specifyNextExprElement(StcodeExpression::ElementType::LOCVAR, getTerminal()->text);
+  return Expression::assembly(owner, code, cpp_expr, dest_reg, is_integer);
 }
 
 
@@ -1123,23 +1209,7 @@ bool LVarValueExpression::canConvert(shexpr::ValueType vt) const
 {
   LocalVar *locVar = vars.getVariableById(var);
   G_ASSERT(locVar);
-  if (locVar->valueType != shexpr::VT_REAL)
-    return vt == locVar->valueType;
-
-  if (vt == shexpr::VT_COLOR4)
-  {
-    Expression *p = getParent();
-    if (p->getType() == shexpr::E_COMPLEX)
-    {
-      ComplexExpression *cp = static_cast<ComplexExpression *>(p);
-      shexpr::BinaryOperator binOp = cp->getBinOperator(this);
-      if ((cp->getOperand(shexpr::OPER_LEFT) != this) && ((binOp == shexpr::OP_MUL) || (binOp == shexpr::OP_DIV)))
-        return true;
-    }
-    return false;
-  }
-  return (vt == locVar->valueType);
-  //  return locVar->val.e ? locVar->val.e->canConvert(vt) : false;
+  return (vt == locVar->valueType) || (vt == shexpr::VT_COLOR4 && locVar->valueType == shexpr::VT_REAL);
 }
 
 
@@ -1198,6 +1268,11 @@ bool LVarValueExpression::isDynamic() const
   return locVar->isDynamic;
 }
 
+Symbol *LVarValueExpression::hasDynamicAndMaterialTermsAt() const
+{
+  return vars.getVariableById(var)->dependsOnDynVarsAndMaterialParams ? getParserSymbol() : nullptr;
+}
+
 // class LVarValueExpression
 //
 
@@ -1210,7 +1285,7 @@ bool LVarValueExpression::isDynamic() const
 // ctor/dtor
 StVarValueExpression::StVarValueExpression(Terminal *s, int var_id, shexpr::ValueType vt, bool is_dynamic, bool is_global,
   bool is_int) :
-  t(s), varId(var_id), valueType(vt), isDynamicFlag(is_dynamic), isGlobalFlag(is_global), isInteger(is_int)
+  Expression(s), varId(var_id), valueType(vt), isDynamicFlag(is_dynamic), isGlobalFlag(is_global), isInteger(is_int)
 {
   if (isGlobalFlag)
   {
@@ -1223,8 +1298,11 @@ StVarValueExpression::~StVarValueExpression() {}
 
 
 // assembly this expression
-bool StVarValueExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code, Register &dest_reg, bool is_integer)
+bool StVarValueExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr, Register &dest_reg,
+  bool is_integer)
 {
+  const bool convertIntToFloat = !is_integer && isInteger; // expr is float type, var is integer type
+
   int cod;
   if (isGlobalFlag)
   {
@@ -1234,10 +1312,15 @@ bool StVarValueExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code
       if (is_integer)
         cod = SHCOD_GET_GINT;
       else
-        cod = isInteger ? SHCOD_GET_GINT_TOREAL : SHCOD_GET_GREAL;
+        cod = convertIntToFloat ? SHCOD_GET_GINT_TOREAL : SHCOD_GET_GREAL;
     }
     else if (valueType == shexpr::VT_COLOR4)
-      cod = SHCOD_GET_GVEC;
+    {
+      if (convertIntToFloat)
+        cod = SHCOD_GET_GIVEC_TOREAL;
+      else
+        cod = SHCOD_GET_GVEC;
+    }
     else if (valueType == shexpr::VT_TEXTURE)
       cod = SHCOD_GET_GTEX;
     else if (valueType == shexpr::VT_BUFFER)
@@ -1253,10 +1336,15 @@ bool StVarValueExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code
       if (is_integer)
         cod = SHCOD_GET_INT;
       else
-        cod = isInteger ? SHCOD_GET_INT_TOREAL : SHCOD_GET_REAL;
+        cod = convertIntToFloat ? SHCOD_GET_INT_TOREAL : SHCOD_GET_REAL;
     }
     else if (valueType == shexpr::VT_COLOR4)
-      cod = SHCOD_GET_VEC;
+    {
+      if (convertIntToFloat)
+        cod = SHCOD_GET_IVEC_TOREAL;
+      else
+        cod = SHCOD_GET_VEC;
+    }
     else
       G_ASSERT(false);
   }
@@ -1284,31 +1372,15 @@ bool StVarValueExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code
     code.push_back(shaderopcode::makeOp2(cod, int(copy_reg), int(dest_reg)));
     dest_reg = eastl::move(copy_reg);
   }
-  return Expression::assembly(owner, code, dest_reg, is_integer);
-}
 
+  const char *initialTypeName = stcode::value_type_to_stcode_type(getValueType(), isInteger);
+  const char *castToTypeName = convertIntToFloat ? stcode::value_type_to_stcode_type(getValueType(), false) : nullptr;
+  if (isGlobalFlag)
+    cpp_expr.specifyNextExprElement(StcodeExpression::ElementType::GLOBVAR, getTerminal()->text, castToTypeName);
+  else
+    cpp_expr.specifyNextExprElement(StcodeExpression::ElementType::SHVAR, getTerminal()->text, initialTypeName, castToTypeName);
 
-// check convertion - if fail, report error & return false
-bool StVarValueExpression::canConvert(shexpr::ValueType vt) const
-{
-  if (valueType != shexpr::VT_REAL)
-    return vt == valueType;
-
-  // real to color - accept only if used in multiply or div on the right side
-  if (vt == shexpr::VT_COLOR4)
-  {
-    Expression *p = getParent();
-    if (p->getType() == shexpr::E_COMPLEX)
-    {
-      ComplexExpression *cp = static_cast<ComplexExpression *>(p);
-      shexpr::BinaryOperator binOp = cp->getBinOperator(this);
-      if ((cp->getOperand(shexpr::OPER_LEFT) != this) && ((binOp == shexpr::OP_MUL) || (binOp == shexpr::OP_DIV)))
-        return true;
-    }
-    return false;
-  }
-
-  return getValueType() == vt;
+  return Expression::assembly(owner, code, cpp_expr, dest_reg, is_integer);
 }
 
 
@@ -1338,8 +1410,8 @@ void StVarValueExpression::dump_internal(int level, const char *tabs) const
  *
  *********************************/
 // ctor/dtor
-FunctionExpression::FunctionExpression(Terminal *s, int function_id) :
-  ComplexExpression(functional::getValueType(functional::FunctionId(function_id))), t(s), func(function_id)
+FunctionExpression::FunctionExpression(Terminal *s, int function_id, int channel) :
+  ComplexExpression(s, functional::getValueType(functional::FunctionId(function_id)), channel), func(function_id)
 {
   resizeOperands(functional::getOpCount(functional::FunctionId(func)));
 }
@@ -1355,7 +1427,7 @@ bool FunctionExpression::evaluate(real &out_value)
   {
     ExpressionParser::getStatic().error(String(128, "cannot convert from '%s' to '%s' here", Expression::__getName(getValueType()),
                                           Expression::__getName(shexpr::VT_REAL)),
-      t);
+      getParserSymbol());
     return false;
   }
 
@@ -1400,11 +1472,23 @@ bool FunctionExpression::evaluate(Color4 &out_value)
   if (isDynamic())
     return false;
 
+  if (getValueType() == shexpr::VT_REAL)
+  {
+    real realVal = 0.0;
+    if (!evaluate(realVal))
+      return false;
+    out_value.r = realVal;
+    out_value.g = realVal;
+    out_value.b = realVal;
+    out_value.a = realVal;
+    return true;
+  }
+
   if (!canConvert(shexpr::VT_COLOR4))
   {
     ExpressionParser::getStatic().error(String(128, "cannot convert from '%s' to '%s' here", Expression::__getName(getValueType()),
                                           Expression::__getName(shexpr::VT_COLOR4)),
-      t);
+      getParserSymbol());
     return false;
   }
 
@@ -1451,15 +1535,19 @@ void FunctionExpression::dump_internal(int level, const char *tabs) const
 
 
 // assembly this expression
-bool FunctionExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code, Register &dest_reg, bool is_integer)
+bool FunctionExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr, Register &dest_reg,
+  bool is_integer)
 {
+  int argCount = getOperandCount();
+  cpp_expr.specifyNextExprElement(StcodeExpression::ElementType::FUNC, getTerminal()->text, &argCount);
+
   // assembly operands
   eastl::vector<Register> opRegs;
   opRegs.reserve(getOperandCount());
   for (int i = 0; i < getOperandCount(); i++)
   {
     opRegs.emplace_back(addReg(owner));
-    if (!getOperand(shexpr::OperandType(i))->assembly(owner, code, opRegs[i], is_integer))
+    if (!getOperand(shexpr::OperandType(i))->assembly(owner, code, cpp_expr, opRegs[i], is_integer))
       return false;
   }
 
@@ -1536,33 +1624,18 @@ bool FunctionExpression::isDynamic() const
 }
 
 
-// check convertion - if fail, report error & return false
-bool FunctionExpression::canConvert(shexpr::ValueType vt) const
+int FunctionExpression::getChannels() const
 {
-  // check by default
-  if (getValueType() == vt)
-    return true;
+  // @HACK this is also part of the inside-color-value hack
+  // see shExprParser.cpp, ExpressionParser::parseOperand, the 'if (s.func)' branch
+  if (getCurrentChannel() != -1)
+    return ComplexExpression::getChannels();
 
-  // real to color - accept only if used in multiply or div on the right side
-  if (vt == shexpr::VT_COLOR4)
-  {
-    Expression *p = getParent();
-    if (p->getType() == shexpr::E_COMPLEX)
-    {
-      ComplexExpression *cp = static_cast<ComplexExpression *>(p);
-      shexpr::BinaryOperator binOp = cp->getBinOperator(this);
-      if ((cp->getOperand(shexpr::OPER_LEFT) != this) && ((binOp == shexpr::OP_MUL) || (binOp == shexpr::OP_DIV)))
-      {
-        return true;
-      }
-    }
-  }
-
-  return false;
+  return getValueType() == shexpr::VT_COLOR4 ? 4 : 1;
 }
+
 
 // return value type
 shexpr::ValueType FunctionExpression::getValueType() const { return functional::getValueType(functional::FunctionId(func)); }
-
 // class FunctionExpression
 //

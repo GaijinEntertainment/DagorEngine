@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hmlEntity.h"
 #include "hmlPlugin.h"
 #include "hmlObjectsEditor.h"
@@ -13,28 +15,40 @@
 #include <de3_entityCollision.h>
 #include <de3_splineGenSrv.h>
 #include <de3_genObjData.h>
-#include <dllPluginCore/core.h>
+#include <de3_staticMaterialEditor.h>
+#include <EditorCore/ec_IEditorCore.h>
 #include <math/dag_math3d.h>
 #include <math/dag_rayIntersectBox.h>
 #include <math/dag_math2d.h>
 #include <math/random/dag_random.h>
 #include <util/dag_globDef.h>
 #include <EditorCore/ec_rect.h>
+#include <propPanel/commonWindow/dialogWindow.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <debug/dag_debug.h>
+#include <drv/3d/dag_info.h>
 
 #include "objectParam.h"
 
+using editorcore_extapi::dagRender;
+
+using hdpi::_pxScaled;
 
 static ObjectParam objParam;
 
 
 LandscapeEntityObject::CollidersData LandscapeEntityObject::colliders;
-static int default_place_type = ICompositObj::Props::PT_coll;
+static int default_place_type = LandscapeEntityObject::Props::PT_coll;
 
+static const int decal_material_max_count = 20;
 enum
 {
   PID_PLACE_TYPE = 100,
+  PID_PLACE_TYPE_BTN_RADIO,
+  PID_PLACE_TYPE_BTN_DROPDOWN,
+  PID_PLACE_TYPE_TABS,
+  PID_PLACE_TYPE_RADIO,
+  PID_PLACE_TYPE_DROPDOWN = PID_PLACE_TYPE_RADIO + LandscapeEntityObject::Props::PT_count + 1, /* +1 is "mixed" */
   PID_PLACE_TYPE_OVERRIDE,
 
   PID_ENTITY_COLLISION,
@@ -52,6 +66,10 @@ enum
   PID_TRACEOFFSET,
 
   PID_ENTITYNAME,
+  PID_DECAL_MATERIAL_GROUP,
+  PID_DECAL_MATERIAL_FIRST,
+  PID_DECAL_MATERIAL_LAST = PID_DECAL_MATERIAL_FIRST + decal_material_max_count,
+  PID_DECAL_MATERIAL_SAVE,
 
   PID_GENERATE_PERINST_SEED,
   PID_GENERATE_EQUAL_PERINST_SEED,
@@ -60,7 +78,37 @@ enum
   PID_GENERATE_SEED,
   PID_GENERATE_EQUAL_SEED,
   PID_SEED,
+
+  PID_SPLIT_RECURSIVE = PID_ENTITY_FILTER_FIRST + 300,
 };
+
+G_STATIC_ASSERT(LandscapeEntityObject::Props::PT_count == 7);
+static const char *place_types_full[] = {
+  "-- no --",
+  "Place pivot",
+  "Place pivot and use normal",
+  "Place 3-point (bbox)",
+  "Place foundation (bbox)",
+  "Place on water (floatable)",
+  "Place pivot with rendinst collision",
+  "-- (mixed) --",
+};
+
+void on_object_entity_name_changed(RenderableEditableObject &obj)
+{
+  static_cast<HmapLandObjectEditor *>(obj.getObjEditor())->onObjectEntityNameChanged(obj);
+}
+
+static class DefHMLEntityParams
+{
+public:
+  int placeTypeTab;
+  bool placeTypeMixed;
+  bool splitCompRecursive;
+
+  DefHMLEntityParams() : placeTypeTab(PID_PLACE_TYPE_BTN_DROPDOWN), placeTypeMixed(false), splitCompRecursive(false) {}
+
+} defaultHMLEntity;
 
 LandscapeEntityObject::LandscapeEntityObject(const char *ent_name, int rnd_seed)
 {
@@ -254,7 +302,8 @@ bool LandscapeEntityObject::isColliderEnabled(const IDagorEdCustomCollider *coll
   return false;
 }
 
-void LandscapeEntityObject::fillProps(PropPanel2 &panel, DClassID for_class_id, dag::ConstSpan<RenderableEditableObject *> objects)
+void LandscapeEntityObject::fillProps(PropPanel::ContainerPropertyControl &panel, DClassID for_class_id,
+  dag::ConstSpan<RenderableEditableObject *> objects)
 {
   bool one_type = true;
   int one_layer = -1;
@@ -285,6 +334,7 @@ void LandscapeEntityObject::fillProps(PropPanel2 &panel, DClassID for_class_id, 
     String entName(props.entityName);
     String entNotes(props.notes);
 
+    ::defaultHMLEntity.placeTypeMixed = false;
     for (int i = 0; i < objects.size(); ++i)
     {
       LandscapeEntityObject *o = RTTI_cast<LandscapeEntityObject>(objects[i]);
@@ -292,7 +342,10 @@ void LandscapeEntityObject::fillProps(PropPanel2 &panel, DClassID for_class_id, 
         continue;
 
       if (o->props.placeType != props.placeType)
+      {
         plColl = -1;
+        ::defaultHMLEntity.placeTypeMixed = true;
+      }
       if (strcmp(o->props.entityName, props.entityName) != 0)
         entName = "";
       if (o->props.notes != entNotes)
@@ -301,17 +354,33 @@ void LandscapeEntityObject::fillProps(PropPanel2 &panel, DClassID for_class_id, 
 
     panel.createEditBox(PID_ENTITY_NOTES, "Notes", entNotes);
 
-    PropertyContainerControlBase &placeGrp = *panel.createRadioGroup(PID_PLACE_TYPE, "Place on collision");
-    if (plColl < 0)
-      placeGrp.createRadio(-1, "-- (mixed) --");
-    placeGrp.createRadio(props.PT_none, "-- no --");
-    placeGrp.createRadio(props.PT_coll, "Place pivot");
-    placeGrp.createRadio(props.PT_collNorm, "Place pivot and use normal");
-    placeGrp.createRadio(props.PT_3pod, "Place 3-point (bbox)");
-    placeGrp.createRadio(props.PT_fnd, "Place foundation (bbox)");
-    placeGrp.createRadio(props.PT_flt, "Place on water (floatable)");
-    placeGrp.createRadio(props.PT_riColl, "Place pivot with rendinst collision");
-    panel.setInt(PID_PLACE_TYPE, plColl);
+    PropPanel::ContainerPropertyControl &placeContainer = *panel.createContainer(PID_PLACE_TYPE);
+    placeContainer.setHorizontalSpaceBetweenControls(hdpi::Px(0));
+    placeContainer.createStatic(0, "Place on collision:");
+    const bool placeTypeRadio = ::defaultHMLEntity.placeTypeTab == PID_PLACE_TYPE_BTN_RADIO;
+    placeContainer.createButton(PID_PLACE_TYPE_BTN_RADIO, "Radiobuttons", !placeTypeRadio);
+    placeContainer.createButton(PID_PLACE_TYPE_BTN_DROPDOWN, "Dropdown", placeTypeRadio, false);
+
+    PropPanel::ContainerPropertyControl &placeTabs = *panel.createContainer(PID_PLACE_TYPE_TABS);
+    int placeTypeValue = plColl < 0 ? Props::PT_count : plColl;
+    if (placeTypeRadio)
+    {
+      PropPanel::ContainerPropertyControl &placeGrp = *placeTabs.createRadioGroup(PID_PLACE_TYPE_RADIO, "");
+      for (int i = props.PT_none; i < props.PT_count; ++i)
+        placeGrp.createRadio(i, place_types_full[i]);
+      if (plColl < 0)
+        placeGrp.createRadio(Props::PT_count, place_types_full[Props::PT_count]);
+      placeGrp.setIntValue(placeTypeValue);
+    }
+    else
+    {
+      Tab<String> placeTypes(tmpmem);
+      placeTypes.insert(placeTypes.end(), eastl::begin(place_types_full), eastl::begin(place_types_full) + Props::PT_count);
+      if (plColl < 0)
+        placeTypes.push_back(String(place_types_full[Props::PT_count]));
+      placeTabs.createCombo(PID_PLACE_TYPE_DROPDOWN, "", placeTypes, placeTypeValue, true);
+    }
+
     panel.createCheckBox(PID_PLACE_TYPE_OVERRIDE, "Override placement type for composit", props.overridePlaceTypeForComposit);
     panel.createSeparator();
 
@@ -324,6 +393,8 @@ void LandscapeEntityObject::fillProps(PropPanel2 &panel, DClassID for_class_id, 
 
     panel.createIndent();
     panel.createButton(PID_ENTITYNAME, entName);
+
+    fillMaterialProps(panel);
 
     panel.createIndent();
     panel.createButton(PID_GENERATE_PERINST_SEED, "Generate individual per-inst-seed");
@@ -345,17 +416,11 @@ void LandscapeEntityObject::fillProps(PropPanel2 &panel, DClassID for_class_id, 
 
     panel.createIndent();
 
-    PropertyContainerControlBase *subGrp = panel.createGroup(PID_ENTITY_CASTER_GRP, "Entity casters");
+    PropPanel::ContainerPropertyControl *subGrp = panel.createGroup(PID_ENTITY_CASTER_GRP, "Entity casters");
 
     Tab<String> def_place_type_nm(tmpmem);
-    def_place_type_nm.resize(props.PT_riColl + 1);
-    def_place_type_nm[props.PT_none] = "-- no --";
-    def_place_type_nm[props.PT_coll] = "Place pivot";
-    def_place_type_nm[props.PT_collNorm] = "Place pivot and use normal";
-    def_place_type_nm[props.PT_3pod] = "Place 3-point (bbox)";
-    def_place_type_nm[props.PT_fnd] = "Place foundation (bbox)";
-    def_place_type_nm[props.PT_flt] = "Place on water (floatable)";
-    def_place_type_nm[props.PT_riColl] = "Place pivot with rendinst collision";
+    def_place_type_nm.insert(def_place_type_nm.end(), eastl::begin(place_types_full),
+      eastl::begin(place_types_full) + Props::PT_count);
     subGrp->createCombo(PID_DEF_PLACE_TYPE, "Def. place type:", def_place_type_nm, default_place_type, true);
 
     subGrp->createEditFloat(PID_TRACEOFFSET, "Tracert up offset", colliders.tracertUpOffset);
@@ -422,6 +487,53 @@ void LandscapeEntityObject::rePlaceAllEntities()
   DAGORED2->invalidateViewportCache();
 }
 
+void LandscapeEntityObject::fillMaterialProps(PropPanel::ContainerPropertyControl &panel)
+{
+  decalMaterialIndices.clear();
+  if (!entity)
+    return;
+
+  Tab<IStaticGeometryMaterialEditor::MaterialEntry> materialEntries;
+  for (int i = 0; i < DAGORED2->getPluginCount(); ++i)
+  {
+    IGenEditorPlugin *plugin = DAGORED2->getPlugin(i);
+    IStaticGeometryMaterialEditor *decalEditor = plugin->queryInterface<IStaticGeometryMaterialEditor>();
+    if (!decalEditor)
+      continue;
+    decalEditor->getMaterialsForDecalEntity(entity, materialEntries);
+  }
+
+  if (materialEntries.size())
+  {
+    PropPanel::ContainerPropertyControl &materialGroup = *panel.createGroup(PID_DECAL_MATERIAL_GROUP, "Material Colors");
+    for (int iMat = 0; iMat < materialEntries.size(); iMat++)
+    {
+      if (iMat > decal_material_max_count)
+        break;
+
+      IStaticGeometryMaterialEditor::MaterialEntry &materialEntry = materialEntries[iMat];
+      decalMaterialIndices.push_back({materialEntry.node_idx, materialEntry.mat_idx});
+
+      String colorString(128, "Color for Material %d-%d (%s)", materialEntry.node_idx, materialEntry.mat_idx,
+        materialEntry.material->name);
+      materialGroup.createColorBox(PID_DECAL_MATERIAL_FIRST + iMat, colorString.c_str(), E3DCOLOR(materialEntry.color));
+    }
+
+    materialGroup.createButton(PID_DECAL_MATERIAL_SAVE, "Save material changes");
+  }
+}
+
+void LandscapeEntityObject::rePlaceAllEntitiesOverRI(HmapLandObjectEditor &objEd)
+{
+  DAGORED2->setColliders(colliders.col, colliders.getFilter());
+  for (int i = objEd.objectCount() - 1; i >= 0; i--)
+    if (LandscapeEntityObject *o = RTTI_cast<LandscapeEntityObject>(objEd.getObject(i)))
+      if (o->props.placeType == o->props.PT_riColl)
+        o->updateEntityPosition();
+  DAGORED2->restoreEditorColliders();
+  DAGORED2->invalidateViewportCache();
+}
+
 void LandscapeEntityObject::rePlaceAllEntitiesOnCollision(HmapLandObjectEditor &objEd, bool loft_changed, bool polygeom_changed,
   bool roads_chanded, BBox3 changed_region)
 {
@@ -448,6 +560,47 @@ void LandscapeEntityObject::rePlaceAllEntitiesOnCollision(HmapLandObjectEditor &
   DAGORED2->invalidateViewportCache();
 }
 
+void LandscapeEntityObject::changeAssset(ObjectEditor &object_editor, dag::ConstSpan<RenderableEditableObject *> objects,
+  const char *initially_selected_asset_name)
+{
+  class UndoEntityNamePropsChange : public UndoPropsChange
+  {
+  public:
+    explicit UndoEntityNamePropsChange(LandscapeEntityObject *o) : UndoPropsChange(o) {}
+
+    virtual void restore(bool save_redo)
+    {
+      UndoPropsChange::restore(save_redo);
+      on_object_entity_name_changed(*getObj());
+    }
+
+    virtual void redo()
+    {
+      UndoPropsChange::redo();
+      on_object_entity_name_changed(*getObj());
+    }
+  };
+
+  const char *asset = DAEDITOR3.selectAsset(initially_selected_asset_name, "Select entity", DAEDITOR3.getGenObjAssetTypes());
+  if (!asset)
+    return;
+
+  object_editor.getUndoSystem()->begin();
+  for (int i = 0; i < objects.size(); i++)
+  {
+    LandscapeEntityObject *p = RTTI_cast<LandscapeEntityObject>(objects[i]);
+    if (p)
+    {
+      object_editor.getUndoSystem()->put(new UndoEntityNamePropsChange(p));
+      p->props.entityName = asset;
+      p->propsChanged();
+      on_object_entity_name_changed(*p);
+    }
+  }
+  object_editor.getUndoSystem()->accept("Change entity");
+  DAGORED2->repaint();
+}
+
 void LandscapeEntityObject::updateEntityPosition(bool apply_collision)
 {
   if (!entity)
@@ -469,7 +622,7 @@ void LandscapeEntityObject::updateEntityPosition(bool apply_collision)
     DAGORED2->restoreEditorColliders();
 }
 
-void LandscapeEntityObject::onPPChange(int pid, bool edit_finished, PropPanel2 &panel,
+void LandscapeEntityObject::onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
   dag::ConstSpan<RenderableEditableObject *> objects)
 {
   if (objParam.onPPChange(panel, pid, objects))
@@ -499,11 +652,17 @@ void LandscapeEntityObject::onPPChange(int pid, bool edit_finished, PropPanel2 &
     }
     DAGORED2->invalidateViewportCache();
   }
-  else if ((pid == PID_PLACE_TYPE && panel.getInt(pid) >= 0) || pid == PID_PLACE_TYPE_OVERRIDE)
+  else if (((pid == PID_PLACE_TYPE_RADIO || pid == PID_PLACE_TYPE_DROPDOWN) &&
+             (panel.getInt(pid) >= 0 && panel.getInt(pid) < Props::PT_count)) ||
+           pid == PID_PLACE_TYPE_OVERRIDE)
   {
+    bool invalidate = false;
     getObjEditor()->getUndoSystem()->begin();
-    if (pid == PID_PLACE_TYPE)
+    if (pid == PID_PLACE_TYPE_RADIO || pid == PID_PLACE_TYPE_DROPDOWN)
+    {
       CHANGE_VAL(int, props.placeType, getInt)
+      invalidate = ::defaultHMLEntity.placeTypeMixed;
+    }
     else // if (pid == PID_PLACE_TYPE_OVERRIDE)
       CHANGE_VAL(bool, props.overridePlaceTypeForComposit, getBool)
     getObjEditor()->getUndoSystem()->accept("Change props");
@@ -518,6 +677,9 @@ void LandscapeEntityObject::onPPChange(int pid, bool edit_finished, PropPanel2 &
 
     DAGORED2->restoreEditorColliders();
     DAGORED2->invalidateViewportCache();
+
+    if (invalidate)
+      getObjEditor()->invalidateObjectProps();
   }
   else if (pid == PID_DEF_PLACE_TYPE)
     default_place_type = panel.getInt(pid);
@@ -601,31 +763,40 @@ void LandscapeEntityObject::onPPChange(int pid, bool edit_finished, PropPanel2 &
     if (LandscapeEntityObject *p = RTTI_cast<LandscapeEntityObject>(objects[0]))
       p->setPerInstSeed(panel.getInt(pid));
   }
+  else if (pid >= PID_DECAL_MATERIAL_FIRST && pid <= PID_DECAL_MATERIAL_LAST)
+  {
+    int materialEntryIndex = pid - PID_DECAL_MATERIAL_FIRST;
+    for (RenderableEditableObject *obj : objects)
+    {
+      LandscapeEntityObject *p = RTTI_cast<LandscapeEntityObject>(obj);
+      const DecalMaterialIndex &decalMaterialIndex = decalMaterialIndices[materialEntryIndex];
+      E3DCOLOR color = panel.getColor(pid);
+
+      for (int i = 0; i < DAGORED2->getPluginCount(); ++i)
+      {
+        IGenEditorPlugin *plugin = DAGORED2->getPlugin(i);
+        IStaticGeometryMaterialEditor *decalEditor = plugin->queryInterface<IStaticGeometryMaterialEditor>();
+        if (!decalEditor)
+          continue;
+        decalEditor->setMaterialColorForEntity(p->entity, decalMaterialIndex.node_idx, decalMaterialIndex.material_idx, color);
+      }
+      p->propsChanged();
+    }
+  }
 
 #undef CHANGE_VAL
 }
 
-void LandscapeEntityObject::onPPBtnPressed(int pid, PropPanel2 &panel, dag::ConstSpan<RenderableEditableObject *> objects)
+void LandscapeEntityObject::onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel,
+  dag::ConstSpan<RenderableEditableObject *> objects)
 {
-  if (pid == PID_ENTITYNAME)
+  if (pid == PID_PLACE_TYPE_BTN_RADIO || pid == PID_PLACE_TYPE_BTN_DROPDOWN)
   {
-    const char *asset = DAEDITOR3.selectAsset(props.entityName, "Select entity", DAEDITOR3.getGenObjAssetTypes());
-    if (!asset)
-      return;
-
-    getObjEditor()->getUndoSystem()->begin();
-    for (int i = 0; i < objects.size(); i++)
-    {
-      LandscapeEntityObject *p = RTTI_cast<LandscapeEntityObject>(objects[i]);
-      if (p)
-      {
-        getObjEditor()->getUndoSystem()->put(new UndoPropsChange(p));
-        p->props.entityName = asset;
-        p->propsChanged();
-      }
-    }
-    getObjEditor()->getUndoSystem()->accept("Change entity");
-    DAGORED2->repaint();
+    ::defaultHMLEntity.placeTypeTab = pid;
+  }
+  else if (pid == PID_ENTITYNAME)
+  {
+    changeAssset(*objEditor, objects, props.entityName);
   }
   else if (pid == PID_GENERATE_SEED || pid == PID_GENERATE_PERINST_SEED)
   {
@@ -656,6 +827,17 @@ void LandscapeEntityObject::onPPBtnPressed(int pid, PropPanel2 &panel, dag::Cons
       panel.setInt(gen_rnd_seed ? PID_SEED : PID_PERINST_SEED, seed);
 
     DAGORED2->invalidateViewportCache();
+  }
+  else if (pid == PID_DECAL_MATERIAL_SAVE)
+  {
+    for (int i = 0; i < DAGORED2->getPluginCount(); ++i)
+    {
+      IGenEditorPlugin *plugin = DAGORED2->getPlugin(i);
+      IStaticGeometryMaterialEditor *decalEditor = plugin->queryInterface<IStaticGeometryMaterialEditor>();
+      if (!decalEditor)
+        continue;
+      decalEditor->saveStaticGeometryAssetByEntity(entity);
+    }
   }
 
   getObjEditor()->invalidateObjectProps();
@@ -796,6 +978,8 @@ void LandscapeEntityObject::load(const DataBlock &blk)
   perInstSeed = blk.getInt("entPerInstSeed", 0);
   isCollidable = blk.getBool("isCollidable", true);
   propsChanged(true); // gizmoTranformMode will be reset later in HmapLandPlugin::beforeMainLoop()
+  if (entity && props.placeType != props.PT_none && props.placeType != props.PT_riColl)
+    setWtm(_tm);
 }
 
 void LandscapeEntityObject::setRndSeed(int seed)
@@ -818,6 +1002,17 @@ void LandscapeEntityObject::setPerInstSeed(int seed)
   IRandomSeedHolder *irsh = entity->queryInterface<IRandomSeedHolder>();
   if (irsh)
     irsh->setPerInstanceSeed(perInstSeed);
+}
+
+bool LandscapeEntityObject::setName(const char *nm)
+{
+  const bool result = RenderableEditableObject::setName(nm);
+
+  HmapLandObjectEditor *editor = static_cast<HmapLandObjectEditor *>(getObjEditor());
+  if (editor)
+    editor->onRegisteredObjectNameChanged(*this);
+
+  return result;
 }
 
 void LandscapeEntityObject::setWtm(const TMatrix &wtm)
@@ -1029,28 +1224,20 @@ void LandscapeEntityObject::putMoveUndo()
     RenderableEditableObject::putMoveUndo();
 }
 
-void HmapLandObjectEditor::splitComposits()
+bool HmapLandObjectEditor::splitComposits(const PtrTab<RenderableEditableObject> &sel, PtrTab<LandscapeEntityObject> &compObj,
+  PtrTab<LandscapeEntityObject> &decompObj, DataBlock &splitSplinesBlk, PtrTab<RenderableEditableObject> &otherObj)
 {
-  Tab<RenderableEditableObject *> otherObj;
-  Tab<LandscapeEntityObject *> compObj, decompObj;
-
-  for (int i = 0; i < selection.size(); ++i)
+  for (int i = 0; i < sel.size(); ++i)
   {
-    LandscapeEntityObject *o = RTTI_cast<LandscapeEntityObject>(selection[i]);
+    LandscapeEntityObject *o = RTTI_cast<LandscapeEntityObject>(sel[i]);
     if (o && o->getEntity() && o->getEntity()->queryInterface<ICompositObj>())
       compObj.push_back(o);
     else
-      otherObj.push_back(o);
+      otherObj.push_back(sel[i]);
   }
   if (!compObj.size())
-  {
-    wingw::message_box(wingw::MBS_INFO, "Cannot split composits", "Selected %d objects do not contain any composits",
-      selection.size());
-    return;
-  }
+    return false;
 
-  DataBlock splitSplinesBlk;
-  getUndoSystem()->begin();
   for (int i = 0; i < compObj.size(); i++)
   {
     ICompositObj *co = compObj[i]->getEntity()->queryInterface<ICompositObj>();
@@ -1095,6 +1282,55 @@ void HmapLandObjectEditor::splitComposits()
         decompObj.push_back(obj);
       }
   }
+  return true;
+}
+
+void HmapLandObjectEditor::splitComposits()
+{
+  PtrTab<RenderableEditableObject> otherObj;
+  PtrTab<LandscapeEntityObject> compObj, decompObj;
+  DataBlock splitSplinesBlk;
+  if (!HmapLandObjectEditor::splitComposits(selection, compObj, decompObj, splitSplinesBlk, otherObj))
+  {
+    wingw::message_box(wingw::MBS_INFO, "Cannot split composits", "Selected %d objects do not contain any composits",
+      selection.size());
+    return;
+  }
+  otherObj.clear();
+
+  eastl::unique_ptr<PropPanel::DialogWindow> dialog(
+    DAGORED2->createDialog(hdpi::_pxScaled(280), hdpi::_pxScaled(100), "Split Composites"));
+  PropPanel::ContainerPropertyControl *panel = dialog->getPanel();
+  panel->createCheckBox(PID_SPLIT_RECURSIVE, "Recursive (split sub-components as well)", ::defaultHMLEntity.splitCompRecursive);
+  dialog->setDialogButtonText(PropPanel::DIALOG_ID_OK, "Split");
+
+  if (dialog->showDialog() == PropPanel::DIALOG_ID_CANCEL)
+    return;
+
+  const bool recursive = panel->getBool(PID_SPLIT_RECURSIVE);
+  ::defaultHMLEntity.splitCompRecursive = recursive;
+
+  if (recursive)
+  {
+    PtrTab<RenderableEditableObject> new_sel, new_objs;
+    PtrTab<LandscapeEntityObject> compObjItermediate;
+    do
+    {
+      new_sel.clear();
+      new_sel.reserve(decompObj.size());
+      for (auto &o : decompObj)
+        new_sel.push_back(o);
+      decompObj.clear();
+      compObjItermediate.clear();
+    } while (HmapLandObjectEditor::splitComposits(new_sel, compObjItermediate, decompObj, splitSplinesBlk, new_objs));
+
+    decompObj.reserve(new_objs.size());
+    for (auto &new_obj : new_objs)
+      if (LandscapeEntityObject *o = RTTI_cast<LandscapeEntityObject>(new_obj))
+        decompObj.push_back(o);
+  }
+
+  getUndoSystem()->begin();
   removeObjects((RenderableEditableObject **)compObj.data(), compObj.size(), true);
   addObjects((RenderableEditableObject **)decompObj.data(), decompObj.size(), true);
 

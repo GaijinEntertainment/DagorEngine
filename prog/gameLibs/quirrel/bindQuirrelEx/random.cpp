@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <quirrel/sqModules/sqModules.h>
 #include <math/random/dag_random.h>
 #include <dag_noise/dag_uint_noise.h>
@@ -32,7 +34,8 @@ void register_random(SqModules *module_mgr)
   Sqrat::Table exports(module_mgr->getVM());
 
   ///@module dagor.random
-  exports.Func("rnd", script_rnd)
+  exports //
+    .Func("rnd", script_rnd)
     .Func("frnd", script_frnd)
     .Func("srnd", script_srnd)
     .Func("rnd_float", script_rnd_float)
@@ -46,7 +49,8 @@ void register_random(SqModules *module_mgr)
     .Func("uint32_hash", uint32_hash)
     .Func("uint_noise1D", uint_noise1D)
     .Func("uint_noise2D", uint_noise2D)
-    .Func("uint_noise3D", uint_noise3D);
+    .Func("uint_noise3D", uint_noise3D)
+    /**/;
 
   module_mgr->addNativeModule("dagor.random", exports);
 }

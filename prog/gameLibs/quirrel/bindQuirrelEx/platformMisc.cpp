@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <sqModules/sqModules.h>
@@ -90,16 +92,28 @@ static const char *sq_get_console_model_revision(int consoleModelType)
   return get_console_model_revision((ConsoleModel)consoleModelType);
 }
 
+static bool is_gdk_used()
+{
+#if _TARGET_GDK
+  return true;
+#else
+  return false;
+#endif
+}
+
 static Sqrat::Table make_platform_exports(HSQUIRRELVM vm)
 {
   Sqrat::Table tbl(vm);
   /// @module platform
-  tbl.SquirrelFunc("get_locale_lang", &sq_marshal_locale_attr<get_locale_lang>, 1, ".")
+  tbl //
+    .SquirrelFunc("get_locale_lang", &sq_marshal_locale_attr<get_locale_lang>, 1, ".")
     .SquirrelFunc("get_locale_country", &sq_marshal_locale_attr<get_locale_country>, 1, ".")
     .Func("get_platform_string_id", get_platform_string_id)
     .Func("get_console_model", sq_get_console_model)
     .Func("get_console_model_revision", sq_get_console_model_revision)
-    .Func("get_default_lang", get_default_lang);
+    .Func("get_default_lang", get_default_lang)
+    .Func("is_gdk_used", is_gdk_used)
+    /**/;
 #define SET_CONST(n) tbl.SetValue(#n, SQInteger((int)ConsoleModel::n));
   /// @const UNKNOWN
   SET_CONST(UNKNOWN)
@@ -119,6 +133,8 @@ static Sqrat::Table make_platform_exports(HSQUIRRELVM vm)
   SET_CONST(XBOX_ANACONDA)
   /// @const PS5
   SET_CONST(PS5)
+  /// @const PS5_PRO
+  SET_CONST(PS5_PRO)
   /// @const NINTENDO_SWITCH
   SET_CONST(NINTENDO_SWITCH)
 #undef SET_CONST

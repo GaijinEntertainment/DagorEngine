@@ -1,4 +1,8 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_driver.h>
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/staticGeom/staticGeometryContainer.h>
 #include <libTools/staticGeom/matFlags.h>
@@ -37,6 +41,9 @@
 #include <render/dag_cur_view.h>
 
 #include <libTools/dagFileRW/textureNameResolver.h>
+
+#include <EditorCore/ec_interface.h>
+#include <EditorCore/ec_interface_ex.h>
 
 #define ONE_LDR_STEP ((real)(1.0 / 255.0))
 
@@ -504,16 +511,9 @@ bool GeomObject::isNodeInVisRange(int idx) const
     {
       if (node->flags & StaticGeometryNode::FLG_AUTOMATIC_VISRANGE || node->visRange == -1.0)
       {
-        if (::visibility_finder)
-        {
-          VisDeterminer vd(tm, *node);
-          return ::visibility_finder->isVisible(vd.getBoundingBox(), vd.getBoundingSphere(), -1);
-        }
-        else
-        {
-          ::debug("[GeomObject warning] VisibilityFinder class pointer is NULL");
-          return false;
-        }
+        VisDeterminer vd(tm, *node);
+        return EDITORCORE->queryEditorInterface<IVisibilityFinderProvider>()->getVisibilityFinder().isVisible(vd.getBoundingBox(),
+          vd.getBoundingSphere(), -1);
       }
       else
       {
@@ -877,7 +877,7 @@ void GeomObject::recompileNode(int idx)
     if (!gmPtr)
       return;
     StaticGeometryMaterial &gm = *gmPtr;
-    if (strstr(gm.className.str(), "land_mesh"))
+    if (strstr(gm.className.str(), "land_mesh") && !strstr(gm.className.str(), "land_mesh_clipmap"))
     {
       if (!strstr(gm.className.str(), "decal") && strstr(gm.scriptText.str(), "render_landmesh_combined"))
       {
@@ -1301,12 +1301,15 @@ void GeomObject::RenderObject::render()
   if (filter_class_name)
   {
     for (int mi = 0; mi < lods[curLod].mesh->getAllElems().size(); ++mi)
-      if (strstr(lods[curLod].mesh->getAllElems()[mi].mat->getShaderClassName(), filter_class_name))
+    {
+      const char *className = lods[curLod].mesh->getAllElems()[mi].mat->getShaderClassName();
+      if (strstr(className, filter_class_name) && !strstr(className, "land_mesh_clipmap"))
       {
         const ShaderMesh::RElem &re = lods[curLod].mesh->getAllElems()[mi];
         re.vertexData->setToDriver();
         re.e->render(re.sv, re.numv, re.si, re.numf);
       }
+    }
   }
   else
   {

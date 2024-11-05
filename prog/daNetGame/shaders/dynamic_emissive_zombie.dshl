@@ -1,0 +1,67 @@
+include "dynamic_opaque_inc.dshl"
+include "gbuffer.dshl"
+include "normaldetail.dshl"
+include "emissive.dshl"
+
+shader dynamic_emissive_zombie
+{
+  ENABLE_ASSERT(ps)
+  SUPPORT_MULTIDRAW(false)
+  DYNAMIC_BLOCK()
+  EMISSIVE_INIT_WITH_DYNAMIC_PARAMS()
+  NO_DEFORM_HMAP()
+  SETUP_CHARACTER_MICRODETAIL()
+  USE_CHARACTER_MICRODETAIL()
+  USE_MICRODETAIL_BASED_POROSITY(ps)
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    hlsl {
+      #define MOTION_VECTORS_ENABLED
+    }
+  }
+
+  if (num_bones == four_bones)
+  {
+    WOUNDS_AND_BURNING_INIT()
+    DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+    WOUNDS_AND_BURNING_USE(get_diffuse_tex().smp)
+    hlsl(vs) {
+      void vs_post_function(VsInput input, inout VsOutput output) {
+    ##if (num_bones == four_bones)
+      init_burning_and_wounds(input, output);
+    ##endif
+      }
+    }
+
+    hlsl(ps) {
+      #define APPLY_WOUNDS 1
+    }
+
+    DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
+  }
+  else
+  {
+    DYNAMIC_SIMPLE_VS_NOATEST()
+  }
+
+//---------------------------------------------------
+// PS stuff.
+//---------------------------------------------------
+
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    compile("ps_null", "null_ps");
+  }
+  else
+  {
+    hlsl(ps) {
+      #define IS_DYNAMIC 1
+    }
+    USE_PROJECTIVE_WOUNDS()
+    EMISSIVE_PS()
+  }
+}

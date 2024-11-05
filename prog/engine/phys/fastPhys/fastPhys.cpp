@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <phys/dag_fastPhys.h>
 #include <math/dag_geomTree.h>
 #include <ioSys/dag_genIo.h>
@@ -1149,7 +1151,7 @@ public:
     if (nodeParentWtm)
       targetDir = v_norm3(v_mat44_mul_vec3v(*nodeParentWtm, targetDir));
 
-    vec3f torque = v_mul(v_cross3(targetDir, dir), v_splat4(&springK));
+    vec3f torque = v_mul(v_cross3(targetDir, dir), v_splats(springK));
     v_st(&acc, v_cross3(torque, dir));
     pt1.acc += acc;
     pt2.acc -= acc;
@@ -1286,7 +1288,7 @@ FastPhysAction *FastPhysSystem::loadAction(IGenLoad &cb)
     case FastPhys::AID_LOOK_AT_BONE_CTRL: return new FastPhysLookAtBoneCtrlAction(cb);
   }
 
-  // debug_ctx("unknown action %d", id);
+  // DEBUG_CTX("unknown action %d", id);
   DAGOR_THROW(IGenLoad::LoadException("invalid action", cb.tell()));
   return NULL;
 }

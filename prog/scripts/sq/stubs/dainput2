@@ -10,6 +10,11 @@ return {
   get_long_press_time = @() 1
   get_group_tag_str_for_action = @(_action) null
   get_action_bindings_text = @(_id) ["", "", "", ""]
+  get_action_type = @(_action_handle) null
+  get_digital_action_binding = @(_action_handle, _column) null
+  get_analog_axis_action_binding = @(_action_handle, _column) null
+  get_analog_stick_action_binding = @(_action_handle, _column) null
+  is_action_stateful = @(_action_handle) false
   sq_format_ctrl_name = function(...) {return null}
   format_ctrl_name = function(...) {return null}
   BTN_pressed = 0
@@ -38,5 +43,36 @@ return {
   set_actions_binding_column_active = @(column, active) assert(type(column)=="integer" && type(active)=="bool")
   get_actions_binding_column_active = @(column) assert(type(column)=="integer")
   set_analog_stick_action_smooth_value = @(_action, _aim_smooth_amount) null
+  load_user_config = @(_blk) false
   save_user_config = @(_cfg, _save_all_bindings_if_any_changed) null
+  reset_user_config_to_preset = @(_name, _move = false) null
+  is_action_internal = @(...) true
+  get_action_name = @(_action) ""
+  start_recording_bindings = @(_a) null
+  start_recording_bindings_for_single_button = @() null
+  get_actions_binding_columns = @() 1
+  get_action_binding = @(_a, _column, _binding) null
+  set_action_binding = @(_a, _column, _binding) null
+  check_bindings_conflicts = @(_a, _binding) null
+  is_recording_complete = @() true
+  finish_recording_bindings = @(_blk) false
+  send_action_event = @(_a) null
+  enable_joystick_gyroscope = @(_e) null
+  get_overall_button_clicks_count = @(_) 0
+  SingleButtonId = class {}
+  TYPEGRP__MASK = 0x3 << 14
+  TYPEGRP_DIGITAL = 0 << 14
+  TYPE_BUTTON = (0 << 14) + 1
+  TYPEGRP_AXIS = 1 << 14
+  TYPE_TRIGGER = (1 << 14) + 1
+  TYPE_STEERWHEEL = (1 << 14) + 2
+  TYPEGRP_STICK = 2 << 14
+  TYPE_SYSMOUSE = (2 << 14) + 1
+  TYPE_ABSMOUSE = (2 << 14) + 2
+  TYPE_STICK = (2 << 14) + 3
+  TYPE_STICK_DELTA = (2 << 14) + 4
+  DEV_USED_mouse = 1
+  DEV_USED_kbd = 2
+  DEV_USED_gamepad = 4
+  DEV_USED_touch = 8
 }

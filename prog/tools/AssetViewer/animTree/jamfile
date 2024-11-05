@@ -13,6 +13,26 @@ AddIncludes =
 Sources =
   main.cpp
   animTree.cpp
+  animTreeUtils.cpp
+  animTreeAnimationPlayer.cpp
+  animStates/animStatesTreeEventHandler.cpp
+  controllers/ctrlTreeEventHandler.cpp
+  controllers/ctrlChildsDialog.cpp
+  controllers/ctrlType.cpp
+  controllers/moveNode.cpp
+  controllers/rotateNode.cpp
+  controllers/paramSwitch.cpp
+  controllers/randomSwitch.cpp
+  controllers/hub.cpp
+  controllers/linearPoly.cpp
+  controllers/rotateAroundNode.cpp
+  blendNodes/blendNodeType.cpp
+  blendNodes/single.cpp
+  blendNodes/continuous.cpp
+  blendNodes/still.cpp
+  blendNodes/parametric.cpp
+  blendNodes/blendNodeTreeEventHandler.cpp
+  nodeMasks/nodeMaskTreeEventHandler.cpp
 ;
 
 

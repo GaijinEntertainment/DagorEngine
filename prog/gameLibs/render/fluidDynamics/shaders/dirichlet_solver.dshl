@@ -3,8 +3,9 @@ include "differential_utils.dshl"
 
 texture cfd_initial_potential_tex;
 texture cfd_potential_tex;
-texture solid_boundaries_tex;
+texture cfd_solid_boundaries_tex;
 int4 cfd_tex_size;
+int4 cfd_calc_offset;
 
 float cfd_simulation_dt = 0;
 float cfd_simulation_dx = 0;
@@ -39,6 +40,56 @@ shader dirichlet_initial_conditions
   compile("cs_5_0", "cs_main")
 }
 
+int4 cfd_toroidal_offset = 0;
+shader dirichlet_initial_conditions_toroidal
+{
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    initial_potential_tex@smp3d = cfd_initial_potential_tex;
+    potential_tex@uav = cfd_potential_tex hlsl {
+      RWTexture3D<float2> potential_tex@uav;
+    };
+    tex_size@i3 = (cfd_tex_size.x, cfd_tex_size.y, cfd_tex_size.z, 0);
+    toroidal_offset@i2 = (cfd_toroidal_offset.x, cfd_toroidal_offset.y);
+  }
+
+  hlsl(cs) {
+    bool check_tc(uint3 tc)
+    {
+      return tc.x >= 0 && tc.x < tex_size.x && tc.y >= 0 && tc.y < tex_size.y && tc.z >= 0 && tc.z < tex_size.z;
+    }
+
+    [numthreads(8, 8, 1)]
+    void cs_main(uint3 tid : SV_DispatchThreadID)
+    {
+      if (tid.x >= tex_size.x || tid.y >= tex_size.y || tid.z >= tex_size.z)
+        return;
+
+      float2 result = 0;
+      uint3 oldCoord = tid + uint3(toroidal_offset, 0);
+      if (!check_tc(oldCoord))
+      {
+        result.x = (tex_size.x - tid.x - 1) / float(tex_size.x);
+        result.y = (tex_size.y - tid.y - 1) / float(tex_size.y);
+      }
+      else // Remap old potential distribution to new texture coordinates
+      {
+        result = tex3Dlod(initial_potential_tex, float4(float3(oldCoord + 0.5) / float3(tex_size), 0)).xy;
+        float2 potentialCorrection = 0;
+        if (toroidal_offset.x != 0)
+          potentialCorrection.x = toroidal_offset.x / float(tex_size.x);
+        if (toroidal_offset.y != 0)
+          potentialCorrection.y = toroidal_offset.y / float(tex_size.y);
+        result += potentialCorrection;
+      }
+
+      potential_tex[tid] = result;
+    }
+  }
+  compile("cs_5_0", "cs_main")
+}
+
 shader dirichlet_initial_conditions_from_tex
 {
   ENABLE_ASSERT(cs)
@@ -64,6 +115,9 @@ shader dirichlet_initial_conditions_from_tex
   compile("cs_5_0", "cs_main")
 }
 
+int dirichlet_partial_solve = 0;
+interval dirichlet_partial_solve: off<1, on;
+
 shader dirichlet_solver
 {
   ENABLE_ASSERT(cs)
@@ -75,7 +129,8 @@ shader dirichlet_solver
     h@f1 = (cfd_simulation_dx, 0, 0, 0);
     push_val@f1 = (cfd_solver_push_val, 0, 0, 0);
 
-    solid_boundaries@smp3d = solid_boundaries_tex;
+    solid_boundaries@smp3d = cfd_solid_boundaries_tex;
+    calc_offset@i2 = (cfd_calc_offset.x, cfd_calc_offset.y);
   }
 
   hlsl(cs) {
@@ -90,6 +145,10 @@ shader dirichlet_solver
     {
       if (tid.x >= tex_size.x || tid.y >= tex_size.y || tid.z >= tex_size.z)
         return;
+
+      ##if dirichlet_partial_solve == on
+        tid += uint3(calc_offset, 0);
+      ##endif
 
       float2 nextPotential = 0;
 

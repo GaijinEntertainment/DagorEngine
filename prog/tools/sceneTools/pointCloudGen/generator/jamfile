@@ -1,0 +1,44 @@
+KernelLinkage = dynamic ;
+PlatformArch_windows ?= x86_64 ;
+UseD3DMulti = yes ;
+
+Root ?= ../../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/tools/sceneTools/pointCloudGen/generator ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/pointCloudGen/pointCloudGen.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/$(Location)
+;
+
+Sources =
+  pointCloudGen.cpp
+  pointCloudDagExporter.cpp
+  sampler.cpp
+  spatialGrid.cpp
+;
+
+UseProgLibs +=
+  gameLibs/rendInst
+  gameLibs/rendInst/riFx/stub
+  gameLibs/landMesh
+  gameLibs/daECS/core
+  gameLibs/ecs/gameres
+  gameLibs/render
+  gameLibs/gamePhys/phys
+  gameLibs/gamePhys/collision/customRendinstTrace
+  gameLibs/gamePhys/collision/rendinst/stub
+  gameLibs/gamePhys/collision/collision-common
+
+  tools/libTools/assetMgr
+  tools/libTools/dagFileRW
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -10,7 +9,7 @@
 #include <rendInst/constants.h>
 #include <rendInst/riExtraRenderer.h>
 
-#include <3d/dag_drv3d_buffers.h>
+#include <drv/3d/dag_buffers.h>
 #include <3d/dag_texStreamingContext.h>
 #include <shaders/dag_shaders.h>
 #include <generic/dag_span.h>
@@ -38,7 +37,8 @@ void renderRIGenExtraFromBuffer(Sbuffer *buffer, dag::ConstSpan<IPoint2> offsets
   ShaderElement *shader_override = nullptr, uint32_t instance_multiply = 1, bool gpu_instancing = false,
   Sbuffer *indirect_buffer = nullptr, Sbuffer *ofs_buffer = nullptr);
 
-void renderSortedTransparentRiExtraInstances(const RiGenVisibility &v, const TexStreamingContext &tex_ctx);
+void renderSortedTransparentRiExtraInstances(const RiGenVisibility &v, const TexStreamingContext &tex_ctx,
+  bool draw_partitioned_elems = false);
 
 void collectPixelsHistogramRIGenExtra(const RiGenVisibility *main_visibility, vec4f camera_fov, float histogram_scale,
   eastl::vector<eastl::vector_map<eastl::string_view, int>> &histogram);

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "timelines.h"
 
 namespace drv3d_vulkan

@@ -1,14 +1,15 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <GuillotineBinPack.h>
 #include <SkylineBinPack.h>
 #include <EASTL/hash_map.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_query.h>
 #include <3d/dag_textureIDHolder.h>
 #include <math/integer/dag_IPoint2.h>
 #include <generic/dag_tab.h>
@@ -82,11 +83,16 @@ public:
 
       if (tex_name)
       {
-        tex.set(d3d::create_tex(NULL, texSz.x, texSz.y, tex_fmt, 1, tex_name), String(0, "$%s", tex_name));
-        if (tex.getTex2D())
-          tex.getTex2D()->texaddr(TEXADDR_CLAMP);
+        tex.first.set(d3d::create_tex(NULL, texSz.x, texSz.y, tex_fmt, 1, tex_name), String(0, "$%s", tex_name));
+        if (tex.first.getTex2D())
+        {
+          tex.first.getTex2D()->disableSampler();
+          d3d::SamplerInfo smpInfo;
+          smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+          tex.second = d3d::request_sampler(smpInfo);
+        }
         if (tex_fmt & TEXCF_RTARGET)
-          d3d::resource_barrier({tex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+          d3d::resource_barrier({tex.first.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
       }
     }
   }
@@ -94,7 +100,8 @@ public:
   {
     if (isInited())
     {
-      tex.close();
+      tex.first.close();
+      tex.second = d3d::INVALID_SAMPLER_HANDLE;
       hash2idx.clear();
       clear_and_shrink(itemData);
       clear_and_shrink(itemUu);
@@ -102,7 +109,7 @@ public:
     }
   }
 
-  bool isInited() { return tex.getId() != BAD_TEXTUREID; }
+  bool isInited() { return tex.first.getId() != BAD_TEXTUREID; }
   const IPoint2 &getSz() const { return texSz; }
   int getMargin() const { return margin; }
   int getMarginLtOfs() const { return marginLtOfs; }
@@ -204,7 +211,7 @@ public:
     if (!itemData[i].valid())
       return;
     if (clear_discarded_cb)
-      clear_discarded_cb(copy_left_top_margin_cb_arg, tex.getTex2D(), itemData[i], margin);
+      clear_discarded_cb(copy_left_top_margin_cb_arg, tex.first.getTex2D(), itemData[i], margin);
     r_old.x = itemData[i].x0 - marginLtOfs;
     r_old.y = itemData[i].y0 - marginLtOfs;
     r_old.width = itemData[i].allocW + margin;
@@ -266,7 +273,7 @@ public:
   }
 
 public:
-  TextureIDHolder tex;
+  eastl::pair<TextureIDHolder, d3d::SamplerHandle> tex;
   void (*copy_left_top_margin_cb)(void *cb_arg, Texture *tex, const ItemData &d, int m) = NULL;
   void (*clear_discarded_cb)(void *cb_arg, Texture *tex, const ItemData &d, int m) = NULL;
   void *copy_left_top_margin_cb_arg = NULL;
@@ -304,14 +311,14 @@ protected:
         used_area += (itemData[i].w + margin) * (itemData[i].h + margin), rect_num++;
     if (used_area > texSz.x * texSz.y * 9 / 10)
     {
-      logwarn("%s: %d items will use %d%%, rearrange is meaningless", get_managed_texture_name(tex.getId()), rect_num,
+      logwarn("%s: %d items will use %d%%, rearrange is meaningless", get_managed_texture_name(tex.first.getId()), rect_num,
         used_area * 100 / (texSz.x * texSz.y));
       return;
     }
 
     TextureInfo ti;
-    Texture *t = tex.getTex2D();
-    const char *name = get_managed_texture_name(tex.getId());
+    Texture *t = tex.first.getTex2D();
+    const char *name = get_managed_texture_name(tex.first.getId());
     if (!t->getinfo(ti))
       return;
     Texture *tmp_tex = d3d::create_tex(NULL, texSz.x, texSz.y, ti.cflg, 1, name);

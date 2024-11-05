@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "option_parser.h"
 
 #include <regex>
@@ -25,7 +27,7 @@ static eastl::vector<eastl::string> parseVector(const eastl::string &str)
 
 void print_impostor_options()
 {
-  printf("Usage: %s [options...] <path_to_app_blk>", __argv[0]);
+  printf("Usage: %s [options...] <path_to_app_blk>", dgs_argv[0]);
   printf("\nOptions:");
   printf("\n  Argument format: -<option_name>:<value>");
   printf("\n  Flag format:      -<flag_name>");
@@ -47,6 +49,7 @@ void print_impostor_options()
          "should be created/replaced");
   printf("\n  -quiet      do not show message boxes on errors");
   printf("\n  -dry    Run baker but only prints list of what assets and why need baking, ");
+  printf("\n  -force_rebake  Rebake assets even if they weren't change");
 }
 
 ImpostorOptions parse_impostor_options()
@@ -56,9 +59,9 @@ ImpostorOptions parse_impostor_options()
   std::smatch m;
   ImpostorOptions ret;
   unsigned int argInd = 0;
-  for (int i = 1; i < __argc; ++i)
+  for (int i = 1; i < dgs_argc; ++i)
   {
-    std::string str{__argv[i]};
+    std::string str{dgs_argv[i]};
     if (std::regex_match(str, m, optionReg))
     {
       const eastl::string key = m[1].str().c_str();
@@ -69,7 +72,7 @@ ImpostorOptions parse_impostor_options()
           ret.classic_dbg = true;
         else if (value != "default")
         {
-          debug_ctx("No such debug option: %s", value.c_str());
+          DEBUG_CTX("No such debug option: %s", value.c_str());
           ret.valid = false;
         }
       }
@@ -78,7 +81,7 @@ ImpostorOptions parse_impostor_options()
         ret.assetsToBuild = parseVector(value);
         if (ret.assetsToBuild.size() == 0)
         {
-          debug_ctx("No assets given in %s", key.c_str());
+          DEBUG_CTX("No assets given in %s", key.c_str());
           ret.valid = false;
         }
       }
@@ -87,7 +90,7 @@ ImpostorOptions parse_impostor_options()
         ret.packsToBuild = parseVector(value);
         if (ret.packsToBuild.size() == 0)
         {
-          debug_ctx("No packs given in %s", key.c_str());
+          DEBUG_CTX("No packs given in %s", key.c_str());
           ret.valid = false;
         }
       }
@@ -103,7 +106,7 @@ ImpostorOptions parse_impostor_options()
           ret.clean = false;
         else
         {
-          debug_ctx("Invalid option for '': '%s'", key.c_str(), value.c_str());
+          DEBUG_CTX("Invalid option for '': '%s'", key.c_str(), value.c_str());
           ret.valid = false;
         }
       }
@@ -115,7 +118,7 @@ ImpostorOptions parse_impostor_options()
           ret.skipGen = false;
         else
         {
-          debug_ctx("Invalid option for '': '%s'", key.c_str(), value.c_str());
+          DEBUG_CTX("Invalid option for '': '%s'", key.c_str(), value.c_str());
           ret.valid = false;
         }
       }
@@ -133,13 +136,13 @@ ImpostorOptions parse_impostor_options()
           ret.folderBlkGenMode = ImpostorOptions::FolderBlkGenMode::REPLACE;
         else
         {
-          debug_ctx("Invalid option for '': '%s'", key.c_str(), value.c_str());
+          DEBUG_CTX("Invalid option for '': '%s'", key.c_str(), value.c_str());
           ret.valid = false;
         }
       }
       else
       {
-        debug_ctx("Unhandled option: %s", key.c_str());
+        DEBUG_CTX("Unhandled option: %s", key.c_str());
       }
     }
     else if (std::regex_match(str, m, flagReg))
@@ -149,9 +152,11 @@ ImpostorOptions parse_impostor_options()
         dgs_execute_quiet = true;
       else if (flag == "dry")
         ret.dryMode = true;
+      else if (flag == "force_rebake")
+        ret.forceRebake = true;
       else
       {
-        debug_ctx("Unknown flag: -%s", flag.c_str());
+        DEBUG_CTX("Unknown flag: -%s", flag.c_str());
       }
     }
     else
@@ -159,7 +164,7 @@ ImpostorOptions parse_impostor_options()
       switch (argInd++)
       {
         case 0: ret.appBlk = str.c_str(); break;
-        default: debug_ctx("Too many non-option arguments: %s", str.c_str()); ret.valid = false;
+        default: DEBUG_CTX("Too many non-option arguments: %s", str.c_str()); ret.valid = false;
       }
     }
   }

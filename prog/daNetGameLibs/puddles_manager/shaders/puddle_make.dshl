@@ -1,0 +1,340 @@
+include "shader_global.dshl"
+include "heightmap_common.dshl"
+include "puddles.dshl"
+include "water_heightmap.dshl"
+
+
+
+float puddle_deep_noise_size = 361.31;
+float puddle_deep_hmap_reduce = 0.01;
+float puddle_deep_noise_reduce = 0.04;
+float puddle_deep_min_height = 0.01;
+float puddle_deep_max_depth = 0.2;
+
+float puddle_flat_noise_size = 181.13;
+float puddle_flat_noise_normal_effect = 0.02;
+float puddle_flat_noise_height_reduce = 0.22;
+
+float puddle_flat_hmap_reduce = 0.04;
+float puddle_flat_normal_hardness = 100;
+float puddle_flat_normal_falloff = 0.97;
+
+float4 puddle_toroidal_view;
+buffer removed_puddles_buf;
+
+texture noise_64_tex;
+
+
+shader make_puddles
+{
+  if (in_editor_assume == yes)
+  {
+    dont_render;
+  }
+  cull_mode=none;
+  z_write=false;
+  z_test=false;
+
+
+  POSTFX_VS_TEXCOORD(0, tc)
+
+  INIT_WORLD_HEIGHTMAP_PS()
+  USE_HEIGHTMAP_COMMON_PS()
+  INIT_WATER_HEIGHTMAP(ps)
+  hlsl(ps)
+  {
+    #define water_heightmap_pages_samplerstate tex_hmap_low_samplerstate
+  }
+  USE_WATER_HEIGHTMAP(ps)
+  USE_PUDDLE_TEXTURE_ENCODER(ps)
+
+  (ps) {
+    puddle_texels_to_world@f4 = world_to_puddles_tex_ofs;
+    puddle_noise_params@f4 = (1./(puddle_flat_noise_size+0.013), 1/(puddle_deep_noise_size+0.011), -puddle_flat_noise_height_reduce, -puddle_flat_normal_hardness*puddle_flat_noise_normal_effect);
+    flat_puddle_params@f4 = (-puddle_flat_hmap_reduce, 0, puddle_flat_normal_hardness, -puddle_flat_normal_hardness*puddle_flat_normal_falloff);
+    deep_puddle_params@f4 = (-puddle_deep_hmap_reduce, puddle_deep_min_height, puddle_deep_max_depth, -puddle_deep_noise_reduce);
+    noise_64_tex@smp2d = noise_64_tex;
+  }
+
+  hlsl(ps) {
+    #define flat_puddle_noise_size (puddle_noise_params.x)
+    #define deep_puddle_noise_size (puddle_noise_params.y)
+    #define flat_puddle_noise_height_reduce (puddle_noise_params.z)
+    #define flat_puddle_noise_normal_effect (puddle_noise_params.w)
+    #define flat_puddle_normal_hardness (flat_puddle_params.zw)
+    #define flat_puddle_reduce (flat_puddle_params.x)
+
+
+    #define deep_puddle_noise_height_reduce (deep_puddle_params.w)
+    #define deep_puddle_reduce (deep_puddle_params.x)
+    #define deep_puddle_min_height (deep_puddle_params.y)
+    #define deep_puddle_max_depth (deep_puddle_params.z)
+
+    float getPuddleHeightFrom(float ht[5][5], int2 ofs)
+    {
+      float bHt = ht[ofs.y][ofs.x];
+      float mnHt = 10000;
+      UNROLL
+      for (int y = -1; y <= 1; ++y)
+      {
+        UNROLL
+        for (int x = -1; x <= 1; ++x)
+        {
+          if (x != 0 || y != 0)
+          {
+            float cHt = ht[ofs.y+y][ofs.x+x];
+            mnHt = min(cHt, mnHt);
+          }
+        }
+      }
+      float baseHt = decode_height(bHt), minHt = decode_height(mnHt);
+      FLATTEN
+      if (minHt > baseHt + deep_puddle_min_height)
+        return baseHt + min(minHt-baseHt, deep_puddle_max_depth);
+      return -1000;
+    }
+    float getPuddleHeight3(float2 tc, float2 texelSizeInTc, float bht, float lod, float4 deepNoise)
+    {
+      float ht[5][5];
+      UNROLL
+      for (int y = -2; y <= 2; ++y)
+      {
+        UNROLL
+        for (int x = -2; x <= 2; ++x)
+        {
+          FLATTEN
+          if (y != 0 || x != 0)
+            ht[y+2][x+2] = tex2Dlod(tex_hmap_low, float4(tc+float2(x,y)*texelSizeInTc, 0, lod)).x;
+        }
+      }
+
+      ht[2][2] = bht;
+      //baseHt = decode_height(ht[2][2]);
+      float cPuddleHt = getPuddleHeightFrom(ht, int2(2,2));
+      BRANCH
+      if (cPuddleHt > 0)
+        return cPuddleHt;
+
+      float bPuddle = 1000000000;
+
+      UNROLL
+      for (int j = 1; j <= 3; ++j)
+      {
+        UNROLL
+        for (int i = 1; i <= 3; ++i)
+        {
+          FLATTEN
+          if (i != 2 || j != 2)
+          {
+            float nPuddle = getPuddleHeightFrom(ht, int2(i,j));
+            if (nPuddle > 0)
+              bPuddle = min(nPuddle, bPuddle);
+          }
+        }
+      }
+      return bPuddle < 1000000000 ? bPuddle : -10000;
+    }
+
+    float getFlatPuddleHt(float2 tc, float lod, out float texHeight, out float heightMeters, float4 flatNoise)
+    {
+      texHeight = tex2Dlod(tex_hmap_low, float4(tc,0, lod)).x;
+      heightMeters = decode_height(texHeight);
+      float3 hmapNormal = getNormalLod(tc, lod);
+      float underHtWater = lerp(heightMeters - 2, heightMeters - 0.5, hmapNormal.y);
+
+      //const float minNormY = min(hmapNormal.y, getNormalLod(input.tc, 1).y);
+      const float minNormY = hmapNormal.y;
+      float normalEffect = saturate(minNormY*flat_puddle_normal_hardness.x + flat_puddle_normal_hardness.y+flatNoise.g*flat_puddle_noise_normal_effect);//+puddle_noise_normal_effect*noiseEffect.z
+      return lerp(underHtWater, heightMeters + flat_puddle_reduce + flatNoise.r*flat_puddle_noise_height_reduce, normalEffect);
+    }
+    float getAbsPuddleHeight(float2 inputTc, out float bHt, out float baseHt, float lod, float4 flatNoise, float4 deepNoise)
+    {
+      //lod = 2;
+      //float2 dim;
+      //tex_hmap_low.GetDimensions(dim.x, dim.y);
+      //dim /= exp2(lod);
+      float flatPuddleHt = getFlatPuddleHt(inputTc, lod, bHt, baseHt, flatNoise);
+
+
+      float pudHt = getPuddleHeight3(inputTc, puddle_texels_to_world.w*world_to_hmap_low.xy, bHt, lod, deepNoise);
+      FLATTEN
+      if (pudHt>0)
+        return max(pudHt + deep_puddle_reduce + deepNoise.r*deep_puddle_noise_height_reduce, flatPuddleHt);
+
+      return flatPuddleHt;
+    }
+    float postfx_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      float4 pos = GET_SCREEN_POS(input.pos);
+      float baseHt, bHt;
+      float2 worldPosXZ = puddle_texels_to_world.w*pos.xy + puddle_texels_to_world.xy;//
+      float4 flatNoise = tex2D(noise_64_tex, worldPosXZ*flat_puddle_noise_size);
+      float4 deepNoise = tex2D(noise_64_tex, worldPosXZ*deep_puddle_noise_size);
+      float2 htTc = calcTcLow(worldPosXZ);
+      float waterHeight = 0.0;
+      get_water_height(worldPosXZ, waterHeight);
+      //htTc = input.tc;
+      float absPuddleHt = getAbsPuddleHeight(htTc, bHt, baseHt, puddle_texels_to_world.z, flatNoise, deepNoise);
+      if (waterHeight >= absPuddleHt)
+        return ENCODED_NO_PUDDLE_VALUE;
+      return encodePuddleHeight(baseHt, absPuddleHt);
+    }
+  }
+
+  compile("target_ps", "postfx_ps");
+}
+
+shader puddle_decal
+{
+  cull_mode = none;
+  INIT_WORLD_HEIGHTMAP_PS()
+  USE_HEIGHTMAP_COMMON_PS()
+  USE_PUDDLE_TEXTURE_ENCODER(ps)
+  z_test = false;
+  z_write = false;
+
+  blend_src = 1; blend_dst = 1;//max blend!
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float puddleHeight  : TEXCOORD0;
+      float3 worldPos : TEXCOORD1;
+    };
+  }
+  (ps) {
+    puddle_texels_to_world@f4 = world_to_puddles_tex_ofs;
+  }
+  hlsl(ps) {
+    float puddle_decal_ps(VsOutput input) : SV_Target
+    {
+      float2 tc = calcTcLow(input.worldPos.xz);
+      float texHeight = tex2Dlod(tex_hmap_low, float4(tc,0, puddle_texels_to_world.z)).x;
+      float heightMeters = decode_height(texHeight);
+      return encodePuddleHeight(heightMeters, input.puddleHeight);
+    }
+  }
+
+
+  channel float3 pos=pos;
+
+  (vs) {
+    globtm@f44 = globtm;
+    heightmap_scale@f2 = heightmap_scale;
+  }
+
+  if (in_editor == yes)
+  {
+    (vs) {
+      world_local_x@f3 = world_local_x;
+      world_local_y@f3 = world_local_y;
+      world_local_z@f3 = world_local_z;
+      world_local_pos@f3 = world_local_pos;
+    }
+  }
+
+  hlsl(vs) {
+
+    struct VsInput
+    {
+      float3 pos: POSITION;  // W defaults to 1.
+    };
+
+    VsOutput puddle_decal_vs(VsInput input)
+    {
+      VsOutput output;
+
+##if in_editor == yes
+      float3 worldPos = input.pos.x * world_local_x + input.pos.y * world_local_y + input.pos.z * world_local_z + world_local_pos;
+##else
+      float3 worldPos = input.pos;
+##endif
+
+      output.pos = mulPointTm(input.pos.xyz, globtm);
+      output.worldPos.xyz = worldPos.xyz;
+      output.puddleHeight = (worldPos.y-heightmap_scale.y)/heightmap_scale.x;
+      return output;
+    }
+  }
+
+  compile("target_vs", "puddle_decal_vs");
+  compile("target_ps", "puddle_decal_ps");
+}
+
+shader remove_puddles_in_craters
+{
+  blend_src = sa; blend_dst = isa;
+  color_write = r;
+
+  USE_PUDDLE_TEXTURE_ENCODER(ps)
+
+  if (in_editor_assume == yes)
+  {
+    dont_render;
+  }
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 tc : TEXCOORD0;
+    };
+  }
+
+  (vs) {
+    removed_puddles_buf@cbuf = removed_puddles_buf hlsl {
+      cbuffer removed_puddles_buf@cbuf
+      {
+        #include <puddles_remove_consts.hlsli>
+        float4 removed_puddles[MAX_PUDDLES_REMOVED];
+      }
+    }
+    world_to_puddle_texels@f4 = (-world_to_puddles_tex_ofs.x / world_to_puddles_tex_ofs.w,
+                                  -world_to_puddles_tex_ofs.y / world_to_puddles_tex_ofs.w,
+                                  world_to_puddles_tex_ofs.z, 1.0 / world_to_puddles_tex_ofs.w);
+    puddle_toroidal_view@f4 = (1.0 / puddle_toroidal_view.z, 1.0 / puddle_toroidal_view.w,
+                                  -puddle_toroidal_view.x / puddle_toroidal_view.z,
+                                  -puddle_toroidal_view.y / puddle_toroidal_view.w);
+  }
+
+  hlsl(vs) {
+    VsOutput remove_puddles_vs(uint regionId : SV_InstanceID, uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float4 pos_rad = removed_puddles[regionId];
+      float2 pos = pos_rad.xz * world_to_puddle_texels.w + world_to_puddle_texels.xy;
+      const float crate_upsclale = 1.5; // to have filtering not on crater edges, but just after them
+      float size = pos_rad.w * crate_upsclale * world_to_puddle_texels.w;
+      float2 vpos = float2(vertexId & 1, vertexId / 2) * 2.0 - 1.0;
+      output.tc = vpos * crate_upsclale;
+      if (size < 2.0)
+      {
+        output.pos = NaN;
+        return output;
+      }
+      vpos = vpos * size + pos;
+      vpos = vpos * puddle_toroidal_view.xy + puddle_toroidal_view.zw;
+      vpos = vpos.xy * 2.0 - 1.0;
+      output.pos = float4(vpos.x, -vpos.y, 0, 1);
+      return output;
+    }
+  }
+
+  hlsl (ps)
+  {
+    float4 remove_puddles_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      float weight = dot(input.tc, input.tc);
+      const float blendStart = 0.1;
+      const float blendEnd = 1.4;
+      return float4(ENCODED_NO_PUDDLE_VALUE, 0.0, 0.0, saturate((blendEnd - weight) / (blendEnd - blendStart)));
+    }
+  }
+
+  compile("target_vs", "remove_puddles_vs");
+  compile("target_ps", "remove_puddles_ps");
+}

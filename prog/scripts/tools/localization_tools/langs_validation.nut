@@ -122,7 +122,7 @@ function readTextFileTo2DCharArray(fileName) {
     local lineIdx = 0
     local line = lines[lineIdx]
     for (local i = 0; i < content.len(); i++) {
-      line.append(format("%c", content.readn('c')))
+      line.append(format("%c", content.readn('b')))
       local lineLen = line.len()
       if (line?[lineLen - 2] == "\r" && line?[lineLen - 1] == "\n") {
         lines.append([])
@@ -223,7 +223,7 @@ function writeCsvFile(rows, filePath) {
         return txt.len() != 0 && !reIsFieldNumeric.match(txt) ? $"\"{txt}\"" : ""
       })), "\r\n")
     foreach (char in line)
-      fp.writen(char, 'c')
+      fp.writen(char, 'b')
   }
   fp.close()
 }

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/core/ecsGameRes.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
@@ -22,24 +24,33 @@ bool load_gameres_list(const gameres_list_t &reslist)
   return ret;
 }
 
-bool filter_out_loaded_gameres(gameres_list_t &reslist)
+bool filter_out_loaded_gameres(gameres_list_t &reslist, unsigned spins)
 {
   WinCritSec &gameres_main_cs = get_gameres_main_cs();
-  for (int i = 0; i < 1000; ++i)
+  auto do_filter_out = [&]() {
+    reslist.erase(eastl::remove_if(reslist.begin(), reslist.end(),
+                    [](const gameres_list_t::value_type &kv) {
+                      return is_game_resource_loaded_nolock(GAMERES_HANDLE_FROM_STRING(kv.first.c_str()), kv.second);
+                    }),
+      reslist.end());
+  };
+  if (!spins)
   {
-    if (gameres_main_cs.tryLock())
-    {
-      reslist.erase(eastl::remove_if(reslist.begin(), reslist.end(),
-                      [](const gameres_list_t::value_type &kv) {
-                        return is_game_resource_loaded_nolock(GAMERES_HANDLE_FROM_STRING(kv.first.c_str()), kv.second);
-                      }),
-        reslist.end());
-      gameres_main_cs.unlock();
-      break;
-    }
-    // tryLock failed, yield and try again
-    cpu_yield();
+    WinAutoLock lock(gameres_main_cs);
+    do_filter_out();
   }
+  else
+    for (unsigned i = 0; i < spins; ++i)
+    {
+      if (gameres_main_cs.tryLock())
+      {
+        do_filter_out();
+        gameres_main_cs.unlock();
+        break;
+      }
+      // tryLock failed, yield and try again
+      cpu_yield();
+    }
   return !reslist.empty();
 }
 

@@ -1,4 +1,6 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_info.h>
 #include <util/dag_string.h>
 #if _TARGET_PC_WIN
 #ifndef _WIN32_WINNT

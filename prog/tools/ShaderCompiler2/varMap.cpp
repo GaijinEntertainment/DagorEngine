@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "varMap.h"
 #include "hashStrings.h"
 #include "nameMap.h"

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "blk_shared.h"
 #include <math/integer/dag_IPoint2.h>
 #include <math/integer/dag_IPoint3.h>
@@ -883,6 +885,22 @@ bool DataBlock::removeBlock(const char *name)
   return false;
 }
 
+bool DataBlock::swapBlocks(uint32_t i1, uint32_t i2)
+{
+  if (i1 >= blockCount() || i2 >= blockCount())
+    return false;
+  if (i1 == i2)
+    return true;
+
+  convertToBlocksOwned();
+
+  block_id_t *b1 = ((block_id_t *)rwDataAt(blocksOffset())) + i1;
+  block_id_t *b2 = ((block_id_t *)rwDataAt(blocksOffset())) + i2;
+  eastl::swap(*b1, *b2);
+
+  return true;
+}
+
 bool DataBlock::removeParam(uint32_t idx)
 {
   if (uint32_t(idx) >= (uint32_t)paramCount())
@@ -917,6 +935,22 @@ bool DataBlock::removeParam(const char *name)
     return true;
   }
   return false;
+}
+
+bool DataBlock::swapParams(uint32_t i1, uint32_t i2)
+{
+  if (i1 >= paramCount() || i2 >= paramCount())
+    return false;
+  if (i1 == i2)
+    return true;
+
+  toOwned();
+
+  DataBlock::Param *p1 = getParams<true>() + i1;
+  DataBlock::Param *p2 = getParams<true>() + i2;
+  eastl::swap(*p1, *p2);
+
+  return true;
 }
 
 void DataBlock::clearData()

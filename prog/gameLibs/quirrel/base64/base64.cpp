@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <quirrel/base64/base64.h>
 
 #include <util/dag_base64.h>
@@ -60,11 +62,13 @@ void bind_base64_utils(SqModules *mgr)
 {
   ///@module base64
   Sqrat::Table b64(mgr->getVM());
-  b64.Func("encodeString", encode_base64)
+  b64 //
+    .Func("encodeString", encode_base64)
     .Func("decodeString", decode_base64)
     .Func("encodeJson", obj_to_base64)
     .Func("encodeBlk", blk_to_base64)
-    .SquirrelFunc("encodeBlob", encode_blob, 2, ".x");
+    .SquirrelFunc("encodeBlob", encode_blob, 2, ".x")
+    /**/;
 
   mgr->addNativeModule("base64", b64);
 }

@@ -1,14 +1,13 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <stdarg.h>
 #include <util/dag_baseDef.h>
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 enum
 {
@@ -20,9 +19,6 @@ enum
 };
 
 #if DAGOR_DBGLEVEL > 0 || DAGOR_FORCE_LOGS
-
-#define DAGOR_WITH_LOGS(...) __VA_ARGS__
-#define DAGOR_HAS_LOGS(...)  __VA_ARGS__
 
 //! general C function to output logs (accepts va_list)
 KRNLIMP void cvlogmessage(int level, const char *, va_list);
@@ -39,29 +35,14 @@ inline void clogmessage(int level, const char *f, ...)
 KRNLIMP void __log_set_ctx(const char *fn, int ln, int lev = LOGLEVEL_DEBUG, bool new_ln = true);
 //! sets context for logerr/logwarn/loginfo functions (new line only)
 KRNLIMP void __log_set_ctx_ln(bool new_ln = true);
-
-#define clogmessage_(l, ...)     __log_set_ctx_ln(false), clogmessage(l, __VA_ARGS__)
-#define clogmessage_ctx(l, ...)  __log_set_ctx(__FILE__, __LINE__, l), clogmessage(l, __VA_ARGS__)
-#define clogmessage_ctx_(l, ...) __log_set_ctx(__FILE__, __LINE__, l, false), clogmessage(l, __VA_ARGS__)
-
-#define clogerr(...)  clogmessage(LOGLEVEL_ERR, __VA_ARGS__)
-#define clogwarn(...) clogmessage(LOGLEVEL_WARN, __VA_ARGS__)
-#define clogdbg(...)  clogmessage(LOGLEVEL_DEBUG, __VA_ARGS__)
-
-#define clogerr_(...)  clogmessage_(LOGLEVEL_ERR, __VA_ARGS__)
-#define clogwarn_(...) clogmessage_(LOGLEVEL_WARN, __VA_ARGS__)
-#define clogdbg_(...)  clogmessage_(LOGLEVEL_DEBUG, __VA_ARGS__)
-
-#define clogerr_ctx(...)  clogmessage_ctx(LOGLEVEL_ERR, __VA_ARGS__)
-#define clogwarn_ctx(...) clogmessage_ctx(LOGLEVEL_WARN, __VA_ARGS__)
-#define clogdbg_ctx(...)  clogmessage_ctx(LOGLEVEL_DEBUG, __VA_ARGS__)
-
-#define clogerr_ctx_(...)  clogmessage_ctx_(LOGLEVEL_ERR, __VA_ARGS__)
-#define clogwarn_ctx_(...) clogmessage_ctx_(LOGLEVEL_WARN, __VA_ARGS__)
-#define clogdbg_ctx_(...)  clogmessage_ctx_(LOGLEVEL_DEBUG, __VA_ARGS__)
-
+//! sets hash of the message to the context for next use of logerr/logwarn/loginfo functions
+//! be sure to reset the hash after logerr use
+KRNLIMP void __log_set_ctx_hash(unsigned int hash);
+//! gets hash of the message from the context for next use of logerr/logwarn/loginfo functions
+KRNLIMP unsigned int __log_get_ctx_hash();
 
 #ifdef __cplusplus
+
 #include <util/dag_safeArg.h>
 
 #define DSA_OVERLOADS_PARAM_DECL int l,
@@ -70,83 +51,76 @@ DECLARE_DSA_OVERLOADS_FAMILY(static inline void logmessage, KRNLIMP void logmess
 #undef DSA_OVERLOADS_PARAM_DECL
 #undef DSA_OVERLOADS_PARAM_PASS
 
-#define logmessage_(l, ...)     __log_set_ctx_ln(false), logmessage(l, __VA_ARGS__)
-#define logmessage_ctx(l, ...)  __log_set_ctx(__FILE__, __LINE__, l), logmessage(l, __VA_ARGS__)
-#define logmessage_ctx_(l, ...) __log_set_ctx(__FILE__, __LINE__, l, false), logmessage(l, __VA_ARGS__)
+#endif // __cplusplus
 
-#define logerr(...)  logmessage(LOGLEVEL_ERR, __VA_ARGS__)
-#define logwarn(...) logmessage(LOGLEVEL_WARN, __VA_ARGS__)
-#define logdbg(...)  logmessage(LOGLEVEL_DEBUG, __VA_ARGS__)
-
-#define logerr_(...)  logmessage_(LOGLEVEL_ERR, __VA_ARGS__)
-#define logwarn_(...) logmessage_(LOGLEVEL_WARN, __VA_ARGS__)
-#define logdbg_(...)  logmessage_(LOGLEVEL_DEBUG, __VA_ARGS__)
-
-#define logerr_ctx(...)  logmessage_ctx(LOGLEVEL_ERR, __VA_ARGS__)
-#define logwarn_ctx(...) logmessage_ctx(LOGLEVEL_WARN, __VA_ARGS__)
-#define logdbg_ctx(...)  logmessage_ctx(LOGLEVEL_DEBUG, __VA_ARGS__)
-
-#define logerr_ctx_(...)  logmessage_ctx_(LOGLEVEL_ERR, __VA_ARGS__)
-#define logwarn_ctx_(...) logmessage_ctx_(LOGLEVEL_WARN, __VA_ARGS__)
-#define logdbg_ctx_(...)  logmessage_ctx_(LOGLEVEL_DEBUG, __VA_ARGS__)
-
-#endif
 #else
-
-#define DAGOR_WITH_LOGS(...) (void)0
-#define DAGOR_HAS_LOGS(...)
 
 struct DagorSafeArg;
 inline void cvlogmessage(int, const char *, va_list) {}
 inline void logmessage_fmt(int, const char *, const DagorSafeArg *, int) {}
 inline void __log_set_ctx(const char *, int, int = LOGLEVEL_DEBUG, bool = true) {}
 inline void __log_set_ctx_ln(bool = true) {}
-
-#define clogmessage(...) (void)0
-#define clogerr(...)     (void)0
-#define clogwarn(...)    (void)0
-#define clogdbg(...)     (void)0
-
-#define clogmessage_(...) (void)0
-#define clogerr_(...)     (void)0
-#define clogwarn_(...)    (void)0
-#define clogdbg_(...)     (void)0
-
-#define clogmessage_ctx(...) (void)0
-#define clogerr_ctx(...)     (void)0
-#define clogwarn_ctx(...)    (void)0
-#define clogdbg_ctx(...)     (void)0
-
-#define clogmessage_ctx_(...) (void)0
-#define clogerr_ctx_(...)     (void)0
-#define clogwarn_ctx_(...)    (void)0
-#define clogdbg_ctx_(...)     (void)0
-
+inline void __log_set_ctx_hash(unsigned int) {}
+inline unsigned int __log_get_ctx_hash() { return 0u; }
 #ifdef __cplusplus
-
-#define logmessage(...) (void)0
-#define logerr(...)     (void)0
-#define logwarn(...)    (void)0
-#define logdbg(...)     (void)0
-
-#define logmessage_(...) (void)0
-#define logerr_(...)     (void)0
-#define logwarn_(...)    (void)0
-#define logdbg_(...)     (void)0
-
-#define logmessage_ctx(...) (void)0
-#define logerr_ctx(...)     (void)0
-#define logwarn_ctx(...)    (void)0
-#define logdbg_ctx(...)     (void)0
-
-#define logmessage_ctx_(...) (void)0
-#define logerr_ctx_(...)     (void)0
-#define logwarn_ctx_(...)    (void)0
-#define logdbg_ctx_(...)     (void)0
-
+template <typename... Args>
+inline void logmessage(int, const Args &...)
+{}
 #endif
 
 #endif // DAGOR_DBGLEVEL > 0 || DAGOR_FORCE_LOGS
+
+#ifdef __cplusplus
+
+template <typename... Args>
+inline void logerr(const Args &...args)
+{
+  logmessage(LOGLEVEL_ERR, args...);
+}
+template <typename... Args>
+inline void logwarn(const Args &...args)
+{
+  logmessage(LOGLEVEL_WARN, args...);
+}
+template <typename... Args>
+inline void logdbg(const Args &...args)
+{
+  logmessage(LOGLEVEL_DEBUG, args...);
+}
+
+template <typename... Args>
+inline void logmessage_(int l, const Args &...args)
+{
+  __log_set_ctx_ln(false);
+  logmessage(l, args...);
+}
+template <typename... Args>
+inline void logerr_(const Args &...args)
+{
+  logmessage_(LOGLEVEL_ERR, args...);
+}
+template <typename... Args>
+inline void logwarn_(const Args &...args)
+{
+  logmessage_(LOGLEVEL_WARN, args...);
+}
+template <typename... Args>
+inline void logdbg_(const Args &...args)
+{
+  logmessage_(LOGLEVEL_DEBUG, args...);
+}
+
+#define LOGMESSAGE_CTX(l, ...)            \
+  do                                      \
+  {                                       \
+    __log_set_ctx(__FILE__, __LINE__, l); \
+    logmessage(l, __VA_ARGS__);           \
+  } while (0)
+#define LOGERR_CTX(...)  LOGMESSAGE_CTX(LOGLEVEL_ERR, __VA_ARGS__)
+#define LOGWARN_CTX(...) LOGMESSAGE_CTX(LOGLEVEL_WARN, __VA_ARGS__)
+#define LOGDBG_CTX(...)  LOGMESSAGE_CTX(LOGLEVEL_DEBUG, __VA_ARGS__)
+
+#endif // __cplusplus
 
 #define LOGERR_ONCE(...)         \
   do                             \
@@ -159,5 +133,16 @@ inline void __log_set_ctx_ln(bool = true) {}
     }                            \
   } while (0)
 
-#include <supp/dag_undef_COREIMP.h>
+#define LOGWARN_ONCE(...)        \
+  do                             \
+  {                              \
+    static bool logged_ = false; \
+    if (!logged_)                \
+    {                            \
+      logwarn(__VA_ARGS__);      \
+      logged_ = true;            \
+    }                            \
+  } while (0)
+
+#include <supp/dag_undef_KRNLIMP.h>
 #include <debug/dag_debug.h>

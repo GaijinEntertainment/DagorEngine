@@ -1,0 +1,224 @@
+include "shader_global.dshl"
+include "psh_tangent.dshl"
+include "rendinst_opaque_inc.dshl"
+include "layered_inc.dshl"
+include "emissive.dshl"
+include "rendinst_voxelize_albedo_inc.dshl"
+
+shader rendinst_animated_flow
+{
+  assume instancing_type = tm_vb;
+  if (instancing_type != tm_vb ||
+    rendinst_render_pass == rendinst_render_pass_impostor_color ||
+    rendinst_render_pass == rendinst_render_pass_impostor_shadow ||
+    rendinst_render_pass == rendinst_render_pass_to_shadow ||
+    rendinst_render_pass == rendinst_render_pass_grassify ||
+    rendinst_render_pass == rendinst_render_pass_to_heightmap)
+  {
+    dont_render;
+  }
+  static float flow_scale;
+  static float4 detail_uv_mult_speed_12 = (1,1,1,1);
+
+  texture flow = material.texture[0];
+  texture dif1 = material.texture[3];
+  texture norm1 = material.texture[4];
+  texture dif2 = material.texture[5];
+  texture norm2 = material.texture[6];
+
+  static float4 emissive_color = (1,1,1,1);
+  static float emission_albedo_mult = 1;
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+  channel float2 tc[0] = tc[0];
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+
+
+  ENABLE_MULTI_DRAW(rendinst_render_pass == rendinst_render_pass_depth)
+  RENDINST_BLOCK()
+  RI_VOXELIZE_ALBEDO()
+  RENDINST_INSTANCING()
+  if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
+  {
+    EMISSIVE_VS_OUT()
+    hlsl {
+      #define HLSL_FULL_VS_OUTPUT 1
+    }
+  } else
+  {
+    hlsl {
+      struct VsOutput
+      {
+        PRECISE VS_OUT_POSITION(pos)
+        VSOUT_DRAW_ID
+      };
+    }
+  }
+
+
+  hlsl(vs) {
+
+    INSTANCING_BUFFERS
+
+    struct VsInput
+    {
+      float3 pos                  : POSITION;
+      float3 normal               : NORMAL;
+      #if HLSL_FULL_VS_OUTPUT
+      float2 diffuseTexcoord      : TEXCOORD0;
+      #endif
+    };
+
+    VsOutput simple_vs(VsInput input  HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+      #endif
+
+      float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+      float3 localPos = input.pos;
+      float opacity = 1;
+      VB_PERFORM_INSTANCING
+
+      float3 pointToEye = world_view_pos-worldPos;
+
+      output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+      #if HLSL_FULL_VS_OUTPUT
+        output.diffuseTexcoord.xy = input.diffuseTexcoord;
+        output.pointToEye.xyz = pointToEye;
+      #endif
+      ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
+        output.normal.xyz = worldNormal;
+      ##endif
+      PROCESS_OUTPUT(output.pos, worldPos.xyz);
+      return output;
+    }
+  }
+
+  if (rendinst_render_pass == rendinst_render_pass_depth)
+  {
+    compile("ps_null", "rendinst_render_depth_black_ps");
+  } else
+  {
+    DETAIL_WEIGHTS_BLENDING(ps)
+    PREPARE_EMISSIVE_COLOR(ps, emissive_color)
+    USE_PIXEL_TANGENT_SPACE()
+    ENABLE_ASSERT(ps)
+    if (rendinst_render_pass != rendinst_render_pass_voxelize_albedo)
+    {
+      WRITE_GBUFFER()
+    }
+    (ps) {
+      // Dynamic and global
+      time_offset@f1 = time_phase(0,0);
+
+      // Static and per-mat
+      detail_uv_mult_speed1@f1 = detail_uv_mult_speed_12.z;
+      detail_uv_mult_speed2@f1 = detail_uv_mult_speed_12.w;
+      emission_albedo_mult@f1 = emission_albedo_mult;
+      flow_scale@f1 = flow_scale;
+      uv_scale@f2 = (detail_uv_mult_speed_12.x, detail_uv_mult_speed_12.y);
+
+      flow_tex@static = flow;
+      diffuse1_tex@static = dif1;
+      normal1_tex@static = norm1;
+      diffuse2_tex@static = dif2;
+      normal2_tex@static = norm2;
+    }
+
+    hlsl(ps) {
+      half4 SampleFlowTexture(TextureSampler diffuse, float offset, float cos_t, float2 uv, float2 flow, float scale)
+      {
+        float4 scrolledUV = (uv.xyxy + flow.xyxy * frac(offset + float4(0, 0, 0.5, 0.5))) * scale;
+        return lerp(tex2DBindless(diffuse, scrolledUV.xy), tex2DBindless(diffuse, scrolledUV.zw), cos_t);
+      }
+      half4 GetWeightsColor(half4 detailColor1, half4 detailColor2, half alpha)
+      {
+        half2 weights = GetWeights(detailColor1, detailColor2, alpha, half2(0, 1));
+        return detailColor1 * weights.x + detailColor2 * weights.y;
+      }
+      #if VOXELIZE_ALBEDO_PASS
+      #include <pixelPacking/ColorSpaceUtility.hlsl> //Included in WRITE_GBUFFER()
+        void simple_ps(VsOutput input HW_USE_SCREEN_POS)
+      #else
+        GBUFFER_OUTPUT simple_ps(VsOutput input HW_USE_SCREEN_POS)
+      #endif
+      {
+      #ifdef VOXELIZE_DISCARD_PRIM
+        VOXELIZE_DISCARD_PRIM
+      #endif
+      #if SET_UP_MULTIDRAW
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+      #endif
+        float3 worldPos = world_view_pos - input.pointToEye.xyz;
+
+        float2 texCoord = input.diffuseTexcoord.xy;
+
+        float scale1 = get_uv_scale().x;
+        float scale2 = get_uv_scale().y;
+        float timed_offset1 = time_offset * get_detail_uv_mult_speed1();
+        float timed_offset2 = time_offset * get_detail_uv_mult_speed2();
+        float cos_t1 = cos(timed_offset1 * PI) * cos(timed_offset1 * PI);
+        float cos_t2 = cos(timed_offset2 * PI) * cos(timed_offset2 * PI);
+
+        half4 flow = tex2DBindless(get_flow_tex(), texCoord);
+        flow.xy = -(flow.xy * 2 - 1) * get_flow_scale();
+        half4 diffuseColor0 = SampleFlowTexture(get_diffuse1_tex(), timed_offset1, cos_t1, texCoord,  flow.xy, scale1);
+        half4 diffuseColor1 = SampleFlowTexture(get_diffuse2_tex(), timed_offset2, cos_t2, texCoord,  flow.xy, scale2);
+        half4 diffuseColor = GetWeightsColor(diffuseColor0, diffuseColor1, flow.a);
+
+
+        half4 packedNormalMap0 = SampleFlowTexture(get_normal1_tex(), timed_offset1, cos_t1, texCoord, flow.xy, scale1);
+        half4 packedNormalMap1 = SampleFlowTexture(get_normal2_tex(), timed_offset2, cos_t2, texCoord, flow.xy, scale2);
+        half4 packedNormalMap = GetWeightsColor(packedNormalMap0, packedNormalMap1, flow.a);
+        half3 normalMap = normalize(unpack_ag_normal(packedNormalMap));
+        half3 worldNormal = perturb_normal_precise( normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.diffuseTexcoord.xy );
+        half metalness = packedNormalMap.b;
+        half smoothness = packedNormalMap.r;
+
+        half4 emissiveColor = get_emissive_color();
+        half emissionAlbedoMult = get_emission_albedo_mult();
+
+        FLATTEN
+        if (emissiveColor.a < 0)
+          diffuseColor.a = 1-diffuseColor.a;
+        float emissionStrength = 0;
+        FLATTEN
+        if (diffuseColor.a>0)
+        {
+          emissionStrength = RemoveSRGBCurve_Fast(diffuseColor.a).x * min(abs(emissiveColor.a), MAX_EMISSION);
+        }
+        #if VOXELIZE_ALBEDO_PASS
+          WRITE_SCENE25D_VOXEL_DATA(worldPos, diffuseColor.rgb, emissionStrength, half4(emissiveColor.rgb, emissionAlbedoMult));
+        #else
+          UnpackedGbuffer gbuffer;
+          init_gbuffer(gbuffer);
+          init_albedo(gbuffer, diffuseColor.rgb);
+          init_material(gbuffer, SHADING_NORMAL);
+          FLATTEN
+          if (diffuseColor.a>0)
+          {
+            init_material(gbuffer, SHADING_SELFILLUM);
+            init_emission(gbuffer, emissionStrength);
+            init_emission_color(gbuffer, half4(emissiveColor.rgb, emissionAlbedoMult));
+          }
+
+          init_smoothness(gbuffer, smoothness);
+          init_metalness(gbuffer, metalness);
+          init_normal(gbuffer, worldNormal);
+          return encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
+        #endif
+      }
+    }
+    compile("target_ps", "simple_ps");
+  }
+
+  COMPILE_RI_VS_TARGET("simple_vs")
+}

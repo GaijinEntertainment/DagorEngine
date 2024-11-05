@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daEditorE/de_object.h>
 #include <daEditorE/de_objEditor.h>
 #include <daEditorE/de_interface.h>
@@ -399,13 +401,6 @@ void EditableObject::putScaleUndo()
   }
 }
 
-
-/*
-void EditableObject::fillProps(PropertyContainerControlBase &op, DClassID for_class_id,
-  dag::ConstSpan<EditableObject*> objects)
-{
-}
-*/
 
 DClassID EditableObject::getCommonClassId(EditableObject **objects, int num)
 {

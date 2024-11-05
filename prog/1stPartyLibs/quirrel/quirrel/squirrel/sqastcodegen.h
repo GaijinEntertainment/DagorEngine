@@ -10,6 +10,11 @@ struct SQFuncState;
 
 namespace SQCompilation {
 
+struct SQScope {
+    SQInteger outers;
+    SQInteger stacksize;
+};
+
 class CodegenVisitor : public Visitor {
 
     SQFuncState *_fs;
@@ -30,8 +35,6 @@ class CodegenVisitor : public Visitor {
 
     SQInteger _last_pop = -1;
 
-    SQObjectPtr _constVal;
-
     SQCompilationContext &_ctx;
 
 public:
@@ -46,7 +49,6 @@ private:
     void CheckDuplicateLocalIdentifier(Node *n, SQObject name, const SQChar *desc, bool ignore_global_consts);
     bool CheckMemberUniqueness(ArenaVector<Expr *> &vec, Expr *obj);
 
-    void Emit2ArgsOP(SQOpcode op, SQInteger p3 = 0);
     void EmitLoadConstInt(SQInteger value, SQInteger target);
     void EmitLoadConstFloat(SQFloat value, SQInteger target);
 
@@ -57,8 +59,6 @@ private:
 
     void generateTableDecl(TableDecl *tableDecl);
 
-    void checkClassKey(Expr *key);
-
     SQTable* GetScopedConstsTable();
 
     void emitUnaryOp(SQOpcode op, UnExpr *arg);
@@ -67,13 +67,12 @@ private:
     void emitShortCircuitLogicalOp(SQOpcode op, Expr *lhs, Expr *rhs);
     void emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lvalue, Expr *rvalue);
 
-    bool isLValue(Expr *expr);
-
     void emitNewSlot(Expr *lvalue, Expr *rvalue);
-    void emitAssign(Expr *lvalue, Expr * rvalue, bool inExpr);
-    void emitFieldAssign(bool isLiteral);
+    void emitAssign(Expr *lvalue, Expr * rvalue);
+    void emitFieldAssign(int isLiteralIndex);
 
     bool CanBeDefaultDelegate(const SQChar *key);
+    bool CanBeDefaultTableDelegate(const SQChar *key);
     bool canBeLiteral(AccessExpr *expr);
 
     void MoveIfCurrentTargetIsLocal();
@@ -123,12 +122,12 @@ public:
     void visitEnumDecl(EnumDecl *enums) override;
     void visitCallExpr(CallExpr *call) override;
     void visitBaseExpr(BaseExpr *base) override;
-    void visitRootExpr(RootExpr *expr) override;
+    void visitRootTableAccessExpr(RootTableAccessExpr *expr) override;
     void visitLiteralExpr(LiteralExpr *lit) override;
     void visitArrayExpr(ArrayExpr *expr) override;
     void visitUnExpr(UnExpr *unary) override;
     void visitGetFieldExpr(GetFieldExpr *expr) override;
-    void visitGetTableExpr(GetTableExpr *expr) override;
+    void visitGetSlotExpr(GetSlotExpr *expr) override;
     void visitBinExpr(BinExpr *expr) override;
     void visitTerExpr(TerExpr *expr) override;
     void visitIncExpr(IncExpr *expr) override;

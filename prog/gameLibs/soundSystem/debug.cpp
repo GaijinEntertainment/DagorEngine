@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dag/dag_vectorMap.h>
 #include <EASTL/fixed_string.h>
 #include <EASTL/fixed_vector.h>
@@ -14,7 +16,7 @@
 #include <soundSystem/events.h>
 #include <soundSystem/streams.h>
 #include <soundSystem/debug.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_lock.h>
 #include <shaders/dag_shaderBlock.h>
 
 #include "internal/fmodCompatibility.h"
@@ -34,15 +36,17 @@ namespace sndsys
 using namespace fmodapi;
 
 static const Point2 g_offset = {10, 70};
-static const E3DCOLOR g_def_color = E3DCOLOR_MAKE(0xff, 0xff, 0xff, 0xff);
-static const E3DCOLOR g_shadow_color = E3DCOLOR_MAKE(0, 0, 0x40, 0xff);
-static const E3DCOLOR g_empty_color = E3DCOLOR_MAKE(0xc0, 0xc0, 0xc0, 0xff);
-static const E3DCOLOR g_virtual_color = E3DCOLOR_MAKE(0x80, 0x80, 0xff, 0xff);
-static const E3DCOLOR g_keyoff_color = E3DCOLOR_MAKE(0x80, 0xff, 0xff, 0xff);
-static const E3DCOLOR g_stopped_color = E3DCOLOR_MAKE(0xff, 0x80, 0, 0xff);
-static const E3DCOLOR g_stopping_color = E3DCOLOR_MAKE(0, 0, 0, 0xff);
-static const E3DCOLOR g_invalid_color = E3DCOLOR_MAKE(0xff, 0xff, 0, 0xff);
-static const E3DCOLOR g_snapshot_color = E3DCOLOR_MAKE(0x66, 0, 0xff, 0xff);
+static const E3DCOLOR g_def_color = E3DCOLOR_MAKE(255, 255, 255, 255);
+static const E3DCOLOR g_loading_color = E3DCOLOR_MAKE(255, 0, 255, 255);
+static const E3DCOLOR g_shadow_color = E3DCOLOR_MAKE(0, 0, 60, 255);
+static const E3DCOLOR g_empty_color = E3DCOLOR_MAKE(190, 190, 190, 255);
+static const E3DCOLOR g_virtual_color = E3DCOLOR_MAKE(128, 128, 255, 255);
+static const E3DCOLOR g_sustaining_color = E3DCOLOR_MAKE(255, 128, 255, 255);
+static const E3DCOLOR g_stopped_color = E3DCOLOR_MAKE(255, 128, 0, 255);
+static const E3DCOLOR g_stopping_color = E3DCOLOR_MAKE(100, 50, 50, 255);
+static const E3DCOLOR g_invalid_color = E3DCOLOR_MAKE(255, 0, 0, 0);
+static const E3DCOLOR g_snapshot_color = E3DCOLOR_MAKE(100, 0, 255, 255);
+static const E3DCOLOR g_just_created_color = E3DCOLOR_MAKE(255, 245, 0, 255);
 static bool g_draw_audibility = false;
 
 enum class TraceLevel : int
@@ -71,24 +75,47 @@ static eastl::fixed_vector<const FMOD::Studio::EventDescription *, 16> g_3d_inst
 static int g_first_message_id = 0;
 static int g_num_messages = 0;
 static int g_interligne = 0;
+static int g_font_height = 0;
+static int g_box_extent_x = 0;
+static int g_box_extent_y = 0;
+static int g_box_offset = 0;
 static bool g_have_3d_stream_in_zero = false;
 
 static constexpr TraceLevel def_log_level = TraceLevel::err;
 static TraceLevel g_log_level = def_log_level;
 static eastl::array<DebugMessage, 24> debug_messages;
 
-static inline int print(int x, int y, const E3DCOLOR &color, const char *text, int len = -1)
+static inline int print(int x, int y, const E3DCOLOR &color, const char *text, int len = -1, int line_index = 0,
+  bool background = false)
 {
-  StdGuiRender::goto_xy(x, y);
-  StdGuiRender::set_color(color);
-  StdGuiRender::draw_str(text, len);
+  if (text && *text)
+  {
+    if (background)
+    {
+      StdGuiRender::set_color(E3DCOLOR(0, 0, 0, 200));
+      const Point2 htsz = StdGuiRender::get_str_bbox(text, len).width();
+      StdGuiRender::render_box(x - g_box_extent_x, y - g_box_extent_y + line_index * g_font_height + g_box_offset,
+        x + htsz.x + g_box_extent_x, y + htsz.y + g_box_extent_y + line_index * g_font_height + g_box_offset);
+    }
+    else
+    {
+      const int offset = max(1, g_font_height / 16);
+      StdGuiRender::set_color(E3DCOLOR(0, 0, 0, 0xff));
+      StdGuiRender::goto_xy(x - offset, y + offset);
+      StdGuiRender::draw_str(text, len);
+    }
+    StdGuiRender::set_color(color);
+    StdGuiRender::goto_xy(floorf(x), floorf(y + line_index * g_font_height));
+    StdGuiRender::draw_str(text, len);
+  }
   return g_interligne;
 }
 
 template <typename String>
-static inline int print(int x, int y, const E3DCOLOR &color, const String &text, int len = -1)
+static inline int print(int x, int y, const E3DCOLOR &color, const String &text, int len = -1, int line_index = 0,
+  bool background = false)
 {
-  return print(x, y, color, text.c_str(), len);
+  return print(x, y, color, text.c_str(), len, line_index, background);
 }
 
 template <typename String, bool Print = true>
@@ -170,26 +197,113 @@ static inline bool is_muted(const FMOD::Studio::EventInstance &event_instance)
   event_instance.getVolume(&volume);
   return volume == 0.f;
 }
-static inline bool is_snapshot(const FMOD::Studio::EventInstance &event_instance)
+static inline bool is_snapshot(const FMOD::Studio::EventDescription &event_description)
 {
-  FMOD::Studio::EventDescription *eventDescription = nullptr;
-  event_instance.getDescription(&eventDescription);
   bool snapshot = false;
-  if (eventDescription)
-    eventDescription->isSnapshot(&snapshot);
+  event_description.isSnapshot(&snapshot);
   return snapshot;
 }
-
-static inline E3DCOLOR get_color(const FMOD::Studio::EventInstance &event_instance)
+static inline bool is_loading(const FMOD::Studio::EventDescription &event_description)
 {
-  return !event_instance.isValid()       ? g_invalid_color
-         : is_sustaining(event_instance) ? g_keyoff_color
-         : is_stopping(event_instance)   ? g_stopping_color
-         : !is_playing(event_instance)   ? g_stopped_color
-         : is_virtual(event_instance)    ? g_virtual_color
-         : is_snapshot(event_instance)   ? g_snapshot_color
-                                         : g_def_color;
+  if (const char *sampleLoadingState = get_sample_loading_state(event_description))
+    return strcmp(sampleLoadingState, "loading") == 0;
+  return false;
 }
+
+static inline E3DCOLOR make_color(const FMOD::Studio::EventInstance &event_instance,
+  const FMOD::Studio::EventDescription &event_description)
+{
+  return !event_instance.isValid()        ? g_invalid_color
+         : is_sustaining(event_instance)  ? g_sustaining_color
+         : is_stopping(event_instance)    ? g_stopping_color
+         : !is_playing(event_instance)    ? g_stopped_color
+         : is_virtual(event_instance)     ? g_virtual_color
+         : is_snapshot(event_description) ? g_snapshot_color
+                                          : g_def_color;
+}
+
+static class
+{
+  enum
+  {
+    capacity = 32,
+    max_time = 16,
+  };
+  struct Desc
+  {
+    const FMOD::Studio::EventDescription *desc = nullptr;
+    const FMOD::Studio::EventInstance *instance = nullptr;
+    uint8_t numInstances = 0;
+    uint8_t numPlaying = 0;
+    uint8_t numVirtual = 0;
+    uint8_t numMuted = 0;
+    uint8_t numDuplicated = 0;
+    uint8_t time = 0;
+    bool odd = false;
+  };
+  eastl::fixed_vector<Desc, capacity> descs;
+  bool odd = false;
+
+public:
+  void push(const FMOD::Studio::EventInstance &event_instance, const FMOD::Studio::EventDescription &event_description,
+    int num_instances, int num_playing, int num_virtual, int num_muted)
+  {
+    Desc *desc = eastl::find_if(descs.begin(), descs.end(), [&](const auto &it) { return it.desc == &event_description; });
+    if (desc != descs.end())
+    {
+      if (desc->odd == odd && desc->numDuplicated < 0xff)
+        ++desc->numDuplicated;
+      if (desc->numInstances < num_instances)
+        desc->time = 0;
+    }
+    else
+    {
+      if (descs.size() >= capacity)
+        return;
+      desc = &descs.push_back();
+      desc->desc = &event_description;
+      desc->numDuplicated = 0;
+      desc->time = 0;
+    }
+    desc->instance = &event_instance;
+    desc->numInstances = min(num_instances, 0xff);
+    desc->numPlaying = min(num_playing, 0xff);
+    desc->numVirtual = min(num_virtual, 0xff);
+    desc->numMuted = min(num_muted, 0xff);
+    desc->odd = odd;
+    if (desc->time < max_time)
+      ++desc->time;
+  }
+
+  E3DCOLOR getColor(const Desc &desc, const FMOD::Studio::EventInstance &event_instance)
+  {
+    if (is_loading(*desc.desc))
+      return g_loading_color;
+    const float t = saturate(float(desc.time) / max_time);
+    return e3dcolor_lerp(g_just_created_color, make_color(event_instance, *desc.desc), t < 0.6f ? 0.f : t);
+  }
+
+  E3DCOLOR getColor(const Desc &desc) { return getColor(desc, *desc.instance); }
+
+  E3DCOLOR getColor(const FMOD::Studio::EventDescription &event_description, const FMOD::Studio::EventInstance &event_instance)
+  {
+    const Desc *desc = eastl::find_if(descs.begin(), descs.end(), [&](const auto &it) { return it.desc == &event_description; });
+    if (desc != descs.end())
+      return getColor(*desc, event_instance);
+    return make_color(event_instance, event_description);
+  }
+
+  void advance()
+  {
+    auto pred = [&](const Desc &it) { return it.odd != odd; };
+    descs.erase(eastl::remove_if(descs.begin(), descs.end(), pred), descs.end());
+    odd = !odd;
+  }
+
+  const Desc *begin() const { return descs.begin(); }
+  const Desc *end() const { return descs.end(); }
+
+} g_instances;
 
 static inline void get_name_audibility(const FMOD::Studio::EventInstance &event_instance,
   const FMOD::Studio::EventDescription &event_description, FrameString &text)
@@ -231,8 +345,41 @@ static inline void get_event_name(const FMOD::Studio::EventInstance &event_insta
     text.append_sprintf(" vol=%.2f", volume);
 }
 
-static inline void draw_instances(int offset, const TMatrix4 &glob_tm)
+static inline void print_samples_instances(int offset)
 {
+  const auto samples = dbg_get_sample_data_refs();
+
+  if (!samples.empty())
+  {
+    offset += print(g_offset.x, offset, g_def_color, "[PRELOADED EVENTS]");
+
+    eastl::array<char, 512> eventName;
+    if (!samples.empty())
+    {
+      static constexpr int maxSamples = 32;
+      int count = 0;
+      for (const auto &it : samples)
+      {
+        if (const FMOD::Studio::EventDescription *evtDesc = get_description(it.first))
+        {
+          int len = 0;
+          evtDesc->getPath(eventName.begin(), eventName.count, &len);
+          eventName[eventName.count - 1] = 0;
+          offset += print_format(g_offset.x, offset, g_def_color, "(%d) %s", it.second, eventName.begin());
+        }
+        else
+          offset += print_format(g_offset.x, offset, g_def_color, "(%d) %s", it.second, "???");
+        ++count;
+        if (count >= maxSamples)
+        {
+          offset += print_format(g_offset.x, offset, g_def_color, "%d more...", samples.size() - count);
+          break;
+        }
+      }
+    }
+    offset += print(g_offset.x, offset, g_def_color, "");
+  }
+
   offset += print(g_offset.x, offset, g_def_color, "[INSTANCES]");
 
   FrameString text;
@@ -253,10 +400,10 @@ static inline void draw_instances(int offset, const TMatrix4 &glob_tm)
     numDescs = min(numDescs, (int)events_list.count);
 
     const auto descsSlice = make_span(events_list.begin(), numDescs);
-    for (const FMOD::Studio::EventDescription *desc : descsSlice)
+    for (const FMOD::Studio::EventDescription *evtDesc : descsSlice)
     {
       int numInstances = 0;
-      if (FMOD_OK != desc->getInstanceList(instance_list.begin(), instance_list.count, &numInstances))
+      if (FMOD_OK != evtDesc->getInstanceList(instance_list.begin(), instance_list.count, &numInstances))
         continue;
       G_ASSERT(numInstances <= instance_list.count);
       numInstances = min(numInstances, (int)instance_list.count);
@@ -264,7 +411,7 @@ static inline void draw_instances(int offset, const TMatrix4 &glob_tm)
         continue;
 
       bool is3d = false;
-      desc->is3D(&is3d);
+      evtDesc->is3D(&is3d);
 
       int numPlaying = 0, numVirtual = 0, numMuted = 0;
       const auto instancesSlice = make_span(instance_list.begin(), numInstances);
@@ -273,7 +420,13 @@ static inline void draw_instances(int offset, const TMatrix4 &glob_tm)
         numPlaying += is_playing(*instance) ? 1 : 0;
         numVirtual += is_virtual(*instance) ? 1 : 0;
         numMuted += is_muted(*instance) ? 1 : 0;
+      }
 
+      const FMOD::Studio::EventInstance &firstInstance = *instance_list.front();
+      g_instances.push(firstInstance, *evtDesc, numInstances, numPlaying, numVirtual, numMuted);
+
+      for (const FMOD::Studio::EventInstance *instance : instancesSlice)
+      {
         if (!is3d)
           continue;
 
@@ -281,81 +434,90 @@ static inline void draw_instances(int offset, const TMatrix4 &glob_tm)
         if (FMOD_OK != instance->get3DAttributes(&attributes))
           continue;
         Point2 pointOnScreen = ZERO<Point2>();
-        if (cvt_debug_text_pos(glob_tm, sndsys::as_point3(attributes.position), pointOnScreen.x, pointOnScreen.y))
+        if (cvt_debug_text_pos(sndsys::as_point3(attributes.position), pointOnScreen.x, pointOnScreen.y))
         {
           int pos = pointOnScreen.x + 10000 * pointOnScreen.y;
           auto ins = commonPos.insert(eastl::make_pair(pos, 0));
           if (!ins.second) // i.e. not inserted
             ins.first->second++;
-          int yOffset = int(float(ins.first->second) * StdGuiRender::get_font_cell_size().y);
-          E3DCOLOR color = get_color(*instance);
+          const int lineIndex = int(ins.first->second);
+          const E3DCOLOR color = g_instances.getColor(*evtDesc, *instance);
           if (g_draw_audibility)
-            get_name_audibility(*instance, *desc, text);
+            get_name_audibility(*instance, *evtDesc, text);
           else
-            get_event_name(*instance, *desc, text);
-          print(int(pointOnScreen.x), int(pointOnScreen.y + yOffset), color, text);
+            get_event_name(*instance, *evtDesc, text);
+          print(int(pointOnScreen.x), int(pointOnScreen.y), color, text.c_str(), -1, lineIndex, true);
         }
 
         if (lengthSq(sndsys::as_point3(attributes.position)) == 0.f)
-          if (eastl::find(g_3d_instances_in_zero.begin(), g_3d_instances_in_zero.end(), desc) == g_3d_instances_in_zero.end())
+          if (eastl::find(g_3d_instances_in_zero.begin(), g_3d_instances_in_zero.end(), evtDesc) == g_3d_instances_in_zero.end())
           {
-            g_3d_instances_in_zero.push_back(desc);
-            get_event_name(*instance, *desc, text);
-            debug_trace_warn("3d event \"%s\" is being played in (0,0,0)", text.c_str());
+            g_3d_instances_in_zero.push_back(evtDesc);
+            get_event_name(*instance, *evtDesc, text);
+            debug_trace_warn("3d sound event \"%s\" plays in (0,0,0)", text.c_str());
           }
       }
-
-      const FMOD::Studio::EventInstance &firstInstance = *instance_list.front();
-
-      if (g_draw_audibility)
-        get_name_audibility(firstInstance, *desc, text);
-      else
-        get_event_name(firstInstance, *desc, text);
-
-      if (numInstances > 1)
-        text.append_sprintf(" (%d)", numInstances);
-
-      char fmodPath[DAGOR_MAX_PATH];
-      int fmodPathSize = 0;
-      EventAttributes attributes;
-      if (FMOD_OK != desc->getPath(fmodPath, countof(fmodPath), &fmodPathSize) ||
-          !(attributes = find_event_attributes(fmodPath, fmodPathSize - 1)))
-      {
-        FMODGUID id;
-        G_STATIC_ASSERT(sizeof(FMODGUID) == sizeof(FMOD_GUID));
-        if (desc->getID((FMOD_GUID *)&id) != FMOD_OK || !(attributes = find_event_attributes(id)))
-        {
-          text += " (missing attributes)";
-        }
-      }
-
-      if (attributes.isOneshot())
-        text += " (oneshot)";
-
-      if (attributes.hasSustainPoint())
-        text += " (sustainPt)";
-
-      text += is3d ? " (3D)" : " (2D)";
-
-      E3DCOLOR color = g_def_color;
-      if ((!numPlaying || numPlaying == numInstances) && (!numVirtual || numVirtual == numInstances))
-        color = get_color(firstInstance);
-
-      if (numInstances > 1)
-      {
-        if (numVirtual)
-          text.append_sprintf(" (%d virtual)", numVirtual);
-        if (numMuted)
-          text.append_sprintf(" (%d muted)", numMuted);
-        if (numPlaying < numInstances)
-          text.append_sprintf(" (%d stopped)", numInstances - numPlaying);
-      }
-
-      offset += print(g_offset.x, offset, color, text);
-
-      if (offset >= bottom)
-        return;
     }
+  }
+  g_instances.advance();
+
+  for (auto &it : g_instances)
+  {
+    const FMOD::Studio::EventInstance &instance = *it.instance;
+    const FMOD::Studio::EventDescription &desc = *it.desc;
+
+    if (g_draw_audibility)
+      get_name_audibility(instance, desc, text);
+    else
+      get_event_name(instance, desc, text);
+
+    if (it.numInstances > 1)
+      text.append_sprintf(" (%d)", it.numInstances);
+
+    char fmodPath[DAGOR_MAX_PATH];
+    int fmodPathSize = 0;
+    EventAttributes attributes;
+    if (FMOD_OK != desc.getPath(fmodPath, countof(fmodPath), &fmodPathSize) ||
+        !(attributes = find_event_attributes(fmodPath, fmodPathSize - 1)))
+    {
+      FMODGUID id;
+      G_STATIC_ASSERT(sizeof(FMODGUID) == sizeof(FMOD_GUID));
+      if (desc.getID((FMOD_GUID *)&id) != FMOD_OK || !(attributes = find_event_attributes(id)))
+        text += " (missing attributes)";
+    }
+
+    if (attributes.isOneshot())
+      text += " (oneshot)";
+
+    if (attributes.hasSustainPoint())
+      text += " (sustainPt)";
+
+    text += attributes.is3d() ? " (3D)" : " (2D)";
+
+    if (is_loading(desc))
+      text += " (--LOADING--)";
+
+    if (it.numInstances > 1)
+    {
+      if (it.numVirtual)
+        text.append_sprintf(" (%d virtual)", it.numVirtual);
+      if (it.numMuted)
+        text.append_sprintf(" (%d muted)", it.numMuted);
+      if (it.numPlaying < it.numInstances)
+        text.append_sprintf(" (%d stopped)", it.numInstances - it.numPlaying);
+    }
+
+    if (const char *sampleLoadingState = get_sample_loading_state(desc))
+      if (strcmp(sampleLoadingState, "loaded") != 0)
+        text.append_sprintf(" (%s)", sampleLoadingState);
+
+    if (it.numDuplicated > 1)
+      text.append_sprintf(" (--DUPLICATED IN BANKS (%d)--) ", it.numDuplicated);
+
+    offset += print(g_offset.x, offset, g_instances.getColor(it), text, -1, 0, true);
+
+    if (offset >= bottom)
+      break;
   }
 }
 
@@ -435,17 +597,17 @@ static inline void print_messages()
   }
 }
 
-static inline void draw_streams(const TMatrix4 &glob_tm)
+static inline void draw_streams()
 {
-  streams::debug_enum([&glob_tm](const char *info, const Point3 &pos, bool is_3d) {
+  streams::debug_enum([](const char *info, const Point3 &pos, bool is_3d) {
     if (is_3d && lengthSq(pos) == 0.f && !g_have_3d_stream_in_zero)
     {
       g_have_3d_stream_in_zero = true;
       debug_trace_warn("3d stream \"%s\" is being played in (0,0,0)", info);
     }
     Point2 pointOnScreen = ZERO<Point2>();
-    if (cvt_debug_text_pos(glob_tm, pos, pointOnScreen.x, pointOnScreen.y))
-      print_format(int(pointOnScreen.x), int(pointOnScreen.y + StdGuiRender::get_font_cell_size().y), 0xff00ffff, "%s", info);
+    if (cvt_debug_text_pos(pos, pointOnScreen.x, pointOnScreen.y))
+      print_format(int(pointOnScreen.x), int(pointOnScreen.y + g_interligne), 0xff00ffff, "%s", info);
   });
 }
 
@@ -467,7 +629,7 @@ static inline void draw_mem_stat(int &offset)
       fmem.currentalloced / 1024.f / 1024.f, fmem.maxalloced / 1024.f / 1024.f);
 }
 
-void debug_draw(const TMatrix4 &glob_tm)
+void debug_draw()
 {
   SNDSYS_IF_NOT_INITED_RETURN;
 
@@ -475,10 +637,14 @@ void debug_draw(const TMatrix4 &glob_tm)
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
 
   StdGuiRender::ScopeStarterOptional strt;
-  StdGuiRender::set_texture(BAD_TEXTUREID);
+  StdGuiRender::reset_textures();
 
   StdGuiRender::set_font(0);
-  g_interligne = StdGuiRender::get_font_cell_size().y;
+  g_font_height = StdGuiRender::get_font_cell_size().y;
+  g_box_extent_x = ceil(g_font_height * 0.125f);
+  g_box_extent_y = 0;
+  g_box_offset = -0.8f * g_font_height;
+  g_interligne = g_font_height + g_box_extent_y * 2;
   StdGuiRender::set_draw_str_attr(FFT_SHADOW, 0, 0, g_shadow_color, 24);
 
   size_t usedHandles = 0, totalHandles = 0;
@@ -504,10 +670,10 @@ void debug_draw(const TMatrix4 &glob_tm)
 
   offset += g_interligne;
 
-  draw_instances(offset, glob_tm);
+  print_samples_instances(offset);
   print_channels();
   print_messages();
-  draw_streams(glob_tm);
+  draw_streams();
 
   StdGuiRender::reset_draw_str_attr();
   StdGuiRender::flush_data();
@@ -517,6 +683,7 @@ void set_draw_audibility(bool enable) { g_draw_audibility = enable; }
 
 void debug_enum_events()
 {
+  SNDSYS_IF_NOT_INITED_RETURN;
   debug("[SNDSYS] -- enum all events --");
 
   eastl::array<char, 512> bankName;
@@ -575,6 +742,47 @@ void debug_enum_events()
   }
   debug("[SNDSYS] -- %d banks, %d events --", numBanks, totalEvents);
   debug_trace_info("%d banks, %d events, see full listing in log", numBanks, totalEvents);
+}
+
+void debug_enum_events(const char *bank_name, eastl::function<void(const char *)> &&fun)
+{
+  SNDSYS_IF_NOT_INITED_RETURN;
+  FMOD::Studio::Bank *bank = nullptr;
+  eastl::array<char, 1024> eventName;
+
+  FMOD_RESULT result = get_studio_system()->getBank(bank_name ? bank_name : "", &bank);
+  if (FMOD_OK != result)
+  {
+    logerr("Get bank '%s' failed: %s", bank_name, FMOD_ErrorString(result));
+    return;
+  }
+
+  int numDescs = 0;
+  result = bank->getEventList(events_list.begin(), events_list.count, &numDescs);
+  if (FMOD_OK != result)
+  {
+    logerr("Get event list from bank '%s' failed: %s", bank_name, FMOD_ErrorString(result));
+    return;
+  }
+
+  G_ASSERT(numDescs <= events_list.count);
+  numDescs = min(numDescs, (int)events_list.count);
+  const auto descsSlice = make_span(events_list.begin(), numDescs);
+  for (const FMOD::Studio::EventDescription *desc : descsSlice)
+  {
+    int len = 0;
+    result = desc->getPath(eventName.begin(), eventName.count, &len);
+    eventName[eventName.count - 1] = 0;
+    if (FMOD_OK != result)
+    {
+      logerr("Get event name from bank '%s' failed: %s", bank_name, FMOD_ErrorString(result));
+      continue;
+    }
+    const char *str = eventName.cbegin();
+    if (strstr(str, "event:/") == str)
+      str += strlen("event:/");
+    fun(str);
+  }
 }
 
 static inline void debug_trace_impl(TraceLevel cur_level, const char *format, va_list args)

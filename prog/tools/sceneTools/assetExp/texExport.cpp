@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "daBuild.h"
 #include <libTools/dtx/ddsxPlugin.h>
 #include <libTools/util/conLogWriter.h>
@@ -686,7 +688,7 @@ bool buildDdsxTexPack(mkbindump::BinDumpSaveCB &cwr, dag::ConstSpan<DagorAsset *
     return false;
   }
   DAGOR_TRY { cwr.copyDataTo(fcwr); }
-  DAGOR_CATCH(IGenSave::SaveException)
+  DAGOR_CATCH(const IGenSave::SaveException &)
   {
     log.addMessage(ILogWriter::ERROR, "Error writing DXP file %s", pack_fname);
     dd_erase(pack_fname);
@@ -767,6 +769,11 @@ bool checkDdsxTexPackUpToDate(unsigned tc, const char *profile, bool be, dag::Co
     if (exp)
     {
       exp->gatherSrcDataFiles(*assets[i], a_files);
+      // A lot of assets add the asset itself to the list of src data files.
+      // checkFileChanged is quite slow and we checked this asset already above.
+      // Removing this asset from gather list is faster then calling checkFileChanged one extra time
+      if (a_files.size() > 0 && strcmp(a_files[0].c_str(), texname.c_str()) == 0)
+        a_files.erase(a_files.begin());
       int cnt = a_files.size();
       for (int j = 0; j < cnt; j++)
         if (c4.checkFileChanged(a_files[j]))

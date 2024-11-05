@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -14,15 +13,25 @@
 class SqModules;
 
 
+enum CodeLineType
+{
+  SRC_LINE_INACTIVE = 0,
+  SRC_LINE_EXISTS = 1,
+  SRC_LINE_EXECUTED = 2,
+};
+
+
 class SourceCodeCoverage
 {
 public:
   String sourcename;
-  Tab<char> runCount;
+  Tab<char> lineType; // CodeLineType
 
   void init(const char *filename_);
   void clear();
-  void inc(int lineNum);
+  void clearCoverage();
+  void onLineExists(int lineNum);
+  void onLineExecuted(int lineNum);
 };
 
 
@@ -36,8 +45,10 @@ public:
 
   SourceCodeCoverageList();
   void clear();
+  void clearCoverage();
   void clearByIndex(int index);
-  void inc(const char *sourcename, int line);
+  void onLineExists(const char *sourcename, int line);
+  void onLineExecuted(const char *sourcename, int line);
 };
 
 
@@ -96,6 +107,7 @@ public:
   bool getSourceCoverage(const char *sourcename, Tab<char> &result);
 
   void onNewLineExecuted(const char *sourcename, int line);
+  void onLineExists(const char *sourcename, int line);
   void onBreakpoint(const char *sourcename, int line);
 
   bool checkForUITimeout = false;

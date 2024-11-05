@@ -187,14 +187,14 @@ Sources =
   wrapper/libcef_dll_wrapper2.cc
 ;
 
-if $(Platform) = macosx {
+if $(Platform) = macOS {
   Sources +=
     wrapper/cef_library_loader_mac.mm
     wrapper/libcef_dll_dylib.cc
   ;
 }
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   CPPopt += -DOS_WIN=1 -DWIN32 -D_WIN32 -D_WINDOWS -DUNICODE ;
   AddLibs += $(Cef3Libs)/libcef.lib ;
 }

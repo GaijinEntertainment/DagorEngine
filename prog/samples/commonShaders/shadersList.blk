@@ -5,4 +5,4 @@
   file:t = "debugGbuffer.dshl"
   file:t = "showGbuffer.dshl"
   file:t = "gui_default.dshl"//for editor (and for future in game console)
-  file:t = "envi_sphere.dshl"
+  file:t = "copy_tex.dshl"

@@ -1,3 +1,4 @@
+if $(UseQuirrel) = none { return ; }
 switch $(ProjectUseQuirrel) {
   case sq3* : UseProgLibs += 1stPartyLibs/quirrel/quirrel ;
 }

@@ -18,9 +18,11 @@ if $(NodeBasedCompiler) = yes {
   Target = $(Target:S=-comp-tool.lib) ;
   CPPopt = -DIS_OFFLINE_SHADER_COMPILER=1 -DNBSM_COMPILE_ONLY ;
   Sources += nodeBasedShaderManagerCompile.cpp ;
+  UseProgLibs += gameLibs/hlslCompiler ;
 } else if $(NodeBasedManagerSupportCompiliation) = yes {
   Target = $(Target:S=-comp.lib) ;
   Sources += nodeBasedShaderManagerCompile.cpp ;
+  UseProgLibs += gameLibs/hlslCompiler ;
 } else {
   Target = $(Target:S=-nocomp.lib) ;
   Sources += stub/nodeBasedShaderManagerCompileStub.cpp ;

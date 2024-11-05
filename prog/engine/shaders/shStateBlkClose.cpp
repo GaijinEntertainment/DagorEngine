@@ -1,7 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "shStateBlk.h"
 #include "scriptSMat.h"
 #include "scriptSElem.h"
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_shader.h>
+#include <drv/3d/dag_driver.h>
 #include <osApiWrappers/dag_critSec.h>
 namespace shaders_internal
 {

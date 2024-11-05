@@ -1,0 +1,141 @@
+include "postfx_common.dshl"
+include "forward_postfx_modifier.dshl"
+
+define_macro_if_not_defined INIT_FORWARD_POSTFX_OPTIONAL_FEATURES()
+endmacro
+
+define_macro_if_not_defined USE_FORWARD_POSTFX_OPTIONAL_FEATURES()
+  hlsl(ps)
+  {
+    void applyOptionalFilter(inout half3 color, float2 sceneUV, float2 tc) {}
+  }
+endmacro
+
+shader forward_postfx
+{
+  //keep this shader in compatibility bindump, to avoid shader reload bugs
+  if (compatibility_mode == compatibility_mode_off)
+  {
+    dont_render;
+  }
+
+  if (hdr_ps_output_mode != sdr_only)
+  {
+    dont_render;
+  }
+
+  ENABLE_ASSERT(ps)
+
+  (ps) {
+    inv_screen_size_flash_blind_confusion_time@f4 = (
+      rendering_res.z,
+      rendering_res.w,
+      flash_blind_remaining_time,
+      //concussion_time
+      (time_phase(0, 0) - concussion_effect_time_start) / concussion_effect_duration
+    );
+    concussion_offset_time_shake_intensity@f2 = (
+      time_phase(0, 0),
+      concussion_shake_intensity,
+      0,
+      0
+    );
+    frame_tex@smp2d = frame_tex;
+  }
+
+  INIT_FORWARD_POSTFX_OPTIONAL_FEATURES()
+  USE_FORWARD_POSTFX_OPTIONAL_FEATURES()
+
+  INIT_SHADER_GAMMA()
+  USE_SHADER_GAMMA()
+  COMMON_POSTFX()
+  HDR_PS_OUTPUT(POSTFX_OUTPUT, float4)
+
+  hlsl(ps) {
+    #define flash_blind_remaining_time inv_screen_size_flash_blind_confusion_time.z
+    #define concussion_time inv_screen_size_flash_blind_confusion_time.w
+    #define concussion_offset_time concussion_offset_time_shake_intensity.x
+    #define concussion_shake_intensity concussion_offset_time_shake_intensity.y
+
+    #include <noise/Value1D.hlsl>
+
+    float4 blurred_source2(float2 tc, float2 offset, out float4 centerSample){
+      //Can be changed to tex2Dlod with mipmap filter
+      float4 c0 = h4tex2Dlod(frame_tex, half4(tc + float2(-1, -1) * offset, 0.0, 0.0));
+      float4 c1 = h4tex2Dlod(frame_tex, half4(tc + float2(0, -1) * offset, 0.0, 0.0));
+      float4 c2 = h4tex2Dlod(frame_tex, half4(tc + float2(1, -1) * offset, 0.0, 0.0));
+      float4 c3 = h4tex2Dlod(frame_tex, half4(tc + float2(-1, 0) * offset, 0.0, 0.0));
+      float4 c4 = h4tex2Dlod(frame_tex, half4(tc, 0.0, 0.0));
+      float4 c5 = h4tex2Dlod(frame_tex, half4(tc + float2(1, 0) * offset, 0.0, 0.0));
+      float4 c6 = h4tex2Dlod(frame_tex, half4(tc + float2(-1, 1) * offset, 0.0, 0.0));
+      float4 c7 = h4tex2Dlod(frame_tex, half4(tc + float2(0, 1) * offset, 0.0, 0.0));
+      float4 c8 = h4tex2Dlod(frame_tex, half4(tc + float2(1, 1) * offset, 0.0, 0.0));
+      centerSample = c4;
+      return 0.0625f * (c0 + 2 * c1 + c2 + 2 * c3 + 4 * c4 + 2 * c5 + c6 + 2 * c7 + c8);
+    }
+
+    float4 sample_quad(float2 tc, float2 offset){
+      //Can be changed to tex2Dlod with mipmap filter
+      float4 c00 = h4tex2Dlod(frame_tex, half4(tc + float2(-1, -1) * offset, 0.0, 0.0));
+      float4 c10 = h4tex2Dlod(frame_tex, half4(tc + float2(1, -1) * offset, 0.0, 0.0));
+      float4 c01 = h4tex2Dlod(frame_tex, half4(tc + float2(-1, 1) * offset, 0.0, 0.0));
+      float4 c11 = h4tex2Dlod(frame_tex, half4(tc + float2(1, 1) * offset, 0.0, 0.0));
+      return 0.25f * (c00 + c10 + c01 + c11);
+    }
+
+    float4 blurred_source(float2 tc, float offset){
+      float4 centerSample;
+      return blurred_source2(tc, float2(offset,offset), centerSample);
+    }
+
+    void sampleSceneColor(float2 uv, out half3 color)
+    {
+      color = h4tex2Dlod(frame_tex, float4(uv, 0.0, 0.0)).xyz;
+    }
+
+    void concussion_effect(float2 screen_uv, inout float3 color)
+    {
+      float2 noise_vec = float2(noise_value1D(concussion_offset_time*2.0), noise_value1D(concussion_offset_time*1.1))*2.0 - 1.0;
+      float intensity = concussion_shake_intensity*(1.0 - concussion_time);
+      float3 image_moved = h4tex2Dlod(frame_tex, half4(screen_uv + noise_vec*intensity, 0.0, 0.0)).rgb;
+      color = lerp(image_moved, color, (1.0 + pow2(concussion_time))*0.5);
+    }
+
+    POSTFX_OUTPUT postfx_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      float4 pos = GET_SCREEN_POS(input.pos);
+
+      //sampling mods
+      half2 distortionOffset = 0;
+      half  distortionBlur   = 0;
+      float2 sceneUV = input.tc + distortionOffset;
+
+      half3 frame;
+      sampleSceneColor(sceneUV, frame);
+
+      applyOptionalFilter(frame, sceneUV, float2(0,0));
+
+      //frame color mods
+      BRANCH
+      if (concussion_time > 0 && concussion_time < 1.0)
+      {
+        concussion_effect(sceneUV, frame);
+      }
+
+      frame += clamp(flash_blind_remaining_time, 0.0, 4.0f) * half3(1,1,1);
+
+      //bloom + exposure
+      half3 result = common_postfx(frame, input.tc, getPrevExposureRatio());
+
+      //tonemap + gamma
+      result = performLUTTonemap(result);
+      result = apply_shader_gamma(result);
+      POSTFX_OUTPUT ret;
+      ret.sdr_result = half4(result, 1);
+      return ret;
+    }
+  }
+
+  compile("target_vs", "postfx_vs");
+  compile("target_ps", "postfx_ps");
+}

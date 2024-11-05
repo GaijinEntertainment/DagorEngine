@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "environmentPlugin.h"
 #include <debug/dag_debug.h>
 
@@ -7,7 +9,7 @@ void init_plugin_environment()
 {
   if (!DAGORED2->checkVersion())
   {
-    debug_ctx("Incorrect version!");
+    DEBUG_CTX("Incorrect version!");
     return;
   }
   if (!EnvironmentPlugin::prepareRequiredServices())

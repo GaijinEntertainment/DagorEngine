@@ -1,5 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 class String;
 class DataBlock;
@@ -132,7 +132,7 @@ void de3_imgui_before_render();
 void de3_imgui_render();
 void de3_imgui_enable_obj(const void *v_ptr, bool enable);
 bool de3_imgui_is_obj_enabled(const void *v_ptr);
-void de3_imgui_set_gui_active(bool active);
+void de3_imgui_set_gui_active(bool active, bool overlay = false);
 
 #else
 // gui stabbed out

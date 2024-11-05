@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "math3d.h"
 #include "qsort.h"
 #include "debug.h"

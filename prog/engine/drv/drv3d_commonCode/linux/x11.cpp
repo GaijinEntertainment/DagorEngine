@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #if !USE_X11
 #error x11.cpp requires -DUSE_X11
 #endif
@@ -7,7 +9,7 @@
 #include <osApiWrappers/dag_wndProcCompMsg.h>
 #include <osApiWrappers/dag_unicode.h>
 #include <workCycle/dag_genGuiMgr.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <limits.h>
 #include "../../../osApiWrappers/linux/linuxClipboardPriv.h"
 
@@ -28,6 +30,9 @@ void cache_cursor_position()
 
 void workcycle_internal::idle_loop()
 {
+  if (!x11.rootDisplay)
+    return;
+
   static const int LBUTTON_BIT = 0;
   static const int RBUTTON_BIT = 1;
   static const int MBUTTON_BIT = 2;

@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/bitset.h>
@@ -5,6 +6,8 @@
 #include <EASTL/vector.h>
 #include <EASTL/numeric.h>
 #include <debug/dag_log.h>
+
+#include <drv/3d/dag_heap.h>
 
 #include "driver.h"
 #include "typed_bit_set.h"
@@ -294,6 +297,46 @@ protected:
       return (!isL0Pool && isRenderTargetOrWriteCombined && isTexture) ? D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT
                                                                        : D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
     }
+
+    bool isCompatible(const ResourceHeapProperties &other, bool is_unified, bool is_uma, bool is_uav) const
+    {
+      if (getFlags(is_unified) != other.getFlags(is_unified))
+        return false; // isTexture==0 does not mean that it is a buffer heap, we have to check the flags
+
+      if (getAlignment() > other.getAlignment())
+        return false;
+
+      if (isRenderTargetOrWriteCombined != other.isRenderTargetOrWriteCombined)
+      {
+        // write-combined can use write-back as fallback when isTexture is false
+        if (isTexture != false)
+          return false;
+        if (getCpuPageProperty(is_uma) != D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE)
+          return false;
+        if (other.getCpuPageProperty(is_uma) != D3D12_CPU_PAGE_PROPERTY_WRITE_BACK)
+          return false;
+      }
+
+      if (isTexture != other.isTexture)
+      {
+        if (!is_unified)
+          return false;
+      }
+
+      if (isL0Pool && !other.isL0Pool)
+        return false;
+
+      if (!isL0Pool && other.isL0Pool)
+      {
+        // for buffers that are not UAV accessible we can downgrade from L1 to L0
+        if (isTexture)
+          return false;
+        if (is_uav)
+          return false;
+      }
+
+      return true;
+    }
   };
 
   uint64_t getPoolBudget(uint32_t pool_type) const
@@ -469,9 +512,12 @@ protected:
   {
     DEDICATED_HEAP,
     DISALLOW_LOCKED_RANGES,
-    DISALLOW_LOCKED_HEAP,
     EXISTING_HEAPS_ONLY,
     NEW_HEAPS_ONLY_WITH_BUDGET,
+    DEFRAGMENTATION_OPERATION,
+    DISABLE_ALTERNATE_HEAPS,
+    IS_UAV,
+    IS_RTV,
 
     COUNT
   };
@@ -521,22 +567,13 @@ protected:
   {
     ID3D12Resource *buffer;
   };
-  struct RaytraceScratchBufferReference
+  struct RaytraceAccelerationStructureHeapReference
   {
-    ID3D12Resource *buffer;
-  };
-  struct RaytraceBottomLevelAccelerationStructureRefnerence
-  {
-    RaytraceAccelerationStructure *as;
-  };
-  struct RaytraceTopLevelAccelerationStructureRefnerence
-  {
-    RaytraceAccelerationStructure *as;
+    ID3D12Resource *as;
   };
   using AnyResourceReference = eastl::variant<eastl::monostate, Image *, BufferGlobalId, AliasHeapReference, ScratchBufferReference,
     PushRingBufferReference, UploadRingBufferReference, TempUploadBufferReference, PersistentUploadBufferReference,
-    PersistentReadBackBufferReference, PersistentBidirectionalBufferReference, RaytraceScratchBufferReference,
-    RaytraceBottomLevelAccelerationStructureRefnerence, RaytraceTopLevelAccelerationStructureRefnerence>;
+    PersistentReadBackBufferReference, PersistentBidirectionalBufferReference, RaytraceAccelerationStructureHeapReference>;
   struct HeapResourceInfo
   {
     ValueRange<uint64_t> range;
@@ -548,8 +585,8 @@ protected:
   };
   struct BasicResourceHeap
   {
-    using FreeRangeSetType = eastl::vector<ValueRange<uint64_t>>;
-    using UsedRangeSetType = eastl::vector<HeapResourceInfo>;
+    using FreeRangeSetType = dag::Vector<ValueRange<uint64_t>>;
+    using UsedRangeSetType = dag::Vector<HeapResourceInfo>;
     FreeRangeSetType freeRanges;
     UsedRangeSetType usedRanges;
     ValueRange<uint64_t> lockedRange{};
@@ -577,6 +614,8 @@ protected:
       G_ASSERT(!isLocked());
       lockedRange = range;
     }
+
+    void lockFullRange() { lock(make_value_range<uint64_t>(0, totalSize)); }
 
     void unlock() { lockedRange.reset(); }
 
@@ -727,29 +766,14 @@ protected:
   {
     uint64_t freeMemorySize = 0;
     uint32_t generation = 0;
-    union
-    {
-      uint32_t rawFlagBits = 0;
-      struct
-      {
-        uint32_t defragFragmentedSpace : 1;
-        uint32_t defragUnusedHeaps : 1;
-      };
-    };
+    uint32_t defragmentationGeneration = 0;
 
     void reset()
     {
       freeMemorySize = 0;
       generation = 0;
-      rawFlagBits = 0;
+      defragmentationGeneration = 0;
     }
-  };
-  enum class DefragmentationReason
-  {
-    // Allocate had to allocate a new heap because there was enough total free space but no enough contiguous free space
-    FRAGMENTED_FREE_SPACE,
-    // Defragger should try to move objects around to free a memory heap back to the system
-    FREE_UNUSED_HEAPS,
   };
   // Extra platform independent heap group data.
   HeapGroupExtraData heapGroupExtraData[ResourceHeapProperties::group_count];
@@ -770,31 +794,23 @@ protected:
   uint64_t getHeapGroupFreeMemorySize(uint32_t heap_group) const { return heapGroupExtraData[heap_group].freeMemorySize; }
   void addHeapGroupFreeSpace(uint32_t heap_group, uint64_t size) { heapGroupExtraData[heap_group].freeMemorySize += size; }
   void subtractHeapGroupFreeSpace(uint32_t heap_group, uint64_t size) { heapGroupExtraData[heap_group].freeMemorySize -= size; }
-  void updateHeapGroupNeedsDefragmentation(uint32_t heap_group, DefragmentationReason reason)
-  {
-    auto &data = heapGroupExtraData[heap_group];
-    if (DefragmentationReason::FRAGMENTED_FREE_SPACE == reason)
-    {
-      data.defragFragmentedSpace = 1;
-    }
-    else if (DefragmentationReason::FREE_UNUSED_HEAPS == reason)
-    {
-      data.defragUnusedHeaps = 1;
-    }
-  }
-  void updateHeapGroupGeneration(uint32_t heap_group) { ++heapGroupExtraData[heap_group].generation; }
-  uint32_t getHeapGroupGeneration(uint32_t heap_group) const { return heapGroupExtraData[heap_group].generation; }
-  bool heapGroupNeedsDefragmentation(uint32_t heap_group) const
-  {
-    auto &group = heapGroupExtraData[heap_group];
-    return 0 != (group.defragUnusedHeaps | group.defragFragmentedSpace);
-  }
-  void resetHeapGroupDefragmentationFlags(uint32_t heap_group)
-  {
-    auto &group = heapGroupExtraData[heap_group];
 
-    group.defragFragmentedSpace = 0;
-    group.defragUnusedHeaps = 0;
+  void updateHeapGroupGeneration(uint32_t heap_group, bool update_defragmentation)
+  {
+    ++heapGroupExtraData[heap_group].generation;
+    if (update_defragmentation)
+      ++heapGroupExtraData[heap_group].defragmentationGeneration;
+  }
+  uint32_t getHeapGroupGeneration(uint32_t heap_group) const { return heapGroupExtraData[heap_group].generation; }
+  bool checkDefragmentationGeneration(uint32_t heap_group) const
+  {
+    const auto &extraData = heapGroupExtraData[heap_group];
+    return extraData.generation == extraData.defragmentationGeneration;
+  }
+  void setDefragmentationGeneration(uint32_t heap_group)
+  {
+    auto &extraData = heapGroupExtraData[heap_group];
+    extraData.defragmentationGeneration = extraData.generation;
   }
 
   // Helper to iterate over free and used range in order of offset into the heap
@@ -949,48 +965,50 @@ protected:
     }
   };
 
-  eastl::vector<ResourceHeap> groups[ResourceHeapProperties::group_count];
+  eastl::array<dag::Vector<ResourceHeap>, ResourceHeapProperties::group_count> groups;
   bool lockedHeaps = false;
 
-  void listHeaps()
+  struct ResourceHeapVisitor
   {
     ByteUnits totalSize;
     ByteUnits freeSize;
     size_t totalHeapCount = 0;
-    struct ResourceHeapVisitor
+
+    void beginVisit() {}
+    void endVisit()
     {
-      ByteUnits &totalSize;
-      ByteUnits &freeSize;
-      size_t &totalHeapCount;
+      logdbg("DX12: %u resource heaps, with %6.2f %7s in total and %6.2f %7s free", totalHeapCount, totalSize.units(),
+        totalSize.name(), freeSize.units(), freeSize.name());
+    }
 
-      void visitHeapGroup(uint32_t ident, size_t count, bool is_cpu_visible, bool is_cpu_cached, bool is_gpu_executable)
-      {
-        logdbg("DX12: Heap Group %08X (%s, %s%s) with %d heaps", ident, is_cpu_visible ? "CPU visible" : "dedicated GPU",
-          is_cpu_visible ? is_cpu_cached ? "CPU cached, " : "CPU write combine, " : "",
-          is_gpu_executable ? "GPU executable" : "Not GPU executable", count);
-        totalHeapCount += count;
-      }
+    void visitHeapGroup(uint32_t ident, size_t count, bool is_cpu_visible, bool is_cpu_cached, bool is_gpu_executable)
+    {
+      logdbg("DX12: Heap Group %08X (%s, %s%s) with %d heaps", ident, is_cpu_visible ? "CPU visible" : "dedicated GPU",
+        is_cpu_visible ? is_cpu_cached ? "CPU cached, " : "CPU write combine, " : "",
+        is_gpu_executable ? "GPU executable" : "Not GPU executable", count);
+      totalHeapCount += count;
+    }
 
-      void visitHeap(ByteUnits total_size, ByteUnits free_size, uint32_t fragmentation_percent)
-      {
-        totalSize += total_size;
-        freeSize += free_size;
-        logdbg("DX12: Size %6.2f %7s Free %6.2f %7s, %3u%% fragmentation", total_size.units(), total_size.name(), free_size.units(),
-          free_size.name(), fragmentation_percent);
-      }
+    void visitHeap(ByteUnits total_size, ByteUnits free_size, uint32_t fragmentation_percent)
+    {
+      totalSize += total_size;
+      freeSize += free_size;
+      logdbg("DX12: Size %6.2f %7s Free %6.2f %7s, %3u%% fragmentation", total_size.units(), total_size.name(), free_size.units(),
+        free_size.name(), fragmentation_percent);
+    }
 
-      void visitHeapUsedRange(ValueRange<uint64_t>) {}
+    template <typename T>
+    void visitHeapUsedRange(ValueRange<uint64_t>, const T &)
+    {}
 
-      void visitHeapFreeRange(ValueRange<uint64_t> range)
-      {
-        ByteUnits sizeBytes{range.size()};
-        logdbg("DX12: Free segment at %016X with %6.2f %7s", range.front(), sizeBytes.units(), sizeBytes.name());
-      }
-    };
-    visitHeaps(ResourceHeapVisitor{totalSize, freeSize, totalHeapCount});
-    logdbg("DX12: %u resource heaps, with %6.2f %7s in total and %6.2f %7s free", totalHeapCount, totalSize.units(), totalSize.name(),
-      freeSize.units(), freeSize.name());
-  }
+    void visitHeapFreeRange(ValueRange<uint64_t> range)
+    {
+      ByteUnits sizeBytes{range.size()};
+      logdbg("DX12: Free segment at %016X with %6.2f %7s", range.front(), sizeBytes.units(), sizeBytes.name());
+    }
+  };
+
+  void listHeaps() { visitHeaps(ResourceHeapVisitor{}); }
 
 public:
   static D3D12_RESOURCE_STATES propertiesToInitialState(D3D12_RESOURCE_DIMENSION dim, D3D12_RESOURCE_FLAGS flags,
@@ -1060,15 +1078,16 @@ public:
   bool preAllocateHeap(ResourceHeapProperties properties, size_t heap_size);
 
   ResourceMemory allocate(DXGIAdapter *adapter, ID3D12Device *device, ResourceHeapProperties props,
-    const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags);
-  void free(ResourceMemory allocation);
+    const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags, HRESULT *pErrorCode = nullptr);
+  void free(ResourceMemory allocation, bool update_defragmentation_generation);
 
   template <typename T>
   void visitHeaps(T clb)
   {
     ResourceHeapProperties properties;
     OSSpinlockScopedLock lock{heapGroupMutex};
-    for (properties.raw = 0; properties.raw < countof(groups); ++properties.raw)
+    clb.beginVisit();
+    for (properties.raw = 0; properties.raw < groups.size(); ++properties.raw)
     {
       auto &group = groups[properties.raw];
       clb.visitHeapGroup(properties.raw, group.size(), true, 0 != properties.isCPUCoherent, 0 != properties.isGPUExecutable);
@@ -1080,17 +1099,46 @@ public:
           freeSize += r.size();
         }
         clb.visitHeap(heap.totalSize, freeSize, free_list_calculate_fragmentation(heap.freeRanges));
-        for (auto &r : heap.usedRanges)
+        // we going to visit used and free ranges in order of offset, each set of ranges is sorted so
+        // a simple compare of each position in the set will tell which one is next
+        auto usedPos = begin(heap.usedRanges);
+        auto freePos = begin(heap.freeRanges);
+        const auto uE = end(heap.usedRanges);
+        const auto fE = end(heap.freeRanges);
+        while (usedPos != uE || freePos != fE)
         {
-          clb.visitHeapUsedRange(r.range);
-        }
-        for (auto &r : heap.freeRanges)
-        {
-          clb.visitHeapFreeRange(r);
+          if (usedPos != uE && freePos != fE)
+          {
+            if (usedPos->range.front() < freePos->front())
+            {
+              clb.visitHeapUsedRange(usedPos->range, usedPos->resource);
+              ++usedPos;
+            }
+            else
+            {
+              clb.visitHeapFreeRange(*freePos);
+              ++freePos;
+            }
+          }
+          else if (usedPos != uE)
+          {
+            clb.visitHeapUsedRange(usedPos->range, usedPos->resource);
+            ++usedPos;
+          }
+          else if (freePos != fE)
+          {
+            clb.visitHeapFreeRange(*freePos);
+            ++freePos;
+          }
         }
       }
     }
+    clb.endVisit();
   }
+
+private:
+  ResourceMemory tryAllocateFromMemoryWithProperties(ResourceHeapProperties heap_properties,
+    const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags, HRESULT *pErrorCode);
 };
 #else
 class ResourceMemoryHeapProvider : public ResourceMemoryHeapBase
@@ -1128,7 +1176,7 @@ protected:
     }
   };
 
-  eastl::vector<ResourceHeap> groups[ResourceHeapProperties::group_count];
+  eastl::array<dag::Vector<ResourceHeap>, ResourceHeapProperties::group_count> groups;
 
 public:
   static D3D12_RESOURCE_STATES propertiesToInitialState(D3D12_RESOURCE_DIMENSION dim, D3D12_RESOURCE_FLAGS flags,
@@ -1187,15 +1235,16 @@ public:
   static D3D12_RESOURCE_STATES getInitialTextureResourceState(D3D12_RESOURCE_FLAGS flags);
 
   ResourceMemory allocate(DXGIAdapter *adapter, ID3D12Device *device, ResourceHeapProperties props,
-    const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags);
-  void free(ResourceMemory allocation);
+    const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags, HRESULT *pErrorCode = nullptr);
+  void free(ResourceMemory allocation, bool update_defragmentation_generation);
 
   template <typename T>
   void visitHeaps(T clb)
   {
     ResourceHeapProperties props;
     OSSpinlockScopedLock lock{heapGroupMutex};
-    for (props.raw = 0; props.raw < countof(groups); ++props.raw)
+    clb.beginVisit();
+    for (props.raw = 0; props.raw < groups.size(); ++props.raw)
     {
       auto &group = groups[props.raw];
       clb.visitHeapGroup(props.raw, group.size(), props.isCPUVisible(),
@@ -1208,17 +1257,46 @@ public:
           freeSize += r.size();
         }
         clb.visitHeap(heap.totalSize, freeSize, free_list_calculate_fragmentation(heap.freeRanges));
-        for (auto &r : heap.usedRanges)
+        // we going to visit used and free ranges in order of offset, each set of ranges is sorted so
+        // a simple compare of each position in the set will tell which one is next
+        auto usedPos = begin(heap.usedRanges);
+        auto freePos = begin(heap.freeRanges);
+        const auto uE = end(heap.usedRanges);
+        const auto fE = end(heap.freeRanges);
+        while (usedPos != uE || freePos != fE)
         {
-          clb.visitHeapUsedRange(r.range);
-        }
-        for (auto &r : heap.freeRanges)
-        {
-          clb.visitHeapFreeRange(r);
+          if (usedPos != uE && freePos != fE)
+          {
+            if (usedPos->range.front() < freePos->front())
+            {
+              clb.visitHeapUsedRange(usedPos->range, usedPos->resource);
+              ++usedPos;
+            }
+            else
+            {
+              clb.visitHeapFreeRange(*freePos);
+              ++freePos;
+            }
+          }
+          else if (usedPos != uE)
+          {
+            clb.visitHeapUsedRange(usedPos->range, usedPos->resource);
+            ++usedPos;
+          }
+          else if (freePos != fE)
+          {
+            clb.visitHeapFreeRange(*freePos);
+            ++freePos;
+          }
         }
       }
     }
+    clb.endVisit();
   }
+
+private:
+  ResourceMemory tryAllocateFromMemoryWithProperties(ID3D12Device *device, ResourceHeapProperties heap_properties,
+    AllocationFlags flags, const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, HRESULT *error_code);
 };
 #endif
 

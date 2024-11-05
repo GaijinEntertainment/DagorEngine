@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <projectiveDecals/projectiveDecalsBuffer.h>
 
 DecalsBuffer::DecalsBuffer(uint32_t size, const char *decal_buffer_name, const char *culled_buffer_name) :

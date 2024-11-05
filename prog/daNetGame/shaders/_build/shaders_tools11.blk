@@ -1,0 +1,102 @@
+outDumpName:t="../../tools/common/compiledShaders/tools"
+packBin:b=yes
+
+shader_root_dir:t="."
+
+include common_inc_dirs.blk
+source
+{
+  file:t = "../editor.dshl"
+  file:t = "tex_view.dshl"
+  file:t = "infinite_grid.dshl"
+  file:t = "simple_outline.dshl"
+  file:t = "debug_fx.dshl"
+  file:t = "spline_solid.dshl"
+  file:t = "../deferred_shadow.dshl"
+  file:t = "../apply_wireframe.dshl"
+  file:t = "../no_postfx_resolve.dshl"
+  file:t = "pack_impostor_texture.dshl"
+  file:t = "../../../prog/gameLibs/vr/shaders/vrGuiSurface.dshl"
+  include shadersList.blk
+}
+common_valid_variants {
+  invalid {rendinst_render_pass:i = 6;}//voxelization
+}
+
+common_assume_vars {
+  render_to_float:i = 0
+  gi_quality:i=-1
+  ssao_use_wsao:i=0
+  gpu_objects_gpu_instancing:i=0
+}
+
+Compile
+{
+  fsh:t = 5.0
+  group_size_in_kb:i=1019
+  assume_vars {
+    supports_sh_6_1:i = 0
+    sparkles_enable:i=1
+    static_shadows_cascades:i=1
+    particles_buffer_id:i=-1
+    in_editor_assume:i=1
+    hack_globtm_from_register:i = 0//not supported
+    hmap_ofs_tex:i = 0
+    shore_waves_on:i= 0
+    water_foam_tex:i = 0
+    water_cascades:i=4
+    wake_gradients_tex:i=0
+    water_refraction_tex:i = 1
+    water_reflection_tex:i = 0
+    support_texture_array:i=1
+    is_gather4_supported:i = 0
+    ssao_quality:i = 0
+    specular_tex:i = 0
+    envi_cover:i = 0
+    envi_cover_intensity_map:i = 0
+    current_ambient:i = 0
+    in_editor:i = 1
+    use_contact_shadows:i = 1
+    use_vr_reprojection:i = 0
+    depth_bounds_support:i = 0
+    blur_quality:i = 0
+    hero_ao:i = 0
+    num_of_cascades:i=4
+    compatibility_mode:i = 0
+    mobile_render:i=0
+    mobile_simplified_materials:i=0
+    use_postfx:i = 1
+    has_discard_without_prepass:i=0
+    volumetric_light_assumed_off:i=1
+    froxel_fog_use_experimental_offscreen_reprojection:i = 0
+    use_directional_blood_on_screen:i=0
+    blood_wound_high_quality:i=0
+    blood_puddles_has_separate_flowmap:i=0
+    small_sampled_buffers:i=0
+    assume_fom_shadows:i=1
+    assume_downsampled_shadows:i=0
+    fluid_wind_support_assume:i=1
+    heightmap_holes_support_assume:i=0
+    use_extended_global_frame_block:i=0
+    baked_impostor_multisample:i=1
+    fx_apply_volfog_per_pixel:i=1
+    fx_has_volfog_injection:i=1
+    use_ssss:i=0
+    ssss_quality:i=0
+    rendinst_use_cell_sbuffer:i=0
+    special_vision:i=0
+    grassify:i=1
+    water_ripples_normal:i=1
+    dagi_sp_has_exposure_assume:i=1
+    dagi_warp64_irradiance:i=0
+  }
+}
+
+
+explicit_var_ref
+{
+  include common_tools_var_ref.blk
+  ref:t = in_editor
+  ref:t = random_pattern_tex
+  ref:t = dafx_frame_boundary_buffer_enabled
+}

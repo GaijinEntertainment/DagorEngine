@@ -76,7 +76,7 @@ def operator ?[] (t : Array const? const; idx : int) : ChildComponent const? con
 
 
 [generic, constant_expression(name=false), unused_argument(name)]
-def operator .(t : Object const == const; name : string) : ChildComponent const? const
+def operator .(t : Object const ==const; name : string) : ChildComponent const? const
   static_if typeinfo(is_argument name)
     return t[name]
   else
@@ -84,7 +84,7 @@ def operator .(t : Object const == const; name : string) : ChildComponent const?
 
 
 [generic, constant_expression(name=false), unused_argument(name)]
-def operator .(var t : Object == const; name : string) : ChildComponent?
+def operator .(var t : Object ==const; name : string) : ChildComponent?
   static_if typeinfo(is_argument name)
     return t[name]
   else
@@ -92,7 +92,7 @@ def operator .(var t : Object == const; name : string) : ChildComponent?
 
 
 [generic, constant_expression(name=false), unused_argument(name)]
-def operator ?.(t : Object const? const == const; name : string) : ChildComponent const? const
+def operator ?.(t : Object const? const ==const; name : string) : ChildComponent const? const
   if t != null
     static_if typeinfo(is_argument name)
       return (*t)[name]
@@ -102,7 +102,7 @@ def operator ?.(t : Object const? const == const; name : string) : ChildComponen
 
 
 [generic, constant_expression(name=false), unused_argument(name)]
-def operator ?.(var t : Object? == const; name : string) : ChildComponent?
+def operator ?.(var t : Object? ==const; name : string) : ChildComponent?
   if t != null
     static_if typeinfo(is_argument name)
       return (*t)[name]
@@ -315,7 +315,7 @@ def operator ??(a : ChildComponent const#; default_value)
 
 
 [generic, constant_expression(name), unused_argument(child, name)]
-def operator ?as(child : ChildComponent const? const == const; name : string)
+def operator ?as(child : ChildComponent const? const ==const; name : string)
   static_if !typeinfo(is_argument name)
     static_if name == "Object"
       return get_ecs_object(child)
@@ -370,7 +370,7 @@ def operator ?as(child : ChildComponent const? const == const; name : string)
 
 
 [generic, constant_expression(name), unused_argument(child, name)]
-def operator ?as(child : ChildComponent const? const# == const; name : string)
+def operator ?as(child : ChildComponent const? const# ==const; name : string)
   static_if !typeinfo(is_argument name)
     static_if name == "Object"
       return get_ecs_object(child)
@@ -425,62 +425,7 @@ def operator ?as(child : ChildComponent const? const# == const; name : string)
 
 
 [generic, constant_expression(name), unused_argument(child, name)]
-def operator as(child : ChildComponent const == const; name : string)
-  static_if !typeinfo(is_argument name)
-    static_if name == "Object"
-      return get_ecs_object(child)
-    static_elif name == "Array"
-      return get_ecs_array(child)
-    static_elif name == "IntList"
-      return get_ecs_IntList(child)
-    static_elif name == "FloatList"
-      return get_ecs_FloatList(child)
-    static_elif name == "int4"
-      return get_IPoint4(child)
-    static_elif name == "int2"
-      return get_IPoint2(child)
-    static_elif name == "int8"
-      return get_int8(child)
-    static_elif name == "int16"
-      return get_int16(child)
-    static_elif name == "int"
-      return get_int(child)
-    static_elif name == "uint8"
-      return get_uint8(child)
-    static_elif name == "uint"
-      return get_uint(child)
-    static_elif name == "uint16"
-      return get_uint16(child)
-    static_elif name == "uint64"
-      return get_uint64(child)
-    static_elif name == "string"
-      return get_ecs_string(child)
-    static_elif name == "math::float3x4"
-      return get_TMatrix(child)
-    static_elif name == "DagorMath::E3DCOLOR"
-      return get_E3DCOLOR(child)
-    static_elif name == "float"
-      return get_float(child)
-    static_elif name == "float2"
-      return get_Point2(child)
-    static_elif name == "float3"
-      return get_Point3(child)
-    static_elif name == "float4"
-      return get_Point4(child)
-    static_elif name == "ecs::EntityId"
-      return get_Eid(child)
-    static_elif name == "bool"
-      return get_bool(child)
-    static_elif name == "int3"
-      return get_IPoint3(child)
-    static_elif name == "int64"
-      return get_int64(child)
-    else
-      concept_assert(false, "Unsupported type for as operator")
-
-
-[generic, constant_expression(name), unused_argument(child, name)]
-def operator as(child : ChildComponent const# == const; name : string)
+def operator as(child : ChildComponent const ==const; name : string)
   static_if !typeinfo(is_argument name)
     static_if name == "Object"
       return get_ecs_object(child)
@@ -535,7 +480,62 @@ def operator as(child : ChildComponent const# == const; name : string)
 
 
 [generic, constant_expression(name), unused_argument(child, name)]
-def operator ?as(var child : ChildComponent? == const; name : string)
+def operator as(child : ChildComponent const# ==const; name : string)
+  static_if !typeinfo(is_argument name)
+    static_if name == "Object"
+      return get_ecs_object(child)
+    static_elif name == "Array"
+      return get_ecs_array(child)
+    static_elif name == "IntList"
+      return get_ecs_IntList(child)
+    static_elif name == "FloatList"
+      return get_ecs_FloatList(child)
+    static_elif name == "int4"
+      return get_IPoint4(child)
+    static_elif name == "int2"
+      return get_IPoint2(child)
+    static_elif name == "int8"
+      return get_int8(child)
+    static_elif name == "int16"
+      return get_int16(child)
+    static_elif name == "int"
+      return get_int(child)
+    static_elif name == "uint8"
+      return get_uint8(child)
+    static_elif name == "uint"
+      return get_uint(child)
+    static_elif name == "uint16"
+      return get_uint16(child)
+    static_elif name == "uint64"
+      return get_uint64(child)
+    static_elif name == "string"
+      return get_ecs_string(child)
+    static_elif name == "math::float3x4"
+      return get_TMatrix(child)
+    static_elif name == "DagorMath::E3DCOLOR"
+      return get_E3DCOLOR(child)
+    static_elif name == "float"
+      return get_float(child)
+    static_elif name == "float2"
+      return get_Point2(child)
+    static_elif name == "float3"
+      return get_Point3(child)
+    static_elif name == "float4"
+      return get_Point4(child)
+    static_elif name == "ecs::EntityId"
+      return get_Eid(child)
+    static_elif name == "bool"
+      return get_bool(child)
+    static_elif name == "int3"
+      return get_IPoint3(child)
+    static_elif name == "int64"
+      return get_int64(child)
+    else
+      concept_assert(false, "Unsupported type for as operator")
+
+
+[generic, constant_expression(name), unused_argument(child, name)]
+def operator ?as(var child : ChildComponent? ==const; name : string)
   static_if !typeinfo(is_argument name)
     static_if name == "Object"
       return getRW_ecs_object(child)
@@ -590,7 +590,7 @@ def operator ?as(var child : ChildComponent? == const; name : string)
 
 
 [generic, constant_expression(name), unused_argument(child, name)]
-def operator ?as(var child : ChildComponent?# == const; name : string)
+def operator ?as(var child : ChildComponent?# ==const; name : string)
   static_if !typeinfo(is_argument name)
     static_if name == "Object"
       return getRW_ecs_object(child)
@@ -645,7 +645,7 @@ def operator ?as(var child : ChildComponent?# == const; name : string)
 
 
 [generic, constant_expression(name), unused_argument(child, name)]
-def operator as(var child : ChildComponent == const; name : string)
+def operator as(var child : ChildComponent ==const; name : string)
   static_if !typeinfo(is_argument name)
     static_if name == "Object"
       return getRW_ecs_object(child)
@@ -700,7 +700,7 @@ def operator as(var child : ChildComponent == const; name : string)
 
 
 [generic, constant_expression(name), unused_argument(child, name)]
-def operator as(var child : ChildComponent# == const; name : string)
+def operator as(var child : ChildComponent# ==const; name : string)
   static_if !typeinfo(is_argument name)
     static_if name == "Object"
       return getRW_ecs_object(child)

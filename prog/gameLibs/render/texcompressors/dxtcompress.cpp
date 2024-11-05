@@ -1,17 +1,21 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_globDef.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_tex3d.h>
 #include <image/dag_dxtCompress.h>
 #include <render/dxtcompress.h>
 #include <math/dag_imageFunctions.h>
+#include <3d/dag_lockTexture.h>
 
 #ifdef _MSC_VER
 #pragma optimize("gt", on)
 #endif
 
 
-void software_downsample_2x(unsigned char *dstPixel, unsigned char *srcPixel, unsigned int dstWidth, unsigned int dstHeight)
+void software_downsample_2x(unsigned char *dstPixel, const unsigned char *srcPixel, unsigned int dstWidth, unsigned int dstHeight)
 {
   if ((((size_t)srcPixel) & 15) || dstWidth < 2)
     imagefunctions::downsample4x_simdu(dstPixel, srcPixel, dstWidth, dstHeight);
@@ -19,13 +23,13 @@ void software_downsample_2x(unsigned char *dstPixel, unsigned char *srcPixel, un
     imagefunctions::downsample4x_simda(dstPixel, srcPixel, dstWidth, dstHeight);
 }
 
-Texture *convert_to_dxt_texture(int w, int h, unsigned flags, char *linearData, int stride, int numMips, bool dxt5,
+Texture *convert_to_dxt_texture(int w, int h, unsigned flags, const char *linearData, int stride, int numMips, bool dxt5,
   const char *stat_name)
 {
   return convert_to_custom_dxt_texture(w, h, flags, linearData, stride, numMips, dxt5 ? MODE_DXT5 : MODE_DXT1, 0, stat_name);
 }
 
-Texture *convert_to_bc4_texture(int w, int h, unsigned flags, char *linearData, int row_stride, int numMips, int pixel_offset,
+Texture *convert_to_bc4_texture(int w, int h, unsigned flags, const char *linearData, int row_stride, int numMips, int pixel_offset,
   const char *stat_name)
 {
   return convert_to_custom_dxt_texture(w, h, flags, linearData, row_stride, numMips, MODE_BC4, pixel_offset, stat_name);
@@ -33,7 +37,7 @@ Texture *convert_to_bc4_texture(int w, int h, unsigned flags, char *linearData, 
 
 // todo gamma mip
 
-Texture *convert_to_custom_dxt_texture(int w, int h, unsigned flags, char *linearData, int row_stride, int numMips, int mode,
+Texture *convert_to_custom_dxt_texture(int w, int h, unsigned flags, const char *linearData, int row_stride, int numMips, int mode,
   int pixel_offset, const char *stat_name)
 {
   flags = (flags & (~TEXFMT_MASK));
@@ -52,55 +56,66 @@ Texture *convert_to_custom_dxt_texture(int w, int h, unsigned flags, char *linea
   if (!tex)
     return NULL;
 
-  char *compressToData;
-  char *nostride_linear_data = linearData;
+  const char *nostride_linear_data = linearData;
+  dag::Vector<char> allocated_buffer;
   if (row_stride != w * 4)
   {
-    nostride_linear_data = (char *)memalloc(w * h * 4);
+    allocated_buffer.resize(h * w * 4);
+    nostride_linear_data = allocated_buffer.data();
     for (int i = 0; i < h; ++i)
-      memcpy(nostride_linear_data, linearData, w * 4);
+      memcpy(allocated_buffer.data() + i * w * 4, linearData + i * row_stride, w * 4);
   }
   for (unsigned int mipNo = 0; mipNo < numMips; mipNo++)
-  {
-    char *dxtData;
-    int dxtPitch;
-    if (!tex->lockimg((void **)&dxtData, dxtPitch, mipNo,
+    if (auto lockedTex = lock_texture(tex, mipNo,
           TEXLOCK_WRITE | ((mipNo != numMips - 1) ? TEXLOCK_DONOTUPDATEON9EXBYDEFAULT : TEXLOCK_DELSYSMEMCOPY)))
     {
-      logerr("%s lockimg failed '%s'", __FUNCTION__, d3d::get_last_error());
-      continue;
-    }
+      uint8_t *dxtData = lockedTex.get();
+      int dxtPitch = lockedTex.getByteStride();
 
-    // int64_t reft = ref_time_ticks();
-    unsigned int mipW = w >> mipNo;
-    unsigned int mipH = h >> mipNo;
-    compressToData = dxtData;
+      unsigned int mipW = w >> mipNo;
+      unsigned int mipH = h >> mipNo;
 
-    if (mode == MODE_BC4)
-      CompressBC4((unsigned char *)nostride_linear_data + pixel_offset, mipW, mipH, dxtPitch, dxtData, mipW * 4, 4);
-    else if (mode == MODE_R8)
-    {
-      for (int i = 0; i < mipH; ++i)
+      if (mode == MODE_BC4)
+        CompressBC4(reinterpret_cast<const unsigned char *>(nostride_linear_data) + pixel_offset, mipW, mipH, dxtPitch,
+          reinterpret_cast<char *>(dxtData), mipW * 4, 4);
+      else if (mode == MODE_R8)
       {
-        const uint8_t *src = (const uint8_t *)nostride_linear_data + i * mipW * 4 + pixel_offset;
-        uint8_t *dst = (uint8_t *)dxtData + i * dxtPitch;
-        for (int j = 0; j < mipW; ++j, src += 4, dst++)
-          *dst = *src;
+        for (int i = 0; i < mipH; ++i)
+        {
+          const uint8_t *src = reinterpret_cast<const uint8_t *>(nostride_linear_data) + i * mipW * 4 + pixel_offset;
+          uint8_t *dst = reinterpret_cast<uint8_t *>(dxtData) + i * dxtPitch;
+          for (int j = 0; j < mipW; ++j, src += 4, dst++)
+            *dst = *src;
+        }
+      }
+      else
+        ManualDXT(mode, reinterpret_cast<const TexPixel32 *>(nostride_linear_data), mipW, mipH, dxtPitch,
+          reinterpret_cast<char *>(dxtData), DXT_ALGORITHM_PRECISE);
+
+      if (mipNo < numMips - 1)
+      {
+        // Calculate downsampled image (next mip) from nostride_linear_data = current mip
+        unsigned int nextMipW = mipW >> 1;
+        unsigned int nextMipH = mipH >> 1;
+
+        // Store next mip (downsampled image) in allocated_buffer
+        // Check buffer size
+        if (allocated_buffer.empty())
+          allocated_buffer.resize(nextMipW * nextMipH * 4);
+        else
+          G_ASSERT(allocated_buffer.size() > nextMipW * nextMipH * 4);
+
+        software_downsample_2x(reinterpret_cast<unsigned char *>(allocated_buffer.data()),
+          reinterpret_cast<const unsigned char *>(nostride_linear_data), nextMipW, nextMipH);
+
+        nostride_linear_data = allocated_buffer.data(); // Ptr to next mip
       }
     }
     else
-      ManualDXT(mode, (TexPixel32 *)nostride_linear_data, mipW, mipH, dxtPitch, dxtData, DXT_ALGORITHM_PRECISE);
-    // compress += get_time_usec(reft);
-    // reft = ref_time_ticks();
-    if (mipNo < numMips - 1)
     {
-      software_downsample_2x((unsigned char *)linearData, (unsigned char *)linearData, mipW >> 1, mipH >> 1);
+      logerr("%s lockimg failed '%s'", __FUNCTION__, d3d::get_last_error());
+      break;
     }
 
-    tex->unlockimg();
-  }
-
-  if (row_stride != w * 4)
-    memfree(nostride_linear_data, tmpmem);
   return tex;
 }

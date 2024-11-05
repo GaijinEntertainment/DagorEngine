@@ -1,6 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 // defines a set of states that control scope like elements of command buffer
 // that should be handled at start of state apply
-#pragma once
+
 #include "util/tracked_state.h"
 #include "compute_state.h"
 #include "graphics_state2.h"

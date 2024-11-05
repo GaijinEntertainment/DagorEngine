@@ -1,6 +1,4 @@
-
-#ifndef __DAGOR_NODE_SHAPEOBJ_H
-#define __DAGOR_NODE_SHAPEOBJ_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <libTools/dagFileRW/dagFileNode.h>
@@ -20,5 +18,3 @@ public:
   int classid();
   bool isSubOf(unsigned);
 };
-
-#endif

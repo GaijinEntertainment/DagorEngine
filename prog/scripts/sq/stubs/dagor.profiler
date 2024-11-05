@@ -6,4 +6,6 @@ return {
   reset_values = noop
   dump = noop
   get_total_time = noop
+  stop_and_save_to_file = noop
+  detect_slow_calls = noop
 }

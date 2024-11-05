@@ -1,0 +1,32 @@
+include "shader_global.dshl"
+
+float4 wireframe_color = (0.9411, 0.9411, 0.9411, 1.);
+texture wireframe_tex;
+shader apply_wireframe
+{
+  cull_mode = none;
+  z_test = false;
+  z_write = false;
+
+  POSTFX_VS_TEXCOORD(0, tc)
+
+  (ps) {
+    wireframe_tex@smp2d = wireframe_tex;
+    wireframe_color@f4 = wireframe_color;
+  }
+
+  hlsl(ps) {
+    float4 apply_wireframe_ps(VsOutput input): SV_Target
+    {
+      half4 color = h4tex2D(wireframe_tex, input.tc);
+      BRANCH
+      if (dot(color.rgb, 1) > 0)
+        discard;
+
+      return wireframe_color;
+    }
+  }
+
+  compile("target_ps", "apply_wireframe_ps");
+}
+

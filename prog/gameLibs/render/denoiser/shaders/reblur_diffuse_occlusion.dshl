@@ -1,0 +1,124 @@
+hlsl(cs) {
+  #include "NRDEncoding.hlsli"
+
+  #pragma hlsl2021
+}
+
+// This one is used by all reblur shaders
+shader nrd_reblur_classify_tiles
+{
+  hlsl(cs) {
+    #pragma wave32
+    #include "REBLUR_ClassifyTiles.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_diffuse_occlusion_hit_dist_reconstruction
+{
+  hlsl(cs) {
+    #include "REBLUR_DiffuseOcclusion_HitDistReconstruction.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_diffuse_occlusion_hit_dist_reconstruction_5x5
+{
+  hlsl(cs) {
+    #include "REBLUR_DiffuseOcclusion_HitDistReconstruction_5x5.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_perf_diffuse_occlusion_hit_dist_reconstruction
+{
+  hlsl(cs) {
+    #include "REBLUR_Perf_DiffuseOcclusion_HitDistReconstruction.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_perf_diffuse_occlusion_hit_dist_reconstruction_5x5
+{
+  hlsl(cs) {
+    #include "REBLUR_Perf_DiffuseOcclusion_HitDistReconstruction_5x5.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_diffuse_occlusion_temporal_accumulation
+{
+  hlsl(cs) {
+    #include "REBLUR_DiffuseOcclusion_TemporalAccumulation.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_perf_diffuse_occlusion_temporal_accumulation
+{
+  hlsl(cs) {
+    #include "REBLUR_Perf_DiffuseOcclusion_TemporalAccumulation.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_diffuse_occlusion_history_fix
+{
+  hlsl(cs) {
+    #include "REBLUR_DiffuseOcclusion_HistoryFix.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_perf_diffuse_occlusion_history_fix
+{
+  hlsl(cs) {
+    #include "REBLUR_Perf_DiffuseOcclusion_HistoryFix.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_diffuse_occlusion_blur
+{
+  hlsl(cs) {
+    #include "REBLUR_DiffuseOcclusion_Blur.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_perf_diffuse_occlusion_blur
+{
+  hlsl(cs) {
+    #include "REBLUR_Perf_DiffuseOcclusion_Blur.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_diffuse_occlusion_postblur_no_temporal_stabilization
+{
+  hlsl(cs) {
+    #include "REBLUR_DiffuseOcclusion_PostBlur_NoTemporalStabilization.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_perf_diffuse_occlusion_postblur_no_temporal_stabilization
+{
+  hlsl(cs) {
+    #include "REBLUR_Perf_DiffuseOcclusion_PostBlur_NoTemporalStabilization.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}

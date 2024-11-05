@@ -1,0 +1,375 @@
+include "world_sdf.dshl"
+include "sky_shader_global.dshl"
+include "sq_clouds_shadow.dshl"
+include "screenspace_probes_common.dshl"
+include "dagi_rad_grid_common.dshl"
+include "dagi_lit_scene_helper.dshl"
+include "dagi_media_scene_common.dshl"
+include "gbuffer.dshl"
+
+include "sp_calc_radiance_quality.dshl"
+buffer screenspace_tile_classificator;
+
+macro NOISE(code)
+  (code) {
+   sp_rand_decode@f3 = (1./(screenspace_probe_res.w*65535.), -(0.5+0.5/screenspace_probe_res.w)/screenspace_probe_res.w, 1./screenspace_probe_res.w, 0);
+  }
+  hlsl(code) {
+    #include <pcg_hash.hlsl>
+    #include <hammersley.hlsl>
+    #define SP_TOTAL_JITTER_FRAMES TEMPORAL_PROBES_FRAMES
+    //[-0.5 0.5] texel (/w)
+    float2 rand3D_Probe(uint3 v, uint2 oct_coord, uint frame)
+    {
+      uint3 targetCoord = uint3(v.xy<<3, v.z) + uint3(oct_coord, 0);
+      uint3 rand = pcg3d_hash_16bit(targetCoord);
+      //can be optimized further, by one mul as hammersley_rand16 can produce 0...65535 range
+      //todo:We can also provide fixed spatial-temporal-coherent 2d blue noise
+      return hammersley_rand16( frame, SP_TOTAL_JITTER_FRAMES, rand.xy )*sp_rand_decode.z + sp_rand_decode.y;
+    }
+  }
+endmacro
+macro SP_JITTER_POS(code)
+  HISTORY_ONLY_PROBE(code)
+  hlsl (code) {
+    #include <hammersley.hlsl>
+    float2 returnJitterOffset(uint2 tile_coord, uint2 rand, uint frame)
+    {
+      //fixme: skip
+      return TEMPORAL_PROBES_FRAMES ? hammersley_rand16(frame, TEMPORAL_PROBES_FRAMES, rand) : 0.5;
+      //return TEMPORAL_PROBES_FRAMES ? hammersley_rand16((uint(screenspace_probes_temporal.y))&(TEMPORAL_PROBES_FRAMES-1), TEMPORAL_PROBES_FRAMES, rand) : 0.5;
+    }
+  }
+endmacro
+
+include "screentrace_ray.dshl"
+
+//this allows override settings from console
+float dagi_screen_probe_trace_dist = 1.5;
+
+//this is customizable. Minimum possible is 0!
+float dagi_screenprobes_user_trace_dist = 1.;
+
+int dagi_screenprobes_trace_quality = 2;
+interval dagi_screenprobes_trace_quality: screen_only < 1, screen_and_sdf_no_dist < 2, screen_and_sdf;// < 3, sdf_only;
+
+shader calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs
+{
+  hlsl(cs) {
+    #define DAGI_IRRADIANCE_GRID_TYPE DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE
+  }
+  ENABLE_ASSERT(cs)
+  SCREENSPACE_PROBES_POSITIONS(cs)
+  NOISE(cs)
+  READ_WORLD_SDF(cs)
+  PROJECT_GET_WORLD_RADIANCE_AT(cs)
+  WORLD_SDF_STEP_OUT(cs)
+  SP_JITTER_POS(cs)
+  INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
+  USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+  SP_HIT_DISTANCE_ENCODE(cs)
+  SP_SCREEN_RAY_CAST(cs)
+  if (shader == calc_screenspace_selected_radiance_cs)
+  {
+    SP_USE_BUFFERS_LIST(cs)
+    hlsl {
+      #define USE_SELECTED_PROBES 1
+    }
+  }
+  (cs) {
+    screenspace_tile_classificator@buf = screenspace_tile_classificator hlsl {
+      ByteAddressBuffer screenspace_tile_classificator@buf;
+    }
+    dagi_screen_probe_trace_dist@f1 = (dagi_screen_probe_trace_dist + dagi_screenprobes_user_trace_dist,0,0,0);
+    sp_radiance_tc_decode@f4 = (1./screenspace_probe_res.w, 0.5/screenspace_probe_res.w, 2./screenspace_probe_res.w, 1./screenspace_probe_res.w - 1);
+    sp_radiance_area@i1 = sp_radiance_area;
+  }
+  DAGI_RAD_GRID_SAMPLE(cs)
+  DAGI_MEDIA_SCENE_SAMPLE(cs)
+  hlsl(cs) {
+    RWTexture2D<float3> radiance_sp: register(u0);
+    ##if dagi_screenprobes_trace_quality != screen_only
+      #define SCREENPROBES_HQ 1
+    ##else
+      #define SCREENPROBES_HQ 0
+    ##endif
+    ##if dagi_screenprobes_trace_quality == screen_and_sdf
+      #define SCREENPROBES_HAS_DIST 1
+      RWTexture2D<float> radiance_dist: register(u2);
+    ##endif
+
+    #if SP_RADIANCE_SIZE_IS_WARP
+    groupshared uint sharedEncodedProbe;
+    #define SP_TRACE_WARP_X SP_RADIANCE_OCT_W
+    #define SP_TRACE_WARP_Y SP_RADIANCE_OCT_W
+    #else
+    #define SP_TRACE_WARP_X SP_TRACE_WARP_SIZE
+    #define SP_TRACE_WARP_Y 1
+    #endif
+    float3 dagi_trilinear_sample_radiance_grid_cascade_unsafe_sp(uint radGridClip, float3 rayDir, uint2 octCoord, float3 worldPosAt)
+    {
+      return dagi_trilinear_sample_radiance_grid_cascade_unsafe_oct(radGridClip, rayDir, worldPosAt);
+    }
+    void calc_radiance(uint atlasProbeIndex, uint encodedProbe, uint2 octCoord, inout float3 final_radiance)
+    {
+      DecodedProbe probe = sp_decodeProbeInfo(encodedProbe);
+
+      uint numScreenProbes = sp_getNumScreenProbes();
+      uint totalAtlasProbes = sp_getNumTotalProbes();
+      uint numAddProbes = sp_getNumAdaptiveProbes();
+
+      uint2 atlasProbeCoord = uint2(atlasProbeIndex%uint(screenspace_probe_res.x), atlasProbeIndex/uint(screenspace_probe_res.x));
+      uint2 screen_tile_coord = atlasProbeCoord;
+
+      bool isScreenProbe = atlasProbeIndex < numScreenProbes;
+      if (!isScreenProbe)
+      {
+        uint screenProbeIndex = loadBuffer(screenspace_tile_classificator, (sp_getScreenTileClassificatorOffsetDwords() + atlasProbeIndex - numScreenProbes)*4);
+        screen_tile_coord = uint2(screenProbeIndex%uint(screenspace_probe_res.x), screenProbeIndex/uint(screenspace_probe_res.x));
+      }
+
+      uint2 targetCoord = atlasProbeCoord*sp_getRadianceRes() + octCoord;
+      uint encodedProbeNormal = sp_loadEncodedProbeNormalCoord(screenspace_probe_pos, atlasProbeIndex, sp_getNumTotalProbes());
+      uint2 coord_ofs = decodeCoordOfs(encodedProbeNormal);
+      float2 octTC = octCoord*sp_radiance_tc_decode.x + sp_radiance_tc_decode.y;
+      float2 currentScreenTileLT = screen_tile_coord*screenspace_probe_res.z + 0.5f;
+      float2 probeScreenCoord = min(currentScreenTileLT + coord_ofs, screenspace_probe_screen_limit.zw);
+      //fixme: temporal
+      uint jitterFrame;
+      jitterFrame = sp_decodeTagRevAge(probe.allTag);
+      //we better store probe seed in probe, instead of calculating it, as it can sigfinicantly increase convergence
+      jitterFrame = jitterFrame ? SP_TAG_MAX_AGE - jitterFrame : (uint(screenspace_probes_temporal.y)&(TEMPORAL_PROBES_FRAMES-1)); //fixme: constant on the right
+      //uint jitterFrame = validTemporal ? ((uint(screenspace_probes_temporal.y))&(TEMPORAL_PROBES_FRAMES-1)) : 0; //fixme: constant
+
+      //todo: replace with small buffer with offsets
+      float maxT = 64;//todo: we should use some parameter
+      float t = 0;
+      float final_occluder_distance = 0;
+      //if (dot(rayDir, worldPos-sp_world_view_pos) > 0)
+      //  worldPos += rayDir*0.25;
+      //startClip = world_sdf_find_clip(worldPos);//to reduce divirgence between threads
+      {
+        uint jitteredFrame = jitterFrame;
+        float2 randomProbe = rand3D_Probe(uint3(screen_tile_coord, isScreenProbe), octCoord, jitteredFrame);
+        uint2 randPos = 0;
+        float2 jitteredOctTC = octTC + randomProbe.xy;
+        float3 rayDir = screenspace_probe_dir_decode(jitteredOctTC*2-1);
+        float2 probeScreenUv = screenCoordToScreenUV(probeScreenCoord);
+        float2 screenCoordJittered = min((returnJitterOffset(screen_tile_coord, randPos, jitterFrame))*screenspace_probe_res.z + currentScreenTileLT, screenspace_probe_screen_limit.zw);
+        //try use jittered position
+        {
+          float rawDepth2 = loadGbufferDepth(screenCoordJittered);
+          float normalizedW2 = linearize_z(rawDepth2, sp_zn_zfar.zw)/sp_zn_zfar.y;
+
+          if (rawDepth2 != 0 && exp2(depth_exp_precision(SP_DEFAULT_BILINEAR_DEPTH_EXP/2, probe.normalizedW*sp_zn_zfar.y, sp_zn_zfar.y)*pow2(1 - normalizedW2/probe.normalizedW)) > 0.01)
+          {
+            probe.normalizedW = normalizedW2;
+            probeScreenUv = screenCoordToScreenUV(screenCoordJittered);
+          }
+        }
+
+        float3 probeViewVect = sp_getViewVecOptimized(probeScreenUv);
+        float sceneLinearNormalizedDepth = (SCREENPROBES_BIAS_TO_CAMERA*probe.normalizedW);
+        float sceneLinearDepth = sceneLinearNormalizedDepth*sp_zn_zfar.y;
+        float3 worldPos = sp_world_view_pos + sceneLinearDepth*probeViewVect;
+
+        #define USE_TRACE_TO_INF 0//ground truth
+        #if (SCREENPROBES_HQ || USE_TRACE_TO_INF)
+          uint startClip = world_sdf_find_clip(worldPos);
+          float sdfVoxelSize = startClip < MAX_WORLD_SDF_CLIPS ? world_sdf_voxel_size(startClip) : 1;
+          worldPos = sp_world_view_pos + max(sceneLinearDepth - sdfVoxelSize, sp_zn_zfar.x)*probeViewVect;
+        #else
+          uint startClip = world_sdf_find_clip(worldPos);
+        #endif
+
+        #if !USE_TRACE_TO_INF
+          const float featureToCaptureSize = SCREENPROBES_HQ ? dagi_screen_probe_trace_dist : 1.5; // solid angle of feature (both dark and bright) that we can miss is 1./featureToCaptureSize (0.25)
+          //compared to 128 it is still ~8meters, i.e. 8 times less traces, plus additional blurring
+          //fixme: we need trilinear
+          uint radGridClip = dagi_rad_grid_get_best_enclosing_clip_border(worldPos, 0, 1.5f);
+          float gridProbeSize = radGridClip < DAGI_MAX_RAD_GRID_CLIPS ? dagi_rad_grid_probe_size(radGridClip) : 0;
+          maxT = radGridClip < DAGI_MAX_RAD_GRID_CLIPS ? gridProbeSize*featureToCaptureSize : maxT;
+        #else
+          float gridProbeSize = 0;
+          uint radGridClip = 0;
+        #endif
+
+        //todo:write screenprobe position to buffer and read it
+        float3 probeNormal = decodeProbeNormal(encodedProbeNormal);
+        //this is only for world tracing. for screen tracing we don't need this bias to depend on sdfVoxelSize, it should only depend on probe.normalizedW
+        float3 radiance = 0; float occluder_distance = 0;
+        #if (SCREENPROBES_HQ || USE_TRACE_TO_INF)
+        {
+          bool rayInsideSDF = world_sdf_box_inside_sdf(min(worldPos, worldPos + maxT*rayDir), max(worldPos, worldPos + maxT*rayDir));
+          #if USE_TRACE_TO_INF
+            maxT = 128;
+          #endif
+          uint result;
+          #if SP_SCREENSPACE_TRACE && HAS_PREV_FRAME_RADIANCE
+          //if !insideSDF we'd better have screen trace always
+          //screen_ray_trace = + ~10% of performance, but increases quality and stability
+          float noise = interleavedGradientNoiseFramed(targetCoord + 0.5f, jitteredFrame);
+          result = screen_ray_trace(sceneLinearDepth*probeViewVect, rayDir, maxT, sceneLinearDepth, noise, radiance, t, rayInsideSDF, (radGridClip < DAGI_MAX_RAD_GRID_CLIPS) ? 0.25 : 32);
+          #else
+          result = SCREEN_RAY_CAST_SURE_MISS;
+          #endif
+
+          float normalBias = sdfVoxelSize*(SP_PROBE_SIZE*SP_HQ_PROBE_NORMAL_BIAS_SDF);
+          float screenT = t*0.5;//decrease, because screentrace tends to skip thin meshes
+          #if !SP_MATCH_PROBES_OFFSETED
+            float3 worldPosMarked = worldPos;//must match what was used for marking
+          #endif
+          worldPos += probeNormal*max(normalBias-screenT, 0.05*sdfVoxelSize);
+          world_sdf_step_out_clip(worldPos, startClip, 0.0, 0.5);
+
+          #if SP_MATCH_PROBES_OFFSETED
+            float3 worldPosMarked = worldPos;//must match what was used for marking
+          #endif
+
+          if (startClip < MAX_WORLD_SDF_CLIPS && result != SCREEN_RAY_CAST_SURE_HIT)//mark screenprobes for insideSDF explicitly
+          {
+            t = 0;
+            //startClip = world_sdf_find_clip(worldPos);//to reduce divirgence between threads
+            const float biasK = 0.;// 0..1. 0 means more light leaking, but tracing IS faster. can be made parameter
+
+            uint sdfClip;
+            if (startClip < MAX_WORLD_SDF_CLIPS &&
+              world_sdf_trace_start(startClip,
+              worldPos,
+              rayDir,
+              maxT,
+              t,
+              sdfClip, biasK, screenT))
+            {
+              float3 camPosAt = rayDir*t;
+              float3 worldPosAt = worldPos + camPosAt;
+
+              #if HAS_PREV_FRAME_DEPTH && HAS_PREV_FRAME_RADIANCE
+              float3 prevNDC = get_screen_probe_campos_history_ndc(camPosAt);
+              float3 prevUV = float3(prevNDC.xy*float2(0.5,-0.5) + float2(0.5,0.5), prevNDC.z);
+              bool canReproject = all(abs(prevUVW.xy*2 - 1) < 1) && sp_is_valid_history();
+              if (canReproject)
+                canReproject = abs(linearize_z(tex2Dlod(prev_frame_depth_tex, float4(prevUVW.xy,0,0)).x, sp_prev_zn_zfar.zw)/prevUVW.z - 1) < 0.05;//within 5%
+
+              if (canReproject)
+                radiance = sample_prev_frame_radiance_unsafe(prevUVW.xy);
+              else
+              #endif
+              {
+                //todo: we can check gbuffer hit for gbuffer normal (rather than gradient from sdf)
+                float3 gradient = world_sdf_sample_gradient(sdfClip, worldPosAt);
+                float gradLen = length(gradient);
+                float3 worldNormal = gradLen > 0 ? -gradient.xzy/gradLen : -rayDir;
+                FLATTEN
+                if (dot(worldNormal, rayDir) > 0)
+                  worldNormal = -rayDir;
+                //radiance = dagi_get_radiance_at(worldPosAt - rayDir*min(t, world_sdf_voxel_size(sdfClip)*0.5), worldNormal);
+                radiance = dagi_get_radiance_at(worldPosAt, worldNormal);
+              }
+              occluder_distance = t;
+              result = SCREEN_RAY_CAST_SURE_HIT;
+            } else
+            {
+              t = maxT;
+              result = SCREEN_RAY_CAST_SURE_MISS;
+            }
+          }
+
+          if (result == SCREEN_RAY_CAST_SURE_MISS)
+          {
+            //step back a bit, as otherwise we can sample trilinearly through wall
+            float3 worldPosAt = worldPos + rayDir*max(0, t - 0.5*gridProbeSize);//to avoid trliniear sampling over wall
+            #if USE_TRACE_TO_INF
+              radiance = dagi_get_sky_radiance_at(worldPosAt, rayDir);
+            #else
+              uint radGridClip2 = dagi_rad_grid_get_best_enclosing_clip_border(worldPosAt, 0, 0.5f);
+              FLATTEN
+              if (radGridClip2 < DAGI_MAX_RAD_GRID_CLIPS)
+                radGridClip = radGridClip2;
+
+              BRANCH//all threads will take same branch
+              if (radGridClip < DAGI_MAX_RAD_GRID_CLIPS)
+              {
+                radiance = dagi_trilinear_sample_radiance_grid_cascade_unsafe_sp(radGridClip, rayDir, octCoord, worldPosAt).xyz;
+              } else
+                radiance = dagi_get_sky_radiance_at(worldPosAt, rayDir);
+            #endif
+            occluder_distance = maxT;
+          }
+          final_radiance = radiance;
+          final_occluder_distance = occluder_distance;
+        }
+        #else
+          #if SP_SCREENSPACE_TRACE && HAS_PREV_FRAME_RADIANCE
+          float noise = interleavedGradientNoiseFramed(targetCoord + 0.5f, jitteredFrame);
+          uint result = screen_ray_trace(sceneLinearDepth*probeViewVect, rayDir, maxT, sceneLinearDepth, noise, final_radiance, t, true, radGridClip < DAGI_MAX_RAD_GRID_CLIPS ? 2 : 32);
+          if (result != SCREEN_RAY_CAST_SURE_HIT)//mark screenprobes for insideSDF explicitly
+          #endif
+          {
+            float3 worldPosSampleAt = worldPos + min(t, gridProbeSize*0.5)*rayDir;
+            BRANCH
+            if (radGridClip < DAGI_MAX_RAD_GRID_CLIPS)
+            {
+              world_sdf_step_out_clip(worldPosSampleAt, startClip, (gridProbeSize*0.5), 0.5);
+              //worldPosSampleAt = worldPos + probeNormal*(gridProbeSize*SP_LQ_PROBE_NORMAL_BIAS);
+              world_sdf_step_out_clip(worldPosSampleAt, startClip, (gridProbeSize*0.5), 0.5);
+              final_radiance = dagi_trilinear_sample_radiance_grid_cascade_unsafe_sp(radGridClip, rayDir, octCoord, worldPosSampleAt).xyz;
+            } else
+              final_radiance = dagi_get_sky_radiance_at(worldPosSampleAt, rayDir);
+          }
+        final_occluder_distance = t;
+        #endif
+
+        #if SCREENPROBES_HAS_DIST
+        texture2DAt(radiance_dist, targetCoord) = final_occluder_distance/(clamp(probe.normalizedW*sp_hit_distance_decode.x, sp_hit_distance_decode.y, sp_hit_distance_decode.z));
+        #endif
+        dagi_trace_media_scene_short_apply(worldPos, rayDir, final_occluder_distance, final_radiance.xyz);
+      }
+    }
+    [numthreads(SP_TRACE_WARP_X, SP_TRACE_WARP_Y, 1)]
+    void calc_screenspace_radiance_cs(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint2 dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
+    {
+      uint encodedProbe = 0;
+      #if SP_RADIANCE_SIZE_IS_WARP
+        uint atlasProbeIndex = gId;
+        #if USE_SELECTED_PROBES
+          uint totalCount = loadBuffer(screenspace_probes_list, 0);
+          atlasProbeIndex = loadBuffer(screenspace_probes_list, 8 + atlasProbeIndex*4);
+        #endif
+        uint2 octCoord = gtId;
+        if (tid == 0)
+          sharedEncodedProbe = loadBuffer(screenspace_probe_pos, atlasProbeIndex*4);
+        GroupMemoryBarrierWithGroupSync();
+        encodedProbe = sharedEncodedProbe;
+        //if (!encodedProbe)
+        //  return;
+      #else
+        uint2 octCoord = uint2(dtId.x%sp_getRadianceRes(), (dtId.x/sp_getRadianceRes())%sp_getRadianceRes());
+        uint atlasProbeIndex = dtId.x/uint(sp_radiance_area);
+        #if USE_SELECTED_PROBES
+          uint totalCount = loadBuffer(screenspace_probes_list, 0);
+          if (atlasProbeIndex < totalCount)
+          {
+            atlasProbeIndex = loadBuffer(screenspace_probes_list, 8 + atlasProbeIndex*4);
+            encodedProbe = loadBuffer(screenspace_probe_pos, atlasProbeIndex*4);
+          }
+        #else
+          if (atlasProbeIndex < sp_getNumTotalProbes())
+            encodedProbe = loadBuffer(screenspace_probe_pos, atlasProbeIndex*4);
+        #endif
+      #endif
+      if (!encodedProbe)
+        return;
+      float3 final_radiance = 0;
+      {
+        calc_radiance(atlasProbeIndex, encodedProbe, octCoord, final_radiance);
+        final_radiance = select(final_radiance >= 0, final_radiance, float3(0,0,0));
+        final_radiance = h3nanofilter(final_radiance);
+      }
+
+      uint2 atlasProbeCoord = uint2(atlasProbeIndex%uint(screenspace_probe_res.x), atlasProbeIndex/uint(screenspace_probe_res.x));
+      texture2DAt(radiance_sp, atlasProbeCoord*sp_getRadianceRes() + octCoord) = sp_encode_texture_radiance(final_radiance);//increase precision
+    }
+  }
+  compile("target_cs", "calc_screenspace_radiance_cs");
+}

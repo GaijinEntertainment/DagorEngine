@@ -1,15 +1,17 @@
-#ifndef __GAIJIN_EDITORCORE_EC_GRIDOBJECT_H__
-#define __GAIJIN_EDITORCORE_EC_GRIDOBJECT_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <generic/dag_DObject.h>
 #include <generic/dag_tab.h>
+#include <math/dag_e3dColor.h>
 #include <util/dag_globDef.h>
-#include <propPanel2/comWnd/dialog_window.h>
+#include <propPanel/commonWindow/dialogWindow.h>
 
 class DataBlock;
 class BBox3;
 class Point3;
-
+class ShaderElement;
+class ShaderMaterial;
 
 /// Grid object.
 /// Used for representing Editor grid.
@@ -20,6 +22,7 @@ class GridObject
 public:
   /// Constructor.
   GridObject();
+  ~GridObject();
 
   // ****************************************************************
   /// @name Get grid properties.
@@ -74,6 +77,12 @@ public:
   /// @param[in] index - viewport index
   void render(Point3 *pt, Point3 *dirs, real zoom, int index, bool test_z = true, bool write_z = true);
 
+  /// Round value to the nearest (snapped) value.
+  /// @param[in] f - the value to snap
+  /// @param[in] st - snap step
+  /// @return the snapped value
+  real snap(real f, real st) const;
+
   /// Snap to grid - round coordinates to the nearest grid's point.
   /// @param[in] p - point coordinates to snap
   /// @return coordinates of snapped point
@@ -122,6 +131,24 @@ public:
   real getGridHeight() { return gridHeight; }
   void setGridHeight(real new_height) { gridHeight = new_height; }
 
+  bool getUseInfiniteGrid() const { return isUseInfiniteGrid; }
+  void setUseInfiniteGrid(bool infinite) { isUseInfiniteGrid = infinite; }
+
+  E3DCOLOR getInfiniteGridMajorLineColor() const { return infiniteGridMajorLineColor; }
+  void setInfiniteGridMajorLineColor(E3DCOLOR color) { infiniteGridMajorLineColor = color; }
+
+  E3DCOLOR getInfiniteGridMinorLineColor() const { return infiniteGridMinorLineColor; }
+  void setInfiniteGridMinorLineColor(E3DCOLOR color) { infiniteGridMinorLineColor = color; }
+
+  real getInfiniteGridMajorLineWidth() const { return infiniteGridMajorLineWidth; }
+  void setInfiniteGridMajorLineWidth(real width) { infiniteGridMajorLineWidth = width; }
+
+  real getInfiniteGridMinorLineWidth() const { return infiniteGridMinorLineWidth; }
+  void setInfiniteGridMinorLineWidth(real width) { infiniteGridMinorLineWidth = width; }
+
+  int getInfiniteGridMajorSubdivisions() const { return infiniteGridMajorSubdivisions; }
+  void setInfiniteGridMajorSubdivisions(int subdivisions) { infiniteGridMajorSubdivisions = subdivisions; }
+
   void resetToDefault();
 
 
@@ -138,22 +165,35 @@ protected:
   bool isScaleSnap;
   bool isDrawMajorLines;
 
-  real snap(real f, real st) const;
+  bool infiniteGridInitialized;
+  Ptr<ShaderMaterial> infiniteGridShaderMaterial;
+  Ptr<ShaderElement> infiniteGridShaderElement;
+  bool isUseInfiniteGrid;
+  E3DCOLOR infiniteGridMajorLineColor;
+  E3DCOLOR infiniteGridMinorLineColor;
+  real infiniteGridMajorLineWidth;
+  real infiniteGridMinorLineWidth;
+  int infiniteGridMajorSubdivisions;
+
+  void renderInfiniteGrid();
 };
 
 
-class GridEditDialog : public CDialogWindow
+class GridEditDialog : public PropPanel::DialogWindow
 {
 public:
-  GridEditDialog(void *phandle, GridObject &grid, const char *caption, int view_port_index = -1);
-  virtual bool onOk();
-  virtual bool onCancel() { return true; };
+  GridEditDialog(void *phandle, GridObject &grid, const char *caption);
+
+  void showGridEditDialog(int viewport_index);
+  void onGridVisibilityChanged(int viewport_index);
 
 private:
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+
   void fillPanel();
+  void updateShowGridDialogControl();
 
   GridObject &mGrid;
-  int index;
+  int index = -1;
+  bool autoCenter = true;
 };
-
-#endif

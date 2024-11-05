@@ -1,7 +1,6 @@
 //
 // DaEditorX
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -20,7 +19,6 @@ public:
   {
     Tab<String> exportIgnore;
 
-    String graphiteDir;
     String collision;
     String additionalPlugins;
 
@@ -42,7 +40,6 @@ public:
 
   DeWorkspace();
 
-  inline const char *getGraphiteDir() const { return params.graphiteDir; }
   inline Tab<String> &getRecents() { return params.recents; }
   inline Tab<String> &getExportIgnore() { return params.exportIgnore; };
   inline const Workspace &getParams() { return params; }

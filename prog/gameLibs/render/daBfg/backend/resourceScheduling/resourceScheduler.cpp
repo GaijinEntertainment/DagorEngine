@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "resourceScheduler.h"
 
 #include <EASTL/algorithm.h>
@@ -7,11 +9,13 @@
 #include <perfMon/dag_statDrv.h>
 #include <util/dag_convar.h>
 #include <dag/dag_vectorSet.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 
 #include <common/resourceUsage.h>
+#include <common/genericPoint.h>
 #include <runtime/runtime.h>
 #include <id/idRange.h>
+#include <id/reverseView.h>
 #include <backend/resourceScheduling/packer.h>
 #include <debug/backendDebug.h>
 
@@ -22,7 +26,9 @@ CONSOLE_BOOL_VAL("dabfg", report_resource_statistics, false);
 
 CONSOLE_BOOL_VAL("dabfg", set_resource_names, DAGOR_DBGLEVEL > 0);
 
-CONSOLE_INT_VAL("dabfg", resource_packer, dabfg::PackerType::GreedyScanline, 0, dabfg::PackerType::COUNT);
+CONSOLE_BOOL_VAL("dabfg", dump_resources, false);
+
+CONSOLE_INT_VAL("dabfg", resource_packer, dabfg::PackerType::GreedyScanline, 0, dabfg::PackerType::COUNT - 1);
 
 namespace dabfg
 {
@@ -63,7 +69,7 @@ auto ResourceScheduler::gatherResourceProperties(const intermediate::Graph &grap
         {
           const auto flags = historyResourceFlags.find(resNameId);
           if (flags != historyResourceFlags.end() && newFlags != flags->second)
-            hintedResources.clear();
+            temporalResourceLocations.clear();
 
           historyResourceFlags[resNameId] = newFlags;
         }
@@ -75,8 +81,9 @@ auto ResourceScheduler::gatherResourceProperties(const intermediate::Graph &grap
   return resourceProperties;
 }
 
-auto ResourceScheduler::scheduleResourcesIntoHeaps(const ResourceProperties &resources, const EventsCollectionRef &allEvents,
-  const IntermediateRemapping &cached_res_idx_remapping) -> eastl::pair<AllocationLocations, HeapRequests>
+auto ResourceScheduler::scheduleResourcesIntoHeaps(const ResourceProperties &resources,
+  const BarrierScheduler::EventsCollectionRef &allEvents, const IrHistoryPairing &history_pairing,
+  const HistoryResourceLocations &previous_temporal_resource_locations) -> eastl::pair<AllocationLocations, HeapRequests>
 {
   TIME_PROFILE(scheduleHeaps);
 
@@ -169,16 +176,16 @@ auto ResourceScheduler::scheduleResourcesIntoHeaps(const ResourceProperties &res
 
   const uint32_t timepointsPerFrame = allEvents[0].size();
 
+  temporalResourceLocations.reserve(2 * heapRequests.size());
+
   // New heap requests might appear while iterating, so cannot use
   // range-based for.
-  hintedResources.reserve(2 * heapRequests.size());
   for (uint32_t intHeapIndex = 0; intHeapIndex < heapRequests.size(); ++intHeapIndex)
   {
     FRAMEMEM_VALIDATE;
 
     const auto heapIdx = static_cast<HeapIndex>(intHeapIndex);
 
-    hintedResources.expandMapping(heapIdx);
     const uint32_t resMultiply = allEvents.size();
 
     // Collect resources present in this heap and build a mapping
@@ -218,33 +225,49 @@ auto ResourceScheduler::scheduleResourcesIntoHeaps(const ResourceProperties &res
 
           auto &packerRes = packerResources[inHeapIndex];
 
-          if (eastl::holds_alternative<Event::Activation>(event.data) || eastl::holds_alternative<Event::CpuActivation>(event.data))
+          if (eastl::holds_alternative<BarrierScheduler::Event::Activation>(event.data) ||
+              eastl::holds_alternative<BarrierScheduler::Event::CpuActivation>(event.data))
             packerRes.start = time;
-          else if (
-            eastl::holds_alternative<Event::Deactivation>(event.data) || eastl::holds_alternative<Event::CpuDeactivation>(event.data))
+          else if (eastl::holds_alternative<BarrierScheduler::Event::Deactivation>(event.data) ||
+                   eastl::holds_alternative<BarrierScheduler::Event::CpuDeactivation>(event.data))
             packerRes.end = time;
         }
       }
     }
 
-    bool heapHasHints = false;
-    // Assign offset hints for history resources
-    for (size_t i = 0; i < packerResources.size(); ++i)
-    {
-      auto &packerRes = packerResources[i];
-      const auto [resIdx, frame] = inHeapIdxToFrameResource[i];
-      if (cachedIntermediateResources[resIdx].asScheduled().history == History::No)
-        continue;
 
-      const auto preservedResIdx = cached_res_idx_remapping[resIdx];
-      const auto preservedRes = hintedResources[heapIdx][frame].find(preservedResIdx);
-      const bool hasHint = preservedRes != hintedResources[heapIdx][frame].end();
-      const bool hasSameSize = preservedRes->second.size == packerResources[i].size;
-      preservedResources[frame][resIdx] = hasHint && hasSameSize;
-      if (preservedResources[frame][resIdx])
+    bool preserveHeap = false;
+
+    if (previous_temporal_resource_locations.isMapped(heapIdx))
+    {
+      // Try and preserve the contents of the history for resources in
+      // this heap to avoid bugs in temporal algorithms.
+      for (size_t i = 0; i < packerResources.size(); ++i)
       {
-        packerRes.offsetHint = preservedRes->second.offsetHint;
-        heapHasHints = true;
+        auto &packerRes = packerResources[i];
+        const auto [resIdx, frame] = inHeapIdxToFrameResource[i];
+        if (cachedIntermediateResources[resIdx].asScheduled().history == History::No)
+          continue;
+
+        const auto &locs = previous_temporal_resource_locations[heapIdx][frame];
+        const auto preservedResIdx = history_pairing[resIdx];
+        const auto it = locs.find(preservedResIdx);
+        if (it != locs.end() && it->second.size == packerResources[i].size)
+        {
+          // We managed to
+          // a) pair the IR resources correctly,
+          // b) find a location where this resource is preserved,
+          // c) ensure that the size of the resource did not change,
+          // and that means we can actually reuse the existing d3d resource
+          // and preserve the history.
+          packerRes.offsetHint = it->second.offset;
+          preserveHeap = true;
+          preservedResources[frame][resIdx] = true;
+        }
+        else
+        {
+          preservedResources[frame][resIdx] = false;
+        }
       }
     }
 
@@ -259,11 +282,21 @@ auto ResourceScheduler::scheduleResourcesIntoHeaps(const ResourceProperties &res
     // on heap sizes that is not reported by the driver and can only be
     // known by asking MS guys on discord, and it's 64MiBs.
     if (heapGroupProp.optimalMaxHeapSize > 0)
-      input.maxHeapSize = eastl::min(input.maxHeapSize, heapGroupProp.optimalMaxHeapSize);
+    {
+      // The funnest part of the whole thing: the 64MiB limit is NOT big
+      // enough for 4K HDR monitors! 3840*2160*8 + metadata is just above
+      // this limit, so we fall back to smallest resource size in this
+      // case, so as to pack at LEAST a single resource.
+      // This is really fubar.
+      const auto sizeCmp = [](const auto &a, const auto &b) { return a.size < b.size; };
+      const auto minResourceSize = eastl::min_element(packerResources.begin(), packerResources.end(), sizeCmp)->size;
 
-    // Do not increase the size of an existing heap if resources in it have hints.
-    // Otherwise hinted resources will not be preserved, because of the heap recreation.
-    if (heapHasHints && allocatedHeaps.isMapped(heapIdx) && allocatedHeaps[heapIdx].size != 0)
+      const auto permissibleMaxSize = eastl::max(heapGroupProp.optimalMaxHeapSize, minResourceSize);
+      input.maxHeapSize = eastl::min(input.maxHeapSize, permissibleMaxSize);
+    }
+
+    // Prohibit increasing heap size if we want to preserve resources in it.
+    if (preserveHeap && allocatedHeaps.isMapped(heapIdx) && allocatedHeaps[heapIdx].size != 0)
       input.maxHeapSize = allocatedHeaps[heapIdx].size;
 
     Packer packer;
@@ -296,6 +329,40 @@ auto ResourceScheduler::scheduleResourcesIntoHeaps(const ResourceProperties &res
     }
 #endif
 
+    {
+      uint64_t totalResMemory = 0;
+      uint64_t totalResArea = 0;
+      for (uint32_t i = 0; i < input.resources.size(); ++i)
+        if (output.offsets[i] != PackerOutput::NOT_SCHEDULED)
+        {
+          const auto &res = input.resources[i];
+          totalResMemory += res.size;
+          totalResArea += (res.size * (res.end + (res.end <= res.start) * input.timelineSize - res.start)) >> 10;
+        }
+      const uint64_t totalArea = (output.heapSize * input.timelineSize) >> 10;
+      const float occupancy = totalArea > 0 ? static_cast<float>(totalResArea) / static_cast<float>(totalArea) : 1;
+      const float aliasingRatio = output.heapSize > 0 ? static_cast<float>(totalResMemory) / static_cast<float>(output.heapSize) : 1;
+      debug("daBfg: packed a schedule for heap %d with %f space-time occupancy and %f aliasing ratio (both higher is better).",
+        eastl::to_underlying(heapIdx), occupancy, aliasingRatio);
+    }
+
+    if (dump_resources.get())
+    {
+      debug("daBfg: dump of resources in heap %d", eastl::to_underlying(heapIdx));
+      debug("daBfg: name\tarea (KB)\tstart\tend\tsize\toffset", eastl::to_underlying(heapIdx));
+      for (uint32_t i = 0; i < input.resources.size(); ++i)
+      {
+        if (output.offsets[i] == PackerOutput::NOT_SCHEDULED)
+          continue;
+
+        const auto &res = input.resources[i];
+        const auto frameRes = inHeapIdxToFrameResource[i];
+        const auto area = (res.size * (res.end + (res.end <= res.start) * input.timelineSize - res.start)) >> 10;
+        debug("daBfg: %s\t%d\t%d\t%d\t%d\t%d", cachedIntermediateResourceNames[frameRes.resIdx], area, res.start, res.end, res.size,
+          output.offsets[i]);
+      }
+    }
+
     // We allocate one ESRAM heap with the maximum available size,
     // because there is an issue with reallocation ESRAM heap after deallocation.
     if (heapGroupProp.isOnChip)
@@ -313,20 +380,29 @@ auto ResourceScheduler::scheduleResourcesIntoHeaps(const ResourceProperties &res
         rescheduledResources.push_back(frameRes);
         continue;
       }
-      // Check if offset hints for history resource are respected
-      const auto &packerRes = input.resources[idx];
+      const auto &packerInputRes = input.resources[idx];
       if (cachedIntermediateResources[resIdx].asScheduled().history != History::No)
       {
-        if (packerRes.offsetHint != PackerInput::NO_HINT && EASTL_UNLIKELY(packerRes.offsetHint != output.offsets[idx]))
+        // Defensive programming: check that the packer didn't mess up and
+        // respected all out hints.
+        if (packerInputRes.offsetHint != PackerInput::NO_HINT && DAGOR_UNLIKELY(packerInputRes.offsetHint != output.offsets[idx]))
         {
           preservedResources[frame][resIdx] = false;
-          const auto preservedRes = hintedResources[heapIdx][frame].find(cached_res_idx_remapping[resIdx]);
+
+          const auto &locs = previous_temporal_resource_locations[heapIdx][frame];
+
+          const auto historyPair = history_pairing[resIdx];
+          const auto it = locs.find(historyPair);
           // Packer cannot guarantee hint respecting for a resource that has it's lifetime changed.
-          const bool hasSameLifetime = preservedRes->second.start == packerRes.start && preservedRes->second.end == packerRes.end;
+          const bool hasSameLifetime =
+            it != locs.end() && it->second.start == packerInputRes.start && it->second.end == packerInputRes.end;
           if (hasSameLifetime)
             logerr("Resource packer ignored offset hint for history resource!");
         }
-        hintedResources[heapIdx][frame][resIdx] = {output.offsets[idx], packerRes.size, packerRes.start, packerRes.end};
+
+        // Record where this resource is stored.
+        ResourceLocation loc{output.offsets[idx], packerInputRes.size, packerInputRes.start, packerInputRes.end};
+        temporalResourceLocations.get(heapIdx)[frame][resIdx] = loc;
       }
       G_FAST_ASSERT(output.offsets[idx] < eastl::numeric_limits<uint32_t>::max());
       allocations[frame][resIdx] = {heapIdx, static_cast<uint32_t>(output.offsets[idx])};
@@ -366,6 +442,16 @@ auto ResourceScheduler::scheduleResourcesIntoHeaps(const ResourceProperties &res
           const auto desc = cachedIntermediateResources[rescheduledResources.front().resIdx].asScheduled().getGpuDescription();
           newHeapRequestGroup = getResourceAllocationProperties(desc, true).heapGroup;
         }
+
+        // If we will be trying to do the exact same thing on the next
+        // iteration of this loop, we'll have an infinite loop and
+        // crash. Exiting the loop and proceeding would cause a crash
+        // too. No other option but to crash.
+        // This should NOT ever happen.
+        if (rescheduledResources.size() == packerResources.size() && newHeapRequestGroup == heapRequests[heapIdx].group)
+          DAG_FATAL("Resource packer failed to schedule every single resource! We WILL crash! "
+                    "Please, take a full process dump and send it to the render team!");
+
         heapRequests.push_back(HeapRequest{newHeapRequestGroup, 0u});
         resourcesToBeScheduled.push_back(rescheduledResources);
       }
@@ -406,264 +492,6 @@ auto ResourceScheduler::scheduleResourcesIntoHeaps(const ResourceProperties &res
   return result;
 }
 
-ResourceScheduler::EventsCollectionRef ResourceScheduler::scheduleEvents(const intermediate::Graph &graph)
-{
-  TIME_PROFILE(scheduleEvents);
-
-  FRAMEMEM_VALIDATE;
-
-  struct ResourceUsageOccurrence
-  {
-    intermediate::ResourceUsage usage;
-    uint32_t frame;
-    uint32_t nodeIndex;
-  };
-
-  IdIndexedMapping<intermediate::ResourceIndex, uint32_t, framemem_allocator> perResourceUsageCount(graph.resources.size(), 0);
-  for (const auto &node : graph.nodes)
-    for (const auto &req : node.resourceRequests)
-      perResourceUsageCount[req.resource]++;
-
-  // Timelines of when and how every resource was used
-  eastl::array<
-    IdIndexedMapping<intermediate::ResourceIndex, dag::Vector<ResourceUsageOccurrence, framemem_allocator>, framemem_allocator>,
-    SCHEDULE_FRAME_WINDOW>
-    perFrameResourceUsageTimelines;
-
-  // Pre-allocate all timelines so that we can use framemem allocator
-  // Note that the order of allocation has to be reversed so that
-  // framemem can clean up properly
-  for (auto &timelines : perFrameResourceUsageTimelines)
-  {
-    timelines.resize(graph.resources.size(), {});
-    for (uint32_t i = 0; i < timelines.size(); ++i)
-    {
-      // Could look a lot less ugly with std::ranges :/
-      const auto idx = static_cast<intermediate::ResourceIndex>(timelines.size() - 1 - i);
-      timelines[idx].reserve(perResourceUsageCount[idx]);
-    }
-  }
-
-  const auto processResourceInput = [&perFrameResourceUsageTimelines](int res_owner_frame, int event_frame,
-                                      intermediate::NodeIndex node_idx, intermediate::ResourceIndex res_idx,
-                                      intermediate::ResourceUsage usage) {
-    perFrameResourceUsageTimelines[res_owner_frame][res_idx].push_back(
-      ResourceUsageOccurrence{usage, static_cast<uint32_t>(event_frame), node_idx});
-  };
-
-  // We want to find the lifetime of every resource in terms
-  // of timepoints. Every "pause" between two nodes being executed
-  // is a timepoint. As we sometimes need textures to live for 2 frames,
-  // we have nodes.size()*2 timepoints. All usage occurrences are
-  // sorted into per-physical-resource bins and processed below.
-
-  for (int frame = SCHEDULE_FRAME_WINDOW - 1; frame >= 0; --frame)
-  {
-    // We have to first iterate and record all nodes' history requests
-    // i.e. resources owned by current frame but requested by next frame
-
-    for (int i = graph.nodes.size() - 1; i >= 0; --i)
-    {
-      const int nextFrame = (frame + 1) % SCHEDULE_FRAME_WINDOW;
-
-      auto idx = static_cast<intermediate::NodeIndex>(i);
-      for (const auto &req : graph.nodes[idx].resourceRequests)
-        if (req.fromLastFrame)
-          processResourceInput(frame, nextFrame, idx, req.resource, req.usage);
-    }
-
-    for (int i = graph.nodes.size() - 1; i >= 0; --i)
-    {
-      auto idx = static_cast<intermediate::NodeIndex>(i);
-      for (const auto &req : graph.nodes[idx].resourceRequests)
-        if (!req.fromLastFrame)
-          processResourceInput(frame, frame, idx, req.resource, req.usage);
-    }
-  }
-
-
-  // Merge usages to avoid a bunch of repeating SRV barriers for different shader stages
-  for (uint32_t frame = 0; frame < SCHEDULE_FRAME_WINDOW; ++frame)
-    for (auto [resIdx, timeline] : perFrameResourceUsageTimelines[frame].enumerate())
-      for (auto it = timeline.begin(); it != timeline.end();)
-      {
-        // Find the end of a consequent run of occurrences with same
-        // type and access but different stages and merge the stages
-        Stage mergedStage = it->usage.stage;
-        auto runEnd = it + 1;
-        while (runEnd != timeline.end() && it->usage.access == runEnd->usage.access && it->usage.type == runEnd->usage.type)
-          mergedStage |= (runEnd++)->usage.stage;
-
-        while (it != runEnd)
-          (it++)->usage.stage = mergedStage;
-      }
-
-  // Emit events from per-physical-resource usage occurrences
-  // NOTE: memory for the events gets insertions in an extremely
-  // non-uniform manner, so we try to mend this issue by pre-allocating
-  // a bunch of data in framemem and restoring it afterwards in case
-  // a pre-allocation's size wasn't big enough
-  FRAMEMEM_REGION;
-
-  using NodeEvents = dag::Vector<Event, framemem_allocator>;
-  using FrameEvents = dag::Vector<NodeEvents, framemem_allocator>;
-  using EventsCollection = eastl::array<FrameEvents, SCHEDULE_FRAME_WINDOW>;
-
-  EventsCollection scheduledEvents;
-  for (FrameEvents &frameEvents : scheduledEvents)
-  {
-    frameEvents.resize(graph.nodes.size() + 1);
-    for (auto &events : frameEvents)
-      events.reserve(16);
-  }
-
-  for (uint32_t frame = 0; frame < SCHEDULE_FRAME_WINDOW; ++frame)
-    for (auto [resIdx, timeline] : perFrameResourceUsageTimelines[frame].enumerate())
-    {
-      // Carefully place split or regular barriers between usage
-      // occurrences that yield one
-      const auto &resource = graph.resources[resIdx];
-      if (resource.getResType() != ResourceType::Blob)
-      {
-        int lastState = timeline.size() - 1;
-        for (int i = timeline.size() - 2; i >= 0; --i)
-        {
-          const auto &curr = timeline[i];
-          const auto &prev = timeline[eastl::exchange(lastState, i)];
-
-          ResourceBarrier barrier = barrier_for_transition(prev.usage, curr.usage);
-
-          if (barrier == RB_NONE)
-            continue;
-
-          const uint32_t eventAfterPreviousNode = prev.nodeIndex + 1;
-          const uint32_t eventBeforeCurrentNode = curr.nodeIndex;
-
-          const Event barrierEvent{resIdx, frame, Event::Barrier{barrier}};
-          auto &frameEvents = scheduledEvents[prev.frame];
-
-          auto tryRecBarrierForDebug = //
-            [&, resIdx = resIdx](int time, ResourceBarrier additional_flags) {
-              if (debug_graph_generation.get())
-              {
-                // NOTE: barriers are executed on physical resources,
-                // while debug visualizer works with virtual resources.
-                // We could try and find the "correct" virtual resource to
-                // use for this physical res at the specified time, but it's
-                // pointless, as the visualization won't look any different,
-                // so we lie about it.
-                auto resId = *graph.resources[resIdx].frontendResources.begin();
-                debug_rec_resource_barrier(resId, frame, time, prev.frame, barrier | additional_flags);
-              }
-            };
-
-          if (prev.frame != curr.frame)
-          {
-            // NOTE: split barriers shouldn't be used between frames,
-            // place a regular barrier at the end of prev frame.
-            frameEvents.back().emplace_back(barrierEvent);
-
-            tryRecBarrierForDebug(eventAfterPreviousNode, {});
-          }
-          else if (prev.nodeIndex + 1 == curr.nodeIndex || resource.getResType() == ResourceType::Buffer)
-          {
-            frameEvents[eventAfterPreviousNode].emplace_back(barrierEvent);
-
-            tryRecBarrierForDebug(eventAfterPreviousNode, {});
-          }
-          else
-          {
-            Event beginBarrierEvent = barrierEvent;
-            beginBarrierEvent.data = Event::Barrier{barrier | RB_FLAG_SPLIT_BARRIER_BEGIN};
-            frameEvents[eventAfterPreviousNode].emplace_back(beginBarrierEvent);
-
-            Event endBarrierEvent = barrierEvent;
-            endBarrierEvent.data = Event::Barrier{barrier | RB_FLAG_SPLIT_BARRIER_END};
-            frameEvents[eventBeforeCurrentNode].emplace_back(endBarrierEvent);
-
-            tryRecBarrierForDebug(eventAfterPreviousNode, RB_FLAG_SPLIT_BARRIER_BEGIN);
-            tryRecBarrierForDebug(eventBeforeCurrentNode, RB_FLAG_SPLIT_BARRIER_END);
-          }
-        }
-      }
-
-      // Now emit activation/deactivation events for scheduled resources
-      if (!resource.isScheduled())
-        continue;
-
-      // Never-used resources should be impossible due to invariants
-      G_ASSERT(!perFrameResourceUsageTimelines[frame][resIdx].empty());
-
-      const auto &scheduledRes = graph.resources[resIdx].asScheduled();
-
-      {
-        const auto &lastUsageOccurrence = timeline.front();
-
-        Event::Payload payload;
-
-        if (scheduledRes.isGpuResource())
-          payload = Event::Deactivation{};
-        else
-          payload = Event::CpuDeactivation{scheduledRes.getCpuDescription().deactivate};
-
-        scheduledEvents[lastUsageOccurrence.frame][lastUsageOccurrence.nodeIndex + 1].emplace_back(
-          Event{resIdx, static_cast<uint32_t>(frame), payload});
-      }
-
-      {
-        const auto &firstUsageOccurrence = perFrameResourceUsageTimelines[frame][resIdx].back();
-
-        Event::Payload payload;
-        if (resource.asScheduled().isGpuResource())
-        {
-          const auto &basicResDesc = graph.resources[resIdx].asScheduled().getGpuDescription().asBasicRes;
-          payload = Event::Activation{basicResDesc.activation, basicResDesc.clearValue};
-        }
-        else
-        {
-          payload = Event::CpuActivation{resource.asScheduled().getCpuDescription().activate};
-        }
-        scheduledEvents[firstUsageOccurrence.frame][firstUsageOccurrence.nodeIndex].emplace_back(
-          Event{resIdx, static_cast<uint32_t>(frame), payload});
-      }
-    }
-
-  // Sort per-node events to ensure following order:
-  // * deactivate all
-  // * barriers
-  // * activate all
-  for (auto &frameEvents : scheduledEvents)
-    for (auto &nodeEvents : frameEvents)
-      eastl::sort(nodeEvents.begin(), nodeEvents.end(),
-        [](const Event &a, const Event &b) { return a.data.index() > b.data.index(); });
-
-  eventStorage.clear();
-
-  size_t totalEvents = 0;
-  for (const auto &frameEvents : scheduledEvents)
-    for (const auto &nodeEvents : frameEvents)
-      totalEvents += nodeEvents.size();
-
-  // guarantees no reallocations when inserting, therefore it's okay to take subspans
-  eventStorage.reserve(totalEvents);
-
-  EventsCollectionRef result;
-  for (int j = 0; j < SCHEDULE_FRAME_WINDOW; ++j)
-  {
-    eventRefStorage[j].clear();
-    eventRefStorage[j].reserve(scheduledEvents[j].size());
-    for (auto &eventsForNode : scheduledEvents[j])
-    {
-      Event *groupStart = &*eventStorage.end();
-      eventStorage.insert(eventStorage.end(), eventsForNode.begin(), eventsForNode.end());
-      eventRefStorage[j].emplace_back(groupStart, eventsForNode.size());
-    }
-    result[j] = eventRefStorage[j];
-  }
-
-  return result;
-}
-
 const D3dResource *ResourceScheduler::getD3dResource(int frame, intermediate::ResourceIndex res_idx) const
 {
   const D3dResource *res = nullptr;
@@ -697,7 +525,11 @@ ResourceScheduler::DestroyedHeapSet ResourceScheduler::allocateCpuHeaps(int prev
     G_ASSERT(allocatedHeaps[heapIdx].size == cpuHeaps[heapIdx].size());
 
     if (req.size <= cpuHeaps[heapIdx].size())
+    {
+      debug("daBfg: Reusing CPU pseudo-heap %d of size %dKB instead of allocating a new %dKB heap", //
+        eastl::to_underlying(heapIdx), allocatedHeaps[heapIdx].size >> 10, req.size >> 10);
       continue;
+    }
 
     if (!cpuHeaps[heapIdx].empty())
     {
@@ -717,21 +549,27 @@ ResourceScheduler::DestroyedHeapSet ResourceScheduler::allocateCpuHeaps(int prev
 
       result.push_back(heapIdx);
 
-      for (auto &heapHintedResources : hintedResources[heapIdx])
-        heapHintedResources.clear();
+      if (temporalResourceLocations.isMapped(heapIdx))
+        for (auto &locs : temporalResourceLocations[heapIdx])
+          locs.clear();
+
+      debug("daBfg: Destroyed CPU pseudo-heap %d because it was too small (size was %dKB, but %dKB are required)",
+        eastl::to_underlying(heapIdx), allocatedHeaps[heapIdx].size >> 10, req.size >> 10);
     }
     else // sanity check
       G_ASSERT(!heapToResourceList.isMapped(heapIdx) || heapToResourceList[heapIdx][prev_frame].empty());
 
     cpuHeaps[heapIdx].resize(req.size, 0);
     allocatedHeaps[heapIdx].size = req.size;
+    debug("daBfg: Successfully allocated a new CPU pseudo-heap %d of size %dKB", //
+      eastl::to_underlying(heapIdx), req.size >> 10);
   }
 
   return result;
 }
 
 void ResourceScheduler::placeResources(const intermediate::Graph &graph, const ResourceProperties &resource_properties,
-  const AllocationLocations &allocation_locations)
+  const AllocationLocations &allocation_locations, const DynamicResolutions &dyn_resolutions)
 {
   TIME_PROFILE(placeResources);
 
@@ -768,7 +606,12 @@ void ResourceScheduler::placeResources(const intermediate::Graph &graph, const R
 
       if (res.asScheduled().isGpuResource())
       {
-        placeResource(frame, i, heapIdx, res.asScheduled().getGpuDescription(), offset, resProps);
+        DynamicResolution dynResolution = eastl::monostate{};
+
+        if (const auto &type = res.asScheduled().resolutionType; type.has_value() && dyn_resolutions.isMapped(type->id))
+          dynResolution = dyn_resolutions[type->id];
+
+        placeResource(frame, i, heapIdx, res.asScheduled().getGpuDescription(), offset, resProps, dynResolution);
 
         validation_add_resource(getD3dResource(frame, i));
       }
@@ -874,8 +717,9 @@ void ResourceScheduler::closeTransientResources()
 {
   TIME_PROFILE(closeTransientResources);
   validation_restart();
-  eventStorage.clear();
 }
+
+void ResourceScheduler::invalidateTemporalResources() { temporalResourceLocations.clear(); }
 
 void ResourceScheduler::shutdown(int frame)
 {
@@ -891,7 +735,7 @@ void ResourceScheduler::shutdown(int frame)
     eastl::fill(heapForCpuResource[i].begin(), heapForCpuResource[i].end(), HeapIndex::Invalid);
     preservedResources[i].clear();
   }
-  hintedResources.clear();
+  temporalResourceLocations.clear();
 
   shutdownInternal();
 
@@ -900,42 +744,98 @@ void ResourceScheduler::shutdown(int frame)
   cachedIntermediateResources.clear();
 }
 
-ResourceScheduler::IntermediateRemapping ResourceScheduler::remapResources(const IntermediateResources &new_resources) const
+ResourceScheduler::IrHistoryPairing ResourceScheduler::pairPreviousHistory(const IntermediateResources &new_resources) const
 {
-  TIME_PROFILE(Remapping resource);
+  TIME_PROFILE(pairPreviousHistory);
 
-  IntermediateRemapping remapping;
-  remapping.resize(eastl::max(new_resources.size(), cachedIntermediateResources.size()), intermediate::RESOURCE_NOT_MAPPED);
+  IrHistoryPairing pairing;
+  pairing.resize(new_resources.size(), intermediate::RESOURCE_NOT_MAPPED);
 
   FRAMEMEM_VALIDATE;
 
-  dag::VectorMap<ResNameId, intermediate::ResourceIndex, eastl::less<ResNameId>, framemem_allocator> resNameToIR;
-  resNameToIR.reserve(eastl::max<size_t>(new_resources.size(), cachedIntermediateResources.size() * 8));
+  // Recall that we transform the initial graph into an IR one. ResNameIds
+  // correspond to string resource names as seen by the user, IR ResourceIndexes
+  // correspond to the resources as seen by the backend. The relation is N-to-N
+  // between those, generally speaking, as multiple names get merged into a
+  // single IR resource when renames are involved, and a single name might
+  // have multiple IR resources due to multiplexing.
+  //
+  // Note that the following situations are possible:
+  // Let A,B,... be intermediate::ResourceIndexes, X,Y,... be ResNameIds.
+  // Before the recompilation the IR<->frontend mapping was:
+  //   A -> {X, Y}
+  // The graph changed, and now it is:
+  //   A -> X
+  //   B -> Y
+  // (here, {X, Y} means that the user did create(X) and rename(X, Y))
+  // So intermediate resources kind of "split", in which case we can't
+  // really provide the history for the new A/X, as it was rewritten
+  // via a rename on the previous frame, but for the new B/Y we CAN provide
+  // the old A/X/Y's history, as renames work such that only the history for
+  // the last resource in the rename chain is available.
+  // Inverse is possible too, we could've had this mapping:
+  //   A -> X
+  //   B -> Y
+  // And then a kind of a "merge" might have happened, and so we get:
+  //   A -> {X, Y}
+  // In this case, we use the old B/Y's history for the new A/X/Y.
 
+  // TODO: the implementation of this function leaks logical details of
+  // how the IR graph is constructed from the frontend, so this should NOT
+  // be constructed here but rather somewhere on the frontend side.
+
+  // Ah, and don't forget that multiplexing exists.
+
+  using FrontToAvailableIrHistory = IdIndexedMapping<ResNameId, intermediate::ResourceIndex, framemem_allocator>;
+  IdIndexedMapping<intermediate::MultiplexingIndex, FrontToAvailableIrHistory, framemem_allocator> frontendResToAvailableHistory;
+
+  {
+    // Multiplexing might've changed, take maximum of both old and new so
+    // as not to crash. Generally speaking, we don't support history preservation
+    // when multiplexing changes, but for some nodes/resource it might've stayed
+    // the same, in which case we should be able to provide it successfully.
+    eastl::underlying_type_t<intermediate::MultiplexingIndex> maxMultiplexing = 0;
+    for (const auto &res : cachedIntermediateResources)
+      maxMultiplexing = eastl::max(maxMultiplexing, eastl::to_underlying(res.multiplexingIndex));
+    for (const auto &res : new_resources)
+      maxMultiplexing = eastl::max(maxMultiplexing, eastl::to_underlying(res.multiplexingIndex));
+
+    // Frontend resources might've appeared or disappeared, take maximum of both old and new
+    eastl::underlying_type_t<ResNameId> maxResNameId = 0;
+    for (const auto &res : cachedIntermediateResources)
+      for (const auto resNameId : res.frontendResources)
+        maxResNameId = eastl::max(maxResNameId, eastl::to_underlying(resNameId));
+    for (const auto &res : new_resources)
+      for (const auto resNameId : res.frontendResources)
+        maxResNameId = eastl::max(maxResNameId, eastl::to_underlying(resNameId));
+
+    frontendResToAvailableHistory.resize(maxMultiplexing + 1);
+    for (auto &mapping : ReverseView{frontendResToAvailableHistory})
+      mapping.resize(maxResNameId + 1, intermediate::RESOURCE_NOT_MAPPED);
+  }
+
+  // The old cached resource contains the history for the last frontend resource
+  // in the rename chain, hence the frontendResources.back() here.
   for (auto [oldResIdx, res] : cachedIntermediateResources.enumerate())
-    for (const auto resNameId : res.frontendResources)
-      resNameToIR[resNameId] = oldResIdx;
+    frontendResToAvailableHistory[res.multiplexingIndex][res.frontendResources.back()] = oldResIdx;
 
   for (auto [newResIdx, res] : new_resources.enumerate())
   {
-    if (remapping[newResIdx] != intermediate::RESOURCE_NOT_MAPPED)
-      continue;
-    for (const auto resNameId : res.frontendResources)
-    {
-      const auto cachedResIdx = resNameToIR.find(resNameId);
-      if (cachedResIdx != resNameToIR.end() &&
-          cachedIntermediateResources[cachedResIdx->second].multiplexingIndex == res.multiplexingIndex)
-        remapping[newResIdx] = cachedResIdx->second;
-    }
+    // If history is requested for newResIdx, we want to provide the data
+    // matching the last frontend resource in the rename chain.
+    const auto wantResNameId = res.frontendResources.back();
+    const auto availableOldIndex = frontendResToAvailableHistory[res.multiplexingIndex][wantResNameId];
+    pairing[newResIdx] = availableOldIndex; // might be NOT_MAPPED
   }
 
-  return remapping;
+  return pairing;
 }
 
-ResourceScheduler::SchedulingResult ResourceScheduler::scheduleResources(int prev_frame, const intermediate::Graph &graph)
+ResourceScheduler::ResourceDeactivationRequestsFmem ResourceScheduler::scheduleResources(int prev_frame,
+  const intermediate::Graph &graph, const BarrierScheduler::EventsCollectionRef &events, const DynamicResolutions &dyn_resolutions)
 {
-  SchedulingResult result;
-  result.deactivations.reserve(cachedIntermediateResources.size());
+  ResourceDeactivationRequestsFmem result;
+  result.reserve(cachedIntermediateResources.size());
 
   FRAMEMEM_VALIDATE;
 
@@ -943,21 +843,26 @@ ResourceScheduler::SchedulingResult ResourceScheduler::scheduleResources(int pre
 
   closeTransientResources();
 
-  const auto cachedResIdxRemapping = remapResources(graph.resources);
+  const auto prevHistoryPairing = pairPreviousHistory(graph.resources);
 
   cachedIntermediateResources = graph.resources;
   cachedIntermediateResourceNames = graph.resourceNames;
 
   const auto resourceProperties = gatherResourceProperties(graph);
 
-  result.events = scheduleEvents(graph);
+  // Intentional copy, allocations are unavoidable here, sadly.
+  const auto previousTemporalResourceLocations = temporalResourceLocations;
+  for (auto &heap_locs : temporalResourceLocations)
+    for (auto &locs : heap_locs)
+      locs.clear();
 
-  auto [allocationLocations, heapRequests] = scheduleResourcesIntoHeaps(resourceProperties, result.events, cachedResIdxRemapping);
+  auto [allocationLocations, heapRequests] =
+    scheduleResourcesIntoHeaps(resourceProperties, events, prevHistoryPairing, previousTemporalResourceLocations);
 
   // Don't deactivate resources that were preserved
   for (auto [idx, res] : cachedIntermediateResources.enumerate())
     if (isResourcePreserved(prev_frame, idx))
-      potentialDeactivations[cachedResIdxRemapping[idx]] = eastl::monostate{};
+      potentialDeactivations[prevHistoryPairing[idx]] = eastl::monostate{};
 
   const auto oldHeapCount = allocatedHeaps.size();
 
@@ -994,16 +899,16 @@ ResourceScheduler::SchedulingResult ResourceScheduler::scheduleResources(int pre
     heapForCpuResource[i].assign(cachedIntermediateResources.size(), HeapIndex::Invalid);
   }
 
-  placeResources(graph, resourceProperties, allocationLocations);
+  placeResources(graph, resourceProperties, allocationLocations, dyn_resolutions);
 
   // Outside world doesn't need to know old resource indices, so repack
   // the deactivation map into a regular array.
   for (auto [idx, res] : cachedIntermediateResources.enumerate())
-    if (const auto oldIdx = cachedResIdxRemapping[idx]; oldIdx != intermediate::RESOURCE_NOT_MAPPED)
+    if (const auto oldIdx = prevHistoryPairing[idx]; oldIdx != intermediate::RESOURCE_NOT_MAPPED)
       eastl::visit(
         [&result](const auto &res) {
           if constexpr (!eastl::is_same_v<eastl::remove_cvref_t<decltype(res)>, eastl::monostate>)
-            result.deactivations.emplace_back(res);
+            result.emplace_back(res);
         },
         potentialDeactivations[oldIdx]);
 
@@ -1031,5 +936,27 @@ bool ResourceScheduler::isResourcePreserved(int frame, intermediate::ResourceInd
 
   return preservedResources[frame][res_idx];
 }
+
+void ResourceScheduler::emergencyDeactivateBlobs(int frame, eastl::span<ResNameId> resources)
+{
+  dag::VectorSet<ResNameId, eastl::less<ResNameId>, framemem_allocator> resourcesSet(resources.begin(), resources.end());
+
+  for (auto [resIdx, res] : cachedIntermediateResources.enumerate())
+    if (res.isScheduled() && res.asScheduled().isCpuResource() && resourcesSet.count(res.frontendResources.front()))
+    {
+      auto &desc = res.asScheduled().getCpuDescription();
+      desc.deactivate(getBlob(frame, resIdx).data);
+
+      // After deactivation, we have to trick the system into not trying to
+      // deactivate/preserve it on next recompilation.
+      // Removing the history mark will:
+      // - prevent it being marked as a potential deactivation
+      // - prevent it from being considered for history preservation
+      res.asScheduled().history = History::No;
+
+      debug("daBfg: Wiped resource %s", cachedIntermediateResourceNames[resIdx]);
+    }
+}
+
 
 } // namespace dabfg

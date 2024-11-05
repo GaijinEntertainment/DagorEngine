@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include "vulkan_instance.h"
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <generic/dag_tab.h>
 #include <util/dag_string.h>
 #include <EASTL/string.h>
@@ -29,17 +31,5 @@ void os_restore_display_mode();
 void os_set_display_mode(int res_x, int res_y);
 eastl::string os_get_additional_ext_requirements(VulkanPhysicalDeviceHandle dev,
   const eastl::vector<VkExtensionProperties> &extensions);
-
-struct ScopedGPUPowerState
-{
-  ScopedGPUPowerState(bool forceHighPower);
-  ~ScopedGPUPowerState();
-  ScopedGPUPowerState(const ScopedGPUPowerState &) = delete;
-  ScopedGPUPowerState &operator=(const ScopedGPUPowerState &) = delete;
-
-#if _TARGET_C3
-
-#endif
-};
 
 } // namespace drv3d_vulkan

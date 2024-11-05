@@ -1,0 +1,29 @@
+include "shader_global.dshl"
+
+shader copy_tex
+{
+  no_ablend;
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+
+  POSTFX_VS_TEXCOORD(0, texcoord)
+
+  hlsl(ps) {
+    Texture2D tex:register(t2);
+    SamplerState tex_samplerstate:register(s2);
+    struct MRT_OUTPUT
+    {
+      float4 color:SV_Target0;
+    };
+    MRT_OUTPUT copy_ps(VsOutput input)
+    {
+      MRT_OUTPUT result;
+      result.color = tex2D( tex, input.texcoord );
+      return result;
+    }
+  }
+  compile("target_ps", "copy_ps");
+}

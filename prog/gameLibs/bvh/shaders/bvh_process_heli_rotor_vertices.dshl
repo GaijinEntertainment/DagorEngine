@@ -1,0 +1,111 @@
+include "shader_global.dshl"
+include "dynamic_simple_inc.dshl"
+
+int bvh_process_target_offset;
+int bvh_process_heli_rotor_vertices_start;
+int bvh_process_heli_rotor_vertices_stride;
+int bvh_process_heli_rotor_vertices_count;
+int bvh_process_heli_rotor_vertices_processed_stride;
+int bvh_process_heli_rotor_vertices_position_offset;
+int bvh_process_heli_rotor_vertices_normal_offset;
+int bvh_process_heli_rotor_vertices_color_offset;
+int bvh_process_heli_rotor_vertices_texcoord_offset;
+int bvh_process_heli_rotor_vertices_texcoord_size;
+
+float4 bvh_process_heli_rotor_vertices_params;
+float4 bvh_process_heli_rotor_vertices_sec_params;
+float4 bvh_process_heli_rotor_vertices_pos_mul;
+float4 bvh_process_heli_rotor_vertices_pos_ofs;
+
+float4x4 bvh_process_heli_rotor_vertices_wtm;
+
+interval bvh_process_heli_rotor_vertices_texcoord_size: zero < 1, four < 8, eight;
+interval bvh_process_heli_rotor_vertices_normal_offset: no < 1, yes;
+interval bvh_process_heli_rotor_vertices_color_offset: no < 1, yes;
+
+shader bvh_process_heli_rotor_vertices
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+  (cs) {
+    target_offset@u1 = bvh_process_target_offset;
+    start_vertex@i1 = bvh_process_heli_rotor_vertices_start;
+    vertex_stride@i1 = bvh_process_heli_rotor_vertices_stride;
+    vertex_count@i1 = bvh_process_heli_rotor_vertices_count;
+    processed_vertex_stride@i1 = bvh_process_heli_rotor_vertices_processed_stride;
+    position_offset@i1 = bvh_process_heli_rotor_vertices_position_offset;
+    color_offset@i1 = bvh_process_heli_rotor_vertices_color_offset;
+    normal_offset@i1 = bvh_process_heli_rotor_vertices_normal_offset;
+    texcoord_offset@i1 = bvh_process_heli_rotor_vertices_texcoord_offset;
+    texcoord_size@i1 = bvh_process_heli_rotor_vertices_texcoord_size;
+    pos_mul@f4 = bvh_process_heli_rotor_vertices_pos_mul;
+    pos_ofs@f4 = bvh_process_heli_rotor_vertices_pos_ofs;
+    wtm@f44 = bvh_process_heli_rotor_vertices_wtm;
+    params@f4 = bvh_process_heli_rotor_vertices_params;
+    secondary_params@f4 = bvh_process_heli_rotor_vertices_sec_params;
+  }
+
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    #pragma wave32
+
+    ByteAddressBuffer source : register(t6);
+    RWByteAddressBuffer output : register(u0);
+
+    #define STATIC_RADIUS 1.0f
+
+    void modify_vertices(inout float3 input_pos, float3 world_local_y)
+    {
+      float rad = max(length(input_pos.xz) - STATIC_RADIUS, 0);
+      float z_coeff = params.y * secondary_params.x + sign(world_local_y.y) * params.x * secondary_params.y;
+      float x_coeff = sign(world_local_y.y) * params.x * secondary_params.x - params.y * secondary_params.y;
+      float rotorOffset = -z_coeff * input_pos.z - x_coeff * input_pos.x + secondary_params.w * rad + params.w * pow2(rad);
+      input_pos.y += sign(world_local_y.y) * rotorOffset;
+    }
+
+    [numthreads( 32, 1, 1 )]
+    void bvh_process_heli_rotor_vertices(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint vertexId = dtId.x;
+      if (vertexId >= vertex_count)
+        return;
+
+      int vertexStart = (start_vertex + vertexId) * vertex_stride;
+
+      // Positions are half float
+      uint2 packedPos = source.Load2(vertexStart + position_offset);
+
+      const uint3 POS_ENCODING_OFFSET = uint3(16, 0, 16);
+      int3 posI = asint(packedPos.xxy << POS_ENCODING_OFFSET) >> 16;
+      float3 modelPos = float3(posI / 32767.0) * pos_mul.xyz + pos_ofs.xyz;
+
+      modify_vertices(modelPos, wtm[1].xyz);
+
+      output.Store3(target_offset + vertexId * processed_vertex_stride, asuint(modelPos));
+
+      uint offset = 12;
+
+      ##if bvh_process_heli_rotor_vertices_texcoord_size == four
+        output.Store(target_offset + vertexId * processed_vertex_stride + offset, source.Load(vertexStart + texcoord_offset));
+        offset += 4;
+      ##elif bvh_process_heli_rotor_vertices_texcoord_size == eight
+        output.Store2(target_offset + vertexId * processed_vertex_stride + offset, source.Load2(vertexStart + texcoord_offset));
+        offset += 8;
+      ##endif
+
+      ##if bvh_process_heli_rotor_vertices_normal_offset == yes
+        output.Store(target_offset + vertexId * processed_vertex_stride + offset, source.Load(vertexStart + normal_offset));
+        offset += 4;
+      ##endif
+
+      ##if bvh_process_heli_rotor_vertices_color_offset == yes
+        output.Store(target_offset + vertexId * processed_vertex_stride + offset, source.Load(vertexStart + color_offset));
+        offset += 4;
+      ##endif
+    }
+  }
+
+  compile("target_cs", "bvh_process_heli_rotor_vertices");
+}

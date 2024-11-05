@@ -1,5 +1,8 @@
-// inspired by https://www.activision.com/cdn/research/siggraph_2018_opt.pdf
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+// inspired by https://www.activision.com/cdn/research/siggraph_2018_opt.pdf
+
 #include <math.h>
 #include <math/dag_mathBase.h>
 #include <math/dag_mathUtils.h>

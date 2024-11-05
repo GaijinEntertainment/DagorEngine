@@ -249,7 +249,7 @@
 #    define RAPIDJSON_ENDIAN RAPIDJSON_BIGENDIAN
 #  elif defined(__i386__) || defined(__alpha__) || defined(__ia64) || defined(__ia64__) || defined(_M_IX86) || defined(_M_IA64) || defined(_M_ALPHA) || defined(__amd64) || defined(__amd64__) || defined(_M_AMD64) || defined(__x86_64) || defined(__x86_64__) || defined(_M_X64) || defined(__bfin__)
 #    define RAPIDJSON_ENDIAN RAPIDJSON_LITTLEENDIAN
-#  elif defined(_MSC_VER) && defined(_M_ARM)
+#  elif defined(_MSC_VER) && (defined(_M_ARM) || defined(_M_ARM64))
 #    define RAPIDJSON_ENDIAN RAPIDJSON_LITTLEENDIAN
 #  elif defined(RAPIDJSON_DOXYGEN_RUNNING)
 #    define RAPIDJSON_ENDIAN
@@ -263,7 +263,7 @@
 
 //! Whether using 64-bit architecture
 #ifndef RAPIDJSON_64BIT
-#if defined(__LP64__) || (defined(__x86_64__) && defined(__ILP32__)) || defined(_WIN64) || defined(__EMSCRIPTEN__)
+#if defined(__LP64__) || (defined(__x86_64__) && defined(__ILP32__)) || defined(_WIN64) || defined(__EMSCRIPTEN__) || defined(_M_ARM64)
 #define RAPIDJSON_64BIT 1
 #else
 #define RAPIDJSON_64BIT 0

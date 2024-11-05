@@ -1,0 +1,109 @@
+float4 camera_right;
+float4 camera_up;
+float4 inv_distortion_resolution;
+
+texture haze_scene_depth_tex;
+float haze_scene_depth_tex_lod;
+
+int rendering_distortion_color = 0;
+interval rendering_distortion_color: no < 1, yes;
+
+macro DISTORTION_PS()
+
+  USE_PIXEL_TANGENT_SPACE()
+
+  static float   distortion_strength     = 1;
+  static float   distortion_twist        = 0;
+  static float4  distortion_rgb          = (1, 1, 1, 1);
+  static float   distortion_rgb_strength = 1;
+  static float   distortion_fade_range   = 0;
+  static float   distortion_fade_power   = 0;
+
+  texture normal = material.texture[2];
+
+  (ps)
+  {
+    normal_tex@static            = normal;
+    distortion_strength_twist@f3 = (distortion_strength, sin(distortion_twist * 2.0 * PI), cos(distortion_twist * 2.0 * PI), 0);
+    camera_right@f3              = (camera_right);
+    camera_up@f3                 = (camera_up);
+    distortion_rgb@f3            = (distortion_rgb);
+    distortion_rgb_strength@f1   = (distortion_rgb_strength);
+    inv_distortion_resolution@f2 = (inv_distortion_resolution);
+    haze_scene_depth_tex@smp2d   = haze_scene_depth_tex;
+    haze_scene_depth_tex_lod@f1  = (haze_scene_depth_tex_lod);
+    distortion_fade_range@f1     = (distortion_fade_range);
+    distortion_fade_power@f1     = (distortion_fade_power);
+  }
+
+  hlsl(ps)
+  {
+    #define distortion_strength  (get_distortion_strength_twist().x)
+    #define distortion_twist_sin (get_distortion_strength_twist().y)
+    #define distortion_twist_cos (get_distortion_strength_twist().z)
+
+    float4 distortion_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      #if SET_UP_MULTIDRAW
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+      #endif
+      float2 screenTC   = GET_SCREEN_POS(input.pos).xy * inv_distortion_resolution;
+      float  depthScene = tex2Dlod(haze_scene_depth_tex, float4(screenTC,0,haze_scene_depth_tex_lod)).x;
+      float  depthHaze  = GET_SCREEN_POS(input.pos).z;
+
+      BRANCH
+      if (depthHaze <= depthScene)
+      {
+        discard;
+        return 0;
+      }
+
+      ##if normal != NULL
+        float4 packedNormalMap = tex2DBindless(get_normal_tex(), input.texcoord);
+        float3 normalMap       = unpack_ag_normal(packedNormalMap);
+        float3 worldNormal     = perturb_normal_precise(normalMap, normalize(input.normal), input.pointToEye, input.texcoord);
+        float  hazeNoise       = packedNormalMap.r;
+        float  hazeBlur        = packedNormalMap.b;
+      ##else
+        float3 worldNormal = normalize(input.normal);
+        float  hazeNoise   = 0;
+        float  hazeBlur    = 0;
+      ##endif
+
+      #if NEED_VCOL_MASK && COLOR_NEEDED
+        worldNormal *= input.colorMul.r;
+        hazeBlur    *= input.colorMul.g;
+        hazeNoise   *= input.colorMul.b;
+      #endif
+
+      float3 distortionWorld   = -worldNormal * distortion_strength;
+      float  distortionScreenX = dot(camera_right, distortionWorld);
+      float  distortionScreenY = dot(camera_up,    distortionWorld);
+
+      float4 result;
+
+      result.x = distortionScreenX * distortion_twist_cos - distortionScreenY * distortion_twist_sin;
+      result.y = distortionScreenX * distortion_twist_sin + distortionScreenY * distortion_twist_cos;
+      result.z = hazeNoise;
+      result.w = hazeBlur;
+
+      if ((get_distortion_fade_range() * get_distortion_fade_power()) > 0)
+      {
+        float dist = GET_SCREEN_POS(input.pos).w;
+        float rate = saturate(dist / get_distortion_fade_range());
+        float t    = 1.0 - pow(rate, (100 - pow(get_distortion_fade_power(), 0.015) * 100));
+        result    *= t;
+      }
+
+      ##if rendering_distortion_color == yes
+        result.xyz = lerp(1, get_distortion_rgb(), saturate(max(abs(result.x), abs(result.y)) * get_distortion_rgb_strength()));
+        result.w   = 0;
+      ##endif
+
+      return result;
+    }
+  }
+
+  compile("target_ps", "distortion_ps");
+
+endmacro

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daRg/dag_renderObject.h>
 #include <daRg/dag_renderState.h>
 #include <daRg/dag_element.h>
@@ -20,7 +22,7 @@ bool RobjParamsBrowser::load(const Element *elem)
 }
 
 
-void RenderObjectBrowser::renderCustom(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
+void RenderObjectBrowser::render(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
   const RenderState &render_state)
 {
   G_UNUSED(render_state);
@@ -31,7 +33,7 @@ void RenderObjectBrowser::renderCustom(StdGuiRender::GuiContext &ctx, const Elem
   {
     ctx.set_color(params->color);
 
-    ctx.set_texture(webbrowser::get_helper()->getTexture());
+    ctx.set_texture(webbrowser::get_helper()->getTexture(), webbrowser::get_helper()->getSampler());
     ctx.render_rect_t(rdata->pos, rdata->pos + rdata->size);
   }
 }

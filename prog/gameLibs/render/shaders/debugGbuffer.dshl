@@ -6,6 +6,7 @@ include "viewVecVS.dshl"
 include "stencil_inc.dshl"
 include "clustered/lights_cb.dshl"
 include "taa_inc.dshl"
+include "use_tiled_lights.dshl"
 
 macro MODE(mode, num)
   mode < num,
@@ -30,10 +31,6 @@ define_macro_if_not_defined USE_EMISSION_DECODE_COLOR_MAP(code)
 endmacro
 
 float overdraw_range;
-
-buffer lights_list always_referenced;
-buffer z_binning_lookup always_referenced;
-float max_lights_distance = 500;
 float lights_degug_mode = 0;
 
 shader debug_final_gbuffer
@@ -174,6 +171,8 @@ shader debug_final_gbuffer
     }
   }
 
+  INIT_UPSCALE_SAMPLING()
+  USE_UPSCALE_SAMPLING()
   USING_SSAO()
   USING_SSR()
 
@@ -183,8 +182,6 @@ shader debug_final_gbuffer
   POSTFX_VS_TEXCOORD(1, texcoord)
   INIT_READ_MOTION_BUFFER()
   USE_READ_MOTION_BUFFER()
-  INIT_MOTION_VEC_DECODE(ps)
-  USE_MOTION_VEC_DECODE(ps)
 
   if (show_gbuffer >= debug_mesh)
   {
@@ -225,18 +222,20 @@ shader debug_final_gbuffer
   hlsl(ps) {
     #include <envi_brdf.hlsl>
     #include <pixelPacking/ColorSpaceUtility.hlsl>
-    float4 debug_ps(VsOutput input): SV_Target
+    float4 debug_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target
     {
       // for now, only depth or stencil can be used, but not both of them
+      float2 screenpos = GET_SCREEN_POS(input.pos).xy;
       ##if show_gbuffer < debug_mesh
       float w = linearize_z(readGbufferDepth(input.texcoord), zn_zfar.zw);
 
       BRANCH
       if (w >= zn_zfar.y)
         return 0;
-      ##endif
+      // TODO on Bare Mininmum with the full deferred capability it should use getSSAOSimple
+      SSAO_TYPE ssao = getSSAO(w, screenpos).SSAO_ATTRS;
 
-      SSAO_TYPE ssao = getSSAO(input.texcoord * screen_size.xy).SSAO_ATTRS;
+      ##endif
 
       UnpackedGbuffer gbuf = unpackGbuffer(readPackedGbuffer(input.texcoord));
       ProcessedGbuffer gbuffer = processGbuffer(gbuf);
@@ -268,17 +267,17 @@ shader debug_final_gbuffer
         float3 result = diffuse * lerp(max(NoL, 0), 1, LOD_AMBIENT_WEIGHT);
         return half4(result, 1);
       ##elif show_gbuffer == baseColor
-        return half4(accurateLinearToSRGB(gbuf.albedo),1);
+        return half4(ApplySRGBCurve(gbuf.albedo),1);
       ##elif show_gbuffer == diffuseColor
-        return half4(accurateLinearToSRGB(gbuffer.diffuseColor),1);
+        return half4(ApplySRGBCurve(gbuffer.diffuseColor),1);
       ##elif show_gbuffer == specularColor
-        return gbuffer.metallness > 0 ? half4(accurateLinearToSRGB(gbuffer.specularColor),1) : half4(accurateLinearToSRGB(saturate(gbuffer.specularColor.rrr/0.16)).x,0,0,1);
+        return gbuffer.metalness > 0 ? half4(ApplySRGBCurve(gbuffer.specularColor),1) : half4(ApplySRGBCurve(saturate(gbuffer.specularColor.rrr/0.16)).x,0,0,1);
       ##elif show_gbuffer == normal
         return half4(gbuffer.normal*0.5+0.5,1);
       ##elif show_gbuffer == smoothness
         return half4(gbuf.smoothness.xxx,1);
-      ##elif show_gbuffer == metallness
-        return half4(gbuffer.metallness.xxx,1);
+      ##elif show_gbuffer == metalness
+        return half4(gbuffer.metalness.xxx,1);
       ##elif show_gbuffer == translucency
         return half4(gbuffer.translucency.xxx,1);
       ##elif show_gbuffer == depth
@@ -297,9 +296,9 @@ shader debug_final_gbuffer
         half finalAO = gbuffer.ao*gbuffer.extracted_albedo_ao*ssao.x;
         return half4(finalAO.xxx,1);
       ##elif show_gbuffer == ssr
-        return half4(accurateLinearToSRGB(getSSR(gbuffer.linearRoughness, input.texcoord).rgb)*EnvBRDFApprox( gbuffer.specularColor, gbuffer.linearRoughness, NoV).x,1);
+        return half4(ApplySRGBCurve(getSSR(gbuffer.linearRoughness, input.texcoord, screenpos).rgb)*EnvBRDFApprox( gbuffer.specularColor, gbuffer.linearRoughness, NoV).x,1);
       ##elif show_gbuffer == ssrStrength
-        return getSSR(gbuffer.linearRoughness, input.texcoord).a;
+        return getSSR(gbuffer.linearRoughness, input.texcoord, screenpos).a;
       ##elif show_gbuffer == materialType
         #ifdef GBUFFER_HAS_DYNAMIC_BIT
         half one = 1 - 0.5 * gbuffer.dynamic;
@@ -316,9 +315,7 @@ shader debug_final_gbuffer
       ##elif show_gbuffer == reflectance
         return half4(gbuf.reflectance.xxx, 1);
       ##elif show_gbuffer == velocity
-        const float mean = 0.5;
-        const float std = 3;
-        return half4(decode_motion_vector(readMotionBuffer(input.texcoord)) * std + mean, 0, 1);
+        return half4(saturate(readMotionBuffer(input.texcoord).xy * 0.5 + 0.5), 0, 1);
       ##elif show_gbuffer == isHeroCockpit
         #ifdef GBUFFER_HAS_HERO_COCKPIT_BIT
           return half4(gbuffer.isHeroCockpit.xxx, 1);
@@ -370,7 +367,10 @@ shader debug_final_gbuffer_vec
   z_write = false;
   z_test = false;
 
-  supports global_const_block;
+  hlsl(vs)
+  {
+    #define toonshading 0
+  }
 
   INIT_ZNZFAR_STAGE(vs)
   INIT_READ_DEPTH_GBUFFER_BASE(vs)

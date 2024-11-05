@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 // todo: verify invariants: add/delete is happening only from one, owning thread
 #include <osApiWrappers/dag_atomic.h>
 #include "stl/daProfilerVector.h"

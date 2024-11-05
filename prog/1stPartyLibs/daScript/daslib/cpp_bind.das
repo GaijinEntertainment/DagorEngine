@@ -52,10 +52,10 @@ def private log_cpp_class_method_call ( cpp_file:file; name:string; fntype:TypeD
         fwrite(cpp_file,".marshal()")
 
 def log_cpp_class_adapter ( cpp_file:file; name:string; cinfo:TypeDeclPtr )
-    //! Generates C++ class adapter for the daScript class.
+    //! Generates C++ class adapter for the Daslang class.
     //! Intended use::
     //!
-    //!     log_cpp_class_adapter(cppFileNameDotInc, "daScriptClassName", typeinfo(ast_typedecl type<daScriptClassName>))
+    //!     log_cpp_class_adapter(cppFileNameDotInc, "daslangClassName", typeinfo(ast_typedecl type<daslangClassName>))
     assert(cinfo.isClass,"can only make adapter out of a class")
     var methods : array<tuple<name:string;index:int>>
     var inscope types : array<TypeDeclPtr>

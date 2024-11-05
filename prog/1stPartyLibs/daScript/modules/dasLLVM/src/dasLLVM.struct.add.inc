@@ -1,6 +1,8 @@
 // this file is generated via daScript automatic C++ binder
 // all user modifications will be lost after this file is re-generated
 
+auto ann__Lldiv_t = make_smart<_Lldiv_t_GeneratedAnnotation>(lib);
+addAnnotation(ann__Lldiv_t);
 auto ann_LLVMOpInfoSymbol1 = make_smart<LLVMOpInfoSymbol1_GeneratedAnnotation>(lib);
 addAnnotation(ann_LLVMOpInfoSymbol1);
 auto ann_LLVMOpInfo1 = make_smart<LLVMOpInfo1_GeneratedAnnotation>(lib);

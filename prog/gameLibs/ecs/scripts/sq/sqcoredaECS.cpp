@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ecs/scripts/scripts.h>
 #include <generic/dag_tab.h>
 #include <util/dag_string.h>
@@ -37,6 +39,7 @@ EA_DISABLE_VC_WARNING(4505) // unreferenced local function has been removed
 
 #define ON_UPDATE_EVENT_NAME "onUpdate"
 
+ECS_REGISTER_EVENT(EventScriptBeforeReload);
 ECS_REGISTER_EVENT(EventScriptReloaded);
 ECS_REGISTER_EVENT(CmdRequireUIScripts);
 
@@ -142,7 +145,6 @@ namespace ecs
 {
 
 static bool ecs_is_in_init_phase = true;
-extern void reset_es_order();
 
 } // namespace ecs
 
@@ -201,10 +203,12 @@ struct VmExtraData
 {
   bool createSystems;
   bool createFactories;
+  Sqrat::Table compTbl;
 };
-static eastl::vector_map<HSQUIRRELVM, VmExtraData> vm_extra_data;
-
-static Sqrat::Object sq_deep_copy_data(const Sqrat::Object &from, HSQUIRRELVM to_vm, bool *result = nullptr);
+static eastl::vector_map<HSQUIRRELVM, VmExtraData, eastl::less<HSQUIRRELVM>, EASTLAllocatorType,
+  eastl::fixed_vector<eastl::pair<HSQUIRRELVM, VmExtraData>, 2>>
+  vm_extra_data;
+static constexpr int COMPS_TABLE_MAX_NODES_COUNT = 16;
 
 struct ScriptCompDesc
 {
@@ -269,6 +273,11 @@ struct ScriptEsData : CompListDescHolder
 #endif
 
   const char *getESName() const { return sq_objtostring(&esName.GetObject()); }
+#if DAECS_EXTENSIVE_CHECKS
+  const char *debugGetESName() const { return getESName(); }
+#else
+  constexpr const char *debugGetESName() const { return nullptr; }
+#endif
   ScriptEsData(Sqrat::Object &&es_name) : esName(eastl::move(es_name)) {}
 
   HSQUIRRELVM getVM() const { return esName.GetVM(); }
@@ -548,17 +557,45 @@ static SQInteger get_hash_comp(const char *name)
   return 0;
 }
 
-static Sqrat::Table comps_get_table(HSQUIRRELVM vm)
+static inline Sqrat::Table comps_create_table(HSQUIRRELVM vm, int icap = 0)
 {
-  return Sqrat::Table(vm);
-  ;
+  if (icap < 2)
+    return Sqrat::Table(vm);
+  sq_newtableex(vm, icap);
+  Sqrat::Var<Sqrat::Object> tv(vm, -1);
+  sq_poptop(vm);
+  return tv.value;
+}
+
+static inline Sqrat::Table comps_create_table(HSQUIRRELVM vm, const ecs::QueryView &comps)
+{
+  return comps_create_table(vm, comps.getRwCount() + comps.getRoCount() - /*eid*/ 1);
+}
+
+template <typename F>
+static void exec_with_cached_comps_table(HSQUIRRELVM vm, const QueryView &qv, F cb)
+{
+  auto &shCompTable = vm_extra_data[vm].compTbl;
+  bool useCachedTbl = !shCompTable.IsNull() && int(qv.getRwCount() + qv.getRoCount() - /*eid*/ 1) <= COMPS_TABLE_MAX_NODES_COUNT;
+  Sqrat::Table compTbl = useCachedTbl ? eastl::move(shCompTable) : comps_create_table(vm, qv);
+
+  cb(compTbl);
+
+  if (useCachedTbl)
+  {
+    sq_pushobject(vm, compTbl.GetObject());
+    G_VERIFY(SQ_SUCCEEDED(sq_clear(vm, -1, /*freemem*/ SQFalse)));
+    sq_poptop(vm);
+
+    shCompTable = eastl::move(compTbl); // Return back
+  }
 }
 
 template <typename T, typename Filter = NoFilter>
 static void ecs_scripts_call(Sqrat::Table &compTbl, CompListDescHolder &compListDesc, const ecs::QueryView &components, T cb,
-  const char *es_name = nullptr, Filter filter_in = NoFilter())
+  const char *debug_es_name = nullptr, Filter filter_in = NoFilter())
 {
-  G_UNUSED(es_name);
+  G_UNUSED(debug_es_name);
   if (!components.getEntitiesCount())
     return;
   G_ASSERTF(components.getRwCount() == compListDesc.componentsRw.size(), "RW components count mismatch %d vs %d",
@@ -609,7 +646,7 @@ static void ecs_scripts_call(Sqrat::Table &compTbl, CompListDescHolder &compList
     CallbackResult cbRes;
 
     {
-      COMP_TABLE_SIZE_GUARD(cszg, compTbl, es_name);
+      COMP_TABLE_SIZE_GUARD(cszg, compTbl, debug_es_name);
       cbRes = cb(eid, compTbl);
     }
 
@@ -624,8 +661,8 @@ static void ecs_scripts_call(Sqrat::Table &compTbl, CompListDescHolder &compList
 
 void register_pending_es()
 {
-  if (ecs_is_in_init_phase) // if we send events during inital load, it is important to register all pending es
-    reset_es_order();
+  if (ecs_is_in_init_phase && g_entity_mgr) // if we send events during inital load, it is important to register all pending es
+    g_entity_mgr->resetEsOrder();
 }
 
 struct EventDataGetter : ecs::Event
@@ -654,59 +691,60 @@ void SqBindingHelper::sq_es_on_event(const Event &evt, const QueryView &__restri
   ScopedLockVM lock(vm);
 
   auto it = esData->onEvent.find(evt.getType());
-  if (EASTL_UNLIKELY(it == esData->onEvent.end()))
+  if (DAGOR_UNLIKELY(it == esData->onEvent.end()))
   {
     LOGERR_ONCE("No function for event type %#x in scripted ES <%s>", evt.getType(), esData->getESName());
     return;
   }
 
-  COMP_INSTANCES_GUARD(cig, vm, esData->getESName(), &evt);
+  COMP_INSTANCES_GUARD(cig, vm, esData->debugGetESName(), &evt);
 
   {
     TIME_PROFILE_SQ_ES(sq_es_on_event, esData);
-    Sqrat::Table compTbl = comps_get_table(vm);
     Sqrat::Function &onEventFunc = it->second;
 
-    if (components.getComponentsCount())
-    {
-      ecs_scripts_call(
-        compTbl, *esData, components,
-        [&evt, &onEventFunc](ecs::EntityId eid, Sqrat::Table &compTbl) {
-          call_event_func(evt, [eid, &compTbl, &onEventFunc](ecs::Event *evt) {
-            if (evt->getFlags() & EVFLG_SCHEMELESS)
-            {
-              if (evt->getFlags() & EVFLG_DESTROY)
+    exec_with_cached_comps_table(vm, components, [&](Sqrat::Table &compTbl) {
+      if (components.getComponentsCount())
+      {
+        ecs_scripts_call(
+          compTbl, *esData, components,
+          [&evt, &onEventFunc](ecs::EntityId eid, Sqrat::Table &compTbl) {
+            call_event_func(evt, [eid, &compTbl, &onEventFunc](ecs::Event *evt) {
+              if (evt->getFlags() & EVFLG_SCHEMELESS)
               {
-                EventDataGetter getter(compTbl.GetVM(), *(const SchemelessEvent *)evt);
-                onEventFunc(&getter, eid, compTbl);
+                if (evt->getFlags() & EVFLG_DESTROY)
+                {
+                  EventDataGetter getter(compTbl.GetVM(), *(const SchemelessEvent *)evt);
+                  onEventFunc(&getter, eid, compTbl);
+                }
+                else
+                  onEventFunc((SchemelessEvent *)evt, eid, compTbl);
               }
               else
-                onEventFunc((SchemelessEvent *)evt, eid, compTbl);
+                onEventFunc(evt, eid, compTbl);
+            });
+            return CB_CONTINUE;
+          },
+          esData->debugGetESName());
+      }
+      else // empty ES
+      {
+        call_event_func(evt, [&onEventFunc, &compTbl, vm](ecs::Event *evt) {
+          if (evt->getFlags() & EVFLG_SCHEMELESS)
+          {
+            if ((evt->getFlags() & EVFLG_DESTROY))
+            {
+              EventDataGetter getter(vm, *(const SchemelessEvent *)evt);
+              onEventFunc(&getter, ecs::EntityId(), compTbl);
             }
             else
-              onEventFunc(evt, eid, compTbl);
-          });
-          return CB_CONTINUE;
-        },
-        esData->getESName());
-    }
-    else // empty ES
-    {
-      call_event_func(evt, [&onEventFunc, &compTbl, vm](ecs::Event *evt) {
-        if (evt->getFlags() & EVFLG_SCHEMELESS)
-        {
-          if ((evt->getFlags() & EVFLG_DESTROY))
-          {
-            EventDataGetter getter(vm, *(const SchemelessEvent *)evt);
-            onEventFunc(&getter, ecs::EntityId(), compTbl);
+              onEventFunc((SchemelessEvent *)evt, ecs::EntityId(), compTbl);
           }
           else
-            onEventFunc((SchemelessEvent *)evt, ecs::EntityId(), compTbl);
-        }
-        else
-          onEventFunc(evt, ecs::EntityId(), compTbl);
-      });
-    }
+            onEventFunc(evt, ecs::EntityId(), compTbl);
+        });
+      }
+    });
   }
 }
 
@@ -747,10 +785,11 @@ void SqBindingHelper::sq_es_on_update(const UpdateStageInfo &info, const QueryVi
   G_ASSERTF(info.stage == US_ACT, "Script ES update stage = %d", info.stage);
 
   Sqrat::Function &onUpdateFunc = esData->onUpdate;
-  ScopedLockVM lock(onUpdateFunc.GetVM());
+  HSQUIRRELVM vm = onUpdateFunc.GetVM();
+  ScopedLockVM lock(vm);
 
   const UpdateStageInfoAct &actInfo = *info.cast<ecs::UpdateStageInfoAct>();
-  COMP_INSTANCES_GUARD(cig, onUpdateFunc.GetVM(), esData->getESName());
+  COMP_INSTANCES_GUARD(cig, vm, esData->debugGetESName());
   {
     update_es_timer(esData, actInfo.dt);
 
@@ -775,24 +814,25 @@ void SqBindingHelper::sq_es_on_update(const UpdateStageInfo &info, const QueryVi
 
     TIME_PROFILE_SQ_ES(sq_es_on_update, esData);
 
-    Sqrat::Table compTbl = comps_get_table(onUpdateFunc.GetVM());
-    if (esData->isNoFrameLag())
-    {
-      ecs_scripts_call(compTbl, *esData, components, scriptCall, esData->getESName(),
-        [esData](ecs::EntityId eid, int) // 'esData' pointer is captured by value
-        {
-          const uint32_t seedByEid = EidHashFNV1a()(eid) & USHRT_MAX;
-          return (esData->minInterval <= seedByEid && seedByEid < esData->maxInterval) ? FILTER_PROCESS : FILTER_SKIP;
-        });
-    }
-    else // we can't use interval logic when frame delta is bigger then whole interval. Assume that this is relatively rare occasion
-         // (lagged frames)
-    {
-      ecs_scripts_call(compTbl, *esData, components, scriptCall, esData->getESName());
+    exec_with_cached_comps_table(vm, components, [&](Sqrat::Table &compTbl) {
+      if (esData->isNoFrameLag())
+      {
+        ecs_scripts_call(compTbl, *esData, components, scriptCall, esData->debugGetESName(),
+          [esData](ecs::EntityId eid, int) // 'esData' pointer is captured by value
+          {
+            const uint32_t seedByEid = EidHashFNV1a()(eid) & USHRT_MAX;
+            return (esData->minInterval <= seedByEid && seedByEid < esData->maxInterval) ? FILTER_PROCESS : FILTER_SKIP;
+          });
+      }
+      else // we can't use interval logic when frame delta is bigger then whole interval. Assume that this is relatively rare occasion
+           // (lagged frames)
+      {
+        ecs_scripts_call(compTbl, *esData, components, scriptCall, esData->debugGetESName());
 
-      esData->updateTimeout = esData->updateInterval;
-      esData->resetTimer(); // wait for next timeout expire
-    }
+        esData->updateTimeout = esData->updateInterval;
+        esData->resetTimer(); // wait for next timeout expire
+      }
+    });
   }
 }
 
@@ -809,9 +849,8 @@ void SqBindingHelper::sq_es_on_update_empty(const UpdateStageInfo &info, const Q
   ScopedLockVM lock(onUpdateFunc.GetVM());
 
   const UpdateStageInfoAct &actInfo = *info.cast<ecs::UpdateStageInfoAct>();
-  COMP_INSTANCES_GUARD(cig, onUpdateFunc.GetVM(), esData->getESName());
+  COMP_INSTANCES_GUARD(cig, onUpdateFunc.GetVM(), esData->debugGetESName());
   {
-
     update_es_timer(esData, actInfo.dt);
 
     if (esData->isTimerNotExpired())
@@ -1022,7 +1061,8 @@ static SQInteger clear_vm_entity_systems(HSQUIRRELVM vm)
     return false;
   });
 
-  reset_es_order();
+  if (g_entity_mgr)
+    g_entity_mgr->resetEsOrder();
 
   return 0;
 }
@@ -1032,7 +1072,7 @@ static SQInteger register_entity_system(HSQUIRRELVM vm)
   HSQOBJECT hESName;
   const char *es_name = SQ_SUCCEEDED(sq_getstackobj(vm, 2, &hESName)) ? sq_objtostring(&hESName) : nullptr;
 
-  debug_ctx("[SQ ECS] register_entity_system(%s)", es_name);
+  DEBUG_CTX("[SQ ECS] register_entity_system(%s)", es_name);
 
   if (!ecs_is_in_init_phase)
     return sq_throwerror(vm, "ES can be registered only during initialization");
@@ -1863,6 +1903,7 @@ static ecs::component_type_t ecs_type_from_sq_obj(const Sqrat::Object &obj, cons
     CHECK(Point4)
     CHECK(IPoint2)
     CHECK(IPoint3)
+    CHECK(IPoint4)
     CHECK(E3DCOLOR)
     CHECK(ecs::Object)
     CHECK(ecs::Array)
@@ -2740,7 +2781,7 @@ static void emgr_dispatch_event(ecs::EntityManager *mgr, ecs::EntityId eid, ecs:
     logerr("send event <%s> is probably net event and should be send using sendNetEvent/broadcastNetEvent.", evt.getName());
 #endif
   register_pending_es();
-  if (EASTL_LIKELY(ecs::is_schemeless_event(evt)))
+  if (DAGOR_LIKELY(ecs::is_schemeless_event(evt)))
     mgr->dispatchEvent(eid, eastl::move((ecs::SchemelessEvent &)evt));
   else
     mgr->dispatchEvent(eid, evt);
@@ -2748,7 +2789,7 @@ static void emgr_dispatch_event(ecs::EntityManager *mgr, ecs::EntityId eid, ecs:
 
 static void emgr_send_event(ecs::EntityManager *mgr, ecs::EntityId eid, ecs::Event &evt)
 {
-  if (EASTL_LIKELY(eid))
+  if (DAGOR_LIKELY(eid))
     emgr_dispatch_event(mgr, eid, evt);
 }
 
@@ -2983,7 +3024,7 @@ static uint32_t get_comp_flags(ecs::EntityId eid, const char *comp)
 class SqQuery
 {
 public:
-  SqQuery(Sqrat::Object qname, const Sqrat::Object &comps_desc, const char *filter_string);
+  SqQuery(const Sqrat::Object &qname, const Sqrat::Object &comps_desc, const char *filter_string);
   ~SqQuery()
   {
     G_ASSERT_RETURN(g_entity_mgr, );
@@ -2994,10 +3035,14 @@ public:
   static SQInteger perform(HSQUIRRELVM vm);
   static SQInteger script_ctor(HSQUIRRELVM vm);
 
-  const char *getQueryName() const
+  const char *debugGetQueryName() const
   {
+#if DAECS_EXTENSIVE_CHECKS
     return g_entity_mgr->getQueryName(qid);
-  } // Note: alt impl - get pointer to string from sq (queryName)
+#else
+    return nullptr;
+#endif
+  }
 
 private:
   bool parseFilter();
@@ -3005,7 +3050,6 @@ private:
 private:
   QueryId qid;
   CompListDescHolder compListDesc;
-  Sqrat::Object queryName; // string, but stored as object to hold ref count
 
   eastl::string filterString;
   ExpressionTree filterExpr;
@@ -3013,14 +3057,11 @@ private:
 };
 
 
-SqQuery::SqQuery(Sqrat::Object qname, const Sqrat::Object &comps_desc, const char *filter_string)
+SqQuery::SqQuery(const Sqrat::Object &qname, const Sqrat::Object &comps_desc, const char *filter_string)
 {
   const char *sqname;
-  if (qname.GetType() == OT_STRING)
-  {
-    queryName = qname;
-    sqname = queryName.GetVar<const SQChar *>().value;
-  }
+  if (DAGOR_LIKELY(qname.GetType() == OT_STRING))
+    sqname = qname.GetVar<const SQChar *>().value; // Note: string ref is held by calling code
   else
   {
     sqname = "script_func";
@@ -3042,7 +3083,6 @@ SqQuery::SqQuery(Sqrat::Object qname, const Sqrat::Object &comps_desc, const cha
     logerr("SqQuery '%s' components description error: %s", sqname, errMsg.c_str());
     dump_sq_callstack_in_log(comps_desc.GetVM());
   }
-
 
   if (
     compListDesc.esCompsRo.size() + compListDesc.esCompsRw.size() + compListDesc.esCompsRq.size() + compListDesc.esCompsNo.size() > 0)
@@ -3108,7 +3148,7 @@ SQInteger SqQuery::perform(HSQUIRRELVM vm)
     Sqrat::Table compTbl;
     ExpressionTree *filterToUse;
     Sqrat::Object scriptRes;
-  } qd = {Sqrat::Function(vm, Sqrat::Object(vm), hFuncObj), comps_get_table(vm), nullptr};
+  } qd = {Sqrat::Function(vm, Sqrat::Object(vm), hFuncObj), comps_create_table(vm), nullptr};
 
   SqQuery &sqQuery = *varSelf.value;
 
@@ -3158,11 +3198,11 @@ SQInteger SqQuery::perform(HSQUIRRELVM vm)
     if (qd.filterToUse && qd.filterToUse->nodes.size())
     {
       PerformExpressionTree tree(qd.filterToUse->nodes.data(), qd.filterToUse->nodes.size(), &qv);
-      ecs_scripts_call(qd.compTbl, sqQuery.compListDesc, qv, cb, sqQuery.getQueryName(),
+      ecs_scripts_call(qd.compTbl, sqQuery.compListDesc, qv, cb, sqQuery.debugGetQueryName(),
         [&tree](const ecs::EntityId, int id) { return tree.performExpression(id) ? FILTER_PROCESS : FILTER_SKIP; });
     }
     else
-      ecs_scripts_call(qd.compTbl, sqQuery.compListDesc, qv, cb, sqQuery.getQueryName());
+      ecs_scripts_call(qd.compTbl, sqQuery.compListDesc, qv, cb, sqQuery.debugGetQueryName());
     return ecs::QueryCbResult::Continue;
   };
 
@@ -3273,33 +3313,39 @@ static void bind_list_class(HSQUIRRELVM vm, Sqrat::Table &tbl, const char *type_
       * CompInt64List(RO)
       * CompUInt64List(RO)
   */
-  sqListClass.Ctor()
+  sqListClass //
+    .Ctor()
     .SquirrelFunc("_get", comp_arr_get<T, readonly>, 2, "x.")
     .SquirrelFunc("_nexti", comp_arr_nexti<T>, 2, "xi|o")
     .GlobalFunc("len", comp_t_len<T>)
     .SquirrelFunc("indexof", comp_list_indexof<T, ItemType>, -2, "x.i")
     .SquirrelFunc("getAll", comp_list_get_all<T, readonly>, 1, "x")
     .SquirrelFunc("isReadOnly", comp_is_readonly<readonly>, 1, "x")
-    .SquirrelFunc("listType", comp_item_type<ItemType>, 1, "x");
+    .SquirrelFunc("listType", comp_item_type<ItemType>, 1, "x")
+    /**/;
 
   if (readonly)
     ///@class ecs/ListRO
     ///@extends ecs.BaseList
-    sqListClass.SquirrelFunc("_set", readonly_method_error, 3, "xi.")
+    sqListClass //
+      .SquirrelFunc("_set", readonly_method_error, 3, "xi.")
       .SquirrelFunc("append", readonly_method_error, -2, "x.i")
       .SquirrelFunc("insert", readonly_method_error, -3, "xi.i")
       .SquirrelFunc("remove", readonly_method_error, 2, "xi")
       .SquirrelFunc("pop", readonly_method_error, 1, "x")
-      .SquirrelFunc("clear", readonly_method_error, 1, "x");
+      .SquirrelFunc("clear", readonly_method_error, 1, "x")
+      /**/;
   else
     ///@class ecs/List
     ///@extends ecs.BaseList
-    sqListClass.SquirrelFunc("_set", comp_list_set<T>, 3, "xi.")
+    sqListClass //
+      .SquirrelFunc("_set", comp_list_set<T>, 3, "xi.")
       .SquirrelFunc("append", comp_arr_append<T>, -2, "x.i")
       .SquirrelFunc("insert", comp_arr_insert<T>, -3, "xi.i")
       .SquirrelFunc("remove", comp_arr_remove<T>, 2, "xi")
       .SquirrelFunc("pop", comp_arr_pop<T>, 1, "x")
-      .GlobalFunc("clear", comp_arr_clear<T>);
+      .GlobalFunc("clear", comp_arr_clear<T>)
+      /**/;
 
   tbl.Bind(type_name, sqListClass);
 }
@@ -3344,9 +3390,12 @@ static SQInteger eid_ctor(HSQUIRRELVM vm)
 void ecs_register_sq_binding(SqModules *module_mgr, bool create_systems, bool create_factories)
 {
   HSQUIRRELVM vm = module_mgr->getVM();
-  VmExtraData &vmExtra = vm_extra_data[vm];
+  auto ins = vm_extra_data.insert(vm);
+  VmExtraData &vmExtra = ins.first->second;
   vmExtra.createSystems = create_systems;
   vmExtra.createFactories = create_factories;
+  if (ins.second)
+    vmExtra.compTbl = comps_create_table(vm, COMPS_TABLE_MAX_NODES_COUNT);
 
   Sqrat::Table tblEcs(vm);
   ///@module ecs
@@ -3392,25 +3441,29 @@ void ecs_register_sq_binding(SqModules *module_mgr, bool create_systems, bool cr
 
   ///@class ecs/TemplateDB
   Sqrat::Class<TemplateDB, Sqrat::NoConstructor<TemplateDB>> sqTemplateDB(vm, "TemplateDB");
-  sqTemplateDB.GlobalFunc("getTemplateByName", &tpldb_get_template_by_name)
+  sqTemplateDB //
+    .GlobalFunc("getTemplateByName", &tpldb_get_template_by_name)
     .GlobalFunc("size", &tpldb_get_size)
     .GlobalFunc("getTemplateMetaInfo", &tpldb_get_template_meta_info)
     .GlobalFunc("getComponentMetaInfo", &tpldb_get_component_meta_info)
-    .GlobalFunc("hasComponentMetaInfo", &tpldb_has_component_meta_info);
+    .GlobalFunc("hasComponentMetaInfo", &tpldb_has_component_meta_info)
+    /**/;
 
   ///@class ecs/EventsDB
   Sqrat::Class<EventsDB, Sqrat::NoConstructor<EventsDB>> sqEventsDB(vm, "EventsDB");
-  sqEventsDB.Func("findEvent", &EventsDB::findEvent)
+  sqEventsDB //
+    .Func("findEvent", &EventsDB::findEvent)
     .Func("hasEventScheme", &EventsDB::hasEventScheme)
     .Func("getFieldsCount", &EventsDB::getFieldsCount)
     .Func("findFieldIndex", &EventsDB::findFieldIndex)
     .Func("getFieldName", &EventsDB::getFieldName)
     .Func("getFieldType", &EventsDB::getFieldType)
     .Func("getFieldOffset", &EventsDB::getFieldOffset)
-    .SquirrelFunc("getEventFieldValue", evtdb_get_event_field, 4, ".xii");
+    .SquirrelFunc("getEventFieldValue", evtdb_get_event_field, 4, ".xii")
+    /**/;
   ///@class ecs/Template
   Sqrat::Class<Template, Sqrat::NoConstructor<Template>> sqTemplate(vm, "Template");
-  sqTemplate
+  sqTemplate //
     .Func("getName", &Template::getName)
     //.Func("getBase", &Template::getBase)
     .SquirrelFunc("getCompVal", template_get_comp_val, 2, "xs")
@@ -3419,14 +3472,16 @@ void ecs_register_sq_binding(SqModules *module_mgr, bool create_systems, bool cr
     .GlobalFunc("getNumParentTemplates", template_get_num_parents)
     .GlobalFunc("getParentTemplate", template_get_parent)
     .SquirrelFunc("getComponentsNames", template_get_components_names, 1, "x")
-    .SquirrelFunc("getTags", template_get_tags, 1, "x");
+    .SquirrelFunc("getTags", template_get_tags, 1, "x")
+    /**/;
 
 
   typedef bool (EntityManager::*removeCompFunc)(EntityId, const char *);
 
   ///@class ecs/EntityManager
   Sqrat::Class<EntityManager, Sqrat::NoConstructor<EntityManager>> sqEntityManager(vm, "EntityManager");
-  sqEntityManager.Func("destroyEntity", (bool(EntityManager::*)(const ecs::EntityId &)) & EntityManager::destroyEntity)
+  sqEntityManager //
+    .Func("destroyEntity", (bool(EntityManager::*)(const ecs::EntityId &)) & EntityManager::destroyEntity)
     .Func("doesEntityExist", &EntityManager::doesEntityExist)
     .Func("getNumEntities", &EntityManager::getNumEntities)
 
@@ -3447,39 +3502,46 @@ void ecs_register_sq_binding(SqModules *module_mgr, bool create_systems, bool cr
     .SquirrelFunc("createTemplate", create_template, -3, "xstssis")
     .GlobalFunc("getComponentType", emgr_get_component_type)
     .GlobalFunc("getComponentTypeName", emgr_get_component_type_name)
-    .GlobalFunc("getTypeName", emgr_get_type_name);
+    .GlobalFunc("getTypeName", emgr_get_type_name)
+    /**/;
 
   Sqrat::Class<UpdateStageInfoAct, Sqrat::NoConstructor<UpdateStageInfoAct>> sqUpdateStageInfoAct(vm, "UpdateStageInfoAct");
-  sqUpdateStageInfoAct                  // comments to supress clang-format and allow qdox to generate doc
-    .Var("dt", &UpdateStageInfoAct::dt) //
-    .Var("curTime", &UpdateStageInfoAct::curTime);
+  sqUpdateStageInfoAct //
+    .Var("dt", &UpdateStageInfoAct::dt)
+    .Var("curTime", &UpdateStageInfoAct::curTime)
+    /**/;
   ///@module ecs
   ///@class CompObjectRO
   Sqrat::Class<ecs::ObjectRO> sqCompObjectRO(vm, "CompObjectRO");
-  sqCompObjectRO.SquirrelFunc("isReadOnly", comp_is_readonly<true>, 1, "x")
+  sqCompObjectRO //
+    .SquirrelFunc("isReadOnly", comp_is_readonly<true>, 1, "x")
     .SquirrelFunc("getAll", comp_obj_get_all<ecs::ObjectRO, ecs::ArrayRO, /*RO*/ true>, 1, "x")
     .SquirrelFunc("_get", comp_obj_get<ecs::ObjectRO, true>, 2, "xs")
     .SquirrelFunc("_set", readonly_method_error, 3, "xs.")
     .SquirrelFunc("_newslot", readonly_method_error, 3, "xs.")
     .SquirrelFunc("_nexti", comp_obj_nexti<ecs::ObjectRO>, 2, "xs|o")
     .SquirrelFunc("remove", readonly_method_error, 2, "xs")
-    .GlobalFunc("len", comp_t_len<ecs::ObjectRO>);
+    .GlobalFunc("len", comp_t_len<ecs::ObjectRO>)
+    /**/;
 
   ///@class CompObject
   ///@extends ecs.CompObjectRO
   Sqrat::DerivedClass<ecs::Object, ecs::ObjectRO> sqCompObject(vm, "CompObject");
-  sqCompObject.SquirrelFunc("isReadOnly", comp_is_readonly<false>, 1, "x")
+  sqCompObject //
+    .SquirrelFunc("isReadOnly", comp_is_readonly<false>, 1, "x")
     .SquirrelFunc("getAll", comp_obj_get_all<ecs::Object, ecs::Array, false>, 1, "x")
     .SquirrelFunc("_get", comp_obj_get<ecs::Object, false>, 2, "xs")
     .SquirrelFunc("_set", comp_obj_set<ecs::Object>, 3, "xs.")
     .SquirrelFunc("_newslot", comp_obj_set<ecs::Object>, 3, "xs.")
     .SquirrelFunc("_nexti", comp_obj_nexti<ecs::Object>, 2, "xs|o")
     .SquirrelFunc("remove", comp_obj_erase<ecs::Object>, 2, "xs")
-    .GlobalFunc("len", comp_t_len<ecs::Object>);
+    .GlobalFunc("len", comp_t_len<ecs::Object>)
+    /**/;
 
   ///@class CompArrayRO
   Sqrat::Class<ecs::ArrayRO> sqCompArrayRO(vm, "CompArrayRO");
-  sqCompArrayRO.SquirrelFunc("isReadOnly", comp_is_readonly<true>, 1, "x")
+  sqCompArrayRO //
+    .SquirrelFunc("isReadOnly", comp_is_readonly<true>, 1, "x")
     .SquirrelFunc("getAll", comp_arr_get_all<ecs::ObjectRO, ecs::ArrayRO, true>, 1, "x")
     .SquirrelFunc("_get", comp_arr_get<ecs::ArrayRO, true>, 2, "xi")
     .SquirrelFunc("_set", readonly_method_error, 3, "xi.")
@@ -3489,12 +3551,14 @@ void ecs_register_sq_binding(SqModules *module_mgr, bool create_systems, bool cr
     .SquirrelFunc("append", readonly_method_error, -2, "x.i")
     .SquirrelFunc("insert", readonly_method_error, -3, "xi.i")
     .SquirrelFunc("remove", readonly_method_error, 2, "xi")
-    .SquirrelFunc("pop", readonly_method_error, 1, "x");
+    .SquirrelFunc("pop", readonly_method_error, 1, "x")
+    /**/;
 
   ///@class CompArray
   ///@extends ecs.CompArrayRO
   Sqrat::DerivedClass<ecs::Array, ecs::ArrayRO> sqCompArray(vm, "CompArray");
-  sqCompArray.SquirrelFunc("isReadOnly", comp_is_readonly<false>, 1, "x")
+  sqCompArray //
+    .SquirrelFunc("isReadOnly", comp_is_readonly<false>, 1, "x")
     .SquirrelFunc("getAll", comp_arr_get_all<ecs::Object, ecs::Array, false>, 1, "x")
     .SquirrelFunc("_get", comp_arr_get<ecs::Array, false>, 2, "x.")
     .SquirrelFunc("_set", comp_arr_set<ecs::Array>, 3, "xi.")
@@ -3505,26 +3569,30 @@ void ecs_register_sq_binding(SqModules *module_mgr, bool create_systems, bool cr
     .SquirrelFunc("insert", comp_arr_insert<ecs::Array>, -3, "xi.i")
     .SquirrelFunc("remove", comp_arr_remove<ecs::Array>, 2, "xi")
     .SquirrelFunc("pop", comp_arr_pop<ecs::Array>, 1, "x")
-    .GlobalFunc("clear", comp_arr_clear<ecs::Array>);
+    .GlobalFunc("clear", comp_arr_clear<ecs::Array>)
+    /**/;
 
   ///@class ecs/SqQuery
-  Sqrat::Class<SqQuery> classSqQuery(vm, "SqQuery");
-  classSqQuery.SquirrelCtor(SqQuery::script_ctor, -3, "xsts")
+  Sqrat::Class<SqQuery, Sqrat::NoCopy<SqQuery>> classSqQuery(vm, "SqQuery");
+  classSqQuery //
+    .SquirrelCtor(SqQuery::script_ctor, -3, "xsts")
     .SquirrelFunc("perform", &SqQuery::perform<2>, -2, "x i|c c|s|o s|o")
-    .SquirrelFunc("_call", &SqQuery::perform<3>, -3, "x . i|c c|s|o s|o");
+    .SquirrelFunc("_call", &SqQuery::perform<3>, -3, "x . i|c c|s|o s|o")
+    /**/;
 
   ///@class ecs/EntityId
   Sqrat::Class<ecs::EntityId> sqEntityId(vm, "EntityId");
   sqEntityId.SquirrelCtor(eid_ctor, -1, "xi");
 
   Sqrat::DerivedClass<EventDataGetter, ecs::Event, Sqrat::NoConstructor<EventDataGetter>> sqEventGetterProxy(vm, "EventDataGetter");
-  sqEventGetterProxy
-    ///@skipline
-    .Var("data", &EventDataGetter::sqData);
+  ///@skipline
+  sqEventGetterProxy.Var("data", &EventDataGetter::sqData);
   ///@module ecs
-  tblEcs.Func("get_component_name_by_idx", get_component_name_by_idx)
+  tblEcs //
+    .Func("get_component_name_by_idx", get_component_name_by_idx)
     .Func("get_component_name_by_hash", get_component_name_by_hash)
-    .SquirrelFunc("register_sq_event", register_sq_event, -2, ".sb|ii|o");
+    .SquirrelFunc("register_sq_event", register_sq_event, -2, ".sb|ii|o")
+    /**/;
 
   tblEcs.SquirrelFunc("_dbg_get_all_comps_inspect", _dbg_get_all_comps_inspect, 2, ".i");
   tblEcs.SquirrelFunc("_dbg_get_comp_val_inspect", _dbg_get_comp_val_inspect, -3, ".is");
@@ -3568,6 +3636,8 @@ void ecs_register_sq_binding(SqModules *module_mgr, bool create_systems, bool cr
   COMP(TYPE_IPOINT2, IPoint2)
   ///@const TYPE_IPOINT3
   COMP(TYPE_IPOINT3, IPoint3)
+  ///@const TYPE_IPOINT4
+  COMP(TYPE_IPOINT4, IPoint4)
   ///@const TYPE_DPOINT3
   COMP(TYPE_DPOINT3, DPoint3)
   ///@const TYPE_BOOL
@@ -3606,6 +3676,8 @@ void ecs_register_sq_binding(SqModules *module_mgr, bool create_systems, bool cr
   COMP(TYPE_IPOINT2_LIST, ecs::IPoint2List)
   ///@const TYPE_IPOINT3_LIST
   COMP(TYPE_IPOINT3_LIST, ecs::IPoint3List)
+  ///@const TYPE_IPOINT4_LIST
+  COMP(TYPE_IPOINT4_LIST, ecs::IPoint4List)
   ///@const TYPE_BOOL_LIST
   COMP(TYPE_BOOL_LIST, ecs::BoolList)
   ///@const TYPE_TMATRIX_LIST
@@ -3676,8 +3748,8 @@ void shutdown_ecs_sq_script(HSQUIRRELVM vm)
         removed = true;
         return true;
       });
-      if (removed)
-        reset_es_order();
+      if (removed && g_entity_mgr)
+        g_entity_mgr->resetEsOrder();
       ecs::sq::shutdown_timers(vm);
     }
 
@@ -3693,7 +3765,8 @@ void start_es_loading() { ecs::ecs_is_in_init_phase = true; }
 void end_es_loading()
 {
   ecs::ecs_is_in_init_phase = false;
-  ecs::reset_es_order();
+  if (g_entity_mgr)
+    g_entity_mgr->resetEsOrder();
 }
 
 EA_RESTORE_VC_WARNING()

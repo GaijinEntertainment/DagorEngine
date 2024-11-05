@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "decl.h"
@@ -26,12 +27,14 @@ public:
   virtual bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const;
   virtual bool getWorldBox(BBox3 &box) const;
 
-  virtual void fillProps(PropertyContainerControlBase &op, DClassID for_class_id, dag::ConstSpan<RenderableEditableObject *> objects);
+  virtual void fillProps(PropPanel::ContainerPropertyControl &op, DClassID for_class_id,
+    dag::ConstSpan<RenderableEditableObject *> objects);
 
-  virtual void onPPChange(int pid, bool edit_finished, PropPanel2 &panel, dag::ConstSpan<RenderableEditableObject *> objects);
+  virtual void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
+    dag::ConstSpan<RenderableEditableObject *> objects);
 
-  virtual void onPPBtnPressed(int pid, PropPanel2 &panel, dag::ConstSpan<RenderableEditableObject *> objects);
-  // virtual bool onPPValidateParam(int pid, PropPanel2 &panel,
+  virtual void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel, dag::ConstSpan<RenderableEditableObject *> objects);
+  // virtual bool onPPValidateParam(int pid, PropPanel::ContainerPropertyControl &panel,
   //   dag::ConstSpan<RenderableEditableObject*> objects);
 
   virtual void save(DataBlock &blk);

@@ -1,5 +1,7 @@
-#ifndef _DAGOR_DAG_CONFIG_H_
-#define _DAGOR_DAG_CONFIG_H_
+//
+// Dagor Engine 6.5 - 1st party libs
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+//
 #pragma once
 
 #include <EASTL/internal/config.h>
@@ -25,6 +27,4 @@
 
 #ifndef DAG_STD_EXPAND_MIN_SIZE
   #define DAG_STD_EXPAND_MIN_SIZE 0
-#endif
-
 #endif

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "de_viewportWindow.h"
 #include "de_screenshotMetaInfoLoader.h"
 #include <ioSys/dag_dataBlock.h>
@@ -7,9 +9,7 @@
 
 DagorEdViewportWindow::DagorEdViewportWindow(TEcHandle parent, int left, int top, int w, int h) :
   ViewportWindow(parent, left, top, w, h)
-{
-  setDragAcceptFiles();
-}
+{}
 
 bool DagorEdViewportWindow::onDropFiles(const dag::Vector<String> &files)
 {

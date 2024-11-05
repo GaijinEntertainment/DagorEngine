@@ -19,12 +19,13 @@ template <> struct WrapType<range64> { enum { value = true }; typedef vec4f type
 template <> struct WrapType<urange64> { enum { value = true }; typedef vec4f type; typedef vec4f rettype; };
 
 template <> struct WrapType<Func> { enum { value = true }; typedef void * type; typedef void * rettype; };
+template <> struct WrapType<Lambda> { enum { value = true }; typedef void * type; typedef void * rettype; };
 
 template <typename T>
-struct WrapType<smart_ptr_raw<T>> { enum { value = true }; typedef smart_ptr_jit & type; typedef smart_ptr_jit * rettype; };
+struct WrapType<smart_ptr_raw<T>> { enum { value = true }; typedef smart_ptr_jit * type; typedef smart_ptr_jit * rettype; };
 
 template <typename T>
-struct WrapType<smart_ptr<T>> { enum { value = true }; typedef smart_ptr_jit & type; typedef smart_ptr_jit * rettype; };
+struct WrapType<smart_ptr<T>> { enum { value = true }; typedef smart_ptr_jit * type; typedef smart_ptr_jit * rettype; };
 
 
 template <typename... Ts> struct AnyVectorType;
@@ -59,7 +60,7 @@ struct ImplWrapCall<true,wrap,RetT(*)(Args...),fn> {                        // w
     static void static_call (typename remove_cv<RetT>::type * result, typename WrapType<Args>::type... args ) {
         typedef RetT (* FuncType)(typename WrapArgType<Args>::type...);
         auto fnPtr = reinterpret_cast<FuncType>(fn);
-        *result = fnPtr(args...);
+        new (result) RetT (fnPtr(args...));
     };
     static void * get_builtin_address() { return (void *) &static_call; }
 };
@@ -90,6 +91,7 @@ struct ImplWrapCall<false,true,RetT(*)(Args...),fn> {   // no cmres, wrap
         case Type::tEnumeration:    return (void *) &TAB_FUN<int32_t>; \
         case Type::tEnumeration8:   return (void *) &TAB_FUN<int8_t>; \
         case Type::tEnumeration16:  return (void *) &TAB_FUN<int16_t>; \
+        case Type::tEnumeration64:  return (void *) &TAB_FUN<int64_t>; \
         case Type::tInt:            return (void *) &TAB_FUN<int32_t>; \
         case Type::tInt2:           return (void *) &TAB_FUN<int2>; \
         case Type::tInt3:           return (void *) &TAB_FUN<int3>; \

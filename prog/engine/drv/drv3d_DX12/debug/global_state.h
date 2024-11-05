@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <dxgidebug.h>
@@ -7,8 +8,11 @@
 
 typedef HRESULT(WINAPI *PFN_DXGI_GET_DEBUG_INTERFACE1)(UINT Flags, REFIID riid, void **ppFactory);
 
+class DataBlock;
+
 namespace drv3d_dx12
 {
+struct Direct3D12Enviroment;
 namespace debug
 {
 enum class BreadcrumbMode
@@ -17,8 +21,6 @@ enum class BreadcrumbMode
   DRED,
   SOFTWARE,
 };
-
-#define DX12_DEBUG_GLOBAL_DEBUG_STATE 1
 
 class GlobalState
 {
@@ -31,6 +33,7 @@ private:
 public:
   void setup(const DataBlock *settings, Direct3D12Enviroment &d3d_env);
   void teardown();
+  void report();
 
   GpuCapture &captureTool() { return gpuCapture; }
   GpuPostmortem &postmortemTrace() { return gpuPostmortem; }

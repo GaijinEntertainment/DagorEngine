@@ -6,11 +6,11 @@ macro BASE_USE_PREINTEGRATED_GF(code)
   hlsl(code) {
     half3 getEnviBRDF_AB(float ggx_alpha, float NoV)
     {
-      return tex2Dlod( preIntegratedGF, float4( NoV, sqrt(ggx_alpha), 0, 0) ).rgb;
+      return (half3)tex2Dlod( preIntegratedGF, float4( NoV, sqrt(ggx_alpha), 0, 0) ).rgb;
     }
     half3 getEnviBRDF_AB_LinearRoughness(float linear_roughness, float NoV)
     {
-      return tex2Dlod( preIntegratedGF, float4( NoV, linear_roughness, 0, 0) ).rgb;
+      return (half3)tex2Dlod( preIntegratedGF, float4( NoV, linear_roughness, 0, 0) ).rgb;
     }
     #define HAS_PREFILTERED_GF 1
   }

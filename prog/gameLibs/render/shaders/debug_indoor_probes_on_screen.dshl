@@ -20,7 +20,7 @@ shader debug_indoor_probes_on_screen
   USE_READ_GBUFFER()
   INIT_READ_DEPTH_GBUFFER()
   USE_READ_DEPTH_GBUFFER()
-  USE_INDOOR_LIGHT_PROBES()
+  USE_INDOOR_LIGHT_PROBES(ps, false)
   ENABLE_ASSERT(ps)
 
   hlsl(ps) {
@@ -35,7 +35,7 @@ shader debug_indoor_probes_on_screen
       float3 normal;
       half smoothness;
       readPackedGbufferNormalSmoothness(input.texcoord, normal, smoothness);
-      float4 reflection__weight = use_indoor_probes(worldPos, normal, 0, 0);
+      float4 reflection__weight = use_indoor_probes(worldPos, normal, reflect(normalize(pointToEye), normal), 0, 0);
 
       float3 background = float3(0, 1, 0);
 

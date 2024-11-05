@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <quirrel/http/sqHttpClient.h>
 #include <EASTL/algorithm.h>
 #include <EASTL/unique_ptr.h>
@@ -13,6 +15,10 @@
 #include <quirrel/sqStackChecker.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <perfMon/dag_cpuFreq.h>
+#include <osApiWrappers/dag_files.h>
+#include <osApiWrappers/dag_basePath.h>
+#include <osApiWrappers/dag_direct.h>
+#include <util/dag_delayedAction.h>
 
 
 namespace bindquirrel
@@ -298,46 +304,52 @@ static SQInteger request(HSQUIRRELVM vm)
   reqParams.callback =
     make_http_callback([req](RequestStatus status, int http_code, dag::ConstSpan<char> response, StringMap const &resp_headers) {
       bool haveCb = !req->callback.IsNull();
-      if (haveCb || !req->respEventId.empty())
+      if ((haveCb || !req->respEventId.empty()) && (status != RequestStatus::SHUTDOWN))
       {
-        HSQUIRRELVM vm = haveCb ? req->callback.GetVM() : sqeventbus::get_vm();
-        if (vm && (status != RequestStatus::SHUTDOWN))
-        {
-          Sqrat::Table resp(vm);
-          resp.SetValue("status", (SQInteger)status);
-          resp.SetValue("http_code", (SQInteger)http_code);
-          resp.SetValue("context", req->context);
+        auto cb = [haveCb, status, http_code, req, response, &resp_headers](HSQUIRRELVM vm) {
+          if (vm)
+          {
+            Sqrat::Table resp(vm);
+            resp.SetValue("status", (SQInteger)status);
+            resp.SetValue("http_code", (SQInteger)http_code);
+            resp.SetValue("context", req->context);
 
-          if (!resp_headers.empty())
-          {
-            Sqrat::Table sqRespHeaders(vm);
-            for (auto &kv : resp_headers)
-              sqRespHeaders.SetValue(kv.first.data(), kv.second.data());
-            resp.SetValue("headers", sqRespHeaders); // TODO: rename to `resp_headers`
-          }
-          if (!response.empty())
-          {
-            SQUserPointer ptr = sqstd_createblob(vm, response.size());
-            G_ASSERT(ptr); // can happen if blob library was not registered
-            if (ptr)
+            if (!resp_headers.empty())
             {
-              memcpy(ptr, response.data(), response.size());
-              HSQOBJECT hBlob;
-              sq_getstackobj(vm, -1, &hBlob);
-              resp.SetValue("body", Sqrat::Object(hBlob, vm));
-              sq_pop(vm, 1);
+              Sqrat::Table sqRespHeaders(vm);
+              for (auto &kv : resp_headers)
+                sqRespHeaders.SetValue(kv.first.data(), kv.second.data());
+              resp.SetValue("headers", sqRespHeaders); // TODO: rename to `resp_headers`
             }
-          }
+            if (!response.empty())
+            {
+              SQUserPointer ptr = sqstd_createblob(vm, response.size());
+              G_ASSERT(ptr); // can happen if blob library was not registered
+              if (ptr)
+              {
+                memcpy(ptr, response.data(), response.size());
+                HSQOBJECT hBlob;
+                sq_getstackobj(vm, -1, &hBlob);
+                resp.SetValue("body", Sqrat::Object(hBlob, vm));
+                sq_pop(vm, 1);
+              }
+            }
 
-          resp.FreezeSelf();
-          if (haveCb)
-          {
-            if (!req->callback(resp))
-              logerr_ctx("Failed to call HTTP request callback");
+            resp.FreezeSelf();
+            if (haveCb)
+            {
+              if (!req->callback(resp))
+                LOGERR_CTX("Failed to call HTTP request callback");
+            }
+            if (!req->respEventId.empty())
+              sqeventbus::send_event(req->respEventId.c_str(), resp);
           }
-          if (!req->respEventId.empty())
-            sqeventbus::send_event(req->respEventId.c_str(), resp);
-        }
+        };
+
+        if (haveCb)
+          cb(req->callback.GetVM());
+        else
+          sqeventbus::do_with_vm(cb);
       }
 
       auto it = eastl::find_if(active_requests.begin(), active_requests.end(),
@@ -357,6 +369,198 @@ static SQInteger request(HSQUIRRELVM vm)
 }
 
 
+static SQInteger download(HSQUIRRELVM vm)
+{
+  // TODO: recover from disconnection or pause - like Steam does
+
+  // checking param
+  Sqrat::Var<Sqrat::Table> varParams(vm, 2);
+  Sqrat::Table &params = varParams.value;
+  if (params.GetType() != OT_TABLE)
+    return sq_throwerror(vm, "First (and only) argument must be a table");
+
+  // http request params init
+  httprequests::AsyncRequestParams reqParams;
+  reqParams.sendResponseInMainThreadOnly = true;
+  reqParams.reqType = httprequests::HTTPReq::GET;
+  reqParams.headers.push_back({"Content-Type", "application/octet-stream"});
+  // TODO: timeout between chunks (seems impossible)
+  // TODO: should user agent be set?
+
+  // url extraction
+  const char *url;
+  {
+    Sqrat::Object objUrl = params.RawGetSlot("url");
+    if (objUrl.GetType() != OT_STRING)
+      return sq_throwerror(vm, "Url is required and must be a string");
+    url = sq_objtostring(&objUrl.GetObject());
+    if (is_url_allowed(vm, url) != SQ_OK)
+      return SQ_ERROR;
+  }
+  reqParams.url = url;
+
+  // filepath extraction
+  file_ptr_t dstFileHandle;
+  const char *filepath;
+  {
+    Sqrat::Object objFilepath = params.RawGetSlot("filepath");
+    if (objFilepath.GetType() != OT_STRING)
+      return sq_throwerror(vm, "Filepath is required and must be a string");
+    filepath = sq_objtostring(&objFilepath.GetObject());
+
+    char dirBuff[DAGOR_MAX_PATH];
+    dd_get_fname_location(dirBuff, filepath);
+    if (!dd_dir_exist(dirBuff))
+      return sq_throwerror(vm, ("Directory " + eastl::string(dirBuff) + " does not exist").c_str());
+    dstFileHandle = df_open(filepath, DF_WRITE);
+    if (!dstFileHandle)
+      return sq_throwerror(vm, ("Failed to open file " + eastl::string(filepath)).c_str());
+  }
+
+  // events extraction
+  Sqrat::Object objDoneEventId = params.RawGetSlot("doneEventId");
+  if (objDoneEventId.GetType() != OT_STRING)
+    return sq_throwerror(vm, "doneEventId is required and must be a string");
+  Sqrat::Object objProgressEventId = params.RawGetSlot("progressEventId");
+  if (objProgressEventId.GetType() != OT_STRING && objProgressEventId.GetType() != OT_NULL)
+    return sq_throwerror(vm, "progressEventId must be a string");
+
+  // other data extraction
+  Sqrat::Object objId = params.RawGetSlot("id");
+  if (objId.GetType() != OT_STRING)
+    return sq_throwerror(vm, "id is required must be a string");
+
+  Sqrat::Object objUpdatePeriodMs = params.RawGetSlot("updatePeriodMs");
+  if (objUpdatePeriodMs.GetType() != OT_INTEGER && objUpdatePeriodMs.GetType() != OT_NULL)
+    return sq_throwerror(vm, "updatePeriodMs must be an integer");
+  Sqrat::Object objPreallocateFile = params.RawGetSlot("preallocateFile");
+  if (objPreallocateFile.GetType() != OT_BOOL && objPreallocateFile.GetType() != OT_NULL)
+    return sq_throwerror(vm, "preallocateFile must be a bool");
+
+  // creation of data for the callback
+  struct DownloadRequestData
+  {
+    httprequests::RequestId rid = 0;
+    eastl::string id; // turn back into context?
+    eastl::string doneEventId;
+    eastl::string progressEventId; // optional
+    eastl::string filepath;        // needed only for deletion in case of a failed download
+    bool preallocateFile = true;   // optional
+    file_ptr_t file = nullptr;
+    int contentLength = -1;
+    int totalDownloaded = 0;
+    int updatePeriodMs = 500;
+    int lastUpdate = -1;
+  };
+
+  auto req = eastl::make_unique<DownloadRequestData>();
+  req->filepath = filepath;
+  req->id = sq_objtostring(&objId.GetObject());
+  req->doneEventId = sq_objtostring(&objDoneEventId.GetObject());
+  if (objProgressEventId.GetType() == OT_STRING)
+    req->progressEventId = sq_objtostring(&objProgressEventId.GetObject());
+  req->file = dstFileHandle;
+  if (objUpdatePeriodMs.GetType() == OT_INTEGER)
+    req->updatePeriodMs = sq_objtointeger(&objUpdatePeriodMs.GetObject());
+  if (objPreallocateFile.GetType() == OT_BOOL)
+    req->preallocateFile = sq_objtobool(&objPreallocateFile.GetObject());
+
+  class DownloadCallback final : public httprequests::IAsyncHTTPCallback
+  {
+  public:
+    DownloadCallback(eastl::unique_ptr<DownloadRequestData> &&req) : req(std::move(req)) {}
+
+    void onRequestDone(httprequests::RequestStatus status, int http_code, dag::ConstSpan<char> /*response*/,
+      httprequests::StringMap const & /*resp_headers*/) override
+    {
+      // note: `onRequestDone` will be called even if the request failed or was aborted
+      // so the file would be closed in any case
+      df_close(req->file);
+
+      if (status != httprequests::RequestStatus::SUCCESS)
+        dd_erase(req->filepath.c_str());
+
+      delayed_call([status, http_code, event = req->doneEventId, downloaded = req->totalDownloaded, id = req->id]() {
+        sqeventbus::do_with_vm([&](HSQUIRRELVM vm) {
+          Sqrat::Table resp(vm);
+          resp.SetValue("status", (SQInteger)status);
+          resp.SetValue("http_code", (SQInteger)http_code);
+          resp.SetValue("id", id);
+          resp.SetValue("downloaded", (SQInteger)downloaded);
+          sqeventbus::send_event(event.c_str(), resp);
+        });
+      });
+    }
+
+    bool onResponseData(dag::ConstSpan<char> data) override
+    {
+      int bytesWritten = df_write(req->file, data.data(), data.size());
+      if (bytesWritten < data.size())
+      {
+        // TODO response more grecefully
+        logerr("Writing to the file failed, aborting download");
+        httprequests::abort_request(req->rid);
+        return true;
+      }
+      req->totalDownloaded += data.size();
+
+      if (req->progressEventId.empty())
+        return true;
+      int curTime = get_time_msec();
+      if (curTime - req->lastUpdate >= req->updatePeriodMs)
+      {
+        req->lastUpdate = curTime;
+
+        delayed_call([event = req->progressEventId, id = req->id, downloaded = req->totalDownloaded]() {
+          sqeventbus::do_with_vm([&](HSQUIRRELVM vm) {
+            Sqrat::Table resp(vm);
+            resp.SetValue("downloaded", (SQInteger)downloaded);
+            resp.SetValue("id", id);
+            sqeventbus::send_event(event.c_str(), resp);
+          });
+        });
+      }
+      return true;
+    }
+
+    void onHttpHeadersResponse(httprequests::StringMap const &resp_headers) override
+    {
+      // if headers are recieved after the first data chunk (they shouldn't), then don't allocate the whole file
+      if (req->totalDownloaded > 0)
+        return;
+
+      auto contentLengthIt = eastl::find_if(resp_headers.begin(), resp_headers.end(),
+        [](const eastl::pair<eastl::string_view, eastl::string_view> &p) { return p.first == "Content-Length"; });
+      if (contentLengthIt != resp_headers.end())
+        req->contentLength = atoi(contentLengthIt->second.data());
+      else
+        return;
+
+      if (req->preallocateFile)
+      {
+        // allocate the whole file before writing
+        df_seek_to(req->file, req->contentLength - 1);
+        df_write(req->file, "\0", 1);
+        df_seek_to(req->file, 0);
+      }
+    }
+
+    void release() override { delete this; }
+
+  private:
+    eastl::unique_ptr<DownloadRequestData> req;
+  };
+  DownloadRequestData *reqPtr = req.get();
+  reqParams.callback = new DownloadCallback(std::move(req));
+
+  // actually sending the request
+  httprequests::RequestId rid = httprequests::async_request(reqParams);
+  reqPtr->rid = rid;
+  sq_pushinteger(vm, rid);
+  return 1;
+}
+
+
 SQInteger abort_request(HSQUIRRELVM vm)
 {
   SQInteger rid = 0;
@@ -369,12 +573,16 @@ void bind_http_client(SqModules *module_mgr)
 {
   Sqrat::Table nsTbl(module_mgr->getVM());
   ///@module dagor.http
-  nsTbl.SquirrelFunc("httpRequest", request, 2, ".t")
+  nsTbl //
+    .SquirrelFunc("httpRequest", request, 2, ".t")
     .SquirrelFunc("httpAbort", abort_request, 2, ".i")
+    .SquirrelFunc("httpDownload", download, 2, ".t")
     ///@param request_id i
     .SetValue("HTTP_SUCCESS", (SQInteger)httprequests::RequestStatus::SUCCESS)
     .SetValue("HTTP_FAILED", (SQInteger)httprequests::RequestStatus::FAILED)
-    .SetValue("HTTP_ABORTED", (SQInteger)httprequests::RequestStatus::ABORTED);
+    .SetValue("HTTP_ABORTED", (SQInteger)httprequests::RequestStatus::ABORTED)
+    .SetValue("HTTP_SHUTDOWN", (SQInteger)httprequests::RequestStatus::SHUTDOWN)
+    /**/;
   module_mgr->addNativeModule("dagor.http", nsTbl);
 }
 

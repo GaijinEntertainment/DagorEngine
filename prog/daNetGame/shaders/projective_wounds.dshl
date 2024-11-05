@@ -1,0 +1,498 @@
+include "init_projective_wounds.dshl"
+include "animchar_additional_data.dshl"
+
+macro WOUNDS_AND_BURNING_INIT_TYPE_INTERVAL()
+  static int has_wounds = 0;
+  static int has_burning = 0;
+  interval has_wounds: off<1, blood_decal < 2, torn_wounds < 3, holes;
+  interval has_burning: off<1, on;
+endmacro
+
+macro WOUNDS_AND_BURNING_INIT()
+  WOUNDS_AND_BURNING_INIT_TYPE_INTERVAL()
+  if ((has_burning != off || has_wounds == blood_decal) && dyn_model_render_pass == render_pass_normal || has_wounds >= torn_wounds)
+  {
+    hlsl {
+      #define NEED_FRAG_POS_NORM 1
+    }
+  }
+  if (has_burning != off && dyn_model_render_pass == render_pass_normal)
+  {
+    hlsl {
+      #define HAS_BURNING 1
+    }
+  }
+  if (has_wounds >= blood_decal && dyn_model_render_pass == render_pass_normal)
+  {
+    hlsl {
+      #define HAS_BLOOD_DECAL 1
+    }
+  }
+  if (has_wounds >= torn_wounds)
+  {
+    cull_mode=none;
+    hlsl {
+      #define ATEST_IS_ON 1
+      #define HAS_TORN_WOUNDS 1
+      #define HAS_VS_PREV_FUNCTION 1
+    }
+
+    if (debug_torn_wounds == on)
+    {
+      hlsl {
+        #define HAS_TORN_WOUNDS_DEBUG 1
+      }
+    }
+  }
+  if (has_wounds == torn_wounds)
+  {
+    hlsl {
+      #define HAS_BLOOD_SPLASH 1
+    }
+  }
+endmacro
+
+macro WOUNDS_AND_BURNING_USE(samplerName)
+  USE_ANIMCHAR_ADDITIONAL_DATA_VS_ONCE()
+  hlsl(vs) {
+    #include "animchar_additional_data_types.hlsli"
+  }
+
+  if ((has_burning != off || has_wounds == blood_decal) && dyn_model_render_pass == render_pass_normal || has_wounds >= torn_wounds)
+  {
+    MODEL_SPACE_PROJECTION()
+  }
+  if (has_wounds != off)
+  {
+    INIT_PROJECTIVE_WOUNDS_SHADER()
+  }
+  if (has_wounds >= torn_wounds)
+  {
+    USE_TORN_WOUNDS(samplerName)
+  }
+  if (has_wounds >= blood_decal && dyn_model_render_pass == render_pass_normal)
+  {
+    USE_BLOOD_DECAL(samplerName)
+  }
+  if (has_burning != off && dyn_model_render_pass == render_pass_normal)
+  {
+    INIT_BURNED_DIFFUSE_FUNCTION_SHADER()
+    SET_BURNED_DIFFUSE_FUNCTION(samplerName)
+  }
+
+  hlsl(vs) {
+    void init_burning_and_wounds(VsInput input, inout VsOutput output)
+    {
+      #if NEED_FRAG_POS_NORM
+        output.fragPos = input.pos;
+        output.fragNormal = (BGR_SWIZZLE(input.normal.bgr) * 2 - 1);
+      #endif
+      #if HAS_BURNING
+        output.burnedEffect = getBurnedEffect();
+      #endif
+      #if HAS_BLOOD_DECAL
+        vs_blood_decal_function(input.pos, output.bloodDecalTC, output.textureIndexTime);
+      #endif
+      #if HAS_TORN_WOUNDS
+        vs_torn_wounds_function(input.pos, output);
+      #endif
+    }
+  }
+endmacro
+
+macro MODEL_SPACE_PROJECTION()
+
+hlsl(ps)
+{
+  float4 sample_texture_from_pos(Texture2D tex, SamplerState tex_samplerstate, float3 frag_pos, float3 frag_norm, float scale)
+  {
+    float3 n = pow4_vec4(frag_norm.xyzz).xyz;
+
+    n /= n.x + n.y + n.z;
+    frag_pos = frag_pos * scale + 0.5;
+    return  tex2D(tex, frag_pos.xy) * n.x +
+            tex2D(tex, frag_pos.xz) * n.y +
+            tex2D(tex, frag_pos.zy) * n.z;
+  }
+  float4 sample_texture_from_pos(Texture2DArray tex, SamplerState tex_samplerstate, int slice, float3 frag_pos, float3 frag_norm, float scale)
+  {
+    float3 n = pow4_vec4(frag_norm.xyzz).xyz;
+
+    n /= n.x + n.y + n.z;
+    frag_pos = frag_pos * scale + 0.5;
+    return  tex3D(tex, float3(frag_pos.xy, slice)) * n.x +
+            tex3D(tex, float3(frag_pos.xz, slice)) * n.y +
+            tex3D(tex, float3(frag_pos.zy, slice)) * n.z;
+  }
+}
+endmacro
+
+macro USE_TORN_WOUNDS(samperName)
+
+hlsl(vs) {
+  #include "render/woundsConst.hlsli"
+
+  void vs_prev_function(inout VsInput input)
+  {
+    ##if num_bones == four_bones
+    uint2 dataOffsetCount = get_offset_count_additional_data(HUMAN_COMBINED_PARAMS);
+    if (dataOffsetCount.y == 0)
+      return;
+    float4 count = get_additional_data(dataOffsetCount, 0);
+    uint wounds_count = (uint)count.x;
+    uint project_wounds_count = (uint)count.y;
+    uint offset = 1 + project_wounds_count * DECAL_WOUND_SIZE;
+
+    for (uint i = 0; i < wounds_count; i++)
+    {
+      uint j = offset + i * TORN_WOUND_SIZE;
+      float4 wound_params = get_additional_data(dataOffsetCount, j);
+      float4 pos_size = get_additional_data(dataOffsetCount, j + 1);
+      float3 localPos = input.pos - pos_size.xyz;
+      float woundRadius = pos_size.w;
+      if (dot(localPos, localPos) < woundRadius*woundRadius)
+      {
+        input.boneWeights = max4(input.boneWeights.x, input.boneWeights.y, input.boneWeights.z, input.boneWeights.w) == input.boneWeights;
+        input.boneWeights /= dot(input.boneWeights, 1);
+        break;
+      }
+    }
+    ##endif
+  }
+
+  void vs_torn_wounds_function(float3 pos, inout VsOutput output)
+  {
+    #if HAS_TORN_WOUNDS_DEBUG
+    output.debugColor = float4(1.0, 1.0, 0.0, 1.0);
+    #endif
+    output.tornWoundParams = 0;
+    uint2 dataOffsetCount = get_offset_count_additional_data(HUMAN_COMBINED_PARAMS);
+    if (dataOffsetCount.y == 0)
+      return;
+    float4 count = get_additional_data(dataOffsetCount, 0);
+    uint wounds_count = (uint)count.x;
+    uint project_wounds_count = (uint)count.y;
+
+    float mindist = 1000;//distance in uv coordinates
+    float splashStrength = 0;
+    float3 tornWoundParams = 0;
+    for (uint i = 0; i < wounds_count; i++)
+    {
+      int j = 1 + project_wounds_count * DECAL_WOUND_SIZE + i * TORN_WOUND_SIZE;
+      //local position, radius
+      //start fade from, trim vertices to, discard pixel to, discadr tex uv scale
+      float4 wound_params = get_additional_data(dataOffsetCount, j);
+      float4 pos_size = get_additional_data(dataOffsetCount, j + 1);
+
+      float3 localPos = pos - pos_size.xyz;
+      float woundRadius = pos_size.w;
+      float distToWound = length(localPos) / woundRadius;
+
+      const float trimVerticesTo = wound_params.y;//[0,1]
+      if (distToWound < trimVerticesTo)
+      {
+        output.pos.xyz = NaN;
+        return;
+      }
+      if (distToWound < 1 && 1 - distToWound > splashStrength)
+      {
+        output.fragPos = localPos;
+        splashStrength = 1 - distToWound;
+        tornWoundParams = wound_params.xzw;
+      }
+
+    }
+    output.tornWoundParams.x = splashStrength;
+    output.tornWoundParams.yzw = tornWoundParams;
+    float startFadeFrom = output.tornWoundParams.y;
+    output.tornWoundParams.y = saturate(1 / (1 - startFadeFrom) * splashStrength);
+    #if HAS_TORN_WOUNDS_DEBUG
+    output.debugColor = float4(1.0, 0.0, 0.0, 1.0);
+    #endif
+  }
+}
+hlsl (ps) {
+  float discard_torn_wound(float3 frag_pos, float3 frag_norm, float4 wound_param)
+  {
+    const float discardPixelTo = wound_param.z;
+    float normalizedDistToWound = 1 - wound_param.x;
+    const float discardTexUVScale = wound_param.w;
+    float bloodTex = 0;
+    if (normalizedDistToWound < sample_tex_inside_of)
+    {
+      bloodTex = sample_texture_from_pos(teared_wounds_decal, samperName, frag_pos, frag_norm, discardTexUVScale).r;
+      if (normalizedDistToWound < discardPixelTo && bloodTex > blood_tex_discard_threshold)
+        return -1;
+    }
+    return bloodTex;
+  }
+
+  void apply_blood_splash(float4 wound_param, float3 original_normalmap, float3 frag_pos, float3 frag_norm,
+                          float micro_detail_layer, bool skip_blood,
+                          inout float3 diffuse_color, inout float3 detailed_normal_map, inout float smoothness)
+  {
+    const float splashStrength = wound_param.x;
+    const float distFactor = wound_param.y;
+    if (splashStrength > 0)
+    {
+      float bloodIntensity = discard_torn_wound(frag_pos, frag_norm, wound_param);
+      if (bloodIntensity < 0)
+        discard;
+
+##if dyn_model_render_pass == render_pass_normal
+      BRANCH
+      if (skip_blood)
+        return;
+
+      float alpha = saturate(bloodIntensity * blood_brightness);
+
+  ##if blood_wound_high_quality == no
+      float3 bloodColor = high_intensity_blood.rgb * distFactor;
+      diffuse_color = lerp(diffuse_color,  bloodColor, alpha);
+
+      float bloodSmoothness = high_intensity_blood.a;
+      smoothness = lerp(smoothness, bloodSmoothness, alpha);
+  ##else
+      float3 bloodColor = wet_blood_color * distFactor;
+
+      diffuse_color = lerp(diffuse_color,  diffuse_color * bloodColor, alpha);
+      float porosity = get_porosity_by_microdetail_base(micro_detail_layer);
+      smoothness = lerp(smoothness, 0.9, (1.0 - porosity) * alpha);
+  ##endif
+
+      float3 bloodNorm = lerp(detailed_normal_map, original_normalmap, 0.5);
+      detailed_normal_map = lerp(detailed_normal_map, bloodNorm, alpha);
+##endif
+    }
+  }
+
+  void apply_debug_colormap(float4 wound_param, float3 frag_pos, float3 frag_norm, float4 debug_color,
+    inout float3 diffuse_color)
+  {
+    const float splashStrength = wound_param.x;
+    const float distFactor = wound_param.y;
+    if (splashStrength > 0)
+    {
+      float bloodIntensity = discard_torn_wound(frag_pos, frag_norm, wound_param);
+      if (bloodIntensity < 0)
+        debug_color = float4(1.0, 0.0, 1.0, 1.0);
+
+      diffuse_color = debug_color.xyz * debug_color.a;
+    }
+  }
+}
+endmacro
+
+macro USE_BLOOD_DECAL(samplerName)
+
+hlsl(vs) {
+  void vs_blood_decal_function(float3 input_pos, inout float4 bloodDecalTC, inout float textureIndexTime)
+  {
+    bloodDecalTC = NaN;
+    textureIndexTime = 0;
+    uint2 dataOffsetCount = get_offset_count_additional_data(HUMAN_COMBINED_PARAMS);
+    if (dataOffsetCount.y == 0)
+      return;
+    float4 count = get_additional_data(dataOffsetCount, 0);
+    uint wounds_count = (uint)count.x;
+    uint project_wounds_count = (uint)count.y;
+
+    float mindist = 1000;//distance in uv coordinates
+    #include <render/woundsConst.hlsli>
+    for (uint i = 0; i < project_wounds_count; i++)
+    {
+      int j = 1 + i * DECAL_WOUND_SIZE;
+      float4 pos_scale = get_additional_data(dataOffsetCount, j);
+      float4 dir_depth_time = get_additional_data(dataOffsetCount, j + 1);
+      float3 pos = (input_pos - pos_scale.xyz) * pos_scale.w;
+      float start_time = dir_depth_time.w;
+      float lenSq = dot(pos, pos);
+      if (lenSq < mindist && lenSq < 1)
+      {
+        mindist = lenSq;
+        bloodDecalTC.xyz = pos;
+        bloodDecalTC.w = i + 1;
+        textureIndexTime = start_time;
+      }
+    }
+  }
+}
+
+hlsl(ps) {
+  void extract_time_index(in float packed_value, out float time, out uint index)
+  {
+    uint p = asuint(packed_value);
+    index = p & 0xffff;
+    time = f16tof32(p >> 16);
+  }
+
+  bool check_for_integer(float f, float eps)
+  {
+    return abs (floor(f + eps) - f) <= eps;
+  }
+
+##if blood_wound_high_quality == yes
+  void apply_blood_material(float thickness, float edge_closeness, float drying_time, float porosity,
+                              float3 blood_normal, inout float3 normal,
+                              inout float3 albedo, inout float smoothness, inout float reflectance)
+  {
+    thickness = min(thickness, blood_wound_max_thickness);
+
+    float3 bloodColor = lerp(wet_blood_color, dry_blood_color, drying_time)
+                      * (1.0 - thickness);
+
+    bool isPuddleHole = thickness >= blood_wound_opaque_thickness;
+
+    float thicknessDrying = max(0.5, 1.0 - drying_time);
+    thickness *= thicknessDrying;
+
+    float3 opacityColor = lerp(bloodColor.rrr, 1.0.xxx, edge_closeness);
+    float3 bloodAlbedo = lerp(bloodColor, opacityColor, edge_closeness * drying_time)
+                       * albedo;
+    float3 opaqueColor = float3(0.0007,0,0);
+
+    float bloodOpacity = saturate((thickness - edge_closeness - blood_wound_opaque_thickness) / blood_wound_max_thickness_minus_opaque_thickness);
+    albedo = lerp(bloodAlbedo, opaqueColor, bloodOpacity);
+
+    float invPorosity = 1.0-porosity;
+    float lowWetnessBlend = invPorosity * lerp(1.0, 0.05, drying_time);
+    smoothness = thickness < blood_wound_high_wetness_thickness
+               ? lerp(smoothness, 0.9, lowWetnessBlend)
+               : 0.9;
+
+    reflectance = lerp(reflectance, 0.19, lowWetnessBlend);
+
+    float normalBlend = isPuddleHole
+                      ? 1.0
+                      : max(edge_closeness, thickness) * invPorosity;
+    normal = lerp(normal, blood_normal, normalBlend);
+  }
+##endif
+
+  void apply_blood_decal(float4 decal_tc, float start_time, uint tex_index, float3 frag_norm,
+                          int micro_detail_layer,
+                          inout float3 diffuse_color, inout float3 detailed_normal_map,
+                          inout float smoothness, inout float reflectance)
+  {
+    float decal_idx = decal_tc.w;
+    // it's need to skip rendering blood in triangles with different decal index in vertex
+    const float eps = 0.0001;
+    if (check_for_integer(decal_idx, eps))
+    {
+      //r - time, g - packed norm, b - intensive, a - packed norm
+      //decal_tc.xyz in one-unit sphere, need to translate it to half-unit sphere, so scale = 0.5
+      float4 blood = sample_texture_from_pos(wounds_decal_array, samplerName, tex_index, decal_tc.xyz, frag_norm, 0.5);
+      float current_time = time_wetness_bloody_time.x;
+      float time = current_time - start_time;
+      float bloody_time = time_wetness_bloody_time.y;
+
+##if blood_wound_high_quality == no
+      time =  saturate(bloody_time * time);
+      float time_func = 1 - (1 - blood.r) / (time + eps);
+      const float brightnessDepthFactor = 2.5;
+      const float brightnessTimeFactor = 2.0;
+      float depth_factor = saturate(brightnessDepthFactor * (1 - length(decal_tc.xyz)));
+      float time_factor = saturate(brightnessTimeFactor * time_func);
+
+      float alpha = depth_factor * time_factor;
+      float bloodIntensive = blood.b;
+      float4 bloodColorSmoothness = lerp(low_intensity_blood, high_intensity_blood, bloodIntensive);
+      bloodColorSmoothness = lerp(float4(diffuse_color, smoothness), bloodColorSmoothness, alpha);
+
+      diffuse_color = bloodColorSmoothness.rgb;
+      smoothness = bloodColorSmoothness.a;
+      float3 bloodNorm = unpack_ag_normal(blood);
+      detailed_normal_map = lerp(detailed_normal_map, bloodNorm, alpha);
+##else
+      float linearTime = saturate(bloody_time * time);
+      float flowValue = blood.r;
+
+      BRANCH
+      if ((1.0 - linearTime) >= flowValue - 0.1)
+        return;
+
+      float dryingTime = saturate(time * blood_wound_drying_time);
+      float borderScale = 4.0;
+      float edgeCloseness = 1.0 - saturate((flowValue - (1.0 - linearTime))*borderScale);
+
+      float intensity = blood.b;
+      float thickness = 1.0 - intensity;
+
+      float porosity = get_porosity_by_microdetail_base(micro_detail_layer);
+      float3 bloodNormal = unpack_ag_normal(blood);
+      apply_blood_material(thickness, edgeCloseness, dryingTime, porosity, bloodNormal,
+        detailed_normal_map, diffuse_color, smoothness, reflectance);
+##endif
+    }
+  }
+}
+
+endmacro
+
+
+macro USE_PROJECTIVE_WOUNDS()
+
+hlsl(ps) {
+  void apply_burning_and_wounds(VsOutput input,
+      float3 original_normal_map,
+      int micro_detail_layer,
+      inout float3 diffuse_color,
+      inout float3 normal_map,
+      inout float smoothness,
+      inout float reflectance,
+      bool skip_blood = false
+    )
+  {
+  #if HAS_BLOOD_SPLASH
+    #if HAS_TORN_WOUNDS_DEBUG
+      apply_debug_colormap(input.tornWoundParams, input.fragPos, input.fragNormal, input.debugColor, diffuse_color);
+    #else
+      apply_blood_splash(input.tornWoundParams, original_normal_map, input.fragPos, input.fragNormal,
+        micro_detail_layer, skip_blood, diffuse_color, normal_map, smoothness);
+    #endif
+  #endif
+  #if HAS_BLOOD_DECAL
+    BRANCH
+    if (!skip_blood)
+    {
+      float start_time;
+      uint tex_index;
+      extract_time_index(input.textureIndexTime, start_time, tex_index);
+      apply_blood_decal(input.bloodDecalTC, start_time, tex_index, input.fragNormal,
+        micro_detail_layer, diffuse_color, normal_map, smoothness, reflectance);
+    }
+  #endif
+
+  #if HAS_BURNING
+    apply_burning_effect(diffuse_color, smoothness, input.fragPos, input.fragNormal, input.burnedEffect, false);
+  #endif
+  }
+}
+endmacro
+
+macro SET_BURNED_DIFFUSE_FUNCTION(samplerName)
+  //INIT_BURNED_DIFFUSE_FUNCTION()
+  hlsl(vs) {
+    float getBurnedEffect() //can't get additional_data in frag shader
+    {
+      uint2 dataOffsetCount = get_offset_count_additional_data(HUMAN_COMBINED_PARAMS);
+      if (dataOffsetCount.y > 0)
+        return get_additional_data(dataOffsetCount, 0).w;
+      else
+        return 0;
+    }
+  }
+
+
+  hlsl(ps) {
+    void apply_burning_effect(inout float3 diffuse, inout float smoothness, float3 frag_pos, float3 frag_norm, float burning_effect, bool flesh)
+    {
+      float3 burned_color = flesh ? // compile time branch
+          sample_texture_from_pos(burned_flesh, samplerName, frag_pos, frag_norm, 3).rgb :
+          sample_texture_from_pos(burned_cloth, samplerName, frag_pos, frag_norm, 3).rgb;
+
+      diffuse = lerp(diffuse, burned_color, burning_effect);
+      smoothness *= 1 - burning_effect;
+    }
+  }
+endmacro

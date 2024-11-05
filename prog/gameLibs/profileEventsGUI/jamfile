@@ -1,0 +1,24 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/profileEventsGUI ;
+
+TargetType  = lib ;
+Target      = gameLibs/profileEventsGUI.lib ;
+
+AddIncludes =
+  $(Root)/prog/engine/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+UseProgLibs +=
+  3rdPartyLibs/eastl
+;
+
+Sources =
+  profileEventsGUI.cpp
+;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

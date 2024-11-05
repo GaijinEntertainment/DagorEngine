@@ -1,9 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_frustum.h>
 #include <perfMon/dag_statDrv.h>
 #include <render/toroidal_update.h>
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_shaderMesh.h>
+#include <shaders/dag_rendInstRes.h>
 #include <util/dag_stlqsort.h>
+#include <util/dag_threadPool.h>
 #include <scene/dag_scene.h>
 #include <gameRes/dag_gameResources.h>
 #include <startup/dag_globalSettings.h>
@@ -13,6 +17,9 @@
 #include <daECS/core/componentTypes.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <3d/dag_lockSbuffer.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_query.h>
 #include <rendInst/rendInstExtra.h>
 
 #include <gpuObjects/gpuObjects.h>
@@ -49,9 +56,9 @@ namespace gpu_objects
   VAR(gpu_objects_gather_target_offset)     \
   VAR(gpu_objects_max_count_in_cell)        \
   VAR(gpu_objects_visible_cells)            \
+  VAR(gpu_objects_copy_lod_no)              \
   VAR(gpu_objects_ri_pool_id_offset)        \
   VAR(gpu_objects_place_on_water)           \
-  VAR(gpu_objects_enable_displacement)      \
   VAR(gpu_objects_instance_buf)             \
   VAR(gpu_object_ints_to_clear)             \
   VAR(gpu_objects_count)                    \
@@ -62,6 +69,11 @@ namespace gpu_objects
   VAR(gpu_object_rendinst_instances_count)  \
   VAR(gpu_objects_coast_range)              \
   VAR(gpu_objects_face_coast)               \
+  VAR(gpu_objects_bvh_max_count)            \
+  VAR(gpu_objects_use_bvh)                  \
+  VAR(gpu_objects_bvh_counter)              \
+  VAR(gpu_objects_bvh_instances)            \
+  VAR(gpu_objects_bvh_mappings)             \
   VAR(gpu_objects_bomb_hole_point_radius_0) \
   VAR(gpu_objects_bomb_hole_point_radius_1) \
   VAR(gpu_objects_bomb_hole_point_radius_2) \
@@ -91,6 +103,8 @@ static ValidationParams ValidationParameterCheckLimits;
 
 static bool do_parameter_check{false};
 
+BVHConnection *GpuObjects::bvhConnection = nullptr;
+
 template <typename T>
 constexpr T pow2(const T &t)
 {
@@ -100,6 +114,7 @@ constexpr T pow2(const T &t)
 ObjectManager::ObjectManager(const char *name, uint32_t ri_pool_id, int cell_tile, int cells_size_count, float cell_size,
   float bounding_sphere_radius, dag::ConstSpan<float> dist_sq_lod, const PlacingParameters &parameters) :
   assetName(name),
+  riPoolId(ri_pool_id),
   riPoolOffset(ri_pool_id * rendinst::render::PER_DRAW_VECS_COUNT + 1),
   boundingSphereRadius(bounding_sphere_radius),
   parameters(parameters),
@@ -155,7 +170,7 @@ void ObjectManager::setParameters(const PlacingParameters &params)
   Point2 oldWeights = parameters.weightRange;
   parameters = params;
   if (oldWeights != params.weightRange)
-    recreateGrid(cellTile, cellsSideCount, cellSize);
+    recreateGrid(cellTileOrig, cellsSideCount, cellSize);
   invalidate();
 #if DAGOR_DBGLEVEL > 0
   validateParams();
@@ -231,22 +246,6 @@ void ObjectManager::makeMatricesOffsetsBuffer()
     String(0, "ObjectManager_MatricesOffsets_%s", assetName));
 }
 
-void ObjectManager::validateDisplacedGPUObjs(float displacement_tex_range)
-{
-  if (parameters.enableDisplacement && !texSizeValidated)
-  {
-    float gridSize = (cellsSideCount + 1) * cellSize; //+1 for the random noise in shader:
-                                                      // coords += randValues.xy * 2*gpu_objects_world_coord.z;
-    if (gridSize >= displacement_tex_range)
-    {
-      logerr("GPU object %s has displacement enabled, and its grid size is larger than the hmap_ofs_tex texture's range "
-             "Grid size: %f, hmap_ofs_tex range: %f",
-        this->assetName.c_str(), gridSize, displacement_tex_range);
-    }
-  }
-  texSizeValidated = true;
-}
-
 void ObjectManager::setShaderVarsAndConsts()
 {
 
@@ -276,7 +275,6 @@ void ObjectManager::setShaderVarsAndConsts()
   ShaderGlobal::set_color4(gpu_objects_weightsVarId, parameters.weightRange.x, parameters.weightRange.y, maxObjectsCountInCell, 0);
   ShaderGlobal::set_color4(gpu_objects_slope_factorVarId, parameters.slopeFactor);
   ShaderGlobal::set_int(gpu_objects_place_on_waterVarId, static_cast<int>(parameters.placeOnWater));
-  ShaderGlobal::set_int(gpu_objects_enable_displacementVarId, static_cast<int>(parameters.enableDisplacement));
   ShaderGlobal::set_color4(gpu_objects_coast_rangeVarId, parameters.coastRange.x, parameters.coastRange.y, 0.0f, 0.0f);
   ShaderGlobal::set_int(gpu_objects_face_coastVarId, static_cast<int>(parameters.faceCoast));
 
@@ -373,15 +371,29 @@ void ObjectManager::gatherBuffers()
   // To consider: instead of resorting whole array each time - maintain it's in sorted order
   // since usually origin doesnt change that much from frame to frame
   vec3f vLastOrigin = v_ldu(&lastOrigin.x), vCellSize = v_splats(cellSize);
-  for (int i = 0, flatIdx = 0; i < cellsSideCount; ++i)
-    for (int j = 0; j < cellsSideCount; ++j, ++flatIdx)
+
+  for (uint32_t i = 0, flatIdx = 0; i < cellsSideCount; ++i)
+  {
+    vec4i indices = v_make_vec4i(i, 0, i, 1);
+    vec4i incJ = v_make_vec4i(0, 2, 0, 2);
+    for (uint32_t j = 0; j < cellsSideCount; j += 2, indices = v_addi(indices, incJ))
     {
-      Point3 cellPos(toroidalGrid.mainOrigin.x + i + 0.5f - cellsSideCount * 0.5f, 0,
-        toroidalGrid.mainOrigin.y + j + 0.5f - cellsSideCount * 0.5f); // TODO: SIMDify this
-      vec3f vCellPos = v_mul(v_ldu_p3(&cellPos.x), vCellSize);
-      appendOrder[flatIdx].distSq = v_extract_x(v_length3_sq_x(v_sub(vLastOrigin, vCellPos)));
+      vec4f vMainOrigin = v_cvti_vec4f(v_addi(v_splatsi64(*(uint64_t *)&toroidalGrid.mainOrigin.x), indices));
+      vec4f vCellIdx = v_sub(v_add(vMainOrigin, V_C_HALF), v_mul(v_splats(cellsSideCount), V_C_HALF));
+      vec4f vCellPos = v_mul(vCellIdx, vCellSize);
+      vec4f vCellPos0 = v_perm_xayb(vCellPos, v_zero());
+      vec4f vCellPos1 = v_perm_zcwd(vCellPos, v_zero());
+      appendOrder[flatIdx].distSq = v_extract_x(v_length3_sq_x(v_sub(vLastOrigin, vCellPos0)));
       appendOrder[flatIdx].idx = flatIdx;
+      flatIdx++;
+      if (DAGOR_LIKELY(j + 1 < cellsSideCount))
+      {
+        appendOrder[flatIdx].distSq = v_extract_x(v_length3_sq_x(v_sub(vLastOrigin, vCellPos1)));
+        appendOrder[flatIdx].idx = flatIdx;
+        flatIdx++;
+      }
     }
+  }
 
   {
     TIME_PROFILE_DEV(sort_appendOrder);
@@ -423,7 +435,7 @@ void ObjectManager::updateVisibilityAndLods(const Frustum &frustum, const Occlus
 }
 
 void ObjectManager::copyMatrices(const eastl::vector<uint32_t> &cells_to_copy, const eastl::vector<uint32_t> &cell_counters,
-  Sbuffer *dst_buffer, Sbuffer *src_buffer, uint32_t max_in_cell, uint32_t dst_offset_rows)
+  Sbuffer *dst_buffer, Sbuffer *src_buffer, uint32_t max_in_cell, uint32_t dst_offset_rows, uint32_t lod)
 {
   matricesOffsets.resize((cells_to_copy.size() + 1) * 2);
   matricesOffsets[0] = 0;
@@ -445,6 +457,8 @@ void ObjectManager::copyMatrices(const eastl::vector<uint32_t> &cells_to_copy, c
     ShaderGlobal::set_int(gpu_objects_max_count_in_cellVarId, max_in_cell);
     ShaderGlobal::set_int(gpu_objects_gather_target_offsetVarId, dst_offset_rows);
     ShaderGlobal::set_int(gpu_objects_visible_cellsVarId, cells_to_copy.size());
+    ShaderGlobal::set_int(gpu_objects_copy_lod_noVarId, lod);
+
     gatherMatrices->dispatchThreads(cells_to_copy.size(), matricessInCell, 1);
     d3d::resource_barrier({dst_buffer, RB_NONE});
   }
@@ -452,7 +466,7 @@ void ObjectManager::copyMatrices(const eastl::vector<uint32_t> &cells_to_copy, c
 
 void ObjectManager::addMatricesToBuffer(Sbuffer *buffer, uint32_t offset_in_bytes, int lod)
 {
-  copyMatrices(cellIndexesByLods[lod], counters, buffer, gatheredBuffer.get(), maxObjectsCountInCell, offset_in_bytes);
+  copyMatrices(cellIndexesByLods[lod], counters, buffer, gatheredBuffer.get(), maxObjectsCountInCell, offset_in_bytes, lod);
 }
 
 uint32_t ObjectManager::getInstancesInGridToDraw(uint32_t lod) const
@@ -607,7 +621,6 @@ void ObjectManager::update(const Point3 &origin)
   if (!waitingForGpuData)
     return;
   updateBuffer();
-  gatherBuffers();
 }
 
 void ObjectManager::validateParams() const
@@ -636,8 +649,21 @@ void ObjectManager::validateParams() const
 void GpuObjects::update(const Point3 &origin)
 {
   TIME_D3D_PROFILE(GpuObjects_update)
-  for (ObjectManager &object : objects)
-    object.update(origin);
+
+  if (!objects.empty())
+  {
+    for (ObjectManager &object : objects)
+      object.update(origin);
+
+    for (int i = 0; i < countof(gatherBuffersJobs); ++i)
+    {
+      gatherBuffersJobs[i].thiz = this;
+      gatherBuffersJobs[i].threadIx = i;
+      threadpool::add(&gatherBuffersJobs[i], threadpool::PRIO_NORMAL, /*wake*/ false);
+    }
+    threadpool::wake_up_one();
+  }
+
   if (VolumePlacer *volumePlacer = get_volume_placer_mgr())
     volumePlacer->performPlacing(origin);
 }
@@ -821,13 +847,32 @@ void GpuObjects::prepareGpuInstancing(int cascade_no)
   STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), cascades[cascade_no].matricesBuffer.get());
   STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 2, VALUE), cascades[cascade_no].drawIndirectBuffer.get());
 
+  bool useBvhConnection = bvhConnection && bvhConnection->isReady();
+
+  if (bvhConnection && bvhConnection->prepare())
+  {
+    ShaderGlobal::set_int(gpu_objects_bvh_max_countVarId,
+      bvhConnection->getInstancesBuffer() ? bvhConnection->getInstancesBuffer()->getNumElements() : 0);
+    ShaderGlobal::set_buffer(gpu_objects_bvh_counterVarId, bvhConnection->getInstanceCounter());
+    ShaderGlobal::set_buffer(gpu_objects_bvh_instancesVarId, bvhConnection->getInstancesBuffer());
+  }
+
   for (uint32_t i = 0, e = objects.size(); i < e; ++i)
   {
     ObjectManager &object = objects[i];
     ShaderGlobal::set_real_fast(gpu_objects_noVarId, (float)i + 0.1f);
+
+    D3DRESID mappingId;
+    bool useBvh = useBvhConnection ? bvhConnection->translateObjectId(object.getRiId(), mappingId) : false;
+    ShaderGlobal::set_int(gpu_objects_use_bvhVarId, useBvh ? 1 : 0);
+    ShaderGlobal::set_buffer(gpu_objects_bvh_mappingsVarId, mappingId);
+
     // todo: single dispatch for all objects
     object.onLandGpuInstancing(cascades[cascade_no].dispatchCountBuffer.get(), i * 12);
   }
+
+  if (useBvhConnection)
+    bvhConnection->done();
 }
 
 void GpuObjects::clearCascade(int cascade)
@@ -910,6 +955,9 @@ void GpuObjects::beforeDraw(rendinst::RenderPass render_pass, int cascade, const
 
   if (!cascades[cascade].gpuInstancing)
   {
+    for (auto &job : gatherBuffersJobs)
+      threadpool::wait(&job);
+
     ShaderGlobal::set_int_fast(gpu_objects_gpu_instancingVarId, 0);
     for (ObjectManager &object : objects)
     {
@@ -921,6 +969,16 @@ void GpuObjects::beforeDraw(rendinst::RenderPass render_pass, int cascade, const
     set_frustum_planes(frustum);
     prepareGpuInstancing(cascade);
     return;
+  }
+
+  bool useBvhConnection = bvhConnection && bvhConnection->isReady() && gpu_objects_use_bvhVarId > -1;
+
+  if (useBvhConnection && bvhConnection->prepare())
+  {
+    ShaderGlobal::set_int(gpu_objects_bvh_max_countVarId,
+      bvhConnection->getInstancesBuffer() ? bvhConnection->getInstancesBuffer()->getNumElements() : 0);
+    ShaderGlobal::set_buffer(gpu_objects_bvh_counterVarId, bvhConnection->getInstanceCounter());
+    ShaderGlobal::set_buffer(gpu_objects_bvh_instancesVarId, bvhConnection->getInstancesBuffer());
   }
 
   for (int lod = 0; lod < MAX_LODS; ++lod)
@@ -939,6 +997,14 @@ void GpuObjects::beforeDraw(rendinst::RenderPass render_pass, int cascade, const
 
       int layerIdx = layerRIOnLayerGpuobjRemap(object.layer);
 
+      D3DRESID mappingId = BAD_D3DRESID;
+      bool useBvh = useBvhConnection ? bvhConnection->translateObjectId(object.getRiId(), mappingId) : false; //-V522
+      if (gpu_objects_use_bvhVarId > -1)
+      {
+        ShaderGlobal::set_int(gpu_objects_use_bvhVarId, useBvh ? 1 : 0);
+        ShaderGlobal::set_buffer(gpu_objects_bvh_mappingsVarId, mappingId);
+      }
+
       object.addMatricesToBuffer(cascades[cascade].matricesBuffer.get(), bufferOffset * ROWS_IN_MATRIX, lod);
       cascades[cascade].layers[layerIdx].offsetsAndCounts.emplace_back(bufferOffset * ROWS_IN_MATRIX, countByLod);
       cascades[cascade].layers[layerIdx].objectIds.emplace_back(objectIds[i]);
@@ -955,14 +1021,9 @@ void GpuObjects::beforeDraw(rendinst::RenderPass render_pass, int cascade, const
         cascades[cascade].layers[GPUOBJ_LAYER_DISTORSION].objectIds);
     }
   }
-}
 
-void GpuObjects::validateDisplacedGPUObjs(float displacement_tex_range)
-{
-  for (ObjectManager &object : objects)
-  {
-    object.validateDisplacedGPUObjs(displacement_tex_range);
-  }
+  if (useBvhConnection)
+    bvhConnection->done();
 }
 
 int GpuObjects::addCascade()
@@ -978,6 +1039,12 @@ int GpuObjects::addCascade()
   cascades.push_back();
   cascades.back().isDeleted = false;
   return cascades.size() - 1;
+}
+
+GpuObjects::~GpuObjects()
+{
+  for (auto &job : gatherBuffersJobs)
+    threadpool::wait(&job);
 }
 
 void GpuObjects::invalidateBBox(const BBox2 &bbox)
@@ -1030,6 +1097,15 @@ void setup_parameter_validation(const DataBlock *validationBlock)
   ValidationParameterCheckLimits = {validationBlock->getReal("min_bounding_box_size", 1.0f),
     validationBlock->getInt("max_cell_scount", 64), validationBlock->getReal("max_object_density", 1.0f)};
   do_parameter_check = true;
+}
+
+void GpuObjects::GatherBuffersJob::doJob()
+{
+  if (threadIx == 0) // First one wakes the rest
+    threadpool::wake_up_all();
+  TIME_PROFILE(GatherBuffersJob);
+  for (int i = threadIx; i < thiz->objects.size(); i += countof(GpuObjects::gatherBuffersJobs))
+    thiz->objects[i].gatherBuffers();
 }
 
 } // namespace gpu_objects

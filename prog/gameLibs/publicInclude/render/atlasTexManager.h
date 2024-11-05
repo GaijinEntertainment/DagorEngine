@@ -1,10 +1,10 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
+#include <math/integer/dag_IPoint2.h>
 #include <math/dag_Point2.h>
 #include <math/dag_Point4.h>
 #include <dag/dag_vector.h>
@@ -20,8 +20,10 @@ struct TexRec
 {
   dag::Vector<UniqueTex> atlasTex;
   dag::Vector<unsigned> atlasTexFmt;
-  AtlasData *ad = nullptr;
+  IPoint2 alignment = IPoint2(1, 1);
+  IPoint2 blockSize = IPoint2(1, 1);
   Point2 size = Point2(0, 0);
+  AtlasData *ad = nullptr;
 
   bool initAtlas(int tex_count, dag::ConstSpan<unsigned> tex_fmt, const char *tex_name, IPoint2 tex_size, int mip_count);
   void resetAtlas();
@@ -29,7 +31,6 @@ struct TexRec
   int addTextureToAtlas(TextureInfo ti, Point4 &texcoords, bool allow_discard = true);
   bool writeTextureToAtlas(Texture *tex, int atlas_index, int layer);
   int mipCount = 0;
-  bool compressed = false;
   int atlasTexcount = 0;
   Point4 getTc(int index);
 };

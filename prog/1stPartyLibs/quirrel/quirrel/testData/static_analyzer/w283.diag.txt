@@ -1,14 +1,14 @@
 WARNING: w283 (useless-null-coalescing) The expression to the right of the '??' is null.
-testData/static_analyzer/w283.nut:5:21
+testData/static_analyzer/w283.nut:8:21
 
-let function fn(x) {
+function fn(x) {
     return ::y.cc ?? x ?? null
                      ^--------
 }
 
 
 WARNING: w283 (useless-null-coalescing) The expression to the right of the '??' is null.
-testData/static_analyzer/w283.nut:9:10
+testData/static_analyzer/w283.nut:12:10
 
 local s = null
 local x = ::y ?? s
@@ -16,22 +16,11 @@ local x = ::y ?? s
 return x
 
 
-
-AN ERROR HAS OCCURRED [the index 'y' does not exist]
-
-CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w283.nut line [9]
-
-LOCALS
-[s] NULL
-[fn] CLOSURE=FN:fn
-[vargv] ARRAY=[]
-[this] TABLE={}
 WARNING: w295 (undefined-global) Undefined global identifier 'y'.
-testData/static_analyzer/w283.nut:5:11
+testData/static_analyzer/w283.nut:8:11
 
 
 WARNING: w295 (undefined-global) Undefined global identifier 'y'.
-testData/static_analyzer/w283.nut:9:10
+testData/static_analyzer/w283.nut:12:10
 
 

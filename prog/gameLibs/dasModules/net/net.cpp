@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/aotNet.h>
 #include <dasModules/dasDataBlock.h>
 #include <daScript/daScript.h>
@@ -348,6 +350,12 @@ public:
       "bind_dascript::setObjectInScopeAlways");
     das::addExtern<DAS_BIND_FUN(setEntityInScopeAlways)>(*this, lib, "setEntityInScopeAlways", das::SideEffects::modifyArgument,
       "bind_dascript::setEntityInScopeAlways");
+    das::addExtern<DAS_BIND_FUN(addObjectInScope)>(*this, lib, "addObjectInScope", das::SideEffects::modifyArgument,
+      "bind_dascript::addObjectInScope");
+    das::addExtern<DAS_BIND_FUN(clearObjectInScopeAlways)>(*this, lib, "clearObjectInScopeAlways", das::SideEffects::modifyArgument,
+      "bind_dascript::clearObjectInScopeAlways");
+    das::addExtern<DAS_BIND_FUN(clearObjectInScope)>(*this, lib, "clearObjectInScope", das::SideEffects::modifyArgument,
+      "bind_dascript::clearObjectInScope");
 
     das::addExternTempRef<DAS_BIND_FUN(get_circuit_conf)>(*this, lib, "get_circuit_conf", das::SideEffects::accessExternal,
       "bind_dascript::get_circuit_conf");

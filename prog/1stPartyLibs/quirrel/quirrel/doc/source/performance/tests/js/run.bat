@@ -1,0 +1,11 @@
+qjs.exe dict.js
+qjs.exe exp.js
+qjs.exe fib_loop.js
+qjs.exe fib_recursive.js
+qjs.exe nbodies.js
+qjs.exe particles.js
+qjs.exe primes.js
+qjs.exe f2i.js
+qjs.exe f2s.js
+qjs.exe spectral-norm.js
+qjs.exe tree.js

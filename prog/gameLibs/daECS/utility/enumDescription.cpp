@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/core/component.h>
 #include <daECS/core/entityComponent.h>
 #include <daECS/core/utility/enumDescription.h>

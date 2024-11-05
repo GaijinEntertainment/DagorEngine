@@ -7,9 +7,9 @@ include "hardware_defines.dshl"
 
 hlsl
 {
-  uint calc_histogram_index(uint x, uint y, uint mip, uint ri_index)
+  uint calc_histogram_index(uint x, uint y, uint mip, uint ri_offset)
   {
-    return (mip << (TILE_WIDTH_BITS + TILE_WIDTH_BITS + MAX_RI_VTEX_CNT_BITS)) | (ri_index << (TILE_WIDTH_BITS + TILE_WIDTH_BITS)) | (y << TILE_WIDTH_BITS) | (x);
+    return (mip << (TILE_WIDTH_BITS + TILE_WIDTH_BITS + MAX_RI_VTEX_CNT_BITS)) | (ri_offset << (TILE_WIDTH_BITS + TILE_WIDTH_BITS)) | (y << TILE_WIDTH_BITS) | (x);
   }
 }
 
@@ -170,19 +170,19 @@ shader clipmap_process_feedback_cs
       if (dtId >= clipmap_feedback_readback_size)
         return;
 
-      uint2 pos; uint mip; uint ri_index;
-      unpackFeedbackInfo(loadFeedback(dtId), pos.xy, mip, ri_index);
+      uint2 pos; uint mip; uint ri_offset;
+      unpackFeedbackInfo(loadFeedback(dtId), pos.xy, mip, ri_offset);
 
-      if ( all(pos < TILE_WIDTH && mip < clipmap_tex_mips && ri_index < MAX_VTEX_CNT) )
+      if ( all(pos < TILE_WIDTH && mip < clipmap_tex_mips && ri_offset < MAX_VTEX_CNT) )
       {
 ##if clipmap_feedback_calc_histogram_on_gpu == yes
-        uint histId = calc_histogram_index(pos.x, pos.y, mip, ri_index);
+        uint histId = calc_histogram_index(pos.x, pos.y, mip, ri_offset);
         clipmap_histogram_buf_rw.InterlockedAdd(histId*4, 1u);
 ##endif
       }
 
       // pack again, but without dummy clear offset, to make it consistent (pack/unpack can use tricks)
-      uint feedback = packFinalFeedbackInfo(pos.xy, mip, ri_index);
+      uint feedback = packFinalFeedbackInfo(pos.xy, mip, ri_offset);
       storeBuffer(clipmap_feedback_readback_buf_rw, dtId*4, feedback);
     }
   }
@@ -236,7 +236,7 @@ macro BUILD_TILE_INFO(stage)
       #define UNROLLED_MIP_CNT 7
 ##endif
 
-      UNROLL for (uint ri_index = 0; ri_index < MAX_VTEX_CNT; ++ri_index)
+      UNROLL for (uint ri_offset = 0; ri_offset < MAX_VTEX_CNT; ++ri_offset)
       {
 #ifdef UNROLLED_MIP_CNT
       UNROLL for (uint mip = 0; mip < UNROLLED_MIP_CNT; ++mip)
@@ -244,7 +244,7 @@ macro BUILD_TILE_INFO(stage)
       for (uint mip = 0; mip < clipmap_tex_mips; ++mip)
 #endif
       {
-        uint histId = calc_histogram_index(dtId.x, dtId.y, mip, ri_index);
+        uint histId = calc_histogram_index(dtId.x, dtId.y, mip, ri_offset);
         uint histCnt = loadBuffer(clipmap_histogram_buf, histId*4);
 
         BRANCH
@@ -256,7 +256,7 @@ macro BUILD_TILE_INFO(stage)
 
 #if MAX_RI_VTEX_CNT_BITS > 0
           storeBuffer(clipmap_tile_info_buf_rw, (at*2 + 0)*4, packTileInfo(dtId.x, dtId.y, mip, histCnt));
-          storeBuffer(clipmap_tile_info_buf_rw, (at*2 + 1)*4, ri_index);
+          storeBuffer(clipmap_tile_info_buf_rw, (at*2 + 1)*4, ri_offset);
 #else
           storeBuffer(clipmap_tile_info_buf_rw, at*4, packTileInfo(dtId.x, dtId.y, mip, histCnt));
 #endif

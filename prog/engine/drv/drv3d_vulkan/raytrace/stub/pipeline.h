@@ -1,14 +1,15 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <generic/dag_tab.h>
 #include <generic/dag_staticTab.h>
 #include "descriptor_set.h"
 #include "render_pass.h"
+#include <pipeline/base_pipeline.h>
 
 namespace drv3d_vulkan
 {
 
-struct ContextBackend;
-class Device;
 class ProgramDatabase;
 class RaytraceAccelerationStructure;
 // struct RaytraceShaderGroup;
@@ -43,7 +44,7 @@ public:
   static constexpr int CLEANUP_DESTROY = 0;
 
   template <int Tag>
-  void onDelayedCleanupBackend(drv3d_vulkan::ContextBackend &)
+  void onDelayedCleanupBackend()
   {}
 
   template <int Tag>
@@ -74,7 +75,7 @@ public:
     return ret;
   }
 
-  dag::Vector<ShaderDebugInfo> dumpShaderInfos() const { return {std::begin(debugInfo), std::end(debugInfo)}; }
+  dag::Vector<ShaderDebugInfo> dumpShaderInfos() const { return {eastl::begin(debugInfo), eastl::end(debugInfo)}; }
 
   int64_t dumpCompilationTime() const { return compilationTime; }
   size_t dumpVariantCount() const { return 1; }

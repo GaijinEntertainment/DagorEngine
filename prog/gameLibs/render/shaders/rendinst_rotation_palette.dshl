@@ -64,14 +64,15 @@ macro ROTATION_PALETTE_STUB()
     }
   }
   hlsl(vs) {
-    #define APPLY_ROTATION_PALETTE
     #define IMPOSTOR_PALETTE_ROTATIONS\
         float paletteRotationCos = 1;\
         float paletteRotationSin = 0;
+    #define APPLY_ROTATION_PALETTE\
+      IMPOSTOR_PALETTE_ROTATIONS
   }
 endmacro
 macro ROTATION_PALETTE_FOR_POS_INST()
-  if (instancing_type == pos_vb || instancing_type == pos_cb)
+  if ((instancing_type == pos_vb || instancing_type == pos_cb) && palette_rotation_mode == palette_rotation_on)
   {
     ROTATION_PALETTE()
   }

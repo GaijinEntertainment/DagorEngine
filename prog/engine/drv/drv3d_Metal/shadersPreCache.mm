@@ -1,9 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <perfMon/dag_statDrv.h>
 #include <perfMon/dag_perfTimer.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_TMatrix.h>
 #include "render.h"
+#include "drv_log_defs.h"
 #include <AvailabilityMacros.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
@@ -13,13 +15,13 @@
 
 namespace drv3d_metal
 {
-  static const uint32_t PRECACHE_VERSION = _MAKE4C('2.1');
+  static const uint32_t PRECACHE_VERSION = _MAKE4C('2.8');
 
   std::thread g_saver;
   std::thread g_compiler;
 
   static MTLRenderPipelineDescriptor* buildPipelineDescriptor(id<MTLFunction> vshader, id<MTLFunction> pshader,
-                                      MTLVertexDescriptor* vertexDescriptor, const Program::RenderState& rstate, bool discard)
+                                      MTLVertexDescriptor* vertexDescriptor, const Program::RenderState& rstate, bool discard, uint32_t output_mask)
   {
     MTLRenderPipelineDescriptor* pipelineStateDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
 
@@ -34,7 +36,7 @@ namespace drv3d_metal
     pipelineStateDescriptor.sampleCount = rstate.sample_count;
 
     pipelineStateDescriptor.vertexFunction = vshader;
-    pipelineStateDescriptor.fragmentFunction =  pshader;
+    pipelineStateDescriptor.fragmentFunction = pshader;
     pipelineStateDescriptor.vertexDescriptor = vertexDescriptor;
 
     if (rstate.is_volume)
@@ -46,7 +48,7 @@ namespace drv3d_metal
     pipelineStateDescriptor.stencilAttachmentPixelFormat = rstate.stencilFormat;
     pipelineStateDescriptor.alphaToCoverageEnabled = rstate.raster_state.a2c;
 
-    int writeMask = rstate.raster_state.writeMask;
+    int writeMask = rstate.raster_state.writeMask & output_mask;
     bool hasColor = false;
 
     for (int i = 0; i < Program::MAX_SIMRT; i++, writeMask>>=4)
@@ -90,7 +92,7 @@ namespace drv3d_metal
     return pipelineStateDescriptor;
   }
 
-  static uint64_t buildRenderStateHash(const Program::RenderState& rstate)
+  static uint64_t buildRenderStateHash(const Program::RenderState& rstate, uint32_t output_mask)
   {
     uint64_t hash = 0;
 
@@ -99,7 +101,7 @@ namespace drv3d_metal
     for (int i = 0; i < Program::MAX_SIMRT; i++)
       hash_combine(hash, std::hash<uint32_t>{}(rstate.pixelFormat[i]));
     hash_combine(hash, rstate.raster_state.a2c);
-    hash_combine(hash, rstate.raster_state.writeMask);
+    hash_combine(hash, rstate.raster_state.writeMask & output_mask);
     hash_combine(hash, std::hash<uint32_t>{}(rstate.depthFormat));
     hash_combine(hash, std::hash<uint32_t>{}(rstate.stencilFormat));
 
@@ -109,6 +111,26 @@ namespace drv3d_metal
     hash_combine(hash, std::hash<uint32_t>{}(rstate.is_volume));
 
     return hash;
+  }
+
+  static inline void clearCache(const String &path, const String &current_cache)
+  {
+    alefind_t fd;
+    for (bool ok = ::dd_find_first(path + "/*", DA_SUBDIR, &fd); ok; ok = ::dd_find_next(&fd))
+    {
+      if (fd.name == current_cache)
+        continue;
+
+      String local_path = path + "/" + fd.name;
+
+      alefind_t ff;
+      for (bool ok = ::dd_find_first(local_path + "/*", DA_FILE, &ff); ok; ok = ::dd_find_next(&ff))
+        ::dd_erase(local_path + "/" + ff.name);
+      ::dd_find_close(&ff);
+
+      ::dd_rmdir(local_path);
+    }
+    ::dd_find_close(&fd);
   }
 
   void ShadersPreCache::saverThread()
@@ -172,6 +194,18 @@ namespace drv3d_metal
   {
     shdCachePath[0] = 0;
   }
+  ShadersPreCache::~ShadersPreCache()
+  {
+    shader_cache.clear();
+    descriptor_cache.clear();
+    pso_cache.clear();
+    cso_cache.clear();
+
+    shader_cache_objects.clear();
+    descriptor_cache_objects.clear();
+    pso_cache_objects.clear();
+    cso_cache_objects.clear();
+  }
 
   void ShadersPreCache::init(uint32_t version)
   {
@@ -181,20 +215,24 @@ namespace drv3d_metal
 
     cache_version = version ? version : PRECACHE_VERSION;
 
+    String cache_root, cache_version_str(16, "%u", cache_version);
     #if _TARGET_PC_MACOSX
     NSString *dir = [[NSBundle mainBundle] bundlePath];
 
     HashMD5 hash;
     hash.calc([dir UTF8String], [dir length]);
 
-    snprintf(shdCachePath, sizeof(shdCachePath), "%s/cache/%u/%s", getenv("HOME"), cache_version, hash.get());
+    snprintf(shdCachePath, sizeof(shdCachePath), "%s/cache/%s/%u", getenv("HOME"), hash.get(), cache_version);
+    cache_root.printf(sizeof(shdCachePath), "%s/cache/%s", getenv("HOME"), hash.get());
     #else
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
     NSString *dir = [paths objectAtIndex:0];
     snprintf(shdCachePath, sizeof(shdCachePath), "%s/%u", [dir UTF8String], cache_version);
+    cache_root.printf(sizeof(shdCachePath), "%s", [dir UTF8String]);
     #endif
 
     dd_mkdir(shdCachePath);
+    clearCache(cache_root, cache_version_str);
 
     bool async_pso_cache_loading = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("asyncLoadPSOCache", false);
     pso_cache_loaded = false;
@@ -217,7 +255,14 @@ namespace drv3d_metal
     if (pso_cache_loaded)
       return;
 
-    debug("[METAL] PSO cache");
+    // set this to 0 if you want single threaded load
+    uint32_t mt_cache_threads = dgs_get_settings()->getBlockByNameEx("graphics")->getInt("mtShaderCacheThreads", 16);
+
+    uint32_t max_hw_threads = std::thread::hardware_concurrency();
+    // this is number of additional threads. use only if we have more than two hw threads and no more than mt_cache_threads
+    uint32_t max_threads = max_hw_threads > 2 && mt_cache_threads > 0 ? min(mt_cache_threads, max_hw_threads - 2u) : 0u;
+
+    debug("[METAL] loading PSO cache using %d threads", max_threads + 1);
 
     int64_t time = profile_ref_ticks();
 
@@ -233,36 +278,72 @@ namespace drv3d_metal
         uint32_t count = 0;
         if (df_length(fl) <= 0 || df_read(fl, &count, sizeof(count)) != sizeof(count))
           count = 0;
+
+        eastl::vector<uint64_t> shaders(count);
         for (uint32_t i = 0; i < count; ++i)
         {
-          QueuedShader shd;
-          if (df_read(fl, &shd.hash, sizeof(shd.hash)) != sizeof(shd.hash))
+          uint64_t& hash = shaders[i];
+          if (df_read(fl, &hash, sizeof(hash)) != sizeof(hash))
             break;
+        }
+        df_close(fl);
 
-          snprintf(curShdCachePath, sizeof(curShdCachePath), "%s/%llu.cache", root, shd.hash);
-
-          file_ptr_t fl_shd = df_open(curShdCachePath, DF_READ|DF_IGNORE_MISSING);
-          if (fl_shd)
+        auto shader_compiler = [&shaders, root, this](uint32_t start, uint32_t end)
+        {
+          NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+          for (uint32_t i = start; i < end; ++i)
           {
+            QueuedShader shd = {};
+            shd.hash = shaders[i];
+
+            char curShdCachePath[1024];
+            snprintf(curShdCachePath, sizeof(curShdCachePath), "%s/%llu.cache", root, shd.hash);
+
+            file_ptr_t fl_shd = df_open(curShdCachePath, DF_READ|DF_IGNORE_MISSING);
+            if (!fl_shd)
+              continue;
+
             int sz_shd = df_length(fl_shd);
             if (sz_shd <= sizeof(shd.entry))
-              break;
+            {
+              df_close(fl_shd);
+              continue;
+            }
 
             shd.data.resize(sz_shd - sizeof(shd.entry));
             if (df_read(fl_shd, shd.entry, sizeof(shd.entry)) != sizeof(shd.entry))
-              break;
+            {
+              df_close(fl_shd);
+              continue;
+            }
             if (df_read(fl_shd, shd.data.data(), shd.data.size()) != shd.data.size())
-              break;
+            {
+              df_close(fl_shd);
+              continue;
+            }
             df_close(fl_shd);
 
             @autoreleasepool
             {
               compileShader(shd);
             }
-            watchdog_kick();
+            if (start == 0)
+              watchdog_kick();
           }
+          [pool release];
+        };
+
+        uint32_t chunk_size = count / (max_threads + 1), initial_count = count - chunk_size*max_threads;
+
+        eastl::vector<std::thread> threads(max_threads);
+        for (auto& th : threads)
+        {
+          uint32_t start = initial_count + (&th - threads.data())*chunk_size;
+          th = std::thread(shader_compiler, start, start + chunk_size);
         }
-        df_close(fl);
+        shader_compiler(0, initial_count);
+        for (auto& th : threads)
+          th.join();
 
         debug("ShadersPreCache: shaders.cache was loaded with %i shaders in list", (int)shader_cache.size());
         g_shaders_saved = shader_cache.size();
@@ -284,6 +365,7 @@ namespace drv3d_metal
         if (df_length(fl) <= 0 || df_read(fl, &count, sizeof(count)) != sizeof(count))
           count = 0;
 
+        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
         CachedVertexDescriptor desc;
         for (uint32_t i = 0; i < count; ++i)
         {
@@ -303,8 +385,9 @@ namespace drv3d_metal
           compileDescriptor(hash, desc);
         }
         df_close(fl);
+        [pool release];
 
-        debug("ShadersPreCache: descriptors.cache was loaded with %i shaders in list", (int)descriptor_cache.size());
+        debug("ShadersPreCache: descriptors.cache was loaded with %i descriptors in list", (int)descriptor_cache.size());
         g_descriptors_saved = descriptor_cache.size();
       }
       else
@@ -323,6 +406,8 @@ namespace drv3d_metal
         uint32_t count = 0;
         if (df_length(fl) <= 0 || df_read(fl, &count, sizeof(count)) != sizeof(count))
           count = 0;
+
+        eastl::vector<eastl::pair<uint64_t, CachedPipelineState*>> pipelines(count);
         for (uint32_t i = 0; i < count; ++i)
         {
           uint64_t hash = 0, vs_hash = 0, ps_hash = 0, decl_hash = 0;
@@ -343,6 +428,10 @@ namespace drv3d_metal
           if (df_read(fl, &discard, sizeof(discard)) != sizeof(discard))
             break;
 
+          uint32_t output_mask = 0;
+          if (df_read(fl, &output_mask, sizeof(output_mask)) != sizeof(output_mask))
+            break;
+
           CachedPipelineState* pso = (CachedPipelineState*)pso_cache_objects.allocateOneBlock();
           pso->vs_hash = vs_hash;
           pso->ps_hash = ps_hash;
@@ -350,13 +439,50 @@ namespace drv3d_metal
           pso->rstate = rstate;
           pso->pso = nil;
           pso->discard = discard;
+          pso->output_mask = output_mask;
 
-          compilePipeline(hash, pso, true);
-          watchdog_kick();
+          pipelines[i] = eastl::make_pair(hash, pso);
         }
         df_close(fl);
 
-        debug("ShadersPreCache: pipelines.cache was loaded with %i shaders in list", (int)pso_cache.size());
+        auto pipeline_compiler = [&pipelines, this](uint32_t start, uint32_t end)
+        {
+          NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+          for (uint32_t i = start; i < end; ++i)
+          {
+            uint64_t hash = pipelines[i].first;
+            CachedPipelineState* pso = pipelines[i].second;
+
+            if (hash == 0)
+              break;
+
+            id<MTLRenderPipelineState> res = compilePipeline(hash, pso, false);
+            {
+              std::unique_lock<std::mutex> l(g_saver_mutex);
+              if (res == nullptr)
+                pso_cache_objects.freeOneBlock(pso);
+              else
+                pso_cache[hash] = pso;
+            }
+            if (start == 0)
+              watchdog_kick();
+          }
+          [pool release];
+        };
+
+        uint32_t chunk_size = count / (max_threads + 1), initial_count = count - chunk_size*max_threads;
+
+        eastl::vector<std::thread> threads(max_threads);
+        for (auto& th : threads)
+        {
+          uint32_t start = initial_count + (&th - threads.data())*chunk_size;
+          th = std::thread(pipeline_compiler, start, start + chunk_size);
+        }
+        pipeline_compiler(0, initial_count);
+        for (auto& th : threads)
+          th.join();
+
+        debug("ShadersPreCache: pipelines.cache was loaded with %i pipelines in list", (int)pso_cache.size());
         g_psos_saved = pso_cache.size();
       }
       else
@@ -375,17 +501,46 @@ namespace drv3d_metal
         uint32_t count = 0;
         if (df_length(fl) <= 0 || df_read(fl, &count, sizeof(count)) != sizeof(count))
           count = 0;
+
+        eastl::vector<uint64_t> pipelines(count);
         for (uint32_t i = 0; i < count; ++i)
         {
           uint64_t hash = 0;
           if (df_read(fl, &hash, sizeof(hash)) != sizeof(hash))
             break;
 
-          compilePipeline(hash);
+          pipelines[i] = hash;
         }
         df_close(fl);
 
-        debug("ShadersPreCache: cs_pipelines.cache was loaded with %i shaders in list", (int)cso_cache.size());
+        auto pipeline_compiler = [&pipelines, this](uint32_t start, uint32_t end)
+        {
+          NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+          for (uint32_t i = start; i < end; ++i)
+          {
+            uint64_t hash = pipelines[i];
+            if (hash == 0)
+              break;
+            compilePipeline(hash);
+            if (start == 0)
+              watchdog_kick();
+          }
+          [pool release];
+        };
+
+        uint32_t chunk_size = count / (max_threads + 1), initial_count = count - chunk_size*max_threads;
+
+        eastl::vector<std::thread> threads(max_threads);
+        for (auto& th : threads)
+        {
+          uint32_t start = initial_count + (&th - threads.data())*chunk_size;
+          th = std::thread(pipeline_compiler, start, start + chunk_size);
+        }
+        pipeline_compiler(0, initial_count);
+        for (auto& th : threads)
+          th.join();
+
+        debug("ShadersPreCache: cs_pipelines.cache was loaded with %i pipelines in list", (int)cso_cache.size());
         g_csos_saved = cso_cache.size();
       }
       else
@@ -470,6 +625,7 @@ namespace drv3d_metal
         fwrite(&it.second->descriptor_hash, sizeof(it.second->descriptor_hash), 1, fl);
         fwrite(&it.second->rstate, sizeof(it.second->rstate), 1, fl);
         fwrite(&it.second->discard, sizeof(it.second->discard), 1, fl);
+        fwrite(&it.second->output_mask, sizeof(it.second->output_mask), 1, fl);
       }
       fclose(fl);
 
@@ -611,13 +767,14 @@ namespace drv3d_metal
       }
       else
       {
-        logerr("Error, shader not contain function, error %s", [[err localizedDescription] UTF8String]);
+        D3D_ERROR("Error, shader (%llu) not contain function, error %s", shader.hash, [[err localizedDescription] UTF8String]);
         return nil;
       }
     }
-    else
+
+    if (func == nil)
     {
-      logerr("Failed to compile shader, error %s", [[err localizedDescription] UTF8String]);
+      D3D_ERROR("Failed to compile shader (%llu), error %s", shader.hash, [[err localizedDescription] UTF8String]);
       return nil;
     }
 
@@ -786,9 +943,17 @@ namespace drv3d_metal
     auto ps_it = shader_cache.find(pso->ps_hash);
     id<MTLFunction> vs = vs_it == end(shader_cache) ? nil : vs_it->second->func;
     id<MTLFunction> ps = ps_it == end(shader_cache) ? nil : ps_it->second->func;
-    if (vs == nil)
+
+    auto desc_it = descriptor_cache.find(pso->descriptor_hash);
+    MTLVertexDescriptor* desc = desc_it == end(descriptor_cache) ? nil : desc_it->second->descriptor;
+    if (vs == nil || (pso->descriptor_hash && !desc) || (pso->ps_hash && ps == nil))
     {
-      logwarn("Failed to find vs when creating pso");
+      if (vs == nil && free)
+        logwarn("Failed to find vs %llu when creating pso", pso->vs_hash);
+      if (ps == nil && pso->ps_hash && free)
+        logwarn("Failed to find ps %llu when creating pso", pso->ps_hash);
+      if (desc == nil)
+        logwarn("Failed to find vdecl %llu when creating pso", pso->descriptor_hash);
       if (free)
         pso_cache_objects.freeOneBlock(pso);
       else
@@ -796,20 +961,17 @@ namespace drv3d_metal
       return nullptr;
     }
 
-    auto desc_it = descriptor_cache.find(pso->descriptor_hash);
-    MTLVertexDescriptor* desc = desc_it == end(descriptor_cache) ? nil : desc_it->second->descriptor;
-
     if (!free)
       g_saver_mutex.unlock();
 
-    MTLRenderPipelineDescriptor* pipelineStateDescriptor = buildPipelineDescriptor(vs, ps, desc, pso->rstate, pso->discard);
+    MTLRenderPipelineDescriptor* pipelineStateDescriptor = buildPipelineDescriptor(vs, ps, desc, pso->rstate, pso->discard, pso->output_mask);
 
     NSError *error = nil;
     id <MTLRenderPipelineState> pipelineState = [render.device newRenderPipelineStateWithDescriptor : pipelineStateDescriptor
                                                  error : &error];
     if (!pipelineState)
     {
-      logerr("Failed to created pipeline state, error %s",
+      D3D_ERROR("Failed to created pipeline state, error %s",
             [[error localizedDescription] UTF8String]);
       if (free)
         pso_cache_objects.freeOneBlock(pso);
@@ -841,7 +1003,8 @@ namespace drv3d_metal
     uint64_t decl_hash = vshader->num_va > 0 ? vdecl->hash : 0;
     uint64_t vs_hash = vshader->shader_hash;
     uint64_t ps_hash = pshader ? pshader->shader_hash : 0;
-    uint64_t rstate_hash = buildRenderStateHash(rstate);
+    uint32_t output_mask = pshader ? pshader->output_mask : 0;
+    uint64_t rstate_hash = buildRenderStateHash(rstate, output_mask);
 
     hash_combine(hash, decl_hash);
     hash_combine(hash, vs_hash);
@@ -864,6 +1027,7 @@ namespace drv3d_metal
     pso->descriptor_hash = decl_hash;
     pso->rstate = rstate;
     pso->pso = nil;
+    pso->output_mask = output_mask;
     pso->discard = pshader && pshader->src ? !!strstr([pshader->src UTF8String], "discard_fragment") : false;
 
     if (async)
@@ -888,29 +1052,37 @@ namespace drv3d_metal
 
   id <MTLComputePipelineState> ShadersPreCache::compilePipeline(uint64_t hash)
   {
+    g_saver_mutex.lock();
+
     auto it = cso_cache.find(hash);
     if (it != end(cso_cache))
+    {
+      g_saver_mutex.unlock();
       return it->second->cso;
+    }
 
     auto cs_it = shader_cache.find(hash);
-    if (cs_it == shader_cache.end())
+    id<MTLFunction> func = cs_it == shader_cache.end() ? nil : cs_it->second->func;
+    g_saver_mutex.unlock();
+
+    if (func == nil)
     {
-      logerr("Failed to find shader for compute pipeline");
+      logwarn("Failed to find shader (%llu) for compute pipeline", hash);
       return nullptr;
     }
 
     NSError *error = nil;
-    id<MTLComputePipelineState> csPipeline = [render.device newComputePipelineStateWithFunction : cs_it->second->func error : &error];
+    id<MTLComputePipelineState> csPipeline = [render.device newComputePipelineStateWithFunction : func error : &error];
     if (!csPipeline)
     {
-      logerr("Failed to created cs pipeline state, error %s", [[error localizedDescription] UTF8String]);
+      D3D_ERROR("Failed to created cs pipeline state, error %s", [[error localizedDescription] UTF8String]);
       return nullptr;
     }
 
-    CachedComputePipelineState* cso = (CachedComputePipelineState*)cso_cache_objects.allocateOneBlock();
-    cso->cso = csPipeline;
     {
       std::unique_lock<std::mutex> l(g_saver_mutex);
+      CachedComputePipelineState* cso = (CachedComputePipelineState*)cso_cache_objects.allocateOneBlock();
+      cso->cso = csPipeline;
       cso_cache[hash] = cso;
       g_cache_dirty = true;
     }
@@ -976,14 +1148,6 @@ namespace drv3d_metal
 
   void ShadersPreCache::release()
   {
-    for (auto & it : shader_cache)
-    {
-      if (it.second->func)
-        [it.second->func release];
-      if (it.second->lib)
-        [it.second->lib release];
-    }
-
     g_is_exiting = true;
     {
       std::unique_lock<std::mutex> l(g_saver_mutex);
@@ -1000,6 +1164,34 @@ namespace drv3d_metal
     g_saver.join();
     g_compiler.join();
 
-    savePreCache();
+    for (auto & [key, value] : shader_cache)
+    {
+      if (value->func)
+        [value->func release];
+      if (value->lib)
+        [value->lib release];
+    }
+    shader_cache.clear();
+
+    for (auto & [key, value] : descriptor_cache)
+    {
+      if (value->descriptor)
+        [value->descriptor release];
+    }
+    descriptor_cache.clear();
+
+    for (auto & [key, value] : pso_cache)
+    {
+      if (value->pso)
+        [value->pso release];
+    }
+    pso_cache.clear();
+
+    for (auto & [key, value] : cso_cache)
+    {
+      if (value->cso)
+        [value->cso release];
+    }
+    cso_cache.clear();
   }
 }

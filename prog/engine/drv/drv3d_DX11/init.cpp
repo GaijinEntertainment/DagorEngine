@@ -1,9 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <windows.h>
 #include <windowsx.h>
 #include <stdio.h>
 #include <stdarg.h>
 
 #include <util/dag_globDef.h>
+#include <util/dag_watchdog.h>
 #include <debug/dag_debug.h>
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_threads.h>
@@ -12,7 +15,7 @@
 #if HAS_NVAPI
 #include <nvapi.h>
 #endif
-#include "ngx_wrapper.h"
+#include "streamline_adapter.h"
 #if HAS_GF_AFTERMATH
 #include <include/GFSDK_Aftermath.h>
 #endif
@@ -21,10 +24,17 @@
 #include <d3d11_4.h>
 #include <RenderDoc/renderdoc_app.h>
 #include "texture.h"
-#include <3d/dag_drv3d_res.h>
-#include <3d/dag_drv3d_pc.h>
-#include <3d/dag_drv3dCmd.h>
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_res.h>
+#include <drv/3d/dag_platform_pc.h>
+#include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_resetDevice.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_shaderLibrary.h>
 #include <3d/dag_nvLowLatency.h>
 #include <startup/dag_globalSettings.h>
 #include <supp/exportType.h>
@@ -32,7 +42,6 @@
 #include <util/dag_string.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_unicode.h>
-#include <debug/dag_debug.h>
 #include <debug/dag_logSys.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <math/integer/dag_IPoint2.h>
@@ -50,6 +59,8 @@
 #include <3d/dag_lowLatency.h>
 #include <util/dag_finally.h>
 #include <validationLayer.h>
+#include <destroyEvent.h>
+#include "resource_size_info.h"
 
 #include "helpers.h"
 #include "../drv3d_commonCode/dxgi_utils.h"
@@ -77,33 +88,8 @@ extern void close_perf_analysis();
 extern void shutdown_hlsl_d3dcompiler_internal();
 void get_aftermath_status();
 
-class ForceExitThread : public DaThread
-{
-public:
-  ForceExitThread(int in_msec, bool is_reset) : msec(in_msec), isReset(is_reset) {}
-
-  virtual void execute()
-  {
-    while (msec > 0 && forceExit)
-    {
-      msec -= STEP;
-      sleep_msec(STEP);
-    }
-    if (forceExit)
-    {
-      logerr("Possible deadlock at the context flush is detected. Force the exit");
-      if (isReset)
-        DAG_FATAL("Flush in close device after the reset failed", ERROR_POSSIBLE_DEADLOCK);
-      ExitProcess(ERROR_POSSIBLE_DEADLOCK);
-    }
-  }
-  int msec = 0;
-  bool isReset = false;
-  volatile bool forceExit = true;
-  static int const STEP = 1000;
-};
-
-static const int TIME_TO_FORCE_EXIT_FROM_D3D_FLUSH_MS = 30000;
+static constexpr int DEVICE_RESET_FLUSH_TIMEOUT_MS = 120000;
+static constexpr int DEVICE_RESET_FLUSH_LONG_WAIT_MS = 10000;
 
 static void dump_dll_version([[maybe_unused]] const char *file_name)
 {
@@ -234,11 +220,12 @@ bool immutable_textures = true;
 bool resetting_device_now = false;
 HRESULT device_is_lost = S_OK;
 unsigned texture_sysmemcopy_usage = 0, vbuffer_sysmemcopy_usage = 0, ibuffer_sysmemcopy_usage = 0;
-bool is_backbuffer_samplable_depth = false;
 static DXGI_ADAPTER_DESC adapterDesc;
 bool ignore_resource_leaks_on_exit = false;
+bool view_resizing_related_logging_enabled = true;
 bool hdr_enabled = false;
 bool command_list_wa = false;
+bool use_wait_object = true;
 
 HWND main_window_hwnd = NULL;
 HWND render_window_hwnd = NULL;
@@ -247,7 +234,6 @@ main_wnd_f *main_window_proc = NULL;
 WNDPROC origin_window_proc = NULL;
 intptr_t gpuThreadId = 0;
 int gpuAcquireRefCount = 0;
-bool mt_enabled = false;
 bool use_tearing = false;
 double vsync_refresh_rate = 0;
 extern const char *dxgi_format_to_string(DXGI_FORMAT format);
@@ -283,6 +269,8 @@ uint8_t override_max_anisotropy_level = 0;
 DXGI_SWAP_CHAIN_DESC scd = {0};
 bool used_flip_model_before = false;
 bool conditional_render_enabled = false;
+eastl::optional<StreamlineAdapter> streamlineAdapter;
+HandlePointer waitableObject;
 
 RenderState g_render_state;
 DriverState g_driver_state;
@@ -300,12 +288,17 @@ extern void recreate_textures();
 extern void recreate_buffers();
 extern void save_predicates();
 extern void recreate_predicates();
+extern void gather_textures_to_recreate(FramememResourceSizeInfoCollection &);
+extern void gather_buffers_to_recreate(FramememResourceSizeInfoCollection &);
+extern void recreate_texture(uint32_t index);
+extern void recreate_buffer(uint32_t index);
+extern void print_memory_stat();
 
 float gpu_frame_time = -1.f;
 LARGE_INTEGER qpc_freq = {{1, 1}};
 
-// #define MAXIMUM_FRAME_LATENCY 1     // The value is typically 3, but can range from 1 to 16.
-#define GPU_THREAD_PRIORITY 3 // The thread priority, ranging from -7 to 7.
+#define MAXIMUM_FRAME_LATENCY 2 // The value is typically 3, but can range from 1 to 16.
+#define GPU_THREAD_PRIORITY   3 // The thread priority, ranging from -7 to 7.
 
 DriverDesc g_device_desc = {
   0, 0, // int zcmpfunc,acmpfunc;
@@ -330,6 +323,7 @@ DriverDesc g_device_desc = {
   min<int>(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, Driver3dRenderTarget::MAX_SIMRT), // int maxSimRT;
   true,                                                                              // bool is20ArbitrarySwizzleAvailable;
   32,                                                                                // minWarpSize
+  64,                                                                                // maxWarpSize
 
   /*  0,
   16,
@@ -349,7 +343,7 @@ static void flush_driver_errors()
     eastl::unique_ptr<uint8_t[]> messageData = eastl::make_unique<uint8_t[]>(messageLength);
     D3D11_MESSAGE *pMessage = (D3D11_MESSAGE *)messageData.get();
     pInfoQueue->GetMessage(0, pMessage, &messageLength);
-    logerr("ID: %d Message: %.*s", pMessage->ID, pMessage->DescriptionByteLength, pMessage->pDescription);
+    D3D_ERROR("ID: %d Message: %.*s", pMessage->ID, pMessage->DescriptionByteLength, pMessage->pDescription);
   }
 
   pInfoQueue->ClearStoredMessages();
@@ -512,13 +506,10 @@ bool DriverState::createSurfaces(uint32_t screen_width, uint32_t screen_height)
 
   backBufferColorTex = create_backbuffer_tex(0, swap_chain);
 
-  backBufferDepthTex = create_backbuffer_depth_tex(screen_width, screen_height);
-
   // could not work if not created
   G_ASSERT(backBufferColorTex);
-  G_ASSERT(backBufferDepthTex);
 
-  debug_ctx("created backbuffers %p %p", backBufferColorTex, backBufferDepthTex);
+  DEBUG_CTX("created backbuffer %p", backBufferColorTex);
   return true;
 }
 
@@ -568,9 +559,9 @@ static void close_aftermath()
 static bool init_aftermath(ID3D11Device *device)
 {
 #if _TARGET_64BIT
-  static const char *aftermath_fn = "GFSDK_2022.2.0.22145\\GFSDK_Aftermath_Lib.x64.dll";
+  static const char *aftermath_fn = "GFSDK_2024.1.0.24075\\GFSDK_Aftermath_Lib.x64.dll";
 #else
-  static const char *aftermath_fn = "GFSDK_2022.2.0.22145\\GFSDK_Aftermath_Lib.x86.dll";
+  static const char *aftermath_fn = "GFSDK_2024.1.0.24075\\GFSDK_Aftermath_Lib.x86.dll";
 #endif
   aftermath_dllh = LoadLibraryA(aftermath_fn);
   if (!aftermath_dllh)
@@ -585,7 +576,13 @@ static bool init_aftermath(ID3D11Device *device)
     close_aftermath();
     return false;
   }
-  GFSDK_Aftermath_Result result = initAfterMath(GFSDK_Aftermath_Version_API, GFSDK_Aftermath_FeatureFlags_Maximum, device);
+  // Initialize Nsight Aftermath for this device.
+  constexpr uint32_t aftermathFlags =                        //
+    GFSDK_Aftermath_FeatureFlags_EnableMarkers |             // Enable event marker tracking.
+    GFSDK_Aftermath_FeatureFlags_EnableResourceTracking |    // Enable tracking of resources.
+    GFSDK_Aftermath_FeatureFlags_GenerateShaderDebugInfo |   // Generate debug information for shaders.
+    GFSDK_Aftermath_FeatureFlags_EnableShaderErrorReporting; // Enable additional runtime shader error reporting.
+  GFSDK_Aftermath_Result result = initAfterMath(GFSDK_Aftermath_Version_API, aftermathFlags, device);
   if (result != GFSDK_Aftermath_Result_Success)
   {
     logwarn("can't init aftermath 0x%X", result);
@@ -668,17 +665,31 @@ void set_aftermath_marker(const char *, bool) {}
 void get_aftermath_status() {}
 #endif
 
-void create_dlss_feature(const DataBlock &videoBlk, int screen_wdt, int screen_hgt)
+void create_dlss_feature(IPoint2 output_resolution)
 {
-  int dlssQuality = videoBlk.getInt("dlssQuality", -1);
-  if (dlssQuality >= 0)
+  streamlineAdapter->initializeDlssState();
+
+  if (stereo_config_callback && stereo_config_callback->desiredStereoRender())
   {
-    if (stereo_config_callback && stereo_config_callback->desiredStereoRender())
-      ngx_wrapper.createOptimalDlssFeature(dx_context, stereo_config_callback->desiredRendererSize().width,
-        stereo_config_callback->desiredRendererSize().height, dlssQuality, true);
-    else
-      ngx_wrapper.createOptimalDlssFeature(dx_context, screen_wdt, screen_hgt, dlssQuality, false);
+    auto size = stereo_config_callback->desiredRendererSize();
+    for (int viewIdx : {0, 1})
+      streamlineAdapter->createDlssFeature(viewIdx, {size.width, size.height}, dx_context);
   }
+  else
+    streamlineAdapter->createDlssFeature(0, output_resolution, dx_context);
+
+  if (streamlineAdapter->isDlssGSupported() == nv::SupportState::Supported)
+    streamlineAdapter->createDlssGFeature(0, dx_context);
+}
+
+void release_dlss_feature()
+{
+  streamlineAdapter->releaseDlssFeature(0);
+  if (stereo_config_callback && stereo_config_callback->desiredStereoRender())
+    streamlineAdapter->releaseDlssFeature(1);
+
+  if (streamlineAdapter->isDlssGSupported() == nv::SupportState::Supported)
+    streamlineAdapter->releaseDlssGFeature(0);
 }
 
 static bool is_tearing_supported()
@@ -700,6 +711,89 @@ static bool is_tearing_supported()
 static bool is_flip_model(DXGI_SWAP_EFFECT swap_effect)
 {
   return swap_effect == DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL || swap_effect == DXGI_SWAP_EFFECT_FLIP_DISCARD;
+}
+
+static HRESULT create_waitable_object()
+{
+  IDXGISwapChain2 *swapChain2;
+  const auto hr = swap_chain->QueryInterface(__uuidof(IDXGISwapChain2), (void **)&swapChain2);
+  if (SUCCEEDED(hr) && use_wait_object)
+  {
+    waitableObject.reset(swapChain2->GetFrameLatencyWaitableObject());
+    swapChain2->SetMaximumFrameLatency(MAXIMUM_FRAME_LATENCY);
+    swapChain2->Release();
+  }
+  return hr;
+}
+
+static HRESULT recreate_swapchain(DXGI_SWAP_CHAIN_DESC &new_scd)
+{
+  waitableObject.reset();
+  swap_chain->SetFullscreenState(FALSE, NULL);
+  swap_chain->Release();
+
+  DEBUG_CTX("deleted backbuffer %p", g_driver_state.backBufferColorTex);
+  del_d3dres(g_driver_state.backBufferColorTex);
+
+  HRESULT hres;
+  IDXGIDevice *pDXGIDevice = NULL;
+  hres = dx_device->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice);
+  G_ASSERT(SUCCEEDED(hres));
+
+  IDXGIAdapter *pDXGIAdapter;
+  hres = pDXGIDevice->GetParent(__uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
+  G_ASSERT(SUCCEEDED(hres));
+
+  IDXGIFactory *pIDXGIFactory;
+  hres = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory), (void **)&pIDXGIFactory);
+  G_ASSERT(SUCCEEDED(hres));
+
+  hres = pIDXGIFactory->CreateSwapChain(dx_device, &new_scd, &swap_chain);
+  G_ASSERT(SUCCEEDED(hres));
+  if (SUCCEEDED(hres))
+    scd = new_scd;
+
+  if (scd.Flags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT)
+    create_waitable_object();
+
+  return hres;
+}
+
+#define FEATURE_LEVELS_LIST X(10_0) X(10_1) X(11_0) X(11_1) X(12_0) X(12_1)
+
+D3D_FEATURE_LEVEL feature_level_from_str(const char *str)
+{
+#define X(level)                      \
+  if (strcmp(#level, str) == 0)       \
+  {                                   \
+    return D3D_FEATURE_LEVEL_##level; \
+  }
+  FEATURE_LEVELS_LIST
+#undef X
+  logerr("unknown feature level %s, returning 10_0", str);
+  return D3D_FEATURE_LEVEL_10_0;
+}
+
+const char *str_from_feature_level(D3D_FEATURE_LEVEL level)
+{
+#define X(level) \
+  case D3D_FEATURE_LEVEL_##level: return #level;
+  switch (level) //-V719
+  {
+    FEATURE_LEVELS_LIST
+  }
+#undef X
+  logerr("unknown feature level %x, returning 10_0", level);
+  return "10_0";
+}
+
+void compare_feature_levels(D3D_FEATURE_LEVEL old_level, D3D_FEATURE_LEVEL new_level)
+{
+  if (old_level != new_level)
+  {
+    logerr("DX feature level changed from %s to %s. This will likely result in a crash.", str_from_feature_level(old_level),
+      str_from_feature_level(new_level));
+  }
 }
 
 void find_closest_matching_mode()
@@ -726,7 +820,7 @@ void find_closest_matching_mode()
 }
 
 bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int screen_hgt, int screen_bpp,
-  const char *opt_display_name, int64_t opt_adapter_luid, const char *window_class_name)
+  const char *opt_display_name, int64_t opt_adapter_luid, const char *window_class_name, bool after_reset = false)
 {
   FloatingPointExceptionsKeeper fkeeper;
 
@@ -737,9 +831,11 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
     rdoc_dllh = LoadLibraryA("renderdoc.dll");
     if (!rdoc_dllh)
     {
-      logerr("Could not load renderdoc.dll");
+      D3D_ERROR("Could not load renderdoc.dll");
     }
   }
+
+  view_resizing_related_logging_enabled = debugBlk.getBool("view_resizing_related_logging_enabled", true);
 #endif
 
   ZeroMemory(&adapterDesc, sizeof(adapterDesc));
@@ -751,20 +847,26 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
     dx11_dllh = LoadLibraryA(dx11_fn);
     if (!dx11_dllh)
     {
-      logerr("Can't load DX11 DLL \"%s\"", dx11_fn);
+      D3D_ERROR("Can't load DX11 DLL \"%s\"", dx11_fn);
       return false;
     }
   }
 
   ::QueryPerformanceFrequency(&qpc_freq);
 
-  PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN create_dx11_device =
-    (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(dx11_dllh, "D3D11CreateDeviceAndSwapChain");
+  PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN create_dx11_device = nullptr;
+  streamlineAdapter = StreamlineAdapter::create(StreamlineAdapter::RenderAPI::DX11);
+  if (streamlineAdapter)
+    create_dx11_device =
+      (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)streamlineAdapter->getInterposerSymbol("D3D11CreateDeviceAndSwapChain");
+  else
+    create_dx11_device = (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(dx11_dllh, "D3D11CreateDeviceAndSwapChain");
+
   if (!create_dx11_device)
   {
     FreeLibrary(dx11_dllh);
     dx11_dllh = NULL;
-    logerr("DX11 DLL do not has D3D11CreateDeviceAndSwapChain");
+    D3D_ERROR("DX11 DLL do not has D3D11CreateDeviceAndSwapChain");
     return false;
   }
 
@@ -784,16 +886,17 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
 
   bool inWin = dgs_get_window_mode() != WindowMode::FULLSCREEN_EXCLUSIVE;
 
-  DXGI_SWAP_EFFECT swapEffect = DXGI_SWAP_EFFECT_DISCARD;          // The only flag with multisampling support.
-  if ((inWin && !_no_vsync && blk_dx.getBool("flipPresent", true)) // Use the best supported presentation
-                                                                   // model.
-      || hdr_enabled                                               // HDR requires FLIP swap effect or fullscreen
+  OSVERSIONINFOEXW osvi = {sizeof(osvi)};
+  get_version_ex(&osvi);
+
+  DXGI_SWAP_EFFECT swapEffect = DXGI_SWAP_EFFECT_DISCARD; // The only flag with multisampling support.
+  if ((inWin && blk_dx.getBool("flipPresent", true))      // Use the best supported presentation
+                                                          // model.
+      || hdr_enabled                                      // HDR requires FLIP swap effect or fullscreen
       || used_flip_model_before) // If the window was used with a flip model, it cannot be used with another model, or Present will
                                  // silently fail.
   {                              // https://devblogs.microsoft.com/directx/dxgi-flip-model/ and
     // https://docs.microsoft.com/en-us/windows/desktop/api/d3d11/nf-d3d11-id3d11devicecontext-flush#Defer_Issues_with_Flip
-    OSVERSIONINFOEXW osvi = {sizeof(osvi)};
-    get_version_ex(&osvi);
     if (osvi.dwMajorVersion >= 10)
     {
       used_flip_model_before = true;
@@ -804,7 +907,8 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
       used_flip_model_before = true;
       swapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
     }
-    use_tearing = is_tearing_supported() && inWin; // The flag DXGI_PRESENT_ALLOW_TEARING is only allowed for windowed swapchains.
+    use_tearing = _no_vsync && is_tearing_supported() && inWin; // The flag DXGI_PRESENT_ALLOW_TEARING is only allowed for windowed
+                                                                // swapchains.
   }
   else
   {
@@ -817,9 +921,14 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
     debug("HDR requires FLIP swap effect (vsync=1) or fullscreen");
   }
 
+  // Supported starting with Windows 8.1
+  // https://learn.microsoft.com/en-us/windows/win32/api/dxgi/ne-dxgi-dxgi_swap_chain_flag#:~:text=is%20Direct3D%2012.-,Note%C2%A0%C2%A0This%20enumeration%20value%20is%20supported%20starting%20with%20Windows%C2%A08.1.,-DXGI_SWAP_CHAIN_FLAG_FOREGROUND_LAYER%0AValue%3A
+  if (!is_flip_model(swapEffect) || (osvi.dwMajorVersion <= 6 && osvi.dwMinorVersion < 3))
+    use_wait_object = false;
+
   scd.BufferDesc.Format = PC_BACKBUFFER_DXGI_FORMAT;
   if (hdr_enabled)
-    scd.BufferDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    scd.BufferDesc.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
 
   scd.BufferDesc.Width = screen_wdt;
   scd.BufferDesc.Height = screen_hgt;
@@ -834,7 +943,10 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
   scd.OutputWindow = window_hwnd;
   scd.Windowed = inWin;
   scd.SwapEffect = swapEffect;
-  scd.Flags = (inWin ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH) | (use_tearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0);
+  scd.Flags = (inWin ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH) | (use_tearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0) |
+              (inWin && use_wait_object ? DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT : 0);
+  // Swapchain waitable object isn't supported in full-screen mode in dx11
+  // https://learn.microsoft.com/en-us/windows/win32/api/dxgi/ne-dxgi-dxgi_swap_chain_flag#:~:text=This%20flag%20isn%27t%20supported%20in%20full%2Dscreen%20mode%2C%20unless%20the%20render%20API%20is%20Direct3D%2012.
 
   eastl::vector<D3D_FEATURE_LEVEL> featureLevelsRequested = {D3D_FEATURE_LEVEL_12_1, // DX 11.3 for ConservativeRasterization.
     D3D_FEATURE_LEVEL_11_1,                                                          // For UAVOnlyRenderingForcedSampleCount.
@@ -862,7 +974,6 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
   if (blk_dx.getBool("disableTdr", true))
     disableTdrFlag |= 0x100; // D3D11_CREATE_DEVICE_DISABLE_GPU_TIMEOUT, supported from 11.1
 
-  g_vs_bones_const = blk_dx.getInt("bonesCount", MAX_VS_CONSTS_BONES);
   bool afterMathEnabled = blk_dx.getBool("afterMathEnabled", false); // warning: this option influence perfomance
 
   // warning!
@@ -913,6 +1024,12 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
   // warning!
 
 
+  const auto getFeatureLevelScd = [&](DXGI_SWAP_CHAIN_DESC base_scd, int level) {
+    if (use_wait_object && featureLevelsRequested[level] < D3D_FEATURE_LEVEL_11_0)
+      base_scd.Flags &= ~DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+    return base_scd;
+  };
+
   // Find display by name.
 
   IDXGIAdapter *targetAdapter = NULL;
@@ -946,10 +1063,20 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
     HRESULT hr = DXGI_ERROR_UNSUPPORTED;
     for (int featureLevelNo = 0; featureLevelNo < featureLevelsRequested.size(); featureLevelNo++)
     {
+      auto featureLevelScd = getFeatureLevelScd(tmpScd, featureLevelNo);
+      D3D_FEATURE_LEVEL featureLevel;
       hr = create_dx11_device(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, flags, featureLevelsRequested.data() + featureLevelNo, 1,
-        D3D11_SDK_VERSION, &tmpScd, &dummySwapChain, &tmpDevice, &featureLevelsSupported, &dummyContext);
+        D3D11_SDK_VERSION, &featureLevelScd, &dummySwapChain, &tmpDevice, &featureLevel, &dummyContext);
       if (SUCCEEDED(hr))
+      {
+        if (after_reset)
+        {
+          compare_feature_levels(featureLevelsSupported, featureLevel);
+        }
+        featureLevelsSupported = featureLevel;
+        tmpScd = featureLevelScd;
         break;
+      }
     }
 
     if (SUCCEEDED(hr))
@@ -981,11 +1108,16 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
         if (preferiGPU) // video/preferiGPU is enabled.
         {
           ID3D11Device *tmpDevice2;
-          D3D_FEATURE_LEVEL featureLevel = featureLevelsSupported;
-          hr = create_dx11_device(pAdapter, D3D_DRIVER_TYPE_UNKNOWN, nullptr, flags, &featureLevel, 1, D3D11_SDK_VERSION, nullptr,
-            nullptr, &tmpDevice2, nullptr, nullptr);
+          D3D_FEATURE_LEVEL featureLevel;
+          hr = create_dx11_device(pAdapter, D3D_DRIVER_TYPE_UNKNOWN, nullptr, flags, &featureLevelsSupported, 1, D3D11_SDK_VERSION,
+            nullptr, nullptr, &tmpDevice2, &featureLevel, nullptr);
           if (SUCCEEDED(hr))
           {
+            if (after_reset)
+            {
+              compare_feature_levels(featureLevelsSupported, featureLevel);
+            }
+            featureLevelsSupported = featureLevel;
             ID3D11Device3 *tmpDevice3 = nullptr;
             if (tmpDevice2->QueryInterface(IID_PPV_ARGS(&tmpDevice3)) == S_OK && tmpDevice3)
             {
@@ -999,7 +1131,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
         }
         else if (!opt_adapter_luid || targetAdapter)
         {
-          IDXGIOutput *output = get_output_monitor_by_name_or_default(pAdapter, opt_display_name).Detach();
+          IDXGIOutput *output = get_output_monitor_by_name_or_default(pIDXGIFactory, opt_display_name).Detach();
           if (output)
             target_output = output;
           targetAdapter = target_output ? pAdapter : NULL;
@@ -1031,12 +1163,22 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
   last_hres = DXGI_ERROR_UNSUPPORTED;
   for (int featureLevelNo = 0; featureLevelNo < featureLevelsRequested.size(); featureLevelNo++)
   {
+    auto featureLevelScd = getFeatureLevelScd(scd, featureLevelNo);
+    D3D_FEATURE_LEVEL featureLevel;
     last_hres = create_dx11_device(targetAdapter, targetAdapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE, NULL,
       flags | (featureLevelsRequested[featureLevelNo] >= D3D_FEATURE_LEVEL_11_1 ? disableTdrFlag : 0),
-      featureLevelsRequested.data() + featureLevelNo, 1, D3D11_SDK_VERSION, &scd, &swap_chain, &dx_device, &featureLevelsSupported,
+      featureLevelsRequested.data() + featureLevelNo, 1, D3D11_SDK_VERSION, &featureLevelScd, &swap_chain, &dx_device, &featureLevel,
       &dx_context);
     if (SUCCEEDED(last_hres))
+    {
+      if (after_reset)
+      {
+        compare_feature_levels(featureLevelsSupported, featureLevel);
+      }
+      featureLevelsSupported = featureLevel;
+      scd = featureLevelScd;
       break;
+    }
   }
 
 #if HAS_NVAPI
@@ -1089,7 +1231,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
           hr = swap_chain->QueryInterface(__uuidof(IDXGISwapChain3), (void **)&swapChain3);
           if (SUCCEEDED(hr))
           {
-            DXGI_COLOR_SPACE_TYPE colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709;
+            DXGI_COLOR_SPACE_TYPE colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
 
             UINT colorSpaceSupport = 0;
             hr = swapChain3->CheckColorSpaceSupport(colorSpace, &colorSpaceSupport);
@@ -1142,10 +1284,8 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
 
   if (!hdr_enabled && get_enable_hdr_from_settings())
   {
-#if _TARGET_STATIC_LIB // No os_message_box in daKernel.
-    os_message_box(get_localized_text("msgbox/hdr_failed", "HDR initialization failed. The output display is not in a HDR mode."),
+    drv_message_box(get_localized_text("msgbox/hdr_failed", "HDR initialization failed. The output display is not in a HDR mode."),
       get_localized_text("msgbox/error_header"), GUI_MB_ICON_INFORMATION);
-#endif
 
     scd.BufferDesc.Format = PC_BACKBUFFER_DXGI_FORMAT;
 
@@ -1159,10 +1299,18 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
     ShowWindow(scd.OutputWindow,
       SW_RESTORE); // https://docs.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgifactory-createswapchain
 
-    D3D_FEATURE_LEVEL featureLevel = featureLevelsSupported;
+    D3D_FEATURE_LEVEL featureLevel;
     last_hres = create_dx11_device(targetAdapter, targetAdapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE, NULL, flags,
-      &featureLevel, 1, D3D11_SDK_VERSION, &scd, &swap_chain, &dx_device, &featureLevelsSupported, &dx_context);
+      &featureLevelsSupported, 1, D3D11_SDK_VERSION, &scd, &swap_chain, &dx_device, &featureLevel, &dx_context);
+    if (after_reset)
+    {
+      compare_feature_levels(featureLevelsSupported, featureLevel);
+    }
+    featureLevelsSupported = featureLevel;
   }
+
+  if (SUCCEEDED(last_hres) && (scd.Flags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT))
+    create_waitable_object();
 
   if (blk_dx.getBool("debug", false))
   {
@@ -1190,10 +1338,6 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
     }
   }
 
-  if (targetAdapter)
-    targetAdapter->Release();
-  targetAdapter = NULL;
-
   stereo_config_callback = cb;
 
   g_device_desc.caps.hasDepthReadOnly = false;
@@ -1213,8 +1357,6 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
   g_device_desc.caps.hasQuadTessellation = false;
   g_device_desc.caps.hasGather4 = true;
   g_device_desc.caps.hasWellSupportedIndirect = true;
-  g_device_desc.caps.hasRaytracing = false;
-  g_device_desc.caps.hasRaytracingT11 = false;
   g_device_desc.caps.hasBindless = false;
   g_device_desc.caps.hasNVApi = false;
   g_device_desc.caps.hasATIApi = false;
@@ -1243,40 +1385,55 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
   g_device_desc.caps.hasAcceleratedViewInstancing = false;
   g_device_desc.caps.hasRenderPassDepthResolve = false;
   g_device_desc.caps.hasShaderFloat16Support = false;
+  g_device_desc.caps.hasUAVOnEveryStage = false;
+  g_device_desc.caps.hasRayAccelerationStructure = false;
+  g_device_desc.caps.hasRayQuery = false;
+  g_device_desc.caps.hasRayDispatch = false;
+  g_device_desc.caps.hasIndirectRayDispatch = false;
+  g_device_desc.caps.hasGeometryIndexInRayAccelerationStructure = false;
+  g_device_desc.caps.hasSkipPrimitiveTypeInRayTracingShaders = false;
+  g_device_desc.caps.hasNativeRayTracePipelineExpansion = false;
 
-  if (init_ngx(get_log_directory()))
+  if (streamlineAdapter)
   {
-    if (ngx_wrapper.checkDlssSupport())
+    streamlineAdapter->setD3DDevice(dx_device);
+    streamlineAdapter->setCurrentAdapter(targetAdapter);
+
+    if (streamlineAdapter->isDlssSupported() == nv::SupportState::Supported)
     {
       g_device_desc.caps.hasDLSS = true;
-      create_dlss_feature(videoBlk, screen_wdt, screen_hgt);
+      create_dlss_feature(resolution);
+    }
+
+    switch (streamlineAdapter->getDlssState()) // -V785
+    {
+      case nv::DLSS::State::SUPPORTED:
+        debug("DX11 drv: DLSS is supported on this hardware, but it was not enabled. video/dlssQuality: %d",
+          videoBlk.getInt("dlssQuality", -1));
+        break;
+      case nv::DLSS::State::READY:
+        debug("DX11 drv: DLSS is supported and is ready to go. video/dlssQuality: %d", videoBlk.getInt("dlssQuality", -1));
+        break;
+      case nv::DLSS::State::NOT_SUPPORTED_INCOMPATIBLE_HARDWARE: debug("DX11 drv: DLSS is not supported on this hardware."); break;
+      case nv::DLSS::State::NOT_SUPPORTED_OUTDATED_VGA_DRIVER:
+        debug("DX11 drv: DLSS is not supported on because of outdated VGA drivers.");
+        break;
+      case nv::DLSS::State::NOT_SUPPORTED_32BIT: debug("DX11 drv: DLSS is not supported in 32bit builds."); break;
+      case nv::DLSS::State::DISABLED: debug("DX11 drv: DLSS is disabled for drv3d_DX11 lib."); break;
+      case nv::DLSS::State::NGX_INIT_ERROR_NO_APP_ID:
+        debug("DX11 drv: Couldn't initialize NGX because there is no Nvidia AppID set in game specific settings.blk");
+        break;
+      default: D3D_ERROR("DX11 drv: Unexpected DLSS state after initialization: %d", int(streamlineAdapter->getDlssState())); break;
     }
   }
 
-  switch (ngx_wrapper.getDlssState()) // -V785
-  {
-    case DlssState::SUPPORTED:
-      debug("DX11 drv: DLSS is supported on this hardware, but it was not enabled. video/dlssQuality: %d",
-        videoBlk.getInt("dlssQuality", -1));
-      break;
-    case DlssState::READY:
-      debug("DX11 drv: DLSS is supported and is ready to go. video/dlssQuality: %d", videoBlk.getInt("dlssQuality", -1));
-      break;
-    case DlssState::NOT_SUPPORTED_INCOMPATIBLE_HARDWARE: debug("DX11 drv: DLSS is not supported on this hardware."); break;
-    case DlssState::NOT_SUPPORTED_OUTDATED_VGA_DRIVER:
-      debug("DX11 drv: DLSS is not supported on because of outdated VGA drivers.");
-      break;
-    case DlssState::NOT_SUPPORTED_32BIT: debug("DX11 drv: DLSS is not supported in 32bit builds."); break;
-    case DlssState::DISABLED: debug("DX11 drv: DLSS is disabled for drv3d_DX11 lib."); break;
-    case DlssState::NGX_INIT_ERROR_NO_APP_ID:
-      debug("DX11 drv: Couldn't initialize NGX because there is no Nvidia AppID set in game specific settings.blk");
-      break;
-    default: logerr("DX11 drv: Unexpected DLSS state after initialization: %d", int(ngx_wrapper.getDlssState())); break;
-  }
+  if (targetAdapter)
+    targetAdapter->Release();
+  targetAdapter = NULL;
 
   if (FAILED(last_hres)) // DXGI_STATUS_OCCLUDED returned if the fullscreen app is not active on startup.
   {
-    logerr("Cannot initialize DX11 device 0x%08X, %s", last_hres, dx11_error(last_hres));
+    D3D_ERROR("Cannot initialize DX11 device 0x%08X, %s", last_hres, dx11_error(last_hres));
     return false;
   }
   if (device_is_lost != S_OK)
@@ -1304,6 +1461,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
     g_device_desc.caps.hasQuadTessellation = true;
     g_device_desc.caps.hasForcedSamplerCount = (featureLevelsSupported >= D3D_FEATURE_LEVEL_11_1); // all Dx11.1 level hardware
                                                                                                    // supports it
+    g_device_desc.caps.hasUAVOnEveryStage = (featureLevelsSupported >= D3D_FEATURE_LEVEL_11_1);
     debug("running on DX%d.%d level hardware", featureLevelsSupported >> 12, (featureLevelsSupported >> 8) & 0xF);
   }
   else if (featureLevelsSupported == D3D_FEATURE_LEVEL_10_1)
@@ -1332,7 +1490,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
   if (dx_device->CheckFeatureSupport(D3D11_FEATURE_THREADING, &dataThreading, sizeof(dataThreading)) != S_OK ||
       !dataThreading.DriverConcurrentCreates)
   {
-    logerr("dx11 driver do not support concurrent creates");
+    D3D_ERROR("dx11 driver do not support concurrent creates");
   }
 
   D3D11_FEATURE_DATA_D3D11_OPTIONS dataOptions;
@@ -1430,6 +1588,15 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
     adapter->Release();
   }
 
+  D3D_FEATURE_LEVEL minimumFeatureLevel = feature_level_from_str(blk_dx.getStr("minimumFeatureLevel", "10_0"));
+  if (featureLevelsSupported < minimumFeatureLevel)
+  {
+    String message(0, "DirectX feature level %s is lesser than required %s. The driver may be outdated.",
+      str_from_feature_level(featureLevelsSupported), str_from_feature_level(minimumFeatureLevel));
+    drv_message_box(message.data(), "Initialization failed", GUI_MB_ICON_ERROR);
+    DAG_FATAL(message.data());
+    return false;
+  }
 
   // Ban Microsoft Basic Render Driver, it is slow and unreliable.
   if (adapterDesc.VendorId == 0x1414 && adapterDesc.DeviceId == 0x8C)
@@ -1437,6 +1604,9 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
     debug("Error initializing video, Microsoft Basic Render Driver is not supported");
     if (get_d3d_reset_counter() > 1 || get_d3d_full_reset_counter() > 1)
     {
+      drv_message_box(
+        get_localized_text("msgbox/dx11_reset_failed", "Video device initialization failed. The driver may be outdated."),
+        "Initialization failed", GUI_MB_ICON_ERROR);
       DAG_FATAL("Failed to restore GPU driver after device resetting");
     }
     return false;
@@ -1480,6 +1650,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
       HRESULT hr = AmdDxExtCreate(dx_device, &amdExtension);
       debug("AmdDxExtCreate: hr=0x%08x, p=0x%p", hr, amdExtension);
       g_device_desc.minWarpSize = 64;
+      g_device_desc.maxWarpSize = 64;
 
       // Get the AMD Depth Bounds Extension Interface
       if (SUCCEEDED(hr) && amdExtension != nullptr)
@@ -1558,7 +1729,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
 
     pDXGIAdapter->Release();
     pDXGIDevice->Release();
-    debug_ctx("dx11_DXGIFactory=%p", dx11_DXGIFactory);
+    DEBUG_CTX("dx11_DXGIFactory=%p", dx11_DXGIFactory);
   }
 
   // Get target_output from current adapter again (fix oculus fullscreen on Windows 8.1).
@@ -1568,7 +1739,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
     IDXGIAdapter *pAdapter;
     if (pDXGIDevice && SUCCEEDED(pDXGIDevice->GetAdapter(&pAdapter)))
     {
-      IDXGIOutput *output = get_output_monitor_by_name_or_default(pAdapter, opt_display_name).Detach();
+      IDXGIOutput *output = get_output_monitor_by_name_or_default(dx11_DXGIFactory, opt_display_name).Detach();
       if (output)
       {
         if (target_output && target_output != output)
@@ -1740,7 +1911,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
 
   debug("Fragment shader version: %d", g_device_desc.shaderModel);
 
-  debug_ctx("creating backbuffers %dx%d", screen_wdt, screen_hgt);
+  DEBUG_CTX("creating backbuffers %dx%d", screen_wdt, screen_hgt);
 
   g_driver_state.createSurfaces(screen_wdt, screen_hgt);
 
@@ -1749,7 +1920,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
     DXGI_FORMAT_R24G8_TYPELESS // MSAA support should be the same as for the DXGI_FORMAT_D24_UNORM_S8_UINT
   };
 
-  nvlowlatency::init(dx_device, false);
+  nvlowlatency::init();
 
   /*
   d3d::setview(0, 0, screen_wdt, screen_hgt, 0.0, 1.0);
@@ -1782,12 +1953,8 @@ void close_device(bool is_reset)
   RenderState &rs = g_render_state;
   DriverState &ds = g_driver_state;
 
-  for (int depthTexNo = 0; depthTexNo < ds.depthTextures.size(); depthTexNo++)
-    del_d3dres(ds.depthTextures[depthTexNo]);
-
+  DEBUG_CTX("deleted backbuffer %p", ds.backBufferColorTex);
   del_d3dres(ds.backBufferColorTex);
-  del_d3dres(ds.backBufferDepthTex);
-  clear_and_shrink(ds.depthTextures);
 
   debug("close_device");
 
@@ -1799,6 +1966,7 @@ void close_device(bool is_reset)
   dx11_DXGIFactory = NULL;
 
   close_all();
+  print_memory_stat();
 
   debug("closed_all");
 
@@ -1839,37 +2007,37 @@ void close_device(bool is_reset)
 
   del_d3dres(secondary_backbuffer_color_tex);
 
-  debug_cp();
+  DEBUG_CP();
   if (secondary_swap_chain)
     secondary_swap_chain->Release();
 
   if (dx_context)
   {
-    debug_cp();
-    dx_context->ClearState();
-    debug_cp();
+    // If we are in shutdown, we don't need this sequence. It is described at:
+    // https://learn.microsoft.com/en-us/windows/win32/api/d3d11/nf-d3d11-id3d11devicecontext-flush#deferred-destruction-issues-with-flip-presentation-swap-chains
+    // and is only relevant when we will need to re-create the swapchain.
+    if (is_reset)
+    {
+      DEBUG_CP();
+      dx_context->ClearState();
+      DEBUG_CP();
 
-#if DAGOR_DBGLEVEL == 0
-    // Unfortunatly some hardware have some problems with the exit
-    // The flush can last for 40 sec and more (seems something is silently broken in
-    // the hardware driver). So force exit after TIME_TO_FORCE_EXIT_FROM_D3D_FLUSH_MS sec
-    ForceExitThread forceExitThread(TIME_TO_FORCE_EXIT_FROM_D3D_FLUSH_MS, is_reset);
-    forceExitThread.start();
-#else
-    G_UNUSED(is_reset);
-#endif
+      {
+        // The flush can last a long time, and we don't want watchdog to trigger too eagerly.
+        ScopeSetWatchdogTimeout _wd(DEVICE_RESET_FLUSH_TIMEOUT_MS);
+        int startTimeMs = get_time_msec();
 
-    debug_cp();
-    dx_context->Flush();
-    debug_cp();
+        DEBUG_CP();
+        dx_context->Flush();
+        DEBUG_CP();
 
-#if DAGOR_DBGLEVEL == 0
-    forceExitThread.forceExit = false;
-    forceExitThread.terminate(true, ForceExitThread::STEP * 2);
-#endif
+        int elapsedMs = get_time_msec() - startTimeMs;
+        if (elapsedMs > DEVICE_RESET_FLUSH_LONG_WAIT_MS)
+          D3D_ERROR("DX11 device reset flush took %d ms.", elapsedMs);
+      }
 
-    debug_cp();
-    dx_context->Release();
+      dx_context->Release();
+    }
   }
   dx_context = NULL;
 
@@ -1885,22 +2053,29 @@ void close_device(bool is_reset)
 
   if (dx_device)
   {
-    debug_cp();
+    DEBUG_CP();
     dx_device->Release();
     dx_device = NULL;
   }
 
-  debug_cp();
+  DEBUG_CP();
 #if HAS_GF_AFTERMATH
   close_aftermath();
 #endif
 
-  debug_cp();
+  DEBUG_CP();
 #if HAS_NVAPI
   if (is_nvapi_initialized && NvAPI_Unload() != NVAPI_OK)
-    logerr("Failed to cleanup NVAPI Library.");
+    D3D_ERROR("Failed to cleanup NVAPI Library.");
 #endif
-  shutdown_ngx();
+  if (streamlineAdapter)
+  {
+    if (streamlineAdapter->isDlssSupported() == nv::SupportState::Supported)
+    {
+      release_dlss_feature();
+    }
+    streamlineAdapter = {};
+  }
 
   is_nvapi_initialized = false;
 
@@ -1916,7 +2091,7 @@ void close_device(bool is_reset)
     }
 #endif
   }
-  debug_cp();
+  DEBUG_CP();
 
   if (rdoc_dllh)
   {
@@ -1927,17 +2102,35 @@ void close_device(bool is_reset)
 
 HRESULT drv3d_dx11::set_fullscreen_state(bool fullscreen)
 {
+  bool needToUpdateSurfaces = false;
   HRESULT hres;
   {
     ContextAutoLock contextLock;
+    auto newScd = scd;
+    // Swapchains using DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT cannot go fullscreen.
+    // We need to recreate swapchain to remove this flag.
+    if (fullscreen && (scd.Flags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT))
+      newScd.Flags &= ~DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+
+    // Need to disable present with tearing in fullscreen, or enable it back in windowed mode.
+    if (scd.Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
+      use_tearing = !fullscreen && _no_vsync && is_tearing_supported() && is_flip_model(newScd.SwapEffect);
+
+    if (newScd.Flags != scd.Flags)
+    {
+      hres = recreate_swapchain(newScd);
+      if (SUCCEEDED(hres))
+        needToUpdateSurfaces = true;
+    }
     hres = fullscreen ? swap_chain->SetFullscreenState(TRUE, target_output) : swap_chain->SetFullscreenState(FALSE, NULL);
   }
 
-  if (SUCCEEDED(hres) && is_flip_model(scd.SwapEffect)) //-V560
-  {                                                     // DXGI_SWAP_EFFECT_FLIP_DISCARD or DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL
-    del_d3dres(g_driver_state.backBufferColorTex); // MSDN: Before you call ResizeBuffers, ensure that the application releases all
-                                                   // references.
-    del_d3dres(g_driver_state.backBufferDepthTex);
+  if (SUCCEEDED(hres) && fullscreen && is_flip_model(scd.SwapEffect)) //-V560
+  {
+    DEBUG_CTX("deleted backbuffer %p", g_driver_state.backBufferColorTex);
+    // DXGI_SWAP_EFFECT_FLIP_DISCARD or DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL
+    // MSDN: Before you call ResizeBuffers, ensure that the application releases all references.
+    del_d3dres(g_driver_state.backBufferColorTex);
 
     {
       ContextAutoLock contextLock;
@@ -1945,9 +2138,11 @@ HRESULT drv3d_dx11::set_fullscreen_state(bool fullscreen)
         scd.Flags); // MSDN: For the flip presentation model, after you transition the display state to full screen,
                     // you must call ResizeBuffers to ensure that your call to IDXGISwapChain1::Present1 succeeds.
     }
-
-    g_driver_state.createSurfaces(scd.BufferDesc.Width, scd.BufferDesc.Height);
+    needToUpdateSurfaces = true;
   }
+
+  if (needToUpdateSurfaces)
+    g_driver_state.createSurfaces(scd.BufferDesc.Width, scd.BufferDesc.Height);
 
   return hres;
 }
@@ -1959,6 +2154,7 @@ DAGOR_NOINLINE static void toggle_fullscreen(HWND hWnd, UINT message, WPARAM wPa
 
   if (has_focus(hWnd, message, wParam))
   {
+    ShowWindow(hWnd, SW_RESTORE);
     ::delayed_call([]() {
       if (swap_chain)
       {
@@ -2046,7 +2242,7 @@ bool d3d::init_driver()
 {
   if (d3d_inited)
   {
-    logerr("Driver is already created");
+    D3D_ERROR("Driver is already created");
     return false;
   }
 
@@ -2070,7 +2266,7 @@ void d3d::release_driver()
   {
     if (main_window_hwnd)
     {
-      debug_cp();
+      DEBUG_CP();
       DestroyWindow(main_window_hwnd);
     }
   }
@@ -2090,7 +2286,7 @@ void d3d::release_driver()
   }
 
 #if defined(_TARGET_D3D_MULTI) || defined(_TARGET_WAS_MULTI)
-  debug_cp();
+  DEBUG_CP();
   shutdown_hlsl_d3dcompiler_internal();
 #endif
   d3d_inited = false;
@@ -2099,7 +2295,7 @@ void d3d::release_driver()
 
   os_spinlock_destroy(&dx_context_cs);
 
-  debug_cp();
+  DEBUG_CP();
 }
 
 bool d3d::device_lost(bool *can_reset_now)
@@ -2144,10 +2340,39 @@ static IDXGIOutput *get_output_monitor_by_name_or_default(const char *monitorNam
   IDXGIAdapter *dxgiAdapter = get_active_adapter(dx_device);
   if (dxgiAdapter)
   {
-    output = get_output_monitor_by_name_or_default(dxgiAdapter, monitorName).Detach();
+    output = get_output_monitor_by_name_or_default(dx11_DXGIFactory, monitorName).Detach();
     dxgiAdapter->Release();
   }
   return output;
+}
+
+static void recreate_gpu_resources()
+{
+  g_render_state.modified = true;
+  for (int i = 0; i < g_render_state.texFetchState.resources.size(); ++i)
+    g_render_state.texFetchState.resources[i].modifiedMask = 0xFFFFFFFF;
+  FramememResourceSizeInfoCollection resourcesToRecreate;
+  gather_textures_to_recreate(resourcesToRecreate);
+  gather_buffers_to_recreate(resourcesToRecreate);
+  uint32_t reloadCallbacksCount = 0;
+  for (int i = resourcesToRecreate.size() - 1; i >= 0; --i)
+  {
+    if (resourcesToRecreate[i].hasRecreationCallback)
+    {
+      eastl::swap(resourcesToRecreate[i], resourcesToRecreate[resourcesToRecreate.size() - 1 - reloadCallbacksCount]);
+      reloadCallbacksCount++;
+    }
+  }
+  stlsort::sort(resourcesToRecreate.begin(), resourcesToRecreate.end() - reloadCallbacksCount,
+    [](const ResourceSizeInfo &a, const ResourceSizeInfo &b) { return a.sizeInBytes > b.sizeInBytes; });
+  for (const ResourceSizeInfo &res : resourcesToRecreate)
+  {
+    if (res.isTex)
+      recreate_texture(res.index);
+    else
+      recreate_buffer(res.index);
+    watchdog_kick();
+  }
 }
 
 bool d3d::reset_device()
@@ -2173,20 +2398,30 @@ bool d3d::reset_device()
       handler->preRecovery();
 
     save_predicates();
+
+    if (g_device_desc.caps.hasDLSS)
+    {
+      release_dlss_feature();
+    }
+
     close_device(true);
     debug("sysMem used for res copy: tex=%dK vb=%dK ib=%dK", texture_sysmemcopy_usage >> 10, vbuffer_sysmemcopy_usage >> 10,
       ibuffer_sysmemcopy_usage >> 10);
 
     if (!init_device(stereo_config_callback, main_window_hwnd, resolution.x, resolution.y,
-          blk_video.getBool("bits16", false) ? 16 : 32, displayName, blk_dx.getInt64("adapterLuid", 0), "DagorWClass"))
+          blk_video.getBool("bits16", false) ? 16 : 32, displayName, blk_dx.getInt64("adapterLuid", 0), "DagorWClass", true))
     {
       DAG_FATAL("Error initializing device(%s):\n%s", d3d::get_driver_name(), d3d::get_last_error());
       resetting_device_now = false;
       return false;
     }
+
+    if (g_device_desc.caps.hasDLSS)
+      create_dlss_feature(resolution);
+
     init_all(blk_dx.getInt("inline_vb_size", INLINE_VB_SIZE), blk_dx.getInt("inline_ib_size", INLINE_IB_SIZE));
-    recreate_textures();
-    recreate_buffers();
+    print_memory_stat();
+    recreate_gpu_resources();
     recreate_all_queries();
     recreate_predicates();
     recreate_render_states();
@@ -2217,11 +2452,8 @@ bool d3d::reset_device()
     RenderState &rs = g_render_state;
     DriverState &ds = g_driver_state;
 
-    for (int depthTexNo = 0; depthTexNo < ds.depthTextures.size(); depthTexNo++)
-      del_d3dres(ds.depthTextures[depthTexNo]);
+    DEBUG_CTX("deleted backbuffer %p", ds.backBufferColorTex);
     del_d3dres(ds.backBufferColorTex);
-    del_d3dres(ds.backBufferDepthTex);
-    clear_and_shrink(ds.depthTextures);
 
     close_states();
 
@@ -2265,10 +2497,25 @@ bool d3d::reset_device()
 
     recreate_render_states();
 
-    if (g_device_desc.caps.hasDLSS)
+    if (streamlineAdapter && streamlineAdapter->isDlssSupported() == nv::SupportState::Supported)
     {
-      ngx_wrapper.releaseDlssFeature();
-      create_dlss_feature(blk_video, wndSettings.resolutionX, wndSettings.resolutionY);
+      release_dlss_feature();
+    }
+
+    streamlineAdapter.reset();
+    streamlineAdapter = StreamlineAdapter::create(StreamlineAdapter::RenderAPI::DX11);
+    if (streamlineAdapter)
+    {
+      dx_device = streamlineAdapter->hook(dx_device);
+      streamlineAdapter->setD3DDevice(dx_device);
+      streamlineAdapter->setCurrentAdapter(get_active_adapter(dx_device));
+      streamlineAdapter->initializeDlssState();
+      if (streamlineAdapter->isDlssSupported() == nv::SupportState::Supported)
+      {
+        g_device_desc.caps.hasDLSS = true;
+        create_dlss_feature(resolution);
+      }
+      nvlowlatency::init();
     }
 
     // restore a minimized window after the reset to fix client and clipping regions for the cursor
@@ -2317,9 +2564,6 @@ bool d3d::init_video(void *hinst, main_wnd_f *mwf, const char *wcname, int ncmds
   // debug("re sc %d %d",scr_wd,scr_ht);
   int screenBpp = blk_video.getBool("bits16", false) ? 16 : 32;
 
-  is_backbuffer_samplable_depth = blk_video.getBool("backbuffer_sampleable_depth", false); // false by default, to be tested if it
-                                                                                           // slowing anything
-
   // Only Nvidia modes are disabled
   const lowlatency::LatencyMode latencyMode = lowlatency::get_from_blk();
   _no_vsync = !blk_video.getBool("vsync", false) ||
@@ -2349,18 +2593,22 @@ bool d3d::init_video(void *hinst, main_wnd_f *mwf, const char *wcname, int ncmds
   debug("screen = %dx%d", resolution.x, resolution.y);
   if (!init_device(cb, main_window_hwnd, resolution.x, resolution.y, screenBpp, displayName, adapterLuild, wcname))
   {
-    logerr("can't create device");
+    D3D_ERROR("can't create device");
     close_device(false);
     return false;
   }
 
   init_all(blk_dx.getInt("inline_vb_size", INLINE_VB_SIZE), blk_dx.getInt("inline_ib_size", INLINE_IB_SIZE));
 
+  d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
+
   d3d::set_render_target();
   int rtw = 1, rth = 1;
   d3d::get_render_target_size(rtw, rth, NULL);
   d3d::setview(0, 0, rtw, rth, 0.0, 1.0);
   d3d::setpersp(Driver3dPerspective(1.3, 1.3 * rtw / rth, 0.1, 100.0, 0.f, 0.f));
+
+  d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);
 
   return true;
 }
@@ -2386,12 +2634,20 @@ const Driver3dDesc &d3d::get_driver_desc() { return g_device_desc; }
 
 void *d3d::get_device() { return drv3d_dx11::dx_device; }
 
-void d3d::prepare_for_destroy() { drv3d_dx11::set_fullscreen_state(false); }
+void d3d::prepare_for_destroy()
+{
+  drv3d_dx11::set_fullscreen_state(false);
+  on_before_window_destroyed();
+}
 
 void d3d::window_destroyed(void *hwnd)
 {
   if (hwnd && hwnd == main_window_hwnd)
     main_window_hwnd = NULL;
 }
+
+ShaderLibrary d3d::create_shader_library(const ShaderLibraryCreateInfo &) { return InvalidShaderLibrary; }
+
+void d3d::destroy_shader_library(ShaderLibrary) {}
 
 #include "../drv3d_commonCode/rayTracingStub.inc.cpp"

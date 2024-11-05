@@ -1,14 +1,20 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <daScript/daScript.h>
-#include <3d/dag_drvDecl.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_rwResource.h>
 #include <3d/dag_render.h>
 #include <ecs/render/shaders.h>
 #include <shaders/dag_shaders.h>
@@ -23,6 +29,9 @@ MAKE_TYPE_FACTORY(ShadersECS, ShadersECS);
 MAKE_TYPE_FACTORY(OverrideState, shaders::OverrideState);
 MAKE_TYPE_FACTORY(PostFxRenderer, PostFxRenderer);
 MAKE_TYPE_FACTORY(ComputeShader, ComputeShader);
+
+DAS_BIND_ENUM_CAST(d3d::SamplerHandle);
+DAS_BASE_BIND_ENUM_FACTORY(d3d::SamplerHandle, "SamplerHandle");
 
 namespace bind_dascript
 {
@@ -64,7 +73,7 @@ inline void d3d_resource_barrier_buf(Sbuffer *buf, uint32_t flags)
 inline float d3d_get_vsync_refresh_rate()
 {
   double refreshRate = 0;
-  d3d::driver_command(DRV3D_COMMAND_GET_VSYNC_REFRESH_RATE, &refreshRate, NULL, NULL);
+  d3d::driver_command(Drv3dCommand::GET_VSYNC_REFRESH_RATE, &refreshRate);
   return refreshRate;
 }
 

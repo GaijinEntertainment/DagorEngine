@@ -1,6 +1,15 @@
-#include "device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "render_pass_resource.h"
 #include <perfMon/dag_statDrv.h>
+#include "globals.h"
+#include "resource_manager.h"
+#include "pipeline_barrier.h"
+#include "pipeline/manager.h"
+#include "front_render_pass_state.h"
+#include "backend.h"
+#include "execution_context.h"
+#include "execution_sync.h"
 
 using namespace drv3d_vulkan;
 
@@ -26,8 +35,7 @@ void RenderPassDescription::fillAllocationDesc(AllocationDesc &alloc_desc) const
 template <>
 void RenderPassResource::onDelayedCleanupFinish<RenderPassResource::CLEANUP_DESTROY>()
 {
-  Device &drvDev = get_device();
-  drvDev.resources.free(this);
+  Globals::Mem::res.free(this);
 }
 
 RenderPassResource::RenderPassResource(const Description &in_desc, bool manage /*=true*/) :
@@ -36,10 +44,9 @@ RenderPassResource::RenderPassResource(const Description &in_desc, bool manage /
 
 void RenderPassResource::destroyVulkanObject()
 {
-  Device &drvDev = get_device();
-  VulkanDevice &dev = drvDev.getVkDevice();
+  VulkanDevice &dev = Globals::VK::dev;
 
-  get_device().getVkDevice().vkDestroyRenderPass(dev.get(), getHandle(), nullptr);
+  Globals::VK::dev.vkDestroyRenderPass(dev.get(), getHandle(), nullptr);
   setHandle(generalize(Handle()));
 }
 
@@ -47,6 +54,7 @@ MemoryRequirementInfo RenderPassResource::getMemoryReq()
 {
   MemoryRequirementInfo ret{};
   ret.requirements.alignment = 1;
+  ret.requirements.memoryTypeBits = 0xFFFFFFFF;
   return ret;
 }
 
@@ -71,7 +79,7 @@ bool RenderPassResource::isEvictable() { return false; }
 void RenderPassResource::shutdown()
 {
   state = nullptr;
-  VulkanDevice &device = get_device().getVkDevice();
+  VulkanDevice &device = Globals::VK::dev;
   for (FbWithCreationInfo iter : compiledFBs)
     VULKAN_LOG_CALL(device.vkDestroyFramebuffer(device.get(), iter.handle, nullptr));
 }
@@ -96,7 +104,50 @@ VkSampleCountFlagBits RenderPassResource::getMSAASamples(uint32_t subpass)
   return desc.subpassAttachmentsInfos[subpass].msaaSamples;
 }
 
-bool RenderPassResource::hasDepthAtSubpass(uint32_t subpass) { return desc.subpassAttachmentsInfos[subpass].hasDSBind; }
+bool RenderPassResource::hasDepthAtSubpass(uint32_t subpass)
+{
+  return desc.subpassAttachmentsInfos[subpass].depthStencilAttachment >= 0;
+}
+
+bool RenderPassResource::isDepthAtSubpassRO(uint32_t subpass)
+{
+  G_ASSERT(hasDepthAtSubpass(subpass));
+  int32_t dsAtt = desc.subpassAttachmentsInfos[subpass].depthStencilAttachment;
+  return desc.attImageLayouts[subpass][dsAtt] == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+}
+
+bool RenderPassResource::hasDepthAtCurrentSubpass() { return desc.subpassAttachmentsInfos[activeSubpass].depthStencilAttachment >= 0; }
+
+bool RenderPassResource::isCurrentDepthRO()
+{
+  G_ASSERT(hasDepthAtCurrentSubpass());
+  int32_t dsAtt = desc.subpassAttachmentsInfos[activeSubpass].depthStencilAttachment;
+  return desc.attImageLayouts[activeSubpass][dsAtt] == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+}
+
+Image *RenderPassResource::getCurrentDepth()
+{
+  G_ASSERT(hasDepthAtCurrentSubpass());
+  int32_t dsAtt = desc.subpassAttachmentsInfos[activeSubpass].depthStencilAttachment;
+  return state->targets.data[dsAtt].image;
+}
+
+bool RenderPassResource::isCurrentDepthROAttachment(const Image *img, ImageViewState ivs) const
+{
+  int32_t dsAtt = desc.subpassAttachmentsInfos[activeSubpass].depthStencilAttachment;
+  if (dsAtt < 0)
+    return false;
+
+  if (desc.attImageLayouts[activeSubpass][dsAtt] != VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)
+    return false;
+
+  const StateFieldRenderPassTarget &dsTgt = state->targets.data[dsAtt];
+  if (dsTgt.image != img)
+    return false;
+
+  const ValueRange<uint32_t> mipRange(ivs.getMipBase(), ivs.getMipBase() + ivs.getMipCount());
+  return mipRange.isInside(dsTgt.mipLevel);
+}
 
 VkExtent2D RenderPassResource::getMaxActiveAreaExtent() { return toVkFbExtent(state->area.data); }
 
@@ -118,7 +169,7 @@ VkRect2D RenderPassResource::toVkArea(RenderPassArea area)
   return ret;
 }
 
-bool RenderPassResource::allowSRGBWrite(uint32_t index) { return desc.targetCFlags[index] & TEXCF_SRGBWRITE; }
+bool RenderPassResource::allowSRGBWrite(uint32_t index) { return desc.targetFormats[index].isSrgb; }
 
 // execution related methods
 
@@ -126,49 +177,41 @@ void RenderPassResource::useWithState(const FrontRenderPassStateStorage &v) { st
 
 void RenderPassResource::useWithAttachments(BakedAttachmentSharedData *v) { bakedAttachments = v; }
 
-void RenderPassResource::setFrameImageLayout(ExecutionContext &ctx, uint32_t att_index, VkImageLayout new_layout,
-  ImageLayoutSync sync_type)
-{
-  const StateFieldRenderPassTarget &tgt = state->targets.data[att_index];
-  uint16_t arrayBase = tgt.layer == d3d::RENDER_TO_WHOLE_ARRAY ? 0 : tgt.layer;
-  uint16_t arrayRange = bakedAttachments->layerCounts[att_index];
-
-  switch (sync_type)
-  {
-    case ImageLayoutSync::INNER:
-      for (int i = 0; i < arrayRange; ++i)
-        tgt.image->layout.set(tgt.mipLevel, arrayBase + i, new_layout);
-      break;
-    case ImageLayoutSync::END_EDGE:
-      for (int i = 0; i < arrayRange; ++i)
-        tgt.image->layout.set(tgt.mipLevel, arrayBase + i, new_layout);
-      [[fallthrough]];
-    case ImageLayoutSync::START_EDGE:
-    {
-      ctx.verifyResident(tgt.image);
-      uint32_t extOpIdx =
-        sync_type == ImageLayoutSync::END_EDGE ? RenderPassDescription::EXTERNAL_OP_END : RenderPassDescription::EXTERNAL_OP_START;
-      ctx.back.syncTrack.addImageAccess(
-        {desc.attImageExtrenalOperations[extOpIdx][att_index].stage, desc.attImageExtrenalOperations[extOpIdx][att_index].access},
-        tgt.image, new_layout, {tgt.mipLevel, 1, arrayBase, arrayRange});
-      break;
-    }
-    default: G_ASSERTF(0, "vulkan: RenderPassResource::setFrameImageLayout %p unknown sync type %u", this, sync_type); break;
-  }
-}
 
 void RenderPassResource::updateImageStatesForCurrentSubpass(ExecutionContext &ctx)
 {
-  ImageLayoutSync syncType;
-  if (activeSubpass == 0)
-    syncType = ImageLayoutSync::START_EDGE;
-  else if (activeSubpass == (desc.subpasses - 1))
-    syncType = ImageLayoutSync::END_EDGE;
-  else
-    syncType = ImageLayoutSync::INNER;
+  for (uint32_t attIndex = 0; attIndex < desc.targetCount; ++attIndex)
+  {
+    const StateFieldRenderPassTarget &tgt = state->targets.data[attIndex];
+    uint16_t arrayBase = tgt.layer == d3d::RENDER_TO_WHOLE_ARRAY ? 0 : tgt.layer;
+    uint16_t arrayRange = bakedAttachments->layerCounts[attIndex];
 
-  for (uint32_t i = 0; i < desc.targetCount; ++i)
-    setFrameImageLayout(ctx, i, desc.attImageLayouts[activeSubpass][i], syncType);
+    if (activeSubpass == 0 || activeSubpass == desc.subpasses - 1)
+    {
+      // all attachments must be valid
+      G_ASSERTF(tgt.image != nullptr, "vulkan: attachment %u of RP %p[%p]<%s> is not specified (null)", attIndex, this,
+        getBaseHandle(), getDebugName());
+      ctx.verifyResident(tgt.image);
+    }
+
+    const auto &extOp = desc.attachmentOperations[activeSubpass][attIndex];
+
+    // Not all targets are used in every subpass
+    if (!extOp.stage && !extOp.access)
+      continue;
+
+    const auto newLayout = desc.attImageLayouts[activeSubpass][attIndex];
+    bool discard = activeSubpass == 0;
+    if (discard)
+    {
+      VkRect2D area = toVkArea(state->area.data);
+      discard &= area.extent == tgt.image->getMipExtents2D(tgt.mipLevel);
+      discard &= area.offset == VkOffset2D{0, 0};
+      discard &= !desc.attachmentContentLoaded[attIndex];
+    }
+    Backend::sync.addNrpAttachmentAccess({extOp.stage, extOp.access}, tgt.image, newLayout, {tgt.mipLevel, 1, arrayBase, arrayRange},
+      discard);
+  }
 }
 
 void RenderPassResource::performSelfDepsForSubpass(uint32_t subpass, VulkanCommandBufferHandle cmd_b)
@@ -177,7 +220,7 @@ void RenderPassResource::performSelfDepsForSubpass(uint32_t subpass, VulkanComma
   if (!selfDep.dependencyFlags)
     return;
 
-  PipelineBarrier barrier(get_device().getVkDevice(), barrierCache, selfDep.srcStageMask, selfDep.dstStageMask);
+  PipelineBarrier barrier(Globals::VK::dev, barrierCache, selfDep.srcStageMask, selfDep.dstStageMask);
   barrier.addMemory({selfDep.srcAccessMask, selfDep.dstAccessMask});
   barrier.addDependencyFlags(selfDep.dependencyFlags);
   barrier.submit(cmd_b);
@@ -209,7 +252,7 @@ void RenderPassResource::advanceSubpass(ExecutionContext &ctx)
   performSelfDepsForSubpass(activeSubpass, ctx.frameCore);
   ++activeSubpass;
   ctx.popEventRaw();
-  ctx.back.syncTrack.setCurrentRenderSubpass(activeSubpass);
+  Backend::sync.setCurrentRenderSubpass(activeSubpass);
 
   if (activeSubpass != desc.subpasses)
     updateImageStatesForCurrentSubpass(ctx);
@@ -221,12 +264,13 @@ void RenderPassResource::beginPass(ExecutionContext &ctx)
     getBaseHandle(), getDebugName());
   G_ASSERTF(activeSubpass == 0, "vulkan: render pass %p [ %p ] <%s> started twice", this, getBaseHandle(), getDebugName());
 
-  if (ctx.isDebugEventsAllowed())
+  if (Globals::cfg.bits.allowDebugMarkers)
     ctx.pushEventRaw(String(64, "NRP: <%s>", getDebugName()), nativePassDebugMarkerColor);
 
-  ctx.back.syncTrack.setCurrentRenderSubpass(0);
+  Backend::sync.setCurrentRenderSubpass(0);
   updateImageStatesForCurrentSubpass(ctx);
-  ctx.back.syncTrack.completeNeeded(ctx.frameCore, ctx.vkDev);
+
+  Backend::gpuJob.get().execTracker.addMarker(ctx.frameCore, &desc.hash, sizeof(desc.hash));
 
   VkRenderPassBeginInfo rpbi = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, nullptr};
 
@@ -234,7 +278,7 @@ void RenderPassResource::beginPass(ExecutionContext &ctx)
   VkRenderPassAttachmentBeginInfoKHR rpabi = {VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR, nullptr};
   rpabi.attachmentCount = desc.targetCount;
   rpabi.pAttachments = ary(bakedAttachments->views);
-  if (get_device().hasImagelessFramebuffer())
+  if (Globals::cfg.has.imagelessFramebuffer)
     chain_structs(rpbi, rpabi);
 #endif
 
@@ -243,6 +287,10 @@ void RenderPassResource::beginPass(ExecutionContext &ctx)
   rpbi.renderArea = toVkArea(state->area.data);
   rpbi.clearValueCount = desc.targetCount;
   rpbi.pClearValues = bakedAttachments->clearValues;
+
+  // set render pass area execution state for proper viewport change checking
+  Backend::State::exec.set<StateFieldGraphicsRenderPassArea, VkRect2D, BackGraphicsState>(rpbi.renderArea);
+
   ctx.vkDev.vkCmdBeginRenderPass(ctx.frameCore, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
   ctx.pushEventRaw("subpass 0", subpassDebugMarkerColor);
 }
@@ -254,7 +302,7 @@ void RenderPassResource::nextSubpass(ExecutionContext &ctx)
     desc.subpasses, this, getBaseHandle(), getDebugName(), activeSubpass);
   ctx.vkDev.vkCmdNextSubpass(ctx.frameCore, VK_SUBPASS_CONTENTS_INLINE);
 
-  if (ctx.isDebugEventsAllowed())
+  if (Globals::cfg.bits.allowDebugMarkers)
     ctx.pushEventRaw(String(16, "subpass %u", activeSubpass), subpassDebugMarkerColor);
 }
 
@@ -265,7 +313,7 @@ void RenderPassResource::endPass(ExecutionContext &ctx)
     "vulkan: there is %u subpasses in RP %p [ %p ] <%s>, but we ending it at activeSubpass %u", desc.subpasses, this, getBaseHandle(),
     getDebugName(), activeSubpass);
   ctx.vkDev.vkCmdEndRenderPass(ctx.frameCore);
-  ctx.back.syncTrack.setCurrentRenderSubpass(ExecutionSyncTracker::SUBPASS_NON_NATIVE);
+  Backend::sync.setCurrentRenderSubpass(ExecutionSyncTracker::SUBPASS_NON_NATIVE);
 
   state = nullptr;
   bakedAttachments = nullptr;

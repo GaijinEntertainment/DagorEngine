@@ -28,19 +28,17 @@ MAKE_TYPE_FACTORY(clock, das::Time)// use MAKE_TYPE_FACTORY out of namespace. So
     void* mmap(void* start, size_t length, int prot, int flags, int fd, off_t offset);
     int munmap(void* start, size_t length);
     static int getchar_wrapper(void) { return getchar(); } // workaround for non-std callconv (fastcall, vectorcall...)
+
+    #ifdef __clang__
+        #define fileno _fileno
+        #define getcwd _getcwd
+        #define chdir _chdir
+    #endif
 #else
 #define getchar_wrapper getchar
 #endif
 
 namespace das {
-
-    IMPLEMENT_OP2_EVAL_BOOL_POLICY(Equ,Time);
-    IMPLEMENT_OP2_EVAL_BOOL_POLICY(NotEqu,Time);
-    IMPLEMENT_OP2_EVAL_BOOL_POLICY(GtEqu,Time);
-    IMPLEMENT_OP2_EVAL_BOOL_POLICY(LessEqu,Time);
-    IMPLEMENT_OP2_EVAL_BOOL_POLICY(Gt,Time);
-    IMPLEMENT_OP2_EVAL_BOOL_POLICY(Less,Time);
-    IMPLEMENT_OP2_EVAL_POLICY(Sub, Time);
 
     struct TimeAnnotation : ManagedValueAnnotation<Time> {
         TimeAnnotation(ModuleLibrary & mlib) : ManagedValueAnnotation<Time>(mlib, "clock","das::Time") {}
@@ -64,21 +62,49 @@ namespace das {
         return t;
     }
 
+    Time builtin_mktime(int year, int month, int mday, int hour, int min, int sec) {
+        struct tm timeinfo = {};
+        timeinfo.tm_year = year - 1900;
+        timeinfo.tm_mon = month - 1;
+        timeinfo.tm_mday = mday;
+        timeinfo.tm_hour = hour;
+        timeinfo.tm_min = min;
+        timeinfo.tm_sec = sec;
+
+        Time t;
+        t.time = mktime(&timeinfo);
+        return t;
+    }
+
     void Module_BuiltIn::addTime(ModuleLibrary & lib) {
         addAnnotation(make_smart<TimeAnnotation>(lib));
-        addFunctionBasic<Time>(*this,lib);
-        addFunctionOrdered<Time>(*this,lib);
-        addFunction( make_smart<BuiltInFn<Sim_Sub<Time>,double,Time,Time>>("-",lib,"Sub"));
         addExtern<DAS_BIND_FUN(builtin_clock)>(*this, lib, "get_clock", SideEffects::modifyExternal, "builtin_clock");
+        addExtern<DAS_BIND_FUN(builtin_mktime)>(*this, lib, "mktime", SideEffects::modifyExternal, "builtin_mktime")
+            ->args({"year","month","mday","hour","min","sec"});
+        // operations on time
+        addExtern<DAS_BIND_FUN(time_equal)>(*this, lib, "==",
+            SideEffects::none, "time_equal");
+        addExtern<DAS_BIND_FUN(time_nequal)>(*this, lib, "!=",
+            SideEffects::none, "time_nequal");
+        addExtern<DAS_BIND_FUN(time_gtequal)>(*this, lib, ">=",
+            SideEffects::none, "time_gtequal");
+        addExtern<DAS_BIND_FUN(time_ltequal)>(*this, lib, "<=",
+            SideEffects::none, "time_ltequal");
+        addExtern<DAS_BIND_FUN(time_gt)>(*this, lib, ">",
+            SideEffects::none, "time_gt");
+        addExtern<DAS_BIND_FUN(time_lt)>(*this, lib, "<",
+            SideEffects::none, "time_lt");
+        addExtern<DAS_BIND_FUN(time_sub)>(*this, lib, "-",
+            SideEffects::none, "time_sub");
         // TODO: move to upstream das
         addExtern<DAS_BIND_FUN(ref_time_ticks)>(*this, lib, "ref_time_ticks",
             SideEffects::accessExternal, "ref_time_ticks");
         addExtern<DAS_BIND_FUN(get_time_usec)>(*this, lib, "get_time_usec",
-            SideEffects::accessExternal, "get_time_usec");
+            SideEffects::accessExternal, "get_time_usec")->arg("ref");
         addExtern<DAS_BIND_FUN(cast_int64)>(*this, lib, "int64",
-            SideEffects::none, "cast_int64");
+            SideEffects::none, "cast_int64")->arg("time");
         addExtern<DAS_BIND_FUN(get_time_nsec)>(*this, lib, "get_time_nsec",
-            SideEffects::accessExternal, "get_time_nsec");
+            SideEffects::accessExternal, "get_time_nsec")->arg("ref");
     }
 }
 
@@ -211,7 +237,7 @@ namespace das {
         vec4f args[1];
         args[0] = cast<Array *>::from(&arr);
         context->invoke(blk, args, nullptr, at);
-        munmap(data, 0);
+        munmap(data, st.st_size);
     }
 
     int64_t builtin_ftell ( const FILE * f, Context * context, LineInfoArg * at ) {
@@ -229,7 +255,7 @@ namespace das {
         struct stat st;
         int fd = fileno((FILE*)f);
         fstat(fd, &st);
-        char * res = context->stringHeap->allocateString(nullptr, st.st_size);
+        char * res = context->allocateString(nullptr, st.st_size,at);
         fseek((FILE*)f, 0, SEEK_SET);
         auto bytes = fread(res, 1, st.st_size, (FILE *)f);
         if ( uint64_t(bytes) != uint64_t(st.st_size) ) {
@@ -243,7 +269,7 @@ namespace das {
         if ( !f ) context->throw_error_at(at, "can't fgets NULL");
         vector<char> buffer(16384);
         if (char* buf = fgets(buffer.data(), int(buffer.size()), (FILE *)f)) {
-            return context->stringHeap->allocateString(buf, uint32_t(strlen(buf)));
+            return context->allocateString(buf, uint32_t(strlen(buf)),at);
         } else {
             return nullptr;
         }
@@ -317,7 +343,7 @@ namespace das {
     }
 
 
-    char * builtin_dirname ( const char * name, Context * context, LineInfoArg * ) {
+    char * builtin_dirname ( const char * name, Context * context, LineInfoArg * at ) {
         if ( name ) {
 #if defined(_MSC_VER)
             char full_path[ _MAX_PATH ];
@@ -332,11 +358,11 @@ namespace das {
                     full_path[--len] = 0;
                 }
             }
-            return context->stringHeap->allocateString(full_path, len);
+            return context->allocateString(full_path, len, at);
 #else
             char * tempName = strdup(name);
             char * dirName = dirname(tempName);
-            char * result = context->stringHeap->allocateString(dirName, strlen(dirName));
+            char * result = context->allocateString(dirName, strlen(dirName), at);
             free(tempName);
             return result;
 #endif
@@ -345,7 +371,7 @@ namespace das {
         }
     }
 
-    char * builtin_basename ( const char * name, Context * context, LineInfoArg * ) {
+    char * builtin_basename ( const char * name, Context * context, LineInfoArg * at ) {
         if ( name ) {
 #if defined(_MSC_VER)
             char drive[ _MAX_DRIVE ];
@@ -354,11 +380,11 @@ namespace das {
             char ext[ _MAX_EXT ];
             _splitpath(name, drive, dir, full_path, ext);
             strcat(full_path, ext);
-            return context->stringHeap->allocateString(full_path, uint32_t(strlen(full_path)));
+            return context->allocateString(full_path, uint32_t(strlen(full_path)), at);
 #else
             char * tempName = strdup(name);
             char * dirName = basename(tempName);
-            char * result = context->stringHeap->allocateString(dirName, strlen(dirName));
+            char * result = context->allocateString(dirName, strlen(dirName), at);
             free(tempName);
             return result;
 #endif
@@ -387,7 +413,7 @@ namespace das {
         string findPath = string(path ? path : "") + "/*";
         if ((hFile = _findfirst(findPath.c_str(), &c_file)) != -1L) {
             do {
-                char * fname = context->stringHeap->allocateString(c_file.name, uint32_t(strlen(c_file.name)));
+                char * fname = context->allocateString(c_file.name, uint32_t(strlen(c_file.name)),at);
                 vec4f args[1] = {
                     cast<char *>::from(fname)
                 };
@@ -400,7 +426,7 @@ namespace das {
         struct dirent *ent;
         if ((dir = opendir (path ? path : "")) != NULL) {
             while ((ent = readdir (dir)) != NULL) {
-                char * fname = context->stringHeap->allocateString(ent->d_name,uint32_t(strlen(ent->d_name)));
+                char * fname = context->allocateString(ent->d_name,uint32_t(strlen(ent->d_name)),at);
                 vec4f args[1] = {
                     cast<char *>::from(fname)
                 };
@@ -409,6 +435,33 @@ namespace das {
             closedir (dir);
         }
  #endif
+    }
+
+    bool builtin_chdir ( const char * path ) {
+#if defined(_EMSCRIPTEN_VER)
+        return false;
+#else
+        if ( path ) {
+            return chdir(path) == 0;
+        } else {
+            return false;
+        }
+#endif
+    }
+
+    char * builtin_getcwd ( Context * context, LineInfoArg * at) {
+#if defined(_EMSCRIPTEN_VER)
+        return nullptr;
+#else
+        char * buf = getcwd(nullptr, 0);
+        if ( buf ) {
+            char * res = context->allocateString(buf, uint32_t(strlen(buf)), at);
+            free(buf);
+            return res;
+        } else {
+            return nullptr;
+        }
+#endif
     }
 
     bool builtin_mkdir ( const char * path ) {
@@ -475,11 +528,11 @@ namespace das {
         return builtin_popen_impl(cmd, false, blk, context, at);
     }
 
-    char * get_full_file_name ( const char * path, Context * context, LineInfoArg * ) {
+    char * get_full_file_name ( const char * path, Context * context, LineInfoArg * at ) {
         if ( !path ) return nullptr;
         auto res = normalizeFileName(path);
         if ( res.length()==0 ) return nullptr;
-        return context->stringHeap->allocateString(res);
+        return context->allocateString(res,at);
     }
 
     bool builtin_remove_file ( const char * path ) {
@@ -487,11 +540,16 @@ namespace das {
         return remove(path) == 0;
     }
 
-    char * get_env_variable ( const char * var, Context * context ) {
+    bool builtin_rename_file ( const char * old_path, const char * new_path ) {
+        if ( !old_path || !new_path ) return false;
+        return rename(old_path, new_path) == 0;
+    }
+
+    char * get_env_variable ( const char * var, Context * context, LineInfoArg * at ) {
         if ( !var ) return nullptr;
         auto res = getenv(var);
         if ( !res ) return nullptr;
-        return context->stringHeap->allocateString(res);
+        return context->allocateString(res, at);
     }
 
     char * sanitize_command_line ( const char * cmd, Context * context, LineInfoArg * at ) {
@@ -513,7 +571,7 @@ namespace das {
             }
         }
         if ( ss.str().size() > UINT_MAX ) context->throw_error_at(at, "string too long");
-        return context->stringHeap->allocateString(ss.str().data(), uint32_t(ss.str().size()));
+        return context->allocateString(ss.str().data(), uint32_t(ss.str().size()), at);
     }
 
     class Module_FIO : public Module {
@@ -534,9 +592,12 @@ namespace das {
             addExtern<DAS_BIND_FUN(builtin_remove_file)>(*this, lib, "remove",
                 SideEffects::modifyExternal, "builtin_remove_file")
                     ->args({"name"});
+            addExtern<DAS_BIND_FUN(builtin_rename_file)>(*this, lib, "rename",
+                SideEffects::modifyExternal, "builtin_rename_file")
+                    ->args({"old_name","new_name"});
             addExtern<DAS_BIND_FUN(builtin_fopen)>(*this, lib, "fopen",
                 SideEffects::modifyExternal, "builtin_fopen")
-                    ->args({"name","mode"});
+                    ->args({"name","mode"})->setNoDiscard();
             addExtern<DAS_BIND_FUN(builtin_fclose)>(*this, lib, "fclose",
                 SideEffects::modifyExternal, "builtin_fclose")
                     ->args({"file","context","line"});
@@ -595,6 +656,12 @@ namespace das {
             addExtern<DAS_BIND_FUN(builtin_mkdir)>(*this, lib, "mkdir",
                 SideEffects::modifyExternal, "builtin_mkdir")
                     ->arg("path");
+            addExtern<DAS_BIND_FUN(builtin_chdir)>(*this, lib, "chdir",
+                SideEffects::modifyExternal, "builtin_chdir")
+                    ->arg("path");
+            addExtern<DAS_BIND_FUN(builtin_getcwd)>(*this, lib, "getcwd",
+                SideEffects::modifyExternal, "builtin_getcwd")
+                    ->args({"context","at"});
             addExtern<DAS_BIND_FUN(builtin_stdin)>(*this, lib, "fstdin",
                 SideEffects::modifyExternal, "builtin_stdin");
             addExtern<DAS_BIND_FUN(builtin_stdout)>(*this, lib, "fstdout",
@@ -620,7 +687,7 @@ namespace das {
                     ->args({"path","context","at"});
             addExtern<DAS_BIND_FUN(get_env_variable)>(*this, lib, "get_env_variable",
                 SideEffects::accessExternal, "get_env_variable")
-                    ->args({"var","context"});
+                    ->args({"var","context","at"});
             addExtern<DAS_BIND_FUN(sanitize_command_line)>(*this, lib, "sanitize_command_line",
                 SideEffects::none, "sanitize_command_line")
                     ->args({"var","context","at"});

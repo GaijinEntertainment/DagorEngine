@@ -1,0 +1,114 @@
+include "sky_shader_global.dshl"
+
+float4 forcedome_color = (0, 0.5, 1, 0.2);
+float forcedome_texture_scale = 0.1;
+float forcedome_brightness = 1.0;
+float forcedome_edge_intensity = 200.0;
+float forcedome_edge_thinness = 30.0;
+texture forcedome_diffuse_texture;
+buffer forcedome_spheres;
+
+shader forcedome
+{
+  supports global_frame;
+  channel float3 pos = pos;
+  cull_mode = cw;
+
+  z_write = false;
+  z_test = true;
+
+  blend_src = one;
+  blend_dst = one;
+
+  (vs)
+  {
+    globtm@f44 = globtm;
+    forcedome_texture_scale@f1 = (forcedome_texture_scale);
+    forcedome_spheres@cbuf = forcedome_spheres hlsl {
+      cbuffer forcedome_spheres@cbuf
+      {
+        #include <force_dome_const.hlsli>
+        float4 spheres[FORCE_DOME_MAX_INSTANCE];
+      }
+    }
+  }
+
+  hlsl
+  {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 pointToEye : TEXCOORD0;
+      float3 normal : TEXCOORD2;
+      float2 texcoord : TEXCOORD1;
+      float3 wpos : TEXCOORD3;
+    };
+  }
+
+  hlsl(vs)
+  {
+    struct VsInput
+    {
+      float3 pos : POSITION;
+    };
+
+    VsOutput forcedome_vs(VsInput input HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+      float4 forcefield_sphere = spheres[instance_id];
+      float3 worldPos = input.pos.xyz * forcefield_sphere.w + forcefield_sphere.xyz;
+
+      output.wpos = worldPos;
+      output.pos = mulPointTm(worldPos, globtm);
+      output.pointToEye.xyz = world_view_pos - worldPos;
+      output.pointToEye.w = output.pos.w;
+      output.normal = normalize(input.pos.xyz);
+
+      output.texcoord = forcedome_texture_scale * input.pos.xz *
+                        (forcefield_sphere.w * (2 - abs(input.pos.y)) );
+
+      return output;
+    }
+  }
+
+  (ps)
+  {
+    forcedome_color@f4 = forcedome_color;
+    params@f4 = (forcedome_brightness, forcedome_edge_intensity, 1.0 / forcedome_edge_intensity, forcedome_edge_thinness);
+    forcedome_diffuse_texture@smp2d = forcedome_diffuse_texture;
+    half_res_depth_tex@smp2d = downsampled_far_depth_tex;
+  }
+
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  USE_SCREENPOS_TO_TC()
+  INIT_ZNZFAR()
+  USE_DECODE_DEPTH()
+
+  hlsl(ps)
+  {
+    float4 forcedome_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      float brightness = params.x;
+      float edge_intensity = params.y;
+      float edge_intensity_inv = params.z;
+      float edge_thinness = params.w;
+
+      float3 toEye = normalize(float3(world_view_pos - input.wpos));
+      float edgeMult = 1 + edge_intensity * pow(1 - abs(dot(input.normal, toEye)), edge_thinness);
+
+      float4 pos = GET_SCREEN_POS(input.pos);
+      float2 screenCrd = screen_pos_to_tc(pos.xy);
+      float floorZ = linearize_z(tex2Dlod(half_res_depth_tex, float4(screenCrd, 0, 0)).x, zn_zfar.zw);
+      float floorEdgeMult = 1.0f / saturate(max(floorZ - input.pointToEye.w, 0.001) * edge_intensity_inv * 20);
+
+      float4 res = brightness * forcedome_color;
+      res.rgb *= floorEdgeMult;
+      res.rgb *= edgeMult;
+      res.rgb *= max(forcedome_color.a, (1 - tex2Dlod(forcedome_diffuse_texture, float4(input.texcoord.xy, 0.0, 0.0)).a));
+      return float4(pack_hdr(res.rgb), res.a);
+    }
+  }
+  compile("target_vs", "forcedome_vs");
+  compile("target_ps", "forcedome_ps");
+}

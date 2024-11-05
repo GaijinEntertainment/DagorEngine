@@ -4,11 +4,7 @@
 
 #include "squtils.h"
 
-#ifdef _SQ64
-#define UINT_MINUS_ONE (0xFFFFFFFFFFFFFFFF)
-#else
-#define UINT_MINUS_ONE (0xFFFFFFFF)
-#endif
+#define UINT32_MINUS_ONE (0xFFFFFFFF)
 
 #define SQ_CLOSURESTREAM_HEAD (('S'<<24)|('Q'<<16)|('I'<<8)|('R'))
 #define SQ_CLOSURESTREAM_PART (('P'<<24)|('A'<<16)|('R'<<8)|('T'))
@@ -16,42 +12,34 @@
 
 struct SQSharedState;
 
+#define METAMETHODS_LIST \
+    MM_IMPL(MT_ADD      ,"_add")\
+    MM_IMPL(MT_SUB      ,"_sub")\
+    MM_IMPL(MT_MUL      ,"_mul")\
+    MM_IMPL(MT_DIV      ,"_div")\
+    MM_IMPL(MT_UNM      ,"_unm")\
+    MM_IMPL(MT_MODULO   ,"_modulo")\
+    MM_IMPL(MT_SET      ,"_set")\
+    MM_IMPL(MT_GET      ,"_get")\
+    MM_IMPL(MT_TYPEOF   ,"_typeof")\
+    MM_IMPL(MT_NEXTI    ,"_nexti")\
+    MM_IMPL(MT_CMP      ,"_cmp")\
+    MM_IMPL(MT_CALL     ,"_call")\
+    MM_IMPL(MT_CLONED   ,"_cloned")\
+    MM_IMPL(MT_NEWSLOT  ,"_newslot")\
+    MM_IMPL(MT_DELSLOT  ,"_delslot")\
+    MM_IMPL(MT_TOSTRING ,"_tostring")\
+    MM_IMPL(MT_LOCK     ,"_lock")\
+
+
+#define MM_IMPL(mm, name) mm,
+
 enum SQMetaMethod{
-    MT_ADD=0,
-    MT_SUB=1,
-    MT_MUL=2,
-    MT_DIV=3,
-    MT_UNM=4,
-    MT_MODULO=5,
-    MT_SET=6,
-    MT_GET=7,
-    MT_TYPEOF=8,
-    MT_NEXTI=9,
-    MT_CMP=10,
-    MT_CALL=11,
-    MT_CLONED=12,
-    MT_NEWSLOT=13,
-    MT_DELSLOT=14,
-    MT_TOSTRING=15,
-    MT_LAST = 18
+    METAMETHODS_LIST
+    MT_NUM_METHODS
 };
 
-#define MM_ADD      _SC("_add")
-#define MM_SUB      _SC("_sub")
-#define MM_MUL      _SC("_mul")
-#define MM_DIV      _SC("_div")
-#define MM_UNM      _SC("_unm")
-#define MM_MODULO   _SC("_modulo")
-#define MM_SET      _SC("_set")
-#define MM_GET      _SC("_get")
-#define MM_TYPEOF   _SC("_typeof")
-#define MM_NEXTI    _SC("_nexti")
-#define MM_CMP      _SC("_cmp")
-#define MM_CALL     _SC("_call")
-#define MM_CLONED   _SC("_cloned")
-#define MM_NEWSLOT  _SC("_newslot")
-#define MM_DELSLOT  _SC("_delslot")
-#define MM_TOSTRING _SC("_tostring")
+#undef MM_IMPL
 
 
 #define _CONSTRUCT_VECTOR(type,size,ptr) { \
@@ -78,7 +66,6 @@ enum SQMetaMethod{
     } \
 }
 
-#define MINPOWER2 4
 
 struct SQRefCounted
 {
@@ -147,7 +134,6 @@ struct SQObjectPtr;
 #define _outer(obj) ((obj)._unVal.pOuter)
 #define _refcounted(obj) ((obj)._unVal.pRefCounted)
 #define _rawval(obj) ((obj)._unVal.raw)
-#define _collectable(obj) ((obj)._unVal.pCollectable)
 
 #define _stringval(obj) (obj)._unVal.pString->_val
 #define _userdataval(obj) ((SQUserPointer)sq_aligning((obj)._unVal.pUserData + 1))
@@ -237,6 +223,8 @@ struct SQObjectPtr : public SQObject
     _SCALAR_TYPE_DECL(OT_FLOAT,SQFloat,fFloat)
     _SCALAR_TYPE_DECL(OT_USERPOINTER,SQUserPointer,pUserPointer)
 
+    SQObjectPtr(SQVM *vm, const SQChar *str, SQInteger len = -1);
+
     SQObjectPtr(bool bBool)
     {
         memset(this, 0, sizeof(SQObjectPtr));
@@ -301,8 +289,8 @@ inline void _Swap(SQObject &a,SQObject &b)
 #ifndef NO_GARBAGE_COLLECTOR
 #define MARK_FLAG 0x80000000
 struct SQCollectable : public SQRefCounted {
-    SQCollectable *_next;
-    SQCollectable *_prev;
+    SQCollectable *_gc_next;
+    SQCollectable *_gc_prev;
     SQSharedState *_sharedstate;
     virtual SQObjectType GetType()=0;
     virtual void Release()=0;
@@ -317,7 +305,7 @@ struct SQCollectable : public SQRefCounted {
 #define ADD_TO_CHAIN(chain,obj) AddToChain(chain,obj)
 #define REMOVE_FROM_CHAIN(chain,obj) {if(!(_uiRef&MARK_FLAG))RemoveFromChain(chain,obj);}
 #define CHAINABLE_OBJ SQCollectable
-#define INIT_CHAIN() {_next=NULL;_prev=NULL;_sharedstate=ss;}
+#define INIT_CHAIN() {_gc_next=NULL;_gc_prev=NULL;_sharedstate=ss;}
 #else
 
 // Need this to keep SQSharedState pointer to access alloc_ctx

@@ -1,18 +1,18 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <math/dag_color.h>
+#include <math/integer/dag_IBBox2.h>
 #include <math/integer/dag_IPoint2.h>
 #include <3d/dag_resPtr.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dConsts.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_consts.h>
 #include <render/toroidalHelper.h>
 #include <render/toroidal_update.h>
-#include <3d/dag_drv3dConsts.h>
+#include <drv/3d/dag_consts.h>
 #include <generic/dag_carray.h>
 #include <generic/dag_tab.h>
 
@@ -37,7 +37,7 @@ public:
     int treshold = 128, E3DCOLOR clear_value = 0);
 
   void setHeightmapTex();
-  void setBlackTex();
+  void setBlackTex(TEXTUREID black_tex_array);
   void setTexFilter(int filter);
   Point2 getWorldSize();
   int getBufferSize();
@@ -84,5 +84,4 @@ protected:
   Tab<IBBox2> invalidRegions[LOD_COUNT];
 
   UniqueTexHolder toroidalHeightmap;
-  UniqueTex blackPixelTex;
 };

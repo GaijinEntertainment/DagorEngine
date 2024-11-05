@@ -20,18 +20,26 @@ Sources =
   src/filesystem.c
   src/stack_line_reader.c
   src/string_view.c
+  src/impl_aarch64_cpuid.c
 ;
 
 
-if $(Platform) = android || ( $(Platform) = macosx && $(MacOSXArch) = arm64 ) {
+if $(Platform) in android macOS {
   CpuFeaturesIsUnix = yes ;
-  if $(AndroidArch) = arm64-v8a || ( $(Platform) = macosx && $(MacOSXArch) = arm64 ) {
+  if $(PlatformArch) in arm64-v8a arm64 arm64e {
 
     # aarch64-none-linux-android
     CpuFeaturesProcessorType = aarch64 ;
 
     Sources +=
       src/impl_aarch64_linux_or_android.c
+    ;
+    opt on src/hwcaps_linux_or_android.c = -DHAVE_STRONG_GETAUXVAL ;
+
+  } else if $(PlatformArch) in x86_64 {
+    Copt += -DHAVE_SYSCTLBYNAME ;
+    Sources +=
+      src/impl_x86_macos.c
     ;
 
   } else {
@@ -43,28 +51,24 @@ if $(Platform) = android || ( $(Platform) = macosx && $(MacOSXArch) = arm64 ) {
       src/impl_arm_linux_or_android.c
     ;
   }
-} else if $(Platform) = linux64 {
+} else if $(Platform) = linux {
   CpuFeaturesIsUnix = yes ;
   Sources +=
     src/impl_x86_linux_or_android.c
-  ;
-} else if $(Platform) = macosx {
-  CpuFeaturesIsUnix = yes ;
-  Copt += -DHAVE_SYSCTLBYNAME ;
-  Sources +=
-    src/impl_x86_macos.c
+    src/impl_loongarch_linux.c
+    src/impl_ppc_linux.c
+    src/impl_riscv_linux.c
+    src/impl_s390x_linux.c
+    src/impl_aarch64_freebsd.c
   ;
 } else if $(Platform) in ps4 ps5 {
   Sources +=
     src/impl_x86_ps4_ps5.c
   ;
-} else if $(Platform) in scarlett xboxOne {
+} else if $(Platform) in windows scarlett xboxOne {
   Sources +=
     src/impl_x86_windows.c
-  ;
-} else if $(Platform) in win32 win64 {
-  Sources +=
-    src/impl_x86_windows.c
+    src/impl_aarch64_windows.c
   ;
 } else {
   # nswitch
@@ -73,10 +77,16 @@ if $(Platform) = android || ( $(Platform) = macosx && $(MacOSXArch) = arm64 ) {
   exit $(Target)":" "Error: unsupported platform:" $(Platform) ;
 }
 
+if $(Platform) in macOS iOS tvOS && $(PlatformArch) in arm64 arm64e {
+  Sources += src/impl_aarch64_macos_or_iphone.c ;
+  Copt += -DHAVE_SYSCTLBYNAME ;
+}
 
 if $(CpuFeaturesIsUnix) = yes && $(CpuFeaturesProcessorType) != x86 {
   Copt += -DHAVE_DLFCN_H ;
   Sources +=
+    src/hwcaps_linux_or_android.c
+    src/hwcaps_freebsd.c
     src/hwcaps.c
   ;
 }

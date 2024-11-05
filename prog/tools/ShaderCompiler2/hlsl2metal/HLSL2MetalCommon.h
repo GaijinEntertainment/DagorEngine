@@ -1,5 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 #include <hash/md5.h>
-#include <3d/dag_3dConst_base.h>
+#include <drv/3d/dag_consts_base.h>
 #include <util/dag_string.h>
 #include <string>
 #include <string_view>
@@ -10,16 +13,9 @@
 #include "dataAccumulator.h"
 #include "../compileResult.h"
 
-enum MetalImageType : int
-{
-  Tex2D = 0,
-  Tex2DArray = 1,
-  Tex2DDepth = 2,
-  TexCube = 3,
-  Tex3D = 4
-};
+#include "buffBindPoints.h"
 
-MetalImageType translateImageType(const spirv_cross::SPIRType::ImageType &imgType);
+drv3d_metal::MetalImageType translateImageType(const spirv_cross::SPIRType::ImageType &imgType);
 
 struct HashMD5
 {

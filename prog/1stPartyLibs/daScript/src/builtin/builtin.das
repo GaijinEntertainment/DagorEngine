@@ -5,7 +5,6 @@ let
     print_flags_debugger = (
             print_flags escapeString
         |   print_flags namesAndDimensions
-        |   print_flags humanReadable
         |   print_flags typeQualifiers
         |   print_flags refAddresses
     )
@@ -36,23 +35,53 @@ def _move_with_lockcheck ( var a:auto(valA)&; var b:auto(valB)& )
         unsafe
             a <- b
 
-def _return_with_lockcheck ( var a:auto(valT)& ==const ) : valT&
+def _return_with_lockcheck ( var a:auto(valT)& ==const ) : auto&
     static_if typeinfo(need_lock_check type<valT>)
         _builtin_verify_locks(a)
     unsafe
         return a
 
-def _return_with_lockcheck ( a:auto(valT)& ==const ) : valT&
+def _return_with_lockcheck ( a:auto(valT)& ==const ) : auto&
     static_if typeinfo(need_lock_check type<valT>)
         _builtin_verify_locks(a)
     unsafe
         return a
 
 def resize(var Arr:array<auto(numT)>;newSize:int)
+	static_if typeinfo(is_unsafe_when_uninitialized type<numT>)
+		make_function_unsafe()
     static_if typeinfo(need_lock_check type<numT>)
         _builtin_verify_locks(Arr)
     __builtin_array_resize(Arr,newSize,typeinfo(sizeof Arr[0]))
 
+def resize_and_init(var Arr:array<auto(numT)>;newSize:int)
+    static_if typeinfo(need_lock_check type<numT>)
+        _builtin_verify_locks(Arr)
+    let oldSize = length(Arr)
+    __builtin_array_resize(Arr,newSize,typeinfo(sizeof Arr[0]))
+    for i in range(oldSize,newSize)
+        static_if typeinfo(is_workhorse type<numT>)
+            Arr[i] = numT()
+        static_elif typeinfo(can_move type<numT>)
+            Arr[i] <- [[numT()]]
+        static_elif typeinfo(can_copy type<numT>)
+            Arr[i] = [[numT()]]
+        else
+            Arr[i] := [[numT()]]
+
+def resize_and_init(var Arr:array<auto(numT)>;newSize:int; initValue:numT)
+    static_if typeinfo(need_lock_check type<numT>)
+        _builtin_verify_locks(Arr)
+    let oldSize = length(Arr)
+    __builtin_array_resize(Arr,newSize,typeinfo(sizeof Arr[0]))
+    for i in range(oldSize,newSize)
+        static_if typeinfo(can_copy initValue)
+            Arr[i] = initValue
+        else
+            Arr[i] := initValue
+
+
+[unused_argument(Arr, newSize)]
 def resize_no_init(var Arr:array<auto(numT)>;newSize:int)
     static_if typeinfo(is_raw type<numT>)
         static_if typeinfo(need_lock_check type<numT>)
@@ -67,8 +96,9 @@ def reserve(var Arr:array<auto(numT)>;newSize:int)
     __builtin_array_reserve(Arr,newSize,typeinfo(sizeof Arr[0]))
 
 def pop(var Arr:array<auto(numT)>)
-    resize(Arr, length(Arr)-1)  // resize will throw if negative
+    unsafe(resize(Arr, length(Arr)-1))  // resize will throw if negative
 
+[unused_argument(Arr, value)]
 def push(var Arr:array<auto(numT)>;value:numT-# const;at:int)
     static_if typeinfo(can_copy value)
         static_if typeinfo(need_lock_check type<numT>)
@@ -77,6 +107,7 @@ def push(var Arr:array<auto(numT)>;value:numT-# const;at:int)
     else
         concept_assert(false,"can't push value, which can't be copied")
 
+[unused_argument(Arr, value)]
 def push(var Arr:array<auto(numT)>;value:numT-# const)
     static_if typeinfo(can_copy value)
         static_if typeinfo(need_lock_check type<numT>)
@@ -85,6 +116,7 @@ def push(var Arr:array<auto(numT)>;value:numT-# const)
     else
         concept_assert(false,"can't push value, which can't be copied")
 
+[unused_argument(Arr, value)]
 def push(var Arr:array<auto(numT)>; varr:array<numT>-#)
     static_if typeinfo(can_copy type<numT>)
         static_if typeinfo(need_lock_check type<numT>)
@@ -94,6 +126,7 @@ def push(var Arr:array<auto(numT)>; varr:array<numT>-#)
     else
         concept_assert(false,"can't push value, which can't be copied")
 
+[unused_argument(Arr, value)]
 def push(var Arr:array<auto(numT)>; varr:numT[]-#)
     static_if typeinfo(can_copy type<numT>)
         static_if typeinfo(need_lock_check type<numT>)
@@ -103,6 +136,7 @@ def push(var Arr:array<auto(numT)>; varr:numT[]-#)
     else
         concept_assert(false,"can't push value, which can't be copied")
 
+[unused_argument(Arr, value)]
 def push(var Arr:array<auto(numT)[]>; varr:numT[]-#)
     static_if typeinfo(can_copy type<numT>)
         static_if typeinfo(sizeof Arr[0])==typeinfo(sizeof varr)
@@ -232,7 +266,7 @@ def back ( a : array<auto(TT)> const ==const # ) : TT # const &
 
 [expect_any_vector(arr)]
 def back ( var arr : auto(TT) ==const ) : auto &
-    let n = length(arr)
+    let n = _::length(arr)
     if n == 0
         panic("vector is empty")
     unsafe
@@ -240,7 +274,7 @@ def back ( var arr : auto(TT) ==const ) : auto &
 
 [expect_any_vector(arr)]
 def back ( arr : auto(TT) ==const ) : auto & const
-    let n = length(arr)
+    let n = _::length(arr)
     if n == 0
         panic("vector is empty")
     unsafe
@@ -256,6 +290,21 @@ def erase(var Arr:array<auto(numT)>;at:int;count:int)
         _builtin_verify_locks(Arr)
     __builtin_array_erase_range(Arr,at,count,typeinfo(sizeof Arr[0]))
 
+
+def erase_if(var arr:array<auto(TT)>; blk:block<(key:TT):bool> | block<(var key:TT&):bool>)
+    static_if typeinfo(need_lock_check type<TT>)
+        _builtin_verify_locks(arr)
+
+    var i = length(arr)
+    while --i >= 0
+        if invoke(blk, arr[i])
+            let endIndex = i
+            while --i >= 0
+                if !invoke(blk, arr[i])
+                    break
+            __builtin_array_erase_range(arr, i + 1, endIndex - i, typeinfo(sizeof arr[0]))
+
+
 def remove_value(var arr : array<auto(TT)>|#; key : TT) : bool
     //! Removes the first occurrence of a specific object from the collection.
     let idx = find_index(arr, key)
@@ -264,8 +313,8 @@ def remove_value(var arr : array<auto(TT)>|#; key : TT) : bool
         return true
     return false
 
-[unused_argument(a)]
-def length(a:auto[]):int
+[unused_argument(a),expect_dim(a)]
+def length(a:auto|#):int
     return typeinfo(dim a)
 
 def empty(a:array<auto>|#) : bool
@@ -276,7 +325,7 @@ def empty(a:array<auto>|#) : bool
 def empty(a:table<auto;auto>|#) : bool
     return length(a)==0
 
-[deprecated(message="use tab?[key] or `get` instead")]
+[deprecated(message="use tab?[key] or 'get' instead")]
 def find(Tab:table<auto(keyT);auto(valT)>|#;at:keyT-#;blk:block<(p:valT?#):void>)
     __builtin_table_lock(Tab)
     var val = __builtin_table_find(Tab,at)
@@ -284,9 +333,9 @@ def find(Tab:table<auto(keyT);auto(valT)>|#;at:keyT-#;blk:block<(p:valT?#):void>
         invoke(blk,reinterpret<valT?#> val)
     __builtin_table_unlock(Tab)
 
-[deprecated(message="use tab?[key] or `get` instead")]
-def find(Tab:table<auto(keyT);void>;at:keyT|#;blk:block<(p:void?):void>)
-    concept_assert(false,"find(table<keyT;void>,...) is not supported")
+[deprecated(message="use tab?[key] or 'get' instead")]
+def find(Tab:table<auto(keyT)>;at:keyT|#;blk:block<(p:void?):void>)
+    concept_assert(false,"find(table<keyT; void>, ...) is not supported")
 
 // one table lookup with block to rule them all 'get'
 
@@ -334,13 +383,13 @@ def get(var Tab:table<auto(keyT);auto(valT)> ==const;at:keyT-#;blk:block<(var p:
     else
         return false
 
-def get(Tab:table<auto(keyT);void>;at:keyT|#;blk:block<(var p:void?):void>)
-    concept_assert(false,"get(table<keyT>,...) is not supported. use `key_exists` instead")
+def get(Tab:table<auto(keyT)>;at:keyT|#;blk:block<(var p:void?):void>)
+    concept_assert(false,"get(table<keyT>, ...) is not supported; use 'key_exists' instead")
     return false
 
 // find if exists
 
-[deprecated(message="use tab?[key] or `get` instead")]
+[deprecated(message="use tab?[key] or 'get' instead")]
 def find_if_exists(Tab:table<auto(keyT);auto(valT)>;at:keyT-#;blk:block<(p:valT&):void>)
     var val = __builtin_table_find(Tab,at)
     if val != null
@@ -351,7 +400,7 @@ def find_if_exists(Tab:table<auto(keyT);auto(valT)>;at:keyT-#;blk:block<(p:valT&
     else
         return false
 
-[deprecated(message="use tab?[key] or `get` instead")]
+[deprecated(message="use tab?[key] or 'get' instead")]
 def find_if_exists(Tab:table<auto(keyT);auto(valT)>#;at:keyT-#;blk:block<(p:valT&#):void>)
     var val = __builtin_table_find(Tab,at)
     if val != null
@@ -362,14 +411,14 @@ def find_if_exists(Tab:table<auto(keyT);auto(valT)>#;at:keyT-#;blk:block<(p:valT
     else
         return false
 
-[deprecated(message="use tab?[key] or `get` instead")]
-def find_if_exists(Tab:table<auto(keyT);void>;at:keyT-#;blk:block<(p:void?):void>)
-    concept_assert(false,"find_if_exists(table<keyT;void>,...) is not supported")
+[deprecated(message="use tab?[key] or 'get' instead")]
+def find_if_exists(Tab:table<auto(keyT)>;at:keyT-#;blk:block<(p:void?):void>)
+    concept_assert(false,"find_if_exists(table<keyT; void>, ...) is not supported")
     return false
 
 // find for edit
 
-[deprecated(message="use tab?[key] or `get` instead")]
+[deprecated(message="use tab?[key] or 'get' instead")]
 def find_for_edit(var Tab:table<auto(keyT);auto(valT)>;at:keyT-#;blk:block<(var p:valT?#):void>)
     __builtin_table_lock(Tab)
     var val = __builtin_table_find(Tab,at)
@@ -377,21 +426,21 @@ def find_for_edit(var Tab:table<auto(keyT);auto(valT)>;at:keyT-#;blk:block<(var 
         invoke(blk,reinterpret<valT?#> val)
     __builtin_table_unlock(Tab)
 
-[deprecated(message="use tab?[key] or `get` instead")]
-def find_for_edit(var Tab:table<auto(keyT);void>;at:keyT|#;blk:block<(var p:void?):void>)
-    concept_assert(false,"find_for_edit(table<keyT;void>,...) is not supported")
+[deprecated(message="use tab?[key] or 'get' instead")]
+def find_for_edit(var Tab:table<auto(keyT)>;at:keyT|#;blk:block<(var p:void?):void>)
+    concept_assert(false,"find_for_edit(table<keyT; void>, ...) is not supported")
 
 [unsafe_operation, deprecated(message="use tab?[key] instead")]
 def find_for_edit(var Tab:table<auto(keyT);auto(valT)>|#;at:keyT-#):valT?
     return __builtin_table_find(Tab,at)
 
 [unsafe_operation, deprecated(message="use tab?[key] instead")]
-def find_for_edit(var Tab:table<auto(keyT);void>;at:keyT|#):void?
-    concept_assert(false,"find_for_edit(table<keyT;void>,...) is not supported")
+def find_for_edit(var Tab:table<auto(keyT)>;at:keyT|#):void?
+    concept_assert(false,"find_for_edit(table<keyT; void>, ...) is not supported")
 
 // find for edit if exists
 
-[deprecated(message="use tab?[key] or `get` instead")]
+[deprecated(message="use tab?[key] or 'get' instead")]
 def find_for_edit_if_exists(var Tab:table<auto(keyT);auto(valT)>#;at:keyT-#;blk:block<(var p:valT#&):void>)
     var val = __builtin_table_find(Tab,at)
     if val != null
@@ -403,7 +452,7 @@ def find_for_edit_if_exists(var Tab:table<auto(keyT);auto(valT)>#;at:keyT-#;blk:
     else
         return false
 
-[deprecated(message="use tab?[key] or `get` instead")]
+[deprecated(message="use tab?[key] or 'get' instead")]
 def find_for_edit_if_exists(var Tab:table<auto(keyT);auto(valT)>;at:keyT-#;blk:block<(var p:valT&):void>)
     var val = __builtin_table_find(Tab,at)
     if val != null
@@ -415,9 +464,9 @@ def find_for_edit_if_exists(var Tab:table<auto(keyT);auto(valT)>;at:keyT-#;blk:b
     else
         return false
 
-[deprecated(message="use tab?[key] or `get` instead")]
-def find_for_edit_if_exists(var Tab:table<auto(keyT);void>;at:keyT|#;blk:block<(var p:void?):void>)
-    concept_assert(false,"find_for_edit_if_exists(table<keyT;void>,...) is not supported")
+[deprecated(message="use tab?[key] or 'get' instead")]
+def find_for_edit_if_exists(var Tab:table<auto(keyT)>;at:keyT|#;blk:block<(var p:void?):void>)
+    concept_assert(false,"find_for_edit_if_exists(table<keyT; void>, ...) is not supported")
     return false
 
 def _at_with_lockcheck ( var Tab:table<auto(keyT);auto(valT)>; at:keyT|# ) : valT &
@@ -437,7 +486,7 @@ def erase(var Tab:table<auto(keyT);auto(valT)>;at:keyT|#):bool
         _builtin_verify_locks(Tab)
     return __builtin_table_erase(Tab,at)
 
-def insert(var Tab:table<auto(keyT);void>;at:keyT|#)
+def insert(var Tab:table<auto(keyT)>;at:keyT|#)
     __builtin_table_set_insert(Tab,at)
 
 def key_exists(Tab:table<auto(keyT);auto(valT)>|#;at:string#):bool
@@ -478,22 +527,33 @@ def clone_to_move(clone_src:auto(TT)|#) : TT -const -#
 
 def clone_dim(var a;b:auto|#)
     static_if typeinfo(is_dim a) && typeinfo(is_dim b) && typeinfo(dim a)==typeinfo(dim b)
-        for aV,bV in a,b
-            aV := bV
+        if typeinfo(is_pod a)
+            unsafe
+                memcpy(addr(a[0]),addr(b[0]),typeinfo(sizeof a[0])*length(a))
+        else
+            for aV,bV in a,b
+                aV := bV
     else
         concept_assert(false,"can't clone this array")
 
 def clone(var a:array<auto(TT)>;b:array<TT>|#)
-    resize(a,length(b))
-    for aV,bV in a,b
-        aV := bV
+    let ln = length(b)
+    unsafe(resize(a,ln)) // note: is this safe? do we actaully need to init first???
+    if ln == 0
+        return
+    static_if typeinfo(is_pod type<TT>)
+        unsafe
+            memcpy(addr(a[0]),addr(b[0]),typeinfo(sizeof a[0])*ln)
+    else
+        for aV,bV in a,b
+            aV := bV
 
-def clone(var a:table<auto(KT);void>;b:table<KT;void>|#)
+def clone(var a:table<auto(KT)>;b:table<KT>|#)
     clear(a)
     for k in keys(b)
         __builtin_table_set_insert(a,k)
 
-def clone(var a:table<string;void>;b:table<string;void>|#)
+def clone(var a:table<string>;b:table<string>|#)
     clear(a)
     for k in keys(b)
         let kk := k
@@ -510,25 +570,25 @@ def clone(var a:table<string;auto(VT)>;b:table<string;VT>|#)
         let kk := k
         a[kk] := v
 
-[unsafe_outside_of_for]
-def keys(a:table<auto(keyT);auto(valT)>|#) : iterator<keyT & const>
-    var it : iterator<keyT & const>
+[unsafe_outside_of_for,nodiscard]
+def keys(a:table<auto(keyT);auto(valT)>|#) : iterator<keyT - const>
+    var it : iterator<keyT - const>
     __builtin_table_keys(it,a,typeinfo(sizeof type<keyT>))
     return <- it
 
-def values(a:table<auto(keyT);void> ==const|#)
-    concept_assert(false,"can't iterate over values of a table<...;void>")
+def values(a:table<auto(keyT)> ==const|#)
+    concept_assert(false,"can't iterate over values of a table<...; void>")
 
-def values(var a:table<auto(keyT);void> ==const|#)
-    concept_assert(false,"can't iterate over values of a table<...;void>")
+def values(var a:table<auto(keyT)> ==const|#)
+    concept_assert(false,"can't iterate over values of a table<...; void>")
 
-[unsafe_outside_of_for]
+[unsafe_outside_of_for,nodiscard]
 def values(a:table<auto(keyT);auto(valT)> ==const|#) : iterator<valT & const>
     var it : iterator<valT & const>
     __builtin_table_values(it,a,typeinfo(sizeof type<valT>))
     return <- it
 
-[unsafe_outside_of_for]
+[unsafe_outside_of_for,nodiscard]
 def values(var a:table<auto(keyT);auto(valT)> ==const|#) : iterator<valT &>
     var it : iterator<valT &>
     __builtin_table_values(it,a,typeinfo(sizeof type<valT>))
@@ -586,7 +646,7 @@ def next ( it:iterator<auto(TT)>; var value : TT& ) : bool
         unsafe
             return _builtin_iterator_iterate(it, addr(value))
 
-[generic]
+[generic,nodiscard]
 def each ( rng : range ) : iterator<int>
     var it : iterator<int>
     _builtin_make_range_iterator(it,rng)
@@ -596,13 +656,13 @@ def iter_range ( foo )
     concept_assert(typeinfo(is_iterable foo),"requires iterable")
     return range(_::length(foo)) // assuming length(foo) exists
 
-[generic,unsafe_outside_of_for]
+[generic,unsafe_outside_of_for,nodiscard]
 def each ( str : string ) : iterator<int>
     var it : iterator<int>
     _builtin_make_string_iterator(it,str)
     return <- it
 
-[unsafe_outside_of_for]
+[unsafe_outside_of_for,nodiscard]
 def each ( a : auto(TT)[] ) : iterator<TT&>
     unsafe
         var parr : void? = reinterpret<void?>(addr(a[0]))
@@ -610,19 +670,20 @@ def each ( a : auto(TT)[] ) : iterator<TT&>
         _builtin_make_fixed_array_iterator(it,parr,typeinfo(dim a),typeinfo(sizeof a[0]))
         return <- it
 
-[unsafe_outside_of_for]
+[unsafe_outside_of_for,nodiscard]
 def each ( a : array<auto(TT)> ) : iterator<TT&>
     var it : iterator<TT&>
     _builtin_make_good_array_iterator(it, a, typeinfo(sizeof a[0]))
     return <- it
 
-[unsafe_outside_of_for]
+[unsafe_outside_of_for,nodiscard]
 def each ( a : array<auto(TT)># ) : iterator<TT#&>
     var it : iterator<TT#&>
     _builtin_make_good_array_iterator(it, a, typeinfo(sizeof a[0]))
     unsafe
         return <- it
 
+[nodiscard]
 def each ( lam : lambda<(var arg:auto(argT)):bool> ) : iterator<argT -&>
     concept_assert(typeinfo(is_ref type<argT>),"lamda-to-iterator argument has to be reference; expecting value& or reference type")
     var it : iterator<argT -&>
@@ -630,15 +691,16 @@ def each ( lam : lambda<(var arg:auto(argT)):bool> ) : iterator<argT -&>
     unsafe
         return <- it
 
+[nodiscard]
 def each_ref ( lam : lambda<(var arg:auto(argT)?):bool> ) : iterator<argT &>
     var it : iterator<argT &>
     _builtin_make_lambda_iterator(it,lam,typeinfo(sizeof type<void?>))
     unsafe
         return <- it
 
-[unused_argument(tt)]
+[unused_argument(tt),nodiscard]
 def each_enum(tt:auto(TT)) : iterator<TT -const -&>
-    concept_assert(typeinfo(is_enum tt),"expecting each_enum(any enum value)")
+    concept_assert(typeinfo(is_enum tt),"expecting 'each_enum(any_enum_value)'")
     var iter : iterator<TT -const -&>
     _builtin_make_enum_iterator(iter)
     unsafe
@@ -658,7 +720,7 @@ def to_array ( it : iterator<auto(TT)> ) : array<TT -const -&>
 [skip_lock_check]
 def to_array(a:auto(TT)[]) : array<TT -const>
     var arr : array<TT -const>
-    resize(arr,length(a))
+    unsafe(resize(arr,length(a)))   // TODO: is this safe? do we actually need to init first???
     unsafe
         reinterpret<TT -const[typeinfo(dim a)]>(addr(arr[0])) := a
     return <- arr
@@ -668,11 +730,11 @@ def to_array_move(var a:auto(TT)[]) : array<TT -const>
     unsafe
         var arr : array<TT -const>
         static_if typeinfo(can_copy a)
-            resize(arr,length(a))
+            unsafe(resize(arr,length(a))) // TODO: is this safe? do we actually need to init first???
             unsafe
                 reinterpret<TT -const[typeinfo(dim a)]>(addr(arr[0])) = a
         static_elif typeinfo(can_move a)
-            resize(arr,length(a))
+            unsafe(resize(arr,length(a))) // TODO: is this safe? do we actually need to init first???
             unsafe
                 reinterpret<TT -const[typeinfo(dim a)]>(addr(arr[0])) <- a
         else
@@ -684,7 +746,7 @@ def to_array_move(var a:auto(TT)) : array<TT -const>
     unsafe
         var arr : array<TT -const>
         static_if typeinfo(is_smart_ptr a)
-            concept_assert(false,"can't create array from smart pointer by value. did u mean [\{Type[1] value\}] instead of [\{Type value\}]")
+            concept_assert(false,"can't create array from smart pointer by value. did you mean [\{Type[1] value\}] instead of [\{Type value\}]")
         static_if typeinfo(can_copy a)
             arr |> push(a)
         static_elif typeinfo(can_move a)
@@ -701,21 +763,58 @@ def to_table(a:tuple<auto(keyT);auto(valT)>[]) : table<keyT -const;valT>
     return <- tab
 
 [skip_lock_check]
-def to_table(a:auto(keyT)[]) : table<keyT -const;void>
-    var tab : table<keyT -const;void>
+def to_table(a:auto(keyT)[]) : table<keyT -const>
+    var tab : table<keyT -const>
     for at in a
         __builtin_table_set_insert(tab,at)
     return <- tab
 
 [skip_lock_check]
-def to_table_move(var a:auto(keyT)[]) : table<keyT -const;void>
-    var tab : table<keyT -const;void>
+def to_table_move(a:auto(keyT)[]) : table<keyT -const>
+    var tab : table<keyT -const>
     for at in a
         __builtin_table_set_insert(tab,at)
+    return <- tab
+
+[skip_lock_check]
+def to_table_move(a:array<auto(keyT)>) : table<keyT -const>
+    var tab : table<keyT -const>
+    for at in a
+        __builtin_table_set_insert(tab,at)
+    return <- tab
+
+[skip_lock_check]
+def to_table_move(a:auto(keyT)) : table<keyT -const>
+    var tab : table<keyT -const>
+    __builtin_table_set_insert(tab,a)
+    return <- tab
+
+[skip_lock_check]
+def to_table_move(var a:tuple<auto(keyT);auto(valT)>) : table<keyT -const;valT>
+    var tab : table<keyT -const;valT>
+    static_if typeinfo(can_copy type<valT>)
+        tab[a._0] = a._1
+    static_elif typeinfo(can_move type<valT>)
+        tab[a._0] <- a._1
+    else
+        concept_assert(false,"this array can't be copied or moved")
     return <- tab
 
 [skip_lock_check]
 def to_table_move(var a:tuple<auto(keyT);auto(valT)>[]) : table<keyT -const;valT>
+    var tab : table<keyT -const;valT>
+    static_if typeinfo(can_copy type<valT>)
+        for x in a
+            tab[x._0] = x._1
+    static_elif typeinfo(can_move type<valT>)
+        for x in a
+            tab[x._0] <- x._1
+    else
+        concept_assert(false,"this array can't be copied or moved")
+    return <- tab
+
+[skip_lock_check]
+def to_table_move(var a:array<tuple<auto(keyT);auto(valT)>>) : table<keyT -const;valT>
     var tab : table<keyT -const;valT>
     static_if typeinfo(can_copy type<valT>)
         for x in a
@@ -887,10 +986,14 @@ def has_value ( a; key )
                 return true
         return false
     else
-        concept_assert(false,"can't iterate over source. has_value is meaningless")
+        concept_assert(false,"can't iterate over source; 'has_value' is meaningless")
         return false
 
-def get_ptr ( src : smart_ptr<auto(TT)> ) : TT?
+def get_ptr ( src : smart_ptr<auto(TT)> ==const ) : TT? const
+    unsafe
+        return reinterpret<TT?> src
+
+def get_ptr ( var src : smart_ptr<auto(TT)> ==const ) : TT?
     unsafe
         return reinterpret<TT?> src
 
@@ -991,3 +1094,30 @@ def clear ( var t : table<auto(KT); auto(VT)> )
         _builtin_verify_locks(t)
     _builtin_table_clear(t)
 
+
+def float2(a,b)
+    return float2(float(a),float(b))
+
+def float3(a,b,c)
+    return float3(float(a),float(b),float(c))
+
+def float4(a,b,c,d)
+    return float4(float(a),float(b),float(c),float(d))
+
+def int2(a,b)
+    return int2(int(a),int(b))
+
+def int3(a,b,c)
+    return int3(int(a),int(b),int(c))
+
+def int4(a,b,c,d)
+    return int4(int(a),int(b),int(c),int(d))
+
+def uint2(a,b)
+    return uint2(uint(a),uint(b))
+
+def uint3(a,b,c)
+    return uint3(uint(a),uint(b),uint(c))
+
+def uint4(a,b,c,d)
+    return uint4(uint(a),uint(b),uint(c),uint(d))

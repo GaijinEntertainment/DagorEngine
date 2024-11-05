@@ -1,0 +1,22 @@
+float night_light_mult = 0.02;
+float night_light_dist_mult = 0.04;
+
+macro INIT_AND_USE_NIGHT_LIGHT(code)
+  INIT_NIGHT_LIGHT(code)
+  USE_NIGHT_LIGHT(code)
+endmacro
+
+macro INIT_NIGHT_LIGHT(code)
+  (code) {
+    night_light@f2 = (night_light_mult, night_light_dist_mult, 0, 0);
+  }
+endmacro
+
+macro USE_NIGHT_LIGHT(code)
+  hlsl (code) {
+    half3 fakeNightLight(half3 albedo, float strength, float saturated_NdotV, float distSq) {
+     //use albedo instead of diffuseColor, so fake light affects metal
+      return albedo * half(night_light.x * strength * saturated_NdotV / (1 + night_light.y * distSq));//fake light
+    }
+  }
+endmacro

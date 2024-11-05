@@ -1,6 +1,4 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef __DAGOR_SHCODE_H
-#define __DAGOR_SHCODE_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <util/dag_globDef.h>
@@ -74,6 +72,7 @@ public:
     int stblkcodeNo = -1;
     int renderStateNo = -1;
     eastl::array<uint16_t, 3> threadGroupSizes = {};
+    bool scarlettWave32 = false;
   };
 
   // for each variant create it's own passes
@@ -139,6 +138,7 @@ public:
   SerializableTab<int> shInitCode;
 
   bindump::string name;
+  int64_t timestamp = -1;
   bool isSelectedForDebug;
 
   bindump::vector<bindump::string> messages;
@@ -164,4 +164,3 @@ public:
 };
 
 #undef codemem
-#endif

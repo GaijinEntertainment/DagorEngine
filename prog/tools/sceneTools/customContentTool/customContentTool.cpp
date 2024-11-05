@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/dtx/ddsxPlugin.h>
 #include <libTools/util/conLogWriter.h>
 #include <regExp/regExp.h>
@@ -32,7 +34,7 @@
 #include <stdlib.h>
 #include <time.h>
 #undef ERROR
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 static ConsoleLogWriter conlog;
 
@@ -120,7 +122,7 @@ static bool pack_to_bbz(const DataBlock &blk, const char *filename)
     cwr.writeInt(sz);
     cwr.seekto(pos + 4 + sz);
   }
-  DAGOR_CATCH(IGenSave::SaveException) { return false; }
+  DAGOR_CATCH(const IGenSave::SaveException &) { return false; }
   return true;
 }
 } // namespace dblk
@@ -720,15 +722,7 @@ int DagorWinMain(bool debugmode)
 
   char start_dir[260];
   dag_get_appmodule_dir(start_dir, sizeof(start_dir));
-#if _TARGET_PC_LINUX
-  int pc = ddsx::load_plugins(String(260, "%s/../bin-linux64/plugins/ddsx", start_dir));
-#elif _TARGET_PC_MACOSX
-  int pc = ddsx::load_plugins(String(260, "%s/../bin-macosx/plugins/ddsx", start_dir));
-#elif _TARGET_64BIT
-  int pc = ddsx::load_plugins(String(260, "%s/../bin64/plugins/ddsx", start_dir));
-#else
-  int pc = ddsx::load_plugins(String(260, "%s/../bin/plugins/ddsx", start_dir));
-#endif
+  int pc = ddsx::load_plugins(String(260, "%s/plugins/ddsx", start_dir));
   if (!quiet)
     conlog.addMessage(conlog.NOTE, "Loaded %d plugin(s)", pc);
 

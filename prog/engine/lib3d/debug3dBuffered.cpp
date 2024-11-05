@@ -1,7 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_debug3d.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_carray.h>
+#include <mutex>
 
 struct BufferedLine
 {
@@ -13,11 +16,13 @@ struct BufferedLine
 };
 
 static Tab<BufferedLine> buffered_line_list(midmem_ptr()); // Note: sorted by deadline
+static std::mutex buffer_line_mutex;
 static size_t current_frame = 0;
 static bool last_frame_game_was_paused = false;
 
 void draw_debug_line_buffered(const Point3 &p0, const Point3 &p1, E3DCOLOR c, size_t requested_frames)
 {
+  std::lock_guard lock(buffer_line_mutex);
   size_t frames = last_frame_game_was_paused ? 1 : requested_frames;
   size_t deadlineFrame = current_frame + frames;
   for (int last = buffered_line_list.size() - 1, i = last; i >= 0; --i) // lookup place to insert into (according to deadline)
@@ -32,7 +37,11 @@ void draw_debug_line_buffered(const Point3 &p0, const Point3 &p1, E3DCOLOR c, si
   insert_item_at(buffered_line_list, 0, BufferedLine{p0, p1, c, deadlineFrame, frames}); // insert first (oldest)
 }
 
-void clear_buffered_debug_lines() { clear_and_shrink(buffered_line_list); }
+void clear_buffered_debug_lines()
+{
+  std::lock_guard lock(buffer_line_mutex);
+  clear_and_shrink(buffered_line_list);
+}
 
 void draw_debug_arrow_buffered(const Point3 &from, const Point3 &to, E3DCOLOR color, size_t frames)
 {
@@ -215,6 +224,38 @@ void draw_debug_tube_buffered(const Point3 &p0, const Point3 &p1, float radius, 
   draw_debug_circle_buffered(p1, dir, radius, col, segs, frames);
 }
 
+void draw_debug_cylinder_buffered(const Point3 &p0, const Point3 &p1, float radius, E3DCOLOR col, int segs, size_t frames)
+{
+  draw_debug_cylinder_buffered(p0, p1, radius, radius, col, segs, frames);
+}
+
+void draw_debug_cylinder_buffered(const Point3 &p0, const Point3 &p1, float radius1, float radius2, E3DCOLOR col, int segs,
+  size_t frames)
+{
+  Point3 dir = (p1 - p0);
+  float length = dir.length();
+  dir *= safeinv(length);
+  Point3 norm;
+  if (rabs(dir.x) >= FLT_EPSILON)
+    norm = Point3(0, dir.z, -dir.y); // dir % Point3(1,0,0)
+  else
+    norm = Point3(dir.z, 0, -dir.x); // Point3(0, 1, 0) % dir
+  norm.normalize();
+
+  const float angleStep = 2 * PI / segs;
+  for (size_t i = 0; i < segs; ++i)
+  {
+    Quat quaternion = Quat(dir, i * angleStep);
+    Point3 newDir = quaternion * norm;
+    Point3 newPos = p0 + newDir * radius1;
+    Point3 newPos2 = p1 + newDir * radius2;
+    ::draw_debug_line_buffered(newPos, newPos2, col, frames);
+  }
+
+  draw_debug_circle_buffered(p0, dir, radius1, col, segs, frames);
+  draw_debug_circle_buffered(p1, dir, radius2, col, segs, frames);
+}
+
 void draw_debug_cone_buffered(const Point3 &p0, const Point3 &p1, real angleRad, E3DCOLOR col, int segs, size_t frames)
 {
   Point3 dir = (p1 - p0);
@@ -309,6 +350,7 @@ static int draw_buffered_lines(dag::ConstSpan<BufferedLine> lines, size_t cur_fr
 
 void flush_buffered_debug_lines(bool game_is_paused)
 {
+  std::lock_guard lock(buffer_line_mutex);
   last_frame_game_was_paused = game_is_paused;
   if (buffered_line_list.empty())
     return;

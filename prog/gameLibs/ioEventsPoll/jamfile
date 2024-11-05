@@ -15,11 +15,11 @@ if $(Platform) in ps4 ps5 {
   AddIncludes += $(Root)/prog/3rdPartyLibs/posix/include/ps4 ;
 }
 
-if $(Platform) in win32 win64 xboxOne scarlett {
+if $(Platform) in windows xboxOne scarlett {
   AddIncludes += $(Root)/prog/3rdPartyLibs/posix/include/win32 ;
 }
 
-if $(Platform) in macosx iOS tvOS {
+if $(Platform) in macOS iOS tvOS {
   CPPopt = -Wno-c++1z-compat-mangling ;
 }
 

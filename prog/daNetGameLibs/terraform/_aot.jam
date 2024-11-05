@@ -1,0 +1,5 @@
+local R = prog/daNetGameLibs/terraform ;
+Sources +=
+  $(R)/dasModules/terraform.cpp
+  $(R)/_aot/stub_terraform.cpp
+;

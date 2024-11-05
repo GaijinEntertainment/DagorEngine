@@ -1,0 +1,17 @@
+WARNING: w288 (param-count) Function '(foo.nut:2)' (2..2 parameters) is called with the wrong number of arguments (1).
+testData/static_analyzer/w288_require_indirect.nut:3:20
+
+let foo = mod.foo
+return { bar = @(x) foo(x) }
+                    ^-----
+
+
+HINT: h314 (see-other) You can find the function here.
+testData/static_analyzer/w288_require_indirect.nut:2:10
+
+let mod = require("testData/static_analyzer/foo.nut")
+let foo = mod.foo
+          ^------
+return { bar = @(x) foo(x) }
+
+

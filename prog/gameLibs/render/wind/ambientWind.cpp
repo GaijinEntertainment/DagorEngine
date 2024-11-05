@@ -1,7 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "render/wind/ambientWind.h"
 
 #include <shaders/dag_shaders.h>
-#include <3d/dag_drv3d_multi.h>
+#include <drv/3d/dag_driver.h>
 #include <math/dag_mathUtils.h>
 #include <gameRes/dag_gameResources.h>
 #include <3d/dag_lockTexture.h>
@@ -16,6 +18,7 @@ static constexpr float AMBIENT_WIND_PERIOD_SECONDS = 2000.0f;
   VAR(ambient_wind_grass_noise__speed__scale__perpendicular__strength) \
   VAR(ambient_wind_map_scale__offset)                                  \
   VAR(ambient_wind_tex)                                                \
+  VAR(ambient_wind_tex_samplerstate)                                   \
   VAR(wind_perlin_tex)
 
 #define VAR(a) static int a##VarId = -1;
@@ -122,6 +125,7 @@ void AmbientWind::setWindParameters(const Point4 &wind_map_borders, const Point2
 {
   windDir = wind_dir;
   windSpeed = beaufort_to_meter_per_second(wind_strength_beaufort);
+  windStrength = wind_strength_beaufort;
 
   setWindParametersToShader(wind_noise_strength_multiplier, wind_noise_speed_beaufort, wind_noise_scale, wind_noise_perpendicular,
     wind_map_borders);
@@ -133,6 +137,7 @@ void AmbientWind::setWindParametersWithGrass(const AmbientWindParameters &params
 {
   windDir = params.windDir;
   windSpeed = beaufort_to_meter_per_second(params.windStrength);
+  windStrength = params.windStrength;
 
   setWindParametersToShader(params);
   parametersInitialized = true;
@@ -168,10 +173,12 @@ void AmbientWind::setWindTextures(const char *wind_flowmap_name, const char *win
 
     if (!flowmapTexFallback)
       flowmapTexFallback = dag::create_tex(nullptr, 1, 1, TEXFMT_A8R8G8B8, 1, "ambient_wind_tex_fallback");
+    flowmapTexFallback->disableSampler();
 
     if (hasFlowmap)
     {
       flowmapGameresTex = dag::get_tex_gameres(wind_flowmap_name);
+      flowmapGameresTex->disableSampler();
       G_ASSERTF(flowmapGameresTex, "Could not load ambient wind texture '%s'", wind_flowmap_name);
       prefetch_managed_texture(flowmapGameresTex.getTexId());
     }
@@ -181,6 +188,7 @@ void AmbientWind::setWindTextures(const char *wind_flowmap_name, const char *win
     }
 
     ShaderGlobal::set_texture(ambient_wind_texVarId, hasFlowmap ? flowmapGameresTex.getTexId() : flowmapTexFallback.getTexId());
+    ShaderGlobal::set_sampler(ambient_wind_tex_samplerstateVarId, d3d::request_sampler({}));
   }
 
   if (!hasFlowmap)
@@ -201,9 +209,11 @@ void AmbientWind::close()
   noisemapName = "";
 }
 
-const Point2 &AmbientWind::getWindDir() { return windDir; }
+float AmbientWind::getWindStrength() const { return windStrength; }
 
-float AmbientWind::getWindSpeed() { return windSpeed; }
+const Point2 &AmbientWind::getWindDir() const { return windDir; }
+
+float AmbientWind::getWindSpeed() const { return windSpeed; }
 
 void AmbientWind::update()
 {

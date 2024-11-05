@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -10,9 +9,12 @@
 #include <generic/dag_tab.h>
 #include <render/dynmodelRenderer.h>
 #include <3d/dag_textureIDHolder.h>
+#include <math/dag_hlsl_floatx.h>
+#include <render/decals/planar_decals_params.hlsli>
 
 class DataBlock;
 
+// Decals for dynmodels. Includes planar decals (permanent decorations) and dynamic (such as damage holes).
 namespace dyn_decals
 {
 
@@ -22,6 +24,7 @@ struct DECLSPEC_ALIGN(16) DecalsData
   DecalsData(const DecalsData &from);
   ~DecalsData();
   DecalsData &operator=(const DecalsData &) = delete;
+  bool operator==(const DecalsData &other) const;
 
   const TextureIDPair &getTexture(int slot_no) const { return decalTextures[slot_no]; }
   dag::ConstSpan<TextureIDPair> getTextures() const { return dag::ConstSpan<TextureIDPair>(decalTextures, num_decals); }
@@ -51,7 +54,7 @@ struct CapsulePrim
   Point3 bot = Point3(0, 0, 0);
   float radius = 0;
   Point3 top = Point3(0, 0, 0);
-  float isExplodedMaterial = 0; // bitField
+  uint32_t isExplodedMaterial = 0; // bitField
 };
 
 struct SpherePrim
@@ -79,10 +82,17 @@ void add_to_atlas(TEXTUREID texId);
 void remove_from_atlas(TEXTUREID texId);
 void add_to_atlas(dag::ConstSpan<TextureIDPair> textures);
 void remove_from_atlas(dag::ConstSpan<TextureIDPair> textures);
+int allocate_buffer(); // Returns id of decal params set.
+void update_buffer(int params_id, const DecalsData &decals);
+void remove_from_buffer(int decals_param_set_id);
+void after_reset_device();
 void clear_atlas();
 Point4 get_atlas_uv(TEXTUREID texId);
 bool is_pending_update(TEXTUREID texId);
-void add_decals_to_params(int start_params, dynrend::PerInstanceRenderData &data, const dyn_decals::DecalsData &decals);
+bool are_decals_ready(const DecalsData &decals);
+PlanarDecalsParamsSet construct_decal_params(const DecalsData &decals);
+int get_valid_decal_count(const DecalsData &decals);
+void set_planar_decals(int params_id, dynrend::PerInstanceRenderData &render_data);
 void set_dyn_decals(const DynDecals &decals, Tab<Point4> &out_params);
 void set_dyn_decals(const DynDecals &decals, int start_params, dynrend::PerInstanceRenderData &render_data);
 bool update();

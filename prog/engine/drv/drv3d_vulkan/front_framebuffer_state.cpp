@@ -1,5 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "front_framebuffer_state.h"
-#include "device.h"
+#include "graphics_state2.h"
 
 namespace drv3d_vulkan
 {
@@ -40,8 +42,8 @@ bool FrontFramebufferState::handleObjectRemoval(const Image *object)
     if (rt.image == object)
     {
       // this will prevent crash, but must be fixed in game code!
-      // leave this logerr to actual use place
-      // logerr("vulkan: removing image %p<%s> bound as fb attachment %u", object, object->getDebugName(), i);
+      // leave this D3D_ERROR to actual use place
+      // D3D_ERROR("vulkan: removing image %p<%s> bound as fb attachment %u", object, object->getDebugName(), i);
       set<StateFieldFramebufferAttachments, uint32_t>(i);
       ret |= true;
     }
@@ -61,8 +63,6 @@ Driver3dRenderTarget &FrontFramebufferState::asDriverRT()
   StateFieldFramebufferAttachment &ds = fbAttachments[MRT_INDEX_DEPTH_STENCIL];
   if (ds.image)
     rt.setDepth(ds.tex, getData().readOnlyDepth.data);
-  else if (ds.useSwapchain)
-    rt.setBackbufDepth();
 
   for (int i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
   {

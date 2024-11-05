@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <perfMon/gpuProfiler.h>
 
 static bool init() { return false; }

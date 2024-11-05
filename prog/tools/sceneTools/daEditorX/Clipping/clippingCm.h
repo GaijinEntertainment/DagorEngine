@@ -1,5 +1,4 @@
-#ifndef __GAIJIN_CLIPPING_COMMANDS__
-#define __GAIJIN_CLIPPING_COMMANDS__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <oldEditor/de_cm.h>
@@ -15,6 +14,3 @@ enum
   CM_VIEW_DAG_LIST,
   CM_TOOL
 };
-
-
-#endif //__GAIJIN_CLIPPING_COMMANDS__

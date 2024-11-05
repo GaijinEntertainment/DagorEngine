@@ -1,0 +1,422 @@
+include "psh_derivate.dshl"
+include "normaldetail.dshl"
+include "rendinst_opaque_inc.dshl"
+include "rendinst_voxelize_albedo_inc.dshl"
+include "mask_layered_inc.dshl"
+include "hmap_blend_inc.dshl"
+include "hmap_blend_use_inc.dshl"
+include "plod_inc.dshl"
+
+shader rendinst_layered
+{
+  if (rendinst_render_pass == rendinst_render_pass_grassify) { dont_render; }
+  if (rendinst_render_pass == rendinst_render_pass_impostor_color  ||  rendinst_render_pass == rendinst_render_pass_impostor_shadow)
+  {
+    dont_render;
+  }
+
+  if (rendinst_render_pass != rendinst_render_pass_to_heightmap)
+  {
+    NO_DYNSTCODE()
+  }
+
+  PLOD_GBUF_GEN_INIT(rendinst_render_pass == rendinst_render_pass_normal)
+  ENABLE_MULTI_DRAW(rendinst_render_pass == rendinst_render_pass_to_shadow  || rendinst_render_pass == rendinst_render_pass_depth)
+
+  INIT_LAYERED_FULL()
+  INIT_HMAP_BLEND_STATIC()
+
+  if (rendinst_render_pass == rendinst_render_pass_to_heightmap &&
+    !(enable_hmap_blend == yes && compatibility_mode != compatibility_mode_on && tex_hmap_low != NULL))
+  {
+    dont_render;
+  }
+
+
+  if (rendinst_render_pass == rendinst_render_pass_normal)
+  {
+    USE_MICRODETAIL_BASED_WETNESS()
+  }
+  SETUP_CHARACTER_TWO_MICRODETAILS()
+
+  RENDINST_BLOCK()
+  RI_VOXELIZE_ALBEDO()
+  RENDINST_INSTANCING()
+
+  INIT_PAINT_DETAILS_STATIC()
+  if (rendinst_render_pass == rendinst_render_pass_to_shadow)
+  {
+    hlsl(vs) {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+      };
+      INSTANCING_BUFFERS
+      struct VsInput
+      {
+        float3 pos                  : POSITION;
+      };
+
+      VsOutput simple_vs(VsInput input HW_USE_INSTANCE_ID)
+      {
+        VsOutput output;
+        #if SET_UP_MULTIDRAW
+          INIT_MULTIDRAW(output);
+          SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+        #endif
+        float3 localNormal = 1;
+        float3 localPos = input.pos;
+        float opacity = 1;
+        VB_PERFORM_INSTANCING
+        output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+        PROCESS_OUTPUT(output.pos, worldPos.xyz);
+        return output;
+      }
+    }
+    compile("target_vs", "simple_vs");
+    compile("ps_null", "rendinst_render_depth_black_ps");
+  } else {
+    if (paint_details_tex != NULL)
+    {
+      hlsl{
+        #define COLOR_NEEDED 1
+      }
+      USE_RANDOM_COLOR()
+      (vs) {
+        paint_palette_row_index@f2 = (paint_details.w, palette_index, 0, 0);
+      }
+      if (rendinst_render_pass != rendinst_render_pass_depth &&
+          rendinst_render_pass != rendinst_render_pass_to_heightmap)
+      {
+        USE_PAINT_DETAILS()
+      }
+    }
+
+    if (rendinst_render_pass == rendinst_render_pass_normal ||
+        rendinst_render_pass == rendinst_render_pass_to_heightmap)
+    {
+      USE_HMAP_BLEND_VS_PARAMS()
+    }
+
+
+    hlsl {
+      struct VsOutput
+      {
+        PRECISE VS_OUT_POSITION(pos)
+        ##if (rendinst_render_pass != rendinst_render_pass_depth)
+        float4 normal_transparency  : TEXCOORD0;
+        float4 uv0mask   : TEXCOORD1;
+        float4 uv_detail   : TEXCOORD2;
+        float4 uv12           : TEXCOORD3;
+        VOXEL_CENTROID float4 pointToEye : TEXCOORD4;
+#if COLOR_NEEDED
+        nointerpolation float3 colorMul : TEXCOORD5;
+#endif
+#if RI_HMAP_BLEND_ON
+        nointerpolation RI_HMAP_BLEND_VS_TYPE riHmapBlend : TEXCOORD6;
+#endif
+
+        VSOUT_DRAW_ID
+        PLOD_VS_OUTPUT
+        ##endif
+      };
+    }
+    LAYERED_VS_FUNCTIONS()
+    hlsl(vs) {
+      INSTANCING_BUFFERS
+
+      struct VsInput
+      {
+        float3 pos                  : POSITION;
+        ##if (rendinst_render_pass != rendinst_render_pass_depth)
+        float3 normal               : NORMAL;
+        int2 uv0                    : TEXCOORD0;
+        int2 uv1                    : TEXCOORD1;
+        int2 uv2                    : TEXCOORD2;
+        ##endif
+      };
+
+      VsOutput simple_vs(VsInput input HW_USE_INSTANCE_ID, uint vertex_id : SV_VERTEXID)
+      {
+        VsOutput output;
+
+        #if SET_UP_MULTIDRAW
+          INIT_MULTIDRAW(output);
+          SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+        #endif
+
+      float3 localNormal = 1;
+##if (rendinst_render_pass != rendinst_render_pass_depth)
+        localNormal = normalize(BGR_SWIZZLE(input.normal) * 2 - 1);
+##endif
+        float3 localPos = input.pos;
+        float opacity = 1;
+        VB_PERFORM_INSTANCING
+
+        float3 pointToEye = world_view_pos-worldPos;
+
+        output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+        ##if (rendinst_render_pass != rendinst_render_pass_depth)
+          output.uv0mask.xy = input.uv0 * (1. / 4096.0);
+          output.uv12 = float4(input.uv1, input.uv2)  * (1. / 4096.0);
+
+          //random for detail & mask uv's
+
+
+          output.uv0mask.zw = output.uv12.xy*get_maskTile__detail2Scroll().xy;
+          output.uv_detail = output.uv12.zwzw*get_detailTile();
+
+          output.pointToEye.xyz = pointToEye;
+          output.pointToEye.w = 0.0;
+
+          layered_transform_uvs_with_random_offset(output, worldLocalPos, output.uv0mask.zw, output.uv_detail, output.pointToEye.w);
+          apply_atlas_transform(worldLocalPos, output.uv12.xy);
+          output.normal_transparency.xyz = normalize(worldNormal.xyz);
+          output.normal_transparency.w = opacity;
+
+          ##if (rendinst_render_pass != rendinst_render_pass_depth && rendinst_render_pass != rendinst_render_pass_to_heightmap)
+            #if COLOR_NEEDED
+             output.colorMul = getColorMul(hashVal);
+            #endif
+          ##endif
+          #if RI_HMAP_BLEND_ON
+            output.riHmapBlend = make_ri_hmap_blend_vs_params(worldPos);
+          #endif
+        ##endif
+
+        PROCESS_OUTPUT(output.pos, worldPos.xyz);
+        PLOD_VS_GEN(output, vertex_id);
+        return output;
+      }
+    }
+
+    if (rendinst_render_pass == rendinst_render_pass_to_heightmap)
+    {
+      INIT_WORLD_HEIGHTMAP_PS()
+      INIT_HMAP_BLEND()
+      INIT_HMAP_FOR_RI_BLOCK()
+
+      USE_HEIGHTMAP_COMMON_PS()
+      PACK_UNPACK_GBUFFER()
+
+      USE_HMAP_BLEND()
+
+      (ps) { perlin_noise3d@smp3d = perlin_noise3d; }
+
+      LAYERED_HEIGHTMAP_PS()
+    }
+    else
+    {
+      if (rendinst_render_pass == rendinst_render_pass_normal)
+      {
+        WRITE_GBUFFER()
+        USE_HMAP_BLEND()
+      }
+
+      USE_CHARACTER_TWO_MICRODETAILS()
+
+      USE_LAYERED_PS()
+      (ps) {
+        mask_tex@static  = mask_tex;
+        paint_details@f4 = paint_details;
+      }
+      USE_NORMAL_DETAIL()
+
+      LAYERED_PS(rendinst_render_pass == rendinst_render_pass_normal)
+    }
+
+    ENABLE_ASSERT(ps)
+
+    if (rendinst_render_pass == rendinst_render_pass_depth)
+    {
+      compile("ps_null", "rendinst_render_depth_black_ps");
+    }
+    else if (rendinst_render_pass == rendinst_render_pass_to_heightmap)
+    {
+      compile("target_ps", "heightmap_ps");
+    }
+    else
+    {
+      compile("target_ps", "simple_ps");
+    }
+    COMPILE_RI_VS_TARGET("simple_vs")
+  }
+}
+
+shader rendinst_mask_layered
+{
+  NO_DYNSTCODE()
+  assume instancing_type = tm_vb;
+  if (rendinst_render_pass == rendinst_render_pass_impostor_color ||
+      rendinst_render_pass == rendinst_render_pass_impostor_shadow ||
+      rendinst_render_pass == rendinst_render_pass_grassify ||
+      rendinst_render_pass == rendinst_render_pass_to_heightmap)
+  {
+    dont_render;
+  }
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+
+  PLOD_GBUF_GEN_INIT(rendinst_render_pass == rendinst_render_pass_normal)
+  ENABLE_MULTI_DRAW(rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
+  INIT_MASK_LAYERED(rendinst_render_pass == rendinst_render_pass_normal)
+  INIT_HMAP_BLEND_STATIC()
+
+  RENDINST_BLOCK()
+  RI_VOXELIZE_ALBEDO()
+  RENDINST_INSTANCING()
+  ENABLE_ASSERT(ps)
+  INIT_RANDOMIZED_TC(vs)
+  INIT_PAINT_DETAILS_STATIC()
+
+  if (rendinst_render_pass == rendinst_render_pass_to_shadow)
+  {
+    hlsl(vs) {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+      };
+      INSTANCING_BUFFERS
+      struct VsInput
+      {
+        float3 pos                  : POSITION;
+      };
+
+      VsOutput simple_vs(VsInput input HW_USE_INSTANCE_ID)
+      {
+        VsOutput output;
+        #if SET_UP_MULTIDRAW
+          INIT_MULTIDRAW(output);
+          SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+        #endif
+        float3 localNormal = 1;
+        float3 localPos = input.pos;
+        float opacity = 1;
+        VB_PERFORM_INSTANCING
+        output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+        PROCESS_OUTPUT(output.pos, worldPos.xyz);
+        return output;
+      }
+    }
+    compile("target_vs", "simple_vs");
+    compile("ps_null", "rendinst_render_depth_black_ps");
+  } else {
+    if (paint_details_tex != NULL)
+    {
+      hlsl{
+        #define COLOR_NEEDED 1
+      }
+      USE_RANDOM_COLOR()
+      if (rendinst_render_pass != rendinst_render_pass_depth)
+      {
+        USE_PAINT_DETAILS()
+        USE_RANDOMIZED_TC(vs)
+      }
+    }
+
+    if (rendinst_render_pass == rendinst_render_pass_normal)
+    {
+      USE_HMAP_BLEND_VS_PARAMS()
+    }
+
+    hlsl {
+      struct VsOutput
+      {
+        PRECISE VS_OUT_POSITION(pos)
+        ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
+        float3 normal  : TEXCOORD0;
+        float2 uv12           : TEXCOORD1;
+        VOXEL_CENTROID float3 pointToEye     : TEXCOORD2;
+        ##endif
+        #if COLOR_NEEDED
+        nointerpolation float3 colorMul : TEXCOORD3;
+        #endif
+        #if RI_HMAP_BLEND_ON
+        nointerpolation RI_HMAP_BLEND_VS_TYPE riHmapBlend : TEXCOORD4;
+        #endif
+        ##if rendinst_render_pass != rendinst_render_pass_depth
+        VSOUT_DRAW_ID
+        ##endif
+        PLOD_VS_OUTPUT
+      };
+    }
+
+    hlsl(vs) {
+      INSTANCING_BUFFERS
+
+      struct VsInput
+      {
+        float3 pos                  : POSITION;
+        ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
+        float3 normal               : NORMAL;
+        int2 uv0                    : TEXCOORD0;
+        ##endif
+      };
+
+      VsOutput simple_vs(VsInput input HW_USE_INSTANCE_ID, uint vertex_id : SV_VERTEXID)
+      {
+        VsOutput output;
+
+        #if SET_UP_MULTIDRAW
+          INIT_MULTIDRAW(output);
+          SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+        #endif
+
+        float3 localNormal = 1;
+        ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
+        localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+        ##endif
+        float3 localPos = input.pos;
+        float opacity = 1;
+        VB_PERFORM_INSTANCING
+
+        float3 pointToEye = world_view_pos-worldPos;
+
+        output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+        ##if (rendinst_render_pass != rendinst_render_pass_depth)
+          output.uv12.xy = input.uv0 * (1. / 4096.0);
+          output.pointToEye.xyz = pointToEye;
+          #if RANDOMIZE_TC
+            output.uv12.xy = uv_apply_random(output.uv12.xy, worldLocalPos);
+          #endif
+        ##endif
+
+        ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
+        output.normal.xyz = normalize(worldNormal.xyz);
+        ##endif
+
+        ##if (rendinst_render_pass != rendinst_render_pass_depth)
+          #if COLOR_NEEDED
+           output.colorMul = getColorMul(hashVal);
+          #endif
+          #if RI_HMAP_BLEND_ON
+            output.riHmapBlend = make_ri_hmap_blend_vs_params(worldPos);
+          #endif
+        ##endif
+
+
+        PROCESS_OUTPUT(output.pos, worldPos.xyz);
+        PLOD_VS_GEN(output, vertex_id);
+        return output;
+      }
+    }
+
+    USE_NORMAL_DETAIL()
+
+    if (rendinst_render_pass == rendinst_render_pass_depth)
+    {
+      compile("ps_null", "rendinst_render_depth_black_ps");
+    } else
+    {
+      if ((rendinst_render_pass == rendinst_render_pass_normal))
+      {
+        WRITE_GBUFFER()
+        USE_HMAP_BLEND()
+      }
+      MASK_LAYERED_PS()
+    }
+    COMPILE_RI_VS_TARGET("simple_vs")
+  }
+}

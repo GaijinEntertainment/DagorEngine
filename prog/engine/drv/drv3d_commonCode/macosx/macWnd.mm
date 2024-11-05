@@ -1,10 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #import <AppKit/NSWindow.h>
 #import <AppKit/NSScreen.h>
 #import <AppKit/NSCursor.h>
 #include <CoreFoundation/CoreFoundation.h>
 #import <QuartzCore/CAMetalLayer.h>
-#include <3d/dag_drv3dCmd.h>
-#include <3d/dag_drv3d_pc.h>
+#include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_platform_pc.h>
 #include <osApiWrappers/setProgGlobals.h>
 #include <osApiWrappers/dag_wndProcCompMsg.h>
 #include <osApiWrappers/dag_miscApi.h>

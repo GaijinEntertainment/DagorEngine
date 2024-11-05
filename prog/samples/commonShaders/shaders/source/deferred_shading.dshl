@@ -115,8 +115,9 @@ shader deferred_shading
   USE_CLOUDS_SHADOW()
 
   hlsl(ps) {
-    float4 deferred_shading_ps(VsOutput input) : SV_Target
+    float4 deferred_shading_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
     {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
       float rawDepth = tex2Dlod(depth_gbuf, float4(input.texcoord,0,0)).x;
 
       BRANCH
@@ -156,7 +157,7 @@ shader deferred_shading
       gbuffer.roughness *= saturate(1.01-water_amount);
       gbuffer.normal = lerp( gbuffer.normal, float3(0,1,0), water_amount);*/
 
-      half ssao = getSSAO(w, input.texcoord);
+      half ssao = getSSAO(w, input.texcoord, screenpos.xy);
       //return ssao*dot(gbuffer.normal, normalize(float3(0.4,0.6,-0.4)));
       float geometryFactor = 1;
       float3 enviLightingNormal = gbuffer.normal;
@@ -188,7 +189,7 @@ shader deferred_shading
       BRANCH
       if (NoL>0)
       {
-        half shadow = get_csm_shadow(pointToEye, w)*clouds_shadow(worldPos.xyz);
+        half shadow = get_csm_shadow(pointToEye)*clouds_shadow(worldPos.xyz);
         half shadowTerm = shadow;
 
         BRANCH

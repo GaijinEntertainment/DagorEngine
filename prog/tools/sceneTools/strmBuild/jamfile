@@ -1,12 +1,12 @@
-ReproducibleExeBuild = yes ;
 Root    ?= ../../../.. ;
 Location = prog/tools/sceneTools/strmBuild ;
+include $(Root)/prog/tools/tools_setup.jam ;
 ConsoleExe      = yes ;
 
 TargetType  = exe ;
 Target      = tools/sceneTools/strmBuild/strmBuild.exe ;
 
-OutDir = $(Root)/tools/dagor3_cdk/util ;
+include $(Root)/prog/tools/tools_setup_outdir_util.jam ;
 
 Sources =
   strmBuild.cpp

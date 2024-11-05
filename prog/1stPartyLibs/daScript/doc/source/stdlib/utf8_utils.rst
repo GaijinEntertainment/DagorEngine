@@ -158,7 +158,8 @@ contains_utf8_bom returns bool
 +-----------+---------------------------+
 
 
-|function-utf8_utils-contains_utf8_bom|
+Copyright (c) 2008-2009 Bjoern Hoehrmann <bjoern@hoehrmann.de>
+See http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ for details.
 
 .. _function-_at_utf8_utils_c__c_contains_utf8_bom_Cs:
 
@@ -173,7 +174,8 @@ contains_utf8_bom returns bool
 +-----------+-------------+
 
 
-|function-utf8_utils-contains_utf8_bom|
+Copyright (c) 2008-2009 Bjoern Hoehrmann <bjoern@hoehrmann.de>
+See http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ for details.
 
 .. _function-_at_utf8_utils_c__c_is_utf8_string_valid_CI1_ls_u8_gr_A:
 

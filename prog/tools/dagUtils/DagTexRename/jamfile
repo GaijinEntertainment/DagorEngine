@@ -1,6 +1,5 @@
 Root    ?= ../../../.. ;
 Location = prog/tools/dagUtils/DagTexRename ;
-DriverLinkage   = static ;
 ConsoleExe      = yes ;
 
 TargetType  = exe ;

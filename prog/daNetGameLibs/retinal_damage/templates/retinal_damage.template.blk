@@ -1,0 +1,23 @@
+retinal_damage_renderer{
+  _tags:t="render"
+  _singleton:b=yes
+
+  retinal_damage__total_lifetime:r=7
+  retinal_damage__fade_in_time:r=1
+  retinal_damage__fade_out_time:r=5
+  retinal_damage__initial_opacity:r=0.7
+  retinal_damage__base_scale:r=1
+  retinal_damage__scale_increase_rate:r=0.15
+  retinal_damage__remaining_time:r=0
+
+  "retinal_damage__node_handle:dabfg::NodeHandle"{}
+  "retinal_damage__tex:UniqueTexHolder" {}
+}
+
+retinal_damage_effect{
+  _use:t="replicated_game_effect"
+  retinal_damage__explosion_world_position:p3=0.0, 0.0, 0.0
+  retinal_damage__scale:r=1
+
+  "retinalDamageScreenEffect:tag"{}
+}

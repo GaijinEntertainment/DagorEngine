@@ -1,5 +1,14 @@
-#include "../device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include "stage_state_base.h"
+#if D3D_HAS_RAY_TRACING
+#include "raytrace_as_resource.h"
+#endif
 #include <math/dag_lsbVisitor.h>
+#include "globals.h"
+#include "dummy_resources.h"
+#include "backend.h"
+#include "execution_sync.h"
 
 using namespace drv3d_vulkan;
 
@@ -35,8 +44,8 @@ void PipelineStageStateBase::syncDepthROStateInT(Image *image, uint32_t, uint32_
       continue;
 
     VkImageLayout targetLayout = getImgLayout(isConstDepthStencil.test(j));
-    dtab.TSampledImage(j) = targetLayout;
-    dtab.TSampledCompareImage(j) = targetLayout;
+    dtab.TSampledImage(j) += targetLayout;
+    dtab.TSampledCompareImage(j) += targetLayout;
 
     tBinds.set(j);
   }
@@ -80,12 +89,12 @@ void PipelineStageStateBase::applySamplers(uint32_t unit)
   const SamplerInfo *samplerInfo = sBinds[unit].si;
   if (samplerInfo)
   {
-    dtab.TSampledImage(unit) = samplerInfo->colorSampler();
-    dtab.TSampledCompareImage(unit) = samplerInfo->compareSampler();
+    dtab.TSampledImage(unit) += samplerInfo->colorSampler();
+    dtab.TSampledCompareImage(unit) += samplerInfo->compareSampler();
   }
   else
   {
-    const auto &dummyResourceTable = get_device().getDummyResourceTable();
+    const auto &dummyResourceTable = Globals::dummyResources.getTable();
     dtab.TSampledImage(unit).image.sampler = dummyResourceTable[spirv::MISSING_SAMPLED_IMAGE_2D_INDEX].descriptor.image.sampler;
     dtab.TSampledCompareImage(unit).image.sampler =
       dummyResourceTable[spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_2D_INDEX].descriptor.image.sampler;
@@ -103,7 +112,7 @@ void PipelineStageStateBase::setTinputAttachment(uint32_t unit, Image *image, bo
   G_ASSERTF(image, "vulkan: obj must be valid!");
   lastDescriptorSet = VulkanNullHandle();
 
-  regRef = VkDescriptorImageInfo{VK_NULL_HANDLE, view, getImgLayout(as_const_ds)};
+  regRef += VkDescriptorImageInfo{VK_NULL_HANDLE, view, getImgLayout(as_const_ds)};
 }
 
 void PipelineStageStateBase::setTtexture(uint32_t unit, Image *image, ImageViewState view_state, bool as_const_ds,
@@ -123,8 +132,8 @@ void PipelineStageStateBase::setTtexture(uint32_t unit, Image *image, ImageViewS
 #endif
 
   VkAnyDescriptorInfo::ReducedImageInfo imgInfo{view, getImgLayout(as_const_ds)};
-  dtab.TSampledImage(unit) = imgInfo;
-  dtab.TSampledCompareImage(unit) = imgInfo;
+  dtab.TSampledImage(unit) += imgInfo;
+  dtab.TSampledCompareImage(unit) += imgInfo;
   applySamplers(unit);
 }
 
@@ -138,7 +147,7 @@ void PipelineStageStateBase::setUtexture(uint32_t unit, Image *image, ImageViewS
 
   dtab.UBuffer(unit).clear();
   dtab.USampledBuffer(unit).clear();
-  dtab.UImage(unit) = view;
+  dtab.UImage(unit) += view;
 }
 
 void PipelineStageStateBase::setTbuffer(uint32_t unit, BufferRef buffer)
@@ -155,8 +164,8 @@ void PipelineStageStateBase::setTbuffer(uint32_t unit, BufferRef buffer)
 #endif
 
   G_ASSERTF(buffer, "vulkan: binding empty tReg as buffer, should be filtered at bind point!");
-  dtab.TSampledBuffer(unit) = buffer.getView();
-  dtab.TBuffer(unit) = VkDescriptorBufferInfo{buffer.getHandle(), buffer.bufOffset(0), buffer.visibleDataSize};
+  dtab.TSampledBuffer(unit) += buffer.getView();
+  dtab.TBuffer(unit) += VkDescriptorBufferInfo{buffer.getHandle(), buffer.bufOffset(0), buffer.visibleDataSize};
 }
 
 void PipelineStageStateBase::setUbuffer(uint32_t unit, BufferRef buffer)
@@ -168,14 +177,14 @@ void PipelineStageStateBase::setUbuffer(uint32_t unit, BufferRef buffer)
   reg.imageView = ImageViewState();
 
   dtab.UImage(unit).clear();
-  dtab.USampledBuffer(unit) = buffer.getView();
-  dtab.UBuffer(unit) = VkDescriptorBufferInfo{buffer.getHandle(), buffer.bufOffset(0), buffer.visibleDataSize};
+  dtab.USampledBuffer(unit) += buffer.getView();
+  dtab.UBuffer(unit) += VkDescriptorBufferInfo{buffer.getHandle(), buffer.bufOffset(0), buffer.visibleDataSize};
 }
 
 void PipelineStageStateBase::setBbuffer(uint32_t unit, BufferRef buffer)
 {
   G_ASSERTF(buffer, "vulkan: obj must be valid!");
-  dtab.BConstBuffer(unit) = VkDescriptorBufferInfo{buffer.getHandle(), 0, buffer.visibleDataSize};
+  dtab.BConstBuffer(unit) += VkDescriptorBufferInfo{buffer.getHandle(), 0, buffer.visibleDataSize};
 
   if (bBinds[unit].buffer == buffer.buffer && bBinds[unit].visibleDataSize == buffer.visibleDataSize)
   {
@@ -208,7 +217,7 @@ void PipelineStageStateBase::setTas(uint32_t unit, RaytraceAccelerationStructure
   dtab.TBuffer(unit).clear();
 
 #if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
-  dtab.TRaytraceAS(unit) = as->getHandle();
+  dtab.TRaytraceAS(unit) += as->getHandle();
 #endif
 }
 #endif
@@ -246,8 +255,65 @@ void PipelineStageStateBase::checkForDeadResources(const spirv::ShaderHeader &hd
 
 #endif // VULKAN_TRACK_DEAD_RESOURCE_USAGE > 0
 
+static void sync_dummy_resource_on_missing_bind(const ResourceDummySet &dummy_resource_table, uint8_t missing_index,
+  ExtendedShaderStage stage)
+{
+  switch (missing_index)
+  {
+    case spirv::MISSING_SAMPLED_IMAGE_2D_INDEX:
+    case spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_2D_INDEX:
+    case spirv::MISSING_SAMPLED_IMAGE_2D_ARRAY_INDEX:
+    case spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_2D_ARRAY_INDEX:
+    case spirv::MISSING_SAMPLED_IMAGE_CUBE_INDEX:
+    case spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_CUBE_INDEX:
+    case spirv::MISSING_SAMPLED_IMAGE_CUBE_ARRAY_INDEX:
+    case spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_CUBE_ARRAY_INDEX:
+      Backend::sync.addImageAccess(LogicAddress::forImageOnExecStage(stage, RegisterType::T),
+        (Image *)dummy_resource_table[missing_index].resource, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, {0, 1, 0, 12});
+      break;
+
+    case spirv::MISSING_SAMPLED_IMAGE_3D_INDEX:
+    case spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_3D_INDEX:
+      Backend::sync.addImageAccess(LogicAddress::forImageOnExecStage(stage, RegisterType::T),
+        (Image *)dummy_resource_table[missing_index].resource, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, {0, 1, 0, 1});
+      break;
+
+    case spirv::MISSING_STORAGE_IMAGE_2D_INDEX:
+    case spirv::MISSING_STORAGE_IMAGE_2D_ARRAY_INDEX:
+    case spirv::MISSING_STORAGE_IMAGE_CUBE_INDEX:
+    case spirv::MISSING_STORAGE_IMAGE_CUBE_ARRAY_INDEX:
+      Backend::sync.addImageAccess(LogicAddress::forImageOnExecStage(stage, RegisterType::U),
+        (Image *)dummy_resource_table[missing_index].resource, VK_IMAGE_LAYOUT_GENERAL, {0, 1, 0, 12});
+      break;
+
+    case spirv::MISSING_STORAGE_IMAGE_3D_INDEX:
+      Backend::sync.addImageAccess(LogicAddress::forImageOnExecStage(stage, RegisterType::U),
+        (Image *)dummy_resource_table[missing_index].resource, VK_IMAGE_LAYOUT_GENERAL, {0, 1, 0, 1});
+      break;
+
+    case spirv::MISSING_BUFFER_SAMPLED_IMAGE_INDEX:
+    case spirv::MISSING_BUFFER_INDEX:
+    {
+      Buffer *dummyBuf = (Buffer *)dummy_resource_table[missing_index].resource;
+      Backend::sync.addBufferAccess(LogicAddress::forBufferOnExecStage(stage, RegisterType::T), dummyBuf,
+        {dummyBuf->bufOffsetLoc(0), dummyBuf->getBlockSize()});
+    }
+    break;
+
+    case spirv::MISSING_STORAGE_BUFFER_SAMPLED_IMAGE_INDEX:
+    case spirv::MISSING_STORAGE_BUFFER_INDEX:
+    {
+      Buffer *dummyBuf = (Buffer *)dummy_resource_table[missing_index].resource;
+      Backend::sync.addBufferAccess(LogicAddress::forBufferOnExecStage(stage, RegisterType::U), dummyBuf,
+        {dummyBuf->bufOffsetLoc(0), dummyBuf->getBlockSize()});
+    }
+    break;
+    default: break;
+  }
+}
+
 void PipelineStageStateBase::checkForMissingBinds(const spirv::ShaderHeader &hdr, const ResourceDummySet &dummy_resource_table,
-  ExecutionContext &ctx, ShaderStage stage)
+  ExtendedShaderStage stage)
 {
   // fill out the missing slots
   for (uint32_t i = 0; i < hdr.registerCount; ++i)
@@ -257,61 +323,10 @@ void PipelineStageStateBase::checkForMissingBinds(const spirv::ShaderHeader &hdr
     if (slot.type == VkAnyDescriptorInfo::TYPE_NULL)
     {
       // enable this to find who forget to bind resources
-      // logerr("vulkan: empty binding for used register %u(%u) expected %u restype callsite %s", i, absReg, hdr.missingTableIndex[i],
-      // ctx.getCurrentCmdCaller());
+      // D3D_ERROR("vulkan: empty binding for used register %u(%u) expected %u restype callsite %s", i, absReg,
+      // hdr.missingTableIndex[i], ctx.getCurrentCmdCaller());
 
-      switch (hdr.missingTableIndex[i])
-      {
-        case spirv::MISSING_SAMPLED_IMAGE_2D_INDEX:
-        case spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_2D_INDEX:
-        case spirv::MISSING_SAMPLED_IMAGE_2D_ARRAY_INDEX:
-        case spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_2D_ARRAY_INDEX:
-        case spirv::MISSING_SAMPLED_IMAGE_CUBE_INDEX:
-        case spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_CUBE_INDEX:
-        case spirv::MISSING_SAMPLED_IMAGE_CUBE_ARRAY_INDEX:
-        case spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_CUBE_ARRAY_INDEX:
-          ctx.back.syncTrack.addImageAccess(ExecutionSyncTracker::LogicAddress::forImageOnExecStage(stage, RegisterType::T),
-            (Image *)dummy_resource_table[hdr.missingTableIndex[i]].resource, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, {0, 1, 0, 12});
-          break;
-
-        case spirv::MISSING_SAMPLED_IMAGE_3D_INDEX:
-        case spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_3D_INDEX:
-          ctx.back.syncTrack.addImageAccess(ExecutionSyncTracker::LogicAddress::forImageOnExecStage(stage, RegisterType::T),
-            (Image *)dummy_resource_table[hdr.missingTableIndex[i]].resource, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, {0, 1, 0, 1});
-          break;
-
-        case spirv::MISSING_STORAGE_IMAGE_2D_INDEX:
-        case spirv::MISSING_STORAGE_IMAGE_2D_ARRAY_INDEX:
-        case spirv::MISSING_STORAGE_IMAGE_CUBE_INDEX:
-        case spirv::MISSING_STORAGE_IMAGE_CUBE_ARRAY_INDEX:
-          ctx.back.syncTrack.addImageAccess(ExecutionSyncTracker::LogicAddress::forImageOnExecStage(stage, RegisterType::U),
-            (Image *)dummy_resource_table[hdr.missingTableIndex[i]].resource, VK_IMAGE_LAYOUT_GENERAL, {0, 1, 0, 12});
-          break;
-
-        case spirv::MISSING_STORAGE_IMAGE_3D_INDEX:
-          ctx.back.syncTrack.addImageAccess(ExecutionSyncTracker::LogicAddress::forImageOnExecStage(stage, RegisterType::U),
-            (Image *)dummy_resource_table[hdr.missingTableIndex[i]].resource, VK_IMAGE_LAYOUT_GENERAL, {0, 1, 0, 1});
-          break;
-
-        case spirv::MISSING_BUFFER_SAMPLED_IMAGE_INDEX:
-        case spirv::MISSING_BUFFER_INDEX:
-        {
-          Buffer *dummyBuf = (Buffer *)dummy_resource_table[hdr.missingTableIndex[i]].resource;
-          ctx.back.syncTrack.addBufferAccess(ExecutionSyncTracker::LogicAddress::forBufferOnExecStage(stage, RegisterType::T),
-            dummyBuf, {dummyBuf->bufOffsetLoc(0), dummyBuf->getBlockSize()});
-        }
-        break;
-
-        case spirv::MISSING_STORAGE_BUFFER_SAMPLED_IMAGE_INDEX:
-        case spirv::MISSING_STORAGE_BUFFER_INDEX:
-        {
-          Buffer *dummyBuf = (Buffer *)dummy_resource_table[hdr.missingTableIndex[i]].resource;
-          ctx.back.syncTrack.addBufferAccess(ExecutionSyncTracker::LogicAddress::forBufferOnExecStage(stage, RegisterType::U),
-            dummyBuf, {dummyBuf->bufOffsetLoc(0), dummyBuf->getBlockSize()});
-        }
-        break;
-        default: break;
-      }
+      sync_dummy_resource_on_missing_bind(dummy_resource_table, hdr.missingTableIndex[i], stage);
 
       slot = dummy_resource_table[hdr.missingTableIndex[i]].descriptor;
     }

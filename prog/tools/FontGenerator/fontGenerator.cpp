@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "fontFileFormat.h"
 #include <stdio.h>
 #include <ctype.h>
@@ -226,6 +228,7 @@ struct FontInfo
   int valve_upscale;
   E3DCOLOR border_color, font_color;
   bool caseSensitive, useFontColor;
+  dag::Vector<String> systemNames;
 
   struct RasterGlyph
   {
@@ -2002,8 +2005,14 @@ static void build_config_for_fully_dynamic_fonts(const char *dest_fn, dag::Span<
 
         FontInfo &af = f.additional.push_back();
         af.file = af_name;
+        dblk::iterate_params_by_name_and_type(af_props, "sysfont", DataBlock::TYPE_STRING,
+          [&](int pidx) { af.systemNames.push_back(String(af_props.getStr(pidx))); });
+
         af.size = f.size;
         af.include = fbIncludeSym;
+        if (strncmp(af.file, "<system>", 8) == 0)
+          return;
+
         if (!loadFreeTypeFont(af, 10, generalFont))
         {
           logerr("failed to open font: %s", af.file);
@@ -2130,6 +2139,9 @@ static void build_config_for_fully_dynamic_fonts(const char *dest_fn, dag::Span<
       }
       DataBlock &b2 = *b.addNewBlock("addFont");
       b2.setStr("addFont", af.file);
+      for (String &sysname : af.systemNames)
+        b2.addStr("sysFont", sysname);
+
       if (copyto_dir)
       {
         MutexAutoAcquire mutexAa2(copyto_dir);

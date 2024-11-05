@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -20,6 +19,7 @@
 #include <landMesh/lmeshHoles.h>
 #include <generic/dag_carray.h>
 #include <EASTL/unique_ptr.h>
+#include <physMap/physMap.h>
 
 
 class IBaseLoad;
@@ -88,6 +88,7 @@ protected:
   Point3 offset;
   BBox3 landBbox;
 
+  Tab<int> detailGroupsToPhysMats;
   SmallTab<int, MidmemAlloc> landClassesEditorId;
   Tab<LandClassDetailTextures> landClasses;
   carray<Tab<TEXTUREID>, NUM_TEXTURES_STACK> megaDetailsId;
@@ -98,12 +99,19 @@ protected:
   DataBlock grassMaskBlk; //
   struct CellData
   {
-    carray<ShaderMesh *, LOD_COUNT> land;
-    ShaderMesh *decal = nullptr;
-    ShaderMesh *combined = nullptr;
-    ShaderMesh *patches = nullptr;
+    union
+    {
+      ShaderMesh *meshes[LOD_COUNT + 3] = {};
+      struct
+      {
+        carray<ShaderMesh *, LOD_COUNT> land;
+        ShaderMesh *decal;
+        ShaderMesh *combined;
+        ShaderMesh *patches;
+      };
+    };
     SmallTab<bool, MidmemAlloc> isCombinedBig;
-    CellData() { land[0] = land[1] = NULL; }
+    CellData() = default;
     CellData(const CellData &) = delete;
     ~CellData() { clear(); }
     void clear();
@@ -160,13 +168,13 @@ public:
   void setHmapLodDistance(int lodD);
   int getHmapLodDistance() const;
   bool loadHeightmapDump(IGenLoad &loadCb, bool load_render_data);
+  PhysMap *loadPhysMap(IGenLoad &loadCb, bool lmp2);
   const carray<Tab<TEXTUREID>, NUM_TEXTURES_STACK> &getMegaDetailsId() const { return megaDetailsId; }
 
   int getLCEditorId(int i) const { return landClassesEditorId[i]; }
   int getLCCount() const { return landClasses.size(); }
   bool isInTools() const { return toolsInternal; }
 
-  void replaceVdecls();      // replace vdecls for encoded land cells
   void evictSplattingData(); // remove all data for splatting. If splatting data is removed, you can not render last clip around or
                              // vtex
   void setRenderDataNeeded(uint32_t data_needed)
@@ -297,5 +305,6 @@ public:
   inline bool noVertTexHeightmap() { return !useVertTexforHMAP; }
 
   Tab<LandClassDetailTextures> &getLandClasses() { return landClasses; }
+  const Tab<int> &getDetailGroupsToPhysMats() const { return detailGroupsToPhysMats; }
 };
 DAG_DECLARE_RELOCATABLE(LandMeshManager::CellData);

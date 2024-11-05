@@ -1,0 +1,27 @@
+
+include "skinning_inc2.dshl"
+include "animchar_dynmat_params.dshl"
+
+macro SET_DYNMAT_METATEX_PARAM_GETTERS()
+  if (parameters_channel != from_asset)
+  {
+    INIT_PER_INSTANCE_DATA(ps)
+    USE_ANIMCHAR_DYNMAT_PARAMS(ps)
+    hlsl(ps)
+    {
+      float4 get_dynmat_data(uint offset)
+      {
+        return get_additional_data_unsafe(offset);
+      }
+      uint calc_dynmat_param_offset(uint channel_id)
+      {
+        uint globalOffset;
+        if (get_dynmat_offset(channel_id, DMT_METATEX, globalOffset))
+          return globalOffset;
+        else
+          return 1; // 0th is metadata for offset, also, there is no error check this time
+      }
+    }
+    SET_METATEX_PARAM_GETTERS(calc_dynmat_param_offset, get_dynmat_data)
+  }
+endmacro

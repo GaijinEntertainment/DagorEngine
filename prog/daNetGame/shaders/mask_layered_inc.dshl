@@ -1,0 +1,170 @@
+include "layered_inc.dshl"
+include "paint_details_inc.dshl"
+include "hmap_blend_use_inc.dshl"
+
+
+macro INIT_MASK_LAYERED(is_normal_stage)
+  SETUP_CHARACTER_MICRODETAIL()
+  if (is_normal_stage)
+  {
+    USE_MICRODETAIL_BASED_WETNESS()
+  }
+  texture basetex = material.texture[0];
+  texture basenormal = material.texture[2];
+  texture tile1diffuse = material.texture[3];
+  texture tile1normal = material.texture[4];
+  texture tile2diffuse = material.texture[5];
+  texture tile2normal  = material.texture[6];
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+  channel short2 tc[0]=tc[0] mul_4k;
+
+
+  static float detail_tile = 1;
+  static float invert_height1 = 0;
+  static float invert_height2 = 0;
+  static float4 paint_details = (0,0,0,0); // paint_details.w == paint_palette_row_index.x == paint_palette_row
+  static int palette_index = 1;
+  static float4 paint_points = (0,0.00001,0,0.00001);
+
+  (ps) {
+    basetex@static      = basetex;
+    tile1diffuse@static = tile1diffuse;
+    tile2diffuse@static = tile2diffuse;
+    basenormal@static   = basenormal;
+    tile1normal@static  = tile1normal;
+    tile2normal@static  = tile2normal;
+    paint_details@f4 = paint_details;
+    detail_tile_invert_heights@f3 = (detail_tile, invert_height1, invert_height2,0);
+    paint_points_tr@f4 = (
+      1 / (paint_points.y - paint_points.x),
+      -paint_points.x / (paint_points.y - paint_points.x),
+      1 / (paint_points.w - paint_points.z),
+      -paint_points.z / (paint_points.w - paint_points.z)
+    );
+  }
+  (vs) {
+    paint_palette_row_index@f2 = (paint_details.w, palette_index, 0, 0);
+  }
+endmacro
+
+macro MASK_LAYERED_PS()
+  USE_PIXEL_TANGENT_SPACE()
+  USE_CHARACTER_MICRODETAIL()
+  USE_NORMAL_DETAIL()
+  DETAIL_WEIGHTS_BLENDING(ps)
+  hlsl(ps) {
+    #ifndef SAMPLE_TEX
+      #define SAMPLE_TEX(tex, tc) tex2DBindless(tex, tc)
+    #endif
+    #define detail_tile (get_detail_tile_invert_heights().x)
+    #define invert_heights (get_detail_tile_invert_heights().yz)
+
+  #if VOXELIZE_ALBEDO_PASS
+    void mask_layered_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
+  #else
+    GBUFFER_OUTPUT mask_layered_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
+  #endif
+    {
+      #if SET_UP_MULTIDRAW
+        #if RENDINST_SHADER_MULTIDRAW
+          SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+        #else
+          INIT_MULTIDRAW(input);
+          SET_DRAW_CALL_ID(GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK);
+        #endif
+      #endif
+
+      #ifdef VOXELIZE_DISCARD_PRIM
+        VOXELIZE_DISCARD_PRIM
+      #endif
+      #ifndef IS_DYNAMIC
+        #define IS_DYNAMIC 0
+      #endif
+      #ifndef FORCE_AUTO_MOTION_VECTOR
+        #define FORCE_AUTO_MOTION_VECTOR 0
+      #endif
+
+      half3 worldVertexNormal = MUL_VFACE(input.normal.xyz);
+      float2 detail_uv = detail_tile*input.uv12.xy;
+
+      half4 baseColor = SAMPLE_TEX(get_basetex(), input.uv12.xy);
+
+      half4 detailColor1 = SAMPLE_TEX(get_tile1diffuse(), detail_uv);
+      half4 detailColor2 = SAMPLE_TEX(get_tile2diffuse(), detail_uv);
+
+      half2 weights = GetWeights(detailColor1, detailColor2, baseColor.a, invert_heights.xy);
+
+    #if COLOR_NEEDED
+      half3 paint_details_col = input.colorMul;
+      half2 lumins = half2(luminance(detailColor1.rgb), luminance(detailColor2.rgb));
+      half2 details = get_paint_details().xy * saturate(lumins * get_paint_points_tr().xz + get_paint_points_tr().yw);
+      detailColor1.rgb = lerp(detailColor1.rgb, detailColor1.rgb * paint_details_col, details.x);
+      detailColor2.rgb = lerp(detailColor2.rgb, detailColor2.rgb * paint_details_col, details.y);
+    #endif
+
+      half4 detailColor = detailColor1*weights.x + detailColor2*weights.y;
+      half3 diffuseColor = baseColor.rgb * detailColor.rgb * 4.59479341998814;
+
+    #if VOXELIZE_ALBEDO_PASS
+      WRITE_SCENE25D_VOXEL_DATA(world_view_pos-input.pointToEye.xyz, diffuseColor.rgb, 0, 0);
+    #else
+      UnpackedGbuffer gbuffer;
+      init_gbuffer(gbuffer);
+
+      //modulate detail2 color (fade modulation according to detail2.a)
+
+      half4 packedNormalMap = SAMPLE_TEX(get_basenormal(), input.uv12.xy);
+      half3 normalMap = unpack_ag_normal(packedNormalMap);
+      half3 worldNormal = perturb_normal_precise( normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.uv12.xy );
+
+      half4 detailNormal1 = SAMPLE_TEX(get_tile1normal(), detail_uv);
+      half4 detailNormal2 = SAMPLE_TEX(get_tile2normal(), detail_uv);
+      half4 packedDetailNormalMap = detailNormal1*weights.x + detailNormal2*weights.y;
+      half smoothness = detailNormal1.r*weights.x + detailNormal2.r*weights.y;
+      smoothness = saturate(2*packedNormalMap.r*smoothness);
+      half metalness = packedDetailNormalMap.b;
+
+      half3 detailNormalMap = unpack_ag_normal(packedDetailNormalMap);
+      half ao = 1;
+
+      half reflectance = 0.5;
+      half3 worldPos = world_view_pos - input.pointToEye.xyz;
+      BRANCH
+      if (character_micro_detail_layer >= 0)
+      {
+        apply_character_micro_detail(sample_character_micro_detail(input.uv12.xy*get_character_micro_detail_scale().xy, character_micro_detail_layer),
+          diffuseColor.rgb, detailNormalMap, reflectance, smoothness);
+      }
+      init_reflectance(gbuffer, reflectance);
+      // Passes except normal and albedo exist? (next line should only work for normal pass)
+      apply_wetness_by_microdetail(character_micro_detail_layer, worldPos, diffuseColor.rgb, worldNormal, reflectance, smoothness, ao);
+
+      worldNormal = perturb_normal_precise( detailNormalMap, worldNormal, input.pointToEye.xyz, detail_uv );
+
+      init_smoothness(gbuffer, smoothness);
+      init_metalness(gbuffer, metalness);
+      init_normal(gbuffer, worldNormal);
+      init_ao(gbuffer, ao);
+
+      init_albedo(gbuffer, diffuseColor.rgb);
+      init_dynamic(gbuffer,IS_DYNAMIC);
+      init_order(gbuffer, GBUFFER_ORDER_DYNAMIC);
+      init_auto_motion_vector(gbuffer, FORCE_AUTO_MOTION_VECTOR);
+      #ifdef MOTION_VECTORS_ENABLED
+        float3 motion = encode_motion_vector(input.out_pos, input.out_pos_prev);
+        init_motion_vector(gbuffer, motion);
+      #endif
+      #if RI_HMAP_BLEND_ON
+        blend_with_landscape(gbuffer, worldPos, normalize(worldVertexNormal), input.pointToEye.xyz, input.riHmapBlend);
+      #endif
+      #ifdef PLOD_PS_GEN
+        PLOD_PS_GEN(input, pack_gbuffer(gbuffer), normalMap)
+      #endif
+      return encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
+    #endif
+    }
+  }
+  compile("target_ps", "mask_layered_ps");
+endmacro

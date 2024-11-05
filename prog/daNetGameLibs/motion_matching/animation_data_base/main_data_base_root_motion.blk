@@ -1,0 +1,15 @@
+root_node:t = "Bip01"
+
+direction_nodes {
+  node {
+    name:t="Bip01 Pelvis"
+    weight:r=1.0
+  }
+}
+
+center_of_mass {
+  node {
+    name:t="Bip01 Spine1"
+    params:p4=0, 0, 0, 1
+  }
+}

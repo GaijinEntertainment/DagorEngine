@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/pageAsg/asg_data.h>
 #include <libTools/pageAsg/asg_scheme.h>
 #include <libTools/pageAsg/asg_sysHelper.h>
@@ -54,7 +56,7 @@ bool AsgStatesGraph::exportCppCode(const char *dest_fname, int debug_lev, AsgSta
     if (ind != -1 && states[ind]->gt == i)
       continue;
 
-    debug_ctx("start node for thread #%d <%s> is not found or doesn't belong to that thread", i, (char *)gt[i].startNodeName);
+    DEBUG_CTX("start node for thread #%d <%s> is not found or doesn't belong to that thread", i, (char *)gt[i].startNodeName);
     page_sys_hlp->postMsg(true, "Incorrect thread start node",
       "start node for thread #%d <%s> is not found or doesn't belong to that thread", i, gt[i].startNodeName.str());
     return false;
@@ -112,7 +114,7 @@ bool AsgStatesGraph::exportCppCode(const char *dest_fname, int debug_lev, AsgSta
 
   if (!fp)
   {
-    debug_ctx("error");
+    DEBUG_CTX("error");
     return false;
   }
 
@@ -185,7 +187,7 @@ bool AsgStatesGraph::exportCppCode(const char *dest_fname, int debug_lev, AsgSta
       }
       if (!checkAnimNodeExists(states[i]->animNode[j]))
       {
-        debug_ctx("node <%s> not found; skipping", (char *)states[i]->animNode[j]);
+        DEBUG_CTX("node <%s> not found; skipping", (char *)states[i]->animNode[j]);
         nodeMap[i * chan.size() + j] = -1;
         continue;
       }
@@ -336,7 +338,7 @@ bool AsgStatesGraph::exportCppCode(const char *dest_fname, int debug_lev, AsgSta
             unlink(fname);
             if (!tmp_fname.empty())
               unlink(tmp_fname);
-            debug_ctx("cannot  register var name <%s> of type=%c", (char *)csp.vars[k].name, csp.vars[k].type);
+            DEBUG_CTX("cannot  register var name <%s> of type=%c", (char *)csp.vars[k].name, csp.vars[k].type);
             return false;
           }
       }
@@ -361,7 +363,7 @@ bool AsgStatesGraph::exportCppCode(const char *dest_fname, int debug_lev, AsgSta
             unlink(fname);
             if (!tmp_fname.empty())
               unlink(tmp_fname);
-            debug_ctx("cannot  register var name <%s> of type=%c", (char *)csp.vars[k].name, csp.vars[k].type);
+            DEBUG_CTX("cannot  register var name <%s> of type=%c", (char *)csp.vars[k].name, csp.vars[k].type);
             return false;
           }
       }
@@ -386,7 +388,7 @@ bool AsgStatesGraph::exportCppCode(const char *dest_fname, int debug_lev, AsgSta
             unlink(fname);
             if (!tmp_fname.empty())
               unlink(tmp_fname);
-            debug_ctx("cannot  register var name <%s> of type=%c", csp.vars[k].name.str(), csp.vars[k].type);
+            DEBUG_CTX("cannot  register var name <%s> of type=%c", csp.vars[k].name.str(), csp.vars[k].type);
             return false;
           }
       }
@@ -410,7 +412,7 @@ bool AsgStatesGraph::exportCppCode(const char *dest_fname, int debug_lev, AsgSta
               unlink(fname);
               if (!tmp_fname.empty())
                 unlink(tmp_fname);
-              debug_ctx("cannot  register var name <%s> of type=%c", csp.vars[k].name.str(), csp.vars[k].type);
+              DEBUG_CTX("cannot  register var name <%s> of type=%c", csp.vars[k].name.str(), csp.vars[k].type);
               return false;
             }
 
@@ -423,7 +425,7 @@ bool AsgStatesGraph::exportCppCode(const char *dest_fname, int debug_lev, AsgSta
               unlink(fname);
               if (!tmp_fname.empty())
                 unlink(tmp_fname);
-              debug_ctx("cannot  register var name <%s> of type=%c", csp.vars[k].name.str(), csp.vars[k].type);
+              DEBUG_CTX("cannot  register var name <%s> of type=%c", csp.vars[k].name.str(), csp.vars[k].type);
               return false;
             }
         }
@@ -1260,7 +1262,7 @@ void AsgStatesGraph::implement_checkClass(FILE *fp, int i, const AsgVarsList &va
       if (id != -1)
         mask |= (1 << id);
       else
-        debug_ctx("undefined class <%s> in state <%s>", states[i]->classMarks.getName(j), states[i]->name.str());
+        DEBUG_CTX("undefined class <%s> in state <%s>", states[i]->classMarks.getName(j), states[i]->name.str());
     }
   }
 
@@ -1427,7 +1429,7 @@ void AsgStatesGraph::implement_actionsCheckAndPerform(FILE *fp, int i, const Asg
 
     if (a.performAt == AnimGraphTimedAction::AGTA_AT_Time && a.relativeTime && anim_node_id == -1)
     {
-      debug_ctx("can't generate code for action %d, state: %s: relative time without animNode[0]", j, s.name.str());
+      DEBUG_CTX("can't generate code for action %d, state: %s: relative time without animNode[0]", j, s.name.str());
       continue;
     }
 
@@ -1582,7 +1584,7 @@ void AsgStatesGraph::implement_actionsCheckAndPerform(FILE *fp, int i, const Asg
               case AsgConditionStringParser::Var::TYPE_Int:
                 fprintf(fp, "%*sst->setParamInt(paramId.%s, ", indent, "", csp_var.vars[0].name.str());
                 break;
-              default: debug_ctx("not impl");
+              default: DEBUG_CTX("not impl");
             }
 
             // write expression
@@ -1617,13 +1619,13 @@ void AsgStatesGraph::implement_actionsCheckAndPerform(FILE *fp, int i, const Asg
               case AsgConditionStringParser::Var::TYPE_Timer:
               case AsgConditionStringParser::Var::TYPE_Int: fprintf(fp, ");\n"); break;
 
-              default: debug_ctx("not impl");
+              default: DEBUG_CTX("not impl");
             }
           }
         }
         break;
 
-        default: debug_ctx("unknown type %d", a.actions[k]->type);
+        default: DEBUG_CTX("unknown type %d", a.actions[k]->type);
       }
 
     // close branch

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -14,6 +13,7 @@
 #include <3d/dag_resPtr.h>
 #include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/unordered_set.h>
 #include <ioSys/dag_genIo.h>
 #include "cables.hlsli"
 
@@ -26,7 +26,8 @@ public:
   {
     RENDER_PASS_SHADOW = 0,
     RENDER_PASS_OPAQUE = 1,
-    RENDER_PASS_TRANS = 2
+    RENDER_PASS_TRANS = 2,
+    RENDER_PASS_BVH = 3
   };
 
   Cables();
@@ -42,8 +43,8 @@ public:
   int addCable(const Point3 &p1, const Point3 &p2, float rad, float length);
   void setCable(int id, const Point3 &p1, const Point3 &p2, float rad, float length);
 
-  void beforeRender();                  // Use this function if you set pixel scale to shaders in another place
-  void beforeRender(float pixel_scale); // Use this function if there are no pixel scale variable in project
+  bool beforeRender();                  // Use this function if you set pixel scale to shaders in another place
+  bool beforeRender(float pixel_scale); // Use this function if there are no pixel scale variable in project
   void render(int render_pass);
   void afterReset();
 
@@ -52,6 +53,10 @@ public:
   void destroyCables();
 
   Tab<CableData> *getCablesData() { return &cables; };
+  eastl::unordered_set<uint32_t> &getDirtyCables() { return dirtyCables; };
+
+  uint32_t getMaxCables() const { return maxCables; }
+  uint32_t getTranglesPerCable() const;
 
 protected:
   struct CablePointInfo
@@ -77,6 +82,7 @@ protected:
 
   TiledArea tiledArea;
   Tab<CableData> cables;
+  eastl::unordered_set<uint32_t> dirtyCables;
   DynamicShaderHelper cablesRenderer;
   UniqueBufHolder cablesBuf;
   unsigned int maxCables = 0;

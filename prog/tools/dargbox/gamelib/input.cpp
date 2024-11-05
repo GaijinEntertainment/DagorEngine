@@ -1,16 +1,18 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "input.h"
 
 #include <quirrel/sqEventBus/sqEventBus.h>
 #include <quirrel/sqModules/sqModules.h>
 #include <sqrat.h>
 
-#include <humanInput/dag_hiKeybIds.h>
-#include <humanInput/dag_hiKeyboard.h>
-#include <humanInput/dag_hiPointing.h>
-#include <humanInput/dag_hiMouseIds.h>
+#include <drv/hid/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiKeyboard.h>
+#include <drv/hid/dag_hiPointing.h>
+#include <drv/hid/dag_hiMouseIds.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <startup/dag_globalSettings.h>
-#include <humanInput/dag_hiComposite.h>
+#include <drv/hid/dag_hiComposite.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_miscApi.h>
 
@@ -297,9 +299,11 @@ void bind_script(SqModules *module_mgr)
   HSQUIRRELVM vm = module_mgr->getVM();
 
   Sqrat::Table exports(vm);
-  exports.SquirrelFunc("get_button_state", get_button_state, 2, ". n|s")
+  exports //
+    .SquirrelFunc("get_button_state", get_button_state, 2, ". n|s")
     .SquirrelFunc("get_mouse_pos", get_mouse_pos, 1)
-    .SquirrelFunc("get_joystick_axis", get_joystick_axis, 2, ". n");
+    .SquirrelFunc("get_joystick_axis", get_joystick_axis, 2, ". n")
+    /**/;
 
   dag::ConstSpan<FastStrMapT<darg::Hotkeys::EncodedKey>::Entry> buttonsRawSlice = btn_name_map.getMapRaw();
   Sqrat::Table buttonNames(vm);

@@ -1,8 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/cables.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_driver.h>
 #include <shaders/dag_shaders.h>
 #include <perfMon/dag_statDrv.h>
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_resetDevice.h>
 
 eastl::unique_ptr<Cables> cables_mgr;
 
@@ -94,6 +98,9 @@ void Cables::loadCables(IGenLoad &crd)
   setMaxCables(cablesCount);
   cables.resize(cablesCount);
   crd.readTabData(cables);
+  dirtyCables.clear();
+  for (int i = 0; i < cablesCount; ++i)
+    dirtyCables.emplace(i);
   changed = true;
   generateTiles();
 }
@@ -112,6 +119,7 @@ int Cables::addCable(const Point3 &p1, const Point3 &p2, float rad, float sag)
     Point4::xyzV(p1, rad),
     Point4::xyzV(p2, sag),
   };
+  dirtyCables.emplace(cables.size());
   cables.push_back(cable);
   return cables.size() - 1;
 }
@@ -124,21 +132,28 @@ void Cables::setCable(int id, const Point3 &p1, const Point3 &p2, float rad, flo
     Point4::xyzV(p2, sag),
   };
   if (id < cables.size())
+  {
     cables[id] = cable;
+    dirtyCables.emplace(id);
+  }
   else
+  {
     cables.push_back(cable);
+    dirtyCables.emplace(cables.size());
+  }
 }
 
-void Cables::beforeRender(float pixel_scale)
+bool Cables::beforeRender(float pixel_scale)
 {
   ShaderGlobal::set_real_fast(pixel_scaleVarId, pixel_scale);
-  beforeRender();
+  return beforeRender();
 }
 
-void Cables::beforeRender()
+bool Cables::beforeRender()
 {
   TIME_D3D_PROFILE(cables_beforeRender)
   destroyCables();
+  bool wasChanged = changed;
   if (changed && cables.size())
   {
     G_ASSERT(cablesRenderer.shader != nullptr);
@@ -146,6 +161,7 @@ void Cables::beforeRender()
     cablesBuf->updateData(0, sizeof(cables[0]) * cables.size(), cables.data(), 0);
     changed = false;
   }
+  return wasChanged;
 }
 
 void Cables::render(int render_pass)
@@ -202,6 +218,8 @@ void Cables::destroyCables()
   }
   destroyedRIExtra.resize(0);
 }
+
+uint32_t Cables::getTranglesPerCable() const { return TRIANGLES_PER_CABLE; }
 
 void reset_cables(bool)
 {

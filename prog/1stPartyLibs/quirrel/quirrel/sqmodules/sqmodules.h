@@ -1,5 +1,11 @@
 /*
-  This is not a production code, but a demonstration of concept of modules
+  Reference implementation of modules.
+  It provides necessary script API (`require()`, `require_optional()`, `persist()`, `keepref()`)
+  and native API for managing modules (including hot reload functionality).
+
+  Complete set of features should include:
+    * `imprort` syntax
+    * file system abstraction layer
 */
 
 
@@ -10,7 +16,16 @@
 #include <string>
 #include <unordered_map>
 
+#if SQMODULES_HAVE_SQRAT
+#include <sqrat.h>
+#else
 #include "sqratLite.h"
+#endif
+
+namespace SQCompilation
+{
+struct SqASTData;
+}
 
 class SqModules
 {
@@ -24,7 +39,6 @@ public:
     Sqrat::Object exports;
     Sqrat::Object stateStorage;
     Sqrat::Object refHolder;
-    Sqrat::Object moduleThis;
     string  __name__;
   };
 
@@ -75,15 +89,11 @@ private:
 
   void  resolveFileName(const char *fn, string &res);
   bool  checkCircularReferences(const char *resolved_fn, const char *orig_fn);
-  enum class CompileScriptResult
-  {
-    Ok,
-    FileNotFound,
-    CompilationFailed
-  };
-  CompileScriptResult compileScript(const char *resolved_fn, const char *orig_fn, const HSQOBJECT *bindings,
-                                    Sqrat::Object &script_closure, string &out_err_msg);
-  bool compileScriptImpl(const std::vector<char> &buf, const char *sourcename, const HSQOBJECT *bindings);
+  bool  compileScript(const std::vector<char> &buf, const char *resolved_fn, const char *orig_fn, const HSQOBJECT *bindings,
+                                    Sqrat::Object &script_closure, string &out_err_msg,
+                                    SQCompilation::SqASTData **return_ast = nullptr);
+  bool  compileScriptImpl(const std::vector<char> &buf, const char *sourcename, const HSQOBJECT *bindings,
+                         SQCompilation::SqASTData **return_ast = nullptr);
 
   Sqrat::Object  setupStateStorage(const char *resolved_fn);
   Module * findModule(const char * resolved_fn);
@@ -93,7 +103,7 @@ private:
 
 
 public:
-  static const char *__main__, *__fn__;
+  static const char *__main__, *__fn__, *__analysis__;
 
   struct {
     bool raiseError;

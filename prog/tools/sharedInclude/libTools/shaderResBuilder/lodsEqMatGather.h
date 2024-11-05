@@ -1,8 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef __LODSEQMATGATHER_H
-#define __LODSEQMATGATHER_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include "eqMatGather.h"
 #include <shaders/dag_shaders.h>
@@ -65,5 +62,3 @@ public:
   }
 }; // class LodsEqualMaterialGather
 //
-
-#endif

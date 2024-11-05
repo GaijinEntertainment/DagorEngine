@@ -1,0 +1,25 @@
+include "shader_global.dshl"
+
+texture ui_tex;
+
+shader ui_blend {
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  blend_src = one; blend_dst = isa;
+  blend_asrc = one; blend_adst = isa;
+
+  POSTFX_VS_TEXCOORD(0, tc)
+
+  (ps) {
+    ui_tex@smp2d = ui_tex;
+  }
+  hlsl(ps) {
+    half4 main_ps(VsOutput input) : SV_Target0 {
+      return tex2Dlod(ui_tex, float4(input.tc, 0, 0));
+    }
+  }
+
+  compile("target_ps", "main_ps");
+}

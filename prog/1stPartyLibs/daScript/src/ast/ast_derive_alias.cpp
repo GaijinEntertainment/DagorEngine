@@ -135,7 +135,7 @@ namespace das {
     // pointer deref - all bets are off
         virtual void preVisit ( ExprPtr2Ref * expr ) override {
             Visitor::preVisit(expr);
-            alwaysAliases = true;
+            if ( !expr->assumeNoAlias ) alwaysAliases = true;
         }
     // function call - does not alias when does not return ref
         virtual void preVisit ( ExprCall * expr ) override {
@@ -293,9 +293,11 @@ namespace das {
 
     class AliasMarker : public Visitor {
     public:
-        AliasMarker ( const ProgramPtr & prog, TextWriter & ls ) : program(prog), logs(ls) {
+        AliasMarker ( const ProgramPtr & prog, bool permanent, bool everything, TextWriter & ls ) : program(prog), logs(ls) {
             checkAliasing = program->options.getBoolOption("no_aliasing", program->policies.no_aliasing);
             logAliasing = program->options.getBoolOption("log_aliasing", false);
+            isPermanent = permanent;
+            isEverything = everything;
         }
     protected:
         ProgramPtr  program;
@@ -303,6 +305,21 @@ namespace das {
         bool checkAliasing = false;
         bool logAliasing = false;
         TextWriter & logs;
+        bool isPermanent = false;
+        bool isEverything = false;
+    protected:
+        virtual bool canVisitGlobalVariable ( Variable * var ) override {
+            if ( var->aliasesResolved ) return false;
+            if ( !var->used && !isEverything ) return false;
+            var->aliasesResolved = isPermanent;
+            return true;
+        }
+        virtual bool canVisitFunction ( Function * fun ) override {
+            if ( fun->aliasesResolved ) return false;
+            if ( !fun->used && !isEverything ) return false;
+            fun->aliasesResolved = isPermanent;
+            return true;
+        }
     protected:
         virtual void preVisit ( ExprCopy * expr ) override {
             Visitor::preVisit(expr);
@@ -582,14 +599,25 @@ namespace das {
         }
     };
 
-    void Program::deriveAliases(TextWriter & logs) {
+    void Program::deriveAliases(TextWriter & logs, bool permanent, bool everything) {
         bool logAliasing = options.getBoolOption("log_aliasing", false);
         if ( logAliasing ) logs << "ALIASING:\n";
+
+        library.foreach([&](Module * mod){
+            if ( logAliasing ) logs << "module " << mod->name << ":\n";
+            mod->functions.foreach([&](const FunctionPtr & func){
+                if ( func->builtIn || !func->used ) return;
+                deriveAliasing(func, logs, logAliasing);
+            });
+            return true;
+        },"*");
+        /*
         thisModule->functions.foreach([&](const FunctionPtr & func) {
             if ( func->builtIn || !func->used ) return;
             deriveAliasing(func, logs, logAliasing);
         });
-        AliasMarker marker(this, logs);
+        */
+        AliasMarker marker(this, permanent, everything, logs);
         visit(marker);
         if ( logAliasing ) logs << "\n";
     }

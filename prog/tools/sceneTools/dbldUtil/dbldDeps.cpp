@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/util/binDumpReader.h>
 #include <libTools/util/strUtil.h>
 #include <startup/dag_globalSettings.h>
@@ -15,7 +17,7 @@
 #include <shaders/dag_renderScene.h>
 #include <startup/dag_restart.h>
 #include <startup/dag_startupTex.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_texPackMgr2.h>
 #include <math/dag_bounds2.h>
 #include <ioSys/dag_dataBlock.h>
@@ -28,6 +30,7 @@
 #include <util/dag_texMetaData.h>
 #include <util/dag_oaHashNameMap.h>
 #include <util/dag_fileMd5Validate.h>
+#include <ska_hash_map/flat_hash_map2.hpp>
 #include <debug/dag_debug.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -175,6 +178,61 @@ static void load_res_package(const char *folder, bool optional, const char *patc
     }
   }
 }
+
+struct CachedTexData
+{
+  ska::flat_hash_map<unsigned, int> tid2nid;
+  SmallTab<TEXTUREID> nid2tid;
+  SmallTab<ddsx::DDSxDataPublicHdr> texHdrByNameId;
+  SmallTab<unsigned> texSizeByNameId;
+
+  CachedTexData()
+  {
+    nid2tid.resize(refTexAll.nameCount());
+    mem_set_0(nid2tid);
+    texHdrByNameId.resize(refTexAll.nameCount());
+    mem_set_0(texHdrByNameId);
+    texSizeByNameId.resize(refTexAll.nameCount());
+    mem_set_0(texSizeByNameId);
+
+    iterate_names(refTexAll, [&](int nid, const char *name) {
+      texSizeByNameId[nid] = get_tex_header(name, texHdrByNameId[nid]);
+      if (TEXTUREID tid = get_managed_texture_id(name))
+        tid2nid[unsigned(tid)] = nid, nid2tid[nid] = tid;
+    });
+  }
+  inline unsigned getTexSize(TEXTUREID tid)
+  {
+    int nid = tid2nid[unsigned(tid)];
+    return nid >= 0 ? texSizeByNameId[nid] : 0;
+  }
+  inline const char *getTexName(TEXTUREID tid) { return refTexAll.getName(tid2nid[unsigned(tid)]); }
+  static int get_tex_header(const char *name, ddsx::DDSxDataPublicHdr &desc)
+  {
+    TEXTUREID tid = get_managed_texture_id(name);
+    int tex_sz = ddsx::read_ddsx_header(name, desc, true);
+    if (tex_sz < 0)
+    {
+      if (BaseTexture *t = acquire_managed_tex(tid))
+      {
+        TextureInfo ti;
+        t->getinfo(ti, 0);
+
+        desc.w = ti.w;
+        desc.h = ti.h;
+        desc.depth = max<int>(ti.d, ti.a);
+        desc.levels = ti.mipLevels;
+        if (ti.resType == RES3D_CUBETEX)
+          desc.flags |= desc.FLG_CUBTEX;
+        else if (ti.resType == RES3D_VOLTEX)
+          desc.flags |= desc.FLG_VOLTEX;
+        tex_sz = t->ressize();
+      }
+      release_managed_tex(tid);
+    }
+    return (get_managed_texture_refcount(tid) > 0) ? tex_sz : 0;
+  }
+};
 
 bool dumpDbldDeps(IGenLoad &crd, const DataBlock &env)
 {
@@ -423,6 +481,22 @@ bool dumpDbldDeps(IGenLoad &crd, const DataBlock &env)
   for (TEXTUREID i = first_managed_texture(1); i != BAD_TEXTUREID; i = next_managed_texture(i, 1))
     refTexAll.addNameId(TextureMetaData::decodeFileName(get_managed_texture_name(i)));
 
+  CachedTexData cachedTexData; // constructed using current refTexAll
+  String tmp_dim_str;
+  auto printTexDim = [&tmp_dim_str](const ddsx::DDSxDataPublicHdr &desc, unsigned tex_sz) {
+    tmp_dim_str.printf(0, "[%4dx%d", desc.w, desc.h);
+    if (desc.flags & desc.FLG_VOLTEX)
+      tmp_dim_str.aprintf(0, "x%d", desc.depth);
+    else if (desc.flags & desc.FLG_CUBTEX)
+      tmp_dim_str.aprintf(0, "x6", desc.depth);
+    else if (desc.depth > 1)
+      tmp_dim_str.aprintf(0, "[%d]", desc.depth);
+    if (desc.levels <= get_log2i(max(max(desc.w, desc.h), desc.depth)))
+      tmp_dim_str.aprintf(0, ",L%d", desc.levels);
+    tmp_dim_str.aprintf(0, " %*dK]", max<int>(15 - tmp_dim_str.length(), 0), tex_sz >> 10);
+    return tmp_dim_str.c_str();
+  };
+
   del_it(lmeshMgr);
   del_it(scn);
   del_it(envi);
@@ -442,21 +516,21 @@ bool dumpDbldDeps(IGenLoad &crd, const DataBlock &env)
         max_texname_len = len;
   });
   int64_t total_texmem_used = 0;
-  iterate_names(refTexAll, [&](int, const char *name) {
-    TEXTUREID tid = get_managed_texture_id(name);
-    ddsx::DDSxDataPublicHdr desc;
-    int tex_sz = ddsx::read_ddsx_header(name, desc, true);
+  iterate_names(refTexAll, [&](int nid, const char *name) {
+    TEXTUREID tid = cachedTexData.nid2tid[nid];
+    const ddsx::DDSxDataPublicHdr &desc = cachedTexData.texHdrByNameId[nid];
+    int tex_sz = cachedTexData.texSizeByNameId[nid];
     if (tex_sz > 0)
       total_texmem_used += tex_sz;
     if (!verbose)
       printf("%s %s\n", refTex.getNameId(name) >= 0 ? "*" : " ", name);
-    else if (texRemap[tid.index()] == ~0u)
-      printf("%s [%4dx%-4d %5dK]  %s\n", refTex.getNameId(name) >= 0 ? "*" : " ", desc.w, desc.h, tex_sz >> 10, name);
+    else if (tid.index() >= texRemap.size() || texRemap[tid.index()] == ~0u)
+      printf("%s %s  %s\n", refTex.getNameId(name) >= 0 ? "*" : " ", printTexDim(desc, tex_sz), name);
     else
     {
       const FastNameMap &map = perTexAssets[texRemap[tid.index()]];
-      tmpStr.printf(0, "%s [%4dx%-4d %5dK]  %-*s <-", refTex.getNameId(name) >= 0 ? "*" : " ", desc.w, desc.h, tex_sz >> 10,
-        max_texname_len, name);
+      tmpStr.printf(0, "%s %s", refTex.getNameId(name) >= 0 ? "*" : " ", printTexDim(desc, tex_sz));
+      tmpStr.aprintf(0, "  %-*s <-", max<int>(max_texname_len + 20 - tmpStr.length(), 1), name);
       iterate_names(map, [&tmpStr](int, const char *name2) { tmpStr.aprintf(0, " %s;", name2); });
 
       printf("%s\n", tmpStr.str());
@@ -498,11 +572,10 @@ bool dumpDbldDeps(IGenLoad &crd, const DataBlock &env)
         shared_tex.clear();
         int64_t unique_texmem_used = 0;
         for (TEXTUREID tid : perResTextures[idx])
-          if (texRemap[tid.index()] == ~0u || perTexAssets[texRemap[tid.index()]].nameCount() < 2)
+          if (tid.index() >= texRemap.size() || texRemap[tid.index()] == ~0u || perTexAssets[texRemap[tid.index()]].nameCount() < 2)
           {
             unique_tex.push_back(tid);
-            ddsx::DDSxDataPublicHdr desc;
-            int tex_sz = ddsx::read_ddsx_header(get_managed_texture_name(tid), desc, true);
+            int tex_sz = cachedTexData.getTexSize(tid);
             if (tex_sz > 0)
               unique_texmem_used += tex_sz;
           }
@@ -515,14 +588,14 @@ bool dumpDbldDeps(IGenLoad &crd, const DataBlock &env)
         {
           tmpStr.aprintf(0, "unique[%d]={", unique_tex.size());
           for (TEXTUREID tid : unique_tex)
-            tmpStr.aprintf(0, " %s;", TextureMetaData::decodeFileName(get_managed_texture_name(tid)));
+            tmpStr.aprintf(0, " %s;", cachedTexData.getTexName(tid));
           tmpStr += " };";
         }
         if (shared_tex.size())
         {
           tmpStr.aprintf(0, " shared[%d]={", shared_tex.size());
           for (TEXTUREID tid : shared_tex)
-            tmpStr.aprintf(0, " %s;", TextureMetaData::decodeFileName(get_managed_texture_name(tid)));
+            tmpStr.aprintf(0, " %s;", cachedTexData.getTexName(tid));
           tmpStr += " };";
         }
 
@@ -564,11 +637,10 @@ bool dumpDbldDeps(IGenLoad &crd, const DataBlock &env)
         shared_tex.clear();
         int64_t unique_texmem_used = 0;
         for (TEXTUREID tid : perResTextures[idx])
-          if (texRemap[tid.index()] == ~0u || perTexAssets[texRemap[tid.index()]].nameCount() < 2)
+          if (tid.index() >= texRemap.size() || texRemap[tid.index()] == ~0u || perTexAssets[texRemap[tid.index()]].nameCount() < 2)
           {
             unique_tex.push_back(tid);
-            ddsx::DDSxDataPublicHdr desc;
-            int tex_sz = ddsx::read_ddsx_header(get_managed_texture_name(tid), desc, true);
+            int tex_sz = cachedTexData.getTexSize(tid);
             if (tex_sz > 0)
               unique_texmem_used += tex_sz;
           }
@@ -580,14 +652,14 @@ bool dumpDbldDeps(IGenLoad &crd, const DataBlock &env)
         {
           tmpStr.aprintf(0, "unique[%d]={", unique_tex.size());
           for (TEXTUREID tid : unique_tex)
-            tmpStr.aprintf(0, " %s;", TextureMetaData::decodeFileName(get_managed_texture_name(tid)));
+            tmpStr.aprintf(0, " %s;", cachedTexData.getTexName(tid));
           tmpStr += " };";
         }
         if (shared_tex.size())
         {
           tmpStr.aprintf(0, " shared[%d]={", shared_tex.size());
           for (TEXTUREID tid : shared_tex)
-            tmpStr.aprintf(0, " %s;", TextureMetaData::decodeFileName(get_managed_texture_name(tid)));
+            tmpStr.aprintf(0, " %s;", cachedTexData.getTexName(tid));
           tmpStr += " };";
         }
 

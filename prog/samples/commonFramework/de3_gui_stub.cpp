@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "de3_gui_dialogs.h"
 #include <util/dag_string.h>
 

@@ -1,5 +1,4 @@
-#ifndef _DAGOR_GAMELIB_FOLDERS_INTERNAL_H_
-#define _DAGOR_GAMELIB_FOLDERS_INTERNAL_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <util/dag_string.h>
@@ -24,5 +23,3 @@ void get_current_work_dir(String &dir);
 void truncate_exe_dir(String &dir);
 } // namespace internal
 } // namespace folders
-
-#endif

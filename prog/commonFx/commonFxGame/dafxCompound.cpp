@@ -1,6 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daFx/dafx.h>
 #include <fx/dag_fxInterface.h>
 #include <fx/dag_baseFxClasses.h>
+#include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_gameResources.h>
 #include <3d/dag_texMgr.h>
 #include <shaders/dag_shaders.h>
@@ -40,7 +43,7 @@ enum
 void gather_sub_textures(const dafx::SystemDesc &desc, eastl::vector<TEXTUREID> &out)
 {
   auto fetch = [](auto &list, auto &o) {
-    for (TEXTUREID tid : list)
+    for (auto [tid, a] : list)
       if (tid != BAD_TEXTUREID)
         o.push_back(tid);
   };
@@ -62,6 +65,7 @@ struct DafxCompound : BaseParticleEffect
     int emitterNtm;
     int parentVelocity;
     int localGravity;
+    int gravityTm;
     int lightPos;
     int lightColor;
     int lightRadius;
@@ -71,6 +75,7 @@ struct DafxCompound : BaseParticleEffect
     int velocityScaleMax;
     int radiusMin;
     int radiusMax;
+    int windCoeff;
   };
 
   struct DistanceLag
@@ -381,6 +386,7 @@ struct DafxCompound : BaseParticleEffect
       offsets.lightColor = -1;
       offsets.parentVelocity = -1;
       offsets.localGravity = -1;
+      offsets.gravityTm = -1;
       offsets.emitterNtm = -1;
       offsets.colorMult = -1;
       offsets.flags = -1;
@@ -388,6 +394,7 @@ struct DafxCompound : BaseParticleEffect
       offsets.velocityScaleMax = -1;
       offsets.radiusMin = -1;
       offsets.radiusMax = -1;
+      offsets.windCoeff = -1;
 
       dafx_ex::SystemInfo *sinfo = nullptr;
       if (fx->getParam(_MAKE4C('PFVR'), &sinfo) && sinfo)
@@ -455,6 +462,12 @@ struct DafxCompound : BaseParticleEffect
           patch_mul_v3_v(dafx_ex::SystemInfo::VAL_VELOCITY_ADD_VEC3, sinfo->valueOffsets, simulationRefData, par.mod_velocity_add);
         }
 
+        if (par.mod_velocity_wind_scale != 1)
+        {
+          patch_mul_f_v(dafx_ex::SystemInfo::VAL_VELOCITY_WIND_COEFF, sinfo->valueOffsets, simulationRefData,
+            par.mod_velocity_wind_scale);
+        }
+
         if (par.mod_velocity_mass != 1)
         {
           patch_mul_f_v(dafx_ex::SystemInfo::VAL_MASS, sinfo->valueOffsets, simulationRefData, par.mod_velocity_mass);
@@ -472,6 +485,10 @@ struct DafxCompound : BaseParticleEffect
 
         patch_mul_color_v(dafx_ex::SystemInfo::VAL_COLOR_MIN, sinfo->valueOffsets, simulationRefData, par.mod_color);
         patch_mul_color_v(dafx_ex::SystemInfo::VAL_COLOR_MAX, sinfo->valueOffsets, simulationRefData, par.mod_color);
+
+        auto it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_GRAVITY_ZONE_TM);
+        if (it != sinfo->valueOffsets.end())
+          offsets.gravityTm = it->second;
       }
 
       int isModfx = 0;
@@ -504,6 +521,10 @@ struct DafxCompound : BaseParticleEffect
         if (it != sinfo->valueOffsets.end())
           offsets.parentVelocity = it->second;
 
+        it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_VELOCITY_WIND_COEFF);
+        if (it != sinfo->valueOffsets.end())
+          offsets.windCoeff = it->second;
+
         it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_LOCAL_GRAVITY_VEC);
         if (it != sinfo->valueOffsets.end())
           offsets.localGravity = it->second;
@@ -530,22 +551,20 @@ struct DafxCompound : BaseParticleEffect
         *(uint32_t *)(sdesc->emissionData.renderRefData.data() + offsets.flags) = flg;
         rflags.push_back(flg);
         sflags.push_back(sinfo->sflags);
-
-        if (trtype == dafx_ex::TRANSFORM_DEFAULT)
-          trtype = sinfo->transformType;
       }
-      else
+      else // sparks
       {
         offsets.fxTm = 0;
-        if (trtype != dafx_ex::TRANSFORM_LOCAL_SPACE)
-          offsets.parentVelocity = 64;
-        offsets.emitterWtm = sdesc->emissionData.renderRefData.size();
-        offsets.emitterNtm = sdesc->emissionData.renderRefData.size() + 64;
+        offsets.emitterWtm = 0;
+        offsets.emitterNtm = sdesc->emissionData.renderRefData.size();
+        offsets.parentVelocity = sdesc->emissionData.renderRefData.size() + 64;
         rflags.push_back(0);
         sflags.push_back(0);
         fxRadiusRanges.push_back(Point2(1.f, 1.f));
       }
 
+      if (sinfo && trtype == dafx_ex::TRANSFORM_DEFAULT)
+        trtype = sinfo->transformType;
       transformTypes.push_back(trtype);
     }
 
@@ -607,8 +626,11 @@ struct DafxCompound : BaseParticleEffect
       if (iid)
         dafx::destroy_instance(g_dafx_ctx, iid);
 
+      String resName;
+      get_game_resource_name(gameResId, resName);
+
       eastl::string name;
-      name.append_sprintf("compound_%d", gameResId);
+      name.append_sprintf("%s__%d", resName.c_str(), gameResId);
 
       sid = dafx::get_system_by_name(g_dafx_ctx, name);
       bool forceRecreate = value && *(bool *)value;
@@ -668,10 +690,12 @@ struct DafxCompound : BaseParticleEffect
       setColorMult((Color3 *)value);
     else if (id == HUID_COLOR4_MULT)
       setColor4Mult((Color4 *)value);
-    else if (lightFx)
-      lightFx->setParam(id, value);
     else if (id == _MAKE4C('PFXG'))
       dafx::warmup_instance(g_dafx_ctx, iid, value ? *(float *)value : 0);
+    else if (id == _MAKE4C('GZTM'))
+      setGravityTm(*(Matrix3 *)value);
+    else if (lightFx) // always last.
+      lightFx->setParam(id, value);
   }
 
   void *getParam(unsigned id, void *value) override
@@ -744,7 +768,16 @@ struct DafxCompound : BaseParticleEffect
         ((eastl::vector<dafx::SystemDesc *> *)value)->push_back(pdesc.get());
       return value;
     }
-
+    else if (id == _MAKE4C('FXIC') && value)
+    {
+      *(int *)value = dafx::get_instance_elem_count(g_dafx_ctx, iid);
+      return value;
+    }
+    else if (id == _MAKE4C('FXID') && value)
+    {
+      *(dafx::InstanceId *)value = iid;
+      return value;
+    }
     else if (lightFx)
       return lightFx->getParam(id, value);
 
@@ -805,6 +838,19 @@ struct DafxCompound : BaseParticleEffect
       lightFx->setColor4Mult(value);
   }
 
+  void setGravityTm(const Matrix3 &tm)
+  {
+    if (!iid)
+      return;
+
+    for (int i = 0; i < valueOffsets.size(); ++i)
+    {
+      int ofs = valueOffsets[i].gravityTm;
+      if (ofs >= 0)
+        dafx::set_subinstance_value(g_dafx_ctx, iid, i, ofs, &tm, sizeof(tm));
+    }
+  }
+
   void recalcFxScale()
   {
     int seed = uintptr_t(this) | uint32_t(iid);
@@ -828,9 +874,6 @@ struct DafxCompound : BaseParticleEffect
       dafx_ex::TransformType type = transformTypes[i];
       if (type == dafx_ex::TRANSFORM_DEFAULT)
         type = tr_type;
-
-      int offset = -1;
-      int normOffset = -1;
 
       TMatrix stm = value * subTransforms[i];
       stm.col[0] *= fxScale;
@@ -882,10 +925,8 @@ struct DafxCompound : BaseParticleEffect
         }
       }
 
-      TMatrix4 stm4 = stm;
-
       // uniform matrix with usage flag
-      if (valueOffsets[i].flags >= 0)
+      if (valueOffsets[i].flags >= 0) // modFx
       {
         if (type == dafx_ex::TRANSFORM_LOCAL_SPACE)
         {
@@ -911,37 +952,35 @@ struct DafxCompound : BaseParticleEffect
           }
         }
 
+        TMatrix4 stm4 = stm;
         dafx::set_subinstance_value(g_dafx_ctx, iid, i, valueOffsets[i].fxTm, &stm4, sizeof(TMatrix4));
-        continue;
       }
-
-      // separate matrices
-      if (type == dafx_ex::TRANSFORM_LOCAL_SPACE)
+      else // sparks
       {
-        offset = valueOffsets[i].fxTm;
-        stm4 = stm4.transpose();
-      }
-      else if (type == dafx_ex::TRANSFORM_WORLD_SPACE)
-      {
-        offset = valueOffsets[i].emitterWtm;
-        normOffset = valueOffsets[i].emitterNtm;
-      }
+        struct
+        {
+          TMatrix4 stm4;
+          uint32_t isLocalSpace;
+        } pushData;
 
-      if (offset >= 0)
-      {
-        dafx::set_subinstance_value(g_dafx_ctx, iid, i, offset, &stm4, sizeof(TMatrix4));
-      }
+        pushData.stm4 = stm;
+        pushData.isLocalSpace = type == dafx_ex::TRANSFORM_LOCAL_SPACE;
+        if (pushData.isLocalSpace) // using it like an inverse matrix to get forces in local space.
+          pushData.stm4 = pushData.stm4.transpose();
 
-      if (normOffset >= 0)
-      {
-        TMatrix emitterNormalTm;
-        emitterNormalTm.setcol(0, normalize(stm.getcol(0)));
-        emitterNormalTm.setcol(1, normalize(stm.getcol(1)));
-        emitterNormalTm.setcol(2, normalize(stm.getcol(2)));
-        emitterNormalTm.setcol(3, Point3(0, 0, 0));
+        dafx::set_subinstance_value(g_dafx_ctx, iid, i, valueOffsets[i].fxTm, &pushData, sizeof(pushData));
 
-        stm4 = emitterNormalTm;
-        dafx::set_subinstance_value(g_dafx_ctx, iid, i, normOffset, &stm4, sizeof(TMatrix4));
+        if (type == dafx_ex::TRANSFORM_WORLD_SPACE)
+        {
+          TMatrix emitterNormalTm;
+          emitterNormalTm.setcol(0, normalize(stm.getcol(0)));
+          emitterNormalTm.setcol(1, normalize(stm.getcol(1)));
+          emitterNormalTm.setcol(2, normalize(stm.getcol(2)));
+          emitterNormalTm.setcol(3, Point3(0, 0, 0));
+
+          TMatrix4 ntm4 = emitterNormalTm;
+          dafx::set_subinstance_value(g_dafx_ctx, iid, i, valueOffsets[i].emitterNtm, &ntm4, sizeof(TMatrix4));
+        }
       }
     }
 
@@ -990,6 +1029,35 @@ struct DafxCompound : BaseParticleEffect
       ofs = valueOffsets[i].velocityScaleMax;
       if (ofs >= 0)
         dafx::set_subinstance_value(g_dafx_ctx, iid, i, ofs, scale, sizeof(*scale));
+    }
+  }
+
+  void setVelocityScaleMinMax(const Point2 *scale) override
+  {
+    if (!iid || !scale)
+      return;
+
+    for (int i = 0; i < valueOffsets.size(); ++i)
+    {
+      int ofs = valueOffsets[i].velocityScaleMin;
+      if (ofs >= 0)
+        dafx::set_subinstance_value(g_dafx_ctx, iid, i, ofs, &scale->x, sizeof(float));
+      ofs = valueOffsets[i].velocityScaleMax;
+      if (ofs >= 0)
+        dafx::set_subinstance_value(g_dafx_ctx, iid, i, ofs, &scale->y, sizeof(float));
+    }
+  }
+
+  void setWindScale(const float *scale) override
+  {
+    if (!iid || !scale)
+      return;
+
+    for (int i = 0; i < valueOffsets.size(); ++i)
+    {
+      int ofs = valueOffsets[i].windCoeff;
+      if (ofs >= 0)
+        dafx::set_subinstance_value_from_system(g_dafx_ctx, iid, i, sid, ofs, sizeof(float), {scale, 1});
     }
   }
 

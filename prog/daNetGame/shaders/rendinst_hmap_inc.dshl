@@ -1,0 +1,12 @@
+include "hmap_blend_inc.dshl"
+
+
+macro COMMON_RENDINST_INIT_HMAP()
+
+  INIT_HMAP_BLEND_STATIC()
+
+  if (rendinst_render_pass != rendinst_render_pass_to_shadow && rendinst_render_pass != rendinst_render_pass_depth )
+  {
+    USE_HMAP_BLEND_VS_PARAMS()
+  }
+endmacro

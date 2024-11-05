@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -10,7 +9,7 @@
 #include <3d/dag_texMgr.h>
 #include <3d/dag_resPtr.h>
 #include <3d/dag_textureIDHolder.h>
-#include <3d/dag_drv3dConsts.h>
+#include <drv/3d/dag_consts.h>
 #include <render/viewDependentResource.h>
 #include <generic/dag_carray.h>
 #include <math/dag_Point3.h>
@@ -25,7 +24,7 @@ public:
   using ISSAORenderer::render;
 
   SSAORenderer() = delete;
-  SSAORenderer(int w, int h, int num_views, uint32_t flags = SSAO_NONE, bool use_own_textures = true);
+  SSAORenderer(int w, int h, int num_views, uint32_t flags = SSAO_NONE, bool use_own_textures = true, const char *tag = "");
   virtual ~SSAORenderer();
 
   void reset() override;
@@ -57,7 +56,7 @@ private:
 
   struct ViewSpecific
   {
-    TMatrix4 prevGlobTm;
+    TMatrix4 prevGlobTm, prevProjTm;
     Point4 prevViewVecLT;
     Point4 prevViewVecRT;
     Point4 prevViewVecLB;
@@ -74,4 +73,6 @@ private:
 
   eastl::unique_ptr<PostFxRenderer> ssaoBlurRenderer{nullptr};
   bool useOwnTextures;
+
+  String tag;
 };

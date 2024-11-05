@@ -1,0 +1,143 @@
+Root    ?= ../../.. ;
+Location = prog/3rdPartyLibs/crashpad ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/crashpad.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+Target = $(Target:S=~z$(UseZlibVer).lib) ;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/crashpad
+  $(Root)/prog/3rdPartyLibs/arc/zlib-$(UseZlibVer)
+  $(Root)/prog/3rdPartyLibs/crashpad/third_party/mini_chromium/mini_chromium
+;
+
+UseProgLibs = 3rdPartyLibs/arc/zlib-$(UseZlibVer) ;
+CPPopt += -DCRASHPAD_ZLIB_SOURCE_EXTERNAL ;
+
+Sources =
+  client/annotation.cc
+  client/annotation_list.cc
+  client/crash_report_database.cc
+  client/crashpad_info.cc
+  client/prune_crash_reports.cc
+  client/settings.cc
+;
+
+if $(Platform) in windows {
+  CPPopt += -DUNICODE -DCRASHPAD_FLOCK_ALWAYS_SUPPORTED=1 /std:c++20 ;
+  AddIncludes +=
+    $(Root)/prog/3rdPartyLibs/crashpad/compat/win
+  ;
+  Sources +=
+    client/crash_report_database_win.cc
+    client/crashpad_client_win.cc
+  ;
+  Sources +=
+    util/file/directory_reader_win.cc
+    util/file/file_io_win.cc
+    util/file/filesystem_win.cc
+    util/misc/clock_win.cc
+    util/misc/paths_win.cc
+    util/misc/time_win.cc
+    util/misc/capture_context_win.masm
+    util/net/http_transport_win.cc
+    util/process/process_memory_win.cc
+    util/synchronization/semaphore_win.cc
+    util/thread/thread_win.cc
+    util/win/command_line.cc
+    util/win/critical_section_with_debug_info.cc
+    util/win/exception_handler_server.cc
+    util/win/get_function.cc
+    util/win/get_module_information.cc
+    util/win/handle.cc
+    util/win/initial_client_data.cc
+    util/win/loader_lock.cc
+    util/win/module_version.cc
+    util/win/nt_internals.cc
+    util/win/ntstatus_logging.cc
+    util/win/process_info.cc
+    util/win/registration_protocol_win.cc
+    util/win/safe_terminate_process.masm
+    util/win/scoped_handle.cc
+    util/win/scoped_local_alloc.cc
+    util/win/scoped_process_suspend.cc
+    util/win/scoped_set_event.cc
+    util/win/session_end_watcher.cc
+  ;
+  Sources +=
+    third_party/mini_chromium/mini_chromium/base/threading/thread_local_storage_win.cc
+    third_party/mini_chromium/mini_chromium/base/synchronization/lock_impl_win.cc
+    third_party/mini_chromium/mini_chromium/base/strings/string_util_win.cc
+    third_party/mini_chromium/mini_chromium/base/scoped_clear_last_error_win.cc
+    third_party/mini_chromium/mini_chromium/base/memory/page_size_win.cc
+  ;
+  if $(PlatformSpec) = clang { CPPopt += -Wno-format ; }
+}
+
+# TODO: proper support for other OSes/arch besides Windows/x86_64
+Sources +=
+  util/file/delimited_file_reader.cc
+  util/file/file_helper.cc
+  util/file/file_io.cc
+  util/file/file_reader.cc
+  util/file/file_seeker.cc
+  util/file/file_writer.cc
+  util/file/output_stream_file_writer.cc
+  util/file/scoped_remove_file.cc
+  util/file/string_file.cc
+  util/misc/initialization_state_dcheck.cc
+  util/misc/lexing.cc
+  util/misc/metrics.cc
+  util/misc/pdb_structures.cc
+  util/misc/random_string.cc
+  util/misc/range_set.cc
+  util/misc/reinterpret_bytes.cc
+  util/misc/scoped_forbid_return.cc
+  util/misc/time.cc
+  util/misc/uuid.cc
+  util/misc/zlib.cc
+  util/net/http_body.cc
+  util/net/http_body_gzip.cc
+  util/net/http_multipart_builder.cc
+  util/net/http_transport.cc
+  util/net/url.cc
+  util/numeric/checked_address_range.cc
+  util/process/process_memory.cc
+  util/process/process_memory_range.cc
+  util/stdlib/aligned_allocator.cc
+  util/stdlib/string_number_conversion.cc
+  util/stdlib/strlcpy.cc
+  util/stdlib/strnlen.cc
+  util/stream/base94_output_stream.cc
+  util/stream/file_encoder.cc
+  util/stream/file_output_stream.cc
+  util/stream/log_output_stream.cc
+  util/stream/zlib_output_stream.cc
+  util/string/split_string.cc
+  util/thread/thread.cc
+  util/thread/thread_log_messages.cc
+  util/thread/worker_thread.cc
+;
+
+Sources +=
+  third_party/mini_chromium/mini_chromium/base/threading/thread_local_storage.cc
+  third_party/mini_chromium/mini_chromium/base/third_party/icu/icu_utf.cc
+  third_party/mini_chromium/mini_chromium/base/synchronization/lock.cc
+  third_party/mini_chromium/mini_chromium/base/strings/utf_string_conversions.cc
+  third_party/mini_chromium/mini_chromium/base/strings/utf_string_conversion_utils.cc
+  third_party/mini_chromium/mini_chromium/base/strings/stringprintf.cc
+  third_party/mini_chromium/mini_chromium/base/strings/string_number_conversions.cc
+  third_party/mini_chromium/mini_chromium/base/strings/strcat.cc
+  third_party/mini_chromium/mini_chromium/base/strings/pattern.cc
+  third_party/mini_chromium/mini_chromium/base/rand_util.cc
+  third_party/mini_chromium/mini_chromium/base/process/memory.cc
+  third_party/mini_chromium/mini_chromium/base/logging.cc
+  third_party/mini_chromium/mini_chromium/base/files/scoped_file.cc
+  third_party/mini_chromium/mini_chromium/base/files/file_path.cc
+  third_party/mini_chromium/mini_chromium/base/debug/alias.cc
+;
+
+include $(Root)/prog/_jBuild/build.jam ;
+

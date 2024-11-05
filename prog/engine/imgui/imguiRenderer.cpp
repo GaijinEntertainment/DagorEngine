@@ -1,7 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "imguiRenderer.h"
 
 #include <imgui/imgui.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
 #include <shaders/dag_overrideStates.h>
 #include <image/dag_texPixel.h>
@@ -36,6 +41,7 @@ DagImGuiRenderer::DagImGuiRenderer()
   for (int i = 0; i < 4; i++)
     imgui_mvp_VarIds[i] = ::get_shader_variable_id(String(128, "imgui_mvp_%d", i), true);
   imgui_texVarId = ::get_shader_variable_id("imgui_tex", true);
+  ShaderGlobal::set_sampler(get_shader_variable_id("imgui_tex_samplerstate", true), d3d::request_sampler({}));
 }
 
 void DagImGuiRenderer::setBackendFlags(ImGuiIO &io)
@@ -93,6 +99,9 @@ void DagImGuiRenderer::render(ImDrawData *draw_data)
     ib.getBuf()->lock(0, draw_data->TotalIdxCount * sizeof(ImDrawIdx), (void **)&ibdata, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
   G_ASSERT(ibLockSuccess && ibdata != nullptr);
   G_UNUSED(ibLockSuccess);
+
+  bool hasItemsToRender = false;
+
   for (int n = 0; n < draw_data->CmdListsCount; n++)
   {
     const ImDrawList *cmdList = draw_data->CmdLists[n];
@@ -100,9 +109,13 @@ void DagImGuiRenderer::render(ImDrawData *draw_data)
     memcpy(ibdata, cmdList->IdxBuffer.Data, cmdList->IdxBuffer.Size * sizeof(ImDrawIdx));
     vbdata += cmdList->VtxBuffer.Size;
     ibdata += cmdList->IdxBuffer.Size;
+    hasItemsToRender |= cmdList->CmdBuffer.Size > 0;
   }
   vb.getBuf()->unlock();
   ib.getBuf()->unlock();
+
+  if (!hasItemsToRender)
+    return;
 
   const float L = draw_data->DisplayPos.x;
   const float R = draw_data->DisplayPos.x + draw_data->DisplaySize.x;
@@ -153,7 +166,10 @@ void DagImGuiRenderer::render(ImDrawData *draw_data)
         {
           d3d::setscissor(scissorRect.left, scissorRect.top, w, h);
 
-          ShaderGlobal::set_texture(imgui_texVarId, (TEXTUREID)(intptr_t)pcmd->TextureId);
+          TEXTUREID tid = (TEXTUREID)(intptr_t)pcmd->TextureId;
+          if (get_managed_texture_refcount(tid) < 1)
+            tid = BAD_TEXTUREID;
+          ShaderGlobal::set_texture(imgui_texVarId, tid);
           renderer.shader->setStates();
 
           d3d::drawind(PRIM_TRILIST, pcmd->IdxOffset + globalIdxOffset, pcmd->ElemCount / 3, pcmd->VtxOffset + globalVtxOffset);

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_localConv.h>
 #include <supp/_platform.h>
 #include <ctype.h>

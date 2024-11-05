@@ -1,0 +1,15 @@
+include "shader_global.dshl"
+
+macro tonemappedColorToDevice(code)
+  hlsl(code) {
+    #include <pixelPacking/ColorSpaceUtility.hlsl>
+    float3 toDevice(float3 tonemappedColor, float3 linearColor, float3 balancedColor, float3 gradedColor )
+    {
+      float3 directMappedColor = applyLottesCurveDirect(gradedColor);
+      float3 directMappedResidual = directMappedColor/max(luminance(directMappedColor), 1e-9);
+      return luminance(gradedColor) * directMappedResidual;
+    }
+  }
+endmacro
+
+include "tonemapHelpers/render_full_tonemap_lut.dshl"

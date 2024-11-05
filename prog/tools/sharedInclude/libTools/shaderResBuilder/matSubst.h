@@ -1,5 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <ioSys/dag_dataBlock.h>
 #include <3d/dag_materialData.h>
@@ -83,7 +83,7 @@ public:
       }
     }
     /*
-      debug_ctx("matClassOriginal.nameCount=%d matClassSubst.count=%d",
+      DEBUG_CTX("matClassOriginal.nameCount=%d matClassSubst.count=%d",
         matClassOriginal.nameCount(), matClassSubst.size());
       for (int i = 0; i < matClassOriginal.nameCount(); i ++)
         debug("  <%s> -> <%s>", matClassOriginal.getName(i), matClassSubst[i]);

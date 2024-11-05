@@ -1,0 +1,18 @@
+include "shaders_xboxOne.blk"
+"@delete-all:packBin":b=false; packBin:b=yes
+
+"@override:source"
+{
+  file:t = "depth_hierarchy.dshl"
+}
+
+"@override:Compile"
+{
+  "@override:assume_vars"
+  {
+    gi_voxelize_use_multidraw:i=1
+    "@override:dagi_sp_has_exposure_assume":i=0
+  }
+}
+
+"@override:outDumpName":t="../../game/compiledShaders/gameDX12xs"

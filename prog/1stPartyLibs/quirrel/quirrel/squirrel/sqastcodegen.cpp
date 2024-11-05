@@ -11,19 +11,54 @@
 #include "sqtable.h"
 
 
+#define GLOBAL_OPTIMIZATION_SWITCH true /* false - turn off broken optimizer */
+
+
+#define BEGIN_SCOPE() SQScope __oldscope__ = _scope; \
+                     _scope.outers = _fs->_outers; \
+                     _scope.stacksize = _fs->GetStackSize(); \
+                     _scopedconsts.push_back();
+
+#define RESOLVE_OUTERS() if(_fs->GetStackSize() != _fs->_blockstacksizes.top()) { \
+                            if(_fs->CountOuters(_fs->_blockstacksizes.top())) { \
+                                _fs->AddInstruction(_OP_CLOSE,0,_fs->_blockstacksizes.top()); \
+                            } \
+                        }
+
+#define END_SCOPE_NO_CLOSE() {  if(_fs->GetStackSize() != _scope.stacksize) { \
+                            _fs->SetStackSize(_scope.stacksize); \
+                        } \
+                        _scope = __oldscope__; \
+                        assert(!_scopedconsts.empty()); \
+                        _scopedconsts.pop_back(); \
+                    }
+
+#define END_SCOPE() {   SQInteger oldouters = _fs->_outers;\
+                        if(_fs->GetStackSize() != _scope.stacksize) { \
+                            _fs->SetStackSize(_scope.stacksize); \
+                            if(oldouters != _fs->_outers) { \
+                                _fs->AddInstruction(_OP_CLOSE,0,_scope.stacksize); \
+                            } \
+                        } \
+                        _scope = __oldscope__; \
+                        _scopedconsts.pop_back(); \
+                    }
+
+#define BEGIN_BREAKABLE_BLOCK()  SQInteger __nbreaks__=_fs->_unresolvedbreaks.size(); \
+                            SQInteger __ncontinues__=_fs->_unresolvedcontinues.size(); \
+                            _fs->_breaktargets.push_back(0);_fs->_continuetargets.push_back(0); \
+                            _fs->_blockstacksizes.push_back(_scope.stacksize);
+
+
+#define END_BREAKABLE_BLOCK(continue_target) {__nbreaks__=_fs->_unresolvedbreaks.size()-__nbreaks__; \
+                    __ncontinues__=_fs->_unresolvedcontinues.size()-__ncontinues__; \
+                    if(__ncontinues__>0)ResolveContinues(_fs,__ncontinues__,continue_target); \
+                    if(__nbreaks__>0)ResolveBreaks(_fs,__nbreaks__); \
+                    _fs->_breaktargets.pop_back();_fs->_continuetargets.pop_back(); \
+                    _fs->_blockstacksizes.pop_back(); }
+
+
 namespace SQCompilation {
-
-static bool isObject(const Expr *expr) {
-    if (expr->isConst()) return false;
-    if (expr->isAccessExpr()) return expr->asAccessExpr()->receiver()->op() != TO_BASE;
-    if (expr->op() == TO_ID && expr->asId()->isField()) return true;
-    return expr->op() == TO_ROOT;
-}
-
-static bool isOuter(const Expr *expr) {
-    if (expr->op() != TO_ID) return false;
-    return expr->asId()->isOuter();
-}
 
 
 CodegenVisitor::CodegenVisitor(Arena *arena, const HSQOBJECT *bindings, SQVM *vm, const SQChar *sourceName, SQCompilationContext &ctx, bool lineinfo)
@@ -81,7 +116,7 @@ bool CodegenVisitor::generate(RootBlock *root, SQObjectPtr &out) {
         _fs->AddLineInfos(root->lineEnd(), _lineinfo, true);
         _fs->AddInstruction(_OP_RETURN, 0xFF);
 
-        if (!(_fs->lang_features & LF_DISABLE_OPTIMIZER)) {
+        if (GLOBAL_OPTIMIZATION_SWITCH && !(_fs->lang_features & LF_DISABLE_OPTIMIZER)) {
             SQOptimizer opt(funcstate);
             opt.optimize();
         }
@@ -157,13 +192,6 @@ bool CodegenVisitor::CheckMemberUniqueness(ArenaVector<Expr *> &vec, Expr *obj) 
 
     vec.push_back(obj);
     return true;
-}
-
-void CodegenVisitor::Emit2ArgsOP(SQOpcode op, SQInteger p3)
-{
-    SQInteger p2 = _fs->PopTarget(); //src in OP_GET
-    SQInteger p1 = _fs->PopTarget(); //key in OP_GET
-    _fs->AddInstruction(op, _fs->PushTarget(), p1, p2, p3);
 }
 
 void CodegenVisitor::EmitLoadConstInt(SQInteger value, SQInteger target)
@@ -336,25 +364,23 @@ void CodegenVisitor::visitForStatement(ForStatement *forLoop) {
     }
 
     _fs->SnoozeOpt();
-    SQInteger jmppos = _fs->GetCurrentPos();
     SQInteger jzpos = -1;
 
     if (forLoop->condition()) {
+        _fs->SnoozeOpt();
         visitForceGet(forLoop->condition());
         _fs->AddInstruction(_OP_JZ, _fs->PopTarget());
         jzpos = _fs->GetCurrentPos();
     }
-
-    _fs->SnoozeOpt();
+    SQInteger jmppos = _fs->GetCurrentPos();
 
     SQInteger expstart = _fs->GetCurrentPos() + 1;
 
     if (forLoop->modifier()) {
+        _fs->SnoozeOpt();
         visitForceGet(forLoop->modifier());
         _fs->PopTarget();
     }
-
-    _fs->SnoozeOpt();
 
     SQInteger expend = _fs->GetCurrentPos();
     SQInteger expsize = (expend - expstart) + 1;
@@ -366,6 +392,8 @@ void CodegenVisitor::visitForStatement(ForStatement *forLoop) {
         _fs->PopInstructions(expsize);
     }
 
+    _fs->SnoozeOpt();
+
     BEGIN_BREAKABLE_BLOCK();
     forLoop->body()->visit(this);
     SQInteger continuetrg = _fs->GetCurrentPos();
@@ -374,8 +402,17 @@ void CodegenVisitor::visitForStatement(ForStatement *forLoop) {
             _fs->AddInstruction(exp[i]);
     }
 
-    _fs->AddInstruction(_OP_JMP, 0, jmppos - _fs->GetCurrentPos() - 1, 0);
+    if (forLoop->condition()) {
+        _fs->SnoozeOpt();
+        visitForceGet(forLoop->condition());
+        const int cmpPos = _fs->GetCurrentPos();
+        _fs->AddInstruction(_OP_JZ, _fs->PopTarget(), jmppos - cmpPos, 1);
+        if (cmpPos != _fs->GetCurrentPos()) // instruction was optimized
+          _fs->SetInstructionParam(_fs->GetCurrentPos(), 1, jmppos - cmpPos - 1);
+    } else
+        _fs->AddInstruction(_OP_JMP, 0, jmppos - _fs->GetCurrentPos() - 1, 0);
     if (jzpos > 0) _fs->SetInstructionParam(jzpos, 1, _fs->GetCurrentPos() - jzpos);
+    _fs->RestoreOpt();
 
     END_BREAKABLE_BLOCK(continuetrg);
 
@@ -394,33 +431,38 @@ void CodegenVisitor::visitForeachStatement(ForeachStatement *foreachLoop) {
     SQObject idxName;
     SQInteger indexpos = -1;
     if (foreachLoop->idx()) {
-        foreachLoop->idx()->visit(this);
-        indexpos = _fs->_vlocals.back()._pos;
+        assert(foreachLoop->idx()->op() == TO_VAR && ((VarDecl *)foreachLoop->idx())->initializer() == nullptr);
+        idxName = _fs->CreateString(_SC(((VarDecl *)foreachLoop->idx())->name() ));
+        //foreachLoop->idx()->visit(this);
     }
     else {
         idxName = _fs->CreateString(_SC("@INDEX@"));
-        indexpos = _fs->PushLocalVariable(idxName, false);
     }
-    _fs->AddInstruction(_OP_LOADNULLS, indexpos, 1);
+    indexpos = _fs->PushLocalVariable(idxName, false);
 
-    foreachLoop->val()->visit(this);
-    SQInteger valuepos = _fs->_vlocals.back()._pos;
-    _fs->AddInstruction(_OP_LOADNULLS, valuepos, 1);
+    assert(foreachLoop->val()->op() == TO_VAR && ((VarDecl *)foreachLoop->val())->initializer() == nullptr);
+    SQInteger valuepos = _fs->PushLocalVariable(_fs->CreateString(_SC(((VarDecl *)foreachLoop->val())->name() )), false);
+
+    //foreachLoop->val()->visit(this);
+    //SQInteger valuepos = _fs->_vlocals.back()._pos;
 
     //push reference index
     SQInteger itrpos = _fs->PushLocalVariable(_fs->CreateString(_SC("@ITERATOR@")), false); //use invalid id to make it inaccessible
-    _fs->AddInstruction(_OP_LOADNULLS, itrpos, 1);
-    SQInteger jmppos = _fs->GetCurrentPos();
-    _fs->AddInstruction(_OP_FOREACH, container, 0, indexpos);
-    SQInteger foreachpos = _fs->GetCurrentPos();
+
+    _fs->AddInstruction(_OP_PREFOREACH, container, 0, indexpos);
+    SQInteger preForEachPos = _fs->GetCurrentPos();
     _fs->AddInstruction(_OP_POSTFOREACH, container, 0, indexpos);
+    SQInteger postForEachPos = _fs->GetCurrentPos();
 
     BEGIN_BREAKABLE_BLOCK();
     foreachLoop->body()->visit(this);
-    _fs->AddInstruction(_OP_JMP, 0, jmppos - _fs->GetCurrentPos() - 1);
-    _fs->SetInstructionParam(foreachpos, 1, _fs->GetCurrentPos() - foreachpos);
-    _fs->SetInstructionParam(foreachpos + 1, 1, _fs->GetCurrentPos() - foreachpos);
-    END_BREAKABLE_BLOCK(foreachpos - 1);
+    SQInteger continuePos = _fs->GetCurrentPos();
+    SQInteger forEachLabelPos = _fs->GetCurrentPos() + 1;
+    _fs->AddInstruction(_OP_FOREACH, container, postForEachPos - forEachLabelPos, indexpos); //ip is already + 1 now
+    _fs->SetInstructionParam(preForEachPos, 1, forEachLabelPos - preForEachPos); //ip is already + 1 now
+    _fs->SetInstructionParam(postForEachPos, 1, _fs->GetCurrentPos() - postForEachPos); //ip is already + 1 now
+
+    END_BREAKABLE_BLOCK(continuePos);
     //restore the local variable stack(remove index,val and ref idx)
     _fs->PopTarget();
     END_SCOPE();
@@ -570,11 +612,11 @@ void CodegenVisitor::visitReturnStatement(ReturnStatement *retStmt) {
 
     if (retStmt->argument()) {
         _fs->_returnexp = retexp;
-        _fs->AddInstruction(_OP_RETURN, 1, _fs->PopTarget(), _fs->GetStackSize());
+        _fs->AddInstruction(_OP_RETURN, 1, _fs->PopTarget());
     }
     else {
         _fs->_returnexp = -1;
-        _fs->AddInstruction(_OP_RETURN, 0xFF, 0, _fs->GetStackSize());
+        _fs->AddInstruction(_OP_RETURN, 0xFF, 0);
     }
 }
 
@@ -606,7 +648,7 @@ void CodegenVisitor::visitExprStatement(ExprStatement *stmt) {
 
 void CodegenVisitor::generateTableDecl(TableDecl *tableDecl) {
     bool isKlass = tableDecl->op() == TO_CLASS;
-    const auto members = tableDecl->members();
+    const auto &members = tableDecl->members();
 
     ArenaVector<Expr *> memberConstantKeys(_arena);
 
@@ -614,23 +656,40 @@ void CodegenVisitor::generateTableDecl(TableDecl *tableDecl) {
         const TableMember &m = members[i];
 #if SQ_LINE_INFO_IN_STRUCTURES
         if (i < 100 && m.key->lineStart() != -1) {
-            _fs->AddLineInfos(m.key->lineStart(), false);
+            _fs->AddLineInfos(m.key->lineStart(), false, false);
         }
 #endif
         CheckMemberUniqueness(memberConstantKeys, m.key);
 
-        visitForceGet(m.key);
+        bool isConstKey = m.key->op() == TO_LITERAL && !isKlass;
+        SQInteger constantI;
+        if (isConstKey)
+        {
+          switch(m.key->asLiteral()->kind())
+          {
+            case LK_STRING: constantI = _fs->GetConstant(_fs->CreateString(m.key->asLiteral()->s())); break;
+            case LK_INT: constantI = _fs->GetNumericConstant(m.key->asLiteral()->i()); break;
+            case LK_FLOAT: constantI = _fs->GetNumericConstant(m.key->asLiteral()->f()); break;
+            case LK_BOOL: constantI = _fs->GetConstant(SQObjectPtr(m.key->asLiteral()->b())); break;
+            default:case LK_NULL: assert(0); break;
+          }
+          //isConstKey = constantI < 256; // since currently we store in arg1, it is sufficient
+        }
+
+        if (!isConstKey)
+          visitForceGet(m.key);
         visitForceGet(m.value);
 
         SQInteger val = _fs->PopTarget();
-        SQInteger key = _fs->PopTarget();
+        SQInteger key = isConstKey ? constantI : _fs->PopTarget();
         SQInteger table = _fs->TopTarget(); //<<BECAUSE OF THIS NO COMMON EMIT FUNC IS POSSIBLE
+        assert(table < 256);
 
         if (isKlass) {
             _fs->AddInstruction(_OP_NEWSLOTA, m.isStatic() ? NEW_SLOT_STATIC_FLAG : 0, table, key, val);
         }
         else {
-            _fs->AddInstruction(_OP_NEWSLOT, 0xFF, table, key, val);
+            _fs->AddInstruction(isConstKey ? _OP_NEWSLOTK : _OP_NEWSLOT, 0xFF, key, table, val);
         }
     }
 }
@@ -641,30 +700,8 @@ void CodegenVisitor::visitTableDecl(TableDecl *tableDecl) {
     generateTableDecl(tableDecl);
 }
 
-void CodegenVisitor::checkClassKey(Expr *key) {
-    switch (key->op())
-    {
-    case TO_GETFIELD:
-    case TO_GETTABLE:
-    case TO_ROOT:
-        return;
-    case TO_BASE:
-    case TO_ID:
-        reportDiagnostic(key, DiagnosticsId::DI_LOCAL_CLASS_SYNTAX);
-        break;
-    default:
-        reportDiagnostic(key, DiagnosticsId::DI_INVALID_CLASS_NAME);
-        break;
-    }
-}
-
 void CodegenVisitor::visitClassDecl(ClassDecl *klass) {
     addLineNumber(klass);
-    if (klass->context() == DC_SLOT) {
-        assert(klass->classKey());
-        checkClassKey(klass->classKey());
-        visitNoGet(klass->classKey());
-    }
 
     Expr *baseExpr = klass->classBase();
     SQInteger baseIdx = -1;
@@ -676,11 +713,6 @@ void CodegenVisitor::visitClassDecl(ClassDecl *klass) {
     _fs->AddInstruction(_OP_NEWOBJ, _fs->PushTarget(), baseIdx, 0, NOT_CLASS);
 
     generateTableDecl(klass);
-
-    if (klass->context() == DC_SLOT) {
-        EmitDerefOp(_OP_NEWSLOT);
-        _fs->PopTarget();
-    }
 }
 
 static const SQChar *varDeclKindDescription(VarDecl *var) {
@@ -739,7 +771,7 @@ void CodegenVisitor::visitVarDecl(VarDecl *var) {
 
 void CodegenVisitor::visitDeclGroup(DeclGroup *group) {
     addLineNumber(group);
-    const auto declarations = group->declarations();
+    const auto &declarations = group->declarations();
 
     for (Decl *d : declarations) {
         d->visit(this);
@@ -750,7 +782,7 @@ void CodegenVisitor::visitDestructuringDecl(DestructuringDecl *destruct) {
     addLineNumber(destruct);
     ArenaVector<SQInteger> targets(_arena);
 
-    const auto declarations = destruct->declarations();
+    const auto &declarations = destruct->declarations();
 
     for (auto d : declarations) {
         d->visit(this);
@@ -767,14 +799,7 @@ void CodegenVisitor::visitDestructuringDecl(DestructuringDecl *destruct) {
     for (SQUnsignedInteger i = 0; i < declarations.size(); ++i) {
         VarDecl *d = declarations[i];
         SQInteger flags = d->initializer() ? OP_GET_FLAG_NO_ERROR | OP_GET_FLAG_KEEP_VAL : 0;
-        if (destruct->type() == DT_ARRAY) {
-            EmitLoadConstInt(i, key_pos);
-            _fs->AddInstruction(_OP_GET, targets[i], src, key_pos, flags);
-        }
-        else {
-            _fs->AddInstruction(_OP_LOAD, key_pos, _fs->GetConstant(_fs->CreateString(d->name())));
-            _fs->AddInstruction(_OP_GET, targets[i], src, key_pos, flags);
-        }
+        _fs->AddInstruction(_OP_GETK, targets[i], destruct->type() == DT_ARRAY ? _fs->GetNumericConstant((SQInteger)i) : _fs->GetConstant(_fs->CreateString(d->name())), src, flags);
     }
 
     _fs->PopTarget();
@@ -799,6 +824,8 @@ void CodegenVisitor::visitFunctionDecl(FunctionDecl *funcDecl) {
     _childFs->_varparams = funcDecl->isVararg();
 
     SQInteger defparams = 0;
+
+    _childFs->AddParameter(_fs->CreateString("this"));
 
     for (auto param : funcDecl->parameters()) {
         param->visit(this);
@@ -833,7 +860,7 @@ void CodegenVisitor::visitFunctionDecl(FunctionDecl *funcDecl) {
     _childFs->AddLineInfos(body->lineEnd(), _lineinfo, true);
     _childFs->AddInstruction(_OP_RETURN, -1);
 
-    if (!(_childFs->lang_features & LF_DISABLE_OPTIMIZER)) {
+    if (GLOBAL_OPTIMIZATION_SWITCH && !(_childFs->lang_features & LF_DISABLE_OPTIMIZER)) {
         SQOptimizer opt(*_childFs);
         opt.optimize();
     }
@@ -932,21 +959,41 @@ Expr *CodegenVisitor::deparen(Expr *e) const {
 }
 
 
-void CodegenVisitor::visitCallExpr(CallExpr *call) {
+static bool isCalleeAnObject(const Expr *expr) {
+    if (expr->isAccessExpr())
+        return expr->asAccessExpr()->receiver()->op() != TO_BASE;
+    if (expr->op() == TO_ROOT_TABLE_ACCESS)
+        return true;
+    return false;
+}
 
+static bool isCalleeAnOuter(SQFuncState *_fs, const Expr *expr, SQInteger &outer_pos) {
+    if (expr->op() != TO_ID)
+        return false;
+
+    SQObjectPtr nameObj = _fs->CreateString(expr->asId()->id());
+    bool assignable = false;
+    outer_pos = _fs->GetOuterVariable(nameObj, assignable);
+
+    return outer_pos != -1;
+}
+
+void CodegenVisitor::visitCallExpr(CallExpr *call) {
     maybeAddInExprLine(call);
 
     Expr *callee = deparen(call->callee());
     bool isNullCall = call->isNullable();
-    bool isBuiltInCall = false;
+    bool isTypeMethod = false;
     if (callee->op() == TO_GETFIELD) {
-        isBuiltInCall = callee->asGetField()->isBuiltInGet();
+        isTypeMethod = callee->asGetField()->isTypeMethod();
     }
 
     visitNoGet(callee);
 
-    if (isObject(callee)) {
-        if (!isNullCall && !isBuiltInCall && ((_fs->lang_features & LF_FORBID_IMPLICIT_DEF_DELEGATE) == 0)) {
+    SQInteger outerPos = -1;
+
+    if (isCalleeAnObject(callee)) {
+        if (!isNullCall && !isTypeMethod && ((_fs->lang_features & LF_FORBID_IMPLICIT_DEF_DELEGATE) == 0)) {
             SQInteger key = _fs->PopTarget();  /* location of the key */
             SQInteger table = _fs->PopTarget();  /* location of the object */
             SQInteger closure = _fs->PushTarget(); /* location for the closure */
@@ -959,21 +1006,23 @@ void CodegenVisitor::visitCallExpr(CallExpr *call) {
             _fs->AddInstruction(_OP_MOVE, storedSelf, self);
             _fs->PopTarget();
             SQInteger flags = 0;
-            if (isBuiltInCall) {
-                flags |= OP_GET_FLAG_BUILTIN_ONLY;
+            if (isTypeMethod) {
+                flags |= OP_GET_FLAG_TYPE_METHODS_ONLY;
             } else if ((_fs->lang_features & LF_FORBID_IMPLICIT_DEF_DELEGATE) == 0) {
                 flags |= OP_GET_FLAG_ALLOW_DEF_DELEGATE;
             }
             if (isNullCall)
               flags |= OP_GET_FLAG_NO_ERROR;
 
-            Emit2ArgsOP(_OP_GET, flags);
+            SQInteger key = _fs->PopTarget();
+            SQInteger src = _fs->PopTarget();
+            _fs->AddInstruction(_OP_GET, _fs->PushTarget(), key, src, flags);
             SQInteger ttarget = _fs->PushTarget();
             _fs->AddInstruction(_OP_MOVE, ttarget, storedSelf);
         }
     }
-    else if (isOuter(callee)) {
-        _fs->AddInstruction(_OP_GETOUTER, _fs->PushTarget(), callee->asId()->outerPos());
+    else if (isCalleeAnOuter(_fs, callee, outerPos)) {
+        _fs->AddInstruction(_OP_GETOUTER, _fs->PushTarget(), outerPos);
         _fs->AddInstruction(_OP_MOVE, _fs->PushTarget(), 0);
     }
     else {
@@ -1002,10 +1051,9 @@ void CodegenVisitor::visitCallExpr(CallExpr *call) {
 void CodegenVisitor::visitBaseExpr(BaseExpr *base) {
     maybeAddInExprLine(base);
     _fs->AddInstruction(_OP_GETBASE, _fs->PushTarget());
-    base->setPos(_fs->TopTarget());
 }
 
-void CodegenVisitor::visitRootExpr(RootExpr *expr) {
+void CodegenVisitor::visitRootTableAccessExpr(RootTableAccessExpr *expr) {
     maybeAddInExprLine(expr);
     _fs->AddInstruction(_OP_LOADROOT, _fs->PushTarget());
 }
@@ -1025,7 +1073,7 @@ void CodegenVisitor::visitLiteralExpr(LiteralExpr *lit) {
 
 void CodegenVisitor::visitArrayExpr(ArrayExpr *expr) {
     maybeAddInExprLine(expr);
-    const auto inits = expr->initializers();
+    const auto &inits = expr->initializers();
 
     _fs->AddInstruction(_OP_NEWOBJ, _fs->PushTarget(), inits.size(), 0, NOT_ARRAY);
 
@@ -1033,7 +1081,7 @@ void CodegenVisitor::visitArrayExpr(ArrayExpr *expr) {
         Expr *valExpr = inits[i];
 #if SQ_LINE_INFO_IN_STRUCTURES
         if (i < 100 && valExpr->lineStart() != -1)
-            _fs->AddLineInfos(valExpr->lineStart(), false);
+            _fs->AddLineInfos(valExpr->lineStart(), false, false);
 #endif
         visitForceGet(valExpr);
         SQInteger val = _fs->PopTarget();
@@ -1060,7 +1108,7 @@ void CodegenVisitor::emitDelete(UnExpr *ud) {
     switch (argument->op())
     {
     case TO_GETFIELD:
-    case TO_GETTABLE: break;
+    case TO_GETSLOT: break;
     case TO_BASE:
         reportDiagnostic(ud, DiagnosticsId::DI_CANNOT_DELETE, "'base'");
         break;
@@ -1122,6 +1170,24 @@ void CodegenVisitor::emitShortCircuitLogicalOp(SQOpcode op, Expr *lhs, Expr *rhs
 
 void CodegenVisitor::emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lvalue, Expr *rvalue) {
 
+    if (lvalue->isAccessExpr() && lvalue->asAccessExpr()->isFieldAccessExpr()) {
+        FieldAccessExpr *fieldAccess = lvalue->asAccessExpr()->asFieldAccessExpr();
+        SQObject nameObj = _fs->CreateString(fieldAccess->fieldName());
+        SQInteger constantI = _fs->GetConstant(nameObj);
+        if (constantI < 256)
+        {
+          visitForceGet(fieldAccess->receiver());
+          SQInteger constTarget = _fs->PushTarget();
+          visitForceGet(rvalue);
+          SQInteger val = _fs->PopTarget();
+          _fs->PopTarget();
+          SQInteger src = _fs->PopTarget();
+          /* _OP_COMPARITH mixes dest obj and source val in the arg1 */
+          _fs->AddInstruction(_OP_COMPARITH_K, _fs->PushTarget(), (src << 16) | val, constantI, opcode);
+          return;
+        }
+    }
+
     visitNoGet(lvalue);
 
     visitForceGet(rvalue);
@@ -1129,20 +1195,14 @@ void CodegenVisitor::emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lval
     if (lvalue->op() == TO_ID) {
         Id *id = lvalue->asId();
 
-        if (!id->isAssignable()) {
-            reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_BINDING, id->id());
-        }
+        SQObjectPtr nameObj = _fs->CreateString(id->id());
+        bool assignable = false;
+        SQInteger pos = -1;
 
-        if (id->isOuter()) {
-            SQInteger val = _fs->TopTarget();
-            SQInteger tmp = _fs->PushTarget();
-            _fs->AddInstruction(_OP_GETOUTER, tmp, lvalue->asId()->outerPos());
-            _fs->AddInstruction(op, tmp, val, tmp, 0);
-            _fs->PopTarget();
-            _fs->PopTarget();
-            _fs->AddInstruction(_OP_SETOUTER, _fs->PushTarget(), lvalue->asId()->outerPos(), tmp);
-        }
-        else if (id->isLocal()) {
+        if ((pos = _fs->GetLocalVariable(nameObj, assignable)) != -1) {
+            if (!assignable)
+                reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_BINDING, id->id());
+
             SQInteger p2 = _fs->PopTarget(); //src in OP_GET
             SQInteger p1 = _fs->PopTarget(); //key in OP_GET
             _fs->PushTarget(p1);
@@ -1150,12 +1210,17 @@ void CodegenVisitor::emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lval
             _fs->AddInstruction(op, p1, p2, p1, 0);
             _fs->SnoozeOpt();
         }
-        else if (id->isField()) {
-            SQInteger val = _fs->PopTarget();
-            SQInteger key = _fs->PopTarget();
-            SQInteger src = _fs->PopTarget();
-            /* _OP_COMPARITH mixes dest obj and source val in the arg1 */
-            _fs->AddInstruction(_OP_COMPARITH, _fs->PushTarget(), (src << 16) | val, key, opcode);
+        else if ((pos = _fs->GetOuterVariable(nameObj, assignable)) != -1) {
+            if (!assignable)
+                reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_BINDING, id->id());
+
+            SQInteger val = _fs->TopTarget();
+            SQInteger tmp = _fs->PushTarget();
+            _fs->AddInstruction(_OP_GETOUTER, tmp, pos);
+            _fs->AddInstruction(op, tmp, val, tmp, 0);
+            _fs->PopTarget();
+            _fs->PopTarget();
+            _fs->AddInstruction(_OP_SETOUTER, _fs->PushTarget(), pos, tmp);
         }
         else {
             reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_EXPR);
@@ -1173,19 +1238,22 @@ void CodegenVisitor::emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lval
     }
 }
 
-bool CodegenVisitor::isLValue(Expr *expr) {
-    switch (expr->op())
-    {
-    case TO_GETFIELD:
-    case TO_GETTABLE: return expr->asAccessExpr()->receiver()->op() != TO_BASE;
-    case TO_ID:
-        return !expr->asId()->isBinding();
-    default:
-        return false;
-    }
-}
-
 void CodegenVisitor::emitNewSlot(Expr *lvalue, Expr *rvalue) {
+
+    if (lvalue->isAccessExpr() && lvalue->asAccessExpr()->receiver()->op() != TO_BASE && canBeLiteral(lvalue->asAccessExpr())) {
+        FieldAccessExpr *fieldAccess = lvalue->asAccessExpr()->asFieldAccessExpr();
+        SQObject nameObj = _fs->CreateString(fieldAccess->fieldName());
+        SQInteger constantI = _fs->GetConstant(nameObj);
+        //if (constantI < 256) // currently stored in arg1, unlimited
+        {
+            visitForceGet(fieldAccess->receiver());
+            visitForceGet(rvalue);
+            SQInteger val = _fs->PopTarget();
+            SQInteger src = _fs->PopTarget();
+            _fs->AddInstruction(_OP_NEWSLOTK, _fs->PushTarget(), constantI, src, val);
+            return;
+       }
+   }
 
     visitNoGet(lvalue);
 
@@ -1195,25 +1263,40 @@ void CodegenVisitor::emitNewSlot(Expr *lvalue, Expr *rvalue) {
         SQInteger val = _fs->PopTarget();
         SQInteger key = _fs->PopTarget();
         SQInteger src = _fs->PopTarget();
-        _fs->AddInstruction(_OP_NEWSLOT, _fs->PushTarget(), src, key, val);
+        _fs->AddInstruction(_OP_NEWSLOT, _fs->PushTarget(), key, src, val);
     }
     else {
         reportDiagnostic(lvalue, DiagnosticsId::DI_LOCAL_SLOT_CREATE);
     }
 }
 
-void CodegenVisitor::emitFieldAssign(bool isLiteral) {
+void CodegenVisitor::emitFieldAssign(int isLiteralIndex) {
+    const bool isLiteral = isLiteralIndex >= 0;
     SQInteger val = _fs->PopTarget();
-    SQInteger key = _fs->PopTarget();
+    SQInteger key = isLiteralIndex >= 0 ? isLiteralIndex : _fs->PopTarget();
     SQInteger src = _fs->PopTarget();
+    assert(src < 256);
 
-    _fs->AddInstruction(isLiteral ? _OP_SET_LITERAL : _OP_SET, _fs->PushTarget(), src, key, val);
+    _fs->AddInstruction(isLiteral ? _OP_SET_LITERAL : _OP_SET, _fs->PushTarget(), key, src, val);
     SQ_STATIC_ASSERT(_OP_DATA_NOP == 0);
     if (isLiteral)
         _fs->AddInstruction(SQOpcode(0), 0, 0, 0, 0);//hint
 }
 
-void CodegenVisitor::emitAssign(Expr *lvalue, Expr * rvalue, bool inExpr) {
+void CodegenVisitor::emitAssign(Expr *lvalue, Expr * rvalue) {
+
+    if (lvalue->isAccessExpr() && lvalue->asAccessExpr()->receiver()->op() != TO_BASE && canBeLiteral(lvalue->asAccessExpr())) {
+        FieldAccessExpr *fieldAccess = lvalue->asAccessExpr()->asFieldAccessExpr();
+        SQObject nameObj = _fs->CreateString(fieldAccess->fieldName());
+        SQInteger constantI = _fs->GetConstant(nameObj);
+        // arg1 is of int size, enough
+        visitForceGet(fieldAccess->receiver());
+
+        visitForceGet(rvalue);
+
+        emitFieldAssign(constantI);
+        return;
+    }
 
     visitNoGet(lvalue);
 
@@ -1222,23 +1305,24 @@ void CodegenVisitor::emitAssign(Expr *lvalue, Expr * rvalue, bool inExpr) {
     if (lvalue->op() == TO_ID) {
         Id *id = lvalue->asId();
 
-        if (!id->isAssignable()) {
-            reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_BINDING, id->id());
-            return;
-        }
+        SQObjectPtr nameObj = _fs->CreateString(id->id());
+        bool assignable = false;
+        SQInteger pos = -1;
 
-        if (id->isOuter()) {
-            SQInteger src = _fs->PopTarget();
-            SQInteger dst = _fs->PushTarget();
-            _fs->AddInstruction(_OP_SETOUTER, dst, id->outerPos(), src);
-        }
-        else if (id->isLocal()) {
+        if ((pos = _fs->GetLocalVariable(nameObj, assignable)) != -1) {
+            if (!assignable)
+                reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_BINDING, id->id());
+
             SQInteger src = _fs->PopTarget();
             SQInteger dst = _fs->TopTarget();
             _fs->AddInstruction(_OP_MOVE, dst, src);
         }
-        else if (id->isField()) {
-            emitFieldAssign(false);
+        else if ((pos = _fs->GetOuterVariable(nameObj, assignable)) != -1) {
+            if (!assignable)
+                reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_BINDING, id->id());
+
+            SQInteger src = _fs->PopTarget();
+            _fs->AddInstruction(_OP_SETOUTER, _fs->PushTarget(), pos, src);
         }
         else {
             reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_EXPR);
@@ -1246,7 +1330,7 @@ void CodegenVisitor::emitAssign(Expr *lvalue, Expr * rvalue, bool inExpr) {
     }
     else if (lvalue->isAccessExpr()) {
         if (lvalue->asAccessExpr()->receiver()->op() != TO_BASE) {
-            emitFieldAssign(canBeLiteral(lvalue->asAccessExpr()));
+            emitFieldAssign(-1);
         }
         else {
             reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_EXPR);
@@ -1293,6 +1377,15 @@ bool CodegenVisitor::CanBeDefaultDelegate(const SQChar *key)
     return false;
 }
 
+bool CodegenVisitor::CanBeDefaultTableDelegate(const SQChar *key)
+{
+    if (_fs->lang_features & LF_FORBID_IMPLICIT_DEF_DELEGATE)
+      return false;
+
+    SQObjectPtr tmp;
+    return _table(_fs->_sharedstate->_table_default_delegate)->GetStr(key, strlen(key), tmp);
+}
+
 
 void CodegenVisitor::selectConstant(SQInteger target, const SQObject &constant) {
     SQObjectType ctype = sq_type(constant);
@@ -1307,74 +1400,42 @@ void CodegenVisitor::selectConstant(SQInteger target, const SQObject &constant) 
 void CodegenVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
     maybeAddInExprLine(expr);
 
-
     Expr *receiver = expr->receiver();
-    // TODO: figure out why this is not work
-    /*
+
+    // Handle enums
     if (receiver->op() == TO_ID) {
-        SQObjectPtr constant;
+        SQObject constant;
         SQObject id = _fs->CreateString(receiver->asId()->id());
         if (IsConstant(id, constant)) {
-            if (sq_type(constant) == OT_TABLE && (sq_objflags(constant) & SQOBJ_FLAG_IMMUTABLE)) {
+            SQObjectPtr constVal = constant;
+            if (sq_type(constVal) == OT_TABLE && (sq_objflags(constVal) & SQOBJ_FLAG_IMMUTABLE) && !expr->isNullable()) {
                 SQObjectPtr next;
-                if (_table(constant)->GetStr(expr->fieldName(), strlen(expr->fieldName()), next)) {
-                    selectConstant(_fs->PushTarget(), next);
-                    expr->setConst();
-                    //receiver->setConst();
-                    _constVal = next;
-                    return;
+                if (_table(constVal)->GetStr(expr->fieldName(), strlen(expr->fieldName()), next)) {
+                    SQObjectType fieldType = sq_type(next);
+                    bool needsCallContext = fieldType == OT_CLOSURE || fieldType == OT_NATIVECLOSURE
+                        || fieldType == OT_GENERATOR || fieldType == OT_CLASS || fieldType == OT_INSTANCE;
+                    if (!needsCallContext) {
+                        selectConstant(_fs->PushTarget(), next);
+                        return; // Done with enum
+                    }
+                    // else fall through to normal get
                 }
                 else {
-                    constant.Null();
-
-                    //error(_SC("invalid enum [no '%s' field]"), expr->fieldName());
+                    if (!CanBeDefaultTableDelegate(expr->fieldName())) {
+                        reportDiagnostic(expr, DiagnosticsId::DI_INVALID_ENUM, expr->fieldName(), "enum");
+                        return;
+                    }
+                    // else fall through to normal get
                 }
-            }
-        }
-    }*/
-
-    visitForceGet(receiver);
-
-    if (receiver->isConst()) {
-        SQObjectPtr constant = _constVal;
-        if (sq_type(constant) == OT_TABLE && (sq_objflags(constant) & SQOBJ_FLAG_IMMUTABLE) && !expr->isNullable()) {
-            SQObjectPtr next;
-            if (_table(constant)->GetStr(expr->fieldName(), strlen(expr->fieldName()), next)) {
-                SQInstruction &last = _fs->LastInstruction();
-
-                SQInteger target = -1;
-
-                if (last.op == _OP_DLOAD) {
-                    SQInteger t1 = last._arg0;
-                    SQInteger c1 = last._arg1;
-                    assert(last._arg2 == _fs->TopTarget());
-                    target = last._arg2;
-                    _fs->PopInstructions(1);
-                    _fs->AddInstruction(_OP_LOAD, t1, c1);
-                }
-                else {
-                    assert(last.op == _OP_LOAD);
-                    assert(last._arg0 == _fs->TopTarget());
-                    target = last._arg0;
-                    _fs->PopInstructions(1);
-                }
-
-                selectConstant(target, next);
-                expr->setConst();
-                _constVal = next;
-                return;
-            }
-            else {
-                _constVal.Null();
-                reportDiagnostic(expr, DiagnosticsId::DI_INVALID_ENUM, expr->fieldName(), "enum");
-                return;
             }
         }
     }
 
+    visitForceGet(receiver);
+
     SQObject nameObj = _fs->CreateString(expr->fieldName());
     SQInteger constantI = _fs->GetConstant(nameObj);
-    _fs->AddInstruction(_OP_LOAD, _fs->PushTarget(), constantI);
+    SQInteger constTarget = _fs->PushTarget();
 
     SQInteger flags = expr->isNullable() ? OP_GET_FLAG_NO_ERROR : 0;
 
@@ -1384,28 +1445,32 @@ void CodegenVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
         flags |= OP_GET_FLAG_ALLOW_DEF_DELEGATE;
     }
 
-    if (expr->isBuiltInGet()) {
-        flags |= OP_GET_FLAG_BUILTIN_ONLY;
+    if (expr->isTypeMethod()) {
+        flags |= OP_GET_FLAG_TYPE_METHODS_ONLY;
     }
 
     if (expr->receiver()->op() == TO_BASE) {
-        Emit2ArgsOP(_OP_GET, flags);
-    } else if (!_donot_get) {
-        SQInteger src = _fs->PopTarget();
         SQInteger key = _fs->PopTarget();
-
+        SQInteger src = _fs->PopTarget();
+        _fs->AddInstruction(_OP_GETK, _fs->PushTarget(), constantI, src, flags);
+    } else if (!_donot_get) {
+        SQInteger key = _fs->PopTarget();
+        SQInteger src = _fs->PopTarget();
         if (expr->canBeLiteral(defaultDelegate)) {
-            _fs->AddInstruction(_OP_GET_LITERAL, _fs->PushTarget(), key, src, flags);
+            _fs->AddInstruction(_OP_GET_LITERAL, _fs->PushTarget(), constantI, src, flags);
             SQ_STATIC_ASSERT(_OP_DATA_NOP == 0);
             _fs->AddInstruction(SQOpcode(0), 0, 0, 0, 0); //hint
         }
         else {
-            _fs->AddInstruction(_OP_GET, _fs->PushTarget(), key, src, flags);
+            _fs->AddInstruction(_OP_GETK, _fs->PushTarget(), constantI, src, flags);
         }
+    } else
+    {
+        _fs->AddInstruction(_OP_LOAD, constTarget, constantI);
     }
 }
 
-void CodegenVisitor::visitGetTableExpr(GetTableExpr *expr) {
+void CodegenVisitor::visitGetSlotExpr(GetSlotExpr *expr) {
     // TODO: support similar optimization with contant table as in GetFieldExpr here too
 
     maybeAddInExprLine(expr);
@@ -1414,13 +1479,22 @@ void CodegenVisitor::visitGetTableExpr(GetTableExpr *expr) {
     visitForceGet(expr->key());
 
     // TODO: wtf base?
-    if (expr->receiver()->op() == TO_BASE) {
-        Emit2ArgsOP(_OP_GET, expr->isNullable() ? OP_GET_FLAG_NO_ERROR : 0);
-    } else if (!_donot_get) {
-        SQInteger p2 = _fs->PopTarget(); //src in OP_GET
-        SQInteger p1 = _fs->PopTarget(); //key in OP_GET
-        _fs->AddInstruction(_OP_GET, _fs->PushTarget(), p1, p2, expr->isNullable() ? OP_GET_FLAG_NO_ERROR : 0);
+    if (expr->receiver()->op() == TO_BASE || !_donot_get) {
+        SQInteger key = _fs->PopTarget(); //key in OP_GET
+        SQInteger src = _fs->PopTarget(); //src in OP_GET
+        _fs->AddInstruction(_OP_GET, _fs->PushTarget(), key, src, expr->isNullable() ? OP_GET_FLAG_NO_ERROR : 0);
     }
+}
+
+static inline bool is_literal_in_int_range(const Expr *expr)
+{
+    if ( expr->op() != TO_LITERAL)
+        return false;
+    LiteralExpr * le = expr->asLiteral();
+    if (le->kind() != LK_INT)
+      return false;
+    SQInteger i = le->i();
+    return i >= SQInteger(INT_MIN) && i <= SQInteger(INT_MAX);
 }
 
 void CodegenVisitor::visitBinExpr(BinExpr *expr) {
@@ -1430,15 +1504,35 @@ void CodegenVisitor::visitBinExpr(BinExpr *expr) {
     case TO_NULLC: emitShortCircuitLogicalOp(_OP_NULLCOALESCE, expr->lhs(), expr->rhs()); break;
     case TO_OROR: emitShortCircuitLogicalOp(_OP_OR, expr->lhs(), expr->rhs()); break;
     case TO_ANDAND: emitShortCircuitLogicalOp(_OP_AND, expr->lhs(), expr->rhs()); break;
-    case TO_INEXPR_ASSIGN: emitAssign(expr->lhs(), expr->rhs(), true); break;
-    case TO_ASSIGN:  emitAssign(expr->lhs(), expr->rhs(), false); break;
+    case TO_ASSIGN:  emitAssign(expr->lhs(), expr->rhs()); break;
     case TO_PLUSEQ:  emitCompoundArith(_OP_ADD, '+', expr->lhs(), expr->rhs()); break;
     case TO_MINUSEQ: emitCompoundArith(_OP_SUB, '-', expr->lhs(), expr->rhs()); break;
     case TO_MULEQ:   emitCompoundArith(_OP_MUL, '*', expr->lhs(), expr->rhs()); break;
     case TO_DIVEQ:   emitCompoundArith(_OP_DIV, '/', expr->lhs(), expr->rhs()); break;
     case TO_MODEQ:   emitCompoundArith(_OP_MOD, '%', expr->lhs(), expr->rhs()); break;
-    case TO_ADD: emitSimpleBinaryOp(_OP_ADD, expr->lhs(), expr->rhs()); break;
-    case TO_SUB: emitSimpleBinaryOp(_OP_SUB, expr->lhs(), expr->rhs()); break;
+    case TO_ADD:
+      if ( is_literal_in_int_range(expr->lhs()) )
+      {
+          visitForceGet(expr->rhs());
+          SQInteger op2 = _fs->PopTarget();
+          _fs->AddInstruction(_OP_ADDI, _fs->PushTarget(), expr->lhs()->asLiteral()->i(), op2, 0);
+      } else if ( is_literal_in_int_range(expr->rhs()) )
+      {
+          visitForceGet(expr->lhs());
+          SQInteger op2 = _fs->PopTarget();
+          _fs->AddInstruction(_OP_ADDI, _fs->PushTarget(), expr->rhs()->asLiteral()->i(), op2, 0);
+      } else
+          emitSimpleBinaryOp(_OP_ADD, expr->lhs(), expr->rhs());
+    break;
+    case TO_SUB:
+        if ( is_literal_in_int_range(expr->rhs()) )
+        {
+            visitForceGet(expr->lhs());
+            SQInteger op2 = _fs->PopTarget();
+            _fs->AddInstruction(_OP_ADDI, _fs->PushTarget(), -expr->rhs()->asLiteral()->i(), op2, 0);
+        } else
+            emitSimpleBinaryOp(_OP_SUB, expr->lhs(), expr->rhs());
+    break;
     case TO_MUL: emitSimpleBinaryOp(_OP_MUL, expr->lhs(), expr->rhs()); break;
     case TO_DIV: emitSimpleBinaryOp(_OP_DIV, expr->lhs(), expr->rhs()); break;
     case TO_MOD: emitSimpleBinaryOp(_OP_MOD, expr->lhs(), expr->rhs()); break;
@@ -1493,34 +1587,44 @@ void CodegenVisitor::visitIncExpr(IncExpr *expr) {
 
     visitNoGet(arg);
 
-    if (!isLValue(arg)) {
+    if ((arg->op() == TO_GETFIELD || arg->op() == TO_GETSLOT) && arg->asAccessExpr()->receiver()->op() == TO_BASE) {
         reportDiagnostic(arg, DiagnosticsId::DI_INC_DEC_NOT_ASSIGNABLE);
     }
 
     bool isPostfix = expr->form() == IF_POSTFIX;
 
     if (arg->isAccessExpr()) {
-        Emit2ArgsOP(isPostfix ? _OP_PINC : _OP_INC, expr->diff());
+        SQInteger p2 = _fs->PopTarget();
+        SQInteger p1 = _fs->PopTarget();
+        _fs->AddInstruction(isPostfix ? _OP_PINC : _OP_INC, _fs->PushTarget(), p1, p2, expr->diff());
     }
     else if (arg->op() == TO_ID) {
         Id *id = arg->asId();
-        if (id->isOuter()) {
-            SQInteger tmp1 = _fs->PushTarget();
-            SQInteger tmp2 = isPostfix ? _fs->PushTarget() : tmp1;
-            _fs->AddInstruction(_OP_GETOUTER, tmp2, id->outerPos());
-            _fs->AddInstruction(_OP_PINCL, tmp1, tmp2, 0, expr->diff());
-            _fs->AddInstruction(_OP_SETOUTER, tmp2, id->outerPos(), tmp2);
-            if (isPostfix) {
-                _fs->PopTarget();
-            }
-        }
-        else if (id->isLocal()) {
+
+        SQObjectPtr nameObj = _fs->CreateString(id->id());
+        SQInteger pos = -1;
+        bool assignable = false;
+
+        if ((pos = _fs->GetLocalVariable(nameObj, assignable)) != -1) {
+            if (!assignable)
+                reportDiagnostic(arg, DiagnosticsId::DI_INC_DEC_NOT_ASSIGNABLE);
+
             SQInteger src = isPostfix ? _fs->PopTarget() : _fs->TopTarget();
             SQInteger dst = isPostfix ? _fs->PushTarget() : src;
             _fs->AddInstruction(isPostfix ? _OP_PINCL : _OP_INCL, dst, src, 0, expr->diff());
         }
-        else if (id->isField()) {
-            Emit2ArgsOP(isPostfix ? _OP_PINC : _OP_INC, expr->diff());
+        else if ((pos = _fs->GetOuterVariable(nameObj, assignable)) != -1) {
+            if (!assignable)
+                reportDiagnostic(arg, DiagnosticsId::DI_INC_DEC_NOT_ASSIGNABLE);
+
+            SQInteger tmp1 = _fs->PushTarget();
+            SQInteger tmp2 = isPostfix ? _fs->PushTarget() : tmp1;
+            _fs->AddInstruction(_OP_GETOUTER, tmp2, pos);
+            _fs->AddInstruction(_OP_PINCL, tmp1, tmp2, 0, expr->diff());
+            _fs->AddInstruction(_OP_SETOUTER, tmp2, pos, tmp2);
+            if (isPostfix) {
+                _fs->PopTarget();
+            }
         }
         else {
             reportDiagnostic(arg, DiagnosticsId::DI_INC_DEC_NOT_ASSIGNABLE);
@@ -1594,30 +1698,23 @@ void CodegenVisitor::visitId(Id *id) {
     }
 
     if (_string(idObj) == _string(_fs->_name)) {
-        reportDiagnostic(id, DiagnosticsId::DI_CONFLICTS_WITH, "Varibale", id->id(), "function name");
+        reportDiagnostic(id, DiagnosticsId::DI_CONFLICTS_WITH, "variable", id->id(), "function name");
     }
 
     if ((pos = _fs->GetLocalVariable(idObj, assignable)) != -1) {
         _fs->PushTarget(pos);
-        id->setAssignable(assignable);
     }
-
     else if ((pos = _fs->GetOuterVariable(idObj, assignable)) != -1) {
-        id->setOuterPos(pos);
         if (!_donot_get) {
             SQInteger stkPos = _fs->PushTarget();
             _fs->AddInstruction(_OP_GETOUTER, stkPos, pos);
         }
-        id->setAssignable(assignable);
     }
-
     else if (IsConstant(idObj, constant)) {
         /* Handle named constant */
         SQObjectPtr constval = constant;
 
         SQInteger stkPos = _fs->PushTarget();
-        id->setConst();
-        _constVal = constant;
 
         /* generate direct or literal function depending on size */
         SQObjectType ctype = sq_type(constval);
@@ -1640,23 +1737,7 @@ void CodegenVisitor::visitId(Id *id) {
         }
     }
     else {
-        /* Handle a non-local variable, aka a field. Push the 'this' pointer on
-        * the virtual stack (always found in offset 0, so no instruction needs to
-        * be generated), and push the key next. Generate an _OP_LOAD instruction
-        * for the latter. If we are not using the variable as a dref expr, generate
-        * the _OP_GET instruction.
-
-        */
-        // TODO: probably we need a special handling for some corner cases
-        if (!(_fs->lang_features & LF_TOOLS_COMPILE_CHECK))
-            reportDiagnostic(id, DiagnosticsId::DI_UNKNOWN_SYMBOL, id->id());
-
-        _fs->PushTarget(0);
-        _fs->AddInstruction(_OP_LOAD, _fs->PushTarget(), _fs->GetConstant(idObj));
-        if (!_donot_get) {
-            Emit2ArgsOP(_OP_GET);
-        }
-        id->setField();
+        reportDiagnostic(id, DiagnosticsId::DI_UNKNOWN_SYMBOL, id->id());
     }
 }
 

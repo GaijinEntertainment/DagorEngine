@@ -1,0 +1,30 @@
+static_flares_renderer{
+  _singleton:b=yes
+  _tags:t="render"
+
+  static_flares__maxCount:i=8192
+  static_flares__minSize:r=3
+  static_flares__maxSize:r=200
+  static_flares__visible:b=true
+
+
+  "static_flares__texture:SharedTexHolder"{}
+  static_flares__texture_res:t="airfield_flare"
+  static_flares__texture_var:t="static_flares_tex"
+
+  "static_flares_color_multiplier:ShaderVar"{}
+  static_flares_color_multiplier_value:p4=1,1,1,1
+
+  "static_flares_ctg_min_max:ShaderVar"{}
+
+
+  "static_flares__shader:ShadersECS"{}
+  static_flares__shader_name:t="static_flares"
+
+  static_flares__count:i=0
+  static_flares__copiedCount:i=0
+
+  "static_flares__instancesBuf:UniqueBufHolder"{}
+  "static_flares__instances:StaticFlareInstances"{}
+  "static_flares__node:dabfg::NodeHandle"{}
+}

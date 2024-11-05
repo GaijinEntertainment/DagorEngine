@@ -2,7 +2,7 @@ Root    ?= ../../../../.. ;
 Location = prog/tools/sceneTools/assetExp/refProviders ;
 include $(Root)/prog/tools/tools_setup.jam ;
 
-if $(DriverLinkage) = dynamic { exit \"$(Location)\" lib must be built with DriverLinkage\=static ; }
+if $(KernelLinkage) = dynamic { exit \"$(Location)\" lib must be built with KernelLinkage\=static ; }
 
 TargetType  = lib ;
 Target = tools/sceneTools/assetExp/refProviders.lib ;

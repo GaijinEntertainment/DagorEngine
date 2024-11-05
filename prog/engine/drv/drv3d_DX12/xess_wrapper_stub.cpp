@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "xess_wrapper.h"
 
 using namespace drv3d_dx12;
@@ -23,6 +25,8 @@ void XessWrapper::getXeSSRenderResolution(int &, int &) const {}
 void XessWrapper::setVelocityScale(float, float) {}
 
 bool XessWrapper::isXessQualityAvailableAtResolution(uint32_t, uint32_t, int) const { return false; }
+
+void XessWrapper::startDump(const char *, int) {}
 
 XessWrapper::XessWrapper() = default;
 

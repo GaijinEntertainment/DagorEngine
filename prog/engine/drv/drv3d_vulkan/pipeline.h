@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <generic/dag_tab.h>
 #include <generic/dag_staticTab.h>
 #include "descriptor_set.h"

@@ -22,6 +22,9 @@
 
 
 #define DAFX_DEFAULT_WARP 32
+#ifndef __cplusplus
+#pragma wave32
+#endif
 
 // #define DAFX_DEBUG_CULLING_FETCH 1
 
@@ -74,6 +77,8 @@
   using float4_cref = const float4&;
 
   using float3x3 = Matrix3;
+  using float3x3_ref = Matrix3&;
+  using float3x3_cref = const Matrix3&;
   using float4x4 = TMatrix4;
   using float4x4_ref = TMatrix4&;
   using float4x4_cref = const TMatrix4&;
@@ -103,6 +108,8 @@
   #define float3_cref float3
   #define float4_cref float4
 
+  #define float3x3_ref in out float3x3
+  #define float3x3_cref float3x3
   #define float4x4_ref in out float4x4
   #define float4x4_cref float4x4
 #endif
@@ -175,6 +182,7 @@ struct ComputeCallDesc
 {
   uint gid;
   uint idx;
+  uint lod;
   uint start;
   uint count;
   uint aliveStart;

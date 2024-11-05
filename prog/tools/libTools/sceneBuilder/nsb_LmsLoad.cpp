@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <sceneBuilder/nsb_LightmappedScene.h>
 #include <libTools/staticGeom/staticGeometry.h>
 #include <libTools/staticGeom/matFlags.h>

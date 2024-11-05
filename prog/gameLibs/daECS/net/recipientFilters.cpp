@@ -1,6 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/net/recipientFilters.h>
 #include <daECS/net/msgSink.h>
 #include <daECS/net/object.h>
+#include <daECS/core/entityManager.h>
 #include <memory/dag_framemem.h>
 #include <daECS/net/netbase.h>
 

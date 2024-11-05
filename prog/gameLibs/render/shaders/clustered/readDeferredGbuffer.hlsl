@@ -13,6 +13,7 @@ float4 shadowTcToAtlas = float4(0, 0, 0, 0);
 float3 moveFromPos = pos_and_radius.xyz-worldPos.xyz;
 view = 0;
 dist = 0;
+result = 0;
 
 bool shouldExit = dot(moveFromPos, moveFromPos) > pos_and_radius.w*pos_and_radius.w;
 #if WAVE_INTRINSICS
@@ -35,6 +36,6 @@ float NoV = abs( NdotV ) + 1e-5;
 half dynamicLightsSpecularStrength = gbuffer.extracted_albedo_ao;
 half ssao = 1;//fixme: we should use SSAO here!
 half enviAO = gbuffer.ao*ssao;//we still modulate by albedo color, so we don't need micro AO
-half pointLightsFinalAO = (enviAO*0.5+0.5);
+half pointLightsFinalAO = (enviAO*point_lights_ao_effect.x + point_lights_ao_effect.y);//we use ssao, since we use it in point_lights.dshl (works slow, but not much lights are there)
 half specularAOcclusion = computeSpecOcclusion(saturate(NdotV), enviAO, gbuffer.linearRoughness*gbuffer.linearRoughness);// dice spec occlusion
 half3 specularColor = gbuffer.specularColor*(specularAOcclusion*gbuffer.extracted_albedo_ao);

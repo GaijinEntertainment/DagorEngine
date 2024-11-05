@@ -1,0 +1,331 @@
+include "rendinst_opaque_inc.dshl"
+include "psh_tangent.dshl"
+include "rendinst_voxelize_albedo_inc.dshl"
+include "normaldetail.dshl"
+include "simple_painted_inc.dshl"
+include "vcolor_layered_inc.dshl"
+include "wind/wind_simulation_inc.dshl"
+
+shader rendinst_flag_colored, rendinst_flag_layered
+{
+  if (rendinst_render_pass != rendinst_render_pass_voxelize_albedo)
+  {
+    USE_COMBINED_WIND(vs)
+  }
+  assume instancing_type = tm_vb;
+  if (rendinst_render_pass == rendinst_render_pass_impostor_color ||
+      rendinst_render_pass == rendinst_render_pass_impostor_shadow ||
+      rendinst_render_pass == rendinst_render_pass_grassify ||
+      rendinst_render_pass == rendinst_render_pass_to_heightmap)
+  {
+    dont_render;
+  }
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+
+  if(shader == rendinst_flag_layered)
+  {
+    INIT_VCOLOR_LAYERED()
+    INIT_PAINT_DETAILS_STATIC()
+  }
+  else
+  {
+    texture tex = material.texture.diffuse;
+    texture normal = material.texture[2];
+
+    static int use_painting = 0;
+    interval use_painting: painting_off < 1, painting_on;
+
+    static int atest = 0;
+    interval atest: atestOff < 1, atestOn;
+  }
+
+  SETUP_CHARACTER_MICRODETAIL()
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+  channel float2 tc[0] = tc[0];
+  channel color8 vcol[0] = extra[53];
+
+  static int wind_type = 0;
+  interval wind_type: fixedWind < 1, globalWindIngoreVcol < 2, globalWind;
+  //with fixedWind flag animation depends only on shader vars, such as wave frequency and amplitude
+  //with globalWind sampleWind function is used to get wind speed and direction and another set of
+  //  shader vars (flag stiffness, length, stretch) is used to calculate flag movement
+  //globalWindIngoreVcol is equal to globalWind is asset's vcol.x is changing lineary from zero on the flag pole to 1
+  //at the very tip of the flag. It should be used if vcol hasn't been set manually.
+  if(shader == rendinst_flag_colored)
+  {
+    INIT_SIMPLE_PAINTED()
+  }
+  if (wind_type == fixedWind)
+  {
+    static float4 frequency_amplitude = (1, 1, 1, 1);
+    static float4 wind_direction = (0, 0, 1, 0);
+    static float wind_strength = 1.1;
+    static float wave_length = 0.5;
+    (vs) {
+      // do not put dynamic const together with material parameters, otherwise MULTI_DRAW rendering fails
+      wind_time@f1 = time_phase(1000, 0) * 1000;
+      strength_wave_length@f3 = (wind_strength, wave_length, 0);
+      frequency_amplitude@f4 = (frequency_amplitude.x,
+                                frequency_amplitude.y- frequency_amplitude.x,
+                                frequency_amplitude.z,
+                                frequency_amplitude.w - frequency_amplitude.z);
+      wind_direction@f4 = wind_direction;
+    }
+  }
+  if ( wind_type == globalWind || wind_type == globalWindIngoreVcol)
+  {
+    static float4 flagpole_pos_0 = (0, 0, -1, 0);
+    static float4 flagpole_pos_1 = (0, 0, 1, 0);
+    static float stiffness = 0.1;
+    static float flag_movement_scale = 1;
+    static float bend = 2;
+    static float deviation = 4;
+    static float stretch = 0.1;
+    static float flag_length = 15;
+    static float sway_speed = 1;
+
+    static int width_type = 0;
+    interval width_type: zero_width < 1, has_width;
+
+    (vs) {
+      flagpole_pos_0@f3 = flagpole_pos_0;
+      flagpole_pos_1@f3 = flagpole_pos_1;
+      bendpow_devpow_stretch_flaglen@f4 = (bend, deviation, stretch, flag_length);
+      swayspeed_stiffness_flagMovementScale@f3 = (sway_speed,stiffness,flag_movement_scale,0);
+    }
+  }
+  RENDINST_BLOCK()
+  RI_VOXELIZE_ALBEDO()
+  ENABLE_MULTI_DRAW(false)
+  RENDINST_INSTANCING()
+  if (rendinst_render_pass == rendinst_render_pass_normal)
+  {
+    USE_MICRODETAIL_BASED_WETNESS()
+  }
+  if (rendinst_render_pass != rendinst_render_pass_to_shadow && rendinst_render_pass != rendinst_render_pass_depth &&
+      paint_details_tex != NULL &&
+      (shader == rendinst_flag_layered || use_painting == painting_on))
+  {
+    hlsl {
+      #define COLOR_NEEDED 1
+    }
+    USE_PAINT_DETAILS()
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      PRECISE VS_OUT_POSITION(pos)
+      ##if (atest == atestOn || rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
+        float2 diffuseTexcoord          : TEXCOORD0;
+        float4 normal                   : TEXCOORD1;
+        VOXEL_CENTROID float4 pointToEye      : TEXCOORD2;
+      ##elif (rendinst_render_pass == rendinst_render_pass_depth)
+        float4 normal                   : TEXCOORD1;
+      ##endif
+      #if COLOR_NEEDED
+        nointerpolation float3 colorMul : TEXCOORD3;
+      #endif
+      ##if shader == rendinst_flag_layered
+        float3 vcolMask                 : COLOR0;
+      ##endif
+      VSOUT_DRAW_ID
+    };
+  }
+
+  hlsl (vs) {
+
+    INSTANCING_BUFFERS
+
+    struct VsInput
+    {
+      float3 pos                  : POSITION;
+      ##if (atest == atestOn || rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
+        float2 diffuseTexcoord    : TEXCOORD0;
+      ##endif
+      ##if !(rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
+        float3 normal             : NORMAL;
+      ##endif
+      float4 vcol                 : COLOR0;
+    };
+    ##if wind_type == fixedWind
+      void apply_wind(inout float3 world_pos, float movement_scale, float3 direction, uint hashVal)
+      {
+        float randValue = float(hashVal) * 1e-32;
+        float2 instance_amp_freq = randValue * get_frequency_amplitude().wy + get_frequency_amplitude().zx;
+        float3 displacement = float3(0,0,0);
+        float omega = PI * instance_amp_freq.y;
+        float resist = 0.2;
+        float omega_d = omega * sqrt(1 - resist*resist);
+        // // the way damping sway should be implemented (if wind force is 0):
+        // displacement.yz = wind_strength *  movement_scale * exp(-resist*omega*current_time.x) *
+        //                   (instance_amp_freq.x * cos(omega_d * current_time.x - movement_scale * world_pos.x));
+        displacement.xz = -0.5*get_strength_wave_length().x * movement_scale * instance_amp_freq.x *
+                          exp(-resist * sin(2.5*wind_time) * cos(wind_time)) *
+                          cos(omega_d * wind_time - world_pos.z/get_strength_wave_length().y);
+        // approximation to avoid stretching, adjusting direction of sway
+        if (abs(direction.y) > 0.999) //if wind is in up direction
+        {
+          displacement.y = -0.5*get_strength_wave_length().x * movement_scale * movement_scale * instance_amp_freq.x *
+                          exp(-resist * sin(2.5*wind_time) * cos(wind_time)) *
+                          cos(omega_d * wind_time - world_pos.x/get_strength_wave_length().y);
+        }
+        else
+        {
+          displacement.y = movement_scale;
+          direction.y = 0.5 * min(abs(displacement.z)*direction.z,
+                                  abs(displacement.x)*direction.x);
+        }
+        displacement *= direction;
+        world_pos += displacement;
+      }
+    ##endif
+    ##if  wind_type == globalWind || wind_type == globalWindIngoreVcol
+      ##if width_type == has_width
+        float3 calc_wind_sample_pos(uint instance_id, float3 localPos)
+        {
+          localPos.x = 0; // assumes mesh is aligned to the YZ plane
+          float3 localNormal = float3(1,0,0); // dummy for VB_PERFORM_INSTANCING
+          VB_PERFORM_INSTANCING // calculates worldPos
+          return worldPos;
+        }
+      ##endif
+
+      void calc_pivot_and_normal(uint instance_id, inout float3 localPos, inout float3 localNormal)
+      {
+        //assume that the mesh is aligned to the YZ plane AND its general direction is positive X.
+        localNormal = float3(1,0,0);
+
+        float3 poleDir = get_flagpole_pos_1().xyz - get_flagpole_pos_0().xyz;
+        float poleDist = length(poleDir);
+        poleDir /= max(poleDist, 0.000001);
+
+        float dist = dot(localPos - get_flagpole_pos_0().xyz, poleDir);
+        localPos = get_flagpole_pos_0().xyz + clamp(dist, 0, poleDist) * poleDir;
+
+        VB_PERFORM_INSTANCING // calculates worldPos and worldNormal
+        localPos = worldPos;
+        localNormal = worldNormal;
+      }
+      void apply_global_wind(inout float3 world_pos, float3 wind, float3 pivot, float3 normal, float movement_scale)
+      {
+        const float BASE_WIND_SPEED_MULT = 0.15;
+        const float BASE_DEVIATION_MULT = 0.07;
+        float sway_speed = get_swayspeed_stiffness_flagMovementScale().x;
+        float stiffness = get_swayspeed_stiffness_flagMovementScale().y;
+        float flag_movement_scale = get_swayspeed_stiffness_flagMovementScale().z;
+        float size = get_bendpow_devpow_stretch_flaglen().w;
+        float stretch =get_bendpow_devpow_stretch_flaglen().z;
+        float bend_pow = get_bendpow_devpow_stretch_flaglen().x;
+        float dev_pow = get_bendpow_devpow_stretch_flaglen().y;
+        movement_scale = clamp(movement_scale,0.0001,1);
+        float3 relPos = world_pos - pivot;
+        float dist_old = length(relPos);
+        float windStrength = dot(wind, normal) * BASE_WIND_SPEED_MULT;
+        float sway = (1/(1+stiffness)) * pow(movement_scale,bend_pow) * sin(sway_speed*length(wind));
+        float deviation = pow(movement_scale,dev_pow) * BASE_DEVIATION_MULT;
+        float displacement = (sway + deviation) * windStrength * size * flag_movement_scale;
+        relPos += normal * displacement;
+        world_pos = pivot + relPos * (dist_old / (lerp(length(relPos), dist_old, stretch) + 0.000001));
+      }
+    ##endif
+
+    VsOutput wind_vs(VsInput input HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+      #endif
+
+      ##if (rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
+        float3 localNormal = 1;
+      ##else
+        float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+      ##endif
+      float4 vcol = BGRA_SWIZZLE(input.vcol);
+      float3 localPos = input.pos;
+
+      VB_PERFORM_INSTANCING
+
+      ##if (rendinst_render_pass != rendinst_render_pass_voxelize_albedo)
+        ##if ( wind_type == globalWind || wind_type == globalWindIngoreVcol)
+          float3 pivotPos = localPos;
+          float3 planeNormal = float3(1,0,0);
+          calc_pivot_and_normal(instance_id,pivotPos,planeNormal);
+          ##if (wind_type != globalWindIngoreVcol)
+            float movementScale = vcol.x;
+          ##else
+            float movementScale = length(pivotPos - worldPos)/get_bendpow_devpow_stretch_flaglen().w;
+          ##endif
+          ##if width_type == has_width
+            float3 windSamplePos = calc_wind_sample_pos(instance_id, localPos);
+          ##else
+            float3 windSamplePos = worldPos;
+          ##endif
+          float3 wind = sampleWindCurrentTime(windSamplePos, 1, 0);
+          apply_global_wind(worldPos, wind, pivotPos, planeNormal, movementScale);
+        ##else
+          float movementScale = vcol.x;
+          ##if in_editor_assume == yes
+            float3 direction = normalize(get_wind_direction().xyz);
+          ##else
+            float3 direction = normalize(get_wind_direction().x * worldLocalX + get_wind_direction().y * worldLocalY + get_wind_direction().z * worldLocalZ);
+          ##endif
+          apply_wind(worldPos, movementScale, direction, hashVal);
+        ##endif
+      ##endif
+
+      float3 pointToEye = world_view_pos-worldPos;
+      output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+      ##if (atest == atestOn || rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
+        output.diffuseTexcoord.xy = input.diffuseTexcoord;
+        output.normal.xyz = worldNormal;
+        output.normal.w = 0;
+        output.pointToEye.xyz = pointToEye;
+        output.pointToEye.w = 0;
+        ##if (rendinst_render_pass != rendinst_render_pass_to_shadow)
+          output.pointToEye.w = worldPos.y - worldLocalPos.y;
+        ##endif
+      ##elif (rendinst_render_pass != rendinst_render_pass_to_shadow)
+        output.normal.w = worldPos.y - worldLocalPos.y;
+        output.normal.xyz = float3(0,0,0);
+      ##endif
+
+      #if COLOR_NEEDED
+        output.colorMul = getColorMul(hashVal);
+      #endif
+
+      ##if shader == rendinst_flag_layered
+        output.vcolMask = vcol.yzz;
+      ##endif
+      PROCESS_OUTPUT(output.pos, worldPos.xyz);
+      return output;
+    }
+  }
+
+  COMPILE_RI_VS_TARGET("wind_vs")
+
+  if (rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
+  {
+    RENDER_TO_SHADOW_PS()
+  }
+  else
+  {
+    if(shader == rendinst_flag_colored)
+    {
+      SIMPLE_PAINTED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo))
+    }
+    else
+    {
+      USE_VCOLOR_LAYERED(ps)
+      VCOLOR_LAYERED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), false)
+    }
+  }
+}

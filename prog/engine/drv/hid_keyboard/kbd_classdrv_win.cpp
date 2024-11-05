@@ -1,9 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <supp/_platform.h>
 #include "kbd_classdrv_win.h"
 #include "kbd_device_win.h"
-#include <humanInput/dag_hiGlobals.h>
-#include <humanInput/dag_hiCreate.h>
-#include <humanInput/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiCreate.h>
+#include <drv/hid/dag_hiKeybIds.h>
 #include <debug/dag_debug.h>
 #include <util/dag_string.h>
 #include <util/dag_globDef.h>
@@ -119,8 +121,12 @@ bool WinKeyboardClassDriver::init()
 #if _TARGET_PC_WIN && !IS_CONSOLE_EXE
   HKL prevLayout = GetKeyboardLayout(0);
 
+  // On Windows calling ActivateKeyboardLayout() causes IME input to stop working.
+  // Disable key names localization in this case - on these systems the problem solved by
+  // switching to English layout does not exist.
   bool useKeyNamesFromEnglishLayout =
-    !::dgs_get_settings() || ::dgs_get_settings()->getBlockByNameEx("input")->getBool("useKeyNamesFromEnglishLayout", true);
+    !HumanInput::keyboard_has_ime_layout() &&
+    (!::dgs_get_settings() || ::dgs_get_settings()->getBlockByNameEx("input")->getBool("useKeyNamesFromEnglishLayout", true));
 
   if (useKeyNamesFromEnglishLayout && !set_english_layout())
   {

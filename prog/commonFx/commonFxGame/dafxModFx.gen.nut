@@ -104,13 +104,14 @@ declare_struct("FxInitPosCone", 1,
 ]);
 
 
-declare_struct("FxInitGpuPlacement", 1,
+declare_struct("FxInitGpuPlacement", 2,
 [
   { name="enabled", type="bool", defVal=0 },
   { name="placement_threshold", type="real", defVal=0 },
   { name="use_hmap", type="bool", defVal=1 },
   { name="use_depth_above", type="bool", defVal=0 },
   { name="use_water", type="bool", defVal=0 },
+  { name="use_water_flowmap", type="bool", defVal=0 },
   { name="use_normal", type="bool", defVal=0 },
 ]);
 
@@ -156,15 +157,26 @@ declare_struct("FxMaskedCurveOpt", 1,
   { name="curve", type="cubic_curve" },
 ]);
 
-declare_struct("FxColor", 3,
+declare_struct("FxAlphaByVelocity", 2,
+[
+  { name="enabled", type="bool", defVal=0 },
+  { name="vel_min", type="real", defVal=0 },
+  { name="vel_max", type="real", defVal=1 },
+  { name="use_emitter_velocity", type="bool", defVal=0 },
+  { name="velocity_alpha_curve", type="FxValueCurveOpt" }
+]);
+
+declare_struct("FxColor", 5,
 [
   { name="enabled", type="bool", defVal=0 },
   { name="allow_game_override", type="bool", defVal=0 },
+  { name="gamma_correction", type="bool", defVal=0 },
   { name="col_min", type="E3DCOLOR", defVal=Color4(128, 128, 128, 255) },
   { name="col_max", type="E3DCOLOR", defVal=Color4(128, 128, 128, 255) },
   { name="grad_over_part_life", type="FxValueGradOpt" },
   { name="curve_over_part_life", type="FxColorCurveOpt" },
   { name="curve_over_part_idx", type="FxMaskedCurveOpt" },
+  { name="alpha_by_velocity", type="FxAlphaByVelocity" },
 ]);
 
 declare_struct("FxRotation", 2,
@@ -226,7 +238,7 @@ declare_struct("FxVelocityAdd", 2,
   { name="cone", type="FxInitVelocityCone" },
 ]);
 
-declare_struct("FxCollision", 3,
+declare_struct("FxCollision", 5,
 [
   { name="enabled", type="bool", defVal=0 },
   { name="radius_mod", type="real", defVal=1 },
@@ -234,6 +246,13 @@ declare_struct("FxCollision", 3,
   { name="energy_loss", type="real", defVal=0.5 },
   { name="emitter_deadzone", type="real", defVal=0 },
   { name="collision_decay", type="real", defVal=-1 },
+  { name="collide_with_depth", type="bool", defVal=1 },
+  { name="collide_with_depth_above", type="bool", defVal=0 },
+  { name="collide_with_hmap", type="bool", defVal=0 },
+  { name="collide_with_water", type="bool", defVal=0 },
+  { name="collision_fadeout_radius_min", type="real", defVal=0 },
+  { name="collision_fadeout_radius_max", type="real", defVal=0 },
+  { name="stop_rotation_on_collision", type="bool", defVal=1 },
 ]);
 
 declare_struct("FxWind", 2,
@@ -298,7 +317,14 @@ declare_struct("FxVelocityGpuPlacement", 1,
 ]
 );
 
-declare_struct("FxVelocity", 10,
+declare_struct("FxCameraVelocity", 1,
+[
+  { name="enabled", type="bool", defVal=0 },
+  { name="velocity_weight", type="real", defVal=0.02 },
+]
+);
+
+declare_struct("FxVelocity", 14,
 [
   { name="enabled", type="bool", defVal=0 },
   { name="mass", type="real", defVal=1 },
@@ -315,6 +341,20 @@ declare_struct("FxVelocity", 10,
   { name="collision", type="FxCollision" },
   { name="gpu_hmap_limiter" type="FxVelocityGpuPlacement" },
   { name="wind", type="FxWind" },
+  { name="camera_velocity", type="FxCameraVelocity"}
+  { name="gravity_zone", type="list", list=["default", "disabled", "per_emitter", "per_particle"] },
+]);
+
+declare_struct("FxPlacement", 2,
+[
+  { name="enabled", type="bool", defVal=0 },
+  { name="placement_threshold", type="real", defVal=-1 },
+  { name="use_hmap", type="bool", defVal=0 },
+  { name="use_depth_above", type="bool", defVal=1 },
+  // TODO: implement these too:
+  // { name="use_water", type="bool", defVal=0 },
+  // { name="use_normal", type="bool", defVal=0 },
+  { name="align_normals_offset", type="real", defVal=-1 },
 ]);
 
 declare_struct("FxTextureAnim", 1,
@@ -353,7 +393,7 @@ declare_struct("FxColorRemap", 3,
   { name="second_mask_apply_base_color", type="bool", defVal=0 },
 ]);
 
-declare_struct("FxTexture", 3,
+declare_struct("FxTexture", 4,
 [
   { name="enabled", type="bool", defVal=0 },
   { name="enable_aniso", type="bool", defVal=0 },
@@ -365,6 +405,8 @@ declare_struct("FxTexture", 3,
   { name="frame_scale", type="real", defVal=1 },
   { name="start_frame_min", type="int", defVal=0 },
   { name="start_frame_max", type="int", defVal=0 },
+  { name="flip_x", type="bool", defVal=0 },
+  { name="flip_y", type="bool", defVal=0 },
   { name="random_flip_x", type="bool", defVal=0 },
   { name="random_flip_y", type="bool", defVal=0 },
   { name="disable_loop", type="bool", defVal=0 },
@@ -466,12 +508,6 @@ declare_struct("FxRenderShaderVolShape", 1,
   { name="radius_pow", type="real", defVal=2 },
 ]);
 
-declare_struct("FxRenderShaderAboveDepth", 2,
-[
-  { name="placement_threshold", type="real", defVal=-1 },
-  { name="terrain_only", type="bool", defVal=0 },
-]);
-
 declare_struct("FxRenderVolfogInjection", 1,
 [
   { name="enabled", type="bool", defVal=0 },
@@ -479,18 +515,18 @@ declare_struct("FxRenderVolfogInjection", 1,
   { name="weight_alpha", type="real", defVal=1 },
 ]);
 
-declare_struct("FxRenderShader", 8,
+declare_struct("FxRenderShader", 11,
 [
   { name="reverse_part_order", type="bool", defVal=0 },
   { name="shadow_caster", type="bool", defVal=0 },
-  { name="shader", type="list", list=["modfx_default", "modfx_bboard_atest", "modfx_bboard_distortion", "modfx_vol_shape", "modfx_bboard_rain", "modfx_bboard_rain_distortion", "modfx_bboard_above_depth_placement"] },
+  { name="allow_screen_proj_discard", type="bool", defVal=1 },
+  { name="shader", type="list", list=["modfx_default", "modfx_bboard_atest", "modfx_bboard_distortion", "modfx_vol_shape", "modfx_bboard_rain", "modfx_bboard_rain_distortion"] },
   { name="modfx_bboard_render", type="FxRenderShaderDummy" },
   { name="modfx_bboard_render_atest", type="FxRenderShaderDummy" },
   { name="modfx_bboard_distortion", type="FxRenderShaderDistortion" },
   { name="modfx_bboard_vol_shape", type="FxRenderShaderVolShape" },
   { name="modfx_bboard_rain", type="FxRenderShaderDummy" },
   { name="modfx_bboard_rain_distortion", type="FxRenderShaderDistortion" },
-  { name="modfx_bboard_above_depth_placement", type="FxRenderShaderAboveDepth" },
 ]);
 
 declare_struct("FxDepthMask", 3,
@@ -529,7 +565,7 @@ declare_struct("FxQuality", 1,
   { name="high_quality", type="bool", defVal=1 },
 ]);
 
-end_declare_params("dafx_modfx", 12,
+end_declare_params("dafx_modfx", 13,
 [
   {struct="FxSpawn"},
   {struct="FxLife"},
@@ -538,6 +574,7 @@ end_declare_params("dafx_modfx", 12,
   {struct="FxColor"},
   {struct="FxRotation"},
   {struct="FxVelocity"},
+  {struct="FxPlacement"},
   {struct="FxTexture"},
   {struct="FxEmission"},
   {struct="FxThermalEmission"},

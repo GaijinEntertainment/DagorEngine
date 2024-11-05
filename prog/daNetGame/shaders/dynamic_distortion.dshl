@@ -1,0 +1,50 @@
+include "dynamic_opaque_inc.dshl"
+include "gbuffer.dshl"
+include "normaldetail.dshl"
+include "distortion.dshl"
+
+shader dynamic_distortion
+{
+  ENABLE_ASSERT(ps)
+  render_stage distortion;
+
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    dont_render;
+  }
+
+  static int enable_vcolor = 0;
+  interval enable_vcolor: no<1, yes;
+
+  if (enable_vcolor == yes)
+  {
+    channel color8 vcol[0] = vcol;
+    hlsl{
+      #define NEED_VCOL_MASK 1
+      #define COLOR_NEEDED 1
+    }
+  }
+
+  DYNAMIC_BLOCK()
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+
+  DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+  hlsl(vs) {
+    void vs_post_function(VsInput input, inout VsOutput output)
+    {
+      ##if enable_vcolor == yes
+        output.colorMul = input.vcolMask;
+      ##endif
+    }
+  }
+  DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
+
+  hlsl(ps)
+  {
+    #define texcoord diffuseTexcoord
+  }
+
+  DISTORTION_PS()
+}

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "plugin_scn.h"
 #include "strmlevel.h"
 #include <de3_interface.h>
@@ -14,6 +16,7 @@
 #include <landMesh/lmeshManager.h>
 #include <landMesh/clipmap.h>
 #include <landMesh/lastClip.h>
+#include <landMesh/lmeshMirroring.h>
 #include <rendInst/rendInstGen.h>
 #include <rendInst/rendInstGenRender.h>
 #include <de3_entityFilter.h>
@@ -28,6 +31,10 @@
 #include <debug/dag_debug.h>
 #include <debug/dag_debug3d.h>
 #include <3d/dag_materialData.h>
+#include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_info.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <libTools/util/strUtil.h>
@@ -496,14 +503,7 @@ void AcesScene::loadLevel(const char *bindump)
     skiesSrv->overrideWeather(2, NULL, NULL, -1, NULL, NULL);
   }
 
-  if (lmeshMgr && lmeshRenderer)
-  {
-    lmeshRenderer->setMirroring(*lmeshMgr, levelSettingsBlk.getInt("numBorderCellsXPos", 2),
-      levelSettingsBlk.getInt("numBorderCellsXNeg", 2), levelSettingsBlk.getInt("numBorderCellsZPos", 2),
-      levelSettingsBlk.getInt("numBorderCellsZNeg", 2), levelSettingsBlk.getReal("mirrorShrinkXPos", 0.f),
-      levelSettingsBlk.getReal("mirrorShrinkXNeg", 0.f), levelSettingsBlk.getReal("mirrorShrinkZPos", 0.f),
-      levelSettingsBlk.getReal("mirrorShrinkZNeg", 0.f));
-  }
+  setupMirroring();
 
   // Make sure FRT is not missing and loaded properly
   if (!frtDump.isDataValid())
@@ -565,6 +565,19 @@ void AcesScene::loadLevel(const char *bindump)
     collisionpreview::addLandRtMeshCollision(lrtCollision, lmeshMgr->getLandTracer());
 }
 
+void AcesScene::setupMirroring()
+{
+  if (!lmeshMgr || !lmeshRenderer)
+    return;
+  LmeshMirroringParams mp;
+  if (getLandscapeMirroring())
+    load_lmesh_mirroring(levelSettingsBlk);
+  else
+    mp.numBorderCellsXPos = mp.numBorderCellsXNeg = mp.numBorderCellsZPos = mp.numBorderCellsZNeg = 0;
+
+  lmeshRenderer->setMirroring(*lmeshMgr, mp.numBorderCellsXPos, mp.numBorderCellsXNeg, mp.numBorderCellsZPos, mp.numBorderCellsZNeg,
+    mp.mirrorShrinkXPos, mp.mirrorShrinkXNeg, mp.mirrorShrinkZPos, mp.mirrorShrinkZNeg);
+}
 
 void AcesScene::clear()
 {
@@ -655,7 +668,7 @@ bool AcesScene::bdlCustomLoad(unsigned bindump_id, int tag, IGenLoad &crd, dag::
     }
     catch (...)
     {
-      debug_ctx("failed to load FRT");
+      DEBUG_CTX("failed to load FRT");
       frtDump.unloadData();
       res = false;
     }
@@ -929,11 +942,11 @@ void AcesScene::renderClipmaps()
   d3d::get_target_size(w, h);
   clipmap->setTargetSize(w, h, 0.f);
 
-  TMatrix4 clipmapFrustum;
-  d3d::getglobtm(clipmapFrustum);
+  TMatrix4 gtm;
+  d3d::getglobtm(gtm);
   LandmeshCMRenderer landmeshCMRenderer(*lmeshRenderer, *lmeshMgr);
-  clipmap->prepareFeedback(landmeshCMRenderer, ::grs_cur_view.pos, ::grs_cur_view.itm, clipmapFrustum, cameraHeight + cameraHeight,
-    0.f);
+  clipmap->prepareFeedback(::grs_cur_view.pos, ::grs_cur_view.itm, gtm, cameraHeight + cameraHeight, 0.f);
+  clipmap->renderFallbackFeedback(landmeshCMRenderer, gtm);
   clipmap->finalizeFeedback();
   clipmap->prepareRender(landmeshCMRenderer);
 
@@ -988,7 +1001,7 @@ void AcesScene::prepareFixedClip(int texture_size)
   int oldm = ShaderGlobal::get_int_fast(lmesh_rendering_mode_glob_varId);
   ShaderGlobal::enableAutoBlockChange(false);
 
-  prepare_fixed_clip(last_clip, data, false, ::grs_cur_view.pos);
+  prepare_fixed_clip(last_clip, last_clip_sampler, data, false, ::grs_cur_view.pos);
   ::set_lmesh_rendering_mode(oldm);
   ShaderGlobal::enableAutoBlockChange(true);
 }
@@ -1020,7 +1033,7 @@ void AcesScene::render(bool render_rs)
   clipmap->copyUAVFeedback();
 
   if (render_rs)
-    BaseStreamingSceneHolder::render();
+    BaseStreamingSceneHolder::render(EDITORCORE->queryEditorInterface<IVisibilityFinderProvider>()->getVisibilityFinder());
   if ((st_mask & rend_ent_geom_mask) && (!riPlugin || riPlugin->getVisible()))
   {
     mat44f ident;
@@ -1095,7 +1108,7 @@ void AcesScene::renderShadows()
   ShaderGlobal::set_real(water_level_gvid, waterLevel);
 
   ShaderGlobal::set_int_fast(inEditorGvId, 0);
-  BaseStreamingSceneHolder::render();
+  BaseStreamingSceneHolder::render(EDITORCORE->queryEditorInterface<IVisibilityFinderProvider>()->getVisibilityFinder());
   ShaderGlobal::set_int_fast(inEditorGvId, 1);
 }
 void AcesScene::renderShadowsVsm()
@@ -1253,8 +1266,6 @@ bool AcesScene::tracerayNormalizedStaticScene(const Point3 &p, const Point3 &dir
 
 bool AcesScene::getHeightmapAtPoint(float x, float z, float &out_height, Point3 *out_normal)
 {
-  bool res = false;
-
   if (lmeshMgr)
   {
     float xk = 1, zk = 1;
@@ -1268,23 +1279,12 @@ bool AcesScene::getHeightmapAtPoint(float x, float z, float &out_height, Point3 
       }
       return true;
     }
-    else
-    {
-      out_height = 0.f;
-      if (out_normal)
-        *out_normal = Point3(0.f, 1.f, 0.f);
-      return false;
-    }
   }
 
-  if (!res)
-  {
-    out_height = 0.f;
-    if (out_normal)
-      *out_normal = Point3(0.f, 1.f, 0.f);
-  }
-
-  return res;
+  out_height = 0.f;
+  if (out_normal)
+    *out_normal = Point3(0.f, 1.f, 0.f);
+  return false;
 }
 
 bool __stdcall AcesScene::custom_get_height(Point3 &p, Point3 *n)

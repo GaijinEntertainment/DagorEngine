@@ -1,5 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <generic/dag_tab.h>
 #include <util/dag_oaHashNameMap.h>
 class DataBlock;
 
@@ -15,11 +17,12 @@ struct EditLayerProps
   static const int MAX_LAYERS = 60;
 
   unsigned lock : 1, hide : 1, renderToMask : 1, exp : 1;
+  unsigned renameable : 1; // A new layer is only renameable before the saving of the level.
   unsigned type : 3;
-  unsigned nameId : 9;
+  unsigned nameId;
 
-  EditLayerProps() : lock(0), hide(0), renderToMask(0), exp(1), type(TYPENUM), nameId(0) {}
-  EditLayerProps(unsigned t, unsigned nid) : lock(0), hide(0), renderToMask(0), exp(1), type(t), nameId(nid) {}
+  EditLayerProps() : lock(0), hide(0), renderToMask(0), exp(1), renameable(0), type(TYPENUM), nameId(0) {}
+  EditLayerProps(unsigned t, unsigned nid) : lock(0), hide(0), renderToMask(0), exp(1), renameable(0), type(t), nameId(nid) {}
   const char *name() const { return layerNames.getName(nameId); }
 
 public:
@@ -47,5 +50,6 @@ public:
     }
     return lidx;
   }
+  static void renameLayer(int idx, const char *new_name);
   static const char *layerName(int idx) { return layerProps[idx].name(); }
 };

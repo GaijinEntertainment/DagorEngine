@@ -1,4 +1,4 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <util/dag_string.h>
 #include <generic/dag_tab.h>
@@ -53,7 +53,7 @@ AVScriptPanelEditor::~AVScriptPanelEditor()
 bool AVScriptPanelEditor::scriptExists() { return ::dd_file_exist(scriptPath.str()); }
 
 
-void AVScriptPanelEditor::createPanel(PropPanel2 &panel)
+void AVScriptPanelEditor::createPanel(PropPanel::ContainerPropertyControl &panel)
 {
   if (!scriptExists() || get_app().getScriptChangeFlag())
     return;
@@ -170,22 +170,19 @@ const char *AVScriptPanelEditor::getTarget(const char *old_choise, const char *t
 
 const char *AVScriptPanelEditor::selectAsset(const char *old_choise, dag::ConstSpan<int> masks)
 {
-  int _x, _y;
-  unsigned _w, _h;
   static String result;
   G_ASSERT(get_app().getPropPanel() && "Plugin panel closed!");
-  if (!get_app().getWndManager().getWindowPosSize(get_app().getPropPanel()->getParentWindowHandle(), _x, _y, _w, _h))
-    return NULL;
-  get_app().getWndManager().clientToScreen(_x, _y);
   DagorAssetMgr *amgr = const_cast<DagorAssetMgr *>(&get_app().getAssetMgr());
 
-  SelectAssetDlg dlg(0, amgr, "Select asset", "Select asset", "Reset asset", masks, _x - _w - 5, _y, _w, _h);
+  SelectAssetDlg dlg(0, amgr, "Select asset", "Select asset", "Reset asset", masks);
   dlg.selectObj(old_choise);
+  dlg.setManualModalSizingEnabled();
+  dlg.positionLeftToWindow("Properties", true);
   int ret = dlg.showDialog();
 
-  if (ret == DIALOG_ID_CLOSE)
+  if (ret == PropPanel::DIALOG_ID_CLOSE)
     return old_choise;
-  if (ret == DIALOG_ID_OK)
+  if (ret == PropPanel::DIALOG_ID_OK)
   {
     result = dlg.getSelObjName();
     return result.str();
@@ -198,10 +195,10 @@ const char *AVScriptPanelEditor::selectAsset(const char *old_choise, dag::ConstS
 const char *AVScriptPanelEditor::selectGroupName(const char *old_choise)
 {
   static String result;
-  CDialogWindow *dialog = new CDialogWindow(NULL, hdpi::_pxScaled(250), hdpi::_pxScaled(130), "Select group name");
+  PropPanel::DialogWindow *dialog = new PropPanel::DialogWindow(NULL, hdpi::_pxScaled(250), hdpi::_pxScaled(130), "Select group name");
   dialog->getPanel()->createEditBox(0, "Name", old_choise);
 
-  if (dialog->showDialog() == DIALOG_ID_OK)
+  if (dialog->showDialog() == PropPanel::DIALOG_ID_OK)
     result = dialog->getPanel()->getText(0);
   delete dialog;
   return result.length() ? result.str() : old_choise;

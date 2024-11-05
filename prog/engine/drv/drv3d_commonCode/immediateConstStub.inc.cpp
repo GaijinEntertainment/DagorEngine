@@ -1,5 +1,6 @@
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3d_buffers.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_buffers.h>
 #include <generic/dag_carray.h>
 #include "immediateConstStub.h"
 #ifdef IMMEDIATE_CB_NAMESPACE

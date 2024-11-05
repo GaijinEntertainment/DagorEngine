@@ -1,0 +1,270 @@
+include "shader_global.dshl"
+include "dynamic_opaque_inc.dshl"
+include "normaldetail.dshl"
+include "gbuffer.dshl"
+include "simplified_rendering_inc.dshl"
+include "masked_paint_color.dshl"
+include "masked_micro_detail.dshl"
+include "projective_wounds.dshl"
+include "emissive.dshl"
+
+shader dynamic_painted_by_mask
+{
+  ENABLE_ASSERT(ps)
+  DECLARE_DYNAMIC_MATERIAL_PARAMS()
+  DYNAMIC_BLOCK()
+  SUPPORT_MULTIDRAW(false)
+  USE_SIMPLIFIED_RENDERING()
+  INIT_EMISSIVE_ANIMCHAR_DYNMAT_SIMPLE_PARAMS()
+
+  if (compatibility_mode != compatibility_mode_on && mobile_render == off && in_editor_assume == no){ NO_DYNSTCODE() }
+
+  texture tex = material.texture.diffuse;
+
+  static float4 primary_color = (1, 1, 1, 1);
+  static float4 secondary_color = (1, 1, 1, 1);
+  (ps) {
+    // reverse Gamma-correction for sRGB: https://entropymine.com/imageworsener/srgbformula/
+    primary_color@f3 = (
+      pow((primary_color.x + 0.055) / 1.055, 2.4),
+      pow((primary_color.y + 0.055) / 1.055, 2.4),
+      pow((primary_color.z + 0.055) / 1.055, 2.4),
+      0);
+    secondary_color@f3 = (
+      pow((secondary_color.x + 0.055) / 1.055, 2.4),
+      pow((secondary_color.y + 0.055) / 1.055, 2.4),
+      pow((secondary_color.z + 0.055) / 1.055, 2.4),
+      0);
+  }
+
+  USING_ATEST_HALF_AND(SET_ATEST_IS_ON_DEFINE())
+
+  texture normalMap = material.texture[2];
+  texture aoTex = material.texture[3];
+  texture primaryMaskTex = material.texture[4];
+  texture secondaryMaskTex = material.texture[5];
+
+  (ps) { diffuse_tex@static = tex; }
+
+  INIT_MASKED_MICRODETAIL()
+  WOUNDS_AND_BURNING_INIT()
+  SETUP_CHARACTER_MICRODETAIL()
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    USE_MICRODETAIL_BASED_WETNESS()
+  }
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    hlsl {
+      #define MOTION_VECTORS_ENABLED
+
+      #define DYNAMIC_SIMPLE_CUSTOM_VSOUTPUT 1
+      #define NEED_TC 1
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+        float2 diffuseTexcoord                  : TEXCOORD0;
+        float3 pointToEye                       : TEXCOORD1;
+        float3 normal                           : TEXCOORD2;
+        float isDead                            : TEXCOORD3;
+        #ifdef MOTION_VECTORS_ENABLED
+        float4 out_pos                          : TEXCOORD4;
+        float4 out_pos_prev                     : TEXCOORD5;
+        #endif
+        #if HAS_BLOOD_DECAL
+        float4 bloodDecalTC                     : TEXCOORD6;
+        nointerpolation float  textureIndexTime : TEXCOORD7;
+        #endif
+        #if HAS_TORN_WOUNDS
+        float4 tornWoundParams                  : TEXCOORD8;
+        #endif
+        #if HAS_BURNING
+        float burnedEffect                      : TEXCOORD9;
+        #endif
+        #if NEED_FRAG_POS_NORM
+        float3 fragPos                          : TEXCOORD10;
+        float3 fragNormal                       : TEXCOORD11;
+        #endif
+        #if HAS_TORN_WOUNDS_DEBUG
+        float4 debugColor                       : TEXCOORD12;
+        #endif
+        #if SET_UP_MULTIDRAW
+        VSOUT_DRAW_ID
+        #endif
+      };
+    }
+  }
+
+  DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+  WOUNDS_AND_BURNING_USE(get_diffuse_tex().smp)
+
+  hlsl(vs) {
+    void vs_post_function(VsInput input, inout VsOutput output)
+    {
+      ##if (dyn_model_render_pass == render_pass_normal)
+      float4 data;
+      get_per_instance_data(data, 1);
+      output.isDead = data.z;
+      ##endif
+      init_burning_and_wounds(input, output);
+    }
+  }
+
+  DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
+
+//---------------------------------------------------
+// PS stuff.
+//---------------------------------------------------
+  if ((dyn_model_render_pass != render_pass_normal))
+  {
+    if (num_bones == four_bones && has_wounds == torn_wounds)
+    {
+      DYNAMIC_SIMPLE_CLIP_ALPHA_DISCRAD_WOUNDS_PS()
+    }
+    else
+    {
+      SPECIAL_RENDER_NOALPHATEST()
+    }
+  }
+  else
+  {
+    USE_CHARACTER_MICRODETAIL()
+    USE_MASKED_MICRODETAIL()
+    USE_PROJECTIVE_WOUNDS()
+
+    (ps){
+      normalmap_tex@static = normalMap;
+      primary_mask_tex@static = primaryMaskTex;
+    }
+    if (secondaryMaskTex != NULL) {
+      (ps){ secondary_mask_tex@static = secondaryMaskTex; }
+    }
+    if (aoTex != NULL)
+    {
+      (ps){ aoTex@static = aoTex; }
+    }
+
+    hlsl(ps) {
+      #define HAS_MICRO_DETAIL 1
+    }
+    WRITE_GBUFFER()
+    USE_NORMAL_DETAIL()
+
+    USE_EMISSIVE_ANIMCHAR_DYNMAT_SIMPLE_PARAMS()
+
+    hlsl(ps) {
+      GBUFFER_OUTPUT car_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
+      {
+        #if SET_UP_MULTIDRAW
+          INIT_MULTIDRAW(input);
+          SET_DRAW_CALL_ID(GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK);
+        #endif
+
+        // primaryMask -- the sum of thicknesses of first and second paint layer
+        // secondaryMask -- thickness of second layer
+        // (primaryMask - secondaryMask) -- thickness of first layer
+        float primaryMask = tex2DBindless(get_primary_mask_tex(), input.diffuseTexcoord.xy).x;
+##if secondaryMaskTex != NULL
+        float secondaryMask = tex2DBindless(get_secondary_mask_tex(), input.diffuseTexcoord.xy).x;
+##else
+        float secondaryMask = 0;
+##endif
+        half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy);
+        diffuseColor.rgb *= (
+            (1 - max(primaryMask, secondaryMask)) // * float(1, 1, 1); base color, white
+            + saturate(primaryMask - secondaryMask) * get_primary_color()
+            + secondaryMask * get_secondary_color()
+          );
+        half pureCamoMask = diffuseColor.a;
+
+        half4 packedNormalMap = tex2DBindless(get_normalmap_tex(), input.diffuseTexcoord.xy);
+        half metalness = packedNormalMap.b;
+        half smoothness = packedNormalMap.r;
+        half reflectance = 0.5;
+
+        half3 originalNormalMap = unpack_ag_normal(packedNormalMap);
+        half3 normalMap = originalNormalMap;
+        float3 worldPos = world_view_pos - input.pointToEye.xyz;
+
+        // Lighting.
+        half diffuseLum = luminance(diffuseColor.rgb);
+        half ao = saturate(diffuseLum*(1. / 0.01));
+
+        apply_masked_micro_detail(input.diffuseTexcoord.xy, normalMap, reflectance, smoothness, diffuseColor.rgb);
+
+        ##if (dyn_model_render_pass == render_pass_normal)
+          apply_wetness_by_microdetail(character_micro_detail_layer, worldPos, diffuseColor.rgb, normalMap, reflectance, smoothness, ao);
+        ##endif
+
+        float4 emissiveColor = 1;
+        float emissionAlbedoMult = 1; // using albedo as emission
+        get_emissive_parameters(emissiveColor, emissionAlbedoMult);
+
+        half isDead = input.isDead;
+        bool skipBloodWound = emissiveColor.a > 0 && !isDead;
+        apply_burning_and_wounds(input, originalNormalMap, character_micro_detail_layer,
+          diffuseColor.rgb, normalMap, smoothness, reflectance, skipBloodWound);
+
+        half3 worldNormal = perturb_normal_precise(normalMap, input.normal, input.pointToEye.xyz, input.diffuseTexcoord.xy );
+
+        isDead = saturate(floor(isDead) * 0.01); //0-alive, 100-dead
+
+        if (burnt_tank_color.a * isDead > 0.0)
+        {
+          //NOTE:
+            //1. all such parts have 0 in pureCamoMask: burnt_mask.x
+            //2. don't apply effect where we see pure metall (i.e. sub metalness): burnt_mask.y
+            //3. don't overdark already dark surfaces (apply effect only if color differs from unburned): burnt_mask.z
+          half color_luma = luminance(diffuseColor.rgb);
+
+          half3 burnt_mask = saturate(half3(pureCamoMask, metalness * 0.0, 1.0) * burnt_tank_params.xyz + half3(1.0, 0.0, color_luma));
+          half burnt_koef = saturate(burnt_mask.x + burnt_mask.y) * saturate(burnt_mask.z * burnt_tank_params.w) * isDead;
+
+          diffuseColor.rgb = lerp(burnt_tank_color.rgb * color_luma, diffuseColor.rgb, burnt_koef);
+          smoothness = lerp(0.3, smoothness, burnt_koef);
+        }
+
+        ##if aoTex != NULL
+        ao *= tex2DBindless(get_aoTex(), input.diffuseTexcoord.xy).g;
+        ##endif
+        UnpackedGbuffer result;
+        init_gbuffer(result);
+
+        // Damaged insides.
+        worldNormal = MUL_VFACE(worldNormal);
+
+        init_albedo(result, diffuseColor.rgb);
+        init_smoothness(result, smoothness);
+        init_normal(result, worldNormal);
+        init_reflectance(result, reflectance);
+        init_metalness(result, 1-pow2(1-metalness));
+        init_material(result, SHADING_NORMAL);
+        init_ao(result, ao);
+        half shadow = 1;
+        init_shadow(result, shadow);
+        init_dynamic(result, 1);
+        init_order(result, GBUFFER_ORDER_DYNAMIC);
+
+        BRANCH
+        if (emissiveColor.a > 0)
+        {
+          init_material(result, SHADING_SELFILLUM);
+          init_emission(result, emissiveColor.a);
+          init_emission_color(result, float4(emissiveColor.rgb, emissionAlbedoMult));
+        }
+        #ifdef MOTION_VECTORS_ENABLED
+          float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
+          init_motion_vector(result, motion);
+        #endif
+
+        return encode_gbuffer(result, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
+      }
+    }
+    compile("target_ps", "car_ps");
+  }
+}

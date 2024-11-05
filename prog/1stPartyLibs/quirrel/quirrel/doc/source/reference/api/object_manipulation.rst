@@ -99,10 +99,11 @@ reverses an array in place.
 
 .. _sq_clear:
 
-.. c:function:: SQRESULT sq_clear(HSQUIRRELVM v, SQInteger idx)
+.. c:function:: SQRESULT sq_clear(HSQUIRRELVM v, SQInteger idx, SQBool freemem)
 
     :param HSQUIRRELVM v: the target VM
     :param SQInteger idx: index of the target object in the stack
+    :param SQBool freemem: free allocated memory if needed. SQTrue by default.
     :returns: a SQRESULT
     :remarks: Only works on tables and arrays.
 

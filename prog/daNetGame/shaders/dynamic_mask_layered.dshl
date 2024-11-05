@@ -1,0 +1,142 @@
+include "dynamic_opaque_inc.dshl"
+include "gbuffer.dshl"
+include "normaldetail.dshl"
+include "mask_layered_inc.dshl"
+include "simplified_rendering_inc.dshl"
+include "random_color.dshl"
+
+shader dynamic_mask_layered
+{
+  ENABLE_ASSERT(ps)
+  SUPPORT_MULTIDRAW(dyn_model_render_pass != render_pass_normal)
+  DYNAMIC_BLOCK()
+  USE_SIMPLIFIED_RENDERING()
+  INIT_MASK_LAYERED(dyn_model_render_pass == render_pass_normal)
+  INIT_RANDOMIZED_TC(vs)
+
+  if (paint_details_tex != NULL)
+  {
+    hlsl {
+      #define COLOR_NEEDED 1
+    }
+  }
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+  if (num_bones != no_bones)
+  {
+    channel color8 tc[4] = extra[0];
+    channel color8 tc[5] = extra[1];
+    hlsl {
+      #define HAS_SKINNING 1
+    }
+  }
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    hlsl {
+      #define MOTION_VECTORS_ENABLED
+    }
+  }
+
+  INIT_PAINT_DETAILS_STATIC()
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    USE_PAINT_DETAILS()
+    USE_RANDOMIZED_TC(vs)
+    hlsl {
+      #define DYNAMIC_SIMPLE_CUSTOM_VSOUTPUT 1
+      #define NEED_TC 0
+      #define USE_INITIAL_POS 1
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+        float4 pointToEye                       : TEXCOORD0;
+        float3 normal                           : TEXCOORD1;
+        float2 uv12                             : TEXCOORD2;
+        #if COLOR_NEEDED
+        nointerpolation float3 colorMul         : TEXCOORD3;
+        #endif
+        #ifdef MOTION_VECTORS_ENABLED
+        float4 out_pos                          : TEXCOORD4;
+        float4 out_pos_prev                     : TEXCOORD5;
+        #endif
+        #if SET_UP_MULTIDRAW
+        VSOUT_DRAW_ID
+        #endif
+      };
+    }
+  }
+
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+
+  USE_DIFFUSE_TC()
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    hlsl(vs) {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+      };
+    }
+  }
+
+  DECL_POSTFX_TC_VS_RT()
+  USE_FLOAT_POS_PACKING()
+
+  INIT_OPTIONAL_SKINNING()
+  hlsl(vs) {
+    struct VsInput
+    {
+      float3 pos                  : POSITION;   // W defaults to 1.
+      float4 normal               : NORMAL;
+      int2 uv0                   : TEXCOORD0;
+
+      #if VERTEX_TANGENT
+      float4 packedDu             : TEXCOORD2;
+      float4 packedDv             : TEXCOORD3;
+      #endif
+      INIT_BONES_VSINPUT(TEXCOORD4, TEXCOORD5)
+    };
+  }
+  OPTIONAL_SKINNING_SHADER()
+
+  if (dyn_model_render_pass == render_pass_normal) {
+    hlsl(vs) {
+      void vs_post_function(VsInput input, inout VsOutput output)
+      {
+        #if COLOR_NEEDED
+          float4 hashval;
+          get_per_instance_data(hashval, 1);
+          output.colorMul = getColorMul(asuint(hashval.x));
+        #endif
+        output.pointToEye.w = 1.0;
+        output.uv12.xy = input.uv0 * (1.0 / 4096.0);
+      }
+    }
+  }
+  else
+  {
+    hlsl(vs) {
+      void vs_post_function(VsInput input, inout VsOutput output) {}
+    }
+  }
+  DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
+
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    if (in_editor_assume == no) { NO_DYNSTCODE() }
+    SPECIAL_RENDER_NOALPHATEST()
+  }
+  else
+  {
+    hlsl(ps) {
+      #define IS_DYNAMIC 1
+    }
+    WRITE_GBUFFER()
+    MASK_LAYERED_PS()
+  }
+}

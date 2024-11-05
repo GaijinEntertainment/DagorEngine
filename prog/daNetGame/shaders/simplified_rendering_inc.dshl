@@ -1,0 +1,11 @@
+include_optional "simplified_rendering_modifier.dshl"
+
+// For various minimal graphics presets, a game might want to customize
+// our shaders so as to use a simplified rendering model, e.g. disabling
+// specular.
+// This can be achieved by creating a `simplified_render_modifier.dshl`
+// file in the game's `shaders` directory, and defining this macro
+// with something that injects HLSL defines for modifying the shaders
+// whenever a certain interval is active (e.g. SPECULAR_DISABLED).
+define_macro_if_not_defined USE_SIMPLIFIED_RENDERING()
+endmacro

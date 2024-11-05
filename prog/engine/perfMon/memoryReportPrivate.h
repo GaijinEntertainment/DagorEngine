@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/string.h>
+#include <util/dag_preprocessor.h>
 
 namespace memoryreport
 {
@@ -40,9 +42,7 @@ struct BackendList
 
 } // namespace memoryreport
 
-#define MEMORYREPORT_CC0(a, b)           a##b
-#define MEMORYREPORT_CC1(a, b)           MEMORYREPORT_CC0(a, b)
-#define MEMORYREPORT_PULL_VAR_NAME(name) MEMORYREPORT_CC1(memory_report_pull_, name)
+#define MEMORYREPORT_PULL_VAR_NAME(name) DAG_CONCAT(memory_report_pull_, name)
 
 #define PULL_MEMORYREPORT_BACKEND(name)                 \
   namespace memoryreport                                \

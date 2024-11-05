@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -9,9 +8,8 @@
 class DataBlock;
 
 
-#include <util/dag_stdint.h>
 #include <osApiWrappers/dag_atomic.h>
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 extern KRNLIMP bool dgs_execute_quiet;
 
@@ -25,7 +23,11 @@ extern KRNLIMP bool (*dgs_fatal_handler)(const char *msg, const char *call_stack
 
 extern KRNLIMP void (*dgs_shutdown)();
 extern KRNLIMP void (*dgs_fatal_report)(const char *msg, const char *call_stack);
+#if _TARGET_STATIC_LIB
+extern thread_local int (*dgs_fill_fatal_context)(char *buff, int sz, bool terse);
+#else
 extern KRNLIMP int (*dgs_fill_fatal_context)(char *buff, int sz, bool terse);
+#endif
 extern KRNLIMP void (*dgs_report_fatal_error)(const char *title, const char *msg, const char *call_stack);
 extern KRNLIMP void (*dgs_on_swap_callback)();
 extern KRNLIMP void (*dgs_on_dagor_cycle_start)();
@@ -80,6 +82,7 @@ extern const char *dagor_android_external_path;
 extern KRNLIMP int dagor_frame_no_int; // should not be accessed directly!
 inline unsigned int dagor_frame_no() { return interlocked_relaxed_load(dagor_frame_no_int); }
 inline void dagor_frame_no_increment() { interlocked_increment(dagor_frame_no_int); }
+inline void dagor_frame_no_add(int x) { interlocked_add(dagor_frame_no_int, x); }
 
 /*      mode
 _______/__   \
@@ -96,6 +99,7 @@ enum class WindowMode : int
   WINDOWED,
   WINDOWED_NO_BORDER,
   WINDOWED_FULLSCREEN,
+  WINDOWED_RESIZABLE,
 };
 
 extern KRNLIMP WindowMode dgs_window_mode; // should not be accessed directly!
@@ -118,4 +122,4 @@ extern KRNLIMP unsigned int dgs_last_resume_at;
 extern KRNLIMP const char *dagor_get_build_stamp_str_ex(char *buf, size_t bufsz, const char *suffix, const char *dagor_exe_build_date,
   const char *dagor_exe_build_time);
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

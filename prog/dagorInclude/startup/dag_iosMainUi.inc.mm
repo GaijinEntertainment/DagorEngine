@@ -1,6 +1,5 @@
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #pragma once
 
@@ -8,7 +7,6 @@
 #import <CoreHaptics/CoreHaptics.h>
 #import <GameController/GameController.h>
 #import <AuthenticationServices/AuthenticationServices.h>
-#include <3d/dag_drv3dCmd.h>
 #include <debug/dag_hwExcept.h>
 #include <debug/dag_except.h>
 #include <memory/dag_mem.h>
@@ -16,8 +14,8 @@
 #include <osApiWrappers/dag_wndProcCompMsg.h>
 #include <osApiWrappers/dag_dbgStr.h>
 #include <osApiWrappers/dag_progGlobals.h>
-#include <humanInput/dag_hiCreate.h>
-#include <humanInput/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiCreate.h>
+#include <drv/hid/dag_hiKeybIds.h>
 #include <util/dag_string.h>
 #include <util/dag_globDef.h>
 #include <debug/dag_debug.h>
@@ -26,6 +24,8 @@
 #include "dag_addBasePathDef.h"
 #include "dag_loadSettings.h"
 #include "dag_iosCallback.h"
+
+#include <userSystemInfo/systemInfo.h>
 
 #if _TARGET_TVOS
 #include "dag_tvosMainUi.h"
@@ -50,13 +50,16 @@ const int LOGIN_STATUS_SUCCESS = 0;
 const int LOGIN_STATUS_CANCEL = 1;
 const int LOGIN_STATUS_FAIL = 2;
 
+const int EDIT_FIELD_HEIGHT = 44;
+const float EDIT_FIELD_WIDTH_SCALE = 0.75f;
+
 void (*dagor_ios_active_status_handler)(bool isVisible) = nullptr;
 static apple_events_callback_with_dictionary g_onDidFinishLaunchingWithOptionsFunc = NULL;
 static apple_events_callback g_onApplicationDidBecomeActiveFunc = NULL;
 static apple_openurl_with_annotation_callback g_onOpenUrlAppWithAnnotationFunc = NULL;
 static apple_register_remote_token_callback g_onRegisterRemoteToken = NULL;
 
-static void (*on_editfield_finish_cb)(const char *str) = NULL;
+static void (*on_editfield_finish_cb)(const char *str, int cursor_pos) = NULL;
 
 NSString *const kGCMMessageIDKey = @"gcm.message_id";
 
@@ -64,6 +67,33 @@ bool dagor_fast_shutdown = false;
 
 namespace apple
 {
+
+void excludeFolderFromBackup(NSString * path)
+{
+  NSURL *url = [NSURL fileURLWithPath:path];
+  NSError *error = nil;
+  [url setResourceValue:@YES forKey:NSURLIsExcludedFromBackupKey error:&error];
+  if (error)
+    logwarn("Error excluding %s from backup: %s", [path UTF8String], [[error localizedDescription] UTF8String]);
+}
+
+void excludeSystemFoldersFromBackup()
+{
+  NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+  NSString *documentsDirectory = [paths objectAtIndex:0];
+  excludeFolderFromBackup(documentsDirectory);
+
+  paths = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
+  NSString *appSupportDirectory = [paths objectAtIndex:0];
+  excludeFolderFromBackup(appSupportDirectory);
+
+  NSString *tempDirectory = NSTemporaryDirectory();
+  excludeFolderFromBackup(tempDirectory);
+
+  paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+  NSString *cachesDirectory = [paths objectAtIndex:0];
+  excludeFolderFromBackup(cachesDirectory);
+}
 
 void setOnDidFinishLaunchingWithOptionsFunc(apple_events_callback_with_dictionary func)
 {
@@ -438,12 +468,12 @@ NSString *appName;
 @interface DagorView : UIView <UITextFieldDelegate>
 {
   UITouch *pointers[MAX_SIMULTANEOUS_TOUCHES];
-  UITextField *dummyField;
   UITextField *editField;
-  UIToolbar *toolbar;
-  UIBarButtonItem *textFieldToolBarItem;
-  UIBarButtonItem *doneButton;
+  UIToolbar *editToolbar;
+  UIButton *editBG;
+  UIBarButtonItem *editDoneButton;
   BOOL kbdVisible;
+  NSInteger maxChars;
   int mousePtrIdx;
 }
 #else
@@ -463,10 +493,11 @@ NSString *appName;
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event;
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event;
 - (void)showKeyboard;
-- (void)showKeyboard_IME:(NSString *)text withHint:(NSString *)hint withIMEFlag:(NSInteger)ime_flag withKBFlag:(NSInteger)edit_flag withSecureMask:(BOOL)isSecure;
+- (void)showKeyboard_IME:(NSString *)text withHint:(NSString *)hint withIMEFlag:(NSInteger)ime_flag withKBFlag:(NSInteger)edit_flag withCursorPos:(NSInteger)cursor_pos withSecureMask:(BOOL)is_secure withMaxChars:(NSInteger)max_chars;
 - (void)hideKeyboard;
 - (void)initializeKeyboard;
 - (void)clearPointers;
+- (void)updateTextForCallback;
 #endif
 
 @property(readonly) BOOL kbdVisible;
@@ -599,18 +630,7 @@ NSString *appName;
 
   CGRect applicationFrame = [[UIScreen mainScreen] applicationFrame];
 
-  dummyField = [[[UITextField alloc] initWithFrame:CGRectMake(0, 0, 0, 0)] autorelease];
-  dummyField.delegate = self;
-  dummyField.text = @" ";
-  dummyField.autocapitalizationType = UITextAutocapitalizationTypeNone;
-  dummyField.autocorrectionType = UITextAutocorrectionTypeNo;
-  dummyField.enablesReturnKeyAutomatically = NO;
-  dummyField.keyboardAppearance = UIKeyboardAppearanceDefault;
-  dummyField.keyboardType = UIKeyboardTypeDefault;
-  dummyField.returnKeyType = UIReturnKeyDefault;
-  dummyField.secureTextEntry = NO;
-
-  editField = [[[UITextField alloc] initWithFrame:CGRectMake(0, 0, applicationFrame.size.width*0.8, 30)] autorelease];
+  editField = [[[UITextField alloc] initWithFrame:CGRectMake(0, 0, applicationFrame.size.width * EDIT_FIELD_WIDTH_SCALE, EDIT_FIELD_HEIGHT)] autorelease];
   editField.delegate = self;
   editField.text = @" ";
   editField.font = [UIFont systemFontOfSize:14.0];
@@ -623,66 +643,138 @@ NSString *appName;
   editField.secureTextEntry = NO;
   editField.borderStyle = UITextBorderStyleRoundedRect;
 
-  toolbar = [[[UIToolbar alloc]initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, 30)] autorelease];
-  doneButton = [[[UIBarButtonItem alloc]initWithTitle:@"Done" style:UIBarButtonItemStyleDone target:self action:@selector(doneClicked:)] autorelease];
-  UIBarButtonItem *flexibleSpace = [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil] autorelease];
-  textFieldToolBarItem = [[UIBarButtonItem alloc] initWithCustomView:editField];
-  toolbar.items = [NSArray arrayWithObjects:
-                              flexibleSpace,
-                              textFieldToolBarItem,
-                              doneButton,
-                              flexibleSpace,
-                              nil];
-  [toolbar sizeToFit];
+  editToolbar = [[[UIToolbar alloc] initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, EDIT_FIELD_HEIGHT)] autorelease];
+  editDoneButton = [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone
+                                                              target:self
+                                                              action:@selector(doneClicked)] autorelease];
+  UIBarButtonItem *flexibleSpace = [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace
+                                                                                  target:nil
+                                                                                  action:nil] autorelease];
+  editToolbar.items = @[ flexibleSpace, editDoneButton ];
+  [editToolbar sizeToFit];
 
-
-  [dummyField setInputAccessoryView:toolbar];
-
+  editBG = [[[UIButton alloc] initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, [[UIScreen mainScreen] bounds].size.height)] autorelease];
+  [editBG addTarget:self action:@selector(hideKeyboard) forControlEvents:UIControlEventTouchUpInside];
+  editBG.backgroundColor = [UIColor blackColor];
+  editBG.alpha = .4;
   kbdVisible = NO;
 
-  [self addSubview:dummyField];
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                        selector:@selector(keyboardWillShow:)
+                                        name:UIKeyboardWillShowNotification
+                                        object:nil];
+
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                        selector:@selector(keyboardDidHide:)
+                                        name:UIKeyboardDidHideNotification
+                                        object:nil];
 }
 
--(void)doneClicked:(id)sender
+- (void)doneClicked
+{
+  [self hideKeyboard];
+}
+
+- (void)updateTextForCallback
 {
   if (on_editfield_finish_cb)
-    on_editfield_finish_cb([editField.text UTF8String]);
-  [self hideKeyboard];
-
+  {
+    UITextRange *selectedRange = editField.selectedTextRange;
+    NSInteger cursorPosition = [editField offsetFromPosition:editField.beginningOfDocument toPosition:selectedRange.start];
+    NSString *text = editField.text;
+    if (maxChars > 0 && [text length] > maxChars) {
+      text = [text substringToIndex:maxChars];
+    }
+    on_editfield_finish_cb([text UTF8String], cursorPosition);
+  }
 }
 
-- (void)showKeyboard_IME:(NSString *)text withHint:(NSString *)hint withIMEFlag:(NSInteger)ime_flag withKBFlag:(NSInteger)edit_flag withSecureMask:(BOOL)isSecure
+- (void)showKeyboard_IME:(NSString *)text
+                withHint:(NSString *)hint
+             withIMEFlag:(NSInteger)ime_flag
+              withKBFlag:(NSInteger)edit_flag
+           withCursorPos:(NSInteger)cursor_pos
+          withSecureMask:(BOOL)is_secure
+            withMaxChars:(NSInteger)max_chars
 {
-  dummyField.text = text;
-  dummyField.placeholder = hint;
-  dummyField.keyboardType = (UIKeyboardType)edit_flag;
-  dummyField.returnKeyType = (UIReturnKeyType)ime_flag;
-  dummyField.secureTextEntry = isSecure;
-
-  editField.text = text;
+  if (max_chars > 0 && [text length] > max_chars) {
+    editField.text = [text substringToIndex:max_chars];
+  } else {
+    editField.text = text;
+  }
   editField.placeholder = hint;
   editField.keyboardType = (UIKeyboardType)edit_flag;
   editField.returnKeyType = (UIReturnKeyType)ime_flag;
-  editField.secureTextEntry = isSecure;
+  editField.secureTextEntry = is_secure;
+  maxChars = max_chars;
 
-  kbdVisible = YES;
-  [dummyField becomeFirstResponder];
-  [editField becomeFirstResponder];
- }
+  [self showKeyboard];
+
+  //set cursor postion should be done after becomeFirstResponder
+  UITextPosition *newPosition = [editField positionFromPosition:editField.beginningOfDocument inDirection:UITextLayoutDirectionRight offset:cursor_pos];
+  if (newPosition)
+  {
+    UITextRange *newRange = [editField textRangeFromPosition:newPosition toPosition:newPosition];
+    editField.selectedTextRange = newRange;
+  }
+}
+
+- (void)keyboardDidHide:(NSNotification *)notification
+{
+  [UIView setAnimationsEnabled:YES];
+}
+
+- (void)keyboardWillShow:(NSNotification *)notification
+{
+  [UIView setAnimationsEnabled:NO];
+
+  UIViewController *root = getMainController();
+  if (root != nil && editField != nil)
+  {
+    NSDictionary *userInfo = [notification userInfo];
+    NSValue *keyboardFrameValue = [userInfo objectForKey:UIKeyboardFrameEndUserInfoKey];
+    CGRect keyboardFrame = [keyboardFrameValue CGRectValue];
+
+    UIWindow *window = UIApplication.sharedApplication.keyWindow;
+    CGRect safeArea = window.safeAreaLayoutGuide.layoutFrame;
+    CGSize screenSize = UIScreen.mainScreen.bounds.size;
+
+    CGRect editFieldFrame = editField.frame;
+    editFieldFrame.origin.y = root.view.bounds.size.height - keyboardFrame.size.height - editFieldFrame.size.height;
+    editFieldFrame.origin.x = ((root.view.bounds.size.width - editFieldFrame.size.width) / 2);
+    editFieldFrame.size.width = screenSize.width * EDIT_FIELD_WIDTH_SCALE - safeArea.origin.x * 2;
+    editField.frame = editFieldFrame;
+
+    editFieldFrame = editToolbar.frame;
+    editFieldFrame.origin.y = root.view.bounds.size.height - keyboardFrame.size.height - editFieldFrame.size.height;
+    editToolbar.frame = editFieldFrame;
+  }
+}
 
 - (void)showKeyboard
 {
-  kbdVisible = YES;
-  dummyField.center = self.center;
-  [dummyField becomeFirstResponder];
-  [editField becomeFirstResponder];
+  UIViewController *root = getMainController();
+  if (root != nil && !kbdVisible)
+  {
+    [root.view addSubview:editBG];
+    [root.view addSubview:editToolbar];
+    [root.view addSubview:editField];
+    [editField becomeFirstResponder];
+    kbdVisible = YES;
+  }
 }
 
 - (void)hideKeyboard
 {
-  kbdVisible = NO;
-  [editField resignFirstResponder];
-  [dummyField resignFirstResponder];
+  if (kbdVisible)
+  {
+    kbdVisible = NO;
+    [self updateTextForCallback];
+    [editField resignFirstResponder];
+    [editField removeFromSuperview];
+    [editToolbar removeFromSuperview];
+    [editBG removeFromSuperview];
+  }
 }
 
 - (BOOL)textField:(UITextField *)_textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string
@@ -703,15 +795,27 @@ NSString *appName;
     }
     return NO;
   }
+  if (maxChars > 0)
+  {
+    if (range.length + range.location > maxChars)
+      return NO;
+
+    NSInteger newLength = [_textField.text length] + [string length] - range.length;
+    return newLength <= maxChars;
+  }
   return YES;
+
 }
 
 - (BOOL)textFieldShouldReturn:(UITextField *)_textField
 {
-  if (on_editfield_finish_cb && _textField == editField)
-    on_editfield_finish_cb([editField.text UTF8String]);
   [self hideKeyboard];
   return YES;
+}
+
+- (void)textFieldDidEndEditing:(UITextField *)textField
+{
+  [self hideKeyboard];
 }
 
 - (void)clearPointers
@@ -745,13 +849,13 @@ void HumanInput::showScreenKeyboard(bool show)
         [view hideKeyboard];
     }
 }
-void HumanInput::showScreenKeyboardIME_iOS(const char *text, const char *hint, unsigned int ime_flag, unsigned int edit_flag, bool isSecure, void(on_finish_cb)(const char *str))
+void HumanInput::showScreenKeyboardIME_iOS(const char *text, const char *hint, unsigned int ime_flag, unsigned int edit_flag, int cursor_pos, bool is_secure, int max_chars, void(on_finish_cb)(const char *str, int cursorPos))
 {
   if (DagorViewCtrl *mainviewctrl = (DagorViewCtrl*)getMainController())
     if (DagorView *view = (DagorView *)mainviewctrl.view)
     {
       on_editfield_finish_cb = on_finish_cb;
-      [view showKeyboard_IME:[NSString stringWithUTF8String:text] withHint:[NSString stringWithUTF8String:hint] withIMEFlag:(NSInteger)ime_flag withKBFlag:(NSInteger)edit_flag withSecureMask:(BOOL)isSecure];
+      [view showKeyboard_IME:[NSString stringWithUTF8String:text] withHint:[NSString stringWithUTF8String:hint] withIMEFlag:(NSInteger)ime_flag withKBFlag:(NSInteger)edit_flag withCursorPos:(NSInteger)cursor_pos withSecureMask:(BOOL)is_secure withMaxChars:(NSInteger)max_chars];
     }
 }
 #endif
@@ -843,10 +947,16 @@ static void dagor_ios_before_main_init(int argc, char *argv[])
     tm *t;
     char buf[64];
 
+#if DAGOR_FORCE_LOGS
+    const char *logExt = "clog";
+#else
+    const char *logExt = "log";
+#endif
+
     time(&rawtime);
     t = localtime(&rawtime);
-    _snprintf(buf, sizeof(buf), "%s-%04d.%02d.%02d-%02d.%02d.%02d.log", dd_get_fname(argv[0]), 1900 + t->tm_year, t->tm_mon + 1,
-      t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
+    _snprintf(buf, sizeof(buf), "%s-%04d.%02d.%02d-%02d.%02d.%02d.%s", dd_get_fname(argv[0]), 1900 + t->tm_year, t->tm_mon + 1,
+      t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, logExt);
 
     strcpy(ios_global_log_fname,
       [[documentsDirectory stringByAppendingPathComponent:[[NSString alloc] initWithUTF8String:buf]] UTF8String]);
@@ -881,7 +991,7 @@ static void dagor_ios_main_init_impl()
 
 extern "C" int dagor_ios_main_init(int argc, char *argv[])
 {
-  debug_cp();
+  DEBUG_CP();
   dagor_ios_before_main_init(argc, argv);
   dagor_ios_main_init_impl();
   return 0;
@@ -905,12 +1015,12 @@ extern "C" void dagor_ios_delegate_init()
 
 extern "C" void dagor_ios_delegate_main(id delegate)
 {
-  debug_cp();
+  DEBUG_CP();
   [delegate performSelector:@selector(createDisplayLink)];
   int res = DagorWinMain(0, 0);
-  debug_cp();
+  DEBUG_CP();
   quit_game(res);
-  debug_cp();
+  DEBUG_CP();
 }
 
 extern "C" void dagor_ios_delegate_createDisplayLink(id target, SEL selector)
@@ -935,19 +1045,19 @@ extern "C" void dagor_ios_delegate_step(CADisplayLink*)
 
 extern "C" void dagor_ios_delegate_applicationWillFinishLaunching(UIApplication*)
 {
-  debug_cp();
+  DEBUG_CP();
 }
 
 extern "C" void dagor_ios_delegate_applicationDidFinishLaunching(UIApplication*, id target, SEL selector)
 {
-  debug_cp();
+  DEBUG_CP();
   flush_debug_file();
   [NSTimer scheduledTimerWithTimeInterval:(0) target:target selector:selector userInfo:nil repeats:NO];
 }
 
 extern "C" void dagor_ios_delegate_applicationWillTerminate(UIApplication*)
 {
-  debug_cp();
+  DEBUG_CP();
   debug("applicationWillTerminate, do _Exit(0)");
   flush_debug_file();
   _Exit(0);
@@ -955,7 +1065,7 @@ extern "C" void dagor_ios_delegate_applicationWillTerminate(UIApplication*)
 
 extern "C" void dagor_ios_delegate_applicationWillResignActive(UIApplication*)
 {
-  debug_cp();
+  DEBUG_CP();
   flush_debug_file();
   workcycle_internal::main_window_proc(NULL, GPCM_Activate, GPCMP1_Inactivate, 0);
 
@@ -968,7 +1078,7 @@ extern "C" void dagor_ios_delegate_applicationWillResignActive(UIApplication*)
 
 extern "C" void dagor_ios_delegate_applicationDidBecomeActive(UIApplication*)
 {
-  debug_cp();
+  DEBUG_CP();
   workcycle_internal::main_window_proc(NULL, GPCM_Activate, GPCMP1_Activate, 0);
   if (g_onApplicationDidBecomeActiveFunc)
     g_onApplicationDidBecomeActiveFunc();
@@ -979,11 +1089,16 @@ extern "C" void dagor_ios_delegate_applicationDidBecomeActive(UIApplication*)
 
   if (dagor_ios_active_status_handler)
     dagor_ios_active_status_handler(g_ios_main_view_is_active && !g_ios_pause_rendering);
+
+  apple::excludeSystemFoldersFromBackup();
 }
 
 extern "C" void dagor_ios_delegate_applicationDidReceiveMemoryWarning(UIApplication*)
 {
-  logwarn("running out of memory");
+  int freeMemMb = 0, totalMemMb = 0;
+  systeminfo::get_physical_memory_free(freeMemMb);
+  systeminfo::get_physical_memory(totalMemMb);
+  logwarn("running out of memory. free memory is %d out of %d", freeMemMb, totalMemMb);
 }
 
 extern "C" BOOL dagor_ios_delegate_openURL(UIApplication *application, NSURL *url, NSString *sourceApplication, id annotation)
@@ -996,7 +1111,7 @@ extern "C" BOOL dagor_ios_delegate_openURL(UIApplication *application, NSURL *ur
 
 extern "C" void dagor_ios_delegate_didRegisterForRemoteNotificationsWithDeviceToken(UIApplication *application, NSData *deviceToken)
 {
-  debug_cp();
+  DEBUG_CP();
 #if DAGOR_DBGLEVEL > 0
   // internal notification system register
   const int token_len = [deviceToken length];
@@ -1015,7 +1130,7 @@ extern "C" void dagor_ios_delegate_didRegisterForRemoteNotificationsWithDeviceTo
 
 extern "C" void dagor_ios_delegate_didFailToRegisterForRemoteNotificationsWithError(UIApplication *application, NSError *error)
 {
-  debug_cp();
+  DEBUG_CP();
   logwarn([[NSString stringWithFormat:@"PN: Fail to register for remote notifications with error %@", error] UTF8String]);
 }
 
@@ -1039,7 +1154,7 @@ extern "C" void dagor_ios_delegate_didReceiveRemoteNotification(UIApplication *a
 
 extern "C" BOOL dagor_ios_delegate_didFinishLaunchingWithOptions(id delegate, UIApplication *application, NSDictionary *launchOptions)
 {
-  debug_cp();
+  DEBUG_CP();
   [delegate performSelector:@selector(applicationDidFinishLaunching:) withObject: application];
   if (g_onDidFinishLaunchingWithOptionsFunc)
     g_onDidFinishLaunchingWithOptionsFunc(application, launchOptions);
@@ -1049,7 +1164,7 @@ extern "C" BOOL dagor_ios_delegate_didFinishLaunchingWithOptions(id delegate, UI
 
 extern "C" void dagor_ios_delegate_dealloc()
 {
-  debug_cp();
+  DEBUG_CP();
   flush_debug_file();
 }
 
@@ -1089,7 +1204,7 @@ extern "C" int main(int argc, char *argv[])
   }
   DAGOR_CATCH(...)
   {
-    debug_ctx("\nUnhandled exception:\n");
+    DEBUG_CTX("\nUnhandled exception:\n");
     _exit(2);
   }
   return 0;
@@ -1134,7 +1249,7 @@ intptr_t main_window_proc(void *, unsigned, uintptr_t, intptr_t);
 {
   self = [super init];
 
-  debug_cp();
+  DEBUG_CP();
 
   isActive = FALSE;
   isBkgModeSupported = NO;
@@ -1187,6 +1302,11 @@ intptr_t main_window_proc(void *, unsigned, uintptr_t, intptr_t);
 - (void)applicationDidReceiveMemoryWarning:(UIApplication *)application
 {
   dagor_ios_delegate_applicationDidReceiveMemoryWarning(application);
+}
+
+- (BOOL)application:(UIApplication *)app openURL:(NSURL *)url options:(NSDictionary<UIApplicationOpenURLOptionsKey, id> *)options
+{
+  return [self application:app openURL:url sourceApplication:nil annotation:options];
 }
 
 - (BOOL)application:(UIApplication *)application openURL:(NSURL *)url sourceApplication:(NSString *)sourceApplication annotation:(id)annotation

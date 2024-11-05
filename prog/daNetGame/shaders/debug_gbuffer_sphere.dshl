@@ -1,0 +1,81 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "dynamic_opaque_inc.dshl"
+
+float4 debug_gbuffer_sphere_pos_size = (0,0,0,0);
+float4 debug_gbuffer_sphere_albedo = (0,0,0,0);
+float debug_gbuffer_sphere_size = 1;
+float debug_gbuffer_sphere_metallness = 0;
+float debug_gbuffer_sphere_smoothness = 0;
+float debug_gbuffer_sphere_reflectance = 0;
+
+shader debug_gbuffer_sphere
+{
+  ENABLE_ASSERT(ps)
+
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+
+  z_test = true;
+  z_write = true;
+  cull_mode = none;
+  DYNAMIC_BLOCK()
+  WRITE_GBUFFER()
+
+  (vs)
+  {
+    globtm@f44 = globtm;
+    debug_gbuffer_sphere_pos_size@f4 = debug_gbuffer_sphere_pos_size;
+  }
+  (ps)
+  {
+    debug_gbuffer_sphere_metallness@f1 = (debug_gbuffer_sphere_metallness);
+    debug_gbuffer_sphere_smoothness@f1 = (debug_gbuffer_sphere_smoothness);
+    debug_gbuffer_sphere_reflectance@f1 = (debug_gbuffer_sphere_reflectance);
+    debug_gbuffer_sphere_albedo@f4 = debug_gbuffer_sphere_albedo;
+  }
+
+  hlsl
+  {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 normal : NORMAL;
+    };
+  }
+
+  hlsl(vs)
+  {
+    #include "spheres_vertices.hlsl"
+    VsOutput debug_light_probe_spheres_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float sphereSize = debug_gbuffer_sphere_pos_size.w;
+      float3 pos = get_sphere_vertex_pos(vertexId);
+      output.normal = pos;
+      float3 worldPos = pos * sphereSize + debug_gbuffer_sphere_pos_size.xyz;
+      output.pos = mulPointTm(worldPos, globtm);
+      return output;
+    }
+  }
+  compile("target_vs", "debug_light_probe_spheres_vs");
+
+  hlsl(ps)
+  {
+    GBUFFER_OUTPUT debug_light_probe_spheres_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      UnpackedGbuffer result;
+      init_gbuffer(result);
+      init_albedo(result, debug_gbuffer_sphere_albedo.rgb);
+      init_smoothness(result, debug_gbuffer_sphere_smoothness);
+      init_normal(result, input.normal);
+      init_metalness(result, debug_gbuffer_sphere_metallness);
+      init_reflectance(result, debug_gbuffer_sphere_reflectance);
+
+      return  write_gbuffer(pack_gbuffer(result));
+    }
+  }
+  compile("target_ps", "debug_light_probe_spheres_ps");
+}

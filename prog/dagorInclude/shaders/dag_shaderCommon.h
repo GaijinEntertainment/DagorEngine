@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -10,7 +9,7 @@
 ************************************************************************/
 
 #include <3d/dag_texMgr.h>
-#include <3d/dag_drv3dConsts.h>
+#include <drv/3d/dag_consts.h>
 #include <generic/dag_span.h>
 #include <shaders/dag_shaderVarType.h>
 
@@ -30,7 +29,7 @@ enum ShaderFlags
   SC_NEW_STAGE_FMT = 0x1000,
 };
 
-static constexpr char ARRAY_SIZE_GETTER_NAME[] = "get_array_size(%s)";
+inline constexpr char ARRAY_SIZE_GETTER_NAME[] = "get_array_size(%s)";
 
 enum ChannelModifier
 {

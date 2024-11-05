@@ -2,3 +2,6 @@ if $(DabuildEmbeddedInGame) = yes { return ; }
 if $(OS) != MACOSX { SSEVersion = 2 ; }
 VCMathOption = -fp:precise ;
 ReproducibleExeBuild = yes ;
+PhysName ?= Bullet ;
+PlatformArch_windows ?= x86_64 ;
+include $(Root)/prog/_jBuild/defPlatform.jam ; # $(Platform) is defined after this line

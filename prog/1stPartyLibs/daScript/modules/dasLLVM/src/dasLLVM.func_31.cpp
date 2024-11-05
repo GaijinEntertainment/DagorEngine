@@ -12,66 +12,86 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_31() {
-// from D:\Work\libclang\include\llvm-c/Core.h:3828:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildNSWAdd >(*this,lib,"LLVMBuildNSWAdd",SideEffects::worstDefault,"LLVMBuildNSWAdd")
-		->args({"","LHS","RHS","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3830:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildNUWAdd >(*this,lib,"LLVMBuildNUWAdd",SideEffects::worstDefault,"LLVMBuildNUWAdd")
-		->args({"","LHS","RHS","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3832:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildFAdd >(*this,lib,"LLVMBuildFAdd",SideEffects::worstDefault,"LLVMBuildFAdd")
-		->args({"","LHS","RHS","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3834:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildSub >(*this,lib,"LLVMBuildSub",SideEffects::worstDefault,"LLVMBuildSub")
-		->args({"","LHS","RHS","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3836:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildNSWSub >(*this,lib,"LLVMBuildNSWSub",SideEffects::worstDefault,"LLVMBuildNSWSub")
-		->args({"","LHS","RHS","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3838:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildNUWSub >(*this,lib,"LLVMBuildNUWSub",SideEffects::worstDefault,"LLVMBuildNUWSub")
-		->args({"","LHS","RHS","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3840:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildFSub >(*this,lib,"LLVMBuildFSub",SideEffects::worstDefault,"LLVMBuildFSub")
-		->args({"","LHS","RHS","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3842:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildMul >(*this,lib,"LLVMBuildMul",SideEffects::worstDefault,"LLVMBuildMul")
-		->args({"","LHS","RHS","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3844:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildNSWMul >(*this,lib,"LLVMBuildNSWMul",SideEffects::worstDefault,"LLVMBuildNSWMul")
-		->args({"","LHS","RHS","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3846:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildNUWMul >(*this,lib,"LLVMBuildNUWMul",SideEffects::worstDefault,"LLVMBuildNUWMul")
-		->args({"","LHS","RHS","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3848:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildFMul >(*this,lib,"LLVMBuildFMul",SideEffects::worstDefault,"LLVMBuildFMul")
-		->args({"","LHS","RHS","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3850:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildUDiv >(*this,lib,"LLVMBuildUDiv",SideEffects::worstDefault,"LLVMBuildUDiv")
-		->args({"","LHS","RHS","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3852:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildExactUDiv >(*this,lib,"LLVMBuildExactUDiv",SideEffects::worstDefault,"LLVMBuildExactUDiv")
-		->args({"","LHS","RHS","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3854:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildSDiv >(*this,lib,"LLVMBuildSDiv",SideEffects::worstDefault,"LLVMBuildSDiv")
-		->args({"","LHS","RHS","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3856:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildExactSDiv >(*this,lib,"LLVMBuildExactSDiv",SideEffects::worstDefault,"LLVMBuildExactSDiv")
-		->args({"","LHS","RHS","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3858:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildFDiv >(*this,lib,"LLVMBuildFDiv",SideEffects::worstDefault,"LLVMBuildFDiv")
-		->args({"","LHS","RHS","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3860:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildURem >(*this,lib,"LLVMBuildURem",SideEffects::worstDefault,"LLVMBuildURem")
-		->args({"","LHS","RHS","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3862:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildSRem >(*this,lib,"LLVMBuildSRem",SideEffects::worstDefault,"LLVMBuildSRem")
-		->args({"","LHS","RHS","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3864:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildFRem >(*this,lib,"LLVMBuildFRem",SideEffects::worstDefault,"LLVMBuildFRem")
-		->args({"","LHS","RHS","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3866:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildShl >(*this,lib,"LLVMBuildShl",SideEffects::worstDefault,"LLVMBuildShl")
-		->args({"","LHS","RHS","Name"});
+// from D:\Work\libclang\include\llvm-c/Core.h:3833:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildSub , SimNode_ExtFuncCall >(lib,"LLVMBuildSub","LLVMBuildSub")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3835:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildNSWSub , SimNode_ExtFuncCall >(lib,"LLVMBuildNSWSub","LLVMBuildNSWSub")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3837:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildNUWSub , SimNode_ExtFuncCall >(lib,"LLVMBuildNUWSub","LLVMBuildNUWSub")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3839:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildFSub , SimNode_ExtFuncCall >(lib,"LLVMBuildFSub","LLVMBuildFSub")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3841:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildMul , SimNode_ExtFuncCall >(lib,"LLVMBuildMul","LLVMBuildMul")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3843:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildNSWMul , SimNode_ExtFuncCall >(lib,"LLVMBuildNSWMul","LLVMBuildNSWMul")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3845:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildNUWMul , SimNode_ExtFuncCall >(lib,"LLVMBuildNUWMul","LLVMBuildNUWMul")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3847:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildFMul , SimNode_ExtFuncCall >(lib,"LLVMBuildFMul","LLVMBuildFMul")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3849:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildUDiv , SimNode_ExtFuncCall >(lib,"LLVMBuildUDiv","LLVMBuildUDiv")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3851:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildExactUDiv , SimNode_ExtFuncCall >(lib,"LLVMBuildExactUDiv","LLVMBuildExactUDiv")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3853:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildSDiv , SimNode_ExtFuncCall >(lib,"LLVMBuildSDiv","LLVMBuildSDiv")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3855:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildExactSDiv , SimNode_ExtFuncCall >(lib,"LLVMBuildExactSDiv","LLVMBuildExactSDiv")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3857:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildFDiv , SimNode_ExtFuncCall >(lib,"LLVMBuildFDiv","LLVMBuildFDiv")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3859:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildURem , SimNode_ExtFuncCall >(lib,"LLVMBuildURem","LLVMBuildURem")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3861:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildSRem , SimNode_ExtFuncCall >(lib,"LLVMBuildSRem","LLVMBuildSRem")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3863:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildFRem , SimNode_ExtFuncCall >(lib,"LLVMBuildFRem","LLVMBuildFRem")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3865:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildShl , SimNode_ExtFuncCall >(lib,"LLVMBuildShl","LLVMBuildShl")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3867:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildLShr , SimNode_ExtFuncCall >(lib,"LLVMBuildLShr","LLVMBuildLShr")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3869:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildAShr , SimNode_ExtFuncCall >(lib,"LLVMBuildAShr","LLVMBuildAShr")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3871:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBuilder *,LLVMOpaqueValue *,LLVMOpaqueValue *,const char *) , LLVMBuildAnd , SimNode_ExtFuncCall >(lib,"LLVMBuildAnd","LLVMBuildAnd")
+		->args({"","LHS","RHS","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

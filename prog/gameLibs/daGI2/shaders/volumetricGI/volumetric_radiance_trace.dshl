@@ -1,0 +1,566 @@
+include "world_sdf.dshl"
+include "sky_shader_global.dshl"
+include "sq_clouds_shadow.dshl"
+include "dagi_lit_scene_helper.dshl"
+include "volumetric_gi_common.dshl"
+include "volumetric_gi_jitter.dshl"
+include "dagi_rad_grid_common.dshl"
+include "dagi_irrad_grid_sample.dshl"
+include "gpu_occlusion.dshl"
+
+hlsl {
+  #include <octahedral_common.hlsl>
+  //to [-1,1] tc
+  float2 dagi_volumetric_dir_encode(float3 world_dir)
+  {
+    return dagi_dir_oct_encode(world_dir);
+  }
+  ///tc -1,1
+  float3 dagi_volumetric_dir_decode(float2 tc)
+  {
+    return dagi_dir_oct_decode(tc);
+  }
+}
+macro GI_VOLUMETRIC_TRACE_USE(code)
+  GI_VOLUMETRIC_COMMON_USE(code)
+  hlsl(code) {
+    #if VOLUMETRIC_GI_FIXED_RADIANCE_RES//not faster
+    uint volumetric_gi_get_radiance_res() {return VOLUMETRIC_GI_FIXED_RADIANCE_RES;}
+    int volumetric_gi_get_radiance_resi() {return VOLUMETRIC_GI_FIXED_RADIANCE_RES;}
+    #else
+    uint volumetric_gi_get_radiance_res() {return gi_froxels_sizei.w;}
+    int volumetric_gi_get_radiance_resi() {return gi_froxels_sizei.w;}
+    #endif
+  }
+endmacro
+
+float4x4 gi_froxels_prev_globtm;
+float4 gi_froxels_world_view_pos;
+float4 gi_froxels_view_vecLT;
+float4 gi_froxels_view_vecRT;
+float4 gi_froxels_view_vecLB;
+float4 gi_froxels_zn_zfar;
+
+macro GI_VOLUMETRIC_VIEW_VEC_OPTIMIZED(code)
+  (code) {
+    gi_froxels_zn_zfar@f4 = gi_froxels_zn_zfar;
+    gi_froxels_world_view_pos@f3 = gi_froxels_world_view_pos;
+    gi_froxels_view_vecLT@f3 = gi_froxels_view_vecLT;
+    gi_froxels_view_vecRT_minus_view_vecLT@f3 = (gi_froxels_view_vecRT-gi_froxels_view_vecLT);
+    gi_froxels_view_vecLB_minus_view_vecLT@f3 = (gi_froxels_view_vecLB-gi_froxels_view_vecLT);
+  }
+  hlsl(code) {
+    float3 gi_froxels_getViewVecOptimized(float2 tc) {return gi_froxels_view_vecLT + gi_froxels_view_vecRT_minus_view_vecLT*tc.x + gi_froxels_view_vecLB_minus_view_vecLT*tc.y;}
+  }
+endmacro
+
+macro GI_VOLUMETRIC_TRACE(code)
+  GI_VOLUMETRIC_COMMON_INIT(code)
+  GI_VOLUMETRIC_TRACE_USE(code)
+endmacro
+
+texture gi_current_froxels_radiance;
+
+hlsl {
+  #define VOLUME_GI_GAMMA 0//gamma increases quality, but since we do make quiet limited amount of operations, save some ticks without gamming
+  #if VOLUME_GI_GAMMA
+  float3 volume_gi_encode_radiance(float3 v) {return v*v;}
+  float3 volume_gi_decode_radiance(float3 v) {return sqrt(v);}
+  #else
+  float3 volume_gi_encode_radiance(float3 v) {return v;}
+  float3 volume_gi_decode_radiance(float3 v) {return v;}
+  #endif
+}
+shader calc_current_gi_froxels_cs
+{
+  ENABLE_ASSERT(cs)
+  READ_WORLD_SDF(cs)
+
+  PROJECT_GET_WORLD_RADIANCE_AT(cs)
+  BASE_GPU_OCCLUSION(cs)
+
+  GI_VOLUMETRIC_VIEW_VEC_OPTIMIZED(cs)
+
+  GI_VOLUMETRIC_TRACE(cs)
+  GI_VOLUMETRIC_JITTER(cs)
+  DAGI_RAD_GRID_SAMPLE(cs)
+  (cs) {gi_froxels_atlas_sizei@i4 = gi_froxels_atlas_sizei;}
+  hlsl(cs) {
+    RWTexture3D<float3> radiance_hit: register(u0);
+    [numthreads(64, 1, 1)]
+    void calc_current_gi_froxels_cs(uint dtId : SV_DispatchThreadID)
+    {
+      uint3 targetCoord = uint3(dtId.x%uint(gi_froxels_atlas_sizei.x), (dtId.x/uint(gi_froxels_atlas_sizei.x))%uint(gi_froxels_atlas_sizei.y), dtId.x/uint(gi_froxels_atlas_sizei.w));
+      if (targetCoord.z >= uint(gi_froxels_atlas_sizei.z))
+        return;
+      uint3 volumeProbeCoordinates = uint3(targetCoord.xy/volumetric_gi_get_radiance_res(), targetCoord.z);
+      uint2 octCoord = targetCoord.xy%volumetric_gi_get_radiance_res();
+
+      uint dir_jitter;
+      float3 jitteredCoord = gi_volumetric_jittered_coord(volumeProbeCoordinates.xyz, gi_froxels_temporal_frame.x, dir_jitter);
+      float2 screenTC = jitteredCoord.xy/gi_froxels_sizei.xy;//fixme: one madd
+      float froxelLinearDepth = volumetric_gi_get_linear_w(jitteredCoord.z);
+      //add directional jitter
+      float2 octUV = (octCoord + (float2(dir_jitter>>3, dir_jitter&7)*1./8. + 0.5/8))/volumetric_gi_get_radiance_res();//fixme: one madd with const
+      //float2 octUV = (octCoord + 0.5)/volumetric_gi_get_radiance_res();//fixme: one madd
+      float3 worldPos = gi_froxels_world_view_pos + froxelLinearDepth*gi_froxels_getViewVecOptimized(screenTC.xy);
+
+      float maxT = 32;
+      //sample higher grid if we are inside it
+      const float featureToCaptureSize = 1.5f; // solid angle of feature (both dark and bright) that we can miss is 1./featureToCaptureSize (0.25)
+      //compared to 32 it is still ~8meters, i.e. 4 times less traces, plus additional blurring
+      uint radGridClip = dagi_rad_grid_get_best_enclosing_clip_border(worldPos, 0, featureToCaptureSize + .5f);
+      float gridProbeSize = radGridClip < DAGI_MAX_RAD_GRID_CLIPS ? dagi_rad_grid_probe_size(radGridClip) : 0;
+      maxT = radGridClip < DAGI_MAX_RAD_GRID_CLIPS ? gridProbeSize*featureToCaptureSize : maxT;
+
+      uint startSDFClip = world_sdf_find_clip(worldPos);
+      float3 rayDir = dagi_volumetric_dir_decode(octUV*2. - 1.);
+
+      float3 radiance = 0;
+      float biasK = 0.;//0..1. 0 means more light leaking but faster
+      float t;
+      uint clip;
+      bool insideSDF = radGridClip < DAGI_MAX_RAD_GRID_CLIPS;// ? world_sdf_closer_to_nearest_surface_than_threshold(worldPos, gridProbeSize) : false;
+
+      if (insideSDF &&
+        world_sdf_trace_start(startSDFClip,
+        worldPos,
+        rayDir,
+        maxT,
+        t,
+        clip,
+        biasK))
+      {
+        float3 worldPosAt = worldPos + rayDir*t;
+        float3 gradient = world_sdf_sample_gradient(clip, worldPosAt);
+        float gradLen = length(gradient);
+        float3 worldNormal = gradLen > 0 ? -gradient.xzy/gradLen : -rayDir;
+        radiance = dagi_get_radiance_at(worldPosAt, worldNormal);
+      } else
+      {
+        if (insideSDF)
+          radiance = dagi_trilinear_sample_radiance_grid_cascade_unsafe_oct(radGridClip, rayDir, worldPos + rayDir*max(0, maxT - dagi_rad_grid_probe_size(radGridClip)*0.5));
+          //radiance = trilinear_load_radiance_grid_cascade_unsafe(radGridClip, octCoord, worldPos + rayDir*max(0, maxT - dagi_rad_grid_probe_size(radGridClip)*0.5)).xyz;
+        else
+          radiance = dagi_get_sky_radiance_at(worldPos, rayDir);
+      }
+      //validHistory = 0;
+      float3 writeRadiance = radiance;
+      texture3DAt(radiance_hit, targetCoord) = volume_gi_encode_radiance(writeRadiance);
+    }
+  }
+  compile("target_cs", "calc_current_gi_froxels_cs");
+}
+
+macro GI_VOLUMETRIC_SPATIAL_FILTER(code)
+  (cs) {
+    gi_current_froxels_radiance@smp3d = gi_current_froxels_radiance;
+    gi_froxels_atlas_sizei@i4 = gi_froxels_atlas_sizei;
+  }
+  GI_VOLUMETRIC_TRACE(cs)
+  hlsl(code) {
+    float3 getFilteredRadiance(uint3 targetCoord)
+    {
+      int3 offsets[6];
+      offsets[0] = int3(-volumetric_gi_get_radiance_resi(), 0, 0);
+      offsets[1] = int3(volumetric_gi_get_radiance_resi(), 0, 0);
+      offsets[2] = int3(0, -volumetric_gi_get_radiance_resi(), 0);
+      offsets[3] = int3(0, volumetric_gi_get_radiance_resi(), 0);
+      offsets[4] = int3(0, 0, -1);
+      offsets[5] = int3(0, 0, 1);
+      float3 filteredRadiance = volume_gi_decode_radiance(texture3DAt(gi_current_froxels_radiance, targetCoord).xyz);
+      float totalW = 1.0;
+      UNROLL
+      for (uint i = 0; i < 6; i++)
+      {
+        uint3 neighborCoord = uint3(int3(targetCoord) + offsets[i]);
+
+        if (all(neighborCoord < uint3(gi_froxels_atlas_sizei.xyz)))
+        {
+          float3 neighborRadiance = volume_gi_decode_radiance(texture3DAt(gi_current_froxels_radiance, neighborCoord).xyz);
+          filteredRadiance += neighborRadiance;
+          totalW += 1.0;
+        }
+      }
+      return filteredRadiance/totalW;
+    }
+  }
+endmacro
+
+shader spatial_filter_gi_froxels_cs
+{
+  ENABLE_ASSERT(cs)
+  GI_VOLUMETRIC_SPATIAL_FILTER(cs)
+  hlsl(cs) {
+    RWTexture3D<float3> radiance_hit: register(u0);
+    [numthreads(64, 1, 1)]
+    void spatial_filter_gi_froxels_cs(uint dtId : SV_DispatchThreadID)
+    {
+      uint3 targetCoord = uint3(dtId.x%uint(gi_froxels_atlas_sizei.x), (dtId.x/uint(gi_froxels_atlas_sizei.x))%uint(gi_froxels_atlas_sizei.y), dtId.x/uint(gi_froxels_atlas_sizei.w));
+      if (targetCoord.z >= uint(gi_froxels_atlas_sizei.z))
+        return;
+      texture3DAt(radiance_hit, targetCoord) = volume_gi_encode_radiance(getFilteredRadiance(targetCoord));
+    }
+  }
+  compile("target_cs", "spatial_filter_gi_froxels_cs");
+}
+
+texture gi_prev_froxels_sph0;
+texture gi_prev_froxels_sph1;
+macro ENVI_ENCODED_SH1(code)
+  (code) {
+    enviAmbient@f3 = (enviSPH1.w, enviSPH2.w, 0, 0);
+    enviDirectional@f4 = (
+      (enviSPH0.y + enviSPH1.y + enviSPH2.y)/3,
+      (enviSPH0.z + enviSPH1.z + enviSPH2.z)/3,
+      (enviSPH0.x + enviSPH1.x + enviSPH2.x)/3, enviSPH0.w);
+  }
+  hlsl(code) {
+    #include <sh1.hlsl>
+    SH1Encoded getSkySh1Encoded()
+    {
+      SH1Encoded sh1E;
+      sh1E.ambient = enviAmbient;
+      sh1E.directional = enviDirectional;
+      return sh1E;
+    }
+  }
+endmacro
+
+macro DIFFUSE_SH1(code)
+  hlsl(code) {
+    bool dagi_irrad_grid_diffuse_smooth_biased_to_camera_position(float3 worldViewPos, float3 worldPos, float3 toCameraDir, float maxCameraDist, inout uint cascade, inout float3 coordF)
+    {
+      int4 lt;
+      // absolutely safe border would be 0.5 + sqrt(3) (0.5 for trilinear filtering) + normal offsetting = sqrt(3)
+      // as normal offsetting can move up to 0.5*sqrt(3) * offsetProbeSize which is probeSize*(1+vignette), vignette < 1,
+      // so, altogether no more than 0.5*sqrt(3)*2 = sqrt(3)
+      // second offsetting, moving towards camera, CAN NOT move out of cascade in normal circumstances
+      // now, normal offsetting will typically move INSIDE of cascade (towards camera), as usually normals are not facing in the opposite direction!
+      // ofc, we can be delayed with updating cascade, and so causing some of discrepancies (which is safe due to clamping ofc)
+      float border = 0.5;
+      cascade = dagi_irrad_grid_get_best_enclosing_clip(worldPos, coordF, lt, 0, border);
+      if (cascade == DAGI_MAX_IRRAD_GRID_CLIPS)
+        return false;
+      float probeSize = asfloat(lt.w);
+      float3 fromC = abs((coordF - worldViewPos.xzy/probeSize)*rcp(0.5*dagi_irrad_grid_get_clip_size().xxy - (DAGI_IRRAD_GRID_MOVE_THRESHOLD + border)));
+      float2 vignetteParam = float2(4, 3);
+      float3 sz = saturate(fromC*vignetteParam.x - vignetteParam.y);
+      float vignette = saturate(dot(sz,sz));
+      FLATTEN
+      if (vignette == 1 && cascade + 1 != dagi_irrad_grid_get_clip_count())
+      {
+        cascade = cascade + 1;
+        lt = sample_dagi_irrad_grid_clipmap_lt_coord(cascade);
+        probeSize = asfloat(lt.w);
+        fromC *= 0.5;
+        sz = saturate(fromC*vignetteParam.x - vignetteParam.y);
+        vignette = saturate(dot(sz,sz));
+      }
+      float offsetProbeSize = probeSize + probeSize*vignette;
+      //float offsetProbeSize = probeSize;
+
+      worldPos += toCameraDir*min(maxCameraDist, ((sqrt(3)*0.5)*offsetProbeSize));
+      coordF = worldPos.xzy/probeSize;
+      //clamp to cascade, for safety
+      coordF = clamp(coordF, lt.xyz+0.5, (lt.xyz + int3(dagi_irrad_grid_get_clip_size().xxy)) - 0.5);
+      return true;
+    }
+    bool dagi_irrad_grid_diffuse_biased_sh1(float3 worldViewPos, float3 worldPos, float3 toCameraDir, float maxCameraDist, inout SH1Encoded sh1)
+    {
+      #if 0
+      //we blur result anyway, so no point in accurate between cascade filtering
+      uint cascade; float3 coordF; float vignette;
+      if (!dagi_irrad_grid_diffuse_biased_smooth_cascade(worldViewPos, worldPos, toCameraDir, maxCameraDist, 0, 0, cascade, coordF, vignette))
+        return false;
+
+      SH1Encoded sh1Base = dagi_irrad_grid_get_sh1_encoded_cascade_unsafe(cascade, coordF);
+
+      float3 nextLt = dagi_irrad_grid_abs_coord_lt(cascade + 1u);
+      coordF = coordF*0.5 - nextLt;
+      BRANCH
+      if (all(coordF > 0 && coordF < dagi_irrad_grid_get_clip_size().xxy) && vignette > 0)
+        sh1 = dagi_irrad_grid_get_sh1_encoded_cascade_unsafe(cascade+1, nextLt + clamp(coordF, 0.5, dagi_irrad_grid_get_clip_size().xxy - 0.5));
+      sh1 = lerp(sh1Base, sh1, vignette);
+      return true;
+      #else
+      //return dagi_irrad_grid_diffuse_biased_smooth(worldViewPos, worldPos, toCameraDir, maxCameraDist, 0, 0, sh1);
+      uint cascade; float3 coordF;
+      if (!dagi_irrad_grid_diffuse_smooth_biased_to_camera_position(worldViewPos, worldPos, toCameraDir, maxCameraDist, cascade, coordF))
+        return false;
+
+      sh1 = dagi_irrad_grid_get_sh1_encoded_cascade_unsafe(cascade, coordF);
+      return true;
+      #endif
+    }
+  }
+endmacro
+
+float4 gi_froxels_history_blur_ofs;
+
+shader calc_gi_froxels_irradiance_cs
+{
+  ENABLE_ASSERT(cs)
+  (cs) {
+    gi_prev_froxels_sph0@smp3d = gi_prev_froxels_sph0;
+    gi_prev_froxels_sph1@smp3d = gi_prev_froxels_sph1;
+  }
+  GI_VOLUMETRIC_SPATIAL_FILTER(cs)
+  local float4 gi_froxels_size = gi_froxels_sizei;
+  local float solidAngle = 4.*PI/(gi_froxels_size.w*gi_froxels_size.w);
+  (cs) {
+    gi_froxels_prev_globtm@f44 = gi_froxels_prev_globtm;
+    gi_froxels_history_blur_ofs@f3 = gi_froxels_history_blur_ofs;
+    //gi_froxels_solid_angle@f1 = (solidAngle/PI,0,0,0);
+    gi_froxels_norm@f4 = (0.282095*solidAngle, -0.488603*solidAngle*2./3, 0.488603*solidAngle*2./3, -0.488603*solidAngle*2./3);
+  }
+  hlsl(cs) {
+    float3 get_gi_froxels_history_ndc(float3 worldPos)
+    {
+      float4 prevClip = mul(float4(worldPos,1), gi_froxels_prev_globtm);
+      float2 prevScreen = prevClip.w > 0 ? prevClip.xy*rcp(prevClip.w) : float2(2,2);
+      return float3(prevScreen, prevClip.w);
+    }
+  }
+  GI_VOLUMETRIC_VIEW_VEC_OPTIMIZED(cs)
+  BASE_GPU_OCCLUSION(cs)
+  DAGI_IRRADIANCE_GRID_SAMPLE_INIT(cs)
+  DAGI_IRRADIANCE_GRID_SAMPLE_USE(cs)
+  ENVI_ENCODED_SH1(cs)
+  DIFFUSE_SH1(cs)
+  hlsl(cs) {
+    RWTexture3D<float3> irradiance_sph0: register(u0);
+    RWTexture3D<float4> irradiance_sph1: register(u1);
+    ##if gi_current_froxels_radiance != NULL
+    #define USE_TRACED_RADIANCE 1
+    ##endif
+
+
+    #include <sh1.hlsl>
+    [numthreads(64, 1, 1)]
+    void calc_gi_froxels_irradiance_cs(uint dtId : SV_DispatchThreadID)
+    {
+      uint3 volumeProbeCoordinates = uint3(dtId.x%uint(gi_froxels_sizei.x), (dtId.x/uint(gi_froxels_sizei.x))%uint(gi_froxels_sizei.y), dtId.x/uint(gi_froxels_sizei.x*gi_froxels_sizei.y));//fixme: gi_froxels_sizei.x*gi_froxels_sizei.y is constant
+      if (volumeProbeCoordinates.z >= uint(gi_froxels_sizei.z))
+        return;
+
+      if (volumeProbeCoordinates.z == uint(gi_froxels_sizei.z) - 1)
+      {
+        // to ensure filtering out to "nothing"
+        SH1Encoded sh1E = getSkySh1Encoded();
+        texture3DAt(irradiance_sph0, volumeProbeCoordinates) = sh1E.ambient;
+        texture3DAt(irradiance_sph1, volumeProbeCoordinates) = sh1E.directional;
+        return;
+      }
+
+      float3 unjitteredCoord = volumeProbeCoordinates.xyz + 0.5;
+      float2 screenTC = unjitteredCoord.xy/gi_froxels_sizei.xy;//fixme: one madd
+      float froxelLinearDepth = volumetric_gi_get_linear_w(unjitteredCoord.z);
+      float3 viewVec = gi_froxels_getViewVecOptimized(screenTC.xy);
+      float3 worldPos = gi_froxels_world_view_pos + froxelLinearDepth*viewVec;
+      float3 historyNDC = get_gi_froxels_history_ndc(worldPos);
+      float3 historyUVW = float3(saturate(historyNDC.xy*float2(0.5,-0.5) + float2(0.5,0.5)), volumetric_gi_get_tcz(historyNDC.z));
+      bool validHistory = max(abs(historyNDC.x), abs(historyNDC.y)) < 1. && gi_froxels_temporal_frame.y;
+
+      half3 ambient = 0; half4 directional = 0;
+      float linearHZBDepth;
+      bool farOccluded = false;
+      float froxelLinearDepthNext = volumetric_gi_get_linear_w(volumeProbeCoordinates.z + 1);
+      float froxelLinearDepthPrev = volumetric_gi_get_linear_w(max(0, volumeProbeCoordinates.z - 1));
+      {
+        float4 sbox = saturate(float4(volumeProbeCoordinates.xy, volumeProbeCoordinates.xy+1)/gi_froxels_sizei.xyxy);//fixme, one madd
+        sbox.zw = min(sbox.zw, 0.99999);// to avoid sampling outside of screen
+        linearHZBDepth = linearize_z(check_box_occl_visible_tc_base(sbox), gi_froxels_zn_zfar.zw);
+        farOccluded = linearHZBDepth < froxelLinearDepthNext;
+      }
+      float historyW = 0.25;
+      #if USE_TRACED_RADIANCE
+      if (volumeProbeCoordinates.z >= uint(gi_froxels_atlas_sizei.z) || !validHistory)
+      #endif
+      {
+        SH1Encoded sh1E = getSkySh1Encoded();
+        //super simple hack to prevent light bleeding through occluded froxel
+        worldPos -= max(0, froxelLinearDepth - max(froxelLinearDepthPrev, linearHZBDepth))*viewVec;
+        float dist = length(gi_froxels_world_view_pos - worldPos);
+        dagi_irrad_grid_diffuse_biased_sh1(gi_froxels_world_view_pos, worldPos, (gi_froxels_world_view_pos - worldPos)*rcp(dist + 1e-6), dist, sh1E);
+        ambient = sh1E.ambient;
+        directional = sh1E.directional;
+      }
+
+      #if USE_TRACED_RADIANCE
+        if (volumeProbeCoordinates.z < uint(gi_froxels_atlas_sizei.z))
+        {
+          historyW = 0.03;
+          SH1 shLighting = (SH1)0;
+          float invW = 1.; //normalization weight for irradiance
+          //todo: check if we can add spatial radiance filter for free
+          float2 decodeUV = float2(1., 0.5)/volumetric_gi_get_radiance_res(); //fixme: one const
+          for (uint y = 0; y < volumetric_gi_get_radiance_res(); ++y)
+          for (uint x = 0; x < volumetric_gi_get_radiance_res(); ++x)
+          {
+            float2 octUV = float2(x, y)*decodeUV.x + decodeUV.y;
+            float3 rayDir = dagi_volumetric_dir_decode(octUV * 2.0 - 1.0);
+            #if DAGI_USE_EQUAL_AREA_OCTAHEDRAL
+            float solidAngle = 1;
+            #else
+            float solidAngle = dagi_octahedral_solid_angle_fast(octUV, 1./volumetric_gi_get_radiance_res());//fixme:constant, can be made constant buffer
+            #endif
+            uint3 targetCoord = uint3(volumeProbeCoordinates.xy * gi_froxels_sizei.w + uint2(x, y), volumeProbeCoordinates.z);
+            //float3 tracedRadiance = volume_gi_decode_radiance(gi_current_froxels_radiance[targetCoord].xyz);
+            float3 tracedRadiance = getFilteredRadiance(targetCoord);//do one spatial pass a bit cheaper
+            shLighting = add_sh1(shLighting, mul_sh1(sh_basis1(rayDir), tracedRadiance * solidAngle));
+          }
+          half3 tracedAmbient = 0; half4 tracedDrectional = 0;
+          #if DAGI_USE_EQUAL_AREA_OCTAHEDRAL
+          float4 norm = gi_froxels_norm;//constant
+          #else
+          float4 norm = sh_basis1(1)*sh1_l0_l1_coef().xyyy/PI;//constant
+          #endif
+          shLighting.R *= norm;
+          shLighting.G *= norm;
+          shLighting.B *= norm;
+          encode_sh1_luminance(shLighting, tracedAmbient, tracedDrectional);
+
+          ambient = lerp(ambient, tracedAmbient, validHistory ? 1 : 0.25);
+          directional = lerp(directional, tracedDrectional, validHistory ? 1 : 0.25);
+        }
+      #endif
+
+      if (validHistory)//we can instead reproject irradiance. it is faster, but disallows spatial bleeding of history
+      {
+        float3 historyAmbient;
+        float4 historyDirectional;
+        float3 uvWOfs = gi_froxels_history_blur_ofs;
+        uvWOfs.x = (gi_froxels_temporal_frame.x&1) ? -uvWOfs.x : uvWOfs.x;
+        float3 uvWOfs2 = float3(uvWOfs.xy, farOccluded ? 0 : uvWOfs.z);//prevent blurring over occluded surfaces in z dir
+        historyAmbient = lerp(tex3Dlod(gi_prev_froxels_sph0, float4(saturate(historyUVW - uvWOfs),0)).xyz, tex3Dlod(gi_prev_froxels_sph0, float4(saturate(historyUVW + uvWOfs2),0)).xyz, 0.5);
+        historyDirectional = lerp(tex3Dlod(gi_prev_froxels_sph1, float4(saturate(historyUVW - uvWOfs),0)), tex3Dlod(gi_prev_froxels_sph1, float4(saturate(historyUVW + uvWOfs2),0)), 0.5);
+        ambient = lerp(historyAmbient, ambient, historyW);
+        directional = lerp(historyDirectional, directional, historyW);
+      }
+
+      ambient = min(ambient, 65504);//filters NANs & infinites
+      directional = min(directional, 65504);//filters NANs & infinites
+      texture3DAt(irradiance_sph0, volumeProbeCoordinates) = ambient;
+      texture3DAt(irradiance_sph1, volumeProbeCoordinates) = directional;
+    }
+  }
+  compile("target_cs", "calc_gi_froxels_irradiance_cs");
+}
+
+shader calc_gi_froxels_irradiance_simple_cs
+{
+  ENABLE_ASSERT(cs)
+  GI_VOLUMETRIC_VIEW_VEC_OPTIMIZED(cs)
+  DAGI_IRRADIANCE_GRID_SAMPLE_INIT(cs)
+  DAGI_IRRADIANCE_GRID_SAMPLE_USE(cs)
+  GI_VOLUMETRIC_COMMON(cs)
+  ENVI_ENCODED_SH1(cs)
+  DIFFUSE_SH1(cs)
+  hlsl(cs) {
+    RWTexture3D<float3> irradiance_sph0: register(u0);
+    RWTexture3D<float4> irradiance_sph1: register(u1);
+
+    #include <sh1.hlsl>
+    [numthreads(64, 1, 1)]
+    void calc_gi_froxels_irradiance_simple_cs(uint dtId : SV_DispatchThreadID)
+    {
+      uint3 volumeProbeCoordinates = uint3(dtId.x%uint(gi_froxels_sizei.x), (dtId.x/uint(gi_froxels_sizei.x))%uint(gi_froxels_sizei.y), dtId.x/uint(gi_froxels_sizei.x*gi_froxels_sizei.y));//fixme: gi_froxels_sizei.x*gi_froxels_sizei.y is constant
+      if (volumeProbeCoordinates.z >= uint(gi_froxels_sizei.z))
+        return;
+
+
+      float3 unjitteredCoord = volumeProbeCoordinates.xyz + 0.5;
+      float2 screenTC = unjitteredCoord.xy/gi_froxels_sizei.xy;//fixme: one madd
+      float froxelLinearDepth = volumetric_gi_get_linear_w(unjitteredCoord.z);
+      float3 viewVec = gi_froxels_getViewVecOptimized(screenTC.xy);
+      float3 worldPos = gi_froxels_world_view_pos + froxelLinearDepth*viewVec;
+
+      SH1Encoded sh1E = getSkySh1Encoded();
+      if (volumeProbeCoordinates.z != uint(gi_froxels_sizei.z) - 1)
+        dagi_irrad_grid_diffuse_biased_sh1(gi_froxels_world_view_pos, worldPos, -normalize(viewVec), length(froxelLinearDepth*viewVec), sh1E);
+      texture3DAt(irradiance_sph0, volumeProbeCoordinates) = sh1E.ambient;
+      texture3DAt(irradiance_sph1, volumeProbeCoordinates) = sh1E.directional;
+    }
+  }
+  compile("target_cs", "calc_gi_froxels_irradiance_simple_cs");
+}
+
+
+int gi_froxels_debug_type;
+
+shader froxels_gi_draw_debug
+{
+  (ps) {
+    gi_current_froxels_radiance@smp3d = gi_current_froxels_radiance;
+    gi_froxels_debug_type@i1 = gi_froxels_debug_type;
+  }
+  GI_VOLUMETRIC_IRRADIANCE_INIT(ps)
+  GI_VOLUMETRIC_IRRADIANCE_USE(ps)
+  GI_VOLUMETRIC_TRACE(vs)
+  GI_VOLUMETRIC_VIEW_VEC_OPTIMIZED(vs)
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  (vs) {
+    globtm@f44 = globtm;
+  }
+  //SCREENSPACE_PROBES_ADAPTIVE_POSITIONS(vs)
+  hlsl {
+    #include "spheres_vertices.hlsl"
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 norm:  TEXCOORD1;
+      nointerpolation uint3 volumeProbeCoordinates: TEXCOORD3;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput test_vs(uint iId : SV_InstanceID, uint vertId : SV_VertexID)
+    {
+      VsOutput output = (VsOutput)0;
+      output.pos = NaN;
+
+      uint probeIndex = iId;
+      uint3 volumeProbeCoordinates = uint3(probeIndex%uint(gi_froxels_sizei.x), (probeIndex/uint(gi_froxels_sizei.x)) % uint(gi_froxels_sizei.y), probeIndex/uint(gi_froxels_sizei.x*gi_froxels_sizei.y));
+      if (volumeProbeCoordinates.z >= uint(gi_froxels_sizei.z))
+        return output;
+
+      float2 screenUV = float2(volumeProbeCoordinates.xy + 0.5)/gi_froxels_sizei.xy;//fixme: one madd
+      float froxelLinearDepth = volumetric_gi_get_linear_w(volumeProbeCoordinates.z + 0.5);
+
+      float3 center = gi_froxels_world_view_pos + froxelLinearDepth*gi_froxels_getViewVecOptimized(screenUV);//fixme
+      float size_scale = 0.005*pow(length(center - gi_froxels_world_view_pos), 0.75);
+      float3 pos = get_sphere_vertex_pos_low(vertId);
+      float3 worldPos = center + pos * size_scale;
+      output.volumeProbeCoordinates = volumeProbeCoordinates;
+      output.norm = pos;
+      output.pos = mul(float4(worldPos, 1), globtm);
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    #include <sh1.hlsl>
+    half3 test_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    {
+      if (gi_froxels_debug_type == 0)
+      {
+        float2 octOffset = dagi_volumetric_dir_encode(normalize(input.norm));
+        octOffset = octOffset*0.5 + 0.5;
+        octOffset = clamp(octOffset, 0.5/gi_froxels_sizei.w, 1-0.5/gi_froxels_sizei.w);//fixme: constant
+        float3 sampleTC= (input.volumeProbeCoordinates + float3(octOffset, 0.5))/gi_froxels_sizei.xyz;
+        return tex3Dlod(gi_current_froxels_radiance, float4(sampleTC, 0)).xyz;
+      } else
+      {
+        float3 uvw = (input.volumeProbeCoordinates + 0.5) / gi_froxels_sizei.xyz;
+        float3 ambient = tex3Dlod(gi_froxels_sph0, float4(uvw, 0)).xyz;
+        float4 directional = tex3Dlod(gi_froxels_sph1, float4(uvw, 0));
+        SH1 sh1 = decode_sh1_luminance(ambient, directional);
+        return pack_hdr(sh1_premul_exp1_irradiance(sh1, normalize(input.norm)));
+      }
+    }
+  }
+  compile("target_vs", "test_vs");
+  compile("target_ps", "test_ps");
+}

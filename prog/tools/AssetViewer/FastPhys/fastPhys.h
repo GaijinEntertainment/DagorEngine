@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <sepGui/wndPublic.h>
@@ -8,7 +9,10 @@
 
 class FPPanel;
 class ActionsTreeCB;
+namespace PropPanel
+{
 class TreeBaseWindow;
+}
 
 //------------------------------------------------------------------
 
@@ -50,8 +54,9 @@ public:
   virtual void renderObjects() { mFastPhysEditor.render(); }
   virtual void renderTransObjects() { mFastPhysEditor.renderTrans(); }
   virtual void renderGeometry(Stage stage) { mFastPhysEditor.renderGeometry(stage); }
+  virtual void updateImgui() override;
 
-  virtual void fillPropPanel(PropertyContainerControlBase &panel);
+  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel);
   virtual void postFillPropPanel() {}
 
   virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif);
@@ -62,20 +67,19 @@ public:
   virtual bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
 
   // IWndManagerWindowHandler
-  virtual IWndEmbeddedWindow *onWmCreateWindow(void *handle, int type);
-  virtual bool onWmDestroyWindow(void *handle);
+  virtual void *onWmCreateWindow(int type) override;
+  virtual bool onWmDestroyWindow(void *window) override;
 
 protected:
-  void addTreeAction(TLeafHandle parent, FpdAction *action);
+  void addTreeAction(PropPanel::TLeafHandle parent, FpdAction *action);
 
 private:
   DagorAsset *mAsset;
-  void *hwndPanel;
 
   FastPhysEditor mFastPhysEditor;
   FPPanel *propPanel;
 
-  TreeBaseWindow *mActionTree;
+  PropPanel::TreeBaseWindow *mActionTree;
   ActionsTreeCB *mActionTreeCB;
 };
 

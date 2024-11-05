@@ -1,6 +1,6 @@
-#ifndef _DAGOR_OSAPIWRAPPER_BASE_PATH_H
-#define _DAGOR_OSAPIWRAPPER_BASE_PATH_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <string.h>
 #include <osApiWrappers/dag_basePath.h>
 #include <osApiWrappers/dag_pathDelim.h>
@@ -158,5 +158,3 @@ static inline bool is_path_abs(const char *fn)
 
   return false;
 }
-
-#endif

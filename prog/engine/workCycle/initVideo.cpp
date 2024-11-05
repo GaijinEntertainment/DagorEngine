@@ -1,12 +1,17 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <workCycle/dag_startupModules.h>
 #include <workCycle/dag_workCycle.h>
 #include <workCycle/dag_gameSettings.h>
 #include <workCycle/dag_gameScene.h>
 #include <startup/dag_restart.h>
 #include <startup/dag_globalSettings.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_lock.h>
 #include <3d/dag_render.h>
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <3d/dag_texMgr.h>
 #include <osApiWrappers/dag_localConv.h>
 #include <osApiWrappers/dag_progGlobals.h>
@@ -19,7 +24,7 @@
 #include <generic/dag_initOnDemand.h>
 #include <util/dag_globDef.h>
 #include <perfMon/dag_statDrv.h>
-#include <drivers/dag_vr.h>
+#include <drv/dag_vr.h>
 #include "workCyclePriv.h"
 #include <osApiWrappers/dag_messageBox.h>
 #include <osApiWrappers/dag_miscApi.h>
@@ -30,6 +35,7 @@
 
 #if _TARGET_PC_WIN
 #include <workCycle/threadedWindow.h>
+#include <startup/dag_winSplashScreen.inc.cpp>
 #endif
 
 using workcycle_internal::game_scene;
@@ -126,7 +132,15 @@ public:
     const DataBlock *pblk_gr = ::dgs_get_settings()->getBlockByNameEx("graphics");
     const DataBlock &blk_wc = *::dgs_get_settings()->getBlockByNameEx("workcycle");
     bool fatal_on_init_failed = pblk_video->getBool("fatalOnInitFailure", true);
-#define RETURN_FATAL(...) return fatal_on_init_failed ? DAG_FATAL(__VA_ARGS__) : logerr_ctx(__VA_ARGS__)
+#define RETURN_FATAL(...)      \
+  do                           \
+  {                            \
+    if (fatal_on_init_failed)  \
+      DAG_FATAL(__VA_ARGS__);  \
+    else                       \
+      LOGERR_CTX(__VA_ARGS__); \
+    return;                    \
+  } while (0)
 
     if (blk_wc.getInt("act_rate", 0))
     {
@@ -149,14 +163,14 @@ public:
       workcycle_internal::curFrameActs = 0;
     }
 
-    workcycle_internal::is_window_in_thread = pblk_video->getBool("threadedWindow", false);
-
     ::dgs_limit_fps = pblk_gr->getBool("limitfps", false);
 
     if (!d3d::init_driver())
       RETURN_FATAL("Error initializing 3D driver:\n%s", d3d::get_last_error());
 
-    d3d::driver_command(DRV3D_COMMAND_SET_APP_INFO, (void *)gameName, (void *)&gameVersion, nullptr);
+    workcycle_internal::is_window_in_thread = pblk_video->getBool("threadedWindow", !d3d::is_stub_driver());
+
+    d3d::driver_command(Drv3dCommand::SET_APP_INFO, (void *)gameName, (void *)&gameVersion);
 
 #if !(_TARGET_IOS | _TARGET_ANDROID)
     d3d::update_window_mode();
@@ -180,6 +194,7 @@ public:
     }
 #endif
 
+    ResourceChecker::init();
     if (!d3d::init_video(win32_get_instance(), wndProc, wcName, ncmd, hwnd, hwnd, hicon, title, &cb))
     {
       // currently unsupported for Metal path
@@ -238,16 +253,23 @@ public:
       game_scene->drawScene();
     else
     {
+      d3d::GpuAutoLock gpuLock;
 #if DAGOR_DBGLEVEL > 0
       d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(64, 64, 64, 0), 1, 0);
 #else
       d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(0, 0, 0, 0), 1, 0);
 #endif
     }
+#if _TARGET_PC_WIN
+    win_hide_splash_screen();
+#endif
 #if _TARGET_C2
 
 #endif
+    {
+      d3d::GpuAutoLock gpuLock;
       d3d::update_screen();
+    }
     dagor_idle_cycle();
 #endif
 

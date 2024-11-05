@@ -1,0 +1,15 @@
+int ds_motion_vectors_with_z = 0;
+interval ds_motion_vectors_with_z: no < 1, yes;
+
+macro MOTION_VECTORS_TYPE(code)
+  hlsl(code) {
+    ##if ds_motion_vectors_with_z == yes
+      #define MOTION_VECTORS_3D 1
+      #define motion_type float3
+      #define motion_attr xyz
+    ##else
+      #define motion_type float2
+      #define motion_attr xy
+    ##endif
+  }
+endmacro

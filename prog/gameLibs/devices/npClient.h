@@ -1,3 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 // *******************************************************************************
 // *
 // * Module Name:
@@ -13,10 +16,6 @@
 // *
 // *******************************************************************************
 
-#ifndef _NPCLIENT_H_DEFINED_
-#define _NPCLIENT_H_DEFINED_
-
-#pragma once
 
 #pragma pack(push, npclient_h) // Save current pack value
 #pragma pack(1)
@@ -186,8 +185,6 @@ NPRESULT __stdcall NP_StopDataTransmission(void);
 /////////////////////////////////////////////////////////////////////////
 
 #pragma pack(pop, npclient_h) // Ensure previous pack value is restored
-
-#endif // #ifdef NPCLIENT_H_DEFINED_
 
 //
 // *** End of file: NPClient.h ***

@@ -2,8 +2,6 @@ include "shader_global.dshl"
 include "clustered/lights_cb.dshl"
 include "viewVecVS.dshl"
 
-texture downsampled_close_depth_tex;
-
 float pixel_scale;
 int has_conservative_rasterization = 0;
 interval has_conservative_rasterization : no < 1, yes;

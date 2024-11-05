@@ -1,0 +1,75 @@
+//enable animation of these nodes for motion matching if value > 0
+
+full_body{
+  "Bip01":r=1
+  "Bip01 Pelvis":r=1
+  "Bip01 Spine":r=1
+  "Bip01 Spine1":r=1
+  "Bip01 Neck":r=1
+  // "neck_direction":r=1
+  "Bip01 Head":r=1
+  "Bip01 L Clavicle":r=1
+  "Bip01 L UpperArm":r=1
+  "Bip01 L Forearm":r=1
+  "Bip01e L Twist":r=1
+  "Bip01e L Twist1":r=1
+  "Bip01 L Hand":r=1
+  "Bip01 R Clavicle":r=1
+  "Bip01 R UpperArm":r=1
+  "Bip01 R Forearm":r=1
+  "Bip01e R Twist":r=1
+  "Bip01e R Twist1":r=1
+  "Bip01 R Hand":r=1
+  "Bip01 L Thigh":r=1
+  "Bip01 L Calf":r=1
+  "Bip01 L Foot":r=1
+  "Bip01 L Toe0":r=1
+  "Bip01 R Thigh":r=1
+  "Bip01 R Calf":r=1
+  "Bip01 R Foot":r=1
+  "Bip01 R Toe0":r=1
+}
+
+no_hands{
+  "Bip01":r=1
+  "Bip01 Pelvis":r=1
+  "Bip01 Spine":r=1
+  "Bip01 Spine1":r=1
+  "Bip01 Neck":r=1
+  "Bip01 Head":r=1
+  "Bip01 L Thigh":r=1
+  "Bip01 L Calf":r=1
+  "Bip01 L Foot":r=1
+  "Bip01 L Toe0":r=1
+  "Bip01 R Thigh":r=1
+  "Bip01 R Calf":r=1
+  "Bip01 R Foot":r=1
+  "Bip01 R Toe0":r=1
+}
+
+demo_mocap_nodemask{
+  "Bip01":r=1
+  "Bip01 Pelvis":r=1
+  "Bip01 Spine":r=1
+  "Bip01 Spine1":r=0.5
+  "Bip01 L Clavicle":r=0.5
+  "Bip01 L UpperArm":r=0.5
+  "Bip01 L Forearm":r=1
+  "Bip01e L Twist":r=1
+  "Bip01e L Twist1":r=1
+  "Bip01 L Hand":r=1
+  "Bip01 R Clavicle":r=0.2
+  "Bip01 R UpperArm":r=0.5
+  "Bip01 R Forearm":r=1
+  "Bip01e R Twist":r=1
+  "Bip01e R Twist1":r=1
+  "Bip01 R Hand":r=1
+  "Bip01 L Thigh":r=1
+  "Bip01 L Calf":r=1
+  "Bip01 L Foot":r=1
+  "Bip01 L Toe0":r=1
+  "Bip01 R Thigh":r=1
+  "Bip01 R Calf":r=1
+  "Bip01 R Foot":r=1
+  "Bip01 R Toe0":r=1
+}

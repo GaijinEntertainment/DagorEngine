@@ -1,70 +1,58 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <shaders/dag_DynamicShadersBuffer.h>
-#include <3d/dag_drv3d.h>
-// #include <debug/dag_debug.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_info.h>
+#include <3d/dag_ringDynBuf.h>
 
 class DynamicShadersBuffer::VertexBuffer
 {
 public:
-  VertexBuffer(int v_cnt, VDECL init_vdecl, int _stride) : vb(NULL), data(NULL), vdecl(init_vdecl), stride(_stride) { create(v_cnt); }
+  VertexBuffer(int v_cnt, VDECL init_vdecl, int _stride) : vdecl(init_vdecl)
+  {
+    String bufName(0, "dyn_shader_buffer_vb_%p", this);
+    vb.init(v_cnt, _stride, bufName.c_str());
+  }
   ~VertexBuffer() { close(); }
 
-  // create or re-create buffer
-  void create(int vertex_count)
-  {
-    close();
-    d3d_err(vb = d3d::create_vb(vertex_count * stride, SBCF_DYNAMIC, __FILE__));
-    curVert = 0;
-    size = vertex_count;
-  }
-
   // close buffer
-  void close()
-  {
-    unlock();
-    del_d3dres(vb);
-    vb = NULL;
-    curVert = 0;
-    size = 0;
-  }
+  void close() { vb.close(); }
 
   // add data to buffer. return false, if overfill
   bool addData(const void *v, int vertex_count)
   {
-    if (vertex_count + curVert > size || !vb)
-      return false;
-    lock();
-    if (!data)
-      return false;
-    memcpy(&data[curVert * stride], v, vertex_count * stride);
-    curVert += vertex_count;
-    return true;
+    if (uint8_t *data = reserveData(vertex_count))
+    {
+      memcpy(data, v, vertex_count * vb.getStride());
+      return true;
+    }
+    return false;
   }
 
   // reserve space in buffer. fill manually. return NULL, if overfill
   uint8_t *reserveData(int vertex_count)
   {
-    if (vertex_count + curVert > size || !vb)
-      return NULL;
-    lock();
-    if (!data)
-      return NULL;
-    int from = curVert;
-    curVert += vertex_count;
-    return &data[from * stride];
+    if (vertex_count > vb.bufLeft())
+      return nullptr;
+    lastLockedSize = vertex_count;
+    return static_cast<uint8_t *>(vb.lockData(vertex_count));
   }
 
   // set buffer to driver. return number of vertices
-  int setToDriver(bool reset = true)
+  void setToDriver(bool reset = true)
   {
-    if (!vb)
-      return 0;
-    unlock();
-    d3d_err(d3d::setvsrc(0, vb, stride));
-    int v = curVert;
+    if (!vb.getBuf())
+      return;
+    if (lastLockedSize != 0)
+    {
+      vb.unlockData(lastLockedSize);
+      lastLockedSize = 0;
+      d3d_err(d3d::setvsrc(0, vb.getBuf(), vb.getStride()));
+    }
     if (reset)
-      curVert = 0;
-    return v;
+      vb.resetPos();
   }
 
   // get vertex format
@@ -77,120 +65,63 @@ public:
     d3d_err(d3d::setvdecl(vdecl));
   }
 
-  // manually lock buffer
-  void lock()
-  {
-    if (data || !vb)
-      return;
-
-    d3d_err(vb->lockEx(0, 0, &data, VBLOCK_WRITEONLY | VBLOCK_NOSYSLOCK | (curVert == 0 ? VBLOCK_DISCARD : VBLOCK_NOOVERWRITE)));
-  }
-
-  // manually unlock buffer
-  void unlock()
-  {
-    if (!data || !vb)
-      return;
-    d3d_err(vb->unlock());
-    data = NULL;
-  }
-
 protected:
-  Vbuffer *vb;
-  int curVert;
-  int size;
-  int stride;
+  RingDynamicVB vb;
+  uint32_t lastLockedSize = 0;
   VDECL vdecl;
-  uint8_t *data;
 };
 
 class DynamicShadersBuffer::IndexBuffer
 {
 public:
-  IndexBuffer(int ind_count) : ib(NULL), data(NULL), curInd(0), size(0) { create(ind_count); }
+  IndexBuffer(int ind_count)
+  {
+    String bufName(0, "dyn_shader_buffer_ib_%p", this);
+    ib.init(ind_count, bufName.c_str());
+  }
   ~IndexBuffer() { close(); }
 
-  // create or re-create buffer
-  void create(int ind_count)
-  {
-    close();
-    d3d_err(ib = d3d::create_ib(ind_count * sizeof(uint32_t), SBCF_INDEX32 | SBCF_DYNAMIC));
-    curInd = 0;
-    size = ind_count;
-  }
-
   // close buffer
-  void close()
-  {
-    unlock();
-    del_d3dres(ib);
-    ib = NULL;
-    curInd = 0;
-    size = 0;
-  }
+  void close() { ib.close(); }
 
   // add data to buffer. return false, if overfill
   bool addData(const uint32_t *ind, int ind_count)
   {
-    if (ind_count + curInd > size || !ib)
-      return false;
-    lock();
-    if (!data)
-      return false;
-    memcpy(&data[curInd], ind, ind_count * sizeof(uint32_t));
-    curInd += ind_count;
-    return true;
+    if (uint32_t *data = reserveData(ind_count))
+    {
+      memcpy(data, ind, ind_count * sizeof(uint32_t));
+      return true;
+    }
+    return false;
   }
 
   // reserve space in buffer. fill manually. return NULL, if overfill
   uint32_t *reserveData(int ind_count)
   {
-    if (ind_count + curInd > size || !ib)
-      return NULL;
-    lock();
-    if (!data)
-      return NULL;
-    int from = curInd;
-    curInd += ind_count;
-    return &data[from];
+    if (ind_count > ib.bufLeft())
+      return nullptr;
+    lastLockedSize = ind_count;
+    return static_cast<uint32_t *>(ib.lockData(ind_count));
   }
 
   // set buffer to driver. return number of indices
-  int setToDriver(bool reset = true)
+  void setToDriver(bool reset = true)
   {
-    if (!ib)
-      return 0;
-    unlock();
-    d3d_err(d3d::setind(ib));
-    int i = curInd;
+    if (!ib.getBuf())
+      return;
+    if (lastLockedSize != 0)
+    {
+      ib.unlockData(lastLockedSize);
+      lastLockedSize = 0;
+      d3d_err(d3d::setind(ib.getBuf()));
+    }
     if (reset)
-      curInd = 0;
-    return i;
-  }
-
-  // manually lock buffer
-  void lock()
-  {
-    if (data || !ib)
-      return;
-
-    d3d_err(ib->lock32(0, 0, &data, VBLOCK_WRITEONLY | VBLOCK_NOSYSLOCK | (curInd == 0 ? VBLOCK_DISCARD : VBLOCK_NOOVERWRITE)));
-  }
-
-  // manually unlock buffer
-  void unlock()
-  {
-    if (!data || !ib)
-      return;
-    d3d_err(ib->unlock());
-    data = NULL;
+      ib.resetPos();
   }
 
 protected:
-  Ibuffer *ib;
-  int curInd;
-  int size;
-  uint32_t *data;
+  RingDynamicIB32 ib;
+  uint32_t lastLockedSize = 0;
 };
 
 
@@ -350,7 +281,7 @@ void DynamicShadersBuffer::flush(bool reset)
     return;
   }
 
-  // debug_ctx("flush buffer: %d verts %d indices", usedVerts, usedFaces);
+  // DEBUG_CTX("flush buffer: %d verts %d indices", usedVerts, usedFaces);
 
   vBuf->setVertexFormat();
   vBuf->setToDriver(reset);

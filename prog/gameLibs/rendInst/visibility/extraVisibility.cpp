@@ -1,5 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "extraVisibility.h"
 #include <rendInst/visibility.h>
+#include <rendInst/rendInstAccess.h>
+#include <render/pointLod/range.h>
 
 #include <util/dag_threadPool.h>
 #include <util/dag_convar.h>
@@ -10,9 +14,23 @@
 #include "render/extra/riExtraRendererT.h"
 #include "visibility/cullJobRing.h"
 #include "visibility/genVisibility.h"
+#include <supp/dag_alloca.h>
 
+bool rendinst::isRiGenVisibilityForcedLodLoaded(const RiGenVisibility *visibility)
+{
+  const RiGenExtraVisibility &v = visibility->riex;
+  dag::ConstSpan<uint16_t> riResOrder = v.riexPoolOrder;
+  for (int k = 0, ke = riResOrder.size(); k < ke; ++k)
+  {
+    auto ri_idx = riResOrder[k] & render::RI_RES_ORDER_COUNT_MASK;
+    int bestLod = rendinst::riExtra[ri_idx].res->getQlBestLod();
+    if (bestLod > v.forcedExtraLod)
+      return false;
+  }
+  return true;
+}
 
-bool rendinst::isRiGenVisibilityLodsLoaded(const RiGenVisibility *visibility)
+void rendinst::riGenVisibilityScheduleForcedLodLoading(const RiGenVisibility *visibility)
 {
   const RiGenExtraVisibility &v = visibility->riex;
   dag::ConstSpan<uint16_t> riResOrder = v.riexPoolOrder;
@@ -20,14 +38,8 @@ bool rendinst::isRiGenVisibilityLodsLoaded(const RiGenVisibility *visibility)
   {
     auto ri_idx = riResOrder[k] & render::RI_RES_ORDER_COUNT_MASK;
     RenderableInstanceLodsResource *res = rendinst::riExtra[ri_idx].res;
-    int bestLod = res->getQlBestLod();
-    if (bestLod > v.forcedExtraLod)
-    {
-      res->updateReqLod(min<int>(v.forcedExtraLod, res->lods.size() - 1));
-      return false;
-    }
+    res->updateReqLod(min<int>(v.forcedExtraLod, res->lods.size() - 1));
   }
-  return true;
 }
 
 #if DAGOR_DBGLEVEL > 0
@@ -93,10 +105,12 @@ static eastl::pair<int, int> scene_range_from_visiblity_rendering_flags(rendinst
   return result;
 }
 
-template <bool use_external_filter>
+// NOTE: conditional locking is too complicated for thread safety analysis.
+template <bool use_external_filter, bool external_filter_use_bbox>
 bool rendinst::prepareExtraVisibilityInternal(mat44f_cref globtm_cull, const Point3 &camera_pos, RiGenVisibility &vbase,
-  bool render_for_shadow, Occlusion *use_occlusion, rendinst::RiExtraCullIntention cullIntention, bool for_visual_collision,
-  bool filter_rendinst_clipmap, bool for_vsm, const rendinst::VisibilityExternalFilter &external_filter)
+  bool render_for_shadow, Occlusion *use_occlusion, eastl::optional<IPoint2> target, rendinst::RiExtraCullIntention cullIntention,
+  bool for_visual_collision, bool filter_rendinst_clipmap, bool for_vsm,
+  const rendinst::VisibilityExternalFilter &external_filter) DAG_TS_NO_THREAD_SAFETY_ANALYSIS
 {
   if (!RendInstGenData::renderResRequired || !maxExtraRiCount || RendInstGenData::isLoading)
     return false;
@@ -117,15 +131,37 @@ bool rendinst::prepareExtraVisibilityInternal(mat44f_cref globtm_cull, const Poi
   float distSqMul = rendinst::riExtraCullDistSqMul;
   vec4f vpos_distscale = v_perm_xyzd((vec4f &)vpos, v_splats(v.forcedExtraLod >= 0 ? -1.f : distSqMul));
 
-  const auto &poolInfo = riExTiledScenes.getPools();
+  auto &poolInfo = riExTiledScenes.getPools();
 
   for (int lod = 0; lod < rendinst::RiExtraPool::MAX_LODS; ++lod)
   {
     clear_and_resize(v.riexData[lod], poolInfo.size());
     clear_and_resize(v.minSqDistances[lod], poolInfo.size());
+    clear_and_resize(vbase.riex.minAllowedSqDistances[lod], poolInfo.size());
+    memset(vbase.riex.minAllowedSqDistances[lod].data(), 0x7f, data_size(vbase.riex.minAllowedSqDistances[lod]));
     memset(v.minSqDistances[lod].data(), 0x7f, data_size(v.minSqDistances[lod])); // ~FLT_MAX
     for (auto &vv : v.riexData[lod])
       vv.resize(0);
+  }
+
+  for (auto &pool : poolInfo)
+  {
+    for (int lod = 1; lod < rendinst::RiExtraPool::MAX_LODS; ++lod)
+      if (riExtra[pool.poolIdx].elemMask[lod].plod)
+      {
+        const auto r = riExtra[pool.poolIdx].bsphRad();
+        const auto approxSurfArea = 4 * M_PI * r * r;
+        const auto plodElems = riExtra[pool.poolIdx].res->lods.back().scene->getMesh()->getMesh()->getMesh()->getAllElems();
+        size_t pointCount = 0;
+        for (const auto &elem : plodElems)
+          pointCount += elem.numv;
+        const auto approxDensity = pointCount / approxSurfArea;
+        if (target)
+        {
+          const auto minSqDist = plod::get_range2_for_density(approxDensity, *target, globtm_cull, camera_pos);
+          vbase.riex.minAllowedSqDistances[lod][pool.poolIdx] = minSqDist;
+        }
+      }
   }
 
   v.riexPoolOrder.resize(0);
@@ -159,52 +195,64 @@ bool rendinst::prepareExtraVisibilityInternal(mat44f_cref globtm_cull, const Poi
 
   int newVisCnt = 0;
 
-#define LAMBDA_BODY(forced_extra_lod_less_then_zero)                                                                            \
-  G_UNUSED(ni);                                                                                                                 \
-  if (render_for_shadow && scene::check_node_flags(m, RendinstTiledScene::CHECKED_IN_SHADOWS) &&                                \
-      !scene::check_node_flags(m, RendinstTiledScene::VISIBLE_IN_SHADOWS | RendinstTiledScene::NEEDS_CHECK_IN_SHADOW))          \
-    return;                                                                                                                     \
-  if (filter_rendinst_clipmap && !scene::check_node_flags(m, RendinstTiledScene::IS_RENDINST_CLIPMAP))                          \
-    return;                                                                                                                     \
-  if (use_external_filter)                                                                                                      \
-  {                                                                                                                             \
-    vec4f bboxmin, bboxmax;                                                                                                     \
-    vec4f sphere = scene::get_node_bsphere(m);                                                                                  \
-    vec4f rad = v_splat_w(sphere);                                                                                              \
-    bboxmin = v_sub(sphere, rad);                                                                                               \
-    bboxmax = v_add(sphere, rad);                                                                                               \
-    if (!external_filter(bboxmin, bboxmax))                                                                                     \
-      return;                                                                                                                   \
-  }                                                                                                                             \
-  const scene::pool_index poolId = scene::get_node_pool(m);                                                                     \
-  const auto &riPool = poolInfo[poolId];                                                                                        \
-  const unsigned llm = riPool.lodLimits >> ((ri_game_render_mode + 1) * 8);                                                     \
-  const unsigned min_lod = llm & 0xF, max_lod = (llm >> 4) & 0xF;                                                               \
-  unsigned lod = 0;                                                                                                             \
-  float dist = v_extract_x(distSqScaled);                                                                                       \
-  if (forced_extra_lod_less_then_zero)                                                                                          \
-  {                                                                                                                             \
-    lod = find_lod<rendinst::RiExtraPool::MAX_LODS>(riPool.distSqLOD, v_extract_x(distSqScaled));                               \
-    if (lod > max_lod)                                                                                                          \
-      return;                                                                                                                   \
-  }                                                                                                                             \
-  else                                                                                                                          \
-    lod = forcedExtraLod;                                                                                                       \
-  lod = clamp(lod, min_lod, max_lod);                                                                                           \
-  vec4f *addData = append_data(v.riexData[lod].data()[poolId], RIEXTRA_VECS_COUNT);                                             \
-  v.minSqDistances[lod].data()[poolId] = min(v.minSqDistances[lod].data()[poolId], dist);                                       \
-  const int32_t *userData = tiled_scene.getUserData(ni);                                                                        \
-  if (userData)                                                                                                                 \
-    eastl::copy_n(userData, tiled_scene.getUserDataWordCount(), (uint32_t *)(addData + rendinst::render::ADDITIONAL_DATA_IDX)); \
-  v_mat44_transpose_to_mat43(*(mat43f *)addData, m);                                                                            \
-  uint32_t perDataBufferOffset = poolId * (sizeof(rendinst::render::RiShaderConstBuffers) / sizeof(vec4f)) + 1;                 \
-  addData[rendinst::render::ADDITIONAL_DATA_IDX] =                                                                              \
-    v_perm_xaxa(addData[rendinst::render::ADDITIONAL_DATA_IDX], v_cast_vec4f(v_splatsi(perDataBufferOffset)));                  \
-  newVisCnt++;
 
+  auto storeVisibleRiexData = [&](bool forced_extra_lod_less_then_zero, scene::node_index ni, mat44f_cref m,
+                                const RendinstTiledScene &tiled_scene, vec4f distSqScaled, int forcedExtraLod,
+                                scene::pool_index &poolId, unsigned int &lod) -> bool {
+    G_UNUSED(ni);
+    if (render_for_shadow && scene::check_node_flags(m, RendinstTiledScene::CHECKED_IN_SHADOWS) &&
+        !scene::check_node_flags(m, RendinstTiledScene::VISIBLE_IN_SHADOWS | RendinstTiledScene::NEEDS_CHECK_IN_SHADOW))
+      return false;
+    if (filter_rendinst_clipmap && !scene::check_node_flags(m, RendinstTiledScene::IS_RENDINST_CLIPMAP))
+      return false;
+    vec4f sphere = scene::get_node_bsphere(m);
+    if (use_external_filter)
+    {
+      if (external_filter_use_bbox)
+      {
+        uint32_t poolFlags = scene::get_node_pool_flags(m) & 0xFFFF;
+        bbox3f transformed;
+        bbox3f pool = tiled_scene.getPoolBbox(poolFlags);
+        v_bbox3_init(transformed, m, pool);
+        if (!external_filter(transformed.bmin, transformed.bmax))
+          return false;
+      }
+      else
+      {
+        vec4f bboxmin, bboxmax;
+        vec4f rad = v_splat_w(sphere);
+        bboxmin = v_sub(sphere, rad);
+        bboxmax = v_add(sphere, rad);
+        if (!external_filter(bboxmin, bboxmax))
+          return false;
+      }
+    }
+    poolId = scene::get_node_pool(m);
+    const auto &riPool = poolInfo[poolId];
+    const unsigned llm = riPool.lodLimits >> ((ri_game_render_mode + 1) * 8);
+    const unsigned min_lod = llm & 0xF, max_lod = (llm >> 4) & 0xF;
+    float dist = v_extract_x(distSqScaled);
+    if (riPool.distSqLOD[max_lod] <= dist * rendinst::render::riExtraLodsShiftDistMulForCulling)
+      return false;
+    lod = 0;
+    if (forced_extra_lod_less_then_zero)
+      lod = find_lod<rendinst::RiExtraPool::MAX_LODS>(riPool.distSqLOD, dist);
+    else
+      lod = forcedExtraLod;
+    lod = clamp(lod, min_lod, max_lod);
+    float bsphereRad = v_extract_w(sphere);
+    if (bsphereRad > texStreamingLargeRiRad && dist > 0)
+    {
+      float texLevelDist = max(0.0f, sqrt(dist) - bsphereRad);
+      dist = texLevelDist * texLevelDist;
+    }
+    v.minSqDistances[lod].data()[poolId] = min(v.minSqDistances[lod].data()[poolId], dist);
+    vec4f *addData = append_data(v.riexData[lod].data()[poolId], RIEXTRA_VECS_COUNT);
+    rendinst::render::write_ri_extra_per_instance_data(addData, tiled_scene, poolId, ni, m, riPool.isDynamic);
+    newVisCnt++;
 
-#define LAMBDA(forced_extra_lod_less_then_zero) \
-  [&](scene::node_index ni, mat44f_cref m, vec4f distSqScaled) { LAMBDA_BODY(forced_extra_lod_less_then_zero) }
+    return true;
+  };
 
   SmallTab<Point2, framemem_allocator> perPoolMinDist;
   SmallTab<RiGenExtraVisibility::UVec2, framemem_allocator> perPoolBestId;
@@ -259,97 +307,102 @@ bool rendinst::prepareExtraVisibilityInternal(mat44f_cref globtm_cull, const Poi
       cull_sd.perPoolMinDist = &perPoolMinDist;
       cull_sd.perPoolBestId = &perPoolBestId;
 
-      // we should lock for reading before processing
-      for (int tiled_scene_idx = 0; tiled_scene_idx < cscenes.size(); tiled_scene_idx++)
-        sceneContexts[tiled_scene_idx].needToUnlock = cscenes[tiled_scene_idx].lockForRead();
-
-      CullJobRing ring;
-      ring.start(threads, cull_sd);
-
-      for (int lod = 0; lod < rendinst::RiExtraPool::MAX_LODS; ++lod)
-        for (auto &vv : v.riexData[lod])
-          vv.resize(vv.capacity());
-      if (sortLarge)
-        for (int lod = 0; lod < LARGE_LOD_CNT; ++lod)
-          for (auto &vv : v.riexLarge[lod])
-            vv.resize(vv.capacity());
-      for (int tiled_scene_idx = 0; tiled_scene_idx < cscenes.size(); tiled_scene_idx++)
+      // we should lock riExtra for reading before processing
+      // also we locking rendInst layers locks in correct order because of using active wait
       {
-        const auto &tiled_scene = cscenes[tiled_scene_idx];
-        if (visibleFlag)
-          tiled_scene.frustumCullTilesPass<true, true, true>(globtm, vpos_distscale, visibleFlag, visibleFlag, use_occlusion,
-            sceneContexts[tiled_scene_idx]);
-        else
-          tiled_scene.frustumCullTilesPass<false, true, true>(globtm, vpos_distscale, 0, 0, use_occlusion,
-            sceneContexts[tiled_scene_idx]);
-      }
+        rendinst::AutoLockReadPrimaryAndExtra lock;
+        for (int tiled_scene_idx = 0; tiled_scene_idx < cscenes.size(); tiled_scene_idx++)
+          sceneContexts[tiled_scene_idx].needToUnlock = cscenes[tiled_scene_idx].lockForRead();
 
-      for (int tries = 2; tries > 0; tries--)
-      {
-        ring.finishWork();
+        CullJobRing ring;
+        ring.start(threads, cull_sd);
 
-        bool had_overflow = false;
-        newVisCnt = 0;
         for (int lod = 0; lod < rendinst::RiExtraPool::MAX_LODS; ++lod)
-          for (int poolId = 0; poolId < poolInfo.size(); ++poolId)
-          {
-            int sz = riexDataCnt[poolId * rendinst::RiExtraPool::MAX_LODS + lod];
-            newVisCnt += sz;
-            auto &vData = v.riexData[lod].data()[poolId];
-            if (sz <= vData.size())
-              vData.resize(sz);
-            else
+          for (auto &vv : v.riexData[lod])
+            vv.resize(vv.capacity());
+        if (sortLarge)
+          for (int lod = 0; lod < LARGE_LOD_CNT; ++lod)
+            for (auto &vv : v.riexLarge[lod])
+              vv.resize(vv.capacity());
+        for (int tiled_scene_idx = 0; tiled_scene_idx < cscenes.size(); tiled_scene_idx++)
+        {
+          const auto &tiled_scene = cscenes[tiled_scene_idx];
+          if (visibleFlag)
+            tiled_scene.frustumCullTilesPass<true, true, true>(globtm, vpos_distscale, visibleFlag, visibleFlag, use_occlusion,
+              sceneContexts[tiled_scene_idx]);
+          else
+            tiled_scene.frustumCullTilesPass<false, true, true>(globtm, vpos_distscale, 0, 0, use_occlusion,
+              sceneContexts[tiled_scene_idx]);
+        }
+
+        for (int tries = 2; tries > 0; tries--)
+        {
+          ring.finishWork();
+
+          bool had_overflow = false;
+          newVisCnt = 0;
+          for (int lod = 0; lod < rendinst::RiExtraPool::MAX_LODS; ++lod)
+            for (int poolId = 0; poolId < poolInfo.size(); ++poolId)
             {
-              sz = (sz + 127) & ~127;
-              vData.resize(0);
-              vData.set_capacity(
-                min(max(sz, (int)vData.capacity() * 2), (int)RIEXTRA_VECS_COUNT * riExtra[poolId].getEntitiesCount()));
-              vData.resize(vData.capacity());
-              had_overflow = true;
+              int sz = riexDataCnt[poolId * rendinst::RiExtraPool::MAX_LODS + lod];
+              newVisCnt += sz;
+              auto &vData = v.riexData[lod].data()[poolId];
+              if (sz <= vData.size())
+                vData.resize(sz);
+              else
+              {
+                sz = (sz + 127) & ~127;
+                vData.resize(0);
+                vData.set_capacity(
+                  min(max(sz, (int)vData.capacity() * 2), (int)RIEXTRA_VECS_COUNT * riExtra[poolId].getEntitiesCount()));
+                vData.resize(vData.capacity());
+                had_overflow = true;
+              }
+              if (!riexLargeCnt || lod >= LARGE_LOD_CNT)
+                continue;
+
+              sz = riexLargeCnt[poolId * LARGE_LOD_CNT + lod];
+              auto &vLarge = v.riexLarge[lod].data()[poolId];
+              if (sz <= vLarge.size())
+                vLarge.resize(sz);
+              else
+              {
+                sz = (sz + 127) & ~127;
+                vLarge.resize(0);
+                vLarge.set_capacity(
+                  min(max(sz, (int)vLarge.capacity() * 2), (int)RIEXTRA_VECS_COUNT * riExtra[poolId].getEntitiesCount()));
+                vLarge.resize(vLarge.capacity());
+                had_overflow = true;
+              }
             }
-            if (!riexLargeCnt || lod >= LARGE_LOD_CNT)
-              continue;
 
-            sz = riexLargeCnt[poolId * LARGE_LOD_CNT + lod];
-            auto &vLarge = v.riexLarge[lod].data()[poolId];
-            if (sz <= vLarge.size())
-              vLarge.resize(sz);
-            else
-            {
-              sz = (sz + 127) & ~127;
-              vLarge.resize(0);
-              vLarge.set_capacity(
-                min(max(sz, (int)vLarge.capacity() * 2), (int)RIEXTRA_VECS_COUNT * riExtra[poolId].getEntitiesCount()));
-              vLarge.resize(vLarge.capacity());
-              had_overflow = true;
-            }
-          }
+          if (!had_overflow)
+            break;
+          G_ASSERT(tries > 1);
 
-        if (!had_overflow)
-          break;
-        G_ASSERT(tries > 1);
+          // compute once more
+          memset(perPoolMinDist.data(), 0x7f, data_size(perPoolMinDist)); // ~FLT_MAX
+          memset(perPoolBestId.data(), 0xff, data_size(perPoolBestId));
+          memset(riexDataCnt, 0, poolInfo.size() * rendinst::RiExtraPool::MAX_LODS * sizeof(int)); //-V780
+          if (riexLargeCnt)
+            memset(riexLargeCnt, 0, poolInfo.size() * LARGE_LOD_CNT * sizeof(int)); //-V780
 
-        // compute once more
-        memset(perPoolMinDist.data(), 0x7f, data_size(perPoolMinDist)); // ~FLT_MAX
-        memset(perPoolBestId.data(), 0xff, data_size(perPoolBestId));
-        memset(riexDataCnt, 0, poolInfo.size() * rendinst::RiExtraPool::MAX_LODS * sizeof(int)); //-V780
-        if (riexLargeCnt)
-          memset(riexLargeCnt, 0, poolInfo.size() * LARGE_LOD_CNT * sizeof(int)); //-V780
+          for (int tiled_scene_idx = 0; tiled_scene_idx < cscenes.size(); tiled_scene_idx++)
+            sceneContexts[tiled_scene_idx].nextIdxToProcess = 0;
+          ring.start(threads, cull_sd);
+        }
 
         for (int tiled_scene_idx = 0; tiled_scene_idx < cscenes.size(); tiled_scene_idx++)
-          sceneContexts[tiled_scene_idx].nextIdxToProcess = 0;
-        ring.start(threads, cull_sd);
-      }
-
-      for (int tiled_scene_idx = 0; tiled_scene_idx < cscenes.size(); tiled_scene_idx++)
-      {
-        if (sceneContexts[tiled_scene_idx].needToUnlock)
         {
-          cscenes[tiled_scene_idx].unlockAfterRead();
-          sceneContexts[tiled_scene_idx].needToUnlock = 0;
+          if (sceneContexts[tiled_scene_idx].needToUnlock)
+          {
+            cscenes[tiled_scene_idx].unlockAfterRead();
+            sceneContexts[tiled_scene_idx].needToUnlock = 0;
+          }
+          sceneContexts[tiled_scene_idx].~TiledSceneCullContext();
         }
-        sceneContexts[tiled_scene_idx].~TiledSceneCullContext();
-      }
+      } // unlock ri and extra
+
       newVisCnt /= RIEXTRA_VECS_COUNT;
 
       // choose best of the bests
@@ -397,7 +450,10 @@ bool rendinst::prepareExtraVisibilityInternal(mat44f_cref globtm_cull, const Poi
       {
         tiled_scene.template frustumCull<false, true, true>(globtm, vpos_distscale, 0, 0, use_occlusion,
           [&](scene::node_index ni, mat44f_cref m, vec4f distSqScaled) {
-            LAMBDA_BODY(forcedExtraLod < 0)
+            scene::pool_index poolId;
+            unsigned int lod;
+            if (!storeVisibleRiexData(forcedExtraLod < 0, ni, m, tiled_scene, distSqScaled, forcedExtraLod, poolId, lod))
+              return;
             const uint32_t id = v.riexData[lod].data()[poolId].size() / RIEXTRA_VECS_COUNT - 1;
             vec4f rad = scene::get_node_bsphere_vrad(m);
             rad = v_div_x(distSqScaled, v_mul_x(rad, rad));
@@ -433,6 +489,16 @@ bool rendinst::prepareExtraVisibilityInternal(mat44f_cref globtm_cull, const Poi
     G_ASSERT(v.forcedExtraLod < 0); // can't be forced lod in main csm
     const int forcedExtraLod = -1;
     const uint32_t useFlags = RendinstTiledScene::HAVE_SHADOWS | visibleFlag;
+
+    vec4f dirFromSun = reinterpret_cast<vec4f &>(rendinst::dir_from_sun);
+    vec4f sphereExtendDirection = V_C_UNIT_0100;
+    if (fabsf(rendinst::dir_from_sun.y) < 1.0f - 1e-6f)
+    {
+      vec4f shadowSpaceLeftDirection = v_norm3(v_cross3(dirFromSun, V_C_UNIT_0100));
+      vec4f shadowSpaceUpDirection = v_cross3(shadowSpaceLeftDirection, dirFromSun);
+      sphereExtendDirection = shadowSpaceUpDirection;
+    }
+
     for (const auto &tiled_scene : riExTiledScenes.cscenes(firstScene, sceneCount))
     {
       // we intentionally do not use use_flags template arg here, as virtually all nodes have shadows
@@ -445,23 +511,22 @@ bool rendinst::prepareExtraVisibilityInternal(mat44f_cref globtm_cull, const Poi
             if (instLightDist < tiled_scene.LIGHTDIST_DYNAMIC)
             {
               vec4f rad = v_splat_w(sphere);
-              vec3f top_point = v_add(sphere, v_and(v_cast_vec4f(V_CI_MASK0100), rad));
+              vec3f top_point = v_add(sphere, v_mul(sphereExtendDirection, rad));
               if (instLightDist == tiled_scene.LIGHTDIST_INVALID)
               {
                 instLightDist = tiled_scene.LIGHTDIST_TOOBIG;
                 Point3_vec4 topPos;
                 v_st(&topPos.x, top_point);
                 float dist = 128.f;
-                if (rendinst::gen::custom_trace_ray_earth(topPos, rendinst::render::dir_from_sun, dist)) // fixme: currently
-                                                                                                         // dir_from_sun is not set
-                                                                                                         // until first update
-                                                                                                         // impostors
+                if (rendinst::gen::custom_trace_ray_earth(topPos, rendinst::dir_from_sun, dist)) // fixme: currently
+                                                                                                 // dir_from_sun is not set
+                                                                                                 // until first update
+                                                                                                 // impostors
                   instLightDist = int(ceilf(dist)) + 1;
                 tiled_scene.setDistanceMT(ni, instLightDist);
               }
 
-              vec3f lightDist =
-                v_mul(v_cvt_vec4f(v_splatsi(instLightDist)), reinterpret_cast<vec4f &>(rendinst::render::dir_from_sun));
+              vec3f lightDist = v_mul(v_cvt_vec4f(v_splatsi(instLightDist)), dirFromSun);
               vec3f far_point = v_add(top_point, lightDist);
               bbox3f worldBox;
               worldBox.bmin = v_min(far_point, v_sub(sphere, rad));
@@ -479,7 +544,10 @@ bool rendinst::prepareExtraVisibilityInternal(mat44f_cref globtm_cull, const Poi
           if (!scene::check_node_flags(m, RendinstTiledScene::HAVE_SHADOWS)) // we still have to check flag, but we assume it will
                                                                              // happen very rare that it fails, so check it last
             return;
-          LAMBDA_BODY(forcedExtraLod < 0);
+          scene::pool_index poolId;
+          unsigned int lod;
+          if (!storeVisibleRiexData(forcedExtraLod < 0, ni, m, tiled_scene, distSqScaled, forcedExtraLod, poolId, lod))
+            return;
         });
     }
   }
@@ -504,7 +572,11 @@ bool rendinst::prepareExtraVisibilityInternal(mat44f_cref globtm_cull, const Poi
     for (const auto &tiled_scene : riExTiledScenes.cscenes(firstScene, sceneCount))
     {
       tiled_scene.template frustumCull<true, true, false>(globtm, vpos_distscale, useFlags, useFlags, nullptr,
-        LAMBDA(forcedExtraLod < 0));
+        [&](scene::node_index ni, mat44f_cref m, vec4f distSqScaled) {
+          scene::pool_index poolId;
+          unsigned int lod;
+          storeVisibleRiexData(forcedExtraLod < 0, ni, m, tiled_scene, distSqScaled, forcedExtraLod, poolId, lod);
+        });
     }
   }
   else if (for_visual_collision) // phydetails
@@ -514,7 +586,11 @@ bool rendinst::prepareExtraVisibilityInternal(mat44f_cref globtm_cull, const Poi
     for (const auto &tiled_scene : riExTiledScenes.cscenes(firstScene, sceneCount))
     {
       tiled_scene.template frustumCull<true, true, false>(globtm, vpos_distscale, useFlags, useFlags, nullptr,
-        LAMBDA(forcedExtraLod < 0));
+        [&](scene::node_index ni, mat44f_cref m, vec4f distSqScaled) {
+          scene::pool_index poolId;
+          unsigned int lod;
+          storeVisibleRiexData(forcedExtraLod < 0, ni, m, tiled_scene, distSqScaled, forcedExtraLod, poolId, lod);
+        });
     }
   }
   else if (for_vsm) // phydetails
@@ -524,33 +600,57 @@ bool rendinst::prepareExtraVisibilityInternal(mat44f_cref globtm_cull, const Poi
     for (const auto &tiled_scene : riExTiledScenes.cscenes(firstScene, sceneCount))
     {
       tiled_scene.template frustumCull<true, true, false>(globtm, vpos_distscale, useFlags, useFlags, nullptr,
-        LAMBDA(forcedExtraLod < 0));
+        [&](scene::node_index ni, mat44f_cref m, vec4f distSqScaled) {
+          scene::pool_index poolId;
+          unsigned int lod;
+          storeVisibleRiexData(forcedExtraLod < 0, ni, m, tiled_scene, distSqScaled, forcedExtraLod, poolId, lod);
+        });
     }
   }
   else
   {
     const int forcedExtraLod = v.forcedExtraLod;
-    const uint32_t useFlags = visibleFlag;
+    const uint32_t useFlags = visibleFlag | (render_for_shadow ? RendinstTiledScene::HAVE_SHADOWS : 0u);
     //
     if (useFlags == 0)
     {
       if (forcedExtraLod >= 0) // we just hope that compiler will optimize code inside lambda with it. Although it is possible that it
                                // won't, than can copy-paste lambda code
         for (const auto &tiled_scene : riExTiledScenes.cscenes(firstScene, sceneCount))
-          tiled_scene.template frustumCull<false, true, false>(globtm, vpos_distscale, 0, 0, nullptr, LAMBDA(false));
+          tiled_scene.template frustumCull<false, true, false>(globtm, vpos_distscale, 0, 0, nullptr,
+            [&](scene::node_index ni, mat44f_cref m, vec4f distSqScaled) {
+              scene::pool_index poolId;
+              unsigned int lod;
+              storeVisibleRiexData(false, ni, m, tiled_scene, distSqScaled, forcedExtraLod, poolId, lod);
+            });
       else
         for (const auto &tiled_scene : riExTiledScenes.cscenes(firstScene, sceneCount))
-          tiled_scene.template frustumCull<false, true, false>(globtm, vpos_distscale, 0, 0, nullptr, LAMBDA(true));
+          tiled_scene.template frustumCull<false, true, false>(globtm, vpos_distscale, 0, 0, nullptr,
+            [&](scene::node_index ni, mat44f_cref m, vec4f distSqScaled) {
+              scene::pool_index poolId;
+              unsigned int lod;
+              storeVisibleRiexData(true, ni, m, tiled_scene, distSqScaled, forcedExtraLod, poolId, lod);
+            });
     }
     else
     {
       if (forcedExtraLod >= 0) // we just hope that compiler will optimize code inside lambda with it. Although it is possible that it
                                // won't, than can copy-paste lambda code
         for (const auto &tiled_scene : riExTiledScenes.cscenes(firstScene, sceneCount))
-          tiled_scene.template frustumCull<true, true, false>(globtm, vpos_distscale, useFlags, useFlags, nullptr, LAMBDA(false));
+          tiled_scene.template frustumCull<true, true, false>(globtm, vpos_distscale, useFlags, useFlags, nullptr,
+            [&](scene::node_index ni, mat44f_cref m, vec4f distSqScaled) {
+              scene::pool_index poolId;
+              unsigned int lod;
+              storeVisibleRiexData(false, ni, m, tiled_scene, distSqScaled, forcedExtraLod, poolId, lod);
+            });
       else
         for (const auto &tiled_scene : riExTiledScenes.cscenes(firstScene, sceneCount))
-          tiled_scene.template frustumCull<true, true, false>(globtm, vpos_distscale, useFlags, useFlags, nullptr, LAMBDA(true));
+          tiled_scene.template frustumCull<true, true, false>(globtm, vpos_distscale, useFlags, useFlags, nullptr,
+            [&](scene::node_index ni, mat44f_cref m, vec4f distSqScaled) {
+              scene::pool_index poolId;
+              unsigned int lod;
+              storeVisibleRiexData(true, ni, m, tiled_scene, distSqScaled, forcedExtraLod, poolId, lod);
+            });
     }
   }
   v.riexInstCount = newVisCnt;
@@ -651,15 +751,22 @@ bool rendinst::prepareExtraVisibilityInternal(mat44f_cref globtm_cull, const Poi
   return true;
 }
 
-void rendinst::sortTransparentRiExtraInstancesByDistance(RiGenVisibility *vb, const Point3 &view_pos)
+template <bool partition_by_sphere, bool partition_mode_inside>
+static void sortTransparentRiExtraInstancesByDistance_detail(RiGenVisibility *vb, const Point3 &view_pos, const Point4 &sphere_pos_rad)
 {
-  TIME_D3D_PROFILE(sort_ri_extra_per_instance);
+  using namespace rendinst;
 
-  vec3f viewPos = v_ldu_p3_safe(&view_pos.x);
+  alignas(16) Point4 viewPos(view_pos.x, view_pos.y, view_pos.z, 0);
+  vec4f viewPosVec = v_ld(&viewPos.x);
+
+  alignas(16) Point4 sphere(sphere_pos_rad);
+  sphere.w = partition_mode_inside ? -sphere.w : +sphere.w;
+  vec4f sphereVec = v_ld(&sphere.x);
 
   RiGenExtraVisibility &v = vb->riex;
   auto &elems = v.sortedTransparentElems;
   elems.clear();
+  v.partitionedElemsCount = 0;
 
   dag::ConstSpan<uint16_t> riResOrder = riExPoolIdxPerStage[get_layer_index(rendinst::LayerFlag::Transparent)];
   for (int lod = 0; lod < RiExtraPool::MAX_LODS; lod++)
@@ -679,15 +786,37 @@ void rendinst::sortTransparentRiExtraInstancesByDistance(RiGenVisibility *vb, co
         mat44f tm;
         v_mat43_transpose_to_mat44(tm, *(mat43f *)data);
 
-        vec4f instancePos = v_mat44_mul_vec3p(tm, riExtra[poolId].bsphXYZR);
-        vec3f dpos = v_sub(instancePos, viewPos);
-        float dist2 = v_extract_x(v_dot3_x(dpos, dpos));
+        uint32_t partitionFlagDist2;
+        if constexpr (partition_by_sphere)
+        {
+          vec4f instancePosRad = make_pos_and_rad(tm, riExtra[poolId].bsphXYZR);
+          vec4f dpos = v_sub(instancePosRad, viewPosVec);
+          vec4f dist2vec = v_dot3_x(dpos, dpos);
+
+          vec4f sphVecThreshold = v_sub(instancePosRad, sphereVec); //.xyz is distance vector, abs(.w) is the threshold distance value.
+          vec4f invSphVecThreshold = v_sub(v_zero(), sphVecThreshold); // = -sphVecThreshold;
+          vec4f sphVecInvThreshold = v_perm_xyzd(sphVecThreshold, invSphVecThreshold);
+          vec4f sphDiff2 = v_dot4_x(sphVecThreshold, sphVecInvThreshold);
+          vec4f shouldPartition = partition_mode_inside ? v_cmp_lt(sphDiff2, v_zero()) : v_cmp_gt(sphDiff2, v_zero());
+          vec4f shouldPartitionSign = v_and(shouldPartition, v_cast_vec4f(V_CI_SIGN_MASK));
+
+          partitionFlagDist2 = bitwise_cast<uint32_t>(v_extract_x(v_or(dist2vec, shouldPartitionSign))); // raise partition flag.
+          int isOutsideSphereInt = bitwise_cast<int>(v_extract_x(shouldPartition));                      // -1 (0xFFFFFFFF) or 0.
+          v.partitionedElemsCount -= isOutsideSphereInt;
+        }
+        else
+        {
+          vec4f instancePos = v_mat44_mul_vec3p(tm, riExtra[poolId].bsphXYZR);
+          vec4f dpos = v_sub(instancePos, viewPosVec);
+          vec4f dist2vec = v_dot3_x(dpos, dpos);
+          partitionFlagDist2 = bitwise_cast<uint32_t>(v_extract_x(dist2vec));
+        }
 
         RiGenExtraVisibility::PerInstanceElem elem = {};
         elem.lod = lod;
         elem.poolId = poolId;
         elem.poolOrder = order;
-        elem.dist2 = dist2;
+        elem.partitionFlagDist2 = partitionFlagDist2;
         elem.instanceId = i;
 
         elems.push_back(elem);
@@ -699,20 +828,128 @@ void rendinst::sortTransparentRiExtraInstancesByDistance(RiGenVisibility *vb, co
 
   eastl::sort(elems.begin(), elems.end(),
     [](const RiGenExtraVisibility::PerInstanceElem &elem1, const RiGenExtraVisibility::PerInstanceElem &elem2) -> bool {
-      return elem1.dist2 > elem2.dist2;
+      // dist2 is positive finite float. Compare as integer is valid. MSB is used for partitioning.
+      return elem1.partitionFlagDist2 > elem2.partitionFlagDist2;
     });
 }
 
+void rendinst::sortTransparentRiExtraInstancesByDistance(RiGenVisibility *vb, const Point3 &view_pos)
+{
+  TIME_D3D_PROFILE(sort_ri_extra_per_instance);
+  sortTransparentRiExtraInstancesByDistance_detail<false, false>(vb, view_pos, Point4::ZERO);
+}
+
+
+void rendinst::sortTransparentRiExtraInstancesByDistanceAndPartitionOutsideSphere(RiGenVisibility *vb, const Point3 &view_pos,
+  const Point4 &sphere_pos_rad)
+{
+  TIME_D3D_PROFILE(sort_and_partition_ri_extra_per_instance);
+  sortTransparentRiExtraInstancesByDistance_detail<true, false>(vb, view_pos, sphere_pos_rad);
+}
+
+void rendinst::sortTransparentRiExtraInstancesByDistanceAndPartitionInsideSphere(RiGenVisibility *vb, const Point3 &view_pos,
+  const Point4 &sphere_pos_rad)
+{
+  TIME_D3D_PROFILE(sort_and_partition_ri_extra_per_instance);
+  sortTransparentRiExtraInstancesByDistance_detail<true, true>(vb, view_pos, sphere_pos_rad);
+}
+
+void rendinst::requestLodsByDistance(const Point3 &camera_pos)
+{
+  if (!render::use_lods_by_distance_update || render::lods_by_distance_range_sq <= 0)
+    return;
+  if (!RendInstGenData::renderResRequired || !maxExtraRiCount || RendInstGenData::isLoading)
+    return;
+
+  TIME_PROFILE(riextra_lods_by_distance);
+
+  Point3_vec4 vpos = camera_pos;
+  float distSqMul = rendinst::riExtraCullDistSqMul;
+  vec4f vpos_distscale = v_perm_xyzd((vec4f &)vpos, v_splats(distSqMul));
+
+  uint32_t visibleFlag = ri_game_render_mode == 0   ? RendinstTiledScene::VISIBLE_0
+                         : ri_game_render_mode == 2 ? RendinstTiledScene::VISIBLE_2
+                                                    : 0;
+
+  auto &poolInfo = riExTiledScenes.getPools();
+  bbox3f bbox;
+  v_bbox3_init_by_bsph(bbox, vpos_distscale, v_splats(sqrtf(render::lods_by_distance_range_sq * distSqMul)));
+
+  int totalTiles = 0;
+  for (const auto &tiled_scene : riExTiledScenes.scenes())
+    totalTiles += tiled_scene.getTileCountInBox(bbox);
+
+  int period = unitedvdata::riUnitedVdata.getRequestLodsByDistanceFrames();
+  if (period < 1)
+    period = 1;
+  int cycle = ::dagor_frame_no() % period;
+
+  int startIndex = cycle * totalTiles / period;
+  int endIndex = (cycle + 1) * totalTiles / period;
+
+  auto cb = [&poolInfo, vpos_distscale](scene::node_index ni, mat44f_cref m) {
+    G_UNUSED(ni);
+    const scene::pool_index poolId = scene::get_node_pool(m);
+    const auto &riPool = poolInfo[poolId];
+
+    vec4f sphere = scene::get_node_bsphere(m);
+    vec3f distSqScaled = v_mul_x(v_length3_sq_x(v_sub(vpos_distscale, sphere)), v_splat_w(vpos_distscale));
+    if (v_test_vec_x_lt(v_splats(render::lods_by_distance_range_sq), distSqScaled))
+      return;
+
+    float dist = v_extract_x(distSqScaled);
+    const unsigned llm = riPool.lodLimits >> ((ri_game_render_mode + 1) * 8);
+    const unsigned min_lod = llm & 0xF, max_lod = (llm >> 4) & 0xF;
+    if (riPool.distSqLOD[max_lod] <= dist * rendinst::render::riExtraLodsShiftDistMulForCulling)
+      return;
+
+    unsigned lod = find_lod<rendinst::RiExtraPool::MAX_LODS>(riPool.distSqLOD, dist);
+    lod = clamp(lod, min_lod, max_lod);
+
+    if (DAGOR_LIKELY(poolId < riExtra.size() && riExtra[poolId].res))
+    {
+      riExtra[poolId].res->updateReqLod(min<int>(lod, riExtra[poolId].res->lods.size() - 1));
+    }
+  };
+
+  int globalIndex = 0;
+  for (const auto &tiled_scene : riExTiledScenes.scenes())
+  {
+    int n = tiled_scene.getTileCountInBox(bbox);
+    if (globalIndex + n <= startIndex)
+    {
+      globalIndex += n;
+      continue;
+    }
+    if (globalIndex >= endIndex)
+      break;
+
+    int localStartIndex = startIndex - globalIndex;
+    int localEndIndex = endIndex - globalIndex;
+
+    if (visibleFlag)
+      tiled_scene.nodesInRange<true, true>(bbox, visibleFlag, visibleFlag, cb, localStartIndex, localEndIndex);
+    else
+      tiled_scene.nodesInRange<false, true>(bbox, 0, 0, cb, localStartIndex, localEndIndex);
+
+    globalIndex += n;
+  }
+}
+
 bool rendinst::prepareRIGenExtraVisibility(mat44f_cref globtm_cull, const Point3 &camera_pos, RiGenVisibility &vbase,
-  bool render_for_shadow, Occlusion *use_occlusion, RiExtraCullIntention cullIntention, bool for_visual_collision,
-  bool filter_rendinst_clipmap, bool for_vsm, const rendinst::VisibilityExternalFilter &external_filter)
+  bool render_for_shadow, Occlusion *use_occlusion, eastl::optional<IPoint2> target, RiExtraCullIntention cullIntention,
+  bool for_visual_collision, bool filter_rendinst_clipmap, bool for_vsm, const rendinst::VisibilityExternalFilter &external_filter,
+  bool filter_precise_bbox)
 {
   if (!external_filter)
-    return prepareExtraVisibilityInternal(globtm_cull, camera_pos, vbase, render_for_shadow, use_occlusion, cullIntention,
+    return prepareExtraVisibilityInternal(globtm_cull, camera_pos, vbase, render_for_shadow, use_occlusion, target, cullIntention,
       for_visual_collision, filter_rendinst_clipmap, for_vsm);
+  else if (filter_precise_bbox)
+    return prepareExtraVisibilityInternal<true, true>(globtm_cull, camera_pos, vbase, render_for_shadow, use_occlusion, target,
+      cullIntention, for_visual_collision, filter_rendinst_clipmap, for_vsm, external_filter);
   else
-    return prepareExtraVisibilityInternal<true>(globtm_cull, camera_pos, vbase, render_for_shadow, use_occlusion, cullIntention,
-      for_visual_collision, filter_rendinst_clipmap, for_vsm, external_filter);
+    return prepareExtraVisibilityInternal<true, false>(globtm_cull, camera_pos, vbase, render_for_shadow, use_occlusion, target,
+      cullIntention, for_visual_collision, filter_rendinst_clipmap, for_vsm, external_filter);
 }
 
 bool rendinst::prepareRIGenExtraVisibilityBox(bbox3f_cref box_cull, int forced_lod, float min_size, float min_dist,
@@ -731,7 +968,9 @@ bool rendinst::prepareRIGenExtraVisibilityBox(bbox3f_cref box_cull, int forced_l
   {
     clear_and_resize(v.riexData[lod], poolInfo.size());
     clear_and_resize(v.minSqDistances[lod], poolInfo.size());
-    memset(v.minSqDistances[lod].data(), 0x7f, data_size(v.minSqDistances[lod])); // ~FLT_MAX
+    clear_and_resize(v.minAllowedSqDistances[lod], poolInfo.size());
+    memset(v.minSqDistances[lod].data(), 0x7f, data_size(v.minSqDistances[lod]));               // ~FLT_MAX
+    memset(v.minAllowedSqDistances[lod].data(), 0x7f, data_size(v.minAllowedSqDistances[lod])); // ~FLT_MAX
     for (auto &vv : v.riexData[lod])
       vv.resize(0);
   }
@@ -779,16 +1018,10 @@ bool rendinst::prepareRIGenExtraVisibilityBox(bbox3f_cref box_cull, int forced_l
       const unsigned min_lod = llm & 0xF, max_lod = (llm >> 4) & 0xF;
       int lod = clamp((unsigned)forced_lod, min_lod, max_lod);
       maxLodUsed = max(lod, maxLodUsed);
-      vec4f *addData = append_data(v.riexData[lod].data()[poolId], RIEXTRA_VECS_COUNT);
-      const int32_t *userData = tiled_scene.getUserData(ni);
-      if (userData)
-        eastl::copy_n(userData, tiled_scene.getUserDataWordCount(), (uint32_t *)(addData + rendinst::render::ADDITIONAL_DATA_IDX));
-      v_mat44_transpose_to_mat43(*(mat43f *)addData, m);
       if (result_box)
         v_bbox3_add_box(*result_box, tiled_scene.calcNodeBox(m));
-      uint32_t perDataBufferOffset = poolId * (sizeof(rendinst::render::RiShaderConstBuffers) / sizeof(vec4f)) + 1;
-      addData[rendinst::render::ADDITIONAL_DATA_IDX] =
-        v_perm_xaxa(addData[rendinst::render::ADDITIONAL_DATA_IDX], v_cast_vec4f(v_splatsi(perDataBufferOffset)));
+      vec4f *addData = append_data(v.riexData[lod].data()[poolId], RIEXTRA_VECS_COUNT);
+      rendinst::render::write_ri_extra_per_instance_data(addData, tiled_scene, poolId, ni, m, riPool.isDynamic);
       newVisCnt++;
     });
   }

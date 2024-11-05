@@ -58,6 +58,7 @@ let buttonInside = @(parentStateFlags) @() {
         fillColor = (sf & S_ACTIVE) ? Color(0,0,0) : Color(200,200,200)
         borderWidth = (sf & S_HOVER) ? 2 : 0
         behavior = [Behaviors.Button]
+        touchMarginPriority = 1
         halign = ALIGN_CENTER
         onClick = function() { vlog("clicked")}
         onHover = function(hover) {vlog($"hover: {hover}")}
@@ -91,6 +92,9 @@ function doubleButton() {
 }
 
 return {
+  behavior = Behaviors.Button
+  touchMarginPriority = -1
+  onClick = @() dlog("Backgorund onClick")
   rendObj = ROBJ_SOLID
   color = Color(30,40,50)
   size = flex()

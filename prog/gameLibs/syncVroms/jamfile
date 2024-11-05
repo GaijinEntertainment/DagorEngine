@@ -1,0 +1,31 @@
+Root    ?= ../../.. ;
+
+Location            = prog/gameLibs/syncVroms ;
+TargetType          = lib ;
+VromHashAlgorithm   ?= blake3short ;
+Target              = gameLibs/syncVroms-$(VromHashAlgorithm).lib ;
+StrictCompile       ?= yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Sources =
+  vromHash.cpp
+  syncVroms.cpp
+  vromHash_$(VromHashAlgorithm).cpp
+;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+if $(UseSystemOpenSSL) != yes {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/openssl-$(OpenSSLVer)/include ;
+  UseProgLibs += 3rdPartyLibs/openssl-$(OpenSSLVer) ;
+}
+
+UseProgLibs +=
+  gameLibs/compressionUtils
+  3rdPartyLibs/hash/BLAKE3
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_custom_envi_probe_pull ;
+  UseProgLibs += daNetGameLibs/custom_envi_probe ;
+}

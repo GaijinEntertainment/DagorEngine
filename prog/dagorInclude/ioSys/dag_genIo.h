@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -35,6 +34,12 @@ public:
     SaveException(const char *desc, int ofs = 0) : DagorException(1, desc), fileOffset(ofs) {}
   };
 
+
+  IGenSave() = default;
+  IGenSave(const IGenSave &) = default;
+  IGenSave(IGenSave &&) = default;
+  IGenSave &operator=(const IGenSave &) = default;
+  IGenSave &operator=(IGenSave &&) = default;
 
   /// virtual destructor
   virtual ~IGenSave() {}
@@ -215,6 +220,12 @@ public:
     LoadException(const char *desc, int ofs = 0) : DagorException(2, desc), fileOffset(ofs) {}
   };
 
+
+  IGenLoad() = default;
+  IGenLoad(const IGenLoad &) = default;
+  IGenLoad(IGenLoad &&) = default;
+  IGenLoad &operator=(const IGenLoad &) = default;
+  IGenLoad &operator=(IGenLoad &&) = default;
 
   /// virtual destructor
   virtual ~IGenLoad() {}

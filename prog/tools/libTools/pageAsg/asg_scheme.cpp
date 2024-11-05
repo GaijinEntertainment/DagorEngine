@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/pageAsg/asg_scheme.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_Point3.h>

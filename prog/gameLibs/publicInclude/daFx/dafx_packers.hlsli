@@ -46,16 +46,6 @@ uint pack_4b( uint4_cref v )
   return pack_4b( v.x, v.y, v.z, v.w );
 }
 
-#ifdef DAFX_USE_VEC_MATH
-DAFX_INLINE
-vec4i unpack_4b_v4i( uint v )
-{
-  return v_andi(
-    v_make_vec4i( v, v >> 8, v >> 16, v >> 24 ),
-    v_splatsi( 0xff ) );
-}
-#endif
-
 DAFX_INLINE
 uint4 unpack_4b( uint v )
 {
@@ -85,13 +75,13 @@ DAFX_INLINE
 float3 unpack_uint_to_n3f_1b( uint v, uint1_ref w )
 {
 #ifdef DAFX_USE_VEC_MATH
-  vec4i vi = unpack_4b_v4i( v );
+  vec4i vi = v_cvt_byte_vec4i( v );
   w = v_extract_wi( vi );
   vec4f vf = v_mul(
     v_cvt_vec4f( vi ), v_splats( 1.f / 255.f ) );
-  float4 f4;
-  v_stu( &f4.x, vf );
-  return float3( f4.x, f4.y, f4.z );
+  float3 f3;
+  v_stu_p3( &f3.x, vf );
+  return f3;
 #else
   uint4 c = unpack_4b( v );
   float3 r;
@@ -135,7 +125,7 @@ float4 unpack_uint_to_n4f( uint v )
 {
 #ifdef DAFX_USE_VEC_MATH
   vec4f vf = v_mul(
-    v_cvt_vec4f( unpack_4b_v4i( v ) ), v_splats( 1.f / 255.f ) );
+    v_byte_to_float( v ), v_splats( 1.f / 255.f ) );
   float4 f4;
   v_stu( &f4.x, vf );
   return f4;
@@ -153,7 +143,13 @@ float4 unpack_uint_to_n4f( uint v )
 DAFX_INLINE
 float4 unpack_e3dcolor_to_n4f( uint v )
 {
-  float4 f4 = unpack_uint_to_n4f( v );
+  float4 f4;
+#if defined(DAFX_USE_VEC_MATH) && _TARGET_SIMD_SSE >= 4 // Note: _mm_cvtepu8_epi32 is SSE4.1
+  vec4f vn = v_mul(v_cvti_vec4f(_mm_cvtepu8_epi32(v_seti_x(v))), v_splats(1.f / 255.f));
+  v_stu(&f4.x, _mm_shuffle_ps(vn, vn, _MM_SHUFFLE(3, 0, 1, 2))); // BGRA -> RGBA
+  return f4;
+#endif
+  f4 = unpack_uint_to_n4f( v ); //-V779
   return float4( f4.z, f4.y, f4.x, f4.w );
 }
 
@@ -165,7 +161,7 @@ uint pack_s3f_1b_to_uint( float3_cref v, uint w, float1_ref out_scale )
   vec4f vf = v_make_vec4f( v.x, v.y, v.z, 0 );
   vec3f vl = v_length3( vf );
   out_scale = v_extract_x( vl );
-  vf = out_scale > FLT_EPSILON ? v_div( vf, vl ) : v_zero();
+  vf = v_andnot( v_is_unsafe_positive_divisor( vl ), v_div( vf, vl ) );
   vf = v_add(
     v_mul( vf, v_splats( 0.5f ) ),
     v_splats( 0.5 ) );
@@ -192,16 +188,16 @@ DAFX_INLINE
 float3 unpack_uint_to_s3f_1b( uint v, float scale, uint1_ref w )
 {
 #ifdef DAFX_USE_VEC_MATH
-  vec4i vi = unpack_4b_v4i( v );
+  vec4i vi = v_cvt_byte_vec4i( v );
   w = v_extract_wi( vi );
   vec4f vf = v_add(
     v_mul(
       v_cvt_vec4f( vi ), v_splats( 2.f / 255.f ) ),
     v_splats( -1.f ) );
-  vf = v_mul( v_norm3_safe( vf ), v_splats( scale ) );
-  float4 f4;
-  v_stu( &f4.x, vf );
-  return float3( f4.x, f4.y, f4.z );
+  vf = v_mul( v_norm3_safe( vf, v_zero() ), v_splats( scale ) );
+  float3 f3;
+  v_stu_p3( &f3.x, vf );
+  return f3;
 #else
   float3 r = unpack_uint_to_n3f_1b( v, w );
   r.x = r.x * 2.f - 1.f;
@@ -250,14 +246,14 @@ DAFX_INLINE
 float3 unpack_uint_to_n3s( uint v )
 {
 #ifdef DAFX_USE_VEC_MATH
-  vec4i vi = unpack_4b_v4i( v );
+  vec4i vi = v_cvt_byte_vec4i( v );
   uint w = v_extract_wi( vi );
   vec4f vf = v_mul( v_cvt_vec4f( vi ), v_splats( 1.f / 255.f ) );
 
-  vf = v_mul( vf, v_make_vec4f( ( w & 1 ) ? -1 : 1, ( w & 2 ) ? -1 : 1, ( w & 4 ) ? -1 : 1, 0 ) );
-  float4 f4;
-  v_stu( &f4.x, vf );
-  return float3( f4.x, f4.y, f4.z );
+  vf = v_xor( vf, v_and( v_make_vec4f_mask(w), V_CI_SIGN_MASK ) );
+  float3 f3;
+  v_stu_p3( &f3.x, vf );
+  return f3;
 #else
   uint4 b = unpack_4b( v );
   float3 r = float3(

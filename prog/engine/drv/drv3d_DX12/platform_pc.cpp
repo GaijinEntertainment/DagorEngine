@@ -1,44 +1,23 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "device.h"
+#include <startup/dag_globalSettings.h>
 
 using namespace drv3d_dx12;
 
-bool drv3d_dx12::is_hdr_available(const ComPtr<IDXGIOutput> &output)
+eastl::optional<HDRCapabilities> drv3d_dx12::get_hdr_caps(const ComPtr<IDXGIOutput> &output)
 {
-  if (!output)
-    return false;
-
   ComPtr<IDXGIOutput6> output6;
-  if (FAILED(output.As(&output6)))
-    return false;
-
   DXGI_OUTPUT_DESC1 desc1;
-  if (FAILED(output6->GetDesc1(&desc1)))
-    return false;
-
-  return desc1.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
-}
-
-bool drv3d_dx12::change_hdr(bool force_enable, const ComPtr<IDXGIOutput> &output)
-{
-  static_assert(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 != 0, "The aggreagete initialized "
-                                                                 "desc1's ColorSpace check will "
-                                                                 "give false result!");
-  DXGI_OUTPUT_DESC1 desc1{};
-
-  if (output)
+  if (output && SUCCEEDED(output.As(&output6)) && SUCCEEDED(output6->GetDesc1(&desc1)) &&
+      desc1.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020)
   {
-    ComPtr<IDXGIOutput6> output6;
-    if (SUCCEEDED(output.As(&output6)))
-    {
-      if (FAILED(output6->GetDesc1(&desc1)))
-        desc1 = {};
-    }
+    return eastl::make_optional<HDRCapabilities>(desc1.MinLuminance, desc1.MaxLuminance, desc1.MaxFullFrameLuminance);
   }
-
-  bool is_hdr_enabled = force_enable ? true : desc1.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
-  hdr_changed(is_hdr_enabled, desc1.MinLuminance, desc1.MaxLuminance, desc1.MaxFullFrameLuminance);
-  return is_hdr_enabled;
+  return eastl::nullopt;
 }
+
+bool drv3d_dx12::is_hdr_available(const ComPtr<IDXGIOutput> &output) { return get_hdr_caps(output).has_value(); }
 
 #if !_TARGET_64BIT
 bool drv3d_dx12::is_wow64()
@@ -58,22 +37,6 @@ bool drv3d_dx12::is_wow64()
   return FALSE != isWow64;
 }
 #endif
-
-namespace
-{
-struct RegistryKeyHandler
-{
-  typedef HKEY pointer;
-  void operator()(HKEY lib)
-  {
-    if (lib)
-    {
-      RegCloseKey(lib);
-    }
-  }
-};
-using RegistryKeyPtr = eastl::unique_ptr<HKEY, RegistryKeyHandler>;
-} // namespace
 
 #if DEBUG_REPORT_REGISTRY_INSPECTION
 #define DEBUG_REG debug
@@ -119,7 +82,7 @@ DriverVersion drv3d_dx12::get_driver_version_from_registry(LUID adapter_luid)
   DEBUG_REG("DX12: Found %u subkeys", subKeyCount);
   if (subKeyCount)
   {
-    eastl::vector<char> nameBuf;
+    dag::Vector<char> nameBuf;
     nameBuf.resize(maxSubKeyLength + 1, '\0');
 
     for (DWORD k = 0; k < subKeyCount; ++k)
@@ -189,119 +152,6 @@ DriverVersion drv3d_dx12::get_driver_version_from_registry(LUID adapter_luid)
 
 namespace
 {
-struct RegistryKey
-{
-  RegistryKeyPtr ptr;
-
-  RegistryKey() = default;
-  RegistryKey(RegistryKey &&) = default;
-  RegistryKey &operator=(RegistryKey &&) = default;
-  ~RegistryKey() = default;
-
-  explicit RegistryKey(HKEY key) : ptr{key} {}
-
-  RegistryKey(HKEY key, LPCSTR sub_key, DWORD options, REGSAM sam) { open(key, sub_key, options, sam); }
-
-  RegistryKey(const RegistryKey &key, LPCSTR sub_key, DWORD options, REGSAM sam) { open(key.ptr.get(), sub_key, options, sam); }
-
-  LSTATUS open(HKEY key, LPCSTR sub_key, DWORD options, REGSAM sam)
-  {
-    DEBUG_REG("DX12: Opening Registry key %p <%s> %u %u", key, sub_key, options, sam);
-    HKEY result;
-    auto status = RegOpenKeyExA(key, sub_key, options, sam, &result);
-    if (ERROR_SUCCESS == status)
-    {
-      DEBUG_REG("DX12: ...success %p", result);
-      ptr.reset(result);
-    }
-    else
-    {
-      DEBUG_REG("DX12: ...failed");
-    }
-    return status;
-  }
-
-  RegistryKey openSubKey(LPCSTR sub_key, DWORD options, REGSAM sam) const
-  {
-    RegistryKey newKey;
-    newKey.open(ptr.get(), sub_key, options, sam);
-    return newKey;
-  }
-
-  eastl::tuple<DWORD, DWORD> querySubKeyCountAndMaxLength() const
-  {
-    DWORD count = 0;
-    DWORD length = 0;
-
-    RegQueryInfoKeyA(ptr.get(), nullptr, nullptr, nullptr, &count, &length, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
-    DEBUG_REG("DX12: querySubKeyCountAndMaxLength of %p -> %u, %u", ptr.get(), count, length);
-
-    return eastl::make_tuple(count, length);
-  }
-
-  eastl::tuple<DWORD, DWORD, DWORD> queryValueCountMaxLengthAndSize() const
-  {
-    DWORD count = 0;
-    DWORD length = 0;
-    DWORD value = 0;
-
-    RegQueryInfoKeyA(ptr.get(), nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, &count, &length, &value, nullptr, nullptr);
-    DEBUG_REG("DX12: queryValueCountMaxLengthAndSize of %p -> %u, %u, %u", ptr.get(), count, length, value);
-
-    return eastl::make_tuple(count, length, value);
-  }
-
-  eastl::string_view enumKeyName(DWORD index, eastl::span<char> buffer)
-  {
-    auto maxLength = static_cast<DWORD>(buffer.size());
-    if (ERROR_SUCCESS == RegEnumKeyExA(ptr.get(), index, buffer.data(), &maxLength, nullptr, nullptr, nullptr, nullptr))
-    {
-      DEBUG_REG("DX12: enumKeyName of %p at %u -> <%s>", ptr.get(), index, buffer.data());
-      return {buffer.data(), maxLength};
-    }
-    else
-    {
-      DEBUG_REG("DX12: enumKeyName of %p at %u failed", ptr.get(), index);
-      return {};
-    }
-  }
-
-  eastl::string_view enumValueName(DWORD index, eastl::span<char> buffer)
-  {
-    auto maxNameLength = static_cast<DWORD>(buffer.size());
-    if (ERROR_SUCCESS == RegEnumValueA(ptr.get(), index, buffer.data(), &maxNameLength, nullptr, nullptr, nullptr, nullptr))
-    {
-      DEBUG_REG("DX12: enumValueName of %p at %u -> <%s>", ptr.get(), index, buffer.data());
-      return {buffer.data(), maxNameLength};
-    }
-    else
-    {
-      DEBUG_REG("DX12: enumValueName of %p at %u failed", ptr.get(), index);
-      return {};
-    }
-  }
-
-  eastl::tuple<eastl::string_view, eastl::span<char>> enumValueNameAndValue(DWORD index, eastl::span<char> name_buffer,
-    eastl::span<char> data_buffer)
-  {
-    auto maxNameLength = static_cast<DWORD>(name_buffer.size());
-    auto maxDataLength = static_cast<DWORD>(data_buffer.size());
-    if (ERROR_SUCCESS == RegEnumValueA(ptr.get(), index, name_buffer.data(), &maxNameLength, nullptr, nullptr,
-                           reinterpret_cast<LPBYTE>(data_buffer.data()), &maxDataLength))
-    {
-      DEBUG_REG("DX12: enumValueNameAndValue of %p at %u -> <%s> %u", ptr.get(), index, name_buffer.data(), maxDataLength);
-      return eastl::make_tuple(eastl::string_view{name_buffer.data(), maxNameLength}, data_buffer.subspan(0, maxDataLength));
-    }
-    else
-    {
-      DEBUG_REG("DX12: enumValueNameAndValue of %p at %u failed", ptr.get(), index);
-      return {};
-    }
-  }
-
-  explicit operator bool() const { return static_cast<bool>(ptr); }
-};
-
 bool is_this_application_config_name(eastl::string_view app_path, eastl::span<char> config)
 {
   eastl::string_view configPath{config.data(), strlen(config.data())};
@@ -404,10 +254,10 @@ D3D12_DRED_ENABLEMENT drv3d_dx12::get_application_DRED_enablement_from_registry(
     return result;
   }
 
-  eastl::vector<char> nameBuf;
+  dag::Vector<char> nameBuf;
   nameBuf.resize(maxSubKeyLength + 1, '\0');
 
-  eastl::vector<char> valueBuf;
+  dag::Vector<char> valueBuf;
 
   for (DWORD k = 0; k < subKeyCount; ++k)
   {
@@ -471,3 +321,46 @@ D3D12_DRED_ENABLEMENT drv3d_dx12::get_application_DRED_enablement_from_registry(
 #if !_TARGET_64BIT
 #pragma optimize("", on)
 #endif
+
+DXGI_GPU_PREFERENCE drv3d_dx12::get_gpu_preference_from_registry()
+{
+  static const char directx_path[] = "Software\\Microsoft\\DirectX\\UserGpuPreferences";
+  static const char gpu_preference[] = "GpuPreference";
+
+  eastl::string_view exeName(dgs_argv[0]);
+
+  REGSAM options = KEY_READ;
+  RegistryKey baseKey{HKEY_CURRENT_USER, directx_path, 0, options};
+  if (!baseKey)
+  {
+    DEBUG_REG("DX12: Failed...");
+    logdbg("DX12: Unable to open current user registry path <%s>", directx_path);
+    return DXGI_GPU_PREFERENCE_UNSPECIFIED;
+  }
+
+  auto [valueCount, maxValueLenth, valueSize] = baseKey.queryValueCountMaxLengthAndSize();
+  if (!valueCount)
+  {
+    return DXGI_GPU_PREFERENCE_UNSPECIFIED;
+  }
+
+  dag::Vector<char> nameBuf(maxValueLenth + 1, '\0'), valueBuf(valueSize + 1, '\0');
+  for (DWORD v = 0; v < valueCount; ++v)
+  {
+    auto [valueName, value] = baseKey.enumValueNameAndValue(v, nameBuf, valueBuf);
+    if (valueName == exeName)
+    {
+      eastl::string_view stringValue(value.data(), value.size());
+      if (stringValue.starts_with(gpu_preference))
+      {
+        switch (value[sizeof(gpu_preference)])
+        {
+          case '1': return DXGI_GPU_PREFERENCE_MINIMUM_POWER;
+          case '2': return DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
+        }
+      }
+    }
+  }
+
+  return DXGI_GPU_PREFERENCE_UNSPECIFIED;
+}

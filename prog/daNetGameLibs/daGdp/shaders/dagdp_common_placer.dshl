@@ -1,0 +1,317 @@
+include "dagdp_common.dshl"
+
+hlsl {
+  #include "dagdp_common_placer.hlsli"
+}
+
+macro INIT_DAGDP_COMMON_PLACER()
+  hlsl(cs) {
+    uint getCounterIndex(uint renderableIndex, uint viewportIndex, uint numRenderables)
+    {
+      return viewportIndex * numRenderables + renderableIndex;
+    }
+
+    bool checkSlope(float slopeFactor, uint flags, float3 surfaceNormal, float r)
+    {
+      float w = saturate(1.0 + slopeFactor * (surfaceNormal.y - 1.0));
+
+      FLATTEN
+      if (flags & SLOPE_PLACEMENT_IS_INVERTED_BIT)
+        w = 1.0 - w;
+
+      return r <= w;
+    }
+
+    void writeInstance(PlaceableGpuData placeable, float3 instancePos, int2 stablePos, float3 yawAxis, float2 xzVector, float randScale, uint instanceElementOffset)
+    {
+      float3x3 basis;
+      basis[1] = yawAxis;
+      basis[2] = normalize(cross(float3(xzVector.x, 0.0, xzVector.y), yawAxis));
+      basis[0] = normalize(cross(basis[1], basis[2]));
+
+      float3x3 basisT = transpose(basis);
+      float yawRadians = lerp(placeable.yawRadiansMin, placeable.yawRadiansMax, stableRand(stablePos, prng_seed_yaw));
+      float pitchRadians = lerp(placeable.pitchRadiansMin, placeable.pitchRadiansMax, stableRand(stablePos, prng_seed_pitch));
+      float rollRadians = lerp(placeable.rollRadiansMin, placeable.rollRadiansMax, stableRand(stablePos, prng_seed_roll));
+
+      // Rotate around local Y axis ("yaw").
+      {
+        float s, c;
+        sincos(yawRadians, s, c);
+        float2x2 mat = float2x2(
+          c, s, // Y (component 1) is an "odd" axis, so sine signs are reversed.
+          -s, c
+        );
+
+        basisT[0].xz = mul(basisT[0].xz, mat);
+        basisT[1].xz = mul(basisT[1].xz, mat);
+        basisT[2].xz = mul(basisT[2].xz, mat);
+      }
+
+      // Rotate around local X axis ("pitch").
+      {
+        float s, c;
+        sincos(pitchRadians, s, c);
+        float2x2 mat = float2x2(
+          c, -s,
+          s, c
+        );
+
+        basisT[0].yz = mul(basisT[0].yz, mat);
+        basisT[1].yz = mul(basisT[1].yz, mat);
+        basisT[2].yz = mul(basisT[2].yz, mat);
+      }
+
+      // Rotate around local Z axis ("roll").
+      {
+        float s, c;
+        sincos(rollRadians, s, c);
+        float2x2 mat = float2x2(
+          c, -s,
+          s, c
+        );
+
+        basisT[0].xy = mul(basisT[0].xy, mat);
+        basisT[1].xy = mul(basisT[1].xy, mat);
+        basisT[2].xy = mul(basisT[2].xy, mat);
+      }
+
+      // Write as column-major.
+      bufferAt(instance_data, instanceElementOffset)     = float4(randScale * basisT[0], instancePos.x);
+      bufferAt(instance_data, instanceElementOffset + 1) = float4(randScale * basisT[1], instancePos.y);
+      bufferAt(instance_data, instanceElementOffset + 2) = float4(randScale * basisT[2], instancePos.z);
+      bufferAt(instance_data, instanceElementOffset + 3) = float4(asfloat(placeable.riPoolOffset), 0, 0, 0);
+    }
+
+    uint getPlaceableIndex(VariantGpuData variant, float r)
+    {
+      float randWeight = r - variant.placeableWeightEmpty;
+      uint placeableIndex = ~0u;
+
+      LOOP
+      for (uint i = variant.placeableStartIndex; i < variant.placeableEndIndex && randWeight > 0.0; ++i)
+      {
+          randWeight -= structuredBufferAt(placeable_weights, i);
+
+          FLATTEN
+          if (randWeight <= 0.0)
+            placeableIndex = i;
+      }
+
+      return placeableIndex;
+    }
+
+    uint getRenderableIndex(VariantGpuData variant, uint placeableIndex, float3 instancePos, float randScale, bool isVisible)
+    {
+      uint rangeOffset = ~0u;
+
+      FLATTEN
+      if (isVisible && (placeableIndex != ~0u)) {
+        float dist = distance(instancePos, viewport_pos) / randScale;
+
+        LOOP
+        for (uint i = variant.drawRangeStartIndex; i < variant.drawRangeEndIndex; ++i)
+        {
+          if (dist < structuredBufferAt(draw_ranges, i))
+          {
+            rangeOffset = i - variant.drawRangeStartIndex;
+            break;
+          }
+        }
+      }
+
+      uint renderableIndex = ~0u;
+
+      FLATTEN
+      if (isVisible && (rangeOffset != ~0u))
+        renderableIndex = structuredBufferAt(renderable_indices, variant.renderableIndicesStartIndex + rangeOffset * variant.placeableCount + placeableIndex - variant.placeableStartIndex);
+
+      return renderableIndex;
+    }
+  }
+endmacro
+
+// g_storage: must be `groupshared uint[N]`, N >= 2 * threadgroup_size.
+// g_cond: must be `groupshared uint`.
+macro INIT_DAGDP_COMMON_PLACER_THREADGROUP(threadgroup_size, g_storage, g_cond)
+  hlsl(cs) {
+    bool threadGroupAnyTrue(bool cond, uint tId)
+    {
+      // The branch below can confuse FXC and lead to failed uniform flow control checks.
+      // This additional sync satifies the compiler, and unlike the previous workaround, prevents device hang on Intel GPUs.
+      ##if hardware.dx11
+        GroupMemoryBarrierWithGroupSync();
+      ##endif
+
+      BRANCH
+      if (tId == 0)
+        g_cond = 0;
+
+      GroupMemoryBarrierWithGroupSync();
+
+      #if WAVE_INTRINSICS
+        bool waveCond = WaveAllBitOr(cond ? 1 : 0) != 0;
+
+        BRANCH
+        if (WaveGetLaneIndex() == 0)
+          InterlockedOr(g_cond, waveCond);
+      #else
+        InterlockedOr(g_cond, cond);
+      #endif
+
+      GroupMemoryBarrierWithGroupSync();
+
+      return g_cond != 0;
+    }
+
+    // Intra-group knowledge about which threads have the same placeable as the current thread.
+    struct SamePlaceableInfo
+    {
+      uint count;
+      uint offset;
+    };
+
+    SamePlaceableInfo getSamePlaceableInfo(uint placeableIndex, uint tId)
+    {
+      SamePlaceableInfo result;
+      result.count = ~0u;
+      result.offset = ~0u;
+
+      uint tIdBit = 1u << (tId & 0x1F);
+
+      // Unfortunately, this has to be a loop to fit into fixed groupshared memory, and still support arbitrary
+      // number of placeables.
+      //
+      // TODO: might be worthwhile to get max actual placeableIndex and stop the loop earlier.
+      LOOP
+      for (uint pStart = 0; pStart < uint(num_placeables); pStart += threadgroup_size)
+      {
+        g_storage[2 * tId] = 0;
+        g_storage[2 * tId + 1] = 0;
+
+        GroupMemoryBarrierWithGroupSync();
+
+        uint p = placeableIndex - pStart; // May underflow, by design.
+        bool pValid = p < threadgroup_size;
+
+        BRANCH
+        if (pValid)
+          InterlockedOr(g_storage[2 * p + (tId < 32 ? 0 : 1)], tIdBit);
+
+        GroupMemoryBarrierWithGroupSync();
+
+        FLATTEN
+        if (pValid)
+        {
+          uint2 pBits = uint2(g_storage[2 * p], g_storage[2 * p + 1]);
+
+          uint2 mBits = pBits;
+          FLATTEN
+          if (tId < 32u)
+          {
+            mBits.x = mBits.x & (tIdBit - 1);
+            mBits.y = 0;
+          }
+          else
+            mBits.y = mBits.y & (tIdBit - 1);
+
+          uint2 pBitCounts = countbits(pBits);
+          uint2 mBitCounts = countbits(mBits);
+          result.count = pBitCounts.x + pBitCounts.y;
+          result.offset = mBitCounts.x + mBitCounts.y;
+
+          uint tileLimit = structuredBufferAt(placeable_tile_limits, placeableIndex);
+          result.count = min(result.count, tileLimit);
+        }
+
+        GroupMemoryBarrierWithGroupSync();
+      }
+
+      FLATTEN
+      if (placeableIndex != ~0u)
+      {
+        ##assert(result.count != ~0u, "getSamePlaceableInfo: count is invalid");
+        ##assert(result.count > 0, "getSamePlaceableInfo: count can't be zero");
+        ##assert(result.offset != ~0u, "getSamePlaceableInfo: offset is invalid");
+      }
+
+      return result;
+    }
+
+    // Intra-group knowledge about which threads have the same renderable as the current thread.
+    struct SameRenderableInfo
+    {
+      uint baseThreadId;
+      uint count;
+      uint offset;
+    };
+
+    SameRenderableInfo getSameRenderableInfo(uint renderableIndex, uint tId)
+    {
+      SameRenderableInfo result;
+      result.baseThreadId = ~0u;
+      result.count = ~0u;
+      result.offset = ~0u;
+
+      uint tIdBit = 1u << (tId & 0x1F);
+
+      // Unfortunately, this has to be a loop to fit into fixed groupshared memory, and still support arbitrary
+      // number of renderables.
+      //
+      // TODO: might be worthwhile to get max actual renderableIndex and stop the loop earlier.
+      LOOP
+      for (uint rStart = 0; rStart < uint(num_renderables); rStart += threadgroup_size)
+      {
+        g_storage[2 * tId] = 0;
+        g_storage[2 * tId + 1] = 0;
+
+        GroupMemoryBarrierWithGroupSync();
+
+        uint r = renderableIndex - rStart; // May underflow, by design.
+        bool rValid = r < threadgroup_size;
+
+        BRANCH
+        if (rValid)
+          InterlockedOr(g_storage[2 * r + (tId < 32 ? 0 : 1)], tIdBit);
+
+        GroupMemoryBarrierWithGroupSync();
+
+        FLATTEN
+        if (rValid)
+        {
+          uint2 rBits = uint2(g_storage[2 * r], g_storage[2 * r + 1]);
+
+          uint2 mBits = rBits;
+          FLATTEN
+          if (tId < 32u)
+          {
+            mBits.x = mBits.x & (tIdBit - 1);
+            mBits.y = 0;
+          }
+          else
+            mBits.y = mBits.y & (tIdBit - 1);
+
+          uint2 rBitCounts = countbits(rBits);
+          uint2 mBitCounts = countbits(mBits);
+
+          result.baseThreadId = rBits.x == 0 ? 32 + firstbitlow(rBits.y) : firstbitlow(rBits.x);
+          result.count = rBitCounts.x + rBitCounts.y;
+          result.offset = mBitCounts.x + mBitCounts.y;
+        }
+
+        GroupMemoryBarrierWithGroupSync();
+      }
+
+      FLATTEN
+      if (renderableIndex != ~0u)
+      {
+        ##assert(result.count != ~0u, "getSameRenderableInfo: count is invalid");
+        ##assert(result.count > 0, "getSameRenderableInfo: count can't be zero");
+        ##assert(result.offset != ~0u, "getSameRenderableInfo: offset is invalid");
+        ##assert(result.baseThreadId < threadgroup_size, "getSameRenderableInfo: baseThreadId is invalid");
+      }
+
+      return result;
+    }
+  }
+endmacro

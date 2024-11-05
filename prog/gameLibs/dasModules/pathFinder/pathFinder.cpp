@@ -1,9 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daScript/daScript.h>
 #include <dasModules/aotPathFinder.h>
 #include <pathFinder/pathFinder.h>
 
 DAS_BASE_BIND_ENUM_98(pathfinder::FindPathResult, FindPathResult, FPR_FAILED, FPR_PARTIAL, FPR_FULL);
-DAS_BASE_BIND_ENUM_98(pathfinder::PolyFlag, PolyFlag, POLYFLAG_GROUND, POLYFLAG_OBSTACLE, POLYFLAG_JUMP, POLYFLAG_LADDER);
+DAS_BASE_BIND_ENUM_98(pathfinder::PolyFlag, PolyFlag, POLYFLAG_GROUND, POLYFLAG_OBSTACLE, POLYFLAG_JUMP, POLYFLAG_LADDER,
+  POLYFLAG_BLOCKED);
 DAS_BASE_BIND_ENUM_98(dtStraightPathFlags, StraightPathFlags, DT_STRAIGHTPATH_START, DT_STRAIGHTPATH_END,
   DT_STRAIGHTPATH_OFFMESH_CONNECTION);
 
@@ -118,6 +121,8 @@ public:
 
     das::addExtern<DAS_BIND_FUN(find_path_req)>(*this, lib, "find_path", das::SideEffects::modifyArgumentAndAccessExternal,
       "bind_dascript::find_path_req");
+    das::addExtern<DAS_BIND_FUN(find_path_req_custom)>(*this, lib, "find_path", das::SideEffects::modifyArgumentAndAccessExternal,
+      "bind_dascript::find_path_req_custom");
 
     das::addExtern<DAS_BIND_FUN(find_path)>(*this, lib, "find_path", das::SideEffects::modifyArgumentAndAccessExternal,
       "bind_dascript::find_path");
@@ -125,14 +130,15 @@ public:
     das::addExtern<DAS_BIND_FUN(check_path_req)>(*this, lib, "check_path", das::SideEffects::modifyArgumentAndAccessExternal,
       "bind_dascript::check_path_req");
 
-    das::addExtern<bool (*)(const Point3 &, const Point3 &, const Point3 &, float, float, const pathfinder::CustomNav *, int),
+    das::addExtern<bool (*)(const Point3 &, const Point3 &, const Point3 &, float, float, const pathfinder::CustomNav *, int, int),
       &pathfinder::check_path>(*this, lib, "check_path", das::SideEffects::accessExternal, "::pathfinder::check_path");
 
     das::addExtern<float (*)(pathfinder::FindRequest &, float, float), &pathfinder::calc_approx_path_length>(*this, lib,
       "calc_approx_path_length", das::SideEffects::modifyArgumentAndAccessExternal, "::pathfinder::calc_approx_path_length");
 
-    das::addExtern<float (*)(const Point3 &, const Point3 &, const Point3 &, float, float, int), &pathfinder::calc_approx_path_length>(
-      *this, lib, "calc_approx_path_length", das::SideEffects::accessExternal, "::pathfinder::calc_approx_path_length");
+    das::addExtern<float (*)(const Point3 &, const Point3 &, const Point3 &, float, float, int, int),
+      &pathfinder::calc_approx_path_length>(*this, lib, "calc_approx_path_length", das::SideEffects::accessExternal,
+      "::pathfinder::calc_approx_path_length");
 
     das::addExtern<bool (*)(const Point3 &, const Point3 &, const Point3 &, das::float3 &), &traceray_navmesh>(*this, lib,
       "traceray_navmesh", das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::traceray_navmesh");
@@ -208,14 +214,36 @@ public:
       "tilecache_disable_dynamic_ladder_links", das::SideEffects::modifyExternal,
       "::pathfinder::tilecache_disable_dynamic_ladder_links");
 
+    das::addExtern<DAS_BIND_FUN(pathfinder::tilecache_is_blocking)>(*this, lib, "tilecache_is_blocking",
+      das::SideEffects::accessExternal, "::pathfinder::tilecache_is_blocking");
+    das::addExtern<DAS_BIND_FUN(pathfinder::tilecache_is_working)>(*this, lib, "tilecache_is_working",
+      das::SideEffects::accessExternal, "::pathfinder::tilecache_is_working");
+
     das::addExtern<DAS_BIND_FUN(tilecache_obstacle_add)>(*this, lib, "tilecache_obstacle_add", das::SideEffects::modifyExternal,
       "bind_dascript::tilecache_obstacle_add");
+    das::addExtern<DAS_BIND_FUN(tilecache_obstacle_add_with_type)>(*this, lib, "tilecache_obstacle_add",
+      das::SideEffects::modifyExternal, "bind_dascript::tilecache_obstacle_add_with_type");
 
     das::addExtern<DAS_BIND_FUN(pathfinder::mark_polygons_lower)>(*this, lib, "mark_polygons_lower", das::SideEffects::modifyExternal,
       "pathfinder::mark_polygons_lower");
 
     das::addExtern<DAS_BIND_FUN(pathfinder::mark_polygons_upper)>(*this, lib, "mark_polygons_upper", das::SideEffects::modifyExternal,
       "pathfinder::mark_polygons_upper");
+
+    das::addExtern<DAS_BIND_FUN(change_navpolys_flags_in_box)>(*this, lib, "change_navpolys_flags_in_box",
+      das::SideEffects::modifyExternal, "bind_dascript::change_navpolys_flags_in_box");
+
+    das::addExtern<DAS_BIND_FUN(change_navpolys_flags_in_box_no_area_cb)>(*this, lib, "change_navpolys_flags_in_box",
+      das::SideEffects::modifyExternal, "bind_dascript::change_navpolys_flags_in_box_no_area_cb");
+
+    das::addExtern<DAS_BIND_FUN(change_navpolys_flags_in_poly)>(*this, lib, "change_navpolys_flags_in_poly",
+      das::SideEffects::modifyExternal, "bind_dascript::change_navpolys_flags_in_poly");
+
+    das::addExtern<DAS_BIND_FUN(change_navpolys_flags_in_poly_no_area_cb)>(*this, lib, "change_navpolys_flags_in_poly",
+      das::SideEffects::modifyExternal, "bind_dascript::change_navpolys_flags_in_poly_no_area_cb");
+
+    das::addExtern<DAS_BIND_FUN(pathfinder::change_navpolys_flags_all)>(*this, lib, "change_navpolys_flags_all",
+      das::SideEffects::modifyExternal, "pathfinder::change_navpolys_flags_all");
 
     das::addExtern<DAS_BIND_FUN(pathfinder::is_loaded_ex)>(*this, lib, "pathfinder_is_loaded_ex", das::SideEffects::accessExternal,
       "::pathfinder::is_loaded_ex");
@@ -224,21 +252,31 @@ public:
       "bind_dascript::find_path_ex");
 
     das::addExtern<DAS_BIND_FUN(find_path_ex_req)>(*this, lib, "find_path_ex", das::SideEffects::modifyArgumentAndAccessExternal,
-      "bind_dascript::find_path_ex");
+      "bind_dascript::find_path_ex_req");
 
     das::addExtern<DAS_BIND_FUN(check_path_ex_req)>(*this, lib, "check_path_ex", das::SideEffects::modifyArgumentAndAccessExternal,
       "bind_dascript::check_path_ex_req");
 
-    das::addExtern<bool (*)(int, const Point3 &, const Point3 &, const Point3 &, float, float, const pathfinder::CustomNav *, int),
+    das::addExtern<bool (*)(int, const Point3 &, const Point3 &, const Point3 &, float, float, const pathfinder::CustomNav *, int,
+                     int),
       &pathfinder::check_path_ex>(*this, lib, "check_path_ex", das::SideEffects::accessExternal, "::pathfinder::check_path_ex");
 
     das::addExtern<DAS_BIND_FUN(pathfinder::get_triangle_by_pos_ex)>(*this, lib, "get_triangle_by_pos_ex",
       das::SideEffects::modifyArgumentAndAccessExternal, "pathfinder::get_triangle_by_pos_ex");
 
+    das::addExtern<DAS_BIND_FUN(pathfinder::set_poly_flags_ex)>(*this, lib, "set_poly_flags_ex", das::SideEffects::modifyExternal,
+      "pathfinder::set_poly_flags_ex");
+
+    das::addExtern<DAS_BIND_FUN(pathfinder::get_poly_flags_ex)>(*this, lib, "get_poly_flags_ex", das::SideEffects::modifyArgument,
+      "pathfinder::get_poly_flags_ex");
+
     das::addExtern<DAS_BIND_FUN(pathfinder::rebuildNavMesh_init)>(*this, lib, "rebuildNavMesh_init", das::SideEffects::modifyExternal,
       "pathfinder::rebuildNavMesh_init");
 
-    das::addExtern<DAS_BIND_FUN(pathfinder::rebuildNavMesh_setup)>(*this, lib, "rebuildNavMesh_setup",
+    das::addExtern<void (*)(const char *, float), &pathfinder::rebuildNavMesh_setup>(*this, lib, "rebuildNavMesh_setup",
+      das::SideEffects::modifyExternal, "pathfinder::rebuildNavMesh_setup");
+
+    das::addExtern<void (*)(const char *, const Point2 &), &pathfinder::rebuildNavMesh_setup>(*this, lib, "rebuildNavMesh_setup",
       das::SideEffects::modifyExternal, "pathfinder::rebuildNavMesh_setup");
 
     das::addExtern<DAS_BIND_FUN(pathfinder::rebuildNavMesh_addBBox)>(*this, lib, "rebuildNavMesh_addBBox",
@@ -274,6 +312,8 @@ public:
 
     das::addExtern<DAS_BIND_FUN(tilecache_obstacle_move)>(*this, lib, "tilecache_obstacle_move", das::SideEffects::modifyExternal,
       "bind_dascript::tilecache_obstacle_move");
+    das::addExtern<DAS_BIND_FUN(tilecache_obstacle_move_with_type)>(*this, lib, "tilecache_obstacle_move",
+      das::SideEffects::modifyExternal, "bind_dascript::tilecache_obstacle_move_with_type");
 
     das::addExtern<DAS_BIND_FUN(tilecache_obstacle_remove)>(*this, lib, "tilecache_obstacle_remove", das::SideEffects::modifyExternal,
       "bind_dascript::tilecache_obstacle_remove");
@@ -401,6 +441,7 @@ public:
     das::addConstant(*this, "POLYAREA_GROUND", (int)pathfinder::POLYAREA_GROUND);
     das::addConstant(*this, "POLYAREA_OBSTACLE", (int)pathfinder::POLYAREA_OBSTACLE);
     das::addConstant(*this, "POLYAREA_BRIDGE", (int)pathfinder::POLYAREA_BRIDGE);
+    das::addConstant(*this, "POLYAREA_BLOCKED", (int)pathfinder::POLYAREA_BLOCKED);
     das::addConstant(*this, "POLYAREA_JUMP", (int)pathfinder::POLYAREA_JUMP);
     das::addConstant(*this, "POLYAREA_WALKABLE", 63); // @see DT_TILECACHE_WALKABLE_AREA
 

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "steering.h"
 
 #include <ioSys/dag_dataBlock.h>

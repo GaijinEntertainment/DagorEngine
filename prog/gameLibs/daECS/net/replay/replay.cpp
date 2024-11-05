@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/net/netbase.h>
 #include <daECS/net/connection.h>
 #include <daECS/net/message.h>
@@ -14,6 +16,7 @@
 #include <string.h>
 #include <stdlib.h> // alloca
 #include <memory/dag_framemem.h>
+#include <supp/dag_alloca.h>
 
 #define NET_REPLAY_ECS_EVENT ECS_REGISTER_EVENT
 NET_REPLAY_ECS_EVENTS
@@ -157,9 +160,11 @@ private:
   net::dump_replay_key_frame_cb_t dump_replay_key_frame_cb;
 
 public:
-  ReplayWriterConnection(net::ConnectionId id_, net::get_replay_footer_data_cb_t get_footer_cb, net::scope_query_cb_t &&scope_query_,
-    net::dump_replay_key_frame_cb_t dump_replay_key_frame_cb) :
-    net::Connection(id_, eastl::move(scope_query_)), ReplayWriter(get_footer_cb), dump_replay_key_frame_cb(dump_replay_key_frame_cb)
+  ReplayWriterConnection(ecs::EntityManager &mgr, net::ConnectionId id_, net::get_replay_footer_data_cb_t get_footer_cb,
+    net::scope_query_cb_t &&scope_query_, net::dump_replay_key_frame_cb_t dump_replay_key_frame_cb) :
+    net::Connection(mgr, id_, eastl::move(scope_query_)),
+    ReplayWriter(get_footer_cb),
+    dump_replay_key_frame_cb(dump_replay_key_frame_cb)
   {
     net::Connection::isFiltering = false;
   }
@@ -182,7 +187,7 @@ public:
   }
   virtual int getMTU() const override { return 1 << 20; } // unlimited
   virtual danet::PeerQoSStat getPeerQoSStat() const override { return danet::PeerQoSStat{}; }
-  uint32_t getIP() const override { return 0; }
+  SystemAddress getIP() const override { return SystemAddress(); }
   const char *getIPStr() const override { return nullptr; }
   virtual void disconnect(DisconnectionCause) override { G_ASSERTF(0, "Not supported!"); }
   virtual bool isResponsive() const override { return true; }
@@ -323,13 +328,12 @@ public:
   virtual void *getControlIface() const override { return NULL; }
   bool rewind(int rewind_time)
   {
-    auto it = eastl::lower_bound(keyFrameTable.begin(), keyFrameTable.end(), rewind_time,
-      [](const auto &a, const auto &b) { return a.ts <= b; });
-    if (it == keyFrameTable.end() || it == keyFrameTable.begin())
+    auto it = eastl::find_if(keyFrameTable.rbegin(), keyFrameTable.rend(), [=](const auto &rec) { return rec.ts <= rewind_time; });
+    if (it == keyFrameTable.rend())
       return true;
 
     ReplayRecordHdr hdr{};
-    if (df_seek_to(fp, (it - 1)->offset) == -1 || df_read(fp, &hdr, sizeof(hdr)) != sizeof(hdr) || !hdr.isKeyFrame)
+    if (df_seek_to(fp, it->offset) == -1 || df_read(fp, &hdr, sizeof(hdr)) != sizeof(hdr) || !hdr.isKeyFrame)
     {
       G_ASSERTF(hdr.isKeyFrame, "[Replay] Not a key frame at offset %i", it->offset);
       return false;
@@ -337,7 +341,7 @@ public:
 
     const int lenWithAlign = (hdr.size + REC_ALIGN - 1) & ~(REC_ALIGN - 1);
     const bool needAlloc = lenWithAlign > BLOCK_SIZE;
-    blockoffset = (it - 1)->offset + sizeof(hdr) + lenWithAlign;
+    blockoffset = it->offset + sizeof(hdr) + lenWithAlign;
 
     uint8_t *keyFrameData = needAlloc ? (uint8_t *)framemem_ptr()->alloc(lenWithAlign) : buf;
     G_ASSERTF_RETURN(keyFrameData, false, "[Replay] failed allocate memory for key frame %i", lenWithAlign);
@@ -375,7 +379,7 @@ public:
     };
 
     int offsetDelta = sizeof(ReplayRecordHdr);
-    if (EASTL_UNLIKELY(blockoffset + offsetDelta > blocklen && !readNextBlock()))
+    if (DAGOR_UNLIKELY(blockoffset + offsetDelta > blocklen && !readNextBlock()))
       return connectionLost();
 
     const ReplayRecordHdr *hdr = (ReplayRecordHdr *)(buf + blockoffset);
@@ -394,7 +398,7 @@ public:
 
     G_ASSERTF_RETURN(lenWithAlign <= BLOCK_SIZE, connectionLost(), "[Replay] packet is to big %i vs %i", lenWithAlign, BLOCK_SIZE);
     offsetDelta += lenWithAlign;
-    if (EASTL_UNLIKELY(blockoffset + offsetDelta > blocklen && !readNextBlock()))
+    if (DAGOR_UNLIKELY(blockoffset + offsetDelta > blocklen && !readNextBlock()))
       return connectionLost();
 
     blockoffset += sizeof(*hdr);
@@ -450,7 +454,8 @@ namespace net
 Connection *create_replay_connection(ConnectionId id, char *write_fname, uint16_t version, get_replay_footer_data_cb_t get_footer_cb,
   scope_query_cb_t &&scope_query, dump_replay_key_frame_cb_t dump_replay_key_frame_cb)
 {
-  auto conn = eastl::make_unique<ReplayWriterConnection>(id, get_footer_cb, eastl::move(scope_query), dump_replay_key_frame_cb);
+  auto conn =
+    eastl::make_unique<ReplayWriterConnection>(*g_entity_mgr, id, get_footer_cb, eastl::move(scope_query), dump_replay_key_frame_cb);
   return conn->openForWriteTemp(write_fname, version) ? conn.release() : NULL;
 }
 

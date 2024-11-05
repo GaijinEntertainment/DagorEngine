@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_globDef.h>
 #include <winsock2.h>
 #include "ws2tcpip.h"
@@ -27,27 +29,27 @@ bool NetSockets::winsock2_init()
   // ask for Winsock version 2.2.
   if ((val = WSAStartup(MAKEWORD(2, 2), &wsaData)) != 0)
   {
-    mt_debug_ctx("--- WSAStartup failed with error %d: %s", val, NetSockets::decode_error(val));
+    DEBUG_CTX("--- WSAStartup failed with error %d: %s", val, NetSockets::decode_error(val));
     WSACleanup();
     return false;
   }
 
   winsock32_init_count++;
-  mt_debug_ctx("WinSock32 inited");
+  DEBUG_CTX("WinSock32 inited");
   return true;
 }
 void NetSockets::winsock2_term()
 {
   if (winsock32_init_count < 1)
   {
-    mt_debug_ctx("winsock32_init_count=%d in winsock2_term (bug?)", winsock32_init_count);
+    DEBUG_CTX("winsock32_init_count=%d in winsock2_term (bug?)", winsock32_init_count);
     return;
   }
   winsock32_init_count--;
   if (winsock32_init_count == 0)
   {
     WSACleanup();
-    mt_debug_ctx("WinSock32 terminated");
+    DEBUG_CTX("WinSock32 terminated");
   }
 }
 

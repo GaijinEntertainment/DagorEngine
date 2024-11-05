@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <generic/dag_DObject.h>
 #include <generic/dag_tab.h>
 #include <debug/dag_except.h>
@@ -54,7 +56,7 @@ DObject::DObject()
   else
     dobj[i] = this;
 #endif
-  // debug_ctx("DObject(%X)", this);
+  // DEBUG_CTX("DObject(%X)", this);
 }
 
 

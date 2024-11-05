@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/util/binDumpReader.h>
 #include <libTools/util/makeBindump.h>
 #include <ioSys/dag_ioUtils.h>

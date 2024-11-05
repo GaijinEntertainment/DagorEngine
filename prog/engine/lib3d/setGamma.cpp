@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <3d/dag_render.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3d_platform.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_platform.h>
 #include <util/dag_stdint.h>
 #include <math/dag_mathBase.h>
 #include <shaders/dag_shaders.h>

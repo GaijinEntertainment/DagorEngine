@@ -24,7 +24,6 @@ SourceES =
   decalsES.cpp.inl
   animCharNodeDebugES.cpp.inl
   animCharParamsDebugES.cpp.inl
-  bulletHolesES.cpp.inl
   animRandomNodeHiderES.cpp.inl
   tonemapES.cpp.inl
   shaderVarsES.cpp.inl
@@ -33,6 +32,7 @@ SourceES =
   RTPoolES.cpp.inl
   shadersES.cpp.inl
   computeShaderES.cpp.inl
+  samplerHandleES.cpp.inl
 ;
 
 if [ GLOB $(Root)/prog/gameLibs/ecs/phys : * ] && [ GLOB $(Root)/prog/gameLibs/gamePhys/ballistics : * ] {

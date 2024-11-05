@@ -17,16 +17,16 @@ UseProgLibs =
   3rdPartyLibs/phys/bullet-3/test/gtest-1.7.0
 ;
 
+include $(Root)/prog/_jBuild/defaults.jam ;
 include $(Root)/prog/3rdPartyLibs/phys/bullet-3/setup.jam ;
-if $(Platform) in win64 xboxOne scarlett { CPPopt += /wd4267 ; }
+if $(PlatformArch) = x86_64 && $(Platform) in windows xboxOne scarlett { CPPopt += /wd4267 ; }
 
 if $(PlatformSpec) = clang {
   CPPopt += -Wno-format -Wno-undefined-inline ;
-  if $(Platform) in win32 win64 xboxOne scarlett {
-    CPPopt += -fp:fast /clang:-fno-unsafe-math-optimizations ;
+  if $(Platform) in windows xboxOne scarlett {
+    CPPopt += -fp:fast ;
+    if $(PlatformArch) != arm64 { CPPopt += /clang:-fno-unsafe-math-optimizations ; }
   } else {
     CPPopt += -ffast-math -fno-unsafe-math-optimizations ;
   }
 }
-
-if $(GLOBAL_DependOnJam) { DependOnJams += $(Root)/prog/3rdPartyLibs/phys/bullet-3/test/common_options.jam ; } # to handle depjam case

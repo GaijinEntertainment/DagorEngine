@@ -1,8 +1,12 @@
-#ifndef __DRV3D_DX11_STATES_H
-#define __DRV3D_DX11_STATES_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <limits.h>
 #include <generic/dag_staticTab.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_samplerHandle.h>
+#include "sampler.h"
 
 namespace drv3d_dx11
 {
@@ -336,8 +340,6 @@ struct DepthStencilState
   };
 };
 
-class SamplerStateObject;
-
 struct SamplerState
 {
   enum class SamplerSource : uint8_t
@@ -348,49 +350,15 @@ struct SamplerState
     Latest = 3
   };
 
-  struct Key
-  {
-    E3DCOLOR borderColor;
-    float lodBias;
-    union
-    {
-      uint32_t k;
-      struct
-      {
-        uint32_t anisotropyLevel : 5;
-        uint32_t addrU : 3;
-        uint32_t addrV : 3;
-        uint32_t addrW : 3;
-        uint32_t texFilter : 3;
-        uint32_t mipFilter : 3;
-      };
-    };
-
-    void copy(const BaseTex *tex)
-    {
-      borderColor = tex->borderColor;
-      lodBias = tex->lodBias;
-      k = tex->key & BaseTextureImpl::SAMPLER_KEY_MASK;
-    };
-    inline uint32_t getHash() const { return hash32shiftmult(k); }
-  };
 
   ID3D11ShaderResourceView *viewObject = nullptr;
   ID3D11SamplerState *stateObject = nullptr;
-  SamplerState::Key latestSamplerKey = {};
+  SamplerKey latestSamplerKey = {};
 
   BaseTexture *texture = nullptr;
   GenericBuffer *buffer = nullptr;
-  SamplerStateObject *sampler = nullptr;
+  d3d::SamplerHandle samplerHandle = d3d::INVALID_SAMPLER_HANDLE;
   SamplerSource samplerSource = SamplerSource::None;
-
-  static Key makeKey(const BaseTex *tex)
-  {
-    Key k;
-    ZeroMemory(&k, sizeof(k));
-    k.copy(tex);
-    return k;
-  };
 
   // return true if modified
   bool setTex(BaseTexture *tex, unsigned shader_stage, bool use_sampler)
@@ -398,6 +366,7 @@ struct SamplerState
     if (use_sampler)
     {
       samplerSource = tex ? SamplerSource::Texture : SamplerSource::None;
+      samplerHandle = d3d::INVALID_SAMPLER_HANDLE;
     }
 
     if (buffer)
@@ -427,7 +396,7 @@ struct SamplerState
       }
       else // tex == NULL
       {
-        return false;
+        return stateObject != nullptr;
       }
     }
 
@@ -461,18 +430,18 @@ struct SamplerState
     return true;
   }
 
-  bool setSampler(SamplerStateObject *smp)
+  bool setSampler(d3d::SamplerHandle sampler)
   {
-    bool unchanged =
-      ((samplerSource == SamplerSource::Sampler) && (smp == sampler)) || ((samplerSource == SamplerSource::None) && (smp == nullptr));
+    bool unchanged = ((samplerSource == SamplerSource::Sampler) && (sampler == samplerHandle)) ||
+                     ((samplerSource == SamplerSource::None) && (sampler == d3d::INVALID_SAMPLER_HANDLE));
     if (unchanged)
     {
       return false;
     }
 
     stateObject = nullptr;
-    samplerSource = smp ? SamplerSource::Sampler : SamplerSource::None;
-    sampler = smp;
+    samplerSource = sampler == d3d::INVALID_SAMPLER_HANDLE ? SamplerSource::None : SamplerSource::Sampler;
+    samplerHandle = sampler;
     return true;
   }
 };
@@ -486,7 +455,7 @@ struct TextureFetchState
     G_STATIC_ASSERT(MAX_RESOURCES <= sizeof(decltype(modifiedMask)) * CHAR_BIT);
     bool flush(unsigned shader_stage, bool force, ID3D11ShaderResourceView **views, ID3D11SamplerState **states, int &first, int &max);
     ID3D11SamplerState *getStateObject(const BaseTex *basetex);
-    ID3D11SamplerState *getStateObject(const SamplerState::Key &key);
+    ID3D11SamplerState *getStateObject(const SamplerKey &key);
   };
   carray<Samplers, STAGE_MAX_EXT> resources;
 
@@ -534,6 +503,3 @@ struct TextureFetchState
 };
 
 } // namespace drv3d_dx11
-
-
-#endif

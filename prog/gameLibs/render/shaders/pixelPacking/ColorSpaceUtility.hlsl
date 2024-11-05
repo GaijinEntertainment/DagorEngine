@@ -8,7 +8,7 @@
 //
 // Developed by Minigraph
 //
-// Author:  James Stanard 
+// Author:  James Stanard
 //
 
 #pragma warning( disable : 3571 )
@@ -19,56 +19,70 @@
 //
 // Gamma ramps and encoding transfer functions
 //
-// Agnostic to color space though usually tightly coupled.  For instance, sRGB is both a
+// Orthogonal to color space though usually tightly coupled.  For instance, sRGB is both a
 // color space (defined by three basis vectors and a white point) and a gamma ramp.  Gamma
-// ramps are designed to reduce perceptual error when compressing floats to small integer
-// values.  More precision is needed in darker gradients as the human eye is more sensitive
-// to contrast with dark values.  A logarithmic curve is often used.
+// ramps are designed to reduce perceptual error when quantizing floats to integers with a
+// limited number of bits.  More variation is needed in darker colors because our eyes are
+// more sensitive in the dark.  The way the curve helps is that it spreads out dark values
+// across more code words allowing for more variation.  Likewise, bright values are merged
+// together into fewer code words allowing for less variation.
 //
+// The sRGB curve is not a true gamma ramp but rather a piecewise function comprising a linear
+// section and a power function.  When sRGB-encoded colors are passed to an LCD monitor, they
+// look correct on screen because the monitor expects the colors to be encoded with sRGB, and it
+// removes the sRGB curve to linearize the values.  When textures are encoded with sRGB--as many
+// are--the sRGB curve needs to be removed before involving the colors in linear mathematics such
+// as physically based lighting.
 
-// sRGB is both a color space and a transfer function or "gamma ramp".  (It's not a true gamma
-// curve, which have been deprecated along with CRT displays.)  sRGB is what almost all 8 bpc
-// textures use, and when passed to an LCD monitor they look right.  sRGB textures must be
-// linearized for physically correct rendering, and the linear results need to be re-encoded
-// with the sRGB ramp for display.
-float3 LinearToSRGB( float3 x )
+float3 ApplySRGBCurve(float3 x)
 {
     // Approximately pow(x, 1.0 / 2.2)
-    return x < 0.0031308 ? 12.92 * x : 1.055 * pow(x, 1.0 / 2.4) - 0.055;
+    return select(x < 0.0031308, 12.92 * x, 1.055 * pow(x, 1.0 / 2.4) - 0.055);
 }
 
-float3 SRGBToLinear( float3 x )
+float4 ApplySRGBCurve(float4 x)
+{
+    return float4(ApplySRGBCurve(x.rgb), x.a);
+}
+
+float3 RemoveSRGBCurve(float3 x)
 {
     // Approximately pow(x, 2.2)
-    return x < 0.04045 ? x / 12.92 : pow( (x + 0.055) / 1.055, 2.4 );
+    return select(x < 0.04045, x / 12.92, pow((x + 0.055) / 1.055, 2.4));
+}
+
+float4 RemoveSRGBCurve(float4 x)
+{
+    return float4(RemoveSRGBCurve(x.rgb), x.a);
 }
 
 // These functions avoid pow() to efficiently approximate sRGB with an error < 0.4%.
-float3 LinearToSRGB_Fast( float3 x )
+float3 ApplySRGBCurve_Fast(float3 x)
 {
-    return x < 0.0031308 ? 12.92 * x : 1.13005 * sqrt(x - 0.00228) - 0.13448 * x + 0.005719;
+    return select(x < 0.0031308, 12.92 * x, 1.13005 * sqrt(x - 0.00228) - 0.13448 * x + 0.005719);
 }
 
-float3 SRGBToLinear_Fast( float3 x )
+float3 RemoveSRGBCurve_Fast(float3 x)
 {
-    return x < 0.04045 ? x / 12.92 : -7.43605 * x - 31.24297 * sqrt(-0.53792 * x + 1.279924) + 35.34864;
+    return select(x < 0.04045, x / 12.92, -7.43605 * x - 31.24297 * sqrt(-0.53792 * x + 1.279924) + 35.34864);
 }
-float3 accurateSRGBToLinear(in float3 x ) {return SRGBToLinear(x);}
-float3 accurateLinearToSRGB(in float3 x ) {return LinearToSRGB(x);}
+
 // The OETF recommended for content shown on HDTVs.  This "gamma ramp" may increase contrast as
-// appropriate for viewing in a dark environment.
-float3 LinearToREC709( float3 x )
+// appropriate for viewing in a dark environment.  Always use this curve with Limited RGB as it is
+// used in conjunction with HDTVs.
+float3 ApplyREC709Curve(float3 x)
 {
-    return x < 0.0181 ? 4.5 * x : 1.0993 * pow(x, 0.45) - 0.0993;
+    return select(x < 0.0181, 4.5 * x, 1.0993 * pow(x, 0.45) - 0.0993);
 }
 
-float3 REC709ToLinear( float3 x )
+float3 RemoveREC709Curve(float3 x)
 {
-    return x < 0.08145 ? x / 4.5 : pow((x + 0.0993) / 1.0993, 1.0 / 0.45);
+    return select(x < 0.08145, x / 4.5, pow((x + 0.0993) / 1.0993, 1.0 / 0.45));
 }
 
-// This is the new HDR transfer function, also called "PQ" for perceptual quantizer.
-float3 LinearToREC2084(float3 L)
+// This is the new HDR transfer function, also called "PQ" for perceptual quantizer.  Note that REC2084
+// does not also refer to a color space.  REC2084 is typically used with the REC2020 color space.
+float3 ApplyREC2084Curve(float3 L)
 {
     float m1 = 2610.0 / 4096.0 / 4;
     float m2 = 2523.0 / 4096.0 * 128;
@@ -79,7 +93,7 @@ float3 LinearToREC2084(float3 L)
     return pow((c1 + c2 * Lp) / (1 + c3 * Lp), m2);
 }
 
-float3 REC2084ToLinear(float3 N)
+float3 RemoveREC2084Curve(float3 N)
 {
     float m1 = 2610.0 / 4096.0 / 4;
     float m2 = 2523.0 / 4096.0 * 128;
@@ -113,46 +127,76 @@ float3 REC2084ToLinear(float3 N)
 // Note:  Rec.709 and sRGB share the same color primaries and white point.  Their only difference
 // is the transfer curve used.
 
-float3 REC709toREC2020( float3 RGB709 )
+// Color rotation matrix to rotate Rec.709 color primaries into Rec.2020
+float3 REC709toREC2020(float3 RGB709)
 {
-    const float3x3 ConvMat =
+    static const float3x3 ConvMat =
     {
-        0.627402, 0.329292, 0.043306,
-        0.069095, 0.919544, 0.011360,
-        0.016394, 0.088028, 0.895578
+        0.6274040f, 0.3292820f, 0.0433136f,
+        0.0690970f, 0.9195400f, 0.0113612f,
+        0.0163916f, 0.0880132f, 0.8955950f
     };
     return mul(ConvMat, RGB709);
 }
 
+// Color rotation matrix to rotate Rec.2020 color primaries into Rec.709
 float3 REC2020toREC709(float3 RGB2020)
 {
-    const float3x3 ConvMat =
+    static const float3x3 ConvMat =
     {
-        1.660496, -0.587656, -0.072840,
-        -0.124547, 1.132895, -0.008348,
-        -0.018154, -0.100597, 1.118751
+        1.6604910f, -0.5876411f, -0.0728499f,
+        -0.1245505f, 1.1328999f, -0.0083494f,
+        -0.0181508f, -0.1005789f, 1.1187297f
     };
     return mul(ConvMat, RGB2020);
 }
 
-float3 REC709toDCIP3( float3 RGB709 )
+// Color rotation matrix to rotate Rec.709 color primaries into P3-D65
+float3 REC709toDCIP3(float3 RGB709)
 {
-    const float3x3 ConvMat =
+    static const float3x3 ConvMat =
     {
-        0.822458, 0.177542, 0.000000,
-        0.033193, 0.966807, 0.000000,
-        0.017085, 0.072410, 0.910505
+        0.822461969f, 0.1775380, 0.0000000,
+        0.033194199f, 0.9668058, 0.0000000,
+        0.017082631f, 0.0723974, 0.9105199
     };
     return mul(ConvMat, RGB709);
 }
 
-float3 DCIP3toREC709( float3 RGB709 )
+// Color rotation matrix to rotate P3-D65 color primaries into Rec.709
+float3 DCIP3toREC709(float3 RGBP3)
 {
-    const float3x3 ConvMat =
+    static const float3x3 ConvMat =
     {
         1.224947, -0.224947, 0.000000,
         -0.042056, 1.042056, 0.000000,
         -0.019641, -0.078651, 1.098291
+    };
+    return mul(ConvMat, RGBP3);
+}
+
+// Color rotation matrix to rotate P3-D65 color primaries into Rec.2020
+float3 DCIP3toREC2020(float3 RGBP3)
+{
+    static const float3x3 ConvMat =
+    {
+        0.75384500f, 0.1985930f, 0.0475620f,
+        0.04574560f, 0.9417770f, 0.0124772f,
+        -0.00121055f, 0.0176041f, 0.9836070f
+    };
+    return mul(ConvMat, RGBP3);
+}
+
+// Rotation matrix describing a custom color space which is bigger than Rec.709, but a little smaller than P3-D65
+// This enhances colors, especially in the SDR range, by being a little more saturated. This can be used instead
+// of from709to2020.
+float3 ExpandedREC709toREC2020(float3 RGB709)
+{
+    static const float3x3 ConvMat =
+    {
+        0.6274040f, 0.3292820f, 0.0433136f,
+        0.0457456f, 0.9417770f, 0.0124772f,
+        -0.00121055f, 0.0176041f, 0.9836070f
     };
     return mul(ConvMat, RGB709);
 }

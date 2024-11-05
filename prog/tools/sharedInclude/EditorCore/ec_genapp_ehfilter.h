@@ -1,5 +1,4 @@
-#ifndef __GAIJIN_SIMPLEEDITOR_ED_APP_EHFILTER_H__
-#define __GAIJIN_SIMPLEEDITOR_ED_APP_EHFILTER_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EditorCore/ec_genappwnd.h>
@@ -67,6 +66,3 @@ public:
 protected:
   GenericEditorAppWindow &main;
 };
-
-
-#endif //__GAIJIN_APPEVENTHANDLER__

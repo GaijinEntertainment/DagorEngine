@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -193,7 +192,11 @@ public:
 
   public:
     VisibilityData() { clear(); }
+    VisibilityData(const VisibilityData &) = default;
+    VisibilityData(VisibilityData &&) = default;
     ~VisibilityData() { clear(); }
+    VisibilityData &operator=(const VisibilityData &) = default;
+    VisibilityData &operator=(VisibilityData &&) = default;
 
     void clear()
     {
@@ -225,6 +228,8 @@ public:
     if (!obj.size())
       return;
     G_ASSERT(optScn.inited);
+    G_ASSERTF(visDataStackIdx < 0,
+      "Can't use additional vis buffers for parallel visibility checks while they are used as temporary storage stack");
     render_id = render_id % MAX_CVIS;
     if (cVisData[render_id].allocated())
       return;
@@ -272,6 +277,32 @@ public:
     optScn.visData.scn = &optScn;
     optScn.prepareDone = true;
   }
+  void pushPreparedVisCtx()
+  {
+    if (!obj.size())
+      return;
+    G_ASSERT(optScn.inited);
+
+    // the original data is in optScn.visData, which is temporarily stored in the next available cVisData
+    int newVisStackIdx = visDataStackIdx + 1;
+    G_ASSERT_RETURN(newVisStackIdx < MAX_CVIS, );
+    visDataStackIdx = newVisStackIdx;
+
+    // This is technically not a problem, but if the parallel method isn't used, this shouldn't happen ever.
+    G_ASSERT(!cVisData[visDataStackIdx].allocated());
+    cVisData[visDataStackIdx] = optScn.visData;
+    optScn.visData.reset();
+  }
+  void popPreparedVisCtx()
+  {
+    if (!obj.size())
+      return;
+    G_ASSERT(optScn.inited);
+    G_ASSERTF(visDataStackIdx >= 0, "No prepared vis ctx to pop.");
+    optScn.visData = cVisData[visDataStackIdx];
+    cVisData[visDataStackIdx].clear();
+    visDataStackIdx--;
+  }
   void releasePrepareVisCtx(int render_id)
   {
     if (!obj.size())
@@ -284,9 +315,34 @@ public:
 
   //! checks visibility and renders scene;
   //! render_id<0 forces full render, other values (0..7) are context for visibility finder
-  void render(const VisibilityFinder &vf, int render_id, unsigned render_flags_mask);
-  void render(int render_id = 0, unsigned render_flags_mask = 0xFFFFFFFFU);
+  void render(const VisibilityFinder &vf, int render_id = 0, unsigned render_flags_mask = 0xFFFFFFFFU);
   void render_trans();
+
+  struct ElemCallback
+  {
+    struct Data
+    {
+      Sbuffer *vertices;
+      Sbuffer *indices;
+      int startVertex;
+      int startIndex;
+      int vertexCount;
+      int indexCount;
+      int vertexStride;
+      int positionOffset;
+      int positionFormat;
+      int texcoordOffset;
+      int texcoordFormat;
+      int normalOffset;
+      int normalFormat;
+      int colorOffset;
+      int colorFormat;
+      TEXTUREID albedoTextureId;
+    };
+
+    virtual void on_elem_found(const Data &data) = 0;
+  };
+  void foreachElem(ElemCallback &callback) const;
 
   static void enablePrerender(bool on) { enable_prerender = on; } // off by default
 
@@ -298,11 +354,23 @@ public:
   void sort_objects(const Point3 &view_point);
   static bool should_build_optscene_data; // =true by default
 
+  bool hasClipmap() const { return clipmapMinHeight < clipmapMaxHeight; }
+  bool getClipmapMinMaxHeight(float &min_height, float &max_height) const
+  {
+    if (!hasClipmap())
+      return false;
+    min_height = clipmapMinHeight;
+    max_height = clipmapMaxHeight;
+    return true;
+  }
 
 protected:
   static bool checked_frustum;
   static bool enable_prerender;
   static bool rendering_depth_pass;
+
+  float clipmapMinHeight = 100000;
+  float clipmapMaxHeight = -100000;
 
   SmallTab<int, MidmemAlloc> objIndices;
 
@@ -345,8 +413,12 @@ protected:
     }
   } optScn;
 
+  // cVisData has two uses:
+  // 1. for parallel visiblity calculation, manually call allocPrepareVisCtx, doPrepareVisCtx, setPrepareVisCtxToRender
+  // 2. for visibility context stack, manually call pushPreparedVisCtx, popPreparedVisCtx
   static constexpr int MAX_CVIS = 8;
   carray<VisibilityData, MAX_CVIS> cVisData;
+  int visDataStackIdx = -1;
 
   void loadTextures(IGenLoad &cb, Tab<TEXTUREID> &tex);
 
@@ -359,4 +431,7 @@ protected:
 private:
   RenderScene(const RenderScene &);
   RenderScene &operator=(const RenderScene &);
+
+public:
+  static bool useSRVBuffers;
 };

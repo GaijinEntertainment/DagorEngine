@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/util/twoStepRelPath.h>
 #include <util/dag_string.h>
 #include <debug/dag_debug.h>

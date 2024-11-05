@@ -35,7 +35,7 @@ SquirrelError::SquirrelError() : DagorException(1, NULL)
 void SquirrelVM::Init(unsigned flags)
 {
   ptr_to_hsqvm = &_VM;
-  _VM = sq_open(1024);
+  _VM = sq_open(1280);
   sq_setprintfunc(_VM,SquirrelVM::PrintFunc,SquirrelVM::PrintFunc);
   sq_pushroottable(_VM);
   if ((flags & SquirrelVM::SF_IGNORE_DEFAULT_LIBRARIES) == 0)
@@ -101,7 +101,7 @@ void SquirrelVM::PrintFunc(HSQUIRRELVM /*v*/,const SQChar* s,...)
 bool SquirrelVM::CompileBuffer(const SQChar* s,SquirrelObject& outObject,
   HSQOBJECT *bindings, const SQChar* sourceName)
 {
-  if(SQ_SUCCEEDED(sq_compilebuffer(_VM,s,strlen(s),sourceName,SQTrue,bindings))) {
+  if(SQ_SUCCEEDED(sq_compile(_VM,s,strlen(s),sourceName,SQTrue,bindings))) {
     outObject.AttachToStackObject(-1);
     sq_pop(_VM,1);
     return true;

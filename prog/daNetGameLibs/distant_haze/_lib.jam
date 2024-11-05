@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_distant_haze_pull ;
+  UseProgLibs += daNetGameLibs/distant_haze ;
+}

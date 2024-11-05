@@ -118,6 +118,10 @@ hlsl {
   {
     return rcp(decode_depth.x + decode_depth.y * rawDepth);
   }
+  float4 linearize_z4(float4 rawDepth, float2 decode_depth)
+  {
+    return rcp(decode_depth.x + decode_depth.y * rawDepth);
+  }
 }
 
 float4 zn_zfar = (1, 20000, 0, 0);
@@ -163,12 +167,12 @@ macro INIT_LINEARIZE_HIRES_SKY_DEPTH()
   }
 endmacro
 
-macro SKY_HDR()
-  hlsl(ps) {half3 pack_hdr(half3 a) {return a;}}
-  hlsl(ps) {half3 unpack_hdr(half3 a) {return a;}}
+macro INIT_HDR(code)
 endmacro
 
-macro USE_HDR_SH()
+macro USE_HDR(code)
+  hlsl(code) {half3 pack_hdr(half3 a) {return a;}}
+  hlsl(code) {half3 unpack_hdr(half3 a) {return a;}}
 endmacro
 
 hlsl(ps) {

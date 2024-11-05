@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <stdio.h>
@@ -16,16 +17,23 @@ extern bool level_files;
 extern bool append_files;
 extern int append_files_stage;
 extern int debug_enabled_bits;
-extern debug_log_callback_t log_callback;
+// NOTE: log_callback should point to a static function.
+// Also note that, when changing it via debug_set_log_callback(), the old
+// callback MIGHT still be called again if another thread was racing with the one calling
+// debug_set_log_callback().
+extern volatile debug_log_callback_t log_callback;
 
 struct Context
 {
 #if DAGOR_FORCE_LOGS || DAGOR_DBGLEVEL > 0 || FORCE_THREAD_IDS
-  int threadId;
   const char *threadName;
 #endif
   const char *file;
+#if DAGOR_FORCE_LOGS || DAGOR_DBGLEVEL > 0 || FORCE_THREAD_IDS
+  int threadId;
+#endif
   int line;
+  unsigned int hash;
   bool holdLine, nextSameLine, lastHoldLine;
 
   void reset()
@@ -56,7 +64,7 @@ void setupCrashDumpFileName();
 extern int maxWriteTimeUs; // max time of single log write
 extern int64_t totalWriteTimeUs, totalWriteCalls;
 
-#if (_TARGET_PC || _TARGET_ANDROID) && (DAGOR_DBGLEVEL > 0 || DAGOR_FORCE_LOGS)
+#if (_TARGET_PC || _TARGET_ANDROID || _TARGET_IOS) && (DAGOR_DBGLEVEL > 0 || DAGOR_FORCE_LOGS)
 const char *get_logfilename_for_sending();
 const char *get_logging_directory();
 #else

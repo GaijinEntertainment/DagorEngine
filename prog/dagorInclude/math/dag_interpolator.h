@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -33,6 +32,8 @@ public:
   typedef eastl::reverse_iterator<const_iterator> const_reverse_iterator;
 
   Interpolator() : cont() {}
+  Interpolator(const Interpolator &) = default;
+  Interpolator(Interpolator &&) = default;
 
   void clear() { cont.clear(); }
   bool empty() const { return cont.empty(); }
@@ -153,6 +154,7 @@ public:
   Interpolator2D() : root() {}
 
   void clear() { root.clear(); }
+  size_t size() const { return root.size(); }
 
   Interpolator1DL2 *add(float x) { return root.add(x, Interpolator1DL2()); }
 
@@ -160,7 +162,7 @@ public:
   {
     if (y_list.size() != z_list.size())
     {
-      logerr("Interpolator2D: size of arrays Y and Z does not match");
+      logerr("Interpolator2D: size of arrays Y and Z does not match %d != %d", y_list.size(), z_list.size());
       return false;
     }
 

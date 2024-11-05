@@ -337,7 +337,7 @@ X3D =
 GLTF =
   AssetLib/glTF/glTFCommon.cpp
   AssetLib/glTF/glTFImporter.cpp
-  #AssetLib/glTF2/glTF2Importer.cpp
+  AssetLib/glTF2/glTF2Importer.cpp
 ;
 
 3MF =
@@ -401,7 +401,7 @@ CPPopt +=
   #-DASSIMP_BUILD_NO_FBX_IMPORTER
   -DASSIMP_BUILD_NO_ASSBIN_IMPORTER
   #-DASSIMP_BUILD_NO_GLTF1_IMPORTER
-  -DASSIMP_BUILD_NO_GLTF2_IMPORTER
+  #-DASSIMP_BUILD_NO_GLTF2_IMPORTER
   -DASSIMP_BUILD_NO_C4D_IMPORTER
   -DASSIMP_BUILD_NO_3MF_IMPORTER
   -DASSIMP_BUILD_NO_X3D_IMPORTER
@@ -413,6 +413,12 @@ CPPopt +=
 CPPopt +=
   -DASSIMP_FBX_USE_PAGE_ALLOCATOR
 ;
+
+if ! $(Platform) in windows macOS linux android {
+  if $(PlatformSpec) = clang {
+    CPPopt += -include fs_stub.h ;
+  }
+}
 
 UseProgLibs +=
    3rdPartyLibs/arc/unzip
@@ -431,5 +437,8 @@ AddIncludes =
   $(Root)/prog/3rdPartyLibs/arc/zlib-ng
 ;
 
+if $(Platform) = ps4 {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/posix/include/ps4 ;
+}
 
 include $(Root)/prog/_jBuild/build.jam ;

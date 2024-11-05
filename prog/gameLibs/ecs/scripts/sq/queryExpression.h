@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 // this is correct PerformExpressionTree, supporting complex boolean expressions

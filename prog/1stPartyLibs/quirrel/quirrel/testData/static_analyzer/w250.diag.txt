@@ -1,5 +1,5 @@
 WARNING: w250 (cmp-with-container) Comparison with a array.
-testData/static_analyzer/w250.nut:5:10
+testData/static_analyzer/w250.nut:8:10
 
 let _x = (::a != [])
           ^--------
@@ -7,7 +7,7 @@ let _y = (::a != {})
 
 
 WARNING: w250 (cmp-with-container) Comparison with a declaration.
-testData/static_analyzer/w250.nut:6:10
+testData/static_analyzer/w250.nut:9:10
 
 let _x = (::a != [])
 let _y = (::a != {})
@@ -16,20 +16,10 @@ let _z = (::a != t)
 
 
 WARNING: w250 (cmp-with-container) Comparison with a declaration.
-testData/static_analyzer/w250.nut:8:11
+testData/static_analyzer/w250.nut:11:11
 
 let _z = (::a != t)
 let _xx = (::a == @ (v) v)
            ^--------------
 
 
-
-AN ERROR HAS OCCURRED [the index 'a' does not exist]
-
-CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w250.nut line [5]
-
-LOCALS
-[t] ARRAY=[]
-[vargv] ARRAY=[]
-[this] TABLE={}

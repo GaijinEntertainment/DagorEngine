@@ -1,6 +1,5 @@
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #pragma once
 
@@ -22,10 +21,10 @@
 #include <workCycle/dag_workCycle.h>
 #include <supp/dag_android_native_app_glue.h>
 #include <osApiWrappers/dag_wndProcCompMsg.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_texMgr.h>
 #include <startup/dag_globalSettings.h>
-#include <humanInput/dag_hiCreate.h>
+#include <drv/hid/dag_hiCreate.h>
 #include <ioSys/dag_dataBlock.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <perfMon/dag_statDrv.h>
@@ -81,9 +80,14 @@ int dagor_android_scr_yres = 0;
 void (*dagor_android_user_message_loop_handler)(struct android_app *app, int32_t cmd) = nullptr;
 SimpleString (*dagor_android_app_get_anr_execution_context)() = nullptr;
 
+DataBlock dagor_anr_handler_settings;
 void (*dagor_anr_handler)(int32_t cmd) = nullptr;
+bool (*dagor_should_ignore_android_cmd)(int32_t cmd) = nullptr;
+bool (*dagor_allow_to_delay_android_cmd)(int32_t cmd) = nullptr;
 
 bool dagor_fast_shutdown = false;
+
+ALooper *dagor_command_thread_looper = nullptr;
 
 namespace native_android
 {
@@ -162,10 +166,10 @@ struct AndroidProcessResult
   int status = 0;
 };
 
+static std::mutex g_android_done_command_mutex;
+static std::condition_variable g_android_done_command_condition;
 
-static std::mutex g_android_commands_mutex;
-static std::condition_variable g_android_commands_condition;
-static int32_t g_android_pending_command = -1;
+static std::atomic<int32_t> g_android_pending_command(-1);
 
 // Normally we don't have so many input events.
 // It could only happen if case our DagorMainThread is very laggy
@@ -179,9 +183,6 @@ static InputCallsArray g_android_input_calls;
 static std::mutex g_android_joystick_events_mutex;
 static eastl::bitset<128> g_android_joystick_events_free;
 static eastl::array<android::JoystickEvent, 128> g_android_joystick_events_storage;
-
-static int g_next_slow_send = 0;
-
 
 static android::JoystickEvent *allocate_android_joystick_event(void *event)
 {
@@ -301,6 +302,10 @@ static AndroidProcessResult process_android_motion_event(struct android_app *app
   return result;
 }
 
+
+static int32_t dagor_android_handle_input_thread(struct android_app *app, AInputEvent *event);
+
+
 namespace
 {
 
@@ -337,9 +342,75 @@ struct DagorMainThread final : public DaThread
   }
 };
 
+
+struct DagorInputThread final : public DaThread
+{
+  ALooper *looper = nullptr;
+  AInputQueue *inputQueue = nullptr;
+
+
+  DagorInputThread() : DaThread("DagorInputThread", 1 << 20) {}
+
+
+  void attachLooper()
+  {
+    looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
+
+    if (inputQueue)
+    {
+      debug("CMD: Attach input queue to looper");
+      AInputQueue_attachLooper(inputQueue, looper, LOOPER_ID_INPUT, nullptr, nullptr);
+    }
+  }
+
+
+  void detachLooper()
+  {
+    if (inputQueue)
+    {
+      debug("CMD: Detach input queue from looper");
+      AInputQueue_detachLooper(inputQueue);
+
+      inputQueue = nullptr;
+    }
+  }
+
+
+  void execute() override
+  {
+    attachLooper();
+
+    while (!isThreadTerminating())
+    {
+      struct android_poll_source *source;
+      int ident, events;
+      while ((ident = ALooper_pollAll(500 /* timeout */, nullptr, &events, (void **)&source)) >= 0)
+      {
+        android_app *app = (android_app *)win32_get_instance();
+
+        AInputEvent *event = NULL;
+        while (AInputQueue_getEvent(inputQueue, &event) >= 0)
+        {
+          if (AInputQueue_preDispatchEvent(inputQueue, event))
+            continue;
+
+          int32_t handled = 0;
+          if (app)
+            handled = dagor_android_handle_input_thread(app, event);
+
+          AInputQueue_finishEvent(inputQueue, event, handled);
+        }
+      }
+    }
+
+    detachLooper();
+  }
+};
+
 } // namespace
 
 static DagorMainThread g_dagor_main_thread;
+static DagorInputThread g_dagor_input_thread;
 
 
 static int push_android_input(const AndroidProcessResult &result)
@@ -363,17 +434,15 @@ static void push_android_command_and_wait(int32_t cmd)
 
   int waitTimeMs = get_time_msec();
 
-  {
-    std::unique_lock<std::mutex> lock(g_android_commands_mutex);
-    g_android_pending_command = cmd;
-  }
+  g_android_pending_command.store(cmd, std::memory_order_release);
 
   {
     // After that time Android may generate ANR (Application Not Responsive)
     static const std::chrono::seconds ANR_TIMEOUT_SEC = std::chrono::seconds(5);
 
-    std::unique_lock<std::mutex> lock(g_android_commands_mutex);
-    if (!g_android_commands_condition.wait_for(lock, ANR_TIMEOUT_SEC, [] { return g_android_pending_command < 0; }))
+    std::unique_lock<std::mutex> lock(g_android_done_command_mutex);
+    if (!g_android_done_command_condition.wait_for(lock, ANR_TIMEOUT_SEC,
+          [] { return g_android_pending_command.load(std::memory_order_acquire) < 0; }))
     {
       logerr("android: ANR: Handling of %s is taking more than %d sec. Context: %s", cmdName, ANR_TIMEOUT_SEC.count(),
         dagor_android_app_get_anr_execution_context ? dagor_android_app_get_anr_execution_context() : "<unknown>");
@@ -381,22 +450,18 @@ static void push_android_command_and_wait(int32_t cmd)
       if (dagor_anr_handler)
         dagor_anr_handler(cmd);
 
-      g_android_commands_condition.wait(lock, [] { return g_android_pending_command < 0; });
+      g_android_done_command_condition.wait(lock, [] { return g_android_pending_command.load(std::memory_order_acquire) < 0; });
     }
   }
 
   const int curTime = get_time_msec();
   waitTimeMs = curTime - waitTimeMs;
 
-  // We only interested in slow commands processing longer than 1 sec
-  if (waitTimeMs > 1000 && curTime >= g_next_slow_send)
-  {
-    g_next_slow_send = curTime + 1000;
-    statsd::profile("android.handle_os_command_ms", (long)waitTimeMs, {"command", cmdName});
-  }
-
   debug("CMD: Done: %s (%d ms)", cmdName, waitTimeMs);
 }
+
+
+static void run_android_command_as_delayed_action(int32_t cmd);
 
 
 static void dagor_android_handle_cmd_thread(struct android_app *app, int32_t cmd)
@@ -404,15 +469,22 @@ static void dagor_android_handle_cmd_thread(struct android_app *app, int32_t cmd
   const char *cmdName = android::app_command_to_string(cmd);
   debug("CMD: Received: %s", cmdName);
 
+  if (dagor_allow_to_delay_android_cmd && dagor_allow_to_delay_android_cmd(cmd))
+  {
+    run_android_command_as_delayed_action(cmd);
+    return;
+  }
+
   switch (cmd)
   {
+    case APP_CMD_INPUT_CHANGED:
+    case APP_CMD_GAINED_FOCUS:
+    case APP_CMD_LOST_FOCUS:
+    case APP_CMD_CONTENT_RECT_CHANGED:
     case APP_CMD_INIT_WINDOW:
     case APP_CMD_WINDOW_RESIZED:
     case APP_CMD_WINDOW_REDRAW_NEEDED:
-    case APP_CMD_CONTENT_RECT_CHANGED:
-    case APP_CMD_TERM_WINDOW:
-    case APP_CMD_GAINED_FOCUS:
-    case APP_CMD_LOST_FOCUS: push_android_command_and_wait(cmd); break;
+    case APP_CMD_TERM_WINDOW: push_android_command_and_wait(cmd); break;
     default: debug("CMD: Ignored: %s", cmdName); break;
   }
 }
@@ -420,10 +492,6 @@ static void dagor_android_handle_cmd_thread(struct android_app *app, int32_t cmd
 
 static int32_t dagor_android_handle_input_thread(struct android_app *app, AInputEvent *event)
 {
-  android_app *state = (android_app *)win32_get_instance();
-  if (!state)
-    return 0;
-
   for (int i = 0; i < android::MAX_INPUT_CALLBACK_NUM; i++)
     if (android::input_callbacks[i])
       (*android::input_callbacks[i])(event);
@@ -452,6 +520,9 @@ static int32_t dagor_android_handle_input_thread(struct android_app *app, AInput
 std::atomic<bool> dagor_android_in_fatal_state = false;
 
 
+bool android_should_ignore_cmd(int8_t cmd) { return dagor_should_ignore_android_cmd ? dagor_should_ignore_android_cmd(cmd) : false; }
+
+
 static void dagor_android_handle_cmd(struct android_app *app, int32_t cmd)
 {
   if (dagor_android_in_fatal_state)
@@ -468,29 +539,56 @@ static void dagor_android_handle_cmd(struct android_app *app, int32_t cmd)
     };
   }
 
+  static uint32_t lastReinitFrameNo = 0;
+
   switch (cmd)
   {
+    case APP_CMD_INPUT_CHANGED:
+      if (app->externalInputProcessing)
+      {
+        if (g_dagor_input_thread.isThreadStarted())
+          g_dagor_input_thread.terminate(true);
+        g_dagor_input_thread.inputQueue = app->inputQueue;
+
+        if (g_dagor_input_thread.inputQueue)
+          g_dagor_input_thread.start();
+      }
+      break;
     case APP_CMD_INIT_WINDOW:
       // The window is being shown, get it ready.
       if (app->window != NULL)
       {
         debug("CMD: init window %p", app->window);
         win32_set_main_wnd(app->window);
+
+        lastReinitFrameNo = dagor_frame_no();
         android_d3d_reinit(app->window);
-        workcycle_internal::application_active = dgs_app_active = true;
       }
       break;
     case APP_CMD_WINDOW_RESIZED:
-      debug("CMD: window resized");
+    case APP_CMD_WINDOW_REDRAW_NEEDED:
       if (app->window != NULL)
-        android_d3d_reinit(app->window);
+      {
+        debug("CMD: window resized %p", app->window);
+        const uint32_t curFrameNo = dagor_frame_no();
+
+        int32_t new_width = ANativeWindow_getWidth(app->window);
+        int32_t new_height = ANativeWindow_getHeight(app->window);
+        if ((curFrameNo != lastReinitFrameNo) || (new_width != native_android::window_width) ||
+            (new_height != native_android::window_height))
+        {
+          lastReinitFrameNo = curFrameNo;
+          android_d3d_reinit(app->window);
+        }
+        else
+          debug("CMD: window resized: ignore reinit for the same frame or same window size.");
+      }
       break;
     case APP_CMD_TERM_WINDOW:
       // The window is being hidden or closed, clean it up.
       debug("CMD: term window");
       discard_unused_managed_textures();
       debug("CMD: unload unused tex done");
-      workcycle_internal::application_active = dgs_app_active = false;
       d3d::window_destroyed(app->window);
       win32_set_main_wnd(NULL);
       break;
@@ -505,6 +603,10 @@ static void dagor_android_handle_cmd(struct android_app *app, int32_t cmd)
       break;
     case APP_CMD_DESTROY:
       debug("CMD: destroy: %s", dagor_fast_shutdown ? "fast" : "normal");
+
+      if (app->externalInputProcessing)
+        g_dagor_input_thread.terminate(true);
+
       if (!dagor_fast_shutdown && d3d::is_inited())
       {
         debug("d3d::release_driver");
@@ -516,6 +618,25 @@ static void dagor_android_handle_cmd(struct android_app *app, int32_t cmd)
   }
   if (dagor_android_user_message_loop_handler)
     dagor_android_user_message_loop_handler(app, cmd);
+}
+
+
+static void run_android_command_as_delayed_action(int32_t cmd)
+{
+  const char *cmdName = android::app_command_to_string(cmd);
+
+  auto handleCmd = [cmd]() { dagor_android_handle_cmd((android_app *)win32_get_instance(), cmd); };
+
+  if (is_main_thread())
+  {
+    handleCmd();
+    debug("CMD: Done: %s", cmdName);
+  }
+  else
+  {
+    delayed_call(handleCmd);
+    debug("CMD: Done: %s (delayed)", cmdName);
+  }
 }
 
 
@@ -601,6 +722,58 @@ SimpleString get_library_name(JavaVM *jvm, jobject activity)
 
   jvm->DetachCurrentThread();
   return ret;
+#undef JNI_ASSERT
+}
+
+SimpleString get_logs_folder(JavaVM *jvm, jobject activity)
+{
+#define JNI_ASSERT(jni, cond)         \
+  if (jni->ExceptionCheck())          \
+  {                                   \
+    jni->ExceptionDescribe();         \
+    G_ASSERT(!jni->ExceptionCheck()); \
+  }                                   \
+  G_ASSERT(cond);
+  JNIEnv *jni;
+  jvm->AttachCurrentThread(&jni, NULL);
+
+  jclass ourActivity = jni->GetObjectClass(activity);
+  JNI_ASSERT(jni, ourActivity);
+
+  jmethodID getExternalMediaDirs = jni->GetMethodID(ourActivity, "getExternalMediaDirs", "()[Ljava/io/File;");
+  if (jni->ExceptionCheck()) // No method in class is normal case
+  {
+    jni->ExceptionClear();
+    jvm->DetachCurrentThread();
+    return SimpleString("");
+  }
+
+  jobjectArray mediaDirs = (jobjectArray)jni->CallObjectMethod(activity, getExternalMediaDirs);
+  JNI_ASSERT(jni, mediaDirs);
+
+  jclass fileClass = jni->FindClass("java/io/File");
+  JNI_ASSERT(jni, fileClass);
+
+  jmethodID getAbsolutePath = jni->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
+  JNI_ASSERT(jni, getAbsolutePath);
+
+  for (int i = 0, sz = jni->GetArrayLength(mediaDirs); i < sz; ++i)
+  {
+    jstring path = (jstring)jni->CallObjectMethod(jni->GetObjectArrayElement(mediaDirs, i), getAbsolutePath);
+    JNI_ASSERT(jni, fileClass);
+
+    if (path)
+    {
+      const char *pathUTF = jni->GetStringUTFChars(path, NULL);
+      SimpleString ret(pathUTF);
+      jni->ReleaseStringUTFChars(path, pathUTF);
+      jvm->DetachCurrentThread();
+      return ret;
+    }
+  }
+
+  jvm->DetachCurrentThread();
+  return SimpleString("");
 #undef JNI_ASSERT
 }
 
@@ -718,14 +891,18 @@ static void android_looper_poll_all_blocking()
 
 void android_main(struct android_app *state)
 {
-  SimpleString libraryName = get_library_name(android::get_java_vm(state->activity), android::get_activity_class(state->activity));
-  setup_debug_system((libraryName == "") ? "run" : libraryName, state->activity->externalDataPath, DAGOR_DBGLEVEL > 0,
-    ANDROID_ROTATED_LOGS);
+  JavaVM *jvm = android::get_java_vm(state->activity);
+  jobject activityObj = android::get_activity_class(state->activity);
+  SimpleString logsFolder = get_logs_folder(jvm, activityObj);
+
+  SimpleString libraryName = get_library_name(jvm, activityObj);
+  setup_debug_system((libraryName == "") ? "run" : libraryName,
+    logsFolder.empty() ? state->activity->externalDataPath : logsFolder.c_str(), DAGOR_DBGLEVEL > 0, ANDROID_ROTATED_LOGS);
 
   g_android_joystick_events_free.set();
 
   state->onAppCmd = dagor_android_handle_cmd_thread;
-  state->onInputEvent = dagor_android_handle_input_thread;
+  state->externalInputProcessing = 1;
 
   apply_hinstance(state, NULL);
 
@@ -754,7 +931,7 @@ void android_main(struct android_app *state)
   copyArg(libname, ::strlen(libname));
 
 #if DAGOR_DBGLEVEL > 0
-  SimpleString intentArguments = get_intent_arguments(state->activity->vm, android::get_activity_class(state->activity));
+  SimpleString intentArguments = get_intent_arguments(jvm, activityObj);
   debug("intentArguments: %s", intentArguments.c_str());
 
   int start = 0;
@@ -885,6 +1062,9 @@ void android_main(struct android_app *state)
     dagor_android_scr_xdpi, dagor_android_scr_ydpi, dagor_android_scr_xres / dagor_android_scr_xdpi * 2.54,
     dagor_android_scr_yres / dagor_android_scr_ydpi * 2.54);
 
+  dagor_command_thread_looper = ALooper_forThread();
+  debug("Androd: dagor_command_thread_looper: %p", dagor_command_thread_looper);
+
   g_dagor_main_thread.start();
 
   while (g_dagor_main_thread.isThreadRunnning())
@@ -908,16 +1088,13 @@ void dagor_process_sys_messages(bool /*input_only*/)
   if (!app)
     return;
 
+  const int32_t pendingCommand = g_android_pending_command.load(std::memory_order_acquire);
+  if (pendingCommand >= 0)
   {
-    std::unique_lock<std::mutex> lock(g_android_commands_mutex);
-    if (g_android_pending_command >= 0)
-    {
-      dagor_android_handle_cmd(app, g_android_pending_command);
-      g_android_pending_command = -1;
+    dagor_android_handle_cmd(app, pendingCommand);
 
-      lock.unlock();
-      g_android_commands_condition.notify_all();
-    }
+    g_android_pending_command.store(-1, std::memory_order_release);
+    g_android_done_command_condition.notify_all();
   }
 
   int inputCallsSize = 0;
@@ -960,6 +1137,18 @@ const char *os_get_default_lang()
 
   static char buf[4] = {0, 0, 0, 0};
   AConfiguration_getLanguage(state->config, buf);
+  buf[2] = 0;
+  return buf;
+}
+
+const char *os_get_default_country()
+{
+  android_app *state = (android_app *)win32_get_instance();
+  if (!state)
+    return "";
+
+  static char buf[4] = {0, 0, 0, 0};
+  AConfiguration_getCountry(state->config, buf);
   buf[2] = 0;
   return buf;
 }

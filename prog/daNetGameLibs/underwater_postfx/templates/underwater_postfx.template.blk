@@ -1,0 +1,6 @@
+underwater_postfx{
+  _singleton:b=yes
+  _tags:t="render"
+  underwater_postfx__vignette_strength:r=0.15
+  underwater_postfx__chromatic_aberration:p3=0.1,0.05,0.6
+}

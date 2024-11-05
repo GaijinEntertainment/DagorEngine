@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ctype.h>
 #include <stdlib.h>
 #include <debug/dag_debug.h>
@@ -707,14 +709,14 @@ struct ECSMessageListener : public websocket::MessageListener
     else if (type == "ecs::Object")
     {
       ecs::ComponentsList alist;
-      ecs::load_comp_list_from_blk(*blk.getBlockByNameEx("value:object", blk.getBlockByNameEx("value")), alist);
+      ecs::load_comp_list_from_blk(*g_entity_mgr, *blk.getBlockByNameEx("value:object", blk.getBlockByNameEx("value")), alist);
       if (!alist.empty())
         ecsViewerEntityManager->set(eid, ECS_HASH_SLOW(blk.getStr("comp")), eastl::move(alist[0].second));
     }
     else if (type == "ecs::Array")
     {
       ecs::ComponentsList alist;
-      ecs::load_comp_list_from_blk(*blk.getBlockByNameEx("value:object", blk.getBlockByNameEx("value")), alist);
+      ecs::load_comp_list_from_blk(*g_entity_mgr, *blk.getBlockByNameEx("value:object", blk.getBlockByNameEx("value")), alist);
       if (!alist.empty())
         ecsViewerEntityManager->set(eid, ECS_HASH_SLOW(blk.getStr("comp")), eastl::move(alist[0].second));
     }

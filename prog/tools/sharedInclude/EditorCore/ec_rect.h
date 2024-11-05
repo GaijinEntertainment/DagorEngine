@@ -1,7 +1,5 @@
-#ifndef __GAIJIN_EDITORCORE_EC_RECT_H__
-#define __GAIJIN_EDITORCORE_EC_RECT_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 struct EcRect
 {
@@ -26,6 +24,3 @@ struct EcRect
   int width() const { return r - l; }
   int height() const { return b - t; }
 };
-
-
-#endif

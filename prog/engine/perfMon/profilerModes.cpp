@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <perfMon/dag_statDrv.h>
 #include <perfMon/dag_daProfilerSettings.h>
 #include <util/dag_globDef.h>
@@ -6,16 +8,17 @@
 namespace da_profiler
 {
 
-static const char *profiler_options[] = {"all", "cpu", "tags", "gpu", "sampling", "save_spikes", "platform", nullptr};
+static const char *profiler_options[] = {"all", "cpu", "cpu_timeline", "tags", "gpu", "sampling", "save_spikes", "platform", nullptr};
 static uint32_t profiler_options_val[] = {
-  da_profiler::PLATFORM_EVENTS | da_profiler::EVENTS | da_profiler::TAGS | da_profiler::GPU | da_profiler::SAMPLING |
-    da_profiler::SAVE_SPIKES,   // all
-  da_profiler::EVENTS,          // cpu
-  da_profiler::TAGS,            // tags
-  da_profiler::GPU,             // gpu
-  da_profiler::SAMPLING,        // sampling
-  da_profiler::SAVE_SPIKES,     // save_spikes
-  da_profiler::PLATFORM_EVENTS, // platform
+  da_profiler::PLATFORM_EVENTS | da_profiler::UNIQUE_EVENTS | da_profiler::EVENTS | da_profiler::TAGS | da_profiler::GPU |
+    da_profiler::SAMPLING | da_profiler::SAVE_SPIKES, // all
+  da_profiler::UNIQUE_EVENTS | da_profiler::EVENTS,   // cpu
+  da_profiler::EVENTS,                                // cpu_timeline_only
+  da_profiler::TAGS,                                  // tags
+  da_profiler::GPU,                                   // gpu
+  da_profiler::SAMPLING,                              // sampling
+  da_profiler::SAVE_SPIKES,                           // save_spikes
+  da_profiler::PLATFORM_EVENTS,                       // platform
   0,
 };
 

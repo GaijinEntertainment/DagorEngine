@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -20,6 +19,7 @@ class CollisionInstances;
 void *register_collision_cb(const CollisionResource *collRes, const char *debug_name);
 void unregister_collision_cb(void *&handle);
 CollisionInstances *get_collision_instances_by_handle(void *handle);
+void flush_ri_instances();
 void clear_ri_instances();
 void clear_ri_apex_instances();
 void invalidate_ri_instance(const rendinst::RendInstDesc &desc);

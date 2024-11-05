@@ -1,7 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "os.h"
 
 #include <debug/dag_debug.h>
 #include <linux/x11.h>
+#include "globals.h"
 
 using namespace drv3d_vulkan;
 
@@ -47,9 +50,10 @@ void drv3d_vulkan::os_set_display_mode(int res_x, int res_y)
   int w = res_x;
   int h = res_y;
   if (!x11.setScreenResolution(w, h, res_x, res_y))
-    logerr("vulkan: error setting display mode %dx%d", w, h);
+    D3D_ERROR("vulkan: error setting display mode %dx%d", w, h);
   if ((w != res_x) || (h != res_y))
     debug("vulkan: ignoring modified viewport area: original %dx%d, reported %dx%d", w, h, res_x, res_y);
+  Globals::window.updateRefreshRateFromCurrentDisplayMode();
 }
 
 eastl::string drv3d_vulkan::os_get_additional_ext_requirements(VulkanPhysicalDeviceHandle,
@@ -58,9 +62,7 @@ eastl::string drv3d_vulkan::os_get_additional_ext_requirements(VulkanPhysicalDev
   return "";
 }
 
-drv3d_vulkan::ScopedGPUPowerState::ScopedGPUPowerState(bool) {}
-
-drv3d_vulkan::ScopedGPUPowerState::~ScopedGPUPowerState() {}
+void drv3d_vulkan::WindowState::updateRefreshRateFromCurrentDisplayMode() { refreshRate = x11.getScreenRefreshRate(); }
 
 #if !defined(_TARGET_WAS_MULTI)
 #include <linux/x11.cpp>

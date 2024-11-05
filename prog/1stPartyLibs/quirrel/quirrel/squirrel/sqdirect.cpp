@@ -2,6 +2,8 @@
 #include "sqvm.h"
 #include "squserdata.h"
 #include "sqdirect.h"
+#include "sqarray.h"
+#include "sqtable.h"
 
 
 SQRESULT sq_direct_get(HSQUIRRELVM v, const HSQOBJECT *obj, const HSQOBJECT *slot,
@@ -32,15 +34,97 @@ SQBool sq_direct_cmp(HSQUIRRELVM v, const HSQOBJECT *a, const HSQOBJECT *b, SQIn
     const SQObjectPtr &aPtr = static_cast<const SQObjectPtr &>(*a);
     const SQObjectPtr &bPtr = static_cast<const SQObjectPtr &>(*b);
 
-    SQObjectType t1 = sq_type(*a), t2 = sq_type(*b);
-    if (t1 == t2 || t1==OT_NULL || t2==OT_NULL || (sq_isnumeric(*a) && sq_isnumeric(*b)))
+    return v->ObjCmp(aPtr, bPtr, *res);
+}
+
+
+bool sq_direct_is_equal(HSQUIRRELVM v, const HSQOBJECT *a, const HSQOBJECT *b)
+{
+    const SQObjectPtr &aPtr = static_cast<const SQObjectPtr &>(*a);
+    const SQObjectPtr &bPtr = static_cast<const SQObjectPtr &>(*b);
+
+    bool res = false;
+    bool status = v->IsEqual(aPtr, bPtr, res);
+    (void)status;
+    assert(status); // cannot fail
+    return res;
+}
+
+
+#define MAX_FAST_COMPARE_SIZE 1024
+
+static bool fastEqualByValue(const SQObjectPtr &a, const SQObjectPtr &b, int depth)
+{
+    if (sq_type(a) != sq_type(b))
     {
-      SQBool status = v->ObjCmp(aPtr, bPtr, *res);
-      assert(status);
-      return status;
+      if (!sq_isnumeric(a) || !sq_isnumeric(b))
+          return false;
+      return tofloat(a) == tofloat(b);
     }
+
+    // same type
+    if (_rawval(a) == _rawval(b))
+        return true;
+
+    if (depth <= 0)
+        return false;
+
+    if (sq_isarray(a))
+    {
+        auto aa = _array(a);
+        auto ab = _array(b);
+        if (aa->Size() != ab->Size())
+            return false;
+
+        if (aa->Size() > MAX_FAST_COMPARE_SIZE)
+            return false;
+
+        for (SQInteger i = 0; i < aa->Size(); i++)
+            if (!fastEqualByValue(aa->_values[i], ab->_values[i], depth - 1))
+                return false;
+
+        return true;
+    }
+    else if (sq_istable(a))
+    {
+        auto ta = _table(a);
+        auto tb = _table(b);
+        if (ta->CountUsed() != tb->CountUsed())
+            return false;
+
+        if (ta->CountUsed() > MAX_FAST_COMPARE_SIZE)
+            return false;
+
+        SQObjectPtr iter;
+        while (true)
+        {
+            SQObjectPtr key, va, vb;
+            iter._unVal.nInteger = ta->Next(true, iter, key, va);
+            iter._type = OT_INTEGER;
+            if (_integer(iter) < 0)
+                break;
+
+            if (!tb->Get(key, vb))
+                return false;
+            if (!fastEqualByValue(va, vb, depth - 1))
+                return false;
+        }
+
+        return true;
+    }
+
     return false;
 }
+
+
+bool sq_fast_equal_by_value_deep(const HSQOBJECT *a, const HSQOBJECT *b, int depth)
+{
+    return fastEqualByValue(
+        static_cast<const SQObjectPtr&>(*a),
+        static_cast<const SQObjectPtr&>(*b),
+        depth);
+}
+
 
 SQRESULT sq_direct_getuserdata(const HSQOBJECT *obj, SQUserPointer *p, SQUserPointer *typetag)
 {

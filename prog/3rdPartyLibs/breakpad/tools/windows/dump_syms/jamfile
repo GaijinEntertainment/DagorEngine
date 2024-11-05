@@ -1,8 +1,8 @@
 Root    ?= ../../../../../.. ;
 BreakpadRoot = prog/3rdPartyLibs/breakpad ;
 Location = $(BreakpadRoot)/tools/windows/dump_syms ;
-Platform = win32 ;
-PlatformSpec = vc16 ;
+PlatformArch_windows = x86 ;
+PlatformSpec_windows = vc16 ;
 
 FullOOPEnabled = yes ;
 

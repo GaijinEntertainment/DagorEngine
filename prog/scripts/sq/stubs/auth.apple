@@ -1,0 +1,4 @@
+return {
+  register_apple_purchase = @(...) null
+  login_apple = @(...) null
+}

@@ -1,19 +1,22 @@
-DriverLinkage = dynamic ;
-Platform ?= win64 ;
-UseD3DMulti = yes ;
-UseD3DMultiList = DX11 ;
-
 Root    ?= ../../../../.. ;
+KernelLinkage = dynamic ;
+UseD3DMulti = yes ;
+LinuxUseX11 = no ;
+
 Location = prog/tools/sceneTools/impostorBaker/tool ;
 include $(Root)/prog/tools/tools_setup.jam ;
+
+switch $(Platform) {
+  case windows : UseD3DMultiList = DX11 ;
+  case linux :   UseD3DMultiList = vulkan ;
+  case macOS :   UseD3DMultiList = Metal ;
+}
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 TargetType  = exe ;
-Target      = tools/sceneTools/impostorBaker.exe ;
-
-OutDir         = $(Root)/tools/dagor3_cdk/bin ;
-if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+Target      = tools/sceneTools/impostorBaker ;
+include $(Root)/prog/tools/tools_setup_outdir_bin.jam ;
 
 
 AddIncludes =
@@ -54,12 +57,12 @@ UseProgLibs =
   tools/libTools/assetMgr
   tools/libTools/assetMgrHlp
   tools/libTools/util
-  tools/libTools/sepGui
   tools/libTools/dtx
 
   gameLibs/rendInst
   gameLibs/rendInst/riFx/stub
   gameLibs/render
+  gameLibs/render/volumetricLights/stub
   gameLibs/render/nodeBasedShader/stub
   gameLibs/ecs/rendInst/stub
   gameLibs/daECS/gameResStub
@@ -75,8 +78,10 @@ UseProgLibs =
   gameLibs/daECS/gameResStub
   gameLibs/ecs/rendInst/stub
 ;
+if $(Platform) in linux macOS { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
 
 ImportProgLibs = tools/libTools/daKernel ;
+ImportsRelativeDir = . ;
 
 
 include $(Root)/prog/_jBuild/build.jam ;

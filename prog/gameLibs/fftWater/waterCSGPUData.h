@@ -1,10 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <3d/dag_resPtr.h>
 #include <generic/dag_staticTab.h>
 #include <shaders/dag_postFxRenderer.h>
-#include <3d/dag_drv3dConsts.h>
+#include <drv/3d/dag_consts.h>
 #include <generic/dag_carray.h>
 
 class NVWaveWorks_FFT_CPU_Simulation;
@@ -21,7 +21,6 @@ public:
 
   void close();
   bool init(const NVWaveWorks_FFT_CPU_Simulation *fft, int num);
-  bool initDispArray(const NVWaveWorks_FFT_CPU_Simulation *fft, bool r_target);
   bool driverReset(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades);
   void perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int num, double time);
 
@@ -32,6 +31,8 @@ public:
   ~CSGPUData() { close(); }
 
 private:
+  bool initDispArray(const NVWaveWorks_FFT_CPU_Simulation *fft, bool r_target);
+
   void updateH0(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades);
   bool fillOmega(int ci, const NVWaveWorks_FFT_CPU_Simulation *fft);
   static constexpr int MAX_NUM_CASCADES = 5;
@@ -44,6 +45,7 @@ private:
   inline void setConstantBuffer(int idx, int groups_z);
 
   DECL_ALIGN16(float, constantBuffer[MAX_NUM_CASCADES][6 * 4]);
+  UniqueBufHolder gpuConstBuffer;
 
 #if ALL_CASCADES_ARE_SAME_SIZE
   CascadeData data;

@@ -13,11 +13,7 @@ Sources =
   compileScriptFile.cpp
 ;
 
-CPPopt = -D__B_CORE ;
-Copt   = -D__B_CORE ;
-
 AddIncludes =
-  $(Root)/prog/engine/sharedInclude
   $(Root)/prog/1stPartyLibs/quirrel/quirrel/include
   $(Root)/prog/1stPartyLibs/quirrel/quirrel
 ;

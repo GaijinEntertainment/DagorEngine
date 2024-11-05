@@ -1,5 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "joy_device.h"
-#include <humanInput/dag_hiXInputMappings.h>
+#include <drv/hid/dag_hiXInputMappings.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -7,8 +9,8 @@
 #include <perfMon/dag_cpuFreq.h>
 #include <util/dag_string.h>
 #include <math/dag_mathUtils.h>
-#include <humanInput/dag_hiDInput.h>
-#include <humanInput/dag_hiGlobals.h>
+#include <drv/hid/dag_hiDInput.h>
+#include <drv/hid/dag_hiGlobals.h>
 #include <stdio.h>
 #include <limits.h>
 #include <generic/dag_carray.h>
@@ -405,71 +407,30 @@ bool HidJoystickDevice::updateState(int dt_msec, bool def)
 
     // Virtual keys
 
-    bool is_l3_centered = true;
-    bool is_r3_centered = true;
-
     if (state.x > SHRT_MAX * VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-    {
-      is_l3_centered = false;
       state.buttons.set(JOY_XINPUT_REAL_BTN_L_THUMB_RIGHT);
-    }
     else if (state.x < SHRT_MAX * -VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-    {
-      is_l3_centered = false;
       state.buttons.set(JOY_XINPUT_REAL_BTN_L_THUMB_LEFT);
-    }
 
     if (state.y > SHRT_MAX * VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-    {
-      is_l3_centered = false;
       state.buttons.set(JOY_XINPUT_REAL_BTN_L_THUMB_UP);
-    }
     else if (state.y < SHRT_MAX * -VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-    {
-      is_l3_centered = false;
       state.buttons.set(JOY_XINPUT_REAL_BTN_L_THUMB_DOWN);
-    }
 
     if (state.rx > SHRT_MAX * VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-    {
-      is_r3_centered = false;
       state.buttons.set(JOY_XINPUT_REAL_BTN_R_THUMB_RIGHT);
-    }
     else if (state.rx < SHRT_MAX * -VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-    {
-      is_r3_centered = false;
       state.buttons.set(JOY_XINPUT_REAL_BTN_R_THUMB_LEFT);
-    }
 
     if (state.ry > SHRT_MAX * VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-    {
-      is_r3_centered = false;
       state.buttons.set(JOY_XINPUT_REAL_BTN_R_THUMB_UP);
-    }
     else if (state.ry < SHRT_MAX * -VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-    {
-      is_r3_centered = false;
       state.buttons.set(JOY_XINPUT_REAL_BTN_R_THUMB_DOWN);
-    }
 
     if (state.slider[0] > SHRT_MAX * VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
       state.buttons.set(JOY_XINPUT_REAL_BTN_L_TRIGGER);
     if (state.slider[1] > SHRT_MAX * VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
       state.buttons.set(JOY_XINPUT_REAL_BTN_R_TRIGGER);
-
-    if (state.buttons.get(JOY_XINPUT_REAL_BTN_L_THUMB) && ((is_l3_centered && !state.buttonsPrev.get(JOY_XINPUT_REAL_BTN_L_THUMB)) ||
-                                                            (state.buttonsPrev.getWord0() & JOY_XINPUT_REAL_BTN_L_THUMB_CENTER)))
-    {
-      state.buttons.clr(JOY_XINPUT_REAL_BTN_L_THUMB);
-      state.buttons.set(JOY_XINPUT_REAL_BTN_L_THUMB_CENTER);
-    }
-
-    if (state.buttons.get(JOY_XINPUT_REAL_BTN_R_THUMB) && ((is_r3_centered && !state.buttonsPrev.get(JOY_XINPUT_REAL_BTN_R_THUMB)) ||
-                                                            (state.buttonsPrev.getWord0() & JOY_XINPUT_REAL_BTN_R_THUMB_CENTER)))
-    {
-      state.buttons.clr(JOY_XINPUT_REAL_BTN_R_THUMB);
-      state.buttons.set(JOY_XINPUT_REAL_BTN_R_THUMB_CENTER);
-    }
 
     if (padX > 0)
       state.buttons.set(JOY_XINPUT_REAL_BTN_D_RIGHT);
@@ -607,7 +568,8 @@ float HidJoystickDevice::getAxisPos(int axis_id) const
   if (axis_id >= 0 && axis_id < ac)
   {
     AxisData const &axis = axes[axis_id];
-    return cvt(axis.axis_info.value, JOY_XINPUT_MIN_AXIS_VAL, JOY_XINPUT_MAX_AXIS_VAL, axis.min_val, axis.max_val);
+    return cvt(axis.axis_info.value, JOY_XINPUT_MIN_AXIS_VAL, JOY_XINPUT_MAX_AXIS_VAL, axis.min_val * JOY_XINPUT_MAX_AXIS_VAL,
+      axis.max_val * JOY_XINPUT_MAX_AXIS_VAL);
   }
   if (axis_id >= ac && axis_id < ac + 2 * povHats.size())
     return getVirtualPOVAxis((axis_id - ac) / 2, (axis_id - ac) % 2);

@@ -23,7 +23,7 @@ Sources(nvtt/tools/nvzoom.exe) = resize.cpp ;
 
 AddIncludes = $(Root)/prog/3rdPartyLibs/convert/nvtt-2.0.7 ;
 
-if $(Platform) in win32 win64 { CPPopt += -DWIN32 -D_WINDOWS -D_USRDLL ; }
+if $(Platform) in windows { CPPopt += -DWIN32 -D_WINDOWS -D_USRDLL ; }
 CPPopt =
   -DWIN32 -D_WINDOWS -D_USRDLL -DNVTT_EXPORTS -D__SSE2__ -D__SSE__ -D__MMX__
 ;

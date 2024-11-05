@@ -1,5 +1,4 @@
-#ifndef _DAGOR_GAMELIB_SOUNDSYSTEM_DELAYEDINTERNAL_H_
-#define _DAGOR_GAMELIB_SOUNDSYSTEM_DELAYEDINTERNAL_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <soundSystem/handle.h>
@@ -25,5 +24,3 @@ void get_debug_info(size_t &events, size_t &actions, size_t &max_events, size_t 
 void update(float dt);
 } // namespace delayed
 } // namespace sndsys
-
-#endif

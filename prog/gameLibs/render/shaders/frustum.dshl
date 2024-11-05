@@ -19,14 +19,27 @@ macro INIT_AND_USE_FRUSTUM_CHECK_BASE(stage)
     {
       return baseTestSphereB(center, radius, frustumPlane03X, frustumPlane03Y, frustumPlane03Z, frustumPlane03W, frustumPlane4, frustumPlane5);
     }
-    bool testBoxB(float3 minb, float3 maxb)
-    {
-      float3 center = 0.5*(maxb+minb);
-      return baseTestBoxExtentB(center, maxb-center, frustumPlane03X, frustumPlane03Y, frustumPlane03Z, frustumPlane03W, frustumPlane4, frustumPlane5);
-    }
     bool testBoxExtentB(float3 centerb, float3 extentb)
     {
       return baseTestBoxExtentB(centerb, extentb, frustumPlane03X, frustumPlane03Y, frustumPlane03Z, frustumPlane03W, frustumPlane4, frustumPlane5);
+    }
+    bool testBoxB(float3 minb, float3 maxb)
+    {
+      float3 center = 0.5*(maxb+minb);
+      return testBoxExtentB(center, maxb-center);
+    }
+    bool testBoxExtentIntersects(float3 centerb, float3 extentb)
+    {
+      return baseTestBoxExtentIntersects(centerb, extentb, frustumPlane03X, frustumPlane03Y, frustumPlane03Z, frustumPlane03W, frustumPlane4, frustumPlane5);
+    }
+    uint testBoxExtent(float3 centerb, float3 extentb)// 0 - outside, 1 - inside, 2 - intersect
+    {
+      return baseTestBoxExtent(centerb, extentb, frustumPlane03X, frustumPlane03Y, frustumPlane03Z, frustumPlane03W, frustumPlane4, frustumPlane5);
+    }
+    uint testBox(float3 minb, float3 maxb)// 0 - outside, 1 - inside, 2 - intersect
+    {
+      float3 center = 0.5*(maxb+minb);
+      return testBoxExtent(center, maxb-center);
     }
   }
 endmacro

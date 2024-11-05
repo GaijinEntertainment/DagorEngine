@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "bhvOverlayTransparency.h"
 
 #include <perfMon/dag_statDrv.h>

@@ -1,11 +1,10 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 
 class TexStreamingContext
 {
@@ -23,4 +22,7 @@ public:
   // Create a context correctly computing texture mips for streaming
   TexStreamingContext(const Driver3dPerspective &persp, int width);
   int getTexLevel(float texScale, float distSq = 0.0f) const;
+
+  constexpr static int minLevel = 1;
+  constexpr static int maxLevel = 15;
 };

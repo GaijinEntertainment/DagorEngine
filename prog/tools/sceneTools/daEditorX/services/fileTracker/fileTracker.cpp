@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_fileTracker.h>
 #include <osApiWrappers/dag_files.h>
 #include <util/dag_oaHashNameMap.h>

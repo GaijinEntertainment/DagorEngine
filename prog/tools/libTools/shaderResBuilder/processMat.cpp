@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/shaderResBuilder/processMat.h>
 #include <libTools/dagFileRW/textureNameResolver.h>
 #include <libTools/util/iLogWriter.h>
@@ -173,7 +175,7 @@ String make_mat_script_from_props(const DataBlock &mat_props)
   return script;
 }
 
-static const char *replace_asset_name(const char *mat_tex, String &tmp_stor, const char *a_name)
+const char *replace_asset_name(const char *mat_tex, String &tmp_stor, const char *a_name)
 {
   if (!a_name || !strchr(mat_tex, '$'))
     return mat_tex;
@@ -224,5 +226,22 @@ void override_materials(PtrTab<MaterialData> &mat_list, const DataBlock &materia
       eastl::find_if(mat_list.begin(), mat_list.end(), [name](auto &matData) { return strcmp(name, matData->matName.c_str()) == 0; });
     if (matPos != mat_list.end())
       override_material_with_props(*matPos->get(), *matOverrideProps, a_name);
+  }
+}
+
+void get_textures_used_by_proxymat(const DataBlock &proxymat_props, const char *owner_asset_name, dag::Vector<String> &asset_names)
+{
+  String assetName, tempString1, tempString2;
+  const int textureCount = proxymat_props.getBool("tex16support", false) ? 16 : 8;
+  for (int i = 0; i < textureCount; ++i)
+  {
+    tempString1.printf(8, "tex%d", i);
+    const char *textureName = proxymat_props.getStr(tempString1, "");
+    textureName = replace_asset_name(textureName, tempString1, owner_asset_name);
+    assetName = DagorAsset::fpath2asset(TextureMetaData::decodeFileName(textureName, &tempString2));
+    if (assetName.empty() || *assetName.end(1) == '*')
+      continue;
+
+    asset_names.push_back(assetName);
   }
 }

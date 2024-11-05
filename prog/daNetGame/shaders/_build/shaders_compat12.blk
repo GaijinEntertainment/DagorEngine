@@ -1,0 +1,16 @@
+include "shaders_dx12.blk"
+
+"@override:outDumpName":t="../../game/compiledShaders/compatPC/gameDX12"
+
+"@override:Compile" {
+  "@override:fsh":t="5.0"
+  "@override:assume_vars" {
+    include compatibility_pc_assumes.blk
+  }
+}
+
+"@override:common_valid_variants"
+{
+  invalid {gi_quality:i = 1;}
+  invalid {gi_quality:i = 2;}
+}

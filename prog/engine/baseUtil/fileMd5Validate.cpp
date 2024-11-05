@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_fileMd5Validate.h>
 #include <ioSys/dag_fileIo.h>
 #include <osApiWrappers/dag_files.h>

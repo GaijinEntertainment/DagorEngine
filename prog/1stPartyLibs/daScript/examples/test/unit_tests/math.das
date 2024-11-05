@@ -85,5 +85,5 @@ def test
     verify(rightPolicyCeili(1.2)==2)
     // constants
     let mme = "{FLT_MIN} {FLT_MAX} {FLT_EPSILON}"
-    assert(mme=="0.000000000 340282346638528859811704183484516925440.000000000 0.000000119")
+    assert(mme=="1.1754944e-38 3.4028235e+38 1.1920929e-07")
     return true

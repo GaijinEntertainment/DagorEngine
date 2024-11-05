@@ -1,3 +1,6 @@
+if (__name__ == "__analysis__")
+  return
+
 //expect:w214
 local test = ::f
 

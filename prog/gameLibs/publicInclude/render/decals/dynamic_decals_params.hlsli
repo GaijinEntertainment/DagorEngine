@@ -36,6 +36,6 @@
 #define dyn_decals_bullet_diff_mark_params float4(1.0, 0.00, 0.1, 0.0)
 
 #define dyn_decals_smoothness  0.3
-#define dyn_decals_metallness  0.6
+#define dyn_decals_metalness  0.6
 
-#define dyn_decals_material float2(dyn_decals_smoothness, dyn_decals_metallness)
+#define dyn_decals_material float2(dyn_decals_smoothness, dyn_decals_metalness)

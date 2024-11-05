@@ -110,7 +110,13 @@ function mkFunStubStr(func, name=null, indent = 0, verbose=false, manualModInfo=
         ? $"function{name}({args_string}) \{\n{indentStr}{typechecks}{retValueStr}\}"
         : $"function{name}({args_string}) \{\n{indentStr}{typechecks}\n{indentStr}\}"
 }
-
+function topairs(val) {
+  let sorted = []
+  foreach (k, v in val)
+    sorted.append([k, v])
+  sorted.sort(@(pairA, pairB) pairA[0] <=> pairB[0])
+  return sorted
+}
 function mkStubStr(val, name=null, indent=0, verbose = false, manualModInfo=null){
   let typ = type(val)
   let indentStr = "".join(array(indent, INDENT_SYM))
@@ -121,7 +127,9 @@ function mkStubStr(val, name=null, indent=0, verbose = false, manualModInfo=null
     return  $"{indentStr}{mkFunStubStr(val, name, indent, verbose, manualModInfo)}"
   if (typ=="table"){
     let res = [name!=null ? $"{indentStr}{name} = \{" : $"{indentStr}\{"]
-    foreach(k, v in val){
+    let sorted = topairs(val)
+    foreach(pair in sorted){
+      let [k, v] = pair
       res.append(mkStubSt(v, k, indent+1, verbose, manualModInfo))
     }
     res.append($"{indentStr}\}")
@@ -129,7 +137,9 @@ function mkStubStr(val, name=null, indent=0, verbose = false, manualModInfo=null
   }
   if (typ=="class"){
     let res = [name==null ? $"{indentStr}class\{" : $"{indentStr}{name} = class\{"]
-    foreach(k, v in val){
+    let sorted = topairs(val)
+    foreach(pair in sorted){
+      let [k, v] = pair
       res.append(mkStubSt(v, k, indent+1))
     }
     res.append($"{indentStr}\}")

@@ -1,4 +1,5 @@
-// clang-format off
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #ifdef _MSC_VER
 #pragma warning(disable : 4995)
 #endif
@@ -8,8 +9,6 @@
 #if _TARGET_PC_WIN
 #include <windows.h>
 #include <unknwn.h>
-#else
-#include <folders/folders.h>
 #endif
 #include <codecvt>
 #include <dxc/dxcapi.h>
@@ -18,7 +17,7 @@
 #include <spirv-tools/libspirv.hpp>
 #include <string>
 #include <osApiWrappers/dag_dynLib.h>
-// clang-format on
+#include <EASTL/array.h>
 
 using namespace spirv;
 
@@ -269,6 +268,9 @@ static ReflectionInfo convertVariableInfo(NodePointer<NodeOpVariable> var, bool 
   ret.uav = is_uav_resource(var);
 
   int type_set = int(ret.type) + (ret.uav ? 16 : 0);
+  // special case for unbound arrays
+  if (overwrite_sets && set && set->descriptorSet.value >= 32)
+    type_set = set->descriptorSet.value;
   ret.set = overwrite_sets ? type_set : (set ? set->descriptorSet.value : -1);
   if (set)
     set->descriptorSet.value = ret.set;
@@ -279,22 +281,33 @@ static ReflectionInfo convertVariableInfo(NodePointer<NodeOpVariable> var, bool 
   return ret;
 }
 
-static eastl::vector<ReflectionInfo> compileReflection(ModuleBuilder &builder, bool overwrite_sets, bool &atomic_textures)
+static eastl::vector<ReflectionInfo> compileReflection(ModuleBuilder &builder, bool overwrite_sets, bool &atomic_textures,
+  bool &buff_length)
 {
   eastl::vector<ReflectionInfo> ret;
   eastl::vector<NodePointer<NodeOpVariable>> uav_textures;
   eastl::vector<NodePointer<NodeOpImageTexelPointer>> uav_texture_pointers;
-  builder.enumerateAllGlobalVariables([&ret, &uav_textures, overwrite_sets](auto var) //
+  eastl::vector<NodePointer<NodeOpVariable>> buffers;
+  builder.enumerateAllGlobalVariables([&ret, &uav_textures, &buffers, overwrite_sets](auto var) //
     {
       auto ptrType = as<NodeOpTypePointer>(var->resultType);
       if (ptrType->storageClass == StorageClass::UniformConstant || ptrType->storageClass == StorageClass::Uniform)
       {
         ReflectionInfo info = convertVariableInfo(var, is<NodeOpTypeSampler>(ptrType->type), overwrite_sets);
         ret.push_back(info);
+
         if (info.uav && info.type == ReflectionInfo::Type::Texture)
+        {
           uav_textures.push_back(var);
+          return;
+        }
+
+        if (info.type == ReflectionInfo::Type::ConstantBuffer || info.type == ReflectionInfo::Type::StructuredBuffer ||
+            info.type == ReflectionInfo::Type::Buffer || info.type == ReflectionInfo::Type::TlasBuffer)
+          buffers.push_back(var);
       }
     });
+
   for (auto &var : uav_textures)
   {
     builder.enumerateConsumersOf(var, [&](auto tex_consumer, auto &) {
@@ -309,6 +322,13 @@ static eastl::vector<ReflectionInfo> compileReflection(ModuleBuilder &builder, b
         atomic_textures = true;
     });
   }
+
+  for (auto &buf : buffers)
+  {
+    builder.enumerateConsumersOf(buf,
+      [&buff_length](auto buf_consumer, auto &) { buff_length |= (buf_consumer->opCode == Op::OpArrayLength); });
+  }
+
   return ret;
 }
 
@@ -318,15 +338,33 @@ CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const c
   CompileToSpirVResult result = {};
   DXCErrorHandler errorHandler{result};
   IDxcCompiler *compiler = nullptr;
+
+  eastl::array<char, DAGOR_MAX_PATH> dynlibPath{};
+  bool getRes = os_dll_get_dll_name_from_addr(dynlibPath.data(), dynlibPath.size(), (const void *)&compileHLSL_DXC);
+  String lookupPath("./");
+  if (getRes)
+  {
 #if _TARGET_PC_WIN
-  const String libPath("dxcompiler.dll");
+    const char *end = strrchr(dynlibPath.cbegin(), '\\');
+#else
+    const char *end = strrchr(dynlibPath.cbegin(), '/');
+#endif
+
+    if (end)
+      lookupPath = String(dynlibPath.cbegin(), end - dynlibPath.cbegin() + 1);
+    else
+      lookupPath = String(dynlibPath.cbegin());
+  }
+
+#if _TARGET_PC_WIN
+  const String libPath = lookupPath + "dxcompiler.dll";
 #elif _TARGET_PC_MACOSX
-  const String libPath = folders::get_exe_dir() + "dxcompiler.dylib";
+  const String libPath = lookupPath + "dxcompiler.dylib";
 #elif _TARGET_PC_LINUX
-  const String libPath = folders::get_exe_dir() + "libdxcompiler.so";
+  const String libPath = lookupPath + "libdxcompiler.so";
 #endif
   eastl::unique_ptr<void, DagorDllCloser> library;
-  library.reset(os_dll_load(libPath.c_str()));
+  library.reset(os_dll_load_deep_bind(libPath.c_str()));
   if (!library)
   {
     result.infoLog.emplace_back("Error: Unable to load DXC dll: " + eastl::string(os_dll_get_last_error_str()));
@@ -393,7 +431,10 @@ CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const c
       L"-fvk-bind-globals", L"0", L"9", optConfig.c_str(),
       // L"-Vd"
       // force vulkan1.0 to avoid any problems with new spir-v on old devices
-      L"-fspv-target-env=vulkan1.0", L"-fspv-extension=SPV_KHR_ray_tracing", L"-fspv-extension=SPV_KHR_ray_query"};
+      // or vulkan1.1 to support wave intrinsics
+      (flags & CompileFlags::ENABLE_WAVE_INTRINSICS) == CompileFlags::ENABLE_WAVE_INTRINSICS ? L"-fspv-target-env=vulkan1.1"
+                                                                                             : L"-fspv-target-env=vulkan1.0",
+      L"-fspv-extension=SPV_KHR_ray_tracing", L"-fspv-extension=SPV_KHR_ray_query", L"-fspv-flatten-resource-arrays"};
 
   if (bool(flags & CompileFlags::ENABLE_BINDLESS_SUPPORT))
   {
@@ -483,7 +524,7 @@ CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const c
         }
 
         // patch atomic counter handling
-        auto atomicMapping = resolveAtomicBuffers(module, AtomicResolveMode::SeparateBuffer);
+        resolveAtomicBuffers(module, AtomicResolveMode::SeparateBuffer, errorHandler);
 
         // re index to fill in possible holes
         // this can be avoided if nothing had changed (let the passes tell the caller if anything
@@ -495,12 +536,20 @@ CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const c
         if ((flags & CompileFlags::OUTPUT_REFLECTION) == CompileFlags::OUTPUT_REFLECTION)
         {
           bool atomic_textures = false;
+          bool buff_length = false;
           result.header = {};
-          result.reflection = compileReflection(module,
-            (flags & CompileFlags::OVERWRITE_DESCRIPTOR_SETS) == CompileFlags::OVERWRITE_DESCRIPTOR_SETS, atomic_textures);
+          result.reflection =
+            compileReflection(module, (flags & CompileFlags::OVERWRITE_DESCRIPTOR_SETS) == CompileFlags::OVERWRITE_DESCRIPTOR_SETS,
+              atomic_textures, buff_length);
           if (atomic_textures)
           {
             result.infoLog.emplace_back("Shader uses atomic ops for textures. this doesn't work on metal");
+            return result;
+          }
+
+          if (buff_length)
+          {
+            result.infoLog.emplace_back("Shader uses array length ops for buffers. They don't work properly on some devices");
             return result;
           }
         }
@@ -508,7 +557,7 @@ CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const c
         {
           resolveSemantics(module, inputSemantics.data(), inLen, outputSemantics.data(), outLen, errorHandler);
 
-          result.header = compileHeader(module, atomicMapping, flags, errorHandler);
+          result.header = compileHeader(module, flags, errorHandler);
 
           cleanupReflectionLeftouts(module, errorHandler);
           module.disableExtension(Extension::GOOGLE_hlsl_functionality1);

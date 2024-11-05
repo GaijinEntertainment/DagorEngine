@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daNet/bitStream.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_memIo.h>

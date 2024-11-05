@@ -1,5 +1,5 @@
-#ifndef LOADBMP_H
-#define LOADBMP_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 // ############################################################################
 // ##                                                                        ##
@@ -36,6 +36,3 @@ public:
   void SwapRGB(unsigned char *dest, const unsigned char *src, unsigned int size);
   void SwapVertically(unsigned char *dest, const unsigned char *src, int wid, int hit, int Bpp);
 };
-
-
-#endif

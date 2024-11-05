@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/spotLightsManager.h>
 #include <math/dag_frustum.h>
 #include <scene/dag_occlusion.h>
@@ -187,9 +189,9 @@ void SpotLightsManager::updateBoundingBox(unsigned id)
   vec3f left, up;
   vec4f pos = v_ld(&l.pos_radius.x);
   float radius = l.culling_radius == -1 ? l.pos_radius.w : l.culling_radius;
-  vec4f vrad = v_splat4(&radius);
+  vec4f vrad = v_splats(radius);
 
-  vec4f vdir = v_ld(&l.dir_angle.x);
+  vec4f vdir = v_ld(&l.dir_tanHalfAngle.x);
   v_view_matrix_from_tangentZ(left, up, vdir);
 
   vec4f tanHalf = v_splat_w(vdir);
@@ -231,7 +233,7 @@ void SpotLightsManager::getLightView(unsigned int id, mat44f &viewITM)
 {
   TMatrix view;
   const Light &l = rawLights[id];
-  view_matrix_from_tangentZ(Point3::xyz(l.dir_angle), view);
+  view_matrix_from_tangentZ(Point3::xyz(l.dir_tanHalfAngle), view);
   view.setcol(3, Point3::xyz(l.pos_radius));
   v_mat44_make_from_43cu(viewITM, view[0]);
 }
@@ -241,7 +243,7 @@ int SpotLightsManager::addLight(const Point3 &pos, const Color3 &color, const Po
 {
   IesTextureCollection::PhotometryData photometryData = getPhotometryData(tex);
   return addLight(
-    Light(pos, color, radius, attenuation_k, dir, angle, contact_shadows, tex, photometryData.zoom, photometryData.rotated));
+    Light(pos, color, radius, attenuation_k, dir, angle, contact_shadows, false, tex, photometryData.zoom, photometryData.rotated));
 }
 
 IesTextureCollection::PhotometryData SpotLightsManager::getPhotometryData(int texId) const
@@ -254,7 +256,7 @@ void SpotLightsManager::getLightPersp(unsigned int id, mat44f &proj)
   const Light &l = rawLights[id];
   float zn = 0.001f * l.pos_radius.w;
   float zf = l.pos_radius.w;
-  float wk = 1. / l.dir_angle.w;
+  float wk = 1. / l.dir_tanHalfAngle.w;
 
   v_mat44_make_persp_reverse(proj, wk, wk, zn, zf);
 }

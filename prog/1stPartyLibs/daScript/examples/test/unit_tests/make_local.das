@@ -1,5 +1,6 @@
 // options log=true, log_stack=true, optimize=true
 
+[safe_when_uninitialized]
 struct Bar
     x:int = 1
     y:int = 2
@@ -15,6 +16,7 @@ def test_bar
     assert(t1.x==13 && t1.y==2 && t1.z==3 && t1.w==4)
     return true
 
+[safe_when_uninitialized]
 struct Foo
     i : int = 5
     f : float = 6.0

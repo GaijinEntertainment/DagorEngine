@@ -1,9 +1,7 @@
-
-#ifndef _DAGOR_TVOS_JOYSTICK_CLASS_DRIVER_H_
-#define _DAGOR_TVOS_JOYSTICK_CLASS_DRIVER_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <humanInput/dag_hiJoystick.h>
+#include <drv/hid/dag_hiJoystick.h>
 #include "remote_control.h"
 
 class TvosJoystickClassDriver : public HumanInput::IGenJoystickClassDrv
@@ -56,5 +54,3 @@ private:
   HumanInput::IGenJoystickClient *client;
   bool _enable;
 };
-
-#endif //_DAGOR_TVOS_JOYSTICK_CLASS_DRIVER_H_

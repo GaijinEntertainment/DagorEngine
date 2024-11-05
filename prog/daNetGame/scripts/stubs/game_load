@@ -1,0 +1,6 @@
+return {
+  request_ugm_manifest = @(eventname, vrompath) assert(typeof eventname=="string" && typeof vrompath == "string")
+  register_blob_as_virtual_file = @(_mount_dir, _rel_fname, _blob) null
+  unregister_virtual_file = @(_mount_dir, _rel_fname) null
+  check_tex_exists = @(_tex_nm) null
+}

@@ -1,5 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <generic/dag_tab.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_dispatchMesh.h>
+#include <drv/3d/dag_dispatch.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_shader.h>
+#include <drv/3d/dag_commands.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>
 #include <debug/dag_debug.h>

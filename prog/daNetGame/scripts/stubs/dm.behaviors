@@ -1,0 +1,4 @@
+return {
+  HitCamera = "HitCamera"
+  DMPanel = "DMPanel"
+}

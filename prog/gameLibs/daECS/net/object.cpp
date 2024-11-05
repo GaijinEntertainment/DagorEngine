@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/net/object.h>
 #include <daECS/net/connection.h>
 #include <daECS/core/entityManager.h>
@@ -118,7 +120,8 @@ static inline void gather_ignored(const ecs::Template *templ, eastl::vector_set<
   for (auto comp : templ->getIgnoredInitialReplicationSet())
   {
     ecs::component_index_t cidx = g_entity_mgr->getDataComponents().findComponentId(comp);
-    if (cidx != ecs::INVALID_COMPONENT_INDEX && ecs::should_replicate(cidx)) // if it is not serializable, no reason to do anything.
+    if (cidx != ecs::INVALID_COMPONENT_INDEX && ecs::should_replicate(cidx, *g_entity_mgr)) // if it is not serializable, no reason to
+                                                                                            // do anything.
       ignored.insert(cidx);
   }
   for (auto p : templ->getParents())
@@ -145,11 +148,25 @@ const ecs::component_index_t *get_template_ignored_initial_components(ecs::templ
     ignored_components[tid] = &NO_COMPONENTS_STUB;
     return nullptr;
   }
-  ignoredComponents.insert(ignoredComponents.begin(), ignoredComponents.size());
+  ignoredComponents.getContainer().insert(ignoredComponents.begin(), ignoredComponents.size());
   ignoredComponents.shrink_to_fit();
   ignored_components[tid] = ignoredComponents.data();
   ignoredComponents.reset_lose_memory();
   return ignored_components[tid];
+}
+
+
+void ObjectReplica::debugVerifyRemoteCompVers(const CompVersMap &local_comp_vers, bool shallow_check) const
+{
+  G_UNUSED(local_comp_vers);
+  G_UNUSED(shallow_check);
+#if DAECS_EXTENSIVE_CHECKS
+  bool eq = local_comp_vers.size() == remoteCompVers.size();
+  for (int i = 0, sz = local_comp_vers.size(); i < sz && eq && !shallow_check; ++i)
+    eq &= local_comp_vers.data()[i].first == remoteCompVers.data()[i].first;
+  G_ASSERTF(eq, "%d<%s> %d != %d %p", eidStorage, g_entity_mgr->getEntityTemplateName(ecs::EntityId(eidStorage)),
+    (int)local_comp_vers.size(), (int)remoteCompVers.size(), this);
+#endif
 }
 
 Object::Object(const ecs::EntityManager &, ecs::EntityId eid_, const ecs::ComponentsMap &map) :
@@ -167,7 +184,7 @@ Object::Object(const ecs::EntityManager &, ecs::EntityId eid_, const ecs::Compon
 Object::~Object()
 {
   while (replicasLinkList) // auto kill all replicas for this object
-    replicasLinkList->conn->killObjectReplica(replicasLinkList, *this);
+    replicasLinkList->conn->killObjectReplica(replicasLinkList, this);
   dirtyList.erase(eid);
 }
 

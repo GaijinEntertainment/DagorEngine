@@ -12,66 +12,86 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_22() {
-// from D:\Work\libclang\include\llvm-c/Core.h:2504:10
-	addExtern< int (*)(LLVMOpaqueValue *) , LLVMHasPersonalityFn >(*this,lib,"LLVMHasPersonalityFn",SideEffects::worstDefault,"LLVMHasPersonalityFn")
-		->args({"Fn"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2511:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMGetPersonalityFn >(*this,lib,"LLVMGetPersonalityFn",SideEffects::worstDefault,"LLVMGetPersonalityFn")
-		->args({"Fn"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2518:6
-	addExtern< void (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMSetPersonalityFn >(*this,lib,"LLVMSetPersonalityFn",SideEffects::worstDefault,"LLVMSetPersonalityFn")
-		->args({"Fn","PersonalityFn"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2525:10
-	addExtern< unsigned int (*)(const char *,size_t) , LLVMLookupIntrinsicID >(*this,lib,"LLVMLookupIntrinsicID",SideEffects::worstDefault,"LLVMLookupIntrinsicID")
-		->args({"Name","NameLen"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2532:10
-	addExtern< unsigned int (*)(LLVMOpaqueValue *) , LLVMGetIntrinsicID >(*this,lib,"LLVMGetIntrinsicID",SideEffects::worstDefault,"LLVMGetIntrinsicID")
-		->args({"Fn"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2540:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *,unsigned int,LLVMOpaqueType **,size_t) , LLVMGetIntrinsicDeclaration >(*this,lib,"LLVMGetIntrinsicDeclaration",SideEffects::worstDefault,"LLVMGetIntrinsicDeclaration")
-		->args({"Mod","ID","ParamTypes","ParamCount"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2551:13
-	addExtern< LLVMOpaqueType * (*)(LLVMOpaqueContext *,unsigned int,LLVMOpaqueType **,size_t) , LLVMIntrinsicGetType >(*this,lib,"LLVMIntrinsicGetType",SideEffects::worstDefault,"LLVMIntrinsicGetType")
-		->args({"Ctx","ID","ParamTypes","ParamCount"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2559:13
-	addExtern< const char * (*)(unsigned int,size_t *) , LLVMIntrinsicGetName >(*this,lib,"LLVMIntrinsicGetName",SideEffects::worstDefault,"LLVMIntrinsicGetName")
-		->args({"ID","NameLength"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2562:13
-	addExtern< const char * (*)(unsigned int,LLVMOpaqueType **,size_t,size_t *) , LLVMIntrinsicCopyOverloadedName >(*this,lib,"LLVMIntrinsicCopyOverloadedName",SideEffects::worstDefault,"LLVMIntrinsicCopyOverloadedName")
-		->args({"ID","ParamTypes","ParamCount","NameLength"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2578:13
-	addExtern< const char * (*)(LLVMOpaqueModule *,unsigned int,LLVMOpaqueType **,size_t,size_t *) , LLVMIntrinsicCopyOverloadedName2 >(*this,lib,"LLVMIntrinsicCopyOverloadedName2",SideEffects::worstDefault,"LLVMIntrinsicCopyOverloadedName2")
-		->args({"Mod","ID","ParamTypes","ParamCount","NameLength"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2588:10
-	addExtern< int (*)(unsigned int) , LLVMIntrinsicIsOverloaded >(*this,lib,"LLVMIntrinsicIsOverloaded",SideEffects::worstDefault,"LLVMIntrinsicIsOverloaded")
-		->args({"ID"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2597:10
-	addExtern< unsigned int (*)(LLVMOpaqueValue *) , LLVMGetFunctionCallConv >(*this,lib,"LLVMGetFunctionCallConv",SideEffects::worstDefault,"LLVMGetFunctionCallConv")
-		->args({"Fn"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2607:6
-	addExtern< void (*)(LLVMOpaqueValue *,unsigned int) , LLVMSetFunctionCallConv >(*this,lib,"LLVMSetFunctionCallConv",SideEffects::worstDefault,"LLVMSetFunctionCallConv")
-		->args({"Fn","CC"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2615:13
-	addExtern< const char * (*)(LLVMOpaqueValue *) , LLVMGetGC >(*this,lib,"LLVMGetGC",SideEffects::worstDefault,"LLVMGetGC")
-		->args({"Fn"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2622:6
-	addExtern< void (*)(LLVMOpaqueValue *,const char *) , LLVMSetGC >(*this,lib,"LLVMSetGC",SideEffects::worstDefault,"LLVMSetGC")
-		->args({"Fn","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2629:6
-	addExtern< void (*)(LLVMOpaqueValue *,unsigned int,LLVMOpaqueAttributeRef *) , LLVMAddAttributeAtIndex >(*this,lib,"LLVMAddAttributeAtIndex",SideEffects::worstDefault,"LLVMAddAttributeAtIndex")
-		->args({"F","Idx","A"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2631:10
-	addExtern< unsigned int (*)(LLVMOpaqueValue *,unsigned int) , LLVMGetAttributeCountAtIndex >(*this,lib,"LLVMGetAttributeCountAtIndex",SideEffects::worstDefault,"LLVMGetAttributeCountAtIndex")
-		->args({"F","Idx"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2632:6
-	addExtern< void (*)(LLVMOpaqueValue *,unsigned int,LLVMOpaqueAttributeRef **) , LLVMGetAttributesAtIndex >(*this,lib,"LLVMGetAttributesAtIndex",SideEffects::worstDefault,"LLVMGetAttributesAtIndex")
-		->args({"F","Idx","Attrs"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2634:18
-	addExtern< LLVMOpaqueAttributeRef * (*)(LLVMOpaqueValue *,unsigned int,unsigned int) , LLVMGetEnumAttributeAtIndex >(*this,lib,"LLVMGetEnumAttributeAtIndex",SideEffects::worstDefault,"LLVMGetEnumAttributeAtIndex")
-		->args({"F","Idx","KindID"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2637:18
-	addExtern< LLVMOpaqueAttributeRef * (*)(LLVMOpaqueValue *,unsigned int,const char *,unsigned int) , LLVMGetStringAttributeAtIndex >(*this,lib,"LLVMGetStringAttributeAtIndex",SideEffects::worstDefault,"LLVMGetStringAttributeAtIndex")
-		->args({"F","Idx","K","KLen"});
+// from D:\Work\libclang\include\llvm-c/Core.h:2523:6
+	makeExtern< void (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMSetPersonalityFn , SimNode_ExtFuncCall >(lib,"LLVMSetPersonalityFn","LLVMSetPersonalityFn")
+		->args({"Fn","PersonalityFn"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2530:10
+	makeExtern< unsigned int (*)(const char *,size_t) , LLVMLookupIntrinsicID , SimNode_ExtFuncCall >(lib,"LLVMLookupIntrinsicID","LLVMLookupIntrinsicID")
+		->args({"Name","NameLen"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2537:10
+	makeExtern< unsigned int (*)(LLVMOpaqueValue *) , LLVMGetIntrinsicID , SimNode_ExtFuncCall >(lib,"LLVMGetIntrinsicID","LLVMGetIntrinsicID")
+		->args({"Fn"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2545:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *,unsigned int,LLVMOpaqueType **,size_t) , LLVMGetIntrinsicDeclaration , SimNode_ExtFuncCall >(lib,"LLVMGetIntrinsicDeclaration","LLVMGetIntrinsicDeclaration")
+		->args({"Mod","ID","ParamTypes","ParamCount"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2556:13
+	makeExtern< LLVMOpaqueType * (*)(LLVMOpaqueContext *,unsigned int,LLVMOpaqueType **,size_t) , LLVMIntrinsicGetType , SimNode_ExtFuncCall >(lib,"LLVMIntrinsicGetType","LLVMIntrinsicGetType")
+		->args({"Ctx","ID","ParamTypes","ParamCount"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2564:13
+	makeExtern< const char * (*)(unsigned int,size_t *) , LLVMIntrinsicGetName , SimNode_ExtFuncCall >(lib,"LLVMIntrinsicGetName","LLVMIntrinsicGetName")
+		->args({"ID","NameLength"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2567:13
+	makeExtern< const char * (*)(unsigned int,LLVMOpaqueType **,size_t,size_t *) , LLVMIntrinsicCopyOverloadedName , SimNode_ExtFuncCall >(lib,"LLVMIntrinsicCopyOverloadedName","LLVMIntrinsicCopyOverloadedName")
+		->args({"ID","ParamTypes","ParamCount","NameLength"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2583:13
+	makeExtern< const char * (*)(LLVMOpaqueModule *,unsigned int,LLVMOpaqueType **,size_t,size_t *) , LLVMIntrinsicCopyOverloadedName2 , SimNode_ExtFuncCall >(lib,"LLVMIntrinsicCopyOverloadedName2","LLVMIntrinsicCopyOverloadedName2")
+		->args({"Mod","ID","ParamTypes","ParamCount","NameLength"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2593:10
+	makeExtern< int (*)(unsigned int) , LLVMIntrinsicIsOverloaded , SimNode_ExtFuncCall >(lib,"LLVMIntrinsicIsOverloaded","LLVMIntrinsicIsOverloaded")
+		->args({"ID"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2602:10
+	makeExtern< unsigned int (*)(LLVMOpaqueValue *) , LLVMGetFunctionCallConv , SimNode_ExtFuncCall >(lib,"LLVMGetFunctionCallConv","LLVMGetFunctionCallConv")
+		->args({"Fn"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2612:6
+	makeExtern< void (*)(LLVMOpaqueValue *,unsigned int) , LLVMSetFunctionCallConv , SimNode_ExtFuncCall >(lib,"LLVMSetFunctionCallConv","LLVMSetFunctionCallConv")
+		->args({"Fn","CC"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2620:13
+	makeExtern< const char * (*)(LLVMOpaqueValue *) , LLVMGetGC , SimNode_ExtFuncCall >(lib,"LLVMGetGC","LLVMGetGC")
+		->args({"Fn"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2627:6
+	makeExtern< void (*)(LLVMOpaqueValue *,const char *) , LLVMSetGC , SimNode_ExtFuncCall >(lib,"LLVMSetGC","LLVMSetGC")
+		->args({"Fn","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2634:6
+	makeExtern< void (*)(LLVMOpaqueValue *,unsigned int,LLVMOpaqueAttributeRef *) , LLVMAddAttributeAtIndex , SimNode_ExtFuncCall >(lib,"LLVMAddAttributeAtIndex","LLVMAddAttributeAtIndex")
+		->args({"F","Idx","A"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2636:10
+	makeExtern< unsigned int (*)(LLVMOpaqueValue *,unsigned int) , LLVMGetAttributeCountAtIndex , SimNode_ExtFuncCall >(lib,"LLVMGetAttributeCountAtIndex","LLVMGetAttributeCountAtIndex")
+		->args({"F","Idx"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2637:6
+	makeExtern< void (*)(LLVMOpaqueValue *,unsigned int,LLVMOpaqueAttributeRef **) , LLVMGetAttributesAtIndex , SimNode_ExtFuncCall >(lib,"LLVMGetAttributesAtIndex","LLVMGetAttributesAtIndex")
+		->args({"F","Idx","Attrs"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2639:18
+	makeExtern< LLVMOpaqueAttributeRef * (*)(LLVMOpaqueValue *,unsigned int,unsigned int) , LLVMGetEnumAttributeAtIndex , SimNode_ExtFuncCall >(lib,"LLVMGetEnumAttributeAtIndex","LLVMGetEnumAttributeAtIndex")
+		->args({"F","Idx","KindID"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2642:18
+	makeExtern< LLVMOpaqueAttributeRef * (*)(LLVMOpaqueValue *,unsigned int,const char *,unsigned int) , LLVMGetStringAttributeAtIndex , SimNode_ExtFuncCall >(lib,"LLVMGetStringAttributeAtIndex","LLVMGetStringAttributeAtIndex")
+		->args({"F","Idx","K","KLen"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2645:6
+	makeExtern< void (*)(LLVMOpaqueValue *,unsigned int,unsigned int) , LLVMRemoveEnumAttributeAtIndex , SimNode_ExtFuncCall >(lib,"LLVMRemoveEnumAttributeAtIndex","LLVMRemoveEnumAttributeAtIndex")
+		->args({"F","Idx","KindID"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2647:6
+	makeExtern< void (*)(LLVMOpaqueValue *,unsigned int,const char *,unsigned int) , LLVMRemoveStringAttributeAtIndex , SimNode_ExtFuncCall >(lib,"LLVMRemoveStringAttributeAtIndex","LLVMRemoveStringAttributeAtIndex")
+		->args({"F","Idx","K","KLen"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

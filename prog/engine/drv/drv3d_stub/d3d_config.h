@@ -1,3 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 #if _TARGET_D3D_MULTI
 #define d3d d3d_multi_stub
 #undef _TARGET_D3D_MULTI

@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/type_traits.h>
@@ -76,6 +77,12 @@ public:
 
   template <class T>
   uint32_t nameCount() const;
+
+  template <class T, class UnaryFunc>
+  void iterateSubTree(FolderT folder, const UnaryFunc &f) const;
+
+  template <class T>
+  size_t getChildCount(FolderT folder) const;
 
 private:
   FolderT rootFolder;
@@ -185,4 +192,25 @@ template <class T>
 uint32_t IdHierarchicalNameMap<Ts...>::nameCount() const
 {
   return detail::PerTypeData<FolderT, T>::fullPaths.nameCount();
+}
+
+template <class... Ts>
+template <class T, class UnaryFunc>
+void IdHierarchicalNameMap<Ts...>::iterateSubTree(FolderT folder, const UnaryFunc &f) const
+{
+  using ChildFolders = detail::PerFolderMemoizedChildren<FolderT>;
+  for (const auto &childFolderId : folders[folder].ChildFolders::children.getIds())
+    iterateSubTree<T>(childFolderId, f);
+
+  using ChildData = detail::PerFolderMemoizedChildren<T>;
+  const auto childIds = folders[folder].ChildData::children.getIds();
+  eastl::for_each(childIds.cbegin(), childIds.cend(), f);
+}
+
+template <class... Ts>
+template <class T>
+size_t IdHierarchicalNameMap<Ts...>::getChildCount(FolderT folder) const
+{
+  using ChildData = detail::PerFolderMemoizedChildren<T>;
+  return folders[folder].ChildData::children.size();
 }

@@ -79,6 +79,13 @@ def test_group ( var regex:Regex; match:string; groups:array<string>)
     assert(!failed)
     delete regex
 
+def test_replace(var regex:Regex;input:string;expected:string)
+    let res = regex_replace(regex, input, $(a) => "");
+    print("replacing `{input}` -> `{res}`\n")
+    print("expected `{expected}`\n")
+    assert(res==expected)
+    delete regex
+
 def test_regex
     // character
     test_re(%regex~a%%, [{string[] "a"}], [{string ""; "b"; "ba"}])
@@ -111,4 +118,7 @@ def test_regex
     // gropus
     test_group ( %regex~i have a (cat|dog)%%, "i have a cat.", [{string[] "cat"}])
     test_group ( %regex~(this|that) is a (book|table|car)%%, "that is a table", [{string "that";"table"}])
+
+    // replace
+    test_replace ( %regex~[^a-z]*%%, "ch!ar#l@y123be&%rt!", "charlybert" )
 

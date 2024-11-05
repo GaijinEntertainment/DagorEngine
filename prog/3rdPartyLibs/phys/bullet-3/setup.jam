@@ -1,8 +1,7 @@
 if ! $(Platform) { Exit Platform must be defined before including bullet-3/setup.jam ; }
-if $(GLOBAL_DependOnJam) { DependOnJams += $(Root)/prog/3rdPartyLibs/phys/bullet-3/setup.jam ; } # to handle depjam case
 
 CPPopt += -DBT_THREADSAFE ;
 if $(CheckedContainers) = yes { CPPopt += -DBT_DEBUG ; }
 
-if ! $(Platform) in macosx { CPPopt += -DB3_USE_CLEW ; }
+if ! $(Platform) in macOS { CPPopt += -DB3_USE_CLEW ; }
 if $(Platform) in nswitch android { CPPopt += -DBT_USE_NEON -DBT_USE_SIMD_VECTOR3 -DBT_NO_SYSCTL ; }

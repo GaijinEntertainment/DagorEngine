@@ -1,0 +1,62 @@
+include "shader_global.dshl"
+
+float depth_texel_world_size;
+buffer ri_bboxes_buf;
+
+shader bbox_occlusion
+{
+  supports global_frame;
+  z_test = true;
+  z_write = false;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      nointerpolation uint instanceId : TEXCOORD0;
+    };
+  }
+
+  (vs) { immediate_dword_count = 1; }
+
+  (vs) {
+    globTm@f44 = globtm;
+  }
+
+  (vs) {
+    ri_bboxes_buf@buf = ri_bboxes_buf hlsl { StructuredBuffer<float4> ri_bboxes_buf@buf; };
+  }
+
+  hlsl (vs) {
+    float3 getPosForVertex(uint bbox_id, uint vertex_id)
+    {
+      float3 bboxMin = ri_bboxes_buf[bbox_id * 2].xyz;
+      float3 bboxMax = ri_bboxes_buf[bbox_id * 2 + 1].xyz;
+      return lerp(bboxMin, bboxMax, float3(vertex_id / 4, vertex_id / 2 % 2, vertex_id % 2 == 0));
+    }
+
+    VsOutput rendinst_shadow_occlusion_vs(uint bbox_id : SV_InstanceID, uint vertex_id : SV_VertexID)
+    {
+      bbox_id += get_immediate_dword_0(); // Add start instance id.
+      float3 worldPos = getPosForVertex(bbox_id, vertex_id);
+      VsOutput output;
+      output.pos = mulPointTm(worldPos, globTm);
+      output.instanceId = bbox_id;
+      return output;
+    }
+  }
+  ENABLE_ASSERT(ps)
+  hlsl (ps) {
+    RWStructuredBuffer<uint> bboxVisibilityReadback : register(u1);
+  ##if !hardware.metaliOS
+    [earlydepthstencil]
+  ##endif
+    void rendinst_shadow_occlusion_ps(VsOutput input)
+    {
+      InterlockedOr(structuredBufferAt(bboxVisibilityReadback, input.instanceId / 32), 1U << (input.instanceId & 31));
+    }
+  }
+
+  compile("target_vs", "rendinst_shadow_occlusion_vs");
+  compile("target_ps", "rendinst_shadow_occlusion_ps");
+}

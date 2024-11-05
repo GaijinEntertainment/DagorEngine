@@ -1,4 +1,4 @@
-Platform ?= win64 ;
+KernelLinkage = dynamic ;
 
 Root    ?= ../../../.. ;
 Location = prog/tools/sceneTools/impostorBaker ;

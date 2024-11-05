@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_critSec.h>
 #include <daECS/core/componentType.h>
 #include <daECS/core/coreEvents.h>
@@ -57,6 +59,17 @@ void reject_sound(SoundEventGroup &group, event_id_t id, bool stop)
     {
       if (stop || !is_one_shot(snd.handle))
         ::stop(snd.handle, true, true);
+      snd.id = g_empty_id;
+    }
+}
+
+void abandon_sound(SoundEventGroup &group, sndsys::event_id_t id)
+{
+  SOUND_GROUP_BLOCK;
+  for (SoundEventGroup::Sound &snd : group.sounds)
+    if (snd.id == id)
+    {
+      abandon(snd.handle);
       snd.id = g_empty_id;
     }
 }
@@ -275,7 +288,6 @@ static inline void sound_group_with_transform_ecs_query(Callable c);
 
 
 ECS_TAG(sound)
-ECS_AFTER(animchar_render_es)
 static inline void update_sound_group_using_animchar_es(const ParallelUpdateFrameDelayed &)
 {
   SOUND_GROUP_BLOCK;
@@ -285,7 +297,6 @@ static inline void update_sound_group_using_animchar_es(const ParallelUpdateFram
 }
 
 ECS_TAG(sound)
-ECS_AFTER(animchar_render_es)
 static inline void update_sound_group_using_transform_es(const ParallelUpdateFrameDelayed &)
 {
   SOUND_GROUP_BLOCK;
@@ -302,5 +313,3 @@ static inline void destroy_sound_group_es_event_handler(const ecs::Event &, Soun
 {
   release_all_sounds(sound_event_group);
 }
-
-ECS_REGISTER_RELOCATABLE_TYPE(SoundInstanceStealingGroup, nullptr);

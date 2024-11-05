@@ -20,4 +20,8 @@ AddIncludes =
   $(Root)/prog/3rdPartyLibs/arc/zlib-ng
 ;
 
+if ! $(Platform) in windows macOS linux android {
+  Copt += -Dftello=ftell -Dfseeko=fseek ;
+}
+
 include $(Root)/prog/_jBuild/build.jam ;

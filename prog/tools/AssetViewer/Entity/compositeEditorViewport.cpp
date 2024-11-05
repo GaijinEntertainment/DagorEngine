@@ -1,5 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "compositeEditorViewport.h"
 #include "../av_appwnd.h"
+#include "../av_cm.h"
 #include <assets/asset.h>
 #include <de3_baseInterfaces.h>
 #include <de3_composit.h>
@@ -7,6 +10,7 @@
 #include <de3_entityGetSceneLodsRes.h>
 #include <de3_objEntity.h>
 #include <debug/dag_debug3d.h>
+#include <EditorCore/ec_cm.h>
 #include <EditorCore/ec_interface.h>
 #include <math/dag_rayIntersectBox.h>
 #include <math/dag_TMatrix.h>
@@ -44,32 +48,58 @@ bool CompositeEditorViewport::getSelectionBox(IObjEntity *entity, BBox3 &box) co
   return true;
 }
 
-void CompositeEditorViewport::handleKeyPress(IGenViewportWnd *wnd, int vk, int modif, IObjEntity *entity)
+void CompositeEditorViewport::registerMenuAccelerators()
 {
-  if (vk == wingw::V_DELETE)
+  IWndManager &wndManager = *EDITORCORE->getWndManager();
+
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_DELETE_SELECTED_NODE, wingw::V_DELETE);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_NONE, 'Q');
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_MOVE, 'W');
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_ROTATE, 'E');
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_SCALE, 'R');
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_TOGGLE_MOVE_SNAP, 'S');
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_TOGGLE_ANGLE_SNAP, 'A');
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_TOGGLE_SCALE_SNAP, '5', false, false, true);
+}
+
+void CompositeEditorViewport::handleViewportAcceleratorCommand(unsigned id, IGenViewportWnd &wnd, IObjEntity *entity)
+{
+  if (id == CM_COMPOSITE_EDITOR_DELETE_SELECTED_NODE)
   {
     BBox3 bbox;
     if (getSelectionBox(entity, bbox)) // Delete rendered nodes only.
     {
       get_app().getCompositeEditor().deleteSelectedNode();
-      wnd->activate();
+      wnd.activate();
     }
   }
-  else if (vk == 'Q')
+  else if (id == CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_NONE)
   {
     get_app().getCompositeEditor().setGizmo(IEditorCoreEngine::ModeType::MODE_None);
   }
-  else if (vk == 'W')
+  else if (id == CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_MOVE)
   {
     get_app().getCompositeEditor().setGizmo(IEditorCoreEngine::ModeType::MODE_Move);
   }
-  else if (vk == 'E')
+  else if (id == CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_ROTATE)
   {
     get_app().getCompositeEditor().setGizmo(IEditorCoreEngine::ModeType::MODE_Rotate);
   }
-  else if (vk == 'R')
+  else if (id == CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_SCALE)
   {
     get_app().getCompositeEditor().setGizmo(IEditorCoreEngine::ModeType::MODE_Scale);
+  }
+  else if (id == CM_COMPOSITE_EDITOR_TOGGLE_MOVE_SNAP)
+  {
+    get_app().getCompositeEditor().toggleSnapMode(CM_VIEW_GRID_MOVE_SNAP);
+  }
+  else if (id == CM_COMPOSITE_EDITOR_TOGGLE_ANGLE_SNAP)
+  {
+    get_app().getCompositeEditor().toggleSnapMode(CM_VIEW_GRID_ANGLE_SNAP);
+  }
+  else if (id == CM_COMPOSITE_EDITOR_TOGGLE_SCALE_SNAP)
+  {
+    get_app().getCompositeEditor().toggleSnapMode(CM_VIEW_GRID_SCALE_SNAP);
   }
 }
 

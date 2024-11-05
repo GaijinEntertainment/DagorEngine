@@ -1,8 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <daRg/dag_renderObject.h>
 #include <dag/dag_vector.h>
+#include <generic/dag_relocatableFixedVector.h>
 #include <memory/dag_framemem.h>
 
 #include <sqrat.h>
@@ -30,8 +31,10 @@ public:
 private:
   static void check_if_desc_may_be_component(const Sqrat::Table &desc, const Sqrat::Object &nearest_builder, const StringKeys *csk);
 
+  using bhv_list_t = dag::RelocatableFixedVector<Behavior *, 1, true, framemem_allocator>;
+
   static int read_robj_type(const Sqrat::Table &desc, const StringKeys *csk);
-  static void read_behaviors(const Sqrat::Table &desc, const StringKeys *csk, dag::Vector<Behavior *> &behaviors);
+  static void read_behaviors(const Sqrat::Table &desc, const StringKeys *csk, bhv_list_t &behaviors);
 
   static bool resolve_description(const Sqrat::Object &desc, Sqrat::Table &desc_tbl, Sqrat::Object &builder);
 
@@ -43,8 +46,9 @@ public:
   Sqrat::Table scriptDesc;
   Sqrat::Object scriptBuilder;
 
-  dag::Vector<Behavior *> behaviors;
+  bhv_list_t behaviors;
 };
 
 
 } // namespace darg
+DAG_DECLARE_RELOCATABLE(darg::Component);

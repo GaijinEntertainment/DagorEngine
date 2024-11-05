@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_color.h>
 #include <math/dag_Point3.h>

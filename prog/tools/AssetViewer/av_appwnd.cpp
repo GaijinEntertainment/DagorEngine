@@ -1,5 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <windows.h>
 #undef ERROR
+
+#define IMGUI_DEFINE_MATH_OPERATORS
 
 #include "av_appwnd.h"
 #include "av_plugin.h"
@@ -20,6 +24,7 @@
 #include <generic/dag_sort.h>
 
 #include <util/dag_texMetaData.h>
+#include <assets/assetUtils.h>
 #include <libTools/util/strUtil.h>
 #include <assets/assetExpCache.h>
 #include <de3_lightService.h>
@@ -41,19 +46,31 @@
 #include <startup/dag_globalSettings.h>
 
 #include <EditorCore/ec_cm.h>
+#include <EditorCore/ec_imguiInitialization.h>
 #include <EditorCore/ec_startup.h>
 #include <EditorCore/ec_ViewportWindow.h>
 #include <EditorCore/ec_rect.h>
 #include <EditorCore/ec_genapp_ehfilter.h>
 #include <EditorCore/ec_selwindow.h>
+#include <EditorCore/ec_viewportSplitter.h>
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/dag_vr.h>
 #include <3d/dag_texIdSet.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_progGlobals.h>
 #include <osApiWrappers/dag_clipboard.h>
 #include <osApiWrappers/dag_vromfs.h>
 #include <osApiWrappers/dag_shellExecute.h>
+#include <propPanel/commonWindow/dialogManager.h>
+#include <propPanel/control/menu.h>
+#include <propPanel/control/container.h>
+#include <propPanel/control/treeInterface.h>
+#include <propPanel/propPanel.h>
+#include <propPanel/c_util.h>
+#include <propPanel/constants.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <winGuiWrapper/wgw_input.h>
 #include <winGuiWrapper/wgw_busy.h>
@@ -62,6 +79,7 @@
 #include <stdio.h>
 #include <ioSys/dag_memIo.h>
 
+#include <gui/dag_imgui.h>
 #include <gui/dag_stdGuiRenderEx.h>
 #include <gameRes/dag_collisionResource.h>
 #include <rendinst/rendinstGen.h>
@@ -74,9 +92,13 @@
 #include <impostorUtil/impostorGenerator.h>
 #include <impostorUtil/options.h>
 
+#include <pointCloudGen.h>
+
 #include "Entity/colorDlgAppMat.h"
 #include "Entity/compositeEditorPanel.h"
 #include "Entity/compositeEditorTree.h"
+
+#include <imgui/imgui.h>
 
 #if _TARGET_PC_WIN
 #include <osApiWrappers/dag_unicode.h>
@@ -92,7 +114,6 @@ static String assetFile;
 static String autoSavedWindowLayoutFilePath;
 static unsigned collisionMask = 0;
 static unsigned rendGeomMask = 0;
-static bool page_shaders_exist = false;
 String a2d_last_ref_model;
 
 extern void init_interface_de3();
@@ -118,6 +139,8 @@ extern void mount_efx_assets(DagorAssetMgr &aMgr, const char *fx_blk_fname);
 
 extern void register_phys_car_gameres_factory();
 extern bool src_assets_scan_allowed;
+
+static void init3d_early();
 
 IWindService *av_wind_srv = NULL;
 ISkiesService *av_skies_srv = NULL;
@@ -167,14 +190,7 @@ static void setMaskRend(unsigned ch_mask, bool set_or_unset)
 
 static bool hasExternalEditor(const char *type_str)
 {
-  if (!page_shaders_exist)
-    return false;
-  if (stricmp(type_str, "animTree") == 0)
-    return true;
-  if (stricmp(type_str, "stateGraph") == 0)
-    return true;
-  if (stricmp(type_str, "animChar") == 0)
-    return true;
+  G_UNUSED(type_str);
   return false;
 }
 
@@ -186,37 +202,7 @@ static void runExternalEditor(DagorAsset &a)
   if (rootDir.length() > 0 && rootDir[rootDir.length() - 2] == '/')
     erase_items(rootDir, rootDir.length() - 2, 1);
 
-  if (stricmp(type_str, "animTree") == 0 || stricmp(type_str, "stateGraph") == 0)
-  {
-    rootDir.replace("/bin64", "/bin");
-    cmdLine.printf(260, "%s/page2-dev.exe %s %s", rootDir, ::get_app().getWorkspace().getAppPath(), a.getNameTypified());
-  }
-  else if (stricmp(type_str, "animChar") == 0)
-  {
-    const char *at = a.props.getStr("animTree", NULL);
-    const char *sg = a.props.getStr("stateGraph", NULL);
-    rootDir.replace("/bin64", "/bin");
-    if (at || sg)
-    {
-      DagorAsset *a2;
-      if (sg)
-        a2 = DAEDITOR3.getAssetByName(sg, DAEDITOR3.getAssetTypeId("stateGraph"));
-      else
-        a2 = DAEDITOR3.getAssetByName(at, DAEDITOR3.getAssetTypeId("animTree"));
-      if (!a2)
-        return;
-
-      DataBlock blk;
-      assetlocalprops::load(*a2, blk);
-      blk.setStr("animChar", a.getName());
-      blk.setStr("dynModel", a.props.getStr("dynModel", ""));
-      blk.setStr("skeleton", a.props.getStr("skeleton", ""));
-      assetlocalprops::save(*a2, blk);
-
-      cmdLine.printf(260, "%s/page2-dev.exe %s %s", rootDir, ::get_app().getWorkspace().getAppPath(), a2->getNameTypified());
-    }
-  }
-
+  G_UNUSED(type_str);
   if (cmdLine.empty())
     return;
 
@@ -234,7 +220,7 @@ static void runExternalEditor(DagorAsset &a)
     return;
   }
 
-  HWND mainWnd = (HWND)get_app().getWndManager().getMainWindow();
+  HWND mainWnd = (HWND)get_app().getWndManager()->getMainWindow();
   ::SendMessage(mainWnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
   ::WaitForSingleObject(pi.hProcess, INFINITE);
   ::ShowWindow(mainWnd, SW_RESTORE);
@@ -270,13 +256,6 @@ AssetViewerApp::AssetViewerApp(IWndManager *manager, const char *open_fname) :
   mPropPanel = NULL;
   mToolPanel = NULL;
   mPluginTool = NULL;
-
-  hwndTree = 0;
-  hwndPPanel = 0;
-  hwndToolbar = 0;
-  hwndViewPort = 0;
-  hwndPluginPanel = 0;
-  hwndPluginToolbar = 0;
 
   rendGeomMask = 1 << IDaEditor3Engine::get().registerEntitySubTypeId("rend_ent_geom");
   collisionMask = 1 << IDaEditor3Engine::get().registerEntitySubTypeId("collision");
@@ -316,6 +295,9 @@ AssetViewerApp::~AssetViewerApp()
   ged.setEH(appEH);
 
   mManager->unregisterWindowHandler(this);
+  editor_core_save_imgui_settings();
+  PropPanel::remove_delayed_callback(*this);
+  PropPanel::release();
 
   ::set_global_tex_name_resolver(NULL);
   assetMgr.enableChangesTracker(false);
@@ -325,6 +307,7 @@ AssetViewerApp::~AssetViewerApp()
   ::term_dabuild_cache();
   extern void console_close();
   console_close();
+  imgui_shutdown(); // This must be after terminateInterface. ImGuiManager's dtor runs from there, which uses dag_imgui.
 
   del_it(appEH);
 }
@@ -332,15 +315,18 @@ AssetViewerApp::~AssetViewerApp()
 
 void AssetViewerApp::init()
 {
-  debug_cp();
+  DEBUG_CP();
   rendinst::rendinstClipmapShadows = false;
   ::init_dabuild_cache(sgg::get_exe_path_full());
 
   String imgPath(512, "%s%s", sgg::get_exe_path_full(), "../commonData/gui16x16/");
   ::dd_simplify_fname_c(imgPath.str());
-  p2util::set_icon_path(imgPath.str());
-  p2util::set_main_parent_handle(mManager->getMainWindow());
+  PropPanel::p2util::set_icon_path(imgPath.str());
+  PropPanel::p2util::set_main_parent_handle(mManager->getMainWindow());
+  mManager->initCustomMouseCursors(imgPath);
 
+  init3d_early();
+  editor_core_initialize_imgui(nullptr); // The path is not set to avoid saving the startup screen's settings.
   GenericEditorAppWindow::init();
 
   IGenViewportWnd *curVP = ged.getViewport(0);
@@ -354,13 +340,21 @@ void AssetViewerApp::init()
     zoomAndCenter();
   }
 
-  // accel
+  addAccelerators();
+}
+
+
+void AssetViewerApp::addAccelerators()
+{
+  mManager->clearAccelerators();
+
   mManager->addAccelerator(CM_SAVE_CUR_ASSET, 'S', true);
   mManager->addAccelerator(CM_SAVE_ASSET_BASE, 'S', true, false, true);
   mManager->addAccelerator(CM_RELOAD_SHADERS, 'R', true);
 
   mManager->addAccelerator(CM_ZOOM_AND_CENTER, 'Z', true, false, true);
   mManager->addAccelerator(CM_WINDOW_PPANEL_ACCELERATOR, 'P');
+  mManager->addAccelerator(CM_WINDOW_COMPOSITE_EDITOR_ACCELERATOR, 'C');
 
   mManager->addAccelerator(CM_CREATE_SCREENSHOT, 'P', true);
   mManager->addAccelerator(CM_CREATE_CUBE_SCREENSHOT, 'P', true, false, true);
@@ -377,26 +371,20 @@ void AssetViewerApp::init()
 
   mManager->addAccelerator(CM_UNDO, 'Z', true);
   mManager->addAccelerator(CM_REDO, 'Y', true);
+
+  if (IGenEditorPlugin *p = curPlugin())
+    p->registerMenuAccelerators();
+
+  ViewportWindow *viewport = ged.getCurrentViewport();
+  if (viewport)
+    viewport->registerViewportAccelerators(*mManager);
 }
 
 
-void AssetViewerApp::createAssetsTree()
-{
-  if (mToolPanel)
-    hwndTree = mManager->splitNeighbourWindow(mToolPanel->getParentWindowHandle(), 0, _pxScaled(TREEVIEW_WIDTH), WA_LEFT);
-  else
-    hwndTree = mManager->splitWindow(0, 0, _pxScaled(TREEVIEW_WIDTH), WA_LEFT);
-
-  mManager->setWindowType(hwndTree, TREEVIEW_TYPE);
-}
+void AssetViewerApp::createAssetsTree() { mManager->setWindowType(nullptr, TREEVIEW_TYPE); }
 
 
-void AssetViewerApp::createToolbar()
-{
-  hwndToolbar = mManager->splitWindow(0, 0, _pxScaled(TOOLBAR_HEIGHT), WA_TOP);
-  mManager->fixWindow(hwndToolbar, true);
-  mManager->setWindowType(hwndToolbar, TOOLBAR_TYPE);
-}
+void AssetViewerApp::createToolbar() { mManager->setWindowType(nullptr, TOOLBAR_TYPE); }
 
 
 void AssetViewerApp::makeDefaultLayout()
@@ -404,21 +392,11 @@ void AssetViewerApp::makeDefaultLayout()
   mManager->reset();
   // mManager->show(WSI_MAXIMIZED);
 
-  hwndViewPort = mManager->getFirstWindow();
-  mManager->setWindowType(hwndViewPort, VIEWPORT_TYPE);
-
-  hwndTree = mManager->splitWindow(0, 0, _pxScaled(TREEVIEW_WIDTH), WA_LEFT);
-  mManager->fixWindow(hwndTree, true);
-  mManager->setWindowType(hwndTree, TREEVIEW_TYPE);
-
-  hwndPPanel = mManager->splitWindow(0, 0, _pxScaled(PPANEL_WIDTH), WA_RIGHT);
-  mManager->fixWindow(hwndPPanel, true);
-  mManager->setWindowType(hwndPPanel, PPANEL_TYPE);
+  mManager->setWindowType(nullptr, VIEWPORT_TYPE);
+  mManager->setWindowType(nullptr, TREEVIEW_TYPE);
+  mManager->setWindowType(nullptr, PPANEL_TYPE);
 
   createToolbar();
-
-  mManager->fixWindow(hwndTree, false);
-  mManager->fixWindow(hwndPPanel, false);
 }
 
 
@@ -450,24 +428,18 @@ void AssetViewerApp::selectAsset(const DagorAsset &asset, bool reset_filter_if_n
 }
 
 
-IWndEmbeddedWindow *AssetViewerApp::onWmCreateWindow(void *handle, int type)
+void *AssetViewerApp::onWmCreateWindow(int type)
 {
   switch (type)
   {
     case TREEVIEW_TYPE:
     {
       if (mTreeView)
-        return NULL;
+        return nullptr;
 
       getMainMenu()->setEnabledById(CM_WINDOW_TREE, false);
 
-      mManager->setHeader(handle, HEADER_TOP);
-      mManager->setCaption(handle, "Assets Tree");
-
-      unsigned w, h;
-      mManager->getWindowClientSize(handle, w, h);
-
-      mTreeView = new AvTree(this, handle, 0, 0, w, h, "TreeView");
+      mTreeView = new AvTree(this, nullptr, 0, 0, 0, 0, "");
 
       return mTreeView;
     }
@@ -476,17 +448,11 @@ IWndEmbeddedWindow *AssetViewerApp::onWmCreateWindow(void *handle, int type)
     case PPANEL_TYPE:
     {
       if (mPropPanel)
-        return NULL;
+        return nullptr;
 
       getMainMenu()->setCheckById(CM_WINDOW_PPANEL, true);
 
-      mManager->setHeader(handle, HEADER_TOP);
-      mManager->setCaption(handle, "Properties");
-
-      unsigned w, h;
-      mManager->getWindowClientSize(handle, w, h);
-
-      mPropPanel = new CPanelWindow(this, handle, 0, 0, _pxActual(w), _pxActual(h), "Properties");
+      mPropPanel = IEditorCoreEngine::get()->createPropPanel(this, "Properties");
       fillPropPanel();
 
       return mPropPanel;
@@ -496,17 +462,11 @@ IWndEmbeddedWindow *AssetViewerApp::onWmCreateWindow(void *handle, int type)
     case TOOLBAR_TYPE:
     {
       if (mToolPanel)
-        return NULL;
+        return nullptr;
 
       getMainMenu()->setEnabledById(CM_WINDOW_TOOLBAR, false);
 
-      mManager->setHeader(handle, HEADER_LEFT);
-      mManager->setCaption(handle, "Toolbar");
-
-      unsigned w, h;
-      mManager->getWindowClientSize(handle, w, h);
-
-      mToolPanel = new CToolWindow(this, handle, 0, 0, _pxActual(w), _pxActual(h), "Toolbar");
+      mToolPanel = new PropPanel::ContainerPropertyControl(0, this, nullptr, 0, 0, hdpi::Px(0), hdpi::Px(0));
       fillToolBar();
 
       return mToolPanel;
@@ -516,15 +476,9 @@ IWndEmbeddedWindow *AssetViewerApp::onWmCreateWindow(void *handle, int type)
     case TOOLBAR_PLUGIN_TYPE:
     {
       if (mPluginTool)
-        return NULL;
+        return nullptr;
 
-      mManager->setHeader(handle, HEADER_LEFT);
-      mManager->setCaption(handle, "Plugin Tools");
-
-      unsigned w, h;
-      mManager->getWindowClientSize(handle, w, h);
-
-      mPluginTool = new CToolWindow(this, handle, 0, 0, _pxActual(w), _pxActual(h), "Plugin Tools");
+      mPluginTool = new PropPanel::ContainerPropertyControl(0, this, nullptr, 0, 0, hdpi::Px(0), hdpi::Px(0));
 
       return mPluginTool;
     }
@@ -534,13 +488,8 @@ IWndEmbeddedWindow *AssetViewerApp::onWmCreateWindow(void *handle, int type)
     {
       getMainMenu()->setEnabledById(CM_WINDOW_VIEWPORT, false);
 
-      mManager->setCaption(handle, "Viewport");
-
-      unsigned w, h;
-      mManager->getWindowClientSize(handle, w, h);
-
-      AssetViewerViewportWindow *v = new AssetViewerViewportWindow(handle, 0, 0, w, h);
-      ged.addViewport(handle, appEH, mManager, v);
+      AssetViewerViewportWindow *v = new AssetViewerViewportWindow(nullptr, 0, 0, 0, 0);
+      ged.addViewport(nullptr, appEH, mManager, v);
       return v;
     }
     break;
@@ -548,16 +497,10 @@ IWndEmbeddedWindow *AssetViewerApp::onWmCreateWindow(void *handle, int type)
     case COMPOSITE_EDITOR_TREEVIEW_TYPE:
     {
       if (compositeEditor.compositeTreeView)
-        return NULL;
-
-      mManager->setHeader(handle, HEADER_TOP);
-      mManager->setCaption(handle, "Composit Outliner");
-
-      unsigned w, h;
-      mManager->getWindowClientSize(handle, w, h);
+        return nullptr;
 
       compositeEditor.compositeTreeView =
-        eastl::make_unique<CompositeEditorTree>(&compositeEditor, handle, 0, 0, w, h, "CompositeEditorTree");
+        eastl::make_unique<CompositeEditorTree>(&compositeEditor, nullptr, 0, 0, 0, 0, "CompositeEditorTree");
 
       getMainMenu()->setCheckById(CM_WINDOW_COMPOSITE_EDITOR, isCompositeEditorShown());
       return compositeEditor.compositeTreeView.get();
@@ -567,19 +510,15 @@ IWndEmbeddedWindow *AssetViewerApp::onWmCreateWindow(void *handle, int type)
     case COMPOSITE_EDITOR_PPANEL_TYPE:
     {
       if (compositeEditor.compositePropPanel)
-        return NULL;
+        return nullptr;
 
-      unsigned w, h;
-      mManager->getWindowClientSize(handle, w, h);
-
-      compositeEditor.compositePropPanel =
-        eastl::make_unique<CompositeEditorPanel>(&compositeEditor, handle, 0, 0, w, h, "CompositeEditorPanel");
+      compositeEditor.compositePropPanel = eastl::make_unique<CompositeEditorPanel>(&compositeEditor, 0, 0, 0, 0);
 
       return compositeEditor.compositePropPanel.get();
     }
     break;
 
-    default: return NULL;
+    default: return nullptr;
   }
 }
 
@@ -587,64 +526,50 @@ static void onDelayedRemoveCompositeEditorWindow(void *)
 {
   CompositeEditor &compositeEditor = get_app().getCompositeEditor();
   if (compositeEditor.compositeTreeView)
-    get_app().getWndManager().removeWindow(compositeEditor.compositeTreeView->getParentWindowHandle());
+    get_app().getWndManager()->removeWindow(compositeEditor.compositeTreeView.get());
   else if (compositeEditor.compositePropPanel)
-    get_app().getWndManager().removeWindow(compositeEditor.compositePropPanel->getParentWindowHandle());
+    get_app().getWndManager()->removeWindow(compositeEditor.compositePropPanel.get());
 }
 
-bool AssetViewerApp::onWmDestroyWindow(void *handle)
+bool AssetViewerApp::onWmDestroyWindow(void *window)
 {
-  if (mTreeView && mTreeView->getParentWindowHandle() == handle)
+  if (mTreeView && mTreeView == window)
   {
     switchToPlugin(-1);
 
     del_it(mTreeView);
-    mManager->getMainMenu()->setEnabledById(CM_WINDOW_TREE, true);
+    getMainMenu()->setEnabledById(CM_WINDOW_TREE, true);
     return true;
   }
 
-  if (mPropPanel && mPropPanel->getParentWindowHandle() == handle)
+  if (mPropPanel && mPropPanel == window)
   {
     IGenEditorPlugin *current = curPlugin();
     if (current)
       current->onPropPanelClear(*mPropPanel);
 
     del_it(mPropPanel);
-    mManager->getMainMenu()->setCheckById(CM_WINDOW_PPANEL, false);
+    getMainMenu()->setCheckById(CM_WINDOW_PPANEL, false);
     return true;
   }
 
-  if (mToolPanel && mToolPanel->getParentWindowHandle() == handle)
+  if (mToolPanel && mToolPanel == window)
   {
     del_it(mToolPanel);
-    mManager->getMainMenu()->setEnabledById(CM_WINDOW_TOOLBAR, true);
+    getMainMenu()->setEnabledById(CM_WINDOW_TOOLBAR, true);
     return true;
   }
 
-  if (mPluginTool && mPluginTool->getParentWindowHandle() == handle)
+  if (mPluginTool && mPluginTool == window)
   {
     del_it(mPluginTool);
-    hwndPluginToolbar = 0;
     return true;
   }
 
   if (compositeEditor.compositeTreeView && compositeEditor.compositePropPanel &&
-      (compositeEditor.compositeTreeView->getParentWindowHandle() == handle ||
-        compositeEditor.compositePropPanel->getParentWindowHandle() == handle))
+      (compositeEditor.compositeTreeView.get() == window || compositeEditor.compositePropPanel.get() == window))
   {
-    if (!mManager->getMovableFlag(compositeEditor.compositeTreeView->getParentWindowHandle()) &&
-        !mManager->getMovableFlag(compositeEditor.compositePropPanel->getParentWindowHandle()))
-    {
-      int x, y;
-      unsigned width, height;
-      mManager->getWindowPosSize(compositeEditor.compositeTreeView->getParentWindowHandle(), x, y, width, height);
-      compositeEditor.treeLastHeight = height;
-
-      mManager->getWindowPosSize(compositeEditor.compositePropPanel->getParentWindowHandle(), x, y, width, height);
-      compositeEditor.propPanelLastHeight = height;
-    }
-
-    mManager->getMainMenu()->setCheckById(CM_WINDOW_COMPOSITE_EDITOR, false);
+    getMainMenu()->setCheckById(CM_WINDOW_COMPOSITE_EDITOR, false);
 
     // We can't call removeWindow directly here on the other window because it would cause a crash in two cases:
     //   - when closing the tree window when it's movable (undocked)
@@ -654,13 +579,13 @@ bool AssetViewerApp::onWmDestroyWindow(void *handle)
     // Let the two ifs below handle the actual releasing of the windows.
   }
 
-  if (compositeEditor.compositeTreeView && compositeEditor.compositeTreeView->getParentWindowHandle() == handle)
+  if (compositeEditor.compositeTreeView && compositeEditor.compositeTreeView.get() == window)
   {
     compositeEditor.compositeTreeView.reset();
     return true;
   }
 
-  if (compositeEditor.compositePropPanel && compositeEditor.compositePropPanel->getParentWindowHandle() == handle)
+  if (compositeEditor.compositePropPanel && compositeEditor.compositePropPanel.get() == window)
   {
     compositeEditor.compositePropPanel.reset();
     return true;
@@ -669,11 +594,11 @@ bool AssetViewerApp::onWmDestroyWindow(void *handle)
   for (int i = 0; i < ged.getViewportCount(); ++i)
   {
     ViewportWindow *vport = ged.getViewport(i);
-    if (vport && vport->getParentHandle() == handle)
+    if (vport && vport == window)
     {
       ged.deleteViewport(i);
       if (!ged.getViewportCount())
-        mManager->getMainMenu()->setEnabledById(CM_WINDOW_VIEWPORT, true);
+        getMainMenu()->setEnabledById(CM_WINDOW_VIEWPORT, true);
       return true;
     }
   }
@@ -690,75 +615,28 @@ void AssetViewerApp::showPropWindow(bool is_show)
 
   if (mPropPanel)
   {
-    mManager->removeWindow(mPropPanel->getParentWindowHandle());
+    mManager->removeWindow(mPropPanel);
   }
   else
   {
-    if (compositeEditor.compositeTreeView)
-      hwndPPanel = mManager->splitNeighbourWindow(compositeEditor.compositeTreeView->getParentWindowHandle(), 0,
-        _pxScaled(PPANEL_WIDTH), WA_BOTTOM);
-    else
-    {
-      ViewportWindow *viewport = ged.getViewport(0);
-      hwndPPanel = mManager->splitWindow(viewport ? viewport->getParentHandle() : nullptr, 0, _pxScaled(PPANEL_WIDTH), WA_RIGHT);
-    }
-
-    mManager->setWindowType(hwndPPanel, PPANEL_TYPE);
-  }
-}
-
-
-void AssetViewerApp::showAdditinalPropWindow(bool is_show)
-{
-  if ((bool)hwndPluginPanel == is_show)
-  {
-    if (hwndPluginPanel)
-      mManager->fixWindow(hwndPluginPanel, false);
-    return;
-  }
-
-  if (hwndPluginPanel)
-  {
-    mManager->removeWindow(hwndPluginPanel);
-    hwndPluginPanel = 0;
-  }
-  else
-  {
-    void *root = mTreeView ? mTreeView->getParentWindowHandle() : 0;
-    hwndPluginPanel = mManager->splitNeighbourWindow(root, 0, _pxScaled(ADDITIONAL_PROP_WINDOW_WIDTH), WA_LEFT);
-    G_ASSERT(hwndPluginPanel);
+    mManager->setWindowType(nullptr, PPANEL_TYPE);
   }
 }
 
 
 void AssetViewerApp::showAdditinalToolWindow(bool is_show)
 {
-  if ((bool)hwndPluginToolbar == is_show)
-  {
-    if (hwndPluginToolbar)
-      mManager->fixWindow(hwndPluginToolbar, false);
+  if ((bool)mPluginTool == is_show)
     return;
-  }
 
-  if (hwndPluginToolbar)
+  if (mPluginTool)
   {
-    mManager->removeWindow(hwndPluginToolbar);
-    hwndPluginToolbar = 0;
+    mManager->removeWindow(mPluginTool);
+    mPluginTool = nullptr;
   }
   else
   {
-    if (mToolPanel)
-    {
-      void *tool = mToolPanel->getParentWindowHandle();
-      mManager->fixWindow(tool, false);
-      hwndPluginToolbar = mManager->splitWindow(tool, 0, _pxActual(mToolPanel->getWidth() - mToolPanel->getPanelWidth()), WA_RIGHT);
-    }
-    else
-    {
-      hwndPluginToolbar = mManager->splitWindow(0, 0, _pxScaled(TOOLBAR_HEIGHT), WA_TOP);
-    }
-    G_ASSERT(hwndPluginToolbar);
-    mManager->setWindowType(hwndPluginToolbar, TOOLBAR_PLUGIN_TYPE);
+    mManager->setWindowType(nullptr, TOOLBAR_PLUGIN_TYPE);
   }
 }
 
@@ -771,43 +649,14 @@ void AssetViewerApp::showCompositeEditor(bool show)
 
   // Ensure that both windows are either closed or shown.
   if (compositeEditor.compositePropPanel)
-    mManager->removeWindow(compositeEditor.compositePropPanel->getParentWindowHandle());
+    mManager->removeWindow(compositeEditor.compositePropPanel.get());
   if (compositeEditor.compositeTreeView)
-    mManager->removeWindow(compositeEditor.compositeTreeView->getParentWindowHandle());
+    mManager->removeWindow(compositeEditor.compositeTreeView.get());
 
   if (show)
   {
-    // The composite editor windows go above the default Properties panel. They take 70% of the height, 75% of that goes to the
-    // composite properties panel.
-    float totalHeight = 0.7f;
-    float propPanelHeight = 0.75f;
-    if (compositeEditor.treeLastHeight > 0 && compositeEditor.propPanelLastHeight > 0)
-    {
-      totalHeight = compositeEditor.treeLastHeight + mManager->getSplitterControlSize() + compositeEditor.propPanelLastHeight;
-      propPanelHeight = compositeEditor.propPanelLastHeight;
-    }
-
-    void *hwndToSplit;
-    WindowAlign windowAlign;
-    if (mPropPanel)
-    {
-      hwndToSplit = mPropPanel->getParentWindowHandle();
-      windowAlign = WA_TOP;
-    }
-    else
-    {
-      ViewportWindow *viewport = ged.getViewport(0);
-      hwndToSplit = viewport ? viewport->getParentHandle() : nullptr;
-      windowAlign = WA_RIGHT;
-      totalHeight = hdpi::_pxS(PPANEL_WIDTH);
-    }
-
-    void *hwndCompositeTree = mManager->splitWindowF(hwndToSplit, 0, totalHeight, windowAlign);
-    void *hwndCompositePropPanel = mManager->splitWindowF(hwndCompositeTree, 0, propPanelHeight, WA_BOTTOM);
-    G_ASSERT(hwndCompositeTree);
-    G_ASSERT(hwndCompositePropPanel);
-    mManager->setWindowType(hwndCompositeTree, COMPOSITE_EDITOR_TREEVIEW_TYPE);
-    mManager->setWindowType(hwndCompositePropPanel, COMPOSITE_EDITOR_PPANEL_TYPE);
+    mManager->setWindowType(nullptr, COMPOSITE_EDITOR_TREEVIEW_TYPE);
+    mManager->setWindowType(nullptr, COMPOSITE_EDITOR_PPANEL_TYPE);
   }
 
   compositeEditor.onCompositeEditorVisibilityChanged(show);
@@ -835,12 +684,11 @@ void AssetViewerApp::fillPropPanel()
 
   if (current)
     current->onPropPanelClear(*mPropPanel);
-  mPropPanel->showPanel(false);
   mPropPanel->clear();
 
   if (curAsset)
   {
-    PropertyContainerControlBase *grpCommon = mPropPanel->createGroup(ID_COMMON_GRP, "Common parameters");
+    PropPanel::ContainerPropertyControl *grpCommon = mPropPanel->createGroup(ID_COMMON_GRP, "Common parameters");
 
     if (grpCommon)
     {
@@ -853,12 +701,12 @@ void AssetViewerApp::fillPropPanel()
     if (current)
     {
 
-      PropertyContainerControlBase *grpSpec = mPropPanel->createGroup(ID_SPEC_GRP, "Object specific parameters");
+      PropPanel::ContainerPropertyControl *grpSpec = mPropPanel->createGroup(ID_SPEC_GRP, "Object specific parameters");
       current->fillPropPanel(*grpSpec);
 
       if (current->hasScriptPanel())
       {
-        PropertyContainerControlBase *grpScript = mPropPanel->createGroup(ID_SCRIPT_GRP, "");
+        PropPanel::ContainerPropertyControl *grpScript = mPropPanel->createGroup(ID_SCRIPT_GRP, "");
         current->fillScriptPanel(*grpScript);
       }
     }
@@ -867,7 +715,6 @@ void AssetViewerApp::fillPropPanel()
   if (current)
     current->postFillPropPanel();
 
-  mPropPanel->showPanel(true);
   mPropPanel->loadState(propPanelState);
 
   fillPropPanelHasBeenCalled = true;
@@ -876,7 +723,7 @@ void AssetViewerApp::fillPropPanel()
 
 void AssetViewerApp::fillToolBar()
 {
-  PropertyContainerControlBase *_tb = mToolPanel->createToolbarPanel(CM_TOOLS, "");
+  PropPanel::ContainerPropertyControl *_tb = mToolPanel->createToolbarPanel(CM_TOOLS, "");
 
   G_ASSERT(_tb && "AssetViewerApp::fillToolBar() Toolbar not created!");
 
@@ -908,10 +755,14 @@ void AssetViewerApp::fillToolBar()
 
   _tb->createButton(CM_CONSOLE, "Show/hide console");
   _tb->setButtonPictures(CM_CONSOLE, "console");
+
+  _tb->createSeparator();
+  _tb->createButton(CM_VR_ENABLE, "Enable VR view");
+  _tb->setButtonPictures(CM_VR_ENABLE, "vr");
 }
 
 
-void AssetViewerApp::fillMenu(IMenu *menu)
+void AssetViewerApp::fillMenu(PropPanel::IMenu *menu)
 {
   menu->clearMenu(ROOT_MENU_ITEM);
 
@@ -920,7 +771,7 @@ void AssetViewerApp::fillMenu(IMenu *menu)
   menu->addItem(CM_FILE_MENU, CM_SAVE_CUR_ASSET, "Save current asset\tCrtl+S");
   menu->addItem(CM_FILE_MENU, CM_SAVE_ASSET_BASE, "Save asset base\tCrtl+Shift+S");
   menu->addItem(CM_FILE_MENU, CM_CHECK_ASSET_BASE, "Check asset base");
-  menu->addSeparator(CM_FILE_MENU, 0);
+  menu->addSeparator(CM_FILE_MENU);
   menu->addItem(CM_FILE_MENU, CM_RELOAD_SHADERS, "Reload shaders bindump\tCtrl+R");
 
   // fill export menu
@@ -931,10 +782,10 @@ void AssetViewerApp::fillMenu(IMenu *menu)
   menu->addItem(CM_SETTINGS, CM_OPTIONS_SET_ACT_RATE, "Work cycle act rate...");
   menu->addItem(CM_SETTINGS, CM_CAMERAS, "Cameras...");
   menu->addItem(CM_SETTINGS, CM_SCREENSHOT, "Screenshot...");
-  menu->addItem(CM_SETTINGS, CM_OPTIONS_STAT_DISPLAY_SETTINGS, "Stat display...");
-  menu->addSeparator(CM_SETTINGS, 0);
+  menu->addItem(CM_SETTINGS, CM_OPTIONS_STAT_DISPLAY_SETTINGS, "Stats settings...");
+  menu->addSeparator(CM_SETTINGS);
   menu->addItem(CM_SETTINGS, CM_ENVIRONMENT_SETTINGS, "Environment settings...");
-  menu->addSeparator(CM_SETTINGS, 0);
+  menu->addSeparator(CM_SETTINGS);
   menu->addItem(CM_SETTINGS, CM_RENDER_GEOMETRY, "Entity render geometry");
   menu->addItem(CM_SETTINGS, CM_COLLISION_PREVIEW, "Entity collision preview");
   menu->addItem(CM_SETTINGS, CM_AUTO_ZOOM_N_CENTER, "Use auto-zoom-and-center");
@@ -943,22 +794,22 @@ void AssetViewerApp::fillMenu(IMenu *menu)
   // fill view menu
   menu->addSubMenu(ROOT_MENU_ITEM, CM_WINDOW, "View");
   menu->addItem(CM_WINDOW, CM_LOAD_DEFAULT_LAYOUT, "Load default layout");
-  menu->addSeparator(CM_WINDOW, 0);
+  menu->addSeparator(CM_WINDOW);
   menu->addItem(CM_WINDOW, CM_LOAD_LAYOUT, "Load layout ...");
   menu->addItem(CM_WINDOW, CM_SAVE_LAYOUT, "Save layout ...");
-  menu->addSeparator(CM_WINDOW, 0);
+  menu->addSeparator(CM_WINDOW);
   menu->addItem(CM_WINDOW, CM_WINDOW_TOOLBAR, "Toolbar");
   menu->addItem(CM_WINDOW, CM_WINDOW_TREE, "Tree");
   menu->addItem(CM_WINDOW, CM_WINDOW_PPANEL, "Properties\tP");
   menu->addItem(CM_WINDOW, CM_WINDOW_VIEWPORT, "Viewport");
-  menu->addItem(CM_WINDOW, CM_WINDOW_COMPOSITE_EDITOR, "Composit Editor");
+  menu->addItem(CM_WINDOW, CM_WINDOW_COMPOSITE_EDITOR, "Composit Editor\tC");
   menu->addItem(CM_WINDOW, CM_DISCARD_ASSET_TEX, "Discard textures (show stub tex)");
 
   addExitCommand(menu);
 }
 
 
-void AssetViewerApp::updateMenu(IMenu *menu)
+void AssetViewerApp::updateMenu(PropPanel::IMenu *menu)
 {
   // fill export menu
   if (impostorApp)
@@ -968,11 +819,14 @@ void AssetViewerApp::updateMenu(IMenu *menu)
     menu->addItem(CM_EXPORT, CM_EXPORT_ALL_IMPOSTORS, "Generate all impostors");
     menu->addItem(CM_EXPORT, CM_CLEAR_UNUSED_IMPOSTORS, "Clear unused impostors");
   }
+  if (pointCloudGen)
+    menu->addItem(CM_EXPORT, CM_EXPORT_CURRENT_POINT_CLOUD, "Generate current point cloud");
+
   menu->addItem(CM_EXPORT, CM_BUILD_RESOURCES, "Export gameRes [pc]");
   menu->addItem(CM_EXPORT, CM_BUILD_TEXTURES, "Export texPack [pc]");
-  menu->addSeparator(CM_EXPORT, 0);
+  menu->addSeparator(CM_EXPORT);
   menu->addItem(CM_EXPORT, CM_BUILD_ALL, "Export all [pc]");
-  menu->addSeparator(CM_EXPORT, 0);
+  menu->addSeparator(CM_EXPORT);
   menu->addItem(CM_EXPORT, CM_BUILD_CLEAR_CACHE, "Clear cache [pc]");
 
   int platformCnt = getWorkspace().getAdditionalPlatforms().size();
@@ -987,18 +841,18 @@ void AssetViewerApp::updateMenu(IMenu *menu)
 
       menu->addItem(CM_PLATFORM_SUBMENU + i, CM_BUILD_RESOURCES + m_index, "Export gameRes");
       menu->addItem(CM_PLATFORM_SUBMENU + i, CM_BUILD_TEXTURES + m_index, "Export texPack");
-      menu->addSeparator(CM_PLATFORM_SUBMENU + i, 0);
+      menu->addSeparator(CM_PLATFORM_SUBMENU + i);
       menu->addItem(CM_PLATFORM_SUBMENU + i, CM_BUILD_ALL + m_index, "Export all");
-      menu->addSeparator(CM_PLATFORM_SUBMENU + i, 0);
+      menu->addSeparator(CM_PLATFORM_SUBMENU + i);
       menu->addItem(CM_PLATFORM_SUBMENU + i, CM_BUILD_CLEAR_CACHE + m_index, "Clear cache");
     }
   }
 
-  menu->addSeparator(CM_EXPORT, 0);
+  menu->addSeparator(CM_EXPORT);
   menu->addItem(CM_EXPORT, CM_BUILD_ALL_PLATFORM_RES, "Export gameRes for All platform");
   menu->addItem(CM_EXPORT, CM_BUILD_ALL_PLATFORM_TEX, "Export texPack for All platform");
   menu->addItem(CM_EXPORT, CM_BUILD_ALL_PLATFORM, "Export All for All platform");
-  menu->addSeparator(CM_EXPORT, 0);
+  menu->addSeparator(CM_EXPORT);
   menu->addItem(CM_EXPORT, CM_BUILD_CLEAR_CACHE_ALL, "Clear cache for All platform");
 }
 
@@ -1061,18 +915,32 @@ void AssetViewerApp::drawAssetInformation(IGenViewportWnd *wnd)
     sz += pSize;
   }
 
+  int boxLeft = rc - size.x - offset.x - sz;
+
   StdGuiRender::set_color(COLOR_WHITE);
-  StdGuiRender::render_box(rc - size.x - offset.x - sz, 0, rc - offset.x - sz, r.t + offset.y + textOffset / 2);
+  StdGuiRender::render_box(boxLeft, 0, boxLeft + size.x, r.t + offset.y + textOffset / 2);
 
   StdGuiRender::set_color(COLOR_BLACK);
-  StdGuiRender::draw_strf_to(rc - size.x - offset.x - sz + textOffset, r.t + offset.y, curAssetPackName);
+  StdGuiRender::draw_strf_to(boxLeft + textOffset, r.t + offset.y, curAssetPackName);
+
+  if (!curAssetPkgName.empty())
+  {
+    const Point2 pkgSize(StdGuiRender::get_str_bbox(curAssetPkgName).size().x + textOffset * 2, _pxS(20));
+    boxLeft -= pkgSize.x;
+
+    StdGuiRender::set_color(E3DCOLOR(192, 192, 192));
+    StdGuiRender::render_box(boxLeft, 0, boxLeft + pkgSize.x, r.t + offset.y + textOffset / 2);
+
+    StdGuiRender::set_color(COLOR_BLACK);
+    StdGuiRender::draw_strf_to(boxLeft + textOffset, r.t + offset.y, curAssetPkgName);
+  }
 
   if (const char *str = environment::getEnviTitleStr(&assetLtData))
   {
     int tw = StdGuiRender::get_str_bbox(str).size().x;
     r.l = _pxS(128) + _pxS(40);
     r.t = 0;
-    r.r = rc - size.x - offset.x - sz - _pxS(40);
+    r.r = boxLeft - _pxS(40);
     r.b = r.t + offset.y + textOffset / 2;
     int diff = r.r - r.l - _pxS(10) - tw;
     if (diff > 0)
@@ -1138,6 +1006,8 @@ static bool check_asset_depends_on_asset(const DagorAsset *amain, const DagorAss
 
 bool AssetViewerApp::reloadAsset(const DagorAsset &asset, int asset_name_id, int asset_type)
 {
+  environment::on_asset_changed(asset, assetLtData);
+
   if (curAsset && curAsset->getNameId() == asset_name_id && curAsset->getType() == asset_type)
   {
     G_ASSERT(curAsset == &asset);
@@ -1255,7 +1125,7 @@ void AssetViewerApp::showSelectWindow(IObjectsList *obj_list, const char *obj_li
 {
   SelWindow selWnd(0, obj_list, obj_list_owner_name);
 
-  if (selWnd.showDialog() == DIALOG_ID_OK)
+  if (selWnd.showDialog() == PropPanel::DIALOG_ID_OK)
   {
     Tab<String> names(tmpmem);
     selWnd.getSelectedNames(names);
@@ -1304,11 +1174,9 @@ void AssetViewerApp::getDocTitleText(String &text)
 
 void AssetViewerApp::saveTreeState()
 {
-  debug_cp();
+  DEBUG_CP();
   if (!mTreeView || assetFile.empty())
     return;
-
-  mTreeView->show(false);
 
   Tab<int> types(midmem);
   mTreeView->getFilterAssetTypes(types);
@@ -1318,7 +1186,7 @@ void AssetViewerApp::saveTreeState()
 
   DataBlock assetDataBlk;
   mTreeView->saveTreeData(assetDataBlk);
-  if (TLeafHandle h = mTreeView->getSelectedItem())
+  if (PropPanel::TLeafHandle h = mTreeView->getSelectedItem())
   {
     void *data = mTreeView->getItemData(h);
     DagorAsset *a = get_dagor_asset_folder(data) ? NULL : (DagorAsset *)data;
@@ -1360,6 +1228,15 @@ void AssetViewerApp::saveTreeState()
   saveScreenshotSettings(assetDataBlk);
   getConsole().saveCmdHistory(assetDataBlk);
   AssetSelectorGlobalState::save(assetDataBlk);
+
+  DataBlock &pluginsRootSettings = *setBlk.addBlock("plugins");
+  for (int i = 0; i < plugin.size(); ++i)
+  {
+    DataBlock pluginSettings;
+    plugin[i]->saveSettings(pluginSettings);
+    if (!pluginSettings.isEmpty())
+      pluginsRootSettings.addNewBlock(&pluginSettings, plugin[i]->getInternalName());
+  }
 
   assetDataBlk.saveToTextFile(assetFile);
 }
@@ -1404,7 +1281,7 @@ bool AssetViewerApp::canCloseScene(const char *title)
   int ret =
     wingw::message_box(wingw::MBS_QUEST | wingw::MBS_YESNOCANCEL, title, "Asset base changed, save changes?\n" + list_of_changes);
 
-  if (ret == DIALOG_ID_CANCEL)
+  if (ret == PropPanel::DIALOG_ID_CANCEL)
   {
     if (sup)
     {
@@ -1414,7 +1291,7 @@ bool AssetViewerApp::canCloseScene(const char *title)
     return false;
   }
 
-  if (ret == DIALOG_ID_YES)
+  if (ret == PropPanel::DIALOG_ID_YES)
   {
     assetMgr.enableChangesTracker(false);
     onMenuItemClick(CM_SAVE_ASSET_BASE);
@@ -1462,8 +1339,50 @@ static ConsoleMsgPipe conPipe;
 
 extern const char *av2_drv_name;
 
+static void init3d_early()
+{
+  dgs_all_shader_vars_optionals = true;
+  EDITORCORE->getWndManager()->init3d(av2_drv_name, nullptr);
+
+  ::startup_shaders(String(260, "%s/../commonData/guiShaders", sgg::get_exe_path_full()));
+  ::startup_game(RESTART_ALL);
+  ShaderGlobal::enableAutoBlockChange(true);
+
+  DataBlock fontsBlk;
+  fontsBlk.addBlock("fontbins")->addStr("name", String(260, "%s/../commonData/default", sgg::get_exe_path_full()));
+  if (auto *b = fontsBlk.addBlock("dynamicGen"))
+  {
+    b->setInt("texCount", 2);
+    b->setInt("texSz", 256);
+    b->setStr("prefix", String(260, "%s/../commonData", sgg::get_exe_path_full()));
+  }
+  StdGuiRender::init_dynamic_buffers(32 << 10, 8 << 10);
+  StdGuiRender::init_fonts(fontsBlk);
+  StdGuiRender::init_render();
+  StdGuiRender::set_def_font_ht(0, hdpi::_pxS(StdGuiRender::get_initial_font_ht(0)));
+
+  ::register_common_tool_tex_factories();
+  ::register_png_tex_load_factory();
+  ::register_avif_tex_load_factory();
+}
+
+namespace tools3d
+{
+extern void destroy();
+}
 static void init3d(const DataBlock &appblk)
 {
+  // shutdown imGui, render, shaders and d3d before reiniting
+  imgui_shutdown();
+  StdGuiRender::close_fonts();
+  StdGuiRender::close_render();
+  enable_res_mgr_mt(false, 0);
+  ::startup_shaders(appblk.getStr("shadersAbs", "compiledShaders/tools")); // set new name before restarting
+  shutdown_game(RESTART_VIDEODRV | RESTART_VIDEO);
+  tools3d::destroy();
+
+  // reinit 3d with actual shaders and texStreaming/texMgr setup for a project
+  dgs_all_shader_vars_optionals = false;
   const DataBlock &blk_game = *appblk.getBlockByNameEx("game");
   const char *appdir = appblk.getStr("appDir");
   for (int i = 0; i < blk_game.blockCount(); i++)
@@ -1491,11 +1410,9 @@ static void init3d(const DataBlock &appblk)
     enable_res_mgr_mt(true, resv_tid_count);
   }
 
-  const char *sh_file = appblk.getStr("shadersAbs", "compiledShaders/tools");
   extern void console_init();
   console_init();
   ::shaders_register_console(true);
-  ::startup_shaders(sh_file);
   ::startup_game(RESTART_ALL);
   ShaderGlobal::enableAutoBlockChange(true);
 
@@ -1508,9 +1425,6 @@ static void init3d(const DataBlock &appblk)
   }
   const_cast<DataBlock *>(dgs_get_game_params())->setBool("rendinstExtraAutoSubst", false);
   const_cast<DataBlock *>(dgs_get_game_params())->setInt("rendinstExtraMaxCnt", 32);
-
-  page_shaders_exist =
-    dd_file_exists(String(0, "%s/%s.ps30.shdump.bin", appdir, appblk.getStr("page-shaders", appblk.getStr("shaders", NULL))));
 
   DataBlock fontsBlk;
   fontsBlk.addBlock("fontbins")->addStr("name", String(260, "%s/../commonData/default", sgg::get_exe_path_full()));
@@ -1528,9 +1442,6 @@ static void init3d(const DataBlock &appblk)
   if (appblk.getBool("useDynrend", false))
     dynrend::init();
 
-  ::register_common_tool_tex_factories();
-  ::register_png_tex_load_factory();
-  ::register_avif_tex_load_factory();
   ::register_dynmodel_gameres_factory();
   ::register_rendinst_gameres_factory();
   ::register_geom_node_tree_gameres_factory();
@@ -1541,10 +1452,6 @@ static void init3d(const DataBlock &appblk)
 
   ShaderGlobal::set_int(get_shader_variable_id("in_editor"), 1);
   ShaderGlobal::set_int(get_shader_variable_id("fake_lighting_computations", true), 1);
-  {
-    G_ASSERT(!visibility_finder);
-    visibility_finder = new VisibilityFinder;
-  }
 }
 
 static ImpostorGenerator::GenerateResponse impostor_export_callback(DagorAsset *asset, unsigned int ind, unsigned int count)
@@ -1602,6 +1509,7 @@ bool AssetViewerApp::loadProject(const char *app_dir)
 
   init3d(appblk);
   assetlocalprops::init(app_dir, "develop/.asset-local");
+  editor_core_initialize_imgui(assetlocalprops::makePath("_av_imgui.ini"));
   DataBlock::setRootIncludeResolver(app_dir);
 
   ::dagor_idle_cycle();
@@ -1952,7 +1860,6 @@ bool AssetViewerApp::loadProject(const char *app_dir)
   AssetSelectorGlobalState::load(assetDataBlk);
 
   fillTree();
-  mTreeView->show(true);
   ::dagor_idle_cycle();
 
   if (0)
@@ -1981,19 +1888,19 @@ bool AssetViewerApp::loadProject(const char *app_dir)
   setMaskRend(1 << DAEDITOR3.registerEntitySubTypeId("hidden_geom"), false);
 
   bool collision_check = (getRendSubTypeMask() & collisionMask) == collisionMask;
-  mManager->getMainMenu()->setCheckById(CM_COLLISION_PREVIEW, collision_check);
+  getMainMenu()->setCheckById(CM_COLLISION_PREVIEW, collision_check);
   mToolPanel->setBool(CM_COLLISION_PREVIEW, collision_check);
 
   bool rend_check = (getRendSubTypeMask() & rendGeomMask) == rendGeomMask;
-  mManager->getMainMenu()->setCheckById(CM_RENDER_GEOMETRY, rend_check);
+  getMainMenu()->setCheckById(CM_RENDER_GEOMETRY, rend_check);
   mToolPanel->setBool(CM_RENDER_GEOMETRY, rend_check);
 
   autoZoomAndCenter = setBlk.getBool("autoZoomAndCenter", true);
-  mManager->getMainMenu()->setCheckById(CM_AUTO_ZOOM_N_CENTER, autoZoomAndCenter);
+  getMainMenu()->setCheckById(CM_AUTO_ZOOM_N_CENTER, autoZoomAndCenter);
   mToolPanel->setBool(CM_AUTO_ZOOM_N_CENTER, autoZoomAndCenter);
 
   compositeEditor.autoShow = setBlk.getBool("AutoShowCompositeEditor", compositeEditor.autoShow);
-  mManager->getMainMenu()->setCheckById(CM_AUTO_SHOW_COMPOSITE_EDITOR, compositeEditor.autoShow);
+  getMainMenu()->setCheckById(CM_AUTO_SHOW_COMPOSITE_EDITOR, compositeEditor.autoShow);
 
   for (int i = 0; i < plugin.size(); ++i)
     plugin[i]->onLoadLibrary();
@@ -2051,7 +1958,11 @@ bool AssetViewerApp::loadProject(const char *app_dir)
     DAEDITOR3.conError("PhysMat: can't find physmat file: '%s'", phmat_fn);
 
   if (!showCon && !(console->hasErrors() || console->hasWarnings()))
+  {
+    // SetActiveWindow is needed otherwise the application gets deactivated for some reason when hiding the console.
+    SetActiveWindow((HWND)mManager->getMainWindow());
     console->hideConsole();
+  }
 
 #define INIT_SERVICE(TYPE_NAME, EXPR)          \
   if (assetMgr.getAssetTypeId(TYPE_NAME) >= 0) \
@@ -2085,7 +1996,13 @@ bool AssetViewerApp::loadProject(const char *app_dir)
 
 #undef INIT_SERVICE
 
-  mTreeView->show(false);
+  const DataBlock &pluginsRootSettings = *setBlk.getBlockByNameEx("plugins");
+  for (int i = 0; i < plugin.size(); ++i)
+  {
+    const DataBlock &pluginSettings = *pluginsRootSettings.getBlockByNameEx(plugin[i]->getInternalName());
+    plugin[i]->loadSettings(pluginSettings);
+  }
+
   mTreeView->loadSelectedItem();
 
   DataBlock *assetsFiltersBlk = assetDataBlk.getBlockByName("assets_filter");
@@ -2127,7 +2044,6 @@ bool AssetViewerApp::loadProject(const char *app_dir)
       mTreeView->setFilterString(str);
   }
 
-  mTreeView->show(true);
   de3_spawn_event(HUID_BeforeMainLoop, nullptr);
   a2d_last_ref_model = assetDataBlk.getStr("a2d_lastUsedModelAsset", "");
   if (const char *asset_nm = assetDataBlk.getStr("lastSelAsset", NULL))
@@ -2135,7 +2051,7 @@ bool AssetViewerApp::loadProject(const char *app_dir)
     {
       int atype = assetMgr.getAssetTypeId(assetDataBlk.getStr("lastSelAssetType", ""));
       if (DagorAsset *a = atype < 0 ? assetMgr.findAsset(asset_nm) : assetMgr.findAsset(asset_nm, atype))
-        mTreeView->selectAsset(a);
+        assetToInitiallySelect = a->getNameTypified();
     }
 
   const DataBlock &envi_def = *appblk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("envi");
@@ -2166,7 +2082,14 @@ bool AssetViewerApp::loadProject(const char *app_dir)
   if (assetMgr.getAssetTypeId("rendInst") >= 0 && assetMgr.getAssetTypeId("impostorData") >= 0)
     impostorApp = eastl::make_unique<ImpostorGenerator>(app_dir, appblk, &assetMgr, console, false, impostor_export_callback);
 
-  colorPaletteDlg = eastl::make_unique<ColorDialogAppMat>(p2util::get_main_parent_handle(), "Palette");
+  colorPaletteDlg = eastl::make_unique<ColorDialogAppMat>(PropPanel::p2util::get_main_parent_handle(), "Palette");
+
+  if (assetMgr.getAssetTypeId("rendInst") >= 0)
+  {
+    pointCloudGen = eastl::make_unique<plod::PointCloudGenerator>(app_dir, appblk, &assetMgr, console);
+    if (!pointCloudGen->isInitialized())
+      pointCloudGen.reset();
+  }
 
   wingw::set_busy(false);
   queryEditorInterface<IDynRenderService>()->enableRender(true);
@@ -2204,9 +2127,9 @@ void AssetViewerApp::blockModifyRoutine(bool block) { blockSave = block; }
 
 void AssetViewerApp::afterUpToDateCheck(bool changed)
 {
-  debug_cp();
+  DEBUG_CP();
   mTreeView->markExportedTree(mTreeView->getItemNode(mTreeView->getRoot()), allUpToDateFlags);
-  debug_cp();
+  DEBUG_CP();
 }
 
 bool AssetViewerApp::trackChangesContinuous(int assets_to_check) { return assetMgr.trackChangesContinuous(assets_to_check); }
@@ -2217,8 +2140,17 @@ void AssetViewerApp::invalidateAssetIfChanged(DagorAsset &a)
   dabuildcache::invalidate_asset(a, true);
 }
 
-void AssetViewerApp::onClick(int pcb_id, PropertyContainerControlBase *panel)
+void AssetViewerApp::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
+  // Clicking on the toolbar button removes the focus from the viewport, so restore it here.
+  switch (pcb_id)
+  {
+    case CM_CAMERAS_FREE:
+    case CM_CAMERAS_FPS:
+    case CM_CAMERAS_TPS:
+    case CM_CAMERAS_CAR: ged.activateCurrentViewport(); break;
+  }
+
   if (onMenuItemClick(pcb_id))
     return;
 
@@ -2246,6 +2178,8 @@ void AssetViewerApp::onClick(int pcb_id, PropertyContainerControlBase *panel)
 
     case CM_CONSOLE: console->showConsole(true); break;
 
+    case CM_VR_ENABLE: EDITORCORE->queryEditorInterface<IDynRenderService>()->toggleVrMode(); break;
+
     case CM_PALETTE:
       if (colorPaletteDlg->isVisible())
         colorPaletteDlg->hide();
@@ -2258,7 +2192,7 @@ void AssetViewerApp::onClick(int pcb_id, PropertyContainerControlBase *panel)
 
 static void build_currently_assets(AvTree *tree, dag::ConstSpan<unsigned> tc)
 {
-  TLeafHandle sel = tree->getSelectedItem();
+  PropPanel::TLeafHandle sel = tree->getSelectedItem();
 
   void *data = tree->getItemData(sel);
   if (!get_dagor_asset_folder(data))
@@ -2275,12 +2209,12 @@ static void build_currently_assets(AvTree *tree)
 }
 
 
-static inline void make_hierarchical_list(AvTree *tree, TLeafHandle item, Tab<TLeafHandle> &items)
+static inline void make_hierarchical_list(AvTree *tree, PropPanel::TLeafHandle item, Tab<PropPanel::TLeafHandle> &items)
 {
   int count = tree->getChildrenCount(item);
   for (int i = 0; i < count; ++i)
   {
-    TLeafHandle child = tree->getChild(item, i);
+    PropPanel::TLeafHandle child = tree->getChild(item, i);
     items.push_back(child);
     ::make_hierarchical_list(tree, child, items);
   }
@@ -2305,9 +2239,9 @@ static int find_folder_idx(const DagorAssetFolder *f)
 
 static void create_folder_idx_list(AvTree *tree, bool hierarchical, Tab<int> &fld_idx)
 {
-  TLeafHandle selItem = tree->getSelectedItem();
+  PropPanel::TLeafHandle selItem = tree->getSelectedItem();
 
-  Tab<TLeafHandle> sel(tmpmem);
+  Tab<PropPanel::TLeafHandle> sel(tmpmem);
 
   sel.push_back(selItem);
   ::make_hierarchical_list(tree, selItem, sel);
@@ -2340,6 +2274,15 @@ void AssetViewerApp::clear_impostors(const ImpostorOptions &options)
   getConsole().hideConsole();
 }
 
+void AssetViewerApp::generate_point_cloud(DagorAsset *asset)
+{
+  if (!pointCloudGen)
+    return;
+  getConsole().showConsole();
+  pointCloudGen->generate(asset);
+  getConsole().hideConsole();
+  ::post_base_update_notify_dabuild();
+}
 
 static void build_folder_for_platform(AvTree *tree, bool hierarchical, bool tex, bool res, unsigned platform)
 {
@@ -2510,7 +2453,7 @@ static void showAssetBackRefs(DagorAsset &asset, CoolConsole &console, DagorAsse
 
 static void createNewCompositeAsset(AvTree &tree)
 {
-  TLeafHandle selection = tree.getSelectedItem();
+  PropPanel::TLeafHandle selection = tree.getSelectedItem();
   const DagorAssetFolder *folder = get_dagor_asset_folder(tree.getItemData(selection));
   if (!folder)
     return;
@@ -2694,6 +2637,12 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
       }
       return 1;
     }
+    case CM_EXPORT_CURRENT_POINT_CLOUD:
+    {
+      if (curAsset && pointCloudGen)
+        generate_point_cloud(curAsset);
+      return 1;
+    }
     case CM_BUILD_CLEAR_CACHE_ALL:
     {
       Tab<unsigned> targetCodes(getWorkspace().getAdditionalPlatforms());
@@ -2811,7 +2760,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
       bool check = (getRendSubTypeMask() & collisionMask) != collisionMask;
       setMaskRend(collisionMask, check);
 
-      mManager->getMainMenu()->setCheckById(id, check);
+      getMainMenu()->setCheckById(id, check);
       mToolPanel->setBool(id, check);
       return 1;
     }
@@ -2821,7 +2770,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
       bool check = (getRendSubTypeMask() & rendGeomMask) != rendGeomMask;
       setMaskRend(rendGeomMask, check);
 
-      mManager->getMainMenu()->setCheckById(id, check);
+      getMainMenu()->setCheckById(id, check);
       mToolPanel->setBool(id, check);
       return 1;
     }
@@ -2829,7 +2778,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
     case CM_AUTO_ZOOM_N_CENTER:
     {
       autoZoomAndCenter = !autoZoomAndCenter;
-      mManager->getMainMenu()->setCheckById(id, autoZoomAndCenter);
+      getMainMenu()->setCheckById(id, autoZoomAndCenter);
       mToolPanel->setBool(id, autoZoomAndCenter);
       if (autoZoomAndCenter)
         zoomAndCenter();
@@ -2839,13 +2788,13 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
     case CM_AUTO_SHOW_COMPOSITE_EDITOR:
     {
       compositeEditor.autoShow = !compositeEditor.autoShow;
-      mManager->getMainMenu()->setCheckById(id, compositeEditor.autoShow);
+      getMainMenu()->setCheckById(id, compositeEditor.autoShow);
       return 1;
     }
 
     case CM_DISCARD_ASSET_TEX:
       discardAssetTexMode = !discardAssetTexMode;
-      mManager->getMainMenu()->setCheckById(id, discardAssetTexMode);
+      getMainMenu()->setCheckById(id, discardAssetTexMode);
       mToolPanel->setBool(id, discardAssetTexMode);
       wingw::set_busy(true);
       applyDiscardAssetTexMode();
@@ -2922,12 +2871,24 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
     case CM_WINDOW_VIEWPORT:
       if (!ged.getViewportCount())
       {
-        hwndViewPort = mManager->splitWindow(0, 0, _pxScaled(PPANEL_WIDTH), WA_RIGHT);
-        mManager->setWindowType(hwndViewPort, VIEWPORT_TYPE);
+        mManager->setWindowType(nullptr, VIEWPORT_TYPE);
       }
       return 1;
 
     case CM_WINDOW_COMPOSITE_EDITOR: showCompositeEditor(!isCompositeEditorShown()); return 1;
+
+    case CM_WINDOW_COMPOSITE_EDITOR_ACCELERATOR:
+    {
+      // The hotkey is simply 'C', so only handle it if the viewport is active, and the current camera mode does not
+      // need it to move the camera down.
+      IGenViewportWnd *vp = getCurrentViewport();
+      if (vp && vp->isActive() && !vp->isFlyMode())
+      {
+        showCompositeEditor(!isCompositeEditorShown());
+        return 1;
+      }
+    }
+    break;
 
     case CM_CAMERAS_FREE:
     case CM_CAMERAS_FPS:
@@ -2964,10 +2925,10 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
 
     case CM_OPTIONS_SET_ACT_RATE:
     {
-      CDialogWindow *dialog = new CDialogWindow(NULL, _pxScaled(250), _pxScaled(100), "Set work cycle act rate");
+      PropPanel::DialogWindow *dialog = new PropPanel::DialogWindow(NULL, _pxScaled(250), _pxScaled(100), "Set work cycle act rate");
       dialog->getPanel()->createEditInt(0, "Acts per second:", ::dagor_game_act_rate);
 
-      if (dialog->showDialog() == DIALOG_ID_OK)
+      if (dialog->showDialog() == PropPanel::DIALOG_ID_OK)
         ::dagor_set_game_act_rate(dialog->getPanel()->getInt(0));
       delete dialog;
     }
@@ -3024,7 +2985,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
     case CM_COPY_FOLDER_LOD_ASSETS_PROPS_BLK:
       if (!curAsset)
       {
-        TLeafHandle sel = mTreeView->getSelectedItem();
+        PropPanel::TLeafHandle sel = mTreeView->getSelectedItem();
         if (const DagorAssetFolder *f = get_dagor_asset_folder(mTreeView->getItemData(sel)))
         {
           for (int fidx = 0; assetMgr.getFolderPtr(fidx); fidx++)
@@ -3063,7 +3024,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
       }
       else
       {
-        TLeafHandle sel = mTreeView->getSelectedItem();
+        PropPanel::TLeafHandle sel = mTreeView->getSelectedItem();
         const DagorAssetFolder *f = get_dagor_asset_folder(mTreeView->getItemData(sel));
         if (f)
         {
@@ -3076,26 +3037,11 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
     case CM_REVEAL_IN_EXPLORER:
       if (curAsset)
       {
-#if _TARGET_PC_WIN
-        String fpath(curAsset->getTargetFilePath());
-        fpath.replaceAll("/", "\\");
-        Tab<wchar_t> stor;
-        LPITEMIDLIST fpath_id = nullptr;
-        if (SHParseDisplayName(convert_path_to_u16(stor, fpath), nullptr, &fpath_id, 0, nullptr) == S_OK)
-        {
-          SHOpenFolderAndSelectItems(fpath_id, 0, nullptr, 0);
-          CoTaskMemFree /*ILFree*/ (fpath_id);
-          return 1;
-        }
-        DEBUG_DUMP_VAR(fpath_id);
-        DEBUG_DUMP_VAR(fpath);
-#endif
-        String path(curAsset->getFolderPath());
-        os_shell_execute("open", path, NULL, NULL);
+        dag_reveal_in_explorer(curAsset);
       }
       else
       {
-        TLeafHandle sel = mTreeView->getSelectedItem();
+        PropPanel::TLeafHandle sel = mTreeView->getSelectedItem();
         const DagorAssetFolder *f = get_dagor_asset_folder(mTreeView->getItemData(sel));
         if (f)
         {
@@ -3125,7 +3071,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
 }
 
 
-void AssetViewerApp::onTvSelectionChange(TreeBaseWindow &tree, TLeafHandle new_sel)
+void AssetViewerApp::onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle new_sel)
 {
   void *data = tree.getItemData(new_sel);
 
@@ -3149,6 +3095,7 @@ void AssetViewerApp::onTvSelectionChange(TreeBaseWindow &tree, TLeafHandle new_s
     if (curAsset != prev)
     {
       curAssetPackName = ::get_asset_pack_name(curAsset);
+      curAssetPkgName = get_asset_pkg_name(curAsset);
       IGenEditorPlugin *sup = getTypeSupporter(curAsset);
       scriptChangeFlag = false;
 
@@ -3162,6 +3109,7 @@ void AssetViewerApp::onTvSelectionChange(TreeBaseWindow &tree, TLeafHandle new_s
   {
     scriptChangeFlag = false;
     curAssetPackName = NULL;
+    curAssetPkgName.clear();
     switchToPlugin(-1);
   }
 
@@ -3172,7 +3120,7 @@ void AssetViewerApp::onTvSelectionChange(TreeBaseWindow &tree, TLeafHandle new_s
 }
 
 
-static void create_aditional_platform_popup_menu(IMenu &menu, unsigned pid, int menu_inc_idx, bool exported)
+static void create_aditional_platform_popup_menu(PropPanel::IMenu &menu, unsigned pid, int menu_inc_idx, bool exported)
 {
   if (exported)
   {
@@ -3188,7 +3136,7 @@ static void create_aditional_platform_popup_menu(IMenu &menu, unsigned pid, int 
 }
 
 
-static inline void create_popup_build_menu(IMenu &menu, bool exported)
+static inline void create_popup_build_menu(PropPanel::IMenu &menu, bool exported)
 {
   if (exported)
   {
@@ -3235,7 +3183,7 @@ static inline void create_popup_build_menu(IMenu &menu, bool exported)
 }
 
 
-static inline void create_popup_build_assets_menu(IMenu &menu, DagorAsset *e)
+static inline void create_popup_build_assets_menu(PropPanel::IMenu &menu, DagorAsset *e)
 {
   const char *pack_name = ::get_asset_pack_name(e);
   menu.addItem(ROOT_MENU_ITEM, CM_INC_BUILD_CUR_PACK, String(256, "Export pack '%s' [PC]", pack_name));
@@ -3280,16 +3228,14 @@ static inline void create_popup_build_assets_menu(IMenu &menu, DagorAsset *e)
 }
 
 
-bool AssetViewerApp::onTvContextMenu(TreeBaseWindow &tree, TLeafHandle under_mouse, IMenu &menu)
+bool AssetViewerApp::onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree)
 {
-  if (ViewportWindow *viewport = ged.getCurrentViewport())
-    viewport->invalidateClientRect();
-
-  void *data = tree.getItemData(under_mouse);
+  void *data = tree_base_window.getItemData(tree_base_window.getSelectedItem());
   const DagorAssetFolder *g = get_dagor_asset_folder(data);
   if (g == assetMgr.getRootFolder())
     return false;
 
+  PropPanel::IMenu &menu = tree.createContextMenu();
   menu.setEventHandler(this);
 
   if (!g)
@@ -3300,29 +3246,31 @@ bool AssetViewerApp::onTvContextMenu(TreeBaseWindow &tree, TLeafHandle under_mou
     if (::is_asset_exportable(e))
       ::create_popup_build_assets_menu(menu, e);
 
-    // if (menu.getMenuItemsCount())
-    menu.addSeparator(ROOT_MENU_ITEM);
-    menu.addItem(ROOT_MENU_ITEM, CM_COPY_ASSET_FILEPATH, "Copy asset filepath to clipboard");
-    menu.addItem(ROOT_MENU_ITEM, CM_COPY_ASSET_PROPS_BLK, "Copy asset contents BLK to clipboard");
-    menu.addItem(ROOT_MENU_ITEM, CM_COPY_FOLDERPATH, "Copy folder path to clipboard");
-    menu.addItem(ROOT_MENU_ITEM, CM_COPY_ASSET_NAME, "Copy asset name to clipboard");
-    menu.addItem(ROOT_MENU_ITEM, CM_COPY_LOD_ASSET_PROPS_BLK, "Copy terse LOD asset summary to clipboard");
-    menu.addItem(ROOT_MENU_ITEM, CM_SHOW_ASSET_DEPS, "Show the asset's dependencies in console");
-    menu.addItem(ROOT_MENU_ITEM, CM_SHOW_ASSET_REFS, "Show the asset's references in console");
-    menu.addItem(ROOT_MENU_ITEM, CM_SHOW_ASSET_BACK_REFS, "Show assets referencing this asset in console");
+    if (menu.getItemCount(ROOT_MENU_ITEM) > 0)
+      menu.addSeparator(ROOT_MENU_ITEM);
+
+    menu.addItem(ROOT_MENU_ITEM, CM_COPY_ASSET_FILEPATH, "Copy filepath");
+    menu.addItem(ROOT_MENU_ITEM, CM_COPY_ASSET_PROPS_BLK, "Copy asset BLK data");
+    menu.addItem(ROOT_MENU_ITEM, CM_COPY_FOLDERPATH, "Copy folder path");
+    menu.addItem(ROOT_MENU_ITEM, CM_COPY_ASSET_NAME, "Copy name");
+    menu.addItem(ROOT_MENU_ITEM, CM_COPY_LOD_ASSET_PROPS_BLK, "Copy terse LOD asset summary");
+    menu.addItem(ROOT_MENU_ITEM, CM_SHOW_ASSET_DEPS, "Show asset dependencies in console");
+    menu.addItem(ROOT_MENU_ITEM, CM_SHOW_ASSET_REFS, "Show asset references in console");
+    menu.addItem(ROOT_MENU_ITEM, CM_SHOW_ASSET_BACK_REFS, "Show references to asset in console");
     menu.addItem(ROOT_MENU_ITEM, CM_REVEAL_IN_EXPLORER, "Reveal in Explorer");
   }
   else
   {
     bool exported = false;
-    if (mTreeView->isFolderExportable(under_mouse, &exported))
+    if (mTreeView->isFolderExportable(tree_base_window.getSelectedItem(), &exported))
       ::create_popup_build_menu(menu, exported);
 
-    // if (menu.getMenuItemsCount())
-    menu.addSeparator(ROOT_MENU_ITEM);
-    menu.addItem(ROOT_MENU_ITEM, CM_COPY_FOLDERPATH, "Copy folder path to clipboard");
-    menu.addItem(ROOT_MENU_ITEM, CM_COPY_FOLDER_ASSETS_PROPS_BLK, "Copy assets contents BLK to clipboard (whole folder)");
-    menu.addItem(ROOT_MENU_ITEM, CM_COPY_FOLDER_LOD_ASSETS_PROPS_BLK, "Copy terse LOD assets summary to clipboard (whole folder)");
+    if (menu.getItemCount(ROOT_MENU_ITEM) > 0)
+      menu.addSeparator(ROOT_MENU_ITEM);
+
+    menu.addItem(ROOT_MENU_ITEM, CM_COPY_FOLDERPATH, "Copy folder path");
+    menu.addItem(ROOT_MENU_ITEM, CM_COPY_FOLDER_ASSETS_PROPS_BLK, "Copy assets BLK data (whole folder)");
+    menu.addItem(ROOT_MENU_ITEM, CM_COPY_FOLDER_LOD_ASSETS_PROPS_BLK, "Copy terse LOD assets summary (whole folder)");
     menu.addItem(ROOT_MENU_ITEM, CM_REVEAL_IN_EXPLORER, "Reveal in Explorer");
     menu.addSeparator(ROOT_MENU_ITEM);
     menu.addItem(ROOT_MENU_ITEM, CM_CREATE_NEW_COMPOSITE_ASSET, "Create new composit asset");
@@ -3499,7 +3447,7 @@ bool AssetViewerApp::runShadersListVars(dag::ConstSpan<const char *> params)
   {
     const char *name = VariableMap::getGlobalVariableName(i);
     if (!name)
-      break;
+      continue;
     if (params.size() && !strstr(String(name).toLower(), String(params[0]).toLower()))
       continue;
 
@@ -3628,6 +3576,288 @@ bool AssetViewerApp::runShadersReload(dag::ConstSpan<const char *> params)
   return false;
 }
 
+void AssetViewerApp::onImguiDelayedCallback(void *user_data)
+{
+  const unsigned highestCommandBit = 1 << ((sizeof(unsigned) * 8) - 1);
+  const unsigned commandId = (unsigned)user_data;
+
+  if ((commandId & highestCommandBit) == 0)
+  {
+    onMenuItemClick(commandId);
+  }
+  else
+  {
+    ViewportWindow *viewport = ged.getCurrentViewport();
+    if (!viewport || !viewport->isActive())
+      return;
+
+    const unsigned viewportCommandId = commandId & ~highestCommandBit;
+    if (viewport->handleViewportAcceleratorCommand(viewportCommandId))
+      return;
+
+    IGenEditorPlugin *currentPlugin = curPlugin();
+    if (currentPlugin)
+      currentPlugin->handleViewportAcceleratorCommand(*viewport, viewportCommandId);
+  }
+}
+
+void AssetViewerApp::renderUIViewports(bool vr_mode)
+{
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+  ImGui::Begin("Viewport", nullptr, vr_mode ? ImGuiWindowFlags_NoBackground : ImGuiWindowFlags_None);
+  ImGui::PopStyleVar();
+
+  const float itemSpacing = ImGui::GetStyle().ItemSpacing.y; // Use the same spacing in both directions.
+  const Point2 regionAvailable = Point2(ImGui::GetContentRegionAvail()) - Point2(itemSpacing, itemSpacing);
+
+  if (ged.getViewportCount() == 1)
+  {
+    ViewportWindow *viewport0 = ged.getViewport(0);
+    if (viewport0)
+      viewport0->updateImgui(regionAvailable, itemSpacing, vr_mode);
+  }
+  else if (ged.getViewportCount() == 4)
+  {
+    ViewportWindow *viewport0 = ged.getViewport(0);
+    ViewportWindow *viewport1 = ged.getViewport(1);
+    ViewportWindow *viewport2 = ged.getViewport(2);
+    ViewportWindow *viewport3 = ged.getViewport(3);
+    if (viewport0 && viewport1 && viewport2 && viewport3)
+    {
+      int currentLeftWidth;
+      int currentRightWidth;
+      int currentTopHeight;
+      int currentBottomHeight;
+      viewport0->getViewportSize(currentLeftWidth, currentTopHeight);
+      viewport3->getViewportSize(currentRightWidth, currentBottomHeight);
+
+      render_imgui_viewport_splitter(viewportSplitRatio, regionAvailable, currentLeftWidth, currentRightWidth, currentTopHeight,
+        currentBottomHeight, itemSpacing);
+
+      const float leftWidth = regionAvailable.x * viewportSplitRatio.x;
+      const float rightWidth = regionAvailable.x - leftWidth;
+      const float topHeight = regionAvailable.y * viewportSplitRatio.y;
+      const float bottomHeight = regionAvailable.y - topHeight;
+
+      viewport0->updateImgui(Point2(leftWidth, topHeight), itemSpacing, vr_mode);
+      ImGui::SameLine(0.0f, itemSpacing);
+      viewport1->updateImgui(Point2(rightWidth, topHeight), itemSpacing, vr_mode);
+
+      viewport2->updateImgui(Point2(leftWidth, bottomHeight), itemSpacing, vr_mode);
+      ImGui::SameLine(0.0f, itemSpacing);
+      viewport3->updateImgui(Point2(rightWidth, bottomHeight), itemSpacing, vr_mode);
+    }
+  }
+
+  ImGui::End();
+}
+
+void AssetViewerApp::renderUI()
+{
+  unsigned clientWidth = 0;
+  unsigned clientHeight = 0;
+  getWndManager()->getWindowClientSize(getWndManager()->getMainWindow(), clientWidth, clientHeight);
+
+  // They can be zero when toggling the window between minimized and maximized state.
+  if (clientWidth == 0 || clientHeight == 0)
+    return;
+
+  PropPanel::IMenu *mainMenu = getMainMenu();
+  if (mainMenu)
+    PropPanel::render_menu(*mainMenu);
+
+  // If VR mode is active then we do not draw backgrounds and viewports, so the viewport area will be transparent.
+  const bool vrMode = VRDevice::getInstance() != nullptr;
+
+  const ImGuiViewport *viewport = ImGui::GetMainViewport();
+  ImGui::SetNextWindowPos(viewport->WorkPos);
+  ImGui::SetNextWindowSize(viewport->WorkSize);
+
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+  const ImGuiWindowFlags rootWindowFlags = ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDecoration |
+                                           ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking |
+                                           ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNav |
+                                           (vrMode ? ImGuiWindowFlags_NoBackground : ImGuiWindowFlags_None);
+  ImGui::Begin("Root", nullptr, rootWindowFlags);
+  ImGui::PopStyleVar(3);
+
+  if (mToolPanel || mPluginTool)
+  {
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_PopupBg));
+    ImGui::PushStyleColor(ImGuiCol_Border, PropPanel::Constants::TOOLBAR_BORDER_COLOR);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, PropPanel::Constants::TOOLBAR_WINDOW_PADDING);
+
+    ImGui::BeginChild("Toolbar", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Border,
+      ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking);
+
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor(2);
+
+    if (mToolPanel)
+      mToolPanel->updateImgui();
+
+    if (mPluginTool)
+    {
+      if (mToolPanel)
+      {
+        ImGui::SameLine();
+        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical, 1.0f);
+      }
+
+      mPluginTool->updateImgui();
+    }
+
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(ImGui::GetStyle().ItemSpacing.x, 0.0f));
+    ImGui::EndChild();
+    ImGui::PopStyleVar();
+  }
+
+  ImGui::BeginChild("DockHolder", ImVec2(0.0f, 0.0f), ImGuiChildFlags_None,
+    ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDocking);
+
+  ImGuiID rootDockSpaceId = ImGui::GetID("RootDockSpace");
+
+  if (!dockPositionsInitialized)
+  {
+    dockPositionsInitialized = true;
+
+    const ImVec2 viewportSize = ImGui::GetMainViewport()->Size;
+
+    ImGui::DockBuilderRemoveNode(rootDockSpaceId);
+    ImGui::DockBuilderAddNode(rootDockSpaceId, ImGuiDockNodeFlags_CentralNode);
+    ImGui::DockBuilderSetNodeSize(rootDockSpaceId, ImGui::GetMainViewport()->Size);
+
+    ImGuiID dockSpaceViewport;
+    ImGuiID dockSpaceRightBottom = ImGui::DockBuilderSplitNode(rootDockSpaceId, ImGuiDir_Right, 0.15f, nullptr, &dockSpaceViewport);
+    ImGuiID dockSpaceRightTop = ImGui::DockBuilderSplitNode(dockSpaceRightBottom, ImGuiDir_Up, 0.5f, nullptr, &dockSpaceRightBottom);
+    ImGuiID dockSpaceLeft1 = ImGui::DockBuilderSplitNode(dockSpaceViewport, ImGuiDir_Left, 0.25f, nullptr, &dockSpaceViewport);
+    ImGuiID dockSpaceLeft2 = ImGui::DockBuilderSplitNode(dockSpaceViewport, ImGuiDir_Left, 0.25f, nullptr, &dockSpaceViewport);
+
+    ImGuiDockNode *viewportNode = ImGui::DockBuilderGetNode(dockSpaceViewport);
+    if (viewportNode)
+      viewportNode->SetLocalFlags(viewportNode->LocalFlags | ImGuiDockNodeFlags_HiddenTabBar);
+
+    // TODO: ImGui porting: view: AV: extensibility?
+    ImGui::DockBuilderDockWindow("Assets Tree", dockSpaceLeft1);
+    ImGui::DockBuilderDockWindow("Actions Tree", dockSpaceLeft2);
+    ImGui::DockBuilderDockWindow("Effects Tools", dockSpaceLeft2);
+    ImGui::DockBuilderDockWindow("Viewport", dockSpaceViewport);
+    ImGui::DockBuilderDockWindow("Properties", dockSpaceRightBottom);
+    ImGui::DockBuilderDockWindow("Composit Outliner", dockSpaceRightTop);
+
+    ImGui::DockBuilderFinish(rootDockSpaceId);
+  }
+
+  // Change the close button's color for the daEditorX Classic style.
+  ImGui::PushStyleColor(ImGuiCol_Text, PropPanel::Constants::DIALOG_TITLE_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+  if (vrMode)
+    ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+  ImGui::DockSpace(rootDockSpaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+  ImGui::PopStyleColor(vrMode ? 3 : 2);
+
+  renderUIViewports(vrMode);
+
+  if (mTreeView)
+  {
+    DAEDITOR3.imguiBegin("Assets Tree");
+    mTreeView->updateImgui();
+    DAEDITOR3.imguiEnd();
+  }
+
+  if (mPropPanel)
+  {
+    bool open = true;
+    DAEDITOR3.imguiBegin(*mPropPanel, &open);
+    mPropPanel->updateImgui();
+    DAEDITOR3.imguiEnd();
+
+    if (!open)
+      showPropWindow(false);
+  }
+
+  if (compositeEditor.compositeTreeView && compositeEditor.compositePropPanel)
+  {
+    bool open = true;
+    DAEDITOR3.imguiBegin("Composit Outliner", &open);
+
+    if (ImGui::BeginChild("tree", ImVec2(0.0f, 250.0f), ImGuiChildFlags_ResizeY, ImGuiWindowFlags_NoBackground))
+      compositeEditor.compositeTreeView->updateImgui();
+    ImGui::EndChild();
+
+    compositeEditor.compositePropPanel->updateImgui();
+    DAEDITOR3.imguiEnd();
+
+    if (!open)
+      showCompositeEditor(false);
+  }
+
+  IGenEditorPlugin *currentPlugin = curPlugin();
+  if (currentPlugin)
+    currentPlugin->updateImgui();
+
+  PropPanel::render_dialogs();
+
+  ImGui::EndChild();
+
+  ImGui::End();
+}
+
+void AssetViewerApp::beforeUpdateImgui() { mManager->updateImguiMouseCursor(); }
+
+void AssetViewerApp::updateImgui()
+{
+  static bool renderingImGui = false;
+
+  // Most likely cause if this assert fails: a modal dialog is being shown in response to an event handled in an
+  // updateImgui. See the notes at the PropPanel::MessageQueue class.
+  G_ASSERT(!renderingImGui);
+  renderingImGui = true;
+
+  PropPanel::after_new_frame();
+
+  // The keyboard press checking itself cannot be in actObject because actObject could be called more often than
+  // renderUI (that calls ImGui's NewFrame that updates ImGui's key states), and onMenuItemClick could fire more than
+  // once.
+
+  const unsigned highestCommandBit = 1 << ((sizeof(unsigned) * 8) - 1);
+  ViewportWindow *viewport = ged.getCurrentViewport();
+  unsigned commandId = 0;
+  if (viewport && viewport->isActive())
+  {
+    commandId = mManager->processImguiViewportAccelerator();
+    if (commandId != 0)
+    {
+      G_ASSERT((commandId & highestCommandBit) == 0);
+      commandId |= highestCommandBit;
+    }
+  }
+
+  if (commandId == 0)
+  {
+    commandId = mManager->processImguiAccelerator();
+    G_ASSERT((commandId & highestCommandBit) == 0);
+  }
+
+  if (commandId != 0)
+    PropPanel::request_delayed_callback(*this, (void *)commandId);
+
+  if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_F12))
+    imguiDebugWindowsVisible = !imguiDebugWindowsVisible;
+
+  if (imguiDebugWindowsVisible)
+    ImGui::ShowMetricsWindow(&imguiDebugWindowsVisible);
+
+  editor_core_update_imgui_style_editor();
+
+  renderUI();
+
+  PropPanel::before_end_frame();
+
+  renderingImGui = false;
+}
 
 const char *daeditor3_get_appblk_fname()
 {

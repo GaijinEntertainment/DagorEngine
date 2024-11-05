@@ -17,6 +17,6 @@ Sources =
   snprintf.cpp
 ;
 
-if $(Platform) = linux64 && $(LinuxArch) = e2k { Sources += assert_e2k.cpp ; }
+if $(PlatformArch) = e2k { Sources += assert_e2k.cpp ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

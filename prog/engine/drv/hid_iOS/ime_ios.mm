@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #import <UIKit/UIKit.h>
 #include <osApiWrappers/dag_progGlobals.h>
-#include <humanInput/dag_hiCreate.h>
+#include <drv/hid/dag_hiCreate.h>
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_simpleString.h>
 #include <util/dag_delayedAction.h>
@@ -8,37 +10,39 @@
 
 static bool canBeVisible = false, canBeHidden = false;
 
-static void (*ime_finish_cb)(void *userdata, const char *str, int status) = NULL;
+static void (*ime_finish_cb)(void *userdata, const char *str, int cursor, int status) = NULL;
 static void *ime_finish_userdata = NULL;
 static bool ime_started = false;
 
 
-static void onFinishEdit_IME(const char *text)
+static void onFinishEdit_IME(const char *text, int cursorPos)
 {
   if (ime_finish_cb)
   {
     struct FinishAction : public DelayedAction
     {
-      void (*finish_cb)(void *userdata, const char *str, int status);
+      void (*finish_cb)(void *userdata, const char *str, int _cursor, int status);
       void *finish_userdata;
       SimpleString utf8;
       bool confirm;
+      int cursor;
 
-      FinishAction(const char *text_utf8, bool _confirm)
+      FinishAction(const char *text_utf8, int _cursor, bool _confirm)
       {
         utf8 = text_utf8;
         finish_cb = ime_finish_cb;
         finish_userdata = ime_finish_userdata;
         confirm = _confirm;
+        cursor = _cursor;
       }
 
       virtual void performAction()
       {
-        finish_cb(finish_userdata, utf8, confirm);
+        finish_cb(finish_userdata, utf8, cursor, confirm);
       }
     };
 
-    FinishAction *a = new FinishAction(text, 1);
+    FinishAction *a = new FinishAction(text, cursorPos, 1);
 
     ime_started = false;
     ime_finish_cb = NULL;
@@ -48,7 +52,7 @@ static void onFinishEdit_IME(const char *text)
 }
 
 bool HumanInput::isImeAvailable() { return true; }
-bool HumanInput::showScreenKeyboard_IME(const DataBlock &init_params, void(on_finish_cb)(void *userdata, const char *str, int status),
+bool HumanInput::showScreenKeyboard_IME(const DataBlock &init_params, void(on_finish_cb)(void *userdata, const char *str, int cursor, int status),
   void *userdata)
 {
   if (!init_params.paramCount() && !on_finish_cb && userdata)
@@ -80,7 +84,7 @@ bool HumanInput::showScreenKeyboard_IME(const DataBlock &init_params, void(on_fi
   ime_finish_userdata = userdata;
   ime_started = true;
 
-  unsigned int edit_flag = UIKeyboardTypeASCIICapable;
+  unsigned int edit_flag = UIKeyboardTypeDefault;
   unsigned int ime_flag = UIReturnKeyDefault;
   bool secure_flag = false;
 
@@ -120,13 +124,12 @@ bool HumanInput::showScreenKeyboard_IME(const DataBlock &init_params, void(on_fi
     ; //todo, currently disable
   if (init_params.getBool("optNoLearning", false))
     ; //todo, currently disable
-  // init_params.getInt("maxChars", 128));
+  int max_chars = init_params.getInt("maxChars", 128);
+
+  int cursor_pos = init_params.getInt("optCursorPos", -1);
 
   //debug("show: str=<%s> hint=<%s> flg=%08X ime=%08X (%s,%s)", init_params.getStr("str"), init_params.getStr("hint", ""), edit_flags,
     //ime_flags, init_params.getStr("type", NULL), init_params.getStr("label", NULL));
-  showScreenKeyboardIME_iOS(init_params.getStr("str"), init_params.getStr("hint", ""), ime_flag, edit_flag, secure_flag, onFinishEdit_IME );
+  showScreenKeyboardIME_iOS(init_params.getStr("str"), init_params.getStr("hint", ""), ime_flag, edit_flag, cursor_pos, secure_flag, max_chars, onFinishEdit_IME );
   return true;
 }
-
-
-

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <fx/dag_commonFx.h>
 #include <shaders/dag_shaders.h>
 

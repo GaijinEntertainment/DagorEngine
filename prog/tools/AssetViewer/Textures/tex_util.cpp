@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "tex_util.h"
 
 #include "../av_appwnd.h"

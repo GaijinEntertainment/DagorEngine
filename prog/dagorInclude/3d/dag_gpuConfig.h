@@ -1,12 +1,11 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <3d/dag_drv3dConsts.h>
-#include <3d/dag_drvDecl.h>
+#include <drv/3d/dag_consts.h>
+#include <drv/3d/dag_decl.h>
 #include <EASTL/vector.h>
 
 class DataBlock;
@@ -47,6 +46,7 @@ struct GpuUserConfig
   bool disableSbuffers = false;
   bool disableMeshStreaming = false;
   bool disableDepthCopyResource = false;
+  bool multipleCopySubresourceWorkaround = false;
   bool forceDx10 = false;
   bool hardwareDx10 = false;
   bool oldHardware = false;

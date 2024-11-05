@@ -1,0 +1,554 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "viewVecVS.dshl"
+include "hero_matrix_inc.dshl"
+
+texture object_motion_blur_in_tex;
+texture object_motion_blur_out_tex;
+texture resolved_motion_vectors;
+texture translucent_gbuffer_depth;
+texture object_motion_blur_flattened_vel_tex;
+
+texture object_motion_blur_tile_max_tex;
+texture object_motion_blur_neighbor_max;
+
+float object_motion_blur_velocity_mul = 1;
+int object_motion_blur_max_samples = 15;
+float object_motion_blur_min_vel_px = 0.5;
+float object_motion_blur_max_vel_px = 24;
+float object_motion_blur_frame_rate_mul = 1.0;
+float object_motion_blur_depth_coeff = 15;
+float object_motion_blur_use_all_samples = 0;
+
+float4 object_motion_blur_pow = float4(1, 1, 0, 0);
+float4x4 motion_vec_reproject_tm;
+int object_motion_blur_cancel_camera_motion = 0;
+float object_motion_blur_vignette_strength = 0.0;
+
+shader object_motion_blur_tile_max
+{
+  hlsl(cs)
+  {
+    #define TILE_SIZE 16
+  }
+
+  (cs)
+  {
+    resolved_motion_vectors@smp2d = resolved_motion_vectors;
+    velocityMul@f2 = get_dimensions(object_motion_blur_flattened_vel_tex, 0).xy * 0.5 * object_motion_blur_velocity_mul * object_motion_blur_frame_rate_mul;
+    velocityRes@f4 = (get_dimensions(object_motion_blur_flattened_vel_tex, 0).xy, 1.0 / get_dimensions(object_motion_blur_flattened_vel_tex, 0).xy);
+    object_motion_blur_max_vel_px@f1 = object_motion_blur_max_vel_px;
+    object_motion_blur_pow@f2 = object_motion_blur_pow.xy;
+    motion_vec_reproject_tm@f44 = motion_vec_reproject_tm;
+    cancel_camera_motion@i1 = object_motion_blur_cancel_camera_motion;
+    vignette_strength@f1 = object_motion_blur_vignette_strength;
+
+    tile_max_tex@uav = object_motion_blur_tile_max_tex hlsl { RWTexture2D<float2> tile_max_tex@uav; }
+    flattened_vel_tex@uav = object_motion_blur_flattened_vel_tex hlsl { RWTexture2D<float3> flattened_vel_tex@uav; }
+  }
+
+  VIEW_VEC_OPTIMIZED(cs)
+  INIT_ZNZFAR_STAGE(cs)
+  INIT_HERO_MATRIX(cs)
+  USE_HERO_MATRIX(cs)
+  INIT_READ_DEPTH_GBUFFER_BASE(cs)
+  USE_READ_DEPTH_GBUFFER_BASE(cs)
+  ENABLE_ASSERT(cs)
+
+  hlsl(cs)
+  {
+    float2 cartesianToPolar(float2 vel)
+    {
+      float velLen = length(vel);
+      float angle = velLen > 0.0 ? atan2(vel.y, vel.x) : 0.0;
+      return float2(velLen, angle);
+    }
+
+    float2 polarToCartesian(float2 vel)
+    {
+      float velLen = vel.x;
+      float angle = vel.y;
+      sincos(angle, vel.y, vel.x);
+      return vel * velLen;
+    }
+
+    groupshared half2 maxPolarVelocityForTile[TILE_SIZE * TILE_SIZE];
+
+    void reduceStep(uint groupIndex, uint groupSize)
+    {
+      if(groupIndex < groupSize)
+      {
+        half2 vel1 = maxPolarVelocityForTile[groupIndex];
+        half2 vel2 = maxPolarVelocityForTile[groupIndex + groupSize];
+        vel1 = lerp(vel1, vel2, step(vel1.x, vel2.x));
+        maxPolarVelocityForTile[groupIndex] = vel1;
+      }
+      GroupMemoryBarrierWithGroupSync();
+    }
+
+    float processVelocityLength(float velLength)
+    {
+      velLength = velLength;
+      velLength = pow(velLength / object_motion_blur_pow.y, object_motion_blur_pow.x) * object_motion_blur_pow.y;
+      velLength = min(velLength, object_motion_blur_max_vel_px);
+      return velLength;
+    }
+
+    void storeFlattenedVelocity(uint2 samplePos, half2 velPolar, half sampledDepth)
+    {
+      velPolar.y = velPolar.y * (0.5 / PI) + 0.5;   // normalize angle to [0, 1]
+      flattened_vel_tex[samplePos] = float3(velPolar, sampledDepth);
+    }
+
+    float2 getCameraMotion(float2 uv, float z)
+    {
+      float4 prevUV = mul(motion_vec_reproject_tm, float4(uv, z, 1.0f));
+      prevUV.xy /= prevUV.w;
+      return prevUV.xy - uv;
+    }
+
+    float getVignette(float2 uv, float strenght)
+    {
+      float2 screenPos = abs(uv * 2.0 - 1.0);
+      float vignette = saturate(dot(screenPos, screenPos) + (1.0 - strenght));
+      return vignette * vignette;
+    }
+
+    half2 applyHeroCockpitVelocity(float2 tc, float rawDepth, half2 vel)
+    {
+      bool isHeroCockpit = false;
+
+      #ifdef GBUFFER_HAS_HERO_COCKPIT_BIT
+        isHeroCockpit = isGbufferHeroCockpit(tc);
+      #endif
+
+      float linearDepth = linearize_z(rawDepth, zn_zfar.zw);
+      float3 viewVec = getViewVecOptimized(tc);
+      float3 cameraToPoint = viewVec * linearDepth;
+      // May be improved by check gbuf isdynamic flag
+      if (is_inside_hero_bbox(cameraToPoint) || isHeroCockpit)
+      {
+        // We just cancel any motion blur for hero cockpit,
+        // Little bit rough assumtion, but should be ok for motionblur
+        vel = 0;
+      }
+      return vel;
+    }
+
+    [numthreads(TILE_SIZE, TILE_SIZE, 1)]
+    void object_motion_blur_tile_max(uint2 groupId : SV_GroupID, uint2 groupThreadId : SV_GroupThreadID, uint groupIndex : SV_GroupIndex)
+    {
+      uint2 samplePos = groupId * TILE_SIZE + groupThreadId;
+      float2 tc = ((float2)samplePos + 0.5) * velocityRes.zw;
+      float sampleRawDepth = readGbufferDepth(tc);
+
+      ##if resolved_motion_vectors != NULL
+        half2 vel = tex2Dlod(resolved_motion_vectors, float4(tc, 0, 0)).xy;
+      ##else
+        half2 vel = getCameraMotion(tc, sampleRawDepth);
+        vel = applyHeroCockpitVelocity(tc, sampleRawDepth, vel);
+      ##endif
+      if(vel.x > 10.0)   // invalid motion vector (x=y=65k means invalid, but we want linear filtering. values are in uv space)
+        vel = half2(0,0);
+
+      half2 originalVel = vel * velocityMul;
+      vel = cartesianToPolar(originalVel);
+
+      if(cancel_camera_motion > 0)
+      {
+        float2 cameraMotion = getCameraMotion(tc, sampleRawDepth) * velocityMul;
+        float2 cancelledVel = originalVel - cameraMotion;
+        vel.x = min(vel.x, length(cancelledVel));
+      }
+      vel.x = processVelocityLength(vel.x);
+      vel.x *= getVignette(tc, vignette_strength);
+
+      storeFlattenedVelocity(samplePos, vel, sampleRawDepth);
+
+      maxPolarVelocityForTile[groupIndex] = vel;
+      GroupMemoryBarrierWithGroupSync();
+
+#if TILE_SIZE * TILE_SIZE > 1024
+      reduceStep(groupIndex, 1024);
+#endif
+
+#if TILE_SIZE * TILE_SIZE > 512
+      reduceStep(groupIndex, 512);
+#endif
+
+#if TILE_SIZE * TILE_SIZE > 256
+      reduceStep(groupIndex, 256);
+#endif
+
+#if TILE_SIZE * TILE_SIZE > 128
+      reduceStep(groupIndex, 128);
+#endif
+
+#if TILE_SIZE * TILE_SIZE > 64
+      reduceStep(groupIndex, 64);
+#endif
+
+      reduceStep(groupIndex, 32);
+      reduceStep(groupIndex, 16);
+      reduceStep(groupIndex, 8);
+      reduceStep(groupIndex, 4);
+      reduceStep(groupIndex, 2);
+      reduceStep(groupIndex, 1);
+
+      if(groupIndex == 0)
+      {
+        vel = maxPolarVelocityForTile[groupIndex].xy;
+        tile_max_tex[groupId] = polarToCartesian(vel);
+      }
+    }
+  }
+
+  compile("target_cs", "object_motion_blur_tile_max");
+}
+
+shader object_motion_blur_neighbor_max
+{
+  ENABLE_ASSERT(cs)
+
+  (cs)
+  {
+    tile_max_tex@tex = object_motion_blur_tile_max_tex hlsl { Texture2D<float2> tile_max_tex@tex; }
+    neighbor_max_tex@uav = object_motion_blur_neighbor_max hlsl { RWTexture2D<float2> neighbor_max_tex@uav; }
+    tile_max_tex_size@f2 = get_dimensions(object_motion_blur_tile_max_tex, 0).xy;
+  }
+
+  hlsl(cs)
+  {
+    groupshared half3 maxVelocityForTile[3 * 3];
+
+    void reduceStep(uint groupIndex, uint groupSize)
+    {
+      if(groupIndex < groupSize)
+      {
+        half3 vel1 = maxVelocityForTile[groupIndex];
+        half3 vel2 = maxVelocityForTile[groupIndex + groupSize];
+        if(vel1.z < vel2.z)
+          maxVelocityForTile[groupIndex] = vel2;
+      }
+      GroupMemoryBarrierWithGroupSync();
+    }
+
+    [numthreads(3, 3, 1)]
+    void object_motion_blur_neighbor_max(uint2 groupId : SV_GroupID, uint2 groupThreadId : SV_GroupThreadID, uint groupIndex : SV_GroupIndex)
+    {
+      int2 offset = groupThreadId - uint2(1, 1);
+      int2 samplePos = groupId + offset;
+      samplePos = clamp(samplePos, 0, (int2)(tile_max_tex_size - float2(0.9, 0.9)));
+
+      half2 tileVel = texelFetch(tile_max_tex, samplePos, 0);
+      maxVelocityForTile[groupIndex] = float3(tileVel, length(tileVel));
+
+      GroupMemoryBarrierWithGroupSync();
+      reduceStep(groupIndex, 4);
+      reduceStep(groupIndex, 2);
+      reduceStep(groupIndex, 1);
+
+      if(groupIndex == 0)
+      {
+        half3 vel1 = maxVelocityForTile[0];
+        half3 vel2 = maxVelocityForTile[8];
+        if(vel1.z < vel2.z)
+          vel1 = vel2;
+
+        neighbor_max_tex[groupId] = vel1.xy;
+      }
+    }
+  }
+
+  compile("target_cs", "object_motion_blur_neighbor_max");
+}
+
+shader object_motion_blur
+{
+  (cs)
+  {
+    velocityRes@f4 = (get_dimensions(object_motion_blur_in_tex, 0).xy, 1.0 / get_dimensions(object_motion_blur_in_tex, 0).xy);
+    minVel@f1 = object_motion_blur_min_vel_px;
+    object_motion_blur_max_vel_px@f1 = object_motion_blur_max_vel_px;
+
+    input_tex@smp2d = object_motion_blur_in_tex;
+    neighbor_max_tex@tex = object_motion_blur_neighbor_max hlsl { Texture2D< float2 > neighbor_max_tex@tex; };
+    flattened_vel_tex@smp2d = object_motion_blur_flattened_vel_tex;
+
+    output_tex@uav = object_motion_blur_out_tex hlsl { RWTexture2D<float4> output_tex@uav; }
+    sampleCountMax@i1 = object_motion_blur_max_samples;
+    current_time@f1 = (time_phase(0, 0));
+    object_motion_blur_depth_coeff@f1 = object_motion_blur_depth_coeff;
+    object_motion_blur_use_all_samples@f1 = object_motion_blur_use_all_samples;
+
+    neightbor_max_tex_size@f2 = get_dimensions(object_motion_blur_neighbor_max, 0).xy;
+
+    glass_depth_tex@smp2d = translucent_gbuffer_depth;
+    glass_depth_tex_exists@i1 = exists_tex(translucent_gbuffer_depth);
+  }
+
+  ENABLE_ASSERT(cs)
+  INIT_ZNZFAR_STAGE(cs)
+
+  hlsl(cs)
+  {
+    #include <interleavedGradientNoise.hlsl>
+
+    #define TILE_SIZE 16
+
+    float2 polarToCartesian(float2 vel)
+    {
+      float velLen = vel.x;
+      float angle = vel.y;
+      sincos(angle, vel.y, vel.x);
+      return vel * velLen;
+    }
+
+    // Safer version of vector normalization function
+    float3 normalizeSafe(float2 v)
+    {
+        float l = max(length(v), 1e-6);
+        return float3(v / l * (l >= 0.5), l);
+    }
+
+    float2 normalizeSafe(float2 v, float length)
+    {
+        float l = max(length, 1e-6);
+        return v / l * (l >= 0.5);
+    }
+
+    float getRandom(float2 pixelIndex)
+    {
+      return interleavedGradientNoiseFramed(pixelIndex, current_time);
+    }
+
+    // Jitter function for tile lookup
+    uint2 jitterTileSample(float2 uv)
+    {
+      float rx, ry;
+      sincos(getRandom(uv + float2(2, 0)) * PI * 2, ry, rx);
+      return uint2(float2(rx, ry) * TILE_SIZE / 4);
+    }
+
+    // cone shaped interpolation
+    float cone(float T, float velocityLength)
+    {
+        return saturate(1.0 - T / max(velocityLength, 0.00001));
+    }
+
+    // cylinder shaped interpolation
+    float cylinder(float T, float velocityLength)
+    {
+        return 1.0 - smoothstep(0.95 * velocityLength, 1.05 * velocityLength, T);
+    }
+
+    // za > zb, but smoothed out
+    float depthCompareGreaterThan(float za, float zb)
+    {
+        return saturate(1.0 - object_motion_blur_depth_coeff * (zb - za) / min(za, zb));
+    }
+
+    // Lerp and normalization
+    float2 rnMix(float2 a, float2 b, float p)
+    {
+        return normalizeSafe(lerp(a, b, saturate(p))).xy;
+    }
+
+    void loadFlattenedVelocityAndDepth(float2 uv, out float2 outVel, out float outVelLength, out float outDepth)
+    {
+      float3 vel_depth = tex2Dlod(flattened_vel_tex, float4(uv, 0, 0)).rgb;
+      outVelLength = vel_depth.x;
+      float rawDepth = vel_depth.z;
+      outDepth = linearize_z(rawDepth, zn_zfar.zw);
+
+      // from [0, 1] to [-PI, PI]
+      vel_depth.y = vel_depth.y * 2 * PI - PI;
+      outVel = polarToCartesian(vel_depth.xy);
+    }
+
+    // Sample weighting function
+    float getWeightForSample(float2 vel, float centerVelLength, float centerDepth, float T, float2 sampleUV, float velocityWeight, float centerGlassDepth)
+    {
+        float2 sampleVel;
+        float sampleDepth;
+        float sampleVelLen;
+        loadFlattenedVelocityAndDepth(sampleUV, sampleVel, sampleVelLen, sampleDepth);
+
+        float glassWeight = 1.0;
+
+        if(glass_depth_tex_exists)
+        {
+          float sampleGlassDepth = tex2Dlod(glass_depth_tex, float4(sampleUV, 0, 0)).x;
+          sampleGlassDepth = linearize_z( sampleGlassDepth, zn_zfar.zw);
+
+          // if the glass of the sample is within glassDistanceMax meters from the center, it can be blurred together
+          const float glassDistanceMax = 1.0;
+          glassWeight = saturate(1.0 - abs(centerGlassDepth - sampleGlassDepth) * glassDistanceMax);
+        }
+
+        // Use the sampled pixel if it's in front of the center pixel
+        // Use the center pixel if the current sample is behind it
+        float sampleIsForeground = depthCompareGreaterThan(centerDepth, sampleDepth);
+        float sampleIsBackground = depthCompareGreaterThan(sampleDepth, centerDepth);
+        float sampleClassSum = sampleIsForeground + sampleIsBackground;
+        sampleIsForeground /= sampleClassSum;
+        sampleIsBackground /= sampleClassSum;
+
+        float foregroundWeight = abs(dot(sampleVel / max(sampleVelLen, 0.00001), vel));
+
+        float weight = 0.0;
+        weight = sampleIsForeground * cone(T, sampleVelLen) * foregroundWeight;
+        weight = max(weight, sampleIsBackground * cone(T, centerVelLength) * velocityWeight);
+        weight = max(weight, cylinder(T, min(sampleVelLen, centerVelLength)) * max(velocityWeight, foregroundWeight));
+        weight *= glassWeight;
+        return weight;
+    }
+
+    groupshared uint sharedSampleCount;
+
+    [numthreads( 16, 16, 1 )]
+    void object_motion_blur_cs(uint2 dtid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
+    {
+      float2 centerUV = ((float2)dtid + 0.5) * velocityRes.zw;
+      float4 inputColor = tex2Dlod(input_tex, float4(centerUV, 0, 0));
+      float3 centerColor = inputColor.rgb;
+
+      float2 random = float2 ( getRandom ( centerUV * velocityRes.xy) , getRandom ( (centerUV + float2 ( 0.52354 , 0.62321 )) * velocityRes.xy ) ) ;
+
+      int2 tileIdx = dtid;
+      int2 tileJitterOffset = int2((random * 0.5 - 0.25) * TILE_SIZE); //[-0.25, 0.25] * TILE_SIZE
+      tileIdx += tileJitterOffset;
+      tileIdx /= TILE_SIZE;
+      tileIdx = clamp(tileIdx, int2(0, 0), int2(neightbor_max_tex_size - float2(0.9, 0.9)));
+      float2 maxNeighborVel = texelFetch(neighbor_max_tex, tileIdx, 0);
+      float3 maxNeighborVel_Norm_Len = normalizeSafe(maxNeighborVel);
+      float maxNeighborVelLength = maxNeighborVel_Norm_Len.z;
+      maxNeighborVelLength = max(maxNeighborVelLength, minVel);
+
+      float2 centerVel;
+      float centerDepth;
+      float centerVelLength;
+      loadFlattenedVelocityAndDepth(centerUV, centerVel, centerVelLength, centerDepth);
+      float2 centerVelNorm = normalizeSafe(centerVel, centerVelLength);
+      centerVelLength = max(centerVelLength, minVel);
+
+      float rawTranslucentDepth = 0;
+      if(glass_depth_tex_exists)
+      {
+        rawTranslucentDepth = tex2Dlod(glass_depth_tex, float4(centerUV, 0, 0)).x;
+      }
+
+      // A vector perpendicular to maxNeighborVel.
+      float2 perpVel = maxNeighborVel_Norm_Len.yx * float2(-1, 1);
+      if (dot(perpVel, centerVel) < 0.0)
+        perpVel = -perpVel;
+
+      // Secondary sampling direction.
+      float2 secondaryVel = rnMix(perpVel, centerVelNorm, (centerVelLength - 0.5) / 1.5);
+
+      const uint sampleCountFactor = 4;
+      float desiredSampleCount = lerp((maxNeighborVelLength / object_motion_blur_max_vel_px) * sampleCountMax, sampleCountMax, object_motion_blur_use_all_samples);
+
+      // We'll unroll the loop by 2, so sample counts should be divisible by 4.
+      float desiredSampleCountFactor = ceil(desiredSampleCount / sampleCountFactor);
+      uint actualSampleCount = clamp(desiredSampleCountFactor * sampleCountFactor, sampleCountFactor, sampleCountMax);
+
+      {
+        BRANCH
+        if (groupIndex == 0)
+        {
+          sharedSampleCount = 0;
+        }
+        GroupMemoryBarrierWithGroupSync();
+
+        InterlockedMax(sharedSampleCount, actualSampleCount);
+
+        GroupMemoryBarrierWithGroupSync();
+        actualSampleCount = sharedSampleCount;
+      }
+
+      BRANCH
+      if(maxNeighborVelLength < 0.5)
+      { // no motion blur
+        output_tex[dtid] = inputColor;
+        return;
+      }
+
+      float linearTranslucentDepth = linearize_z(rawTranslucentDepth, zn_zfar.zw);
+
+      // The center sample.
+      uint loopCount = actualSampleCount / 2;
+      float totalWeight = actualSampleCount / (centerVelLength * 40);
+      float3 result = centerColor * totalWeight;
+
+      // Precalculate the velocityWeight parameters.
+      float sampleAlongCenterVel = dot(secondaryVel, centerVelNorm);
+      float sampleAlongDominantVel = dot(secondaryVel, maxNeighborVel_Norm_Len.xy);
+
+      int i = 0 ;
+      float2 sampleJitter = float2(random.x - 0.5, 0.5 - random.x); // [-0.5, 0.5]
+      float step = 0;
+      float2 stepSizeUV = centerVel * velocityRes.zw / loopCount;
+
+      // when StepIndex == LoopCount, this should be equal to centerVelLength
+      float stepIndexToPixel = centerVelLength / loopCount;
+
+      // loopCount is always divisible by sampleCountFactor / 2 (which is 2 in this case)
+      for(i = 0; i < loopCount / 2; i++)
+      {
+        float2 jitteredStepIndex = (step + 0.5) + sampleJitter; // [0->loopCount]
+        float2 sampleOffset = jitteredStepIndex * stepSizeUV;
+
+        float2 sampleUVs[2];
+        sampleUVs[0] = centerUV + sampleOffset;
+        sampleUVs[1] = centerUV - sampleOffset;
+
+        UNROLL
+        for(int j = 0; j < 2; j++)
+        {
+          // Odd-numbered sample: sample along center velocity.
+          float2 sampleUv = sampleUVs[j];
+          float weight = getWeightForSample(centerVelNorm, centerVelLength, centerDepth,
+            jitteredStepIndex.x * stepIndexToPixel, sampleUv, sampleAlongCenterVel, linearTranslucentDepth);
+
+          result += tex2Dlod(input_tex, float4(sampleUv, 0, 0)).rgb * weight;
+          totalWeight += weight;
+        }
+        step += 2;
+      }
+
+      // Step increases by 2 every loop, for this loop we use the odd numbers.
+      // This way if the neighbor vel and the center vel are similar, we don't sample the same pixels twice.
+      step = 1;
+      stepSizeUV = maxNeighborVel * velocityRes.zw / loopCount;
+
+      // when StepIndex == LoopCount, this should be equal to maxNeighborVelLength
+      stepIndexToPixel = maxNeighborVelLength / loopCount;
+
+      for(i = 0; i < loopCount / 2; i++)
+      {
+        float2 jitteredStepIndex = (step + 0.5) + sampleJitter; // [0->loopCount]
+        float2 sampleOffset = jitteredStepIndex * stepSizeUV;
+
+        float2 sampleUVs[2];
+        sampleUVs[0] = centerUV + sampleOffset;
+        sampleUVs[1] = centerUV - sampleOffset;
+
+        UNROLL
+        for(int j = 0; j < 2; j++)
+        {
+          float2 sampleUv = sampleUVs[j];
+          float weight = getWeightForSample(maxNeighborVel_Norm_Len.xy, centerVelLength, centerDepth,
+            jitteredStepIndex.x * stepIndexToPixel, sampleUv, sampleAlongDominantVel, linearTranslucentDepth);
+
+          result += tex2Dlod(input_tex, float4(sampleUv, 0, 0)).rgb * weight;
+          totalWeight += weight;
+        }
+        step += 2;
+      }
+
+      output_tex[dtid] = float4(result / totalWeight, inputColor.a);
+    }
+  }
+  compile("target_cs", "object_motion_blur_cs");
+}

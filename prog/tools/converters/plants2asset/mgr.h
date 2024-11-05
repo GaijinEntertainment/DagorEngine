@@ -1,12 +1,5 @@
-/*
- * DaEditorX
- * Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
- */
-
-#ifndef _DAGORTECH_TOOLS_DAEDITOR3__DE3_BITMASKMGR_H_
-#define _DAGORTECH_TOOLS_DAEDITOR3__DE3_BITMASKMGR_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 class IBitMaskImageMgr
 {
@@ -118,5 +111,3 @@ inline void IBitMaskImageMgr::BitmapMask::setMaskPixel8(int x, int y, unsigned c
 }
 
 IBitMaskImageMgr *get_tiff_bit_mask_image_mgr();
-
-#endif

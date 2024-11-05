@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_dataBlock.h>
 #include <3d/dag_texMgr.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_commands.h>
 #include <math/dag_e3dColor.h>
 #include <math/dag_color.h>
 #include <render/blkToConstBuffer.h>
@@ -47,6 +49,11 @@ TEXTUREID load_land_micro_details(const DataBlock &micro)
     }
   }
   ShaderGlobal::set_texture(land_micro_detailsVarId, landMicrodetailsId);
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.anisotropic_max = ::dgs_tex_anisotropy;
+    ShaderGlobal::set_sampler(get_shader_variable_id("land_micro_details_samplerstate"), d3d::request_sampler(smpInfo));
+  }
   int land_micro_details_countVarId = get_shader_variable_id("land_micro_details_count", true);
   if (land_micro_details_countVarId >= 0)
     ShaderGlobal::set_int(land_micro_details_countVarId, microDetailCount);
@@ -59,7 +66,7 @@ TEXTUREID load_land_micro_details(const DataBlock &micro)
 
   // invoke flash after the loading to propagate changes to the main context if it was called from a thread
   // fixes black terrain on opengl
-  d3d::driver_command(DRV3D_COMMAND_D3D_FLUSH, NULL, NULL, NULL);
+  d3d::driver_command(Drv3dCommand::D3D_FLUSH);
 
   return landMicrodetailsId;
 }

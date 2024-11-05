@@ -70,7 +70,7 @@ function textButton(text, handler= @() null, params = {}, style = defButtonStyle
      export :
        builtmenu(watchable menuitems, style)
        breadcrumps(style)
-  - replace enlist and enlisted menus
+  - replace enlist and enlisted menus // FIXME_BROKEN_DEP
 
   note: breadcrumps can be made different way, with list of state to set, without UI, which can be separate thing than
     in this case update it on proceeding deeper with "what to set"
@@ -79,9 +79,9 @@ function textButton(text, handler= @() null, params = {}, style = defButtonStyle
 
 
 let menuState = {
-  breadCrumps = persist("breadCrumps", @() Watched([]))
-  showMenu = persist("showMenu", @() Watched(true))
-  curMenuItems = persist("curMenuItems", @() Watched([]))
+  breadCrumps = mkWatched(persist, "breadCrumps",[])
+  showMenu = mkWatched(persist, "showMenu", true)
+  curMenuItems = mkWatched(persist, "curMenuItems",[])
 }
 
 let backButton = {

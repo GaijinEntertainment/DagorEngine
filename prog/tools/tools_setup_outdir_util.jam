@@ -1,0 +1,2 @@
+include $(Root)/prog/_jBuild/defPlatform.jam ;
+OutDir = $(Root)/tools/dagor_cdk/$(Platform)-$(PlatformArch) ;

@@ -106,7 +106,7 @@ let dstyling = {
 
 function mkMsgbox(id, defStyling=dstyling){
   let widgets = persist($"{id}_widgets", @() [])
-  let msgboxGeneration = persist($"{id}_msgboxGeneration", @() Watched(0))
+  let msgboxGeneration = mkWatched(persist, $"{id}_msgboxGeneration", 0)
   let hasMsgBoxes = Computed(@() msgboxGeneration.value >= 0 && widgets.len() > 0)
 
   function getCurMsgbox(){
@@ -206,7 +206,7 @@ function mkMsgbox(id, defStyling=dstyling){
     }
 
     local btnsDesc = params?.buttons ?? defaultButtons
-    if (!(btnsDesc instanceof Watched))
+    if (!(isObservable(btnsDesc)))
       btnsDesc = Watched(btnsDesc, FRP_DONT_CHECK_NESTED)
 
     local defCancel = null

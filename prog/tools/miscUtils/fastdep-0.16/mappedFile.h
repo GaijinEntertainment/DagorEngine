@@ -1,5 +1,5 @@
-#ifndef __MAPPEDFILE_H__
-#define __MAPPEDFILE_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #include <string>
 
@@ -65,8 +65,6 @@ public:
    */
   char *map();
 };
-
-#endif // __MAPPEDFILE_H__
 
 // vim:ts=4:nu
 //

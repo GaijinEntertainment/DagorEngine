@@ -14,7 +14,7 @@ def test
     print(describe(expr))
 
     var rules : Template
-    //rules |> replaceVariable("x") <| ExpressionPtr(new [[ExprVar() name:="y"]])
+    rules |> replaceVariable("x") <| new [[ExprVar() name:="y"]]
     rules |> renameVariable("x", "y")
 
     apply_template(rules, expr.at, expr)

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -58,10 +57,16 @@ enum class EncryptionKeyBits : uint32_t
   Decryption = 2
 };
 DAGOR_ENABLE_ENUM_BITMASK(EncryptionKeyBits);
+extern const uint32_t MIN_ENCRYPTION_KEY_LENGTH;
 
 class IConnection
 {
 public:
+  IConnection() = default;
+  IConnection(const IConnection &) = default;
+  IConnection(IConnection &&) = default;
+  IConnection &operator=(const IConnection &) = default;
+  IConnection &operator=(IConnection &&) = default;
   virtual ~IConnection() {}
 
   virtual ConnectionId getId() const = 0;
@@ -90,7 +95,7 @@ public:
   virtual void allowReceivePlaintext(bool /*allow*/){};
 
   virtual int getMTU() const = 0;
-  virtual uint32_t getIP() const = 0;
+  virtual SystemAddress getIP() const = 0;
   virtual const char *getIPStr() const = 0;
   virtual bool isResponsive() const = 0;
 };
@@ -130,16 +135,15 @@ public:
 INetDriver *create_net_driver_listen(const char *listenurl, int max_connections, uint16_t *out_port = NULL); // server driver
 INetDriver *create_net_driver_listen(const SocketDescriptor &sd, int max_connections);                       // server driver
 INetDriver *create_net_driver_connect(const char *connecturl, uint16_t protov = 0);                          // client driver
-Connection *create_net_connection(INetDriver *drv, ConnectionId id, scope_query_cb_t &&scope_query = scope_query_cb_t()); // generic
-                                                                                                                          // net
-                                                                                                                          // connection
+Connection *create_net_connection(INetDriver *drv, ConnectionId id, scope_query_cb_t &&scope_query = {});    // generic net connection
 
 INetDriver *create_stub_net_driver();
 Connection *create_stub_connection();
 
 // serialization
-void serialize_comp_nameless(ecs::component_t name, const ecs::EntityComponentRef &cref, danet::BitStream &bs);
-ecs::MaybeChildComponent deserialize_comp_nameless(ecs::component_t &name, const danet::BitStream &bs);
+void serialize_comp_nameless(ecs::EntityManager &mgr, ecs::component_t name, const ecs::EntityComponentRef &cref,
+  danet::BitStream &bs);
+ecs::MaybeChildComponent deserialize_comp_nameless(ecs::EntityManager &mgr, ecs::component_t &name, const danet::BitStream &bs);
 
 void write_eid(danet::BitStream &bs, ecs::EntityId eid);
 bool read_eid(const danet::BitStream &bs, ecs::EntityId &eid); // return false if read from stream failed

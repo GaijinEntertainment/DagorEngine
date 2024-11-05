@@ -55,9 +55,10 @@ class ExtendAction(argparse.Action):
                 setattr(namespace, self.dest, items)
 
 _jpaths = os.path.join
-_DAGOR2_DIR = os.environ.get("DAGOR2_DIR")
-utilDir = "util" if os.name == 'nt' else "util-linux64"
-csq_path = os.path.join(_DAGOR2_DIR, "tools", "dagor3_cdk", utilDir, "csq-dev") if _DAGOR2_DIR else "csq-dev"
+__utilDir = "windows-x86_64" if os.name == 'nt' else "linux-x86_64"
+__CUR_PATH = os.path.dirname(__file__)
+_DAGOR2_DIR = os.path.abspath(_jpaths(os.path.dirname(__file__), "..", ".."))
+csq_path = os.path.join(_DAGOR2_DIR, "tools", "dagor_cdk", __utilDir, "csq-dev")
 csq_args = ["--static-analysis", "--absolute-path"]
 
 
@@ -325,7 +326,12 @@ def getNameWarningMap():
     return res
 
 if __name__ == "__main__":
-    import gerrit
+    gerritModule = None
+    try:
+      import gerrit
+      gerritModule = gerrit
+    except ImportError:
+      pass
     parser = argparse.ArgumentParser(description='static analysis check')
     parser.register('action', 'extend', ExtendAction)
     parser.add_argument('paths', nargs='*', type=str, default = "")
@@ -342,13 +348,16 @@ if __name__ == "__main__":
             #parser.print_help()
             parser.print_usage() # for just the usage line
             parser.exit()
-    dagor2_dir = os.environ.get("DAGOR2_DIR")
-    if dagor2_dir:
-        sys.path.append(os.path.join(dagor2_dir,"tools","dagor3_cdk","util"))
+    dagor_dir = os.environ.get("DAGOR_DIR")
+    if dagor_dir:
+        sys.path.append(os.path.join(dagor_dir,"tools","dagor_cdk",__utilDir,"util"))
     nametonummap = getNameWarningMap()
     use_configs = args.use_configs
     print_csq_version()
     if ((args.changeid is not None) and (args.revisionid is not None)):
+        if gerritModule is None:
+          print("gerrit module doesnt exist")
+          sys.exit(1)
         use_configs = True
         gerrit_files = gerrit.list_files(args.changeid, args.revisionid, branch=args.branch, project=args.project)
         gerrit_files = [f[0] for f in gerrit_files.items() if f[1].get("status")!="D" and f[0].lower().endswith(".nut")]

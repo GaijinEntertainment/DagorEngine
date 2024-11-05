@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 // TCP/UDP client using Winsock 2.2
 
 #include <util/dag_globDef.h>
@@ -158,7 +160,7 @@ public:
     {
       strcpy(portBufUDP, s);
       portUdp = portBufUDP;
-      mt_debug_ctx("additional UDP port %s is scheduled", portUdp);
+      DEBUG_CTX("additional UDP port %s is scheduled", portUdp);
     }
 
     tcpNoDelayMode = blk.getBool("tcpNoDelayMode", false);
@@ -190,7 +192,7 @@ public:
   {
     svr.clear();
     if (TRACE_PACKETS)
-      mt_debug("---{ Enumerate servers start");
+      debug("---{ Enumerate servers start");
     WIN32_FIND_DATA find_data;
     HANDLE h;
 
@@ -202,7 +204,7 @@ public:
       if (h == INVALID_HANDLE_VALUE)
       {
         int ret = GetLastError();
-        mt_debug("[*] found nothing with wildcard: <%s>, error %p: %s", (char *)regFileWC[i], ret, NetSockets::decode_error(ret));
+        debug("[*] found nothing with wildcard: <%s>, error %p: %s", (char *)regFileWC[i], ret, NetSockets::decode_error(ret));
       }
       else
       {
@@ -232,7 +234,7 @@ public:
     }
 
     if (TRACE_PACKETS)
-      mt_debug("---} Enumerate servers done");
+      debug("---} Enumerate servers done");
   }
 
   bool connectToServer(const char *server_addr, bool raw_mode)
@@ -248,7 +250,7 @@ public:
 
     if (strlen(server_addr) >= sizeof(adrBuf))
     {
-      mt_debug_ctx("--- too long server_adr: <%s>", server_addr);
+      DEBUG_CTX("--- too long server_adr: <%s>", server_addr);
       return false;
     }
     if (stricmp(server_addr, "local_host") == 0)
@@ -277,7 +279,7 @@ public:
     ret = getaddrinfo(ServerAddress, port, &hints, &addrInfo);
     if (ret != 0)
     {
-      mt_debug_ctx("--- Cannot resolve address [%s] and port [%s], error %d: %s", ServerAddress, port, ret, gai_strerror(ret));
+      DEBUG_CTX("--- Cannot resolve address [%s] and port [%s], error %d: %s", ServerAddress, port, ret, gai_strerror(ret));
       NetSockets::winsock2_term();
       return false;
     }
@@ -292,7 +294,7 @@ public:
       connSock = socket(AI->ai_family, AI->ai_socktype, AI->ai_protocol);
       if (connSock == INVALID_SOCKET)
       {
-        mt_debug_ctx("--- Error Opening socket, error %d: %s", WSAGetLastError(), NetSockets::decode_error(WSAGetLastError()));
+        DEBUG_CTX("--- Error Opening socket, error %d: %s", WSAGetLastError(), NetSockets::decode_error(WSAGetLastError()));
         continue;
       }
 
@@ -307,13 +309,13 @@ public:
       if (getnameinfo(AI->ai_addr, (int)AI->ai_addrlen, addrName, sizeof(addrName), NULL, 0, NI_NUMERICHOST) != 0)
         strcpy(addrName, "<unknown>");
 
-      mt_debug_ctx("--- connect() to %s failed with error %d: %s", addrName, i, NetSockets::decode_error(i));
+      DEBUG_CTX("--- connect() to %s failed with error %d: %s", addrName, i, NetSockets::decode_error(i));
       close_socket();
     }
 
     if (AI == NULL)
     {
-      mt_debug_ctx("--- Fatal error: unable to connect to the server %s", ServerAddress ? ServerAddress : "local_host");
+      DEBUG_CTX("--- Fatal error: unable to connect to the server %s", ServerAddress ? ServerAddress : "local_host");
       NetSockets::winsock2_term();
       return false;
     }
@@ -324,13 +326,13 @@ public:
     addrLen = sizeof(Addr);
     if (getpeername(connSock, (LPSOCKADDR)&Addr, &addrLen) == SOCKET_ERROR)
     {
-      mt_debug_ctx("--- getpeername() failed with error %d: %s", WSAGetLastError(), NetSockets::decode_error(WSAGetLastError()));
+      DEBUG_CTX("--- getpeername() failed with error %d: %s", WSAGetLastError(), NetSockets::decode_error(WSAGetLastError()));
     }
     else
     {
       if (getnameinfo((LPSOCKADDR)&Addr, addrLen, addrName, sizeof(addrName), NULL, 0, NI_NUMERICHOST) != 0)
         strcpy(addrName, "<unknown>");
-      mt_debug("CLIENT: Connected to %s, port %d (%p, %d)", addrName, ntohs(SS_PORT(&Addr)), this, connSock);
+      debug("CLIENT: Connected to %s, port %d (%p, %d)", addrName, ntohs(SS_PORT(&Addr)), this, connSock);
     }
 
     // We are done with the address info chain, so we can free it.
@@ -342,13 +344,13 @@ public:
     addrLen = sizeof(Addr);
     if (getsockname(connSock, (LPSOCKADDR)&Addr, &addrLen) == SOCKET_ERROR)
     {
-      mt_debug("--- getsockname() failed with error %d: %s", WSAGetLastError(), NetSockets::decode_error(WSAGetLastError()));
+      debug("--- getsockname() failed with error %d: %s", WSAGetLastError(), NetSockets::decode_error(WSAGetLastError()));
     }
     else
     {
       if (getnameinfo((LPSOCKADDR)&Addr, addrLen, addrName, sizeof(addrName), NULL, 0, NI_NUMERICHOST) != 0)
         strcpy(addrName, "<unknown>");
-      mt_debug("CLIENT: Using local address %s, port %d", addrName, ntohs(SS_PORT(&Addr)));
+      debug("CLIENT: Using local address %s, port %d", addrName, ntohs(SS_PORT(&Addr)));
     }
 
     if (portUdp)
@@ -359,7 +361,7 @@ public:
       ret = getaddrinfo(ServerAddress, portUdp, &hints, &addrInfo);
       if (ret != 0)
       {
-        mt_debug_ctx("--- Cannot resolve address [%s] and port [%s], error %d: %s", ServerAddress, port, ret, gai_strerror(ret));
+        DEBUG_CTX("--- Cannot resolve address [%s] and port [%s], error %d: %s", ServerAddress, port, ret, gai_strerror(ret));
         NetSockets::winsock2_term();
         return false;
       }
@@ -374,7 +376,7 @@ public:
         connSockUdp = socket(AI->ai_family, AI->ai_socktype, AI->ai_protocol);
         if (connSockUdp == INVALID_SOCKET)
         {
-          mt_debug_ctx("--- Error Opening UDP socket, error %d: %s", WSAGetLastError(), NetSockets::decode_error(WSAGetLastError()));
+          DEBUG_CTX("--- Error Opening UDP socket, error %d: %s", WSAGetLastError(), NetSockets::decode_error(WSAGetLastError()));
           continue;
         }
 
@@ -389,13 +391,13 @@ public:
         if (getnameinfo(AI->ai_addr, (int)AI->ai_addrlen, addrName, sizeof(addrName), NULL, 0, NI_NUMERICHOST) != 0)
           strcpy(addrName, "<unknown>");
 
-        mt_debug_ctx("--- connect() to %s failed with error %d: %s", addrName, i, NetSockets::decode_error(i));
+        DEBUG_CTX("--- connect() to %s failed with error %d: %s", addrName, i, NetSockets::decode_error(i));
         close_socket();
       }
 
       if (AI == NULL)
       {
-        mt_debug_ctx("--- Fatal error: unable to connect to the server %s", ServerAddress ? ServerAddress : "local_host");
+        DEBUG_CTX("--- Fatal error: unable to connect to the server %s", ServerAddress ? ServerAddress : "local_host");
         NetSockets::winsock2_term();
         return false;
       }
@@ -406,13 +408,13 @@ public:
       addrLen = sizeof(Addr);
       if (getpeername(connSockUdp, (LPSOCKADDR)&Addr, &addrLen) == SOCKET_ERROR)
       {
-        mt_debug_ctx("--- getpeername() failed with error %d: %s", WSAGetLastError(), NetSockets::decode_error(WSAGetLastError()));
+        DEBUG_CTX("--- getpeername() failed with error %d: %s", WSAGetLastError(), NetSockets::decode_error(WSAGetLastError()));
       }
       else
       {
         if (getnameinfo((LPSOCKADDR)&Addr, addrLen, addrName, sizeof(addrName), NULL, 0, NI_NUMERICHOST) != 0)
           strcpy(addrName, "<unknown>");
-        mt_debug("CLIENT: Connected to %s, port %d", addrName, ntohs(SS_PORT(&Addr)));
+        debug("CLIENT: Connected to %s, port %d", addrName, ntohs(SS_PORT(&Addr)));
       }
 
       // We are done with the address info chain, so we can free it.
@@ -424,13 +426,13 @@ public:
       addrLen = sizeof(Addr);
       if (getsockname(connSockUdp, (LPSOCKADDR)&Addr, &addrLen) == SOCKET_ERROR)
       {
-        mt_debug("--- getsockname() failed with error %d: %s", WSAGetLastError(), NetSockets::decode_error(WSAGetLastError()));
+        debug("--- getsockname() failed with error %d: %s", WSAGetLastError(), NetSockets::decode_error(WSAGetLastError()));
       }
       else
       {
         if (getnameinfo((LPSOCKADDR)&Addr, addrLen, addrName, sizeof(addrName), NULL, 0, NI_NUMERICHOST) != 0)
           strcpy(addrName, "<unknown>");
-        mt_debug("CLIENT: Using local address %s, port %d", addrName, ntohs(SS_PORT(&Addr)));
+        debug("CLIENT: Using local address %s, port %d", addrName, ntohs(SS_PORT(&Addr)));
       }
     }
 
@@ -448,7 +450,7 @@ public:
     if (portUdp && raw_mode)
     {
       raw_mode = false;
-      mt_debug("CLIENT: UDP doesn't support raw mode!");
+      debug("CLIENT: UDP doesn't support raw mode!");
     }
 
 
@@ -494,20 +496,20 @@ public:
 
     if (connSock || connSockUdp)
     {
-      mt_debug("shutdown");
+      debug("shutdown");
       close_socket();
     }
 
     if (!waitThreadTermination(500))
     {
-      mt_debug_ctx("--- can't wait for client termination for more than %d ms", 500);
+      DEBUG_CTX("--- can't wait for client termination for more than %d ms", 500);
       if (!waitThreadTermination(3500))
       {
         if (_fatal)
           DAG_FATAL("can't wait for client termination for more than %d ms", 4000);
         else
         {
-          mt_debug_ctx("can't wait for client termination for more than %d ms", 4000);
+          DEBUG_CTX("can't wait for client termination for more than %d ms", 4000);
           return false;
         }
       }
@@ -530,19 +532,19 @@ public:
     if (rawMode)
       DAG_FATAL("packet");
     if (TRACE_PACKETS)
-      mt_debug("CLIENT: send packet (size=%d gen=%p queryId=%d", p->hdr.size, p->hdr.generation, p->queryId);
+      debug("CLIENT: send packet (size=%d gen=%p queryId=%d", p->hdr.size, p->hdr.generation, p->queryId);
     return sendBytes(p, p->hdr.size + sizeof(p->hdr), true);
   }
   int sendPacketUdp(const NetMsgPacket *p)
   {
     if (TRACE_PACKETS)
-      mt_debug("CLIENT: send UDP packet (size=%d gen=%p queryId=%d", p->hdr.size, p->hdr.generation, p->queryId);
+      debug("CLIENT: send UDP packet (size=%d gen=%p queryId=%d", p->hdr.size, p->hdr.generation, p->queryId);
     return send(connSockUdp, (const char *)p, sizeof(p->hdr) + p->hdr.size, 0);
   }
   int sendRawBytes(const void *data, int byte_num, bool whole_block)
   {
     if (TRACE_PACKETS)
-      mt_debug("CLIENT: send raw bytes (size=%d)", byte_num);
+      debug("CLIENT: send raw bytes (size=%d)", byte_num);
     return sendBytes(data, byte_num, whole_block);
   }
 
@@ -603,7 +605,7 @@ public:
       {
         // received Short Query Packet
         if (TRACE_PACKETS)
-          mt_debug("CLIENT: received query (size=%d query=%d)", ph.size, p->queryId);
+          debug("CLIENT: received query (size=%d query=%d)", ph.size, p->queryId);
         if (proc)
           proc->recvQuery(*(NetShortQueryPacket *)p);
 
@@ -614,7 +616,7 @@ public:
       {
         // received Response Packet
         if (TRACE_PACKETS)
-          mt_debug("CLIENT: received response (size=%d query=%d)", ph.size, p->queryId);
+          debug("CLIENT: received response (size=%d query=%d)", ph.size, p->queryId);
 
         if (p->queryId < NSQP_SERVER_SPEC_QUERY_NUM)
           recvResponsePacket(*(NetShortQueryPacket *)p);
@@ -627,7 +629,7 @@ public:
       else
       {
         if (TRACE_PACKETS)
-          mt_debug("CLIENT: receive packet (size=%d gen=%p queryId=%d", p->hdr.size, p->hdr.generation, p->queryId);
+          debug("CLIENT: receive packet (size=%d gen=%p queryId=%d", p->hdr.size, p->hdr.generation, p->queryId);
         if (proc)
           proc->recvPacket(p, ph.size < MAX_STATIC_PACKET_SIZE);
         else if (ph.size >= MAX_STATIC_PACKET_SIZE)
@@ -652,7 +654,7 @@ public:
       ret = recv(connSockUdp, udpBuf, udpBufSize, 0);
       if (ret == SOCKET_ERROR)
       {
-        mt_debug_ctx("recv() failed with error %d: %s", WSAGetLastError(), NetSockets::decode_error(WSAGetLastError()));
+        DEBUG_CTX("recv() failed with error %d: %s", WSAGetLastError(), NetSockets::decode_error(WSAGetLastError()));
         closesocket(connSockUdp);
         break;
       }
@@ -662,21 +664,21 @@ public:
       //
       if (ret == 0)
       {
-        mt_debug_ctx("Server closed connection");
+        DEBUG_CTX("Server closed connection");
         closesocket(connSockUdp);
         break;
       }
 
       p = (NetShortQueryPacket *)udpBuf;
       if (p->hdr.size + sizeof(p->hdr) != ret)
-        mt_debug_ctx("broken packet arrived: p->size=%d p->gen=%d size=%d", p->hdr.size, p->hdr.generation, ret);
+        DEBUG_CTX("broken packet arrived: p->size=%d p->gen=%d size=%d", p->hdr.size, p->hdr.generation, ret);
       else
       {
         if (proc)
           proc->datagramReceived(*p);
       }
     }
-    mt_debug_ctx("udp loop exited!");
+    DEBUG_CTX("udp loop exited!");
     return 0;
   }
 
@@ -748,7 +750,7 @@ public:
       case NSQP_CheckLocal:
       {
         serverIsLocal = p.dwData[1];
-        mt_debug("received response on NSQP_CheckLocal: %d", serverIsLocal);
+        debug("received response on NSQP_CheckLocal: %d", serverIsLocal);
       }
       break;
     }
@@ -848,7 +850,7 @@ public:
   {
     if (!connSock)
     {
-      mt_debug_ctx("--- recvBytes ( %p, %d ), while socket not connected", _p, buf_sz);
+      DEBUG_CTX("--- recvBytes ( %p, %d ), while socket not connected", _p, buf_sz);
       return -1;
     }
 
@@ -863,7 +865,7 @@ public:
       {
         if (running)
         {
-          mt_debug_ctx("--- %p.recv(%d) failed with error %d: %s", this, connSock, WSAGetLastError(),
+          DEBUG_CTX("--- %p.recv(%d) failed with error %d: %s", this, connSock, WSAGetLastError(),
             NetSockets::decode_error(WSAGetLastError()));
         }
         close_socket();
@@ -888,7 +890,7 @@ public:
   {
     if (!connSock)
     {
-      mt_debug_ctx("--- %p.sendBytes ( %d, %p, %d ), while socket not connected", this, connSock, _p, sz);
+      DEBUG_CTX("--- %p.sendBytes ( %d, %p, %d ), while socket not connected", this, connSock, _p, sz);
       if (running)
         disconnectFromServer(false);
       return -1;
@@ -905,7 +907,7 @@ public:
       ret = send(connSock, (char *)p, unit_sz, 0);
       if (ret == SOCKET_ERROR)
       {
-        mt_debug_ctx("--- send() failed: error %d: %s", WSAGetLastError(), NetSockets::decode_error(WSAGetLastError()));
+        DEBUG_CTX("--- send() failed: error %d: %s", WSAGetLastError(), NetSockets::decode_error(WSAGetLastError()));
         close_socket();
         return -1;
       }
@@ -1025,7 +1027,7 @@ bool NetSocketsClient::getServerInfo(const char *address, const char *port, int 
   }
 
   conn_test_client->setProcessor(NULL);
-  mt_debug("ENUMERATOR: not connected! server is missing?  %s:%s", address, port);
+  debug("ENUMERATOR: not connected! server is missing?  %s:%s", address, port);
   conn_test_client->destroy();
   return false;
 }

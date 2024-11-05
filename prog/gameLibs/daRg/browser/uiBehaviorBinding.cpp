@@ -1,22 +1,22 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "bhvBrowser.h"
 #include <bindQuirrelEx/autoBind.h>
+#include <sqModules/sqModules.h>
 
 namespace darg
 {
 
-void bind_browser_behavior(HSQUIRRELVM vm)
+void bind_browser_behavior(SqModules *module_mgr)
 {
-  Sqrat::ConstTable constTbl(vm);
+  HSQUIRRELVM vm = module_mgr->getVM();
+  Sqrat::Class<BhvBrowserData, Sqrat::NoConstructor<BhvBrowserData>> sqBhvBrowserDataname(vm, "BhvBrowserData");
 
-  Sqrat::Table tblBhv = Sqrat::Table(constTbl).RawGetSlot("Behaviors");
-  if (tblBhv.IsNull())
-    tblBhv = Sqrat::Table(vm);
+  Sqrat::Table tblBhv(vm);
 
   tblBhv.SetValue("Browser", (darg::Behavior *)&bhv_browser);
 
-  Sqrat::Table(constTbl).SetValue("Behaviors", tblBhv);
-
-  Sqrat::Class<BhvBrowserData, Sqrat::NoConstructor<BhvBrowserData>> sqBhvBrowserDataname(vm, "BhvBrowserData");
+  module_mgr->addNativeModule("browser.behaviors", tblBhv);
 }
 
 } // namespace darg

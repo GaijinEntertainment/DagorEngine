@@ -1,5 +1,4 @@
-#ifndef _DAGOR_GAMELIB_SOUNDSYSTEM_ATTRIBUTES_H_
-#define _DAGOR_GAMELIB_SOUNDSYSTEM_ATTRIBUTES_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 namespace FMOD::Studio
@@ -95,4 +94,3 @@ size_t get_num_cached_guid_attributes();
 
 void invalidate_attributes_cache();
 } // namespace sndsys
-#endif // _DAGOR_GAMELIB_SOUNDSYSTEM_ATTRIBUTES_H_

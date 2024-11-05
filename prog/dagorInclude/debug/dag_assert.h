@@ -1,13 +1,12 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <util/dag_compilerDefs.h>
 #include <util/dag_safeArg.h>
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 //! delegate to be called when assertion/verification fails; shall return true to halt execution, or false for continue
 extern KRNLIMP bool (*dgs_assertion_handler)(bool verify, const char *file, int line, const char *func, const char *cond,
@@ -181,20 +180,11 @@ DECLARE_DSA_OVERLOADS_FAMILY_LT(inline bool dgs_assertion_handler_inl, return dg
   } while (0)
 #endif
 
-#define HAVE_STATIC_ASSERT() ((_MSC_VER >= 1600 && !defined(__INTEL_COMPILER)) || (__cplusplus > 199711L))
 
-#if !defined(G_STATIC_ASSERT) && HAVE_STATIC_ASSERT()
+#if !defined(G_STATIC_ASSERT)
 #define G_STATIC_ASSERT(x) static_assert((x), "assertion failed: " #x)
 #endif
 
-#ifndef G_STATIC_ASSERT
-#define G_STATIC_ASSERT(x)                 \
-  if (sizeof(char[2 * ((x) ? 1 : 0) - 1])) \
-    ;                                      \
-  else
-#endif
-
-#undef HAVE_STATIC_ASSERT
 
 // Warning: this macro is unhygienic! Use with care around ifs and loops.
 #define G_ASSERT_AND_DO_UNHYGIENIC(expr, cmd)  \
@@ -238,4 +228,4 @@ DECLARE_DSA_OVERLOADS_FAMILY_LT(inline bool dgs_assertion_handler_inl, return dg
 #define G_DEBUG_BREAK ((void)0)
 #endif
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

@@ -634,7 +634,7 @@ void TAA(out float motion_data, out float3 result_color,
       half frameWeight = current.nextDynamic ? TAA_NEW_FRAME_DYNAMIC_WEIGHT.x : TAA_NEW_FRAME_WEIGHT.x;
     #endif
   #else
-    half frameWeight = TAA_NEW_FRAME_WEIGHT;
+    half frameWeight = TAA_NEW_FRAME_WEIGHT.x;
   #endif
 
   frameWeight *= current.quality;

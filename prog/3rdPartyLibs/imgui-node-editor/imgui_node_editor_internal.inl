@@ -1,4 +1,6 @@
 //------------------------------------------------------------------------------
+// VERSION 0.9.1
+//
 // LICENSE
 //   This software is dual-licensed to the public domain and under the following
 //   license: you are granted a perpetual, irrevocable license to copy, modify,
@@ -42,6 +44,14 @@ namespace Detail {
 inline ImRect ImGui_GetItemRect()
 {
     return ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+}
+
+inline ImVec2 ImGui_GetMouseClickPos(ImGuiMouseButton buttonIndex)
+{
+    if (ImGui::IsMouseDown(buttonIndex))
+        return ImGui::GetIO().MouseClickedPos[buttonIndex];
+    else
+        return ImGui::GetMousePos();
 }
 
 

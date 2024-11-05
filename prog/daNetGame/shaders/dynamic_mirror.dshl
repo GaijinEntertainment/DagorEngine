@@ -1,0 +1,104 @@
+include "dynamic_opaque_inc.dshl"
+include "gbuffer.dshl"
+include "normaldetail.dshl"
+include "psh_derivate.dshl"
+include "psh_tangent.dshl"
+
+shader dynamic_mirror
+{
+  ENABLE_ASSERT(ps)
+  DYNAMIC_BLOCK()
+
+  texture normal = material.texture[2];
+
+  NO_DEFORM_HMAP()
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    hlsl {
+      #define MOTION_VECTORS_ENABLED
+      #define DYNAMIC_SIMPLE_CUSTOM_VSOUTPUT
+      #define NEED_POINT_TO_EYE 1
+      #define NEED_TC 1
+      struct VsOutput
+      {
+        PRECISE VS_OUT_POSITION(pos)
+        float2 diffuseTexcoord        : TEXCOORD0;
+        float3 pointToEye             : TEXCOORD1;
+        float3 normal                 : TEXCOORD2;
+        float4 out_pos                : TEXCOORD3;
+        float4 out_pos_prev           : TEXCOORD4;
+      };
+    }
+  }
+
+
+  DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+  hlsl(vs) {
+    void vs_post_function(VsInput input, inout VsOutput output)
+    {
+    }
+  }
+  DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
+
+  //---------------------------------------------------
+  // PS stuff.
+  //---------------------------------------------------
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    SPECIAL_RENDER_NOALPHATEST()
+  }
+  else
+  {
+    USE_PIXEL_TANGENT_SPACE()
+    WRITE_GBUFFER()
+
+    (ps)
+    {
+      normal_tex@static = normal;
+    }
+    hlsl(ps) {
+      GBUFFER_OUTPUT dynamic_mirror_ps(VsOutput input HW_USE_SCREEN_POS)
+      {
+        half3 reflection = 0.5;
+        half emission = 0.0;
+        half emission_part = 0.0;
+        UnpackedGbuffer gbuffer;
+        init_gbuffer(gbuffer);
+        float2 texCoord = input.diffuseTexcoord.xy;
+##if normal != NULL
+          half4 packedNormalMap = tex2DBindless(get_normal_tex(), texCoord);
+          half smoothness = packedNormalMap.r;//there is nothing good here!
+          half3 normalMap = unpack_ag_normal(packedNormalMap);
+          half3 worldNormal = perturb_normal_precise( normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.diffuseTexcoord.xy );
+          half metalness = packedNormalMap.b;
+##else
+          half3 worldNormal = normalize(input.normal.xyz);
+          half metalness = 0;
+          half smoothness = 0;//there is nothing good here!
+##endif
+
+        init_material(gbuffer, SHADING_SELFILLUM);
+        init_smoothness(gbuffer, smoothness);
+        init_normal(gbuffer, worldNormal);
+        init_emission(gbuffer, emission_part);
+        init_emission_color(gbuffer, half4(1, 1, 1, emission));
+##if shader == dynamic_illum
+          reflection = half3(1,0,0);
+##endif
+        init_albedo(gbuffer, reflection);
+        init_dynamic(gbuffer, 1);
+        init_order(gbuffer, GBUFFER_ORDER_DYNAMIC);
+        #ifdef MOTION_VECTORS_ENABLED
+          float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
+          init_motion_vector(gbuffer, motion);
+        #endif
+        return encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
+      }
+    }
+    compile("target_ps", "dynamic_mirror_ps");
+  }
+}

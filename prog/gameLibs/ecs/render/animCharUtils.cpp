@@ -1,4 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ecs/anim/anim.h>
+#include <shaders/dag_dynSceneRes.h>
 #include <memory/dag_framemem.h>
 
 static bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &animchar_render,

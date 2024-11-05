@@ -1,0 +1,26 @@
+hero_cockpit_shader_vars{
+  _singleton:b=yes
+  _tags:t="render"
+  "hero_cockpit_vec:ShaderVar"{}
+  hero_cockpit_vec_value:p4=0, 0, 0, 0
+  "hero_cockpit_camera_to_point:ShaderVar"{}
+  hero_cockpit_camera_to_point_value:p4=0, 0, 0, 0
+  hero_cockpit__intersected:b=no
+  hero_cockpit__gunMaxLength:r=1.5 // From gun center to farest visible point of gun model
+  hero_cockpit__traceMaxBias:r=1.5 // From gun center to sample point
+  hero_cockpit__startFadeBeforeIntersection:r=0.3
+  hero_cockpit__fadeInterval:r=0.5
+  hero_cockpit__sampleOffsetAboveCamera:r=0.25
+  hero_cockpit__sampleBias:r=0.25
+}
+
+hero_cockpit_renderer{
+  _singleton:b=yes
+  _tags:t="render"
+  render_hero_cockpit_into_early_prepass:b=no
+  "hero_cockpit_entities:list<eid>"{}
+  "prepare_hero_cockpit_node:dabfg::NodeHandle"{}
+  "hero_cockpit_early_prepass_node:dabfg::NodeHandle"{}
+  "hero_cockpit_late_prepass_node:dabfg::NodeHandle"{}
+  "hero_cockpit_colorpass_node:dabfg::NodeHandle"{}
+}

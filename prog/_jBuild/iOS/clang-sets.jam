@@ -6,7 +6,7 @@ IOSUseCrashlytics ?= no ;
 IOSUploadCrashlyticsSymbols ?= no ;
 
 local _DEF_COM_CMDLINE =
-  -pipe -c -arch $(iOSArch)
+  -pipe -c -arch $(PlatformArch)
   -miphoneos-version-min=$(iOSMinVer)
   -stdlib=libc++
   -MD -Wno-trigraphs -Wno-multichar -Wno-dangling-else -Wno-dynamic-class-memaccess
@@ -16,7 +16,7 @@ local _DEF_COM_CMDLINE =
   -Wno-null-dereference -Wno-constant-conversion -Wno-unused-value
   -Wno-deprecated-builtins -Wno-unused-command-line-argument
   -ffunction-sections -fdata-sections
-  -ffast-math -ffinite-math-only
+  -ffast-math -ffinite-math-only -mrecip=none
   "\"-D__forceinline=inline __attribute__((always_inline))\"" -D__cdecl= -D__stdcall= -D__fastcall
   -D_snprintf=snprintf
   -D_vsnprintf=vsnprintf
@@ -27,8 +27,12 @@ local _DEF_COM_CMDLINE =
   -Di_strlen=strlen
 ;
 
+if $(ClangThreadSafety) = yes {
+  _DEF_COM_CMDLINE += -Wthread-safety ;
+}
+
 _CLANG_BIN = $(_DEVTOOL)/mac/Toolchain/usr/bin ;
-if $(iOSArch) = i386 {
+if $(PlatformArch) = i386 {
   _IOS_SDK_ROOT = $(_DEVTOOL)/mac/SDKs/iPhoneSimulator.platform/iPhoneSimulator$(iOSVer).sdk ;
   _DEF_COM_CMDLINE +=
     -msse4.1
@@ -40,7 +44,7 @@ if $(iOSArch) = i386 {
     -D_TARGET_SIMD_NEON=1
   ;
 }
-if $(iOSArch) in arm64 arm64e { _DEF_COM_CMDLINE += -D_TARGET_64BIT=1 ; }
+if $(PlatformArch) in arm64 arm64e { _DEF_COM_CMDLINE += -D_TARGET_64BIT=1 ; }
 
 local _DEF_C_CMDLINE = -std=c99 ; 
 local _DEF_CPP_CMDLINE = -std=c++$(CPPStd) -Wno-invalid-offsetof ;
@@ -57,7 +61,7 @@ if $(Rtti) != yes {
   _DEF_CPP_CMDLINE += -frtti ;
 }
 
-_LINK = $(_CLANG_BIN)/clang++ -pipe -arch $(iOSArch) -isysroot $(_IOS_SDK_ROOT)
+_LINK = $(_CLANG_BIN)/clang++ -pipe -arch $(PlatformArch) -isysroot $(_IOS_SDK_ROOT)
         -miphoneos-version-min=$(iOSMinVer)
         -ObjC -Wl,-objc_abi_version,2 -Wl,-headerpad_max_install_names
         -framework Foundation -framework QuartzCore -framework OpenAL -framework CoreLocation
@@ -74,8 +78,8 @@ if $(UseMetalfx) = yes {
   _LINK += -framework MetalFx ;
 }
 
-if $(iOSArch) = i386 { _ASM_COMPILER = nasm -f macho ; }
-if ! $(iOSArch) in arm64 arm64e { _LINK += -Wl,-no_pie ; }
+if $(PlatformArch) = i386 { _ASM_COMPILER = nasm -f macho ; }
+if ! $(PlatformArch) in arm64 arm64e { _LINK += -Wl,-no_pie ; }
 
 _INSTALL_NAME_TOOL = call $(_CLANG_BIN)/install_name_tool ;
 
@@ -84,7 +88,7 @@ _C_COMPILER   = $(_CLANG_BIN)/clang -x c $(_DEF_COM_CMDLINE) $(_DEF_C_CMDLINE) ;
 _CPP_COMPILER = $(_CLANG_BIN)/clang++ -x c++ $(_DEF_COM_CMDLINE) $(_DEF_CPP_CMDLINE) ;
 _OBJC_COMPILER   = $(_CLANG_BIN)/clang -x objective-c -std=c99 $(_DEF_COM_CMDLINE) -fno-objc-exceptions -fobjc-abi-version=2 -fobjc-legacy-dispatch ;
 _OBJCPP_COMPILER = $(_CLANG_BIN)/clang++ -x objective-c++ -std=c++$(CPPStd) $(_DEF_COM_CMDLINE) -fno-objc-exceptions -fobjc-abi-version=2 -fobjc-legacy-dispatch ;
-_GAS_COMPILER = $(_CLANG_BIN)/clang -g -c -arch $(iOSArch) ;
+_GAS_COMPILER = $(_CLANG_BIN)/clang -g -c -arch $(PlatformArch) ;
 
 _INCLUDE      = $(Root)/prog/dagorInclude $(Root)/prog/1stPartyLibs $(Root)/prog/3rdPartyLibs ;
 

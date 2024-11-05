@@ -1,12 +1,18 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "shadowDepthScroller.h"
 #include "staticShadowsBoxListHelpers.h"
 #include "staticShadowsMatrices.h"
 
 #include <math/dag_math3d.h>
 #include <math/dag_mathUtils.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
-#include <3d/dag_tex3d.h>
+#include <memory/dag_framemem.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_tex3d.h>
 #include <util/dag_string.h>
 #include <shaders/dag_shaders.h>
 #include <render/scopeRenderTarget.h>
@@ -467,7 +473,7 @@ ToroidalStaticShadowCascade::BeforeRenderReturned ToroidalStaticShadowCascade::u
         }
 
         changeDepth(tex, scroller, z_scale, z_ofs);
-        return BeforeRenderReturned{helper.texSize * helper.texSize, true};
+        return BeforeRenderReturned{helper.texSize * helper.texSize, true, true};
       }
       else // if we are completely invalid anyway, better invalidate it
       {
@@ -695,11 +701,38 @@ void ToroidalStaticShadowCascade::render(IStaticShadowsCB &cb)
 
 void ToroidalStaticShadowCascade::invalidateBox(const BBox3 &box)
 {
+  TIME_PROFILE_DEV(staticShadowCascade_invalidateBox);
   IBBox2 ibox = getClippedBoxRegion(box);
   if (ibox.isEmpty())
     return;
 
+  DA_PROFILE_TAG(invalidRegions.size, "%u", invalidRegions.size());
   add_non_intersected_box(invalidRegions, ibox);
+}
+
+inline int area(const IBBox2 &a)
+{
+  auto v = a.width();
+  return v.x * v.y;
+}
+void ToroidalStaticShadowCascade::invalidateBoxes(const BBox3 *box, uint32_t cnt)
+{
+  if (!cnt)
+    return;
+  TIME_PROFILE_DEV(staticShadowCascade_invalidateBoxes);
+  dag::Vector<IBBox2, framemem_allocator> clippedBoxes;
+  for (auto be = box + cnt; box != be; ++box)
+  {
+    IBBox2 ibox = getClippedBoxRegion(*box);
+    if (!ibox.isEmpty())
+      clippedBoxes.push_back(ibox);
+  }
+  if (clippedBoxes.empty())
+    return;
+  stlsort::sort(clippedBoxes.begin(), clippedBoxes.end(), [](auto &a, auto &b) { return area(a) > area(b); });
+  DA_PROFILE_TAG(invalidRegions.size, "%u %u", invalidRegions.size(), clippedBoxes.size());
+  for (auto &ibox : clippedBoxes)
+    add_non_intersected_box(invalidRegions, ibox);
 }
 
 IBBox2 ToroidalStaticShadowCascade::getClippedBoxRegion(const BBox3 &box) const

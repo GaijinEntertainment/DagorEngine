@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "joy_classdrv.h"
-#include <humanInput/dag_hiCreate.h>
-#include <humanInput/dag_hiDInput.h>
+#include <drv/hid/dag_hiCreate.h>
+#include <drv/hid/dag_hiDInput.h>
 #include <debug/dag_debug.h>
 using namespace HumanInput;
 
@@ -8,7 +10,7 @@ IGenJoystickClassDrv *HumanInput::createJoystickClassDriver(bool exclude_xinput,
 {
   if (!dinput8)
   {
-    debug_ctx("DINPUT 8 must be initialized before this call!");
+    DEBUG_CTX("DINPUT 8 must be initialized before this call!");
     return NULL;
   }
 

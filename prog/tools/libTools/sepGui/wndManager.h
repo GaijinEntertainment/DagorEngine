@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <sepGui/wndPublic.h>
@@ -30,9 +31,6 @@ class WinManager : public IWndManager
 public:
   WinManager(IWndManagerEventHandler *event_handler);
   ~WinManager();
-
-  IWndEmbeddedWindow *onWmCreateWindow(void *handle, int type);
-  void onWmDestroyWindow(void *handle);
 
   void onMainWindowCreated();
   void onVirtualWindowDeleted(VirtualWindow *window);
@@ -80,8 +78,8 @@ public:
 
   virtual void setMainWindowCaption(const char *caption);
 
-  virtual void registerWindowHandler(IWndManagerWindowHandler *handler);
-  virtual void unregisterWindowHandler(IWndManagerWindowHandler *handler);
+  virtual void registerWindowHandler(IWndManagerWindowHandler *handler) override { G_ASSERT(false); }
+  virtual void unregisterWindowHandler(IWndManagerWindowHandler *handler) override { G_ASSERT(false); }
 
   virtual void reset();
   virtual void show(WindowSizeInit size = WSI_NORMAL);
@@ -121,7 +119,14 @@ public:
   // accelerators
   virtual void addAccelerator(unsigned cmd_id, unsigned v_key, bool ctrl, bool alt, bool shift);
   virtual void addAcceleratorUp(unsigned cmd_id, unsigned v_key, bool ctrl, bool alt, bool shift);
+  virtual void addViewportAccelerator(unsigned cmd_id, unsigned v_key, bool ctrl = false, bool alt = false, bool shift = false,
+    bool allow_repeat = false) override;
   virtual void clearAccelerators();
+  virtual unsigned processImguiAccelerator() override;
+  virtual unsigned processImguiViewportAccelerator() override;
+
+  virtual void initCustomMouseCursors(const char *path) override;
+  virtual void updateImguiMouseCursor() override;
   /////////////////////////////////////////////////////////////////////////////
 
 private:
@@ -159,7 +164,6 @@ private:
   CascadeWindow *mRootWindow;
 
   IWndManagerEventHandler *mEventHandler;
-  Tab<IWndManagerWindowHandler *> mWindowHandlers;
 
   unsigned mSizingEdge;
 

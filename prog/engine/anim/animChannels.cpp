@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_globDef.h>
 #include <anim/dag_animChannels.h>
 #include <gameRes/dag_gameResources.h>
@@ -245,7 +247,7 @@ bool AnimData::load(IGenLoad &crd, class IMemAlloc *ma)
 
   if (src)
   {
-    debug_ctx("don't want to load data: it is already alias on other AnimData");
+    DEBUG_CTX("don't want to load data: it is already alias on other AnimData");
     return false;
   }
 
@@ -253,18 +255,18 @@ bool AnimData::load(IGenLoad &crd, class IMemAlloc *ma)
   crd.read(&hdr, sizeof(hdr));
   if (hdr.label != _MAKE4C('ANIM'))
   {
-    logerr_ctx("unrecognized label %c%c%c%c", _DUMP4C(hdr.label));
+    LOGERR_CTX("unrecognized label %c%c%c%c", _DUMP4C(hdr.label));
     return false;
   }
   else if (hdr.ver != 0x220 && hdr.ver != 0x221)
   {
-    logerr_ctx("unsupported version 0x%08x", hdr.ver);
+    LOGERR_CTX("unsupported version 0x%08x", hdr.ver);
     return false;
   }
 
   if (hdr.hdrSize != sizeof(hdr))
   {
-    logerr_ctx("incorrect hdrSize=%u for ver 0x%X (should be =%u)", hdr.hdrSize, hdr.ver, (unsigned)sizeof(hdr));
+    LOGERR_CTX("incorrect hdrSize=%u for ver 0x%X (should be =%u)", hdr.hdrSize, hdr.ver, (unsigned)sizeof(hdr));
     return false;
   }
 

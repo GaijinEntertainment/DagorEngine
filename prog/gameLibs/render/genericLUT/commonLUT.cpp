@@ -1,7 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <perfMon/dag_statDrv.h>
 #include <render/genericLUT/commonLUT.h>
-#include <3d/dag_drv3dCmd.h>
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_resetDevice.h>
 
 static int driver_reset_counter = 0;
 static void reset_counter(bool) { driver_reset_counter++; }

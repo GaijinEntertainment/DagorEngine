@@ -33,11 +33,42 @@ static ecs::EntitySystemDesc rigrid_debug_pos_es_es_desc
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoRenderDebug::STAGE)
 ,"dev,render",nullptr,"*");
+static constexpr ecs::ComponentDesc riextra_spawn_ri_es_event_handler_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("ri_extra"), ecs::ComponentTypeInfo<RiExtraComponent>()},
+//start of 1 ro components at [1]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()}
+};
+static void riextra_spawn_ri_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    riextra_spawn_ri_es_event_handler(evt
+        , ECS_RW_COMP(riextra_spawn_ri_es_event_handler_comps, "ri_extra", RiExtraComponent)
+    , ECS_RO_COMP(riextra_spawn_ri_es_event_handler_comps, "eid", ecs::EntityId)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc riextra_spawn_ri_es_event_handler_es_desc
+(
+  "riextra_spawn_ri_es",
+  "prog/gameLibs/ecs/rendInst/./rendinstES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, riextra_spawn_ri_es_event_handler_all_events),
+  make_span(riextra_spawn_ri_es_event_handler_comps+0, 1)/*rw*/,
+  make_span(riextra_spawn_ri_es_event_handler_comps+1, 1)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear>::build(),
+  0
+);
 static constexpr ecs::ComponentDesc riextra_destroyed_es_event_handler_comps[] =
 {
-//start of 2 ro components at [0]
+//start of 4 ro components at [0]
   {ECS_HASH("ri_extra"), ecs::ComponentTypeInfo<RiExtraComponent>()},
-  {ECS_HASH("ri_extra__destroyed"), ecs::ComponentTypeInfo<bool>()}
+  {ECS_HASH("ri_extra__destroyed"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("ri_extra__riCellIdx"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("ri_extra__riOffset"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL}
 };
 static void riextra_destroyed_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -45,6 +76,8 @@ static void riextra_destroyed_es_event_handler_all_events(const ecs::Event &__re
     riextra_destroyed_es_event_handler(evt
         , ECS_RO_COMP(riextra_destroyed_es_event_handler_comps, "ri_extra", RiExtraComponent)
     , ECS_RO_COMP(riextra_destroyed_es_event_handler_comps, "ri_extra__destroyed", bool)
+    , ECS_RO_COMP_OR(riextra_destroyed_es_event_handler_comps, "ri_extra__riCellIdx", int(-1))
+    , ECS_RO_COMP_OR(riextra_destroyed_es_event_handler_comps, "ri_extra__riOffset", int(-1))
     );
   while (++comp != compE);
 }
@@ -54,7 +87,7 @@ static ecs::EntitySystemDesc riextra_destroyed_es_event_handler_es_desc
   "prog/gameLibs/ecs/rendInst/./rendinstES.cpp.inl",
   ecs::EntitySystemOps(nullptr, riextra_destroyed_es_event_handler_all_events),
   empty_span(),
-  make_span(riextra_destroyed_es_event_handler_comps+0, 2)/*ro*/,
+  make_span(riextra_destroyed_es_event_handler_comps+0, 4)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityDestroyed,
@@ -65,11 +98,12 @@ static constexpr ecs::ComponentDesc rendinst_track_move_es_event_handler_comps[]
 {
 //start of 1 rw components at [0]
   {ECS_HASH("ri_extra"), ecs::ComponentTypeInfo<RiExtraComponent>()},
-//start of 4 ro components at [1]
+//start of 5 ro components at [1]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("ri_extra__velocity"), ecs::ComponentTypeInfo<Point3>(), ecs::CDF_OPTIONAL},
-  {ECS_HASH("ri_extra__omega"), ecs::ComponentTypeInfo<Point3>(), ecs::CDF_OPTIONAL}
+  {ECS_HASH("ri_extra__omega"), ecs::ComponentTypeInfo<Point3>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("door_ri_extra__handles"), ecs::ComponentTypeInfo<ecs::UInt64List>(), ecs::CDF_OPTIONAL}
 };
 static void rendinst_track_move_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -80,6 +114,7 @@ static void rendinst_track_move_es_event_handler_all_events(const ecs::Event &__
     , ECS_RO_COMP(rendinst_track_move_es_event_handler_comps, "transform", TMatrix)
     , ECS_RO_COMP_OR(rendinst_track_move_es_event_handler_comps, "ri_extra__velocity", Point3(Point3(0, 0, 0)))
     , ECS_RO_COMP_OR(rendinst_track_move_es_event_handler_comps, "ri_extra__omega", Point3(Point3(0, 0, 0)))
+    , ECS_RO_COMP_PTR(rendinst_track_move_es_event_handler_comps, "door_ri_extra__handles", ecs::UInt64List)
     );
   while (++comp != compE);
 }
@@ -89,7 +124,7 @@ static ecs::EntitySystemDesc rendinst_track_move_es_event_handler_es_desc
   "prog/gameLibs/ecs/rendInst/./rendinstES.cpp.inl",
   ecs::EntitySystemOps(nullptr, rendinst_track_move_es_event_handler_all_events),
   make_span(rendinst_track_move_es_event_handler_comps+0, 1)/*rw*/,
-  make_span(rendinst_track_move_es_event_handler_comps+1, 4)/*ro*/,
+  make_span(rendinst_track_move_es_event_handler_comps+1, 5)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<>::build(),
@@ -169,15 +204,16 @@ static constexpr ecs::ComponentDesc del_ri_ecs_query_comps[] =
 {
 //start of 1 rw components at [0]
   {ECS_HASH("ri_extra"), ecs::ComponentTypeInfo<RiExtraComponent>()},
-//start of 2 ro components at [1]
+//start of 3 ro components at [1]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
-  {ECS_HASH("replication"), ecs::ComponentTypeInfo<net::Object>(), ecs::CDF_OPTIONAL}
+  {ECS_HASH("replication"), ecs::ComponentTypeInfo<net::Object>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("ri_extra__isBeingReplaced"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL}
 };
 static ecs::CompileTimeQueryDesc del_ri_ecs_query_desc
 (
   "del_ri_ecs_query",
   make_span(del_ri_ecs_query_comps+0, 1)/*rw*/,
-  make_span(del_ri_ecs_query_comps+1, 2)/*ro*/,
+  make_span(del_ri_ecs_query_comps+1, 3)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -192,6 +228,7 @@ inline void del_ri_ecs_query(ecs::EntityId eid, Callable function)
               ECS_RO_COMP(del_ri_ecs_query_comps, "eid", ecs::EntityId)
             , ECS_RW_COMP(del_ri_ecs_query_comps, "ri_extra", RiExtraComponent)
             , ECS_RO_COMP_PTR(del_ri_ecs_query_comps, "replication", net::Object)
+            , ECS_RO_COMP_OR(del_ri_ecs_query_comps, "ri_extra__isBeingReplaced", bool(false))
             );
 
         }
@@ -233,15 +270,17 @@ static constexpr ecs::ComponentDesc check_extra_authority_ecs_query_comps[] =
 {
 //start of 1 rw components at [0]
   {ECS_HASH("ri_extra__destroyed"), ecs::ComponentTypeInfo<bool>()},
-//start of 1 rq components at [1]
+//start of 1 ro components at [1]
+  {ECS_HASH("ri_extra__isBeingReplaced"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+//start of 1 rq components at [2]
   {ECS_HASH("riExtraAuthority"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc check_extra_authority_ecs_query_desc
 (
   "check_extra_authority_ecs_query",
   make_span(check_extra_authority_ecs_query_comps+0, 1)/*rw*/,
-  empty_span(),
-  make_span(check_extra_authority_ecs_query_comps+1, 1)/*rq*/,
+  make_span(check_extra_authority_ecs_query_comps+1, 1)/*ro*/,
+  make_span(check_extra_authority_ecs_query_comps+2, 1)/*rq*/,
   empty_span());
 template<typename Callable>
 inline void check_extra_authority_ecs_query(ecs::EntityId eid, Callable function)
@@ -254,6 +293,7 @@ inline void check_extra_authority_ecs_query(ecs::EntityId eid, Callable function
           function(
               ECS_RW_COMP(check_extra_authority_ecs_query_comps, "ri_extra__destroyed", bool)
             , components.manager()
+            , ECS_RO_COMP_OR(check_extra_authority_ecs_query_comps, "ri_extra__isBeingReplaced", bool(false))
             );
 
         }

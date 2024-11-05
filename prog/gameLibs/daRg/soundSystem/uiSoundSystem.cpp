@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daRg/soundSystem/uiSoundSystem.h>
 #include <daRg/dag_uiSound.h>
 

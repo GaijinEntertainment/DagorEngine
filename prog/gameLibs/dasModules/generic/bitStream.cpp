@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "dasModules/aotBitStream.h"
 
 
@@ -55,6 +57,7 @@ public:
     ADD_EXTERN_BITSTREAM_READ_WRITE_REF(Point2);
     ADD_EXTERN_BITSTREAM_READ_WRITE_REF(Point3);
     ADD_EXTERN_BITSTREAM_READ_WRITE_REF(Point4);
+    ADD_EXTERN_BITSTREAM_READ_WRITE(bool);
 
 #define ADD_EXTERN_BITSTREAM_READ_WRITE_COMPRESSED(type)                                                       \
   das::addExtern<DAS_BIND_FUN(bind_dascript::bitstream_read_compressed<type>)>(*this, lib, "ReadCompressed",   \
@@ -74,6 +77,14 @@ public:
 
     das::addExtern<DAS_BIND_FUN(bind_dascript::bitstream_addr)>(*this, lib, "ecs_addr", das::SideEffects::none,
       "bind_dascript::bitstream_addr");
+
+
+#define DAS_BIND_MEMBER(fn, side_effect, name)                                                       \
+  {                                                                                                  \
+    using method = DAS_CALL_MEMBER(fn);                                                              \
+    das::addExtern<DAS_CALL_METHOD(method)>(*this, lib, name, side_effect, DAS_CALL_MEMBER_CPP(fn)); \
+  }
+    DAS_BIND_MEMBER(danet::BitStream::ResetWritePointer, das::SideEffects::modifyArgument, "ResetWritePointer")
 
     verifyAotReady();
   }

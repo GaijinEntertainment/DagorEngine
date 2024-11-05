@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -15,7 +14,14 @@
 #include <math/integer/dag_IBBox2.h>
 #include <dag/dag_vector.h>
 #include <dag/dag_relocatable.h>
+#include <EASTL/vector_set.h>
 #include <EASTL/bitvector.h>
+#include <EASTL/array.h>
+
+#if _TARGET_PC_MACOSX // Disable vectorcall calling convention due to clang 15.0 code generation bug on macOS
+#undef VECTORCALL
+#define VECTORCALL
+#endif
 
 #define VERIFY_ALL                               0
 #define EXTRA_SMALL_BRANCHES_AND_64K_LEAFS_LIMIT 0
@@ -101,11 +107,12 @@ template <typename ObjectType>
 struct alignas(16) LinearGridSubCell // 32 bytes
 {
   bool isEmpty() const { return empty; }
-  const bbox3f &getBBox() const
+  bbox3f getBBox() const
   {
     static_assert(offsetof(LinearGridSubCell<ObjectType>, bboxMin) == 0 && offsetof(LinearGridSubCell<ObjectType>, bboxMax) == 16);
-    return *(bbox3f *)&bboxMin.x;
+    return bbox3f{v_ld(&bboxMin.x), v_ld(&bboxMax.x)};
   }
+  const bbox3f &getBBoxRefUnsafe() const { return *(bbox3f *)&bboxMin.x; }
   void setBBox(bbox3f bbox)
   {
     v_st(&bboxMin.x, v_perm_xyzd(bbox.bmin, v_ld(&bboxMin.x)));
@@ -119,7 +126,8 @@ struct alignas(16) LinearGridSubCell // 32 bytes
   uint16_t _unused_padding = 0;
 #endif
   Point3 bboxMax = Point3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-  uint32_t empty = 1; // replace by uint64_t mask in grid?
+  uint16_t empty = 1;   // replace by uint64_t mask in grid?
+  uint16_t changes = 0; // some counter before rebuild
 };
 
 template <typename ObjectType>
@@ -148,7 +156,7 @@ public:
     uint64_t size = to - from;
     bool zcheck = unsigned(size >> 32) >= MIN_SIDE;
     bool xcheck = unsigned(size) >= MIN_SIDE;
-    return EASTL_UNLIKELY(zcheck && xcheck);
+    return DAGOR_UNLIKELY(zcheck && xcheck);
   }
 
   static unsigned getCellOffset(vec4i v_sub_ids)
@@ -158,31 +166,55 @@ public:
     return unsigned(offsetXZ >> 32) * LINEAR_GRID_SUBGRID_WIDTH + unsigned(offsetXZ);
   }
 
-  void insertAt(LinearGrid<ObjectType> *parent_grid, ObjectType object, vec4i v_sub_cell_ids, bbox3f wbb)
+  void insertAt(LinearGrid<ObjectType> *parent_grid, ObjectType object, vec4i v_sub_cell_ids, bbox3f wbb, int change_weight = +1)
   {
     unsigned offset = getCellOffset(v_sub_cell_ids);
     LinearGridSubCell<ObjectType> &cell = cellsData[offset];
     if (cell.rootLeaf == EMPTY_LEAF)
     {
       cell.rootLeaf = parent_grid->createLeaf(false /*is_branch*/);
-      if (EASTL_UNLIKELY(cell.rootLeaf == EMPTY_LEAF))
+      if (DAGOR_UNLIKELY(cell.rootLeaf == EMPTY_LEAF))
         return;
     }
     cell.empty = 0;
+    cell.changes += change_weight;
     bbox3f oldCellBox = cell.getBBox();
     cell.setBBox(v_bbox3_sum(oldCellBox, wbb));
-    leaf_insert_object(parent_grid, cell.rootLeaf, oldCellBox, wbb, object);
+    LG_VERIFY(!leaf_contain_object(parent_grid, cell.rootLeaf, object));
+    cell.rootLeaf = leaf_insert_object(parent_grid, cell.rootLeaf, oldCellBox, wbb, object);
+    LG_VERIFY(leaf_contain_object(parent_grid, cell.rootLeaf, object));
+    LG_VERIFY(!leaf_find_recursion(parent_grid, cell.rootLeaf, cell.rootLeaf));
+    checkForRebuild(parent_grid, cell);
+    LG_VERIFY(leaf_contain_object(parent_grid, cell.rootLeaf, object));
+    LG_VERIFY(!leaf_find_recursion(parent_grid, cell.rootLeaf, cell.rootLeaf));
   }
 
-  bool eraseAt(LinearGrid<ObjectType> *parent_grid, ObjectType object, vec4i v_sub_cell_ids)
+  bool eraseAt(LinearGrid<ObjectType> *parent_grid, ObjectType object, vec4i v_sub_cell_ids, int change_weight = +1)
   {
     LinearGridSubCell<ObjectType> &cell = getCellByIds(v_sub_cell_ids);
     if (cell.rootLeaf != EMPTY_LEAF && leaf_erase_object(parent_grid, cell.rootLeaf, object))
     {
-      cell.empty = (!parent_grid->isBranch(cell.rootLeaf) && parent_grid->getLeaf(cell.rootLeaf).objects.empty()) ? 1 : 0;
+      cell.empty = parent_grid->isEmptyLeaf(cell.rootLeaf) ? 1 : 0;
+      cell.changes += change_weight;
+      checkForRebuild(parent_grid, cell);
+      LG_VERIFY(cell.rootLeaf == EMPTY_LEAF || !leaf_contain_object(parent_grid, cell.rootLeaf, object));
+      LG_VERIFY(!leaf_find_recursion(parent_grid, cell.rootLeaf, cell.rootLeaf));
       return true;
     }
     return false;
+  }
+
+  static void checkForRebuild(LinearGrid<ObjectType> *parent_grid, LinearGridSubCell<ObjectType> &cell)
+  {
+    if (DAGOR_UNLIKELY(cell.changes >= parent_grid->configChangesBeforeRebuild && parent_grid->isOptimized()))
+    {
+      cell.changes = 0;
+      bbox3f bboxesSum;
+      cell.rootLeaf = leaf_rebuild(parent_grid, cell.rootLeaf, bboxesSum);
+      cell.setBBox(bboxesSum);
+      cell.empty = parent_grid->isEmptyLeaf(cell.rootLeaf) ? 1 : 0;
+      LG_VERIFY(cell.rootLeaf != EMPTY_LEAF || v_bbox3_is_empty(bboxesSum));
+    }
   }
 
 private:
@@ -194,11 +226,12 @@ template <typename ObjectType>
 struct alignas(16) LinearGridMainCell // 32 bytes
 {
   bool isEmpty() const { return false; } // 99-100% cases
-  const bbox3f &getBBox() const
+  bbox3f getBBox() const
   {
     static_assert(offsetof(LinearGridSubCell<ObjectType>, bboxMin) == 0 && offsetof(LinearGridSubCell<ObjectType>, bboxMax) == 16);
-    return *(bbox3f *)&bboxMin.x;
+    return bbox3f{v_ld(&bboxMin.x), v_ld(&bboxMax.x)};
   }
+  const bbox3f &getBBoxRefUnsafe() const { return *(bbox3f *)&bboxMin.x; }
   void setBBox(bbox3f bbox)
   {
     v_st(&bboxMin.x, v_perm_xyzd(bbox.bmin, v_ld(&bboxMin.x)));
@@ -212,7 +245,8 @@ struct alignas(16) LinearGridMainCell // 32 bytes
   uint16_t _unused_padding = 0;
 #endif
   Point3 bboxMax = Point3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-  int32_t subGridIdx = -1;
+  int16_t subGridIdx = -1;
+  uint16_t changes = 0; // some counter before rebuild
 };
 
 // We have two boxes and know their sum on packing/unpacking
@@ -320,25 +354,41 @@ __forceinline static void pack_bboxes_32b(vec4f &min_correction, vec4f &max_corr
   max_correction = v_or(maxOffset, v_and(maxMask, V_CI_SIGN_MASK));
 }
 
-template <typename ObjectType, typename ObjectsIterator>
+template <bool fast_pos_check = false, typename ObjectType, typename ObjectsIterator>
 __forceinline eastl::pair<bool, ObjectType> find_object_intersection(const dag::Vector<ObjectType, MidmemAlloc> &objects, bbox3f box,
-  const ObjectsIterator &__restrict objects_iterator)
+  vec4f max_extended_box_2d, const ObjectsIterator &__restrict objects_iterator)
 {
   for (ObjectType object : objects)
   {
-    if (objects_iterator.checkObjectBounding(object, box) && objects_iterator.predFunc(object))
+    vec4f wbsph = object.getWBSph();
+    if (fast_pos_check)
+    {
+      vec4f pos2d = v_perm_xzxz(wbsph);
+      vec4f cmp = v_cmp_gt(pos2d, max_extended_box_2d);
+      if (DAGOR_LIKELY(v_signmask(cmp) != 0b0011))
+        continue;
+    }
+    if (objects_iterator.checkObjectBounding(wbsph, box) && objects_iterator.predFunc(object))
       return eastl::make_pair(true, object);
   }
   return eastl::make_pair(false, ObjectType::null());
 }
 
-template <typename ObjectType, typename ObjectsIterator>
+template <bool fast_pos_check = false, typename ObjectType, typename ObjectsIterator>
 __forceinline eastl::pair<bool, ObjectType> find_object_intersection(const dag::Vector<ObjectType, MidmemAlloc> &objects,
-  const LinearGridRay *__restrict ray, const ObjectsIterator &__restrict objects_iterator)
+  const LinearGridRay *__restrict ray, vec4f max_extended_box_2d, const ObjectsIterator &__restrict objects_iterator)
 {
   for (ObjectType object : objects)
   {
-    if (objects_iterator.checkObjectBounding(object, ray->start, ray->dir, ray->len, ray->radius) && objects_iterator.predFunc(object))
+    vec4f wbsph = object.getWBSph();
+    if (fast_pos_check)
+    {
+      vec4f pos2d = v_perm_xzxz(wbsph);
+      vec4f cmp = v_cmp_gt(pos2d, max_extended_box_2d);
+      if (DAGOR_LIKELY(v_signmask(cmp) != 0b0011))
+        continue;
+    }
+    if (objects_iterator.checkObjectBounding(wbsph, ray->start, ray->dir, ray->len, ray->radius) && objects_iterator.predFunc(object))
       return eastl::make_pair(true, object);
   }
   return eastl::make_pair(false, ObjectType::null());
@@ -386,7 +436,8 @@ VECTORCALL DAGOR_NOINLINE static ObjectType leaf_iterate_intersected(const Linea
   }
   else // lnode
   {
-    eastl::pair<bool, ObjectType> isect = find_object_intersection(grid->getLeaf(leaf_idx).objects, bbox_or_ray, objects_iterator);
+    eastl::pair<bool, ObjectType> isect =
+      find_object_intersection(grid->getLeaf(leaf_idx).objects, bbox_or_ray, v_zero(), objects_iterator);
     if (isect.first)
       return isect.second;
   }
@@ -421,7 +472,22 @@ DAGOR_NOINLINE static ObjectType leaf_iterate_all(const LinearGrid<ObjectType> *
 }
 
 template <typename ObjectType>
-__forceinline void leaf_insert_object_to_better_branch(LinearGrid<ObjectType> *__restrict grid, leaf_id_t leaf_idx,
+DAGOR_NOINLINE bool leaf_find_recursion(LinearGrid<ObjectType> *__restrict grid, leaf_id_t leaf_idx, leaf_id_t check)
+{
+  LG_VERIFY(leaf_idx != EMPTY_LEAF);
+  if (grid->isBranch(leaf_idx))
+  {
+    UnpackedBranch branch = grid->unpackBranch(leaf_idx);
+    if (branch.leftIdx == check || branch.rightIdx == check)
+      return true;
+    if (leaf_find_recursion(grid, branch.leftIdx, check) || leaf_find_recursion(grid, branch.rightIdx, check))
+      return true;
+  }
+  return false;
+}
+
+template <typename ObjectType>
+__forceinline leaf_id_t leaf_insert_object_to_better_branch(LinearGrid<ObjectType> *__restrict grid, leaf_id_t leaf_idx,
   UnpackedBranch branch, bbox3f wbb, ObjectType object)
 {
   bbox3f extLeft = v_bbox3_sum(branch.leftBox, wbb);
@@ -445,12 +511,16 @@ __forceinline void leaf_insert_object_to_better_branch(LinearGrid<ObjectType> *_
   LG_VERIFY(v_bbox3_test_box_inside(leftBox, wbb) || v_bbox3_test_box_inside(rightBox, wbb));
 
   grid->packBranch(leaf_idx, leftBox, rightBox, newParentBox);
-  leaf_id_t destIdx = v_extract_xi(v_cast_vec4i(leftBetter)) ? branch.leftIdx : branch.rightIdx;
-  leaf_insert_object(grid, destIdx, oldBox, wbb, object);
+  bool isLeftBetter = v_extract_xi(v_cast_vec4i(leftBetter));
+  leaf_id_t destIdx = isLeftBetter ? branch.leftIdx : branch.rightIdx;
+  leaf_id_t newBranch = leaf_insert_object(grid, destIdx, oldBox, wbb, object);
+  grid->updateBranch(leaf_idx, isLeftBetter, newBranch);
+  return leaf_idx;
 }
 
+// Final leafs can change their idx when their type changed from objects container to branch
 template <typename ObjectType>
-VECTORCALL DAGOR_NOINLINE static void leaf_insert_object(LinearGrid<ObjectType> *__restrict grid, leaf_id_t leaf_idx,
+VECTORCALL DAGOR_NOINLINE static leaf_id_t leaf_insert_object(LinearGrid<ObjectType> *__restrict grid, leaf_id_t leaf_idx,
   bbox3f old_parent_leaf_box, bbox3f wbb, ObjectType object)
 {
   LG_VERIFY(leaf_idx != EMPTY_LEAF);
@@ -458,10 +528,17 @@ VECTORCALL DAGOR_NOINLINE static void leaf_insert_object(LinearGrid<ObjectType> 
   {
     UnpackedBranch branch = grid->unpackBranch(leaf_idx, old_parent_leaf_box);
     if (v_bbox3_test_box_inside(branch.leftBox, wbb))
-      return leaf_insert_object(grid, branch.leftIdx, branch.leftBox, wbb, object);
-    if (v_bbox3_test_box_inside(branch.rightBox, wbb))
-      return leaf_insert_object(grid, branch.rightIdx, branch.rightBox, wbb, object);
-    leaf_insert_object_to_better_branch(grid, leaf_idx, branch, wbb, object);
+    {
+      leaf_id_t branchIdx = leaf_insert_object(grid, branch.leftIdx, branch.leftBox, wbb, object);
+      grid->updateBranch(leaf_idx, true /*is_left*/, branchIdx);
+    }
+    else if (v_bbox3_test_box_inside(branch.rightBox, wbb))
+    {
+      leaf_id_t branchIdx = leaf_insert_object(grid, branch.rightIdx, branch.rightBox, wbb, object);
+      grid->updateBranch(leaf_idx, false /*is_left*/, branchIdx);
+    }
+    else
+      leaf_insert_object_to_better_branch(grid, leaf_idx, branch, wbb, object);
   }
   else // lnode
   {
@@ -471,10 +548,51 @@ VECTORCALL DAGOR_NOINLINE static void leaf_insert_object(LinearGrid<ObjectType> 
     leaf.objects.emplace_back(object);
     if (grid->needCreateBranch(leaf.objects.size()))
     {
+      bbox3f bboxesSum;
       dag::Vector<ObjectType, MidmemAlloc> objects = eastl::move(leaf.objects);
-      grid->createBranchOnLeaf(leaf_idx, eastl::move(objects), v_bbox3_sum(old_parent_leaf_box, wbb));
+      memset(&leaf, 0, sizeof(leaf));
+#if VERIFY_ALL
+      auto objectsCopy = objects;
+      bbox3f extOldBox = old_parent_leaf_box;
+      v_bbox3_extend(extOldBox, v_splats(0.1f));
+      for (auto obj : objectsCopy)
+      {
+        if (obj == object)
+          continue;
+        bbox3f bbox = obj.getWBBox();
+        LG_VERIFYF(v_bbox3_test_box_inside(extOldBox, bbox),
+          "leaf_insert_object old_parent_leaf_box " FMT_B3 " objBox " FMT_B3 " (%s @ %llx @ " FMT_P3 ")", VB3D(old_parent_leaf_box),
+          VB3D(bbox), obj.getDebugName(), obj.handle, V3D(obj.getWBSph()));
+      }
+#endif
+      debug("riGrid: creating branch on leaf %i", leaf_idx);
+      leaf_idx = grid->createBranchOnLeaf(leaf_idx, eastl::move(objects), bboxesSum);
+      bbox3f prevBox = v_bbox3_sum(old_parent_leaf_box, wbb);
+      v_bbox3_extend(prevBox, v_splats(0.0001f));
+      LG_VERIFY(!leaf_find_recursion(grid, leaf_idx, leaf_idx));
+      LG_VERIFYF(v_bbox3_test_box_inside(prevBox, bboxesSum), "leaf_insert_object prevBox " FMT_B3 " bboxesSum " FMT_B3 " wbb " FMT_B3,
+        VB3D(prevBox), VB3D(bboxesSum), VB3D(wbb));
+#if VERIFY_ALL
+      for (ObjectType obj : objectsCopy)
+        LG_VERIFY(leaf_contain_object(grid, leaf_idx, obj));
+#endif
     }
   }
+  return leaf_idx;
+}
+
+template <typename ObjectType>
+DAGOR_NOINLINE static bool leaf_contain_object(const LinearGrid<ObjectType> *__restrict grid, leaf_id_t leaf_idx, ObjectType object)
+{
+  LG_VERIFY(leaf_idx != EMPTY_LEAF);
+  if (grid->isBranch(leaf_idx))
+  {
+    UnpackedBranch branch = grid->unpackBranch(leaf_idx);
+    return leaf_contain_object(grid, branch.leftIdx, object) || leaf_contain_object(grid, branch.rightIdx, object);
+  }
+
+  const LinearGridLeaf<ObjectType> &leaf = grid->getLeaf(leaf_idx);
+  return eastl::find(leaf.objects.begin(), leaf.objects.end(), object) != leaf.objects.end();
 }
 
 template <typename ObjectType>
@@ -547,6 +665,46 @@ VECTORCALL DAGOR_NOINLINE static void leaf_repack_bboxes(LinearGrid<ObjectType> 
 }
 
 template <typename ObjectType>
+VECTORCALL DAGOR_NOINLINE static void leaf_free_all(LinearGrid<ObjectType> *__restrict grid, leaf_id_t leaf_idx,
+  dag::Vector<ObjectType, MidmemAlloc> &objects)
+{
+  LG_VERIFY(leaf_idx != EMPTY_LEAF);
+  if (grid->isBranch(leaf_idx))
+  {
+    UnpackedBranch branch = grid->unpackBranch(leaf_idx);
+    leaf_free_all(grid, branch.leftIdx, objects);
+    leaf_free_all(grid, branch.rightIdx, objects);
+  }
+  else
+  {
+    LinearGridLeaf<ObjectType> &leaf = grid->getLeaf(leaf_idx);
+    objects.insert(objects.end(), leaf.objects.begin(), leaf.objects.end());
+    eastl::destroy_at(&leaf.objects);
+  }
+  grid->freeLeaf(leaf_idx);
+}
+
+template <typename ObjectType>
+VECTORCALL DAGOR_NOINLINE static leaf_id_t leaf_rebuild(LinearGrid<ObjectType> *__restrict grid, leaf_id_t leaf_idx,
+  bbox3f &bboxes_sum)
+{
+  debug("riGrid: rebuilding leaf %i", leaf_idx);
+  LG_VERIFY(leaf_idx != EMPTY_LEAF);
+  dag::Vector<ObjectType, MidmemAlloc> objects;
+  leaf_free_all(grid, leaf_idx, objects);
+  eastl::sort(objects.begin(), objects.end());
+#if VERIFY_ALL
+  auto objectsCopy = objects;
+#endif
+  leaf_idx = grid->createBranchOnLeaf(EMPTY_LEAF, eastl::move(objects), bboxes_sum);
+#if VERIFY_ALL
+  for (ObjectType obj : objectsCopy)
+    LG_VERIFY(leaf_contain_object(grid, leaf_idx, obj));
+#endif
+  return leaf_idx;
+}
+
+template <typename ObjectType>
 VECTORCALL DAGOR_NOINLINE static bool leaf_verify_bboxes(LinearGrid<ObjectType> *__restrict grid, leaf_id_t leaf_idx,
   bbox3f parent_leaf_box, ObjectType ignore)
 {
@@ -563,16 +721,26 @@ VECTORCALL DAGOR_NOINLINE static bool leaf_verify_bboxes(LinearGrid<ObjectType> 
     {
       if (obj == ignore) // ignore currently updating object
         continue;
-      vec4f wbsph = obj.getWBSph();
-      bbox3f sphBox;
-      v_bbox3_init_by_bsph(sphBox, wbsph, v_bsph_radius(wbsph));
-      bbox3f bbox = v_bbox3_get_box_intersection(sphBox, obj.getWBBox());
-      if (!v_bbox3_test_box_inside(parent_leaf_box, bbox))
+      if (!v_bbox3_test_box_inside(parent_leaf_box, obj.getWBBox()))
         return false;
     }
     return true;
   }
 }
+
+template <typename ObjectType>
+struct LinearGridPosObject
+{
+  vec4f wbsph;
+  ObjectType obj;
+
+  bool operator==(ObjectType object) const { return obj == object; }
+  bool operator>(LinearGridPosObject<ObjectType> rhs) const { return obj > rhs.obj; }
+  operator ObjectType() const { return obj; }
+  static LinearGridPosObject null() { return LinearGridPosObject{v_zero(), ObjectType::null()}; }
+  vec4f getWBSph() const { return wbsph; }
+  const char *getDebugName() const { return obj.getDebugName(); }
+};
 
 template <typename GridType, typename ObjectType>
 class LinearGridBoxIteratorImpl
@@ -585,7 +753,7 @@ public:
   template <typename T>
   __forceinline ObjectType foreachCell(T cell_callback)
   {
-    if (EASTL_LIKELY(!grid->isEmpty()))
+    if (DAGOR_LIKELY(!grid->isEmpty()))
     {
       do
       {
@@ -594,7 +762,7 @@ public:
         if (cv.isEmpty())
           continue;
         ObjectType obj = cell_callback(xz, cv);
-        if (EASTL_UNLIKELY(obj != ObjectType::null()))
+        if (DAGOR_UNLIKELY(obj != ObjectType::null()))
           return obj;
       } while (advance());
     }
@@ -616,7 +784,7 @@ private:
 #endif
   bool advance()
   {
-    if (EASTL_UNLIKELY(xz == maxXmaxZ))
+    if (DAGOR_UNLIKELY(xz == maxXmaxZ))
       return false;
     bool rowEnded = unsigned(xz) == unsigned(maxXmaxZ);
     uint64_t add = rowEnded ? 0 : 1;
@@ -643,18 +811,19 @@ public:
   template <typename ObjectsIterator>
   __forceinline ObjectType foreach(const ObjectsIterator &objects_iterator)
   {
-    eastl::pair<bool, ObjectType> isect = find_object_intersection(grid->oversizeObjects, queryBox, objects_iterator);
-    if (EASTL_UNLIKELY(isect.first))
+    eastl::pair<bool, LinearGridPosObject<ObjectType>> isect =
+      find_object_intersection<true>(grid->oversizeObjects, queryBox, maxBox2d, objects_iterator);
+    if (DAGOR_UNLIKELY(isect.first))
       return isect.second;
 
     LinearGridBoxIteratorImpl<LinearGrid<ObjectType>, ObjectType> mainLayerIterator(grid, mainLimits, queryBox);
     return mainLayerIterator.foreachCell([&](uint64_t xz, const LinearGridMainCell<ObjectType> &__restrict cv) FORCEINLINE_ATTR {
       if (!objects_iterator.checkBoxBounding(cv.getBBox(), queryBox))
         return ObjectType::null();
-      if (EASTL_LIKELY(cv.rootLeaf != EMPTY_LEAF))
+      if (DAGOR_LIKELY(cv.rootLeaf != EMPTY_LEAF))
       {
-        ObjectType object = leaf_iterate_intersected(grid, cv.rootLeaf, cv.getBBox(), queryBox, objects_iterator);
-        if (EASTL_UNLIKELY(object != ObjectType::null()))
+        ObjectType object = leaf_iterate_intersected(grid, cv.rootLeaf, cv.getBBoxRefUnsafe(), queryBox, objects_iterator);
+        if (DAGOR_UNLIKELY(object != ObjectType::null()))
           return object;
       }
       if (const LinearSubGrid<ObjectType> *__restrict subGrid = grid->getSubGrid(cv.subGridIdx))
@@ -670,7 +839,7 @@ public:
         return subLayerIterator.foreachCell([&](uint64_t, const LinearGridSubCell<ObjectType> &__restrict cv) FORCEINLINE_ATTR {
           if (!objects_iterator.checkBoxBounding(cv.getBBox(), queryBox))
             return ObjectType::null();
-          return leaf_iterate_intersected(grid, cv.rootLeaf, cv.getBBox(), queryBox, objects_iterator);
+          return leaf_iterate_intersected(grid, cv.rootLeaf, cv.getBBoxRefUnsafe(), queryBox, objects_iterator);
         });
       }
       return ObjectType::null();
@@ -685,17 +854,21 @@ private:
     bbox3f subBox = bbox;
     if (with_extension)
     {
-      v_bbox3_extend(mainBox, v_splats(grid->maxMainExtension));
+      mainBox.bmin = v_sub(mainBox.bmin, v_perm_zzww(grid->maxMainExtension));
+      mainBox.bmax = v_add(mainBox.bmax, v_perm_xxyy(grid->maxMainExtension));
       v_bbox3_extend(subBox, v_splats(grid->maxSubExtension));
     }
     mainLimits = grid->getClampedOffsets(mainBox, false /*subgrid*/);
     subLimits = grid->getClampedOffsets(subBox, true /*subgrid*/);
+    v_bbox3_extend(bbox, v_splats(grid->maxOversizeRad));
+    maxBox2d = v_perm_xzac(bbox.bmin, bbox.bmax);
   }
 
   const LinearGrid<ObjectType> *__restrict grid;
   bbox3f queryBox;
   vec4i mainLimits;
   vec4i subLimits;
+  vec4f maxBox2d;
 };
 
 template <typename GridType, typename ObjectType>
@@ -709,17 +882,17 @@ public:
   template <typename T>
   __forceinline ObjectType foreachCell(T cell_callback)
   {
-    if (EASTL_LIKELY(!grid->isEmpty()))
+    if (DAGOR_LIKELY(!grid->isEmpty()))
     {
       do
       {
         unsigned offset = z * grid->getGridWidth() + x;
         const CellType &cv = grid->getCellByOffset(offset);
-        if (EASTL_LIKELY(cv.isEmpty()))
+        if (DAGOR_LIKELY(cv.isEmpty()))
           continue;
         uint64_t xz = (uint64_t(z) << 32) | x;
         ObjectType obj = cell_callback(xz, cv);
-        if (EASTL_UNLIKELY(obj != ObjectType::null()))
+        if (DAGOR_UNLIKELY(obj != ObjectType::null()))
           return obj;
       } while (advance());
     }
@@ -775,17 +948,17 @@ public:
   template <typename T>
   __forceinline ObjectType foreachCell(T cell_callback)
   {
-    if (EASTL_LIKELY(!grid->isEmpty()))
+    if (DAGOR_LIKELY(!grid->isEmpty()))
     {
       do
       {
         unsigned offset = z * grid->getGridWidth() + x;
         const CellType &cv = grid->getCellByOffset(offset);
         uint64_t xz = (uint64_t(z) << 32) | x;
-        if (!checkWooIntersection(xz) || EASTL_LIKELY(cv.isEmpty()))
+        if (!checkWooIntersection(xz) || DAGOR_LIKELY(cv.isEmpty()))
           continue;
         ObjectType obj = cell_callback(xz, cv);
-        if (EASTL_UNLIKELY(obj != ObjectType::null()))
+        if (DAGOR_UNLIKELY(obj != ObjectType::null()))
           return obj;
       } while (advance());
     }
@@ -838,9 +1011,9 @@ private:
 #endif
   bool advance()
   {
-    if (EASTL_UNLIKELY(x == unsigned(maxXmaxZ)))
+    if (DAGOR_UNLIKELY(x == unsigned(maxXmaxZ)))
     {
-      if (EASTL_UNLIKELY(z == unsigned(maxXmaxZ >> 32)))
+      if (DAGOR_UNLIKELY(z == unsigned(maxXmaxZ >> 32)))
         return false;
       z += unsigned(rayDirXZ >> 32);
       x = minX - unsigned(rayDirXZ);
@@ -871,18 +1044,20 @@ public:
   template <typename ObjectsIterator>
   __forceinline ObjectType foreach(const ObjectsIterator &objects_iterator)
   {
-    eastl::pair<bool, ObjectType> isect = find_object_intersection(grid->oversizeObjects, &ray, objects_iterator);
-    if (EASTL_UNLIKELY(isect.first))
+    eastl::pair<bool, LinearGridPosObject<ObjectType>> isect =
+      find_object_intersection<true>(grid->oversizeObjects, &ray, maxBox2d, objects_iterator);
+    if (DAGOR_UNLIKELY(isect.first))
       return isect.second;
 
     auto mainLayerCb = [this, &objects_iterator](uint64_t xz, const LinearGridMainCell<ObjectType> &__restrict cv) FORCEINLINE_ATTR {
-      if (!objects_iterator.checkBoxBounding(cv.getBBox(), false /*is_safe*/, ray.start, ray.dir, ray.len, ray.radius))
+      bbox3f bb = cv.getBBox();
+      if (!objects_iterator.checkBoxBounding(bb, false /*is_safe*/, ray.start, ray.dir, ray.len, ray.radius))
         return ObjectType::null();
-      if (EASTL_LIKELY(cv.rootLeaf != EMPTY_LEAF)) // TODO: separate sub and main boxes
+      if (DAGOR_LIKELY(cv.rootLeaf != EMPTY_LEAF)) // TODO: separate sub and main boxes
       {
         const LinearGridRay *__restrict rayPtr = &ray;
-        ObjectType object = leaf_iterate_intersected(grid, cv.rootLeaf, cv.getBBox(), rayPtr, objects_iterator);
-        if (EASTL_UNLIKELY(object != ObjectType::null()))
+        ObjectType object = leaf_iterate_intersected(grid, cv.rootLeaf, cv.getBBoxRefUnsafe(), rayPtr, objects_iterator);
+        if (DAGOR_UNLIKELY(object != ObjectType::null()))
           return object;
       }
       if (const LinearSubGrid<ObjectType> *__restrict subGrid = grid->getSubGrid(cv.subGridIdx))
@@ -898,7 +1073,7 @@ public:
           if (!objects_iterator.checkBoxBounding(cv.getBBox(), true /*is_safe*/, ray.start, ray.dir, ray.len, ray.radius))
             return ObjectType::null();
           const LinearGridRay *__restrict rayPtr = &ray;
-          return leaf_iterate_intersected(grid, cv.rootLeaf, cv.getBBox(), rayPtr, objects_iterator);
+          return leaf_iterate_intersected(grid, cv.rootLeaf, cv.getBBoxRefUnsafe(), rayPtr, objects_iterator);
         };
 
         if (subGrid->shouldUseWooRay(clampedSubLimits))
@@ -945,12 +1120,15 @@ private:
     v_bbox3_init_by_ray(bbox, ray_start, ray_dir, ray_len);
     bbox3f mainBox = bbox;
     bbox3f subBox = bbox;
-    mainExt = v_add(v_splats(with_extension ? grid->maxMainExtension : 0.f), ray_radius);
+    mainExt = v_add(with_extension ? grid->maxMainExtension : v_zero(), ray_radius);
     subExt = v_add(v_splats(with_extension ? grid->maxSubExtension : 0.f), ray_radius);
-    v_bbox3_extend(mainBox, mainExt);
+    mainBox.bmin = v_sub(mainBox.bmin, v_perm_zzww(mainExt));
+    mainBox.bmax = v_add(mainBox.bmax, v_perm_xxyy(mainExt));
     v_bbox3_extend(subBox, subExt);
     mainLimits = grid->getClampedOffsets(mainBox, false /*subgrid*/);
     subLimits = grid->getClampedOffsets(subBox, true /*subgrid*/);
+    v_bbox3_extend(bbox, v_splats(grid->maxOversizeRad));
+    maxBox2d = v_perm_xzac(bbox.bmin, bbox.bmax);
   }
 
   LinearGridRay ray;
@@ -960,6 +1138,7 @@ private:
   vec4i subLimits;
   vec4f mainExt;
   vec4f subExt;
+  vec4f maxBox2d;
 };
 
 template <typename ObjectType>
@@ -969,13 +1148,11 @@ public:
   typedef LinearGridMainCell<ObjectType> CellType;
   friend LinearGridBoxIterator<ObjectType>;
   friend LinearGridRayIterator<ObjectType>;
+  friend LinearGridBoxIteratorImpl<LinearGrid<ObjectType>, ObjectType>;
   friend LinearGridWooRayIteratorImpl<LinearGrid<ObjectType>, ObjectType>;
   static_assert(sizeof(ObjectType) <= sizeof(uint64_t)); // Objects always passed by copy
   static_assert(sizeof(LinearGridSubCell<ObjectType>) == sizeof(bbox3f));
   static_assert(sizeof(LinearGridMainCell<ObjectType>) == sizeof(bbox3f));
-
-  template <typename, typename>
-  friend class LinearGridBoxIteratorImpl;
 
   LinearGrid()
   {
@@ -985,8 +1162,9 @@ public:
     leafsData = nullptr;
     cellSizeLog2 = get_const_log2(LINEAR_GRID_DEFAULT_CELL_SIZE);
     gridWidth = 0;
-    maxMainExtension = 0.f;
+    maxOversizeRad = 0.f;
     maxSubExtension = 0.f;
+    maxMainExtension = v_zero();
     optimized = false;
   }
 
@@ -1010,7 +1188,7 @@ public:
     uint64_t size = to - from;
     bool zcheck = unsigned(size >> 32) >= MIN_SIDE;
     bool xcheck = unsigned(size) >= MIN_SIDE;
-    return EASTL_UNLIKELY(zcheck && xcheck);
+    return DAGOR_UNLIKELY(zcheck && xcheck);
   }
 
   bool isEmpty() const
@@ -1025,20 +1203,59 @@ public:
   void setBranch(leaf_id_t leaf, bool value) { branches[leaf] = value; }
   const LinearGridLeaf<ObjectType> &getLeaf(leaf_id_t leaf) const { return leafsData[leaf]; }
   LinearGridLeaf<ObjectType> &getLeaf(leaf_id_t leaf) { return leafsData[leaf]; }
+  bool isEmptyLeaf(leaf_id_t leaf) const
+  {
+    if (leaf == EMPTY_LEAF)
+      return true;
+    if (isBranch(leaf))
+      return false;
+    return getLeaf(leaf).objects.empty();
+  }
   leaf_id_t createLeaf(bool is_branch)
   {
+    auto reuse = eastl::find_if(freeLeafs.begin(), freeLeafs.end(), [=](leaf_id_t leaf) {
+#if EXTRA_SMALL_BRANCHES_AND_64K_LEAFS_LIMIT
+      setBranch(leaf, is_branch);
+      return true;
+#else
+      return isBranch(leaf) == is_branch;
+#endif
+    });
+    if (reuse != freeLeafs.end())
+    {
+      leaf_id_t leaf = *reuse;
+      freeLeafs.erase(reuse);
+      return leaf;
+    }
     uint32_t idx = leafs.size();
-    if (EASTL_UNLIKELY(idx >= eastl::numeric_limits<leaf_id_t>::max()))
+    if (DAGOR_UNLIKELY(idx >= eastl::numeric_limits<leaf_id_t>::max()))
     {
       logerr("%s: can't create leaf because %u limit reached. Increase objects limit for leaf.", __FUNCTION__,
         eastl::numeric_limits<leaf_id_t>::max());
       return EMPTY_LEAF;
     }
     leafs.emplace_back();
-    leafsData = leafs.data();
+#if !EXTRA_SMALL_BRANCHES_AND_64K_LEAFS_LIMIT
+    if (is_branch)
+    {
+      leafs.emplace_back(); // allocate extra memory space for branch data [2 leafs total]
+      branches.push_back(is_branch);
+    }
+#endif
     branches.push_back(is_branch);
+    leafsData = leafs.data();
     return leaf_id_t(idx);
-  };
+  }
+  void freeLeaf(leaf_id_t leaf)
+  {
+    memset(leafsData + leaf, 0, sizeof(LinearGridLeaf<ObjectType>));
+#if !EXTRA_SMALL_BRANCHES_AND_64K_LEAFS_LIMIT
+    if (isBranch(leaf))
+      memset(leafsData + leaf + 1, 0, sizeof(LinearGridLeaf<ObjectType>));
+#endif
+    freeLeafs.push_back(leaf);
+  }
+  void sortFreeLeafs() { eastl::sort(freeLeafs.begin(), freeLeafs.end()); }
   __forceinline UnpackedBranch unpackBranch(leaf_id_t leaf_idx) const
   {
     LG_VERIFY(isBranch(leaf_idx));
@@ -1093,32 +1310,46 @@ public:
     v_st(maxLeaf.packedCorrection, v_perm_xyzd(maxCorrection, v_ld(maxLeaf.packedCorrection)));
 #endif
   }
+  __forceinline void updateBranch(leaf_id_t leaf_idx, bool update_left, leaf_id_t branch_idx)
+  {
+    LinearGridLeaf<ObjectType> &leaf = getLeaf(leaf_idx);
+#if EXTRA_SMALL_BRANCHES_AND_64K_LEAFS_LIMIT
+    if (update_left)
+      leaf.left = branch_idx;
+    else
+      leaf.right = branch_idx
+#else
+    (&leaf)[update_left ? 0 : 1].idx = branch_idx;
+#endif
+  }
 
-  DAGOR_NOINLINE void insert(ObjectType object, vec4f wbsph, bbox3f wbb, bool initial)
+  VECTORCALL void insert(ObjectType object, vec4f wbsph, bbox3f wbb, bool initial)
   {
     vec4i subIds = calcCellIds(wbsph, cellSizeLog2 - LINEAR_GRID_SUBGRID_WIDTH_LOG2);
     vec4i mainIds = v_srai(subIds, LINEAR_GRID_SUBGRID_WIDTH_LOG2);
     bbox3f sphBox;
     v_bbox3_init_by_bsph(sphBox, wbsph, v_splat_w(wbsph));
-    insertAt(object, mainIds, subIds, v_bbox3_get_box_intersection(sphBox, wbb), initial);
+    insertAt(object, mainIds, subIds, v_bbox3_get_box_intersection(sphBox, wbb), initial ? 0 : +1 /*change_weight*/, initial);
     LG_VERIFYF(leafs.size() == branches.size(), "New leaf added without branches resize! %i != %i", leafs.size(), branches.size());
   }
 
-  DAGOR_NOINLINE void erase(ObjectType object, vec4f wbsph)
+  VECTORCALL void erase(ObjectType object, vec4f wbsph)
   {
     vec4i subIds = calcCellIds(wbsph, cellSizeLog2 - LINEAR_GRID_SUBGRID_WIDTH_LOG2);
     vec4i mainIds = v_srai(subIds, LINEAR_GRID_SUBGRID_WIDTH_LOG2);
-    eraseAt(object, mainIds, subIds, wbsph);
+    eraseAt(object, mainIds, subIds);
   }
 
-  DAGOR_NOINLINE void update(ObjectType object, vec4f old_wbsph, vec4f new_wbsph, bbox3f wbb)
+  VECTORCALL void update(ObjectType object, vec4f old_wbsph, vec4f new_wbsph, bbox3f wbb)
   {
     vec4i oldSubIds = calcCellIds(old_wbsph, cellSizeLog2 - LINEAR_GRID_SUBGRID_WIDTH_LOG2);
     vec4i newSubIds = calcCellIds(new_wbsph, cellSizeLog2 - LINEAR_GRID_SUBGRID_WIDTH_LOG2);
     vec4i oldIds = v_srai(oldSubIds, LINEAR_GRID_SUBGRID_WIDTH_LOG2);
     vec4i newIds = v_srai(newSubIds, LINEAR_GRID_SUBGRID_WIDTH_LOG2);
-    eraseAt(object, oldIds, oldSubIds, old_wbsph);
-    insertAt(object, newIds, newSubIds, wbb);
+    bbox3f sphBox;
+    v_bbox3_init_by_bsph(sphBox, new_wbsph, v_splat_w(new_wbsph));
+    eraseAt(object, oldIds, oldSubIds, 0 /*change_weight*/);
+    insertAt(object, newIds, newSubIds, v_bbox3_get_box_intersection(sphBox, wbb), 0 /*change_weight*/);
   }
 
   struct OptimizationStats
@@ -1144,11 +1375,12 @@ public:
     return true;
   }
 
-  DAGOR_NOINLINE void optimizeCells()
+  DAGOR_NOINLINE bool optimizeCells(const char *debug_text)
   {
     if (isEmpty())
-      return;
+      return false;
     G_ASSERT(leafs.size() == branches.size());
+    unsigned cellsOptimized = 0;
     int64_t ref = ref_time_ticks();
     if (!optimized)
     {
@@ -1156,6 +1388,7 @@ public:
       leafs.clear();
       leafs.reserve(oldLeafs.size());
       leafsData = nullptr;
+      freeLeafs.clear();
       branches.clear();
       for (LinearGridMainCell<ObjectType> &cell : cells)
       {
@@ -1164,6 +1397,7 @@ public:
         dag::Vector<ObjectType, MidmemAlloc> objects = eastl::move(oldLeafs.data()[cell.rootLeaf].objects);
         cell.rootLeaf = EMPTY_LEAF; // create new leaf after global clear
         refillCell(cell, eastl::move(objects), optimizationStats);
+        cellsOptimized++;
       }
     }
     else
@@ -1175,13 +1409,19 @@ public:
         // reuse cell.rootLeaf index
         dag::Vector<ObjectType, MidmemAlloc> objects = eastl::move(getLeaf(cell.rootLeaf).objects);
         refillCell(cell, eastl::move(objects), optimizationStats);
+        cellsOptimized++;
       }
     }
     int result = get_time_usec(ref);
-    debug("Grid optimizing finished in %.2f msec", result / 1000.f);
+    if (cellsOptimized > 0)
+      debug("Grid optimizing finished in %.2f msec for %i cells", result / 1000.f, cellsOptimized);
     if (!optimized)
     {
-      printStats();
+      if (cellsOptimized > 0)
+      {
+        debug(debug_text);
+        printStats(cdebug);
+      }
       optimized = true;
     }
 #if VERIFY_ALL
@@ -1199,11 +1439,17 @@ public:
       }
     }
 #endif
+    return cellsOptimized > 0;
   }
 
-  void printStats() const { printStats(optimizationStats); }
+  template <typename print_func_t>
+  void printStats(print_func_t print_func) const
+  {
+    printStats(print_func, optimizationStats);
+  }
 
-  DAGOR_NOINLINE void printStats(const OptimizationStats &stats) const
+  template <typename print_func_t>
+  DAGOR_NOINLINE void printStats(print_func_t print_func, const OptimizationStats &stats) const
   {
     double kb = 1024.0;
     double mb = 1024.0 * 1024.0;
@@ -1211,28 +1457,86 @@ public:
     unsigned totalCells = getGridHeight() * getGridWidth();
     unsigned objectsMem = stats.totalObjects * sizeof(ObjectType) + allocationCost;
     unsigned cellsMem = totalCells * sizeof(LinearGridMainCell<ObjectType>) + allocationCost;
-    unsigned leafsMem = leafs.size() * sizeof(LinearGridLeaf<ObjectType>) + allocationCost;
-    leafsMem += (leafs.size() - stats.branchesCount) * allocationCost;
+    unsigned leafsMem = leafs.capacity() * sizeof(LinearGridLeaf<ObjectType>) + allocationCost;
+    leafsMem += (leafs.capacity() - stats.branchesCount) * allocationCost;
     leafsMem += data_size(branches) + allocationCost;
-    unsigned subGridsMem = subGrids.size() * (sizeof(LinearSubGrid<ObjectType>) + sizeof(void *)) + allocationCost;
+    unsigned subGridsMem = subGrids.capacity() * (sizeof(LinearSubGrid<ObjectType>) + sizeof(void *)) + allocationCost;
     unsigned oversizeMem = data_size(oversizeObjects) + allocationCost;
-    debug("Total objects: %u [%.1f Mb]", stats.totalObjects, objectsMem / mb);
-    debug("Cells: %ux%u=%u (%.1fx%.1f km); Empty: %u (%.1f%%) [%.1f Kb]", getGridHeight(), getGridWidth(), totalCells,
+    unsigned oversizeCells = getCellsCountWithOversizeObjects();
+    print_func("Total objects: %u (%.1f%% small) [%.1f Mb]", stats.totalObjects,
+      safediv(double(stats.totalObjects - stats.mainObjects), stats.totalObjects) * 100.0, objectsMem / mb);
+    print_func("Cells: %ux%u=%u (%.1fx%.1f km); Empty: %u (%.1f%%) [%.1f Kb]", getGridHeight(), getGridWidth(), totalCells,
       (getGridHeight() * getCellSize()) / 1000.f, (getGridWidth() * getCellSize()) / 1000.f, stats.emptyCells,
       safediv(double(stats.emptyCells), totalCells) * 100.0, cellsMem / kb);
-    debug("Leafs: %u; Branches: %u (%.1f%%) [%.1f Kb]", leafs.size(), stats.branchesCount,
+    print_func("Leafs: %u; Branches: %u (%.1f%%) [%.1f Kb]", leafs.size(), stats.branchesCount,
       safediv(double(stats.branchesCount), leafs.size()) * 100.0, leafsMem / kb);
-    debug("SubGrids: %u; (%.1f%% of cells) empty subCells: %.1f%% [%.1f Kb]", subGrids.size(),
+    print_func("SubGrids: %u; (%.1f%% of cells) empty subCells: %.1f%% [%.1f Kb]", subGrids.size(),
       safediv(double(subGrids.size()), totalCells) * 100.0,
       safediv(double(stats.emptySubCells), subGrids.size() * sqr(LINEAR_GRID_SUBGRID_WIDTH)) * 100.0, subGridsMem / kb);
-    debug("Main ext: %.1f; Sub ext: %.1f", maxMainExtension, maxSubExtension);
-    debug("Oversize objects: %u", oversizeObjects.size());
-    debug("Total memory: %.2f Mb",
+    print_func("Main ext: %.1f %.1f %.1f %.1f; Sub ext: %.1f; Max ov.rad: %.2f", V4D(maxMainExtension), maxSubExtension,
+      maxOversizeRad);
+    print_func("Oversize objects: %u, cover %u cells (%.2f%%)", oversizeObjects.size(), oversizeCells,
+      safediv(double(oversizeCells), cells.size()) * 100.0);
+    print_func("Total memory: %.2f Mb",
       (sizeof(LinearGrid<ObjectType>) + objectsMem + cellsMem + leafsMem + subGridsMem + oversizeMem) / mb);
+  }
+
+  float calcMaxMainCellExtForObject(ObjectType obj) const
+  {
+    return v_extract_x(v_hmax(calcMaxExtension(calcCellIds(obj.getWBSph(), cellSizeLog2), cellSizeLog2, obj.getWBBox())));
+  }
+
+  template <typename print_func_t, typename object_t>
+  DAGOR_NOINLINE void sortAndPrint(print_func_t print_func, dag::Span<object_t> objects, bool use_ext = false) const
+  {
+    eastl::fixed_function<8, bool(object_t, object_t)> lessExtFunc = [this](object_t lhs, object_t rhs) {
+      return calcMaxMainCellExtForObject(lhs) > calcMaxMainCellExtForObject(rhs);
+    };
+    eastl::fixed_function<8, bool(object_t, object_t)> lessRadFunc = [](object_t lhs, object_t rhs) {
+      return v_extract_w(lhs.getWBSph()) > v_extract_w(rhs.getWBSph());
+    };
+    eastl::sort(objects.begin(), objects.end(), use_ext ? lessExtFunc : lessRadFunc);
+    for (object_t obj : objects)
+      print_func("\t%s " FMT_P3 " rad=%.2f ext=%.2f", obj.getDebugName(), V3D(obj.getWBSph()), v_extract_w(obj.getWBSph()),
+        calcMaxMainCellExtForObject(obj));
+  }
+
+  template <typename print_func_t>
+  void printOversize(print_func_t print_func)
+  {
+    sortAndPrint(print_func, make_span(oversizeObjects)); // vec changed
+  }
+
+  template <typename print_func_t>
+  DAGOR_NOINLINE void printBiggest(print_func_t print_func, int count, bool use_ext)
+  {
+    dag::Vector<ObjectType> objects;
+    objects.reserve(count);
+    for (const CellType &cell : cells)
+    {
+      foreachObjectInCellDebug(cell, [count, use_ext, &objects, this](ObjectType obj) {
+        if (DAGOR_LIKELY(objects.size() == count))
+        {
+          float radius = use_ext ? calcMaxMainCellExtForObject(obj) : v_extract_w(obj.getWBSph());
+          auto it = eastl::find_if(objects.begin(), objects.end(), [radius, use_ext, this](ObjectType ex) {
+            float exRadius = use_ext ? calcMaxMainCellExtForObject(ex) : v_extract_w(ex.getWBSph());
+            return exRadius < radius;
+          });
+          if (it != objects.end())
+            *it = obj;
+        }
+        else
+          objects.push_back(obj);
+        return false;
+      });
+    }
+    sortAndPrint(print_func, make_span(objects), use_ext);
   }
 
   void setCellSizeWithoutObjectsReposition(unsigned cellSize)
   {
+    if (cellSize == getCellSize())
+      return;
     G_ASSERT(isEmpty());
     if (is_pow2(cellSize))
       cellSizeLog2 = get_log2i_of_pow2(cellSize);
@@ -1240,7 +1544,7 @@ public:
       logerr("LinearGrid: %s(%u) error, new value should be power of 2", __FUNCTION__, cellSize);
   }
 
-  float getMaxExtension() const { return maxMainExtension; }
+  vec4f getMaxExtension() const { return maxMainExtension; }
   uint32_t getObjectsGrowStep() const { return configReserveObjectsOnGrow; };
   unsigned getCellSize() const { return 1 << cellSizeLog2; }
   unsigned getGridWidth() const { return gridWidth; }
@@ -1255,28 +1559,25 @@ public:
     return &getCellByIds(cellIds);
   };
 
-  bool needCreateBranch(uint32_t leaf_objects_count) const { return false && optimized && leaf_objects_count > configMaxLeafObjects; }
+  bool needCreateBranch(uint32_t leaf_objects_count) const { return false && leaf_objects_count > configMaxLeafObjects; }
 
-  VECTORCALL DAGOR_NOINLINE void createBranchOnLeaf(leaf_id_t leaf_idx, dag::Vector<ObjectType, MidmemAlloc> &&objects,
-    bbox3f parent_box)
+  VECTORCALL DAGOR_NOINLINE leaf_id_t createBranchOnLeaf(leaf_id_t leaf_idx, dag::Vector<ObjectType, MidmemAlloc> &&objects,
+    bbox3f &bboxes_sum)
   {
-    G_ASSERT(!isBranch(leaf_idx) && getLeaf(leaf_idx).objects.empty());
-    dag::RelocatableFixedVector<eastl::pair<ObjectType, bbox3f>, 64, true, MidmemAlloc> bboxes;
+    G_ASSERT(leaf_idx == EMPTY_LEAF || (!isBranch(leaf_idx) && getLeaf(leaf_idx).objects.empty()));
+    dag::RelocatableFixedVector<eastl::pair<ObjectType, bbox3f>, 64, true, framemem_allocator> bboxes;
     bboxes.reserve(objects.size());
     bboxes.resize(objects.size());
+    v_bbox3_init_empty(bboxes_sum);
     unsigned bboxesCount = 0;
     for (ObjectType obj : objects)
     {
-      vec4f wbsph = obj.getWBSph();
-      // for rotated objects aabb of world sphere can be smaller than tm*obb, but usually bigger
-      bbox3f sphBox;
-      v_bbox3_init_by_bsph(sphBox, wbsph, v_splat_w(wbsph));
-      bbox3f bbox = v_bbox3_get_box_intersection(sphBox, obj.getWBBox());
+      bbox3f bbox = obj.getWBBox();
       bboxes.data()[bboxesCount++] = eastl::make_pair(obj, bbox);
-      LG_VERIFY(v_bbox3_test_box_inside(parent_box, bbox));
+      v_bbox3_add_box(bboxes_sum, bbox);
     }
     OptimizationStats stats;
-    reCreateBalancedLeaf(leaf_idx, eastl::move(objects), bboxes, parent_box, stats);
+    return reCreateBalancedLeaf(leaf_idx, eastl::move(objects), bboxes, bboxes_sum, stats);
   }
 
   DAGOR_NOINLINE void clear()
@@ -1286,8 +1587,9 @@ public:
     cellsData = nullptr;
     leafsData = nullptr;
     gridWidth = 0;
-    maxMainExtension = 0.f;
+    maxOversizeRad = 0.f;
     maxSubExtension = 0.f;
+    maxMainExtension = v_zero();
     for (uint32_t leafIdx = 0; leafIdx < leafs.size(); leafIdx++)
     {
       if (!isBranch(leafIdx))
@@ -1295,6 +1597,7 @@ public:
     }
     cells.clear();
     leafs.clear();
+    freeLeafs.clear();
     branches.clear();
     for (LinearSubGrid<ObjectType> *subGrid : subGrids)
       delete subGrid;
@@ -1333,23 +1636,27 @@ public:
   }
 
 private:
-  VECTORCALL void insertAt(ObjectType object, vec4i v_main_cell_ids, vec4i v_sub_cell_ids, bbox3f wbb, bool initial = false)
+  VECTORCALL void insertAt(ObjectType object, vec4i v_main_cell_ids, vec4i v_sub_cell_ids, bbox3f wbb, int change_weight = +1,
+    bool initial = false)
   {
-    float mainExt = getMaxExtension(v_main_cell_ids, cellSizeLog2, wbb);
-    if (EASTL_UNLIKELY(mainExt > configMaxMainExtension))
+    vec4f mainExt = calcMaxExtension(v_main_cell_ids, cellSizeLog2, wbb);
+    if (DAGOR_UNLIKELY(v_test_any_bit_set(v_cmp_gt(mainExt, v_splats(configMaxMainExtension)))))
     {
-      oversizeObjects.emplace_back(object);
+      vec4f wbsph = object.getWBSph();
+      maxOversizeRad = max(maxOversizeRad, v_extract_w(wbsph));
+      G_ASSERT(maxOversizeRad < 10000.f);
+      oversizeObjects.emplace_back(LinearGridPosObject<ObjectType>{wbsph, object});
       return;
     }
-    if (EASTL_UNLIKELY(!isInGrid(v_main_cell_ids)))
+    if (DAGOR_UNLIKELY(!isInGrid(v_main_cell_ids)))
       grow(v_main_cell_ids);
     LinearGridMainCell<ObjectType> &cell = getCellByIds(v_main_cell_ids);
     bbox3f oldMainBox = cell.getBBox();
     cell.setBBox(v_bbox3_sum(oldMainBox, wbb));
-    maxMainExtension = max(maxMainExtension, mainExt);
+    maxMainExtension = v_max(maxMainExtension, mainExt);
     if (LinearSubGrid<ObjectType> *subGrid = getSubGrid(cell.subGridIdx))
     {
-      float subExt = getMaxExtension(v_sub_cell_ids, cellSizeLog2 - LINEAR_GRID_SUBGRID_WIDTH_LOG2, wbb);
+      float subExt = v_extract_x(v_hmax(calcMaxExtension(v_sub_cell_ids, cellSizeLog2 - LINEAR_GRID_SUBGRID_WIDTH_LOG2, wbb)));
       if (subExt < configMaxSubExtension)
       {
         maxSubExtension = max(maxSubExtension, subExt);
@@ -1360,45 +1667,68 @@ private:
           // 2) packStep insreases with cell box size, offset from parent box can also increase, which makes child boxes smaller (!)
           leaf_repack_bboxes(this, cell.rootLeaf, oldMainBox, cell.getBBox());
         }
-        subGrid->insertAt(this, object, v_sub_cell_ids, wbb);
+        subGrid->insertAt(this, object, v_sub_cell_ids, wbb, change_weight);
         return;
       }
     }
     if (cell.rootLeaf == EMPTY_LEAF)
     {
       cell.rootLeaf = createLeaf(false /*is_branch*/);
-      if (EASTL_UNLIKELY(cell.rootLeaf == EMPTY_LEAF))
+      if (DAGOR_UNLIKELY(cell.rootLeaf == EMPTY_LEAF))
         return;
     }
-    if (EASTL_UNLIKELY(initial && (!optimized || !isCellOptimized(cell))))
+    if (DAGOR_UNLIKELY(initial && (!optimized || !isCellOptimized(cell))))
     {
       LinearGridLeaf<ObjectType> &leaf = getLeaf(cell.rootLeaf);
       leaf.objects.emplace_back(object);
     }
     else
-      leaf_insert_object(this, cell.rootLeaf, oldMainBox, wbb, object);
+    {
+      LG_VERIFY(!leaf_contain_object(this, cell.rootLeaf, object));
+      cell.rootLeaf = leaf_insert_object(this, cell.rootLeaf, oldMainBox, wbb, object);
+      cell.changes += change_weight;
+      LG_VERIFY(leaf_contain_object(this, cell.rootLeaf, object));
+      LG_VERIFY(!leaf_find_recursion(this, cell.rootLeaf, cell.rootLeaf));
+      checkForRebuild(cell);
+      LG_VERIFY(leaf_contain_object(this, cell.rootLeaf, object));
+      LG_VERIFY(!leaf_find_recursion(this, cell.rootLeaf, cell.rootLeaf));
+    }
   }
 
-  VECTORCALL void eraseAt(ObjectType object, vec4i v_main_cell_ids, vec4i v_sub_cell_ids, vec4f wbsph)
+  VECTORCALL void eraseAt(ObjectType object, vec4i v_main_cell_ids, vec4i v_sub_cell_ids, int change_weight = +1)
   {
-    if (EASTL_UNLIKELY(v_extract_w(wbsph) > configHalfMaxMainExtension))
+    auto it = eastl::find(oversizeObjects.begin(), oversizeObjects.end(), object);
+    if (DAGOR_UNLIKELY(it != oversizeObjects.end()))
     {
-      auto it = eastl::find(oversizeObjects.begin(), oversizeObjects.end(), object);
-      if (EASTL_UNLIKELY(it != oversizeObjects.end()))
-      {
-        oversizeObjects.erase(it);
-        return;
-      }
+      oversizeObjects.erase(it);
+      return;
     }
     G_ASSERTF_RETURN(isInGrid(v_main_cell_ids), , "CellIds %i %i GridSize %i %i %i %i", v_extract_xi(v_main_cell_ids),
       v_extract_yi(v_main_cell_ids), gridSize.lim[0].x, gridSize.lim[0].y, gridSize.lim[1].x, gridSize.lim[1].y);
     LinearGridMainCell<ObjectType> &cell = getCellByIds(v_main_cell_ids);
     if (cell.rootLeaf != EMPTY_LEAF && leaf_erase_object(this, cell.rootLeaf, object))
+    {
+      cell.changes += change_weight;
+      checkForRebuild(cell);
+      LG_VERIFY(cell.rootLeaf == EMPTY_LEAF || !leaf_contain_object(this, cell.rootLeaf, object));
+      LG_VERIFY(!leaf_find_recursion(this, cell.rootLeaf, cell.rootLeaf));
       return;
+    }
     LinearSubGrid<ObjectType> *subGrid = getSubGrid(cell.subGridIdx);
-    if (subGrid && subGrid->eraseAt(this, object, v_sub_cell_ids))
+    if (subGrid && subGrid->eraseAt(this, object, v_sub_cell_ids, change_weight))
       return;
     G_ASSERTF(false, "Failed to remove object from grid. Erased twice or wrong old position.");
+  }
+
+  void checkForRebuild(LinearGridMainCell<ObjectType> &cell)
+  {
+    if (DAGOR_UNLIKELY(cell.changes >= configChangesBeforeRebuild && isOptimized()))
+    {
+      cell.changes = 0;
+      bbox3f bboxesSum;
+      cell.rootLeaf = leaf_rebuild(this, cell.rootLeaf, bboxesSum);
+      cell.setBBox(bboxesSum);
+    }
   }
 
   LinearGridMainCell<ObjectType> &getCellByIds(vec4i v_cell_ids)
@@ -1412,13 +1742,12 @@ private:
     return cellsData[unsigned(offsetXZ >> 32) * getGridWidth() + unsigned(offsetXZ)];
   }
 
-  __forceinline static float getMaxExtension(vec4i v_cell_ids, unsigned cell_size_log2, bbox3f object_bbox)
+  __forceinline static vec4f calcMaxExtension(vec4i v_cell_ids, unsigned cell_size_log2, bbox3f object_bbox)
   {
     vec4i bboxCells = v_permi_xyab(v_cell_ids, v_subi(v_cell_ids, v_set_all_bitsi()));
     vec4f bboxOffsets = v_cvt_vec4f(v_slli_n(bboxCells, cell_size_log2));
     vec4f boxesDiff = v_sub(bboxOffsets, v_perm_xzac(object_bbox.bmin, object_bbox.bmax));
-    vec4f maxExt = v_hmax(v_perm_xycd(boxesDiff, v_sub(v_zero(), boxesDiff)));
-    return v_extract_x(maxExt);
+    return v_perm_xycd(boxesDiff, v_sub(v_zero(), boxesDiff));
   }
 
   static vec4i calcCellIds(vec3f pos, unsigned cell_size_log2) // return [xzxz]
@@ -1467,6 +1796,22 @@ private:
     return count;
   }
 
+  unsigned getCellsCountWithOversizeObjects() const
+  {
+    eastl::vector_set<uint64_t> cellIds;
+    cellIds.reserve(oversizeObjects.size() * 4);
+    for (ObjectType obj : oversizeObjects)
+    {
+      vec4i mainCellIds = calcCellIds(obj.getWBSph(), cellSizeLog2);
+      for (int y = v_extract_yi(mainCellIds); y <= v_extract_wi(mainCellIds); y++)
+      {
+        for (int x = v_extract_xi(mainCellIds); x <= v_extract_zi(mainCellIds); x++)
+          cellIds.insert((uint64_t(y) << 32) | x);
+      }
+    }
+    return cellIds.size();
+  }
+
   VECTORCALL DAGOR_NOINLINE void grow(vec4i v_cell_ids)
   {
     vec4i vCurGridSize = v_ldi(&gridSize.lim[0].x);
@@ -1508,7 +1853,7 @@ private:
     stats.totalObjects += objects.size();
     eastl::sort(objects.begin(), objects.end());
 
-    dag::Vector<eastl::pair<ObjectType, bbox3f>, MidmemAlloc> bboxes;
+    dag::Vector<eastl::pair<ObjectType, bbox3f>, framemem_allocator> bboxes;
     unsigned bboxesCount = 0;
     unsigned smallObjectsCount = 0;
 
@@ -1518,14 +1863,8 @@ private:
       bboxes.resize(objects.size());
 
       smallObjectsCount = eastl::count_if(objects.begin(), objects.end(), [&](ObjectType obj) {
-        vec4f wbsph = obj.getWBSph();
-        // for rotated objects aabb of world sphere can be smaller than tm*obb, but usually bigger
-        bbox3f sphBox;
-        v_bbox3_init_by_bsph(sphBox, wbsph, v_splat_w(wbsph));
-        bbox3f bbox = v_bbox3_get_box_intersection(sphBox, obj.getWBBox());
-        bboxes.data()[bboxesCount++] = eastl::make_pair(obj, bbox);
-
-        float objRad = v_extract_w(wbsph);
+        bboxes.data()[bboxesCount++] = eastl::make_pair(obj, obj.getWBBox());
+        float objRad = v_extract_w(obj.getWBSph());
         return objRad <= configMaxSubExtension;
       });
     }
@@ -1554,7 +1893,7 @@ private:
         unsigned subGridCellSizeLog2 = cellSizeLog2 - LINEAR_GRID_SUBGRID_WIDTH_LOG2;
         vec4i subCellIds = calcCellIds(wbsph, subGridCellSizeLog2);
         bbox3f bbox = bboxes.data()[objId].second;
-        float ext = getMaxExtension(subCellIds, subGridCellSizeLog2, bbox);
+        float ext = v_extract_x(v_hmax(calcMaxExtension(subCellIds, subGridCellSizeLog2, bbox)));
         if (ext > configMaxSubExtension)
           continue;
         maxSubExtension = max(maxSubExtension, ext);
@@ -1599,7 +1938,7 @@ private:
     dag::ConstSpan<eastl::pair<ObjectType, bbox3f>> bboxes, bbox3f parent_box, OptimizationStats &stats)
   {
     G_ASSERT(leaf_idx == EMPTY_LEAF || !isBranch(leaf_idx));
-    if (EASTL_UNLIKELY(objects.empty()))
+    if (DAGOR_UNLIKELY(objects.empty()))
       return leaf_idx;
 
     if (objects.size() <= configMaxLeafObjects)
@@ -1619,14 +1958,14 @@ private:
     vec4f sideOversizeCoef = v_min(V_C_ONE, sideOversize);
 
     // Find most balanced half cut
-    dag::RelocatableFixedVector<uint8_t, 1024, true /*overflow*/, MidmemAlloc, uint32_t, false /*init*/> belowMasks;
+    dag::RelocatableFixedVector<uint8_t, 1024, true /*overflow*/, framemem_allocator, uint32_t, false /*init*/> belowMasks;
     belowMasks.reserve(objects.size());
     belowMasks.resize(objects.size());
     vec4f center = v_bbox3_center(parent_box);
     vec4i belowCounters = v_zeroi();
 
     auto bboxIt = bboxes.begin();
-    for (unsigned i = 0; EASTL_LIKELY(i < objects.size()); i++)
+    for (unsigned i = 0; DAGOR_LIKELY(i < objects.size()); i++)
     {
       bboxIt = eastl::find_if(bboxIt, bboxes.end(),
         [obj = objects.data()[i]](const eastl::pair<ObjectType, bbox3f> &pair) { return pair.first == obj; });
@@ -1645,7 +1984,7 @@ private:
       v_cast_vec4f(v_ori(v_cmp_eqi(belowCounters, v_zeroi()), v_cmp_eqi(belowCounters, v_splatsi(objects.size()))));
     vec4f selectBest = v_andnot(isOneSideEmpty, v_cmp_eq(score, v_hmin3(score)));
     int bestMask = v_signmask(selectBest) & 0b111;
-    if (EASTL_UNLIKELY(!bestMask)) // need alt algo
+    if (DAGOR_UNLIKELY(!bestMask)) // need alt algo
     {
       if (leaf_idx == EMPTY_LEAF)
         leaf_idx = createLeaf(false);
@@ -1671,10 +2010,10 @@ private:
     v_bbox3_init_empty(belowBox);
     v_bbox3_init_empty(aboveBox);
     auto bboxIter = bboxes.begin();
-    RiGridObject *writeBelowPos = belowObjects.data();
-    RiGridObject *writeAbovePos = aboveObjects.data();
+    ObjectType *writeBelowPos = belowObjects.data();
+    ObjectType *writeAbovePos = aboveObjects.data();
     const uint8_t *objBelowMask = belowMasks.data();
-    for (const RiGridObject &obj : belowObjects)
+    for (const ObjectType &obj : belowObjects)
     {
       bboxIter =
         eastl::find_if(bboxIter, bboxes.end(), [obj](const eastl::pair<ObjectType, bbox3f> &pair) { return pair.first == obj; });
@@ -1694,7 +2033,7 @@ private:
     }
     LG_VERIFY(writeBelowPos = belowObjects.data() + belowCount);
     LG_VERIFY(writeAbovePos = aboveObjects.data() + aboveCount);
-    belowObjects.resize(belowCount); // shrink to real size
+    belowObjects.resize(belowCount); // set real size, shrink will be later
 
     // Create childs
     leaf_id_t reuseIdx = EMPTY_LEAF;
@@ -1712,8 +2051,7 @@ private:
       eastl::swap(leaf_idx, reuseIdx);
       LG_VERIFY(!isBranch(reuseIdx));
     }
-    leaf_idx = createLeaf(true); // min
-    createLeaf(true);            // max
+    leaf_idx = createLeaf(true);
 #endif
 
     leaf_id_t leftIdx = reCreateBalancedLeaf(reuseIdx, eastl::move(belowObjects), bboxes, belowBox, stats);
@@ -1754,23 +2092,29 @@ private:
   LinearGridLeaf<ObjectType> *__restrict leafsData;
   unsigned cellSizeLog2;
   unsigned gridWidth; // cached
-  float maxMainExtension;
+  float maxOversizeRad;
   float maxSubExtension;
+  vec4f maxMainExtension;
   eastl::bitvector<MidmemAlloc> branches; // 32 bytes
   vec4f lowestCellBox;
-  dag::Vector<ObjectType, MidmemAlloc> oversizeObjects;
+  dag::Vector<LinearGridPosObject<ObjectType>, MidmemAlloc> oversizeObjects;
   dag::Vector<LinearGridMainCell<ObjectType>, MidmemAlloc> cells;
   dag::Vector<LinearGridLeaf<ObjectType>, MidmemAlloc> leafs;
   dag::Vector<LinearSubGrid<ObjectType> *, MidmemAlloc> subGrids;
+  dag::Vector<leaf_id_t, MidmemAlloc> freeLeafs;
   bool optimized;
   OptimizationStats optimizationStats;
 
 public:
-  float configMaxMainExtension = 40.0f;
-  float configHalfMaxMainExtension = 20.f;
+  float configMaxMainExtension = LINEAR_GRID_DEFAULT_CELL_SIZE * 0.625f; // best is 40m for 64m cell
   float configMaxSubExtension = 3.f;
   float configMaxSubRadius = 4.f;
   unsigned configObjectsToCreateSubGrid = 200;
   unsigned configMaxLeafObjects = 40;
   unsigned configReserveObjectsOnGrow = 4;
+  unsigned configChangesBeforeRebuild = 64;
 };
+#if _TARGET_PC_MACOSX // Disable vectorcall calling convention due to clang 15.0 code generation bug on macOS
+#undef VECTORCALL
+#define VECTORCALL [[clang::vectorcall]]
+#endif

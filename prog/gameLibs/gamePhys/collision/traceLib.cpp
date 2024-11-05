@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gamePhys/collision/collisionLib.h>
 #include <memory/dag_framemem.h>
 #include <rendInst/rendInstCollision.h>
@@ -13,13 +15,7 @@
 #include <math/dag_traceRayTriangle.h>
 
 #include "collisionGlobals.h"
-
-// alloca
-#if _TARGET_PC_WIN | _TARGET_XBOX
-#include <malloc.h>
-#else
-#include <stdlib.h>
-#endif
+#include <supp/dag_alloca.h>
 
 static const float invalid_water_height = -1e10f;
 static void first_mirroring_transform(float &in_out_x, float &in_out_z, float &out_x_k, float &out_z_k);
@@ -466,7 +462,6 @@ bool dacoll::traceray_normalized_contact(const Point3 &from, const Point3 &to, T
     traceCont.userPtrA = NULL;
     traceCont.userPtrB = NULL;
     traceCont.matId = matId;
-    traceCont.objectInfo = NULL;
 
     out_contacts.push_back(traceCont);
     return true;

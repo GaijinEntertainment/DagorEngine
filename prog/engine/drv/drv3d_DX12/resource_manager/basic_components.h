@@ -1,8 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
 #include <EASTL/numeric.h>
+#include <EASTL/optional.h>
 #include <debug/dag_assert.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <osApiWrappers/dag_critSec.h>
@@ -48,7 +50,7 @@ protected:
   std::atomic<uint32_t> suspendState{0};
   std::atomic<uint32_t> activityState{0};
 #endif
-  void *recodingPendingFrameCompletion = nullptr;
+  void *recodingPendingFrameCompletion DAG_TS_GUARDED_BY(recodingPendingFrameCompletionMutex) = nullptr;
   OSSpinlock recodingPendingFrameCompletionMutex;
 
   ConcurrentAccessControler() = default;
@@ -168,10 +170,6 @@ class OutOfMemoryRepoter : public ConcurrentAccessControler
 
   bool didReportOOM = false;
 
-  template <typename... Args>
-  void markParamsAsUsed(Args &&...)
-  {}
-
 protected:
   void setup(const SetupInfo &info)
   {
@@ -179,44 +177,84 @@ protected:
     BaseType::setup(info);
   }
 
-  void reportOOMInformation();
-  template <typename... Args>
-  bool checkForOOM(bool was_okay, Args &&...args)
+  class OomReportData
   {
-    markParamsAsUsed(eastl::forward<Args>(args)...);
-    if (!was_okay)
-    {
-      reportOOMInformation();
-    }
-    G_ASSERTF(was_okay, eastl::forward<Args>(args)...);
-    return was_okay;
-  }
+  public:
+    OomReportData(const char *method_name, const char *resource_name = nullptr, const eastl::optional<uint64_t> &requested_size = {},
+      const eastl::optional<uint32_t> &allocation_flags = {}, const eastl::optional<uint32_t> &memory_group = {}) :
+      methodName{method_name},
+      resourceName{resource_name},
+      requestedSize{requested_size},
+      allocationFlags{allocation_flags},
+      memoryGroup{memory_group}
+    {}
 
-  template <typename C, typename... Args>
+    const char *getMethodName() const { return methodName; }
+
+    eastl::string toString() const
+    {
+      eastl::string oomReport{"method: "};
+      oomReport += methodName;
+      if (resourceName)
+      {
+        oomReport += ", resource: ";
+        oomReport += resourceName;
+      }
+      if (requestedSize)
+      {
+        oomReport += ", requested size: ";
+        oomReport += eastl::to_string(*requestedSize);
+      }
+      if (allocationFlags)
+      {
+        oomReport += ", allocation flags: ";
+        oomReport += eastl::to_string(*allocationFlags);
+      }
+      if (memoryGroup)
+      {
+        oomReport += ", requested memory group: ";
+        oomReport += eastl::to_string(*memoryGroup);
+      }
+      return oomReport;
+    }
+
+  private:
+    const char *methodName = nullptr;
+    const char *resourceName = nullptr;
+    eastl::optional<uint64_t> requestedSize;
+    eastl::optional<uint32_t> allocationFlags;
+    eastl::optional<uint32_t> memoryGroup;
+  };
+
+  void reportOOMInformation(DXGIAdapter *adapter);
+
+  bool checkForOOM(DXGIAdapter *adapter, bool was_okay, const OomReportData &report_data);
+
+  template <typename C>
   class ScopeExitChecker
   {
+    DXGIAdapter *adapter;
     OutOfMemoryRepoter &self;
     C checker;
-    eastl::tuple<Args...> args;
+    OomReportData reportData;
 
   public:
-    ScopeExitChecker(OutOfMemoryRepoter &s, C &&c, Args &&...a) : self{s}, checker{c}, args{eastl::forward<Args>(a)...} {}
+    ScopeExitChecker(DXGIAdapter *a, OutOfMemoryRepoter &s, C &&c, const OomReportData &report_data) :
+      adapter{a}, self{s}, checker{c}, reportData{report_data}
+    {}
 
     ScopeExitChecker(const ScopeExitChecker &) = delete;
     ScopeExitChecker(ScopeExitChecker &&) = delete;
     ScopeExitChecker &operator=(const ScopeExitChecker &) = delete;
     ScopeExitChecker &operator=(ScopeExitChecker &&) = delete;
 
-    ~ScopeExitChecker()
-    {
-      eastl::apply([this](auto &&...args) { this->self.checkForOOM(this->checker(), args...); }, args);
-    }
+    ~ScopeExitChecker() { self.checkForOOM(adapter, this->checker(), reportData); }
   };
 
-  template <typename C, typename... Args>
-  ScopeExitChecker<C, Args...> checkForOOMOnExit(C &&checker, Args &&...args)
+  template <typename C>
+  ScopeExitChecker<C> checkForOOMOnExit(DXGIAdapter *adapter, C &&checker, const OomReportData &report_data)
   {
-    return {*this, eastl::forward<C>(checker), eastl::forward<Args>(args)...};
+    return {adapter, *this, eastl::forward<C>(checker), report_data};
   }
 };
 
@@ -388,7 +426,7 @@ protected:
   ALLOCATE_FREE_COUNTERS(allocatedScratchBuffer, freedScratchBuffer, scratchBuffer)                                                 \
   COUNTER(scratchBufferTempUse)                                                                                                     \
   COUNTER(scratchBufferPersistentUse)                                                                                               \
-  ALLOCATE_FREE_COUNTERS(allocatedRaytraceScratchBuffer, freedRaytraceScratchBuffer, raytraceScratchBuffer)                         \
+  ALLOCATE_FREE_COUNTERS(allocatedRaytraceAccelStructHeap, freedRaytraceAccelStructHeap, raytraceAccelStructHeap)                   \
   ALLOCATE_FREE_COUNTERS(allocatedRaytraceBottomStructure, freedRaytraceBottomStructure, raytraceBottomStructure)                   \
   ALLOCATE_FREE_COUNTERS(allocatedRaytraceTopStructure, freedRaytraceTopStructure, raytraceTopStructure)
 
@@ -561,8 +599,8 @@ protected:
         PLACE_TEXTURE_IN_USER_RESOURCE_HEAP,
         SCRATCH_BUFFER_ALLOCATE,
         SCRATCH_BUFFER_FREE,
-        RAYTRACE_SCRATCH_BUFFER_ALLOCATE,
-        RAYTRACE_SCRATCH_BUFFER_FREE,
+        RAYTRACE_ACCEL_STRUCT_HEAP_ALLOCATE,
+        RAYTRACE_ACCEL_STRUCT_HEAP_FREE,
         RAYTRACE_BOTTOM_STRUCTURE_ALLOCATE,
         RAYTRACE_BOTTOM_STRUCTURE_FREE,
         RAYTRACE_TOP_STRUCTURE_ALLOCATE,
@@ -592,8 +630,9 @@ protected:
     };
     PerFrameData currentFrame{};
     eastl::string curentEventPath;
-    eastl::vector<ActionInfo> actionHistory;
-    eastl::vector<PerFrameData> frameHistory;
+    dag::Vector<size_t> eventPathBacktrace;
+    dag::Vector<ActionInfo> actionHistory;
+    dag::Vector<PerFrameData> frameHistory;
 
     const PerFrameData &getLastFrameMetrics() const
     {
@@ -1329,28 +1368,28 @@ protected:
     // does not generate events, there are way too many
   }
 
-  void recordRaytraceScratchBufferAllocated(uint32_t size)
+  void recordRaytraceAccelerationStructureHeapAllocated(uint32_t size)
   {
     if (!isCollectingMetric(Metric::RAYTRACING))
       return;
     auto metricsAccess = metrics.access();
-    auto &target = metricsAccess->currentFrame.rawCounters.allocatedRaytraceScratchBuffer;
+    auto &target = metricsAccess->currentFrame.rawCounters.allocatedRaytraceAccelStructHeap;
     target.count++;
     target.size += size;
 
-    recordBufferEvent(metricsAccess, MetricsState::ActionInfo::Type::RAYTRACE_SCRATCH_BUFFER_ALLOCATE, size, true);
+    recordBufferEvent(metricsAccess, MetricsState::ActionInfo::Type::RAYTRACE_ACCEL_STRUCT_HEAP_ALLOCATE, size, true);
   }
 
-  void recordRaytraceScratchBufferFreed(uint32_t size)
+  void recordRaytraceAccelerationStructureHeapFreed(uint32_t size)
   {
     if (!isCollectingMetric(Metric::RAYTRACING))
       return;
     auto metricsAccess = metrics.access();
-    auto &target = metricsAccess->currentFrame.rawCounters.freedRaytraceScratchBuffer;
+    auto &target = metricsAccess->currentFrame.rawCounters.freedRaytraceAccelStructHeap;
     target.count++;
     target.size += size;
 
-    recordBufferEvent(metricsAccess, MetricsState::ActionInfo::Type::RAYTRACE_SCRATCH_BUFFER_FREE, size, true);
+    recordBufferEvent(metricsAccess, MetricsState::ActionInfo::Type::RAYTRACE_ACCEL_STRUCT_HEAP_FREE, size, true);
   }
 
   void recordRaytraceBottomStructureAllocated(uint32_t size)
@@ -1405,6 +1444,7 @@ public:
   void pushEvent(const char *begin, const char *end)
   {
     auto metricsAccess = metrics.access();
+    metricsAccess->eventPathBacktrace.push_back(metricsAccess->curentEventPath.size());
     if (!metricsAccess->curentEventPath.empty())
     {
       metricsAccess->curentEventPath.push_back('/');
@@ -1412,19 +1452,13 @@ public:
     metricsAccess->curentEventPath.append(begin, end);
   }
 
-
   void popEvent()
   {
     auto metricsAccess = metrics.access();
-    auto at = metricsAccess->curentEventPath.find_last_of('/');
-    if (at != eastl::string::npos)
-    {
-      metricsAccess->curentEventPath.resize(at);
-    }
-    else
-    {
-      metricsAccess->curentEventPath.clear();
-    }
+    G_ASSERT(!metricsAccess->eventPathBacktrace.empty());
+    auto prevEventPathLengh = !metricsAccess->eventPathBacktrace.empty() ? metricsAccess->eventPathBacktrace.back() : 0;
+    metricsAccess->curentEventPath.resize(prevEventPathLengh);
+    metricsAccess->eventPathBacktrace.pop_back();
   }
 
   // was_hit indicated that the underlying buffer could provide the discard memory
@@ -1513,8 +1547,8 @@ protected:
   void recordScratchBufferFreed(uint32_t) {}
   void recordScratchBufferTempUse(uint32_t) {}
   void recordScratchBufferPersistentUse(uint32_t) {}
-  void recordRaytraceScratchBufferAllocated(uint32_t) {}
-  void recordRaytraceScratchBufferFreed(uint32_t) {}
+  void recordRaytraceAccelerationStructureHeapAllocated(uint32_t) {}
+  void recordRaytraceAccelerationStructureHeapFreed(uint32_t) {}
   void recordRaytraceBottomStructureAllocated(uint32_t) {}
   void recordRaytraceBottomStructureFreed(uint32_t) {}
   void recordRaytraceTopStructureAllocated(uint32_t) {}
@@ -1534,7 +1568,7 @@ class GlobalSubresourceIdProvider : public MetricsProvider
 
   struct GlobalSubresourceIdProviderState
   {
-    eastl::vector<BareBoneImageGlobalSubresouceIdRange> freeRanges;
+    dag::Vector<BareBoneImageGlobalSubresouceIdRange> freeRanges;
     ImageGlobalSubresouceId nextFreeSubRes = first_dynamic_texture_global_id;
 
     void reset()

@@ -1,4 +1,10 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
 #include <generic/dag_sort.h>
 #include <math/dag_vecMathCompatibility.h>
 #include <3d/dag_textureIDHolder.h>
@@ -18,9 +24,12 @@ static const float min_downgraded_quality = 0.125f;  // 1/8 for each side = 1/64
 static const float max_upgraded_quality = 2.0f;      // 2 for each side = 4x
 static const unsigned frames_to_change_quality = 31; // do not upgrade quality more often than each second
 
-#define SHADOW_SYSTEM_SHADER_VARS \
-  VAR(octahedral_texture_size)    \
-  VAR(octahedral_shadow_zn_zfar)
+#define SHADOW_SYSTEM_SHADER_VARS         \
+  VAR(octahedral_texture_size)            \
+  VAR(octahedral_shadow_zn_zfar)          \
+  VAR(dynamic_light_shadows)              \
+  VAR(dynamic_light_shadows_samplerstate) \
+  VAR(octahedral_temp_shadow)
 
 #define VAR(a) static int a##VarId = -1;
 SHADOW_SYSTEM_SHADER_VARS
@@ -31,11 +40,15 @@ SHADOW_SYSTEM_SHADER_VARS
 
 static mat44f buildTexTM(uint16_t ofsX, uint16_t ofsY, uint16_t sw, uint16_t sh, uint16_t tex_w, uint16_t tex_h);
 
-ShadowSystem::ShadowSystem()
+ShadowSystem::ShadowSystem(const char *name_suffix) : nameSuffix(name_suffix)
 {
   octahedralPacker.init("octahedral_shadow_packer");
   v_bbox3_init_empty(activeShadowVolume);
   volumesToUpdate.reserve(32); // allocate 64 bytes, should be enough for 99% cases
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+  smpInfo.filter_mode = d3d::FilterMode::Compare;
+  shadowSampler = d3d::request_sampler(smpInfo);
 }
 
 void ShadowSystem::changeResolution(int atlasW, int max_shadow_size, int min_shadow_size, int shadow_size_step,
@@ -74,10 +87,11 @@ void ShadowSystem::changeResolution(int atlasW, int max_shadow_size, int min_sha
   if (tinfo.w != atlasWidth || texFormatChanged)
   {
     dynamic_light_shadows.close();
-    dynamic_light_shadows = dag::create_tex(NULL, atlasWidth, atlasWidth, textureFormat | TEXCF_RTARGET, 1, "dynamic_light_shadows");
-    dynamic_light_shadows->texaddr(TEXADDR_CLAMP);
-    dynamic_light_shadows->texfilter(TEXFILTER_COMPARE);
-    dynamic_light_shadows.setVar();
+    dynamic_light_shadows =
+      dag::create_tex(NULL, atlasWidth, atlasWidth, textureFormat | TEXCF_RTARGET, 1, getResName("dynamic_light_shadows").c_str());
+    dynamic_light_shadows->disableSampler();
+    ShaderGlobal::set_texture(dynamic_light_shadowsVarId, dynamic_light_shadows);
+    ShaderGlobal::set_sampler(dynamic_light_shadows_samplerstateVarId, shadowSampler);
     d3d::resource_barrier({dynamic_light_shadows.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
     invalidateAllVolumes();
   }
@@ -88,16 +102,15 @@ void ShadowSystem::changeResolution(int atlasW, int max_shadow_size, int min_sha
   if (maxShadow != tinfo.w || texFormatChanged)
   {
     tempCopy.close();
-    tempCopy = dag::create_tex(NULL, maxShadow, maxShadow, textureFormat | TEXCF_RTARGET, 1, "temp_dynamic_light_shadows");
-    tempCopy->texaddr(TEXADDR_CLAMP);
-    tempCopy->texfilter(TEXFILTER_COMPARE);
+    tempCopy =
+      dag::create_tex(NULL, maxShadow, maxShadow, textureFormat | TEXCF_RTARGET, 1, getResName("temp_dynamic_light_shadows").c_str());
+    tempCopy->disableSampler();
 
     octahedral_temp_shadow.close();
     octahedral_temp_shadow = dag::create_array_tex(maxOctahedralTempShadow, maxOctahedralTempShadow, 6, textureFormat | TEXCF_RTARGET,
-      1, "octahedral_temp_shadow");
-    octahedral_temp_shadow.getArrayTex()->texaddr(TEXADDR_CLAMP);
-    octahedral_temp_shadow.getArrayTex()->texfilter(TEXFILTER_COMPARE);
-    octahedral_temp_shadow.setVar();
+      1, getResName("octahedral_temp_shadow").c_str());
+    octahedral_temp_shadow->disableSampler();
+    ShaderGlobal::set_texture(octahedral_temp_shadowVarId, octahedral_temp_shadow);
   }
   if (!copyDepth)
   {
@@ -111,7 +124,8 @@ void ShadowSystem::changeResolution(int atlasW, int max_shadow_size, int min_sha
   if (maxShadow != tinfo.w || texFormatChanged)
   {
     tempShadow.close();
-    tempShadow = dag::create_tex(NULL, maxShadow, maxShadow, textureFormat | TEXCF_RTARGET, 1, "temp_static_light_shadow");
+    tempShadow =
+      dag::create_tex(NULL, maxShadow, maxShadow, textureFormat | TEXCF_RTARGET, 1, getResName("temp_static_light_shadow").c_str());
     tempShadow->texaddr(TEXADDR_CLAMP);
     tempShadow->texfilter(TEXFILTER_COMPARE);
   }
@@ -207,11 +221,11 @@ Point4 ShadowSystem::getShadowUvMinMax(uint32_t id) const
     safediv((float)shadow.y + (float)shadow.height, (float)atlasWidth));
 }
 
-void ShadowSystem::Volume::buildProj(mat44f &proj) { v_mat44_make_persp_reverse(proj, wk, wk, zn, zf); }
+void ShadowSystem::Volume::buildProj(mat44f &proj) const { v_mat44_make_persp_reverse(proj, wk, wk, zn, zf); }
 
 uint32_t ShadowSystem::Volume::getNumViews() const { return isOctahedral() ? 6 : 1; }
 
-void ShadowSystem::Volume::buildView(mat44f &view, mat44f &invView, uint32_t view_id)
+void ShadowSystem::Volume::buildView(mat44f &view, mat44f &invView, uint32_t view_id) const
 {
   invView = invTm;
   if (isOctahedral() && view_id > 0)
@@ -242,7 +256,7 @@ void ShadowSystem::Volume::buildView(mat44f &view, mat44f &invView, uint32_t vie
   v_mat44_orthonormal_inverse43_to44(view, invView);
 }
 
-void ShadowSystem::Volume::buildViewProj(mat44f &viewproj, uint32_t view_id)
+void ShadowSystem::Volume::buildViewProj(mat44f &viewproj, uint32_t view_id) const
 {
   mat44f proj, view, invView;
   buildView(view, invView, view_id);
@@ -270,8 +284,10 @@ void ShadowSystem::setShadowVolume(uint32_t id, mat44f_cref viewITM, float zn, f
   volume.lastFrameChanged = currentFrame; // may be check is set same params
   volume.octahedral = false;
 
-  float cosHalfAngle = 1. / sqrtf(1 + wk * wk);
-  float sinHalfAngle = wk * cosHalfAngle;
+  // wk is 1/tan(halfAngle)
+  float tanHalfAngle = 1. / wk;
+  float cosHalfAngle = 1. / sqrtf(1 + tanHalfAngle * tanHalfAngle);
+  float sinHalfAngle = tanHalfAngle * cosHalfAngle;
   SpotLight::BoundingSphereDescriptor boundingSphereDesc = SpotLight::get_bounding_sphere_description(zf, sinHalfAngle, cosHalfAngle);
   vec3f boundingSphereCenter = v_madd(viewITM.col2, v_splats(boundingSphereDesc.boundingSphereOffset), viewITM.col3);
   volumesSphere[id] = v_perm_xyzd(boundingSphereCenter, v_rot_1(v_set_x(boundingSphereDesc.boundSphereRadius)));
@@ -417,7 +433,7 @@ void ShadowSystem::setDynamicObjectsContent(const bbox3f *boxes, int count)
 }
 
 
-void ShadowSystem::startRenderVolumes()
+void ShadowSystem::startRenderVolumes(const dag::ConstSpan<uint16_t> &volumesToRender)
 {
   if (!volumesToRender.size())
     return;
@@ -453,11 +469,12 @@ void ShadowSystem::copyAtlasRegion(int src_x, int src_y, int dst_x, int dst_y, i
   d3d::set_render_target((Texture *)NULL, 0);
   d3d::set_depth(tempCopy.getTex2D(), DepthAccess::RW);
   int v_from[4] = {src_x, src_y, 0, 0};
-  d3d::set_ps_const(15, (float *)v_from, 1);
+  d3d::set_ps_const(76, (float *)v_from, 1);
   if (w < maxShadow || h < maxShadow)
     d3d::setview(0, 0, w, h, 0, 1);
   d3d::resource_barrier({dynamic_light_shadows.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
   d3d::settex(15, dynamic_light_shadows.getTex2D());
+  d3d::set_sampler(STAGE_PS, 15, shadowSampler);
   copyDepth->render();
 
   d3d::set_render_target((Texture *)NULL, 0);
@@ -466,14 +483,13 @@ void ShadowSystem::copyAtlasRegion(int src_x, int src_y, int dst_x, int dst_y, i
   d3d::resource_barrier({tempCopy.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
   d3d::settex(15, tempCopy.getTex2D());
   int v[4] = {-dst_x, -dst_y, 0, 0};
-  d3d::set_ps_const(15, (float *)v, 1);
+  d3d::set_ps_const(76, (float *)v, 1);
   copyDepth->render();
   shaders::overrides::reset();
 }
 
 void ShadowSystem::endRenderVolumes()
 {
-  volumesToRender.clear();
   d3d::resource_barrier({dynamic_light_shadows.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
 }
 
@@ -485,40 +501,53 @@ void ShadowSystem::startRenderTempShadow()
   d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
 }
 
+void ShadowSystem::getVolumeUpdateData(uint32_t id, dynamic_shadow_render::FrameUpdate &result)
+{
+  const auto &volume = volumes[id];
+  const uint32_t numViews = volume.getNumViews();
+  G_ASSERT(numViews <= result.views.size());
+
+  for (uint32_t viewId = 0; viewId < numViews; ++viewId)
+    volume.buildView(result.views[viewId].view, result.views[viewId].invView, viewId);
+
+  volume.buildProj(result.proj);
+  result.maxDrawDistance = volume.zf;
+  result.numViews = static_cast<int>(numViews);
+  result.renderGPUObjects = volume.renderGPUObjects;
+}
+
+ShadowSystem::RenderFlags ShadowSystem::getVolumeRenderFlags(uint32_t id)
+{
+  Volume &volume = volumes[id];
+  if (volume.isDynamicOrOnlyStaticCasters())
+  {
+    G_ASSERT(volume.isDynamic() || !volume.isValidContent());
+    return volume.hasOnlyStaticCasters() ? RENDER_STATIC : RENDER_ALL;
+  }
+
+  if (!volume.dynamicShadow.isEmpty())
+  {
+    if (volume.hasDynamicContent(currentFrame))
+      return volume.isValidContent() ? RENDER_DYNAMIC : RENDER_ALL;
+    else
+    {
+      G_ASSERT(!volume.isValidContent());
+      return RENDER_STATIC;
+    }
+  }
+
+  G_ASSERT(!volume.isValidContent());
+  return RENDER_STATIC;
+}
+
 uint32_t ShadowSystem::startRenderVolume(uint32_t id, mat44f &proj, RenderFlags &render_flags)
 {
   G_ASSERT_RETURN(id < volumes.size() != 0, 0);
   Volume &volume = volumes[id];
   G_ASSERTF(!volume.shadow.isEmpty(), "volume %d", id);
   G_ASSERT_RETURN(!volume.shadow.isEmpty(), 0);
-  render_flags = RENDER_NONE;
-  if (volume.isDynamicOrOnlyStaticCasters())
-  {
-    G_ASSERT(volume.isDynamic() || !volume.isValidContent());
-    render_flags = volume.hasOnlyStaticCasters() ? RENDER_STATIC : RENDER_ALL;
-  }
-  else
-  {
-    if (!volume.dynamicShadow.isEmpty())
-    {
-      if (volume.hasDynamicContent(currentFrame))
-        render_flags = volume.isValidContent() ? RENDER_DYNAMIC : RENDER_ALL;
-      else
-      {
-        G_ASSERT(!volume.isValidContent());
-        render_flags = RENDER_STATIC;
-      }
-    }
-    else
-    {
-      G_ASSERT(!volume.isValidContent());
-      render_flags = RENDER_STATIC;
-    }
-  }
-
-  G_ASSERT(render_flags != RENDER_NONE);
-
   volume.buildProj(proj);
+  render_flags = getVolumeRenderFlags(id);
 
   if (!volume.isOctahedral())
   {
@@ -655,6 +684,8 @@ void ShadowSystem::packOctahedral(uint16_t id, bool dynamic_content)
   int margin = min(OMNI_SHADOW_MARGIN, min(extent.x, extent.y) / 2);
   ShaderGlobal::set_color4(octahedral_texture_sizeVarId, extent.x, extent.y, float(margin) / extent.x, float(margin) / extent.y);
   ShaderGlobal::set_color4(octahedral_shadow_zn_zfarVarId, volume.zn, volume.zf, 0, 0);
+
+  ShaderGlobal::set_texture(octahedral_temp_shadowVarId, octahedral_temp_shadow);
 
   shaders::OverrideStateId originalState = shaders::overrides::get_current();
   shaders::overrides::reset();
@@ -802,8 +833,8 @@ static float projected_sphere_area_look_center(float z2, float r2, float fl) // 
   return area;
 }
 
-void ShadowSystem::endPrepareShadows(int max_shadow_volumes_to_update, float max_area_part_to_update, const Point3 &viewPos,
-  float cameraFocal, mat44f_cref &clip)
+void ShadowSystem::endPrepareShadows(dynamic_shadow_render::VolumesVector &volumesToRender, int max_shadow_volumes_to_update,
+  float max_area_part_to_update, const Point3 &viewPos, float cameraFocal, mat44f_cref clip)
 {
   G_ASSERTF(currentState == UPDATE_STARTED, "start without end has been called");
   volumesToRender.clear();
@@ -950,7 +981,7 @@ void ShadowSystem::endPrepareShadows(int max_shadow_volumes_to_update, float max
   }
   currentState = UPDATE_ENDED;
 
-  dynamic_light_shadows.setVar();
+  ShaderGlobal::set_texture(dynamic_light_shadowsVarId, dynamic_light_shadows);
 }
 
 void ShadowSystem::debugValidate()

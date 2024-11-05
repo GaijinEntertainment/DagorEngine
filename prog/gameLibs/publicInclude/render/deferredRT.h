@@ -1,12 +1,11 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <3d/dag_drv3dConsts.h>
-#include <3d/dag_drvDecl.h>
+#include <drv/3d/dag_consts.h>
+#include <drv/3d/dag_decl.h>
 #include <3d/dag_resizableTex.h>
 #include <3d/dag_texMgr.h>
 
@@ -22,7 +21,7 @@ public:
     SideBySideVertical,
   };
 
-  static const int MAX_NUM_MRT = 4;
+  static const int MAX_NUM_MRT = 5;
 
   void close();
   void setRt();
@@ -43,6 +42,7 @@ public:
   TEXTUREID getRtId(uint32_t idx) const { return mrts[idx].getTexId(); }
   const ManagedTex &getRtAll(uint32_t idx) const { return mrts[idx]; }
   uint32_t getRtNum() const { return numRt; }
+  void swapDepth(ResizableTex &ndepth) { eastl::swap(depth, ndepth); }
 
 protected:
   uint32_t recreateDepthInternal(uint32_t fmt);
@@ -54,7 +54,10 @@ protected:
   char name[64] = {};
 
   ResizableTex mrts[MAX_NUM_MRT] = {};
+  d3d::SamplerHandle baseSampler = d3d::INVALID_SAMPLER_HANDLE;
+  d3d::SamplerHandle blackPixelSampler = d3d::INVALID_SAMPLER_HANDLE;
   ResizableTex depth;
+  UniqueTex blackPixelTex;
 
   bool useResolvedDepth = false;
 };

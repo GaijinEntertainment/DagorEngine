@@ -247,7 +247,7 @@ namespace das {
                 return fnc->sideEffectFlags;
             }
             if ( asked.find(fnc.get())!=asked.end() ) {
-                return 0;   // assume no side-effects on this branch
+                return fnc->sideEffectFlags;   // assume no extra side effects
             }
             asked.insert(fnc.get());
             auto sfn = func;
@@ -267,6 +267,42 @@ namespace das {
                     flags |= uint32_t(SideEffects::modifyArgument);
                 }
             }
+        // string capture
+            // if it calls string capture, it captures string, or has string builder at all
+            // note - having string builder is there because we git rid of temp string in the string builder. if we had better place to put it, we could get rid of this
+            if ( fnc->callCaptureString || fnc->captureString || fnc->hasStringBuilder ) {
+                flags |= uint32_t(SideEffects::captureString);
+            }
+            // it captures strings if it touches globals with strings
+            if ( !(flags & uint32_t(SideEffects::captureString)) ) {
+                for ( auto & gv : fnc->useGlobalVariables ) {
+                    if ( !gv->type->constant && gv->type->hasStringData() ) {
+                        flags |= uint32_t(SideEffects::captureString);
+                        break;
+                    }
+                }
+            }
+            // it captures strings if it returns a string
+            if ( !(flags & uint32_t(SideEffects::captureString)) ) {
+                if ( fnc->result->hasStringData() ) {
+                    flags |= uint32_t(SideEffects::captureString);
+                }
+            }
+            // it captures strings if it writes to an argument, that is a string
+            if ( !(flags & uint32_t(SideEffects::captureString)) ) {
+                for ( auto & arg : fnc->arguments ) {
+                    if ( !arg->type->constant && arg->access_ref ) {
+                        if ( arg->type->ref && arg->type->isString() ) {    // string &, otherwise we can write but its not a capture
+                            flags |= uint32_t(SideEffects::captureString);
+                            break;
+                        } else if ( arg->type->hasStringData() ) {          // [[ string ]]
+                            flags |= uint32_t(SideEffects::captureString);
+                            break;
+                        }
+                    }
+                }
+            }
+            // append side effects of the functions it calls
             for ( auto & depF : fnc->useFunctions ) {
                 auto dep = depF;
                 if ( dep != fnc ) {
@@ -276,6 +312,10 @@ namespace das {
                 }
             }
             fnc->knownSideEffects = true;
+            if ( flags & uint32_t(SideEffects::captureString) ) {
+                fnc->captureString = true;
+                flags &= ~uint32_t(SideEffects::captureString);
+            }
             fnc->sideEffectFlags |= flags;
             return flags;
         }

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <sceneRay/dag_sceneRay.h>
 #include <math/dag_math3d.h>
 #include <math/dag_math3d.h>

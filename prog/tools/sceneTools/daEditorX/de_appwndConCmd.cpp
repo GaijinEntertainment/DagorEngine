@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "de_appwnd.h"
 #include <de3_editorEvents.h>
 #include <de3_hmapService.h>
@@ -18,7 +20,9 @@
 
 #include <perfMon/dag_graphStat.h>
 #include <shaders/dag_shaders.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <debug/dag_debug.h>
 #include <stdio.h>
 
@@ -66,6 +70,8 @@ void DagorEdAppWindow::registerConsoleCommands()
   REGISTER_COMMAND("project.tex_metrics");
 
   REGISTER_COMMAND("driver.reset");
+
+  REGISTER_COMMAND("render.puddles");
 
 #undef REGISTER_COMMAND
 }
@@ -265,6 +271,38 @@ bool DagorEdAppWindow::onConsoleCommand(const char *cmd, dag::ConstSpan<const ch
   if (!stricmp(cmd, "driver.reset"))
   {
     dagor_d3d_force_driver_reset = true;
+    return true;
+  }
+  if (!stricmp(cmd, "render.puddles"))
+  {
+    IHmapService *hmlService = EDITORCORE->queryEditorInterface<IHmapService>();
+    if (!hmlService)
+      return true;
+
+    static int puddles_powerVarId = ::get_shader_glob_var_id("puddles_power", true);
+    static int puddles_seedVarId = ::get_shader_glob_var_id("puddles_seed", true);
+    static int puddles_noise_influenceVarId = ::get_shader_glob_var_id("puddles_noise_influence", true);
+
+    if (params.size() == 0)
+    {
+      DAEDITOR3.conNote("puddles power %f puddles_seed %f puddles_noise_influence %f", ShaderGlobal::get_real(puddles_powerVarId),
+        ShaderGlobal::get_real(puddles_seedVarId), ShaderGlobal::get_real(puddles_noise_influenceVarId));
+    }
+
+    if (params.size() >= 1)
+    {
+      ShaderGlobal::set_real(puddles_powerVarId, atof(params[0]));
+    }
+    if (params.size() >= 2)
+    {
+      ShaderGlobal::set_real(puddles_seedVarId, atof(params[1]));
+    }
+    if (params.size() >= 3)
+    {
+      ShaderGlobal::set_real(puddles_noise_influenceVarId, atof(params[2]));
+    }
+
+    hmlService->invalidateClipmap(false, false);
     return true;
   }
   return false;
@@ -593,11 +631,13 @@ bool DagorEdAppWindow::runSetWorkspaceCmd(dag::ConstSpan<const char *> params)
 
 bool DagorEdAppWindow::runShadersListVars(dag::ConstSpan<const char *> params)
 {
+  unsigned found = 0;
+  console->addMessage(ILogWriter::NOTE, "listing shader vars (%d total):", VariableMap::getGlobalVariablesCount());
   for (int i = 0, ie = VariableMap::getGlobalVariablesCount(); i < ie; i++)
   {
     const char *name = VariableMap::getGlobalVariableName(i);
     if (!name)
-      break;
+      continue;
     if (params.size() && !strstr(String(name).toLower(), String(params[0]).toLower()))
       continue;
 
@@ -608,6 +648,7 @@ bool DagorEdAppWindow::runShadersListVars(dag::ConstSpan<const char *> params)
 
     Color4 c;
     TEXTUREID tid;
+    found++;
     switch (type)
     {
       case SHVT_INT: console->addMessage(ILogWriter::NOTE, "[int]   %-40s %d", name, ShaderGlobal::get_int_fast(varId)); break;
@@ -622,6 +663,8 @@ bool DagorEdAppWindow::runShadersListVars(dag::ConstSpan<const char *> params)
         break;
     }
   }
+  if (!found)
+    console->addMessage(ILogWriter::NOTE, "  no vars (containing \"%s\") found", params.empty() ? "" : params[0]);
   return true;
 }
 bool DagorEdAppWindow::runShadersSetVar(dag::ConstSpan<const char *> params)

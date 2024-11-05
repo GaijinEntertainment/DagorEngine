@@ -1,0 +1,423 @@
+World SDF:
+  + fix wrapping for non-pow2
+
++ radiance grid move
++ radiance grid debug
++ radiance grid trilinear sampling 1h
++ radiance grid trilinear occlusion weighting sampling 1h
++ use best possible radiance, not previous 1h
++ cross clips border (just two texels per clip!)
+* cross clips borders updates twice if multi-box (or updates when not needed)
+* dx11 support
+- radiance (irradiance) grid clip-border to use trilinear filter on border, instead of traced
+- radiance grid multi-ray calc 1h
+- radiance grid gradual calc (1 clip a frame)
+- radiance grid move threshold (at least 0.5 voxel)
+- radiance grid toroidal
+- radiance grid multi-ray temporal SSA (visible rays)
+- radiance grid sampleVoxels
+- irradiance grid multi-ray temporal SSA (visible rays)
+- blur occlusion
+? offset worldpos if inside sdf
+
+- Objects SDF
+  - SDF blocks compression (allocator) 16x16x16
+
+screenspace probes
++ tile position jitter
++ spatial filter
++ use 2-4 bits for age (we only need it to faster converge probe first few)
++ write probe normal (encoded)
++ jitter position for sampling depth, and use this jittered position!
++ if jittered position is sky, use closest depth position
++ adaptive probes (not just two planes. we better either go downsample size (so place probes in between) or iteratively found all probes needed
++ use tileCoord for tileClassification - bits are unused and can help us faster skip tiles without additional probes
++ adaptive probes placed in one pass
++ adaptive probes placed more passes (re-classify tiles)
++ numScreens to be constant
++ dispatch indirect for additional probes placements
+- try bruteforce approach of additiona probes processing
++ (sp_getNumScreenProbes()+31)/32
+* reuse 'screen' (empty) probes for additional (we need just linked list of probes then, and explicit positions for tracing)
+* for irradiance resolution of 3x3 (and probably 5x5), SPH is making more sense quality wise (~same memory, but more information)
+* test SPH
+
+* optimize additional placement
+  * dispatch indirect for additional probes processing count
+  - screenProbes worldOffset - so we can correctly mark radiance cache
+- use hyperZ not linearZ for plane
++ r11g11b10f - current radiance
++ r11g11b10f - final radiance.
++ TODO: use rounding when encoding temporal voxels as well as temporal GI
+? dont trace additional traces for new probes in same loop - dispatch indirect additionally.
++ store just .w and age (instead of full worldpos)
+- irradiance - use lut for solid angle
++ screenspace ray traversal
++ screen probe normal - only towards camera
++ check exhaustion for additionalPlanesAllocation (we can decrease criteria, or reallocate)
++ coord bits are used only for additional probes TRACE, so we can free bits for tag/depth in encoded probe
++ coord bits in encoded normal are used only for additional probes TRACE, so we can encode normal differently for on screen probes (more bits)
++ amount of iteration should depend on tile_size
++ if TILE_SIZE != tile_size we can't do what we do in additional placement. Either we should choose 2..3*of potential probes (close/far/center) or we should process using 8x8 tiles (not tile_size) or something
++ screen probe OFFSETED position should be used for populating radiance cache (including world_sdf_step_out) (different for HQ and LQ)
+* 16bit float quality?
+  + pre-exposure of radiance based on latest probe average brightness (exposure) (use groupshared float to add)
+    + use groupshared without intrinsics
+  * for irradiance use some constant. Can be average of averages of probes radiance (preferrably after readback)
+  *   or based on frame brightness (exposure)
+* ONLY screenspace ray (+ hmap) traversal if probe is outside SDF/voxels (as it can't hit anything)
+* explicit separate inside sdf/outside sdf probes calculation (dispatch indirect)
+
++ specular (integrated radiance)
+  * specular should be dithered (to hide seam)
+  * integrate for second mip
++ noise reduction (new probes)
+  + screen probe should have age (at least 2 bits), so we can increase spatial filter on "new" probes over frames
+  - or dispatch indirect on "new" probes, so we make more spatial filter passes on those
+  - screens initial (new) probe - use %% of radiance cache even on hit - to reduce noise (introduces ghost leaking)
+
+- radiance cache
+  + dispatch indirect for temporal probes (not all probes, collect needed on this frame and add to list)
+  + temporal budget shader variables and other consts
+  + optimize memory usage - radiance_positions can be clipPos, not absCoords, so we can fit to 32 bit (9x9x9:5)
+  + toroidal movement instead of recreate
+  + toroidal movement instead of recreate
+  + ?irradiance?
+  - indirection StructuredBuffer -> ByteAddressedBuffer/Texture3d? (we need hlsl block for textures to do texture3d)
+  + keep used mask
+  + LRU with frames counter
+    + make magical 'deleted' age (~0u)
+  * lazy-sort allocated probes by LRU
+    * explicit list of allocataed/potenial freeable probes (with LRU older than current frame)
+    odd-even sort
+    1) each frame we sort allocated probes within small buckets and write back to same array (8)
+    2) each frame we change bucket offset, so we sort between buckets as well
+  + fix wrapping for non-pow2
+  + allocate new probes indirect
+  * free old probes indirect (and iterative, with different age based on free space and required amount)
+  * trace all probes
+    + trace all coarser probes
+    + trace all finer probes (up to one probe distance size) (gives just 10% of perf back. Probably not worth it)
+      *? parallax correction
+    + trace all new probes (indirect)
+    + temporal age
+    + temporal re-calc old-probes (just % of probes to recalc each frame)
+      +begin of per group operations
+      +todo: all of it can and should be done in a separate shader
+    - occlusion weightening for radiance cache sampling
+    * limit amount of probes being temporal filtered
+    * spatial filtering for temporal radiance cache (also dx11 friendly!)
+      step1) write filtered and temporal reprojected probes to another texture/buffer
+      step2) copy back filtered probes to destination texture
+    * 16bit float quality?
+      * pre-exposure of radiance based on latest probe average brightness (exposure) (use groupshared float to add)
+        * use groupshared without intrinsics
+    * world space position in radiance cache (new probes and temporal should find it's position)
+    * radiance cache initial trace - supersample (at least 2x), if there is enough budget
+  * radiance cache has to be within SDF/voxels region (amount of clips, etc)
+  * radiance cache probe should not be allocated if there is no voxels/sdf around (relatively far around, at least +16m)
+* when no UAV TypedLoad, use ByteAddressBuffer encoded radiance for radiance cache (no sampling possible, so use exactly same RADIANCE_RES)
++ we'd rather increase back negative freeindexcount once in one fix up step (just basically clamp to 0, after whole allocation). That's faster
+
+
+Froxels:
+  - hardcoded/fixed radiance res? (can probably optimize shaders a bit)
+  + reproject irradiance
+  + jitter in calculation
+  + do not create ping pong if not needed
+  + remove hit distance
+  + radiance cache for froxels
+  + we need to have sh1 for environment! some thing reasonable
+  + calc from irradiance only
+  + use own position instead of screenprobes (otherwise it has to only exist when screenprobes are exist)
+  * calc from skyVis ?
+  - radiance grid?
+  - check occlusion!
+
+VoxelScene:
+  + worldsdf + voxel scene debugging
+  + voxel scene render project dependence injection
+  + voxel scene clear project dependence injection ()
+  + voxel scene copy slice (it already works reasonably well with just border slice being 0)
+  + voxel scene anisotropy
+  + fix wrapping for non-pow2
+  + limit max clip (too big radiance voxels, such as ~0.5 albedo provides multiple bounce, but WORSER quality (light leaking) than using higher precision SDF + albedo)
+  + fix wrap border, as 0.5 sdf voxel border is not enough for voxel scene if it is 0.5 (or less) of voxel
+  * initial voxelizing: 
+    + use CSM on initial
+    * use directLighting from directional lights
+    * use SP for ambient - makes a lot of sense, if it is visible (i.e. we move forward)
+  + feedback loop from gbuffer
+    + stable feedback loop - required for reflections!
+    * correctly re-lit pixel
+      + use combined shadows
+      + use SP
+      * use directLighting from directional lights
+    * dx11 support
+  * voxel scene clear project add Barrier
+
+AlbedoScene:
+  + fix wrapping for non-pow2
+  + albedo scene writing (indirection and such)
+  + albedo scene debugging
+  + albedo scene toroidal update
+  + albedo scene world debugging
+  + either use internal block size == block size (more utilization) or correctly update albedo
+  + albedo scene fill callback
+  + one-axis-move
+  + albedo scene sampling
+  + full scene world debugging
+  + feedback loop from gbuffer
+    + stable feedback loop - required for reflections!
+    + dx11 support (as_uint)
+  + srgb for albedo
+  + add border jump flood (one voxel), to avoid misses
+  + 'needed blocks' to be updated with another indirect
+  + initial heightmap case can be optimized to sample albedo only once per world xz (loop down anyway)
+  * loop-back (at least in debug) cache allocation
+  * profile & wave intrinsics for block allocation
+  * albedo scene handle (allows thread prepare)
+
+SkyVisibility:
+  + remove sky vis usage
+  + temporal update
+  - spatial filtering
+  + usage
+  + optimize calculations in shader for usage
+  + temporal recalc only frustum visible probes (with much higher chance, than invisible)
+    + temporal recalc only occlusion visible probes (with much higher chance, than invisible)
+    + add visible probes id to another array (one thread per probe, not one group per probe)
+    + also calculate invisible probes as well as not-close-proximity, with different count of rays
+    + sparse temporal for visible probes
+    + moving average per clip of actual count, so we can change probability based on it
+    + optimize count at calc
+  + sun bounce
+  + cross-fade or clips
+  + longer cross-fade or clips (for xz at least)
+  + prefer one axis at a time
+  + settings
+  + apply SPH1 of sky (not just already executed sky ambient!)
+  + add Age (and so convergence decreasing spatial temporal size)
+  + far proximity can just load upper interpolated cascade (UAV)
+  + optimize toroidal update in two passes: "close" proximity and "far" proximity with different count of rays
+  + optimize sky vis trace distance using higher cascades sampling in direction (evaluate visibility in ray direction after N meters, decrease dist)
+  + add media (trees)
+  + support no typed UAV load filtering (use intermediate byte buffer with r16f data to store trace results. Buffer can be of any size (will require N updates))
+  * support no typed UAV load interpolation on toroidal
+  * simplify media (only transmittance needed) for sky only
+  - or argb8 encoding
+  - smooth shadow in trace
+
+daGI2:
++ logerrs
++ 2 worldSDF init
++ use albedo scene sampling for filling voxel scene.
++ use albedo scene sampling for 'too far' radiance hits
+  + add using skylight for (radiance cache, SP) on albedo scene hits
+
++ add ambient for voxel lighting (at least radiance cache irradiance + sp may be)
+  * add ambient for relighting (from SP irradiance)
+
+
+* SP and Radiance cache trace hit for on screen hits - prefer albedoScene over voxelScene path (if we are inside frustum, and not occluded by depth).
+  1) it is more accurate (shadows and such)
+  2) more reactive (less temporal)
+  3) we can increase quality further by improving (lerping) albedo with current gbuffer, if it is not mis occluded
+  ? perf?
+
++ limit max clip (too big radiance voxels, such as ~0.5 albedo provides multiple bounce, but WORSER quality (light leaking) than using higher precision SDF + albedo)
++ feedback loop
+
+? too greenish (probes average luminance)?
+
++ dynamic objects
+  + dynamic not update SDF
+  + dynamic not update voxel
+  + dynamic not update albedo
+  + dynamic read in sp probes (ghosting)
+  + dynamic read in sp close probes (should be not moving)
++ fix two gbuffers load
+
++ NaN-filtering
++ long-distance some skylight approximation (indirection probably)
+
+* isDynamic in additional probes should be optimized (do it once per tile, and only where initial probe is not already dynamic (meaning additional is also dynamic))
+
++ apply prev frame exposure on sp probes!
+* allow reprojection hit using gbuffer albedo, current combined_shadow
+
++ move to library, remove dagi dep (MSAA target)
+* thread-based prepare visibility
+* invalidate (clear and add) box in SDF/voxelScene
+* add box in SDF in SDF/voxelScene/albedoScene
++ foliage/transparency scene
+  + foliage scene to collect bounce (voxel lit scene)
+  + inital foliage scene trees Above
+  + trees Above light pixel with normal
+  + trees Above store Min depth as well (so we can fill full media)
+  + trees Above refactor (universal code)
+  + add back lighting to foliage scene
+  + add back lighting to foliage scene voxelization
+  + add back lighting to foliage scene voxelization to media
+  * make trees Above rendering based on media scene info
+  * make render in quads
+  * incorrect trace ray on wrap
++ specular (integrated screenprobes radiance)
+* pre-integrate sky octahedral for radiance cache (also partially update it each frame)
+* debug: we shouldn't traceRayScreen if we render debug info on this same screen (better render it independently!)
+
+* raycast from project dependence injection
+* HWRT
++ voxel scene from gbuf project dependence injection
+
+* lowest GI quality - only skylight
+  - calc SP probes positions as we do now
+  + immediately sample SPH1 of SkyVis at probes positions
+  + filter it the same way (spatial + temporal), but ofc just SPH1, not radiance
+  + apply irradiance directly from this SPH1
+  * support in settings
+
+* common settings (GI distance, GI quality)
+
+RadianceGrid:
+  + irradiance grid (colored SPH1)
+  + use in volumetric gi (instead of tracing, or short trace)
+  - occlusion sampling from radiance grid?
+  + check performance of optimal tex3Dlod. If no difference - remove overload
+  + remove radiance cache
+  + support age / faster convergence
+    * probably store in 8 bits (4 times less memory) age, and/or store info about probe proximity
+  + _use proximity_ for radiance grid! (probes that are farther than traceDist should not be recalced that often)
+  + settings
+  + temporality between probes (no need to update whole probe)
+  + initial populate with smaller amount of rays (replicate trace results from lower resolution)
+  - Sky visibility should use radiance grid (or even BE radiance grid, i.e. SPH1 of radiance grid sky vis)!
+  *? support no typed uav load?
+
+  + !detailed IrradianceGrid!:
+   + media trace
+   * irradiance on albedo hit is not used (as we trace same irradiance in toroidal)!
+   * we should use higher cascades for tracing, and 'missing albedo' for biggest cascade
+     more detailed, traced, using very short rays (i.e. radiance grid to rescue)
+   + first populate with radiance grid directly, no trace
+   + similar as old one use age to immediately trace firstly visible with 64 rays
+   + use two probabilities with bigger amount of rays
+* direct lights on toroidal movement (for albedo hit) are not used
+
++ fast np2 for:
+ + albedo scene
+ + voxel scene
+ + radiance cache
+ + sky visibility
+ + world sdf
+
+* Dx11 todo:
+  + group sync in probes placement
+  + group sync world_sdf_update_objects (we don't even need it now)
+  + uav can not be set in PS and CS simultaneously
+  + SV_depth outputs in debug renders
+  + albedo scene not working (first cascade?)
+  + no typed UAV in skyVis scene in spatial filter
+  * no typed UAV in skyVis scene in toroidal interpolate
+  * no typed UAV in world sdf in mark_from_gbuf
+  * no typed UAV in voxellit scene in mark_from_gbuf
+  - no typed UAV in radiance cache (replace with buffer limited to temporal probes size?)
+  * no typed UAV in radiance grid (replace with buffer of temporal probes size?)
+
+! border tiles classification broken
+
+* enlisted
+  * reprojection or spatial sometimes blurs over incorrect edge
+  * GI pos is not same as view itm pos
+  + in DX11 collision not rasterizing!
+  + crash on loading opera
+  + sdf/voxel scene initial rasterization is rendering outside
+  + wrapping lit scene
+  + changing zoom results in wrong gbuffer update - invalid matrix used?
+  + use normal for bilateral upscale and enviLightingNormal for sampling irradiance
+  + albedo is not voxelized
+    + optimize albedoization with box checking of updated region and early discard
+  + apply
+  + albedo of heightmap
+  + too dark ambient on albedo cascades
+  + skip glass in collision
+  + radiance cache exhaustion
+  + skip foliage in sdf
+  - sky vis toroidal update is too slow
+  + use irradiance grid for transparents
+  + apply in transparents as well (Hq/Lq)
+  * support very low quality
+  + GI is buggy
+    + zn/zfar results in bad precision 
+    + not 'blurring' (bilateral) over it on close dist
+    + difference in lighting (pass through walls)
+    * use normal from gbuffer on sp hit if we hit gbuffer
+  * dynamic-not-moving should not be dynamic
+  + foliage
+
++ (multi-layered) radiance Grid - second level cache, increases quality and performance (limits ray length) for both radiance cache and sky visibility
+
++ voxel lit and albedo should take into account foliage colors (but not dynamic pixels)
++ sky vis - not really needed, this is merely ~irradiance grid
++ offset by jitter screenprobes coord - to stabilize GI
++ probes placement to be enhanced
+  * for tilesize>8 on first two iterations use downsampled normals & depth (checkerboard), + may be rawbuffer (checkerboarded otherwise)
+    then re-classify with close far depth
+  * on next iterations we can just use TILE_SIZE = 16
+
+* voxellit scene is too dark in hit (sun lit color)
+* enviprobe for sky radiance is incorrect
+* ssao and combined shadows
+- radiance cache should depend on resolution? to a certain degree it should
++ cockpit rendering
+- temporal radiance cache probe - better pattern
+* temporal radiance grid probe - better pattern
+* temporal sp - better pattern
+- spatial filtering on newely appeared radiance cache probes
+  + radiance grid
++ sky visibility bug (we see sky vis down, bounce is too high)
+* tile size 32 is needed for 4k resolution (basically tile size should be resolution dependent)
+
++ more-detailed irradiance grid
+* low res gi - detailed irradiance grid, sky only
+
+* use preintegrated octahedral for sky hit on initial radiance grid!
+- volumetric - just trilinear irradiance grid if distance to sdf is more than probe size
++ alternate reflections - do not even sample 
+
+DetailedIrradiance
++ detailed irradiance - kinda meh. probably another iteration
++ add age and temporal
++ add spatial filtering on adding
++ optimize toroidal
++ far proximity can just load upper interpolated cascade (UAV)
++ optimize toroidal update in two passes: "close" proximity and "far" proximity
++ settings
++ add media (trees)
+
+
+* voxellit scene is too bright in corner (initial voxelization? irradiance?)
+  + UPDATE FROM GBUF won't overwrite imprecise INITIAL VOXELIZATION
+  * initial voxelization from radiance grid is not always OK (and from sp wouldn't be also)
+  * INITIAL VOXELIZATION TOO BRIGHT (due to irradiance grid undersampling). Occlusion? choose darkest?
+    * use sdf collide?
+  * initial voxelization from radiance grid is chicken-and-egg: we right voxelized geom when writing sdf, and during that there is no correct irradiance
+    potential solutions:
+      * double voxelization (meh...)
+      ???
+  * UPDATE FROM GBUF - check nearby voxels may be (if they are incorrect)?
+  
+* extract "common" scratch buffer (for GPU uses), to reduce memory foot print (such as selected_probes, selected_sdfs, etc)
++ voxelsLitScene is not needed for BareMinimum
+* add depth weighening
++ one-tap PCF for static shadows 
+  * and CSM ?
+
+
+* DYNAMIC resolution support
+  * volumetricGI better to alias texture and decrease current resolution
+  * screen probes are yet just re-creating all resources
+
+* optimization: instead of comparing weights in apply, guarantee that textures are not NAN (using clear on reset). This makes applu code 10% faster
+* RGBE format is faster and more accurate. on dx12 (it runs with alias),
+* on Scarlett aliasing not working, but direct usage is OK. On Scarlett we could guarantee it exists, getting rid of probe exposure.

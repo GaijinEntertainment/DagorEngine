@@ -3,15 +3,11 @@ Location = prog/tools/sceneTools/dbldUtil ;
 include $(Root)/prog/tools/tools_setup.jam ;
 ConsoleExe = yes ;
 ProjectAllowsOodle = yes ;
+DafxGravityZone ?= yes ;
 
 TargetType  = exe ;
 Target      = tools/dbldUtil ;
-
-include $(Root)/prog/_jBuild/defaults.jam ;
-
-OutDir = $(Root)/tools/dagor3_cdk/util ;
-if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
-if $(Platform) in linux64 macosx { OutDir = $(OutDir)-$(Platform) ; }
+include $(Root)/prog/tools/tools_setup_outdir_util.jam ;
 
 AddIncludes =
   $(Root)/prog/tools/sharedInclude
@@ -52,6 +48,7 @@ UseProgLibs =
   gameLibs/render
   gameLibs/rendInst
   gameLibs/rendInst/riFx/stub
+  gameLibs/render/volumetricLights/stub
   gameLibs/render/nodeBasedShader/stub
   gameLibs/landMesh
   engine/drv/drv3d_stub
@@ -62,6 +59,6 @@ UseProgLibs =
   gameLibs/daECS/gameResStub
   gameLibs/ecs/rendInst/stub
 ;
-if $(Platform) = linux64 { UseProgLibs += engine/osApiWrappers/messageBox ; }
+if $(Platform) = linux { UseProgLibs += engine/osApiWrappers/messageBox ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -5,6 +5,8 @@ TargetType  = lib ;
 Target      = tools/sceneTools/daEditorX/services/dynRenderSrv.lib ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
+ToolsHaveVR ?= no ;
+
 AddIncludes =
   $(Root)/prog/tools/sceneTools/daEditorX/include
   $(Root)/prog/tools/sharedInclude
@@ -19,14 +21,20 @@ SourceES =
   tonemapUpdES.cpp.inl
 ;
 
-for s in $(SourceES) { GenESSourceFile $(s) ; }
-
 UseProgLibs =
   gameLibs/render/upscale
   gameLibs/render/genericLUT
+  gameLibs/vr
 ;
 
 CPPopt = ;
+
+if $(ToolsHaveVR) = yes {
+  CPPopt += -DTOOLS_HAVE_VR=1 ;
+  Target = $(Target:S=~vr.lib) ;
+}
+
+for s in $(SourceES) { GenESSourceFile $(s) ; }
 
 include $(Root)/prog/_jBuild/build.jam ;
 

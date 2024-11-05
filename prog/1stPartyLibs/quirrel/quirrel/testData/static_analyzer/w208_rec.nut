@@ -1,3 +1,6 @@
+if (__name__ == "__analysis__")
+  return
+
 
 function foo() { return { editorIsActive = 42 } }
 

@@ -1,0 +1,30 @@
+include "dynamic_opaque_inc.dshl"
+include "gbuffer.dshl"
+include "normaldetail.dshl"
+include "metatex_inc.dshl"
+
+macro INIT_OPAQUE_METATEX_PS()
+  texture tex = material.texture.diffuse;
+  texture normal = material.texture[2];
+
+  USING_ATEST_HALF()
+  SETUP_CHARACTER_MICRODETAIL()
+endmacro
+
+macro METATEX_PS()
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    if (atest == atestOn)
+    {
+      (ps) { diffuse_tex@static = tex; }
+    }
+    SPECIAL_RENDER_ALPHATEST_CHOOSE()
+  }
+  else
+  {
+    hlsl(ps) {
+      #define IS_DYNAMIC 1
+    }
+    USE_METATEX_PS(true)
+  }
+endmacro

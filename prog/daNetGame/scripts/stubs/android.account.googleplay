@@ -1,0 +1,8 @@
+
+return {
+  startSignIn = @() null
+  signOut = @(_) null
+  getPlayerId = @() ""
+  getServerAuth = @() ""
+  getGPStatus = @() 0
+}

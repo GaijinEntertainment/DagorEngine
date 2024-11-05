@@ -1,3 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
+// DDS format structures and bits for XBOX
+
 /*==========================================================================;
  *
  *  Copyright (C) Microsoft Corporation.  All Rights Reserved.
@@ -6,9 +11,6 @@
  *  Content:    DirectDraw include file
  *
  ***************************************************************************/
-
-// DDS format structures and bits for XBOX
-#pragma once
 
 #include <supp/_platform.h>
 #include <util/dag_stdint.h>
@@ -602,7 +604,6 @@ enum D3DFORMAT
   D3DFMT_L8 = 50,
   D3DFMT_A8L8 = 51,
   D3DFMT_V8U8 = 60,
-  D3DFMT_V16U16 = 64,
   D3DFMT_DXT1 = FOURCC_DXT1,
   D3DFMT_DXT2 = FOURCC_DXT2,
   D3DFMT_DXT3 = FOURCC_DXT3,

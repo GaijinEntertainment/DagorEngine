@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/vector.h>
@@ -5,8 +6,10 @@
 #include <util/dag_string.h>
 #include <util/dag_strUtil.h>
 #include <osApiWrappers/dag_spinlock.h>
-#include <3d/dag_renderStates.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_decl.h>
+#include <drv/3d/dag_consts.h>
 
 #include "driver.h"
 #include "bitfield.h"
@@ -20,6 +23,11 @@
 
 namespace drv3d_dx12
 {
+struct StaticRenderStateIDWithHash
+{
+  StaticRenderStateID id;
+  dxil::HashValue hash;
+};
 
 class DeviceContext;
 
@@ -77,14 +85,40 @@ public:
 
     // third 32 bits
     uint32_t colorWriteMask;
+
+    StaticStateBits() :
+      enableDepthTest{0},
+      enableDepthWrite{0},
+      enableDepthClip{0},
+      enableDepthBounds{0},
+      enableStencil{0},
+      enableIndependentBlend{0},
+      enableAlphaToCoverage{0},
+      depthFunc{0},
+      forcedSampleCountShift{0},
+      enableConservativeRaster{0},
+      viewInstanceCount{0},
+      cullMode{0},
+      stencilReadMask{0},
+      stencilWriteMask{0},
+      stencilFunction{0},
+      stencilOnFail{0},
+      stencilOnDepthFail{0},
+      stencilOnPass{0},
+      colorWriteMask{0}
+    {}
   };
+
+  // Struct should not have alignment intervals,
+  // because we calculate hash for whole structure
+  G_STATIC_ASSERT(sizeof(StaticStateBits) == 3 * sizeof(uint32_t));
 
   struct StaticState : StaticStateBits
   {
     // fourth 32 bits
-    float depthBias;
+    float depthBias = 0.0;
     // fifth 32 bits
-    float depthBiasSloped;
+    float depthBiasSloped = 0.0;
 
     struct BlendFactors
     {
@@ -101,7 +135,7 @@ public:
     };
 
     // 3 * 32 bits (4 * 3 * 8 bits)
-    BlendParams blendParams[shaders::RenderState::NumIndependentBlendParameters];
+    BlendParams blendParams[shaders::RenderState::NumIndependentBlendParameters]{};
 
     static_assert(sizeof(BlendParams) == 3);
     static_assert(sizeof(blendParams) == shaders::RenderState::NumIndependentBlendParameters * sizeof(BlendParams));
@@ -543,6 +577,11 @@ public:
     }
   };
 
+  // Struct should not have alignment intervals,
+  // because we calculate hash for whole structure
+  G_STATIC_ASSERT(sizeof(StaticState) == sizeof(StaticStateBits) + sizeof(StaticState::depthBias) +
+                                           sizeof(StaticState::depthBiasSloped) + sizeof(StaticState::blendParams));
+
   void reset()
   {
     OSSpinlockScopedLock lock(mutex);
@@ -581,18 +620,30 @@ public:
 
   static bool is_compatible(const Driver3dDesc &desc, const StaticState &state)
   {
-    if (state.enableDepthBounds)
+    // either support the feature or don't use it
+    if ((desc.caps.hasDepthBoundsTest || 0 == state.enableDepthBounds) &&
+        (desc.caps.hasConservativeRassterization || 0 == state.enableConservativeRaster) &&
+        (desc.caps.hasBasicViewInstancing || 0 == state.viewInstanceCount))
     {
-      return desc.caps.hasDepthBoundsTest;
+      return true;
     }
-    if (state.enableConservativeRaster)
+
+    if (!(desc.caps.hasDepthBoundsTest || 0 == state.enableDepthBounds))
     {
-      return desc.caps.hasConservativeRassterization;
+      logdbg("DX12: ...render state is not compatible, uses depth bounds test...");
     }
-    return true;
+    if (!(desc.caps.hasConservativeRassterization || 0 == state.enableConservativeRaster))
+    {
+      logdbg("DX12: ...render state is not compatible, uses conservative raster...");
+    }
+    if (!(desc.caps.hasBasicViewInstancing || 0 == state.viewInstanceCount))
+    {
+      logdbg("DX12: ...render state is not compatible, uses view instancing...");
+    }
+    return false;
   }
 
-  DynamicArray<StaticRenderStateID> loadStaticStatesFromBlk(DeviceContext &ctx, const Driver3dDesc &desc, const DataBlock *blk,
+  DynamicArray<StaticRenderStateIDWithHash> loadStaticStatesFromBlk(DeviceContext &ctx, const Driver3dDesc &desc, const DataBlock *blk,
     const char *default_format);
 
 private:
@@ -674,7 +725,7 @@ private:
     return registerStaticState(ctx, StaticState::fromRenderState(def));
   }
   OSSpinlock mutex;
-  eastl::vector<StaticState> staticStateTable;
-  eastl::vector<eastl::pair<shaders::RenderState, PublicStateInfo>> publicStateTable;
+  dag::Vector<StaticState> staticStateTable;
+  dag::Vector<eastl::pair<shaders::RenderState, PublicStateInfo>> publicStateTable;
 };
 } // namespace drv3d_dx12

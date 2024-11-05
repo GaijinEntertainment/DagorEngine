@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_overrideStateId.h>
 #include <3d/dag_textureIDHolder.h>

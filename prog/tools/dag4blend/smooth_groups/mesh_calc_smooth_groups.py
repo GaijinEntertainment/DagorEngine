@@ -1,46 +1,11 @@
-import bpy, bmesh
+import bpy
+import bmesh
+from ..tools.bmesh_functions    import *
 
 #bmesh functions--------------------------------------------------------------------------------------------------------
 
-#converts mesh/edit_mesh to bmesh
-def mesh_to_bmesh(mesh):
-    current_mode = bpy.context.mode
-    if current_mode == 'EDIT_MESH':
-        bm = bmesh.from_edit_mesh(mesh)
-    else:
-        bm = bmesh.new()
-        bm.from_mesh(mesh)
-    #it's not always necessary, but in most cases it's faster than re-calling function several times
-    bm.verts.ensure_lookup_table()
-    bm.edges.ensure_lookup_table()
-    bm.faces.ensure_lookup_table()
-    return bm
-
-#converts bmesh data back to mesh/edit_mesh
-def bmesh_to_mesh(bm, mesh):
-    current_mode = bpy.context.mode
-    if current_mode == 'EDIT_MESH':
-        bmesh.update_edit_mesh(mesh)
-    else:
-        bm.to_mesh(mesh)
-    return mesh
-
-
-def bmesh_select_elements(elements):
-    #works only after bm.<domain>.ensure_lookup_table()
-    for el in elements:
-        el.select_set(True)
-    return
-
-
-def bmesh_deselect_elements(elements):
-    #works only after bm.<domain>.ensure_lookup_table()
-    for el in elements:
-        el.select_set(False)
-    return
-
 #returns faces, that have at least one
-def bmesh_get_perimeter_faces(faces):
+def bm_get_perimeter_faces(faces):
     neighbours = []
     for f in faces:
         for v in f.verts:
@@ -143,11 +108,11 @@ def mesh_calc_smooth_groups(mesh):
     SmoothGroups = [0 for face in range(bm.faces.__len__())]
     IDs = mesh.calc_smooth_groups(use_bitflags = False)#each island gets unic int index. ([numbers], amount of islands)
     islands = ids_to_islands(IDs, bm.faces)
-    bmesh_deselect_elements(bm.faces)#selection used to speed up search for neighbours
+    bm_deselect_elements(bm.faces)#selection used to speed up search for neighbours
     for island in islands:
-        bmesh_select_elements(island)
-        neighbours = bmesh_get_perimeter_faces(island)
-        bmesh_deselect_elements(island+neighbours)
+        bm_select_elements(island)
+        neighbours = bm_get_perimeter_faces(island)
+        bm_deselect_elements(island+neighbours)
         exclude_sg = get_sg_combined(neighbours, SmoothGroups)
         value = get_free_sg([],exclude_sg)
         for f in island:

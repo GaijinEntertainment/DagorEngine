@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #undef _WIN32_WINNT
 
 #include "dxgi_utils.h"
@@ -23,62 +25,77 @@ String get_monitor_name_from_output(IDXGIOutput *pOutput)
   return String(outputName);
 }
 
-ComPtr<IDXGIOutput> get_output_monitor_by_name(IDXGIAdapter *pAdapter, const char *monitorName)
+ComPtr<IDXGIOutput> get_output_monitor_by_name(IDXGIFactory *pFactory, const char *monitorName)
 {
   G_ASSERT(monitorName);
 
-  for (uint32_t outputIndex = 0;; outputIndex++)
+  ComPtr<IDXGIAdapter> adapter;
+  for (uint32_t adapterIndex = 0;; adapterIndex++)
   {
-    ComPtr<IDXGIOutput> output;
-    if (FAILED(pAdapter->EnumOutputs(outputIndex, &output)))
+    if (FAILED(pFactory->EnumAdapters(adapterIndex, &adapter)))
       break;
 
-    DXGI_OUTPUT_DESC outDesc;
-    output->GetDesc(&outDesc);
-    char name[outputNameSize];
-    wcstombs(name, outDesc.DeviceName, outputNameSize);
+    for (uint32_t outputIndex = 0;; outputIndex++)
+    {
+      ComPtr<IDXGIOutput> output;
+      if (FAILED(adapter->EnumOutputs(outputIndex, &output)))
+        break;
 
-    if (strcmp(monitorName, name) == 0)
-      return output;
+      DXGI_OUTPUT_DESC outDesc;
+      output->GetDesc(&outDesc);
+      char name[outputNameSize];
+      wcstombs(name, outDesc.DeviceName, outputNameSize);
+
+      if (strcmp(monitorName, name) == 0)
+        return output;
+    }
   }
+
   return nullptr;
 }
 
 namespace
 {
 template <bool DefaultOnly>
-ComPtr<IDXGIOutput> get_output_monitor_by_name_or_default_(IDXGIAdapter *pAdapter, const char *monitorName)
+ComPtr<IDXGIOutput> get_output_monitor_by_name_or_default_(IDXGIFactory *pFactory, const char *monitorName)
 {
   ComPtr<IDXGIOutput> defaultOutput;
   ComPtr<IDXGIOutput> firstFoundOutput;
-  for (uint32_t outputIndex = 0;; outputIndex++)
+  ComPtr<IDXGIAdapter> adapter;
+  for (uint32_t adapterIndex = 0;; adapterIndex++)
   {
-    ComPtr<IDXGIOutput> output;
-    if (FAILED(pAdapter->EnumOutputs(outputIndex, &output)))
+    if (FAILED(pFactory->EnumAdapters(adapterIndex, &adapter)))
       break;
 
-    DXGI_OUTPUT_DESC outDesc;
-    output->GetDesc(&outDesc);
-
-    if (!DefaultOnly)
+    for (uint32_t outputIndex = 0;; outputIndex++)
     {
-      char name[outputNameSize];
-      wcstombs(name, outDesc.DeviceName, outputNameSize);
+      ComPtr<IDXGIOutput> output;
+      if (FAILED(adapter->EnumOutputs(outputIndex, &output)))
+        break;
 
-      if (monitorName && strcmp(monitorName, name) == 0)
-        return output;
-    }
+      DXGI_OUTPUT_DESC outDesc;
+      output->GetDesc(&outDesc);
 
-    // According to Raymond Chen in https://devblogs.microsoft.com/oldnewthing/20070809-00/?p=25643
-    // the primary monitor is which coordinates is (0,0)
-    if (outDesc.DesktopCoordinates.left == 0 && outDesc.DesktopCoordinates.top == 0)
-    {
-      defaultOutput = eastl::move(output);
-      if (DefaultOnly)
-        return defaultOutput;
+      if (!DefaultOnly)
+      {
+        char name[outputNameSize];
+        wcstombs(name, outDesc.DeviceName, outputNameSize);
+
+        if (monitorName && strcmp(monitorName, name) == 0)
+          return output;
+      }
+
+      // According to Raymond Chen in https://devblogs.microsoft.com/oldnewthing/20070809-00/?p=25643
+      // the primary monitor is which coordinates is (0,0)
+      if (outDesc.DesktopCoordinates.left == 0 && outDesc.DesktopCoordinates.top == 0)
+      {
+        defaultOutput = eastl::move(output);
+        if (DefaultOnly)
+          return defaultOutput;
+      }
+      else if (!firstFoundOutput)
+        firstFoundOutput = eastl::move(output);
     }
-    else if (!firstFoundOutput)
-      firstFoundOutput = eastl::move(output);
   }
 
   if (defaultOutput)
@@ -89,14 +106,14 @@ ComPtr<IDXGIOutput> get_output_monitor_by_name_or_default_(IDXGIAdapter *pAdapte
 
 } // namespace
 
-ComPtr<IDXGIOutput> get_output_monitor_by_name_or_default(IDXGIAdapter *pAdapter, const char *monitorName)
+ComPtr<IDXGIOutput> get_output_monitor_by_name_or_default(IDXGIFactory *pFactory, const char *monitorName)
 {
-  return get_output_monitor_by_name_or_default_<false>(pAdapter, monitorName);
+  return get_output_monitor_by_name_or_default_<false>(pFactory, monitorName);
 }
 
-ComPtr<IDXGIOutput> get_default_monitor(IDXGIAdapter *pAdapter)
+ComPtr<IDXGIOutput> get_default_monitor(IDXGIFactory *pFactory)
 {
-  return get_output_monitor_by_name_or_default_<true>(pAdapter, nullptr);
+  return get_output_monitor_by_name_or_default_<true>(pFactory, nullptr);
 }
 
 bool resolutions_have_same_ratio(eastl::pair<uint32_t, uint32_t> l_res, eastl::pair<uint32_t, uint32_t> r_res)

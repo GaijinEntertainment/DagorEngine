@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ecs/game/zones/levelRegions.h>
 #include <ecs/core/entityManager.h>
 #include <daECS/core/updateStage.h>
@@ -184,6 +186,9 @@ static SQInteger get_regions(HSQUIRRELVM vm)
 SQ_DEF_AUTO_BINDING_MODULE(bind_level_regions, "game.regions")
 {
   Sqrat::Table regionsApi(vm);
-  regionsApi.Func("get_region_name_by_pos", get_region_name_by_pos).SquirrelFunc("get_regions", get_regions, 1);
+  regionsApi //
+    .Func("get_region_name_by_pos", get_region_name_by_pos)
+    .SquirrelFunc("get_regions", get_regions, 1)
+    /**/;
   return regionsApi;
 }

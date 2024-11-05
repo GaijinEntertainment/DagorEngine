@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_ffd44.h>
 
 void FFDDeformer44::noDeform()

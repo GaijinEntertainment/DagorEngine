@@ -1,21 +1,17 @@
-#ifndef __GAIJIN_CLIP_DAGLIST_DLG__
-#define __GAIJIN_CLIP_DAGLIST_DLG__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <generic/dag_tab.h>
-#include <propPanel2/comWnd/dialog_window.h>
+#include <propPanel/commonWindow/dialogWindow.h>
 
 class String;
-class PropertyContainerControlBase;
 
-class DagListDlg : public CDialogWindow
+class DagListDlg : public PropPanel::DialogWindow
 {
 public:
   DagListDlg(Tab<String> &dag_files);
   ~DagListDlg();
 
 private:
-  PropertyContainerControlBase *mPanel;
+  PropPanel::ContainerPropertyControl *mPanel;
 };
-
-#endif //__GAIJIN_CLIP_DAGLIST_DLG__

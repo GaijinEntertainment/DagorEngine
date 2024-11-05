@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "convexVhacdProcessing.h"
 #include "propPanelPids.h"
 #include "collisionUtils.h"
@@ -23,7 +25,7 @@ void ConvexVhacdProcessing::VhacdProgress::NotifyVHACDComplete()
   }));
 }
 
-void ConvexVhacdProcessing::init(CollisionResource *collision_res, PropertyContainerControlBase *prop_panel)
+void ConvexVhacdProcessing::init(CollisionResource *collision_res, PropPanel::ContainerPropertyControl *prop_panel)
 {
   collisionRes = collision_res;
   panel = prop_panel;
@@ -170,7 +172,7 @@ void ConvexVhacdProcessing::renderVhacd(bool is_faded)
 
 void ConvexVhacdProcessing::fillConvexVhacdPanel()
 {
-  PropertyContainerControlBase &convexGroup = *panel->createGroup(PID_CONVEX_VHACD_GROUP, "convex v-hacd options");
+  PropPanel::ContainerPropertyControl &convexGroup = *panel->createGroup(PID_CONVEX_VHACD_GROUP, "convex v-hacd options");
   convexGroup.createCheckBox(PID_SHOW_CONVEX_VHACD, "Show convex v-hacd", showConvexVHACD);
   convexGroup.createTrackInt(PID_CONVEX_DEPTH, "Convex depth", 10, 1, 20, 1);
   convexGroup.createTrackInt(PID_CONVEX_MAX_HULLS, "Max convex hulls", 4, 1, 32, 1);

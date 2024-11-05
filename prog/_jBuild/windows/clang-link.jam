@@ -1,0 +1,4 @@
+UseLinkWholeOpt = no ;
+if $(PlatformArch) = x86_64 { AdditionalWinLibs += clang_rt.builtins-x86_64.lib ; }
+
+include $(Root)/prog/_jBuild/windows/vc16-link.jam ;

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "binDumpUtils.h"
 
 #include "loadShaders.h"
@@ -119,6 +121,7 @@ static void addRefsFromStCode(Tab<int> &refsTable)
         case SHCOD_RWBUF:
         case SHCOD_BUFFER:
         case SHCOD_CONST_BUFFER:
+        case SHCOD_TLAS:
         case SHCOD_ADD_REAL:
         case SHCOD_SUB_REAL:
         case SHCOD_MUL_REAL:
@@ -132,6 +135,7 @@ static void addRefsFromStCode(Tab<int> &refsTable)
         case SHCOD_GET_TEX:
         case SHCOD_GET_VEC:
         case SHCOD_GET_INT_TOREAL:
+        case SHCOD_GET_IVEC_TOREAL:
         case SHCOD_BLK_ICODE_LEN:
         case SHCOD_IMM_REAL1:
         case SHCOD_IMM_SVEC1:
@@ -150,14 +154,16 @@ static void addRefsFromStCode(Tab<int> &refsTable)
 
         case SHCOD_GET_GINT:
         case SHCOD_GET_GINT_TOREAL:
+        case SHCOD_GET_GIVEC_TOREAL:
         case SHCOD_GET_GREAL:
         case SHCOD_GET_GTEX:
         case SHCOD_GET_GBUF:
+        case SHCOD_GET_GTLAS:
         case SHCOD_GET_GVEC:
         case SHCOD_GET_GMAT44:
         case SHCOD_SAMPLER:
         {
-          int vi = shaderopcode::getOp2p2(code[i]);
+          int vi = shaderopcode::getOpStageSlot_Reg(code[i]);
           G_ASSERT(vi >= 0 && vi < refsTable.size());
           refsTable[vi]++;
         }
@@ -202,6 +208,7 @@ void bindumphlp::patchStCode(dag::Span<int> code, dag::ConstSpan<int> remapTable
       case SHCOD_TEXTURE_VS:
       case SHCOD_BUFFER:
       case SHCOD_CONST_BUFFER:
+      case SHCOD_TLAS:
       case SHCOD_RWTEX:
       case SHCOD_RWBUF:
       case SHCOD_ADD_REAL:
@@ -217,6 +224,7 @@ void bindumphlp::patchStCode(dag::Span<int> code, dag::ConstSpan<int> remapTable
       case SHCOD_GET_TEX:
       case SHCOD_GET_VEC:
       case SHCOD_GET_INT_TOREAL:
+      case SHCOD_GET_IVEC_TOREAL:
       case SHCOD_BLK_ICODE_LEN:
       case SHCOD_IMM_REAL1:
       case SHCOD_IMM_SVEC1:
@@ -232,7 +240,7 @@ void bindumphlp::patchStCode(dag::Span<int> code, dag::ConstSpan<int> remapTable
       case SHCOD_CALL_FUNCTION:
       {
         int fun = shaderopcode::getOp3p1(code[i]);
-        if (fun == functional::BF_CREATE_SAMPLER)
+        if (fun == functional::BF_REQUEST_SAMPLER)
         {
           if (!smpTable.empty())
           {
@@ -251,16 +259,19 @@ void bindumphlp::patchStCode(dag::Span<int> code, dag::ConstSpan<int> remapTable
 
       case SHCOD_GET_GINT:
       case SHCOD_GET_GINT_TOREAL:
+      case SHCOD_GET_GIVEC_TOREAL:
       case SHCOD_GET_GREAL:
       case SHCOD_GET_GTEX:
       case SHCOD_GET_GBUF:
+      case SHCOD_GET_GTLAS:
       case SHCOD_GET_GVEC:
       case SHCOD_GET_GMAT44:
       case SHCOD_SAMPLER:
       {
-        int vi = shaderopcode::getOp2p2(code[i]);
+        int vi = shaderopcode::getOpStageSlot_Reg(code[i]);
         G_ASSERT(vi >= 0 && vi < remapTable.size());
-        code[i] = shaderopcode::patchOp2p2(code[i], remapTable[vi]);
+        code[i] = shaderopcode::makeOpStageSlot(op, shaderopcode::getOpStageSlot_Stage(code[i]),
+          shaderopcode::getOpStageSlot_Slot(code[i]), remapTable[vi]);
       }
       break;
 
@@ -279,7 +290,7 @@ static void patchStCode(dag::ConstSpan<int> remapTable)
   }
 }
 
-void bindumphlp::sortShaders(dag::ConstSpan<ShaderStateBlock *> blocks)
+void bindumphlp::sortShaders(dag::ConstSpan<ShaderStateBlock *> blocks, bool sort_stcode)
 {
   using loadedshaders::fsh;
   using loadedshaders::shClass;
@@ -304,7 +315,10 @@ void bindumphlp::sortShaders(dag::ConstSpan<ShaderStateBlock *> blocks)
 
   for (int i = 0; i < stCode.size(); i++)
     stIndexes.push_back(TabInd<int>(stCode[i], i));
-  sort(stIndexes, &cmpTabInd);
+
+  if (sort_stcode) // Disabled for cpp stcode compilation
+    sort(stIndexes, &cmpTabInd);
+
   for (int i = 0; i < stIndexes.size(); i++)
     stCode[i] = stIndexes[i].slice;
 

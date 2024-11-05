@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <assets/assetMsgPipe.h>
 #include <assets/asset.h>
 #include <util/dag_string.h>

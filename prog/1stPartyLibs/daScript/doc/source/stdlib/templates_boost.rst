@@ -104,7 +104,7 @@ Template rules
 ++++++++++++++
 
   *  :ref:`kaboomVarField (self:templates_boost::Template -const;name:string const;prefix:string const;suffix:string const) : void <function-_at_templates_boost_c__c_kaboomVarField_S_ls_templates_boost_c__c_Template_gr__Cs_Cs_Cs>` 
-  *  :ref:`replaceVariable (self:templates_boost::Template -const;name:string const;expr:smart_ptr\<ast::Expression\> -const) : void <function-_at_templates_boost_c__c_replaceVariable_S_ls_templates_boost_c__c_Template_gr__Cs_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M>` 
+  *  :ref:`replaceVariable (self:templates_boost::Template -const;name:string const;expr:smart_ptr\<ast::Expression\> -const) : void <function-_at_templates_boost_c__c_replaceVariable_S_ls_templates_boost_c__c_Template_gr__Cs_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M>` 
   *  :ref:`renameVariable (self:templates_boost::Template -const;name:string const;newName:string const) : void <function-_at_templates_boost_c__c_renameVariable_S_ls_templates_boost_c__c_Template_gr__Cs_Cs>` 
   *  :ref:`renameVariable (self:templates_boost::Template -const;name:string const;newName:$::das_string const) : void <function-_at_templates_boost_c__c_renameVariable_S_ls_templates_boost_c__c_Template_gr__Cs_CH_ls__builtin__c__c_das_string_gr_>` 
   *  :ref:`replaceType (self:templates_boost::Template -const;name:string const;newName:string const) : void <function-_at_templates_boost_c__c_replaceType_S_ls_templates_boost_c__c_Template_gr__Cs_Cs>` 
@@ -131,9 +131,9 @@ Template rules
 Adds a rule to to the template to replace a variable field access with a prefix and suffix.
 I.e. foo.bar into prefix + bar + suffix
 
-.. _function-_at_templates_boost_c__c_replaceVariable_S_ls_templates_boost_c__c_Template_gr__Cs_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M:
+.. _function-_at_templates_boost_c__c_replaceVariable_S_ls_templates_boost_c__c_Template_gr__Cs_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M:
 
-.. das:function:: replaceVariable(self: Template; name: string const; expr: smart_ptr<ast::Expression>)
+.. das:function:: replaceVariable(self: Template; name: string const; expr: smart_ptr<Expression>)
 
 +--------+--------------------------------------------------------------------+
 +argument+argument type                                                       +
@@ -201,7 +201,7 @@ Adds a rule to the template to replace a type alias with another type alias, spe
 
 .. _function-_at_templates_boost_c__c_replaceAnnotationArgument_S_ls_templates_boost_c__c_Template_gr__Cs_N_ls_ann_gr_0_ls_H_ls_rtti_c__c_AnnotationDeclaration_gr__gr_1_ls_v_gr__at_:
 
-.. das:function:: replaceAnnotationArgument(self: Template; name: string const; cb: lambda<(var ann:rtti::AnnotationDeclaration -const):void>)
+.. das:function:: replaceAnnotationArgument(self: Template; name: string const; cb: lambda<(var ann:AnnotationDeclaration):void>)
 
 +--------+-------------------------------------------------------------------------------------------+
 +argument+argument type                                                                              +
@@ -237,13 +237,13 @@ Adds a rule to the template to rename a block argument.
 Template application
 ++++++++++++++++++++
 
-  *  :ref:`apply_template (rules:templates_boost::Template -const;at:rtti::LineInfo const;expr:smart_ptr\<ast::Expression\> -const;forceAt:bool const) : smart_ptr\<ast::Expression\> <function-_at_templates_boost_c__c_apply_template_S_ls_templates_boost_c__c_Template_gr__CH_ls_rtti_c__c_LineInfo_gr__1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_Cb>` 
-  *  :ref:`apply_template (at:rtti::LineInfo const;expr:smart_ptr\<ast::Expression\>& -const;blk:block\<(var rules:templates_boost::Template -const):void\> const) : smart_ptr\<ast::Expression\> <function-_at_templates_boost_c__c_apply_template_CH_ls_rtti_c__c_LineInfo_gr__&1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_>` 
-  *  :ref:`apply_template (expr:smart_ptr\<ast::Expression\>& -const;blk:block\<(var rules:templates_boost::Template -const):void\> const) : smart_ptr\<ast::Expression\> <function-_at_templates_boost_c__c_apply_template_&1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_>` 
+  *  :ref:`apply_template (rules:templates_boost::Template -const;at:rtti::LineInfo const;expr:smart_ptr\<ast::Expression\> -const;forceAt:bool const) : smart_ptr\<ast::Expression\> <function-_at_templates_boost_c__c_apply_template_S_ls_templates_boost_c__c_Template_gr__CH_ls_rtti_c__c_LineInfo_gr__1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_Cb>` 
+  *  :ref:`apply_template (at:rtti::LineInfo const;expr:smart_ptr\<ast::Expression\>& -const;blk:block\<(var rules:templates_boost::Template -const):void\> const) : smart_ptr\<ast::Expression\> <function-_at_templates_boost_c__c_apply_template_CH_ls_rtti_c__c_LineInfo_gr__&1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_>` 
+  *  :ref:`apply_template (expr:smart_ptr\<ast::Expression\>& -const;blk:block\<(var rules:templates_boost::Template -const):void\> const) : smart_ptr\<ast::Expression\> <function-_at_templates_boost_c__c_apply_template_&1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_>` 
 
-.. _function-_at_templates_boost_c__c_apply_template_S_ls_templates_boost_c__c_Template_gr__CH_ls_rtti_c__c_LineInfo_gr__1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_Cb:
+.. _function-_at_templates_boost_c__c_apply_template_S_ls_templates_boost_c__c_Template_gr__CH_ls_rtti_c__c_LineInfo_gr__1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_Cb:
 
-.. das:function:: apply_template(rules: Template; at: LineInfo const; expr: smart_ptr<ast::Expression>; forceAt: bool const)
+.. das:function:: apply_template(rules: Template; at: LineInfo const; expr: smart_ptr<Expression>; forceAt: bool const)
 
 apply_template returns  :ref:`ExpressionPtr <alias-ExpressionPtr>` 
 
@@ -260,11 +260,11 @@ apply_template returns  :ref:`ExpressionPtr <alias-ExpressionPtr>`
 +--------+--------------------------------------------------------------------+
 
 
-Applies the template to the given expression. If `forceAt` is set, the resulting expression will have the same line info as 'at'.
+TODO: figure out why this is needed
 
-.. _function-_at_templates_boost_c__c_apply_template_CH_ls_rtti_c__c_LineInfo_gr__&1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
+.. _function-_at_templates_boost_c__c_apply_template_CH_ls_rtti_c__c_LineInfo_gr__&1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
 
-.. das:function:: apply_template(at: LineInfo const; expr: smart_ptr<ast::Expression>&; blk: block<(var rules:templates_boost::Template -const):void> const)
+.. das:function:: apply_template(at: LineInfo const; expr: smart_ptr<Expression>&; blk: block<(var rules:Template):void> const)
 
 apply_template returns  :ref:`ExpressionPtr <alias-ExpressionPtr>` 
 
@@ -279,11 +279,11 @@ apply_template returns  :ref:`ExpressionPtr <alias-ExpressionPtr>`
 +--------+----------------------------------------------------------------------------------------------+
 
 
-Applies the template to the given expression. If `forceAt` is set, the resulting expression will have the same line info as 'at'.
+TODO: figure out why this is needed
 
-.. _function-_at_templates_boost_c__c_apply_template_&1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
+.. _function-_at_templates_boost_c__c_apply_template_&1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
 
-.. das:function:: apply_template(expr: smart_ptr<ast::Expression>&; blk: block<(var rules:templates_boost::Template -const):void> const)
+.. das:function:: apply_template(expr: smart_ptr<Expression>&; blk: block<(var rules:Template):void> const)
 
 apply_template returns  :ref:`ExpressionPtr <alias-ExpressionPtr>` 
 
@@ -296,17 +296,17 @@ apply_template returns  :ref:`ExpressionPtr <alias-ExpressionPtr>`
 +--------+----------------------------------------------------------------------------------------------+
 
 
-Applies the template to the given expression. If `forceAt` is set, the resulting expression will have the same line info as 'at'.
+TODO: figure out why this is needed
 
 ++++++++++++++++++
 Expression helpers
 ++++++++++++++++++
 
-  *  :ref:`remove_deref (varname:string const;expr:smart_ptr\<ast::Expression\> -const) : void <function-_at_templates_boost_c__c_remove_deref_Cs_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M>` 
+  *  :ref:`remove_deref (varname:string const;expr:smart_ptr\<ast::Expression\> -const) : void <function-_at_templates_boost_c__c_remove_deref_Cs_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M>` 
 
-.. _function-_at_templates_boost_c__c_remove_deref_Cs_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M:
+.. _function-_at_templates_boost_c__c_remove_deref_Cs_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M:
 
-.. das:function:: remove_deref(varname: string const; expr: smart_ptr<ast::Expression>)
+.. das:function:: remove_deref(varname: string const; expr: smart_ptr<Expression>)
 
 +--------+-----------------------------------------------------------+
 +argument+argument type                                              +
@@ -324,10 +324,10 @@ This is typically used when replacing 'workhorse' variable with constant.
 Block helpers
 +++++++++++++
 
-  *  :ref:`unquote_block (expr:smart_ptr\<ast::Expression\> const) : smart_ptr\<ast::ExprBlock\> <function-_at_templates_boost_c__c_unquote_block_CY_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M>` 
-  *  :ref:`move_unquote_block (expr:smart_ptr\<ast::Expression\>& -const) : smart_ptr\<ast::ExprBlock\> <function-_at_templates_boost_c__c_move_unquote_block_&Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M>` 
+  *  :ref:`unquote_block (expr:smart_ptr\<ast::Expression\> const) : smart_ptr\<ast::ExprBlock\> <function-_at_templates_boost_c__c_unquote_block_CY_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M>` 
+  *  :ref:`move_unquote_block (expr:smart_ptr\<ast::Expression\>& -const) : smart_ptr\<ast::ExprBlock\> <function-_at_templates_boost_c__c_move_unquote_block_&Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M>` 
 
-.. _function-_at_templates_boost_c__c_unquote_block_CY_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M:
+.. _function-_at_templates_boost_c__c_unquote_block_CY_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M:
 
 .. das:function:: unquote_block(expr: ExpressionPtr)
 
@@ -342,7 +342,7 @@ unquote_block returns smart_ptr< :ref:`ast::ExprBlock <handle-ast-ExprBlock>` >
 
 Returns the corresponding block subexpression expression form the ExprMakeBlock.
 
-.. _function-_at_templates_boost_c__c_move_unquote_block_&Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M:
+.. _function-_at_templates_boost_c__c_move_unquote_block_&Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M:
 
 .. das:function:: move_unquote_block(expr: ExpressionPtr)
 
@@ -361,16 +361,16 @@ Moves the corresponding block subexpression expression form the ExprMakeBlock.
 Global variable helpers
 +++++++++++++++++++++++
 
-  *  :ref:`add_global_var (mod:rtti::Module? const;vname:string const;vat:rtti::LineInfo const;value:smart_ptr\<ast::Expression\> -const) : bool <function-_at_templates_boost_c__c_add_global_var_C1_ls_H_ls_rtti_c__c_Module_gr__gr_?_Cs_CH_ls_rtti_c__c_LineInfo_gr__Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M>` 
-  *  :ref:`add_global_var (mod:rtti::Module? const;vname:string const;typ:smart_ptr\<ast::TypeDecl\> -const;vat:rtti::LineInfo const;priv:bool const;blk:block\<(var v:smart_ptr\<ast::Variable\> -const):void\> const) : bool <function-_at_templates_boost_c__c_add_global_var_C1_ls_H_ls_rtti_c__c_Module_gr__gr_?_Cs_Y_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr_?M_CH_ls_rtti_c__c_LineInfo_gr__Cb_CN_ls_v_gr_0_ls_Y_ls_VariablePtr_gr_1_ls_H_ls_ast_c__c_Variable_gr__gr_?M_gr_1_ls_v_gr__builtin_>` 
-  *  :ref:`add_global_var (mod:rtti::Module? const;vname:string const;typ:smart_ptr\<ast::TypeDecl\> -const;vat:rtti::LineInfo const;priv:bool const) : bool <function-_at_templates_boost_c__c_add_global_var_C1_ls_H_ls_rtti_c__c_Module_gr__gr_?_Cs_Y_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr_?M_CH_ls_rtti_c__c_LineInfo_gr__Cb>` 
-  *  :ref:`add_global_let (mod:rtti::Module? const;vname:string const;vat:rtti::LineInfo const;value:smart_ptr\<ast::Expression\> -const) : bool <function-_at_templates_boost_c__c_add_global_let_C1_ls_H_ls_rtti_c__c_Module_gr__gr_?_Cs_CH_ls_rtti_c__c_LineInfo_gr__Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M>` 
-  *  :ref:`add_global_private_var (mod:rtti::Module? const;vname:string const;vat:rtti::LineInfo const;value:smart_ptr\<ast::Expression\> -const) : bool <function-_at_templates_boost_c__c_add_global_private_var_C1_ls_H_ls_rtti_c__c_Module_gr__gr_?_Cs_CH_ls_rtti_c__c_LineInfo_gr__Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M>` 
-  *  :ref:`add_global_private_let (mod:rtti::Module? const;vname:string const;vat:rtti::LineInfo const;value:smart_ptr\<ast::Expression\> -const) : bool <function-_at_templates_boost_c__c_add_global_private_let_C1_ls_H_ls_rtti_c__c_Module_gr__gr_?_Cs_CH_ls_rtti_c__c_LineInfo_gr__Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M>` 
+  *  :ref:`add_global_var (mod:rtti::Module? const;vname:string const;vat:rtti::LineInfo const;value:smart_ptr\<ast::Expression\> -const) : bool <function-_at_templates_boost_c__c_add_global_var_C1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__Cs_CH_ls_rtti_c__c_LineInfo_gr__Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M>` 
+  *  :ref:`add_global_var (mod:rtti::Module? const;vname:string const;typ:smart_ptr\<ast::TypeDecl\> -const;vat:rtti::LineInfo const;priv:bool const;blk:block\<(var v:smart_ptr\<ast::Variable\> -const):void\> const) : bool <function-_at_templates_boost_c__c_add_global_var_C1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__Cs_Y_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr__qm_M_CH_ls_rtti_c__c_LineInfo_gr__Cb_CN_ls_v_gr_0_ls_Y_ls_VariablePtr_gr_1_ls_H_ls_ast_c__c_Variable_gr__gr__qm_M_gr_1_ls_v_gr__builtin_>` 
+  *  :ref:`add_global_var (mod:rtti::Module? const;vname:string const;typ:smart_ptr\<ast::TypeDecl\> -const;vat:rtti::LineInfo const;priv:bool const) : bool <function-_at_templates_boost_c__c_add_global_var_C1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__Cs_Y_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr__qm_M_CH_ls_rtti_c__c_LineInfo_gr__Cb>` 
+  *  :ref:`add_global_let (mod:rtti::Module? const;vname:string const;vat:rtti::LineInfo const;value:smart_ptr\<ast::Expression\> -const) : bool <function-_at_templates_boost_c__c_add_global_let_C1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__Cs_CH_ls_rtti_c__c_LineInfo_gr__Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M>` 
+  *  :ref:`add_global_private_var (mod:rtti::Module? const;vname:string const;vat:rtti::LineInfo const;value:smart_ptr\<ast::Expression\> -const) : bool <function-_at_templates_boost_c__c_add_global_private_var_C1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__Cs_CH_ls_rtti_c__c_LineInfo_gr__Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M>` 
+  *  :ref:`add_global_private_let (mod:rtti::Module? const;vname:string const;vat:rtti::LineInfo const;value:smart_ptr\<ast::Expression\> -const) : bool <function-_at_templates_boost_c__c_add_global_private_let_C1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__Cs_CH_ls_rtti_c__c_LineInfo_gr__Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M>` 
 
-.. _function-_at_templates_boost_c__c_add_global_var_C1_ls_H_ls_rtti_c__c_Module_gr__gr_?_Cs_CH_ls_rtti_c__c_LineInfo_gr__Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M:
+.. _function-_at_templates_boost_c__c_add_global_var_C1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__Cs_CH_ls_rtti_c__c_LineInfo_gr__Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M:
 
-.. das:function:: add_global_var(mod: rtti::Module? const; vname: string const; vat: LineInfo const; value: ExpressionPtr)
+.. das:function:: add_global_var(mod: Module? const; vname: string const; vat: LineInfo const; value: ExpressionPtr)
 
 add_global_var returns bool
 
@@ -391,9 +391,9 @@ Adds global variable to the module, given name and initial value.
 Global variables type is would be inferred from the initial value.
 `priv` specifies if the variable is private to the block.
 
-.. _function-_at_templates_boost_c__c_add_global_var_C1_ls_H_ls_rtti_c__c_Module_gr__gr_?_Cs_Y_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr_?M_CH_ls_rtti_c__c_LineInfo_gr__Cb_CN_ls_v_gr_0_ls_Y_ls_VariablePtr_gr_1_ls_H_ls_ast_c__c_Variable_gr__gr_?M_gr_1_ls_v_gr__builtin_:
+.. _function-_at_templates_boost_c__c_add_global_var_C1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__Cs_Y_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr__qm_M_CH_ls_rtti_c__c_LineInfo_gr__Cb_CN_ls_v_gr_0_ls_Y_ls_VariablePtr_gr_1_ls_H_ls_ast_c__c_Variable_gr__gr__qm_M_gr_1_ls_v_gr__builtin_:
 
-.. das:function:: add_global_var(mod: rtti::Module? const; vname: string const; typ: TypeDeclPtr; vat: LineInfo const; priv: bool const; blk: block<(var v:smart_ptr<ast::Variable> -const):void> const)
+.. das:function:: add_global_var(mod: Module? const; vname: string const; typ: TypeDeclPtr; vat: LineInfo const; priv: bool const; blk: block<(var v:smart_ptr<Variable>):void> const)
 
 add_global_var returns bool
 
@@ -418,9 +418,9 @@ Adds global variable to the module, given name and initial value.
 Global variables type is would be inferred from the initial value.
 `priv` specifies if the variable is private to the block.
 
-.. _function-_at_templates_boost_c__c_add_global_var_C1_ls_H_ls_rtti_c__c_Module_gr__gr_?_Cs_Y_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr_?M_CH_ls_rtti_c__c_LineInfo_gr__Cb:
+.. _function-_at_templates_boost_c__c_add_global_var_C1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__Cs_Y_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr__qm_M_CH_ls_rtti_c__c_LineInfo_gr__Cb:
 
-.. das:function:: add_global_var(mod: rtti::Module? const; vname: string const; typ: TypeDeclPtr; vat: LineInfo const; priv: bool const)
+.. das:function:: add_global_var(mod: Module? const; vname: string const; typ: TypeDeclPtr; vat: LineInfo const; priv: bool const)
 
 add_global_var returns bool
 
@@ -443,9 +443,9 @@ Adds global variable to the module, given name and initial value.
 Global variables type is would be inferred from the initial value.
 `priv` specifies if the variable is private to the block.
 
-.. _function-_at_templates_boost_c__c_add_global_let_C1_ls_H_ls_rtti_c__c_Module_gr__gr_?_Cs_CH_ls_rtti_c__c_LineInfo_gr__Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M:
+.. _function-_at_templates_boost_c__c_add_global_let_C1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__Cs_CH_ls_rtti_c__c_LineInfo_gr__Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M:
 
-.. das:function:: add_global_let(mod: rtti::Module? const; vname: string const; vat: LineInfo const; value: ExpressionPtr)
+.. das:function:: add_global_let(mod: Module? const; vname: string const; vat: LineInfo const; value: ExpressionPtr)
 
 add_global_let returns bool
 
@@ -465,9 +465,9 @@ add_global_let returns bool
 Add global variable to the module, given name and initial value.
 Variable type will be constant.
 
-.. _function-_at_templates_boost_c__c_add_global_private_var_C1_ls_H_ls_rtti_c__c_Module_gr__gr_?_Cs_CH_ls_rtti_c__c_LineInfo_gr__Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M:
+.. _function-_at_templates_boost_c__c_add_global_private_var_C1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__Cs_CH_ls_rtti_c__c_LineInfo_gr__Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M:
 
-.. das:function:: add_global_private_var(mod: rtti::Module? const; vname: string const; vat: LineInfo const; value: ExpressionPtr)
+.. das:function:: add_global_private_var(mod: Module? const; vname: string const; vat: LineInfo const; value: ExpressionPtr)
 
 add_global_private_var returns bool
 
@@ -487,9 +487,9 @@ add_global_private_var returns bool
 Add global variable to the module, given name and initial value.
 It will be private.
 
-.. _function-_at_templates_boost_c__c_add_global_private_let_C1_ls_H_ls_rtti_c__c_Module_gr__gr_?_Cs_CH_ls_rtti_c__c_LineInfo_gr__Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M:
+.. _function-_at_templates_boost_c__c_add_global_private_let_C1_ls_H_ls_rtti_c__c_Module_gr__gr__qm__Cs_CH_ls_rtti_c__c_LineInfo_gr__Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M:
 
-.. das:function:: add_global_private_let(mod: rtti::Module? const; vname: string const; vat: LineInfo const; value: ExpressionPtr)
+.. das:function:: add_global_private_let(mod: Module? const; vname: string const; vat: LineInfo const; value: ExpressionPtr)
 
 add_global_private_let returns bool
 
@@ -540,9 +540,9 @@ If it is not, additional measures must be taken to ensure uniqueness of prefix.
 Uncategorized
 +++++++++++++
 
-.. _function-_at_templates_boost_c__c_replaceVarTag_S_ls_templates_boost_c__c_Template_gr__Cs_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M:
+.. _function-_at_templates_boost_c__c_replaceVarTag_S_ls_templates_boost_c__c_Template_gr__Cs_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M:
 
-.. das:function:: replaceVarTag(self: Template; name: string const; expr: smart_ptr<ast::Expression>)
+.. das:function:: replaceVarTag(self: Template; name: string const; expr: smart_ptr<Expression>)
 
 +--------+--------------------------------------------------------------------+
 +argument+argument type                                                       +
@@ -557,9 +557,9 @@ Uncategorized
 
 Adds a rule to the template to replace a variable tag with an expression.
 
-.. _function-_at_templates_boost_c__c_replaceArgumentWithList_S_ls_templates_boost_c__c_Template_gr__Cs_C1_ls_Y_ls_VariablePtr_gr_1_ls_H_ls_ast_c__c_Variable_gr__gr_?M_gr_A:
+.. _function-_at_templates_boost_c__c_replaceArgumentWithList_S_ls_templates_boost_c__c_Template_gr__Cs_C1_ls_Y_ls_VariablePtr_gr_1_ls_H_ls_ast_c__c_Variable_gr__gr__qm_M_gr_A:
 
-.. das:function:: replaceArgumentWithList(self: Template; name: string const; blka: array<smart_ptr<ast::Variable>> const)
+.. das:function:: replaceArgumentWithList(self: Template; name: string const; blka: array<smart_ptr<Variable>> const)
 
 +--------+--------------------------------------------------------------------+
 +argument+argument type                                                       +
@@ -574,9 +574,9 @@ Adds a rule to the template to replace a variable tag with an expression.
 
 Adds a rule to the template to replace a block argument with a list of variables.
 
-.. _function-_at_templates_boost_c__c_replaceVariableWithList_S_ls_templates_boost_c__c_Template_gr__Cs_C1_ls_Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_gr_A:
+.. _function-_at_templates_boost_c__c_replaceVariableWithList_S_ls_templates_boost_c__c_Template_gr__Cs_C1_ls_Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_gr_A:
 
-.. das:function:: replaceVariableWithList(self: Template; name: string const; expr: array<smart_ptr<ast::Expression>> const)
+.. das:function:: replaceVariableWithList(self: Template; name: string const; expr: array<smart_ptr<Expression>> const)
 
 +--------+--------------------------------------------------------------------+
 +argument+argument type                                                       +
@@ -642,7 +642,7 @@ Adds a rule to the template to rename any field lookup (., ?., as, is, etc)
 
 Adds a rule to the template to rename any field lookup (., ?., as, is, etc)
 
-.. _function-_at_templates_boost_c__c_replaceTypeWithTypeDecl_S_ls_templates_boost_c__c_Template_gr__Cs_Y_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr_?M:
+.. _function-_at_templates_boost_c__c_replaceTypeWithTypeDecl_S_ls_templates_boost_c__c_Template_gr__Cs_Y_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr__qm_M:
 
 .. das:function:: replaceTypeWithTypeDecl(self: Template; name: string const; expr: TypeDeclPtr)
 
@@ -693,9 +693,9 @@ Adds a rule to the template to rename a call.
 
 Adds a rule to the template to rename a call.
 
-.. _function-_at_templates_boost_c__c_make_expression_block_1_ls_Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_gr_A:
+.. _function-_at_templates_boost_c__c_make_expression_block_1_ls_Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_gr_A:
 
-.. das:function:: make_expression_block(exprs: array<smart_ptr<ast::Expression>>)
+.. das:function:: make_expression_block(exprs: array<smart_ptr<Expression>>)
 
 make_expression_block returns smart_ptr< :ref:`ast::ExprBlock <handle-ast-ExprBlock>` >
 
@@ -723,7 +723,7 @@ make_expression_block returns smart_ptr< :ref:`ast::ExprBlock <handle-ast-ExprBl
 
 Create ExprBlock and move all expressions from expr to the list of the block.
 
-.. _function-_at_templates_boost_c__c_add_type_ptr_ref_Y_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr_?M_CY_ls_TypeDeclFlags_gr_N_ls_ref;constant;temporary;_implicit;removeRef;removeConstant;removeDim;removeTemporary;explicitConst;aotAlias;smartPtr;smartPtrNative;isExplicit;isNativeDim;isTag;explicitRef_gr_t:
+.. _function-_at_templates_boost_c__c_add_type_ptr_ref_Y_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr__qm_M_CY_ls_TypeDeclFlags_gr_N_ls_ref;constant;temporary;_implicit;removeRef;removeConstant;removeDim;removeTemporary;explicitConst;aotAlias;smartPtr;smartPtrNative;isExplicit;isNativeDim;isTag;explicitRef;isPrivateAlias;autoToAlias_gr_t:
 
 .. das:function:: add_type_ptr_ref(a: TypeDeclPtr; flags: TypeDeclFlags)
 
@@ -740,7 +740,7 @@ add_type_ptr_ref returns  :ref:`TypeDeclPtr <alias-TypeDeclPtr>`
 
 Implementation details for the reification. This adds any array to the rules.
 
-.. _function-_at_templates_boost_c__c_add_type_ptr_ref_Y_ls_StructurePtr_gr_1_ls_H_ls_ast_c__c_Structure_gr__gr_?M_CY_ls_TypeDeclFlags_gr_N_ls_ref;constant;temporary;_implicit;removeRef;removeConstant;removeDim;removeTemporary;explicitConst;aotAlias;smartPtr;smartPtrNative;isExplicit;isNativeDim;isTag;explicitRef_gr_t:
+.. _function-_at_templates_boost_c__c_add_type_ptr_ref_Y_ls_StructurePtr_gr_1_ls_H_ls_ast_c__c_Structure_gr__gr__qm_M_CY_ls_TypeDeclFlags_gr_N_ls_ref;constant;temporary;_implicit;removeRef;removeConstant;removeDim;removeTemporary;explicitConst;aotAlias;smartPtr;smartPtrNative;isExplicit;isNativeDim;isTag;explicitRef;isPrivateAlias;autoToAlias_gr_t:
 
 .. das:function:: add_type_ptr_ref(st: StructurePtr; flags: TypeDeclFlags)
 
@@ -757,9 +757,60 @@ add_type_ptr_ref returns  :ref:`TypeDeclPtr <alias-TypeDeclPtr>`
 
 Implementation details for the reification. This adds any array to the rules.
 
-.. _function-_at_templates_boost_c__c_apply_qmacro_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
+.. _function-_at_templates_boost_c__c_add_type_ptr_ref_1_ls_H_ls_ast_c__c_Structure_gr__gr__qm__CY_ls_TypeDeclFlags_gr_N_ls_ref;constant;temporary;_implicit;removeRef;removeConstant;removeDim;removeTemporary;explicitConst;aotAlias;smartPtr;smartPtrNative;isExplicit;isNativeDim;isTag;explicitRef;isPrivateAlias;autoToAlias_gr_t:
 
-.. das:function:: apply_qmacro(expr: smart_ptr<ast::Expression>; blk: block<(var rules:templates_boost::Template -const):void> const)
+.. das:function:: add_type_ptr_ref(st: Structure?; flags: TypeDeclFlags)
+
+add_type_ptr_ref returns  :ref:`TypeDeclPtr <alias-TypeDeclPtr>` 
+
++--------+-----------------------------------------------+
++argument+argument type                                  +
++========+===============================================+
++st      + :ref:`ast::Structure <handle-ast-Structure>` ?+
++--------+-----------------------------------------------+
++flags   + :ref:`TypeDeclFlags <alias-TypeDeclFlags>`    +
++--------+-----------------------------------------------+
+
+
+Implementation details for the reification. This adds any array to the rules.
+
+.. _function-_at_templates_boost_c__c_add_type_ptr_ref_Y_ls_EnumerationPtr_gr_1_ls_H_ls_ast_c__c_Enumeration_gr__gr__qm_M_CY_ls_TypeDeclFlags_gr_N_ls_ref;constant;temporary;_implicit;removeRef;removeConstant;removeDim;removeTemporary;explicitConst;aotAlias;smartPtr;smartPtrNative;isExplicit;isNativeDim;isTag;explicitRef;isPrivateAlias;autoToAlias_gr_t:
+
+.. das:function:: add_type_ptr_ref(st: EnumerationPtr; flags: TypeDeclFlags)
+
+add_type_ptr_ref returns  :ref:`TypeDeclPtr <alias-TypeDeclPtr>` 
+
++--------+----------------------------------------------+
++argument+argument type                                 +
++========+==============================================+
++st      + :ref:`EnumerationPtr <alias-EnumerationPtr>` +
++--------+----------------------------------------------+
++flags   + :ref:`TypeDeclFlags <alias-TypeDeclFlags>`   +
++--------+----------------------------------------------+
+
+
+Implementation details for the reification. This adds any array to the rules.
+
+.. _function-_at_templates_boost_c__c_add_type_ptr_ref_1_ls_H_ls_ast_c__c_Enumeration_gr__gr__qm__CY_ls_TypeDeclFlags_gr_N_ls_ref;constant;temporary;_implicit;removeRef;removeConstant;removeDim;removeTemporary;explicitConst;aotAlias;smartPtr;smartPtrNative;isExplicit;isNativeDim;isTag;explicitRef;isPrivateAlias;autoToAlias_gr_t:
+
+.. das:function:: add_type_ptr_ref(st: Enumeration?; flags: TypeDeclFlags)
+
+add_type_ptr_ref returns  :ref:`TypeDeclPtr <alias-TypeDeclPtr>` 
+
++--------+---------------------------------------------------+
++argument+argument type                                      +
++========+===================================================+
++st      + :ref:`ast::Enumeration <handle-ast-Enumeration>` ?+
++--------+---------------------------------------------------+
++flags   + :ref:`TypeDeclFlags <alias-TypeDeclFlags>`        +
++--------+---------------------------------------------------+
+
+
+Implementation details for the reification. This adds any array to the rules.
+
+.. _function-_at_templates_boost_c__c_apply_qmacro_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
+
+.. das:function:: apply_qmacro(expr: smart_ptr<Expression>; blk: block<(var rules:Template):void> const)
 
 apply_qmacro returns  :ref:`ExpressionPtr <alias-ExpressionPtr>` 
 
@@ -774,9 +825,9 @@ apply_qmacro returns  :ref:`ExpressionPtr <alias-ExpressionPtr>`
 
 Implementation details for the expression reificaiton. This is a generat expression reification.
 
-.. _function-_at_templates_boost_c__c_apply_qblock_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
+.. _function-_at_templates_boost_c__c_apply_qblock_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
 
-.. das:function:: apply_qblock(expr: smart_ptr<ast::Expression>; blk: block<(var rules:templates_boost::Template -const):void> const)
+.. das:function:: apply_qblock(expr: smart_ptr<Expression>; blk: block<(var rules:Template):void> const)
 
 apply_qblock returns  :ref:`ExpressionPtr <alias-ExpressionPtr>` 
 
@@ -791,9 +842,9 @@ apply_qblock returns  :ref:`ExpressionPtr <alias-ExpressionPtr>`
 
 Implementation details for the expression reificaiton. This is a block reification.
 
-.. _function-_at_templates_boost_c__c_apply_qblock_to_array_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
+.. _function-_at_templates_boost_c__c_apply_qblock_to_array_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
 
-.. das:function:: apply_qblock_to_array(expr: smart_ptr<ast::Expression>; blk: block<(var rules:templates_boost::Template -const):void> const)
+.. das:function:: apply_qblock_to_array(expr: smart_ptr<Expression>; blk: block<(var rules:Template):void> const)
 
 apply_qblock_to_array returns array< :ref:`ExpressionPtr <alias-ExpressionPtr>` >
 
@@ -808,9 +859,9 @@ apply_qblock_to_array returns array< :ref:`ExpressionPtr <alias-ExpressionPtr>` 
 
 Implementation details for the expression reificaiton. This is a block reification.
 
-.. _function-_at_templates_boost_c__c_apply_qblock_expr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
+.. _function-_at_templates_boost_c__c_apply_qblock_expr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
 
-.. das:function:: apply_qblock_expr(expr: smart_ptr<ast::Expression>; blk: block<(var rules:templates_boost::Template -const):void> const)
+.. das:function:: apply_qblock_expr(expr: smart_ptr<Expression>; blk: block<(var rules:Template):void> const)
 
 apply_qblock_expr returns  :ref:`ExpressionPtr <alias-ExpressionPtr>` 
 
@@ -825,9 +876,9 @@ apply_qblock_expr returns  :ref:`ExpressionPtr <alias-ExpressionPtr>`
 
 Implementation details for the expression reificaiton. This is a frist line of the block as expression reification.
 
-.. _function-_at_templates_boost_c__c_apply_qtype_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
+.. _function-_at_templates_boost_c__c_apply_qtype_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
 
-.. das:function:: apply_qtype(expr: smart_ptr<ast::Expression>; blk: block<(var rules:templates_boost::Template -const):void> const)
+.. das:function:: apply_qtype(expr: smart_ptr<Expression>; blk: block<(var rules:Template):void> const)
 
 apply_qtype returns  :ref:`TypeDeclPtr <alias-TypeDeclPtr>` 
 
@@ -842,7 +893,7 @@ apply_qtype returns  :ref:`TypeDeclPtr <alias-TypeDeclPtr>`
 
 Implementation details for the expression reificaiton. This is a type declaration reification.
 
-.. _function-_at_templates_boost_c__c_expression_at_Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_CH_ls_rtti_c__c_LineInfo_gr_:
+.. _function-_at_templates_boost_c__c_expression_at_Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_CH_ls_rtti_c__c_LineInfo_gr_:
 
 .. das:function:: expression_at(expr: ExpressionPtr; at: LineInfo const)
 
@@ -859,9 +910,9 @@ expression_at returns  :ref:`ExpressionPtr <alias-ExpressionPtr>`
 
 Force expression location, than return it.
 
-.. _function-_at_templates_boost_c__c_emplace_new_1_ls_Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_gr_A_Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M:
+.. _function-_at_templates_boost_c__c_emplace_new_1_ls_Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_gr_A_Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M:
 
-.. das:function:: emplace_new(arr: array<smart_ptr<ast::Expression>>; expr: ExpressionPtr)
+.. das:function:: emplace_new(arr: array<smart_ptr<Expression>>; expr: ExpressionPtr)
 
 +--------+---------------------------------------------------+
 +argument+argument type                                      +
@@ -874,9 +925,9 @@ Force expression location, than return it.
 
 Unifies emplace and emplace_new for the array<VariablePtr>
 
-.. _function-_at_templates_boost_c__c_emplace_new_1_ls_Y_ls_VariablePtr_gr_1_ls_H_ls_ast_c__c_Variable_gr__gr_?M_gr_A_Y_ls_VariablePtr_gr_1_ls_H_ls_ast_c__c_Variable_gr__gr_?M:
+.. _function-_at_templates_boost_c__c_emplace_new_1_ls_Y_ls_VariablePtr_gr_1_ls_H_ls_ast_c__c_Variable_gr__gr__qm_M_gr_A_Y_ls_VariablePtr_gr_1_ls_H_ls_ast_c__c_Variable_gr__gr__qm_M:
 
-.. das:function:: emplace_new(arr: array<smart_ptr<ast::Variable>>; expr: VariablePtr)
+.. das:function:: emplace_new(arr: array<smart_ptr<Variable>>; expr: VariablePtr)
 
 +--------+-----------------------------------------------+
 +argument+argument type                                  +
@@ -889,9 +940,9 @@ Unifies emplace and emplace_new for the array<VariablePtr>
 
 Unifies emplace and emplace_new for the array<VariablePtr>
 
-.. _function-_at_templates_boost_c__c_apply_qmacro_function_Cs_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
+.. _function-_at_templates_boost_c__c_apply_qmacro_function_Cs_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
 
-.. das:function:: apply_qmacro_function(fname: string const; expr: smart_ptr<ast::Expression>; blk: block<(var rules:templates_boost::Template -const):void> const)
+.. das:function:: apply_qmacro_function(fname: string const; expr: smart_ptr<Expression>; blk: block<(var rules:Template):void> const)
 
 apply_qmacro_function returns  :ref:`FunctionPtr <alias-FunctionPtr>` 
 
@@ -908,9 +959,9 @@ apply_qmacro_function returns  :ref:`FunctionPtr <alias-FunctionPtr>`
 
 Implementation details for reification. This is a function generation reification.
 
-.. _function-_at_templates_boost_c__c_apply_qmacro_method_Cs_CY_ls_StructurePtr_gr_1_ls_H_ls_ast_c__c_Structure_gr__gr_?M_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
+.. _function-_at_templates_boost_c__c_apply_qmacro_method_Cs_CY_ls_StructurePtr_gr_1_ls_H_ls_ast_c__c_Structure_gr__gr__qm_M_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
 
-.. das:function:: apply_qmacro_method(fname: string const; parent: StructurePtr; expr: smart_ptr<ast::Expression>; blk: block<(var rules:templates_boost::Template -const):void> const)
+.. das:function:: apply_qmacro_method(fname: string const; parent: StructurePtr; expr: smart_ptr<Expression>; blk: block<(var rules:Template):void> const)
 
 apply_qmacro_method returns  :ref:`FunctionPtr <alias-FunctionPtr>` 
 
@@ -929,9 +980,9 @@ apply_qmacro_method returns  :ref:`FunctionPtr <alias-FunctionPtr>`
 
 Implementation details for reification. This is a class method function generation reification.
 
-.. _function-_at_templates_boost_c__c_apply_qmacro_variable_Cs_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
+.. _function-_at_templates_boost_c__c_apply_qmacro_variable_Cs_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M_CN_ls_rules_gr_0_ls_S_ls_templates_boost_c__c_Template_gr__gr_1_ls_v_gr__builtin_:
 
-.. das:function:: apply_qmacro_variable(vname: string const; expr: smart_ptr<ast::Expression>; blk: block<(var rules:templates_boost::Template -const):void> const)
+.. das:function:: apply_qmacro_variable(vname: string const; expr: smart_ptr<Expression>; blk: block<(var rules:Template):void> const)
 
 apply_qmacro_variable returns  :ref:`VariablePtr <alias-VariablePtr>` 
 
@@ -948,7 +999,7 @@ apply_qmacro_variable returns  :ref:`VariablePtr <alias-VariablePtr>`
 
 Implementation details for reification. This is a variable generation reification.
 
-.. _function-_at_templates_boost_c__c_add_structure_field_Y_ls_StructurePtr_gr_1_ls_H_ls_ast_c__c_Structure_gr__gr_?M_Cs_Y_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr_?M_Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr_?M:
+.. _function-_at_templates_boost_c__c_add_structure_field_Y_ls_StructurePtr_gr_1_ls_H_ls_ast_c__c_Structure_gr__gr__qm_M_Cs_Y_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr__qm_M_Y_ls_ExpressionPtr_gr_1_ls_H_ls_ast_c__c_Expression_gr__gr__qm_M:
 
 .. das:function:: add_structure_field(cls: StructurePtr; name: string const; t: TypeDeclPtr; init: ExpressionPtr)
 
@@ -969,9 +1020,9 @@ add_structure_field returns int const
 
 Adds a field to the structure.
 
-.. _function-_at_templates_boost_c__c_make_class_Cs_C1_ls_H_ls_rtti_c__c_Module_gr__gr_?:
+.. _function-_at_templates_boost_c__c_make_class_Cs_C1_ls_H_ls_rtti_c__c_Module_gr__gr__qm_:
 
-.. das:function:: make_class(name: string const; mod: rtti::Module? const)
+.. das:function:: make_class(name: string const; mod: Module? const)
 
 make_class returns smart_ptr< :ref:`ast::Structure <handle-ast-Structure>` >
 
@@ -986,9 +1037,9 @@ make_class returns smart_ptr< :ref:`ast::Structure <handle-ast-Structure>` >
 
 Creates a class structure. Adds __rtti, __finalize fields.
 
-.. _function-_at_templates_boost_c__c_make_class_Cs_CY_ls_StructurePtr_gr_1_ls_H_ls_ast_c__c_Structure_gr__gr_?M_C1_ls_H_ls_rtti_c__c_Module_gr__gr_?:
+.. _function-_at_templates_boost_c__c_make_class_Cs_CY_ls_StructurePtr_gr_1_ls_H_ls_ast_c__c_Structure_gr__gr__qm_M_C1_ls_H_ls_rtti_c__c_Module_gr__gr__qm_:
 
-.. das:function:: make_class(name: string const; baseClass: StructurePtr; mod: rtti::Module? const)
+.. das:function:: make_class(name: string const; baseClass: StructurePtr; mod: Module? const)
 
 make_class returns smart_ptr< :ref:`ast::Structure <handle-ast-Structure>` >
 
@@ -1005,9 +1056,9 @@ make_class returns smart_ptr< :ref:`ast::Structure <handle-ast-Structure>` >
 
 Creates a class structure. Adds __rtti, __finalize fields.
 
-.. _function-_at_templates_boost_c__c_make_class_Cs_C1_ls_H_ls_ast_c__c_Structure_gr__gr_?_C1_ls_H_ls_rtti_c__c_Module_gr__gr_?:
+.. _function-_at_templates_boost_c__c_make_class_Cs_C1_ls_H_ls_ast_c__c_Structure_gr__gr__qm__C1_ls_H_ls_rtti_c__c_Module_gr__gr__qm_:
 
-.. das:function:: make_class(name: string const; baseClass: ast::Structure? const; mod: rtti::Module? const)
+.. das:function:: make_class(name: string const; baseClass: Structure? const; mod: Module? const)
 
 make_class returns smart_ptr< :ref:`ast::Structure <handle-ast-Structure>` >
 
@@ -1024,7 +1075,7 @@ make_class returns smart_ptr< :ref:`ast::Structure <handle-ast-Structure>` >
 
 Creates a class structure. Adds __rtti, __finalize fields.
 
-.. _function-_at_templates_boost_c__c_make_class_constructor_CY_ls_StructurePtr_gr_1_ls_H_ls_ast_c__c_Structure_gr__gr_?M_CY_ls_FunctionPtr_gr_1_ls_H_ls_ast_c__c_Function_gr__gr_?M:
+.. _function-_at_templates_boost_c__c_make_class_constructor_CY_ls_StructurePtr_gr_1_ls_H_ls_ast_c__c_Structure_gr__gr__qm_M_CY_ls_FunctionPtr_gr_1_ls_H_ls_ast_c__c_Function_gr__gr__qm_M:
 
 .. das:function:: make_class_constructor(cls: StructurePtr; ctor: FunctionPtr)
 
@@ -1041,7 +1092,7 @@ make_class_constructor returns smart_ptr< :ref:`ast::Function <handle-ast-Functi
 
 Adds a class constructor from a constructor function.
 
-.. _function-_at_templates_boost_c__c_modify_to_class_member_CY_ls_StructurePtr_gr_1_ls_H_ls_ast_c__c_Structure_gr__gr_?M_CY_ls_FunctionPtr_gr_1_ls_H_ls_ast_c__c_Function_gr__gr_?M_Cb_Cb:
+.. _function-_at_templates_boost_c__c_modify_to_class_member_CY_ls_StructurePtr_gr_1_ls_H_ls_ast_c__c_Structure_gr__gr__qm_M_CY_ls_FunctionPtr_gr_1_ls_H_ls_ast_c__c_Function_gr__gr__qm_M_Cb_Cb:
 
 .. das:function:: modify_to_class_member(cls: StructurePtr; fun: FunctionPtr; isExplicit: bool const; Constant: bool const)
 
@@ -1060,7 +1111,7 @@ Adds a class constructor from a constructor function.
 
 Modifies function to be a member of a particular class.
 
-.. _function-_at_templates_boost_c__c_add_array_ptr_ref_1_ls_1_ls_Y_ls_TT_gr_._gr_?M_gr_A:
+.. _function-_at_templates_boost_c__c_add_array_ptr_ref_1_ls_1_ls_Y_ls_TT_gr_._gr__qm_M_gr_A:
 
 .. das:function:: add_array_ptr_ref(a: array<smart_ptr<auto(TT)>>)
 
@@ -1071,6 +1122,38 @@ add_array_ptr_ref returns array<smart_ptr<TT>>
 +========+==========================+
 +a       +array<smart_ptr<auto(TT)>>+
 +--------+--------------------------+
+
+
+Implementation details for the reification. This adds any array to the rules.
+
+.. _function-_at_templates_boost_c__c_enum_class_type_C.:
+
+.. das:function:: enum_class_type(st: auto const)
+
+enum_class_type returns auto
+
++--------+-------------+
++argument+argument type+
++========+=============+
++st      +auto const   +
++--------+-------------+
+
+
+return underlying type for the enumeration
+
+.. _function-_at_templates_boost_c__c_add_type_ptr_ref_CY_ls_TT_gr_._CY_ls_TypeDeclFlags_gr_N_ls_ref;constant;temporary;_implicit;removeRef;removeConstant;removeDim;removeTemporary;explicitConst;aotAlias;smartPtr;smartPtrNative;isExplicit;isNativeDim;isTag;explicitRef;isPrivateAlias;autoToAlias_gr_t:
+
+.. das:function:: add_type_ptr_ref(anything: auto(TT) const; flags: TypeDeclFlags)
+
+add_type_ptr_ref returns  :ref:`TypeDeclPtr <alias-TypeDeclPtr>` 
+
++--------+--------------------------------------------+
++argument+argument type                               +
++========+============================================+
++anything+auto(TT) const                              +
++--------+--------------------------------------------+
++flags   + :ref:`TypeDeclFlags <alias-TypeDeclFlags>` +
++--------+--------------------------------------------+
 
 
 Implementation details for the reification. This adds any array to the rules.

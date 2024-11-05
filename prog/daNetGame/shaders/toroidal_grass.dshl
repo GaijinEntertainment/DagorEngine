@@ -1,0 +1,10 @@
+texture grass_color_tex;
+
+macro USE_GRASS_TC(code)
+  hlsl(code) {
+    float2 getGrassTC(float3 worldPos)
+    {
+      return worldPos.xz*world_to_grass.x + world_to_grass.zw;
+    }
+  }
+endmacro

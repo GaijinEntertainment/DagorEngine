@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/pageAsg/asg_anim_tree.h>
 #include <libTools/pageAsg/asg_anim_ctrl.h>
 #include <ioSys/dag_dataBlock.h>
@@ -108,7 +110,7 @@ void AnimObjGraphTree::loadBnl(const DataBlock &blk, const char *a2d)
     addBnl(blk.getStr("name", "N/A"), a2d, AnimObjBnl::TYPE_Parametric, blk);
 
   else
-    debug_ctx("unknown BlenNode <%s>", blk.getBlockName());
+    DEBUG_CTX("unknown BlenNode <%s>", blk.getBlockName());
 }
 void AnimObjGraphTree::loadBn(const DataBlock &blk, bool use)
 {
@@ -142,7 +144,7 @@ void AnimObjGraphTree::loadBn(const DataBlock &blk, bool use)
     bn = new (midmem) AnimObjCtrlDirectSync;
 
   else if (stricmp(blk.getBlockName(), AnimObjCtrl::typeName[AnimObjCtrl::TYPE_Planar]) == 0)
-    debug_ctx("not implenmented");
+    DEBUG_CTX("not implenmented");
 
   else if (stricmp(blk.getBlockName(), AnimObjCtrl::typeName[AnimObjCtrl::TYPE_Null]) == 0)
     bn = new (midmem) AnimObjCtrlNull;
@@ -178,7 +180,7 @@ void AnimObjGraphTree::loadBn(const DataBlock &blk, bool use)
   }
 
   else
-    debug_ctx("unknown BlenNode <%s>", blk.getBlockName());
+    DEBUG_CTX("unknown BlenNode <%s>", blk.getBlockName());
 
   // load comon params
   if (bn)

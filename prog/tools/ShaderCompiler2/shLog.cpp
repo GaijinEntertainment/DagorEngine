@@ -1,9 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <stdarg.h>
 #include <util/dag_string.h>
 #include <stdio.h>
 
 #include "shLog.h"
-#include <osApiWrappers/dag_cpuJobs.h>
+#include "shCompiler.h"
 #include <osApiWrappers/dag_critSec.h>
 #include <debug/dag_debug.h>
 
@@ -213,16 +215,15 @@ void sh_process_errors()
     lockShaderOutput = true;
     processError = true;
     atomicDebug.unlock();
+
+    if (!shc::try_enter_shutdown())
+      return;
+
+    shc::deinit_jobs();
     if (usePrintf)
     {
       printf("\n\nCompilation aborted after %d error(s)\n", ErrorCounter::allShaders().err);
       printf("See shaderlog for more info\n");
-      if (cpujobs::is_inited())
-      {
-        debug("terminating jobs...");
-        cpujobs::term(true, 3000);
-        debug("jobs termination done");
-      }
       quit_game(13);
     }
     else

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daPhys/particlePhys.h>
 #include <math/dag_geomTree.h>
 #include <math/dag_mathUtils.h>
@@ -411,6 +413,7 @@ struct RevoluteConstraint : public Constraint
 
 ParticlePhysSystem::~ParticlePhysSystem()
 {
+  clear_and_shrink(particleGroups);
   clear_all_ptr_items_and_shrink(particles);
   clear_all_ptr_items_and_shrink(constraints);
 }
@@ -486,13 +489,22 @@ static ParticlePoint *create_point_on_edge(const DataBlock *blk, const NameMap &
 static ParticlePoint *create_point_at_pivot(const DataBlock *blk, RegExp &reg_exp, const GeomNodeTree *tree)
 {
   const char *nodeName = blk->getStr("name", NULL);
-  G_ASSERT(nodeName);
+  if (!nodeName)
+  {
+    logerr("particlePhys create_point_at_pivot: 'name' was null");
+    return NULL;
+  }
   const char *finalNodeName = reg_exp.replace2(nodeName);
   auto nodeId = tree->findNodeIndex(finalNodeName);
-  G_ASSERTF(nodeId || blk->getBool("optional", false), "Cannot find node '%s'", finalNodeName);
-  del_it(finalNodeName);
   if (!nodeId)
+  {
+    if (!blk->getBool("optional", false))
+      logerr("particlePhys create_point_at_pivot: Cannot find node '%s'", finalNodeName);
+
+    del_it(finalNodeName);
     return NULL;
+  }
+  del_it(finalNodeName);
 
   return create_point_at_node(blk, tree, nodeId);
 }
@@ -731,12 +743,41 @@ void ParticlePhysSystem::loadData(const DataBlock *blk, const GeomNodeTree *tree
     append_items(particles, points.size(), points.data());
     append_items(constraints, constrs.size(), constrs.data());
   }
+
+  if (particles.empty())
+    return;
+
+  // read groups of particles
+  const DataBlock *pointGroupsBlk = blk->getBlockByNameEx("pointGroups");
+  for (int i = 0; i < pointGroupsBlk->paramCount(); ++i)
+  {
+    const char *findPatternForExternal = pointGroupsBlk->getStr(i);
+    if (!findPatternForExternal)
+    {
+      logerr("PhysSys: incorrect pointGroup block: can't read a pattern for particles");
+      continue;
+    }
+    RegExp re;
+    re.compile(findPatternForExternal, "");
+    Tab<int> pointIds(framemem_ptr());
+    pointIds.reserve(particles.size());
+    for (int particleId = 0; particleId < particles.size(); ++particleId)
+    {
+      ParticlePoint *particle = particles[particleId];
+      const char *nodeName = tree->getNodeName(particle->gnNodeId);
+      if (re.test(nodeName))
+        pointIds.push_back(particleId);
+    }
+    if (!pointIds.empty())
+      particleGroups.push_back(eastl::move(pointIds));
+  }
 }
 
 void ParticlePhysSystem::loadFromBlk(const DataBlock *blk, const GeomNodeTree *tree)
 {
   clear_and_shrink(particles);
   clear_and_shrink(constraints);
+  clear_and_shrink(particleGroups);
 
   loadData(blk, tree);
 

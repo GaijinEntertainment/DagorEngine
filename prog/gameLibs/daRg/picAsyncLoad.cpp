@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "picAsyncLoad.h"
 #include <daRg/dag_picture.h>
 #include <EASTL/vector_set.h>
@@ -18,11 +20,7 @@ AsyncLoadRequest *PicAsyncLoad::make_request(Picture *pic)
 }
 
 
-void PicAsyncLoad::wait_for_load(AsyncLoadRequest *req)
-{
-  G_ASSERT_RETURN(requests.find(req) == requests.end(), );
-  requests.insert(req);
-}
+void PicAsyncLoad::insert_pending(AsyncLoadRequest *req) { G_VERIFY(requests.insert(req).second); }
 
 
 void PicAsyncLoad::cancel_waiting(AsyncLoadRequest *req)
@@ -47,9 +45,10 @@ void PicAsyncLoad::on_scene_shutdown(IGuiScene *gui_scene)
 }
 
 
-void PicAsyncLoad::pic_mgr_async_load_cb(PICTUREID pid, TEXTUREID tid, const Point2 *tcLt, const Point2 *tcRb,
+void PicAsyncLoad::pic_mgr_async_load_cb(PICTUREID pid, TEXTUREID tid, d3d::SamplerHandle smp, const Point2 *tcLt, const Point2 *tcRb,
   const Point2 *picture_sz, void *arg)
 {
+  G_UNUSED(smp);
   AsyncLoadRequest *req = (AsyncLoadRequest *)arg;
   G_ASSERT(req->isActive() == (req->pic != nullptr));
   if (req->isActive())

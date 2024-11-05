@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 // gmt2dag.cpp : Conversion of rFactor GMT files to DAG format
 //
 ////////////////////////////////////////////////////////////////////////////////

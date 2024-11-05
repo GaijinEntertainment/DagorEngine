@@ -1,3 +1,6 @@
+if (__name__ == "__analysis__")
+  return
+
 //expect:w281
 //-file:declared-never-used
 //-file:undefined-global
@@ -5,7 +8,7 @@
 
 local x = [1, 2]
 
-let function fn(arr) {
+function fn(arr) {
   return (arr ?? []).extend(x)
 //  ::y <- (arr ?? []).extend(x)
 }

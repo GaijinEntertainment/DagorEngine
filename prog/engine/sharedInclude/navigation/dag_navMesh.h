@@ -1,6 +1,5 @@
-
-#ifndef _NAV_MESH_H_
-#define _NAV_MESH_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #include <navigation/dag_navigation.h>
 #include <navigation/dag_navArea.h>
@@ -331,5 +330,3 @@ inline Point2 CNavMesh::getPointPositionXZ(const IPoint2& point_index)
 
 extern void ApproachAreaAnalysisPrep(void);
 extern void CleanupApproachAreaAnalysisPrep(void);
-
-#endif // _NAV_MESH_H_

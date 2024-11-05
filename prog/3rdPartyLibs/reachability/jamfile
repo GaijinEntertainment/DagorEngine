@@ -1,11 +1,11 @@
 Root    ?= ../../.. ;
 Location = prog/3rdPartyLibs/reachability ;
 
+Platform ?= iOS ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 TargetType  = lib ;
 Target      = 3rdPartyLibs/reachability.lib ;
-Platform   ?= iOS ;
 
 Sources +=
   source/Reachability.m

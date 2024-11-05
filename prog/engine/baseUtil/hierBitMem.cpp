@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_hierBitMemPool.h>
 
 void *hierbit_allocmem(int sz) { return memalloc(sz, midmem); }

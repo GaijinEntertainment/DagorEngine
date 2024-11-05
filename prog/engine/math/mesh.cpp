@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_mesh.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_qsort.h>
@@ -56,7 +58,7 @@ bool MeshData::ExtraChannel::resize_verts(int n, int t)
     case CHT_FLOAT4: vsize = sizeof(float) * 4; break;
     case CHT_E3DCOLOR: vsize = sizeof(E3DCOLOR); break;
     case CHT_UNKNOWN: vsize = 0; break;
-    default: vsize = 0; logerr_ctx("unknown mesh channel type %d", t);
+    default: vsize = 0; LOGERR_CTX("unknown mesh channel type %d", t);
   }
   if (vsize == 0)
     return false;
@@ -947,10 +949,13 @@ void MeshData::optimize_tverts(float sqThreshold)
   Tab<int> nv(tmpmem), map(tmpmem);
   Bitarray vfm;
   for (int ch = 0; ch < NUMMESHTCH; ++ch)
-    ::optimize_tface<GetTFaceVert>(nv, map, vfm, tface[ch], tvert[ch], sqThreshold, false);
+    if (tface[ch].size())
+      ::optimize_tface<GetTFaceVert>(nv, map, vfm, tface[ch], tvert[ch], sqThreshold, false);
 
-  ::optimize_tface<GetTFaceVert>(nv, map, vfm, cface, cvert, sqThreshold, false);
-  ::optimize_tface<GetNFaceVert>(nv, map, vfm, facengr, vertnorm, sqThreshold, false);
+  if (cface.size())
+    ::optimize_tface<GetTFaceVert>(nv, map, vfm, cface, cvert, sqThreshold, false);
+  if (facengr.size())
+    ::optimize_tface<GetNFaceVert>(nv, map, vfm, facengr, vertnorm, sqThreshold, false);
 }
 
 bool MeshData::optimize_extra(int id, float sqThreshold)
@@ -1809,11 +1814,15 @@ void MeshData::attach(const MeshData &m)
 
   for (int ch = 0; ch < NUMMESHTCH; ++ch)
   {
+    if (tvert[ch].size())
+      vo = append_items(tvert[ch], m.tvert[ch].size(), m.tvert[ch].data());
+    else
+      tvert[ch] = m.tvert[ch];
+
     if (tface[ch].size())
     {
       if (m.tface[ch].size())
       {
-        vo = append_items(tvert[ch], m.tvert[ch].size(), m.tvert[ch].data());
         fi = append_items(tface[ch], m.tface[ch].size(), m.tface[ch].data());
         for (; fi < tface[ch].size(); ++fi)
         {
@@ -1836,8 +1845,6 @@ void MeshData::attach(const MeshData &m)
     }
     else if (m.tface[ch].size())
     {
-      tvert[ch] = m.tvert[ch];
-
       tface[ch].resize(face.size());
       for (fi = 0; fi < numf; ++fi)
       {

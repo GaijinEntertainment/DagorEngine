@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <startup/dag_globalSettings.h>
 #include <memory/dag_mem.h>
 #include <generic/dag_tab.h>
@@ -40,6 +42,8 @@
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <util/dag_delayedAction.h>
 #include <gui/dag_visualLog.h>
+#include <shaders/dag_shaders.h>
+#include <drv/3d/dag_driver.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <helpers/keyValueFile.h>
 
@@ -61,17 +65,23 @@
 #include <set>
 
 #include "fs_utils.h"
+#include "scriptapi.h"
+
 
 using namespace sqimportparser;
 
 
-#define APP_VERSION "1.0.21"
+#define APP_VERSION "1.0.24"
+
+// Stubs
 
 namespace visuallog
 {
 // stub for dagor debug module
 void logmsg(const char *, LogItemCBProc, void *, E3DCOLOR, int) {}
 } // namespace visuallog
+
+void ShaderElement::invalidate_cached_state_block() {}
 
 
 extern int __argc;
@@ -82,6 +92,7 @@ static bool syntax_check_only = false;
 static bool has_errors = false;
 static bool csq_time = false;
 static bool csq_show_native_modules = false;
+static bool csq_show_native_modules_content = false;
 static bool use_debug_file = false;
 static bool check_fname_case = false;
 static bool do_static_analysis = false;
@@ -98,6 +109,11 @@ static std::vector<std::string> char_server_urls;
 
 static void stderr_report_fatal_error(const char *, const char *msg, const char *call_stack)
 {
+  if (sqvm)
+  {
+    sqstd_printcallstack(sqvm);
+    printf("\n");
+  }
   printf("Fatal error: %s\n%s", msg, call_stack);
   flush_debug_file();
   quit_game(1, false);
@@ -111,11 +127,7 @@ static void output_text(const char *msg)
 }
 
 
-static void output_error_text(const char *msg)
-{
-  output_text(msg);
-  has_errors = true;
-}
+static void output_error_text(const char *msg) { output_text(msg); }
 
 
 static void report_error(const char *msg)
@@ -290,43 +302,6 @@ static Module modules[] = {
 };
 
 
-static SQInteger get_type_delegates(HSQUIRRELVM v)
-{
-  const SQChar *type_name;
-  sq_getstring(v, 2, &type_name);
-
-  SQObjectType t;
-  if (!strcmp(type_name, "table"))
-    t = OT_TABLE;
-  else if (!strcmp(type_name, "array"))
-    t = OT_ARRAY;
-  else if (!strcmp(type_name, "string"))
-    t = OT_STRING;
-  else if (!strcmp(type_name, "integer"))
-    t = OT_INTEGER;
-  else if (!strcmp(type_name, "generator"))
-    t = OT_GENERATOR;
-  else if (!strcmp(type_name, "closure"))
-    t = OT_CLOSURE;
-  else if (!strcmp(type_name, "thread"))
-    t = OT_THREAD;
-  else if (!strcmp(type_name, "class"))
-    t = OT_CLASS;
-  else if (!strcmp(type_name, "instance"))
-    t = OT_INSTANCE;
-  else if (!strcmp(type_name, "weakref"))
-    t = OT_WEAKREF;
-  else
-    return sq_throwerror(v, String(0, "no default delegate table for type %s or it is an unknown type", type_name));
-
-  SQRESULT res = sq_getdefaultdelegate(v, t);
-  if (SQ_FAILED(res))
-    return SQ_ERROR;
-
-  return 1;
-}
-
-
 static String read_file_ignoring_utf8bom(const char *filename)
 {
   String script;
@@ -392,15 +367,16 @@ static void check_syntax(SqModules *module_mgr, const char *filename)
   module_mgr->bindRequireApi(hBindings);
   module_mgr->bindBaseLib(hBindings);
 
-  sq_setcompilecheckmode(sqvm, SQTrue);
-
   if (!remove_import_from_code(source.str(), filename))
     quit_game(1, false);
 
-  bool success = SQ_SUCCEEDED(sq_compilewithast(sqvm, source.c_str(), source.length(), filename, true, true, &hBindings));
+  SQCompilation::SqASTData *ast =
+    sq_parsetoast(sqvm, source.str(), source.length(), filename, /*static analysis*/ false, /* raise error*/ true);
 
-  if (!success)
+  if (!ast)
     quit_game(1, false);
+
+  sq_releaseASTData(sqvm, ast);
 }
 
 
@@ -448,6 +424,18 @@ static void compiler_diag_cb(HSQUIRRELVM, const SQCompilerMessage *msg)
 }
 
 
+static void compiler_error_cb(HSQUIRRELVM v, SQMessageSeverity severity, const SQChar *sErr, const SQChar *sSource, SQInteger line,
+  SQInteger column, const SQChar *extra)
+{
+  if (severity > SEV_HINT)
+    has_errors = true;
+  script_print_function(v, _SC("%s\n"), sErr);
+  script_print_function(v, _SC("%s:%d:%d\n"), sSource, (int)line, (int)column);
+  if (extra)
+    script_print_function(v, _SC("%s\n"), extra);
+}
+
+
 static bool process_file(const char *filename, const char *code, const KeyValueFile &config_blk, int moduleIndex,
   String &out_module_name, bool &is_execute)
 {
@@ -459,6 +447,7 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
   sqvm = SquirrelVM::GetVMPtr();
   sq_forbidglobalconstrewrite(sqvm, true);
   sq_setprintfunc(sqvm, ::script_print_function, ::script_error_function);
+  sq_setcompilererrorhandler(sqvm, ::compiler_error_cb);
 
   bool useLibsByDefault = config_blk.getBool("use_libs_by_default", true);
 
@@ -501,15 +490,11 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
   char_server_urls = config_blk.getValuesList("char_server_urls");
 
   sqstd_register_command_line_args(sqvm, __argc, __argv);
-
-  {
-    Sqrat::RootTable rootTbl(sqvm);
-    rootTbl.SquirrelFunc("__get_type_delegates", get_type_delegates, 2, ".s");
-  }
+  register_csq_module(module_manager);
+  bindquirrel::register_dagor_system(module_manager);
 
   if (sq_isvartracesupported())
     sq_enablevartrace(sqvm, true);
-
 
   for (Module &m : modules)
   {
@@ -531,11 +516,44 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
         m.func();
 
 
-  bindquirrel::register_dagor_system(module_manager);
-
   if (csq_show_native_modules)
   {
     module_manager->forEachNativeModule([](const char *mn, const Sqrat::Object &) { printf("%s\n", mn); });
+    quit_game(0, false);
+  }
+
+  if (csq_show_native_modules_content)
+  {
+    Sqrat::string errMsg;
+    Sqrat::Script script(sqvm);
+
+    Sqrat::Table bindings(sqvm);
+    module_manager->bindRequireApi(bindings.GetObject());
+    module_manager->bindBaseLib(bindings.GetObject());
+    Sqrat::Object nullThis(sqvm);
+
+    module_manager->forEachNativeModule([&](const char *mn, const Sqrat::Object &) {
+      printf("\nModule: %s\n", mn);
+      String code(0,
+        "local a = []\n"
+        "foreach (k, v in require(\"%s\")) {\n"
+        "  a.append($\"  {k} - {typeof v}\")\n"
+        "  if (typeof v == \"class\") {\n"
+        "    local a2 = []\n"
+        "    foreach (k2, v2 in v) a2.append($\"    {k}.{k2} - {typeof v2}\")\n"
+        "    a[a.len() - 1] += $\"\\n{\"\\n\".join(a2.sort())}\"\n"
+        "  }\n"
+        "}\n"
+        "foreach (_, s in a.sort()) println(s);",
+        mn);
+
+      if (!script.CompileString(code.c_str(), errMsg, code.c_str(), &bindings.GetObject()) || !script.Run(errMsg, &nullThis))
+      {
+        sq_error_handler(errMsg);
+        printf("In script: %s\n\n", code.c_str());
+        quit_game(1, false);
+      }
+    });
     quit_game(0, false);
   }
 
@@ -649,7 +667,8 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
     {
       check_syntax(module_manager, filename);
     }
-    else if (!module_manager->requireModule(filename, true, SqModules::__main__, ret, errorMsg))
+    else if (!module_manager->requireModule(filename, true, do_static_analysis ? SqModules::__analysis__ : SqModules::__main__, ret,
+               errorMsg))
     {
       success = false;
       report_error(errorMsg);
@@ -697,7 +716,7 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
     printf("Execution time: %d ms\n", t1 - t0);
 
   if (frp_graph)
-    frp_graph->notifyObservablesOnShutdown(true);
+    frp_graph->shutdown(true);
   del_it(module_manager);
 
   perform_delayed_actions(); // explicitly flush delayed actions that might hold sq callbacks
@@ -708,6 +727,7 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
 #if HAS_CHARSQ
   charsq::shutdown();
 #endif
+  sqvm = nullptr;
   SquirrelVM::Shutdown(false);
   if (cpujobs::is_inited())
     cpujobs::term(true);
@@ -725,7 +745,7 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
 }
 
 
-void print_usage()
+static void print_usage()
 {
   printf("\nUsage: csq [options] <script.nut>\n");
   printf("\nApp can be preconfigured to use some modules with .sqconfig found in folder of script on on any upper folders\n\n");
@@ -736,6 +756,7 @@ void print_usage()
   printf("  --set-sqconfig:<file-name> - specialize .sqconfig file\n");
   printf("  --sample-config - print reference .sqconfig in output\n");
   printf("  --native-modules - show list of available native modules\n");
+  printf("  --native-modules-content - show list of available native modules and content of modules\n");
   printf("  --mount-vromfs:<vrom> - all vroms will be mounted\n");
   printf("  --mount:<mount>=<path> - add mount point (--mount:darg=../../prog/daRg)\n");
   printf("  --show-mounts - print mount points\n");
@@ -824,14 +845,14 @@ static int log_err_callback(int lev_tag, const char *fmt, const void *arg, int a
 }
 
 
-void sq_exit_func(int exit_code)
+static void sq_exit_func(int exit_code)
 {
   flush_debug_file();
   quit_game(exit_code, false);
 }
 
 
-void on_file_open(const char *fname, void * /*file_handle*/, int flags)
+static void on_file_open(const char *fname, void * /*file_handle*/, int flags)
 {
   if (!check_fname_case)
     return;
@@ -846,7 +867,7 @@ void on_file_open(const char *fname, void * /*file_handle*/, int flags)
 }
 
 
-int check_unused_args()
+static int check_unused_args()
 {
   if (::dgs_get_argv("ignore-unknown-args"))
     return has_errors;
@@ -855,7 +876,7 @@ int check_unused_args()
     if (!dgs_is_arg_used(i))
     {
       has_errors = true;
-      printf("\nERROR: Invlid argument '%s'\n", __argv[i]);
+      printf("\nERROR: Invalid argument '%s'\n", __argv[i]);
     }
 
   return has_errors ? 1 : 0;
@@ -1142,10 +1163,11 @@ int DagorWinMain(bool debugmode)
   syntax_check_only = ::dgs_get_argv("syntax-check");
 
   csq_show_native_modules = ::dgs_get_argv("native-modules");
-  if (csq_show_native_modules && inputFiles.size() == 0)
+  csq_show_native_modules_content = ::dgs_get_argv("native-modules-content");
+  if ((csq_show_native_modules || csq_show_native_modules_content) && inputFiles.size() == 0)
     inputFiles.push_back(String(""));
 
-  if (inputFiles.size() != 1)
+  if (inputFiles.size() == 0)
   {
     print_usage();
     return 1;
@@ -1156,12 +1178,18 @@ int DagorWinMain(bool debugmode)
     sq_invertwarningsstate();
   }
 
-  String tmpS;
-  bool tmpB;
-  if (!process_file(inputFiles[0], nullptr, configBlk, -1, tmpS, tmpB))
-    has_errors = true;
+  d3d::init_driver();
+
+  for (String &fileName : inputFiles)
+  {
+    String tmpS;
+    bool tmpB;
+    if (!process_file(fileName, nullptr, configBlk, -1, tmpS, tmpB))
+      has_errors = true;
+  }
 
   httprequests::shutdown_async();
+  d3d::release_driver();
 
   if (const char *finalMsg = ::dgs_get_argv("final-message"))
     printf("%s", finalMsg);

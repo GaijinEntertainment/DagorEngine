@@ -1,0 +1,1 @@
+include %daslib/instance_function.das

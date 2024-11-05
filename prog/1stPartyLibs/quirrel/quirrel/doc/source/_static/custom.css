@@ -1,4 +1,4 @@
-﻿.toggle .header {
+﻿}.toggle .header {
     display: block;
     clear: both;
 }
@@ -10,3 +10,39 @@
 .toggle .header.open:after {
     content: " ▼";
 }
+
+/* Bar charts on the performance page.*/
+/* Licensed with MIT license from https://github.com/wren-lang/wren */
+
+table.chart {
+  margin: 4px 0 0 0;
+  padding: 0 0 0 25px;
+}
+
+table.chart td, th {
+  line-height: 15px;
+  margin: 0;
+  padding: 1px 0;
+}
+
+table.chart th {
+  font-size: 14px;
+  width: 200px;
+}
+
+table.chart .chart-bar {
+  display: inline-block;
+  padding: 2px 0 0 0;
+  color: #eeeeee;
+  background: hsl(200, 60%, 50%);
+  border-bottom: solid 1px hsl(210, 60%, 20%);
+  text-align: right;
+  border-radius: 2px;
+}
+
+table.chart .chart-bar.featured {
+  background: hsl(200, 60%, 25%);
+  border-bottom: solid 1px hsl(210, 60%, 20%);
+}
+
+/* End of wren style */

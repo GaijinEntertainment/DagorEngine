@@ -1,10 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <daECS/core/entityComponent.h>
 #include <math/dag_Point4.h>
 #include <shaders/dag_shaders.h>
 
 static Color4 inline to_color4(const Point4 &p) { return Color4(p.x, p.y, p.z, p.w); }
-inline void set_shader_var(int varId, const ecs::EntityComponentRef in_attr)
+inline void set_shader_var(int varId, const char *name, const ecs::EntityComponentRef in_attr)
 {
   switch (in_attr.getUserType())
   {
@@ -13,8 +15,12 @@ inline void set_shader_var(int varId, const ecs::EntityComponentRef in_attr)
     case ecs::ComponentTypeInfo<float>::type: ShaderGlobal::set_real(varId, in_attr.get<float>()); break;
     case ecs::ComponentTypeInfo<Point4>::type: ShaderGlobal::set_color4(varId, to_color4(in_attr.get<Point4>())); break;
     case ecs::ComponentTypeInfo<ecs::string>::type:
+    {
       ShaderGlobal::set_texture(varId, get_managed_texture_id(in_attr.get<ecs::string>().c_str()));
+      eastl::string samplerName(eastl::string::CtorSprintf(), "%s_samplerstate", name);
+      ShaderGlobal::set_sampler(::get_shader_variable_id(samplerName.c_str(), true), d3d::request_sampler({}));
       break;
+    }
     case ecs::ComponentTypeInfo<IPoint3>::type:
     {
       const IPoint3 &p3 = in_attr.get<IPoint3>();
@@ -30,7 +36,7 @@ inline bool set_shader_var(const char *name, const ecs::EntityComponentRef var)
   int varId = get_shader_variable_id(name, true);
   if (varId < 0)
     return false;
-  set_shader_var(varId, var);
+  set_shader_var(varId, name, var);
   return true;
 }
 
@@ -99,6 +105,6 @@ inline void set_shader_var(const char *name, const ecs::EntityComponentRef var, 
   {
     if (shader_vars__original_vars)
       get_shader_var(varId, shader_vars__original_vars->insert(ECS_HASH_SLOW(name)));
-    set_shader_var(varId, var);
+    set_shader_var(varId, name, var);
   }
 }

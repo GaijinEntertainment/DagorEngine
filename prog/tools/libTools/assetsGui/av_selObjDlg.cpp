@@ -1,35 +1,49 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <assetsGui/av_selObjDlg.h>
+#include "av_favoritesTab.h"
+#include "av_recentlyUsedTab.h"
 #include <assetsGui/av_globalState.h>
 #include <assets/asset.h>
 #include <assets/assetMgr.h>
+#include <assets/assetUtils.h>
 #include <libTools/util/strUtil.h>
 #include <osApiWrappers/dag_clipboard.h>
+#include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_shellExecute.h>
 #include <util/dag_globDef.h>
-#include <propPanel2/comWnd/panel_window.h>
+#include <propPanel/control/container.h>
+#include <propPanel/control/menu.h>
+#include <propPanel/control/treeInterface.h>
+#include <propPanel/propPanel.h>
 #include "av_ids.h"
 
+#include <imgui/imgui.h>
+
 using hdpi::_pxActual;
+using hdpi::_pxScaled;
 
 #if _TARGET_PC_WIN
 #include <osApiWrappers/dag_unicode.h>
 #include <Shlobj.h>
+#include <Shlwapi.h> // StrStrIA
 #endif
 
 SelectAssetDlg::SelectAssetDlg(void *phandle, DagorAssetMgr *_mgr, const char *caption, const char *sel_btn_caption,
   const char *reset_btn_caption, dag::ConstSpan<int> filter, int x, int y, unsigned w, unsigned h) :
 
-  CDialogWindow(phandle, x, y, _pxActual(w), _pxActual(h), caption), mgr(_mgr), view(NULL)
+  DialogWindow(phandle, x, y, w > 0 ? _pxActual(w) : _pxScaled(DEFAULT_MINIMUM_WIDTH),
+    h > 0 ? _pxActual(h) : _pxScaled(SelectAssetDlg::DEFAULT_MINIMUM_HEIGHT), caption),
+  mgr(_mgr),
+  view(nullptr)
 {
   client = this;
 
-  PropertyContainerControlBase *_bp = mButtonsPanel->getContainer();
+  PropPanel::ContainerPropertyControl *_bp = buttonsPanel->getContainer();
   G_ASSERT(_bp && "SelectAssetDlg::SelectAssetDlg : No panel with buttons");
 
-  buttonsToWidth();
-
-  _bp->setCaption(DIALOG_ID_OK, sel_btn_caption);
-  _bp->setCaption(DIALOG_ID_CANCEL, reset_btn_caption);
+  _bp->setCaption(PropPanel::DIALOG_ID_OK, sel_btn_caption);
+  _bp->setCaption(PropPanel::DIALOG_ID_CANCEL, reset_btn_caption);
 
   commonConstructor(filter);
 }
@@ -38,11 +52,14 @@ SelectAssetDlg::SelectAssetDlg(void *phandle, DagorAssetMgr *_mgr, const char *c
 SelectAssetDlg::SelectAssetDlg(void *phandle, DagorAssetMgr *_mgr, IAssetBaseViewClient *cli, const char *caption,
   dag::ConstSpan<int> filter, int x, int y, unsigned w, unsigned h) :
 
-  CDialogWindow(phandle, x, y, _pxActual(w), _pxActual(h), caption), mgr(_mgr), view(NULL)
+  DialogWindow(phandle, x, y, w > 0 ? _pxActual(w) : _pxScaled(DEFAULT_MINIMUM_WIDTH),
+    h > 0 ? _pxActual(h) : _pxScaled(SelectAssetDlg::DEFAULT_MINIMUM_HEIGHT), caption),
+  mgr(_mgr),
+  view(NULL)
 {
   client = cli ? cli : this;
 
-  PropertyContainerControlBase *_bp = mButtonsPanel->getContainer();
+  PropPanel::ContainerPropertyControl *_bp = buttonsPanel->getContainer();
   G_ASSERT(_bp && "SelectAssetDlg::SelectAssetDlg : No panel with buttons");
 
   showButtonPanel(false);
@@ -53,35 +70,33 @@ SelectAssetDlg::SelectAssetDlg(void *phandle, DagorAssetMgr *_mgr, IAssetBaseVie
 
 void SelectAssetDlg::commonConstructor(dag::ConstSpan<int> filter)
 {
-  PropertyContainerControlBase *panel = getPanel();
+  folderTextureId = PropPanel::load_icon("folder");
+
+  PropPanel::ContainerPropertyControl *panel = getPanel();
   G_ASSERT(panel && "SelectAssetDlg::commonConstructor : No panel with controls");
 
   const hdpi::Px verticalInterval = panel->getClientHeight(); // For an empty panel getClientHeight equals with getVerticalInterval.
-  PropertyContainerControlBase *tabPanel = panel->createTabPanel(AssetsGuiIds::TabPanel, "");
-  PropertyContainerControlBase *allTabPage = tabPanel->createTabPage(AssetsGuiIds::AllPage, "All");
+  PropPanel::ContainerPropertyControl *tabPanel = panel->createTabPanel(AssetsGuiIds::TabPanel, "");
+  PropPanel::ContainerPropertyControl *allTabPage = tabPanel->createTabPage(AssetsGuiIds::AllPage, "All");
 
   const hdpi::Px tabPageHeight = _pxActual(panel->getHeight()) - panel->getClientHeight() - tabPanel->getClientHeight() -
                                  allTabPage->getClientHeight() - verticalInterval;
 
-  PropertyControlBase *placeholder = allTabPage->createPlaceholder(AssetsGuiIds::AssetBaseViewPlaceholder, tabPageHeight);
-  view = new AssetBaseView(client, this, allTabPage->getWindowHandle(), placeholder->getX(), placeholder->getY(),
-    placeholder->getWidth(), hdpi::_px(tabPageHeight));
+  view = new AssetBaseView(client, this, allTabPage->getWindowHandle(), 0, 0, 0, hdpi::_px(tabPageHeight));
 
-  PropertyContainerControlBase *favoritesTabPage = tabPanel->createTabPage(AssetsGuiIds::FavoritesPage, "Favorites");
-  placeholder = favoritesTabPage->createPlaceholder(AssetsGuiIds::FavoritesTreePlaceholder, tabPageHeight);
-  favoritesTree = new TreeBaseWindow(this, favoritesTabPage->getWindowHandle(), placeholder->getX(), placeholder->getY(),
-    _pxActual(placeholder->getWidth()), tabPageHeight, "", /*icons_show = */ true);
+  PropPanel::ContainerPropertyControl *favoritesTabPage = tabPanel->createTabPage(AssetsGuiIds::FavoritesPage, "Favorites");
+  favoritesTab.reset(new FavoritesTab(*this));
 
-  PropertyContainerControlBase *recentlyUsedTabPage = tabPanel->createTabPage(AssetsGuiIds::RecentlyUsedPage, "Recently used");
-  placeholder = recentlyUsedTabPage->createPlaceholder(AssetsGuiIds::RecentlyUsedTreePlaceholder, tabPageHeight);
-  recentlyUsedTree = new TreeBaseWindow(this, recentlyUsedTabPage->getWindowHandle(), placeholder->getX(), placeholder->getY(),
-    _pxActual(placeholder->getWidth()), tabPageHeight, "", /*icons_show = */ true);
+  PropPanel::ContainerPropertyControl *recentlyUsedTabPage = tabPanel->createTabPage(AssetsGuiIds::RecentlyUsedPage, "Recently used");
+  recentlyUsedTab.reset(new RecentlyUsedTab(*this));
 
   G_ASSERT(view);
 
   view->setFilter(filter);
   view->showEmptyGroups(false);
   view->connectToAssetBase(mgr);
+
+  panel->createCustomControlHolder(AssetsGuiIds::CustomControlHolder, this);
 }
 
 
@@ -116,24 +131,7 @@ bool SelectAssetDlg::changeFilters(DagorAssetMgr *_mgr, dag::ConstSpan<int> type
 }
 
 
-void SelectAssetDlg::resizeWindow(hdpi::Px w, hdpi::Px h, bool internal)
-{
-  CDialogWindow::resizeWindow(w, h, false);
-
-  PropertyContainerControlBase *_pp = getPanel();
-  G_ASSERT(_pp && "SelectAssetDlg::SelectAssetDlg : No panel with controls");
-
-  view->resize(_pp->getWidth(), _pp->getHeight());
-  buttonsToWidth();
-}
-
-
-SelectAssetDlg::~SelectAssetDlg()
-{
-  del_it(view);
-  del_it(favoritesTree);
-  del_it(recentlyUsedTree);
-}
+SelectAssetDlg::~SelectAssetDlg() { del_it(view); }
 
 
 bool SelectAssetDlg::onOk()
@@ -144,26 +142,35 @@ bool SelectAssetDlg::onOk()
 }
 
 
-void SelectAssetDlg::onAvAssetDblClick(const char *obj_name) { click(DIALOG_ID_OK); }
+void SelectAssetDlg::onAvAssetDblClick(const char *obj_name) { clickDialogButton(PropPanel::DIALOG_ID_OK); }
 
 
-void SelectAssetDlg::revealInExplorer(const DagorAsset &asset)
+void SelectAssetDlg::revealInExplorer(const DagorAsset &asset) { dag_reveal_in_explorer(&asset); }
+
+
+void SelectAssetDlg::copyAssetFilePathToClipboard(const DagorAsset &asset)
 {
-#if _TARGET_PC_WIN
-  String fpath = asset.isVirtual() ? asset.getTargetFilePath() : asset.getSrcFilePath();
-  fpath.replaceAll("/", "\\");
-  Tab<wchar_t> stor;
-  LPITEMIDLIST fpath_id = nullptr;
-  if (SHParseDisplayName(convert_path_to_u16(stor, fpath), nullptr, &fpath_id, 0, nullptr) == S_OK)
-  {
-    SHOpenFolderAndSelectItems(fpath_id, 0, nullptr, 0);
-    CoTaskMemFree /*ILFree*/ (fpath_id);
-    return;
-  }
-#endif
+  String text(asset.isVirtual() ? asset.getTargetFilePath() : asset.getSrcFilePath());
+  clipboard::set_clipboard_ansi_text(make_ms_slashes(text));
+}
 
-  String path(asset.getFolderPath());
-  os_shell_execute("open", path, nullptr, nullptr);
+
+void SelectAssetDlg::copyAssetFolderPathToClipboard(const DagorAsset &asset)
+{
+  String text(asset.getFolderPath());
+  clipboard::set_clipboard_ansi_text(make_ms_slashes(text));
+}
+
+
+void SelectAssetDlg::copyAssetNameToClipboard(const DagorAsset &asset) { clipboard::set_clipboard_ansi_text(asset.getName()); }
+
+
+bool SelectAssetDlg::matchesSearchText(const char *haystack, const char *needle)
+{
+  if (needle == nullptr || needle[0] == 0)
+    return true;
+
+  return haystack && StrStrIA(haystack, needle) != nullptr;
 }
 
 
@@ -171,72 +178,37 @@ int SelectAssetDlg::onMenuItemClick(unsigned id)
 {
   if (id == AssetsGuiIds::AddToFavoritesMenuItem)
   {
-    const String assetName(getSelObjName());
-    G_ASSERT(!assetName.empty());
-    AssetSelectorGlobalState::addFavorite(assetName);
-
-    // Mark the favorites tree dirty.
-    favoritesTreeAllowedTypes.clear();
-  }
-  else if (id == AssetsGuiIds::RemoveFromFavoritesMenuItem)
-  {
-    const String assetName(getSelectedFavorite());
-    if (!assetName.empty())
-    {
-      favoritesTree->removeItem(favoritesTree->getSelectedItem());
-      AssetSelectorGlobalState::removeFavorite(assetName);
-    }
+    const DagorAsset *asset = getAssetByName(getSelObjName(), view->getCurFilter());
+    if (asset)
+      addAssetToFavorites(*asset);
   }
   else if (id == AssetsGuiIds::GoToAssetInSelectorMenuItem)
   {
-    const String assetName(getSelObjName());
-    if (!assetName.empty())
-    {
-      getPanel()->setInt(AssetsGuiIds::TabPanel, AssetsGuiIds::AllPage);
-      selectObj(assetName);
-    }
+    const DagorAsset *asset = getAssetByName(getSelObjName(), view->getCurFilter());
+    if (asset)
+      goToAsset(*asset);
   }
   else if (id == AssetsGuiIds::CopyAssetFilePathMenuItem)
   {
-    const String assetName(getSelObjName());
-    const DagorAsset *asset = assetName.empty() ? nullptr : mgr->findAsset(assetName);
+    const DagorAsset *asset = getAssetByName(getSelObjName(), view->getCurFilter());
     if (asset)
-    {
-      String text(asset->isVirtual() ? asset->getTargetFilePath() : asset->getSrcFilePath());
-      clipboard::set_clipboard_ansi_text(make_ms_slashes(text));
-    }
+      copyAssetFilePathToClipboard(*asset);
   }
   else if (id == AssetsGuiIds::CopyAssetFolderPathMenuItem)
   {
-    const String assetName(getSelObjName());
-    const DagorAsset *asset = assetName.empty() ? nullptr : mgr->findAsset(assetName);
+    const DagorAsset *asset = getAssetByName(getSelObjName(), view->getCurFilter());
     if (asset)
-    {
-      String text(asset->getFolderPath());
-      clipboard::set_clipboard_ansi_text(make_ms_slashes(text));
-    }
+      copyAssetFolderPathToClipboard(*asset);
   }
   else if (id == AssetsGuiIds::CopyAssetNameMenuItem)
   {
-    const String assetName(getSelObjName());
-    const DagorAsset *asset = assetName.empty() ? nullptr : mgr->findAsset(assetName);
+    const DagorAsset *asset = getAssetByName(getSelObjName(), view->getCurFilter());
     if (asset)
-      clipboard::set_clipboard_ansi_text(asset->getName());
+      copyAssetNameToClipboard(*asset);
   }
   else if (id == AssetsGuiIds::RevealInExplorerMenuItem)
   {
-    const DagorAsset *asset = nullptr;
-    const String assetName(getSelObjName());
-    const char *type = strchr(assetName.c_str(), ':');
-    if (type)
-    {
-      const int assetType = mgr->getAssetTypeId(type + 1);
-      if (assetType >= 0)
-        asset = mgr->findAsset(String::mk_sub_str(assetName.c_str(), type), assetType);
-    }
-    else if (!assetName.empty())
-      asset = mgr->findAsset(assetName);
-
+    const DagorAsset *asset = getAssetByName(getSelObjName(), view->getCurFilter());
     if (asset)
       revealInExplorer(*asset);
   }
@@ -244,7 +216,7 @@ int SelectAssetDlg::onMenuItemClick(unsigned id)
   return 0;
 }
 
-void SelectAssetDlg::onChange(int pcb_id, PropPanel2 *panel)
+void SelectAssetDlg::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   if (pcb_id == AssetsGuiIds::TabPanel)
   {
@@ -258,59 +230,6 @@ void SelectAssetDlg::onChange(int pcb_id, PropPanel2 *panel)
   }
 }
 
-void SelectAssetDlg::onTvDClick(TreeBaseWindow &tree, TLeafHandle node)
-{
-  if (&tree == favoritesTree)
-  {
-    const TLeafHandle selectedNode = favoritesTree->getSelectedItem();
-    if (selectedNode)
-    {
-      const String assetName = favoritesTree->getItemName(selectedNode);
-      client->onAvAssetDblClick(assetName);
-    }
-  }
-  else if (&tree == recentlyUsedTree)
-  {
-    const TLeafHandle selectedNode = recentlyUsedTree->getSelectedItem();
-    if (selectedNode)
-    {
-      const String assetName = recentlyUsedTree->getItemName(selectedNode);
-      client->onAvAssetDblClick(assetName);
-    }
-  }
-}
-
-void SelectAssetDlg::onTvSelectionChange(TreeBaseWindow &tree, TLeafHandle new_sel)
-{
-  if (&tree == favoritesTree && getPanel()->getInt(AssetsGuiIds::TabPanel) == AssetsGuiIds::FavoritesPage)
-    client->onAvSelectAsset(getSelectedFavorite());
-  else if (&tree == recentlyUsedTree && getPanel()->getInt(AssetsGuiIds::TabPanel) == AssetsGuiIds::RecentlyUsedPage)
-    client->onAvSelectAsset(getSelectedRecentlyUsed());
-}
-
-bool SelectAssetDlg::onTvContextMenu(TreeBaseWindow &tree, TLeafHandle under_mouse, IMenu &menu)
-{
-  if (&tree == favoritesTree)
-  {
-    menu.setEventHandler(this);
-    menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::GoToAssetInSelectorMenuItem, "Go to asset");
-    AssetBaseView::addCommonMenuItems(menu);
-    menu.addSeparator(ROOT_MENU_ITEM);
-    menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::RemoveFromFavoritesMenuItem, "Remove from favorites");
-    return true;
-  }
-  else if (&tree == recentlyUsedTree)
-  {
-    menu.setEventHandler(this);
-    menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::AddToFavoritesMenuItem, "Add to favorites");
-    menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::GoToAssetInSelectorMenuItem, "Go to asset");
-    AssetBaseView::addCommonMenuItems(menu);
-    return true;
-  }
-
-  return false;
-}
-
 void SelectAssetDlg::fillFavoritesTree()
 {
   dag::ConstSpan<int> allowedTypes = view->getCurFilter();
@@ -318,62 +237,21 @@ void SelectAssetDlg::fillFavoritesTree()
     return;
 
   favoritesTreeAllowedTypes = allowedTypes;
-
-  const TLeafHandle selectedIem = favoritesTree->getSelectedItem();
-  const String selectedItemName = selectedIem ? favoritesTree->getItemName(selectedIem) : String();
-
-  favoritesTree->clear();
-
-  dag::Vector<String> sortedFavorites = AssetSelectorGlobalState::getFavorites();
-  eastl::sort(sortedFavorites.begin(), sortedFavorites.end(), [](const String &a, const String &b) { return strcmp(a, b) <= 0; });
-
-  String imageName;
-  for (const String &assetName : sortedFavorites)
-  {
-    const DagorAsset *asset = mgr->findAsset(assetName);
-
-    if (asset && eastl::find(allowedTypes.begin(), allowedTypes.end(), asset->getType()) == allowedTypes.end())
-      continue;
-
-    if (asset)
-      imageName.printf(64, "asset_%s", asset->getTypeStr());
-    else
-      imageName = "unknown";
-
-    int iconIndex = favoritesTreeImageMap.getNameId(imageName);
-    if (iconIndex < 0)
-    {
-      const String imagePath(256, "%s%s%s", p2util::get_icon_path(), imageName, ".bmp");
-      favoritesTree->addImage(imagePath);
-      iconIndex = favoritesTreeImageMap.addNameId(imageName);
-    }
-
-    favoritesTree->addItem(assetName, iconIndex);
-  }
-
-  if (selectedIem)
-    selectTreeItemByName(*favoritesTree, selectedItemName);
+  favoritesTab->fillTree();
 }
 
 String SelectAssetDlg::getSelectedFavorite()
 {
-  const TLeafHandle selectedNode = favoritesTree->getSelectedItem();
-  if (selectedNode)
-    return favoritesTree->getItemName(selectedNode);
-
-  return String();
+  const DagorAsset *asset = favoritesTab ? favoritesTab->getSelectedAsset() : nullptr;
+  return asset ? getAssetNameWithTypeIfNeeded(*asset) : String();
 }
 
-int SelectAssetDlg::getRecentlyUsedImageIndex(const DagorAsset &asset)
+void SelectAssetDlg::getAssetImageName(String &image_name, const DagorAsset *asset)
 {
-  const char *assetTypeName = asset.getTypeStr();
-  const int iconIndex = recentlyUsedTreeImageMap.getNameId(assetTypeName);
-  if (iconIndex >= 0)
-    return iconIndex;
-
-  const String imagePath(256, "%sasset_%s%s", p2util::get_icon_path(), assetTypeName, ".bmp");
-  recentlyUsedTree->addImage(imagePath);
-  return recentlyUsedTreeImageMap.addNameId(assetTypeName);
+  if (asset)
+    image_name.printf(64, "asset_%s", asset->getTypeStr());
+  else
+    image_name = "unknown";
 }
 
 void SelectAssetDlg::fillRecentlyUsedTree()
@@ -383,25 +261,15 @@ void SelectAssetDlg::fillRecentlyUsedTree()
     return;
 
   recentlyUsedTreeAllowedTypes = allowedTypes;
+  recentlyUsedTab->fillTree();
+}
 
-  const TLeafHandle selectedIem = recentlyUsedTree->getSelectedItem();
-  const String selectedItemName = selectedIem ? recentlyUsedTree->getItemName(selectedIem) : String();
+void SelectAssetDlg::addAssetToFavorites(const DagorAsset &asset)
+{
+  AssetSelectorGlobalState::addFavorite(asset.getNameTypified());
 
-  recentlyUsedTree->clear();
-
-  for (int i = AssetSelectorGlobalState::getRecentlyUsed().size() - 1; i >= 0; --i)
-  {
-    const String &assetName = AssetSelectorGlobalState::getRecentlyUsed()[i];
-    const DagorAsset *asset = mgr->findAsset(assetName);
-
-    if (!asset || eastl::find(allowedTypes.begin(), allowedTypes.end(), asset->getType()) == allowedTypes.end())
-      continue;
-
-    recentlyUsedTree->addItem(assetName, getRecentlyUsedImageIndex(*asset));
-  }
-
-  if (selectedIem)
-    selectTreeItemByName(*recentlyUsedTree, selectedItemName);
+  // Mark the favorites tree dirty.
+  favoritesTreeAllowedTypes.clear();
 }
 
 void SelectAssetDlg::addAssetToRecentlyUsed(const char *asset_name)
@@ -410,49 +278,54 @@ void SelectAssetDlg::addAssetToRecentlyUsed(const char *asset_name)
   if (!AssetSelectorGlobalState::addRecentlyUsed(assetName))
     return;
 
-  dag::ConstSpan<int> allowedTypes = view->getCurFilter();
-  if (allowedTypes.size() != recentlyUsedTreeAllowedTypes.size() || !mem_eq(allowedTypes, recentlyUsedTreeAllowedTypes.data()))
-  {
+  // Mark the recently used tree dirty.
+  recentlyUsedTreeAllowedTypes.clear();
+
+  const int currentPage = getPanel()->getInt(AssetsGuiIds::TabPanel);
+  if (currentPage == AssetsGuiIds::RecentlyUsedPage)
     fillRecentlyUsedTree();
-    return;
-  }
-
-  const TLeafHandle selectedIem = recentlyUsedTree->getSelectedItem();
-  const String selectedItemName = selectedIem ? recentlyUsedTree->getItemName(selectedIem) : String();
-
-  TLeafHandle item = getTreeItemByName(*recentlyUsedTree, assetName);
-  if (item)
-  {
-    // Don't bother if it's already the most recent in the tree.
-    if (recentlyUsedTree->getChild(nullptr, 0) == item)
-      return;
-
-    recentlyUsedTree->removeItem(item);
-  }
-
-  const DagorAsset *asset = mgr->findAsset(assetName);
-  if (!asset || eastl::find(allowedTypes.begin(), allowedTypes.end(), asset->getType()) == allowedTypes.end())
-    return;
-
-  recentlyUsedTree->addItemAsFirst(assetName, getRecentlyUsedImageIndex(*asset));
-
-  if (selectedIem)
-    selectTreeItemByName(*recentlyUsedTree, selectedItemName);
 }
+
+void SelectAssetDlg::goToAsset(const DagorAsset &asset)
+{
+  getPanel()->setInt(AssetsGuiIds::TabPanel, AssetsGuiIds::AllPage);
+  selectObj(asset.getNameTypified());
+}
+
+void SelectAssetDlg::onFavoriteSelectionChanged(const DagorAsset *asset)
+{
+  if (asset)
+    client->onAvSelectAsset(getAssetNameWithTypeIfNeeded(*asset));
+}
+
+void SelectAssetDlg::onFavoriteSelectionDoubleClicked(const DagorAsset *asset)
+{
+  if (asset)
+    client->onAvAssetDblClick(getAssetNameWithTypeIfNeeded(*asset));
+}
+
+void SelectAssetDlg::onRecentlyUsedSelectionChanged(const DagorAsset *asset) { onFavoriteSelectionChanged(asset); }
+
+void SelectAssetDlg::onRecentlyUsedSelectionDoubleClicked(const DagorAsset *asset) { onFavoriteSelectionDoubleClicked(asset); };
 
 String SelectAssetDlg::getSelectedRecentlyUsed()
 {
-  const TLeafHandle selectedNode = recentlyUsedTree->getSelectedItem();
-  if (selectedNode)
-    return recentlyUsedTree->getItemName(selectedNode);
-
-  return String();
+  DagorAsset *asset = recentlyUsedTab ? recentlyUsedTab->getSelectedAsset() : nullptr;
+  return asset ? getAssetNameWithTypeIfNeeded(*asset) : String();
 }
 
-TLeafHandle SelectAssetDlg::getTreeItemByName(TreeBaseWindow &tree, const String &name)
+String SelectAssetDlg::getAssetNameWithTypeIfNeeded(const DagorAsset &asset)
 {
-  TLeafHandle rootItem = tree.getRoot();
-  TLeafHandle item = rootItem;
+  if (mgr->isAssetNameUnique(asset, view->getCurFilter()))
+    return String(asset.getName());
+  else
+    return asset.getNameTypified();
+}
+
+PropPanel::TLeafHandle SelectAssetDlg::getTreeItemByName(PropPanel::TreeBaseWindow &tree, const String &name)
+{
+  PropPanel::TLeafHandle rootItem = tree.getRoot();
+  PropPanel::TLeafHandle item = rootItem;
   while (true)
   {
     if (tree.getItemName(item) == name)
@@ -464,9 +337,51 @@ TLeafHandle SelectAssetDlg::getTreeItemByName(TreeBaseWindow &tree, const String
   }
 }
 
-void SelectAssetDlg::selectTreeItemByName(TreeBaseWindow &tree, const String &name)
+void SelectAssetDlg::selectTreeItemByName(PropPanel::TreeBaseWindow &tree, const String &name)
 {
-  TLeafHandle item = getTreeItemByName(tree, name);
+  PropPanel::TLeafHandle item = getTreeItemByName(tree, name);
   if (item)
     tree.setSelectedItem(item);
+}
+
+const DagorAsset *SelectAssetDlg::getAssetByName(const char *_name, dag::ConstSpan<int> asset_types) const
+{
+  if (!_name || !_name[0])
+    return nullptr;
+
+  String name(dd_get_fname(_name));
+  remove_trailing_string(name, ".res.blk");
+  name = DagorAsset::fpath2asset(name);
+
+  const char *type = strchr(name, ':');
+  if (type)
+  {
+    const int assetType = mgr->getAssetTypeId(type + 1);
+    if (assetType == -1)
+      return nullptr;
+
+    for (int i = 0; i < asset_types.size(); i++)
+      if (assetType == asset_types[i])
+        return mgr->findAsset(String::mk_sub_str(name, type), assetType);
+
+    return nullptr;
+  }
+
+  return mgr->findAsset(name, asset_types);
+}
+
+void SelectAssetDlg::customControlUpdate(int id)
+{
+  const float panelHeight = getButtonPanelHeight();
+  float regionAvailableY = ImGui::GetContentRegionAvail().y;
+  if (panelHeight > 0.0f)
+    regionAvailableY -= panelHeight + ImGui::GetStyle().ItemSpacing.y;
+
+  const int currentPage = getPanel()->getInt(AssetsGuiIds::TabPanel);
+  if (currentPage == AssetsGuiIds::AllPage)
+    view->updateImgui(regionAvailableY);
+  else if (currentPage == AssetsGuiIds::FavoritesPage)
+    favoritesTab->updateImgui();
+  else if (currentPage == AssetsGuiIds::RecentlyUsedPage)
+    recentlyUsedTab->updateImgui();
 }

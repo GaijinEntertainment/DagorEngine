@@ -1,5 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <libTools/dagFileRW/geomMeshHelper.h>
 #include <util/dag_simpleString.h>

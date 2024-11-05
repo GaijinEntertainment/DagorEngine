@@ -1,12 +1,13 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
+#include <math/integer/dag_IPoint2.h>
 #include <daRg/dag_behavior.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/optional.h>
 
 class FrameTimeMetricsAggregator;
 
@@ -26,6 +27,7 @@ public:
   virtual void onAttach(Element *elem) override;
 
   void setDisplayMode(const PerfDisplayMode &display_mode);
+  void setRenderingResolution(const eastl::optional<IPoint2> &resolution);
 };
 
 extern BhvFpsBar bhv_fps_bar;

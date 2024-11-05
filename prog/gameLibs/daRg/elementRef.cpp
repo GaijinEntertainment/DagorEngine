@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "elementRef.h"
 #include <daRg/dag_element.h>
 #include <quirrel/sqStackChecker.h>
@@ -6,7 +8,7 @@
 namespace darg
 {
 
-ElementRef::ElementRef() {}
+ElementRef::ElementRef(Element *elem_) : elem(elem_) {}
 
 ElementRef::~ElementRef()
 {
@@ -43,6 +45,20 @@ ElementRef *ElementRef::get_from_stack(HSQUIRRELVM vm, int idx)
   G_ASSERT_RETURN(classType == actualType, nullptr);
   return instance;
 }
+
+
+ElementRef *ElementRef::cast_from_sqrat_obj(const Sqrat::Object &obj)
+{
+  if (obj.IsNull())
+    return nullptr;
+  G_ASSERT_RETURN(obj.GetType() == OT_INSTANCE, nullptr);
+  HSQUIRRELVM vm = obj.GetVM();
+  sq_pushobject(vm, obj.GetObject());
+  ElementRef *eref = ElementRef::get_from_stack(vm, -1);
+  sq_pop(vm, 1);
+  return eref;
+}
+
 
 // static SQInteger elem_get_comp_desc(HSQUIRRELVM vm)
 // {
@@ -162,7 +178,8 @@ void ElementRef::bind_script(HSQUIRRELVM vm)
     .SquirrelFunc("getContentWidth", elem_get_content_width, 1, "x")
     .SquirrelFunc("getContentHeight", elem_get_content_height, 1, "x")
     .SquirrelFunc("getScrollOffsX", elem_get_scroll_offs_x, 1, "x")
-    .SquirrelFunc("getScrollOffsY", elem_get_scroll_offs_y, 1, "x");
+    .SquirrelFunc("getScrollOffsY", elem_get_scroll_offs_y, 1, "x")
+    /**/;
 }
 
 } // namespace darg

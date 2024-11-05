@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -14,6 +13,8 @@ template <typename PhysState, typename ControlState, typename PartialState>
 class UnitPhysicsBase : public PhysicsBase<PhysState, ControlState, PartialState>
 {
 public:
+  typedef typename PhysicsBase<PhysState, ControlState, PartialState>::custom_resync_cb_t custom_resync_cb_t;
+
   UnitPhysicsBase(ptrdiff_t physactor_offset, PhysVars *phys_vars, float time_step,
     float extrapolation_time_mult = DEFAULT_EXTRAPOLATION_TIME_MULT);
 
@@ -35,10 +36,11 @@ public:
     for (int gunNo = 0; gunNo < maxGunNo; gunNo++)
       allGuns[gunNo]->restoreWeaponState(state.weaponStates[gunNo]);
   }
-  void doCustomResync(const PhysState & /*prev_desynced_state*/, const PhysState &desynced_state, const PhysState &incoming_state,
-    const PhysState *matching_state)
+  static void doCustomResync(IPhysBase *base, const PhysState & /*prev_desynced_state*/, const PhysState &desynced_state,
+    const PhysState &incoming_state, const PhysState *matching_state)
   {
-    dag::ConstSpan<NetWeapon *> allGuns = this->getActor()->getAllWeapons();
+    auto self = static_cast<UnitPhysicsBase *>(base);
+    dag::ConstSpan<NetWeapon *> allGuns = self->getActor()->getAllWeapons();
     if (matching_state)
     {
       uint32_t minwssz = (uint32_t)min(matching_state->weaponStates.size(), incoming_state.weaponStates.size());
@@ -47,10 +49,10 @@ public:
       {
         if (!allGuns[gunNo]->correctInternalState(incoming_state.weaponStates[gunNo], matching_state->weaponStates[gunNo]))
           continue;
-        for (int i = 0; i < this->historyStates.size(); ++i)
+        for (int i = 0; i < self->historyStates.size(); ++i)
         {
-          if (gunNo < this->historyStates[i].weaponStates.size())
-            this->historyStates[i].weaponStates[gunNo].flags |= WeaponState::WS_INVALID;
+          if (gunNo < self->historyStates[i].weaponStates.size())
+            self->historyStates[i].weaponStates[gunNo].flags |= WeaponState::WS_INVALID;
         }
       }
     }
@@ -59,7 +61,12 @@ public:
     for (unsigned int gunNo = 0; gunNo < numberOfGuns; gunNo++)
       allGuns[gunNo]->onGunStateChanged(desynced_state.weaponStates[gunNo]);
 
-    this->getActor()->validateGunsLists();
+    self->getActor()->validateGunsLists();
+  }
+
+  custom_resync_cb_t getCustomResyncCb() const override
+  {
+    return this->getActor()->getAllWeapons().size() ? &doCustomResync : nullptr;
   }
 };
 

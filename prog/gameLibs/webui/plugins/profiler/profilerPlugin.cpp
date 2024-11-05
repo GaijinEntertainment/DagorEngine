@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <webui/httpserver.h>
 #include <webui/helpers.h>
 #include <perfMon/dag_statDrv.h>
@@ -123,17 +125,45 @@ void show_profiler(RequestInfo *params)
     profiler_buf->printf("<tbody>\n");
   }
   da_profiler::dump_frames(dump_profiler_line, profiler_buf);
-  {
-    profiler_buf->printf("</tbody>\n");
-    profiler_buf->printf("</table>");
+  profiler_buf->printf("</tbody>\n");
+  profiler_buf->printf("</table>");
 
-    profiler_buf->printf("<script src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js\"></script>\n");
-    profiler_buf->printf("<script src=\"http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js\"></script>\n");
-    profiler_buf->printf("<script>%s</script>", jquerytablejs);
-    profiler_buf->printf("<script>$(\"#profiled-frame\").treetable({ expandable: true, clickableNodeNames: true });</script>");
-    profiler_buf->printf("</body></html>");
-    html_response_raw(params->conn, buf.mem);
+  {
+    const double tToUs = 1000000. / profile_ticks_frequency();
+    uint32_t i = 0;
+    for (;; ++i)
+    {
+      uint32_t uniqueFrames = 0;
+      const da_profiler::UniqueEventData *ued = da_profiler::get_unique_event(i, uniqueFrames);
+      if (!ued)
+        break;
+      const uint32_t eventFrames = uniqueFrames >= ued->startFrame ? uniqueFrames - ued->startFrame + 1 : 0;
+      if (i == 0)
+      {
+        profiler_buf->printf("<table id=\"profiled-frame\" border=\"0\" cellspacing=\"0\" style=\"font-size:10px\">\n");
+        profiler_buf->printf("<thead style=\"font-size:8px\">\n");
+        profiler_buf->printf("<tr><th>Name</th><th>calls</th><th>avg us</th><th>min us</th><th>max us</th><th>calls per "
+                             "frame</th><th>us per frame</th><th>frames</th></tr>");
+        profiler_buf->printf("<tbody>\n");
+      }
+      uint32_t colorF;
+      const char *name = da_profiler::get_description(ued->desc, colorF);
+      profiler_buf->printf("<tr><td>%s</td><td>%d</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%f</td><td>%.2f</td><td>%d</td></tr>",
+        name ? name : "unknown", ued->totalOccurencies, (ued->totalTicks * tToUs) / max<uint64_t>(1, ued->totalOccurencies),
+        ued->minTicks * tToUs, ued->maxTicks * tToUs, double(ued->totalOccurencies) / max(1u, eventFrames),
+        (ued->totalTicks * tToUs) / max(1u, eventFrames), eventFrames);
+    }
+    if (i)
+    {
+      profiler_buf->printf("</tbody></table>\n");
+    }
   }
+  profiler_buf->printf("<script src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js\"></script>\n");
+  profiler_buf->printf("<script src=\"http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js\"></script>\n");
+  profiler_buf->printf("<script>%s</script>", jquerytablejs);
+  profiler_buf->printf("<script>$(\"#profiled-frame\").treetable({ expandable: true, clickableNodeNames: true });</script>");
+  profiler_buf->printf("</body></html>");
+  html_response_raw(params->conn, buf.mem);
 #else
   (void)&dump_profiler_line;
   return html_response(params->conn, NULL, HTTP_BAD_REQUEST);

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "prefabs.h"
 
 #include <generic/dag_initOnDemand.h>

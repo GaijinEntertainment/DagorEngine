@@ -1,0 +1,13 @@
+Root           ?= ../../.. ;
+Location        = prog/3rdPartyLibs/bsdiff ;
+
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/bsdiff.lib ;
+Sources =
+  bsdiff.c
+  bspatch.c
+;
+
+include $(Root)/prog/_jBuild/add_null_include.jam ;
+include $(Root)/prog/_jBuild/build.jam ;

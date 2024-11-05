@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <sceneRay/dag_sceneRay.h>
 #include <sceneRay/dag_cachedRtVecFaces.h>
 #include <math/dag_math3d.h>
@@ -60,7 +62,7 @@ void StaticSceneRayTracerT<FI>::Node::destroy()
 //--------------------------------------------------------------------------
 template <typename FI>
 inline int StaticSceneRayTracerT<FI>::tracerayLNode(const Point3 &p, const Point3 &dir, real &mint, const LNode *lnode,
-  int fromFace) const
+  int ignore_face) const
 {
   //--------------------------------------------------------------------------
 
@@ -74,7 +76,7 @@ inline int StaticSceneRayTracerT<FI>::tracerayLNode(const Point3 &p, const Point
     IF_CONSTEXPR (sizeof(FaceIndex) > 2)
       if ((faceFlag & skipFlags) || !(faceFlag & useFlags))
         continue;
-    if (fIndex == fromFace)
+    if (fIndex == ignore_face)
       continue;
 
     // check culling
@@ -104,7 +106,7 @@ inline int StaticSceneRayTracerT<FI>::tracerayLNode(const Point3 &p, const Point
 template <typename FI>
 template <bool noCull>
 DAGOR_NOINLINE int StaticSceneRayTracerT<FI>::tracerayLNodeVec(const vec3f &p, const vec3f &dir, float &t, const LNode *lnode,
-  int fromFace) const
+  int ignore_face) const
 {
   const FaceIndex *__restrict fIndices = lnode->getFaceIndexStart();
   const FaceIndex *__restrict fIndicesEnd = lnode->getFaceIndexEnd();
@@ -119,7 +121,7 @@ DAGOR_NOINLINE int StaticSceneRayTracerT<FI>::tracerayLNodeVec(const vec3f &p, c
     IF_CONSTEXPR (sizeof(FaceIndex) > 2)
       if (get_u32(*fIndices) & skipFlags || !(get_u32(*fIndices) & useFlags))
         continue;
-    if (int(*fIndices) == fromFace)
+    if (int(*fIndices) == ignore_face)
       continue;
 
     fIndex[count++] = int(*fIndices);
@@ -163,7 +165,7 @@ DAGOR_NOINLINE int StaticSceneRayTracerT<FI>::tracerayLNodeVec(const vec3f &p, c
 //--------------------------------------------------------------------------
 template <typename FI>
 template <bool noCull>
-VECTORCALL inline int StaticSceneRayTracerT<FI>::rayhitLNodeIdx(vec3f p, vec3f dir, float t, const LNode *lnode) const
+VECTORCALL inline int StaticSceneRayTracerT<FI>::rayhitLNodeIdx(vec3f p, vec3f dir, float t, const LNode *lnode, int ignore_face) const
 {
   const FaceIndex *__restrict fIndices = lnode->getFaceIndexStart();
   const FaceIndex *__restrict fIndicesEnd = lnode->getFaceIndexEnd();
@@ -172,6 +174,8 @@ VECTORCALL inline int StaticSceneRayTracerT<FI>::rayhitLNodeIdx(vec3f p, vec3f d
     {
       unsigned faceFlag = get_u32(*fIndices);
       if ((faceFlag & skipFlags) || !(faceFlag & useFlags))
+        continue;
+      if (int(*fIndices) == ignore_face)
         continue;
       break;
     }
@@ -219,30 +223,30 @@ VECTORCALL inline int StaticSceneRayTracerT<FI>::rayhitLNodeIdx(vec3f p, vec3f d
 
 //--------------------------------------------------------------------------
 template <typename FI>
-int StaticSceneRayTracerT<FI>::tracerayNode(const Point3 &p, const Point3 &dir, real &mint, const Node *node, int fromFace) const
+int StaticSceneRayTracerT<FI>::tracerayNode(const Point3 &p, const Point3 &dir, real &mint, const Node *node, int ignore_face) const
 {
   if (!rayIntersectSphere(p, dir, node->bsc, node->bsr2, mint))
     return -1;
   if (node->isNode())
   {
     // branch node
-    int hit = tracerayNode(p, dir, mint, node->getLeft(), fromFace);
+    int hit = tracerayNode(p, dir, mint, node->getLeft(), ignore_face);
     int hit2;
-    if ((hit2 = tracerayNode(p, dir, mint, node->getRight(), fromFace)) != -1)
+    if ((hit2 = tracerayNode(p, dir, mint, node->getRight(), ignore_face)) != -1)
       return hit2;
     return hit;
   }
   else
   {
     // leaf node
-    return tracerayLNode(p, dir, mint, (LNode *)node, fromFace);
+    return tracerayLNode(p, dir, mint, (LNode *)node, ignore_face);
   }
 }
 
 template <typename FI>
 template <bool noCull>
 DAGOR_NOINLINE int StaticSceneRayTracerT<FI>::tracerayNodeVec(const vec3f &p, const vec3f &dir, float &t, const Node *node,
-  int fromFace) const
+  int ignore_face) const
 {
   vec4f bsc = v_ld(&node->bsc.x);
   if (!v_test_ray_sphere_intersection(p, dir, v_splats(t), bsc, v_splat_w(bsc)))
@@ -250,14 +254,14 @@ DAGOR_NOINLINE int StaticSceneRayTracerT<FI>::tracerayNodeVec(const vec3f &p, co
   if (node->isNode())
   {
     // branch node
-    int hit0 = tracerayNodeVec<noCull>(p, dir, t, node->getLeft(), fromFace);
-    int hit1 = tracerayNodeVec<noCull>(p, dir, t, node->getRight(), fromFace);
+    int hit0 = tracerayNodeVec<noCull>(p, dir, t, node->getLeft(), ignore_face);
+    int hit1 = tracerayNodeVec<noCull>(p, dir, t, node->getRight(), ignore_face);
     return hit1 != -1 ? hit1 : hit0;
   }
   else
   {
     // leaf node
-    return tracerayLNodeVec<noCull>(p, dir, t, (LNode *)node, fromFace);
+    return tracerayLNodeVec<noCull>(p, dir, t, (LNode *)node, ignore_face);
   }
 }
 //--------------------------------------------------------------------------
@@ -337,7 +341,7 @@ int StaticSceneRayTracerT<FI>::getHeightBelowNode(const Point3 &p, real &ht, con
 //--------------------------------------------------------------------------
 template <typename FI>
 template <bool noCull>
-VECTORCALL int StaticSceneRayTracerT<FI>::rayhitNodeIdx(vec3f p, vec3f dir, float t, const Node *node) const
+VECTORCALL int StaticSceneRayTracerT<FI>::rayhitNodeIdx(vec3f p, vec3f dir, float t, const Node *node, int ignore_face) const
 {
   vec4f bsc = v_ld(&node->bsc.x);
   if (!v_test_ray_sphere_intersection(p, dir, v_splats(t), bsc, v_splat_w(bsc)))
@@ -345,20 +349,20 @@ VECTORCALL int StaticSceneRayTracerT<FI>::rayhitNodeIdx(vec3f p, vec3f dir, floa
   if (node->isNode())
   {
     // branch node
-    int idx = rayhitNodeIdx<noCull>(p, dir, t, node->getLeft());
+    int idx = rayhitNodeIdx<noCull>(p, dir, t, node->getLeft(), ignore_face);
     if (idx >= 0)
       return idx;
-    return rayhitNodeIdx<noCull>(p, dir, t, node->getRight());
+    return rayhitNodeIdx<noCull>(p, dir, t, node->getRight(), ignore_face);
   }
   else
   {
     // leaf node
-    return rayhitLNodeIdx<noCull>(p, dir, t, (LNode *)node);
+    return rayhitLNodeIdx<noCull>(p, dir, t, (LNode *)node, ignore_face);
   }
 }
 
 template <typename FI>
-int StaticSceneRayTracerT<FI>::traceray(const Point3 &p, const Point3 &wdir2, real &mint2, int fromFace) const
+int StaticSceneRayTracerT<FI>::traceray(const Point3 &p, const Point3 &wdir2, real &mint2, int ignore_face) const
 {
   Point3 wdir = wdir2;
   real dirl = lengthSq(wdir);
@@ -369,7 +373,7 @@ int StaticSceneRayTracerT<FI>::traceray(const Point3 &p, const Point3 &wdir2, re
   dirl = sqrtf(dirl);
   wdir /= dirl;
   real mint = mint2 * dirl;
-  int id = tracerayNormalized(p, wdir, mint, fromFace);
+  int id = tracerayNormalized(p, wdir, mint, ignore_face);
   if (id >= 0)
   {
     mint2 = mint / dirl;
@@ -378,100 +382,34 @@ int StaticSceneRayTracerT<FI>::traceray(const Point3 &p, const Point3 &wdir2, re
 }
 
 template <typename FI>
-VECTORCALL int StaticSceneRayTracerT<FI>::traceray(vec3f p, vec3f dir, real &mint, int fromFace) const
+VECTORCALL int StaticSceneRayTracerT<FI>::traceray(vec3f p, vec3f dir, real &mint, int ignore_face) const
 {
   vec3f lenSq = v_length3_sq(dir);
   if (v_extract_x(lenSq) == 0.f)
     return -1;
-  vec3f len = v_sqrt4(lenSq);
+  vec3f len = v_sqrt(lenSq);
   dir = v_div(dir, len);
   real t = mint * v_extract_x(len);
-  int id = tracerayNormalized(p, dir, t, fromFace);
+  int id = tracerayNormalized(p, dir, t, ignore_face);
   if (id >= 0)
     mint = t / v_extract_x(len);
   return id;
 }
 
 template <typename FI>
-int StaticSceneRayTracerT<FI>::tracerayNormalizedScalar(const Point3 &p1, const Point3 &wdir, real &mint2, int fromFace) const
+int StaticSceneRayTracerT<FI>::tracerayNormalized(const Point3 &p, const Point3 &dir, real &t, int ignore_face) const
 {
-  int ret = -1;
-
-  if (mint2 <= 0)
-    return -1;
-
-  real shouldStartAt = 0;
-  Point3 endPt = p1 + wdir * mint2;
-  if (!(getBox() & p1))
-  {
-    if (!rayIntersectSphere(p1, wdir, getSphere().c, getSphere().r2, mint2))
-      return -1;
-    if (!does_line_intersect_box(getBox(), p1, endPt, shouldStartAt))
-      return -1;
-    else
-      shouldStartAt *= mint2 * 0.9999f;
-  }
-
-  Ray ray(p1 + wdir * shouldStartAt, wdir, mint2 - shouldStartAt, shouldStartAt, getLeafSize());
-  Point3 endCell(floor(Point3(endPt.x / getLeafSize().x, endPt.y / getLeafSize().y, endPt.z / getLeafSize().z)));
-  IPoint3 diff = IPoint3(endCell) - ray.currentCell();
-  int n = 4 * (abs(diff.x) + abs(diff.y) + abs(diff.z)) + 1;
-  double t = 0;
-  float rmint = ray.mint;
-  for (; n; n--)
-  {
-    int leafSize = 0;
-    if (getLeafLimits() & ray.currentCell())
-    {
-      auto getLeafRes = dump.grid->get_leaf(ray.currentCell().x, ray.currentCell().y, ray.currentCell().z);
-      if (getLeafRes)
-      {
-        int ret2;
-        if (*getLeafRes.leaf && (ret2 = tracerayNode(ray.p, ray.wdir, rmint, *getLeafRes.leaf, fromFace)) != -1)
-        {
-          ray.mint = rmint;
-          ret = ret2;
-          if (ray.mint < t)
-            goto end;
-        }
-      }
-      else
-      {
-        leafSize = getLeafRes.getl() - 1;
-      }
-    }
-    IPoint3 oldpt = ray.currentCell();
-    for (;;)
-    {
-      if (ray.mint < (t = ray.nextCell()))
-        goto end;
-      if (leafSize == 0 || (ray.currentCell().x >> leafSize) != (oldpt.x >> leafSize) ||
-          (ray.currentCell().y >> leafSize) != (oldpt.y >> leafSize) || (ray.currentCell().z >> leafSize) != (oldpt.z >> leafSize))
-        break;
-    }
-  }
-end:;
-  if (ret >= 0)
-  {
-    mint2 = ray.mint + ray.startAt;
-  }
-  return ret;
+  return tracerayNormalized(v_ldu(&p.x), v_ldu(&dir.x), t, ignore_face);
 }
 
 template <typename FI>
-int StaticSceneRayTracerT<FI>::tracerayNormalized(const Point3 &p, const Point3 &dir, real &t, int fromFace) const
-{
-  return tracerayNormalized(v_ldu(&p.x), v_ldu(&dir.x), t, fromFace);
-}
-
-template <typename FI>
-VECTORCALL int StaticSceneRayTracerT<FI>::tracerayNormalized(vec3f p, vec3f dir, real &mint, int fromFace) const
+VECTORCALL int StaticSceneRayTracerT<FI>::tracerayNormalized(vec3f p, vec3f dir, real &mint, int ignore_face) const
 {
   int ret = -1;
   if (mint <= 0)
     return -1;
 
-  real shouldStartAt = 0;
+  float shouldStartAt = 0.f;
   vec3f endPt = v_madd(dir, v_splats(mint), p);
   bbox3f bbox = v_ldu_bbox3(getBox());
   if (!v_bbox3_test_pt_inside(bbox, p))
@@ -484,15 +422,15 @@ VECTORCALL int StaticSceneRayTracerT<FI>::tracerayNormalized(vec3f p, vec3f dir,
 
   Point3_vec4 rayStart, rayDir;
   IPoint4 endCell;
-  v_stu(&rayStart.x, v_madd(dir, v_splats(shouldStartAt), p));
+  vec3f vEffectiveRayStart = v_madd(dir, v_splats(shouldStartAt), p);
+  v_stu(&rayStart.x, vEffectiveRayStart);
   v_stu(&rayDir.x, dir);
   v_stui(&endCell.x, v_cvt_floori(v_div(endPt, v_ldu(&getLeafSize().x))));
-  Ray ray(rayStart, rayDir, mint - shouldStartAt, shouldStartAt, getLeafSize());
+  float effectiveT = mint - shouldStartAt;
+  WooRay3d ray(rayStart, rayDir, getLeafSize());
   IPoint3 diff = IPoint3::xyz(endCell) - ray.currentCell();
   int n = 4 * (abs(diff.x) + abs(diff.y) + abs(diff.z)) + 1;
-  double t = 0;
-  vec3f v_rayp = v_ldu(&ray.p.x);
-  vec3f v_rayd = v_ldu(&ray.wdir.x);
+  double wooT = 0.f; // distance passed by WooRay
   for (; n; n--)
   {
     int leafSize = 0;
@@ -501,18 +439,17 @@ VECTORCALL int StaticSceneRayTracerT<FI>::tracerayNormalized(vec3f p, vec3f dir,
       auto getLeafRes = dump.grid->get_leaf(ray.currentCell().x, ray.currentCell().y, ray.currentCell().z);
       if (getLeafRes)
       {
-        int ret2;
         if (*getLeafRes.leaf)
         {
           // if ((cullFlags&VAL_CULL_BOTH) == VAL_CULL_BOTH)//that how it is supposed to be.
-          ret2 = tracerayNodeVec<true>(v_rayp, v_rayd, ray.mint, *getLeafRes.leaf, fromFace);
+          int faceId = tracerayNodeVec<true>(vEffectiveRayStart, dir, effectiveT, *getLeafRes.leaf, ignore_face);
           // else
-          //   ret2 = tracerayNodeVec<false> (v_rayp, v_rayd, rmint, *getLeafRes.leaf, fromFace);
+          //   faceId = tracerayNodeVec<false> (v_rayp, v_rayd, rmint, *getLeafRes.leaf, ignore_face);
 
-          if (ret2 != -1)
+          if (faceId != -1)
           {
-            ret = ret2;
-            if (ray.mint < t)
+            ret = faceId;
+            if (effectiveT < wooT)
               goto end;
           }
         }
@@ -523,26 +460,26 @@ VECTORCALL int StaticSceneRayTracerT<FI>::tracerayNormalized(vec3f p, vec3f dir,
     IPoint3 oldpt = ray.currentCell();
     for (;;)
     {
-      if (ray.mint < (t = ray.nextCell()))
+      if (effectiveT < (wooT = ray.nextCell()))
         goto end;
       if (leafSize == 0 || (ray.currentCell().x >> leafSize) != (oldpt.x >> leafSize) ||
           (ray.currentCell().y >> leafSize) != (oldpt.y >> leafSize) || (ray.currentCell().z >> leafSize) != (oldpt.z >> leafSize))
         break;
     }
   }
-end:;
+end:
   if (ret >= 0)
-    mint = ray.mint + ray.startAt;
+    mint = shouldStartAt + effectiveT;
   return ret;
 }
 
 template <typename FI>
-VECTORCALL int StaticSceneRayTracerT<FI>::rayhitNormalizedIdx(vec3f p, vec3f dir, real mint) const
+VECTORCALL bool StaticSceneRayTracerT<FI>::tracerayNormalized(vec3f p, vec3f dir, real mint, all_faces_ret_t &hits) const
 {
   if (mint <= 0)
-    return -1;
+    return false;
 
-  real shouldStartAt = 0;
+  float shouldStartAt = 0.f;
   vec3f endPt = v_madd(dir, v_splats(mint), p);
   bbox3f bbox = v_ldu_bbox3(getBox());
   if (!v_bbox3_test_pt_inside(bbox, p))
@@ -555,17 +492,76 @@ VECTORCALL int StaticSceneRayTracerT<FI>::rayhitNormalizedIdx(vec3f p, vec3f dir
 
   Point3_vec4 rayStart, rayDir;
   IPoint4 endCell;
-  v_stu(&rayStart.x, v_madd(dir, v_splats(shouldStartAt), p));
+  vec3f vEffectiveRayStart = v_madd(dir, v_splats(shouldStartAt), p);
+  v_stu(&rayStart.x, vEffectiveRayStart);
   v_stu(&rayDir.x, dir);
   v_stui(&endCell.x, v_cvt_floori(v_div(endPt, v_ldu(&getLeafSize().x))));
-  Ray ray(rayStart, rayDir, mint - shouldStartAt, shouldStartAt, getLeafSize());
+  float effectiveT = mint - shouldStartAt;
+  WooRay3d ray(rayStart, rayDir, getLeafSize());
+  IPoint3 diff = IPoint3::xyz(endCell) - ray.currentCell();
+  int n = 4 * (abs(diff.x) + abs(diff.y) + abs(diff.z)) + 1;
+  double wooT = 0.f;
+  for (; n; n--)
+  {
+    int leafSize = 0;
+    if (getLeafLimits() & ray.currentCell())
+    {
+      auto getLeafRes = dump.grid->get_leaf(ray.currentCell().x, ray.currentCell().y, ray.currentCell().z);
+      if (getLeafRes)
+      {
+        if (*getLeafRes.leaf)
+        {
+          float hitT = effectiveT;
+          int faceId = tracerayNodeVec<true>(vEffectiveRayStart, dir, hitT, *getLeafRes.leaf, -1 /*ignore_face*/);
+          if (faceId != -1)
+            hits.emplace_back(FaceIntersection{faceId, shouldStartAt + hitT});
+        }
+      }
+      else
+        leafSize = getLeafRes.getl() - 1;
+    }
+    IPoint3 oldpt = ray.currentCell();
+    for (;;)
+    {
+      if (effectiveT < (wooT = ray.nextCell()))
+        return !hits.empty();
+      if (leafSize == 0 || (ray.currentCell().x >> leafSize) != (oldpt.x >> leafSize) ||
+          (ray.currentCell().y >> leafSize) != (oldpt.y >> leafSize) || (ray.currentCell().z >> leafSize) != (oldpt.z >> leafSize))
+        break;
+    }
+  }
+  return !hits.empty();
+}
 
-  vec3f v_rayp = v_ldu(&ray.p.x);
-  vec3f v_rayd = v_ldu(&ray.wdir.x);
+template <typename FI>
+VECTORCALL int StaticSceneRayTracerT<FI>::rayhitNormalizedIdx(vec3f p, vec3f dir, real mint, int ignore_face) const
+{
+  if (mint <= 0)
+    return -1;
+
+  real shouldStartAt = 0.f;
+  vec3f endPt = v_madd(dir, v_splats(mint), p);
+  bbox3f bbox = v_ldu_bbox3(getBox());
+  if (!v_bbox3_test_pt_inside(bbox, p))
+  {
+    vec4f startT = v_set_x(mint);
+    if (!v_ray_box_intersection(p, dir, startT, bbox))
+      return -1;
+    shouldStartAt = v_extract_x(startT) * 0.9999f;
+  }
+
+  Point3_vec4 rayStart, rayDir;
+  IPoint4 endCell;
+  vec3f vEffectiveRayStart = v_madd(dir, v_splats(shouldStartAt), p);
+  v_stu(&rayStart.x, vEffectiveRayStart);
+  v_stu(&rayDir.x, dir);
+  v_stui(&endCell.x, v_cvt_floori(v_div(endPt, v_ldu(&getLeafSize().x))));
+  float effectiveT = mint - shouldStartAt;
+  WooRay3d ray(rayStart, rayDir, getLeafSize());
 
   IPoint3 diff = IPoint3::xyz(endCell) - ray.currentCell();
   int n = 4 * (abs(diff.x) + abs(diff.y) + abs(diff.z)) + 1;
-  double t = 0;
+  double wooT = 0.f; // distance passed by WooRay
   for (; n; n--)
   {
     int leafSize = 0;
@@ -577,7 +573,7 @@ VECTORCALL int StaticSceneRayTracerT<FI>::rayhitNormalizedIdx(vec3f p, vec3f dir
       {
         if (*getLeafRes.leaf)
         {
-          int hitIdx = rayhitNodeIdx<true>(v_rayp, v_rayd, ray.mint, *getLeafRes.leaf);
+          int hitIdx = rayhitNodeIdx<true>(vEffectiveRayStart, dir, effectiveT, *getLeafRes.leaf, ignore_face);
           if (hitIdx >= 0)
             return hitIdx;
         }
@@ -587,7 +583,7 @@ VECTORCALL int StaticSceneRayTracerT<FI>::rayhitNormalizedIdx(vec3f p, vec3f dir
     }
     for (;;)
     {
-      if (ray.mint < (t = ray.nextCell()))
+      if (effectiveT < (wooT = ray.nextCell()))
         goto end;
       if (leafSize == 0 || (ray.currentCell().x >> leafSize) != (oldpt.x >> leafSize) ||
           (ray.currentCell().y >> leafSize) != (oldpt.y >> leafSize) || (ray.currentCell().z >> leafSize) != (oldpt.z >> leafSize))
@@ -614,15 +610,15 @@ int StaticSceneRayTracerT<FI>::getHeightBelow(const Point3 &pos1, float &ht) con
   cell.y = min(cell.y, getLeafLimits()[1].y);                                    // avoid nans leading to infinite cycle
   int endcellY = max((int)floorf(endY / getLeafSize().y), getLeafLimits()[0].y); // avoid nans leading to infinite cycle
   float cht = endY;
-  int ret = -1, ret2;
+  int ret = -1, faceId;
   float maxCellHt = (cell.y + 1) * getLeafSize().y;
   for (; cell.y >= endcellY;)
   {
     auto getLeafRes = dump.grid->get_leaf(cell.x, cell.y, cell.z);
     if (getLeafRes)
     {
-      if (*getLeafRes.leaf && (ret2 = getHeightBelowNode(p1, cht, *getLeafRes.leaf)) >= 0)
-        ret = ret2;
+      if (*getLeafRes.leaf && (faceId = getHeightBelowNode(p1, cht, *getLeafRes.leaf)) >= 0)
+        ret = faceId;
       maxCellHt -= getLeafSize().y;
       cell.y--;
     }

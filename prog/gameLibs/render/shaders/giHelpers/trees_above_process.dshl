@@ -1,0 +1,41 @@
+include "sky_shader_global.dshl"
+//include "heightmap_common.dshl"
+include "giHelpers/trees_above_common_base.dshl"
+
+int4 trees2d_depth_region;
+shader trees2d_depth_write_to_alpha
+{
+  supports none;
+  supports global_frame;
+  z_test = false;
+  z_write = false;
+  cull_mode = none;
+  color_write = a;
+  (ps) {
+    trees2d_depth@smp2d = trees2d_depth;
+    trees2d_depth_min@smp2d = trees2d_depth_min;
+    trees2d_depth_region@i2 = trees2d_depth_region;
+    world_to_trees_tex_ofs@f4 = world_to_trees_tex_ofs;
+    world_to_trees_tex_mul@f4 = world_to_trees_tex_mul;
+  }
+  POSTFX_VS(0)
+  //USE_HEIGHTMAP_COMMON_BASE(ps)
+  hlsl(ps) {
+    float4 trees2d_depth_write_to_alpha(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    {
+      float2 pos = GET_SCREEN_POS(input.pos).xy;
+      uint2 posi = uint2(pos);// + trees2d_depth_region.xy;
+      float maxD = trees2d_depth[posi].x;
+      if (maxD > 0)
+      {
+        float worldPosMaxY = maxD*world_to_trees_tex_ofs.x + world_to_trees_tex_ofs.y;
+        float worldPosMinY = -trees2d_depth_min[posi].x*world_to_trees_tex_ofs.x + world_to_trees_tex_ofs.x + world_to_trees_tex_ofs.y;
+        return saturate((worldPosMaxY-worldPosMinY)*1./MAX_TREE_ABOVE_THICKNESS);
+      }
+      return 0;
+    }
+  }
+
+  compile("target_ps", "trees2d_depth_write_to_alpha");
+}
+

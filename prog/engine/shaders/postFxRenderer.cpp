@@ -1,11 +1,15 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderMesh.h>
 #include <3d/dag_materialData.h>
 #include <3d/dag_render.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_driver.h>
 #include <math/dag_mathUtils.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_commands.h>
 
 PostFxRenderer::PostFxRenderer() = default;
 PostFxRenderer::PostFxRenderer(PostFxRenderer &&other) = default;
@@ -46,7 +50,7 @@ void PostFxRenderer::drawInternal(int num_tiles) const
       float right = cvt((float)(tileNo + 1), 0.f, (float)num_tiles, -1.f, 1.f);
       float verts[8] = {left, -1.f, right, -1.f, left, 1.f, right, 1.f};
       d3d::draw_up(PRIM_TRISTRIP, 2, verts, stride);
-      d3d::driver_command(DRV3D_COMMAND_D3D_FLUSH, NULL, NULL, NULL);
+      d3d::driver_command(Drv3dCommand::D3D_FLUSH);
     }
   }
   else // draw triangle

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -23,8 +22,8 @@ namespace PictureManager
 {
 struct PicDesc;
 
-typedef void (*async_load_done_cb_t)(PICTUREID pid, TEXTUREID tid, const Point2 *tcLt, const Point2 *tcRb, const Point2 *picture_sz,
-  void *arg);
+typedef void (*async_load_done_cb_t)(PICTUREID pid, TEXTUREID tid, d3d::SamplerHandle smp, const Point2 *tcLt, const Point2 *tcRb,
+  const Point2 *picture_sz, void *arg);
 
 // Picture can be obtained by real texture name or by picture name in BLK file:
 //   "tex/mytex.tga"        - real texture name

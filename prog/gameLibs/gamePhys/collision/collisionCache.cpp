@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gamePhys/collision/collisionCache.h>
 #include <gamePhys/collision/collisionLib.h>
 #include <gamePhys/phys/physDebugDraw.h>

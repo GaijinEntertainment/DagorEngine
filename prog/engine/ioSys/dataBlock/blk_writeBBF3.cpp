@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "blk_shared.h"
 #include <ioSys/dag_genIo.h>
 #include <util/le2be.h>
@@ -10,7 +12,7 @@
 #include <math/dag_e3dColor.h>
 #include "obsolete_hashNameMap.h"
 #include <generic/dag_tabSort.h>
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 using obsolete::HashNameMap;
 namespace dblk

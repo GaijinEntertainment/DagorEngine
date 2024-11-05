@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_moving_zone_hud_pull ;
+  UseProgLibs += daNetGameLibs/moving_zone_hud ;
+}

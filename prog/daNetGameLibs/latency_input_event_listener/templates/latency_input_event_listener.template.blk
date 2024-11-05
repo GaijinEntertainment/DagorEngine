@@ -1,0 +1,6 @@
+latency_input_event_listener
+{
+  _singleton:b=true
+  _tags:t="render"
+  "latency_input_event_listener:LatencyInputEventListener" {}
+}

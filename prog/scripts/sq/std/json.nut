@@ -1,4 +1,4 @@
-let {parse_json, json_to_string} = require("json")
+let {parse_json, object_to_json_string} = require("json")
 
 let io = require("io")
 let {read_text_from_file} = require("dagor.fs")
@@ -28,7 +28,7 @@ function save(file_path, data, params = defParamsSave) {
   assert(logger== null || isCallable(logger), @() $"logger should be Callable or null, got {type(logger)}")
   assert(["function","class","instance","generator"].indexof(type(data))==null)
   try {
-    data = json_to_string(data, pretty_print)
+    data = object_to_json_string(data, pretty_print)
     let res = save_text_file(file_path, data)
     if (res){
       logger?($"file:{file_path} saved")
@@ -71,9 +71,9 @@ function load(file_path, params = defParamsLoad) {
 return {
   saveJson = save
   loadJson = load
-  jsonToString = json_to_string
+  jsonToString = object_to_json_string
   parseJson = parse_json
   read_text_directly_from_fs_file
-  json_to_string
+  object_to_json_string
   parse_json
 }

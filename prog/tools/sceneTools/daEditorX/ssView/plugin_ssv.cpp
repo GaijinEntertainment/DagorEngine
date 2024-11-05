@@ -1,5 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "plugin_ssv.h"
 #include <de3_interface.h>
+#include <EditorCore/ec_interface_ex.h>
+#include <EditorCore/ec_interface.h>
 #include "sceneHolder.h"
 #include <libTools/util/strUtil.h>
 #include <workCycle/dag_delayedAction.h>
@@ -150,11 +154,16 @@ void ssviewplugin::Plugin::renderGeometry(Stage stage)
   {
     case STG_RENDER_ENVI: streamingScene->renderEnvi(grs_cur_view.tm); break;
 
-    case STG_RENDER_STATIC_OPAQUE: streamingScene->render(0, 0xFFFFFFFF); break;
+    case STG_RENDER_STATIC_OPAQUE:
+      streamingScene->render(EDITORCORE->queryEditorInterface<IVisibilityFinderProvider>()->getVisibilityFinder(), 0, 0xFFFFFFFF);
+      break;
 
     case STG_RENDER_STATIC_TRANS: streamingScene->renderTrans(); break;
 
-    case STG_RENDER_SHADOWS: streamingScene->render(1, RenderScene::RenderObject::ROF_CastShadows); break;
+    case STG_RENDER_SHADOWS:
+      streamingScene->render(EDITORCORE->queryEditorInterface<IVisibilityFinderProvider>()->getVisibilityFinder(), 1,
+        RenderScene::RenderObject::ROF_CastShadows);
+      break;
   }
 }
 

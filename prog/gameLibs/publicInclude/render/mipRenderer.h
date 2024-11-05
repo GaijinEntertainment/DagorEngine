@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -22,6 +21,8 @@ public:
   ~MipRenderer();
   MipRenderer();
   MipRenderer(const char *shader) { init(shader); }
+  MipRenderer(const MipRenderer &) = default;
+  MipRenderer &operator=(MipRenderer &&) = default;
   void close();
   bool init(const char *shader);
   void renderTo(BaseTexture *src, BaseTexture *dst, const IPoint2 &target_size) const;

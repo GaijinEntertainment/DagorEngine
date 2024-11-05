@@ -1,6 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/tileDeferredLighting.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_tex3d.h>
 #include <shaders/dag_shaders.h>
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_vecMathCompatibility.h>

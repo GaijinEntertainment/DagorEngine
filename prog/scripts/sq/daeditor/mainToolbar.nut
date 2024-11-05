@@ -87,7 +87,7 @@ function mainToolbar() {
     size = [sw(100), SIZE_TO_CONTENT]
     flow = FLOW_HORIZONTAL
     rendObj = ROBJ_WORLD_BLUR
-    color = Color(150, 150, 150, 255)
+    fillColor = Color(20, 20, 20, 155)
     watch = [de4editMode, propPanelVisible, de4workMode, de4workModes, showUIinEditor, editorTimeStop, showLogsWindow, hasNewLogerr]
     valign = ALIGN_CENTER
     padding =hdpx(4)

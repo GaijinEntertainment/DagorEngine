@@ -1,18 +1,31 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <shaders/dag_computeShaders.h>
 #include <render/beamTracers.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <ioSys/dag_dataBlock.h>
 #include <perfMon/dag_statDrv.h>
+#include <frustumCulling/frustumPlanes.h>
 
-#define GLOBAL_VARS_LIST VAR(beam_trace_current_time)
+#define GLOBAL_VARS_LIST       \
+  VAR(beam_trace_current_time) \
+  VAR(beam_fade_dist)          \
+  VAR(beam_min_intensity_cos)  \
+  VAR(beam_max_intensity_cos)  \
+  VAR(beam_min_intensity_mul)  \
+  VAR(beam_max_intensity_mul)  \
+  VAR(beam_fog_intensity_mul)
 
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_VARS_LIST
 #undef VAR
-
-void set_frustum_planes(const Frustum &frustum);
 
 void BeamTracerManager::updateAlive()
 {
@@ -105,6 +118,9 @@ void BeamTracerManager::initGPU(const DataBlock &settings)
 
 void BeamTracerManager::initFillIndirectBuffer()
 {
+  if (!drawIndirectBuffer)
+    return;
+
   // struct args{   uint vertexCountPerInstance,InstanceCount, StartVertexLocation, StartInstanceLocation;}
   uint32_t *data;
   int ret = drawIndirectBuffer->lock(0, 0, (void **)&data, VBLOCK_WRITEONLY);
@@ -162,6 +178,14 @@ int BeamTracerManager::createTracer(const Point3 &start_pos, const Point3 &ndir,
   const Color4 &head_color, float time_to_live, float fade_dist, float begin_fade_time, float end_fade_time, float scroll_speed,
   bool is_ray)
 {
+  if (DAGOR_UNLIKELY(!tracerVertsBuffer))
+  {
+    const DataBlock *tracersBlk = dgs_get_settings()->getBlockByNameEx("tracers");
+    if (!tracersBlk)
+      return -1;
+    init(*tracersBlk);
+  }
+
   G_UNUSED(smoke_color);
   if (!freeTracers.size())
   {
@@ -332,6 +356,12 @@ void BeamTracerManager::renderTrans()
   d3d::resource_barrier({culledTracerTails.get(), RB_RO_SRV | RB_STAGE_VERTEX});
   d3d::resource_barrier({drawIndirectBuffer.get(), RB_RO_INDIRECT_BUFFER});
   ShaderGlobal::set_real(beam_trace_current_timeVarId, cTime);
+  ShaderGlobal::set_real(beam_fade_distVarId, tacLaserRenderSettings.fadeDistance);
+  ShaderGlobal::set_real(beam_min_intensity_cosVarId, tacLaserRenderSettings.minIntensityCos);
+  ShaderGlobal::set_real(beam_max_intensity_cosVarId, tacLaserRenderSettings.maxIntensityCos);
+  ShaderGlobal::set_real(beam_min_intensity_mulVarId, tacLaserRenderSettings.minIntensityMul);
+  ShaderGlobal::set_real(beam_max_intensity_mulVarId, tacLaserRenderSettings.maxIntensityMul);
+  ShaderGlobal::set_real(beam_fog_intensity_mulVarId, tacLaserRenderSettings.fogIntensityMul);
   headRenderer.shader->setStates(0, true);
   d3d::setvsrc(0, 0, 0);
   d3d::set_buffer(STAGE_VS, 8, culledTracerHeads.get());

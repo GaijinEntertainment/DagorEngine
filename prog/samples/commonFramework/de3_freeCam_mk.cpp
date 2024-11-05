@@ -1,12 +1,17 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "de3_freeCam.h"
+#include "dag_cur_view.h"
 #include <ecs/input/hidEventRouter.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
-#include <render/dag_cur_view.h>
 #include <workCycle/dag_workCycle.h>
-#include <humanInput/dag_hiGlobals.h>
-#include <humanInput/dag_hiKeybIds.h>
-#include <humanInput/dag_hiKeybData.h>
+#include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiKeybData.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <util/dag_flyMode.h>
 #include <gui/dag_visConsole.h>
@@ -62,12 +67,12 @@ public:
     else
     {
       HumanInput::KeyboardRawState &kbd = HumanInput::raw_state_kbd;
-      #define MKEY(arrows, wasd) int((kbd.isKeyDown(arrows) && moveWithArrows) || (kbd.isKeyDown(wasd) && moveWithWASD));
+#define MKEY(arrows, wasd) int((kbd.isKeyDown(arrows) && moveWithArrows) || (kbd.isKeyDown(wasd) && moveWithWASD));
       flyMode->keys.left = MKEY(HumanInput::DKEY_LEFT, HumanInput::DKEY_A);
       flyMode->keys.right = MKEY(HumanInput::DKEY_RIGHT, HumanInput::DKEY_D);
       flyMode->keys.fwd = MKEY(HumanInput::DKEY_UP, HumanInput::DKEY_W);
       flyMode->keys.back = MKEY(HumanInput::DKEY_DOWN, HumanInput::DKEY_S);
-      #undef MKEY
+#undef MKEY
       flyMode->keys.worldUp = int(kbd.isKeyDown(HumanInput::DKEY_E));
       flyMode->keys.worldDown = int(kbd.isKeyDown(HumanInput::DKEY_C));
       flyMode->keys.turbo = int(kbd.isKeyDown(HumanInput::DKEY_LSHIFT));

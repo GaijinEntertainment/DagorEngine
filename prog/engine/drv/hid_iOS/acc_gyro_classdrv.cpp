@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "acc_gyro_classdrv.h"
 #include "acc_gyro_device.h"
-#include <humanInput/dag_hiGlobals.h>
+#include <drv/hid/dag_hiGlobals.h>
 #include <supp/_platform.h>
 #include <debug/dag_debug.h>
 #include <string.h>

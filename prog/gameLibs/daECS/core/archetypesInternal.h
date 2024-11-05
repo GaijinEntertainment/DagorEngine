@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <daECS/core/internal/archetypes.h>
 #include "dataComponentManagerInt.h"
 namespace ecs

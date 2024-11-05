@@ -1,5 +1,5 @@
-#ifndef __DAGOR_PLATFORM_H
-#define __DAGOR_PLATFORM_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #if _TARGET_PC_WIN
 #include <windows.h>
@@ -14,7 +14,5 @@
 #elif _TARGET_C1 | _TARGET_C2
 
 #elif _TARGET_APPLE | _TARGET_PC_LINUX | _TARGET_ANDROID
-
-#endif
 
 #endif

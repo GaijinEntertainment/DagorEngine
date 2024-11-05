@@ -1,4 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <animChar/dag_animCharacter2.h>
+#include <osApiWrappers/dag_spinlock.h>
 
 using namespace AnimV20;
 
@@ -34,5 +37,20 @@ void IAnimCharacter2::getTm(TMatrix &tm) const
 
 
 static FastNameMap slotNames;
-int AnimCharV20::getSlotId(const char *slot_name) { return (slot_name && *slot_name) ? slotNames.getNameId(slot_name) : -1; }
-int AnimCharV20::addSlotId(const char *slot_name) { return (slot_name && *slot_name) ? slotNames.addNameId(slot_name) : -1; }
+static OSSpinlock slotNamesMapMutex;
+template <typename F>
+static inline int get_slot_id(const char *slot_name, F getcb)
+{
+  if (!slot_name || !*slot_name)
+    return -1;
+  OSSpinlockScopedLock lock(slotNamesMapMutex);
+  return getcb(slot_name);
+}
+int AnimCharV20::getSlotId(const char *slot_name)
+{
+  return get_slot_id(slot_name, [](const char *sn) { return slotNames.getNameId(sn); });
+}
+int AnimCharV20::addSlotId(const char *slot_name)
+{
+  return get_slot_id(slot_name, [](const char *sn) { return slotNames.addNameId(sn); });
+}

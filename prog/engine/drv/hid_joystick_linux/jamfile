@@ -1,4 +1,4 @@
-Platform ?= linux64 ;
+Platform ?= linux ;
 
 Root    ?= ../../../.. ;
 Location = prog/engine/drv/hid_joystick_linux ;

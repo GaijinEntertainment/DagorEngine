@@ -1,14 +1,13 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <ioSys/dag_baseIo.h>
 #include <util/dag_simpleString.h>
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 //
 // Async file reader for sequental data reading; designed for parallel data loading and processing
@@ -80,7 +79,8 @@ protected:
   {
     int sa, ea;
     char *data;
-    short mask, handle;
+    int handle;
+    short mask;
   } buf[BUF_CNT], *cBuf;
 
   unsigned pendMask, doneMask;
@@ -89,7 +89,7 @@ protected:
   SimpleString targetFilename;
   int64_t curThreadId = -1;
 
-  void waitForDone(int wait_mask);
+  void readCompleted(int i, int bit, int sz);
   void placeRequests();
   KRNLIMP void closeData();
   void checkThreadSanity();
@@ -115,4 +115,4 @@ public:
   SimpleString targetFilename;
 };
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

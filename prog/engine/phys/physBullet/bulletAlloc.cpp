@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 // This is rather hacky - we have to defeat class operator new/delete defines in order to use in-place operator new
 // To consider: use btAlignedAllocator somehow instead?
 #include <LinearMath/btScalar.h>

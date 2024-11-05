@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EditorCore/ec_application_creator.h>
 #include <EditorCore/ec_workspace.h>
 
@@ -10,6 +12,7 @@
 #include <osApiWrappers/dag_direct.h>
 #include <debug/dag_debug.h>
 
+#include <propPanel/control/container.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <sepGui/wndGlobal.h>
 
@@ -71,7 +74,7 @@ static bool copyFolder(const char *dest_folder, const char *folder)
 
 
 //==================================================================================================
-static bool createFolderContent(const char *app_folder, const char *folder, PropertyContainerControlBase &panel, int pid)
+static bool createFolderContent(const char *app_folder, const char *folder, PropPanel::ContainerPropertyControl &panel, int pid)
 {
   if (panel.getBool(pid))
   {
@@ -107,13 +110,15 @@ static bool copyFile(const char *dest_folder, const char *file)
 
 //==================================================================================================
 
-ApplicationCreator::ApplicationCreator(void *phandle, EditorWorkspace &w) :
-  CDialogWindow(phandle, hdpi::_pxScaled(300), hdpi::_pxScaled(460), "Create application"), wsp(w)
+ApplicationCreator::ApplicationCreator(EditorWorkspace &w) :
+  DialogWindow(nullptr, hdpi::_pxScaled(300), hdpi::_pxScaled(460), "Create application"), wsp(w)
 {
-  PropertyContainerControlBase *_panel = getPanel();
+  setModalBackgroundDimmingEnabled(true);
+
+  PropPanel::ContainerPropertyControl *_panel = getPanel();
   G_ASSERT(_panel && "No panel in ApplicationCreator");
 
-  PropertyContainerControlBase *_grp = _panel->createGroupBox(PID_APP_GRP, "Application settings");
+  PropPanel::ContainerPropertyControl *_grp = _panel->createGroupBox(PID_APP_GRP, "Application settings");
 
   G_ASSERT(_grp);
 
@@ -126,7 +131,7 @@ ApplicationCreator::ApplicationCreator(void *phandle, EditorWorkspace &w) :
   _grp->createStatic(PID_APP_PATH, "");
   _grp->createStatic(PID_ALREADY_EXISTS, "");
 
-  PropertyContainerControlBase *_grp_samples = _panel->createGroupBox(PID_CREATE_GRP, "Create samples");
+  PropPanel::ContainerPropertyControl *_grp_samples = _panel->createGroupBox(PID_CREATE_GRP, "Create samples");
   G_ASSERT(_grp_samples);
 
   String path = ::make_full_path(sgg::get_exe_path(), "../common/samples/develop/library");
@@ -192,7 +197,7 @@ ApplicationCreator::ApplicationCreator(void *phandle, EditorWorkspace &w) :
 
 bool ApplicationCreator::onOk()
 {
-  PropertyContainerControlBase *_panel = getPanel();
+  PropPanel::ContainerPropertyControl *_panel = getPanel();
   G_ASSERT(_panel && "No panel in ApplicationCreator");
 
   SimpleString app(_panel->getText(PID_APP_PATH));
@@ -261,7 +266,7 @@ bool ApplicationCreator::onOk()
 
 //==================================================================================================
 
-void ApplicationCreator::onChange(int pcb_id, PropertyContainerControlBase *panel)
+void ApplicationCreator::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   switch (pcb_id)
   {
@@ -273,7 +278,7 @@ void ApplicationCreator::onChange(int pcb_id, PropertyContainerControlBase *pane
 
 //==================================================================================================
 
-void ApplicationCreator::correctAppPath(PropertyContainerControlBase &panel)
+void ApplicationCreator::correctAppPath(PropPanel::ContainerPropertyControl &panel)
 {
   String appName(panel.getText(PID_APP_NAME));
   String appFolder(panel.getText(PID_APP_FOLDER));

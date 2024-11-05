@@ -1,0 +1,16 @@
+let { Point2, Point3 } = require("dagor.math")
+
+local class TiledMapContext {
+  function setup(config) {
+    assert(type(config)=="table")
+  }
+  getVisibleRadius = @() 0.0
+  setVisibleRadius = @(_radius) 0.0
+  mapToWorld = @(_point) Point3()
+  worldToMap = @(_point) Point2()
+  setWorldPos = @(_point) null
+}
+
+return {
+  TiledMapContext
+}

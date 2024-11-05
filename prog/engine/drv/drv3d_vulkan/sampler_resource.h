@@ -1,8 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "driver.h"
 #include "device_resource.h"
-
 
 namespace drv3d_vulkan
 {
@@ -30,20 +30,20 @@ typedef ResourceImplBase<SamplerDescription, VulkanSamplerHandle, ResourceType::
 class SamplerResource : public SamplerResourceImplBase
 {
 public:
-  // external handlers
-  static constexpr int CLEANUP_DESTROY = 0;
-
   SamplerInfo samplerInfo;
 
   SamplerResource(SamplerDescription samplerDesc, bool manage = true) : SamplerResourceImplBase(samplerDesc, manage) {}
 
   void createVulkanObject();
   void destroyVulkanObject();
+  void shutdown(){};
+  void releaseSharedHandle() { DAG_FATAL("vulkan: no handle reuse for samplers"); };
 
   MemoryRequirementInfo getMemoryReq()
   {
     MemoryRequirementInfo ret{};
     ret.requirements.alignment = 1;
+    ret.requirements.memoryTypeBits = 0xFFFFFFFF;
     return ret;
   }
 

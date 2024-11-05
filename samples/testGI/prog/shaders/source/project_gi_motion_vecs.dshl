@@ -1,0 +1,13 @@
+texture motion_gbuf;
+macro DAGI_PROJECT_SAMPLE_MOTION_VECTORS(code)
+  if (motion_gbuf != NULL)
+  {
+    (code) {
+      motion_gbuf@tex2d = motion_gbuf;
+    }
+    hlsl(code) {
+      #define DAGI_HAS_MOTION_GBUF 1
+      float2 load_motion_gbuf(uint2 coord, float2 uv) {return motion_gbuf[coord].xy;}
+    }
+  }
+endmacro

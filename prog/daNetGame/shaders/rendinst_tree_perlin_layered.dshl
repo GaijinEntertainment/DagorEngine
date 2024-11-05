@@ -1,0 +1,732 @@
+include "psh_derivate.dshl"
+include "psh_tangent.dshl"
+include "rendinst_opaque_inc.dshl"
+include "rendinst_vegetation_inc.dshl"
+include "rendinst_rotation_palette.dshl"
+include "normaldetail.dshl"
+include "character_micro_detail.dshl"
+include "vegetation.dshl"
+include "pivot_painter.dshl"
+include "wind/wind_simulation_inc.dshl"
+include "wind/apply_tree_wind_inc.dshl"
+include "rendinst_inc.dshl"
+include "pn_triangulation.dshl"
+include "tessellation_intervals_inc.dshl"
+include "perlin_layered_inc.dshl"
+include "taa_inc.dshl"
+
+// trees above only requires albedo and ao for gbuffer
+int gbuffer_for_treesabove = 0;
+interval gbuffer_for_treesabove : off < 1, on;
+
+float4 prevViewProjTm0;
+float4 prevViewProjTm1;
+float4 prevViewProjTm2;
+float4 prevViewProjTm3;
+
+float4 prev_world_view_pos;
+
+int has_motion_vectors = 0;
+interval has_motion_vectors: no < 1, yes;
+
+macro DEFINE_PIVOT_POINT_WIND_SCALE()
+  hlsl(vs) { static const float AnimWindScale = 0.25; }
+endmacro
+
+shader rendinst_tree_perlin_layered
+{
+  static int material_pn_triangulation = 0 no_warnings;
+  interval material_pn_triangulation : off < 1, displacement < 2, smoothing_only;
+
+  if (hardware.metal || compatibility_mode == compatibility_mode_on)
+  {
+    assume material_pn_triangulation = off;
+  }
+
+  static float4 rendinst_displacement_min = (0, 0, 0, 0) no_warnings;
+  static float4 rendinst_displacement_max = (0.05, 0.05, 0.05, 0) no_warnings;
+  static float4 rendinst_displacement_lod = (0, 0, 0, 0) no_warnings;
+  static float4 rendinst_displacement_mod = (1, 1, 0.75, 0.25) no_warnings; // 4 packed multipliers .x - trunc, .yzw - branches
+  static float max_tessellation_factor = 10 no_warnings;
+
+  bool pn_triangulation_enabled =
+      (object_tess_factor == object_tess_factor_on && material_pn_triangulation != off &&
+      (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_depth));
+
+  if (rendinst_render_pass != rendinst_render_pass_impostor_shadow && rendinst_render_pass != rendinst_render_pass_impostor_color &&
+     (rendinst_render_pass != rendinst_render_pass_depth || instancing_type != tm_vb) && rendinst_render_pass != rendinst_render_pass_to_shadow)
+  {
+    ENABLE_MULTI_DRAW(rendinst_render_pass == rendinst_render_pass_depth && !pn_triangulation_enabled)
+  }
+  else if (rendinst_render_pass == rendinst_render_pass_depth )
+  {
+    USE_INDIRECT_DRAW() // For PS4/5. Allow daGDP to invoke this shader with indirect draw call
+  }
+
+  INIT_WEIGHT_FOR_AO()
+
+  if (pn_triangulation_enabled)
+  {
+    hlsl {
+      #if SET_UP_MULTIDRAW && DRAW_ID_USES_INSTANCE_OFFSET_ID
+        #define GET_DRAW_CALL_ID_TRIANGULATION(src) get_material_offset_external_draw_id(src.drawId)
+      #else
+        #define GET_DRAW_CALL_ID_TRIANGULATION(src) GET_MATERIAL_OFFSET
+      #endif
+    }
+    INIT_PN_TRIANGULATION(true)
+  }
+
+  if (rendinst_render_pass == rendinst_render_pass_grassify) { dont_render;}
+  if (rendinst_render_pass == rendinst_render_pass_to_heightmap) { dont_render;}
+
+  USE_COMBINED_WIND(vs)
+
+  texture tex = material.texture.diffuse;
+  texture normal = material.texture[2];
+  texture tex1 = material.texture[3];
+  texture normal1 = material.texture[4];
+  texture tex2 = material.texture[5];
+  texture normal2 = material.texture[6];
+
+  static int is_pivoted = 0;
+  interval is_pivoted : no < 1, yes;
+
+  if (is_pivoted == yes)
+  {
+    INIT_PIVOT_PAINTER_PARAMS()
+
+    if (has_motion_vectors == yes && in_editor_assume == no && rendinst_render_pass != rendinst_render_pass_impostor_color &&
+        rendinst_render_pass != rendinst_render_pass_depth && rendinst_render_pass != rendinst_render_pass_to_shadow)
+    {
+      (vs) {
+        prevViewProjTm@f44 = {prevViewProjTm0, prevViewProjTm1, prevViewProjTm2, prevViewProjTm3};
+        prev_world_view_pos@f3 = (prev_world_view_pos);
+      }
+
+      USE_MOTION_VEC_ENCODE(ps)
+      hlsl {
+        #define MOTION_VECTORS_ENABLED
+      }
+    }
+
+    hlsl(ps) {
+      #define IS_DYNAMIC 1
+    }
+  }
+
+  static float4 invert_heights = (0,0,0,0);
+  static float4 mask_gamma = (1,1,1,0.25);
+  static float4 mask_by_normal = (0, 1, 0, 0);
+  static float4 emission_color = (0, 0, 0, -1);
+  static float emission_albedo_mult = 1;
+  static float constant_translucency = 0;
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+  channel float2 tc[0] = tc[0];
+  if (is_pivoted == yes)
+  {
+    channel float2 tc[1] = tc[1];
+  }
+  channel color8 vcol[0] = extra[53];
+  SETUP_CHARACTER_MICRODETAIL()
+  USE_CHARACTER_MICRODETAIL()
+
+  RENDINST_BLOCK()
+  RENDINST_INSTANCING()
+  ROTATION_PALETTE_FOR_POS_INST()
+  INIT_GROUND_ALIGN()
+  if (rendinst_render_pass == rendinst_render_pass_normal)
+  {
+    USE_MICRODETAIL_BASED_WETNESS()
+  }
+  if (mobile_render != off)
+  {
+    USE_SPECULAR_FROM_COLOR()
+  }
+
+  macro FILL_CURRENT_GBUFFER_LAYERED()
+    (ps){
+      diffuse_tex@static = tex;
+      normal_tex@static = normal;
+      diffuse_tex1@static = tex1;
+      normal_tex1@static = normal1;
+      diffuse_tex2@static = tex2;
+      normal_tex2@static = normal2;
+      invert_heights@f4 = invert_heights;
+      mask_gamma@f4 = mask_gamma;
+      mask_by_normal@f4 = mask_by_normal;
+      emission_color@f4 = emission_color;
+      emission_albedo_mult@f1 = (emission_albedo_mult,0,0,0);
+      constant_translucency@f1 = (constant_translucency);
+    }
+
+    hlsl(ps) {
+      float2 get_world_noise3d_2(float3 v)
+      {
+        return tex3Dlod(perlin_noise3d, float4(v*(1./4),0)).rg;
+      }
+    }
+    hlsl(ps) {
+      #ifndef IS_DYNAMIC
+        #define IS_DYNAMIC 0
+      #endif
+      UnpackedGbuffer get_current_gbuffer(VsOutput input, float3 cameraWorldViewPos)
+      {
+        #if SET_UP_MULTIDRAW
+          SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+        #endif
+        UnpackedGbuffer gbuffer;
+        init_gbuffer(gbuffer);
+        float2 texCoord = input.diffuseTexcoord.xy;
+        half4 diffuseColor = tex2DBindless(get_diffuse_tex(), texCoord);
+        half4 diffuseColor1 = tex2DBindless(get_diffuse_tex1(), texCoord);
+        half4 diffuseColor2 = tex2DBindless(get_diffuse_tex2(), texCoord);
+        float3 worldPos = cameraWorldViewPos-input.pointToEye.xyz;
+        float2 p0_p1;
+        //p0_p1.x = noise_Value2D(texCoord*0.91+1+input.diffuseTexcoord.zw);
+        //p0_p1.y = noise_Value2D(texCoord*0.7+2+input.diffuseTexcoord.zw);
+        float3 noiseTc = worldPos*get_mask_gamma().w;//max only required until re-export
+        p0_p1 = get_world_noise3d_2(noiseTc);
+        float moss = saturate(saturate(input.mossAo.x*0.5)+get_invert_heights().w);
+        p0_p1 *= moss;
+        half weightsDot = p0_p1.x + p0_p1.y;
+        half3 weights;
+        weights.xy = weightsDot > 1 ? p0_p1*rcp(weightsDot) : p0_p1;
+        weights.z = saturate(1-weightsDot);
+        weights.y = lerp(weights.y, max(dot(get_mask_by_normal().xyz, input.normal.xyz), 0), get_mask_by_normal().w);
+        weights = pow(weights, get_mask_gamma().xyz);//max only required until re-export
+
+
+        half3 height14;
+        half3 initialHeight = half3(diffuseColor.a, diffuseColor1.a, diffuseColor2.a);
+        initialHeight = get_invert_heights().xyz ? 1-initialHeight : initialHeight;
+        height14 = initialHeight*weights+weights*0.0001;
+        half invHeightsSum;
+        //height14 = initialHeight+weights*1.5;
+        invHeightsSum = rcp(dot(height14, 1));
+        height14 *= invHeightsSum;
+        //height14 = pow32_vec4(height14);
+        height14 = pow16_vec4(height14.xyzz).xyz;
+        height14 = saturate(height14 - 0.0000000002f);//0.25^16/2 is maximum!
+        invHeightsSum = rcp(dot(height14, 1));
+        weights = height14*invHeightsSum;
+
+        diffuseColor = diffuseColor*weights.x + diffuseColor1*weights.y + diffuseColor2*weights.z;
+
+##if mobile_render == off
+        half4 packedNormalMap = tex2DBindless(get_normal_tex(), texCoord);
+        half4 packedNormalMap1 = tex2DBindless(get_normal_tex1(), texCoord);
+        half4 packedNormalMap2 = tex2DBindless(get_normal_tex2(), texCoord);
+        packedNormalMap = packedNormalMap*weights.x + packedNormalMap1*weights.y + packedNormalMap2*weights.z;
+
+        half smoothness = packedNormalMap.r;//there is nothing good here!
+        //smoothness = get_specular_intensity_from_color( diffuseColor.rgb );//fixme: remove!
+        half3 normalMap = unpack_ag_normal(packedNormalMap);
+        half reflectance = 0.5;
+        half ao = 1;
+
+        BRANCH
+        if (character_micro_detail_layer >= 0)
+        {
+          apply_character_micro_detail(sample_character_micro_detail(texCoord.xy*get_character_micro_detail_scale().xy, character_micro_detail_layer),
+            diffuseColor.rgb, normalMap, reflectance, smoothness);
+        }
+        ##if (rendinst_render_pass == rendinst_render_pass_normal)
+          apply_wetness_by_microdetail(character_micro_detail_layer, worldPos, diffuseColor.rgb, normalMap, reflectance, smoothness, ao);
+        ##endif
+
+        half3 worldNormal = perturb_normal_precise( normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.diffuseTexcoord.xy );
+        half metalness = packedNormalMap.b;
+
+        half4 emissionColor = get_emission_color();
+
+        init_metalness(gbuffer, metalness);
+        init_material(gbuffer, SHADING_NORMAL);
+        BRANCH
+        if(emissionColor.w > 0)
+        {
+          half3 difference = diffuseColor.rgb - emissionColor.xyz;
+          half sqDiff = dot(difference, difference);
+          if (sqDiff < emissionColor.w)
+          {
+            init_material(gbuffer, SHADING_SELFILLUM);
+
+            half normDiff = (emissionColor.w - sqDiff) / emissionColor.w;
+            init_emission(gbuffer, normDiff * MAX_EMISSION);
+            init_emission_color(gbuffer, half4(1,1,1,get_emission_albedo_mult()));
+          }
+        }
+
+        #ifdef MOTION_VECTORS_ENABLED
+          init_motion_vector(gbuffer, encode_motion_vector(input.out_pos, input.out_pos_prev));
+        #endif
+        init_smoothness(gbuffer, smoothness);
+        init_normal(gbuffer, worldNormal);
+        init_dynamic(gbuffer,input.normal.w > 0 ? IS_DYNAMIC : 0);
+##else
+        half smoothness = get_specular_intensity_from_color(diffuseColor.rgb);
+        init_metalness(gbuffer, 0);
+        init_material(gbuffer, SHADING_NORMAL);
+        init_normal(gbuffer, input.normal.xyz);
+##endif
+
+        init_albedo(gbuffer, diffuseColor.rgb);
+        init_translucency(gbuffer, get_constant_translucency());
+        return gbuffer;
+      }
+    }
+  endmacro
+
+  macro DEFAULT_VERTEX_SHADER_LAYERED()
+    hlsl
+    {
+      ##if rendinst_render_pass != rendinst_render_pass_depth
+        #define NEED_NORMAL 1
+        #define NEED_TEXCOORD_MOSS_AO 1
+      ##else
+        #define NEED_NORMAL PN_TESSELATION
+        ##if material_pn_triangulation == displacement
+          #define NEED_TEXCOORD_MOSS_AO 1
+        ##endif
+      ##endif
+    }
+
+    USE_GROUND_ALIGN()
+
+    if (is_pivoted == yes)
+    {
+      USE_PIVOT_PAINTER()
+      DEFINE_PIVOT_POINT_WIND_SCALE()
+    }
+
+    hlsl {
+      struct VsOutput
+      {
+        PRECISE VS_OUT_POSITION(pos)
+        #if NEED_NORMAL
+          float4 normal               : TEXCOORD0;
+        #endif
+        float3 pointToEye             : TEXCOORD1;
+        #if NEED_TEXCOORD_MOSS_AO
+          float4 diffuseTexcoord      : TEXCOORD2;
+          float2 mossAo               : TEXCOORD3;
+        #endif
+        #ifdef MOTION_VECTORS_ENABLED
+          float4 out_pos                   : TEXCOORD5;
+          float4 out_pos_prev              : TEXCOORD6;
+        #endif
+        #if defined(VSOUT_DRAW_ID)
+          VSOUT_DRAW_ID
+        #endif
+      };
+      struct HsInput
+      {
+        PRECISE VS_OUT_POSITION(pos)
+        float4 normal                 : TEXCOORD0;
+        #if NEED_TEXCOORD_MOSS_AO
+          float4 diffuseTexcoord      : TEXCOORD1;
+          float2 mossAo               : TEXCOORD2;
+        #endif
+        #ifdef MOTION_VECTORS_ENABLED
+          float4 out_pos              : TEXCOORD3;
+          float4 out_pos_prev         : TEXCOORD4;
+        #endif
+        ##if (material_pn_triangulation == displacement && is_pivoted == yes)
+          float additional_displacement_mul : TEXCOORD5;
+        ##endif
+        #if defined(VSOUT_DRAW_ID)
+          VSOUT_DRAW_ID
+        #endif
+      };
+    }
+
+    hlsl(vs) {
+      #if PN_TESSELATION
+        #define VS_OUTPUT HsInput
+      #else
+        #define VS_OUTPUT VsOutput
+      #endif
+
+
+      INSTANCING_BUFFERS
+
+      struct VsInput
+      {
+        float3 pos                  : POSITION;
+        #if NEED_NORMAL
+          float4 normal               : NORMAL;
+        #endif
+        #if NEED_TEXCOORD_MOSS_AO
+          float2 diffuseTexcoord      : TEXCOORD0;
+          float4 vcol                 : COLOR0;
+        #endif
+        ##if (is_pivoted == yes)
+          float2 indirectTexcoord       : TEXCOORD1;
+        ##endif
+      };
+
+      VS_OUTPUT simple_vs(VsInput input HW_USE_INSTANCE_ID)
+      {
+        VS_OUTPUT output;
+        #if SET_UP_MULTIDRAW
+          INIT_MULTIDRAW(output);
+          SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+        #endif
+        float3 localNormal = 1;
+        #if NEED_NORMAL
+          localNormal = normalize(BGR_SWIZZLE(input.normal.xyz)*2-1);
+        #endif
+        float3 localPos = input.pos;
+        float opacity = 1;
+
+        VB_PERFORM_INSTANCING
+        APPLY_ROTATION_PALETTE
+        ##if instancing_type == pos_vb || instancing_type == pos_cb
+          worldPos = apply_ground_align(worldPos, localPos, worldLocalPos, pos_and_scale);
+        ##endif
+        float maxMovement = 0;
+        ##if (is_pivoted == yes)
+          HierarchyData Data = fetchHierarchyData(input.indirectTexcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
+          float3 prevWorldPos;
+          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale, worldPos, prevWorldPos, maxMovement);
+        ##endif
+
+        float3 pointToEye = world_view_pos-worldPos;
+
+        #if PN_TESSELATION
+          output.pos = float4(worldPos, 1);
+          #ifdef MOTION_VECTORS_ENABLED
+            // motion vectors will not account for tesellation (for now)
+            output.out_pos = mulPointTm(worldPos + camera_base_offset, globtm);
+            output.out_pos_prev = mulPointTm(prevWorldPos - prev_world_view_pos, prevViewProjTm);
+          #endif
+          ##if (material_pn_triangulation == displacement && is_pivoted == yes)
+            output.additional_displacement_mul = get_rendinst_displacement_mod()[Data.maxHierarchyLevel];
+          ##endif
+        #else
+          output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+          output.pointToEye = pointToEye;
+          #ifdef MOTION_VECTORS_ENABLED
+            output.out_pos = output.pos;
+            output.out_pos_prev = mulPointTm(prevWorldPos - prev_world_view_pos, prevViewProjTm);
+          #endif
+        #endif
+
+        #if NEED_NORMAL
+          output.normal.xyz = worldNormal;
+          output.normal.w = maxMovement;
+        #endif
+
+        #if NEED_TEXCOORD_MOSS_AO
+          // always compute this, when put under endinst_render_pass != rendinst_render_pass_depth
+          // DXC will reorder some multiplications and run into rounding issues resulting in flickering
+          output.mossAo.x = worldPos.y - worldLocalPos.y;
+          output.mossAo.y = input.vcol.a;
+
+          output.diffuseTexcoord.xy = input.diffuseTexcoord;
+          output.diffuseTexcoord.zw = output.pos.zw;
+        #endif
+        return output;
+      }
+    }
+
+  endmacro
+
+  if (rendinst_render_pass == rendinst_render_pass_impostor_color)
+  {
+    DEFAULT_VERTEX_SHADER_LAYERED()
+
+    PACK_UNPACK_GBUFFER()
+    USE_PIXEL_TANGENT_SPACE()
+    FILL_CURRENT_GBUFFER_LAYERED()
+    USE_RENDINST_IMPOSTOR_SHADOW()
+    USE_WEIGHT_FOR_AO()
+    hlsl(ps) {
+      UnpackedGbuffer get_impostor_gbuffer(VsOutput input, out half alpha, out half coloring)
+      {
+        UnpackedGbuffer gbuffer = get_current_gbuffer(input, 0);
+        half shadow = getShadow(input.pointToEye.xyz);
+        init_shadow(gbuffer, shadow);
+        init_gbuffer_ao(gbuffer, input.mossAo.y);
+        alpha = 1; coloring = 0;
+
+        return gbuffer;
+      }
+    }
+    RENDER_TO_GBUFFER_IMPOSTOR()
+    compile("target_vs", "simple_vs");
+  } else if (rendinst_render_pass == rendinst_render_pass_impostor_shadow)
+  {
+    hlsl {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+        float4 diffuseTexcoord        : TEXCOORD0;
+      };
+    }
+    hlsl(vs) {
+      INSTANCING_BUFFERS
+      struct VsInput
+      {
+        float3 pos                  : POSITION;
+        float3 normal               : NORMAL;
+        float2 diffuseTexcoord      : TEXCOORD0;
+      };
+
+      VsOutput simple_vs(VsInput input HW_USE_INSTANCE_ID)
+      {
+        VsOutput output;
+        #if SET_UP_MULTIDRAW
+          INIT_MULTIDRAW(output);
+          SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+        #endif
+        //float3 localNormal = input.normal.xyz;
+        float3 localNormal = 1;
+        float3 localPos = input.pos;
+        float opacity = 1;
+        VB_PERFORM_INSTANCING
+        APPLY_ROTATION_PALETTE
+        //float3 worldPos = localPos;
+        worldPos = localPos;
+
+        output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+        output.diffuseTexcoord.xy = input.diffuseTexcoord;
+        output.diffuseTexcoord.z = output.pos.z;
+        output.diffuseTexcoord.w = localPos.y;
+
+        return output;
+      }
+    }
+    compile("target_vs", "simple_vs");
+    hlsl(ps) {
+      float4 rendinst_simple_impostor_shadow_ps(VsOutput input) : SV_Target
+      {
+        clip(input.diffuseTexcoord.w);
+        return float4(1 - input.diffuseTexcoord.zzz, 0.f);
+      }
+    }
+    compile("target_ps", "rendinst_simple_impostor_shadow_ps");
+  } else if (rendinst_render_pass == rendinst_render_pass_to_shadow)
+  {
+      no_dynstcode;
+
+    USE_GROUND_ALIGN()
+
+    if (is_pivoted == yes)
+    {
+      USE_PIVOT_PAINTER()
+      DEFINE_PIVOT_POINT_WIND_SCALE()
+    }
+
+    hlsl(vs) {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+        #if defined(VSOUT_DRAW_ID)
+          VSOUT_DRAW_ID
+        #endif
+      };
+      INSTANCING_BUFFERS
+      struct VsInput
+      {
+        float3 pos                  : POSITION;
+        ##if (is_pivoted == yes)
+          float2 indirectTexcoord   : TEXCOORD1;
+        ##endif
+      };
+
+      VsOutput simple_vs(VsInput input HW_USE_INSTANCE_ID)
+      {
+        VsOutput output;
+        #if SET_UP_MULTIDRAW
+          INIT_MULTIDRAW(output);
+          SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+        #endif
+        float3 localNormal = 1;
+        float3 localPos = input.pos;
+        float opacity = 1;
+        VB_PERFORM_INSTANCING
+        APPLY_ROTATION_PALETTE
+        ##if instancing_type == pos_vb || instancing_type == pos_cb
+          worldPos = apply_ground_align(worldPos, localPos, worldLocalPos, pos_and_scale);
+        ##endif
+
+        ##if (is_pivoted == yes)
+          HierarchyData Data = fetchHierarchyData(input.indirectTexcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
+          float3 unusedPrevPos;
+          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale, worldPos, unusedPrevPos);
+        ##endif
+
+        output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+
+        return output;
+      }
+    }
+    compile("ps_null", "rendinst_render_depth_black_ps");
+    compile("target_vs", "simple_vs");
+  }
+  else if (rendinst_render_pass == rendinst_render_pass_voxelize_albedo) { dont_render;}
+  else
+  {
+    USE_PIXEL_TANGENT_SPACE()
+    if (mobile_render == deferred || gbuffer_for_treesabove == off)
+    {
+      WRITE_GBUFFER()
+    }
+    else
+    {
+      WRITE_GBUFFER_ALBEDO_AO()
+    }
+    DEFAULT_VERTEX_SHADER_LAYERED()
+
+    if (rendinst_render_pass != rendinst_render_pass_depth)
+    {
+      FILL_CURRENT_GBUFFER_LAYERED()
+      USE_WEIGHT_FOR_AO()
+      hlsl(ps) {
+        GBUFFER_OUTPUT simple_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
+        {
+          input.normal.xyz = MUL_VFACE(input.normal.xyz);
+          UnpackedGbuffer gbuffer = get_current_gbuffer(input, world_view_pos);
+          init_gbuffer_ao(gbuffer, input.mossAo.y);
+
+          return encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
+        }
+      }
+      compile("target_ps", "simple_ps");
+    } else
+    {
+      compile("ps_null", "rendinst_render_depth_black_ps");
+    }
+
+    if (pn_triangulation_enabled)
+    {
+      compile("target_vs_for_tess", "simple_vs");
+    }
+    else
+    {
+      compile("target_vs", "simple_vs");
+    }
+  }
+
+  if (pn_triangulation_enabled)
+  {
+    (vs)
+    {
+      max_tessellation_factor@f1 = (max_tessellation_factor);
+    }
+    if (material_pn_triangulation == displacement)
+    {
+      (vs)
+      {
+        // we transform min/max from [0,1] to [-0.5,+0.5], so we account for negative displacement as well
+        rendinst_displacement_min@f3 = rendinst_displacement_min - (rendinst_displacement_max - rendinst_displacement_min)/2;
+        rendinst_displacement_max@f3 = rendinst_displacement_max - (rendinst_displacement_max - rendinst_displacement_min)/2;
+        rendinst_displacement_lod@f3 = rendinst_displacement_lod;
+        rendinst_displacement_mod@f4 = rendinst_displacement_mod;
+        diffuse_tex@static = tex;
+        diffuse_tex1@static = tex1;
+        diffuse_tex2@static = tex2;
+        invert_heights@f4 = invert_heights;
+        mask_gamma@f4 = mask_gamma;
+        mask_by_normal@f4 = mask_by_normal;
+      }
+    }
+    hlsl
+    {
+      #define rendinst_displacement_mul (get_rendinst_displacement_max() - get_rendinst_displacement_min())
+      #define rendinst_displacement_offset (get_rendinst_displacement_min())
+
+      struct HsControlPoint
+      {
+        HS_CONTROL_POINTS_DECLARATION
+        #if NEED_TEXCOORD_MOSS_AO
+          float4 diffuseTexcoord      : TEXCOORD0;
+          float2 mossAo               : TEXCOORD1;
+        #endif
+        #ifdef MOTION_VECTORS_ENABLED
+          float4 out_pos              : TEXCOORD2;
+          float4 out_pos_prev         : TEXCOORD3;
+        #endif
+        ##if (material_pn_triangulation == displacement && is_pivoted == yes)
+          float additional_displacement_mul : TEXCOORD4;
+        ##endif
+        #if defined(VSOUT_DRAW_ID)
+          VSOUT_DRAW_ID
+        #endif
+      };
+    }
+
+    hlsl(hs)
+    {
+      void proxy_struct_fields(HsInput input, inout HsControlPoint output)
+      {
+        #if NEED_TEXCOORD_MOSS_AO
+          PROXY_FIELD_VALUE(diffuseTexcoord);
+          PROXY_FIELD_VALUE(mossAo);
+        #endif
+        #ifdef MOTION_VECTORS_ENABLED
+          PROXY_FIELD_VALUE(out_pos);
+          PROXY_FIELD_VALUE(out_pos_prev);
+        #endif
+        ##if (material_pn_triangulation == displacement && is_pivoted == yes)
+          PROXY_FIELD_VALUE(additional_displacement_mul);
+        ##endif
+        #if DRAW_ID_USES_INSTANCE_OFFSET_ID
+          output.drawId = input.drawId;
+        #endif
+      }
+    }
+
+    hlsl(ds)
+    {
+      #define WEIGHTS_FOR_HEIGHT 1
+    }
+    USE_PERLIN_LAYERED(ds)
+    hlsl(ds)
+    {
+      void fields_barycentric_values(const OutputPatch<HsControlPoint, 3> input, inout VsOutput output, float3 uvw)
+      {
+        BARYCENTRIC_COORDS_UNPACK(uvw)
+        #if NEED_TEXCOORD_MOSS_AO
+          FIELD_BARYCENTRIC_VALUE(diffuseTexcoord);
+          FIELD_BARYCENTRIC_VALUE(mossAo);
+        #endif
+        #ifdef MOTION_VECTORS_ENABLED
+          // motion vectors will not account for tesellation (for now)
+          FIELD_BARYCENTRIC_VALUE(out_pos);
+          FIELD_BARYCENTRIC_VALUE(out_pos_prev);
+        #endif
+
+        ##if (material_pn_triangulation == displacement)
+          float2 displacementTC = output.diffuseTexcoord.xy;
+          half4 diffuseColor  = tex2DLodBindless(get_diffuse_tex() , float4(displacementTC, 0, get_rendinst_displacement_lod().x));
+          half4 diffuseColor1 = tex2DLodBindless(get_diffuse_tex1(), float4(displacementTC, 0, get_rendinst_displacement_lod().y));
+          half4 diffuseColor2 = tex2DLodBindless(get_diffuse_tex2(), float4(displacementTC, 0, get_rendinst_displacement_lod().z));
+          float2 byNormalParams = float2(max(dot(get_mask_by_normal().xyz, output.normal.xyz), 0), get_mask_by_normal().w);
+          half3 weights = init_blend_weights(output.pos.xyz, get_mask_gamma(), get_invert_heights(), output.mossAo.x, byNormalParams);
+          half3 initialHeight = half3(diffuseColor.a, diffuseColor1.a, diffuseColor2.a);
+          half3 invertedHeight = get_invert_heights().xyz ? 1 - initialHeight : initialHeight;
+          weights = get_blending_weights(weights, invertedHeight);
+
+          half3 heightInMeters = rendinst_displacement_mul * initialHeight + rendinst_displacement_offset;
+          half height = dot(heightInMeters, weights);
+        ##if (is_pivoted == yes)
+          height *= GET_INTERPOLATED_INPUT_VALUE(additional_displacement_mul);
+        ##endif
+          output.pos.xyz += output.normal.xyz * height;
+        ##endif
+
+        #if DRAW_ID_USES_INSTANCE_OFFSET_ID
+          output.drawId = input[0].drawId;
+        #endif
+
+        output.pointToEye = world_view_pos - output.pos.xyz;
+      }
+    }
+
+    USE_PN_TRIANGULATION_WITH_EDGE_LENGTH_BASED_TESS_FACTORS(camera_base_offset, get_max_tessellation_factor())
+  }
+}

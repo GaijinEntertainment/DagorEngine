@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <perfMon/dag_cpuFreq.h>
 #include <perfMon/dag_perfTimer.h>
 #include <vecmath/dag_vecMathDecl.h>
@@ -23,20 +25,21 @@
 #include <debug/dag_except.h>
 enum
 {
-  TESTS = 5000,
+  TESTS = 50000,
   ECS_RUNS = 10,
   CMP_RUNS = 40,
   CREATE_RUNS = 10,
-  EID_QUERY_RUNS = 10,
+  EID_QUERY_RUNS = 100,
   Q_CACHE_CNT = 5,
   Q_CNT = 40
 };
+enum class Drv3dCommand;
 namespace d3d
 {
-int driver_command(int, void *, void *, void *) { return 0; }
+int driver_command(Drv3dCommand, void *, void *, void *) { return 0; }
 void beginEvent(const char *) {}
 void endEvent() {}
-DriverCode get_driver_code() { return DriverCode::make(d3d::null); }
+// DriverCode get_driver_code() { return DriverCode::make(d3d::null); }
 void *get_device() { return 0; }
 } // namespace d3d
 
@@ -82,7 +85,7 @@ struct LoadGameResJob : public cpujobs::IJob
   }
 };
 extern bool load_gameres_list(const ecs::gameres_list_t &) { return true; }
-extern bool filter_out_loaded_gameres(ecs::gameres_list_t &) { return false; }
+extern bool filter_out_loaded_gameres(ecs::gameres_list_t &, unsigned) { return false; }
 extern void place_gameres_request(eastl::vector<ecs::EntityId> &&eids, ecs::gameres_list_t &&nms)
 {
   G_UNUSED(nms);
@@ -449,7 +452,7 @@ static void compare_gets()
 #include <future>
 
 DAGOR_NOINLINE
-static void contrained_mt_mode_example()
+void constrained_mt_mode_example()
 {
   static constexpr ecs::ComponentDesc comps[] = {{ECS_HASH("int_variable"), ecs::ComponentTypeInfo<int>()}};
   ecs::NamedQueryDesc descRead{
@@ -460,14 +463,14 @@ static void contrained_mt_mode_example()
     empty_span(),
   };
   ecs::NamedQueryDesc descWrite{
-    "thread1",
+    "thread2",
     make_span(comps),
     empty_span(),
     empty_span(),
     empty_span(),
   };
-  ecs::QueryId read_intQuery = g_entity_mgr->createQuery(descRead);
   ecs::QueryId write_intQuery = g_entity_mgr->createQuery(descWrite);
+  ecs::QueryId read_intQuery = g_entity_mgr->createQuery(descRead);
   G_UNUSED(write_intQuery);
 
   {
@@ -562,7 +565,7 @@ ecs::template_t create_template(ecs::ComponentsMap &&map, ecs::Template::compone
 {
   static int tn = 0;
   char buf[64];
-  sprintf(buf, "_t%d", tn++);
+  snprintf(buf, sizeof(buf), "_t%d", tn++);
   g_entity_mgr->addTemplate(
     ecs::Template(buf, eastl::move(map), eastl::move(tracked), ecs::Template::component_set(), ecs::Template::component_set(), false));
   if (name)
@@ -697,9 +700,9 @@ void testSampleComponent()
 
   printf("a = %d\n", g_entity_mgr->getEntityComponentRef(eid2, 0).get<SampleComponent>().a);
 
-  // debug_cp();
+  // DEBUG_CP();
   // eid2 = g_entity_mgr->reCreateEntityFromSync(eid2, templ);
-  // debug_cp();
+  // DEBUG_CP();
   g_entity_mgr->destroyEntity(eid2);
   g_entity_mgr->tick();
   // exit(0);
@@ -761,7 +764,7 @@ void testCreateObjectOfArray()
   map2[ECS_HASH("int_variable")] = 17;
   init[ECS_HASH("str_test")] = ecs::string("test");
   auto eid2 = g_entity_mgr->createEntitySync(templ, eastl::move(init), eastl::move(map2));
-  debug_cp();
+  DEBUG_CP();
   debug("string %s", g_entity_mgr->getOr(eid2, ECS_HASH("no"), "def"));
   debug("string %s", g_entity_mgr->get<ecs::string>(eid2, ECS_HASH("str_test")).c_str());
 
@@ -786,7 +789,7 @@ int myMain()
   testAllocator();
   g_entity_mgr.demandInit();
   // testRecreate();//return 0;
-  contrained_mt_mode_example();
+  constrained_mt_mode_example();
   {
 #define DEBUG_TYPE_INFO(type)                                                                                            \
   debug("eastl::is_copy_assignable<" #type ">::value = %d", eastl::is_copy_assignable<type>::value);                     \
@@ -899,7 +902,7 @@ int myMain()
   // if (0)
   {
     ecs::ComponentsMap map;
-    debug_cp();
+    DEBUG_CP();
     // map[ECS_HASH("sample_component")];//ecs::ChildComponent();
     map[ECS_HASH("sample_component")] = SampleComponent();
     map[ECS_HASH("int_variable")] = 13;
@@ -926,9 +929,9 @@ int myMain()
       // g_entity_mgr->reCreateEntityFromSync(eid2, templ2, init);
       // g_entity_mgr->reCreateEntityFromSync(eid2, templ2, init);
     }
-    debug_cp();
+    DEBUG_CP();
     g_entity_mgr->tick();
-    debug_cp();
+    DEBUG_CP();
 
     static constexpr ecs::ComponentDesc comps[] = {{ECS_HASH("sample_component"), ecs::ComponentTypeInfo<SampleComponent>()},
       {ECS_HASH("int_variable"), ecs::ComponentTypeInfo<int>()}};
@@ -952,9 +955,9 @@ int myMain()
 
     printf("a = %d\n", g_entity_mgr->getEntityComponentRef(eid2, 0).get<SampleComponent>().a);
 
-    // debug_cp();
+    // DEBUG_CP();
     // eid2 = g_entity_mgr->reCreateEntityFromSync(eid2, templ);
-    // debug_cp();
+    // DEBUG_CP();
     g_entity_mgr->destroyEntity(eid2);
     g_entity_mgr->tick();
     // exit(0);
@@ -969,12 +972,10 @@ int myMain()
 
   /*{
     SimpleString fname("entities.blk");
-    ecs::TemplateRefs trefs;
-    ecs::load_templates_blk(dag::ConstSpan<SimpleString>(&fname, 1), trefs, &g_entity_mgr->getMutableTemplateDB().info());
-    if (!trefs.empty())
-      g_entity_mgr->getMutableTemplateDB().addTemplates(trefs);
-    auto eid = g_entity_mgr->createEntityAsync("test_blk");
-    g_entity_mgr->destroyEntity(eid);
+    ecs::TemplateRefs trefs(*g_entity_mgr);
+    ecs::load_templates_blk(*g_entity_mgr, dag::ConstSpan<SimpleString>(&fname, 1), trefs,
+  &g_entity_mgr->getMutableTemplateDB().info()); if (!trefs.empty()) g_entity_mgr->getMutableTemplateDB().addTemplates(trefs); auto eid
+  = g_entity_mgr->createEntityAsync("test_blk"); g_entity_mgr->destroyEntity(eid);
   }*/
   {
     ecs::ComponentsMap map;
@@ -987,7 +988,7 @@ int myMain()
     templ = create_template(eastl::move(map));
     ecs::ComponentsInitializer map2;
     map2[ECS_HASH("transform")] = TMatrix::IDENT;
-    // debug_cp();
+    // DEBUG_CP();
     g_entity_mgr->createEntitySync(templ, eastl::move(map2));
   }
   {
@@ -998,9 +999,9 @@ int myMain()
     templ = create_template(eastl::move(map), "pos");
     auto eid2 = g_entity_mgr->createEntitySync(templ);
     g_entity_mgr->set(eid2, ECS_HASH("pos"), Point3(10, 0, 0));
-    debug_cp();
+    DEBUG_CP();
     g_entity_mgr->tick();
-    debug_cp();
+    DEBUG_CP();
   }
 
   static constexpr ecs::ComponentDesc comps[] = {
@@ -1354,6 +1355,7 @@ int myMain()
     debug("track change stream %dus, ret= %d", profile_time_usec(reft), changed);
   }*/
   // debug("float_component = %f", g_entity_mgr->get<float>(eid, ECS_HASH("float_component")));
+  g_entity_mgr.demandDestroy();
   TIME_PROFILER_SHUTDOWN();
   return 0;
 }

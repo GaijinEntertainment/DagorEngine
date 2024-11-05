@@ -29,6 +29,4 @@ UseProgLibs +=
   3rdPartyLibs/imgui-node-editor
 ;
 
-CPPopt += -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS=1 ;
-
 include $(Root)/prog/_jBuild/build.jam ;

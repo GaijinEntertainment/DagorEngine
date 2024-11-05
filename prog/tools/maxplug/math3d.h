@@ -1,6 +1,4 @@
-
-#ifndef __DAGOR_MATH3D_H
-#define __DAGOR_MATH3D_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 /// @addtogroup common
@@ -483,7 +481,7 @@ public:
     m[i][1] = y;
     m[i][2] = z;
   }
-  // INLINE Point3 getcol(int i) const {return Point3(m[i],Point3Sattelite());}
+  INLINE Point3 getcol(int i) const { return Point3(m[i][0], m[i][1], m[i][2]); }
 
 #define eqtm(i, j) (m[(i)][(j)] == a.m[(i)][(j)])
   INLINE bool operator==(const TMatrix &a) const
@@ -933,5 +931,3 @@ public:
   //! Builds (or rebuilds) object for given mesh
   virtual void build(Mesh &m) = 0;
 };
-
-#endif

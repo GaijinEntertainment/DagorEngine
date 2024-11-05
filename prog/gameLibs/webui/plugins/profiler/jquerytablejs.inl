@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 const char *jquerytablejs =
   "(function(){var e,t,n,r;e=jQuery;t=function(){function t(t,n,r){var "
   "i;this.row=t;this.tree=n;this.settings=r;this.id=this.row.data(this.settings.nodeIdAttr);i=this.row.data(this.settings."

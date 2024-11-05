@@ -1,7 +1,6 @@
 //
 // DaEditorX
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -15,8 +14,6 @@
 
 class IDagorEdCustomCollider;
 class DeWorkspace;
-
-typedef class PropertyContainerControlBase PropPanel2;
 
 struct LightingSettings;
 
@@ -65,6 +62,12 @@ public:
   virtual void registered() = 0;
   virtual void unregistered() = 0;
 
+  // Plugins can save and load their settings with these functions. Each plugin has its own block within the global
+  // application settings (tools/dagor_cdk/.local/de3_settings.blk), so any name can be used freely in the provided
+  // DataBlock. The settings are global, they apply to all projects and all levels.
+  virtual void loadSettings(const DataBlock &global_settings) {}
+  virtual void saveSettings(DataBlock &global_settings) {}
+
   // called before enter in main loop when all plugins loaded and initialized
   virtual void beforeMainLoop() = 0;
 
@@ -111,6 +114,8 @@ public:
   //! render plugin objects, transparent pass (called for each viewport)
   virtual void renderTransObjects() = 0;
 
+  virtual void updateImgui() {}
+
   virtual void onBeforeReset3dDevice() {}
 
   // COM-like facilities
@@ -124,6 +129,7 @@ public:
   // return true if stop catching
   virtual bool catchEvent(unsigned event_huid, void *userData) { return false; }
   virtual bool onPluginMenuClick(unsigned id) = 0;
+  virtual void handleViewportAcceleratorCommand(unsigned id) { onPluginMenuClick(id); }
 };
 
 
@@ -203,12 +209,12 @@ public:
   virtual void disableCustomCollider(const char *name) const = 0;
   virtual bool isCustomShadowEnabled(const IDagorEdCustomCollider *collider) const = 0;
   virtual int getCustomCollidersCount() const = 0;
-  virtual bool fillCustomCollidersList(PropPanel2 &params, const char *grp_caption, int grp_pid, int collider_pid, bool shadow,
-    bool open_grp = false) const = 0;
+  virtual bool fillCustomCollidersList(PropPanel::ContainerPropertyControl &params, const char *grp_caption, int grp_pid,
+    int collider_pid, bool shadow, bool open_grp = false) const = 0;
   virtual bool getUseOnlyVisibleColliders() const = 0;
   virtual void setUseOnlyVisibleColliders(bool use) = 0;
 
-  virtual bool onPPColliderCheck(int pid, const PropPanel2 &panel, int collider_pid, bool shadow) const = 0;
+  virtual bool onPPColliderCheck(int pid, const PropPanel::ContainerPropertyControl &panel, int collider_pid, bool shadow) const = 0;
   virtual IDagorEdCustomCollider *getCustomCollider(int idx) const = 0;
 
   //! returns highly temporary slice of colliders (allocated in static array), to be copied immediately on receive
@@ -247,6 +253,8 @@ public:
   virtual int getNextUniqueId() = 0;
 
   virtual bool spawnEvent(unsigned event_huid, void *userData) = 0;
+
+  virtual unsigned getLeftDockNodeId() const = 0;
 
 protected:
   int dagorEdInterfaceVer;

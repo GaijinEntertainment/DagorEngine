@@ -1,5 +1,4 @@
-#ifndef __GAIJIN_DYNAMIC_LIGHTING_COMMANDS__
-#define __GAIJIN_DYNAMIC_LIGHTING_COMMANDS__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <oldEditor/de_cm.h>
@@ -84,6 +83,3 @@ enum
   PID_DIR_SUN1_DIR,
   PID_DIR_SUN2_DIR,
 };
-
-
-#endif //__GAIJIN_DYNAMIC_LIGHTING_COMMANDS__

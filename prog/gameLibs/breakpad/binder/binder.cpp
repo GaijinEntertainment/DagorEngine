@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <breakpad/binder.h>
 #include "callbacks.h"
 #include "context.h"
@@ -7,6 +9,9 @@
 #include <client/windows/handler/exception_handler.h>
 #include <windows.h>
 #include <memory/dag_framemem.h>
+#if !_M_ARM64
+#include <MinHook.h>
+#endif
 #elif _TARGET_PC_LINUX
 #include <client/linux/handler/exception_handler.h>
 #elif _TARGET_PC_MACOSX
@@ -103,33 +108,33 @@ static Context *context = NULL;
 
 #if _TARGET_PC_WIN
 // Some microsoft CRT functions reset our exception filter by calling SetUnhandledExceptionFilter(NULL)
-// prevent this behaviour by disabling SetUnhandledExceptionFilter() completely.
-// Unfortunately it doesn't seem to be possible catch stack buffer overruns errors (even with this hack)
-static void disableSetUnhandledExceptionFilter()
+// Prevent this behaviour by disabling SetUnhandledExceptionFilter() and making sure that no fastfail supported in order
+// to force exception reported
+static LPTOP_LEVEL_EXCEPTION_FILTER WINAPI noop_SetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER)
 {
-  FARPROC suef = GetProcAddress(GetModuleHandle("kernelbase"), "SetUnhandledExceptionFilter"); // windows 8+
-  if (!suef)
-    suef = GetProcAddress(GetModuleHandle("kernel32"), "SetUnhandledExceptionFilter");
-  if (!suef)
-    return;
-#if defined(_M_X64)
-  static const BYTE newBody[] = {
-    0x33, 0xC0, // xor eax,eax
-    0xC3        // ret
-  };
-#elif defined(_M_IX86)
-  static const BYTE newBody[] = {
-    0x8B, 0xFF,      // mov edi,edi <- for hotpatching
-    0x33, 0xC0,      // xor eax,eax
-    0xC2, 0x04, 0x00 // ret 4
-  };
+  return NULL; // Do nothing
+}
+static decltype(&IsProcessorFeaturePresent) fpIsProcessorFeaturePresent = nullptr;
+static BOOL WINAPI no_fastfail_IsProcessorFeaturePresent(DWORD pf)
+{
+  return pf != PF_FASTFAIL_AVAILABLE && fpIsProcessorFeaturePresent(pf);
+}
+static void setup_crt_hooks()
+{
+#if !_M_ARM64
+  G_VERIFY(MH_Initialize() == MH_OK);
+  if (MH_CreateHookApi(L"kernelbase", "SetUnhandledExceptionFilter", &noop_SetUnhandledExceptionFilter, NULL) ==
+      MH_ERROR_MODULE_NOT_FOUND)
+    MH_CreateHookApi(L"kernel32", "SetUnhandledExceptionFilter", &noop_SetUnhandledExceptionFilter, NULL);
+  if (MH_CreateHookApi(L"kernelbase", "IsProcessorFeaturePresent", &no_fastfail_IsProcessorFeaturePresent,
+        (void **)&fpIsProcessorFeaturePresent) == MH_ERROR_MODULE_NOT_FOUND)
+    MH_CreateHookApi(L"kernel32", "IsProcessorFeaturePresent", &no_fastfail_IsProcessorFeaturePresent,
+      (void **)&fpIsProcessorFeaturePresent);
+  MH_EnableHook(MH_ALL_HOOKS);
 #else
-#error Unsupported architecture
+  G_UNUSED(&noop_SetUnhandledExceptionFilter);
+  G_UNUSED(&no_fastfail_IsProcessorFeaturePresent);
 #endif
-  SIZE_T bytesWritten;
-  HANDLE curProc = GetCurrentProcess();
-  WriteProcessMemory(curProc, suef, newBody, sizeof(newBody), &bytesWritten);
-  FlushInstructionCache(curProc, suef, sizeof(newBody)); // probably doesn't needed, but just to be safe
 }
 
 void *memory_reserve = NULL;
@@ -168,12 +173,11 @@ void init(Product &&prod, Configuration &&cfg_)
   Tab<wchar_t> tmp(framemem_ptr());
   wide_dump_path = cfg.dumpPath.length() ? convert_utf8_to_u16_buf(tmp, cfg.dumpPath.c_str(), cfg.dumpPath.length()) : L"";
   wide_sender_cmd = cfg.senderCmd.length() ? convert_utf8_to_u16_buf(tmp, cfg.senderCmd.c_str(), cfg.senderCmd.length()) : L"";
-  handler = new ExHndl(wide_dump_path, get_filter_cb(), get_upload_cb(), context, ExHndl::HANDLER_ALL,
-    (MINIDUMP_TYPE)MiniDumpWithIndirectlyReferencedMemory,
+  handler = new ExHndl(wide_dump_path, get_filter_cb(), get_upload_cb(), context, ExHndl::HANDLER_ALL, MiniDumpNormal,
     (const wchar_t *)NULL, // pipe_name, resolves ambiguity
     NULL);                 // custom_info
   handler->set_handle_debug_exceptions(cfg.catchDebug);
-  disableSetUnhandledExceptionFilter();
+  setup_crt_hooks();
   prepare_args(context, handler->dump_path().c_str(), handler->next_minidump_id().c_str()); // pre-init
   // Dump can't be written unless there is directory to write it to exist
   // (logs directory created on first log write, which might not be case at the time of this call)
@@ -188,6 +192,9 @@ void shutdown()
 {
   del_it(handler);
   del_it(context);
+#if _TARGET_PC_WIN && !_M_ARM64
+  MH_Uninitialize();
+#endif
 }
 
 static const char *cut_file_path(const char *expression)
@@ -329,6 +336,16 @@ void set_product_title(const char *product_title)
     return;
 
   context->configuration.productTitle = product_title;
+  reload_args();
+}
+
+void set_d3d_driver_data(const char *driver, const char *vendor)
+{
+  if (!context)
+    return;
+
+  context->configuration.d3dDriver = driver;
+  context->configuration.gpuVendor = vendor;
   reload_args();
 }
 

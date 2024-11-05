@@ -1,8 +1,16 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "pipeline.h"
-#include "device.h"
 
 #if D3D_HAS_RAY_TRACING
 #include "state_field_raytrace.h"
+#include "globals.h"
+#include "dummy_resources.h"
+#include "pipeline/manager.h"
+#include "raytrace_state.h"
+#include "execution_state.h"
+#include "device_context.h"
+#include "backend.h"
 
 namespace drv3d_vulkan
 {
@@ -19,7 +27,7 @@ void StateFieldRaytraceProgram::applyTo(FrontRaytraceStateStorage &, ExecutionSt
   if (!handle)
     return;
 
-  auto *pipe = &get_device().pipeMan.get<RaytracePipeline>(handle);
+  auto *pipe = &Globals::pipelines.get<RaytracePipeline>(handle);
   target.set<StateFieldRaytracePipeline, RaytracePipeline *, BackRaytraceState>(pipe);
   target.set<StateFieldRaytraceLayout, RaytracePipelineLayout *, BackRaytraceState>(pipe->getLayout());
 }
@@ -58,8 +66,8 @@ void StateFieldRaytracePipeline::dumpLog(const BackRaytraceStateStorage &) const
 template <>
 void StateFieldRaytraceLayout::applyTo(BackRaytraceStateStorage &, ExecutionContext &target) const
 {
-  target.back.contextState.bindlessManagerBackend.bindSets(target, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, ptr->handle);
-  target.back.executionState.getResBinds(STAGE_RAYTRACE).invalidateState();
+  Backend::bindless.bindSets(target, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, ptr->handle);
+  Backend::State::exec.getResBinds(STAGE_RAYTRACE).invalidateState();
 }
 
 template <>
@@ -73,7 +81,6 @@ void StateFieldRaytracePipeline::applyTo(BackRaytraceStateStorage &, ExecutionCo
 {
   // NOTE: kept as a reference
 #if 0 // VK_NV_ray_tracing
-  ContextState& ctxState = target.back.contextState;
   ptr->bind(target.vkDev, target.frameCore);
 #else
   G_UNUSED(target);
@@ -86,15 +93,14 @@ void StateFieldRaytraceFlush::applyTo(BackRaytraceStateStorage &state, Execution
   // NOTE: kept as a reference
 #if 0 // VK_NV_ray_tracing
   RaytracePipeline* ptr = state.pipeline.ptr;
-  ContextState& ctxState = target.back.contextState;
   auto& regRef = ptr->getLayout()->registers.rs();
   VulkanPipelineLayoutHandle layoutHandle = ptr->getLayout()->handle;
 
   target.trackStageResAccesses(regRef.header, STAGE_RAYTRACE);
 
-  target.back.executionState.getResBinds(STAGE_RAYTRACE).apply(
-    target.vkDev, target.device.getDummyResourceTable(),
-    ctxState.frame->index,
+  Backend::State::exec.getResBinds(STAGE_RAYTRACE).apply(
+    target.vkDev, Globals::dummyResources.getTable(),
+    Backend::gpuJob->index,
     regRef, target, STAGE_RAYTRACE,
     [&target, layoutHandle](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
     {
@@ -105,7 +111,7 @@ void StateFieldRaytraceFlush::applyTo(BackRaytraceStateStorage &state, Execution
     });
   );
 
-  target.back.syncTrack.completeNeeded(target.frameCore, target.vkDev);
+  Backend::sync.completeNeeded(target.frameCore, target.vkDev);
 #else
   G_UNUSED(state);
   G_UNUSED(target);

@@ -1,0 +1,63 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "world_sdf.dshl"
+include "postfx_inc.dshl"
+include "viewVecVS.dshl"
+include "globtm.dshl"
+
+shader sdf_world_debug
+{
+  supports global_const_block;
+  supports global_frame;
+  supports none;
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  ENABLE_ASSERT(ps)
+  USE_AND_INIT_VIEW_VEC_VS()
+  POSTFX_VS_TEXCOORD_VIEWVEC(1, texcoord, viewvec)
+  (ps) {debug_world_view_pos@f3 = world_view_pos;}
+
+  READ_WORLD_SDF(ps)
+
+  INIT_AND_USE_GLOBTM(ps)
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+
+  hlsl(ps)
+  {
+    struct Output
+    {
+      float4 color : SV_Target;
+    };
+    #include <ray_sphere_intersect.hlsl>
+    Output raymarcher(VsOutput input)
+    {
+      Output output = (Output)0;
+
+      uint clip = 0;
+      float maxT = 1400, t = maxT;
+      float3 rayDir = normalize(input.viewvec);
+      if (world_sdf_trace(debug_world_view_pos, rayDir, maxT, t, clip, 1))
+      {
+        float3 worldPos = debug_world_view_pos + t*rayDir;
+        float3 gradient = world_sdf_sample_gradient(clip, worldPos);
+        float t2 = t;
+        float gradLen = length(gradient);
+        float3 norm = gradLen > 0 ? -gradient.xzy/gradLen : float3(0,0,0);
+        output.color.a = 0;
+        output.color.rgb = (norm*0.5 + 0.5);
+        //output.color = 0.5*(1-exp2(-0.1*steps));
+        //output.color.rgb = 1*abs(t-t2);
+        float4 imagePos = mulPointTm(debug_world_view_pos + normalize(input.viewvec)*t, globtm);
+        float depth = imagePos.z/imagePos.w;
+        if (readGbufferDepth(input.texcoord) > depth && t > 0.0)
+          discard;
+      } else
+        discard;
+      return output;
+    }
+  }
+  compile("target_ps", "raymarcher");
+}

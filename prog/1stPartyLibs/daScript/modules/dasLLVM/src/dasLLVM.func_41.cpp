@@ -12,66 +12,84 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_41() {
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1165:17
-	addExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueMetadata *) , LLVMDIVariableGetFile >(*this,lib,"LLVMDIVariableGetFile",SideEffects::worstDefault,"LLVMDIVariableGetFile")
-		->args({"Var"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1173:17
-	addExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueMetadata *) , LLVMDIVariableGetScope >(*this,lib,"LLVMDIVariableGetScope",SideEffects::worstDefault,"LLVMDIVariableGetScope")
-		->args({"Var"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1181:10
-	addExtern< unsigned int (*)(LLVMOpaqueMetadata *) , LLVMDIVariableGetLine >(*this,lib,"LLVMDIVariableGetLine",SideEffects::worstDefault,"LLVMDIVariableGetLine")
-		->args({"Var"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1191:17
-	addExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueContext *,LLVMOpaqueMetadata **,size_t) , LLVMTemporaryMDNode >(*this,lib,"LLVMTemporaryMDNode",SideEffects::worstDefault,"LLVMTemporaryMDNode")
-		->args({"Ctx","Data","NumElements"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1201:6
-	addExtern< void (*)(LLVMOpaqueMetadata *) , LLVMDisposeTemporaryMDNode >(*this,lib,"LLVMDisposeTemporaryMDNode",SideEffects::worstDefault,"LLVMDisposeTemporaryMDNode")
-		->args({"TempNode"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1208:6
-	addExtern< void (*)(LLVMOpaqueMetadata *,LLVMOpaqueMetadata *) , LLVMMetadataReplaceAllUsesWith >(*this,lib,"LLVMMetadataReplaceAllUsesWith",SideEffects::worstDefault,"LLVMMetadataReplaceAllUsesWith")
-		->args({"TempTargetMetadata","Replacement"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1228:17
-	addExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueMetadata *,const char *,size_t,const char *,size_t,LLVMOpaqueMetadata *,unsigned int,LLVMOpaqueMetadata *,int,LLVMOpaqueMetadata *,unsigned int) , LLVMDIBuilderCreateTempGlobalVariableFwdDecl >(*this,lib,"LLVMDIBuilderCreateTempGlobalVariableFwdDecl",SideEffects::worstDefault,"LLVMDIBuilderCreateTempGlobalVariableFwdDecl")
-		->args({"Builder","Scope","Name","NameLen","Linkage","LnkLen","File","LineNo","Ty","LocalToUnit","Decl","AlignInBits"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1243:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueValue *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,LLVMOpaqueValue *) , LLVMDIBuilderInsertDeclareBefore >(*this,lib,"LLVMDIBuilderInsertDeclareBefore",SideEffects::worstDefault,"LLVMDIBuilderInsertDeclareBefore")
-		->args({"Builder","Storage","VarInfo","Expr","DebugLoc","Instr"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1258:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueValue *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,LLVMOpaqueBasicBlock *) , LLVMDIBuilderInsertDeclareAtEnd >(*this,lib,"LLVMDIBuilderInsertDeclareAtEnd",SideEffects::worstDefault,"LLVMDIBuilderInsertDeclareAtEnd")
-		->args({"Builder","Storage","VarInfo","Expr","DebugLoc","Block"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1271:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueValue *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,LLVMOpaqueValue *) , LLVMDIBuilderInsertDbgValueBefore >(*this,lib,"LLVMDIBuilderInsertDbgValueBefore",SideEffects::worstDefault,"LLVMDIBuilderInsertDbgValueBefore")
-		->args({"Builder","Val","VarInfo","Expr","DebugLoc","Instr"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1289:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueValue *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,LLVMOpaqueBasicBlock *) , LLVMDIBuilderInsertDbgValueAtEnd >(*this,lib,"LLVMDIBuilderInsertDbgValueAtEnd",SideEffects::worstDefault,"LLVMDIBuilderInsertDbgValueAtEnd")
-		->args({"Builder","Val","VarInfo","Expr","DebugLoc","Block"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1309:17
-	addExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueMetadata *,const char *,size_t,LLVMOpaqueMetadata *,unsigned int,LLVMOpaqueMetadata *,int,LLVMDIFlags,unsigned int) , LLVMDIBuilderCreateAutoVariable >(*this,lib,"LLVMDIBuilderCreateAutoVariable",SideEffects::worstDefault,"LLVMDIBuilderCreateAutoVariable")
-		->args({"Builder","Scope","Name","NameLen","File","LineNo","Ty","AlwaysPreserve","Flags","AlignInBits"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1327:17
-	addExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueMetadata *,const char *,size_t,unsigned int,LLVMOpaqueMetadata *,unsigned int,LLVMOpaqueMetadata *,int,LLVMDIFlags) , LLVMDIBuilderCreateParameterVariable >(*this,lib,"LLVMDIBuilderCreateParameterVariable",SideEffects::worstDefault,"LLVMDIBuilderCreateParameterVariable")
-		->args({"Builder","Scope","Name","NameLen","ArgNo","File","LineNo","Ty","AlwaysPreserve","Flags"});
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1281:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueValue *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,LLVMOpaqueValue *) , LLVMDIBuilderInsertDbgValueBefore , SimNode_ExtFuncCall >(lib,"LLVMDIBuilderInsertDbgValueBefore","LLVMDIBuilderInsertDbgValueBefore")
+		->args({"Builder","Val","VarInfo","Expr","DebugLoc","Instr"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1299:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueValue *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,LLVMOpaqueMetadata *,LLVMOpaqueBasicBlock *) , LLVMDIBuilderInsertDbgValueAtEnd , SimNode_ExtFuncCall >(lib,"LLVMDIBuilderInsertDbgValueAtEnd","LLVMDIBuilderInsertDbgValueAtEnd")
+		->args({"Builder","Val","VarInfo","Expr","DebugLoc","Block"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1319:17
+	makeExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueMetadata *,const char *,size_t,LLVMOpaqueMetadata *,unsigned int,LLVMOpaqueMetadata *,int,LLVMDIFlags,unsigned int) , LLVMDIBuilderCreateAutoVariable , SimNode_ExtFuncCall >(lib,"LLVMDIBuilderCreateAutoVariable","LLVMDIBuilderCreateAutoVariable")
+		->args({"Builder","Scope","Name","NameLen","File","LineNo","Ty","AlwaysPreserve","Flags","AlignInBits"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/DebugInfo.h:1337:17
-	addExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueValue *) , LLVMGetSubprogram >(*this,lib,"LLVMGetSubprogram",SideEffects::worstDefault,"LLVMGetSubprogram")
-		->args({"Func"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1344:6
-	addExtern< void (*)(LLVMOpaqueValue *,LLVMOpaqueMetadata *) , LLVMSetSubprogram >(*this,lib,"LLVMSetSubprogram",SideEffects::worstDefault,"LLVMSetSubprogram")
-		->args({"Func","SP"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1352:10
-	addExtern< unsigned int (*)(LLVMOpaqueMetadata *) , LLVMDISubprogramGetLine >(*this,lib,"LLVMDISubprogramGetLine",SideEffects::worstDefault,"LLVMDISubprogramGetLine")
-		->args({"Subprogram"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1359:17
-	addExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueValue *) , LLVMInstructionGetDebugLoc >(*this,lib,"LLVMInstructionGetDebugLoc",SideEffects::worstDefault,"LLVMInstructionGetDebugLoc")
-		->args({"Inst"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1368:6
-	addExtern< void (*)(LLVMOpaqueValue *,LLVMOpaqueMetadata *) , LLVMInstructionSetDebugLoc >(*this,lib,"LLVMInstructionSetDebugLoc",SideEffects::worstDefault,"LLVMInstructionSetDebugLoc")
-		->args({"Inst","Loc"});
-// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1375:18
-	addExtern< unsigned int (*)(LLVMOpaqueMetadata *) , LLVMGetMetadataKind >(*this,lib,"LLVMGetMetadataKind",SideEffects::worstDefault,"LLVMGetMetadataKind")
-		->args({"Metadata"});
+	makeExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueDIBuilder *,LLVMOpaqueMetadata *,const char *,size_t,unsigned int,LLVMOpaqueMetadata *,unsigned int,LLVMOpaqueMetadata *,int,LLVMDIFlags) , LLVMDIBuilderCreateParameterVariable , SimNode_ExtFuncCall >(lib,"LLVMDIBuilderCreateParameterVariable","LLVMDIBuilderCreateParameterVariable")
+		->args({"Builder","Scope","Name","NameLen","ArgNo","File","LineNo","Ty","AlwaysPreserve","Flags"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1347:17
+	makeExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueValue *) , LLVMGetSubprogram , SimNode_ExtFuncCall >(lib,"LLVMGetSubprogram","LLVMGetSubprogram")
+		->args({"Func"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1354:6
+	makeExtern< void (*)(LLVMOpaqueValue *,LLVMOpaqueMetadata *) , LLVMSetSubprogram , SimNode_ExtFuncCall >(lib,"LLVMSetSubprogram","LLVMSetSubprogram")
+		->args({"Func","SP"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1362:10
+	makeExtern< unsigned int (*)(LLVMOpaqueMetadata *) , LLVMDISubprogramGetLine , SimNode_ExtFuncCall >(lib,"LLVMDISubprogramGetLine","LLVMDISubprogramGetLine")
+		->args({"Subprogram"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1369:17
+	makeExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueValue *) , LLVMInstructionGetDebugLoc , SimNode_ExtFuncCall >(lib,"LLVMInstructionGetDebugLoc","LLVMInstructionGetDebugLoc")
+		->args({"Inst"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1378:6
+	makeExtern< void (*)(LLVMOpaqueValue *,LLVMOpaqueMetadata *) , LLVMInstructionSetDebugLoc , SimNode_ExtFuncCall >(lib,"LLVMInstructionSetDebugLoc","LLVMInstructionSetDebugLoc")
+		->args({"Inst","Loc"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/DebugInfo.h:1385:18
+	makeExtern< unsigned int (*)(LLVMOpaqueMetadata *) , LLVMGetMetadataKind , SimNode_ExtFuncCall >(lib,"LLVMGetMetadataKind","LLVMGetMetadataKind")
+		->args({"Metadata"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Disassembler.h:72:5
-	addExtern< int (*)(void *,uint64_t) , LLVMSetDisasmOptions >(*this,lib,"LLVMSetDisasmOptions",SideEffects::worstDefault,"LLVMSetDisasmOptions")
-		->args({"DC","Options"});
+	makeExtern< int (*)(void *,uint64_t) , LLVMSetDisasmOptions , SimNode_ExtFuncCall >(lib,"LLVMSetDisasmOptions","LLVMSetDisasmOptions")
+		->args({"DC","Options"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Disassembler.h:88:6
+	makeExtern< void (*)(void *) , LLVMDisasmDispose , SimNode_ExtFuncCall >(lib,"LLVMDisasmDispose","LLVMDisasmDispose")
+		->args({"DC"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Disassembler.h:100:8
+	makeExtern< size_t (*)(void *,unsigned char *,uint64_t,uint64_t,char *,size_t) , LLVMDisasmInstruction , SimNode_ExtFuncCall >(lib,"LLVMDisasmInstruction","LLVMDisasmInstruction")
+		->args({"DC","Bytes","BytesSize","PC","OutString","OutStringSize"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Error.h:44:17
+	makeExtern< const void * (*)(LLVMOpaqueError *) , LLVMGetErrorTypeId , SimNode_ExtFuncCall >(lib,"LLVMGetErrorTypeId","LLVMGetErrorTypeId")
+		->args({"Err"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Error.h:52:6
+	makeExtern< void (*)(LLVMOpaqueError *) , LLVMConsumeError , SimNode_ExtFuncCall >(lib,"LLVMConsumeError","LLVMConsumeError")
+		->args({"Err"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Error.h:60:7
+	makeExtern< char * (*)(LLVMOpaqueError *) , LLVMGetErrorMessage , SimNode_ExtFuncCall >(lib,"LLVMGetErrorMessage","LLVMGetErrorMessage")
+		->args({"Err"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Error.h:65:6
+	makeExtern< void (*)(char *) , LLVMDisposeErrorMessage , SimNode_ExtFuncCall >(lib,"LLVMDisposeErrorMessage","LLVMDisposeErrorMessage")
+		->args({"ErrMsg"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Error.h:70:17
+	makeExtern< const void * (*)() , LLVMGetStringErrorTypeId , SimNode_ExtFuncCall >(lib,"LLVMGetStringErrorTypeId","LLVMGetStringErrorTypeId")
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Error.h:75:14
+	makeExtern< LLVMOpaqueError * (*)(const char *) , LLVMCreateStringError , SimNode_ExtFuncCall >(lib,"LLVMCreateStringError","LLVMCreateStringError")
+		->args({"ErrMsg"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm/Config/Targets.def:26:1
+	makeExtern< void (*)() , LLVMInitializeX86TargetInfo , SimNode_ExtFuncCall >(lib,"LLVMInitializeX86TargetInfo","LLVMInitializeX86TargetInfo")
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

@@ -9,5 +9,5 @@ namespace das {
 
     // load ( obj, bytesAt:uint32 )
     vec4f _builtin_binary_load ( Context & context, SimNode_CallBase * call, vec4f * args );
-    void _builtin_binary_load ( Context & context, TypeInfo* info, const char *data, uint32_t len, char *to);//
+    void _builtin_binary_load ( Context & context, LineInfo * at, TypeInfo* info, const char *data, uint32_t len, char *to);
 }

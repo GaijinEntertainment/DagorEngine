@@ -1,0 +1,52 @@
+include "dynamic_opaque_inc.dshl"
+include "gbuffer.dshl"
+include "normaldetail.dshl"
+include "simple_inc.dshl"
+
+shader dynamic_simple
+{
+  ENABLE_ASSERT(ps)
+  SUPPORT_MULTIDRAW(false)
+  DYNAMIC_BLOCK()
+  if (in_editor_assume == no) { NO_DYNSTCODE() }
+
+  texture tex = material.texture.diffuse;
+  texture normal = material.texture[2];
+
+  USING_ATEST_HALF()
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+  SETUP_CHARACTER_MICRODETAIL()
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    hlsl {
+      #define MOTION_VECTORS_ENABLED
+    }
+  }
+
+//---------------------------------------------------
+// PS stuff.
+//---------------------------------------------------
+
+
+  DYNAMIC_SIMPLE_VS_ATEST_USE()
+
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    if (atest == atestOn)
+    {
+      (ps) { diffuse_tex@static = tex; }
+    }
+    SPECIAL_RENDER_ALPHATEST_CHOOSE()
+  }
+  else
+  {
+    hlsl(ps) {
+      #define IS_DYNAMIC 1
+    }
+
+    USE_SIMPLE_PS(true)
+  }
+}

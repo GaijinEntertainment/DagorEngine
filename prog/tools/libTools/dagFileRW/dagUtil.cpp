@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/dagFileRW/dagUtil.h>
 #include <libTools/dagFileRW/dagFileFormat.h>
 #include <libTools/dagFileRW/sceneImpIface.h>
@@ -417,10 +419,21 @@ bool import_dag(const char *dag_src, const char *dag_dst, CoolConsole *con)
       dagutil_last_error_.printf(0, 128, "FAILED top open \"%s\" for reading", dag_dstfile);
     }
 
-    success = false;
-    erase_local_dag_textures(dag_dstfile);
-    dd_erase(dag_dstfile);
-    dagutil_last_error_.printf(0, 128, "CANCELLED import of \"%s\"", dag_srcfile);
+    // remap DAG textures
+    if (con)
+      con->setActionDesc("Importing DAG and remapping textures");
+    if (success && do_remap)
+      success = remap_dag_textures(dag_dstfile, original_tex, actual_tex);
+
+    if (con)
+      con->incDone(1);
+
+    if (!success)
+    {
+      erase_local_dag_textures(dag_dstfile);
+      dd_erase(dag_dstfile);
+      debug("failed to remap textures in '%s'", dag_dstfile);
+    }
   } // dst_location is valid
 
   return success;

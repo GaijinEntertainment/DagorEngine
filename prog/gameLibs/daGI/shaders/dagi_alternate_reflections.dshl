@@ -36,10 +36,10 @@ macro DAGI_ALTERNATE_REFLECTIONS(code)
         return min(min(intersection.x, intersection.y), min(intersection.z, intersection.w));
       }
 
-      half4 get_gi_dithered_reflections(uint2 pixelPos, float3 cameraToPoint, float3 normal)
+      half4 get_gi_dithered_reflections(uint2 pixelPos, float3 rayDir, float3 cameraToPoint, float3 normal)
       {
         uint frameRandom = uint(SSRParams.z);
-        float3 wdir = reflect(normalize(cameraToPoint), normal);
+        float3 wdir = rayDir;
         float3 origin = cameraToPoint+world_view_pos.xyz;
         float startAt = max(0, 0.85*intersectFrustum(origin, wdir) + interleavedGradientNoiseFramed(pixelPos.xy, uint(SSRParams.z))*0.5 - 0.25);
         float3 wposOfs = origin + startAt*wdir;
@@ -52,11 +52,11 @@ macro DAGI_ALTERNATE_REFLECTIONS(code)
         return get_gi_reflection(wposOfs, wdir, normal, startAt);
       }
 
-      void dagi_alternate_reflections(inout half4 newTarget, uint2 pixelPos, float3 cameraToPoint, float3 normal, bool hit, bool hit_not_zfar)
+      void dagi_alternate_reflections(inout half4 newTarget, uint2 pixelPos, float3 rayDir, float3 cameraToPoint, float3 normal, bool hit, bool hit_not_zfar)
       {
         if (!hit)
         {
-          newTarget = get_gi_dithered_reflections(pixelPos, cameraToPoint, normal);
+          newTarget = get_gi_dithered_reflections(pixelPos, rayDir, cameraToPoint, normal);
           newTarget.rgb /= (newTarget.a+1e-6);
         } else if (hit_not_zfar)//remove vignette
           newTarget.a = 1;
@@ -65,7 +65,7 @@ macro DAGI_ALTERNATE_REFLECTIONS(code)
   } else
   {
     hlsl(code) {
-      void dagi_alternate_reflections(inout half4 newTarget, uint2 pixelPos, float3 cameraToPoint, float3 normal, bool hit, bool hit_not_zfar){}
+      void dagi_alternate_reflections(inout half4 newTarget, uint2 pixelPos, float3 rayDir, float3 cameraToPoint, float3 normal, bool hit, bool hit_not_zfar){}
     }
   }
 

@@ -1,0 +1,190 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "world_sdf.dshl"
+include "dagi_lit_scene_helper.dshl"
+include "postfx_inc.dshl"
+include "viewVecVS.dshl"
+include "globtm.dshl"
+include "dagi_albedo_scene_common.dshl"
+
+macro DEPTH_OUTPUT_DX11()
+  cull_mode = none;
+  z_write = true;
+  z_test = true;
+  USE_AND_INIT_VIEW_VEC_VS()
+  POSTFX_VS_TEXCOORD_VIEWVEC(1, tc, viewvec)
+  (ps) {debug_world_view_pos@f3 = world_view_pos;}
+  READ_WORLD_SDF(ps)
+  INIT_HDR(ps)
+  USE_HDR(ps)
+
+  hlsl(ps) {
+    struct Output
+    {
+      float4 color : SV_Target;
+      float depth : SV_Depth;
+    };
+    struct RayMarchRes {
+      float3 norm, worldPos, rayDir;
+      float t;
+      uint cascade;
+    };
+    bool debug_trace_sdf(VsOutput input, float maxT, out RayMarchRes ret)
+    {
+      ret.rayDir = normalize(input.viewvec);
+      ret.t = maxT;
+      if (!world_sdf_trace(debug_world_view_pos, ret.rayDir, maxT, ret.t, ret.cascade, 1))
+        return false;
+      ret.worldPos = debug_world_view_pos + ret.t*ret.rayDir;
+      float3 gradient = world_sdf_sample_gradient(ret.cascade, ret.worldPos);
+
+      //gradient = 0;
+      //if anisotropic
+      float gradLen = length(gradient);
+      ret.norm = gradLen > 0 ? -gradient.xzy/gradLen : -ret.rayDir;
+      return true;
+    }
+  }
+endmacro
+
+/*include "radiance_cache_sample.dshl"
+shader dagi_world_scene_radiance_cache_debug
+{
+  supports global_const_block;
+  supports global_frame;
+  supports none;
+  DEPTH_OUTPUT_DX11()
+
+  INIT_AND_USE_GLOBTM(ps)
+
+  RADIANCE_CACHE_CLIPMAP_MATH(ps)
+  RADIANCE_CACHE_INDIRECTION_SRV(ps)
+  RADIANCE_CACHE_ATLAS_MATH(ps)
+  SAMPLE_RADIANCE_CACHE_SAMPLER(ps)
+
+  hlsl(ps)
+  {
+    Output raymarcher(VsOutput input)
+    {
+      Output output;
+
+      RayMarchRes r;
+      if (!debug_trace_sdf(input, 1400, r))
+        discard;
+      output.color.a = 0;
+      output.color.rgb = (r.norm*0.5 + 0.5);
+      {
+        uint4 probeIndices0, probeIndices1;
+        float4 w0, w1;
+        uint coarserClip = radiance_cache_find_clip_for_dir_sample(radiance_cache_indirection_clipmap, r.worldPos, r.norm, probeIndices0, probeIndices1, w0, w1, 0, MAX_RADIANCE_CACHE_CLIPS);
+        if (coarserClip < MAX_RADIANCE_CACHE_CLIPS)
+          output.color.rgb = sample_trilinear_radiance_cache_safe_weighted(probeIndices0, probeIndices1, w0, w1, 0, r.worldPos, r.norm);
+      }
+
+
+      //output.color = 0.5*(1-exp2(-0.1*steps));
+      //output.color.rgb = 1*abs(t-t2);
+      float4 imagePos = mulPointTm(r.worldPos, globtm);
+      output.depth = imagePos.z/imagePos.w;
+      return output;
+    }
+  }
+  compile("target_ps", "raymarcher");
+}*/
+
+shader dagi_world_scene_voxel_scene_debug
+{
+  supports global_const_block;
+  supports global_frame;
+  supports none;
+  hlsl {
+    //#define DAGI_RADIANCE_AT_SKIP_ALBEDO float3(-1,0,0)
+  }
+  ENABLE_ASSERT(ps)
+
+  DEPTH_OUTPUT_DX11()
+
+  PROJECT_GET_WORLD_RADIANCE_AT(ps)
+
+  INIT_AND_USE_GLOBTM(ps)
+  (ps) {
+  dagi_lit_voxel_scene_luma_only@i1 = dagi_lit_voxel_scene_luma_only;
+  }
+
+  hlsl(ps)
+  {
+    Output raymarcher(VsOutput input HW_USE_SCREEN_POS)
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      Output output;
+
+      RayMarchRes r;
+      if (!debug_trace_sdf(input, 1400, r))
+        discard;
+      output.color.a = 0;
+      output.color.rgb = dagi_get_radiance_at(r.worldPos, r.norm);//- r.rayDir*world_sdf_voxel_size(r.cascade)*0.5
+      if (output.color.r < 0)
+        discard;
+      FLATTEN
+      if (dagi_lit_voxel_scene_luma_only)
+        output.color.rgb = output.color.r;
+      //output.color = 0.5*(1-exp2(-0.1*steps));
+      //output.color.rgb = 1*abs(t-t2);
+      output.color.rgb = pack_hdr(output.color.rgb);
+      float4 imagePos = mulPointTm(r.worldPos, globtm);
+      output.depth = imagePos.z/imagePos.w;
+      return output;
+    }
+  }
+  compile("target_ps", "raymarcher");
+}
+
+shader dagi_world_scene_albedo_scene_debug
+{
+  supports global_const_block;
+  supports global_frame;
+  ENABLE_ASSERT(ps)
+  //supports none;//fixme: in DNG wont compile due to emission
+  DEPTH_OUTPUT_DX11()
+
+  INIT_AND_USE_GLOBTM(ps)
+  DAGI_ALBEDO_SAMPLE(ps)
+  //PROJECT_LIGHT_POINT_TRACE_HIT(ps)
+  PACK_UNPACK_GBUFFER_BASE(ps)
+  PROJECT_LIGHT_POINT_SCREEN_VOXEL(ps)
+
+  hlsl(ps)
+  {
+    Output raymarcher(VsOutput input HW_USE_SCREEN_POS)
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      Output output;
+
+      RayMarchRes r;
+      if (!debug_trace_sdf(input, 1400, r))
+        discard;
+      float4 imagePos = mulPointTm(r.worldPos, globtm);
+
+      output.color.a = 0;
+      float3 albedo = float3(1,0,1);
+      if (dagi_sample_albedo_best(r.worldPos, albedo))
+      {
+        UnpackedGbuffer gbuf;
+        init_gbuffer(gbuf);
+
+        gbuf.albedo = albedo;
+        gbuf.normal = r.norm;
+        //float2 tc = (imagePos.xy/imagePos.w)*float2(0.5, -0.5) + 0.5;
+        output.color.rgb = project_get_lit_color_at_screen(input.tc, screenpos.xy, imagePos.w, r.worldPos, processGbuffer(gbuf), -5);
+        //dagi_base_lit_point(imagePos.w, screenpos.xy, worldPos, norm, albedo);project_get_lit_color_at_screen(float2 tc, float linearDepth, float3 worldPos, float3 worldNormal, float3 albedo) {return albedo*0.1;}
+      }
+      else
+        output.color.rgb = albedo;
+
+      output.color.rgb = pack_hdr(output.color.rgb);
+      output.depth = imagePos.z/imagePos.w;
+      return output;
+    }
+  }
+  compile("target_ps", "raymarcher");
+}

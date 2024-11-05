@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <perfMon/dag_statDrv.h>
 #include <perfMon/dag_daProfilerSettings.h>
 
@@ -12,9 +14,9 @@ static void set_profiling_profile_settings(const char *profilerSetting)
 {
   static const char *profiler_legacy_options[] = {"all", "gpu", "cpu", "platform", "off", nullptr};
   static uint32_t profiler_legacy_options_val[] = {
-    da_profiler::PLATFORM_EVENTS | da_profiler::EVENTS | da_profiler::TAGS | da_profiler::GPU | da_profiler::SAMPLING |
-      da_profiler::SAVE_SPIKES,
-    da_profiler::EVENTS | da_profiler::GPU | da_profiler::TAGS,
+    da_profiler::PLATFORM_EVENTS | da_profiler::EVENTS | da_profiler::UNIQUE_EVENTS | da_profiler::TAGS | da_profiler::GPU |
+      da_profiler::SAMPLING | da_profiler::SAVE_SPIKES,
+    da_profiler::EVENTS | da_profiler::UNIQUE_EVENTS | da_profiler::GPU | da_profiler::TAGS,
     da_profiler::EVENTS | da_profiler::TAGS,
     da_profiler::PLATFORM_EVENTS,
     0,

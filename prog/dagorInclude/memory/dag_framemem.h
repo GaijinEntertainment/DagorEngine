@@ -1,12 +1,12 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <debug/dag_assert.h>
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
+#include <util/dag_preprocessor.h>
 
 #if _TARGET_STATIC_LIB && !DAGOR_PREFER_HEAP_ALLOCATION
 extern thread_local class IMemAlloc *thread_framemem;
@@ -44,11 +44,7 @@ private:
   FramememScopedRegion &operator=(const FramememScopedRegion &) = delete;
 };
 
-#ifndef __CONCAT_HELPER__
-#define __CONCAT_HELPER__(x, y) x##y
-#define __CONCAT__(x, y)        __CONCAT_HELPER__(x, y)
-#endif
-#define FRAMEMEM_REGION FramememScopedRegion __CONCAT__(scope_framemem_lib, __COUNTER__)
+#define FRAMEMEM_REGION FramememScopedRegion DAG_CONCAT(scope_framemem_lib, __COUNTER__)
 
 #if DAGOR_DBGLEVEL > 0
 class FramememScopedValidator
@@ -66,7 +62,7 @@ private:
 };
 
 // Validates whether all lifetimes nest within a scope and that the framemem stack is cleaned up gracefully
-#define FRAMEMEM_VALIDATE FramememScopedValidator __CONCAT__(scope_framemem_validator, __COUNTER__)(__FILE__, __LINE__)
+#define FRAMEMEM_VALIDATE FramememScopedValidator DAG_CONCAT(scope_framemem_validator, __COUNTER__)(__FILE__, __LINE__)
 #else
 struct FramememScopedValidator
 {};
@@ -94,6 +90,7 @@ public:
   explicit framemem_allocator(const char * = NULL) {}
   framemem_allocator(const framemem_allocator &) {}
   framemem_allocator(const framemem_allocator &, const char *) {}
+  framemem_allocator &operator=(const framemem_allocator &) { return *this; }
 
   friend __forceinline bool operator==(framemem_allocator, framemem_allocator) { return true; }
   friend __forceinline bool operator!=(framemem_allocator, framemem_allocator) { return false; }
@@ -102,7 +99,9 @@ public:
   static inline void *allocate(size_t n, size_t al, size_t, int = 0)
   {
     G_FAST_ASSERT(al <= 16);
-    return framemem_ptr()->allocAligned(n, al);
+    ((void)al);
+    // Note: `allocAligned` can't be used here since we are freering using ordinary `free` instead `freeAligned`
+    return framemem_ptr()->alloc(n);
   }
   static inline void deallocate(void *p, size_t) { framemem_ptr()->free(p); }
   static inline bool resizeInplace(void *p, size_t sz) { return framemem_ptr()->resizeInplace(p, sz); }
@@ -121,4 +120,4 @@ public:
   static inline void free(void *p) { return framemem_ptr()->free(p); }
 };
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

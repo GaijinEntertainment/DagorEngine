@@ -15,7 +15,7 @@
 #include <shaders/dag_shaderVar.h>
 #include <generic/dag_carray.h>
 #include <shaders/dag_shaders.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 
 class SnapdragonSuperResolution : public PostFxRenderer
 {
@@ -26,6 +26,8 @@ public:
         viewport[1] = 0.f;
         viewport[2] = 0.f;
         viewport[3] = 0.f;
+        snapdragon_super_resolution_inputVarId = get_shader_variable_id("snapdragon_super_resolution_input");
+        snapdragon_super_resolution_ViewportInfoVarId = get_shader_variable_id("snapdragon_super_resolution_ViewportInfo");
     }
 
     ~SnapdragonSuperResolution() {}
@@ -43,11 +45,21 @@ public:
         Color4 viewportData = Color4(viewport);
 
         d3d::set_render_target(output, 0);
-        ShaderGlobal::set_texture(get_shader_variable_id("snapdragon_super_resolution_input"), input);
-        ShaderGlobal::set_color4(get_shader_variable_id("snapdragon_super_resolution_ViewportInfo"), viewportData);
+        ShaderGlobal::set_texture(snapdragon_super_resolution_inputVarId, input);
+        ShaderGlobal::set_color4(snapdragon_super_resolution_ViewportInfoVarId, viewportData);
+        PostFxRenderer::render();
+    }
+
+    inline void render(const TextureIDPair &input)
+    {
+        Color4 viewportData = Color4(viewport);
+        d3d::set_render_target();
+        ShaderGlobal::set_texture(snapdragon_super_resolution_inputVarId, input.getId());
+        ShaderGlobal::set_color4(snapdragon_super_resolution_ViewportInfoVarId, viewportData);
         PostFxRenderer::render();
     }
 
 private:
     float viewport[4];
+    int snapdragon_super_resolution_inputVarId, snapdragon_super_resolution_ViewportInfoVarId;
 };

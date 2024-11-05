@@ -1,8 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 // Hash.h: a hash-based storage
 //
 ////////////////////////////////////////////////////////////////////////////////
-
-#pragma once
 
 class CHashElement;
 class CHashImplementation;

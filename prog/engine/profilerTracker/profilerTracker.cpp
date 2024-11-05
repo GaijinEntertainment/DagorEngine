@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <3d/dag_profilerTracker.h>
 #include "profilerTrackerInternal.h"
 
@@ -349,8 +351,6 @@ static float get_data_point(const Tracker::PlotData *dataPtr, int idx)
   return value;
 }
 
-static bool window_open = true;
-
 static void show_help_window(bool *p_open)
 {
   ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
@@ -516,7 +516,7 @@ static void draw_window()
       continue;
     if (ImGui::CollapsingHeader(group.first.c_str()))
     {
-      ImPlot::SetNextPlotLimits(0, tracker->getHistorySize(), 0, 16);
+      ImPlot::SetNextAxesLimits(0, tracker->getHistorySize(), 0, 16);
       if (ImPlot::BeginPlot(group.first.c_str(), "frames", "msec", ImVec2(-1, 0), 0, ImPlotAxisFlags_Lock))
       {
         for (auto &itr : group.second)
@@ -527,8 +527,8 @@ static void draw_window()
             int count = data.size1 + data.size2 - data.skipped - 1;
             ImPlot::PlotLineG(
               itr.first.c_str(),
-              [](void *ptr, int idx) {
-                Tracker::PlotData *dataPtr = reinterpret_cast<Tracker::PlotData *>(ptr);
+              [](int idx, void *user_data) {
+                Tracker::PlotData *dataPtr = reinterpret_cast<Tracker::PlotData *>(user_data);
                 int count = dataPtr->size1 + dataPtr->size2 - dataPtr->skipped - 1;
                 int x = tracker->getHistorySize() - (dataPtr->size1 + dataPtr->size2) + idx;
                 if (filter == NONE || filter_size <= 0)
@@ -552,7 +552,7 @@ static void draw_window()
                     case MAX: value = max(value, val); break;
                     case NONE:
                     case COUNT:
-                      // supres warnings for these options
+                      // suppress warnings for these options
                       break;
                   }
                 }
@@ -569,4 +569,4 @@ static void draw_window()
   }
 }
 
-REGISTER_IMGUI_WINDOW_EX("Render", "Profile tracker", nullptr, 100, ImGuiWindowFlags_MenuBar, draw_window);
+REGISTER_IMGUI_WINDOW_EX("Render", "Profiler tracker", nullptr, 100, ImGuiWindowFlags_MenuBar, draw_window);

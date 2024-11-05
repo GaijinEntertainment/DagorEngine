@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/core/entityComponent.h>
 #include <ecs/core/entityManager.h>
 #include <daECS/core/updateStage.h>

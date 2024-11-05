@@ -1,14 +1,18 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 /** \addtogroup de3Common
   @{
 */
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
-#include <render/dag_cur_view.h>
 #include "de3_rayTracer.h"
 #include "de3_ICamera.h"
+#include "dag_cur_view.h"
 
 /**
 Callback interface for third person camera targets.

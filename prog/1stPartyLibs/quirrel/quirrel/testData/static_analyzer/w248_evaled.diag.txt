@@ -8,4 +8,4 @@ LOCALS
 [foo] CLOSURE=FN:foo
 [t] TABLE={}
 [vargv] ARRAY=[]
-[this] TABLE={}
+[this] NULL

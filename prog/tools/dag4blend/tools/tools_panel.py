@@ -1,16 +1,19 @@
 import bpy, os, bmesh, math
 from   bpy.types                    import Operator, Panel
-from bpy.props                      import StringProperty,IntProperty
+from bpy.props                      import BoolProperty, StringProperty, IntProperty
 from   shutil                       import copyfile
 from   time                         import time
 from ..dagormat.build_node_tree     import buildMaterial
 from ..dagormat.compare_dagormats   import compare_dagormats
+from ..dagormat.dagormat            import write_proxy_blk, cleanup_textures
 
 from  .tools_functions              import *
-from ..helpers.texts                import log
+from ..helpers.texts                import log, show_text
 from ..helpers.basename             import basename
 from ..helpers.popup                import show_popup
 from ..helpers.version              import get_blender_version
+
+classes = []
 
 #FUNCTIONS#################################################################
 
@@ -24,6 +27,7 @@ def mesh_remove_smooth_groups(objects):
     return
 
 def save_textures(sel,path):
+    cleanup_textures()
     all_tex=[]
 #collecting all textures of selected mesh objects:
     for o in sel:
@@ -46,7 +50,22 @@ def save_textures(sel,path):
         tex_name=os.path.basename(tex)
         save_path=os.path.join(path,tex_name)
         copyfile(tex,save_path)
-    return tex_to_save.__len__()
+    saved = tex_to_save.__len__()
+    skipped = all_tex.__len__() - saved
+    return [saved, skipped]
+
+def save_proxymats(selection, dirpath):
+    proxymats = []
+    for object in selection:
+        for material in object.data.materials:
+            if not material.dagormat.is_proxy:
+                continue
+            if material in proxymats:
+                continue
+            proxymats.append(material)
+    for proxymat in proxymats:
+        write_proxy_blk(proxymat, custom_dirpath = dirpath)
+    return proxymats.__len__()
 
 def clear_normals(objects):
     for obj in objects:
@@ -326,6 +345,8 @@ class DAGOR_OT_ClearSG(Operator):
         objects = context.view_layer.objects.selected
         mesh_remove_smooth_groups(objects)
         return {'FINISHED'}
+classes.append(DAGOR_OT_ClearSG)
+
 
 class DAGOR_OT_mopt(Operator):
     bl_idname = "dt.mopt"
@@ -338,6 +359,8 @@ class DAGOR_OT_mopt(Operator):
                 fix_mat_slots(obj)#fixing ids, replacing None mat by gi_black
                 optimize_mat_slots(obj)
         return{'FINISHED'}
+classes.append(DAGOR_OT_mopt)
+
 
 class DAGOR_OT_merge_mat_duplicates(Operator):
     bl_idname = "dt.merge_mat_duplicates"
@@ -349,29 +372,62 @@ class DAGOR_OT_merge_mat_duplicates(Operator):
             if obj.type=='MESH':
                 merge_mat_duplicates(obj)
         return{'FINISHED'}
+classes.append(DAGOR_OT_merge_mat_duplicates)
+
 
 class DAGOR_OT_SaveTextures(Operator):
     bl_idname = "dt.save_textures"
-    bl_label = "Save textures"
-    bl_description = "save existing textures of selected mesh objects to 'export folder/textures/...'"
+    bl_label = "Copy textures to"
+    bl_description = "Copies existing textures of selected mesh objects to custom directory"
 
     def execute(self,context):
         start = time()
-        sel=[o for o in context.selected_objects if o.type=="MESH"]
+        pref_local = bpy.data.scenes[0].dag4blend
+        sel = [o for o in context.selected_objects if o.type == "MESH"]
+        if sel.__len__()==0:
+            show_popup(
+                message = 'No selected meshes to process!',
+                title = 'Error!',
+                icon = 'ERROR')
+            return {'CANCELLED'}
+        path = pref_local.tools.save_textures_dirpath
+        if not os.path.exists(path):
+            os.mkdir(path)
+            log(f'\n\tDirectory \n\t"{path}"\n\tcreated\n')
+        tex_count = save_textures(sel, path)
+        log(f'saved {tex_count[0]} texture(s)\n\tskipped {tex_count[1]} texture(s) without filepath\n')
+        show_text(bpy.data.texts['log'])
+        show_popup(f'finished in {round(time()-start,4)} sec')
+        return{'FINISHED'}
+classes.append(DAGOR_OT_SaveTextures)
+
+
+class DAGOR_OT_SaveProxymats(Operator):
+    bl_idname = "dt.save_proxymats"
+    bl_label = "Save proxymats to"
+    bl_description = "saves existing proxymats of selected mesh objects to custom directory"
+
+    def execute(self,context):
+        start = time()
+        pref_local = bpy.data.scenes[0].dag4blend
+        sel = [o for o in context.selected_objects if o.type == "MESH"]
         if sel.__len__()==0:
             show_popup(
                 message='No selected meshes to process!',
                 title='Error!',
                 icon='ERROR')
             return {'CANCELLED'}
-        path=os.path.join(bpy.data.scenes[0].dag4blend.exporter.dirpath,'textures\\')
+        path = pref_local.tools.save_proxymats_dirpath
         if not os.path.exists(path):
             os.mkdir(path)
-            log(f'directory \n{path}\ncreated\n')
-        tex_count=save_textures(sel,path)
-        log(f'saved {tex_count} texture(s)\n')
+            log(f'\n\tDirectory \n\t"{path}"\n\tcreated\n')
+        proxy_count = save_proxymats(sel, path)
+        log(f'saved {proxy_count} proxymat(s)\n')
+        show_text(bpy.data.texts['log'])
         show_popup(f'finished in {round(time()-start,4)} sec')
         return{'FINISHED'}
+classes.append(DAGOR_OT_SaveProxymats)
+
 
 class DAGOR_OT_PreserveSharp(Operator):
     bl_idname = "dt.preserve_sharp"
@@ -396,6 +452,8 @@ class DAGOR_OT_PreserveSharp(Operator):
         for obj in sel:
             preserve_sharp(obj)
         return{'FINISHED'}
+classes.append(DAGOR_OT_PreserveSharp)
+
 
 class DAGOR_OT_ApplyMods(Operator):
     bl_idname = "dt.apply_modifiers"
@@ -413,6 +471,8 @@ class DAGOR_OT_ApplyMods(Operator):
         for obj in sel:
             apply_modifiers(obj)
         return{'FINISHED'}
+classes.append(DAGOR_OT_ApplyMods)
+
 
 class DAGOR_OT_GroupCollections(Operator):
     bl_idname = "dt.group_collections"
@@ -439,6 +499,8 @@ class DAGOR_OT_GroupCollections(Operator):
         while found:
             found=sort_collections(C.collection)
         return{'FINISHED'}
+classes.append(DAGOR_OT_GroupCollections)
+
 
 class DAGOR_OT_PackOrphans(Operator):
     bl_idname = "dt.pack_orphans"
@@ -452,6 +514,8 @@ class DAGOR_OT_PackOrphans(Operator):
         else:
             pack_orphans(C.collection)
         return{'FINISHED'}
+classes.append(DAGOR_OT_PackOrphans)
+
 
 class DAGOR_OT_ClearNormals(Operator):
     bl_idname = "dt.clear_normals"
@@ -463,6 +527,8 @@ class DAGOR_OT_ClearNormals(Operator):
         objects = [obj for obj in C.selected_objects if obj.type=='MESH']
         clear_normals(objects)
         return{'FINISHED'}
+classes.append(DAGOR_OT_ClearNormals)
+
 
 class DAGOR_OT_SetupDestruction(Operator):
     bl_idname = "dt.setup_destr"
@@ -478,6 +544,47 @@ class DAGOR_OT_SetupDestruction(Operator):
         for obj in objects:
             setup_destr(obj,self.materialName,self.density)
         return{'FINISHED'}
+classes.append(DAGOR_OT_SetupDestruction)
+
+
+class DAGOR_OT_Shapekey_to_Color_Attribute(Operator):
+    bl_idname = 'dt.shape_to_vcol'
+    bl_label = "Shapekey to vcol"
+    bl_description = "Stores shapekey [1] offsets as color attribute"
+    bl_options = {'UNDO'}
+
+    configure_shaders:  BoolProperty(default = False)
+    preview_deformation:BoolProperty(default = False)
+
+    @classmethod
+    def poll(self, context):
+        if context.mode != 'OBJECT':
+            return False
+        # only meshes with two shape keys are valid. First one is "basis", and second is deformation itself.
+        selection = context.selected_objects
+        valid_selection = [ob for ob in selection if ob.type == 'MESH'
+                            and ob.data.shape_keys is not None
+                            and ob.data.shape_keys.key_blocks.__len__() == 2]
+        if valid_selection.__len__() == 0:
+            return False
+        return True
+
+    def execute(self, context):
+        selection = context.selected_objects
+        for obj in selection:
+            if obj.type != 'MESH':
+                log(f'Object "{obj.name}" is not a mesh, skipped\n', type = 'WARNING', show = True)
+
+            elif obj.data.shape_keys is None or obj.data.shape_keys.key_blocks.__len__() < 2:
+                log(f'Object "{obj.name}" has no deformation shape key, skipped\n', type = 'WARNING', show = True)
+
+            elif obj.data.shape_keys.key_blocks.__len__() > 2:
+                log(f'Object "{obj.name}" has too many shape keys, it is unclear which one to use, skipped\n',
+                    type = 'WARNING', show = True)
+            else:
+                shapekey_to_color_attribute(obj, configure_shaders = self.configure_shaders, preview_deformation = self.preview_deformation)
+        return{'FINISHED'}
+classes.append(DAGOR_OT_Shapekey_to_Color_Attribute)
 
 #PANELS###################################################################
 class DAGOR_PT_Tools(Panel):
@@ -488,86 +595,127 @@ class DAGOR_PT_Tools(Panel):
     bl_category = 'Dagor'
     bl_options = {'DEFAULT_CLOSED'}
     def draw(self,context):
-        pref=context.preferences.addons[basename(__package__)].preferences
-        S=context.scene
+        pref = context.preferences.addons[basename(__package__)].preferences
+        pref_local = bpy.data.scenes[0].dag4blend
+        S = context.scene
         layout = self.layout
+        toolbox = layout.column(align = True)
 
-        matbox=layout.box()
+        matbox=toolbox.box()
         header = matbox.row()
         header.prop(pref, 'matbox_maximized',icon = 'DOWNARROW_HLT'if pref.matbox_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='MaterialTools',expand=True)
-        header.label(icon ="MATERIAL")
+            emboss=False,text='MaterialTools')
+        header.prop(pref, 'matbox_maximized', text = "", icon ="MATERIAL", emboss=False)
         if pref.matbox_maximized:
+            matbox = matbox.column(align = True)
             mats=','.join([m.name for m in bpy.data.materials])
-            matbox.operator('dt.mopt',text='Optimize material slots')
-            matbox.operator('dt.merge_mat_duplicates',text='Merge Duplicates')
-        searchbox=layout.box()
+            row = matbox.row()
+            row.operator('dt.mopt',text='Optimize material slots')
+            row = matbox.row()
+            row.operator('dt.merge_mat_duplicates',text='Merge Duplicates')
+
+        searchbox=toolbox.box()
         header = searchbox.row()
         header.prop(pref, 'searchbox_maximized',icon = 'DOWNARROW_HLT'if pref.searchbox_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='SearchTools',expand=True)
-        header.label(text='', icon='VIEWZOOM')
+            emboss=False,text='SearchTools')
+        header.prop(pref, 'searchbox_maximized', text='', icon='VIEWZOOM', emboss = False)
         if pref.searchbox_maximized:
+            searchbox = searchbox.column(align = True)
             mats=','.join([m.name for m in bpy.data.materials])
-            searchbox.operator('dt.find_textures',  text='Find missing textures',  icon='TEXTURE').mats=mats
-            searchbox.operator('dt.find_proxymats', text='Find missing proxymats',icon='MATERIAL').mats=mats
-        savebox = layout.box()
+            row = searchbox.row()
+            row.operator('dt.find_textures',  text='Find missing textures',  icon='TEXTURE').all_materials = True
+            row = searchbox.row()
+            row.operator('dt.find_proxymats', text='Find missing proxymats',icon='MATERIAL').all_materials = True
+
+        savebox = toolbox.box()
         header = savebox.row()
         header.prop(pref, 'savebox_maximized',icon = 'DOWNARROW_HLT'if pref.savebox_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='SaveTools',expand=True)
-        header.label(text='', icon='FILE_TICK')
+            emboss=False,text='SaveTools')
+        header.prop(pref, 'savebox_maximized', text='', icon='FILE_TICK', emboss = False)
         if pref.savebox_maximized:
-            savebox.operator('dt.save_textures', text='Save textures',icon='FILE_TICK')
+            box = savebox.box()
+            save_tex = box.column(align = True)
+            button = save_tex.row()
+            button.scale_y = 2.0
+            button.operator('dt.save_textures', icon = 'FILE_TICK')
+            save_tex.separator()
+            save_tex.prop(pref_local.tools, 'save_textures_dirpath')
+            row = save_tex.row()
+            open_dir = row.operator('wm.path_open', text = "Open Directory", icon = 'FILE_FOLDER')
+            open_dir.filepath = pref_local.tools.save_textures_dirpath
+            row.active = row.enabled = os.path.exists(pref_local.tools.save_textures_dirpath)
 
-        meshbox=layout.box()
+            box = savebox.box()
+            save_proxy = box.column(align = True)
+            button = save_proxy.row()
+            button.scale_y = 2.0
+            button.operator('dt.save_proxymats', icon = 'FILE_TICK')
+            save_proxy.separator()
+            save_proxy.prop(pref_local.tools, 'save_proxymats_dirpath')
+            row = save_proxy.row()
+            open_dir = row.operator('wm.path_open', text = "Open Directory", icon = 'FILE_FOLDER')
+            open_dir.filepath = pref_local.tools.save_proxymats_dirpath
+            row.active = row.enabled = os.path.exists(pref_local.tools.save_proxymats_dirpath)
+
+        meshbox=toolbox.box()
         header = meshbox.row()
         header.prop(pref, 'meshbox_maximized',icon = 'DOWNARROW_HLT'if pref.meshbox_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='MeshTools',expand=True)
-        header.label(icon='MESH_DATA')
+            emboss=False,text='MeshTools')
+        header.prop(pref, 'meshbox_maximized', text = "", icon='MESH_DATA', emboss = False)
         if pref.meshbox_maximized:
-            meshbox.operator('dt.preserve_sharp',icon='EDGESEL')
-            meshbox.operator('dt.apply_modifiers',icon='MODIFIER_ON')
-            meshbox.operator('dt.clear_normals',icon='NORMALS_VERTEX_FACE')
-            meshbox.operator('dt.clear_smooth_groups',icon='NORMALS_FACE')
+            meshbox = meshbox.column(align = True)
+            row = meshbox.row()
+            row.operator('dt.apply_modifiers',icon='MODIFIER_ON')
+            row = meshbox.row()
+            row.operator('dt.clear_normals',icon='NORMALS_VERTEX_FACE')
+            row = meshbox.row()
+            row.operator('dt.clear_smooth_groups',icon='NORMALS_FACE')
 
-        scenebox=layout.box()
+        scenebox=toolbox.box()
         header=scenebox.row()
         header.prop(pref, 'scenebox_maximized',icon = 'DOWNARROW_HLT'if pref.scenebox_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='SceneTools',expand=True)
-        header.label(icon='OUTLINER_COLLECTION')
+            emboss=False,text='SceneTools')
+        header.prop(pref, 'scenebox_maximized',text = "", icon='OUTLINER_COLLECTION', emboss = False)
         if pref.scenebox_maximized:
-            scenebox.operator('dt.group_collections')
-            scenebox.operator('dt.pack_orphans')
+            scenebox = scenebox.column(align = True)
+            row = scenebox.row()
+            row.operator('dt.group_collections')
+            row = scenebox.row()
+            row.operator('dt.pack_orphans')
 
-        destrbox=layout.box()
+        destrbox=toolbox.box()
         header = destrbox.row()
         header.prop(pref, 'destrbox_maximized',icon = 'DOWNARROW_HLT'if pref.destrbox_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='DestrSetup',expand=True)
-        header.label(text="", icon = 'MOD_PHYSICS')
+            emboss=False,text='DestrSetup')
+        header.prop(pref, 'destrbox_maximized',text="", icon = 'MOD_PHYSICS', emboss = False)
         if pref.destrbox_maximized:
+            destrbox = destrbox.column(align = True)
+            button = destrbox.row()
+            button.scale_y = 2.0
+            destr = button.operator('dt.setup_destr', icon = 'MOD_PHYSICS')
+            destr.materialName = pref_local.tools.destr_materialName
+            destr.density = pref_local.tools.destr_density
             mat = destrbox.row()
-            mat.label(text="material:")
-            mat.prop(pref,'destr_materialName',text='')
+            mat.prop(pref_local.tools,'destr_materialName', text='material')
             dens=destrbox.row()
-            dens.label(text="density:")
-            dens.prop(pref, 'destr_density',text='')
-            destr = destrbox.operator('dt.setup_destr')
-            destr.materialName = pref.destr_materialName
-            destr.density = pref.destr_density
+            dens.prop(pref_local.tools, 'destr_density', text='density')
+            destrbox.separator()
 
+            vcol = destrbox.row()
+            vcol.scale_y = 2.0
+            preview = vcol.operator('dt.shape_to_vcol', icon = 'GROUP_VCOL')
+            preview.configure_shaders = pref_local.tools.configure_shaders
+            preview.preview_deformation = pref_local.tools.preview_deformation
+            prop = destrbox.row()
+            prop.prop(pref_local.tools, 'configure_shaders', toggle = True,
+            icon = 'CHECKBOX_HLT' if pref_local.tools.configure_shaders else 'CHECKBOX_DEHLT')
+            prop = destrbox.row()
+            prop.prop(pref_local.tools, 'preview_deformation', toggle = True,
+            icon = 'CHECKBOX_HLT' if pref_local.tools.preview_deformation else 'CHECKBOX_DEHLT')
 
-classes = [
-           DAGOR_OT_ClearNormals,
-           DAGOR_OT_ClearSG,
-           DAGOR_OT_SaveTextures,
-           DAGOR_OT_mopt,
-           DAGOR_OT_merge_mat_duplicates,
-           DAGOR_OT_PreserveSharp,
-           DAGOR_OT_SetupDestruction,
-           DAGOR_OT_ApplyMods,
-           DAGOR_OT_GroupCollections,
-           DAGOR_OT_PackOrphans,
-           DAGOR_PT_Tools
-           ]
+        return
+classes.append(DAGOR_PT_Tools)
+
 
 def register():
     for cl in classes:

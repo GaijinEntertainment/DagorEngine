@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "driver.h"
@@ -260,8 +261,8 @@ class StatefulCommandBuffer
     if (!validate_primitive_topology(graphicsState.dynamicState.top, activeFeatures.test(FeatureState::PIPELINE_HAS_GEOMETRY),
           activeFeatures.test(FeatureState::PIPELINE_HAS_TESSELLATION)))
     {
-      logerr("Invalid primitive topology %u for draw call encountered. Geometry stage active %s, "
-             "Tessellation stage active %s.",
+      D3D_ERROR("Invalid primitive topology %u for draw call encountered. Geometry stage active %s, "
+                "Tessellation stage active %s.",
         (int)graphicsState.dynamicState.top, activeFeatures.test(FeatureState::PIPELINE_HAS_GEOMETRY) ? "yes" : "no",
         activeFeatures.test(FeatureState::PIPELINE_HAS_TESSELLATION) ? "yes" : "no");
       return false;
@@ -352,6 +353,15 @@ public:
     G_ASSERTF(cmd.is<ID3D12GraphicsCommandList4>(), "Trying to execute raytrace commands on unsupported command list version");
     cmd.buildRaytracingAccelerationStructure(desc, num_post_build_info_descs, post_build_info_descs);
   }
+#if _TARGET_XBOX
+#include "stateful_command_buffer_xbox.inc.h"
+#endif
+  void copyRaytracingAccelerationStructure(D3D12_GPU_VIRTUAL_ADDRESS dst, D3D12_GPU_VIRTUAL_ADDRESS src,
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE mode)
+  {
+    G_ASSERTF(cmd.is<ID3D12GraphicsCommandList4>(), "Trying to execute raytrace commands on unsupported command list version");
+    cmd.copyRaytracingAccelerationStructure(dst, src, mode);
+  }
 #endif
   void setSamplerHeap(ID3D12DescriptorHeap *heap, D3D12_GPU_DESCRIPTOR_HANDLE binldess_address)
   {
@@ -379,16 +389,19 @@ public:
 #endif
   }
 
-  AnyCommandListPtr releaseBufferForSubmit()
+  void prepareBufferForSubmit()
   {
     dirtyAll();
     activeBlitPipeline = nullptr;
-    return cmd.release();
   }
+
+  const GraphicsCommandList<AnyCommandListPtr> &getBufferWrapper() const { return cmd; }
+
+  void resetBuffer() { cmd.reset(); }
 
   bool isReadyForRecording() const { return static_cast<bool>(cmd); }
 
-  void makeReadyForRecroding(AnyCommandListPtr c, bool allow_depth_bounds, unsigned shading_rate_tier)
+  void makeReadyForRecording(AnyCommandListPtr c, bool allow_depth_bounds, unsigned shading_rate_tier)
   {
     cmd = c;
     activeFeatures.set(FeatureState::ALLOW_DEPTH_BOUNDS, allow_depth_bounds);

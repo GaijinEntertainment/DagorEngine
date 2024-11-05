@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_minidumpCallback.h>
 #include <windows.h>
 #include <shlwapi.h>
@@ -26,7 +28,8 @@ DagorHwException::MinidumpExceptionData::MinidumpExceptionData(EXCEPTION_POINTER
   excThread.threadId = exc_thread_id;
   excThread.needScanMem = !is_watchdog_thread(exc_thread_id);
   excThread.needDumpRet = true;
-  excThread.setRegisters(*_eptr->ContextRecord);
+  if (_eptr)
+    excThread.setRegisters(*_eptr->ContextRecord);
   mainThread.threadId = get_main_thread_id();
   mainThread.needScanMem = mainThread.threadId != exc_thread_id;
 }
@@ -205,6 +208,7 @@ static BOOL dump_thread_memory(DagorHwException::MinidumpExceptionData *data, Da
 
 static BOOL minidump_memory_callback(DagorHwException::MinidumpExceptionData *data, PMINIDUMP_CALLBACK_OUTPUT callback_output)
 {
+  data->memCallbackCalled = true;
   if (data->memAddQueueSize)
   {
     DagorHwException::MemoryRange range = data->memAddQueue[--data->memAddQueueSize];
@@ -306,7 +310,9 @@ BOOL CALLBACK DagorHwException::minidump_callback(PVOID callback_param, const PM
       {
         data->excThread.stack.from = callback_input->Thread.StackEnd;
         data->excThread.stack.to = callback_input->Thread.StackBase;
-#if _TARGET_64BIT
+#if _TARGET_64BIT && _M_ARM64
+        memcpy(&callback_input->Thread.Context.V[0], &data->eptr->ContextRecord->V[0], sizeof(M128A) * 16); //-V512
+#elif _TARGET_64BIT
         memcpy(&callback_input->Thread.Context.Xmm0, &data->eptr->ContextRecord->Xmm0, sizeof(M128A) * 16); //-V512
 #endif
       }
@@ -319,7 +325,9 @@ BOOL CALLBACK DagorHwException::minidump_callback(PVOID callback_param, const PM
       if (!(callback_output->ThreadWriteFlags & ThreadWriteStack))
       {
         // ThreadWriteContext saves stack, so we need to strip it manually
-#if _TARGET_64BIT
+#if _TARGET_64BIT && _M_ARM64
+        uintptr_t sp = callback_input->Thread.Context.Sp;
+#elif _TARGET_64BIT
         uintptr_t sp = callback_input->Thread.Context.Rsp;
 #else
         uintptr_t sp = int64_t(intptr_t(callback_input->Thread.Context.Esp));
@@ -341,3 +349,13 @@ BOOL CALLBACK DagorHwException::minidump_callback(PVOID callback_param, const PM
     default: return FALSE;
   }
 }
+
+int CALLBACK DagorHwException::write_minidump_fallback(HANDLE hProcess, DWORD dwProcessId, HANDLE hDumpFile, EXCEPTION_POINTERS *eptr,
+  MINIDUMP_USER_STREAM_INFORMATION *user_streams)
+{
+  SetFilePointerEx(hDumpFile, {} /*dist*/, NULL, FILE_BEGIN);
+  SetEndOfFile(hDumpFile);
+  MINIDUMP_EXCEPTION_INFORMATION info{::GetCurrentThreadId(), eptr, FALSE};
+  MiniDumpWriteDump(hProcess, dwProcessId, hDumpFile, MiniDumpWithIndirectlyReferencedMemory, &info, user_streams, NULL);
+  return EXCEPTION_EXECUTE_HANDLER;
+};

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_wooray3d.h>
 #include <vecmath/dag_vecMath.h>
 

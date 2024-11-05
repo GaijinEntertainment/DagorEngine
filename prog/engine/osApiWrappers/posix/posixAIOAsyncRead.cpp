@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_asyncRead.h>
 #include <osApiWrappers/dag_fileIoErr.h>
 #include <osApiWrappers/dag_files.h>
@@ -112,7 +114,7 @@ int dfa_alloc_asyncdata()
   if (idx >= 0)
     return idx;
 
-  debug_ctx("no more free handles");
+  DEBUG_CTX("no more free handles");
   return -1;
 }
 
@@ -120,7 +122,7 @@ void dfa_free_asyncdata(int data_handle)
 {
   if (data_handle < 0 || data_handle >= 64)
   {
-    debug_ctx("incorrect handle: %d", data_handle);
+    DEBUG_CTX("incorrect handle: %d", data_handle);
     return;
   }
 
@@ -133,7 +135,7 @@ void dfa_free_asyncdata(int data_handle)
   }
   pthread_mutex_unlock(&ov_mutex);
   if (!unused)
-    debug_ctx("already freed handle: %d", data_handle);
+    DEBUG_CTX("already freed handle: %d", data_handle);
 }
 
 bool dfa_read_async(void *handle, int asyncdata_handle, int offset, void *buf, int len)

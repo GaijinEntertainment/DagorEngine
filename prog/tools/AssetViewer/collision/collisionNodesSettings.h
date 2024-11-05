@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <libTools/math/kdop.h>
 #include <libTools/collision/exportCollisionNodeType.h>
 #include <util/dag_string.h>

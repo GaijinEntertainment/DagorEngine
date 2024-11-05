@@ -1,0 +1,57 @@
+include "ssss/ssss_transmittance_factor.dshl"
+include "clustered/lights_cb.dshl"
+
+buffer spot_lights_ssss_shadow_desc;
+
+macro INIT_SPOTLIGHTS_SSSS_TRANSMITTANCE_FACTOR(code)
+  if (use_ssss != off)
+  {
+    (code)
+    {
+      dynamic_light_shadows_smp@tex2d = dynamic_light_shadows; //TODO do we still need this?
+      spot_lights_ssss_shadow_desc@buf = spot_lights_ssss_shadow_desc hlsl {
+        #include <renderLights.hlsli>
+        StructuredBuffer<SpotlightShadowDescriptor> spot_lights_ssss_shadow_desc@buf;
+      }
+      dynamic_light_shadows_size@f2 = get_dimensions(dynamic_light_shadows, 0);
+    }
+    INIT_SSSS_TRANSMITTANCE_FACTOR_CALC(code)
+  }
+endmacro
+
+macro USE_SPOTLIGHTS_SSSS_TRANSMITTANCE_FACTOR(code)
+  if (use_ssss != off)
+  {
+    hlsl(code)
+    {
+      struct ShadowDescriptor
+      {
+        float2 decodeDepth;
+        float meterToUvAtZfar;
+        float4 uvMinMax;
+        float shadowRange;
+      };
+      float ssss_linearize_sample(float sample_depth, ShadowDescriptor desc)
+      {
+        return linearize_z(sample_depth, desc.decodeDepth);
+      }
+      float ssss_bias_scale(float linear_depth, ShadowDescriptor desc)
+      {
+        return linear_depth * desc.shadowRange;
+      }
+      float ssss_get_meter_to_uv(float linear_depth, ShadowDescriptor desc)
+      {
+        return desc.meterToUvAtZfar / linear_depth;
+      }
+      bool ssss_is_uv_valid(float2 uv, ShadowDescriptor desc)
+      {
+        return all(uv >= desc.uvMinMax.xy && uv < desc.uvMinMax.zw);
+      }
+    }
+    USE_SSSS_TRANSMITTANCE_FACTOR_CALC(code)
+  }
+endmacro
+
+macro ASSUME_NO_SSSS()
+  assume use_ssss = off;
+endmacro

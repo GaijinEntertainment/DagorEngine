@@ -1,6 +1,12 @@
 // this file is generated via daScript automatic C++ binder
 // all user modifications will be lost after this file is re-generated
 
+template <> struct cast_arg<_Lldiv_t> {
+	static __forceinline const _Lldiv_t & to ( Context & ctx, SimNode * node ) {
+		vec4f res = node->eval(ctx);
+		return * cast<_Lldiv_t *>::to(res);
+	}
+};
 template <> struct cast_arg<LLVMOpInfoSymbol1> {
 	static __forceinline const LLVMOpInfoSymbol1 & to ( Context & ctx, SimNode * node ) {
 		vec4f res = node->eval(ctx);

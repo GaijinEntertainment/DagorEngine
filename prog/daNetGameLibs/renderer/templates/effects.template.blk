@@ -1,0 +1,28 @@
+ground_effect{
+  _use:t="replicating"
+
+  _group{
+    _track:b=yes
+    ground_effect__fx_name:t="ground_sparkles_10m"
+    ground_effect__biome_group_name:t=""
+    ground_effect__grid_cell_size:r=1
+    ground_effect__grid_world_origin:p2=0, 0
+    ground_effect__vis_radius:r=10
+    ground_effect__biome_weight_for_active_thr:r=0.25
+    ground_effect__fx_radius:r=-1 // If <= 0 then fx_radius = grid_cell_size / 2.
+    ground_effect__rot_x:p2=0, 0
+    ground_effect__rot_y:p2=0, 0
+    ground_effect__rot_z:p2=0, 0
+    ground_effect__offset_x:p2=0, 0
+    ground_effect__offset_y:p2=0, 0
+    ground_effect__offset_z:p2=0, 0
+    ground_effect__scale_x:p2=1, 0
+    ground_effect__scale_y:p2=1, 0
+    ground_effect__scale_z:p2=1, 0
+    "ground_effect__biome_ids:array"{}
+  }
+
+  ground_effect__manager{
+    _tags:t="render"
+  }
+}

@@ -1,5 +1,0 @@
-
-
-for (local i = 0, a, b) {
-    println("ERROR loop 6")
-}

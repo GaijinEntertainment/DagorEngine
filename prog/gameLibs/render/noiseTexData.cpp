@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 // Generated using https://hal.archives-ouvertes.fr/hal-02150657/file/samplerCPP.zip
 namespace blue_noise_data
 {

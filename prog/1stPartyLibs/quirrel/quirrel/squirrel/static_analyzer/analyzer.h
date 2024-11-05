@@ -1,5 +1,4 @@
-#ifndef _ANALYSER_H_
-#define _ANALYSER_H_ 1
+#pragma once
 
 #include "../sqast.h"
 #include "../sqcompilationcontext.h"
@@ -23,5 +22,3 @@ public:
 };
 
 }
-
-#endif // _ANALYSER_H_

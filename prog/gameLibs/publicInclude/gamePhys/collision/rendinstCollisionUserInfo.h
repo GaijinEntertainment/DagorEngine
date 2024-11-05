@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -21,8 +20,8 @@ struct RendinstCollisionUserInfo : public PhysObjectUserData
 
     virtual ~RendinstImpulseThresholdData();
 
-    virtual float onImpulse(float impulse, const Point3 &dir, const Point3 &pos, float point_vel, int32_t user_data = -1,
-      gamephys::ImpulseLogFunc /*log_func*/ = nullptr) override;
+    virtual float onImpulse(float impulse, const Point3 &dir, const Point3 &pos, float point_vel, const Point3 & /*collision_normal*/,
+      uint32_t /*flags*/ = CIF_NONE, int32_t user_data = -1, gamephys::ImpulseLogFunc /*log_func*/ = nullptr) override;
     virtual float getDestructionImpulse() const override;
     virtual bool isRICollision() const override;
   };
@@ -30,6 +29,7 @@ struct RendinstCollisionUserInfo : public PhysObjectUserData
   struct TreeRendinstImpulseThresholdData : public CachedCollisionObjectInfo
   {
     Point3 finalImpulse;
+    Point3 finalPos;
     TMatrix invRiTm;
     float lastPointVel;
     float lastOmega;
@@ -40,8 +40,8 @@ struct RendinstCollisionUserInfo : public PhysObjectUserData
 
     virtual ~TreeRendinstImpulseThresholdData();
 
-    virtual float onImpulse(float impulse, const Point3 &dir, const Point3 &pos, float point_vel, int32_t user_data = -1,
-      gamephys::ImpulseLogFunc /*log_func*/ = nullptr) override;
+    virtual float onImpulse(float impulse, const Point3 &dir, const Point3 &pos, float point_vel, const Point3 & /*collision_normal*/,
+      uint32_t /*flags*/ = CIF_NONE, int32_t user_data = -1, gamephys::ImpulseLogFunc /*log_func*/ = nullptr) override;
     virtual float getDestructionImpulse() const override;
     virtual bool isTreeCollision() const override;
   };

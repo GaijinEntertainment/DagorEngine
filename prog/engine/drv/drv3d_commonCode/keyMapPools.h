@@ -1,7 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <EASTL/vector.h>
 #include <EASTL/type_traits.h>
 #include <EASTL/fixed_vector.h>
+#include <generic/dag_tab.h>
 
 
 __forceinline uint32_t hash32shiftmult(uint32_t key)
@@ -141,12 +144,10 @@ struct KeyMapHashed
     table[bucketNo].push_back(e);
   }
 
-  bool add(const KeyType &key, T &v)
+  void add(const KeyType &key, T &v)
   {
     G_ASSERT(!find(key));
-
     addNoCheck(key, v); // TODO check key duplication/allocation
-    return true;
   }
 };
 

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <rendInst/debugCollisionVisualization.h>
 #include <rendInst/rendInstCollision.h>
 #include <rendInst/rendInstAccess.h>
@@ -8,10 +10,14 @@
 #include <memory/dag_framemem.h>
 #include <perfMon/dag_statDrv.h>
 #include <math/dag_frustum.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
 #include <render/debug3dSolid.h>
 #include <gui/dag_stdGuiRender.h>
+#include <shaders/dag_postFxRenderer.h>
 
 #include <riGen/riGenExtra.h>
 #include <riGen/riGenData.h>
@@ -115,12 +121,12 @@ static void draw_collision_info(const rendinst::CollisionInfo &coll, const Point
         vec3f v_cell_mul = v_mul(rendinst::gen::VC_1div32767, v_make_vec4f(cellSz, crt.cellHeight, cellSz, 0));
         bool posInst = crt.rtData->riPosInst[coll.desc.pool] ? 1 : 0;
         bool palette_rotation = crt.rtData->riPaletteRotation[coll.desc.pool];
-        unsigned int stride = RIGEN_STRIDE_B(posInst, rgl->perInstDataDwords);
+        unsigned int stride = RIGEN_STRIDE_B(posInst, crt.rtData->riZeroInstSeeds[coll.desc.pool], rgl->perInstDataDwords);
 
         vec3f v_pos, v_scale;
         vec4i paletteId;
         rendinst::gen::unpack_tm_pos(v_pos, v_scale,
-          (int16_t *)(crt.sysMemData + crt.pools[coll.desc.pool].baseOfs + coll.desc.idx * stride), v_cell_add, v_cell_mul,
+          (int16_t *)(crt.sysMemData.get() + crt.pools[coll.desc.pool].baseOfs + coll.desc.idx * stride), v_cell_add, v_cell_mul,
           palette_rotation, &paletteId);
 
         bbox3f &box = crt.rtData->riResBb[coll.desc.pool];
@@ -196,7 +202,7 @@ static void get_ri_collision(int layer, mat44f_cref globtm, const Point3 &view_p
     for (int riIdx = 0; riIdx < crt.pools.size(); ++riIdx)
     {
       bool posInst = crt.rtData->riPosInst[riIdx] ? 1 : 0;
-      unsigned int stride = RIGEN_STRIDE_B(posInst, rgl->perInstDataDwords);
+      unsigned int stride = RIGEN_STRIDE_B(posInst, crt.rtData->riZeroInstSeeds[riIdx], rgl->perInstDataDwords);
 
       const bbox3f &box = crt.rtData->riResBb[riIdx];
       vec4f lbbc2 = v_add(box.bmax, box.bmin);
@@ -212,7 +218,8 @@ static void get_ri_collision(int layer, mat44f_cref globtm, const Point3 &view_p
         rendinst::RendInstDesc riDesc(i, j, riIdx, 0, layer);
 
         mat44f tm;
-        if (!riutil::get_rendinst_matrix(riDesc, rgl, (int16_t *)(crt.sysMemData + crt.pools[riIdx].baseOfs + j * stride), &cell, tm))
+        if (!riutil::get_rendinst_matrix(riDesc, rgl, (int16_t *)(crt.sysMemData.get() + crt.pools[riIdx].baseOfs + j * stride), &cell,
+              tm))
           continue;
 
         vec4f distVec = v_sub(tm.col3, curViewPos);
@@ -338,6 +345,9 @@ static void draw_collision_ui(const CollisionInfo &coll, mat44f_cref globtm, con
 
 static shaders::UniqueOverrideStateId debugOverride;
 static shaders::UniqueOverrideStateId debugWireOverride;
+static PostFxRenderer debugRiClearDepth;
+static PostFxRenderer debugRiClearDepthColor;
+static shaders::UniqueOverrideStateId debugRiClearDepthStateId;
 
 void drawDebugCollisions(DrawCollisionsFlags flags, mat44f_cref globtm, const Point3 &view_pos, bool reverse_depth,
   float max_coll_dist_sq, float max_label_dist_sq)
@@ -434,6 +444,18 @@ void drawDebugCollisions(DrawCollisionsFlags flags, mat44f_cref globtm, const Po
     debugWireOverride.reset(shaders::overrides::create(state));
   }
 
+  // Vulkan does not support clearview as a command, and inside of native renderpass, which is the main scene, it will split the
+  // pass with an error.
+  if (drawShaded && d3d::get_driver_code().is(d3d::vulkan) && (drawShadedAlone || drawShadedWithVis))
+  {
+    shaders::overrides::set(debugRiClearDepthStateId);
+    if (drawShadedAlone)
+      debugRiClearDepthColor.render();
+    else if (drawShadedWithVis)
+      debugRiClearDepth.render();
+    shaders::overrides::reset();
+  }
+
   // Using set_master_state to avoid "override already set" errors because draw_debug_solid_mesh also sets an override.
   shaders::overrides::set_master_state(shaders::overrides::get(debugOverride));
 
@@ -441,10 +463,13 @@ void drawDebugCollisions(DrawCollisionsFlags flags, mat44f_cref globtm, const Po
   {
     TIME_D3D_PROFILE(draw_collision_shaded)
 
-    if (drawShadedAlone)
-      d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, 0x00000000, 0, 0);
-    else if (drawShadedWithVis)
-      d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0x00000000, 0, 0);
+    if (!d3d::get_driver_code().is(d3d::vulkan))
+    {
+      if (drawShadedAlone)
+        d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, 0x00000000, 0, 0);
+      else if (drawShadedWithVis)
+        d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0x00000000, 0, 0);
+    }
 
     static const int debug_ri_face_orientationVarId = get_shader_variable_id("debug_ri_face_orientation", false);
     ShaderGlobal::set_int(debug_ri_face_orientationVarId, drawShadedFacingHighlight ? 1 : 0);
@@ -520,6 +545,26 @@ void close_debug_collision_visualization()
 #if DAGOR_DBGLEVEL > 0
   close_debug_solid();
 #endif
+  debugRiClearDepth.clear();
+  debugRiClearDepthColor.clear();
+  shaders::overrides::destroy(debugRiClearDepthStateId);
+}
+
+void init_debug_collision_visualization()
+{
+#if DAGOR_DBGLEVEL > 0
+  init_debug_solid();
+#endif
+  if (d3d::get_driver_code().is(d3d::vulkan))
+  {
+    debugRiClearDepth.init("debug_ri_clear_depth");
+    debugRiClearDepthColor.init("debug_ri_clear_depth_color");
+
+    shaders::OverrideState state;
+    state.set(shaders::OverrideState::Z_FUNC);
+    state.zFunc = CMPF_ALWAYS;
+    debugRiClearDepthStateId = shaders::overrides::create(state);
+  }
 }
 
 

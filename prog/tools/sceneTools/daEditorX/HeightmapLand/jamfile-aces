@@ -1,13 +1,12 @@
 Root    ?= ../../../../.. ;
 Location = prog/tools/sceneTools/daEditorX/HeightmapLand ;
-DriverLinkage = dynamic ;
+KernelLinkage ?= dynamic ;
 include $(Root)/prog/tools/tools_setup.jam ;
 UseQuirrel = sq3+ ;
 
 TargetType  = dll ;
 Target      = tools/sceneTools/daEditorX/heightmapLand-aces.dll ;
-OutDir      = $(Root)/tools/dagor3_cdk/bin/plugins/de3x ;
-if $(Platform) = win64 { OutDir = $(Root)/tools/dagor3_cdk/bin64/plugins/de3x ; }
+include $(Root)/prog/_jBuild/defaults.jam ;
 
 AddIncludes =
   $(Root)/prog/tools/sceneTools/daEditorX/include
@@ -17,6 +16,7 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude/squirrel
   $(Root)/prog/3rdPartyLibs/Recast/Include
   $(Root)/prog/3rdPartyLibs/Detour/Include
+  $(Root)/prog/3rdPartyLibs/arc/zstd-$(ZstdVer)
 ;
 
 Sources =
@@ -36,6 +36,7 @@ Sources =
   hmlModifiers.cpp
   hmlPanel.cpp
   hmlPlugin.cpp
+  navmeshAreasProcessing.cpp
   hmlExportSizeDlg.cpp
   hmlEditorEH.cpp
   hmlSplineTriangulation.cpp
@@ -49,6 +50,7 @@ Sources =
   hmlEntity.cpp
   hmlLight.cpp
   hmlHoleObject.cpp
+  hmlOutliner.cpp
   hmlSnow.cpp
   LandClassSlotsMgr.cpp
   entityCopyDlg.cpp
@@ -76,7 +78,6 @@ Sources =
 
 
 UseProgLibs =
-  tools/sceneTools/daEditorX/de3dllCore
   tools/libTools/assetMgr
   tools/libTools/delaunay
   tools/libTools/winGuiWrapper
@@ -100,15 +101,11 @@ UseProgLibs =
   gameLibs/pathFinder/customNav/stub
   gameLibs/recastTools
   gameLibs/covers
-;
-
-ImportProgLibs =
-  tools/libTools/daKernel
+  gameLibs/physMap
 ;
 
 
 CPPopt = -DUSE_HMAP_ACES=1 -DUSE_LMESH_ACES=1 ;
-LINKopt = -def:$(Root)/prog/tools/sceneTools/daEditorX/de3dllCore/de3_plugin.def ;
-
+include $(Root)/prog/tools/sceneTools/daEditorX/plugin_setup.jam ;
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "gatherVar.h"
 #include "semUtils.h"
 #include "globVarSem.h"
@@ -16,7 +18,7 @@
 #include "hash.h"
 
 #if _CROSS_TARGET_DX12
-#include <dxil/compiled_shader_header.h>
+#include <drv/shadersMetaData/dxil/compiled_shader_header.h>
 #endif
 
 using namespace ShaderParser;
@@ -193,10 +195,11 @@ ShVarBool GatherVarShaderEvalCB::addInterval(const char *intervalName, Terminal 
   }
 
   bool is_static = staticVars.getNameId(intervalName) != -1;
+  bool is_dynamic = dynamicVars.getNameId(intervalName) != -1;
 
   if (shc::getAssumedVarsBlock())
   {
-    bool is_global = !is_static && dynamicVars.getNameId(intervalName) == -1;
+    bool is_global = !is_static && !is_dynamic;
     float value = 0;
 
     if (shc::getAssumedValue(intervalName, shname_token->text, is_global, value))
@@ -228,6 +231,11 @@ ShVarBool GatherVarShaderEvalCB::addInterval(const char *intervalName, Terminal 
 
       return ShVarBool(bool_result, true);
     }
+  }
+
+  if (!is_static && !is_dynamic && ShaderGlobal::get_var_internal_index(VarMap::getVarId(intervalName)) == -1)
+  {
+    error(String(0, "Non-assumed interval '%s' doesn't have a corresponding var", intervalName), terminal);
   }
 
   // ok, found, adding variant flag
@@ -475,26 +483,26 @@ bool GatherVarShaderEvalCB::end_eval(CodeSourceBlocks &vs_blk, CodeSourceBlocks 
   return true;
 }
 
-void GatherVarShaderEvalCB::error(const char *msg, Terminal *t)
+void GatherVarShaderEvalCB::error(const char *msg, Symbol *s)
 {
-  if (t)
+  if (s)
   {
     eastl::string str = msg;
-    if (!t->macro_call_stack.empty())
+    if (!s->macro_call_stack.empty())
       str.append("\nCall stack:\n");
-    for (auto it = t->macro_call_stack.rbegin(); it != t->macro_call_stack.rend(); ++it)
+    for (auto it = s->macro_call_stack.rbegin(); it != s->macro_call_stack.rend(); ++it)
       str.append_sprintf("  %s()\n    %s(%i)\n", it->name, parser.get_lex_parser().get_filename(it->file), it->line);
-    parser.get_lex_parser().set_error(t->file_start, t->line_start, t->col_start, str.c_str());
+    parser.get_lex_parser().set_error(s->file_start, s->line_start, s->col_start, str.c_str());
   }
   else
     parser.get_lex_parser().set_error(msg);
 }
 
 
-void GatherVarShaderEvalCB::warning(const char *msg, Terminal *t)
+void GatherVarShaderEvalCB::warning(const char *msg, Symbol *s)
 {
-  G_ASSERT(t);
-  parser.get_lex_parser().set_warning(t->file_start, t->line_start, t->col_start, msg);
+  G_ASSERT(s);
+  parser.get_lex_parser().set_warning(s->file_start, s->line_start, s->col_start, msg);
 }
 
 int GatherVarShaderEvalCB::eval_if(bool_expr &e)
@@ -642,25 +650,28 @@ void GatherVarShaderEvalCB::eval(immediate_const_block &s)
 
 void GatherVarShaderEvalCB::eval_hlsl_decl(hlsl_local_decl_class &sh)
 {
+  if (!ShaderParser::validate_hardcoded_regs_in_hlsl_block(sh.text))
+    return;
+
   uint32_t hlsl_types = HLSL_ALL;
   if (sh.ident)
   {
     hlsl_types = 0;
-    if (strstr(sh.ident->text, "ps") != 0)
+    if (strcmp(sh.ident->text, "ps") == 0)
       hlsl_types |= HLSL_PS;
-    else if (strstr(sh.ident->text, "vs") != 0)
+    else if (strcmp(sh.ident->text, "vs") == 0)
       hlsl_types |= HLSL_VS;
-    else if (strstr(sh.ident->text, "cs") != 0)
+    else if (strcmp(sh.ident->text, "cs") == 0)
       hlsl_types |= HLSL_CS;
-    else if (strstr(sh.ident->text, "ds") != 0)
+    else if (strcmp(sh.ident->text, "ds") == 0)
       hlsl_types |= HLSL_DS;
-    else if (strstr(sh.ident->text, "hs") != 0)
+    else if (strcmp(sh.ident->text, "hs") == 0)
       hlsl_types |= HLSL_HS;
-    else if (strstr(sh.ident->text, "gs") != 0)
+    else if (strcmp(sh.ident->text, "gs") == 0)
       hlsl_types |= HLSL_GS;
-    else if (strstr(sh.ident->text, "ms") != 0)
+    else if (strcmp(sh.ident->text, "ms") == 0)
       hlsl_types |= HLSL_MS;
-    else if (strstr(sh.ident->text, "as") != 0)
+    else if (strcmp(sh.ident->text, "as") == 0)
       hlsl_types |= HLSL_AS;
     else
       error(String(0, "Unexpected scope %s", sh.ident->text), sh.ident);

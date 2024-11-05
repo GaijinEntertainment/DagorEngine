@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_interface.h>
 #include <de3_dataBlockIdHolder.h>
 #include <de3_objEntity.h>
@@ -17,7 +19,7 @@
 #include <gameRes/dag_stdGameRes.h>
 #include <gameRes/dag_collisionResource.h>
 #include <startup/dag_globalSettings.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
 #include <3d/dag_texIdSet.h>
@@ -71,6 +73,7 @@ public:
 
   void clear()
   {
+    noDynRender = false;
     del_it(sceneInstance);
 
     if (res)
@@ -691,7 +694,7 @@ void init_dynmodel_mgr_service(const DataBlock &app_blk)
 {
   if (!IDaEditor3Engine::get().checkVersion())
   {
-    debug_ctx("Incorrect version!");
+    DEBUG_CTX("Incorrect version!");
     return;
   }
 

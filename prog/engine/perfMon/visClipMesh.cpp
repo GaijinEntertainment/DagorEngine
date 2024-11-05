@@ -1,8 +1,18 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <perfMon/dag_visClipMesh.h>
 #include <debug/dag_debug3d.h>
 
 // #include <util/dag_console.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_shader.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_info.h>
 #include <3d/dag_render.h>
 #include <shaders/dag_shaderBlock.h>
 #include <gui/dag_stdGuiRender.h>
@@ -76,7 +86,7 @@ bool create_visclipmesh(CfgReader &cfg, bool for_game)
 
   vcm_vb = d3d::create_vb((MAX_VISCLIPMESH_FACETS * 6) * sizeof(VisClipMeshVertex), SBCF_DYNAMIC, __FILE__);
   d3d_err(vcm_vb);
-  vcm_ib = d3d::create_ib(MAX_VISCLIPMESH_FACETS * 3 * sizeof(uint16_t), SBCF_DYNAMIC);
+  vcm_ib = d3d::create_ib(MAX_VISCLIPMESH_FACETS * 3 * sizeof(uint16_t), SBCF_DYNAMIC, "visClipMesh_ib");
   d3d_err(vcm_ib);
 
   // vcm_consoleproc.demandInit();

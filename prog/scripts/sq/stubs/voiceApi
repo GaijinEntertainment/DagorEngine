@@ -8,4 +8,10 @@ return {
   enable_mic = @(val) assert(type(val)=="bool")
   enable_voice = @(val) assert(type(val)=="bool")
   set_callbacks = @(val) assert(type(val)=="table" || val==null)
+  join_room = @(_login, _token, _chan) false
+  leave_room = @(_chan) null
+  join_echo_room = @() false
+  leave_echo_room = @() null
+  mute_player_by_name = @(name) assert(type(name)=="string")
+  unmute_player_by_name = @(name) assert(type(name)=="string")
 }

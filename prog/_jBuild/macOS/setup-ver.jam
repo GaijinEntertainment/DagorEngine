@@ -1,0 +1,19 @@
+if ! [ GLOB $(_DEVTOOL)/mac/SDKs/MacOSX.platform/MacOSX$(MacOSXVer).sdk : * ] && $(Platform) = macOS {
+  local major_ver = 10 11 12 13 14 15 16 17 18 19 ;
+  local minor_ver = 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ;
+  local min_ver_passed = no ;
+  for v1 in $(major_ver) {
+    for v2 in $(minor_ver) {
+      if $(v1).$(v2) = $(MacOSXMinVer) { min_version_passed = yes ; }
+      if [ GLOB $(_DEVTOOL)/mac/SDKs/MacOSX.platform/MacOSX$(v1).$(v2).sdk : * ] {
+        if $(min_version_passed) != yes { MacOSXMinVer = $(v1).$(v2) ; }
+        echo MacOSX SDK $(MacOSXVer) not found, switching to $(v1).$(v2) with -mmacosx-version-min=$(MacOSXMinVer) ;
+        MacOSXVer = $(v1).$(v2) ;
+        break ;
+      }
+    }
+  }
+  if ! [ GLOB $(_DEVTOOL)/mac/SDKs/MacOSX.platform/MacOSX$(MacOSXVer).sdk : * ] && ! $(GLOBAL_BuildDevtool) {
+    Exit MacOSX SDK $(MacOSXVer) not found ;
+  }
+}

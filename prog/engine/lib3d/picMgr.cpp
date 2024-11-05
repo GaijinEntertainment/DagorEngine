@@ -1,7 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <3d/dag_picMgr.h>
 #include <3d/dag_dynAtlas.h>
 #include <3d/dag_createTex.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_info.h>
 #include <3d/dag_texPackMgr2.h>
 #include <shaders/dag_shaders.h>
 #include <image/dag_texPixel.h>
@@ -21,6 +26,7 @@
 #include <osApiWrappers/dag_threads.h>
 #include <osApiWrappers/dag_urlLike.h>
 #include <perfMon/dag_perfTimer.h>
+#include <perfMon/dag_statDrv.h>
 #include <util/dag_oaHashNameMap.h>
 #include <util/dag_fastIntList.h>
 #include <util/dag_texMetaData.h>
@@ -218,14 +224,7 @@ struct TexRec
   {
     return d->valid() ? Point2((d->u1 - d->u0) * size.x, (d->v1 - d->v0) * size.y) : Point2(d->w, d->h);
   }
-  TEXTUREID resolveTexId()
-  {
-    if (ad)
-      return texId;
-    const char *name = getName();
-    TEXTUREID tid = get_managed_texture_id(name);
-    return (tid != BAD_TEXTUREID) ? tid : add_managed_texture(name);
-  }
+  TEXTUREID resolveTexId() { return ad ? texId : add_managed_texture(getName()); }
 };
 
 static FixedBlockAllocator texRecAlloc(sizeof(TexRec), 1024);
@@ -330,10 +329,10 @@ protected:
         WinAutoLock lock(critSec);
         if (getTexRecIdx(picId) >= texRec.size() || texRec[getTexRecIdx(picId)].isFreeSlot())
         {
-          logerr_ctx("PM: finalizeJob(%08X) for already discarded rec, done_cb=%p name=%s", picId, (void *)done_cb, name);
+          LOGERR_CTX("PM: finalizeJob(%08X) for already discarded rec, done_cb=%p name=%s", picId, (void *)done_cb, name);
           if (!jobDone)
             interlocked_decrement(numJobsInFlight);
-          (*done_cb)(BAD_PICTUREID, BAD_TEXTUREID, NULL, NULL, NULL, done_arg);
+          (*done_cb)(BAD_PICTUREID, BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, NULL, NULL, NULL, done_arg);
           return;
         }
         outTexId = texRec[getTexRecIdx(picId)]->texId;
@@ -342,15 +341,16 @@ protected:
       }
 
       if (jobDone || reportErr == 101)
-        (*done_cb)(picId, outTexId, outTc0, outTc1, outSz, done_arg);
+        (*done_cb)(picId, outTexId, d3d::INVALID_SAMPLER_HANDLE, outTc0, outTc1, outSz, done_arg); // TODO: Use actual sampler IDs
       else
-        (*done_cb)(reportErr == 100 ? picId : BAD_PICTUREID, BAD_TEXTUREID, NULL, NULL, NULL, done_arg); // report abort/error
+        (*done_cb)(reportErr == 100 ? picId : BAD_PICTUREID, BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, NULL, NULL, NULL,
+          done_arg); // report abort/error
     }
 
     WinAutoLock lock(critSec);
     if (getTexRecIdx(picId) >= texRec.size() || texRec[getTexRecIdx(picId)].isFreeSlot())
     {
-      logerr_ctx("PM: finalizeJob(%08X) for already discarded rec, name=%s", picId, name);
+      LOGERR_CTX("PM: finalizeJob(%08X) for already discarded rec, name=%s", picId, name);
       if (!jobDone)
         interlocked_decrement(numJobsInFlight);
       return;
@@ -374,8 +374,6 @@ protected:
         debug("PM: async load aborted, name='%s', pic=%08X texId=0x%x", name, picId, outTexId);
         if (done_cb && tr.ad)
           tr.delRef();
-        else if (!tr.ad && tr.texId == BAD_TEXTUREID)
-          tr.size.set(tr.refCount, 1);
         break;
     }
   }
@@ -406,7 +404,7 @@ static int debugAsyncSleepMs = -1;
 static int asyncLoadJobMgr = -1;
 static bool asyncLoadJobMgrOwned = false;
 static bool doFatalOnPictureLoadFailed = false;
-static bool searchBlkBeforeTaBin = false;
+static bool searchBlkBeforeTaBin = true;
 static bool dynAtlasLazyAllocDef = false;
 static Texture *texTransp[AtlasData::FMT_none * 2] = {NULL};
 static TEXTUREID substOnePixelTexId = BAD_TEXTUREID;
@@ -519,6 +517,8 @@ inline const DynamicPicAtlas::ItemData *decodePicId(PICTUREID pid, int &tex_idx,
 
 static bool readAtlasDesc(const char *file_name, DataBlock &out_blk, String &out_tex_name)
 {
+  TIME_PROFILE(picmgr_readAtlasDesc);
+
   if (!dd_get_fname_ext(file_name) && strstr(file_name, "::"))
   {
     // parse file_name as dynamic atlas in form "name::<sz.x>:<sz.y>"
@@ -776,9 +776,9 @@ static void copy_hor_line(Texture *t, int x0, int y0, int len, int m, unsigned f
 #endif
   Texture *tt = texTransp[fmt * 2 + 1];
   for (; len > LINE_TEX_LEN; len -= LINE_TEX_LEN, x0 += LINE_TEX_LEN)
-    if (!t->updateSubRegion(tt, 0, 0, 0, 0, LINE_TEX_LEN, m, 1, 0, x0, y0, 0))
+    if (!t->updateSubRegionNoOrder(tt, 0, 0, 0, 0, LINE_TEX_LEN, m, 1, 0, x0, y0, 0))
       upd_ok = false;
-  if (!t->updateSubRegion(tt, 0, 0, 0, 0, len, m, 1, 0, x0, y0, 0))
+  if (!t->updateSubRegionNoOrder(tt, 0, 0, 0, 0, len, m, 1, 0, x0, y0, 0))
     upd_ok = false;
 #if DAGOR_DBGLEVEL > 0
   if (!upd_ok)
@@ -800,7 +800,7 @@ static void clear_discarded_cb(void *cb_arg, Texture *tex, const DynamicPicAtlas
 {
   AtlasData *ad = (AtlasData *)cb_arg;
   for (int y = d.y0, ye = y + d.h + margin; y < ye; y += margin)
-    copy_hor_line(tex, d.x0, y, d.w, margin, ad->fmt);
+    copy_hor_line(tex, d.x0, y, d.w, min(margin, ye - y), ad->fmt);
   if (ad->isRt)
     d3d::resource_barrier({tex, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 }
@@ -850,6 +850,8 @@ static const char *extract_pic_name(PICTUREID pid, uint8_t gen)
     return nameMap.getName(texRec[texIdx].rec->ad->picNameId[getPicRecIdx(pid)]);
   return nullptr;
 }
+#else
+static const char *extract_pic_name(PICTUREID, uint8_t) { return nullptr; }
 #endif
 static void retry_render_pic_with_factory_imm(void *arg)
 {
@@ -936,12 +938,13 @@ void PictureManager::init(const DataBlock *params)
   asyncLoadJobMgrOwned = false;
   debugAsyncSleepMs = params->getInt("debugAsyncSleep", -1);
   doFatalOnPictureLoadFailed = params->getBool("fatalOnPicLoadFailed", false);
-  searchBlkBeforeTaBin = params->getBool("searchBlkBeforeTaBin", false);
+  searchBlkBeforeTaBin = params->getBool("searchBlkBeforeTaBin", true);
   dynAtlasLazyAllocDef = params->getBool("dynAtlasLazyAllocDef", false);
 
   if (asyncLoadJobMgr == -1 && params->getBool("createAsyncLoadJobMgr", false))
   {
-    asyncLoadJobMgr = cpujobs::create_virtual_job_manager(384 << 10, WORKER_THREADS_AFFINITY_MASK, "PicMgr::asyncLoad");
+    size_t stackSize = (256 << 10) * (1 + sizeof(int) / sizeof(void *)); // More stack on 32 bit for avif load (dav1d)
+    asyncLoadJobMgr = cpujobs::create_virtual_job_manager(stackSize, WORKER_THREADS_AFFINITY_MASK, "PicMgr::asyncLoad");
     asyncLoadJobMgrOwned = true;
   }
   AsyncPicLoadJob::loadAllowed = true;
@@ -970,7 +973,7 @@ void PictureManager::prepare_to_release(bool final_term)
     cpujobs::remove_jobs_by_tag(asyncLoadJobMgr, _MAKE4C('PICM'));
     while (interlocked_acquire_load(AsyncPicLoadJob::numJobsInFlight))
     {
-      sleep_msec(10);
+      sleep_msec(1);
       perform_delayed_actions();
       cpujobs::release_done_jobs();
     }
@@ -1006,7 +1009,7 @@ void PictureManager::release()
     cpujobs::remove_jobs_by_tag(asyncLoadJobMgr, _MAKE4C('PICM'));
     while (interlocked_acquire_load(AsyncPicLoadJob::numJobsInFlight))
     {
-      sleep_msec(10);
+      sleep_msec(1);
       perform_delayed_actions();
       cpujobs::release_done_jobs();
     }
@@ -1069,8 +1072,8 @@ void PictureManager::before_d3d_reset()
   if (asyncLoadJobMgr >= 0 && interlocked_acquire_load(AsyncPicLoadJob::numJobsInFlight))
   {
     debug("PM: before d3d reset, wait for %d async jobs", interlocked_acquire_load(AsyncPicLoadJob::numJobsInFlight));
-    d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL);
-    d3d::driver_command(DRV3D_COMMAND_RELEASE_LOADING, (void *)1, NULL, NULL); // unlockWrite
+    d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);
+    d3d::driver_command(Drv3dCommand::RELEASE_LOADING, (void *)1); // unlockWrite
     cpujobs::remove_jobs_by_tag(asyncLoadJobMgr, _MAKE4C('PICM'));
     while (interlocked_acquire_load(AsyncPicLoadJob::numJobsInFlight))
     {
@@ -1083,8 +1086,8 @@ void PictureManager::before_d3d_reset()
         interlocked_release_store_ptr(pending_render_action, (DelayedAction *)nullptr);
       }
     }
-    d3d::driver_command(DRV3D_COMMAND_ACQUIRE_LOADING, (void *)1, NULL, NULL); // lockWrite
-    d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, NULL, NULL, NULL);
+    d3d::driver_command(Drv3dCommand::ACQUIRE_LOADING, (void *)1); // lockWrite
+    d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
   }
 }
 void PictureManager::after_d3d_reset()
@@ -1139,6 +1142,7 @@ bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id
     return true;
 
   WinAutoLock lock(critSec);
+  AsyncPicLoadJob *j = nullptr;
   int tex_name_id = -1;
   unsigned pic_hash = 0;
   const char *fn = decodeFileName(file_name, tex_name_id, pic_hash);
@@ -1204,8 +1208,8 @@ bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id
       out_pic_id = makePicId(tex_rec_idx, tr.ad->atlas.getItemIdx(d), true);
       out_tex_id = BAD_TEXTUREID;
 
-      AsyncPicLoadJob *j = new AsyncPicLoadJob(AsyncPicLoadJob::JT_picInAtlas, out_pic_id, tr.ad->makeAbsFn(fn), out_tc0, out_tc1,
-        out_sz, done_cb, cb_arg);
+      j = new AsyncPicLoadJob(AsyncPicLoadJob::JT_picInAtlas, out_pic_id, tr.ad->makeAbsFn(fn), out_tc0, out_tc1, out_sz, done_cb,
+        cb_arg);
       j->premulAlpha = tr.ad->premultiplyAlpha;
       tr.addRef();
       if (!done_cb || asyncLoadJobMgr < 0)
@@ -1216,10 +1220,6 @@ bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id
         return true;
       }
       j->skipAtlasPic = tr.ad->lazyAlloc;
-      G_VERIFY(cpujobs::add_job(asyncLoadJobMgr, j));
-      out_pic_id = BAD_PICTUREID;
-      acquire_managed_tex(out_tex_id = substOnePixelTexId);
-      return false;
     }
   }
   else
@@ -1252,7 +1252,10 @@ bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id
     }
 
     if (tr.refCount == -1)
-      tr.refCount = 1;
+    {
+      tr.refCount = 0;
+      tr.addPendingTexRef();
+    }
     TEXTUREID tex_id = tr.resolveTexId();
     bool add_quard_ref = get_managed_texture_refcount(tex_id) > 0 && D3dResManagerData::getD3dRes(tex_id);
     if (add_quard_ref) // texture is loaded, do sync
@@ -1269,8 +1272,7 @@ bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id
       done_cb = NULL;
     }
 
-    AsyncPicLoadJob *j =
-      new AsyncPicLoadJob(AsyncPicLoadJob::JT_texPic, out_pic_id, file_name, out_tc0, out_tc1, out_sz, done_cb, cb_arg);
+    j = new AsyncPicLoadJob(AsyncPicLoadJob::JT_texPic, out_pic_id, file_name, out_tc0, out_tc1, out_sz, done_cb, cb_arg);
     if (!done_cb || asyncLoadJobMgr < 0 || tr.texId != BAD_TEXTUREID)
     {
       lock.unlockFinal();
@@ -1281,11 +1283,13 @@ bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id
       return true;
     }
     G_ASSERT(!add_quard_ref);
-    G_VERIFY(cpujobs::add_job(asyncLoadJobMgr, j));
-    out_pic_id = BAD_PICTUREID;
-    acquire_managed_tex(out_tex_id = substOnePixelTexId);
-    return false;
   }
+
+  lock.unlockFinal();
+  G_VERIFY(cpujobs::add_job(asyncLoadJobMgr, j));
+  out_pic_id = BAD_PICTUREID;
+  acquire_managed_tex(out_tex_id = substOnePixelTexId);
+
   return false;
 }
 
@@ -1377,7 +1381,10 @@ void PictureManager::free_picture(PICTUREID pid)
 }
 bool PictureManager::discard_unused_picture(bool force_lock)
 {
-  if (EASTL_LIKELY(try_enter_critical_section(critSec)))
+  if (!inited)
+    return false;
+
+  if (DAGOR_LIKELY(try_enter_critical_section(critSec)))
     ;
   else if (!force_lock && !last_discard_skipped)
   {
@@ -1395,7 +1402,7 @@ bool PictureManager::discard_unused_picture(bool force_lock)
   last_discard_skipped = false;
 
   for_each_tex_rec([](TexRec &tr, int i) {
-    if (tr.refCount > 1 || (tr.ad && tr.ad->missingPicHash.size()))
+    if (tr.refCount > 1 || (tr.ad && tr.ad->missingPicHash.size()) || (!tr.ad && tr.texId == BAD_TEXTUREID && tr.size.y < 1))
       return;
     else
     {
@@ -1508,10 +1515,14 @@ bool PictureManager::TexRec::initAtlas()
   if (ad)
     return true;
 
+  TIME_PROFILE(picmgr_initAtlas);
+
   ad = new AtlasData;
   refCount = 0;
 
   const char *file_name = nameMap.getName(nameId);
+  DA_PROFILE_TAG(picmgr_initAtlas, file_name);
+
   String validTexName;
   if (!readAtlasDesc(file_name, ad->blk, validTexName))
     return false;
@@ -1586,7 +1597,7 @@ bool PictureManager::TexRec::initAtlas()
     G_ASSERT(!bc_format || ad->atlas.getMargin() == margin);
     G_ASSERT(!bc_format || ad->atlas.getCornerResvSz() == 4);
     G_ASSERT(!bc_format || ad->atlas.getMarginLtOfs() == 0);
-    texId = ad->atlas.tex.getId();
+    texId = ad->atlas.tex.first.getId();
     if (ad->maxAllowedPicSz.x > sz.x - ad->atlas.getMargin())
       ad->maxAllowedPicSz.x = sz.x - ad->atlas.getMargin();
     if (ad->maxAllowedPicSz.y > sz.y - ad->atlas.getMargin())
@@ -1598,9 +1609,9 @@ bool PictureManager::TexRec::initAtlas()
       ad->premultiplyAlpha ? "premul.alpha" : "non-premul.alpha", ad->lazyAlloc ? "[lazy alloc]" : "[regular]");
 
     init_transp_tex(ad->fmt);
-    copy_hor_line(ad->atlas.tex.getTex2D(), 0, 0, ad->atlas.getCornerResvSz(), ad->atlas.getCornerResvSz(), ad->fmt);
+    copy_hor_line(ad->atlas.tex.first.getTex2D(), 0, 0, ad->atlas.getCornerResvSz(), ad->atlas.getCornerResvSz(), ad->fmt);
     if (ad->isRt)
-      d3d::resource_barrier({ad->atlas.tex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+      d3d::resource_barrier({ad->atlas.tex.first.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     ad->atlas.copy_left_top_margin_cb = copy_left_top_margin_cb;
     ad->atlas.copy_left_top_margin_cb_arg = ad;
 #if DAGOR_DBGLEVEL > 0
@@ -1724,13 +1735,13 @@ bool PictureManager::TexRec::reinitDynAtlas()
   size.set(sz.x, sz.y);
   ad->atlas.init(sz, 0, ad->atlas.getMargin(), nullptr, tex_fmt);
 
-  BaseTexture *old_tex = ad->atlas.tex.getTex();
+  BaseTexture *old_tex = ad->atlas.tex.first.getTex();
   BaseTexture *new_tex = d3d::create_tex(NULL, sz.x, sz.y, tex_fmt, 1, texBlk.getStr("name", NULL));
-  change_managed_texture(ad->atlas.tex.getId(), new_tex);
-  ad->atlas.tex.setRaw(new_tex, ad->atlas.tex.getId());
+  change_managed_texture(ad->atlas.tex.first.getId(), new_tex);
+  ad->atlas.tex.first.setRaw(new_tex, ad->atlas.tex.first.getId());
   del_d3dres(old_tex);
   if (ad->isRt)
-    d3d::resource_barrier({ad->atlas.tex.getTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    d3d::resource_barrier({ad->atlas.tex.first.getTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
   if (ad->maxAllowedPicSz.x > sz.x - ad->atlas.getMargin())
     ad->maxAllowedPicSz.x = sz.x - ad->atlas.getMargin();
@@ -1863,8 +1874,8 @@ void PictureManager::AsyncPicLoadJob::loadPicInAtlas()
       d->dx = DynamicPicAtlas::ItemData::ST_restoring;
 
       uint8_t gen = texRecGen[tex_idx];
-      PictureRenderContext ctx(prf, tr.ad->atlas.tex.getTex2D(), d->x0, d->y0, ti.w, ti.h, *rendPicProps.getBlockByNameEx("render"),
-        picId, gen);
+      PictureRenderContext ctx(prf, tr.ad->atlas.tex.first.getTex2D(), d->x0, d->y0, ti.w, ti.h,
+        *rendPicProps.getBlockByNameEx("render"), picId, gen);
       render_pic_with_factory(ctx, &lock);
       //< atlas data may be reallocated during unlock/lock in previous render_pic_with_factory() call
       d = const_cast<DynamicPicAtlas::ItemData *>(decodePicId(picId, tex_idx, /*update_lru*/ false, &gen));
@@ -1880,23 +1891,23 @@ void PictureManager::AsyncPicLoadJob::loadPicInAtlas()
     }
     else
     {
-      bool upd_ok = tr.ad->atlas.tex.getTex2D()->updateSubRegion(pic_tex.get(), 0, 0, 0, 0, ti.w, ti.h, 1, 0, d->x0, d->y0, 0);
+      bool upd_ok = tr.ad->atlas.tex.first.getTex2D()->updateSubRegion(pic_tex.get(), 0, 0, 0, 0, ti.w, ti.h, 1, 0, d->x0, d->y0, 0);
 #if DAGOR_DBGLEVEL > 0
       if (!upd_ok)
         logerr("PM: failed to copy pic '%s' %dx%d to atlas '%s' at (%d,%d)", name, ti.w, ti.h, tr.getName(), d->x0, d->y0);
 #endif
       G_UNUSED(upd_ok);
       if (tr.ad->isRt)
-        d3d::resource_barrier({tr.ad->atlas.tex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+        d3d::resource_barrier({tr.ad->atlas.tex.first.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     }
     if (int margin = tr.ad->atlas.getMargin())
     {
-      copy_vert_line(tr.ad->atlas.tex.getTex2D(), d->x0 - margin, d->y0 - margin, d->h + 2 * margin, margin, tr.ad->fmt);
-      copy_vert_line(tr.ad->atlas.tex.getTex2D(), d->x0 + d->w, d->y0 - margin, d->h + 2 * margin, margin, tr.ad->fmt);
-      copy_hor_line(tr.ad->atlas.tex.getTex2D(), d->x0, d->y0 - margin, d->w, margin, tr.ad->fmt);
-      copy_hor_line(tr.ad->atlas.tex.getTex2D(), d->x0, d->y0 + d->h, d->w, margin, tr.ad->fmt);
+      copy_vert_line(tr.ad->atlas.tex.first.getTex2D(), d->x0 - margin, d->y0 - margin, d->h + 2 * margin, margin, tr.ad->fmt);
+      copy_vert_line(tr.ad->atlas.tex.first.getTex2D(), d->x0 + d->w, d->y0 - margin, d->h + 2 * margin, margin, tr.ad->fmt);
+      copy_hor_line(tr.ad->atlas.tex.first.getTex2D(), d->x0, d->y0 - margin, d->w, margin, tr.ad->fmt);
+      copy_hor_line(tr.ad->atlas.tex.first.getTex2D(), d->x0, d->y0 + d->h, d->w, margin, tr.ad->fmt);
       if (tr.ad->isRt)
-        d3d::resource_barrier({tr.ad->atlas.tex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+        d3d::resource_barrier({tr.ad->atlas.tex.first.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     }
     if (char *p = strstr(name, "@@"))
       if (strchr("hvs", p[2]) && p[3] == 's')
@@ -1948,10 +1959,31 @@ void PictureManager::AsyncPicLoadJob::loadTexPic()
     else
     {
       // load actual data for textures from DxP
-      if (is_managed_textures_streaming_load_on_demand())
-        prefetch_and_wait_managed_textures_loaded(make_span_const(&outTexId, 1), false);
-      else
+      if (!is_managed_textures_streaming_load_on_demand())
         ddsx::tex_pack2_perform_delayed_data_loading();
+
+      const int64_t reft = ref_time_ticks();
+      const unsigned f = dagor_frame_no();
+      int max_frame_dur_usec = 100000; // 100 ms
+#if DAGOR_THREAD_SANITIZER
+      max_frame_dur_usec *= 10;
+#endif
+      while (!prefetch_and_check_managed_textures_loaded(make_span_const(&outTexId, 1), false))
+      {
+        sleep_msec(2);
+        if (dagor_frame_no() < f + 2 && get_time_usec(reft) > max_frame_dur_usec * 2)
+        {
+          logwarn("%s: timeout=%d usec passed, waiting for 1 tex, frame=%d (started at %d)\n"
+                  "tex(%s) id=0x%x refc=%d loaded=%d ldLev=%d (maxReqLev=%d lfu=%d, curQL=%d)",
+            __FUNCTION__, get_time_usec(reft), dagor_frame_no(), f, get_managed_texture_name(outTexId), outTexId,
+            get_managed_texture_refcount(outTexId), check_managed_texture_loaded(outTexId, false),
+            get_managed_res_loaded_lev(outTexId), get_managed_res_maxreq_lev(outTexId), get_managed_res_lfu(outTexId),
+            get_managed_res_cur_tql(outTexId));
+
+          reportErr = 101;
+          break; // cannot load texture now, dead-lock is detected, will try next time
+        }
+      }
     }
   }
 
@@ -2010,7 +2042,8 @@ void PictureManager::AsyncPicLoadJob::loadTexPic()
   if (int add_texref = tr.getPendingTexRef()) // get this before trashing tr.size.x where counter is stored
   {
     PICMGR_DEBUG("PM: loaded(%s) add %d pending references for texId=%d", name, add_texref, outTexId);
-    for (int i = 0; i < add_texref; i++)
+    interlocked_increment(tr.refCount); // convert one pending ref (added in PictureManager::get_picture_ex) to real ref
+    for (int i = 1; i < add_texref; i++)
       acquire_managed_tex(outTexId);
   }
 

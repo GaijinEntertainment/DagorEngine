@@ -7,33 +7,33 @@ hlsl(ps) {
 float4 gui_text_depth = (1, 1, 0, 0);
 
 float gui_cockpit_depth = 10;
+texture tex;
+float4 viewportRect;
+
+int transparent = 0;
+interval transparent: transOff < 1, transOn < 2, transNonpremultiplied < 3, transAdditive;
+
+int hasTexture = 0;
+interval hasTexture: texOff < 1, texOn < 2, texFontL8 < 3, texFontL8v;
+
+int fontFxType = 0;
+interval fontFxType: no < 1, shadow < 2, glow < 3, outline < 4, undefined;
+float fontFxScale = 0;
+interval fontFxScale: sharp < 0.01, smooth < 1.3, extraSmooth;
+float4 fontFxOfs;
+float4 fontFxColor;
+
+texture fontTex2;
+float4 fontTex2ofs;
+float4 fontTex2rotCCSmS = (1, 1, 0, 0);
 
 shader gui_default
 {
   // declaring vars
-  dynamic texture tex;
-  dynamic float4 viewportRect;
-  
-  dynamic int transparent = 0;
-  interval transparent: transOff < 1, transOn < 2, transNonpremultiplied < 3, transAdditive;
-
-  dynamic int hasTexture = 0;
-  interval hasTexture: texOff < 1, texOn < 2, texFontL8 < 3, texFontL8v;
-
-  dynamic int fontFxType = 0;
-  interval fontFxType: no < 1, shadow < 2, glow < 3, outline < 4, undefined;
-  dynamic float fontFxScale = 0;
-  interval fontFxScale: sharp < 0.01, smooth < 1.3, extraSmooth;
-  dynamic float4 fontFxOfs;
-  dynamic float4 fontFxColor;
-
-  dynamic texture fontTex2;
-  dynamic float4 fontTex2ofs;
-  dynamic float4 fontTex2rotCCSmS = (1, 1, 0, 0);
 
   if (fontFxType == undefined) { dont_render; }
 
-  // setup constants 
+  // setup constants
   cull_mode = none;
   z_write = false;
   z_test = false;
@@ -43,11 +43,6 @@ shader gui_default
   {
     viewport@f4 = viewportRect;
     gui_text_depth@f2 = (gui_text_depth);//(gui_text_depth.r, gui_text_depth.g, gui_cockpit_depth, 0, 0);
-  }
-  hlsl {
-    #define OGL_SCREEN_POSITION 
-    #define OGL_SET_SCREEN_POSITION(OUT, OUTpos) 
-    #define OGL_DEPTH_TEST(VSOUT)
   }
 
   if (hasTexture >= texFontL8)
@@ -125,7 +120,6 @@ shader gui_default
     {
       VS_OUT_POSITION(pos)
       float4 col: TEXCOORD0;
-      OGL_SCREEN_POSITION
     ##if hasTexture != texOff
       float2 tc:TEXCOORD1;
     ##endif
@@ -193,7 +187,6 @@ shader gui_default
       float2 otc = fpos.xy + fontTex2ofs.zw;
       o.f2_tc = (otc.xy*fontTex2rotCCSmS.xy + otc.yx*fontTex2rotCCSmS.zw) * fontTex2ofs.xy;
     ##endif
-      OGL_SET_SCREEN_POSITION(o, o.pos)
       return o;
     }
   }
@@ -206,7 +199,6 @@ shader gui_default
 
       float4 gui_default_ps_1(VsOutput input) : SV_Target
       {
-        OGL_DEPTH_TEST(input)
         fixed4 result = fx4tex2D(tex, input.tc) * input.col;
         clip_alpha(result.a);
         return result;
@@ -221,7 +213,6 @@ shader gui_default
     ##if fontFxType == no
       float4 font_draw_ps(VsOutput v): SV_Target
       {
-        OGL_DEPTH_TEST(v)
         fixed font_alpha = fx4tex2D(font,v.tc).r;
         fixed gamma_font = pow(font_alpha, 1./INTERNAL_FONT_GAMMA);
       ##if fontTex2 != NULL
@@ -248,7 +239,7 @@ shader gui_default
            return outside;
         return inside;
 ##else
-        #if SHADER_COMPILER_HLSL2021
+        #if __HLSL_VERSION >= 2021
           bool isInside = all(select(bool4(tc_xyxy > box_ltrb), float4(1, 1, 0, 0), float4(0, 0, 1, 1)));
         #else
           bool isInside = all(bool4(tc_xyxy > box_ltrb) ? half4(1,1,0,0) : half4(0,0,1,1));
@@ -261,7 +252,6 @@ shader gui_default
         float4 font_draw_ps(VsOutput v /*HW_USE_SCREEN_POS*/): SV_Target
         {
           // float4 screenpos = GET_SCREEN_POS(v.pos);
-          OGL_DEPTH_TEST(v)
 
           half l_font = select(v.tc.xyxy, v.tc2, fx4tex2D(font,v.tc).r, 0);
           half l_shadow = 0.0;
@@ -304,7 +294,6 @@ shader gui_default
       ##else
         float4 font_draw_ps(VsOutput v): SV_Target
         {
-          OGL_DEPTH_TEST(v)
         half l_font = select(v.tc.xyxy, v.tc2, h4tex2D(font, v.tc).r, 0);
         ##if hasTexture == texFontL8v
           if (l_font < 0.5)

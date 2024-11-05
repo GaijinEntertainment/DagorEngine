@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dataBlockUtils/blkIterator.h>
 
 #include <ioSys/dag_dataBlock.h>
@@ -5,23 +7,23 @@
 
 DataBlockIterator &DataBlockIterator::operator--()
 {
-  G_ASSERT(index > 0);
-  --index;
+  if (index > 0)
+    --index;
   return *this;
 }
 
 DataBlockIterator &DataBlockIterator::operator++()
 {
-  G_ASSERT(index < dataBlock.blockCount());
-  ++index;
+  if (index < dataBlock.blockCount())
+    ++index;
   return *this;
 }
 
 const DataBlock &DataBlockIterator::operator*() const
 {
-  G_ASSERT(index < dataBlock.blockCount());
-
-  return *dataBlock.getBlock(index);
+  static DataBlock stub;
+  const DataBlock *blk = index < dataBlock.blockCount() ? dataBlock.getBlock(index) : nullptr;
+  return blk ? *blk : stub;
 }
 
 bool DataBlockIterator::operator==(const DataBlockIterator &other) const { return index == other.index; }

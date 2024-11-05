@@ -1,0 +1,19 @@
+ssss{
+  _singleton:b=yes
+  _tags:t="render"
+  "ssss__horizontal_node:dabfg::NodeHandle"{}
+  "ssss__vertical_node:dabfg::NodeHandle"{}
+  _group{
+    _track:b=yes
+    transmittance__thickness_bias:r=0.015
+    transmittance__thickness_min:r=0.001
+    transmittance__thickness_scale:r=130
+    transmittance__translucency_scale:r=0.81
+    transmittance__blur_scale:r=0.01
+    transmittance__sample_count:i=3
+    transmittance__normal_offset:r=0.015
+    reflectance__blur_width:r=0.002
+    reflectance__blur_quality:i=1
+    reflectance__blur_follow_surface:b=yes
+  }
+}

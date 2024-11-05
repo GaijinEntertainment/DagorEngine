@@ -1,8 +1,7 @@
-#ifndef __GAIJIN_DAGORED_COLLISION_PANEL_H__
-#define __GAIJIN_DAGORED_COLLISION_PANEL_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <propPanel2/comWnd/panel_window.h>
+#include <propPanel/control/panelWindow.h>
 
 enum
 {
@@ -14,7 +13,7 @@ struct TpsPhysmatInfo;
 struct CollisionBuildSettings;
 struct E3DCOLOR;
 
-class CollisionPropPanelClient : public ControlEventHandler
+class CollisionPropPanelClient : public PropPanel::ControlEventHandler
 {
 public:
   CollisionPropPanelClient(ClippingPlugin *_plg, CollisionBuildSettings &_stg, int &phys_eng_type);
@@ -23,22 +22,20 @@ public:
 
   bool isVisible() { return (mPanelWindow) ? true : false; }
 
-  void setPanelWindow(CPanelWindow *panel) { mPanelWindow = panel; }
-  CPanelWindow *getPanelWindow() const { return mPanelWindow; }
+  void setPanelWindow(PropPanel::PanelWindowPropertyControl *panel) { mPanelWindow = panel; }
+  PropPanel::PanelWindowPropertyControl *getPanelWindow() const { return mPanelWindow; }
 
 private:
-  CPanelWindow *mPanelWindow;
+  PropPanel::PanelWindowPropertyControl *mPanelWindow;
   ClippingPlugin *plugin;
   CollisionBuildSettings &stg;
   int &curPhysEngType;
 
   // ControlEventHandler
 
-  virtual void onChange(int pcb_id, PropPanel2 *panel);
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
 
   void setCollisionParams();
   virtual void fillPanel();
   void changeColor(int ind, E3DCOLOR new_color);
 };
-
-#endif

@@ -1,0 +1,19 @@
+include "../../../../prog/gameLibs/render/denoiser/shaders/build.blk"
+include "../../../../prog/gameLibs/render/rtsm/shaders/build.blk"
+include "../../../../prog/gameLibs/render/rtr/shaders/build.blk"
+
+"@override:source"
+{
+  file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_debug.dshl"
+  file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_hwinstance_copy.dshl"
+  file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_dynrend_indices.dshl"
+  file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_impostor_vertices.dshl"
+  file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_bake_texture_to_vertices.dshl"
+  file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_tree_vertices.dshl"
+}
+
+"@override:Compile" {
+  "@override:assume_vars" {
+    "@delete:rtsm_denoised_tex":i=0
+  }
+}

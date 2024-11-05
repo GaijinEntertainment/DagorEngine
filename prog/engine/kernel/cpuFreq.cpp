@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <perfMon/dag_cpuFreq.h>
 #include <supp/_platform.h>
 #include <debug/dag_assert.h>

@@ -1,3 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 // Scintilla source code edit control
 /** @file Scintilla.h
  ** Interface to the edit control.

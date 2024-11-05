@@ -1,18 +1,20 @@
-#include "device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-using namespace drv3d_dx12;
+#include "device.h"
 
 namespace
 {
 bool is_dred_avilable()
 {
-  auto enablement = get_application_DRED_enablement_from_registry();
+  auto enablement = drv3d_dx12::get_application_DRED_enablement_from_registry();
   return D3D12_DRED_ENABLEMENT_FORCED_ON == enablement;
 }
 } // namespace
 
-bool debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::try_load(const Configuration &config,
-  const Direct3D12Enviroment &d3d_env)
+namespace drv3d_dx12::debug::gpu_postmortem::microsoft
+{
+
+bool DeviceRemovedExtendedData::try_load(const Configuration &config, const Direct3D12Enviroment &d3d_env)
 {
   if (!config.enableDRED)
   {
@@ -58,8 +60,7 @@ bool debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::try_load(const
   return true;
 }
 
-void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::walkBreadcumbs(ID3D12DeviceRemovedExtendedData *dred,
-  call_stack::Reporter &reporter)
+void DeviceRemovedExtendedData::walkBreadcumbs(ID3D12DeviceRemovedExtendedData *dred, call_stack::Reporter &reporter)
 {
   logdbg("DX12: Acquiring breadcrumb information from DRED...");
   D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT breacrumbInfo = {};
@@ -71,8 +72,7 @@ void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::walkBreadcumbs
   walkBreadcumbs(breacrumbInfo.pHeadAutoBreadcrumbNode, reporter);
 }
 
-void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::walkBreadcumbs(const D3D12_AUTO_BREADCRUMB_NODE *node,
-  call_stack::Reporter &reporter)
+void DeviceRemovedExtendedData::walkBreadcumbs(const D3D12_AUTO_BREADCRUMB_NODE *node, call_stack::Reporter &reporter)
 {
   if (!node)
   {
@@ -141,102 +141,98 @@ void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::walkBreadcumbs
   }
 }
 
-void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::configure() {}
+void DeviceRemovedExtendedData::configure() {}
 
-void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::beginCommandBuffer(ID3D12Device *, ID3D12GraphicsCommandList *cmd)
+void DeviceRemovedExtendedData::beginCommandBuffer(ID3D12Device *, ID3D12GraphicsCommandList *cmd)
 {
   commandListTable.beginList(cmd).beginTrace();
 }
 
-void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::endCommandBuffer(ID3D12GraphicsCommandList *cmd)
+void DeviceRemovedExtendedData::endCommandBuffer(ID3D12GraphicsCommandList *cmd)
 {
   commandListTable.getList(cmd).endTrace();
   commandListTable.endList(cmd);
 }
 
-void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::beginEvent(ID3D12GraphicsCommandList *cmd,
-  eastl::span<const char> text, eastl::span<const char> full_path)
+void DeviceRemovedExtendedData::beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text,
+  const eastl::string &full_path)
 {
   commandListTable.getList(cmd).beginEvent({}, text, full_path);
 }
 
-void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::endEvent(ID3D12GraphicsCommandList *cmd,
-  eastl::span<const char> full_path)
+void DeviceRemovedExtendedData::endEvent(ID3D12GraphicsCommandList *cmd, const eastl::string &full_path)
 {
   commandListTable.getList(cmd).endEvent({}, full_path);
 }
 
-void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text)
+void DeviceRemovedExtendedData::marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text)
 {
   commandListTable.getList(cmd).marker({}, text);
 }
 
-void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::draw(const call_stack::CommandData &debug_info,
-  D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base,
-  PipelineVariant &pipeline, uint32_t count, uint32_t instance_count, uint32_t start, uint32_t first_instance,
-  D3D12_PRIMITIVE_TOPOLOGY topology)
+void DeviceRemovedExtendedData::draw(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+  uint32_t count, uint32_t instance_count, uint32_t start, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
 {
   commandListTable.getList(cmd).draw({}, debug_info, vs, ps, pipeline_base, pipeline, count, instance_count, start, first_instance,
     topology);
 }
 
-void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::drawIndexed(const call_stack::CommandData &debug_info,
-  D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base,
-  PipelineVariant &pipeline, uint32_t count, uint32_t instance_count, uint32_t index_start, int32_t vertex_base,
-  uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
+void DeviceRemovedExtendedData::drawIndexed(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+  uint32_t count, uint32_t instance_count, uint32_t index_start, int32_t vertex_base, uint32_t first_instance,
+  D3D12_PRIMITIVE_TOPOLOGY topology)
 {
   commandListTable.getList(cmd).drawIndexed({}, debug_info, vs, ps, pipeline_base, pipeline, count, instance_count, index_start,
     vertex_base, first_instance, topology);
 }
 
-void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::drawIndirect(const call_stack::CommandData &debug_info,
-  D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base,
-  PipelineVariant &pipeline, BufferResourceReferenceAndOffset buffer)
+void DeviceRemovedExtendedData::drawIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+  BufferResourceReferenceAndOffset buffer)
 {
   commandListTable.getList(cmd).drawIndirect({}, debug_info, vs, ps, pipeline_base, pipeline, buffer);
 }
 
-void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::drawIndexedIndirect(const call_stack::CommandData &debug_info,
-  D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base,
-  PipelineVariant &pipeline, BufferResourceReferenceAndOffset buffer)
+void DeviceRemovedExtendedData::drawIndexedIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+  BufferResourceReferenceAndOffset buffer)
 {
   commandListTable.getList(cmd).drawIndexedIndirect({}, debug_info, vs, ps, pipeline_base, pipeline, buffer);
 }
 
-void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::dispatchIndirect(const call_stack::CommandData &debug_info,
-  D3DGraphicsCommandList *cmd, const PipelineStageStateBase &state, ComputePipeline &pipeline, BufferResourceReferenceAndOffset buffer)
+void DeviceRemovedExtendedData::dispatchIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+  const PipelineStageStateBase &state, ComputePipeline &pipeline, BufferResourceReferenceAndOffset buffer)
 {
   commandListTable.getList(cmd).dispatchIndirect({}, debug_info, state, pipeline, buffer);
 }
 
-void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::dispatch(const call_stack::CommandData &debug_info,
-  D3DGraphicsCommandList *cmd, const PipelineStageStateBase &stage, ComputePipeline &pipeline, uint32_t x, uint32_t y, uint32_t z)
+void DeviceRemovedExtendedData::dispatch(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+  const PipelineStageStateBase &stage, ComputePipeline &pipeline, uint32_t x, uint32_t y, uint32_t z)
 {
   commandListTable.getList(cmd).dispatch({}, debug_info, stage, pipeline, x, y, z);
 }
 
-void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::dispatchMesh(const call_stack::CommandData &debug_info,
-  D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base,
-  PipelineVariant &pipeline, uint32_t x, uint32_t y, uint32_t z)
+void DeviceRemovedExtendedData::dispatchMesh(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+  uint32_t x, uint32_t y, uint32_t z)
 {
   commandListTable.getList(cmd).dispatchMesh({}, debug_info, vs, ps, pipeline_base, pipeline, x, y, z);
 }
 
-void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::dispatchMeshIndirect(const call_stack::CommandData &debug_info,
-  D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base,
-  PipelineVariant &pipeline, BufferResourceReferenceAndOffset args, BufferResourceReferenceAndOffset count, uint32_t max_count)
+void DeviceRemovedExtendedData::dispatchMeshIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+  BufferResourceReferenceAndOffset args, BufferResourceReferenceAndOffset count, uint32_t max_count)
 {
   commandListTable.getList(cmd).dispatchMeshIndirect({}, debug_info, vs, ps, pipeline_base, pipeline, args, count, max_count);
 }
 
-void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::blit(const call_stack::CommandData &debug_info,
-  D3DGraphicsCommandList *cmd)
+void DeviceRemovedExtendedData::blit(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd)
 {
   commandListTable.getList(cmd).blit({}, debug_info);
 }
 
-void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::onDeviceRemoved(D3DDevice *device, HRESULT reason,
-  call_stack::Reporter &reporter)
+void DeviceRemovedExtendedData::onDeviceRemoved(D3DDevice *device, HRESULT reason, call_stack::Reporter &reporter)
 {
   if (DXGI_ERROR_INVALID_CALL == reason)
   {
@@ -255,15 +251,9 @@ void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::onDeviceRemove
   report_page_fault(dred.Get());
 }
 
-bool debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::sendGPUCrashDump(const char *, const void *, uintptr_t)
-{
-  return false;
-}
+bool DeviceRemovedExtendedData::sendGPUCrashDump(const char *, const void *, uintptr_t) { return false; }
 
-void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::onDeviceShutdown() { commandListTable.reset(); }
+void DeviceRemovedExtendedData::onDeviceShutdown() { commandListTable.reset(); }
 
-bool debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::onDeviceSetup(ID3D12Device *, const Configuration &,
-  const Direct3D12Enviroment &)
-{
-  return true;
-}
+bool DeviceRemovedExtendedData::onDeviceSetup(ID3D12Device *, const Configuration &, const Direct3D12Enviroment &) { return true; }
+} // namespace drv3d_dx12::debug::gpu_postmortem::microsoft

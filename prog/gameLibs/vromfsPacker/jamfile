@@ -9,7 +9,7 @@ Target      = gameLibs/vromfsPacker.lib ;
 
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
-  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/tools/sharedInclude # FIXME_BROKEN_DEP
 ;
 
 if $(UseSystemOpenSSL) != yes {
@@ -30,6 +30,6 @@ UseProgLibs +=
 ;
 
 CPPopt = ;
-if $(Platform) in macosx || $(PlatformSpec) = clang { CPPopt += -Wno-deprecated-declarations ; }
+if $(Platform) in macOS || $(PlatformSpec) = clang { CPPopt += -Wno-deprecated-declarations ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

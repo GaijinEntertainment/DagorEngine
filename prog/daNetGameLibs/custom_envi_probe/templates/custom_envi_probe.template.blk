@@ -1,0 +1,27 @@
+custom_envi_probe {
+  _tags:t = render
+  "custom_envi_probe__postfx:PostFxRenderer"{}
+  custom_envi_probe__postfx_name:t="custom_envi_probe_transform"
+  "custom_envi_probe__cubemap:SharedTexHolder"{}
+  custom_envi_probe__cubemap_res:t=""
+  custom_envi_probe__cubemap_var:t="envi_probe_source"
+  custom_envi_probe__x_rotation:r=0.0; //degrees
+  custom_envi_probe__y_rotation:r=0.0; //degrees
+  custom_envi_probe__outside_mul:r=1.0;
+  custom_envi_probe__inside_mul:r=1.0;
+  custom_envi_probe__needs_render:b=true;
+  custom_envi_probe__is_inside:b=false;
+  _tracked:t="custom_envi_probe__cubemap_res"
+  _tracked:t="custom_envi_probe__x_rotation"
+  _tracked:t="custom_envi_probe__y_rotation"
+  _tracked:t="custom_envi_probe__inside_mul"
+  _tracked:t="custom_envi_probe__outside_mul"
+  "customEnviProbeTag:tag"{}
+  //Leave these two empty, to recalculate the values online.
+  //If the parameters are changed they will also be recalculated.
+  //Once the desired parameters are set, go inside and outside, to make sure both are generated
+  //Then look for these two parameters in the log, and copy paste the last value pair into the entity instance
+  //Recalculating online only works on DX11 PC, because the readback caused device page fault on DX12 Nvidia cards
+  "custom_envi_probe__spherical_harmonics_outside:list<p4>"{}
+  "custom_envi_probe__spherical_harmonics_inside:list<p4>"{}
+}

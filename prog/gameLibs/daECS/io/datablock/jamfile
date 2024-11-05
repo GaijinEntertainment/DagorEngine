@@ -16,6 +16,6 @@ Sources =
 
 UseProgLibs += gameLibs/daECS/utility ;
 
-if $(DriverLinkage) != dynamic { UseProgLibs += engine/ioSys ; } # for datablock
+if $(KernelLinkage) != dynamic { UseProgLibs += engine/ioSys ; } # for datablock
 
 include $(Root)/prog/_jBuild/build.jam ;

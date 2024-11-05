@@ -1,15 +1,37 @@
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3di.h>
-#include <3d/dag_drv3d_res.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_sampler.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_dispatchMesh.h>
+#include <drv/3d/dag_dispatch.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_shader.h>
+#include <drv/3d/dag_bindless.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_interface_table.h>
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_query.h>
+#include <drv/3d/dag_res.h>
+#include <drv/3d/dag_resUpdateBuffer.h>
+#include <drv/3d/dag_shaderLibrary.h>
 #include <math/dag_Point2.h>
 #include <vecmath/dag_vecMath.h>
 #include <generic/dag_span.h>
 #if _TARGET_PC
-#include <3d/dag_drv3d_pc.h>
+#include <drv/3d/dag_platform_pc.h>
 #endif
 
 #if _TARGET_PC_WIN
-#include <3d/dag_drv3d_pc.h>
+#include <drv/3d/dag_platform_pc.h>
 bool d3d::set_pixel_shader(FSHADER) { return true; }
 bool d3d::set_vertex_shader(VPROG) { return true; }
 VDECL d3d::get_program_vdecl(PROGRAM) { return 1; }
@@ -27,7 +49,18 @@ bool d3d::init_video(void *hinst, main_wnd_f *, const char *wcname, int ncmdshow
 }
 void d3d::release_driver() {}
 
+#if _TARGET_PC
 DriverCode d3d::get_driver_code() { return DriverCode::make(d3d::null); }
+#else
+DriverCode d3d::get_driver_code()
+{
+  struct NullDriverCode : public DriverCode
+  {
+    NullDriverCode() : DriverCode(0) {}
+  };
+  return NullDriverCode();
+}
+#endif
 const char *d3d::get_driver_name() { return "d3d/stub"; }
 const char *d3d::get_device_driver_version() { return "1.0"; }
 const char *d3d::get_device_name() { return "device/stub"; }
@@ -35,18 +68,15 @@ const char *d3d::get_last_error() { return "n/a"; }
 uint32_t d3d::get_last_error_code() { return 0; }
 void d3d::window_destroyed(void *hwnd) {}
 
-namespace d3d
-{
-GpuAutoLock::GpuAutoLock() {}
-GpuAutoLock ::~GpuAutoLock() {}
-} // namespace d3d
+d3d::GpuAutoLock::GpuAutoLock() = default;
+d3d::GpuAutoLock::~GpuAutoLock() = default;
 
 void *d3d::get_device() { return NULL; }
 
 /// returns driver description (pointer to static object)
 const Driver3dDesc &d3d::get_driver_desc() { return stub_desc; }
 
-int d3d::driver_command(int command, void *par1, void *par2, void *par3) { return 0; }
+int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, void *par3) { return 0; }
 bool d3d::device_lost(bool *can_reset_now) { return false; }
 bool d3d::reset_device() { return false; }
 bool d3d::is_in_device_reset_now() { return false; }
@@ -64,9 +94,7 @@ bool d3d::check_texformat(int cflg) { return false; }
 int d3d::get_max_sample_count(int cflg) { return 0; }
 bool d3d::issame_texformat(int cflg1, int cflg2) { return false; }
 bool d3d::check_cubetexformat(int cflg) { return false; }
-bool d3d::issame_cubetexformat(int cflg1, int cflg2) { return false; }
 bool d3d::check_voltexformat(int cflg) { return false; }
-bool d3d::issame_voltexformat(int cflg1, int cflg2) { return false; }
 Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name) { return NULL; }
 BaseTexture *d3d::alloc_ddsx_tex(const ddsx::Header &hdr, int flg, int quality_id, int levels, const char *, int) { return NULL; }
 BaseTexture *d3d::create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int levels, const char *) { return NULL; }
@@ -76,11 +104,25 @@ ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, co
 BaseTexture *d3d::create_cube_array_tex(int, int, int, int, char const *) { return nullptr; }
 void d3d::resource_barrier(ResourceBarrierDesc, GpuPipeline) {}
 
-bool d3d::set_tex_usage_hint(int w, int h, int mips, const char *format, unsigned int tex_num) { return false; }
-
-void d3d::discard_managed_textures() {}
 bool d3d::stretch_rect(BaseTexture *src, BaseTexture *dst, RectInt *rsrc, RectInt *rdst) { return false; }
 bool d3d::copy_from_current_render_target(BaseTexture * /*to_tex*/) { return false; }
+
+d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex_region(BaseTexture *, unsigned, unsigned, unsigned, unsigned, unsigned,
+  unsigned, unsigned, unsigned)
+{
+  return nullptr;
+}
+d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex(BaseTexture *, int, int) { return nullptr; }
+void d3d::release_update_buffer(d3d::ResUpdateBuffer *&rub) { rub = nullptr; }
+char *d3d::get_update_buffer_addr_for_write(d3d::ResUpdateBuffer *) { return nullptr; }
+size_t d3d::get_update_buffer_size(d3d::ResUpdateBuffer *) { return 0; }
+size_t d3d::get_update_buffer_pitch(d3d::ResUpdateBuffer *) { return 0; }
+size_t d3d::get_update_buffer_slice_pitch(d3d::ResUpdateBuffer *) { return 0; }
+bool d3d::update_texture_and_release_update_buffer(d3d::ResUpdateBuffer *&rub)
+{
+  rub = nullptr;
+  return false;
+}
 
 // Texture states setup
 VPROG d3d::create_vertex_shader(const uint32_t *native_code) { return BAD_VPROG; }
@@ -169,7 +211,6 @@ void d3d::insert_wait_on_fence(GPUFENCEHANDLE & /*fence*/, GpuPipeline /*gpu_pip
 
 bool d3d::set_depth(Texture *tex, DepthAccess) { return false; }
 bool d3d::set_depth(BaseTexture *tex, int, DepthAccess) { return false; }
-bool d3d::set_backbuf_depth() { return false; }
 bool d3d::set_render_target() { return false; }
 bool d3d::set_render_target(int, Texture *, int level) { return false; }
 bool d3d::set_render_target(int, BaseTexture *, int fc, int level) { return false; }
@@ -209,6 +250,8 @@ bool d3d::getview(int &x, int &y, int &w, int &h, float &minz, float &maxz) { re
 bool d3d::clearview(int what, E3DCOLOR, float z, uint32_t stencil) { return false; }
 
 bool d3d::update_screen(bool app_active) { return false; }
+void d3d::wait_for_async_present(bool) {}
+void d3d::gpu_latency_wait() {}
 
 /// set vertex stream source
 bool d3d::setvsrc_ex(int stream, Vbuffer *, int ofs, int stride_bytes) { return false; }
@@ -233,9 +276,6 @@ bool d3d::dispatch(uint32_t /*thread_group_x*/, uint32_t /*thread_group_y*/, uin
   return false;
 }
 
-bool d3d::setantialias(int aa_type) { return false; }
-int d3d::getantialias() { return 0; }
-
 bool d3d::set_blend_factor(E3DCOLOR c) { return false; }
 
 bool d3d::setstencil(uint32_t ref) { return false; }
@@ -247,7 +287,6 @@ bool d3d::set_msaa_pass() { return true; }
 bool d3d::set_depth_resolve() { return true; }
 
 bool d3d::setgamma(float p) { return false; }
-bool d3d::isVcolRgba() { return false; }
 
 float d3d::get_screen_aspect_ratio() { return 4.0f / 3.0f; }
 void d3d::change_screen_aspect_ratio(float) {}
@@ -300,13 +339,6 @@ void d3d::begin_conditional_render(int) {}
 void d3d::end_conditional_render(int) {}
 
 bool d3d::set_depth_bounds(float zmin, float zmax) { return false; }
-bool d3d::supports_depth_bounds()
-{
-  return false;
-}; // returns true if hardware supports depth bounds. same as get_driver_desc().caps.hasDepthBoundsTest
-#if !(_TARGET_C1 | _TARGET_C2)
-const bool d3d::HALF_TEXEL_OFS = false;
-#endif
 
 #if _TARGET_PC
 bool d3d::get_vrr_supported() { return false; }
@@ -322,10 +354,10 @@ bool d3d::set_srgb_backbuffer_write(bool on)
   return old;
 }
 
-d3d::SamplerHandle d3d::create_sampler(const d3d::SamplerInfo &sampler_info) { return 0; }
-void d3d::destroy_sampler(d3d::SamplerHandle sampler) {}
+d3d::SamplerHandle d3d::request_sampler(const d3d::SamplerInfo &sampler_info) { return d3d::INVALID_SAMPLER_HANDLE; }
 void d3d::set_sampler(unsigned shader_stage, unsigned slot, d3d::SamplerHandle sampler) {}
 uint32_t d3d::register_bindless_sampler(BaseTexture *) { return 0; }
+uint32_t d3d::register_bindless_sampler(SamplerHandle) { return 0; }
 
 uint32_t d3d::allocate_bindless_resource_range(uint32_t, uint32_t) { return 0; }
 uint32_t d3d::resize_bindless_resource_range(uint32_t, uint32_t, uint32_t, uint32_t) { return 0; }
@@ -340,6 +372,7 @@ bool d3d::clear_rwtexf(BaseTexture *tex, const float val[4], uint32_t face, uint
 bool d3d::clear_rwbufi(Sbuffer *tex, const unsigned val[4]) { return false; }
 bool d3d::clear_rwbuff(Sbuffer *tex, const float val[4]) { return false; }
 
+bool d3d::clear_rt(const RenderTarget &rt, const ResourceClearValue &clear_val) { return false; }
 
 bool d3d::set_buffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer) { return false; }
 bool d3d::set_rwbuffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer) { return false; }
@@ -349,7 +382,6 @@ void d3d::endEvent() {}
 
 Texture *d3d::get_backbuffer_tex() { return nullptr; }
 Texture *d3d::get_secondary_backbuffer_tex() { return nullptr; }
-Texture *d3d::get_backbuffer_tex_depth() { return nullptr; }
 
 shaders::DriverRenderStateId d3d::create_render_state(const shaders::RenderState &) { return shaders::DriverRenderStateId(); }
 bool d3d::set_render_state(shaders::DriverRenderStateId) { return false; }
@@ -372,5 +404,9 @@ ArrayTexture *d3d::alias_cube_array_tex(ArrayTexture *baseTexture, int side, int
 {
   return nullptr;
 }
+
+ShaderLibrary d3d::create_shader_library(const ShaderLibraryCreateInfo &) { return InvalidShaderLibrary; }
+
+void d3d::destroy_shader_library(ShaderLibrary) {}
 
 #include "../drv3d_commonCode/rayTracingStub.inc.cpp"

@@ -1,0 +1,41 @@
+APP             = buildSDF ;
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/daSDF/$(APP) ;
+APP_FOLDER      = $(APP) ;
+include $(Root)/prog/tools/tools_setup.jam ; # FIXME_BROKEN_DEP
+ConsoleExe      = yes ;
+
+TargetType  = exe ;
+Target      = tools/$(APP) ;
+OutDir      = $(Root)/tools/util ;
+if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+if $(Platform) = linux64 { OutDir = $(OutDir)-linux64 ; }
+if $(Platform) = macosx { OutDir = $(OutDir)-macosx ; }
+  
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+UseProgLibs = 
+  gameLibs/daSDF/buildSDFLib
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/debug
+  engine/baseUtil
+  engine/ioSys
+  engine/perfMon/daProfilerStub
+  engine/sceneRay
+  engine/math
+  engine/startup
+;
+
+Sources =
+  buildSDF.cpp
+  cmain.cpp
+;
+
+ForcePdb = yes ;
+#ForceLogs = yes ;
+
+include $(Root)/prog/_jBuild/build.jam ;

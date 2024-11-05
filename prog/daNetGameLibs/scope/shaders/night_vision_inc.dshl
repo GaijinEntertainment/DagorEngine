@@ -1,0 +1,83 @@
+// light radius, lighting bias, lighting min amount, lighting max amount (lerp by diffuse from min to max)
+float4 night_vision_params = (50, 1, 0.8, 7.0);
+texture night_vision_tex;
+
+macro INIT_NIGHT_VISION()
+  (ps) {
+    night_vision_params@f4 = (night_vision_params.x, night_vision_params.y,
+      night_vision_params.z, night_vision_params.w - night_vision_params.z);
+    night_vision_tex@tex2d = night_vision_tex;
+  }
+endmacro
+
+macro USE_NIGHT_VISION()
+  hlsl(ps) {
+  ##if (mobile_render == off)
+    float getFakeShadow(float2 ftc, float distZ, float lightRad)
+    {
+      const float offset = 2;
+      float scale = saturate((lightRad-distZ)/lightRad);
+      ftc += float2(offset*0.03f, -0.005f) * (0.1+0.9*scale)*(0.51-0.5*ftc.x);
+      float dstZ = linearize_z(readGbufferDepth(ftc), zn_zfar.zw);
+      return saturate(0.8 + 10*(1-scale) + dstZ - (0.85 + 0.15*scale)*distZ);
+    }
+  ##endif
+
+    half3 transformLightSpectre(half3 spectre, float lighting)
+    {
+      float lightingBias = night_vision_params.y;
+      float lightingMin = night_vision_params.z;
+      float lightingRange = night_vision_params.w;
+
+      return spectre * lightingBias +
+             (lightingMin + lightingRange * saturate(spectre * 0.2)) * saturate(lighting);
+    }
+
+    void applyNightVision(inout half3 color, float2 tc)
+    {
+      color = pow(color, 1/2.2) * 5;
+      half3 spectre = max3(color.r, color.g, color.b);
+      if (spectre.x > 0)
+      {
+      ##if (mobile_render == off)
+        float lightRad = night_vision_params.x;
+        float2 projectorTc = tc * 2 - 1;
+        float lighting = saturate(1-length(projectorTc));
+        if (lighting > 0)
+        {
+          float dstZ = linearize_z(readGbufferDepth(tc), zn_zfar.zw);
+          lighting *= getFakeShadow(tc, dstZ, lightRad);
+
+          float3 normal = 0;
+          float smoothness;
+          readPackedGbufferNormalSmoothness(tc, normal, smoothness);
+
+          float3 viewVect = lerp_view_vec(tc);
+          float3 pointToEye = dstZ*viewVect;
+
+          float dist2 = dot(pointToEye, pointToEye);
+          float rdist = rsqrt(dist2);
+          float3 view = pointToEye*rdist;
+          float dist = dist2*rdist;
+
+          lighting *= 0.1 + saturate(dot(normal, -view));
+          lighting *= saturate(1-dist / lightRad);
+
+          lighting *= dot(get_volfog_with_scattering_loss(tc, tc, view, dist, dstZ), 1.0/3);
+          spectre = transformLightSpectre(spectre, lighting);
+        }
+      ##else
+        float lighting = 0.02;
+        spectre = transformLightSpectre(spectre, lighting);
+      ##endif
+        spectre.rb *= pow2(saturate(spectre.rb));
+
+      ##if night_vision_tex == NULL
+        color = pow(half3(0,saturate(spectre.g),0), 2.2);
+      ##else
+        color = night_vision_tex.SampleLevel(frame_tex_samplerstate, float2(saturate(lighting), 0), 0).rgb;
+      ##endif
+      }
+    }
+  }
+endmacro

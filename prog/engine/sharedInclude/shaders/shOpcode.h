@@ -1,8 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#define SHCOD_CONCAT_HELPER(x, y) x##y
-#define SHCOD_CONCAT(x, y)        SHCOD_CONCAT_HELPER(x, y)
-#define SHCOD_NOP                 SHCOD_CONCAT(SHCOD_NOP_, __LINE__)
+#include <util/dag_preprocessor.h>
+
+#define SHCOD_NOP DAG_CONCAT(SHCOD_NOP_, __LINE__)
 
 // opcodes are sorted in "most-used-first" order
 enum
@@ -26,7 +27,7 @@ enum
   SHCOD_FSH_CONST, // 2p      | set PS const[ind] from VEC4 reg     | p1=ind p2=reg#
   SHCOD_TEXTURE,   // 2p      | set texture                         | p1=ind p2=reg#
   SHCOD_G_TM,      // 2p_8_16 | set 4xVEC4 const for GM/PM/VPM      | p1=type (8 bits)  p2=ind
-  SHCOD_SAMPLER,   // 2p      | set sampler                         | p1=ind p2=varId
+  SHCOD_SAMPLER,   // 3p      | set sampler                         | p1=stage p2=ind p3=varId
 
   SHCOD_MUL_REAL, // 3p      | REAL: dest# = left# * right#        | p1=dest# p2=left# p3=right#
   SHCOD_DIV_REAL, // 3p      | REAL: dest# = left# / right#        | p1=dest# p2=left# p3=right#
@@ -50,10 +51,11 @@ enum
 
   SHCOD_CALL_FUNCTION, // 3p + *d | call function                       | p1=func_id p2=dest# p3=param count d*=data
 
-  SHCOD_NOP,
-  SHCOD_NOP,
-  SHCOD_NOP,
-  SHCOD_NOP,
+  SHCOD_GET_GIVEC_TOREAL, // 2p   | load global int4 var to VEC4 reg    | p1=reg#  p2=varId
+  SHCOD_GET_IVEC_TOREAL,  // 2p   | load local int4 var to VEC4 reg     | p1=reg#  p2=varId
+
+  SHCOD_TLAS,      // 3psso   | set TLAS                            | p1=stage,p2=slot p3=reg#
+  SHCOD_GET_GTLAS, // 2p      | load global TLAS to reg             | p1=reg#  p2=varId
   SHCOD_NOP,
   SHCOD_NOP,
   SHCOD_NOP,
@@ -84,7 +86,7 @@ enum
   SHCOD_CS_CONST,      // 2p      | set CS const[ind] from VEC4 reg     | p1=ind p2=reg#
   SHCOD_TEXTURE_VS,    // 2p      | set VS texture                      | p1=ind p2=reg#
   SHCOD_BUFFER,        // 3psso   | set buffer                          | p1=stage,p2=slot p3=reg#
-  SHCOD_CONST_BUFFER,  // 3psso   | set const bufer                     | p1=stage,p2=slot p3=reg#
+  SHCOD_CONST_BUFFER,  // 3psso   | set const buffer                    | p1=stage,p2=slot p3=reg#
   SHCOD_GET_GBUF,      // 2p      | load global buf to reg              | p1=reg#  p2=varId
   SHCOD_GET_GMAT44,    // 2p      | load global var to FLOAT4x4 reg     | p1=reg#  p2=varId
   SHCOD_REG_BINDLESS,  // 2p      | register bindless tex from reg and store its id to consts[ind] | p1=ind p2=reg#
@@ -97,6 +99,4 @@ enum
   P1_SHCOD_G_TM_VIEWPROJTM = 2,
 };
 
-#undef SHCOD_CONCAT_HELPER
-#undef SHCOD_CONCAT
 #undef SHCOD_NOP

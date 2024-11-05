@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_string.h>
 #include <utf8.h>
 #include "sqUtf8.h"

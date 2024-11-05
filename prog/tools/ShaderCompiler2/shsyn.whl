@@ -58,6 +58,8 @@ terminal
          "blend_adst" (SHTOK_blend_adst),
          "blend_src" (SHTOK_blend_src),
          "blend_dst" (SHTOK_blend_dst),
+         "blend_op" (SHTOK_blend_op),
+         "blend_aop" (SHTOK_blend_aop),
          "channel" (SHTOK_channel),
          "int4" (SHTOK_int4),
          "float4x4" (SHTOK_float4x4),
@@ -90,6 +92,8 @@ terminal
          "fsh_4_0" (SHTOK_fsh_4_0),
          "fsh_4_1" (SHTOK_fsh_4_1),
          "fsh_5_0" (SHTOK_fsh_5_0),
+         "fsh_6_0" (SHTOK_fsh_6_0),
+         "fsh_6_6" (SHTOK_fsh_6_6),
          "bindless" (SHTOK_bindless),
          "globtm" (SHTOK_globtm),
          "projtm" (SHTOK_projtm),
@@ -130,6 +134,7 @@ terminal
          "sampler" (SHTOK_sampler),
          "buffer" (SHTOK_buffer),
          "const_buffer" (SHTOK_const_buffer),
+         "tlas" (SHTOK_tlas),
          "render_stage" (SHTOK_render_stage),
          "render_trans" (SHTOK_render_trans),
          "true" (SHTOK__true),
@@ -319,7 +324,7 @@ arithmetic-color(arithmetic_color) ->
   ")"=nothing;
 
 static-var-type(static_var_type) ->
-  ("const_buffer"|"buffer"|"texture"|"float4"|"int4"|"float4x4"|"float"|"int")=type;
+  ("const_buffer"|"tlas"|"buffer"|"texture"|"float4"|"int4"|"float4x4"|"float"|"int")=type;
 
 static-var-mode(static_var_mode) -> ("static"|"dynamic")=mode;
 
@@ -397,7 +402,7 @@ equal-op(equal_op) ->
   ("=="|"!="|"<"|"<="|">"|">=")=op;
 
 hardware-support(hardware_support) ->
-  ("metal"|"metaliOS"|"vulkan"|"pc"|"dx11"|"dx12"|"xbox"|"scarlett"|"ps4"|"ps5"|"fsh_4_0"|"fsh_5_0"|"mesh"|"bindless")=var;
+  ("metal"|"metaliOS"|"vulkan"|"pc"|"dx11"|"dx12"|"xbox"|"scarlett"|"ps4"|"ps5"|"fsh_4_0"|"fsh_5_0"|"fsh_6_0"|"fsh_6_6"|"mesh"|"bindless")=var;
 
 bool-value(bool_value) ->
   ("shader"=nothing equal-op=cmpop ident=shader) |
@@ -466,7 +471,7 @@ state-value(state_value) -> (
 )=value;
 
 state-var(state_var) ->
-  ("blend_src"|"blend_dst"|"blend_asrc"|"blend_adst"|"cull_mode"|"alpha_to_coverage"|"view_instances"
+  ("blend_src"|"blend_dst"|"blend_asrc"|"blend_adst"|"blend_op"|"blend_aop"|"cull_mode"|"alpha_to_coverage"|"view_instances"
   |"stencil"|"stencil_func"|"stencil_ref"|"stencil_pass"|"stencil_fail"|"stencil_zfail"
   |"color_write"|"z_write"|"z_test"|"z_func"
   )=var;

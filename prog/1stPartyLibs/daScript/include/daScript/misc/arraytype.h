@@ -5,6 +5,7 @@ namespace das
     struct SimNode;
     struct TypeInfo;
     struct FuncInfo;
+    struct LineInfoArg;
 
     struct Block {
         uint32_t    stackOffset;
@@ -68,6 +69,9 @@ namespace das
         Lambda() : capture(nullptr) {}
         Lambda(void * ptr) : capture((char *)ptr) {}
         char *      capture;
+        __forceinline operator void * () const {
+            return capture;
+        }
         __forceinline TypeInfo * getTypeInfo() const {
             return capture ? *(TypeInfo **)(capture-16) : nullptr;
         }
@@ -76,6 +80,12 @@ namespace das
         }
         __forceinline bool operator != ( const Lambda & b ) const {
             return capture != b.capture;
+        }
+        __forceinline bool operator == ( void * ptr ) const {
+            return capture == ptr;
+        }
+        __forceinline bool operator != ( void * ptr ) const {
+            return capture != ptr;
         }
     };
     static_assert(sizeof(Lambda)==sizeof(void *), "has to be castable");
@@ -145,11 +155,12 @@ namespace das
     void array_grow ( Context & context, Array & arr, uint32_t newSize, uint32_t stride );  // always grows
     void array_clear ( Context & context, Array & arr, LineInfo * at );
 
+    typedef uint32_t TableHashKey;
+
     struct Table : Array {
         char *      keys;
-        uint64_t *  hashes;
-        uint32_t    maxLookups;
-        uint32_t    shift;
+        TableHashKey *  hashes;
+        uint32_t    tombstones;
     };
 
     void table_clear ( Context & context, Table & arr, LineInfo * at );
@@ -157,8 +168,8 @@ namespace das
     void table_unlock ( Context & context, Table & arr, LineInfo * at );
 
     struct Sequence;
-    void builtin_table_keys ( Sequence & result, const Table & tab, int32_t stride, Context * __context__ );
-    void builtin_table_values ( Sequence & result, const Table & tab, int32_t stride, Context * __context__ );
+    void builtin_table_keys ( Sequence & result, const Table & tab, int32_t stride, Context * __context__, LineInfoArg * at );
+    void builtin_table_values ( Sequence & result, const Table & tab, int32_t stride, Context * __context__, LineInfoArg * at );
 
     template <typename TT>
     struct EnumStubAny  {
@@ -169,6 +180,7 @@ namespace das
     typedef EnumStubAny<int32_t> EnumStub;
     typedef EnumStubAny<int8_t>  EnumStub8;
     typedef EnumStubAny<int16_t> EnumStub16;
+    typedef EnumStubAny<int64_t> EnumStub64;
 
     struct Bitfield {
         uint32_t    value;

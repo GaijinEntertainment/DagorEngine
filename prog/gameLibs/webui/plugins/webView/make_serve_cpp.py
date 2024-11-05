@@ -36,7 +36,7 @@ for src in srcFiles:
   path = os.path.join(rootDir, src)
   ext = os.path.splitext(src)[1]
   mime = extToMimeType.get(ext, 'text/plain')
-  os.system(f'{sys.executable} {stringifyPy} --array {path} {dstDir}/{name}.inl')
+  os.system('{0} {1} --array {2} {3}/{4}.inl'.format(sys.executable, stringifyPy, path, dstDir, name))
   f.write(funtionTemplate.format(**locals()))
 
 f.write('webui::HttpPlugin webui::webview_files_http_plugins[] = {\n')

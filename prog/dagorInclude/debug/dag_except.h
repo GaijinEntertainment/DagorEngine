@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -28,10 +27,11 @@ public:
     excDesc = desc;
     ::stackhlp_fill_stack_exact(excStack, 32, ctx_ptr);
   }
+  DagorException(const DagorException &) = default;
   virtual ~DagorException() {}
 
 
-  void **getStackPtr() { return excStack; }
+  const void *const *getStackPtr() const { return excStack; }
 
 protected:
   void *excStack[32];

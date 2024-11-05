@@ -60,6 +60,11 @@ namespace das {
         return arg ? arg->iValue : def;
     }
 
+    uint64_t AnnotationArgumentList::getUInt64Option(const string & name, uint64_t def) const {
+        auto arg = find(name, Type::tInt);
+        return arg ? uint64_t(arg->iValue) : def;
+    }
+
     // MODULE
 
     void Module::addDependency ( Module * mod, bool pub ) {
@@ -74,6 +79,10 @@ namespace das {
     void Module::addBuiltinDependency ( ModuleLibrary & lib, Module * m, bool pub ) {
         lib.addModule(m);
         requireModule[m] = pub;
+    }
+
+    FileInfo * Module::getFileInfo() const {
+        return ownFileInfo.get();
     }
 
     TypeAnnotation * Module::resolveAnnotation ( const TypeInfo * info ) {
@@ -222,7 +231,7 @@ namespace das {
             while (first != nullptr)
             {
                 if (first->name == n) {
-                    DAS_FATAL_ERROR("Module `%s` already created", first->name.c_str());
+                    DAS_FATAL_ERROR("Module '%s' already created", first->name.c_str());
                 }
                 first = first->next;
             }
@@ -326,6 +335,17 @@ namespace das {
         }
     }
 
+    bool Module::addTypeMacro ( const TypeMacroPtr & ptr, bool canFail ) {
+        if ( typeMacros.insert(make_pair(ptr->name, ptr)).second ) {
+            return true;
+        } else {
+            if ( !canFail ) {
+                DAS_FATAL_ERROR("can't add duplicate type macro %s to module %s\n", ptr->name.c_str(), name.c_str() );
+            }
+            return false;
+        }
+    }
+
     bool Module::addReaderMacro ( const ReaderMacroPtr & ptr, bool canFail ) {
         if ( readMacros.insert(make_pair(ptr->name, ptr)).second ) {
             ptr->seal(this);
@@ -405,6 +425,20 @@ namespace das {
         return true;
     }
 
+    bool Module::addTypeFunction (const string & kwd, bool canFail ) {
+        auto it = find_if(typeFunctions.begin(), typeFunctions.end(), [&](auto value){
+            return value == kwd;
+        });
+        if ( it != typeFunctions.end() ) {
+            if ( !canFail ) {
+                DAS_FATAL_ERROR("can't add duplicate type function %s to module %s\n", kwd.c_str(), name.c_str() );
+            }
+            return false;
+        }
+        typeFunctions.emplace_back(kwd);
+        return true;
+    }
+
     bool Module::addFunction ( const FunctionPtr & fn, bool canFail ) {
         fn->module = this;
         auto mangledName = fn->getMangledName();
@@ -414,6 +448,9 @@ namespace das {
         }
         if ( fn->builtIn && fn->sideEffectFlags==uint32_t(SideEffects::none) && fn->result->isVoid() ) {
             DAS_FATAL_ERROR("can't add function %s to module %s; it has no side effects and no return type\n", mangledName.c_str(), name.c_str() );
+        }
+        if ( fn->builtIn ) {
+            cumulativeHash = wyhash(mangledName.c_str(), mangledName.size(), cumulativeHash);
         }
         if ( fn->builtIn && fn->sideEffectFlags==uint32_t(SideEffects::modifyArgument)  ) {
             bool anyRW = false;
@@ -464,6 +501,10 @@ namespace das {
         return globals.find(na);
     }
 
+    FunctionPtr Module::findFunctionByMangledNameHash ( uint64_t hash ) const {
+        return functions.find(hash);
+    }
+
     FunctionPtr Module::findFunction ( const string & mangledName ) const {
         return functions.find(mangledName);
     }
@@ -512,7 +553,9 @@ namespace das {
         auto fileInfo = make_unique<TextFileInfo>((char *) str, uint32_t(str_len), false);
         access->setFileInfo(modName, das::move(fileInfo));
         ModuleGroup dummyLibGroup;
-        auto program = parseDaScript(modName, access, issues, dummyLibGroup, true);
+        CodeOfPolicies builtinPolicies;
+        // builtinPolicies.version_2_syntax = false;   // NOTE: no version 2 syntax in builtin modules (yet)
+        auto program = parseDaScript(modName, "", access, issues, dummyLibGroup, true);
         ownFileInfo = access->letGoOfFileInfo(modName);
         DAS_ASSERTF(ownFileInfo,"something went wrong and FileInfo for builtin module can not be obtained");
         if ( program ) {
@@ -566,6 +609,9 @@ namespace das {
             globalLintMacros.insert(globalLintMacros.end(), ptm->globalLintMacros.begin(), ptm->globalLintMacros.end());
             for ( auto & rm : ptm->readMacros ) {
                 addReaderMacro(rm.second);
+            }
+            for ( auto & tm : ptm->typeMacros ) {
+                addTypeMacro(tm.second);
             }
             commentReader = ptm->commentReader;
             for ( auto & op : ptm->options) {
@@ -721,6 +767,13 @@ namespace das {
         if ( module ) {
             thisModule = thisModule ? thisModule : module;
             if ( find(modules.begin(),modules.end(),module)==modules.end() ) {
+                if ( !module->requireModule.empty() ) {
+                    for ( auto dep : module->requireModule ) {
+                        if ( dep.first != module ) {
+                            addModule ( dep.first );
+                        }
+                    }
+                }
                 for ( auto dep : module->requireModule ) {
                     if ( dep.first != module ) {
                         addModule ( dep.first );
@@ -759,28 +812,20 @@ namespace das {
         return it!=modules.end() ? *it : nullptr;
     }
 
-    vector<TypeDeclPtr> ModuleLibrary::findAlias ( const string & name, Module * inWhichModule ) const {
-        vector<TypeDeclPtr> ptr;
-        string moduleName, aliasName;
-        splitTypeName(name, moduleName, aliasName);
+    void ModuleLibrary::findWithCallback ( const string & name, Module * inWhichModule, const callable<void (Module * pm, const string &name, Module * inWhichModule)> & func ) const {
+        string moduleName, funcName;
+        splitTypeName(name, moduleName, funcName);
         foreach([&](Module * pm) -> bool {
-            if ( !inWhichModule || inWhichModule->isVisibleDirectly(pm) )
-                if ( auto pp = pm->findAlias(aliasName) ) {
-                    if ( pp->isEnumT() ) {
-                        if ( !pp->enumType->isPrivate || pp->enumType->module==inWhichModule ) {
-                            ptr.push_back(pp);
-                        }
-                    } else if ( pp->baseType==Type::tStructure ) {
-                        if ( !pp->structType->privateStructure || pp->structType->module==inWhichModule ) {
-                            ptr.push_back(pp);
-                        }
-                    } else {
-                        ptr.push_back(pp);
-                    }
-                }
+            if ( !inWhichModule || inWhichModule->isVisibleDirectly(pm) ) {
+                func(pm, funcName, inWhichModule);
+            }
             return true;
         }, moduleName);
-        return ptr;
+    }
+
+    void ModuleLibrary::findAnnotation ( vector<AnnotationPtr> & ptr, Module * pm, const string & annotationName, Module * ) const {
+        if ( auto pp = pm->findAnnotation(annotationName) )
+            ptr.push_back(das::move(pp));
     }
 
     vector<AnnotationPtr> ModuleLibrary::findAnnotation ( const string & name, Module * inWhichModule ) const {
@@ -789,8 +834,7 @@ namespace das {
         splitTypeName(name, moduleName, annName);
         foreach([&](Module * pm) -> bool {
             if ( !inWhichModule || inWhichModule->isVisibleDirectly(pm) )
-                if ( auto pp = pm->findAnnotation(annName) )
-                    ptr.push_back(pp);
+                findAnnotation(ptr, pm, annName, inWhichModule);
             return true;
         }, moduleName);
         return ptr;
@@ -809,21 +853,64 @@ namespace das {
         return ptr;
     }
 
+    void ModuleLibrary::findStructure ( vector<StructurePtr> & ptr, Module * pm, const string & structName, Module * inWhichModule ) const {
+        if ( auto pp = pm->findStructure(structName) ) {
+            if ( !pp->privateStructure || pp->module==inWhichModule ) {
+                ptr.push_back(das::move(pp));
+            }
+        }
+    }
+
     vector<StructurePtr> ModuleLibrary::findStructure ( const string & name, Module * inWhichModule ) const {
         vector<StructurePtr> ptr;
         string moduleName, funcName;
         splitTypeName(name, moduleName, funcName);
         foreach([&](Module * pm) -> bool {
             if ( !inWhichModule || inWhichModule->isVisibleDirectly(pm) ) {
-                if ( auto pp = pm->findStructure(funcName) ) {
-                    if ( !pp->privateStructure || pp->module==inWhichModule ) {
-                        ptr.push_back(pp);
-                    }
-                }
+                findStructure(ptr, pm, funcName, inWhichModule);
             }
             return true;
         }, moduleName);
         return ptr;
+    }
+
+    void ModuleLibrary::findAlias ( vector<TypeDeclPtr> & ptr, Module * pm, const string & aliasName, Module * inWhichModule ) const {
+        if ( auto pp = pm->findAlias(aliasName) ) {
+            if ( !pp->isPrivateAlias || pp->module==inWhichModule ) {
+                if ( pp->isEnumT() ) {
+                    if ( !pp->enumType->isPrivate || pp->enumType->module==inWhichModule ) {
+                        ptr.push_back(das::move(pp));
+                    }
+                } else if ( pp->baseType==Type::tStructure ) {
+                    if ( !pp->structType->privateStructure || pp->structType->module==inWhichModule ) {
+                        ptr.push_back(das::move(pp));
+                    }
+                } else {
+                    ptr.push_back(das::move(pp));
+                }
+            }
+        }
+    }
+
+    vector<TypeDeclPtr> ModuleLibrary::findAlias ( const string & name, Module * inWhichModule ) const {
+        vector<TypeDeclPtr> ptr;
+        string moduleName, aliasName;
+        splitTypeName(name, moduleName, aliasName);
+        foreach([&](Module * pm) -> bool {
+            if ( !inWhichModule || inWhichModule->isVisibleDirectly(pm) )
+                findAlias(ptr, pm, aliasName, inWhichModule);
+            return true;
+        }, moduleName);
+        return ptr;
+    }
+
+
+    void ModuleLibrary::findEnum ( vector<EnumerationPtr> & ptr, Module * pm, const string & enumName, Module * inWhichModule ) const {
+        if ( auto pp = pm->findEnum(enumName) ) {
+            if ( !pp->isPrivate || pp->module==inWhichModule ) {
+                ptr.push_back(das::move(pp));
+            }
+        }
     }
 
     vector<EnumerationPtr> ModuleLibrary::findEnum ( const string & name, Module * inWhichModule ) const {
@@ -832,11 +919,7 @@ namespace das {
         splitTypeName(name, moduleName, enumName);
         foreach([&](Module * pm) -> bool {
             if ( !inWhichModule || inWhichModule->isVisibleDirectly(pm) ) {
-                if ( auto pp = pm->findEnum(enumName) ) {
-                    if ( !pp->isPrivate || pp->module==inWhichModule ) {
-                        ptr.push_back(pp);
-                    }
-                }
+                findEnum(ptr, pm, enumName, inWhichModule);
             }
             return true;
         }, moduleName);

@@ -1,0 +1,56 @@
+#  Setup for Visual C/C++ 2012 compiler for Win64 (to be included from jBuild.jam)
+if $(PlatformArch) != x86_64 { exit Platform=$(Platform) PlatformArch=$(PlatformArch) is not supported by PlatformSpec=$(PlatformSpec) ; }
+
+_OBJ_SUFFIX  = .obj ;
+
+_VC_DIR      = $(_DEVTOOL)/vc2012 ;
+_VC_CRT_TYPE = $(_GlobCopt_CRT) ;
+_VC_CRT_TYPE ?= -MT ;
+_WIN_SDK_TARGET_SUFFIX = x64 ;
+include $(Root)/prog/_jBuild/_vc/win_sdk.jam ;
+
+local _DEF_C_CMDLINE =
+  -X /D_TARGET_PC=1 -D_TARGET_PC_WIN=1 /DWIN64 /Dasm=__asm /DWIN32_LEAN_AND_MEAN=
+  /DNOMINMAX
+  -D_TARGET_SIMD_SSE=$(SSEVersion) -D_TARGET_64BIT=1 -D_ALLOW_KEYWORD_MACROS=
+  -Di_strlen=(int)strlen
+  /c /nologo /Zc:forScope /Zp8 /J /bigobj /Zc:wchar_t
+;
+if $(BuildDagorEngineIndependentCode) = yes { _DEF_C_CMDLINE = -X /c /nologo /Zp8 /J /Zc:wchar_t /DWIN64 ; }
+if $(Analyze) = yes { _DEF_C_CMDLINE += -analyze -WX ; }
+
+_LINK         = $(_VC_DIR)/bin/x86_amd64/link.exe /machine:x64 ;
+_LIB          = $(_VC_DIR)/bin/x86_amd64/lib.exe /machine:x64 ;
+_CPP_COMPILER = $(_VC_DIR)/bin/x86_amd64/cl.exe $(_DEF_C_CMDLINE) ;
+_C_COMPILER   = $(_VC_DIR)/bin/x86_amd64/cl.exe $(_DEF_C_CMDLINE) ;
+_ASM_COMPILER = $(_DEVTOOL)/nasm/nasmw.exe -f win64 --prefix _ ;
+_MASM_COMPILER = $(_VC_DIR)/bin/x86_amd64/ml64.exe -c -nologo ;
+
+_DEP_COMPILER = $(Root)/prog/_jBuild/fastdep-g.exe --cVC80 /D_TARGET_PC=1 -D_TARGET_PC_WIN=1 /DWIN64 ;
+
+_RC_COMPILER    = $(_WIN_SDK_BIN)/rc.exe /x /i$(_WIN_SDK_INC) /i$(_VC_DIR)/Include ;
+_MT_UTIL        = $(_WIN_SDK_BIN)/mt.exe ;
+_CVTRES_EXE     = $(_VC_DIR)/bin/x86_amd64/cvtres.exe /MACHINE:x64 /NOLOGO ;
+
+_INCLUDE      = $(_WIN_SDK_INC) $(_VC_DIR)/include ;
+_LIBPATH      = $(_WIN_SDK_LIB) $(_VC_DIR)/lib/amd64 ;
+
+
+# make linker cmd-line ###
+for lib in $(_LIBPATH) {
+  _LINK += -libpath:$(lib) ;
+  _LIB += -libpath:$(lib) ;
+}
+
+# make compiler cmd-line ###
+_CPP_BASE_INCLUDES = -I$(MasterPreInclude) -I$(Root)/prog/dagorInclude -I$(Root)/prog/1stPartyLibs -I$(Root)/prog/3rdPartyLibs -I$(Root)/prog/3rdPartyLibs/eastl/include ;
+_C_BASE_INCLUDES   = -I$(MasterPreInclude) -I$(Root)/prog/dagorInclude -I$(Root)/prog/1stPartyLibs -I$(Root)/prog/3rdPartyLibs ;
+if $(BuildDagorEngineIndependentCode) = yes { _CPP_BASE_INCLUDES = -I$(MasterPreInclude) ; _C_BASE_INCLUDES = -I$(MasterPreInclude) ; }
+
+for inc in $(_INCLUDE) {
+  _CPP_BASE_INCLUDES += -I$(inc) ;
+  _C_BASE_INCLUDES   += -I$(inc) ;
+  _DEP_COMPILER += --x$(inc) ;
+}
+
+_DEF_C_CMDLINE = ;

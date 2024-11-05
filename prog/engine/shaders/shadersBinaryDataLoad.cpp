@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "shadersBinaryData.h"
 #include "mapBinarySearch.h"
 #include <shaders/dag_shaderCommon.h>
@@ -11,24 +13,20 @@
 #include <debug/dag_debug.h>
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_shaderVariableInfo.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_commands.h>
 
 namespace shaderbindump
 {
 static uint32_t generation = 0;
 uint32_t get_generation() { return generation; }
-namespace
-{
-using IntervalBind = shaderbindump::VariantTable::IntervalBind;
-dag::Vector<IntervalBind> intervalBinds;
+static dag::Vector<shaderbindump::VariantTable::IntervalBind> intervalBinds;
 struct IntervalBindRange
 {
   uint16_t start;
   uint16_t count;
 };
-dag::Vector<IntervalBindRange> intervalBindRanges;
-OSSpinlock mutex;
-} // namespace
+static dag::Vector<IntervalBindRange> intervalBindRanges;
+static OSSpinlock mutex;
 
 uint32_t get_dynvariant_collection_id(const shaderbindump::ShaderCode &code)
 {
@@ -74,12 +72,17 @@ uint32_t get_dynvariant_collection_id(const shaderbindump::ShaderCode &code)
 template <typename T>
 inline void build_dynvariant_collection_cache_impl(T &cache)
 {
-  G_FAST_ASSERT(cache.empty());
+  const auto &sh = shBinDumpOwner();
   OSSpinlockScopedLock lock(mutex);
-  cache.resize(intervalBindRanges.size());
-  for (uint32_t i = 0, ie = intervalBindRanges.size(); i < ie; ++i)
-    for (uint32_t j = intervalBindRanges[i].start, je = intervalBindRanges[i].start + intervalBindRanges[i].count; j < je; ++j)
-      cache[i] += shBinDumpOwner().globIntervalNormValues[intervalBinds[j].intervalId] * intervalBinds[j].totalMul;
+  cache.resize_noinit(intervalBindRanges.size());
+  int *p = cache.data();
+  for (const auto &r : intervalBindRanges)
+  {
+    int v = 0;
+    for (uint32_t j = r.start, je = j + r.count; j < je; ++j)
+      v += sh.globIntervalNormValues[intervalBinds[j].intervalId] * intervalBinds[j].totalMul;
+    *p++ = v;
+  }
 }
 
 void build_dynvariant_collection_cache(dag::Vector<int, framemem_allocator> &cache) { build_dynvariant_collection_cache_impl(cache); }
@@ -94,8 +97,6 @@ DynVariantsCache<A>::DynVariantsCache()
 }
 template class DynVariantsCache<framemem_allocator>;
 template class DynVariantsCache<EASTLAllocatorType>;
-
-static void after_shaders_reload() { ShaderVariableInfo::resolveAll(); }
 
 template <typename F>
 static bool read_shdump_file(IGenLoad &crd, int size, bool full_file_load, F cb)
@@ -133,11 +134,16 @@ bool ScriptedShadersBinDumpOwner::load(IGenLoad &crd, int size, bool full_file_l
   if (!read_shdump_file(crd, size, full_file_load, [&](const uint8_t *data, int size_) { return loadData(data, size_); }))
     return false;
 
+  G_ASSERTF(mShaderDump->varMap.size() <= ScriptedShadersBinDump::MAX_VARS,
+    "Total number of shadervars (%d) exceeds the max allowed for mapping (%d). Remove redundant shadervars, or increase "
+    "ScriptedShadersBinDump::MAX_VARS and the shader compiler cache version.",
+    mShaderDump->varMap.size(), ScriptedShadersBinDump::MAX_VARS);
+
   mShaderDump->reinitVarTables();
   shadervars::resolve_shadervars();
-  after_shaders_reload();
+  ShaderVariableInfo::resolveAll();
   if (mShaderDump == &shBinDump())
-    d3d::driver_command(DRV3D_COMMAND_REGISTER_SHADER_DUMP, this, nullptr, nullptr);
+    d3d::driver_command(Drv3dCommand::REGISTER_SHADER_DUMP, this, (void *)crd.getTargetName());
   return true;
 }
 
@@ -258,7 +264,9 @@ void ScriptedShadersBinDumpOwner::initAfterLoad()
       {
         case SHVT_INT: v = mShaderDump->globVars.get<int>(gvid); break;
         case SHVT_REAL: v = mShaderDump->globVars.get<real>(gvid); break;
-        case SHVT_TEXTURE: break;
+        case SHVT_TEXTURE:
+        case SHVT_BUFFER:
+        case SHVT_TLAS: break;
         default: continue;
       }
       globVarIntervalIdx[gvid] = i;
@@ -281,7 +289,7 @@ void ScriptedShadersBinDumpOwner::clear()
   if (mShaderDump == &shBinDump())
   {
     // tell the driver that we are going to unload this bindump
-    d3d::driver_command(DRV3D_COMMAND_REGISTER_SHADER_DUMP, nullptr, nullptr, nullptr);
+    d3d::driver_command(Drv3dCommand::REGISTER_SHADER_DUMP);
   }
   mDecompressedGropusLru.reset();
   mDictionary.reset();

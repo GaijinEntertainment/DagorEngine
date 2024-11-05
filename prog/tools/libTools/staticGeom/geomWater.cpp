@@ -1,8 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "geomWater.h"
 #include <libTools/staticGeom/geomObject.h>
 #include <render/waterObjects.h>
 #include <shaders/dag_shaders.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 
 
 static void on_remove(GeomObject *p) { waterobjects::del(p); }

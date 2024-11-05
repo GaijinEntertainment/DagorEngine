@@ -7,7 +7,7 @@ TargetType = lib ;
 Target     = samples/commonFramework.lib ;
 
 Sources =
-  de3_splash.cpp
+  de3_splashScreen.cpp
   de3_worldRenderer.cpp
   de3_visibility_finder.cpp
   de3_tpsCamera.cpp
@@ -16,15 +16,16 @@ Sources =
   de3_gui.cpp
   de3_benchmark.cpp
   de3_loghandler.cpp
+  cur_view.cpp
 ;
 AddIncludes = $(Root)/prog/gameLibs/publicInclude ;
 
-if $(Platform) in win32 win64 macosx iOS tvOS android nswitch linux64 {
+if $(Platform) in windows macOS iOS tvOS android nswitch linux {
   Sources +=
     de3_freeCam_mk.cpp
   ;
 }
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   Sources +=
     de3_gui_win.cpp
   ;

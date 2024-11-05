@@ -1,6 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "render/wind/fluidWind.h"
 #include <EASTL/utility.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
 #include <shaders/dag_DynamicShaderHelper.h>
 #include <shaders/dag_computeShaders.h>
 #include <math/dag_mathUtils.h>
@@ -259,30 +263,36 @@ void FluidWind::init()
   project3d.reset(new_compute_shader("fluid_wind_project3d"));
   render.reset(new_compute_shader("fluid_wind_render"));
 
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
+    smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
+    smpInfo.filter_mode = d3d::FilterMode::Linear;
+    ShaderGlobal::set_sampler(get_shader_variable_id("fluid_wind_tex_samplerstate", true), d3d::request_sampler(smpInfo));
+  }
+
   for (int i = 0; i < 2; ++i)
   {
     String texName(0, "windSpeedTex%d", i);
     speedTex[i] = dag::create_voltex(desc.dimX, desc.dimY, desc.dimZ, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, texName.str());
-    speedTex[i].getVolTex()->texfilter(TEXFILTER_SMOOTH);
-    speedTex[i].getVolTex()->texaddr(TEXADDR_BORDER);
-    speedTex[i].getVolTex()->texbordercolor(0);
+    speedTex[i]->disableSampler();
 
     texName = String(0, "windPressureTex%d", i);
     pressureTex[i] = dag::create_voltex(desc.dimX / 4, desc.dimY, desc.dimZ, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, texName.str());
-    pressureTex[i].getVolTex()->texfilter(TEXFILTER_SMOOTH);
+    pressureTex[i].getVolTex()->texfilter(TEXFILTER_LINEAR);
     pressureTex[i].getVolTex()->texaddr(TEXADDR_BORDER);
     pressureTex[i].getVolTex()->texbordercolor(0);
   }
 
   divergenceTex =
     dag::create_voltex(desc.dimX / 4, desc.dimY, desc.dimZ, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, "windDivergenceTex");
-  divergenceTex.getVolTex()->texfilter(TEXFILTER_SMOOTH);
+  divergenceTex.getVolTex()->texfilter(TEXFILTER_LINEAR);
   divergenceTex.getVolTex()->texaddr(TEXADDR_BORDER);
   divergenceTex.getVolTex()->texbordercolor(0);
 
 #if DEBUG_OUTPUT
   outputTex = dag::create_tex(NULL, FLUID_RT_WIDTH, FLUID_RT_HEIGHT, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, "windOutputTex");
-  outputTex.getTex2D()->texfilter(TEXFILTER_SMOOTH);
+  outputTex.getTex2D()->texfilter(TEXFILTER_LINEAR);
   outputTex.getTex2D()->texaddr(TEXADDR_BORDER);
   outputTex.getTex2D()->texbordercolor(0);
 #endif

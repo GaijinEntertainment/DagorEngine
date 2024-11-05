@@ -1,0 +1,173 @@
+include "shader_global.dshl"
+include "heightmap_common.dshl"
+include "land_micro_detail.dshl"
+include "vertical.dshl"
+include "clipmap.dshl"
+include "land_block_inc.dshl"
+
+macro USE_HMAP_BLEND() //use after RENDINST_BLOCK()
+  if (enable_hmap_blend == yes && compatibility_mode != compatibility_mode_on && tex_hmap_low != NULL)
+  {
+    NO_VERTICAL_TEX_USE()
+    USE_CLIPMAP_NORMAL()
+    USE_LAND_SHORE()
+    USE_HEIGHTMAP_COMMON_PS()
+    USE_LAND_MICRODETAILS_PS()
+    USE_LAND_MICRODETAIL_PARAMS_PS()
+    HEIGHTMAP_CALCULATIONS()
+    hlsl (ps)
+    {
+      struct RiHmapBlendShadervars
+      {
+        float blend_sharpness;
+        float2 angle_param_noise;
+        float2 angle_param_blend;
+        float perlin_tex_scale;
+        float rcp_min_height;
+        float hmap_blend_height;
+        float hmap_blend_depth;
+        float vertex_normal_amount;
+      };
+
+      RiHmapBlendShadervars get_shadervars(RI_HMAP_BLEND_VS_TYPE vs_params)
+      {
+        const float DEG_TO_RAD = PI / 180.0;
+        const float min_angle = 15.0;
+        const float max_angle = 50.0;
+        float2 angleParamNoise = float2(min_angle, max_angle) * DEG_TO_RAD;
+
+        RiHmapBlendShadervars shadervars;
+        float2 sharpness__scale = ri_hmap_ps_params.xy * get_ri_hmap_ps_static_params().xy;
+        shadervars.blend_sharpness = sharpness__scale.x;
+        shadervars.angle_param_noise = getAngleRange(angleParamNoise);
+        shadervars.angle_param_blend = vs_params.xy;
+        shadervars.perlin_tex_scale = sharpness__scale.y;
+        shadervars.rcp_min_height = vs_params.z;
+        shadervars.hmap_blend_height = get_ri_hmap_ps_static_params().z;
+        shadervars.hmap_blend_depth = get_ri_hmap_ps_static_params2().x;
+        shadervars.vertex_normal_amount = get_ri_hmap_ps_static_params().w;
+        return shadervars;
+      }
+
+      half applyAddSubBlend(half foreground, half background)
+      {
+        return saturate(background + foreground * 2.0 - 1.0);
+      }
+
+      half calcLandBlendKoef(RI_HMAP_BLEND_VS_TYPE vs_params, float3 worldPos, float3 worldNormal, float3 worldVertexNormal, half landWorldHeight)
+      {
+        RiHmapBlendShadervars shadervars = get_shadervars(vs_params);
+
+        //get noise for blending
+        half sidesBlendKoef = saturate(pow4(abs(worldNormal.x) + 0.5));
+        float2 perlin2d = tex3Dlod(perlin_noise3d, float4(worldPos * shadervars.perlin_tex_scale, 0)).rg;
+        half perlin = lerp(perlin2d.x, perlin2d.y, sidesBlendKoef);
+
+        //height above land
+        half height = abs(worldPos.y - landWorldHeight) / max(0.001, (1 - perlin * shadervars.blend_sharpness));
+        half hmap_blend_range = worldPos.y > landWorldHeight ? shadervars.hmap_blend_height : shadervars.hmap_blend_depth;
+        half height_blend_koef = saturate(height - hmap_blend_range);
+
+        //Compute influence of normals in blending
+        half texelNormalBlendCoef = worldNormal.y;
+        half vertexNormalBlendCoef = worldVertexNormal.y;
+        half normalBlendCoef = lerp(texelNormalBlendCoef, vertexNormalBlendCoef, shadervars.vertex_normal_amount);
+        half angleInfluenceBlend = saturate(normalBlendCoef * shadervars.angle_param_blend.x + shadervars.angle_param_blend.y);
+        half angleInfluenceNoise = saturate(texelNormalBlendCoef * shadervars.angle_param_noise.x + shadervars.angle_param_noise.y);
+
+        // Add influence of normals in noise for angles between minCos and maxCos
+        perlin *= lerp(4, 1, angleInfluenceNoise);
+
+        //Apply noise to blending
+        half land_blend_koef = applyAddSubBlend(height_blend_koef, perlin);
+
+        //Add influence of normals in blending
+        land_blend_koef = lerp(1, saturate(land_blend_koef), angleInfluenceBlend);
+
+        //Decrease inluence of normals with height growth
+        land_blend_koef *= step(texelNormalBlendCoef, land_blend_koef);
+
+        //Add minimal height of land on the mesh
+        if (shadervars.rcp_min_height > 0)
+          land_blend_koef *= pow2(saturate(height * shadervars.rcp_min_height));
+
+        return land_blend_koef;
+      }
+
+      void blend_with_landscape(inout UnpackedGbuffer gbuffer, float3 worldPos, float3 worldVertexNormal, float3 pointToEye,
+                                RI_HMAP_BLEND_VS_TYPE vs_params)
+      {
+        float3 worldNormal = gbuffer.normal;
+        float landWorldHeight = getWorldHeight(worldPos.xz);
+
+        half land_blend_koef = calcLandBlendKoef(vs_params, worldPos, worldNormal, worldVertexNormal, landWorldHeight);
+
+        float4 worldPosGradients = float4(ddx(worldPos.xz), ddy(worldPos.xz));
+        // make offset for vertical surfaces
+        // negative y axis is mirrored so that blend shading below hmap is the same as above
+        float3 worldPosMirrored = worldPos;
+        if (landWorldHeight - worldPos.y > 0)
+          worldPosMirrored.y += (landWorldHeight - worldPos.y ) * 2;
+        float verticalInfluence = smoothstep(0, 1, (landWorldHeight + 1.0f - worldPosMirrored.y));
+        float3 clipWorldPos = worldPosMirrored - verticalInfluence * (worldPosMirrored.y - landWorldHeight) * worldVertexNormal;
+        UvWithDerivates clipmapUv = clipmap_get_uv_and_derivates(clipWorldPos.xz);
+        UvWithDerivates microdetailsUv = microdetails_get_uv_and_derivates(clipWorldPos.xz);
+
+        float dd_mul = ri_hmap_ps_params.z;
+        worldPosGradients *= dd_mul;
+        mul_derivates(clipmapUv, dd_mul);
+        mul_derivates(microdetailsUv, dd_mul);
+
+        //TODO potential optimization: precalculating the land_blend_koef in VS, and if it's >1-eps return at the beginning of this function
+        BRANCH
+        if (land_blend_koef < 1)
+        {
+          UnpackedGbuffer result; //land is sampled into this, and then lerped to the inout params afterwards
+          init_gbuffer(result);
+          half2 clipNormalXY = 0;
+          DetailDesc detailNo;
+          float smooth_mip = 0; //no uav feedback
+          float emission = 0;
+
+          //sample clipmap
+          sample_clipmaps_no_grad(clipWorldPos.xz, worldPosGradients, result.albedo.rgb, clipNormalXY,
+                          result.smoothness, result.ao, result.reflectance, emission, detailNo, smooth_mip,
+                          clipmapUv);
+          init_normal(result, restore_normal(clipNormalXY));
+
+          result.normal = RNM_ndetail_normalized(half3(0,1,0), result.normal);
+          float dist = length(pointToEye);
+          float3 pointToEyeNorm = pointToEye * rcp(dist);
+          half3 verticalNormal = worldNormal;
+          half3 clipmapColor;
+          half porosity, sparkles, normalWetness;
+          float wetness;
+          calculateHeightmapDetails(result, detailNo, worldPos, verticalNormal, pointToEyeNorm,
+                                    clipNormalXY, clipmapColor, porosity, sparkles, normalWetness, wetness);
+          // No snow sparkles for speed
+          //computeSnowSparkle(clipWorldPos, world_view_pos, sparkles, result.normal, result.smoothness);
+          calculateHeightmapMicrodetails_no_grad(result, detailNo, microdetailsUv, worldPos, verticalNormal, clipNormalXY,
+                                          porosity, normalWetness, wetness);
+          // No SELFIULLUM, shader is already slow and low on samplers.
+          // SET_LAND_SELFILLUM_PARAMS(clipmapColor.rgb, result, worldPos, detailNo)
+
+          result.normal.xzy = RNM_ndetail_normalized(normalize(lerp(float3(0,0,1), worldVertexNormal.xzy, land_blend_koef)), result.normal.xzy);
+
+          init_albedo(gbuffer, lerp(result.albedo.rgb, gbuffer.albedo.rgb, land_blend_koef));
+          init_normal(gbuffer, normalize(lerp(result.normal, gbuffer.normal, land_blend_koef)));
+          init_ao(gbuffer, lerp(result.ao, gbuffer.ao, land_blend_koef));
+          init_smoothness(gbuffer, lerp(result.smoothness, gbuffer.smoothness, land_blend_koef));
+          init_reflectance(gbuffer, lerp(result.reflectance, gbuffer.reflectance, land_blend_koef));
+          init_metalness(gbuffer, lerp(result.metalness, 0, land_blend_koef));
+        }
+      }
+    }
+  }
+  else
+  {
+    hlsl (ps)
+    {
+      #define blend_with_landscape(gbuffer, worldPos, worldVertexNormal, pointToEye, vs_params)
+    }
+  }
+endmacro

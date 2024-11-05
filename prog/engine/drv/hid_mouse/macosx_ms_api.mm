@@ -1,7 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #import <Cocoa/Cocoa.h>
 #include <osApiWrappers/setProgGlobals.h>
 #include "api_wrappers.h"
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <debug/dag_debug.h>
 #include <math/dag_Point2.h>
 

@@ -1,6 +1,5 @@
-#include <gui/dag_baseCursor.h>
-#include <gui/dag_guiGlobNameMap.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-IGenGuiCursor *gui_cursor = NULL;
+#include <gui/dag_baseCursor.h>
 
 INSTANTIATE_SMART_NAMEID(GuiNameId);

@@ -1,0 +1,637 @@
+int4 world_sdf_res;
+int4 world_sdf_res_np2;
+int4 world_sdf_coord_lt_0;
+int4 world_sdf_coord_lt_1;
+int4 world_sdf_coord_lt_2;
+int4 world_sdf_coord_lt_3;
+int4 world_sdf_coord_lt_4;
+int4 world_sdf_coord_lt_5;
+int4 world_sdf_coord_lt_6;
+int4 world_sdf_coord_lt_7;
+float4 world_sdf_lt_0;
+float4 world_sdf_lt_1;
+float4 world_sdf_lt_2;
+float4 world_sdf_lt_3;
+float4 world_sdf_lt_4;
+float4 world_sdf_lt_5;
+float4 world_sdf_lt_6;
+float4 world_sdf_lt_7;
+float4 world_sdf_lt_invalid;
+float4 world_sdf_inv_size;
+float4 world_sdf_to_tc_add_0;
+float4 world_sdf_to_tc_add_1;
+float4 world_sdf_to_tc_add_2;
+float4 world_sdf_to_tc_add_3;
+float4 world_sdf_to_tc_add_4;
+float4 world_sdf_to_tc_add_5;
+float4 world_sdf_to_tc_add_6;
+float4 world_sdf_to_tc_add_7;
+float4 world_sdf_to_tc_add_invalid;
+
+texture world_sdf_clipmap;
+
+macro WORLD_SDF_RES_MATH(code)
+  (code) {
+    world_sdf_res@i4 = world_sdf_res;
+  }
+  hlsl(code) {
+    uint3 world_sdf_get_res() {return world_sdf_res.xxy;}
+    uint world_sdf_num_cascades() {return world_sdf_res.w;}
+    uint3 get_world_sdf_coord_cascade_offset(uint cascade)
+    {
+      return uint3(0,0, 1 + uint(world_sdf_res.z)*cascade);
+    }
+  }
+endmacro
+
+macro READ_WORLD_SDF_MATH_INIT(code)
+  (code) {
+    world_sdf_lt@f4[] = {world_sdf_lt_0, world_sdf_lt_1, world_sdf_lt_2, world_sdf_lt_3, world_sdf_lt_4, world_sdf_lt_5, world_sdf_lt_6, world_sdf_lt_7, world_sdf_lt_invalid};
+
+    world_sdf_to_atlas_decode@f3 = (world_sdf_inv_size.w, world_sdf_inv_size.w*world_sdf_inv_size.y*(1./max(world_sdf_inv_size.y,0.00000001) + 2), world_sdf_inv_size.z, 0 );
+
+    world_sdf_gradient_offset@f2 = (0.5*world_sdf_inv_size.x, 0.5*world_sdf_inv_size.z,0,0);
+
+    //world_sdf_z_tc_decode_encode@f4 = (1./world_sdf_inv_size.y, -0.5, world_sdf_inv_size.y, 0.5*world_sdf_inv_size.y);
+    world_sdf_to_tc_add@f4[] = {world_sdf_to_tc_add_0, world_sdf_to_tc_add_1, world_sdf_to_tc_add_2, world_sdf_to_tc_add_3, world_sdf_to_tc_add_4, world_sdf_to_tc_add_5, world_sdf_to_tc_add_6, world_sdf_to_tc_add_7, world_sdf_to_tc_add_invalid};
+  }
+endmacro
+macro READ_WORLD_SDF_MATH_USE(code)
+  hlsl(code) {
+    #include <world_sdf.hlsli>
+    #define sample_world_sdf_lt(clip) _sample_world_sdf_lt(clip, _FILE_, __LINE__)
+    float4 _sample_world_sdf_lt(uint clip, int file, int ln)
+    {
+      // 9 is hardcoded currently. TODO: support array size in preshader for such checks.
+      ##assert(clip < 9, "[%s:%.f] Out of bounds: Buffer 'world_sdf_lt' has size 9, but access to (%.f)", file, ln, clip);
+      return world_sdf_lt[clip];
+    }
+    #define sample_world_sdf_to_tc_add(clip) _sample_world_sdf_to_tc_add(clip, _FILE_, __LINE__)
+    float4 _sample_world_sdf_to_tc_add(uint clip, int file, int ln)
+    {
+      // 9 is hardcoded currently. TODO: support array size in preshader for such checks.
+      ##assert(clip < 9, "[%s:%.f] Out of bounds: Buffer 'world_sdf_to_tc_add' has size 9, but access to (%.f)", file, ln, clip);
+      return world_sdf_to_tc_add[clip];
+    }
+    float2 get_decode_world_sdf_distance(uint clip)
+    {
+      return float2(2,-1)*(sample_world_sdf_lt(clip).w*MAX_WORLD_SDF_VOXELS_BAND);
+    }
+    float world_sdf_voxel_size(uint clip) {return sample_world_sdf_lt(clip).w;}
+    float decode_world_sdf_distance(uint clip, float a)
+    {
+      float2 dec = get_decode_world_sdf_distance(clip);
+      return a*dec.x + dec.y;
+    }
+    float3 world_pos_to_world_sdf_tc(uint clip, float3 worldPos)
+    {
+      return worldPos.xzy*sample_world_sdf_to_tc_add(clip).xyz;
+      //float invVoxelSize = world_sdf_to_tc_add[clip].w;
+      //return (worldPos.xzy/float3(world_sdf_res.xyz))*invVoxelSize + 0.5;
+    }
+    float3 world_sdf_clip_tc_to_atlas_tc_decoded(float2 decode, float3 tc)
+    {
+      float ftcZ = frac(tc.z);
+      return float3(tc.xy, ftcZ*decode.x + decode.y);
+    }
+    float2 world_sdf_clip_tc_to_atlas_tc_decoder(uint clip)
+    {
+      return float2(world_sdf_to_atlas_decode.x, clip*world_sdf_to_atlas_decode.y + world_sdf_to_atlas_decode.z);
+    }
+    float3 world_sdf_clip_tc_to_atlas_tc(uint clip, float3 tc)
+    {
+      return world_sdf_clip_tc_to_atlas_tc_decoded(world_sdf_clip_tc_to_atlas_tc_decoder(clip), tc);
+    }
+    bool world_sdf_is_inside_clip(uint i, float3 worldPos, float voxelAround = 0)
+    {
+      float3 b0 = sample_world_sdf_lt(i).xyz + voxelAround*sample_world_sdf_lt(i).w,
+             b1 = sample_world_sdf_lt(i).xyz + sample_world_sdf_lt(i).w*float3(world_sdf_res.xyx-voxelAround);
+      return all(and(worldPos > b0, worldPos < b1));
+    }
+    uint world_sdf_find_clip(float3 worldPos, float voxelAround = 1, uint startClip = 0)
+    {
+      uint i = startClip;
+      LOOP
+      do
+      {
+        // todo: use explicit const for that
+        // we use decreased by voxel size sdf, so gradients are not broken. If we don't need gradients, we can decrease by just half voxel (trilinear filtering)
+        float3 b0 = sample_world_sdf_lt(i).xyz + voxelAround*sample_world_sdf_lt(i).w, b1 = sample_world_sdf_lt(i).xyz + sample_world_sdf_lt(i).w*float3(world_sdf_res.xyx-(voxelAround+1));//limit by full texel from each side, so gradient works correctly
+        if (all(and(worldPos > b0, worldPos < b1)))
+          return i;
+        ++i;// moving that to while () causes invalid sahder compilation on dx11
+      } while (i < world_sdf_num_cascades());
+      return MAX_WORLD_SDF_CLIPS;
+    }
+    bool world_sdf_box_inside_sdf(float3 bmin, float3 bmax)
+    {
+      float4 lt = sample_world_sdf_lt(world_sdf_num_cascades() - 1);
+      float3 b0 = lt.xyz + lt.w, b1 = lt.xyz + lt.w*float3(world_sdf_res.xyx-1);//limit by full texel from each side, so gradient works correctly
+      return all(and(bmin >= b0, bmax <= b1));
+    }
+    float world_sdf_get_surface_bias_from_voxel(float voxelSize) {return .5*voxelSize;}
+    float world_sdf_get_surface_bias(uint clip) {return world_sdf_get_surface_bias_from_voxel(world_sdf_voxel_size(clip));}
+    float3 world_sdf_get_lt(uint clip) {return sample_world_sdf_lt(clip).xyz;}
+    float3 world_sdf_get_rb(uint clip) {return sample_world_sdf_lt(clip).xyz + sample_world_sdf_lt(clip).w*world_sdf_res.xyx;}
+  }
+endmacro
+
+macro READ_WORLD_SDF_MATH(code)
+  WORLD_SDF_RES_MATH(code)
+  READ_WORLD_SDF_MATH_INIT(code)
+  READ_WORLD_SDF_MATH_USE(code)
+endmacro
+
+macro READ_WORLD_SDF_INIT(code)
+  (code) {
+    world_sdf_clipmap@smp3d = world_sdf_clipmap;
+  }
+endmacro
+
+macro READ_WORLD_SDF_USE(code)
+  hlsl(code) {
+    float sample_world_sdf_value_atlas_tc(float3 tc)
+    {
+      return tex3Dlod(world_sdf_clipmap, float4(tc, 0)).x;
+    }
+    float sample_world_sdf_value_clip_tc(uint clip, float3 tc)
+    {
+      return sample_world_sdf_value_atlas_tc(world_sdf_clip_tc_to_atlas_tc(clip, tc));
+    }
+    float sample_world_sdf_distance_atlas_tc(float3 tc, float2 decode)
+    {
+      return sample_world_sdf_value_atlas_tc(tc).x*decode.x + decode.y;
+    }
+    float sample_world_sdf_distance_clip_tc(uint clip, float3 tc, float2 decode)
+    {
+      return sample_world_sdf_value_clip_tc(clip, tc)*decode.x + decode.y;
+    }
+    float sample_world_sdf_distance(uint clip, float3 worldPos)
+    {
+      return sample_world_sdf_distance_clip_tc(clip, world_pos_to_world_sdf_tc(clip, worldPos), get_decode_world_sdf_distance(clip));
+    }
+    float sample_world_sdf_value(uint clip, float3 worldPos)
+    {
+      return sample_world_sdf_value_clip_tc(clip, world_pos_to_world_sdf_tc(clip, worldPos));
+    }
+    float3 world_sdf_sample_gradient_with_atlas_tc(float3 tc)
+    {
+      float2 offset = world_sdf_gradient_offset.xy;
+      float R = tex3Dlod(world_sdf_clipmap, float4(tc.x - offset.x, tc.yz, 0)).x;
+      float L = tex3Dlod(world_sdf_clipmap, float4(tc.x + offset.x, tc.yz, 0)).x;
+      float F = tex3Dlod(world_sdf_clipmap, float4(tc.x, tc.y - offset.x,tc.z, 0)).x;
+      float B = tex3Dlod(world_sdf_clipmap, float4(tc.x, tc.y + offset.x,tc.z, 0)).x;
+      float U = tex3Dlod(world_sdf_clipmap, float4(tc.xy, tc.z - offset.y, 0)).x;
+      float D = tex3Dlod(world_sdf_clipmap, float4(tc.xy, tc.z + offset.y, 0)).x;
+      return float3(R - L, F - B, U - D);
+    }
+    float3 world_sdf_sample_gradient_with_tc(uint clip, float3 clipTc)
+    {
+      float3 tc = clipTc;
+      float ftcZ = frac(clipTc.z);
+      float2 decodeTc = world_sdf_clip_tc_to_atlas_tc_decoder(clip);
+      tc.z = ftcZ*decodeTc.x + decodeTc.y;
+      return world_sdf_sample_gradient_with_atlas_tc(tc);
+    }
+    float3 world_sdf_sample_gradient(uint clip, float3 worldPos)
+    {
+      return world_sdf_sample_gradient_with_tc(clip, world_pos_to_world_sdf_tc(clip, worldPos));
+    }
+
+    bool world_sdf_trace_clip(
+      uint clip,
+      float3 rayStart,
+      float3 rayDir,
+      inout float minT,
+      float maxT,
+      out float t,
+      float stepBiasK = 1,
+      bool reflectionRay = false)
+    {
+      const int MAX_WORLD_SDF_STEPS = 256;
+      float surfaceBias = world_sdf_get_surface_bias(clip);
+      float maxEncodedDist = sample_world_sdf_lt(clip).w * MAX_WORLD_SDF_VOXELS_BAND;
+
+      //customization.
+      float minStepDistance = .25*sample_world_sdf_lt(clip).w;//don't step less than 0.25 voxel
+      float distanceStepBias = stepBiasK*surfaceBias;
+      //-customization
+
+      int i = 0;
+      float atT = minT;
+      float3 rayStartTc = world_pos_to_world_sdf_tc(clip, rayStart);
+      float3 rayDirTc = (world_pos_to_world_sdf_tc(clip, rayStart + rayDir*maxT) - rayStartTc)/maxT;
+      float2 decode = get_decode_world_sdf_distance(clip);
+      float maxSurfaceDistance = 0;
+      LOOP
+      for (; i < MAX_WORLD_SDF_STEPS; ++i)
+      {
+        float3 atlasTC = world_sdf_clip_tc_to_atlas_tc(clip, rayStartTc + rayDirTc*atT);
+        float distance = sample_world_sdf_value_atlas_tc(atlasTC)*decode.x + decode.y;
+        //this is more accurate, as it is with tri-linear filtering across clips border
+        //float distance = sample_world_sdf_value_safe_clip_tc(clip, rayStartTc + rayDirTc*atT)*decode.x + decode.y;
+        maxSurfaceDistance = max(maxSurfaceDistance, distance);//avoid self occlusion in reflections
+        float expandSurfaceT = reflectionRay ? maxSurfaceDistance : atT;//
+        float expandSurfaceFalloff = 2.0f * surfaceBias;
+        float expandSurfaceAmount = surfaceBias * saturate(expandSurfaceT / expandSurfaceFalloff);
+        if (distance < expandSurfaceAmount)
+        {
+          t = max(atT + distance - expandSurfaceAmount, minT);
+          return true;
+        }
+
+        atT += max(distance - distanceStepBias, minStepDistance);
+        if (atT >= maxT)
+          break;
+      }
+      t = max(atT, minT);
+      minT = max(minT, atT - sample_world_sdf_lt(clip).w);//step back one voxel size, as coarse clip will probably have intersection earlier
+      return false;
+    }
+
+    #include <ray_box_intersect.hlsl>
+    bool world_sdf_trace_start(uint start,
+      float3 rayStart,
+      float3 rayDir,
+      float maxT,
+      out float t,
+      inout uint clip,
+      float stepBiasK = 1,
+      float minT = 0,
+      bool reflectionRay = false)
+    {
+      t = 0;
+      uint i = start;
+      bool ret;
+      LOOP
+      for(;;)
+      {
+        // todo: use explicit const for that
+        // we use decreased by voxel size sdf, so gradients are not broken. If we don't need gradients, we can decrease by just half voxel (trilinear filtering)
+        // todo: we can find better intersection, but than use gradient in different mip (find clip again, it can only be this one or above, so shouldn't be expensive)
+        float3 b0 = sample_world_sdf_lt(i).xyz + sample_world_sdf_lt(i).w, b1 = sample_world_sdf_lt(i).xyz + sample_world_sdf_lt(i).w*float3(world_sdf_res.xyx-2);//limit by full texel from each side, so gradient works correctly
+        if (all(and(rayStart > b0, rayStart < b1))) // this check is required if not all clips are nested
+        {
+          float2 dd = rayBoxIntersect(b0, b1, rayStart, rayDir);
+          float endAt = min(maxT, dd.y);
+          if (world_sdf_trace_clip(i, rayStart, rayDir, minT, endAt, t, stepBiasK, reflectionRay))
+          {
+            clip = i;
+            ret = true;
+            break;
+          }
+        }
+        ++i;// moving that to while () causes invalid sahder compilation on dx11
+        if (i >= world_sdf_num_cascades() || minT >= maxT)
+        {
+          t = min(minT, maxT);
+          ret = false;
+          break;
+        }
+      }
+      return ret;
+    }
+
+    bool world_sdf_trace(
+      float3 rayStart,
+      float3 rayDir,
+      float maxT,
+      inout float t,   //only correct when ret true
+      inout uint clip, //only correct when ret true
+      float stepBiasK = 1,
+      bool reflectionRay = false)
+    {
+      uint i = world_sdf_find_clip(rayStart);//to reduce divirgence between threads
+      return i < MAX_WORLD_SDF_CLIPS ? world_sdf_trace_start(i, rayStart, rayDir, maxT, t, clip, stepBiasK, 0, reflectionRay) : false;
+    }
+
+    float inside_point_distance_to_box(float3 bmin, float3 bmax, float3 p)
+    {
+      float3 closest = min(max(bmax - p, 0), max(p - bmin, 0));
+      return min3(closest.x, closest.y, closest.z);
+    }
+    float max_dist_to_box_sq(float3 bmin, float3 bmax, float3 p)
+    {
+      float3 diff = max(max(p - bmin, bmax - p), 0);
+      return dot(diff, diff);
+    }
+    //this is not accurate, as we can intersect
+    float world_sdf_distance_to_nearest_surface(out uint i, float3 worldPos, uint start_clip = 0, float bias_in_voxels = 0.5, float voxelsAround = 1)
+    {
+      i = start_clip;
+      float voxelSize;
+      float3 b0, b1;
+      LOOP
+      do
+      {
+        voxelSize = sample_world_sdf_lt(i).w;
+        b0 = sample_world_sdf_lt(i).xyz + voxelSize*voxelsAround;
+        b1 = sample_world_sdf_lt(i).xyz + voxelSize*(world_sdf_res.xyx-voxelsAround);
+        if (all(and(worldPos > b0, worldPos < b1)))//otherwise distance is clamped
+        {
+          float value = sample_world_sdf_value(i, worldPos);
+          if (value < 1.0f)//otherwise distance is unknown!
+            return max(0, (2*MAX_WORLD_SDF_VOXELS_BAND * value - MAX_WORLD_SDF_VOXELS_BAND - bias_in_voxels)*voxelSize);//decode distance in two alu
+        }
+        ++i;// moving that to while () causes invalid sahder compilation on dx11
+      } while (i < world_sdf_num_cascades());
+      //distance to any surface is no more than distance to far side of biggest clipmap
+      i = MAX_WORLD_SDF_CLIPS;
+      return sqrt(max_dist_to_box_sq(b0, b1, worldPos));
+    }
+
+    //find if we are in close enough proximity
+    bool world_sdf_closer_to_nearest_surface_than_threshold(float3 worldPos, float threshold_distance, uint start_clip = 0, float voxelsAround = 0.5)
+    {
+      uint i = start_clip;
+      bool ret = false;
+      do
+      {
+        float voxelSize = sample_world_sdf_lt(i).w;
+        float3 b0 = sample_world_sdf_lt(i).xyz + voxelSize*voxelsAround;
+        float3 b1 = sample_world_sdf_lt(i).xyz + voxelSize*(world_sdf_res.xyx-voxelsAround);
+        if (all(and(worldPos > b0, worldPos < b1)))//otherwise distance is clamped
+        {
+          float value = sample_world_sdf_value(i, worldPos);
+          float valueMeters = (2*MAX_WORLD_SDF_VOXELS_BAND * value - MAX_WORLD_SDF_VOXELS_BAND)*voxelSize;
+          if (value < 1.0f && valueMeters <= threshold_distance)//otherwise distance is unknown!
+          {
+            ret = true;
+            break;
+          } else if (valueMeters > threshold_distance)
+            break;
+          //else: unknown distance
+        }
+        ++i;// moving that to while () causes invalid sahder compilation on dx11
+      } while (i < world_sdf_num_cascades());
+      return ret;
+    }
+
+    //https://iquilezles.org/articles/rmshadows/
+    #define IMPROVED_SHADOW 0 // 0 - simple and thicker shadows, 1 - more improved (Seb Aaltonen) (but thinner) shadows
+
+    #ifndef IMPROVED_SHADOW
+    #define IMPROVED_SHADOW 0 // more correct soft thin shadows. requires temporal ss
+    #endif
+
+    #ifndef THICKER_SHADOW
+      #if IMPROVED_SHADOW
+      #define THICKER_SHADOW 0
+      #else
+      #define THICKER_SHADOW 1
+      #endif
+    #endif
+
+    void world_sdf_trace_clip_softshadow(
+      uint clip,
+      float3 rayStart,
+      float3 rayDir,
+      inout float minT,
+      float maxT,
+      out float t,
+      inout float ret,
+      float k = 8)
+    {
+
+      #if IMPROVED_SHADOW
+        k *= 0.5;
+      #endif
+      const int MAX_WORLD_SDF_STEPS = 256;
+      float surfaceBias = .5*sample_world_sdf_lt(clip).w;
+      float maxEncodedDist = sample_world_sdf_lt(clip).w * MAX_WORLD_SDF_VOXELS_BAND;
+
+      //customization.
+      bool reflectionRay = false;
+      float minStepDistance = .25*sample_world_sdf_lt(clip).w;//don't step less than 0.25 voxel
+      #if IMPROVED_SHADOW
+      float distanceStepBias = surfaceBias;
+      #else
+      float distanceStepBias = 0;
+      #endif
+      //-customization
+
+      int i = 0;
+      float ph = 1e6;
+      float atT = minT;
+      float3 rayStartTc = world_pos_to_world_sdf_tc(clip, rayStart);
+      float3 rayDirTc = (world_pos_to_world_sdf_tc(clip, rayStart + rayDir*maxT) - rayStartTc)/maxT;
+      float2 decode = get_decode_world_sdf_distance(clip);
+      float maxSurfaceDistance = 0;
+      LOOP
+      for (; i < MAX_WORLD_SDF_STEPS; ++i)
+      {
+        float distance = sample_world_sdf_distance_clip_tc(clip, rayStartTc + rayDirTc*atT, decode);
+        maxSurfaceDistance = max(maxSurfaceDistance, distance);//avoid self occlusion in reflections
+        float expandSurfaceT = reflectionRay ? maxSurfaceDistance : atT;//
+        float expandSurfaceFalloff = 2.0f * surfaceBias;
+        float expandSurfaceAmount = surfaceBias * saturate(expandSurfaceT / expandSurfaceFalloff);
+        #if THICKER_SHADOW
+        if (distance <= expandSurfaceAmount + 0.001)
+        {
+          t = max(atT + distance - expandSurfaceAmount, minT);
+          ret = 0;
+          return;
+        }
+        #endif
+        #if IMPROVED_SHADOW
+        {
+          float hd = distance;
+          float y = hd*hd/(2.0*ph);
+          float d = sqrt(max(0.00001, hd*hd - y*y));
+          #if THICKER_SHADOW
+          d = d - expandSurfaceAmount;
+          #endif
+          ret = min( ret, d * k / (max(0.001, min(atT, maxEncodedDist) - y)) );
+          ph = distance;
+        }
+        #else
+          #if THICKER_SHADOW
+            ret = min( ret, k*(distance-expandSurfaceAmount)/min(atT, maxEncodedDist-expandSurfaceAmount));
+          #else
+            ret = min( ret, k*(distance)/min(atT, maxEncodedDist));
+          #endif
+        #endif
+
+        atT += max(distance - distanceStepBias, minStepDistance);
+        if (atT >= maxT || ret <= 0.001)
+          break;
+      }
+      t = max(minT, atT);
+      minT = max(minT, atT - sample_world_sdf_lt(clip).w);//step back one voxel size, as coarse clip will probably have intersection earlier
+    }
+
+    float world_sdf_trace_softshadow(uint start,
+      float3 rayStart,
+      float3 worldNormal,
+      float3 rayDir,
+      float maxT,
+      out float t,
+      float normalStepVoxels,
+      float rayStepVoxels,
+      float k,
+      float borderVoxels = 0.5)
+    {
+      float ret = 1.0;
+      float minT = 0;
+      t = 0;
+      uint i = start;
+      LOOP
+      do
+      {
+        // todo: use explicit const for that
+        // we use decreased by voxel size sdf, so gradients are not broken. If we don't need gradients, we can decrease by just half voxel (trilinear filtering)
+        // todo: we can find better intersection, but than use gradient in different mip (find clip again, it can only be this one or above, so shouldn't be expensive)
+        float3 b0 = sample_world_sdf_lt(i).xyz + borderVoxels*sample_world_sdf_lt(i).w, b1 = sample_world_sdf_lt(i).xyz + sample_world_sdf_lt(i).w*float3(world_sdf_res.xyx - (borderVoxels+1));//limit by 0.5 texel from each side, we dont need gradients
+        rayStart += max(0, normalStepVoxels*sample_world_sdf_lt(i).w - minT*0.125)*worldNormal + max(0, rayStepVoxels*sample_world_sdf_lt(i).w - minT*0.125)*rayDir;
+        if (all(and(rayStart > b0, rayStart < b1)))
+        {
+          float2 dd = rayBoxIntersect(b0, b1, rayStart, rayDir);
+          float endAt = min(maxT, dd.y);
+          world_sdf_trace_clip_softshadow(i, rayStart, rayDir, minT, endAt, t, ret, k);
+        }
+        ++i;// moving that to while () causes invalid sahder compilation on dx11
+      } while (ret > 0.001 && minT < maxT && i < world_sdf_num_cascades());
+      return max(0, ret);
+    }
+
+    float world_sdf_trace_shadow(
+      float3 rayStart,
+      float3 rayDir,
+      float maxT,
+      inout float t,
+      float normalStepVoxels,
+      float rayStepVoxels,
+      float k = 8,
+      float dither = 0,
+      float borderVoxels = 4)
+    {
+      // + 1 as we need gradient for normal
+      uint i = world_sdf_find_clip(rayStart, dither*borderVoxels + 1);//to reduce divirgence between threads
+      if (i >= MAX_WORLD_SDF_CLIPS)
+        return 1;
+      rayStart += rayDir*(0.5*sample_world_sdf_lt(i).w*dither);
+      float3 gradient = world_sdf_sample_gradient(i, rayStart);
+      float gradLen = length(gradient);
+      float3 worldNormal = 0;
+      if (gradLen > 0)
+        worldNormal = -gradient.xzy/gradLen;
+
+      return world_sdf_trace_softshadow(i, rayStart, worldNormal, rayDir, maxT, t,
+        normalStepVoxels,
+        rayStepVoxels,
+        k,
+        (dither*borderVoxels+0.5));
+    }
+
+  }
+endmacro
+
+macro WORLD_SDF_STEP_OUT(code)
+  hlsl(code) {
+    #ifndef WORLD_SDF_STEP_OUT
+    #define WORLD_SDF_STEP_OUT 1
+
+    bool world_sdf_step_out_clip_unsafe_flatten(inout float3 worldPos, float sdfVoxelSize, uint clip, float eps)
+    {
+      float distance = sample_world_sdf_distance(clip, worldPos);
+      //float value = sample_world_sdf_value(clip, worldPos);
+      //float distance = (2*MAX_WORLD_SDF_VOXELS_BAND * value - MAX_WORLD_SDF_VOXELS_BAND)*sdfVoxelSize;
+      float cEps = eps;
+      FLATTEN
+      if (distance < cEps)//value < 1 &&
+      {
+        float3 gradient = world_sdf_sample_gradient(clip, worldPos);
+        float gradLen = length(gradient);
+        FLATTEN
+        if (gradLen > 1e-6)
+        {
+          worldPos += -gradient.xzy * ((cEps-distance)/gradLen);
+        }
+      }
+      return true;
+    }
+
+    bool world_sdf_collide_probe(inout float3 worldPos, float radius, uint startClip = 0)
+    {
+      startClip = world_sdf_find_clip(worldPos, 1, startClip);
+      BRANCH
+      if (startClip >= MAX_WORLD_SDF_CLIPS)
+        return false;
+
+      float3 originalWorldPos = worldPos;
+      float radiusSq = radius*radius;
+      {
+        uint useClip = min(startClip, uint(world_sdf_num_cascades()-1));
+        float voxelSize = world_sdf_voxel_size(useClip);
+        world_sdf_step_out_clip_unsafe_flatten(worldPos, voxelSize, useClip, min(0.5*radius, voxelSize));
+      }
+
+      while (++startClip < world_sdf_num_cascades())
+      {
+        float4 lt = sample_world_sdf_lt(startClip);
+        float sdfVoxelSize = lt.w;
+        if (sdfVoxelSize >= radius)
+          break;
+        //two iterations
+        float ofs = min(0.5*radius, sdfVoxelSize);
+        float3 rb = lt.xyz + lt.w*world_sdf_res.xyx;
+        float3 clamped;
+        clamped = clamp(worldPos, lt.xyz, rb.xyz);
+        FLATTEN
+        if (all (worldPos == clamped))
+        {
+          world_sdf_step_out_clip_unsafe_flatten(clamped, sdfVoxelSize, startClip, ofs);
+          worldPos = clamped;
+        }
+        //worldPos = clamp(worldPos, lt.xyz, rb.xyz);
+        clamped = clamp(worldPos, lt.xyz, rb.xyz);
+        FLATTEN
+        if (all (worldPos == clamped))
+        {
+          world_sdf_step_out_clip_unsafe_flatten(clamped, sdfVoxelSize, startClip, ofs);
+          worldPos = clamped;
+        }
+
+        if (dot(worldPos - originalWorldPos, worldPos - originalWorldPos) >= radiusSq)
+        {
+          worldPos = originalWorldPos + normalize(worldPos - originalWorldPos)*radius;
+          break;
+        }
+      }
+      return true;
+    }
+
+    bool world_sdf_step_out_clip_unsafe(inout float3 worldPos, uint clip, float eps = 0.01, float voxel_eps = 0)
+    {
+      float distance = sample_world_sdf_distance(clip, worldPos);
+      float cEps = max(voxel_eps*world_sdf_voxel_size(clip), eps);
+      if (distance < cEps)
+      {
+        float3 gradient = world_sdf_sample_gradient(clip, worldPos);
+        float gradLen = length(gradient);
+        FLATTEN
+        if (gradLen > 1e-6)//todo: else sample higher clip?
+        {
+          worldPos += -gradient.xzy * ((cEps-distance)/gradLen);
+        }
+      }
+      return true;
+    }
+    bool world_sdf_step_out_clip(inout float3 worldPos, uint clip, float eps = 0.01, float voxel_eps = 0)
+    {
+      return clip < MAX_WORLD_SDF_CLIPS && world_sdf_step_out_clip_unsafe(worldPos, clip, eps, voxel_eps);
+    }
+    bool world_sdf_step_out(inout float3 worldPos, out int clip, float eps = 0.01, float voxel_eps = 0)
+    {
+      clip = world_sdf_find_clip(worldPos);//to reduce divirgence between threads
+      return world_sdf_step_out_clip(worldPos, clip, eps, voxel_eps);
+    }
+    #endif
+  }
+endmacro
+
+macro READ_WORLD_SDF(code)
+  READ_WORLD_SDF_MATH(code)
+  READ_WORLD_SDF_INIT(code)
+  READ_WORLD_SDF_USE(code)
+endmacro

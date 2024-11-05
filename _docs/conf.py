@@ -41,26 +41,41 @@ extensions = [
   'quirrel_pygment_lexer',
   'sphinx-design',
   'breathe',
-  'dascript',
+  'daslang',
   'sphinx.ext.duration',
   'sphinx.ext.autodoc',
   'sphinx.ext.autosummary',
   'sphinx.ext.viewcode',
+  'sphinx_markdown_tables',
+  'hoverxref.extension',
+  'versionwarning.extension',
+  'sphinx_copybutton',
 ]
 
-source_suffix = {
-    '.rst': 'restructuredtext',
-#    '.txt': 'restructuredtext',
-    '.md': 'markdown',
-}
+myst_enable_extensions = [
+    "amsmath",
+    "attrs_inline",
+    "colon_fence",
+    "deflist",
+    "dollarmath",
+    "fieldlist",
+    "html_admonition",
+    "html_image",
+    "linkify",
+    "replacements",
+    "smartquotes",
+    "strikethrough",
+    "substitution",
+    "tasklist",
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
-# source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = ['.rst', '.md']
+# source_suffix = '.rst'
 
 # The encoding of source files.
 #source_encoding = 'utf-8-sig'
@@ -69,7 +84,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Dagor documentation'
+project = u'Dagor Documentation'
 copyright = 'Gaijin Entertainment %s' % time.strftime('%Y')
 author = u'Gaijin Entertainment'
 
@@ -133,7 +148,9 @@ html_theme = 'sphinx_rtd_theme'
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-#html_theme_options = {}
+html_theme_options = {
+    'navigation_depth': -1,
+}
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []
@@ -147,7 +164,7 @@ html_theme = 'sphinx_rtd_theme'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = 'gaijin.png'
+html_logo = 'gaijin_round_blur.png'
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -158,6 +175,12 @@ html_favicon = 'gaijin.ico'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# These paths are either relative to html_static_path
+# or fully qualified paths (eg. https://...)
+html_css_files = [
+    'custom.css',
+]
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -307,7 +330,7 @@ def setup(app):
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
-myst_heading_anchors = 3
+myst_heading_anchors = 7
 
 rst_prolog = """
 
@@ -318,22 +341,7 @@ rst_prolog = """
    :language: cpp
 
 """
-myst_enable_extensions = [
-#    "todo",
-    "amsmath",
-    "colon_fence",
-    "deflist",
-    "dollarmath",
-    "fieldlist",
-    "html_admonition",
-    "html_image",
-#    "linkify",
-    "replacements",
-    "smartquotes",
-    "strikethrough",
-    "substitution",
-    "tasklist",
-]
+
 
 # -- Options for breathe -----------------------------------------------------
 
@@ -347,6 +355,7 @@ breathe_build_directory = '_build'
 
 breathe_projects = {
     'd3dAPI' : '_build/breathe/doxygen/d3dAPI/xml',
+    'd3dHelpers' : '_build/breathe/doxygen/d3dHelpers/xml',
     'daBFG' : '_build/breathe/doxygen/daBFG/xml',
     'resourceSlot' : '_build/breathe/doxygen/resourceSlot/xml',
 }
@@ -355,12 +364,11 @@ def get_headers(path):
     return path, [filename for filename in os.listdir(path) if filename.endswith(".h")]
 
 breathe_projects_source = {
-    'd3dAPI': (os.path.join(dagor_prog_root, 'dagorInclude/3d'), [
-        'dag_drv3d_buffers.h',
-        'dag_drv3d.h',
-        'dag_drv3dConsts.h',
-        'dag_tex3d.h',
+    'd3dAPI': get_headers(os.path.join(dagor_prog_root, 'dagorInclude/drv/3d')),
+    'd3dHelpers': (os.path.join(dagor_prog_root, 'dagorInclude/3d'), [
         'dag_multidrawContext.h',
+        'dag_resMgr.h',
+        'dag_texMgr.h',
     ]),
     "daBFG": get_headers(os.path.join(dagor_prog_root, 'gameLibs/publicInclude/render/daBfg')),
     "resourceSlot": get_headers(os.path.join(dagor_prog_root, 'gameLibs/publicInclude/render/resourceSlot')),
@@ -459,5 +467,5 @@ breathe_doxygen_config_options = {
     'MACRO_EXPANSION': 'YES',
     # Omitting the __restrict specifier from documentation is BAD,
     # but we have to do it because breathe doesn't seem to support it.
-    'PREDEFINED': 'DOXYGEN declare_new(x)= __restrict=',
+    'PREDEFINED': 'DOXYGEN declare_new(x)= __restrict= __forceinline=',
 }

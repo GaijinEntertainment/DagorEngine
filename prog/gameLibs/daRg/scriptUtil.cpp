@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "scriptUtil.h"
 #include "guiScene.h"
 #include "elementRef.h"
@@ -37,11 +39,16 @@ void script_err_print_func(HSQUIRRELVM /*v*/, const SQChar *s, ...)
 }
 
 
-void compile_error_handler(HSQUIRRELVM v, const SQChar *desc, const SQChar *source, SQInteger line, SQInteger column,
-  const SQChar *extra)
+void compile_error_handler(HSQUIRRELVM v, SQMessageSeverity severity, const SQChar *desc, const SQChar *source, SQInteger line,
+  SQInteger column, const SQChar *extra)
 {
+  const SQChar *sevName = "error";
+  if (severity == SEV_HINT)
+    sevName = "hint";
+  else if (severity == SEV_WARNING)
+    sevName = "warning";
   String str;
-  str.printf(128, "Squirrel compile error %s (%d:%d): %s", source, line, column, desc);
+  str.printf(128, "Squirrel compile %s %s (%d:%d): %s", sevName, source, line, column, desc);
   if (extra)
   {
     str.append("\n", 1);
@@ -142,11 +149,7 @@ bool decode_e3dcolor(HSQUIRRELVM vm, SQInteger idx, E3DCOLOR &color, const char 
 }
 
 
-bool are_sq_obj_equal(HSQUIRRELVM vm, const HSQOBJECT &a, const HSQOBJECT &b)
-{
-  SQInteger res = 0;
-  return sq_direct_cmp(vm, &a, &b, &res) && (res == 0);
-}
+bool are_sq_obj_equal(HSQUIRRELVM vm, const HSQOBJECT &a, const HSQOBJECT &b) { return sq_direct_is_equal(vm, &a, &b); }
 
 
 bool is_same_immutable_obj(const Sqrat::Object &a, const Sqrat::Object &b)

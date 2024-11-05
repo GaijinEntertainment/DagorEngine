@@ -1,0 +1,528 @@
+include "vtex.dshl"
+include "clipmap_common.dshl"
+include "clipmap_feedback_common.dshl"
+
+int debug_colorize_clipmap = 0;
+interval debug_colorize_clipmap : off < 1, debug_indirection_mip < 2, debug_feedback_response < 3, debug_tile_mip;
+assume debug_colorize_clipmap = off;
+
+texture clipmap_tex;
+
+int clipmapTexMips = 6;
+int uav_feedback_no = 6;
+int supports_uav = 1 always_referenced;
+// interval supports_uav: supports_uav_off < 1, supports_uav_on;
+
+int clipmap_writes_height_only = 0;
+interval clipmap_writes_height_only : no < 1, yes;
+
+texture clipmap_normal_tex;
+hlsl(ps) {
+  ##if in_editor == yes
+    #define sample_ltmaptex_h4(tex, tc) h4tex2D(tex, tc).arbg
+  ##else
+    #define sample_ltmaptex_h4 h4tex2D
+  ##endif
+}
+
+texture cache_tex1;
+texture cache_tex2;
+texture indirection_tex;
+float4 g_VTexDim = (61440.0, 61440.0, 0, 0);
+float4 g_TileSize = (240.0, 1.0/240.0, 256.0, 1.0/256.0);
+float4 landscape2uv = (1, 1, 0, 0);
+
+
+define_macro_if_not_defined USE_CLIPMAP_INDIRECTION_OFFSET(stage)
+  hlsl (stage) {
+    uint get_clipmap_indirection_offset() {return 0;}
+    bool is_clipmap_indirection_invalid(uint offset) {return false;}
+    float4 get_l2uv(int indirection_offset){ return landscape2uv; }
+  }
+endmacro
+
+float4 g_cache2uv;
+
+macro INIT_CLIPMAP_NONORMAL_BASE(code)
+  INIT_CLIPMAP_LAST_BASE(code)
+  (code) {
+    cache_tex0@smp2d = cache_tex0;
+    indirection_tex@tex2d = indirection_tex;
+
+    g_cache2uv@f2 = (g_cache2uv.xy);
+    g_cacheBorderUvOfs@f2 = (g_cache2uv.zw);
+
+    g_VTexDim@f2 = (g_VTexDim.xy);
+    g_VTexMips@f2 = (clipmapTexMips-1, 1.0/clipmapTexMips);
+
+    // We should apply world_dd_scale.z on ddx gradients, world_dd_scale.w on ddy ones.
+    // But as long as world_dd_scale.z == world_dd_scale.w we are fine.
+    indirection_dd_scale@f2 = (world_dd_scale.zw*g_VTexDim.xy);
+    cache_dd_scale@f2 = (world_dd_scale.zw*g_VTexDim.xy*g_cache2uv.xy);
+
+    g_TileInnerSize@f2 = (g_TileSize.xy);
+    g_TileSize@f1 = (g_TileSize.z);
+    g_LogMaxVtexAnisoX2@f1 = (2.0 * g_TileSize.w);
+
+    landscape2uv@f4 = (landscape2uv.x, landscape2uv.y, landscape2uv.z-0.5, landscape2uv.w-0.5);
+  }
+  INIT_CLIPMAP_FALLBACK(code)
+endmacro
+
+macro INIT_CLIPMAP_NONORMAL()
+  INIT_CLIPMAP_NONORMAL_BASE(ps)
+endmacro
+
+macro INIT_CLIPMAP_NORMAL_BASE(code)
+  INIT_CLIPMAP_NONORMAL_BASE(code)
+  local float4 cache_tex2_size = get_dimensions(cache_tex2, 0);
+  (code) {
+    cache_tex1@tex2d = cache_tex1;
+    cache_tex2@tex2d = cache_tex2;
+    cache_tex2_size@f4 = (cache_tex2_size.xy, 1.0/max(1,cache_tex2_size.xy));
+    clipmapTexMips@f1 = clipmapTexMips;
+  }
+endmacro
+
+macro INIT_CLIPMAP_NORMAL()
+INIT_CLIPMAP_NORMAL_BASE(ps)
+endmacro
+
+macro USE_VTEX_MIP(code)
+  USE_CLIPMAP_INDIRECTION_OFFSET(code)
+  hlsl(code) {
+    float tex_mip_level_sample(float4 world_pos_xz_gradients, int indirection_offset)
+    {
+      // indirection_dd_scale applies mipmap bias which can be positive (world_dd_scale.zw > 1) to prevent clipmap cache overload.
+      float2 ddScale = get_l2uv(indirection_offset).xy * indirection_dd_scale.xy;
+      float4 worldPosXZscaled_gradients = world_pos_xz_gradients * ddScale.xyxy;
+
+      float2 dtex = worldPosXZscaled_gradients.xz*worldPosXZscaled_gradients.xz + worldPosXZscaled_gradients.yw*worldPosXZscaled_gradients.yw;
+      float minLodX2 = log2(max(min(dtex.x,dtex.y), 1.));
+      float maxLodX2 = log2(max(max(dtex.x,dtex.y), 1.));
+
+      // If ddx(u,v) and ddy(u,v) are perpendicular, then LOD_ = log(sqrt(|dd_(u, v)|^2)) = 0.5*log(|dd_(u, v)|^2)
+      float mip = 0.499*max(minLodX2, maxLodX2 - min( (maxLodX2 - minLodX2), g_LogMaxVtexAnisoX2 ));
+
+      FLATTEN if (indirection_offset > 0)
+        mip = min(mip, clipmapTexMips - 1);
+
+      return mip;
+    }
+  }
+endmacro
+
+macro USE_CLIPMAP_NORMAL_BASE(code)
+  hlsl(code){
+    #if NO_GRADIENTS_IN_SHADER
+    #define h3tex2D(tex, tc) tex2Dlod(tex, float4(tc, 0, 0))
+    #endif
+  }
+  ENABLE_ASSERT(code)
+  USE_CLIPMAP_LAST_BASE(code)
+  USE_VTEX_MIP(code)
+  //USE_PIXEL_TANGENT_SPACE()
+  USE_MICRODETAIL_DESC_BASE(code)
+  USE_GATHER_MICRODETAIL_ID(code, cache_tex2, cache_tex0_samplerstate, GatherAlpha, cache_tex2_size)
+  hlsl(code) {
+    #define cache_tex1_samplerstate cache_tex0_samplerstate
+    #define cache_tex2_samplerstate cache_tex0_samplerstate
+    void sample_lastclips(float2 worldPosXZ, out half3 color, out half3 normal)
+    {
+      float2 tc = worldPosXZ*world_to_last_clip.xy+world_to_last_clip.zw;
+      normal = half3(0,0,1);
+      color = h3tex2D(last_clip_tex, tc).rgb;
+    }
+
+    bool getFallbackUV(float2 worldPosXZ, out float2 fallbackUV)
+    {
+      fallbackUV = worldPosXZ*fallback_info0.x + fallback_info0.yz;
+      return all(abs(fallbackUV*2-1) < (255./256.)); // we assume 4 pages, and border is 2 pixels
+    }
+
+    void sampleFallBack(float2 worldPosXZ, float4 world_pos_xz_gradients, inout float4 lastDiffuse_smoothness,
+                        inout float2 lastNormal, inout float4 lastAo_reflectance_emission_detail, inout DetailDesc lastDetail, half blend)
+    {
+      float2 fallbackUV;
+      BRANCH
+      if (blend>0 && getFallbackUV(worldPosXZ, fallbackUV))
+      {
+        float2 uv = fallbackUV*fallback_info1.xy;
+        float4 gradients = world_pos_xz_gradients * fallback_info1.zwzw;
+        lastDiffuse_smoothness = tex2Dgrad ( cache_tex0, uv, gradients.xy, gradients.zw);
+        lastNormal = tex2Dgrad( cache_tex1, uv, gradients.xy, gradients.zw).xy;
+      ##if mobile_simplified_materials == yes
+        lastAo_reflectance_emission_detail = half4(1.0, 0.0, 0.0, lastDiffuse_smoothness.w);
+        lastDiffuse_smoothness.w = 0.0;
+      ##else
+        lastAo_reflectance_emission_detail = tex2Dgrad( cache_tex2, uv, gradients.xy, gradients.zw);
+      ##endif
+        lastDetail = gatherMicrodetailId(lastAo_reflectance_emission_detail.w, uv);
+      }
+    }
+
+    void sampleFallBackLod(float2 worldPosXZ, inout float4 lastDiffuse_smoothness, inout float2 lastNormal,
+                           inout float4 lastAo_reflectance_emission_detail, inout DetailDesc lastDetail, half blend)
+    {
+      float2 fallbackUV;
+      BRANCH
+      if (blend>0 && getFallbackUV(worldPosXZ, fallbackUV))
+      {
+        float4 uv = float4(fallbackUV*fallback_info1.xy, 0,0);
+        lastDiffuse_smoothness = tex2Dlod ( cache_tex0, uv);
+        lastNormal = tex2Dlod( cache_tex1, uv).xy;
+      ##if mobile_simplified_materials == yes
+        lastAo_reflectance_emission_detail = half4(1.0, 0.0, 0.0, lastDiffuse_smoothness.z);
+        lastDiffuse_smoothness.w = 0.0;
+      ##else
+        lastAo_reflectance_emission_detail = tex2Dlod( cache_tex2, uv);
+      ##endif
+        lastDetail = gatherMicrodetailId(lastAo_reflectance_emission_detail.w, uv.xy);
+      }
+    }
+
+    float2 calc_landscape_tc(float2 worldPosXZ, int indirection_offset)
+    {
+      float4 l2uv = get_l2uv(indirection_offset);
+      return worldPosXZ*l2uv.xy + l2uv.zw;
+    }
+
+    #include <UvWithDerivates.hlsl>
+
+    UvWithDerivates clipmap_get_uv_and_derivates(float2 worldPosXZ)
+    {
+      return make_uv_with_derivates(worldPosXZ*world_to_last_clip.xy+world_to_last_clip.zw);
+    }
+
+    void sample_clipmaps_no_grad(float2 worldPosXZ, float4 world_pos_xz_gradients,
+      inout half3 color, inout half2 normal_xy, inout half smoothness, inout half ao,
+      inout half reflectance, inout half emission, inout DetailDesc detailNo, half smooth_mip,
+      UvWithDerivates clipmapUv)
+    {
+      half4 lastDiffuse_smoothness = 0;
+      half2 lastNormal = half2(0.5,0.5);
+      half4 lastAo_reflectance_emission_detail = half4(1, 0, 0, 0);
+      DetailDesc lastDetail;
+      lastDetail.id = 0;
+      lastDetail.lerpFactor = 0;
+
+      int indirection_offset = get_clipmap_indirection_offset();
+      BRANCH
+      if (is_clipmap_indirection_invalid(indirection_offset))
+      {
+        // RI vtex is not ready yet, but we provide feedback for it.
+        // Because smooth_mip returned from get_raw_feedback is about RI vtex, we cannot use it.
+        indirection_offset = 0;
+        smooth_mip = tex_mip_level_sample(world_pos_xz_gradients, indirection_offset);
+      }
+
+      float2 texcoord = calc_landscape_tc(worldPosXZ, indirection_offset);
+      float2 origTc = texcoord;
+      float tcSize = max(abs(texcoord.x), abs(texcoord.y));
+      float indirection_mip = log2(tcSize)+2;
+
+      float fmip = max(0, indirection_mip);
+
+      fmip = max(fmip, smooth_mip);
+
+      float mip = floor(fmip);
+      mip = min ( mip, g_VTexMips.x );
+      float clipmapIndirectionMipScale = exp2(mip);
+      float clipmapIndirectionMipScaleInv = rcp(clipmapIndirectionMipScale);//fixme: we can avoid rcp, if texcoord will be biggest, not smallest
+      texcoord = texcoord*clipmapIndirectionMipScaleInv + float2(0.5,0.5);
+      half blendCoef = saturate((fmip - g_VTexMips.x)*2-1);
+      
+      int2 indirection_mip0 = int2(floor(texcoord*TILE_WIDTH));
+      int2 indirection_mip0_bound = clamp(indirection_mip0, 0, TILE_WIDTH - 1);
+      bool outOfBound = any(indirection_mip0 != indirection_mip0_bound);
+
+      // if outOfBound, then it gonna sample trash (in order to avoid branching) but blend with 1. afterwards.
+      blendCoef = outOfBound ? 1 : blendCoef;
+
+      int2 indirection_index = indirection_mip0_bound + int2((clipmapTexMips*indirection_offset + mip)*TILE_WIDTH,0);
+
+      float4 tile = texelFetch(indirection_tex, indirection_index, 0).zyxw * 255.0;
+
+      float tile_mip = floor(tile.z + 0.5);
+      blendCoef = (tile_mip <= g_VTexMips.x ? blendCoef : 1);
+
+      // recalibration
+      float tcScale = rcp(exp2(tile_mip));//fixme: we can avoid rcp, if texcoord will be biggest, not smallest
+      texcoord = origTc*tcScale + float2(0.5,0.5);
+      float2 scaledTC = texcoord * TILE_WIDTH;
+      float2 tile_uv = floor ( scaledTC );
+      float2 intile_uv = (scaledTC - tile_uv);
+      float2 in_cacheTexels = intile_uv*g_TileInnerSize.x;
+      
+      float2 tex_uv = (tile.xy * g_TileSize + in_cacheTexels) * g_cache2uv + g_cacheBorderUvOfs;
+
+      float2 gradients_factor = get_l2uv(indirection_offset).xy * cache_dd_scale;
+      float4 scaled_gradients = world_pos_xz_gradients * (tcScale * gradients_factor).xyxy;
+
+      blendCoef*=blendCoef;
+      half blend = saturate(blendCoef*blendCoef);
+      half4 virtualDiffuse_smoothness;
+      half2 virtualNormalMap;
+      half4 ao_reflectance_emission_detail;
+      BRANCH
+      if (blend > 0)
+        lastDiffuse_smoothness = half4(tex2Dgrad(last_clip_tex, clipmapUv.uv, clipmapUv.uv_ddx, clipmapUv.uv_ddy).rgb, 0);
+
+      sampleFallBack(worldPosXZ, world_pos_xz_gradients, lastDiffuse_smoothness, lastNormal, lastAo_reflectance_emission_detail, lastDetail, blend);
+
+    ##if mobile_simplified_materials == no
+      virtualDiffuse_smoothness = tex2Dgrad ( cache_tex0, tex_uv, scaled_gradients.xy, scaled_gradients.zw);
+      virtualNormalMap = tex2Dgrad( cache_tex1, tex_uv, scaled_gradients.xy, scaled_gradients.zw).xy;
+      ao_reflectance_emission_detail = tex2Dgrad( cache_tex2, tex_uv, scaled_gradients.xy, scaled_gradients.zw);
+    ##else
+      half4 diffuse_detail = tex2Dgrad ( cache_tex0, tex_uv, scaled_gradients.xy, scaled_gradients.zw);
+      virtualDiffuse_smoothness = half4(diffuse_detail.rgb, 0.0);
+      virtualNormalMap = tex2Dgrad( cache_tex1, tex_uv, scaled_gradients.xy, scaled_gradients.zw).xy;
+      ao_reflectance_emission_detail = half4(1.0, 0.0, 0.0, diffuse_detail.w);
+    ##endif
+      DetailDesc detail = gatherMicrodetailId(ao_reflectance_emission_detail.w, tex_uv);
+
+      virtualDiffuse_smoothness = lerp(virtualDiffuse_smoothness, lastDiffuse_smoothness, blend);
+      virtualNormalMap = lerp(virtualNormalMap, lastNormal, blend);
+      ao_reflectance_emission_detail.xyz = lerp(ao_reflectance_emission_detail.xyz, lastAo_reflectance_emission_detail.xyz, blend);
+
+      normal_xy = virtualNormalMap.xy;
+      color = virtualDiffuse_smoothness.rgb;
+
+      ##if debug_colorize_clipmap == debug_indirection_mip
+        tile_mip = max(0, floor(indirection_mip)); // indirection_mip should not be bigger than smooth_mip to indirect successfully.
+      ##elif debug_colorize_clipmap == debug_feedback_response
+        tile_mip = blendCoef < 0.999f ? tile_mip - floor(smooth_mip) + 2.001f : 255.f; // Feedback should provide tile_mip equal to floor(smooth_mip) (blue color)
+      ##endif
+      ##if debug_colorize_clipmap != off
+        float3 debug_colors[8] =
+        {
+          float3(1,0,0),  // red
+          float3(0,1,0),  // green
+          float3(0,0,1),  // blue -- debug_feedback_response, tile_mip == 0
+          float3(1,1,0),  // yellow
+          float3(0,1,1),  // cyan
+          float3(1,0,1),  // magenta
+          float3(1,1,1),  // white
+          float3(0,0,0)   // black
+        };
+        color = debug_colors[clamp( int(tile_mip), 0, 7)];
+      ##endif
+
+      smoothness = virtualDiffuse_smoothness.a;
+      if (tile_mip > g_VTexMips.x || outOfBound)
+        detailNo = lastDetail;
+      else
+        detailNo = detail;
+      ao = ao_reflectance_emission_detail.x;
+      reflectance = ao_reflectance_emission_detail.y;
+      emission = ao_reflectance_emission_detail.z;
+    }
+
+    void sample_clipmaps(float2 worldPosXZ, float4 world_pos_xz_gradients,
+      inout half3 color, inout half2 normal_xy, inout half smoothness, inout half ao,
+      inout half reflectance, inout half emission, inout DetailDesc detailNo, half smooth_mip)
+    {
+      UvWithDerivates clipmapUv = clipmap_get_uv_and_derivates(worldPosXZ);
+      sample_clipmaps_no_grad(worldPosXZ, world_pos_xz_gradients, color, normal_xy, smoothness, ao,
+                              reflectance, emission, detailNo, smooth_mip, clipmapUv);
+    }
+    #undef cache_tex1_samplerstate
+    #undef cache_tex2_samplerstate
+  }
+endmacro
+
+macro USE_CLIPMAP_NORMAL()
+USE_CLIPMAP_NORMAL_BASE(ps)
+endmacro
+
+
+macro USE_CLIPMAP()
+  USE_CLIPMAP_NORMAL()
+endmacro
+
+
+macro USE_LAND_LIGHTMAP()
+hlsl(ps) {
+  half3 get_land_normal_from_normalmap_tc(float2 lightmapTexcoord, out half ao)
+  {
+    half4 lightmap = sample_ltmaptex_h4(lightmap_tex, lightmapTexcoord);
+    //half3 normal = restore_normal(lightmap.ga).xzy;
+    half3 normal;
+    normal.xz = lightmap.ga * 2 - 1;
+    normal.y = sqrt(saturate(1 - dot(normal.xz, normal.xz)));
+    ao = lightmap.b;
+    return normal;
+  }
+}
+endmacro
+macro USE_LAND_NORMAL()
+  USE_LAND_LIGHTMAP()
+hlsl(ps) {
+  half3 get_land_normal_from_normalmap(float2 worldPosXZ, inout half ao)
+  {
+    float2 lightmapTexcoord = worldPosXZ * world_to_lightmap.xy + world_to_lightmap.zw;
+    half lightmapao;
+    half3 normal = get_land_normal_from_normalmap_tc(lightmapTexcoord, lightmapao);
+    ao *= lightmapao;
+    return normal;
+  }
+  
+  half3 get_land_normal_from_normalmap(float2 worldPosXZ)
+  {
+    float2 lightmapTexcoord = worldPosXZ * world_to_lightmap.xy + world_to_lightmap.zw;
+    half lightmapao;
+    return get_land_normal_from_normalmap_tc(lightmapTexcoord, lightmapao);
+  }
+}
+  
+endmacro
+
+macro USE_LAND_LIGHTING()
+USE_LAND_NORMAL()
+endmacro
+
+float4 world_dd_scale = (0.25,0.25,1,1);
+
+macro INIT_RAW_RENDERING_FEEDBACK()
+  (ps) {
+    feedback_border_scale@f4 = (clipmapTexMips-0.25, 0.5*(clipmapTexMips-0.25),
+      world_dd_scale.x, world_dd_scale.y);//(1.0f / getPixelRatio()*cacheDim)
+  }
+endmacro
+
+macro USE_RAW_RENDERING_FEEDBACK()
+  hlsl(ps) {
+    float4 get_raw_feedback(float2 worldPosXZ, float4 worldPosXZGradientsScaled, float vertFactor, out float smooth_mip)
+    {
+      int indirectionOffset = get_clipmap_indirection_offset();
+      float fmip = tex_mip_level_sample(worldPosXZGradientsScaled, indirectionOffset);
+      //fmip = (fmip>=feedback_border_scale.x && fmip<feedback_border_scale.y) ? feedback_border_scale.x+0.5*(fmip-feedback_border_scale.x)-0.5 : fmip;
+      fmip = fmip>=feedback_border_scale.x ? feedback_border_scale.y+0.5*fmip : fmip;
+
+      float2 texcoord = calc_landscape_tc(worldPosXZ, indirectionOffset);
+      float tcSize = max(abs(texcoord.x), abs(texcoord.y));
+      float mip_offset = max(0, log2(tcSize)+2);
+      fmip = max(fmip, floor(mip_offset));
+      float mip = floor(fmip + 0.01);
+      if (vertFactor >= 1)
+        mip = 255;
+
+      float clipmapIndirectionMipScale = exp2(mip);
+      float clipmapIndirectionMipScaleInv = rcp(clipmapIndirectionMipScale);
+      texcoord = texcoord*clipmapIndirectionMipScaleInv + float2(0.5,0.5);
+      if ( texcoord.x<0 || texcoord.x>=1 || texcoord.y<0 || texcoord.y>=1 )
+        mip = 255;
+
+      //float mip2 = exp2(min(mip, 20));
+      float2 uv = floor ( texcoord * TILE_WIDTH );
+      float4 iOut = float4 ( uv.x, uv.y, mip, indirectionOffset );
+      iOut.xy = min(iOut.xy, TILE_WIDTH-1);
+      smooth_mip = fmip;
+      return iOut;
+    }
+  }
+endmacro
+
+macro NO_UAV_RENDERING_FEEDBACK()
+  hlsl(ps) {
+    #define GLOBAL_UAV_FEEDBACK
+    #define WRITE_UAV_FEEDBACK(worldPosXZ, vertFactor, worldPosGradients) half smooth_mip = 0.h;
+  }
+endmacro
+
+int clipmap_feedback_sride;
+
+macro USE_UAV_RENDERING_FEEDBACK_NORMAL_PASS_DEFINES()
+  USE_FEEDBACK_PACKER(ps)
+  if (hardware.metaliOS) {
+    // ios can't write to uav in pixel shader
+    NO_UAV_RENDERING_FEEDBACK()
+  } else {
+    (ps) {
+      clipmap_feedback_sride@i1 = clipmap_feedback_sride;
+      uav_feedback@uav : register(uav_feedback_no) hlsl {
+        #define GLOBAL_UAV_FEEDBACK RWByteAddressBuffer uav_feedback@uav; [earlydepthstencil]
+      }
+    }
+    hlsl(ps) {
+      ##if hardware.dx12
+        #define FEEDBACK_STORE(target, coord, value) \
+          { \
+            if (WaveIsFirstLane()) \
+              target.InterlockedMax((coord.y*clipmap_feedback_sride+coord.x)*4, value);\
+          }
+      ##else
+        #define FEEDBACK_STORE(target, coord, value) \
+          target.InterlockedMax((coord.y*clipmap_feedback_sride+coord.x)*4, value);
+      ##endif
+
+      #define WRITE_UAV_FEEDBACK(worldPosXZ, vertFactor, worldPosGradients) \
+        half smooth_mip;\
+        {\
+          float4 feedback = get_raw_feedback((worldPosXZ), (worldPosGradients), (vertFactor), (smooth_mip));\
+          if (feedback.z<10.h)\
+            FEEDBACK_STORE(uav_feedback, int2(screenpos.xy*feedback_border_scale.zw), packFeedbackInfo(feedback.xy, feedback.z, feedback.w)); \
+        }
+    }
+  }
+endmacro
+
+macro USE_UAV_RENDERING_FEEDBACK()
+  if (lmesh_rendering_mode == rendering_landmesh)
+  {
+    //INIT_RAW_RENDERING_FEEDBACK()
+    USE_RAW_RENDERING_FEEDBACK()
+    USE_UAV_RENDERING_FEEDBACK_NORMAL_PASS_DEFINES()
+  } else if (lmesh_rendering_mode == rendering_reflection)
+  {
+    USE_RAW_RENDERING_FEEDBACK()
+    hlsl(ps) {
+      #define GLOBAL_UAV_FEEDBACK
+      #define FEEDBACK_STORE(target, coord, value)
+
+      #define WRITE_UAV_FEEDBACK(worldPosXZ, vertFactor, worldPosGradients) \
+        half smooth_mip;\
+        {\
+          get_raw_feedback((worldPosXZ), (worldPosGradients), (vertFactor), (smooth_mip));\
+        }
+    }
+  } else
+  {
+    NO_UAV_RENDERING_FEEDBACK()
+  }
+endmacro
+
+macro INIT_UAV_RENDERING_FEEDBACK_RENDINST()
+  if (rendinst_render_pass == rendinst_render_pass_normal)
+  {
+    INIT_RAW_RENDERING_FEEDBACK()
+  }
+endmacro
+
+macro USE_UAV_RENDERING_FEEDBACK_RENDINST()
+  if (rendinst_render_pass == rendinst_render_pass_normal)
+  {
+    USE_RAW_RENDERING_FEEDBACK()
+    USE_UAV_RENDERING_FEEDBACK_NORMAL_PASS_DEFINES()
+  } else
+  {
+    NO_UAV_RENDERING_FEEDBACK()
+  }
+endmacro
+
+macro USE_CLIPMAP_MRT_OUTPUT()
+  hlsl(ps) {
+    struct MRT_OUPUT
+    {
+      ##if clipmap_writes_height_only == yes
+        float4 height : SV_Target0;
+      ##else
+        float4 color : SV_Target0;
+        float4 normal : SV_Target1;
+        float4 detail_ao_reflectance : SV_Target2;
+        float4 height : SV_Target3;
+      ##endif
+    };
+  }
+endmacro

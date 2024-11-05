@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <max.h>
 #include <meshadj.h>
 #include <spline3d.h>

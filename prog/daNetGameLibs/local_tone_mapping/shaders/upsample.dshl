@@ -1,0 +1,124 @@
+include "shader_global.dshl"
+
+texture exposures_tex;
+texture weights_tex;
+texture accumulated_tex;
+texture coarse_exposures_tex;
+int boostLocalContrast = 0;
+int base_mip = 0;
+
+int upsample_mode = 0;
+interval upsample_mode : first_iter < 1, last_iter < 2, middle_iter < 3, single_pass;
+int mips_cnt = 1;
+interval mips_cnt : one < 2, two < 3, three < 4, four;
+
+shader local_tone_mapping_upsample
+{
+  ENABLE_ASSERT(cs)
+
+  bool needFinalization = upsample_mode == last_iter || upsample_mode == single_pass;
+  bool hasAccumulated = upsample_mode != first_iter && upsample_mode != single_pass;
+  local float4 tex_size = get_dimensions(exposures_tex, 0);
+  (cs) {
+    weights_tex@smp2d = weights_tex;
+    exposures_tex@smp2d = exposures_tex;
+    boostLocalContrast@i1 = boostLocalContrast;
+    tex_size@f2 = tex_size;
+    accumulated_tex@smp2d = accumulated_tex;
+    coarse_exposures_tex@smp2d = coarse_exposures_tex;
+    base_mip@i1 = base_mip;
+  }
+  hlsl(cs) {
+    #include "luminance_encoding.hlsl"
+
+    RWTexture2D<float> output : register(u0);
+
+
+    ##if mips_cnt == one
+    static const uint WINDOW_SIZE_POW = 0;
+    ##elif mips_cnt == two
+    static const uint WINDOW_SIZE_POW = 1;
+    ##elif mips_cnt == three
+    static const uint WINDOW_SIZE_POW = 2;
+    ##elif mips_cnt == four
+    static const uint WINDOW_SIZE_POW = 3;
+    ##endif
+    static const uint WINDOW_SIZE = 1u << WINDOW_SIZE_POW;
+    static const uint GROUP_SIZE_POW = 3u;
+    static const uint GROUP_SIZE = 1u << GROUP_SIZE_POW;
+    groupshared float4 cachedMem[GROUP_SIZE][GROUP_SIZE];
+
+    float4 get_cached_exposure(uint2 localId)
+    {
+      ##assert(all(localId < GROUP_SIZE), "localId (%f, %f) is out of bounds on exposure reading", localId.x, localId.y);
+      return cachedMem[localId.x][localId.y];
+    }
+    void store_cached_exposure(uint2 localId, float4 exposure)
+    {
+      ##assert(all(localId < GROUP_SIZE), "localId (%f, %f) is out of bounds on exposure writing", localId.x, localId.y);
+      cachedMem[localId.x][localId.y] = exposure;
+    }
+
+    [numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
+    void upsample_cs(uint2 dtId : SV_DispatchThreadID, uint2 localId : SV_GroupThreadID, uint2 groupId : SV_GroupID)
+    {
+      uint2 algoBasedLocalId = localId & ((1u << WINDOW_SIZE_POW) - 1);
+      uint2 groupDataOffset = (localId >> WINDOW_SIZE_POW) << WINDOW_SIZE_POW;
+      uint2 algoBasedGroupId = (groupId << (GROUP_SIZE_POW - WINDOW_SIZE_POW)) | (localId >> WINDOW_SIZE_POW);
+      store_cached_exposure(localId, float4(0, 0, 0, 0));
+      GroupMemoryBarrierWithGroupSync();
+
+      float accumulated = 0;
+      float3 prev_exposure = 0;
+      bool allowBoostContrast = false;
+      ##if hasAccumulated
+      if (all(algoBasedLocalId == 0))
+      {
+        uint2 mipSize;
+        accumulated_tex.GetDimensions(mipSize.x, mipSize.y);
+        uint2 threadTc = clamp(algoBasedGroupId / 2u, 0u, mipSize - 1u);
+        accumulated = texelFetch(accumulated_tex, threadTc, 0).x;
+        prev_exposure = texelFetch(coarse_exposures_tex, threadTc, 0).xyz;
+        allowBoostContrast = boostLocalContrast > 0;
+      }
+      ##endif
+      for (int i = WINDOW_SIZE_POW; i >= 0; --i)
+      {
+        if (all(algoBasedLocalId < (WINDOW_SIZE >> i)))
+        {
+          uint2 mipSize;
+          uint level;
+          exposures_tex.GetDimensions(i + base_mip, mipSize.x, mipSize.y, level);
+          uint2 threadTc = clamp(algoBasedGroupId * (WINDOW_SIZE >> i) + algoBasedLocalId, 0u, mipSize - 1u);
+          float3 exposure = texelFetch(exposures_tex, threadTc, i + base_mip).xyz;
+          float3 laplacians = exposure - prev_exposure;
+          float3 weights = texelFetch(weights_tex, threadTc, i + base_mip).xyz * (allowBoostContrast ? abs(laplacians) + 0.00001 : 1.0);
+          weights /= dot(weights, float3(1, 1, 1)) + 0.00001;
+          float laplac = dot(laplacians * weights, float3(1, 1, 1));
+          accumulated += laplac;
+          store_cached_exposure(algoBasedLocalId + groupDataOffset, float4(exposure, accumulated));
+        }
+        allowBoostContrast = allowBoostContrast || (boostLocalContrast > 0);
+        GroupMemoryBarrierWithGroupSync();
+        if (i != 0)
+        {
+          if (all(algoBasedLocalId < (WINDOW_SIZE >> (i - 1))))
+          {
+            prev_exposure = get_cached_exposure(algoBasedLocalId / 2 + groupDataOffset).xyz;
+            accumulated = get_cached_exposure(algoBasedLocalId / 2 + groupDataOffset).w;
+          }
+          GroupMemoryBarrierWithGroupSync();
+        }
+      }
+      if (all(dtId < tex_size.xy))
+      {
+        ##if needFinalization
+          texture2DAt(output, dtId) = lut_log_to_linear(accumulated) / lut_log_to_linear(texelFetch(exposures_tex, dtId, base_mip).y);
+        ##else
+          texture2DAt(output, dtId) = accumulated;
+        ##endif
+      }
+    }
+  }
+  compile("cs_5_0", "upsample_cs");
+}

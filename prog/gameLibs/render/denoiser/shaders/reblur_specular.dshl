@@ -1,0 +1,131 @@
+hlsl(cs) {
+  #include "NRDEncoding.hlsli"
+
+  #pragma hlsl2021
+}
+
+shader nrd_reblur_specular_prepass
+{
+  hlsl(cs) {
+    #include "REBLUR_Specular_PrePass.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_perf_specular_prepass
+{
+  hlsl(cs) {
+    #include "REBLUR_Perf_Specular_PrePass.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_specular_temporal_accumulation
+{
+  hlsl(cs) {
+    #include "REBLUR_Specular_TemporalAccumulation.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_perf_specular_temporal_accumulation
+{
+  hlsl(cs) {
+    #include "REBLUR_Perf_Specular_TemporalAccumulation.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_specular_history_fix
+{
+  hlsl(cs) {
+    #include "REBLUR_Specular_HistoryFix.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_perf_specular_history_fix
+{
+  hlsl(cs) {
+    #include "REBLUR_Perf_Specular_HistoryFix.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_specular_blur
+{
+  hlsl(cs) {
+    #include "REBLUR_Specular_Blur.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_perf_specular_blur
+{
+  hlsl(cs) {
+    #include "REBLUR_Perf_Specular_Blur.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_specular_postblur
+{
+  hlsl(cs) {
+    #include "REBLUR_Specular_PostBlur.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_perf_specular_postblur
+{
+  hlsl(cs) {
+    #include "REBLUR_Perf_Specular_PostBlur.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_specular_copy
+{
+  hlsl(cs) {
+    #include "REBLUR_Specular_Copy.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_specular_temporal_stabilization
+{
+  hlsl(cs) {
+    #include "REBLUR_Specular_TemporalStabilization.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_perf_specular_temporal_stabilization
+{
+  hlsl(cs) {
+    #include "REBLUR_Perf_Specular_TemporalStabilization.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_validation
+{
+  hlsl(cs) {
+    #include "REBLUR_Validation.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}

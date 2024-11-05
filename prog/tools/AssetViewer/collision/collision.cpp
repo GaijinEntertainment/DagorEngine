@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "collision.h"
 #include <assets/asset.h>
 #include <assets/assetExporter.h>
@@ -6,9 +8,11 @@
 #include <generic/dag_sort.h>
 #include <debug/dag_debug3d.h>
 #include <debug/dag_debug.h>
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/control/container.h>
+#include <propPanel/control/menu.h>
 #include <math/dag_capsule.h>
 #include <math/dag_geomTree.h>
+#include <osApiWrappers/dag_clipboard.h>
 #include <scene/dag_physMat.h>
 #include <libTools/util/makeBindump.h>
 #include <EASTL/optional.h>
@@ -24,11 +28,21 @@
 #include "../../sceneTools/assetExp/exporters/getSkeleton.h"
 #include "propPanelPids.h"
 #include "collisionUtils.h"
+#include <drv/3d/dag_renderTarget.h>
 
 const unsigned int phys_collidable_color = 0xFF00FF00;
 const unsigned int traceable_color = 0xFFFF0000;
 
 static int debug_ri_face_orientationVarId = -1;
+
+enum
+{
+  CM_HIDE = 1,
+  CM_UNHIDE,
+  CM_ISOLATE,
+  CM_UNHIDE_ALL,
+  CM_COPY_NAME,
+};
 
 struct CollisionNodesData
 {
@@ -108,7 +122,7 @@ bool CollisionPlugin::begin(DagorAsset *asset)
   if (asset)
   {
     InitCollisionResource(*asset, &collisionRes, &nodeTree);
-    nodesProcessing.init(asset, collisionRes);
+    nodesProcessing.init(asset, collisionRes, this);
   }
 
   return true;
@@ -116,6 +130,9 @@ bool CollisionPlugin::begin(DagorAsset *asset)
 
 bool CollisionPlugin::end()
 {
+  if (!nodesProcessing.canChangeAsset())
+    return false;
+
   if (spEditor)
     spEditor->destroyPanel();
 
@@ -157,7 +174,7 @@ void CollisionPlugin::renderTransObjects()
   fillAssetStats();
 }
 
-void CollisionPlugin::fillPropPanel(PropertyContainerControlBase &panel)
+void CollisionPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
 {
   panel.setEventHandler(this);
 
@@ -176,7 +193,7 @@ void CollisionPlugin::fillPropPanel(PropertyContainerControlBase &panel)
   nodesProcessing.setPanelAfterReject();
 }
 
-void CollisionPlugin::onClick(int pcb_id, PropertyContainerControlBase *panel)
+void CollisionPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   switch (pcb_id)
   {
@@ -211,25 +228,25 @@ void CollisionPlugin::onClick(int pcb_id, PropertyContainerControlBase *panel)
   nodesProcessing.onClick(pcb_id);
 }
 
-void CollisionPlugin::onChange(int pcb_id, PropertyContainerControlBase *panel)
+void CollisionPlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   if (pcb_id == PID_SELECTABLE_NODES_LIST)
     selectedNodeId = -1;
   else if (pcb_id == PID_COLLISION_NODES_TREE)
   {
-    PropertyContainerControlBase *tree = panel->getById(PID_COLLISION_NODES_TREE)->getContainer();
-    TLeafHandle leaf = tree->getSelLeaf();
-    selectedNodeId = -1;
-    if (leaf)
+    PropPanel::ContainerPropertyControl *tree = panel->getById(PID_COLLISION_NODES_TREE)->getContainer();
+    PropPanel::TLeafHandle leaf = tree->getSelLeaf();
+    selectedNodeId = getNodeIdx(tree, leaf);
+    PropPanel::TLeafHandle rootLeaf = tree->getRootLeaf();
+    for (PropPanel::TLeafHandle leaf = rootLeaf; leaf;)
     {
-      String sel_name = tree->getCaption(leaf);
-      NodesProcessing::delete_flags_prefix(sel_name);
-      for (const auto &n : collisionRes->getAllNodes())
-        if (sel_name == n.name.c_str())
-        {
-          selectedNodeId = &n - collisionRes->getAllNodes().data();
-          break;
-        }
+      int idx = getNodeIdx(tree, leaf);
+      if (idx != -1)
+        nodesProcessing.selectionNodesProcessing.hiddenNodes[idx] = !tree->getCheckboxValue(leaf);
+
+      leaf = tree->getNextLeaf(leaf);
+      if (leaf == rootLeaf)
+        break;
     }
   }
   nodesProcessing.onChange(pcb_id);
@@ -260,29 +277,156 @@ bool CollisionPlugin::handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, b
     return false;
 
   CollResIntersectionsType sortedIntersectedNodesList;
-  if (!trace_ray_through_nodes(collisionRes, wnd, x, y, sortedIntersectedNodesList))
+  if (trace_ray_through_nodes(collisionRes, wnd, x, y, sortedIntersectedNodesList))
   {
-    selectedNodeId = -1;
-    nodesProcessing.selectNode(nullptr, key_modif == wingw::M_CTRL);
-    return false;
-  }
-  dag::ConstSpan<CollisionNode> nodes = collisionRes->getAllNodes();
-  for (int i = 0; i < (int)sortedIntersectedNodesList.size(); ++i)
-  {
-    const int candidateId = sortedIntersectedNodesList[i].collisionNodeId;
-    if (getNodeVisibility(nodes[candidateId], showPhysCollidable, showTraceable) != CollisionNodeVisibility::INVISIBLE)
+    dag::ConstSpan<CollisionNode> nodes = collisionRes->getAllNodes();
+    for (int i = 0; i < (int)sortedIntersectedNodesList.size(); ++i)
     {
-      if (selectedNodeId != candidateId)
+      const int candidateId = sortedIntersectedNodesList[i].collisionNodeId;
+      dag::Vector<bool> &hiddenNodes = nodesProcessing.selectionNodesProcessing.hiddenNodes;
+      const bool isVisible =
+        getNodeVisibility(nodes[candidateId], showPhysCollidable, showTraceable) != CollisionNodeVisibility::INVISIBLE;
+      if (isVisible && !hiddenNodes[candidateId])
       {
-        selectedNodeId = candidateId;
-        nodesProcessing.selectNode(nodes[selectedNodeId].name, key_modif == wingw::M_CTRL);
-        break;
+        if (selectedNodeId != candidateId)
+        {
+          selectedNodeId = candidateId;
+          nodesProcessing.selectNode(nodes[selectedNodeId].name, key_modif == wingw::M_CTRL);
+          return false;
+        }
       }
     }
   }
+  selectedNodeId = -1;
+  nodesProcessing.selectNode(nullptr, key_modif == wingw::M_CTRL);
   return false;
 }
 
+bool CollisionPlugin::onTreeContextMenu(PropPanel::ContainerPropertyControl &tree, int pcb_id,
+  PropPanel::ITreeInterface &tree_interface)
+{
+  PropPanel::TLeafHandle selection = tree.getSelLeaf();
+  PropPanel::TLeafHandle parent = tree.getParentLeaf(selection);
+  // We want check only top level nodes
+  if (!parent)
+  {
+    const int selectedIdx = getNodeIdx(&tree, selection);
+    if (selectedIdx < 0)
+    {
+      logerr("Can't find selected collision node in resource with name <%s>", tree.getCaption().str());
+      return false;
+    }
+
+    PropPanel::IMenu &menu = tree_interface.createContextMenu();
+    menu.setEventHandler(this);
+    dag::Vector<bool> &hiddenNodes = nodesProcessing.selectionNodesProcessing.hiddenNodes;
+    if (hiddenNodes[selectedIdx])
+      menu.addItem(ROOT_MENU_ITEM, CM_UNHIDE, "Unhide");
+    else
+      menu.addItem(ROOT_MENU_ITEM, CM_HIDE, "Hide");
+
+    menu.addItem(ROOT_MENU_ITEM, CM_ISOLATE, "Isolate");
+    menu.addItem(ROOT_MENU_ITEM, CM_UNHIDE_ALL, "Unhide all");
+    menu.addItem(ROOT_MENU_ITEM, CM_COPY_NAME, "Copy name");
+    return true;
+  }
+
+  return false;
+}
+
+int CollisionPlugin::onMenuItemClick(unsigned id)
+{
+  PropPanel::ContainerPropertyControl *panel = getPluginPanel();
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_COLLISION_NODES_TREE)->getContainer();
+
+  dag::Vector<PropPanel::TLeafHandle> selectedLeafs;
+  tree->getSelectedLeafs(selectedLeafs);
+
+  dag::Vector<int> selectedIndices;
+  for (PropPanel::TLeafHandle selLeaf : selectedLeafs)
+  {
+    const int selectedIdx = getNodeIdx(tree, selLeaf);
+    if (selectedIdx < 0)
+    {
+      logerr("Can't find selected collision node in resource with name <%s>", tree->getCaption(selLeaf).str());
+      return 1;
+    }
+
+    selectedIndices.push_back(selectedIdx);
+  }
+
+  dag::Vector<bool> &hiddenNodes = nodesProcessing.selectionNodesProcessing.hiddenNodes;
+  switch (id)
+  {
+    case CM_HIDE:
+      for (int selectedIdx : selectedIndices)
+        hiddenNodes[selectedIdx] = true;
+      for (PropPanel::TLeafHandle selLeaf : selectedLeafs)
+        tree->setCheckboxValue(selLeaf, false);
+      break;
+    case CM_UNHIDE:
+      for (int selectedIdx : selectedIndices)
+        hiddenNodes[selectedIdx] = false;
+      for (PropPanel::TLeafHandle selLeaf : selectedLeafs)
+        tree->setCheckboxValue(selLeaf, true);
+      break;
+    case CM_ISOLATE:
+    {
+      eastl::fill(hiddenNodes.begin(), hiddenNodes.end(), true);
+      for (int selectedIdx : selectedIndices)
+        hiddenNodes[selectedIdx] = false;
+      PropPanel::TLeafHandle rootLeaf = tree->getRootLeaf();
+      for (PropPanel::TLeafHandle leaf = rootLeaf; leaf;)
+      {
+        if (tree->isCheckboxEnable(leaf))
+        {
+          const bool selected = eastl::find(selectedLeafs.begin(), selectedLeafs.end(), leaf) != selectedLeafs.end();
+          tree->setCheckboxValue(leaf, selected);
+        }
+
+        leaf = tree->getNextLeaf(leaf);
+        if (leaf == rootLeaf)
+          break;
+      }
+      break;
+    }
+    case CM_UNHIDE_ALL:
+    {
+      nodesProcessing.selectionNodesProcessing.updateHiddenNodes();
+      PropPanel::TLeafHandle rootLeaf = tree->getRootLeaf();
+      for (PropPanel::TLeafHandle leaf = rootLeaf; leaf;)
+      {
+        if (tree->isCheckboxEnable(leaf))
+          tree->setCheckboxValue(leaf, true);
+
+        leaf = tree->getNextLeaf(leaf);
+        if (leaf == rootLeaf)
+          break;
+      }
+      break;
+    }
+    case CM_COPY_NAME:
+    {
+      String text;
+
+      for (PropPanel::TLeafHandle leaf : selectedLeafs)
+      {
+        String name = tree->getCaption(leaf);
+        NodesProcessing::delete_flags_prefix(name);
+        if (!text.empty())
+          text += '\n';
+        text += name;
+      }
+
+      if (!text.empty())
+        clipboard::set_clipboard_ansi_text(text);
+
+      break;
+    }
+  }
+
+  return 0;
+}
 
 void CollisionPlugin::drawObjects(IGenViewportWnd *wnd)
 {
@@ -341,10 +485,14 @@ void CollisionPlugin::drawObjects(IGenViewportWnd *wnd)
           (node.behaviorFlags & CollisionNode::FLAG_ALLOW_BULLET_DECAL) ? "" : "noBullets |");
       }
     }
-    StdGuiRender::set_color(COLOR_BLACK);
-    StdGuiRender::draw_strf_to(screen.x + 1, screen.y + 1, selectedName.str());
-    StdGuiRender::set_color(COLOR_LTGREEN);
-    StdGuiRender::draw_strf_to(screen.x, screen.y, selectedName.str());
+    const bool isHidden = nodesProcessing.selectionNodesProcessing.hiddenNodes[i];
+    if (!isHidden)
+    {
+      StdGuiRender::set_color(COLOR_BLACK);
+      StdGuiRender::draw_strf_to(screen.x + 1, screen.y + 1, selectedName.str());
+      StdGuiRender::set_color(COLOR_LTGREEN);
+      StdGuiRender::draw_strf_to(screen.x, screen.y, selectedName.str());
+    }
   }
 }
 
@@ -433,6 +581,19 @@ void CollisionPlugin::updateFaceOrientationRenderDepthFromCurRT()
   faceOrientationRenderDepth.close();
   faceOrientationRenderDepth =
     dag::create_tex(nullptr, targetW, targetH, TEXCF_RTARGET | TEXFMT_DEPTH32, 1, "face_orient_render_depth");
+}
+
+int CollisionPlugin::getNodeIdx(PropPanel::ContainerPropertyControl *tree, PropPanel::TLeafHandle leaf)
+{
+  if (leaf)
+  {
+    String sel_name = tree->getCaption(leaf);
+    NodesProcessing::delete_flags_prefix(sel_name);
+    for (const auto &n : collisionRes->getAllNodes())
+      if (sel_name == n.name.str())
+        return &n - collisionRes->getAllNodes().data();
+  }
+  return -1;
 }
 
 static void reset_nodes_tm(CollisionResource *collision_res, GeomNodeTree *node_tree)
@@ -536,6 +697,7 @@ void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTre
 {
   begin_draw_cached_debug_lines();
 
+  const bool selectedNodeNotHidden = !hidden_nodes.empty() && selected_node_id >= 0 && !hidden_nodes[selected_node_id];
   const auto allNodes = collision_res.getAllNodes();
   int cnt = allNodes.size();
   for (int i = 0; i < cnt; i++)
@@ -544,7 +706,7 @@ void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTre
 
     const CollisionNodeVisibility visibility = getNodeVisibility(node, show_phys_collidable, show_traceable);
     const bool isVisible = visibility == CollisionNodeVisibility::INVISIBLE;
-    const bool isHidden = hidden_nodes.size() > 0 && hidden_nodes[i];
+    const bool isHidden = !hidden_nodes.empty() && hidden_nodes[i];
     if (isVisible || isHidden)
       continue;
 
@@ -556,7 +718,7 @@ void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTre
 
     int alpha = 255;
     const bool isNotSelectedNode = i != selected_node_id;
-    const bool hasSelectedNode = selected_node_id >= 0;
+    const bool hasSelectedNode = selected_node_id >= 0 && selectedNodeNotHidden;
     if (isNotSelectedNode && (hasSelectedNode || edit_mode))
     {
       alpha = 30;

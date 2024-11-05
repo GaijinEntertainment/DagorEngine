@@ -1,6 +1,4 @@
-
-#ifndef __DAGOR_SPLINE_H
-#define __DAGOR_SPLINE_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <math/dag_math3d.h>
@@ -43,6 +41,3 @@ public:
   ~SplineShape();
   void transform(TMatrix &);
 };
-
-
-#endif

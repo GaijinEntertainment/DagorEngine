@@ -23,6 +23,7 @@ UseProgLibs +=
   1stPartyLibs/jsoncpp
   1stPartyLibs/sysinfo
   gameLibs/asyncHTTPClient
+  gameLibs/asyncResolveAddr
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

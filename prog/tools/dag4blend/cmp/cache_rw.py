@@ -45,6 +45,7 @@ def build_cache():
             if skip(filename):
                 continue
             assetname = filename[0:filename.find('.')]
+            assetname = assetname.lower()
             if assetname not in entities:
                 entities[assetname] = []
             if is_prefab(filename):

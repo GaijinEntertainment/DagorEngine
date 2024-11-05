@@ -1,0 +1,20 @@
+include "project_gi_media.dshl"//fixme:should not be optional
+
+define_macro_if_not_defined PROJECT_GI_MEDIA(code)
+  hlsl(code) {
+    float4 dagi_get_project_media(float3 worldPos, float voxelSize)//scattering + density
+    {
+      return 0;
+    }
+  }
+endmacro
+
+define_macro_if_not_defined PROJECT_GI_INITIAL_MEDIA(code)
+  PROJECT_GI_MEDIA(code)
+  hlsl(code) {
+    float4 dagi_get_project_initial_media(float3 worldPos, float voxelSize)//scattering + density including visible surface
+    {
+      return dagi_get_project_media(worldPos, voxelSize);
+    }
+  }
+endmacro

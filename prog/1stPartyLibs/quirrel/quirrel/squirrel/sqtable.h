@@ -30,6 +30,7 @@ struct SQTable : public SQDelegable
 {
 private:
     friend struct SQVM;
+    friend struct SQDeduplicateShrinker;
     struct _HashNode
     {
         _HashNode() { next = NULL; }
@@ -139,7 +140,9 @@ public:
     SQInteger Next(bool getweakrefs,const SQObjectPtr &refpos, SQObjectPtr &outkey, SQObjectPtr &outval);
 
     SQInteger CountUsed(){ return _usednodes;}
-    void Clear();
+    SQInteger AllocatedNodes(){ return _numofnodes_minus_one + 1; }
+    bool IsBinaryEqual(SQTable *o);
+    void Clear(SQBool rehash = SQTrue);
     void Release()
     {
         sq_delete(_alloc_ctx, this, SQTable);

@@ -18,7 +18,7 @@ Sources =
   src/UnwindRegistersSave.S
 ;
 
-if $(Platform) in macosx tvOS iOS {
+if $(Platform) in macOS tvOS iOS {
   Sources +=
     src/Unwind_AppleExtras.cpp
   ;

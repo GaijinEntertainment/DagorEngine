@@ -1,5 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <3d/fileTexFactory.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
 #include "texMgrData.h"
 
 BaseTexture *StubTextureFactory::createTexture(TEXTUREID id)

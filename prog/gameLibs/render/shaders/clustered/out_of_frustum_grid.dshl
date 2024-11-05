@@ -1,0 +1,137 @@
+float4 out_of_frustum_omni_box[2];
+float4 out_of_frustum_spot_box[2];
+buffer oof_lights_full_grid;
+macro INIT_OOF_LIGHTS_GRID_BUF(code)
+  (code) {
+    oof_lights_full_grid@uav = oof_lights_full_grid hlsl {
+      RWByteAddressBuffer oof_lights_full_grid@uav;
+    };
+  }
+endmacro
+
+macro INIT_OOF_LIGHTS_GRID(code)
+  (code) {
+    out_of_frustum_spot_box@f4[] = out_of_frustum_spot_box;
+    out_of_frustum_omni_box@f4[] = out_of_frustum_omni_box;
+  }
+  INIT_OOF_LIGHTS_GRID_BUF(code)
+endmacro
+
+macro USE_OOF_LIGHTS_GRID(code)
+  hlsl(code) {
+    #if WAVE_INTRINSICS//reduce divirgence, on SM6.0 and consoles
+      #define MERGE_MASK(m) WaveReadFirstLane( WaveAllBitOr( (m) ) )
+    #else
+      #define MERGE_MASK(m) (m)
+    #endif
+    half3 get_oof_dynamic_lighting(ProcessedGbuffer gbuffer, float3 worldPos, float dynamicLightsSpecularStrength, float ao, float3 view, float3 specularColor, float NoV)
+    {
+      half3 ambientLight = 0;
+      //out_of_frustum_omni_box[0].xyz = float3(OOF_GRID_W, OOF_GRID_VERT, OOF_GRID_W)/box_width;
+      //out_of_frustum_omni_box[1].xyz = -box_bmin.xyz*out_of_frustum_omni_box[0].xyz
+      uint3 omniIndex = int3(floor(worldPos*out_of_frustum_omni_box[0].xyz + out_of_frustum_omni_box[1].xyz)).xzy;
+      if (all(omniIndex < uint3(OOF_GRID_W, OOF_GRID_W, OOF_GRID_VERT)) && omni_lights_count.x)
+      {
+        #if 0
+        for (uint omni_light_index = 0, omni_count = min(omni_lights_count.x, MAX_OMNI_LIGHTS); omni_light_index < omni_count; omni_light_index++)
+        {
+          RenderOmniLight ol = omni_lights_cb[omni_light_index];
+          float4 pos_and_radius = ol.posRadius;
+          float3 posToLight = pos_and_radius.xyz - worldPos;
+          if (dot(posToLight, posToLight) > pos_and_radius.w*pos_and_radius.w)
+            continue;
+          float4 color_and_specular = getFinalColor(ol, worldPos);
+          #if OMNI_SHADOWS
+            float4 shadowTcToAtlas = getOmniLightShadowData(omni_light_index);
+          #else
+            float4 shadowTcToAtlas = float4(0, 0, 0, 0);
+          #endif
+          half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, ao, pos_and_radius, color_and_specular, shadowTcToAtlas, float2(0, 0));//use gbuffer.specularColor for equality with point_lights.dshl
+          ambientLight += omniLight;
+        }
+        #else
+        uint clusterOmniIndex = (omniIndex.z*OOF_GRID_W + omniIndex.y)*OOF_GRID_W + omniIndex.x;
+        uint wordsPerOmni = omni_lights_count.y;
+        uint omniAddress = clusterOmniIndex*wordsPerOmni;
+        for ( uint omniWordIndex = 0; omniWordIndex < wordsPerOmni; omniWordIndex++ )
+        {
+          // Load bit mask data per lane
+          uint mask = loadBuffer(oof_lights_full_grid, (omniAddress + omniWordIndex)*4);
+          uint dbgBeforeMergeMask = mask;
+          uint mergedMask = MERGE_MASK( mask );
+          uint dbgAfterMerge = mergedMask;
+          while ( mergedMask != 0 ) // processed per lane
+          {
+            uint bitIndex = firstbitlow( mergedMask );
+            mergedMask ^= ( 1U << bitIndex );
+            uint omni_light_index = ((omniWordIndex<<5) + bitIndex);
+
+            ##assert(omni_light_index < omni_lights_count.x, "omni_lights_cb OOB: access to %.f but size is %.f, wordsPerOmni:%.f. bitIndex:%.f, omniWordIndex:%.f, dbgBeforeMergeMask:%.f, dbgAfterMerge:%.f, omniAddress:%.f, clusterOmniIndex:%.f, omniIndex:[%.f, %.f, %.f]", omni_light_index, omni_lights_count.x, wordsPerOmni, bitIndex, omniWordIndex, dbgBeforeMergeMask, dbgAfterMerge, omniAddress, clusterOmniIndex, omniIndex.x, omniIndex.y, omniIndex.z);
+            // for safety! should not be needed, but ensures no OOB access
+            omni_light_index = min(omni_light_index, omni_lights_count.z);
+            RenderOmniLight ol = omni_lights_cb[omni_light_index];
+            float4 pos_and_radius = ol.posRadius;
+            float3 posToLight = pos_and_radius.xyz - worldPos;
+            if (dot(posToLight, posToLight) > pos_and_radius.w*pos_and_radius.w)
+              continue;
+            float4 color_and_specular = getFinalColor(ol, worldPos);
+            #if OMNI_SHADOWS
+              float4 shadowTcToAtlas = getOmniLightShadowData(omni_light_index);
+            #else
+              float4 shadowTcToAtlas = float4(0, 0, 0, 0);
+            #endif
+            half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, ao, pos_and_radius, color_and_specular, shadowTcToAtlas, float2(0, 0));//use gbuffer.specularColor for equality with point_lights.dshl
+            ambientLight += omniLight;
+          }
+        }
+        #endif
+      }
+
+      uint3 spotIndex = int3(floor(worldPos*out_of_frustum_spot_box[0].xyz + out_of_frustum_spot_box[1].xyz)).xzy;
+      if (all(spotIndex < uint3(OOF_GRID_W, OOF_GRID_W, OOF_GRID_VERT)) && spot_lights_count.x)
+      {
+        #if 0
+        for (uint spot_light_index = 0, spot_count = min(spot_lights_count.x, MAX_SPOT_LIGHTS); spot_light_index < spot_count; spot_light_index++)
+        {
+          RenderSpotLight sl = spot_lights_cb[spot_light_index];
+          float4 lightPosRadius = sl.lightPosRadius;
+          float4 lightColor = sl.lightColorAngleScale;
+          float4 lightDirection = sl.lightDirectionAngleOffset;
+          float2 texId_scale = sl.texId_scale_shadow_contactshadow.xy;
+          #include "clustered/oneSpotLight.hlsl"
+          ambientLight += lightBRDF;
+        }
+        #else
+        uint clusterSpotIndex = (spotIndex.z*OOF_GRID_W + spotIndex.y)*OOF_GRID_W + spotIndex.x;
+        uint wordsPerSpot = spot_lights_count.y;
+        uint spotOffset = uint(omni_lights_count.y)*OOF_GRID_SIZE;//asuint(out_of_frustum_spot_box[1].w);
+        uint spotAddress = clusterSpotIndex*wordsPerSpot + spotOffset;
+        for ( uint spotWordIndex = 0; spotWordIndex < wordsPerSpot; spotWordIndex++ )
+        {
+          // Load bit mask data per lane
+          uint mask = loadBuffer(oof_lights_full_grid, (spotAddress + spotWordIndex)*4);
+          uint dbgBeforeMergeMask = mask;
+          uint mergedMask = MERGE_MASK( mask );
+          while ( mergedMask != 0 ) // processed per lane
+          {
+            uint bitIndex = firstbitlow( mergedMask );
+            mergedMask ^= ( 1U << bitIndex );
+            uint spot_light_index = ((spotWordIndex<<5) + bitIndex);
+            ##assert(spot_light_index < spot_lights_count.x, "spot_lights_cb OOB: access to %.f but size is %.f, spotsPerOmni:%.f. bitIndex:%.f, spotWordIndex:%.f, dbgBeforeMergeMask:%.f, spotAddress:%.f, spotOmniIndex:%.f, spotIndex:[%.f, %.f, %.f]", spot_light_index, spot_lights_count.x, wordsPerSpot, bitIndex, spotWordIndex, dbgBeforeMergeMask, spotAddress, clusterSpotIndex, spotIndex.x, spotIndex.y, spotIndex.z);
+            // for safety! should not be needed, but ensures no OOB access
+            spot_light_index = min(spot_light_index, spot_lights_count.z);
+            RenderSpotLight sl = spot_lights_cb[spot_light_index];
+            float4 lightPosRadius = sl.lightPosRadius;
+            float4 lightColor = sl.lightColorAngleScale;
+            float4 lightDirection = sl.lightDirectionAngleOffset;
+            float2 texId_scale = sl.texId_scale_shadow_contactshadow.xy;
+            #include "clustered/oneSpotLight.hlsl"
+            ambientLight += lightBRDF;
+          }
+        }
+        #endif
+      }
+      return ambientLight;
+    }
+  }
+endmacro

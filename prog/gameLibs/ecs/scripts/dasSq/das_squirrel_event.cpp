@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/dasEvent.h>
 #include <dasModules/dasModulesCommon.h>
 #include <ecs/scripts/sqBindEvent.h>
@@ -17,7 +19,7 @@ static SQInteger das_event_ctor(HSQUIRRELVM vm)
 
 
   ecs::EventsDB::event_id_t eventId = g_entity_mgr->getEventsDb().findEvent(eventType);
-  if (EASTL_UNLIKELY(eventId == ecs::EventsDB::invalid_event_id))
+  if (DAGOR_UNLIKELY(eventId == ecs::EventsDB::invalid_event_id))
     return sq_throwerror(vm, "event without event scheme");
 
   const ecs::event_size_t eventSize = g_entity_mgr->getEventsDb().getEventSize(eventId);
@@ -77,13 +79,13 @@ SQInteger dascript_evt_get(HSQUIRRELVM vm)
   G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm, 2, &key)));
 
   const ecs::EventsDB::event_id_t eventId = g_entity_mgr->getEventsDb().findEvent(evtVar.value->getType());
-  if (EASTL_UNLIKELY(eventId == ecs::EventsDB::invalid_event_id))
+  if (DAGOR_UNLIKELY(eventId == ecs::EventsDB::invalid_event_id))
   {
     sq_pushnull(vm);
     return sq_throwobject(vm);
   }
   const int fieldIndex = g_entity_mgr->getEventsDb().findFieldIndex(eventId, key);
-  if (EASTL_UNLIKELY(fieldIndex < 0))
+  if (DAGOR_UNLIKELY(fieldIndex < 0))
   {
     sq_pushnull(vm);
     return sq_throwobject(vm);
@@ -92,15 +94,18 @@ SQInteger dascript_evt_get(HSQUIRRELVM vm)
 }
 
 
-void bind_das_events(HSQUIRRELVM vm, uint32_t vm_mask, SqModules *modules_mgr)
+void bind_das_events(SqModules *modules_mgr)
 {
+  HSQUIRRELVM vm = modules_mgr->getVM();
+
   if (!Sqrat::ClassType<ecs::Event>::hasClassData(vm))
-    return;
-  if (vm_mask != sq::VM_GAME && vm_mask != sq::VM_UI)
     return;
 
   Sqrat::DerivedClass<DasEvent, ecs::Event> baseDasEvent(vm, "DasEvent");
-  baseDasEvent.SquirrelCtor(das_event_ctor, -1, ".o|t").SquirrelFunc("_get", dascript_evt_get, 2, "xs");
+  baseDasEvent //
+    .SquirrelCtor(das_event_ctor, -1, ".o|t")
+    .SquirrelFunc("_get", dascript_evt_get, 2, "xs")
+    /**/;
 
   Sqrat::ClassData<DasEvent> *sqDasEventClassData = Sqrat::ClassType<DasEvent>::getClassData(vm);
   G_ASSERT(sqDasEventClassData);
@@ -133,7 +138,7 @@ void bind_das_events(HSQUIRRELVM vm, uint32_t vm_mask, SqModules *modules_mgr)
 
   if (Sqrat::Object *existingModule = modules_mgr->findNativeModule("dasevents")) // if exist -> merge with overwrite
   {
-    debug("das_net: override dasevents module in vm %d", vm_mask);
+    debug("das_net: override dasevents module in Quirrel vm");
     Sqrat::Table existingTbl(*existingModule);
     Sqrat::Object::iterator it;
     while (eventClasses.Next(it))
@@ -141,7 +146,7 @@ void bind_das_events(HSQUIRRELVM vm, uint32_t vm_mask, SqModules *modules_mgr)
   }
   else // not exist -> add new
   {
-    debug("das_net: register dasevents module in vm %d", vm_mask);
+    debug("das_net: register dasevents module in Quirrel vm");
     modules_mgr->addNativeModule("dasevents", eventClasses);
   }
 }
@@ -163,13 +168,13 @@ struct InstanceToString<bind_dascript::DasEvent>
     ecs::event_type_t eventType = evt->getType();
     ecs::EventsDB::event_id_t eventId = eventsDb.findEvent(eventType);
 
-    if (EASTL_UNLIKELY(eventId == ecs::EventsDB::invalid_event_id))
+    if (DAGOR_UNLIKELY(eventId == ecs::EventsDB::invalid_event_id))
     {
       String s(0, "Unknown event '%s' <0x%X>", evt->getName(), evt->getType());
       sq_pushstring(vm, s.c_str(), s.size());
       return 1;
     }
-    if (EASTL_UNLIKELY(!eventsDb.hasEventScheme(eventId)))
+    if (DAGOR_UNLIKELY(!eventsDb.hasEventScheme(eventId)))
     {
       String s(0, "('%s' <0x%X>)", evt->getName(), evt->getType());
       sq_pushstring(vm, s.c_str(), s.size());

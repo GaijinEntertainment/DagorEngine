@@ -8,12 +8,12 @@ Sources =
   imguiBlk.cpp
   imguiMisc.cpp
   imguiString.cpp
+  imguiImage.cpp
   imguiComboWithFilter.cpp
 ;
 
 AddIncludes =
   $(Root)/prog/engine/sharedInclude
-  $(Root)/prog/gameLibs/publicInclude
 ;
 
 UseProgLibs =

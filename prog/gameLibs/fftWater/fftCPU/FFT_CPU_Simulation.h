@@ -1,5 +1,5 @@
-#ifndef _NVWaveWorks_FFT_Simulation_CPU_H
-#define _NVWaveWorks_FFT_Simulation_CPU_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #define MAX_FFT_RESOLUTION_GAUSS 9 // for gauss
 
@@ -141,5 +141,3 @@ float get_spectrum_rms_sqr(const NVWaveWorks_FFT_CPU_Simulation::Params &params)
 void calc_wave_height(const NVWaveWorks_FFT_CPU_Simulation::Params *fft, int num_cascades, float &out_significant_wave_height,
   float &out_max_wave_height, float *out_max_wave_size);
 const cpu_types::float2 *get_global_gauss_data(int &gauss_resolution, int &stride);
-
-#endif // _NVWaveWorks_FFT_Simulation_just_CPU_H

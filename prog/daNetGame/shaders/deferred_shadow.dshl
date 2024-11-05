@@ -1,0 +1,81 @@
+include "deferred_shadow_common.dshl"
+
+int depth_bounds_support = 0;
+interval depth_bounds_support: no<1, yes;
+
+shader deferred_shadow_to_buffer
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+  supports global_frame;
+  supports global_const_block;
+  z_write = false;
+  z_test = false;
+  COMMON_RESOLVE_EXTENDED(ps) //should be BEFORE READ_GBUFFER!
+
+  USE_AND_INIT_VIEW_VEC(vs)
+
+  INIT_LOAD_DEPTH_GBUFFER()
+  INIT_LOAD_GBUFFER()
+  USE_LOAD_DEPTH_GBUFFER()
+  USE_LOAD_GBUFFER()
+
+  cull_mode = none;
+
+  //fixme: in case of (depth_bounds_support == no_bounds)
+  //z_test = false should be true ONLY for cascade other than [0, something]
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord     : TEXCOORD0;
+      float3 viewVect     : TEXCOORD1;
+    };
+  }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  (vs) { screen_size@f2 = (1./screen_pos_to_texcoord.x, 1./screen_pos_to_texcoord.y,0,0); }
+
+  hlsl(vs) {
+    VsOutput deferred_shadow_to_buffer_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 inpos = get_fullscreen_inpos(vertexId);
+      output.pos = float4(inpos.xy, 1, 1);
+      output.texcoord.xy = screen_to_texcoords(inpos);
+      output.viewVect = get_view_vec_by_vertex_id(vertexId);
+
+      return output;
+    }
+  }
+
+  (ps) {
+    sun_color_1@f3 = sun_color_0;
+  }
+
+  USE_DEFERRED_SHADOW_PER_SAMPLE(ps)
+
+  hlsl(ps) {
+    float4 deferred_shadow_to_buffer_ps(VsOutput input HW_USE_SCREEN_POS
+        ) : SV_Target0
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+
+      float rawDepth = loadGbufferDepth(screenpos.xy);
+      ##if depth_bounds_support == no
+        BRANCH
+        if (rawDepth <= 0 || rawDepth >= 1)
+          return 0;
+      ##endif
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+
+      return deferred_shadow_per_sample(screenpos.xy, input.viewVect, input.texcoord, w, loadProcessedGbuffer(screenpos.xy), rawDepth);
+    }
+  }
+
+  compile("target_vs", "deferred_shadow_to_buffer_vs");
+  compile("target_ps", "deferred_shadow_to_buffer_ps");
+}

@@ -1,0 +1,22 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = latency_input_event_listener ;
+Location = prog/daNetGameLibs/$(Module) ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+;
+
+local AllSrcFolder_CPP = ;
+local AllSrcFolder_ES = ;
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_ES +=
+    render
+  ;
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

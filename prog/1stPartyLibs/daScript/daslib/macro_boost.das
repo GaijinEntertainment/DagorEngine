@@ -51,6 +51,7 @@ struct public CapturedVariable
     //! Stored captured variable together with the `ExprVar` which uses it
     variable : Variable?
     expression : ExprVar?
+    eref : bool             //! this one indicates if its used by reference and does not come from argument. its only used in JIT
 
 [macro_function]
 def public capture_block(expr:ExpressionPtr) : array<CapturedVariable>
@@ -66,18 +67,21 @@ def public capture_block(expr:ExpressionPtr) : array<CapturedVariable>
 [macro]
 class ColletFinally : AstVisitor
     [[do_not_delete]] blocks : table<ExprBlock?>
+    alwaysFor : bool
     def override preVisitExprBlock(blk:smart_ptr<ExprBlock>) : void
         if length(blk.finalList) > 0
+            blocks |> insert(get_ptr(blk))
+        elif alwaysFor && blk.blockFlags.forLoop
             blocks |> insert(get_ptr(blk))
     def override canVisitMakeBlockBody(expr:smart_ptr<ExprMakeBlock>) : bool
         return false
 
 [macro_function]
-def public collect_finally(expr:ExpressionPtr)
+def public collect_finally(expr:ExpressionPtr; alwaysFor:bool = false)
     //! Collect all finally blocks in the expression.
     //! Returns array of ExprBlock? with all the blocks which have `finally` section
     //! Does not go into 'make_block' expression, such as `lambda`, or 'block' expressions
-    var astVisitor = new ColletFinally()
+    var astVisitor = new [[ColletFinally() alwaysFor=alwaysFor]]
     var inscope adapter <- make_visitor(*astVisitor)
     visit(expr, adapter)
     var res <- [{for k in keys(astVisitor.blocks); k }]

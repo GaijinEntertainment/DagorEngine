@@ -1,12 +1,16 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gamePhys/phys/rendinstFloating.h>
 #include <ecs/core/attributeEx.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/coreEvents.h>
 #include <ecs/delayedAct/actInThread.h>
 #include <math/dag_vecMathCompatibility.h>
+#include <gamePhys/collision/collisionLib.h>
 #include <gamePhys/props/atmosphere.h>
 #include <gamePhys/phys/destructableObject.h>
 #include <gamePhys/phys/rendinstDestr.h>
+#include <gamePhys/phys/utils.h>
 #include <perfMon/dag_statDrv.h>
 #include <ioSys/dag_dataBlock.h>
 #include <fftWater/fftWater.h>
@@ -14,8 +18,11 @@
 #include <util/dag_delayedAction.h>
 #include <debug/dag_debug3d.h>
 #include <3d/dag_render.h>
+#include <shaders/dag_rendInstRes.h>
+#include <rendInst/rendInstGen.h>
 #include <rendInst/rendInstExtra.h>
 #include <rendInst/rendInstExtraAccess.h>
+#include <rendInst/rendInstAccess.h>
 #include <rendInst/gpuObjects.h>
 #include <math/dag_noise.h>
 #include <landMesh/lmeshManager.h>
@@ -39,6 +46,9 @@ struct Obstacle
 
 ECS_REGISTER_RELOCATABLE_TYPE(rendinstfloating::PhysFloatingModel, nullptr);
 ECS_AUTO_REGISTER_COMPONENT(rendinstfloating::PhysFloatingModel, "floatingRiGroup__riPhysFloatingModel", nullptr, 0);
+
+ECS_BROADCAST_EVENT_TYPE(EventMoveRiEx, rendinst::riex_handle_t, TMatrix);
+ECS_REGISTER_EVENT(EventMoveRiEx);
 
 ECS_DECLARE_BOXED_TYPE(FFTWater);
 
@@ -498,6 +508,17 @@ void rendinstfloating::init_floating_ri_res_groups(const DataBlock *ri_config, b
 }
 
 ECS_TAG(gameClient)
+static void move_floating_rendinsts_es(const EventMoveRiEx &evt)
+{
+  if (rendinst::isRiExtraLoaded()) // Could be false if this event is executing during scene unload where RIs already unloaded
+  {
+    mat44f m4;
+    v_mat44_make_from_43cu(m4, evt.get<1>().array);
+    rendinst::moveRIGenExtra44(evt.get<0>(), m4, /*moved*/ true, /*do_not_wait*/ false);
+  }
+}
+
+ECS_TAG(gameClient)
 static void update_floating_rendinsts_es(const ParallelUpdateFrameDelayed &info, float floatingRiSystem__randomWavesAmplitude,
   float floatingRiSystem__randomWavesLength, float floatingRiSystem__randomWavesPeriod, Point2 floatingRiSystem__randomWavesVelocity)
 {
@@ -527,12 +548,14 @@ static void update_floating_rendinsts_es(const ParallelUpdateFrameDelayed &info,
 
     int removedCnt;
     {
-      rendinst::ScopedRIExtraReadLock rlock;
+      // Actually only riExtra lock required at this point, but we will need layer lock later in traces
+      // Lock both immediatelly to prevent locks order inversion
+      rendinst::AutoLockReadPrimaryAndExtra lock;
       dag::ConstSpan<mat43f> riTm = rendinst::riex_get_instance_matrices(resIdx);
       int &processedRiTmCount = floatingRiGroup__riPhysFloatingModel.processedRiTmCount;
       if (riTm.size() != processedRiTmCount)
       {
-        if (EASTL_LIKELY(!processedRiTmCount))
+        if (DAGOR_LIKELY(!processedRiTmCount))
         {
           bool foundClose = false;
           vec4f udsq = v_set_x(floatingRiGroup__updateDistSq);
@@ -566,7 +589,7 @@ static void update_floating_rendinsts_es(const ParallelUpdateFrameDelayed &info,
       removedCnt = remove_invalid_floating_phys_instances(floatingRiGroup__riPhysFloatingModel.instances, riTm);
     }
 
-    if (EASTL_UNLIKELY(!prepared))
+    if (DAGOR_UNLIKELY(!prepared))
     {
       obstacles = get_obstacles(viewPos, maxUpdateDistSq);
       waterLevel = get_water_level();
@@ -620,15 +643,15 @@ static void update_floating_rendinsts_es(const ParallelUpdateFrameDelayed &info,
       if (dot(orientDiff, orientDiff) < MIN_ANGLE_DIFF_SQ && dot(posDiff, posDiff) < MIN_POS_DIFF_SQ)
         continue;
 
-      TMatrix tm;
-      riFloatingPhys.visualLoc.toTM(tm);
-      tm.setcol(0, tm.getcol(0) * riFloatingPhys.scale.x);
-      tm.setcol(1, tm.getcol(1) * riFloatingPhys.scale.y);
-      tm.setcol(2, tm.getcol(2) * riFloatingPhys.scale.z);
-      TMatrix4_vec4 m4 = TMatrix4_vec4(tm);
-      // To consider: (if this ES is called in non main thread) send event for this move to avoid colliding with other threads on
-      // `rendInst::ccExtra`
-      rendinst::moveRIGenExtra44(rendinst::make_handle(resIdx, riInstId), (mat44f &)m4, /*moved*/ true, /*do_not_lock*/ false);
+      TMatrix tm = riFloatingPhys.visualLoc.makeTM();
+      for (int i = 0; i < 3; ++i)
+        tm.setcol(i, tm.getcol(i) * riFloatingPhys.scale[i]);
+      mat44f m4;
+      v_mat44_make_from_43cu(m4, tm.array);
+      if (rendinst::moveRIGenExtra44(rendinst::make_handle(resIdx, riInstId), m4, /*moved*/ true, /*do_not_wait*/ true))
+        ; // Lock succeed
+      else
+        g_entity_mgr->broadcastEvent(EventMoveRiEx(rendinst::make_handle(resIdx, riInstId), tm));
       riFloatingPhys.prevVisualLoc = riFloatingPhys.visualLoc;
     }
 
@@ -763,7 +786,7 @@ static __forceinline void init_floating_rendinst_res_group_es_event_handler(cons
   else
   {
     float height = box.lim[1].y - box.lim[0].y;
-    float radius = rendinst::ries_get_bsph_rad(resIdx);
+    float radius = rendinst::riex_get_bsph_rad(resIdx);
     momentOfInertiaCoeff = Point3(floatingRiGroup__inertiaMult.x * (3.f * sqr(radius) + sqr(height)) / 12.f,
       floatingRiGroup__inertiaMult.y * sqr(radius) * 0.5f, floatingRiGroup__inertiaMult.z * (3.f * sqr(radius) + sqr(height)) / 12.f);
   }

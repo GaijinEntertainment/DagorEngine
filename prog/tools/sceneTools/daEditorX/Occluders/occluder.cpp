@@ -1,9 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "occluder.h"
 #include "plugin_occ.h"
 
 #include <libTools/renderUtil/dynRenderBuf.h>
-#include <dllPluginCore/core.h>
-#include <3d/dag_drv3d.h>
+#include <EditorCore/ec_IEditorCore.h>
+#include <drv/3d/dag_driver.h>
 #include <math/dag_rayIntersectBox.h>
 #include <math/dag_math2d.h>
 
@@ -11,6 +13,7 @@
 
 // #include <debug/dag_debug.h>
 
+using editorcore_extapi::dagRender;
 
 static DynRenderBuffer::Vertex boxVert[8];
 static int boxInd[36];
@@ -213,7 +216,7 @@ bool occplugin::Occluder::getWorldBox(BBox3 &box) const
   return true;
 }
 
-void occplugin::Occluder::fillProps(PropertyContainerControlBase &op, DClassID for_class_id,
+void occplugin::Occluder::fillProps(PropPanel::ContainerPropertyControl &op, DClassID for_class_id,
   dag::ConstSpan<RenderableEditableObject *> objects)
 {
   bool one_type = true;
@@ -238,7 +241,7 @@ void occplugin::Occluder::fillProps(PropertyContainerControlBase &op, DClassID f
   }
 }
 
-void occplugin::Occluder::onPPChange(int pid, bool edit_finished, PropPanel2 &panel,
+void occplugin::Occluder::onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
   dag::ConstSpan<RenderableEditableObject *> objects)
 {
   if (!edit_finished)
@@ -246,10 +249,12 @@ void occplugin::Occluder::onPPChange(int pid, bool edit_finished, PropPanel2 &pa
 }
 
 
-void occplugin::Occluder::onPPBtnPressed(int pid, PropPanel2 &panel, dag::ConstSpan<RenderableEditableObject *> objects) {}
+void occplugin::Occluder::onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel,
+  dag::ConstSpan<RenderableEditableObject *> objects)
+{}
 
 
-// bool occplugin::Occluder::onPPValidateParam(int pid, PropPanel2 &panel,
+// bool occplugin::Occluder::onPPValidateParam(int pid, PropPanel::ContainerPropertyControl &panel,
 //     dag::ConstSpan<RenderableEditableObject*> objects)
 //{
 //   return true;

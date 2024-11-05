@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -55,6 +54,16 @@ typedef eastl::fixed_function<64, bool(int)> CollisionNodeFilter;
 
 // ======= object to RI intersections ========
 
+struct RiGenCollidableData
+{
+  TMatrix tm;
+  const CollisionResource *collres;
+  RendInstDesc desc;
+  bool immortal;
+  float dist;
+};
+using rigen_collidable_data_t = dag::RelocatableFixedVector<RiGenCollidableData, 64, true, framemem_allocator>;
+
 bool testObjToRIGenIntersection(CollisionResource *obj_res, const CollisionNodeFilter &filter, const TMatrix &obj_tm,
   const Point3 &obj_vel, Point3 *intersected_obj_pos, bool *tree_sphere_intersected, Point3 *collisionPoint);
 
@@ -85,7 +94,7 @@ const char *get_rendinst_res_name_from_col_info(const CollisionInfo &col_info);
 CollisionInfo getRiGenDestrInfo(const RendInstDesc &desc);
 
 CheckBoxRIResultFlags checkBoxToRIGenIntersection(const BBox3 &box);
-
+void gatherRIGenCollidableInRadius(rigen_collidable_data_t &out_data, const Point3 &pos, float radius, GatherRiTypeFlags flags);
 
 struct TraceRayRendInstData
 {
@@ -115,6 +124,7 @@ using RendInstsSolidIntersectionsList = dag::Vector<TraceRayRendInstSolidData, f
 void computeRiIntersectedSolids(RendInstsSolidIntersectionsList &intersected, const Point3 &from, const Point3 &dir,
   SolidSectionsMerge merge_mode);
 
+uint32_t setMaxNumRiCollisionCb(uint32_t new_max_num);
 
 // ======= trace ray stuff ========
 
@@ -158,7 +168,7 @@ inline bool traceRayRendInstsNormalized(dag::Span<Trace> traces, bool = false, b
 
 bool traceDownMultiRay(dag::Span<Trace> traces, bbox3f_cref rayBox, dag::Span<RendInstDesc> ri_desc,
   const TraceMeshFaces *ri_cache = nullptr, int ray_mat_id = -1, TraceFlags trace_flags = TraceFlag::Destructible,
-  Bitarray *filter_pools = nullptr); // all rays should be down
+  Bitarray *filter_pools = nullptr, IgnoreFunc ignore_func = nullptr); // all rays should be down
 
 
 bool rayhitRendInstNormalized(const Point3 &from, const Point3 &dir, float t, int ray_mat_id, const RendInstDesc &ri_desc);

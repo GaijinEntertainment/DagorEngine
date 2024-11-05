@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_ioUtils.h>
 #include <ioSys/dag_dataBlock.h>
 #include <scene/dag_loadLevelVer.h>

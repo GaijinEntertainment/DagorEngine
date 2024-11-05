@@ -1,0 +1,268 @@
+include "land_block_inc.dshl"
+include "water_heightmap.dshl"
+include "rendinst_heightmap_ofs.dshl"
+
+int clipmap_decal_array_tex = 0;
+interval clipmap_decal_array_tex: off<1, on;
+
+texture clipmap_decal_diffuse_tex;
+texture clipmap_decal_normal_tex;
+int clipmap_decal_use_displacement_mask;
+interval clipmap_decal_use_displacement_mask: no<1, yes;
+buffer clipmap_decal_displacement_mask;
+
+float4 clipmap_decals_alpha_height_scale;
+float4 clipmap_decals_parameters; //microdetails, reflectance, ao, sizeScale
+float clipmap_decals_displacement_falloff_radius;
+interval clipmap_decals_displacement_falloff_radius: no<0, yes;
+
+hlsl(vs) {
+  Buffer<float4> decal_params : register(t8);
+}
+
+macro CLIPMAP_DECALS_COMMON()
+  supports land_mesh_prepare_clipmap;
+
+  if (lmesh_rendering_mode != rendering_clipmap || in_editor_assume == yes)
+  {
+    dont_render;
+  }
+
+  if (clipmap_decal_array_tex == off)
+  {
+    (ps) {
+      d_tex@smp2d = clipmap_decal_diffuse_tex;
+      n_tex@smp2d = clipmap_decal_normal_tex;
+    }
+  }
+  else
+  {
+    (ps) {
+      d_tex@smpArray = clipmap_decal_diffuse_tex;
+      n_tex@smpArray = clipmap_decal_normal_tex;
+    }
+  }
+  USE_CLIPMAP_MRT_OUTPUT()
+
+  // setup constants
+
+  blend_src=sa; blend_dst=isa;
+  blend_asrc=zero; blend_adst=isa;
+
+  z_write=false;
+
+  cull_mode = none;
+  static int writemask = 0xf73f; // 0 target (diffuse), .rg 1 target (normals), .rgb 2 target (ao, reflectance, detail), 3 target (displacement)
+  color_write = static writemask;
+
+  USE_ATEST_1()
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 diffuseTexcoord : TEXCOORD0;
+      float4 tangent : TEXCOORD1;
+      float2 worldPosXZ : TEXCOORD2;
+    ##if clipmap_decal_use_displacement_mask == yes
+      float4 displacementMaskParams : TEXCOORD3;
+    ##endif
+    ##if clipmap_decals_displacement_falloff_radius == yes
+      float2 vertexPos : TEXCOORD4;
+    ##endif
+    };
+  }
+
+  (vs) { decal_size_scale@f1 = (clipmap_decals_parameters.w); }
+
+  hlsl(vs) {
+
+    #define NUM_CONSTS_PER_INST 3
+
+    VsOutput landmesh_decal_clipmap_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      uint instanceId = vertexId/4;
+      uint vertex = vertexId%4;
+
+      float2 pos = int2(vertex % 2, vertex / 2);
+      FLATTEN
+      if ((vertex/2)%2 == 1)
+        pos.x = 1-pos.x;
+
+      pos = 2*pos-1;
+
+      ##if clipmap_decals_displacement_falloff_radius == yes
+        output.vertexPos = pos;
+      ##endif
+
+      float4 pData1 = loadBuffer(decal_params, instanceId*NUM_CONSTS_PER_INST+0);
+      float4 pData2 = loadBuffer(decal_params, instanceId*NUM_CONSTS_PER_INST+1);
+      float4 pData3 = loadBuffer(decal_params, instanceId*NUM_CONSTS_PER_INST+2);
+
+      float3 localX = float3(pData1.x, 0, pData1.y) * decal_size_scale;
+      float3 localZ = float3(pData1.z, 0, pData1.w) * decal_size_scale;
+      float decalSize = length(localX);
+
+      ##if clipmap_decal_use_displacement_mask == yes
+        uint displacementMaskSize = pData3.z;
+        // Displacement mask is not scaled by decal_size_scale and not rotated.
+        float2 displacementMaskCoord = pos * displacementMaskSize * decal_size_scale;
+        displacementMaskCoord = (displacementMaskCoord.x * normalize(localX.xz) +
+                                 displacementMaskCoord.y * normalize(localZ.xz) +
+                                 displacementMaskSize - 1) * 0.5;
+        output.displacementMaskParams = float4(displacementMaskCoord.xy,
+                                               instanceId, displacementMaskSize);
+      ##endif
+
+      float3 worldPos = float3(pData3.x, 0, pData3.y) + pos.x*localX + pos.y*localZ;
+
+      output.pos = mul(float4(worldPos, 1), globtm);
+      output.pos.z = 1.0;
+
+      output.diffuseTexcoord.xy = 0.5*(pos.xy+1);
+
+      output.diffuseTexcoord.x = lerp(pData2.x, pData2.z, output.diffuseTexcoord.x);
+      ##if clipmap_decal_array_tex == off
+        output.diffuseTexcoord.y = lerp(pData2.y, pData2.w, output.diffuseTexcoord.y);
+        output.diffuseTexcoord.z = 0;
+      ##else
+        output.diffuseTexcoord.y = output.diffuseTexcoord.y;
+        output.diffuseTexcoord.z = pData2.y;
+      ##endif
+      output.diffuseTexcoord.w = decalSize;
+
+      output.tangent.xy = normalize(localX.xz);
+      // for mirrored decals
+      output.tangent.xy = pData2.x > pData2.z ? -output.tangent.xy : output.tangent.xy;
+      output.tangent.zw = normalize(localZ.xz);
+      output.worldPosXZ = worldPos.xz;
+
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    ##if clipmap_decal_array_tex == off
+      #define getDecalTex(_tex, _tc) tex2D(_tex, _tc.xy)
+    ##else
+      #define getDecalTex(_tex, _tc) tex3D(_tex, _tc.xyz)
+    ##endif
+  }
+endmacro
+
+shader clipmap_decal_base
+{
+  hlsl(ps){
+    #define NO_GRADIENTS_IN_SHADER 1
+  }
+  ENABLE_ASSERT(ps)
+  CLIPMAP_DECALS_COMMON()
+  INIT_HEIGHTMAP_ZEROLEVEL(ps)
+  INIT_WORLD_HEIGHTMAP_PS()
+  USE_HEIGHTMAP_COMMON_PS()
+  INIT_WATER_HEIGHTMAP_BASE(ps, @smp2d)
+  USE_WATER_HEIGHTMAP(ps)
+  INIT_RENDINST_HEIGHTMAP_OFS(ps)
+  USE_RENDINST_HEIGHTMAP_OFS(ps)
+
+  (ps)
+  {
+    displacement_mask@buf = clipmap_decal_displacement_mask hlsl {
+      ByteAddressBuffer displacement_mask@buf;
+    };
+    alpha_height_scale@f4 = (1.0 / (clipmap_decals_alpha_height_scale.x + 0.0001),
+                             clipmap_decals_alpha_height_scale.z - clipmap_decals_alpha_height_scale.y,
+                             clipmap_decals_alpha_height_scale.y,
+                             clipmap_decals_alpha_height_scale.w)
+    displacement_falloff_radius@f1 =  clipmap_decals_displacement_falloff_radius;
+    details_ao_reflectance@f3 = (clipmap_decals_parameters)
+    waterLevel_wetnessAboveRcp@f2 = (water_level, 1.0 / wetness_above, 0, 0)
+  }
+
+  hlsl(ps) {
+    MRT_OUPUT landmesh_decal_clipmap_ps(VsOutput input)
+    {
+      MRT_OUPUT ret;
+      float alphaScale = alpha_height_scale.x;
+      float displacementRange = alpha_height_scale.y;
+      float displacementMin = alpha_height_scale.z;
+      float displacementScale = alpha_height_scale.w;
+      float decalSize = input.diffuseTexcoord.w;
+
+      float4 diffuse = getDecalTex(d_tex, input.diffuseTexcoord);
+
+      float amount = saturate(diffuse.a * alphaScale);
+      float displacement = diffuse.a;
+      displacement = displacement * displacementRange + displacementMin;
+      displacement *= min(decalSize * displacementScale, 1.0);
+      ##if clipmap_decal_use_displacement_mask == yes
+        int displacementMaskSize = input.displacementMaskParams.w;
+        float2 displCoordFrac = frac(input.displacementMaskParams.xy);
+        uint4 leftTopRigthBottom = uint4(floor(input.displacementMaskParams.xy),
+                                        ceil(input.displacementMaskParams.xy));
+        uint4 clampMin = 0;
+        uint4 clampMax = displacementMaskSize - 1;
+        leftTopRigthBottom = clamp(leftTopRigthBottom, clampMin, clampMax);
+        // We store 64-bit bitmask in `displacement_mask` for NxN grid, where N is
+        // `displacementMaskSize`. Order is column major (Y axis). Since hlsl doesn`t
+        // support 64-bit uints we load them into `lowBits` and `highBits`.
+        // And then use linear sampling with clamped edge mode.
+        uint2 rawMask = loadBuffer2(displacement_mask, uint(input.displacementMaskParams.z) << 3);
+        uint lowBits = rawMask.x;
+        uint highBits = rawMask.y;
+        uint4 shift = leftTopRigthBottom.xzxz * displacementMaskSize + leftTopRigthBottom.yyww;
+        float4 displMask4 = ((shift > 0x1f ? highBits : lowBits) >> (shift & 0x1f)) & 1;
+        float2 displMask2 = lerp(displMask4.xy, displMask4.zw, displCoordFrac.y);
+        float displacementMaskMul = lerp(displMask2.x, displMask2.y, displCoordFrac.x);
+        //We apply this mask not only for displacement but for all channels, otherwise bomb craters look too flat
+        amount *= displacementMaskMul;
+      ##endif
+
+      float displacementAmount = amount;
+      ##if clipmap_decals_displacement_falloff_radius == yes
+        float radius = length(input.vertexPos);
+        displacementAmount *= 1 - smoothstep(displacement_falloff_radius, 1.f, radius);
+      ##endif
+
+      displacement = saturate(displacement * hmap_displacement_scale + heightmap_zerolevel);
+
+      half height = displacement;
+      ret.height = float4(height, height, height, displacementAmount);
+
+      ##if clipmap_writes_height_only == no
+        ret.color.rgb = diffuse.rgb;
+        ret.color.a = amount;
+
+        float3 normal_emission = getDecalTex(n_tex, input.diffuseTexcoord).xyz;
+        float2 normal = normal_emission.xy;
+        normal = 2 * (normal - 0.5);
+        normal = normal.x*input.tangent.xy + normal.y*input.tangent.zw;
+        ret.normal.xy = normal * 0.5 + 0.5;
+        ret.normal.z = 0.0; // to avoid warnings about partial target write
+        ret.normal.a = displacementAmount;
+
+        float emission = normal_emission.z;
+        BRANCH
+        if (emission > 0.0)
+        {
+          // Fade out emission by wetness
+          float worldHeight = getWorldHeight(input.worldPosXZ);
+          apply_renderinst_hmap_ofs(input.worldPosXZ, worldHeight);
+          float waterLevel = waterLevel_wetnessAboveRcp.x;
+          get_water_height(input.worldPosXZ, waterLevel);
+          float wetness = saturate((waterLevel - worldHeight) * waterLevel_wetnessAboveRcp.y + 1);
+          float emissionModifier = pow2(1.0 - wetness);
+          emission *= emissionModifier;
+          ret.color.rgb *= emissionModifier;
+        }
+        ret.detail_ao_reflectance = half4(pack_detail_ao_reflectance_emission(
+            details_ao_reflectance.x, details_ao_reflectance.y, details_ao_reflectance.z, emission), amount);
+      ##endif
+
+      return ret;
+    }
+  }
+  compile("target_vs", "landmesh_decal_clipmap_vs");
+  compile("target_ps", "landmesh_decal_clipmap_ps");
+}

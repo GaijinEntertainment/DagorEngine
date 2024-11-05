@@ -1,0 +1,7 @@
+local R = prog/gameLibs/ecs/deferToAct ;
+local src =
+  $(R)/deferToActModule.cpp
+  $(R)/stub_aot.cpp
+;
+Sources += $(src) ;
+opt on $(src) = -I$(Root)/$(R) ;

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -62,6 +61,13 @@ INLINE real norm_s_ang_deg(real a)
   return a + fsel(a - 180.f, -360.f, fsel(a + 180.f, 0, 360.f));
 }
 
+INLINE real clamp_s_ang(real a, real min_a, real max_a)
+{
+  real normMin = norm_s_ang(min_a - a);
+  real normMax = norm_s_ang(max_a - a);
+  return (normMin <= 0.f && normMax >= 0.f) ? a : (abs(normMax) - abs(normMin) >= 0.f ? min_a : max_a);
+}
+
 INLINE real interp_ang_deg(real a, real b, real t)
 {
   return lerp(a, b, t) - fsel(180.0f - fabsf(a - b), 0, 360.0f * fsel(a - b, 1.0f - t, t));
@@ -86,14 +92,7 @@ INLINE real renorm_ang(real ang, real pivot_ang)
   return rabs(delta) > PI ? ang + (delta > 0.f ? 1.f : -1.f) * TWOPI : ang;
 }
 
-inline Point2 dir_to_angles_yaw_pitch(Point3 dir)
-{
-  return Point2(-atan2f(dir.z, dir.x), atan2f(dir.y, sqrtf(dir.x * dir.x + dir.z * dir.z)));
-}
-
-inline Point2 dir_to_angles_pitch_yaw(Point3 dir) { return Point2(-atan2f(dir.z, Point2::xy(dir).length()), atan2f(dir.y, dir.x)); }
-
-inline Point2 dir_to_angles(Point3 dir) { return dir_to_angles_yaw_pitch(dir); }
+inline Point2 dir_to_angles(Point3 dir) { return Point2(-atan2f(dir.z, dir.x), atan2f(dir.y, sqrtf(dir.x * dir.x + dir.z * dir.z))); }
 
 inline Point2 dir_normalized_to_angles(Point3 dir)
 {
@@ -101,7 +100,7 @@ inline Point2 dir_normalized_to_angles(Point3 dir)
   return Point2(-atan2f(dir.z, dir.x), safe_asin(dir.y));
 }
 
-inline Point3 angles_to_dir_yaw_pitch(Point2 angles)
+inline Point3 angles_to_dir(Point2 angles)
 {
   float xSine, xCos;
   float ySine, yCos;
@@ -109,17 +108,6 @@ inline Point3 angles_to_dir_yaw_pitch(Point2 angles)
   sincos(angles.y, ySine, yCos);
   return Point3(xCos * yCos, ySine, xSine * yCos);
 }
-
-inline Point3 angles_to_dir_pitch_yaw(Point2 angles)
-{
-  float xSine, xCos;
-  float ySine, yCos;
-  sincos(-angles.x, xSine, xCos);
-  sincos(angles.y, ySine, yCos);
-  return Point3(yCos * xCos, ySine * xCos, xSine);
-}
-
-inline Point3 angles_to_dir(Point2 angles) { return angles_to_dir_yaw_pitch(angles); }
 
 inline float dir_to_yaw(Point2 dir) { return atan2f(dir.y, dir.x); }
 
@@ -134,6 +122,8 @@ inline Point2 yaw_to_2d_dir(float yaw)
 
 Point3 basis_aware_angles_to_dir(const Point2 &angles, const Point3 &up, const Point3 &fwd);
 Point2 basis_aware_dir_to_angles(const Point3 &dir, const Point3 &up, const Point3 &fwd);
+Point2 basis_aware_clamp_angles_by_dir(const Point2 &angles, const Point4 max_angles, const Point3 &dir, const Point3 &up,
+  const Point3 &fwd);
 
 bool is_direction_clockwise(float angle_1, float angle_2);
 bool is_angle_in_sector(float test_angle, const Point2 &sector);

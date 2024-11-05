@@ -30,7 +30,7 @@ Sources =
   ms_data.cpp
 ;
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   Sources +=
     mbWinReport.cpp
   ;
@@ -59,9 +59,7 @@ AddIncludes =
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/3rdPartyLibs
 ;
-if $(DriverLinkage) = dynamic { UseProgLibs = engine/memory/rtlOverride ; }
-
-CPPopt += -D__B_CORE ;
+if $(KernelLinkage) = dynamic { UseProgLibs = engine/memory/rtlOverride ; }
 
 UseProgLibs += 3rdPartyLibs/eastl ;
 

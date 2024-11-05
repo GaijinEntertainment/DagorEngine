@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "driver.h"
 
 // #include "immediateConstStub.inc.cpp"
@@ -5,7 +7,8 @@
 // this is a bit optimized version, basically less ifs and context locks
 #include "immediateConstStub.h"
 
-#include <3d/dag_drv3d_buffers.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_buffers.h>
 #ifdef IMMEDIATE_CB_NAMESPACE
 IMMEDIATE_CB_NAMESPACE
 {

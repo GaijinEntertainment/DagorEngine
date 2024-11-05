@@ -1,0 +1,4 @@
+include_optional "cloth_modifier.dshl"
+
+define_macro_if_not_defined CLOTH_WIND_COMMON()
+endmacro

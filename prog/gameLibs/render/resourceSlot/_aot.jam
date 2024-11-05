@@ -1,0 +1,7 @@
+local R = prog/gameLibs/render/resourceSlot ;
+local src =
+  $(R)/das/resourceSlotCoreModule.cpp
+  $(R)/das/stub_aot.cpp
+;
+Sources += $(src) ;
+opt on $(src) = -I$(Root)/$(R) ;

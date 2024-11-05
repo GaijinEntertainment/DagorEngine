@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_asyncRead.h>
 #include <osApiWrappers/dag_fileIoErr.h>
 #include <osApiWrappers/dag_files.h>
@@ -41,7 +43,7 @@ static pthread_mutex_t ov_mutex = PTHREAD_MUTEX_INITIALIZER;
 class AsyncReadThread : public DaThread
 {
 public:
-  AsyncReadThread() : DaThread("posix thread async reader"), activeOvMask(0)
+  AsyncReadThread() : DaThread("posix thread async reader", DEFAULT_STACK_SZ, 0, WORKER_THREADS_AFFINITY_MASK), activeOvMask(0)
   {
     os_event_create(&wakeEvent, "posix_thread_read_wake_event");
   }
@@ -54,7 +56,7 @@ public:
 
   void execute() override
   {
-    while (!interlocked_acquire_load(terminating))
+    while (!isThreadTerminating())
     {
       uint64_t toProcess = activeOvMask.exchange(0);
       if (!toProcess)
@@ -99,7 +101,7 @@ public:
   void stop()
   {
     terminate(true, -1, &wakeEvent);
-    debug_ctx("[posix_thread_read] dfa: read thread exited");
+    DEBUG_CTX("[posix_thread_read] dfa: read thread exited");
   }
 
 private:
@@ -179,7 +181,7 @@ int dfa_alloc_asyncdata()
   {
     if (!aioReadThread.start())
     {
-      logerr_ctx("[posix_thread_read] dfa: failed to start read thread");
+      LOGERR_CTX("[posix_thread_read] dfa: failed to start read thread");
       pthread_mutex_unlock(&ov_mutex);
       return -1;
     }
@@ -193,7 +195,7 @@ int dfa_alloc_asyncdata()
     return idx;
   }
 
-  debug_ctx("[posix_thread_read] dfa: no more free handles");
+  DEBUG_CTX("[posix_thread_read] dfa: no more free handles");
   return -1;
 }
 
@@ -213,7 +215,7 @@ void dfa_free_asyncdata(int data_handle)
   }
   pthread_mutex_unlock(&ov_mutex);
   if (!unused)
-    debug_ctx("[posix_thread_read] dfa: already freed handle: %d", data_handle);
+    DEBUG_CTX("[posix_thread_read] dfa: already freed handle: %d", data_handle);
 }
 
 bool dfa_read_async(void *handle, int asyncdata_handle, int offset, void *buf, int len)

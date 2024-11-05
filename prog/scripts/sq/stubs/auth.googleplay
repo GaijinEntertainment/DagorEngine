@@ -1,0 +1,4 @@
+return {
+  login_googleplay =  @(...) null
+  register_googleplay_purchase = @(...) null
+}

@@ -1,1 +1,1 @@
-Serializes structured data, based on the `value` type.
+todo: implement preallocat string with raii

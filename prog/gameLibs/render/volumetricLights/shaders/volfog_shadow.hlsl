@@ -25,6 +25,10 @@ float calc_volfog_shadow(float3 world_pos)
 
 float calc_final_volfog_shadow(uint3 dtId)
 {
+  BRANCH
+  if (is_voxel_id_shadow_occluded(dtId))
+    return 1;
+
   float3 invRes = 1.0 / volfog_shadow_res.xyz;
 
   // TODO: refactor it
@@ -47,7 +51,7 @@ float calc_final_volfog_shadow(uint3 dtId)
   float prevDepth = volfog_prev_range_ratio*linearize_z(prev_clipSpace.z, prev_zn_zfar.zw);
   float3 prevTc = float3(prev_tc_2d, depth_to_volume_pos(prevDepth));
 
-  float weight = volfog_shadow_prev_frame_tc_offset.w;
+  float weight = volfog_shadow_accumulation_factor;
   float prevShadow = tex3Dlod(prev_volfog_shadow, float4(prevTc,0)).x;
 
   if (checkOffscreenTc3d(prevTc))

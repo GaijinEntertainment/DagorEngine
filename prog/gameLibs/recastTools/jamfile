@@ -19,6 +19,8 @@ Sources =
   recastBuildCovers2.cpp
   recastBuildEdges.cpp
   recastBuildJumpLinks.cpp
+  recastBuildJumpLinks1.cpp
+  recastBuildJumpLinks2.cpp
   recastTools.cpp
 ;
 
@@ -27,5 +29,7 @@ UseProgLibs +=
   3rdPartyLibs/Recast
   gameLibs/gameMath
 ;
+
+if $(BuildingTools) = yes && $(CheckedContainers) != yes { Target = $(Target:S=~t.lib) ; CPPopt += -D_DEBUG_TAB_ ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -66,7 +66,7 @@ namespace Sqrat
   template <class T> using shared_ptr = std::shared_ptr<T>;
   template <class T> using weak_ptr = std::weak_ptr<T>;
 
-#if __cplusplus >= 201703L
+#if (__cplusplus >= 201703L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) // c++17
   using string_view = std::basic_string_view<SQChar>;
 #else
   using string_view = string;
@@ -78,27 +78,40 @@ namespace Sqrat
 struct Object
 {
     HSQUIRRELVM vm = nullptr;
-    HSQOBJECT o = {OT_NULL, 0};
-    ~Object() { sq_release(vm, &o); }
-    Object() : vm(nullptr) { sq_resetobject(&o); }
-    Object(HSQUIRRELVM vm_, HSQOBJECT ho) : vm(vm_), o(ho) { sq_addref(vm, &o); }
-    Object(const Object &ptr) : vm(ptr.vm), o(ptr.o) { sq_addref(vm, &o); }
-    Object(Object &&ptr) { sq_release(vm, &o); vm=ptr.vm; o=ptr.o; sq_resetobject(&ptr.o); }
-    Object& operator=(const Object &ptr) { vm = ptr.vm; o = ptr.o; sq_addref(vm, &o); return *this; }
-    Object& operator=(Object &&ptr) { sq_release(vm, &o); vm=ptr.vm; o=ptr.o; sq_resetobject(&ptr.o); return *this; }
+    HSQOBJECT obj = {OT_NULL, 0};
+    ~Object() { sq_release(vm, &obj); }
+    Object() : vm(nullptr) { sq_resetobject(&obj); }
+    Object(HSQOBJECT ho, HSQUIRRELVM vm_) : vm(vm_), obj(ho) { sq_addref(vm, &obj); }
+    Object(const Object &ptr) : vm(ptr.vm), obj(ptr.obj) { sq_addref(vm, &obj); }
+    Object(Object &&ptr) { sq_release(vm, &obj); vm=ptr.vm; obj=ptr.obj; sq_resetobject(&ptr.obj); }
+    Object& operator=(const Object &ptr) { vm = ptr.vm; obj = ptr.obj; sq_addref(vm, &obj); return *this; }
+    Object& operator=(Object &&ptr) { sq_release(vm, &obj); vm=ptr.vm; obj=ptr.obj; sq_resetobject(&ptr.obj); return *this; }
 
-    void attachToStack(HSQUIRRELVM vm_, SQInteger idx)
+    HSQOBJECT GetObject() const { return obj; }
+    HSQOBJECT& GetObject() { return obj; }
+
+    void Release()
     {
-        sq_release(vm_, &o);
-        vm = vm_;
-        sq_getstackobj(vm_, idx, &o);
-        sq_addref(vm_, &o);
+        sq_release(vm, &obj);
+        sq_resetobject(&obj);
     }
+};
 
-    void release()
-    {
-        sq_release(vm, &o);
-        sq_resetobject(&o);
+template <typename T>
+struct Var
+{
+};
+
+template <>
+struct Var<Object>
+{
+    Object value; ///< The actual value of get operations
+
+    /// Attempts to get the value off the stack at idx as an Object
+    Var(HSQUIRRELVM vm, SQInteger idx) {
+        HSQOBJECT sqValue;
+        SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, idx, &sqValue)));
+        value = Object(sqValue, vm);
     }
 };
 

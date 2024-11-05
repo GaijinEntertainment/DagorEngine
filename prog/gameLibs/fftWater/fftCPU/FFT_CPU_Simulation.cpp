@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <util/dag_globDef.h>
 #include <math/dag_adjpow2.h>
@@ -54,7 +55,7 @@
 #endif
 
 #define DECLARE_INT_CONST(Name, Val) alignas(16) static const int Name##_PI32_[4] = {Val, Val, Val, Val};
-#define DECLARE_CONST(Name, Val)     static const vec4f Name##_PS = {Val##f, Val##f, Val##f, Val##f};
+#define DECLARE_CONST(Name, Val)     static const vec4f Name##_PS = DECL_VECFLOAT4(Val##f, Val##f, Val##f, Val##f);
 DECLARE_INT_CONST(SIGN_MASK_SINGLE, static_cast<int>(0x80000000))
 #define SIGN_MASK_SINGLE *(vec4f *)SIGN_MASK_SINGLE_PI32_
 DECLARE_INT_CONST(INV_SIGN_MASK_SINGLE, 0x7fffffff)

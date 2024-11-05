@@ -1,5 +1,12 @@
 #pragma once
 
+#ifndef DAS_VERSION
+#define DAS_VERSION_MAJOR 0
+#define DAS_VERSION_MINOR 5
+#define DAS_VERSION_PATCH 0
+#define DAS_VERSION (DAS_VERSION_MAJOR*10000 + DAS_VERSION_MINOR*100 + DAS_VERSION_PATCH)
+#endif
+
 #ifdef __HAIKU__
 #define _GNU_SOURCE 1
 #endif
@@ -166,11 +173,17 @@
         return uint64_t(r);
     }
     __forceinline uint32_t das_popcount(uint32_t x) {
+    #if defined(_M_ARM64)
+        return vaddlv_u8(vcnt_u8(vdup_n_u64(x)));
+    #else
         return uint32_t(__popcnt(x));
+    #endif
     }
     __forceinline uint64_t das_popcount64(uint64_t x) {
     #if defined(__i386__) || defined(_M_IX86)
         return uint64_t(__popcnt(uint32_t(x)) + __popcnt(uint32_t(x >> 32)));
+    #elif defined(_M_ARM64)
+        return vaddlv_u8(vcnt_u8(vdup_n_u64(x)));
     #else
         return uint64_t(__popcnt64(x));
     #endif
@@ -385,5 +398,16 @@ inline size_t das_aligned_memsize(void * ptr){
     #endif
 #endif
 
+// if -funsafe-math-optimizations or -freciprocal-math is used, this flat needs to be 0
+// unfortunately, it's not possible to detect this flag in the preprocessor
+#ifndef DAS_FAST_INTEGER_MOD
+    #if defined(__FAST_MATH__)
+        #define DAS_FAST_INTEGER_MOD 0
+    #else
+        #define DAS_FAST_INTEGER_MOD 1
+    #endif
+#endif
+
 #include "daScript/misc/smart_ptr.h"
+
 

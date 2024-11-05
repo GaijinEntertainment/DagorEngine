@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "bhvMovie.h"
 #include "guiScene.h"
 
@@ -22,20 +24,6 @@ BhvMovie bhv_movie;
 BhvMovie::BhvMovie() : Behavior(STAGE_BEFORE_RENDER, 0) {}
 
 
-static IGenSound *create_sound_for_videofile(const char *fn)
-{
-  if (!fn || !*fn)
-    return nullptr;
-
-  // sound file should have name <video_file.ext>.mp3
-  String snd_file(0, "%s.mp3", fn);
-  if (dd_file_exists(snd_file.c_str()))
-  {
-    return ui_sound_player->getAudioSystem()->createSound(snd_file.c_str());
-  }
-  return nullptr;
-}
-
 static IGenVideoPlayer *create_player_for_file(const char *fn)
 {
   if (!fn || !*fn)
@@ -50,10 +38,10 @@ static IGenVideoPlayer *create_player_for_file(const char *fn)
   const int buf_num = 4;
 
   const char *fext = dd_get_fname_ext(fn);
-  if (fext && dd_stricmp(fext, ".ivf") == 0)
-    return IGenVideoPlayer::create_av1_video_player(fn, buf_num);
-  else
+  if (fext && dd_stricmp(fext, ".ogg") == 0) // expect .ivf (AV1) by default
     return IGenVideoPlayer::create_ogg_video_player(fn, buf_num);
+  else
+    return IGenVideoPlayer::create_av1_video_player(fn, buf_num);
 }
 
 
@@ -66,10 +54,10 @@ static void init_player(darg::Element *elem)
   IGenSound *soundPlayer = nullptr;
   if (!player)
   {
-    Sqrat::Object handler = elem->props.scriptDesc.RawGetSlot("onError");
+    Sqrat::Object handler = scriptDesc.RawGetSlot("onError");
     if (!handler.IsNull())
     {
-      Sqrat::Function f(handler.GetVM(), elem->props.scriptDesc, handler);
+      Sqrat::Function f(handler.GetVM(), scriptDesc, handler);
       GuiScene *scene = GuiScene::get_from_elem(elem);
       scene->queueScriptHandler(new ScriptHandlerSqFunc<>(f));
     }
@@ -81,8 +69,22 @@ static void init_player(darg::Element *elem)
 
   bool loop = scriptDesc.RawGetSlotValue(elem->csk->loop, true);
 
-  if (!loop)
-    soundPlayer = create_sound_for_videofile(fn.value);
+  if (!loop && scriptDesc.RawGetSlotValue<bool>("enableSound", true))
+  {
+    const char *videoFn = fn.value;
+    G_ASSERT(videoFn && *videoFn);
+
+    // sound file names default is "<video_file.ext>.mp3"
+    String sndFileName(framemem_ptr());
+    Sqrat::Object sndFnObj = scriptDesc.RawGetSlot(elem->csk->sound);
+    if (sndFnObj.GetType() == OT_STRING)
+      sndFileName = sndFnObj.GetVar<const char *>().value;
+    else
+      sndFileName.printf(0, "%s.mp3", videoFn);
+
+    if (dd_file_exists(sndFileName.c_str()))
+      soundPlayer = ui_sound_player->getAudioSystem()->createSound(sndFileName.c_str());
+  }
 
   if (soundPlayer)
     elem->props.storage.SetInstance(elem->csk->soundPlayer, soundPlayer);
@@ -94,7 +96,10 @@ static void init_player(darg::Element *elem)
   player->setAutoRewind(loop);
   player->start();
   if (soundPlayer)
-    ui_sound_player->getAudioSystem()->playSound(soundPlayer);
+  {
+    float soundVolume = scriptDesc.RawGetSlotValue(elem->csk->soundVolume, 1.0f);
+    ui_sound_player->getAudioSystem()->playSound(soundPlayer, 1, soundVolume);
+  }
 }
 
 

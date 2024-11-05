@@ -1,5 +1,10 @@
-// defines full draw/dispatch ready state that can be applied to execution context
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+// defines full draw/dispatch ready state that can be applied to execution context
+
+#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
+
 #include "util/tracked_state.h"
 #include "compute_state.h"
 #include "graphics_state2.h"
@@ -58,6 +63,23 @@ public:
   ExecutionContext &getExecutionContext() { return *executionContext; }
   void setExecutionContext(ExecutionContext *ctx) { executionContext = ctx; }
   PipelineStageStateBase &getResBinds(ShaderStage stage) { return getData().stageState[stage]; }
+  PipelineStageStateBase &getResBinds(ExtendedShaderStage stage)
+  {
+    switch (stage)
+    {
+      case ExtendedShaderStage::CS: return getData().stageState[ShaderStage::STAGE_CS];
+      case ExtendedShaderStage::TC: return getData().stageState[ShaderStage::STAGE_VS];
+      case ExtendedShaderStage::TE: return getData().stageState[ShaderStage::STAGE_VS];
+      case ExtendedShaderStage::GS: return getData().stageState[ShaderStage::STAGE_VS];
+
+      case ExtendedShaderStage::PS: return getData().stageState[ShaderStage::STAGE_PS];
+      case ExtendedShaderStage::VS: return getData().stageState[ShaderStage::STAGE_VS];
+      case ExtendedShaderStage::RT: return getData().stageState[ShaderStage::STAGE_RAYTRACE];
+      default: break;
+    }
+    G_ASSERTF(0, "vulkan: unkown extended shader stage %u:%s", (uint32_t)stage, formatExtendedShaderStage(stage));
+    return getData().stageState[ShaderStage::STAGE_VS];
+  }
 
   // interrupt without immediate apply!
   void interruptRenderPass(const char *reason);

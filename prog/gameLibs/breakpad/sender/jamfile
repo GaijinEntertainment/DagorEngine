@@ -5,13 +5,14 @@ TargetType = exe ;
 Target = bpreport ;
 StrictCompile = yes ;
 
-PlatformSpec_win32 ?= vc16 ;
-PlatformSpec_win64 ?= vc16 ;
+PlatformSpec_windows ?= vc16 ;
+include $(Root)/prog/_jBuild/defPlatform.jam ;
 
 # workaround broken FL/x.H which will try to include Xlib.H on win64
-if $(Platform) = win64 {
+if $(Platform)-$(PlatformArch) = windows-x86_64 {
   echo "FLTK is broken on Win64, falling back to 32 bit" ;
-  Platform = win32 ;
+  PlatformArch = x86 ;
+  include $(Root)/prog/_jBuild/defPlatform.jam ;
 }
 
 UseLLDLink = no ; #lld-link can not chose between WinMain in exe and wWinMain in lib correctly
@@ -25,7 +26,7 @@ AddIncludes =
   $(Root)/prog/3rdPartyLibs/arc/libzip/lib
 ;
 
-if $(Platform) = macosx {
+if $(Platform) = macOS {
   AddIncludes += $(_DEVTOOL)/fltk-1.3.8 ;
 } else {
   AddIncludes += $(_DEVTOOL)/fltk-1.3.4 ;
@@ -53,7 +54,7 @@ Sources =
   log.cpp
 ;
 
-if $(Platform) = linux64 {
+if $(Platform) = linux {
   Sources += linux/main.cpp ;
   LINKopt = -L$(_DEVTOOL)/fltk-1.3.4/lib/linux ;
 
@@ -61,7 +62,7 @@ if $(Platform) = linux64 {
     -lfltk-minimal
     -lX11
   ;
-} else if $(Platform) in win32 win64 {
+} else if $(Platform) in windows {
   Sources += windows/main.cpp ;
   CPPopt += -DUNICODE -D_UNICODE ;
   LINKopt += -libpath:$(_DEVTOOL)/fltk-1.3.4/lib/win ;
@@ -72,7 +73,7 @@ if $(Platform) = linux64 {
     /wd4100 # 'unreferenced formal parameter
     /wd4266 # function is hidden
   ;
-} else if $(Platform) = macosx {
+} else if $(Platform) = macOS {
   Sources += mac/main.mm ;
   LINKopt += -L$(_DEVTOOL)/fltk-1.3.8/lib/macosx ;
   AddLibs += -lfltk ;

@@ -60,9 +60,10 @@ Sources =
 ;
 
 CPPopt =
-  -DNVTT_EXPORTS -D__SSE2__ -D__SSE__ -D__MMX__
+  -DNVTT_EXPORTS
 ;
-if $(Platform) in win32 win64 { CPPopt += -DWIN32 -D_WINDOWS -D_USRDLL ; }
-if $(Platform) in macosx { CPPopt += -DSQUISH_USE_ALTIVEC=0 ; }
+if $(PlatformArch) in x86 x86_64 e2k { CPPopt += -D__SSE2__ -D__SSE__ -D__MMX__ ; }
+if $(Platform) in windows { CPPopt += -DWIN32 -D_WINDOWS -D_USRDLL ; }
+if $(Platform) in macOS { CPPopt += -DSQUISH_USE_ALTIVEC=0 ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

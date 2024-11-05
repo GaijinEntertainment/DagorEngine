@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <stdio.h>
 #include <io.h>
 #include <stdlib.h>
@@ -1584,14 +1586,12 @@ static void writeStringValue(FILE *cb, const char *s)
       break;
       case TYPE_MATRIX:
       {
-        /*writeString(cb, ":m=");
+        writeString(cb, ":m=");
         char buf[256];
-        sprintf(buf,"[[%g, %g, %g] [%g, %g, %g] [%g, %g, %g] [%g, %g, %g]]",
-          p.value.tm.getcol(0).x, p.value.tm.getcol(0).y, p.value.tm.getcol(0).z,
-          p.value.tm.getcol(1).x, p.value.tm.getcol(1).y, p.value.tm.getcol(1).z,
-          p.value.tm.getcol(2).x, p.value.tm.getcol(2).y, p.value.tm.getcol(2).z,
-          p.value.tm.getcol(3).x, p.value.tm.getcol(3).y, p.value.tm.getcol(3).z);
-        writeString(cb, buf);*/
+        sprintf(buf, "[[%g, %g, %g] [%g, %g, %g] [%g, %g, %g] [%g, %g, %g]]", p.value.tm.getcol(0).x, p.value.tm.getcol(0).y,
+          p.value.tm.getcol(0).z, p.value.tm.getcol(1).x, p.value.tm.getcol(1).y, p.value.tm.getcol(1).z, p.value.tm.getcol(2).x,
+          p.value.tm.getcol(2).y, p.value.tm.getcol(2).z, p.value.tm.getcol(3).x, p.value.tm.getcol(3).y, p.value.tm.getcol(3).z);
+        writeString(cb, buf);
         break;
       }
       default: debug("unknown type"); // G_ASSERT(0);

@@ -1,0 +1,272 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "rendinst_simple_inc.dshl"
+include "perlin_layered_inc.dshl"
+include "rendinst_plod_inc.dshl"
+
+shader rendinst_plod_perlin
+{
+  static int material_channel_count = 3;
+  interval material_channel_count : one<1, two<2, three;
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+  channel color8 tc[0] = tc[0];
+  channel color8 tc[3] = tc[3];
+  if (material_channel_count > one)
+  {
+    channel color8 tc[1] = tc[1];
+    channel color8 tc[4] = tc[4];
+  }
+  if (material_channel_count > two)
+  {
+    channel color8 tc[2] = tc[2];
+    channel color8 tc[5] = tc[5];
+  }
+  channel color8 tc[6] = tc[6];
+
+
+  assume instancing_type = tm_vb;
+  if (rendinst_render_pass == rendinst_render_pass_impostor_color  ||
+      rendinst_render_pass == rendinst_render_pass_impostor_shadow ||
+      rendinst_render_pass == rendinst_render_pass_grassify ||
+      rendinst_render_pass == rendinst_render_pass_to_heightmap ||
+      rendinst_render_pass == rendinst_render_pass_to_shadow)
+  {
+    dont_render;
+  }
+
+  INIT_PERLIN_LAYERED_VAR()
+  RENDINST_BLOCK()
+  RENDINST_INSTANCING()
+  USE_PERLIN_LAYERED(ps)
+  WRITE_GBUFFER()
+  USE_NORMAL_DETAIL()
+
+  RENDINST_SW_VERTEX_FETCH(vs)
+  RENDINST_SW_VERTEX_FETCH(ps)
+
+  PLOD_COMMON()
+
+  hlsl {
+    struct VsOutput
+    {
+      PRECISE VS_OUT_POSITION(pos)
+      half3 normal : NORMAL;
+      float4 pointToEye : TEXCOORD6;
+      half3 tangent : TEXCOORD7;
+      uint vertexByteOffset : BLENDINDICES0;
+      ##if hardware.vulkan
+        #if SHADER_COMPILER_DXC
+          [[vk::builtin("PointSize")]] float pointSize : PSIZE;
+        #else
+          float pointSize : PSIZE;
+        #endif
+      ##elif hardware.metal
+        #if SHADER_COMPILER_DXC
+          [[vk::builtin("PointSize")]] float pointSize : PSIZE;
+        #else
+          [[vk::builtin("PointSize")]] float pointSize;
+        #endif
+      ##endif
+    };
+  }
+  USE_CONST_COLOR_OVERRIDES()
+  (vs) {
+    material_channel_count@i1 = material_channel_count;
+  }
+  hlsl(vs) {
+    INSTANCING_BUFFERS
+    struct VsInput
+    {
+      float3 pos  : POSITION;
+      half3 normal : NORMAL;
+      half3 tangent : TEXCOORD6;
+    };
+
+    struct VsInputEmpty
+    {
+      HW_BASE_VERTEX_ID_OPTIONAL
+      HW_VERTEX_ID
+    };
+    VsOutput plod_vs(VsInputEmpty vs_id HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+
+      VsInput input;
+      const uint vertexStride = 20 + get_material_channel_count() * 8;
+      USE_VERTEX_ID_WITHOUT_BASE_OFFSET(vs_id)
+      const uint vertexByteOffset = getVertexOffset(vs_id.vertexId, vertexStride);
+
+      // 0      4       8       12     16   (stride - 4)     stride
+      // [pos.x | pos.y | pos.z | norm |   ...    |   tangent   ]
+      input.pos = fetchVertexFloat3Attribute(vertexByteOffset);
+      input.normal = fetchVertexColor8Attribute(vertexByteOffset + 12).xyz;
+      input.tangent = fetchVertexColor8Attribute(vertexByteOffset + vertexStride - 4).xyz;
+      output.vertexByteOffset = vertexByteOffset;
+
+      float3 localNormal = normalize(BGR_SWIZZLE(input.normal) * 2 - 1);
+      float3 localTangent = normalize(BGR_SWIZZLE(input.tangent) * 2 - 1);
+      float3 localPos = input.pos;
+      float opacity = 1;
+
+      VB_PERFORM_INSTANCING
+
+      float3 worldTangent = normalize(localTangent.x*worldLocalX + localTangent.y*worldLocalY + localTangent.z*worldLocalZ);
+
+      const float3 pointToCellCentre = cellxyz_min.xyz + cellxyz_size.xyz / 2 - localPos;
+      worldPos = calculatePointWorldPos(worldPos, world_view_pos, vs_id.vertexId, pointToCellCentre, plodRadius);
+      output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+
+      if (dot(worldPos - world_view_pos, worldNormal) > 0) // cull 'backface' points away
+        output.pos = NaN;
+
+      output.pointToEye.xyz = world_view_pos - worldPos;
+      output.pointToEye.w = output.pos.w;
+      output.normal = worldNormal;
+      output.tangent = worldTangent;
+      ##if hardware.vulkan || hardware.metal
+        output.pointSize = 1.0;
+      ##endif
+      return output;
+    }
+  }
+  compile("target_vs", "plod_vs");
+  if (rendinst_render_pass == rendinst_render_pass_depth)
+  {
+    compile("ps_null", "rendinst_render_depth_black_ps");
+  }
+  else
+  {
+  hlsl(ps) {
+    GBUFFER_OUTPUT plod_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      float3 worldPos = world_view_pos - input.pointToEye.xyz;
+      ##if (material_channel_count == one)
+        // 0    12     16        20        24       28
+        // [pos | norm | diffuse | normMap | tangent]
+        half4 diffuseColor = fetchVertexColor8Attribute(input.vertexByteOffset + 16);
+        half4 diffuseColor1 = 0.f;
+        half4 diffuseColor2 = 0.f;
+        half4 packedNormalMap = fetchVertexColor8Attribute(input.vertexByteOffset + 20);
+        half4 packedNormalMap1 = 0.f;
+        half4 packedNormalMap2 = 0.f;
+      ##elif (material_channel_count == two)
+        // 0    12     16        20         24        28         32       36
+        // [pos | norm | diffuse | diffuse1 | normMap | normMap1 | tangent]
+        half4 diffuseColor = fetchVertexColor8Attribute(input.vertexByteOffset + 16);
+        half4 diffuseColor1 = fetchVertexColor8Attribute(input.vertexByteOffset + 20);
+        half4 diffuseColor2 = 0.f;
+        half4 packedNormalMap = fetchVertexColor8Attribute(input.vertexByteOffset + 24);
+        half4 packedNormalMap1 = fetchVertexColor8Attribute(input.vertexByteOffset + 28);
+        half4 packedNormalMap2 = 0.f;
+      ##elif (material_channel_count == three)
+        // 0    12     16        20         24         28        32         36         40       44
+        // [pos | norm | diffuse | diffuse1 | diffuse2 | normMap | normMap1 | normMap2 | tangent]
+        half4 diffuseColor = fetchVertexColor8Attribute(input.vertexByteOffset + 16);
+        half4 diffuseColor1 = fetchVertexColor8Attribute(input.vertexByteOffset + 20);
+        half4 diffuseColor2 = fetchVertexColor8Attribute(input.vertexByteOffset + 24);
+        half4 packedNormalMap = fetchVertexColor8Attribute(input.vertexByteOffset + 28);
+        half4 packedNormalMap1 = fetchVertexColor8Attribute(input.vertexByteOffset + 32);
+        half4 packedNormalMap2 = fetchVertexColor8Attribute(input.vertexByteOffset + 36);
+      ##endif
+
+      half4 invertHeights = get_invert_heights();
+      float moss = input.pointToEye.w;
+      float3 initPos = worldPos;
+      half3 weights = init_blend_weights(initPos, get_mask_gamma(), invertHeights, moss, float2(max(dot(get_mask_by_normal().xyz, input.normal), 0), get_mask_by_normal().w));
+      half3 initialHeight = half3(diffuseColor.a, diffuseColor1.a, diffuseColor2.a);
+      weights = get_blending_weights(weights, lerp(initialHeight, 1 - initialHeight, invertHeights.xyz));
+
+      half3 paint_details_col = get_color_mul(input, get_detail0_const_color());
+      half3 paint_details_col1 = get_color_mul(input, get_detail1_const_color());
+      half3 paint_details_col2 = get_color_mul(input, get_detail2_const_color());
+
+      half3 lumins = half3(luminance(diffuseColor.rgb), luminance(diffuseColor1.rgb), luminance(diffuseColor2.rgb));
+      half3 details = get_paint_details().xyz * saturate(lumins * get_paint_points_tr_mul().xyz + get_paint_points_tr_add().xyz);
+      diffuseColor.rgb = lerp(diffuseColor.rgb, diffuseColor.rgb * paint_details_col, details.x);
+      diffuseColor1.rgb = lerp(diffuseColor1.rgb, diffuseColor1.rgb * paint_details_col1, details.y);
+      diffuseColor2.rgb = lerp(diffuseColor2.rgb, diffuseColor2.rgb * paint_details_col2, details.z);
+
+      diffuseColor = diffuseColor*weights.x + diffuseColor1*weights.y + diffuseColor2*weights.z;
+
+      half4 emissionColor = get_emission_color();
+      half3 difference = diffuseColor.rgb - emissionColor.xyz;
+      half sqDiff = dot(difference, difference);
+      float emissionStrength = 0;
+      BRANCH
+      if(emissionColor.w > 0)
+      {
+        if (sqDiff < emissionColor.w)
+        {
+          half normDiff = max(0, (emissionColor.w - sqDiff) / emissionColor.w);
+          emissionStrength = normDiff * MAX_EMISSION;
+        }
+      }
+
+      half3 normalMap;
+
+      float normalWeights[4] =
+      {
+        0.0f,
+        get_blend_normals().x * weights.x,
+        get_blend_normals().y * weights.y,
+        get_blend_normals().z * weights.z,
+      };
+      int baseNormalIdx = max(int(get_blend_normals().w)+1, 0);
+      BRANCH
+      if (baseNormalIdx >= 1 && normalWeights[baseNormalIdx] > 0.3)
+      {
+        --baseNormalIdx;
+        half3 unpackedNormals[3] =
+        {
+          unpack_ag_normal(packedNormalMap) * get_blend_normals().x,
+          unpack_ag_normal(packedNormalMap1) * get_blend_normals().y,
+          unpack_ag_normal(packedNormalMap2) * get_blend_normals().z,
+        };
+        normalMap = unpackedNormals[baseNormalIdx];
+        normalMap = UDN_ndetail(normalMap, unpackedNormals[(uint(baseNormalIdx) + 1) % 3]);
+        normalMap = UDN_ndetail(normalMap, unpackedNormals[(uint(baseNormalIdx) + 2) % 3]);
+        packedNormalMap = packedNormalMap * weights.x + packedNormalMap1 * weights.y + packedNormalMap2 * weights.z;
+      }
+      else
+      {
+        packedNormalMap = packedNormalMap * weights.x + packedNormalMap1 * weights.y + packedNormalMap2 * weights.z;
+        normalMap = unpack_ag_normal(packedNormalMap);
+      }
+
+      half smoothness = packedNormalMap.r;
+      half metalness = packedNormalMap.b;
+
+      UnpackedGbuffer gbuffer;
+      init_gbuffer(gbuffer);
+
+      half reflectance = 0.5;
+      half ao = 1;
+      half3 binormal = normalize(cross(input.tangent, input.normal));
+      half3 worldNormal = normalMap.x * input.tangent + normalMap.y * binormal + normalMap.z * input.normal;;
+
+      init_metalness(gbuffer, metalness);
+      init_ao(gbuffer, ao);
+      init_material(gbuffer, SHADING_NORMAL);
+      BRANCH
+      if (emissionStrength > 0)
+      {
+        init_material(gbuffer, SHADING_SELFILLUM);
+        init_emission(gbuffer, emissionStrength);
+        init_emission_color(gbuffer, half4(1, 1, 1, get_emission_albedo_mult()));
+      }
+      init_smoothness(gbuffer, smoothness);
+      init_reflectance(gbuffer, reflectance);
+      init_normal(gbuffer, worldNormal);
+      init_albedo(gbuffer, diffuseColor.rgb);
+
+      half3 motion = 0.0f;
+      init_motion_vector(gbuffer, motion);
+
+      return encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
+    }
+  }
+  compile("target_ps", "plod_ps");
+}
+}

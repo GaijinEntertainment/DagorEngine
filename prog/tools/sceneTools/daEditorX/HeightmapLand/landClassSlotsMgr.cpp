@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_genObjByMask.h>
 #include <de3_genObjByDensGridMask.h>
 #include <de3_genGrassByDensGridMask.h>
@@ -10,12 +12,12 @@
 #include <de3_assetService.h>
 #include <de3_hmapService.h>
 #include <de3_hmapStorage.h>
-#include <dllPluginCore/core.h>
 #include <util/dag_hierBitMap2d.h>
 #include <math/random/dag_random.h>
 #include <debug/dag_debug.h>
 #include <coolConsole/coolConsole.h>
 #include <perfMon/dag_cpuFreq.h>
+#include <osApiWrappers/dag_direct.h>
 #include <stdio.h>
 
 static IAssetService *assetSrv = NULL;

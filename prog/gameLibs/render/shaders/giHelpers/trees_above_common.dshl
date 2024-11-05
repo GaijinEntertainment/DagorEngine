@@ -1,16 +1,8 @@
 include "heightmap_common.dshl"
-texture trees2d;
-texture trees2d_depth;
-float4 world_to_trees_tex_mul;
-float4 world_to_trees_tex_ofs;
+include "giHelpers/trees_above_common_base.dshl"
 
 macro USE_TREES_ABOVE(code)
-  (code) {
-    trees2d_depth@smp2d = trees2d_depth;
-    trees2d@smp2d = trees2d;
-    world_to_trees_tex_ofs@f4 = world_to_trees_tex_ofs;
-    world_to_trees_tex_mul@f4 = world_to_trees_tex_mul;
-  }
+  USE_TREES_ABOVE_BASE(code)
   hlsl(code) {
     bool trees_world_pos_to_worldPos(float2 worldPosXZ, inout float3 worldPos, inout half3 color, bool precise_center)
     {

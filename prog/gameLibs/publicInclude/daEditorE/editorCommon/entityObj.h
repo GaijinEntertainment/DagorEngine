@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -62,18 +61,6 @@ public:
     box = matrix * BSphere3(Point3(0, 0, 0), 0.5);
     return true;
   }
-
-  /*
-    virtual void fillProps(PropPanel2 &panel,
-      DClassID for_class_id, dag::ConstSpan<EditableObject*> objects);
-
-    virtual void onPPChange(int pid, bool edit_finished,
-      PropPanel2 &panel,
-      dag::ConstSpan<EditableObject*> objects);
-
-    virtual void onPPBtnPressed(int pid, PropPanel2 &panel,
-      dag::ConstSpan<EditableObject*> objects);
-  */
 
   virtual bool mayRename() { return true; }
   virtual bool mayDelete() { return true; }

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/aotPhysDecl.h>
 #include <dasModules/aotGeomNodeTree.h>
 
@@ -83,6 +85,10 @@ public:
     das::addExtern<DAS_CALL_METHOD(method_setOverrideVel)>(*this, lib, "ragdoll_setOverrideVel", das::SideEffects::modifyArgument,
       DAS_CALL_MEMBER_CPP(PhysRagdoll::setOverrideVel));
 
+    using method_setDriveBodiesToAnimchar = DAS_CALL_MEMBER(PhysRagdoll::setDriveBodiesToAnimchar);
+    das::addExtern<DAS_CALL_METHOD(method_setDriveBodiesToAnimchar)>(*this, lib, "ragdoll_setDriveBodiesToAnimchar",
+      das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(PhysRagdoll::setDriveBodiesToAnimchar));
+
     using method_setOverrideOmega = DAS_CALL_MEMBER(PhysRagdoll::setOverrideOmega);
     das::addExtern<DAS_CALL_METHOD(method_setOverrideOmega)>(*this, lib, "ragdoll_setOverrideOmega", das::SideEffects::modifyArgument,
       DAS_CALL_MEMBER_CPP(PhysRagdoll::setOverrideOmega));
@@ -113,6 +119,10 @@ public:
     using method_setInteractionLayerAndGroup = DAS_CALL_MEMBER(PhysSystemInstance::setGroupAndLayerMask);
     das::addExtern<DAS_CALL_METHOD(method_setInteractionLayerAndGroup)>(*this, lib, "phys_system_instance_setGroupAndLayerMask",
       das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(PhysSystemInstance::setGroupAndLayerMask));
+
+    using method_setJointsMotorSettings = DAS_CALL_MEMBER(PhysSystemInstance::setJointsMotorSettings);
+    das::addExtern<DAS_CALL_METHOD(method_setJointsMotorSettings)>(*this, lib, "phys_system_instance_setJointsMotorSettings",
+      das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(PhysSystemInstance::setJointsMotorSettings));
 
     using method_findBodyIdByName = DAS_CALL_MEMBER(PhysSystemInstance::findBodyIdByName);
     das::addExtern<DAS_CALL_METHOD(method_findBodyIdByName)>(*this, lib, "findBodyIdByName", das::SideEffects::accessExternal,

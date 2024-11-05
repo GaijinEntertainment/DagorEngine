@@ -147,10 +147,12 @@ class DagDebugMemAllocator final : public IMemAlloc
     {
       leave_memory_critical_section();
       DebugChunk *chunk = (DebugChunk *)sourcemem->tryAlloc(totalSize(sz));
-      chunk->allocatedPtr = chunk;
       enter_memory_critical_section();
       if (chunk)
+      {
+        chunk->allocatedPtr = chunk;
         chunk->init(gen);
+      }
       return chunk;
     }
 

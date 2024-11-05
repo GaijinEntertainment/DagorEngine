@@ -1,9 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <rendInst/rendInstGen.h>
 #include <rendInst/rotation_palette_consts.hlsli>
 #include "riGenExtra.h"
 #include "riRotationPalette.h"
+#include "riGenData.h"
 
 #include <util/dag_roHugeHierBitMap2d.h>
 #include <math/random/dag_random.h>
@@ -39,6 +41,51 @@ alignas(16) static const vec4i_const VCI_PALETTE_ID_MASK = v_splatsi(PALETTE_ID_
 alignas(16) static const vec4i_const VCI_SCALE_MASK = v_splatsi(0xFFFF & ~PALETTE_ID_BIT_COUNT);
 #endif
 
+namespace internal
+{
+union TmPackedRowData
+{
+  int16_t data4[4];
+  uint64_t u64;
+  uint32_t u32_2[2];
+};
+
+static inline int16_t relaxed_load_i16(const int16_t &data) { return int16_t(interlocked_relaxed_load((const uint16_t &)data)); }
+static inline TmPackedRowData acquire_load_tm_data_first_row(const int16_t *data)
+{
+  ASSUME_ALIGNED(data, 4);
+  TmPackedRowData r;
+  const uint32_t *data32 = reinterpret_cast<const uint32_t *>(data); //-V1032
+  // Start by reading data32[1] and check, if sentinel value was written to it,
+  // if it is, it means that data is being destroyed, so zero the whole row.
+  // For more info see destroy_tm_rendinst_data
+  r.u32_2[0] = interlocked_relaxed_load(data32[0]);
+  r.u32_2[1] = interlocked_acquire_load(data32[1]);
+  if (DAGOR_UNLIKELY(r.u32_2[1] == 0x80008000u))
+    r.u64 = 0;
+  return r;
+}
+static inline vec4i v_ldush_relaxed(const int16_t *data)
+{
+  TmPackedRowData r;
+  const uint32_t *data32 = reinterpret_cast<const uint32_t *>(data); //-V1032
+  r.u32_2[0] = interlocked_relaxed_load(data32[0]);
+  r.u32_2[1] = interlocked_relaxed_load(data32[1]);
+  return v_ldush(r.data4);
+}
+static inline bool is_data_valid(const TmPackedRowData &first_row, bool check_full)
+{
+  return DAGOR_UNLIKELY(check_full ? first_row.u64 != 0 : first_row.data4[3] != 0);
+}
+static inline void zero_tm(mat44f &tm)
+{
+  tm.col0 = v_zero();
+  tm.col1 = v_zero();
+  tm.col2 = v_zero();
+  tm.col3 = v_zero();
+}
+} // namespace internal
+
 struct InstancePackData
 {
   float ox, oy, oz, cell_xz_sz, cell_y_sz;
@@ -71,31 +118,45 @@ static inline void unpack_scale_palette_id_v4f_16(vec4i value, vec4f &scale, vec
   scale = v_mul(v_cvt_vec4f(v_andi(value, VCI_SCALE_MASK)), VC_1div256);
 }
 
-
-static inline void unpack_tm_full(TMatrix &tm, const int16_t *data, float x0, float y0, float z0, float dxz, float dy)
+static inline bool unpack_tm_full(TMatrix &tm, const int16_t *data, float x0, float y0, float z0, float dxz, float dy)
 {
-  tm[0][0] = data[0] / 256.0f;
-  tm[1][0] = data[1] / 256.0f;
-  tm[2][0] = data[2] / 256.0f;
-  tm[3][0] = data[3] * dxz / 32767.0 + x0;
-  tm[0][1] = data[4] / 256.0f;
-  tm[1][1] = data[5] / 256.0f;
-  tm[2][1] = data[6] / 256.0f;
-  tm[3][1] = data[7] * dy / 32767.0 + y0;
-  tm[0][2] = data[8] / 256.0f;
-  tm[1][2] = data[9] / 256.0f;
-  tm[2][2] = data[10] / 256.0f;
-  tm[3][2] = data[11] * dxz / 32767.0 + z0;
+  ASSUME_ALIGNED(data, 4);
+  alignas(8) int16_t local[8];
+  for (int i = 0; i < 8; i++)
+    local[i] = internal::relaxed_load_i16(data[i + 4]);
+  const auto fr = internal::acquire_load_tm_data_first_row(data);
+  if (!internal::is_data_valid(fr, true))
+  {
+    tm.zero();
+    return false;
+  }
+  tm[0][1] = local[0] / 256.0f;
+  tm[1][1] = local[1] / 256.0f;
+  tm[2][1] = local[2] / 256.0f;
+  tm[3][1] = local[3] * dy / 32767.0 + y0;
+  tm[0][2] = local[4] / 256.0f;
+  tm[1][2] = local[5] / 256.0f;
+  tm[2][2] = local[6] / 256.0f;
+  tm[3][2] = local[7] * dxz / 32767.0 + z0;
+  tm[0][0] = fr.data4[0] / 256.0f;
+  tm[1][0] = fr.data4[1] / 256.0f;
+  tm[2][0] = fr.data4[2] / 256.0f;
+  tm[3][0] = fr.data4[3] * dxz / 32767.0 + x0;
+  return true;
 }
-static inline void unpack_tm_pos_fast(TMatrix &tm, const int16_t *data, float x0, float y0, float z0, float dxz, float dy,
+
+static inline bool unpack_tm_pos_fast(TMatrix &tm, const int16_t *data, float x0, float y0, float z0, float dxz, float dy,
   bool palette_rotation, int32_t *palette_id = nullptr)
 {
   memset(tm.array, 0, sizeof(TMatrix));
+  const auto fr = internal::acquire_load_tm_data_first_row(data);
+  if (!internal::is_data_valid(fr, false))
+    return false;
   if (palette_rotation)
   {
     float scale;
     int32_t paletteId;
-    unpack_scale_palette_id_16(data[3], scale, paletteId);
+    unpack_scale_palette_id_16(fr.data4[3], scale, paletteId);
     tm[0][0] = tm[1][1] = tm[2][2] = scale;
     if (palette_id)
       *palette_id = paletteId;
@@ -104,12 +165,14 @@ static inline void unpack_tm_pos_fast(TMatrix &tm, const int16_t *data, float x0
   {
     if (palette_id)
       *palette_id = -1;
-    tm[0][0] = tm[1][1] = tm[2][2] = data[3] / 256.0f;
+    tm[0][0] = tm[1][1] = tm[2][2] = fr.data4[3] / 256.0f;
   }
-  tm[3][0] = data[0] * dxz / 32767.0 + x0;
-  tm[3][1] = data[1] * dy / 32767.0 + y0;
-  tm[3][2] = data[2] * dxz / 32767.0 + z0;
+  tm[3][0] = fr.data4[0] * dxz / 32767.0 + x0;
+  tm[3][1] = fr.data4[1] * dy / 32767.0 + y0;
+  tm[3][2] = fr.data4[2] * dxz / 32767.0 + z0;
+  return true;
 }
+
 static inline void unpack_tm32_full(TMatrix &tm, const int32_t *data, float x0, float y0, float z0, float dxz, float dy)
 {
   tm[0][0] = data[0] / 256.0f / 65536.f;
@@ -126,25 +189,40 @@ static inline void unpack_tm32_full(TMatrix &tm, const int32_t *data, float x0, 
   tm[3][2] = data[11] * dxz / 65536.f / 32767.0f + z0;
 }
 
-static inline void unpack_tm_full(mat44f &out_tm, const int16_t *data, vec3f add, vec3f mul)
+static inline bool unpack_tm_full(mat44f &out_tm, const int16_t *data, vec3f add, vec3f mul)
 {
   mat43f m43;
-  m43.row0 = v_cvt_vec4f(v_ldush(data + 0));
-  m43.row1 = v_cvt_vec4f(v_ldush(data + 4));
-  m43.row2 = v_cvt_vec4f(v_ldush(data + 8));
+  m43.row1 = v_cvt_vec4f(internal::v_ldush_relaxed(data + 4));
+  m43.row2 = v_cvt_vec4f(internal::v_ldush_relaxed(data + 8));
+  const auto fr = internal::acquire_load_tm_data_first_row(data);
+  if (!internal::is_data_valid(fr, true))
+  {
+    internal::zero_tm(out_tm);
+    return false;
+  }
 
+  m43.row0 = v_cvt_vec4f(v_ldush(fr.data4));
   mat44f m;
   v_mat43_transpose_to_mat44(m, m43);
   out_tm.col0 = v_mul(m.col0, VC_1div256);
   out_tm.col1 = v_mul(m.col1, VC_1div256);
   out_tm.col2 = v_mul(m.col2, VC_1div256);
   out_tm.col3 = v_madd(m.col3, mul, add);
+  return true;
 }
 
-static inline void unpack_tm_pos(mat44f &tm, const int16_t *data, vec3f add, vec3f mul, bool palette_rotation,
+static inline bool unpack_tm_pos(mat44f &tm, const int16_t *data, vec3f add, vec3f mul, bool palette_rotation,
   vec4i *palette_id = nullptr)
 {
-  vec4i vi = v_ldush(data);
+  const auto fr = internal::acquire_load_tm_data_first_row(data);
+  if (!internal::is_data_valid(fr, false))
+  {
+    internal::zero_tm(tm);
+    if (palette_id)
+      *palette_id = v_zeroi();
+    return false;
+  }
+  vec4i vi = v_ldush(fr.data4);
   vec4f v = v_cvt_vec4f(vi);
   vec4f scale;
   vec4i paletteId;
@@ -164,11 +242,22 @@ static inline void unpack_tm_pos(mat44f &tm, const int16_t *data, vec3f add, vec
   tm.col1 = v_and(scale, (vec4f)V_CI_MASK0100);
   tm.col2 = v_and(scale, (vec4f)V_CI_MASK0010);
   tm.col3 = v_madd(v, mul, add);
+  return true;
 }
-static inline void unpack_tm_pos(vec4f &pos, vec4f &scale, const int16_t *data, vec3f add, vec3f mul, bool palette_rotation,
+
+static inline bool unpack_tm_pos(vec4f &pos, vec4f &scale, const int16_t *data, vec3f add, vec3f mul, bool palette_rotation,
   vec4i *palette_id = nullptr)
 {
-  vec4i vi = v_ldush(data);
+  const auto fr = internal::acquire_load_tm_data_first_row(data);
+  if (!internal::is_data_valid(fr, false))
+  {
+    pos = v_zero();
+    scale = v_zero();
+    if (palette_id)
+      *palette_id = v_zeroi();
+    return false;
+  }
+  vec4i vi = v_ldush(fr.data4);
   vec4f v = v_cvt_vec4f(vi);
   vec4i paletteId;
   if (palette_rotation)
@@ -184,6 +273,7 @@ static inline void unpack_tm_pos(vec4f &pos, vec4f &scale, const int16_t *data, 
     scale = v_mul(v_splat_w(v), VC_1div256);
   }
   pos = v_madd(v, mul, add);
+  return true;
 }
 
 static inline void unpack_tm32_full(mat44f &out_tm, const int32_t *data, vec3f add, vec3f mul)
@@ -199,6 +289,20 @@ static inline void unpack_tm32_full(mat44f &out_tm, const int32_t *data, vec3f a
   out_tm.col1 = v_mul(m.col1, VC_1div256m64K);
   out_tm.col2 = v_mul(m.col2, VC_1div256m64K);
   out_tm.col3 = v_madd(m.col3, v_mul(mul, VC_1div64K), add);
+}
+
+static inline void validate_unpack_tm_full(mat44f &out_tm, int16_t *data, vec3f add, vec3f mul)
+{
+  // ensure alignment
+  G_ASSERT_RETURN(uintptr_t(data) % 4 == 0, );
+  // check if data contains value, used as sentinel in destroy_tm_rendinst_data,
+  // this value cant occur naturally, so it is an error
+  if (DAGOR_UNLIKELY(*reinterpret_cast<uint32_t *>(data + 2) == uint32_t(0x80008000u))) //-V1032
+  {
+    data[2] = data[3] = int16_t(-32767);
+    logerr("validate_unpack_tm_full got invalid tm data");
+  }
+  unpack_tm_full(out_tm, data, add, mul);
 }
 
 static inline size_t pack_entity_pos_inst_16(const InstancePackData &data, const Point3 &pos, float scale, int32_t palette_id,
@@ -328,26 +432,49 @@ struct SingleEntityPool
     shortage++;
     return false;
   }
+
+  template <typename F>
+  static inline void verifyInstanceScale(const mat44f &m, int pool, F get_pool_name)
+  {
+#if DAGOR_DBGLEVEL > 0 && !_TARGET_PC_TOOLS_BUILD
+    vec4f instScaleSq = v_perm_xzac(v_perm_xycd(v_length3_sq(m.col0), v_length3_sq(m.col1)), v_length3_sq(m.col2));
+    if (DAGOR_UNLIKELY(v_signmask(v_cmp_lt(instScaleSq, v_splats(/* 1% */ 1e-4f)))))
+      if (!v_test_all_bits_zeros(instScaleSq)) // Assume that zero scale is destroyed one (so not an error)
+      {
+        Point3_vec4 instScale;
+        v_st(&instScale.x, v_sqrt(instScaleSq));
+        Point3_vec4 instPos;
+        v_st(&instPos.x, m.col3);
+        logerr("Insane ri%s[%d](%s) instance scale: (%g, %g, %g) @ %@", pool >= 0 ? "" : "Extra", pool >= 0 ? pool : (-pool - 1),
+          get_pool_name(pool), P3D(instScale), instPos);
+      }
+#else
+    G_UNUSED(m);
+    G_UNUSED(pool);
+    G_UNUSED(get_pool_name);
+#endif
+  }
+
   void addEntity(const TMatrix &tm, bool posInst, int32_t pool_idx, int32_t palette_id)
   {
+    mat44f m;
+    v_mat44_make_from_43cu_unsafe(m, tm.m[0]);
     if (avail > 0)
     {
+      verifyInstanceScale(m, pool_idx, [](int) { return (const char *)nullptr; });
+
       int16_t *ptr = reinterpret_cast<int16_t *>(topPtr);
       InstancePackData data{ox, oy, oz, cell_xz_sz, cell_y_sz, per_inst_data_dwords};
       size_t addedSize = pack_entity_16(data, tm, posInst, palette_id, ptr);
       G_ASSERT(addedSize % sizeof(*ptr) == 0);
       ptr += addedSize / sizeof(*ptr);
 
-      mat44f m;
-      v_mat44_make_from_43cu_unsafe(m, tm.m[0]);
       v_bbox3_add_transformed_box(bbox, m, per_pool_local_bb[pool_idx]);
       topPtr = ptr;
       avail--;
     }
     else if (avail < 0)
     {
-      mat44f m;
-      v_mat44_make_from_43cu_unsafe(m, tm.m[0]);
       if (!posInst && per_inst_data_dwords > 0)
       {
         int instSeed = mem_hash_fnv1((const char *)&tm[3][0], 12);
@@ -410,9 +537,12 @@ struct WorldEditableHugeBitmask
   EditableHugeBitmask bm;
   float ox, oz, scale;
   os_spinlock_t spinLock; // non-recursive
-  bool constBm;
+#if !_TARGET_PC_TOOLS_BUILD
+  static constexpr
+#endif
+    bool constBm = false;
 
-  WorldEditableHugeBitmask() : ox(0), oz(0), scale(1), constBm(false) { os_spinlock_init(&spinLock); }
+  WorldEditableHugeBitmask() : ox(0), oz(0), scale(1) { os_spinlock_init(&spinLock); }
   ~WorldEditableHugeBitmask() { os_spinlock_destroy(&spinLock); }
 
   void initExplicit(float min_x, float min_z, float s, float sz_x, float sz_z)
@@ -440,7 +570,9 @@ struct WorldEditableHugeBitmask
       bm.resize(0, 0);
     ox = oz = 0;
     scale = 1;
+#if _TARGET_PC_TOOLS_BUILD
     constBm = false;
+#endif
 
     if (lock_it)
       os_spinlock_unlock(&spinLock);

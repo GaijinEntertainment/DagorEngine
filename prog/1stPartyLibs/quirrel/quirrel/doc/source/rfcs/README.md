@@ -1,5 +1,6 @@
-Background
-===
+# RFC process
+
+## Background
 
 Whenever Quirrel language changes its syntax or semantics (including behavior of builtin libraries), we need to consider many implications of the changes.
 
@@ -30,13 +31,11 @@ In addition to these questions, we also need to consider that every addition car
 
 Since reversing these decisions is incredibly costly and can be impossible due to backwards compatibility implications, all user facing changes to Quirrel language and core libraries must go through an RFC process.
 
-Process
-===
+## Process
 
 There is no any special process for RFC review at the moment.
 
-Implementation
-===
+## Implementation
 
 When an RFC gets merged, the feature *can* be implemented; however, there's no set timeline for that implementation. In some cases implementation may land in a matter of days after an RFC is merged, in some it may take months.
 

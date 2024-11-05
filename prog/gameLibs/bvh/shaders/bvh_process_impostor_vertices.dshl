@@ -1,0 +1,125 @@
+include "shader_global.dshl"
+
+int bvh_process_target_offset;
+int bvh_process_impostor_vertices_start;
+int bvh_process_impostor_vertices_stride;
+int bvh_process_impostor_vertices_count;
+
+float bvh_process_impostor_vertices_height_offset;
+
+float4 bvh_process_impostor_vertices_scale;
+float4 bvh_process_impostor_vertices_sliceTcTm1;
+float4 bvh_process_impostor_vertices_sliceTcTm2;
+float4 bvh_process_impostor_vertices_sliceClippingLines1;
+float4 bvh_process_impostor_vertices_sliceClippingLines2;
+
+float4 bvh_process_impostor_vertices_vertex_offsets[4];
+
+shader bvh_process_impostor_vertices
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    target_offset@u1 = bvh_process_target_offset;
+    start_vertex@i1 = bvh_process_impostor_vertices_start;
+    vertex_stride@i1 = bvh_process_impostor_vertices_stride;
+    vertex_count@i1 = bvh_process_impostor_vertices_count;
+    height_offset@f1 = bvh_process_impostor_vertices_height_offset;
+    scale@f4 = bvh_process_impostor_vertices_scale;
+    slice_tc_tm1@f4 = bvh_process_impostor_vertices_sliceTcTm1;
+    slice_tc_tm2@f4 = bvh_process_impostor_vertices_sliceTcTm2;
+    slice_clipping_lines1@f4 = bvh_process_impostor_vertices_sliceClippingLines1;
+    slice_clipping_lines2@f4 = bvh_process_impostor_vertices_sliceClippingLines2;
+    vertex_offsets@f4[] = bvh_process_impostor_vertices_vertex_offsets;
+  }
+
+  hlsl(cs) {
+    ByteAddressBuffer source : register(t6);
+    RWByteAddressBuffer output : register(u0);
+
+    float2 get_vertex_offset(int vertex_id)
+    {
+      float4 offsets = vertex_offsets[vertex_id >> 1];
+      return (vertex_id & 1) ? offsets.zw : offsets.xy;
+    }
+
+    float3 get_vertex_offset(float2 inpos, float2 side_scale)
+    {
+      uint offsetId = 0;
+      float flip = 1;
+      offsetId += inpos.x < 0 ? 4 : 0;
+      flip = inpos.x < 0 ? -1 : 1;
+
+      offsetId += inpos.y * flip < 0 ? 2 : 0;
+      flip = inpos.y * flip < 0 ? -1 : 1;
+
+      offsetId += abs(inpos.x) * flip > abs(inpos.y) * flip ? 1 : 0;
+
+      float2 vertexOffset = get_vertex_offset(offsetId);
+      return float3(vertexOffset * side_scale, vertexOffset.y);
+    }
+
+    float4 apply_slice_data(float2 tc, bool secondary)
+    {
+      float4 tc_tm = secondary ? slice_tc_tm1 : slice_tc_tm2;
+      float4 clipping_lines = secondary ? slice_clipping_lines1 : slice_clipping_lines2;
+      float2 outTc = tc_tm.xy * tc + tc_tm.zw;
+      float2 xClipping = clipping_lines.xy * outTc.y + clipping_lines.zw;
+      float2 clippingInfo = float2(2 * outTc.x - (xClipping.y + xClipping.x), (xClipping.y - xClipping.x));
+      return float4(outTc, clippingInfo);
+    }
+
+    uint pack_normal(float3 normal)
+    {
+      static const uint3 normalEncoding = uint3(16, 8, 0);
+
+      uint3 p3 = uint3((normal * 0.5 + 0.5) * 255) << normalEncoding;
+      return p3.x | p3.y | p3.z;
+    }
+
+    void generate_vertex(uint vertex_id, bool secondary, float3 input_pos)
+    {
+      static const uint processedVertexStride = 9 * 4;
+
+      float3 viewX = secondary ? float3(0, 0, 1) : float3(1, 0, 0);
+      float3 viewY = float3(0, 1, 0);
+
+      float3 offset = get_vertex_offset(input_pos.xz, scale.xy);
+      float2 delta = offset.xy;
+      float2 invViewScale = scale.zw;
+      float2 texcoord = delta.xy * invViewScale * float2(1, -1) * 0.5 + 0.5;
+      float3 outputPos = viewX * delta.x + viewY * delta.y;
+
+      float4 sliceData = apply_slice_data(texcoord, secondary);
+      float3 bend = secondary ? float3(-length(outputPos), 0, 0) : float3(0, 0, -length(outputPos));
+      float3 normal = normalize(outputPos + bend);
+      outputPos += float3(0, height_offset, 0);
+
+      uint off = secondary ? vertex_count : 0;
+      output.Store3(target_offset + (vertex_id + off) * processedVertexStride, asuint(outputPos));
+      output.Store2(target_offset + (vertex_id + off) * processedVertexStride + 12, asuint(sliceData.xy));
+      output.Store3(target_offset + (vertex_id + off) * processedVertexStride + 20, asuint(sliceData.zww));
+      output.Store(target_offset + (vertex_id + off) * processedVertexStride + 32, pack_normal(normal));
+    }
+
+    [numthreads( 64, 1, 1 )]
+    void bvh_process_impostor_vertices(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint vertexId = dtId.x;
+      if (vertexId >= vertex_count)
+        return;
+
+      int vertexStart = (start_vertex + vertexId) * vertex_stride;
+      float3 inputPos = asfloat(source.Load3(vertexStart));
+
+      generate_vertex(vertexId, false, inputPos);
+      generate_vertex(vertexId, true, inputPos);
+    }
+  }
+
+  compile("target_cs", "bvh_process_impostor_vertices");
+}

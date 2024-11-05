@@ -8,7 +8,7 @@ TargetType  = lib ;
 Target      = gameLibs/render/daBfg.lib ;
 
 
-if $(PlatformSpec) in clang clang64
+if $(PlatformSpec) = clang
 {
   # These warnings are enabled by default on some systems and are
   # caught by BS but not while developing. Manually enabling them saves
@@ -17,6 +17,9 @@ if $(PlatformSpec) in clang clang64
     -Wc++11-narrowing
     -Wswitch
     -Wbitfield-constant-conversion
+    -Wunused
+    -Wno-unused-local-typedef # this one is bugged in our version of clang
+    -Wno-unused-but-set-variable # this one is violated by external deps >:(
   ;
 }
 
@@ -45,13 +48,17 @@ Sources =
   frontend/nameResolver.cpp
   frontend/multiplexingInternal.cpp
   frontend/dumpInternalRegistry.cpp
+  frontend/registryValidator.cpp
 
   backend/intermediateRepresentation.cpp
   backend/nodeStateDeltas.cpp
+  backend/passColoring.cpp
   backend/nodeScheduler.cpp
+  backend/resourceScheduling/barrierScheduler.cpp
   backend/resourceScheduling/resourceScheduler.cpp
   backend/resourceScheduling/nativeResourceScheduler.cpp
   backend/resourceScheduling/poolResourceScheduler.cpp
+  backend/blobBindingHelpers.cpp
 
   runtime/nodeExecutor.cpp
   runtime/runtime.cpp
@@ -66,18 +73,10 @@ if $(DABFG_ENABLE_DAS_INTEGRATION) = yes {
     api/das/frameGraphModule.cpp
     api/das/nodeDataAnnotation.cpp
     api/das/structureAnnotations.cpp
+    api/das/blobBindings.cpp
+    api/das/typeInterop.cpp
   ;
-  SourceDAS =
-    api/das/frameGraphModule.das
-  ;
-  if $(DABFG_ENABLE_DAECS_INTEGRATION) = yes {
-    Sources += api/das/nodeEcsRegistration.cpp ;
-  }
-  else {
-    Sources += api/das/nodeEcsRegistrationStub.cpp ;
-  }
   UseProgLibs += 1stPartyLibs/daScript ;
-  for s in $(SourceDAS) { StringifySourceFile $(s) : $(s).inl : $(s:S=.cpp) ; }
 }
 if $(DABFG_ENABLE_DAECS_INTEGRATION) = yes {
   SourceES =

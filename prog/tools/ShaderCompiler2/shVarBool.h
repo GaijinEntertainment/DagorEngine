@@ -1,9 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 /************************************************************************
   shader boolean variable (for boolean expr eval)
 /************************************************************************/
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef __SHVARBOOL_H
-#define __SHVARBOOL_H
 
 class ShVarBool
 {
@@ -37,5 +37,3 @@ public:
 
   inline ShVarBool operator||(const ShVarBool &other) { return ShVarBool(value || other.value, isConst && other.isConst); }
 };
-
-#endif //__SHVARBOOL_H

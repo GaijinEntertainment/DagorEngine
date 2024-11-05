@@ -1,0 +1,24 @@
+include "rendinst_vcolor_inc.dshl"
+
+
+shader rendinst_vcolor_layered
+{
+  COMMON_RENDINST_VCOLOR_INIT(false)
+  COMMON_RENDINST_VS_IO_DEFINES()
+
+  hlsl {
+    struct VsOutput
+    {
+      COMMON_RENDINST_VS_OUTPUT_MEMBERS
+
+      #if HAS_VERTEX_COLOR_MASK
+        float3 vcolMask                   : TEXCOORD4;
+      #endif
+    };
+  }
+
+  COMMON_RENDINST_VS_INPUT()
+  COMMON_RENDINST_VS()
+
+  COMMON_RENDINST_VCOLOR_PS_AND_COMPILE(false)
+}

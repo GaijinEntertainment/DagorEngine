@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/core/entityManager.h>
 #include <daECS/core/event.h>
 
@@ -18,21 +20,18 @@ namespace ecs_os
 static class WndHandler : public IWndProcComponent
 {
 public:
-  RetCode process(void * /*hwnd*/, unsigned msg, uintptr_t /*wParam*/, intptr_t /*lParam*/, intptr_t & /*result*/) override
+  RetCode process(void * /*hwnd*/, unsigned msg, uintptr_t wParam, intptr_t /*lParam*/, intptr_t & /*result*/) override
   {
     if (msg == GPCM_Activate)
     {
-      delayed_call([] {
-        if (g_entity_mgr)
-        {
-          if (dgs_app_active)
-            g_entity_mgr->broadcastEvent(EventWindowActivated());
-          else
-            g_entity_mgr->broadcastEvent(EventWindowDeactivated());
-        }
-      });
+      if (g_entity_mgr) // Note: could be already destroyed
+      {
+        if (uint16_t(wParam) != GPCMP1_Inactivate) // Note: in high bits could be minimized state
+          g_entity_mgr->broadcastEvent(EventWindowActivated());
+        else
+          g_entity_mgr->broadcastEvent(EventWindowDeactivated());
+      }
     }
-
     return PROCEED_OTHER_COMPONENTS;
   }
 } wnd_handler;

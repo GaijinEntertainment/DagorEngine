@@ -27,7 +27,7 @@ let de4workMode = Watched("")
 let de4workModes = Watched([""])
 de4workMode.subscribe(function(v) {
   set_start_work_mode?(v ?? "")
-  setWorkMode?(v ?? "")
+  setWorkMode(v ?? "")
   set_setting_by_blk_path?(SETTING_EDITOR_WORKMODE, v ?? "")
   save_settings?()
 })
@@ -148,7 +148,7 @@ function handleEntityMoved(eid) {
 
 return {
   showUIinEditor = mkWatched(persist, "showUIinEditor", false)
-  editorIsActive = Watched(is_editor_activated?())
+  editorIsActive = Watched(is_editor_activated())
   editorFreeCam = Watched(isFreeCamMode?())
   selectedEntity
   selectedEntities

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_atomic.h>
 #include <mutex>
 #include "daGpuProfiler.h"
@@ -94,7 +96,8 @@ __forceinline EventData *ProfilerData::startEvent(uint32_t description, ThreadSt
   storage = interlocked_relaxed_load_ptr(tls_storage);
   if (DAGOR_UNLIKELY(!storage))
     return nullptr;
-  PLATFORM_EVENT_START(get_active_mode() & PLATFORM_EVENTS, the_profiler.descriptions.get(description)); // per platform event start
+  // per platform event start
+  PLATFORM_EVENT_START(get_active_mode() & PLATFORM_EVENTS, the_profiler.descriptions.getName(description));
   // this is data-race here still during shutdown, if no DA_PROFILE_MORE_THREAD_SAFE
   // 1) storage is not null
   // 2) we sleep
@@ -115,6 +118,28 @@ __forceinline void ProfilerData::endEvent(EventData &event, ThreadStorage &stora
   }
   more_safe_dec(storage.depth);                             // only now decrease depth
   PLATFORM_EVENT_STOP(get_active_mode() & PLATFORM_EVENTS); // per platform event start
+}
+
+__forceinline void ProfilerData::endUniqueEvent(UniqueEventData &ued, uint64_t duration)
+{
+  // const uint64_t end = cpu_current_ticks(); // as early as possible, to make more accurate measurement of actual event
+  // const uint64_t duration = end - start;
+  u64_interlocked_add(ued.totalTicks, duration);
+  u64_interlocked_add(ued.totalOccurencies, 1);
+  u64_interlocked_relaxed_store(ued.minTicks, min(u64_interlocked_relaxed_load(ued.minTicks), duration));
+  u64_interlocked_relaxed_store(ued.maxTicks, max(u64_interlocked_relaxed_load(ued.maxTicks), duration));
+}
+
+__forceinline void ProfilerData::addUniqueEvent(UniqueEventData &ued)
+{
+  ued.startFrame = uniqueEventsFrames;
+  uniqueEvents.push_back(&ued);
+}
+__forceinline UniqueEventData *ProfilerData::getUniqueEvent(uint32_t i, uint32_t &frames)
+{
+  auto r = uniqueEvents.safeGet(i);
+  frames = uniqueEventsFrames;
+  return r ? *r : nullptr;
 }
 
 // just as strncpy, but doesn't pad with zeroes whole destination
@@ -187,7 +212,7 @@ GpuEventData *ProfilerData::startGPUEvent(uint32_t description, const char *d3d_
   (void)(d3d_event_name);
 #if ISSUE_D3D_EVENTS
   if (DAGOR_UNLIKELY(!d3d_event_name))
-    d3d_event_name = descriptions.get(description);
+    d3d_event_name = descriptions.getName(description);
   gpu_profiler::begin_event(d3d_event_name);
 #endif
   auto &e = storage->gpuEvents.push_back();
@@ -264,7 +289,6 @@ void ProfilerData::shutdown(bool pre_destructor)
         memGpuAllocated += thread->storage.gpuEvents.memAllocated();
       }
     }
-
 #if !DA_PROFILE_MORE_THREAD_SAFE
     sleep_msec(1); // wait a bit, so we wont start event between tls_storage checked for nullptr and depth increased. poor man's data
                    // race protection
@@ -396,6 +420,8 @@ void ProfilerData::addFrame() // can only be called from one frame, and only fro
       stopStackSampling();
     return;
   }
+  if (oldMode & UNIQUE_EVENTS)
+    uniqueEventsFrames++;
 
   ThreadStorage *storage = interlocked_relaxed_load_ptr(tls_storage);
   if (!storage || !frame_thread)
@@ -631,6 +657,11 @@ void add_short_string_tag(desc_id_t description, const char *fmt, const TagSingl
 
 EventData *start_event(desc_id_t description, ThreadStorage *&storage) { return the_profiler.startEvent(description, storage); }
 void end_event(EventData &e, ThreadStorage &storage) { the_profiler.endEvent(e, storage); }
+
+void end_unique_event(UniqueEventData &e, uint64_t duration) { the_profiler.endUniqueEvent(e, duration); }
+void add_unique_event(UniqueEventData &e) { the_profiler.addUniqueEvent(e); }
+const UniqueEventData *get_unique_event(uint32_t i, uint32_t &frames) { return the_profiler.getUniqueEvent(i, frames); }
+
 void create_leaf_event_raw(desc_id_t description, uint64_t start, uint64_t end) { the_profiler.addLeafEvent(description, start, end); }
 
 GpuEventData *start_gpu_event(desc_id_t description, const char *d3d_event_name)
@@ -696,4 +727,5 @@ void pause_sampling() { the_profiler.pauseSampling(); }
 void resume_sampling() { the_profiler.resumeSampling(); }
 void request_dump() { interlocked_increment(next_dump_requested); }
 
+uint64_t get_current_cpu_ticks() { return cpu_current_ticks(); }
 }; // namespace da_profiler

@@ -74,4 +74,52 @@ void modfx_color_sim( ModfxParentSimData_cref parent_sdata, BufferData_cref buf,
   o_color.w *= mul_color.w;
 }
 
+DAFX_INLINE
+ModfxDeclAlphaByVelocity ModfxDeclAlphaByVelocity_load( BufferData_cref buf, uint ofs )
+{
+#ifdef __cplusplus
+  return *(ModfxDeclAlphaByVelocity*)(buf + ofs);
+#else
+  ModfxDeclAlphaByVelocity pp;
+  pp.vel_max = dafx_load_1f( buf, ofs );
+  pp.vel_min = dafx_load_1f( buf, ofs );
+  pp.inv_vel_diff = dafx_load_1f( buf, ofs );
+  pp.neg_minvel_div_by_diff = dafx_load_1f( buf, ofs );
+  return pp;
+#endif
+}
+
+DAFX_INLINE
+void modfx_color_alpha_by_velocity(
+  ModfxParentSimData_cref parent_sdata, ModfxParentRenData_cref parent_rdata,
+  BufferData_cref buf, uint ofs, float4_ref o_color, float vel )
+{
+  ModfxDeclAlphaByVelocity pp = ModfxDeclAlphaByVelocity_load( buf, ofs );
+  uint emitter_ofs = parent_sdata.mods_offsets[MODFX_SMOD_VELOCITY_INIT_ADD_STATIC_VEC];
+
+  if ( FLAG_ENABLED( parent_sdata.flags, MODFX_SFLAG_ALPHA_BY_EMITTER_VELOCITY ) &&
+       MOD_ENABLED( parent_sdata.mods, MODFX_SMOD_VELOCITY_INIT_ADD_STATIC_VEC ) )
+    vel = length(dafx_get_3f( buf, emitter_ofs ));
+
+  // alpha is the inverse lerp for a velocity between
+  // vel_min and vel_max, and clamped to 0 - 1 range
+  // alpha = (vel - vel_min) / (vel_max - vel_min)
+  float alpha = saturate(pp.inv_vel_diff * vel + pp.neg_minvel_div_by_diff);
+  float weight = 1.f - alpha;
+
+  if (parent_sdata.mods_offsets[MODFX_SMOD_ALPHA_BY_VELOCITY_CURVE])
+  {
+    weight = modfx_get_1f_curve(
+      buf, parent_sdata.mods_offsets[MODFX_SMOD_ALPHA_BY_VELOCITY_CURVE], alpha );
+  }
+
+  o_color.w *= weight;
+  if ( FLAG_ENABLED( parent_rdata.flags, MODFX_RFLAG_BLEND_PREMULT ) )
+  {
+    o_color.x *= weight;
+    o_color.y *= weight;
+    o_color.z *= weight;
+  }
+}
+
 #endif

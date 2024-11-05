@@ -1,10 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_stackHlp.h>
 #include <osApiWrappers/dag_atomic.h>
 #include <osApiWrappers/dag_spinlock.h>
 
 inline int clamp0(int a) { return a > 0 ? a : 0; }
 
-#if _TARGET_PC_WIN || XBOX_GDK_CALLSTACKS
+#if _TARGET_PC_WIN || _TARGET_XBOX
 #include <windows.h>
 #include <winnt.h>
 
@@ -216,7 +218,7 @@ bool get_thread_handle_is_walking_stack(intptr_t) { return false; }
 
 static pNtQueryInformationThread NtQueryInformationThread = NULL;
 static uint32_t is_walking_tls_index = TLS_OUT_OF_INDEXES;
-#if !XBOX_GDK_CALLSTACKS
+#if !_TARGET_XBOX
 static constexpr bool checkLoaderLockCount = true;
 #else
 static constexpr bool checkLoaderLockCount = false; // dlls are not loading under xbox?
@@ -229,7 +231,7 @@ static struct InitIsWalking
   {
 // Due to changes in LockCount interpretation in Visa
 // https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/displaying-a-critical-section
-#if !XBOX_GDK_CALLSTACKS
+#if !_TARGET_XBOX
     if (IsWindowsVistaOrGreater())
 #endif
     {
@@ -341,23 +343,34 @@ static inline bool is_address_readable(const void *, bool d) { return d; }
 static unsigned fill_stack_walk_naked_unsafe(void **stack, unsigned size, CONTEXT &context, int frames_to_skip = 0) // requires copy of
                                                                                                                     // Context
 {
-  if (context.Rip == 0 && context.Rsp != 0 && is_address_readable((const void *)context.Rsp, true))
+#if defined(_M_ARM64)
+#define EIP_REG Pc
+#define ESP_REG Sp
+#else
+#define EIP_REG Rip
+#define ESP_REG Rsp
+#endif
+
+  if (context.EIP_REG == 0 && context.ESP_REG != 0 && is_address_readable((const void *)context.ESP_REG, true))
   {
-    context.Rip = (ULONG64)(*(PULONG64)context.Rsp);
-    context.Rsp += 8; // reset the stack pointer (+8 since we know there has been no prologue run requiring a larger number since RIP
-                      // == 0)
+    context.EIP_REG = (ULONG64)(*(PULONG64)context.ESP_REG);
+    // reset the stack pointer (+8 since we know there has been no prologue run requiring a larger number since RIP == 0)
+    context.ESP_REG += 8;
   }
   // inside RtlLookupFunctionEntry there is an (optional) spinlock.
   // so, if we are calling those functions on suspended thread, we can face a deadlock
   // prevent it with tls and checking that tls
   int frameIter = -frames_to_skip;
-  for (; context.Rip && frameIter < (int)size; ++frameIter)
+  for (; context.EIP_REG && frameIter < (int)size; ++frameIter)
   {
+    if (uint32_t(frameIter) < size)
+      stack[frameIter] = (void *)(uintptr_t)context.EIP_REG;
+
     PRUNTIME_FUNCTION pRuntimeFunction = nullptr;
     ULONG64 imageBase = 0;
 #define TRY       __try
 #define EXCEPT(a) __except (a)
-    TRY { pRuntimeFunction = (PRUNTIME_FUNCTION)RtlLookupFunctionEntry(context.Rip, &imageBase, NULL); }
+    TRY { pRuntimeFunction = (PRUNTIME_FUNCTION)RtlLookupFunctionEntry(context.EIP_REG, &imageBase, NULL); }
     EXCEPT(EXCEPTION_EXECUTE_HANDLER) { break; }
 
     if (pRuntimeFunction)
@@ -367,11 +380,11 @@ static unsigned fill_stack_walk_naked_unsafe(void **stack, unsigned size, CONTEX
       // Under at least the XBox One platform, RtlVirtualUnwind can crash here.
       TRY
       {
-        RtlVirtualUnwind(UNW_FLAG_NHANDLER, imageBase, context.Rip, pRuntimeFunction, &context, &handlerData, framePointers, NULL);
+        RtlVirtualUnwind(UNW_FLAG_NHANDLER, imageBase, context.EIP_REG, pRuntimeFunction, &context, &handlerData, framePointers, NULL);
       }
       EXCEPT(EXCEPTION_EXECUTE_HANDLER)
       {
-        context.Rip = 0;
+        context.EIP_REG = 0;
         context.ContextFlags = 0;
       }
     }
@@ -380,20 +393,15 @@ static unsigned fill_stack_walk_naked_unsafe(void **stack, unsigned size, CONTEX
       // If we don't have a RUNTIME_FUNCTION, then we've encountered an error of some sort (mostly likely only for cases of corruption)
       // or leaf function (which doesn't make sense, given that we are moving up in the call sequence). Adjust the stack appropriately.
       // we can do
-      // if (context.Rsp && is_address_readable((const void*)context.Rsp, false))
+      // if (context.ESP_REG && is_address_readable((const void*)context.ESP_REG, false))
       //{
-      //  context.Rip  = (ULONG64)(*(PULONG64)context.Rsp);
-      //  context.Rsp += 8;
+      //  context.EIP_REG  = (ULONG64)(*(PULONG64)context.ESP_REG);
+      //  context.ESP_REG += 8;
       //} else
       break; // but since we use this function only in rare cases of crashes and in sampling, just skip reminding callstack
     }
 #undef TRY
 #undef EXCEPT
-
-    if (!context.Rip)
-      break;
-    if (uint32_t(frameIter) < size)
-      stack[frameIter] = (void *)(uintptr_t)context.Rip;
   }
   return frameIter > 0 ? frameIter : 0;
 }

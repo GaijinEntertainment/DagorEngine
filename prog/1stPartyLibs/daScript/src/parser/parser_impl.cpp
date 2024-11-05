@@ -14,6 +14,10 @@ namespace das {
 
     static __forceinline string inThisModule ( const string & name ) { return "_::" + name; }
 
+    void das2_yyerror ( yyscan_t scanner, const string & error, const LineInfo & at, CompilationError cerr ) {
+        yyextra->g_Program->error(error,"","",at,cerr);
+    }
+
     void das_yyerror ( yyscan_t scanner, const string & error, const LineInfo & at, CompilationError cerr ) {
         yyextra->g_Program->error(error,"","",at,cerr);
     }
@@ -22,6 +26,25 @@ namespace das {
         if ( name.length()>=2 && name[0]=='_' && name[1]=='_' ) {
             yyextra->g_Program->error("names starting with __ are reserved, " + name,"","",at,CompilationError::invalid_name);
         }
+    }
+
+    void appendDimExpr ( TypeDecl * typeDecl, Expression * dimExpr ) {
+        if ( dimExpr ) {
+            int32_t dI = TypeDecl::dimConst;
+            if ( dimExpr->rtti_isConstant() ) {                // note: this shortcut is here so we don`t get extra infer pass on every array
+                auto cI = (ExprConst *) dimExpr;
+                auto bt = cI->baseType;
+                if ( bt==Type::tInt || bt==Type::tUInt ) {
+                    dI = cast<int32_t>::to(cI->value);
+                }
+            }
+            typeDecl->dim.push_back(dI);
+            typeDecl->dimExpr.push_back(ExpressionPtr(dimExpr));
+        } else {
+            typeDecl->dim.push_back(TypeDecl::dimAuto);
+            typeDecl->dimExpr.push_back(nullptr);
+        }
+        typeDecl->removeDim = false;
     }
 
     vector<ExpressionPtr> sequenceToList ( Expression * arguments ) {
@@ -43,9 +66,39 @@ namespace das {
         return argList;
     }
 
+    vector<ExpressionPtr> typesAndSequenceToList  ( vector<Expression *> * declL, Expression * arguments ) {
+        vector<ExpressionPtr> args;
+        vector<ExpressionPtr> seq;
+        if ( arguments ) seq = sequenceToList(arguments);
+        args.reserve(declL->size() + seq.size());
+        for ( auto & decl : *declL ) args.push_back(ExpressionPtr(decl));
+        for ( auto & arg : seq ) args.push_back(move(arg));
+        delete declL;
+        return args;
+    }
+
+    Expression * sequenceToTuple ( Expression * arguments ) {
+        if ( arguments->rtti_isSequence() ) {
+            auto tup = new ExprMakeTuple(arguments->at);
+            tup->values = sequenceToList(arguments);
+            return tup;
+        } else {
+            return arguments;
+        }
+    }
+
     ExprLooksLikeCall * parseFunctionArguments ( ExprLooksLikeCall * pCall, Expression * arguments ) {
-        pCall->arguments = sequenceToList(arguments);
+        if ( arguments ) {
+            pCall->arguments = sequenceToList(arguments);
+        }
         return pCall;
+    }
+
+    void deleteTypeDeclarationList ( vector<Expression *> * list ) {
+        if ( !list ) return;
+        for ( auto pD : *list )
+            delete pD;
+        delete list;
     }
 
     void deleteVariableDeclarationList ( vector<VariableDeclaration *> * list ) {
@@ -106,7 +159,7 @@ namespace das {
         }
     }
 
-    void runFunctionAnnotations ( yyscan_t scanner, Function * func, AnnotationList * annL, const LineInfo & at ) {
+    void runFunctionAnnotations ( yyscan_t scanner, DasParserState * extra, Function * func, AnnotationList * annL, const LineInfo & at ) {
         if ( annL ) {
             for ( auto itA = annL->begin(); itA!=annL->end();  ) {
                 auto pA = *itA;
@@ -117,6 +170,11 @@ namespace das {
                         if ( !ann->apply(func, *yyextra->g_Program->thisModuleGroup, pA->arguments, err) ) {
                             das_yyerror(scanner,"macro [" +pA->annotation->name + "] failed to apply to a function " + func->name + "\n" + err, at,
                                 CompilationError::invalid_annotation);
+                        } else if ( ann->name=="type_function" && ann->module->name=="$" ) {
+                            // this is awkward. we need this so that [type_function] can be used in the same module
+                            auto mod = func->module ? func->module : extra->g_Program->thisModule.get();
+                            string keyword = mod->name.empty() ? func->name : mod->name + "::" + func->name;
+                            extra->das_keywords[func->name] = DasKeyword{false,true,keyword};
                         }
                         itA ++;
                     } else {
@@ -137,7 +195,7 @@ namespace das {
     }
 
     Expression * ast_arrayComprehension ( yyscan_t scanner, const LineInfo & loc, vector<VariableNameAndPosition> * iters,
-        Expression * srcs, Expression * subexpr, Expression * where, const LineInfo & forend, bool genSyntax   ) {
+        Expression * srcs, Expression * subexpr, Expression * where, const LineInfo & forend, bool genSyntax, bool tableSyntax ) {
         auto pFor = make_smart<ExprFor>(loc);
         pFor->visibility = forend;
         for ( const auto & np : *iters ) {
@@ -154,6 +212,7 @@ namespace das {
         pFor->sources = sequenceToList(srcs);
         auto pAC = new ExprArrayComprehension(loc);
         pAC->generatorSyntax = genSyntax;
+        pAC->tableSyntax = tableSyntax;
         pAC->exprFor = pFor;
         pAC->subexpr = ExpressionPtr(subexpr);
         if ( where ) {
@@ -530,6 +589,25 @@ namespace das {
         return list;
     }
 
+    void implAddGenericFunction ( yyscan_t scanner, Function * func ) {
+        for ( auto & arg : func->arguments ) {
+            vector<MatchingOptionError> optionErrors;
+            findMatchingOptions(arg->type, optionErrors);
+            if ( !optionErrors.empty() ) {
+                for ( auto & opt : optionErrors ) {
+                    // opt.type has matching options opt.option1 and opt.option2
+                    das_yyerror(scanner,"generic function argument " + arg->name + " of type " + opt.optionType->describe()
+                    + " has matching options " + opt.option1->describe() + " and " + opt.option2->describe(),
+                        opt.optionType->at, CompilationError::invalid_type);
+                }
+            }
+        }
+        if ( !yyextra->g_Program->addGeneric(func) ) {
+            das_yyerror(scanner,"generic function is already defined " + func->getMangledName(),
+                func->at, CompilationError::function_already_declared);
+        }
+    }
+
     vector<VariableDeclaration*> * ast_structVarDef ( yyscan_t scanner, vector<VariableDeclaration*> * list,
         AnnotationList * annL, bool isStatic, bool isPrivate, int ovr, bool cnst, Function * func, Expression * block,
             const LineInfo & fromBlock, const LineInfo & annLAt ) {
@@ -556,7 +634,7 @@ namespace das {
             }
             modifyToClassMember(func, yyextra->g_thisStructure, false, cnst);
             assignDefaultArguments(func);
-            runFunctionAnnotations(scanner, func, annL, annLAt);
+            runFunctionAnnotations(scanner, nullptr, func, annL, annLAt);
             if ( !yyextra->g_Program->addFunction(func) ) {
                 das_yyerror(scanner,"function is already defined " + func->getMangledName(),
                     func->at, CompilationError::function_already_declared);
@@ -619,13 +697,9 @@ namespace das {
             }
             assignDefaultArguments(func);
             if ( isGeneric ) {
-                if ( !yyextra->g_Program->addGeneric(func) ) {
-                    das_yyerror(scanner,"generic function is already defined " + func->getMangledName(),
-                        func->at, CompilationError::function_already_declared);
-                }
-
+                implAddGenericFunction(scanner, func);
             } else {
-                runFunctionAnnotations(scanner, func, annL, annLAt);
+                runFunctionAnnotations(scanner, nullptr, func, annL, annLAt);
                 if ( !yyextra->g_Program->addFunction(func) ) {
                     das_yyerror(scanner,"function is already defined " + func->getMangledName(),
                         func->at, CompilationError::function_already_declared);
@@ -762,6 +836,7 @@ namespace das {
         pLet->at = kwd_letAt;
         pLet->atInit = declAt;
         pLet->inScope = inScope;
+        pLet->isTupleExpansion = decl->isTupleExpansion;
         if ( decl->pTypeDecl ) {
             for ( const auto & name_at : *decl->pNameList ) {
                 if ( !pLet->find(name_at.name) ) {
@@ -847,7 +922,7 @@ namespace das {
     void ast_requireModule ( yyscan_t scanner, string * name, string * modalias, bool pub, const LineInfo & atName ) {
         auto info = yyextra->g_Access->getModuleInfo(*name, yyextra->g_FileAccessStack.back()->name);
         if ( auto mod = yyextra->g_Program->addModule(info.moduleName) ) {
-            yyextra->g_Program->allRequireDecl.push_back(make_tuple(mod,*name,"",pub,atName));
+            yyextra->g_Program->allRequireDecl.push_back(make_tuple(mod,*name,info.fileName,pub,atName));
             yyextra->g_Program->thisModule->addDependency(mod, pub);
             das_collect_all_keywords(mod,scanner);
             if ( !info.importName.empty() ) {
@@ -863,7 +938,7 @@ namespace das {
                 }
             }
         } else {
-            yyextra->g_Program->allRequireDecl.push_back(make_tuple((Module *)nullptr,*name,"",pub,atName));
+            yyextra->g_Program->allRequireDecl.push_back(make_tuple((Module *)nullptr,*name,info.fileName,pub,atName));
             das_yyerror(scanner,"required module not found " + *name,atName,
                 CompilationError::module_not_found);
         }
@@ -931,12 +1006,24 @@ namespace das {
             delete pVar;
             pCall->arguments.insert(pCall->arguments.begin(),ExpressionPtr(arg));
             return pCall;
-        }
-        else if (fncall->rtti_isNamedCall()) {
+        } else if (fncall->rtti_isNamedCall()) {
             auto pCall = (ExprNamedCall*)fncall;
             pCall->nonNamedArguments.insert(pCall->nonNamedArguments.begin(), ExpressionPtr(arg));
             return fncall;
-
+        } else if (fncall->rtti_isField() ) {
+            auto pField = (ExprField*)fncall;
+            if ( auto pipeto = ast_rpipe(scanner, arg, pField->value.get(), locAt) ) {
+                return pField;
+            } else {
+                return nullptr;
+            }
+        } else if (fncall->rtti_isSafeField() ) {
+            auto pField = (ExprSafeField*)fncall;
+            if ( auto pipeto = ast_rpipe(scanner, arg, pField->value.get(), locAt) ) {
+                return pField;
+            } else {
+                return nullptr;
+            }
         } else {
             das_yyerror(scanner,"can only rpipe into a function call",locAt,CompilationError::cant_pipe);
             return fncall;
@@ -959,4 +1046,29 @@ namespace das {
         block->list.push_back(ExpressionPtr(expr));
         return block;
     }
+
+    int skip_underscode ( char * tok, char * buf, char * bufend ) {
+        char * out = buf;
+        for ( ;; ) {
+            char ch = *tok ++;
+            if ( ch==0 ) break;
+            if ( ch=='_' ) continue;
+            *out++ = ch;
+            if ( out==bufend ) { out--; break; }
+        }
+        *out = 0;
+        return int(out - buf);
+    }
+
+    Expression * ast_makeStructToMakeVariant ( MakeStruct * decl, const LineInfo & locAt ) {
+        auto mks = new ExprMakeStruct(locAt);
+        for ( auto & f : *decl ) {
+            auto fld = new MakeStruct();
+            fld->emplace_back(f);
+            mks->structs.push_back(fld);
+        }
+        delete decl;
+        return mks;
+    }
+
  }

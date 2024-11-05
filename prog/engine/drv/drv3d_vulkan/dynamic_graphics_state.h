@@ -1,5 +1,8 @@
-// dynamic states that are applied post pipe bind
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+// dynamic states that are applied post pipe bind
+
 #include "util/tracked_state.h"
 #include "state_field_graphics.h"
 

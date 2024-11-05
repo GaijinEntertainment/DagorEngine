@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #define NO_PRIORITIES           0
 #define PRIORITY_ONLY_HIGHER    1
 #define PRIORITY_ALL_PRIORITIES 2

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gameRes/dag_stdGameRes.h>
 #include <assets/asset.h>
 #include <assets/assetExporter.h>

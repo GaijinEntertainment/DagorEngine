@@ -1,3 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 // https://github.com/multikill/TLS_Reader
 
 // based on http://undocumented.ntinternals.net/index.html?page=UserMode%2FUndocumented%20Functions%2FNT%20Objects%2FThread%2FTEB.html
@@ -10,7 +13,7 @@ typedef LONG NTSTATUS;
 #define GDI_HANDLE_BUFFER_SIZE64 60
 #define GDI_BATCH_BUFFER_SIZE    310
 
-#if !defined(_M_X64)
+#if !_TARGET_64BIT
 #define GDI_HANDLE_BUFFER_SIZE GDI_HANDLE_BUFFER_SIZE32
 #else
 #define GDI_HANDLE_BUFFER_SIZE GDI_HANDLE_BUFFER_SIZE64
@@ -373,7 +376,7 @@ typedef struct _TEB
   PVOID SystemReserved1[54];
   NTSTATUS ExceptionCode;
   PVOID ActivationContextStackPointer;
-#if defined(_M_X64)
+#if _TARGET_64BIT
   UCHAR SpareBytes[24];
 #else
   UCHAR SpareBytes[36];
@@ -409,7 +412,7 @@ typedef struct _TEB
   PVOID DbgSsReserved[2];
 
   ULONG HardErrorMode;
-#if defined(_M_X64)
+#if _TARGET_64BIT
   PVOID Instrumentation[11];
 #else
   PVOID Instrumentation[9];
@@ -443,7 +446,7 @@ typedef struct _TEB
   ULONG_PTR SoftPatchPtr1;
   PVOID ThreadPoolData;
   PVOID *TlsExpansionSlots;
-#if defined(_M_X64)
+#if _TARGET_64BIT
   PVOID DeallocationBStore;
   PVOID BStoreLimit;
 #endif

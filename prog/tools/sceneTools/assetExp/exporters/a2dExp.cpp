@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <assets/daBuildExpPluginChain.h>
 #include "a2dOptimizer.h"
 #include <assets/assetPlugin.h>

@@ -1,0 +1,22 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = cables ;
+Location = prog/daNetGameLibs/$(Module) ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+;
+
+
+local AllSrcFolder_ES = ;
+if $(HaveRenderer) = yes {
+  AddIncludes += $(Root)/prog/daNetGameLibs/renderer/includes ;
+  AllSrcFolder_ES +=
+    render
+  ;
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

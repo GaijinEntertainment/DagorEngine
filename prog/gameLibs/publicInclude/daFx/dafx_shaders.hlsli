@@ -83,6 +83,20 @@ void update_culling_data( uint cull_id, float4_cref v )
 #endif
 }
 
+DAFX_INLINE
+#ifdef __cplusplus
+void dafx_parse_dispatch_desc(const DispatchDesc &ddesc, uint &rnd_seed, uint &culling_id, uint &alive_start, uint &alive_count, uint &lod)
+#else
+void dafx_parse_dispatch_desc(DispatchDesc ddesc, out uint rnd_seed, out uint culling_id, out uint alive_start, out uint alive_count, out uint lod)
+#endif
+{
+  rnd_seed = ddesc.rndSeedAndCullingId & 0xff;
+  culling_id = ddesc.rndSeedAndCullingId >> 8;
+  alive_start = ddesc.aliveStartAndCount & 0xffff;
+  alive_count = ddesc.aliveStartAndCount >> 16;
+  lod = ddesc.headOffsetAndLodOfs >> 24;
+}
+
 #ifdef __cplusplus
 
   DAFX_INLINE
@@ -95,10 +109,7 @@ void update_culling_data( uint cull_id, float4_cref v )
     cdesc.serviceDataOffset = head.serviceCpuOffset / DAFX_ELEM_STRIDE;
     cdesc.lifeLimit = head.lifeLimit;
     cdesc.lifeLimitRcp = head.lifeLimitRcp;
-    cdesc.rndSeed = ddesc.rndSeedAndCullingId & 0xff;
-    cdesc.cullingId = ddesc.rndSeedAndCullingId >> 8;
-    cdesc.aliveStart = ddesc.aliveStartAndCount & 0xffff;
-    cdesc.aliveCount = ddesc.aliveStartAndCount >> 16;
+    dafx_parse_dispatch_desc(ddesc, cdesc.rndSeed, cdesc.cullingId, cdesc.aliveStart, cdesc.aliveCount, cdesc.lod);
     cdesc.idx = 0;
   }
 
@@ -171,10 +182,7 @@ void update_culling_data( uint cull_id, float4_cref v )
     cdesc.serviceDataOffset = head.serviceGpuOffset / DAFX_ELEM_STRIDE;
     cdesc.lifeLimit = head.lifeLimit;
     cdesc.lifeLimitRcp = head.lifeLimitRcp;
-    cdesc.rndSeed = ddesc.rndSeedAndCullingId & 0xff;
-    cdesc.cullingId = ddesc.rndSeedAndCullingId >> 8;
-    cdesc.aliveStart = ddesc.aliveStartAndCount & 0xffff;
-    cdesc.aliveCount = ddesc.aliveStartAndCount >> 16;
+    dafx_parse_dispatch_desc(ddesc, cdesc.rndSeed, cdesc.cullingId, cdesc.aliveStart, cdesc.aliveCount, cdesc.lod);
     cdesc.start = 0;
     cdesc.count = 0;
     cdesc.idx = 0;

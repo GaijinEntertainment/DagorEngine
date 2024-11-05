@@ -1,4 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/shaderResBuilder/globalVertexDataConnector.h>
 #include <libTools/shaderResBuilder/shaderMeshData.h>
 #include <shaders/dag_shaders.h>
@@ -379,7 +380,11 @@ void GlobalVertexDataConnector::connectData(bool allow_32_bit, GlobalVertexDataC
     Tab<uint8_t> new_vd;
     for (i = 0; i < vdataDest.size(); i++)
     {
-      // total_v += vdataDest[i]->numv;
+      if (vdataDest[i]->gvdFlags & VDATA_NO_IB)
+        continue;
+      if (!vdataDest[i]->allowVertexMerge)
+        continue;
+
       uint8_t *vd = vdataDest[i]->vData.data();
       int stride = vdataDest[i]->stride;
       vdataDest[i]->vRemap.resize(vdataDest[i]->numv);
@@ -468,7 +473,7 @@ void GlobalVertexDataConnector::connectData(bool allow_32_bit, GlobalVertexDataC
           vd->iData32[k] = v;
         }
       }
-      else
+      else if (vd->iData.size())
       {
         for (int k = re.si, ke = re.si + re.numf * 3; k < ke; k++)
         {

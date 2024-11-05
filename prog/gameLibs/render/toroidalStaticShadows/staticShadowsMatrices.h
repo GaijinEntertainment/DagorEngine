@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>
 #include "staticShadowsViewMatrices.h"

@@ -1,0 +1,118 @@
+include "shader_global.dshl"
+
+// The 0-3 numbers from enum HdrOutputMode
+shader loading_splash,
+  loading_splash_0,
+  loading_splash_1,
+  loading_splash_2,
+  loading_splash_3
+{
+  cull_mode=none;
+  z_write=false;
+  z_test=false;
+
+  POSTFX_VS_TEXCOORD(0, tc)
+
+  hlsl(ps) {
+    struct PsOutput
+    {
+    ##if (shader == loading_splash_1)
+      float4 hdr_result : SV_Target0;
+      float4 sdr_result : SV_Target1;
+    ##elif (shader == loading_splash_2) || (shader == loading_splash_3)
+      float4 hdr_result : SV_Target0;
+    ##else
+      float4 sdr_result : SV_Target0;
+    ##endif
+    };
+
+    Texture2D noise_64_tex_l8:register(t0);
+    SamplerState noise_64_tex_l8_samplerstate:register(s0);
+    Texture2D noise_128_tex_hash:register(t1);
+    SamplerState noise_128_tex_hash_samplerstate:register(s1);
+
+    float3 iGlobalTime_iResolution :register(c0);
+
+    #define iGlobalTime (iGlobalTime_iResolution.x)
+    #define iResolution (iGlobalTime_iResolution.yz)
+    #define iTime iGlobalTime
+
+    #include <loading/loading_port.hlsl>
+
+    ##if hardware.ps4  //PS4 skies arfifact workround
+      #pragma argument (nofastmath)
+    ##endif
+    #include <noise/Value3D.hlsl>
+    #include <loading/gradients.glsl>
+    #define NO_TONEMAP 1
+    #define SCENE_MAX_NITS 700.f
+    #define LINEAR_ 3.f
+    #ifndef WHITE
+    #define WHITE 8
+    #endif
+    float3 FilmicMain( float3 texColor ) 
+    {
+       float3 x = max(0,texColor-0.004); // Filmic Curve
+       float3 retColor = (x*(6.2*x+.5))/(x*(6.2*x+1.7)+0.06);
+       return retColor;
+       //retColor = pow(retColor,2.2f); // Gamma
+       //return RemoveSRGBCurve(retColor);
+    }
+    float3 Uncharted2Tonemap(float3 x)
+    {
+       float A = 0.15;
+       float B = 0.50;
+       float C = 0.10;
+       float D = 0.20;
+       float E = 0.02;
+       float F = 0.30;
+       float W = 11.2;
+
+       return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
+    }
+
+    #include <pixelPacking/ColorSpaceUtility.hlsl>
+    float3 UnchartedMain( float3 texColor, float White )
+    {
+       float ExposureBias = 2.0f;
+       float3 curr = Uncharted2Tonemap(ExposureBias*texColor);
+       float3 W = White;
+       float3 whiteScale = 1.0f/Uncharted2Tonemap(W);
+       float3 color = curr*whiteScale;
+       return ApplySRGBCurve(color);
+    }
+
+    float3 HDR10Encode(float3 texColor, float SceneMaxNits)
+    {
+      float3 linearColor = RemoveSRGBCurve(texColor);
+      float3 color2020 = REC709toREC2020(linearColor);
+      color2020 *= (SceneMaxNits / 10000.f);
+      float3 colorPow = pow(abs(color2020), 0.1593017578);
+      float3 colorST2084 = pow((0.8359375 + 18.8515625 * colorPow) / (1. + 18.6875 * colorPow), 78.84375);
+      return colorST2084;
+    }
+
+    PsOutput postfx_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      float4 pos = GET_SCREEN_POS(input.pos);
+      float4 load;
+      mainImage( load, pos.xy );
+
+      PsOutput ret;
+    ##if (shader == loading_splash_1) || (shader == loading_splash_2)
+      ret.hdr_result = half4(HDR10Encode(max(0, load.xyz), SCENE_MAX_NITS), load.w);
+    ##elif (shader == loading_splash_3)
+      ret.hdr_result = half4(max(0, load.xyz) * LINEAR_, load.w);
+    ##endif
+    ##if (shader == loading_splash) || (shader == loading_splash_0) || (shader == loading_splash_1)
+      #if !NO_TONEMAP
+      load.rgb = UnchartedMain(max(0, load.xyz), WHITE);
+      #endif
+      ret.sdr_result = load;
+    ##endif
+      return ret;
+    }
+  }
+
+  compile("target_ps", "postfx_ps");
+}

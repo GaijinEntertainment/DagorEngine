@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/pageAsg/asg_anim_tree.h>
 #include <libTools/pageAsg/asg_anim_ctrl.h>
 #include <debug/dag_debug.h>
@@ -997,7 +999,7 @@ AnimObjCtrl *create_controller(int type)
     case AnimObjCtrl::TYPE_Stub: return new (uimem) AnimObjCtrlNull();
     case AnimObjCtrl::TYPE_Fifo: return new (uimem) AnimObjCtrlFifo();
     case AnimObjCtrl::TYPE_Fifo3: return new (uimem) AnimObjCtrlFifo3();
-    case AnimObjCtrl::TYPE_Planar: debug_ctx("not implenmented"); return NULL;
+    case AnimObjCtrl::TYPE_Planar: DEBUG_CTX("not implenmented"); return NULL;
     case AnimObjCtrl::TYPE_Blender: return new (uimem) AnimObjCtrlBlender();
     case AnimObjCtrl::TYPE_BIS: return new (uimem) AnimObjCtrlBIS();
     case AnimObjCtrl::TYPE_AlignNode: return new (uimem) AnimObjCtrlAlignNode();
@@ -1014,6 +1016,6 @@ AnimObjCtrl *create_controller(int type)
     case AnimObjCtrl::TYPE_Hub: return new (uimem) AnimObjCtrlHub();
     case AnimObjCtrl::TYPE_DirectSync: return new (uimem) AnimObjCtrlDirectSync();
   }
-  debug_ctx("not implenmented");
+  DEBUG_CTX("not implenmented");
   return NULL;
 }

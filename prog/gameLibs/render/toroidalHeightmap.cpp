@@ -1,11 +1,16 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_bounds2.h>
 #include <util/dag_globDef.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_lock.h>
 #include <shaders/dag_shaderVar.h>
 #include <shaders/dag_shaders.h>
 #include <debug/dag_debug.h>
 #include <util/dag_string.h>
-#include <3d/dag_drv3dCmd.h>
 #include <math/dag_TMatrix4.h>
 #include <math/integer/dag_IBBox2.h>
 #include <3d/dag_render.h>
@@ -14,11 +19,7 @@
 #include <render/toroidal_update_regions.h>
 #include <render/toroidalHeightmap.h>
 
-void ToroidalHeightmap::close()
-{
-  toroidalHeightmap.close();
-  blackPixelTex.close();
-}
+void ToroidalHeightmap::close() { toroidalHeightmap.close(); }
 
 void ToroidalHeightmap::invalidate()
 {
@@ -58,18 +59,6 @@ void ToroidalHeightmap::init(int heightmap_size, float near_lod_size, float far_
   toroidalHeightmap = dag::create_array_tex(heightmapCacheSize, heightmapCacheSize, LOD_COUNT, heightmapFormat | TEXCF_RTARGET, 1,
     "toroidal_heightmap_texarray");
 
-  {
-    blackPixelTex = dag::create_array_tex(1, 1, LOD_COUNT, heightmapFormat | TEXCF_RTARGET, 1, "toroidal_heightmap_blacktex");
-
-    d3d::GpuAutoLock gpu;
-    SCOPE_RENDER_TARGET;
-    for (int i = 0; i < LOD_COUNT; i++)
-    {
-      d3d::set_render_target(blackPixelTex.getArrayTex(), i, 0);
-      d3d::clearview(CLEAR_TARGET, clearValue, 0.f, 0);
-    }
-    d3d::resource_barrier({blackPixelTex.getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-  }
   // shader variables
   toroidalClipmap_world2uv_1VarId = ::get_shader_glob_var_id("toroidalClipmap_world2uv_1", true);
   toroidalClipmap_world2uv_2VarId = ::get_shader_glob_var_id("toroidalClipmap_world2uv_2", true);
@@ -88,11 +77,11 @@ void ToroidalHeightmap::init(int heightmap_size, float near_lod_size, float far_
   }
 }
 
-void ToroidalHeightmap::setBlackTex()
+void ToroidalHeightmap::setBlackTex(TEXTUREID black_tex_array)
 {
   // always sample center of texture
   ShaderGlobal::set_color4(toroidalClipmap_world2uv_1VarId, Color4(0, 0, 0.5, 0.5));
-  ShaderGlobal::set_texture(toroidalHeightmap.getVarId(), blackPixelTex.getTexId());
+  ShaderGlobal::set_texture(toroidalHeightmap.getVarId(), black_tex_array);
 }
 
 void ToroidalHeightmap::setHeightmapTex()
@@ -188,8 +177,7 @@ void ToroidalHeightmap::updateHeightmap(ToroidalHeightmapRenderer &renderer, con
     Point2 worldSpaceOrigin = point2(torHelper.curOrigin) * texelSize;
 
     worldToToroidal[cascadeNo] = Color4(1.f / toroidalWorldSize, 1.f / toroidalWorldSize,
-      0.5f - worldSpaceOrigin.x / toroidalWorldSize + HALF_TEXEL_OFSF / toroidalWorldSize,
-      0.5f - worldSpaceOrigin.y / toroidalWorldSize + HALF_TEXEL_OFSF / toroidalWorldSize);
+      0.5f - worldSpaceOrigin.x / toroidalWorldSize, 0.5f - worldSpaceOrigin.y / toroidalWorldSize);
 
     uvOffset[cascadeNo] = -point2((torHelper.mainOrigin - torHelper.curOrigin) % torHelper.texSize) / torHelper.texSize;
 

@@ -1,0 +1,13 @@
+net_sound_descs{
+  "net_sound__descs:shared:object"{}
+}
+
+any_source_net_sound_descs{
+  _use:t="net_sound_descs"
+  "anySourceNetSounds:tag" {}
+}
+
+any_source_net_sounds{
+  _use:t="any_source_net_sound_descs"
+  _use:t="replicating"
+}

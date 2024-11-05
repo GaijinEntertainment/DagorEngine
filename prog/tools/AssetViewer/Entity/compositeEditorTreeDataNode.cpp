@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "compositeEditorTreeDataNode.h"
 #include <assets/asset.h>
 #include <de3_dataBlockIdHolder.h>

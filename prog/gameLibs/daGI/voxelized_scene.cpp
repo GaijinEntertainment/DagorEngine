@@ -1,11 +1,18 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_frustum.h>
 #include <math/dag_Point2.h>
 #include <math/integer/dag_IBBox2.h>
 #include <math/integer/dag_IBBox3.h>
 #include <daGI/daGI.h>
 
-#include <3d/dag_drv3d.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_tex3d.h>
 #include <shaders/dag_computeShaders.h>
 #include <perfMon/dag_statDrv.h>
 
@@ -84,20 +91,16 @@ void GI3D::initSceneVoxels()
     return;
 #if SCENE_VOXELS_COLOR == SCENE_VOXELS_R11G11B10
   uint32_t sceneFmt = TEXFMT_R11G11B10F;
-#define SCENE_CLEAR_FUNC clear_float3_voltex_via_cs
 #elif SCENE_VOXELS_COLOR == SCENE_VOXELS_SRGB8_A8
   uint32_t sceneFmt = TEXCF_SRGBREAD | TEXFMT_R8G8B8A8;
-#define SCENE_CLEAR_FUNC clear_uint4_voltex_via_cs
 #elif SCENE_VOXELS_COLOR == SCENE_VOXELS_HSV_A8
   uint32_t sceneFmt = TEXFMT_R8G8B8A8;
-#define SCENE_CLEAR_FUNC clear_uint4_voltex_via_cs
 #endif
   if (getQuality() != ONLY_AO)
   {
     sceneVoxelsColor = dag::create_voltex(VOXELS_RES_X, VOXELS_RES_Y, VOXELS_RES_Z * sceneCascades.size(), sceneFmt | TEXCF_UNORDERED,
       1, "scene_voxels_data");
-    texture_util::get_shader_helper()->SCENE_CLEAR_FUNC(sceneVoxelsColor.getVolTex());
-#undef SCENE_CLEAR_FUNC
+    d3d::clear_rwtexf(sceneVoxelsColor.getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
     sceneVoxelsColor->texaddr(TEXADDR_WRAP);
     d3d::resource_barrier({sceneVoxelsColor.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
   }
@@ -105,7 +108,7 @@ void GI3D::initSceneVoxels()
 #if SCENE_VOXELS_COLOR == SCENE_VOXELS_R11G11B10
   sceneVoxelsAlpha = dag::create_voltex(VOXELS_RES_X, VOXELS_RES_Y, VOXELS_RES_Z * sceneCascades.size(), TEXFMT_L8 | TEXCF_UNORDERED,
     1, "scene_voxels_alpha");
-  texture_util::get_shader_helper()->clear_float_voltex_via_cs(sceneVoxelsAlpha.getVolTex());
+  d3d::clear_rwtexf(sceneVoxelsAlpha.getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
   sceneVoxelsAlpha->texaddr(TEXADDR_WRAP);
   d3d::resource_barrier({sceneVoxelsAlpha.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
 #endif
@@ -278,8 +281,8 @@ float GI3D::getSceneDist3D() const
 }
 
 static constexpr int MOVE_THRESHOLD = 4;
-GI3D::SceneCascade::STATUS GI3D::updateOriginScene(int scene, const Point3 &baseOrigin, const render_scene_fun_cb &preclear_cb,
-  const render_scene_fun_cb &voxelize_cb, bool repeat_last)
+GI3D::SceneCascade::STATUS GI3D::updateOriginScene(int scene, const Point3 &baseOrigin, const render_scene_fun_cb_t &preclear_cb,
+  const render_scene_fun_cb_t &voxelize_cb, bool repeat_last)
 {
   if (!ssgi_clear_scene_cs || !sceneVoxelsAlpha.getVolTex())
     return SceneCascade::NOT_MOVED;
@@ -441,8 +444,8 @@ bool GI3D::isSceneTeleported(const Point3 &origin) const
   return isSceneTeleported(max((int)sceneCascades.size() - 2, (int)0), origin);
 }
 
-bool GI3D::updateOriginScene(const Point3 &baseOrigin, const render_scene_fun_cb &preclear_cb, const render_scene_fun_cb &voxelize_cb,
-  int max_scenes_to_update, bool repeat_last)
+bool GI3D::updateOriginScene(const Point3 &baseOrigin, const render_scene_fun_cb_t &preclear_cb,
+  const render_scene_fun_cb_t &voxelize_cb, int max_scenes_to_update, bool repeat_last)
 {
   bool sceneMoved = false;
   if (!ssgi_clear_scene_cs || !sceneVoxelsAlpha.getVolTex())

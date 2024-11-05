@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #ifndef THREAD_SAFE_LOOSE_GRID
 #error "Do not include this file directly, use dag_looseGrid.h instead"
 #endif
@@ -30,7 +32,7 @@ public:
   bool isInGrid() const { return prevInCell != NULL; }
 };
 
-class LooseGrid
+class DAG_TS_CAPABILITY("mutex") LooseGrid
 {
   friend class LooseGridIterator;
   friend class LooseGridBoxIterator;
@@ -54,17 +56,19 @@ public:
   void update(LooseGridObject *object, const Point3 &pos, float radius);
 
   int getLargeCount() const { return largeObjectsCount; }
+  float getMaxRadius() const { return float(1 << bitShift[1]); }
 
 #if THREAD_SAFE_LOOSE_GRID
-  void lockRead() const;
-  void unlockRead() const;
-  void lockWrite() const;
-  void unlockWrite() const;
+  void lockRead() const DAG_TS_ACQUIRE_SHARED();
+  void unlockRead() const DAG_TS_RELEASE_SHARED();
+  void lockWrite() const DAG_TS_ACQUIRE();
+  void unlockWrite() const DAG_TS_RELEASE();
 #else
-  void lockRead() const {}
-  void unlockRead() const {}
-  void lockWrite() const {}
-  void unlockWrite() const {}
+  // NOTE: common code that uses these methods MUST be thread-safe static analysis wise
+  void lockRead() const DAG_TS_ACQUIRE_SHARED() {}
+  void unlockRead() const DAG_TS_RELEASE_SHARED() {}
+  void lockWrite() const DAG_TS_ACQUIRE() {}
+  void unlockWrite() const DAG_TS_RELEASE() {}
 #endif
 
 protected:
@@ -98,12 +102,12 @@ struct LooseGridBoxIteratorLevel
   int maxZ;
 };
 
-class LooseGridIterator
+class DAG_TS_SCOPED_CAPABILITY LooseGridIterator
 {
 public:
-  void init(const LooseGrid *grid_);
-  LooseGridIterator(const LooseGrid *grid_) { init(grid_); }
-  ~LooseGridIterator();
+  void init(const LooseGrid *grid_) DAG_TS_ACQUIRE_SHARED(grid_);
+  LooseGridIterator(const LooseGrid *grid_) DAG_TS_ACQUIRE_SHARED(grid_) { init(grid_); }
+  ~LooseGridIterator() DAG_TS_RELEASE(); // NOTE: intentionally not shared (this is how it works)
   LooseGridObject *current() { return cur; }
   void next();
 
@@ -114,19 +118,21 @@ protected:
   inline void nextCell();
 };
 
-class LooseGridBoxIterator
+class DAG_TS_SCOPED_CAPABILITY LooseGridBoxIterator
 {
 public:
-  void init(const LooseGrid *grid_, int bminX, int bminZ, int bmaxX, int bmaxZ, const bool cutLimit = true);
+  void init(const LooseGrid *grid_, int bminX, int bminZ, int bmaxX, int bmaxZ, const bool cutLimit = true)
+    DAG_TS_ACQUIRE_SHARED(grid_);
   LooseGridBoxIterator(const LooseGrid *grid_, int bminX, int bminZ, int bmaxX, int bmaxZ, const bool cutLimit = true)
+    DAG_TS_ACQUIRE_SHARED(grid_)
   {
     init(grid_, bminX, bminZ, bmaxX, bmaxZ, cutLimit);
   }
-  LooseGridBoxIterator(const LooseGrid *grid_, const BBox3 &box)
+  LooseGridBoxIterator(const LooseGrid *grid_, const BBox3 &box) DAG_TS_ACQUIRE_SHARED(grid_)
   {
     init(grid_, (int)box[0].x, (int)box[0].z, (int)box[1].x, (int)box[1].z);
   }
-  ~LooseGridBoxIterator();
+  ~LooseGridBoxIterator() DAG_TS_RELEASE(); // NOTE: intentionally not shared (this is how it works)
   LooseGridObject *current() { return cur; }
   void next();
 
@@ -143,19 +149,19 @@ protected:
   inline void nextCell();
 };
 
-class LooseGridRayIterator : public LooseGridBoxIterator
+class DAG_TS_SCOPED_CAPABILITY LooseGridRayIterator : public LooseGridBoxIterator
 {
 public:
   void clampBoxByRay();
-  LooseGridRayIterator(const LooseGrid *grid_, int bminX, int bminZ, int bmaxX, int bmaxZ, const float *p0_len,
-    const float *norm_dir) :
+  LooseGridRayIterator(const LooseGrid *grid_, int bminX, int bminZ, int bmaxX, int bmaxZ, const float *p0_len, const float *norm_dir)
+    DAG_TS_ACQUIRE_SHARED(grid_) :
     LooseGridBoxIterator(grid_, bminX, bminZ, bmaxX, bmaxZ, false), from(p0_len), dir(norm_dir)
   {
     clampBoxByRay();
     mem_set_0(usingBitMap);
     skipIrrelevantCells();
   }
-  ~LooseGridRayIterator();
+  ~LooseGridRayIterator() DAG_TS_RELEASE(); // NOTE: intentionally not shared (this is how it works)
   void next();
   inline void markAsUsed(unsigned cellIndex)
   {

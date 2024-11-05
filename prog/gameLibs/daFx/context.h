@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "common.h"
@@ -10,13 +11,35 @@
 #include "globalData.h"
 #include "commandQueue.h"
 #include "frameBoundaryBufferManager.h"
+#include <3d/dag_serialIntBuffer.h>
 #include <generic/dag_relocatableFixedVector.h>
+#include <EASTL/fixed_vector.h>
 #include <util/dag_threadPool.h>
 #include <util/dag_generationReferencedData.h>
 #include <osApiWrappers/dag_spinlock.h>
 
 namespace dafx
 {
+
+struct SamplerHandles
+{
+  float mipBias = invalidMipBias;
+
+  d3d::SamplerHandle samplerBilinear = d3d::INVALID_SAMPLER_HANDLE;
+  d3d::SamplerHandle samplerAniso = d3d::INVALID_SAMPLER_HANDLE;
+
+  SamplerHandles() = default;
+  SamplerHandles(float in_mipBias);
+  ~SamplerHandles();
+  SamplerHandles(const SamplerHandles &other) = delete;
+  SamplerHandles(SamplerHandles &&other) noexcept;
+  SamplerHandles &operator=(const SamplerHandles &other) = delete;
+  SamplerHandles &operator=(SamplerHandles &&other) noexcept;
+
+private:
+  inline static constexpr float invalidMipBias = 1000.f;
+  void close();
+};
 
 struct AsyncPrepareJob final : public cpujobs::IJob
 {
@@ -66,24 +89,30 @@ struct Context
   Config cfg;
   Stats stats;
   AsyncStats asyncStats;
+  dag::Vector<SystemUsageStat> systemUsageStats;
   uint32_t debugFlags;
 
   Binds binds;
   Shaders shaders;
   GlobalData globalData;
   GenerationReferencedData<RefDataId, RefData> refDatas;
+  eastl::fixed_vector<SamplerHandles, 4, true> samplersCache;
 
   Culling culling;
   StagingRing staging;
   eastl::array<RenderBuffer, Config::max_render_tags> renderBuffers;
   uint32_t beforeRenderUpdatedTags;
 
+  VDECL instancingVdecl;
+  serial_buffer::SerialBufferCounter serialBuf;
   GpuBufferPool gpuBufferPool;
   CpuBufferPool cpuBufferPool;
 
+  eastl::vector<UniqueBuf> multidrawBufers;
   eastl::vector<GpuResourcePtr> renderDispatchBuffers;
   eastl::vector<GpuResourcePtr> computeDispatchBuffers;
   int currentRenderDispatchBuffer = 0;
+  int currentMutltidrawBuffer = 0;
   int rndSeed = 0;
 
   Systems systems;
@@ -109,21 +138,23 @@ struct Context
 
   AsyncPrepareJob asyncPrepareJob;
   AsyncStartNextComputeBatchJob startNextComputeBatchJob;
-  dag::RelocatableFixedVector<AsyncCpuComputeJob, 8> asyncCpuComputeJobs;
-  dag::RelocatableFixedVector<AsyncCpuCullJob, 8> asyncCpuCullJobs;
+  dag::RelocatableFixedVector<AsyncCpuComputeJob, 10> asyncCpuComputeJobs;
+  dag::RelocatableFixedVector<AsyncCpuCullJob, 10> asyncCpuCullJobs;
 
   volatile int asyncCounter = -1;
 
-  BaseTexture *customDepth = nullptr;
   unsigned int currentFrame = 0;
   int renderBufferMaxUsage = 0;
   bool updateInProgress = false;
+  bool simulationIsPaused = false;
+  bool app_was_inactive = false;
 
   int systemDataVarId = -1;
   int renderCallsVarId = -1;
   int computeDispatchVarId = -1;
   int updateGpuCullingVarId = -1;
   bool supportsNoOverwrite = true;
+  volatile int maxTextureSlotsAllocated = 0;
 
   FrameBoundaryBufferManager frameBoundaryBufferManager;
 
@@ -135,7 +166,37 @@ struct Context
   Context(const Context &) = delete;
   Context &operator=(const Context &) = delete;
   Context &operator=(Context &&) = delete;
+
+#if DAGOR_DBGLEVEL > 0
+  volatile int systemsLockCounter = 0;
+  volatile int instanceListLockCounter = 0;
+  volatile int instanceTupleLockCounter = 0;
+#endif
 };
+
+#if DAGOR_DBGLEVEL > 0
+struct ScopedAccessGuard
+{
+  volatile int &cnt;
+
+  ScopedAccessGuard(volatile int &counter) : cnt(counter) { interlocked_increment(cnt); }
+
+  ~ScopedAccessGuard() { interlocked_decrement(cnt); }
+
+  ScopedAccessGuard(ScopedAccessGuard &ctx) = delete;
+  ScopedAccessGuard(const ScopedAccessGuard &ctx) = delete;
+  ScopedAccessGuard &operator=(ScopedAccessGuard &) = delete;
+  ScopedAccessGuard &operator=(const ScopedAccessGuard &) = delete;
+};
+
+#define SYS_LOCK_GUARD        ScopedAccessGuard DAG_CONCAT(syslockguard, __LINE__)(ctx.systemsLockCounter)
+#define INST_LIST_LOCK_GUARD  ScopedAccessGuard DAG_CONCAT(instlockguard, __LINE__)(ctx.instanceListLockCounter)
+#define INST_TUPLE_LOCK_GUARD ScopedAccessGuard DAG_CONCAT(instlockguard, __LINE__)(ctx.instanceTupleLockCounter)
+#else
+#define SYS_LOCK_GUARD
+#define INST_LIST_LOCK_GUARD
+#define INST_TUPLE_LOCK_GUARD
+#endif
 
 extern GenerationReferencedData<ContextId, Context, uint8_t, 0> g_ctx_list;
 #define GET_CTX()                                                  \

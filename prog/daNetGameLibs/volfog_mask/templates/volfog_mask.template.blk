@@ -1,0 +1,10 @@
+volfog_mask {
+  _tags:t="render"
+  _singleton:b=true
+
+  "volfog_mask__tex_holder:SharedTexHolder" {}
+  volfog_mask__size:i=64
+  volfog_mask__do_update:b=false
+  volfog_mask__bounds:p4= -4096, -4096, 4096, 4096  // minx, minz, maxx, maxz
+  "volfog_mask__data:list<r>" {} // array [size * size] of float (0..1)
+}

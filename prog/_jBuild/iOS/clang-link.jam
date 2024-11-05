@@ -18,6 +18,8 @@ rule ProcessLinkTarget
     }
     if $(CheckOnly) = yes { _LINK_OPT += -Wl,-S -Wl,-x -Xlinker -no_deduplicate ; }
 
+    _LINK_OPT += -Wl,-rpath,@executable_path/Frameworks ;
+
     for framework in [ GLOB $(OutDir)/Frameworks : *.framework ] {
       _LINK_OPT += -Wl,-rpath,@executable_path/Frameworks/$(framework:B).framework ;
     }
@@ -28,8 +30,8 @@ rule ProcessLinkTarget
     if $(IOSUploadCrashlyticsSymbols) = yes {
       postlink +=
         echo ========= uploading dSYM to firebase crashlytics =========== "
-"       call chmod +x $(_DEVTOOL)/firebase-frameworks/ios-$(iOSArch)/upload-symbols "
-"       call $(_DEVTOOL)/firebase-frameworks/ios-$(iOSArch)/upload-symbols -gsp $(GoogleInfoPlist) -p ios $(OutDir).dSYM"
+"       call chmod +x $(_DEVTOOL)/firebase-frameworks/ios-$(PlatformArch)/upload-symbols "
+"       call $(_DEVTOOL)/firebase-frameworks/ios-$(PlatformArch)/upload-symbols -gsp $(GoogleInfoPlist) -p ios $(OutDir).dSYM"
 "   ;
     }
 
@@ -88,8 +90,8 @@ rule ProcessLinkTarget
     if $(IOSUploadCrashlyticsSymbols) = yes {
       postlink +=
         echo ========= uploading dSYM to firebase crashlytics =========== "
-"       call chmod +x $(_DEVTOOL)/firebase-frameworks/ios-$(iOSArch)/upload-symbols "
-"       call $(_DEVTOOL)/firebase-frameworks/ios-$(iOSArch)/upload-symbols -gsp $(GoogleInfoPlist) -p ios $(OutDir).dSYM"
+"       call chmod +x $(_DEVTOOL)/firebase-frameworks/ios-$(PlatformArch)/upload-symbols "
+"       call $(_DEVTOOL)/firebase-frameworks/ios-$(PlatformArch)/upload-symbols -gsp $(GoogleInfoPlist) -p ios $(OutDir).dSYM"
 "   ;
     }
 

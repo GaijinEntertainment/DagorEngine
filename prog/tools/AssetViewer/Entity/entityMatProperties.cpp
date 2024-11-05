@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "entityMatProperties.h"
 
 #include <obsolete/dag_cfg.h>
@@ -5,6 +7,7 @@
 #include <de3_interface.h>
 #include <assets/asset.h>
 #include <libTools/dagFileRW/dagFileFormat.h>
+#include <libTools/shaderResBuilder/processMat.h>
 
 const char *lightingTypeStrs[LIGHTING_TYPE_COUNT] = {"none", "lightmap", "vltmap"};
 
@@ -130,11 +133,18 @@ void replace_mat_vars_in_props_blk(DataBlock &props, const dag::Vector<MatVarDes
 
 void replace_mat_textures_in_props_blk(DataBlock &props, const eastl::array<SimpleString, MAXMATTEXNUM> &textures)
 {
+  String tempString;
+
   for (int texSlot = 0; texSlot < DAGTEXNUM; ++texSlot)
   {
-    String texParamName = String(0, "tex%d", texSlot);
-    if (DagorAsset *texAsset = DAEDITOR3.getAssetByName(textures[texSlot]))
+    const SimpleString &textureName = textures[texSlot];
+    const String texParamName = String(0, "tex%d", texSlot);
+
+    if (DagorAsset *texAsset = DAEDITOR3.getAssetByName(textureName))
       props.setStr(texParamName, texAsset->getTargetFilePath());
+    // Keep textures that use "$(ASSET_NAME)" (e.g.: "$(ASSET_NAME)_pivot_pos.dds") as they are.
+    else if (strcmp(replace_asset_name(textureName, tempString, ""), textureName) != 0)
+      props.setStr(texParamName, textureName);
     else
       props.removeParam(texParamName);
   }

@@ -1,0 +1,380 @@
+include "dagi_quality.dshl"
+
+include "screenspace_probes_common.dshl"
+include "dagi_irrad_grid_sample.dshl"
+include "dagi_sky_vis_common.dshl"
+include "dagi_rad_grid_common.dshl"
+include "night_light.dshl"
+include "brunetonSky.dshl"
+include "use_tiled_lights.dshl"
+
+macro INIT_AND_USE_GI_FORWARD()
+  if (gi_quality == only_ao)
+  {
+    DAGI_SKY_VIS_SAMPLE(ps)
+  }
+  if (gi_quality == colored)
+  {
+    hlsl { #define DAGI_IRRADIANCE_GRID_TYPE DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE }
+    DAGI_IRRADIANCE_GRID_SAMPLE(ps)
+  }
+  if (gi_quality == screen_probes)
+  {
+    SAMPLE_IRRADIANCE_SP(ps)
+  }
+  DEFINE(use_gi)
+endmacro
+
+macro INIT_AND_USE_VOLFOG_FORWARD()
+  if (mobile_render == off && in_editor_assume == no)
+  {
+    INIT_ZNZFAR()
+    BRUNETON_FOG()
+    USE_SCREENPOS_TO_TC()
+    INIT_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
+    USE_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
+    hlsl { #define USE_VOLFOG APPLY_BRUNETON_FOG }
+  }
+endmacro
+
+macro INIT_GBUFFER_FORWARD()
+  //also requires supports global_frame;
+  if (compatibility_mode != compatibility_mode_on)
+  {
+    (ps) {
+      gbuffer_sun_light_dir@f3 = (from_sun_direction.x, from_sun_direction.y, from_sun_direction.z);
+      gbuffer_sun_light_col@f4 = (sun_color_0.r, sun_color_0.g, sun_color_0.b, skylight_params.w);
+      gbuffer_enviSPH0 @f4 = (enviSPH0*skylight_params.y);
+      gbuffer_enviSPH1 @f4 = (enviSPH1*skylight_params.y);
+      gbuffer_enviSPH2 @f4 = (enviSPH2*skylight_params.y);
+      gbuffer_envi_probe_specular@smpCube = envi_probe_specular;
+    }
+    INIT_HDR(ps)
+  }
+  if (mobile_render == off)
+  {
+    (ps) {
+      air_fog_density@f1 = (air_fog_density);
+    }
+  }
+endmacro
+
+macro INIT_AND_USE_TILED_LIGHTS_FORWARD()
+  if (compatibility_mode == compatibility_mode_off && mobile_render == off)
+  {
+    assume use_ssss = off;
+    USE_SCREENPOS_TO_TC()
+    INIT_AND_USE_TILED_LIGHTS(ps)
+    (ps) { screen_size@f2 = (1. / screen_pos_to_texcoord.x, 1. / screen_pos_to_texcoord.y, 0, 0); }
+    hlsl(ps){#define FORWARD_USE_TILED_LIGHTS 1}
+  }
+endmacro
+
+macro WRITE_GBUFFER_FORWARD()
+  if (use_postfx == off)
+  {
+    USE_FULL_TONEMAP_LUT(ps)
+  }
+
+  USE_STATIC_SHADOW()
+  USE_ROUGH_TO_MIP()
+
+  if (compatibility_mode == compatibility_mode_off)
+  {
+    USE_HDR(ps)
+    INIT_AND_USE_NIGHT_LIGHT(ps)
+  }
+  else
+  {
+    USE_COMPAT_HDR_WRITE(ps)
+  }
+  if(!DEFINED(use_gi)) { bool use_gi = false; }
+
+  hlsl(ps) {
+    #include "pbr/pbr.hlsl"
+    #include <sh3_function.hlsl>
+
+    struct GBUFFER_OUTPUT
+    {
+      float4 color : SV_Target0;
+    };
+
+    float3 apply_simple_tonemapping(float3 color)
+    {
+      // Simple tone mapping: ambient + sun is in 0..2 range, transforming it back to 0..1
+      return color * 0.5;
+    }
+
+    half4 get_exp_fog(float distSq, half3 air_color)
+    {
+      half dist = sqrt(distSq);
+      half airFactor = exp2(dist * -air_fog_density);
+
+      return half4(air_color.rgb*(1-airFactor), airFactor);
+    }
+
+    half3 apply_fog(half3 color, half4 fogColor)
+    {
+      return color*fogColor.a+fogColor.rgb;
+    }
+
+    GBUFFER_OUTPUT apply_gbuffer_hdr(GBUFFER_OUTPUT ret)
+    {
+      #if PBR_FORWARD_SHADING
+        ret.color.rgb *= get_exposure_mul();
+        ret.color.a = GetLuminanceScaled(ret.color.rgb);
+
+        ##if use_postfx == off
+          ret.color.rgb = performLUTTonemap(ret.color.rgb);
+        ##endif
+
+        return ret;
+      #else
+        return ret;
+      #endif
+    }
+
+    GBUFFER_OUTPUT apply_gbuffer_rgb(GBUFFER_OUTPUT ret, half3 rgb)
+    {
+      ret.color.rgb = rgb;
+      return ret;
+    }
+
+#if PBR_FORWARD_SHADING
+    GBUFFER_OUTPUT encode_gbuffer_exposure_pbr(UnpackedGbuffer gbuf, float3 pointToEye, float4 screenPos, float exposure, float3 sunLightDir,
+      float3 sunLightColor, float4 sph0, float4 sph1, float4 sph2, float enviSpecularBrightness)
+    {
+      ProcessedGbuffer gbuffer = processGbuffer(gbuf);
+      GBUFFER_OUTPUT ret = (GBUFFER_OUTPUT)0;
+
+      float3 worldPos = -pointToEye + world_view_pos;
+
+      //process shadow ahead of followup code, to probably hide sampling latency
+      #if FORWARD_NO_STATIC_SHADOW
+        float  shadow   = gbuffer.shadow;
+      #else
+        float  shadow   = gbuffer.shadow * getStaticShadow(worldPos);
+      #endif
+
+      half3  environmentAmbientReflection = 0;
+      half3  sunLight = 0;
+      half   enviAO = gbuffer.ao;//we still modulate by albedo color, so we dont need micro AO
+      float  NoL = dot(gbuffer.normal, -sunLightDir.xyz);
+
+      float distSq = dot(pointToEye, pointToEye);
+      float invRsqrt = rsqrt(distSq);
+      float3 view = pointToEye * invRsqrt;
+      float dist = sqrt(distSq);
+      float NdotV = dot(gbuffer.normal, view);
+
+      //simplified version that can be used for manually selected shaders
+      //where it is not that visible, but good performance wise
+#if PBR_FORWARD_SIMPLE_SHADING
+      sunLight = diffuseLambert(gbuffer.diffuseColor) * saturate(NoL*shadow);
+#else
+      #if SPECULAR_DISABLED && BRDF_DIFFUSE == DIFFUSE_LAMBERT
+        half backlight = 0.0f;
+        #if USE_SSS_THIN
+          if (isSubSurfaceShader(gbuffer.material) && isSubSurfaceProfileValid(gbuffer.sss_profile))
+            backlight += foliageSSSfast(NoL) * gbuffer.translucency;
+        #endif
+        sunLight = diffuseLambert( gbuffer.diffuseColor ) * (saturate(NoL) + backlight) * shadow;
+      #else
+
+        float3 reflectionVec = 2 * NdotV * gbuffer.normal - view;
+        float NoV = abs( NdotV ) + 1e-5;
+        float ggx_alpha = gbuffer.ggx_alpha;
+        half specularAOcclusion = 1.0;//computeSpecOcclusion(NoV, gbuffer.ao, gbuffer.roughness);// dice spec occlusion
+        half3 specularColor = gbuffer.specularColor * (specularAOcclusion * gbuffer.extracted_albedo_ao);
+
+        sunLight = standardBRDF( NoV, saturate(NoL), gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, gbuffer.extracted_albedo_ao, -sunLightDir, view, gbuffer.normal)*shadow;
+
+        #if !SPECULAR_DISABLED
+          half3 enviBRDF = EnvBRDFApprox(specularColor, gbuffer.linearRoughness, NoV);
+
+          float3 roughR = getRoughReflectionVec(reflectionVec.xyz, gbuffer.normal, ggx_alpha);
+          float roughMip = ComputeReflectionCaptureMipFromRoughness(gbuffer.linearRoughness);
+          environmentAmbientReflection = texCUBElod(gbuffer_envi_probe_specular, float4(roughR, roughMip)).rgb*enviBRDF;
+        #endif
+      #endif
+#endif
+      half3 environmentAmbientUnoccludedLighting = GetSHFunctionValueSimple(gbuffer.normal, sph0, sph1, sph2);
+
+      ##if use_gi
+        ##if (gi_quality == screen_probes)
+          sample_bilinear_irradiance_envi_normal(gbuffer.normal, dist, worldPos.xyz, gbuffer.normal, screenPos.xy, environmentAmbientUnoccludedLighting);
+        ##elif (gi_quality == colored)
+          float ofs = max(dist * 0.04, 0.25 * dagi_irrad_grid_probe_size(0));
+          float3 filteredWorldPos = worldPos.xyz + view * ofs;
+          dagi_irrad_grid_diffuse_biased_smooth(world_view_pos.xyz, filteredWorldPos, gbuffer.normal, view, max(0, dist - ofs), gbuffer.normal, 0, environmentAmbientUnoccludedLighting);
+          //ambient = volumetric_gi_calc_diffuse_uvw(input.texcoord.xy, 0.95*w, enviLighgbuffer.normaltingNormal);
+        ##elif (gi_quality == only_ao)
+          float ofs = max(dist * 0.04, 0.25 * dagi_sky_vis_probe_size(0));
+          float3 filteredWorldPos = worldPos.xyz + view * ofs;
+          float4 sh1 = dagi_get_sky_visibility_smooth_sh1(world_view_pos.xyz, filteredWorldPos, view, max(0, dist - ofs), gbuffer.normal, 0);
+          ##if (compatibility_mode == compatibility_mode_off)
+            if (all(sh1 != 1))
+              environmentAmbientUnoccludedLighting = GetSHFunctionValueSimple(gbuffer.normal, sph0 * sh1.wyzx, sph1 * sh1.wyzx, sph2 * sh1.wyzx);
+          ##else
+            float wsao = dot(float4(gbuffer.normal, 1), sh1.wyzx);
+            wsao = lerp(0.01, 1, wsao);
+            environmentAmbientUnoccludedLighting *= wsao;
+          ##endif
+        ##endif
+      ##endif
+
+      half3 ambientLight = enviAO * environmentAmbientUnoccludedLighting * gbuffer.diffuseColor;
+
+      #if USE_SSS_THIN
+        if (isSubSurfaceShader(gbuffer.material) && isSubSurfaceProfileValid(gbuffer.sss_profile))
+          ambientLight *= (1.0f + gbuffer.translucency);
+      #endif
+
+      ##if (compatibility_mode == compatibility_mode_off)
+        // use albedo instead of diffuseColor, so fake light affects metal
+        ambientLight += fakeNightLight(gbuffer.albedo, 0.25, saturate(NdotV), distSq);
+      ##endif
+      ambientLight += gbuffer.emissionColor + environmentAmbientReflection * enviSpecularBrightness;
+      sunLight *= sunLightColor;
+      float3 viewSH = GetSHFunctionValueSimple(view, sph0, sph1, sph2);
+      ret.color.rgb = (sunLight + ambientLight);
+      #if (FORWARD_USE_TILED_LIGHTS || USE_VOLFOG)
+        float2 screenUV = screenPos.xy * screen_pos_to_texcoord.xy;
+      #endif
+
+      #if FORWARD_USE_TILED_LIGHTS
+        ret.color.rgb += get_dynamic_lighting(gbuffer, worldPos, view, screenPos.w, screenPos.xy, NdotV, gbuffer.diffuseColor.rgb, screenUV, 1);
+      #endif
+
+      #if USE_VOLFOG
+        float3 fogMul = 1, fogAdd = 0;
+        get_volfog_with_precalculated_scattering(
+          screenUV,
+          screenUV,
+          -pointToEye,
+          dist,
+          screenPos.w,
+          fogMul,
+          fogAdd);
+        ret.color.rgb = ret.color.rgb * fogMul + fogAdd;
+      #else
+        half4 fog = get_exp_fog(distSq, viewSH);
+        ret.color.rgb = apply_fog(ret.color.rgb, fog);
+      #endif
+
+      ret.color.rgb *= exposure;
+      //write luminance for adaptation in case of postfx being off
+##if use_postfx == on
+      ret.color.a = 1.0f;
+##else
+      ret.color.a = GetLuminanceScaled(ret.color.rgb);
+##endif
+
+      return ret;
+    }
+#endif
+
+    GBUFFER_OUTPUT encode_gbuffer_exposure_simple(UnpackedGbuffer gbuf, float3 pointToEye, float4 screenPos, float exposure, float3 sunLightDir,
+      float3 sunLightColor, float4 sph0, float4 sph1, float4 sph2, float enviSpecularBrightness)
+    {
+      ProcessedGbuffer gbuffer = processGbuffer(gbuf);
+      GBUFFER_OUTPUT ret = (GBUFFER_OUTPUT)0;
+
+      float3 worldPos = -pointToEye + world_view_pos;
+      #if FORWARD_NO_STATIC_SHADOW
+        float  shadow   = gbuffer.shadow;
+      #else
+        float  shadow   = gbuffer.shadow * getStaticShadow(worldPos);
+      #endif
+      float3 view = normalize(world_view_pos - worldPos);
+      float NdotV = dot(gbuffer.normal, view);
+      float  NoL      = dot(gbuffer.normal, -sunLightDir.xyz);
+      float3 sunLight = diffuseLambert(gbuffer.diffuseColor) * sunLightColor.rgb * saturate(NoL*shadow);
+      float distSq = dot(pointToEye, pointToEye);
+      float dist = sqrt(distSq);
+
+      half3 environmentAmbientUnoccludedLighting = GetSHFunctionValueSimple(gbuffer.normal, sph0, sph1, sph2);
+      ##if use_gi
+        ##if (gi_quality == screen_probes)
+          sample_bilinear_irradiance_envi_normal(gbuffer.normal, dist, worldPos.xyz, gbuffer.normal, screenPos.xy, environmentAmbientUnoccludedLighting);
+        ##elif (gi_quality == colored)
+          float ofs = max(dist * 0.04, 0.25 * dagi_irrad_grid_probe_size(0));
+          float3 filteredWorldPos = worldPos.xyz + view * ofs;
+          dagi_irrad_grid_diffuse_biased_smooth(world_view_pos.xyz, filteredWorldPos, gbuffer.normal, view, max(0, dist - ofs), gbuffer.normal, 0, environmentAmbientUnoccludedLighting);
+          //ambient = volumetric_gi_calc_diffuse_uvw(input.texcoord.xy, 0.95*w, enviLighgbuffer.normaltingNormal);
+        ##elif (gi_quality == only_ao)
+          float ofs = max(dist * 0.04, 0.25 * dagi_sky_vis_probe_size(0));
+          float3 filteredWorldPos = worldPos.xyz + view * ofs;
+          float4 sh1 = dagi_get_sky_visibility_smooth_sh1(world_view_pos.xyz, filteredWorldPos, view, max(0, dist - ofs), gbuffer.normal, 0);
+          if (all(sh1 != 1))
+            environmentAmbientUnoccludedLighting = GetSHFunctionValueSimple(gbuffer.normal, sph0 * sh1.wyzx, sph1 * sh1.wyzx, sph2 * sh1.wyzx);
+        ##endif
+      ##endif
+
+      half3 ambientLight = gbuffer.ao * environmentAmbientUnoccludedLighting * gbuffer.diffuseColor;
+      ambientLight += gbuffer.emissionColor;
+
+      ##if (compatibility_mode == compatibility_mode_off)
+        // use albedo instead of diffuseColor, so fake light affects metal
+        ambientLight += fakeNightLight(gbuffer.albedo, 0.25, saturate(NdotV), distSq);
+      ##endif
+
+      #if USE_SPECULAR_IN_ALPHA
+        float3 sky        = texCUBE(gbuffer_envi_probe_specular, reflect(-pointToEye, gbuffer.normal));
+        float3 reflection = sky * gbuf.reflectance * specular_multiplier;
+        ret.color.rgb     = reflection + sunLight + ambientLight;
+      #else
+        ret.color.rgb = sunLight + ambientLight;
+      #endif
+
+      ret.color.rgb *= exposure;
+      ret.color.rgb  = apply_simple_tonemapping(ret.color.rgb);
+      ret.color.a = 1;
+
+      return ret;
+    }
+
+    GBUFFER_OUTPUT encode_gbuffer_exposure(UnpackedGbuffer gbuf, float3 pointToEye, float4 screenPos, float exposure, float3 sunLightDir,
+      float3 sunLightColor, float4 sph0, float4 sph1, float4 sph2, float enviSpecularBrightness)
+    {
+      #if PBR_FORWARD_SHADING
+        GBUFFER_OUTPUT ret = encode_gbuffer_exposure_pbr(gbuf, pointToEye, screenPos, exposure, sunLightDir, sunLightColor,
+                                                         sph0, sph1, sph2, enviSpecularBrightness);
+      #else
+        GBUFFER_OUTPUT ret = encode_gbuffer_exposure_simple(gbuf, pointToEye, screenPos, exposure, sunLightDir, sunLightColor,
+                                                            sph0, sph1, sph2, enviSpecularBrightness);
+      #endif
+
+      #ifndef FORWARD_NO_INTERNAL_LUT
+        ##if use_postfx == off
+          ret.color.rgb = performLUTTonemap(ret.color.rgb);
+        ##endif
+      #endif
+
+      return ret;
+    }
+
+    GBUFFER_OUTPUT encode_gbuffer(UnpackedGbuffer gbuf, float3 pointToEye, float4 screenPos)
+    {
+      return encode_gbuffer_exposure(gbuf, pointToEye, screenPos, get_exposure_mul(),
+        gbuffer_sun_light_dir.xyz, gbuffer_sun_light_col.rgb,
+        gbuffer_enviSPH0, gbuffer_enviSPH1, gbuffer_enviSPH2, gbuffer_sun_light_col.w);
+    }
+
+    #if BLEND_GBUFFER
+      GBUFFER_OUTPUT encode_gbuffer_alpha(UnpackedGbuffer gbuffer, half alpha, float3 pointToEye, float4 screenPos)
+      {
+        GBUFFER_OUTPUT ret = encode_gbuffer(gbuffer, pointToEye, screenPos);
+        ret.color.a = alpha;
+        return ret;
+      }
+
+      GBUFFER_OUTPUT encode_gbuffer_alpha3(UnpackedGbuffer gbuffer, half3 alpha, float3 pointToEye, float4 screenPos)
+      {
+        GBUFFER_OUTPUT ret = encode_gbuffer(gbuffer, pointToEye, screenPos);
+        ret.color.a = alpha.x;
+        return ret;
+      }
+    #endif
+  }
+endmacro

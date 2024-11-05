@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/span.h>
@@ -8,11 +9,12 @@
 #include <generic/dag_fixedVectorSet.h>
 #include <generic/dag_fixedVectorMap.h>
 #include <dag/dag_vector.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_resPtr.h>
+#include <drv/3d/dag_variableRateShading.h>
 #include <shaders/dag_shaderCommon.h>
+#include <shaders/dag_overrideStates.h>
 
-#include <render/daBfg/externalResources.h>
 #include <render/daBfg/multiplexing.h>
 #include <render/daBfg/priority.h>
 #include <render/daBfg/usage.h>
@@ -84,7 +86,7 @@ struct Node
   // Nodes that have to be executed before this one
   dag::FixedVectorSet<NodeIndex, 16> predecessors;
 
-  NodeNameId frontendNode;
+  eastl::optional<NodeNameId> frontendNode;
 
   // Multiplexing iteration this node will be executed on
   MultiplexingIndex multiplexingIndex;
@@ -112,38 +114,42 @@ struct ScheduledResource
   }
 };
 
+// TODO: this should be a driver-level thing, containing size and other
+// similar stuff, but we don't need it right now, so this is good enough
+struct BufferInfo
+{
+  int flags;
+};
+
+struct ExternalResource
+{
+  eastl::variant<TextureInfo, BufferInfo> info;
+};
+
+// Backbuffers are not available on the main thread and their acquisition
+// is deferred to the driver thread, so we handle them separately.
+// Currently, this is can only be the backbuffer.
+struct DriverDeferredTexture
+{};
+
+using ConcreteResource = eastl::variant<ScheduledResource, ExternalResource, DriverDeferredTexture>;
+
 struct Resource
 {
-  eastl::variant<ScheduledResource, ExternalResource> resource;
+  ConcreteResource resource;
 
   // Renaming a resource changes its' ResNameId, but still leaves it
   // the same resource conceptually, so we map all such resources to same
   // IR resource.
-  dag::FixedVectorSet<ResNameId, 8> frontendResources;
+  // Note that the ResNameIds are listed according to the renaming chain.
+  dag::RelocatableFixedVector<ResNameId, 8> frontendResources;
 
   // Multiplexing iteration this resource is produced on
   MultiplexingIndex multiplexingIndex;
 
   bool isExternal() const { return eastl::holds_alternative<ExternalResource>(resource); }
   bool isScheduled() const { return eastl::holds_alternative<ScheduledResource>(resource); }
-  bool isExternalTex() const
-  {
-    return isExternal() && eastl::holds_alternative<ManagedTexView>(eastl::get<ExternalResource>(resource));
-  }
-  ManagedTexView getExternalTex() const
-  {
-    G_ASSERT(isExternalTex());
-    return eastl::get<ManagedTexView>(eastl::get<ExternalResource>(resource));
-  }
-  bool isExternalBuf() const
-  {
-    return isExternal() && eastl::holds_alternative<ManagedBufView>(eastl::get<ExternalResource>(resource));
-  }
-  ManagedBufView getExternalBuf() const
-  {
-    G_ASSERT(isExternalBuf());
-    return eastl::get<ManagedBufView>(eastl::get<ExternalResource>(resource));
-  }
+  bool isDriverDeferredTexture() const { return eastl::holds_alternative<DriverDeferredTexture>(resource); }
   ScheduledResource &asScheduled()
   {
     G_ASSERT(isScheduled());
@@ -154,12 +160,25 @@ struct Resource
     G_ASSERT(isScheduled());
     return eastl::get<ScheduledResource>(resource);
   }
+  const ExternalResource &asExternal() const
+  {
+    G_ASSERT(isExternal());
+    return eastl::get<ExternalResource>(resource);
+  }
   ResourceType getResType() const
   {
-    return isScheduled()     ? asScheduled().resourceType
-           : isExternalTex() ? ResourceType::Texture
-           : isExternalBuf() ? ResourceType::Buffer
-                             : ResourceType::Invalid;
+    // Paranoid checks in case we modify the structure but forget to update this
+    static_assert(eastl::variant_size_v<decltype(resource)> == 3);
+    static_assert(eastl::variant_size_v<decltype(asExternal().info)> == 2);
+    static_assert(eastl::variant_size_v<decltype(asExternal().info)> == 2);
+
+    if (isScheduled())
+      return asScheduled().resourceType;
+
+    if (isDriverDeferredTexture())
+      return ResourceType::Texture;
+
+    return eastl::holds_alternative<TextureInfo>(asExternal().info) ? ResourceType::Texture : ResourceType::Buffer;
   }
 };
 
@@ -180,11 +199,10 @@ using BindingsMap = dag::FixedVectorMap<int, Binding, 8>;
 
 struct VrsState
 {
-  uint32_t rateX;
-  uint32_t rateY;
-  ResourceIndex rateTexture;
-  VariableRateShadingCombiner vertexCombiner;
-  VariableRateShadingCombiner pixelCombiner;
+  uint32_t rateX = 1;
+  uint32_t rateY = 1;
+  VariableRateShadingCombiner vertexCombiner = VariableRateShadingCombiner::VRS_PASSTHROUGH;
+  VariableRateShadingCombiner pixelCombiner = VariableRateShadingCombiner::VRS_PASSTHROUGH;
 };
 
 struct SubresourceRef
@@ -194,12 +212,25 @@ struct SubresourceRef
   uint32_t layer;
 };
 
+
+struct DynamicPassParameter
+{
+  ResourceIndex resource;
+
+  ResourceSubtypeTag projectedTag;
+  detail::TypeErasedProjector projector;
+};
+
 // No subresource ref means we want an empty binding for that attachment
 struct RenderPass
 {
   dag::RelocatableFixedVector<eastl::optional<SubresourceRef>, 8> colorAttachments;
   eastl::optional<SubresourceRef> depthAttachment;
   bool depthReadOnly = true;
+  dag::FixedVectorMap<ResourceIndex, eastl::variant<ResourceClearValue, DynamicPassParameter>, 9> clears;
+  dag::FixedVectorMap<ResourceIndex, ResourceIndex, 2> resolves;
+  bool isLegacyPass = false;
+  eastl::optional<SubresourceRef> vrsRateAttachment;
 };
 
 struct ShaderBlockBindings
@@ -211,8 +242,9 @@ struct ShaderBlockBindings
 
 struct RequiredNodeState
 {
+  bool asyncPipelines = false;
   bool wire = false;
-  eastl::optional<VrsState> vrs;
+  VrsState vrs;
   // NOTE: we can be within a render pass even with no attachments bound
   eastl::optional<RenderPass> pass;
   eastl::optional<shaders::OverrideState> shaderOverrides;

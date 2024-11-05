@@ -23,3 +23,10 @@ void os_debug_break()
     raise(SIGTRAP);
 #endif
 }
+
+namespace das {
+    class Context;
+    void os_keepalive_call ( Context * ) {}
+    void os_keepalive_loop ( Context * ) {}
+}
+

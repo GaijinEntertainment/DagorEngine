@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -15,9 +14,6 @@ void dagor_work_cycle();
 //! flushes any pending frame rendered from dagor_work_cycle();
 //! must be used before any on-screen rendering outside of work cycle
 void dagor_work_cycle_flush_pending_frame();
-
-//! infinite loop of work cycles
-void dagor_infinite_work_loop();
 
 //! process system events
 //! NOTE: it is called also from dagor_idle_cycle()
@@ -36,9 +32,6 @@ void dagor_draw_scene_and_gui(bool call_before_render = true, bool draw_gui = tr
 //! between two consecutive calls to dagor_work_cycle()
 void dagor_reset_spent_work_time();
 
-//! returns time in microseconds left since start of most recent frame;
-int dagor_get_in_frame_time_usec();
-
 //! sets number of world acts per second and computes other variables
 //! negative rate sets variable-act-rate mode with maximal rate being -rate
 void dagor_set_game_act_rate(int rate);
@@ -55,9 +48,6 @@ void dagor_enable_idle_priority(bool enable);
 //  Game is responsible for CPU<->GPU synchronization.
 //! false by default.
 void dagor_suppress_d3d_update(bool enable);
-
-//! clear screen to black in 2D or 3D mode
-void dagor_work_cycle_clear_screen();
 
 //
 // work cycle settings; READ ONLY!

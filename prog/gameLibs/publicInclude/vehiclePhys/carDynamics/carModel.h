@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -16,11 +15,8 @@
 class CarDynamicsModel
 {
 public:
-  enum
-  {
-    NUM_WHEELS = 4,
-    NUM_DIFFERENTIALS = 3, // Enough for a 4WD Jeep
-  };
+  static constexpr unsigned NUM_WHEELS = 4;
+  static constexpr unsigned NUM_DIFFERENTIALS = 3; // Enough for a 4WD Jeep
 
 protected:
   // Objects that make the car a car

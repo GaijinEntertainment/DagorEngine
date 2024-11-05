@@ -1,10 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "../av_plugin.h"
 // #include "../av_interface.h"
 
 #include <EditorCore/ec_interface_ex.h>
-#include <propPanel2/c_control_event_handler.h>
+#include <propPanel/c_control_event_handler.h>
 
 #include <libTools/containers/dag_DynMap.h>
 #include <libTools/staticGeomUi/nodeFlags.h>
@@ -19,7 +20,7 @@ class GeomObject;
 // class NodeFlagsModfier;
 
 
-class PrefabsPlugin : public IGenEditorPlugin, public INodeModifierClient, public ControlEventHandler
+class PrefabsPlugin : public IGenEditorPlugin, public INodeModifierClient, public PropPanel::ControlEventHandler
 {
 public:
   PrefabsPlugin();
@@ -48,15 +49,15 @@ public:
 
   virtual bool supportAssetType(const DagorAsset &asset) const;
 
-  virtual void fillPropPanel(PropertyContainerControlBase &panel);
+  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel);
   virtual void postFillPropPanel() {}
 
   // IGenEventHandler
   virtual void handleViewportPaint(IGenViewportWnd *wnd) {}
 
   // ControlEventHandler
-  virtual void onChange(int pid, PropertyContainerControlBase *panel);
-  virtual void onClick(int pid, PropertyContainerControlBase *panel);
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl *panel);
+  virtual void onClick(int pid, PropPanel::ContainerPropertyControl *panel);
 
   // INodeModifierClient
   virtual void onNodeFlagsChanged(int node_idx, int or_flags, int and_flags);
@@ -67,6 +68,7 @@ public:
   virtual void onLinkedResChanged(int node_idx, const char *res_name);
   virtual void onTopLodChanged(int node_idx, const char *top_lod_name);
   virtual void onLodRangeChanged(int node_idx, int lod_range);
+  virtual void onShowOccludersChanged(int node_idx, bool show_occluders);
   virtual void onUseDefaultChanged(bool use_default) {}
 
 private:
@@ -91,6 +93,7 @@ private:
     int linkedRes;
     real lodRange;
     int lodName;
+    bool showOccluders;
   };
 
   class NodeParamsTab : public Tab<NodeParams>
@@ -116,4 +119,6 @@ private:
   bool getNodeFlags(NodeParamsTab &tab, bool &already_in_map);
   void setNodeFlags(const char *entry, const NodeParamsTab &tab, bool already_in_map);
   void saveChangedDags();
+
+  void renderOccluders();
 };

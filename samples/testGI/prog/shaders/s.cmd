@@ -1,2 +1,2 @@
 cd ..\..\..\..\samples\testGI\game
-start testGI-win32-dev.exe
+start testGI-win64-dev.exe

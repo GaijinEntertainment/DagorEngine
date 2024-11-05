@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_polyUtils.h>
 #include <memory/dag_framemem.h>
 #include <math/dag_mathUtils.h>

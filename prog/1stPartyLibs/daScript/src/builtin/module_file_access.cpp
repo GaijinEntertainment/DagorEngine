@@ -42,6 +42,10 @@ namespace das {
                 includeGet = context->findFunction("include_get");          // note, this one CAN be null
                 moduleAllowed = context->findFunction("module_allowed");    // note, this one CAN be null
                 moduleUnsafe = context->findFunction("module_allowed_unsafe");    // note, this one CAN be null
+                canModuleBeRequired = context->findFunction("can_module_be_required");    // note, this one CAN be null
+                sameFileName = context->findFunction("is_same_file_name");    // note, this one CAN be null
+                optionAllowed = context->findFunction("option_allowed");    // note, this one CAN be null
+                annotationAllowed = context->findFunction("annotation_allowed");    // note, this one CAN be null
                 // get it ready
                 context->restart();
                 context->runInitScript();   // note: we assume sane init stack size here
@@ -56,7 +60,7 @@ namespace das {
                     }
                     // set it
                     char ** gpr = (char **) context->getVariable(ipr);
-                    *gpr = context->stringHeap->allocateString(pakRoot);
+                    *gpr = context->allocateString(pakRoot, /*at*/nullptr);
                 }
                 // logs
                 auto tostr = tout.str();
@@ -87,6 +91,17 @@ namespace das {
         auto res = context->evalWithCatch(moduleUnsafe, args, nullptr);
         auto exc = context->getException(); exc;
         DAS_ASSERTF(!exc, "exception failed in `module_unsafe`: %s", exc);
+        return cast<bool>::to(res);
+    }
+
+    bool ModuleFileAccess::canBeRequired ( const string & mod, const string & fileName ) const {
+        if(failed() || !canModuleBeRequired) return FileAccess::canBeRequired(mod,fileName);
+        vec4f args[2];
+        args[0] = cast<const char *>::from(mod.c_str());
+        args[1] = cast<const char *>::from(fileName.c_str());
+        auto res = context->evalWithCatch(canModuleBeRequired, args, nullptr);
+        auto exc = context->getException(); exc;
+        DAS_ASSERTF(!exc, "exception failed in `can_module_be_required`: %s", exc);
         return cast<bool>::to(res);
     }
 
@@ -132,5 +147,38 @@ namespace das {
         DAS_ASSERTF(!exc, "exception failed in `include_get`: %s", exc);
         auto fname = cast<const char *>::to(res);
         return fname ? fname : "";
+    }
+
+    bool ModuleFileAccess::isSameFileName ( const string & a, const string & b ) const {
+        if (failed() || !sameFileName) return FileAccess::isSameFileName(a,b);
+        vec4f args[2];
+        args[0] = cast<const char *>::from(a.c_str());
+        args[1] = cast<const char *>::from(b.c_str());
+        vec4f res = context->evalWithCatch(sameFileName, args, nullptr);
+        auto exc = context->getException(); exc;
+        DAS_ASSERTF(!exc, "exception failed in `is_same_file_name`: %s", exc);
+        return cast<bool>::to(res);
+    }
+
+    bool ModuleFileAccess::isOptionAllowed ( const string & opt, const string & from ) const {
+        if (failed() || !optionAllowed) return FileAccess::isOptionAllowed(opt,from);
+        vec4f args[2];
+        args[0] = cast<const char *>::from(opt.c_str());
+        args[1] = cast<const char *>::from(from.c_str());
+        vec4f res = context->evalWithCatch(optionAllowed, args, nullptr);
+        auto exc = context->getException(); exc;
+        DAS_ASSERTF(!exc, "exception failed in `option_allowed`: %s", exc);
+        return cast<bool>::to(res);
+    }
+
+    bool ModuleFileAccess::isAnnotationAllowed ( const string & ann, const string & from ) const {
+        if (failed() || !annotationAllowed) return FileAccess::isAnnotationAllowed(ann,from);
+        vec4f args[2];
+        args[0] = cast<const char *>::from(ann.c_str());
+        args[1] = cast<const char *>::from(from.c_str());
+        vec4f res = context->evalWithCatch(annotationAllowed, args, nullptr);
+        auto exc = context->getException(); exc;
+        DAS_ASSERTF(!exc, "exception failed in `annotation_allowed`: %s", exc);
+        return cast<bool>::to(res);
     }
 }

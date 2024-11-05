@@ -1,6 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "../texMgrData.h"
-#include <3d/dag_tex3d.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_resUpdateBuffer.h>
+#include <drv/3d/dag_info.h>
 #include "uniTexCrd.h"
 #include "genmip.h"
 #include <3d/tql.h>
@@ -72,8 +75,8 @@ static bool load_ddsx_slice(IGenLoad &crd, char *dst, int dst_pitch, int mip_lev
   return true;
 }
 
-static bool load_tex_data_2d(BaseTexture *tex, TEXTUREID tid, TEXTUREID paired_tid, const ddsx::Header &hdr, IGenLoad &crd,
-  int start_lev, int rd_lev, int skip_lev, unsigned cflg, int q_id, int dest_slice = 0)
+static TexLoadRes load_tex_data_2d(BaseTexture *tex, TEXTUREID tid, TEXTUREID paired_tid, const ddsx::Header &hdr, IGenLoad &crd,
+  int start_lev, int rd_lev, int skip_lev, unsigned cflg, int q_id, int dest_slice, on_tex_slice_loaded_cb_t on_tex_slice_loaded_cb)
 {
   if (hdr.flags & (hdr.FLG_GENMIP_BOX | hdr.FLG_GENMIP_KAIZER))
   {
@@ -95,7 +98,7 @@ static bool load_tex_data_2d(BaseTexture *tex, TEXTUREID tid, TEXTUREID paired_t
         ddsx_data.data(), data_size(ddsx_data));
 #endif
 
-      G_ASSERTF_RETURN(base_data, false, "%s needs %s", TEX_NAME(tex, tid), get_managed_texture_name(paired_tid));
+      G_ASSERTF_RETURN(base_data, TexLoadRes::ERR, "%s needs %s", TEX_NAME(tex, tid), get_managed_texture_name(paired_tid));
       G_ASSERTF(base_data->hdr.d3dFormat == D3DFMT_DXT1 || base_data->hdr.d3dFormat == D3DFMT_DXT5,
         "%s: hdr.d3dFormat=0x%x and base_data->hdr.d3dFormat=0x%x (%s)", TEX_NAME(tex, tid), hdr.d3dFormat, base_data->hdr.d3dFormat,
         RMGR.getName(paired_tid.index()));
@@ -144,73 +147,78 @@ static bool load_tex_data_2d(BaseTexture *tex, TEXTUREID tid, TEXTUREID paired_t
       }
     }
     logerr("%s: unsupported hdr.d3dFormat=0x%08X for GENMIP", TEX_NAME(tex, tid), hdr.d3dFormat);
-    return false;
+    return TexLoadRes::ERR;
   }
 
   DDSX_LD_ITERATE_MIPS_START(crd, hdr, skip_lev, start_lev, rd_lev, 1, 1)
   d3d::ResUpdateBuffer *rub = d3d::allocate_update_buffer_for_tex(tex, tex_level, dest_slice);
   if (!rub)
-    return false;
+    return TexLoadRes::ERR_RUB;
   if (!load_ddsx_slice(crd, d3d::get_update_buffer_addr_for_write(rub), d3d::get_update_buffer_pitch(rub), src_level, mip_data_pitch,
         mip_data_lines, mip_data_w, mip_data_h, hdr.d3dFormat, cflg, tex))
   {
     d3d::release_update_buffer(rub);
-    return false;
+    return TexLoadRes::ERR;
   }
+  if (on_tex_slice_loaded_cb)
+    (*on_tex_slice_loaded_cb)();
   if (!d3d::update_texture_and_release_update_buffer(rub))
   {
     d3d::release_update_buffer(rub);
-    return false;
+    return TexLoadRes::ERR;
   }
   DDSX_LD_ITERATE_MIPS_END()
 
-  return true;
+  return TexLoadRes::OK;
 }
 
-static bool load_ddsx_faces_2d(BaseTexture *tex, TEXTUREID tid, TEXTUREID paired_tid, const ddsx::Header &hdr, IGenLoad &crd,
-  int faces, int start_lev, int rd_lev, int skip_lev, unsigned cflg, int q_id)
+static TexLoadRes load_ddsx_faces_2d(BaseTexture *tex, TEXTUREID tid, TEXTUREID paired_tid, const ddsx::Header &hdr, IGenLoad &crd,
+  int faces, int start_lev, int rd_lev, int skip_lev, unsigned cflg, int q_id, on_tex_slice_loaded_cb_t on_tex_slice_loaded_cb)
 {
   if (hdr.flags & (hdr.FLG_GENMIP_BOX | hdr.FLG_GENMIP_KAIZER)) // generating mips
   {
-    G_ASSERTF_RETURN(faces == 1, false, "%s: faces=%d", TEX_NAME(tex, tid), faces);
-    return load_tex_data_2d(tex, tid, paired_tid, hdr, crd, start_lev, rd_lev, skip_lev, cflg, q_id);
+    G_ASSERTF_RETURN(faces == 1, TexLoadRes::ERR, "%s: faces=%d", TEX_NAME(tex, tid), faces);
+    return load_tex_data_2d(tex, tid, paired_tid, hdr, crd, start_lev, rd_lev, skip_lev, cflg, q_id, 0, on_tex_slice_loaded_cb);
   }
 
   if (hdr.flags & hdr.FLG_CUBTEX)
   {
-    G_ASSERTF_RETURN(faces == 6, false, "%s: faces=%d for FLG_CUBTEX", TEX_NAME(tex, tid), faces);
+    G_ASSERTF_RETURN(faces == 6, TexLoadRes::ERR, "%s: faces=%d for FLG_CUBTEX", TEX_NAME(tex, tid), faces);
 
     DDSX_LD_ITERATE_MIPS_START(crd, hdr, skip_lev, start_lev, rd_lev, 1, faces)
     for (int face_idx = 0; face_idx < mip_data_depth; face_idx++)
     {
       d3d::ResUpdateBuffer *rub = d3d::allocate_update_buffer_for_tex(tex, tex_level, face_idx);
       if (!rub)
-        return false;
+        return TexLoadRes::ERR_RUB;
       if (!load_ddsx_slice(crd, d3d::get_update_buffer_addr_for_write(rub), d3d::get_update_buffer_pitch(rub), src_level,
             mip_data_pitch, mip_data_lines, mip_data_w, mip_data_h, hdr.d3dFormat, cflg, tex))
       {
         d3d::release_update_buffer(rub);
-        return false;
+        return TexLoadRes::ERR;
       }
+      if (on_tex_slice_loaded_cb)
+        (*on_tex_slice_loaded_cb)();
       if (!d3d::update_texture_and_release_update_buffer(rub))
       {
         d3d::release_update_buffer(rub);
-        return false;
+        return TexLoadRes::ERR;
       }
     }
     DDSX_LD_ITERATE_MIPS_END()
-    return true;
+    return TexLoadRes::OK;
   }
 
-  return load_tex_data_2d(tex, tid, paired_tid, hdr, crd, start_lev, rd_lev, skip_lev, cflg, q_id);
+  return load_tex_data_2d(tex, tid, paired_tid, hdr, crd, start_lev, rd_lev, skip_lev, cflg, q_id, 0, on_tex_slice_loaded_cb);
 }
 
-static bool load_ddsx_faces_3d(BaseTexture *tex, const ddsx::Header &hdr, IGenLoad &crd, int start_lev, int rd_lev, int skip_lev,
-  unsigned cflg)
+static TexLoadRes load_ddsx_faces_3d(BaseTexture *tex, const ddsx::Header &hdr, IGenLoad &crd, int start_lev, int rd_lev, int skip_lev,
+  unsigned cflg, on_tex_slice_loaded_cb_t on_tex_slice_loaded_cb)
 {
   DDSX_LD_ITERATE_MIPS_START(crd, hdr, skip_lev, start_lev, rd_lev, hdr.depth, 1)
   {
-    bool update_directly = d3d::get_driver_code().is(d3d::metal) || d3d::is_in_device_reset_now();
+    const bool update_directly =
+      d3d::get_driver_code().is(d3d::metal) || (d3d::is_in_device_reset_now() && !d3d::get_driver_code().is(d3d::vulkan));
 
     d3d::ResUpdateBuffer *rub_slice = !update_directly ? nullptr : d3d::allocate_update_buffer_for_tex(tex, tex_level, 0);
     char *rub_data = rub_slice ? d3d::get_update_buffer_addr_for_write(rub_slice) : nullptr;
@@ -218,7 +226,7 @@ static bool load_ddsx_faces_3d(BaseTexture *tex, const ddsx::Header &hdr, IGenLo
     {
       d3d::ResUpdateBuffer *rub = rub_data ? nullptr : d3d::allocate_update_buffer_for_tex(tex, tex_level, slice_idx);
       if (!rub_data && !rub)
-        return false;
+        return TexLoadRes::ERR_RUB;
       char *dst = rub_data ? rub_data : d3d::get_update_buffer_addr_for_write(rub);
       uint32_t dst_pitch = rub_data ? d3d::get_update_buffer_pitch(rub_slice) : d3d::get_update_buffer_pitch(rub);
       if (!load_ddsx_slice(crd, dst, dst_pitch, src_level, mip_data_pitch, mip_data_lines, mip_data_w, mip_data_h, hdr.d3dFormat, cflg,
@@ -226,38 +234,40 @@ static bool load_ddsx_faces_3d(BaseTexture *tex, const ddsx::Header &hdr, IGenLo
       {
         if (rub)
           d3d::release_update_buffer(rub);
-        return false;
+        return TexLoadRes::ERR;
       }
+      if (on_tex_slice_loaded_cb)
+        (*on_tex_slice_loaded_cb)();
       if (rub_data)
         rub_data += d3d::get_update_buffer_size(rub_slice);
       else if (!d3d::update_texture_and_release_update_buffer(rub))
       {
         d3d::release_update_buffer(rub);
-        return false;
+        return TexLoadRes::ERR;
       }
     }
     if (rub_slice)
       if (!d3d::update_texture_and_release_update_buffer(rub_slice))
       {
         d3d::release_update_buffer(rub_slice);
-        return false;
+        return TexLoadRes::ERR;
       }
   }
   DDSX_LD_ITERATE_MIPS_END()
-  return true;
+  return TexLoadRes::OK;
 }
 
 bool isDiffuseTextureSuitableForMipColorization(const char *name);
 
-static bool load_ddsx_tex_contents(BaseTexture *tex, TEXTUREID tid, TEXTUREID paired_tid, const ddsx::Header &hdr, IGenLoad &crd,
-  int q_id, int start_lev, unsigned tex_ld_lev)
+static TexLoadRes load_ddsx_tex_contents(BaseTexture *tex, TEXTUREID tid, TEXTUREID paired_tid, const ddsx::Header &hdr, IGenLoad &crd,
+  int q_id, int start_lev, unsigned tex_ld_lev, on_tex_slice_loaded_cb_t on_tex_slice_loaded_cb)
 {
   TextureInfo ti;
   tex->getinfo(ti, 0);
 
   int rd_lev = ti.mipLevels, skip_lev = 0;
   if (!tql::updateSkipLev(hdr, rd_lev, skip_lev, max(ti.w >> start_lev, 1), max(ti.h >> start_lev, 1), max(ti.d >> start_lev, 1)))
-    return true;
+    return TexLoadRes::OK;
 
   if (tex_ld_lev > 1)
   {
@@ -275,8 +285,11 @@ static bool load_ddsx_tex_contents(BaseTexture *tex, TEXTUREID tid, TEXTUREID pa
 
   UnifiedTexGenLoad ucrd(crd, hdr);
   tex->allocateTex();
-  tex->texaddru(hdr.getAddrU());
-  tex->texaddrv(hdr.getAddrV());
+  if (tex->isSamplerEnabled())
+  {
+    tex->texaddru(hdr.getAddrU());
+    tex->texaddrv(hdr.getAddrV());
+  }
 
   if ((hdr.flags & hdr.FLG_HOLD_SYSMEM_COPY) && tid != BAD_TEXTUREID)
     RMGR.incBaseTexRc(tid);
@@ -305,30 +318,29 @@ static bool load_ddsx_tex_contents(BaseTexture *tex, TEXTUREID tid, TEXTUREID pa
 
       tex->unlockimg();
     }
-    return true;
+    return TexLoadRes::OK;
   }
 #endif
 
-  bool load_ok = false;
+  TexLoadRes loadStatus = TexLoadRes::ERR;
   switch (tex->restype())
   {
     case RES3D_TEX:
     case RES3D_CUBETEX:
-      if (load_ddsx_faces_2d(tex, tid, paired_tid, hdr, *ucrd, ti.a, start_lev, rd_lev, skip_lev, ti.cflg, q_id))
-        load_ok = true;
+      loadStatus =
+        load_ddsx_faces_2d(tex, tid, paired_tid, hdr, *ucrd, ti.a, start_lev, rd_lev, skip_lev, ti.cflg, q_id, on_tex_slice_loaded_cb);
       break;
 
     case RES3D_VOLTEX:
-      if (load_ddsx_faces_3d(tex, hdr, *ucrd, start_lev, rd_lev, skip_lev, ti.cflg))
-        load_ok = true;
+      loadStatus = load_ddsx_faces_3d(tex, hdr, *ucrd, start_lev, rd_lev, skip_lev, ti.cflg, on_tex_slice_loaded_cb);
       break;
   }
   if ((hdr.flags & hdr.FLG_HOLD_SYSMEM_COPY) && tid != BAD_TEXTUREID)
     RMGR.decBaseTexRc(tid);
-  return load_ok;
+  return loadStatus;
 }
 
-static bool load_ddsx_to_slice(BaseTexture *tex, int slice, const ddsx::Header &hdr, IGenLoad &crd, int q_id, int start_lev,
+static TexLoadRes load_ddsx_to_slice(BaseTexture *tex, int slice, const ddsx::Header &hdr, IGenLoad &crd, int q_id, int start_lev,
   unsigned tex_ld_lev)
 {
   TextureInfo ti;
@@ -336,7 +348,7 @@ static bool load_ddsx_to_slice(BaseTexture *tex, int slice, const ddsx::Header &
 
   int rd_lev = ti.mipLevels, skip_lev = 0;
   if (!tql::updateSkipLev(hdr, rd_lev, skip_lev, max(ti.w >> start_lev, 1), max(ti.h >> start_lev, 1), max(ti.d >> start_lev, 1)))
-    return true;
+    return TexLoadRes::OK;
 
   if (tex_ld_lev > 1)
   {
@@ -351,7 +363,7 @@ static bool load_ddsx_to_slice(BaseTexture *tex, int slice, const ddsx::Header &
 
   UnifiedTexGenLoad ucrd(crd, hdr);
   tex->allocateTex();
-  return load_tex_data_2d(tex, BAD_TEXTUREID, BAD_TEXTUREID, hdr, *ucrd, start_lev, rd_lev, skip_lev, ti.cflg, q_id, slice);
+  return load_tex_data_2d(tex, BAD_TEXTUREID, BAD_TEXTUREID, hdr, *ucrd, start_lev, rd_lev, skip_lev, ti.cflg, q_id, slice, nullptr);
 }
 
 #include <image/dag_dxtCompress.h>
@@ -441,16 +453,16 @@ static bool convert_dxt_to_argb(IGenLoad &crd, char *dst, int dst_pitch, int mip
   return true;
 }
 
-static bool load_genmip_sysmemcopy(TEXTUREID tid, TEXTUREID paired_tid, const ddsx::Header &hdr, IGenLoad &crd, int q_id)
+static TexLoadRes load_genmip_sysmemcopy(TEXTUREID tid, TEXTUREID paired_tid, const ddsx::Header &hdr, IGenLoad &crd, int q_id)
 {
   UnifiedTexGenLoad ucrd(crd, hdr);
   if ((hdr.flags & hdr.FLG_HOLD_SYSMEM_COPY) && tid != BAD_TEXTUREID)
     RMGR.incBaseTexRc(tid);
-  bool load_ok =
-    load_tex_data_2d(nullptr, tid, paired_tid, hdr, *ucrd, /*start_lev*/ 0, /*rd_lev*/ 0, /*skip_lev*/ 0, /*cflg*/ 0, q_id);
+  TexLoadRes loadStatus = load_tex_data_2d(nullptr, tid, paired_tid, hdr, *ucrd, /*start_lev*/ 0, /*rd_lev*/ 0, /*skip_lev*/ 0,
+    /*cflg*/ 0, q_id, 0, nullptr);
   if ((hdr.flags & hdr.FLG_HOLD_SYSMEM_COPY) && tid != BAD_TEXTUREID)
     RMGR.decBaseTexRc(tid);
-  return load_ok;
+  return loadStatus;
 }
 
 void d3d_genmip_store_sysmem_copy(TEXTUREID tid, const ddsx::Header &hdr, const void *data)
@@ -468,7 +480,7 @@ void d3d_genmip_store_sysmem_copy(TEXTUREID tid, const ddsx::Header &hdr, const 
 
 void texmgr_internal::register_ddsx_load_implementation()
 {
-  d3d_load_ddsx_tex_contents = &load_ddsx_tex_contents;
+  d3d_load_ddsx_tex_contents_impl = &load_ddsx_tex_contents;
   d3d_load_ddsx_to_slice = &load_ddsx_to_slice;
   texmgr_internal::d3d_load_genmip_sysmemcopy = &load_genmip_sysmemcopy;
 }

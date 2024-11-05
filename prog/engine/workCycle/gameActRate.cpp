@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <workCycle/dag_workCycle.h>
 #include "workCyclePriv.h"
 #include <debug/dag_fatal.h>

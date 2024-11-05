@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -9,7 +8,7 @@
 #include <gamePhys/collision/collisionObject.h>
 #include <gamePhys/collision/contactData.h>
 #include <gamePhys/collision/collisionInfo.h>
-#include <generic/dag_staticTab.h>
+#include <generic/dag_carray.h>
 
 constexpr int MAX_CACHED_CONTACTS = 8;
 
@@ -35,11 +34,12 @@ struct PhysObjState
   Point3 gravDirection = Point3(0, -1, 0);
   bool logCCD = false;
   bool isSleep = false;
-  float sleepTimer = 0.f;
   bool hadContact = false;
+  uint8_t numCachedContacts = 0;
+  float sleepTimer = 0.f;
   float ignoreGameObjsUntilTime = -1.0f; // -1 - not initialized, 0 - ignore forever
 
-  StaticTab<gamephys::CachedContact, MAX_CACHED_CONTACTS> cachedContacts;
+  carray<gamephys::CachedContact, MAX_CACHED_CONTACTS> cachedContacts; // Note: dimension - `numCachedContacts`
 
   void reset();
 
@@ -142,10 +142,12 @@ public:
   float linearSlop = 0.01f;
   float energyConservation = 1.0f;
   float ccdClipVelocityMult = 1.0f;
+  float ccdCollisionMarginMult = 0.1f;
   float erp = 1.f;
   float baumgarteBias = 0.f;
   float warmstartingFactor = 0.f;
   float gravityMult = 1.f;
+  Point2 gravityCollisionMultDotRange = Point2(-1.1f, -1.1f);
   Point3 momentOfInertia = Point3(1.f, 1.f, 1.f);
   Point3 velocityLimit = Point3(0.f, 0.f, 0.f);
   Point3 velocityLimitDampingMult = Point3(-1.f, -1.f, -1.f);
@@ -196,6 +198,8 @@ public:
   void loadSolver(const DataBlock *blk);
   void loadCollisionSettings(const DataBlock *blk, const CollisionResource *coll_res);
 
+  void addCollisionToWorld() override;
+
   virtual void updatePhys(float at_time, float dt, bool is_for_real) override final;
   virtual dag::ConstSpan<CollisionObject> getCollisionObjects() const { return collision; }
   virtual uint64_t getActiveCollisionObjectsBitMask() const { return ~0ull; }
@@ -234,6 +238,8 @@ public:
   void drawDebug();
 
   void addForce(const Point3 &arm, const Point3 &force);
+  void addForceWorld(const Point3 &point, const Point3 &force);
+  void addImpulseWorld(const Point3 &point, const Point3 &impulse);
 
   virtual float getFriction() const { return friction; }
   virtual void setFriction(float value) { friction = value; }
@@ -243,4 +249,5 @@ public:
 
   TMatrix getCollisionObjectsMatrix() const override;
   bool isCollisionValid() const;
+  PhysObjState *getAuthorityApprovedState() const { return authorityApprovedState.get(); }
 };

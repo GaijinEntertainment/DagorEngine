@@ -1,8 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/span.h>
-#include <backend/intermediateRepresentation.h>
 #include <util/dag_convar.h>
+
+#include <render/daBfg/externalResources.h>
+
+#include <backend/intermediateRepresentation.h>
+#include <backend/passColoring.h>
 
 
 extern ConVarT<bool, false> debug_graph_generation;
@@ -19,8 +24,9 @@ namespace dabfg
 {
 class NodeTracker;
 
-void update_graph_visualization(InternalRegistry &registry, const DependencyData &deps,
-  eastl::span<const NodeNameId> node_execution_order);
+using DebugPassColoration = IdIndexedMapping<NodeNameId, PassColor>;
+void update_graph_visualization(InternalRegistry &registry, const NameResolver &resolver, const DependencyData &deps,
+  const DebugPassColoration &pass_coloring, eastl::span<const NodeNameId> node_execution_order);
 void invalidate_graph_visualization();
 void reset_texture_visualization();
 
@@ -32,7 +38,7 @@ void validation_restart();
 void validation_set_current_node(const InternalRegistry &registry, NodeNameId node);
 void validation_add_resource(const D3dResource *res);
 void validation_of_external_resources_duplication(
-  const IdIndexedMapping<intermediate::ResourceIndex, intermediate::Resource> &resources,
+  const IdIndexedMapping<intermediate::ResourceIndex, eastl::optional<ExternalResource>> &resources,
   const IdIndexedMapping<intermediate::ResourceIndex, intermediate::DebugResourceName> &resourceNames);
 void validate_global_state(const InternalRegistry &registry, NodeNameId node);
 

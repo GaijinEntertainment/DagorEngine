@@ -1,0 +1,13 @@
+BuildingTools = yes ;
+if $(KernelLinkage) = dynamic {
+  if ! $(OutDir) {
+    include $(Root)/prog/tools/tools_setup_outdir_bin.jam ;
+    OutDir = $(OutDir)/plugins/daEditorX ;
+  }
+  UseProgLibs += tools/sceneTools/daEditorX/de3dllCore ;
+  ImportProgLibs = tools/libTools/daKernel ;
+  LINKopt += -def:$(Root)/prog/tools/sceneTools/daEditorX/de3dllCore/de3_plugin.def ;
+} else {
+  TargetType  = lib ;
+  Target      = $(Target:D)/$(Location:B).lib ;
+}

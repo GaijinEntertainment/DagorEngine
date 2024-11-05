@@ -1,5 +1,4 @@
-#ifndef _DAGOR_GAMELIB_SOUNDSYSTEM_VISUALLABELSINTERNAL_H_
-#define _DAGOR_GAMELIB_SOUNDSYSTEM_VISUALLABELSINTERNAL_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 namespace FMOD
@@ -20,5 +19,3 @@ void invalidate_visual_labels();
 void append_visual_label(const FMOD::Studio::EventDescription &event_description, const EventAttributes &attributes);
 int get_visual_label_idx(const char *name);
 } // namespace sndsys
-
-#endif

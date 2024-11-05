@@ -1,0 +1,44 @@
+shadervar_generator {
+  mode:t = "none" // "none" (by default), "remove", "check", "generate"
+  code_template:t = "../../../prog/tools/ShaderCompiler2/generated_shadervars_template.h" // FIXME_BROKEN_DEP
+  generated_path {
+    matcher:t = "(.*/gameLibs/publicInclude.*)"
+    replacer:t = "$1shadervars.gen.h"
+  }
+  generated_path {
+    matcher:t = "(.*/gameLibs)(.*)(/shaders)(.*)"
+    replacer:t = "$1/publicInclude$2$4shadervars.gen.h"
+  }
+  generated_path {
+    matcher:t = "(.*/commonFx.*)"
+    replacer:t = "$1shadervars.gen.h"
+  }
+  generated_path {
+    matcher:t = "(.*/daNetGame.*)"
+    replacer:t = "$1shadervars.gen.h"
+  }
+  generated_path {
+    matcher:t = "(.*)"
+    replacer:t = "$1shadervars.gen.h"
+  }
+  exclude:t[] = [
+    "debug_inline_rt"
+    "heightmap_ofs"
+    "ssss_common"
+    "ssss_reflectance_blur_ps"
+    "ssss_reflectance_blur"
+    "ssss_transmittance_factor"
+    "ssss_transmittance_profile"
+    "motion_blur"
+    "bloom_ps"
+    "debug_light_probe_spheres"
+    "debug_indoor_probes_on_screen"
+    "depth_hierarchy"
+    "esm_ao"
+    "esm_shadows"
+    "esm_shadows_inc"
+    "gpu_objects_volume_placer"
+    "gpu_objects_prefix_sum"
+    "solid_color"
+  ]
+}

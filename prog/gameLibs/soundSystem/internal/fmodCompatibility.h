@@ -1,5 +1,4 @@
-#ifndef _DAGOR_GAMELIB_SOUNDSYSTEM_FMODCOMPATIBILITY_H_
-#define _DAGOR_GAMELIB_SOUNDSYSTEM_FMODCOMPATIBILITY_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <fmod_studio_common.h>
@@ -93,5 +92,3 @@ inline const FMOD_STUDIO_PARAMETER_ID *as_fmod_param_arr(const VarId *var_id)
   return reinterpret_cast<const FMOD_STUDIO_PARAMETER_ID *>(var_id);
 }
 } // namespace sndsys
-
-#endif

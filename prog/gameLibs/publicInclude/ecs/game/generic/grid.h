@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -41,6 +40,7 @@ struct GridObjComponent : public GridObject
   uint16_t allocatorKey;
   GridHolder *ownerGrid;
   GridObjComponent(const ecs::EntityManager &mgr, ecs::EntityId eid_);
+  GridObjComponent(GridObjComponent &&) = default;
   ~GridObjComponent();
   vec3f getPos() const { return GridObject::wbsph; };
   BSphere3 getBSphere() const

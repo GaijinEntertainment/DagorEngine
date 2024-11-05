@@ -1,0 +1,20 @@
+include "heightmap_common.dshl"
+
+macro PROJECT_BASE_HEIGHTMAP(code)
+  INIT_WORLD_HEIGHTMAP_BASE(code)
+  USE_HEIGHTMAP_COMMON_BASE(code)
+  hlsl(code) {
+    ##if tex_hmap_low != NULL
+    #define PROJECT_DAGI_USE_HMAP 1
+    ##endif
+    bool dagi_project_get_base_heightmap(float3 worldPos, inout float world_height, float dist_of_interest)
+    {
+      #if PROJECT_DAGI_USE_HMAP
+      world_height = decode_height(getHeightLowLod(calcTcLow(worldPos.xz), 0));
+      return true;
+      #else
+      return false;
+      #endif
+    }
+  }
+endmacro

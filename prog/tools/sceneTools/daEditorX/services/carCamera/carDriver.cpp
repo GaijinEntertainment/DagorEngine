@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #define USE_BULLET_PHYSICS 1
 #include "carDriver.h"
 #undef USE_BULLET_PHYSICS
@@ -12,7 +14,7 @@
 #include <util/dag_string.h>
 #include <libTools/util/strUtil.h>
 
-#include <humanInput/dag_hiJoystick.h>
+#include <drv/hid/dag_hiJoystick.h>
 
 #include <windows.h>
 #include <de3_interface.h>

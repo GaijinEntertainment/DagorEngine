@@ -1,5 +1,4 @@
-#ifndef _SQ_OPT_CLOSURE_HOSTING_
-#define _SQ_OPT_CLOSURE_HOSTING_ 1
+#pragma once
 
 #include "../sqast.h"
 #include "../arena.h"
@@ -194,5 +193,3 @@ public:
 
 
 } // namespace SQCompilation
-
-#endif // _SQ_OPT_CLOSURE_HOSTING_

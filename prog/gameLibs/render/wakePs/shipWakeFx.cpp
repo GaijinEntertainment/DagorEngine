@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/shipWakeFx.h>
 #include <render/wakePs.h>
 #include <math/dag_mathUtils.h>

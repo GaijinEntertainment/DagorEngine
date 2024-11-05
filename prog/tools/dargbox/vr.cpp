@@ -1,5 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "vr.h"
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_stereoIndex.h>
 #include <shaders/dag_shaderBlock.h>
 #include <vr/vrGuiSurface.h>
@@ -83,7 +87,7 @@ void finish_frame()
     auto &vc = view_configs[active_view_config];
     BaseTexture *sa[] = {vc.frameTargets[0].getBaseTex(), vc.frameTargets[1].getBaseTex(), vc.frameDepths[0].getBaseTex(),
       vc.frameDepths[1].getBaseTex()};
-    d3d::driver_command(DRV3D_COMMAND_PREPARE_TEXTURES_FOR_VR_CONSUMPTION, sa, (void *)4, nullptr);
+    d3d::driver_command(Drv3dCommand::PREPARE_TEXTURES_FOR_VR_CONSUMPTION, sa, (void *)4);
   }
 
   enabled_for_this_frame = false;

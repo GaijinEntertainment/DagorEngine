@@ -1,6 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/rayTrace/dag_drvRayTrace.h>
+#include <drv/3d/rayTrace/dag_drvRayTrace.h>
 
 #include "driver.h"
 

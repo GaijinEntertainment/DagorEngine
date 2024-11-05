@@ -1,0 +1,33 @@
+
+div {
+  padding: 2px;
+  font-family: sans-serif;
+}
+
+.dashboardList {
+  display: grid;
+  grid-template-columns: 100px 100px 100px 100px 100px 100px;
+  grid-column-gap: 10px;
+}
+
+
+.activeBG {
+  background-color: beige;
+  color: black;
+}
+
+.inactiveBG {
+  background-color: ghostwhite;
+  transition: background-color 5s linear;
+  color: rgb(71, 71, 71);
+}
+
+.muteBG {
+  background-color: white;
+  color: white;
+}
+
+.textBG {
+  grid-column-start: 2;
+  grid-column-end: 7;
+}

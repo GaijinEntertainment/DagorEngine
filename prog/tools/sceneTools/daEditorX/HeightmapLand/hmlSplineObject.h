@@ -1,7 +1,5 @@
-#ifndef __GAIJIN_HEIGHTMAPLAND_PLUGIN_SPLINE_OBJECT__
-#define __GAIJIN_HEIGHTMAPLAND_PLUGIN_SPLINE_OBJECT__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <math/dag_bezier.h>
 
@@ -25,6 +23,7 @@ class SplinePointObject;
 class HmapLandObjectEditor;
 class IObjEntity;
 class DebugPrimitivesVbuffer;
+class DagorAsset;
 
 static constexpr unsigned CID_HMapSplineObject = 0xD7BAAB6Au; // SplineObject
 
@@ -112,9 +111,12 @@ public:
   virtual bool isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const;
   virtual bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const;
   virtual bool getWorldBox(BBox3 &box) const;
-  virtual void fillProps(PropertyContainerControlBase &op, DClassID for_class_id, dag::ConstSpan<RenderableEditableObject *> objects);
-  virtual void onPPChange(int pid, bool edit_finished, PropPanel2 &panel, dag::ConstSpan<RenderableEditableObject *> objects);
-  virtual void onPPBtnPressed(int pid, PropPanel2 &panel, dag::ConstSpan<RenderableEditableObject *> objects);
+  virtual void fillProps(PropPanel::ContainerPropertyControl &op, DClassID for_class_id,
+    dag::ConstSpan<RenderableEditableObject *> objects);
+  virtual void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
+    dag::ConstSpan<RenderableEditableObject *> objects);
+  virtual void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel, dag::ConstSpan<RenderableEditableObject *> objects);
+  virtual bool setName(const char *nm) override;
   virtual void moveObject(const Point3 &delta, IEditorCoreEngine::BasisType basis);
   virtual void rotateObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis);
   virtual void scaleObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis);
@@ -238,6 +240,7 @@ public:
   inline void setExportable(bool ex) { props.exportable = ex; }
   inline void setCornerType(int t) { props.cornerType = t; }
   inline void setRandomSeed(int seed) { props.rndSeed = seed; }
+  inline void setNavmeshIdx(int navmesh_idx) { props.navmeshIdx = navmesh_idx; }
 
   void loadModifParams(const DataBlock &blk);
   void attachTo(SplineObject *s, int to_idx = -1);
@@ -256,6 +259,9 @@ public:
   void changeAsset(const char *asset_name, bool put_undo);
   const objgenerator::LandClassData *getLandClass() const { return landClass; }
 
+  DagorAsset *getMaterialAsset(int idx) const;
+  bool isUsingMaterial(const char *mat_name_to_find) const;
+
   void makeMonoUp();
   void makeMonoDown();
   void makeLinearHt();
@@ -265,6 +271,8 @@ public:
   int getEditLayerIdx() const { return editLayerIdx; }
   int lpIndex() const { return poly ? EditLayerProps::PLG : EditLayerProps::SPL; };
 
+  static void changeAsset(ObjectEditor &object_editor, dag::ConstSpan<RenderableEditableObject *> objects,
+    const char *initially_selected_asset_name, bool is_poly);
   static int makeSplinesCrosses(dag::ConstSpan<SplineObject *> spls);
 
   PtrTab<SplinePointObject> points;
@@ -302,6 +310,7 @@ public:
     bool exportable;
     bool useForNavMesh;
     float navMeshStripeWidth;
+    int navmeshIdx;
 
     String notes;
     int layerOrder;
@@ -321,6 +330,8 @@ public:
 protected:
   Props props;
   int editLayerIdx = 0;
+
+  void createMaterialControls(PropPanel::ContainerPropertyControl &op);
 
   void generateRoadSegments(int start_idx, int end_idx, const splineclass::RoadData *asset_prev, splineclass::RoadData *asset,
     const splineclass::RoadData *asset_next);
@@ -361,5 +372,3 @@ struct SplineObjectRec
 
   SplineObjectRec() : p1(tmpmem), p2(tmpmem) { k = 0; }
 };
-
-#endif //__GAIJIN_HEIGHTMAPLAND_PLUGIN_SPLINE_OBJECT__

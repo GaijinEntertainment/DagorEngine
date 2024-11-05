@@ -60,13 +60,13 @@ else
 print(2)
 
 
-let function _f1() {
+function _f1() {
 print(1)
 print(2)
 }
 
 
-let function _f2() {
+function _f2() {
 print(1)
 print(2)
 }

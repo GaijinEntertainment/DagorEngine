@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "fontFileFormat.h"
 #include <3d/ddsxTex.h>
 #include <osApiWrappers/dag_files.h>
@@ -402,7 +404,7 @@ bool BinFormat::saveBinary(const char *fn, int targetCode, bool rgba32, bool val
     MutexAutoAcquire mutexAa(fn);
     cwr.copyDataTo(fcwr);
   }
-  DAGOR_CATCH(IGenSave::SaveException &)
+  DAGOR_CATCH(const IGenSave::SaveException &)
   {
     printf("can't write dump to output: %s", fn);
     fcwr.close();
@@ -431,14 +433,6 @@ static void loadDdsxPluginsOnce()
   char start_dir[260];
   dag_get_appmodule_dir(start_dir, sizeof(start_dir));
 
-#if _TARGET_PC_LINUX
-  ddsx::load_plugins(String(260, "%s/../bin-linux64/plugins/ddsx", start_dir));
-#elif _TARGET_PC_MACOSX
-  ddsx::load_plugins(String(260, "%s/../bin-macosx/plugins/ddsx", start_dir));
-#elif _TARGET_64BIT
-  ddsx::load_plugins(String(260, "%s/../bin64/plugins/ddsx", start_dir));
-#else
-  ddsx::load_plugins(String(260, "%s/../bin/plugins/ddsx", start_dir));
-#endif
+  ddsx::load_plugins(String(260, "%s/plugins/ddsx", start_dir));
   loaded = true;
 }

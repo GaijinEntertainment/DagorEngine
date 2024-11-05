@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "de_apphandler.h"
 #include "de_plugindata.h"
 #include <oldEditor/de_cm.h>
@@ -14,6 +16,8 @@
 #include <stdio.h>
 
 static TEXTUREID compass_tid = BAD_TEXTUREID, compass_nesw_tid = BAD_TEXTUREID;
+static d3d::SamplerHandle compass_sampler = d3d::INVALID_SAMPLER_HANDLE;
+static d3d::SamplerHandle compass_nesw_sampler = d3d::INVALID_SAMPLER_HANDLE;
 
 static Point2 getCameraAngles()
 {
@@ -45,6 +49,8 @@ void DagorEdAppEventHandler::handleViewportPaint(IGenViewportWnd *wnd)
     compass_nesw_tid = add_managed_texture(::make_full_path(sgg::get_exe_path_full(), "../commonData/tex/compass_nesw.tga"));
     acquire_managed_tex(compass_tid);
     acquire_managed_tex(compass_nesw_tid);
+    compass_sampler = get_texture_separate_sampler(compass_tid);
+    compass_nesw_sampler = get_texture_separate_sampler(compass_nesw_tid);
   }
 
   GenericEditorAppWindow::AppEventHandler::handleViewportPaint(wnd);
@@ -57,25 +63,29 @@ void DagorEdAppEventHandler::handleViewportPaint(IGenViewportWnd *wnd)
   if (plug && !plug->getVisible())
   {
     char mess1[100];
-    _snprintf(mess1, 99, " Caution: \"%s\" visibility is off \n", plug->getMenuCommandName());
+    _snprintf(mess1, 99, " Caution: \"%s\" visibility is off ", plug->getMenuCommandName());
     char mess2[100] = " Press F12 key to change plugin visibility ";
 
     StdGuiRender::set_font(0);
     Point2 ts1 = StdGuiRender::get_str_bbox(mess1).size();
     Point2 ts2 = StdGuiRender::get_str_bbox(mess2).size();
-
+    int ascent = StdGuiRender::get_font_ascent();
+    int descent = StdGuiRender::get_font_descent();
+    int fontHeight = ascent + descent;
+    int padding = 2;
     int width = ts1.x > ts2.x ? ts1.x : ts2.x;
+    int height = padding + fontHeight + padding + fontHeight + padding;
     int left = vpW / 2 - width / 2;
-    int top = vpH / 2 - ts2.y / 2;
+    int top = vpH / 2 - height / 2;
 
     StdGuiRender::set_color(COLOR_BLACK);
-    StdGuiRender::render_box(left, top + ts2.y + 8, left + width, top - ts1.y);
+    StdGuiRender::render_box(left, top, left + width, top + height);
 
     StdGuiRender::set_color(COLOR_WHITE);
-    StdGuiRender::draw_strf_to(left + (width - ts1.x) / 2, top, mess1);
-    StdGuiRender::draw_strf_to(left + (width - ts2.x) / 2, top + ts2.y + 2, mess2);
+    StdGuiRender::draw_strf_to(left + (width - ts1.x) / 2, top + padding + ascent, mess1);
+    StdGuiRender::draw_strf_to(left + (width - ts2.x) / 2, top + padding + fontHeight + padding + ascent, mess2);
   }
-
+  IEditorCoreEngine::get()->showMessageAt();
   if (showCompass)
   {
     Point3 toNorth = ::grs_cur_view.pos + Point3(0, 0, 50);
@@ -119,12 +129,12 @@ void DagorEdAppEventHandler::handleViewportPaint(IGenViewportWnd *wnd)
 
     //  rotatable compass core
     StdGuiRender::set_color(COLOR_WHITE);
-    StdGuiRender::set_texture(compass_tid);
+    StdGuiRender::set_texture(compass_tid, compass_sampler);
     StdGuiRender::set_alpha_blend(NONPREMULTIPLIED);
     StdGuiRender::render_quad(c + r * Point2(+sa - ca, -ca - sa), c + r * Point2(-sa - ca, +ca - sa),
       c + r * Point2(-sa + ca, +ca + sa), c + r * Point2(+sa + ca, -ca + sa));
 
-    StdGuiRender::set_texture(compass_nesw_tid);
+    StdGuiRender::set_texture(compass_nesw_tid, compass_nesw_sampler);
     StdGuiRender::set_alpha_blend(NONPREMULTIPLIED);
 
     //  world directions
@@ -143,7 +153,7 @@ void DagorEdAppEventHandler::handleViewportPaint(IGenViewportWnd *wnd)
     c2 = c + Point2(r * sa, r * ca);
     StdGuiRender::render_rect(c2.x - bx, c2.y - bx, c2.x + bx, c2.y + bx, Point2(0.75, 0), Point2(0.25, 0), Point2(0, 1)); // West
 
-    StdGuiRender::set_texture(BAD_TEXTUREID);
+    StdGuiRender::reset_textures();
 
     // render course and pitch
     StdGuiRender::set_font(0);

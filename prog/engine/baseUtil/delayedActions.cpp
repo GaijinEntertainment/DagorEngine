@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_delayedAction.h>
 #include <generic/dag_tab.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -24,7 +26,18 @@ struct ScopedPerfLag
     const int64_t freq = profile_ticks_frequency();
     if (t * 10000 > freq) // 100usec
     {
-      DA_PROFILE_TAG(delayedActionName, name);
+      const char *perfTagName = name;
+#if TIME_PROFILER_ENABLED
+#if _TARGET_PC_WIN || _TARGET_XBOX
+      if (const char *pSlash = name ? strrchr(name, '\\') : nullptr)
+#else
+      if (const char *pSlash = name ? strrchr(name, '/') : nullptr)
+#endif
+        perfTagName = pSlash + 1;
+#else
+      G_UNUSED(perfTagName);
+#endif
+      DA_PROFILE_TAG(delayedActionName, perfTagName);
       if (dgs_lag_handler && t * 10 > freq)       // 100msec
         dgs_lag_handler(name, (t * 1000) / freq); // time in msec
     }

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_memReport.h>
 #include <memory/dag_memStat.h>
 #include <gui/dag_stdGuiRender.h>
@@ -79,7 +81,7 @@ void memreport::on_screen_memory_usage_report(int x0, int y0, bool sysmem, bool 
   if (y0 < 0)
     y0 += StdGuiRender::screen_height() - ht;
 
-  StdGuiRender::set_texture(BAD_TEXTUREID);
+  StdGuiRender::reset_textures();
   StdGuiRender::render_rect(Point2(x0, y0), Point2(x0 + wd, y0 + ht));
 
   for (int ln = 0; ln < countof(text); ln++)

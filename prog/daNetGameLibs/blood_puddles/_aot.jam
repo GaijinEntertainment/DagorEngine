@@ -1,0 +1,7 @@
+local R = prog/daNetGameLibs/blood_puddles/private/dasModules ;
+Sources +=
+  $(R)/bloodPuddles.cpp
+  $(R)/stub/stub.cpp
+;
+
+DasToStringify += $(R)/bloodPuddles.das $(R)/bloodPuddles.das.inl $(R)/bloodPuddles.cpp ;

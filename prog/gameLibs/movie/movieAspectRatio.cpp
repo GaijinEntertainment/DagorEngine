@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <movie/fullScreenMovie.h>
 #include "movieAspectRatio.h"
 #include <debug/dag_debug.h>

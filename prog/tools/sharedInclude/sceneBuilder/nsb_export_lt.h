@@ -1,6 +1,4 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef __GAIJIN_NSB_EXPORT_LT_H__
-#define __GAIJIN_NSB_EXPORT_LT_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 // forward declarations for external classes
@@ -23,6 +21,3 @@ bool export_to_light_tool(const char *ltinput, const char *lmsfile, int tex_qual
 
 bool export_envi_to_LMS1(StaticGeometryContainer &geom, const char *lms_file, IGenericProgressIndicator &pbar, ILogWriter &log);
 } // namespace StaticSceneBuilder
-
-
-#endif

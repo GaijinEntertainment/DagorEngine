@@ -1,7 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <3d/dag_resMgr.h>
 #include <3d/dag_ringCPUQueryLock.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_query.h>
 #include <stdio.h>
 #include <util/dag_baseDef.h>
 
@@ -21,7 +26,8 @@ void RingCPUBufferLock::init(uint32_t element_size, uint32_t elements, int buffe
   uint32_t texfmt, bool is_texture)
 {
   close();
-  buffers.resize(buffers_count);
+  reset();
+  buffers.resize(min<uint32_t>(buffers_count, buffers.capacity()));
   for (int i = 0; i < buffers.size(); ++i)
   {
     char cname[64];
@@ -120,9 +126,9 @@ uint8_t *RingCPUBufferLock::lock(int &stride, uint32_t &frame, bool get_to_topmo
           bufferLockCounter = 0;
           if (currentBufferToLock < currentBufferIssued)
             currentBufferToLock++;
-          if (!d3d::is_in_device_reset_now())
-            logerr("Can't lock buffer <%d>, <%d> issued %d attempt. Resource name: %s", currentBufferToLock, currentBufferIssued,
-              bufferLockCounter, resourceName.c_str());
+          int ll = d3d::is_in_device_reset_now() ? LOGLEVEL_WARN : LOGLEVEL_ERR;
+          logmessage(ll, "Can't lock buffer <%d>, <%d> issued %d attempt. Resource name: %s", currentBufferToLock, currentBufferIssued,
+            bufferLockCounter, resourceName.c_str());
           return nullptr;
         }
       }
@@ -152,4 +158,11 @@ void RingCPUBufferLock::unlock()
   unlockData(currentBufferToLock % buffers.size());
   currentBufferToLock++;
   state = NORMAL;
+}
+
+void RingCPUBufferLock::texaddr(int addrmode)
+{
+  G_ASSERT_RETURN(buffers[0].gpu && buffers[0].gpu->restype() == RES3D_TEX, );
+  for (int i = 0; i < buffers.size(); ++i)
+    ((Texture *)buffers[i].gpu)->texaddr(addrmode);
 }

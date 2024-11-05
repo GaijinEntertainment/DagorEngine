@@ -1,0 +1,391 @@
+int4 radiance_cache_atlas_sizei;//atlasSizeInProbes(W,H),probeSizeOct, totalProbesCount
+int4 radiance_cache_clipmap_sizei;//w,d,clips,w*w*d*clips
+int4 radiance_cache_clipmap_sizei_np2;//w,d, w*N, d*N
+int4 radiance_cache_clipmap_lt_coord_0;
+int4 radiance_cache_clipmap_lt_coord_1;
+int4 radiance_cache_clipmap_lt_coord_2;
+int4 radiance_cache_clipmap_lt_coord_3;
+int4 radiance_cache_clipmap_lt_coord_4;
+int4 radiance_cache_clipmap_lt_coord_5;
+int4 radiance_cache_clipmap_lt_coord_6;
+int4 radiance_cache_clipmap_lt_coord_7;
+buffer radiance_cache_indirection_clipmap;
+buffer radiance_cache_positions;
+//atlasSize*2, first half is frame + age
+buffer radiance_cache_age;
+int radiance_cache_current_frame;
+texture radiance_cache_irradiance_sph0;
+texture radiance_cache_irradiance_sph1;
+
+hlsl {
+  #include "radianace_cache_consts.hlsli"
+  #define INVALID_RADIANCE_CACHE_PROBE_INDEX (~0u)
+}
+
+macro RADIANCE_CACHE_CLIPMAP_MATH(code)
+  (code) {
+    radiance_cache_clipmap_sizei@i4 = radiance_cache_clipmap_sizei;
+    radiance_cache_clipmap_sizei_np2@i4 = radiance_cache_clipmap_sizei_np2;
+    radiance_cache_clipmap_lt_coord@i4[] = {radiance_cache_clipmap_lt_coord_0, radiance_cache_clipmap_lt_coord_1, radiance_cache_clipmap_lt_coord_2, radiance_cache_clipmap_lt_coord_3, radiance_cache_clipmap_lt_coord_4, radiance_cache_clipmap_lt_coord_5, radiance_cache_clipmap_lt_coord_6, radiance_cache_clipmap_lt_coord_7};
+  }
+  hlsl (code) {
+    uint2 get_radiance_cache_clip_size() {return uint2(radiance_cache_clipmap_sizei.xy);}
+    uint get_radiance_cache_clip_count() {return radiance_cache_clipmap_sizei.z;}
+    uint get_radiance_cache_total_clipmap_size() {return uint(radiance_cache_clipmap_sizei.w);}
+
+    uint get_radiance_cache_buffer_addr(uint3 clipPos, uint clipId) {
+      return clipPos.x + get_radiance_cache_clip_size().x*(clipPos.y + get_radiance_cache_clip_size().x*(clipPos.z + clipId*get_radiance_cache_clip_size().y));
+    }
+
+    uint4 decode_radiance_cache_buffer_addr(uint addr) {
+      return uint4(addr%get_radiance_cache_clip_size().x,
+        (addr/get_radiance_cache_clip_size().x)%get_radiance_cache_clip_size().x,
+        (addr/(get_radiance_cache_clip_size().x*get_radiance_cache_clip_size().x))%get_radiance_cache_clip_size().y,//fixme const
+        addr/(get_radiance_cache_clip_size().x*get_radiance_cache_clip_size().x*get_radiance_cache_clip_size().y));//fixme const
+    }
+
+    #define sample_radiance_cache_clipmap_lt_coord(clip) _sample_radiance_cache_clipmap_lt_coord(clip, _FILE_, __LINE__)
+    int4 _sample_radiance_cache_clipmap_lt_coord(uint clip, int file, int ln)
+    {
+      // 8 is hardcoded currently. TODO: support array size in preshader for such checks.
+      ##assert(clip < 8, "[%s:%.f] Out of bounds: Buffer 'radiance_cache_clipmap_lt_coord' has size 8, but access to (%.f)", file, ln, clip);
+      return radiance_cache_clipmap_lt_coord[clip];
+    }
+
+    float radiance_cache_probe_world_size(uint clip) {return asfloat(sample_radiance_cache_clipmap_lt_coord(clip).w);}
+
+    float3 radiance_cache_probe_world_pos_to_abs_coord(float3 worldPos, uint clip)
+    {
+      return worldPos.xzy/asfloat(sample_radiance_cache_clipmap_lt_coord(clip).w);
+    }
+    float3 radiance_cache_probe_world_pos_from_abs_coord(int3 coord, uint clip)
+    {
+      return (coord.xzy + 0.5)*asfloat(sample_radiance_cache_clipmap_lt_coord(clip).w);
+    }
+
+    uint3 radiance_cache_wrapped_coord_from_abs_coord(int3 abs_coord)
+    {
+      #if RADIANCE_CACHE_SUPPORTS_NON_POW2_CLIPMAP
+      //non-pow2
+      return uint3(radiance_cache_clipmap_sizei_np2.zzw + abs_coord)%uint3(radiance_cache_clipmap_sizei_np2.xxy);
+      #endif
+      return uint3(abs_coord)%get_radiance_cache_clip_size().xxy;
+    }
+
+    int3 radiance_cache_abs_coord_from_wrapped_coord(uint3 wrapped, int3 clip_lt)
+    {
+      #if RADIANCE_CACHE_SUPPORTS_NON_POW2_CLIPMAP
+      //non-pow2
+      return clip_lt + int3(uint3(int3(wrapped) - clip_lt.xyz + radiance_cache_clipmap_sizei_np2.zzw)%uint3(radiance_cache_clipmap_sizei_np2.xxy));
+      #endif
+      return clip_lt + int3(uint3(int3(wrapped) - clip_lt.xyz)%get_radiance_cache_clip_size().xxy);
+    }
+    int3 radiance_cache_abs_coord_from_wrapped_coord(uint3 wrapped, uint clip)
+    {
+      return radiance_cache_abs_coord_from_wrapped_coord(wrapped, sample_radiance_cache_clipmap_lt_coord(clip).xyz);
+    }
+
+    uint radiance_cache_indirection_from_clip_addr(StructuredBuffer<uint> indirection, uint clip_addr)
+    {
+      return structuredBufferAt(indirection, clip_addr);
+    }
+    uint radiance_cache_indirection_from_clip_addr(RWStructuredBuffer<uint> indirection, uint clip_addr)
+    {
+      return structuredBufferAt(indirection, clip_addr);
+    }
+    uint radiance_cache_indirection_from_wrapped_coord(StructuredBuffer<uint> indirection, uint3 wrapped, uint clip)
+    {
+      return radiance_cache_indirection_from_clip_addr(indirection, get_radiance_cache_buffer_addr(wrapped, clip));
+    }
+    uint radiance_cache_indirection_from_wrapped_coord(RWStructuredBuffer<uint> indirection, uint3 wrapped, uint clip)
+    {
+      return structuredBufferAt(indirection, get_radiance_cache_buffer_addr(wrapped, clip));
+    }
+
+    uint radiance_cache_indirection_from_abs_coord_unsafe(StructuredBuffer<uint> indirection, int3 coord, uint clip)
+    {
+      return radiance_cache_indirection_from_wrapped_coord(indirection, radiance_cache_wrapped_coord_from_abs_coord(coord), clip);
+      //safe
+      //return (all(radiance_cache_clip_pos_from_abs_coord(coord, clip) < get_radiance_cache_clip_size().xxy)) ? radiance_cache_indirection_from_abs_coord_unsafe(indirection, coord, clip) : INVALID_RADIANCE_CACHE_PROBE_INDEX;
+    }
+    uint radiance_cache_indirection_from_abs_coord_unsafe(RWStructuredBuffer<uint> indirection, int3 coord, uint clip)
+    {
+      return radiance_cache_indirection_from_wrapped_coord(indirection, radiance_cache_wrapped_coord_from_abs_coord(coord), clip);
+      //safe
+      //return (all(radiance_cache_clip_pos_from_abs_coord(coord, clip) < get_radiance_cache_clip_size().xxy)) ? radiance_cache_indirection_from_abs_coord_unsafe(indirection, coord, clip) : INVALID_RADIANCE_CACHE_PROBE_INDEX;
+    }
+
+    uint radiance_cache_find_clip_trilinear(out int3 worldCoord, float3 worldPos, uint startClip)
+    {
+      uint i = startClip;
+      uint3 rb = get_radiance_cache_clip_size().xxy - 1;
+      LOOP
+      do
+      {
+        int4 lt = sample_radiance_cache_clipmap_lt_coord(i);
+        float3 worldCoordF = worldPos.xzy/asfloat(lt.w) - 0.5;
+        worldCoord = floor(worldCoordF);
+        if (all(uint3(worldCoord - lt.xyz) < rb))
+          return i;
+        ++i;// moving that to while () causes invalid sahder compilation on dx11
+      } while (i < get_radiance_cache_clip_count());
+      return MAX_RADIANCE_CACHE_CLIPS;
+    }
+
+    uint radiance_cache_find_clip(out float3 worldCoordF, float3 worldPos, float voxelAround, uint startClip)
+    {
+      uint i = startClip;
+      int3 rb = get_radiance_cache_clip_size().xxy - voxelAround;
+      LOOP
+      do
+      {
+        int4 lt = sample_radiance_cache_clipmap_lt_coord(i);
+        worldCoordF = worldPos.xzy/asfloat(lt.w);
+        float3 clipPos = worldCoordF - lt.xyz;
+        if (all(clipPos > voxelAround && clipPos < rb))
+          return i;
+        ++i;// moving that to while () causes invalid sahder compilation on dx11
+      } while (i < get_radiance_cache_clip_count());
+      return MAX_RADIANCE_CACHE_CLIPS;
+    }
+    void radiance_cache_trilinear_indices(StructuredBuffer<uint> indirection, uint clip, int3 worldCoord, out uint4 probeIndices0, out uint4 probeIndices1)
+    {
+      probeIndices0.x = radiance_cache_indirection_from_abs_coord_unsafe(indirection, worldCoord, clip);
+      probeIndices0.y = radiance_cache_indirection_from_abs_coord_unsafe(indirection, worldCoord+int3(1,0,0), clip);
+      probeIndices0.z = radiance_cache_indirection_from_abs_coord_unsafe(indirection, worldCoord+int3(0,1,0), clip);
+      probeIndices0.w = radiance_cache_indirection_from_abs_coord_unsafe(indirection, worldCoord+int3(1,1,0), clip);
+
+      probeIndices1.x = radiance_cache_indirection_from_abs_coord_unsafe(indirection, worldCoord+int3(0,0,1), clip);
+      probeIndices1.y = radiance_cache_indirection_from_abs_coord_unsafe(indirection, worldCoord+int3(1,0,1), clip);
+      probeIndices1.z = radiance_cache_indirection_from_abs_coord_unsafe(indirection, worldCoord+int3(0,1,1), clip);
+      probeIndices1.w = radiance_cache_indirection_from_abs_coord_unsafe(indirection, worldCoord+int3(1,1,1), clip);
+    }
+    bool radiance_cache_can_trilinear_sample(StructuredBuffer<uint> indirection, uint clip, uint3 wrappedCoord, out uint4 probeIndices0, out uint4 probeIndices1)
+    {
+      radiance_cache_trilinear_indices(indirection, clip, wrappedCoord, probeIndices0, probeIndices1);
+      return all(probeIndices0 != INVALID_RADIANCE_CACHE_PROBE_INDEX && probeIndices1 != INVALID_RADIANCE_CACHE_PROBE_INDEX);
+    }
+
+    bool radiance_cache_can_sample(StructuredBuffer<uint> indirection, uint clip, int3 worldCoord, out uint4 probeIndices0, out uint4 probeIndices1, float3 triW, float threshold)
+    {
+      radiance_cache_trilinear_indices(indirection, clip, worldCoord, probeIndices0, probeIndices1);
+      float4 bWeights = float4(triW.xy, 1-triW.xy);
+      float4 bilWeights = float4(bWeights.zx*bWeights.w, bWeights.zx*bWeights.y);
+      float4 w0 = (probeIndices0 != INVALID_RADIANCE_CACHE_PROBE_INDEX) ? max(1e-4, bilWeights*(1-triW.z)) : 0;
+      float4 w1 = (probeIndices1 != INVALID_RADIANCE_CACHE_PROBE_INDEX) ? max(1e-4, bilWeights*triW.z) : 0;
+      return dot(w0, 1) + dot(w1, 1) > threshold;
+    }
+
+    uint radiance_cache_find_clip_for_trilinear(StructuredBuffer<uint> indirection, float3 worldPos, out uint4 probeIndices0, out uint4 probeIndices1, out float3 probeW0, out int3 baseWorldCoorldI, uint startClip, uint endClip)
+    {
+      uint3 rb = get_radiance_cache_clip_size().xxy - 1;
+      LOOP
+      for (uint i = startClip; i < endClip; ++i)
+      {
+        int4 lt = sample_radiance_cache_clipmap_lt_coord(i);
+        float3 worldCoordF = worldPos.xzy/asfloat(lt.w) - 0.5;
+        baseWorldCoorldI = floor(worldCoordF);
+        if (all(uint3(baseWorldCoorldI - lt.xyz) < rb))
+        {
+          probeW0 = saturate(worldCoordF - baseWorldCoorldI);
+          if (radiance_cache_can_trilinear_sample(indirection, i, baseWorldCoorldI, probeIndices0, probeIndices1))
+          {
+            return i;
+          }
+        }
+      }
+      return MAX_RADIANCE_CACHE_CLIPS;
+    }
+
+    uint radiance_cache_find_clip_for_sample(StructuredBuffer<uint> indirection, float3 worldPos, inout uint4 probeIndices0, inout uint4 probeIndices1, inout float3 probeW0, inout int3 baseWorldCoordI, uint startClip, uint endClip, float threshold = 0.25)
+    {
+      uint3 rb = get_radiance_cache_clip_size().xxy - 1;
+      LOOP
+      for (uint i = startClip; i < endClip; ++i)
+      {
+        int4 lt = sample_radiance_cache_clipmap_lt_coord(i);
+        float3 worldCoordF = worldPos.xzy/asfloat(lt.w) - 0.5;
+        int3 worldCoordI = floor(worldCoordF);
+        if (all(uint3(worldCoordI - lt.xyz) < rb))
+        {
+          uint4 probeIndices12, probeIndices02;
+          float3 triW = saturate(worldCoordF - worldCoordI);
+          if (radiance_cache_can_sample(indirection, i, worldCoordI, probeIndices02, probeIndices12, triW, threshold))
+          {
+            probeW0 = triW;
+            baseWorldCoordI = worldCoordI;
+            probeIndices0 = probeIndices02;
+            probeIndices1 = probeIndices12;
+            return i;
+          }
+        }
+      }
+      return MAX_RADIANCE_CACHE_CLIPS;
+    }
+
+    void radiance_cache_dir_indices(StructuredBuffer<uint> indirection, uint clip, int3 worldCoord, out uint4 probeIndices0, out uint4 probeIndices1, float3 dir)
+    {
+      probeIndices0 = probeIndices1 = INVALID_RADIANCE_CACHE_PROBE_INDEX;
+      bool3 neg = dir.xzy <= 0, pos = dir.xzy >= 0;
+      FLATTEN
+      if (all(neg))
+        probeIndices0.x = radiance_cache_indirection_from_abs_coord_unsafe(indirection, worldCoord, clip);
+      FLATTEN
+      if (all(neg.yz && pos.x))
+        probeIndices0.y = radiance_cache_indirection_from_abs_coord_unsafe(indirection, worldCoord+int3(1,0,0), clip);
+      FLATTEN
+      if (all(neg.xz && pos.y))
+        probeIndices0.z = radiance_cache_indirection_from_abs_coord_unsafe(indirection, worldCoord+int3(0,1,0), clip);
+      FLATTEN
+      if (all(pos.xy && neg.z))
+        probeIndices0.w = radiance_cache_indirection_from_abs_coord_unsafe(indirection, worldCoord+int3(1,1,0), clip);
+
+      FLATTEN
+      if (all(neg.xy && pos.z))
+        probeIndices1.x = radiance_cache_indirection_from_abs_coord_unsafe(indirection, worldCoord+int3(0,0,1), clip);
+      FLATTEN
+      if (all(neg.y && pos.xz))
+        probeIndices1.y = radiance_cache_indirection_from_abs_coord_unsafe(indirection, worldCoord+int3(1,0,1), clip);
+      FLATTEN
+      if (all(neg.x && pos.yz))
+        probeIndices1.z = radiance_cache_indirection_from_abs_coord_unsafe(indirection, worldCoord+int3(0,1,1), clip);
+      FLATTEN
+      if (all(pos))
+        probeIndices1.w = radiance_cache_indirection_from_abs_coord_unsafe(indirection, worldCoord+int3(1,1,1), clip);
+    }
+
+    bool radiance_cache_can_dir_sample(StructuredBuffer<uint> indirection, float3 worldDir, float3 triW, uint clip, int3 worldCoord, out uint4 probeIndices0, out uint4 probeIndices1, out float4 w0, out float4 w1, float threshold)
+    {
+      //radiance_cache_dir_indices(indirection, clip, worldCoord, probeIndices0, probeIndices1, worldDir);
+      radiance_cache_trilinear_indices(indirection, clip, worldCoord, probeIndices0, probeIndices1);
+      float4 bWeights = float4(triW.xy, 1-triW.xy);
+      float4 bilWeights = float4(bWeights.zx*bWeights.w, bWeights.zx*bWeights.y);
+      w0 = (probeIndices0 != INVALID_RADIANCE_CACHE_PROBE_INDEX) ? max(1e-4, bilWeights*(1-triW.z)) : 0;
+      w1 = (probeIndices1 != INVALID_RADIANCE_CACHE_PROBE_INDEX) ? max(1e-4, bilWeights*triW.z) : 0;
+      w0.x *= saturate(dot(worldDir.xzy, normalize(-triW)));
+      w0.y *= saturate(dot(worldDir.xzy, normalize(float3(1-triW.x, -triW.y, -triW.z))));
+      w0.z *= saturate(dot(worldDir.xzy, normalize(float3( -triW.x, 1-triW.y, -triW.z))));
+      w0.w *= saturate(dot(worldDir.xzy, normalize(float3(1-triW.x, 1-triW.y, -triW.z))));
+
+      w1.x *= saturate(dot(worldDir.xzy, normalize(float3( -triW.x, -triW.y, 1-triW.z))));
+      w1.y *= saturate(dot(worldDir.xzy, normalize(float3(1-triW.x, -triW.y, 1-triW.z))));
+      w1.z *= saturate(dot(worldDir.xzy, normalize(float3(-triW.x, 1-triW.y, 1-triW.z))));
+      w1.w *= saturate(dot(worldDir.xzy, normalize(float3(1-triW.x, 1-triW.y, 1-triW.z))));
+
+      return dot(w0, 1) + dot(w1, 1) > threshold;
+    }
+
+    uint radiance_cache_find_clip_for_dir_sample(StructuredBuffer<uint> indirection, float3 worldPos, float3 worldDir, out uint4 probeIndices0, out uint4 probeIndices1, out float4 w0, out float4 w1, uint startClip, uint endClip, float threshold = 1e-6)
+    {
+      uint3 rb = get_radiance_cache_clip_size().xxy - 1;
+      LOOP
+      for (uint i = startClip; i < endClip; ++i)
+      {
+        int4 lt = sample_radiance_cache_clipmap_lt_coord(i);
+        float3 worldCoordF = worldPos.xzy/asfloat(lt.w) - 0.5;
+        int3 worldCoordI = floor(worldCoordF);
+        if (all(uint3(worldCoordI - lt.xyz) < rb))
+        {
+          float3 triW = saturate(worldCoordF - worldCoordI);
+          //if (radiance_cache_can_sample(indirection, i, worldCoordI, probeIndices02, probeIndices12, triW, threshold))
+          if (radiance_cache_can_dir_sample(indirection, worldDir, triW, i, worldCoordI, probeIndices0, probeIndices1, w0, w1, threshold))
+          {
+            return i;
+          }
+        }
+      }
+      return MAX_RADIANCE_CACHE_CLIPS;
+    }
+
+    uint radiance_cache_find_clip_for_trilinear(StructuredBuffer<uint> indirection, float3 worldPos, out uint4 probeIndices0, out uint4 probeIndices1, out float3 probeW0, out int3 baseWorldCoorldI)
+    {
+      return radiance_cache_find_clip_for_trilinear(indirection, worldPos, probeIndices0, probeIndices1, probeW0, baseWorldCoorldI, 0, get_radiance_cache_clip_count());
+    }
+
+  }
+endmacro
+
+macro RADIANCE_CACHE_ATLAS_MATH(code)
+  (code) {
+    radiance_cache_atlas_sizei@i4 = radiance_cache_atlas_sizei;
+  }
+  hlsl (code) {
+    uint get_radiance_cache_total_atlas_size() {return radiance_cache_atlas_sizei.w;}
+    uint get_radiance_cache_probe_width() {return radiance_cache_atlas_sizei.z;}
+    uint2 get_radiance_cache_atlas_dim() {return radiance_cache_atlas_sizei.xy;}
+
+    uint radiance_cache_get_temporal_age_and_frame_used(ByteAddressBuffer radiance_cache_age_, uint radiance_cache_index)
+    {
+      return loadBuffer(radiance_cache_age_, (radiance_cache_index+get_radiance_cache_total_atlas_size())*4);
+    }
+    uint radiance_cache_get_temporal_age_and_frame_used(RWByteAddressBuffer radiance_cache_age_, uint radiance_cache_index)
+    {
+      return loadBuffer(radiance_cache_age_, (radiance_cache_index+get_radiance_cache_total_atlas_size())*4);
+    }
+
+    uint radiance_cache_get_last_frame_used(ByteAddressBuffer radiance_cache_age_, uint radiance_cache_index) {return loadBuffer(radiance_cache_age_, radiance_cache_index*4);}
+    uint radiance_cache_get_last_frame_used(RWByteAddressBuffer radiance_cache_age_, uint radiance_cache_index) {return loadBuffer(radiance_cache_age_, radiance_cache_index*4);}
+  }
+endmacro
+macro RADIANCE_CACHE_CLIPMAP_ATLAS_MATH(code)
+  RADIANCE_CACHE_CLIPMAP_MATH(code)
+  RADIANCE_CACHE_ATLAS_MATH(code)
+  hlsl(code) {
+
+    uint radiance_cache_encode_wrapped_coord(uint3 clipPos, uint clip)
+    {
+      return get_radiance_cache_buffer_addr(clipPos.xyz, clip);
+    }
+    uint radiance_cache_encode_wrapped_coord(uint4 clipPosClip)
+    {
+      return get_radiance_cache_buffer_addr(clipPosClip.xyz, clipPosClip.w);
+    }
+    uint4 radiance_cache_decode_wrapped_coord(uint encoded)
+    {
+      return decode_radiance_cache_buffer_addr(encoded);
+    }
+
+    uint radiance_cache_get_wrapped_addr(ByteAddressBuffer radiance_cache_positions_, uint radiance_cache_index) {return loadBuffer(radiance_cache_positions_, radiance_cache_index*4);}
+    uint radiance_cache_get_wrapped_addr(RWByteAddressBuffer radiance_cache_positions_, uint radiance_cache_index) {return loadBuffer(radiance_cache_positions_, radiance_cache_index*4);}
+
+    uint4 radiance_cache_get_wrapped_coord(ByteAddressBuffer radiance_cache_positions_, uint radiance_cache_index) {return radiance_cache_decode_wrapped_coord(radiance_cache_get_wrapped_addr(radiance_cache_positions_, radiance_cache_index));}
+    uint4 radiance_cache_get_wrapped_coord(RWByteAddressBuffer radiance_cache_positions_, uint radiance_cache_index) {return radiance_cache_decode_wrapped_coord(radiance_cache_get_wrapped_addr(radiance_cache_positions_, radiance_cache_index));}
+  }
+endmacro
+
+macro RADIANCE_CACHE_POSITIONS_SRV(code)
+  (code) {
+    radiance_cache_positions@buf = radiance_cache_positions hlsl {
+      ByteAddressBuffer radiance_cache_positions@buf;
+    }
+  }
+endmacro
+
+macro RADIANCE_CACHE_AGE_SRV(code)
+  (code) {
+    radiance_cache_age@buf = radiance_cache_age hlsl {
+      ByteAddressBuffer radiance_cache_age@buf;
+    }
+  }
+endmacro
+
+macro RADIANCE_CACHE_INDIRECTION_SRV(code)
+  (code) {
+    radiance_cache_indirection_clipmap@buf = radiance_cache_indirection_clipmap hlsl {
+      StructuredBuffer<uint> radiance_cache_indirection_clipmap@buf;
+    }
+  }
+endmacro
+
+macro RADIANCE_CACHE_POSITIONS_READ(code)
+  hlsl (code) {
+    uint4 radiance_cache_get_wrapped_coord(uint radiance_cache_index) {return radiance_cache_get_wrapped_coord(radiance_cache_positions, radiance_cache_index);}
+  }
+endmacro
+
+macro RADIANCE_CACHE_AGE_READ(code)
+  hlsl (code) {
+    uint radiance_cache_get_last_frame_used(uint radiance_cache_index) {return radiance_cache_get_last_frame_used(radiance_cache_age, radiance_cache_index);}
+    uint radiance_cache_get_temporal_age_and_frame_used(uint radiance_cache_index) {return radiance_cache_get_temporal_age_and_frame_used(radiance_cache_age, radiance_cache_index);}
+  }
+endmacro

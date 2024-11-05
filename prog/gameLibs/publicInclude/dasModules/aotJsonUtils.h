@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -31,7 +30,7 @@ inline char *load_json_from_file(const char *path, const das::TBlock<void, const
     context->invoke(block, &arg, nullptr, at);
     return nullptr; // no errors, empty/null line
   }
-  return context->stringHeap->allocateString(errorMsg);
+  return context->allocateString(errorMsg, at);
 }
 
 inline bool save_json_to_file(const rapidjson::Value &json, const char *path) { return jsonutils::save_json_to_file(json, path); }

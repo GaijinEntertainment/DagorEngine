@@ -1,8 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <nestdb/nestdb.h>
 #include <sqModules/sqModules.h>
 #include <sqCrossCall/sqCrossCall.h>
 #include <sqStackChecker.h>
 #include <sqstdaux.h>
+#include <sqstdblob.h>
 #include <sqrat.h>
 #include <generic/dag_tab.h>
 #include <memory/dag_framemem.h>
@@ -34,10 +37,15 @@ static void script_err_print_func(HSQUIRRELVM /*v*/, const SQChar *s, ...)
 }
 
 
-static void compile_error_handler(HSQUIRRELVM /*v*/, const SQChar *desc, const SQChar *source, SQInteger line, SQInteger column,
-  const SQChar *)
+static void compile_error_handler(HSQUIRRELVM /*v*/, SQMessageSeverity severity, const SQChar *desc, const SQChar *source,
+  SQInteger line, SQInteger column, const SQChar *)
 {
-  logerr("[STORAGE VM] Squirrel compile error %s (%d:%d): %s", source, line, column, desc);
+  if (severity == SEV_HINT)
+    debug("[STORAGE VM] Squirrel compile hint %s (%d:%d): %s", source, line, column, desc);
+  else if (severity == SEV_WARNING)
+    logwarn("[STORAGE VM] Squirrel compile warning %s (%d:%d): %s", source, line, column, desc);
+  else
+    logerr("[STORAGE VM] Squirrel compile error %s (%d:%d): %s", source, line, column, desc);
 }
 
 
@@ -55,7 +63,7 @@ static SQInteger runtime_error_handler(HSQUIRRELVM v)
   {
     const char *callstack = nullptr;
     sq_getstring(v, -1, &callstack);
-    logerr_ctx("[STORAGE VM] %s", callstack);
+    LOGERR_CTX("[STORAGE VM] %s", callstack);
     sq_pop(v, 1);
   }
 
@@ -70,11 +78,17 @@ void init()
   sqvm = sq_open(1024);
   G_ASSERT(sqvm);
 
+  SqStackChecker chk(sqvm);
+
   sq_setprintfunc(sqvm, script_print_func, script_err_print_func);
   sq_setcompilererrorhandler(sqvm, compile_error_handler);
 
   sq_newclosure(sqvm, runtime_error_handler, 0);
   sq_seterrorhandler(sqvm);
+
+  sq_newtable(sqvm); // dummy bound class holder
+  G_VERIFY(SQ_SUCCEEDED(sqstd_register_bloblib(sqvm)));
+  sq_pop(sqvm, 1); // dummy bound class holder
 
   storage = Sqrat::Table(sqvm);
 }
@@ -349,11 +363,13 @@ void bind_api(SqModules *module_mgr)
 {
   HSQUIRRELVM vm = module_mgr->getVM();
   Sqrat::Table exports(vm);
-  exports.SquirrelFunc("ndbWrite", write, 3, ". s|a .")
+  exports //
+    .SquirrelFunc("ndbWrite", write, 3, ". s|a .")
     .SquirrelFunc("ndbRead", read, 2, ". s|a")
     .SquirrelFunc("ndbTryRead", try_read, 2, ". s|a")
     .SquirrelFunc("ndbExists", exists, 2, ". s|a")
-    .SquirrelFunc("ndbDelete", del, 2, ". s|a");
+    .SquirrelFunc("ndbDelete", del, 2, ". s|a")
+    /**/;
   module_mgr->addNativeModule("nestdb", exports);
 }
 

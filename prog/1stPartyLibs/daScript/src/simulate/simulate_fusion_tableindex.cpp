@@ -44,7 +44,7 @@ namespace das {
             auto key = EvalTT<CTYPE>::eval(context,r.subexpr); \
             TableHash<CTYPE> thh(&context,valueTypeSize); \
             auto hfn = hash_function(context, key); \
-            int index = thh.reserve(*tab, key, hfn); \
+            int index = thh.reserve(*tab, key, hfn, &debugInfo); \
             return tab->data + index * valueTypeSize + offset; \
         } \
         DAS_PTR_NODE; \
@@ -58,7 +58,7 @@ namespace das {
             auto key = *((CTYPE *)r.compute##COMPUTER(context)); \
             TableHash<CTYPE> thh(&context,valueTypeSize); \
             auto hfn = hash_function(context, key); \
-            int index = thh.reserve(*tab, key, hfn); \
+            int index = thh.reserve(*tab, key, hfn, &debugInfo); \
             return tab->data + index * valueTypeSize + offset; \
         } \
         DAS_PTR_NODE; \

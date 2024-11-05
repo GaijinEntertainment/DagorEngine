@@ -1,5 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <oldEditor/de_interface.h>
 #include <oldEditor/de_common_interface.h>

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "nodeTracker.h"
 
 #include <debug/backendDebug.h>
@@ -6,6 +8,8 @@
 #include <frontend/dumpInternalRegistry.h>
 #include <frontend/dependencyDataCalculator.h>
 #include <frontend/internalRegistry.h>
+
+#include <perfMon/dag_statDrv.h>
 
 
 // Useful for ensuring that not dependencies are missing.
@@ -46,6 +50,9 @@ void NodeTracker::unregisterNode(NodeNameId nodeId, uint16_t gen)
   // we shouldn't wipe the "new" node's data
   if (gen < registry.nodes[nodeId].generation)
     return;
+
+  if (auto ctx = nodeToContext.get(nodeId))
+    collectWipeSet(nodeId, deferredResourceWipeSets[ctx]);
 
   nodesChanged = true;
   invalidate_graph_visualization();
@@ -92,17 +99,54 @@ void NodeTracker::unregisterNode(NodeNameId nodeId, uint16_t gen)
   nodeToContext.set(nodeId, {});
 }
 
-void NodeTracker::wipeContextNodes(void *context)
+void NodeTracker::collectWipeSet(NodeNameId node_id, ResourceWipeSet &into) const
+{
+  for (const auto resId : registry.nodes[node_id].createdResources)
+  {
+    if (registry.resources[resId].type != ResourceType::Blob)
+      continue;
+
+    // Note that if registry violates the invariant that only the
+    // last resource in the renaming chain has history, we would have
+    // thrown out the chain entirely starting with the "bad" resource
+    // and we won't need to wipe anything.
+    auto lastRenameId = resId;
+    while (depData.renamingChains[lastRenameId] != lastRenameId)
+      lastRenameId = depData.renamingChains[lastRenameId];
+
+    if (registry.resources[lastRenameId].history != History::No)
+      into.insert(resId);
+  }
+}
+
+eastl::optional<NodeTracker::ResourceWipeSet> NodeTracker::wipeContextNodes(void *context)
 {
   const auto it = trackedContexts.find(context);
   if (it == trackedContexts.end())
-    return;
+    return eastl::nullopt;
+
+  debug("daBfg: Wiping nodes and resources managed by context %p...", context);
+
+  NodeTracker::ResourceWipeSet result = eastl::move(deferredResourceWipeSets[context]);
+  deferredResourceWipeSets[context].clear(); // moved-from state is valid but unspecified
 
   for (auto [nodeId, ctx] : nodeToContext.enumerate())
-    if (ctx == context)
-      unregisterNode(nodeId, registry.nodes[nodeId].generation);
+  {
+    if (ctx != context)
+      continue;
+
+    collectWipeSet(nodeId, result);
+
+    unregisterNode(nodeId, registry.nodes[nodeId].generation);
+    debug("daBfg: Wiped node %s with context %p", registry.knownNames.getName(nodeId), ctx);
+  }
 
   trackedContexts.erase(it);
+
+  for (auto resId : result)
+    debug("daBfg: Resource %s needs to be wiped", registry.knownNames.getName(resId));
+
+  return eastl::optional{eastl::move(result)};
 }
 
 void NodeTracker::updateNodeDeclarations()
@@ -112,12 +156,19 @@ void NodeTracker::updateNodeDeclarations()
       [](uint32_t n) { return static_cast<uint32_t>(grnd() % n); });
 
   for (auto nodeId : deferredDeclarationQueue)
-    if (auto &declare = registry.nodes.get(nodeId).declare)
+  {
+    auto &node = registry.nodes.get(nodeId);
+#if TIME_PROFILER_ENABLED && DAGOR_DBGLEVEL > 0
+    if (!node.dapToken)
+      node.dapToken = getProfileToken(nodeId);
+#endif
+    if (auto &declare = node.declare)
     {
       // Reset the value first to avoid funny side-effects later on
       registry.nodes[nodeId].execute = {};
       registry.nodes[nodeId].execute = declare(nodeId, &registry);
     }
+  }
 
   deferredDeclarationQueue.clear();
 
@@ -126,6 +177,10 @@ void NodeTracker::updateNodeDeclarations()
   registry.nodes.resize(registry.knownNames.nameCount<NodeNameId>());
   registry.autoResTypes.resize(registry.knownNames.nameCount<AutoResTypeNameId>());
   registry.resourceSlots.resize(registry.knownNames.nameCount<ResNameId>());
+
+  // If we are recompiling the entire graph before contexts are destroyed,
+  // the resources will be wiped automatically if need be.
+  deferredResourceWipeSets.clear();
 }
 
 void NodeTracker::dumpRawUserGraph() const { dump_internal_registry(registry); }
@@ -138,5 +193,20 @@ void NodeTracker::checkChangesLock() const
            "This is not supported, see callstack and remove the modification!");
   }
 }
+
+#if DAGOR_DBGLEVEL > 0
+uint32_t NodeTracker::getProfileToken(NodeNameId nodeId) const
+{
+#if TIME_PROFILER_ENABLED
+  const char *namePtr = registry.knownNames.getName(nodeId);
+  if (namePtr[0] == '/')
+    namePtr++;
+  return ::da_profiler::add_description(__FILE__, __LINE__, /*flags*/ 0, namePtr);
+#else
+  G_UNUSED(nodeId);
+  return 0;
+#endif
+}
+#endif
 
 } // namespace dabfg

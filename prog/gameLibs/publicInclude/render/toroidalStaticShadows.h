@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -32,6 +31,7 @@ public:
   {
     uint32_t pixelsRendered;
     bool varsChanged;
+    bool scrolled;
   };
 
 protected:
@@ -59,6 +59,7 @@ protected:
 
   // invalidateBox method splits added box, so if pixel is already in list do not invalidate twice
   void invalidateBox(const BBox3 &invalidBox);
+  void invalidateBoxes(const BBox3 *invalidBox, uint32_t cnt);
   void init(int cascade_id, int texSize, float distance, float maxHtRange);
   void setShadervarsToInvalid();
 
@@ -179,6 +180,7 @@ public:
 
   // invalidateBox method splits added box, so if pixel is already in list do not invalidate twice
   void invalidateBox(const BBox3 &invalidBox);
+  void invalidateBoxes(const BBox3 *invalidBox, uint32_t cnt);
   ToroidalStaticShadows(int texSize, int cascades, float maxDistance, float maxHtRange, bool isArray);
   ~ToroidalStaticShadows();
 
@@ -208,6 +210,7 @@ public:
 
   float getDistance() const { return maxDistance; }
   const ManagedTexHolder &getTex() { return staticShadowTex; }
+  void restoreShadowSampler();
   void setMaxHtRange(float max_ht_range); // that is only for skewed matrix
   float getSmallestTexelSize() const { return cascades.empty() ? -1 : cascades[0].texelSize; }
   float getBiggestTexelSize() const { return cascades.empty() ? -1 : cascades.back().texelSize; }

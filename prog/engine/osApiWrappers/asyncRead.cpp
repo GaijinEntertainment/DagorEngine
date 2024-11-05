@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_asyncRead.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_fileIoErr.h>
@@ -34,7 +36,7 @@ void *dfa_open_for_read(const char *fpath, bool non_cached)
   if (dag_on_file_pre_open)
     if (!dag_on_file_pre_open(fpath))
     {
-      debug_ctx("error opening <%s> for read; err=0x%p", fpath, GetLastError());
+      DEBUG_CTX("error opening <%s> for read; err=0x%p", fpath, GetLastError());
       if (dag_on_file_not_found)
         dag_on_file_not_found(fpath);
       return NULL;
@@ -49,12 +51,12 @@ void *dfa_open_for_read(const char *fpath, bool non_cached)
     FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED | FILE_FLAG_SEQUENTIAL_SCAN | (non_cached ? FILE_FLAG_NO_BUFFERING : 0), NULL);
   if (h == INVALID_HANDLE_VALUE)
   {
-    debug_ctx("error opening <%s> for read; err=0x%p", fpath, GetLastError());
+    DEBUG_CTX("error opening <%s> for read; err=0x%p", fpath, GetLastError());
     if (dag_on_file_not_found)
       dag_on_file_not_found(fpath);
     return NULL;
   }
-  // debug_ctx ( "fn=<%s>, handle=%p", (char*)fn, h );
+  // DEBUG_CTX("fpath=<%s>, handle=%p", fpath, h);
   if (dag_on_file_open)
     dag_on_file_open(fpath, h, DF_READ);
   return h;
@@ -64,7 +66,7 @@ void dfa_close(void *handle)
 {
   if (handle == INVALID_HANDLE_VALUE)
   {
-    debug_ctx("invalid handle=%p", handle);
+    DEBUG_CTX("invalid handle=%p", handle);
     return;
   }
   CloseHandle(handle);
@@ -151,7 +153,7 @@ int dfa_alloc_asyncdata()
   if (idx >= 0)
     return idx + 32;
 
-  debug_ctx("no more free handles");
+  DEBUG_CTX("no more free handles");
   return -1;
 }
 
@@ -159,7 +161,7 @@ void dfa_free_asyncdata(int data_handle)
 {
   if (data_handle < 0 || data_handle >= 64)
   {
-    debug_ctx("incorrect handle: %d", data_handle);
+    DEBUG_CTX("incorrect handle: %d", data_handle);
     return;
   }
   if (!critSecInited)
@@ -167,7 +169,7 @@ void dfa_free_asyncdata(int data_handle)
 
   ::enter_critical_section(critSec);
   if (!unuse_bit(data_handle < 32 ? &ovFreeBitmask1 : &ovFreeBitmask2, data_handle % 32))
-    debug_ctx("already freed handle: %d", data_handle);
+    DEBUG_CTX("already freed handle: %d", data_handle);
   ::leave_critical_section(critSec);
 }
 
@@ -190,12 +192,12 @@ bool dfa_read_async(void *handle, int asyncdata_handle, int offset, void *buf, i
 {
   if (asyncdata_handle < 0 || asyncdata_handle >= 64)
   {
-    debug_ctx("incorrect handle: %d", asyncdata_handle);
+    DEBUG_CTX("incorrect handle: %d", asyncdata_handle);
     return false;
   }
   if (check_unused_bit(asyncdata_handle < 32 ? ovFreeBitmask1 : ovFreeBitmask2, asyncdata_handle % 32))
   {
-    debug_ctx("not-opened handle: %d", asyncdata_handle);
+    DEBUG_CTX("not-opened handle: %d", asyncdata_handle);
     return false;
   }
 
@@ -211,7 +213,7 @@ place_req:
   int ret = ReadFileEx(handle, buf, len, &p, file_io_cr);
   if (!ret && GetLastError() != ERROR_SUCCESS)
   {
-    debug_ctx("error starting async read ReadFileEx(h=%p, ofs=%d, len=%d, buf=%p); ret=%d err=0x%p", handle, offset, len, buf, ret,
+    DEBUG_CTX("error starting async read ReadFileEx(h=%p, ofs=%d, len=%d, buf=%p); ret=%d err=0x%p", handle, offset, len, buf, ret,
       GetLastError());
     if (dag_on_read_error_cb && dag_on_read_error_cb(handle, offset, len))
       goto place_req;
@@ -225,16 +227,15 @@ bool dfa_check_complete(int asyncdata_handle, int *read_len)
 {
   G_ASSERT(asyncdata_handle >= 0 && asyncdata_handle < 64);
 
-  // debug_ctx ( "asyncdata_handle=%d complete=%d", asyncdata_handle, ovPool[asyncdata_handle].complete );
+  // DEBUG_CTX("asyncdata_handle=%d complete=%d", asyncdata_handle, ovPool[asyncdata_handle].complete);
   if (!ovPool[asyncdata_handle].complete)
   {
     SleepEx(0, TRUE);
     if (!ovPool[asyncdata_handle].complete)
       return false;
   }
-  // debug_ctx ( "asyncdata_handle=%d complete=%d errCode=%p bytesRed=%d",
-  //             asyncdata_handle, ovPool[asyncdata_handle].complete,
-  //             ovPool[asyncdata_handle].errCode, ovPool[asyncdata_handle].bytesRead );
+  // DEBUG_CTX("asyncdata_handle=%d complete=%d errCode=%p bytesRed=%d",
+  //   asyncdata_handle, ovPool[asyncdata_handle].complete, ovPool[asyncdata_handle].errCode, ovPool[asyncdata_handle].bytesRead);
 
   if (read_len)
     *read_len = ovPool[asyncdata_handle].bytesRead;

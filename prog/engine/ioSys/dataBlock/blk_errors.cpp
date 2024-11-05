@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "blk_shared.h"
 #include <util/dag_string.h>
 
@@ -22,14 +24,14 @@ static void issue_error_unhappy_path(bool do_fatal, int line, const char *errTex
 #define issue_error(robust_load, do_fatal, line, ...)                         \
   do                                                                          \
   {                                                                           \
-    if (EASTL_UNLIKELY(!robust_load || tls_reporter))                         \
+    if (DAGOR_UNLIKELY(!robust_load || tls_reporter))                         \
       issue_error_unhappy_path(do_fatal, line, String(0, __VA_ARGS__).str()); \
   } while (0)
 
 void DataBlock::issue_error_missing_param(const char *pname, int type) const
 {
   issue_error(shared->blkRobustOps(), fatalOnMissingVar, __LINE__,
-    "BLK param missing: block='%s', param='%s' in file <%s> (req type: %s)", getBlockName(), pname, resolveFilename(),
+    "BLK param missing: block='%s', param='%s' in file '%s' (req type: %s)", getBlockName(), pname, resolveFilename(),
     dblk::resolve_type(type));
 }
 void DataBlock::issue_error_missing_file(const char *fname, const char *desc) const
@@ -56,7 +58,7 @@ void DataBlock::issue_error_parsing(const char *fname, int curLine, const char *
 void DataBlock::issue_error_bad_type(const char *pname, int type_new, int type_prev, const char *fname) const
 {
   issue_error(shared->blkRobustLoad(), fatalOnBadVarType, __LINE__,
-    "BLK param '%s' (type %s) already exists with type %s in file <%s>, block '%s'", pname, dblk::resolve_type(type_new),
+    "BLK param '%s' (type %s) already exists with type %s in file '%s', block '%s'", pname, dblk::resolve_type(type_new),
     dblk::resolve_type(type_prev), fname, getBlockName());
 }
 void DataBlock::issue_error_bad_type(int pnid, int type_new, int type_prev) const

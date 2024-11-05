@@ -1,0 +1,53 @@
+include "shader_global.dshl"
+
+macro tonemappedColorToDevice(code)
+
+  //old LUT tonemap, to be removed!
+
+  hlsl(code) {
+    /*
+    float3 ReinhardMain( float3 texColor )
+    {
+       float3 retColor = texColor/(texColor+1);  // Reinhard
+       return retColor;
+    }
+
+    float3 FilmicMain( float3 texColor )
+    {
+       float3 x = max(0,texColor-0.004); // Filmic Curve
+       float3 retColor = (x*(6.2*x+.5))/(x*(6.2*x+1.7)+0.06);
+       return retColor;
+    }
+    float3 Uncharted2Tonemap(float3 x)
+    {
+       float A = 0.15;
+       float B = 0.50;
+       float C = 0.10;
+       float D = 0.20;
+       float E = 0.02;
+       float F = 0.30;
+       float W = 11.2;
+
+       return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
+    }
+
+    float3 UnchartedMain( float3 texColor )
+    {
+       float ExposureBias = 1.0f;
+       float3 curr = Uncharted2Tonemap(ExposureBias*texColor);
+       float3 W = 2;
+       float3 whiteScale = 1.0f/Uncharted2Tonemap(W);
+       float3 color = curr*whiteScale;
+       return ApplySRGBCurve(color);
+    }*/
+
+    #include <pixelPacking/ColorSpaceUtility.hlsl>
+    float3 toDevice(float3 tonemapedColor, float3 linearColor, float3 balancedColor, float3 gradedColorgradedColor )
+    {
+      return ApplySRGBCurve(tonemapedColor);
+    }
+  }
+endmacro
+
+include "tonemapHelpers/render_full_tonemap_lut.dshl"
+

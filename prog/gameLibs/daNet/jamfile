@@ -22,7 +22,7 @@ UseProgLibs =
   3rdPartyLibs/enet
 ;
 
-if $(Platform) in win32 win64 xboxOne scarlett { # inet_pton compat shim for winxp
+if $(Platform) in windows xboxOne scarlett { # inet_pton compat shim for winxp
   AddIncludes += $(Root)/prog/3rdPartyLibs/posix/include/win32 ;
   UseProgLibs += 3rdPartyLibs/posix ;
 }

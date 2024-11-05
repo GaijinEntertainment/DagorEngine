@@ -5,6 +5,7 @@ StrictCompile = yes ;
 TargetType  = lib ;
 Target      = commonFx/commonFxGame.lib ;
 
+include $(Root)/prog/_jBuild/defaults.jam ;
 
 AddIncludes     =
   $(Root)/prog/commonFx/commonFxGame
@@ -32,8 +33,11 @@ UseProgLibs =
   gameLibs/daFx
 ;
 
-if $(Platform) = win32 && $(PlatformSpec) != clang && $(Config) in dbg dev { # this workarounds FPEs within hlsl-compat scalar code
-  CPPopt += /arch:SSE2 ;
+if $(DafxGravityZone) = yes {
+  Target  = $(Target:S=~gz.lib) ;
+  CPPopt += -DDAFX_USE_GRAVITY_ZONE=1 ;
 }
+
+if $(SSEVersion) = 0 { CPPopt += /arch:SSE2 ; } # this workarounds FPEs within hlsl-compat scalar code
 
 include $(Root)/prog/_jBuild/build.jam ;

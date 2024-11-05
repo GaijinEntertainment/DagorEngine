@@ -1,7 +1,14 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "de3_worldrenderer.h"
 #include "de3_visibility_finder.h"
 #include "de3_ICamera.h"
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <gui/dag_stdGuiRender.h>
 #include <render/fx/dag_postfx.h>
 #include <render/fx/dag_demonPostFx.h>
@@ -77,11 +84,7 @@ void WorldRenderer::close()
   del_d3dres(sceneDepth);
 }
 
-void WorldRenderer::update(float dt)
-{
-  windEffect.updateWind(dt);
-  postFx->update(dt);
-}
+void WorldRenderer::update(float dt) { windEffect.updateWind(dt); }
 
 void WorldRenderer::render(DagorGameScene &)
 {
@@ -128,7 +131,6 @@ void WorldRenderer::restartPostfx(DataBlock *postfxBlkTemp)
     postFx->restart(postfxBlkTemp, NULL, NULL);
 }
 
-static void set_visibility_range(float) { update_visibility_finder(); }
 
 void WorldRenderer::prepareWaterReflection() {}
 
@@ -138,7 +140,7 @@ void WorldRenderer::beforeRender()
   envSetts.applyOnRender(true);
   renderWorld->beforeRender();
 
-  update_visibility_finder();
+  update_visibility_finder(visbilityFinder);
 
   if (globalFrameBlockId != -1)
     ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);

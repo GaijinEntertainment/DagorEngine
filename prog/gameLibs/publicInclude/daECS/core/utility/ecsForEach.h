@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -29,6 +28,5 @@
 #define ECS_FOR_EACH_ARG_N(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, N, ...) N
 
 #define ECS_FOR_EACH_RSEQ_N()       15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
-#define ECS_CONCATENATE(x, y)       x##y
 #define ECS_FOR_EACH_(N, WHAT, ...) ECS_EXPAND(CONCATENATE(ECS_FOR_EACH_, N)(WHAT, __VA_ARGS__))
 #define ECS_FOR_EACH(WHAT, ...)     ECS_FOR_EACH_(ECS_FOR_EACH_NARG(__VA_ARGS__), WHAT, __VA_ARGS__)

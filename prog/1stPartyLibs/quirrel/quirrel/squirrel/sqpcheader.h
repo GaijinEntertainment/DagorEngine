@@ -32,4 +32,9 @@
 #include "sqobject.h"
 #include "sqstate.h"
 
+#if defined(__cpp_lib_to_chars) && __cpp_lib_to_chars >= 201611L
+#include <charconv>
+#define SQ_USE_STD_FROM_CHARS 1
+#endif
+
 #endif //_SQPCHEADER_H_

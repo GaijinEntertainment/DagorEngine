@@ -1,11 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <scene/dag_visibility.h>
 #include <scene/dag_occlusion.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderMesh.h>
 #include <3d/dag_render.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_materialData.h>
-#include <3d/dag_drv3dCmd.h>
 #include <workCycle/dag_gameSettings.h>
 #include <generic/dag_tabUtils.h>
 #include <vecmath/dag_vecMath.h>
@@ -14,7 +15,7 @@
 #include <math/dag_mathUtils.h>
 
 void VisibilityFinder::set(vec4f viewpos, const Frustum &frustum_, float object_to_sceen_ratio, float near_ratio_offset,
-  float visibility_range_multiplier, float hk, bool use_occlusion)
+  float visibility_range_multiplier, float hk, const Occlusion *occlusion_)
 {
 
   frustum = frustum_;
@@ -24,7 +25,7 @@ void VisibilityFinder::set(vec4f viewpos, const Frustum &frustum_, float object_
   float nearRatioOffsetSq = near_ratio_offset * near_ratio_offset;
   c_squaredDistanceOffset = v_splats(squaredDistanceOffset);
   c_nearRatioOffsetSq = v_splats(nearRatioOffsetSq);
-  useOcclusion = use_occlusion;
+  occlusion = occlusion_;
 }
 
 __forceinline bool VisibilityFinder::isScreenRatioVisibleInline(vec3f sphc, vec4f sphr2, vec4f msor_sq) const
@@ -63,7 +64,7 @@ bool VisibilityFinder::isVisibleBoxVLeaf(vec4f bmin_msoRadSq, vec4f bmax_sphRadS
 
   // Box vs. occlusion map.
 
-  if (useOcclusion && current_occlusion && current_occlusion->isOccludedBoxExtent2(center2, extent2))
+  if (occlusion && occlusion->isOccludedBoxExtent2(center2, extent2))
     return false;
   return true;
 }
@@ -87,7 +88,7 @@ unsigned VisibilityFinder::isVisibleBoxV(vec4f bmin_msoRadSq, vec4f bmax_sphRadS
 
   // Box vs. occlusion map.
 
-  if (useOcclusion && current_occlusion && current_occlusion->isOccludedBoxExtent2(center2, extent2))
+  if (occlusion && occlusion->isOccludedBoxExtent2(center2, extent2))
     return IS_OCCLUDED;
   return intersect;
 }
@@ -122,7 +123,7 @@ bool VisibilityFinder::isVisible(const BBox3 &box_s, const BSphere3 &sph, float 
 
   // Box vs. occlusion map.
 
-  if (useOcclusion && current_occlusion && current_occlusion->isOccludedBoxExtent2(center2, extent2))
+  if (occlusion && occlusion->isOccludedBoxExtent2(center2, extent2))
     return false;
   return true;
 }

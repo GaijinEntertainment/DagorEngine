@@ -29,6 +29,8 @@ namespace das {
     void * loadDynamicLibrary ( const char * fileName );
     void * getFunctionAddress ( void * module, const char * func );
     void * getLibraryHandle ( const char * moduleName );
+    bool closeLibrary ( void * module );
+
 
     void hwSetBreakpointHandler ( void (* handler ) ( int, void * ) );
     int hwBreakpointSet ( void * address, int len, int when );

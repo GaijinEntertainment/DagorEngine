@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -29,6 +28,7 @@ class ScreenDroplets
   float intensity = 0;
   GaussMipRenderer mipRenderer;
   IPoint2 resolution;
+  d3d::SamplerHandle clampSampler;
 
   void updateShaderState() const;
   void render(BaseTexture *rtarget);
@@ -68,6 +68,7 @@ public:
     float rainConeOff = 1;
     bool intensityDirectControl = false;
     float intensityChangeRate = 1.0 / 6;
+    float gridX = 5.4;
   };
   void setConvars(const ConvarParams &convar_params);
 };

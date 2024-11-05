@@ -1,0 +1,220 @@
+include "radiance_cache_trace_common.dshl"
+include "radiance_cache_sample.dshl"
+include "radiance_cache_recalc_common.dshl"
+include "gbuffer.dshl"
+
+shader get_fake_radiance_cache_res_cs
+{
+  hlsl(cs) {
+    //this is just awful way to export hlsl const to c++
+    [numthreads(RADIANCE_CACHE_RADIANCE_RES, 1, 1)]
+    void get_fake_radiance_cache_res_cs() {}
+  }
+  compile("target_cs", "get_fake_radiance_cache_res_cs");
+}
+
+shader calc_radiance_cache_new_cs
+{
+  RADIANCE_CACHE_CLIPMAP_ATLAS_MATH(cs)
+  RADIANCE_CACHE_POSITIONS_SRV(cs)
+  RADIANCE_CACHE_POSITIONS_READ(cs)
+  RADIANCE_CACHE_INDIRECTION_SRV(cs)
+  RADIANCE_CACHE_AGE_SRV(cs)
+  RADIANCE_CACHE_AGE_READ(cs)
+
+  (cs)
+  {
+    radiance_cache_current_frame@i1 = radiance_cache_current_frame;
+    new_radiance_cache_probes_needed@buf = new_radiance_cache_probes_needed hlsl {
+      ByteAddressBuffer new_radiance_cache_probes_needed@buf;
+    }
+  }
+  RADIANCE_CACHE_TRACE_PROBE(cs)
+  hlsl(cs) {
+    RWTexture2D<float3> current_radiance_cache: register(u0);
+    RWTexture2D<float> radiance_cache_dist: register(u1);
+
+    [numthreads(RADIANCE_CACHE_RADIANCE_RES, RADIANCE_CACHE_RADIANCE_RES, 1)]
+    void calc_radiance_cache_new_cs(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint tid:SV_GroupIndex)
+    {
+      uint newProbeIndex = gId;
+      if (newProbeIndex >= get_radiance_cache_total_atlas_size())//safety, should not be needed
+        return;
+      uint wrappedAddr = loadBuffer(new_radiance_cache_probes_needed, newProbeIndex*4 + 4);
+      uint radianceCacheProbeIndex = radiance_cache_indirection_from_clip_addr(radiance_cache_indirection_clipmap, wrappedAddr);
+      if (radianceCacheProbeIndex >= get_radiance_cache_total_atlas_size())//safety, if we actually hadn't allocated probe
+        return;
+      uint2 radianceCacheAtlasProbeCoord = uint2(radianceCacheProbeIndex%get_radiance_cache_atlas_dim().x, radianceCacheProbeIndex/get_radiance_cache_atlas_dim().x);
+      uint2 octCoord = gtId;
+      uint4 wrappedCoordClipId = radiance_cache_decode_wrapped_coord(wrappedAddr);
+      uint radianceCacheClip = wrappedCoordClipId.w;
+      if (radianceCacheClip >= get_radiance_cache_clip_count())//safety, should not be needed
+        return;
+      int3 probeWorldCoordClip = radiance_cache_abs_coord_from_wrapped_coord(wrappedCoordClipId.xyz, radianceCacheClip);
+      //uint temporalAge = 0;
+      //uint radianceCacheLastUsedFrame = radiance_cache_get_last_frame_used_and_temporal_age(radiance_cache_age, radianceCacheProbeIndex, temporalAge);
+
+      uint2 targetCoord = radianceCacheAtlasProbeCoord*RADIANCE_CACHE_RADIANCE_RES + octCoord;
+      float3 radiance;
+      float occluder_distance;
+      traceProbe(probeWorldCoordClip, radianceCacheClip, octCoord, (radiance_cache_current_frame&31), radiance, occluder_distance);
+
+      texture2DAt(current_radiance_cache, targetCoord) = radiance_cache_encode_texture_radiance(h3nanofilter(radiance));
+      texture2DAt(radiance_cache_dist, targetCoord) = occluder_distance;
+      //storeBuffer(radiance_cache_age, (radianceCacheProbeIndex + get_radiance_cache_total_atlas_size())*4, encode_temporal_age_and_frame(0, radiance_cache_current_frame));
+    }
+  }
+  compile("target_cs", "calc_radiance_cache_new_cs");
+}
+
+shader select_temporal_radiance_cache_cs
+{
+  RADIANCE_CACHE_CLIPMAP_ATLAS_MATH(cs)
+  RADIANCE_CACHE_POSITIONS_SRV(cs)
+  RADIANCE_CACHE_POSITIONS_READ(cs)
+  NOISE(cs)
+
+  RADIANCE_CACHE_AGE_SRV(cs)
+  RADIANCE_CACHE_AGE_READ(cs)
+
+  (cs)
+  {
+    radiance_cache_current_frame@i1 = radiance_cache_current_frame;
+    radiance_cache_temporal_recalc_params@i4 = radiance_cache_temporal_recalc_params;
+    radiance_cache_temporal_recalc_params2@i4 = radiance_cache_temporal_recalc_params2;
+  }
+  RADIANCE_CACHE_TEMPORAL_RECALC_MATH(cs)
+  hlsl(cs) {
+    #include <waveUtils.hlsl>
+    #include <pcg_hash.hlsl>
+    //groupshared float3 last_radiance[RADIANCE_CACHE_RADIANCE_RES*RADIANCE_CACHE_RADIANCE_RES];
+    RWByteAddressBuffer radiance_cache_selected_temporal_probes: register(u0);
+    [numthreads(64, 1, 1)]
+    void select_temporal_radiance_cache_cs(uint dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
+    {
+      if (dtId >= get_radiance_cache_total_atlas_size())
+        return;
+      uint radianceCacheProbeIndex = dtId;
+      uint2 radianceCacheAtlasProbeCoord = uint2(radianceCacheProbeIndex%get_radiance_cache_atlas_dim().x, radianceCacheProbeIndex/get_radiance_cache_atlas_dim().x);
+
+      //begin of per group operations
+      uint temporalAgeAndFrame = loadBuffer(radiance_cache_age, (radianceCacheProbeIndex + get_radiance_cache_total_atlas_size())*4);
+      if (temporalAgeAndFrame == ~0u)//deleted
+        return;
+
+      uint temporalFrame, temporalAge;
+      decode_temporal_age_and_frame(temporalAgeAndFrame, temporalAge, temporalFrame);
+      if (temporalAge == 0 && uint(radiance_cache_current_frame) == temporalFrame)//fresh new
+        return;
+
+      //we can actually implement that explicitly, so budget is determined once per thread
+      uint hashFromCacheIndex = pcg2d(radianceCacheAtlasProbeCoord).x;
+      uint updateInFrames = radiance_cache_temporal_recalc_params.x;
+      uint sparseUpdateUnusedProbes = radiance_cache_temporal_recalc_params.z;
+      uint convergedAge = radiance_cache_temporal_recalc_params.y;
+
+      uint currentUpdateFrame = radiance_cache_temporal_recalc_params2.x;
+      uint currentUpdateFrameReminder = radiance_cache_temporal_recalc_params2.y;
+      uint currentUpdateFrameOldProbes = radiance_cache_temporal_recalc_params2.z;
+      uint currentUpdateFrameOldProbesReminder = radiance_cache_temporal_recalc_params2.w;
+      if ((hashFromCacheIndex%updateInFrames) != currentUpdateFrameReminder)
+        return;
+
+      if (temporalAge >= convergedAge)
+      {
+        uint radianceCacheLastUsedFrame = radiance_cache_get_last_frame_used(radiance_cache_age, radianceCacheProbeIndex);
+        if (radianceCacheLastUsedFrame != uint(radiance_cache_current_frame))//not used in this frame, so update even rarely
+        {
+          //todo: check if probe is invisible in frustum. visible probe should be updated regardless
+          //fixme:
+          hashFromCacheIndex /= updateInFrames;
+          if ((hashFromCacheIndex%sparseUpdateUnusedProbes) != currentUpdateFrameOldProbesReminder)//fixme latter is const
+            return;
+          currentUpdateFrame = currentUpdateFrameOldProbes;
+        }
+      }
+
+      //uint radianceCacheClip = radiance_cache_get_wrapped_pos(radianceCacheProbeIndex).w;
+      //if (radianceCacheClip >= get_radiance_cache_clip_count())//safety, should not be needed since age is valid
+      //  return;
+      //end of per group operations
+      uint at;
+      WaveInterlockedAddRawUintOriginal(radiance_cache_selected_temporal_probes, 0, 1, at);
+      if (at < uint(radiance_cache_temporal_recalc_params.w))
+        storeBuffer(radiance_cache_selected_temporal_probes, radiance_cache_selected_temporal_buffer_pos(at),
+          radiance_cache_encode_selected_temporal_recalc(radianceCacheProbeIndex, temporalAge, currentUpdateFrame));
+    }
+  }
+  compile("target_cs", "select_temporal_radiance_cache_cs");
+}
+
+shader calc_temporal_radiance_cache_cs
+{
+  RADIANCE_CACHE_CLIPMAP_ATLAS_MATH(cs)
+  RADIANCE_CACHE_POSITIONS_SRV(cs)
+  RADIANCE_CACHE_POSITIONS_READ(cs)
+  RADIANCE_CACHE_INDIRECTION_SRV(cs)
+
+  hlsl(cs) {
+    RWByteAddressBuffer radiance_cache_age: register(u2);
+  }
+  RADIANCE_CACHE_AGE_READ(cs)
+
+  (cs)
+  {
+    radiance_cache_current_frame@i1 = radiance_cache_current_frame;
+    radiance_cache_temporal_recalc_params2@i4 = radiance_cache_temporal_recalc_params2;
+  }
+  RADIANCE_CACHE_TEMPORAL_RECALC(cs)
+  RADIANCE_CACHE_TRACE_PROBE(cs)
+  hlsl(cs) {
+    RWTexture2D<float3> current_radiance_cache: register(u0);
+    RWTexture2D<float> radiance_cache_dist: register(u1);
+    //groupshared float3 last_radiance[RADIANCE_CACHE_RADIANCE_RES*RADIANCE_CACHE_RADIANCE_RES];
+
+    [numthreads(RADIANCE_CACHE_RADIANCE_RES, RADIANCE_CACHE_RADIANCE_RES, 1)]
+    void calc_temporal_radiance_cache_cs(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint tid:SV_GroupIndex)
+    {
+      if (gId >= uint(radiance_cache_temporal_recalc_params.w))
+        return;
+      EncodedSelectedTemporalRecalcRadianceCacheProbe probe = radiance_cache_read_selected_temporal_recalc_unsafe(gId);
+      uint radianceCacheProbeIndex = probe.radianceCacheProbeIndex;
+      uint temporalAge = probe.temporalAge;
+      uint currentUpdateFrame = probe.currentUpdateFrame;
+      uint2 radianceCacheAtlasProbeCoord = uint2(radianceCacheProbeIndex%get_radiance_cache_atlas_dim().x, radianceCacheProbeIndex/get_radiance_cache_atlas_dim().x);
+      uint4 probeWrappedPosId = radiance_cache_get_wrapped_coord(radianceCacheProbeIndex);//fixme: may be remove and encode in same selected_temporal_probes ?
+
+      uint radianceCacheClip = uint(probeWrappedPosId.w);
+      //end of per group operations
+
+      int3 probeWorldCoordClip = radiance_cache_abs_coord_from_wrapped_coord(probeWrappedPosId.xyz, probeWrappedPosId.w);
+
+      uint2 octCoord = gtId;
+      uint2 targetCoord = radianceCacheAtlasProbeCoord*RADIANCE_CACHE_RADIANCE_RES + octCoord;
+      ##if hardware.dx11 || !hardware.dx11
+      //fixme!!! support no typed uav load
+      float3 last_encoded_radiance = texture2DAt(current_radiance_cache, targetCoord);
+      float last_encoded_distance = texture2DAt(radiance_cache_dist, targetCoord);
+      GroupMemoryBarrierWithGroupSync();
+      ##endif
+      float3 radiance;
+      float occluder_distance;
+      traceProbe(probeWorldCoordClip.xyz, radianceCacheClip, octCoord, (currentUpdateFrame&31), radiance, occluder_distance);
+
+      float3 newValue = radiance_cache_encode_texture_radiance(radiance);
+      //we can also make interpolation aware of r11g11b10 to preven "stuck" in a position
+      temporalAge = min(temporalAge + 1, RADIANCE_CACHE_TEMPORAL_RECALC_MAX_TEMPORAL_AGE);
+      float temporalW = max(1./(1. + temporalAge), 0.05);
+      ##if hardware.dx11 || !hardware.dx11
+      newValue = lerp(last_encoded_radiance, newValue, temporalW);
+      occluder_distance = lerp(last_encoded_distance, occluder_distance, temporalW);
+      ##endif
+      //current_radiance_cache[targetCoord] = h3nanofilter(Round_R11G11B10_FLOAT(newValue));//increase precision
+      texture2DAt(current_radiance_cache, targetCoord) = h3nanofilter(newValue);//increase precision
+      texture2DAt(radiance_cache_dist, targetCoord) = occluder_distance;
+      storeBuffer(radiance_cache_age, (radianceCacheProbeIndex + get_radiance_cache_total_atlas_size())*4, encode_temporal_age_and_frame(temporalAge, radiance_cache_current_frame));
+    }
+  }
+  compile("target_cs", "calc_temporal_radiance_cache_cs");
+}
+

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <quirrel/quirrel_json/rapidjson.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/reader.h>

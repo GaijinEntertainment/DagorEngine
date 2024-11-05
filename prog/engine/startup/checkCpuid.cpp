@@ -1,8 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <supp/_platform.h>
 #include <startup/dag_globalSettings.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h> //memcpy
+#if _TARGET_ANDROID
+#include <sys/system_properties.h>
+#endif
 
 #if _TARGET_SIMD_SSE
 #if !_MSC_VER || defined(__clang__)
@@ -49,6 +54,16 @@ void check_cpuid()
   snprintf(::dgs_cpu_name, sizeof(::dgs_cpu_name), "<%.64s> %s%s", cpuBrandString, sse, popcnt);
 #elif _TARGET_C3
 
+#elif _TARGET_ANDROID
+  char manufacturer[PROP_VALUE_MAX] = {0};
+  __system_property_get("ro.product.manufacturer", manufacturer);
+  char model[PROP_VALUE_MAX] = {0};
+  __system_property_get("ro.product.model", model);
+  char chipname[PROP_VALUE_MAX] = {0};
+  __system_property_get("ro.hardware.chipname", chipname);
+  char vulkan[PROP_VALUE_MAX] = {0};
+  __system_property_get("ro.hardware.vulkan", vulkan);
+  snprintf(::dgs_cpu_name, sizeof(::dgs_cpu_name), "%s %s %s | %s", manufacturer, model, chipname, vulkan);
 #else
   snprintf(::dgs_cpu_name, sizeof(::dgs_cpu_name), "n/a");
 #endif

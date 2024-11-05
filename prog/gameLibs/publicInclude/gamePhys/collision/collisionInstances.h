@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -63,13 +62,18 @@ public:
 
   void clear();
   APEX_VIRTUAL void clearInstances();
+  void unlink();
   bool empty() const { return bulletInstances.empty(); }
 
-  CollisionObject getCollisionObject(const rendinst::RendInstDesc &desc, TMatrix &tm, bool instant = false);
   void removeCollisionObject(const rendinst::RendInstDesc &desc);
   void enableDisableCollisionObject(const rendinst::RendInstDesc &desc, bool flag);
   bool isCollisionObjectEnabled(const rendinst::RendInstDesc &desc) const;
-  CollisionObject updateTm(const rendinst::RendInstDesc &desc, const TMatrix &tm);
+  CollisionObject updateTm(const rendinst::RendInstDesc &desc, const TMatrix &tm, TMatrix *out_ntm = nullptr,
+    bool update_scale = false, bool instant = false);
+  CollisionObject getCollisionObject(const rendinst::RendInstDesc &desc, TMatrix &tm, bool instant = false)
+  {
+    return updateTm(desc, tm, &tm, /*update_scale*/ true, instant);
+  }
   CollisionObject updateTm(const rendinst::RendInstDesc &desc, const Point3 &vel, const Point3 &omega);
 
   APEX_VIRTUAL physx::PxRigidActor *getPhysXCollisionObject(const Point3 &, const TMatrix &, const rendinst::RendInstDesc &, bool)

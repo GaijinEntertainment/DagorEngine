@@ -1,0 +1,31 @@
+include "dagi_quality.dshl"
+include "dagi_sky_vis_common.dshl"
+macro PROJECT_WORLD_WSAO(code)
+  if (gi_quality == only_ao)
+  {
+    DAGI_SKY_VIS_SAMPLE(code)
+  }
+  hlsl(code) {
+    half get_project_gi_ao(float3 worldPos, float3 normal, bool is_reconstructed = true)
+    {
+      ##if gi_quality == only_ao// && compatibility_mode == compatibility_mode_on
+        float dist = length(world_view_pos - worldPos);
+        float3 view = normalize(world_view_pos - worldPos);
+        float ofs = max(dist*0.04, 0.25*dagi_sky_vis_probe_size(0));
+        float3 filteredWorldPos = worldPos + view*ofs;
+        float noise = 0;
+        float4 sh1 = dagi_get_sky_visibility_smooth_sh1(world_view_pos.xyz, filteredWorldPos, (is_reconstructed ? 2 : 0)*view, max(0, (is_reconstructed ? 0.5 : 1)*dist-ofs), is_reconstructed ? 0 : normal, noise, float4(1,0,0,0));
+        //use lambertian diffuseDominantDir, since roughness is not known
+        float ao = max(0, dot(float4(normal, 1), sh1.wyzx));
+        FLATTEN
+        if (is_reconstructed)
+          ao = lerp(ao, max(0, dot(float4(0,1,0, 1), sh1.wyzx)), 0.5);// 0.5 weight is chosen arbitrarily
+        return ao;
+      ##else
+        return 1;
+      ##endif
+    }
+  }
+
+endmacro
+

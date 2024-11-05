@@ -1,0 +1,46 @@
+texture tsr_input_color;
+texture tsr_history_color;
+texture tsr_history_confidence;
+texture tsr_reactive_mask;
+
+float4 tsr_jitter_offset;
+float4 tsr_input_resolution = (1, 1, 1, 1);
+float4 tsr_output_resolution = (1, 1, 1, 1);
+
+float4 tsr_uv_transform = (1, 1, 0, 0);
+
+float tsr_debug_update_override = 1;
+float tsr_input_sampling_sigma = 0.47;
+float tsr_sharpening = 0.5;
+float tsr_resampling_loss_sigma = 1;
+float tsr_depth_overhang_sigma = 0.0004;
+float tsr_process_loss = 0.99;
+float tsr_scale_base = 1.5;
+float tsr_scale_motion_steepness = 1e2;
+float tsr_scale_motion_max = 0.1;
+float4 tsr_input_resampling_filter_0;
+float4 tsr_input_resampling_filter_1;
+float4 tsr_input_resampling_filter_2;
+
+float tsr_process_loss_dynamic = 0.99;
+float tsr_scale_base_dynamic = 1.5;
+float tsr_scale_motion_steepness_dynamic = 1e2;
+float tsr_scale_motion_max_dynamic = 0.1;
+
+float4 prevViewProjTm0;
+float4 prevViewProjTm1;
+float4 prevViewProjTm2;
+float4 prevViewProjTm3;
+
+texture tsr_vrs_mask;
+
+int tsr_should_restart;
+
+int tsr_debug = 0;
+interval tsr_debug : off < 1, on;
+
+int tsr_is_upsampling = 1;
+interval tsr_is_upsampling : no < 1, yes;
+
+int tsr_history_reconstruction = 0;
+interval tsr_history_reconstruction : bilinear < 1, bicubic;

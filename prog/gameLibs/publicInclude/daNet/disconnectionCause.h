@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -18,7 +17,8 @@
   DC(DC_KICK_INACTIVITY)            /* User was kicked due to inactivity */                                  \
   DC(DC_KICK_ANTICHEAT)             /* User was kicked by anticheat cause */                                 \
   DC(DC_KICK_FRIENDLY_FIRE)         /* User was kicked for friendly fire */                                  \
-  DC(DC_KICK_VOTE)                  /* User was kicked by voting */
+  DC(DC_KICK_VOTE)                  /* User was kicked by voting */                                          \
+  DC(DC_COMPLAINTS)                 /* User was kicked for receiving too many complaints in short time */
 
 enum DisconnectionCause : uint8_t
 {

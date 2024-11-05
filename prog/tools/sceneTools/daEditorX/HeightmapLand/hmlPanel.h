@@ -1,13 +1,14 @@
-#ifndef __GAIJIN_HEIGHTMAPLAND_PANEL__
-#define __GAIJIN_HEIGHTMAPLAND_PANEL__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include "hmlPlugin.h"
 
-#include <propPanel2/comWnd/panel_window.h>
+namespace PropPanel
+{
+class PanelWindowPropertyControl;
+}
 
-class HmapLandPlugin::HmapLandPanel : public ControlEventHandler
+class HmapLandPlugin::HmapLandPanel : public PropPanel::ControlEventHandler
 {
 public:
   HmapLandPanel(HmapLandPlugin &p);
@@ -18,19 +19,16 @@ public:
 
   bool isVisible() { return (mPanelWindow) ? true : false; }
 
-  void setPanelWindow(CPanelWindow *panel) { mPanelWindow = panel; }
-  CPanelWindow *getPanelWindow() const { return mPanelWindow; }
+  void setPanelWindow(PropPanel::PanelWindowPropertyControl *panel) { mPanelWindow = panel; }
+  PropPanel::PanelWindowPropertyControl *getPanelWindow() const { return mPanelWindow; }
 
   // ControlEventHandler
 
-  virtual void onClick(int pcb_id, PropPanel2 *panel);
-  virtual void onChange(int pcb_id, PropPanel2 *panel);
-  virtual void onPostEvent(int pcb_id, PropPanel2 *panel);
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  virtual void onPostEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel);
 
 private:
   HmapLandPlugin &plugin;
-  CPanelWindow *mPanelWindow;
+  PropPanel::PanelWindowPropertyControl *mPanelWindow;
 };
-
-
-#endif //__GAIJIN_GRASS_PANEL__

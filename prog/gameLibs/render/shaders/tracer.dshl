@@ -30,17 +30,12 @@ float4 head_shape_params = float4(0.05, 2.0, 2.0, 25.0);
 //y = 0..n - hdr compatibility multipler
 //z = 0..1 - inv length of the fade at the end
 //w = 0..n - hdr multipler
-float4 front_sprite_params = float4(0.25, 1.25, 0.99999, 0.0);
+float4 front_sprite_params = float4(0.25, 1.25, 0.9999, 0.0);
 //x = MIN_FRONT_SPRITE_PROJ_SIZE
 //y = MAX_FRONT_SPRITE_PROJ_SIZE
 //z = MIN_FRONT_SPRITE_ANGLE
 float tracer_start_color_fade_time_inv = 4.0;
 //x = 0..n - inv fade time for start tracer color
-
-float4 vr_projtc_matrix0 = (1,0,0,0);
-float4 vr_projtc_matrix1 = (0,1,0,0);
-float4 vr_projtc_matrix2 = (0,0,1,0);
-float4 vr_projtc_matrix3 = (0,0,0,1);
 
 int tracer_prim_type = 0;
 interval tracer_prim_type: tracer_prim_type_dir < 1, tracer_prim_type_caps;
@@ -174,9 +169,9 @@ shader tracer_head2
 
   if (compatibility_mode == compatibility_mode_off)
   {
-    INIT_HDR_STCODE()
+    INIT_HDR(ps)
   }
-  USE_HDR()
+  USE_HDR(ps)
   DECL_POSTFX_TC_VS_DEP()
   GET_CLOUD_VOLUME_MASK()
   FOG_PS_NO_STCODE()
@@ -246,9 +241,6 @@ shader tracer_head2
   }
   compile("target_ps", "tracer_head_ps");
 
-  (vs) {
-    vr_projtc_matrix@f44 = {vr_projtc_matrix0, vr_projtc_matrix1, vr_projtc_matrix2, vr_projtc_matrix3};
-  }
   hlsl(vs) {
 ##if fx_instancing_type == fx_instancing_sbuf
     float4 headData[FX_HEAD_MAXIUM_REGISTERS]: register(c70);
@@ -258,6 +250,9 @@ shader tracer_head2
 ##else
     float4 headData[FX_HEAD_MINIMUM_SUPPORTED_REGISTERS]: register(c70);
 ##endif
+
+    float4 headDataLastReg: register(c319);
+    // 319 = FX_HEAD_MAXIUM_REGISTERS + 70 = FX_HEAD_MINIMUM_SUPPORTED_REGISTERS + 70, ensure that dsc sees the vs const range correctly
 
     struct VsInput
     {
@@ -333,6 +328,9 @@ shader tracer_head2
       // sizes
       float ySize = max(headRadius + worldBorder, pixBorderSize);
       float xSize = max(headHalfLen * lenDot + worldBorder, ySize);
+  ##if fx_instancing_type == fx_instancing_sbuf
+      ySize *= vPosId == 0 || vPosId == 1 ? head.tracerHeadTaper : 1.0;
+  ##endif
       float distMaxRad = min(head_noise_params.y * viewDotInv, xSize - pixBorderSize);
       float2 localTc = float2(vPos.x, vPos.y * (1 + distMaxRad / ySize));
   ##if tracer_prim_type == tracer_prim_type_caps
@@ -342,10 +340,6 @@ shader tracer_head2
       float3 worldPos = wPos + sideVec * vPos.x * xSize + upVec * vPos.y * (ySize + distMaxRad);
 
       float4 projPos = mul(float4(worldPos, 1.0), globtm);
-      float4 projTc = projPos;
-  ##if hmd_device != hmd_device_off
-      projTc = mul(float4(worldPos, 1.0), vr_projtc_matrix);
-  ##endif
       float distAlpha = saturate(pow2(0.5 * (headHalfLen + headRadius) / pixWorldSize));
       ##if tracer_prim_type != tracer_prim_type_caps
       // tail fade
@@ -367,9 +361,9 @@ shader tracer_head2
       output.tc_size = float4(localTc, lerp(xSize, ySize, (1 - head.beam) * lerp(1, ARROW_SHAPE, saturate(ARROW_SHAPE_VIEW_SCALE * viewDotInv))), ySize);
       output.dtc_dista_drad = float3(distTc, distAlpha, distMaxRad);
       output.screenTexcoord = float4(
-        projTc.xy * RT_SCALE_HALF + float2(0.5, 0.5) * projTc.w,
-        projTc.z,
-        projTc.w);
+        projPos.xy * RT_SCALE_HALF + float2(0.5, 0.5) * projPos.w,
+        projPos.z,
+        projPos.w);
       if (headRadius <= 0)
         output.pos = float4(-2, -2, 1, 1);
       output.pointToEye = eyeVec;
@@ -401,16 +395,15 @@ shader tracer_tail
   channel short2 pos = pos;
   if (compatibility_mode == compatibility_mode_off)
   {
-    INIT_HDR_STCODE()
+    INIT_HDR(ps)
   }
-  USE_HDR()
+  USE_HDR(ps)
   INIT_SUN_STCODE()
   DECL_POSTFX_TC_VS_DEP()
   GET_CLOUD_VOLUME_MASK()
   FOG_PS_NO_STCODE()
   USE_INDIRECT_DRAW()
   USE_TRACER_DECODE_DATA()
-  DISABLE_ASSERT_STAGE(vs)
 
   hlsl {
     struct VsOutput
@@ -423,6 +416,7 @@ shader tracer_tail
     };
   }
 
+  ENABLE_ASSERT(ps)
   hlsl(ps) {
     float4 tracer_tail_ps(VsOutput input) : SV_Target
     {
@@ -459,6 +453,8 @@ shader tracer_tail
       HW_VERTEX_ID
   ##if hardware.ps4 || hardware.ps5  //PS4 adds vertex offset to vertexId, DX11 is not
       uint vertexIdOffset: S_VERTEX_OFFSET_ID;
+  ##elif hardware.metal // Metal adds vertex offset to vertexId, but for this shader we need DX11 behavior
+      [[vk::builtin("BaseVertex")]] uint vertexIdOffset : DXC_SPIRV_BASE_VERTEX_ID;
   ##endif
 ##else
       float3 perlin: TEXCOORD0;
@@ -480,7 +476,7 @@ shader tracer_tail
 
 ##if fx_instancing_type == fx_instancing_sbuf
       GET_FX_TRACER(input.instance_id.x, hk_btime_tlen_tnum.z, hk_btime_tlen_tnum.w, tracerBuffer, tracerDynamicBuffer, segmentBuffer, tracer, tracerDynamic, segment);
- ##if hardware.ps4 || hardware.ps5
+ ##if hardware.ps4 || hardware.ps5 || hardware.metal
       int localPartId = (input.vertexId - input.vertexIdOffset) / FX_VERTICES_PER_PARTICLE * divisor;
  ##else
       int localPartId = input.vertexId / FX_VERTICES_PER_PARTICLE * divisor;

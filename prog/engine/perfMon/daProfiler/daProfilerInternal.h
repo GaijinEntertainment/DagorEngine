@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #undef DA_PROFILER_ENABLED
 #define DA_PROFILER_ENABLED 1
 #include "daProfilerDefines.h"
@@ -22,6 +24,7 @@ typedef void (*ProfilerDumpFunctionPtr)(void *ctx, uintptr_t cNode, uintptr_t pN
 namespace da_profiler
 {
 static constexpr bool combine_ring_captures = (DAPROFILER_DEBUGLEVEL > 0) ? false : true;
+using UniqueEventDataStorage = ChunkedStorage<UniqueEventData *, 1, VirtualPageAllocator>;
 
 struct ThreadStorage
 {
@@ -107,6 +110,9 @@ struct ProfilerData
   static void endEvent(EventData &event, ThreadStorage &storage);
   static void addTag(uint32_t description, const char *tag);
   static void addTag(uint32_t description, const char *fmt, const TagSingleWordArgument *args, uint32_t ac);
+  static void endUniqueEvent(UniqueEventData &ued, uint64_t start);
+  void addUniqueEvent(UniqueEventData &ued);
+  UniqueEventData *getUniqueEvent(uint32_t i, uint32_t &frames);
 
   GpuEventData *startGPUEvent(uint32_t description, const char *d3d_event_name);
   static void endGPUEvent(GpuEventData &e);
@@ -135,6 +141,9 @@ struct ProfilerData
   uint64_t frameThreadId = 0;
   EventData *frameEvent = NULL;
   GpuEventData *frameGPUEvent = NULL;
+  // UniqueEvents
+  UniqueEventDataStorage uniqueEvents;
+  uint32_t uniqueEventsFrames = 0;
   // thread data
   mutable std::mutex threadsLock;
   vector<PerThreadInfo> threadsDataStor;
@@ -230,6 +239,7 @@ __forceinline void u64_interlocked_relaxed_store(volatile uint64_t &i, uint64_t 
 // we use relaxed load, as it is much faster. And it is not really dangeours - worst case we loose some thread data during dump
 __forceinline uint64_t u64_interlocked_relaxed_load(volatile const uint64_t &i) { return interlocked_relaxed_load(i); }
 __forceinline uint64_t u64_interlocked_acquire_load(volatile const uint64_t &i) { return interlocked_acquire_load(i); }
+__forceinline uint64_t u64_interlocked_add(volatile uint64_t &i, uint64_t v) { return interlocked_add(i, v); }
 #else
 // on 32bit platform it is data-race.
 // it is not very dangerous, as in a worst case scenario it causes free of some useful thread data profiling. No crash or anything like
@@ -238,6 +248,7 @@ __forceinline void u64_interlocked_release_store(volatile uint64_t &i, uint64_t 
 __forceinline void u64_interlocked_relaxed_store(volatile uint64_t &i, uint64_t val) { i = val; }
 __forceinline uint64_t u64_interlocked_relaxed_load(volatile const uint64_t &i) { return i; }
 __forceinline uint64_t u64_interlocked_acquire_load(volatile const uint64_t &i) { return i; }
+__forceinline uint64_t u64_interlocked_add(volatile uint64_t &i, uint64_t v) { return i += v; }
 #endif
 
 #if DA_PROFILE_MORE_THREAD_SAFE

@@ -1,4 +1,6 @@
 //------------------------------------------------------------------------------
+// VERSION 0.1
+//
 // LICENSE
 //   This software is dual-licensed to the public domain and under the following
 //   license: you are granted a perpetual, irrevocable license to copy, modify,
@@ -249,6 +251,9 @@ inline ImRect ImCubicBezierBoundingRect(const ImVec2& p0, const ImVec2& p1, cons
 
     for (int i = 0; i < 2; ++i)
     {
+        if (IM_VEC2_INDEX(a, i) == 0.0f)
+            continue;
+
         if (IM_VEC2_INDEX(delta_squared, i) >= 0)
         {
             auto delta = ImSqrt(IM_VEC2_INDEX(delta_squared, i));

@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hmlPlugin.h"
 
-#include <dllPluginCore/core.h>
+#include <EditorCore/ec_IEditorCore.h>
 #include <math/dag_mathUtils.h>
 
 #include <libTools/util/makeBindump.h>
@@ -9,6 +11,8 @@
 #include "hmlSplinePoint.h"
 #include <ioSys/dag_lzmaIo.h>
 #include <ioSys/dag_zstdIo.h>
+
+using editorcore_extapi::dagTools;
 
 // Grid spline point.
 struct SplineGridPoint

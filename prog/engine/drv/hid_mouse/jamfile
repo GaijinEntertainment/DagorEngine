@@ -6,7 +6,7 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 
 TargetType  = lib ;
 Target      = engine/drv/hid_mouse.lib ;
-if $(Platform) = linux64 && $(LinuxUseX11) != yes { Exit $(Target) requires LinuxUseX11\=yes under $(Platform) ; }
+if $(Platform) = linux && $(LinuxUseX11) != yes { Exit $(Target) requires LinuxUseX11\=yes under $(Platform) ; }
 
 Sources =
   ms_device_common.cpp
@@ -17,13 +17,13 @@ Sources =
 
 AddIncludes = $(Root)/prog/engine/sharedInclude ;
 
-if $(Platform) = macosx {
+if $(Platform) = macOS {
   Sources +=
     macosx_ms_api.mm
   ;
 }
 
-if $(Platform) in linux64 {
+if $(Platform) in linux {
   Sources +=
     linux_ms_api.cpp
   ;

@@ -393,7 +393,10 @@ def match_tag ( what:TypeDeclPtr; wth:Expression?; access:ExpressionPtr; var to:
 
 [macro_function]
 def is_match_call ( wth:Expression?; name:string )
-    return (wth is ExprCall) && ((wth as ExprCall).name=="match_{name}" || (wth as ExprCall).name=="__::match`match_{name}")
+    return (wth is ExprCall) && (
+            (wth as ExprCall).name=="match_{name}" ||
+            (wth as ExprCall).name=="__::match`match_{name}" ||
+            (wth as ExprCall).name=="match::match_{name}")
 
 [macro_function]
 def match_any ( what:TypeDeclPtr; wth:Expression?; access:ExpressionPtr; var to:MatchTo )
@@ -457,7 +460,7 @@ def match_any ( what:TypeDeclPtr; wth:Expression?; access:ExpressionPtr; var to:
         to.conditions |> emplace(cond)
         return true
     else
-        to.errors |> match_error("usupported match syntax {wth.__rtti}", wth.at)
+        to.errors |> match_error("usupported match syntax {wth.__rtti} in {describe(wth)}", wth.at)
         to.failed = true
         return false
 

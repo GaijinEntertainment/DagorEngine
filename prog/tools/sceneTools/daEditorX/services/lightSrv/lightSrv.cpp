@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_lightService.h>
 #include <de3_lightProps.h>
 #include <de3_interface.h>

@@ -1,0 +1,52 @@
++ update and render is buggy (requires prediction)
++ freeObject render is buggy
++ somehow invalidate and toroidal gives different picture on clip 0/1 (where it has to has mip 0!)
++ upload via commands (indirection commands buggy)
++ upload via commands (info a bit different/buggy)
++ upload indirection via block of commands
+- remove instancesBounds if we have CPU culling (it is probably always true anyway)
++ warp size of 512 is too much in world_sdf_update (now 256)
++ remove same transform on packedmip
++ do not store same mips (if indirection block is same in mips) - variable mip count
++ streaming
++ streaming addObjectsRef with lock
++ insufficient indirection
++ add 4 voxels around for box
++ prefetch in movement direction
+  + extrapolate current movement and check "new" box in direction of movement
+  + but only if movement speed makes sense (if last time we teleported, there is nothing interesting in extrapolation)
+  + take into account movement axis
+  + move it to worldSDF
+  + todo: do not prefetch this clip, if we start loading on demand it already
+  ? priority queue - load required asap, load prefetch when have time
+* insufficient space case/options
+  a) increase memory (and reload atlas)
+  b) ignore (should be fine if lowest mip fit). mip is not valid
+    * somehow it is not working correctly with 5 clips now (256^3 atlas).
+      It should fit all low mips, but it isn't unloading finer mips
+  c) decrease used mip quality (requires somehow refine than. most likely with render)
+  d) split into sub-boxes
++ sometimes generation is not changed somehow (causing not loading data)
+
++ gbuffer/depth update sdf
+  * no uav typed load support
++ render collision update on best mips
+  + based on voxelSize, not on No of clip
++ default (invalid) variables for worldSDF
+* stream in update and lazy invalidation of some places (boxes/objects)
+* use zstd streamer
+* generations (allow delete objects)
+* profile
+* TSAN
+* decode directly to commands (save memcpy in main thread)
+- biggest clip with indirection (too much empty space, can increase distance and quality)
+
+* quality for some objects for small clips
+* mip sizes instead of hardcode
+
++ compute voxelization (allows negative SDF)
+* cone tracing
+* rasterization: we need to rasterize at least +1 voxel around target area.
+  * That way we can accurately add distance from surrounding geometry.
+  * It is not that needed for rasterize primitives, as we accurately compute distance from edge of triangle
+  * it is also not needed for GS, for same reason.

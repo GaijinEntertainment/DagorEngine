@@ -1,0 +1,20 @@
+
+return {
+  isConsentAcceptedForAll = @() false
+  isConsentAllowedForVendor = @(_) false
+  isLimitedTrackingEnabled = @() false
+  isAllConsentablesAllowed = @(_) false
+  isAllStacksAllowed = @() false
+  isAllVendorsAllowed = @() false
+  isGDPR = @() false
+  isConsentGiven = @() false
+  isConsentInited = @(_) false
+  showConsentForm = @() null
+  initConsent = @() null
+  isConsentAllowedForPurposes = @(_) false
+  checkConsentInTCF = @(_, __) false
+  CONSENT_GIVEN = 0
+  CONSENT_NOT_REQUIRED = 1
+  CONSENT_NOT_INITED = 2
+  CONSENT_FAIL = 3
+}

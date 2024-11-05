@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <workCycle/dag_gameSettings.h>
 #include <workCycle/dag_genGuiMgr.h>
 #include <workCycle/dag_wcHooks.h>
@@ -15,7 +17,6 @@ bool dgctrl_need_print_screen_shot = false;
 int dgctrl_print_screen_shot_multiplier = 3;
 
 IGeneralGuiManager *dagor_gui_manager = NULL;
-IExternalGui *dagor_ext_gui = NULL;
 
 bool workcycle_internal::application_active = true;
 bool workcycle_internal::window_initing = true;
@@ -31,7 +32,6 @@ void (*dwc_hook_ts_before_frame)() = NULL;
 void (*dwc_hook_fps_log)(int) = NULL;
 void (*dwc_hook_memory_report)() = NULL;
 bool (*dwc_can_draw_next_frame)(int frame, int usec_to_next_act) = NULL;
-void (*dwc_hook_inside_internal_winloop)() = NULL;
 
 bool dwc_alloc_perform_delayed_actions = true;
 bool dwc_alloc_perform_delayed_actions_in_internal_winloop = true;

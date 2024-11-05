@@ -1,0 +1,510 @@
+include "rendinst_opaque_inc.dshl"
+include "rendinst_vegetation_inc.dshl"
+include "rendinst_impostor_inc.dshl"
+include "snoise.dshl"
+include "global_consts.dshl"
+
+float4 impostor_view_x = (1, 0, 0, 0);
+float4 impostor_view_y = (0, 1, 0, 0);
+
+texture dynamic_impostor_texture;
+texture dynamic_impostor_texture_normal;
+
+int dynamic_impostor_texture_const_no = 13 always_referenced;
+macro INIT_BAKED_IMPOSTOR_TEXTURES()
+  hlsl(ps) {
+    ##if (rendinst_render_pass == rendinst_render_pass_to_shadow)
+      Texture2DArray shadow_tex : register(t15);
+      SamplerState shadow_tex_samplerstate : register(s15);
+    ##endif
+  }
+endmacro
+
+interval special_vision : special_vision_off<1, thermal_vision;
+
+float4 windMatrix1X = (1, 0, 0, 0);
+float4 windMatrix1Y = (0, 1, 0, 0);
+
+shader rendinst_baked_impostor
+{
+  ENABLE_ASSERT(ps)
+  USE_TRANSITION_CROSS_DISSOLVE()
+
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    hlsl {
+      #define SPECULAR_DISABLED 1
+      #define BRDF_DIFFUSE 0
+      //enables translucency for baked impostors
+      #define USE_SSS_THIN 1
+    }
+  }
+  //supports rendinst_scene;
+  if (rendinst_render_pass == rendinst_render_pass_voxelize_albedo) { dont_render;}
+  if (rendinst_render_pass == rendinst_render_pass_impostor_color) { dont_render;}
+  if (rendinst_render_pass == rendinst_render_pass_impostor_shadow) { dont_render;}
+  if (rendinst_render_pass == rendinst_render_pass_grassify) { dont_render;}
+  if (rendinst_render_pass == rendinst_render_pass_to_heightmap) { dont_render;}
+
+  cull_mode = none;
+  if (instancing_type == tm_vb)
+  {
+    dont_render;
+  }
+
+  if (rendinst_render_pass != rendinst_render_pass_to_shadow)
+  {
+    ENABLE_MULTI_DRAW(false)
+  }
+  INIT_AND_USE_BAKED_IMPOSTOR()
+  USE_ATEST_HALF()
+
+  channel float3 pos = pos;
+
+  RENDINST_BLOCK()
+  (vs) { local_view_z@f3 = local_view_z; }
+
+  RENDINST_INSTANCING()
+  ENABLE_ASSERT(ps)
+
+  //---------------------------------------------------
+  // PS stuff.
+  //---------------------------------------------------
+  supports global_const_block;
+  if (rendinst_render_pass == rendinst_render_pass_to_shadow)
+  {
+    (vs) {
+      shadow_impostor_vec_0@f3 = windMatrix1X;
+      shadow_impostor_vec_1@f3 = windMatrix1Y;
+    }
+
+    hlsl {
+      struct VsOutput
+      {
+        #if SHADER_COMPILER_DXC || _HARDWARE_DX11 || _HARDWARE_VULKAN
+          centroid
+        #endif
+        VS_OUT_POSITION(pos)
+        float3 diffuseTexcoord : TEXCOORD0;
+        float2 posToPs_bsph : TEXCOORD1;
+        nointerpolation uint paletteId : TEXCOORD2;
+      };
+    }
+    hlsl(ps) {
+      #include <interleavedGradientNoise.hlsl>
+
+      ##if (hardware.fsh_5_0)
+        #define DEPTH_OUT SV_DepthGreaterEqual
+      ##else
+        #define DEPTH_OUT SV_Depth
+      ##endif
+
+
+      void impostor_rendinst_render_to_shadow_ps(VsOutput input, out float depth:DEPTH_OUT HW_USE_SCREEN_POS)
+      {
+        clip(input.diffuseTexcoord.z);
+        half src = 1 - h4tex2D(shadow_tex, float3(input.diffuseTexcoord.xy, input.paletteId)).r; // ati1n
+        half alpha = src < ( 60.f/64.f ) ? 1.f : 0.f;
+
+        float opacityVal = input.diffuseTexcoord.z;
+        float4 screenpos = GET_SCREEN_POS(input.pos);
+        float dissolveVal = opacityVal
+          - interleavedGradientNoiseFramed(screenpos.xy, dissolve_frame);
+
+        clip_alpha(min(alpha, dissolveVal));
+
+        float znf = zn_zfar.y - zn_zfar.x;
+        float znfinv = rcp( znf );
+
+        float d = ( src * 2.f  + (7./256.f- 1.f)) * input.posToPs_bsph.y;
+        float z = (input.posToPs_bsph.x) * znf + zn_zfar.x;
+
+        ##if (hardware.fsh_5_0)
+          z += input.posToPs_bsph.y;
+        ##endif
+        depth = ( z + d - zn_zfar.x ) * znfinv;
+      }
+    }
+
+    compile("target_ps", "impostor_rendinst_render_to_shadow_ps");
+  }
+  else
+  {
+    INIT_AND_USE_BAKED_IMPOSTOR_PROPERTIES()
+    PALETTE_HELPERS(ps)
+
+    (vs) {
+      impostor_view_x@f3 = impostor_view_x;
+      impostor_view_y@f3 = impostor_view_y;
+    }
+    INIT_SKYLIGHT_PARAMS(ps)
+    USE_SKYLIGHT_PARAMS(ps)
+
+    hlsl {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+        nointerpolation float4 colorMul_extras         : TEXCOORD0;
+        ##if (compatibility_mode == compatibility_mode_on)
+          float3 pointToEye                 : TEXCOORD4;
+        ##endif
+        nointerpolation float4 fadeout_sliceDet_cosSin : TEXCOORD1;
+        float4 slice_data1 : TEXCOORD2;
+        #if USE_MULTISLICED
+          float4 slice_data2 : TEXCOORD3;
+        #endif
+        float2 bottomGradient : TEXCOORD5;
+        VSOUT_DRAW_ID
+      };
+    }
+    WRITE_GBUFFER()
+    USE_FAST_NOISE()
+    hlsl(ps) {
+      //~ 0.01 ^ (1/4)
+      #define COLORING_THRESHOLD 0.316
+
+      float2 ds_for_alpha(float2 ds, float noise)
+      {
+        const float FADE_IN_START = 0.25;
+        const float FADE_IN_END   = 0.5;
+        //Noise is [0,1] and the clipping happens at 0.5, so if multiplied by 1.5, ds>=FADE_IN_END will not be clipped
+        float2 result = smoothstep(FADE_IN_START, FADE_IN_END, ds) * 1.5 - noise;
+        return saturate(result);
+      }
+
+      #include <interleavedGradientNoise.hlsl>
+      GBUFFER_OUTPUT rendinst_impostor_ps(VsOutput input HW_USE_SCREEN_POS)
+      {
+        #if SET_UP_MULTIDRAW
+          SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+        #endif
+        bool2 sliceClipped =
+          bool2(need_clip_impostor(input.slice_data1.zw) || any(input.slice_data1.xy < 0 || input.slice_data1.xy > 1), true);
+        #if USE_MULTISLICED
+          sliceClipped.y = need_clip_impostor(input.slice_data2.zw) || any(input.slice_data2.xy < 0 || input.slice_data2.xy > 1);
+        #endif
+
+        BRANCH
+        if (all(sliceClipped))
+          discard;
+
+        UnpackedGbuffer gbuffer;
+        init_gbuffer(gbuffer);
+
+        float opacityVal = input.fadeout_sliceDet_cosSin.x;
+        float4 screenpos = GET_SCREEN_POS(input.pos);
+        float noise = interleavedGradientNoiseFramed(screenpos.xy, dissolve_frame);
+        float dissolveVal = opacityVal - noise;
+
+        float2 ds = float2(1-input.fadeout_sliceDet_cosSin.y,input.fadeout_sliceDet_cosSin.y);
+        float4 albedo_alpha1 = impostor_tex_slice(get_impostor_albedo_alpha(), input.slice_data1.xy);
+        albedo_alpha1.a = min(albedo_alpha1.a-0.5, input.bottomGradient.x - noise) >= 0.0;
+
+#if USE_MULTISLICED
+          float2 sliceMask = sliceClipped ? float2(0, 0) : float2(1, 1);
+          float4 albedo_alpha2 = impostor_tex_slice(get_impostor_albedo_alpha(), input.slice_data2.xy);
+          albedo_alpha2.a = min(albedo_alpha2.a-0.5, input.bottomGradient.y - noise) >= 0.0;
+
+          float2 clippedAlphas = float2(albedo_alpha1.a, albedo_alpha2.a) * sliceMask;
+          bool2 invalidValueMask = clippedAlphas < 0.5;
+          float2 alphaValues = clippedAlphas * ds_for_alpha(ds, noise);
+          if (any(invalidValueMask))
+            ds = invalidValueMask ? float2(0, 0) : float2(1, 1);
+
+          float alpha = alphaValues.x + alphaValues.y;
+          float3 albedo = ds.x*albedo_alpha1.rgb + ds.y*albedo_alpha2.rgb;
+
+#else
+          float alpha = albedo_alpha1.a;
+          float3 albedo = albedo_alpha1.rgb;
+#endif
+        clip(min(alpha-0.5, dissolveVal));
+        ImpostorProperties properties = read_impostor_properties(input.slice_data1.xy, input.slice_data2.xy, ds, input.colorMul_extras.w);
+        // Combine.
+        half translucency_coloring = properties.normal_translucency.w;
+        half translucency = saturate(translucency_coloring*2 - 1);
+        half3 normalUnormalized = properties.normal_translucency.xyz*2-1;
+
+        float paletteRotationCos = input.fadeout_sliceDet_cosSin.z;
+        float paletteRotationSin = input.fadeout_sliceDet_cosSin.w;
+        normalUnormalized = paletteToWorld(normalUnormalized, paletteRotationCos, paletteRotationSin);
+
+        half3 normal = normalize(normalUnormalized.xyz);
+        albedo = translucency < COLORING_THRESHOLD ? albedo : input.colorMul_extras.rgb*albedo;
+        init_albedo(gbuffer, albedo);
+        init_translucency(gbuffer, translucency);
+        init_smoothness(gbuffer, 1-properties.invsmoothness);
+        init_normal(gbuffer, normal);
+        init_ao(gbuffer, properties.ao);
+      ##if mobile_render != off
+        init_shadow(gbuffer, 1);
+      ##else
+        init_shadow(gbuffer, properties.shadowing);
+      ##endif
+      ##if special_vision == special_vision_off
+        init_material(gbuffer, translucency > 0 ? SHADING_FOLIAGE : SHADING_NORMAL);
+      ##else
+        init_material(gbuffer, SHADING_FOLIAGE);
+      ##endif
+        //init_reflectance(gbuffer, 0.5 * (1.0 - translucency));
+        return encode_gbuffer(gbuffer, input.pointToEye, GET_SCREEN_POS(input.pos));
+      }
+    }
+    compile("target_ps", "rendinst_impostor_ps");
+  }
+
+  //---------------------------------------------------
+  // VS stuff.
+  //---------------------------------------------------
+
+  USE_RANDOM_COLOR()
+
+  hlsl(vs) {
+
+    INSTANCING_BUFFERS
+
+    struct VsInput
+    {
+      float4 pos: POSITION;
+    };
+
+  ##if (rendinst_render_pass != rendinst_render_pass_to_shadow)
+    VsOutput impostor_vs_billboards(VsInput input HW_USE_INSTANCE_ID)
+  ##else
+    VsOutput impostor_vs_billboards(uint vertex_id : SV_VertexID HW_USE_INSTANCE_ID)
+  ##endif
+    {
+      VsOutput output;
+
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+      #endif
+
+      float3 localNormal = 1;
+      float3 localPos = 0;
+
+      VB_PERFORM_INSTANCING
+      APPLY_ROTATION_PALETTE
+
+      float3 inputPos;
+      float4 color;
+
+      // PC and PS3 instancing.
+      color = get_random_color(worldLocalPos);
+
+      //inputPos = input.pos.xyz;
+      inputPos = 0;
+      //delta = input.delta_wind.xy;
+      //wind = input.delta_wind.w;
+
+      float worldScaleY;
+      float worldScale = pos_and_scale.w;
+
+  ##if (rendinst_render_pass != rendinst_render_pass_to_shadow)
+      //get_impostor_bounding_sphere().xz is intentionally ignored, the impostors are aligned around the trunk, which is on the Y axis
+      float boundingSphereY = get_impostor_bounding_sphere_y(IMPOSTOR_DATA_OFFSET);
+
+      float4 worldPos4 = float4(
+          worldLocalY * boundingSphereY +
+          worldLocalPos,
+        1);
+  ##else
+      float4 worldPos4 = float4(float3(0, bounding_sphere.w, 0) * worldScale + worldLocalPos, 1.f);
+  ##endif
+
+      worldScaleY = worldScale;
+
+      float3 modelToEyeNorm = normalize( world_view_pos - worldPos4.xyz );
+      float3 localModelToEyeNorm = float3(
+        paletteRotationCos * modelToEyeNorm.x + paletteRotationSin * modelToEyeNorm.z,
+        modelToEyeNorm.y,
+        -paletteRotationSin * modelToEyeNorm.x + paletteRotationCos * modelToEyeNorm.z);
+
+      uint2 slice_idx;
+      float2 slice_d;
+
+#if MULTISLICE_COUNT
+      get_impostor_slices( localModelToEyeNorm, slice_idx, slice_d );
+      float4 slices = float4( slice_idx.xy, slice_d.xy );
+#else
+      slice_idx = 0;
+      slice_d = 0;
+#endif
+
+##if rendinst_render_pass == rendinst_render_pass_to_shadow
+    float3 view_x = shadow_impostor_vec_0;
+    float3 view_y = shadow_impostor_vec_1;
+##else
+    float3 view_x;
+    float3 view_y;
+
+    float3 imp_view_x = impostor_view_x;
+    float3 imp_view_y = impostor_view_y;
+#if !MOBILE_DEVICE
+    if (abs(modelToEyeNorm.y) < 0.999)
+    {
+      float len = (1-modelToEyeNorm.y)*(1+modelToEyeNorm.y);
+      float invLen = 1/len;
+      // Equivalent to: normalize(cross(modelToEyeNorm, float3(0, 1, 0)))
+      imp_view_x = invLen*(float3(-modelToEyeNorm.z, 0, modelToEyeNorm.x));
+
+      // Equivalent to: cross(imp_view_x, modelToEyeNorm);
+      imp_view_y = -invLen*float3(
+        modelToEyeNorm.x * modelToEyeNorm.y,
+        -(modelToEyeNorm.z * modelToEyeNorm.z + modelToEyeNorm.x * modelToEyeNorm.x),
+        modelToEyeNorm.z * modelToEyeNorm.y);
+    }
+#endif
+
+    get_impostor_view(
+      imp_view_x, imp_view_y,
+      float2(paletteRotationCos, paletteRotationSin),
+      localModelToEyeNorm,
+      slice_idx,
+      slice_d,
+      view_x,
+      view_y );
+##endif
+
+      ##if rendinst_render_pass != rendinst_render_pass_to_shadow
+        float2 delta = input.pos.xz;
+        float4 scale = get_impostor_scale(IMPOSTOR_DATA_OFFSET);
+        delta = get_vertex_offset_hemisphere(IMPOSTOR_DATA_OFFSET, delta.xy, -modelToEyeNorm, worldLocalY/worldScale, scale.xy, scale.xy).xy;
+
+        float2 invViewScale = scale.zw;
+        float2 diffuseTexcoord = delta.xy * invViewScale * float2(1,-1) * 0.5 + 0.5;
+        float bottomGradientData = get_bottom_gradient(IMPOSTOR_DATA_OFFSET);
+        if (bottomGradientData > 0.0001)
+        {
+          float normalizedBottomY = (bounding_sphere.z - bounding_sphere.w)/ bounding_sphere.z;
+          float normalizedAboveGroundY =  delta.y* invViewScale.y - (normalizedBottomY -1);
+          float gradientValue = bottomGradientData * normalizedAboveGroundY;
+          output.bottomGradient.xy = gradientValue.xx;
+        }
+        else
+          output.bottomGradient.xy = float2(1.0, 1.0); // to avoid fully clipped impostor when 0.0
+
+      ##else
+        float2 deltas[4] = { float2(-1.f, -1.f), float2(-1.f, 1.f), float2(1.f, 1.f), float2(1.f, -1.f) };
+        float2 texcoords[4] = { float2(0.f, 1.f), float2(0.f, 0.f), float2(1.f, 0.f), float2(1.f, 1.f) };
+        float2 delta = deltas[vertex_id % 4];
+        float2 diffuseTexcoord = texcoords[vertex_id % 4];
+
+        float2 shadow_size = get_shadow_impostor_size(paletteId,
+          shadow_impostor_sizes0,
+          shadow_impostor_sizes1,
+          shadow_impostor_sizes2,
+          shadow_impostor_sizes3
+        );
+        delta.xy *= shadow_size;
+
+      ##endif
+
+      worldPos4.xyz +=
+        (view_x * delta.x
+        + view_y * delta.y) * worldScale;
+
+      // Common code.
+      float3 pointToEye = world_view_pos - worldPos4.xyz;
+
+      float distToInstance = length(world_view_pos - worldLocalPos);
+
+      float3 offsetedPos = worldPos4.xyz;
+##if rendinst_render_pass != rendinst_render_pass_to_shadow
+      float offsetDistance = lerp(cylinder_radius, bounding_sphere.z, abs(local_view_z.y));
+      float3 zoffsetedPos = offsetedPos - local_view_z * offsetDistance * worldScale;
+##endif
+
+##if rendinst_render_pass == rendinst_render_pass_to_shadow && (hardware.fsh_5_0)
+      offsetedPos -= from_sun_direction.xyz * bounding_sphere.z * worldScale;
+##endif
+
+      output.pos = mulPointTm(offsetedPos.xyz + camera_base_offset, globtm);
+
+##if rendinst_render_pass != rendinst_render_pass_to_shadow
+
+      float2 zw = mulPointTm(zoffsetedPos + camera_base_offset, globtm).zw;
+
+      zw.y = max( zw.y, 1);
+      zw.x *= output.pos.w / zw.y;
+      zw.y = output.pos.w;
+      output.pos.zw = zw;
+
+##endif
+
+##if rendinst_render_pass == rendinst_render_pass_to_shadow
+      output.posToPs_bsph = float2( output.pos.z, bounding_sphere.z * worldScale );
+      output.paletteId = paletteId;
+##endif
+
+/*##if rendinst_render_pass == rendinst_render_pass_to_shadow
+      output.diffuseTexcoord.z = worldPos4.y-worldLocalPos.y;
+      float instance_opacity = saturate(distToInstance * rendinst_opacity.x + rendinst_opacity.y);
+      output.pos = instance_opacity==0 ? float4(2,2,2,1) : output.pos;
+      //output.pos.z -= (max(0, worldPos4.y-worldLocalPos.y)+0.5)*globtm[2][2]*0.5;//*2 makes 30 degrees rotating of impostor towards ground. +0.5 - constant bias
+##elif rendinst_render_pass == rendinst_render_pass_depth
+      float instance_opacity = saturate((distToInstance+bounding_sphere.z) * rendinst_opacity.x + rendinst_opacity.y);
+      output.pos = instance_opacity==0 ? float4(2,2,2,1) : output.pos;
+##endif*/
+
+      float2 sideView = diffuseTexcoord;
+
+      float fadeout = 1;
+
+      ##if use_cross_dissolve == on
+        float opacity = get_transition_lod_cross_dissolve_opacity(distToInstance, lods_shift_dist_mul);
+      ##else
+        float opacity = saturate(distToInstance * rendinst_opacity.x + rendinst_opacity.y);
+      ##endif
+
+      fadeout *= opacity;
+
+
+  ##if rendinst_render_pass == rendinst_render_pass_to_shadow
+        output.diffuseTexcoord.xy = sideView;
+        output.diffuseTexcoord.z = fadeout + 0.5;
+  ##else
+        float det = get_slices_det( slices );
+          float2 topView;
+          float2 tc = delta.xy*float2(1,-1);
+          // we need to stabilize top projected TC
+          topView.y = dot( normalize( worldToPalette(view_x, paletteRotationCos, paletteRotationSin).xz ), tc);
+          topView.x = dot( normalize( worldToPalette(view_y, paletteRotationCos, paletteRotationSin).xz ), tc);
+          topView = topView * invViewScale * 0.5 + 0.5;
+          bool2 slicesFlag = slices.xy < IMP_SIDE_INDEX_THRESHOLD;
+          float2 view1 = slicesFlag.x ? sideView : topView;
+          float2 view2 = slicesFlag.y ? sideView : topView;
+          output.bottomGradient.x = slicesFlag.x ? output.bottomGradient.x : 1.0;
+          output.bottomGradient.y = slicesFlag.y ? output.bottomGradient.y : 1.0;
+        #if USE_MULTISLICED
+          output.slice_data1 = apply_slice_data(IMPOSTOR_DATA_OFFSET, slice_idx.x, view1);
+          output.slice_data2 = apply_slice_data(IMPOSTOR_DATA_OFFSET, slice_idx.y, view2);
+          output.fadeout_sliceDet_cosSin.y = det;
+        #else
+          if (det < 0.5)
+            output.slice_data1 = apply_slice_data(IMPOSTOR_DATA_OFFSET, slice_idx.x, view1);
+          else
+            output.slice_data1 = apply_slice_data(IMPOSTOR_DATA_OFFSET, slice_idx.y, view2);
+          output.fadeout_sliceDet_cosSin.y = 0;
+        #endif
+        output.fadeout_sliceDet_cosSin.x = fadeout;
+        output.fadeout_sliceDet_cosSin.zw = float2(paletteRotationCos, paletteRotationSin);
+  ##endif
+
+      // Special render.
+##if rendinst_render_pass != rendinst_render_pass_to_shadow
+      // Normal render.
+      output.colorMul_extras.rgb = color.rgb;
+      bool hasPreshadow = has_impostor_preshadow(IMPOSTOR_DATA_OFFSET);
+      output.colorMul_extras.w = encode_impostor_vertex_output(paletteId, hasPreshadow);
+      ##if (compatibility_mode == compatibility_mode_on)
+        output.pointToEye = pointToEye;
+      ##endif
+##endif
+
+      return output;
+    }
+  }
+  compile("target_vs", "impostor_vs_billboards");
+}

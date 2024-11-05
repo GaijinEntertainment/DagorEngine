@@ -23,6 +23,11 @@ UseProgLibs =
   gameLibs/daECS/gameResStub
   gameLibs/daECS/utility
   gameLibs/ecs/render
+  gameLibs/ecs/anim
+  gameLibs/render/daBfg
+  gameLibs/render/resourceSlot
 ;
+
+DABFG_ENABLE_DAECS_INTEGRATION = yes ;
 
 include $(Root)/prog/_jBuild/build.jam ;

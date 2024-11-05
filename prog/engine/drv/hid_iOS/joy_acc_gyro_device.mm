@@ -1,7 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #import <GameController/GameController.h>
 #include <util/dag_globDef.h>
-#include <humanInput/dag_hiXInputMappings.h>
-#include <humanInput/dag_hiJoystick.h>
+#include <drv/hid/dag_hiXInputMappings.h>
+#include <drv/hid/dag_hiJoystick.h>
 #include <perfMon/dag_cpuFreq.h>
 #include "joy_acc_gyro_device.h"
 
@@ -27,7 +29,7 @@ constexpr int DZ_STICK_INTERVAL = 0x7f;
 extern JoystickSettings stg_joy;
 
 carray<const char *, JOY_XINPUT_REAL_AXIS_COUNT + IOS_SENSOR_ADDITIONAL_AXIS_NUM> iosAxisName = {"L.Thumb.h", "L.Thumb.v", "R.Thumb.h",
-  "R.Thumb.v", "L.Trigger", "R.Trigger", "R+L.Trigger", "none", "none", "Gravity.X", "Gravity.Y", "Gravity.Z"};
+  "R.Thumb.v", "L.Trigger", "R.Trigger", "R+L.Trigger", "none", "none", "GravityDelta.X", "GravityDelta.Y", "none", "Gravity.X", "Gravity.Y", "Gravity.Z"};
 } // namespace HumanInput
 
 // gamepad.valueChangedHandler = ^(GCExtendedGamepad *gamepad, GCControllerElement *element)
@@ -58,10 +60,7 @@ void iOSGamepadEx::processButtons()
   SET_BUTTON(buttonMenu, JOY_XINPUT_REAL_BTN_START);
   SET_BUTTON(buttonOptions, JOY_XINPUT_REAL_BTN_BACK);
 
-  SET_BUTTON(leftThumbstickButton, JOY_XINPUT_REAL_BTN_L_THUMB_CENTER);
   SET_BUTTON(leftThumbstickButton, JOY_XINPUT_REAL_BTN_L_THUMB);
-
-  SET_BUTTON(rightThumbstickButton, JOY_XINPUT_REAL_BTN_R_THUMB_CENTER);
   SET_BUTTON(rightThumbstickButton, JOY_XINPUT_REAL_BTN_R_THUMB);
 }
 
@@ -273,6 +272,7 @@ void iOSGamepadEx::updateGyroscopeParameters()
   using namespace hid_ios;
 
   hid_iOS_update_motion();
+
   rawState.sensorX = acc_x;
   rawState.sensorY = acc_y;
   rawState.sensorZ = acc_z;
@@ -291,14 +291,12 @@ void iOSGamepadEx::updateGyroscopeParameters()
   rawState.slider[0] = clip_dead_zone(int(g_rel_ang_x * HumanInput::JOY_XINPUT_MAX_AXIS_VAL), 200);
   rawState.slider[1] = clip_dead_zone(int(g_rel_ang_y * HumanInput::JOY_XINPUT_MAX_AXIS_VAL), 200);
 
-  int orient_factor = 1;
-  if (getAppOrientation() != UIInterfaceOrientationLandscapeRight)
-  {
-    orient_factor = -1;
-  }
+  axis[9].val = -rawState.rx;
+  axis[10].val = -rawState.ry;
 
-  axis[9].val = rawState.rx * orient_factor;
-  axis[10].val = rawState.ry * orient_factor;
+  axis[12].val = clip_dead_zone(int(-acc_x * HumanInput::JOY_XINPUT_MAX_AXIS_VAL), 400);
+  axis[13].val = clip_dead_zone(int(-acc_y * HumanInput::JOY_XINPUT_MAX_AXIS_VAL), 400);
+  axis[14].val = clip_dead_zone(int(-acc_z * HumanInput::JOY_XINPUT_MAX_AXIS_VAL), 400);
 }
 
 

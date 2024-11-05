@@ -1,0 +1,87 @@
+include "shader_global.dshl"
+include "bvh.dshl"
+
+texture bvh_debug_target;
+
+float4 view_vecLT;
+float4 view_vecRT;
+float4 view_vecLB;
+float4 view_vecRB;
+
+int bvh_debug_mode = 0;
+interval bvh_debug_mode : lit < 1, texture_color < 2, world_normal < 3, texcoord < 4, vertex_color < 5, gi;
+
+shader bvh_debug
+{
+  if (!hardware.bindless) { dont_render; }
+
+  (cs)
+  {
+    debug_target@uav = bvh_debug_target hlsl { RWTexture2D<float4> debug_target@uav; }
+    view_vecLT@f3 = view_vecLT;
+    view_vecRT@f3 = view_vecRT;
+    view_vecLB@f3 = view_vecLB;
+    view_vecRB@f3 = view_vecRB;
+    world_view_pos@f3 = world_view_pos;
+  }
+
+  hlsl {
+    #define BVH_ALPHA_TEST_MIP 0
+  }
+
+  INIT_BVH(cs, 0, true)
+  USE_BVH(cs, 1, 1, 1, 1, 1, 0, 1, 1)
+
+  ENABLE_ASSERT(cs)
+  hlsl(cs)
+  {
+    RT_GROUP_SIZE
+    void main(uint2 thread : SV_DispatchThreadID)
+    {
+      float2 resolution;
+      debug_target.GetDimensions(resolution.x, resolution.y);
+
+      float2 rate = (thread + 0.5) / resolution;
+      float3 topT = lerp(view_vecLT, view_vecRT, rate.x);
+      float3 botT = lerp(view_vecLB, view_vecRB, rate.x);
+      float3 direction = lerp(topT, botT, rate.y);
+
+      HitInfo hitInfo;
+      if (trace_ray(bvhMain, 0, direction, 0, 100000, 0, bvhGroupAll, hitInfo))
+      {
+        ##if bvh_debug_mode == texture_color
+          if (get_material_type(hitInfo.material) == bvhMaterialTerrain)
+            debug_target[thread] = float4(0, 0.8, 0, 1);
+          else
+          {
+            if (hitInfo.albedoTextureIndex != 0xFFFF)
+            {
+              SamplerState bvh_sampler = bvh_samplers[hitInfo.albedoSamplerIndex];
+              float4 texel = bvh_textures[bvh_textures_range_start + hitInfo.albedoTextureIndex].SampleLevel(bvh_sampler, hitInfo.texcoord, 0);
+              debug_target[thread] = float4(texel.rgb, 1);
+            }
+            else
+              debug_target[thread] = 1;
+          }
+        ##elif bvh_debug_mode == vertex_color
+          if (get_material_type(hitInfo.material) == bvhMaterialTerrain)
+            debug_target[thread] = float4(0, 0.8, 0, 1);
+          else
+            debug_target[thread] = float4(hitInfo.color, 1);
+        ##elif bvh_debug_mode == world_normal
+          debug_target[thread] = float4(hitInfo.normal * 0.5 + 0.5, 1);
+        ##elif bvh_debug_mode == gi
+          debug_target[thread] = float4(hitInfo.color, 1);
+        ##else
+          debug_target[thread] = float4(0.5, 0.5, 0.5, 1);
+        ##endif
+      }
+      else
+      {
+        debug_target[thread] = float4( 0.3, 0.3, 1, 1 );
+      }
+    }
+  }
+
+  compile("cs_6_6", "main");
+}

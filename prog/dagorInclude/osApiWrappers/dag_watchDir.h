@@ -1,11 +1,10 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 struct WatchedFolderMonitorData;
 
 KRNLIMP bool could_be_changed_folder(WatchedFolderMonitorData *); // return true if folder contents could changed during last
@@ -17,4 +16,4 @@ KRNLIMP WatchedFolderMonitorData *add_folder_monitor(const char *folder_name, in
 // nullptr is allowed, will return true
 KRNLIMP bool destroy_folder_monitor(WatchedFolderMonitorData *, int attempts);
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

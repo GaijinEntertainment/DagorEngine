@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -15,6 +14,7 @@
 #include <ecs/anim/animState.h>
 #include <dasModules/aotGeomNodeTree.h>
 #include <animChar/dag_animCharacter2.h>
+#include <shaders/dag_dynSceneRes.h>
 #include <animChar/dag_animate2ndPass.h>
 #include <anim/dag_animBlendCtrl.h>
 #include <ecs/phys/ragdoll.h>
@@ -74,6 +74,8 @@ MAKE_TYPE_FACTORY(AnimationGraphStateRec, AnimV20::AnimationGraph::StateRec);
 MAKE_TYPE_FACTORY(AnimcharNodesMat44, AnimcharNodesMat44);
 MAKE_TYPE_FACTORY(RoNameMapEx, RoNameMapEx);
 MAKE_TYPE_FACTORY(DynSceneResNameMapResource, DynSceneResNameMapResource);
+
+// TODO: extract these render related types into separate module
 MAKE_TYPE_FACTORY(DynamicRenderableSceneLodsResource, DynamicRenderableSceneLodsResource);
 MAKE_TYPE_FACTORY(DynamicRenderableSceneInstance, DynamicRenderableSceneInstance);
 
@@ -111,6 +113,12 @@ inline bool scene_instance_is_node_visible(const DynamicRenderableSceneInstance 
 inline void scene_instance_get_local_bounding_box(const DynamicRenderableSceneInstance *scene_instance, BBox3 &out)
 {
   out = scene_instance->getLocalBoundingBox();
+}
+
+inline bool calc_world_box(const ::AnimCharV20::AnimcharRendComponent &animchar_render, bbox3f &box,
+  const AnimcharNodesMat44 &finalWtm, bool accurate = true)
+{
+  return animchar_render.calcWorldBox(box, finalWtm, accurate);
 }
 
 inline int anim_graph_getStateIdx(const ::AnimV20::AnimationGraph &animGraph, const char *state_name)
@@ -343,6 +351,12 @@ inline ::AnimV20::AnimData *AnimBlendNodeLeaf_get_anim(T &anim)
 {
   return anim.anim.get();
 }
+
+inline ::AnimV20::AnimData *AnimData_get_source_anim_data(const ::AnimV20::AnimData &anim_data)
+{
+  return anim_data.getSourceAnimData();
+}
+
 inline ::AnimV20::IAnimBlendNode *IAnimBlendNodePtr_get(IAnimBlendNodePtr &node_ptr) { return node_ptr.get(); }
 
 inline void send_change_anim_state_event(ecs::EntityId eid, const char *name, ecs::hash_str_t name_hash, int state_id)
@@ -392,13 +406,85 @@ inline void animchar_resetRagdollPostController(::AnimCharV20::AnimcharBaseCompo
 
 inline void animchar_copy_nodes(const ::AnimCharV20::AnimcharBaseComponent &animchar, AnimcharNodesMat44 &nodes, das::float4 &root)
 {
-  animchar_copy_nodes(animchar, nodes, (vec3f &)root);
+  vec3f animRoot;
+  animchar_copy_nodes(animchar, nodes, animRoot);
+  v_stu(&root.x, animRoot);
 }
 
 inline das::float4 animchar_render_prepareSphere(const ::AnimCharV20::AnimcharRendComponent &animchar_render,
   const AnimcharNodesMat44 &nodes)
 {
   return animchar_render.prepareSphere(nodes);
+}
+
+inline BBox3 animchar_render_calcWorldBox(const ::AnimCharV20::AnimcharRendComponent &animchar_render,
+  const AnimcharNodesMat44 &finalWtm, bool accurate)
+{
+  bbox3f out_wbb;
+  animchar_render.calcWorldBox(out_wbb, finalWtm, accurate);
+  BBox3 out;
+  v_stu_bbox3(out, out_wbb);
+  return out;
+}
+
+inline void animchar_getDebugBlenderState(::AnimV20::AnimcharBaseComponent &animchar, bool dump_tm,
+  const das::TBlock<void, das::TTemporary<const DataBlock>> &block, das::Context *context, das::LineInfoArg *at)
+{
+  if (const DataBlock *res = animchar.getDebugBlenderState(dump_tm))
+  {
+    vec4f arg = das::cast<const DataBlock *>::from(res);
+    context->invoke(block, &arg, nullptr, at);
+  }
+}
+
+inline void animchar_getAnimBlendNodeWeights(::AnimV20::AnimationGraph &graph, ::AnimV20::IPureAnimStateHolder &st,
+  const das::TBlock<void, das::TTemporary<das::TArray<float>>, das::TTemporary<das::TArray<float>>,
+    das::TTemporary<das::TArray<float>>> &block,
+  das::Context *context, das::LineInfoArg *at)
+{
+  ::AnimV20::AnimBlender::TlsContext &tlsCtx = graph.selectBlenderCtx();
+
+  Tab<float> abnWt(framemem_ptr());
+  mem_set_0(tlsCtx.bnlWt);
+  mem_set_0(tlsCtx.pbcWt);
+  abnWt.resize(graph.getAnimNodeCount());
+  mem_set_0(abnWt);
+  ::AnimV20::IAnimBlendNode::BlendCtx bctx(st, tlsCtx, true);
+  bctx.abnWt = abnWt.data();
+  graph.getRoot()->buildBlendingList(bctx, 1.0);
+
+  das::Array abnWtArr;
+  abnWtArr.data = (char *)abnWt.data();
+  abnWtArr.size = uint32_t(abnWt.size());
+  abnWtArr.capacity = abnWtArr.size;
+  abnWtArr.lock = 1;
+  abnWtArr.flags = 0;
+
+  das::Array bnlWtArr;
+  bnlWtArr.data = (char *)tlsCtx.bnlWt.data();
+  bnlWtArr.size = uint32_t(tlsCtx.bnlWt.size());
+  bnlWtArr.capacity = bnlWtArr.size;
+  bnlWtArr.lock = 1;
+  bnlWtArr.flags = 0;
+
+  das::Array pbcWtArr;
+  pbcWtArr.data = (char *)tlsCtx.pbcWt.data();
+  pbcWtArr.size = uint32_t(tlsCtx.pbcWt.size());
+  pbcWtArr.capacity = pbcWtArr.size;
+  pbcWtArr.lock = 1;
+  pbcWtArr.flags = 0;
+
+  vec4f args[3];
+
+  context->invokeEx(
+    block, args, nullptr,
+    [&](das::SimNode *code) {
+      args[0] = das::cast<das::Array *>::from(&abnWtArr);
+      args[1] = das::cast<das::Array *>::from(&bnlWtArr);
+      args[2] = das::cast<das::Array *>::from(&pbcWtArr);
+      code->eval(*context);
+    },
+    at);
 }
 
 

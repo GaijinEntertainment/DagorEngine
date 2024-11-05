@@ -1,7 +1,5 @@
-#ifndef __DAGOR_BITRENDER_H
-#define __DAGOR_BITRENDER_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <math/dag_mathBase.h>
 
@@ -129,5 +127,3 @@ private:
 };
 
 #undef FLT_ERROR
-
-#endif

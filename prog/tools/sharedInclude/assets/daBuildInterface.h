@@ -1,7 +1,6 @@
 //
 // Dagor Tech 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -55,6 +54,7 @@ public:
 
   virtual const char *__stdcall getPackName(DagorAsset *asset) = 0;
   virtual const char *__stdcall getPackNameFromFolder(int fld_idx, bool tex_or_res) = 0;
+  virtual String __stdcall getPkgName(DagorAsset *asset) = 0;
   virtual bool __stdcall checkUpToDate(dag::ConstSpan<unsigned> tc, dag::Span<int> tc_flags,
     dag::ConstSpan<const char *> packs_to_check, const char *profile = NULL) = 0;
 

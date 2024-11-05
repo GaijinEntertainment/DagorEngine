@@ -1,0 +1,17 @@
+texture vertical_tex;
+texture vertical_nm_tex;
+texture vertical_det_tex;
+float4 vertical_param;
+float4 vertical_param_2 = (10, 0, 0, 0);
+float4 vertical_param_3 = (1, 1, 0, 0);
+
+
+macro NO_VERTICAL_TEX_USE()
+  hlsl(ps) {
+    #define applyVerticalTexture(vertnormal, worldnormal, diffuseColor, worldPos, high_detail) 1
+  }
+endmacro
+
+macro VERTICAL_TEX_USE()
+  NO_VERTICAL_TEX_USE()
+endmacro

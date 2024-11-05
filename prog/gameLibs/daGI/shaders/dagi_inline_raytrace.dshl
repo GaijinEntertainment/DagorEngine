@@ -47,8 +47,9 @@ macro RAY_CAST_INLINE_RT(code)
       float4 pos;
     };
     RaytracingAccelerationStructure accelerationStructure : register(t23);
-    ByteAddressBuffer indices[] : BINDLESS_REGISTER(t, 1);
-    StructuredBuffer<Vertex> vertices[] : BINDLESS_REGISTER(t, 2);
+    BINDLESS_BUF_ARRAY(ByteAddressBuffer, indices, 1);
+    BINDLESS_BUF_ARRAY(StructuredBuffer<Vertex>, vertices, 2);
+
     //from D3D12RayTracingSimpleLighting
     uint3 load3x16BitIndices(int idx, uint offsetBytes)
     {
@@ -136,7 +137,7 @@ macro RAY_CAST_INLINE_RT(code)
         get_ambient(hitPos, n, 1, ambient);
 
         float3 pointToEye = world_view_pos - hitPos;
-        half shadow = getStaticShadow(hitPos) * get_csm_shadow(pointToEye, 0.0).x;
+        half shadow = getStaticShadow(hitPos) * get_csm_shadow(pointToEye).x;
         half3 dynColor = getDynamicLighting(n, data.rgb, hitPos);
         ret = half4(data * (shadow * max(0, dot(n, -from_sun_direction)) * sun_color_0 + ambient) + emission + dynColor, 0.0);
       }

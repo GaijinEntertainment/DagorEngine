@@ -1,0 +1,551 @@
+include "gbuffer.dshl"
+include "random_color.dshl"
+include "rotation_palette_inc.dshl"
+include "paint_details_inc.dshl"
+
+hlsl { #define RENDINST_FLOAT_POS 1 } // for debug switching between floats and halfs
+
+int rendinst_use_cell_sbuffer = 0 always_referenced;
+interval rendinst_use_cell_sbuffer: off < 1, on;
+
+int instancing_type = 0;
+interval instancing_type : tm_vb < 1, pos_vb < 2,  pos_cb;
+
+int is_render_by_cells = 0;
+interval is_render_by_cells : no < 1, yes;
+
+int rendinst_render_type = 0;
+interval rendinst_render_type : mixed < 1, ri_ex_only;
+
+int useBboxInCbuffer = 1 always_referenced;
+
+int rendinst_perinst_buff_no = 6 always_referenced;
+int rendinst_instance_buff_no = 5 always_referenced;
+int per_instance_data_no = 14;
+int ri_vertex_data_no = 12 always_referenced;
+
+buffer impostor_data_buffer;
+buffer ri_gen_multidraw_perDrawArgsBuffer;
+buffer ri_vertex_data;
+
+float lods_shift_dist_mul = 1.0;
+
+float4 impostor_shadow_x = (0,0,0,0);
+float4 impostor_shadow_y = (0,0,0,0);
+float4 impostor_shadow_z = (0,0,0,0);
+texture impostor_shadow;
+buffer perDrawInstanceData;
+
+float4 camera_base_offset = (0, 0, 0, 0);
+
+macro INIT_RENDINST_IMPOSTOR_SHADOW()
+  (ps) {
+    impostor_shadow_x@f4 = impostor_shadow_x;
+    impostor_shadow_y@f4 = impostor_shadow_y;
+    impostor_shadow_z@f4 = impostor_shadow_z;
+  }
+endmacro
+
+macro RENDINST_SW_VERTEX_FETCH(stage)
+  (stage) {
+    ri_vertex_data@buf : register(ri_vertex_data_no)
+    hlsl {
+      Buffer<float> ri_vertex_data@buf;
+    }
+  }
+  hlsl(stage) {
+    half4 unpackColor(uint value)
+    {
+      return half4((uint4(
+        value,
+        value >> 8,
+        value >> 16,
+        value >> 24
+      )).bgra & 0xFF) / 255.f;
+    }
+
+    float3 fetchVertexFloat3Attribute(uint byte_offset)
+    {
+      const uint offset = byte_offset >> 2;
+      return float3(
+        ri_vertex_data[offset],
+        ri_vertex_data[offset + 1],
+        ri_vertex_data[offset + 2]
+      );
+    }
+    half4 fetchVertexColor8Attribute(uint byte_offset)
+    {
+      return unpackColor(asuint(ri_vertex_data[byte_offset >> 2]));
+    }
+  }
+endmacro
+
+macro RENDINST_INSTANCING()
+  // instance offset
+  (vs) {immediate_dword_count = 2;}
+  USE_ROTATION_PALETTE_ENCODING()
+  //changed per_instance_data buffer to use explicit @buf to not overlap with named resources
+  if (instancing_type != pos_cb)
+  {
+    //per cell render uses half4 data, sampling buffer is needed
+    if (((small_sampled_buffers == no) || (is_render_by_cells == yes)) && (rendinst_use_cell_sbuffer == off))
+    {
+      (vs) {
+        per_instance_data@buf : register(per_instance_data_no)
+        hlsl {
+          #define INSTANCING_BUFFERS\
+            Buffer<float4> per_instance_data@buf;
+        }
+      }
+    }
+    else
+    {
+      (vs) {
+        per_instance_data@buf : register(per_instance_data_no)
+        hlsl {
+          #define INSTANCING_BUFFERS\
+            StructuredBuffer<float4> per_instance_data@buf;
+        }
+      }
+    }
+  }
+  hlsl(vs) {
+
+    #ifndef INST_OFFSET_GETTER
+      ##if rendinst_render_type == ri_ex_only
+        #define INST_OFFSET_GETTER 0
+      ##else
+        #define INST_OFFSET_GETTER get_immediate_dword_0()
+      ##endif
+    #endif
+
+
+    #ifndef RENDINST_OPACITY
+    #define RENDINST_OPACITY 1
+     ##if hardware.ps4 || hardware.ps5
+     #define b6 c6
+     ##endif
+      cbuffer  perinst:register(b6)
+      {
+        float4 cb_cellxyz_min; // bbox: (x1,y1,z1)
+        float4 cb_cellxyz_size; // (x2-x1, y2-y1, z2-z1)
+        uint3  cb_inst_offset; uint cb_impostor_data_offset;
+
+        float4 cb_rendinst_opacity;
+        float4 cb_bounding_sphere;
+        float4 cb_ao_mul__cyl_rad; //rendinst_ao_mul / (bounding_sphere.z + 0.0001)  ___ 1./(0.1 + bounding_sphere.z*2)
+        float4 cb_shadow_impostor_sizes0;
+        float4 cb_shadow_impostor_sizes1;
+        float4 cb_shadow_impostor_sizes2;
+        float4 cb_shadow_impostor_sizes3;
+        float4 cb_rendinst_bbox__cross_dissolve_range;
+        float4 cb_rendinst_color_from;
+        float4 cb_rendinst_color_to;
+        float4 cb_rendinst_interaction_params;
+      };
+
+      #define ao_mul ao_mul__cyl_rad.x
+      #define cylinder_radius ao_mul__cyl_rad.y
+      #define rendinst_bbox (rendinst_bbox__cross_dissolve_range.xyz)
+      #define cross_dissolve_range (rendinst_bbox__cross_dissolve_range.w)
+
+      #define RENDINST_RESCALE (cellxyz_size.w)
+      #define RENDINST_RESCALE_OFS (cellxyz_min.w)
+      #define cell_bbox_xyz_min  (cellxyz_min.xyz)
+      #define cell_bbox_xyz_size  (cellxyz_size.xyz)
+      #define HW_INSTANCE_OFFSET(a) a.x += INST_OFFSET_GETTER
+      #define IMPOSTOR_DATA_OFFSET (impostor_data_offset)
+      #define IS_DYNAMIC_RI (is_dynamic)
+    #endif
+
+    #ifndef INSTANCE_ID_DIVISOR
+    #define INSTANCE_ID_DIVISOR 1
+    #endif
+    #ifndef PROCESS_OUTPUT
+    #define PROCESS_OUTPUT(a)
+    #endif
+    #ifndef GET_PER_DRAW_OFFSET
+    #define GET_PER_DRAW_OFFSET asuint(per_instance_data[instNo * 4 + INST_OFFSET_GETTER + 3].x) & 0x7FFFFFFF; // top bit stores isDynamic
+    #endif
+    #define FILL_PER_DRAW_DATA \
+      float4 cellxyz_min; \
+      float4 cellxyz_size; \
+      uint3  inst_offset; \
+      uint impostor_data_offset; \
+      float4 rendinst_opacity; \
+      float4 bounding_sphere; \
+      float4 ao_mul__cyl_rad; \
+      float  plodRadius; \
+      float4 shadow_impostor_sizes0; \
+      float4 shadow_impostor_sizes1; \
+      float4 shadow_impostor_sizes2; \
+      float4 shadow_impostor_sizes3; \
+      float4 rendinst_bbox__cross_dissolve_range; \
+      float4 rendinst_color_from; \
+      float4 rendinst_color_to; \
+      float4 rendinst_interaction_params; \
+      BRANCH if (!useCbufferParams)\
+      {\
+        perDrawOffset = GET_PER_DRAW_OFFSET; \
+        useCbufferParams = perDrawOffset == 0; \
+      }\
+      BRANCH if (useCbufferParams) \
+      { \
+        cellxyz_min = cb_cellxyz_min; \
+        cellxyz_size = cb_cellxyz_size; \
+        inst_offset = cb_inst_offset.xyz; \
+        impostor_data_offset = cb_impostor_data_offset; \
+        rendinst_opacity = cb_rendinst_opacity; \
+        bounding_sphere = cb_bounding_sphere; \
+        ao_mul__cyl_rad = cb_ao_mul__cyl_rad; \
+        plodRadius = cb_shadow_impostor_sizes0.x; \
+        shadow_impostor_sizes0 = cb_shadow_impostor_sizes0; \
+        shadow_impostor_sizes1 = cb_shadow_impostor_sizes1; \
+        shadow_impostor_sizes2 = cb_shadow_impostor_sizes2; \
+        shadow_impostor_sizes3 = cb_shadow_impostor_sizes3; \
+        rendinst_bbox__cross_dissolve_range = cb_rendinst_bbox__cross_dissolve_range; \
+        rendinst_color_from = cb_rendinst_color_from; \
+        rendinst_color_to = cb_rendinst_color_to; \
+        rendinst_interaction_params = cb_rendinst_interaction_params; \
+      } \
+      else \
+      { \
+        cellxyz_min = perDrawInstanceData[perDrawOffset - 1]; \
+        cellxyz_size = perDrawInstanceData[perDrawOffset + 0]; \
+        inst_offset = asuint(perDrawInstanceData[perDrawOffset + 1].xyz); \
+        impostor_data_offset = asuint(perDrawInstanceData[perDrawOffset + 1].w); \
+        rendinst_opacity = perDrawInstanceData[perDrawOffset + 2]; \
+        bounding_sphere = perDrawInstanceData[perDrawOffset + 3]; \
+        ao_mul__cyl_rad = perDrawInstanceData[perDrawOffset + 4]; \
+        plodRadius = perDrawInstanceData[perDrawOffset + 5].x; \
+        shadow_impostor_sizes0 = perDrawInstanceData[perDrawOffset + 5]; \
+        shadow_impostor_sizes1 = perDrawInstanceData[perDrawOffset + 6]; \
+        shadow_impostor_sizes2 = perDrawInstanceData[perDrawOffset + 7]; \
+        shadow_impostor_sizes3 = perDrawInstanceData[perDrawOffset + 8]; \
+        rendinst_bbox__cross_dissolve_range = perDrawInstanceData[perDrawOffset + 9]; \
+        rendinst_color_from = perDrawInstanceData[perDrawOffset + 10]; \
+        rendinst_color_to = perDrawInstanceData[perDrawOffset + 11]; \
+        rendinst_interaction_params = perDrawInstanceData[perDrawOffset + 12]; \
+      }
+
+    ##if  instancing_type == pos_cb
+      #define INSTANCING_BUFFERS\
+        cbuffer instance_cb:register(b5){\
+          float4 per_instance_data[2048];\
+        };
+    ##endif
+
+    #if RENDINST_FLOAT_POS
+    #define RENDINST_APPLY_RESCALE(a)
+    #define RENDINST_APPLY_CELL_RESCALE(a)
+    #else
+    #define RENDINST_APPLY_RESCALE(a) a = a*RENDINST_RESCALE
+    #define RENDINST_APPLY_CELL_RESCALE(a) a.xyz = a.xyz*cell_bbox_xyz_size+cell_bbox_xyz_min
+    #endif
+
+    ##if instancing_type == pos_vb || instancing_type == pos_cb
+
+    #define VB_PERFORM_POS_INSTANCING_BASE\
+      float3 worldLocalX = float3(pos_and_scale.w, 0., 0.);\
+      float3 worldLocalY = float3(0., pos_and_scale.w, 0.);\
+      float3 worldLocalZ = float3(0., 0., pos_and_scale.w);\
+      float3 worldLocalPos = pos_and_scale.xyz;\
+      float3 worldPos = localPos.xyz*pos_and_scale.w + worldLocalPos;\
+      float3 worldNormal = normalize(localNormal.xyz);\
+      float3 physBbox = float3(bounding_sphere.zwz*2);\
+      uint is_dynamic = 0;\
+      uint hashVal = 0;
+
+      ##if instancing_type == pos_cb
+      #define VB_PERFORM_INSTANCING\
+        uint instNo = uint(instance_id)/INSTANCE_ID_DIVISOR;\
+        uint voxelize_axis = uint(instance_id)%INSTANCE_ID_DIVISOR;\
+        bool useCbufferParams = (cb_inst_offset.z & 1) == 0; \
+        int perDrawOffset = 0; \
+        FILL_PER_DRAW_DATA \
+        uint3 inst_offset2 = inst_offset;\
+        HW_INSTANCE_OFFSET(inst_offset2);\
+        float4 pos_and_scale = per_instance_data[instNo*inst_offset2.y+inst_offset2.x];\
+        uint paletteId = unpack_palette_id(pos_and_scale.w);\
+        pos_and_scale.w = unpack_scale(pos_and_scale.w);\
+        VB_PERFORM_POS_INSTANCING_BASE
+      ##else
+      #define VB_PERFORM_INSTANCING\
+        uint instNo = uint(instance_id)/INSTANCE_ID_DIVISOR;\
+        uint voxelize_axis = uint(instance_id)%INSTANCE_ID_DIVISOR;\
+        bool useCbufferParams = (cb_inst_offset.z & 1) == 0; \
+        int perDrawOffset = 0; \
+        FILL_PER_DRAW_DATA \
+        uint3 inst_offset2 = inst_offset;\
+        HW_INSTANCE_OFFSET(inst_offset2);\
+        float4 pos_and_scale = per_instance_data[instNo*inst_offset2.y+inst_offset2.x];\
+        RENDINST_APPLY_CELL_RESCALE(pos_and_scale.xyz);\
+        RENDINST_APPLY_RESCALE(pos_and_scale.w);\
+        uint paletteId = unpack_palette_id(pos_and_scale.w);\
+        pos_and_scale.w = unpack_scale(pos_and_scale.w);\
+        VB_PERFORM_POS_INSTANCING_BASE
+     ##endif
+    ##else
+    #define VB_PERFORM_INSTANCING_BASE\
+      uint instNo = uint(instance_id)/INSTANCE_ID_DIVISOR;\
+      uint voxelize_axis = uint(instance_id)%INSTANCE_ID_DIVISOR;\
+      int perDrawOffset = 0; \
+      bool useCbufferParams = (cb_inst_offset.z & 1) == 0; \
+      FILL_PER_DRAW_DATA \
+      uint3 inst_offset2 = inst_offset;\
+      HW_INSTANCE_OFFSET(inst_offset2);\
+      float4 tm_line_0 = per_instance_data[instNo*inst_offset2.y+inst_offset2.x+0];\
+      float4 tm_line_1 = per_instance_data[instNo*inst_offset2.y+inst_offset2.x+1];\
+      float4 tm_line_2 = per_instance_data[instNo*inst_offset2.y+inst_offset2.x+2];\
+      float3 worldLocalX = float3(tm_line_0.x, tm_line_1.x, tm_line_2.x);\
+      float3 worldLocalY = float3(tm_line_0.y, tm_line_1.y, tm_line_2.y);\
+      float3 worldLocalZ = float3(tm_line_0.z, tm_line_1.z, tm_line_2.z);\
+      float3 worldLocalPos = float3(tm_line_0.w, tm_line_1.w, tm_line_2.w);\
+      RENDINST_APPLY_RESCALE(worldLocalX);\
+      RENDINST_APPLY_RESCALE(worldLocalY);\
+      RENDINST_APPLY_RESCALE(worldLocalZ);\
+      RENDINST_APPLY_CELL_RESCALE(worldLocalPos);\
+      float3 worldPos = localPos.x * worldLocalX + localPos.y * worldLocalY + localPos.z * worldLocalZ + worldLocalPos;\
+      float3 worldNormal = normalize(localNormal.x * worldLocalX + localNormal.y * worldLocalY + localNormal.z * worldLocalZ);\
+      float3 physBbox = rendinst_bbox.xyz;\
+      uint paletteId = 0;
+
+      ##if in_editor_assume == yes && (is_render_by_cells == yes && rendinst_use_cell_sbuffer == off)
+        #define VB_PERFORM_INSTANCING\
+          VB_PERFORM_INSTANCING_BASE\
+          uint hashVal = 0;\
+          uint is_dynamic = 0;\
+          BRANCH if (inst_offset2.y>3) \
+            hashVal = asuint(per_instance_data[instNo*inst_offset2.y+inst_offset2.x+3].z);
+      ##else
+        #define VB_PERFORM_INSTANCING\
+          VB_PERFORM_INSTANCING_BASE\
+          uint hashVal = 0;\
+          uint is_dynamic = 0;\
+          BRANCH if (inst_offset2.y>3) {\
+            uint2 hash_dynamicBit = asuint(per_instance_data[instNo*inst_offset2.y+inst_offset2.x+3].zx);\
+            hashVal = hash_dynamicBit.x;\
+            is_dynamic = !!(hash_dynamicBit.y & (1<<31));\
+          }
+      ##endif
+
+    ##endif
+  }
+endmacro
+
+texture paint_details_tex;
+texture perlin_noise3d;
+float tree_wind_branch_amp = 0.5;
+float tree_wind_detail_amp = 0.5;
+float tree_wind_speed = 0.1;
+float tess_quality = 75;
+float4 cliff_color_overlay_map_left_top_right_bottom = (-2048, 2048, 2048, -2048);
+
+buffer obstacle_indices_buf;
+const_buffer obstacles_buf;
+
+macro RENDINST_SCENE_COMMON()
+  supports global_frame;
+
+  if (small_sampled_buffers == no)
+  {
+    (vs) {
+      perDrawInstanceData@buf = perDrawInstanceData hlsl {
+        Buffer<float4> perDrawInstanceData@buf;
+      };
+    }
+  } else {
+    (vs) {
+      perDrawInstanceData@buf = perDrawInstanceData hlsl {
+        StructuredBuffer<float4> perDrawInstanceData@buf;
+      };
+    }
+  }
+
+  (vs) {
+    camera_base_offset@f3 = camera_base_offset;
+    globtm@f44 = globtm;
+    lods_shift_dist_mul@f1 = lods_shift_dist_mul;
+    obstacle_indices@buf = obstacle_indices_buf hlsl {
+      StructuredBuffer<uint> obstacle_indices@buf;
+    };
+    obstacles_indirection@cbuf = obstacles_buf hlsl {
+      #include "obstacleStruct.hlsli"
+      cbuffer obstacles_indirection@cbuf
+      {
+        ObstaclesData obstacles;
+      };
+    };
+    perlin_noise3d@smp3d = perlin_noise3d;
+    impostor_data_buffer@buf = impostor_data_buffer hlsl {
+      Buffer<float4> impostor_data_buffer@buf;
+    };
+  }
+  (ps) {
+    impostor_data_buffer@buf = impostor_data_buffer hlsl {
+      Buffer<float4> impostor_data_buffer@buf;
+    }
+  }
+  (vs) {
+    ri_per_draw_args@buf = ri_gen_multidraw_perDrawArgsBuffer hlsl {
+      StructuredBuffer<uint2> ri_per_draw_args@buf;
+    }
+  }
+  (ps) {
+    ri_per_draw_args@buf = ri_gen_multidraw_perDrawArgsBuffer hlsl {
+      StructuredBuffer<uint2> ri_per_draw_args@buf;
+    }
+  }
+  INIT_ZNZFAR()
+endmacro
+
+macro ENABLE_MULTI_DRAW(use_drawid_vs_only)
+  //Common code
+  if (instancing_type == tm_vb)
+  {
+    hlsl {
+      #define RI_EX_MULTIDRAW 1
+    }
+  }
+  if (hardware.dx12 || hardware.ps4 || hardware.ps5 || (hardware.vulkan && hardware.bindless))
+  {
+    supports __static_multidraw_cbuf;
+
+    hlsl {
+      #define SET_UP_MULTIDRAW 1
+      #define RENDINST_SHADER_MULTIDRAW 1
+      #include <rendInst/packedMultidrawParams.hlsli>
+      #define SET_DRAW_CALL_ID(draw_call_id) DRAW_CALL_ID = draw_call_id;
+    }
+    hlsl(vs) {
+      #if RI_EX_MULTIDRAW
+        uint get_material_offset_external_draw_id(uint draw_id)
+        {
+          return draw_id & MATERIAL_OFFSET_MASK;
+        }
+        #define INST_OFFSET_GETTER ((get_draw_id() >> MATRICES_OFFSET_SHIFT) << 2)
+      #else
+        uint get_material_offset_external_draw_id(uint draw_id)
+        {
+          return ri_per_draw_args[draw_id].x & MATERIAL_OFFSET_MASK;
+        }
+        #define INST_OFFSET_GETTER (ri_per_draw_args[get_draw_id()].y)
+        #define GET_PER_DRAW_OFFSET (ri_per_draw_args[get_draw_id()].x >> PER_DRAW_OFFSET_SHIFT)
+      #endif
+      #define GET_MATERIAL_OFFSET (get_material_offset_external_draw_id(get_draw_id()))
+    }
+  }
+
+  if (hardware.dx12)
+  {
+    supports __draw_id;
+    hlsl(vs) {
+      #define INIT_MULTIDRAW(vsoutput)
+    }
+    hlsl(ps) {
+      #define INIT_MULTIDRAW(vsoutput)
+      #if RI_EX_MULTIDRAW
+        #define GET_MATERIAL_OFFSET(psinput) (get_draw_id() & MATERIAL_OFFSET_MASK)
+      #else
+        #define GET_MATERIAL_OFFSET(psinput) (ri_per_draw_args[get_draw_id()].x & MATERIAL_OFFSET_MASK)
+      #endif
+    }
+  }
+
+  if (hardware.vulkan && hardware.bindless)
+  {
+    hlsl {
+      #define DRAW_ID_USES_INSTANCE_OFFSET_ID 1
+      #define VSOUT_DRAW_ID nointerpolation uint drawId : TEXCOORD14;
+    }
+
+    hlsl(vs) {
+##if use_drawid_vs_only
+      #define INIT_PS_INPUT(vsoutput)
+##else
+      #define INIT_PS_INPUT(vsoutput) vsoutput.drawId = instance_offset_id
+##endif
+
+      #define INIT_MULTIDRAW(vsoutput)\
+        instance_id -= instance_offset_id;\
+        g_instance_offset_id = instance_offset_id;\
+        INIT_PS_INPUT(vsoutput)
+
+      // the draw_id value passed through a global static variable, since ShaderCompiler's spirv backend
+      // doesn't let to define a macro with brackets, but without parameters
+      static uint g_instance_offset_id = 0;
+      uint get_draw_id() { return g_instance_offset_id; }
+    }
+
+    hlsl(ps) {
+      #define INIT_MULTIDRAW(vsoutput)
+       #if RI_EX_MULTIDRAW
+        #define GET_MATERIAL_OFFSET(psinput) (psinput.drawId & MATERIAL_OFFSET_MASK)
+      #else
+        #define GET_MATERIAL_OFFSET(psinput) (ri_per_draw_args[psinput.drawId].x & MATERIAL_OFFSET_MASK)
+      #endif
+    }
+  }
+  else if (hardware.ps4 || hardware.ps5)
+  {
+    USE_INDIRECT_DRAW()
+
+    hlsl {
+      #define DRAW_ID_USES_INSTANCE_OFFSET_ID 1
+      #define VSOUT_DRAW_ID nointerpolation uint drawId : TEXCOORD15;
+    }
+
+    hlsl(vs) {
+##if use_drawid_vs_only
+      #define INIT_PS_INPUT(vsoutput)
+##else
+      #define INIT_PS_INPUT(vsoutput)  vsoutput.drawId = instance_offset_id
+##endif
+
+      #define INIT_MULTIDRAW(vsoutput)\
+        instance_id -= instance_offset_id;\
+        g_instance_offset_id = WaveReadFirstLane(instance_offset_id);\
+        INIT_PS_INPUT(vsoutput)
+
+      // Copy pasted this hack from Vulkan, it allows for get_draw_id to be called anywhere
+      static uint g_instance_offset_id = 0;
+      uint get_draw_id() { return g_instance_offset_id; }
+    }
+
+    hlsl(ps) {
+      #define INIT_MULTIDRAW(vsoutput)
+      #if RI_EX_MULTIDRAW
+        #define GET_MATERIAL_OFFSET(psinput) (WaveReadFirstLane(psinput.drawId) & MATERIAL_OFFSET_MASK)
+      #else
+        #define GET_MATERIAL_OFFSET(psinput) (ri_per_draw_args[WaveReadFirstLane(psinput.drawId)].x & MATERIAL_OFFSET_MASK)
+      #endif
+    }
+  }
+  else
+  {
+    hlsl {
+      #define VSOUT_DRAW_ID
+    }
+  }
+endmacro
+
+macro USE_TRANSITION_CROSS_DISSOLVE()
+  static int use_cross_dissolve = 0;
+  interval use_cross_dissolve : off < 1, on;
+
+  if (use_cross_dissolve == on)
+  {
+    static float cross_dissolve_mul = 0;
+    static float cross_dissolve_add = 0;
+    (vs) { cross_dissolve_mul_add@f2 = (cross_dissolve_mul, cross_dissolve_add, 0, 0); }
+
+    hlsl(vs)
+    {
+      float get_transition_lod_cross_dissolve_opacity(float distance, float dist_shift)
+      {
+        float2 mul_add = get_cross_dissolve_mul_add();
+        return saturate(distance * dist_shift * mul_add.x + mul_add.y);
+      }
+    }
+  }
+endmacro

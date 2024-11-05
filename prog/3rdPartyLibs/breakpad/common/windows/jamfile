@@ -1,7 +1,7 @@
 Root        ?= ../../../../.. ;
 BreakpadRoot = prog/3rdPartyLibs/breakpad ;
 Location     = $(BreakpadRoot)/common/windows ;
-Platform    ?= win32 ;
+PlatformArch_windows ?= x86 ;
 
 TargetType  = lib ;
 Target      = 3rdPartyLibs/breakpad/common/windows.lib ;

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -223,7 +222,11 @@ inline void query_componentsNO(const ecs::EntitySystemDesc &sys,
   context->invoke(block, &arg, nullptr, at);
 }
 
-inline void create_entities_blk(const DataBlock &blk, const char *blk_path) { ecs::create_entities_blk(blk, blk_path); }
+inline void create_entities_blk(const DataBlock &blk, const char *blk_path) { ecs::create_entities_blk(*g_entity_mgr, blk, blk_path); }
+inline void load_comp_list_from_blk(const DataBlock &blk, ecs::ComponentsList &alist)
+{
+  ecs::load_comp_list_from_blk(*g_entity_mgr, blk, alist);
+}
 
 inline const ecs::EntityComponentRef getComponentRef(const ecs::EntityManager &mgr, ecs::EntityId eid, const char *name)
 {

@@ -1,0 +1,220 @@
+include "dagi_quality.dshl"
+include "rendinst_opaque_inc.dshl"
+include "rendinst_trans_inc.dshl"
+include "rendinst_voxelize_albedo_inc.dshl"
+include "metatex_inc.dshl"
+include "normaldetail.dshl"
+
+include "indoor_light_probes.dshl"
+include "glass.dshl"
+
+shader rendinst_metatex, rendinst_emissive_metatex, rendinst_translucent_metatex
+{
+  assume instancing_type = tm_vb;
+  if (rendinst_render_pass == rendinst_render_pass_impostor_color  ||
+      rendinst_render_pass == rendinst_render_pass_impostor_shadow ||
+      rendinst_render_pass == rendinst_render_pass_grassify ||
+      rendinst_render_pass == rendinst_render_pass_to_heightmap)
+  {
+    dont_render;
+  }
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+  NO_DYNSTCODE()
+
+  ENABLE_MULTI_DRAW(rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
+  RENDINST_BLOCK()
+  RI_VOXELIZE_ALBEDO()
+  RENDINST_INSTANCING()
+
+  texture tex = material.texture.diffuse;
+
+  texture normal = material.texture[2];
+
+  USING_ATEST_HALF()
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+  channel float2 tc[0] = tc[0];
+
+  SETUP_CHARACTER_MICRODETAIL()
+  if (shader == rendinst_metatex)
+  {
+    INIT_METATEX_COMMON()
+  }
+  else if (shader == rendinst_emissive_metatex)
+  {
+    INIT_METATEX_EMISSIVE()
+  }
+  else
+  {
+    INIT_METATEX_TRANSLUCENT()
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      PRECISE VS_OUT_POSITION(pos)
+##if !(rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
+      float2 diffuseTexcoord        : TEXCOORD0;
+      float3 normal                 : TEXCOORD1;
+      centroid float3 pointToEye    : TEXCOORD2;
+      VSOUT_DRAW_ID
+##endif
+    };
+  }
+
+  hlsl(vs) {
+
+    INSTANCING_BUFFERS
+
+    struct VsInput
+    {
+      float3 pos                  : POSITION;
+      ##if !(rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
+      float3 normal               : NORMAL;
+      float2 diffuseTexcoord      : TEXCOORD0;
+      ##endif
+    };
+
+    VsOutput simple_vs(VsInput input  HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+      #endif
+
+      ##if (rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
+      float3 localNormal = 1; //warning fix, need not 0 value because of normalize(localNormal) in VB_PERFORM_INSTANCING
+      ##else
+      float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+      ##endif
+      float3 localPos = input.pos;
+      float opacity = 1;
+      VB_PERFORM_INSTANCING
+
+      float3 pointToEye = world_view_pos-worldPos;
+      output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+  ##if !(rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
+        output.diffuseTexcoord.xy = input.diffuseTexcoord;
+        output.normal.xyz = worldNormal;
+        output.pointToEye = pointToEye;
+  ##endif
+      PROCESS_OUTPUT(output.pos, worldPos.xyz);
+      return output;
+    }
+  }
+  COMPILE_RI_VS_TARGET("simple_vs")
+
+  if (rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
+  {
+    compile("ps_null", "rendinst_render_depth_black_ps");
+  }
+  else
+  {
+    USE_METATEX_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo))
+  }
+}
+
+shader rendinst_refraction_metatex
+{
+  assume instancing_type = tm_vb;
+  if (rendinst_render_pass != rendinst_render_pass_normal)
+  {
+    dont_render;
+  }
+  RI_NO_VOXELIZE()
+  if (in_editor_assume == no)
+  {
+    USE_BRUNETON_FOG()
+  }
+  INIT_REFRACTION_GLASS()
+  if (gi_quality != off)
+  {
+    USE_IN_FRUSTUM_GI(ps)
+    hlsl {
+      #define GLASS_USE_GI 1
+    }
+  }
+  RENDINST_TRANS_BLOCK()
+  RENDINST_INSTANCING()
+  ENABLE_MULTI_DRAW(false)
+  hlsl(vs) {
+
+    INSTANCING_BUFFERS
+
+    struct VsInput
+    {
+      float3 pos                  : POSITION;
+      float3 normal               : NORMAL;
+      float2 texcoord             : TEXCOORD0;
+    };
+
+    VsOutput glass_vs(VsInput input  HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+      #endif
+
+      input.normal = normalize(input.normal * 2 - 1);
+      float3 localNormal = input.normal.xyz;
+      float3 localPos = input.pos;
+      float opacity = 1;
+      VB_PERFORM_INSTANCING
+
+      float3 pointToEye = world_view_pos-worldPos;
+
+      output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+      output.texcoord.xy = input.texcoord;
+      output.normal.xyz = worldNormal;
+      output.pointToEye.xyz = pointToEye;
+      half3 fogMul, fogAdd;
+      get_fog(pointToEye, fogMul, fogAdd);
+      output.clipPos = output.pos;
+      output.fogMul = fogMul;
+      output.fogAdd = fogAdd;
+      PROCESS_OUTPUT(output.pos, worldPos.xyz);
+      return output;
+    }
+  }
+  compile("target_vs", "glass_vs");
+
+  INIT_METATEX_REFRACTIVE()
+  APPLY_METATEX()
+  INIT_GLASS_TRANSP()
+  USE_GLASS()
+
+  hlsl(ps) {
+    float4 glass_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE):SV_Target0
+    {
+      #if SET_UP_MULTIDRAW
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+      #endif
+
+      float3 color;
+      half3 normalMap;
+      float smoothness;
+      float opacity;
+      half metalness;
+      half thickness;
+      unpack_metatex(input.texcoord, color, normalMap, smoothness, opacity, metalness, thickness);
+
+      input.normal.xyz = MUL_VFACE(input.normal.xyz);
+      half3 worldNormal = perturb_normal_precise(normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.texcoord.xy);
+      float4 diffuseColor = float4(color, opacity * get_transparency_mul());
+
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      half4 result = apply_glass_base(input, screenpos, diffuseColor, worldNormal, thickness, smoothness);
+      return float4(pack_hdr(result.rgb), result.a);
+    }
+  }
+
+  compile("target_ps", "glass_ps");
+}

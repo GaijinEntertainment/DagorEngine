@@ -1,0 +1,17 @@
+R"(ROUTINE_VISIBILITY void routine%u(const void *vars, bool is_compute) // <- local routine id
+{
+  enum class Location : size_t
+  {
+
+  // Destination registers for constants and slots for resources
+  %s
+
+  };
+
+  ShaderStage pcs_stage = is_compute ? STAGE_CS : STAGE_PS;
+  const uint8_t *vars_base = (const uint8_t *)vars;
+
+  // Routine code
+  %s
+}
+)"

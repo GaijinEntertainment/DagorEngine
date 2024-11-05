@@ -1,0 +1,73 @@
+include "dynamic_opaque_inc.dshl"
+include "gbuffer.dshl"
+include "normaldetail.dshl"
+include "simple_painted_inc.dshl"
+include "random_color.dshl"
+
+
+shader dynamic_simple_painted
+{
+  ENABLE_ASSERT(ps)
+  SUPPORT_MULTIDRAW(false)
+  DYNAMIC_BLOCK()
+
+  texture tex = material.texture.diffuse;
+  texture normal = material.texture[2];
+
+  USING_ATEST_HALF_AND(SET_ATEST_IS_ON_DEFINE())
+
+  INIT_SIMPLE_PAINTED()
+  INIT_RANDOMIZED_TC(vs)
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    hlsl {
+      #define MOTION_VECTORS_ENABLED
+    }
+  }
+
+  SETUP_CHARACTER_MICRODETAIL()
+  INIT_PAINT_DETAILS_STATIC()
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    USE_PAINT_DETAILS()
+    USE_MICRODETAIL_BASED_WETNESS()
+    USE_RANDOMIZED_TC(vs)
+    hlsl {
+      #define COLOR_NEEDED 1
+    }
+  }
+
+  DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+  hlsl(vs) {
+    void vs_post_function(VsInput input, inout VsOutput output)
+    {
+      #if COLOR_NEEDED
+        float4 hashval;
+        get_per_instance_data(hashval, 1);
+        output.colorMul = getColorMul(asuint(hashval.x));
+      #endif
+    }
+  }
+  DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
+
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    if (in_editor_assume == no) { NO_DYNSTCODE() }
+    if (atest == atestOn)
+    {
+      (ps) { diffuse_tex@static = tex; }
+    }
+    SPECIAL_RENDER_ALPHATEST_CHOOSE()
+  }
+  else
+  {
+    hlsl(ps) {
+      #define IS_DYNAMIC 1
+    }
+    SIMPLE_PAINTED_PS(true)
+  }
+}

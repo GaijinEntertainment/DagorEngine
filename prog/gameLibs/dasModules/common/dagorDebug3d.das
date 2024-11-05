@@ -40,6 +40,10 @@ def draw_debug_sphere_buffered(p0 : float3; radius; color : E3DCOLOR; segments :
   _builtin_draw_debug_sphere_buffered(p0, float(radius), color, segments, frames)
 
 [generic]
+def draw_debug_sphere_buffered(p : float3x4; radius; color : E3DCOLOR; segments : int; frames : int)
+  _builtin_draw_debug_sphere_buffered(p[3], float(radius), color, segments, frames)
+
+[generic]
 def draw_debug_sphere_buffered(p0 : float3; radius; color : E3DCOLOR; frames : int)
   _builtin_draw_debug_sphere_buffered(p0, float(radius), color, 12, frames)
 
@@ -74,5 +78,13 @@ def draw_debug_tetrapod_buffered(p0 : float3; radius; color : E3DCOLOR; frames :
   _builtin_draw_debug_tetrapod_buffered(p0, float(radius), color, frames)
 
 [generic]
+def draw_debug_tetrapod_buffered(p : float3x4; radius; color : E3DCOLOR; frames : int)
+  _builtin_draw_debug_tetrapod_buffered(p[3], float(radius), color, frames)
+
+[generic]
 def draw_debug_tehedron_buffered(p0 : float3; radius; color : E3DCOLOR; frames : int)
   _builtin_draw_debug_tehedron_buffered(p0, float(radius), color, frames)
+
+[generic]
+def draw_debug_tehedron_buffered(p : float3x4; radius; color : E3DCOLOR; frames : int)
+  _builtin_draw_debug_tehedron_buffered(p[3], float(radius), color, frames)

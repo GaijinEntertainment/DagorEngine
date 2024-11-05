@@ -1,0 +1,301 @@
+texture screenprobes_current_radiance;
+texture screenprobes_current_radiance_distance;
+texture screenspace_irradiance;
+
+buffer screenspace_probe_pos;
+int4 screenspace_probe_res = (0,0,1,1);
+int4 screenspace_probes_temporal;
+int4 sp_radiance_area = (1,1,1,0);
+float sp_irradiance_resf = 1;
+int4 sp_irradiance_res = (1,1,1,1);
+int4 sp_probe_pos_allocated_ofs;
+float4 screenspace_probe_atlas_size;
+float4 screenspace_probe_screen_res = (1,1,1,1);
+float4x4 sp_globtm;
+float4x4 sp_globtm_from_campos;
+float4 sp_hit_distance_decode;
+float4 sp_world_view_pos;
+float4 sp_zn_zfar = (1,10,0,0);
+float4 sp_view_z;
+float4 sp_view_vecLT;
+float4 sp_view_vecRT;
+float4 sp_view_vecLB;
+float4 sp_view_vecRB;
+
+
+hlsl {
+  #define SCREENPROBES_BIAS_TO_CAMERA 0.97
+
+  #define SP_BILINEAR_EXPAND 0.5
+  #define SP_DEFAULT_BILINEAR_DEPTH_EXP -10000.0f
+}
+
+macro SP_INIT_ZNZFAR_STAGE(code)
+  (code) { sp_zn_zfar@f4 = (sp_zn_zfar.x, sp_zn_zfar.y, 1/(sp_zn_zfar.y), (sp_zn_zfar.y-sp_zn_zfar.x)/(sp_zn_zfar.x * sp_zn_zfar.y)); }
+endmacro
+
+macro SP_VIEW_VEC_OPTIMIZED(code)
+  (code) {
+    sp_view_z@f3=sp_view_z;
+    sp_world_view_pos@f3 = sp_world_view_pos;
+    sp_view_vecLT@f3 = sp_view_vecLT;
+    sp_view_vecRT_minus_view_vecLT@f3 = (sp_view_vecRT-sp_view_vecLT);
+    sp_view_vecLB_minus_view_vecLT@f3 = (sp_view_vecLB-sp_view_vecLT);
+    sp_view_vecLTNormalized@f3 = sp_view_vecLT*sp_zn_zfar.y;
+    sp_view_vecRT_minus_view_vecLTNormalized@f3 = (sp_view_vecRT-sp_view_vecLT)*sp_zn_zfar.y;
+    sp_view_vecLB_minus_view_vecLTNormalized@f3 = (sp_view_vecLB-sp_view_vecLT)*sp_zn_zfar.y;
+  }
+  hlsl(code) {
+    float3 sp_getViewVecOptimized(float2 tc) {return sp_view_vecLT + sp_view_vecRT_minus_view_vecLT*tc.x + sp_view_vecLB_minus_view_vecLT*tc.y;}
+    float3 sp_getViewVecOptimizedNormalized(float2 tc) {return sp_view_vecLTNormalized + sp_view_vecRT_minus_view_vecLTNormalized*tc.x + sp_view_vecLB_minus_view_vecLTNormalized*tc.y;}
+  }
+endmacro
+
+macro SP_HIT_DISTANCE_ENCODE(code)
+  (code) { sp_hit_distance_decode@f3 = (0.5*sp_zn_zfar.y, 4*0.5, 128*0.5);}
+endmacro
+
+macro SREENSPACE_PROBES_OCTAHEDRAL(code)
+  hlsl(code) {
+    #include <screen_probes_octahedral_common.hlsl>
+  }
+endmacro
+
+buffer screenspace_probes_list;
+macro SP_USE_BUFFERS_LIST(code)
+  (code) {
+    screenspace_probes_list@buf = screenspace_probes_list hlsl {
+      ByteAddressBuffer screenspace_probes_list@buf;
+    }
+  }
+endmacro
+
+int4 screenspace_probes_count__added__total;
+
+macro INIT_SCREENSPACE_PROBES_RES(code)
+  (code) {
+    screenspace_probe_res@i4 = screenspace_probe_res;
+    screenspace_probes_count__added__total@i4 = screenspace_probes_count__added__total;
+    sp_probe_pos_allocated_ofs@i4 = sp_probe_pos_allocated_ofs;
+  }
+  hlsl(code) {
+    uint sp_additionalProbesByteAt() {return sp_probe_pos_allocated_ofs.w;}
+    uint sp_additionalProbesCounterByteAt() {return sp_probe_pos_allocated_ofs.z;}
+    uint sp_additionalProbesAt() {return sp_probe_pos_allocated_ofs.y;}
+    uint sp_additionalProbesCounterAt() {return sp_probe_pos_allocated_ofs.x;}
+    uint sp_getRadianceRes() {return screenspace_probe_res.w;}
+    uint sp_getNumScreenProbes() {return screenspace_probes_count__added__total.x;}
+    uint sp_getNumAdaptiveProbes() {return screenspace_probes_count__added__total.y;}
+    uint sp_getNumTotalProbes() {return screenspace_probes_count__added__total.z;}
+    uint sp_getScreenTileClassificatorOffsetDwords() {return screenspace_probes_count__added__total.w;}
+    uint sp_getScreenTileClassificatorOffset() {return sp_getScreenTileClassificatorOffsetDwords()*4;}
+  }
+endmacro
+macro SCREENSPACE_PROBES_POSITIONS_COMMON_MATH(code)
+  INIT_SCREENSPACE_PROBES_RES(code)
+  (code) {
+    screenspace_probe_atlas_size@f4 = screenspace_probe_atlas_size;
+    sp_tile_center_to_screen_uv@f4 = (screenspace_probe_res.z, screenspace_probe_res.z,
+                                   0.5*screenspace_probe_res.z+0.5,
+                                   0.5*screenspace_probe_res.z+0.5)*
+                                  (screenspace_probe_screen_res.z, screenspace_probe_screen_res.w, screenspace_probe_screen_res.z,screenspace_probe_screen_res.w);
+    screenspace_probe_screen_res@f4 = screenspace_probe_screen_res;
+    screenspace_probe_to_uv@f4 = (0.5*screenspace_probe_screen_res.z, 0.5*screenspace_probe_screen_res.w, screenspace_probe_screen_res.z, screenspace_probe_screen_res.w);
+    screenspace_probe_screen_coord_to_probe_coord@f2 = (1./screenspace_probe_res.z, -0.5 - 0.5/screenspace_probe_res.z,0,0);
+    screenspace_probe_screen_limit@f4 = (1-0.5*screenspace_probe_screen_res.z, 1-0.5*screenspace_probe_screen_res.w, screenspace_probe_screen_res.x-0.5, screenspace_probe_screen_res.y-0.5);
+    screenspace_probe_screen_uv_to_probe_coord@f3 = (screenspace_probe_screen_res.x/screenspace_probe_res.z, screenspace_probe_screen_res.y/screenspace_probe_res.z, -0.5 -0.5/screenspace_probe_res.z,0);
+    //float2 screenCoord = history_uv*screenspace_probe_screen_res.xy;
+  }
+  SREENSPACE_PROBES_OCTAHEDRAL(code)
+  SP_INIT_ZNZFAR_STAGE(code)
+  SP_VIEW_VEC_OPTIMIZED(code)
+  hlsl(code) {
+    float2 screenICoordToScreenUV(uint2 coord)
+    {
+      return saturate(coord*screenspace_probe_to_uv.zw + screenspace_probe_to_uv.xy);
+    }
+    float2 screenCoordToScreenUV(float2 coord)
+    {
+      return saturate(coord*screenspace_probe_to_uv.zw);
+    }
+    float2 getScreenProbeCenterScreenUV(uint2 tile_coord, float4 tile_to_center, float2 screen_limit)
+    {
+      return min(saturate(tile_coord*tile_to_center.xy + tile_to_center.zw), screen_limit.xy);
+    }
+    float2 getScreenProbeCenterScreenUV(uint2 tile_coord)
+    {
+      return getScreenProbeCenterScreenUV(tile_coord, sp_tile_center_to_screen_uv, screenspace_probe_screen_limit.xy);
+    }
+  }
+endmacro
+
+macro SCREENSPACE_PROBES_POSITIONS_COMMON(code)
+  SCREENSPACE_PROBES_POSITIONS_COMMON_MATH(code)
+endmacro
+
+macro SCREENSPACE_PROBES_POSITIONS(code)
+  (code) {
+    screenspace_probe_pos@buf = screenspace_probe_pos hlsl {
+      ByteAddressBuffer screenspace_probe_pos@buf;
+    }
+  }
+  SCREENSPACE_PROBES_POSITIONS_COMMON(code)
+endmacro
+
+macro SP_CALC_UPSAMPLE_WEIGHTS(code)
+  hlsl(code) {
+    #include <sp_upsample_weights.hlsl>
+  }
+endmacro
+
+macro SP_CURRENT_UPSAMPLE_WEIGHTS(code)
+  SCREENSPACE_PROBES_POSITIONS(code)
+  SP_CALC_UPSAMPLE_WEIGHTS(code)
+  hlsl(code) {
+    bool dagi_get_current_bilinear_weights(out uint2 probe_coords[4], out float4 weights, float sceneLinearDepth, float3 camPos, float3 worldNormal, float2 screen_coord, float depth_exp = SP_DEFAULT_BILINEAR_DEPTH_EXP)
+    {
+      UpsamplePointInfo pointInfo;
+      pointInfo.camPos = camPos;
+      pointInfo.worldNormal = worldNormal;
+      pointInfo.sceneLinearDepth = sceneLinearDepth;
+      pointInfo.screenCoord = screen_coord;
+      pointInfo.bilinearExpand = SP_BILINEAR_EXPAND;
+      ViewInfo vInfo = sp_getScreenViewInfo();
+
+      SRVBufferInfo srvInfo;
+      srvInfo.posBuffer = screenspace_probe_pos;
+
+      UpsampleCornerWeights corners = calc_upsample_weights(srvInfo, vInfo, pointInfo, depth_exp);
+      weights = corners.cornerDepthBilWeights;
+      probe_coords = corners.atlasSampleProbeCoord;
+      float w = dot(weights, 1);
+      weights *= rcp(max(w, 1e-6));
+      return w > 0;
+    }
+  }
+endmacro
+
+float4 dagi_sp_oct_to_irradiance_atlas;
+
+macro SAMPLE_JUST_IRRADIANCE_SP(code)
+  (code) {
+    screenspace_irradiance@smp2d = screenspace_irradiance;
+    dagi_sp_oct_to_irradiance_atlas@f4 = dagi_sp_oct_to_irradiance_atlas;
+  }
+  hlsl(code) {
+    void sample_bilinear_irradiance_weights(inout float3 final_irradiance, float3 lightingDir, float4 weights, uint2 probe_coords[4])
+    {
+      float2 octIrradianceUV = screenspace_probe_dir_encode(lightingDir)*dagi_sp_oct_to_irradiance_atlas.xy + dagi_sp_oct_to_irradiance_atlas.zw;
+
+      UNROLL
+      for (uint i = 0; i < 4; ++i)
+      {
+        float2 samplePosUV = probe_coords[i]*screenspace_probe_atlas_size.zw + octIrradianceUV;
+        final_irradiance += weights[i]*tex2Dlod(screenspace_irradiance, float4(samplePosUV,0,0)).xyz;
+      }
+    }
+    bool sample_bilinear_irradiance_envi_normal_campos(float3 lightingNormal, float sceneLinearDepth, float3 camPos, float3 worldNormal, float2 screen_coord, inout float3 final_irradiance, float depth_exp = SP_DEFAULT_BILINEAR_DEPTH_EXP)
+    {
+      uint2 probes[4]; float4 weights;
+      bool ret = dagi_get_current_bilinear_weights(probes, weights, sceneLinearDepth, camPos, worldNormal, screen_coord, depth_exp);
+      final_irradiance = ret ? 0 : final_irradiance;
+      sample_bilinear_irradiance_weights(final_irradiance, lightingNormal, weights, probes);
+      return ret;
+    }
+    bool sample_bilinear_irradiance_envi_normal(float3 lightingNormal, float sceneLinearDepth, float3 worldPos, float3 worldNormal, float2 screen_coord, inout float3 final_irradiance, float depth_exp = SP_DEFAULT_BILINEAR_DEPTH_EXP)
+    {
+      return sample_bilinear_irradiance_envi_normal_campos(lightingNormal, sceneLinearDepth, worldPos - sp_world_view_pos, worldNormal, screen_coord, final_irradiance, depth_exp);
+    }
+    bool sample_bilinear_irradiance_envi_normal_both_campos(float3 lightingNormal, float sceneLinearDepth, float3 camPos, float3 worldNormal, float2 screen_coord, out float3 irradiance, out float3 irradiance_back, float depth_exp = SP_DEFAULT_BILINEAR_DEPTH_EXP)
+    {
+      uint2 probes[4]; float4 weights;
+      bool ret = dagi_get_current_bilinear_weights(probes, weights, sceneLinearDepth, camPos, worldNormal, screen_coord, depth_exp);
+      irradiance = irradiance_back = 0;
+      sample_bilinear_irradiance_weights(irradiance, lightingNormal, weights, probes);
+      sample_bilinear_irradiance_weights(irradiance_back, -lightingNormal, weights, probes);
+      return ret;
+    }
+    bool sample_bilinear_irradiance_envi_normal_both(float3 lightingNormal, float sceneLinearDepth, float3 worldPos, float3 worldNormal, float2 screen_coord, out float3 irradiance, out float3 irradiance_back, float depth_exp = SP_DEFAULT_BILINEAR_DEPTH_EXP)
+    {
+      return sample_bilinear_irradiance_envi_normal_both_campos(lightingNormal, sceneLinearDepth, worldPos - sp_world_view_pos, worldNormal, screen_coord, irradiance, irradiance_back, depth_exp);
+    }
+    bool sample_bilinear_irradiance_campos(float sceneLinearDepth, float3 camPos, float3 worldNormal, float2 screen_coord, inout float3 final_irradiance, float depth_exp = SP_DEFAULT_BILINEAR_DEPTH_EXP)
+    {
+      return sample_bilinear_irradiance_envi_normal_campos(worldNormal, sceneLinearDepth, camPos, worldNormal, screen_coord, final_irradiance);
+    }
+    bool sample_bilinear_irradiance(float sceneLinearDepth, float3 worldPos, float3 worldNormal, float2 screen_coord, inout float3 final_irradiance, float depth_exp = SP_DEFAULT_BILINEAR_DEPTH_EXP)
+    {
+      return sample_bilinear_irradiance_envi_normal(worldNormal, sceneLinearDepth, worldPos, worldNormal, screen_coord, final_irradiance);
+    }
+
+  }
+endmacro
+
+float4 dagi_sp_oct_to_radiance_atlas;
+float4 dagi_sp_oct_to_radiance_atlas_clamp;
+
+macro SAMPLE_JUST_RADIANCE_SP(code)
+  (code) {
+    screenprobes_current_radiance@smp2d = screenprobes_current_radiance;
+    dagi_sp_oct_to_radiance_atlas@f2 = dagi_sp_oct_to_radiance_atlas;
+    dagi_sp_oct_to_radiance_atlas_clamp@f4 = dagi_sp_oct_to_radiance_atlas_clamp;
+  }
+
+  hlsl(code) {
+    void sample_bilinear_radiance_weights(inout float3 final_radiance, float3 direction, float4 weights, uint2 probe_coords[4])
+    {
+      float2 octRradianceUV = screenspace_probe_dir_encode(direction)*dagi_sp_oct_to_radiance_atlas.xy + dagi_sp_oct_to_radiance_atlas.xy;
+      octRradianceUV = clamp(octRradianceUV, dagi_sp_oct_to_radiance_atlas_clamp.xy, dagi_sp_oct_to_radiance_atlas_clamp.zw);
+      UNROLL
+      for (uint i = 0; i < 4; ++i)
+      {
+        float2 samplePosUV = probe_coords[i]*screenspace_probe_atlas_size.zw + octRradianceUV;
+        final_radiance += weights[i]*tex2Dlod(screenprobes_current_radiance, float4(samplePosUV,0,0)).xyz;
+      }
+      float currentExposure = 1;//fixme
+      final_radiance *= currentExposure;
+    }
+
+    bool sample_bilinear_radiance_with_normal_campos(float3 direction, float sceneLinearDepth, float3 camPos, float3 worldNormal, float2 screen_coord, inout float3 final_radiance, float depth_exp = SP_DEFAULT_BILINEAR_DEPTH_EXP)
+    {
+      uint2 probes[4]; float4 weights;
+      bool ret = dagi_get_current_bilinear_weights(probes, weights, sceneLinearDepth, camPos, worldNormal, screen_coord, depth_exp);
+      final_radiance = ret ? 0 : final_radiance;
+      sample_bilinear_radiance_weights(final_radiance, direction, weights, probes);
+      return ret;
+    }
+    bool sample_bilinear_radiance_with_normal(float3 direction, float sceneLinearDepth, float3 worldPos, float3 worldNormal, float2 screen_coord, inout float3 final_radiance, float depth_exp = SP_DEFAULT_BILINEAR_DEPTH_EXP)
+    {
+      return sample_bilinear_radiance_with_normal_campos(direction, sceneLinearDepth, worldPos - sp_world_view_pos, worldNormal, screen_coord, final_radiance, depth_exp);
+    }
+  }
+endmacro
+
+macro SAMPLE_IRRADIANCE_SP(code)
+  SP_CURRENT_UPSAMPLE_WEIGHTS(code)
+  SAMPLE_JUST_IRRADIANCE_SP(code)
+endmacro
+
+macro SAMPLE_IRRADIANCE_SPECULAR_SP(code)
+  SP_CURRENT_UPSAMPLE_WEIGHTS(code)
+  SAMPLE_JUST_IRRADIANCE_SP(code)
+  SAMPLE_JUST_RADIANCE_SP(code)
+  hlsl(code) {
+    bool sample_bilinear_specular_irradiance_with_normal_campos(float3 specularDirection, float3 diffuseDirection, float sceneLinearDepth, float3 camPos, float3 worldNormal, float2 screen_coord, inout float3 final_specular, inout float3 final_irradiance, float depth_exp = SP_DEFAULT_BILINEAR_DEPTH_EXP)
+    {
+      uint2 probes[4]; float4 weights;
+      bool ret = dagi_get_current_bilinear_weights(probes, weights, sceneLinearDepth, camPos, worldNormal, screen_coord, depth_exp);
+      FLATTEN
+      if (ret)
+        final_specular = final_irradiance = 0;
+      sample_bilinear_irradiance_weights(final_irradiance, diffuseDirection, weights, probes);
+      sample_bilinear_radiance_weights(final_specular, specularDirection, weights, probes);
+      return ret;
+    }
+    bool sample_bilinear_specular_irradiance_with_normal(float3 specularDirection, float3 diffuseDirection, float sceneLinearDepth, float3 worldPos, float3 worldNormal, float2 screen_coord, inout float3 final_specular, inout float3 final_irradiance, float depth_exp = SP_DEFAULT_BILINEAR_DEPTH_EXP)
+    {
+      return sample_bilinear_specular_irradiance_with_normal_campos(specularDirection, diffuseDirection, sceneLinearDepth, worldPos - sp_world_view_pos, worldNormal, screen_coord, final_specular, final_irradiance, depth_exp);
+    }
+
+  }
+endmacro

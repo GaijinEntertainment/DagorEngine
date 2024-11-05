@@ -1,14 +1,11 @@
-#ifndef _DAGOR_PROG_GLBL_H
-#define _DAGOR_PROG_GLBL_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 KRNLIMP void win32_set_instance(void *hinst);
 KRNLIMP void win32_set_main_wnd(void *hwnd);
 
 extern void (*hook_set_thread_name)(const char *name);
 
-#include <supp/dag_undef_COREIMP.h>
-
-#endif
+#include <supp/dag_undef_KRNLIMP.h>

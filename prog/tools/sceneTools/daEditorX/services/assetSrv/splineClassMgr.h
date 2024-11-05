@@ -1,5 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <de3_splineClassData.h>
 #include <assets/assetChangeNotify.h>
@@ -75,7 +75,7 @@ public:
     int end_seg, float min_step, float max_step, float curvature, float max_h_err, float max_hill_h_err, bool follow_hills,
     bool follow_hollows, float ht_test_step, bool road_bhv, float road_max_abs_ang, float road_max_inter_ang, float road_test_wd,
     float scale_tc_along, int select_mat, dag::ConstSpan<splineclass::Attr> splineScales, float zero_opac_fore_end,
-    float zero_opac_back_end, Tab<splineclass::SegData> *out_loftSeg);
+    float zero_opac_back_end, float path_start_margin, float path_end_margin, Tab<splineclass::SegData> *out_loftSeg);
 
 protected:
   FastStrMap nameMap;

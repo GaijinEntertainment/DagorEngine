@@ -1,14 +1,17 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include "compositeEditorTreeDataNode.h"
 #include <EASTL/hash_map.h>
-#include <propPanel2/comWnd/treeview_panel.h>
+#include <propPanel/commonWindow/treeviewPanel.h>
 
 class CompositeEditorTreeData;
 
-class CompositeEditorTree : public TreeBaseWindow
+class CompositeEditorTree : public PropPanel::TreeBaseWindow
 {
 public:
-  CompositeEditorTree(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, unsigned w, unsigned h, const char caption[]);
+  CompositeEditorTree(PropPanel::ITreeViewEventHandler *event_handler, void *phandle, int x, int y, unsigned w, unsigned h,
+    const char caption[]);
 
   void fill(CompositeEditorTreeData &treeData, CompositeEditorTreeDataNode *treeDataNodeToSelect, bool keepNodeExpansionState);
   void selectByTreeDataNode(const CompositeEditorTreeDataNode *treeDataNodeToSelect);
@@ -16,23 +19,20 @@ public:
 private:
   virtual long onWcKeyDown(WindowBase *source, unsigned v_key) override;
 
-  int addIconImage(const char *fileName);
-  int getImageIndex(CompositeEditorTreeDataNode &treeDataNode) const;
+  TEXTUREID getImageId(CompositeEditorTreeDataNode &treeDataNode) const;
 
-  void fillInternal(CompositeEditorTreeDataNode &treeDataNode, TLeafHandle parent, CompositeEditorTreeDataNode *treeDataNodeToSelect,
-    eastl::hash_map<const void *, bool> &closedNodes);
+  void fillInternal(CompositeEditorTreeDataNode &treeDataNode, PropPanel::TLeafHandle parent,
+    CompositeEditorTreeDataNode *treeDataNodeToSelect, eastl::hash_map<const void *, bool> &closedNodes);
 
   void getClosedNodes(eastl::hash_map<const void *, bool> &closedNodes);
 
-  int animCharImageIndex;
-  int compositImageIndex;
-  int dynModelImageIndex;
-  int efxImageIndex;
-  int folderImageIndex;
-  int fxImageIndex;
-  int gameObjImageIndex;
-  int prefabImageIndex;
-  int rendinstImageIndex;
-
-  int gameObjStateImageIndex;
+  TEXTUREID animCharImageId;
+  TEXTUREID compositImageId;
+  TEXTUREID dynModelImageId;
+  TEXTUREID efxImageId;
+  TEXTUREID folderImageId;
+  TEXTUREID fxImageId;
+  TEXTUREID gameObjImageId;
+  TEXTUREID prefabImageId;
+  TEXTUREID rendinstImageId;
 };

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "a2dOptimizer.h"
 #include <anim/dag_animChannels.h>
 #include <anim/dag_animKeyInterp.h>
@@ -781,13 +783,10 @@ vec4f interp_point3(ChannelData::Anim &a, int t)
 
   for (int i = 0; i + 1 < keyNum; i++)
     if (a.keyTime[i] <= t && t < a.keyTime[i + 1])
-    {
-      AnimV20::AnimKeyPoint3 k;
-      memcpy(&k, &key[i], sizeof(k));
-      return AnimV20Math::interp_key(k, v_splats(float(t - a.keyTime[i]) / (a.keyTime[i + 1] - a.keyTime[i])));
-    }
+      return AnimV20Math::interp_key(key[i], v_splats(float(t - a.keyTime[i]) / (a.keyTime[i + 1] - a.keyTime[i])));
   return v_ld(&key[keyNum - 1].p.x);
 }
+
 vec4f interp_quat(ChannelData::Anim &a, int t)
 {
   OldAnimKeyQuat *key = reinterpret_cast<OldAnimKeyQuat *>(a.key);
@@ -797,11 +796,6 @@ vec4f interp_quat(ChannelData::Anim &a, int t)
 
   for (int i = 0; i + 1 < keyNum; i++)
     if (a.keyTime[i] <= t && t < a.keyTime[i + 1])
-    {
-      AnimV20::AnimKeyQuat k0, k1;
-      memcpy(&k0, &key[i + 0], sizeof(k0));
-      memcpy(&k1, &key[i + 1], sizeof(k1));
-      return AnimV20Math::interp_key(k0, k1, float(t - a.keyTime[i]) / (a.keyTime[i + 1] - a.keyTime[i]));
-    }
+      return AnimV20Math::interp_key(key[i], key[i + 1], float(t - a.keyTime[i]) / (a.keyTime[i + 1] - a.keyTime[i]));
   return v_ld(&key[keyNum - 1].p.x);
 }

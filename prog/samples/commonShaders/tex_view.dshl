@@ -5,22 +5,22 @@ interval text_color_mode: modeRGB < 1, modeA < 2, modeRGBA;
 int tex_a_test_value;
 int tex_sRGB_mode;
 interval tex_sRGB_mode: linear < 1, sRGB;
+texture tex;
+float4 viewportRect;
+
+int transparent = 0;
+int hasTexture = 0;
+
+int fontFxType = 0;
+float fontFxScale = 0;
+float4 fontFxOfs;
+float4 fontFxColor;
+
+texture fontTex2;
+float4 fontTex2ofs;
 
 shader tex_view
 {
-  dynamic texture tex;
-  dynamic float4 viewportRect;
-
-  dynamic int transparent = 0;
-  dynamic int hasTexture = 0;
-
-  dynamic int fontFxType = 0;
-  dynamic float fontFxScale = 0;
-  dynamic float4 fontFxOfs;
-  dynamic float4 fontFxColor;
-
-  dynamic texture fontTex2;
-  dynamic float4 fontTex2ofs;
 
   // setup constants
   cull_mode = none;

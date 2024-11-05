@@ -1,10 +1,10 @@
 import sys, os, subprocess
 
-dagor_cdk_path = os.path.abspath(os.path.join(__file__, "../../../../tools/dagor3_cdk"))
+dagor_cdk_path = os.path.abspath(os.path.join(__file__, "../../../../tools/dagor_cdk"))
 if sys.platform == "win32" :
-  csq = os.path.join(dagor_cdk_path, "util", "csq-dev.exe")
-elif sys.platform == "linux" :
-  csq = os.path.join(dagor_cdk_path, "util-linux64", "csq-dev")
+  csq = os.path.join(dagor_cdk_path, "windows-x86_64", "csq-dev.exe")
+elif sys.platform.startswith("linux") :
+  csq = os.path.join(dagor_cdk_path, "linux-x86_64", "csq-dev")
 
 def check(cmd):
   print(cmd)

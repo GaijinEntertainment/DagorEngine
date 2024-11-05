@@ -1,0 +1,18 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/hlslCompiler ;
+
+TargetType  = lib ;
+Target      = gameLibs/hlslCompiler.lib ;
+StrictCompile = yes ;
+
+AddIncludes =
+  $(Root)/prog/engine/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  hlslCompiler.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;
+

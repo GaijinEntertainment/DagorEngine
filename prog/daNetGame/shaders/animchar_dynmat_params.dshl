@@ -1,0 +1,37 @@
+include "animchar_additional_data.dshl"
+
+
+macro USE_ANIMCHAR_DYNMAT_PARAMS(code)
+  USE_ANIMCHAR_ADDITIONAL_DATA(code)
+  hlsl(code)
+  {
+    #include "dynamic_material_params.hlsli"
+    #include "animchar_additional_data_types.hlsli"
+
+    uint2 get_dynmat_channel_metadata(uint2 data_offset_count, uint channel_id)
+    {
+      float4 rawMetadata = get_additional_data_unsafe(data_offset_count, 0);
+      bool useLowChannels = channel_id < 4;
+      uint shift = useLowChannels ? channel_id : (channel_id - 4);
+      uint2 rawMetadataI = asuint(useLowChannels ? rawMetadata.xy : rawMetadata.zw);
+      return (rawMetadataI >> (shift * 8)) & 0xFF;
+    }
+
+    bool get_dynmat_offset(int channel_id, int material_type, out uint global_offset)
+    {
+      global_offset = 0;
+
+      if (channel_id < 0 || channel_id >= 8)
+        return false;
+
+      uint2 dataOffsetCount = get_offset_count_additional_data(MATERIAL_PARAMS);
+      uint2 channelMetadata = get_dynmat_channel_metadata(dataOffsetCount, channel_id);
+
+      if (channelMetadata.y != material_type)
+        return false;
+
+      global_offset = dataOffsetCount.x + channelMetadata.x;
+      return true;
+    }
+  }
+endmacro

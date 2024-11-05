@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dag_noise/dag_uint_noise.h>
 #include "daProfilerInternal.h"
 #include "daProfilePlatform.h"

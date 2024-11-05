@@ -1,0 +1,29 @@
+clips{
+  //animationMask can be set one per clips block, or special for animation_name block
+  //default parameters
+  default_animation_mask:t="full_body"
+
+
+  walk_left_t1{ }
+  walk_right_t1{ }
+  //accelerate_decelarate_sprint_t1{}
+  accelerate_decelarate_walk_t2{ }
+  accelerate_decelarate_run_t2{ }
+  circle_left_walk_t1{ }
+  circle_left_run_t1{ }
+  circle_left_sprint_t1{ }
+  circle_right_walk_t1{ }
+  circle_right_run_t1{ }
+  circle_right_sprint_t1{ }
+  directions_walk_pt1_t2{ }
+  directions_walk_pt2_t2{ }
+  // directions_run_pt1_t2{ }
+  directions_run_pt2_t2{ }
+  directions_sprint_pt1_t2{ }
+  directions_sprint_pt2_t2{ }
+  snake_directions_walk_t1{ }
+  snake_directions_run_t1{ }
+  snake_directions_sprint_t2{ }
+  // transition_stand_laydown_forward_t1{ }
+  // transition_walk_laydown_forward_t1{ }
+}

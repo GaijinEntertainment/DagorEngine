@@ -19,6 +19,13 @@ Sources =
   ime_android.cpp
 ;
 
+AndroidSources =
+  NvSoftInput.java src/com/nvidia/Helpers/NvSoftInput.java
+  GamepadHelper.java     src/com/gaijinent/helpers/GamepadHelper.java
+;
+
+AndroidLibProguard = and.proguard ;
+
 AddIncludes = $(Root)/prog/engine/sharedInclude ;
 
 include $(Root)/prog/_jBuild/build.jam ;

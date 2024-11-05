@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "component.h"
 #include <util/dag_string.h>
 #include <daRg/dag_stringKeys.h>
@@ -47,7 +49,7 @@ int Component::read_robj_type(const Sqrat::Table &desc, const StringKeys *csk)
 }
 
 
-void Component::read_behaviors(const Sqrat::Table &desc, const StringKeys *csk, dag::Vector<Behavior *> &behaviors)
+void Component::read_behaviors(const Sqrat::Table &desc, const StringKeys *csk, bhv_list_t &behaviors)
 {
   behaviors.clear();
   Sqrat::Object bhvField = desc.RawGetSlot(csk->behavior);
@@ -245,6 +247,11 @@ bool Component::resolve_description(const Sqrat::Object &desc, Sqrat::Table &des
       {
         TIME_PROFILE_DEV(comp_gen_sq_call);
         ok = func.Evaluate(tbl);
+#if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
+        String cfn(framemem_ptr());
+        get_closure_full_name(desc, cfn);
+        DA_PROFILE_TAG(comp_gen_sq_call, cfn.c_str());
+#endif
       }
       if (ok)
       {

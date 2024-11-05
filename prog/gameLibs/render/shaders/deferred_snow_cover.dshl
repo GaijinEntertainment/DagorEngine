@@ -157,7 +157,7 @@ endmacro
 
 macro USE_DEFERRED_SNOW_COVER(code)
   hlsl(code) {
-    float apply_snow_cover(float3 worldPos, float3 normal, float eclipse_progress_value, inout half3 diffuse_color, inout half3 specular_color,
+    float apply_snow_cover(float3 worldPos, float3 normal, float skylight_progress_value, inout half3 diffuse_color, inout half3 specular_color,
       inout half3 translucency_color, inout half translucency, inout half linear_roughness, inout half ggx_alpha)
     {
 #if IS_SNOW_COVER_COMPATIBILITY
@@ -215,7 +215,7 @@ macro USE_DEFERRED_SNOW_COVER(code)
         smoothness = lerp(smoothness, envi_cover_smoothness, snowInfluence);
         translucency = envi_cover_translucency;
 #if !IS_SNOW_COVER_COMPATIBILITY
-        computeSnowSparkle(worldPos.xyz, world_view_pos.xyz, min(0.99, 1 - eclipse_progress_value), normal, smoothness);
+        computeSnowSparkle(worldPos.xyz, world_view_pos.xyz, min(0.99, 1 - skylight_progress_value), normal, smoothness);
 #endif
         linear_roughness = linearSmoothnessToLinearRoughness(smoothness);
         ggx_alpha = max(1e-4, linear_roughness*linear_roughness);
@@ -228,7 +228,7 @@ macro USE_DEFERRED_SNOW_COVER(code)
 endmacro
 
 macro DEFERRED_SNOW_COVER_COMPATIBILITY_WITH_PARAMS(use_noise, use_intensity_map)
-  if (game != game_wtm && compatibility_mode == compatibility_mode_on)
+  if (allow_deferred_snow_cover_comp)
   {
     if (use_noise)
     {

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ecs/gameres/commonLoadingJobMgr.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 

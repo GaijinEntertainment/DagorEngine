@@ -1,0 +1,66 @@
+include "shader_global.dshl"
+
+int num_control_points = 0;
+float ies_editor_zoom = 1;
+float ies_max_light_level = 1;
+buffer ies_control_points_buf;
+
+shader ies_generator
+{
+  supports global_frame;
+  z_write = false;
+  z_test = false;
+  cull_mode = none;
+
+  hlsl {
+    #define USE_TEXCOORD tc
+  }
+  POSTFX_VS(1)
+
+  (ps) {
+    num_control_points@i1 = (num_control_points);
+    ies_editor_zoom@f1 = (ies_editor_zoom);
+    ies_max_light_level@f1 = (ies_max_light_level);
+    ies_control_points_buf@buf = ies_control_points_buf hlsl {
+      #include <ies_generator_shared.hlsli>
+      StructuredBuffer<PhotometryControlPoint> ies_control_points_buf@buf;
+    };
+  }
+
+  hlsl(ps) {
+    #include <renderLightsConsts.hlsli>
+    #include <pixelPacking/ColorSpaceUtility.hlsl>
+    #include <ies_mappings.hlsl>
+
+    float ies_generator_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      BRANCH
+      if (num_control_points == 0)
+        return 1;
+
+      bool rotate = ies_editor_zoom < 0;
+      float zoom = abs(ies_editor_zoom);
+      float3 lightDir = inv_octahedral_mapping(input.tc, zoom, rotate);
+
+      float theta = acos(lightDir.z);
+      int a = 0, b = num_control_points;
+      while (a+1 < b)
+      {
+        int m = (a+b)/2;
+        if (theta < ies_control_points_buf[m].theta)
+          b = m;
+        else
+          a = m;
+      }
+      float2 coeffs = ies_control_points_buf[a].coefficients;
+      theta = max(theta, ies_control_points_buf[a].theta); // clamp on low end
+      if (a+1 < num_control_points)
+        theta = min(theta, ies_control_points_buf[a+1].theta); // clamp on high end
+
+      float result = saturate((coeffs.x + theta * coeffs.y) / max(ies_max_light_level, 1));
+      return ApplySRGBCurve_Fast(result).x;
+    }
+  }
+
+  compile("target_ps", "ies_generator_ps");
+}

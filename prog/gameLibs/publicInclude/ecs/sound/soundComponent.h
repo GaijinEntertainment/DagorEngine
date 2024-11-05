@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -9,10 +8,16 @@
 #include <soundSystem/streams.h>
 #include <soundSystem/varId.h>
 #include <daECS/core/componentType.h>
+#include <generic/dag_relocatableFixedVector.h>
+#include <EASTL/vector.h>
+#include <generic/dag_span.h>
+#include <memory/dag_framemem.h>
 
 template <typename Handle>
 struct SoundComponent
 {
+  SoundComponent() = default;
+  SoundComponent(SoundComponent &&) = default;
   ~SoundComponent() { reset(); }
 
   inline void reset(Handle new_value = {})
@@ -27,10 +32,98 @@ struct SoundComponent
     handle = new_value;
   }
 
+  inline bool play(const char *name, const char *path, Point3 pos, bool play, bool abandon_on_reset)
+  {
+    if (enabled != play)
+    {
+      enabled = play;
+      abandonOnReset = abandon_on_reset;
+      if (play)
+        reset(sndsys::play(name, path, pos));
+      else
+        reset();
+    }
+    else if (play)
+      sndsys::set_pos(handle, pos);
+    return enabled;
+  }
+
+  inline bool play(const char *name, bool play, bool abandon_on_reset)
+  {
+    if (enabled != play)
+    {
+      enabled = play;
+      abandonOnReset = abandon_on_reset;
+      if (play)
+        reset(sndsys::play(name));
+      else
+        reset();
+    }
+    return enabled;
+  }
+
   Handle handle;
   bool abandonOnReset = false;
   // game code specific, useful to store event state
   bool enabled = false;
+};
+
+struct SoundEventsPreload
+{
+  ~SoundEventsPreload() { unload(); }
+
+  SoundEventsPreload() = default;
+  SoundEventsPreload(const SoundEventsPreload &) = delete;
+  SoundEventsPreload(SoundEventsPreload &&) = default;
+  SoundEventsPreload &operator=(const SoundEventsPreload &) = delete;
+  SoundEventsPreload &operator=(SoundEventsPreload &&) = default;
+
+  void unload()
+  {
+    for (const sndsys::FMODGUID &id : loaded)
+      sndsys::unload_sample_data(id);
+    loaded.clear();
+  }
+
+  void load(const dag::Span<const char *> &paths)
+  {
+    eastl::vector<sndsys::FMODGUID, framemem_allocator> input;
+
+    input.reserve(paths.size());
+
+    for (const char *path : paths)
+    {
+      sndsys::FMODGUID id;
+
+      if (!path || !*path || !sndsys::get_event_id(path, "", false, id, false))
+        continue;
+
+      if (eastl::find(input.begin(), input.end(), id) != input.end())
+        continue; // prevent, skip duplicates
+
+      if (eastl::find(loaded.begin(), loaded.end(), id) == loaded.end())
+      {
+        if (!sndsys::load_sample_data(id))
+          continue;
+      }
+
+      input.push_back(id);
+    }
+
+    for (const sndsys::FMODGUID &id : loaded)
+    {
+      if (eastl::find(input.begin(), input.end(), id) == input.end())
+        sndsys::unload_sample_data(id);
+    }
+
+    loaded.clear();
+    for (const sndsys::FMODGUID &id : input)
+      loaded.push_back(id);
+  }
+
+private:
+  static constexpr size_t inplace_count = 8;
+  dag::RelocatableFixedVector<sndsys::FMODGUID, inplace_count> loaded;
 };
 
 using SoundEvent = SoundComponent<sndsys::EventHandle>;
@@ -40,3 +133,4 @@ using SoundVarId = sndsys::VarId;
 ECS_DECLARE_RELOCATABLE_TYPE(SoundEvent);
 ECS_DECLARE_RELOCATABLE_TYPE(SoundStream);
 ECS_DECLARE_RELOCATABLE_TYPE(SoundVarId);
+ECS_DECLARE_RELOCATABLE_TYPE(SoundEventsPreload);

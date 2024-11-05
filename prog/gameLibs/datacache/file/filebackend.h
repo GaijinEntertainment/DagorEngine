@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <datacache/datacache.h>
 #include <EASTL/hash_map.h>
 #include <generic/dag_tab.h>

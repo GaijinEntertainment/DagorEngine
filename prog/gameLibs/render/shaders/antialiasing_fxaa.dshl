@@ -25,6 +25,8 @@ interval luminance_from_alpha : luminance_from_alpha_off < 1, luminance_from_alp
 float4 adaptive_sharpen_quality = (0, 0, 16, 12);
 float4 fxaa_color_mul = (1, 1, 1, 1);
 
+float alphaInfluanceToColor = 0.0;
+
 texture material_data;
 
 shader antialiasing
@@ -57,6 +59,7 @@ shader antialiasing
     resolution@f4 = resolution;
     fxaa_params@f4 = fxaa_params;
     fxaa_color_mul@f4 = fxaa_color_mul;
+    alphaInfluanceToColor@f1 = alphaInfluanceToColor;
   }
 
   if (in_cockpit == on && compatibility_mode == compatibility_mode_off)
@@ -255,8 +258,9 @@ shader antialiasing
 ##else
         half lumaB = dot(rgbB.xyz, luma);
 ##endif
-
-        if ((lumaB < lumaMin) || (lumaB > lumaMax)) 
+        rgbA.rgb -= rgbA.rgb * ((1.0 -rgbA.a) * alphaInfluanceToColor);
+        rgbB.rgb -= rgbB.rgb * ((1.0 -rgbB.a) * alphaInfluanceToColor);
+        if ((lumaB < lumaMin) || (lumaB > lumaMax))
           return lerp(rgbA, sharpenValue, cockpitToolsWeight) * fxaa_color_mul;
         return lerp(rgbB, sharpenValue, cockpitToolsWeight) * fxaa_color_mul;
       }

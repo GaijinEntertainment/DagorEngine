@@ -1,6 +1,5 @@
-
-#ifndef _NAV_NODE_H_
-#define _NAV_NODE_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #include <navigation/dag_navigation.h>
 
@@ -90,6 +89,3 @@ inline BOOL CNavNode::HasVisited(NavDirType dir)
 inline void CNavNode::AssignArea(CNavArea *area) { m_area = area; }
 
 inline CNavArea *CNavNode::GetArea(void) const { return m_area; }
-
-
-#endif // _NAV_NODE_H_

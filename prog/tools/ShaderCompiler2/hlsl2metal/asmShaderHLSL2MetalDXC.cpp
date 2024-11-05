@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "asmShaderHLSL2MetalDXC.h"
 
 #include <algorithm>
@@ -30,8 +32,8 @@
 
 #include <EASTL/span.h>
 
-CompileResult compileShaderMetalDXC(const char *source, const char *profile, const char *entry, bool need_disasm, bool skipValidation,
-  bool optimize, int max_constants_no, int bones_const_used, const char *shader_name, bool use_ios_token, bool use_binary_msl,
+CompileResult compileShaderMetalDXC(const char *source, const char *profile, const char *entry, bool need_disasm, bool enable_fp16,
+  bool skipValidation, bool optimize, int max_constants_no, const char *shader_name, bool use_ios_token, bool use_binary_msl,
   uint64_t shader_variant_hash)
 {
   CompileResult compileResult;
@@ -49,7 +51,7 @@ CompileResult compileShaderMetalDXC(const char *source, const char *profile, con
   optimize = false;
 #endif
 
-  auto hlsl2spirvResult = hlsl2spirv(source, profile, entry, skipValidation, compileResult);
+  auto hlsl2spirvResult = hlsl2spirv(source, profile, entry, enable_fp16, skipValidation, compileResult);
 
   if (hlsl2spirvResult.failed)
     return compileResult;

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <perfMon/dag_cpuFreq.h>
 
 #include <daSkies2/daScattering.h>
@@ -111,7 +113,12 @@ __forceinline void ComputeSingleScatteringLimited(IN(AtmosphereParameters) atmos
   IN(TransmittanceTexture) transmittance_texture, Length r, Number mu, Number mu_s, Number nu, Length maxDist, IN(int) SAMPLE_COUNT,
   bool ray_r_mu_intersects_ground, OUT(IrradianceSpectrum) rayleigh, OUT(IrradianceSpectrum) mie)
 {
-  assert(r >= atmosphere_p.bottom_radius && r <= atmosphere_p.top_radius);
+#if DAGOR_DBGLEVEL > 0
+  if (r < atmosphere_p.bottom_radius || r > atmosphere_p.top_radius)
+    logerr("exceeding atmosphere limits: %g (%g/%g)", r, atmosphere_p.bottom_radius, atmosphere_p.top_radius);
+#endif
+  r = max(r, atmosphere_p.bottom_radius);
+  r = min(r, atmosphere_p.top_radius);
   assert(mu >= -1.0 && mu <= 1.0);
   assert(mu_s >= -1.0 && mu_s <= 1.0);
   assert(nu >= -1.0 && nu <= 1.0);
@@ -208,27 +215,8 @@ void DaScattering::updateCPUIrradiance(const uint16_t *s, int stride)
     }
 }
 
-Color3 DaScattering::getCpuFogSingleInscatter(const Point3 &camera, const Point3 &viewdir, float d, const Point3 &skies_sun_light_dir,
-  int steps) const
-{
-  const float maxDist = 64.f;
-  d *= 0.001f;
-
-  int csteps = min(steps, int(2 + d * (steps - 2.f) * (1.f / maxDist)));
-  Length distAbove = max(0.01, (camera.y - current.min_ground_offset) * 0.001f);
-  Number mu = viewdir.y, nu = viewdir * skies_sun_light_dir, mu_s = skies_sun_light_dir.y;
-  Length r = atmosphere.bottom_radius + distAbove;
-  bool ray_r_theta_intersects_ground = false; //
-  IrradianceSpectrum rayleigh, mie;
-  ComputeSingleScatteringLimited(atmosphere, lazy_transmittance_texture, r, mu, mu_s, nu, d, csteps, ray_r_theta_intersects_ground,
-    rayleigh, mie);
-
-  RadianceSpectrum result = GetPhasedRadiance(atmosphere, rayleigh, mie, nu);
-  return Color3(result.x, result.y, result.z);
-}
-
-Color3 DaScattering::getCpuFogSingleMieInscatter(const Point3 &camera, const Point3 &viewdir, float d,
-  const Point3 &skies_sun_light_dir, int steps) const
+__forceinline Color3 DaScattering::getCpuSingleInscatter(const Point3 &camera, const Point3 &viewdir, float d,
+  const Point3 &skies_sun_light_dir, int steps, bool need_rayleigh) const
 {
   const float maxDist = 64.f;
   d *= 0.001f;
@@ -258,9 +246,23 @@ Color3 DaScattering::getCpuFogSingleMieInscatter(const Point3 &camera, const Poi
   IrradianceSpectrum rayleigh, mie;
   ComputeSingleScatteringLimited(atmosphere, lazy_transmittance_texture, r, mu, mu_s, nu, d, csteps, ray_r_theta_intersects_ground,
     rayleigh, mie);
-  rayleigh = IrradianceSpectrum(0, 0, 0);
+  if (!need_rayleigh)
+    rayleigh = IrradianceSpectrum(0, 0, 0);
   RadianceSpectrum result = GetPhasedRadiance(atmosphere, rayleigh, mie, nu);
   return Color3(result.x, result.y, result.z);
+}
+
+
+Color3 DaScattering::getCpuFogSingleInscatter(const Point3 &camera, const Point3 &viewdir, float d, const Point3 &skies_sun_light_dir,
+  int steps) const
+{
+  return getCpuSingleInscatter(camera, viewdir, d, skies_sun_light_dir, steps, true);
+}
+
+Color3 DaScattering::getCpuFogSingleMieInscatter(const Point3 &camera, const Point3 &viewdir, float d,
+  const Point3 &skies_sun_light_dir, int steps) const
+{
+  return getCpuSingleInscatter(camera, viewdir, d, skies_sun_light_dir, steps, false);
 }
 
 Color3 DaScattering::getCpuTransmittance(const Point3 &at, const Point3 &lightDir) const

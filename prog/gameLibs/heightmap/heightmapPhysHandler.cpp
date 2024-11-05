@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <heightmap/heightmapPhysHandler.h>
 #include <heightMapLand/dag_hmlGetHeight.h>
 #include <heightMapLand/dag_hmlTraceRay.h>
@@ -9,31 +11,31 @@
 #include <ioSys/dag_btagCompr.h>
 #include <math/dag_bounds2.h>
 #include <math/dag_mathUtils.h>
+#include <util/dag_finally.h>
 #include <math/dag_adjpow2.h>
 #include <memory/dag_physMem.h>
 #include <osApiWrappers/dag_sharedMem.h>
+#include <supp/dag_alloca.h>
 
-#define PHYS_MEM_THRESHOLD_SIZE (32 << 20)
+#define PHYS_MEM_THRESHOLD_SIZE (32 << 20) // 4K^2*sizeof(uint16_t)
 
-static inline void *alloc_hmap_data(size_t sz)
+static inline void *alloc_hmap_data(size_t sz, bool failable = false)
 {
-#if _TARGET_STATIC_LIB
+#if !_TARGET_PC_TOOLS_BUILD
   using namespace dagor_phys_memory;
-  if (sz >= PHYS_MEM_THRESHOLD_SIZE)
-    return alloc_phys_mem(sz, PM_ALIGN_PAGE, PM_PROT_CPU_ALL, /*cpu_cached*/ true);
-  else
+  if (void *p = (sz >= PHYS_MEM_THRESHOLD_SIZE) ? alloc_phys_mem(sz, PM_ALIGN_PAGE, PM_PROT_CPU_ALL, /*cpu_cached*/ true) : NULL)
+    return p;
 #endif
-    return tmpmem->tryAlloc(sz);
+  return (failable ? tmpmem->tryAlloc(sz) : tmpmem->alloc(sz));
 }
 
 static inline void free_hmap_data(void *ptr, size_t sz)
 {
-#if _TARGET_STATIC_LIB
-  if (sz >= PHYS_MEM_THRESHOLD_SIZE)
-    dagor_phys_memory::free_phys_mem(ptr);
-  else
+#if !_TARGET_PC_TOOLS_BUILD
+  if (sz >= PHYS_MEM_THRESHOLD_SIZE && dagor_phys_memory::free_phys_mem(ptr, /*ignore_unknown*/ true))
+    return;
 #endif
-    memfree(ptr, tmpmem);
+  memfree(ptr, tmpmem);
 }
 
 bool HeightmapPhysHandler::loadDump(IGenLoad &loadCb, GlobalSharedMemStorage *sharedMem, int skip_mips)
@@ -86,7 +88,7 @@ bool HeightmapPhysHandler::loadDump(IGenLoad &loadCb, GlobalSharedMemStorage *sh
     }
     if (!hmap_data)
     {
-      hmap_data = alloc_hmap_data(allocatedDataSize);
+      hmap_data = alloc_hmap_data(allocatedDataSize, /*failable*/ true);
       if (!hmap_data)
       {
         logerr("%s failed to allocate %dK", __FUNCTION__, allocatedDataSize >> 10);
@@ -108,22 +110,23 @@ bool HeightmapPhysHandler::loadDump(IGenLoad &loadCb, GlobalSharedMemStorage *sh
       }
       else
       {
-        Tab<uint8_t> height_data;
-        height_data.resize(CompressedHeightmap::calc_data_size_needed(orig_width, orig_height, blockShift, hrbSubSz));
-        compressed = CompressedHeightmap::init(height_data.data(), height_data.size(), orig_width, orig_height, blockShift, hrbSubSz);
+        size_t hdataSize = CompressedHeightmap::calc_data_size_needed(orig_width, orig_height, blockShift, hrbSubSz);
+        uint8_t *height_data = (uint8_t *)alloc_hmap_data(hdataSize);
+        compressed = CompressedHeightmap::init(height_data, hdataSize, orig_width, orig_height, blockShift, hrbSubSz);
         CompressedHeightmap::loadData(compressed, loadCb, chunkSz & ~0xFFFu);
         compressed = CompressedHeightmap::downsample((uint8_t *)hmap_data, allocatedDataSize, hmapWidth.x, hmapWidth.y, compressed);
+        free_hmap_data(height_data, hdataSize);
       }
     }
     else
     {
-      Tab<uint16_t> heightmapData, heightmapDataOrig;
-      heightmapData.resize(hmapWidth.x * hmapWidth.y);
-      unsigned uncompressed_size = data_size(heightmapData);
+      unsigned uncompressed_size = hmapWidth.x * hmapWidth.y * sizeof(uint16_t);
+      uint16_t *const heightmapData = (uint16_t *)alloc_hmap_data(uncompressed_size), *heightmapDataOrig = nullptr;
+      Finally freeHeightmapData([&] { free_hmap_data(heightmapData, hmapWidth.x * hmapWidth.y * sizeof(uint16_t)); });
       if (skip_mips)
       {
-        heightmapDataOrig.resize(orig_width * orig_height);
-        uncompressed_size = data_size(heightmapDataOrig);
+        uncompressed_size = orig_width * orig_height * sizeof(uint16_t);
+        heightmapDataOrig = (uint16_t *)alloc_hmap_data(uncompressed_size);
       }
 
       unsigned fmt = 0;
@@ -137,36 +140,35 @@ bool HeightmapPhysHandler::loadDump(IGenLoad &loadCb, GlobalSharedMemStorage *sh
         zcrd_p = new (alloca(sizeof(LzmaLoadCB)), _NEW_INPLACE) LzmaLoadCB(loadCb, loadCb.getBlockRest());
       IGenLoad &zcrd = *zcrd_p;
 
-      zcrd.readTabData(!skip_mips ? heightmapData : heightmapDataOrig);
+      zcrd.read(!skip_mips ? heightmapData : heightmapDataOrig, uncompressed_size);
       zcrd.ceaseReading();
       zcrd.~IGenLoad();
 
       if (version == (int)HmapVersion::HMAP_DELTA_COMPRESSION_VER)
       {
-        uint16_t *hmap = skip_mips ? heightmapDataOrig.data() : heightmapData.data();
+        uint16_t *hmap = skip_mips ? heightmapDataOrig : heightmapData;
         for (int y = 0; y < orig_height; ++y, hmap += orig_width)
           for (int x = 1; x < orig_width; ++x)
-            hmap[x] = (uint16_t)(int(hmap[x]) + hmap[x - 1]);
+            hmap[x] = (uint16_t)(int(hmap[x]) + hmap[x - 1]); //-V522
       }
 
       if (skip_mips)
       {
-        uint16_t *hmap = heightmapData.data();
-        const uint16_t *orig_hmap = heightmapDataOrig.data();
+        uint16_t *hmap = heightmapData;
         for (int y = 0; y < hmapWidth.y; ++y)
           for (int x = 0; x < hmapWidth.x; ++x)
           {
             int average = 0, size = 1 << skip_mips;
             for (int mip_y = 0; mip_y < size; ++mip_y)
               for (int mip_x = 0; mip_x < size; ++mip_x)
-                average += orig_hmap[(x + y * orig_width) * size + mip_x + mip_y * orig_width];
+                average += heightmapDataOrig[(x + y * orig_width) * size + mip_x + mip_y * orig_width]; //-V522
             *hmap++ = average >> (2 * skip_mips);
           }
-        clear_and_shrink(heightmapDataOrig);
+        free_hmap_data(eastl::exchange(heightmapDataOrig, nullptr), uncompressed_size);
       }
 
       compressed = CompressedHeightmap::compress((uint8_t *)hmap_data, allocatedDataSize, //
-        heightmapData.data(), hmapWidth.x, hmapWidth.y, blockShift, hrbSubSz);
+        heightmapData, hmapWidth.x, hmapWidth.y, blockShift, hrbSubSz);
       G_ASSERT(compressed);
 
 #if DAGOR_DBGLEVEL > 0

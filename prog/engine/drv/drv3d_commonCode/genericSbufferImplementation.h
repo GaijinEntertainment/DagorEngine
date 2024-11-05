@@ -1,12 +1,35 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/unique_ptr.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_buffers.h>
 #include <perfMon/dag_graphStat.h>
 #include <debug/dag_log.h>
 
 #include "drv_returnAddrStore.h"
 
+
+template <bool /*ENABLE*/ = true>
+class GenericBufferDiscardFrameTracker
+{
+public:
+  void updateDiscardFrame(uint32_t frame) { discardFrame = frame; }
+
+  uint32_t getDiscardFrame() const { return discardFrame; }
+
+private:
+  uint32_t discardFrame = 0;
+};
+
+template <>
+class GenericBufferDiscardFrameTracker<false>
+{
+public:
+  void updateDiscardFrame(uint32_t) {}
+
+  uint32_t getDiscardFrame() const { return 0; }
+};
 
 template <typename T, bool /*REPORT_ERRORS*/ = true>
 class GenericBufferErrorHandler
@@ -14,71 +37,71 @@ class GenericBufferErrorHandler
 public:
   static void errorDiscardingStageMemory(const char *name)
   {
-    logerr("%s: Error while discarding staging memory of buffer '%s'", T::driverName(), name);
+    D3D_ERROR("%s: Error while discarding staging memory of buffer '%s'", T::driverName(), name);
   }
   static void errorAllocatingTemporaryMemory(const char *name)
   {
-    logerr("%s: Error while allocating temporary memory for buffer '%s'", T::driverName(), name);
+    D3D_ERROR("%s: Error while allocating temporary memory for buffer '%s'", T::driverName(), name);
   }
   static void errorUnknownStagingMemoryType(const char *name)
   {
-    logerr("%s: Buffer '%s' has insufficient information to select proper staging memory type, "
-           "falling back to read/write",
+    D3D_ERROR("%s: Buffer '%s' has insufficient information to select proper staging memory type, "
+              "falling back to read/write",
       T::driverName(), name);
   }
   static void errorLockWithoutPrevoiusUnlock(const char *name)
   {
-    logerr("%s: Buffer '%s' unlocked without previous successful lock", T::driverName(), name);
+    D3D_ERROR("%s: Buffer '%s' unlocked without previous successful lock", T::driverName(), name);
   }
   static void errorLockOffsetIsTooLarge(const char *name, uint32_t offset, uint32_t size)
   {
-    logerr("%s: Buffer '%s' lock with offset of %u is larger than buffer size %u", T::driverName(), name, offset, size);
+    D3D_ERROR("%s: Buffer '%s' lock with offset of %u is larger than buffer size %u", T::driverName(), name, offset, size);
   }
   static void errorLockSizeIsTooLarge(const char *name, uint32_t offset, uint32_t range, uint32_t size)
   {
-    logerr("%s: Buffer '%s' lock with offset of %u and size of %u (%u) is larger than buffer size "
-           "%u",
+    D3D_ERROR("%s: Buffer '%s' lock with offset of %u and size of %u (%u) is larger than buffer size "
+              "%u",
       T::driverName(), name, offset, range, offset + range, size);
   }
   static void errorLockWithInvalidLockingFlags(const char *name, uint32_t flags)
   {
-    logerr("%s: Buffer '%s' locked with invalid combination of locking flags 0x%X", T::driverName(), name, flags);
+    D3D_ERROR("%s: Buffer '%s' locked with invalid combination of locking flags 0x%X", T::driverName(), name, flags);
   }
   static void errorLockOffsetIsNotZero(const char *name, uint32_t offset, uint32_t flags)
   {
-    logerr("%s: Buffer '%s' lock with offset of %u (for 0x%X locking flags only 0 offset is supported)", T::driverName(), name, offset,
-      flags);
+    D3D_ERROR("%s: Buffer '%s' lock with offset of %u (for 0x%X locking flags only 0 offset is supported)", T::driverName(), name,
+      offset, flags);
   }
-  static void errorDiscardingBuffer(const char *name) { logerr("%s: Error while discarding buffer '%s'", T::driverName(), name); }
+  static void errorDiscardingBuffer(const char *name) { D3D_ERROR("%s: Error while discarding buffer '%s'", T::driverName(), name); }
   static void errorUnlockWithoutPreviousLock(const char *name)
   {
-    logerr("%s: Buffer '%s' unlocked without previous lock", T::driverName(), name);
+    D3D_ERROR("%s: Buffer '%s' unlocked without previous lock", T::driverName(), name);
   }
-  static void errorUnexpectedUseCase(const char *name) { logerr("%s: Unexpected use case for buffer '%s'", T::driverName(), name); }
+  static void errorUnexpectedUseCase(const char *name) { D3D_ERROR("%s: Unexpected use case for buffer '%s'", T::driverName(), name); }
   static void errorInvalidStructSizeForRawView(const char *name, uint32_t struct_size)
   {
-    logerr("%s: Buffer '%s' uses invalid struct size of %u for buffer with RAW views", T::driverName(), name, struct_size);
+    D3D_ERROR("%s: Buffer '%s' uses invalid struct size of %u for buffer with RAW views", T::driverName(), name, struct_size);
   }
   static void errorAllocationOfBufferFailed(const char *name, uint32_t size, uint32_t struct_size, uint32_t cflags)
   {
-    logerr("%s: Allocation of buffer '%s' failed, requested size '%u' bytes with a structure size "
-           "of '%u' bytes and creation flags of '0x%08X'",
+    D3D_ERROR("%s: Allocation of buffer '%s' failed, requested size '%u' bytes with a structure size "
+              "of '%u' bytes and creation flags of '0x%08X'",
       T::driverName(), name, size, struct_size, cflags);
   }
   static void errorStructuredIndirect(const char *name)
   {
-    logerr("indirect buffer can't be structured one in DX11, check <%s>", name);
+    D3D_ERROR("indirect buffer can't be structured one in DX11, check <%s>", name);
   }
 
   static void errorDiscardWithoutPointer(const char *name)
   {
-    logerr("%s: Discarded buffer '%s' without providing output pointer", name);
+    D3D_ERROR("%s: Discarded buffer '%s' without providing output pointer", name);
   }
 
   static void errorFormatUsedWithInvalidUsageFlags(const char *name)
   {
-    logerr("%s: Can't create buffer '%s' with texture format which is Structured, Vertex, Index or "
-           "Raw",
+    D3D_ERROR("%s: Can't create buffer '%s' with texture format which is Structured, Vertex, Index or "
+              "Raw",
       T::driverName(), name);
   }
 };
@@ -361,6 +384,7 @@ protected:
 template <typename T>
 class GenericSbufferImplementation final : public GenericBufferMemoryArchitecture<T, T::IS_UMA>,
                                            public GenericBufferReloadImplementation<T::HAS_RELOAD_SUPPORT>,
+                                           public GenericBufferDiscardFrameTracker<T::TRACK_DISCARD_FRAME>,
                                            protected GenericBufferErrorHandler<T, T::REPORT_ERRORS>,
                                            protected GenericBufferWarningHandler<T, T::REPORT_WARNINGS>,
                                            public Sbuffer
@@ -665,7 +689,7 @@ public:
 
     if (T::isValidBuffer(buffer))
     {
-      T::deleteBuffer(buffer, getResName());
+      T::deleteBuffer(buffer);
       if (T::REPORT_MEMORY_SIZE_TO_MANAGER)
       {
         TEXQL_ON_BUF_RELEASE(this);
@@ -781,6 +805,7 @@ public:
   int lock(unsigned ofs_bytes, unsigned size_bytes, void **ptr, int flags) override
   {
     STORE_RETURN_ADDRESS();
+    checkLockParams(ofs_bytes, size_bytes, flags, bufFlags);
     if (0 != lastLockFlags)
     {
       BufferErrorHandler::errorLockWithoutPrevoiusUnlock(getResName());
@@ -1132,6 +1157,8 @@ public:
   }
   bool updateData(uint32_t ofs_bytes, uint32_t size_bytes, const void *__restrict src, uint32_t lock_flags) override
   {
+    lock_flags |= VBLOCK_WRITEONLY;
+
     STORE_RETURN_ADDRESS();
     if (ofs_bytes + size_bytes > bufSize)
     {
@@ -1187,6 +1214,7 @@ public:
   }
 
   typename T::BufferConstReferenceType getDeviceBuffer() const { return buffer; }
+  typename T::BufferReferenceType getDeviceBuffer() { return buffer; }
 
   bool isStreamBuffer() const { return !T::isValidBuffer(buffer) && (0 != (STATUS_IS_STREAM_BUFFER & statusFlags)); }
 
@@ -1224,4 +1252,18 @@ public:
   }
 
   bool hasSystemCopy() const { return BufferMemoryArchitecture::hasHostCopy(); }
+
+  bool usesRawView() const { return 0 != (bufFlags & SBCF_MISC_ALLOW_RAW); }
+
+  bool usesStructuredView() const { return 0 != (bufFlags & SBCF_MISC_STRUCTURED); }
+
+  bool usableAsShaderResource() const { return 0 != (bufFlags & SBCF_BIND_SHADER_RES); }
+
+  bool usableAsUnorderedResource() const { return 0 != (bufFlags & SBCF_BIND_UNORDERED); }
+
+  bool usableAsConstantBuffer() const { return 0 != (bufFlags & SBCF_BIND_CONSTANT); }
+
+  bool usableAsVertexBuffer() const { return 0 != (bufFlags & SBCF_BIND_VERTEX); }
+
+  typename T::ViewFormatType getTextureViewFormat() const { return viewFormat; }
 };

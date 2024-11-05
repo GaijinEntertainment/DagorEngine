@@ -1,8 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "daProfilePlatform.h"
 #include <osApiWrappers/dag_sockets.h>
 #include <ioSys/dag_genIo.h>
+#include <ioSys/dag_zlibIo.h>
 
 struct SocketHandler
 {
@@ -69,30 +71,44 @@ public:
       logwarn("can't write to socket %s", os_socket_error_str(os_socket_last_error(), buf, sizeof(buf)));
     }
   };
-
-  /// Try write data to output stream. Might write less than passed in arguments. Default implementation same as write()
-  int tryWrite(const void *ptr, int size) override
-  {
-    if (sock == OS_SOCKET_INVALID)
-      return 0;
-    int ret = os_socket_send(sock, (const char *)ptr, size);
-    if (ret < 0)
-      close();
-    return ret;
-  }
+  bool isClosed() const { return sock == OS_SOCKET_INVALID; }
 
   int tell() override { return -1; }
   void seekto(int) override {}
   void seektoend(int) override {}
   const char *getTargetName() override { return "socket"; }
   void flush() override {}
-  void beginBlock() override { logerr("soket do not support blocks"); }
-  void endBlock(unsigned)
+  void beginBlock() override { logerr("socket do not support blocks"); }
+  void endBlock(unsigned) { logerr("socket do not support blocks"); }
+  int getBlockLevel() { return 0; }
+};
+
+class NetTCPZlibSave : public IGenSave
+{
+public:
+  NetTCPSave rawTcp;
+  ZlibSaveCB zcb;
+  NetTCPZlibSave(os_socket_t &sock, uint8_t compressionLevel = 3) : rawTcp(sock), zcb(rawTcp, compressionLevel) {}
+  ~NetTCPZlibSave() { close(); }
+  void close()
   {
-    {
-      logerr("soket do not support blocks");
-    }
+    zcb.finish();
+    rawTcp.close();
   }
+  void write(const void *ptr, int size) override { zcb.write(ptr, size); }
+  bool isClosed() const { return rawTcp.isClosed(); }
+
+  int tell() override { return -1; }
+  void seekto(int) override {}
+  void seektoend(int) override {}
+  const char *getTargetName() override { return "zlib_socket"; }
+  void flush() override
+  {
+    if (!isClosed())
+      zcb.syncFlush();
+  }
+  void beginBlock() override { logerr("soket do not support blocks"); }
+  void endBlock(unsigned) { logerr("soket do not support blocks"); }
   int getBlockLevel() { return 0; }
 };
 

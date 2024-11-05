@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/dasShaders.h>
 #include <daScript/ast/ast_policy_types.h>
 
@@ -52,8 +54,13 @@ public:
     das::addExtern<DAS_BIND_FUN(my_get_var_type)>(*this, lib, "get_var_type", das::SideEffects::modifyExternal,
       "::bind_dascript::my_get_var_type");
     das::addExtern<DAS_BIND_FUN(get_shader_variable_id)>(*this, lib, "get_shader_variable_id", das::SideEffects::modifyExternal,
-      "get_shader_variable_id");
+      "get_shader_variable_id")
+      ->arg_init(/*is_optional*/ 1, das::make_smart<das::ExprConstBool>(false));
     das::addExtern<bool (*)(int, int), set_int>(*this, lib, "set_int", das::SideEffects::modifyExternal, "::ShaderGlobal::set_int");
+    das::addExtern<bool (*)(int, const IPoint4 &), set_int4>(*this, lib, "set_int4", das::SideEffects::modifyExternal,
+      "::ShaderGlobal::set_int4");
+    das::addExtern<bool (*)(int, const TMatrix4 &), set_float4x4>(*this, lib, "set_float4x4", das::SideEffects::modifyExternal,
+      "::ShaderGlobal::set_float4x4");
     das::addExtern<bool (*)(int, float), set_real>(*this, lib, "set_real", das::SideEffects::modifyExternal,
       "::ShaderGlobal::set_real");
     das::addExtern<bool (*)(int, D3DRESID), set_texture>(*this, lib, "set_texture", das::SideEffects::modifyExternal,

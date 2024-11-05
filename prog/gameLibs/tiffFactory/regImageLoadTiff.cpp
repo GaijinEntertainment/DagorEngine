@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <startup/dag_startupTex.h>
 #include <image/dag_loadImage.h>
 #include <image/tiff-4.4.0/tiffio.h>

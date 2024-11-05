@@ -1,4 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+#include <debug/dag_assert.h>
 
 template <typename T>
 struct ValueRange

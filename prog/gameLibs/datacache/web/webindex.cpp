@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "webindex.h"
 #include "../common/trace.h"
 #include "../common/util.h"

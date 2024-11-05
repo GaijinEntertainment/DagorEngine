@@ -1,0 +1,4 @@
+return {
+  login_psn = @(_func, event) assert(type(event)=="string")
+  have_ps_plus_subscription = @(...) true
+}

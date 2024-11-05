@@ -1,8 +1,11 @@
+Root    ?= ../../.. ;
+Location = prog/tools/ShaderCompiler2 ;
 include $(Root)/prog/_jBuild/defaults.jam ;
+if $(Platform) != macOS { Exit unsupported Platform=$(Platform) ; }
 
-OutDir      = $(Root)/tools/dagor3_cdk/util-macosx ;
+OutDir = $(Root)/tools/dagor_cdk/$(Platform) ;
 
-archList = arm64 x86_64 ;
+local archList = arm64 x86_64 ;
 
 rule BuildJamWithParams
 {
@@ -17,23 +20,31 @@ actions quietly build_jam_with_params
   call $(JAM_EXE) -sRoot=$(Root) -f$(2) $(opt)
 }
 
+rule CopyFromNonUniversalFolder target : files : src_target
+{
+  for f in $(files) {
+    local src_f = $(Root)/tools/dagor_cdk/$(Platform)-$(PlatformArch)/$(f) ;
+    Depends $(src_f) : $(src_target) ;
+    NOCARE $(src_f) ;
+    BundleCopyFile $(target) : $(f) : @$(src_f) ;
+  }
+}
 rule UniversalBinary
 {
   Depends all : $(1) ;
+  MakeDirectory $(1) : $(1:D) ;
   src_list on $(1) = ;
   for arch in $(archList) {
     Depends $(1) : $(Target)-$(arch) ;
-    local name = $(OutDir)/$(Target)-$(arch) ;
-    if $(Config) != rel {
-      name = $(name)-$(Config) ;
-    }
+    local name = $(Root)/tools/dagor_cdk/$(Platform)-$(arch)/$(Target) ;
+    if $(Config) != rel { name = $(name)-$(Config) ; }
     src_list on $(1) += $(name) ;
   }
-  dst_list on $(1) = $(1) ;
-  if $(Config) != rel {
-    dst_list on $(1) = $(1)-$(Config) ;
-  }
+  local name = $(1) ;
+  if $(Config) != rel { name = $(name)-$(Config) ; }
+  dst_list on $(1) = $(name) ;
   lipo_create $(1) ;
+  CopyFromNonUniversalFolder $(1) : dxcompiler.dylib LICENSE-$(name:B) $(name:B)-STAMP : $(Target)-$(TargetArch) ;
 }
 
 actions quietly lipo_create
@@ -44,7 +55,7 @@ actions quietly lipo_create
 TargetType = util ;
 
 for arch in $(archList) {
-  BuildJamWithParams $(Target)-$(arch) : $(Location)/$(baseJam) : -sMacOSXArch=$(arch) -sUniversalBinaryPart=yes ;
+  BuildJamWithParams $(Target)-$(arch) : $(Location)/$(baseJam) : -sPlatformArch=$(arch) -sUniversalBinaryPart=yes ;
 }
 
 UniversalBinary $(OutDir)/$(Target) ;

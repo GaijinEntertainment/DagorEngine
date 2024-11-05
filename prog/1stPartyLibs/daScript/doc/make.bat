@@ -170,9 +170,9 @@ if "%1" == "latexpdf" (
     %SPHINXBUILD% -b latex %ALLSPHINXOPTS% %BUILDDIR%/latex
 	if errorlevel 1 exit /b 1
     cd %BUILDDIR%/latex
-    pdflatex dascript.tex
+    pdflatex daslang.tex
 	if errorlevel 1 exit /b 1
-    pdflatex dascriptstdlib.tex
+    pdflatex daslangstdlib.tex
 	if errorlevel 1 exit /b 1
     cd %~dp0
     echo.

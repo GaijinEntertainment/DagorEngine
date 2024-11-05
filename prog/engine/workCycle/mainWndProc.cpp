@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "workCyclePriv.h"
 #include <workCycle/dag_gameSettings.h>
 #include <workCycle/dag_workCycle.h>
@@ -8,10 +10,11 @@
 #include <osApiWrappers/dag_progGlobals.h>
 #include <osApiWrappers/setProgGlobals.h>
 #include <osApiWrappers/dag_atomic.h>
-#include <humanInput/dag_hiPointing.h>
+#include <drv/hid/dag_hiPointing.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <startup/dag_globalSettings.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
+#include "drv/3d/dag_resetDevice.h"
 #include <util/dag_globDef.h>
 #include <supp/_platform.h>
 #include <supp/dag_cpuControl.h>
@@ -21,31 +24,7 @@
 
 using namespace workcycle_internal;
 
-int workcycle_internal::inInternalWinLoop = 0;
-
 #if _TARGET_PC_WIN
-static void enterInternalWinLoop(void *wnd)
-{
-  if (is_window_in_thread || interlocked_relaxed_load(enable_idle_priority))
-    return;
-
-  if (inInternalWinLoop == 0)
-    SetTimer((HWND)wnd, 777, 30, NULL);
-  inInternalWinLoop++;
-  debug("enterInternalWinLoop: %d", inInternalWinLoop);
-}
-
-static void leaveInternalWinLoop(void *wnd)
-{
-  if (is_window_in_thread || interlocked_relaxed_load(enable_idle_priority) || !inInternalWinLoop)
-    return;
-
-  inInternalWinLoop--;
-  if (inInternalWinLoop == 0)
-    KillTimer((HWND)wnd, 777);
-  debug("enterInternalWinLoop: %d", inInternalWinLoop);
-}
-
 void workcycle_internal::set_priority(bool foreground)
 {
   SetPriorityClass(GetCurrentProcess(),
@@ -129,16 +108,6 @@ eastl::pair<bool, intptr_t> main_wnd_proc(void *hwnd, unsigned message, uintptr_
       break;
     }
 
-    case WM_TIMER:
-      // special timer to be used during move/resize loop
-      if (wParam == 777 && inInternalWinLoop)
-      {
-        dagor_work_cycle();
-        if (dwc_hook_inside_internal_winloop)
-          dwc_hook_inside_internal_winloop();
-      }
-      break;
-
     case WM_CLOSE:
     case WM_DAGOR_CLOSING:
       if (dagor_gui_manager && !dagor_gui_manager->canCloseNow())
@@ -162,7 +131,9 @@ eastl::pair<bool, intptr_t> main_wnd_proc(void *hwnd, unsigned message, uintptr_
           break;
       if (::global_cls_drv_pnt)
       {
-        HCURSOR cursor = ::global_cls_drv_pnt->isMouseCursorHidden() ? (HCURSOR)win32_empty_mouse_cursor : LoadCursor(NULL, IDC_ARROW);
+        HCURSOR cursor = ::global_cls_drv_pnt->isMouseCursorHidden()
+                           ? (HCURSOR)win32_empty_mouse_cursor
+                           : (win32_current_mouse_cursor ? (HCURSOR)win32_current_mouse_cursor : LoadCursor(NULL, IDC_ARROW));
         if (is_window_in_thread)
           PostMessageW((HWND)hwnd, WM_DAGOR_SETCURSOR, 0, (LPARAM)cursor);
         else
@@ -197,26 +168,6 @@ eastl::pair<bool, intptr_t> default_wnd_proc(void *hwnd, unsigned message, uintp
       long uCmdType = wParam & 0xFFF0;
       if (uCmdType == SC_KEYMENU || uCmdType == SC_MOUSEMENU)
         return {true, 0};
-      if ((uCmdType == SC_MOVE || uCmdType == SC_SIZE) && !interlocked_relaxed_load(enable_idle_priority))
-      {
-        enterInternalWinLoop(hwnd);
-        if (uCmdType == SC_MOVE)
-          wParam = SC_MOVE;
-        auto ret = DefWindowProc((HWND)hwnd, message, wParam, lParam);
-        leaveInternalWinLoop(hwnd);
-        return {true, ret};
-      }
-      break;
-    }
-
-    case WM_ENTERMENULOOP:
-    {
-      enterInternalWinLoop(hwnd);
-      break;
-    }
-    case WM_EXITMENULOOP:
-    {
-      leaveInternalWinLoop(hwnd);
       break;
     }
 
@@ -242,6 +193,58 @@ eastl::pair<bool, intptr_t> default_wnd_proc(void *hwnd, unsigned message, uintp
           watchdog_set_option(WATCHDOG_OPTION_TRIG_THRESHOLD, prevTmt);
       }
       return {true, TRUE};
+    }
+
+    case WM_EXITSIZEMOVE:
+    {
+      const eastl::pair<bool, intptr_t> handledResult = {true, 0};
+      if (!d3d::is_inited() || !is_window_resizing_by_mouse())
+        return handledResult;
+      // when device is being reset, we want to reset it again with final resolution
+      set_driver_reset_pending_on_exit_sizing();
+      return handledResult;
+    }
+
+    case WM_SIZE:
+    {
+      const eastl::pair<bool, intptr_t> handledResult = {true, 0};
+      // We assume that noone send WM_SIZE with this params from code
+      if (wParam == SIZE_MAXIMIZED || wParam == SIZE_MINIMIZED)
+        set_window_size_has_been_changed_programmatically(false);
+      const bool isSizeChangedProgrammatically = is_window_size_has_been_changed_programmatically();
+      set_window_size_has_been_changed_programmatically(false);
+      if (!d3d::is_inited() || is_window_resizing_by_mouse() || isSizeChangedProgrammatically)
+        return handledResult;
+      static bool isMinimized = false;
+      if (wParam == SIZE_MINIMIZED)
+      {
+        isMinimized = true;
+        return handledResult;
+      }
+      // On windows, when the window is minimized, it is "resized" to (0,0),
+      // and afterwards, when it is un-minimized, the size is restored to
+      // the previous one.
+      // But there is no dedicated "un-minimization" event type, and the
+      // ambiguously named SIZE_RESTORED event comes for ANY type of resize
+      // (except for minimization & maximization), including the "un-minimization",
+      // so we have to keep track of the "first" restore event after a minimize
+      // to avoid unnecessary resets.
+      if (wParam == SIZE_RESTORED && isMinimized)
+      {
+        isMinimized = false;
+        return handledResult;
+      }
+      on_window_resized_change_reset_request();
+      return handledResult;
+    }
+
+    case WM_GETMINMAXINFO:
+    {
+      MINMAXINFO *minMax = (MINMAXINFO *)lParam;
+      // Hardcoded minimum size for the window. TODO: It can be made configurable someday.
+      minMax->ptMinTrackSize.x = 320;
+      minMax->ptMinTrackSize.y = 180;
+      return {true, 0};
     }
   }
 

@@ -1,0 +1,20 @@
+include "skyLight.dshl"
+include "dagi_volmap_gi.dshl"
+include "skyLightParams.dshl"
+
+macro PROJECT_GET_GI_OFFSCREEN_IRRADIANCE(code)
+  INIT_SKY_DIFFUSE_BASE(code)
+  USE_SKY_DIFFUSE_BASE(code)
+  SSGI_USE_VOLMAP_GI(code)
+  INIT_SKYLIGHT_PARAMS(code)
+  USE_SKYLIGHT_PARAMS(code)
+  hlsl(code) {
+    half3 project_get_gi_offscreen_irradiance(float3 worldPos, float3 normal)
+    {
+      half3 skyColor = GetSkySHDiffuse(normal);
+      half3 ambient = skyColor;
+      half giAmount = get_ambient3d(worldPos, normal, skyColor, ambient) * skylight_gi_weight_atten;
+      return lerp(skyColor, ambient, giAmount);
+    }
+  }
+endmacro

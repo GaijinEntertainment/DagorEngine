@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "robjMask.h"
 
 #include <daRg/dag_stringKeys.h>
@@ -24,8 +26,7 @@ bool RobjMaskParams::load(const Element *elem)
 }
 
 
-void RobjMask::renderCustom(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
-  const RenderState &render_state)
+void RobjMask::render(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata, const RenderState &render_state)
 {
   if (rdata->size.x < 1 || rdata->size.y < 1)
     return;
@@ -41,14 +42,15 @@ void RobjMask::renderCustom(StdGuiRender::GuiContext &ctx, const Element *elem, 
   const PictureManager::PicDesc &pic = params->image->getPic();
   pic.updateTc();
 
-  darg::uishader::set_mask(ctx, pic.tex, rdata->pos + rdata->size / 2, 0,
-    Point2(2 * rdata->size.x / StdGuiRender::screen_width(), 2 * rdata->size.y / StdGuiRender::screen_height()), pic.tcLt, pic.tcRb);
+  darg::uishader::set_mask(ctx, pic.tex, d3d::INVALID_SAMPLER_HANDLE, rdata->pos + rdata->size / 2, 0,
+    Point2(2 * rdata->size.x / StdGuiRender::screen_width(), 2 * rdata->size.y / StdGuiRender::screen_height()), pic.tcLt,
+    pic.tcRb); // TODO: Use actual sampler IDs
 }
 
 void RobjMask::postRender(StdGuiRender::GuiContext &ctx, const Element *elem)
 {
   G_UNUSED(elem);
-  uishader::set_mask(ctx, BAD_TEXTUREID, Point3(1, 0, 0), Point3(0, 1, 0));
+  uishader::set_mask(ctx, BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, Point3(1, 0, 0), Point3(0, 1, 0));
 }
 
 

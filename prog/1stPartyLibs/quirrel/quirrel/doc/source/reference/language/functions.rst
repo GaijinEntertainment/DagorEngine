@@ -20,24 +20,34 @@ Function declaration
 .. index::
     single: Function Declaration
 
-A local function can be declared with this function expression::
+A local function can be declared with following function expression::
 
     function tuna(a,b,c) {
         return a+b-c;
     }
 
-or::
-
     let function tuna(a,b,c) {
         return a+b-c;
     }
-
-that is equivalent to::
 
     let tuna = function tuna(a,b,c) {
         return a+b-c;
     }
 
+These declarations means that `tuna` can't be reassigned (see `bindings`)
+
+or::
+
+    local tuna = function tuna(a,b,c) {
+        return a+b-c;
+    }
+
+    local function tuna(a,b,c) {
+        return a+b-c;
+    }
+
+
+These declarations declare local variable that can be reassigned
 
 ^^^^^^^^^^^^^^^^^^
 Default Paramaters

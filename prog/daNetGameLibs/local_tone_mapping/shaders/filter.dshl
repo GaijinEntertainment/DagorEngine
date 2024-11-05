@@ -1,0 +1,50 @@
+include "shader_global.dshl"
+
+texture exposure_tex;
+texture frame_tex;
+float sigma_d = 5.0;
+float sigma_r = 0.9;
+
+shader local_tone_mapping_filter
+{
+  cull_mode=none;
+  z_write=false;
+  z_test=false;
+  color_write = rgb;
+  POSTFX_VS_TEXCOORD(0, tc)
+  INIT_EXPOSURE(ps)
+  USE_EXPOSURE(ps)
+  local float4 tex_resolution = get_dimensions(exposure_tex, 0);
+  (ps) {
+    exposure_tex@tex2d = exposure_tex;
+    tex_resolution@f4 = (tex_resolution.xy, 1/tex_resolution.xy);
+    frame_tex@smp2d = frame_tex;
+    sigma_d_scale@f1 = -0.5 / (sigma_d * sigma_d);
+    sigma_r_scale@f1 = -0.5 / (sigma_r * sigma_r);
+  }
+  hlsl(ps) {
+    #include "luminance_encoding.hlsl"
+    #define exposure_tex_samplerstate frame_tex_samplerstate
+
+    float3 local_tone_mapping_filter_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      float targetLum = linear_to_log(luminance(tex2D(frame_tex, input.tc).xyz * getPrevExposureRatio()));
+      float lum = 0;
+      float weightSum = 0.00001;
+      int windowHalfSize = 1;
+      UNROLL
+      for (int dy = -windowHalfSize; dy <= windowHalfSize; dy += 1) {
+        UNROLL
+        for (int dx = -windowHalfSize; dx <= windowHalfSize; dx += 1) {
+          float3 color = tex2D(frame_tex, input.tc + float2(dx, dy) * tex_resolution.zw).xyz * getPrevExposureRatio();
+          float currentLum = linear_to_log(luminance(color));
+          float w = exp(sigma_d_scale * float(dx*dx + dy*dy) + sigma_r_scale * (currentLum - targetLum) * (currentLum - targetLum));
+          lum += tex2D(exposure_tex, input.tc + float2(dx, dy) * tex_resolution.zw).x * w;
+          weightSum += w;
+        }
+      }
+      return lum / weightSum;
+    }
+  }
+  compile("target_ps", "local_tone_mapping_filter_ps");
+}

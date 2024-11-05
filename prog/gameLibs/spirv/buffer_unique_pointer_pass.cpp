@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EASTL/hash_map.h>
 #include <EASTL/vector.h>
 #include "module_nodes.h"

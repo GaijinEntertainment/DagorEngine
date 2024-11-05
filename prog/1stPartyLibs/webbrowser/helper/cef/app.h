@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <cef_app.h>
 
 #include "javaScriptHandler.h"
@@ -33,4 +35,3 @@ class App : public CefApp,
 }; // class App
 
 } // namespace cef
-

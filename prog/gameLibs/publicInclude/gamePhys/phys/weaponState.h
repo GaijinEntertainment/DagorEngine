@@ -1,18 +1,23 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <stdint.h>
 #include <string.h>
 #include <dag/dag_relocatable.h>
+#include <generic/dag_staticTab.h>
+#include <util/dag_globDef.h>
 
 namespace danet
 {
 class BitStream;
 }
+
+const int BULLETS_SETS_QUANTITY = 6;
+
+using BulletSets = StaticTab<uint8_t, BULLETS_SETS_QUANTITY>;
 
 struct WeaponState
 {
@@ -21,15 +26,20 @@ struct WeaponState
   float lastShotAtTime;
   float shootingCharge;
 
-  int16_t bulletsLeft;
+  struct BulletSet
+  {
+    int16_t bulletsLeft;
+    uint16_t bulletsBorn;
+  };
+  StaticTab<BulletSet, BULLETS_SETS_QUANTITY> bulletSets;
   bool jettisoned;
-  uint16_t bulletsBorn;
   int32_t scheduledReloadTick;
 
   int8_t scheduledShotCount;
   bool jettisoning;
   uint8_t flags;
   uint8_t chosenBulletType;
+  BulletSets scheduledBulletSets;
   uint8_t misfireCount;
 
   enum
@@ -45,27 +55,9 @@ struct WeaponState
 
   float shotStep;
 
-  WeaponState() { memset(this, 0, sizeof(*this)); }
+  WeaponState();
 
-  bool operator==(const WeaponState &a) const
-  {
-    if (bulletsLeft != a.bulletsLeft || jettisoned != a.jettisoned || flags != a.flags)
-      return false;
-    if (flags & WS_IS_BASE_GUN)
-      return true;
-
-    if (bulletsBorn != a.bulletsBorn)
-      return false;
-    if (!(flags & WS_IS_REUPDATEABLE_GUN))
-      return true;
-
-    bool equals = chosenBulletType == a.chosenBulletType && overheatCurrentTimer == a.overheatCurrentTimer &&
-                  nextShotAtTime == a.nextShotAtTime && lastShotAtTime == a.lastShotAtTime &&
-                  scheduledShotCount == a.scheduledShotCount && jettisoning == a.jettisoning &&
-                  scheduledReloadTick == a.scheduledReloadTick && shotStep == a.shotStep && misfireCount == a.misfireCount;
-
-    return equals;
-  }
+  bool operator==(const WeaponState &a) const;
 
   bool hasLargeDifferenceWith(const WeaponState &a) const
   {

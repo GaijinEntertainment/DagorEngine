@@ -4,7 +4,7 @@ Root           ?= ../../../../.. ;
 Location        = prog/engine/perfMon/$(APP_FOLDER) ;
 ConsoleExe      = yes ;
 
-Platform ?= win64 ;
+PlatformArch_windows ?= x86_64 ;
 
 TargetType  = exe ;
 Target      = util/$(APP).exe ;

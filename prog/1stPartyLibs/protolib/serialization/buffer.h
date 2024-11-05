@@ -62,6 +62,9 @@ namespace proto
 
       MoveBuffer & operator=(const MoveBuffer & src)
       {
+        if (this == &src)
+          return *this;
+
         delete[] data_;
 
         data_ = src.data_;

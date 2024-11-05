@@ -1,0 +1,1 @@
+#define SCOPE_MASK_NUMTHREADS 8

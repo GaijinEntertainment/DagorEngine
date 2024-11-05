@@ -516,6 +516,11 @@ Metrowerks:
 #  define POSH_CPU_STRING "Elbrus2000"
 #endif
 
+#if defined(__arm64__) || defined(_M_ARM64)
+#  define POSH_CPU_ARM64 1
+#  define POSH_CPU_STRING "arm64"
+#endif
+
 #if !defined POSH_CPU_STRING
 #  error POSH cannot determine target CPU
 #  define POSH_CPU_STRING "Unknown" /* this is here for Doxygen's benefit */
@@ -653,7 +658,7 @@ Metrowerks:
 ** the MIPS series, so we have to be careful about those.
 ** ----------------------------------------------------------------------------
 */
-#if defined POSH_CPU_X86 || defined POSH_CPU_AXP || defined POSH_CPU_STRONGARM || defined POSH_OS_WIN32 || defined POSH_OS_WINCE || defined __MIPSEL__ || defined POSH_CPU_E2K
+#if defined POSH_CPU_X86 || defined POSH_CPU_ARM64 || defined POSH_CPU_AXP || defined POSH_CPU_STRONGARM || defined POSH_OS_WIN32 || defined POSH_OS_WINCE || defined __MIPSEL__ || defined POSH_CPU_E2K
 #  define POSH_ENDIAN_STRING "little"
 #  define POSH_LITTLE_ENDIAN 1
 #else

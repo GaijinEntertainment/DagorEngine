@@ -4,9 +4,9 @@ import sys, platform
 from fs_helpers import pushd
 
 if platform.system() == "Windows" :
-  csq = r"..\..\tools\dagor3_cdk\util\csq-dev"
+  csq = r"..\..\tools\dagor_cdk\windows-x86_64\csq-dev"
 elif platform.system() == "Linux" :
-  csq = "../../tools/dagor3_cdk/util-linux64/csq-dev"
+  csq = "../../tools/dagor_cdk/linux-x86_64/csq-dev"
 
 for root, dirs, files in os.walk("."):
   files[:] = [f for f in files if f.endswith(".nut")]

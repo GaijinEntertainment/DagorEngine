@@ -1,9 +1,9 @@
 pushd prog/tools
-./build_dagor3_cdk_mini_macOS.sh
+./build_dagor_cdk_mini_macOS.sh
 popd
 
 pushd prog/tools/dargbox
-../../../tools/dagor3_cdk/util-macosx/vromfsPacker-dev darg.vromfs.blk -platform:PC
+../../../tools/dagor_cdk/macOS-x86_64/vromfsPacker-dev darg.vromfs.blk -platform:PC
 cd shaders
 ./compile_shaders_metal.sh
 popd

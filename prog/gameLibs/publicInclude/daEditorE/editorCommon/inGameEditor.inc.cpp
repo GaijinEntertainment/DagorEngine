@@ -21,10 +21,10 @@
 #include <ecs/scripts/sqEntity.h>
 #include <quirrel/sqModules/sqModules.h>
 #include <quirrel/sqEventBus/sqEventBus.h>
+#include <json/json.h>
 #include <rendInst/rendInstExtra.h>
 #include <rendInst/rendInstExtraAccess.h>
 #include <rendInst/rendInstAccess.h>
-
 
 static IDaEditor4StubEC daEd4Stub;
 static eastl::unique_ptr<IDaEditor4EmbeddedComponent> daEd4Embedded;
@@ -50,8 +50,7 @@ struct VromRemover
 };
 static eastl::unique_ptr<VirtualRomFsData, VromRemover> daEd4Vrom;
 static bool wasFreeCameraActive = false;
-static bool daed4_active = false;
-
+static enum class EditorState { DISABLED, ACTIVE, RELOADING } daed4_state = EditorState::DISABLED;
 static eastl::string objEd_pointAction_op;
 static eastl::string objEd_pointAction_opWas;
 static int objEd_pointAction_mod = 0;
@@ -221,9 +220,9 @@ static void perform_point_action_static(bool trace, const Point3 &p0, const Poin
         const rendinst::riex_handle_t riex_handle = ri_desc.getRiExtraHandle();
         const uint32_t pool_idx = rendinst::handle_to_ri_type(riex_handle);
         const vec4f bsph = rendinst::getRIGenExtraBSphere(riex_handle);
-        const float *bsph_data = (const float *)&bsph;
-        const Point3 center = Point3(bsph_data[0], bsph_data[1], bsph_data[2]);
-        const float radius = abs(bsph_data[3]);
+        Point3_vec4 center;
+        v_st(&center.x, bsph);
+        const float radius = abs(v_extract_w(bsph));
 
         float intr_dist_near, intr_dist_far;
         if (ray_sphere_intersect(p0, dir, center, radius, intr_dist_near, intr_dist_far) && intr_dist_near > 0.0f)
@@ -232,7 +231,7 @@ static void perform_point_action_static(bool trace, const Point3 &p0, const Poin
           b64.encode((const uint8_t *)&riex_handle, sizeof(riex_handle));
           objEd_pointAction_ext_id = b64.c_str();
           objEd_pointAction_ext_name = rendinst::getRIGenExtraName(pool_idx);
-          objEd_pointAction_ext_sph = Point4(bsph_data[0], bsph_data[1], bsph_data[2], radius);
+          objEd_pointAction_ext_sph = Point4(center[0], center[1], center[2], radius);
           objEd_pointAction_ext_mtx = rendinst::getRIGenMatrix(rendinst::RendInstDesc(riex_handle));
           objEd_pointAction_ext_eid = find_ri_extra_eid(riex_handle);
         }
@@ -273,9 +272,9 @@ static void perform_point_action_static(bool trace, const Point3 &p0, const Poin
         {
           const rendinst::riex_handle_t riex_handle = handles[i];
           const vec4f bsph = rendinst::getRIGenExtraBSphere(riex_handle);
-          const float *bsph_data = (const float *)&bsph;
-          const Point3 center = Point3(bsph_data[0], bsph_data[1], bsph_data[2]);
-          const float radius = abs(bsph_data[3]);
+          Point3_vec4 center;
+          v_st(&center.x, bsph);
+          const float radius = abs(v_extract_w(bsph));
 
           float intr_dist_near, intr_dist_far;
           if (ray_sphere_intersect(p0, dir, center, radius, intr_dist_near, intr_dist_far) && intr_dist_near > 0.0f &&
@@ -294,7 +293,7 @@ static void perform_point_action_static(bool trace, const Point3 &p0, const Poin
               b64.encode((const uint8_t *)&riex_handle, sizeof(riex_handle));
               objEd_pointAction_ext_id = b64.c_str();
               objEd_pointAction_ext_name = rendinst::getRIGenExtraName(pool_idx);
-              objEd_pointAction_ext_sph = Point4(bsph_data[0], bsph_data[1], bsph_data[2], radius);
+              objEd_pointAction_ext_sph = Point4(center[0], center[1], center[2], radius);
               objEd_pointAction_ext_mtx = rendinst::getRIGenMatrix(rendinst::RendInstDesc(riex_handle));
               objEd_pointAction_ext_eid = find_ri_extra_eid(riex_handle);
             }
@@ -304,8 +303,7 @@ static void perform_point_action_static(bool trace, const Point3 &p0, const Poin
     }
   }
 
-  if (HSQUIRRELVM vm = sqeventbus::get_vm())
-    sqeventbus::send_event("entity_editor.onEditorChanged", Sqrat::Object(vm));
+  sqeventbus::send_event("entity_editor.onEditorChanged");
 }
 
 void init_entity_object_editor()
@@ -339,8 +337,7 @@ static bool on_daed4_activate(bool activate)
   if (activate)
     init_entity_object_editor();
 
-  if (HSQUIRRELVM vm = sqeventbus::get_vm())
-    sqeventbus::send_event("entity_editor.onEditorActivated", Sqrat::Object(activate, vm));
+  sqeventbus::send_event("entity_editor.onEditorActivated", Json::Value(activate));
 
   if (activate || wasFreeCameraActive)
   {
@@ -364,7 +361,7 @@ static bool on_daed4_activate(bool activate)
       objEd->setEditMode(CM_OBJED_MODE_SELECT);
   }
 
-  daed4_active = activate;
+  daed4_state = activate ? EditorState::ACTIVE : EditorState::DISABLED;
   return true;
 }
 
@@ -374,11 +371,7 @@ static void on_daed4_update(float dt)
   force_free_camera();
 }
 
-static void on_daed4_changed()
-{
-  if (HSQUIRRELVM vm = sqeventbus::get_vm())
-    sqeventbus::send_event("entity_editor.onEditorChanged", Sqrat::Object(vm));
-}
+static void on_daed4_changed() { sqeventbus::send_event("entity_editor.onEditorChanged"); }
 
 void init_da_editor4()
 {
@@ -457,7 +450,11 @@ static void sq_save_del_template(SQInteger eid_int, const char *templ_name)
   EntityObjEditor::saveDelTemplate(eid, templ_name);
 }
 
-bool is_editor_activated() { return daed4_active; }
+bool is_editor_activated() { return daed4_state == EditorState::ACTIVE; }
+bool is_editor_in_reload() { return daed4_state == EditorState::RELOADING; }
+void start_editor_reload() { daed4_state = daed4_state == EditorState::DISABLED ? EditorState::DISABLED : EditorState::RELOADING; }
+void finish_editor_reload() { daed4_state = daed4_state == EditorState::DISABLED ? EditorState::DISABLED : EditorState::ACTIVE; }
+bool is_editor_free_camera_enabled() { return daed4_state == EditorState::ACTIVE && daEd4->isFreeCameraActive(); }
 static bool is_any_entity_selected() { return objEd && objEd->selectedCount() > 0; }
 static bool is_asset_wnd_shown() { return objEd && objEd->getEditMode() == CM_OBJED_MODE_CREATE_ENTITY; }
 static const char *get_scene_filepath() { return objEd ? objEd->getSceneFilePath() : objEd_sceneFilePath.c_str(); }
@@ -543,8 +540,8 @@ static SQInteger gather_ri_by_sphere(HSQUIRRELVM vm)
     {
       const rendinst::riex_handle_t riex_handle = handles[i];
       const vec4f bsph = rendinst::getRIGenExtraBSphere(riex_handle);
-      const float *bsph_data = (const float *)&bsph;
-      const Point3 center = Point3(bsph_data[0], bsph_data[1], bsph_data[2]);
+      Point3_vec4 center;
+      v_st(&center.x, bsph);
 
       if ((center - pos).lengthSq() <= testRadiusSq)
       {
@@ -565,9 +562,9 @@ static SQInteger gather_ri_by_sphere(HSQUIRRELVM vm)
     {
       const rendinst::riex_handle_t riex_handle = handles[i];
       const vec4f bsph = rendinst::getRIGenExtraBSphere(riex_handle);
-      const float *bsph_data = (const float *)&bsph;
-      const Point3 center = Point3(bsph_data[0], bsph_data[1], bsph_data[2]);
-      const float radius = abs(bsph_data[3]);
+      Point3_vec4 center;
+      v_st(&center.x, bsph);
+      const float radius = abs(v_extract_w(bsph));
 
       if ((center - pos).lengthSq() <= testRadiusSq && filledCount < fillCount)
       {
@@ -576,7 +573,7 @@ static SQInteger gather_ri_by_sphere(HSQUIRRELVM vm)
         b64.encode((const uint8_t *)&riex_handle, sizeof(riex_handle));
         riData.SetValue("id", b64.c_str());
         riData.SetValue("name", rendinst::getRIGenExtraName(pool_idx));
-        riData.SetValue("sph", Point4(bsph_data[0], bsph_data[1], bsph_data[2], radius));
+        riData.SetValue("sph", Point4(center[0], center[1], center[2], radius));
         riData.SetValue("mtx", rendinst::getRIGenMatrix(rendinst::RendInstDesc(riex_handle)));
         riData.SetValue("eid", (int)(ecs::entity_id_t)find_ri_extra_eid(riex_handle));
         res.SetValue(filledCount, riData);
@@ -604,8 +601,9 @@ static SQInteger get_ri_from_entity(HSQUIRRELVM vm)
   }
 
   const vec4f bsph = rendinst::getRIGenExtraBSphere(riex_handle);
-  const float *bsph_data = (const float *)&bsph;
-  const float radius = abs(bsph_data[3]);
+  Point3_vec4 center;
+  v_st(&center.x, bsph);
+  const float radius = abs(v_extract_w(bsph));
 
   const uint32_t pool_idx = rendinst::handle_to_ri_type(riex_handle);
 
@@ -614,7 +612,7 @@ static SQInteger get_ri_from_entity(HSQUIRRELVM vm)
   b64.encode((const uint8_t *)&riex_handle, sizeof(riex_handle));
   res.SetValue("id", b64.c_str());
   res.SetValue("name", rendinst::getRIGenExtraName(pool_idx));
-  res.SetValue("sph", Point4(bsph_data[0], bsph_data[1], bsph_data[2], radius));
+  res.SetValue("sph", Point4(center[0], center[1], center[2], radius));
   res.SetValue("mtx", rendinst::getRIGenMatrix(rendinst::RendInstDesc(riex_handle)));
   res.SetValue("eid", (int)(ecs::entity_id_t)eid);
 
@@ -664,7 +662,8 @@ void register_editor_script(SqModules *module_mgr)
   EntityObjEditor::register_script_class(vm);
 
   Sqrat::Table exports(vm);
-  exports.SetValue("DE4_MODE_CREATE_ENTITY", CM_OBJED_MODE_CREATE_ENTITY)
+  exports //
+    .SetValue("DE4_MODE_CREATE_ENTITY", CM_OBJED_MODE_CREATE_ENTITY)
     .Func("get_instance", get_entity_obj_editor)
     .SquirrelFunc("get_saved_components", sq_get_saved_components, 2, "ti")
     .Func("get_template_name_for_ui", sq_get_template_name_for_ui)
@@ -698,7 +697,8 @@ void register_editor_script(SqModules *module_mgr)
     .SquirrelFunc("gather_ri_by_sphere", gather_ri_by_sphere, 5, "tffff")
     .SquirrelFunc("get_ri_from_entity", get_ri_from_entity, 2, "ti")
 
-    .Func("make_cam_spawn_tm", make_cam_spawn_tm);
+    .Func("make_cam_spawn_tm", make_cam_spawn_tm)
+    /**/;
   module_mgr->addNativeModule("entity_editor", exports);
 }
 

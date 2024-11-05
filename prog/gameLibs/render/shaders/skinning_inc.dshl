@@ -24,7 +24,7 @@ macro USE_WORLD_LOCAL_BASE(code)
 (code) { immediate_dword_count = 1; }
 hlsl(code) {
   #define SETUP_RENDER_VARS(rigid_index)                                                                         \
-    uint offsetToChunk = OFFSET_TO_CHUNK(rigid_index);                                                           \
+    uint offsetToChunk = max((int)OFFSET_TO_CHUNK(rigid_index), 0);                                              \
     float4 globtm_0 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 0);                                       \
     float4 globtm_1 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 1);                                       \
     float4 globtm_2 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 2);                                       \
@@ -33,7 +33,9 @@ hlsl(code) {
     float4 prev_globtm_1 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 5);                                  \
     float4 prev_globtm_2 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 6);                                  \
     float4 prev_globtm_3 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 7);                                  \
-    float2 opacity__offset = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 8).xy;                             \
+    float4 opacity__offset__extra = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 8);                         \
+    float2 opacity__offset = opacity__offset__extra.xy;                                                          \
+    float2 node_extra_data = opacity__offset__extra.zw;                                                          \
     float node_opacity = opacity__offset.x;                                                                      \
     float4 node_tm_0, node_tm_1, node_tm_2;                                                                      \
     if ( (get_immediate_dword_0() & 0xFF) > 9)                                                                   \
@@ -48,8 +50,8 @@ hlsl(code) {
       node_tm_1 = float4(0, 1, 0, 0);                                                                            \
       node_tm_2 = float4(0, 0, 1, 0);                                                                            \
     }                                                                                                            \
-    uint instanceChunkOffset = uint(offsetToChunk + opacity__offset.y);                                          \
-    float3 unpack_pos_mul = loadBuffer(INSTANCE_DATA_BUFFER, instanceChunkOffset + 0).xyz;                       \
+    uint instanceChunkOffset = uint(max(offsetToChunk + opacity__offset.y, 0));                                  \
+    float4 unpack_pos_mul = loadBuffer(INSTANCE_DATA_BUFFER, instanceChunkOffset + 0);                           \
     float4 pos_ofs__cnt = loadBuffer(INSTANCE_DATA_BUFFER, instanceChunkOffset + 1);                             \
     float3 unpack_pos_ofs = pos_ofs__cnt.xyz;                                                                    \
     float2 dynrend_params_offset_count = float2(instanceChunkOffset + 2.5, pos_ofs__cnt.w);
@@ -83,7 +85,7 @@ hlsl(code) {
   }
 
   #define GET_DYNREND_PARAM(param_no) ((int)param_no < (int)dynrend_params_offset_count.y ? \
-    loadBuffer(INSTANCE_DATA_BUFFER, dynrend_params_offset_count.x + param_no) : float4(0, 0, 0, 0))
+    loadBuffer(INSTANCE_DATA_BUFFER, max(dynrend_params_offset_count.x + param_no, 0)) : float4(0, 0, 0, 0))
 }
 endmacro
 

@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #define CLOUDS_VARS_LIST                                                                  \
@@ -10,12 +11,17 @@
   VAR(clouds_back_eccentricity, false)                                                    \
   VAR(clouds_close_layer_is_outside, true)                                                \
   VAR(clouds_color, true)                                                                 \
+  VAR(clouds_color_samplerstate, true)                                                    \
   VAR(clouds_color_close, true)                                                           \
+  VAR(clouds_color_close_samplerstate, true)                                              \
   VAR(clouds_color_prev, true)                                                            \
+  VAR(clouds_color_prev_samplerstate, true)                                               \
   VAR(clouds_compute_width, true)                                                         \
   VAR(clouds_cumulonimbus_shape_scale, true)                                              \
   VAR(clouds_depth, true)                                                                 \
+  VAR(clouds_depth_samplerstate, true)                                                    \
   VAR(clouds_depth_gbuf, true)                                                            \
+  VAR(clouds_depth_gbuf_samplerstate, true)                                               \
   VAR(clouds_detail_tex_size, false)                                                      \
   VAR(clouds_epicness, false)                                                             \
   VAR(clouds_erosion_noise_tile_size, false)                                              \
@@ -28,6 +34,7 @@
   VAR(clouds_forward_eccentricity_weight, false)                                          \
   VAR(clouds_gen_mips_3d_one_layer, false)                                                \
   VAR(clouds_gen_mips_3d_source, false)                                                   \
+  VAR(clouds_gen_mips_3d_source_samplerstate, false)                                      \
   VAR(clouds_has_close_sequence, false)                                                   \
   VAR(clouds_height_fractions, false)                                                     \
   VAR(clouds_hole_light_dir, true)                                                        \
@@ -48,7 +55,9 @@
   VAR(clouds_offset, true)                                                                \
   VAR(clouds_origin_offset, true)                                                         \
   VAR(clouds_prev_depth_gbuf, true)                                                       \
+  VAR(clouds_prev_depth_gbuf_samplerstate, true)                                          \
   VAR(clouds_prev_taa_weight, true)                                                       \
+  VAR(clouds_prev_taa_weight_samplerstate, true)                                          \
   VAR(clouds_rain_clouds_amount, false)                                                   \
   VAR(clouds_rain_clouds_seed, false)                                                     \
   VAR(clouds_restart_taa, true)                                                           \
@@ -60,10 +69,13 @@
   VAR(clouds_start_altitude2, false)                                                      \
   VAR(clouds_start_compute_offset, true)                                                  \
   VAR(clouds_target_depth_gbuf, true)                                                     \
+  VAR(clouds_target_depth_gbuf_samplerstate, true)                                        \
   VAR(clouds_target_depth_gbuf_transform, true)                                           \
   VAR(clouds_thickness2, false)                                                           \
   VAR(clouds_tile_distance, true)                                                         \
+  VAR(clouds_tile_distance_samplerstate, true)                                            \
   VAR(clouds_tile_distance_tmp, true)                                                     \
+  VAR(clouds_tile_distance_tmp_samplerstate, true)                                        \
   VAR(clouds_tiled_res, true)                                                             \
   VAR(clouds_turbulence_freq, false)                                                      \
   VAR(clouds_turbulence_scale, false)                                                     \
@@ -71,11 +83,15 @@
   VAR(clouds_wind_alt_gradient, true)                                                     \
   VAR(clouds_use_fullres, true)                                                           \
   VAR(compress_voltex_bc4_source, false)                                                  \
+  VAR(compress_voltex_bc4_source_samplerstate, false)                                     \
   VAR(dispatch_size, false)                                                               \
   VAR(global_clouds_sigma, false)                                                         \
   VAR(nbs_world_pos_to_clouds_alt__inv_clouds_weather_size__neg_clouds_thickness_m, true) \
   VAR(clouds_hole_pos, false)                                                             \
-  VAR(nbs_clouds_start_altitude2_meters, true)
+  VAR(nbs_clouds_start_altitude2_meters, true)                                            \
+  VAR(clouds_direct_sequence, true)                                                       \
+  VAR(clouds_use_blur_apply, true)                                                        \
+  VAR(clouds_ignore_close_objects, true)
 
 
 #define VAR(a, opt) extern int a##VarId;

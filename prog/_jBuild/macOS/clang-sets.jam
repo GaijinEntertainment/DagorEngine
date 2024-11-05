@@ -1,0 +1,103 @@
+#  Setup for clang compiler for MACOSX (to be included from jBuild.jam)
+
+_OBJ_SUFFIX  = .o ;
+
+_CLANG_BIN = $(_DEVTOOL)/mac/Toolchain/usr/bin ;
+
+local _DEF_COM_CMDLINE =
+  -pipe -c -arch $(PlatformArch) -mmacosx-version-min=$(MacOSXMinVer)
+  -MD -Werror
+  -Wno-trigraphs -Wno-multichar -Wformat -Wno-unused-value
+  -Wno-uninitialized -Wno-inline-new-delete -Wno-unknown-warning-option
+  -Wno-deprecated-register -Wno-invalid-offsetof
+  -Wno-nonportable-include-path -Wno-null-dereference
+  -Wno-undefined-var-template -Wno-constant-conversion
+  -Wno-inconsistent-missing-override
+  -Wno-deprecated-builtins -Wno-unused-command-line-argument
+  -ffunction-sections -fdata-sections
+  -ffast-math -ffinite-math-only -mrecip=none
+  "\"-D__forceinline=inline __attribute__((always_inline))\"" -D__cdecl= -D__stdcall= -D__fastcall
+  -D_snprintf=snprintf
+  -D_vsnprintf=vsnprintf
+  -Dstricmp=strcasecmp
+  -Dstrnicmp=strncasecmp
+  -D_TARGET_PC=2 -D_TARGET_PC_MACOSX=2 -D_TARGET_APPLE=1 -D_TARGET_64BIT=1
+  -D__MACOSX__=1
+  -Di_strlen=strlen
+;
+
+if $(ClangThreadSafety) = yes {
+  _DEF_COM_CMDLINE += -Wthread-safety ;
+}
+
+if $(KernelLinkage) = static { _DEF_COM_CMDLINE += -D_TARGET_STATIC_LIB=1 ; }
+
+switch $(PlatformArch) {
+  case x86_64 : _DEF_COM_CMDLINE += -msse4.1 -D_TARGET_SIMD_SSE=$(SSEVersion) ;
+  case arm64  : _DEF_COM_CMDLINE += -D_TARGET_SIMD_NEON=1 -DARM_NEON_GCC_COMPATIBILITY=1 ;
+  case * : Exit unsupportd PlatformArch=$(PlatformArch) ;
+}
+
+local _DEF_C_CMDLINE = -Werror -std=c99 ;
+local _DEF_CPP_CMDLINE = -Werror -std=c++$(CPPStd) -Wno-invalid-offsetof ;
+
+if $(Exceptions) != yes {
+  _DEF_CPP_CMDLINE += -fno-exceptions ;
+} else {
+  _DEF_CPP_CMDLINE += -fexceptions -DDAGOR_EXCEPTIONS_ENABLED=1 ;
+}
+
+if $(Rtti) != yes {
+  _DEF_CPP_CMDLINE += -fno-rtti ;
+} else {
+  _DEF_CPP_CMDLINE += -frtti ;
+}
+_LINK = $(_CLANG_BIN)/clang++ -pipe -arch $(PlatformArch) -isysroot $(_DEVTOOL)/mac/SDKs/MacOSX.platform/MacOSX$(MacOSXVer).sdk -mmacosx-version-min=$(MacOSXMinVer)
+        -ObjC -framework Foundation -framework QuartzCore -framework CoreLocation -framework Cocoa -framework IOKit
+        -framework CoreFoundation -framework Security -framework Carbon -framework SystemConfiguration
+        -Wl,-headerpad_max_install_names
+;
+_LINK_DLL = $(_CLANG_BIN)/clang++ -pipe -arch $(PlatformArch) -isysroot $(_DEVTOOL)/mac/SDKs/MacOSX.platform/MacOSX$(MacOSXVer).sdk
+        -mmacosx-version-min=$(MacOSXMinVer)
+        -ObjC -framework Foundation -framework QuartzCore -framework Cocoa
+        -Wl,-headerpad_max_install_names
+        -shared
+;
+
+_LINK += -framework Metal ;
+UseMetalfx ?= no ;
+if $(UseMetalfx) = yes {
+  _LINK += -framework MetalFx ;
+}
+
+_INSTALL_NAME_TOOL = call $(_CLANG_BIN)/install_name_tool ;
+
+if $(Sanitize) != disabled {
+  _LINK = $(_LINK) -fsanitize=$(Sanitize) ;
+  _LINK_DLL  = $(_LINK_DLL) -fsanitize=$(Sanitize) ;
+  _DEF_COM_CMDLINE = $(_DEF_COM_CMDLINE) -fsanitize=$(Sanitize) ;
+}
+
+_LIB          = $(_CLANG_BIN)/libtool $(_CLANG_BIN)/ranlib ;
+_C_COMPILER   = $(_CLANG_BIN)/clang -x c $(_DEF_COM_CMDLINE) $(_DEF_C_CMDLINE) ;
+_CPP_COMPILER = $(_CLANG_BIN)/clang++ -x c++ $(_DEF_COM_CMDLINE) $(_DEF_CPP_CMDLINE) ;
+_OBJC_COMPILER   = $(_CLANG_BIN)/clang -x objective-c -std=c99 $(_DEF_COM_CMDLINE) -fno-objc-exceptions ;
+_OBJCPP_COMPILER = $(_CLANG_BIN)/clang++ -x objective-c++ -std=c++$(CPPStd) $(_DEF_COM_CMDLINE) -fno-objc-exceptions ;
+_GAS_COMPILER = $(_CLANG_BIN)/clang -g -c -m64 -arch $(PlatformArch) ;
+if $(PlatformArch) = x86_64 { _ASM_COMPILER = nasm -f macho64 ; }
+
+_INCLUDE      = $(Root)/prog/dagorInclude $(Root)/prog/1stPartyLibs $(Root)/prog/3rdPartyLibs ;
+
+# make compiler cmd-line ###
+_CPP_BASE_INCLUDES = "-iwithprefix "$(MasterPreInclude) "-I "$(MasterPreInclude) -isysroot $(_DEVTOOL)/mac/SDKs/MacOSX.platform/MacOSX$(MacOSXVer).sdk "-I "$(Root)/prog/3rdPartyLibs/eastl/include ;
+_C_BASE_INCLUDES   = "-iwithprefix "$(MasterPreInclude) "-I "$(MasterPreInclude) -isysroot $(_DEVTOOL)/mac/SDKs/MacOSX.platform/MacOSX$(MacOSXVer).sdk ;
+
+
+for inc in $(_INCLUDE) {
+  _CPP_BASE_INCLUDES += -I $(inc) ;
+  _C_BASE_INCLUDES   += -I $(inc) ;
+}
+
+_DEF_C_CMDLINE = ;
+
+include $(Root)/prog/_jBuild/macOS/bundle.jam ;

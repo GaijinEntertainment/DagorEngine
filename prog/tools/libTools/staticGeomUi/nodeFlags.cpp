@@ -1,12 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/staticGeom/staticGeometry.h>
 #include <libTools/staticGeomUi/nodeFlags.h>
 
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/control/container.h>
 
 #include <util/dag_globDef.h>
 
 #include <debug/dag_debug.h>
-
 
 #define MINIMAL_LIGHT_MUL 0.01
 
@@ -32,6 +33,7 @@ NodesData::NodeFlags::NodeFlags() :
   linkedRes(NULL),
   topLodName(NULL),
   lodRange(-1),
+  showOccluder(1),
   light(StaticGeometryNode::LIGHT_DEFAULT)
 {}
 
@@ -67,6 +69,8 @@ void NodesData::NodeFlags::set(const StaticGeometryNode &node)
 
   visRange = node.visRange;
   lodRange = node.lodRange;
+
+  showOccluder = 1;
 }
 
 
@@ -127,6 +131,9 @@ void NodesData::NodeFlags::compare(const NodeFlags &flags)
   if (vltMul != flags.vltMul)
     vltMul = -1;
 
+  if (showOccluder != flags.showOccluder)
+    showOccluder = 2;
+
   if (forceLocalNorm != flags.forceLocalNorm)
     forceLocalNorm = 2;
 
@@ -150,13 +157,14 @@ NodeFlagsModfier::NodeFlagsModfier(INodeModifierClient &c, const char *uid) : cl
 
 
 //==================================================================================================
-void NodeFlagsModfier::fillPanel(PropertyContainerControlBase &panel, const NodesData &flags, int start_pid, bool create_nodes_grp)
+void NodeFlagsModfier::fillPanel(PropPanel::ContainerPropertyControl &panel, const NodesData &flags, int start_pid,
+  bool create_nodes_grp)
 {
   nodesGrpPid = start_pid;
 
   if (flags.flags.size())
   {
-    PropertyContainerControlBase *nodesGroup = NULL, *maxGroup = &panel;
+    PropPanel::ContainerPropertyControl *nodesGroup = NULL, *maxGroup = &panel;
 
     if (create_nodes_grp)
     {
@@ -226,10 +234,10 @@ int NodeFlagsModfier::getForceIdx(const NodesData::NodeFlags &flg) const
 
 
 //==================================================================================================
-void NodeFlagsModfier::fillAllNodesGrp(PropertyContainerControlBase &panel, const NodesData &flags)
+void NodeFlagsModfier::fillAllNodesGrp(PropPanel::ContainerPropertyControl &panel, const NodesData &flags)
 {
-  PropertyContainerControlBase *maxGroup = NULL;
-  PropertyContainerControlBase *radGrp = NULL;
+  PropPanel::ContainerPropertyControl *maxGroup = NULL;
+  PropPanel::ContainerPropertyControl *radGrp = NULL;
 
   maxGroup = panel.createGroup(getAllNodesGrpPid(), "Set for all nodes");
   G_ASSERT(maxGroup);
@@ -288,9 +296,13 @@ void NodeFlagsModfier::fillAllNodesGrp(PropertyContainerControlBase &panel, cons
   {
     maxGroup->createCheckBox(getAllBillboardPid(), "Billboard", (bool)flg.billboard, false);
   }
-  if (settings.showOccluder)
+  if (settings.useOccluder)
   {
     maxGroup->createCheckBox(getAllOccluderPid(), "Occluder", (bool)flg.occluder, doEnable);
+  }
+  if (settings.showOccluder)
+  {
+    maxGroup->createCheckBox(getAllShowOccluderPid(), "Show Occluder", (bool)flg.showOccluder, doEnable);
   }
   if (settings.showBkFaceDynLight)
   {
@@ -329,7 +341,7 @@ void NodeFlagsModfier::fillAllNodesGrp(PropertyContainerControlBase &panel, cons
 
   if (settings.showLighting)
   {
-    PropertyContainerControlBase *ltGrp = maxGroup->createGroup(getAllLightingGrpPid(), "Lighting");
+    PropPanel::ContainerPropertyControl *ltGrp = maxGroup->createGroup(getAllLightingGrpPid(), "Lighting");
     G_ASSERT(ltGrp);
 
     radGrp = ltGrp->createRadioGroup(getAllLightingRadioGrpPid(), NULL);
@@ -358,10 +370,10 @@ void NodeFlagsModfier::fillAllNodesGrp(PropertyContainerControlBase &panel, cons
 
 
 //==================================================================================================
-void NodeFlagsModfier::fillNodeGrp(PropertyContainerControlBase &panel, const NodesData &flags, int idx)
+void NodeFlagsModfier::fillNodeGrp(PropPanel::ContainerPropertyControl &panel, const NodesData &flags, int idx)
 {
-  PropertyContainerControlBase *maxGroup = NULL;
-  PropertyContainerControlBase *radGrp = NULL;
+  PropPanel::ContainerPropertyControl *maxGroup = NULL;
+  PropPanel::ContainerPropertyControl *radGrp = NULL;
 
   const NodesData::NodeFlags &flg = flags.flags[idx];
   bool doEnable = !flags.useDefault;
@@ -409,9 +421,13 @@ void NodeFlagsModfier::fillNodeGrp(PropertyContainerControlBase &panel, const No
   {
     maxGroup->createCheckBox(getBillboardPid(idx), "Billboard", (bool)flg.billboard, false);
   }
-  if (settings.showOccluder)
+  if (settings.useOccluder)
   {
     maxGroup->createCheckBox(getOccluderPid(idx), "Occluder", (bool)flg.occluder, doEnable);
+  }
+  if (settings.showOccluder)
+  {
+    maxGroup->createCheckBox(getShowOccluderPid(idx), "Show Occluder", (bool)flg.showOccluder, doEnable);
   }
   if (settings.showBkFaceDynLight)
   {
@@ -443,7 +459,7 @@ void NodeFlagsModfier::fillNodeGrp(PropertyContainerControlBase &panel, const No
     }
   }
 
-  PropertyContainerControlBase *subGrp = NULL;
+  PropPanel::ContainerPropertyControl *subGrp = NULL;
 
   if (settings.showLighting)
   {
@@ -514,7 +530,7 @@ void NodeFlagsModfier::fillNodeGrp(PropertyContainerControlBase &panel, const No
 
 
 //==================================================================================================
-bool NodeFlagsModfier::onPPChange(PropertyContainerControlBase &panel, int pid)
+bool NodeFlagsModfier::onPPChange(PropPanel::ContainerPropertyControl &panel, int pid)
 {
   if (pid == getUseDefPid())
   {
@@ -539,7 +555,7 @@ bool NodeFlagsModfier::onPPChange(PropertyContainerControlBase &panel, int pid)
   if (pid == getNormalsGrpPid(nodeIdx) || pid == getLightingRadioGrpPid(nodeIdx))
   {
     flagId = panel.getInt(pid);
-    if (flagId == RADIO_SELECT_NONE)
+    if (flagId == PropPanel::RADIO_SELECT_NONE)
       return false;
 
     switch (flagId)
@@ -643,6 +659,11 @@ bool NodeFlagsModfier::onPPChange(PropertyContainerControlBase &panel, int pid)
            : client.onNodeFlagsChanged(nodeIdx, 0, ~StaticGeometryNode::FLG_OCCLUDER);
       return true;
 
+    case PID_FLG_SHOW_OCCLUDER:
+      iVal = panel.getBool(pid);
+      client.onShowOccludersChanged(nodeIdx, (bool)iVal);
+      return true;
+
     case PID_FLG_AUTOMATIC_VISRANGE:
       iVal = panel.getBool(pid);
       G_ASSERT(iVal != -1);
@@ -711,7 +732,7 @@ bool NodeFlagsModfier::onPPChange(PropertyContainerControlBase &panel, int pid)
 
 
 //==================================================================================================
-bool NodeFlagsModfier::onPPBtnPressed(PropertyContainerControlBase &panel, int pid)
+bool NodeFlagsModfier::onPPBtnPressed(PropPanel::ContainerPropertyControl &panel, int pid)
 {
   if (pid != getAllSetButtonPid())
     return false;
@@ -803,7 +824,7 @@ bool NodeFlagsModfier::onPPBtnPressed(PropertyContainerControlBase &panel, int p
   else if (!check)
   {
     andFlags |= StaticGeometryNode::FLG_OCCLUDER;
-    setPids.push_back(PID_FLG_OCCLUDER);
+    setPids.push_back(-PID_FLG_OCCLUDER);
   }
 
   check = panel.getBool(getAllAutoVisrangePid());
@@ -842,7 +863,7 @@ bool NodeFlagsModfier::onPPBtnPressed(PropertyContainerControlBase &panel, int p
     setPids.push_back(-PID_FLG_DO_NOT_MIX_LODS);
   }
 
-  PropertyControlBase *grp = panel.getById(getAllNormalsGrpPid());
+  PropPanel::PropertyControlBase *grp = panel.getById(getAllNormalsGrpPid());
 
   if (grp)
   {
@@ -880,6 +901,7 @@ bool NodeFlagsModfier::onPPBtnPressed(PropertyContainerControlBase &panel, int p
   float visRange = panel.getFloat(getAllVisrangePid());
   float ltMul = panel.getFloat(getAllLtLightmampMulPid());
   int vltMul = panel.getInt(getAllLtVltmapMulPid());
+  bool showOccluders = panel.getBool(getAllShowOccluderPid());
 
   grp = panel.getById(getAllLightingRadioGrpPid());
 
@@ -898,7 +920,7 @@ bool NodeFlagsModfier::onPPBtnPressed(PropertyContainerControlBase &panel, int p
       setPids.push_back(PID_VISRANGE);
     }
 
-    if (lighting != RADIO_SELECT_NONE)
+    if (lighting != PropPanel::RADIO_SELECT_NONE)
     {
       client.onLightingChanged(i, (StaticGeometryNode::Lighting)lighting);
 
@@ -924,6 +946,9 @@ bool NodeFlagsModfier::onPPBtnPressed(PropertyContainerControlBase &panel, int p
       setPids.push_back(PID_LT_VLTMAP_MUL);
     }
 
+    client.onShowOccludersChanged(i, showOccluders);
+    setPids.push_back(PID_FLG_SHOW_OCCLUDER);
+
     for (int j = 0; j < setPids.size(); ++j)
     {
       int pid = setPids[j];
@@ -946,6 +971,10 @@ bool NodeFlagsModfier::onPPBtnPressed(PropertyContainerControlBase &panel, int p
         case PID_FLG_AUTOMATIC_VISRANGE:
         case PID_FLG_BACK_FACE_DYNLIGHT:
         case PID_FLG_DO_NOT_MIX_LODS:
+        {
+          panel.setBool(getNodePid(i, pid), doSet);
+          break;
+        }
 
         case PID_FORCE_WORLD:
         case PID_FORCE_LOCAL:
@@ -967,6 +996,8 @@ bool NodeFlagsModfier::onPPBtnPressed(PropertyContainerControlBase &panel, int p
         case PID_LT_LIGHTMAP_MUL: panel.setInt(getNodePid(i, pid), ltMul); break;
 
         case PID_LT_VLTMAP_MUL: panel.setInt(getNodePid(i, pid), vltMul); break;
+
+        case PID_FLG_SHOW_OCCLUDER: panel.setBool(getNodePid(i, pid), showOccluders); break;
       }
     }
   }

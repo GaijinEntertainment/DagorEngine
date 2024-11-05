@@ -2,6 +2,7 @@ include "ssr_common_use.dshl"
 include "upscale_use.dshl"
 texture ssr_target;
 float4 SSRParams = (0.91, -2.5, 0,0);
+float4 ssr_frameNo = (0,0,0,0);
 
 define_macro_if_not_defined SSR_COMMON_DEFINES()
 endmacro
@@ -9,6 +10,7 @@ endmacro
 macro INIT_USE_SSR_BASE(stage)
   (stage) {
     ssr_target@smp2d = ssr_target;
+    ssr_target_size@f4 = get_dimensions(ssr_target, 0);
     SSRParams@f4 = SSRParams;
   }
 endmacro
@@ -21,47 +23,83 @@ macro USE_SSR_BASE(code)
   SSR_COMMON_DEFINES()
   hlsl(code) {
     #ifndef SSR_MIPS
-      #define SSR_MIPS 3
+      #define SSR_MIPS ssr_target_size.w
     #endif
 
-    #if OPTIMIZED_UPSCALE
+    #define SSR_UPSCALE_DEFAULT 0
+    #define SSR_UPSCALE_OPTIMIZED 1
+    #define SSR_UPSCALE_MISS_HIT_AWARE 2
+
+    #ifndef SSR_UPSCALE_MODE
+      #define SSR_UPSCALE_MODE SSR_UPSCALE_DEFAULT
+    #endif
+
+    half4 getSSRWeighted(half linear_roughness, float2 tc, int2 screenpos, half4 weight)
+    {
+      half roughnessFade = saturate(linear_roughness * half(SSRParams.y) + 2);
+      BRANCH
+      if (roughnessFade==0)
+        return 0;
+      float ssrMip = linear_roughness*SSR_MIPS;
+      #if (SSR_UPSCALE_MODE != SSR_UPSCALE_DEFAULT)
+        half4 ssr;
+        BRANCH
+        if (ssrMip<1)
+        {
+          half4 lowResR = half4(ssr_target.GatherRed(ssr_target_samplerstate,tc));
+          half4 lowResG = half4(ssr_target.GatherGreen(ssr_target_samplerstate,tc));
+          half4 lowResB = half4(ssr_target.GatherBlue(ssr_target_samplerstate,tc));
+          half4 lowResA = half4(ssr_target.GatherAlpha(ssr_target_samplerstate,tc));
+
+          #if (SSR_UPSCALE_MODE == SSR_UPSCALE_MISS_HIT_AWARE)
+            weight *= lowResA + 1e-3h; // Multiply to ssr weights to avoid sampling invalid pixels (sky) if there any
+            weight *= rcp(max(dot(weight, half4(1,1,1,1)), 0.00001h)); // renormalize sum of weights to 1.0
+          #endif
+          ssr = half4(dot(lowResR,weight),dot(lowResG,weight),dot(lowResB,weight),dot(lowResA,weight));
+        }
+        else
+          ssr = half4(tex2Dlod(ssr_target, float4(tc,0,ssrMip)));
+      #else
+        half4 ssr = half4(tex2Dlod(ssr_target, float4(tc,0,ssrMip)));
+      #endif
+      return ssr * roughnessFade;
+
+    }
+
+    #if (SSR_UPSCALE_MODE != SSR_UPSCALE_DEFAULT)
       half4 getSSR(half linear_roughness, float2 tc, int2 screenpos)
     #else
       half4 getSSR(half linear_roughness, float2 tc, int2 screenpos = 0)
     #endif
     {
-      #if OPTIMIZED_UPSCALE == 1
-        float roughnessFade = saturate(linear_roughness * SSRParams.y + 2);
-        BRANCH
-        if (roughnessFade==0)
-          return 0;
-        float ssrMip = linear_roughness*SSR_MIPS;
+      half roughnessFade = saturate(linear_roughness * half(SSRParams.y) + 2);
+      BRANCH
+      if (roughnessFade==0)
+        return 0;
+      float ssrMip = linear_roughness*SSR_MIPS;
+      #if (SSR_UPSCALE_MODE != SSR_UPSCALE_DEFAULT)
         half4 ssr;
         BRANCH
         if (ssrMip<1)
         {
-          half4 lowResR = ssr_target.GatherRed(ssr_target_samplerstate,tc);
-          half4 lowResG = ssr_target.GatherGreen(ssr_target_samplerstate,tc);
-          half4 lowResB = ssr_target.GatherBlue(ssr_target_samplerstate,tc);
-          half4 lowResA = ssr_target.GatherAlpha(ssr_target_samplerstate,tc);
+          half4 lowResR = half4(ssr_target.GatherRed(ssr_target_samplerstate,tc));
+          half4 lowResG = half4(ssr_target.GatherGreen(ssr_target_samplerstate,tc));
+          half4 lowResB = half4(ssr_target.GatherBlue(ssr_target_samplerstate,tc));
+          half4 lowResA = half4(ssr_target.GatherAlpha(ssr_target_samplerstate,tc));
+          half4 weight = sampleCloseUpscaleWeight(screenpos);
 
-          float4 weight = SampleUpscaleWeight(screenpos);
-
+          #if (SSR_UPSCALE_MODE == SSR_UPSCALE_MISS_HIT_AWARE)
+            weight *= lowResA + 1e-3h; // Multiply to ssr weights to avoid sampling invalid pixels (sky) if there any
+            weight *= rcp(max(dot(weight, half4(1,1,1,1)), 0.00001h)); // renormalize sum of weights to 1.0
+          #endif
           ssr = half4(dot(lowResR,weight),dot(lowResG,weight),dot(lowResB,weight),dot(lowResA,weight));
         }
         else
-          ssr = tex2Dlod(ssr_target, float4(tc,0,ssrMip));
-        ssr *= roughnessFade;
+          ssr = half4(tex2Dlod(ssr_target, float4(tc,0,ssrMip)));
       #else
-        float roughnessFade = saturate(linear_roughness * SSRParams.y + 2);
-        BRANCH
-        if (roughnessFade==0)
-          return 0;
-        float ssrMip = linear_roughness*SSR_MIPS;
-        half4 ssr = tex2Dlod(ssr_target, float4(tc,0,ssrMip));
-        ssr *= roughnessFade;
+        half4 ssr = half4(tex2Dlod(ssr_target, float4(tc,0,ssrMip)));
       #endif
-      return ssr;
+      return ssr * roughnessFade;
     }
   }
 endmacro
@@ -78,6 +116,7 @@ macro USING_SSR_BASE(code)
     hlsl(code) {
       half4 getSSR(float a, float3 b, float4 c, float2 d, float2 e) { return 0; }
       half4 getSSR(float a, float2 b, int2 d = 0) { return 0; }
+      half4 getSSRWeighted(half linear_roughness, float2 tc, int2 screenpos, half4 weight) {return 0;}
     }
   }
 endmacro

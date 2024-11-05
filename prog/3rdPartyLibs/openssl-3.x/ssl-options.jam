@@ -48,7 +48,7 @@ rule CollectC
   return [ SourceGlob $(1) : *.c : $(2) ] ;
 }
 
-if $(Platform) in win32 win64 xboxOne scarlett {
+if $(Platform) in windows xboxOne scarlett {
   ASMExt = asm ;
 } else {
   ASMExt = s ;
@@ -59,10 +59,9 @@ rule CollectASM
   return [ SourceGlob $(1) : *.$(ASMExt) : $(2) ] ;
 }
 
-if $(Platform) in win32 android macosx tvOS iOS nswitch ps5 {
+if $(Platform) in android macOS tvOS iOS nswitch ps5 || $(PlatformArch) in x86 e2k arm64 {
   NoASM = true ;
 }
-if $(Platform) = linux64 && $(LinuxArch) = e2k { NoASM = true ; }
 
 Copt += -DMODULESDIR=\\\"\\\" -DOPENSSLDIR=\\\"\\\" -DENGINESDIR=\\\"\\\" ;
 Copt += -DOPENSSL_NO_UI_CONSOLE -DDSO_NONE -DOPENSSL_NO_INLINE_ASM -DOPENSSL_NO_KTLS ;
@@ -81,7 +80,7 @@ if $(Platform) in xboxOne scarlett ps4 ps5 nswitch {
 }
 
 
-if $(Platform) in win32 win64 xboxOne scarlett {
+if $(Platform) in windows xboxOne scarlett {
   Copt += -DNDEBUG
           -DOPENSSL_SYS_WIN32
           -DOPENSSL_NO_EC_NISTP_64_GCC_128
@@ -90,7 +89,7 @@ if $(Platform) in win32 win64 xboxOne scarlett {
   ;
 
   Copt += -wd4090 ;
-  if $(Platform) != win32 {
+  if $(PlatformArch) != x86 {
     Copt += -wd4133 ;
   }
 
@@ -103,11 +102,11 @@ if $(Platform) in win32 win64 xboxOne scarlett {
     }
   }
 
-  if $(Platform) = win32 {
+  if $(PlatformArch) = x86 {
     Copt += -DOPENSSL_IA32_SSE2 ;
   }
 
-  #if $(Platform) in win32 win64 {
+  #if $(Platform) in windows {
   #   AddLibs += advapi32.lib ws2_32.lib gdi32.lib crypt32.lib user32.lib ;
   #}
 } else if $(Platform) in ps4 ps5 {

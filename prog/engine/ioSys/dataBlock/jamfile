@@ -15,6 +15,7 @@ Sources =
   blk_serialize.cpp
   blk_to_json.cpp
   blk_zstd.cpp
+  blk_utils.cpp
 
   blk_writeBBF3.cpp
   obsolete_hashNameMap.cpp
@@ -24,6 +25,6 @@ AddIncludes =
   $(Root)/prog/engine/sharedInclude
 ;
 
-CPPopt = -D__B_MINICORE ;
+CPPopt = -D__B_KERNEL_LIB ;
 
 include $(Root)/prog/_jBuild/build.jam ;

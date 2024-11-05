@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "stripobj.h"
 #include "tristrip.h"
@@ -96,7 +97,7 @@ void PublicStripifier::Init()
 void PublicStripifier::FinalCleanUp()
 {
   if (auto *rm_alloc = static_cast<RegionMemAlloc *>(stripmem))
-    debug_ctx("stripmem used %dK (of %dK allocated in %d pools)", rm_alloc->getPoolUsedSize() >> 10,
+    DEBUG_CTX("stripmem used %dK (of %dK allocated in %d pools)", rm_alloc->getPoolUsedSize() >> 10,
       rm_alloc->getPoolAllocatedSize() >> 10, rm_alloc->getPoolsCount());
   stripmem->destroy();
   stripmem = NULL;

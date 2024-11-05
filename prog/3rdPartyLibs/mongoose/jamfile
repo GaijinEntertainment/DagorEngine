@@ -16,7 +16,7 @@ if $(Platform) in ps4 ps5 {
 
 Sources = mongoose.c ;
 
-if $(Platform) in ps4 ps5 win32 win64 xboxOne scarlett {
+if $(Platform) in ps4 ps5 windows xboxOne scarlett {
   UseProgLibs += 3rdPartyLibs/posix ;
 }
 
@@ -27,7 +27,7 @@ if $(UseSystemOpenSSL) != yes {
 
 Copt += -DNO_CGI -DNO_SSL_DL -DNO_POPEN -DUSE_WEBSOCKET ;
 
-if $(Platform) in win32 win64 xboxOne scarlett {
+if $(Platform) in windows xboxOne scarlett {
   Copt += /wd4267 ; # conversion from 'size_t' to 'int', possible loss of data
 }
 

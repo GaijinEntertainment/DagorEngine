@@ -32,6 +32,14 @@
 
 .. |function-strings-double| replace:: Converts string to double. In case of error panic.
 
+.. |function-strings-int8| replace:: Converts string to int8. In case of error panic.
+
+.. |function-strings-uint8| replace:: Convert string to uint8. In case of error panic.
+
+.. |function-strings-int16| replace:: Converts string to int16. In case of error panic.
+
+.. |function-strings-uint16| replace:: Convert string to uint16. In case of error panic.
+
 .. |function-strings-int| replace:: Converts string to integer. In case of error panic.
 
 .. |function-strings-uint| replace:: Convert string to uint. In case of error panic.
@@ -80,6 +88,14 @@
 
 .. |function-strings-to_double| replace:: Convert string to double. In case of error returns 0.0lf
 
+.. |function-strings-to_int8| replace:: Convert string to int8. In case of error returns 0
+
+.. |function-strings-to_uint8| replace:: Convert string to uint8. In case of error returns 0u
+
+.. |function-strings-to_int16| replace:: Convert string to int16. In case of error returns 0
+
+.. |function-strings-to_uint16| replace:: Convert string to uint16. In case of error returns 0u
+
 .. |function-strings-to_int| replace:: Convert string to int. In case of error returns 0
 
 .. |function-strings-to_uint| replace:: Convert string to uint. In case of error returns 0u
@@ -120,6 +136,15 @@
 
 .. |function-strings-set_element| replace:: Gen character set element by element index (not character index).
 
+.. |function-strings-build_hash| replace:: Build hash of the string (as oppose to building entire string).
+
+.. |function-strings-ltrim| replace:: Removes leading white space.
+
+.. |function-strings-trim| replace:: Removes leading and trailing white space.
+
+.. |enumeration-strings-ConversionResult| replace:: Result of conversion from string to number.
+
+.. |function-strings-fmt| replace:: Converts value to string given specified format (that of libfmt or C++20 std::format).
 
 
 

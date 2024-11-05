@@ -74,13 +74,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : Object) : v
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : Object const? | Object const#? | Object const?# | Object const#?) : void
+def pushValue(var vm : SQVM?; val : Object const? | Object const#? | Object const?# | Object const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : Object | Object) : void
+def pushValue(var vm : SQVM?; val : Object | Object#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : Array) : void>) : bool
@@ -93,13 +93,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : Array) : vo
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : Array const? | Array const#? | Array const?# | Array const#?) : void
+def pushValue(var vm : SQVM?; val : Array const? | Array const#? | Array const?# | Array const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : Array | Array) : void
+def pushValue(var vm : SQVM?; val : Array | Array#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : StringList) : void>) : bool
@@ -112,13 +112,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : StringList)
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : StringList const? | StringList const#? | StringList const?# | StringList const#?) : void
+def pushValue(var vm : SQVM?; val : StringList const? | StringList const#? | StringList const?# | StringList const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : StringList | StringList) : void
+def pushValue(var vm : SQVM?; val : StringList | StringList#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : FloatList) : void>) : bool
@@ -131,13 +131,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : FloatList) 
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : FloatList const? | FloatList const#? | FloatList const?# | FloatList const#?) : void
+def pushValue(var vm : SQVM?; val : FloatList const? | FloatList const#? | FloatList const?# | FloatList const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : FloatList | FloatList) : void
+def pushValue(var vm : SQVM?; val : FloatList | FloatList#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : IntList) : void>) : bool
@@ -150,13 +150,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : IntList) : 
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : IntList const? | IntList const#? | IntList const?# | IntList const#?) : void
+def pushValue(var vm : SQVM?; val : IntList const? | IntList const#? | IntList const?# | IntList const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : IntList | IntList) : void
+def pushValue(var vm : SQVM?; val : IntList | IntList#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : Int8List) : void>) : bool
@@ -169,13 +169,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : Int8List) :
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : Int8List const? | Int8List const#? | Int8List const?# | Int8List const#?) : void
+def pushValue(var vm : SQVM?; val : Int8List const? | Int8List const#? | Int8List const?# | Int8List const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : Int8List | Int8List) : void
+def pushValue(var vm : SQVM?; val : Int8List | Int8List#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : Int16List) : void>) : bool
@@ -188,13 +188,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : Int16List) 
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : Int16List const? | Int16List const#? | Int16List const?# | Int16List const#?) : void
+def pushValue(var vm : SQVM?; val : Int16List const? | Int16List const#? | Int16List const?# | Int16List const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : Int16List | Int16List) : void
+def pushValue(var vm : SQVM?; val : Int16List | Int16List#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : Int64List) : void>) : bool
@@ -207,13 +207,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : Int64List) 
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : Int64List const? | Int64List const#? | Int64List const?# | Int64List const#?) : void
+def pushValue(var vm : SQVM?; val : Int64List const? | Int64List const#? | Int64List const?# | Int64List const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : Int64List | Int64List) : void
+def pushValue(var vm : SQVM?; val : Int64List | Int64List#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : UInt8List) : void>) : bool
@@ -226,13 +226,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : UInt8List) 
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : UInt8List const? | UInt8List const#? | UInt8List const?# | UInt8List const#?) : void
+def pushValue(var vm : SQVM?; val : UInt8List const? | UInt8List const#? | UInt8List const?# | UInt8List const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : UInt8List | UInt8List) : void
+def pushValue(var vm : SQVM?; val : UInt8List | UInt8List#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : UInt16List) : void>) : bool
@@ -245,13 +245,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : UInt16List)
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : UInt16List const? | UInt16List const#? | UInt16List const?# | UInt16List const#?) : void
+def pushValue(var vm : SQVM?; val : UInt16List const? | UInt16List const#? | UInt16List const?# | UInt16List const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : UInt16List | UInt16List) : void
+def pushValue(var vm : SQVM?; val : UInt16List | UInt16List#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : UInt32List) : void>) : bool
@@ -264,13 +264,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : UInt32List)
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : UInt32List const? | UInt32List const#? | UInt32List const?# | UInt32List const#?) : void
+def pushValue(var vm : SQVM?; val : UInt32List const? | UInt32List const#? | UInt32List const?# | UInt32List const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : UInt32List | UInt32List) : void
+def pushValue(var vm : SQVM?; val : UInt32List | UInt32List#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : UInt64List) : void>) : bool
@@ -283,13 +283,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : UInt64List)
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : UInt64List const? | UInt64List const#? | UInt64List const?# | UInt64List const#?) : void
+def pushValue(var vm : SQVM?; val : UInt64List const? | UInt64List const#? | UInt64List const?# | UInt64List const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : UInt64List | UInt64List) : void
+def pushValue(var vm : SQVM?; val : UInt64List | UInt64List#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : EidList) : void>) : bool
@@ -302,13 +302,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : EidList) : 
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : EidList const? | EidList const#? | EidList const?# | EidList const#?) : void
+def pushValue(var vm : SQVM?; val : EidList const? | EidList const#? | EidList const?# | EidList const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : EidList | EidList) : void
+def pushValue(var vm : SQVM?; val : EidList | EidList#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : Point2List) : void>) : bool
@@ -321,13 +321,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : Point2List)
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : Point2List const? | Point2List const#? | Point2List const?# | Point2List const#?) : void
+def pushValue(var vm : SQVM?; val : Point2List const? | Point2List const#? | Point2List const?# | Point2List const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : Point2List | Point2List) : void
+def pushValue(var vm : SQVM?; val : Point2List | Point2List#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : Point3List) : void>) : bool
@@ -340,13 +340,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : Point3List)
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : Point3List const? | Point3List const#? | Point3List const?# | Point3List const#?) : void
+def pushValue(var vm : SQVM?; val : Point3List const? | Point3List const#? | Point3List const?# | Point3List const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : Point3List | Point3List) : void
+def pushValue(var vm : SQVM?; val : Point3List | Point3List#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : Point4List) : void>) : bool
@@ -359,13 +359,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : Point4List)
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : Point4List const? | Point4List const#? | Point4List const?# | Point4List const#?) : void
+def pushValue(var vm : SQVM?; val : Point4List const? | Point4List const#? | Point4List const?# | Point4List const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : Point4List | Point4List) : void
+def pushValue(var vm : SQVM?; val : Point4List | Point4List#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : IPoint2List) : void>) : bool
@@ -378,13 +378,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : IPoint2List
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : IPoint2List const? | IPoint2List const#? | IPoint2List const?# | IPoint2List const#?) : void
+def pushValue(var vm : SQVM?; val : IPoint2List const? | IPoint2List const#? | IPoint2List const?# | IPoint2List const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : IPoint2List | IPoint2List) : void
+def pushValue(var vm : SQVM?; val : IPoint2List | IPoint2List#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : IPoint3List) : void>) : bool
@@ -397,13 +397,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : IPoint3List
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : IPoint3List const? | IPoint3List const#? | IPoint3List const?# | IPoint3List const#?) : void
+def pushValue(var vm : SQVM?; val : IPoint3List const? | IPoint3List const#? | IPoint3List const?# | IPoint3List const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : IPoint3List | IPoint3List) : void
+def pushValue(var vm : SQVM?; val : IPoint3List | IPoint3List#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : BoolList) : void>) : bool
@@ -416,13 +416,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : BoolList) :
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : BoolList const? | BoolList const#? | BoolList const?# | BoolList const#?) : void
+def pushValue(var vm : SQVM?; val : BoolList const? | BoolList const#? | BoolList const?# | BoolList const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : BoolList | BoolList) : void
+def pushValue(var vm : SQVM?; val : BoolList | BoolList#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : TMatrixList) : void>) : bool
@@ -435,13 +435,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : TMatrixList
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : TMatrixList const? | TMatrixList const#? | TMatrixList const?# | TMatrixList const#?) : void
+def pushValue(var vm : SQVM?; val : TMatrixList const? | TMatrixList const#? | TMatrixList const?# | TMatrixList const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : TMatrixList | TMatrixList) : void
+def pushValue(var vm : SQVM?; val : TMatrixList | TMatrixList#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : ColorList) : void>) : bool
@@ -454,13 +454,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : ColorList) 
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : ColorList const? | ColorList const#? | ColorList const?# | ColorList const#?) : void
+def pushValue(var vm : SQVM?; val : ColorList const? | ColorList const#? | ColorList const?# | ColorList const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : ColorList | ColorList) : void
+def pushValue(var vm : SQVM?; val : ColorList | ColorList#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : float3x4) : void>) : bool
@@ -473,13 +473,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : float3x4) :
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : float3x4 const? | float3x4 const#? | float3x4 const?# | float3x4 const#?) : void
+def pushValue(var vm : SQVM?; val : float3x4 const? | float3x4 const#? | float3x4 const?# | float3x4 const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : float3x4 | float3x4) : void
+def pushValue(var vm : SQVM?; val : float3x4 | float3x4#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : BSphere3) : void>) : bool
@@ -492,13 +492,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : BSphere3) :
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : BSphere3 const? | BSphere3 const#? | BSphere3 const?# | BSphere3 const#?) : void
+def pushValue(var vm : SQVM?; val : BSphere3 const? | BSphere3 const#? | BSphere3 const?# | BSphere3 const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : BSphere3 | BSphere3) : void
+def pushValue(var vm : SQVM?; val : BSphere3 | BSphere3#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : BBox3) : void>) : bool
@@ -511,13 +511,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : BBox3) : vo
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : BBox3 const? | BBox3 const#? | BBox3 const?# | BBox3 const#?) : void
+def pushValue(var vm : SQVM?; val : BBox3 const? | BBox3 const#? | BBox3 const?# | BBox3 const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : BBox3 | BBox3) : void
+def pushValue(var vm : SQVM?; val : BBox3 | BBox3#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : E3DCOLOR) : void>) : bool
@@ -525,13 +525,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : E3DCOLOR) : voi
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : E3DCOLOR const? | E3DCOLOR const#? | E3DCOLOR const?# | E3DCOLOR const#?) : void
+def pushValue(var vm : SQVM?; val : E3DCOLOR const? | E3DCOLOR const#? | E3DCOLOR const?# | E3DCOLOR const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : E3DCOLOR | E3DCOLOR) : void
+def pushValue(var vm : SQVM?; val : E3DCOLOR) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : Color3) : void>) : bool
@@ -539,13 +539,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : Color3) : void>
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : Color3 const? | Color3 const#? | Color3 const?# | Color3 const#?) : void
+def pushValue(var vm : SQVM?; val : Color3 const? | Color3 const#? | Color3 const?# | Color3 const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : Color3 | Color3) : void
+def pushValue(var vm : SQVM?; val : Color3 | Color3#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : Color4) : void>) : bool
@@ -553,13 +553,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : Color4) : void>
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : Color4 const? | Color4 const#? | Color4 const?# | Color4 const#?) : void
+def pushValue(var vm : SQVM?; val : Color4 const? | Color4 const#? | Color4 const?# | Color4 const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : Color4 | Color4) : void
+def pushValue(var vm : SQVM?; val : Color4 | Color4#) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : quat) : void>) : bool
@@ -567,13 +567,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : quat) : void>) 
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : quat const? | quat const#? | quat const?# | quat const#?) : void
+def pushValue(var vm : SQVM?; val : quat const? | quat const#? | quat const?# | quat const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : quat | quat) : void
+def pushValue(var vm : SQVM?; val : quat) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : float2) : void>) : bool
@@ -581,13 +581,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : float2) : void>
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : float2 const? | float2 const#? | float2 const?# | float2 const#?) : void
+def pushValue(var vm : SQVM?; val : float2 const? | float2 const#? | float2 const?# | float2 const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : float2 | float2) : void
+def pushValue(var vm : SQVM?; val : float2) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : float3) : void>) : bool
@@ -595,13 +595,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : float3) : void>
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : float3 const? | float3 const#? | float3 const?# | float3 const#?) : void
+def pushValue(var vm : SQVM?; val : float3 const? | float3 const#? | float3 const?# | float3 const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : float3 | float3) : void
+def pushValue(var vm : SQVM?; val : float3) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : float4) : void>) : bool
@@ -609,13 +609,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : float4) : void>
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : float4 const? | float4 const#? | float4 const?# | float4 const#?) : void
+def pushValue(var vm : SQVM?; val : float4 const? | float4 const#? | float4 const?# | float4 const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : float4 | float4) : void
+def pushValue(var vm : SQVM?; val : float4) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : int2) : void>) : bool
@@ -623,13 +623,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : int2) : void>) 
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : int2 const? | int2 const#? | int2 const?# | int2 const#?) : void
+def pushValue(var vm : SQVM?; val : int2 const? | int2 const#? | int2 const?# | int2 const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : int2 | int2) : void
+def pushValue(var vm : SQVM?; val : int2) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : int3) : void>) : bool
@@ -637,13 +637,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : int3) : void>) 
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : int3 const? | int3 const#? | int3 const?# | int3 const#?) : void
+def pushValue(var vm : SQVM?; val : int3 const? | int3 const#? | int3 const?# | int3 const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : int3 | int3) : void
+def pushValue(var vm : SQVM?; val : int3) : void
   PushInstanceCopy(vm, val)
 
 def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : int4) : void>) : bool
@@ -651,13 +651,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : int4) : void>) 
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : int4 const? | int4 const#? | int4 const?# | int4 const#?) : void
+def pushValue(var vm : SQVM?; val : int4 const? | int4 const#? | int4 const?# | int4 const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : int4 | int4) : void
+def pushValue(var vm : SQVM?; val : int4) : void
   PushInstanceCopy(vm, val)
 
 
@@ -717,13 +717,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(var res : {typ}) : vo
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : {typ} const? | {typ} const#? | {typ} const?# | {typ} const#?) : void
+def pushValue(var vm : SQVM?; val : {typ} const? | {typ} const#? | {typ} const?# | {typ} const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : {typ} | {typ}) : void
+def pushValue(var vm : SQVM?; val : {typ} | {typ}#) : void
   PushInstanceCopy(vm, val)");
 
   for typ in valueTypes
@@ -733,13 +733,13 @@ def getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : {typ}) : void>)
     cb |> invoke(*val)
   return true
 
-def pushValue(var vm : SQVM?; val : {typ} const? | {typ} const#? | {typ} const?# | {typ} const#?) : void
+def pushValue(var vm : SQVM?; val : {typ} const? | {typ} const#? | {typ} const?# | {typ} const#?#) : void
   if val != null
     PushInstanceCopy(vm, *val)
   else
     sq_pushnull(vm)
 
-def pushValue(var vm : SQVM?; val : {typ} | {typ}) : void
+def pushValue(var vm : SQVM?; val : {typ} | {typ}#) : void
   PushInstanceCopy(vm, val)");
 */
 

@@ -1,12 +1,28 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gamePhys/phys/destructableRendObject.h>
 #include <render/dynmodelRenderer.h>
 #include <shaders/dag_dynSceneRes.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
 #include <phys/dag_physDecl.h>
 #include <phys/dag_physObject.h>
 #include <gamePhys/phys/destructableObject.h>
 #include <math/dag_frustum.h>
+
+destructables::deform_create_instance_cb_type deform_create_instance_cb = nullptr;
+destructables::deform_before_render_cb_type deform_before_render_cb = nullptr;
+destructables::deform_destroy_instance_cb_type deform_destroy_instance_cb = nullptr;
+destructables::deform_per_draw_cb_type deform_per_draw_cb = nullptr;
+
+void destructables::DestrRendDataDeleter::operator()(destructables::DestrRendData *rd)
+{
+  if (deform_destroy_instance_cb)
+    deform_destroy_instance_cb(rd);
+  rd ? clear_rend_data(rd) : (void)0;
+};
+
 
 void destructables::before_render(const Point3 &view_pos, bool has_motion_vectors)
 {
@@ -25,6 +41,9 @@ void destructables::before_render(const Point3 &view_pos, bool has_motion_vector
       }
     }
   }
+
+  if (deform_before_render_cb)
+    deform_before_render_cb(destructables::getDestructableObjects());
 }
 
 void destructables::render(dynrend::ContextId inst_ctx, const Frustum &frustum, float min_bbox_radius)
@@ -58,6 +77,15 @@ void destructables::render(dynrend::ContextId inst_ctx, const Frustum &frustum, 
           dynrend::PerInstanceRenderData renderData;
           renderData.params.push_back(ZERO<Point4>());
           renderData.params.push_back(initialPos);
+
+          if (deform_per_draw_cb)
+          {
+            Point4 deformParams;
+            if (deform_per_draw_cb(destr->rendData->deformationId, deformParams))
+              renderData.params.push_back(deformParams);
+          }
+
+          G_UNUSED(inst_ctx);
           dynrend::add(inst_ctx, rdata.inst, rdata.initialNodes, &renderData);
         }
       }
@@ -82,6 +110,8 @@ destructables::DestrRendData *destructables::init_rend_data(DynamicPhysObjectCla
                                         ? new dynrend::InitialNodes(rdata->rendData[i].inst, phys_obj->getData()->skeleton)
                                         : NULL;
   }
+
+  rdata->deformationId = deform_create_instance_cb ? deform_create_instance_cb(rdata) : -1;
   return rdata;
 }
 
@@ -92,4 +122,13 @@ void destructables::clear_rend_data(destructables::DestrRendData *data)
   for (int i = 0; i < data->rendData.size(); ++i)
     delete data->rendData[i].initialNodes;
   del_it(data);
+}
+
+void destructables::set_visual_deform_cb(deform_create_instance_cb_type create_cb, deform_destroy_instance_cb_type destroy_cb,
+  deform_before_render_cb_type before_render_cb, deform_per_draw_cb_type per_draw_cb)
+{
+  deform_create_instance_cb = create_cb;
+  deform_destroy_instance_cb = destroy_cb;
+  deform_before_render_cb = before_render_cb;
+  deform_per_draw_cb = per_draw_cb;
 }

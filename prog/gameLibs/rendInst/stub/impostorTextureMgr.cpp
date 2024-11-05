@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <rendInst/impostorTextureMgr.h>
 
 void init_impostor_texture_mgr() {}

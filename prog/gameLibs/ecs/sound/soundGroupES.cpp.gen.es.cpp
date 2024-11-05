@@ -21,7 +21,7 @@ static ecs::EntitySystemDesc update_sound_group_using_animchar_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<ParallelUpdateFrameDelayed>::build(),
   0
-,"sound",nullptr,nullptr,"animchar_render_es");
+,"sound");
 //static constexpr ecs::ComponentDesc update_sound_group_using_transform_es_comps[] ={};
 static void update_sound_group_using_transform_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -41,7 +41,7 @@ static ecs::EntitySystemDesc update_sound_group_using_transform_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<ParallelUpdateFrameDelayed>::build(),
   0
-,"sound",nullptr,nullptr,"animchar_render_es");
+,"sound");
 static constexpr ecs::ComponentDesc destroy_sound_group_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]

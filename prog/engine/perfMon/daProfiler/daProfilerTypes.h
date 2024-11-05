@@ -1,10 +1,16 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <perfMon/dag_drawStat.h>
 #include <util/dag_uniqueHashedNames.h>
 #include <mutex>
 #include "daProfilePageAllocator.h"
 #include "stl/daProfilerVector.h"
 #include "dag_chunkedStorage.h"
+#undef DA_PROFILER_ENABLED
+#define DA_PROFILER_ENABLED 1
+#include <perfMon/dag_daProfiler.h>
+
 
 class IGenSave;
 class IGenLoad;
@@ -104,6 +110,8 @@ struct Dump // full memory copy, saving spikes, etc
   };
   vector<Thread> threads;
   const char *uniqueProfileRunName = nullptr;
+  ChunkedStorage<UniqueEventData *, 1, VirtualPageAllocator> uniqueEvents;
+  uint32_t uniqueEventsFrames = 0;
   GpuEventDataStorage gpuEvents;
   CallStackDumpStorage stacks;
   uint32_t board = 0;
@@ -139,7 +147,7 @@ void save_dump(IGenSave &cb_, const Dump &dump, const ProfilerDescriptions &, Sy
                                                                                                       // released)
 
 void response_finish(IGenSave &cb);                                                                 // thread safe
-void response_handshake(IGenSave &cb);                                                              // thread safe
+void response_handshake(IGenSave &cb, uint16_t compression = 0);                                    // thread safe
 void response_heartbeat(IGenSave &cb);                                                              // thread safe
 void response_live_frames(IGenSave &cb, uint32_t available, const uint64_t *times, uint32_t count); // thread safe
 void response_settings(IGenSave &cb, const UserSettings &s);                                        // thread safe

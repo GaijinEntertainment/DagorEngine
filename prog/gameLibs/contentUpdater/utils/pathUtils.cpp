@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <contentUpdater/fsUtils.h>
 
 #include <debug/dag_debug.h>
@@ -53,4 +55,28 @@ const char *updater::fs::get_filename_relative_to_path(const eastl::string &base
 {
   const size_t basePathOffset = base_path.length() + 1;
   return path + basePathOffset;
+}
+
+eastl::string updater::fs::read_file_content(const char *path)
+{
+  eastl::unique_ptr<void, DagorFileCloser> fp{df_open(path, DF_READ | DF_IGNORE_MISSING)};
+  if (fp)
+  {
+    eastl::vector<char> buffer(size_t(df_length(fp.get())));
+    if (df_read(fp.get(), buffer.data(), buffer.size()) == buffer.size())
+      return eastl::string{buffer.data(), buffer.size()};
+  }
+  return {};
+}
+
+
+bool updater::fs::write_file_with_content(const char *path, const char *content)
+{
+  eastl::unique_ptr<void, DagorFileCloser> fp{df_open(path, DF_WRITE | DF_CREATE)};
+  if (fp)
+  {
+    const size_t len = ::strlen(content);
+    return df_write(fp.get(), content, len) == len;
+  }
+  return false;
 }

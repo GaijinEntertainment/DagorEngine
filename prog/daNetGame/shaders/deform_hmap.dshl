@@ -1,0 +1,389 @@
+include "shader_global.dshl"
+include "viewVecVS.dshl"
+include "heightmap_common.dshl"
+include "heightmap_ofs.dshl"
+include "physmap_patch_common.dshl"
+
+texture deform_hmap_postfx_source_tex;
+texture deform_hmap_info_tex;
+int deform_hmap_tex_size = 1024;
+float4 deform_hmap_reproject_uv_offset;
+float4 deform_hmap_world_to_uv_scale_bias;
+float4 deform_hmap_zn_zf;
+float deform_edge_strength = 0.5;
+
+float deform_fps_cam_dist = 0;
+interval deform_fps_cam_dist: off<0.000001, on;
+
+buffer hmap_deform_params_buffer;
+
+shader deform_hmap_reproject
+{
+  cull_mode = none;
+  no_ablend;
+
+  (vs) { uv_offset@f2 = deform_hmap_reproject_uv_offset; }
+  (ps) { source_tex@smp2d = deform_hmap_postfx_source_tex; }
+  (ps) { hmap_info_tex@smp2d = deform_hmap_info_tex; }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 uv : TEXCOORD0;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput deform_hmap_reproject_vs(uint vertex_id : SV_VertexID)
+    {
+      VsOutput output;
+      output.pos = float4(getPostfxVertexPositionById(vertex_id), 0.0, 1.0);
+      output.uv = screen_to_texcoords(output.pos.xy) + uv_offset;
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    float deform_hmap_reproject_ps(VsOutput input, out float depth : SV_Depth) : SV_Target
+    {
+      depth = tex2D(source_tex, input.uv).x;
+      return tex2D(hmap_info_tex, input.uv).x;
+    }
+  }
+
+  compile("target_vs", "deform_hmap_reproject_vs");
+  compile("target_ps", "deform_hmap_reproject_ps");
+}
+
+shader deform_hmap_clearmask_cs
+{
+  hlsl(cs) {
+    #include "deform_hmap.hlsli"
+
+    RWTexture2D<unorm float> mask_grid : register(u0);
+
+    [numthreads(DEFORM_HMAP_THREADGROUP_WIDTH, DEFORM_HMAP_THREADGROUP_WIDTH, 1)]
+    void deform_hmap_clearmask_cs(uint2 dtid : SV_DispatchThreadID)
+    {
+      mask_grid[dtid] = 0;
+    }
+  }
+
+  compile("target_cs", "deform_hmap_clearmask_cs");
+}
+
+shader deform_hmap_deform_cs
+{
+  (cs) {
+    source_tex@smp = deform_hmap_postfx_source_tex hlsl { Texture2D<float> source_tex@smp; };
+    hmap_info_tex@smp = deform_hmap_info_tex hlsl { Texture2D<float> hmap_info_tex@smp; };
+    tex_size__texel_size@f2 = (deform_hmap_tex_size, 1.0 / deform_hmap_tex_size, 0, 0);
+    deform_hmap_uv_to_world_scale_bias@f4 = (
+      1 / deform_hmap_world_to_uv_scale_bias.x,
+      1 / deform_hmap_world_to_uv_scale_bias.y,
+      -deform_hmap_world_to_uv_scale_bias.z / deform_hmap_world_to_uv_scale_bias.x,
+      -deform_hmap_world_to_uv_scale_bias.w / deform_hmap_world_to_uv_scale_bias.y
+    );
+    zFar_zRange_dispDown_invDispRange@f4 = (
+      deform_hmap_zn_zf.y,
+      deform_hmap_zn_zf.y - deform_hmap_zn_zf.x,
+      hmap_displacement_down,
+      1 / (hmap_displacement_up - hmap_displacement_down)
+    );
+    hmap_deform_params_buffer@buf = hmap_deform_params_buffer hlsl { StructuredBuffer<float2> hmap_deform_params_buffer@buf; };
+  }
+
+  if (deform_fps_cam_dist == on)
+  {
+    (cs)
+    {
+      world_view_pos__fps_cam_dist2@f4 = (world_view_pos.x, world_view_pos.y, world_view_pos.z, deform_fps_cam_dist*deform_fps_cam_dist);
+    }
+    hlsl(cs)
+    {
+      #define world_view_pos world_view_pos__fps_cam_dist2.xyz
+      #define fps_cam_dist2 world_view_pos__fps_cam_dist2.w
+    }
+  }
+
+  hlsl(cs) {
+    #define tex_size tex_size__texel_size.x
+    #define texel_size tex_size__texel_size.y
+    #define depth_zfar zFar_zRange_dispDown_invDispRange.x
+    #define depth_zrange zFar_zRange_dispDown_invDispRange.y
+    #define disp_down zFar_zRange_dispDown_invDispRange.z
+    #define inv_disp_range zFar_zRange_dispDown_invDispRange.w
+    #define NO_GRADIENTS_IN_SHADER 1
+  }
+  INIT_WORLD_HEIGHTMAP(cs)
+  USE_HEIGHTMAP_COMMON(cs)
+  INIT_HEIGHTMAP_OFS(cs)
+  USE_HEIGHTMAP_OFS(cs)
+  INIT_AND_USE_PHYSMAP_PATCH(cs)
+
+  hlsl(cs) {
+    #include "deform_hmap.hlsli"
+
+    RWTexture2D<unorm float> result_texture : register(u0);
+    RWTexture2D<unorm float> mask_grid : register(u1);
+
+    float update_deform_height_with_vehicle_pressure(float generalDeformHeight, float offsetedHight, float heightmapHeight,
+      float baseVehicleDeform, uint2 dtid)
+    {
+      // generalDeformHeight is actually world-space height of the point on animchar that deforms heightmap, thus making
+      // pointDeformingHmapLocalHeight defined below the height of the point relative to the lowest point of the vehicle:
+      float pointDeformingHmapLocalHeight = generalDeformHeight - heightmapHeight;
+      // The way our code works is that we have two separate deformation subsystems. The first contains information from all of the
+      // animchars, and the second only from vehicles, but it also contains info about accurate pressure on the ground. However, the
+      // second subsystem, unlike the first, doesn't account for height of the point that deforms heightmap. This is a problem, since
+      // not only tires can use the shader that deforms heightmap. Because of this, we need to restore the local height of the point
+      // from the first subsystem and ignore info from the second one if the point is too high. Otherwise, it may lead to weird patterns
+      // on the heightmap.
+      const float MAX_HEIGHT_TO_DEFORM_HMAP = 0.1f;
+      float vehiclePressure = pointDeformingHmapLocalHeight < MAX_HEIGHT_TO_DEFORM_HMAP ?
+        hmap_info_tex[dtid] * DEFORM_HMAP_VEHICLE_DEFORM_COMPRESSION_FACTOR : 0.f;
+      float vehicleDeformHeight = offsetedHight - baseVehicleDeform * vehiclePressure;
+      // If vehicleDeformHeight is different from base height, than generalDeformHeight must also differ from base height.
+      // This in turn should result in the abscence of sharp changes on vehicle trail if we use only vehicleDeformHeight.
+      // Since we want physically accurate deformation, we prioritize vehicle-specific deformation if it exists:
+      return vehiclePressure > 0.f ? vehicleDeformHeight : generalDeformHeight;
+    }
+
+    [numthreads(DEFORM_HMAP_THREADGROUP_WIDTH, DEFORM_HMAP_THREADGROUP_WIDTH, 1)]
+    void deform_hmap_deform_cs(uint2 dtid : SV_DispatchThreadID, uint2 gid : SV_GroupID, uint2 gtid : SV_GroupThreadID)
+    {
+      result_texture[dtid] = 0.5;
+
+      float2 uv = (dtid + 0.5f) * texel_size;
+      float3 worldPos = 0;
+      worldPos.xz = uv * deform_hmap_uv_to_world_scale_bias.xy + deform_hmap_uv_to_world_scale_bias.zw;
+
+      float cameraOffset = 0;
+      ##if (deform_fps_cam_dist == on)
+        float2 relPos = worldPos.xz - world_view_pos.xz;
+        cameraOffset = fps_cam_dist2 - dot(relPos,relPos);
+      ##endif
+
+      float depthTexSample = source_tex[dtid];
+
+      BRANCH
+      if (cameraOffset <= 0)
+      {
+        BRANCH if (depthTexSample < 0.0001f)
+          return;
+      }
+
+      float2 base_max_deform = hmap_deform_params_buffer[getPhysMat(worldPos.xz)];
+
+      float generalDeformHeight = depth_zfar - depthTexSample * depth_zrange;
+      worldPos.y = getWorldHeight(worldPos.xz);
+      float3 worldNormal = getWorldNormal(worldPos);
+
+      // This is not entirely correct, because terrain is displaced along normal and not only upwards
+      float offsetedHight = worldPos.y + worldNormal.y * get_hmap_ofs_no_grass_vignette(worldPos.xz);
+      float deformHeight =
+        update_deform_height_with_vehicle_pressure(generalDeformHeight, offsetedHight, worldPos.y, base_max_deform.x, dtid);
+
+      ##if (deform_fps_cam_dist == on)
+        FLATTEN
+        if (cameraOffset > 0)
+          deformHeight = min(deformHeight, world_view_pos.y - sqrt(cameraOffset));
+      ##endif
+
+      float minHeight = worldPos.y + disp_down;
+      float deformedHeight = max(minHeight, min(offsetedHight, deformHeight));
+
+      BRANCH if (deformedHeight >= offsetedHight)
+        return;
+
+      float deformAmount = min(offsetedHight - deformedHeight, base_max_deform.y);
+      result_texture[dtid] = deformAmount * inv_disp_range * 0.5f + 0.5f;
+
+      mask_grid[gid] = 1;
+      uint maxgtid = DEFORM_HMAP_THREADGROUP_WIDTH - 1;
+      uint maxgid = uint(tex_size) / DEFORM_HMAP_THREADGROUP_WIDTH - 1;
+      bool isLeftEdge = gtid.x < 2 && gid.x > 0;
+      bool isRightEdge = maxgtid - gtid.x < 2 && gid.x < maxgid;
+      bool isTopEdge = gtid.y < 2 && gid.y > 0;
+      bool isBottomEdge = maxgtid - gtid.y < 2 && gid.y < maxgid;
+      if (isLeftEdge)
+        mask_grid[uint2(gid.x - 1, gid.y)] = 1;
+      if (isRightEdge)
+        mask_grid[uint2(gid.x + 1, gid.y)] = 1;
+      if (isTopEdge)
+      {
+        mask_grid[uint2(gid.x, gid.y - 1)] = 1;
+        if (isLeftEdge)
+          mask_grid[uint2(gid.x - 1, gid.y - 1)] = 1;
+        if (isRightEdge)
+          mask_grid[uint2(gid.x + 1, gid.y - 1)] = 1;
+      }
+      if (isBottomEdge)
+      {
+        mask_grid[uint2(gid.x, gid.y + 1)] = 1;
+        if (isLeftEdge)
+          mask_grid[uint2(gid.x - 1, gid.y + 1)] = 1;
+        if (isRightEdge)
+          mask_grid[uint2(gid.x + 1, gid.y + 1)] = 1;
+      }
+    }
+  }
+
+  compile("target_cs", "deform_hmap_deform_cs");
+}
+
+shader deform_hmap_clearindirect_cs
+{
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    RWByteAddressBuffer indirect_buf : register(u0);
+
+    [numthreads(2, 1, 1)]
+    void deform_hmap_clearindirect_cs(uint dtid : SV_DispatchThreadID)
+    {
+      storeBuffer(indirect_buf, (dtid * 3 + 0) * 4, 0);
+      storeBuffer(indirect_buf, (dtid * 3 + 1) * 4, 1);
+      storeBuffer(indirect_buf, (dtid * 3 + 2) * 4, 1);
+    }
+  }
+
+  compile("target_cs", "deform_hmap_clearindirect_cs");
+}
+
+shader deform_hmap_dispatcher_cs
+{
+  ENABLE_ASSERT(cs)
+  (cs) {
+    tex_size@f1 = (deform_hmap_tex_size);
+  }
+
+  hlsl(cs) {
+    #include "deform_hmap.hlsli"
+
+    RWTexture2D<unorm float> current_mask_grid : register(u0);
+    RWTexture2D<unorm float> prev_mask_grid : register(u1);
+    RWByteAddressBuffer indirect_buf : register(u2);
+    RWStructuredBuffer<uint> postfx_cell_buffer : register(u3);
+    RWStructuredBuffer<uint> clear_cell_buffer : register(u4);
+
+    [numthreads(DEFORM_HMAP_THREADGROUP_WIDTH, DEFORM_HMAP_THREADGROUP_WIDTH, 1)]
+    void deform_hmap_dispatcher_cs(uint2 dtid : SV_DispatchThreadID)
+    {
+      BRANCH if (current_mask_grid[dtid])
+      {
+        uint idx = 0;
+        indirect_buf.InterlockedAdd(0 * 4, 1u, idx);
+
+        uint numPostFxGroupsPerRow = uint(tex_size) / DEFORM_HMAP_THREADGROUP_WIDTH;
+        postfx_cell_buffer[idx] = dtid.y * numPostFxGroupsPerRow + dtid.x;
+      }
+      else BRANCH if (prev_mask_grid[dtid])
+      {
+        uint idx = 0;
+        indirect_buf.InterlockedAdd(3 * 4, 1u, idx);
+
+        uint numPostFxGroupsPerRow = uint(tex_size) / DEFORM_HMAP_THREADGROUP_WIDTH;
+        clear_cell_buffer[idx] = dtid.y * numPostFxGroupsPerRow + dtid.x;
+      }
+    }
+  }
+
+  compile("target_cs", "deform_hmap_dispatcher_cs");
+}
+
+shader deform_hmap_edge_detect_cs, deform_hmap_blur_cs
+{
+  (cs) {
+    source_tex@smp = deform_hmap_postfx_source_tex hlsl { Texture2D<float> source_tex@smp; };
+    tex_size__texel_size__edge_strength@f3 = (
+      deform_hmap_tex_size,
+      1.0 / deform_hmap_tex_size,
+      deform_edge_strength,
+      0
+    );
+  }
+
+  hlsl(cs) {
+    #include "deform_hmap.hlsli"
+
+    #define tex_size tex_size__texel_size__edge_strength.x
+    #define texel_size tex_size__texel_size__edge_strength.y
+    #define edge_strength tex_size__texel_size__edge_strength.z
+
+    RWTexture2D<unorm float> result_texture : register(u0);
+    RWStructuredBuffer<uint> postfx_cell_buffer : register(u1);
+
+    [numthreads(DEFORM_HMAP_THREADGROUP_WIDTH, DEFORM_HMAP_THREADGROUP_WIDTH, 1)]
+    void deform_hmap_postprocess_cs(uint gid : SV_GroupID, uint2 gtid : SV_GroupThreadID)
+    {
+      float result = 0.5;
+
+      uint numGroupsPerRow = uint(tex_size) / DEFORM_HMAP_THREADGROUP_WIDTH;
+      uint cellId = postfx_cell_buffer[gid];
+      uint2 tcBase = uint2(cellId % numGroupsPerRow, cellId / numGroupsPerRow) * DEFORM_HMAP_THREADGROUP_WIDTH;
+      uint2 tc = tcBase + gtid;
+
+      ##if shader == deform_hmap_edge_detect_cs
+        // 3x3 Laplacian edge detector kernel:
+        //  0 -1  0
+        // -1  4 -1
+        //  0 -1  0
+        float deform = source_tex[tc];
+        float edge = deform * 4;
+        edge -= source_tex[tc + int2( 1,  0)];
+        edge -= source_tex[tc + int2(-1,  0)];
+        edge -= source_tex[tc + int2( 0,  1)];
+        edge -= source_tex[tc + int2( 0, -1)];
+        result = deform + min(0, edge) * edge_strength;
+      ##elif shader == deform_hmap_blur_cs
+        // 3x3 smoothing tent kernel with only 4 samples exploiting bilinear sampling
+        // 1  2  1
+        // 2  4  2
+        // 1  2  1
+        float2 uv = (tc + 0.5f) * texel_size;
+        float2 halfTexelSize = texel_size * 0.5f;
+        result = 0;
+        result += tex2Dlod(source_tex, float4(uv + float2(-halfTexelSize.x, -halfTexelSize.y), 0, 0));
+        result += tex2Dlod(source_tex, float4(uv + float2(+halfTexelSize.x, -halfTexelSize.y), 0, 0));
+        result += tex2Dlod(source_tex, float4(uv + float2(+halfTexelSize.x, +halfTexelSize.y), 0, 0));
+        result += tex2Dlod(source_tex, float4(uv + float2(-halfTexelSize.x, +halfTexelSize.y), 0, 0));
+        result *= 0.25f;
+      ##endif
+
+      result_texture[tc] = result;
+    }
+  }
+
+  compile("target_cs", "deform_hmap_postprocess_cs");
+}
+
+shader deform_hmap_clearer_cs
+{
+  (cs) {
+    tex_size@f1 = (deform_hmap_tex_size);
+  }
+
+  hlsl(cs) {
+    #include "deform_hmap.hlsli"
+
+    RWTexture2D<unorm float> postfx_tex_0 : register(u0);
+    RWTexture2D<unorm float> postfx_tex_1 : register(u1);
+    RWStructuredBuffer<uint> clear_cell_buffer : register(u2);
+
+    [numthreads(DEFORM_HMAP_THREADGROUP_WIDTH, DEFORM_HMAP_THREADGROUP_WIDTH, 1)]
+    void deform_hmap_clearer_cs(uint gid : SV_GroupID, uint2 gtid : SV_GroupThreadID)
+    {
+      uint numGroupsPerRow = uint(tex_size) / DEFORM_HMAP_THREADGROUP_WIDTH;
+      uint cellId = clear_cell_buffer[gid];
+      uint2 tcBase = uint2(cellId % numGroupsPerRow, cellId / numGroupsPerRow) * DEFORM_HMAP_THREADGROUP_WIDTH;
+      uint2 tc = tcBase + gtid;
+
+      postfx_tex_0[tc] = 0.5;
+      postfx_tex_1[tc] = 0.5;
+    }
+  }
+
+  compile("target_cs", "deform_hmap_clearer_cs");
+}

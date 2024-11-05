@@ -1,17 +1,19 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daScript/daScript.h>
-#include <dasModules/dasModulesCommon.h>
 #include <dasModules/dasSystem.h>
 
 #include <math/dag_math3d.h>
-#include <math/dag_mathUtils.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <perfMon/dag_perfTimer.h>
 #include <perfMon/dag_memoryReport.h>
 #include <memory/dag_memStat.h>
+#include <dasModules/dasMacro.h>
+#include <osApiWrappers/dag_clipboard.h>
 
 
 DAS_BASE_BIND_ENUM(ConsoleModel, ConsoleModel, UNKNOWN, PS4, PS4_PRO, XBOXONE, XBOXONE_S, XBOXONE_X, XBOX_LOCKHART, XBOX_ANACONDA, PS5,
-  NINTENDO_SWITCH, TOTAL)
+  PS5_PRO, NINTENDO_SWITCH, TOTAL)
 
 namespace bind_dascript
 {
@@ -27,6 +29,11 @@ void exit_func(int exit_code)
     logerr("DagorSystem.exit(%d) called but das_exit_function_ptr not set", exit_code);
 }
 
+#if _TARGET_PC_LINUX
+// system memory getter can take 2-10ms, caller does not expect it, override with with_crt = false
+int get_memory_allocated_kb_linux(bool) { return dagor_memory_stat::get_memory_allocated_kb(false); }
+#endif
+
 class DagorSystem final : public das::Module
 {
 public:
@@ -39,11 +46,21 @@ public:
     das::addExtern<DAS_BIND_FUN(exit_func)>(*this, lib, "exit", das::SideEffects::modifyExternal, "bind_dascript::exit_func");
     das::addExtern<DAS_BIND_FUN(logmsg_func)>(*this, lib, "logmessage", das::SideEffects::modifyExternal,
       "bind_dascript::logmsg_func");
-    das::addExtern<DAS_BIND_FUN(logerr_func)>(*this, lib, "logerr", das::SideEffects::modifyExternal, "bind_dascript::logerr_func");
+    das::addExtern<DAS_BIND_FUN(logerr_func)>(*this, lib, "logerr", das::SideEffects::modifyExternal, "bind_dascript::logerr_func")
+      ->annotations.push_back(annotation_declaration(das::make_smart<LogFmtHashFunctionAnnotation>()));
+    das::addExtern<DAS_BIND_FUN(logerr_func_hash)>(*this, lib, "logerr", das::SideEffects::modifyExternal,
+      "bind_dascript::logerr_func_hash");
     das::addExtern<DAS_BIND_FUN(logwarn_func)>(*this, lib, "logwarn", das::SideEffects::modifyExternal, "bind_dascript::logwarn_func");
     das::addExtern<DAS_BIND_FUN(sleep_msec)>(*this, lib, "sleep_msec", das::SideEffects::modifyExternal, "sleep_msec");
+
+#if _TARGET_PC_LINUX
+    das::addExtern<DAS_BIND_FUN(get_memory_allocated_kb_linux)>(*this, lib, "get_memory_allocated_kb",
+      das::SideEffects::accessExternal, "bind_dascript::get_memory_allocated_kb_linux");
+#else
     das::addExtern<DAS_BIND_FUN(dagor_memory_stat::get_memory_allocated_kb)>(*this, lib, "get_memory_allocated_kb",
       das::SideEffects::accessExternal, "dagor_memory_stat::get_memory_allocated_kb");
+#endif
+
     das::addExtern<DAS_BIND_FUN(memoryreport::get_device_vram_used_kb)>(*this, lib, "get_device_vram_used_kb",
       das::SideEffects::accessExternal, "memoryreport::get_device_vram_used_kb");
     das::addExtern<DAS_BIND_FUN(memoryreport::get_shared_vram_used_kb)>(*this, lib, "get_shared_vram_used_kb",

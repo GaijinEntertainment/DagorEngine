@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/waterObjects.h>
 #include <shaders/dag_shaders.h>
 #include <generic/dag_tab.h>

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 // Noise1234
 // Author: Stefan Gustavson (stegu@itn.liu.se)
 //

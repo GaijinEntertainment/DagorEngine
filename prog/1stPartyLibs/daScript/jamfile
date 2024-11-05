@@ -1,5 +1,5 @@
 # VCUpdateVer ?= 15.9.5 ;
-# PlatformSpec_win32 ?= vc15 ;
+# PlatformSpec_windows_x86 ?= vc15 ;
 
 Root    ?= ../../.. ;
 Location = prog/1stPartyLibs/daScript ;
@@ -7,7 +7,7 @@ Location = prog/1stPartyLibs/daScript ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 #WPO in win32 msvc2015 produces buggy code
-if $(Platform) = win32 && $(UseWholeOpt) = yes && ! $(PlatformSpec) in clang vc15 vc16 vc17 {
+if $(Platform)-$(PlatformArch) = windows-x86 && $(UseWholeOpt) = yes && ! $(PlatformSpec) in clang vc15 vc16 vc17 {
   CPPopt += /GL- ;
   Copt += /GL- ;
 }
@@ -22,6 +22,7 @@ AddIncludes =
   $(Root)/prog/1stPartyLibs/daScript/include
   $(Root)/prog/1stPartyLibs/daScript/include/modules/uriparser
   $(Root)/prog/3rdPartyLibs/uriparser/include
+  $(Root)/prog/3rdPartyLibs/fmt/include
 ;
 
 if $(daScript_MaxFunctionArgs) {
@@ -44,7 +45,12 @@ if $(daScript_sanitizer) = 1 {
   CPPopt += -DDAS_SANITIZER=$(daScript_sanitizer) ;
 }
 
-if $(Platform) = macosx {
+if $(daScript_keepalive) = 1 {
+  Target = $(Target:S=~ka$(daScript_keepalive).lib) ;
+  CPPopt += -DDAS_ENABLE_KEEPALIVE=$(daScript_keepalive) ;
+}
+
+if $(Platform) = macOS {
   CPPopt += -Wno-deprecated-declarations ;
 }
 
@@ -73,21 +79,27 @@ local AllSrcFolder_CPP =
 AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp       : Sources ;
 
 local ExcOpt ;
-if $(Platform) in win32 win64 xboxOne scarlett {
+if $(Platform) in windows xboxOne scarlett {
   ExcOpt += /EHsc -D_HAS_EXCEPTIONS=1 -DDAS_ENABLE_EXCEPTIONS=1 ;
-  if $(PlatformSpec) = clang { ExcOpt += -Wno-macro-redefined ; } # for _HAS_EXCEPTIONS=0 -> 1 overwrite
 } else {
   ExcOpt += -fexceptions -DDAS_ENABLE_EXCEPTIONS=1 ;
+  if $(Platform) in ps4 ps5 { ExcOpt += -D_HAS_DEBUG_COMPATIBILITY=1 ; } # for ool ~runtime_error impl
 }
+if $(PlatformSpec) = clang { ExcOpt += -Wno-macro-redefined ; }
+if $(Platform)-$(PlatformArch) = windows-arm64 { ExcOpt += /GL- ; }
 for s in $(Sources) {
   switch $(s) {
     case *_exceptions.cpp : opt on $(s) = $(ExcOpt) ;
+    case *_ast_serialize.cpp : opt on $(s) = $(ExcOpt) ;
+    case *runtime_string.cpp : opt on $(s) = $(ExcOpt) ;
   }
 }
+if $(PlatformArch) = e2k { opt on src/simulate/simulate_gc.cpp = -Wno-overloaded-virtual ; }
 
 UseProgLibs +=
   3rdPartyLibs/eastl
   3rdPartyLibs/uriparser
+  3rdPartyLibs/fmt
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/dtx/dtx.h>
 #include <libTools/dtx/ddsxPlugin.h>
 #include <libTools/util/strUtil.h>
@@ -918,15 +920,7 @@ int makeAtlas(dag::ConstSpan<String> texNames, Tab<String> &outNames, short widt
     {
       char startdir[260];
       dag_get_appmodule_dir(startdir, sizeof(startdir));
-#if _TARGET_PC_LINUX
-      int pc = ddsx::load_plugins(String(260, "%s/../bin-linux64/plugins/ddsx", startdir));
-#elif _TARGET_PC_MACOSX
-      int pc = ddsx::load_plugins(String(260, "%s/../bin-macosx/plugins/ddsx", startdir));
-#elif _TARGET_64BIT
-      int pc = ddsx::load_plugins(String(260, "%s/../bin64/plugins/ddsx", startdir));
-#else
-      int pc = ddsx::load_plugins(String(260, "%s/../bin/plugins/ddsx", startdir));
-#endif
+      int pc = ddsx::load_plugins(String(260, "%s/plugins/ddsx", startdir));
       if (!__quietMode && !pc)
         printf("loaded %d DDSx export plugin(s) (%s)\n", pc, startdir);
     }

@@ -1,13 +1,17 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "openXrDevice.h"
 
-#include <3d/dag_drv3d.h>
-#include <3d/dag_tex3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_query.h>
+#include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_commands.h>
 #include <debug/dag_log.h>
 #include <openxr/openxr.h>
 #include <util/dag_string.h>
 #include <EASTL/string.h>
-#include <3d/dag_drvDecl.h>
+#include <drv/3d/dag_decl.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderVar.h>
@@ -116,8 +120,8 @@ struct AutoExternalAccess
   {
     if (d3d::is_inited() && api == VRDevice::RenderingAPI::D3D11)
     {
-      d3d::driver_command(DRV3D_COMMAND_BEGIN_EXTERNAL_ACCESS, &device, &context, nullptr);
-      d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, nullptr, nullptr, nullptr);
+      d3d::driver_command(Drv3dCommand::BEGIN_EXTERNAL_ACCESS, &device, &context);
+      d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
     }
   }
 
@@ -125,8 +129,8 @@ struct AutoExternalAccess
   {
     if (d3d::is_inited() && api == VRDevice::RenderingAPI::D3D11)
     {
-      d3d::driver_command(DRV3D_COMMAND_END_EXTERNAL_ACCESS, &device, &context, nullptr);
-      d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, nullptr, nullptr, nullptr);
+      d3d::driver_command(Drv3dCommand::END_EXTERNAL_ACCESS, &device, &context);
+      d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);
     }
   }
 
@@ -281,8 +285,7 @@ VRDevice *create_vr_device(VRDevice::RenderingAPI api, const VRDevice::Applicati
 OpenXRDevice::OpenXRDevice(RenderingAPI rendering_api, const ApplicationData &application_data) :
   renderingAPI(rendering_api), oxrSessionState(XR_SESSION_STATE_UNKNOWN)
 {
-  d3d::driver_command(DRV3D_COMMAND_REGISTER_DEVICE_RESET_EVENT_HANDLER, static_cast<DeviceResetEventHandler *>(this), nullptr,
-    nullptr);
+  d3d::driver_command(Drv3dCommand::REGISTER_DEVICE_RESET_EVENT_HANDLER, static_cast<DeviceResetEventHandler *>(this));
 
 #if _TARGET_ANDROID
   LoadPreInitOpenxrFuncs();
@@ -310,8 +313,20 @@ OpenXRDevice::OpenXRDevice(RenderingAPI rendering_api, const ApplicationData &ap
     , "The selected rendering api (%d) is not supported on this platform!", int(renderingAPI));
 
   uint32_t extensionCount = 0;
-  if (!RUNTIME_CHECK(xrEnumerateInstanceExtensionProperties(nullptr, 0, &extensionCount, nullptr)))
+  XrResult enumResult = xrEnumerateInstanceExtensionProperties(nullptr, 0, &extensionCount, nullptr);
+  if (XR_FAILED(enumResult))
+  {
+    if (enumResult == XR_ERROR_RUNTIME_UNAVAILABLE)
+    {
+#ifndef SILENT_VRDEVICE_FAIL
+      G_ASSERTF(false, "No HMD software is configured for this machine! Starting without VR.");
+#endif
+    }
+    else
+      runtime_check(enumResult, "xrEnumerateInstanceExtensionProperties(nullptr, 0, &extensionCount, nullptr)", OXR_MODULE);
+
     return;
+  }
 
   supportedExtensions.resize(extensionCount, {XR_TYPE_EXTENSION_PROPERTIES});
 
@@ -383,8 +398,7 @@ OpenXRDevice::OpenXRDevice(RenderingAPI rendering_api, const ApplicationData &ap
 
 OpenXRDevice::~OpenXRDevice()
 {
-  d3d::driver_command(DRV3D_COMMAND_UNREGISTER_DEVICE_RESET_EVENT_HANDLER, static_cast<DeviceResetEventHandler *>(this), nullptr,
-    nullptr);
+  d3d::driver_command(Drv3dCommand::UNREGISTER_DEVICE_RESET_EVENT_HANDLER, static_cast<DeviceResetEventHandler *>(this));
 
   tearDownSwapchainImages();
   tearDownSwapchains();
@@ -421,8 +435,30 @@ bool OpenXRDevice::setUpInstance()
   createInfo.next = (XrBaseInStructure *)(&createInfoAndroid);
 #endif // _TARGET_ANDROID
 
-  if (!RUNTIME_CHECK(xrCreateInstance(&createInfo, &oxrInstance)))
+  XrResult instanceResult = xrCreateInstance(&createInfo, &oxrInstance);
+  if (XR_FAILED(instanceResult))
+  {
+    if (instanceResult == XR_ERROR_INITIALIZATION_FAILED)
+    {
+#ifndef SILENT_VRDEVICE_FAIL
+      G_ASSERTF(false, "No HMD is connected! Starting without VR.");
+#endif
+    }
+#if !_TARGET_STATIC_LIB // daKernel-base tools like AssetViewer and daEditorX
+    else if (instanceResult == XR_ERROR_RUNTIME_FAILURE)
+    {
+#ifndef SILENT_VRDEVICE_FAIL
+      G_ASSERTF(false, "Runtime initialization failure! Starting without VR.");
+#else
+      logwarn("OpenXR runtime initialization failure! VR disabled");
+#endif
+    }
+#endif
+    else
+      runtime_check(instanceResult, "xrCreateInstance(&createInfo, &oxrInstance)", OXR_MODULE);
+
     return false;
+  }
 
 #if _TARGET_ANDROID
   LoadPostInitOpenxrFuncs(oxrInstance);
@@ -441,7 +477,11 @@ bool OpenXRDevice::setUpInstance()
   if (XR_FAILED(systemResult))
   {
     if (systemResult == XR_ERROR_FORM_FACTOR_UNAVAILABLE)
+    {
+#ifndef SILENT_VRDEVICE_FAIL
       G_ASSERTF(false, "No HMD is connected! Starting without VR.");
+#endif
+    }
     else
       report_xr_result(OXR_INSTANCE, systemResult, "xrGetSystem(oxrInstance, &systemInfo, &oxrSystemId)", OXR_MODULE,
         &oxrHadRuntimeFailure);
@@ -629,7 +669,7 @@ bool OpenXRDevice::setUpSession()
 #endif // XR_USE_GRAPHICS_API_D3D11
 #ifdef XR_USE_GRAPHICS_API_D3D12
     case RenderingAPI::D3D12:
-      d3d::driver_command(DRV3D_COMMAND_GET_RENDERING_COMMAND_QUEUE, (void *)&d3d12Binding.queue, nullptr, nullptr);
+      d3d::driver_command(Drv3dCommand::GET_RENDERING_COMMAND_QUEUE, (void *)&d3d12Binding.queue);
       d3d12Binding.device = static_cast<ID3D12Device *>(device);
       sessionInfo.next = &d3d12Binding;
       break;
@@ -638,10 +678,10 @@ bool OpenXRDevice::setUpSession()
     case RenderingAPI::Vulkan:
     {
       vulkanBinding.device = static_cast<VkDevice>(device);
-      d3d::driver_command(DRV3D_COMMAND_GET_INSTANCE, (void *)&vulkanBinding.instance, nullptr, nullptr);
-      d3d::driver_command(DRV3D_COMMAND_GET_PHYSICAL_DEVICE, (void *)&vulkanBinding.physicalDevice, nullptr, nullptr);
-      d3d::driver_command(DRV3D_COMMAND_GET_QUEUE_FAMILY_INDEX, (void *)&vulkanBinding.queueFamilyIndex, nullptr, nullptr);
-      d3d::driver_command(DRV3D_COMMAND_GET_QUEUE_INDEX, (void *)&vulkanBinding.queueIndex, nullptr, nullptr);
+      d3d::driver_command(Drv3dCommand::GET_INSTANCE, (void *)&vulkanBinding.instance);
+      d3d::driver_command(Drv3dCommand::GET_PHYSICAL_DEVICE, (void *)&vulkanBinding.physicalDevice);
+      d3d::driver_command(Drv3dCommand::GET_QUEUE_FAMILY_INDEX, (void *)&vulkanBinding.queueFamilyIndex);
+      d3d::driver_command(Drv3dCommand::GET_QUEUE_INDEX, (void *)&vulkanBinding.queueIndex);
       sessionInfo.next = &vulkanBinding;
 
       XR_REPORT_RETURN(pfnGetVulkanGraphicsDeviceKHR(oxrInstance, oxrSystemId, vulkanBinding.instance, &vulkanBinding.physicalDevice),
@@ -916,7 +956,7 @@ void OpenXRDevice::tearDownSwapchainImages()
 
 #if defined(XR_USE_GRAPHICS_API_VULKAN)
   if (renderingAPI == RenderingAPI::Vulkan && d3d::is_inited())
-    d3d::driver_command(DRV3D_COMMAND_D3D_FLUSH, 0, 0, 0);
+    d3d::driver_command(Drv3dCommand::D3D_FLUSH);
 #endif // XR_USE_GRAPHICS_API_VULKAN
 
   tearDownSwapchainImages(swapchains[0]);
@@ -1188,9 +1228,14 @@ void OpenXRDevice::tick(const SessionCallback &cb)
 
         switch (oxrSessionState)
         {
+          case XR_SESSION_STATE_IDLE:
+            debug("[XR] XR_SESSION_STATE_IDLE happened.");
+            changeState(State::Idle);
+            break;
+
           case XR_SESSION_STATE_READY:
           {
-            debug("[XR] XR_SESSION_STATE_READY happened.");
+            debug("[XR] XR_SESSION_STATE_READY happened. Starting session.");
 
             XrSessionBeginInfo beginInfo = {XR_TYPE_SESSION_BEGIN_INFO};
             beginInfo.primaryViewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
@@ -1199,12 +1244,29 @@ void OpenXRDevice::tick(const SessionCallback &cb)
             sessionRunning = true;
             inHmdStateTransition = true;
             callSessionStartedCallbackIfAvailable = true;
+
+            changeState(State::Ready);
             break;
           }
 
+          case XR_SESSION_STATE_SYNCHRONIZED:
+            debug("[XR] XR_SESSION_STATE_SYNCHRONIZED happened.");
+            changeState(State::Synchronized);
+            break;
+
+          case XR_SESSION_STATE_VISIBLE:
+            debug("[XR] XR_SESSION_STATE_VISIBLE happened.");
+            changeState(State::Visible);
+            break;
+
+          case XR_SESSION_STATE_FOCUSED:
+            debug("[XR] XR_SESSION_STATE_FOCUSED happened.");
+            changeState(State::Focused);
+            break;
+
           case XR_SESSION_STATE_STOPPING:
           {
-            debug("[XR] XR_SESSION_STATE_STOPPING happened.");
+            debug("[XR] XR_SESSION_STATE_STOPPING happened, stopping session.");
 
             sessionRunning = false;
 
@@ -1221,13 +1283,7 @@ void OpenXRDevice::tick(const SessionCallback &cb)
             inHmdStateTransition = true;
             callSessionEndedCallbackIfAvailable = true;
 
-            break;
-          }
-
-          case XR_SESSION_STATE_EXITING:
-          {
-            debug("[XR] XR_SESSION_STATE_EXITING happened.");
-            apiRequestedQuit = true;
+            changeState(State::Stopping);
             break;
           }
 
@@ -1235,10 +1291,19 @@ void OpenXRDevice::tick(const SessionCallback &cb)
           {
             debug("[XR] XR_SESSION_STATE_LOSS_PENDING happened.");
             oxrHadRuntimeFailure = true;
+            changeState(State::Loosing);
             break;
           }
 
-          default: debug("[XR] default case in switch(oxrSessionState): %d", int(oxrSessionState)); break;
+          case XR_SESSION_STATE_EXITING:
+          {
+            debug("[XR] XR_SESSION_STATE_EXITING happened.");
+            apiRequestedQuit = true;
+            changeState(State::Exiting);
+            break;
+          }
+
+          default: G_ASSERTF(false, "[XR] default case in switch(oxrSessionState): %d", int(oxrSessionState)); break;
         }
         break;
       }
@@ -1251,6 +1316,8 @@ void OpenXRDevice::tick(const SessionCallback &cb)
         screenMaskIndexBuffer[0].close();
         screenMaskIndexBuffer[1].close();
         screenMaskAvailable = true;
+        for (auto &mask : vrs_mask_textures)
+          mask.close();
         break;
 
       case XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING: setUpReferenceSpace(); break;
@@ -1484,8 +1551,8 @@ void OpenXRDevice::beginFrame(FrameData &frameData)
 
   const bool useFront = false;
 
-  d3d::driver_command(DRV3D_COMMAND_REGISTER_ONE_TIME_FRAME_EXECUTION_EVENT_CALLBACKS, new FrameEventCallbacks(this, frameData),
-    reinterpret_cast<void *>(static_cast<intptr_t>(useFront)), nullptr);
+  d3d::driver_command(Drv3dCommand::REGISTER_ONE_TIME_FRAME_EXECUTION_EVENT_CALLBACKS, new FrameEventCallbacks(this, frameData),
+    reinterpret_cast<void *>(static_cast<intptr_t>(useFront)));
 }
 
 void OpenXRDevice::beginRender(FrameData &frameData)

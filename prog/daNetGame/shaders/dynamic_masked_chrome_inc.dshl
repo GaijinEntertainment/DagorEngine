@@ -1,0 +1,202 @@
+include "shader_global.dshl"
+include "dynamic_opaque_inc.dshl"
+include "normaldetail.dshl"
+include "gbuffer.dshl"
+include "projective_wounds.dshl"
+include "masked_paint_color.dshl"
+include "masked_micro_detail.dshl"
+
+
+int xray_render = 0;
+interval xray_render: off < 1, on;
+
+
+macro COMMON_MASKED_CHROME_SHADER_INIT()
+
+  DYNAMIC_BLOCK()
+  if (xray_render == on && dyn_model_render_pass != render_to_depth)
+  {
+    dont_render;
+  }
+  if (compatibility_mode != compatibility_mode_on && mobile_render == off && in_editor_assume == no){ NO_DYNSTCODE() }
+
+  texture diffuseTex = material.texture.diffuse;
+
+  USING_ATEST_HALF_AND(SET_ATEST_IS_ON_DEFINE())
+  (ps) { diffuse_tex@static = diffuseTex; }
+
+  texture normalMap = material.texture[2];
+  texture aoTex = material.texture[3];
+
+  INIT_MASKED_MICRODETAIL()
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+  SETUP_CHARACTER_MICRODETAIL()
+  SETUP_CHARACTER_PAINT_COLOR()
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    USE_MICRODETAIL_BASED_WETNESS()
+  }
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    hlsl {
+      #define MOTION_VECTORS_ENABLED
+    }
+  }
+
+  WOUNDS_AND_BURNING_INIT()
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    WRITE_GBUFFER()
+    USE_NORMAL_DETAIL()
+  }
+
+  DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+  WOUNDS_AND_BURNING_USE(get_diffuse_tex().smp)
+endmacro
+
+
+macro COMMON_MASKED_CHROME_PS()
+
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    if (num_bones == four_bones && has_wounds == torn_wounds)
+    {
+      DYNAMIC_SIMPLE_CLIP_ALPHA_DISCRAD_WOUNDS_PS()
+    }
+    else
+    {
+      if (xray_render == on)
+      {
+        XRAY_DEPTH_PS()
+      }
+      else
+      {
+        SPECIAL_RENDER_ALPHATEST_CHOOSE()
+      }
+    }
+  }
+  else
+  {
+    USE_CHARACTER_MICRODETAIL()
+    USE_CHARACTER_PAINT_COLOR()
+    USE_MASKED_MICRODETAIL()
+
+    (ps){
+      normalmap_tex@static = normalMap;
+    }
+    if (aoTex != NULL)
+    {
+      (ps){ aoTex@static = aoTex; }
+    }
+
+    hlsl(ps) {
+      #define HAS_MICRO_DETAIL 1
+    }
+    USE_GAMMA_CONVERSION()
+    USE_PROJECTIVE_WOUNDS()
+
+    hlsl(ps) {
+      half overlay_single(half base, half blend)
+      {
+        return (base < 0.5 ? (2.0 * base * blend) : (1.0 - 2.0 * (1.0 - base) * (1.0 - blend)));
+      }
+
+      #include <noise/Perlin2D.hlsl>
+
+      GBUFFER_OUTPUT dynamic_masked_chrome_bump_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
+      {
+        #if SET_UP_MULTIDRAW
+          INIT_MULTIDRAW(input);
+          SET_DRAW_CALL_ID(GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK);
+        #endif
+        half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy);
+        #ifdef MODIFY_DIFFUSE_COLOR
+          modify_diffuse_color(diffuseColor, input.diffuseTexcoord.xy);
+        #endif
+        clip_alpha(diffuseColor.a);
+
+        half4 resultColor;
+        half4 packedNormalMap = tex2DBindless(get_normalmap_tex(), input.diffuseTexcoord.xy);
+        half metalness = packedNormalMap.b;
+        half smoothness = packedNormalMap.r;
+        half reflectance = 0.5;
+
+        half3 originalNormalMap = unpack_ag_normal(packedNormalMap);
+        half3 normalMap = originalNormalMap;
+        float3 worldPos = world_view_pos - input.pointToEye.xyz;
+
+        // Lighting.
+        half diffuseLum = luminance(diffuseColor.rgb);
+        half ao = saturate(diffuseLum*(1. / 0.01));
+
+        apply_character_paint_color(diffuseColor.rgb, input.diffuseTexcoord);
+
+        #if NEED_CLOTH_WIND
+          apply_cloth_wind_normals(normalMap, input.localPos, input.windNormalBlendParams);
+        #endif
+
+        apply_masked_micro_detail(input.diffuseTexcoord.xy, normalMap, reflectance, smoothness, diffuseColor.rgb);
+
+        ##if (dyn_model_render_pass == render_pass_normal)
+          apply_wetness_by_microdetail(character_micro_detail_layer, worldPos, diffuseColor.rgb, normalMap, reflectance, smoothness, ao);
+        ##endif
+
+        apply_burning_and_wounds(input, originalNormalMap, character_micro_detail_layer, diffuseColor.rgb, normalMap, smoothness, reflectance);
+        #if VERTEX_TANGENT
+        half3 worldNormal = normalMap.x * input.dU + normalMap.y * input.dV.xyz + normalMap.z * input.normal;
+        worldNormal = normalize(worldNormal);
+        #else
+        half3 worldNormal = perturb_normal_precise(normalMap, input.normal, input.pointToEye.xyz, input.diffuseTexcoord.xy );
+        #endif
+
+        ##if (aoTex != NULL)
+        ao *= tex2DBindless(get_aoTex(), input.diffuseTexcoord.xy).g;
+        ##endif
+        UnpackedGbuffer result;
+        init_gbuffer(result);
+
+        // Damaged insides.
+        worldNormal = MUL_VFACE(worldNormal);
+
+        float material = SHADING_NORMAL;
+
+        init_albedo(result, diffuseColor.rgb);
+        init_smoothness(result, smoothness);
+        init_normal(result, worldNormal);
+        init_reflectance(result, reflectance);
+        init_metalness(result, 1-pow2(1-metalness));
+        init_ao(result, ao);
+        half shadow = 1;
+        init_shadow(result, shadow);
+        init_dynamic(result, 1);
+        init_order(result, GBUFFER_ORDER_DYNAMIC);
+
+        #if defined(OVERRIDE_MATERIAL) && OVERRIDE_MATERIAL
+          init_material_override(result);
+        #else
+          init_material(result, SHADING_NORMAL);
+        #endif
+
+        #ifdef MOTION_VECTORS_ENABLED
+          float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
+          init_motion_vector(result, motion);
+        #endif
+        if (special_vision > 0) //thermal vision
+        {
+          result.albedo -= 0.5*special_vision;
+          result.smoothness += 0.5*special_vision;
+          result.metalness -= 0.75*special_vision;
+          ##if num_bones != no_bones
+            init_albedo(result, special_vision < 1 ? diffuseColor.rgb : 0.35*diffuseColor.rgb);
+          ##endif
+        }
+        return encode_gbuffer(result, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
+      }
+    }
+    compile("target_ps", "dynamic_masked_chrome_bump_ps");
+  }
+endmacro

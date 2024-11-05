@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 /*
 structure of fracturing:
 - mimp::MeshSystem is one apex asset
@@ -223,7 +225,7 @@ public:
     setup_tex_subst(a.props);
     GenericTexSubstProcessMaterialData pm(a.getName(), get_process_mat_blk(a.props, TYPE),
       a.props.getBool("allowProxyMat", false) ? &a.getMgr() : nullptr, &log);
-    processMat = &pm;
+    processMat = &pm; //-V506
     struct OnReturn
     {
       ~OnReturn()
@@ -1725,7 +1727,7 @@ public:
     ::register_avif_tex_load_factory();
     if (bool zstd = appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBool("preferZSTD", false))
     {
-      preferZstdPacking = zstd;
+      preferZstdPacking = zstd; //-V547
       debug("apexExp prefers ZSTD");
     }
 

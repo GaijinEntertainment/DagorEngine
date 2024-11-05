@@ -44,7 +44,7 @@ def describeType(info)
         res = string(info.annotation.name)
     elif info.basicType==Type tStructure
         res = info.structType?.name ?? "structure"
-    elif info.basicType==Type tEnumeration || info.basicType==Type tEnumeration8 || info.basicType==Type tEnumeration16
+    elif info.basicType==Type tEnumeration || info.basicType==Type tEnumeration8 || info.basicType==Type tEnumeration16 || info.basicType==Type tEnumeration64
         res = info.enumType?.name ?? "enumeration"
     elif info.basicType==Type tPointer
         res = info.firstType!=null ? "{describeType(*(info.firstType))}?" : "void?"

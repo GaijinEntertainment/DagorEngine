@@ -1,0 +1,33 @@
+Root    ?= ../../../../.. ;
+Location = prog/tools/sceneTools/assetExp/ddsxConv ;
+include $(Root)/prog/tools/tools_setup.jam ;
+Config = rel ;
+
+TargetType = dll ;
+Target     = tools/pcDdsxConv ;
+
+if $(iOS_exp) = yes {
+  Target = tools/iosDdsxConv ;
+  CPPopt = -DIOS_EXP -DBUILD_FOR_MOBILE_TEXFMT  ;
+}
+
+if $(Tegra_exp) = yes {
+  Target = tools/andDdsxConv ;
+  CPPopt = -DTEGRA_EXP -DBUILD_FOR_MOBILE_TEXFMT  ;
+}
+
+include $(Root)/prog/tools/tools_setup_outdir_bin.jam ;
+OutDir = $(OutDir)/plugins/ddsx ;
+
+Sources =
+  ddsxConvPc.cpp
+  main_mem.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/dagorInclude
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/tools/sharedInclude
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

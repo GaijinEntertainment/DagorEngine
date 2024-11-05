@@ -1,0 +1,110 @@
+CheckOnly = ; # clang crashes on conditional_branch_to_simple_conditional_branch_reduction_opportunity.cpp with CheckOnly=yes
+WinSdkVer  = win.sdk.100 ;
+
+ProjectAllowsOodle = yes ;
+
+PlatformArch_windows ?= x86_64 ;
+PlatformSpec_windows_x86_64 ?= clang ;
+PlatformSpec_windows_arm64 ?= vc17 ; # clang 15.0.7 crashes with dag_shaderModelVersion.h when building arm64
+CPPStd = 20 ;
+
+Root    ?= ../../../.. ;
+Location = prog/tools/ShaderCompiler2/hlslCompiler ;
+include $(Root)/prog/tools/tools_setup.jam ;
+
+TargetType = dll ;
+
+include $(Root)/prog/tools/tools_setup_outdir_util.jam ;
+
+DontUseVulkanGlslang = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Sources =
+  debugSpitfile.cpp
+  settings.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/tools/sharedInclude
+;
+
+UseProgLibs =
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/ioSys
+  engine/startup
+  engine/baseUtil
+  engine/math
+  engine/perfMon/daProfilerStub
+  tools/libTools/util
+  3rdPartyLibs/regExp
+;
+UseMemoryDebugLevel = off ;
+
+if $(Platform) = windows {
+
+  Target = tools/hlslCompiler.dll ;
+  AddLibs += user32.lib dbghelp.lib ;
+
+  Sources +=
+    dx11.cpp
+    dx12.cpp
+    metal.cpp
+    spirv.cpp
+  ;
+
+  AddIncludes +=
+    $(Root)/prog/tools/ShaderCompiler2/hlsl11transcode
+    $(Root)/prog/tools/ShaderCompiler2/dx12
+    $(Root)/prog/tools/ShaderCompiler2/hlsl2metal
+    $(Root)/prog/tools/ShaderCompiler2/hlsl2spirv
+    $(Root)/prog/engine/drv/drv3d_pc_multi # for d3d::compile_compute_shader_hlsl()
+  ;
+
+  UseProgLibs +=
+    tools/ShaderCompiler2/dx12
+    tools/ShaderCompiler2/hlsl2metal
+    tools/ShaderCompiler2/hlsl2spirv
+  ;
+
+  if [ GLOB $(_DEVTOOL)/ps4.sdk.$(PS4SdkVer) : * ] && [ GLOB $(Root)/prog/tools/ShaderCompiler2/ps4transcode : jamfile ] {
+
+    Sources +=
+      ps4.cpp
+      ps5.cpp
+    ;
+    AddIncludes +=
+      $(Root)/prog/tools/ShaderCompiler2/ps4transcode
+      $(Root)/prog/tools/ShaderCompiler2/ps5transcode
+    ;
+    UseProgLibs +=
+      tools/ShaderCompiler2/ps4transcode
+      tools/ShaderCompiler2/ps5transcode
+    ;
+    CPPopt += -DHAS_PS4_PS5_TRANSCODE ;
+  }
+
+} else if $(Platform) = macOS {
+
+  Target = tools/hlslCompiler.dylib ;
+
+  Sources += metal.cpp ;
+  AddIncludes += $(Root)/prog/tools/ShaderCompiler2/hlsl2metal ;
+  UseProgLibs += tools/ShaderCompiler2/hlsl2metal ;
+
+} else if $(Platform) = linux {
+
+  Target = tools/hlslCompiler.so ;
+
+  Sources += spirv.cpp ;
+  AddIncludes += $(Root)/prog/tools/ShaderCompiler2/hlsl2spirv ;
+  UseProgLibs += tools/ShaderCompiler2/hlsl2spirv ;
+
+} else {
+  Exit Platform=$(Platform) is not supported! ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

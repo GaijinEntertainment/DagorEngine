@@ -1,0 +1,25 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/daSDF ;
+
+TargetType  = lib ;
+Target      = gameLibs/daSDF.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+  $(Root)/$(Location)/shaders
+;
+
+Sources =
+#  objectsSDF.cpp
+  worldSDF.cpp
+;
+
+UseProgLibs +=
+  engine/lib3d
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

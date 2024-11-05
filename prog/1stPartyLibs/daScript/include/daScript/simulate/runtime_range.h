@@ -7,7 +7,7 @@ namespace das
     template <typename TRange>
     struct RangeIterator : Iterator {
         using baseType = typename TRange::baseType;
-        RangeIterator ( const TRange & r ) : rng(r) {}
+        RangeIterator ( const TRange & r, LineInfo * at ) : Iterator(at), rng(r) {}
         virtual bool first ( Context &, char * _value ) override {
             baseType * value = (baseType *) _value;
             *value      = rng.from;
@@ -23,7 +23,7 @@ namespace das
         }
 
         virtual void close ( Context & context, char * ) override {
-            context.heap->free((char *)this, sizeof(RangeIterator<TRange>));
+            context.freeIterator((char *)this, debugInfo);
         }
         TRange  rng;
         baseType range_to;
@@ -38,10 +38,9 @@ namespace das
             DAS_PROFILE_NODE
             vec4f ll = subexpr->eval(context);
             TRange r = cast<TRange>::to(ll);
-            char * iter = context.heap->allocate(sizeof(RangeIterator<TRange>));
-            context.heap->mark_comment(iter,"range iterator");
-            context.heap->mark_location(iter,&debugInfo);
-            new (iter) RangeIterator<TRange>(r);
+            char * iter = context.allocateIterator(sizeof(RangeIterator<TRange>),"range iterator", &debugInfo);
+            if ( !iter ) context.throw_out_of_memory(false, sizeof(RangeIterator<TRange>) + 16, &debugInfo);
+            new (iter) RangeIterator<TRange>(r, &debugInfo);
             return cast<char *>::from(iter);
         }
         SimNode * subexpr;
@@ -167,6 +166,7 @@ namespace das
             *pi = i;
             for (SimNode ** __restrict body = this->list; body!=tail; ++body) {
                 (*body)->eval(context);
+                DAS_KEEPALIVE_LOOP(&context);
             }
         } }
     loopend:;
@@ -209,6 +209,7 @@ namespace das
         for (baseType i = r.from; i != r_to; ++i) {
             *pi = i;
             pbody->eval(context);
+            DAS_KEEPALIVE_LOOP(&context);
         } }
     loopend:;
         this->evalFinal(context);
@@ -263,6 +264,7 @@ namespace das
             for (SimNode ** __restrict body = this->list; body!=tail; ++body) {
                 DAS_SINGLE_STEP(context,(*body)->debugInfo,true);
                 (*body)->eval(context);
+                DAS_KEEPALIVE_LOOP(&context);
             }
         } }
     loopend:;
@@ -309,6 +311,7 @@ namespace das
             SimNode * pbody = this->list[0];   // note: instruments
             DAS_SINGLE_STEP(context,pbody->debugInfo,true);
             pbody->eval(context);
+            DAS_KEEPALIVE_LOOP(&context);
         } }
     loopend:;
         this->evalFinal(context);

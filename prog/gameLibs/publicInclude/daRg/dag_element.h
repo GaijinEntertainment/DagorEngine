@@ -1,12 +1,12 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <generic/dag_tab.h>
 #include <EASTL/vector.h>
+#include <generic/dag_span.h>
 #include <dag/dag_vector.h>
 
 #include <daRg/dag_guiTypes.h>
@@ -15,7 +15,7 @@
 #include <daRg/dag_properties.h>
 #include <daRg/dag_inputIds.h>
 
-#include <quirrel/frp/dag_frp.h>
+#include <quirrel/frp/dag_frpStateWatcher.h>
 
 #include <math/dag_e3dColor.h>
 #include <math/dag_bounds2.h>
@@ -173,12 +173,19 @@ public:
   void putToSortedStacks(ElemStacks &stacks, ElemStackCounters &counters, int parent_z_order, bool parent_disable_input);
   void traceHit(const Point2 &p, InputStack *stack, int parent_z_order, int &hier_order);
 
-  float calcParentW(float percent, bool use_min_max) const;
-  float calcParentH(float percent, bool use_min_max) const;
+  static Element *trace_input_stack(GuiScene *scene, InputStack &stack, InputDevice device, Point2 p);
+
+  float calcParentW(float percent) const;
+  float calcParentH(float percent) const;
+  float calcParentWClamped(float percent) const;
+  float calcParentHClamped(float percent) const;
   float calcWidthPercent(float percent) const;
   float calcHeightPercent(float percent) const;
   float calcFontHeightPercent(float mul) const;
-  float sizeSpecToPixels(const SizeSpec &ss, int axis, bool use_min_max) const;
+  template <typename T>
+  float sizeSpecToPixelsImpl(const SizeSpec &ss, int axis, T pw_func, T ph_func) const;
+  float sizeSpecToPixels(const SizeSpec &ss, int axis) const;
+  float sizeSpecToPixelsClamped(const SizeSpec &ss, int axis) const;
 
   bool isMainTreeRoot() const;
   bool isInMainTree() const;
@@ -248,8 +255,13 @@ public:
   int getAvailableScrolls() const;
 
   Sqrat::Object getRef(HSQUIRRELVM vm);
+  void releaseRef();
   Sqrat::Table getElementInfo(HSQUIRRELVM vm);
   Sqrat::Table getElementBBox(HSQUIRRELVM vm);
+
+  // These include transform
+  Point2 screenPosToElemLocal(Point2 screen_pos, const GuiVertexTransform &inv_vtm) const;
+  Point2 screenPosToElemLocal(Point2 screen_pos) const;
 
 private:
   void setupAnimations(const Sqrat::Table &desc);
@@ -266,8 +278,8 @@ private:
   template <typename Vec>
   void readWatches(const Sqrat::Table &desc_tbl, const Sqrat::Table &script_watches, Vec &out);
 
-  void setupBehaviorsList(const dag::Vector<Behavior *> &comp_behaviors);
-  void updateBehaviorsList(const dag::Vector<Behavior *> &comp_behaviors);
+  void setupBehaviorsList(dag::ConstSpan<Behavior *> comp_behaviors);
+  void updateBehaviorsList(dag::ConstSpan<Behavior *> comp_behaviors);
 
   void setupScroll(const Sqrat::Table &desc_tbl);
   void releaseScrollHandler();

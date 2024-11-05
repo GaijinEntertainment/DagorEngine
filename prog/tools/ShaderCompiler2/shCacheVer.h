@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <util/dag_globDef.h>
@@ -15,7 +16,7 @@ enum
 };
 
 // Increase this number if changes in the compiler affect all APIs
-static const int SHADER_CACHE_COMMON_VER = 8;
+static const int SHADER_CACHE_COMMON_VER = 23;
 
 static int make_shader_cache_ver(int ver)
 {

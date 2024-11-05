@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #if !_TARGET_PC
 !compile error;
 #endif
@@ -22,6 +24,7 @@
 #include <atomic>
 #if _TARGET_PC_WIN
 #include <direct.h>
+#include <stdlib.h>
 #elif defined(__GNUC__)
 #include <unistd.h>
 #include <stdlib.h>

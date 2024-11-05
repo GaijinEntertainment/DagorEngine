@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <recastTools/recastBuildCovers.h>
 #include <recastTools/recastTools.h>
 

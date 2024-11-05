@@ -36,8 +36,8 @@ def test
     // copy on return
     let t = addBar(newFoo(),newFoo())
     assert(t==2)
-    let tt = addBar(newFooB({ var T : Foo; T.bar = 1; return T; }),
-        newFooB({ var T : Foo; T.bar = 1; return T; }))
+    let tt = addBar(newFooB(${ var T : Foo; T.bar = 1; return T; }),
+        newFooB(${ var T : Foo; T.bar = 1; return T; }))
     assert(tt==2)
     // move on return
     let z <- joinSequences(makeSequence(0,4),makeSequence(5,9))
@@ -45,8 +45,8 @@ def test
     for ttq in range(9)
         assert(z[ttq]==ttq)
     // move on return in block
-    let zz <- joinSequences(makeSequenceB({ return <- makeSequence(0,4); }),
-        makeSequenceB({ return <- makeSequence(5,9); }))
+    let zz <- joinSequences(makeSequenceB(${ return <- makeSequence(0,4); }),
+        makeSequenceB(${ return <- makeSequence(5,9); }))
     assert(length(zz)==10)
     for ttt in range(9)
         assert(zz[ttt]==ttt)

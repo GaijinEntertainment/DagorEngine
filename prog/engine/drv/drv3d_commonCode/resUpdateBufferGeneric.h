@@ -1,6 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_resUpdateBuffer.h>
 
 namespace rubgeneric
 {

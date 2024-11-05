@@ -66,6 +66,6 @@ def dagormat_to_text(mat,text):
         text.write(value+'"')
     for tex in list(DM.textures.keys()):
         if DM.textures[tex]!='':
-            text.write('\n  '+tex+':t="')
+            text.write('\n'+tex+':t="')
             text.write(DM.textures[tex])
             text.write('"')

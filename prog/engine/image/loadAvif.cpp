@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <image/dag_avif.h>
 #include <image/dag_texPixel.h>
 #include <ioSys/dag_fileIo.h>
@@ -114,7 +116,12 @@ TexImage32 *load_avif32(IGenLoad &crd, IMemAlloc *mem, bool *out_used_alpha)
 
     // Alternative: set rgb.pixels and rgb.rowBytes yourself, which should match your chosen rgb.format
     // Be sure to use uint16_t* instead of uint8_t* for rgb.pixels/rgb.rowBytes if (rgb.depth > 8)
-    TexImage32 *im = TexImage32::create(rgb.width, rgb.height, mem);
+    TexImage32 *im = TexImage32::tryCreate(rgb.width, rgb.height, mem);
+    if (DAGOR_UNLIKELY(!im))
+    {
+      logerr("failed to alloc image %dx%d for %s", rgb.width, rgb.width, crd.getTargetName());
+      return NULL;
+    }
     rgb.pixels = (uint8_t *)im->getPixels();
     rgb.rowBytes = rgb.width * sizeof(TexPixel32);
 

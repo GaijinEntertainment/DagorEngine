@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <backend/resourceScheduling/packer.h>
 
 #include <EASTL/priority_queue.h>
@@ -10,6 +12,7 @@
 #include <memory/dag_framemem.h>
 #include <dag/dag_vector.h>
 #include <util/dag_stlqsort.h>
+#include <util/dag_globDef.h>
 #include <dag/dag_vectorMap.h>
 #include <math/dag_bits.h>
 
@@ -1161,12 +1164,14 @@ private:
 
     const auto nextIt = [&crits, critsAreCyclic](auto it) {
       const bool onLastElement = it + 1 == crits.end();
+      G_UNUSED(critsAreCyclic);
       G_ASSERT(critsAreCyclic || !onLastElement);
       return onLastElement ? crits.begin() : it + 1;
     };
 
     const auto prevIt = [&crits, critsAreCyclic](auto it) {
       const bool onFirstElement = it == crits.begin();
+      G_UNUSED(critsAreCyclic);
       G_ASSERT(critsAreCyclic || !onFirstElement);
       return onFirstElement ? crits.end() - 1 : it - 1;
     };
@@ -1333,7 +1338,7 @@ public:
       // Step 4: "cut" holes up using critical points as delimiters and
       // distribute them to next iterations, who's work areas will be delimited
       // exactly by the current critical points.
-      distributeHolesToNextIterations(criticalPoints, nextArgs, std::move(holes));
+      distributeHolesToNextIterations(criticalPoints, nextArgs, eastl::move(holes));
     }
 
     return boxing;

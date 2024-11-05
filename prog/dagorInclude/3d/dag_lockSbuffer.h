@@ -1,11 +1,12 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_query.h>
 #include <EASTL/type_traits.h>
 
 template <typename T>
@@ -16,6 +17,7 @@ class LockedBuffer
   size_t mCount = 0;
 
 public:
+  LockedBuffer() = default;
   LockedBuffer(Sbuffer *locked_object, uint32_t ofs_bytes, uint32_t count, int flags) : mLockedObject(locked_object)
   {
     G_ASSERT(locked_object);
@@ -60,7 +62,17 @@ public:
 
   T &operator[](size_t index)
   {
+#ifdef _DEBUG_TAB_
     G_ASSERT(index < mCount);
+#endif
+    return mData[index];
+  }
+
+  const T &operator[](size_t index) const
+  {
+#ifdef _DEBUG_TAB_
+    G_ASSERT(index < mCount);
+#endif
     return mData[index];
   }
 

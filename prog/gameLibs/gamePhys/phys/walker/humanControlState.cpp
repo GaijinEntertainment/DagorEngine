@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gamePhys/phys/walker/humanControlState.h>
 #include <daNet/bitStream.h>
 #include <daNet/daNetTypes.h>

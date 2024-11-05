@@ -21,6 +21,7 @@
 
 static SQInteger delegable_getfuncinfos(HSQUIRRELVM v);
 static SQInteger class_getfuncinfos(HSQUIRRELVM v);
+SQInteger sq_deduplicate_object(HSQUIRRELVM vm, int index);
 
 
 #define SQ_CHECK_IMMUTABLE_SELF \
@@ -32,31 +33,44 @@ static SQInteger class_getfuncinfos(HSQUIRRELVM v);
         return sq_throwerror(v, _SC("Cannot modify immutable object"));
 
 
-static bool str2num(const SQChar *s,SQObjectPtr &res,SQInteger base)
+static bool sq_parse_float(const SQChar* str_begin, const SQChar * str_end, SQObjectPtr& res, SQInteger base)
 {
-    SQChar *end;
-    const SQChar *e = s;
+#if SQ_USE_STD_FROM_CHARS
+    SQFloat r;
+    auto ret = std::from_chars(str_begin, str_end, r);
+    for (const SQChar* ptr = ret.ptr; ptr != str_end; ++ptr)
+        if (*ptr != '0')
+            return false;
+    if (ret.ec == std::errc::invalid_argument)
+        return false;
+    res = r;
+#else
+    SQChar* end;
+    SQFloat r = SQFloat(strtod(str_begin, &end));
+    if (str_begin == end)
+        return false;
+    res = r;
+#endif
+    return true;
+}
+
+static bool sq_parse_int(const SQChar* str_begin, const SQChar* str_end, SQObjectPtr& res, SQInteger base)
+{
+    SQChar* end;
+    const SQChar* e = str_begin;
     bool iseintbase = base > 13; //to fix error converting hexadecimals with e like 56f0791e
-    bool isfloat = false;
     SQChar c;
-    while((c = *e) != _SC('\0'))
+    while ((c = *e) != _SC('\0'))
     {
-        if (c == _SC('.') || (!iseintbase && (c == _SC('E') || c == _SC('e')))) { //e and E is for scientific notation
-            isfloat = true;
-            break;
-        }
+        if (c == _SC('.') || (!iseintbase && (c == _SC('E') || c == _SC('e')))) //e and E is for scientific notation
+            return sq_parse_float(str_begin, str_end, res, base);
         e++;
     }
-    if(isfloat){
-        SQFloat r = SQFloat(strtod(s,&end));
-        if(s == end) return false;
-        res = r;
-    }
-    else{
-        SQInteger r = SQInteger(scstrtol(s,&end,(int)base));
-        if(s == end) return false;
-        res = r;
-    }
+
+    SQInteger r = SQInteger(scstrtol(str_begin, &end, (int)base));
+    if (str_begin == end)
+        return false;
+    res = r;
     return true;
 }
 
@@ -227,7 +241,7 @@ static SQInteger base_compilestring(HSQUIRRELVM v)
     else
         sq_resetobject(&bindings);
 
-    if(SQ_SUCCEEDED(sq_compilebuffer(v,src,size,name,SQFalse,&bindings)))
+    if(SQ_SUCCEEDED(sq_compile(v,src,size,name,SQFalse,&bindings)))
         return 1;
     else
         return SQ_ERROR;
@@ -291,6 +305,11 @@ static SQInteger base_getobjflags(HSQUIRRELVM v)
 {
     sq_pushinteger(v, sq_objflags(stack_get(v, 2)));
     return 1;
+}
+
+static SQInteger base_deduplicate_object(HSQUIRRELVM v)
+{
+    return sq_deduplicate_object(v, 2);
 }
 
 static SQInteger base_call_method_impl(HSQUIRRELVM v, bool safe)
@@ -450,6 +469,7 @@ static const SQRegFunction base_funcs[]={
     {_SC("type"),base_type,2, NULL},
     {_SC("callee"),base_callee,0,NULL},
     {_SC("freeze"),base_freeze,2,NULL},
+    {_SC("deduplicate_object"),base_deduplicate_object,2,NULL},
     {_SC("getobjflags"), base_getobjflags,2,NULL},
     {_SC("call_type_method"),base_call_method,-1,NULL},
     {_SC("call_type_method_safe"),base_call_method_safe,-1,NULL},
@@ -495,7 +515,7 @@ static SQInteger default_delegate_tofloat(HSQUIRRELVM v)
     switch(sq_type(o)){
     case OT_STRING:{
         SQObjectPtr res;
-        if(str2num(_stringval(o),res,10)){
+        if(sq_parse_float(_stringval(o), _stringval(o) + _string(o)->_len, res, 10)){
             v->Push(SQObjectPtr(tofloat(res)));
             break;
         }}
@@ -523,7 +543,7 @@ static SQInteger default_delegate_tointeger(HSQUIRRELVM v)
     switch(sq_type(o)){
     case OT_STRING:{
         SQObjectPtr res;
-        if(str2num(_stringval(o),res,base)){
+        if(sq_parse_int(_stringval(o), _stringval(o) + _string(o)->_len, res, base)){
             v->Push(SQObjectPtr(tointeger(res)));
             break;
         }}
@@ -1436,6 +1456,7 @@ static SQInteger array_replace(HSQUIRRELVM v)
     SQArray *src = _array(stack_get(v, 2));
     dst->_values.copy(src->_values);
     dst->ShrinkIfNeeded();
+    VT_CLONE_FROM_TO(src, dst);
     v->Pop(1);
     return 1;
 }
@@ -1985,7 +2006,7 @@ static SQInteger closure_getfuncinfos_obj(HSQUIRRELVM v, SQObjectPtr & o) {
         res->NewSlot(SQString::Create(_ss(v),_SC("native"),-1),false);
         res->NewSlot(SQString::Create(_ss(v),_SC("name"),-1),f->_name);
         res->NewSlot(SQString::Create(_ss(v),_SC("src"),-1),f->_sourcename);
-        res->NewSlot(SQString::Create(_ss(v),_SC("line"),-1),f->_lineinfos[0]._line);
+        res->NewSlot(SQString::Create(_ss(v),_SC("line"),-1),SQInteger(f->_lineinfos[0]._line));
         res->NewSlot(SQString::Create(_ss(v),_SC("parameters"),-1),params);
         res->NewSlot(SQString::Create(_ss(v),_SC("varargs"),-1),f->_varparams);
         res->NewSlot(SQString::Create(_ss(v),_SC("defparams"),-1),defparams);
@@ -2287,6 +2308,17 @@ static SQInteger get_class_metamethod(HSQUIRRELVM v)
 }
 
 
+static SQInteger class_lock(HSQUIRRELVM v)
+{
+    SQClass *cls = _class(stack_get(v, 1));
+    if (!cls->isLocked()) {
+        if (!cls->Lock(v))
+            return SQ_ERROR; // propagate raised error
+    }
+    return 1;
+}
+
+
 const SQRegFunction SQSharedState::_class_default_delegate_funcz[] = {
     {_SC("rawget"),container_rawget,2, _SC("y")},
     {_SC("rawset"),container_rawset,3, _SC("y")},
@@ -2306,6 +2338,7 @@ const SQRegFunction SQSharedState::_class_default_delegate_funcz[] = {
     {_SC("getmetamethod"),get_class_metamethod, 2, _SC("ys")},
     {_SC("clone"),obj_clone, 1, _SC(".") },
     {_SC("is_frozen"),obj_is_frozen, 1, _SC(".") },
+    {_SC("lock"),class_lock, 1, _SC("y") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 

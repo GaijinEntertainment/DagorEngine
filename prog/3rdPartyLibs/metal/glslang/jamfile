@@ -66,7 +66,7 @@ Sources =
 ;
 
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   AddIncludes += 
     $(Root)/$(Location)/glslang/OSDependent/Windows
   ;
@@ -84,7 +84,7 @@ if $(Platform) in win32 win64 {
     -DENABLE_HLSL=1
   ;
 }
-else if $(Platform) = macosx {
+else if $(Platform) = macOS {
   AddIncludes +=
     $(Root)/$(Location)/glslang/OSDependent/Unix
   ;

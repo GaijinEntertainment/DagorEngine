@@ -1,0 +1,125 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+
+float4 static_flares_color_multiplier = (1.0, 1.0, 1.0, 1.0);
+float4 static_flares_ctg_min_max = (0.866, 3, 200, 0);
+
+buffer static_flares_buf;
+texture static_flares_tex;
+texture downsampled_depth;
+
+shader static_flares
+{
+  supports global_frame;
+
+  z_test=false;
+  z_write=false;
+  cull_mode=none;
+
+  blend_src=1; blend_dst=isa;
+  blend_asrc=1; blend_adst=1;
+
+  channel float3 pos=pos;
+  channel color8 vcol=vcol;
+
+  hlsl{
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      nointerpolation half4 color : TEXCOORD0;
+      half2 texcoord: TEXCOORD1;
+    };
+  }
+
+  INIT_ZNZFAR_STAGE(vs)
+
+  (vs) {
+    globtm@f44 = globtm;
+    ctg@f1 = (static_flares_ctg_min_max.x);
+    ratio_min_max_invmin@f4 = (
+      rendering_res.y / rendering_res.x,
+      static_flares_ctg_min_max.y / rendering_res.y,
+      static_flares_ctg_min_max.z / rendering_res.y,
+      rendering_res.y / static_flares_ctg_min_max.z);
+    depth_gbuf@smp2d = downsampled_depth;
+    static_flares_buf@buf = static_flares_buf hlsl {
+      #include <static_flares/shaders/staticFlares.hlsli>
+      StructuredBuffer<StaticFlareInstance> static_flares_buf@buf;
+    }
+  }
+
+  (ps) {
+    static_flares_tex@smp2d = static_flares_tex;
+    static_flares_color_multiplier@f4 = static_flares_color_multiplier;
+  }
+
+  hlsl(vs) {
+    #include <daFx/dafx_hlsl_funcs.hlsli>
+    #include <daFx/dafx_def.hlsli>
+    #include <daFx/dafx_packers.hlsli>
+
+    float decode_depth(float depth)
+    {
+      return linearize_z(depth, zn_zfar.zw);
+    }
+
+    VsOutput static_flares_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      uint instanceId = vertexId/4;
+      float3 instancePos = float3(
+        static_flares_buf[instanceId].xz.x,
+        f16tof32(static_flares_buf[instanceId].y_size >> 16),
+        static_flares_buf[instanceId].xz.y);
+      float instanceSize = f16tof32(static_flares_buf[instanceId].y_size);
+      float4 dirs = f16tof32(static_flares_buf[instanceId].dirs_dots_start_coef >> 16);
+      float4 dot_start_coef = f16tof32(static_flares_buf[instanceId].dirs_dots_start_coef);
+      uint subVertexId = vertexId%4;
+      float2 cornerPos = float2(subVertexId % 3 != 0, subVertexId / 2);
+
+      float3 posToEye = world_view_pos - instancePos;
+      float distance = length(posToEye);
+      float3 dirToEye = posToEye / distance;
+      float4 projectedPos = mulPointTm(instancePos, globtm);
+      projectedPos /= projectedPos.w;
+      float2 uv = projectedPos.xy * float2(0.5, -0.5) + 0.5;
+      float quadSize = instanceSize / distance * ctg; // screen coord
+      half alpha =
+        saturate(1 - (distance - dot_start_coef.z) * dot_start_coef.w) * // far
+        saturate(quadSize * ratio_min_max_invmin.w) * // small
+        saturate(10 * (dot(normalize(dirToEye.xz), dirs.xy) - dot_start_coef.x) + 1) * // horz angle
+        saturate(10 * (dot(float2(length(dirToEye.xz), dirToEye.y), dirs.zw) - dot_start_coef.y) + 1); // vert angle
+      quadSize = clamp(quadSize, ratio_min_max_invmin.y, ratio_min_max_invmin.z);
+      float2 tangentPos = (cornerPos - float2(0.5, 0.5)) * float2(ratio_min_max_invmin.x, 1) * quadSize;
+      projectedPos.xy += tangentPos;
+
+      uv = clamp(uv, 0.001, 0.999);
+      float sceneDepth = decode_depth(tex2Dlod(depth_gbuf, float4(uv, 0, 0)).x);
+      float instanceDepth = decode_depth(projectedPos.z);
+
+      output.pos = projectedPos;
+      output.color = unpack_e3dcolor_to_n4f(static_flares_buf[instanceId].color) * alpha;
+      output.texcoord = cornerPos;
+
+      FLATTEN
+      if (output.color.a < 1.0 / 255 ||
+          projectedPos.z < 0 || sceneDepth < instanceDepth)
+        output.pos = NaN;
+
+      return output;
+    }
+  }
+
+  INIT_HDR(ps)
+  USE_HDR(ps)
+
+  hlsl(ps) {
+    half4 static_flares_ps(VsOutput input): SV_Target
+    {
+      half4 color = input.color * saturate(static_flares_color_multiplier) * tex2D(static_flares_tex, input.texcoord);
+      return half4(pack_hdr(color.rgb), color.a);
+    }
+  }
+  compile("target_vs", "static_flares_vs");
+  compile("target_ps", "static_flares_ps");
+}

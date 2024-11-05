@@ -1,5 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "frameTimeMetrics/aggregator.h"
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <3d/dag_lowLatency.h>
 #include <util/dag_localization.h>
 #include <util/dag_convar.h>
@@ -72,6 +75,9 @@ void FrameTimeMetricsAggregator::update(const float current_time_msec, const uin
           latencyData.gameLatency.avg, latencyData.renderLatency.avg);
         break;
     }
+
+    if (renderingResolution.has_value())
+      fpsText += String(-1, " %dx%d", renderingResolution->x, renderingResolution->y);
 
 #if _TARGET_XBOX
     size_t available = 0;

@@ -9,14 +9,13 @@
 PhysRagdoll::PhysRagdoll() :
   physSys(NULL),
   physWorld(NULL),
-  dynamicClipoutT(0.0f),
   addVelImpulse(0, 0, 0),
   recalcWtms(false),
   ccdMode(false),
   shouldOverrideVelocity(false),
-  shouldOverrideOmega(false)
+  shouldOverrideOmega(false),
+  driveBodiesToAnimchar(false)
 {
-  dynamicClipoutPos.zero();
   overrideVelocity.zero();
   overrideOmega.zero();
   clear_and_shrink(nodeBody);
@@ -80,7 +79,9 @@ void PhysRagdoll::update(real dt, GeomNodeTree &tree, AnimV20::AnimcharBaseCompo
 
   TIME_PROFILE(ragdoll_update);
 
+#ifdef USE_BULLET_PHYSICS
   dynamicClipoutT -= dt;
+#endif
 
   if (DAGOR_UNLIKELY(!lastNodeTms.empty()))
   {
@@ -99,6 +100,20 @@ void PhysRagdoll::update(real dt, GeomNodeTree &tree, AnimV20::AnimcharBaseCompo
   }
   else
     G_ASSERT(nodeHelpers.size() == tree.nodeCount());
+
+  if (DAGOR_UNLIKELY(driveBodiesToAnimchar && driveBodiesToSkeletonWtms.size() != physSys->getPhysicsResource()->getBodies().size()))
+  {
+    clear_and_shrink(driveBodiesToSkeletonWtms);
+    driveBodiesToSkeletonWtms.reserve(physSys->getPhysicsResource()->getBodies().size());
+    for (auto b : physSys->getPhysicsResource()->getBodies())
+    {
+      const dag::Index16 idx = tree.findNodeIndex(b.name);
+      if (!idx.valid())
+        driveBodiesToSkeletonWtms.push_back(nullptr);
+      else
+        driveBodiesToSkeletonWtms.push_back(&tree.getNodeWtmRel(idx));
+    }
+  }
 
   if (!nodeAlignCtrl.size() && physRes && physRes->getNodeAlignCtrl().size())
   {
@@ -126,6 +141,9 @@ void PhysRagdoll::update(real dt, GeomNodeTree &tree, AnimV20::AnimcharBaseCompo
   }
 
   physSys->updateTms();
+
+  if (driveBodiesToAnimchar)
+    physSys->driveBodiesToAnimcharPose(make_span(driveBodiesToSkeletonWtms));
 
   for (dag::Index16 i(0), ie(nodeHelpers.size()); i != ie; ++i)
   {
@@ -170,8 +188,13 @@ void PhysRagdoll::setStartAddLinVel(const Point3 &add_vel) { addVelImpulse = add
 
 void PhysRagdoll::setDynamicClipout(const Point3 &toPos, float timeout)
 {
+#ifdef USE_BULLET_PHYSICS
   dynamicClipoutPos = toPos;
   dynamicClipoutT = timeout;
+#else
+  G_UNUSED(toPos);
+  G_UNUSED(timeout);
+#endif
 }
 
 void PhysRagdoll::setOverrideVel(const Point3 &vel)
@@ -185,6 +208,8 @@ void PhysRagdoll::setOverrideOmega(const Point3 &omega)
   overrideOmega = omega;
   shouldOverrideOmega = true;
 }
+
+void PhysRagdoll::setDriveBodiesToAnimchar(bool doDrive) { driveBodiesToAnimchar = doDrive; }
 
 void PhysRagdoll::startRagdoll(int interact_layer, int interact_mask, const GeomNodeTree *tree)
 {
@@ -213,8 +238,10 @@ void PhysRagdoll::startRagdoll(int interact_layer, int interact_mask, const Geom
   {
     PhysBody *body = physSys->getBody(i);
     body->setContinuousCollisionMode((body->getGroupMask() | body->getInteractionLayer()) && ccdMode); // Ignore empty collision
+#ifdef USE_BULLET_PHYSICS
     if (dynamicClipoutT > 0.0f)
       body->setPreSolveCallback(&PhysRagdoll::onPreSolve);
+#endif
     physWorld->addBody(body, /* kinematic */ false); // After `setBodiesTm` (for correct broadphase quadtree setup)
     if (tree)                                        // After world addition
     {
@@ -231,6 +258,7 @@ void PhysRagdoll::endRagdoll()
 {
   del_it(physSys);
   clear_and_shrink(nodeHelpers);
+  clear_and_shrink(driveBodiesToSkeletonWtms);
   clear_and_shrink(nodeAlignCtrl);
 }
 
@@ -250,6 +278,7 @@ void PhysRagdoll::applyImpulse(int node_id, const Point3 &pos, const Point3 &imp
   }
 }
 
+#ifdef USE_BULLET_PHYSICS
 void PhysRagdoll::onPreSolve(PhysBody *body, void *other, const Point3 &pos, Point3 &norm, IPhysContactData *&contact_data)
 {
   void *ud = body->getUserData();
@@ -266,7 +295,7 @@ void PhysRagdoll::onPreSolve(PhysBody *body, void *other, const Point3 &pos, Poi
     norm = -norm;
   }
 }
-
+#endif
 
 bool PhysRagdoll::wakeUp()
 {

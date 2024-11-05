@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -15,6 +14,7 @@
 #include "entityId.h"
 #include "dataComponent.h"
 #include "utility/ecsForEach.h"
+#include "internal/chunkedVectorMT.h"
 
 namespace ecs
 {
@@ -55,8 +55,7 @@ typedef uint32_t QueryIterator;
 
 struct QueryView
 {
-  struct OneComponentLine
-  {};
+  struct OneComponentLine;
   typedef OneComponentLine *__restrict ComponentsData;
   QueryIterator begin() const;
   QueryIterator end() const;
@@ -140,16 +139,16 @@ protected:
   {
     struct
     {
-      uint16_t roCount, rwCount;
+      uint8_t roCount, rwCount;
     };
-    uint32_t roRW = 0;
+    uint16_t roRW = 0;
   };
   QueryView(class EntityManager &__restrict mgr_, void *user_data = nullptr) : mgr(&mgr_), userData(user_data) {}
 
   QueryView(EntityManager &__restrict mgr_, uint16_t workerId_, id_in_chunk_type_t chunkEntitiesStart_, uint32_t chunkEntitiesEnd_,
     QueryId id_,
     // uint8_t *__restrict *__restrict componentData_
-    const ComponentsData *__restrict componentData_, uint32_t ro_rw, void *__restrict user_data) :
+    const ComponentsData *__restrict componentData_, uint16_t ro_rw, void *__restrict user_data) :
     mgr(&mgr_),
     workerId(workerId_),
     chunkEntitiesStart(chunkEntitiesStart_),
@@ -200,9 +199,9 @@ protected:
   {
     struct
     {
-      uint16_t roCount, rwCount;
+      uint8_t roCount, rwCount;
     };
-    uint32_t roRW = 0;
+    uint16_t roRW = 0;
   };
 };
 
@@ -354,6 +353,14 @@ inline void iterate_compile_time_queries(Lambda fn)
     q = nextQuery;
   }
 }
+
+
+struct QueryStackData
+{
+  ChunkedVectorSingleThreaded<QueryView::OneComponentLine *, 10> componentData;
+  ChunkedVectorSingleThreaded<uint32_t, 8> chunkEntitiesCnt;
+  void collapse();
+};
 
 #undef QUERY_FAST_ASSERT
 #undef DECL_RESTRICT

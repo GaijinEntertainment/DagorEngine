@@ -1,0 +1,104 @@
+{
+  "n-bodies": {
+    "Lua 5.4.6": 1.174,
+    "Luau": 0.65986,
+    "LuaJIT2.1 -joff": 0.5252243,
+    "QuickJS": 2.265,
+    "Quirrel-4.7.1": 2.039,
+    "Squirrel-3.1": 2.642
+  },
+  "particles-kinematics": {
+    "Lua 5.4.6": 1.16,
+    "Luau": 0.370403,
+    "LuaJIT2.1 -joff": 0.2848162,
+    "QuickJS": 1.354,
+    "Squirrel-3.1": 1.61,
+    "Quirrel-4.7.1": 0.548
+  },
+  "exp-loop": {
+    "Lua 5.4.6": 0.048,
+    "Luau": 0.0192327,
+    "LuaJIT2.1 -joff": 0.037953,
+    "QuickJS": 0.081,
+    "Squirrel-3.1": 0.0829999,
+    "Quirrel-4.7.1": 0.0699999
+  },
+  "dictionary": {
+    "Lua 5.4.6": 0.062,
+    "Luau": 0.028643,
+    "LuaJIT2.1 -joff": 0.0160834,
+    "QuickJS": 0.103,
+    "Squirrel-3.1": 0.106,
+    "Quirrel-4.7.1": 0.077
+  },
+  "darg-ui-benchmark": {
+    "Lua 5.4.6": 0.525,
+    "LuaJIT2.1 -joff": 0.1697858,
+    "Luau": 0.1823958,
+    "QuickJS": 1.224,
+    "Squirrel-3.1": 1.063,
+    "Quirrel-4.7.1": 0.653
+  },
+  "fibonacci-recursive": {
+    "Lua 5.4.6": 0.096,
+    "Luau": 0.0855435,
+    "LuaJIT2.1 -joff": 0.0556196,
+    "QuickJS": 0.157,
+    "Squirrel-3.1": 0.254,
+    "Quirrel-4.7.1": 0.189
+  },
+  "fibonacci-loop": {
+    "Lua 5.4.6": 0.085,
+    "Luau": 0.0726192,
+    "LuaJIT2.1 -joff": 0.0428019,
+    "QuickJS": 0.116,
+    "Squirrel-3.1": 0.105,
+    "Quirrel-4.7.1": 0.122
+  },
+  "primes-loop": {
+    "Lua 5.4.6": 0.09,
+    "Luau": 0.0886187,
+    "LuaJIT2.1 -joff": 0.0644977,
+    "QuickJS": 0.122,
+    "Squirrel-3.1": 0.32,
+    "Quirrel-4.7.1": 0.235
+  },
+  "float2string": {
+    "Squirrel-3.1": 0.103,
+    "Lua 5.4.6": 0.58,
+    "LuaJIT2.1 -joff": 0.1624808,
+    "Luau": 0.0714096,
+    "QuickJS": 3.434,
+    "Quirrel-4.7.1": 0.099
+  },
+  "queen": {
+    "Squirrel-3.1": 0.004,
+    "Lua 5.4.6": 0.002,
+    "LuaJIT2.1 -joff": 0.0011946,
+    "Luau": 0.0016411,
+    "Quirrel-4.7.1": 0.003
+  },
+  "sort": {
+    "Squirrel-3.1": 0.023,
+    "Lua 5.4.6": 0.086,
+    "LuaJIT2.1 -joff": 0.0660397,
+    "Luau": 0.0506055,
+    "Quirrel-4.7.1": 0.026
+  },
+  "spectral-norm": {
+    "Squirrel-3.1": 1.385,
+    "Lua 5.4.6": 0.547,
+    "LuaJIT2.1 -joff": 0.2721587,
+    "Luau": 0.3839034,
+    "QuickJS": 0.84,
+    "Quirrel-4.7.1": 0.968
+  },
+  "string2float": {
+    "Squirrel-3.1": 0.395,
+    "Lua 5.4.6": 0.189,
+    "LuaJIT2.1 -joff": 0.127774,
+    "Luau": 0.1094709,
+    "QuickJS": 0.428,
+    "Quirrel-4.7.1": 0.26
+  }
+}

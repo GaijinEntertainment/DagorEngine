@@ -1,0 +1,598 @@
+include "rendinst_opaque_inc.dshl"
+include "normaldetail.dshl"
+
+texture names_tex;
+
+shader rendinst_blend_diffuse_decal, rendinst_modulate2x_diffuse_decal, rendinst_names_diffuse_decal, rendinst_blend_normal_decal
+{
+  if (shader != rendinst_names_diffuse_decal)
+  {
+    no_dynstcode;
+  }
+  assume instancing_type = tm_vb;
+  if (rendinst_render_pass == rendinst_render_pass_voxelize_albedo) { dont_render;}
+  if (rendinst_render_pass == rendinst_render_pass_impostor_color || rendinst_render_pass == rendinst_render_pass_impostor_shadow || rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
+  {
+    dont_render;
+  }
+  render_stage imm_decal;
+  if (shader != rendinst_names_diffuse_decal && shader != rendinst_blend_normal_decal)
+  {
+    texture tex = material.texture.diffuse;
+  }
+  hlsl {
+    #define BLEND_GBUFFER 1
+  }
+  //static int atest = 0;
+  //interval atest: atestOff < 1, atestOn;
+  z_write = false;
+  if (shader == rendinst_blend_diffuse_decal || shader == rendinst_blend_normal_decal)
+  {
+    texture normal = material.texture[2];
+    if (normal != NULL)
+    {
+      USE_PIXEL_TANGENT_SPACE()
+      WRITE_GBUFFER()
+      (ps) { normal_tex@static = normal; }
+      hlsl {
+        #define HAS_NORMAL 1
+      }
+    }
+  }
+
+  static int draw_order = 0 no_warnings;
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+  channel float2 tc[0] = tc[0];
+  supports rendinst_scene;
+
+  ENABLE_MULTI_DRAW(false)
+  RENDINST_INSTANCING()
+  SETUP_CHARACTER_MICRODETAIL()
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+
+      float2 diffuseTexcoord        : TEXCOORD0;
+      #if HAS_NORMAL
+      float3 normal                 : TEXCOORD1;//for normal
+      float3 pointToEye             : TEXCOORD2;//for normal
+      #endif
+      //float3 pointToEye             : TEXCOORD2;
+      VSOUT_DRAW_ID
+    };
+  }
+
+
+  hlsl(vs) {
+
+    INSTANCING_BUFFERS
+    
+    struct VsInput
+    {
+      float3 pos                  : POSITION;
+      #if HAS_NORMAL
+      float3 normal               : NORMAL;
+      #endif
+      float2 diffuseTexcoord      : TEXCOORD0;
+    };
+
+    VsOutput simple_decal_vs(VsInput input  HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+      #endif
+
+      #if HAS_NORMAL
+      float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+      #else
+      float3 localNormal = 1;
+      #endif
+      float3 localPos = input.pos;
+      float opacity = 1;
+      VB_PERFORM_INSTANCING
+
+      float3 pointToEye = world_view_pos-worldPos;
+      float3 dirToEye = normalize(pointToEye);
+      worldPos += dirToEye.xyz * 0.005;
+
+      output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+      output.diffuseTexcoord.xy = input.diffuseTexcoord;
+      ##if shader == rendinst_names_diffuse_decal
+        float2 uvOffset = float2(hashVal&0xFF, (hashVal>>8)&0xFF)/255.0;
+        float2 uvScale = float2((hashVal>>16)&0xFF, (hashVal>>24)&0xFF)/255.0;
+        if (hashVal != 0)
+          output.diffuseTexcoord.xy = uvScale*input.diffuseTexcoord + uvOffset;
+      ##endif
+      #if HAS_NORMAL
+      output.pointToEye = pointToEye;
+      output.normal = worldNormal;
+      #endif
+      //output.pointToEye = pointToEye;
+      return output;
+    }
+  }
+
+  if (shader != rendinst_names_diffuse_decal && shader != rendinst_blend_normal_decal)
+  {
+    (ps) { diffuse_tex@static = tex; }
+  } else if (shader == rendinst_blend_normal_decal)
+  {
+    static int writemask = 1904;//(7<<4)|(7<<8) - normal and material properties
+    color_write = static writemask;
+  } else
+  {
+    (ps) { diffuse_tex@smp2d = names_tex; }
+  }
+
+  if (shader == rendinst_modulate2x_diffuse_decal)
+  {
+    if (compatibility_mode == compatibility_mode_off)
+    {
+      static int writemask = 1287;//7|((1|4)<<8) - albedo, smoothness and metalness properties
+    } else
+    {
+      static int writemask = 119;//RT0 rgb | RT1 rgb
+    }
+    blend_src = dc; blend_dst = sc;
+    color_write = static writemask;
+    static float4 intensity = (1, 0, 1, 0); //intensity clamp_min clamp_max desaturate
+    static float4 smoothness_metalness = (0, 0, 0, 0);
+    (ps) {
+      intensity@f4 = intensity;
+      smoothness_metalness@f2 = smoothness_metalness;
+    }
+    WRITE_GBUFFER()
+  } else
+  {
+    blend_src = sa; blend_dst = isa;
+    if (shader == rendinst_blend_diffuse_decal)
+    {
+      static float4 gamma_mask = (1,1,0,0); //x for albedo, y for normal
+      (ps) { gamma_mask@f2 = gamma_mask; }
+    }
+  }
+  USE_CHARACTER_MICRODETAIL()
+  blend_asrc = 0; blend_adst = 1;
+  hlsl(ps) {
+    ##if (shader == rendinst_modulate2x_diffuse_decal)
+      GBUFFER_OUTPUT simple_decal_ps(VsOutput input)
+      {
+        #if SET_UP_MULTIDRAW
+          SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+        #endif
+        UnpackedGbuffer result;
+        init_gbuffer(result);
+        float3 color = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy).rgb;
+        float lum = luminance(color);
+        float dist;
+        if (lum < get_intensity().y || lum > get_intensity().z)
+        {
+          color = float3(0.5, 0.5, 0.5);
+          dist = 0;
+        } else
+        {
+          dist = dot(abs(color - 0.5), float3(1, 1, 1));
+          color = lerp(color, float3(lum, lum, lum), get_intensity().w);
+          color = (color - 0.5) * get_intensity().x + 0.5;
+        }
+        init_albedo(result, color);
+        init_smoothness(result, saturate(0.5 + get_smoothness_metalness().x * dist));
+        init_metalness(result, saturate(0.5 + get_smoothness_metalness().y * dist));
+
+        // in second argument encode_gbuffer() need pass pointToEye for possible forward shading,
+        // but it will not work without normal in gbuffer.
+
+        ##if compatibility_mode == compatibility_mode_on && mobile_render != deferred
+          GBUFFER_OUTPUT ret;
+          ret = apply_gbuffer_rgb(ret, color);
+          return ret;
+        ##else
+          return encode_gbuffer(result, 0, GET_SCREEN_POS(input.pos));
+        ##endif
+      }
+    ##else
+      #if HAS_NORMAL
+        GBUFFER_OUTPUT simple_decal_ps(VsOutput input HW_USE_SCREEN_POS)
+        {
+          #if SET_UP_MULTIDRAW
+            SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+          #endif
+          float4 screen = GET_SCREEN_POS(input.pos);
+          half4 packedNormalMap = tex2DBindless(get_normal_tex(), input.diffuseTexcoord.xy);
+          half3 albedo = 0;
+          half alpha;
+          ##if shader != rendinst_blend_normal_decal
+            half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy);
+            alpha = diffuseColor.a;
+            albedo = diffuseColor.rgb;
+          ##else
+            alpha = saturate(abs(packedNormalMap.g - 0.5) * 2 * 10);
+          ##endif
+          half smoothness = packedNormalMap.r;
+          half metalness = packedNormalMap.b;
+          half3 normalMap = unpack_ag_normal(packedNormalMap);
+          half3 vertexNormal = normalize(input.normal);
+          half3 worldNormal = perturb_normal_precise(normalMap, vertexNormal, input.pointToEye.xyz, input.diffuseTexcoord.xy );
+          BRANCH
+          if (character_micro_detail_layer >= 0)
+          {
+            half reflectance = 0.5;
+            apply_character_micro_detail(
+              sample_character_micro_detail(input.diffuseTexcoord.xy*get_character_micro_detail_scale().xy, character_micro_detail_layer),
+              albedo.rgb, worldNormal, reflectance, smoothness);
+          }
+          UnpackedGbuffer result;
+          init_gbuffer(result);
+          init_albedo(result, albedo.rgb);
+          init_smoothness(result, smoothness);//
+          init_normal(result, worldNormal);
+          init_metalness(result, metalness);
+          ##if shader == rendinst_blend_diffuse_decal
+            half alpha_albedo = pow(alpha, get_gamma_mask().x);
+            half3 alpha_mask = half3(alpha_albedo, pow(alpha, get_gamma_mask().y), alpha_albedo);
+            return encode_gbuffer_alpha3(result, alpha_mask, input.pointToEye, GET_SCREEN_POS(input.pos));
+          ##else
+            return encode_gbuffer_alpha(result, alpha, input.pointToEye, GET_SCREEN_POS(input.pos));
+          ##endif
+        }
+      #else
+        float4 simple_decal_ps(VsOutput input):SV_Target0
+        {
+          #if SET_UP_MULTIDRAW
+            SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+          #endif
+          #if !MOBILE_DEVICE
+            #define MOBILE_WRAPPER(a) a
+          #else
+            //workaround for android Adreno GPU ASTC sampling bug
+            //for some reason direct write to target from ASTC format
+            //will do nothing and crash GPU/driver
+            #define MOBILE_WRAPPER(a) a*0.9999f;
+          #endif
+          //return 1;
+          ##if shader == rendinst_blend_normal_decal
+            //THROW ERROR: Normal decal without normals tex
+            return 0;
+          ##elif (shader != rendinst_names_diffuse_decal)
+            return MOBILE_WRAPPER(tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy));
+          ##else
+            return MOBILE_WRAPPER(h4tex2D(diffuse_tex, input.diffuseTexcoord.xy));
+          ##endif
+        }
+      #endif
+    ##endif
+  }
+
+  compile("target_vs", "simple_decal_vs");
+  compile("target_ps", "simple_decal_ps");
+}
+
+shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_deferred_normal_decal
+{
+  if (instancing_type != tm_vb)
+  {
+    dont_render;
+  }
+  render_stage decal;
+  hlsl {
+    #define BLEND_GBUFFER 1
+  }
+
+  if (shader != rendinst_deferred_normal_decal)
+  {
+  texture tex = material.texture.diffuse;
+  }
+  if (shader == rendinst_deferred_decal || shader == rendinst_deferred_normal_decal)
+  {
+    texture normal = material.texture[2];
+    if (shader == rendinst_deferred_decal)
+    {
+      static int atest = 0;
+      interval atest: atestOff < 1, atestOn;
+    }
+    if (normal != NULL)
+    {
+      USE_PIXEL_TANGENT_SPACE()
+      REDUCE_GBUFFER_MRT_MOBILE()
+      WRITE_GBUFFER()
+      (ps) { normal_tex@static = normal; }
+      hlsl {
+        #define HAS_NORMAL 1
+      }
+    } else if (compatibility_mode == compatibility_mode_on)
+    {
+      WRITE_GBUFFER()
+      hlsl {
+        #undef HAS_NORMAL
+        #define HAS_NORMAL 1
+      }
+    }
+  }
+
+  z_write = false;
+
+  static int draw_order = 0 no_warnings;
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+  channel float2 tc[0] = tc[0];
+  supports rendinst_scene;
+
+  ENABLE_MULTI_DRAW(false)
+  RENDINST_INSTANCING()
+  SETUP_CHARACTER_MICRODETAIL()
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+
+      float3 diffuseTexcoord        : TEXCOORD0;
+      #if HAS_NORMAL
+      float3 normal                 : TEXCOORD1;//for normal
+      float3 pointToEye             : TEXCOORD2;//for normal
+      #endif
+      VSOUT_DRAW_ID
+    };
+  }
+
+
+  hlsl(vs) {
+
+    INSTANCING_BUFFERS
+    
+    struct VsInput
+    {
+      float3 pos                  : POSITION;
+      float3 normal               : NORMAL;
+      float2 diffuseTexcoord      : TEXCOORD0;
+    };
+
+    VsOutput deferred_decal_vs(VsInput input  HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+      #endif
+
+      float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+      float3 localPos = input.pos;
+      float opacity = 1;
+      VB_PERFORM_INSTANCING
+
+      float3 pointToEye = world_view_pos-worldPos;
+      float3 dirToEye = normalize(pointToEye);
+      worldPos += dirToEye.xyz * 0.005;
+
+      output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+      output.diffuseTexcoord.xy = input.diffuseTexcoord;
+      output.diffuseTexcoord.z = output.pos.w;
+      #if HAS_NORMAL
+      output.pointToEye = pointToEye;
+      output.normal = worldNormal;
+      #endif
+      return output;
+    }
+  }
+  if (shader == rendinst_deferred_decal || shader == rendinst_deferred_modulate2x_decal)
+  {
+    (ps) { diffuse_tex@static = tex; }
+    if (shader == rendinst_deferred_modulate2x_decal)
+    {
+      if (compatibility_mode == compatibility_mode_off)
+      {
+        static int writemask = 1287;//7|((1|4)<<8) - albedo, smoothness and metalness properties
+      } else
+      {
+        static int writemask = 119;//RT0 rgb | RT1 rgb
+      }
+      color_write = static writemask;
+    }
+  }
+  else //shader == rendinst_deferred_normal_decal
+  {
+    static int writemask = 1904;//(7<<4)|(7<<8) - normal and material properties
+    color_write = static writemask;
+  }
+  //z_bias = -0.000001;//not even required, since we have fixed offset in VS
+
+  blend_asrc = 0; blend_adst = 1;
+
+  USE_DECODE_DEPTH()
+  if (mobile_render == deferred) {
+    USE_SUBPASS_LOADS()
+    INIT_SUBPASS_LOAD_DEPTH_GBUFFER(SP_DECALS_REG_DEPTH, SP_DECALS_IA_DEPTH)
+    USE_SUBPASS_LOAD_DEPTH_GBUFFER()
+  } else {
+    INIT_LOAD_DEPTH_GBUFFER() //this is still stcode. We'd better have explicit stage/shader block and avoid dynamic stcode
+    USE_LOAD_DEPTH_GBUFFER()
+  }
+  USE_CHARACTER_MICRODETAIL()
+  ENABLE_ASSERT(ps)
+
+  hlsl(ps) {
+      half read_depth_mask(int2 tci, float w, float depth_start, float depth_end)
+      {
+        float depth = loadGbufferDepth(tci);
+        float sceneDepth = linearize_z(depth, zn_zfar.zw);
+        float delta = sceneDepth - w;
+        ##if mobile_render == deferred
+          //on mobile deferred decals subpass can't use depth test
+          clip(delta);
+        ##endif
+        float depth_mask_scale = 1/(depth_start-depth_end);
+        float depth_mask_bias = -depth_end*depth_mask_scale;
+        float depthMask = saturate(depth_mask_bias + depth_mask_scale * abs(delta));
+        return depthMask;
+      }
+      half read_depth_mask(int2 tci, float w)
+      {
+        return read_depth_mask(tci, w, 0.08, 0.1);
+      }
+  }
+
+  if (shader == rendinst_deferred_decal || shader == rendinst_deferred_normal_decal)
+  {
+    blend_src = sa; blend_dst = isa;
+
+    if (shader == rendinst_deferred_decal)
+    {
+      static float4 gamma_mask = (1,1,0,0); //x for albedo, y for normal
+      (ps) { gamma_mask@f2 = gamma_mask; }
+    }
+    if (shader == rendinst_deferred_normal_decal)
+    {
+      static float4 nm_met_sm_gamma = (1,1,0,0); //x for normal, y for metalness and smoothness
+      (ps) { nm_met_sm_gamma@f2 = nm_met_sm_gamma; }
+      if (compatibility_mode == compatibility_mode_on)
+      {
+        dont_render;//we don't support normal only decals in compatibility
+      }
+    }
+
+    hlsl(ps) {
+##if shader != rendinst_deferred_normal_decal
+      void read_albedo(VsOutput input, out half3 albedo, out half alpha, half normal_value)
+      {
+        half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy);
+        ##if atest == atestOn
+          alpha = smoothstep(0.5-0.05, 0.5+0.05, diffuseColor.a);
+        ##else
+          alpha = diffuseColor.a;
+        ##endif
+        albedo = diffuseColor.rgb;
+      }
+##else
+      void read_albedo(VsOutput input, out half3 albedo, out half alpha, half normal_value)
+      {
+        alpha = saturate(abs(normal_value - 0.5) * 2 * 10);
+        albedo = 0;
+      }
+##endif
+      #if HAS_NORMAL
+        GBUFFER_OUTPUT deferred_decal_ps(VsOutput input HW_USE_SCREEN_POS)
+        {
+          #if SET_UP_MULTIDRAW
+            SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+          #endif
+          float4 screen = GET_SCREEN_POS(input.pos);
+          ##if normal != NULL
+            half4 packedNormalMap = tex2DBindless(get_normal_tex(), input.diffuseTexcoord.xy);
+          ##else
+            half4 packedNormalMap = half4(0,0,0,0);
+          ##endif
+
+          half smoothness = packedNormalMap.r;
+          half metalness = packedNormalMap.b;
+
+          half3 albedo;
+          half alpha;
+          read_albedo(input, albedo, alpha, packedNormalMap.g);
+          ##if normal != NULL
+            half3 normalMap = unpack_ag_normal(packedNormalMap);
+            half3 vertexNormal = normalize(input.normal);
+            half3 worldNormal = perturb_normal_precise(normalMap, vertexNormal, input.pointToEye.xyz, input.diffuseTexcoord.xy );
+          ##else
+            half3 worldNormal = normalize(input.normal);
+          ##endif
+          BRANCH
+          if (character_micro_detail_layer >= 0)
+          {
+            half reflectance = 0.5;
+            apply_character_micro_detail(
+              sample_character_micro_detail(input.diffuseTexcoord.xy*get_character_micro_detail_scale().xy, character_micro_detail_layer),
+              albedo.rgb, worldNormal, reflectance, smoothness);
+          }
+          UnpackedGbuffer result;
+          init_gbuffer(result);
+          init_albedo(result, albedo.rgb);
+          init_smoothness(result, smoothness);//
+          init_normal(result, worldNormal);
+          init_metalness(result, metalness);
+
+          ##if shader == rendinst_deferred_decal
+            half alpha_albedo = pow(alpha, get_gamma_mask().x);
+            half3 alpha_mask = half3(alpha_albedo, pow(alpha, get_gamma_mask().y), alpha_albedo);
+          ##else //shader == rendinst_deferred_normal_decal
+            half3 alpha_mask = half3(alpha, get_nm_met_sm_gamma().x < 10 ? pow(alpha, get_nm_met_sm_gamma().x) : 0,
+                                            get_nm_met_sm_gamma().y < 10 ? pow(alpha, get_nm_met_sm_gamma().y) : 0);
+          ##endif
+
+          alpha_mask *= read_depth_mask(screen.xy, input.diffuseTexcoord.z);
+          return encode_gbuffer_alpha3(result, alpha_mask, input.pointToEye, GET_SCREEN_POS(input.pos));
+        }
+      #else
+        float4 deferred_decal_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+        {
+          #if SET_UP_MULTIDRAW
+            SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+          #endif
+          float4 screen = GET_SCREEN_POS(input.pos);
+          half3 albedo;
+          half alpha;
+          read_albedo(input, albedo, alpha, 0.5);
+          return float4(albedo, alpha*read_depth_mask(screen.xy, input.diffuseTexcoord.z));
+        }
+      #endif
+    }
+  } else if (shader == rendinst_deferred_modulate2x_decal)
+  {
+    WRITE_GBUFFER()
+    blend_src = dc; blend_dst = sc;
+    static float4 intensity = (1, 0, 1, 0); //intensity clamp_min clamp_max desaturate
+    static float4 smoothness_metalness = (0, 0, 0, 0);
+    (ps) {
+      intensity@f4 = intensity;
+      smoothness_metalness@f2 = smoothness_metalness;
+    }
+
+    hlsl(ps) {
+      GBUFFER_OUTPUT deferred_decal_ps(VsOutput input HW_USE_SCREEN_POS)
+      {
+        #if SET_UP_MULTIDRAW
+          SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+        #endif
+        float4 screen = GET_SCREEN_POS(input.pos);
+        float depth_mask =  read_depth_mask(screen.xy, input.diffuseTexcoord.z, 0.3, 0.4);
+        UnpackedGbuffer result;
+        init_gbuffer(result);
+        float3 color = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy).rgb;
+        float lum = luminance(color);
+        float dist;
+        if (lum < get_intensity().y || lum > get_intensity().z)
+        {
+          color = float3(0.5, 0.5, 0.5);
+          dist = 0;
+        } else
+        {
+          dist = dot(abs(color - 0.5), float3(1, 1, 1));
+          color = lerp(color, float3(lum, lum, lum), get_intensity().w);
+          color = (color - 0.5) * get_intensity().x + 0.5;
+          color = lerp(float3(0.5, 0.5, 0.5), color, depth_mask);
+        }
+
+        init_albedo(result, color);
+        init_smoothness(result, saturate(0.5 + get_smoothness_metalness().x * dist));
+        init_metalness(result, saturate(0.5 + get_smoothness_metalness().y * dist));
+
+        ##if compatibility_mode == compatibility_mode_on && mobile_render != deferred
+          GBUFFER_OUTPUT ret;
+          ret = apply_gbuffer_rgb(ret, color);
+          return ret;
+        ##else
+          return encode_gbuffer(result, 0, GET_SCREEN_POS(input.pos));
+        ##endif
+      }
+    }
+  }
+
+  compile("target_vs", "deferred_decal_vs");
+  compile("target_ps", "deferred_decal_ps");
+}

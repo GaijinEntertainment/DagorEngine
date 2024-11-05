@@ -1,6 +1,5 @@
-#ifndef STABLE_H
-
-#define STABLE_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 // ############################################################################
 // ##                                                                        ##
@@ -70,5 +69,3 @@ public:
 private:
   CharPtrSet mStrings;
 };
-
-#endif

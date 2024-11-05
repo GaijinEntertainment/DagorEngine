@@ -12,66 +12,85 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_51() {
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:78:10
-	addExtern< int (*)(LLVMOpaqueExecutionEngine **,LLVMOpaqueModule *,char **) , LLVMCreateInterpreterForModule >(*this,lib,"LLVMCreateInterpreterForModule",SideEffects::worstDefault,"LLVMCreateInterpreterForModule")
-		->args({"OutInterp","M","OutError"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:82:10
-	addExtern< int (*)(LLVMOpaqueExecutionEngine **,LLVMOpaqueModule *,unsigned int,char **) , LLVMCreateJITCompilerForModule >(*this,lib,"LLVMCreateJITCompilerForModule",SideEffects::worstDefault,"LLVMCreateJITCompilerForModule")
-		->args({"OutJIT","M","OptLevel","OutError"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:87:6
-	addExtern< void (*)(LLVMMCJITCompilerOptions *,size_t) , LLVMInitializeMCJITCompilerOptions >(*this,lib,"LLVMInitializeMCJITCompilerOptions",SideEffects::worstDefault,"LLVMInitializeMCJITCompilerOptions")
-		->args({"Options","SizeOfOptions"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:107:10
-	addExtern< int (*)(LLVMOpaqueExecutionEngine **,LLVMOpaqueModule *,LLVMMCJITCompilerOptions *,size_t,char **) , LLVMCreateMCJITCompilerForModule >(*this,lib,"LLVMCreateMCJITCompilerForModule",SideEffects::worstDefault,"LLVMCreateMCJITCompilerForModule")
-		->args({"OutJIT","M","Options","SizeOfOptions","OutError"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:112:6
-	addExtern< void (*)(LLVMOpaqueExecutionEngine *) , LLVMDisposeExecutionEngine >(*this,lib,"LLVMDisposeExecutionEngine",SideEffects::worstDefault,"LLVMDisposeExecutionEngine")
-		->args({"EE"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:114:6
-	addExtern< void (*)(LLVMOpaqueExecutionEngine *) , LLVMRunStaticConstructors >(*this,lib,"LLVMRunStaticConstructors",SideEffects::worstDefault,"LLVMRunStaticConstructors")
-		->args({"EE"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:116:6
-	addExtern< void (*)(LLVMOpaqueExecutionEngine *) , LLVMRunStaticDestructors >(*this,lib,"LLVMRunStaticDestructors",SideEffects::worstDefault,"LLVMRunStaticDestructors")
-		->args({"EE"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:118:5
-	addExtern< int (*)(LLVMOpaqueExecutionEngine *,LLVMOpaqueValue *,unsigned int,const char *const *,const char *const *) , LLVMRunFunctionAsMain >(*this,lib,"LLVMRunFunctionAsMain",SideEffects::worstDefault,"LLVMRunFunctionAsMain")
-		->args({"EE","F","ArgC","ArgV","EnvP"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:122:21
-	addExtern< LLVMOpaqueGenericValue * (*)(LLVMOpaqueExecutionEngine *,LLVMOpaqueValue *,unsigned int,LLVMOpaqueGenericValue **) , LLVMRunFunction >(*this,lib,"LLVMRunFunction",SideEffects::worstDefault,"LLVMRunFunction")
-		->args({"EE","F","NumArgs","Args"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:126:6
-	addExtern< void (*)(LLVMOpaqueExecutionEngine *,LLVMOpaqueValue *) , LLVMFreeMachineCodeForFunction >(*this,lib,"LLVMFreeMachineCodeForFunction",SideEffects::worstDefault,"LLVMFreeMachineCodeForFunction")
-		->args({"EE","F"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:128:6
-	addExtern< void (*)(LLVMOpaqueExecutionEngine *,LLVMOpaqueModule *) , LLVMAddModule >(*this,lib,"LLVMAddModule",SideEffects::worstDefault,"LLVMAddModule")
-		->args({"EE","M"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:130:10
-	addExtern< int (*)(LLVMOpaqueExecutionEngine *,LLVMOpaqueModule *,LLVMOpaqueModule **,char **) , LLVMRemoveModule >(*this,lib,"LLVMRemoveModule",SideEffects::worstDefault,"LLVMRemoveModule")
-		->args({"EE","M","OutMod","OutError"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:133:10
-	addExtern< int (*)(LLVMOpaqueExecutionEngine *,const char *,LLVMOpaqueValue **) , LLVMFindFunction >(*this,lib,"LLVMFindFunction",SideEffects::worstDefault,"LLVMFindFunction")
-		->args({"EE","Name","OutFn"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:136:7
-	addExtern< void * (*)(LLVMOpaqueExecutionEngine *,LLVMOpaqueValue *) , LLVMRecompileAndRelinkFunction >(*this,lib,"LLVMRecompileAndRelinkFunction",SideEffects::worstDefault,"LLVMRecompileAndRelinkFunction")
-		->args({"EE","Fn"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:139:19
-	addExtern< LLVMOpaqueTargetData * (*)(LLVMOpaqueExecutionEngine *) , LLVMGetExecutionEngineTargetData >(*this,lib,"LLVMGetExecutionEngineTargetData",SideEffects::worstDefault,"LLVMGetExecutionEngineTargetData")
-		->args({"EE"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:141:1
-	addExtern< LLVMOpaqueTargetMachine * (*)(LLVMOpaqueExecutionEngine *) , LLVMGetExecutionEngineTargetMachine >(*this,lib,"LLVMGetExecutionEngineTargetMachine",SideEffects::worstDefault,"LLVMGetExecutionEngineTargetMachine")
-		->args({"EE"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:143:6
-	addExtern< void (*)(LLVMOpaqueExecutionEngine *,LLVMOpaqueValue *,void *) , LLVMAddGlobalMapping >(*this,lib,"LLVMAddGlobalMapping",SideEffects::worstDefault,"LLVMAddGlobalMapping")
-		->args({"EE","Global","Addr"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:146:7
-	addExtern< void * (*)(LLVMOpaqueExecutionEngine *,LLVMOpaqueValue *) , LLVMGetPointerToGlobal >(*this,lib,"LLVMGetPointerToGlobal",SideEffects::worstDefault,"LLVMGetPointerToGlobal")
-		->args({"EE","Global"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:148:10
-	addExtern< uint64_t (*)(LLVMOpaqueExecutionEngine *,const char *) , LLVMGetGlobalValueAddress >(*this,lib,"LLVMGetGlobalValueAddress",SideEffects::worstDefault,"LLVMGetGlobalValueAddress")
-		->args({"EE","Name"});
-// from D:\Work\libclang\include\llvm-c/ExecutionEngine.h:150:10
-	addExtern< uint64_t (*)(LLVMOpaqueExecutionEngine *,const char *) , LLVMGetFunctionAddress >(*this,lib,"LLVMGetFunctionAddress",SideEffects::worstDefault,"LLVMGetFunctionAddress")
-		->args({"EE","Name"});
+// from D:\Work\libclang\include\llvm-c/Orc.h:856:14
+	makeExtern< LLVMOpaqueError * (*)(LLVMOrcOpaqueMaterializationResponsibility *,LLVMOrcOpaqueMaterializationUnit *) , LLVMOrcMaterializationResponsibilityReplace , SimNode_ExtFuncCall >(lib,"LLVMOrcMaterializationResponsibilityReplace","LLVMOrcMaterializationResponsibilityReplace")
+		->args({"MR","MU"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:868:14
+	makeExtern< LLVMOpaqueError * (*)(LLVMOrcOpaqueMaterializationResponsibility *,LLVMOrcOpaqueSymbolStringPoolEntry **,size_t,LLVMOrcOpaqueMaterializationResponsibility **) , LLVMOrcMaterializationResponsibilityDelegate , SimNode_ExtFuncCall >(lib,"LLVMOrcMaterializationResponsibilityDelegate","LLVMOrcMaterializationResponsibilityDelegate")
+		->args({"MR","Symbols","NumSymbols","Result"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:891:6
+	makeExtern< void (*)(LLVMOrcOpaqueMaterializationResponsibility *,LLVMOrcOpaqueSymbolStringPoolEntry *,LLVMOrcCDependenceMapPair *,size_t) , LLVMOrcMaterializationResponsibilityAddDependencies , SimNode_ExtFuncCall >(lib,"LLVMOrcMaterializationResponsibilityAddDependencies","LLVMOrcMaterializationResponsibilityAddDependencies")
+		->args({"MR","Name","Dependencies","NumPairs"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:901:6
+	makeExtern< void (*)(LLVMOrcOpaqueMaterializationResponsibility *,LLVMOrcCDependenceMapPair *,size_t) , LLVMOrcMaterializationResponsibilityAddDependenciesForAll , SimNode_ExtFuncCall >(lib,"LLVMOrcMaterializationResponsibilityAddDependenciesForAll","LLVMOrcMaterializationResponsibilityAddDependenciesForAll")
+		->args({"MR","Dependencies","NumPairs"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:915:1
+	makeExtern< LLVMOrcOpaqueJITDylib * (*)(LLVMOrcOpaqueExecutionSession *,const char *) , LLVMOrcExecutionSessionCreateBareJITDylib , SimNode_ExtFuncCall >(lib,"LLVMOrcExecutionSessionCreateBareJITDylib","LLVMOrcExecutionSessionCreateBareJITDylib")
+		->args({"ES","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:931:1
+	makeExtern< LLVMOpaqueError * (*)(LLVMOrcOpaqueExecutionSession *,LLVMOrcOpaqueJITDylib **,const char *) , LLVMOrcExecutionSessionCreateJITDylib , SimNode_ExtFuncCall >(lib,"LLVMOrcExecutionSessionCreateJITDylib","LLVMOrcExecutionSessionCreateJITDylib")
+		->args({"ES","Result","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:940:1
+	makeExtern< LLVMOrcOpaqueJITDylib * (*)(LLVMOrcOpaqueExecutionSession *,const char *) , LLVMOrcExecutionSessionGetJITDylibByName , SimNode_ExtFuncCall >(lib,"LLVMOrcExecutionSessionGetJITDylibByName","LLVMOrcExecutionSessionGetJITDylibByName")
+		->args({"ES","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:949:1
+	makeExtern< LLVMOrcOpaqueResourceTracker * (*)(LLVMOrcOpaqueJITDylib *) , LLVMOrcJITDylibCreateResourceTracker , SimNode_ExtFuncCall >(lib,"LLVMOrcJITDylibCreateResourceTracker","LLVMOrcJITDylibCreateResourceTracker")
+		->args({"JD"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:957:1
+	makeExtern< LLVMOrcOpaqueResourceTracker * (*)(LLVMOrcOpaqueJITDylib *) , LLVMOrcJITDylibGetDefaultResourceTracker , SimNode_ExtFuncCall >(lib,"LLVMOrcJITDylibGetDefaultResourceTracker","LLVMOrcJITDylibGetDefaultResourceTracker")
+		->args({"JD"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:966:14
+	makeExtern< LLVMOpaqueError * (*)(LLVMOrcOpaqueJITDylib *,LLVMOrcOpaqueMaterializationUnit *) , LLVMOrcJITDylibDefine , SimNode_ExtFuncCall >(lib,"LLVMOrcJITDylibDefine","LLVMOrcJITDylibDefine")
+		->args({"JD","MU"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:973:14
+	makeExtern< LLVMOpaqueError * (*)(LLVMOrcOpaqueJITDylib *) , LLVMOrcJITDylibClear , SimNode_ExtFuncCall >(lib,"LLVMOrcJITDylibClear","LLVMOrcJITDylibClear")
+		->args({"JD"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:981:6
+	makeExtern< void (*)(LLVMOrcOpaqueJITDylib *,LLVMOrcOpaqueDefinitionGenerator *) , LLVMOrcJITDylibAddGenerator , SimNode_ExtFuncCall >(lib,"LLVMOrcJITDylibAddGenerator","LLVMOrcJITDylibAddGenerator")
+		->args({"JD","DG"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:1005:6
+	makeExtern< void (*)(LLVMOrcOpaqueLookupState *,LLVMOpaqueError *) , LLVMOrcLookupStateContinueLookup , SimNode_ExtFuncCall >(lib,"LLVMOrcLookupStateContinueLookup","LLVMOrcLookupStateContinueLookup")
+		->args({"S","Err"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:1069:14
+	makeExtern< LLVMOpaqueError * (*)(LLVMOrcOpaqueDefinitionGenerator **,LLVMOrcOpaqueObjectLayer *,const char *,const char *) , LLVMOrcCreateStaticLibrarySearchGeneratorForPath , SimNode_ExtFuncCall >(lib,"LLVMOrcCreateStaticLibrarySearchGeneratorForPath","LLVMOrcCreateStaticLibrarySearchGeneratorForPath")
+		->args({"Result","ObjLayer","FileName","TargetTriple"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:1081:29
+	makeExtern< LLVMOrcOpaqueThreadSafeContext * (*)() , LLVMOrcCreateNewThreadSafeContext , SimNode_ExtFuncCall >(lib,"LLVMOrcCreateNewThreadSafeContext","LLVMOrcCreateNewThreadSafeContext")
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:1087:1
+	makeExtern< LLVMOpaqueContext * (*)(LLVMOrcOpaqueThreadSafeContext *) , LLVMOrcThreadSafeContextGetContext , SimNode_ExtFuncCall >(lib,"LLVMOrcThreadSafeContextGetContext","LLVMOrcThreadSafeContextGetContext")
+		->args({"TSCtx"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:1092:6
+	makeExtern< void (*)(LLVMOrcOpaqueThreadSafeContext *) , LLVMOrcDisposeThreadSafeContext , SimNode_ExtFuncCall >(lib,"LLVMOrcDisposeThreadSafeContext","LLVMOrcDisposeThreadSafeContext")
+		->args({"TSCtx"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:1105:1
+	makeExtern< LLVMOrcOpaqueThreadSafeModule * (*)(LLVMOpaqueModule *,LLVMOrcOpaqueThreadSafeContext *) , LLVMOrcCreateNewThreadSafeModule , SimNode_ExtFuncCall >(lib,"LLVMOrcCreateNewThreadSafeModule","LLVMOrcCreateNewThreadSafeModule")
+		->args({"M","TSCtx"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:1113:6
+	makeExtern< void (*)(LLVMOrcOpaqueThreadSafeModule *) , LLVMOrcDisposeThreadSafeModule , SimNode_ExtFuncCall >(lib,"LLVMOrcDisposeThreadSafeModule","LLVMOrcDisposeThreadSafeModule")
+		->args({"TSM"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Orc.h:1131:14
+	makeExtern< LLVMOpaqueError * (*)(LLVMOrcOpaqueJITTargetMachineBuilder **) , LLVMOrcJITTargetMachineBuilderDetectHost , SimNode_ExtFuncCall >(lib,"LLVMOrcJITTargetMachineBuilderDetectHost","LLVMOrcJITTargetMachineBuilderDetectHost")
+		->args({"Result"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

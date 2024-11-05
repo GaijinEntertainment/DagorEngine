@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "das_ecs.h"
 #include <dasModules/dasEvent.h>
 #include <daECS/core/componentsMap.h>
@@ -296,6 +298,7 @@ static bool get_component_type(const das::TypeDeclPtr &type, const das::string &
     case das::Type::tEnumeration8: res = ecs::ComponentTypeInfo<int8_t>::type; return true;
     case das::Type::tInt16:
     case das::Type::tEnumeration16: res = ecs::ComponentTypeInfo<int16_t>::type; return true;
+    case das::Type::tEnumeration64: res = ecs::ComponentTypeInfo<int64_t>::type; return true;
     case das::Type::tInt64: res = ecs::ComponentTypeInfo<int64_t>::type; return true;
     case das::Type::tInt2: res = ecs::ComponentTypeInfo<IPoint2>::type; return true;
     case das::Type::tInt3: res = ecs::ComponentTypeInfo<IPoint3>::type; return true;
@@ -706,9 +709,10 @@ struct EventRegistrator final : das::StructureAnnotation
       }
 
       if (!(das::is_in_aot() || das::is_in_completion()))
-        debug("das_net: register net event '%s' <0x%X> version=%@ size=%@ fields=%d routing=%d netLiable=%d hash=0x%X", eventName,
-          eventType, version, sz, st->fields.size() - SKIP_FIRST_EVENT_FIELDS, routing, (uint8_t)netLiable, structHash);
-      dascript_net_events[eventType] = DascriptEventDesc(version, castFlag, routing, netLiable, RELIABLE_ORDERED);
+        debug("das_net: register net event '%s' <0x%X> version=%@ size=%@ fields=%d routing=%d netLiable=%d reliability=%d, hash=0x%X",
+          eventName, eventType, version, sz, st->fields.size() - SKIP_FIRST_EVENT_FIELDS, routing, (uint8_t)netLiable, reliability,
+          structHash);
+      dascript_net_events[eventType] = DascriptEventDesc(version, castFlag, routing, netLiable, reliability);
       ++dasEventsGeneration;
     }
     return true;
@@ -827,8 +831,13 @@ class EventDataWalker : public das::DataWalker
   bool canVisitHandle(char *, das::TypeInfo *ti) override
   {
     const das::TypeAnnotation *ann = ti->getAnnotation();
-    if (ann->module && ann->module->name == "ecs" && ann->name == "Object") // stop visiting Objects to prevent double duplications for
-                                                                            // strings
+    if (!ann || !ann->module)
+      return true;
+    const ecs::hash_str_t moduleNameHash = ECS_HASH_SLOW(ann->module->name.c_str()).hash;
+    const ecs::hash_str_t nameHash = ECS_HASH_SLOW(ann->name.c_str()).hash;
+
+    // stop visiting Objects to prevent double duplications for strings
+    if (moduleNameHash == ECS_HASH("ecs").hash && nameHash == ECS_HASH("Object").hash)
       return false;
 
     return true;
@@ -839,10 +848,12 @@ class EventDataWalker : public das::DataWalker
     const das::TypeAnnotation *ann = ti->firstType ? ti->firstType->getAnnotation() : nullptr;
     if (!ann || !ann->module)
       return;
-    if (ann->module->name == "ecs")
+    const ecs::hash_str_t moduleNameHash = ECS_HASH_SLOW(ann->module->name.c_str()).hash;
+    const ecs::hash_str_t nameHash = ECS_HASH_SLOW(ann->name.c_str()).hash;
+    if (moduleNameHash == ECS_HASH("ecs").hash)
     {
 #define DECL_LIST_TYPE(t, tn)          \
-  if (ann->name == tn)                 \
+  if (nameHash == ECS_HASH(tn).hash)   \
   {                                    \
     t *&obj = *(t **)pa;               \
     obj = obj ? new t(*obj) : new t(); \
@@ -853,7 +864,7 @@ class EventDataWalker : public das::DataWalker
 #undef DECL_LIST_TYPE
       return;
     }
-    if (ann->module->name == "BitStream" && ann->name == "BitStream")
+    if (moduleNameHash == ECS_HASH("BitStream").hash && nameHash == ECS_HASH("BitStream").hash)
     {
       danet::BitStream *&obj = *(danet::BitStream **)pa;
       obj = obj ? new danet::BitStream(*obj) : new danet::BitStream();

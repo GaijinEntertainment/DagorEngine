@@ -12,63 +12,82 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_36() {
-// from D:\Work\libclang\include\llvm-c/Core.h:4084:10
-	addExtern< unsigned int (*)(LLVMOpaqueValue *) , LLVMGetNumMaskElements >(*this,lib,"LLVMGetNumMaskElements",SideEffects::worstDefault,"LLVMGetNumMaskElements")
-		->args({"ShuffleVectorInst"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4090:5
-	addExtern< int (*)() , LLVMGetUndefMaskElem >(*this,lib,"LLVMGetUndefMaskElem",SideEffects::worstDefault,"LLVMGetUndefMaskElem");
-// from D:\Work\libclang\include\llvm-c/Core.h:4099:5
-	addExtern< int (*)(LLVMOpaqueValue *,unsigned int) , LLVMGetMaskValue >(*this,lib,"LLVMGetMaskValue",SideEffects::worstDefault,"LLVMGetMaskValue")
-		->args({"ShuffleVectorInst","Elt"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4101:10
-	addExtern< int (*)(LLVMOpaqueValue *) , LLVMIsAtomicSingleThread >(*this,lib,"LLVMIsAtomicSingleThread",SideEffects::worstDefault,"LLVMIsAtomicSingleThread")
-		->args({"AtomicInst"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4102:6
-	addExtern< void (*)(LLVMOpaqueValue *,int) , LLVMSetAtomicSingleThread >(*this,lib,"LLVMSetAtomicSingleThread",SideEffects::worstDefault,"LLVMSetAtomicSingleThread")
-		->args({"AtomicInst","SingleThread"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4104:20
-	addExtern< LLVMAtomicOrdering (*)(LLVMOpaqueValue *) , LLVMGetCmpXchgSuccessOrdering >(*this,lib,"LLVMGetCmpXchgSuccessOrdering",SideEffects::worstDefault,"LLVMGetCmpXchgSuccessOrdering")
-		->args({"CmpXchgInst"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4105:6
-	addExtern< void (*)(LLVMOpaqueValue *,LLVMAtomicOrdering) , LLVMSetCmpXchgSuccessOrdering >(*this,lib,"LLVMSetCmpXchgSuccessOrdering",SideEffects::worstDefault,"LLVMSetCmpXchgSuccessOrdering")
-		->args({"CmpXchgInst","Ordering"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4107:20
-	addExtern< LLVMAtomicOrdering (*)(LLVMOpaqueValue *) , LLVMGetCmpXchgFailureOrdering >(*this,lib,"LLVMGetCmpXchgFailureOrdering",SideEffects::worstDefault,"LLVMGetCmpXchgFailureOrdering")
-		->args({"CmpXchgInst"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4108:6
-	addExtern< void (*)(LLVMOpaqueValue *,LLVMAtomicOrdering) , LLVMSetCmpXchgFailureOrdering >(*this,lib,"LLVMSetCmpXchgFailureOrdering",SideEffects::worstDefault,"LLVMSetCmpXchgFailureOrdering")
-		->args({"CmpXchgInst","Ordering"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4126:1
-	addExtern< LLVMOpaqueModuleProvider * (*)(LLVMOpaqueModule *) , LLVMCreateModuleProviderForExistingModule >(*this,lib,"LLVMCreateModuleProviderForExistingModule",SideEffects::worstDefault,"LLVMCreateModuleProviderForExistingModule")
-		->args({"M"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4131:6
-	addExtern< void (*)(LLVMOpaqueModuleProvider *) , LLVMDisposeModuleProvider >(*this,lib,"LLVMDisposeModuleProvider",SideEffects::worstDefault,"LLVMDisposeModuleProvider")
-		->args({"M"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4143:10
-	addExtern< int (*)(const char *,LLVMOpaqueMemoryBuffer **,char **) , LLVMCreateMemoryBufferWithContentsOfFile >(*this,lib,"LLVMCreateMemoryBufferWithContentsOfFile",SideEffects::worstDefault,"LLVMCreateMemoryBufferWithContentsOfFile")
-		->args({"Path","OutMemBuf","OutMessage"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4146:10
-	addExtern< int (*)(LLVMOpaqueMemoryBuffer **,char **) , LLVMCreateMemoryBufferWithSTDIN >(*this,lib,"LLVMCreateMemoryBufferWithSTDIN",SideEffects::worstDefault,"LLVMCreateMemoryBufferWithSTDIN")
-		->args({"OutMemBuf","OutMessage"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4148:21
-	addExtern< LLVMOpaqueMemoryBuffer * (*)(const char *,size_t,const char *,int) , LLVMCreateMemoryBufferWithMemoryRange >(*this,lib,"LLVMCreateMemoryBufferWithMemoryRange",SideEffects::worstDefault,"LLVMCreateMemoryBufferWithMemoryRange")
-		->args({"InputData","InputDataLength","BufferName","RequiresNullTerminator"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4152:21
-	addExtern< LLVMOpaqueMemoryBuffer * (*)(const char *,size_t,const char *) , LLVMCreateMemoryBufferWithMemoryRangeCopy >(*this,lib,"LLVMCreateMemoryBufferWithMemoryRangeCopy",SideEffects::worstDefault,"LLVMCreateMemoryBufferWithMemoryRangeCopy")
-		->args({"InputData","InputDataLength","BufferName"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4155:13
-	addExtern< const char * (*)(LLVMOpaqueMemoryBuffer *) , LLVMGetBufferStart >(*this,lib,"LLVMGetBufferStart",SideEffects::worstDefault,"LLVMGetBufferStart")
-		->args({"MemBuf"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4156:8
-	addExtern< size_t (*)(LLVMOpaqueMemoryBuffer *) , LLVMGetBufferSize >(*this,lib,"LLVMGetBufferSize",SideEffects::worstDefault,"LLVMGetBufferSize")
-		->args({"MemBuf"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4157:6
-	addExtern< void (*)(LLVMOpaqueMemoryBuffer *) , LLVMDisposeMemoryBuffer >(*this,lib,"LLVMDisposeMemoryBuffer",SideEffects::worstDefault,"LLVMDisposeMemoryBuffer")
-		->args({"MemBuf"});
-// from D:\Work\libclang\include\llvm-c/Core.h:4172:21
-	addExtern< LLVMOpaquePassRegistry * (*)() , LLVMGetGlobalPassRegistry >(*this,lib,"LLVMGetGlobalPassRegistry",SideEffects::worstDefault,"LLVMGetGlobalPassRegistry");
-// from D:\Work\libclang\include\llvm-c/Core.h:4188:20
-	addExtern< LLVMOpaquePassManager * (*)() , LLVMCreatePassManager >(*this,lib,"LLVMCreatePassManager",SideEffects::worstDefault,"LLVMCreatePassManager");
+// from D:\Work\libclang\include\llvm-c/Core.h:4098:1
+	makeExtern< LLVMOpaqueModuleProvider * (*)(LLVMOpaqueModule *) , LLVMCreateModuleProviderForExistingModule , SimNode_ExtFuncCall >(lib,"LLVMCreateModuleProviderForExistingModule","LLVMCreateModuleProviderForExistingModule")
+		->args({"M"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:4103:6
+	makeExtern< void (*)(LLVMOpaqueModuleProvider *) , LLVMDisposeModuleProvider , SimNode_ExtFuncCall >(lib,"LLVMDisposeModuleProvider","LLVMDisposeModuleProvider")
+		->args({"M"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:4115:10
+	makeExtern< int (*)(const char *,LLVMOpaqueMemoryBuffer **,char **) , LLVMCreateMemoryBufferWithContentsOfFile , SimNode_ExtFuncCall >(lib,"LLVMCreateMemoryBufferWithContentsOfFile","LLVMCreateMemoryBufferWithContentsOfFile")
+		->args({"Path","OutMemBuf","OutMessage"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:4118:10
+	makeExtern< int (*)(LLVMOpaqueMemoryBuffer **,char **) , LLVMCreateMemoryBufferWithSTDIN , SimNode_ExtFuncCall >(lib,"LLVMCreateMemoryBufferWithSTDIN","LLVMCreateMemoryBufferWithSTDIN")
+		->args({"OutMemBuf","OutMessage"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:4120:21
+	makeExtern< LLVMOpaqueMemoryBuffer * (*)(const char *,size_t,const char *,int) , LLVMCreateMemoryBufferWithMemoryRange , SimNode_ExtFuncCall >(lib,"LLVMCreateMemoryBufferWithMemoryRange","LLVMCreateMemoryBufferWithMemoryRange")
+		->args({"InputData","InputDataLength","BufferName","RequiresNullTerminator"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:4124:21
+	makeExtern< LLVMOpaqueMemoryBuffer * (*)(const char *,size_t,const char *) , LLVMCreateMemoryBufferWithMemoryRangeCopy , SimNode_ExtFuncCall >(lib,"LLVMCreateMemoryBufferWithMemoryRangeCopy","LLVMCreateMemoryBufferWithMemoryRangeCopy")
+		->args({"InputData","InputDataLength","BufferName"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:4127:13
+	makeExtern< const char * (*)(LLVMOpaqueMemoryBuffer *) , LLVMGetBufferStart , SimNode_ExtFuncCall >(lib,"LLVMGetBufferStart","LLVMGetBufferStart")
+		->args({"MemBuf"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:4128:8
+	makeExtern< size_t (*)(LLVMOpaqueMemoryBuffer *) , LLVMGetBufferSize , SimNode_ExtFuncCall >(lib,"LLVMGetBufferSize","LLVMGetBufferSize")
+		->args({"MemBuf"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:4129:6
+	makeExtern< void (*)(LLVMOpaqueMemoryBuffer *) , LLVMDisposeMemoryBuffer , SimNode_ExtFuncCall >(lib,"LLVMDisposeMemoryBuffer","LLVMDisposeMemoryBuffer")
+		->args({"MemBuf"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:4144:21
+	makeExtern< LLVMOpaquePassRegistry * (*)() , LLVMGetGlobalPassRegistry , SimNode_ExtFuncCall >(lib,"LLVMGetGlobalPassRegistry","LLVMGetGlobalPassRegistry")
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:4160:20
+	makeExtern< LLVMOpaquePassManager * (*)() , LLVMCreatePassManager , SimNode_ExtFuncCall >(lib,"LLVMCreatePassManager","LLVMCreatePassManager")
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:4166:20
+	makeExtern< LLVMOpaquePassManager * (*)(LLVMOpaqueModule *) , LLVMCreateFunctionPassManagerForModule , SimNode_ExtFuncCall >(lib,"LLVMCreateFunctionPassManagerForModule","LLVMCreateFunctionPassManagerForModule")
+		->args({"M"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:4169:20
+	makeExtern< LLVMOpaquePassManager * (*)(LLVMOpaqueModuleProvider *) , LLVMCreateFunctionPassManager , SimNode_ExtFuncCall >(lib,"LLVMCreateFunctionPassManager","LLVMCreateFunctionPassManager")
+		->args({"MP"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:4175:10
+	makeExtern< int (*)(LLVMOpaquePassManager *,LLVMOpaqueModule *) , LLVMRunPassManager , SimNode_ExtFuncCall >(lib,"LLVMRunPassManager","LLVMRunPassManager")
+		->args({"PM","M"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:4180:10
+	makeExtern< int (*)(LLVMOpaquePassManager *) , LLVMInitializeFunctionPassManager , SimNode_ExtFuncCall >(lib,"LLVMInitializeFunctionPassManager","LLVMInitializeFunctionPassManager")
+		->args({"FPM"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:4186:10
+	makeExtern< int (*)(LLVMOpaquePassManager *,LLVMOpaqueValue *) , LLVMRunFunctionPassManager , SimNode_ExtFuncCall >(lib,"LLVMRunFunctionPassManager","LLVMRunFunctionPassManager")
+		->args({"FPM","F"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:4191:10
+	makeExtern< int (*)(LLVMOpaquePassManager *) , LLVMFinalizeFunctionPassManager , SimNode_ExtFuncCall >(lib,"LLVMFinalizeFunctionPassManager","LLVMFinalizeFunctionPassManager")
+		->args({"FPM"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:4196:6
+	makeExtern< void (*)(LLVMOpaquePassManager *) , LLVMDisposePassManager , SimNode_ExtFuncCall >(lib,"LLVMDisposePassManager","LLVMDisposePassManager")
+		->args({"PM"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:4213:10
+	makeExtern< int (*)() , LLVMStartMultithreaded , SimNode_ExtFuncCall >(lib,"LLVMStartMultithreaded","LLVMStartMultithreaded")
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:4217:6
+	makeExtern< void (*)() , LLVMStopMultithreaded , SimNode_ExtFuncCall >(lib,"LLVMStopMultithreaded","LLVMStopMultithreaded")
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

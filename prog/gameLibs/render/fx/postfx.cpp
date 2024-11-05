@@ -1,10 +1,15 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_globDef.h>
 #include <render/fx/dag_postfx.h>
 #include <fx/dag_hdrRender.h>
 #include <render/fx/dag_demonPostFx.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderVar.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <osApiWrappers/dag_localConv.h>
 
 #include <debug/dag_debug.h>
@@ -211,7 +216,9 @@ void PostFx::restart(const DataBlock *level_settings, const DataBlock *game_sett
 
   const char *hdr_modes[] = {"none", "fake", "float", "10bit", "16bit", "ps3", "xblades"};
 
-  debug_ctx("HDR mode: %s, maxoverbr = %g", hdr_modes[::hdr_render_mode], ::hdr_max_overbright);
+  static bool loggingEnabled = dgs_get_settings()->getBlockByNameEx("debug")->getBool("view_resizing_related_logging_enabled", true);
+  if (loggingEnabled)
+    DEBUG_CTX("HDR mode: %s, maxoverbr = %g", hdr_modes[::hdr_render_mode], ::hdr_max_overbright);
 
   ShaderGlobal::set_int(::get_shader_variable_id("hdr_mode", true), ::hdr_render_mode);
   ShaderGlobal::set_real(::get_shader_variable_id("hdr_overbright", true), ::hdr_max_overbright);
@@ -232,12 +239,8 @@ void PostFx::restart(const DataBlock *level_settings, const DataBlock *game_sett
     demonBlk = level_settings->getBlockByNameEx("DemonPostFx");
   if (demonBlk->getBool("use", false) || ::hdr_render_mode != HDR_MODE_NONE)
   {
-    float adapt_val = 1.0;
-    if (demonPostFx && postfxRtBlk && postfxRtBlk->getInt("preserve_adapt_val", 0))
-      adapt_val = demonPostFx->getCurrentAdaptationValueSlow();
     del_it(demonPostFx);
     demonPostFx = new DemonPostFx(*demonBlk, *hdrBlk, targetW, targetH, ::hdr_render_format);
-    demonPostFx->resetAdaptation(adapt_val);
   }
   else
   {
@@ -434,7 +437,7 @@ bool PostFx::updateSettings(const DataBlock *level_settings, const DataBlock *ga
 
   if (demonBlk->getBool("use", false) || ::hdr_render_mode != HDR_MODE_NONE)
   {
-    if (demonPostFx && !demonPostFx->updateSettings(*demonBlk, *hdrBlk))
+    if (demonPostFx && !demonPostFx->updateSettings(*demonBlk))
       return false;
     else if (!demonPostFx)
       demonPostFx = new DemonPostFx(*demonBlk, *hdrBlk, targetW, targetH, ::hdr_render_format);
@@ -448,13 +451,12 @@ bool PostFx::updateSettings(const DataBlock *level_settings, const DataBlock *ga
   return true;
 }
 
-
-void PostFx::update(float timePassed)
+TEXTUREID PostFx::downsample(Texture *input_tex, TEXTUREID input_id)
 {
   if (demonPostFx)
-    demonPostFx->update(timePassed);
+    return demonPostFx->downsample(input_tex, input_id).getId();
+  return BAD_TEXTUREID;
 }
-
 
 void PostFx::apply(Texture *source, TEXTUREID sourceId, Texture *target, TEXTUREID targtexId, const TMatrix &view_tm,
   const TMatrix4 &proj_tm, bool force_disable_motion_blur)
@@ -500,14 +502,4 @@ void PostFx::createTempTex()
   d3d_err(tempTex);
   tempTex->texaddr(TEXADDR_CLAMP);
   tempTexId = register_managed_tex("postfx@temp", tempTex);
-}
-
-
-bool PostFx::getUseAdaptation() { return demonPostFx ? demonPostFx->getUseAdaptation() : false; }
-
-
-void PostFx::setUseAdaptation(bool use)
-{
-  if (demonPostFx)
-    demonPostFx->setUseAdaptation(use);
 }

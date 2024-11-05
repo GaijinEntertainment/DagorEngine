@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ecs/input/rumbleEvents.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>

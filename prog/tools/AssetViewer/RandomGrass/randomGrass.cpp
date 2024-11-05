@@ -1,19 +1,23 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "../av_plugin.h"
 #include "../av_appwnd.h"
 #include <assets/asset.h>
-#include <propPanel2/c_panel_base.h>
-#include <propPanel2/c_control_event_handler.h>
+#include <propPanel/control/container.h>
+#include <propPanel/c_control_event_handler.h>
 #include <libTools/renderUtil/dynRenderBuf.h>
 
 #include <render/editorGrass.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <render/dag_cur_view.h>
 #include <generic/dag_initOnDemand.h>
 #include <startup/dag_globalSettings.h>
 #include <debug/dag_debug.h>
 
 
-class RandomGrassViewPlugin : public IGenEditorPlugin, public ControlEventHandler
+class RandomGrassViewPlugin : public IGenEditorPlugin, public PropPanel::ControlEventHandler
 {
 public:
   RandomGrassViewPlugin() : rndGrass(NULL), rbuf("editor_opaque_geom_helper_no_tex")
@@ -123,12 +127,12 @@ public:
 
   virtual bool supportAssetType(const DagorAsset &asset) const { return strcmp(asset.getTypeStr(), "rndGrass") == 0; }
 
-  virtual void fillPropPanel(PropertyContainerControlBase &panel) { panel.setEventHandler(this); }
+  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel) { panel.setEventHandler(this); }
 
   virtual void postFillPropPanel() {}
 
-  virtual void onChange(int pcb_id, PropertyContainerControlBase *panel) {}
-  virtual void onClick(int pcb_id, PropertyContainerControlBase *panel) {}
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) {}
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) {}
 
 private:
   DataBlock levelGrassBlk;

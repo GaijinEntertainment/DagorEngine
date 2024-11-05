@@ -64,7 +64,7 @@ void BroadPhaseBruteForce::RemoveBodies(BodyID *ioBodies, int inNumber)
 		JPH_ASSERT(body.IsInBroadPhase());
 
 		// Find body id
-		Array<BodyID>::iterator it = lower_bound(mBodyIDs.begin(), mBodyIDs.end(), body.GetID());
+		Array<BodyID>::const_iterator it = std::lower_bound(mBodyIDs.begin(), mBodyIDs.end(), body.GetID());
 		JPH_ASSERT(it != mBodyIDs.end());
 
 		// Remove element
@@ -298,6 +298,16 @@ void BroadPhaseBruteForce::FindCollidingPairs(BodyID *ioActiveBodies, int inNumA
 			ioPairCollector.AddHit({ b1_id, b2_id });
 		}
 	}
+}
+
+AABox BroadPhaseBruteForce::GetBounds() const
+{
+	shared_lock lock(mMutex);
+
+	AABox bounds;
+	for (BodyID b : mBodyIDs)
+		bounds.Encapsulate(mBodyManager->GetBody(b).GetWorldSpaceBounds());
+	return bounds;
 }
 
 JPH_NAMESPACE_END

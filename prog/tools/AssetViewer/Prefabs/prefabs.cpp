@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "prefabs.h"
 #include "pf_cm.h"
 
@@ -11,6 +13,7 @@
 
 #include <de3_interface.h>
 #include <de3_entityFilter.h>
+#include <de3_occludersFromGeom.h>
 
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/staticGeom/staticGeometryContainer.h>
@@ -28,6 +31,7 @@
 
 #include <osApiWrappers/dag_direct.h>
 #include <debug/dag_debug.h>
+#include <debug/dag_debug3d.h>
 
 #define CENTER_LINES_LEN 40.0
 
@@ -86,6 +90,51 @@ bool PrefabsPlugin::end() { return true; }
 
 
 //==============================================================================
+void PrefabsPlugin::renderOccluders()
+{
+  const StaticGeometryContainer *geomContainer = geom->getGeometryContainer();
+  if (geomContainer)
+  {
+    NodeParamsTab nodeFlags;
+    bool alreadyInMap = false;
+
+    if (!getNodeFlags(nodeFlags, alreadyInMap))
+      return;
+
+
+    for (int i = 0; i < geomContainer->nodes.size(); ++i)
+    {
+      if (nodeFlags.size() <= i)
+        break;
+
+      if (!nodeFlags[i].showOccluders)
+        continue;
+
+      const StaticGeometryNode *node = geomContainer->nodes[i];
+
+      if (!node)
+        continue;
+
+      TMatrix box;
+      Point3 quad[4];
+      GetOccluderFromGeomResultType result = getOcclFromGeomNode(*node, curAssetDagFname, box, quad);
+      if (result == GetOccluderFromGeomResultType::Box)
+      {
+        begin_draw_cached_debug_lines(false, false);
+        set_cached_debug_lines_wtm(box);
+        draw_cached_debug_box(BBox3(Point3(-0.5, -0.5, -0.5), Point3(0.5, 0.5, 0.5)), 0x80808080);
+        end_draw_cached_debug_lines();
+      }
+      else if (result == GetOccluderFromGeomResultType::Quad)
+      {
+        begin_draw_cached_debug_lines(false, false);
+        draw_cached_debug_quad(quad, 0x80808080);
+        end_draw_cached_debug_lines();
+      }
+    }
+  }
+}
+
 void PrefabsPlugin::renderTransObjects()
 {
   if (showDag)
@@ -97,6 +146,8 @@ void PrefabsPlugin::renderTransObjects()
     if ((mask & collisionMask) == collisionMask)
       geom->renderEdges(false);
   }
+
+  renderOccluders();
 }
 
 void PrefabsPlugin::renderGeometry(Stage stage)
@@ -331,6 +382,7 @@ bool PrefabsPlugin::getNodeFlags(NodeParamsTab &tab, bool &already_in_map)
         tab[ni].linkedRes = linkedNames.addNameId(node->linkedResource);
         tab[ni].lodRange = node->lodRange;
         tab[ni].lodName = linkedNames.addNameId(node->topLodName);
+        tab[ni].showOccluders = true; // Not reading this from file, default to true
       }
 
       return (bool)tab.size();
@@ -586,4 +638,19 @@ void PrefabsPlugin::onLodRangeChanged(int node_idx, int lod_range)
 
   geom->recompile();
   repaintView();
+}
+
+void PrefabsPlugin::onShowOccludersChanged(int node_idx, bool show_occluders)
+{
+  NodeParamsTab nodeFlags;
+  bool alreadyInMap = false;
+
+  if (!getNodeFlags(nodeFlags, alreadyInMap))
+    return;
+
+  if (node_idx >= nodeFlags.size())
+    return;
+
+  nodeFlags[node_idx].showOccluders = show_occluders;
+  setNodeFlags(curAssetDagFname, nodeFlags, alreadyInMap);
 }

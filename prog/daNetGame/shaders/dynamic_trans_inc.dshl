@@ -1,0 +1,28 @@
+include "dynamic_simple_inc.dshl"
+include "clouds_vars.dshl"
+include "static_shadow.dshl"
+include "sq_clouds_shadow.dshl"
+include "refraction.dshl"
+include "csm.dshl"
+include "use_gi.dshl"
+
+block(scene) dynamic_trans_scene
+{
+  DYNAMIC_SIMPLE_VS_SHARED_DECL()
+  REFRACTION_INIT()
+  INIT_CSM_SHADOW(ps)
+  INIT_IN_FRUSTUM_GI(ps)
+  INIT_ZNZFAR_STAGE(ps)
+}
+
+macro DYNAMIC_BLOCK_TRANS()
+  if (in_editor_assume == yes)
+  {
+    supports __static_cbuf;
+    supports dynamic_trans_scene;
+  }
+  else
+  {
+    supports dynamic_trans_scene;
+  }
+endmacro

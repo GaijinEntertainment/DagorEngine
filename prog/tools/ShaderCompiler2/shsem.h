@@ -1,6 +1,4 @@
-
-#ifndef __DAGOR_SHSEM_H
-#define __DAGOR_SHSEM_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "shsyn.h"
@@ -102,6 +100,3 @@ void reset();
 
 // report error
 void sh_report_error(ShaderTerminal::shader_stat *s, ShaderTerminal::ShaderSyntaxParser &parser);
-
-
-#endif

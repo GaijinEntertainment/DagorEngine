@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <quirrel/frp/dag_frp.h>
 #include <quirrel/sqModules/sqModules.h>
 #include <quirrel/sqStackChecker.h>
@@ -19,17 +21,29 @@
 #include <squirrel/sqfuncproto.h>
 #include <squirrel/sqclosure.h>
 
-// workaround for android build
-// synchronize condition to one in dag_frp.h header
-#if !_TARGET_PC_WIN || DAGOR_DBGLEVEL <= 0
-#undef VT_TRACE_SINGLE
-#define VT_TRACE_SINGLE(...)
-#endif
+#define MAX_RECALC_ITERATIONS 2
 
-#if 0
-#define FRPDBG debug_ctx
+#define FRP_DEBUG_MODE 0
+
+#if FRP_DEBUG_MODE
+#define FRPDBG DEBUG_CTX
 #else
 #define FRPDBG(...)
+#endif
+
+#if FRP_DEBUG_MODE
+#define SET_MARKED(c)                                                                                         \
+  do                                                                                                          \
+  {                                                                                                           \
+    if (!(c)->isMarked)                                                                                       \
+    {                                                                                                         \
+      FRPDBG("@#! MARK [%s:%d %s]", (c)->initInfo->initSourceFileName.c_str(), (c)->initInfo->initSourceLine, \
+        (c)->initInfo->initFuncName.c_str());                                                                 \
+    }                                                                                                         \
+    (c)->isMarked = true;                                                                                     \
+  } while (0)
+#else
+#define SET_MARKED(c) (c)->isMarked = true
 #endif
 
 #define MAX_ALLOWED_SUBSCRIBERS_QUEUE_LENGTH 200
@@ -192,6 +206,14 @@ static HSQOBJECT get_observable_instance(HSQUIRRELVM vm, O *obs)
   return hNull;
 }
 
+static bool logerr_graph_error(HSQUIRRELVM vm, const char *err_msg);
+
+static void select_err_msg(String &err_msg, const char *val)
+{
+  if (err_msg.empty())
+    err_msg = val;
+}
+
 
 void ScriptSourceInfo::init(HSQUIRRELVM vm)
 {
@@ -251,9 +273,10 @@ void NotifyQueue::remove(BaseObservable *item) { container.erase_first(item); }
 static const int observable_graph_key_dummy = _MAKE4C('FRPG');
 static const int *observable_graph_key = &observable_graph_key_dummy;
 
-
-ObservablesGraph::ObservablesGraph(HSQUIRRELVM vm_) : vm(vm_)
+ObservablesGraph::ObservablesGraph(HSQUIRRELVM vm_, int compute_pool_initial_size) : vm(vm_)
 {
+  computedPool.init(sizeof(ComputedValue), compute_pool_initial_size);
+
   SqStackChecker chk(vm_);
 
   sq_pushregistrytable(vm_);
@@ -271,6 +294,7 @@ ObservablesGraph::ObservablesGraph(HSQUIRRELVM vm_) : vm(vm_)
   sq_pop(vm, 1);
 }
 
+ObservablesGraph::~ObservablesGraph() = default;
 
 ObservablesGraph *ObservablesGraph::get_from_vm(HSQUIRRELVM vm)
 {
@@ -285,20 +309,55 @@ ObservablesGraph *ObservablesGraph::get_from_vm(HSQUIRRELVM vm)
   return (ObservablesGraph *)ptr;
 }
 
+template <typename... Args>
+ComputedValue *ObservablesGraph::allocComputed(Args &&...args)
+{
+  auto d = computedPool.allocateOneBlock();
+  return new (d, _NEW_INPLACE) ComputedValue(eastl::forward<Args>(args)...);
+}
+
+void ComputedValue::operator delete(void *ptr) noexcept
+{
+  G_VERIFY(reinterpret_cast<ComputedValue *>(ptr)->graph->computedPool.freeOneBlock(ptr));
+}
+
+ScriptValueObservable *ObservablesGraph::allocScriptValueObservable() { return new ScriptValueObservable(this); }
 
 void ObservablesGraph::addObservable(BaseObservable *obs)
 {
   allObservables.insert(obs);
+  if (obs->isComputed)
+    allComputed.push_back(*static_cast<ComputedValue *>(obs));
   observablesListModified = true;
+  notifyGraphChanged();
 }
 
 
 void ObservablesGraph::removeObservable(BaseObservable *obs)
 {
   allObservables.erase(obs);
+  if (obs->isComputed)
+    allComputed.remove(*static_cast<ComputedValue *>(obs));
   observablesListModified = true;
+  notifyGraphChanged();
 
+  obs->willNotify = false;
   notifyQueueCache.remove(obs);
+  deferredNotifyCache.remove(obs);
+}
+
+template <typename F>
+inline void ObservablesGraph::forAllComputed(F cb)
+{
+  if constexpr (!eastl::is_same_v<decltype(cb(eastl::declval<ComputedValue &>())), bool>)
+  {
+    for (auto &c : allComputed)
+      cb(c);
+  }
+  else
+    for (auto &c : allComputed)
+      if (!cb(c))
+        break;
 }
 
 template <typename A, typename B>
@@ -307,10 +366,12 @@ eastl::pair<B, A> flip_pair(const eastl::pair<A, B> &p)
   return eastl::pair<B, A>(p.second, p.first);
 }
 
-void ObservablesGraph::notifyObservablesOnShutdown(bool exiting)
+void ObservablesGraph::shutdown(bool is_closing_vm)
 {
   int t0 = get_time_msec();
-  debug_ctx("@#@ [FRP] graph shutdown (exiting = %d): %d observables total", exiting, int(allObservables.size()));
+  DEBUG_CTX("@#@ [FRP] graph shutdown (is_closing_vm = %d): %d observables total", is_closing_vm, int(allObservables.size()));
+
+  stubObservableClases.clear();
 
   Tab<Sqrat::Object> clearedObjects(framemem_ptr());
   int nClearedObjects = 0, nRestarts = 0;
@@ -321,10 +382,10 @@ void ObservablesGraph::notifyObservablesOnShutdown(bool exiting)
     observablesListModified = false;
     for (eastl::hash_set<BaseObservable *>::iterator it = allObservables.begin(); it != allObservables.end(); ++it)
     {
-      (*it)->onGraphShutdown(exiting, clearedObjects);
+      (*it)->onGraphShutdown(is_closing_vm, clearedObjects);
       if (observablesListModified) // restart traversal
       {
-        debug_ctx("[FRP] shutdown cp#1: restart, cleared %d objects", int(clearedObjects.size()));
+        DEBUG_CTX("[FRP] shutdown cp#1: restart, cleared %d objects", int(clearedObjects.size()));
         nClearedObjects += clearedObjects.size();
         clearedObjects.clear();
         sq_collectgarbage(vm);
@@ -338,12 +399,12 @@ void ObservablesGraph::notifyObservablesOnShutdown(bool exiting)
   nClearedObjects += clearedObjects.size();
   clearedObjects.clear();
 
-  debug_ctx("[FRP] shutdown cp#2 allObservables.size() = %d, %d script objects cleared, %d restarts performed",
+  DEBUG_CTX("[FRP] shutdown cp#2 allObservables.size() = %d, %d script objects cleared, %d restarts performed",
     int(allObservables.size()), nClearedObjects, nRestarts);
 
   for (int iter = 0;; ++iter)
   {
-    debug_ctx("[FRP] collecting garbage, iter = %d, allObservables.size() = %d", iter, int(allObservables.size()));
+    DEBUG_CTX("[FRP] collecting garbage, iter = %d, allObservables.size() = %d", iter, int(allObservables.size()));
 
     observablesListModified = false;
     sq_collectgarbage(vm);
@@ -351,7 +412,7 @@ void ObservablesGraph::notifyObservablesOnShutdown(bool exiting)
       break;
   }
 
-  debug_ctx("[FRP] shutdown finished in %d ms, allObservables.size() = %d, %d script objects cleared total", get_time_msec() - t0,
+  DEBUG_CTX("[FRP] shutdown finished in %d ms, allObservables.size() = %d, %d script objects cleared total", get_time_msec() - t0,
     int(allObservables.size()), nClearedObjects);
 
 #if DAGOR_DBGLEVEL > 0
@@ -437,12 +498,57 @@ void ObservablesGraph::checkLeaks()
   {
     debug("");
     debug("Leaked observables:");
-    for (auto dbgIt : sortedSsi)
+    for (const auto &dbgIt : sortedSsi)
       debug("%d : %s", dbgIt.first, dbgIt.second.c_str());
     debug("");
   }
   else
     debug("No leaked observables found");
+}
+
+
+void ObservablesGraph::recalcAllComputedValues()
+{
+  forAllComputed([&](auto &c) { G_VERIFY(c.onSourceObservableChanged()); });
+
+  do
+  {
+    observablesListModified = false;
+    forAllComputed([&](auto &c) {
+      String msg;
+      if (!c.dbgTriggerRecalcIfNeeded(msg))
+        logerr("recalcAllComputedValues(): trigger failed: %s", msg.c_str());
+      return !observablesListModified;
+    });
+  } while (observablesListModified);
+}
+
+
+ObservablesGraph::Stats ObservablesGraph::gatherGraphStats() const
+{
+  Stats st{};
+
+  for (auto o : allObservables)
+    if (auto c = o->getComputed())
+    {
+      st.computedTotal++;
+      if (!c->getUsed())
+        st.computedUnused++;
+      if (c->scriptSubscribers.empty())
+        st.computedUnsubscribed++;
+    }
+    else
+    {
+      st.watchedTotal++;
+      if (o->scriptSubscribers.empty())
+      {
+        st.watchedUnsubscribed++;
+        if (o->watchers.empty())
+          st.watchedUnused++;
+      }
+    }
+
+  return eastl::move(st);
 }
 
 
@@ -463,11 +569,318 @@ void ObservablesGraph::onExitTriggerRoot()
 }
 
 
+void ObservablesGraph::onEnterRecalc() { ++recalcNestDepth; }
+
+void ObservablesGraph::onExitRecalc()
+{
+  --recalcNestDepth;
+
+  if (recalcNestDepth < 0)
+  {
+    G_ASSERTF(false, "recalcNestDepth = %d", recalcNestDepth);
+    recalcNestDepth = 0;
+  }
+}
+
+
+void ObservablesGraph::notifyGraphChanged()
+{
+  if (recalcNestDepth > 0)
+  {
+    if (inRecalc)
+    {
+      String rinfo;
+      inRecalc->fillInfo(rinfo);
+      logerr_graph_error(vm,
+        String(0, "FRP graph %p changed during recalc of %s\nMove side-effects to subscriber", this, rinfo.c_str()).c_str());
+    }
+    else
+    {
+      logerr_graph_error(vm,
+        String(0, "FRP graph %p changed during graph computation\nMove side-effects to subscriber", this).c_str());
+    }
+  }
+  sortedGraph.clear();
+}
+
+
+bool ObservablesGraph::updateDeferred(String &err_msg)
+{
+  TIME_PROFILE(frp_update_deferred);
+  FRPDBG("@#@ ObservablesGraph(%p)::updateDeferred()", this);
+  G_ASSERT(triggerNestDepth == 0);
+
+  auto t0 = ref_time_ticks();
+  onEnterTriggerRoot();
+
+  bool ok = true;
+
+  if (!notifyQueueCache.container.empty())
+  {
+    ok = false;
+    const char *localMsg = "Triggered while propagating changes - possibly a circular reference";
+
+    String info;
+    DEBUG_CTX(localMsg);
+    DEBUG_CTX("Notify queue (%d items):", int(notifyQueueCache.container.size()));
+    for (BaseObservable *o : notifyQueueCache.container)
+    {
+      o->fillInfo(info);
+      DEBUG_CTX("  * %s", info.c_str());
+      deferredNotifyCache.add(o);
+    }
+
+    select_err_msg(err_msg, localMsg);
+  }
+
+  notifyQueueCache.container.swap(deferredNotifyCache.container);
+  deferredNotifyCache.container.clear();
+
+  // update Computed values
+  {
+    TIME_PROFILE(frp_deps_deferred);
+    int queueSize = notifyQueueCache.container.size();
+    G_UNUSED(queueSize);
+    int numComputed = 0;
+    int initiallyMarked = 0;
+
+    if (sortedGraph.empty())
+    {
+      TIME_PROFILE(frp_topo_sort);
+      sortedGraph.reserve(allObservables.size());
+
+      // topological sort (roots-to-leaves)
+      forAllComputed([&](auto &c) {
+        numComputed++; // Note: intrusive_list's size isn't cached
+        if (c.getMarked())
+        {
+          ok = false;
+          select_err_msg(err_msg, "Computed is already marked, recursive call?");
+        }
+        else if (c.getUsed() && !c.getNeedImmediate() && (c.needRecalc || (c.maybeRecalc && c.willNotify)))
+        {
+          SET_MARKED(&c);
+          initiallyMarked++;
+        }
+
+        c.isCollected = true;
+        for (auto &s : c.sources)
+          if (s.observable->isComputed)
+          {
+            c.isCollected = false;
+            break;
+          }
+
+        if (c.isCollected)
+          sortedGraph.push_back(&c);
+      });
+
+      int startIndex = 0;
+      while (true)
+      {
+        int endIndex = sortedGraph.size();
+        if (startIndex >= endIndex)
+          break;
+
+        // collect next wave
+        for (int i = startIndex; i < endIndex; i++)
+        {
+          auto c = sortedGraph[i];
+          for (auto w : c->watchers)
+            if (auto wc = w->getComputed(); wc && !wc->isCollected)
+            {
+              bool canCollect = true;
+              for (auto &s : wc->sources)
+                if (auto sc = s.observable->getComputed(); sc && !sc->isCollected)
+                {
+                  canCollect = false;
+                  break;
+                }
+
+              if (canCollect)
+              {
+                wc->isCollected = true;
+                sortedGraph.push_back(wc);
+              }
+            }
+        }
+
+        startIndex = endIndex;
+      }
+
+      if (sortedGraph.size() < numComputed)
+      {
+        ok = false;
+        select_err_msg(err_msg, "Error: loops in FRP graph");
+        forAllComputed([&](auto &c) {
+          String info;
+          c.fillInfo(info);
+          DEBUG_CTX("part of loop: %s", info.c_str());
+        });
+      }
+    }
+    else
+    {
+      // mark deferred
+      forAllComputed([&](auto &c) {
+        if (DAGOR_UNLIKELY(c.getMarked()))
+        {
+          ok = false;
+          select_err_msg(err_msg, "Computed is already marked, recursive call?");
+        }
+        else if (c.getUsed() && !c.getNeedImmediate() && (c.needRecalc || (c.maybeRecalc && c.willNotify)))
+        {
+          SET_MARKED(&c);
+          initiallyMarked++;
+        }
+      });
+    }
+
+    // mark queued
+    for (auto o : notifyQueueCache.container)
+      if (auto c = o->getComputed())
+      {
+        c->willNotify = true;
+        if (c->needRecalc || c->maybeRecalc)
+          SET_MARKED(c);
+
+        // notify non-Computed watchers
+        G_ASSERT(!c->isIteratingWatchers);
+        c->isIteratingWatchers = true;
+        for (IStateWatcher *w : c->watchers)
+        {
+          G_ASSERT(w);
+          if (!w->getComputed() && !w->onSourceObservableChanged())
+          {
+            ok = false;
+            select_err_msg(err_msg, "Error notifying watchers (deferred)");
+          }
+        }
+        c->isIteratingWatchers = false;
+      }
+
+    // propagate mark to leaves
+    for (auto c : sortedGraph)
+      if (c->isMarked)
+        for (auto w : c->watchers)
+          if (auto wc = w->getComputed())
+            SET_MARKED(wc);
+
+    // propagate mark to roots
+    for (auto it = sortedGraph.rbegin(); it != sortedGraph.rend(); ++it)
+      if ((*it)->isMarked)
+        for (auto &s : (*it)->sources)
+          if (auto sc = s.observable->getComputed())
+            SET_MARKED(sc);
+
+    DA_PROFILE_TAG(frp_deps_deferred, "deps=%d marked=%d obs=%d queue=%d", (int)sortedGraph.size(), initiallyMarked,
+      (int)allObservables.size(), queueSize);
+  }
+
+#if FRP_DEBUG_MODE
+  int order = 0;
+  for (auto c : sortedGraph)
+  {
+    if (!c->isMarked)
+      continue;
+    FRPDBG("@#! ORDER %d [%s:%d %s]", order++, c->initInfo->initSourceFileName.c_str(), c->initInfo->initSourceLine,
+      c->initInfo->initFuncName.c_str());
+  }
+#endif
+
+  onEnterRecalc();
+
+  {
+    TIME_PROFILE(frp_deferred_recalc);
+    needRecalc = true;
+    computedRecalcs = 0;
+    int marked = 0;
+
+    int iter = 0;
+    while (needRecalc)
+    {
+      needRecalc = false;
+      if (++iter > MAX_RECALC_ITERATIONS)
+      {
+        ok = false;
+        select_err_msg(err_msg, "MAX_RECALC_ITERATIONS reached, looping?");
+        break;
+      }
+
+      // all dependent watchers network (mind the roots-to-leaves sorting order)
+      marked = 0;
+      for (auto c : sortedGraph)
+      {
+        c->wasUpdated = false;
+        if (!c->isMarked)
+          continue;
+        marked++;
+        if (!c->onTriggerBegin())
+        {
+          ok = false;
+          select_err_msg(err_msg, "Graph update failed (trigger begin)");
+        }
+      }
+
+      // all dependent watchers network (mind the roots-to-leaves sorting order)
+      for (auto c : sortedGraph)
+      {
+        if (!c->isMarked)
+          continue;
+        FRPDBG("@#! TRIGEND [%s:%d %s]", c->initInfo->initSourceFileName.c_str(), c->initInfo->initSourceLine,
+          c->initInfo->initFuncName.c_str());
+        if (!c->onTriggerEnd(true))
+        {
+          ok = false;
+          select_err_msg(err_msg, "Graph update failed (trigger end)");
+        }
+      }
+    }
+
+    for (auto c : sortedGraph)
+    {
+      c->isCollected = false;
+      c->isMarked = false;
+    }
+
+    DA_PROFILE_TAG(frp_deferred_recalc, "iter=%d marked=%d recalc=%d comp=%d", iter, marked, computedRecalcs, sortedGraph.size());
+  }
+
+  onExitRecalc();
+
+  {
+    TIME_PROFILE(frp_deferred_notify);
+    // notify subscribers
+    String subscribersErr;
+    if (!callScriptSubscribers(nullptr, subscribersErr))
+    {
+      ok = false;
+      select_err_msg(err_msg, subscribersErr);
+    }
+  }
+
+  onExitTriggerRoot();
+
+  usecUpdateDeferred += get_time_usec(t0);
+  FRPDBG("@#@ / ObservablesGraph(%p)::updateDeferred()", this);
+  return ok;
+}
+
+
 bool ObservablesGraph::callScriptSubscribers(BaseObservable *triggered_node, String &err_msg)
 {
-  triggered_node->collectScriptSubscribers(subscriberCallsQueue);
+  if (triggered_node)
+  {
+    deferredNotifyCache.remove(triggered_node);
+    triggered_node->collectScriptSubscribers(subscriberCallsQueue);
+    triggered_node->willNotify = false;
+  }
   for (BaseObservable *node : notifyQueueCache.container)
+  {
+    deferredNotifyCache.remove(node);
     node->collectScriptSubscribers(subscriberCallsQueue);
+    node->willNotify = false;
+  }
   notifyQueueCache.container.clear();
 
   if (subscriberCallsQueue.size() > MAX_ALLOWED_SUBSCRIBERS_QUEUE_LENGTH)
@@ -483,6 +896,7 @@ bool ObservablesGraph::callScriptSubscribers(BaseObservable *triggered_node, Str
   if (isCallingSubscribers) // leave processing to top level call
     return true;
 
+  auto t0 = ref_time_ticks();
   bool ok = true;
   for (;;)
   {
@@ -501,7 +915,8 @@ bool ObservablesGraph::callScriptSubscribers(BaseObservable *triggered_node, Str
       dumpSubscribersQueue(subscriberCallsQueue);
       curSubscriberCalls.clear();
       subscriberCallsQueue.clear(); // just in case
-      return false;
+      ok = false;
+      break;
     }
 
     for (SubscriberCall &sc : curSubscriberCalls)
@@ -521,6 +936,7 @@ bool ObservablesGraph::callScriptSubscribers(BaseObservable *triggered_node, Str
     }
     curSubscriberCalls.clear();
   }
+  usecSubscribers += get_time_usec(t0);
   return ok;
 }
 
@@ -540,10 +956,48 @@ void ObservablesGraph::dumpSubscribersQueue(Tab<SubscriberCall> &queue)
   }
 }
 
+static bool is_same_class(const Sqrat::Object &a, const Sqrat::Object &b)
+{
+  return a.GetType() == OT_CLASS && b.GetType() == OT_CLASS && a.GetObject()._unVal.pClass == b.GetObject()._unVal.pClass;
+}
 
-BaseObservable::BaseObservable(ObservablesGraph *graph_) : graph(graph_), generation(graph_->generation)
+
+SQInteger ObservablesGraph::register_stub_observable_class(HSQUIRRELVM vm)
+{
+  ObservablesGraph *self = get_from_vm(vm);
+  Sqrat::Var<Sqrat::Object> cls(vm, 2);
+
+  if (eastl::find_if(self->stubObservableClases.begin(), self->stubObservableClases.end(),
+        [&cls](const Sqrat::Object &o) { return is_same_class(o, cls.value); }) == self->stubObservableClases.end())
+  {
+    self->stubObservableClases.push_back(cls.value);
+  }
+
+  return 0;
+}
+
+
+bool ObservablesGraph::isStubObservableInstance(const Sqrat::Object &inst) const
+{
+  if (DAGOR_LIKELY(stubObservableClases.empty()))
+    return false;
+
+  SqStackChecker chk(vm);
+  sq_pushobject(vm, inst.GetObject());
+  G_VERIFY(SQ_SUCCEEDED(sq_getclass(vm, -1)));
+  Sqrat::Object cls = Sqrat::Var<Sqrat::Object>(vm, -1).value;
+  chk.restore();
+
+  bool res = eastl::find_if(stubObservableClases.begin(), stubObservableClases.end(),
+               [&cls](const Sqrat::Object &o) { return is_same_class(o, cls); }) != stubObservableClases.end();
+  return res;
+}
+
+
+BaseObservable::BaseObservable(ObservablesGraph *graph_, bool is_computed) : graph(graph_), generation(graph_->generation)
 {
   FRPDBG("@#@ BaseObservable::ctor(%p)", this);
+  isComputed = is_computed; // Note: before `addObservable`
   G_ASSERT(graph);
   if (graph)
     graph->addObservable(this);
@@ -568,12 +1022,6 @@ BaseObservable::~BaseObservable()
   FRPDBG("@#@ / BaseObservable::dtor(%p)", this);
 }
 
-
-static void select_err_msg(String &err_msg, const char *val)
-{
-  if (err_msg.empty())
-    err_msg = val;
-}
 
 static bool logerr_graph_error(HSQUIRRELVM vm, const char *err_msg)
 {
@@ -602,7 +1050,7 @@ static bool raise_graph_error(HSQUIRRELVM vm, const char *err_msg)
     return logerr_graph_error(vm, err_msg);
 }
 
-bool BaseObservable::triggerRoot(String &err_msg)
+bool BaseObservable::triggerRoot(String &err_msg, bool call_subscribers)
 {
   G_ASSERT(this);
   if (isInTrigger)
@@ -611,6 +1059,15 @@ bool BaseObservable::triggerRoot(String &err_msg)
     return false;
   }
 
+  if (graph->inRecalc)
+  {
+    String info, rinfo;
+    fillInfo(info);
+    graph->inRecalc->fillInfo(rinfo);
+    logerr("%s triggered during recalc of %s", info.c_str(), rinfo.c_str());
+  }
+
+  auto t0 = ref_time_ticks();
   graph->onEnterTriggerRoot();
 
   bool ok = true;
@@ -620,15 +1077,15 @@ bool BaseObservable::triggerRoot(String &err_msg)
     ok = false;
     const char *localMsg = "Triggered while propagating changes - possibly a circular reference";
 
-    debug_ctx(localMsg);
+    DEBUG_CTX(localMsg);
     String info;
     fillInfo(info);
-    debug_ctx("Triggered observable: %s", info.c_str());
-    debug_ctx("Notify queue (%d items):", int(graph->notifyQueueCache.container.size()));
+    DEBUG_CTX("Triggered observable: %s", info.c_str());
+    DEBUG_CTX("Notify queue (%d items):", int(graph->notifyQueueCache.container.size()));
     for (BaseObservable *o : graph->notifyQueueCache.container)
     {
       o->fillInfo(info);
-      debug_ctx("  * %s", info.c_str());
+      DEBUG_CTX("  * %s", info.c_str());
     }
 
     select_err_msg(err_msg, localMsg);
@@ -637,7 +1094,7 @@ bool BaseObservable::triggerRoot(String &err_msg)
   isInTrigger = true;
   isIteratingWatchers = true;
 
-  IStateWatcher::DependenciesQueue sorted_deps;
+  ComputedValue::DependenciesQueue sorted_deps;
 #if TIME_PROFILER_ENABLED
   if (!watchers.empty())
 #endif
@@ -645,7 +1102,8 @@ bool BaseObservable::triggerRoot(String &err_msg)
     TIME_PROFILE(frp_collect_deps);
     int maxDepth = 0;
     for (IStateWatcher *w : watchers)
-      maxDepth = max(maxDepth, w->collectDependencies(sorted_deps, /*depth*/ 0));
+      if (auto c = w->getComputed())
+        maxDepth = max(maxDepth, c->collectDependencies(sorted_deps, /*depth*/ 0));
     DA_PROFILE_TAG(frp_collect_deps, "deps.size=%d maxDepth=%d", (int)sorted_deps.size(), maxDepth);
   }
 
@@ -667,30 +1125,51 @@ bool BaseObservable::triggerRoot(String &err_msg)
       ok = false;
       select_err_msg(err_msg, "Graph update failed (notifying root change)");
     }
+#if FRP_DEBUG_MODE
+    if (auto c = w->getComputed())
+    {
+      auto initInfo = getInitInfo();
+      auto &cii = *c->getInitInfo();
+      FRPDBG("@#! TRIG>RECALC [%s:%d %s] => [%s:%d %s]", (initInfo ? initInfo->initSourceFileName.c_str() : "?"),
+        (initInfo ? initInfo->initSourceLine : 0), (initInfo ? initInfo->initFuncName.c_str() : "?"), cii.initSourceFileName.c_str(),
+        cii.initSourceLine, cii.initFuncName.c_str());
+    }
+#endif
   }
 
   // all dependent watchers network (mind the leaves-to-root sorting order)
   for (auto it = sorted_deps.rbegin(); it != sorted_deps.rend(); ++it)
   {
-    if (!(*it)->onTriggerEnd())
+    if (!(*it)->onTriggerEnd(false))
     {
       ok = false;
       select_err_msg(err_msg, "Graph update failed (trigger end)");
     }
+    (*it)->isMarked = false;
   }
 
   isIteratingWatchers = false;
 
-  String subscribersErr;
-  if (!graph->callScriptSubscribers(this, subscribersErr))
+  if (call_subscribers)
   {
-    ok = false;
-    select_err_msg(err_msg, subscribersErr);
+    String subscribersErr;
+    if (!graph->callScriptSubscribers(this, subscribersErr))
+    {
+      ok = false;
+      select_err_msg(err_msg, subscribersErr);
+    }
+  }
+  else
+  {
+    for (auto o : graph->notifyQueueCache.container)
+      o->willNotify = false;
+    graph->notifyQueueCache.container.clear();
   }
 
   isInTrigger = false;
 
   graph->onExitTriggerRoot();
+  graph->usecTrigger += get_time_usec(t0);
 
   return ok;
 }
@@ -720,7 +1199,17 @@ void BaseObservable::subscribeWatcher(IStateWatcher *watcher)
   if (watcher)
   {
     if (find_value_idx(watchers, watcher) < 0)
+    {
       watchers.push_back(watcher);
+      if (auto thisComp = getComputed())
+      {
+        auto watcherComp = watcher->getComputed();
+        if (!watcherComp || watcherComp->getUsed())
+          thisComp->updateUsed(true);
+        if (watcherComp && watcherComp->getNeedImmediate())
+          thisComp->updateNeedImmediate(true);
+      }
+    }
   }
   FRPDBG("@#@ %p watchers count = %d", this, int(watchers.size()));
 }
@@ -731,14 +1220,17 @@ void BaseObservable::unsubscribeWatcher(IStateWatcher *watcher)
   FRPDBG("@#@ BaseObservable(%p)::unsubscribeWatcher(%p)", this, watcher);
   G_ASSERT(!isIteratingWatchers);
   erase_item_by_value(watchers, watcher);
+  if (auto thisComp = getComputed())
+  {
+    if (watchers.empty())
+      thisComp->updateUsed(false);
+    if (auto watcherComp = watcher->getComputed(); watcherComp && watcherComp->getNeedImmediate())
+      thisComp->updateNeedImmediate(false);
+  }
 }
 
 
-static bool are_sq_obj_equal(HSQUIRRELVM vm, const HSQOBJECT &a, const HSQOBJECT &b)
-{
-  SQInteger res = 0;
-  return sq_direct_cmp(vm, &a, &b, &res) && (res == 0);
-}
+static bool are_sq_obj_equal(HSQUIRRELVM vm, const HSQOBJECT &a, const HSQOBJECT &b) { return sq_direct_is_equal(vm, &a, &b); }
 
 
 SQInteger BaseObservable::subscribe(HSQUIRRELVM vm)
@@ -763,7 +1255,11 @@ SQInteger BaseObservable::subscribe(HSQUIRRELVM vm)
     }) == self.value->scriptSubscribers.end();
 
   if (isNew)
+  {
     self.value->scriptSubscribers.push_back(Sqrat::Function(vm, Sqrat::Object(vm), func));
+    if (auto c = self.value->getComputed())
+      c->updateUsed(true);
+  }
 
   sq_push(vm, 1);
   return 1;
@@ -785,6 +1281,9 @@ SQInteger BaseObservable::unsubscribe(HSQUIRRELVM vm)
     if (are_sq_obj_equal(vm, func, self.value->scriptSubscribers[i].GetFunc()))
     {
       erase_items(self.value->scriptSubscribers, i, 1);
+      if (self.value->scriptSubscribers.empty())
+        if (auto c = self.value->getComputed())
+          c->updateUsed(false);
       break;
     }
   }
@@ -833,10 +1332,10 @@ SQInteger BaseObservable::dbgGetListeners(HSQUIRRELVM vm)
 }
 
 
-void BaseObservable::onGraphShutdown(bool exiting, Tab<Sqrat::Object> &cleared_storage)
+void BaseObservable::onGraphShutdown(bool is_closing_vm, Tab<Sqrat::Object> &cleared_storage)
 {
-  G_UNUSED(exiting);
-  FRPDBG("@#@ BaseObservable(%p)::onGraphShutdown(exiting = %d)", this, exiting);
+  G_UNUSED(is_closing_vm);
+  FRPDBG("@#@ BaseObservable(%p)::onGraphShutdown(is_closing_vm = %d)", this, is_closing_vm);
   cleared_storage.reserve(cleared_storage.size() + scriptSubscribers.size());
   for (Sqrat::Function &f : scriptSubscribers)
     cleared_storage.push_back(Sqrat::Object(f.GetFunc(), graph->vm));
@@ -844,30 +1343,35 @@ void BaseObservable::onGraphShutdown(bool exiting, Tab<Sqrat::Object> &cleared_s
 }
 
 
-HSQOBJECT BaseObservable::dbgGetCurrentSqInstance() { return get_observable_instance(graph->vm, this); }
+HSQOBJECT BaseObservable::getCurScriptInstance() { return get_observable_instance(graph->vm, this); }
 
 
-ScriptValueObservable::ScriptValueObservable(ObservablesGraph *graph_) : BaseObservable(graph_)
+ScriptValueObservable::ScriptValueObservable(ObservablesGraph *graph_) :
+  BaseObservable(graph_), initInfo(eastl::make_unique<ScriptSourceInfo>()) // To consider: separate pool for it?
 {
-  initInfo.init(graph_->vm);
+  checkNestedObservable = true;
+  initInfo->init(graph_->vm);
   VT_TRACE_SINGLE(this, value.GetObject(), graph_->vm);
 
   timeChangeReq = timeChanged = ::get_time_msec();
 }
 
 
-ScriptValueObservable::ScriptValueObservable(Sqrat::Object val) :
-  BaseObservable(ObservablesGraph::get_from_vm(val.GetVM())), value(val)
+ScriptValueObservable::ScriptValueObservable(ObservablesGraph *graph_, Sqrat::Object val, bool is_computed) :
+  BaseObservable(graph_, is_computed), value(val), initInfo(eastl::make_unique<ScriptSourceInfo>()) // To consider: separate pool for
+                                                                                                    // it?
 {
+  checkNestedObservable = true;
   if (graph->forceImmutable)
     value.FreezeSelf();
 
-  initInfo.init(val.GetVM());
+  initInfo->init(val.GetVM());
   VT_TRACE_SINGLE(this, value.GetObject(), val.GetVM());
 
   timeChangeReq = timeChanged = ::get_time_msec();
 }
 
+ScriptValueObservable::~ScriptValueObservable() = default;
 
 bool ScriptValueObservable::setValue(const Sqrat::Object &new_val, String &err_msg)
 {
@@ -882,11 +1386,9 @@ bool ScriptValueObservable::setValue(const Sqrat::Object &new_val, String &err_m
 
   timeChangeReq = ::get_time_msec();
 
-  SQInteger cmpRes = 0;
   const HSQOBJECT &objOld = value.GetObject();
   const HSQOBJECT &objNew = new_val.GetObject();
-  bool compared = sq_direct_cmp(vm, &objOld, &objNew, &cmpRes);
-  if (!compared || cmpRes != 0)
+  if (!sq_direct_is_equal(vm, &objOld, &objNew))
   {
     value = new_val;
     if (graph->forceImmutable)
@@ -907,7 +1409,7 @@ bool ScriptValueObservable::setValue(const Sqrat::Object &new_val, String &err_m
 
 Sqrat::Object ScriptValueObservable::trace()
 {
-#if DAGOR_DBGLEVEL > 0 && _TARGET_PC_WIN
+#if SQ_VAR_TRACE_ENABLED
   HSQUIRRELVM vm = value.GetVM();
   if (!vm)
     return Sqrat::Object();
@@ -1021,9 +1523,7 @@ SQInteger ScriptValueObservable::update(HSQUIRRELVM vm, int arg_pos)
     HSQOBJECT hNewVal;
     sq_getstackobj(vm, arg_pos, &hNewVal);
     const HSQOBJECT &hOldVal = self->value.GetObject();
-    SQInteger cmpRes = 0;
-    bool compared = sq_direct_cmp(vm, &hOldVal, &hNewVal, &cmpRes);
-    if (compared && cmpRes == 0)
+    if (sq_direct_is_equal(vm, &hOldVal, &hNewVal))
       return 0;
 
     self->value = Sqrat::Object(hNewVal, vm);
@@ -1149,9 +1649,9 @@ SQInteger ScriptValueObservable::_delslot(HSQUIRRELVM vm)
 }
 
 
-void ScriptValueObservable::onGraphShutdown(bool exiting, Tab<Sqrat::Object> &cleared_storage)
+void ScriptValueObservable::onGraphShutdown(bool is_closing_vm, Tab<Sqrat::Object> &cleared_storage)
 {
-  FRPDBG("@#@ ScriptValueObservable(%p)::onGraphShutdown::onGraphShutdown(exiting = %d)", this, exiting);
+  FRPDBG("@#@ ScriptValueObservable(%p)::onGraphShutdown::onGraphShutdown(is_closing_vm = %d)", this, is_closing_vm);
 
   // protect observable from being destructed by zeroing refcount during
   // release of script subscribers
@@ -1160,10 +1660,10 @@ void ScriptValueObservable::onGraphShutdown(bool exiting, Tab<Sqrat::Object> &cl
   FRPDBG("@#@ script instance is %s", sq_isnull(hInstance) ? "NULL" : "NOT NULL");
   sq_addref(vm, &hInstance);
 
-  if (exiting)
+  if (is_closing_vm)
     value.Release();
 
-  BaseObservable::onGraphShutdown(exiting, cleared_storage);
+  BaseObservable::onGraphShutdown(is_closing_vm, cleared_storage);
 
   append_items(cleared_storage, mutatorClosuresWhiteList.size(), mutatorClosuresWhiteList.data());
   mutatorClosuresWhiteList.clear();
@@ -1174,13 +1674,13 @@ void ScriptValueObservable::onGraphShutdown(bool exiting, Tab<Sqrat::Object> &cl
 
 void ScriptValueObservable::fillInfo(Sqrat::Table &t) const
 {
-  initInfo.fillInfo(t);
+  initInfo->fillInfo(t);
   t.SetValue("value", value);
 }
 
 void ScriptValueObservable::fillInfo(String &s) const
 {
-  initInfo.toString(s);
+  initInfo->toString(s);
 
   HSQUIRRELVM vm = graph->vm;
   G_ASSERT(vm);
@@ -1203,12 +1703,12 @@ void ScriptValueObservable::whiteListMutatorClosure(Sqrat::Object closure)
 }
 
 
-HSQOBJECT ScriptValueObservable::dbgGetCurrentSqInstance()
+HSQOBJECT ScriptValueObservable::getCurScriptInstance()
 {
   HSQOBJECT o = get_observable_instance(graph->vm, this);
   if (!sq_isnull(o))
     return o;
-  return BaseObservable::dbgGetCurrentSqInstance();
+  return BaseObservable::getCurScriptInstance();
 }
 
 
@@ -1219,7 +1719,7 @@ SQInteger ScriptValueObservable::script_ctor(HSQUIRRELVM vm)
     return sq_throwerror(vm, "Too many arguments");
 
   Sqrat::Object initialValue(vm);
-  bool checkNestedObservable = true;
+  bool checkNested = true;
   int totalValues = 0;
   for (int i = 2, n = sq_gettop(vm); i <= n; ++i)
   {
@@ -1229,7 +1729,7 @@ SQInteger ScriptValueObservable::script_ctor(HSQUIRRELVM vm)
       SQUserPointer up;
       G_VERIFY(SQ_SUCCEEDED(sq_getuserpointer(vm, i, &up)));
       if (up == dont_check_nested)
-        checkNestedObservable = false;
+        checkNested = false;
       else
         return sqstd_throwerrorf(vm, "Invalid userpointer argument at %d", i);
     }
@@ -1246,7 +1746,7 @@ SQInteger ScriptValueObservable::script_ctor(HSQUIRRELVM vm)
     return sq_throwerror(vm, "Too many value arguments");
 
   ObservablesGraph *graph = ObservablesGraph::get_from_vm(vm);
-  if (checkNestedObservable && graph->checkNestedObservable)
+  if (checkNested && graph->checkNestedObservable)
   {
     String errMsg, path;
     if (has_script_observable_references(initialValue, errMsg, path))
@@ -1261,21 +1761,26 @@ SQInteger ScriptValueObservable::script_ctor(HSQUIRRELVM vm)
       if (stack)
         sq_pop(vm, 1);
 
-      checkNestedObservable = false; // report once per run
+      checkNested = false; // report once per run
     }
   }
 
-  ScriptValueObservable *inst = new ScriptValueObservable(initialValue);
-  inst->checkNestedObservable = checkNestedObservable;
+  ScriptValueObservable *inst = new ScriptValueObservable(graph, eastl::move(initialValue));
+  inst->checkNestedObservable = checkNested;
   Sqrat::ClassType<ScriptValueObservable>::SetManagedInstance(vm, 1, inst);
   return 0;
 }
 
 
-ComputedValue::ComputedValue(Sqrat::Function func_, Sqrat::Object initial_value, bool pass_cur_val_to_cb) :
-  ScriptValueObservable(func_.GetVM()), func(func_), funcAcceptsCurVal(pass_cur_val_to_cb)
+ComputedValue::ComputedValue(ObservablesGraph *g, Sqrat::Function func_, dag::Vector<ComputedSource> &&sources_,
+  Sqrat::Object initial_value, bool pass_cur_val_to_cb) :
+  ScriptValueObservable(g, func_.GetVM(), /*is_computed*/ true), func(func_), sources(eastl::move(sources_))
 {
   FRPDBG("@#@ ComputedValue::ctor(%p | %p)", this, (IStateWatcher *)this);
+  funcAcceptsCurVal = pass_cur_val_to_cb;
+  isStateValid = true;
+  isDeferred = graph->defaultDeferred;
+  needImmediate = !isDeferred;
 
   value = initial_value;
   value.FreezeSelf();
@@ -1283,12 +1788,22 @@ ComputedValue::ComputedValue(Sqrat::Function func_, Sqrat::Object initial_value,
   SQFunctionInfo fi;
   if (SQ_SUCCEEDED(sq_ext_getfuncinfo(func.GetFunc(), &fi)))
   {
-    initInfo.initFuncName = fi.name;
-    initInfo.initSourceFileName = fi.source;
-    initInfo.initSourceLine = fi.line;
+    initInfo->initFuncName = fi.name;
+    initInfo->initSourceFileName = fi.source;
+    initInfo->initSourceLine = fi.line;
   }
 
-  collectSourcesFromFreeVars(func_.GetVM(), func_.GetFunc());
+  for (ComputedSource &src : sources)
+  {
+    FRPDBG("@#@ %p (%s)->subscribeWatcher(%p | %p)", src.observable, src.varName.c_str(), this, (IStateWatcher *)this);
+    src.observable->subscribeWatcher(this);
+#if FRP_DEBUG_MODE
+    if (auto c = src.observable->getComputed())
+      FRPDBG("@#! INIT [%s:%d %s] => [%s:%d %s]", c->initInfo->initSourceFileName.c_str(), c->initInfo->initSourceLine,
+        c->initInfo->initFuncName.c_str(), initInfo->initSourceFileName.c_str(), initInfo->initSourceLine,
+        initInfo->initFuncName.c_str());
+#endif
+  }
 }
 
 
@@ -1305,40 +1820,61 @@ ComputedValue::~ComputedValue()
 }
 
 
-HSQOBJECT ComputedValue::dbgGetCurrentSqInstance()
+HSQOBJECT ComputedValue::getCurScriptInstance()
 {
   HSQOBJECT o = get_observable_instance(graph->vm, this);
   if (!sq_isnull(o))
     return o;
-  return ScriptValueObservable::dbgGetCurrentSqInstance();
+  return ScriptValueObservable::getCurScriptInstance();
 }
 
 
-Sqrat::Object ComputedValue::dbgGetWatcherScriptInstance() { return Sqrat::Object(dbgGetCurrentSqInstance(), graph->vm); }
+Sqrat::Object ComputedValue::dbgGetWatcherScriptInstance() { return Sqrat::Object(getCurScriptInstance(), graph->vm); }
 
 
-void ComputedValue::collectSourcesFromFreeVars(HSQUIRRELVM vm, HSQOBJECT func_obj)
+bool ComputedValue::collect_sources_from_free_vars(ObservablesGraph *graph, HSQUIRRELVM vm, HSQOBJECT func_obj,
+  dag::Vector<ComputedValue::ComputedSource> &sources, VisitedSet &visited)
 {
+  auto [_, inserted] = visited.insert(func_obj._unVal.raw);
+  if (!inserted)
+    return false;
+
+  bool areSourcesFound = false;
+
   // G_ASSERT(sources.empty());
   SqStackChecker stackCheck(vm);
   sq_pushobject(vm, func_obj);
   SQInteger nparams = 0, nfreevars = 0;
   G_VERIFY(SQ_SUCCEEDED(sq_getclosureinfo(vm, -1, &nparams, &nfreevars)));
-  FRPDBG("@#@ ComputedValue(%p | %p)::collectSourcesFromFreeVars(), nfreevars = %d", this, (IStateWatcher *)this, int(nfreevars));
+
+#if FRP_DEBUG_MODE
+  if (SQ_SUCCEEDED(sq_getclosurename(vm, -1)))
+  {
+    const char *name = nullptr;
+    sq_getstring(vm, -1, &name);
+    FRPDBG("@#@ collecting sources from %s", name);
+    sq_pop(vm, 1);
+  }
+  else
+    FRPDBG("@#@ collecting sources from unknown closure %p", func_obj._unVal.raw);
+#endif
 
   for (SQInteger i = 0; i < nfreevars; ++i)
   {
     const char *varName = sq_getfreevariable(vm, -1, i);
     G_ASSERT(varName);
-    FRPDBG("@#@ var #%d/%d name = %s", int(i), int(nfreevars), varName);
     if (varName)
     {
-      if (sq_gettype(vm, -1) == OT_CLOSURE)
+      SQObjectType varType = sq_gettype(vm, -1);
+      if (varType == OT_CLOSURE)
       {
         HSQOBJECT f;
         sq_getstackobj(vm, -1, &f);
-        if (_closure(f)->_function->_hoistingLevel > 0)
-          collectSourcesFromFreeVars(vm, f);
+        if (graph->doCollectSourcesRecursively || _closure(f)->_function->_hoistingLevel > 0)
+        {
+          if (collect_sources_from_free_vars(graph, vm, f, sources, visited))
+            areSourcesFound = true;
+        }
       }
       else if (Sqrat::ClassType<BaseObservable>::IsClassInstance(vm, -1))
       {
@@ -1348,12 +1884,15 @@ void ComputedValue::collectSourcesFromFreeVars(HSQUIRRELVM vm, HSQOBJECT func_ob
 
         if (isUnique)
         {
-          FRPDBG("@#@ %p (%s)->subscribeWatcher(%p | %p)", obsVar.value, varName, this, (IStateWatcher *)this);
-          obsVar.value->subscribeWatcher(this);
           ComputedSource &src = sources.push_back();
           src.varName = varName;
           src.observable = obsVar.value;
+          areSourcesFound = true;
         }
+      }
+      else if (varType == OT_INSTANCE && graph->isStubObservableInstance(Sqrat::Var<Sqrat::Object>(vm, -1).value))
+      {
+        areSourcesFound = true;
       }
     }
     sq_pop(vm, 1);
@@ -1362,17 +1901,20 @@ void ComputedValue::collectSourcesFromFreeVars(HSQUIRRELVM vm, HSQOBJECT func_ob
 
   stackCheck.check();
 
-  G_ASSERT_RETURN(func_obj._type == OT_CLOSURE, );
+  G_ASSERT_RETURN(func_obj._type == OT_CLOSURE, areSourcesFound);
   SQFunctionProto *proto = func_obj._unVal.pClosure->_function;
   for (SQInteger iConst = 0; iConst < proto->_nliterals; ++iConst)
   {
     SQObjectPtr &constant = proto->_literals[iConst];
+    SQObjectType constType = sq_type(constant);
 
-    if (sq_type(constant) == OT_CLOSURE)
+    if (constType == OT_CLOSURE)
     {
-      // should not happen but just in case
-      if (_closure(constant)->_function->_hoistingLevel > 0)
-        collectSourcesFromFreeVars(vm, constant);
+      if (graph->doCollectSourcesRecursively || _closure(constant)->_function->_hoistingLevel > 0)
+      {
+        if (collect_sources_from_free_vars(graph, vm, constant, sources, visited))
+          areSourcesFound = true;
+      }
     }
     else if (Sqrat::ClassType<BaseObservable>::IsClassInstance(constant))
     {
@@ -1380,32 +1922,81 @@ void ComputedValue::collectSourcesFromFreeVars(HSQUIRRELVM vm, HSQOBJECT func_ob
 
       sq_pushobject(vm, constant);
       Sqrat::Var<BaseObservable *> obsVar(vm, -1);
-      FRPDBG("@#@ %p (%s)->subscribeWatcher(%p | %p)", obsVar.value, "#constant", this, (IStateWatcher *)this);
-      obsVar.value->subscribeWatcher(this);
       ComputedSource &src = sources.push_back();
       src.varName = "#constant";
       src.observable = obsVar.value;
       sq_pop(vm, 1); // constant
+
+      areSourcesFound = true;
+    }
+    else if (constType == OT_INSTANCE && graph->isStubObservableInstance(Sqrat::Object(HSQOBJECT(constant), vm)))
+    {
+      areSourcesFound = true;
     }
   }
+
+  return areSourcesFound;
 }
 
 
 int ComputedValue::collectDependencies(DependenciesQueue &out_queue, int depth)
 {
   int maxDepth = ++depth;
-  if (eastl::find(out_queue.begin(), out_queue.end(), this) != out_queue.end())
+  if (isMarked)
     return maxDepth;
   for (IStateWatcher *w : watchers)
-    maxDepth = max(maxDepth, w->collectDependencies(out_queue, depth));
-  if (eastl::find(out_queue.begin(), out_queue.end(), this) == out_queue.end())
+    if (auto c = w->getComputed())
+      maxDepth = max(maxDepth, c->collectDependencies(out_queue, depth));
+  if (!isMarked)
+  {
+    isMarked = true;
     out_queue.push_back(this);
+  }
   return maxDepth;
+}
+
+
+void ComputedValue::onValueRequested()
+{
+  if (!needRecalc && !maybeRecalc)
+    return;
+
+  FRPDBG("@#@ ComputedValue::onValueRequested(%p | %p)", this, (IStateWatcher *)this);
+  bool ok = true;
+  if (recalculate(ok))
+  {
+    // notify Computed watchers only (since it's safe to do)
+    G_ASSERT(!isIteratingWatchers);
+    isIteratingWatchers = true;
+    for (IStateWatcher *w : watchers)
+    {
+      G_ASSERT(w);
+      if (w->getComputed() && !w->onSourceObservableChanged())
+        ok = false;
+#if FRP_DEBUG_MODE
+      if (auto c = w->getComputed())
+      {
+        FRPDBG("@#! GET>RECALC [%s:%d %s] => [%s:%d %s]", initInfo->initSourceFileName.c_str(), initInfo->initSourceLine,
+          initInfo->initFuncName.c_str(), c->initInfo->initSourceFileName.c_str(), c->initInfo->initSourceLine,
+          c->initInfo->initFuncName.c_str());
+      }
+#endif
+    }
+    isIteratingWatchers = false;
+
+    (isInTrigger ? graph->notifyQueueCache : graph->deferredNotifyCache).add(this);
+    if (isInTrigger)
+      willNotify = true;
+  }
 }
 
 
 bool ComputedValue::onTriggerBegin()
 {
+  // prevent deletion during trigger
+  HSQOBJECT h = getCurScriptInstance();
+  sq_addref(graph->vm, &h);
+
   if (isInTrigger)
   {
     String info;
@@ -1415,6 +2006,7 @@ bool ComputedValue::onTriggerBegin()
     return false;
   }
   isInTrigger = true;
+  wasUpdated = false;
   return true;
 }
 
@@ -1422,49 +2014,192 @@ bool ComputedValue::onTriggerBegin()
 bool ComputedValue::onSourceObservableChanged()
 {
   G_ASSERT(isStateValid);
-  needRecalc = true;
+  if (!needRecalc)
+  {
+    needRecalc = true;
+    bool gotError = false;
+    if (wasUpdated)
+    {
+      graph->needRecalc = true;
+      if (graph->getRecalcDepth() > 0)
+        gotError = true;
+    }
+
+    if (gotError)
+    {
+      if (graph->inRecalc)
+      {
+        String rinfo, info;
+        graph->inRecalc->fillInfo(rinfo);
+        fillInfo(info);
+        String msg(0, "Computed %s invalidated during recalc of %s\nMove side-effects to subscriber", info.c_str(), rinfo.c_str());
+        if (graph->inRecalc->isImplicitSource(this))
+          logwarn("%s", msg.c_str());
+        else
+          logerr_graph_error(graph->vm, msg.c_str());
+      }
+      else
+      {
+        String info;
+        fillInfo(info);
+        logerr_graph_error(graph->vm,
+          String(0, "Computed %s invalidated while updating the graph\nMove side-effects to subscriber", info.c_str()).c_str());
+      }
+    }
+  }
   return true;
 }
 
 
-bool ComputedValue::onTriggerEnd()
+void ComputedValue::removeMaybeRecalc()
+{
+  if (needRecalc || !maybeRecalc)
+    return;
+  maybeRecalc = false;
+  for (auto w : watchers)
+    if (auto c = w->getComputed())
+      c->removeMaybeRecalc();
+}
+
+
+bool ComputedValue::onTriggerEnd(bool deferred)
 {
   bool ok = true;
 
-  if (needRecalc)
+  if ((needRecalc || (maybeRecalc && (willNotify || deferred))) && (deferred || (needImmediate && isUsed)))
   {
-    ok = recalculate();
+    if (recalculate(ok))
+    {
+      ok = invalidateWatchers();
+      graph->notifyQueueCache.add(this);
+      willNotify = true;
+    }
+    else
+    {
+      for (auto w : watchers)
+        if (auto c = w->getComputed())
+          c->removeMaybeRecalc();
+    }
+  }
+  else if (needRecalc || maybeRecalc)
+  {
+    for (auto w : watchers)
+      if (auto c = w->getComputed())
+      {
+#if FRP_DEBUG_MODE
+        if (!c->maybeRecalc && !c->needRecalc)
+        {
+          FRPDBG("@#! MAYBE [%s:%d %s] => [%s:%d %s]", initInfo->initSourceFileName.c_str(), initInfo->initSourceLine,
+            initInfo->initFuncName.c_str(), c->initInfo->initSourceFileName.c_str(), c->initInfo->initSourceLine,
+            c->initInfo->initFuncName.c_str());
+        }
+#endif
+        c->maybeRecalc = true;
+      }
   }
 
-  needRecalc = false;
   isInTrigger = false;
+  wasUpdated = true;
+
+  // release protection against deletion during trigger
+  HSQOBJECT h = getCurScriptInstance();
+  sq_release(graph->vm, &h);
 
   return ok;
 }
 
 
-bool ComputedValue::recalculate()
+bool ComputedValue::recalculate(bool &ok)
 {
+  TIME_PROFILE(computed_recalculate);
+
+#if FRP_DEBUG_MODE
+  {
+    FRPDBG("@#! RECALC [%s:%d %s]", initInfo->initSourceFileName.c_str(), initInfo->initSourceLine, initInfo->initFuncName.c_str());
+  }
+#endif
+
+  auto prevRecalc = graph->inRecalc;
+  graph->inRecalc = this;
+  needRecalc = true;
+
+  if (prevRecalc && graph->getRecalcDepth() > 0)
+  {
+    String info, rinfo;
+    fillInfo(info);
+    prevRecalc->fillInfo(rinfo);
+    String msg(0, "Computed %s recalculating during recalc of %s\nMove side-effects to subscriber", info.c_str(), rinfo.c_str());
+    if (prevRecalc->isImplicitSource(this))
+      logwarn("%s", msg.c_str());
+    else
+      logerr_graph_error(graph->vm, msg.c_str());
+  }
+
   Sqrat::Object newVal;
   bool callSucceeded = false;
+  auto t0 = ref_time_ticks();
   if (funcAcceptsCurVal)
     callSucceeded = func.Evaluate(value, newVal);
   else
     callSucceeded = func.Evaluate(newVal);
 
+  graph->inRecalc = prevRecalc;
+  needRecalc = false;
+  maybeRecalc = false;
+
+  int timeUsec = get_time_usec(t0);
+  (isUsed ? graph->usecUsedComputed : graph->usecUnusedComputed) += timeUsec;
+  graph->computedRecalcs++;
+
+  if (timeUsec > 5000)
+  {
+    String info;
+    fillInfo(info);
+    logwarn("slow Computed (%dus): %s", timeUsec, info.c_str());
+  }
+
   if (!callSucceeded)
+  {
+    ok = false;
     return false;
+  }
 
   timeChangeReq = ::get_time_msec();
 
   HSQUIRRELVM vm = func.GetVM();
-  SQInteger cmpRes = 0;
   const HSQOBJECT &objOld = value.GetObject();
   const HSQOBJECT &objNew = newVal.GetObject();
-  bool compared = sq_direct_cmp(vm, &objOld, &objNew, &cmpRes);
-  bool changed = !compared || cmpRes != 0;
-  if (!changed)
-    return true;
+  if (sq_fast_equal_by_value_deep(&objOld, &objNew, 1))
+    return false;
+
+#if FRP_DEBUG_MODE
+  {
+    HSQUIRRELVM vm = graph->vm;
+    G_ASSERT(vm);
+
+    sq_pushobject(vm, value.GetObject());
+    if (SQ_SUCCEEDED(sq_tostring(vm, -1)))
+    {
+      const char *valStr = nullptr;
+      G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm, -1, &valStr)));
+      FRPDBG("@#! BEFORE [%s:%d %s] %s", initInfo->initSourceFileName.c_str(), initInfo->initSourceLine,
+        initInfo->initFuncName.c_str(), valStr);
+      sq_pop(vm, 1);
+    }
+    sq_pop(vm, 1);
+
+    sq_pushobject(vm, newVal.GetObject());
+    if (SQ_SUCCEEDED(sq_tostring(vm, -1)))
+    {
+      const char *valStr = nullptr;
+      G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm, -1, &valStr)));
+      FRPDBG("@#! AFTER [%s:%d %s] %s", initInfo->initSourceFileName.c_str(), initInfo->initSourceLine, initInfo->initFuncName.c_str(),
+        valStr);
+      sq_pop(vm, 1);
+    }
+    sq_pop(vm, 1);
+  }
+#endif
 
   reportNestedObservables(vm, newVal);
 
@@ -1473,11 +2208,7 @@ bool ComputedValue::recalculate()
   timeChanged = timeChangeReq;
   VT_TRACE_SINGLE(this, value.GetObject(), vm);
 
-  bool ok = invalidateWatchers();
-
-  graph->notifyQueueCache.add(this);
-
-  return ok;
+  return true;
 }
 
 
@@ -1491,17 +2222,28 @@ bool ComputedValue::invalidateWatchers()
     G_ASSERT(w);
     if (!w->onSourceObservableChanged())
       ok = false;
+#if FRP_DEBUG_MODE
+    if (auto c = w->getComputed())
+    {
+      String info, winfo;
+      fillInfo(info);
+      c->fillInfo(winfo);
+      FRPDBG("@#! RECALC>RECALC [%s:%d %s] => [%s:%d %s]", initInfo->initSourceFileName.c_str(), initInfo->initSourceLine,
+        initInfo->initFuncName.c_str(), c->initInfo->initSourceFileName.c_str(), c->initInfo->initSourceLine,
+        c->initInfo->initFuncName.c_str());
+    }
+#endif
   }
   isIteratingWatchers = false;
   return ok;
 }
 
 
-void ComputedValue::onGraphShutdown(bool exiting, Tab<Sqrat::Object> &cleared_storage)
+void ComputedValue::onGraphShutdown(bool is_closing_vm, Tab<Sqrat::Object> &cleared_storage)
 {
-  FRPDBG("@#@ ComputedValue(%p)::onGraphShutdown::onGraphShutdown(exiting = %d)", this, exiting);
+  FRPDBG("@#@ ComputedValue(%p)::onGraphShutdown::onGraphShutdown(is_closing_vm = %d)", this, is_closing_vm);
 
-  if (exiting)
+  if (is_closing_vm)
     isShuttingDown = true;
 
   // protect observable from being destructed by zeroing refcount during
@@ -1511,13 +2253,13 @@ void ComputedValue::onGraphShutdown(bool exiting, Tab<Sqrat::Object> &cleared_st
   FRPDBG("@#@ script instance is %s", sq_isnull(hInstance) ? "NULL" : "NOT NULL");
   sq_addref(vm, &hInstance);
 
-  if (exiting)
+  if (is_closing_vm)
   {
     cleared_storage.push_back(Sqrat::Object(func.GetFunc(), graph->vm));
     func.Release();
   }
 
-  ScriptValueObservable::onGraphShutdown(exiting, cleared_storage);
+  ScriptValueObservable::onGraphShutdown(is_closing_vm, cleared_storage);
 
   sq_release(vm, &hInstance);
 }
@@ -1535,7 +2277,7 @@ void ComputedValue::onObservableRelease(BaseObservable *observable)
     if (sources[i].observable == observable)
     {
       if (!isShuttingDown)
-        sourceName = sources[i].varName; // for diagnostics
+        sourceName = sources[i].varName.c_str(); // for diagnostics
       erase_items(sources, i, 1);
       break;
     }
@@ -1543,10 +2285,84 @@ void ComputedValue::onObservableRelease(BaseObservable *observable)
 
   if (!isShuttingDown)
   {
-    logerr("[FRP] Computed %s (%s:%d) source Observable '%s' was released too early", initInfo.initFuncName.c_str(),
-      initInfo.initSourceFileName.c_str(), int(initInfo.initSourceLine), sourceName.empty() ? "<N/A>" : sourceName.c_str());
+    logerr("[FRP] Computed %s (%s:%d) source Observable '%s' was released too early", initInfo->initFuncName.c_str(),
+      initInfo->initSourceFileName.c_str(), initInfo->initSourceLine, sourceName.empty() ? "<N/A>" : sourceName.c_str());
   }
 }
+
+
+void ComputedValue::updateUsed(bool certainly_used)
+{
+  if (certainly_used)
+  {
+    if (isUsed)
+      return;
+    isUsed = true;
+    for (auto &s : sources)
+      if (auto c = s.observable->getComputed())
+        c->updateUsed(true);
+  }
+  else
+  {
+    bool used = !scriptSubscribers.empty();
+    if (!used)
+      for (auto w : watchers)
+        if (auto c = w->getComputed(); !c || c->isUsed)
+        {
+          used = true;
+          break;
+        }
+
+    if (used == isUsed)
+      return;
+    isUsed = used;
+    for (auto &s : sources)
+      if (auto c = s.observable->getComputed())
+        c->updateUsed(used);
+  }
+}
+
+
+void ComputedValue::updateNeedImmediate(bool certainly_immediate)
+{
+  if (certainly_immediate)
+  {
+    if (needImmediate)
+      return;
+    needImmediate = true;
+    for (auto &s : sources)
+      if (auto c = s.observable->getComputed())
+        c->updateNeedImmediate(true);
+  }
+  else
+  {
+    bool imm = !isDeferred;
+    if (!imm)
+      for (auto w : watchers)
+        if (auto c = w->getComputed(); c && c->needImmediate)
+        {
+          imm = true;
+          break;
+        }
+
+    if (imm == needImmediate)
+      return;
+    needImmediate = imm;
+    for (auto &s : sources)
+      if (auto c = s.observable->getComputed())
+        c->updateNeedImmediate(imm);
+  }
+}
+
+
+bool ComputedValue::dbgTriggerRecalcIfNeeded(String &err_msg)
+{
+  if (!needRecalc)
+    return true;
+  G_ASSERT(!sources.empty());
+  return sources[0].observable->triggerRoot(err_msg, true);
+}
+
 
 SQInteger ComputedValue::get_sources(HSQUIRRELVM vm)
 {
@@ -1571,19 +2387,33 @@ SQInteger ComputedValue::script_ctor(HSQUIRRELVM vm)
   if (nparams != 1 && nparams != 2)
     return sqstd_throwerrorf(vm, "Computed function must accept 1 or 2 arguments, but has %d", nparams);
 
-  bool checkNestedObservable = true;
+  bool checkNested = true;
   if (sq_gettop(vm) > 2)
   {
     SQUserPointer up;
     if (SQ_FAILED(sq_getuserpointer(vm, 3, &up)) || up != dont_check_nested)
       return sq_throwerror(vm, "Invalid argument at pos 3");
-    checkNestedObservable = false;
+    checkNested = false;
   }
+
+  ObservablesGraph *graph = ObservablesGraph::get_from_vm(vm);
+  if (!graph)
+    return sq_throwerror(vm, "Internal error, no graph");
 
   Sqrat::Object initialValue;
   HSQOBJECT hFunc;
   sq_getstackobj(vm, 2, &hFunc);
   Sqrat::Function func(vm, Sqrat::Object(vm), hFunc);
+
+  dag::Vector<ComputedValue::ComputedSource> collectedSources;
+  FRPDBG("@#@ Collect sources");
+  VisitedSet visited;
+  bool haveSources = collect_sources_from_free_vars(graph, vm, hFunc, collectedSources, visited);
+  FRPDBG("@#@ / Collect sources");
+
+  if (!haveSources)
+    return sq_throwerror(vm, "Computed must have at least one source observable");
+  collectedSources.shrink_to_fit();
 
   bool initialCalcOk = false;
   if (nparams == 1)
@@ -1600,8 +2430,7 @@ SQInteger ComputedValue::script_ctor(HSQUIRRELVM vm)
   if (!initialCalcOk)
     return sq_throwerror(vm, "Failed to calculate initial computed value - error in function");
 
-  ObservablesGraph *graph = ObservablesGraph::get_from_vm(vm);
-  if (checkNestedObservable && graph->checkNestedObservable)
+  if (checkNested && graph->checkNestedObservable)
   {
     String errMsg, path;
     if (has_script_observable_references(initialValue, errMsg, path))
@@ -1614,13 +2443,21 @@ SQInteger ComputedValue::script_ctor(HSQUIRRELVM vm)
       logerr("[FRP] %s [C]\npath = %s\n%s", errMsg.c_str(), path.c_str(), stack ? stack : "<no stack>");
       if (stack)
         sq_pop(vm, 1);
-      checkNestedObservable = false; // report once per run
+      checkNested = false; // report once per run
     }
   }
 
-  ComputedValue *inst = new ComputedValue(func, initialValue, nparams == 2);
-  inst->checkNestedObservable = checkNestedObservable;
+  ComputedValue *inst = graph->allocComputed(graph, func, eastl::move(collectedSources), initialValue, nparams == 2);
+  inst->checkNestedObservable = checkNested;
   Sqrat::ClassType<ComputedValue>::SetManagedInstance(vm, 1, inst);
+
+#if FRP_DEBUG_MODE
+  FRPDBG("@#@ ComputedValue(%p | %p) nfreevars = %d, collected %d sources:", inst, (IStateWatcher *)inst, int(nfreevars),
+    int(inst->sources.size()));
+  for (const ComputedSource &src : inst->sources)
+    FRPDBG("@#@ * '%s': %p", src.varName.c_str(), src.observable);
+#endif
+
   return 0;
 }
 
@@ -1637,7 +2474,7 @@ SQInteger ScriptValueObservable::_tostring(HSQUIRRELVM vm)
   ScriptValueObservable *self = varSelf.value;
   sq_pushobject(vm, self->value);
 
-  String s(0, "Observable (0x%p) %s | %d watchers, %d subscribers", self, self->initInfo.initFuncName.c_str(), self->watchers.size(),
+  String s(0, "Observable (0x%p) %s | %d watchers, %d subscribers", self, self->initInfo->initFuncName.c_str(), self->watchers.size(),
     self->scriptSubscribers.size());
   if (SQ_SUCCEEDED(sq_tostring(vm, -1)))
   {
@@ -1661,7 +2498,7 @@ SQInteger ComputedValue::_tostring(HSQUIRRELVM vm)
   ComputedValue *self = varSelf.value;
   sq_pushobject(vm, self->value);
 
-  String s(0, "ComputedValue (0x%p) %s | %d watchers, %d subscribers, %d sources", self, self->initInfo.initFuncName.c_str(),
+  String s(0, "ComputedValue (0x%p) %s | %d watchers, %d subscribers, %d sources", self, self->initInfo->initFuncName.c_str(),
     self->watchers.size(), self->scriptSubscribers.size(), self->sources.size());
   if (SQ_SUCCEEDED(sq_tostring(vm, -1)))
   {
@@ -1674,6 +2511,7 @@ SQInteger ComputedValue::_tostring(HSQUIRRELVM vm)
   sq_pushstring(vm, s, s.length());
   return 1;
 }
+
 
 static SQInteger set_nested_observable_debug(HSQUIRRELVM vm)
 {
@@ -1693,19 +2531,79 @@ static SQInteger make_all_observables_immutable(HSQUIRRELVM vm)
   return 0;
 }
 
+static SQInteger recalc_all_computed_values(HSQUIRRELVM vm)
+{
+  ObservablesGraph *graph = ObservablesGraph::get_from_vm(vm);
+  graph->resetPerfTimers();
+  graph->recalcAllComputedValues();
+  return 0;
+}
+
+static SQInteger set_default_deferred(HSQUIRRELVM vm)
+{
+  ObservablesGraph *graph = ObservablesGraph::get_from_vm(vm);
+  SQBool val;
+  sq_getbool(vm, 2, &val);
+  graph->defaultDeferred = val;
+  return 0;
+}
+
+static SQInteger set_recursive_sources(HSQUIRRELVM vm)
+{
+  ObservablesGraph *graph = ObservablesGraph::get_from_vm(vm);
+  SQBool val;
+  sq_getbool(vm, 2, &val);
+  graph->doCollectSourcesRecursively = val;
+  return 0;
+}
+
+static SQInteger update_deferred(HSQUIRRELVM vm)
+{
+  ObservablesGraph *graph = ObservablesGraph::get_from_vm(vm);
+  String errMsg;
+  if (!graph->updateDeferred(errMsg))
+    if (raise_graph_error(vm, errMsg))
+      return SQ_ERROR;
+  return 0;
+}
+
+static SQInteger gather_graph_stats(HSQUIRRELVM vm)
+{
+  ObservablesGraph *graph = ObservablesGraph::get_from_vm(vm);
+  auto stats = graph->gatherGraphStats();
+  Sqrat::Table res(vm);
+  res.SetValue("watchedTotal", stats.watchedTotal);
+  res.SetValue("watchedUnused", stats.watchedUnused);
+  res.SetValue("watchedUnsubscribed", stats.watchedUnsubscribed);
+  res.SetValue("computedTotal", stats.computedTotal);
+  res.SetValue("computedUnused", stats.computedUnused);
+  res.SetValue("computedUnsubscribed", stats.computedUnsubscribed);
+  res.SetValue("usecUsedComputed", graph->usecUsedComputed);
+  res.SetValue("usecUnusedComputed", graph->usecUnusedComputed);
+  res.SetValue("usecSubscribers", graph->usecSubscribers);
+  res.SetValue("usecTrigger", graph->usecTrigger);
+  res.SetValue("usecUpdateDeferred", graph->usecUpdateDeferred);
+  sq_pushobject(vm, res);
+  return 1;
+}
+
 
 void bind_frp_classes(SqModules *module_mgr)
 {
   HSQUIRRELVM vm = module_mgr->getVM();
 
   Sqrat::Class<BaseObservable, Sqrat::NoConstructor<BaseObservable>> baseObservable(vm, "BaseObservable");
-  baseObservable.SquirrelFunc("subscribe", &BaseObservable::subscribe, 2, "xc")
+  baseObservable //
+    .SquirrelFunc("subscribe", &BaseObservable::subscribe, 2, "xc")
     .SquirrelFunc("unsubscribe", &BaseObservable::unsubscribe, 2, "xc")
-    .SquirrelFunc("dbgGetListeners", &BaseObservable::dbgGetListeners, 1, "x");
+    .SquirrelFunc("dbgGetListeners", &BaseObservable::dbgGetListeners, 1, "x")
+    /**/;
 
   ///@class frp/Watched
-  Sqrat::DerivedClass<ScriptValueObservable, BaseObservable> scriptValueObservable(vm, "ScriptValueObservable");
-  scriptValueObservable.SquirrelCtor(ScriptValueObservable::script_ctor, -1)
+  Sqrat::DerivedClass<ScriptValueObservable, BaseObservable, Sqrat::NoCopy<ScriptValueObservable>> scriptValueObservable(vm,
+    "ScriptValueObservable");
+  scriptValueObservable //
+    .SquirrelCtor(ScriptValueObservable::script_ctor, -1)
     .Prop("value", &ScriptValueObservable::getValue)
     .Func("get", &ScriptValueObservable::getValue)
     .Prop("timeChangeReq", &ScriptValueObservable::getTimeChangeReq)
@@ -1719,30 +2617,44 @@ void bind_frp_classes(SqModules *module_mgr)
     .SquirrelFunc("_call", &ScriptValueObservable::updateViaCallMm, 3, "x")
     .SquirrelFunc("mutate", &ScriptValueObservable::mutate, 2, "xc")
     .SquirrelFunc("_newslot", &ScriptValueObservable::_newslot, 3, "x")
-    .SquirrelFunc("_delslot", &ScriptValueObservable::_delslot, 2, "x");
+    .SquirrelFunc("_delslot", &ScriptValueObservable::_delslot, 2, "x")
+    /**/;
 
   ///@class frp/Computed
   ///@extends Watched
-  Sqrat::DerivedClass<ComputedValue, ScriptValueObservable> sqComputedValue(vm, "ComputedValue");
-  sqComputedValue.SquirrelCtor(ComputedValue::script_ctor, -2)
+  Sqrat::DerivedClass<ComputedValue, ScriptValueObservable, Sqrat::NoCopy<ComputedValue>> sqComputedValue(vm, "ComputedValue");
+  sqComputedValue //
+    .SquirrelCtor(ComputedValue::script_ctor, -2)
     .SquirrelFunc("update", forbid_computed_modify, 0)
     .SquirrelFunc("mutate", forbid_computed_modify, 0)
+    .SquirrelFunc("set", forbid_computed_modify, 0)
     .SquirrelFunc("modify", forbid_computed_modify, 0)
     .SquirrelFunc("_call", forbid_computed_modify, 0)
-    .SquirrelFunc("_set", forbid_computed_modify, 0)
     .SquirrelFunc("_newslot", forbid_computed_modify, 0)
     .SquirrelFunc("_delslot", forbid_computed_modify, 0)
     .SquirrelFunc(
       "trigger", [](HSQUIRRELVM vm) { return sq_throwerror(vm, "Triggering computed observable is not allowed"); }, 0)
-    .SquirrelFunc("getSources", ComputedValue::get_sources, 1, "x");
-
+    .Prop("used", &ComputedValue::getUsed)
+    .Prop("deferred", &ComputedValue::getDeferred, &ComputedValue::setDeferred)
+    .Func("setDeferred", &ComputedValue::setDeferred)
+    .Func("_noComputeErrorFor", &ComputedValue::addImplicitSource)
+    .SquirrelFunc("getSources", ComputedValue::get_sources, 1, "x")
+    /**/;
 
   Sqrat::Table exports(vm);
   exports.Bind("Watched", scriptValueObservable);
   exports.Bind("Computed", sqComputedValue);
   ///@module frp
-  exports.SquirrelFunc("set_nested_observable_debug", set_nested_observable_debug, 2, ".b")
-    .SquirrelFunc("make_all_observables_immutable", make_all_observables_immutable, 2, ".b");
+  exports //
+    .SquirrelFunc("set_nested_observable_debug", set_nested_observable_debug, 2, ".b")
+    .SquirrelFunc("make_all_observables_immutable", make_all_observables_immutable, 2, ".b")
+    .SquirrelFunc("set_default_deferred", set_default_deferred, 2, ".b")
+    .SquirrelFunc("set_recursive_sources", set_recursive_sources, 2, ".b")
+    .SquirrelFunc("recalc_all_computed_values", recalc_all_computed_values, 1, ".")
+    .SquirrelFunc("gather_graph_stats", gather_graph_stats, 1, ".")
+    .SquirrelFunc("update_deferred", update_deferred, 1, ".")
+    .SquirrelFunc("register_stub_observable_class", ObservablesGraph::register_stub_observable_class, 2, ".y")
+    /**/;
 
   sq_pushobject(vm, exports);
   {

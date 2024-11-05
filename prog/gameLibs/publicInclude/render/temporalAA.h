@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -37,40 +36,39 @@ struct TemporalAAParams
   float sharpening = 0.2f;
   float clampingGamma = 1.2f;
   int subsamples = 4;
-  float maxMotion = 4.f;
   float scaleAabbWithMotionSteepness = 0.f;
   float scaleAabbWithMotionMax = INFINITY;
   float scaleAabbWithMotionMaxForTAAU = -1.0;
 };
 
-class TMatrix4D;
 extern Point2 get_halton_jitter(int counter, int subsamples, float subsample_scale);
 extern Point2 get_taa_jitter(int counter, const TemporalAAParams &p);
-extern void set_temporal_reprojection_matrix(const TMatrix4D &cur_view_proj_no_jitter, const TMatrix4D &prev_view_proj_jittered);
+extern void set_temporal_reprojection_matrix(const TMatrix4 &uv_reproject_tm_no_jitter);
 extern void set_temporal_resampling_filter_parameters(const Point2 &temporal_jitter_proj_offset);
 extern void set_temporal_miscellaneous_parameters(float dt, int wd, const TemporalAAParams &p);
-extern void set_temporal_parameters(const TMatrix4D &cur_view_proj_no_jitter, const TMatrix4D &prev_view_proj_jittered,
-  const Point2 &temporal_jitter_proj_offset, float dt, int wd, const TemporalAAParams &p);
+extern void set_temporal_parameters(const TMatrix4 &uv_reproject_tm_no_jitter, const Point2 &temporal_jitter_proj_offset, float dt,
+  int wd, const TemporalAAParams &p);
 
 class TemporalAA
 {
 public:
   typedef TemporalAAParams Params;
 
-  TemporalAA(const char *shader, const IPoint2 &output_resolution, const IPoint2 &input_resolution, int tex_fmt,
-    bool low_quality = false, const char *name = nullptr);
+  TemporalAA(const char *shader, const IPoint2 &output_resolution, const IPoint2 &input_resolution, int resolve_tex_fmt,
+    bool low_quality = false, bool req_dynamic_tex = false, bool hist_fmt_match_resolve = false, const char *name = nullptr);
 
   void loadParamsFromBlk(const DataBlock *blk);
 
   bool beforeRenderFrame();
-  bool beforeRenderView(const TMatrix4 &cur_globtm_no_jitter);
+  bool beforeRenderView(const TMatrix4 &uv_reproject_tm_no_jitter);
   RTarget::CPtr apply(TEXTUREID currentFrameId);
+  void applyToSwapchain(TEXTUREID currentFrameId);
 
   void invalidate()
   {
     frame.forEach([](int &f) { f = 0; });
   }
-  bool isValid() const { return prevGlobTm.current().has_value(); }
+  bool isValid() const { return true; }
   Point2 getPersJitterOffset() const { return jitterTexelOfs; }
   const IPoint2 &getInputResolution() const { return inputResolution; }
   bool isUpsampling() const { return inputResolution != outputResolution; }
@@ -82,6 +80,7 @@ public:
 
 private:
   Params getDefaultParams() const;
+  void applyImpl(TEXTUREID currentFrameId);
 
   const IPoint2 inputResolution;
   const IPoint2 outputResolution;
@@ -89,7 +88,6 @@ private:
   PostFxRenderer render;
 
   ViewDependentResource<int, 2> frame;
-  ViewDependentResource<eastl::optional<TMatrix4>, 2> prevGlobTm;
 
   Point2 jitterPixelOfs;
   Point2 jitterTexelOfs;
@@ -103,7 +101,6 @@ private:
   float lodBias;
 
   bool enabled = true;
-  bool validPersp = false;
 
   int dtUsecs = 0;
 };

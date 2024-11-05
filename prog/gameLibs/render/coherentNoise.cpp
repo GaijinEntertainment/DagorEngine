@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "coherentNoise.h"
 #include <math.h>
 #include <stdio.h>

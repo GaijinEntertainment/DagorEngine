@@ -1,6 +1,5 @@
-
-#ifndef NV_TRISTRIP_OBJECTS_H
-#define NV_TRISTRIP_OBJECTS_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #include <assert.h>
 
@@ -267,4 +266,3 @@ protected:
 };
 
 }; // namespace TriStripifier
-#endif

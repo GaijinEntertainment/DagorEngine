@@ -1,10 +1,8 @@
+include "hmap_ofs_inc.dshl"
 include "land_block_inc.dshl"
 
-texture hmap_ofs_tex;
 texture hmap_patches_tex;
 float4 hmap_patches_min_max_z;
-float4 hmap_ofs_tex_size = (1./1024,1,0,0);
-float4 world_to_hmap_ofs = (1,1,0,0);
 float4 world_to_hmap_tex_ofs;
 float4 world_to_hmap_patches_ofs = (1,1,0,0);
 float4 world_to_hmap_patches_tex_ofs;

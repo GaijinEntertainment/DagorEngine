@@ -1,4 +1,11 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <perfMon/dag_statDrv.h>
 #include <FFT_CPU_Simulation.h>
 #include <shaders/dag_shaders.h>
@@ -308,8 +315,11 @@ bool GPGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
       String texName;
       texName.printf(128, "water3d_disp_gpu%d", cascadeNo);
       dispGPU[cascadeNo] = dag::create_tex(NULL, N, N, TEXCF_RTARGET | TEXFMT_A16B16G16R16F, 1, texName.str());
+      dispGPU[cascadeNo]->disableSampler();
     }
   }
+  else
+    dispArray->disableSampler();
   return true;
 }
 
@@ -346,8 +356,6 @@ bool GPGPUData::fillBuffers(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCa
     float halfTexelOffsetX = 0.5f;
     float halfTexelOffsetY = 0.5f;
     float gauss_corner1 = 1.0 - gauss_corner0;
-    gauss_corner0 += HALF_TEXEL_OFSF / (gauss_resolution + 1.0f);
-    gauss_corner1 += HALF_TEXEL_OFSF / (gauss_resolution + 1.0f);
     float quad_width = 2.0f / num_quads;
     for (int i = 0; i < num_quads; ++i, vertices += 4)
     {
@@ -363,10 +371,10 @@ bool GPGPUData::fillBuffers(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCa
       vertices[2].pos = Point2(vertices[0].pos.x, -1);
       vertices[3].pos = Point2(vertices[0].pos.x + quad_width, -1);
 
-      vertices[0].tc = Point2(-N / 2 - halfTexelOffsetX + HALF_TEXEL_OFSF, -N / 2 - halfTexelOffsetY + HALF_TEXEL_OFSF);
-      vertices[1].tc = Point2(+N / 2 + halfTexelOffsetX + HALF_TEXEL_OFSF, -N / 2 - halfTexelOffsetY + HALF_TEXEL_OFSF);
-      vertices[2].tc = Point2(-N / 2 - halfTexelOffsetX + HALF_TEXEL_OFSF, +N / 2 + halfTexelOffsetY + HALF_TEXEL_OFSF);
-      vertices[3].tc = Point2(+N / 2 + halfTexelOffsetX + HALF_TEXEL_OFSF, +N / 2 + halfTexelOffsetY + HALF_TEXEL_OFSF);
+      vertices[0].tc = Point2(-N / 2 - halfTexelOffsetX, -N / 2 - halfTexelOffsetY);
+      vertices[1].tc = Point2(+N / 2 + halfTexelOffsetX, -N / 2 - halfTexelOffsetY);
+      vertices[2].tc = Point2(-N / 2 - halfTexelOffsetX, +N / 2 + halfTexelOffsetY);
+      vertices[3].tc = Point2(+N / 2 + halfTexelOffsetX, +N / 2 + halfTexelOffsetY);
       for (int j = 0; j < 4; ++j)
       {
         vertices[j].fft_tc = Point4(vertices[j].tc.x * TWOPI / fft_period0, vertices[j].tc.y * TWOPI / fft_period0,

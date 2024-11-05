@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hmlPlugin.h"
 #include <de3_rasterizePoly.h>
 #include <de3_splineClassData.h>

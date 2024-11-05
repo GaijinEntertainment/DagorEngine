@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <3d/dag_lowLatency.h>
 #include <gui/dag_stdGuiRender.h>
 #include <math/dag_Point2.h>

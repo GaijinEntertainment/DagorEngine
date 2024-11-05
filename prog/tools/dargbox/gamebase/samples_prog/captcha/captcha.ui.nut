@@ -1,7 +1,7 @@
 from "%darg/ui_imports.nut" import *
 //consider generate captcha in squirrel
 let {HTTP_ABORTED, HTTP_FAILED, HTTP_SUCCESS, httpRequest} = require("dagor.http")
-let {parse_json, json_to_string} = require("json")
+let {parse_json, object_to_json_string} = require("json")
 let textInput = require("samples_prog/_basic/components/textInput.nut")
 
 

@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "resourceScheduler.h"
@@ -36,7 +37,7 @@ private:
   DestroyedHeapSet allocateHeaps(const HeapRequests &heap_requests) override;
 
   void placeResource(int frame, intermediate::ResourceIndex res_idx, HeapIndex heap_idx, const ResourceDescription &desc,
-    uint32_t offset, const ResourceAllocationProperties &properties) override;
+    uint32_t offset, const ResourceAllocationProperties &properties, const DynamicResolution &dyn_resolution) override;
 
   void shutdownInternal() override;
 

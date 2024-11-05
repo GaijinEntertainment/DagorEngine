@@ -1,14 +1,13 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <util/dag_threadPool.h>
 #include <EASTL/fixed_function.h>
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 namespace threadpool
 {
 /*
@@ -40,4 +39,4 @@ KRNLIMP void parallel_for(uint32_t begin, uint32_t end, uint32_t quant,
   JobPriority prio = PRIO_HIGH, bool wake = true, uint32_t dapDescId = 0); // wide load expects high priority
 };                                                                         // namespace threadpool
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

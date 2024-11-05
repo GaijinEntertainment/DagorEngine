@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #define __DEBUG_FILEPATH          "dabuild-dbg"
 #define __UNLIMITED_BASE_PATH     1
 #define __SUPPRESS_BLK_VALIDATION 1
@@ -173,11 +175,12 @@ static void showUsage()
 }
 
 static DabuildJobSharedMem *jobMem = NULL;
+static String shared_mem_fn;
 static void __cdecl release_job_mem()
 {
   if (!jobMem)
     return;
-  debug_cp();
+  DEBUG_CP();
   jobMem->pid = 0xFFFFFFFFU;
   AssetExportCache::setJobSharedMem(NULL);
   intptr_t hMapFile = jobMem->mapHandle;
@@ -186,6 +189,7 @@ static void __cdecl release_job_mem()
     CloseHandle(jobMem->jobHandle[i]);
 #endif
   close_global_map_shared_mem(hMapFile, jobMem, sizeof(DabuildJobSharedMem));
+  unlink_global_shared_mem(shared_mem_fn);
   jobMem = NULL;
 }
 static void dgs_release_job_mem() { release_job_mem(); }
@@ -1139,10 +1143,10 @@ int DagorWinMain(bool debugmode)
 #elif _TARGET_PC_LINUX | _TARGET_PC_MACOSX
     pid_t pid = getpid();
 #endif
-    String fn(128, "daBuild-shared-mem-%d", pid);
+    shared_mem_fn.printf(0, "daBuild-shared-mem-%d", pid);
     intptr_t hMapFile = 0;
-    jobMem = (DabuildJobSharedMem *)create_global_map_shared_mem(fn, nullptr, sizeof(DabuildJobSharedMem), hMapFile);
-    debug("%d jobs: %s -> 0x%x (sz=%d)", jobs, fn.str(), hMapFile, sizeof(DabuildJobSharedMem));
+    jobMem = (DabuildJobSharedMem *)create_global_map_shared_mem(shared_mem_fn, nullptr, sizeof(DabuildJobSharedMem), hMapFile);
+    debug("%d jobs: %s -> 0x%x (sz=%d)", jobs, shared_mem_fn.str(), hMapFile, sizeof(DabuildJobSharedMem));
 
     if (jobMem)
     {

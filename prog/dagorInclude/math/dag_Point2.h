@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -131,6 +130,8 @@ INLINE float dot(const Point2 &a, const Point2 &b) { return a * b; }
 INLINE Point2 floor(const Point2 &a) { return Point2(floorf(a.x), floorf(a.y)); }
 /// ceil() of all components
 INLINE Point2 ceil(const Point2 &a) { return Point2(ceilf(a.x), ceilf(a.y)); }
+/// round() of all components
+INLINE Point2 round(const Point2 &a) { return Point2(roundf(a.x), roundf(a.y)); }
 
 __forceinline Point2 div(const Point2 &a, const Point2 &b) { return Point2(a.x / b.x, a.y / b.y); }
 inline Point2 mul(const Point2 &a, const Point2 &b) { return Point2(a.x * b.x, a.y * b.y); }

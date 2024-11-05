@@ -1,0 +1,8 @@
+
+
+grass_render {
+  _singleton:b=yes
+  _tags:t="render"
+  "grass_render:GrassRenderer"{}
+  "grass_node:dabfg::NodeHandle"{}
+}

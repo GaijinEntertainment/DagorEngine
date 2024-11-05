@@ -1,9 +1,12 @@
+if (__name__ == "__analysis__")
+  return
 
-let function comp(...) {}
 
-let function foo(_x, _y = 10, _z = 20) {}
+function comp(...) {}
 
-let function bar(_x, _y, ...) {}
+function foo(_x, _y = 10, _z = 20) {}
+
+function bar(_x, _y, ...) {}
 
 let FlowH = 30
 let hflow = @(...) comp(FlowH, vargv)

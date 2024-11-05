@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_scope_pull ;
+  UseProgLibs += daNetGameLibs/scope ;
+}

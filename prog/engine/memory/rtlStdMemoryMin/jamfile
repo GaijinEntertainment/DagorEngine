@@ -5,6 +5,6 @@ Target      = engine/memory/rtlStdMemoryMin.lib ;
 
 Sources = rtlStdMemoryMin.cpp ;
 
-CPPopt = -D__B_MINICORE ;
+CPPopt = -D__B_KERNEL_LIB ;
 
 include $(Root)/prog/_jBuild/build.jam ;

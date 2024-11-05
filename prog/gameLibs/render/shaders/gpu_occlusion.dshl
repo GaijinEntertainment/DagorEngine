@@ -1,17 +1,11 @@
-include "separate_depth_mips.dshl"
 include "globtm.dshl"
 
 int downsampled_depth_mip_count;
 
 macro BASE_GPU_OCCLUSION(code)
-  if (separate_depth_mips == no) {
-    (code) {
-      hzb_tex@smp2d = downsampled_far_depth_tex;
-      downsampled_depth_mip_count@f1 = (downsampled_depth_mip_count);
-    }
-  } else {
-    INIT_SEPARATE_DEPTH_MIPS(code)
-    USE_SEPARATE_DEPTH_MIPS(code)
+  (code) {
+    hzb_tex@smp2d = downsampled_far_depth_tex;
+    downsampled_depth_mip_count@f1 = (downsampled_depth_mip_count);
   }
   hlsl(code)
   {
@@ -20,11 +14,7 @@ macro BASE_GPU_OCCLUSION(code)
     #endif
     #define OCCLUSION_RECT_SZ 4
 
-    ##if separate_depth_mips == no
-      #define OCCLUSION_SAMPLE_DEPTH(location, level) hzb_tex.SampleLevel(hzb_tex_samplerstate, location, level).x
-    ##else
-      #define OCCLUSION_SAMPLE_DEPTH(location, level) sample_depth_separate(level, location)
-    ##endif
+    #define OCCLUSION_SAMPLE_DEPTH(location, level) hzb_tex.SampleLevel(hzb_tex_samplerstate, location, level).x
 
     #if OCCLUSION_RECT_SZ == 4
       #define OCCLUSION_SAMPLE_RECT(fun) \
@@ -53,11 +43,7 @@ macro BASE_GPU_OCCLUSION(code)
     float check_box_occl_visible_tc_base(float4 sbox)
     {
       uint2 dim;
-    ##if separate_depth_mips == no
       hzb_tex.GetDimensions(dim.x, dim.y);
-    ##else
-      depth_mip_0.GetDimensions(dim.x, dim.y);
-    ##endif
       float4 sbox_vp = sbox*dim.xyxy;
 
       float2 sboxSize = ( sbox_vp.zw - sbox_vp.xy );
@@ -75,17 +61,13 @@ macro BASE_GPU_OCCLUSION(code)
           level = level_lower;
       }
 
+      sbox = clamp(sbox, 0.5/dim.xyxy, 1-0.5/dim.xyxy);//so we won't sample outside even without clamp addressing
+
       //minTc = (floor(sbox_vp.xy/exp2(level))+0.5)/(dim/exp2(level));
 
-    ##if separate_depth_mips == no
       // We use external constant instead of a value from GetDimensions call, because it seems, that
       // usage of mip levels count from GetDimension is a reason of GPU hung on intel 630 HD
       const float MAX_LOD = downsampled_depth_mip_count;
-    ##elif separate_depth_mips == two
-      const float MAX_LOD = 2;
-    ##else
-      const float MAX_LOD = 3;
-    ##endif
 
       if (level >= MAX_LOD)//we don't have all mips, and we are too close anyway
         return 0;
@@ -117,11 +99,7 @@ macro GPU_OCCLUSION(code)
       //todo: check depth if in screen, otherwise, also raycast voxels (but more sparse)
       if (any(abs(tc*2-1) > 1.0))
         return UNOCCLUDED;
-    ##if separate_depth_mips == no
       float rawDepth = optional_hyperbolize_downsampled_depth(tex2Dlod(hzb_tex, float4(tc,0,0)).x, zn_zfar);
-    ##else
-      float rawDepth = optional_hyperbolize_downsampled_depth(tex2Dlod(depth_mip_0, float4(tc,0,0)).x, zn_zfar);
-    ##endif
       if (rawDepth>=screenPos.z)
         return OCCLUDED;
       return VISIBLE;

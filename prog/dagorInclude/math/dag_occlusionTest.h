@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -171,10 +170,10 @@ protected:
       }
     }
   }
-  static float zBuffer[mip_chain_size];
-  static vec4f clipToScreenVec;
-  static vec4f screenMax;
-  static int mip_chain_offsets[mip_chain_count];
+  alignas(32) static inline float zBuffer[mip_chain_size] = {};
+  static inline vec4f clipToScreenVec = {};
+  static inline vec4f screenMax = {};
+  static inline int mip_chain_offsets[mip_chain_count] = {};
 
   // return 0 if occluded
   static __forceinline int testCulledZbuffer(int xMin, int xMax, int yMin, int yMax, vec4f minw, float *zbuffer, int mip)
@@ -298,15 +297,3 @@ enum
   OCCLUSION_W = 256,
   OCCLUSION_H = 128
 };
-
-template <int sizeX, int sizeY>
-alignas(32) float OcclusionTest<sizeX, sizeY>::zBuffer[] = {};
-
-template <int sizeX, int sizeY>
-vec4f OcclusionTest<sizeX, sizeY>::clipToScreenVec = {};
-
-template <int sizeX, int sizeY>
-vec4f OcclusionTest<sizeX, sizeY>::screenMax = {};
-
-template <int sizeX, int sizeY>
-int OcclusionTest<sizeX, sizeY>::mip_chain_offsets[] = {};

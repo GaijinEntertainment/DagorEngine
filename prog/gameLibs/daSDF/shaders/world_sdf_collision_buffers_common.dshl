@@ -1,0 +1,47 @@
+buffer gi_voxelization_vbuffer;
+buffer gi_voxelization_ibuffer;
+
+macro INIT_LOAD_COLLISION_PRIMITIVES(code)
+  (code) {
+    gi_voxelization_vbuffer@buf = gi_voxelization_vbuffer hlsl { ByteAddressBuffer gi_voxelization_vbuffer@buf; };
+    gi_voxelization_ibuffer@buf = gi_voxelization_ibuffer hlsl { ByteAddressBuffer gi_voxelization_ibuffer@buf; };
+  }
+endmacro
+
+macro USE_LOAD_COLLISION_PRIMITIVES(code)
+  hlsl (code) {
+    #ifndef USED_LOAD_COLLISION_PRIMITIVES
+    #define USED_LOAD_COLLISION_PRIMITIVES 1
+    float3 getVertex(uint ia, uint vbOffset)
+    {
+      ia = (vbOffset + ia)*2*4;
+      uint2 a = uint2(loadBuffer(gi_voxelization_vbuffer, ia), loadBuffer(gi_voxelization_vbuffer, ia + 4));
+      return float3(f16tof32(a.x), f16tof32(a.x>>16), f16tof32(a.y));
+    }
+
+    bool getTriangle(
+      uint firstIndex, uint vbOffset,
+      inout float3 va, inout float3 vb, inout float3 vc)
+    {
+      uint ibAt = firstIndex>>1;
+      uint2 a = uint2(loadBuffer(gi_voxelization_ibuffer, ibAt*4), loadBuffer(gi_voxelization_ibuffer, ibAt*4+4));
+      int ia = a.x&0xFFFF, ib = a.x>>16, ic = a.y&0xFFFF, id = a.y>>16;
+      va = vb = vc = 0;
+      if (ib == ic)
+        return false;
+      FLATTEN
+      if (firstIndex&1)
+      {
+        ia = ib;
+        ib = ic;
+        ic = id;
+      }
+
+      va = getVertex(ia, vbOffset);
+      vc = getVertex(ib, vbOffset);
+      vb = getVertex(ic, vbOffset);
+      return true;
+    }
+    #endif
+  }
+endmacro

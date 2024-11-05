@@ -1,5 +1,4 @@
   include "../../daGI25D/shaders/daGI25Dlist.blk"
-  file:t = "../../textureUtil/shaders/clear_volmap.dshl"
   file:t = "fill_windows.dshl"
   file:t = "fill_walls.dshl"
   file:t = "dagi_first_visible_volmap_calc.dshl"

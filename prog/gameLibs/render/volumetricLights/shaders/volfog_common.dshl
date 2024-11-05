@@ -1,0 +1,75 @@
+
+hlsl {
+  #include "volfog_common_def.hlsli"
+  #include "heightFogNode.hlsli"
+  #include "pcg_hash.hlsl"
+  #include "phase_functions.hlsl"
+  #include "volfog_common.hlsl"
+
+  // #define DEBUG_VOLFOG_BLEND_SCREEN_RATIO 0.5 // use it for debugging
+
+  #define transformed_zn_zfar zn_zfar
+}
+
+
+macro USE_FROXEL_JITTERED_TC(code, frame_id, inv_resolution)
+  hlsl(code){
+    float3 calc_jittered_tc(uint3 dtId)
+    {
+      return calc_jittered_tc(dtId, (uint)frame_id, inv_resolution.xyz);
+    }
+  }
+endmacro
+
+macro VOLUME_DEPTH_CONVERSION(code)
+  (code){volfog_froxel_range_params@f2 = (volfog_froxel_range_params.x, volfog_froxel_range_params.y, 0, 0);}
+  hlsl(code) {
+    float depth_to_volume_pos(float v)
+    {
+      return depth_to_volume_pos(v, volfog_froxel_range_params.y);
+    }
+    float volume_pos_to_depth(float v)
+    {
+      return volume_pos_to_depth(v, volfog_froxel_range_params.x);
+    }
+  }
+endmacro
+
+
+float nbs_clouds_start_altitude2_meters = 100000; // high default value to not restrict volfog, justincase
+float4 froxel_fog_fading_params = (0,1,0,0);
+
+macro INIT_AND_USE_VOLFOG_MODIFIERS(code)
+  (code)
+  {
+    water_level__clouds_start_alt@f2 = (water_level, nbs_clouds_start_altitude2_meters, 0, 0);
+    froxel_fog_fading_params@f4 = froxel_fog_fading_params;
+  }
+  hlsl(code)
+  {
+    #define water_level (water_level__clouds_start_alt.x)
+    #define nbs_clouds_start_altitude2_meters (water_level__clouds_start_alt.y)
+  }
+endmacro
+
+macro INIT_TRANSFORMED_ZNZFAR_STAGE(code)
+  INIT_ZNZFAR_STAGE(code)
+  hlsl(code){
+    float4 get_transformed_zn_zfar()
+    {
+      return zn_zfar;
+    }
+  }
+endmacro
+
+float4 jitter_ray_offset;
+
+texture volfog_poisson_samples;
+
+macro INIT_JITTER_PARAMS(code)
+  (code) {
+    // currently, only .w is used, which is frame index {0, 1}
+    jitter_ray_offset@f4 = jitter_ray_offset;
+    volfog_poisson_samples@tex2d = volfog_poisson_samples;
+  }
+endmacro

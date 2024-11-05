@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #define DIRECTINPUT_VERSION 0x0800
 #include <windows.h>
 #include <windowsx.h>
@@ -6,7 +8,7 @@
 #include <process.h>
 #include <synchapi.h>
 
-#include <humanInput/dag_hiDInput.h>
+#include <drv/hid/dag_hiDInput.h>
 #include <osApiWrappers/dag_progGlobals.h>
 #include <generic/dag_initOnDemand.h>
 #include <startup/dag_restart.h>
@@ -44,8 +46,7 @@ static HRESULT dinput_init()
 
     if (FAILED(di_create_result))
     {
-      debug_ctx_("DirectInputCreateEx = %X ", di_create_result);
-      HumanInput::printHResult(di_create_result);
+      HumanInput::printHResult(__FILE__, __LINE__, "DirectInputCreateEx", di_create_result);
       return di_create_result;
     }
 
@@ -87,15 +88,15 @@ void HumanInput::startupDInput()
   add_restart_proc(dinput_rproc);
 }
 
-void HumanInput::printHResult(int hr)
+void HumanInput::printHResult(const char *file, int ln, const char *prefix, int hr)
 {
 #if DAGOR_DBGLEVEL > 0
   LPVOID lpMsgBuf;
   FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, hr,
     MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), (LPTSTR)&lpMsgBuf, 0, NULL);
-  debug_("%s", lpMsgBuf);
+  debug("%s,%d: %s=0x%X %s", file, ln, prefix, hr, lpMsgBuf);
   LocalFree(lpMsgBuf);
 #else
-  debug("");
+  debug("%s,%d: %s=0x%X", file, ln, prefix, hr);
 #endif
 }

@@ -1,31 +1,27 @@
-#ifndef __GAIJIN_EDITORCORE_APPLICATION_CREATOR__
-#define __GAIJIN_EDITORCORE_APPLICATION_CREATOR__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <propPanel2/comWnd/dialog_window.h>
+#include <propPanel/commonWindow/dialogWindow.h>
 
 class EditorWorkspace;
 
 
-class ApplicationCreator : public CDialogWindow
+class ApplicationCreator : public PropPanel::DialogWindow
 {
 public:
-  ApplicationCreator(void *phandle, EditorWorkspace &wsp);
+  explicit ApplicationCreator(EditorWorkspace &wsp);
 
-  // CDialogWindow interface
+  // DialogWindow interface
 
   virtual bool onOk();
   virtual bool onCancel() { return true; };
 
   // ControlEventHandler methods from CDialogWindow
 
-  virtual void onChange(int pcb_id, PropertyContainerControlBase *panel);
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
 
 private:
   EditorWorkspace &wsp;
 
-  void correctAppPath(PropertyContainerControlBase &panel);
+  void correctAppPath(PropPanel::ContainerPropertyControl &panel);
 };
-
-
-#endif //__GAIJIN_EDITORCORE_APPLICATION_CREATOR__

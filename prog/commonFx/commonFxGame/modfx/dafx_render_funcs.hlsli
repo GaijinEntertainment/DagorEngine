@@ -28,7 +28,7 @@ half dafx_get_depth_base(float2 tc, GlobalData gdata)
   return dafx_sample_linear_depth(tc * gdata.depth_size.xy, gdata);
 }
 
-half dafx_get_soft_depth_mask(float4 tc, float softness_depth_rcp, GlobalData_cref gdata)
+half dafx_get_soft_depth_mask(float4 tc, float4 cloud_tc, float softness_depth_rcp, GlobalData_cref gdata)
 {
 #ifdef DAFXEX_SOFT_DEPTH_MASK_USE_REPROJECTION
   float4 tcOld = mul(dafxex_uv_to_prev_frame_uv_reprojection_mat, float4(tc.x, tc.y, tc.z, 1.0));
@@ -50,7 +50,7 @@ half dafx_get_soft_depth_mask(float4 tc, float softness_depth_rcp, GlobalData_cr
   depthMask *= saturate(tc.w - tc.w*tc.z);
 #endif
 #ifdef DAFXEX_CLOUD_MASK_ENABLED
-  depthMask *= dafx_get_screen_cloud_volume_mask(tc.xy, tc.w);
+  depthMask *= dafx_get_screen_cloud_volume_mask(cloud_tc.xy, cloud_tc.w);
 #endif
   return depthMask;
 }

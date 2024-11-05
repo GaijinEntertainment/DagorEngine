@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EditorCore/ec_startDlg.h>
 #include <EditorCore/ec_workspace.h>
 #include <EditorCore/ec_application_creator.h>
@@ -8,22 +10,20 @@
 #include <debug/dag_debug.h>
 #include <util/dag_globDef.h>
 
+#include <propPanel/control/container.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <direct.h>
 
 using hdpi::_pxScaled;
 
 //==================================================================================================
-EditorStartDialog::EditorStartDialog(void *phandle, const char *caption, EditorWorkspace &worksp, const char *wsp_blk,
-  const char *select_wsp) :
-  CDialogWindow(phandle, _pxScaled(500), _pxScaled(160), caption),
-  wsp(worksp),
-  blkName(wsp_blk),
-  wspInited(false),
-  startWsp(select_wsp)
+EditorStartDialog::EditorStartDialog(const char *caption, EditorWorkspace &worksp, const char *wsp_blk, const char *select_wsp) :
+  DialogWindow(nullptr, _pxScaled(500), _pxScaled(160), caption), wsp(worksp), blkName(wsp_blk), wspInited(false), startWsp(select_wsp)
 {
+  setModalBackgroundDimmingEnabled(true);
+
   ::dd_mkpath(wsp_blk);
-  PropertyContainerControlBase *_panel = getPanel();
+  PropPanel::ContainerPropertyControl *_panel = getPanel();
   G_ASSERT(_panel && "No panel in EditorStartDialog");
 
   Tab<String> _app_list(tmpmem);
@@ -84,7 +84,7 @@ void EditorStartDialog::initWsp(bool init_combo)
 
   wsp.getWspNames(wspNames);
 
-  PropertyContainerControlBase *_panel = getPanel();
+  PropPanel::ContainerPropertyControl *_panel = getPanel();
   G_ASSERT(_panel && "No panel in EditorStartDialog");
 
   int i;
@@ -137,7 +137,7 @@ void EditorStartDialog::reloadWsp()
 
   wsp.getWspNames(wspNames);
 
-  PropertyContainerControlBase *_panel = getPanel();
+  PropPanel::ContainerPropertyControl *_panel = getPanel();
   G_ASSERT(_panel && "No panel in EditorStartDialog");
 
   int i;
@@ -163,8 +163,8 @@ void EditorStartDialog::onAddWorkspace()
 {
   editWsp = false;
 
-  WorkspaceDialog dlg(getHandle(), this, "Create new workspace", wsp, editWsp);
-  if (dlg.showDialog() == DIALOG_ID_OK)
+  WorkspaceDialog dlg(this, "Create new workspace", wsp, editWsp);
+  if (dlg.showDialog() == PropPanel::DIALOG_ID_OK)
     reloadWsp();
 }
 
@@ -174,15 +174,15 @@ void EditorStartDialog::onEditWorkspace()
 {
   editWsp = true;
 
-  WorkspaceDialog dlg(getHandle(), this, "Edit workspace", wsp, editWsp);
-  if (dlg.showDialog() == DIALOG_ID_OK)
+  WorkspaceDialog dlg(this, "Edit workspace", wsp, editWsp);
+  if (dlg.showDialog() == PropPanel::DIALOG_ID_OK)
     reloadWsp();
 }
 
 
 //==================================================================================================
 
-void EditorStartDialog::onChange(int pcb_id, PropertyContainerControlBase *panel)
+void EditorStartDialog::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   switch (pcb_id)
   {
@@ -197,7 +197,7 @@ void EditorStartDialog::onChange(int pcb_id, PropertyContainerControlBase *panel
 }
 
 
-void EditorStartDialog::onClick(int pcb_id, PropertyContainerControlBase *panel)
+void EditorStartDialog::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   switch (pcb_id)
   {
@@ -211,7 +211,7 @@ void EditorStartDialog::onClick(int pcb_id, PropertyContainerControlBase *panel)
 
 bool EditorStartDialog::onOk()
 {
-  PropertyContainerControlBase *_panel = getPanel();
+  PropPanel::ContainerPropertyControl *_panel = getPanel();
   G_ASSERT(_panel && "No panel in EditorStartDialog");
 
   SimpleString wspName(_panel->getText(ID_START_DIALOG_COMBO));
@@ -231,14 +231,16 @@ bool EditorStartDialog::onOk()
 
 //==================================================================================================
 
-WorkspaceDialog::WorkspaceDialog(void *phandle, EditorStartDialog *esd, const char *caption, EditorWorkspace &wsp, bool is_editing) :
+WorkspaceDialog::WorkspaceDialog(EditorStartDialog *esd, const char *caption, EditorWorkspace &wsp, bool is_editing) :
 
-  CDialogWindow(phandle, _pxScaled(400), _pxScaled(245 - (is_editing ? 35 : 0)), caption), mEditing(is_editing), mWsp(wsp), mEsd(esd)
+  DialogWindow(nullptr, _pxScaled(400), _pxScaled(245 - (is_editing ? 35 : 0)), caption), mEditing(is_editing), mWsp(wsp), mEsd(esd)
 {
-  PropertyContainerControlBase *_panel = getPanel();
+  setModalBackgroundDimmingEnabled(true);
+
+  PropPanel::ContainerPropertyControl *_panel = getPanel();
   G_ASSERT(_panel && "No panel in EditorStartDialog");
 
-  PropertyContainerControlBase *_grp = _panel->createGroup(PID_COMMON_PARAMETERS_GRP, "Common parameters");
+  PropPanel::ContainerPropertyControl *_grp = _panel->createGroup(PID_COMMON_PARAMETERS_GRP, "Common parameters");
 
   G_ASSERT(_grp);
 
@@ -277,7 +279,7 @@ WorkspaceDialog::WorkspaceDialog(void *phandle, EditorStartDialog *esd, const ch
 
 bool WorkspaceDialog::onOk()
 {
-  PropertyContainerControlBase *_panel = getPanel();
+  PropPanel::ContainerPropertyControl *_panel = getPanel();
   G_ASSERT(_panel && "No panel in WorkspaceDialog");
 
   SimpleString wspName(_panel->getText(PID_WSP_NAME));
@@ -334,7 +336,7 @@ bool WorkspaceDialog::onOk()
 }
 
 
-void WorkspaceDialog::onChange(int pcb_id, PropertyContainerControlBase *panel)
+void WorkspaceDialog::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   if (pcb_id == PID_APP_FOLDER)
   {
@@ -372,13 +374,13 @@ void WorkspaceDialog::onChange(int pcb_id, PropertyContainerControlBase *panel)
 }
 
 
-void WorkspaceDialog::onClick(int pcb_id, PropertyContainerControlBase *panel)
+void WorkspaceDialog::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   if (pcb_id == PID_NEW_APPLICATION)
   {
-    ApplicationCreator creator(getHandle(), mWsp);
+    ApplicationCreator creator(mWsp);
 
-    if (creator.showDialog() == DIALOG_ID_OK)
+    if (creator.showDialog() == PropPanel::DIALOG_ID_OK)
     {
       panel->setText(PID_WSP_NAME, mWsp.getName());
       panel->setText(PID_APP_FOLDER, mWsp.getAppPath());

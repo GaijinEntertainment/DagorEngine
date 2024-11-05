@@ -1,5 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include "decl.h"
 #include "objEd_occ.h"
@@ -63,17 +63,19 @@ public:
   virtual void *queryInterfacePtr(unsigned huid);
 
   virtual bool onPluginMenuClick(unsigned id);
+  virtual void handleViewportAcceleratorCommand(unsigned id) override;
+  virtual void registerMenuAccelerators() override;
 
   // IGenEventHandler
   virtual IGenEventHandler *getWrappedHandler() { return &objEd; }
 
   // IBinaryDataBuilder
-  virtual bool validateBuild(int target, ILogWriter &rep, PropPanel2 *params);
+  virtual bool validateBuild(int target, ILogWriter &rep, PropPanel::ContainerPropertyControl *params);
   virtual bool addUsedTextures(ITextureNumerator &tn) { return true; }
-  virtual bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel2 *pp);
+  virtual bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *pp);
   virtual bool checkMetrics(const DataBlock &metrics_blk) { return true; }
   virtual bool useExportParameters() const { return true; }
-  virtual void fillExportPanel(PropPanel2 &params);
+  virtual void fillExportPanel(PropPanel::ContainerPropertyControl &params);
 
   // IOccluderGeomProvider
   virtual void gatherOccluders(Tab<TMatrix> &occl_boxes, Tab<Quad> &occl_quads);

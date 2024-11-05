@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "de3_gui.h"
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_Point2.h>
@@ -8,11 +10,12 @@
 #include <gui/dag_imgui.h>
 #include <gui/dag_imguiUtil.h>
 #include <imgui/imguiInput.h>
-#include <humanInput/dag_hiGlobals.h>
-#include <humanInput/dag_hiKeybIds.h>
-#include <humanInput/dag_hiPointing.h>
+#include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiPointing.h>
 #include <startup/dag_inpDevClsDrv.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_driver.h>
 #include <startup/dag_globalSettings.h>
 
 static void de3_imgui_control_set_default(GuiControlDesc &v);
@@ -25,9 +28,22 @@ static bool gui_active = false;
 
 static Tab<GuiControlDesc *> descs;
 
+static void clear_descs()
+{
+  for (auto *v : descs)
+  {
+    if ((v->type & 0x7FFFFFFF) == v->GCDT_IntEnum)
+    {
+      memfree(const_cast<char *>(v->sVal), strmem);
+      v->sVal = nullptr;
+    }
+  }
+  clear_and_shrink(descs);
+}
+
 void de3_imgui_init(const char *submenu_name, const char *window_name)
 {
-  clear_and_shrink(descs);
+  clear_descs();
   REGISTER_IMGUI_WINDOW(submenu_name, window_name, de3_imgui_window);
 
   if (::dgs_get_settings()->getBlockByNameEx("debug")->getBool("imguiStartWithOverlay", false))
@@ -35,25 +51,21 @@ void de3_imgui_init(const char *submenu_name, const char *window_name)
 }
 void de3_imgui_term()
 {
+  clear_descs();
   imgui_shutdown();
-  for (auto *v : descs)
-    if (v->type == v->GCDT_IntEnum)
-    {
-      memfree(const_cast<char *>(v->sVal), strmem);
-      v->sVal = nullptr;
-    }
-  clear_and_shrink(descs);
 }
 
 void de3_imgui_build(GuiControlDesc *add_desc, int add_desc_num)
 {
+  size_t oldSz = descs.size();
+  descs.reserve(oldSz + add_desc_num);
   for (int i = 0; i < add_desc_num; i++)
     descs.push_back(add_desc + i);
-
-  for (auto *v : descs)
+  for (auto vi = descs.begin() + oldSz, ve = descs.end(); vi != ve; ++vi)
   {
+    auto v = *vi;
     de3_imgui_control_set_default(*v);
-    if (v->type == v->GCDT_IntEnum) // convert "aaa, bbb, ccc, ..." to "aaa\0bbb\0ccc\0...\0\0"
+    if ((v->type & 0x7FFFFFFF) == v->GCDT_IntEnum) // convert "aaa, bbb, ccc, ..." to "aaa\0bbb\0ccc\0...\0\0"
     {
       const char *src = v->sVal;
       size_t len = strlen(src) + 2;
@@ -108,8 +120,9 @@ bool de3_imgui_act(float dt)
 #endif
 
   bool changeImgui = kbd.isKeyDown(HumanInput::DKEY_F2);
+  bool useOverlay = kbd.isKeyDown(HumanInput::DKEY_LSHIFT);
   if (changeImgui && !gui_active)
-    de3_imgui_set_gui_active(true);
+    de3_imgui_set_gui_active(true, useOverlay);
 
   if (!changeImgui && gui_active)
     de3_imgui_set_gui_active(false);
@@ -118,13 +131,13 @@ bool de3_imgui_act(float dt)
   return imgui_get_state() == ImGuiState::ACTIVE;
 }
 
-void de3_imgui_set_gui_active(bool active)
+void de3_imgui_set_gui_active(bool active, bool overlay)
 {
   if (gui_active == active)
     return;
 
   if (active)
-    imgui_handle_special_keys_down(false, false, false, HumanInput::DKEY_F2, 0);
+    imgui_handle_special_keys_down(false, overlay, false, HumanInput::DKEY_F2, 0);
   else
     imgui_handle_special_keys_up(false, false, false, HumanInput::DKEY_F2, 0);
   gui_active = active;

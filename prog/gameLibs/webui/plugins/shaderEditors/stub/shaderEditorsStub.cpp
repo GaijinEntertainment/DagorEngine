@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <webui/shaderEditors.h>
 
 ShaderGraphRecompiler::ShaderGraphRecompiler(const char *, ShaderGetSrcCallback) {}

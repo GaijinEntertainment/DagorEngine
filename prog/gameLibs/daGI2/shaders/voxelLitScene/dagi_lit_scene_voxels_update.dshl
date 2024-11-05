@@ -1,0 +1,21 @@
+include "dagi_lit_scene_voxels.dshl"
+
+shader dagi_voxel_scene_reset_cs
+{
+  ENABLE_ASSERT(cs)
+  DAGI_WRITE_VOXEL_LIT_SCENE_INIT(cs)
+  DAGI_VOXEL_LIT_SCENE_MATH_USE(cs)
+  hlsl(cs) {
+    [numthreads(4, 4, 4)]
+    void dagi_voxel_scene_reset_cs(uint3 dtId : SV_DispatchThreadID)
+    {
+      if (all(dtId < uint3(dagi_lit_scene_voxels_resolution().xx, dagi_lit_scene_voxels_full_atlas_res_d())))
+      {
+        texture3DAt(dagi_lit_voxel_scene_alpha, dtId) = 0;
+        texture3DAt(dagi_lit_voxel_scene, dtId) = 0;
+      }
+    }
+  }
+  compile("target_cs", "dagi_voxel_scene_reset_cs");
+}
+

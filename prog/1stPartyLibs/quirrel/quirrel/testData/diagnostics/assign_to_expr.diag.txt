@@ -3,6 +3,6 @@ testData/diagnostics/assign_to_expr.nut:2:0
 
 local x
 x-- = 1
-^----
+^--
 
 

@@ -64,8 +64,6 @@ shader accumulate_motion_blur, accumulate_motion_blur_mv
     {
       blur_motion_vector_tex@smp2d = blur_motion_vector_tex;
     }
-    INIT_MOTION_VEC_DECODE(vs)
-    USE_MOTION_VEC_DECODE(vs)
   }
 
   hlsl
@@ -114,7 +112,7 @@ shader accumulate_motion_blur, accumulate_motion_blur_mv
         prevScreenPos /= prevScreenPos.w;
         float2 velocity = start - prevScreenPos.xy;
       ##else
-        float2 velocity = decode_motion_vector(tex2Dlod(blur_motion_vector_tex, texcoord).xy) * float2(2, -2);
+        float2 velocity = tex2Dlod(blur_motion_vector_tex, texcoord).xy * float2(2, -2);
       ##endif
 
       float velocityLen = length(velocity);

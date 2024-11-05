@@ -1,5 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "joy_acc_gyro_device.h"
-#include <humanInput/dag_hiGlobals.h>
+#include <drv/hid/dag_hiGlobals.h>
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_wndProcCompMsg.h>
 #include <supp/_platform.h>
@@ -303,12 +305,18 @@ IWndProcComponent::RetCode HumanInput::JoyAccelGyroInpDevice::process(void *hwnd
     int btIdx = -1;
     switch (wParam)
     {
-      case 96: btIdx = 12; break;
-      case 97: btIdx = 13; break;
-      case 99: btIdx = 14; break;
-      case 100: btIdx = 15; break;
+      case 19: btIdx = 0; break;
+      case 20: btIdx = 1; break;
+      case 21: btIdx = 2; break;
+      case 22: btIdx = 3; break;
+      case 96: btIdx = (vendorId == HumanInput::GAMEPAD_VENDOR_NINTENDO ? 13 : 12); break;
+      case 97: btIdx = (vendorId == HumanInput::GAMEPAD_VENDOR_NINTENDO ? 12 : 13); break;
+      case 99: btIdx = (vendorId == HumanInput::GAMEPAD_VENDOR_NINTENDO ? 15 : 14); break;
+      case 100: btIdx = (vendorId == HumanInput::GAMEPAD_VENDOR_NINTENDO ? 14 : 15); break;
       case 102: btIdx = 8; break;
       case 103: btIdx = 9; break;
+      case 104: btIdx = 16; break; // required for nintendo gamepad - triggers are not analog
+      case 105: btIdx = 17; break; // required for nintendo gamepad
       case 106: btIdx = 6; break;
       case 107: btIdx = 7; break;
       case 108: btIdx = 4; break;

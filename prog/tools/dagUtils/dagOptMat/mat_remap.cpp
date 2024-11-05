@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_fileIo.h>
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_simpleString.h>

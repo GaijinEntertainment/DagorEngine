@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -116,25 +115,6 @@ public:
   ObjectEditor *getObjEditor() const { return objEditor; }
 
   virtual DClassID getCommonClassId(EditableObject **objects, int num);
-
-  /*
-  virtual void fillProps(PropertyContainerControlBase &panel,
-    DClassID for_class_id, dag::ConstSpan<EditableObject*> objects);
-
-  virtual void onPPChange(int pid, bool edit_finished,
-    PropertyContainerControlBase &panel,
-    dag::ConstSpan<EditableObject*> objects)=0;
-
-  virtual void onPPClose(PropertyContainerControlBase &panel,
-    dag::ConstSpan<EditableObject*> objects) {}
-
-  virtual void onPPClear(PropertyContainerControlBase &panel,
-    dag::ConstSpan<EditableObject*> objects) {}
-
-  virtual void onPPBtnPressed(int pid,
-    PropertyContainerControlBase &panel,
-    dag::ConstSpan<EditableObject*> objects) {}
-  */
 
   virtual void onRemove(ObjectEditor * /*objEditor*/) {}
   virtual void onAdd(ObjectEditor * /*objEditor*/) {}

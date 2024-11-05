@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -11,7 +10,7 @@ class IPoint2;
 class IPoint4;
 class IGenLoad;
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 struct TreeBitmapNode
 {
@@ -47,4 +46,4 @@ struct TreeBitmapNode
   KRNLIMP void load(IGenLoad &cb);
 };
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

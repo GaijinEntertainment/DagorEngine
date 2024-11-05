@@ -1,7 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "objPropDlg.h"
+#include <propPanel/control/container.h>
 #include <string>
 #include <sstream>
 #include <unordered_map>
+
 enum
 {
   ID_NODE_LIST,
@@ -10,9 +14,9 @@ enum
 
 ObjPropDialog::ObjPropDialog(const char *caption, hdpi::Px width, hdpi::Px height, const Tab<String> &nodes,
   const Tab<String> &scripts) :
-  CDialogWindow(p2util::get_main_parent_handle(), width, height, caption), scripts(scripts)
+  DialogWindow(nullptr, width, height, caption), scripts(scripts)
 {
-  PropertyContainerControlBase *panel = getPanel();
+  PropPanel::ContainerPropertyControl *panel = getPanel();
   G_ASSERTF(panel, "ObjPropDialog: No panel found!");
   panel->createMultiSelectList(ID_NODE_LIST, nodes, height / 3);
   panel->createEditBox(ID_PROPS, "", "", true, true, true, height / 2 - hdpi::_pxScaled(25));
@@ -23,15 +27,15 @@ void ObjPropDialog::applyChanges(const Tab<int> &sels)
 {
   if (!changed)
     return;
-  PropertyContainerControlBase *panel = getPanel();
+  PropPanel::ContainerPropertyControl *panel = getPanel();
   for (int i = 0; i < sels.size(); ++i)
     scripts[sels[i]] = panel->getText(ID_PROPS);
   shouldSave = true;
 }
 
-void ObjPropDialog::onClick(int pcb_id, PropertyContainerControlBase *panel) {}
+void ObjPropDialog::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) {}
 
-void ObjPropDialog::onChange(int pcb_id, PropertyContainerControlBase *panel)
+void ObjPropDialog::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   if (pcb_id == ID_NODE_LIST)
   {
@@ -62,7 +66,7 @@ bool ObjPropDialog::onOk()
 {
   if (changed)
   {
-    PropertyContainerControlBase *panel = getPanel();
+    PropPanel::ContainerPropertyControl *panel = getPanel();
     Tab<int> sels;
     panel->getSelection(ID_NODE_LIST, sels);
     applyChanges(sels);

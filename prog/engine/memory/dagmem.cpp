@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "stdRtlMemUsage.h"
 #if !defined(_STD_RTL_MEMORY) || defined(_DLMALLOC_MSPACE)
 #include "dlmalloc-2.8.4.h"
@@ -19,7 +21,6 @@
 #include <startup/dag_globalSettings.h>
 #include "macMemInit.h"
 
-#include <supp/dag_starForce.h>
 #include <supp/_platform.h>
 #if _TARGET_C1 | _TARGET_C2
 
@@ -34,6 +35,10 @@
 #if _TARGET_C1 | _TARGET_C2
 
 #elif _TARGET_PC_LINUX
+// Note: `mallinfo` is really slow (>1ms) under some conditions, probably many freed/allocated
+// small blocks, so  don't use it as we expect fast operation for this method.
+// To consider: use something like RLIMIT_RSS instead?
+#undef HAS_GET_SYSMEM_IN_USE
 static size_t get_sysmem_in_use()
 {
 #if __GLIBC_PREREQ(2, 33)
@@ -75,52 +80,6 @@ static size_t get_sysmem_in_use() { return 0; }
 static unsigned get_sysmem_ptrs_in_use() { return 0; }
 #endif
 
-namespace
-{
-// 64-bit atomic ops for statistics
-inline int64_t interlocked_increment(volatile int64_t &v)
-{
-#ifdef _MSC_VER
-  return InterlockedIncrement64(&v);
-#else
-  return __atomic_add_fetch(&v, 1, __ATOMIC_SEQ_CST);
-#endif
-}
-inline int64_t interlocked_decrement(volatile int64_t &v)
-{
-#ifdef _MSC_VER
-  return InterlockedDecrement64(&v);
-#else
-  return __atomic_add_fetch(&v, -1, __ATOMIC_SEQ_CST);
-#endif
-}
-inline int64_t interlocked_add(volatile int64_t &v, int64_t inc)
-{
-#ifdef _MSC_VER
-  return InterlockedExchangeAdd64(&v, inc) + inc;
-#else
-  return __atomic_add_fetch(&v, inc, __ATOMIC_SEQ_CST);
-#endif
-}
-inline int64_t interlocked_acquire_load(volatile const int64_t &i)
-{
-#ifdef _MSC_VER
-  return i;
-#else
-  return __atomic_load_n(&i, __ATOMIC_ACQUIRE);
-#endif
-}
-inline int interlocked_compare_exchange(volatile int64_t &dest, int64_t xchg, int64_t cmpr)
-{
-#ifdef _MSC_VER
-  return _InterlockedCompareExchange64(&dest, xchg, cmpr);
-#else
-  __atomic_compare_exchange_n(&dest, &cmpr, xchg, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
-  return cmpr;
-#endif
-}
-} // namespace
-
 #if !defined(__SANITIZE_ADDRESS__) && defined(__has_feature)
 #if __has_feature(address_sanitizer)
 #define __SANITIZE_ADDRESS__ 1
@@ -158,7 +117,7 @@ inline int interlocked_compare_exchange(volatile int64_t &dest, int64_t xchg, in
 
 #define GET_MEM_SIZE(p) sys_malloc_usable_size(p)
 
-#if defined(_M_IX86_FP) && _M_IX86_FP == 0
+#if (defined(_M_IX86_FP) && _M_IX86_FP == 0) || MEM_DEBUGALLOC > 0
 #define MIN4K(x) x
 #else
 #define MIN4K(x) min<unsigned>(x, 4096u)
@@ -311,7 +270,7 @@ static inline const char *bytes_to_compact_suffix(int32_t b)
 
 static void measurePrintStat()
 {
-  debug_ctx("per-chunksize memory usage statistics:");
+  DEBUG_CTX("per-chunksize memory usage statistics:");
   int64_t total_mem = 0;
   int32_t total_ptrs = 0;
   for (int i = 0; i < sizeof(chunkCnt) / sizeof(chunkCnt[0]); i++)
@@ -513,11 +472,7 @@ bool (*dgs_on_out_of_memory)(size_t sz) = NULL;
     if (void *retry_ptr = ALLOC_EXPR)                      \
       return retry_ptr;
 
-#if defined(STARFORCE_PROTECT) && PROTECT_MEMORY_MANAGER
-static int mem_mgr_inited = 1;
-#else
 static int mem_mgr_inited = 0;
-#endif
 
 #if MEM_LOCKS
 static int memory_thread_safe_ref = 0;
@@ -577,8 +532,7 @@ static void set_memory_thread_safe(bool is_safe)
   if (is_safe != _dlmalloc_threadsafe)
   {
     _dlmalloc_threadsafe = is_safe;
-    // debug_("=== switched to %sthead-safe mem management (%d refs)\n",
-    //        (_dlmalloc_threadsafe) ? "" : "NON ", memory_thread_safe_ref);
+    // debug("=== switched to %sthead-safe mem management (%d refs)", _dlmalloc_threadsafe ? "" : "NON ", memory_thread_safe_ref);
   }
   leave_critical_section(_dlmalloc_critsec);
 #else
@@ -1013,14 +967,6 @@ void get_memory_stats(char *buf, int buflen)
 
 size_t get_max_mem_used() { return get_memory_committed_max(); }
 
-#if defined(STARFORCE_PROTECT) && PROTECT_MEMORY_MANAGER
-STARFORCEEXP void STARFORCE_DECORATE(SFINIT1, 0, reset_memory_inited_flag)()
-{
-  while (mem_mgr_inited > 0)
-    mem_mgr_inited -= 1;
-}
-#endif
-
 static void win_enable_low_fragmentation_heap() // https://msdn.microsoft.com/en-US/library/aa366750.aspx
 {
 #if _TARGET_PC_WIN
@@ -1036,7 +982,7 @@ static void win_enable_low_fragmentation_heap() // https://msdn.microsoft.com/en
 #endif
 }
 
-#define DECLARE_MEM_STORAGE(NM_STOR, CLS) static char DECLSPEC_ALIGN(alignof(CLS)) NM_STOR[sizeof(CLS)]
+#define DECLARE_MEM_STORAGE(NM_STOR, CLS) alignas(CLS) static char NM_STOR[sizeof(CLS)]
 
 #if MEM_DEBUGALLOC <= 0
 // normal (non-debug) memory allocator
@@ -1180,6 +1126,8 @@ void memfree_anywhere(void *p) { DagDebugMemAllocator::memFreeAnywhere(p); }
 
 extern "C" void *memalloc_default(size_t sz) { return defaultmem->alloc(sz); }
 extern "C" void memfree_default(void *p) { defaultmem->free(p); }
+extern "C" void *memalloc_aligned_default(size_t sz, size_t al) { return defaultmem->allocAligned(sz, al); }
+extern "C" void memfree_aligned_default(void *p) { defaultmem->freeAligned(p); }
 extern "C" void *memrealloc_default(void *p, size_t sz) { return defaultmem->realloc(p, sz); }
 extern "C" int memresizeinplace_default(void *p, size_t sz) { return int(defaultmem->resizeInplace(p, sz)); }
 
@@ -1208,15 +1156,18 @@ void (*get_memcollect_cur_thread_cb())()
 #include "stubRtlAlloc.inc.cpp"
 
 #if defined(__clang__)
-void *operator new(std::size_t s) { return FINAL_ALLOC(defaultmem)->alloc(s); }
-void *operator new[](std::size_t s) { return FINAL_ALLOC(defaultmem)->alloc(s); }
-void operator delete(void *p) noexcept { memfree_anywhere(p); }
-void operator delete[](void *p) noexcept { memfree_anywhere(p); }
-#if __cplusplus >= 201703 || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703)
+void *operator new(std::size_t s) DAG_THROW_BAD_ALLOC { return FINAL_ALLOC(defaultmem)->alloc(s); }
+void *operator new(std::size_t s, const std::nothrow_t &) DAG_NOEXCEPT { return FINAL_ALLOC(defaultmem)->tryAlloc(s); }
+void *operator new[](std::size_t s) DAG_THROW_BAD_ALLOC { return FINAL_ALLOC(defaultmem)->alloc(s); }
+void *operator new[](std::size_t s, const std::nothrow_t &) DAG_NOEXCEPT { return FINAL_ALLOC(defaultmem)->tryAlloc(s); }
+void operator delete(void *p) DAG_NOEXCEPT { memfree_anywhere(p); }
+void operator delete[](void *p) DAG_NOEXCEPT { memfree_anywhere(p); }
+#if (__cplusplus >= 201703 || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703)) && !__has_feature(address_sanitizer)
 void *operator new(std::size_t sz, std::align_val_t al) { return FINAL_ALLOC(defaultmem)->allocAligned(sz, (size_t)al); }
 void *operator new[](std::size_t sz, std::align_val_t al) { return FINAL_ALLOC(defaultmem)->allocAligned(sz, (size_t)al); }
 void operator delete(void *ptr, std::align_val_t) noexcept { return FINAL_ALLOC(defaultmem)->freeAligned(ptr); }
 void operator delete[](void *ptr, std::align_val_t) noexcept { return FINAL_ALLOC(defaultmem)->freeAligned(ptr); }
+// TODO: aligned nothrow?
 #endif
 #endif
 

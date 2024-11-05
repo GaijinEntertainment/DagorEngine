@@ -9,6 +9,8 @@
 #define SIM_MODULE_TURBULENT_WIND 1
 #define SIM_MODULE_RESOLVE_FORCES 1
 #define SIM_MODULE_COLOR 1
+#define SIM_MODULE_WIDTH_MODIFIER 1
+#define SIM_MODULE_GRAVITY_ZONE 1
 
 #define SPAWN_MODULE_SEED 1
 #define SPAWN_MODULE_LINEAR_LIFE 1
@@ -22,6 +24,7 @@
 #define DAFX_PARENT_REN_DATA \
   DAFX_MODULE_DATA_DECL(1 * REN_MODULE, REN_MODULE_DECL(uint blending;), REN_MODULE_DECL(o.blending = dafx_load_1ui(buf, ofs);), 0) \
   DAFX_MODULE_DATA_DECL(1 * REN_MODULE, REN_MODULE_DECL(float motionScale;), REN_MODULE_DECL(o.motionScale = dafx_load_1f(buf, ofs);), 0) \
+  DAFX_MODULE_DATA_DECL(1 * REN_MODULE, REN_MODULE_DECL(float motionScaleMax;), REN_MODULE_DECL(o.motionScaleMax = dafx_load_1f(buf, ofs);), 0) \
   DAFX_MODULE_DATA_DECL(1 * SIM_MODULE_COLOR, SIM_MODULE_COLOR_DECL(float hdrScale;), SIM_MODULE_COLOR_DECL(o.hdrScale = dafx_load_1f(buf, ofs);), 0) \
   DAFX_MODULE_DATA_DECL(1 * REN_MODULE, REN_MODULE_DECL(float arrowShape;), REN_MODULE_DECL(o.arrowShape = dafx_load_1f(buf, ofs);), 0)
 

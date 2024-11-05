@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <latencyFlash/latencyInputListener.h>
 
 #include <3d/dag_lowLatency.h>
@@ -23,13 +25,17 @@ bool LatencyInputEventListener::gkehButtonUp(const Context &, int) { return fals
 
 void LatencyInputEventListener::register_handler()
 {
-  if (!registered)
+  if (!registered && lowlatency::is_inited())
+  {
     register_hid_event_handler(this, 5);
-  registered = true;
+    registered = true;
+  }
 }
 
 void LatencyInputEventListener::unregister_handler()
 {
+  // FIXME: this code is broken - you cannot dynamically unregister hid event handlers and immediately delete it
+  // (because joystick update thread might call its methods)
   if (registered)
     unregister_hid_event_handler(this);
   registered = false;

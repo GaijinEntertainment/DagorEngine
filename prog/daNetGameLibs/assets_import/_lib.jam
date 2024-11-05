@@ -1,0 +1,10 @@
+
+if $(HaveRenderer) = yes
+{
+  if $(Platform) in windows && $(HaveAssetManager) = yes {
+    gamePulls += daNetGameLibs_assets_import_DAS_pull_AOT ;
+    gamePulls += AssetsImportModule_pull ;
+  }
+  gamePulls += framework_assets_import_pull ;
+  UseProgLibs += daNetGameLibs/assets_import ;
+}

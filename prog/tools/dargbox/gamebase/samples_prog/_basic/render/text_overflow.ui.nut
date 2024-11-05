@@ -15,36 +15,26 @@ from "math" import max
 let cursors = require("samples_prog/_cursors.nut")
 
 let textFrameState = Watched({
-  size   = [107, 30]
+  size   = [hdpx(107), hdpx(30)]
   pos    = [0, 0]
 })
 
-function text_element(text) {
+function dText(text, params=null) {
   return {
     rendObj = ROBJ_TEXT
-    ellipsis = true
     color = Color(198,198,128)
-    textOverflowX = TOVERFLOW_CHAR
-  }.__update({text=text})
+    text
+  }.__update(params ?? {})
 }
 
-function dText(text,params={}) {
-  return text_element(text).__update(params).__update({rendObj = ROBJ_TEXT})
-}
-
-function sText(text, params={}) {
-  return text_element(text).__update(params).__update({rendObj = ROBJ_INSCRIPTION})
-}
 
 function dTextFrame(params={}) {
-  let text = dText("Съешь ещё этих мягких французских булок, да выпей же чаю").__update(params).__update({size=flex()})
-
   return @() {
     rendObj = ROBJ_FRAME
     color = Color(255,0,0)
     size = textFrameState.value.size
     pos = textFrameState.value.pos
-    children = text
+    children = dText("Съешь ещё этих мягких французских булок, да выпей же чаю").__update(params, {size=flex() textOverflowX=null})
     behavior = Behaviors.MoveResize
     moveResizeCursors = cursors.moveResizeCursors
     watch = textFrameState
@@ -73,24 +63,22 @@ return {
     size = [sw(80),sh(80)]
     gap = 10
     children = [
-      sText("This is auto-clipped overflowed text")
+      dText("This is auto-clipped overflowed text")
       {rendObj = ROBJ_FRAME size = [100,30].map(hdpx) children = {size =flex() rendObj = ROBJ_TEXT text="This is long-long-long text"}}
-      sText("This is nonlcipped overflowed text (text element has size by content and parent is not clipping children)")
+      dText("This is nonlcipped overflowed text (text element has size by content and parent is not clipping children)")
       {rendObj = ROBJ_FRAME  size = [100,30].map(hdpx) children = {  rendObj = ROBJ_TEXT text="This is long-long-long text"}}
-      sText("This is clipped overflowed text")
+      dText("This is clipped overflowed text")
       {rendObj = ROBJ_FRAME size = [100,30].map(hdpx) clipChildren = true children = {rendObj = ROBJ_TEXT text="This is long-long-long text"}}
-      sText("This is ellipsis overflowed text, split by chars. It works currently only with rendObj=ROBJ_TEXT, and you need to set some size for text, otherwise it is SIZE_TO_CONTENT")
-      {rendObj = ROBJ_FRAME size = [150,30].map(hdpx) children = {rendObj = ROBJ_TEXT text="Съешь ещё этих мягких французских булок, да" ellipsis = true textOverflowX = TOVERFLOW_CHAR size = flex() }}
-      sText("This is ellipsis overflowed (d)text, split by words.")
-      {rendObj = ROBJ_FRAME size = [150,30].map(hdpx) children = {rendObj = ROBJ_TEXT text="Съешь ещё этих мягких французских булок, да" ellipsis = true textOverflowX = TOVERFLOW_WORD size = flex()}}
-      sText("This is resizable overflowed text, split by chars")
-      dTextFrame({fontFxColor = Color(255, 155, 0, 0) color = Color(255,255,255) size=textFrameState.value.size})
-      sText("This is autoscrolled text with dealy and speed")
-      sText("All you need is love and autoscroll" {behavior = Behaviors.Marquee delay = 1 speed = 50 size=[hdpx(100),SIZE_TO_CONTENT] color=white })
-      sText("This is autoscrolled text on Hover")
-      sText("All you need is love and autoscroll on Hover" {behavior = [Behaviors.Marquee, Behaviors.Button] color=white delay = 0.5 speed = [50,600] scrollOnHover = true size=[hdpx(100),SIZE_TO_CONTENT]})
-      sText("This is DTEXT autoscrolled text on Hover, not WORKING", {color = Color(255,0,0)})
-      {behavior = [Behaviors.Marquee, Behaviors.Button] clipChildren=true color=white delay = 0.5 speed = [50,600] scrollOnHover = true size=[hdpx(100),SIZE_TO_CONTENT] children = dText("All you need is love and autoscroll on Hover" {color=white size=SIZE_TO_CONTENT})}
+      dText("This is ellipsis overflowed text, split by chars.")
+      {rendObj = ROBJ_FRAME size = [210,30].map(hdpx) children = {rendObj = ROBJ_TEXT text="Съешь ещё этих мягких французских булок, да" ellipsis = true textOverflowX = TOVERFLOW_CHAR size = flex() }}
+      dText("This is ellipsis overflowed (d)text, split by words.")
+      {rendObj = ROBJ_FRAME size = [210,30].map(hdpx) children = {rendObj = ROBJ_TEXT text="Съешь ещё этих мягких французских булок, да" ellipsis = true textOverflowX = TOVERFLOW_WORD size = flex()}}
+      dText("This is resizable overflowed text, split by chars")
+      @(){ watch = textFrameState children = dTextFrame({fontFxColor = Color(255, 155, 0, 0) color = Color(255,255,255) size=textFrameState.get().size})}
+      dText("This is autoscrolled text with delay and speed")
+      {clipChildren = true size=[hdpx(100),SIZE_TO_CONTENT]  children = {behavior = Behaviors.Marquee size = [flex(), SIZE_TO_CONTENT] delay = 1 speed = hdpx(50) children = dText("All you need is love and autoscroll", {color=white})}}
+      dText("This is autoscrolled text on Hover")
+      {clipChildren = true size=[hdpx(100),SIZE_TO_CONTENT]  children = {behavior = [Behaviors.Marquee, Behaviors.Button] scrollOnHover = true size = [flex(), SIZE_TO_CONTENT] delay = 0.1 speed = hdpx(50) children = dText("All you need is love and autoscroll onHover", {color=white})}}
     ]
   }
 }

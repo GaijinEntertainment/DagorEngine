@@ -1,7 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-
-#include <humanInput/dag_hiComposite.h>
+#include <drv/hid/dag_hiComposite.h>
 #include <util/dag_string.h>
 #include <ctype.h>
 

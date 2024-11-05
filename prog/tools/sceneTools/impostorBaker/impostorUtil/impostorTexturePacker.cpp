@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "impostorTexturePacker.h"
 
 static eastl::vector<int> build_convex_shape(int height, const int *x_values, int direction)
@@ -54,8 +56,8 @@ static SliceData init_slice(IPoint2 slice_resolution, const uint8_t *data, int s
   }
 
   G_ASSERTF_RETURN(!slice.contentBbox.isEmpty(), slice,
-    "Impostor texture empty. There is probably an error while loading the requested asset <%s>."
-    "Check the error log and try opening the asset with asset viewer",
+    "Impostor texture empty. There is probably an error while loading the requested asset <%s>. "
+    "Check the error log and try opening the asset with Asset Viewer",
     asset_name);
 
   slice.scaledLeftmostAlongY.resize(slice_resolution.y);

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -9,7 +8,8 @@
 #include <streaming/dag_streamingCtrl.h>
 #include <shaders/dag_renderScene.h>
 #include <scene/dag_renderSceneMgr.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_texPackMgr2.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_genIo.h>
@@ -106,11 +106,11 @@ public:
       d3d::settm(TM_VIEW, view_tm);
     }
   }
-  void render(const VisibilityFinder &vf, int render_id, unsigned render_flags_mask) { rs.render(vf, render_id, render_flags_mask); }
-  void render(int render_id = 0, unsigned render_flags_mask = 0xFFFFFFFFU)
+  void render(const VisibilityFinder &vf, int render_id = 0, unsigned render_flags_mask = 0xFFFFFFFFU)
   {
-    rs.render(*visibility_finder, render_id, render_flags_mask);
+    rs.render(vf, render_id, render_flags_mask);
   }
+
   void renderTrans() { rs.renderTrans(); }
 
   void act(const Point3 &observer)
@@ -189,4 +189,28 @@ public:
   Point3 getEnviPos() { return enviPos; }
 
   void setEnviPos(const Point3 &p) { enviPos = p; }
+
+  bool hasClipmap() const
+  {
+    for (auto &scene : rs.getScenes())
+      if (scene->hasClipmap())
+        return true;
+    return false;
+  }
+
+  bool getClipmapMinMaxHeight(float &min_height, float &max_height) const
+  {
+    min_height = 100000;
+    max_height = -100000;
+    for (auto &scene : rs.getScenes())
+    {
+      float minH, maxH;
+      if (scene->getClipmapMinMaxHeight(minH, maxH))
+      {
+        min_height = min(minH, min_height);
+        max_height = max(maxH, max_height);
+      }
+    }
+    return min_height < max_height;
+  }
 };

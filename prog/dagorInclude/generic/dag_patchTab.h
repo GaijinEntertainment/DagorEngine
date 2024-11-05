@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -35,7 +34,6 @@ public:
   using dag::Span<T>::empty;
 
   PatchableTab() {}
-  ~PatchableTab() {}
 
   PatchableTab(PatchableTab &&ft) = default;
   PatchableTab &operator=(PatchableTab &&ft) = default;
@@ -87,7 +85,6 @@ class PatchablePtr
 {
 public:
   PatchablePtr() {} //-V730
-  ~PatchablePtr() {}
 
   T *get() const { return p; }
   operator T *() const { return p; }

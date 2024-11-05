@@ -4,13 +4,22 @@ include "shaders_dx11.blk"
 "@override:source"
 {
   file:t = "depth_hierarchy.dshl"
+  file:t = "testgi_bvh_debug.dshl"
+  file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_dynrend_indices.dshl"
+  file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_bake_texture_to_vertices.dshl"
 }
 
 "@override:outDumpName":t="../../game/compiledShaders/gameDX12"
 "@override:Compile" {
   "@override:fsh":t="5.0"
   "@override:assume_vars" {
+    "@delete:supports_sh_6_1":i = 0
     "@delete:render_inline_raytracing":i=0
+    "@delete:dagi_warp64_irradiance":i=0
      gi_voxelize_use_multidraw:i=1
   }
 }
+
+
+incDir:t="../../../../prog/gameLibs/bvh/shaders"
+incDir:t="../../../../prog/gameLibs/render/shaders/NRD"

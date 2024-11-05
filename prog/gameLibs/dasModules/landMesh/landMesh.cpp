@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daScript/daScript.h>
 #include <dasModules/aotLandMesh.h>
 #include <dasModules/aotGpuReadbackQuery.h>

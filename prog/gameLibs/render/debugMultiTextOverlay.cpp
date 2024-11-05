@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/debugMultiTextOverlay.h>
 #include <hudprim/dag_hudPrimitives.h>
 #include <math/integer/dag_IBBox2.h>
@@ -13,6 +15,7 @@ struct Prim
   float depth;
   Point2 spos;
   IBBox2 box;
+  int complexity; // optional complexity, can represent sizes or sub instances counters
   eastl::string_view name;
 };
 
@@ -20,6 +23,7 @@ struct Counter
 {
   int primIdx;
   int count;
+  int complexity;
 };
 
 struct Group
@@ -29,8 +33,8 @@ struct Group
   dag::Vector<Counter, framemem_allocator> counters;
 };
 
-void prepare_and_sort(dag::ConstSpan<Point3> positions, dag::ConstSpan<eastl::string_view> names, const TMatrix4 &globtm,
-  HudPrimitives *imm_prim, const DebugMultiTextOverlay &cfg, dag::Vector<Prim, framemem_allocator> &prims)
+void prepare_and_sort(dag::ConstSpan<Point3> positions, dag::ConstSpan<eastl::string_view> names, dag::ConstSpan<int> complexities,
+  const TMatrix4 &globtm, HudPrimitives *imm_prim, const DebugMultiTextOverlay &cfg, dag::Vector<Prim, framemem_allocator> &prims)
 {
   const IBBox2 screenBox = {{0, 0}, {imm_prim->screenWidth, imm_prim->screenHeight}};
   const IPoint2 halfScreenRes = {imm_prim->screenWidth / 2, imm_prim->screenHeight / 2};
@@ -57,8 +61,9 @@ void prepare_and_sort(dag::ConstSpan<Point3> positions, dag::ConstSpan<eastl::st
     IPoint2 isize = ipoint2(imm_prim->getColoredTextBBox(names[i].data(), 0));
     ipos.y -= isize.y;
     IBBox2 box = {ipos, ipos + isize};
+    int complexity = complexities.empty() ? 0 : complexities[i];
     if (box & screenBox)
-      prims.push_back({nameMap.addNameId(names[i].data()), spos.w, Point2::xy(fpos), box, names[i]});
+      prims.push_back({nameMap.addNameId(names[i].data()), spos.w, Point2::xy(fpos), box, complexity, names[i]});
   }
 
   eastl::sort(prims.begin(), prims.end(), [](const Prim &v1, const Prim &v2) { return v1.depth < v2.depth; });
@@ -75,27 +80,34 @@ void recalc_counters(Group &group, dag::ConstSpan<Prim> prims)
       if (prims[i].nameHash == prims[counter.primIdx].nameHash)
       {
         counter.count++;
+        counter.complexity += prims[i].complexity;
         found = true;
         break;
       }
     }
 
     if (!found)
-      group.counters.push_back({i, 1});
+      group.counters.push_back({i, 1, prims[i].complexity});
   }
 }
 
-eastl::string_view get_counter_template(const eastl::string_view &name, eastl::string &tmp, int count)
+eastl::string_view get_counter_template(const eastl::string_view &name, eastl::string &tmp, int count, int complexity)
 {
   if (count == 1)
   {
-    return name;
+    if (complexity == 0)
+      return name;
+    else
+      tmp.append_sprintf("%s (%d)", name.data(), complexity);
   }
   else
   {
-    tmp.append_sprintf("%s | x%d", name.data(), count);
-    return tmp;
+    if (complexity == 0)
+      tmp.append_sprintf("%s | x%d", name.data(), count);
+    else
+      tmp.append_sprintf("%s | x%d (%d)", name.data(), count, complexity);
   }
+  return tmp;
 }
 
 void recalc_group_box(Group &group, dag::ConstSpan<Prim> prims, HudPrimitives *imm_prim, int border_padding)
@@ -111,7 +123,7 @@ void recalc_group_box(Group &group, dag::ConstSpan<Prim> prims, HudPrimitives *i
   for (Counter &c : group.counters)
   {
     eastl::string tmp;
-    eastl::string_view name = get_counter_template(prims[c.primIdx].name, tmp, c.count);
+    eastl::string_view name = get_counter_template(prims[c.primIdx].name, tmp, c.count, c.complexity);
 
     IPoint2 isize = ipoint2(imm_prim->getColoredTextBBox(name.data(), 0));
     group.box[1].x = max(group.box[1].x, group.box[0].x + isize.x);
@@ -204,7 +216,7 @@ void render(dag::ConstSpan<Prim> prims, dag::ConstSpan<Group> groups, HudPrimiti
     {
       const Prim &prim = prims[counter.primIdx];
       eastl::string tmp;
-      eastl::string_view name = get_counter_template(prim.name, tmp, counter.count);
+      eastl::string_view name = get_counter_template(prim.name, tmp, counter.count, counter.complexity);
       offset += prim.box.width().y;
       imm_prim->renderText(group.box[0].x + cfg.borderPadding, group.box[0].y + cfg.borderPadding + offset, 0, cfg.textColor,
         name.data());
@@ -213,13 +225,14 @@ void render(dag::ConstSpan<Prim> prims, dag::ConstSpan<Group> groups, HudPrimiti
   imm_prim->endRenderImm();
 }
 
-void draw_debug_multitext_overlay(dag::ConstSpan<Point3> positions, dag::ConstSpan<eastl::string_view> names, HudPrimitives *imm_prim,
-  const TMatrix4 &globtm, const DebugMultiTextOverlay &cfg)
+void draw_debug_multitext_overlay(dag::ConstSpan<Point3> positions, dag::ConstSpan<eastl::string_view> names,
+  dag::ConstSpan<int> complexities, HudPrimitives *imm_prim, const TMatrix4 &globtm, const DebugMultiTextOverlay &cfg)
 {
   G_ASSERT_RETURN(positions.size() == names.size(), );
+  G_ASSERT_RETURN(complexities.empty() || complexities.size() == names.size(), );
 
   dag::Vector<Prim, framemem_allocator> prims;
-  prepare_and_sort(positions, names, globtm, imm_prim, cfg, prims);
+  prepare_and_sort(positions, names, complexities, globtm, imm_prim, cfg, prims);
 
   dag::Vector<Group, framemem_allocator> groups;
   for (int i = 0; i < prims.size(); ++i)
@@ -234,4 +247,10 @@ void draw_debug_multitext_overlay(dag::ConstSpan<Point3> positions, dag::ConstSp
     done = merge_step(prims, groups, imm_prim, cfg.maxGroupSize, cfg.borderPadding);
 
   render(prims, groups, imm_prim, cfg);
+}
+
+void draw_debug_multitext_overlay(dag::ConstSpan<Point3> positions, dag::ConstSpan<eastl::string_view> names, HudPrimitives *imm_prim,
+  const TMatrix4 &globtm, const DebugMultiTextOverlay &cfg)
+{
+  draw_debug_multitext_overlay(positions, names, make_span<int>(nullptr, 0), imm_prim, globtm, cfg);
 }

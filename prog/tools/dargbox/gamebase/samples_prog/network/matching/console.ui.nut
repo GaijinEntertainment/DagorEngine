@@ -3,10 +3,10 @@ let textInput = require("samples_prog/_basic/components/textInput.nut")
 let autoScrollTextArea = require("samples_prog/_basic/components/autoScrollTextArea.nut")
 let textLog  = require("textlog.nut")
 
-let matching_api = require("matching.api")
+let { matching_listen_notify, matching_login, matching_logout, matching_call } = require("matching.api")
 let matching_errors = require("matching.errors")
-let eventbus = require("eventbus")
-let { json_to_string, parse_json } = require("json")
+let { eventbus_subscribe, eventbus_subscribe_onehit } = require("eventbus")
+let { object_to_json_string, parse_json } = require("json")
 let {format_unixtime, get_local_unixtime} = require("dagor.time")
 
 enum LoginState {
@@ -76,31 +76,31 @@ serverNotify.subscribe(function(val) {
   ))
 })
 
-let printNotify = @(name, notify) serverNotify(json_to_string(notify.__merge({name}), true))
+let printNotify = @(name, notify) serverNotify(object_to_json_string(notify.__merge({name}), true))
 
 function subscribeNotify(name, handler = printNotify) {
-  matching_api.listen_notify(name)
-  eventbus.subscribe(name, @(obj) handler(name, obj))
+  matching_listen_notify(name)
+  eventbus_subscribe(name, @(obj) handler(name, obj))
   lastResult($"subscribed to {name}")
 }
 
 function sendRPC() {
-  let reqInfo = matching_api.call(rpcCmd.value, parse_json(rpcParams.value))
+  let reqInfo = matching_call(rpcCmd.value, parse_json(rpcParams.value))
   if (reqInfo?.reqId != null) {
-    eventbus.subscribe_onehit($"{rpcCmd.value}.{reqInfo.reqId}",
+    eventbus_subscribe_onehit($"{rpcCmd.value}.{reqInfo.reqId}",
       function(result) {
         if (result.error != 0)
           lastResult(matching_errors.error_string(result.error))
         else
-          lastResult(json_to_string(result, true))
+          lastResult(object_to_json_string(result, true))
       })
   } else {
     lastResult(matching_errors.error_string(reqInfo.error))
   }
 }
 
-eventbus.subscribe("matching.dial_finished", function(result) {
-  lastResult(json_to_string(result, true))
+eventbus_subscribe("matching.login_finished", function(result) {
+  lastResult(object_to_json_string(result, true))
   if (result.status == 0) {
     subscribeNotify("mpresence.notify_presence_update")
     loginState(LoginState.LoggedIn)
@@ -109,18 +109,18 @@ eventbus.subscribe("matching.dial_finished", function(result) {
     loginState(LoginState.Disconnected)
 })
 
-eventbus.subscribe("matching.on_disconnect", function(reason) {
-  lastResult(json_to_string(reason, true))
+eventbus_subscribe("matching.on_disconnect", function(reason) {
+  lastResult(object_to_json_string(reason, true))
   loginState(LoginState.Disconnected)
 })
 
 function onLoginButtonClick() {
   if (loginState.value == LoginState.Disconnected) {
     loginState(LoginState.Connecting)
-    matching_api.dial(loginInfo)
+    matching_login(loginInfo)
   }
   else if (loginState.value == LoginState.LoggedIn)  {
-    matching_api.logout()
+    matching_logout()
   }
 }
 

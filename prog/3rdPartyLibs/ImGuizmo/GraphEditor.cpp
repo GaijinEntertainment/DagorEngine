@@ -1,5 +1,5 @@
 // https://github.com/CedricGuillemet/ImGuizmo
-// v 1.83
+// v 1.89 WIP
 //
 // The MIT License(MIT)
 //
@@ -24,8 +24,8 @@
 // SOFTWARE.
 //
 
-#include "imgui.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
+#include "imgui.h"
 #include "imgui_internal.h"
 #include <math.h>
 #include <vector>
@@ -186,8 +186,8 @@ static void DisplayLinks(Delegate& delegate,
         if (options.mDisplayLinksAsCurves)
         {
             // curves
-             drawList->AddBezierCurve(p1, p1 + ImVec2(50, 0) * factor, p2 + ImVec2(-50, 0) * factor, p2, 0xFF000000, options.mLineThickness * 1.5f * factor);
-             drawList->AddBezierCurve(p1, p1 + ImVec2(50, 0) * factor, p2 + ImVec2(-50, 0) * factor, p2, col, options.mLineThickness * 1.5f * factor);
+             drawList->AddBezierCubic(p1, p1 + ImVec2(50, 0) * factor, p2 + ImVec2(-50, 0) * factor, p2, 0xFF000000, options.mLineThickness * 1.5f * factor);
+             drawList->AddBezierCubic(p1, p1 + ImVec2(50, 0) * factor, p2 + ImVec2(-50, 0) * factor, p2, col, options.mLineThickness * 1.5f * factor);
              /*
             ImVec2 p10 = p1 + ImVec2(20.f * factor, 0.f);
             ImVec2 p20 = p2 - ImVec2(20.f * factor, 0.f);
@@ -543,6 +543,7 @@ static bool DrawNode(ImDrawList* drawList,
 {
     ImGuiIO& io = ImGui::GetIO();
     const auto node = delegate.GetNode(nodeIndex);
+    IM_ASSERT((node.mRect.GetWidth() != 0.f) && (node.mRect.GetHeight() != 0.f) && "Nodes must have a non-zero rect.");
     const auto nodeTemplate = delegate.GetTemplate(node.mTemplateIndex);
     const ImVec2 nodeRectangleMin = offset + node.mRect.Min * factor;
 

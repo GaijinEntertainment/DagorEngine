@@ -1,11 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "joy_helper_android.h"
-#include <humanInput/dag_hiGlobals.h>
+#include <drv/hid/dag_hiGlobals.h>
 #include <supp/_platform.h>
 #include <debug/dag_debug.h>
 #include <limits>
 #include <string.h>
 #include <osApiWrappers/dag_progGlobals.h>
-#include <humanInput/dag_hiJoystick.h>
+#include <drv/hid/dag_hiJoystick.h>
 #include <perfMon/dag_cpuFreq.h>
 
 #include <atomic>
@@ -20,6 +22,7 @@ jmethodID HumanInput::JoyDeviceHelper::s_StopListeningGamepads = NULL;
 jmethodID HumanInput::JoyDeviceHelper::s_IsDeviceChanged = NULL;
 jmethodID HumanInput::JoyDeviceHelper::s_IsGamepadConnected = NULL;
 jmethodID HumanInput::JoyDeviceHelper::s_GetConnectedGamepadVendorId = NULL;
+jmethodID HumanInput::JoyDeviceHelper::s_GetConnectedGamepadProductId = NULL;
 jmethodID HumanInput::JoyDeviceHelper::s_GetDisplayRotation = NULL;
 
 static std::atomic<bool> is_input_device_changed = false;
@@ -90,6 +93,10 @@ bool HumanInput::JoyDeviceHelper::attach()
     JNI_RETURN(s_JavaHelperClass, s_Jni->GetStaticMethodID(s_JavaHelperClass, "getConnectedGamepadVendorId", "()I"));
   s_Jni->ExceptionClear();
 
+  s_GetConnectedGamepadProductId =
+    JNI_RETURN(s_JavaHelperClass, s_Jni->GetStaticMethodID(s_JavaHelperClass, "getConnectedGamepadProductId", "()I"));
+  s_Jni->ExceptionClear();
+
   s_GetDisplayRotation =
     JNI_RETURN(s_JavaHelperClass, s_Jni->GetStaticMethodID(s_JavaHelperClass, "getDisplayRotation", "(Landroid/app/Activity;)I"));
   s_Jni->ExceptionClear();
@@ -99,7 +106,7 @@ bool HumanInput::JoyDeviceHelper::attach()
 #undef JNI_RETURN
 
   s_Inited = s_JavaHelperClass && s_ListenGamepads && s_StopListeningGamepads && s_IsDeviceChanged && s_IsGamepadConnected &&
-             s_GetConnectedGamepadVendorId && s_GetDisplayRotation;
+             s_GetConnectedGamepadVendorId && s_GetConnectedGamepadProductId && s_GetDisplayRotation;
 
   if (s_Inited)
   {
@@ -154,6 +161,14 @@ int HumanInput::JoyDeviceHelper::getConnectedGamepadVendorId()
 {
   if (attach())
     return s_Jni->CallStaticIntMethod(s_JavaHelperClass, s_GetConnectedGamepadVendorId);
+
+  return GAMEPAD_VENDOR_UNKNOWN;
+}
+
+int HumanInput::JoyDeviceHelper::getConnectedGamepadProductId()
+{
+  if (attach())
+    return s_Jni->CallStaticIntMethod(s_JavaHelperClass, s_GetConnectedGamepadProductId);
 
   return GAMEPAD_VENDOR_UNKNOWN;
 }

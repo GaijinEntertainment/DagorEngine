@@ -1,9 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/utility.h>
 #include <EASTL/vector.h>
 #include <osApiWrappers/dag_lockProfiler.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_tiledResource.h>
 
 #include "d3d12_error_handling.h"
 #include "d3d12_debug_names.h"
@@ -13,11 +15,11 @@
 
 struct TileMapperAccel
 {
-  eastl::vector<D3D12_TILED_RESOURCE_COORDINATE> trcs;
-  eastl::vector<D3D12_TILE_REGION_SIZE> trss;
-  eastl::vector<UINT> offsets;
-  eastl::vector<UINT> counts;
-  eastl::vector<D3D12_TILE_RANGE_FLAGS> rangeFlags;
+  dag::Vector<D3D12_TILED_RESOURCE_COORDINATE> trcs;
+  dag::Vector<D3D12_TILE_REGION_SIZE> trss;
+  dag::Vector<UINT> offsets;
+  dag::Vector<UINT> counts;
+  dag::Vector<D3D12_TILE_RANGE_FLAGS> rangeFlags;
   ID3D12Resource *tex = nullptr;
   ID3D12Heap *heap = nullptr;
   size_t heapBase = 0;
@@ -85,9 +87,9 @@ public:
   DeviceQueue(ComPtr<ID3D12CommandQueue> q) : queue{eastl::move(q)} {}
 
   ID3D12CommandQueue *getHandle() const { return queue.Get(); }
-  void enqueueCommands(uint32_t count, ID3D12CommandList *const *cmds) { queue->ExecuteCommandLists(count, cmds); }
-  bool enqueueProgressUpdate(ID3D12Fence *f, uint64_t progress) { return DX12_CHECK_OK(queue->Signal(f, progress)); }
-  bool syncWith(ID3D12Fence *f, uint64_t progress) { return DX12_CHECK_OK(queue->Wait(f, progress)); }
+  void enqueueCommands(uint32_t count, ID3D12CommandList *const *cmds) const { queue->ExecuteCommandLists(count, cmds); }
+  bool enqueueProgressUpdate(ID3D12Fence *f, uint64_t progress) const { return DX12_CHECK_OK(queue->Signal(f, progress)); }
+  bool syncWith(ID3D12Fence *f, uint64_t progress) const { return DX12_CHECK_OK(queue->Wait(f, progress)); }
 
 #if _TARGET_PC_WIN
   void beginTileMapping(ID3D12Resource *tex, ID3D12Heap *heap, size_t heap_base, size_t mapping_count)
@@ -108,6 +110,11 @@ private:
   static TileMapperAccel tileMapperAccel;
 };
 
+#ifdef EXTENDED_ASYNC_PROGRESS_DEBUG
+#define AP_DEBUG(...) debug(__VA_ARGS__)
+#else
+#define AP_DEBUG(...)
+#endif
 class AsyncProgress
 {
   ComPtr<ID3D12Fence> fence;
@@ -143,28 +150,51 @@ public:
     return true;
   }
 
-  bool enqueueAdvance(DeviceQueue &queue) { return queue.enqueueProgressUpdate(fence.Get(), ++progress); }
-
-  bool enqueueProgress(DeviceQueue &queue, uint64_t value)
+  bool enqueueAdvance(const DeviceQueue &queue)
   {
+    AP_DEBUG("DX12: %p:%u->enqueueAdvance %p", fence.Get(), progress, &queue);
+    return queue.enqueueProgressUpdate(fence.Get(), ++progress);
+  }
+
+  bool enqueueProgress(const DeviceQueue &queue, uint64_t value)
+  {
+    AP_DEBUG("DX12: %p:%u->enqueueProgress %p, %u", fence.Get(), progress, &queue, value);
     progress = value;
     return queue.enqueueProgressUpdate(fence.Get(), value);
   }
 
-  bool wait(DeviceQueue &queue) { return queue.syncWith(fence.Get(), progress); }
+  bool wait(const DeviceQueue &queue) const
+  {
+    AP_DEBUG("DX12: %p:%u->wait %p", fence.Get(), progress, &queue);
+    return queue.syncWith(fence.Get(), progress);
+  }
 
-  uint64_t currentProgress() { return fence->GetCompletedValue(); }
+  uint64_t currentProgress() const
+  {
+    auto value = fence->GetCompletedValue();
+    AP_DEBUG("DX12: %p:%u->currentProgress -> %u", fence.Get(), progress, value);
+    return value;
+  }
 
-  uint64_t expectedProgress() { return progress; }
+  uint64_t expectedProgress() const { return progress; }
 
-  bool waitForProgress(uint64_t value, HANDLE handle) { return DX12_CHECK_OK(fence->SetEventOnCompletion(value, handle)); }
+  bool waitForProgress(uint64_t value, HANDLE handle) const
+  {
+    AP_DEBUG("DX12: %p:%u->waitForProgress %u, %p", fence.Get(), progress, value, handle);
+    return DX12_CHECK_OK(fence->SetEventOnCompletion(value, handle));
+  }
 
-  bool wait(HANDLE handle) { return DX12_CHECK_OK(fence->SetEventOnCompletion(progress, handle)); }
+  bool wait(HANDLE handle) const
+  {
+    AP_DEBUG("DX12: %p:%u->wait %p", fence.Get(), progress, handle);
+    return DX12_CHECK_OK(fence->SetEventOnCompletion(progress, handle));
+  }
 
   // sends a signale from 'signaler' to be waited on by 'signaled'
   // short cut for enqueueAdvance('signaler') and wait('signaled') pair
-  bool synchronize(DeviceQueue &signaler, DeviceQueue &signaled)
+  bool synchronize(const DeviceQueue &signaler, const DeviceQueue &signaled)
   {
+    AP_DEBUG("DX12: %p:%u->synchronize %p, %p", fence.Get(), progress, &signaler, &signaled);
     if (!enqueueAdvance(signaler))
     {
       return false;
@@ -191,7 +221,7 @@ public:
   void enterSuspendedState();
   void leaveSuspendedState();
 #endif
-  uint64_t checkFrameProgress() { return frameProgress.currentProgress(); }
+  uint64_t checkFrameProgress() const { return frameProgress.currentProgress(); }
   bool updateFrameProgress(uint64_t progress)
   {
     return frameProgress.enqueueProgress(group[static_cast<uint32_t>(DeviceQueueType::READ_BACK)], progress);
@@ -200,9 +230,9 @@ public:
   {
     return frameProgress.enqueueProgress(group[static_cast<uint32_t>(DeviceQueueType::GRAPHICS)], progress);
   }
-  bool waitForFrameProgress(uint64_t progress, HANDLE wait) { return frameProgress.waitForProgress(progress, wait); }
-  bool synchronizeWithPreviousFrame() { return frameProgress.wait(group[static_cast<uint32_t>(DeviceQueueType::GRAPHICS)]); }
-  bool canWaitOnFrameProgress() { return static_cast<bool>(frameProgress); }
+  bool waitForFrameProgress(uint64_t progress, HANDLE wait) const { return frameProgress.waitForProgress(progress, wait); }
+  bool synchronizeWithPreviousFrame() const { return frameProgress.wait(group[static_cast<uint32_t>(DeviceQueueType::GRAPHICS)]); }
+  bool canWaitOnFrameProgress() const { return static_cast<bool>(frameProgress); }
 
   // sync method name schema: synchronize<waiting queue>With<signaling queue>
   void synchronizeReadBackWithGraphics()
@@ -245,7 +275,7 @@ inline DAGOR_NOINLINE bool wait_for_frame_progress_with_event_slow_path(DeviceQu
   {
     return true;
   }
-  if (EASTL_UNLIKELY(WAIT_FAILED == result))
+  if (DAGOR_UNLIKELY(WAIT_FAILED == result))
   {
     logwarn("DX12: While waiting for frame progress %u - %s, WaitForSingleObject(%p, INFINITE) "
             "failed with 0x%08X, trying to continue with alternatives",
@@ -262,7 +292,7 @@ inline DAGOR_NOINLINE bool wait_for_frame_progress_with_event_slow_path(DeviceQu
 
 __forceinline bool wait_for_frame_progress_with_event(DeviceQueueGroup &qs, uint64_t progress, HANDLE event, const char *what)
 {
-  if (EASTL_LIKELY(qs.checkFrameProgress() >= progress))
+  if (DAGOR_LIKELY(qs.checkFrameProgress() >= progress))
     return true;
   return wait_for_frame_progress_with_event_slow_path(qs, progress, event, what);
 }

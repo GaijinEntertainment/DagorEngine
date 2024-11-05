@@ -1,0 +1,5 @@
+return {
+  is_point_in_capzone = @(point3, zoneEid, scale) true
+  is_entity_in_capzone = @(eid, zoneEid) true
+  is_point_in_poly_battle_area = @(point) true
+}

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_debug.h>
 #include <osApiWrappers/dag_unicode.h>
 #include <math/integer/dag_IPoint2.h>
@@ -8,7 +10,8 @@
 #include <WinTrust.h>
 #include <Softpub.h>
 #include "os.h"
-#include "device.h"
+#include <startup/dag_globalSettings.h>
+#include "globals.h"
 
 using namespace drv3d_vulkan;
 // code borrowed from opengl driver
@@ -109,8 +112,8 @@ VulkanSurfaceKHRHandle drv3d_vulkan::init_window_surface(VulkanInstance &instanc
     w32sci.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     w32sci.pNext = NULL;
     w32sci.flags = 0;
-    w32sci.hinstance = reinterpret_cast<HINSTANCE>(get_window_state().params.hinst);
-    w32sci.hwnd = reinterpret_cast<HWND>(get_window_state().getMainWindow());
+    w32sci.hinstance = reinterpret_cast<HINSTANCE>(Globals::window.params.hinst);
+    w32sci.hwnd = reinterpret_cast<HWND>(Globals::window.getMainWindow());
     if (VULKAN_CHECK_FAIL(instance.vkCreateWin32SurfaceKHR(instance.get(), &w32sci, NULL, ptr(result))))
     {
       result = VulkanNullHandle();
@@ -123,7 +126,11 @@ VulkanSurfaceKHRHandle drv3d_vulkan::init_window_surface(VulkanInstance &instanc
   return result;
 }
 
-void drv3d_vulkan::os_restore_display_mode() { ChangeDisplaySettings(nullptr, 0); }
+void drv3d_vulkan::os_restore_display_mode()
+{
+  ChangeDisplaySettings(nullptr, 0);
+  Globals::window.updateRefreshRateFromCurrentDisplayMode();
+}
 
 void drv3d_vulkan::os_set_display_mode(int res_x, int res_y)
 {
@@ -158,14 +165,15 @@ void drv3d_vulkan::os_set_display_mode(int res_x, int res_y)
   }
 
   devm.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
+  Globals::window.refreshRate = devm.dmDisplayFrequency;
 
   LONG res = ChangeDisplaySettings(&devm, CDS_FULLSCREEN);
   if (res != DISP_CHANGE_SUCCESSFUL)
   {
     if (res == DISP_CHANGE_RESTART)
-      logerr("vulkan: you should set display mode %dx%dx%d manually", mode_w, mode_h, mode_b);
+      D3D_ERROR("vulkan: you should set display mode %dx%dx%d manually", mode_w, mode_h, mode_b);
     else
-      logerr("vulkan: error %u setting display mode %dx%dx%d", res, mode_w, mode_h, mode_b);
+      D3D_ERROR("vulkan: error %u setting display mode %dx%dx%d", res, mode_w, mode_h, mode_b);
   }
   else
   {
@@ -182,23 +190,21 @@ eastl::string drv3d_vulkan::os_get_additional_ext_requirements(VulkanPhysicalDev
 
 DAGOR_NOINLINE static void toggle_fullscreen(HWND hWnd, UINT message, WPARAM wParam)
 {
-  if (!get_device().isInitialized())
+  if (dgs_get_window_mode() != WindowMode::FULLSCREEN_EXCLUSIVE)
     return;
-  if (dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE)
+
+  if (has_focus(hWnd, message, wParam))
   {
-    if (!has_focus(hWnd, message, wParam))
-    {
-      os_restore_display_mode();
-      ShowWindow(hWnd, SW_MINIMIZE);
-    }
-    else
-    {
-      RenderWindowSettings &wcfg = get_window_state().settings;
-      os_set_display_mode(wcfg.resolutionX, wcfg.resolutionY);
-      ShowWindow(hWnd, SW_RESTORE);
-      SetWindowPos(hWnd, HWND_TOP, wcfg.winRectLeft, wcfg.winRectTop, wcfg.winRectRight - wcfg.winRectLeft,
-        wcfg.winRectBottom - wcfg.winRectTop, 0);
-    }
+    RenderWindowSettings &wcfg = Globals::window.settings;
+    os_set_display_mode(wcfg.resolutionX, wcfg.resolutionY);
+    ShowWindow(hWnd, SW_RESTORE);
+    SetWindowPos(hWnd, HWND_TOP, wcfg.winRectLeft, wcfg.winRectTop, wcfg.winRectRight - wcfg.winRectLeft,
+      wcfg.winRectBottom - wcfg.winRectTop, 0);
+  }
+  else
+  {
+    os_restore_display_mode();
+    ShowWindow(hWnd, SW_MINIMIZE);
   }
 }
 
@@ -223,6 +229,13 @@ LRESULT CALLBACK drv3d_vulkan::WindowState::windowProcProxy(HWND hWnd, UINT mess
   return DefWindowProcW(hWnd, message, wParam, lParam);
 }
 
-drv3d_vulkan::ScopedGPUPowerState::ScopedGPUPowerState(bool) {}
+void drv3d_vulkan::WindowState::updateRefreshRateFromCurrentDisplayMode()
+{
+  refreshRate = 0;
 
-drv3d_vulkan::ScopedGPUPowerState::~ScopedGPUPowerState() {}
+  DEVMODE dm;
+  dm.dmSize = sizeof(dm);
+  if (!EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &dm))
+    return;
+  refreshRate = dm.dmDisplayFrequency;
+}

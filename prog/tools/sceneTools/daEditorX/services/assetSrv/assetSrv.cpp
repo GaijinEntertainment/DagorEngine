@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_assetService.h>
 #include <de3_landClassData.h>
 #include <de3_interface.h>
@@ -40,7 +42,7 @@ public:
   virtual bool createLoftMesh(Mesh &mesh, const splineclass::LoftGeomGenData *genGeom, int loft_idx, BezierSpline3d &path,
     int start_seg, int end_seg, bool place_on_collision, float scale_tc_along, int select_mat,
     dag::ConstSpan<splineclass::Attr> splineScales, Tab<splineclass::SegData> *out_loftSeg, const char *asset_name,
-    float zero_opac_fore_end, float zero_opac_back_end)
+    float zero_opac_fore_end, float zero_opac_back_end, float path_start_margin, float path_end_margin)
   {
     if (!genGeom || loft_idx < 0 || loft_idx >= genGeom->loft.size())
       return false;
@@ -57,7 +59,7 @@ public:
       loft.shapeSubdivCount, loft.extrude, place_on_collision, loft.aboveHt, loft.shapePtsAttr, start_seg, end_seg, loft.minStep,
       loft.maxStep, loft.curvatureStrength, loft.maxHerr, loft.maxHillHerr, loft.followHills, loft.followHollows, loft.htTestStep,
       loft.roadBhv, loft.roadMaxAbsAng, loft.roadMaxInterAng, loft.roadTestWidth, scale_tc_along, select_mat, splineScales,
-      zero_opac_fore_end, zero_opac_back_end, out_loftSeg);
+      zero_opac_fore_end, zero_opac_back_end, path_start_margin, path_end_margin, out_loftSeg);
 
     if (
       mesh.face.size() != mesh.tface[0].size() || mesh.face.size() != mesh.tface[1].size() || mesh.face.size() != mesh.tface[2].size())

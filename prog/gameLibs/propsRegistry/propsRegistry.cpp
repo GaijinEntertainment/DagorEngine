@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <propsRegistry/propsRegistry.h>
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_direct.h>

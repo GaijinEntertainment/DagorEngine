@@ -1,5 +1,4 @@
-#ifndef __GAIJIN_EDITORCORE_EC_GENEDITORDATA_H__
-#define __GAIJIN_EDITORCORE_EC_GENEDITORDATA_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EditorCore/ec_ViewportWindow.h>
@@ -113,7 +112,7 @@ public:
   /// Called by EditorCore at the act stage.
   /// This function calls act() function of viewports and toolbar manager,
   /// stores last active viewport.
-  void act();
+  void act(real dt);
 
   /// The function calls #ViewportWindow::redrawClientRect() for all viewports.
   void redrawClientRect();
@@ -146,5 +145,3 @@ private:
   /// Last active viewport number.
   int currentViewportId;
 };
-
-#endif

@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <recastTools/recastBuildCovers.h>
 
 #include <math/dag_mathUtils.h>

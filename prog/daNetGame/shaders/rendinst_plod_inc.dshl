@@ -1,0 +1,67 @@
+float4 impostor_view_x = (1, 0, 0, 0);
+float4 impostor_view_y = (0, 1, 0, 0);
+
+macro PLOD_COMMON()
+  static int quad_render = 1;
+  interval quad_render: quad_render_off < 1, quad_render_on;
+
+  if (quad_render == quad_render_on)
+  {
+    static int quad_alignment = 1;
+    interval quad_alignment: screen_alignment < 1, camera_alignment;
+  }
+
+  (vs)
+  {
+    impostor_view_x@f3 = impostor_view_x;
+    impostor_view_y@f3 = impostor_view_y;
+  }
+
+  hlsl(vs)
+  {
+    uint getVertexOffset(uint vertex_id, uint stride)
+    {
+      ##if quad_render == quad_render_on
+        return get_immediate_dword_1() + (vertex_id / 4) * stride;
+      ##else
+        return get_immediate_dword_1() + vertex_id * stride;
+      ##endif
+    }
+
+    float3 calculatePointWorldPos(float3 world_pos, float3 world_view_pos, uint vertex_id, float3 to_centre, float size)
+    {
+      ##if quad_render == quad_render_off
+        return world_pos;
+      ##else
+        ##if quad_alignment == screen_alignment
+          const float3 left = impostor_view_x;
+          const float3 up = impostor_view_y;
+        ##elif quad_alignment == camera_alignment
+          const float3 pointToEyeNorm = normalize(world_view_pos - world_pos).xyz;
+          const float invLen = 1 / ((1 - pointToEyeNorm.y)*(1 + pointToEyeNorm.y));
+          // Equivalent to normalize(cross(pointToEyeNorm, float3(0, 1, 0)))
+          const float3 left = invLen*(float3(-pointToEyeNorm.z, 0, pointToEyeNorm.x));
+          // Equivalent to cross(left, pointToEyeNorm);
+          const float3 up = -invLen*float3(
+            pointToEyeNorm.x * pointToEyeNorm.y,
+            -(pointToEyeNorm.z * pointToEyeNorm.z + pointToEyeNorm.x * pointToEyeNorm.x),
+            pointToEyeNorm.z * pointToEyeNorm.y);
+        ##endif
+
+        const float scale = 1.0f;
+        const float2 offset = scale * float2(sign(dot(left, to_centre)), sign(dot(up, to_centre)));
+        const float2 verts[4] =
+        {
+          float2(-scale, -scale),
+          float2(-scale, scale),
+          float2(scale, -scale),
+          float2(scale, scale),
+        };
+
+        const uint vi = vertex_id % 4;
+        world_pos.xyz += ((verts[vi].x + offset.x)*normalize(left) + (verts[vi].y + offset.y)*normalize(up)) * size;
+        return world_pos;
+      ##endif
+    }
+  }
+endmacro

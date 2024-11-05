@@ -1,41 +1,79 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+#include <osApiWrappers/dag_atomic.h>
 #include "device_resource.h"
 #include "descriptor_set.h"
+#include "debug_naming.h"
+#include "timeline_latency.h"
+
 namespace drv3d_vulkan
 {
 
 class ExecutionContext;
+class MemoryHeapResource;
 
 enum BufferMemoryFlags
 {
   NONE = 0x0,
   DEDICATED = 0x1,
   TEMP = 0x2,
-  FAILABLE = 0x4
+  FAILABLE = 0x4,
+  IN_PLACED_HEAP = 0x8,
+  FRAMEMEM = 0x10
 };
 
 struct BufferDescription
 {
   uint32_t blockSize;
   DeviceMemoryClass memoryClass;
-  uint32_t discardCount;
+  uint32_t discardBlocks;
   BufferMemoryFlags memFlags;
 
   void fillAllocationDesc(AllocationDesc &alloc_desc) const;
+  static DeviceMemoryClass memoryClassFromCflags(uint32_t cflag)
+  {
+    if (cflag & SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE)
+      return DeviceMemoryClass::DEVICE_RESIDENT_BUFFER;
+
+    // SBCF_CPU_* is for staging buffer logic, but when only both this RW bits are set
+    // use HOST resident heap because we intendedly treat this buffer as CPU staging
+    if (cflag == SBCF_STAGING_BUFFER)
+      return DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER;
+
+    if (cflag & SBCF_DYNAMIC)
+    {
+      if (cflag & SBCF_CPU_ACCESS_READ)
+        return DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER;
+
+      // CB and indirect buffers are surprisingly slower to read on GPUs from shared / CPU memory
+      // batch copy from temp/staging memory is faster
+      if (cflag & (SBCF_BIND_CONSTANT | SBCF_INDIRECT))
+        return DeviceMemoryClass::DEVICE_RESIDENT_BUFFER;
+
+      return DeviceMemoryClass::HOST_RESIDENT_HOST_WRITE_ONLY_BUFFER;
+    }
+    return DeviceMemoryClass::DEVICE_RESIDENT_BUFFER;
+  }
 };
 
 typedef ResourceImplBase<BufferDescription, VulkanBufferHandle, ResourceType::BUFFER> BufferImplBase;
 
-class Buffer : public BufferImplBase, public ResourceExecutionSyncableExtend
+class Buffer : public BufferImplBase,
+               public ResourceExecutionSyncableExtend,
+               public ResourcePlaceableExtend,
+               public ResourceBindlessExtend
 {
 public:
   static constexpr int CLEANUP_DESTROY = 0;
+  static constexpr uint32_t DISCARD_INDEX_FRAMEMEM = ~0;
 
   void destroyVulkanObject();
   void createVulkanObject();
   MemoryRequirementInfo getMemoryReq();
   VkMemoryRequirements getSharedHandleMemoryReq();
   void bindMemory();
+  void bindMemoryFromHeap(MemoryHeapResource *in_heap, ResourceMemoryId heap_mem_id);
   void reuseHandle();
   void releaseSharedHandle();
   void evict();
@@ -44,10 +82,10 @@ public:
   bool nonResidentCreation();
   void restoreFromSysCopy(ExecutionContext &ctx);
   void makeSysCopy(ExecutionContext &ctx);
+  bool mayAlias() { return desc.memFlags & IN_PLACED_HEAP; }
 
   template <int Tag>
-  void onDelayedCleanupBackend(ContextBackend &)
-  {}
+  void onDelayedCleanupBackend();
 
   template <int Tag>
   void onDelayedCleanupFrontend(){};
@@ -57,63 +95,131 @@ public:
 
 private:
   eastl::unique_ptr<VulkanBufferViewHandle[]> views;
-  eastl::unique_ptr<uint32_t[]> discardAvailableFrames;
-  uint32_t currentDiscardIndex = 0;
+
+  uint32_t discardIndex = 0;
+  uint32_t lastDiscardFrame = 0;
+  uint32_t currentDiscardOffset = 0;
+  uint32_t currentDiscardSize = 0;
   uint8_t *mappedPtr = nullptr;
   VkDeviceSize sharedOffset = 0;
   VkDeviceSize memoryOffset = 0;
   VulkanDeviceMemoryHandle nonCoherentMemoryHandle{};
+  void bindAssignedMemoryId();
 
-  uint32_t getCurrentDiscardOffset() const
-  {
-    G_ASSERT(currentDiscardIndex < desc.discardCount);
-    return desc.blockSize * currentDiscardIndex;
-  }
-
-  void reportToTQL(bool is_allocating);
   void fillPointers(const ResourceMemory &mem);
 
 public:
   void markNonCoherentRangeAbs(uint32_t offset, uint32_t size, bool flush);
   void markNonCoherentRangeLoc(uint32_t offset, uint32_t size, bool flush);
 
-  inline bool onDiscard(uint32_t frontFrameIdx)
+  // additional 1 frame for nooverwrite accesses, that may happen before discard on same work item
+  // (so ring item usage on GPU may complete one frame later, than discard)
+  static constexpr uint32_t pending_discard_frames = TimelineLatency::replayToGPUCompletionRingBufferSize + 1;
+
+#if DAGOR_DBGLEVEL > 0
+  uint32_t discardRingAvailabilityFrame[pending_discard_frames] = {};
+  void changeAndVerifyDiscardRingIndex(uint32_t front_frame_idx)
   {
-    G_ASSERT(currentDiscardIndex < desc.discardCount);
+    uint32_t oldRingIdx = discardIndex % pending_discard_frames;
+    uint32_t newRingIdx = (discardIndex + 1) % pending_discard_frames;
+    G_ASSERTF(TimelineLatency::isCompleted(discardRingAvailabilityFrame[newRingIdx], front_frame_idx),
+      "vulkan: discard ring index %u of buffer %p:%s still in use while it is about to be reused, expected after frame %u but got "
+      "on frame %u",
+      newRingIdx, this, getDebugName(), discardRingAvailabilityFrame[newRingIdx], front_frame_idx);
+    // old ring will be available after N frames starting from current frame
+    discardRingAvailabilityFrame[oldRingIdx] = TimelineLatency::getNextRingedReplay(front_frame_idx);
+  }
+#else
+  void changeAndVerifyDiscardRingIndex(uint32_t) {}
+#endif
 
-    // check if next discard element is available now
-    uint32_t nextDiscardIndex = (currentDiscardIndex + 1) % desc.discardCount;
-    if (!discardAvailableFrames)
-      discardAvailableFrames.reset(new uint32_t[desc.discardCount]());
 
-    if (discardAvailableFrames[nextDiscardIndex] < frontFrameIdx)
+  inline bool onDiscard(uint32_t frontFrameIdx, uint32_t size)
+  {
+    G_ASSERT(currentDiscardOffset + currentDiscardSize <= getTotalSize());
+
+    if (desc.discardBlocks == 1)
+      return false;
+
+    uint32_t frameDiscardSize = getTotalSize() / pending_discard_frames;
+    if (size > frameDiscardSize)
+      return false;
+
+    bool indexChanged = lastDiscardFrame != frontFrameIdx;
+    if (indexChanged)
     {
-      // use element and mark on what frame it can be used again
-      // discard element will be in use in replay thread & gpu for FRAME_FRAME_BACKLOG_LENGTH frames starting from frontend observed
-      // frame and backend frame index can lag behing current frame by MAX_PENDING_WORK_ITEMS
-      discardAvailableFrames[currentDiscardIndex] = frontFrameIdx + FRAME_FRAME_BACKLOG_LENGTH + MAX_PENDING_WORK_ITEMS;
-
-      currentDiscardIndex = nextDiscardIndex;
-      return true;
+      changeAndVerifyDiscardRingIndex(frontFrameIdx);
+      lastDiscardFrame = frontFrameIdx;
+      ++discardIndex;
     }
 
-    return false;
+    uint32_t ringIdx = discardIndex % pending_discard_frames;
+    if (indexChanged)
+      currentDiscardOffset = frameDiscardSize * ringIdx;
+    else
+      currentDiscardOffset += currentDiscardSize;
+
+    currentDiscardSize = size;
+    return (currentDiscardOffset + currentDiscardSize) <= frameDiscardSize * (ringIdx + 1);
   }
 
-  inline uint32_t getCurrentDiscardIndex() const { return currentDiscardIndex; }
-  inline uint32_t getMaxDiscardLimit() const { return desc.discardCount; }
-  inline void setViews(eastl::unique_ptr<VulkanBufferViewHandle[]> v) { views = std::move(v); }
-  inline VulkanBufferViewHandle getViewOfDiscardIndex(uint32_t i) const { return views[i]; }
-  inline VulkanBufferViewHandle getView() const
+  inline bool onDiscardFramemem(uint32_t frontFrameIdx, uint32_t size)
   {
-    if (views)
-      return views[currentDiscardIndex];
-    return VulkanBufferViewHandle();
+    G_ASSERT(currentDiscardOffset + currentDiscardSize <= getTotalSize());
+
+    uint32_t frameDiscardSize = getTotalSize();
+    if (size > frameDiscardSize)
+      return false;
+
+    if (frontFrameIdx != lastDiscardFrame)
+      currentDiscardOffset = 0;
+    else
+      currentDiscardOffset += currentDiscardSize;
+
+    markDiscardUsageRange(frontFrameIdx, size);
+
+    return (currentDiscardOffset + currentDiscardSize) <= frameDiscardSize;
   }
+
+  uint32_t getCurrentDiscardVisibleSize() const { return currentDiscardSize ? currentDiscardSize : getBlockSize(); }
+  uint32_t getCurrentDiscardOffset() const
+  {
+    G_ASSERT(currentDiscardOffset < getTotalSize());
+    return currentDiscardOffset;
+  }
+  void addFrameMemRef() { ++discardIndex; }
+  void removeFrameMemRef()
+  {
+    G_ASSERTF(discardIndex > 0, "vulkan: too much reference removals on framemem buffer");
+    --discardIndex;
+  }
+  bool isFrameMemReferencedAtRemoval()
+  {
+#if DAGOR_DBGLEVEL > 0
+    if (isFakeFrameMem())
+      return false;
+#endif
+    if (desc.memFlags & BufferMemoryFlags::FRAMEMEM)
+      return discardIndex > 0;
+    return false;
+  }
+  void checkFrameMemAccess()
+  {
+#if DAGOR_DBGLEVEL > 0
+    if (desc.memFlags & BufferMemoryFlags::FRAMEMEM)
+      verifyFrameMem();
+#endif
+  }
+  bool isFrameMem() const { return (desc.memFlags & BufferMemoryFlags::FRAMEMEM) > 0; }
+  inline uint32_t getDiscardBlocks() const { return desc.discardBlocks; }
+  inline VulkanBufferViewHandle getViewOfDiscardIndex(uint32_t i) const { return views[i]; }
   inline bool hasView() const { return nullptr != views; }
   bool hasMappedMemory() const;
 
 private:
+  void verifyFrameMem();
+  bool isFakeFrameMem();
+
 public:
   // <....*..................> - memory
   //      ^ memory offset / device address
@@ -152,20 +258,26 @@ public:
   VkDeviceAddress devOffsetLoc(VkDeviceSize ofs) const { return devOffsetAbs(ofs) + getCurrentDiscardOffset(); }
 #endif
 
-  VkDeviceSize getBlockSize() { return desc.blockSize; }
-  VkDeviceSize getTotalSize() { return desc.blockSize * desc.discardCount; }
+  VkDeviceSize getBlockSize() const { return desc.blockSize; }
+  VkDeviceSize getTotalSize() const { return desc.blockSize * desc.discardBlocks; }
+  void markDiscardUsageRange(uint32_t frontFrameIdx, uint32_t sz)
+  {
+    currentDiscardSize = sz;
+    lastDiscardFrame = frontFrameIdx;
+    G_ASSERT(currentDiscardSize <= getTotalSize());
+  }
 
-  Buffer(const Description &in_desc, bool managed = true) : BufferImplBase(in_desc, managed), currentDiscardIndex(0) {}
+  Buffer(const Description &in_desc, bool managed = true) : BufferImplBase(in_desc, managed)
+  {
+    // set discard index to 1 for framemem buffers to avoid sending command to backend
+    // in place where lock ordering goes wrong
+    if (in_desc.memFlags & BufferMemoryFlags::FRAMEMEM)
+      discardIndex = 1;
+  }
   static VkBufferUsageFlags getUsage(VulkanDevice &device, DeviceMemoryClass memClass);
-};
 
-struct BufferSubAllocation
-{
-  Buffer *buffer = nullptr;
-  VkDeviceSize offset = 0;
-  VkDeviceSize size = 0;
-
-  inline explicit operator bool() { return buffer != nullptr; }
+  static Buffer *create(uint32_t size, DeviceMemoryClass memory_class, uint32_t discard_count, BufferMemoryFlags mem_flags);
+  void addBufferView(FormatStore format);
 };
 
 inline VkFormat VSDTToVulkanFormat(uint32_t val)
@@ -191,78 +303,5 @@ inline VkFormat VSDTToVulkanFormat(uint32_t val)
     default: G_ASSERTF(false, "invalid vertex declaration type"); return VK_FORMAT_UNDEFINED;
   }
 };
-
-// references a buffer with a fixed discard index
-// provides a buffer like interface but returns values for the fixed discard index
-struct BufferRef
-{
-  Buffer *buffer = nullptr;
-  uint32_t discardIndex = 0;
-  uint32_t offset = 0;
-  VkDeviceSize visibleDataSize = 0;
-  BufferRef() = default;
-  ~BufferRef() = default;
-  BufferRef(const BufferRef &) = default;
-  BufferRef &operator=(const BufferRef &) = default;
-  // make this explicit to make it clear that we grab and hold on to the current
-  // discard index
-  explicit BufferRef(Buffer *bfr, uint32_t visible_data_size = 0);
-  explicit BufferRef(Buffer *bfr, uint32_t visible_data_size, uint32_t in_offset);
-  explicit operator bool() const;
-  VulkanBufferHandle getHandle() const;
-  VulkanBufferViewHandle getView() const;
-  VkDeviceSize bufOffset(VkDeviceSize ofs) const;
-  VkDeviceSize memOffset(VkDeviceSize ofs) const;
-  VkDeviceSize totalSize() const;
-  void clear()
-  {
-    buffer = nullptr;
-    discardIndex = 0;
-    visibleDataSize = 0;
-    offset = 0;
-  }
-};
-
-inline bool operator==(const BufferRef &l, const BufferRef &r)
-{
-  return (l.buffer == r.buffer) && (l.discardIndex == r.discardIndex) && (l.offset == r.offset);
-}
-
-inline bool operator!=(const BufferRef &l, const BufferRef &r) { return !(l == r); }
-
-inline BufferRef::BufferRef(Buffer *bfr, uint32_t visible_data_size) :
-  buffer(bfr),
-  discardIndex(bfr ? bfr->getCurrentDiscardIndex() : 0),
-  visibleDataSize(bfr && !visible_data_size ? bfr->getBlockSize() : visible_data_size),
-  offset(0)
-{}
-
-inline BufferRef::BufferRef(Buffer *bfr, uint32_t visible_data_size, uint32_t in_offset) :
-  buffer(bfr),
-  discardIndex(bfr ? bfr->getCurrentDiscardIndex() : 0),
-  visibleDataSize(bfr && !visible_data_size ? bfr->getBlockSize() : visible_data_size),
-  offset(in_offset)
-{}
-
-
-inline BufferRef::operator bool() const { return nullptr != buffer; }
-
-inline VulkanBufferHandle BufferRef::getHandle() const { return buffer->getHandle(); }
-
-inline VulkanBufferViewHandle BufferRef::getView() const
-{
-  return buffer->hasView() ? buffer->getViewOfDiscardIndex(discardIndex) : VulkanBufferViewHandle{};
-}
-
-inline VkDeviceSize BufferRef::bufOffset(VkDeviceSize ofs) const
-{
-  return buffer->getBlockSize() * discardIndex + buffer->bufOffsetAbs(ofs) + offset;
-}
-inline VkDeviceSize BufferRef::memOffset(VkDeviceSize ofs) const
-{
-  return buffer->getBlockSize() * discardIndex + buffer->memOffsetAbs(ofs) + offset;
-}
-inline VkDeviceSize BufferRef::totalSize() const { return buffer->getBlockSize(); }
-
 
 } // namespace drv3d_vulkan

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <webui/httpserver.h>
 #include <errno.h>
 
@@ -9,9 +11,8 @@
 #include <util/dag_console.h>
 #include <ioSys/dag_genIo.h>
 #include <gui/dag_visConsole.h>
-#include <3d/dag_drv3dCmd.h>
 #include <image/dag_jpeg.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <ioSys/dag_memIo.h>
 #include <osApiWrappers/dag_vromfs.h>
 #include <osApiWrappers/dag_direct.h>
@@ -189,35 +190,237 @@ public:
 
 void console_gen(RequestInfo *params)
 {
-  const char *form = "<script type='text/javascript'>\n"
-                     "function conrequest(str,q)\n"
-                     "{\n"
-                     "  var x = new XMLHttpRequest();\n"
-                     "  x.onreadystatechange=function()\n"
-                     "  {\n"
-                     "    if (x.readyState==4 && x.status==200)\n"
-                     "      document.getElementById('txtHint').innerHTML=x.responseText;\n"
-                     "  }\n"
-                     "  x.open('GET','console?'+q+'='+encodeURIComponent(str),true);\n"
-                     "  x.send();\n"
-                     "}\n"
-                     "function run() { conrequest(document.getElementById('concmd').value, 'concmd'); }\n"
-                     "function on_key_up(event)\n"
-                     "{\n"
-                     "  var q = 'q';\n"
-                     "  var keyNum = 0;\n"
-                     "  if (window.event) keyNum = event.keyCode;\n"
-                     "  else if (event.which) keyNum = event.which;\n"
-                     "  if (keyNum == 13) q = 'concmd';\n"
-                     "  conrequest(document.getElementById('concmd').value,q);\n"
-                     "}\n"
-                     "function hint(h) { document.getElementById('concmd').value = h; }\n"
-                     "window.onload=function() { conrequest('','q'); }\n"
-                     "</script>\n"
-                     "Console Command:\n"
-                     "<input type='text' id='concmd' size='128' onkeyup='on_key_up(event)'/>\n"
-                     "<input type='button' value='Run' onclick='run()' />\n"
-                     "<p id='txtHint'></p>\n";
+  const char *form =
+    "<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css\">\n"
+    "<style>\n"
+    "    .container {\n"
+    "        margin-top: 1rem;\n"
+    "        margin-left: 0rem;\n"
+    "        padding-left: 1rem;\n"
+    "        display: flex;\n"
+    "    }\n"
+    "    .column {\n"
+    "        flex: 1;\n"
+    "    }\n"
+    "    .cell {\n"
+    "        padding-left: 0.5rem;\n"
+    "    }\n"
+    "    .cell-header {\n"
+    "        font-weight: bold;\n"
+    "        margin-bottom: 0.5rem;\n"
+    "        margin-top: 1rem;\n"
+    "    }\n"
+    "    .pinned-commands {\n"
+    "        margin-top: 0.5rem;\n"
+    "        margin-bottom: 1rem;\n"
+    "        padding-left: 1rem;\n"
+    "        display: flex;\n"
+    "        flex-direction: row;\n"
+    "        gap: 2rem;\n"
+    "        width: 100%;\n"
+    "        overflow-x: auto;\n"
+    "    }\n"
+    "    .pinned-command {}\n"
+    "</style>\n"
+    "<label for=\"concmd\">Console Command:</label>\n"
+    "<input type='text' id='concmd' size='128'/>\n"
+    "<input type='button' value='Run' onclick='run()' />\n"
+    "<input type='button' value='' id='pin-button' onclick='toggle_pin_for_edited_value()' hidden=\"hidden\"/>\n"
+    "\n"
+    "<div id='pinned-commands' class='pinned-commands'></div>\n"
+    "<div id='execution-result'></div>\n"
+    "<div id='history-result'></div>\n"
+    "\n"
+    "<script type='text/javascript'>\n"
+    "    let nextSuggestionIndex = 0;\n"
+    "\n"
+    "    function get_current_storage_id()\n"
+    "    {\n"
+    "        let dataHolder = document.querySelector(\"[data-exec-name][data-platform]\");\n"
+    "        if (dataHolder === null)\n"
+    "            return \"default\";\n"
+    "        return dataHolder.attributes[\"data-exec-name\"].value + \"-\" + dataHolder.attributes[\"data-platform\"].value\n"
+    "    }\n"
+    "\n"
+    "    function get_current_local_history_storage_id()\n"
+    "    {\n"
+    "        return get_current_storage_id();\n"
+    "    }\n"
+    "\n"
+    "    function get_current_pinned_commands_storage_id()\n"
+    "    {\n"
+    "        return get_current_storage_id() + \"-pinned\";\n"
+    "    }\n"
+    "\n"
+    "    let pinnedCommands = [];\n"
+    "    function store_pinned_commands(commands)\n"
+    "    {\n"
+    "        let storageId = get_current_pinned_commands_storage_id();\n"
+    "        localStorage.setItem(storageId, JSON.stringify(commands));\n"
+    "    }\n"
+    "    function is_command_pinned(command)\n"
+    "    {\n"
+    "        return pinnedCommands.includes(command);\n"
+    "    }\n"
+    "    function pin_command(command)\n"
+    "    {\n"
+    "        if (pinnedCommands.includes(command))\n"
+    "            return;\n"
+    "        pinnedCommands.push(command);\n"
+    "        store_pinned_commands(pinnedCommands);\n"
+    "        display_pinned_commands();\n"
+    "    }\n"
+    "    function unpin_command(command)\n"
+    "    {\n"
+    "        let index = pinnedCommands.indexOf(command);\n"
+    "        if (index < 0)\n"
+    "            return;\n"
+    "        pinnedCommands.splice(index, 1);\n"
+    "        store_pinned_commands(pinnedCommands);\n"
+    "        display_pinned_commands();\n"
+    "    }\n"
+    "    function toggle_pin_for_edited_value()\n"
+    "    {\n"
+    "        let command = document.getElementById('concmd').value;\n"
+    "        if (is_command_pinned(command))\n"
+    "            unpin_command(command);\n"
+    "        else\n"
+    "            pin_command(command);\n"
+    "    }\n"
+    "    function update_pinned()\n"
+    "    {\n"
+    "        let command = document.getElementById('concmd').value;\n"
+    "        let button = document.getElementById('pin-button');\n"
+    "        if (command !== \"\") {\n"
+    "            button.hidden = false;\n"
+    "            button.value = is_command_pinned(command) ? \"Unpin\" : \"Pin\";\n"
+    "        }\n"
+    "        else\n"
+    "            button.hidden = true;\n"
+    "    }\n"
+    "    function display_pinned_commands()\n"
+    "    {\n"
+    "        document.getElementById('pinned-commands').innerHTML = pinnedCommands\n"
+    "            .map((command) => `<div class='pinned-command'><a "
+    "href=\\\"javascript:do_run_command('${command}')\\\">${command}</a> <a "
+    "href=\\\"javascript:unpin_command('${command}','concmd')\\\"><i class=\"glyphicon glyphicon-trash\"></i></a></div>`)\n"
+    "            .join(\"\");\n"
+    "        update_pinned();\n"
+    "    }\n"
+    "    function load_pinned_commands()\n"
+    "    {\n"
+    "        let storageId = get_current_pinned_commands_storage_id();\n"
+    "        let prevValue = localStorage.getItem(storageId);\n"
+    "        let commands = prevValue != null ? JSON.parse(prevValue) : null;\n"
+    "        if (commands != null && Array.isArray(commands))\n"
+    "            pinnedCommands = commands;\n"
+    "        else\n"
+    "            pinnedCommands = [];\n"
+    "        display_pinned_commands();\n"
+    "    }\n"
+    "\n"
+    "    function get_local_history()\n"
+    "    {\n"
+    "        let storageId = get_current_local_history_storage_id();\n"
+    "        let prevValue = localStorage.getItem(storageId);\n"
+    "        let localHistory = prevValue != null ? JSON.parse(prevValue) : null;\n"
+    "        if (localHistory == null || !Array.isArray(localHistory))\n"
+    "            return [];\n"
+    "        return localHistory;\n"
+    "    }\n"
+    "\n"
+    "    function append_to_database(command)\n"
+    "    {\n"
+    "        let localHistory = get_local_history();\n"
+    "        let index = localHistory.indexOf(command);\n"
+    "        if (index >= 0) {\n"
+    "            localHistory.splice(index, 1);\n"
+    "            localHistory.push(command);\n"
+    "        }\n"
+    "        else {\n"
+    "            const maxLocalHistorySize = 30;\n"
+    "            if (localHistory.length+1 > maxLocalHistorySize) {\n"
+    "                localHistory.splice(0, localHistory.length + 1 - maxLocalHistorySize)\n"
+    "            }\n"
+    "            localHistory.push(command);\n"
+    "        }\n"
+    "        let storageId = get_current_local_history_storage_id();\n"
+    "        localStorage.setItem(storageId, JSON.stringify(localHistory));\n"
+    "    }\n"
+    "\n"
+    "    function display_local_history_if_needed()\n"
+    "    {\n"
+    "        let holder = document.getElementById('local-history-holder');\n"
+    "        if (holder == null)\n"
+    "            return;\n"
+    "        let localHistory = get_local_history();\n"
+    "        holder.innerHTML =\n"
+    "            \"<div class='cell-header'>Local history</div>\" + localHistory\n"
+    "                .reverse()\n"
+    "                .map((command) => `<div class='cell'><a "
+    "href=\\\"javascript:do_run_command('${command}')\\\">${command}</a></div>`)\n"
+    "                .join(\"\")\n"
+    "    }\n"
+    "\n"
+    "    function conrequest(str, q, contentDestination)\n"
+    "    {\n"
+    "        let x = new XMLHttpRequest();\n"
+    "        x.onreadystatechange=function()\n"
+    "        {\n"
+    "            if (x.readyState===4 && x.status>=200 && x.status<300) {\n"
+    "                document.getElementById(contentDestination).innerHTML = x.responseText;\n"
+    "                display_local_history_if_needed();\n"
+    "                load_pinned_commands();\n"
+    "            }\n"
+    "        }\n"
+    "        x.open('GET','/console?'+q+'='+encodeURIComponent(str),true);\n"
+    "        x.send();\n"
+    "    }\n"
+    "    function do_run_command(command) {\n"
+    "        conrequest(command, 'concmd', 'execution-result');\n"
+    "        document.getElementById('concmd').value = command;\n"
+    "    }\n"
+    "    function run_command(command) {\n"
+    "        append_to_database(command);\n"
+    "        do_run_command(command);\n"
+    "    }\n"
+    "    function run() { run_command(document.getElementById('concmd').value); }\n"
+    "    function on_key_down(event)\n"
+    "    {\n"
+    "        if (event.key === \"Tab\")\n"
+    "            event.preventDefault();\n"
+    "    }\n"
+    "    function on_key_up(event)\n"
+    "    {\n"
+    "        if (event.key === \"Enter\")\n"
+    "            run();\n"
+    "        else if (event.key === \"Tab\") {\n"
+    "            event.preventDefault();\n"
+    "            let suggestions = Array.from(document.querySelectorAll(\"[data-suggestion]\").values())\n"
+    "                .map((td) => td.attributes[\"data-suggestion\"].value)\n"
+    "            if (suggestions.length > 0) {\n"
+    "                nextSuggestionIndex = nextSuggestionIndex % suggestions.length\n"
+    "                let suggestionIndex = nextSuggestionIndex++\n"
+    "                document.getElementById('concmd').value = suggestions[suggestionIndex]\n"
+    "            }\n"
+    "        }\n"
+    "    }\n"
+    "    function load_commands(query)\n"
+    "    {\n"
+    "        conrequest(query, 'q', 'history-result');\n"
+    "        nextSuggestionIndex = 0;\n"
+    "    }\n"
+    "    function on_input()\n"
+    "    {\n"
+    "        load_commands(document.getElementById('concmd').value);\n"
+    "        update_pinned();\n"
+    "    }\n"
+    "    function hint(h) { document.getElementById('concmd').value = h; }\n"
+    "    window.onload=function() { load_commands(''); }\n"
+    "    document.getElementById('concmd').addEventListener('keyup', on_key_up);\n"
+    "    document.getElementById('concmd').addEventListener('keydown', on_key_down);\n"
+    "    document.getElementById('concmd').addEventListener('input', on_input);\n"
+    "</script>\n";
   if (!params->params)
     html_response(params->conn, form);
   else
@@ -255,29 +458,29 @@ void console_gen(RequestInfo *params)
     }
     else if (!strcmp(*params->params, "q"))
     {
-      const char *te = *(params->params + 1);
+      const char *searchedTerm = *(params->params + 1);
 
       static constexpr int MAX_STRS = 30;
 
       // gather matched console commands
       console::CommandList list(framemem_ptr());
       list.reserve(256);
-      console::get_command_list(list); // this kinda slow
-      Tab<console::CommandStruct *> mlist(framemem_ptr());
+
+      if (searchedTerm && *searchedTerm)
+        console::get_filtered_command_list(list, String(searchedTerm));
+      Tab<const console::CommandStruct *> mlist(framemem_ptr());
       mlist.reserve(MAX_STRS);
-      if (te && *te)
-        for (int i = 0; i < list.size() && mlist.size() < MAX_STRS; ++i)
-          if (strstr(list[i].command.str(), te) == list[i].command.str())
-            mlist.push_back(&list[i]);
+      for (int i = 0; i < list.size() && i < MAX_STRS; ++i)
+        mlist.push_back(&list[i]);
 
       // gather matched history strings
       Tab<const char *> hist_strs(framemem_ptr());
       const char *hs = "";
-      if (te && *te)
+      if (searchedTerm && *searchedTerm)
         do
         {
           hs = console::get_prev_command();
-          if (strstr(hs, te) == hs)
+          if (strstr(hs, searchedTerm) == hs)
             hist_strs.push_back(hs);
         } while (*hs);
 
@@ -292,52 +495,49 @@ void console_gen(RequestInfo *params)
       } while (*hs);
 
       char cmdText[384];
-      if (hist_strs.size() || history.size() || (mlist.size() > 1 || (mlist.size() == 1 && mlist[0]->command != te)))
+      save.printf("<div class='container' data-exec-name='%s' data-platform='%s'>", get_name_of_executable(),
+        get_platform_string_id());
+
+      // available console commands
+      save.printf("<div class='column' id='suggestions-column'>");
+      save.printf("<div class='cell-header'>Suggestions</div>");
+      for (int i = 0; i < mlist.size(); ++i)
       {
-        save.printf("\n<table>\n");
-        int cnt = max(max(mlist.size(), hist_strs.size()), history.size());
-        for (int i = 0; i < cnt; ++i)
+        const console::CommandStruct *cmd = mlist[i];
+        SNPRINTF(cmdText, sizeof(cmdText), "%s  ", cmd->command.str());
+        for (int k = 1; k < cmd->minArgs; k++)
+          strncat(cmdText, "x ", min(2, int(sizeof(cmdText) - strlen(cmdText) - 1)));
+        if (cmd->minArgs != cmd->maxArgs)
         {
-          save.printf("  <tr align='center'>");
-
-          // available console commands
-          if (i < mlist.size())
-          {
-            console::CommandStruct *cmd = mlist[i];
-            SNPRINTF(cmdText, sizeof(cmdText), "%s  ", cmd->command.str());
-            for (int k = 1; k < cmd->minArgs; k++)
+          strncat(cmdText, "[", min(1, int(sizeof(cmdText) - strlen(cmdText) - 1)));
+          for (int k = cmd->minArgs; k < cmd->maxArgs; k++)
+            if (k != cmd->maxArgs - 1)
               strncat(cmdText, "x ", min(2, int(sizeof(cmdText) - strlen(cmdText) - 1)));
-            if (cmd->minArgs != cmd->maxArgs)
-            {
-              strncat(cmdText, "[", min(1, int(sizeof(cmdText) - strlen(cmdText) - 1)));
-              for (int k = cmd->minArgs; k < cmd->maxArgs; k++)
-                if (k != cmd->maxArgs - 1)
-                  strncat(cmdText, "x ", min(2, int(sizeof(cmdText) - strlen(cmdText) - 1)));
-                else
-                  strncat(cmdText, "x", min(1, int(sizeof(cmdText) - strlen(cmdText) - 1)));
-              strncat(cmdText, "]", min(1, int(sizeof(cmdText) - strlen(cmdText) - 1)));
-            }
-            save.printf("<td><a href=\"javascript:hint('%s')\">%s</a></td>", cmd->command.str(), cmdText);
-          }
-          else
-            save.printf("<td>&nbsp;</td>");
-
-          // matched history
-          if (i < hist_strs.size())
-            save.printf("<td><a href=\"javascript:conrequest('%s','concmd')\">%s</a></td>", hist_strs[i], hist_strs[i]);
-          else
-            save.printf("<td>&nbsp;</td>");
-
-          // all history
-          if (i < history.size())
-            save.printf("<td><a href=\"javascript:conrequest('%s','concmd')\">%s</a></td>", history[i], history[i]);
-          else
-            save.printf("<td>&nbsp;</td>");
-
-          save.printf("</tr>\n");
+            else
+              strncat(cmdText, "x", min(1, int(sizeof(cmdText) - strlen(cmdText) - 1)));
+          strncat(cmdText, "]", min(1, int(sizeof(cmdText) - strlen(cmdText) - 1)));
         }
-        save.printf("</table>\n");
+        save.printf("<div class='cell' data-suggestion='%s'><a href=\"javascript:hint('%s')\">%s</a></div>", cmd->command.str(),
+          cmd->command.str(), cmdText);
       }
+      save.printf("</div>");
+
+      // matched history
+      save.printf("<div class='column' id='matched-history-column'>");
+      save.printf("<div class='cell-header'>Matches from history</div>");
+      for (auto hist_str : hist_strs)
+        save.printf("<div class='cell'><a href=\"javascript:do_run_command('%s')\">%s</a></div>", hist_str, hist_str);
+      save.printf("</div>");
+
+      // all history
+      save.printf("<div class='column' id='history-column'>");
+      save.printf("<div class='cell-header'>History</div>");
+      for (auto hist_str : history)
+        save.printf("<div class='cell'><a href=\"javascript:do_run_command('%s')\">%s</a></div>", hist_str, hist_str);
+      save.printf("<div id='local-history-holder'></div>");
+      save.printf("</div>");
+
+      save.printf("</div>");
     }
     else
       return html_response(params->conn, NULL, HTTP_NOT_FOUND);

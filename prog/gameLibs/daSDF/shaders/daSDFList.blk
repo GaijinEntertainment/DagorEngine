@@ -1,0 +1,8 @@
+file:t = "object_sdf_debug.dshl"
+file:t = "object_sdf_update.dshl"
+file:t = "world_sdf_update.dshl"
+file:t = "world_sdf_mark_from_depth.dshl"
+file:t = "world_sdf_collision_rasterize.dshl"
+file:t = "world_sdf_collision_voxelize.dshl"
+file:t = "world_sdf_update_objects_sdf.dshl"
+file:t = "world_sdf_debug.dshl"

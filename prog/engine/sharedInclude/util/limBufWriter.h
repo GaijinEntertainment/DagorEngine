@@ -1,13 +1,11 @@
-
-#ifndef __DAGOR_LIMBUFWRITER_H
-#define __DAGOR_LIMBUFWRITER_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <stdarg.h>
 #include <string.h>
 #include <util/dag_safeArg.h>
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 //! this class allows safe formatted printing to fixed-sized buffer
 class LimitedBufferWriter
@@ -83,6 +81,4 @@ inline void LimitedBufferWriter::avprintf(const char *fmt, const DagorSafeArg *a
   buf += cnt;
 }
 
-#include <supp/dag_undef_COREIMP.h>
-
-#endif
+#include <supp/dag_undef_KRNLIMP.h>

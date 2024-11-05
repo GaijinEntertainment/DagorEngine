@@ -1,7 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <startup/dag_startupTex.h>
 #include <3d/dag_texMgr.h>
 #include <3d/dag_createTex.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/ddsxTex.h>
 #include <3d/dag_texPackMgr2.h>
 #include <ioSys/dag_fileIo.h>
@@ -101,9 +104,13 @@ static BaseTexture *load_ddsx(const char *fn, int flg, int levels, const Texture
     }
   }
 
+  TEXTUREID tid = get_managed_texture_id(fn);
   if (t)
+  {
     apply_gen_tex_props(t, tmd, false);
-  set_ddsx_reloadable_callback(t, get_managed_texture_id(fn), fn, 0, bt_id);
+    set_texture_separate_sampler(tid, get_sampler_info(tmd, false));
+  }
+  set_ddsx_reloadable_callback(t, tid, fn, 0, bt_id);
   return t;
 }
 
@@ -133,9 +140,13 @@ public:
       crd.seekrel(readInt32(crd, true));
       int ofs = crd.tell();
       t = d3d::create_ddsx_tex(crd, flg, dgs_tex_quality, levels, fn);
+      TEXTUREID tid = get_managed_texture_id(fn);
       if (t)
+      {
         apply_gen_tex_props(t, tmd, false);
-      set_ddsx_reloadable_callback(t, get_managed_texture_id(fn), fn, ofs, BAD_TEXTUREID);
+        set_texture_separate_sampler(tid, get_sampler_info(tmd, false));
+      }
+      set_ddsx_reloadable_callback(t, tid, fn, ofs, BAD_TEXTUREID);
     }
     return t;
   }
@@ -182,7 +193,7 @@ void set_ddsx_reloadable_callback(BaseTexture *t, TEXTUREID tid, const char *fn,
           return;
         }
       }
-      d3d_load_ddsx_tex_contents(t, tid, btRef, hdr, crd, dgs_tex_quality, 0, 0);
+      d3d_load_ddsx_tex_contents(t, tid, btRef, hdr, crd, dgs_tex_quality);
     }
     virtual void destroySelf() { delete this; }
   };

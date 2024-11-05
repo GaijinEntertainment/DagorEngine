@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 // comment param/block name is encoded as 3 characters (2 bytes prefix and 1 byte suffix)

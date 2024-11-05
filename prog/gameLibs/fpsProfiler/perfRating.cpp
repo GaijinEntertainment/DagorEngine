@@ -1,9 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <fpsProfiler/dag_perfRating.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <3d/dag_textureIDHolder.h>
-#include <3d/dag_tex3d.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_commands.h>
 #include <util/dag_simpleString.h>
 #include <util/dag_string.h>
 
@@ -195,7 +198,7 @@ void perf_stat_imgui()
 {
   ImGui::SliderFloat("magnify", &magnify, 0.5, 1);
 
-  fps_profile::updatePerformanceRating(d3d::driver_command(DRV3D_COMMAND_GET_FRAMERATE_LIMITING_FACTOR, nullptr, nullptr, nullptr));
+  fps_profile::updatePerformanceRating(d3d::driver_command(Drv3dCommand::GET_FRAMERATE_LIMITING_FACTOR));
 
   for (size_t i = 0; i < fps_profile::PERF_RATING_PERIODS; i++)
     for (size_t j = 0; j < fps_profile::PERF_RATING_GROUPS; j++)
@@ -210,11 +213,11 @@ void perf_stat_imgui()
   if (ImPlot::GetColormapIndex("perf_colors") == -1)
     ImPlot::AddColormap("perf_colors", colorMap, colorMapVecSize);
   ImPlot::PushColormap("perf_colors");
-  ImPlot::SetNextPlotTicksX(0 + 1.0 / 14.0, 1 - 1.0 / 14.0, fps_profile::PERF_RATING_GROUPS, xLabels);
-  ImPlot::SetNextPlotTicksY(1 - 1.0 / 14.0, 0 + 1.0 / 14.0, fps_profile::PERF_RATING_PERIODS, yLabels);
   if (ImPlot::BeginPlot("##FPS_Heatmap1", NULL, NULL, ImVec2(plotInitSize * magnify, plotInitSize * magnify),
-        ImPlotFlags_NoLegend | ImPlotFlags_NoMousePos, axesFlags, axesFlags))
+        ImPlotFlags_NoLegend | ImPlotFlags_NoMouseText, axesFlags, axesFlags))
   {
+    ImPlot::SetupAxisTicks(ImAxis_X1, 0 + 1.0 / 14.0, 1 - 1.0 / 14.0, fps_profile::PERF_RATING_GROUPS, xLabels);
+    ImPlot::SetupAxisTicks(ImAxis_Y1, 1 - 1.0 / 14.0, 0 + 1.0 / 14.0, fps_profile::PERF_RATING_PERIODS, yLabels);
     ImPlot::PlotHeatmap("FPS rating", values[0], fps_profile::PERF_RATING_PERIODS, fps_profile::PERF_RATING_GROUPS, scaleMin,
       scaleMax);
     ImPlot::EndPlot();

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <pathFinder/pathFinder.h>
 #include <pathFinder/customNav.h>
 #include <detourNavMesh.h>

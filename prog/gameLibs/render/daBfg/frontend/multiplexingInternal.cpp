@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "multiplexingInternal.h"
 
 
@@ -75,9 +77,24 @@ auto multiplexing::clamp(Index idx, Extents extents) -> Index
     min(idx.viewport, extents.viewports - 1)};
 }
 
-bool multiplexing::less_multiplexed(Mode fst, Mode snd)
+auto multiplexing::clamp_and_wrap(Index idx, Extents extents) -> Index
 {
-  return (eastl::to_underlying(fst) & eastl::to_underlying(snd)) == eastl::to_underlying(fst) && fst != snd;
+  return Index{
+    idx.superSample % extents.superSamples, idx.subSample % extents.subSamples, eastl::min(idx.viewport, extents.viewports - 1)};
+}
+
+bool multiplexing::less_multiplexed(Mode fst, Mode snd, Extents extents)
+{
+  // If not multiplexing on that, implicitly allow requesting less multiplexed resources
+  uint32_t first = eastl::to_underlying(fst);
+  uint32_t second = eastl::to_underlying(snd);
+  if (extents.subSamples == 1)
+    first |= eastl::to_underlying(Mode::SubSampling);
+  if (extents.superSamples == 1)
+    first |= eastl::to_underlying(Mode::SuperSampling);
+  if (extents.viewports == 1)
+    first |= eastl::to_underlying(Mode::Viewport);
+  return (first & second) == first && first != second;
 }
 
 } // namespace dabfg

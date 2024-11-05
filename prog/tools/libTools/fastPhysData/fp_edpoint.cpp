@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/fastPhysData/fp_edpoint.h>
 
 #include <libTools/util/makeBindump.h>

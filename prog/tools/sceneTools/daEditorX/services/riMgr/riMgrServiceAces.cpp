@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_interface.h>
 #include <de3_dataBlockIdHolder.h>
 #include <de3_objEntity.h>
@@ -30,7 +32,9 @@
 #include <shaders/dag_rendInstRes.h>
 #include <shaders/dag_shaderBlock.h>
 #include <gameRes/dag_stdGameRes.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
 #include <ioSys/dag_ioUtils.h>
@@ -112,6 +116,7 @@ static void(__stdcall *custom_reinit_cb)(void *arg) = NULL;
 static void *custom_reinit_arg = NULL;
 static uint8_t perInstDataDwords = 0;
 static bool perInstDataUseSeed = false;
+static bool perInstDataUseAutoSeed = false;
 static bool delayRiResInit = true; // stays true until first HUID_BeforeMainLoop event
 
 class AcesRendInstEntity;
@@ -120,7 +125,7 @@ class AcesRendInstEntityPool;
 typedef MultiEntityPool<AcesRendInstEntity, AcesRendInstEntityPool> MultiAcesRendInstEntityPool;
 typedef VirtualMpEntity<MultiAcesRendInstEntityPool> VirtualAcesRendInstEntity;
 
-static const char *DEFAULT_LEVEL_GAMENAME = "enlisted";
+static const char *DEFAULT_LEVEL_GAMENAME = "enlisted"; // FIXME_BROKEN_DEP
 
 static class NavmeshLayers
 {
@@ -196,7 +201,7 @@ public:
   ska::flat_hash_set<int> transparentPools;
   ska::flat_hash_map<int, uint32_t> obstaclePools;
   ska::flat_hash_map<int, uint32_t> materialPools;
-  ska::flat_hash_map<int, float> navMeshOffsetPools;
+  rendinst::obstacle_settings_t obstaclesSettings;
   ska::flat_hash_map<uint32_t, uint32_t> obstacleFlags;
 
   NavmeshLayers() {}
@@ -335,26 +340,8 @@ public:
       return;
     navmesh_obstacles = makeFilePathForNavMeshKind(navmesh_obstacles, nav_mesh_kind);
 
-    DataBlock navObstaclesBlk;
     String navObstaclesPath(260, "%s/%s", DAGORED2->getWorkspace().getAppDir(), navmesh_obstacles);
-
-    if (dblk::load(navObstaclesBlk, navObstaclesPath.c_str(), dblk::ReadFlag::ROBUST))
-    {
-      for (int blkIt = 0; blkIt < navObstaclesBlk.blockCount(); blkIt++)
-      {
-        const DataBlock *blk = navObstaclesBlk.getBlock(blkIt);
-        int pool = findRiPool(blk->getBlockName());
-        if (pool <= -1)
-          continue;
-
-        const float navMeshBoxOffset = blk->getReal("navMeshBoxOffset", 0.0f);
-        if (navMeshBoxOffset > 0.0f)
-        {
-          if (navMeshOffsetPools.count(pool) == 0)
-            navMeshOffsetPools.emplace(pool, navMeshBoxOffset);
-        }
-      }
-    }
+    rendinst::load_obstacle_settings(navObstaclesPath.c_str(), obstaclesSettings);
   }
 } navmeshLayers;
 
@@ -365,8 +352,8 @@ struct RendinstVertexDataCbEditor : public rendinst::RendinstVertexDataCbBase
 
   RendinstVertexDataCbEditor(Tab<Point3> &verts, Tab<int> &inds, Tab<IPoint2> &transparent, Bitarray &pools,
     ska::flat_hash_map<int, uint32_t> &obstaclePools, ska::flat_hash_map<int, uint32_t> &materialPools,
-    ska::flat_hash_map<int, float> &navMeshOffsetPools, Tab<NavMeshObstacle> &obstacles) :
-    RendinstVertexDataCbBase(verts, inds, pools, obstaclePools, materialPools, navMeshOffsetPools),
+    rendinst::obstacle_settings_t &obstaclesSettings, Tab<NavMeshObstacle> &obstacles) :
+    RendinstVertexDataCbBase(verts, inds, pools, obstaclePools, materialPools, obstaclesSettings),
     transparent(transparent),
     obstacles(obstacles)
   {}
@@ -434,9 +421,9 @@ struct RendinstVertexDataCbEditor : public rendinst::RendinstVertexDataCbBase
       if (materialIt != navmeshLayers.materialPools.end())
         idxBase = -1;
 
-      auto navMeshBoxOffsetIt = navmeshLayers.navMeshOffsetPools.find(coll_info.desc.pool);
-      if (navMeshBoxOffsetIt != navmeshLayers.navMeshOffsetPools.end())
-        obstaclePadding.x = navMeshBoxOffsetIt->second;
+      auto setup = navmeshLayers.obstaclesSettings.find(coll_info.desc.pool);
+      if (setup && setup->overridePadding)
+        obstaclePadding.x = setup->overridePaddingValue;
 
       pathfinder::tilecache_calc_obstacle_pos(coll_info.tm, oobb, 0.0f, obstaclePadding, c, ext, angY);
 
@@ -477,7 +464,7 @@ public:
     Tab<int> indices;
 
     RendinstVertexDataCbEditor cb(vertices, indices, transparent, navmeshLayers.pools, navmeshLayers.obstaclePools,
-      navmeshLayers.materialPools, navmeshLayers.navMeshOffsetPools, obstacles);
+      navmeshLayers.materialPools, navmeshLayers.obstaclesSettings, obstacles);
     rendinst::testObjToRIGenIntersection(box, TMatrix::IDENT, cb, rendinst::GatherRiTypeFlag::RiGenAndExtra);
     transparent.reserve(cb.transparent.size());
     vertices.reserve(cb.vertNum);
@@ -533,18 +520,18 @@ public:
 };
 
 
-static void addPerInstData(Tab<int> &dest_per_inst_data, int per_inst_seed)
+static void addPerInstData(Tab<int> &dest_per_inst_data, bool add_per_inst_data, int per_inst_seed)
 {
-  if (!perInstDataDwords)
+  if (!perInstDataDwords || !add_per_inst_data)
     return;
   int idx = append_items(dest_per_inst_data, perInstDataDwords);
   mem_set_0(make_span(dest_per_inst_data).subspan(idx));
   if (perInstDataUseSeed)
     dest_per_inst_data[idx] = per_inst_seed;
 }
-static void addPerInstData(BinDumpSaveCB &cell_cwr, int per_inst_seed)
+static void addPerInstData(BinDumpSaveCB &cell_cwr, bool add_per_inst_data, int per_inst_seed)
 {
-  if (!perInstDataDwords)
+  if (!perInstDataDwords || !add_per_inst_data)
     return;
   cell_cwr.writeInt32e(perInstDataUseSeed ? per_inst_seed : 0);
   if (perInstDataDwords > 0)
@@ -765,7 +752,7 @@ public:
 
   bool checkEqual(const DagorAsset &asset) { return strcmp(riResName, asset.getName()) == 0; }
 
-  void gatherRiP4(Tab<Point4> &dest, Tab<int> &dest_per_inst_data, float x0, float z0, float x1, float z1, const BBox2 &land_bb)
+  void gatherRiP4(Tab<Point4> &dest, Tab<int> &dest_per_inst_data, bool add_per_inst_data, float x0, float z0, float x1, float z1)
   {
     int subtype_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
     uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
@@ -777,11 +764,11 @@ public:
         if (x >= x0 && x < x1 && z >= z0 && z < z1)
         {
           dest.push_back().set(ent[j]->tm[3][0], ent[j]->tm[3][1], ent[j]->tm[3][2], ent[j]->tm.getcol(1).length());
-          addPerInstData(dest_per_inst_data, ent[j]->instSeed);
+          addPerInstData(dest_per_inst_data, add_per_inst_data, ent[j]->instSeed);
         }
       }
   }
-  void gatherRiTM(Tab<TMatrix> &dest, Tab<int> &dest_per_inst_data, float x0, float z0, float x1, float z1, const BBox2 &land_bb)
+  void gatherRiTM(Tab<TMatrix> &dest, Tab<int> &dest_per_inst_data, bool add_per_inst_data, float x0, float z0, float x1, float z1)
   {
     int subtype_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
     uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
@@ -795,7 +782,7 @@ public:
         {
           cnt++;
           dest.push_back(ent[j]->tm);
-          addPerInstData(dest_per_inst_data, ent[j]->instSeed);
+          addPerInstData(dest_per_inst_data, add_per_inst_data, ent[j]->instSeed);
         }
       }
   }
@@ -1216,7 +1203,10 @@ public:
     G_ASSERTF(perInstDataDwords <= 1,
       "rendInstGenExtraRender.inc.cpp fills out the 2nd and 3rd members at runtime (check addData[ADDITIONAL_DATA_IDX] = ...)");
     perInstDataUseSeed = appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getBool("perInstDataUseSeed", false);
-    debug("using perInstDataDwords=%d %s", perInstDataDwords, perInstDataUseSeed ? "[posSeed]" : "");
+    perInstDataUseAutoSeed =
+      appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getBool("perInstDataUseAutoSeed", perInstDataUseSeed);
+    debug("using perInstDataDwords=%d %s %s", perInstDataDwords, perInstDataUseSeed ? "[posSeed]" : "",
+      perInstDataUseAutoSeed ? "[autoSeed]" : "");
 
     rendinst::initRIGen(/*render*/ !d3d::is_stub_driver(), 80, 8000.0f, NULL, NULL, -1, 256.0f);
     frameBlkId = ShaderGlobal::getBlockId("global_frame");
@@ -1581,18 +1571,18 @@ public:
     }
   }
 
-  static void pregen_gather_pos_cb(Tab<Point4> &dest, Tab<int> &dest_per_inst_data, int idx, int pregen_id, float x0, float z0,
-    float x1, float z1)
+  static void pregen_gather_pos_cb(Tab<Point4> &dest, Tab<int> &dest_per_inst_data, bool add_per_inst_data, int idx, int pregen_id,
+    float x0, float z0, float x1, float z1)
   {
     if (idx < 0)
       return;
     dag::ConstSpan<AcesRendInstEntityPool *> p = static_cast<AcesRendInstEntityManagementService *>(rigenSrv)->riPool.getPools();
     if (p[idx]->pregenId != pregen_id)
       return;
-    p[idx]->gatherRiP4(dest, dest_per_inst_data, x0, z0, x1, z1, rigenLandBox);
+    p[idx]->gatherRiP4(dest, dest_per_inst_data, add_per_inst_data, x0, z0, x1, z1);
   }
-  static void pregen_gather_tm_cb(Tab<TMatrix> &dest, Tab<int> &dest_per_inst_data, int idx, int pregen_id, float x0, float z0,
-    float x1, float z1)
+  static void pregen_gather_tm_cb(Tab<TMatrix> &dest, Tab<int> &dest_per_inst_data, bool add_per_inst_data, int idx, int pregen_id,
+    float x0, float z0, float x1, float z1)
   {
     if (idx < 0)
       return;
@@ -1602,11 +1592,11 @@ public:
     BBox2 box(x0, z0, x1, z1);
     if (!p[idx]->precalculatedBox.isempty() && !(p[idx]->precalculatedBox & box))
       return;
-    p[idx]->gatherRiTM(dest, dest_per_inst_data, x0, z0, x1, z1, rigenLandBox);
+    p[idx]->gatherRiTM(dest, dest_per_inst_data, add_per_inst_data, x0, z0, x1, z1);
   }
 
   // IBinaryDataBuilder interface
-  virtual bool validateBuild(int target, ILogWriter &log, PropPanel2 *params)
+  virtual bool validateBuild(int target, ILogWriter &log, PropPanel::ContainerPropertyControl *params)
   {
     if (!calcPerPoolEntities({}, IObjEntityFilter::STMASK_TYPE_EXPORT))
       log.addMessage(log.WARNING, "No rendInst entities for export");
@@ -1636,9 +1626,17 @@ public:
     Tab<TmpEntityPos> entitiesPosList;
     bool isPos;
     bool hasPaletteRotation;
+    bool hasZeroInstSeeds;
     unsigned int numEntitiesTotal;
 
-    TmpPool() : entitiesTmList(tmpmem), entitiesPosList(tmpmem), numEntitiesTotal(0), isPos(false), hasPaletteRotation(false) {}
+    TmpPool() :
+      entitiesTmList(tmpmem),
+      entitiesPosList(tmpmem),
+      numEntitiesTotal(0),
+      isPos(false),
+      hasPaletteRotation(false),
+      hasZeroInstSeeds(false)
+    {}
 
     unsigned int getNumEntities() { return isPos ? entitiesPosList.size() : entitiesTmList.size(); }
 
@@ -1727,7 +1725,7 @@ public:
     else
     {
       RendinstVertexDataCbEditor cb(vertices, indices, transparent, navmeshLayers.pools, navmeshLayers.obstaclePools,
-        navmeshLayers.materialPools, navmeshLayers.navMeshOffsetPools, obstacles);
+        navmeshLayers.materialPools, navmeshLayers.obstaclesSettings, obstacles);
       rendinst::testObjToRIGenIntersection(box, TMatrix::IDENT, cb, rendinst::GatherRiTypeFlag::RiGenAndExtra);
       cb.procFilteredCollision([&exclude_boxes](const rendinst::CollisionInfo &ci) {
         if (ci.collRes == nullptr)
@@ -1750,7 +1748,7 @@ public:
     obstacle_flags_by_res_name_hash = &navmeshLayers.obstacleFlags;
   }
 
-  virtual bool buildAndWrite(BinDumpSaveCB &main_cwr, const ITextureNumerator &tn, PropPanel2 *)
+  virtual bool buildAndWrite(BinDumpSaveCB &main_cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *)
   {
     G_ASSERT(DAGORED2);
     G_ASSERT(colRangeSrv);
@@ -1789,6 +1787,7 @@ public:
         DAEDITOR3.conWarning("RendInst <%s> not resolved, instances export skipped", riPool.getPools()[poolNo]->riResName);
         poolsList[poolNo].isPos = false;
         poolsList[poolNo].hasPaletteRotation = false;
+        poolsList[poolNo].hasZeroInstSeeds = false;
         continue;
       }
       G_ASSERT(riPool.getPools()[poolNo]->res);
@@ -1813,6 +1812,7 @@ public:
 
     for (unsigned int poolNo = 0; poolNo < poolsList.size(); poolNo++)
     {
+      poolsList[poolNo].hasZeroInstSeeds = perInstDataDwords != 0;
       for (unsigned int entityNo = 0; entityNo < riPool.getPools()[poolNo]->getEntities().size(); entityNo++)
       {
         if (riPool.getPools()[poolNo]->getEntities()[entityNo] &&
@@ -1842,6 +1842,8 @@ public:
             poolsList[poolNo].entitiesTmList.back().seed =
               ((AcesRendInstEntity *)riPool.getPools()[poolNo]->getEntities()[entityNo])->instSeed;
           }
+          if (((AcesRendInstEntity *)riPool.getPools()[poolNo]->getEntities()[entityNo])->instSeed)
+            poolsList[poolNo].hasZeroInstSeeds = false;
           poolsList[poolNo].numEntitiesTotal++;
         }
       }
@@ -1874,6 +1876,7 @@ public:
     exportGenEntities(fileBlk, main_cwr, poolsList, isDynamicImpostorList);
     fileBlk.reset();
     IObjEntityFilter::setSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER, sm_render);
+    rendinst::discard_rigen_all();
     return true;
   }
 
@@ -1919,7 +1922,7 @@ public:
       cwr.beginBlock();
       ::copy_file_to_stream(grp_files[i], cwr);
       cwr.endBlock();
-      // debug_ctx ( "grp[%d]=%s", i, (char*)grp_files[i] );
+      // DEBUG_CTX("grp[%d]=%s", i, grp_files[i]);
     }
     cwr.endBlock();
 
@@ -2386,7 +2389,7 @@ protected:
                 G_ASSERT(size == 4 * sizeof(data[0]));
                 for (int i = 0; i < 4; ++i)
                   cell_cwr.writeInt16e(data[i]);
-                addPerInstData(cell_cwr, p.seed);
+                addPerInstData(cell_cwr, !pool.hasZeroInstSeeds, p.seed);
                 // debug("y=%.1f -> %04X -> %.1f", p.pos.y, int(clamp((p.pos.y - oy)/cell_y_sz, -1.f, 1.f) *32767.0),
                 //   int(clamp((p.pos.y - oy)/cell_y_sz, -1.f, 1.f) *32767.0)*cell_y_sz/32767.0+oy);
               }
@@ -2399,7 +2402,7 @@ protected:
                 G_ASSERT(size == 12 * sizeof(data[0]));
                 for (int i = 0; i < 12; ++i)
                   cell_cwr.writeInt16e(data[i]);
-                addPerInstData(cell_cwr, pool.entitiesTmList[ent_idx[m]].seed);
+                addPerInstData(cell_cwr, !pool.hasZeroInstSeeds, pool.entitiesTmList[ent_idx[m]].seed);
                 // debug("y=%.1f -> %04X -> %.1f", tm.m[3][1], int(clamp((tm.m[3][1] - oy)/cell_y_sz, -1.f, 1.f) *32767.0),
                 //   int(clamp((tm.m[3][1] - oy)/cell_y_sz, -1.f, 1.f) *32767.0)*cell_y_sz/32767.0+oy);
               }
@@ -2412,7 +2415,7 @@ protected:
                 G_ASSERT(size == 12 * sizeof(data[0]));
                 for (int i = 0; i < 12; ++i)
                   cell_cwr.writeInt32e(data[i]);
-                addPerInstData(cell_cwr, pool.entitiesTmList[ent_idx[m]].seed);
+                addPerInstData(cell_cwr, !pool.hasZeroInstSeeds, pool.entitiesTmList[ent_idx[m]].seed);
               }
 
             clear_and_shrink(riLdCnt[k][i * SUBCELL_DIV * SUBCELL_DIV + j]);
@@ -2565,7 +2568,9 @@ protected:
           bits |= 1 << 0;
         if (poolsList[i].hasPaletteRotation)
           bits |= 1 << 1;
-        cwr.writeInt32e(bits); // uint32_t posInst:1, paletteRotation:1, _resv30:30;
+        if (poolsList[i].hasZeroInstSeeds)
+          bits |= 1 << 2;
+        cwr.writeInt32e(bits); // uint32_t posInst:1, paletteRotation:1, zeroInstSeeds:1, _resv29:29;
         uint32_t paletteSize = poolsList[i].hasPaletteRotation ? rotationPaletteMgr->getPalette({layer_idx, i}).count : 0;
         cwr.writeInt32e(paletteSize); // int32_t paletteRotationCount;
 
@@ -2755,7 +2760,7 @@ void AcesRendInstEntity::setTm(const TMatrix &_tm)
   if (memcmp(&tm, &_tm, sizeof(tm)) != 0)
     rendinst::notify_ri_moved(pool->getPools()[poolIdx]->pregenId, tm[3][0], tm[3][2], _tm[3][0], _tm[3][2]);
   tm = _tm;
-  if (autoInstSeed)
+  if (autoInstSeed && perInstDataUseAutoSeed)
     instSeed = mem_hash_fnv1((const char *)&tm.m[3][0], 12);
 }
 void AcesRendInstEntity::setPerInstanceSeed(int seed)
@@ -2763,7 +2768,7 @@ void AcesRendInstEntity::setPerInstanceSeed(int seed)
   if (instSeed != seed)
     rendinst::notify_ri_moved(pool->getPools()[poolIdx]->pregenId, tm[3][0], tm[3][2], tm[3][0], tm[3][2]);
 
-  if (seed)
+  if (seed || !perInstDataUseAutoSeed)
     instSeed = seed, autoInstSeed = false;
   else
     instSeed = mem_hash_fnv1((const char *)&tm.m[3][0], 12), autoInstSeed = true;
@@ -2784,7 +2789,7 @@ void init_aces_rimgr_service(const DataBlock &app_blk)
 {
   if (!IDaEditor3Engine::get().checkVersion())
   {
-    debug_ctx("Incorrect version!");
+    DEBUG_CTX("Incorrect version!");
     return;
   }
   rendinst::rendinstGlobalShadows = true;

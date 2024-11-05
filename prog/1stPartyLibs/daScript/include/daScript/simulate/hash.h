@@ -1,50 +1,9 @@
 #pragma once
 
 #include "daScript/simulate/simulate.h"
-#include "daScript/misc/fnv.h"
+#include "daScript/misc/anyhash.h"
 
 namespace das {
-
-    class HashBuilder {
-        const uint64_t fnv_prime = 1099511628211ul;
-        uint64_t fnv_bias = 14695981039346656037ul;
-    public:
-        HashBuilder() { }
-
-        uint64_t getHash() {
-            if (fnv_bias <= HASH_KILLED64) {
-                return fnv_prime;
-            }
-            return fnv_bias;
-        }
-
-        void writeStr(char *str) {
-            if ( !str ) {
-                fnv_bias *= fnv_prime;
-                return;
-            }
-            uint8_t * block = (uint8_t *) str;
-            while ( *block ) {
-                fnv_bias = ( fnv_bias ^ *block++ ) * fnv_prime;
-            }
-        }
-    };
-
-    __forceinline uint64_t builtin_build_hash ( const TBlock<void,HashBuilder> & block, Context * context, LineInfoArg * at ) {
-        HashBuilder writer;
-        vec4f args[1];
-        args[0] = cast<HashBuilder *>::from(&writer);
-        context->invoke(block, args, nullptr, at);
-        return writer.getHash();
-    }
-
-    template <typename TT>
-    uint64_t builtin_build_hash_T ( TT && block, Context * context, LineInfoArg * ) {
-        HashBuilder writer;
-        block(writer);
-        return writer.getHash();
-    }
-
     __forceinline uint64_t hash_function ( Context &, const void * x, size_t size ) {
         return hash_block64((uint8_t *)x, size);
     }
@@ -59,19 +18,66 @@ namespace das {
 
     template <typename TT>
     __forceinline uint64_t hash_function ( Context &, const TT x ) {
-        return hash_block64((const uint8_t *)&x, sizeof(x));
+        return hash_block64((uint8_t *)&x, sizeof(x));
     }
 
     template <>
     __forceinline uint64_t hash_function ( Context &, char * str ) {
-        return str ? hash_blockz64((uint8_t *)str) : 1099511628211ul;
+        return hash_blockz64((uint8_t *)str);
     }
-
     template <>
     __forceinline uint64_t hash_function ( Context &, const char * str ) {
-        return str ? hash_blockz64((uint8_t *)str) : 1099511628211ul;
+        return hash_blockz64((uint8_t *)str);
     }
-
+    template <>
+    __forceinline uint64_t hash_function ( Context &, const string & str ) {
+        return hash_blockz64((uint8_t *)str.c_str());
+    }
+    template <> __forceinline uint64_t hash_function ( Context &, bool value ) {
+        return hash_uint32(value);
+    }
+    template <> __forceinline uint64_t hash_function ( Context &, int8_t value ) {
+        return hash_uint32(value);
+    }
+    template <> __forceinline uint64_t hash_function ( Context &, uint8_t value ) {
+        return hash_uint32(value);
+    }
+    template <> __forceinline uint64_t hash_function ( Context &, int16_t value ) {
+        return hash_uint32(value);
+    }
+    template <> __forceinline uint64_t hash_function ( Context &, uint16_t value ) {
+        return hash_uint32(value);
+    }
+    template <> __forceinline uint64_t hash_function ( Context &, int32_t value ) {
+        return hash_uint32(value);
+    }
+    template <> __forceinline uint64_t hash_function ( Context &, uint32_t value ) {
+        return hash_uint32(value);
+    }
+    template <> __forceinline uint64_t hash_function ( Context &, Bitfield value ) {
+        return hash_uint32(value.value);
+    }
+    template <> __forceinline uint64_t hash_function ( Context &, float value ) {
+        return hash_uint32(*((uint32_t *)&value));
+    }
+    template <> __forceinline uint64_t hash_function ( Context &, int64_t value ) {
+        return hash_uint64(value);
+    }
+    template <> __forceinline uint64_t hash_function ( Context &, uint64_t value ) {
+        return hash_uint64(value);
+    }
+    template <> __forceinline uint64_t hash_function ( Context &, double value ) {
+        return hash_uint64(*((uint64_t *)&value));
+    }
+    template <> __forceinline uint64_t hash_function ( Context &, void * value ) {
+        return hash_uint64(uint64_t(intptr_t(value)));
+    }
+    template <> __forceinline uint64_t hash_function ( Context &, range value ) {
+        return hash_uint64(*((uint64_t *)&value));
+    }
+    template <> __forceinline uint64_t hash_function ( Context &, urange value ) {
+        return hash_uint64(*((uint64_t *)&value));
+    }
     uint64_t hash_value ( Context & ctx, void * pX, TypeInfo * info );
     uint64_t hash_value ( Context & ctx, vec4f value, TypeInfo * info );
 }

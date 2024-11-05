@@ -29,3 +29,46 @@ Named tuple elements can be accessed by name as well as via nameless field::
     b._1 = 2.0      // _1 is also available
 
 Tuples follow the same alignment rules as structures (see :ref:`Structures <structs_alignment>`).
+
+Tuple alias types can be constructed the same way as structures. For example::
+
+    tuple Foo
+        a : int
+        b : float
+
+It's the same as::
+
+    typedef Foo = tuple<a:int;b:float>
+
+Tuples can be constructed using the tuple constructor, for example::
+
+    var a = [[auto 1,2.0,"3"]]
+    var b = [[tuple<int;float;string> 1, 2.0, "3"]]
+
+Alternative syntax is::
+
+    var a = tuple(1,2.0,"3")
+    var b = tuple<int;float;string>(1, 2.0, "3")
+
+both auto a full type specification can be used to construct a tuple.
+Array of tuples can be constructed using similar syntax, with a ; as a separator::
+
+    var a = [[auto 1, 2.0, "3"; 4, 5.0, "6"]]
+
+There is a shortcut syntax for constructing tuples, where the tuple is returned::
+
+    return 1, 2.0, "3"  // same as return [[auto 1, 2.0, "3"]]
+
+Tuples can be expanded upon the variable declaration, for example::
+
+    var [[a, b, c]] = [[auto 1, 2.0, "3"]]
+
+In this case only one variable is created, as well as for 'assume' expressions. I.e::
+
+    var a`b`c = [[auto 1, 2.0, "3"]]
+    assume a  = a`b`c._0
+    assume b  = a`b`c._1
+    assume c  = a`b`c._2
+
+
+

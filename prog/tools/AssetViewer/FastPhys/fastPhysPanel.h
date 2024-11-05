@@ -1,7 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <propPanel2/c_control_event_handler.h>
-#include <propPanel2/comWnd/treeview_panel.h>
+#include <propPanel/c_control_event_handler.h>
+#include <propPanel/commonWindow/treeviewPanel.h>
 
 #include "fastPhys.h"
 
@@ -30,14 +31,14 @@ class IFPObject;
 
 class FPPanel;
 
-class ActionsTreeCB : public ITreeViewEventHandler
+class ActionsTreeCB : public PropPanel::ITreeViewEventHandler
 {
 public:
   ActionsTreeCB(FastPhysPlugin &plugin) : mPlugin(plugin) {}
 
-  virtual void onTvSelectionChange(TreeBaseWindow &tree, TLeafHandle new_sel);
-  virtual void onTvListSelection(TreeBaseWindow &tree, int index);
-  virtual bool onTvContextMenu(TreeBaseWindow &tree, TLeafHandle under_mouse, IMenu &menu);
+  virtual void onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle new_sel) override;
+  virtual void onTvListSelection(PropPanel::TreeBaseWindow &tree, int index) override;
+  virtual bool onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree) override;
 
 protected:
   FastPhysPlugin &mPlugin;
@@ -45,7 +46,7 @@ protected:
 
 //------------------------------------------------------------------
 
-class FPPanel : public ControlEventHandler
+class FPPanel : public PropPanel::ControlEventHandler
 {
 public:
   FPPanel(FastPhysPlugin &plugin) : mPlugin(plugin) {}
@@ -55,8 +56,8 @@ public:
 
   // ControlEventHandler
 
-  virtual void onChange(int pcb_id, PropPanel2 *panel);
-  virtual void onClick(int pcb_id, PropPanel2 *panel);
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
 
 protected:
   FastPhysPlugin &mPlugin;

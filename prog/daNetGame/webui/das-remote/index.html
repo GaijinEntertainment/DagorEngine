@@ -1,0 +1,55 @@
+<html>
+<meta charset="utf-8" />
+
+<!-- before liquor-tree -->
+<link rel="stylesheet" href="./src/ai_log.css">
+
+<script src="./src/vendor/simple-jsonrpc-js.js"></script>
+<script src="./src/vendor/jsonrpc.js"></script>
+<script src="./src/vendor/vue.js"></script>
+<script src="./src/vendor/liquor-tree.umd.js"></script>
+
+<link rel="stylesheet" href="./src/vendor/element.css">
+<script src="./src/vendor/element.js"></script>
+
+<script src="./src/das_compile_errors_count.js"></script>
+
+<script src="./src/app_time.js"></script>
+
+<script src="./src/ai_log.js"></script>
+
+
+<style>
+  .el-button--mini {
+    padding: 4px 7px;
+  }
+</style>
+
+<body>
+
+  <div id="app">
+    <h1 v-if="connecting">Connecting...</h1>
+    <div v-else>
+      <das_compile_errors_count style="float: right;"></das_compile_errors_count>
+      <app_time></app_time>
+      <ai_log></ai_log>
+    </div>
+  </div>
+
+  <script>
+    var app5 = new Vue({
+      el: '#app',
+      data: {
+        connecting: true
+      },
+    })
+
+    newSocketListeners.push((socket) => {
+      socket.addEventListener('open', (event) => app5.connecting = false)
+      // socket.addEventListener('close', (event) => app5.connecting = true)
+    })
+    createSocket(/*reconnect*/true)
+  </script>
+</body>
+
+</html>

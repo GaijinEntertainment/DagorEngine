@@ -528,6 +528,7 @@ void WriteLogOpening(const eastl::string& file) {
     // sufficient.
     const unsigned int flags = aiGetCompileFlags();
     std::stringstream stream;
+    stream.imbue(std::locale{"C"}); // DAGOR PATCH, WITHOUT THIS SET WE HAVE DATARACE
     stream << "Assimp " << aiGetVersionMajor() << "." << aiGetVersionMinor() << "." << aiGetVersionRevision() << " "
 #if defined(ASSIMP_BUILD_ARCHITECTURE)
            << ASSIMP_BUILD_ARCHITECTURE
@@ -1039,6 +1040,16 @@ size_t Importer::GetImporterIndex (const char* szExtension) const {
     }
     ASSIMP_END_EXCEPTION_REGION(size_t);
     return static_cast<size_t>(-1);
+}
+
+void Importer::GetExtensionList(eastl::set<eastl::string> &extensions) const
+{
+    ASSIMP_BEGIN_EXCEPTION_REGION();
+    ai_assert(nullptr != pimpl);
+    for (eastl::vector<BaseImporter*>::const_iterator i =  pimpl->mImporter.begin();i != pimpl->mImporter.end();++i)  {
+        (*i)->GetExtensionList(extensions);
+    }
+    ASSIMP_END_EXCEPTION_REGION(void);
 }
 
 // ------------------------------------------------------------------------------------------------

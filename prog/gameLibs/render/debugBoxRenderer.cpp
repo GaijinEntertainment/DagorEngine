@@ -1,5 +1,9 @@
-#include <3d/dag_drv3d_multi.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
+#include <EASTL/string_view.h>
 #include <debug/dag_debug3d.h>
 #include <scene/dag_tiledScene.h>
 #include <util/dag_string.h>

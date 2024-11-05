@@ -1,0 +1,8 @@
+-keep public class com.gaijinent.helpers.GamepadHelper {
+  public static <methods>;
+}
+
+-keep public class com.nvidia.Helpers.NvSoftInput {
+  public static <methods>;
+  private static native <methods>;
+}

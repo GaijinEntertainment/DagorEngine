@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -17,22 +16,21 @@ class DataBlock;
 namespace tire_tracks
 {
 
-void emit(int id, const Point3 &norm, const Point3 &pos, const Point3 &movedir, real opacity, int tex_id, float additional_width,
-  float omnidirectional_tex_blend);
-
-void finalize_track(int id);
+// returns true if a new track node has been created, false otherwise
+bool emit(int id, const Point3 &norm, const Point3 &pos, const Point3 &movedir, real opacity, int tex_id, float additional_width,
+  float omnidirectional_tex_blend, bool correct_previous_node = false);
 
 // init system. load settings from blk-file
-void init(const char *blk_file, bool has_normalmap, bool has_vertex_normal, bool is_low_quality, bool stub_render_mode);
+void init(const char *blk_file, bool has_normalmap, bool stub_render_mode);
 
 // release system
-void release(bool close_emitters = true);
+void release();
 
 // remove all tire tracks from screen
 void clear(bool completeClear = false);
 
-// update vbuffer
-void beforeRender(float dt, const Point3 &origin);
+// update buffer
+void before_render(float dt, const Point3 &origin);
 
 // render tires
 void render(const Frustum &frustum, bool for_displacement);

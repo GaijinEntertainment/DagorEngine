@@ -1,0 +1,17 @@
+include_optional "custom_probe_modifier.dshl"
+
+
+define_macro_if_not_defined USE_CUSTOM_PROBE(code)
+hlsl(code)
+{
+  bool should_use_custom_probe(float3 world_pos)
+  {
+    return false;
+  }
+
+  float4 use_custom_probe(float3 world_pos, float3 reflected, float roughnessMip)
+  {
+    return float4(0, 0, 0, 0);
+  }
+}
+endmacro

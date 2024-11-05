@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <sqModules/sqModules.h>
 
@@ -7,45 +9,10 @@
 #include <math/dag_math3d.h>
 #include <math/dag_mathAng.h>
 #include <math/dag_mathUtils.h>
+#include <math/integer/dag_IPoint4.h>
 #include <3d/dag_render.h>
 #include <memory/dag_framemem.h>
 
-
-// Specialization for matrices (default initialization). Not initialized matrices are too unsafe for script
-namespace Sqrat
-{
-template <bool b>
-struct NewC<TMatrix, b>
-{
-  TMatrix *p;
-  NewC() { p = new TMatrix(TMatrix::IDENT); }
-};
-
-template <typename T>
-struct NewCZero
-{
-  T *p;
-  NewCZero()
-  {
-    p = new T();
-    memset((void *)p, 0, sizeof(T));
-  }
-};
-#define DEF_ZERO_NEWC(t)                 \
-  template <bool b>                      \
-  struct NewC<t, b> : public NewCZero<t> \
-  {}
-DEF_ZERO_NEWC(Point2);
-DEF_ZERO_NEWC(Point3);
-DEF_ZERO_NEWC(Point4);
-DEF_ZERO_NEWC(IPoint2);
-DEF_ZERO_NEWC(IPoint3);
-DEF_ZERO_NEWC(DPoint3);
-DEF_ZERO_NEWC(E3DCOLOR);
-DEF_ZERO_NEWC(Color3);
-DEF_ZERO_NEWC(Color4);
-#undef DEF_ZERO_NEWC
-} // namespace Sqrat
 
 inline Point3 sq_matrix_to_euler(const TMatrix &tm)
 {
@@ -94,6 +61,7 @@ FORMAT_MATH_INSTANCE(Point3, "Point3(%g, %g, %g)", v.x, v.y, v.z);
 FORMAT_MATH_INSTANCE(Point4, "Point4(%g, %g, %g, %g)", v.x, v.y, v.z, v.w);
 FORMAT_MATH_INSTANCE(IPoint2, "IPoint2(%d, %d)", v.x, v.y);
 FORMAT_MATH_INSTANCE(IPoint3, "IPoint3(%d, %d, %d)", v.x, v.y, v.z);
+FORMAT_MATH_INSTANCE(IPoint4, "IPoint4(%d, %d, %d, %d)", v.x, v.y, v.z, v.w);
 FORMAT_MATH_INSTANCE(DPoint3, "DPoint3(%lg, %lg, %lg)", v.x, v.y, v.z);
 FORMAT_MATH_INSTANCE(Color3, "Color3(%g, %g, %g)", v.r, v.g, v.b);
 FORMAT_MATH_INSTANCE(Color4, "Color4(%g, %g, %g, %g)", v.r, v.g, v.b, v.a);
@@ -109,8 +77,6 @@ FORMAT_MATH_INSTANCE(TMatrix, "TMatrix([%.9g, %.9g, %.9g] [%.9g, %.9g, %.9g] [%.
 
 namespace bindquirrel
 {
-
-extern void register_sqrat_datablock(HSQUIRRELVM vm);
 
 template <typename T>
 static SQInteger op_add(HSQUIRRELVM vm)
@@ -368,7 +334,7 @@ static SQInteger tmatrix_ctor(HSQUIRRELVM vm)
 
   TMatrix *obj = new TMatrix();
   if (top == 1)
-    memset(obj, 0, sizeof(*obj));
+    obj->identity();
   else
     *obj = *Sqrat::Var<TMatrix *>(vm, 2).value;
 
@@ -383,7 +349,7 @@ static SQInteger quat_ctor(HSQUIRRELVM vm)
   Quat q;
 
   if (top == 1)
-    memset(&q, 0, sizeof(q));
+    q.identity();
   else if (top == 2)
   {
     if (Sqrat::check_signature<TMatrix *>(vm, 2))
@@ -404,7 +370,7 @@ static SQInteger quat_ctor(HSQUIRRELVM vm)
     }
   }
   else
-    return sqstd_throwerrorf(vm, "Invalid arguments count: %d provided, 0 or 1 expected", top - 1);
+    return sqstd_throwerrorf(vm, "Invalid arguments count: %d provided, 0, 1 or 4 expected", top - 1);
 
   Quat *out = new Quat();
   memcpy(out, &q, sizeof(Quat));
@@ -505,7 +471,8 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
 
   Sqrat::Class<Point2> sqPoint2(vm, "Point2");
   ///@class Point2
-  sqPoint2.SquirrelCtor(math_flt_vector_ctor<Point2, 2>, 0, ".x|nn")
+  sqPoint2 //
+    .SquirrelCtor(math_flt_vector_ctor<Point2, 2>, 0, ".x|nn")
     .Var("x", &Point2::x)
     .Var("y", &Point2::y)
     .Func("lengthSq", &Point2::lengthSq)
@@ -514,11 +481,13 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFunc("_add", op_add<Point2>, 2, "xx")
     .SquirrelFunc("_sub", op_sub<Point2>, 2, "xx")
     .SquirrelFunc("_mul", op_mul<Point2>, 2, "xx|n")
-    .SquirrelFunc("_unm", op_unm<Point2>, 1, "x");
+    .SquirrelFunc("_unm", op_unm<Point2>, 1, "x")
+    /**/;
 
   /// @class Point3
   Sqrat::Class<Point3> sqPoint3(vm, "Point3");
-  sqPoint3.SquirrelCtor(math_flt_vector_ctor<Point3, 3>, 0, ".x|nnn")
+  sqPoint3 //
+    .SquirrelCtor(math_flt_vector_ctor<Point3, 3>, 0, ".x|nnn")
     .Var("x", &Point3::x)
     .Var("y", &Point3::y)
     .Var("z", &Point3::z)
@@ -529,21 +498,25 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFunc("_sub", op_sub<Point3>, 2, "xx")
     .SquirrelFunc("_mul", op_mul<Point3>, 2, "xx|n")
     .SquirrelFunc("_modulo", op_cross<Point3>, 2, "xx")
-    .SquirrelFunc("_unm", op_unm<Point3>, 1, "x");
+    .SquirrelFunc("_unm", op_unm<Point3>, 1, "x")
+    /**/;
 
   /// @class DPoint3
   Sqrat::Class<DPoint3> sqDPoint3(vm, "DPoint3");
-  sqDPoint3.SquirrelCtor(math_flt_vector_ctor<DPoint3, 3>, 0, ".x|nnn")
+  sqDPoint3 //
+    .SquirrelCtor(math_flt_vector_ctor<DPoint3, 3>, 0, ".x|nnn")
     .Var("x", &DPoint3::x)
     .Var("y", &DPoint3::y)
     .Var("z", &DPoint3::z)
     .Func("lengthSq", &DPoint3::lengthSq)
     .Func("length", &DPoint3::length)
-    .Func("normalize", &DPoint3::normalize);
+    .Func("normalize", &DPoint3::normalize)
+    /**/;
 
   /// @class Point4
   Sqrat::Class<Point4> sqPoint4(vm, "Point4");
-  sqPoint4.SquirrelCtor(math_flt_vector_ctor<Point4, 4>, 0, ".x|nnnn")
+  sqPoint4 //
+    .SquirrelCtor(math_flt_vector_ctor<Point4, 4>, 0, ".x|nnnn")
     .Var("x", &Point4::x)
     .Var("y", &Point4::y)
     .Var("z", &Point4::z)
@@ -554,11 +527,13 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFunc("_sub", op_sub<Point4>, 2, "xx")
     .SquirrelFunc("_mul", op_mul<Point4>, 2, "xx|n")
     .SquirrelFunc("_modulo", op_cross<Point4>, 2, "xx")
-    .SquirrelFunc("_unm", op_unm<Point4>, 1, "x");
+    .SquirrelFunc("_unm", op_unm<Point4>, 1, "x")
+    /**/;
 
   /// @class TMatrix
   Sqrat::Class<TMatrix> sqTMatrix(vm, "TMatrix");
-  sqTMatrix.SquirrelCtor(tmatrix_ctor, 0, ".x")
+  sqTMatrix //
+    .SquirrelCtor(tmatrix_ctor, 0, ".x")
     .Func("orthonormalize", &TMatrix::orthonormalize)
     .SquirrelFunc("_mul", op_mul_tm<TMatrix, Point3>, 2, "xx|n")
     .SquirrelFunc("_add", op_add<TMatrix>, 2, "xx")
@@ -569,11 +544,13 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFunc("_unm", op_unm<TMatrix>, 1, "x")
     .GlobalFunc("inverse", (TMatrix(*)(const TMatrix &))inverse)
     .SquirrelFunc("_get", tm_getcol, 2, "x")
-    .SquirrelFunc("getcol", tm_getcol, 2, "x");
+    .SquirrelFunc("getcol", tm_getcol, 2, "x")
+    /**/;
 
   /// @class Quat
   Sqrat::Class<Quat> sqQuat(vm, "Quat");
-  sqQuat.SquirrelCtor(quat_ctor, 0, ".x|nnnn")
+  sqQuat //
+    .SquirrelCtor(quat_ctor, 0, ".x|nnnn")
     .Var("x", &Quat::x)
     .Var("y", &Quat::y)
     .Var("z", &Quat::z)
@@ -581,51 +558,73 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFunc("_mul", op_mul<Quat, Quat>, 2, "xx|n")
     .SquirrelFunc("_mul", op_mul_tm<Quat, Point3>, 2, "xx")
     .SquirrelFunc("_unm", op_unm<Quat>, 1, "x")
-    .Func("normalize", &Quat::normalize);
+    .Func("normalize", &Quat::normalize)
+    /**/;
 
   /// @class IPoint2
   Sqrat::Class<IPoint2> sqIPoint2(vm, "IPoint2");
-  sqIPoint2.SquirrelCtor(math_int_vector_ctor<IPoint2, 2>, 0, ".x|nn")
+  sqIPoint2 //
+    .SquirrelCtor(math_int_vector_ctor<IPoint2, 2>, 0, ".x|nn")
     .Var("x", &IPoint2::x)
     .Var("y", &IPoint2::y)
     .SquirrelFunc("_add", op_add<IPoint2>, 2, "xx")
     .SquirrelFunc("_sub", op_sub<IPoint2>, 2, "xx")
-    .SquirrelFunc("_unm", op_unm<IPoint2>, 1, "x");
+    .SquirrelFunc("_unm", op_unm<IPoint2>, 1, "x")
+    /**/;
 
   /// @class IPoint3
   Sqrat::Class<IPoint3> sqIPoint3(vm, "IPoint3");
-  sqIPoint3.SquirrelCtor(math_int_vector_ctor<IPoint3, 3>, 0, ".x|nnn")
+  sqIPoint3 //
+    .SquirrelCtor(math_int_vector_ctor<IPoint3, 3>, 0, ".x|nnn")
     .Var("x", &IPoint3::x)
     .Var("y", &IPoint3::y)
     .Var("z", &IPoint3::z)
     .SquirrelFunc("_add", op_add<IPoint3>, 2, "xx")
     .SquirrelFunc("_sub", op_sub<IPoint3>, 2, "xx")
-    .SquirrelFunc("_unm", op_unm<IPoint3>, 1, "x");
+    .SquirrelFunc("_unm", op_unm<IPoint3>, 1, "x")
+    /**/;
+
+  /// @class IPoint4
+  Sqrat::Class<IPoint4> sqIPoint4(vm, "IPoint4");
+  sqIPoint4 //
+    .SquirrelCtor(math_int_vector_ctor<IPoint4, 4>, 0, ".x|nnnn")
+    .Var("x", &IPoint4::x)
+    .Var("y", &IPoint4::y)
+    .Var("z", &IPoint4::z)
+    .Var("w", &IPoint4::w)
+    .SquirrelFunc("_add", op_add<IPoint4>, 2, "xx")
+    .SquirrelFunc("_sub", op_sub<IPoint4>, 2, "xx")
+    .SquirrelFunc("_unm", op_unm<IPoint4>, 1, "x")
+    /**/;
 
   /// @class E3DCOLOR
   Sqrat::Class<E3DCOLOR> sqE3DCOLOR(vm, "E3DCOLOR");
-  sqE3DCOLOR.SquirrelCtor(e3dcolor_ctor, 0, ".x|nnnn")
+  sqE3DCOLOR //
+    .SquirrelCtor(e3dcolor_ctor, 0, ".x|nnnn")
     .Var("r", &E3DCOLOR::r)
     .Var("g", &E3DCOLOR::g)
     .Var("b", &E3DCOLOR::b)
     .Var("a", &E3DCOLOR::a)
-    .Var("u", &E3DCOLOR::u);
+    .Var("u", &E3DCOLOR::u)
+    /**/;
 
   /// @class Color3
   Sqrat::Class<Color3> sqColor3(vm, "Color3");
-  sqColor3.SquirrelCtor(math_flt_vector_ctor<Color3, 3>, 0, ".x|nnnn")
+  sqColor3 //
+    .SquirrelCtor(math_flt_vector_ctor<Color3, 3>, 0, ".x|nnnn")
     .Var("r", &Color3::r)
     .Var("g", &Color3::g)
     .Var("b", &Color3::b)
     .SquirrelFunc("_add", op_add<Color3>, 2, "xx")
     .SquirrelFunc("_sub", op_sub<Color3>, 2, "xx")
     .SquirrelFunc("_mul", op_mul<Color3, Color3>, 2, "xx|n")
-    .SquirrelFunc("set", c3_set, 3, "nnn");
-  ;
+    .SquirrelFunc("set", c3_set, 3, "nnn")
+    /**/;
 
   /// @class Color4
   Sqrat::Class<Color4> sqColor4(vm, "Color4");
-  sqColor4.SquirrelCtor(color4_ctor, 0, ".x|nnnn")
+  sqColor4 //
+    .SquirrelCtor(color4_ctor, 0, ".x|nnnn")
     .Var("r", &Color4::r)
     .Var("g", &Color4::g)
     .Var("b", &Color4::b)
@@ -633,13 +632,14 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFunc("_add", op_add<Color4>, 2, "xx")
     .SquirrelFunc("_sub", op_sub<Color4>, 2, "xx")
     .SquirrelFunc("_mul", op_mul<Color4, Color4>, 2, "xx|n")
-    .SquirrelFunc("set", c4_set, 4, "nnnn");
-  ;
+    .SquirrelFunc("set", c4_set, 4, "nnnn")
+    /**/;
 
   Sqrat::Table nsTbl(vm);
   ///@resetscope
   ///@module dagor.math
-  nsTbl.Func("matrix_to_euler", sq_matrix_to_euler)
+  nsTbl //
+    .Func("matrix_to_euler", sq_matrix_to_euler)
     .Func("euler_to_quat", sq_euler_to_quat)
     .Func("dir_to_quat", sq_dir_to_quat)
     .Func("quat_to_euler", sq_quat_to_euler)
@@ -648,7 +648,8 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .Func("qinterp", qinterp)
     .Func("cvt", cvt)
     .Func("make_tm_quat", (TMatrix(*)(const Quat &))makeTM)
-    .Func("make_tm_axis", (TMatrix(*)(const Point3 &, float))makeTM);
+    .Func("make_tm_axis", (TMatrix(*)(const Point3 &, float))makeTM)
+    /**/;
 
 #define BIND(cn) nsTbl.Bind(#cn, sq##cn);
   BIND(Point2);
@@ -657,6 +658,7 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
   BIND(TMatrix);
   BIND(IPoint2);
   BIND(IPoint3);
+  BIND(IPoint4);
   BIND(DPoint3);
   BIND(E3DCOLOR);
   BIND(Color3);

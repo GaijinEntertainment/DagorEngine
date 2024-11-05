@@ -1,0 +1,25 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = minimap ;
+Location = prog/daNetGameLibs/$(Module) ;
+UseQuirrel = sq3r ;
+
+AddIncludes =
+  $(Root)/prog/daNetGameLibs
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+;
+
+local AllSrcFolder_CPP = ;
+local AllSrcFolder_ES = ;
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_ES += ui ui/robj ;
+  AllSrcFolder_CPP += ui ui/bhv ui/robj ;
+  AddPullVars += minimap_ui_bhv_sq ;
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

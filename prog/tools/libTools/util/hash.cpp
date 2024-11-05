@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/util/hash.h>
 
 #include <osApiWrappers/dag_files.h>

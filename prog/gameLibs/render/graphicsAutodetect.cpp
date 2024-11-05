@@ -1,7 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/graphicsAutodetect.h>
 #include "ioSys/dag_dataBlock.h"
 #include "gui/dag_visConsole.h"
-#include "3d/dag_drv3dCmd.h"
+#include <drv/3d/dag_commands.h>
 #include <3d/dag_gpuConfig.h>
 
 const float GPU_BENCHMARK_DURATION = 10.0f;
@@ -94,7 +96,7 @@ void GraphicsAutodetect::stopGpuBenchmark()
 float GraphicsAutodetect::getVSyncRefreshRate() const
 {
   double refreshRate = 0;
-  d3d::driver_command(DRV3D_COMMAND_GET_VSYNC_REFRESH_RATE, &refreshRate, NULL, NULL);
+  d3d::driver_command(Drv3dCommand::GET_VSYNC_REFRESH_RATE, &refreshRate);
   return refreshRate;
 }
 

@@ -1,0 +1,283 @@
+include "shader_global.dshl"
+include "frustum.dshl"
+include "gbuffer.dshl"
+include "globtm.dshl"
+include "world_sdf_update_common.dshl"
+include "dagi_lit_scene_helper.dshl"
+include "project_is_dynamic_point.dshl"
+
+define_macro_if_not_defined PROJECT_LIGHT_POINT_SCREEN_VOXEL_LIT_SCENE(code)
+  PROJECT_LIGHT_POINT_SCREEN_VOXEL(code)
+endmacro
+
+
+int dagi_voxel_lit_scene_stable_update;
+interval dagi_voxel_lit_scene_stable_update:off<1, on;
+int4 dagi_voxel_lit_scene_update_count;
+
+macro VOXEL_SCENE_MARK_FROM_GBUF(code)
+  DAGI_WRITE_VOXEL_LIT_SCENE_INIT(code)
+  DAGI_WRITE_VOXEL_LIT_SCENE_WRITE(code)
+  DAGI_ALBEDO_SAMPLE(code)
+  PROJECT_LIGHT_POINT_SCREEN_VOXEL_LIT_SCENE(code)
+
+  PROJECT_DO_NOT_UPDATE_FROM_POINT(code)
+  (code) {
+    globtm_psf@f44 = {globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3};
+    world_view_pos@f3 = world_view_pos;
+  }
+  if (hardware.dx11 && !hardware.dx12)
+  {
+    hlsl(code) {
+      #pragma force_min_opt_level 4
+    }
+  }
+  hlsl(code) {
+    ##if dagi_voxel_lit_scene_stable_update == on
+    #define DAGI_VOXEL_LIT_SCENE_STABLE 1
+    ##endif
+    #include <monteCarlo.hlsl>
+    #include <pcg_hash.hlsl>
+    #define DAGI_VOXEL_LIT_SCENE_UPDATE_THREE_AXIS_FROM_GBUF 1
+    void dagi_lit_scene_voxels_update_lit_color(float3 sdf_coord, int sdf_clip, float3 lit_color, float3 geomNormal, float w = 0.05)
+    {
+      uint sceneClip = sdf_clip - dagi_lit_scene_voxels_first_sdf_clip();
+      if (sceneClip >= dagi_lit_scene_voxels_clip_count())
+        return;
+
+      int3 sdf_coordI = int3(floor(sdf_coord));
+      if (any(uint3(sdf_coordI - sample_world_sdf_coord_lt(sdf_clip).xyz) >= world_sdf_get_res()))
+        return;
+
+      int3 voxel_scene_coord = floor(sdf_coord*dagi_lit_voxel_scene_to_sdf.xxy);
+      uint3 voxel_scene_coordI = dagi_lit_scene_voxels_abs_coord_to_wrap_coord(voxel_scene_coord);
+      uint3 targetCoord = dagi_lit_scene_unsafe_atlas_coord(voxel_scene_coordI, sceneClip);
+      bool updateAnisotropical = dagi_lit_scene_voxels_has_anisotropy();
+      #if !DAGI_VOXEL_LIT_SCENE_UPDATE_THREE_AXIS_FROM_GBUF
+      targetCoord += uint3(0,0,dagi_main_axis_from_normal(geomNormal)*dagi_lit_scene_voxels_axis_atlas_resolution());
+      updateAnisotropical = false;
+      #endif
+      //fixme: support dx11 (no typed uav)
+      if (!updateAnisotropical)
+      {
+        if (texture3DAt(dagi_lit_voxel_scene_alpha, targetCoord) < 1)
+          w = 1;
+        texture3DAt(dagi_lit_voxel_scene_alpha, targetCoord) = 1;
+        texture3DAt(dagi_lit_voxel_scene, targetCoord) = lerp(texture3DAt(dagi_lit_voxel_scene, targetCoord), lit_color, w);
+      } else
+      {
+        //fixme: r11g11b11-aware averaging
+        uint3 axis = dagi_axis_from_normal_signs(geomNormal);
+        float3 normW = max(abs(geomNormal)*w, 0.01);
+        uint3 c = targetCoord + uint3(0,0,axis.x*dagi_lit_scene_voxels_axis_atlas_resolution());
+        normW.x = texture3DAt(dagi_lit_voxel_scene_alpha, c) < 1 ? 1 : normW.x;
+        texture3DAt(dagi_lit_voxel_scene_alpha, c) = 1;
+        texture3DAt(dagi_lit_voxel_scene, c) = lerp(texture3DAt(dagi_lit_voxel_scene, c), lit_color, normW.x);
+        c = targetCoord + uint3(0,0,axis.y*dagi_lit_scene_voxels_axis_atlas_resolution());
+        normW.y = texture3DAt(dagi_lit_voxel_scene_alpha, c) < 1 ? 1 : normW.y;
+        texture3DAt(dagi_lit_voxel_scene_alpha, c) = 1;
+        texture3DAt(dagi_lit_voxel_scene, c) = lerp(texture3DAt(dagi_lit_voxel_scene, c), lit_color, normW.y);
+        c = targetCoord + uint3(0,0,axis.z*dagi_lit_scene_voxels_axis_atlas_resolution());
+        normW.z = texture3DAt(dagi_lit_voxel_scene_alpha, c) < 1 ? 1 : normW.z;
+        texture3DAt(dagi_lit_voxel_scene_alpha, c) = 1;
+        texture3DAt(dagi_lit_voxel_scene, c) = lerp(texture3DAt(dagi_lit_voxel_scene, c), lit_color, normW.z);
+      }
+    }
+    #if !DAGI_VOXEL_LIT_SCENE_STABLE
+      void voxel_scene_mark_from_gbuf(float3 worldPos, float linearDepth, float2 tc, uint2 tcI, uint random, int sdfCascade, uint2 dim)
+      {
+        sdfCascade = max(dagi_lit_scene_voxels_first_sdf_clip(), sdfCascade);
+        ProcessedGbuffer gbuf = loadProcessedGbuffer(tcI);
+        if (get_project_update_from_point(worldPos, linearDepth, tc, tcI, gbuf) == POINT_DYNAMIC)
+          return;
+        gbuf.diffuseColor = gbuf.albedo;
+        float3 radiance = project_get_lit_color_at_screen(tc, tcI + 0.5, linearDepth, worldPos, gbuf) + gbuf.emissionColor;
+        dagi_lit_scene_voxels_update_lit_color(worldPos.xzy/world_sdf_voxel_size(sdfCascade), sdfCascade, radiance, gbuf.normal);
+      }
+    #else
+
+      #define PIXELS_TO_AVERAGE_SQRT 8
+      #define PIXELS_TO_AVERAGE (PIXELS_TO_AVERAGE_SQRT*PIXELS_TO_AVERAGE_SQRT)
+      #define PIXELS_TOTAL_BITS 6
+      #define RADIANCE_BITS (32-PIXELS_TOTAL_BITS)
+      #define RADIANCE_BITS_MASK ((1<<RADIANCE_BITS)-1)
+      groupshared uint3 shared_normal;
+      groupshared uint3 min_shared_radiance,max_shared_radiance,shared_avg_radiance;
+      groupshared uint shared_radiance_count;
+      void voxel_scene_mark_from_gbuf_average(float3 baseWorldPos, float baseRawDepth, float baseLinearDepth, uint2 baseTcI, uint random, int sdfCascade, uint tid, uint2 dim)
+      {
+        sdfCascade = max(dagi_lit_scene_voxels_first_sdf_clip(), sdfCascade);
+
+        float baseVoxelSize = world_sdf_voxel_size(sdfCascade)/dagi_lit_voxel_scene_to_sdf.x;
+        float3 baseVoxelCoord = floor(baseWorldPos.xzy/baseVoxelSize);
+
+        float3 voxelCenter = (baseVoxelCoord.xzy + 0.5)*baseVoxelSize;
+        uint random2 = pcg2d(uint2(random, tid)).x;
+        float2 rand2F = (uint2(tid, tid/PIXELS_TO_AVERAGE_SQRT)%PIXELS_TO_AVERAGE_SQRT)*1./PIXELS_TO_AVERAGE_SQRT + float2(uint2(random2, random2>>16)&0xFFFF)/(PIXELS_TO_AVERAGE_SQRT*65536.);
+        //float2 rand2F = (uint2(tid, tid/PIXELS_TO_AVERAGE_SQRT)%PIXELS_TO_AVERAGE_SQRT)*1./PIXELS_TO_AVERAGE_SQRT;
+        float3 sampleWorldPos = voxelCenter + 0.5*baseVoxelSize*tangent_to_world(float3(uniform_sample_disk(rand2F), 0), normalize(voxelCenter - world_view_pos));
+        //FLATTEN
+        //if (tid == 0)
+        //  sampleWorldPos = voxelCenter;
+        float4 clipSpacePt = mul(float4(sampleWorldPos, 1.0), globtm_psf);
+        ProcessedGbuffer baseGbuf = loadProcessedGbuffer(baseTcI);
+        float3 baseNormal = baseGbuf.normal;
+        if (tid == 0)
+        {
+          shared_radiance_count = 0;
+          shared_normal = 0;
+          min_shared_radiance = asuint(1e8f);
+          max_shared_radiance = 0;
+          shared_avg_radiance = 0;
+        }
+        GroupMemoryBarrierWithGroupSync();
+        if (get_project_update_from_point(baseWorldPos, baseLinearDepth, (baseTcI+0.5)/dim, baseTcI, baseGbuf) == POINT_DYNAMIC)
+          return;
+
+        if (clipSpacePt.w <= 0 && tid == 0)
+        {
+          sampleWorldPos = baseWorldPos;
+          clipSpacePt = mul(float4(sampleWorldPos, 1.0), globtm_psf);
+        }
+
+        bool shouldShare = false;
+        float3 normal, radiance;
+        if (clipSpacePt.w > 0 || tid == 0)
+        {
+          clipSpacePt.xy /= clipSpacePt.w;
+          float2 tc = saturate(clipSpacePt.xy*float2(0.5, -0.5) + 0.5);
+          uint2 tcI = min(floor(dim*tc), dim-1);
+          float rawDepth = texture2DAt(depth_gbuf, tcI).x;
+          if (tid == 0 && rawDepth == 0)
+          {
+            rawDepth = baseRawDepth;
+            sampleWorldPos = baseWorldPos;
+            tcI = baseTcI;
+          }
+          if (rawDepth > 0)
+          {
+            float linearDepth = linearize_z(rawDepth, zn_zfar.zw);
+            float2 tc = (tcI+0.5)/dim;
+            float3 ndcCoord = float3(tc.xy*float2(2, -2) - float2(1, -1), rawDepth);
+            float4 worldpos_prj = mul(float4(ndcCoord,1), globtm_inv);
+            float3 worldPos = worldpos_prj.xyz / worldpos_prj.w; // to be exactly accurate
+            bool isSameVoxel = all(floor(worldPos.xzy/baseVoxelSize) == baseVoxelCoord);
+            if (isSameVoxel)// || tid == 0
+            {
+              ProcessedGbuffer gbuf = loadProcessedGbuffer(tcI);
+              gbuf.diffuseColor = gbuf.albedo;
+              bool isSameNormal = dot(baseNormal, gbuf.normal) > 0;//?
+              shouldShare = get_project_update_from_point(worldPos, linearDepth, tc, tcI, gbuf) != POINT_DYNAMIC && isSameNormal;// || tid == 0
+              if (shouldShare)
+              {
+                radiance = project_get_lit_color_at_screen(tc, tcI + 0.5, linearDepth, worldPos, gbuf) + gbuf.emissionColor;
+                radiance = max(radiance, 0);
+                InterlockedAdd(shared_radiance_count, 1);
+                uint3 averageNormal = clamp(gbuf.normal*128 + 128.5, 0, 256);
+                //fixme: replace with Wave intrinsics
+                InterlockedAdd(shared_normal.x, averageNormal.x);
+                InterlockedAdd(shared_normal.y, averageNormal.y);
+                InterlockedAdd(shared_normal.z, averageNormal.z);
+                InterlockedMin(min_shared_radiance.x, asuint(radiance.x));
+                InterlockedMin(min_shared_radiance.y, asuint(radiance.y));
+                InterlockedMin(min_shared_radiance.z, asuint(radiance.z));
+                InterlockedMax(max_shared_radiance.x, asuint(radiance.x));
+                InterlockedMax(max_shared_radiance.y, asuint(radiance.y));
+                InterlockedMax(max_shared_radiance.z, asuint(radiance.z));
+              }
+            }
+          }
+        }
+        GroupMemoryBarrierWithGroupSync();
+        uint totalCount = shared_radiance_count;
+        float3 min_radiance = asfloat(min_shared_radiance);
+        float3 radianceMul = max(1e-6, asfloat(max_shared_radiance) - min_radiance);
+        if (shouldShare)
+        {
+          uint3 radianceUI = clamp(int3((radiance - min_radiance)/radianceMul*RADIANCE_BITS_MASK + 0.5), 0, RADIANCE_BITS_MASK);
+          InterlockedAdd(shared_avg_radiance.x, radianceUI.x);
+          InterlockedAdd(shared_avg_radiance.y, radianceUI.y);
+          InterlockedAdd(shared_avg_radiance.z, radianceUI.z);
+        }
+        GroupMemoryBarrierWithGroupSync();
+
+        if (!totalCount)
+          return;
+        float3 averagedRadiance = ((shared_avg_radiance/float(RADIANCE_BITS_MASK))/totalCount)*radianceMul + min_radiance;
+        baseNormal = float3(shared_normal)/totalCount*1./128.0 - 1.0;
+        //averagedRadiance = float(totalCount)/PIXELS_TO_AVERAGE;
+        if (tid == 0)
+          dagi_lit_scene_voxels_update_lit_color(voxelCenter.xzy/world_sdf_voxel_size(sdfCascade), sdfCascade, averagedRadiance, baseNormal);
+      }
+    #endif
+  }
+endmacro
+
+float4x4 globtm_inv;
+
+shader dagi_voxel_lit_scene_from_gbuf_cs
+{
+  ENABLE_ASSERT(cs)
+  INIT_ZNZFAR_STAGE(cs)
+  READ_WORLD_SDF_MATH(cs)
+
+  (cs) {
+    globtm_inv@f44 = globtm_inv;
+    dagi_voxel_lit_scene_update_count@i2 = dagi_voxel_lit_scene_update_count;
+    depth_gbuf@tex2d = depth_gbuf;
+    depth_gbuf_dim@f2 = get_dimensions(depth_gbuf, 0);
+  }
+  WSDF_COORD_UPDATE(cs)
+  VOXEL_SCENE_MARK_FROM_GBUF(cs)
+
+  hlsl(cs) {
+    #include "screen_update_tiled.hlsl"
+    #if !DAGI_VOXEL_LIT_SCENE_STABLE
+    [numthreads(64, 1, 1)]
+    void mark_voxels_cs(uint dtId : SV_DispatchThreadID)
+    #else
+    [numthreads(1, PIXELS_TO_AVERAGE, 1)]
+    void mark_voxels_cs(uint dtId : SV_DispatchThreadID, uint2 gtId : SV_GroupThreadID, uint2 gId : SV_GroupID)
+    #endif
+    {
+      #if !DAGI_VOXEL_LIT_SCENE_STABLE
+      uint pixelIndex = dtId;
+      #else
+      uint pixelIndex = gId.x;
+      #endif
+
+      uint2 dim = depth_gbuf_dim;
+      uint2 random = pcg2d(uint2(pixelIndex, dagi_voxel_lit_scene_update_count.y));
+      uint2 tcI = pseudo_random_screen_coord(pixelIndex, dagi_voxel_lit_scene_update_count.x, dim, random.x);
+
+
+      float rawDepth = texture2DAt(depth_gbuf, tcI).x; // this is same for all vertical group
+      if (rawDepth<=0)
+        return;
+      float2 tc = (tcI+0.5)/dim;
+      float3 ndcCoord = float3(tc.xy*float2(2, -2) - float2(1, -1), rawDepth);
+      float4 worldpos_prj = mul(float4(ndcCoord,1), globtm_inv);
+      float3 worldPos = worldpos_prj.xyz / worldpos_prj.w;
+
+      uint minCascade = max(world_sdf_find_clip(worldPos), uint(dagi_lit_scene_voxels_first_sdf_clip()));
+      uint numCascades = dagi_lit_scene_voxels_first_sdf_clip() + dagi_lit_scene_voxels_clip_count();
+      if (minCascade >= numCascades)
+        return;
+      uint sdfCascade = minCascade;
+      float randVal = (random.y&0xFFFF)/65536.0;
+      float chance = 0.125;
+      // chance is not that big, as higher cascades are not really visible (we use best possible cascade)
+      if (randVal < chance)
+      {
+        sdfCascade = min(floor(lerp((float)minCascade, (float)numCascades, pow2(randVal/chance))+0.5), numCascades-1);
+      }
+      float linearDepth = linearize_z(rawDepth, zn_zfar.zw);
+      #if !DAGI_VOXEL_LIT_SCENE_STABLE
+      voxel_scene_mark_from_gbuf(worldPos, linearDepth, tc, tcI, random.y, sdfCascade, dim);
+      #else
+      voxel_scene_mark_from_gbuf_average(worldPos, rawDepth, linearDepth, tcI, random.y, sdfCascade, gtId.y, dim);
+      #endif
+    }
+  }
+  compile("cs_5_0", "mark_voxels_cs");
+}

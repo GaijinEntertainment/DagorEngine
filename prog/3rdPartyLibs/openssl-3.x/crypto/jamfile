@@ -130,7 +130,7 @@ Sources =
 
   crypto/poly1305/poly1305.c
 ;
-if $(Platform) = linux64 && $(LinuxArch) = e2k {
+if $(PlatformArch) = e2k {
   opt on crypto/async/arch/async_posix.c = -Dmakecontext=makecontext_e2k ;
 }
 
@@ -162,7 +162,7 @@ if ! $(NoASM) {
   ;
 }
 
-if $(Platform) in win32 win64 xboxOne scarlett {
+if $(Platform) in windows xboxOne scarlett {
   Sources +=
     crypto/threads_win.c
     crypto/async/arch/async_win.c
@@ -173,7 +173,7 @@ if $(Platform) in win32 win64 xboxOne scarlett {
     crypto/threads_pthread.c
     crypto/ec/$(ECSourcesInt128)
   ;
-} else if $(Platform) in linux64 macosx tvOS {
+} else if $(Platform) in linux macOS tvOS {
   Sources +=
     crypto/async/arch/async_posix.c
     crypto/threads_pthread.c
@@ -191,6 +191,7 @@ if $(PlatformSpec) = gcc {
     Copt += -fno-sanitize=thread ;
   }
 }
+if $(PlatformArch) = e2k { Copt += -Wno-reduced-alignment ; }
 
 ExplicitLicenseUsed += $(Root)/$(Location) ;
 

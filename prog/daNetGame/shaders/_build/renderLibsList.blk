@@ -1,0 +1,5 @@
+  file:t = "debug_tex_overlay.dshl"
+  file:t = "debug_tonemap_overlay.dshl"
+  file:t = "debug_ri_shaded.dshl"
+  file:t = "water_foam_trail.dshl"
+  file:t = "foam/foam.dshl"

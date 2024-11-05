@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/dtx/ddsxPlugin.h>
 #include <libTools/util/conLogWriter.h>
 #include <libTools/util/progressInd.h>
@@ -235,7 +237,7 @@ public:
 
 bool rebuildDdsxTexPack(mkbindump::BinDumpSaveCB &cwr, const char *pack_fname)
 {
-  debug_ctx("%X %d", cwr.getTarget(), cwr.WRITE_BE);
+  DEBUG_CTX("%X %d", cwr.getTarget(), cwr.WRITE_BE);
   FullFileLoadCB prev_fcrd(pack_fname);
   BinDumpReader prev_crd(&prev_fcrd, cwr.getTarget(), cwr.WRITE_BE);
   if (!prev_fcrd.fileHandle || df_length(prev_fcrd.fileHandle) < 16)

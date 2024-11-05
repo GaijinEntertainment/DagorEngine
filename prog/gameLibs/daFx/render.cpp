@@ -1,16 +1,33 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "context.h"
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_variableRateShading.h>
 #include <dag/dag_vector.h>
 #include <memory/dag_framemem.h>
+#include <util/dag_convar.h>
 #include <debug/dag_debug3d.h>
 #include <3d/dag_quadIndexBuffer.h>
 #include <math/random/dag_random.h>
 #include <daFx/dafx_render_dispatch_desc.hlsli>
 #include "frameBoundaryBufferManager.h"
 
+namespace convar
+{
+CONSOLE_BOOL_VAL("dafx", enable_multidraw, true);
+CONSOLE_BOOL_VAL("dafx", allow_small_multidraw, false);
+} // namespace convar
 
 namespace dafx
 {
+constexpr int g_prim_limit_16b = 65536 / 3; // we are using 16bit index buffer, if we ever need more, we need to swithch to 32bit one
+
 int acquire_frame_boundary(ContextId cid, TEXTUREID texture_id, IPoint2 frame_dim)
 {
   GET_CTX_RET(DAFX_INVALID_BOUNDARY_OFFSET);
@@ -187,11 +204,8 @@ void before_render(ContextId cid, uint32_t tags_mask)
   prepare_render_workers(ctx, tags_mask);
   prepare_cpu_render_buffer(ctx, tags_mask);
 
-  d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, NULL, NULL, NULL);
-
+  d3d::GpuAutoLock gpuLock;
   update_cpu_render_buffer(ctx, tags_mask);
-
-  d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL);
 }
 
 void before_render(ContextId cid, const eastl::vector<eastl::string> &tags_name)
@@ -210,24 +224,63 @@ void before_render(ContextId cid, const eastl::vector<eastl::string> &tags_name)
   before_render(cid, tags_mask);
 }
 
-bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name)
+enum
 {
-  TIME_D3D_PROFILE(dafx_render);
-  GET_CTX_RET(false);
+  STATE_DATA_SRC = 1 << 0,
+  STATE_DISP_SRC = 1 << 1,
+  STATE_TEXTURES = 1 << 2,
+  STATE_SAMPLERS = 1 << 3,
+  STATE_SHADER = 1 << 4,
+  STATE_VRS = 1 << 5,
+  STATE_PRIM_PER_ELEM = 1 << 6,
+  STATE_FLUSH_SHADER = 1 << 7,
+};
 
-  ctx.frameBoundaryBufferManager.prepareRender();
+struct DrawState
+{
+  const eastl::vector<TextureDesc> *resources;
+  ShaderElement *shader;
+  D3DRESID dataSource;
+  int dispatchBufferIdx;
+  int primPerElem;
+  int vrs;
+  uint32_t changes;
+};
 
-  if (ctx.debugFlags & DEBUG_DISABLE_RENDER)
+struct DrawCall
+{
+  int stateId;
+  int instanceCount;
+};
+
+struct MultiDrawCall
+{
+  int stateId;
+  int bufId;
+  int bufOffset;
+  int drawCallCount;
+  int totalPrimCount;
+};
+
+struct DrawQueue
+{
+  dag::Vector<DrawState, framemem_allocator> states;
+  dag::Vector<DrawCall, framemem_allocator> drawCalls;
+  dag::Vector<MultiDrawCall, framemem_allocator> multidrawCalls;
+  dag::Vector<RenderDispatchDesc, framemem_allocator> dispatches; // 1 dispatch desc for each instance
+};
+
+bool prepare_render_queue(Context &ctx, CullingState *cull, uint32_t tag, DrawQueue &queue)
+{
+  TIME_PROFILE(prepare_render_queue);
+
+  const eastl::vector<int> &workers = cull->workers[tag];
+  if (workers.empty())
     return false;
 
-  CullingState *cull = ctx.cullingStates.get(cull_id);
-  G_ASSERT_RETURN(cull, false);
-
-  uint32_t tag = get_render_tag(ctx.shaders, tag_name, Config::max_render_tags);
-  if (tag >= Config::max_render_tags)
-    return false;
-
-  bool vrsEnabled = ctx.cfg.vrs_enabled && cull->shadingRates[tag] > 0;
+  InstanceGroups &stream = ctx.instances.groups;
+  const uint32_t validationFlags = SYS_ENABLED | SYS_VALID | SYS_VISIBLE | SYS_RENDERABLE | SYS_RENDER_REQ;
+  const bool vrsEnabled = ctx.cfg.vrs_enabled && cull->shadingRates[tag] > 0;
   // if cull was remapped and merged with another tag, we need to get 'original' render shader from 'original' tag
   // and since we can have multiple remaps, we keep all them here as fallback render tags
   dag::Vector<int, framemem_allocator> renderShadersRemap;
@@ -241,294 +294,513 @@ bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name)
     }
   }
 
-  eastl::vector<int> &workers = cull->workers[tag];
-  if (workers.empty())
-    return false;
+  int lastVrs = 1; // 1 = no custom VRS, default
+  int lastPrimPerElem = -1;
+  int lastDispatchBufferId = -1;
+  ShaderElement *lastShader = nullptr;
+  D3DRESID lastDataSource = BAD_D3DRESID;
+  eastl::array<TEXTUREID, Config::max_res_slots> lastResources;
+  eastl::array<uint8_t, Config::max_res_slots> lastSamplers; // invalid=0, aniso=1, linear=2
+  lastResources.fill(BAD_TEXTUREID);
+  lastSamplers.fill(0);
 
-  G_ASSERT_RETURN(ctx.systemDataVarId >= 0, false);
+  queue.states.reserve(workers.size());     // TODO: very pessimistic, probably should be 2/3
+  queue.dispatches.reserve(workers.size()); // exact
+  queue.drawCalls.reserve(workers.size());  // exact
 
-  InstanceGroups &stream = ctx.instances.groups;
-  const uint32_t validationFlags = SYS_ENABLED | SYS_VALID | SYS_VISIBLE | SYS_RENDERABLE | SYS_RENDER_REQ;
-
-  enum
+  for (int ii = 0, iie = workers.size(); ii < iie; ++ii)
   {
-    DISP_COUNTS,
-    DISP_SOURCE,
-    DISP_SHADER,
-    DISP_BINDS,
-    DISP_STRUCT,
-    DISP_PRIMS,
-    DISP_VRS,
-    DISP_CUSTOM_DEPTH,
-  };
+    int sid = workers[ii];
 
-  eastl::tuple_vector_alloc<framemem_allocator,
-    int,                              // counts
-    D3DRESID,                         // data source
-    RenderShaderId,                   // shader
-    const eastl::vector<TEXTUREID> *, // binded resources
-    RenderDispatchDesc,               // dispatch
-    int,                              // prims
-    int,                              // vrs (opt)
-    bool                              // custom depth
-    >
-    dispatches;
+    const uint32_t flags = stream.get<INST_FLAGS>(sid);
+    // it is possible that instance has died or reseted between update and render
+    if ((flags & validationFlags) != validationFlags) // -V547
+      continue;
 
-  dispatches.reserve(workers.size());
-
-  // merge all call descs to 1 buffer
-  {
-    TIME_PROFILE(merge);
-    for (int ii = 0, iie = workers.size(); ii < iie; ++ii)
+    G_FAST_ASSERT(!(flags & SYS_CPU_RENDER_REQ) || (flags & SYS_RENDER_BUF_TAKEN));
+    const InstanceState &state = stream.get<INST_ACTIVE_STATE>(sid); // -V779
+    if (state.aliveCount >= 0xffff)                                  // we are packing it to 16b
     {
-      int sid = workers[ii];
+      logerr("fx aliveCount is over the limit (65536)");
+      continue;
+    }
 
-      const uint32_t &flags = stream.get<INST_FLAGS>(sid);
-      // it is possible that instance has died or reseted between update and render
-      if ((flags & validationFlags) != validationFlags)
-        continue;
+    const eastl::vector<TextureDesc> *resList = &stream.get<INST_LOCAL_RES_PS>(sid);
 
-      const eastl::vector<TEXTUREID> *resList = &stream.get<INST_LOCAL_RES_PS>(sid);
-      ;
-      bool texLoaded = true;
-      for (TEXTUREID tid : *resList)
+    // tex + samplers
+    // TODO: hash it to avoid loops?
+    bool resChange = false;
+    bool smpChange = false;
+    bool texLoaded = true;
+    for (int s = 0, se = resList->size(); s < se; ++s)
+    {
+      const TextureDesc &t = resList->at(s);
+      G_FAST_ASSERT(t.texId != BAD_TEXTUREID);
+      if (lastResources[s] != t.texId)
       {
-        mark_managed_tex_lfu(tid);
-        if (!check_managed_texture_loaded(tid))
+        lastResources[s] = t.texId;
+        resChange = true;
+      }
+
+      int sampler = t.anisotropic ? 1 : 2;
+      if (lastSamplers[s] != sampler)
+      {
+        lastSamplers[s] = sampler;
+        smpChange = true;
+      }
+
+      mark_managed_tex_lfu(t.texId);
+      if (!check_managed_texture_loaded(t.texId))
+        texLoaded = false;
+    }
+    if (!texLoaded) // no need to render fx with stub textures, pretty rare
+    {
+      lastResources.fill(BAD_TEXTUREID);
+      lastSamplers.fill(0);
+      continue;
+    }
+
+    // data source (render buffer in case of CPU sim render, instace buffer for GPU sim render)
+    D3DRESID dataSource = stream.get<INST_TARGET_RENDER_BUF>(sid);
+    if (!dataSource) // render buffer was not allocated, skipping (reset device, OOM), rare
+      continue;
+
+    bool dataSourceChange = lastDataSource != dataSource;
+    lastDataSource = dataSource;
+
+    // render shader
+    const eastl::vector<RenderShaderId> &shadersByTags = stream.get<INST_RENDER_SHADERS>(sid);
+    G_FAST_ASSERT(!shadersByTags.empty());
+    RenderShaderId renderShaderId = shadersByTags[tag];
+    if (!renderShaderId) // remap?
+    {
+      for (int ri = 0; ri < renderShadersRemap.size(); ++ri)
+      {
+        renderShaderId = shadersByTags[renderShadersRemap[ri]];
+        if (renderShaderId)
+          break;
+      }
+    }
+
+    RenderShaderPtr *shader = ctx.shaders.renderShaders.get(renderShaderId);
+    G_FAST_ASSERT(shader);
+    bool shaderChange = lastShader != shader->get()->shader;
+    lastShader = shader->get()->shader;
+
+    // vrs
+    // extract shading rate by associating render tag with culling predefines for those tags
+    // TODO: hash it to avoid loops?
+    int vrs = 1;
+    if (vrsEnabled)
+    {
+      uint32_t tags = stream.get<INST_RENDER_TAGS>(sid);
+      for (int t = __bsf_unsafe(tags), te = __bsr_unsafe(tags); t <= te; ++t)
+      {
+        int rate = cull->shadingRates[t];
+        if (rate > 0 && (1 << t) & tags)
         {
-          texLoaded = false;
+          vrs = rate;
           break;
         }
-        G_ASSERT(D3dResManagerData::getBaseTex(tid));
       }
+    }
+    bool vrsChange = lastVrs != vrs;
+    lastVrs = vrs;
 
-      if (!texLoaded) // no need to render fx with stub textures
-        continue;
+    // prim per elem (2 for quads, 4 for ribbons). Required mostly for multidraw
+    int primPerElem = stream.get<INST_PRIM_PER_PART>(sid);
+    bool primPerElemChange = lastPrimPerElem != primPerElem;
+    lastPrimPerElem = primPerElem;
 
-      G_FAST_ASSERT(!(flags & SYS_CPU_RENDER_REQ) || (flags & SYS_RENDER_BUF_TAKEN));
+    // render dispatch
+    int dispatchBufferId = ctx.currentRenderDispatchBuffer + queue.dispatches.size() / DAFX_RENDER_GROUP_SIZE;
+    bool dispatchBufferIdChange = lastDispatchBufferId != dispatchBufferId;
+    lastDispatchBufferId = dispatchBufferId;
 
-      D3DRESID dispSource = stream.get<INST_TARGET_RENDER_BUF>(sid);
-      if (!dispSource) // render buffer was not allocated, skipping (reset device, OOM)
-        continue;
+    int start = (flags & SYS_CPU_RENDER_REQ) ? 0 : state.aliveStart;
+    int dataRenStride = stream.get<INST_RENDER_ELEM_STRIDE>(sid) / DAFX_ELEM_STRIDE;
 
-      const InstanceState &state = stream.get<INST_ACTIVE_STATE>(sid);
+    RenderDispatchDesc &desc = queue.dispatches.push_back_noinit();
+    desc.dataRenOffset = stream.get<INST_TARGET_RENDER_DATA_OFFSET>(sid) / DAFX_ELEM_STRIDE;
+    desc.parentRenOffset = stream.get<INST_TARGET_RENDER_PARENT_OFFSET>(sid) / DAFX_ELEM_STRIDE;
+    desc.startAndLimit = start | (state.aliveLimit << 16);
+    desc.dataRenStrideAndInstanceCount = dataRenStride | (state.aliveCount << 16);
 
-      auto dst = dispatches.push_back();
+    // state
+    // we are not adding duplicated states (map search is quite heavy, so we check only sequential states)
+    uint32_t reqShaderFlushChanges = 0;
+    reqShaderFlushChanges |= dataSourceChange ? STATE_DATA_SRC : 0;
+    reqShaderFlushChanges |= dispatchBufferIdChange ? STATE_DISP_SRC : 0;
+    reqShaderFlushChanges |= shaderChange ? STATE_SHADER : 0;
 
-      eastl::get<DISP_COUNTS>(dst) = state.aliveCount;
-      G_FAST_ASSERT(eastl::get<0>(dst));
+    uint32_t changes = reqShaderFlushChanges;
+    changes |= resChange ? STATE_TEXTURES : 0;
+    changes |= smpChange ? STATE_SAMPLERS : 0;
+    changes |= vrsChange ? STATE_VRS : 0;
+    changes |= primPerElemChange ? STATE_PRIM_PER_ELEM : 0;
+    changes |= reqShaderFlushChanges != 0 ? STATE_FLUSH_SHADER : 0;
+    if (changes != 0)
+    {
+      DrawState &state = queue.states.push_back_noinit();
+      state.resources = resList;
+      state.shader = shader->get()->shader;
+      state.dataSource = dataSource;
+      state.dispatchBufferIdx = dispatchBufferId;
+      state.primPerElem = primPerElem;
+      state.vrs = vrs;
+      state.changes = changes;
+    }
+    queue.drawCalls.push_back({(int)queue.states.size() - 1, state.aliveCount});
 
-      eastl::get<DISP_SOURCE>(dst) = dispSource;
+    if constexpr (INST_RENDERABLE_TRIS >= 0)
+      stat_add(ctx.stats.renderedTriangles, *stream.getOpt<INST_RENDERABLE_TRIS, uint>(sid) * 2);
+  }
 
-      const eastl::vector<RenderShaderId> &shadersByTags = stream.get<INST_RENDER_SHADERS>(sid);
-      G_FAST_ASSERT(!shadersByTags.empty());
+  return queue.drawCalls.size() > 0;
+}
 
-      RenderShaderId renderShaderId = shadersByTags[tag];
-      if (!renderShaderId) // remap?
+bool update_dispatch_buffer(Context &ctx, DrawQueue &queue)
+{
+  TIME_D3D_PROFILE(update_dispatch_buffer);
+  G_STATIC_ASSERT(DAFX_RENDER_GROUP_SIZE * sizeof(RenderDispatchDesc) >= 65536); // constant buffer are alocated for at least 65k
+  int firstDispatchBufferIdx = ctx.currentRenderDispatchBuffer;
+  for (int i = 0, ie = (queue.dispatches.size() - 1) / DAFX_RENDER_GROUP_SIZE + 1; i < ie; ++i)
+  {
+    int bufIdx = firstDispatchBufferIdx + i;
+    GpuResourcePtr *buf = bufIdx < ctx.renderDispatchBuffers.size() ? &ctx.renderDispatchBuffers[bufIdx] : nullptr;
+    if (!buf)
+    {
+      eastl::string name;
+      name.append_sprintf("dafx_render_dispatch_buffer_%d", bufIdx);
+      buf = &ctx.renderDispatchBuffers.push_back();
+      if (!create_gpu_cb_res(*buf, sizeof(RenderDispatchDesc), DAFX_RENDER_GROUP_SIZE, name.c_str()))
+        return false;
+    }
+
+    int ofs = i * DAFX_RENDER_GROUP_SIZE;
+    int sz = min(DAFX_RENDER_GROUP_SIZE, (int)queue.dispatches.size() - ofs);
+    if (!update_gpu_cb_buffer(buf->getBuf(), queue.dispatches.data() + ofs, sz * sizeof(RenderDispatchDesc)))
+      return false;
+
+    ctx.currentRenderDispatchBuffer++;
+  }
+  return true;
+}
+
+// TODO: add generic version with update_dispatch_buffer
+bool update_multidraw_buffer(Context &ctx, dag::ConstSpan<DrawIndexedIndirectArgs> data)
+{
+  TIME_D3D_PROFILE(update_multidraw_buffer)
+  G_STATIC_ASSERT(sizeof(DrawIndexedIndirectArgs) == DRAW_INDEXED_INDIRECT_BUFFER_SIZE);
+  int firstBufIdx = ctx.currentMutltidrawBuffer;
+  uint32_t flags = VBLOCK_WRITEONLY;
+  flags |= d3d::get_driver_code().is(d3d::vulkan) ? VBLOCK_DISCARD : 0;
+  for (int i = 0, ie = (data.size() - 1) / ctx.cfg.multidraw_buffer_size + 1; i < ie; ++i)
+  {
+    int bufIdx = firstBufIdx + i;
+    UniqueBuf *buf = bufIdx < ctx.multidrawBufers.size() ? &ctx.multidrawBufers[bufIdx] : nullptr;
+    if (!buf)
+    {
+      eastl::string name;
+      name.append_sprintf("dafx_multidraw_buffer_%d", bufIdx);
+      buf = &ctx.multidrawBufers.push_back();
+      *buf = dag::create_sbuffer(INDIRECT_BUFFER_ELEMENT_SIZE, ctx.cfg.multidraw_buffer_size * DRAW_INDEXED_INDIRECT_NUM_ARGS,
+        SBCF_INDIRECT, 0, name.c_str());
+      if (!(*buf))
+        return false;
+    }
+
+    int ofs = i * ctx.cfg.multidraw_buffer_size;
+    int sz = min((int)ctx.cfg.multidraw_buffer_size, (int)data.size() - ofs);
+    if (!buf->getBuf()->updateData(0, sz * sizeof(DrawIndexedIndirectArgs), data.data() + ofs, flags))
+      return false;
+
+    ctx.currentMutltidrawBuffer++;
+  }
+  return true;
+}
+
+bool prepare_multidraw(Context &ctx, DrawQueue &queue)
+{
+  int currentStateId = -1;
+  int currentBufOfs = 0; // in elements, not bytes
+  int prevBufOfs = 0;
+  int currentBufId = ctx.currentMutltidrawBuffer;
+  int lastDrawCallCount = 0;
+  int lastElemsInBatch = 0;
+  int lastPrimPerElem = 0;
+  dag::Vector<DrawIndexedIndirectArgs, framemem_allocator> args;
+
+  const bool allowSmallMultidraw = convar::allow_small_multidraw;
+
+  queue.multidrawCalls.reserve(queue.drawCalls.size());
+  {
+    TIME_PROFILE(prepare_multidraw)
+    for (const DrawCall &call : queue.drawCalls)
+    {
+      if (currentBufOfs == ctx.cfg.multidraw_buffer_size)
       {
-        for (int ri = 0; ri < renderShadersRemap.size(); ++ri)
-        {
-          renderShaderId = shadersByTags[renderShadersRemap[ri]];
-          if (renderShaderId)
-            break;
-        }
+        currentBufOfs = 0;
+        currentBufId++;
       }
 
-      G_FAST_ASSERT(renderShaderId);
-      uint32_t tags = stream.get<INST_RENDER_TAGS>(sid);
-      int vrs = 1;
-      // extract shading rate by associating render tag with culling predefines for those tags
-      if (vrsEnabled)
+      if (call.stateId != currentStateId || currentBufOfs == 0 ||
+          (lastElemsInBatch + call.instanceCount) * lastPrimPerElem >= g_prim_limit_16b)
       {
-        for (int t = __bsf_unsafe(tags), te = __bsr_unsafe(tags); t <= te; ++t)
+        if (!allowSmallMultidraw && lastDrawCallCount == 1)
         {
-          int rate = cull->shadingRates[t];
-          if (rate > 0 && (1 << t) & tags)
-          {
-            vrs = rate;
-            break;
-          }
+          args.pop_back();
+          currentBufOfs = prevBufOfs;
         }
+
+        currentStateId = call.stateId;
+        MultiDrawCall &c = queue.multidrawCalls.push_back();
+        c.stateId = call.stateId;
+        c.bufOffset = currentBufOfs * sizeof(DrawIndexedIndirectArgs);
+        c.bufId = currentBufId;
+        c.drawCallCount = 0;
+        c.totalPrimCount = 0;
+        lastElemsInBatch = 0;
       }
-      eastl::get<DISP_VRS>(dst) = vrs;
-      eastl::get<DISP_SHADER>(dst) = renderShaderId;
 
-      eastl::get<DISP_BINDS>(dst) = resList;
-      eastl::get<DISP_PRIMS>(dst) = stream.get<INST_PRIM_PER_PART>(sid);
-      eastl::get<DISP_CUSTOM_DEPTH>(dst) = ctx.customDepth && (flags & SYS_CUSTOM_DEPTH);
+      MultiDrawCall &mdCall = queue.multidrawCalls.back();
+      const DrawState &state = queue.states[currentStateId];
+      int totalPrimCount = call.instanceCount * state.primPerElem;
 
-      RenderDispatchDesc &desc = eastl::get<DISP_STRUCT>(dst);
-      desc.dataRenOffset = stream.get<INST_TARGET_RENDER_DATA_OFFSET>(sid) / DAFX_ELEM_STRIDE;
-      desc.parentRenOffset = stream.get<INST_TARGET_RENDER_PARENT_OFFSET>(sid) / DAFX_ELEM_STRIDE;
+      DrawIndexedIndirectArgs &v = args.push_back_noinit();
+      v.indexCountPerInstance = totalPrimCount * 3;
+      v.instanceCount = 1;
+      v.startIndexLocation = 0;
+      v.baseVertexLocation = 0;
+      v.startInstanceLocation = mdCall.drawCallCount;
 
-      int start = (flags & SYS_CPU_RENDER_REQ) ? 0 : state.aliveStart;
-      int dataRenStride = stream.get<INST_RENDER_ELEM_STRIDE>(sid) / DAFX_ELEM_STRIDE;
-      int parentRenStride = stream.get<INST_PARENT_RENDER_ELEM_STRIDE>(sid) / DAFX_ELEM_STRIDE;
+      mdCall.totalPrimCount += totalPrimCount;
+      lastDrawCallCount = ++mdCall.drawCallCount;
+      prevBufOfs = currentBufOfs++;
 
-      desc.startAndLimit = start | (state.aliveLimit << 16);
-      desc.dataAndParentRenStride = dataRenStride | (parentRenStride << 16);
+      lastPrimPerElem = state.primPerElem;
+      lastElemsInBatch += call.instanceCount; // we can ignore primPerElem, since it change will force new MD call anyway
 
-      // TODO: add bounds check/asserts!
-
-      stat_add(ctx.stats.renderedTriangles, stream.get<INST_RENDERABLE_TRIS>(sid) * 2);
+      if (lastDrawCallCount >= ctx.cfg.max_multidraw_batch_size)
+        currentStateId = -1;
     }
   }
 
-  if (dispatches.empty())
+  return update_multidraw_buffer(ctx, args);
+}
+
+inline void apply_drawcall_states(Context &ctx, const DrawQueue &queue, int state_id, d3d::SamplerHandle samplers[],
+  int &current_state_id, int &current_prim_per_elem, TextureCallback tc)
+{
+  if (current_state_id == state_id)
+    return;
+
+  current_state_id = state_id;
+  const DrawState &state = queue.states[current_state_id];
+  const uint32_t changes = state.changes;
+  if (changes & STATE_VRS)
+    d3d::set_variable_rate_shading(state.vrs, state.vrs);
+
+  if (changes & STATE_DISP_SRC)
+  {
+    d3d::resource_barrier({ctx.renderDispatchBuffers[state.dispatchBufferIdx].getBuf(), RB_RO_SRV | RB_STAGE_VERTEX | RB_STAGE_PIXEL});
+    ShaderGlobal::set_buffer(ctx.renderCallsVarId, ctx.renderDispatchBuffers[state.dispatchBufferIdx].getId());
+    stat_inc(ctx.stats.renderSwitchDispatches);
+  }
+
+  if (changes & STATE_DATA_SRC)
+  {
+    if (state.dataSource != BAD_D3DRESID)
+    {
+      Sbuffer *buf = acquire_managed_buf(state.dataSource);
+      G_FAST_ASSERT(buf);
+      d3d::resource_barrier({buf, RB_RO_SRV | RB_STAGE_VERTEX | RB_STAGE_PIXEL});
+      release_managed_buf(state.dataSource);
+    }
+
+    ShaderGlobal::set_buffer(ctx.systemDataVarId, state.dataSource);
+    stat_inc(ctx.stats.renderSwitchBuffers);
+  }
+
+  if (changes & STATE_FLUSH_SHADER)
+  {
+    state.shader->setStates(0, true);
+    stat_inc(ctx.stats.renderSwitchShaders);
+  }
+
+  if (changes & STATE_TEXTURES)
+  {
+    for (int s = 0, se = state.resources->size(); s < se; ++s)
+    {
+      const TextureDesc &t = state.resources->at(s);
+      BaseTexture *tex = D3dResManagerData::getBaseTex(t.texId);
+      G_FAST_ASSERT(tex);
+      d3d::set_tex(STAGE_PS, ctx.cfg.texture_start_slot + s, tex, false);
+      stat_inc(ctx.stats.renderSwitchTextures);
+    }
+
+    if (tc && !state.resources->empty())
+      tc(state.resources->begin()->texId);
+  }
+
+  if (changes & STATE_SAMPLERS)
+  {
+    for (int s = 0, se = state.resources->size(); s < se; ++s)
+    {
+      const TextureDesc &t = state.resources->at(s);
+      d3d::set_sampler(STAGE_PS, ctx.cfg.texture_start_slot + s, t.anisotropic ? samplers[1] : samplers[0]);
+    }
+  }
+
+  current_prim_per_elem = state.primPerElem;
+  stat_inc(ctx.stats.renderSwitchRenderState);
+}
+
+bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name, float mip_bias, TextureCallback tc)
+{
+  TIME_D3D_PROFILE(dafx_render);
+  GET_CTX_RET(false);
+
+  ctx.frameBoundaryBufferManager.prepareRender();
+
+  if (ctx.debugFlags & DEBUG_DISABLE_RENDER)
+    return false;
+
+  CullingState *cull = ctx.cullingStates.get(cull_id);
+  G_ASSERT_RETURN(cull, false);
+  G_ASSERT_RETURN(ctx.systemDataVarId >= 0, false);
+
+  uint32_t tag = get_render_tag(ctx.shaders, tag_name, Config::max_render_tags);
+  if (tag >= Config::max_render_tags)
+    return false;
+
+  const bool multidraw = ctx.cfg.multidraw_enabled && convar::enable_multidraw;
+
+  DrawQueue queue;
+  if (!prepare_render_queue(ctx, cull, tag, queue))
     return 0;
 
-  // transfer dispatches to gpu, cbuffer max size = DAFX_RENDER_GROUP_SIZE
-  G_STATIC_ASSERT(DAFX_RENDER_GROUP_SIZE * sizeof(RenderDispatchDesc) == 65536); // constant buffer are alocated for at least 65k!
-  int firstDispatchBufferIdx = ctx.currentRenderDispatchBuffer;
-  {
-    TIME_D3D_PROFILE(gather_dispatches);
-    for (int i = 0, ie = (dispatches.size() - 1) / DAFX_RENDER_GROUP_SIZE + 1; i < ie; ++i)
-    {
-      int bufIdx = firstDispatchBufferIdx + i;
-      GpuResourcePtr *buf = bufIdx < ctx.renderDispatchBuffers.size() ? &ctx.renderDispatchBuffers[bufIdx] : nullptr;
-      if (!buf)
-      {
-        eastl::string name;
-        name.append_sprintf("dafx_render_dispatch_buffer_%d", bufIdx);
-        buf = &ctx.renderDispatchBuffers.push_back();
-        if (!create_gpu_cb_res(*buf, sizeof(RenderDispatchDesc), DAFX_RENDER_GROUP_SIZE, name.c_str()))
-          return 0;
-      }
+  if (!update_dispatch_buffer(ctx, queue))
+    return 0;
 
-      int ofs = i * DAFX_RENDER_GROUP_SIZE;
-      int sz = min(DAFX_RENDER_GROUP_SIZE, (int)dispatches.size() - ofs);
-      if (!update_gpu_cb_buffer(buf->getBuf(), dispatches.get<RenderDispatchDesc>() + ofs, sz * sizeof(RenderDispatchDesc)))
-        return 0;
-
-      ctx.currentRenderDispatchBuffer++;
-    }
-  }
+  if (multidraw && !prepare_multidraw(ctx, queue))
+    return 0;
 
   ctx.globalData.gpuBuf.setVar();
 
   d3d::setvdecl(BAD_VDECL);
-  d3d::setvsrc(0, NULL, 0);
   index_buffer::use_quads_16bit();
+  // we still need serial buf for keeping shader logic the same
+  // in case if multidraw is off - it contain only 1 value, which is 0
+  d3d::setvsrc_ex(0, ctx.serialBuf.get().get(), 0, sizeof(uint32_t));
 
-  int drawCalls = 0;
+  // Get texture sampler (critical section)
+  auto samplerHandlesIt = eastl::find_if(ctx.samplersCache.begin(), ctx.samplersCache.end(),
+    [mip_bias](const SamplerHandles &sampler) { return abs(sampler.mipBias - mip_bias) < FLT_EPSILON; });
+  if (samplerHandlesIt == ctx.samplersCache.end())
+    samplerHandlesIt = &ctx.samplersCache.emplace_back(mip_bias);
+
+  d3d::SamplerHandle samplerBilinear = samplerHandlesIt->samplerBilinear;
+  d3d::SamplerHandle samplerAniso = samplerHandlesIt->samplerAniso;
+  d3d::SamplerHandle samplers[] = {samplerBilinear, samplerAniso};
+
+  int maxTextureSlotsAllocated = interlocked_relaxed_load(ctx.maxTextureSlotsAllocated);
+  for (int i = 0; i < maxTextureSlotsAllocated; ++i) // to ensure there is no "bad" state still bound
+    d3d::set_sampler(STAGE_PS, ctx.cfg.texture_start_slot + i, samplerBilinear);
+
+  int totalDrawCalls = 0;
   int totalPrims = 0;
-  int curDispatchBuffer = -1;
-  RenderShaderId curShaderId;
-  D3DRESID curBufId = BAD_D3DRESID;
-  int curVrsRate = 1;
+  int currentStateId = -1;
+  int currentPrimPerElem = 0;
 
-  eastl::array<TEXTUREID, Config::max_res_slots> curResList;
-  curResList.fill(BAD_TEXTUREID);
-
-  Driver3dRenderTarget defaultRt;
-  if (ctx.customDepth)
+  if (multidraw)
   {
-    d3d::get_render_target(defaultRt);
-  }
+    TIME_D3D_PROFILE(exec_multidraw_calls);
+#if _TARGET_C1 | _TARGET_C2 // workaround: flush caches for indirect args
 
-  bool customDepth = false;
-  {
-    TIME_D3D_PROFILE(render);
-    for (int i = 0, ie = dispatches.size(); i < ie; ++i)
+#endif
+    int dispatchId = 0;
+    for (int i = 0, ie = queue.multidrawCalls.size(); i < ie; ++i)
     {
-      bool setStates = false;
-      int newDispatchBuffer = firstDispatchBufferIdx + i / DAFX_RENDER_GROUP_SIZE;
-      D3DRESID nextBufId = dispatches.get<DISP_SOURCE>()[i];
-      RenderShaderId nextShaderId = dispatches.get<DISP_SHADER>()[i];
-      bool nextCustomDepth = dispatches.get<DISP_CUSTOM_DEPTH>()[i];
-      int nextVrsRate = dispatches.get<DISP_VRS>()[i];
+      const MultiDrawCall &call = queue.multidrawCalls[i];
+      apply_drawcall_states(ctx, queue, call.stateId, samplers, currentStateId, currentPrimPerElem, tc);
 
-      if (nextVrsRate != curVrsRate)
+      uint32_t params[] = {(uint32_t)dispatchId % DAFX_RENDER_GROUP_SIZE, (uint32_t)currentPrimPerElem * 2};
+      d3d::set_immediate_const(STAGE_VS, params, countof(params));
+      d3d::set_immediate_const(STAGE_PS, params, countof(params));
+
+      int totalPrimCount = call.totalPrimCount;
+      if (totalPrimCount > g_prim_limit_16b)
       {
-        curVrsRate = nextVrsRate;
-        d3d::set_variable_rate_shading(curVrsRate, curVrsRate);
+        logerr("dafx: above index buffer limit (md): %d", totalPrimCount);
+        totalPrimCount = g_prim_limit_16b;
       }
 
-      if (customDepth != nextCustomDepth)
+      int drawCallCount = call.drawCallCount;
+      if (drawCallCount > 1) // no multridraw on 1 draw call instances
       {
-        if (nextCustomDepth)
-          d3d::set_depth(ctx.customDepth, DepthAccess::RW);
-        else
-          d3d::set_render_target(defaultRt);
-        customDepth = nextCustomDepth;
-        setStates = true;
+        d3d::multi_draw_indexed_indirect(PRIM_TRILIST, ctx.multidrawBufers[call.bufId].getBuf(), drawCallCount,
+          sizeof(DrawIndexedIndirectArgs), call.bufOffset);
+        dispatchId += drawCallCount;
+      }
+      else
+      {
+        d3d::drawind(PRIM_TRILIST, 0, totalPrimCount, 0);
+        dispatchId++;
       }
 
-      if (newDispatchBuffer != curDispatchBuffer)
+      totalDrawCalls++;
+      totalPrims += call.totalPrimCount;
+    }
+  }
+  else
+  {
+    TIME_D3D_PROFILE(exec_draw_calls);
+    for (int i = 0, ie = queue.drawCalls.size(); i < ie; ++i)
+    {
+      const DrawCall &call = queue.drawCalls[i];
+      apply_drawcall_states(ctx, queue, call.stateId, samplers, currentStateId, currentPrimPerElem, tc);
+
+      int prims = currentPrimPerElem * call.instanceCount;
+      if (prims > g_prim_limit_16b)
       {
-        setStates = true;
-        curDispatchBuffer = newDispatchBuffer;
-        d3d::resource_barrier({ctx.renderDispatchBuffers[curDispatchBuffer].getBuf(), RB_RO_SRV | RB_STAGE_VERTEX});
-        ShaderGlobal::set_buffer(ctx.renderCallsVarId, ctx.renderDispatchBuffers[curDispatchBuffer].getId());
-        stat_inc(ctx.stats.renderSwitchDispatches);
+        logerr("dafx: above index buffer limit (single): %d", prims);
+        prims = g_prim_limit_16b;
       }
 
-      if (curBufId != nextBufId)
-      {
-        setStates = true;
-        curBufId = nextBufId;
-        if (curBufId != BAD_D3DRESID)
-        {
-          Sbuffer *buf = acquire_managed_buf(curBufId);
-          d3d::resource_barrier({buf, RB_RO_SRV | RB_STAGE_VERTEX | RB_STAGE_PIXEL});
-          release_managed_buf(curBufId);
-        }
-        ShaderGlobal::set_buffer(ctx.systemDataVarId, curBufId);
-        stat_inc(ctx.stats.renderSwitchBuffers);
-      }
+      uint32_t params[] = {(uint32_t)i % DAFX_RENDER_GROUP_SIZE, (uint32_t)currentPrimPerElem * 2};
+      d3d::set_immediate_const(STAGE_VS, params, countof(params));
+      d3d::set_immediate_const(STAGE_PS, params, countof(params));
+      d3d::drawind(PRIM_TRILIST, 0, prims, 0);
 
-      if (curShaderId != nextShaderId || setStates)
-      {
-        curShaderId = nextShaderId;
-        RenderShaderPtr *sh = ctx.shaders.renderShaders.get(curShaderId);
-        G_FAST_ASSERT(sh);
-
-        sh->get()->shader->setStates(0, true);
-        stat_inc(ctx.stats.renderSwitchShaders);
-      }
-
-      const eastl::vector<TEXTUREID> &resList = *dispatches.get<DISP_BINDS>()[i];
-      for (int sl = 0, sle = resList.size(); sl < sle; ++sl)
-      {
-        TEXTUREID id = resList[sl];
-        G_FAST_ASSERT(id != BAD_TEXTUREID);
-        if (id != curResList[sl])
-        {
-          curResList[sl] = id;
-          d3d::set_tex(STAGE_PS, ctx.cfg.texture_start_slot + sl, D3dResManagerData::getBaseTex(id), true);
-          stat_inc(ctx.stats.renderSwitchTextures);
-        }
-      }
-
-      int instances = dispatches.get<DISP_COUNTS>()[i];
-      int prims = dispatches.get<DISP_PRIMS>()[i];
-
-      uint32_t params[] = {(uint32_t)i % DAFX_RENDER_GROUP_SIZE, (uint32_t)instances};
-      d3d::set_immediate_const(STAGE_VS, params, 2);
-      d3d::set_immediate_const(STAGE_PS, params, 2);
-
-      d3d::drawind_instanced(PRIM_TRILIST, 0, prims, 0, instances);
-      drawCalls++;
-      totalPrims += prims * instances;
+      totalDrawCalls++;
+      totalPrims += currentPrimPerElem * call.instanceCount;
     }
   }
 
   d3d::set_immediate_const(STAGE_VS, nullptr, 0);
+  d3d::set_immediate_const(STAGE_PS, nullptr, 0);
 
   ShaderGlobal::set_buffer(ctx.systemDataVarId, BAD_D3DRESID);
   ShaderGlobal::set_buffer(ctx.renderCallsVarId, BAD_D3DRESID);
 
-  if (ctx.customDepth)
-  {
-    d3d::set_render_target(defaultRt);
-  }
-  stat_add(ctx.stats.renderDrawCalls, drawCalls);
+  stat_add(ctx.stats.renderDrawCalls, totalDrawCalls);
   stat_add(ctx.stats.visibleTriangles, totalPrims);
 
-  if (vrsEnabled)
+#if DAGOR_DBGLEVEL > 0
+  ctx.stats.drawCallsByRenderTags[tag] += totalDrawCalls;
+#endif
+
+  if (ctx.cfg.vrs_enabled)
     d3d::set_variable_rate_shading(1, 1);
 
-  return drawCalls > 0;
+  return totalDrawCalls > 0;
+}
+
+void reset_samplers_cache(ContextId cid)
+{
+  GET_CTX();
+  ctx.samplersCache.clear();
 }
 
 void render_debug_opt(ContextId cid)

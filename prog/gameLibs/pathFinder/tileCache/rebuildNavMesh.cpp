@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <pathFinder/pathFinder.h>
 #include <detourCommon.h>
 #include <math/dag_mathUtils.h>
@@ -17,12 +19,16 @@
 
 #include <pathFinder/tileRICommon.h>
 #include <recastTools/recastNavMeshTile.h>
+#include <recastTools/recastBuildEdges.h>
+#include <recastTools/recastBuildJumpLinks.h>
 #include <gamePhys/collision/collisionLib.h>
 
 #include <osApiWrappers/dag_files.h>
 #include <ioSys/dag_dataBlock.h>
 
 #include <util/dag_string.h>
+
+#include <scene/dag_tiledScene.h>
 
 namespace pathfinder
 {
@@ -58,6 +64,11 @@ struct RebuildNavMeshSetup
   float detailSampleMaxError = 2.0f;
   float edgeMaxLen = 128.0f;
   float waterLevel = 0.0f;
+  int covExtraCells = 32;
+
+  recastbuild::JumpLinksParams jlkParams{
+    true, 0, 1.0f, 5.0f, 0.3f, 80.0f, 10.0f, 0.1f, 1.8f, 2.5f, 1.f, 1.5f, 1.f, 0.5f, 30.0f, 15.f, 5.0f, 0.2f, 0.0f, false, false};
+  recastbuild::MergeEdgeParams mergeParams{true, 0.4f, 0.3f, Point2(2.0f, 1.5f), 0.5f, 0.2f, 1.f};
 };
 RebuildNavMeshSetup rebuildParams;
 enum ERebuildStep
@@ -81,6 +92,7 @@ struct MarkData
   Point3 c;
   Point3 e;
   float y;
+  bool b;
 
   rendinst::riex_handle_t h;
   uint32_t r;
@@ -138,7 +150,7 @@ public:
   ska::flat_hash_set<int> transparentPools;
   ska::flat_hash_map<int, uint32_t> obstaclePools;
   ska::flat_hash_map<int, uint32_t> materialPools;
-  ska::flat_hash_map<int, float> navMeshOffsetPools;
+  rendinst::obstacle_settings_t obstaclesSettings;
 
   NavmeshLayers() : isLoaded(false) {}
 
@@ -264,23 +276,10 @@ public:
       logerr("%s not found", navObstacleBlkFn);
       return;
     }
-
-    if (dblk::load(navObstaclesBlk, navObstacleBlkFn, dblk::ReadFlag::ROBUST))
+    if (!rendinst::load_obstacle_settings(navObstacleBlkFn, obstaclesSettings))
     {
-      for (int blkIt = 0; blkIt < navObstaclesBlk.blockCount(); blkIt++)
-      {
-        const DataBlock *blk = navObstaclesBlk.getBlock(blkIt);
-        int pool = rendinst::getRIGenExtraResIdx(blk->getBlockName());
-        if (pool <= -1)
-          continue;
-
-        const float navMeshBoxOffset = blk->getReal("navMeshBoxOffset", 0.0f);
-        if (navMeshBoxOffset > 0.0f)
-        {
-          if (navMeshOffsetPools.count(pool) == 0)
-            navMeshOffsetPools.emplace(pool, navMeshBoxOffset);
-        }
-      }
+      logerr("%s load failed", navObstacleBlkFn);
+      return;
     }
   }
 } navmeshLayers;
@@ -292,8 +291,8 @@ struct RendinstVertexDataCbGame : public rendinst::RendinstVertexDataCbBase
 
   RendinstVertexDataCbGame(Tab<Point3> &verts, Tab<int> &inds, Tab<IPoint2> &transparent, Bitarray &pools,
     ska::flat_hash_map<int, uint32_t> &obstaclePools, ska::flat_hash_map<int, uint32_t> &materialPools,
-    ska::flat_hash_map<int, float> &navMeshOffsetPools, Tab<MarkData> &obstacles) :
-    RendinstVertexDataCbBase(verts, inds, pools, obstaclePools, materialPools, navMeshOffsetPools),
+    rendinst::obstacle_settings_t &obstaclesSettings, Tab<MarkData> &obstacles) :
+    RendinstVertexDataCbBase(verts, inds, pools, obstaclePools, materialPools, obstaclesSettings),
     transparent(transparent),
     obstacles(obstacles)
   {}
@@ -362,14 +361,16 @@ struct RendinstVertexDataCbGame : public rendinst::RendinstVertexDataCbBase
 
         markData.h = coll_info.desc.getRiExtraHandle();
         markData.r = obstacleIt->second;
+        markData.b = tilecache_is_blocking(markData.h);
         obstacles.push_back(markData);
       }
     }
   }
 };
 
-static bool finalize_navmesh_tilecached_tile(rcContext &ctx, const rcConfig &cfg, recastnavmesh::RecastTileContext &tile_ctx, int tx,
-  int ty, const Tab<MarkData> &obstacles, Tab<recastnavmesh::BuildTileData> &tile_data)
+static bool finalize_navmesh_tilecached_tile(rcContext &ctx, const rcConfig &cfg,
+  recastnavmesh::OffMeshConnectionsStorage *conn_storage, recastnavmesh::RecastTileContext &tile_ctx, int tx, int ty,
+  const Tab<MarkData> &obstacles, Tab<recastnavmesh::BuildTileData> &tile_data)
 {
   auto fn = [](const Tab<MarkData> &obstacles, const rcConfig &cfg, dtTileCacheLayer &layer, const dtTileCacheLayerHeader &header) {
     for (const auto &obs : obstacles)
@@ -378,16 +379,17 @@ static bool finalize_navmesh_tilecached_tile(rcContext &ctx, const rcConfig &cfg
       float sinhalf = sinf(-0.5f * obs.y);
       float rotAux[2] = {coshalf * sinhalf, coshalf * coshalf - 0.5f};
 
-      dtMarkBoxArea(layer, header.bmin, cfg.cs, cfg.ch, &obs.c.x, &obs.e.x, &rotAux[0], 0);
+      const int areaId = obs.b ? pathfinder::POLYAREA_BLOCKED : pathfinder::POLYAREA_OBSTACLE;
+      dtMarkBoxArea(layer, header.bmin, cfg.cs, cfg.ch, &obs.c.x, &obs.e.x, &rotAux[0], areaId);
     }
   };
 
-  return finalize_navmesh_tilecached_tile(ctx, cfg, tileCache->getAlloc(), tileCache->getCompressor(), nullptr, tile_ctx, tx, ty,
+  return finalize_navmesh_tilecached_tile(ctx, cfg, tileCache->getAlloc(), tileCache->getCompressor(), conn_storage, tile_ctx, tx, ty,
     tileCache->getParams()->walkableClimb, tileCache->getParams()->walkableHeight, tileCache->getParams()->walkableRadius, obstacles,
     tile_data, fn);
 }
 
-static void init_tile_config(rcConfig &cfg, const Tab<Point3> &vertices)
+static void init_tile_config(rcConfig &cfg, const Tab<Point3> &vertices, int override_tile_size = 0)
 {
   memset(&cfg, 0, sizeof(cfg));
 
@@ -404,10 +406,10 @@ static void init_tile_config(rcConfig &cfg, const Tab<Point3> &vertices)
   cfg.minRegionArea = int(rebuildParams.regionMinSize * sqr(safeinv(cfg.cs)));
   cfg.mergeRegionArea = int(rebuildParams.regionMergeSize * sqr(safeinv(cfg.cs)));
   cfg.maxVertsPerPoly = rebuildParams.vertsPerPoly;
-  cfg.tileSize = tileCache->getParams()->width;
+  cfg.tileSize = override_tile_size > 0 ? override_tile_size : tileCache->getParams()->width;
   cfg.borderSize = cfg.walkableRadius + rebuildParams.minBorderSize;
-  cfg.width = tileCache->getParams()->width + cfg.borderSize * 2;
-  cfg.height = tileCache->getParams()->height + cfg.borderSize * 2;
+  cfg.width = cfg.tileSize + cfg.borderSize * 2;
+  cfg.height = cfg.tileSize + cfg.borderSize * 2;
   cfg.detailSampleDist = rebuildParams.detailSampleDist < 0.9f ? 0 : cfg.cs * rebuildParams.detailSampleDist;
   cfg.detailSampleMaxError = cfg.ch * rebuildParams.detailSampleMaxError;
 
@@ -434,18 +436,22 @@ static void init_tile_config(rcConfig &cfg, const Tab<Point3> &vertices)
 }
 
 static bool prepare_tile_context(rcContext &ctx, rcConfig &cfg, recastnavmesh::RecastTileContext &tile_ctx, int tx, int ty,
-  const Tab<Point3> &vertices, const Tab<int> &indices, const Tab<IPoint2> &transparent)
+  const Tab<Point3> &vertices, const Tab<int> &indices, const Tab<IPoint2> &transparent, int extra_cells = 0)
 {
-  const float tileBoxExt = cfg.borderSize * cfg.cs;
-  const float tileSize = cfg.cs * cfg.tileSize;
+  float extTileSize = extra_cells * cfg.cs;
+
+  const float tileBoxExt = cfg.borderSize * cfg.cs + extTileSize;
+  const float tileSize = cfg.cs * tileCache->getParams()->width;
 
   cfg.bmin[0] = tileCache->getParams()->orig[0] + tx * tileSize - tileBoxExt;
+  cfg.bmin[1] = cfg.bmin[1] - tileBoxExt;
   cfg.bmin[2] = tileCache->getParams()->orig[2] + ty * tileSize - tileBoxExt;
 
   cfg.bmax[0] = tileCache->getParams()->orig[0] + (tx + 1) * tileSize + tileBoxExt;
+  cfg.bmax[1] = cfg.bmax[1] + tileBoxExt;
   cfg.bmax[2] = tileCache->getParams()->orig[2] + (ty + 1) * tileSize + tileBoxExt;
 
-  return prepare_tile_context(ctx, cfg, tile_ctx, vertices, indices, transparent, false);
+  return prepare_tile_context(ctx, cfg, tile_ctx, vertices, indices, transparent, extra_cells > 0);
 }
 
 void collect_rendinst(const BBox3 &box, Tab<Point3> &vertices, Tab<int> &indices, Tab<IPoint2> &transparent, Tab<MarkData> &obstacles,
@@ -454,7 +460,7 @@ void collect_rendinst(const BBox3 &box, Tab<Point3> &vertices, Tab<int> &indices
   navmeshLayers.load(nav_mesh_kind);
 
   RendinstVertexDataCbGame cb(vertices, indices, transparent, navmeshLayers.pools, navmeshLayers.obstaclePools,
-    navmeshLayers.materialPools, navmeshLayers.navMeshOffsetPools, obstacles);
+    navmeshLayers.materialPools, navmeshLayers.obstaclesSettings, obstacles);
   rendinst::testObjToRIGenIntersection(box, TMatrix::IDENT, cb, rendinst::GatherRiTypeFlag::RiGenAndExtra);
   cb.procAllCollision();
 }
@@ -502,6 +508,39 @@ void collect_height_map_geometry(const BBox3 &box, Tab<Point3> &vertices, Tab<in
   }
 }
 
+const scene::TiledScene *tilecache_get_ladders();
+
+bool build_tile_ladder_links(const dtMeshTile *tile)
+{
+  bool shouldRebuild = false;
+  const scene::TiledScene *ladders = tilecache_get_ladders();
+  if (ladders)
+  {
+    BBox3 box;
+    pathfinder::TileCacheMeshProcess::calcQueryLaddersBBox(box, tile->header->bmin, tile->header->bmax);
+    bbox3f bbox = v_ldu_bbox3(box);
+    ladders->boxCull<false, true>(bbox, 0, 0, [&](scene::node_index, mat44f_cref) { shouldRebuild = true; });
+  }
+  if (!shouldRebuild)
+    return false;
+
+  const int tileX = tile->header->x;
+  const int tileY = tile->header->y;
+  const int tileLayer = tile->header->layer;
+  const dtCompressedTile *ctile = tileCache->getTileAt(tileX, tileY, tileLayer);
+  if (!ctile)
+    return false;
+
+  const dtCompressedTileRef ctileRef = tileCache->getTileRef(ctile);
+  dtStatus status = tileCache->buildNavMeshTile(ctileRef, getNavMeshPtr());
+  if (dtStatusFailed(status))
+  {
+    logerr("Rebuild NavMesh: failed to rebuild nav mesh ladder links at (%d,%d)", tileX, tileY);
+    return false;
+  }
+  return true;
+}
+
 void rebuildNavMesh_init()
 {
   rebuildParams = RebuildNavMeshSetup();
@@ -525,10 +564,21 @@ void rebuildNavMesh_init()
   generateTiles.clear();
 }
 
+void rebuildNavMesh_setup(const char *name, const Point2 &value)
+{
+  if (!name)
+    return;
+  else if (strcmp(name, "edgWalkPrecision") == 0)
+    rebuildParams.mergeParams.walkPrecision = value;
+  else
+    logdbg("Unknown rebuildNavMesh_setup param: %s, value: %@", name, value);
+}
+
 void rebuildNavMesh_setup(const char *name, float value)
 {
   if (!name)
     return;
+  // navmesh setup
   else if (strcmp(name, "agentMaxSlope") == 0)
     rebuildParams.agentMaxSlope = value;
   else if (strcmp(name, "vertsPerPoly") == 0)
@@ -547,6 +597,48 @@ void rebuildNavMesh_setup(const char *name, float value)
     rebuildParams.edgeMaxLen = value;
   else if (strcmp(name, "waterLevel") == 0)
     rebuildParams.waterLevel = value;
+  // jumplinks setup
+  else if (strcmp(name, "jlkEnabled") == 0)
+    rebuildParams.jlkParams.enabled = value != 0.0f;
+  else if (strcmp(name, "jlkCovExtraCells") == 0)
+    rebuildParams.covExtraCells = (int)floorf(value + 0.5f);
+  else if (strcmp(name, "jlkJumpHeight") == 0)
+    rebuildParams.jlkParams.jumpHeight = value * 2.f;
+  else if (strcmp(name, "jlkJumpLength") == 0)
+    rebuildParams.jlkParams.jumpLength = value;
+  else if (strcmp(name, "jlkWidth") == 0)
+    rebuildParams.jlkParams.width = value;
+  else if (strcmp(name, "jlkAgentHeight") == 0)
+    rebuildParams.jlkParams.agentHeight = value;
+  else if (strcmp(name, "jlkAgentMinSpace") == 0)
+    rebuildParams.jlkParams.agentMinSpace = value;
+  else if (strcmp(name, "jlkDeltaHeightThreshold") == 0)
+    rebuildParams.jlkParams.deltaHeightThreshold = value;
+  else if (strcmp(name, "jlkComplexJumpTheshold") == 0)
+    rebuildParams.jlkParams.complexJumpTheshold = value;
+  else if (strcmp(name, "jlkLinkDegAngle") == 0)
+    rebuildParams.jlkParams.linkDegAngle = cosf(DegToRad(value));
+  else if (strcmp(name, "jlkLinkDegDist") == 0)
+    rebuildParams.jlkParams.linkDegDist = cosf(DegToRad(value));
+  else if (strcmp(name, "jlkAgentRadius") == 0)
+    rebuildParams.jlkParams.agentRadius = value;
+  else if (strcmp(name, "jlkCrossObstaclesWithJumplinks") == 0)
+    rebuildParams.jlkParams.crossObstaclesWithJumplinks = value != 0.0f;
+  else if (strcmp(name, "jlkEnableCustomJumplinks") == 0)
+    rebuildParams.jlkParams.enableCustomJumplinks = value != 0.0f;
+  // edges mergeParams setup
+  else if (strcmp(name, "edgMergeEdgesEnabled") == 0)
+    rebuildParams.mergeParams.enabled = value != 0.0f;
+  else if (strcmp(name, "edgMaxExtrudeErrorSq") == 0)
+    rebuildParams.mergeParams.maxExtrudeErrorSq = sqr(value);
+  else if (strcmp(name, "edgExtrudeLimitSq") == 0)
+    rebuildParams.mergeParams.extrudeLimitSq = sqr(value);
+  else if (strcmp(name, "edgSafeCutLimitSq") == 0)
+    rebuildParams.mergeParams.safeCutLimitSq = sqr(value);
+  else if (strcmp(name, "edgUnsafeCutLimitSq") == 0)
+    rebuildParams.mergeParams.unsafeCutLimitSq = sqr(value);
+  else if (strcmp(name, "edgUnsafeMaxCutSpace") == 0)
+    rebuildParams.mergeParams.unsafeMaxCutSpace = value;
   else
     logdbg("Unknown rebuildNavMesh_setup param: %s, value: %f", name, value);
 }
@@ -589,6 +681,7 @@ void rebuildNavMesh_addBBox(const BBox3 &bbox)
 void rebuildNavMesh_update_reloadNavMesh();
 void rebuildNavMesh_update_removeTiles();
 bool rebuildNavMesh_update_buildTiles(int n);
+bool rebuildNavMesh_update_buildLadders();
 
 bool rebuildNavMesh_update(bool interactive)
 {
@@ -609,7 +702,11 @@ bool rebuildNavMesh_update(bool interactive)
     case RS_REBUILDING_TILES:
       result = rebuildNavMesh_update_buildTiles(maxTiles);
       if (rebuildedTiles.empty())
-        rebuildStep = RS_FINISHED;
+        rebuildStep = RS_GENERATING_OVERLINKS_LADDERS;
+      break;
+    case RS_GENERATING_OVERLINKS_LADDERS:
+      result = rebuildNavMesh_update_buildLadders();
+      rebuildStep = RS_FINISHED;
       break;
 
     case RS_FINISHED:
@@ -705,10 +802,29 @@ bool rebuildNavMesh_update_buildTiles(int n)
       rcContext ctx;
       rcConfig cfg;
 
-      init_tile_config(cfg, vertices);
-
       recastnavmesh::RecastTileContext tile_ctx;
       Tab<recastnavmesh::BuildTileData> tile_data;
+
+      recastnavmesh::OffMeshConnectionsStorage connStorage;
+      if (rebuildParams.jlkParams.enabled)
+      {
+        const int extraCells = min((tileCache->getParams()->width - 1) / 2, rebuildParams.covExtraCells);
+        const int extTileSize = tileCache->getParams()->width + extraCells * 2;
+        init_tile_config(cfg, vertices, extTileSize);
+
+        if (!prepare_tile_context(ctx, cfg, tile_ctx, tx, ty, vertices, indices, noTransparent, extraCells))
+        {
+          logerr("Rebuild NavMesh: failed to prepare ext tile context at (%d,%d)", tx, ty);
+          continue;
+        }
+
+        Tab<recastbuild::Edge> edges;
+        recastbuild::build_edges(edges, tile_ctx.cset, tile_ctx.chf, rebuildParams.mergeParams, nullptr);
+        recastbuild::build_jumplinks_connstorage(connStorage, nullptr, edges, rebuildParams.jlkParams, tile_ctx.chf, tile_ctx.solid,
+          bbox);
+      }
+
+      init_tile_config(cfg, vertices);
 
       if (!prepare_tile_context(ctx, cfg, tile_ctx, tx, ty, vertices, indices, noTransparent))
       {
@@ -719,7 +835,8 @@ bool rebuildNavMesh_update_buildTiles(int n)
       // TODO LATER Use transparent array to build heightmap for covers tracing without transparent geometry
       // TODO LATER when covers generation added here.
 
-      if (!finalize_navmesh_tilecached_tile(ctx, cfg, tile_ctx, tx, ty, obstacles, tile_data))
+      if (!finalize_navmesh_tilecached_tile(ctx, cfg, rebuildParams.jlkParams.enabled ? &connStorage : nullptr, tile_ctx, tx, ty,
+            obstacles, tile_data))
       {
         logerr("Rebuild NavMesh: failed to generate navmesh tiles at (%d,%d)", tx, ty);
         continue;
@@ -780,7 +897,8 @@ bool rebuildNavMesh_update_buildTiles(int n)
 
   for (const auto &obstacle : obstacles)
   {
-    riHandle2obstacle[obstacle.h].obstacle_handle = tilecache_obstacle_add(obstacle.c, obstacle.e, obstacle.y, true, false);
+    riHandle2obstacle[obstacle.h].obstacle_handle =
+      tilecache_obstacle_add(obstacle.c, obstacle.e, obstacle.y, obstacle.b, true, false);
     addedObstacles.insert(obstacle.r);
   }
 
@@ -788,6 +906,24 @@ bool rebuildNavMesh_update_buildTiles(int n)
     tilecache_obstacle_remove(obstacle, false);
 
   // logdbg("rebuild_tiles: total size %d bytes, %d tiles left", rebuildedTilesTotalSz, rebuildedTiles.size());
+  return true;
+}
+
+bool rebuildNavMesh_update_buildLadders()
+{
+  for (auto &tileToSave : tilesToSave)
+  {
+    const dtMeshTile *tile = getNavMeshPtr()->getTileByRef(tileToSave);
+    if (!tile)
+      continue;
+
+    if (build_tile_ladder_links(tile))
+    {
+      dtTileRef tileRef = getNavMeshPtr()->getTileRefAt(tile->header->x, tile->header->y, tile->header->layer);
+      if (tileRef)
+        tileToSave = tileRef;
+    }
+  }
   return true;
 }
 

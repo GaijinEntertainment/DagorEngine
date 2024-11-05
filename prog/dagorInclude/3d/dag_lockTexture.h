@@ -1,11 +1,10 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <math/integer/dag_IPoint2.h>
 #include <EASTL/type_traits.h>
 #include <EASTL/optional.h>
@@ -61,7 +60,10 @@ protected:
     heightInElems = (height + desc.elementHeight - 1) / desc.elementHeight; // BC texture can't be less then 2x2, but 1x1 is returned
     widthInElems = (width + desc.elementWidth - 1) / desc.elementWidth;     // from tex->getinfo
     bytesPerElement = desc.bytesPerElement;
-    G_ASSERTF(widthInElems * bytesPerElement <= byteStride, "Image2DView format is incompatible with stride");
+    G_ASSERTF(widthInElems * bytesPerElement <= byteStride,
+      "Image2DView format is incompatible with stride"
+      "format=%s, height=%d, width=%d, widthInElems=%d, bytesPerElement=%d, byteStride=%d",
+      get_tex_format_name(format), height, width, widthInElems, bytesPerElement, byteStride);
   }
 
   void checkRowAccess(uint32_t first_row, uint32_t row_count, uint32_t bytes_offset, uint32_t row_size_bytes) const
@@ -191,6 +193,14 @@ template <typename ElementType>
 class Image2DView : public eastl::conditional_t<eastl::is_const_v<ElementType>, Image2DReadOnly, Image2D>
 {
 public:
+  Image2DView() : BaseType{nullptr, 0, 0, 0, 0} {}
+
+  Image2DView(uint8_t *pixels, uint32_t w, uint32_t h, uint32_t byte_stride, uint32_t fmt) : BaseType{pixels, w, h, byte_stride, fmt}
+  {
+    G_ASSERTF(BaseType::bytesPerElement == sizeof(ElementType),
+      "Image2DView template parameter is inscompatible with underlying format");
+  }
+
   const ElementType &at(uint32_t x, uint32_t y) const
   {
     checkAccess(x, y);
@@ -218,6 +228,68 @@ public:
   const ElementType &operator[](const IPoint2 p) const { return at(p); }
   ElementType &operator[](const IPoint2 p) { return at(p); }
 
+  struct ForwardIterator
+  {
+    using iterator_category = eastl::forward_iterator_tag;
+    using difference_type = int;
+    using value_type = eastl::remove_const_t<ElementType>;
+    using pointer = ElementType *;
+    using reference = ElementType &;
+
+    ForwardIterator(pointer pixels, uint32_t width_in_elements, uint32_t elements_stride) :
+      widthInElems(width_in_elements), stridePad(elements_stride - width_in_elements), itPtr(pixels)
+    {
+      G_ASSERT(widthInElems <= elements_stride);
+    }
+    void jumpRows(uint32_t count) { itPtr += count * (widthInElems + stridePad); }
+
+    [[nodiscard]] reference operator*() const { return *itPtr; }
+    [[nodiscard]] pointer operator->() const { return itPtr; }
+    ForwardIterator &operator++()
+    {
+      ++itPtr;
+      ++xIdx;
+      considerStridePad();
+      return *this;
+    }
+    ForwardIterator operator++(int)
+    {
+      ForwardIterator prevIt = *this;
+      ++(*this);
+      return prevIt;
+    }
+    bool operator==(const ForwardIterator &other) { return itPtr == other.itPtr; };
+    bool operator!=(const ForwardIterator &other) { return !(*this == other); };
+
+  private:
+    const uint32_t widthInElems, stridePad;
+    pointer itPtr;
+    int xIdx = 0;
+
+    void considerStridePad()
+    {
+      G_FAST_ASSERT(xIdx <= widthInElems);
+      if (DAGOR_UNLIKELY(xIdx == widthInElems))
+      {
+        itPtr += stridePad;
+        xIdx = 0;
+      }
+    }
+  };
+
+  ForwardIterator begin() const
+  {
+    G_ASSERT(BaseType::getByteStride() % sizeof(ElementType) == 0);
+    return ForwardIterator(reinterpret_cast<ElementType *>(BaseType::data), BaseType::getWidthInElems(),
+      BaseType::getByteStride() / sizeof(ElementType));
+  }
+  ForwardIterator end() const
+  {
+    ForwardIterator it = begin();
+    it.jumpRows(BaseType::getHeightInElems());
+    return it;
+  }
+
 private:
   using BaseType = eastl::conditional_t<eastl::is_const_v<ElementType>, Image2DReadOnly, Image2D>;
 
@@ -238,12 +310,6 @@ private:
   }
 
 protected:
-  Image2DView(uint8_t *pixels, uint32_t w, uint32_t h, uint32_t byte_stride, uint32_t fmt) : BaseType{pixels, w, h, byte_stride, fmt}
-  {
-    G_ASSERTF(BaseType::bytesPerElement == sizeof(ElementType),
-      "Image2DView template parameter is inscompatible with underlying format");
-  }
-
   static constexpr bool isReadOnly = eastl::is_const_v<ElementType>;
 
   // for cast<T>
@@ -284,6 +350,8 @@ class LockedImage : public ImageView
   }
 
 public:
+  LockedImage() {}
+
   static LockedImage lock_texture(BaseTexture *tex, int level, unsigned flags)
   {
     return lock_texture(tex, eastl::nullopt, level, flags);

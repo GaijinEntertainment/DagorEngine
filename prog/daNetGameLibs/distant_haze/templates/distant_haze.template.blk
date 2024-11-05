@@ -1,0 +1,7 @@
+distant_haze_manager {
+  _singleton:b=true
+  _tags:t="render"
+  "distant_haze__manager:DistantHazeManager"{}
+  "distant_haze__node:dabfg::NodeHandle"{}
+  "distant_haze__color_node:dabfg::NodeHandle"{}
+}

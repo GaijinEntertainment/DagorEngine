@@ -1,4 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_dynRenderService.h>
+#include <de3_skiesService.h>
+#include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_ViewportWindow.h>
 #include <EditorCore/ec_camera_elem.h>
 #include <sepGui/wndGlobal.h>
@@ -24,15 +28,28 @@
 #include <render/dag_cur_view.h>
 #include <startup/dag_globalSettings.h>
 #include <3d/dag_textureIDHolder.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_shader.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_info.h>
 #include <rendInst/rendInstGenRtTools.h>
 #include <rendInst/debugCollisionVisualization.h>
 #include <math/dag_cube_matrix.h>
 #include <math/dag_TMatrix4more.h>
 #include <math/dag_mathAng.h>
+#include <math/dag_viewMatrix.h>
 
 #include <de3_interface.h>
 #include <de3_lightProps.h>
 #include <de3_lightService.h>
+#include <de3_waterSrv.h>
+#include <de3_landmesh.h>
 #include <EditorCore/ec_interface_ex.h>
 #include <sepGui/wndPublic.h>
 
@@ -48,8 +65,8 @@
 #include <fx/dag_leavesWind.h>
 #include <fx/toolsHeatHazeGlue.h>
 #include <shaders/dag_shaderBlock.h>
-#include <3d/dag_drv3d_pc.h>
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_platform_pc.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <3d/dag_render.h>
 #include <3d/dag_texPackMgr2.h>
 #include <perfMon/dag_graphStat.h>
@@ -63,8 +80,13 @@
 #include <shaders/dag_overrideStateId.h>
 #include <shaders/dag_overrideStates.h>
 #include <shaders/dag_renderStateId.h>
-#include <3d/dag_renderStates.h>
+#include <drv/3d/dag_renderStates.h>
 #include <render/upscale/upscaleSampling.h>
+#include <gui/dag_imgui.h>
+#include <imgui/imgui.h>
+#include <vr/vrGuiSurface.h>
+
+#include <drv/dag_vr.h>
 
 static const uint32_t EXPOSURE_BUF_SIZE = 8;
 
@@ -87,6 +109,7 @@ struct DynamicRenderOption
 
 DECL_ROPT(renderShadow, "render shadows");
 DECL_ROPT(renderShadowVsm, "render VSM shadows");
+DECL_ROPT(renderShadowFom, "render FOM shadows");
 DECL_ROPT(renderWater, "render water reflections");
 DECL_ROPT(renderEnvironmentFirst, "render envi first");
 DECL_ROPT(renderSSAO, "use SSAO");
@@ -111,8 +134,6 @@ static float shadowDistance = 450;
 static float shadowCasterDist = 50;
 static float wireframeZBias = 0.1;
 static int fogVarId = -1;
-static int hdr_overbrightGVarId = -1;
-static int max_hdr_overbrightGVarId = -1;
 static TEXTUREID lin_float0000_texid = BAD_TEXTUREID;
 static TEXTUREID lin_float1111_texid = BAD_TEXTUREID;
 static DataBlock gameGlobVars;
@@ -122,10 +143,23 @@ static bool enable_wireframe = false;
 static int camera_rightVarId = -1;
 static int camera_upVarId = -1;
 
+static int fom_shadows_tm_xVarId;
+static int fom_shadows_tm_yVarId;
+static int fom_shadows_tm_zVarId;
+
 static Tab<IRenderingService *> rendSrv(tmpmem);
-static bool skip_next_frame = false;
+
+// Starting with draw skipping by default. This way we ensure that before the first drawScene call actScene has already
+// ran at least once.
+static bool skip_next_frame = true;
+
 static bool preparing_light_probe = false;
 static bool use_cmpf_less_for_screenshots = false;
+
+static bool render_vr_shadows = true;
+static bool render_shadow() { return renderShadow && (DAEDITOR3.getStereoIndex() == StereoIndex::Mono || render_vr_shadows); }
+static bool render_fom_shadow() { return renderShadowFom && (DAEDITOR3.getStereoIndex() == StereoIndex::Mono || render_vr_shadows); }
+
 
 static bool dump_frame = false;
 static void dump_ingame_profiler_cb(void *, uintptr_t cNode, uintptr_t pNode, const char *name, const TimeIntervalInfo &ti)
@@ -218,6 +252,7 @@ public:
   int dbgShowType;
   int effects_depth_texVarId = -1;
   bool renderMatrixOk;
+  bool tryToggleVr = false;
   shaders::OverrideStateId noCullStateId;
   shaders::OverrideStateId geomEnviId;
   shaders::RenderStateId defaultRenderStateId;
@@ -264,10 +299,11 @@ public:
     vsmType = vsm.VSM_HW;
     enviCubeTexId = BAD_TEXTUREID;
     enviCubeVarName = "local_light_probe_tex";
-    hdr_overbrightGVarId = ::get_shader_glob_var_id("hdr_overbright", true);
-    max_hdr_overbrightGVarId = ::get_shader_glob_var_id("max_hdr_overbright", true);
     camera_rightVarId = ::get_shader_glob_var_id("camera_right", true);
     camera_upVarId = ::get_shader_glob_var_id("camera_up", true);
+    fom_shadows_tm_xVarId = ::get_shader_variable_id("fom_shadows_tm_x", true);
+    fom_shadows_tm_yVarId = ::get_shader_variable_id("fom_shadows_tm_y", true);
+    fom_shadows_tm_zVarId = ::get_shader_variable_id("fom_shadows_tm_z", true);
     combinedShadowsRenderer.init("combine_shadows", true);
 
     String fn;
@@ -331,8 +367,11 @@ public:
     cubeData.clear();
     bkgData.clear();
     voltexData.clear();
+    vrResources.teardown();
     shutdown();
   }
+
+  void toggleVrMode() { tryToggleVr = true; }
 
   void onTonemapSettingsChanged()
   {
@@ -340,7 +379,10 @@ public:
       tonemapLUT->requestUpdate();
   }
 
-  const ManagedTex &getDownsampledFarDepth() { return downsampledFarDepth; }
+  const ManagedTex &getDownsampledFarDepth()
+  {
+    return DAEDITOR3.getStereoIndex() == StereoIndex::Mono ? downsampledFarDepth : vrResources.downsampledFarDepth;
+  }
 
   virtual void actScene()
   {
@@ -355,16 +397,12 @@ public:
     if (dgs_app_active && CCameraElem::getCamera() != CCameraElem::MAX_CAMERA)
     {
       ViewportWindow *vpw = (ViewportWindow *)EDITORCORE->getCurrentViewport();
-      if (vpw)
-        ::SetFocus((HWND)vpw->getHandle());
-      else
+      if (!vpw)
         CCameraElem::switchCamera(false, false);
     }
 
     windEffect.updateWind(::dagor_game_act_time * ::dagor_game_time_scale);
     update_ambient_wind();
-    if (postFx)
-      postFx->update(::dagor_game_act_time * ::dagor_game_time_scale);
 
     // do not waste resources when app is minimized
     HWND wnd = (HWND)EDITORCORE->getWndManager()->getMainWindow();
@@ -408,7 +446,7 @@ public:
     if (skip_next_frame)
       return;
 
-    if (rtype == RTYPE_DYNAMIC_DEFERRED && reqEnviProbeUpdate && enviProbe && targetW && targetH)
+    if (rtype == RTYPE_DYNAMIC_DEFERRED && reqEnviProbeUpdate && enviProbe)
     {
       debug("deferredRender: update enviProbe");
       IEditorCoreEngine::get()->beforeRenderObjects();
@@ -453,23 +491,83 @@ public:
         memset(&ltSun1, 0, sizeof(ltSun1));
     }
 
-    for (int i = ec_cached_viewports->viewportsCount() - 1; i >= 0; i--)
+    if (tryToggleVr)
     {
-      if (!ec_cached_viewports->startRender(i))
-      {
-        if (!ec_cached_viewports->getViewport(i))
-          logwarn("ec_cached_viewports->startRender(%d) returns false, getViewport(%d)=%p", i, i, ec_cached_viewports->getViewport(i));
-        continue;
-      }
+      toggleVrOnDemand();
+      tryToggleVr = false;
+    }
 
-      ViewportWindow *vpw = (ViewportWindow *)ec_cached_viewports->getViewportUserData(i);
-      renderViewportFrame(vpw);
-      ec_cached_viewports->endRender();
-      if (i > 0)
+    if (VRDevice::getInstance())
+    {
+      if (ec_cached_viewports->viewportsCount() > 0)
       {
-        d3d::update_screen();
+        const int viewportIndex = 0;
+        ViewportWindow *vpw = (ViewportWindow *)ec_cached_viewports->getViewportUserData(viewportIndex);
+        if (vpw && vpw->isViewportTextureReady())
+        {
+          ec_cached_viewports->startRender(viewportIndex);
+
+          check_and_restore_3d_device();
+          updateBackBufSize(vpw->getW(), vpw->getH());
+          renderVrGui(vpw);
+          renderVr(vpw);
+
+          ec_cached_viewports->endRender();
+        }
       }
     }
+    else
+    {
+      for (int i = ec_cached_viewports->viewportsCount() - 1; i >= 0; i--)
+      {
+        ViewportWindow *vpw = (ViewportWindow *)ec_cached_viewports->getViewportUserData(i);
+        if (!vpw || !vpw->isViewportTextureReady())
+          continue;
+
+        if (!ec_cached_viewports->startRender(i))
+        {
+          if (!ec_cached_viewports->getViewport(i))
+            logwarn("ec_cached_viewports->startRender(%d) returns false, getViewport(%d)=%p", i, i,
+              ec_cached_viewports->getViewport(i));
+          continue;
+        }
+
+        renderViewportFrame(vpw);
+
+        ec_cached_viewports->endRender();
+      }
+    }
+
+    HWND hwnd = (HWND)EDITORCORE->getWndManager()->getMainWindow();
+
+    RECT rect;
+    GetClientRect(hwnd, &rect);
+    const int clientRectWidth = rect.right - rect.left;
+    const int clientRectHeight = rect.bottom - rect.top;
+
+    if (::grs_draw_wire)
+      d3d::setwire(0);
+
+    d3d::set_render_target();
+    d3d::clearview(CLEAR_TARGET, E3DCOLOR(0, 0, 0, 0), 0, 0);
+    renderUI(clientRectWidth, clientRectHeight);
+
+    if (VRDevice::getInstance())
+    {
+      RectInt rect;
+      rect.left = 0;
+      rect.top = 0;
+      rect.right = clientRectWidth;
+      rect.bottom = clientRectHeight;
+      d3d::stretch_rect(nullptr, vrResources.imguiTex.getTex2D(), &rect, &rect);
+    }
+
+    // When toggling the application's window between minimized and maximized state the client size could be 0. This is
+    // here to avoid the assert in d3d::stretch_rect.
+    if (clientRectWidth <= 0 || clientRectHeight <= 0)
+      hwnd = nullptr;
+
+    d3d::pcwin32::set_present_wnd(hwnd);
   }
 
   BaseTexture *getRenderBuffer() { return sceneRt; }
@@ -480,8 +578,14 @@ public:
 
   D3DRESID getDepthBufferId() { return deferredTarget ? deferredTarget->getDepthId() : BAD_D3DRESID; }
 
-  Texture *resolvePostProcessing(bool use_postfx)
+  Texture *resolvePostProcessing(bool use_postfx, bool vr_mode)
   {
+    Texture *sceneRt = vr_mode ? vrResources.sceneRt.getTex2D() : this->sceneRt;                                    //-V688
+    Texture *postfxRt = vr_mode ? vrResources.postfxRt.getTex2D() : this->postfxRt;                                 //-V688
+    TEXTUREID sceneRtId = vr_mode ? vrResources.sceneRt.getTexId() : this->sceneRtId;                               //-V688
+    TEXTUREID postfxRtId = vr_mode ? vrResources.postfxRt.getTexId() : this->postfxRtId;                            //-V688
+    DeferredRenderTarget *deferredTarget = vr_mode ? vrResources.deferredTarget.get() : this->deferredTarget.get(); //-V688
+
     if (!deferredTarget)
       return sceneRt;
 
@@ -497,6 +601,7 @@ public:
 
       TMatrix4 projTm;
       d3d::gettm(TM_PROJ, &projTm);
+      postFx->downsample(sceneRt, sceneRtId);
       postFx->apply(sceneRt, sceneRtId, postfxRt, postfxRtId, ::grs_cur_view.tm, projTm, true);
       d3d::set_render_target(postfxRt, 0);
       d3d::set_depth(deferredTarget->getDepth(), DepthAccess::SampledRO);
@@ -519,6 +624,8 @@ public:
 
   void renderViewportFrame(ViewportWindow *vpw, bool cached_render = false)
   {
+    G_ASSERT(ec_cached_viewports->getCurRenderVp() >= 0);
+
     if (!render_enabled)
     {
     empty_render:
@@ -526,7 +633,6 @@ public:
       d3d::get_target_size(target_w, target_h);
       d3d::setview(0, 0, target_w, target_h, 0, 1);
       d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(10, 10, 64, 0), 0, 0);
-      d3d::pcwin32::set_present_wnd(vpw->getHandle());
       return;
     }
 
@@ -540,9 +646,9 @@ public:
 
     d3d::get_render_target(rt);
     d3d::getview(viewportX, viewportY, viewportW, viewportH, viewportMinZ, viewportMaxZ);
+
     if (renderNoPostfx)
-      ShaderGlobal::set_real_fast(hdr_overbrightGVarId, 1.0f);
-    ShaderGlobal::set_real_fast(max_hdr_overbrightGVarId, renderNoPostfx ? 1.0f : ::hdr_max_overbright);
+      setExposure(1.0f);
 
     if (use_heat_haze)
     {
@@ -559,12 +665,9 @@ public:
     updateBackBufSize(viewportW, viewportH);
     use_postfx = (::hdr_render_mode != HDR_MODE_NONE) && postFx && !renderNoPostfx;
     if (renderNoPostfx)
-      ShaderGlobal::set_real_fast(hdr_overbrightGVarId, 1);
+      setExposure(1.0f);
     if (!sceneRt)
       goto empty_render;
-
-    static int depthSourceFormatVarId = ::get_shader_variable_id("depth_source_format", true);
-    ShaderGlobal::set_int(depthSourceFormatVarId, downsample_depth::LINEAR_Z);
 
     // G_ASSERT(!rt.tex);
     G_ASSERT(rt.isBackBufferColor());
@@ -588,13 +691,13 @@ public:
       classicRenderTrans();
     }
     else if (rtype == RTYPE_DYNAMIC_DEFERRED)
-      deferredRender(vpw->getViewTm(), vpw->getProjTm());
+      deferredRender(vpw->getViewTm(), vpw->getProjTm(), false);
 
     if (use_heat_haze)
       heat_haze_glue.render();
 
   skip_render_scene:
-    Texture *finalRt = resolvePostProcessing(use_postfx);
+    Texture *finalRt = resolvePostProcessing(use_postfx, false);
 
     if (vpw->needStat3d() && dgs_app_active && !cached_render)
     {
@@ -640,18 +743,44 @@ public:
 
     d3d_err(d3d::set_render_target(rt));
     d3d::setview(viewportX, viewportY, viewportW, viewportH, viewportMinZ, viewportMaxZ);
-    ec_cached_viewports->endRender();
 
+    { // War Thunder fills the alpha channel. We need to make it opaque, otherwise it will be wrong when ImGui renders it.
+      TIME_D3D_PROFILE(setAlphaToOpaque);
+
+      shaders::overrides::reset();
+      d3d::set_program(d3d::get_debug_program());
+      d3d::set_vs_const(0, &TMatrix4_vec4::IDENT, 4);
+
+      struct Vertex
+      {
+        Point3 p;
+        E3DCOLOR c;
+      };
+      static Vertex v[4];
+      v[0].p.set(-1, -1, 0);
+      v[1].p.set(+1, -1, 0);
+      v[2].p.set(-1, +1, 0);
+      v[3].p.set(+1, +1, 0);
+
+      shaders::render_states::set(alphaWriterRenderStateId);
+      v[0].c = v[1].c = v[2].c = v[3].c = 0xFFFFFFFF;
+      d3d::draw_up(PRIM_TRISTRIP, 2, v, sizeof(v[0]));
+
+      d3d::set_program(BAD_PROGRAM);
+      shaders::overrides::reset();
+      shaders::render_states::set(defaultRenderStateId);
+    }
+
+    ec_cached_viewports->endRender();
 
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
     vpw->drawStat3d();
     vpw->paint(viewportW, viewportH);
+    vpw->copyTextureToViewportTexture(*rt.getColor(0).tex, viewportW, viewportH);
 
     d3d::setwire(::grs_draw_wire);
 
-    d3d::pcwin32::set_present_wnd(vpw->getHandle());
     internal_dump_profiler();
-    renderUI();
     dagor_frame_no_increment();
   }
 
@@ -669,8 +798,7 @@ public:
     bool use_postfx = (::hdr_render_mode != HDR_MODE_NONE) && postFx && !renderNoPostfx;
 
     if (renderNoPostfx)
-      ShaderGlobal::set_real_fast(hdr_overbrightGVarId, 1.0f);
-    ShaderGlobal::set_real_fast(max_hdr_overbrightGVarId, renderNoPostfx ? 1.0f : ::hdr_max_overbright);
+      setExposure(1.0f);
 
   render_again:
     beforeRender();
@@ -690,7 +818,7 @@ public:
       TMatrix4 projTm;
       d3d::gettm(TM_VIEW, viewTm);
       d3d::gettm(TM_PROJ, &projTm);
-      deferredRender(viewTm, projTm);
+      deferredRender(viewTm, projTm, false);
     }
     if (!rt_ready)
     {
@@ -698,7 +826,7 @@ public:
       goto render_again;
     }
 
-    Texture *finalRt = resolvePostProcessing(use_postfx);
+    Texture *finalRt = resolvePostProcessing(use_postfx, false);
 
     if (rtype == RTYPE_DYNAMIC_DEFERRED && dbgShowType != -1)
     {
@@ -787,8 +915,21 @@ public:
         int microDetailCount = 0;
         characterMicrodetailsId = load_texture_array_immediate("character_micro_details*", "micro_detail", *micro, microDetailCount);
         ShaderGlobal::set_texture(get_shader_variable_id("character_micro_details"), characterMicrodetailsId);
+        {
+          d3d::SamplerInfo smpInfo;
+          smpInfo.anisotropic_max = ::dgs_tex_anisotropy;
+          ShaderGlobal::set_sampler(get_shader_variable_id("character_micro_details_samplerstate", true),
+            d3d::request_sampler(smpInfo));
+        }
         ShaderGlobal::set_int(get_shader_variable_id("character_micro_details_count", true), microDetailCount);
         debug("microDetailCount = %d", microDetailCount);
+
+        // WT character microdetail shader code uses land_micro_details sampler for character microdetails
+        // If it's not set, the character microdetails will use an invalid sampler
+        // This is a workaround until separate samplers are supported in driver
+        int land_micro_detailsVarId = get_shader_variable_id("land_micro_details", true);
+        if (land_micro_detailsVarId >= 0)
+          ShaderGlobal::set_texture(land_micro_detailsVarId, characterMicrodetailsId);
       }
     }
   }
@@ -833,6 +974,80 @@ public:
     }
     vsm.endShadowMap();
   }
+  void prepareFOM()
+  {
+    float worldLevel = -FLT_MAX;
+    if (auto landmesh = EDITORCORE->getInterfaceEx<ILandmesh>())
+    {
+      float landHeight = landmesh->getBBoxWithHMapWBBox()[0].y;
+      worldLevel = landHeight;
+    }
+    if (auto waterService = EDITORCORE->queryEditorInterface<IWaterService>())
+    {
+      float waterLevel = waterService->get_level();
+      worldLevel = max(worldLevel, waterLevel);
+    }
+
+    if (worldLevel == -FLT_MAX)
+      worldLevel = -fomZViewBoxSize / 4;
+
+    SCOPE_VIEW_PROJ_MATRIX;
+
+    Point3 dirToSun = ltSun0.ltDir;
+    Point3 groundPos = Point3::xVz(::grs_cur_view.pos, worldLevel);
+    Point3 fomViewPos = groundPos + dirToSun * (fomZDistance + fomZViewBoxSize / dirToSun.y);
+
+    BBox3 worldBox(groundPos + Point3(-fomXyViewBoxSize, 0, -fomXyViewBoxSize),
+      groundPos + Point3(+fomXyViewBoxSize, +fomZViewBoxSize, +fomXyViewBoxSize));
+
+    TMatrix lightViewITm = TMatrix::IDENT;
+    view_matrix_from_look(-dirToSun, lightViewITm);
+    lightViewITm.setcol(3, fomViewPos);
+    TMatrix fomView = orthonormalized_inverse(lightViewITm);
+
+    const BBox3 spacebox = fomView * worldBox;
+    TMatrix4 fomProj = matrix_ortho_off_center_lh(spacebox[0].x, spacebox[1].x, spacebox[0].y, spacebox[1].y,
+      spacebox[0].z - fomZDistance, spacebox[1].z + fomZDistance);
+
+    TMatrix4 viewproj = TMatrix4(fomView) * fomProj;
+    TMatrix4 offset = TMatrix4::IDENT;
+
+    // align to fight aliasing
+    const float halfTexel = 0.5f * fomTexSize;
+    const float texCoordX = viewproj._41 * halfTexel, texCoordY = viewproj._42 * halfTexel;
+    offset._41 = floor(texCoordX) / halfTexel - viewproj._41;
+    offset._42 = floor(texCoordY) / halfTexel - viewproj._42;
+    fomProj = fomProj * offset;
+
+    d3d::settm(TM_PROJ, &fomProj);
+    d3d::settm(TM_VIEW, fomView);
+
+    d3d::set_render_target({}, DepthAccess::RW, {{fomShadowsCos.getTex2D(), 0}, {fomShadowsSin.getTex2D(), 0}});
+    d3d::clearview(CLEAR_TARGET, 0, 0, 0);
+
+    for (int i = 0; i < rendSrv.size(); i++)
+      rendSrv[i]->renderGeometry(IRenderingService::STG_RENDER_SHADOWS_FOM);
+
+    TMatrix4 texTm = TMatrix4(fomView) * fomProj * screen_to_tex_scale_tm_xy();
+    ShaderGlobal::set_color4(fom_shadows_tm_xVarId, texTm.m[0][0], texTm.m[1][0], texTm.m[2][0], texTm.m[3][0]);
+    ShaderGlobal::set_color4(fom_shadows_tm_yVarId, texTm.m[0][1], texTm.m[1][1], texTm.m[2][1], texTm.m[3][1]);
+    ShaderGlobal::set_color4(fom_shadows_tm_zVarId, texTm.m[0][2], texTm.m[1][2], texTm.m[2][2], texTm.m[3][2]);
+
+    d3d::resource_barrier({fomShadowsCos.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    d3d::resource_barrier({fomShadowsSin.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    fomShadowsCos.setVar();
+    fomShadowsSin.setVar();
+    fomShadowsCos->texaddr(TEXADDR_BORDER);
+    fomShadowsSin->texaddr(TEXADDR_BORDER);
+    fomShadowsCos->texbordercolor(0);
+    fomShadowsSin->texbordercolor(0);
+  }
+  void disableFOM()
+  {
+    ShaderGlobal::set_color4(fom_shadows_tm_xVarId, 0, 0, 0, -1);
+    ShaderGlobal::set_color4(fom_shadows_tm_yVarId, 0, 0, 0, -1);
+    ShaderGlobal::set_color4(fom_shadows_tm_zVarId, 0, 0, 0, -1e7);
+  }
   void beforeRender()
   {
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
@@ -845,21 +1060,21 @@ public:
       rendSrv[i]->renderGeometry(IRenderingService::STG_BEFORE_RENDER);
 
     ShaderGlobal::set_color4(worldViewPosVarId, Color4(::grs_cur_view.pos.x, ::grs_cur_view.pos.y, ::grs_cur_view.pos.z, 1.f));
-    if (visibility_finder)
-    {
-      mat44f viewMatrix4;
-      d3d::gettm(TM_VIEW, viewMatrix4);
-      mat44f projTm4;
-      d3d::gettm(TM_PROJ, projTm4);
-      Driver3dPerspective p(1.3f, 2.3f, 1.f, 10000.f, 0.f, 0.f);
 
-      mat44f pv;
-      v_mat44_mul(pv, projTm4, viewMatrix4); // Avoid floating point errors from v_mat44_orthonormalize33.
-      Frustum f;
-      f.construct(pv);
-      d3d::getpersp(p);
-      visibility_finder->set(v_ldu(&::grs_cur_view.pos.x), f, 0, 0, 1, p.hk, true);
-    }
+    mat44f viewMatrix4;
+    d3d::gettm(TM_VIEW, viewMatrix4);
+    mat44f projTm4;
+    d3d::gettm(TM_PROJ, projTm4);
+    Driver3dPerspective p(1.3f, 2.3f, 1.f, 10000.f, 0.f, 0.f);
+
+    mat44f pv;
+    v_mat44_mul(pv, projTm4, viewMatrix4); // Avoid floating point errors from v_mat44_orthonormalize33.
+    Frustum f;
+    f.construct(pv);
+    d3d::getpersp(p);
+    EDITORCORE->queryEditorInterface<IVisibilityFinderProvider>()->getVisibilityFinder().set(v_ldu(&::grs_cur_view.pos.x), f, 0, 0, 1,
+      p.hk, current_occlusion);
+
 
     if (globalFrameBlockId != -1)
       ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
@@ -881,7 +1096,7 @@ public:
       setDeferredEnviLight();
       TMatrix4 projTm;
       d3d::gettm(TM_PROJ, &projTm);
-      if (renderShadow)
+      if (render_shadow())
       {
         TMatrix4 globtm;
         d3d::getglobtm(globtm);
@@ -965,13 +1180,30 @@ public:
       ShaderGlobal::set_texture(local_light_probe_texVarId, *light_probe::getManagedTex(renderNoEnvRefl ? enviProbeBlack : enviProbe));
   }
 
-  void deferredRender(const TMatrix &view_tm, const TMatrix4 &proj_tm)
+  void deferredRender(const TMatrix &view_tm, const TMatrix4 &proj_tm, bool vr_mode)
   {
-    if (renderShadow)
+    static int global_frame_const_blockid = ShaderGlobal::getBlockId("global_const_block");
+    ShaderGlobal::setBlock(global_frame_const_blockid, ShaderGlobal::LAYER_GLOBAL_CONST);
+
+    if (render_shadow())
     {
       deferredCsm->renderShadowsCascades();
       prepareVSM();
     }
+
+    if (render_fom_shadow())
+      prepareFOM();
+    else
+      disableFOM();
+
+    auto deferredTarget = vr_mode ? vrResources.deferredTarget.get() : this->deferredTarget.get();                            //-V688
+    auto &resolvedDepth = vr_mode ? vrResources.resolvedDepth : this->resolvedDepth;                                          //-V688
+    auto &downsampledFarDepth = vr_mode ? vrResources.downsampledFarDepth : this->downsampledFarDepth;                        //-V688
+    auto &combinedShadowsTex = vr_mode ? vrResources.combinedShadowsTex : this->combinedShadowsTex;                           //-V688
+    auto sceneRt = vr_mode ? vrResources.sceneRt.getTex2D() : this->sceneRt;                                                  //-V688
+    bool renderSSR = vr_mode ? false : (bool)::renderSSR;                                                                     //-V688
+    auto ssao = vr_mode ? vrResources.ssao.get() : this->ssao.get();                                                          //-V688
+    auto upscaleSamplingRenderer = vr_mode ? vrResources.upscaleSamplingRenderer.get() : this->upscaleSamplingRenderer.get(); //-V688
 
     deferredTarget->setRt();
     d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
@@ -994,12 +1226,9 @@ public:
 
     ShaderGlobal::set_texture(combinedShadowsTex.getVarId(), BAD_TEXTUREID);
 
-    if (renderShadow && combinedShadowsTex && combinedShadowsRenderer.getMat())
+    if (render_shadow() && combinedShadowsTex && combinedShadowsRenderer.getMat())
     {
-      static int screenPosToTexcoordVarId = get_shader_variable_id("screen_pos_to_texcoord");
-
-      ShaderGlobal::set_color4(screenPosToTexcoordVarId, 1.f / deferredTarget->getWidth(), 1.f / deferredTarget->getHeight(), 0, 0);
-
+      deferredTarget->setVar();
       deferredCsm->setCascadesToShader();
       d3d::set_render_target(combinedShadowsTex.getTex2D(), 0);
       d3d::clearview(CLEAR_TARGET, 0xffffffff, 0, 0);
@@ -1007,7 +1236,7 @@ public:
       combinedShadowsRenderer.render();
       combinedShadowsTex.setVar();
     }
-    else if (renderShadow)
+    else if (render_shadow())
       deferredCsm->setCascadesToShader();
 
     deferredTarget->setRt();
@@ -1015,15 +1244,16 @@ public:
     // always downsample depth to downsampledFarDepth
     {
       deferredTarget->setVar();
-      UniqueTexHolder null_tex;
-      downsample_depth::downsample(deferredTarget->getDepthAll(), deferredTarget->getWidth(), deferredTarget->getHeight(),
-        downsampledFarDepth, null_tex, (renderSSR && downsampledNormals) ? downsampledNormals : null_tex, null_tex, null_tex);
-      downsampledFarDepth->texbordercolor(0xFFFFFFFF);
-      downsampledFarDepth->texfilter(TEXFILTER_POINT);
-      if (downsampledNormals)
-        downsampledNormals->texfilter(TEXFILTER_POINT);
+      TextureIDPair fullDepthPair = TextureIDPair(deferredTarget->getDepthAll().getTex2D(), deferredTarget->getDepthAll().getTexId());
+      TextureIDPair farDepthPair = TextureIDPair(downsampledFarDepth.getTex2D(), downsampledFarDepth.getTexId());
+      TextureIDPair normalPair = TextureIDPair(downsampledNormals.getTex2D(), downsampledNormals.getTexId());
+      TextureIDPair checkerDepthPair = TextureIDPair(checkerboardDepth.getTex2D(), checkerboardDepth.getTexId());
+
+      downsample_depth::downsamplePS(fullDepthPair, deferredTarget->getWidth(), deferredTarget->getHeight(), &farDepthPair, nullptr,
+        &normalPair, nullptr, &checkerDepthPair);
       downsampledFarDepth.setVar();
       downsampledNormals.setVar();
+      checkerboardDepth.setVar();
       if (upscaleSamplingRenderer)
         upscaleSamplingRenderer->render();
       if (renderSSAO)
@@ -1065,6 +1295,11 @@ public:
       ShaderGlobal::set_texture(get_shader_variable_id("ssao_tex", true), BAD_TEXTUREID);
     if (!renderSSR)
       ShaderGlobal::set_texture(get_shader_variable_id("ssr_target", true), blackTex.getTexId());
+
+    static int ao_ssrVarId = ::get_shader_glob_var_id("ao_ssr", true);
+    if (ao_ssrVarId >= 0)
+      ShaderGlobal::set_color4(ao_ssrVarId, (int)renderSSAO, (int)renderSSR, 0, 0);
+
     if (!tonemapLUT)
     {
       const char *mat1 = "render_full_tonemap", *mat2 = "compute_full_tonemap";
@@ -1079,15 +1314,42 @@ public:
     if (effects_depth_texVarId != -1)
       ShaderGlobal::set_texture(effects_depth_texVarId, deferredTarget->getDepthId());
 
+    ShaderGlobal::setBlock(global_frame_const_blockid, ShaderGlobal::LAYER_GLOBAL_CONST);
+
     deferredTarget->resolve(sceneRt, view_tm, proj_tm);
 
     d3d::set_render_target(sceneRt, 0);
     d3d::set_depth(deferredTarget->getDepth(), DepthAccess::SampledRO);
 
     renderGeomEnvi();
+
+    if (vr_mode)
+    {
+      renderGeomTrans();
+      return;
+    }
+
     d3d::stretch_rect(sceneRt, downsampledOpaqueTarget.getTex2D(), NULL, NULL);
     d3d::setwire(::grs_draw_wire);
     renderGeomTrans();
+
+    d3d::set_render_target({checkerboardDepth.getBaseTex(), 0}, DepthAccess::SampledRO, {{lowresFxTex.getBaseTex(), 0}});
+    d3d::clearview(CLEAR_TARGET, 0xFF000000, 0, 0);
+    if (effects_depth_texVarId != -1)
+      ShaderGlobal::set_texture(effects_depth_texVarId, checkerboardDepth.getTexId());
+
+    renderGeomEffects(true);
+
+    d3d::set_render_target({deferredTarget->getDepth(), 0}, DepthAccess::SampledRO, {{sceneRt, 0}});
+    if (effects_depth_texVarId != -1)
+      ShaderGlobal::set_texture(effects_depth_texVarId, deferredTarget->getDepthId());
+
+    static int lowres_fx_source_texVarId = ::get_shader_variable_id("lowres_fx_source_tex", /*optional*/ true);
+    ShaderGlobal::set_texture(lowres_fx_source_texVarId, lowresFxTex);
+    applyLowResFx.render();
+
+    renderGeomEffects();
+
     d3d::set_depth(deferredTarget->getDepth(), DepthAccess::RW);
 
     if (enable_wireframe)
@@ -1098,8 +1360,11 @@ public:
       if (!::grs_draw_wire)
         d3d::setwire(1);
 
-      d3d::set_render_target(wireframeTex.getTex2D(), 0);
-      d3d::clearview(CLEAR_TARGET, E3DCOLOR(255, 255, 255, 255), 0, 0);
+      if (wireframeTex)
+      {
+        d3d::set_render_target(wireframeTex.getTex2D(), 0);
+        d3d::clearview(CLEAR_TARGET, E3DCOLOR(255, 255, 255, 255), 0, 0);
+      }
 
       static int use_atestVarId = ::get_shader_variable_id("use_atest", true);
       int use_atest = ShaderGlobal::get_int(use_atestVarId);
@@ -1133,14 +1398,14 @@ public:
     d3d::settm(TM_PROJ, &savedProj);
 #endif
   }
-  virtual void getCascadeShadowAnchorPoint(float cascade_from, Point3 &out_anchor) { out_anchor = -::grs_cur_view.itm.getcol(3); }
+  virtual Point4 getCascadeShadowAnchor(int cascade_no) { return Point4::xyz0(-::grs_cur_view.itm.getcol(3)); }
   virtual void renderCascadeShadowDepth(int cascade_no, const Point2 &znzf)
   {
     d3d::settm(TM_VIEW, TMatrix::IDENT);
     d3d::settm(TM_PROJ, &deferredCsm->getWorldRenderMatrix(cascade_no));
     const TMatrix &shadowViewItm = deferredCsm->getShadowViewItm(cascade_no);
     windEffect.setNoAnimShaderVars(shadowViewItm.getcol(0), shadowViewItm.getcol(1), shadowViewItm.getcol(2));
-    if (renderShadow)
+    if (render_shadow())
       renderGeomForShadows();
     else
       d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 1, 0);
@@ -1187,7 +1452,7 @@ public:
 
       if (BaseTexture *bt = acquire_managed_tex(enviCubeTexId))
       {
-        renderEnviCubeTexture(bt, Color4(1, 1, 1, 1) * safeinv(ShaderGlobal::get_real_fast(hdr_overbrightGVarId)), Color4(0, 0, 0, 1));
+        renderEnviCubeTexture(bt, Color4(1, 1, 1, 1) * getExposure(), Color4(0, 0, 0, 1));
         release_managed_tex(enviCubeTexId);
       }
 
@@ -1242,8 +1507,13 @@ public:
       rendSrv[i]->renderGeometry(IRenderingService::STG_RENDER_STATIC_TRANS);
     for (int i = 0; i < rendSrv.size(); i++)
       rendSrv[i]->renderGeometry(IRenderingService::STG_RENDER_DYNAMIC_TRANS);
+  }
+  void renderGeomEffects(bool draw_lowres = false)
+  {
+    if (renderNoTransp)
+      return;
     for (int i = 0; i < rendSrv.size(); i++)
-      rendSrv[i]->renderGeometry(IRenderingService::STG_RENDER_FX);
+      rendSrv[i]->renderGeometry(draw_lowres ? IRenderingService::STG_RENDER_FX_LOWRES : IRenderingService::STG_RENDER_FX);
   }
   void renderGeomDistortionFx()
   {
@@ -1280,13 +1550,27 @@ public:
       rendSrv[i]->renderGeometry(IRenderingService::STG_RENDER_DYNAMIC_TRANS);
   }
 
-  void renderUI()
+  void renderUI(int client_rect_width, int client_rect_height)
   {
     TIME_D3D_PROFILE(imgui);
+
+    // Maybe just add a updateImgui call to IEditorCoreEngine?
+    IMainWindowImguiRenderingService *renderingService =
+      IEditorCoreEngine::get()->queryEditorInterface<IMainWindowImguiRenderingService>();
+    G_ASSERT_RETURN(renderingService, );
+
+    renderingService->beforeUpdateImgui();
+    imgui_update(client_rect_width, client_rect_height);
+    renderingService->updateImgui();
+
     for (int i = 0; i < rendSrv.size(); i++)
     {
       rendSrv[i]->renderUI();
     }
+
+    imgui_perform_registered(/*with_menu_bar = */ false);
+    imgui_endframe();
+    imgui_render();
   }
 
   void initVsm()
@@ -1352,7 +1636,7 @@ public:
     downsample_depth::init("downsample_depth2x");
     volFogCallback.init();
     noPfxResolve.init("deferred_no_postfx_resolve", true);
-    preIntegratedGF = render_preintegrated_fresnel_GGX("preIntegratedGF", PREINTEGRATE_SPECULAR_DIFFUSE_QUALTY_MAX);
+    preIntegratedGF = render_preintegrated_fresnel_GGX("preIntegratedGF", PREINTEGRATE_SPECULAR_DIFFUSE_QUALITY_MAX);
     reloadMicroDetails(blk);
 
     shaders::OverrideState state;
@@ -1398,6 +1682,13 @@ public:
     d3d::gettm(TM_PROJ, &projTm);
     deferredCsm->prepareShadowCascades(mode, Point3(0, -1, 0), ::grs_cur_view.tm, ::grs_cur_view.pos, projTm, Frustum(globtm),
       Point2(1, 15000), 1.f);
+
+    fomZDistance = blk.getInt("fom_z_distance", 80);
+    fomXyViewBoxSize = blk.getInt("fom_xy_distance", 128);
+    fomZViewBoxSize = blk.getInt("fom_height", 128);
+    fomTexSize = blk.getInt("fom_tex_sz", 256);
+    fomShadowsCos = dag::create_tex(nullptr, fomTexSize, fomTexSize, TEXCF_RTARGET | TEXFMT_A16B16G16R16F, 1, "fom_shadows_cos");
+    fomShadowsSin = dag::create_tex(nullptr, fomTexSize, fomTexSize, TEXCF_RTARGET | TEXFMT_A16B16G16R16F, 1, "fom_shadows_sin");
   }
 
   void initCommon()
@@ -1410,10 +1701,8 @@ public:
 
   void updateEnviProbe()
   {
-    float cur_hdr_overbr = ShaderGlobal::get_real_fast(hdr_overbrightGVarId);
-    float cur_max_hdr_overbr = ShaderGlobal::get_real_fast(max_hdr_overbrightGVarId);
-    ShaderGlobal::set_real_fast(hdr_overbrightGVarId, 1);
-    ShaderGlobal::set_real_fast(max_hdr_overbrightGVarId, 1);
+    float cur_exposure = getExposure();
+    setExposure(1.0f);
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
 
     static int zn_zfarVarId = get_shader_variable_id("zn_zfar", true);
@@ -1474,10 +1763,10 @@ public:
 
     d3d::set_render_target();
 
-    ShaderGlobal::set_real_fast(hdr_overbrightGVarId, cur_hdr_overbr);
-    ShaderGlobal::set_real_fast(max_hdr_overbrightGVarId, cur_max_hdr_overbr);
+    setExposure(cur_exposure);
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
     ShaderGlobal::set_texture(get_shader_variable_id("envi_probe_specular"), *light_probe::getManagedTex(enviProbe));
+    ShaderGlobal::set_sampler(get_shader_variable_id("envi_probe_specular_samplerstate"), d3d::request_sampler({}));
 
     // static int ord = 0;
     // save_cubetex_as_ddsx(light_probe::getManagedTex(enviProbe)->getCubeTex(),
@@ -1495,18 +1784,24 @@ public:
   {
     shaders::overrides::destroy(wireframeState);
     closeMicroDetails();
+    lowresFxTex.close();
     blackTex.close();
     downsampledNormals.close();
     downsampledFarDepth.close();
+    checkerboardDepth.close();
     downsampledOpaqueTarget.close();
     tonemapLUT.reset();
     ssr.reset();
     ssao.reset();
+    fomShadowsSin.close();
+    fomShadowsCos.close();
     if (vsm_allowed)
       vsm.close();
 
     droplets.close();
     downsample_depth::close();
+
+    imgui_shutdown();
   }
 
   void setRenderType(int t)
@@ -1541,11 +1836,20 @@ public:
       sceneFmt = 0;
       return;
     }
-    if (sceneRt && w == targetW && h == targetH && sceneFmt == hdr_render_format)
+
+    int vrWidth = 0, vrHeight = 0;
+    if (auto vrDevice = VRDevice::getInstance())
+      vrDevice->getViewResolution(vrWidth, vrHeight);
+
+    bool needVRInit = vrWidth && !vrResources.sceneRt;
+
+    if (sceneRt && !needVRInit && w == targetW && h == targetH && sceneFmt == hdr_render_format)
       return;
 
     del_d3dres(sceneRt);
     del_d3dres(postfxRt);
+
+    vrResources.teardown();
 
     {
       TextureInfo ti;
@@ -1564,6 +1868,18 @@ public:
         else
           debug("'%s' var not present, %s is not used", "combined_shadows", "combinedShadowsTex");
       }
+
+      if (vrWidth && !vrResources.combinedShadowsTex)
+        if (VariableMap::isGlobVariablePresent(get_shader_variable_id("combined_shadows", true)))
+          vrResources.combinedShadowsTex = UniqueTexHolder(
+            dag::create_tex(nullptr, vrWidth, vrHeight, TEXFMT_L8 | TEXCF_RTARGET, 1, "vr_combined_shadows"), "combined_shadows");
+    }
+
+    if (vrWidth)
+    {
+      vrResources.imguiTex = dag::create_tex(nullptr, w, h, TEXCF_RTARGET, 1, "imgui_tex");
+      vrgui::destroy_surface();
+      vrgui::init_surface(w, h, vrgui::SurfaceCurvature::VRGUI_SURFACE_PLANE);
     }
 
     if (rtype == RTYPE_DYNAMIC_DEFERRED)
@@ -1571,19 +1887,36 @@ public:
       deferredTarget.reset();
       ssao.reset();
       ssr.reset();
+      lowresFxTex.close();
       downsampledNormals.close();
       downsampledOpaqueTarget.close();
       downsampledFarDepth.close();
+      checkerboardDepth.close();
       volFogCallback.depthId = BAD_TEXTUREID;
     }
 
-    debug("recreate target %dx%d - > %dx%d (fmt=%p)", targetW, targetH, w, h, hdr_render_format);
+    static bool loggingEnabled = dgs_get_settings()->getBlockByNameEx("debug")->getBool("view_resizing_related_logging_enabled", true);
+    if (loggingEnabled)
+      debug("recreate target %dx%d - > %dx%d (fmt=%p)", targetW, targetH, w, h, hdr_render_format);
+
     targetW = w, targetH = h;
     sceneFmt = hdr_render_format;
+
+    static int screen_pos_to_texcoordVarId = ::get_shader_variable_id("screen_pos_to_texcoord");
+    ShaderGlobal::set_color4(screen_pos_to_texcoordVarId, 1.f / w, 1.f / h, 0, 0);
+    static int lowres_tex_sizeVarId = ::get_shader_variable_id("lowres_tex_size");
+    ShaderGlobal::set_color4(lowres_tex_sizeVarId, w / 2, h / 2, 1.0f / (w / 2), 1.0f / (h / 2));
+
     if (rtype == RTYPE_DYNAMIC_DEFERRED)
     {
       sceneRt = d3d::create_tex(NULL, w, h, TEXCF_RTARGET | deferredRtFmt, 1);
       postfxRt = d3d::create_tex(NULL, w, h, TEXCF_RTARGET | postfxRtFmt, 1);
+
+      if (vrWidth)
+      {
+        vrResources.sceneRt = dag::create_tex(NULL, vrWidth, vrHeight, TEXCF_RTARGET | deferredRtFmt, 1, "vr_sceneRt");
+        vrResources.postfxRt = dag::create_tex(NULL, vrWidth, vrHeight, TEXCF_RTARGET | postfxRtFmt, 1, "vr_postfxRt");
+      }
     }
     else
     {
@@ -1592,6 +1925,10 @@ public:
       fallbackSceneDepth = dag::create_tex(nullptr, w, h, TEXCF_RTARGET | TEXFMT_DEPTH32, 1, "scene_depth");
     }
     resolvedDepth = dag::create_tex(nullptr, w, h, TEXCF_RTARGET | TEXFMT_R32F, 1, "depth_tex");
+
+    if (vrWidth)
+      vrResources.resolvedDepth = dag::create_tex(nullptr, vrWidth, vrHeight, TEXCF_RTARGET | TEXFMT_R32F, 1, "depth_tex_vr");
+
     if (VariableMap::isGlobVariablePresent(get_shader_variable_id("wireframe_tex", true)))
       wireframeTex = dag::create_tex(nullptr, w, h, TEXCF_RTARGET | TEXFMT_A8R8G8B8, 1, "wireframe_tex");
     else
@@ -1625,20 +1962,30 @@ public:
     {
       deferredTarget = eastl::make_unique<DeferredRenderTarget>("deferred_shadow_to_buffer", "main", targetW, targetH,
         DeferredRT::StereoMode::MonoOrMultipass, 0, deferred_mrt_cnt, deferred_mrt_fmts, TEXFMT_DEPTH32);
-      debug("deferredRender: reinit for %dx%d", targetW, targetH);
+
+      if (loggingEnabled)
+        debug("deferredRender: reinit for %dx%d", targetW, targetH);
+
+      if (vrWidth)
+        vrResources.deferredTarget = eastl::make_unique<DeferredRenderTarget>("deferred_shadow_to_buffer", "vr", vrWidth, vrHeight,
+          DeferredRT::StereoMode::MonoOrMultipass, 0, deferred_mrt_cnt, deferred_mrt_fmts, TEXFMT_DEPTH32);
 
       int halfW = targetW / 2, halfH = h / 2;
-      ShaderGlobal::set_color4(::get_shader_variable_id("lowres_rt_params", true), halfW, halfH, HALF_TEXEL_OFSF / halfW,
-        HALF_TEXEL_OFSF / halfH);
+      ShaderGlobal::set_color4(::get_shader_variable_id("lowres_rt_params", true), halfW, halfH, 0, 0);
 
-      ssao = eastl::make_unique<SSAORenderer>(targetW / 2, targetH / 2, 1);
+      ssao = eastl::make_unique<SSAORenderer>(targetW / 2, targetH / 2, 1, SSAO_ALLOW_IMPLICIT_FLAGS_FROM_SHADER_ASSUMES);
       ssr = eastl::make_unique<ScreenSpaceReflections>(targetW / 2, targetH / 2);
+
+      if (vrWidth)
+        vrResources.ssao = eastl::make_unique<SSAORenderer>(vrWidth / 2, vrHeight / 2, 1,
+          SSAO_IMMEDIATE | SSAO_ALLOW_IMPLICIT_FLAGS_FROM_SHADER_ASSUMES, true, "vr_");
 
       uint16_t blackImg[4] = {1, 1, 0, 0};
       if (!blackTex)
         blackTex = dag::create_tex((TexImage32 *)blackImg, 1, 1, TEXCF_LOADONCE | TEXCF_SYSTEXCOPY, 1, "black_tex1x1");
 
       downsampledNormals = dag::create_tex(nullptr, targetW / 2, targetH / 2, TEXCF_RTARGET, 1, "downsampled_normals");
+      downsampledNormals->texfilter(TEXFILTER_POINT);
       downsampledNormals->texaddr(TEXADDR_CLAMP);
       downsampledNormals.setVar();
 
@@ -1647,17 +1994,44 @@ public:
       downsampledOpaqueTarget->texaddr(TEXADDR_CLAMP);
       downsampledOpaqueTarget.setVar();
 
+      lowresFxTex = dag::create_tex(nullptr, targetW / 2, targetH / 2, fmt | TEXCF_RTARGET, 1, "low_res_fx_rt");
+
       downsampledFarDepth =
         dag::create_tex(nullptr, targetW / 2, targetH / 2, TEXCF_RTARGET | TEXFMT_R32F, 1, "downsampled_far_depth_tex");
+      downsampledFarDepth->texfilter(TEXFILTER_POINT);
       downsampledFarDepth->texaddr(TEXADDR_BORDER);
       downsampledFarDepth->texbordercolor(0xFFFFFFFF);
       downsampledFarDepth.setVar();
-      volFogCallback.depthId = resolvedDepth.getTexId();
+
+      if (vrWidth)
+      {
+        vrResources.downsampledFarDepth = UniqueTexHolder(
+          dag::create_tex(nullptr, vrWidth / 2, vrHeight / 2, TEXCF_RTARGET | TEXFMT_R32F, 1, "downsampled_far_depth_tex_vr"),
+          "downsampled_far_depth_tex");
+        vrResources.downsampledFarDepth->texfilter(TEXFILTER_POINT);
+        vrResources.downsampledFarDepth->texaddr(TEXADDR_BORDER);
+        vrResources.downsampledFarDepth->texbordercolor(0xFFFFFFFF);
+        vrResources.downsampledFarDepth.setVar();
+      }
+
+      checkerboardDepth =
+        dag::create_tex(nullptr, targetW / 2, targetH / 2, TEXCF_RTARGET | TEXFMT_DEPTH32, 1, "downsampled_checkerboard_depth_tex");
+      checkerboardDepth->texfilter(TEXFILTER_POINT);
+      checkerboardDepth->texaddr(TEXADDR_BORDER);
+      checkerboardDepth->texbordercolor(0xFFFFFFFF);
+      checkerboardDepth.setVar();
 
       upscaleSamplingRenderer.reset();
       Ptr<ShaderMaterial> upscale_mat = new_shader_material_by_name_optional("upscale_sampling");
       if (upscale_mat)
+      {
         upscaleSamplingRenderer = eastl::make_unique<UpscaleSamplingTex>(targetW, targetH);
+
+        if (vrWidth)
+          vrResources.upscaleSamplingRenderer = eastl::make_unique<UpscaleSamplingTex>(vrWidth, vrHeight, "vr_");
+      }
+
+      applyLowResFx.init(upscale_mat ? "apply_lowres_fx" : "fast_apply_lowres_fx", /*optional*/ true);
     }
   }
 
@@ -1669,7 +2043,7 @@ public:
     if (!vsm_allowed)
       return;
 
-    if (!renderShadowVsm || !renderShadow)
+    if (!renderShadowVsm || !render_shadow())
       vsm.setOff();
     vsm.forceUpdate();
   }
@@ -1678,10 +2052,10 @@ public:
     if (rtype == RTYPE_CLASSIC)
       return;
 
-    if (renderShadow)
+    if (render_shadow())
       ddsx::tex_pack2_perform_delayed_data_loading();
-    rendinst::set_global_shadows_needed(renderShadow);
-    if (!renderShadow)
+    rendinst::set_global_shadows_needed(render_shadow());
+    if (!render_shadow())
       if (rtype == RTYPE_DYNAMIC_DEFERRED)
         deferredCsm->renderShadowsCascades();
     updateVsm();
@@ -2221,9 +2595,11 @@ private:
   bool srgb_backbuf_wr;
   eastl::unique_ptr<SSAORenderer> ssao;
   eastl::unique_ptr<ScreenSpaceReflections> ssr;
-  UniqueTexHolder downsampledNormals, downsampledOpaqueTarget, downsampledFarDepth;
+  UniqueTexHolder downsampledNormals, downsampledOpaqueTarget, downsampledFarDepth, checkerboardDepth;
+  UniqueTex lowresFxTex;
   UniqueTex blackTex;
   eastl::unique_ptr<UpscaleSamplingTex> upscaleSamplingRenderer;
+  PostFxRenderer applyLowResFx;
 
   PostFxUserSettings pfx;
   const DataBlock *pfxLevelBlk;
@@ -2266,6 +2642,11 @@ private:
   int vsmSz;
   float vsmMaxDist;
   Variance::VsmType vsmType;
+  float fomZDistance;
+  float fomXyViewBoxSize;
+  float fomZViewBoxSize;
+  float fomTexSize;
+  UniqueTexHolder fomShadowsCos, fomShadowsSin;
   DataBlock enviBlk;
   SunLightProps enviSlp;
   TEXTUREID enviCubeTexId;
@@ -2289,6 +2670,177 @@ private:
     }
   };
   ShaderBufData cubeData, voltexData, bkgData;
+
+private:
+  ///////////////////////////////////////////////////////////////////////////////
+  // VR rendering
+  ///////////////////////////////////////////////////////////////////////////////
+
+  struct VRRenderingResouces
+  {
+    eastl::unique_ptr<DeferredRenderTarget> deferredTarget;
+
+    UniqueTex sceneRt, postfxRt;
+    UniqueTex resolvedDepth;
+    UniqueTex imguiTex;
+    UniqueTexHolder downsampledFarDepth;
+    UniqueTexHolder combinedShadowsTex;
+
+    eastl::unique_ptr<SSAORenderer> ssao;
+
+    eastl::unique_ptr<UpscaleSamplingTex> upscaleSamplingRenderer;
+
+    void teardown()
+    {
+      deferredTarget.reset();
+      sceneRt.close();
+      postfxRt.close();
+      resolvedDepth.close();
+      imguiTex.close();
+      downsampledFarDepth.close();
+      combinedShadowsTex.close();
+      ssao.reset();
+      upscaleSamplingRenderer.reset();
+    }
+  } vrResources;
+
+  void toggleVrOnDemand()
+  {
+    if (!VRDevice::getInstance())
+    {
+      VRDevice::ApplicationData vrAppData;
+      vrAppData.name = "Dagor tools";
+      vrAppData.version = 1;
+      VRDevice::create(VRDevice::RenderingAPI::Default, vrAppData);
+
+      if (auto vrDevice = VRDevice::getInstance()) //-V547
+      {
+        vrDevice->getAdapterId();
+        if (!vrDevice->setRenderingDevice())
+          VRDevice::deleteInstance();
+      }
+    }
+    else
+    {
+      VRDevice::deleteInstance();
+      vrResources.teardown();
+      vrgui::destroy_surface();
+    }
+
+    const bool vrModeActive = VRDevice::getInstance() != nullptr;
+    if (imgui_window_is_visible("VR", "VR controls") != vrModeActive)
+      imgui_window_set_visible("VR", "VR controls", vrModeActive);
+
+    ImGui::GetIO().MouseDrawCursor = vrModeActive;
+  }
+
+  void renderVrGui(ViewportWindow *vpw)
+  {
+    // With free camera, we don't want to render GUI in VR
+    if (CCameraElem::getCamera() == CCameraElem::FREE_CAMERA)
+      return;
+
+    ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
+  }
+
+  void renderVRView(const VRDevice::FrameData &frame_data, StereoIndex stereo_index, const TMatrix &orig_cam_transform)
+  {
+    DAEDITOR3.setStereoIndex(stereo_index);
+
+    auto vrDevice = VRDevice::getInstance();
+
+    int width, height;
+    vrDevice->getViewResolution(width, height);
+
+    auto &target = frame_data.frameTargets[stereo_index == StereoIndex::Right ? 1 : 0];
+    auto &view = frame_data.views[stereo_index == StereoIndex::Right ? 1 : 0];
+    auto viewTransform = TMatrix(view.viewTransform);
+    auto cameraTransform = TMatrix(view.cameraTransform);
+    TMatrix4 projTransform;
+    d3d::calcproj(view.projection, projTransform);
+
+    d3d::settm(TM_VIEW, viewTransform);
+    d3d::setpersp(view.projection);
+
+    ::grs_cur_view.tm = viewTransform;
+    ::grs_cur_view.itm = cameraTransform;
+    ::grs_cur_view.pos = cameraTransform.getcol(3);
+
+    beforeRender();
+    d3d::set_render_target(vrResources.sceneRt.getTex2D(), 0);
+    d3d::set_depth(nullptr, DepthAccess::RW);
+    d3d::setview(0, 0, width, height, 0, 1);
+    d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(64, 64, 64, 0), 0, 0);
+
+    deferredRender(viewTransform, projTransform, true);
+
+    if (use_heat_haze)
+      heat_haze_glue.render();
+
+    bool use_postfx = (::hdr_render_mode != HDR_MODE_NONE) && postFx && !renderNoPostfx;
+
+    Texture *finalRt = resolvePostProcessing(use_postfx, true);
+
+    IEditorCoreEngine::get()->renderObjects();
+    IEditorCoreEngine::get()->renderTransObjects();
+
+    d3d_err(d3d::stretch_rect(finalRt, target.getTex2D(), NULL, NULL));
+
+    if (CCameraElem::getCamera() != CCameraElem::FREE_CAMERA)
+    {
+      TMatrix rotY;
+      rotY.rotyTM(-PI / 2);
+      d3d::settm(TM_WORLD, orig_cam_transform * rotY);
+      d3d::set_render_target(target.getTex2D(), 0);
+      vrgui::render_to_surface(vrResources.imguiTex.getTexId());
+      d3d::settm(TM_WORLD, TMatrix::IDENT);
+    }
+  }
+
+  void renderVr(ViewportWindow *vpw)
+  {
+    auto vrDevice = VRDevice::getInstance();
+
+    auto dummyCallback = [](VRDevice::Session) { return true; };
+    vrDevice->tick(dummyCallback);
+
+    constexpr int view_config_count = 3;
+    static VRDevice::FrameData view_configs[view_config_count];
+    static int active_view_config = 0;
+
+    active_view_config = (active_view_config + 1) % view_config_count;
+    auto &vrViewConfig = view_configs[active_view_config];
+
+    float znear, zfar;
+    vpw->getZnearZfar(znear, zfar);
+    if (vrDevice->isActive() && vrDevice->prepareFrame(vrViewConfig, znear, zfar))
+    {
+      TMatrix camTransform;
+      vpw->getCameraTransform(camTransform);
+      TMatrix4D camTransformD = camTransform;
+
+      auto setUpView = [&camTransformD](VRDevice::FrameData::ViewData &view) {
+        view.cameraTransform *= camTransformD;
+        view.viewTransform = orthonormalized_inverse(view.cameraTransform);
+      };
+
+      for (int viewIx = 0; viewIx < 2; ++viewIx)
+        setUpView(vrViewConfig.views[viewIx]);
+
+      setUpView(vrViewConfig.boundingView);
+
+      vrDevice->beginFrame(vrViewConfig);
+
+      for (auto index : {StereoIndex::Left, StereoIndex::Right})
+        renderVRView(vrViewConfig, index, camTransform);
+
+      DAEDITOR3.setStereoIndex(StereoIndex::Mono);
+
+      BaseTexture *sa[] = {vrViewConfig.frameTargets[0].getBaseTex(), vrViewConfig.frameTargets[1].getBaseTex(),
+        vrViewConfig.frameDepths[0].getBaseTex(), vrViewConfig.frameDepths[1].getBaseTex()};
+      d3d::driver_command(Drv3dCommand::PREPARE_TEXTURES_FOR_VR_CONSUMPTION, sa, (void *)4);
+    }
+  }
 };
 
 class GenericDynRenderService : public IDynRenderService
@@ -2314,6 +2866,7 @@ public:
     memset(dynRendOpt, 0, sizeof(dynRendOpt));
     dynRendOpt[ROPT_SHADOWS] = &renderShadow;
     dynRendOpt[ROPT_SHADOWS_VSM] = &renderShadowVsm;
+    dynRendOpt[ROPT_SHADOWS_FOM] = &renderShadowFom;
     dynRendOpt[ROPT_WATER_REFL] = &renderWater;
     dynRendOpt[ROPT_ENVI_ORDER] = &renderEnvironmentFirst;
     dynRendOpt[ROPT_SSAO] = &renderSSAO;
@@ -2470,6 +3023,7 @@ public:
   {
     if (dynScene)
     {
+      d3d::GpuAutoLock gpuLock;
       dynScene->afterD3DReset(full_reset);
       dynScene->reInitCsm(shadowQualityProps.size() ? shadowQualityProps[shadowQuality] : NULL);
     }
@@ -2477,6 +3031,7 @@ public:
 
   virtual void renderViewportFrame(ViewportWindow *vpw)
   {
+    d3d::GpuAutoLock gpuLock;
     if (dynScene && vpw)
       dynScene->renderViewportFrame(vpw, true);
     else if (dynScene)
@@ -2501,21 +3056,23 @@ public:
 
   virtual void renderFramesToGetStableAdaptation(float max_da, int max_frames)
   {
-    if (renderNoPostfx || !dynScene)
-      return;
-
-    float cur_ob = ShaderGlobal::get_real_fast(hdr_overbrightGVarId);
-    while (max_frames)
-    {
-      renderViewportFrame(NULL);
-      float new_ob = ShaderGlobal::get_real_fast(hdr_overbrightGVarId);
-      // debug("renderFramesToGetStableAdaptation: %d frames left, a=%.3f da=%.3f max_a=%.3f",
-      //   max_frames, cur_ob, new_ob-cur_ob, max_da);
-      if (fabsf(new_ob - cur_ob) < max_da)
-        break;
-      cur_ob = new_ob;
-      max_frames--;
-    }
+    // NOTE: ImGui porting: with the current continuous rendering this seems unnecessary and causes a crash in the Environment settings
+    // dialog.
+    //     if (renderNoPostfx || !dynScene)
+    //       return;
+    //
+    //     float cur_exposure = getExposure();
+    //     while (max_frames)
+    //     {
+    //       renderViewportFrame(NULL);
+    //       float new_exposure = getExposure();
+    //       // debug("renderFramesToGetStableAdaptation: %d frames left, a=%.3f da=%.3f max_a=%.3f",
+    //       //   max_frames, cur_ob, new_ob-cur_ob, max_da);
+    //       if (fabsf(new_exposure - cur_exposure) < max_da)
+    //         break;
+    //       cur_exposure = new_exposure;
+    //       max_frames--;
+    //     }
   }
 
   virtual void enableFrameProfiler(bool enable)
@@ -2564,6 +3121,7 @@ public:
   {
     if (ropt < 0 || ropt >= ROPT_COUNT)
       return;
+    d3d::GpuAutoLock gpuLock;
     *dynRendOpt[ropt] = enable;
     if (*dynRendOpt[ropt] == enable)
       switch (ropt)
@@ -2573,8 +3131,7 @@ public:
       }
     if (ropt == ROPT_NO_POSTFX && !enable)
     {
-      ShaderGlobal::set_real_fast(hdr_overbrightGVarId, ::hdr_max_overbright);
-      ShaderGlobal::set_real_fast(max_hdr_overbrightGVarId, ::hdr_max_overbright);
+      setExposure(1.0f);
     }
   }
   virtual bool getRenderOptEnabled(int ropt)
@@ -2596,6 +3153,7 @@ public:
       return;
     shadowQuality = q;
 
+    d3d::GpuAutoLock gpuLock;
     if (dynScene)
       dynScene->reInitCsm(shadowQualityProps.size() ? shadowQualityProps[q] : NULL);
   }
@@ -2648,6 +3206,8 @@ public:
 
   virtual const ManagedTex &getDownsampledFarDepth() override { return dynScene->getDownsampledFarDepth(); }
 
+  virtual void toggleVrMode() override { dynScene->toggleVrMode(); }
+
   static void render_viewport_frame(ViewportWindow *vpw);
 };
 
@@ -2661,3 +3221,80 @@ void *get_generic_dyn_render_service()
   set_tonemap_changed_callback([] { srv.onTonemapSettingsChanged(); });
   return &srv;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// VR GUI rendering
+///////////////////////////////////////////////////////////////////////////////
+#ifdef TOOLS_HAVE_VR
+
+extern ISkiesService *av_skies_srv;
+extern SimpleString av_skies_preset, av_skies_env, av_skies_wtype;
+
+static void vr_controls_window()
+{
+  Tab<String> preset(midmem), env(midmem), wtype(midmem);
+  av_skies_srv->fillPresets(preset, env, wtype);
+
+  const char *newPreset = nullptr;
+  const char *newEnv = nullptr;
+  const char *newWtype = nullptr;
+
+  ImGui::Text("Weather presets");
+  if (ImGui::BeginListBox("##preset", ImVec2(-FLT_MIN, 0)))
+  {
+    for (auto &p : preset)
+    {
+      auto displayName = p;
+      auto lastDash = displayName.find('/', nullptr, false);
+      if (lastDash)
+        displayName.erase(displayName.begin(), lastDash + 1);
+
+      bool selected = strcmp(p.data(), av_skies_preset.c_str()) == 0;
+      if (ImGui::Selectable(displayName, &selected))
+        newPreset = p;
+    }
+    ImGui::EndListBox();
+  }
+
+  ImGui::Text("Environment types");
+  if (ImGui::BeginListBox("##env", ImVec2(-FLT_MIN, 0)))
+  {
+    for (auto &e : env)
+    {
+      bool selected = strcmp(e.data(), av_skies_env.c_str()) == 0;
+      if (ImGui::Selectable(e, &selected))
+        newEnv = e;
+    }
+    ImGui::EndListBox();
+  }
+
+  ImGui::Text("Weather types");
+  if (ImGui::BeginListBox("##wtype", ImVec2(-FLT_MIN, 0)))
+  {
+    for (auto &t : wtype)
+    {
+      bool selected = strcmp(t.data(), av_skies_wtype.c_str()) == 0;
+      if (ImGui::Selectable(t, &selected))
+        newWtype = t;
+    }
+    ImGui::EndListBox();
+  }
+
+  ImGui::Checkbox("Enable shadows", &render_vr_shadows);
+
+  if (newPreset || newEnv || newWtype)
+  {
+    if (newPreset)
+      av_skies_preset = newPreset;
+    if (newEnv)
+      av_skies_env = newEnv;
+    if (newWtype)
+      av_skies_wtype = newWtype;
+
+    av_skies_srv->setWeather(av_skies_preset, av_skies_env, av_skies_wtype);
+  }
+}
+
+REGISTER_IMGUI_WINDOW("VR", "VR controls", vr_controls_window);
+
+#endif

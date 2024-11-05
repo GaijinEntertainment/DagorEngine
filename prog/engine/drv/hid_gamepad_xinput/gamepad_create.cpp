@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "gamepad_classdrv.h"
 
-#include <humanInput/dag_hiCreate.h>
+#include <drv/hid/dag_hiCreate.h>
 
 using namespace HumanInput;
 

@@ -1,0 +1,18 @@
+Root    ?= ../../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/imGuiProfiler/stub ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/imGuiProfiler.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  imGuiProfilerStub.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

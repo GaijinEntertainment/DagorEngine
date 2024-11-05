@@ -13,7 +13,7 @@
 #include <EASTL/type_traits.h>
 #include <EASTL/initializer_list.h>
 #include <EASTL/memory.h>
-#if defined(_MSC_VER) && (EA_PROCESSOR_X86_64 || EA_PROCESSOR_X86)
+#if defined(_MSC_VER) && (EA_PROCESSOR_X86_64 || EA_PROCESSOR_X86 || EA_PROCESSOR_ARM64)
 #include <intrin.h>
 #endif
 
@@ -836,6 +836,12 @@ protected:
     template<typename Key, typename... Args>
     SKA_NOINLINE(eastl::pair<iterator, bool>) emplace_new_key(int8_t distance_from_desired, EntryPointer current_entry, Key && key, Args &&... args)
     {
+        // Workaround for a Clang bug that if there is no instantiation of a type,
+        // than the debug info will be skipped from PDB, and the entries can't be visualized
+#if defined(__clang__) && defined(_WIN32)
+        [] { [[maybe_unused]] Entry dummy_entry; }();
+#endif
+
         using eastl::swap;
         if (num_slots_minus_one == 0 || distance_from_desired == max_lookups || num_elements + 1 > hash_size_t(float(num_slots_minus_one + 1) * _max_load_factor))
         {
@@ -1120,6 +1126,7 @@ public:
     template <typename U, typename UHash, typename BinaryPredicate>
     typename Table::iterator find_as(const U& key, UHash uhash, BinaryPredicate predicate)
     {
+        static_assert(!eastl::is_same_v<U, K>, "Use `find` method for searching with this key type"); // This prevents accidental value copying
         hash_size_t index = Table::hash_policy.index_for_hash(uhash(key), Table::num_slots_minus_one);
         typename Table::EntryPointer it = Table::entries + ptrdiff_t(index);
         for (int8_t distance = 0; it->distance_from_desired >= distance; ++distance, ++it)
@@ -1213,6 +1220,7 @@ public:
     template <typename U, typename UHash, typename BinaryPredicate>
     typename Table::iterator find_as(const U& key, UHash uhash, BinaryPredicate predicate)
     {
+        static_assert(!eastl::is_same_v<U, T>, "Use `find` method for searching with this key type"); // This prevents accidental value copying
         hash_size_t index = Table::hash_policy.index_for_hash(uhash(key), Table::num_slots_minus_one);
         typename Table::EntryPointer it = Table::entries + ptrdiff_t(index);
         for (int8_t distance = 0; it->distance_from_desired >= distance; ++distance, ++it)

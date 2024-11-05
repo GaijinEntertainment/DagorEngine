@@ -1,7 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_debug3d.h>
 #include <debug/dag_debug3dStates.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3d_platform.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_shader.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_platform.h>
 #include <3d/dag_render.h>
 #include <math/dag_geomTree.h>
 #include <math/dag_capsule.h>
@@ -41,6 +47,8 @@ void draw_cached_debug_capsule_w(const Capsule &, E3DCOLOR) {}
 void draw_cached_debug_capsule_l(const Capsule &, E3DCOLOR) {}
 void draw_cached_debug_capsule(const Capsule &, E3DCOLOR, const TMatrix &) {}
 void draw_cached_debug_cylinder(const TMatrix &, float, float, E3DCOLOR) {}
+void draw_cached_debug_cylinder(const TMatrix &, Point3 &, Point3 &, float, E3DCOLOR) {}
+void draw_cached_debug_cylinder_w(Point3 &, Point3 &, float, E3DCOLOR) {}
 void draw_cached_debug_cone(const Point3 &, const Point3 &, real, E3DCOLOR, int) {}
 
 void draw_cached_debug_trilist(const Point3 *, int, E3DCOLOR) {}
@@ -408,6 +416,14 @@ void draw_cached_debug_box(const Point3 &p0, const Point3 &ax, const Point3 &ay,
   draw_cached_debug_line(p0 + ay + az, p0 + ax + ay + az, color);
 }
 
+void draw_cached_debug_box(const BBox3 &box, E3DCOLOR color, TMatrix tm)
+{
+  const Point3 p0 = tm * box[0];
+  const Point3 p1x = tm * Point3(box[1].x, box[0].y, box[0].z);
+  const Point3 p1y = tm * Point3(box[0].x, box[1].y, box[0].z);
+  const Point3 p1z = tm * Point3(box[0].x, box[0].y, box[1].z);
+  draw_cached_debug_box(p0, p1x - p0, p1y - p0, p1z - p0, color);
+}
 
 void draw_cached_debug_sphere(const Point3 &c, real rad, E3DCOLOR col, int segs)
 {
@@ -562,6 +578,68 @@ void draw_cached_debug_cylinder(const TMatrix &tm, float rad, float height, E3DC
     draw_cached_debug_line(tm * pos00, tm * pos01, c);
     draw_cached_debug_line(tm * pos10, tm * pos11, c);
     draw_cached_debug_line(tm * pos00, tm * pos10, c);
+  }
+}
+
+void draw_cached_debug_cylinder(const TMatrix &tm, Point3 &a, Point3 &b, float rad, E3DCOLOR c)
+{
+  Point3 axis = normalize(a - b);
+  Point3 up(0, 1, 0);
+  Point3 diff = axis - up;
+  if (abs(diff.x) < FLT_EPSILON && abs(diff.y) < FLT_EPSILON && abs(diff.z) < FLT_EPSILON)
+    up = Point3(1, 0, 0);
+
+  Point3 perp_x = normalize(cross(axis, up));
+  Point3 perp_z = normalize(cross(axis, perp_x));
+  real height = length(a - b);
+
+  constexpr int numSegments = 32;
+  float invNumSegments = 1.f / float(numSegments);
+  for (int i = 0; i < numSegments; ++i)
+  {
+    Point3 pos00 = sinf((i + 0) * invNumSegments * TWOPI) * rad * perp_x - height * 0.5f * axis +
+                   cosf((i + 0) * invNumSegments * TWOPI) * rad * perp_z;
+    Point3 pos01 = sinf((i + 1) * invNumSegments * TWOPI) * rad * perp_x - height * 0.5f * axis +
+                   cosf((i + 1) * invNumSegments * TWOPI) * rad * perp_z;
+    Point3 pos10 = sinf((i + 0) * invNumSegments * TWOPI) * rad * perp_x + height * 0.5f * axis +
+                   cosf((i + 0) * invNumSegments * TWOPI) * rad * perp_z;
+    Point3 pos11 = sinf((i + 1) * invNumSegments * TWOPI) * rad * perp_x + height * 0.5f * axis +
+                   cosf((i + 1) * invNumSegments * TWOPI) * rad * perp_z;
+    draw_cached_debug_line(tm * pos00, tm * pos01, c);
+    draw_cached_debug_line(tm * pos10, tm * pos11, c);
+    draw_cached_debug_line(tm * pos00, tm * pos10, c);
+  }
+}
+
+void draw_cached_debug_cylinder_w(Point3 &a, Point3 &b, float rad, E3DCOLOR c)
+{
+  Point3 axis = normalize(a - b);
+  Point3 up(0, 1, 0);
+  Point3 diff = axis - up;
+  if (abs(diff.x) < FLT_EPSILON && abs(diff.y) < FLT_EPSILON && abs(diff.z) < FLT_EPSILON)
+    up = Point3(1, 0, 0);
+
+  Point3 perp_x = normalize(cross(axis, up));
+  Point3 perp_z = normalize(cross(axis, perp_x));
+  real height = length(a - b);
+
+  Point3 middle = (a + b) * 0.5;
+
+  constexpr int numSegments = 32;
+  float invNumSegments = 1.f / float(numSegments);
+  for (int i = 0; i < numSegments; ++i)
+  {
+    Point3 pos00 = middle + sinf((i + 0) * invNumSegments * TWOPI) * rad * perp_x - height * 0.5f * axis +
+                   cosf((i + 0) * invNumSegments * TWOPI) * rad * perp_z;
+    Point3 pos01 = middle + sinf((i + 1) * invNumSegments * TWOPI) * rad * perp_x - height * 0.5f * axis +
+                   cosf((i + 1) * invNumSegments * TWOPI) * rad * perp_z;
+    Point3 pos10 = middle + sinf((i + 0) * invNumSegments * TWOPI) * rad * perp_x + height * 0.5f * axis +
+                   cosf((i + 0) * invNumSegments * TWOPI) * rad * perp_z;
+    Point3 pos11 = middle + sinf((i + 1) * invNumSegments * TWOPI) * rad * perp_x + height * 0.5f * axis +
+                   cosf((i + 1) * invNumSegments * TWOPI) * rad * perp_z;
+    draw_cached_debug_line(pos00, pos01, c);
+    draw_cached_debug_line(pos10, pos11, c);
+    draw_cached_debug_line(pos00, pos10, c);
   }
 }
 

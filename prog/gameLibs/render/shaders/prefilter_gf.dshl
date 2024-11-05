@@ -4,16 +4,15 @@ include "shader_global.dshl"
 hlsl {
 #include "BRDF.hlsl"
 #include "monteCarlo.hlsl"
-#include "scrambleTea.hlsl"
+#include "pcg_hash.hlsl"
 #include "hammersley.hlsl"
 }
 
+int preintegrated_envi_frame = -1;
+interval preintegrated_envi_frame : single < 0, first < 1, multiple;
+
 shader preintegrateEnvi
 {
-  no_ablend;
-  //USE_ROUGH_TO_MIP()
-  color_write = rgb;
-
   cull_mode = none;
   z_write = false;
   z_test = false;
@@ -39,11 +38,42 @@ shader preintegrateEnvi
       return output;
     }
   }
+  if (preintegrated_envi_frame == multiple)
+  {
+    (ps) {
+      preintegrated_envi_frame@i1 = preintegrated_envi_frame;
+    }
+    color_write = rg;
+    blend_src = sa;
+    blend_dst = isa;
+  } else
+  {
+    no_ablend;
+    color_write = rgb;
+  }
 
   //use PS4_DEF_TARGET_FMT_UNORM16_ABGR() with G16R16
 
   hlsl(ps) {
-    float3 preintegrateBRDF( uint2 Random, float linear_roughness, float NoV )
+    ##if preintegrated_envi_frame == single
+      #define preintegrated_envi_frame 0
+      #define VARIABLE_SAMPLES 1
+      #define NEED_DIFFUSE 1
+      #define RANDOM 0
+      #define ret_type result_float3
+      #define make_ret_type make_result_float3
+    ##elif preintegrated_envi_frame == first
+      #define preintegrated_envi_frame 0
+      #define NEED_DIFFUSE 1
+      #define RANDOM 0
+      #define ret_type result_float3
+      #define make_ret_type make_result_float3
+    ##else
+      #define RANDOM 1
+      #define ret_type float4
+      float4 make_ret_type(float3 v) {return float4(v, 1./(preintegrated_envi_frame+1));}
+    ##endif
+    float3 preintegrateBRDF( uint2 rand, float linear_roughness, float NoV )
     {
       float3 V;
       float linearRoughness = linear_roughness;
@@ -55,20 +85,37 @@ shader preintegrateEnvi
       float A = 0;
       float B = 0;
       float diffuseFresnel = 0;
-
-      #define MIN_NUM_FILTER_SAMPLES 64//32
-      #define MAX_NUM_FILTER_SAMPLES 1024//64 for perf
       #define loop_uint uint
 
-      loop_uint NUM_FILTER_SAMPLES = MIN_NUM_FILTER_SAMPLES+(MAX_NUM_FILTER_SAMPLES-MIN_NUM_FILTER_SAMPLES)*(1-NoV);
+      #if VARIABLE_SAMPLES
+        #define MIN_NUM_FILTER_SAMPLES_BITS 6
+        #define MAX_NUM_FILTER_SAMPLES_BITS 10
+        #define MIN_NUM_FILTER_SAMPLES (1<<MIN_NUM_FILTER_SAMPLES_BITS)
+        #define MAX_NUM_FILTER_SAMPLES (1<<MAX_NUM_FILTER_SAMPLES_BITS)
+
+        //loop_uint NUM_FILTER_SAMPLES = 4096;//MIN_NUM_FILTER_SAMPLES+(MAX_NUM_FILTER_SAMPLES-MIN_NUM_FILTER_SAMPLES)*(1-(NoV));
+        //loop_uint NUM_FILTER_SAMPLES = MIN_NUM_FILTER_SAMPLES+(MAX_NUM_FILTER_SAMPLES-MIN_NUM_FILTER_SAMPLES)*linear_roughness;
+        //loop_uint NUM_FILTER_SAMPLES = 1u<<uint((lerp(MIN_NUM_FILTER_SAMPLES_BITS, MAX_NUM_FILTER_SAMPLES_BITS, max(1-NoV, linear_roughness)) + 0.5));
+        loop_uint NUM_FILTER_SAMPLES = MIN_NUM_FILTER_SAMPLES+(MAX_NUM_FILTER_SAMPLES-MIN_NUM_FILTER_SAMPLES)*max(1-NoV, linear_roughness);
+      #else
+        //this is actually converges only at 1024-2048 samples.
+        //so, instead of trying to achieve final result immediately, we can use multi-frame convergence. 128 samples * 64frames will give us a lot of samples samples
+        loop_uint NUM_FILTER_SAMPLES = 128;
+      #endif
 
       LOOP
       for( loop_uint i = 0; i < NUM_FILTER_SAMPLES; i++ )
       {
-        float2 E = hammersley( uint(i), NUM_FILTER_SAMPLES, Random );
+        #if RANDOM
+          float2 E = hammersley_rand16( uint(i), NUM_FILTER_SAMPLES, rand );
+        #else
+          float2 E = hammersley(uint(i), NUM_FILTER_SAMPLES);
+        #endif
 
         {
           float3 H = importance_sample_GGX_NDF( E, linearRoughness ).xyz;
+          if (linearRoughness < 0.9/32)// as smooth as it gets. No need for importanse sampling, which became unstable
+            H  = float3(0,0,1);
           float3 L = 2 * dot( V, H ) * H - V;
 
           float NoL = saturate( L.z );
@@ -85,7 +132,14 @@ shader preintegrateEnvi
             B += Fc * NoL_Vis_PDF;
           }
         }
+      }
+      #define NUM_DIFFUSE_FILTER_SAMPLES 32
+      #if NEED_DIFFUSE
+        LOOP
+        for( loop_uint di = 0; di < NUM_DIFFUSE_FILTER_SAMPLES; di++ )
         {
+          //float2 E = hammersley_rand16( uint(di), NUM_DIFFUSE_FILTER_SAMPLES, rand&0xFFFF );
+          float2 E = hammersley(uint(di), NUM_DIFFUSE_FILTER_SAMPLES);
           float3 L = cosine_sample_hemisphere( E ).xyz;
           float3 H = normalize(V + L);
           float NdotL = saturate( L.z );
@@ -95,16 +149,20 @@ shader preintegrateEnvi
           // diffuse Disney preIntegration
           diffuseFresnel += BRDF_diffuse(1, linearRoughness, NoV, NdotL, VdotH, NdotH).x;
         }
-      }
-      return float3( A, B, diffuseFresnel ) * (1.0f/NUM_FILTER_SAMPLES);
+      #endif
+      return float3(float2( A, B ) * (1.0f/NUM_FILTER_SAMPLES), diffuseFresnel*(1.f/NUM_DIFFUSE_FILTER_SAMPLES));
     }
 
-    result_float3 integrate_ps(VsOutput In HW_USE_SCREEN_POS): SV_Target0
+    ret_type integrate_ps(VsOutput In HW_USE_SCREEN_POS): SV_Target0
     {
       float4 screenpos = GET_SCREEN_POS(In.pos);
-      uint2 Random = scramble_TEA( uint2(screenpos.xy) );
-      float2 tc = (floor(screenpos.xy)+0.5)/float2(128.0, 32.0);
-      return make_result_float3(preintegrateBRDF( Random, tc.y, tc.x));
+      #if RANDOM
+      uint2 rand = pcg3d_hash_16bit(uint3(screenpos.xy, preintegrated_envi_frame)).xy;
+      #else
+      uint2 rand = 0;
+      #endif
+      float2 tc = (floor(screenpos.xy)+0.5)/float2(128.0, 32.0);//resolution must match same in cpp
+      return make_ret_type(preintegrateBRDF( rand, tc.y, tc.x));
     }
   }
   compile("target_vs", "integrate_vs");

@@ -1,5 +1,9 @@
-#include "device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "pipeline_state.h"
+#include "globals.h"
+#include "pipeline/manager.h"
+#include "memory_heap_resource.h"
 
 namespace drv3d_vulkan
 {
@@ -12,6 +16,9 @@ bool PipelineState::handleObjectRemoval(Buffer *object)
   using VBField = StateFieldGraphicsVertexBuffers;
   using VBBind = StateFieldGraphicsVertexBufferBind;
   bool ret = false;
+
+  if (object->isFrameMemReferencedAtRemoval())
+    ret |= true;
 
   VBBind *vbinds = &get<VBField, VBBind, FrontGraphicsState>();
   for (uint32_t i = 0; i < MAX_VERTEX_INPUT_STREAMS; ++i)
@@ -28,6 +35,10 @@ bool PipelineState::handleObjectRemoval(Buffer *object)
   }
 
   ret |= handleObjectRemovalInResBinds(object);
+
+  if (ret && object->mayAlias())
+    object->releaseHeapEarly(object->getDebugName());
+
   return ret;
 }
 
@@ -44,7 +55,10 @@ bool PipelineState::handleObjectRemoval(Image *object)
 {
   FrontFramebufferState &fb = get<FrontFramebufferState, FrontFramebufferState, FrontGraphicsState>();
   FrontRenderPassState &rp = get<FrontRenderPassState, FrontRenderPassState, FrontGraphicsState>();
-  return fb.handleObjectRemoval(object) || rp.handleObjectRemoval(object) || handleObjectRemovalInResBinds(object);
+  bool ret = fb.handleObjectRemoval(object) || rp.handleObjectRemoval(object) || handleObjectRemovalInResBinds(object);
+  if (ret && object->mayAlias())
+    object->releaseHeapEarly(object->getDebugName());
+  return ret;
 }
 
 template <>
@@ -58,12 +72,12 @@ bool PipelineState::handleObjectRemoval(ProgramID object)
   {
     if (get<StateFieldGraphicsProgram, ProgramID, FrontGraphicsState>() == object)
     {
-      // logerr("vulkan: removing active graphics program %u", object.get());
+      // D3D_ERROR("vulkan: removing active graphics program %u", object.get());
       set<StateFieldGraphicsProgram, ProgramID, FrontGraphicsState>(ProgramID::Null());
       ret |= true;
     }
 
-    if (get_device().pipeMan.get<VariatedGraphicsPipeline>(object).pendingCompilation())
+    if (Globals::pipelines.get<VariatedGraphicsPipeline>(object).pendingCompilation())
       ret |= true;
   }
 
@@ -71,12 +85,12 @@ bool PipelineState::handleObjectRemoval(ProgramID object)
   {
     if (get<StateFieldComputeProgram, ProgramID, FrontComputeState>() == object)
     {
-      // logerr("vulkan: removing active compute program %u", object.get());
+      // D3D_ERROR("vulkan: removing active compute program %u", object.get());
       set<StateFieldComputeProgram, ProgramID, FrontComputeState>(ProgramID::Null());
       ret |= true;
     }
 
-    if (get_device().pipeMan.get<ComputePipeline>(object).pendingCompilation())
+    if (Globals::pipelines.get<ComputePipeline>(object).pendingCompilation())
       ret |= true;
   }
 
@@ -107,6 +121,9 @@ bool PipelineState::isReferenced(Buffer *object) const
   using VBBind = StateFieldGraphicsVertexBufferBind;
   const VBBind *vbinds = &getRO<VBField, VBBind, FrontGraphicsState>();
 
+  if (object->isFrameMemReferencedAtRemoval())
+    return true;
+
   for (uint32_t i = 0; i < MAX_VERTEX_INPUT_STREAMS; ++i)
     if (vbinds[i].bRef.buffer == object)
       return true;
@@ -125,7 +142,7 @@ bool PipelineState::isReferenced(ProgramID object) const
   {
     if (getRO<StateFieldGraphicsProgram, ProgramID, FrontGraphicsState>() == object)
       return true;
-    if (get_device().pipeMan.get<VariatedGraphicsPipeline>(object).pendingCompilation())
+    if (Globals::pipelines.get<VariatedGraphicsPipeline>(object).pendingCompilation())
       return true;
   }
 
@@ -134,7 +151,7 @@ bool PipelineState::isReferenced(ProgramID object) const
     if (getRO<StateFieldComputeProgram, ProgramID, FrontComputeState>() == object)
       return true;
 
-    if (get_device().pipeMan.get<ComputePipeline>(object).pendingCompilation())
+    if (Globals::pipelines.get<ComputePipeline>(object).pendingCompilation())
       return true;
   }
 
@@ -154,6 +171,12 @@ template <>
 bool PipelineState::isReferenced(SamplerResource *object) const
 {
   return isReferencedByResBinds(object);
+}
+
+template <>
+bool PipelineState::isReferenced(MemoryHeapResource *object) const
+{
+  return object->hasPlacedResources();
 }
 
 } // namespace drv3d_vulkan
@@ -179,7 +202,7 @@ void PipelineStateStorage::clearDirty()
 }
 
 
-bool PipelineState::processBufferDiscard(Buffer *old_buffer, const BufferRef &new_ref, uint32_t buf_flags)
+bool PipelineState::processBufferDiscard(const BufferRef &old_buffer, const BufferRef &new_ref, uint32_t buf_flags)
 {
   bool ret = false;
   // update object in VB set
@@ -191,7 +214,7 @@ bool PipelineState::processBufferDiscard(Buffer *old_buffer, const BufferRef &ne
 
     for (uint32_t i = 0; i < MAX_VERTEX_INPUT_STREAMS; ++i)
     {
-      if (vbinds[i].bRef.buffer == old_buffer)
+      if (vbinds[i].bRef == old_buffer)
       {
         const VBBind updatedBind{new_ref, vbinds[i].offset};
         set<VBField, VBBind::Indexed, FrontGraphicsState>({i, updatedBind});
@@ -201,7 +224,7 @@ bool PipelineState::processBufferDiscard(Buffer *old_buffer, const BufferRef &ne
   }
 
   // update object in IB set
-  if (get<StateFieldGraphicsIndexBuffer, BufferRef, FrontGraphicsState>().buffer == old_buffer)
+  if (get<StateFieldGraphicsIndexBuffer, BufferRef, FrontGraphicsState>() == old_buffer)
   {
     set<StateFieldGraphicsIndexBuffer, BufferRef, FrontGraphicsState>(new_ref);
     ret |= true;

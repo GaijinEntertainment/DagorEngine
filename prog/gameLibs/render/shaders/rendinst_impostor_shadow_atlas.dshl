@@ -114,7 +114,7 @@ shader impostor_shadow_atlas
       float2 atlasTc = input.tc_clipping.xy;
       ##if impostor_atlas_mask != NULL
         float alpha = tex2D(impostor_atlas_mask, atlasTc).a;
-        clip(alpha-0.5);
+        clip(alpha-0.1);
 
         float depth = 1-tex2D(impostor_shadow_texture, atlasTc).x;
         float3 viewPos = float3(input.sliceTc, depth)*2-1;

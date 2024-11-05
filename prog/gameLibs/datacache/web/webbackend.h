@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <datacache/datacache.h>
 #include <EASTL/vector.h>
 #include <EASTL/utility.h>

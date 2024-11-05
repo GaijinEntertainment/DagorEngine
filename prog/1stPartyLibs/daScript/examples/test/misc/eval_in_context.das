@@ -28,10 +28,10 @@ class EvalDataWalker : DapiStackWalker
             *W |> write("\t\tlet {vinfo.name} : {describe(type_info(vinfo))} = ")
             if vinfo.basicType==Type tString
                 *W |> write("\"")
-                *W |> write(sprint_data(arg,type_info(vinfo),print_flags humanReadable))
+                *W |> write(sprint_data(arg,type_info(vinfo),[[print_flags]]))
                 *W |> write("\"")
             else
-                *W |> write(sprint_data(arg,type_info(vinfo),print_flags humanReadable))
+                *W |> write(sprint_data(arg,type_info(vinfo),[[print_flags]]))
             *W |> write("\n")
     def override onVariable ( inf:FuncInfo; vinfo:LocalVariableInfo; arg:void?; inScope:bool ) : void
         if inScope

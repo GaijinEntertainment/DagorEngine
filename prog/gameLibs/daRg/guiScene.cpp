@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "guiScene.h"
 
 #include <quirrel/frp/dag_frp.h>
@@ -19,23 +21,22 @@
 #include <perfMon/dag_statDrv.h>
 #include <memory/dag_framemem.h>
 
-#include <humanInput/dag_hiKeybIds.h>
-#include <humanInput/dag_hiKeyboard.h>
-#include <humanInput/dag_hiPointing.h>
-#include <humanInput/dag_hiMouseIds.h>
+#include <drv/hid/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiKeyboard.h>
+#include <drv/hid/dag_hiPointing.h>
+#include <drv/hid/dag_hiMouseIds.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <startup/dag_globalSettings.h>
-#include <humanInput/dag_hiComposite.h>
-#include <humanInput/dag_hiPointingData.h>
-#include <humanInput/dag_hiGlobals.h>
+#include <drv/hid/dag_hiComposite.h>
+#include <drv/hid/dag_hiPointingData.h>
+#include <drv/hid/dag_hiGlobals.h>
 
 #include <sqModules/sqModules.h>
 
 #include <gui/dag_visualLog.h>
-#include <3d/dag_drv3dCmd.h>
 #include <osApiWrappers/dag_wndProcCompMsg.h>
 #include <osApiWrappers/dag_progGlobals.h>
-#include <humanInput/dag_hiXInputMappings.h>
+#include <drv/hid/dag_hiXInputMappings.h>
 
 #include "joystickAxisObservable.h"
 #include "cursor.h"
@@ -73,6 +74,8 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_stackHlp.h>
 #include <ioSys/dag_dataBlock.h>
+
+#include <quirrel/quirrel_json/jsoncpp.h>
 
 #include "dasScripts.h"
 
@@ -119,6 +122,10 @@ CONSOLE_BOOL_VAL("darg", debug_input_stack, false);
 
 
 using namespace sqfrp;
+
+
+static const int rebuild_stacks_flags =
+  ElementTree::RESULT_ELEMS_ADDED_OR_REMOVED | ElementTree::RESULT_INVALIDATE_RENDER_LIST | ElementTree::RESULT_INVALIDATE_INPUT_STACK;
 
 
 struct DebugRenderBox
@@ -236,7 +243,7 @@ GuiScene::~GuiScene()
 static void create_scene_observable(const eastl::unique_ptr<sqfrp::ObservablesGraph> &frpGraph,
   eastl::unique_ptr<sqfrp::ScriptValueObservable> &ptr)
 {
-  ptr.reset(new ScriptValueObservable(frpGraph.get()));
+  ptr.reset(frpGraph->allocScriptValueObservable());
   ptr->generation = -1;
 }
 
@@ -251,8 +258,8 @@ void GuiScene::createNativeWatches()
   create_scene_observable(frpGraph, isXmbModeOn);
   create_scene_observable(frpGraph, updateCounter);
 
-  joyAxisObservables.resize(HumanInput::JOY_XINPUT_REAL_AXIS_COUNT);
-  for (int i = 0; i < HumanInput::JOY_XINPUT_REAL_AXIS_COUNT; ++i)
+  joyAxisObservables.resize(15);
+  for (int i = 0; i < joyAxisObservables.size(); ++i)
   {
     joyAxisObservables[i].reset(new JoystickAxisObservable(this));
     joyAxisObservables[i]->generation = -1;
@@ -371,8 +378,8 @@ void GuiScene::clearCursors(bool exiting)
   }
   activeCursor = nullptr;
 
-  for (PanelData &panelData : panels)
-    for (PanelPointer &ptr : panelData.panel->pointers)
+  for (auto &itPanelData : panels)
+    for (PanelPointer &ptr : itPanelData.second->panel->pointers)
       ptr.cursor = nullptr;
 }
 
@@ -424,7 +431,7 @@ void GuiScene::clear(bool exiting)
 
   clear_all_ptr_items_and_shrink(timers);
 
-  frpGraph->notifyObservablesOnShutdown(exiting);
+  frpGraph->shutdown(exiting);
 
   status.reset();
 
@@ -482,8 +489,16 @@ void GuiScene::update(float dt)
   SqStackChecker stackCheck(sqvm);
   String frpErrMsg;
 
+  // need to do this before any element may change
+  applyPendingHoverUpdate();
+
+  if (!frpGraph->updateDeferred(frpErrMsg))
+    logerr("FRP update deferred: %s", frpErrMsg.c_str());
+
   actsCount++;
-  updateCounter->setValue(Sqrat::Object(actsCount++, sqvm), frpErrMsg);
+  updateCounter->setValue(Sqrat::Object(actsCount, sqvm), frpErrMsg);
+
+  processPostedEvents();
 
   joystickHandler.processPendingBtnStack(this);
 
@@ -553,7 +568,7 @@ void GuiScene::update(float dt)
   stackCheck.check();
 
   int updRes = etree.update(dt);
-  if (updRes & ElementTree::RESULT_ELEMS_ADDED_OR_REMOVED)
+  if (updRes & rebuild_stacks_flags)
   {
     rebuildElemStacks(updRes & ElementTree::RESULT_HOTKEYS_STACK_MODIFIED);
     updateHover();
@@ -564,9 +579,8 @@ void GuiScene::update(float dt)
   if (activeCursor)
     activeCursor->update(dt);
 
-  for (PanelData &panelData : panels)
-    if (panelData.isPanelInited())
-      panelData.panel->update(dt);
+  for (auto &itPanelData : panels)
+    itPanelData.second->panel->update(dt);
 
   if (profiler.get())
     profiler->afterUpdate();
@@ -612,7 +626,7 @@ void GuiScene::renderProfileStats()
 
   const Point2 leftTop(20, 20);
 
-  guiContext->set_texture(BAD_TEXTUREID);
+  guiContext->reset_textures();
   guiContext->set_color(0, 0, 50, 100);
   guiContext->render_rect(leftTop.x, leftTop.y, leftTop.x + charCellSize.x * 80, leftTop.y + lineH * (numMetrics + 3 + N_MEM_METRICS));
 
@@ -688,43 +702,40 @@ void GuiScene::renderThreadBeforeRender()
 
   if (!panels.empty())
   {
-    for (PanelData &panelData : panels)
+    for (auto &itPanelData : panels)
     {
-      if (panelData.isPanelInited())
+      Panel *panel = itPanelData.second->panel.get();
+      G_ASSERT(panel->etree.rebuildFlagsAccum == 0);
+
+      panel->updateActiveCursors();
+
+      G_ASSERT(panel->etree.rebuildFlagsAccum == 0);
+
+      int panelBrRes = 0;
       {
-        Panel *panel = panelData.panel.get();
-        G_ASSERT(panel->etree.rebuildFlagsAccum == 0);
+        AutoProfileScope profile(profiler, M_ETREE_BEFORE_RENDER);
+        panelBrRes = panel->etree.beforeRender(dt);
+      }
+      if (panelBrRes & R_REBUILD_RENDER_AND_INPUT_LISTS)
+      {
+        AutoProfileScope profile(profiler, M_RENDER_LIST_REBUILD);
+        panel->rebuildStacks();
+      }
+      G_ASSERT(panel->etree.rebuildFlagsAccum == 0);
 
-        panel->updateActiveCursors();
-
-        G_ASSERT(panel->etree.rebuildFlagsAccum == 0);
-
-        int panelBrRes = 0;
+      for (PanelPointer &ptr : panel->pointers)
+      {
+        if (ptr.cursor)
         {
-          AutoProfileScope profile(profiler, M_ETREE_BEFORE_RENDER);
-          panelBrRes = panel->etree.beforeRender(dt);
-        }
-        if (panelBrRes & R_REBUILD_RENDER_AND_INPUT_LISTS)
-        {
-          AutoProfileScope profile(profiler, M_RENDER_LIST_REBUILD);
-          panel->rebuildStacks();
-        }
-        G_ASSERT(panel->etree.rebuildFlagsAccum == 0);
-
-        for (PanelPointer &ptr : panel->pointers)
-        {
-          if (ptr.cursor)
+          int pcbrRes = 0;
           {
-            int pcbrRes = 0;
-            {
-              AutoProfileScope profile(profiler, M_ETREE_BEFORE_RENDER);
-              pcbrRes = ptr.cursor->etree.beforeRender(dt);
-            }
-            if (pcbrRes & R_REBUILD_RENDER_AND_INPUT_LISTS)
-            {
-              AutoProfileScope profile(profiler, M_RENDER_LIST_REBUILD);
-              ptr.cursor->rebuildStacks();
-            }
+            AutoProfileScope profile(profiler, M_ETREE_BEFORE_RENDER);
+            pcbrRes = ptr.cursor->etree.beforeRender(dt);
+          }
+          if (pcbrRes & R_REBUILD_RENDER_AND_INPUT_LISTS)
+          {
+            AutoProfileScope profile(profiler, M_RENDER_LIST_REBUILD);
+            ptr.cursor->rebuildStacks();
           }
         }
       }
@@ -745,21 +756,18 @@ void GuiScene::renderThreadBeforeRender()
     if (hasFinishedAnims)
       updateHover();
 
-    for (PanelData &panelData : panels)
+    for (auto &itPanelData : panels)
     {
-      if (panelData.isPanelInited())
+      Panel *panel = itPanelData.second->panel.get();
+      panel->etree.updateAnimations(dt, nullptr);
+      panel->etree.updateTransitions(dt);
+      panel->etree.updateKineticScroll(dt);
+      for (PanelPointer &ptr : panel->pointers)
       {
-        Panel *panel = panelData.panel.get();
-        panel->etree.updateAnimations(dt, nullptr);
-        panel->etree.updateTransitions(dt);
-        panel->etree.updateKineticScroll(dt);
-        for (PanelPointer &ptr : panel->pointers)
+        if (ptr.cursor)
         {
-          if (ptr.cursor)
-          {
-            ptr.cursor->etree.updateAnimations(dt, nullptr);
-            ptr.cursor->etree.updateTransitions(dt);
-          }
+          ptr.cursor->etree.updateAnimations(dt, nullptr);
+          ptr.cursor->etree.updateTransitions(dt);
         }
       }
     }
@@ -794,6 +802,9 @@ BBox2 GuiScene::calcXmbViewport(Element *node, Element **nearest_xmb_viewport) c
 
 void GuiScene::tryRestoreSavedXmbFocus()
 {
+  G_ASSERT(!dbgIsInTryRestoreSavedXmbFocus);
+  dbgIsInTryRestoreSavedXmbFocus = true;
+
   for (int i = keptXmbFocus.size() - 1; i >= 0; --i)
   {
     Element *elem = keptXmbFocus[i];
@@ -801,12 +812,14 @@ void GuiScene::tryRestoreSavedXmbFocus()
       continue;
 
     if (isXmbNodeInputCovered(elem)) // nothing to do yet
-      return;
+      break;
 
     erase_items(keptXmbFocus, i, keptXmbFocus.size() - i);
     setXmbFocus(elem);
-    return;
+    break;
   }
+
+  dbgIsInTryRestoreSavedXmbFocus = false;
 }
 
 
@@ -860,7 +873,8 @@ void GuiScene::validateOverlaidXmbFocus()
     if (isXmbNodeInputCovered(etree.xmbFocus))
     {
       G_ASSERT_RETURN(keptXmbFocus.size() < 100, );
-      keptXmbFocus.push_back(etree.xmbFocus);
+      erase_item_by_value(keptXmbFocus, etree.xmbFocus); // should not happen, but for safety add each element only once
+      keptXmbFocus.push_back(etree.xmbFocus);            // push to top
       setXmbFocus(nullptr);
     }
   }
@@ -884,9 +898,12 @@ void GuiScene::buildRender()
   {
     {
       AutoProfileScope profileListRender(profiler, M_RENDER_LIST_RENDER);
+
       renderList.render(*guiContext);
       if (activeCursor)
         activeCursor->renderList.render(*guiContext);
+      else if (isCursorForcefullyEnabled())
+        renderInternalCursor();
     }
 
     if (status.renderErrorFlag)
@@ -938,6 +955,9 @@ void GuiScene::buildRender()
   pointerPos.debugRender(guiContext);
 
   StdGuiRender::release();
+
+  if (updateHoverRequestState == UpdateHoverRequestState::WaitingForRender)
+    updateHoverRequestState = UpdateHoverRequestState::NeedToUpdate;
 }
 
 
@@ -1050,6 +1070,17 @@ void GuiScene::renderInputStackDebug()
 }
 
 
+void GuiScene::renderInternalCursor()
+{
+  StdGuiRender::GuiContext &ctx = *guiContext;
+  Point2 pos = getMousePos();
+  ctx.set_color(50, 100, 70, 100);
+  float sz = ::min(deviceScreenSize.x, deviceScreenSize.y) * 0.01f;
+  ctx.draw_line(pos.x - sz, pos.y, pos.x + sz, pos.y, 3);
+  ctx.draw_line(pos.x, pos.y - sz, pos.x, pos.y + sz, 3);
+}
+
+
 void GuiScene::buildPanelRender(int panel_idx)
 {
   ApiThreadCheck atc(this);
@@ -1058,7 +1089,9 @@ void GuiScene::buildPanelRender(int panel_idx)
   guiContext->resetFrame();
   guiContext->start_render();
 
-  if (panel_idx < 0 || panel_idx >= panels.size() || !panels[panel_idx].isPanelInited())
+  auto itPanelData = panels.find(panel_idx);
+
+  if (itPanelData == panels.end())
   {
     // guiContext->set_color(20, 200, 50);
     // guiContext->render_box(0, 0, 2000, 2000);
@@ -1067,7 +1100,7 @@ void GuiScene::buildPanelRender(int panel_idx)
     status.renderError(guiContext);
   else
   {
-    Panel *panel = panels[panel_idx].panel.get();
+    Panel *panel = itPanelData->second->panel.get();
     panel->renderList.render(*guiContext);
     for (PanelPointer &ptr : panel->pointers)
     {
@@ -1087,11 +1120,13 @@ void GuiScene::buildPanelRender(int panel_idx)
 }
 
 
-void GuiScene::flushRender()
+void GuiScene::flushRenderImpl(FlushPart part)
 {
   ApiThreadCheck atc(this);
 
-  blurWorld();
+  if (part == FlushPart::MainScene)
+    blurWorld();
+
   guiContext->setTarget();
   StdGuiRender::acquire();
   guiContext->flushData();
@@ -1101,6 +1136,9 @@ void GuiScene::flushRender()
     needToDiscardPictures = !PictureManager::discard_unused_picture(/*force_lock*/ false);
 }
 
+void GuiScene::flushRender() { flushRenderImpl(FlushPart::MainScene); }
+
+void GuiScene::flushPanelRender() { flushRenderImpl(FlushPart::Panel); }
 
 void GuiScene::skipRender()
 {
@@ -1113,25 +1151,28 @@ void GuiScene::skipRender()
 }
 
 
-// Element* GuiScene::hitTestTrace(int bhv_flags, float x, float y) const
-// {
-//   for (InputStack::Stack::const_iterator it = inputStack.stack.begin(); it != inputStack.stack.end(); ++it)
-//   {
-//     const InputEntry &ie = *it;
-//     if (ie.elem->behaviors.empty())
-//       continue;
-//     if (!ie.elem->hasBehaviors(bhv_flags))
-//       continue;
+void GuiScene::requestHoverUpdate()
+{
+  if (updateHoverRequestState == UpdateHoverRequestState::None)
+    updateHoverRequestState = UpdateHoverRequestState::WaitingForRender;
+}
 
-//     if (ie.elem->hitTest(Point2(x, y)))
-//       return ie.elem;
-//   }
-//   return nullptr;
-// }
+
+void GuiScene::applyPendingHoverUpdate()
+{
+  if (updateHoverRequestState == UpdateHoverRequestState::NeedToUpdate)
+  {
+    updateHover();
+    updateHoverRequestState = UpdateHoverRequestState::None;
+  }
+}
 
 
 void GuiScene::updateHover()
 {
+  G_ASSERT(!dbgIsInUpdateHover);
+  dbgIsInUpdateHover = true;
+
   dag::Vector<Point2, framemem_allocator> pointers;
   dag::Vector<SQInteger, framemem_allocator> stickScrollFlags;
 
@@ -1186,6 +1227,8 @@ void GuiScene::updateHover()
     notifyInputConsumersCallback();
 
   validateOverlaidXmbFocus();
+
+  dbgIsInUpdateHover = false;
 }
 
 
@@ -1196,9 +1239,8 @@ void GuiScene::removeCursor(Cursor *c)
   allCursors.erase(c);
   if (c == activeCursor)
     activeCursor = nullptr;
-  for (PanelData &panelData : panels)
-    if (panelData.isPanelInited())
-      panelData.panel->onRemoveCursor(c);
+  for (auto &itPanelData : panels)
+    itPanelData.second->panel->onRemoveCursor(c);
 }
 
 
@@ -1223,30 +1265,33 @@ void GuiScene::updateActiveCursor()
       mousePos.set(mouse->getRawState().mouse.x, mouse->getRawState().mouse.y);
   }
 
-  bool matched = false;
-  if (!haveActiveCursorOnPanels())
+  if (!isCursorForcefullyDisabled())
   {
-    for (const InputEntry &ie : cursorStack.stack)
+    bool matched = false;
+    if (!haveActiveCursorOnPanels())
     {
-      if (ie.elem->hitTest(mousePos))
+      for (const InputEntry &ie : cursorStack.stack)
       {
-        if (ie.elem->props.getCurrentCursor(stringKeys->cursor, &activeCursor))
+        if (ie.elem->hitTest(mousePos))
         {
-          matched = true;
-          break;
-        }
+          if (ie.elem->props.getCurrentCursor(stringKeys->cursor, &activeCursor))
+          {
+            matched = true;
+            break;
+          }
 
-        if (config.useDefaultCursor && ie.elem->hasFlags(Element::F_STOP_MOUSE | Element::F_STOP_HOVER))
-          break;
+          if (config.useDefaultCursor && ie.elem->hasFlags(Element::F_STOP_MOUSE | Element::F_STOP_HOVER))
+            break;
+        }
       }
     }
+
+    if (!matched && config.useDefaultCursor)
+      activeCursor = config.defaultCursor.Cast<Cursor *>();
+
+    if (activeCursor && activeCursor->etree.root && activeCursor->etree.root->transform)
+      activeCursor->etree.root->transform->translate = cursorPosition(activeCursor);
   }
-
-  if (!matched && config.useDefaultCursor)
-    activeCursor = config.defaultCursor.Cast<Cursor *>();
-
-  if (activeCursor && activeCursor->etree.root && activeCursor->etree.root->transform)
-    activeCursor->etree.root->transform->translate = cursorPosition(activeCursor);
 
   if (prevCursor && prevCursor != activeCursor)
     prevCursor->etree.skipAllOneShotAnims();
@@ -1371,7 +1416,7 @@ int GuiScene::handleMouseClick(InputEvent event, InputDevice device, int btn_idx
       }
 
       if (isHit && ie.elem->hasFlags(Element::F_STOP_MOUSE))
-        summaryRes |= R_PROCESSED;
+        summaryRes |= R_PROCESSED | R_STOPPED;
 
       // release keyboard focus on click outside of element
       if (ie.elem == etree.kbFocus && !isHit && !etree.hasCapturedKbFocus())
@@ -1479,7 +1524,7 @@ int GuiScene::onMouseEventInternal(InputEvent event, InputDevice device, int dat
             summaryRes |= bhv->mouseEvent(&etree, ie.elem, device, event, pointerId, data, mx, my, buttons, summaryRes);
         }
         if (ie.elem->hasFlags(Element::F_STOP_MOUSE) && ie.elem->hitTest(mx, my))
-          summaryRes |= R_PROCESSED;
+          summaryRes |= R_PROCESSED | R_STOPPED;
       }
     }
   }
@@ -1531,7 +1576,7 @@ int GuiScene::onPanelMouseEvent(Panel *panel, int hand, InputEvent event, InputD
           summaryRes |= bhv->mouseEvent(&panel->etree, ie.elem, device, event, hand, button_id, mx, my, buttons, summaryRes);
       }
       if (ie.elem->hasFlags(Element::F_STOP_MOUSE) && ie.elem->hitTest(mx, my))
-        summaryRes |= R_PROCESSED;
+        summaryRes |= R_PROCESSED | R_STOPPED;
     }
   }
 
@@ -1591,7 +1636,7 @@ int GuiScene::onPanelTouchEvent(Panel *panel, int hand, InputEvent event, short 
       }
 
       if (ie.elem->hasFlags(Element::F_STOP_MOUSE) && ie.elem->hitTest(Point2(touch.x, touch.y)))
-        summaryRes |= R_PROCESSED;
+        summaryRes |= R_PROCESSED | R_STOPPED;
     }
   }
 
@@ -1645,7 +1690,7 @@ int GuiScene::onTouchEvent(InputEvent event, HumanInput::IGenPointing *pnt, int 
       }
 
       if (ie.elem->hasFlags(Element::F_STOP_MOUSE) && ie.elem->hitTest(Point2(touch.x, touch.y)))
-        summaryRes |= R_PROCESSED;
+        summaryRes |= R_PROCESSED | R_STOPPED;
     }
   }
 
@@ -2019,6 +2064,7 @@ void GuiScene::dirPadNavigate(Direction dir)
 bool GuiScene::trySetXmbFocus(Element *target)
 {
   G_ASSERT(!isClearing);
+  G_ASSERT(!target || target->etree);
 
   if (target && target->etree->panel)
     return false;
@@ -2429,7 +2475,7 @@ void GuiScene::scrollToXmbFocus(float dt)
     if (needCursorMove)
       pointerPos.requestTargetPos(targetCursorPos);
 
-    updateHover();
+    requestHoverUpdate();
   }
 }
 
@@ -2623,7 +2669,7 @@ bool GuiScene::sendEvent(const char *id, const Sqrat::Object &data)
       {
         if (ie.elem->isDetached())
         {
-          logwarn_ctx("Detached element found in input stack");
+          LOGWARN_CTX("Detached element found in input stack");
           continue;
         }
         for (auto &combo : ie.elem->hotkeyCombos)
@@ -2651,9 +2697,14 @@ bool GuiScene::sendEvent(const char *id, const Sqrat::Object &data)
   bool processed = false;
 
   // Let's see if any panels we own accept the hotkey
-  for (int i = 0; !processed && i < panels.size(); ++i)
-    if (const auto panel = panels[i].panel.get())
-      processed = handleInputEvent(panel->inputStack);
+  for (auto &itPanelData : panels)
+  {
+    if (handleInputEvent(itPanelData.second->panel->inputStack))
+    {
+      processed = true;
+      break;
+    }
+  }
 
   processed = !processed && handleInputEvent(inputStack);
 
@@ -2670,7 +2721,7 @@ bool GuiScene::sendEvent(const char *id, const Sqrat::Object &data)
     {
       if (ie.elem->isDetached())
       {
-        logwarn_ctx("Detached element found in event handler stack");
+        LOGWARN_CTX("Detached element found in event handler stack");
         continue;
       }
       Sqrat::Table &desc = ie.elem->props.scriptDesc;
@@ -2691,6 +2742,29 @@ bool GuiScene::sendEvent(const char *id, const Sqrat::Object &data)
   callScriptHandlers();
 
   return processed;
+}
+
+
+void GuiScene::postEvent(const char *id, const Json::Value &data)
+{
+  WinAutoLock lock(postedEventsQueueCs);
+  postedEventsQueue.push_back(eastl::make_pair(eastl::string(id), data));
+}
+
+
+void GuiScene::processPostedEvents()
+{
+  G_ASSERT(workingPostedEventsQueue.empty());
+
+  {
+    WinAutoLock lock(postedEventsQueueCs);
+    workingPostedEventsQueue.swap(postedEventsQueue);
+  }
+
+  for (auto &it : workingPostedEventsQueue)
+    sendEvent(it.first.c_str(), jsoncpp_to_quirrel(sqvm, it.second));
+
+  workingPostedEventsQueue.clear();
 }
 
 
@@ -2725,20 +2799,25 @@ static bool sort_invalidated_elems_cb(Element *a, Element *b)
 
 void GuiScene::invalidateElement(Element *elem)
 {
-  G_ASSERT(!isClearing);
+  if (isClearing)
+  {
+    debug("daRg: invalidating Element during scene cleanup");
+    return;
+  }
+
   if (isRebuildingInvalidatedParts && config.reportNestedWatchedUpdate)
   {
-    logerr_ctx("Nested state update");
+    LOGERR_CTX("Nested state update");
 
     if (SQ_SUCCEEDED(sqstd_formatcallstackstring(sqvm)))
     {
       const char *callstack = nullptr;
       G_VERIFY(SQ_SUCCEEDED(sq_getstring(sqvm, -1, &callstack)));
-      logerr_ctx(callstack);
+      LOGERR_CTX(callstack);
       sq_pop(sqvm, 1);
     }
     else
-      logerr_ctx("No call stack available");
+      LOGERR_CTX("No call stack available");
   }
 
   auto itLower = eastl::lower_bound(invalidatedElements.begin(), invalidatedElements.end(), elem, sort_invalidated_elems_cb);
@@ -2798,13 +2877,11 @@ void GuiScene::rebuildInvalidatedParts()
     c->etree.rebuildFlagsAccum = 0;
   }
 
-  for (PanelData &panelData : panels)
+  for (auto &itPanelData : panels)
   {
-    if (panelData.isPanelInited())
-    {
-      G_ASSERT(panelData.panel->etree.rebuildFlagsAccum == 0);
-      panelData.panel->etree.rebuildFlagsAccum = 0;
-    }
+    auto &panelData = itPanelData.second;
+    G_ASSERT(panelData->panel->etree.rebuildFlagsAccum == 0);
+    panelData->panel->etree.rebuildFlagsAccum = 0;
   }
 
   isRebuildingInvalidatedParts = true;
@@ -2820,6 +2897,10 @@ void GuiScene::rebuildInvalidatedParts()
   allRebuiltElems.reserve(invalidatedElements.size());
 
   Component comp;
+
+  // NOTE: the order of invalidated elements is important
+  // The ones closer to root are in the end and should be rebuilt first
+  // (See invalidateElement() and sort_invalidated_elems_cb() for details)
   for (; !invalidatedElements.empty() && !status.sceneIsBroken;)
   {
     G_ASSERT(!isClearing);
@@ -2899,9 +2980,7 @@ void GuiScene::rebuildInvalidatedParts()
 
   isRebuildingInvalidatedParts = false;
 
-  const int rebuildStacksFlags = ElementTree::RESULT_ELEMS_ADDED_OR_REMOVED | ElementTree::RESULT_INVALIDATE_RENDER_LIST;
-
-  if (etree.rebuildFlagsAccum & rebuildStacksFlags)
+  if (etree.rebuildFlagsAccum & rebuild_stacks_flags)
   {
     rebuildElemStacks(etree.rebuildFlagsAccum & ElementTree::RESULT_HOTKEYS_STACK_MODIFIED);
     updateHover();
@@ -2911,19 +2990,17 @@ void GuiScene::rebuildInvalidatedParts()
 
   etree.rebuildFlagsAccum = 0;
 
-  for (PanelData &panelData : panels)
+  for (auto &itPanelData : panels)
   {
-    if (panelData.isPanelInited())
-    {
-      if (panelData.panel->etree.rebuildFlagsAccum & rebuildStacksFlags)
-        panelData.panel->rebuildStacks();
-      panelData.panel->etree.rebuildFlagsAccum = 0;
-    }
+    Panel *panel = itPanelData.second->panel.get();
+    if (panel->etree.rebuildFlagsAccum & rebuild_stacks_flags)
+      panel->rebuildStacks();
+    panel->etree.rebuildFlagsAccum = 0;
   }
 
   for (Cursor *c : allCursors)
   {
-    if (c->etree.rebuildFlagsAccum & rebuildStacksFlags)
+    if (c->etree.rebuildFlagsAccum & rebuild_stacks_flags)
       c->rebuildStacks();
 
     c->etree.rebuildFlagsAccum = 0;
@@ -3016,9 +3093,9 @@ void GuiScene::runScriptScene(const char *fn)
   // G_ASSERTF(!moduleMgr->modules.size(), "Expected empty modules list on script run");
   if (!moduleMgr->modules.empty())
   {
-    debug_ctx("daRg: non-empty modules list on scene startup:");
+    DEBUG_CTX("daRg: non-empty modules list on scene startup:");
     for (auto &module : moduleMgr->modules)
-      debug_ctx("  * %s", module.fn.c_str());
+      DEBUG_CTX("  * %s", module.fn.c_str());
   }
 
   reloadScript(fn);
@@ -3081,7 +3158,7 @@ void GuiScene::reloadScript(const char *fn)
     etree.root->callScriptAttach(this);
   }
 
-  if (rebuildResult & ElementTree::RESULT_ELEMS_ADDED_OR_REMOVED)
+  if (rebuildResult & rebuild_stacks_flags)
     rebuildElemStacks(rebuildResult & ElementTree::RESULT_HOTKEYS_STACK_MODIFIED);
   if (rebuildResult & ElementTree::RESULT_NEED_XMB_REBUILD)
     rebuildXmb();
@@ -3124,7 +3201,9 @@ bool GuiScene::hasInteractiveElements(int bhv_flags)
 int GuiScene::calcInteractiveFlags()
 {
   int iflags = 0;
-  if (hasInteractiveElements(Behavior::F_HANDLE_MOUSE | Behavior::F_FOCUS_ON_CLICK))
+
+  if ((hasInteractiveElements(Behavior::F_HANDLE_MOUSE | Behavior::F_FOCUS_ON_CLICK) || isCursorForcefullyEnabled()) &&
+      !isCursorForcefullyDisabled())
   {
     iflags |= IGuiSceneCallback::IF_MOUSE;
     if ((inputStack.summaryBhvFlags & Behavior::F_OVERRIDE_GAMEPAD_STICK) == 0)
@@ -3136,6 +3215,7 @@ int GuiScene::calcInteractiveFlags()
     iflags |= IGuiSceneCallback::IF_GAMEPAD_STICKS;
   if (inputStack.isDirPadNavigable)
     iflags |= IGuiSceneCallback::IF_DIRPAD_NAV;
+
   return iflags;
 }
 
@@ -3272,7 +3352,7 @@ void GuiScene::refreshHotkeysNav()
     Element *elem = ie.elem;
     if (elem->isDetached())
     {
-      logwarn_ctx("Detached element found in input stack");
+      LOGWARN_CTX("Detached element found in input stack");
       continue;
     }
 
@@ -3354,7 +3434,7 @@ void GuiScene::notifyInputConsumersCallback()
     Element *elem = ie.elem;
     if (elem->isDetached())
     {
-      logwarn_ctx("Detached element found in input stack");
+      LOGWARN_CTX("Detached element found in input stack");
       continue;
     }
 
@@ -3402,7 +3482,7 @@ void GuiScene::notifyInputConsumersCallback()
     buttons.push_back(HotkeyButton(DEVID_JOYSTICK, JOY_XINPUT_REAL_BTN_D_UP));
   }
 
-  bool consumeMouse = hasInteractiveElements(Behavior::F_HANDLE_MOUSE);
+  bool consumeMouse = hasInteractiveElements(Behavior::F_HANDLE_MOUSE) || isCursorForcefullyEnabled();
   bool consumeTextInput = etree.kbFocus && is_text_input(etree.kbFocus);
 
   if (consumeMouse)
@@ -3458,9 +3538,8 @@ SQInteger GuiScene::call_anim_method(HSQUIRRELVM vm)
 
   (self->etree.*method)(trigger);
   // TODO: Optimize, trigger animation in a specific ElementTree only
-  for (PanelData &panelData : self->panels)
-    if (panelData.isPanelInited())
-      (panelData.panel->etree.*method)(trigger);
+  for (auto &itPanelData : self->panels)
+    (itPanelData.second->panel->etree.*method)(trigger);
 
   return 0;
 }
@@ -3650,33 +3729,19 @@ SQInteger GuiScene::add_panel(HSQUIRRELVM vm)
   if (scene->isRebuildingInvalidatedParts)
     return sq_throwerror(vm, "Can't add panels during scene rebuild (probably incorrect side-effect in component builder?)");
 
-  // handle panels vector resize, preserve valid pointer
-  int vrPtrPanelIndices[NUM_VR_POINTERS];
-  for (size_t i = 0; i < NUM_VR_POINTERS; ++i)
-  {
-    VrPointer &vrPtr = scene->vrPointers[i];
-    auto it =
-      eastl::find_if(scene->panels.begin(), scene->panels.end(), [&vrPtr](const PanelData &pd) { return vrPtr.activePanel == &pd; });
-    vrPtrPanelIndices[i] = (it == scene->panels.end()) ? -1 : (it - scene->panels.begin());
-  };
 
   SQInteger idx = -1;
   G_VERIFY(SQ_SUCCEEDED(sq_getinteger(vm, 2, &idx)));
+  if (idx < 0)
+    return sq_throwerror(vm, "Panel id must be non-negative");
+
+  if (scene->panels.find(idx) != scene->panels.end())
+    return sqstd_throwerrorf(vm, "Panel with id %d already exists", idx);
+
   Sqrat::Var<Sqrat::Object> desc(vm, 3);
-  if (idx >= scene->panels.size())
-    scene->panels.resize(idx + 1);
+  PanelData *panelData = new PanelData(*scene, desc.value, idx);
+  scene->panels[idx].reset(panelData);
 
-  // resolve pointers after possible resize
-  for (size_t i = 0; i < NUM_VR_POINTERS; ++i)
-  {
-    VrPointer &vrPtr = scene->vrPointers[i];
-    vrPtr.activePanel = vrPtrPanelIndices[i] >= 0 ? &scene->panels[vrPtrPanelIndices[i]] : nullptr;
-  };
-
-  if (scene->panels[idx].isPanelInited())
-    return sq_throwerror(vm, "Panel already exists");
-
-  scene->panels[idx].init(*scene, desc.value, idx);
   return 0;
 }
 
@@ -3695,28 +3760,17 @@ SQInteger GuiScene::remove_panel(HSQUIRRELVM vm)
   SQInteger idx = -1;
   G_VERIFY(SQ_SUCCEEDED(sq_getinteger(vm, 2, &idx)));
 
-  if (idx < 0 || idx >= scene->panels.size())
+  auto it = scene->panels.find(idx);
+  if (it == scene->panels.end())
     return 0;
 
-  PanelData &panelData = scene->panels[idx];
+  auto &panelData = it->second;
   for (int hand = 0; hand < NUM_VR_POINTERS; ++hand)
-    if (&panelData == scene->vrPointers[hand].activePanel)
+    if (panelData.get() == scene->vrPointers[hand].activePanel)
       scene->vrPointers[hand].activePanel = nullptr;
 
   scene->spatialInteractionState.forgetPanel(idx);
-  panelData.close();
-
-  size_t newSize = 0;
-  for (size_t sz = scene->panels.size(); sz > 0; --sz)
-  {
-    if (scene->panels[sz - 1].isPanelInited())
-    {
-      newSize = sz;
-      break;
-    }
-  }
-
-  scene->panels.resize(newSize);
+  scene->panels.erase(idx);
   return 0;
 }
 
@@ -3731,10 +3785,11 @@ SQInteger GuiScene::mark_panel_dirty(HSQUIRRELVM vm)
   SQInteger idx = -1;
   G_VERIFY(SQ_SUCCEEDED(sq_getinteger(vm, 2, &idx)));
 
-  if (idx < 0 || idx >= scene->panels.size())
+  auto it = scene->panels.find(idx);
+  if (it == scene->panels.end())
     return 0;
 
-  scene->panels[idx].isDirty = true;
+  it->second->isDirty = true;
 
   return 0;
 }
@@ -3752,7 +3807,7 @@ SQInteger GuiScene::set_timer(HSQUIRRELVM vm, bool periodic, bool reuse)
     {
       const char *callstack = nullptr;
       G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm, -1, &callstack)));
-      logerr_ctx(callstack);
+      LOGERR_CTX(callstack);
       sq_pop(vm, 1);
       G_ASSERT(!"setTimeout/setInterval() called during clearing scene, see log for script call stack");
     }
@@ -3897,9 +3952,6 @@ static SQInteger calc_comp_size(HSQUIRRELVM vm)
 
 static SQInteger get_mouse_cursor_pos(HSQUIRRELVM vm)
 {
-  if (!Sqrat::check_signature<ElementRef *>(vm, 2))
-    return SQ_ERROR;
-
   GuiScene *self = (GuiScene *)get_scene_from_sqvm(vm);
 
   Sqrat::Table result(vm);
@@ -3911,6 +3963,9 @@ static SQInteger get_mouse_cursor_pos(HSQUIRRELVM vm)
     sq_pushobject(vm, result.GetObject());
     return 1;
   }
+
+  if (!Sqrat::check_signature<ElementRef *>(vm, 2))
+    return SQ_ERROR;
 
   ElementRef *eref = ElementRef::get_from_stack(vm, 2);
   if (!eref || !eref->elem)
@@ -3951,8 +4006,8 @@ static SQInteger set_xmb_focus(HSQUIRRELVM vm)
     self->trySetXmbFocus(nullptr);
   else if (ot == OT_TABLE)
   {
-    Element *elem = node.value.RawGetSlotValue<Element *>(self->getStringKeys()->elem, nullptr);
-    self->trySetXmbFocus(elem);
+    ElementRef *eref = ElementRef::cast_from_sqrat_obj(node.value.RawGetSlot(self->getStringKeys()->elem));
+    self->trySetXmbFocus(eref ? eref->elem : nullptr);
   }
   else
     return sq_throwerror(vm, "XMB focus must be null or table");
@@ -4026,7 +4081,7 @@ IWndProcComponent::RetCode GuiScene::process(void * /*hwnd*/, unsigned msg, uint
 {
   if (msg == GPCM_Activate)
   {
-    if (wParam != GPCMP1_Inactivate)
+    if (uint16_t(wParam) != GPCMP1_Inactivate)
     {
       pointerPos.onAppActivate();
       updateHover();
@@ -4094,9 +4149,18 @@ JoystickAxisObservable *GuiScene::getJoystickAxis(int axis)
 
 void GuiScene::updateJoystickAxesObservables()
 {
-  HumanInput::IGenJoystick *joy = getJoystick();
-  for (size_t i = 0, n = joyAxisObservables.size(); i < n; ++i)
-    joyAxisObservables[i]->update(joy ? float(joy->getAxisPosRaw(i)) / HumanInput::JOY_XINPUT_MAX_AXIS_VAL : 0.0f);
+  if (HumanInput::IGenJoystick *joy = getJoystick())
+  {
+    for (size_t i = 0, n = min(joyAxisObservables.size(), (size_t)joy->getAxisCount()); i < n; ++i)
+      joyAxisObservables[i]->update(float(joy->getAxisPosRaw(i)) / HumanInput::JOY_XINPUT_MAX_AXIS_VAL);
+    for (size_t i = joy->getAxisCount(), n = joyAxisObservables.size(); i < n; ++i)
+      joyAxisObservables[i]->update(0.0f);
+  }
+  else
+  {
+    for (size_t i = 0, n = joyAxisObservables.size(); i < n; ++i)
+      joyAxisObservables[i]->update(0.0f);
+  }
 }
 
 
@@ -4146,6 +4210,12 @@ bool GuiScene::haveActiveCursorOnPanels() const
 static constexpr float max_aim_distance = 8.f;
 static constexpr float max_touch_distance = 0.02f;
 static constexpr float new_touch_threshold = 0.25f * max_touch_distance;
+struct PanelIntersection
+{
+  float distance = max_aim_distance + 1.f;
+  Point2 uv;
+};
+using PossiblePanelIntersection = eastl::optional<PanelIntersection>;
 
 
 static bool get_valid_uv_from_intersection_point(const TMatrix &panel_tm, const Point3 &panel_size, const Point3 &point,
@@ -4158,82 +4228,104 @@ static bool get_valid_uv_from_intersection_point(const TMatrix &panel_tm, const 
 }
 
 
-static float cast_at_rectangle(const Panel &panel, Point2 &pointerUV, const TMatrix &aim)
+static Point2 uv_to_panel_pixels(const PanelData &panel_data, const Point2 &uv)
+{
+  if (panel_data.canvas)
+  {
+    TextureInfo tinfo;
+    panel_data.canvas->getTex()->getinfo(tinfo);
+    return {uv.x * tinfo.w, uv.y * tinfo.h};
+  }
+
+  return Point2::ZERO;
+}
+
+
+static PossiblePanelIntersection cast_at_rectangle(const Panel &panel, const Point3 &src, const Point3 &target)
 {
   const TMatrix &transform = panel.renderInfo.transform;
   Point3 planeP = transform.getcol(3);
   Point3 planeZ = transform.getcol(2);
   planeZ.normalize();
 
-  Point3 aimSrc = aim.getcol(3);
-  Point3 aimDir = aim.getcol(2);
-  aimDir.normalize();
-
+  Point2 uv;
   Plane3 plane(planeZ, planeP);
+  Point3 isect = plane.calcLineIntersectionPoint(src, target);
+  if (isect != src && get_valid_uv_from_intersection_point(transform, panel.spatialInfo.size, isect, uv))
+    return PossiblePanelIntersection({(isect - src).length(), uv});
 
-  Point3 isect = plane.calcLineIntersectionPoint(aimSrc, aimSrc + aimDir * max_aim_distance);
-  if (isect == aimSrc)
-    return max_aim_distance + 1;
-
-  bool isUvValid = get_valid_uv_from_intersection_point(transform, panel.spatialInfo.size, isect, pointerUV);
-  return isUvValid ? (isect - aim.getcol(3)).length() : (max_aim_distance + 1.f);
+  return {};
 }
 
 
-static float project_at_rectangle(const Panel &panel, const Point3 &point, float max_dist, Point2 &out_uv)
+static PossiblePanelIntersection project_at_rectangle(const Panel &panel, const Point3 &point, float max_dist)
 {
   const TMatrix &panelTm = panel.renderInfo.transform;
   const Point3 panelOrigin = panelTm.getcol(3);
   const Point3 panelNormal = normalize(panelTm.getcol(2));
   Plane3 plane(panelNormal, panelOrigin);
 
+  Point2 uv;
   Point3 projectedPoint = plane.project(point);
   float dist = -plane.distance(point); // FIXME: plane.distance(point) gives negative value... Wrong normals?
   if (dist > max_dist)
-    return max_aim_distance + 1.f;
+    return {};
 
-  bool isUvValid = get_valid_uv_from_intersection_point(panelTm, panel.spatialInfo.size, projectedPoint, out_uv);
-  return isUvValid ? dist : (max_aim_distance + 1.f);
+  if (get_valid_uv_from_intersection_point(panelTm, panel.spatialInfo.size, projectedPoint, uv))
+    return PossiblePanelIntersection({dist, uv});
+
+  return {};
 }
 
 
-static float cast_at_hit_panel(const Panel &panel, Point2 &pointerUV, const TMatrix &aim)
+static PossiblePanelIntersection cast_at_hit_panel(const Panel &panel, const Point3 &world_from_pos, const Point3 &world_target_pos)
 {
   switch (panel.spatialInfo.geometry)
   {
-    case PanelGeometry::Rectangle: return cast_at_rectangle(panel, pointerUV, aim);
+    case PanelGeometry::Rectangle: return cast_at_rectangle(panel, world_from_pos, world_target_pos);
 
-    default: DAG_FATAL("Implement casting for this type of geometry!"); return max_aim_distance + 1;
+    default: DAG_FATAL("Implement casting for this type of geometry!"); return {};
   }
 }
 
 
-static float project_at_hit_panel(const Panel &panel, const Point3 &point, float max_dist, Point2 &out_uv)
+static PossiblePanelIntersection cast_at_hit_panel(const Panel &panel, const TMatrix &aim)
 {
-  G_ASSERTF_RETURN(panel.spatialInfo.geometry == PanelGeometry::Rectangle, max_touch_distance + 1.f,
-    "Touching non-rectangular panels is not implemented");
-  return project_at_rectangle(panel, point, max_dist, out_uv);
+  const Point3 worldPos = aim.getcol(3);
+  const Point3 worldDir = normalize(aim.getcol(2));
+  return cast_at_hit_panel(panel, worldPos, worldPos + worldDir * max_aim_distance);
 }
 
 
-void GuiScene::updateSpatialElements(const VrSceneData &vr_scene)
+static PossiblePanelIntersection project_at_hit_panel(const Panel &panel, const Point3 &point, float max_dist)
 {
-  ApiThreadCheck atc(this);
+  G_ASSERTF_RETURN(panel.spatialInfo.geometry == PanelGeometry::Rectangle, {}, "Touching non-rectangular panels is not implemented");
+  return project_at_rectangle(panel, point, max_dist);
+}
 
-  int panelsToRender = 0;
-  for (PanelData &panelData : panels)
-    if (panelData.panel)
+
+bool GuiScene::worldToPanelPixels(int panel_idx, const Point3 &world_target_pos, const Point3 &world_cam_pos, Point2 &out_panel_pos)
+{
+  const auto &found = panels.find(panel_idx);
+  if (found == panels.end())
+    return false;
+
+  const auto &panelData = found->second;
+  if (!panelData->needRenderInWorld())
+    return false;
+
+  if (const Panel *panel = panelData->panel.get())
+    if (const auto hit = cast_at_hit_panel(*panel, world_cam_pos, world_target_pos); hit.has_value())
     {
-      panelData.panel->updateSpatialInfoFromScript();
-      if (panelData.needRenderInWorld())
-        ++panelsToRender;
-      else
-        panelData.panel->renderInfo.isValid = false;
+      out_panel_pos = uv_to_panel_pixels(*panelData, hit->uv);
+      return true;
     }
 
-  if (panelsToRender == 0)
-    return;
+  return false;
+}
 
+void GuiScene::ensurePanelBufferInitialized()
+{
   if (!panelBufferInitialized)
   {
     const int numQuads = ::dgs_get_game_params()->getBlockByNameEx("guiLimits")->getInt("drggs_panels_quads", 1000);
@@ -4241,23 +4333,67 @@ void GuiScene::updateSpatialElements(const VrSceneData &vr_scene)
     G_VERIFY(getGuiContext()->createBuffer(panel_render_buffer_index, NULL, numQuads, numExtraIndices, "dargpanels.guibuf"));
     panelBufferInitialized = true;
   }
+}
 
+void GuiScene::renderPanelTo(int panel_idx, BaseTexture *dst)
+{
+  ApiThreadCheck atc(this);
+
+  auto it = panels.find(panel_idx);
+  if (it == panels.end() || !it->second->panel)
+    return;
+
+  auto &panelData = it->second;
+  panelData->panel->spatialInfo.renderRedirection = true;
+  panelData->panel->updateSpatialInfoFromScript();
+  ensurePanelBufferInitialized();
+  int oldBuffer = getGuiContext()->currentBufferId;
+  getGuiContext()->setBuffer(panel_render_buffer_index);
+  panelData->updateTexture(*this, dst);
+  getGuiContext()->setBuffer(oldBuffer);
+
+  refreshGuiContextState();
+}
+
+void GuiScene::updateSpatialElements(const VrSceneData &vr_scene)
+{
+  ApiThreadCheck atc(this);
+
+  int panelsToRender = 0;
+  for (auto &itPanelData : panels)
+  {
+    auto &panelData = itPanelData.second;
+    if (panelData->panel)
+    {
+      panelData->panel->updateSpatialInfoFromScript();
+      if (panelData->needRenderInWorld())
+        ++panelsToRender;
+      else
+        panelData->panel->renderInfo.isValid = false;
+    }
+  }
+
+  if (panelsToRender == 0)
+    return;
+
+  ensurePanelBufferInitialized();
   int oldBuffer = getGuiContext()->currentBufferId;
   getGuiContext()->setBuffer(panel_render_buffer_index);
 
   //--- update render state -------------
 
-  for (PanelData &panelData : panels)
+  for (auto &itPanelData : panels)
   {
-    if (!panelData.needRenderInWorld())
+    auto &panelData = itPanelData.second;
+    if (!panelData->needRenderInWorld())
       continue;
 
-    panelData.updateTexture(*this);
+    panelData->updateTexture(*this, nullptr);
 
-    Panel *panel = panelData.panel.get();
+    Panel *panel = panelData->panel.get();
 
     panel->renderInfo.isValid = true;
-    panel->renderInfo.texture = panelData.canvas->getId();
+    panel->renderInfo.texture = panelData->canvas->getId();
     panel->updateRenderInfoParamsFromScript();
     panel->renderInfo.resetPointer();
 
@@ -4271,6 +4407,11 @@ void GuiScene::updateSpatialElements(const VrSceneData &vr_scene)
 
   //--- process input: panel position has most-likely changed ---------------
   updateSpatialInteractionState(vr_scene);
+}
+
+
+void GuiScene::refreshVrCursorProjections()
+{
   for (int hand : {0, 1})
     onVrInputEvent(INP_EV_POINTER_MOVE, hand);
 }
@@ -4281,8 +4422,8 @@ bool GuiScene::hasAnyPanels()
   ApiThreadCheck atc(this);
 
   int actualPanels = 0;
-  for (PanelData &panelData : panels)
-    if (panelData.panel)
+  for (auto &itPanelData : panels)
+    if (itPanelData.second->panel)
       ++actualPanels;
 
   return actualPanels > 0;
@@ -4308,13 +4449,9 @@ void GuiScene::updateSpatialInteractionState(const VrSceneData &vr_scene)
 
   Point2 panelHitUvs[NUM_VR_POINTERS];
   int closestHitPanelIdxs[NUM_VR_POINTERS] = {-1, -1};
-  for (int i = 0, size = panels.size(); i < size; ++i)
+  for (const auto &itPanelData : panels)
   {
-    const PanelData &pd = panels[i];
-    if (!pd.isPanelInited())
-      continue;
-
-    const Panel *panel = pd.panel.get();
+    const Panel *panel = itPanelData.second->panel.get();
     if (!panel->renderInfo.isValid)
       continue;
 
@@ -4323,8 +4460,7 @@ void GuiScene::updateSpatialInteractionState(const VrSceneData &vr_scene)
 
     for (int hand : {0, 1})
     {
-      Point2 uv{-1.f, -1.f};
-      float dist = max_aim_distance + 1.f;
+      PossiblePanelIntersection hit;
       const PanelSpatialInfo &psi = panel->spatialInfo;
       float threshold = psi.canBeTouched ? min(max_touch_distance + 1.f, minHitDistance[hand]) : minHitDistance[hand];
       if (psi.canBeTouched)
@@ -4333,16 +4469,16 @@ void GuiScene::updateSpatialInteractionState(const VrSceneData &vr_scene)
                                              (psi.anchor == PanelAnchor::RightHand && hand != 1) ||
                                              psi.anchor == PanelAnchor::VRSpace || psi.anchor == PanelAnchor::Scene;
         if (panelCanBeTouchedWithThisHand)
-          dist = project_at_hit_panel(*panel, vr_scene.indexFingertips[hand].getcol(3), max_touch_distance, uv);
+          hit = project_at_hit_panel(*panel, vr_scene.indexFingertips[hand].getcol(3), max_touch_distance);
       }
       else if (psi.canBePointedAt)
-        dist = cast_at_hit_panel(*panel, uv, vr_scene.aims[hand]);
+        hit = cast_at_hit_panel(*panel, vr_scene.aims[hand]);
 
-      if (dist < threshold)
+      if (hit.has_value() && hit->distance < threshold)
       {
-        minHitDistance[hand] = dist;
-        closestHitPanelIdxs[hand] = i;
-        panelHitUvs[hand] = uv;
+        minHitDistance[hand] = hit->distance;
+        closestHitPanelIdxs[hand] = itPanelData.first;
+        panelHitUvs[hand] = hit->uv;
       }
     }
   }
@@ -4350,7 +4486,9 @@ void GuiScene::updateSpatialInteractionState(const VrSceneData &vr_scene)
   spatialInteractionState = {};
   for (int hand : {0, 1})
   {
-    bool useTouchThresh = closestHitPanelIdxs[hand] >= 0 && panels[closestHitPanelIdxs[hand]].panel->spatialInfo.canBeTouched;
+    auto panelIt = panels.find(closestHitPanelIdxs[hand]);
+    G_ASSERT(closestHitPanelIdxs[hand] < 0 || panelIt != panels.end());
+    bool useTouchThresh = closestHitPanelIdxs[hand] >= 0 && panelIt->second->panel->spatialInfo.canBeTouched;
     if (minHitDistance[hand] < (useTouchThresh ? max_touch_distance : max_aim_distance))
     {
       auto &sis = spatialInteractionState;
@@ -4361,10 +4499,9 @@ void GuiScene::updateSpatialInteractionState(const VrSceneData &vr_scene)
       else if (sis.wasPanelHit(hand))
       {
         int closestPanelIdx = sis.closestHitPanelIdxs[hand];
-        PanelData &pd = panels[closestPanelIdx];
-        TextureInfo tinfo;
-        pd.canvas->getTex()->getinfo(tinfo);
-        sis.hitPos[hand].set(panelHitUvs[hand].x * tinfo.w, panelHitUvs[hand].y * tinfo.h);
+        auto closestPanelIt = panels.find(closestPanelIdx);
+        G_ASSERT(closestPanelIt != panels.end());
+        sis.hitPos[hand] = uv_to_panel_pixels(*closestPanelIt->second, panelHitUvs[hand]);
       }
     }
   }
@@ -4395,7 +4532,8 @@ int GuiScene::onVrInputEvent(InputEvent event, int hand, int prev_result)
 
   VrPointer &vrPtr = vrPointers[hand];
   int closestPanelIdx = spatialInteractionState.closestHitPanelIdxs[hand];
-  PanelData *closestPanelData = closestPanelIdx >= 0 ? &panels[closestPanelIdx] : nullptr;
+  auto closestPanelIt = panels.find(closestPanelIdx);
+  PanelData *closestPanelData = closestPanelIt != panels.end() ? closestPanelIt->second.get() : nullptr;
   if (vrPtr.activePanel != closestPanelData)
   {
     if (vrPtr.activePanel)
@@ -4505,6 +4643,48 @@ static SQInteger set_config_props(HSQUIRRELVM vm)
 }
 
 
+bool GuiScene::getForcedCursorMode(bool &out_value)
+{
+  if (forcedCursorMode.IsNull())
+    return false;
+  const HSQOBJECT &ho = forcedCursorMode.GetObject();
+  out_value = sq_objtobool(&ho);
+  return true;
+}
+
+
+bool GuiScene::isCursorForcefullyEnabled()
+{
+  bool val = false;
+  return getForcedCursorMode(val) && val;
+}
+
+bool GuiScene::isCursorForcefullyDisabled()
+{
+  bool val = false;
+  return getForcedCursorMode(val) && !val;
+}
+
+
+SQInteger GuiScene::force_cursor_active(HSQUIRRELVM vm)
+{
+  GuiScene *scene = GuiScene::get_from_sqvm(vm);
+  Sqrat::Object newMode = Sqrat::Var<Sqrat::Object>(vm, 2).value;
+
+  if (are_sq_obj_equal(vm, scene->forcedCursorMode, newMode))
+    return 0;
+
+  scene->forcedCursorMode = newMode;
+  scene->updateActiveCursor();
+  scene->applyInputActivityChange();
+
+  return 0;
+}
+
+
+Element *GuiScene::traceInputHit(InputDevice device, Point2 pos) { return Element::trace_input_stack(this, inputStack, device, pos); }
+
+
 void GuiScene::bindScriptClasses()
 {
   G_ASSERT(sqvm);
@@ -4544,7 +4724,8 @@ void GuiScene::bindScriptClasses()
 
   Sqrat::Class<GuiScene, Sqrat::NoConstructor<GuiScene>> guiSceneClass(sqvm, "GuiScene");
   ///@class daRg/GuiScene
-  guiSceneClass.SquirrelFunc("setUpdateHandler", set_update_handler, 2, "xc|o")
+  guiSceneClass //
+    .SquirrelFunc("setUpdateHandler", set_update_handler, 2, "xc|o")
     .SquirrelFunc("setShutdownHandler", set_shutdown_handler, 2, "xc|o")
     .SquirrelFunc("setHotkeysNavHandler", set_hotkeys_nav_handler, 2, "xc|o")
     .SquirrelFunc("addPanel", add_panel, 3, "xic|t")
@@ -4573,69 +4754,74 @@ void GuiScene::bindScriptClasses()
     .Prop("circleButtonAsAction", &GuiScene::useCircleAsActionButton)
     .Prop("xmbMode", &GuiScene::getIsXmbModeOn)
     .Func("getJoystickAxis", &GuiScene::getJoystickAxis)
-    .Func("enableInput", &GuiScene::scriptSetSceneInputActive);
+    .Func("enableInput", &GuiScene::scriptSetSceneInputActive)
+    .SquirrelFunc("forceCursorActive", &GuiScene::force_cursor_active, 2, "x b|o")
+    /**/;
 
 #define V(x) .Var(#x, &SceneConfig::x)
   ///@class daRg/SceneConfig
   Sqrat::Class<SceneConfig, Sqrat::NoConstructor<SceneConfig>> sqSceneConfig(sqvm, "SceneConfig");
   sqSceneConfig
-    ///@const defaultFont
+    ///@var defaultFont
     .SquirrelProp("defaultFont", SceneConfig::getDefaultFontId, SceneConfig::setDefaultFontId)
-    ///@const defaultFontSize
+    ///@var defaultFontSize
     .SquirrelProp("defaultFontSize", SceneConfig::getDefaultFontSize, SceneConfig::setDefaultFontSize)
-    ///@const kbCursorControl
+    ///@var kbCursorControl
     V(kbCursorControl)
-    ///@const gamepadCursorControl
+    ///@var gamepadCursorControl
     V(gamepadCursorControl)
-    ///@const gamepadCursorSpeed
+    ///@var gamepadCursorSpeed
     V(gamepadCursorSpeed)
-    ///@const gamepadCursorHoverMaxTime
+    ///@var gamepadCursorHoverMaxTime
     V(gamepadCursorHoverMaxTime)
-    ///@const gamepadCursorAxisV
+    ///@var gamepadCursorAxisV
     V(gamepadCursorAxisV)
-    ///@const gamepadCursorAxisH
+    ///@var gamepadCursorAxisH
     V(gamepadCursorAxisH)
-    ///@const gamepadCursorHoverMinMul
+    ///@var gamepadCursorHoverMinMul
     V(gamepadCursorHoverMinMul)
-    ///@const gamepadCursorHoverMaxMul
+    ///@var gamepadCursorHoverMaxMul
     V(gamepadCursorHoverMaxMul)
-    ///@const gamepadCursorDeadZone
+    ///@var gamepadCursorDeadZone
     V(gamepadCursorDeadZone)
-    ///@const gamepadCursorNonLin
+    ///@var gamepadCursorNonLin
     V(gamepadCursorNonLin)
-    ///@const reportNestedWatchedUpdate
+    ///@var reportNestedWatchedUpdate
     V(reportNestedWatchedUpdate)
-    ///@const joystickScrollAxisH
+    ///@var joystickScrollAxisH
     V(joystickScrollAxisH)
-    ///@const joystickScrollAxisV
+    ///@var joystickScrollAxisV
     V(joystickScrollAxisV)
-    ///@const clickRumbleEnabled
+    ///@var clickRumbleEnabled
     V(clickRumbleEnabled)
-    ///@const clickRumbleLoFreq
+    ///@var clickRumbleLoFreq
     V(clickRumbleLoFreq)
-    ///@const clickRumbleHiFreq
+    ///@var clickRumbleHiFreq
     V(clickRumbleHiFreq)
-    ///@const clickRumbleDuration
+    ///@var clickRumbleDuration
     V(clickRumbleDuration)
-    ///@const dirPadRepeatDelay
+    ///@var dirPadRepeatDelay
     V(dirPadRepeatDelay)
-    ///@const dirPadRepeatTime
+    ///@var dirPadRepeatTime
     V(dirPadRepeatTime)
-    ///@const gamepadCursorHoverMinMul
+    ///@var gamepadCursorHoverMinMul
     V(gamepadCursorHoverMinMul)
-    ///@const useDefaultCursor
+    ///@var useDefaultCursor
     V(useDefaultCursor)
-    ///@const defaultCursor
+    ///@var defaultCursor
     V(defaultCursor)
-    ///@const clickPriority
+    ///@var clickPriority
     V(actionClickByBehavior)
     .Prop("defSceneBgColor", &SceneConfig::getDefSceneBgColor, &SceneConfig::setDefSceneBgColor)
+    .Prop("defTextColor", &SceneConfig::getDefTextColor, &SceneConfig::setDefTextColor)
     .SquirrelFunc("setClickButtons", &SceneConfig::setClickButtons, 2, "xa")
-    .SquirrelFunc("getClickButtons", &SceneConfig::getClickButtons, 1, "x");
+    .SquirrelFunc("getClickButtons", &SceneConfig::getClickButtons, 1, "x")
+    /**/;
 #undef V
 
   ///@module daRg
-  dargModuleExports.SquirrelFunc("anim_start", GuiScene::call_anim_method<&ElementTree::startAnimation>, 2)
+  dargModuleExports //
+    .SquirrelFunc("anim_start", GuiScene::call_anim_method<&ElementTree::startAnimation>, 2)
     .SquirrelFunc("anim_request_stop", GuiScene::call_anim_method<&ElementTree::requestAnimStop>, 2)
     .SquirrelFunc("anim_skip", GuiScene::call_anim_method<&ElementTree::skipAnim>, 2)
     .SquirrelFunc("anim_skip_delay", GuiScene::call_anim_method<&ElementTree::skipAnimDelay>, 2)
@@ -4648,7 +4834,7 @@ void GuiScene::bindScriptClasses()
     .SetValue("gui_scene", this)
     ///@ftype GuiScene
     ///@fvalue instance of GuiScene
-    ;
+    /**/;
 
   moduleMgr->addNativeModule("daRg", dargModuleExports);
 }

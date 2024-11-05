@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/treesAbove.h>
 
 #include <math/dag_Point2.h>
@@ -11,7 +13,12 @@
 
 #include <ioSys/dag_dataBlock.h>
 
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
 #include <util/dag_convar.h>
 
 #include <shaders/dag_shaderBlock.h>
@@ -219,7 +226,8 @@ void TreesAbove::initTrees2d(const DataBlock &settings)
     trees2dDist = ((float)trees2dDRes / 2.0f) * treesTexelSize;
     debug("init trees2d map rex %d^2, %f", trees2dDRes, treesTexelSize);
     // trees2d.set(d3d::create_tex(NULL, treesRes, treesRes, TEXCF_RTARGET|TEXFMT_L8, 1, "trees2d"), "trees2d");
-    trees2d.set(d3d::create_tex(NULL, trees2dDRes, trees2dDRes, TEXCF_RTARGET | TEXCF_SRGBREAD | TEXCF_SRGBWRITE, 1, "trees2d"),
+    trees2d.set(d3d::create_tex(NULL, trees2dDRes, trees2dDRes,
+                  TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE | TEXCF_SRGBREAD | TEXCF_SRGBWRITE, 1, "trees2d"),
       "trees2d");
     trees2dDepth.set(d3d::create_tex(NULL, trees2dDRes, trees2dDRes, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "trees2d_depth"),
       "trees2d_depth");    // to be removed, we should copy from back buffer

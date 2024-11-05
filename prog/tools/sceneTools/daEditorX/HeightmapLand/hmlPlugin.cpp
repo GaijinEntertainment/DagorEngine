@@ -1,7 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hmlPlugin.h"
 
 #include "hmlCm.h"
 
+#include "hmlSplineObject.h"
+#include "hmlSplinePoint.h"
 #include "hmlPanel.h"
 #include "recastNavMesh.h"
 
@@ -22,7 +26,7 @@
 
 #include <coolConsole/coolConsole.h>
 
-#include <dllPluginCore/core.h>
+#include <EditorCore/ec_IEditorCore.h>
 #include <oldEditor/de_workspace.h>
 #include <oldEditor/pluginService/de_IDagorPhys.h>
 
@@ -30,15 +34,16 @@
 #include <de3_genHmapData.h>
 #include <de3_interface.h>
 #include <de3_entityFilter.h>
+#include <de3_splineGenSrv.h>
 #include <assets/asset.h>
 
 #include <texConverter/textureConverterDlg.h>
 #include <util/dag_texMetaData.h>
 #include <3d/dag_texMgr.h>
 #include <3d/dag_createTex.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_tex3d.h>
 #include <shaders/dag_shaders.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <pathFinder/pathFinder.h>
 
 #include <debug/dag_debug.h>
@@ -47,9 +52,15 @@
 
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <winGuiWrapper/wgw_input.h>
-#include <propPanel2/comWnd/dialog_window.h>
+#include <propPanel/commonWindow/dialogWindow.h>
+#include <propPanel/control/menu.h>
+#include <propPanel/control/panelWindow.h>
 #include <intrin.h>
 #include <stdio.h> // snprintf
+
+using editorcore_extapi::dagGeom;
+using editorcore_extapi::dagRender;
+using editorcore_extapi::dagTools;
 
 using hdpi::_pxScaled;
 
@@ -400,6 +411,9 @@ void HmapLandPlugin::RenderParams::init()
 
 HmapLandPlugin::~HmapLandPlugin()
 {
+  if (ISplineGenService *splSrv = EDITORCORE->queryEditorInterface<ISplineGenService>())
+    splSrv->setSweepMask(nullptr, 0, 0, 1);
+
   detailedLandMask = NULL;
   editedScriptImage = NULL;
   clear_and_shrink(colorGenParams);
@@ -441,6 +455,8 @@ HmapLandPlugin::~HmapLandPlugin()
   IAssetService *assetSrv = DAGORED2->queryEditorInterface<IAssetService>();
   if (assetSrv)
     assetSrv->unsubscribeUpdateNotify(this, true, false);
+  for (int i = 0; i < physMaps.size(); ++i)
+    del_it(physMaps[i]);
 }
 
 
@@ -456,20 +472,31 @@ void HmapLandPlugin::createPropPanel()
   // propPanel->fillToolBar();
 }
 
-PropPanel2 *HmapLandPlugin::getPropPanel() const { return propPanel ? propPanel->getPanelWindow() : NULL; }
+PropPanel::ContainerPropertyControl *HmapLandPlugin::getPropPanel() const { return propPanel ? propPanel->getPanelWindow() : NULL; }
 
 
 //==============================================================================
 void HmapLandPlugin::registerMenuAccelerators()
 {
-  DAGORED2->getWndManager()->addAccelerator(CM_REIMPORT, wingw::V_F4);
-  DAGORED2->getWndManager()->addAccelerator(CM_EXPORT_LOFT_MASKS, wingw::V_F9);
+  IWndManager &wndManager = *DAGORED2->getWndManager();
+
+  wndManager.addAccelerator(CM_REIMPORT, wingw::V_F4);
+  wndManager.addAccelerator(CM_EXPORT_LOFT_MASKS, wingw::V_F9);
+
+  // ObjectEditor has an accelerator with the same hotkey but because this is registered first, this will "win".
+  wndManager.addViewportAccelerator(CM_TOGGLE_PROPERTIES_AND_OBJECT_PROPERTIES, 'P');
+
+  wndManager.addViewportAccelerator(CM_DECREASE_BRUSH_SIZE, wingw::V_BRACKET_O, false, false, false, true);
+  wndManager.addViewportAccelerator(CM_INCREASE_BRUSH_SIZE, wingw::V_BRACKET_C, false, false, false, true);
+
+  objEd.registerViewportAccelerators(wndManager);
 }
+
 void HmapLandPlugin::createMenu(unsigned menu_id)
 {
   // menu
 
-  IMenu *mainMenu = DAGORED2->getWndManager()->getMainMenu();
+  PropPanel::IMenu *mainMenu = DAGORED2->getMainMenu();
 
   mainMenu->addItem(menu_id, CM_CREATE_HEIGHTMAP, "Create heightmap");
   mainMenu->addItem(menu_id, CM_IMPORT_HEIGHTMAP, "Import heightmap");
@@ -565,12 +592,12 @@ void HmapLandPlugin::refillPanel(bool schedule_regen)
     propPanel->fillPanel(true, schedule_regen, true);
 }
 
-void HmapLandPlugin::fillPanel(PropPanel2 &panel)
+void HmapLandPlugin::fillPanel(PropPanel::ContainerPropertyControl &panel)
 {
   panel.clear();
   panel.disableFillAutoResize();
 
-  PropertyContainerControlBase *exportGroup = panel.createGroup(PID_HM_EXPORT_GRP, "Export Parameters");
+  PropPanel::ContainerPropertyControl *exportGroup = panel.createGroup(PID_HM_EXPORT_GRP, "Export Parameters");
 
   Tab<String> typesExport(tmpmem);
   typesExport.push_back() = "Pseudo plane, no export";    // EXPORT_PSEUDO_PLANE
@@ -586,7 +613,7 @@ void HmapLandPlugin::fillPanel(PropPanel2 &panel)
   //---Mesh
   if (useMeshSurface)
   {
-    PropertyContainerControlBase *meshGroup = panel.createGroup(PID_MESH_GRP, "Mesh");
+    PropPanel::ContainerPropertyControl *meshGroup = panel.createGroup(PID_MESH_GRP, "Mesh");
 
     meshGroup->createEditFloat(PID_MESH_PREVIEW_DISTANCE, "Preview distance", meshPreviewDistance);
     if (exportType != EXPORT_PSEUDO_PLANE)
@@ -619,7 +646,7 @@ void HmapLandPlugin::fillPanel(PropPanel2 &panel)
   }
 
   //---Brush
-  PropertyContainerControlBase *maxGrp = panel.createGroup(PID_BRUSH_GRP, "Brush");
+  PropPanel::ContainerPropertyControl *maxGrp = panel.createGroup(PID_BRUSH_GRP, "Brush");
   brushes[currentBrushId]->fillParams(*maxGrp);
   panel.setBool(PID_BRUSH_GRP, true);
 
@@ -749,11 +776,11 @@ void HmapLandPlugin::fillPanel(PropPanel2 &panel)
   maxGrp->createPoint2(PID_HEIGHTMAP_OFFSET, "Origin offset", heightMapOffset, 2, !doAutocenter);
   maxGrp->createCheckBox(PID_HEIGHTMAP_AUTOCENTER, "Automatic center", doAutocenter);
 
-  PropertyContainerControlBase *grp;
+  PropPanel::ContainerPropertyControl *grp;
 
   if (exportType != EXPORT_PSEUDO_PLANE)
   {
-    PropertyContainerControlBase *rg1 = maxGrp->createRadioGroup(PID_LCMAP_SUBDIV, "Land class map detail");
+    PropPanel::ContainerPropertyControl *rg1 = maxGrp->createRadioGroup(PID_LCMAP_SUBDIV, "Land class map detail");
     rg1->createRadio(PID_LCMAP_1, "1x one-to-one");
     rg1->createRadio(PID_LCMAP_2, "2x");
     rg1->createRadio(PID_LCMAP_4, "4x");
@@ -764,7 +791,7 @@ void HmapLandPlugin::fillPanel(PropPanel2 &panel)
       case 4: maxGrp->setInt(PID_LCMAP_SUBDIV, PID_LCMAP_4); break;
     }
 
-    PropertyContainerControlBase *subGrpH2 = maxGrp->createGroupBox(-1, "Detailed Heightmap area");
+    PropPanel::ContainerPropertyControl *subGrpH2 = maxGrp->createGroupBox(-1, "Detailed Heightmap area");
     subGrpH2->createEditFloat(PID_GRID_H2_CELL_SIZE, "Cell size:", detDivisor ? gridCellSize / detDivisor : 0);
     subGrpH2->createPoint2(PID_GRID_H2_BBOX_OFS, "Area origin:", detRect[0]);
     subGrpH2->createPoint2(PID_GRID_H2_BBOX_SZ, "Area Size:", detRect.width());
@@ -793,7 +820,7 @@ void HmapLandPlugin::fillPanel(PropPanel2 &panel)
 
 
     grp->createSeparator(0);
-    PropertyContainerControlBase *rg = grp->createRadioGroup(PID_RENDER_RADIOGROUP_HM, "Show heightmap");
+    PropPanel::ContainerPropertyControl *rg = grp->createRadioGroup(PID_RENDER_RADIOGROUP_HM, "Show heightmap");
 
     rg->createRadio(PID_RENDER_INITIAL_HM, "initial");
     rg->createRadio(PID_RENDER_FINAL_HM, "final (after modifiers)");
@@ -836,7 +863,7 @@ void HmapLandPlugin::fillPanel(PropPanel2 &panel)
 
 
   //---Textures (groups several rarely used panels):
-  PropertyContainerControlBase *landOptionsGrp = panel.createGroup(PID_LAND_TEXTURES_OPTIONS_GRP, "Textures:");
+  PropPanel::ContainerPropertyControl *landOptionsGrp = panel.createGroup(PID_LAND_TEXTURES_OPTIONS_GRP, "Textures:");
 
   //---Tile detail texture
   if (requireTileTex)
@@ -979,7 +1006,7 @@ void HmapLandPlugin::fillPanel(PropPanel2 &panel)
       }
 
       // Following block is not used in Warthunder version of DaEditor
-      /*     PropertyContainerControlBase *rg = grp->createRadioGroup(PID_LIGHTING_SUBDIV,
+      /*     PropPanel::ContainerPropertyControl *rg = grp->createRadioGroup(PID_LIGHTING_SUBDIV,
              useNormalMap ? "NormalmapDetail" : "LightmapDetail");
 
            rg->createRadio(PID_LIGHTING_1, "1x one-to-one");
@@ -1006,7 +1033,7 @@ void HmapLandPlugin::fillPanel(PropPanel2 &panel)
 
            if (!useNormalMap)
            {
-             PropertyContainerControlBase* subGrp =
+             PropPanel::ContainerPropertyControl* subGrp =
                grp->createGroup(PID_SHADOW_GRP, "Shadows");
              subGrp->createEditFloat(PID_SHADOW_BIAS, "Shadow bias", shadowBias, 3);
              subGrp->createEditFloat(PID_SHADOW_TRACE_DIST, "Shadow trace distance", shadowTraceDist);
@@ -1105,6 +1132,23 @@ void HmapLandPlugin::fillPanel(PropPanel2 &panel)
       grp->createSeparator(0);
       grp->createCheckBox(baseOfs + NM_PARAM_JLK_ENABLED, "Export jump links mesh",
         navMeshProps[navMeshIdx].getBool("jumpLinksEnabled", false));
+      Tab<String> jlkTypes(tmpmem);
+      jlkTypes.push_back() = "Original";
+      jlkTypes.push_back() = "(WIP) New 2024";
+      int jlkType = navMeshProps[navMeshIdx].getInt("jumpLinksTypeGen", 0);
+      const bool jlkEnableOrig = (jlkType == 0);
+      const bool jlkEnableNew2024 = (jlkType == 1);
+      grp->createCombo(baseOfs + NM_PARAM_JLK_TYPEGEN, "Jump links generation:", jlkTypes, jlkType);
+      grp->createEditFloat(baseOfs + NM_PARAM_JLK_JUMPOFF_MIN_HEIGHT, "jumpoff min height, m",
+        navMeshProps[navMeshIdx].getReal("jumpLinksJumpoffMinHeight", 1.0f), 2, jlkEnableNew2024);
+      grp->createEditFloat(baseOfs + NM_PARAM_JLK_JUMPOFF_MAX_HEIGHT, "jumpoff max height, m",
+        navMeshProps[navMeshIdx].getReal("jumpLinksJumpoffMaxHeight", 4.0f), 2, jlkEnableNew2024);
+      grp->createEditFloat(baseOfs + NM_PARAM_JLK_JUMPOFF_MIN_XZ_LENGTH, "jumpoff min XZ length, m",
+        navMeshProps[navMeshIdx].getReal("jumpLinksJumpoffMinLinkLength", 0.3f), 2, jlkEnableNew2024);
+      grp->createEditFloat(baseOfs + NM_PARAM_JLK_EDGE_MERGE_ANGLE, "jlk merge angle, deg",
+        navMeshProps[navMeshIdx].getReal("jumpLinksEdgeMergeAngle", 10.0f), 2, jlkEnableNew2024);
+      grp->createEditFloat(baseOfs + NM_PARAM_JLK_EDGE_MERGE_DIST, "jlk merge dist, m",
+        navMeshProps[navMeshIdx].getReal("jumpLinksEdgeMergeDist", 0.1f), 2, jlkEnableNew2024);
       grp->createEditFloat(baseOfs + NM_PARAM_JLK_JUMP_OVER_HEIGHT, "jump over height, m",
         navMeshProps[navMeshIdx].getReal("jumpLinksHeight", 2.0f));
       const float typoDefJumpLength = navMeshProps[navMeshIdx].getReal("jumpLinksLenght", 2.5f);
@@ -1116,11 +1160,13 @@ void HmapLandPlugin::fillPanel(PropPanel2 &panel)
       grp->createEditFloat(baseOfs + NM_PARAM_JLK_AGENT_MIN_SPACE, "agent min space, m",
         navMeshProps[navMeshIdx].getReal("jumpLinksAgentMinSpace", 1.0f));
       grp->createEditFloat(baseOfs + NM_PARAM_JLK_DH_THRESHOLD, "delta height threshold, m",
-        navMeshProps[navMeshIdx].getReal("jumpLinksDeltaHeightTreshold", 0.5f));
+        navMeshProps[navMeshIdx].getReal("jumpLinksDeltaHeightTreshold", 0.5f), 2, jlkEnableOrig);
+      grp->createEditFloat(baseOfs + NM_PARAM_JLK_MAX_OBSTRUCTION_ANGLE, "max obstruction angle, deg",
+        navMeshProps[navMeshIdx].getReal("jumpLinksMaxObstructionAngle", 25.0f), 2, jlkEnableOrig);
       grp->createEditFloat(baseOfs + NM_PARAM_JLK_MERGE_ANGLE, "merge delta angle, deg",
-        navMeshProps[navMeshIdx].getReal("jumpLinksMergeAngle", 15.0f));
+        navMeshProps[navMeshIdx].getReal("jumpLinksMergeAngle", 15.0f), 2, jlkEnableOrig);
       grp->createEditFloat(baseOfs + NM_PARAM_JLK_MERGE_DIST, "max angle between edges, deg",
-        navMeshProps[navMeshIdx].getReal("jumpLinksMergeDist", 5.0f));
+        navMeshProps[navMeshIdx].getReal("jumpLinksMergeDist", 5.0f), 2, jlkEnableOrig);
       grp->createEditFloat(baseOfs + NM_PARAM_JLK_CPLX_THRESHOLD, "complex link threshold",
         navMeshProps[navMeshIdx].getReal("complexJumpTheshold", 0.0f));
       grp->createCheckBox(baseOfs + NM_PARAM_JLK_CROSS_OBSTACLES_WITH_JUMPLINKS, "cross obstacles with jlinks",
@@ -1181,30 +1227,32 @@ void HmapLandPlugin::fillPanel(PropPanel2 &panel)
       if (navMeshIdx != 0)
         grp->createEditBox(baseOfs + NM_PARAM_KIND, "Nav mesh kind", navMeshProps[navMeshIdx].getStr("kind", ""));
 
-      PropertyContainerControlBase *rg = grp->createRadioGroup(baseOfs + NM_PARAM_AREATYPE, "Navigation area");
+      PropPanel::ContainerPropertyControl *rg = grp->createRadioGroup(baseOfs + NM_PARAM_AREATYPE, "Navigation area");
       rg->createRadio(baseOfs + NM_PARAM_AREATYPE_MAIN, "Full main HMAP area");
       rg->createRadio(baseOfs + NM_PARAM_AREATYPE_DET, "Detailed HMAP area");
       rg->createRadio(baseOfs + NM_PARAM_AREATYPE_RECT, "Explicit rectangle");
+      rg->createRadio(baseOfs + NM_PARAM_AREATYPE_POLY, "Specified area");
 
-      if (navMeshProps[navMeshIdx].getInt("navArea", 0) <= NM_PARAM_AREATYPE_RECT - NM_PARAM_AREATYPE_MAIN)
+      if (navMeshProps[navMeshIdx].getInt("navArea", 0) <= NM_PARAM_AREATYPE_POLY - NM_PARAM_AREATYPE_MAIN)
         grp->setInt(baseOfs + NM_PARAM_AREATYPE, baseOfs + NM_PARAM_AREATYPE_MAIN + navMeshProps[navMeshIdx].getInt("navArea", 0));
       else
         grp->setInt(baseOfs + NM_PARAM_AREATYPE, baseOfs + NM_PARAM_AREATYPE_MAIN);
 
-      grp->createPoint2(baseOfs + NM_PARAM_AREATYPE_RECT0, "  rectangle min pos",
-        navMeshProps[navMeshIdx].getPoint2("rect0", Point2(0, 0)));
-      grp->createPoint2(baseOfs + NM_PARAM_AREATYPE_RECT1, "  rectangle max pos",
-        navMeshProps[navMeshIdx].getPoint2("rect1", Point2(1000, 1000)));
-
-      panel.setEnabledById(baseOfs + NM_PARAM_AREATYPE_RECT0,
-        panel.getInt(baseOfs + NM_PARAM_AREATYPE) == baseOfs + NM_PARAM_AREATYPE_RECT);
-      panel.setEnabledById(baseOfs + NM_PARAM_AREATYPE_RECT1,
-        panel.getInt(baseOfs + NM_PARAM_AREATYPE) == baseOfs + NM_PARAM_AREATYPE_RECT);
-
+      PropPanel::ContainerPropertyControl *areatypeInputContainer =
+        grp->createContainer(baseOfs + NM_PARAM_AREAS_INPUT_CONTAINER, true, _pxScaled(2));
+      navmeshAreasProcessing[navMeshIdx].setPropPanel(areatypeInputContainer);
+      if (panel.getInt(baseOfs + NM_PARAM_AREATYPE) == baseOfs + NM_PARAM_AREATYPE_RECT)
+      {
+        fillAreatypeRectPanel(*areatypeInputContainer, navMeshIdx, baseOfs);
+      }
+      else if (panel.getInt(baseOfs + NM_PARAM_AREATYPE) == baseOfs + NM_PARAM_AREATYPE_POLY)
+      {
+        navmeshAreasProcessing[navMeshIdx].fillNavmeshAreasPanel();
+      }
 
       grp->createSeparator(0);
 
-      PropertyContainerControlBase *rgType = grp->createRadioGroup(baseOfs + NM_PARAM_EXPORT_TYPE, "Navmesh type");
+      PropPanel::ContainerPropertyControl *rgType = grp->createRadioGroup(baseOfs + NM_PARAM_EXPORT_TYPE, "Navmesh type");
       rgType->createRadio(baseOfs + NM_PARAM_EXPORT_TYPE_WATER, "Water navigation");
       rgType->createRadio(baseOfs + NM_PARAM_EXPORT_TYPE_SPLINES, "Splines navigation");
       rgType->createRadio(baseOfs + NM_PARAM_EXPORT_TYPE_HEIGHT_FROM_ABOVE, "Height from above");
@@ -1237,7 +1285,7 @@ void HmapLandPlugin::fillPanel(PropPanel2 &panel)
       grp->createEditFloat(baseOfs + NM_PARAM_CELL_EDGE_MAX_LEN, "Edge max len, m",
         navMeshProps[navMeshIdx].getReal("edgeMaxLen", 128.0f));
       grp->createEditFloat(baseOfs + NM_PARAM_CELL_EDGE_MAX_ERR, "Edge max error, m",
-        navMeshProps[navMeshIdx].getReal("edgeMaxError", 2.0f));
+        navMeshProps[navMeshIdx].getReal("edgeMaxError", 1.5f));
       grp->createEditFloat(baseOfs + NM_PARAM_CELL_REG_MIN_SZ, "Region min size, m2",
         navMeshProps[navMeshIdx].getReal("regionMinSize", 9.0f));
       grp->createEditFloat(baseOfs + NM_PARAM_CELL_REG_MERGE_SZ, "Region merge size, m2",
@@ -1299,7 +1347,7 @@ void HmapLandPlugin::fillPanel(PropPanel2 &panel)
 }
 
 
-void HmapLandPlugin::updateLightGroup(PropPanel2 &panel)
+void HmapLandPlugin::updateLightGroup(PropPanel::ContainerPropertyControl &panel)
 {
   panel.setColor(PID_SUN_LIGHT_COLOR, ldrLight.sunColor);
   panel.setFloat(PID_SUN_LIGHT_POWER, ldrLight.sunPower);
@@ -1312,10 +1360,18 @@ void HmapLandPlugin::updateLightGroup(PropPanel2 &panel)
   panel.setFloat(PID_SUN_ZENITH, (RadToDeg(sunZenith)));
 }
 
+void HmapLandPlugin::fillAreatypeRectPanel(PropPanel::ContainerPropertyControl &panel, int navmesh_idx, int base_ofs)
+{
+  panel.createPoint2(base_ofs + NM_PARAM_AREATYPE_RECT0, "  rectangle min pos",
+    navMeshProps[navmesh_idx].getPoint2("rect0", Point2(0, 0)));
+  panel.createPoint2(base_ofs + NM_PARAM_AREATYPE_RECT1, "  rectangle max pos",
+    navMeshProps[navmesh_idx].getPoint2("rect1", Point2(1000, 1000)));
+}
+
 
 // ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
 
-void HmapLandPlugin::onChange(int pcb_id, PropPanel2 *panel)
+void HmapLandPlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
 
   if (pcb_id >= PID_SCRIPT_PARAM_START && pcb_id <= PID_LAST_SCRIPT_PARAM)
@@ -1340,9 +1396,9 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel2 *panel)
   // if (!brushDlg->isDialogVisible() && !brushDlg->isDialogClosed())
   //   return;
 
-  // PropPanel2 &dlgPanel = brushDlg->getPropPanel();
-  // PropPanel2 &plugPanel = *propPanel->getPanel();
-  // PropPanel2 &panel = brushDlg->isDialogVisible() ? dlgPanel : plugPanel;
+  // PropPanel::ContainerPropertyControl &dlgPanel = brushDlg->getPropPanel();
+  // PropPanel::ContainerPropertyControl &plugPanel = *propPanel->getPanel();
+  // PropPanel::ContainerPropertyControl &panel = brushDlg->isDialogVisible() ? dlgPanel : plugPanel;
 
 
   switch (pcb_id)
@@ -1584,9 +1640,32 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel2 *panel)
       case NM_PARAM_CELL_DET_SAMPLE: navMeshProps[navMeshIdx].setReal("detailSampleDist", panel->getFloat(pcb_id)); break;
       case NM_PARAM_CELL_DET_MAX_ERR: navMeshProps[navMeshIdx].setReal("detailSampleMaxError", panel->getFloat(pcb_id)); break;
       case NM_PARAM_AREATYPE:
-        panel->setEnabledById(baseOfs + NM_PARAM_AREATYPE_RECT0, panel->getInt(pcb_id) == baseOfs + NM_PARAM_AREATYPE_RECT);
-        panel->setEnabledById(baseOfs + NM_PARAM_AREATYPE_RECT1, panel->getInt(pcb_id) == baseOfs + NM_PARAM_AREATYPE_RECT);
+      {
+        int areaType = panel->getInt(baseOfs + NM_PARAM_AREATYPE) - (baseOfs + NM_PARAM_AREATYPE_MAIN);
+        if (areaType != navMeshProps[navMeshIdx].getInt("navArea", 0))
+        {
+          navMeshProps[navMeshIdx].setInt("navArea", areaType);
+        }
+
+        if (areaType >= NM_PARAM_AREATYPE_RECT - NM_PARAM_AREATYPE_MAIN && areaType <= NM_PARAM_AREATYPE_POLY - NM_PARAM_AREATYPE_MAIN)
+        {
+          panel->removeById(baseOfs + NM_PARAM_AREAS_INPUT_CONTAINER);
+          PropPanel::ContainerPropertyControl *grp = panel->getById(baseOfs + NM_PARAM_GRP)->getContainer();
+          PropPanel::ContainerPropertyControl *areatypeInputContainer =
+            grp->createContainer(baseOfs + NM_PARAM_AREAS_INPUT_CONTAINER, true, _pxScaled(2));
+          if (areaType == NM_PARAM_AREATYPE_RECT - NM_PARAM_AREATYPE_MAIN)
+          {
+            fillAreatypeRectPanel(*areatypeInputContainer, navMeshIdx, baseOfs);
+          }
+          else
+          {
+            navmeshAreasProcessing[navMeshIdx].fillNavmeshAreasPanel();
+          }
+          grp->moveById(baseOfs + NM_PARAM_AREAS_INPUT_CONTAINER, baseOfs + NM_PARAM_AREATYPE, true);
+        }
+
         break;
+      }
       case NM_PARAM_AREATYPE_RECT0: navMeshProps[navMeshIdx].setPoint2("rect0", panel->getPoint2(pcb_id)); break;
       case NM_PARAM_AREATYPE_RECT1: navMeshProps[navMeshIdx].setPoint2("rect1", panel->getPoint2(pcb_id)); break;
       case NM_PARAM_WATER: navMeshProps[navMeshIdx].setBool("hasWater", panel->getBool(pcb_id)); break;
@@ -1610,12 +1689,43 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel2 *panel)
       case NM_PARAM_EMRG_UNSAFE_MAX_CUT_SPACE: navMeshProps[navMeshIdx].setReal("maxUnsafeCutSpace", panel->getFloat(pcb_id)); break;
 
       case NM_PARAM_JLK_ENABLED: navMeshProps[navMeshIdx].setBool("jumpLinksEnabled", panel->getBool(pcb_id)); break;
+      case NM_PARAM_JLK_TYPEGEN:
+      {
+        const int typegen = panel->getInt(pcb_id);
+        navMeshProps[navMeshIdx].setInt("jumpLinksTypeGen", typegen);
+        const bool jlkEnableOrig = (typegen == 0);
+        const bool jlkEnableNew2024 = (typegen == 1);
+        panel->setEnabledById(baseOfs + NM_PARAM_JLK_JUMPOFF_MIN_HEIGHT, jlkEnableNew2024);
+        panel->setEnabledById(baseOfs + NM_PARAM_JLK_JUMPOFF_MAX_HEIGHT, jlkEnableNew2024);
+        panel->setEnabledById(baseOfs + NM_PARAM_JLK_JUMPOFF_MIN_XZ_LENGTH, jlkEnableNew2024);
+        panel->setEnabledById(baseOfs + NM_PARAM_JLK_EDGE_MERGE_ANGLE, jlkEnableNew2024);
+        panel->setEnabledById(baseOfs + NM_PARAM_JLK_EDGE_MERGE_DIST, jlkEnableNew2024);
+        panel->setEnabledById(baseOfs + NM_PARAM_JLK_DH_THRESHOLD, jlkEnableOrig);
+        panel->setEnabledById(baseOfs + NM_PARAM_JLK_MERGE_ANGLE, jlkEnableOrig);
+        panel->setEnabledById(baseOfs + NM_PARAM_JLK_MERGE_DIST, jlkEnableOrig);
+        panel->setEnabledById(baseOfs + NM_PARAM_JLK_MAX_OBSTRUCTION_ANGLE, jlkEnableOrig);
+        break;
+      }
+      case NM_PARAM_JLK_JUMPOFF_MIN_HEIGHT:
+        navMeshProps[navMeshIdx].setReal("jumpLinksJumpoffMinHeight", panel->getFloat(pcb_id));
+        break;
+      case NM_PARAM_JLK_JUMPOFF_MAX_HEIGHT:
+        navMeshProps[navMeshIdx].setReal("jumpLinksJumpoffMaxHeight", panel->getFloat(pcb_id));
+        break;
+      case NM_PARAM_JLK_JUMPOFF_MIN_XZ_LENGTH:
+        navMeshProps[navMeshIdx].setReal("jumpLinksJumpoffMinLinkLength", panel->getFloat(pcb_id));
+        break;
+      case NM_PARAM_JLK_EDGE_MERGE_ANGLE: navMeshProps[navMeshIdx].setReal("jumpLinksEdgeMergeAngle", panel->getFloat(pcb_id)); break;
+      case NM_PARAM_JLK_EDGE_MERGE_DIST: navMeshProps[navMeshIdx].setReal("jumpLinksEdgeMergeDist", panel->getFloat(pcb_id)); break;
       case NM_PARAM_JLK_JUMP_OVER_HEIGHT: navMeshProps[navMeshIdx].setReal("jumpLinksHeight", panel->getFloat(pcb_id)); break;
       case NM_PARAM_JLK_JUMP_LENGTH: navMeshProps[navMeshIdx].setReal("jumpLinksLength", panel->getFloat(pcb_id)); break;
       case NM_PARAM_JLK_MIN_WIDTH: navMeshProps[navMeshIdx].setReal("jumpLinksWidth", panel->getFloat(pcb_id)); break;
       case NM_PARAM_JLK_AGENT_HEIGHT: navMeshProps[navMeshIdx].setReal("jumpLinksAgentHeight", panel->getFloat(pcb_id)); break;
       case NM_PARAM_JLK_AGENT_MIN_SPACE: navMeshProps[navMeshIdx].setReal("jumpLinksAgentMinSpace", panel->getFloat(pcb_id)); break;
       case NM_PARAM_JLK_DH_THRESHOLD: navMeshProps[navMeshIdx].setReal("jumpLinksDeltaHeightTreshold", panel->getFloat(pcb_id)); break;
+      case NM_PARAM_JLK_MAX_OBSTRUCTION_ANGLE:
+        navMeshProps[navMeshIdx].setReal("jumpLinksMaxObstructionAngle", panel->getFloat(pcb_id));
+        break;
       case NM_PARAM_JLK_MERGE_ANGLE: navMeshProps[navMeshIdx].setReal("jumpLinksMergeAngle", panel->getFloat(pcb_id)); break;
       case NM_PARAM_JLK_MERGE_DIST: navMeshProps[navMeshIdx].setReal("jumpLinksMergeDist", panel->getFloat(pcb_id)); break;
       case NM_PARAM_JLK_CPLX_THRESHOLD: navMeshProps[navMeshIdx].setReal("complexJumpTheshold", panel->getFloat(pcb_id)); break;
@@ -1686,10 +1796,6 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel2 *panel)
       case NM_PARAM_COMPRESS_RATIO: navMeshProps[navMeshIdx].setInt("navmeshCompressRatio", panel->getInt(pcb_id)); break;
     }
 
-    if (
-      panel->getInt(baseOfs + NM_PARAM_AREATYPE) - (baseOfs + NM_PARAM_AREATYPE_MAIN) != navMeshProps[navMeshIdx].getInt("navArea", 0))
-      navMeshProps[navMeshIdx].setInt("navArea", panel->getInt(baseOfs + NM_PARAM_AREATYPE) - (baseOfs + NM_PARAM_AREATYPE_MAIN));
-
     int navmeshExportType = panel->getInt(baseOfs + NM_PARAM_EXPORT_TYPE);
     if (navmeshExportType >= baseOfs + NM_PARAM_EXPORT_TYPE_WATER &&
         navmeshExportType <= baseOfs + NM_PARAM_EXPORT_TYPE_WATER_AND_GEOMETRY)
@@ -1700,6 +1806,8 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel2 *panel)
       panel->setEnabledById(baseOfs + NM_PARAM_WATER, navmeshExportType != baseOfs + NM_PARAM_EXPORT_TYPE_WATER &&
                                                         navmeshExportType != baseOfs + NM_PARAM_EXPORT_TYPE_WATER_AND_GEOMETRY);
     }
+
+    navmeshAreasProcessing[navMeshIdx].onChange(pcb_id);
   }
 
 
@@ -2235,7 +2343,7 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel2 *panel)
   }
   gpuGrassPanel.onChange(pcb_id, panel);
 }
-void HmapLandPlugin::onChangeFinished(int pcb_id, PropPanel2 *panel)
+void HmapLandPlugin::onChangeFinished(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   switch (pcb_id)
   {
@@ -2323,9 +2431,9 @@ bool HmapLandPlugin::importTileTex()
 bool HmapLandPlugin::createMask(int bpp, String *name)
 {
   static const int INPUT_STRING_EDIT_ID = 222;
-  CDialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), "Create mask");
-  dialog->setInitialFocus(DIALOG_ID_NONE);
-  PropPanel2 *panel = dialog->getPanel();
+  PropPanel::DialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), "Create mask");
+  dialog->setInitialFocus(PropPanel::DIALOG_ID_NONE);
+  PropPanel::ContainerPropertyControl *panel = dialog->getPanel();
   panel->createEditBox(INPUT_STRING_EDIT_ID, "Enter mask name:");
   panel->setFocusById(INPUT_STRING_EDIT_ID);
 
@@ -2335,7 +2443,7 @@ bool HmapLandPlugin::createMask(int bpp, String *name)
   {
     nameValid = true;
     int ret = dialog->showDialog();
-    if (ret == DIALOG_ID_OK)
+    if (ret == PropPanel::DIALOG_ID_OK)
     {
       result = panel->getText(INPUT_STRING_EDIT_ID);
     }
@@ -2375,8 +2483,7 @@ bool HmapLandPlugin::createMask(int bpp, String *name)
   return false;
 }
 
-
-void HmapLandPlugin::onClick(int pcb_id, PropPanel2 *panel)
+void HmapLandPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   if (pcb_id >= PID_GRASS_PARAM_START && pcb_id <= PID_LAST_GRASS_PARAM)
   {
@@ -2592,14 +2699,14 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel2 *panel)
   }
   else if (pcb_id == PID_ADDLAYER)
   {
-    CDialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), "Create generation layer");
-    dialog->setInitialFocus(DIALOG_ID_NONE);
-    PropPanel2 *panel = dialog->getPanel();
+    PropPanel::DialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), "Create generation layer");
+    dialog->setInitialFocus(PropPanel::DIALOG_ID_NONE);
+    PropPanel::ContainerPropertyControl *panel = dialog->getPanel();
     panel->createEditBox(0, "Enter generation layer name:");
     panel->setFocusById(0);
 
     int ret = dialog->showDialog();
-    if (ret == DIALOG_ID_OK)
+    if (ret == PropPanel::DIALOG_ID_OK)
     {
       addGenLayer(panel->getText(0));
       if (propPanel)
@@ -2615,14 +2722,14 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel2 *panel)
   }
   else if (pcb_id == PID_GRASS_ADDLAYER)
   {
-    CDialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), "Create grass layer");
-    dialog->setInitialFocus(DIALOG_ID_NONE);
-    PropPanel2 *panel = dialog->getPanel();
+    PropPanel::DialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), "Create grass layer");
+    dialog->setInitialFocus(PropPanel::DIALOG_ID_NONE);
+    PropPanel::ContainerPropertyControl *panel = dialog->getPanel();
     panel->createEditBox(0, "Enter grass layer name:");
     panel->setFocusById(0);
 
     int ret = dialog->showDialog();
-    if (ret == DIALOG_ID_OK)
+    if (ret == PropPanel::DIALOG_ID_OK)
     {
       addGrassLayer(panel->getText(0));
       if (propPanel)
@@ -2769,8 +2876,13 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel2 *panel)
       if (propPanel)
         propPanel->fillPanel();
     });
-}
 
+  if (pcb_id >= PID_NAVMESH_START && pcb_id <= PID_NAVMESH_END)
+  {
+    const int navMeshIdx = (pcb_id - PID_NAVMESH_START) / NM_PARAMS_COUNT;
+    navmeshAreasProcessing[navMeshIdx].onClick(pcb_id);
+  }
+}
 
 void HmapLandPlugin::processTexName(SimpleString &out, const char *in)
 {
@@ -3859,7 +3971,7 @@ GrassLayerPanel::GrassLayerPanel(const char *name, int layer_i) :
 
 // Grass interface
 
-void GrassLayerPanel::fillParams(PropertyContainerControlBase *parent_panel, int &pid)
+void GrassLayerPanel::fillParams(PropPanel::ContainerPropertyControl *parent_panel, int &pid)
 {
   GrassLayerInfo *layerProps = HmapLandPlugin::grassService->getLayerInfo(grass_layer_i);
   if (!layerProps)
@@ -3911,7 +4023,7 @@ void GrassLayerPanel::fillParams(PropertyContainerControlBase *parent_panel, int
   parent_panel->setBool(PID_GRASS_LAYER_GRP + grass_layer_i, true);
 }
 
-void GrassLayerPanel::onClick(int pid, PropPanel2 &p)
+void GrassLayerPanel::onClick(int pid, PropPanel::ContainerPropertyControl &p)
 {
   int detailTypePid = pid - pidBase;
 
@@ -3937,7 +4049,7 @@ void GrassLayerPanel::onClick(int pid, PropPanel2 &p)
   }
 }
 
-bool GrassLayerPanel::onPPChangeEx(int pid, PropPanel2 &p)
+bool GrassLayerPanel::onPPChangeEx(int pid, PropPanel::ContainerPropertyControl &p)
 {
   if (pid < pidBase || pid >= pidBase + GL_PID_ELEM_COUNT)
     return false;
@@ -3945,7 +4057,7 @@ bool GrassLayerPanel::onPPChangeEx(int pid, PropPanel2 &p)
   return true;
 }
 
-void GrassLayerPanel::onPPChange(int pid, PropPanel2 &panel)
+void GrassLayerPanel::onPPChange(int pid, PropPanel::ContainerPropertyControl &panel)
 {
   GrassLayerInfo *layerProps = HmapLandPlugin::grassService->getLayerInfo(grass_layer_i);
   if (!layerProps)
@@ -4131,3 +4243,13 @@ void HmapLandPlugin::loadGPUGrassFromLevelBlk()
 }
 
 void HmapLandPlugin::onLandClassAssetTexturesChanged(landclass::AssetData *data) { resetLandmesh(); }
+
+void HmapLandPlugin::onObjectsRemove()
+{
+  for (int i = 0; i < navmeshAreasProcessing.size(); i++)
+  {
+    int areaType = navMeshProps[i].getInt("navArea", 0);
+    if (areaType == NM_AREATYPE_POLY)
+      navmeshAreasProcessing[i].onObjectsRemove();
+  }
+}

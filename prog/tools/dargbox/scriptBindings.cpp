@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "scriptBindings.h"
 
 #include <sqModules/sqModules.h>
@@ -8,6 +10,7 @@
 #include <quirrel/quirrel_json/quirrel_json.h>
 #include <quirrel/sqEventBus/sqEventBus.h>
 #include <quirrel/base64/base64.h>
+#include <quirrel/sqDataCache/datacache.h>
 #if HAS_MATCHING_MODULE
 #include <quirrel/matchingModule/matchingModule.h>
 #endif
@@ -40,7 +43,7 @@ void bind_dargbox_script_api(SqModules *module_mgr)
 
   bindquirrel::register_dagor_localization_module(module_mgr);
   bindquirrel::register_dagor_shell(module_mgr);
-  bindquirrel::bind_dagor_workcycle(module_mgr, true);
+  bindquirrel::bind_dagor_workcycle(module_mgr, true, "dargbox_main");
   bindquirrel::sqrat_bind_dagor_logsys(module_mgr);
   bindquirrel::sqrat_bind_dagor_math(module_mgr);
   bindquirrel::sqrat_bind_datablock(module_mgr);
@@ -57,6 +60,8 @@ void bind_dargbox_script_api(SqModules *module_mgr)
   bindquirrel::register_reg_exp(module_mgr);
   bindquirrel::register_utf8(module_mgr);
   bindquirrel::register_platform_module(module_mgr);
+  bindquirrel::bind_datacache(module_mgr);
+
 #if HAS_MATCHING_MODULE
   bindquirrel::matching_module::bind(module_mgr, get_io_events_poll());
 #endif
@@ -66,10 +71,9 @@ void bind_dargbox_script_api(SqModules *module_mgr)
   gamelib::sound::bind_script(module_mgr);
   gamelib::input::bind_script(module_mgr);
 
-  nestdb::init();
   nestdb::bind_api(module_mgr);
 
-  sq::auto_bind_native_api(module_mgr, sq::VM_UI);
+  sq::auto_bind_native_api(module_mgr, sq::VM_INTERNAL_UI);
 
   Sqrat::Table sqDargbox(vm);
   sqDargbox.Func("reload_scripts", [](bool full_reinit) { delayed_reload_scripts(full_reinit); });
@@ -91,6 +95,5 @@ void unbind_dargbox_script_api(HSQUIRRELVM vm)
   bindquirrel::http_client_on_vm_shutdown(vm);
   bindquirrel::cleanup_dagor_workcycle_module(vm);
   sqeventbus::unbind(vm);
-
-  nestdb::shutdown();
+  bindquirrel::shutdown_datacache();
 }

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <UnitTest++/UnitTestPP.h>
 #include <iso8601Time/iso8601Time.h>
 #include <math/random/dag_random.h>

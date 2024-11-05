@@ -1,8 +1,14 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #define INSIDE_DRIVER 1
 
 #include <generic/dag_tab.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_tex3d.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>
 #include <debug/dag_debug.h>
@@ -20,9 +26,10 @@
 
 #include <osApiWrappers/dag_critSec.h>
 #include <image/dag_dxtCompress.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_tex3d.h>
 #include <math/dag_imageFunctions.h>
 #include <vecmath/dag_vecMath.h>
+#include <validation/texture.h>
 
 #include <basetexture.h>
 
@@ -41,6 +48,7 @@ namespace drv3d_metal
 /// returns NULL on error
 ::Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char* name)
 {
+  check_texture_creation_args(w, h, flg, name);
   if (img != NULL)
   {
     w = img->w;
@@ -80,7 +88,7 @@ BaseTexture *d3d::create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int le
   drv3d_metal::Texture *tex = (drv3d_metal::Texture *)alloc_ddsx_tex(hdr, flg, quality_id, levels, name);
   if (tex != NULL)
   {
-    if (load_ddsx_tex_contents(tex, hdr, crd, quality_id))
+    if (load_ddsx_tex_contents(tex, hdr, crd, quality_id) == TexLoadRes::OK)
       return tex;
     else
       tex->destroy();
@@ -93,16 +101,18 @@ BaseTexture *d3d::create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int le
 BaseTexture *d3d::alloc_ddsx_tex(const ddsx::Header &hdr, int flg, int quality_id, int levels,
                  const char *name, int stub_tex_idx)
 {
-  uint32_t fmt = d3dformat_to_texfmt(hdr.d3dFormat);
+  uint32_t fmt = implant_d3dformat(flg, hdr.d3dFormat);
 #if _TARGET_PC_MACOSX
   if (hdr.d3dFormat == D3DFMT_A4R4G4B4 || hdr.d3dFormat == D3DFMT_X4R4G4B4 || hdr.d3dFormat == D3DFMT_R5G6B5)
-    fmt = TEXFMT_A8R8G8B8;
+    fmt = implant_d3dformat(flg, D3DFMT_A8R8G8B8);
 #endif
   if (!hdr.checkLabel() || fmt == -1)
   {
     debug("invalid DDSx format");
     return NULL;
   }
+  G_ASSERT((fmt & TEXCF_RTARGET) == 0);
+  fmt |= (hdr.flags & hdr.FLG_GAMMA_EQ_1) ? 0 : TEXCF_SRGBREAD;
 
   int type = RES3D_TEX;
   if (hdr.flags & ddsx::Header::FLG_CUBTEX)
@@ -112,9 +122,7 @@ BaseTexture *d3d::alloc_ddsx_tex(const ddsx::Header &hdr, int flg, int quality_i
   else if (hdr.flags & ddsx::Header::FLG_ARRTEX)
     type = RES3D_ARRTEX;
 
-  int sRGB = !(hdr.flags & ddsx::Header::FLG_GAMMA_EQ_1) ? TEXCF_SRGBREAD : 0;
-
-  drv3d_metal::Texture* tex = new drv3d_metal::Texture(hdr.w, hdr.h, hdr.levels, hdr.depth, type, sRGB, fmt, name, false, false);
+  drv3d_metal::Texture* tex = new drv3d_metal::Texture(hdr.w, hdr.h, hdr.levels, hdr.depth, type, fmt, fmt & TEXFMT_MASK, name, false, false);
 
   int skip_levels = hdr.getSkipLevels(hdr.getSkipLevelsFromQ(quality_id), levels);
   int w = max(hdr.w>>skip_levels, 1), h = max(hdr.h>>skip_levels, 1), d = max(hdr.depth>>skip_levels, 1);
@@ -158,7 +166,7 @@ ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, co
   return new drv3d_metal::Texture(w, h, levels, d, RES3D_ARRTEX, flg, flg &TEXFMT_MASK, name, false, true);
 }
 
-bool set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex, bool use_sampler, uint32_t face, uint32_t mip_level, bool is_rw)
+static bool set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex, bool use_sampler, uint32_t face, uint32_t mip_level, bool is_rw, bool as_uint)
 {
   int slot_offset = 0;
 
@@ -169,28 +177,26 @@ bool set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex, bool use_sa
 
   if (!tex)
   {
-    render.setTexture(shader_stage, slot + slot_offset, 0, mip_level);
+    render.setTexture(shader_stage, slot + slot_offset, 0, use_sampler, mip_level, false);
     return true;
   }
 
   drv3d_metal::Texture* tx = (drv3d_metal::Texture*)tex;
-  render.setTexture(shader_stage, slot + slot_offset, tx, mip_level);
+  render.setTexture(shader_stage, slot + slot_offset, tx, use_sampler, mip_level, as_uint);
 
   return true;
 }
 
 bool d3d::set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex, bool use_sampler)
 {
-  set_tex(shader_stage, slot, tex, use_sampler, 0, 0, false);
+  set_tex(shader_stage, slot, tex, use_sampler, 0, 0, false, false);
 
   return true;
 }
 
 bool d3d::set_rwtex(unsigned shader_stage, unsigned slot, BaseTexture *tex, uint32_t face, uint32_t mip_level, bool as_uint)
 {
-  G_UNUSED(as_uint);//== todo
-  G_ASSERTF(as_uint == false, "not implemented in driver yet");
-  set_tex(shader_stage, slot, tex, false, face, mip_level, true);
+  set_tex(shader_stage, slot, tex, false, face, mip_level, true, as_uint);
 
   return true;
 }
@@ -209,17 +215,55 @@ bool d3d::clear_rwtexf(BaseTexture *tex, const float val[4], uint32_t face, uint
   return true;
 }
 
+static bool is_depth_format_flg(uint32_t cflg)
+{
+  cflg &= TEXFMT_MASK;
+  return cflg >= TEXFMT_FIRST_DEPTH && cflg <= TEXFMT_LAST_DEPTH;
+}
+
+bool d3d::clear_rt(const RenderTarget &rt, const ResourceClearValue &clear_val)
+{
+  auto texture = (drv3d_metal::Texture*)rt.tex;
+  if (is_depth_format_flg(texture->cflg))
+  {
+    SCOPE_RENDER_TARGET;
+    set_depth(texture, DepthAccess::RW);
+    clearview(CLEAR_ZBUFFER|CLEAR_STENCIL, 0x00000000, clear_val.asDepth, clear_val.asStencil);
+  }
+  else
+  {
+    switch (get_tex_format_desc(texture->cflg & TEXFMT_MASK).mainChannelsType)
+    {
+      case ChannelDType::UNORM:
+      case ChannelDType::SNORM:
+      case ChannelDType::UFLOAT:
+      case ChannelDType::SFLOAT:
+      {
+        render.clearTex(texture, clear_val.asFloat, rt.mip_level, rt.layer);
+        break;
+      }
+      case ChannelDType::UINT:
+      {
+        render.clearTex(texture, clear_val.asUint, rt.mip_level, rt.layer);
+        break;
+      }
+      case ChannelDType::SINT:
+      {
+        render.clearTex(texture, clear_val.asInt, rt.mip_level, rt.layer);
+        break;
+      }
+      default:
+      {
+        G_ASSERT_LOG(false, "Unknown texture format");
+      }
+    }
+
+    render.clearTex(texture, clear_val.asFloat, rt.mip_level, rt.layer);
+  }
+  return true;
+}
+
 bool d3d::issame_texformat(int cflg1, int cflg2)
-{
-  return drv3d_metal::Texture::isSameFormat(cflg1, cflg2);
-}
-
-bool d3d::issame_cubetexformat(int cflg1, int cflg2)
-{
-  return drv3d_metal::Texture::isSameFormat(cflg1, cflg2);
-}
-
-bool d3d::issame_voltexformat(int cflg1, int cflg2)
 {
   return drv3d_metal::Texture::isSameFormat(cflg1, cflg2);
 }
@@ -229,14 +273,7 @@ static bool supportsCompressedTexture(int restype)
 #if _TARGET_IOS | _TARGET_TVOS
   return false;
 #else
-  if (@available(macos 10.15, *))
-  {
-    return true;
-  }
-  else
-  {
-    return (restype != RES3D_VOLTEX) || d3d_get_gpu_cfg().primaryVendor != D3D_VENDOR_NVIDIA;
-  }
+  return true;
 #endif
 }
 
@@ -275,8 +312,9 @@ unsigned d3d::get_texformat_usage(int cflg, int restype)
     case TEXFMT_A4R4G4B4:
     case TEXFMT_L16:
     case TEXFMT_G16R16:
-    case TEXFMT_V16U16:
     case TEXFMT_G16R16F:     return USAGE_RTARGET | USAGE_TEXTURE | USAGE_FILTER | USAGE_VERTEXTEXTURE | USAGE_BLEND | ret;
+
+    case TEXFMT_R9G9B9E5:   return USAGE_TEXTURE | USAGE_FILTER | ([render.device supportsFamily:MTLGPUFamilyMac2] ? 0 : USAGE_UNORDERED | USAGE_RTARGET);
 
     case TEXFMT_DEPTH16:
     case TEXFMT_DEPTH24:
@@ -315,23 +353,20 @@ unsigned d3d::get_texformat_usage(int cflg, int restype)
   }
 }
 
-static bool is_depth_format_flg(uint32_t cflg)
-{
-  cflg &= TEXFMT_MASK;
-  return cflg >= TEXFMT_FIRST_DEPTH && cflg <= TEXFMT_LAST_DEPTH;
-}
-
 bool check_texformat(int cflg, int resType)
 {
   unsigned flags = d3d::get_texformat_usage(cflg, resType);
   unsigned mask = d3d::USAGE_TEXTURE;
-
   if (is_depth_format_flg(cflg))
-    mask = d3d::USAGE_DEPTH;
-  else if (cflg & TEXCF_RTARGET)
-    mask = d3d::USAGE_RTARGET;
-
-  return (flags & mask) ? true : false;
+    mask |= d3d::USAGE_DEPTH;
+  else
+  {
+    if (cflg & TEXCF_RTARGET)
+      mask |= d3d::USAGE_RTARGET;
+    if (cflg & TEXCF_UNORDERED)
+      mask |= d3d::USAGE_UNORDERED;
+  }
+  return (flags & mask) == mask ? true : false;
 }
 
 // Texture management
@@ -389,4 +424,3 @@ ArrayTexture *d3d::alias_cube_array_tex(ArrayTexture *baseTexture, int side, int
 {
   return nullptr;
 }
-

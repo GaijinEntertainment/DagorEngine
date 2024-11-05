@@ -8,10 +8,10 @@ function watchElems(elems, params = {}) {
     watch = []
   else if (typeof(watch) != "array")
     watch = [watch]
-  watch.extend(elems.filter(@(v) v instanceof Watched))
+  watch.extend(elems.filter(@(v) isObservable(v)))
   return @() {
     children = elems
-      .map(@(v) v instanceof Watched ? v.value : v)
+      .map(@(v) isObservable(v) ? v.value : v)
       .filter(@(v) v != null)
   }.__update(params, { watch })
 }
@@ -38,7 +38,7 @@ let btnControl = @() {
   }
 }
 
-let mkRoller = @(step, offset = 0) Computed(@()
+let mkRoller = @(step, offset = 0) ComputedImmediate(@()
   (extCounter.value + offset) % step == 0 ? null : {
     rendObj = ROBJ_SOLID
     size = [sh(5), sh(5)]

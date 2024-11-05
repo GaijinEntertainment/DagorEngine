@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_debug.h>
 void report_heightmap_error(uint32_t bl, uint16_t max_err, double mse, float scale)
 {

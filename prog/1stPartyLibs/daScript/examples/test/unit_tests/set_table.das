@@ -29,11 +29,10 @@ def test
         print("p = {p}\n")
     */
     var ttt <- {{ 1; 2; 3; 4 }}
-    for k,i in keys(ttt),[{int 2;1;4;3}]
+    for k,i in keys(ttt),[{int 4;3;2;1}]
         assert(k == i)
     var qqq <- to_table([[int 1;2;3;4]])
-    for k,i in keys(qqq),[{int 2;1;4;3}]
+    print("\n")
+    for k,i in keys(qqq),[{int 4;3;2;1}]
         assert(k == i)
     return true
-
-

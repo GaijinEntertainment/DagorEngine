@@ -1,6 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_tex3d.h>
 #include <3d/dag_textureIDHolder.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_Point2.h>
@@ -33,7 +34,7 @@
   } objName;
 
 #define CALL_AT_END_OF_SCOPE(func) \
-  CALL_AT_END_OF_SCOPE_IMPL(func, STATE_GUARD_CAT2(ScopedFunction, __LINE__), STATE_GUARD_CAT2(scopedFunction, __LINE__))
+  CALL_AT_END_OF_SCOPE_IMPL(func, DAG_CONCAT(ScopedFunction, __LINE__), DAG_CONCAT(scopedFunction, __LINE__))
 
 class RenderableInstanceLodsResource;
 class Sbuffer;
@@ -85,7 +86,7 @@ public:
   ImpostorData generate(DagorAsset *asset, const ImpostorTextureManager::GenerationData &gen_data, RenderableInstanceLodsResource *res,
     const String &asset_name, DataBlock *impostor_blk = nullptr);
   ImpostorData exportToFile(const ImpostorTextureManager::GenerationData &gen_data, DagorAsset *asset,
-    RenderableInstanceLodsResource *res, DataBlock *impostor_blk = nullptr);
+    RenderableInstanceLodsResource *res, bool force_rebake, DataBlock *impostor_blk = nullptr);
   TexturePackingProfilingInfo exportImpostor(DagorAsset *asset, const ImpostorOptions &options, DataBlock *impostor_blk = nullptr);
   void generateFolderBlk(DagorAsset *asset, const ImpostorOptions &options);
   bool generateAssetTexBlk(DagorAsset *asset, const ImpostorTextureManager::GenerationData &gen_data, const char *folder_path,
@@ -99,13 +100,13 @@ public:
   // Removes all impostor textures that do not belong to any of the assets
   void clean(dag::ConstSpan<DagorAsset *> assets, const ImpostorOptions &options);
 
-  static const uint32_t GBUF_DIFFUSE_FMT = TEXFMT_A8R8G8B8;
-  static const uint32_t GBUF_NORMAL_FMT = TEXFMT_A8R8G8B8;
-  static const uint32_t GBUF_SHADOW_FMT = TEXFMT_A8R8G8B8;
-  static const uint32_t GBUF_DEPTH_FMT = TEXFMT_DEPTH16;
-  static const uint32_t EXP_ALBEDO_ALPHA_FMT = TEXFMT_A8R8G8B8;
-  static const uint32_t EXP_NORMAL_TRANSLUCENCY_FMT = TEXFMT_A8R8G8B8;
-  static const uint32_t EXP_AO_SMOOTHNESS_FMT = TEXFMT_R8G8;
+  static constexpr uint32_t GBUF_DIFFUSE_FMT = TEXFMT_A8R8G8B8;
+  static constexpr uint32_t GBUF_NORMAL_FMT = TEXFMT_A8R8G8B8;
+  static constexpr uint32_t GBUF_SHADOW_FMT = TEXFMT_A8R8G8B8;
+  static constexpr uint32_t GBUF_DEPTH_FMT = TEXFMT_DEPTH16;
+  static constexpr uint32_t EXP_ALBEDO_ALPHA_FMT = TEXFMT_A8R8G8B8;
+  static constexpr uint32_t EXP_NORMAL_TRANSLUCENCY_FMT = TEXFMT_A8R8G8B8;
+  static constexpr uint32_t EXP_AO_SMOOTHNESS_FMT = TEXFMT_R8G8;
 
   void set_objects_buffer();
   void setSplitAt(int split_at) { splitAt = split_at; }
@@ -158,10 +159,10 @@ private:
   UniqueBuf treeCrown;
   eastl::unique_ptr<DeferredRenderTarget> rt;
   eastl::unique_ptr<DeferredRenderTarget> maskRt;
+  UniqueTexHolder impostorBranchMaskTex;
   eastl::set<eastl::string> exportedFolderBlks;
   eastl::set<eastl::string> modifiedFiles;
   eastl::set<eastl::string> removedFiles;
-  UniqueBuf objectsBuffer;
   int dynamic_impostor_texture_const_no;
 
   struct SliceExportData
@@ -187,7 +188,8 @@ private:
   ImpostorTextureData prepareRt(IPoint2 extent, String asset_name, int mips) noexcept;
   static IPoint2 get_extent(const ImpostorTextureManager::GenerationData &gen_data);
   static IPoint2 get_rt_extent(const ImpostorTextureManager::GenerationData &gen_data);
-  SaveResult saveImage(const char *filename, Texture *tex, int mip_offset, int num_channels, float &similarity, float threshold);
+  SaveResult saveImage(const char *filename, Texture *tex, int mip_offset, int num_channels, float &similarity, float threshold,
+    bool force_rebake);
   float compareImages(TexImage32 *img1, TexImage32 *img2, int num_channels);
 
   bool displayExportedImages = false;
@@ -197,6 +199,7 @@ private:
 
   eastl::unordered_map<eastl::string, uint32_t> ddsxPackSizes;
   bool preshadowsEnabled = true;
+  float bottomGradient = 0.0;
   int smallestMipSize = 4;
   int normalMipOffset = 0;
   int aoSmoothnessMipOffset = 0;

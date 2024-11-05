@@ -1,4 +1,4 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "init3d.h"
 #include "wndManager.h"
@@ -16,7 +16,7 @@
 IWndManager *IWndManager::createManager(IWndManagerEventHandler *event_handler)
 {
   if (!::symhlp_load("daKernel-dev.dll"))
-    debug_ctx("can't load sym for: %s", "daKernel-dev.dll");
+    DEBUG_CTX("can't load sym for: %s", "daKernel-dev.dll");
 
   DataBlock::fatalOnMissingFile = false;
   DataBlock::fatalOnLoadFailed = false;

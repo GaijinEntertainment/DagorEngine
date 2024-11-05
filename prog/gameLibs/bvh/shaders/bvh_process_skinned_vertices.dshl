@@ -1,0 +1,145 @@
+include "shader_global.dshl"
+include "dynamic_simple_inc.dshl"
+
+int bvh_process_target_offset;
+int bvh_process_skinned_vertices_start;
+int bvh_process_skinned_vertices_stride;
+int bvh_process_skinned_vertices_count;
+int bvh_process_skinned_vertices_processed_stride;
+int bvh_process_skinned_vertices_position_offset;
+int bvh_process_skinned_vertices_skin_indices_offset;
+int bvh_process_skinned_vertices_skin_weights_offset;
+int bvh_process_skinned_vertices_normal_offset;
+int bvh_process_skinned_vertices_color_offset;
+int bvh_process_skinned_vertices_texcoord_offset;
+int bvh_process_skinned_vertices_texcoord_size;
+
+float4 bvh_process_skinned_vertices_pos_mul;
+float4 bvh_process_skinned_vertices_pos_ofs;
+
+float4x4 bvh_process_skinned_vertices_inv_wtm;
+
+interval bvh_process_skinned_vertices_texcoord_size: zero < 1, four < 8, eight;
+interval bvh_process_skinned_vertices_normal_offset: no < 1, yes;
+interval bvh_process_skinned_vertices_color_offset: no < 1, yes;
+
+shader bvh_process_skinned_vertices
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+  (cs) {
+    target_offset@u1 = bvh_process_target_offset;
+    start_vertex@i1 = bvh_process_skinned_vertices_start;
+    vertex_stride@i1 = bvh_process_skinned_vertices_stride;
+    vertex_count@i1 = bvh_process_skinned_vertices_count;
+    processed_vertex_stride@i1 = bvh_process_skinned_vertices_processed_stride;
+    position_offset@i1 = bvh_process_skinned_vertices_position_offset;
+    skin_indices_offset@i1 = bvh_process_skinned_vertices_skin_indices_offset;
+    skin_weights_offset@i1 = bvh_process_skinned_vertices_skin_weights_offset;
+    color_offset@i1 = bvh_process_skinned_vertices_color_offset;
+    normal_offset@i1 = bvh_process_skinned_vertices_normal_offset;
+    texcoord_offset@i1 = bvh_process_skinned_vertices_texcoord_offset;
+    texcoord_size@i1 = bvh_process_skinned_vertices_texcoord_size;
+    pos_mul@f4 = bvh_process_skinned_vertices_pos_mul;
+    pos_ofs@f4 = bvh_process_skinned_vertices_pos_ofs;
+
+    per_chunk_render_data@buf = instance_data_buffer hlsl { Buffer<float4> per_chunk_render_data@buf; }
+    inv_wtm@f44 = bvh_process_skinned_vertices_inv_wtm;
+  }
+
+  hlsl(cs) {
+    struct VsInput
+    {
+      float4 pos;
+      float4 normal;
+
+      float4 packedBoneIndices;
+      float4 boneWeights;
+    };
+  }
+
+  HAS_SKINNING_BASE(cs)
+  INIT_WORLD_LOCAL_BASE(cs)
+
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    #pragma wave32
+
+    ByteAddressBuffer source : register(t6);
+    RWByteAddressBuffer output : register(u0);
+
+    float3 mul_bone(float3 p3, bone_t m)
+    {
+      return float3(dot(m.r0, float4(p3,1)), dot(m.r1, float4(p3,1)), dot(m.r2, float4(p3,1)));
+    }
+
+    [numthreads( 32, 1, 1 )]
+    void bvh_process_skinned_vertices(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint vertexId = dtId.x;
+      if (vertexId >= vertex_count)
+        return;
+
+      VsInput input;
+
+      int vertexStart = (start_vertex + vertexId) * vertex_stride;
+
+      // Positions are half float
+      uint2 packedPos = source.Load2(vertexStart + position_offset);
+
+      const uint3 POS_ENCODING_OFFSET = uint3(16, 0, 16);
+      int3 posI = asint(packedPos.xxy << POS_ENCODING_OFFSET) >> 16;
+      input.pos = float4(posI / 32767.0, 1);
+
+      // Skinning part
+      const uint4 INPUT_ENCODING_OFFSET = uint4(16, 8, 0, 24);
+
+      uint packedNormal  = source.Load(vertexStart + normal_offset);
+      uint packedIndices = source.Load(vertexStart + skin_indices_offset);
+      uint packedWeights = source.Load(vertexStart + skin_weights_offset);
+
+      input.normal            = float4((packedNormal  >> INPUT_ENCODING_OFFSET) & 255) / 255;
+      input.packedBoneIndices = float4((packedIndices >> INPUT_ENCODING_OFFSET) & 255) / 255;
+      input.boneWeights       = float4((packedWeights >> INPUT_ENCODING_OFFSET) & 255) / 255;
+
+      SETUP_RENDER_VARS(input.normal.w);
+
+      input.pos.xyz = input.pos.xyz * pos_mul.xyz + pos_ofs.xyz;
+
+      bone_t skinnedTm = skinning_matrix(input);
+      float3 worldPos = mul_bone(float4(input.pos.xyz, 1), skinnedTm);
+
+      // worldPos is not really world pos here. It is relative to the camera. So we transform it to "real" world space
+
+      float4 outputPos = worldPos.x * globtm_0 + worldPos.y * globtm_1 + worldPos.z * globtm_2 + globtm_3;
+      worldPos = outputPos.x * proj_to_world_tm_0.xyz + outputPos.y * proj_to_world_tm_1.xyz + outputPos.z * proj_to_world_tm_2.xyz + outputPos.w * proj_to_world_tm_3.xyz;
+
+      float3 modelPos = mul(float4(worldPos, 1), inv_wtm).xyz;
+
+      output.Store3(target_offset + vertexId * processed_vertex_stride, asuint(modelPos));
+
+      uint offset = 12;
+
+      ##if bvh_process_skinned_vertices_texcoord_size == four
+        output.Store(target_offset + vertexId * processed_vertex_stride + offset, source.Load(vertexStart + texcoord_offset));
+        offset += 4;
+      ##elif bvh_process_skinned_vertices_texcoord_size == eight
+        output.Store2(target_offset + vertexId * processed_vertex_stride + offset, source.Load2(vertexStart + texcoord_offset));
+        offset += 8;
+      ##endif
+
+      // TODO: transform normal
+      output.Store(target_offset + vertexId * processed_vertex_stride + offset, source.Load(vertexStart + normal_offset));
+      offset += 4;
+
+      ##if bvh_process_skinned_vertices_color_offset == yes
+        output.Store(target_offset + vertexId * processed_vertex_stride + offset, source.Load(vertexStart + color_offset));
+        offset += 4;
+      ##endif
+    }
+  }
+
+  compile("target_cs", "bvh_process_skinned_vertices");
+}

@@ -6,19 +6,18 @@ include common_inc_dirs.blk
 source
 {
   includePath:t="./source"
+  includePath:t="../"
 
-  include "../../../../prog/samples/commonShaders/shadersList.blk"
-  include "../../../../prog/gameLibs/daGI/shaders/daGIList.blk"
-  include fftWaterList.blk
+  include "../../../../prog/gameLibs/daGI2/shaders/shadersList.blk"
   include shadersList.blk
+  include "../../../../prog/samples/commonShaders/shadersList.blk"
+
+  include "../../../../prog/gameLibs/daSDF/shaders/daSDFList.blk"
+  include fftWaterList.blk
   include "../../../../prog/gameLibs/daSkies2/shaders/daSkiesList.blk"
   include renderLibsList.blk
 }
 
-common_valid_variants
-{
-  include "../../../../prog/gameLibs/daGI/shaders/daGIvariants.blk"
-}
 
 common_assume_vars
 {
@@ -29,9 +28,11 @@ Compile
 {
   fsh:t = 5.0
   assume_vars {
+    dagi_sp_has_exposure_assume:i = 1 // we can't rely that our target HW has RGBE textures support. On Dx11, PS4, XboxOne it doesn't. On Scarlett it is, on DX12 - may be, so we just sample texture anyway
+    supports_sh_6_1:i = 0
     render_inline_raytracing:i=0
-    dynamic_lights_count:i = 0
     in_editor_assume:i=0
+    in_editor:i=0
     shore_waves_on:i= 0
     water_foam_tex:i = 0
     wake_gradients_tex:i=0
@@ -46,6 +47,10 @@ Compile
     render_inline_raytracing:i = 0
     use_postfx:i = 1
     use_extended_global_frame_block:i=0
+    dagi_warp64_irradiance:i=0
+    ssr_denoiser_type:i=0
+    has_motion_vectors:i=0
+    ds_motion_vectors_with_z:i=0
   }
 }
 

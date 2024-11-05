@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <workCycle/dag_startupModules.h>
 #include <startup/dag_restart.h>
 #include <generic/dag_initOnDemand.h>

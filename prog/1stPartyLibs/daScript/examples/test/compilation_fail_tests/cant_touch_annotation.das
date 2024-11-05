@@ -2,7 +2,7 @@ expect 30111
 
 require UnitTest
 
-[checkRange]
+[checkRange,safe_when_uninitialized]
 struct Foo
     [[min=0,max=3]] a:int = 1
     [[min=10,max=20]] b:int = 2

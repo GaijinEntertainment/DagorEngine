@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/temporalAA.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_driver.h>
 #include <math/dag_TMatrix4D.h>
 #include <math/random/dag_halton.h>
 #include <shaders/dag_shaders.h>
@@ -11,8 +13,6 @@
 
 
 #define GLOBAL_VARS_LIST                       \
-  VAR(taa_max_motion)                          \
-  VAR(taa_use_gamma)                           \
   VAR(taa_input_resolution)                    \
   VAR(taa_output_resolution)                   \
   VAR(taa_history_tex)                         \
@@ -54,12 +54,11 @@ static void init_gvars()
 }
 
 
-TemporalAA::TemporalAA(const char *shader, const IPoint2 &input_resolution, const IPoint2 &output_resolution, int tex_fmt,
-  bool low_quality, const char *name) :
+TemporalAA::TemporalAA(const char *shader, const IPoint2 &input_resolution, const IPoint2 &output_resolution, int resolve_tex_fmt,
+  bool low_quality, bool req_dynamic_tex, bool hist_fmt_match_resolve, const char *name) :
   inputResolution(input_resolution),
   outputResolution(output_resolution),
   frame(0, 0),
-  prevGlobTm(TMatrix4::IDENT, TMatrix4::IDENT),
   lodBias(-log2(float(output_resolution.y) / float(input_resolution.y)))
 {
   render.init(shader);
@@ -69,60 +68,42 @@ TemporalAA::TemporalAA(const char *shader, const IPoint2 &input_resolution, cons
   if (!name)
     name = defaultName;
 
-  resolvedFramePool = RTargetPool::get(outputResolution.x, outputResolution.y, TEXCF_RTARGET | tex_fmt, 1);
+  resolvedFramePool = RTargetPool::get(outputResolution.x, outputResolution.y, TEXCF_RTARGET | resolve_tex_fmt, 1);
 
-  int historyFmt = low_quality ? TEXFMT_R11G11B10F : TEXFMT_A16B16G16R16F;
+  int historyFmt = hist_fmt_match_resolve ? resolve_tex_fmt : (low_quality ? TEXFMT_R11G11B10F : TEXFMT_A16B16G16R16F);
   historyFmt |= TEXCF_RTARGET;
 
   historyTexPool = RTargetPool::get(outputResolution.x, outputResolution.y, historyFmt, 1);
 
-  wasDynamicTexPool = low_quality ? RTargetPool::get(outputResolution.x, outputResolution.y, TEXCF_RTARGET | TEXFMT_L8, 1) : nullptr;
+  wasDynamicTexPool =
+    req_dynamic_tex ? RTargetPool::get(outputResolution.x, outputResolution.y, TEXCF_RTARGET | TEXFMT_L8, 1) : nullptr;
 }
 
 bool TemporalAA::beforeRenderFrame()
 {
-  if (prevGlobTm.current().has_value())
-  {
-    static int64_t reft = 0;
-    dtUsecs = get_time_usec(reft);
-    reft = ref_time_ticks();
-  }
+  static int64_t reft = 0;
+  dtUsecs = get_time_usec(reft);
+  reft = ref_time_ticks();
 
   return isValid();
 }
 
-bool TemporalAA::beforeRenderView(const TMatrix4 &cur_globtm_no_jitter)
+bool TemporalAA::beforeRenderView(const TMatrix4 &uv_reproject_tm_no_jitter)
 {
-  if (prevGlobTm.current().has_value())
-  {
-    jitterPixelOfs = get_taa_jitter(frame, params);
-    jitterTexelOfs.x = jitterPixelOfs.x * (2.f / inputResolution.x);
-    jitterTexelOfs.y = jitterPixelOfs.y * (2.f / inputResolution.y);
+  jitterPixelOfs = get_taa_jitter(frame, params);
+  jitterTexelOfs.x = jitterPixelOfs.x * (2.f / inputResolution.x);
+  jitterTexelOfs.y = jitterPixelOfs.y * (2.f / inputResolution.y);
 
-    set_temporal_parameters(cur_globtm_no_jitter, prevGlobTm.current().value(), jitterPixelOfs, frame == 0 ? 10.f : dtUsecs / 1e6,
-      inputResolution.x, params);
-  }
-  else
-  {
-    frame = 0;
-  }
+  set_temporal_parameters(uv_reproject_tm_no_jitter, jitterPixelOfs, frame == 0 ? 10.f : dtUsecs / 1e6, inputResolution.x, params);
 
-  prevGlobTm = cur_globtm_no_jitter;
-  ShaderGlobal::set_real(gv_taa_max_motion, params.maxMotion);
   ShaderGlobal::set_color4(gv_taa_input_resolution, inputResolution.x, inputResolution.y, 0, 0);
   ShaderGlobal::set_color4(gv_taa_output_resolution, outputResolution.x, outputResolution.y, 0, 0);
 
   return isValid();
 }
 
-RTarget::CPtr TemporalAA::apply(TEXTUREID currentFrameId)
+void TemporalAA::applyImpl(TEXTUREID currentFrameId)
 {
-  SCOPE_RENDER_TARGET;
-
-  RTarget::Ptr result = resolvedFramePool->acquire();
-  result->getTex2D()->texaddr(TEXADDR_CLAMP);
-  d3d::set_render_target(result->getTex2D(), 0);
-
   RTarget::Ptr nextHistory = historyTexPool->acquire();
   nextHistory->getTex2D()->texaddr(TEXADDR_CLAMP);
   d3d::set_render_target(1, nextHistory->getTex2D(), 0);
@@ -134,6 +115,7 @@ RTarget::CPtr TemporalAA::apply(TEXTUREID currentFrameId)
     nextWasDynamic->getTex2D()->texaddr(TEXADDR_CLAMP);
     d3d::set_render_target(2, nextWasDynamic->getTex2D(), 0);
   }
+  d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
 
   const TEXTUREID historyTexId = historyTex.current() ? historyTex.current()->getTexId() : BAD_TEXTUREID;
   const TEXTUREID wasDynamicTexId = wasDynamicTex.current() ? wasDynamicTex.current()->getTexId() : BAD_TEXTUREID;
@@ -148,8 +130,26 @@ RTarget::CPtr TemporalAA::apply(TEXTUREID currentFrameId)
   wasDynamicTex = nextWasDynamic;
 
   frame++;
+}
+
+RTarget::CPtr TemporalAA::apply(TEXTUREID currentFrameId)
+{
+  SCOPE_RENDER_TARGET;
+
+  RTarget::Ptr result = resolvedFramePool->acquire();
+  result->getTex2D()->texaddr(TEXADDR_CLAMP);
+  d3d::set_render_target(result->getTex2D(), 0);
+
+  applyImpl(currentFrameId);
 
   return result;
+}
+
+void TemporalAA::applyToSwapchain(TEXTUREID currentFrameId)
+{
+  SCOPE_RENDER_TARGET;
+  d3d::set_render_target();
+  applyImpl(currentFrameId);
 }
 
 void TemporalAA::setCurrentView(int view)
@@ -157,7 +157,6 @@ void TemporalAA::setCurrentView(int view)
   historyTex.setCurrentView(view);
   wasDynamicTex.setCurrentView(view);
   frame.setCurrentView(view);
-  prevGlobTm.setCurrentView(view);
 }
 
 TemporalAA::Params TemporalAA::getDefaultParams() const
@@ -209,7 +208,6 @@ void TemporalAA::loadParamsFromBlk(const DataBlock *taaBlk)
   LOAD_REAL(motionDifferenceMaxWeight);
   LOAD_REAL(sharpening);
   LOAD_REAL(clampingGamma);
-  LOAD_REAL(maxMotion);
   LOAD_REAL(scaleAabbWithMotionMax);
   LOAD_REAL(scaleAabbWithMotionMaxForTAAU);
 
@@ -247,32 +245,15 @@ Point2 get_taa_jitter(int counter, const TemporalAAParams &p)
   }
 }
 
-void set_temporal_reprojection_matrix(const TMatrix4D &cur_view_proj_no_jitter, const TMatrix4D &prev_view_proj_jittered)
+void set_temporal_reprojection_matrix(const TMatrix4 &uv_reproject_tm_no_jitter)
 {
-  TMatrix4D reprojection;
-  TMatrix4D cur_view_proj_no_jitterInv;
-
-  // inversion is expected to always succeed
-  double det;
-  G_VERIFY(inverse44(cur_view_proj_no_jitter, cur_view_proj_no_jitterInv, det));
-
-  {
-    reprojection = cur_view_proj_no_jitterInv * prev_view_proj_jittered;
-
-    TMatrix4D scaleBias1 = {0.5, 0, 0, 0, 0, -0.5, 0, 0, 0, 0, 1, 0, 0.5, 0.5, 0, 1};
-
-    TMatrix4D scaleBias2 = {2.0, 0, 0, 0, 0, -2.0, 0, 0, 0, 0, 1, 0, -1.0, 1.0, 0, 1};
-
-    reprojection = scaleBias2 * reprojection * scaleBias1;
-  }
-
   if (gv_reproject_psf_0 < 0)
     init_gvars();
 
-  ShaderGlobal::set_color4(gv_reproject_psf_0, P4D(reprojection.getcol(0)));
-  ShaderGlobal::set_color4(gv_reproject_psf_1, P4D(reprojection.getcol(1)));
-  ShaderGlobal::set_color4(gv_reproject_psf_2, P4D(reprojection.getcol(2)));
-  ShaderGlobal::set_color4(gv_reproject_psf_3, P4D(reprojection.getcol(3)));
+  ShaderGlobal::set_color4(gv_reproject_psf_0, uv_reproject_tm_no_jitter.getcol(0));
+  ShaderGlobal::set_color4(gv_reproject_psf_1, uv_reproject_tm_no_jitter.getcol(1));
+  ShaderGlobal::set_color4(gv_reproject_psf_2, uv_reproject_tm_no_jitter.getcol(2));
+  ShaderGlobal::set_color4(gv_reproject_psf_3, uv_reproject_tm_no_jitter.getcol(3));
 }
 
 void set_temporal_resampling_filter_parameters(const Point2 &temporal_jitter_proj_offset)
@@ -334,17 +315,15 @@ void set_temporal_miscellaneous_parameters(float dt, int wd, const TemporalAAPar
   ShaderGlobal::set_real(gv_taa_luminance_max, luminanceMax);
   ShaderGlobal::set_int(gv_taa_restart_temporal, shouldRestart);
 
-  ShaderGlobal::set_int(gv_taa_use_gamma, p.maxMotion < 10 ? 1 : 0);
-
   ShaderGlobal::set_int(gv_taa_adaptive_filter, p.useAdaptiveFilter);
   ShaderGlobal::set_real(gv_taa_scale_aabb_with_motion_steepness, p.scaleAabbWithMotionSteepness);
   ShaderGlobal::set_real(gv_taa_scale_aabb_with_motion_max, p.scaleAabbWithMotionMax);
 }
 
-void set_temporal_parameters(const TMatrix4D &cur_view_proj_no_jitter, const TMatrix4D &prev_view_proj_jittered,
-  const Point2 &temporal_jitter_proj_offset, float dt, int wd, const TemporalAAParams &p)
+void set_temporal_parameters(const TMatrix4 &uv_reproject_tm_no_jitter, const Point2 &temporal_jitter_proj_offset, float dt, int wd,
+  const TemporalAAParams &p)
 {
-  set_temporal_reprojection_matrix(cur_view_proj_no_jitter, prev_view_proj_jittered);
+  set_temporal_reprojection_matrix(uv_reproject_tm_no_jitter);
   set_temporal_resampling_filter_parameters(temporal_jitter_proj_offset);
   set_temporal_miscellaneous_parameters(dt, wd, p);
 }

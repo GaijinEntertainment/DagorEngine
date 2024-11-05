@@ -1,6 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/fluidDynamics/eulerSolver.h>
 #include <perfMon/dag_statDrv.h>
 #include <math/integer/dag_IPoint3.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_texture.h>
 
 namespace cfd
 {

@@ -1,4 +1,7 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_buffers.h>
 #include <3d/dag_sbufferIDHolder.h>
 #include <shaders/dag_shaders.h>
 

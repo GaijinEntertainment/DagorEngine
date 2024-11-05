@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "dagorLogWindow.h"
 #include "resource.h"
 #include <max.h>
@@ -77,14 +79,22 @@ std::vector<TSTR> DagorLogWindow::getLogLines()
   {
     if (logText[i] == '\r' && (i + 1) < length && logText[i + 1] == '\n')
     {
+#if _MSC_VER >= 1700
       lines.emplace_back(logText.Substr(lineStartIndex, i - lineStartIndex));
+#else
+      lines.push_back(logText.Substr(lineStartIndex, i - lineStartIndex));
+#endif
       lineStartIndex = i + 2;
       ++i;
     }
   }
 
   if (lineStartIndex < length)
+#if _MSC_VER >= 1700
     lines.emplace_back(logText.Substr(lineStartIndex, length - lineStartIndex));
+#else
+    lines.push_back(logText.Substr(lineStartIndex, length - lineStartIndex));
+#endif
 
   return lines;
 }
@@ -222,10 +232,12 @@ private:
   void log(DagorLogWindow::LogLevel level, const TCHAR *message)
   {
     TSTR str(message);
+#if defined(MAX_RELEASE_R15) && MAX_RELEASE >= MAX_RELEASE_R15
     // \n in MaxScript is actually \r\n, but handle everything.
     str.Replace(_T("\r\n"), _T("\n"));
     str.Replace(_T("\r"), _T("\n"));
     str.Replace(_T("\n"), _T("\r\n"));
+#endif
     DagorLogWindow::addToLog(level, _T("%s\r\n"), str.data());
   }
 };

@@ -1,7 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/bitset.h>
 #include <EASTL/span.h>
+
+#include <math/dag_bits.h>
 
 
 template <size_t N>

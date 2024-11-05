@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gamePhys/collision/collisionLib.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_genIo.h>
@@ -310,7 +312,7 @@ void dacoll::add_collision_hmap_custom(const Point3 &collision_pos, const BBox3 
   }
 }
 
-void dacoll::add_collision_hmap(LandMeshManager *land, float restitution)
+void dacoll::add_collision_hmap(LandMeshManager *land, float restitution, float margin)
 {
   if (!phys_world || !phys_world->getScene() || !land || !land->getLandTracer())
     return;
@@ -326,6 +328,7 @@ void dacoll::add_collision_hmap(LandMeshManager *land, float restitution)
     const float hmapScale = hmap->getHeightmapCellSize() > 1 ? 1.f : 2.f; // scale heightmap according to hmap cell size
     PhysHeightfieldCollision coll(hmap, Point2::xz(hmap->getHeightmapOffset()), hmap->getWorldBox(), 1.f, hmapScale,
       land->getHolesManager());
+    coll.setMargin(margin);
     PhysBodyCreationData pbcd;
     pbcd.useMotionState = false;
     pbcd.materialId = -1;
@@ -412,14 +415,15 @@ void dacoll::set_enable_apex(bool flag) { enable_apex = flag; }
 bool dacoll::is_apex_enabled() { return enable_apex; }
 
 CollisionObject dacoll::create_coll_obj_from_shape(const PhysCollision &shape, void *userPtr, bool kinematic, bool add_to_world,
-  int group_filter, int mask, const TMatrix *wtm)
+  bool auto_mask, int group_filter, int mask, const TMatrix *wtm)
 {
   PhysBodyCreationData pbcd;
   pbcd.materialId = -1;
   pbcd.useMotionState = false;
   pbcd.addToWorld = add_to_world;
-  if (add_to_world)
-    pbcd.autoMask = false, pbcd.group = group_filter, pbcd.mask = mask;
+  pbcd.autoMask = auto_mask;
+  if (!auto_mask)
+    pbcd.group = group_filter, pbcd.mask = mask;
   pbcd.kinematic = kinematic;
   pbcd.userPtr = userPtr;
   pbcd.allowFastInaccurateCollTm = false;
@@ -437,7 +441,7 @@ CollisionObject dacoll::add_dynamic_cylinder_collision(const TMatrix &tm, float 
 
   PhysCompoundCollision shape;
   shape.addChildCollision(new PhysCylinderCollision(rad, ht, 1 /*Y*/), tm);
-  return dacoll::create_coll_obj_from_shape(shape, user_ptr, /*kinematic*/ true, add_to_world);
+  return dacoll::create_coll_obj_from_shape(shape, user_ptr, /*kinematic*/ true, add_to_world, /* auto mask */ !add_to_world);
 }
 
 CollisionObject dacoll::add_dynamic_sphere_collision(const TMatrix &tm, float rad, void *user_ptr, bool add_to_world)
@@ -468,8 +472,8 @@ CollisionObject dacoll::add_dynamic_box_collision(const TMatrix &tm, const Point
   return add_dynamic_collision(collBlk, user_ptr, /*is_player*/ false, add_to_world);
 }
 
-CollisionObject dacoll::add_dynamic_collision(const DataBlock &props, void *userPtr, bool is_player, bool add_to_world, int mask,
-  const TMatrix *wtm)
+CollisionObject dacoll::add_dynamic_collision_with_mask(const DataBlock &props, void *userPtr, bool is_player, bool add_to_world,
+  bool auto_mask, int mask, const TMatrix *wtm)
 {
   if (!phys_world || !phys_world->getScene())
     return CollisionObject();
@@ -541,7 +545,8 @@ CollisionObject dacoll::add_dynamic_collision(const DataBlock &props, void *user
 
   G_ASSERT_RETURN(shape && (shape != &compShape || compShape.getChildrenCount()), {});
 
-  CollisionObject co = create_coll_obj_from_shape(*shape, userPtr, /*kinematic*/ true, add_to_world, EPL_KINEMATIC, mask, wtm);
+  CollisionObject co =
+    create_coll_obj_from_shape(*shape, userPtr, /*kinematic*/ true, add_to_world, auto_mask, EPL_KINEMATIC, mask, wtm);
 #if ENABLE_APEX
   if (enable_apex && add_to_world)
     co.physxObject = pxObj;
@@ -618,7 +623,7 @@ static PhysCollision *create_shape_from_collision_node(const char *shape_type, c
 }
 
 CollisionObject dacoll::add_simple_dynamic_collision_from_coll_resource(const DataBlock &props, const CollisionResource *resource,
-  GeomNodeTree *tree, float margin, float scale, Point3 &out_center, TMatrix &out_tm, TMatrix &out_tm_in_model)
+  GeomNodeTree *tree, float margin, float scale, Point3 &out_center, TMatrix &out_tm, TMatrix &out_tm_in_model, bool add_to_world)
 {
   if (!phys_world || !phys_world->getScene() || !resource)
     return CollisionObject();
@@ -677,7 +682,8 @@ CollisionObject dacoll::add_simple_dynamic_collision_from_coll_resource(const Da
     }
   }
 
-  return dacoll::create_coll_obj_from_shape(shape, nullptr, /*kinematic*/ true, true);
+  return dacoll::create_coll_obj_from_shape(shape, nullptr, /*kinematic*/ true, /* add to world */ add_to_world,
+    /* auto mask */ false);
 }
 
 void dacoll::build_dynamic_collision_from_coll_resource(const CollisionResource *coll_resource, PhysCompoundCollision *compound,
@@ -708,7 +714,7 @@ CollisionObject dacoll::build_dynamic_collision_from_coll_resource(const Collisi
   build_dynamic_collision_from_coll_resource(coll_resource, &shape, out_properties);
 
   // TODO: add per-node collision infer and build collision such as convex hull with convex hull computers
-  return dacoll::create_coll_obj_from_shape(shape, nullptr, true, add_to_world, phys_layer, mask);
+  return dacoll::create_coll_obj_from_shape(shape, nullptr, true, add_to_world, /* auto mask */ false, phys_layer, mask);
 }
 
 CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock *props, const CollisionResource *coll_resource,
@@ -754,7 +760,7 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
       if (!haveNonConvex)
       {
         CollisionObject result = dacoll::create_coll_obj_from_shape(PhysConvexHullCollision(convexVerts, true), user_ptr,
-          flags & ACO_KINEMATIC, flags & ACO_ADD_TO_WORLD, phys_layer, mask);
+          flags & ACO_KINEMATIC, flags & ACO_ADD_TO_WORLD, /* auto mask */ false, phys_layer, mask);
 #if ENABLE_APEX
         if (enable_apex)
           result.physxObject = pxObj;
@@ -779,7 +785,9 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
       continue;
 
     DynColShapeType nodeType =
-      (flags & ACO_BOXIFY) ? CST_BOX : (meshNode->type == COLLISION_NODE_TYPE_CONVEX ? CST_CONVEX_HULL : CST_MESH);
+      (flags & ACO_BOXIFY)
+        ? CST_BOX
+        : ((meshNode->type == COLLISION_NODE_TYPE_CONVEX || (flags & ACO_FORCE_CONVEX_HULL)) ? CST_CONVEX_HULL : CST_MESH);
     if (nodeTypeName)
       nodeType = DynColShapeType(lup(nodeTypeName, dynCollShapeTypeNames, countof(dynCollShapeTypeNames), nodeType));
     switch (nodeType)
@@ -901,8 +909,8 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
   if (!shape.getChildrenCount())
     return CollisionObject();
 
-  CollisionObject result =
-    dacoll::create_coll_obj_from_shape(shape, user_ptr, flags & ACO_KINEMATIC, flags & ACO_ADD_TO_WORLD, phys_layer, mask, wtm);
+  CollisionObject result = dacoll::create_coll_obj_from_shape(shape, user_ptr, flags & ACO_KINEMATIC, flags & ACO_ADD_TO_WORLD,
+    /* auto mask */ false, phys_layer, mask, wtm);
 #if ENABLE_APEX
   if (enable_apex)
     result.physxObject = pxObj;
@@ -950,7 +958,8 @@ CollisionObject dacoll::add_dynamic_collision_convex_from_coll_resource(dag::Con
   if (convexVerts.size() >= 3) // can't create convex with less then 3 vertexes
   {
     PhysConvexHullCollision convexShape(convexVerts, true);
-    CollisionObject result = dacoll::create_coll_obj_from_shape(convexShape, user_ptr, kinematic, add_to_world, phys_layer, mask, wtm);
+    CollisionObject result =
+      dacoll::create_coll_obj_from_shape(convexShape, user_ptr, kinematic, add_to_world, /* auto mask */ false, phys_layer, mask, wtm);
     return result;
   }
   else
@@ -1023,6 +1032,8 @@ void dacoll::phys_world_set_control_thread_id(int64_t tid)
 
 CollisionObject &dacoll::get_reusable_sphere_collision()
 {
+  // This is a reusable, so simultanious access would break things.
+  // is_main_thread() is a hacky way to ensure single-threadedness.
   G_ASSERT(is_main_thread());
   if (!sphere_collision.isValid())
     sphere_collision = add_dynamic_sphere_collision(TMatrix::IDENT, 1.f, /*user_ptr*/ nullptr, /*add_to_world*/ false);
@@ -1031,6 +1042,8 @@ CollisionObject &dacoll::get_reusable_sphere_collision()
 
 CollisionObject &dacoll::get_reusable_capsule_collision()
 {
+  // This is a reusable, so simultanious access would break things.
+  // is_main_thread() is a hacky way to ensure single-threadedness.
   G_ASSERT(is_main_thread());
   if (!capsule_collision.isValid())
     capsule_collision =
@@ -1040,6 +1053,8 @@ CollisionObject &dacoll::get_reusable_capsule_collision()
 
 CollisionObject &dacoll::get_reusable_box_collision()
 {
+  // This is a reusable, so simultanious access would break things.
+  // is_main_thread() is a hacky way to ensure single-threadedness.
   G_ASSERT(is_main_thread());
   if (!box_collision.isValid())
     box_collision = add_dynamic_box_collision(TMatrix::IDENT, /*width*/ Point3(1.f, 1.f, 1.f),
@@ -1059,6 +1074,11 @@ void dacoll::set_vert_capsule_shape_size(const CollisionObject &co, float cap_ra
   co.body->setVertCapsuleShapeSize(cap_rad, cap_cyl_ht);
 }
 
+void dacoll::set_collision_sphere_rad(const CollisionObject &co, float rad)
+{
+  phys_world->fetchSimRes(true);
+  co.body->setSphereShapeRad(rad);
+}
 
 bool dacoll::test_collision_frt(const CollisionObject &co, Tab<gamephys::CollisionContactData> &out_contacts, int mat_id)
 {
@@ -1086,7 +1106,7 @@ bool dacoll::test_collision_world(const CollisionObject &co, Tab<gamephys::Colli
 }
 
 bool dacoll::test_collision_world(dag::ConstSpan<CollisionObject> collision, const TMatrix &tm, float bounding_rad,
-  Tab<gamephys::CollisionContactData> &out_contacts)
+  Tab<gamephys::CollisionContactData> &out_contacts, const TraceMeshFaces *trace_cache)
 {
   int prevCont = out_contacts.size();
   for (const CollisionObject &co : collision)
@@ -1097,13 +1117,13 @@ bool dacoll::test_collision_world(dag::ConstSpan<CollisionObject> collision, con
     dacoll::test_collision_frt(co, out_contacts);
     dacoll::test_collision_lmesh(co, tm, bounding_rad, lmesh_mat_id, out_contacts);
     BBox3 box(Point3(0.f, 0.f, 0.f), bounding_rad);
-    dacoll::test_collision_ri(co, box, out_contacts);
+    dacoll::test_collision_ri(co, box, out_contacts, trace_cache);
   }
   return prevCont != out_contacts.size();
 }
 
 bool dacoll::test_collision_world(dag::ConstSpan<CollisionObject> collision, float bounding_rad,
-  Tab<gamephys::CollisionContactData> &out_contacts)
+  Tab<gamephys::CollisionContactData> &out_contacts, const TraceMeshFaces *trace_cache)
 {
   int prevCont = out_contacts.size();
   for (const CollisionObject &co : collision)
@@ -1115,7 +1135,7 @@ bool dacoll::test_collision_world(dag::ConstSpan<CollisionObject> collision, flo
     dacoll::test_collision_frt(co, out_contacts);
     dacoll::test_collision_lmesh(co, tm, bounding_rad, lmesh_mat_id, out_contacts);
     BBox3 box(Point3(0.f, 0.f, 0.f), bounding_rad);
-    dacoll::test_collision_ri(co, box, out_contacts);
+    dacoll::test_collision_ri(co, box, out_contacts, trace_cache);
   }
   return prevCont != out_contacts.size();
 }
@@ -1280,7 +1300,6 @@ bool dacoll::test_pair_collision_continuous(dag::ConstSpan<CollisionObject> co_a
           contactData.userPtrA = coA.body->getUserData();
           contactData.userPtrB = coB.body->getUserData();
           contactData.matId = -1;
-          contactData.objectInfo = nullptr;
         }
       }
     }
@@ -1330,7 +1349,7 @@ void dacoll::shape_query_lmesh(const PhysSphereCollision &shape, const TMatrix &
 }
 
 bool dacoll::sphere_query_ri(const Point3 &from, const Point3 &to, float rad, dacoll::ShapeQueryOutput &out, int cast_mat_id,
-  Tab<rendinst::RendInstDesc> *out_desc, const TraceMeshFaces *handle)
+  Tab<rendinst::RendInstDesc> *out_desc, const TraceMeshFaces *handle, RIFilterCB *filterCB)
 {
   if (!phys_world || !phys_world->getScene() || !sphere_cast_shape)
     return false;
@@ -1343,7 +1362,7 @@ bool dacoll::sphere_query_ri(const Point3 &from, const Point3 &to, float rad, da
   phys_world->fetchSimRes(true);
   sphere_cast_shape->setSphereShapeRad(rad);
 
-  shape_query_ri(sphere_cast_shape, fromTm, toTm, rad, out, cast_mat_id, out_desc, handle);
+  shape_query_ri(sphere_cast_shape, fromTm, toTm, rad, out, cast_mat_id, out_desc, handle, filterCB);
 
   return out.t < 1.f;
 }
@@ -1359,15 +1378,18 @@ static dacoll::gather_game_objects_collision_on_ray_cb gather_game_objs_cb = nul
 
 void dacoll::set_gather_game_objects_on_ray_cb(gather_game_objects_collision_on_ray_cb cb) { gather_game_objs_cb = cb; }
 
-static bool shape_cast_ex(PhysBody *shape_body, const TMatrix &from_tm, const TMatrix &to_tm, float rad, dacoll::ShapeQueryOutput &out,
-  int cast_mat_id, dag::ConstSpan<CollisionObject> ignore_objs, const TraceMeshFaces *handle, int mask, int hmap_step)
+static void shape_cast_begin(dacoll::ShapeQueryOutput &out)
 {
   out.vel.zero();
 
   // TODO: add per-object sphere_cast, so we don't really need world to perform it.
   // TODO: test it now! it's added, maybe we don't need a world at all (fetching the world)
   phys_world->fetchSimRes(true);
+}
 
+static bool shape_cast_land_begin(PhysBody *shape_body, const TMatrix &from_tm, const TMatrix &to_tm, float rad,
+  dacoll::ShapeQueryOutput &out, int hmap_step)
+{
   const Point3 &from = from_tm.getcol(3);
   const Point3 &to = to_tm.getcol(3);
 
@@ -1387,8 +1409,37 @@ static bool shape_cast_ex(PhysBody *shape_body, const TMatrix &from_tm, const TM
   }
   if (hmapObj)
     phys_world->shapeQuery(shape_body, from_tm, to_tm, make_span_const(&hmapObj, 1), out);
+
+  return prevStep;
+}
+
+static void shape_cast_land_end(int prev_step)
+{
+  if (prev_step > 0)
+    dacoll::set_hmap_step(prev_step);
+}
+
+static bool shape_cast_land(PhysBody *shape_body, const TMatrix &from_tm, const TMatrix &to_tm, float rad,
+  dacoll::ShapeQueryOutput &out, int hmap_step)
+{
+  shape_cast_begin(out);
+  int prevStep = shape_cast_land_begin(shape_body, from_tm, to_tm, rad, out, hmap_step);
+  shape_cast_land_end(prevStep);
+  return out.t < 1.f;
+}
+
+static bool shape_cast_ex(PhysBody *shape_body, const TMatrix &from_tm, const TMatrix &to_tm, float rad, dacoll::ShapeQueryOutput &out,
+  int cast_mat_id, dag::ConstSpan<CollisionObject> ignore_objs, const TraceMeshFaces *handle, int mask, int hmap_step)
+{
+  shape_cast_begin(out);
+
+  int prevStep = shape_cast_land_begin(shape_body, from_tm, to_tm, rad, out, hmap_step);
+
   if (gather_game_objs_cb)
   {
+    const Point3 &from = from_tm.getcol(3);
+    const Point3 &to = to_tm.getcol(3);
+
     MatAndGroupConvexCallback matCb{cast_mat_id, ignore_objs, dacoll::EPL_DEFAULT, mask};
     Tab<PhysBody *> bodies(framemem_ptr());
     gather_game_objs_cb(from, to, rad, [&](CollisionObject obj) {
@@ -1397,12 +1448,29 @@ static bool shape_cast_ex(PhysBody *shape_body, const TMatrix &from_tm, const TM
     });
     phys_world->shapeQuery(shape_body, from_tm, to_tm, bodies, out);
   }
-  if (prevStep > 0)
-    dacoll::set_hmap_step(prevStep);
 
-  dacoll::shape_query_ri(shape_body, from_tm, to_tm, rad, out, cast_mat_id, nullptr, handle);
+  shape_cast_land_end(prevStep);
+
+  dacoll::shape_query_ri(shape_body, from_tm, to_tm, rad, out, cast_mat_id, nullptr, handle, nullptr);
 
   return out.t < 1.f;
+}
+
+bool dacoll::sphere_cast_land(const Point3 &from, const Point3 &to, float rad, ShapeQueryOutput &out, int hmap_step /* = -1 */)
+{
+  if (!phys_world || !phys_world->getScene() || !sphere_cast_shape)
+    return false;
+
+  TIME_PROFILE_DEV(sphere_cast);
+
+  TMatrix fromTm = TMatrix::IDENT;
+  fromTm.setcol(3, from);
+  TMatrix toTm = TMatrix::IDENT;
+  toTm.setcol(3, to);
+
+  sphere_cast_shape->setSphereShapeRad(rad);
+
+  return shape_cast_land(sphere_cast_shape, fromTm, toTm, rad, out, hmap_step);
 }
 
 bool dacoll::sphere_cast_ex(const Point3 &from, const Point3 &to, float rad, dacoll::ShapeQueryOutput &out, int cast_mat_id,
@@ -1508,10 +1576,13 @@ void dacoll::set_obj_active(CollisionObject &coll_obj, bool active, bool is_kine
   if (!coll_obj)
     return;
 
-  // We need to remove it anyway, just to be sure.
   PhysWorld *physWorld = dacoll::get_phys_world();
   physWorld->fetchSimRes(true);
-  physWorld->removeBody(coll_obj.body);
+  // We need to remove it anyway, just to be sure.
+  if (coll_obj.body->isInWorld())
+  {
+    physWorld->removeBody(coll_obj.body);
+  }
   if (active)
   {
     if (is_kinematic)

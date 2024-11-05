@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daRg/dag_element.h>
 #include <daRg/dag_renderObject.h>
 #include <daRg/dag_transform.h>
@@ -28,6 +30,7 @@
 #include "hotkeys.h"
 #include "scrollHandler.h"
 #include "behaviors/bhvTextArea.h"
+#include "behaviors/bhvTextAreaEdit.h"
 #include "stdRendObj.h"
 #include "profiler.h"
 #include "dargDebugUtils.h"
@@ -44,6 +47,7 @@ namespace darg
 using namespace sqfrp;
 
 CONSOLE_BOOL_VAL("darg", button_margin_for_mouse, false);
+CONSOLE_BOOL_VAL("darg", trace_invalid_transform, false);
 
 bool XmbData::calcCanFocus()
 {
@@ -214,8 +218,7 @@ void Element::onDetach(GuiScene *gui_scene)
 
   playSound(csk->detach);
 
-  if (ref)
-    ref->elem = nullptr;
+  releaseRef();
 }
 
 
@@ -226,22 +229,20 @@ void Element::onDelete()
 }
 
 
-void Element::setupBehaviorsList(const dag::Vector<Behavior *> &comp_behaviors)
+void Element::setupBehaviorsList(dag::ConstSpan<Behavior *> comp_behaviors)
 {
   G_ASSERT(behaviors.empty());
   G_ASSERT(behaviorsSummaryFlags == 0);
 
-  behaviors.resize(comp_behaviors.size());
-  memcpy(behaviors.data(), comp_behaviors.data(), comp_behaviors.size() * sizeof(Behavior *));
+  behaviors.assign(comp_behaviors.begin(), comp_behaviors.end());
 
   behaviorsSummaryFlags = 0;
-
   for (Behavior *bhv : behaviors)
     behaviorsSummaryFlags |= bhv->flags;
 }
 
 
-void Element::updateBehaviorsList(const dag::Vector<Behavior *> &comp_behaviors)
+void Element::updateBehaviorsList(dag::ConstSpan<Behavior *> comp_behaviors)
 {
   G_ASSERT(!isDetached());
 
@@ -260,9 +261,9 @@ void Element::updateBehaviorsList(const dag::Vector<Behavior *> &comp_behaviors)
       newBhv->onAttach(this);
   }
 
+  behaviors.assign(comp_behaviors.begin(), comp_behaviors.end());
+
   behaviorsSummaryFlags = 0;
-  behaviors.resize(comp_behaviors.size());
-  memcpy(behaviors.data(), comp_behaviors.data(), comp_behaviors.size() * sizeof(Behavior *));
   for (Behavior *bhv : behaviors)
     behaviorsSummaryFlags |= bhv->flags;
 }
@@ -318,7 +319,7 @@ void Element::setup(const Component &comp, GuiScene *gui_scene, SetupMode setup_
       xmb = etree->allocateXmbData();
     if (xmb != nullptr)
     {
-      xmbNode.SetInstance(csk->elem, this);
+      xmbNode.SetValue(csk->elem, this->getRef(xmbNode.GetVM()));
       xmb->nodeDesc = xmbNode;
     }
   }
@@ -498,6 +499,13 @@ void Element::readTransform(const Sqrat::Table &desc)
     transform->scale = script_get_point2(objScale);
 
   transform->rotate = DegToRad(tmDesc.RawGetSlotValue(csk->rotate, 0.0f));
+
+  if (!isfinite(transform->rotate) || !isfinite(transform->scale.x) || !isfinite(transform->scale.y) ||
+      !isfinite(transform->translate.x) || !isfinite(transform->translate.y) || !isfinite(transform->pivot.x) ||
+      !isfinite(transform->pivot.y))
+  {
+    darg_assert_trace_var("Invalid transform values", desc, csk->transform);
+  }
 }
 
 
@@ -694,6 +702,25 @@ void Element::applyTransform(const GuiVertexTransform &prev_gvtm, GuiVertexTrans
     Point2 scale = transform->getCurScale();
     float rotate = transform->getCurRotate();
 
+    if (!isfinite(translate.x) || !isfinite(translate.y))
+    {
+      if (trace_invalid_transform)
+        darg_assert_trace_var("Invalid transform values (translate)", props.scriptDesc, csk->transform);
+      translate = Point2(0, 0);
+    }
+    if (!isfinite(scale.x) || !isfinite(scale.y))
+    {
+      if (trace_invalid_transform)
+        darg_assert_trace_var("Invalid transform values (scale)", props.scriptDesc, csk->transform);
+      scale = Point2(1, 1);
+    }
+    if (!isfinite(rotate))
+    {
+      if (trace_invalid_transform)
+        darg_assert_trace_var("Invalid transform values (rotate)", props.scriptDesc, csk->transform);
+      rotate = 0;
+    }
+
     res_gvtm.setRotViewTm(fontTex2rotCCSmS, pivot.x + translate.x, pivot.y + translate.y, rotate, 0, true);
     res_gvtm.addViewTm(Point2(scale.x, 0), Point2(0, scale.y), -Point2(pivot.x * scale.x, pivot.y * scale.y) + pivot + translate);
   }
@@ -741,8 +768,8 @@ bool Element::getNavAnchor(Point2 &val) const
   if (!Layout::size_spec_from_array(cursorNavAnchor, sizeSpec, &errMsg))
     return false;
 
-  val.x = sizeSpecToPixels(sizeSpec[0], 0, false);
-  val.y = sizeSpecToPixels(sizeSpec[1], 1, false);
+  val.x = sizeSpecToPixels(sizeSpec[0], 0);
+  val.y = sizeSpecToPixels(sizeSpec[1], 1);
   return true;
 }
 
@@ -810,7 +837,7 @@ void Element::render(StdGuiRender::GuiContext &ctx, RenderList *rend_list, bool 
     erd.params = robjParams;
     erd.pos = screenCoord.screenPos;
     erd.size = screenCoord.size;
-    rendObj()->renderCustom(ctx, this, &erd, rend_list->renderState);
+    rendObj()->render(ctx, this, &erd, rend_list->renderState);
   }
 
 
@@ -1142,30 +1169,34 @@ void Element::traceHit(const Point2 &p, InputStack *stack, int parent_z_order, i
     child->traceHit(p, stack, order, hier_order);
 }
 
-
-float Element::sizeSpecToPixels(const SizeSpec &ss, int axis, bool use_min_max) const
+template <typename T>
+float Element::sizeSpecToPixelsImpl(const SizeSpec &ss, int axis, T pw_func, T ph_func) const
 {
   switch (ss.mode)
   {
     case SizeSpec::PIXELS: return ss.value;
-
     case SizeSpec::CONTENT: return screenCoord.contentSize[axis];
-
     case SizeSpec::FLEX: return 0;
-
     case SizeSpec::FONT_H: return calcFontHeightPercent(ss.value);
-
-    case SizeSpec::PARENT_W: return calcParentW(ss.value, use_min_max);
-
-    case SizeSpec::PARENT_H: return calcParentH(ss.value, use_min_max);
-
+    case SizeSpec::PARENT_W: return (this->*pw_func)(ss.value);
+    case SizeSpec::PARENT_H: return (this->*ph_func)(ss.value);
     case SizeSpec::ELEM_SELF_W: return screenCoord.size.x * ss.value * 0.01f;
-
     case SizeSpec::ELEM_SELF_H: return screenCoord.size.y * ss.value * 0.01f;
-
     default: G_ASSERTF(0, "Unexpected SizeSpec mode %d", ss.mode);
   }
   return 0;
+}
+
+
+float Element::sizeSpecToPixels(const SizeSpec &ss, int axis) const
+{
+  return sizeSpecToPixelsImpl(ss, axis, &Element::calcParentW, &Element::calcParentH);
+}
+
+
+float Element::sizeSpecToPixelsClamped(const SizeSpec &ss, int axis) const
+{
+  return sizeSpecToPixelsImpl(ss, axis, &Element::calcParentWClamped, &Element::calcParentHClamped);
 }
 
 
@@ -1173,7 +1204,7 @@ Point2 Element::calcParentRelPos()
 {
   Point2 res;
   for (int axis = 0; axis < 2; ++axis)
-    res[axis] = sizeSpecToPixels(layout.pos[axis], axis, false);
+    res[axis] = sizeSpecToPixels(layout.pos[axis], axis);
 
   return res;
 }
@@ -1213,9 +1244,9 @@ void Element::calcFixedSizes()
   {
     SizeSpec::Mode ssMode = layout.size[axis].mode;
     if (ssMode == SizeSpec::PIXELS || ssMode == SizeSpec::FONT_H || ssMode == SizeSpec::PARENT_W || ssMode == SizeSpec::PARENT_H)
-      screenCoord.size[axis] = sizeSpecToPixels(layout.size[axis], axis, true);
+      screenCoord.size[axis] = sizeSpecToPixelsClamped(layout.size[axis], axis);
     else if (ssMode == SizeSpec::FLEX && (!parent->isFlowAxis(axis) || parent->children.size() == 1))
-      screenCoord.size[axis] = axis == 0 ? calcParentW(100, true) : calcParentH(100, true);
+      screenCoord.size[axis] = axis == 0 ? calcParentWClamped(100) : calcParentHClamped(100);
   }
 
   for (Element *child : children)
@@ -1231,14 +1262,14 @@ void Element::calcFixedSizes()
       clampSizeToLimits(axis, screenCoord.size[axis]);
     }
     else if (ssMode == SizeSpec::FLEX && (parent->isFlowAxis(axis) && parent->children.size() != 1))
-      screenCoord.size[axis] = sizeSpecToPixels(layout.minSize[axis], axis, false);
+      screenCoord.size[axis] = sizeSpecToPixels(layout.minSize[axis], axis);
   }
 }
 
 void Element::calcSizeConstraints(int axis, float *sz_min, float *sz_max) const
 {
-  float szMin = sizeSpecToPixels(layout.minSize[axis], axis, false);
-  float szMax = sizeSpecToPixels(layout.maxSize[axis], axis, false);
+  float szMin = sizeSpecToPixels(layout.minSize[axis], axis);
+  float szMax = sizeSpecToPixels(layout.maxSize[axis], axis);
 
   if (szMin > 0 && szMax > 0 && szMax < szMin)
     szMax = szMin;
@@ -1286,7 +1317,7 @@ void Element::calcConstrainedSizes(int axis)
       }
       else if (ss.mode == SizeSpec::PARENT_W || ss.mode == SizeSpec::PARENT_H)
       {
-        child->screenCoord.size[axis] = child->sizeSpecToPixels(ss, axis, true);
+        child->screenCoord.size[axis] = child->sizeSpecToPixelsClamped(ss, axis);
         if (isFlowAxis(axis))
           freeSpace -= child->screenCoord.size[axis];
       }
@@ -1298,7 +1329,7 @@ void Element::calcConstrainedSizes(int axis)
           ++numFlex;
         }
         else
-          child->screenCoord.size[axis] = (axis == 0) ? child->calcParentW(100, true) : child->calcParentH(100, true);
+          child->screenCoord.size[axis] = (axis == 0) ? child->calcParentWClamped(100) : child->calcParentHClamped(100);
       }
       else
         G_ASSERTF(0, "Unexpected size mode %d", ss.mode);
@@ -1592,8 +1623,11 @@ float Element::calcContentSizeByAxis(int axis)
   }
   else if (rendObjType == rendobj_textarea_id)
   {
-    Point2 textSize;
-    BhvTextArea::recalc_content(this, axis, screenCoord.size, textSize);
+    Point2 textSize(0, 0);
+    if (eastl::find(behaviors.begin(), behaviors.end(), &bhv_text_area_edit) != behaviors.end())
+      BhvTextAreaEdit::recalc_content(this, axis, screenCoord.size, textSize);
+    else if (eastl::find(behaviors.begin(), behaviors.end(), &bhv_text_area) != behaviors.end())
+      BhvTextArea::recalc_content(this, axis, screenCoord.size, textSize);
     contentSize = ::max(contentSize, textSize[axis]);
   }
   else if (rendObjType == rendobj_image_id)
@@ -1623,7 +1657,7 @@ float Element::calcContentSizeByAxis(int axis)
 }
 
 
-float Element::calcParentW(float percent, bool use_min_max) const
+float Element::calcParentW(float percent) const
 {
   if (!parent)
     return 0;
@@ -1634,23 +1668,28 @@ float Element::calcParentW(float percent, bool use_min_max) const
   if (parent->layout.flowType == FLOW_HORIZONTAL)
     available -= parent->layout.gap * (parent->children.size() - 1);
 
-  float res = floorf(::max(0.0f, available) * percent * 0.01f + 0.5f);
+  return floorf(::max(0.0f, available) * percent * 0.01f + 0.5f);
+}
 
-  if (use_min_max)
-  {
-    float minSize = sizeSpecToPixels(layout.minSize[0], 0, false);
-    float maxSize = sizeSpecToPixels(layout.maxSize[0], 0, false);
-    if (maxSize > 0.0f)
-      res = ::min(res, maxSize);
-    if (minSize > 0.0f)
-      res = ::max(res, minSize);
-  }
+float Element::calcParentWClamped(float percent) const
+{
+  if (!parent)
+    return 0;
+
+  float res = calcParentW(percent);
+
+  float minSize = sizeSpecToPixels(layout.minSize[0], 0);
+  float maxSize = sizeSpecToPixels(layout.maxSize[0], 0);
+  if (maxSize > 0.0f)
+    res = ::min(res, maxSize);
+  if (minSize > 0.0f)
+    res = ::max(res, minSize);
 
   return res;
 }
 
 
-float Element::calcParentH(float percent, bool use_min_max) const
+float Element::calcParentH(float percent) const
 {
   if (!parent)
     return 0;
@@ -1661,17 +1700,23 @@ float Element::calcParentH(float percent, bool use_min_max) const
   if (parent->layout.flowType == FLOW_VERTICAL)
     available -= parent->layout.gap * (parent->children.size() - 1);
 
-  float res = floorf(::max(0.0f, available) * percent * 0.01f + 0.5f);
+  return floorf(::max(0.0f, available) * percent * 0.01f + 0.5f);
+}
 
-  if (use_min_max)
-  {
-    float minSize = sizeSpecToPixels(layout.minSize[1], 1, false);
-    float maxSize = sizeSpecToPixels(layout.maxSize[1], 1, false);
-    if (maxSize > 0.0f)
-      res = ::min(res, maxSize);
-    if (minSize > 0.0f)
-      res = ::max(res, minSize);
-  }
+
+float Element::calcParentHClamped(float percent) const
+{
+  if (!parent)
+    return 0;
+
+  float res = calcParentH(percent);
+
+  float minSize = sizeSpecToPixels(layout.minSize[1], 1);
+  float maxSize = sizeSpecToPixels(layout.maxSize[1], 1);
+  if (maxSize > 0.0f)
+    res = ::min(res, maxSize);
+  if (minSize > 0.0f)
+    res = ::max(res, minSize);
 
   return res;
 }
@@ -2015,6 +2060,12 @@ bool Element::hitTestWithTouchMargin(const Point2 &p, InputDevice device) const
   if (hitTest(p))
     return true;
 
+  // Use touch margin only for main subscene, not for panel
+  // This may be fixed, but for this we should pass the correspondint input stack here
+  // instead of quetly using one from GuiScene
+  if (etree != etree->guiScene->getElementTree())
+    return false;
+
   if (!should_use_outside_area(device))
     return false;
 
@@ -2028,30 +2079,33 @@ bool Element::hitTestWithTouchMargin(const Point2 &p, InputDevice device) const
     return box & p;
   }
 
+  float minDist = dist_to_box(clippedScreenRect, p);
+  if (minDist > etree->guiScene->config.buttonTouchMargin)
+    return false;
+
+  int priority = props.getInt(csk->touchMarginPriority, 0);
   InputStack &stack = etree->guiScene->getInputStack();
-
-  const Element *nearestButton = nullptr;
-  float minDist = etree->guiScene->config.buttonTouchMargin;
-
   for (InputStack::Stack::iterator it = stack.stack.begin(); it != stack.stack.end(); ++it)
   {
     const Element *e = it->elem;
+    if (e == this)
+      continue;
 
-    if (e->hasBehaviors(Behavior::F_HANDLE_TOUCH | (button_margin_for_mouse ? Behavior::F_HANDLE_MOUSE : 0)) &&
-        !e->bboxIsClippedOut() && !e->props.getBool(csk->eventPassThrough, false))
+    if (e->hasBehaviors(Behavior::F_HANDLE_TOUCH | (button_margin_for_mouse ? Behavior::F_HANDLE_MOUSE : 0)) && !e->bboxIsClippedOut())
     {
-      bool usesMargin = false;
-      for (auto &bhv : e->behaviors)
+      int ePriority = e->props.getInt(csk->touchMarginPriority, 0);
+      if (ePriority >= priority)
       {
-        usesMargin = usesMargin || (bhv->flags & Behavior::Flags::F_USES_TOUCH_MARGIN);
-      }
-      if (usesMargin)
-      {
-        float distance = dist_to_box(e->clippedScreenRect, p);
-        if (distance < minDist)
+        bool directHitOtherElem = e->hitTest(p); // Self was checked in the beginning
+        if (directHitOtherElem) // this element is a beter match and we are expecting that it will process this input event
+          return false;
+
+        bool usesMargin = e->hasBehaviors(Behavior::F_USES_TOUCH_MARGIN);
+        if (usesMargin)
         {
-          minDist = distance;
-          nearestButton = e;
+          float distance = dist_to_box(e->clippedScreenRect, p);
+          if (distance < (ePriority > priority ? etree->guiScene->config.buttonTouchMargin : minDist))
+            return false;
         }
       }
     }
@@ -2065,8 +2119,44 @@ bool Element::hitTestWithTouchMargin(const Point2 &p, InputDevice device) const
     }
   }
 
-  return nearestButton == this;
+  return true;
 }
+
+
+Element *Element::trace_input_stack(GuiScene *scene, InputStack &inputStack, InputDevice device, Point2 p)
+{
+  int bhvFlags = 0;
+  if (device == DEVID_MOUSE)
+    bhvFlags = Behavior::F_HANDLE_MOUSE;
+  else if (device == DEVID_TOUCH)
+    bhvFlags = Behavior::F_HANDLE_TOUCH;
+  else
+  {
+    G_ASSERTF(0, "Unexpected device %d", device);
+    return nullptr;
+  }
+
+  for (InputStack::Stack::iterator it = inputStack.stack.begin(); it != inputStack.stack.end(); ++it)
+  {
+    Element *e = it->elem;
+    if (e->hasBehaviors(bhvFlags) && !e->props.getBool(e->csk->eventPassThrough, false)) // eventPasthrough for WTM TargetSelector
+    {
+      if (e->hitTestWithTouchMargin(p, device))
+        return e;
+    }
+
+    if (e->hasFlags(Element::F_STOP_MOUSE))
+    {
+      BBox2 box = e->clippedScreenRect;
+      box.inflate(scene->config.buttonTouchMargin);
+      if (box & p)
+        break;
+    }
+  }
+
+  return nullptr;
+}
+
 
 bool Element::hasFadeOutAnims() const
 {
@@ -2272,7 +2362,7 @@ void Element::validateStaticText()
           int prevChangeCount = props.storage.RawGetSlotValue(csk->stextChangeCount, 0);
           props.storage.SetValue(csk->stextChangeCount, prevChangeCount + 1);
           if (prevChangeCount == 10)
-            logerr_ctx("daRg: static text value changed %d times, last valid value = %s", prevChangeCount + 1, prevTextVar.value);
+            LOGERR_CTX("daRg: static text value changed %d times, last valid value = %s", prevChangeCount + 1, prevTextVar.value);
           if (prevChangeCount >= 10)
           {
             props.text = "#ERR";
@@ -2331,13 +2421,42 @@ int Element::getAvailableScrolls() const
 Sqrat::Object Element::getRef(HSQUIRRELVM vm)
 {
   if (!ref)
-  {
-    ref = new ElementRef();
-    ref->elem = this;
-  }
+    ref = new ElementRef(this);
   G_ASSERT(ref->scriptInstancesCount >= 0);
   return ref->createScriptInstance(vm);
 }
+
+
+void Element::releaseRef()
+{
+  if (ref)
+  {
+    ref->elem = nullptr;
+    ref = nullptr;
+  }
+}
+
+
+Point2 Element::screenPosToElemLocal(Point2 screen_pos, const GuiVertexTransform &inv_vtm) const
+{
+  float xt = inv_vtm.transformComponent(screen_pos.x * GUI_POS_SCALE, screen_pos.y * GUI_POS_SCALE, 0) - screenCoord.screenPos.x +
+             screenCoord.scrollOffs.x;
+  float yt = inv_vtm.transformComponent(screen_pos.x * GUI_POS_SCALE, screen_pos.y * GUI_POS_SCALE, 1) - screenCoord.screenPos.y +
+             screenCoord.scrollOffs.y;
+
+  return Point2(xt, yt);
+}
+
+
+Point2 Element::screenPosToElemLocal(Point2 screen_pos) const
+{
+  GuiVertexTransform gvtm, invtm;
+  calcFullTransform(gvtm);
+  GuiVertexTransform::inverseViewTm(invtm.vtm, gvtm.vtm);
+
+  return screenPosToElemLocal(screen_pos, invtm);
+}
+
 
 Sqrat::Table Element::getElementBBox(HSQUIRRELVM vm)
 {

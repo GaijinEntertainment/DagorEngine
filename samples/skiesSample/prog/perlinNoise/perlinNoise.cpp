@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 /********************************************************
 Perlin Noise2 and Noise3 functions Optimised for
 Intel SIMD (PIII CeleronII) Instruction Set.

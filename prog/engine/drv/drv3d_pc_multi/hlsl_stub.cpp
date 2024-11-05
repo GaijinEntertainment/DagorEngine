@@ -1,5 +1,8 @@
-#include <3d/dag_drv3d_pc.h>
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_shader.h>
+#include <drv/3d/dag_platform_pc.h>
+#include <drv/3d/dag_driver.h>
 
 VPROG d3d::create_vertex_shader_hlsl(const char *, unsigned, const char *, const char *, String *) { return 1; }
 FSHADER d3d::create_pixel_shader_hlsl(const char *, unsigned, const char *, const char *, String *) { return 1; }

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <scene/dag_renderSceneMgr.h>
 #include <shaders/dag_renderScene.h>
 #include <debug/dag_debug.h>
@@ -45,16 +47,25 @@ void RenderSceneManager::setPrepareVisCtxToRender(int render_id)
       rs[i]->setPrepareVisCtxToRender(render_id);
 }
 
+void RenderSceneManager::pushPreparedVisCtx()
+{
+  for (int i = 0; i < rs.size(); i++)
+    if (rs[i] && rsInfo[i].renderable)
+      rs[i]->pushPreparedVisCtx();
+}
+
+void RenderSceneManager::popPreparedVisCtx()
+{
+  for (int i = 0; i < rs.size(); i++)
+    if (rs[i] && rsInfo[i].renderable)
+      rs[i]->popPreparedVisCtx();
+}
+
 void RenderSceneManager::render(const VisibilityFinder &vf, int render_id, unsigned render_flags_mask)
 {
   for (int i = 0; i < rs.size(); i++)
     if (rs[i] && rsInfo[i].renderable)
       rs[i]->render(vf, render_id, render_flags_mask);
-}
-
-void RenderSceneManager::render(int render_id, unsigned render_flags_mask)
-{
-  render(*visibility_finder, render_id, render_flags_mask);
 }
 
 void RenderSceneManager::renderTrans()

@@ -1,5 +1,10 @@
 include "shader_global.dshl"
 
+float openxr_screen_mask_scale = 1;
+int   openxr_screen_mask_value;
+
+interval openxr_screen_mask_value: color < 1, vrs_2 < 3, vrs_4;
+
 shader openxr_screen_mask
 {
   supports none;
@@ -11,10 +16,13 @@ shader openxr_screen_mask
     struct VsOutput
     {
       VS_OUT_POSITION(pos)
+      float3 posClip : TEXCOORD0;
     };
   }
 
   channel float4 pos=pos;
+
+  (vs) { scale@f1 = openxr_screen_mask_scale; }
 
   hlsl(vs) {
     struct VsInput
@@ -26,16 +34,64 @@ shader openxr_screen_mask
     {
       VsOutput o;
       o.pos = v.pos;
+      // Only scale (move inwards) if the position is not on the edge of the screen
+      if (all(abs(o.pos.xy) < 1))
+        o.pos.xy *= scale;
+      o.posClip = o.pos.xyw;
       return o;
     }
   }
   compile("target_vs", "mask_vs");
 
-  hlsl(ps) {
-    float4 mask_ps(VsOutput i) : SV_Target
-    {
-      return float4(0, 0, 0, 1);
+  if (openxr_screen_mask_value == color)
+  {
+    hlsl(ps) {
+      float4 mask_ps(VsOutput i) : SV_Target
+      {
+        return float4(0, 0, 0, 1);
+      }
     }
   }
+  else
+  {
+    (ps) { value@i1 = openxr_screen_mask_value; }
+
+    hlsl(ps) {
+      // enum D3D12_SHADING_RATE
+      static const int D3D12_SHADING_RATE_1X1 = 0;
+      static const int D3D12_SHADING_RATE_1X2 = 0x1;
+      static const int D3D12_SHADING_RATE_2X1 = 0x4;
+      static const int D3D12_SHADING_RATE_2X2 = 0x5;
+      static const int D3D12_SHADING_RATE_2X4 = 0x6;
+      static const int D3D12_SHADING_RATE_4X2 = 0x9;
+      static const int D3D12_SHADING_RATE_4X4 = 0xa;
+
+      ##if openxr_screen_mask_value == vrs_2
+        static const int horizontal = D3D12_SHADING_RATE_2X1;
+        static const int vertical   = D3D12_SHADING_RATE_1X2;
+        static const int square     = D3D12_SHADING_RATE_2X2;
+      ##else
+        static const int horizontal = D3D12_SHADING_RATE_4X2;
+        static const int vertical   = D3D12_SHADING_RATE_2X4;
+        static const int square     = D3D12_SHADING_RATE_4X4;
+      ##endif
+
+      uint mask_ps(VsOutput i) : SV_Target
+      {
+        float2 loc = normalize(abs(i.posClip.xy / i.posClip.z));
+        float  ang = dot(loc, float2(0, 1));
+
+        if (ang > cos(PI / 6))
+          return horizontal;
+        else if (ang > cos(2 * PI / 6))
+          return square;
+        else
+          return vertical;
+
+        return value;
+      }
+    }
+  }
+
   compile("target_ps", "mask_ps");
 }

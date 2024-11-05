@@ -23,8 +23,7 @@ Sources =
   mainWndProc.cpp
 ;
 
-CPPopt = -D__B_CORE ;
-if $(Platform) in win32 win64 xboxOne scarlett {
+if $(Platform) in windows xboxOne scarlett {
   Sources +=
     initJoystick.cpp
     initJoystickXInput.cpp
@@ -33,7 +32,7 @@ if $(Platform) in win32 win64 xboxOne scarlett {
     idleCycle.cpp
   ;
 }
-if $(Platform) in win32 win64 { Sources += windows/threadedWindow.cpp ; }
+if $(Platform) in windows { Sources += windows/threadedWindow.cpp ; }
 if $(Platform) in xboxOne scarlett {
   Sources +=
     xbox/keyboard.cpp
@@ -49,7 +48,7 @@ if $(Platform) in ps4 ps5 {
   ;
 }
 
-if $(Platform) = macosx {
+if $(Platform) = macOS {
   Sources +=
     macosx/macIdleCycle.mm
     initKeybWin.cpp
@@ -75,7 +74,7 @@ if $(Platform) = tvOS {
   ;
 }
 
-if $(Platform) in linux64 {
+if $(Platform) in linux {
   Sources +=
     idleCycle.cpp
     initKeybWin.cpp

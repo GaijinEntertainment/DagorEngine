@@ -6,7 +6,8 @@ static constexpr ecs::ComponentDesc animchar_effectors_init_es_event_handler_com
 {
 //start of 1 rw components at [0]
   {ECS_HASH("animchar_effectors__effectorsState"), ecs::ComponentTypeInfo<ecs::Object>()},
-//start of 2 ro components at [1]
+//start of 3 ro components at [1]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
   {ECS_HASH("animchar_effectors__effectorsList"), ecs::ComponentTypeInfo<ecs::Array>()}
 };
@@ -14,7 +15,8 @@ static void animchar_effectors_init_es_event_handler_all_events(const ecs::Event
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     animchar_effectors_init_es_event_handler(evt
-        , ECS_RO_COMP(animchar_effectors_init_es_event_handler_comps, "animchar", AnimV20::AnimcharBaseComponent)
+        , ECS_RO_COMP(animchar_effectors_init_es_event_handler_comps, "eid", ecs::EntityId)
+    , ECS_RO_COMP(animchar_effectors_init_es_event_handler_comps, "animchar", AnimV20::AnimcharBaseComponent)
     , ECS_RO_COMP(animchar_effectors_init_es_event_handler_comps, "animchar_effectors__effectorsList", ecs::Array)
     , ECS_RW_COMP(animchar_effectors_init_es_event_handler_comps, "animchar_effectors__effectorsState", ecs::Object)
     );
@@ -26,7 +28,7 @@ static ecs::EntitySystemDesc animchar_effectors_init_es_event_handler_es_desc
   "prog/gameLibs/ecs/anim/animCharEffectorsES.cpp.inl",
   ecs::EntitySystemOps(nullptr, animchar_effectors_init_es_event_handler_all_events),
   make_span(animchar_effectors_init_es_event_handler_comps+0, 1)/*rw*/,
-  make_span(animchar_effectors_init_es_event_handler_comps+1, 2)/*ro*/,
+  make_span(animchar_effectors_init_es_event_handler_comps+1, 3)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<InvalidateEffectorData,

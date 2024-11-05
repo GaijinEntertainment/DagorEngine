@@ -18,7 +18,6 @@
 #include "scrambleTea.hlsl"
 #include "interleavedGradientNoise.hlsl"
 
-#ifndef SSR_USE_SEPARATE_DEPTH_MIPS
 float4 sample_4depths(float Level, float4 tc0, float4 tc1)
 {
   float4 rawDepth;
@@ -28,19 +27,13 @@ float4 sample_4depths(float Level, float4 tc0, float4 tc1)
   rawDepth.w = tex2Dlod(ssr_depth, float4(tc1.zw, 0, Level)).r;
   return rawDepth;
 }
-#else
-float4 sample_4depths(float Level, float4 tc0, float4 tc1)
-{
-  return sample_4depths_separate(Level, tc0, tc1);
-}
-#endif
 float4 ssr_smootherstep_vec4(float4 x)
 {
   return saturate(x * x * x * (x * (x * 6 - 15) + 10));
 }
 // hierarchical raymarch function
 // TODO - reduce first step length to find close reflections
-float4 hierarchRayMarch(float3 rayStart_uv_z, float3 R, float linear_roughness, float linearDepth, float3 cameraToPoint,
+float4 hierarchRayMarch(float2 rayStart_uv, float3 R, float linear_roughness, float linearDepth, float3 cameraToPoint,
                         float stepOfs, float4x4 viewProjTmNoOfs, out float hitRawDepth)
 {
   float dist = linearDepth*0.97;
@@ -184,7 +177,7 @@ float brdf_G_GGX(float3 n, float3 v, float linear_roughness)
 #define JITTER_COUNT (JITTER_SIZE*JITTER_SIZE)
 #define JITTER_COUNT_MASK (JITTER_COUNT-1)
 
-half4 performSSR(uint2 pixelPos, float2 UV, float linear_roughness, float3 N, float rawDepth,
+half4 performSSR(uint2 pixelPos, float2 UV, float linear_roughness, float3 N,
                  float linearDepth, float3 cameraToPoint, float4x4 viewProjNoOfsTm,
                  inout float depth, out float ssrRawDepth)
 {
@@ -193,12 +186,12 @@ half4 performSSR(uint2 pixelPos, float2 UV, float linear_roughness, float3 N, fl
   float3 originToPoint = cameraToPoint;
   originToPoint = normalize(originToPoint);
   uint frameRandom = uint(SSRParams.w);
-  float stepOfs = interleavedGradientNoiseFramed(pixelPos.xy, uint(SSRParams.z)) - 0.25;
+  float stepOfs = blue_noise_tex[pixelPos.xy % 128].x;
 
   // Sample set dithered over 4x4 pixels
   float3 R = reflect(originToPoint, N);
 
-  float4 hit_uv_z_fade = hierarchRayMarch(float3(UV, rawDepth), R, linear_roughness, linearDepth, cameraToPoint, stepOfs, viewProjNoOfsTm, ssrRawDepth);
+  float4 hit_uv_z_fade = hierarchRayMarch(UV, R, linear_roughness, linearDepth, cameraToPoint, stepOfs, viewProjNoOfsTm, ssrRawDepth);
 
   // if there was a hit
   BRANCH if (hit_uv_z_fade.w > 0)

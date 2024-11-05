@@ -1,5 +1,5 @@
 shader_root_dir:t="."
-outDumpName:t="../../tools/common/compiledShaders/tools"
+outDumpName:t="../../tools/tools"
 packBin:b=yes
 
 include common_inc_dirs.blk
@@ -15,6 +15,10 @@ source
   include shadersList.blk
   include "../../../../prog/gameLibs/daSkies2/shaders/daSkiesList.blk"
   include renderLibsList.blk
+  file:t = "infinite_grid.dshl"
+  file:t = "simple_outline.dshl"
+  file:t = "debug_vbuffer_lines.dshl"
+  file:t = "fom_shadows.dshl"
 }
 common_valid_variants {}
 
@@ -24,6 +28,7 @@ Compile
 {
   fsh:t = 5.0
   assume_static {
+    supports_sh_6_1:i = 0
     in_editor_assume:i=1
     dynamic_lights_count:i=0
     shore_waves_on:i= 0
@@ -42,6 +47,10 @@ Compile
     render_inline_raytracing:i = 0
     use_postfx:i = 1
     use_extended_global_frame_block:i=0
+    dagi_warp64_irradiance:i=0
+    ssr_denoiser_type:i=0
+    has_motion_vectors:i=0
+    ds_motion_vectors_with_z:i=0
   }
 }
 
@@ -50,4 +59,12 @@ explicit_var_ref
 {
   include common_var_ref.blk
   ref:t = in_editor
+  ref:t = lowres_tex_size
+  ref:t = impostor_normal_mip
+  ref:t = fom_shadows_cos
+  ref:t = fom_shadows_sin
+  ref:t = random_pattern_tex
+  ref:t = downsampled_far_depth_tex
+  ref:t = lowres_fx_source_tex
+  ref:t = cables_buf
 }

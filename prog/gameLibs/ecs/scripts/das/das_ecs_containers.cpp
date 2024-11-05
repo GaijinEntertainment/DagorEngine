@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "das_ecs.h"
 #include <dasModules/dasEvent.h>
 #include <daECS/core/entityManager.h>
@@ -149,7 +151,7 @@ struct ObjectConstIteratorAnnotation final : ObjectIteratorAnnotationAny<ObjectC
 template <class Object>
 struct DasObjectIterator : das::Iterator
 {
-  DasObjectIterator(Object *obj) : object(obj) {}
+  DasObjectIterator(Object *obj, das::LineInfo *at) : das::Iterator(at), object(obj) {}
   virtual bool first(das::Context &, char *_value) override
   {
     if (!object->size())
@@ -175,7 +177,7 @@ struct DasObjectIterator : das::Iterator
       iterator_type **value = (iterator_type **)_value;
       *value = nullptr;
     }
-    context.heap->free((char *)this, sizeof(DasObjectIterator<Object>));
+    context.freeIterator((char *)this, debugInfo);
   }
   Object *object = nullptr; // can be unioned with end
   typedef decltype(object->begin()) iterator_type;
@@ -283,7 +285,7 @@ struct ObjectAnnotation final : das::ManagedStructureAnnotation<ecs::Object, fal
     }
 
     walker.beforeTable(&tab, ati);
-    if (walker.cancel)
+    if (walker.cancel())
       return;
     const uint32_t count = object->size();
     uint32_t i = 0;
@@ -294,26 +296,26 @@ struct ObjectAnnotation final : das::ManagedStructureAnnotation<ecs::Object, fal
 
       auto key = pair.first.c_str();
       walker.beforeTableKey(&tab, ati, (char *)&key, ati->firstType, count, last);
-      if (walker.cancel)
+      if (walker.cancel())
         return;
       walker.walk((char *)&key, ati->firstType);
-      if (walker.cancel)
+      if (walker.cancel())
         return;
       walker.afterTableKey(&tab, ati, (char *)&key, ati->firstType, count, last);
-      if (walker.cancel)
+      if (walker.cancel())
         return;
       // value
       walker.beforeTableValue(&tab, ati, (char *)&pair.second, ati->secondType, count, last);
-      if (walker.cancel)
+      if (walker.cancel())
         return;
       walker.walk((char *)&pair.second, ati->secondType);
-      if (walker.cancel)
+      if (walker.cancel())
         return;
       walker.afterTableValue(&tab, ati, (char *)&pair.second, ati->secondType, count, last);
-      if (walker.cancel)
+      if (walker.cancel())
         return;
     }
-    if (walker.cancel)
+    if (walker.cancel())
       return;
     walker.afterTable(&tab, ati);
   }

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "device.h"
 
 #include <osApiWrappers/dag_files.h>
@@ -6,6 +8,7 @@
 #include <perfMon/dag_statDrv.h>
 #include <EASTL/sort.h>
 #include <3d/dag_lowLatency.h>
+#include <3d/dag_gpuConfig.h>
 
 #include <drv_returnAddrStore.h>
 
@@ -15,8 +18,15 @@
 
 #include <util/dag_watchdog.h>
 #include <stereoHelper.h>
+
+#include "frontend_state.h"
 #include "render_target_mask_util.h"
 
+#include "amdFsr.h"
+
+#if !_TARGET_XBOX
+#include <d3d12video.h>
+#endif
 
 #define DX12_LOCK_FRONT() WinAutoLock lock(getFrontGuard())
 
@@ -84,7 +94,7 @@ U &resolve(T &, U &u)
 #define DX12_CONTEXT_COMMAND_PARAM_ARRAY(type, name, size) \
   decltype(auto) name = resolve(ctx, cmd.name);            \
   G_UNUSED(name);
-#include "device_context_cmd.h"
+#include "device_context_cmd.inc.h"
 #undef DX12_BEGIN_CONTEXT_COMMAND
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
@@ -185,51 +195,56 @@ void DeviceContext::replayCommandsConcurrently(volatile int &terminate)
   } while (!terminate);
 }
 
-void DeviceContext::frontFlush()
+void DeviceContext::frontFlush(TidyFrameMode tidy_mode)
 {
   front.recordingLatchedFrame->progress = front.recordingWorkItemProgress;
   front.recordingWorkItemProgress = front.nextWorkItemProgress++;
-  manageLatchedState();
-
-  front.renderTargetIndices.clear();
+  manageLatchedState(tidy_mode);
 }
 
-void DeviceContext::manageLatchedState()
+DAGOR_NOINLINE
+void DeviceContext::waitForLatchedFrame()
 {
-  front.recordingLatchedFrame = nullptr;
-  FrontendFrameLatchedData *nextWait = nullptr;
-  while (!front.recordingLatchedFrame)
+  auto nextWait = eastl::min_element(front.latchedFrameSet.cbegin(), front.latchedFrameSet.cend(),
+    [](auto &a, auto &b) { return a.progress < b.progress; });
+
+  wait_for_frame_progress_with_event(device.queues, nextWait->progress, *eventsPool.acquireEvent(), "waitForLatchedFrame");
+}
+
+void DeviceContext::manageLatchedState(TidyFrameMode tidy_mode)
+{
+  for (FrontendFrameLatchedData *nextFrame = nullptr;;)
   {
-    if (nextWait)
+    uint64_t gpuProgress = device.queues.checkFrameProgress();
+    for (auto &&latchedFrame : front.latchedFrameSet)
     {
-      wait_for_frame_progress_with_event(device.queues, nextWait->progress, front.frameWaitEvent.get(), "manageLatchedState");
-    }
-    for (auto &&frame : front.latchedFrameSet)
-    {
-      if (frame.progress > device.queues.checkFrameProgress())
+      if (latchedFrame.progress <= gpuProgress)
       {
-        if (!nextWait || nextWait->progress > frame.progress)
+        if (latchedFrame.progress)
         {
-          nextWait = &frame;
+          tidyFrame(latchedFrame, tidy_mode);
+          gpuProgress = device.queues.checkFrameProgress();
         }
-        continue;
+        if (!nextFrame)
+          nextFrame = &latchedFrame;
       }
-
-      if (frame.progress)
-      {
-        tidyFrame(frame);
-      }
-
-      front.recordingLatchedFrame = &frame;
     }
+
+    if (nextFrame)
+    {
+      front.recordingLatchedFrame = nextFrame;
+      break;
+    }
+
+    waitForLatchedFrame();
   }
 
   ResourceMemoryHeap::BeginFrameRecordingInfo frameRecodingInfo;
-  frameRecodingInfo.historyIndex = front.recordingLatchedFrame - front.latchedFrameSet;
-  front.recordingLatchedFrame->frameIndex = front.frameIndex;
+  frameRecodingInfo.historyIndex = eastl::distance(front.latchedFrameSet.begin(), front.recordingLatchedFrame);
   device.resources.beginFrameRecording(frameRecodingInfo);
 
 #if DX12_RECORD_TIMING_DATA
+  front.recordingLatchedFrame->frameIndex = front.frameIndex;
 
 #if DX12_REPORT_LONG_FRAMES
 #if _TARGET_XBOX
@@ -269,7 +284,7 @@ void DeviceContext::manageLatchedState()
 #endif
 }
 
-void DeviceContext::makeReadyForFrame(OutputMode mode)
+void DeviceContext::makeReadyForFrame(uint32_t frame_index, [[maybe_unused]] bool update_swapchain)
 {
 #if DX12_RECORD_TIMING_DATA
   auto now = ref_time_ticks();
@@ -279,10 +294,10 @@ void DeviceContext::makeReadyForFrame(OutputMode mode)
   // On PC, if we execute stuff on the worker thread, we need to wait for the main thread to send
   // the message to acquire the swap image, otherwise we probably get the same swap index as before
   // and use the swap image of the last frame
-  const bool shouldAcquireSwapImageNow = !device.getContext().hasWorkerThread() && OutputMode::PRESENT == mode;
+  const bool shouldAcquireSwapImageNow =
+    device.getContext().isPresentAsync() || (!device.getContext().hasWorkerThread() && update_swapchain);
 #else
   constexpr bool shouldAcquireSwapImageNow = true;
-  G_UNUSED(mode);
 #endif
   if (shouldAcquireSwapImageNow)
   {
@@ -296,7 +311,7 @@ void DeviceContext::makeReadyForFrame(OutputMode mode)
 #if DX12_RECORD_TIMING_DATA
   back.gpuWaitDuration =
 #endif
-    frame.beginFrame(device, device.queues, device.pipeMan);
+    frame.beginFrame(device.queues, device.pipeMan, frame_index);
 
   back.sharedContextState.onFrameStateInvalidate(device.nullResourceTable.table[NullResourceTable::RENDER_TARGET_VIEW]);
 }
@@ -313,9 +328,14 @@ void DeviceContext::initMode(ExecutionMode mode)
   bool recordResourceStates = dxCfg->getBool("recordResourceStates", false);
   uint32_t framesToInitiallyRecord = dxCfg->getInt("recordResourceStatesFrames", 0);
   ResourceUsageHistoryDataSetDebugger::configure(recordResourceStates, framesToInitiallyRecord);
-  debug::call_stack::Generator::configure(::dgs_get_settings()->getBlockByNameEx("dx12"));
+  debug::call_stack::Generator::configure(dxCfg);
 
   commandStream.resize((1024 * 1024) / 4);
+
+#if _TARGET_PC_WIN
+  isPresentSynchronous = !dxCfg->getBool("asyncPresent", true);
+  isWaitForASyncPresent = dxCfg->getBool("waitForAsyncPresent", false);
+#endif
 
 #if !FIXED_EXECUTION_MODE
   executionMode = mode;
@@ -329,8 +349,6 @@ void DeviceContext::initMode(ExecutionMode mode)
 
     worker.reset(new WorkerThread{*this});
     worker->start();
-    worker->setAffinity(WORKER_THREADS_AFFINITY_MASK); // Prevent preemption of main thread on
-                                                       // worker wake ups
   }
 }
 
@@ -355,7 +373,7 @@ bool DeviceContext::enableImmediateFlush()
     return true;
   }
   else
-    logerr("DX12: The immediate flush doesn't work in non immedite execution mode!");
+    D3D_ERROR("DX12: The immediate flush doesn't work in non immedite execution mode!");
   return false;
 }
 
@@ -424,10 +442,11 @@ void DeviceContext::dispatchMeshIndirect(BufferResourceReferenceAndOffset args, 
 }
 #endif
 
-void DeviceContext::addShaderGroup(uint32_t group, ScriptedShadersBinDumpOwner *dump, ShaderID null_pixel_shader)
+void DeviceContext::addShaderGroup(uint32_t group, ScriptedShadersBinDumpOwner *dump, ShaderID null_pixel_shader,
+  eastl::string_view name)
 {
   DX12_LOCK_FRONT();
-  commandStream.pushBack(make_command<CmdAddShaderGroup>(group, dump, null_pixel_shader));
+  commandStream.pushBack(make_command<CmdAddShaderGroup, const char>(group, dump, null_pixel_shader), name.data(), name.size());
   immediateModeExecute();
 }
 
@@ -445,26 +464,12 @@ void DeviceContext::loadComputeShaderFromDump(ProgramID program)
   immediateModeExecute();
 }
 
-void DeviceContext::compilePipelineSet(const DataBlock *feature_sets, DynamicArray<InputLayoutID> &&input_layouts,
-  DynamicArray<StaticRenderStateID> &&static_render_states, const DataBlock *output_formats_set,
+void DeviceContext::compilePipelineSet(DynamicArray<InputLayoutIDWithHash> &&input_layouts,
+  DynamicArray<StaticRenderStateIDWithHash> &&static_render_states, const DataBlock *output_formats_set,
   const DataBlock *graphics_pipeline_set, const DataBlock *mesh_pipeline_set, const DataBlock *compute_pipeline_set,
   const char *default_format)
 {
-  // resolve if any feature set is supported by this device
-  DynamicArray<bool> featureSetSupported;
-  if (feature_sets && feature_sets->blockCount() > 0)
-  {
-    auto blockCount = feature_sets->blockCount();
-    featureSetSupported.resize(blockCount);
-    pipeline::DataBlockDecodeEnumarator<pipeline::FeatureSupportResolver> resolver{*feature_sets, 0, d3d::get_driver_desc()};
-    for (; !resolver.completed(); resolver.next())
-    {
-      auto mode = pipeline::FeatureSupportResolver::CompatibilityMode::pipelines;
-      resolver.decode(mode, featureSetSupported[resolver.index()]);
-    }
-  }
-
-  DynamicArray<FramebufferLayout> framebufferLayouts;
+  DynamicArray<FramebufferLayoutWithHash> framebufferLayouts;
   if (output_formats_set && output_formats_set->blockCount() > 0)
   {
     auto blockCount = output_formats_set->blockCount();
@@ -472,12 +477,9 @@ void DeviceContext::compilePipelineSet(const DataBlock *feature_sets, DynamicArr
     pipeline::DataBlockDecodeEnumarator<pipeline::FramebufferLayoutDecoder> decoder{*output_formats_set, 0, default_format};
     for (; !decoder.completed(); decoder.next())
     {
-      auto fi = decoder.index();
-      framebufferLayouts[fi] = {};
-      decoder.invoke([&framebufferLayouts, fi](auto &info) {
-        framebufferLayouts[fi] = info;
-        return true;
-      });
+      auto &target = framebufferLayouts[decoder.index()];
+      target = {};
+      decoder.decode(target.layout, target.hash);
     }
   }
 
@@ -487,8 +489,7 @@ void DeviceContext::compilePipelineSet(const DataBlock *feature_sets, DynamicArr
     auto blockCount = graphics_pipeline_set->blockCount();
     graphicsPiplines.resize(blockCount);
     uint32_t decodedCount = 0;
-    pipeline::DataBlockDecodeEnumarator<pipeline::GraphicsPipelineDecoder> decoder{
-      *graphics_pipeline_set, 0, featureSetSupported.data(), (uint32_t)featureSetSupported.size()};
+    pipeline::DataBlockDecodeEnumarator<pipeline::GraphicsPipelineDecoder> decoder{*graphics_pipeline_set, 0};
     for (; !decoder.completed(); decoder.next())
     {
       if (decoder.decode(graphicsPiplines[decodedCount].base, graphicsPiplines[decodedCount].variants))
@@ -505,8 +506,7 @@ void DeviceContext::compilePipelineSet(const DataBlock *feature_sets, DynamicArr
     auto blockCount = mesh_pipeline_set->blockCount();
     meshPipelines.resize(blockCount);
     uint32_t decodedCount = 0;
-    pipeline::DataBlockDecodeEnumarator<pipeline::MeshPipelineDecoder> decoder{
-      *mesh_pipeline_set, 0, featureSetSupported.data(), (uint32_t)featureSetSupported.size()};
+    pipeline::DataBlockDecodeEnumarator<pipeline::MeshPipelineDecoder> decoder{*mesh_pipeline_set, 0};
     for (; !decoder.completed(); decoder.next())
     {
       if (decoder.decode(meshPipelines[decodedCount].base, meshPipelines[decodedCount].variants))
@@ -523,8 +523,7 @@ void DeviceContext::compilePipelineSet(const DataBlock *feature_sets, DynamicArr
     auto blockCount = compute_pipeline_set->blockCount();
     computePipelines.resize(blockCount);
     uint32_t decodedCount = 0;
-    pipeline::DataBlockDecodeEnumarator<pipeline::ComputePipelineDecoder> decoder{
-      *compute_pipeline_set, 0, featureSetSupported.data(), (uint32_t)featureSetSupported.size()};
+    pipeline::DataBlockDecodeEnumarator<pipeline::ComputePipelineDecoder> decoder{*compute_pipeline_set, 0};
     for (; !decoder.completed(); decoder.next())
     {
       if (decoder.decode(computePipelines[decodedCount].base))
@@ -542,47 +541,271 @@ void DeviceContext::compilePipelineSet(const DataBlock *feature_sets, DynamicArr
   immediateModeExecute();
 }
 
+namespace
+{
+struct GraphicsVariantDecoderContext
+{
+  const DynamicArray<InputLayoutIDWithHash> &inputLayouts;
+  const DynamicArray<StaticRenderStateIDWithHash> &staticRenderStates;
+  const DynamicArray<FramebufferLayoutWithHash> &framebufferLayouts;
+  DynamicArray<cacheBlk::GraphicsVariantGroup> &output;
+  uint32_t variantCount = 0;
+  uint32_t classCount = 0;
+
+  GraphicsVariantDecoderContext(DynamicArray<cacheBlk::GraphicsVariantGroup> &o, uint32_t max_variant_count,
+    const DynamicArray<InputLayoutIDWithHash> &il, const DynamicArray<StaticRenderStateIDWithHash> &srs,
+    const DynamicArray<FramebufferLayoutWithHash> &fbl) :
+    output{o}, inputLayouts{il}, staticRenderStates{srs}, framebufferLayouts{fbl}
+  {
+    output.resize(max_variant_count);
+  }
+
+  ~GraphicsVariantDecoderContext() { output.resize(variantCount); }
+
+  int translateInputLayoutHashString(const char *hash_string) const
+  {
+    auto hashValue = dxil::HashValue::fromString(hash_string);
+    auto ref =
+      eastl::find_if(eastl::begin(inputLayouts), eastl::end(inputLayouts), [hashValue](auto &e) { return hashValue == e.hash; });
+    if (ref == eastl::end(inputLayouts))
+    {
+      logwarn("DX12: ...was looking for input layout with hash %s, but none was found, listing input layout hashes...", hash_string);
+      for (auto &layout : inputLayouts)
+      {
+        char buf[sizeof(layout.hash) * 2 + 1];
+        layout.hash.convertToString(buf, sizeof(buf));
+        logwarn("DX12: ...%s...", buf);
+      }
+      return -1;
+    }
+    return eastl::distance(eastl::begin(inputLayouts), ref);
+  }
+
+  int translateStaticRenderStateHashString(const char *hash_string) const
+  {
+    auto hashValue = dxil::HashValue::fromString(hash_string);
+    auto ref = eastl::find_if(eastl::begin(staticRenderStates), eastl::end(staticRenderStates),
+      [hashValue](auto &e) { return hashValue == e.hash; });
+    if (ref == eastl::end(staticRenderStates))
+    {
+      logwarn("DX12: ...was looking for render state with hash %s, but none was found, listing render state hashes...", hash_string);
+      for (auto &state : staticRenderStates)
+      {
+        char buf[sizeof(state.hash) * 2 + 1];
+        state.hash.convertToString(buf, sizeof(buf));
+        logwarn("DX12: ...%s...", buf);
+      }
+      return -1;
+    }
+    return eastl::distance(eastl::begin(staticRenderStates), ref);
+  }
+
+  int translateFrambufferLayoutHashString(const char *hash_string) const
+  {
+    auto hashValue = dxil::HashValue::fromString(hash_string);
+    auto ref = eastl::find_if(eastl::begin(framebufferLayouts), eastl::end(framebufferLayouts),
+      [hashValue](auto &e) { return hashValue == e.hash; });
+    if (ref == eastl::end(framebufferLayouts))
+    {
+      logwarn("DX12: ...was looking for frame buffer layout with hash %s, but none was found, listing frame buffer layout hashes...",
+        hash_string);
+      for (auto &layout : framebufferLayouts)
+      {
+        char buf[sizeof(layout.hash) * 2 + 1];
+        layout.hash.convertToString(buf, sizeof(buf));
+        logwarn("DX12: ...%s...", buf);
+      }
+      return -1;
+    }
+    return eastl::distance(eastl::begin(framebufferLayouts), ref);
+  }
+
+  void onVariantBegin(int input_layout_id, int static_render_state_id, int frame_buffer_layout_id, int topology, bool is_wire_frame,
+    cacheBlk::SignatureMask signature_mask)
+  {
+    auto &target = output[variantCount];
+    target.validSiagnatures = signature_mask;
+    target.isWireFrame = is_wire_frame;
+    target.topology = topology;
+    target.inputLayout = input_layout_id;
+    target.staticRenderState = static_render_state_id;
+    target.frameBufferLayout = frame_buffer_layout_id;
+    classCount = 0;
+  }
+
+  void onVariantEnd()
+  {
+    auto &target = output[variantCount];
+    if (classCount)
+    {
+      target.classes.resize(classCount);
+      ++variantCount;
+    }
+  }
+
+  void onMaxClasses(uint32_t count)
+  {
+    auto &target = output[variantCount];
+    target.classes.resize(count);
+  }
+
+  void onClass(eastl::string &&name, DynamicArray<cacheBlk::UseCodes> &&codes)
+  {
+    auto &target = output[variantCount].classes[classCount++];
+    target.name = eastl::move(name);
+    target.codes = eastl::move(codes);
+  }
+};
+}
+
+void DeviceContext::compilePipelineSet2(DynamicArray<InputLayoutIDWithHash> &&input_layouts,
+  DynamicArray<StaticRenderStateIDWithHash> &&static_render_states, const DataBlock *output_formats_set,
+  const DataBlock *compute_pipeline_set, const DataBlock *full_graphics_set, const DataBlock *null_override_graphics_set,
+  const DataBlock *signature, const char *default_format, ShaderID null_pixel_shader)
+{
+  DynamicArray<FramebufferLayoutWithHash> framebufferLayouts;
+  if (output_formats_set && output_formats_set->blockCount() > 0)
+  {
+    auto blockCount = output_formats_set->blockCount();
+    framebufferLayouts.resize(blockCount);
+    logdbg("DX12: ...loading frame buffer layout from BLK, has %u entries...", blockCount);
+    pipeline::DataBlockDecodeEnumarator<pipeline::FramebufferLayoutDecoder> decoder{*output_formats_set, 0, default_format};
+    for (; !decoder.completed(); decoder.next())
+    {
+      auto &target = framebufferLayouts[decoder.index()];
+      target = {};
+      if (decoder.decode(target.layout, target.hash))
+      {
+        char buf[sizeof(target.hash) * 2 + 1];
+        target.hash.convertToString(buf, sizeof(buf));
+        logdbg("DX12: ...loaded frame buffer layout %s...", buf);
+      }
+      else
+      {
+        logwarn("DX12: ...error during frame buffer layout load from BLK...");
+      }
+    }
+  }
+
+  DynamicArray<cacheBlk::SignatureEntry> signatureData;
+  if (signature && signature->blockCount() > 0)
+  {
+    signatureData.resize(signature->blockCount());
+    for (uint32_t si = 0; si < signature->blockCount(); ++si)
+    {
+      auto signatureBlock = signature->getBlock(si);
+      auto &signatureTarget = signatureData[si];
+      signatureTarget.name = signatureBlock->getStr("name", "");
+
+      if (auto classBlock = signatureBlock->getBlockByName("classes"))
+      {
+        pipeline::DataBlockDecodeEnumarator<pipeline::SignatueHashDecoder> decoder(*classBlock, 0);
+        signatureTarget.hashes.resize(classBlock->blockCount());
+        for (; !decoder.completed(); decoder.next())
+        {
+          decoder.decode(signatureTarget.hashes[decoder.index()]);
+        }
+      }
+      else if (auto hashBlock = signatureBlock->getBlockByName("hashes"))
+      {
+        pipeline::DataBlockParameterDecodeEnumarator<pipeline::SignatueHashDecoder> decoder{*hashBlock, 0};
+        signatureTarget.hashes.resize(hashBlock->paramCount());
+        for (; !decoder.completed(); decoder.next())
+        {
+          decoder.decode(signatureTarget.hashes[decoder.index()]);
+        }
+      }
+    }
+  }
+
+  DynamicArray<cacheBlk::ComputeClassUse> computeClasses;
+  if (compute_pipeline_set)
+  {
+    // figure out how much space we need
+    size_t maxComputeClassCount = 0;
+    for (uint32_t v = 0; v < compute_pipeline_set->blockCount(); ++v)
+    {
+      maxComputeClassCount += compute_pipeline_set->getBlock(v) ? compute_pipeline_set->getBlock(v)->blockCount() : 0;
+    }
+    computeClasses.resize(maxComputeClassCount);
+    uint32_t computeClassCount = 0;
+    pipeline::DataBlockDecodeEnumarator<pipeline::ComputeVariantDecoder> decoder{*compute_pipeline_set, 0};
+    for (; !decoder.completed(); decoder.next())
+    {
+      decoder.invoke([&computeClasses, &computeClassCount](auto &&name, auto &&singature_mask, auto &&codes) {
+        auto &target = computeClasses[computeClassCount++];
+        target.name = eastl::move(name);
+        target.validSiagnatures = singature_mask;
+        target.codes = eastl::move(codes);
+      });
+    }
+    computeClasses.resize(computeClassCount);
+  }
+
+  DynamicArray<cacheBlk::GraphicsVariantGroup> fullGraphicsClasses;
+  if (full_graphics_set && full_graphics_set->blockCount() > 0)
+  {
+    pipeline::DataBlockDecodeEnumarator<pipeline::GraphicsVariantDecoder> decoder{*full_graphics_set, 0};
+
+    GraphicsVariantDecoderContext ctx{
+      fullGraphicsClasses, decoder.remaining(), input_layouts, static_render_states, framebufferLayouts};
+    for (; !decoder.completed(); decoder.next())
+    {
+      decoder.invoke(ctx);
+    }
+  }
+
+  DynamicArray<cacheBlk::GraphicsVariantGroup> nullOverrideGraphicsClasses;
+  if (null_override_graphics_set && null_override_graphics_set->blockCount() > 0)
+  {
+    pipeline::DataBlockDecodeEnumarator<pipeline::GraphicsVariantDecoder> decoder{*null_override_graphics_set, 0};
+
+    GraphicsVariantDecoderContext ctx{
+      nullOverrideGraphicsClasses, decoder.remaining(), input_layouts, static_render_states, framebufferLayouts};
+    for (; !decoder.completed(); decoder.next())
+    {
+      decoder.invoke(ctx);
+    }
+  }
+
+  DX12_LOCK_FRONT();
+  commandStream.pushBack(make_command<CmdCompilePipelineSet2>(input_layouts.releaseAsSpan(), static_render_states.releaseAsSpan(),
+    framebufferLayouts.releaseAsSpan(), signatureData.releaseAsSpan(), computeClasses.releaseAsSpan(),
+    fullGraphicsClasses.releaseAsSpan(), nullOverrideGraphicsClasses.releaseAsSpan(), null_pixel_shader));
+  immediateModeExecute();
+}
+
 void DeviceContext::resizeSwapchain(Extent2D size)
 {
   front.swapchain.prepareForShutdown(device);
   back.swapchain.prepareForShutdown(device);
   // finish all outstanding frames
   back.sharedContextState.frames.walkAll([=](auto &frame) //
-    { frame.beginFrame(device, device.queues, device.pipeMan); });
-  back.swapchain.bufferResize(device, size, front.swapchain.getColorFormat());
+    { frame.beginFrame(device.queues, device.pipeMan, frame.frameIndex); });
+  SwapchainProperties props;
+  props.resolution = size;
+  set_hdr_config(props);
+  back.swapchain.bufferResize(device, props);
   front.swapchain.bufferResize(size);
-  makeReadyForFrame(OutputMode::PRESENT);
+  makeReadyForFrame(front.frameIndex);
 }
 
 void DeviceContext::waitInternal()
 {
-  EventPointer event;
-
-  if (!front.eventsPool.empty())
-  {
-    event = eastl::move(front.eventsPool.back());
-    front.eventsPool.pop_back();
-  }
-  if (!event)
-  {
-    event.reset(CreateEvent(nullptr, FALSE, FALSE, nullptr));
-  }
-
   uint64_t progressToWaitFor = front.recordingWorkItemProgress;
   auto cmd = make_command<CmdFlushWithFence>(front.recordingWorkItemProgress);
   commandStream.pushBack(cmd);
   immediateModeExecute();
-  frontFlush();
+  frontFlush(TidyFrameMode::SyncPoint);
 
-  wait_for_frame_progress_with_event(device.queues, progressToWaitFor, event.get(), "wait");
-  front.eventsPool.push_back(eastl::move(event));
+  wait_for_frame_progress_with_event(device.queues, progressToWaitFor, *eventsPool.acquireEvent(), "wait");
 }
 
 void DeviceContext::finishInternal()
 {
   waitInternal();
 
-  manageLatchedState();
+  manageLatchedState(TidyFrameMode::SyncPoint);
 
   closeFrameEndCallbacks();
 }
@@ -633,20 +856,16 @@ void DeviceContext::blitImageInternal(Image *src, Image *dst, const ImageBlit &r
   immediateModeExecute();
 }
 
-void DeviceContext::tidyFrame(FrontendFrameLatchedData &frame)
+void DeviceContext::tidyFrame(FrontendFrameLatchedData &frame, TidyFrameMode mode)
 {
-  if (!frame.deletedQueries.empty())
+  if (!frame.deletedQueries.empty() && TidyFrameMode::FrameCompleted == mode)
   {
     device.frontendQueryManager.removeDeletedQueries(frame.deletedQueries);
     frame.deletedQueries.clear();
   }
 
-  // keep track of the progress that frontend has completed including resource cleanup
-  front.frontendFinishedWorkItem.store(max(frame.progress, front.frontendFinishedWorkItem.load(std::memory_order_relaxed)),
-    std::memory_order_release);
-
   ResourceMemoryHeap::CompletedFrameExecutionInfo frameCompleteInfo;
-  frameCompleteInfo.historyIndex = &frame - front.latchedFrameSet;
+  frameCompleteInfo.historyIndex = eastl::distance(front.latchedFrameSet.begin(), &frame);
   frameCompleteInfo.progressIndex = frame.progress;
   frameCompleteInfo.bindlessManager = &device.bindlessManager;
   frameCompleteInfo.device = device.device.get();
@@ -671,6 +890,15 @@ void DeviceContext::onDeviceError(HRESULT remove_reason)
   commandStream.pushBack(make_command<CmdOnDeviceError>(remove_reason));
   immediateModeExecute();
 }
+
+void DeviceContext::waitForCommandFence()
+{
+  std::atomic_bool signal = false;
+  auto cmd = make_command<CmdCommandFence>(signal);
+  commandStream.pushBack(cmd);
+  immediateModeExecute();
+  ::wait(signal, false);
+}
 #endif
 
 void DeviceContext::initFrameStates()
@@ -680,8 +908,8 @@ void DeviceContext::initFrameStates()
 
   back.sharedContextState.bindlessSetManager.init(device.device.get());
 
-  front.frameWaitEvent.reset(CreateEvent(nullptr, false, false, nullptr));
-  front.recordingLatchedFrame = &front.latchedFrameSet[0];
+  front.latchedFrameSet.fill({});
+  front.recordingLatchedFrame = front.latchedFrameSet.begin();
 
   ResourceMemoryHeap::BeginFrameRecordingInfo frameRecodingInfo;
   frameRecodingInfo.historyIndex = 0;
@@ -776,7 +1004,7 @@ void report_metrics(VariantContainerVisitMetricsCollector<A> &metrics)
 #define DX12_END_CONTEXT_COMMAND
 #define DX12_CONTEXT_COMMAND_PARAM(type, name)
 #define DX12_CONTEXT_COMMAND_PARAM_ARRAY(type, name, size)
-#include "device_context_cmd.h"
+#include "device_context_cmd.inc.h"
 #undef DX12_BEGIN_CONTEXT_COMMAND
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
@@ -785,7 +1013,7 @@ void report_metrics(VariantContainerVisitMetricsCollector<A> &metrics)
 #undef DX12_CONTEXT_COMMAND_PARAM_ARRAY
       "void"};
 
-    auto frameCount = metrics.template getVisitCountFor<CmdPresent>();
+    auto frameCount = metrics.template getVisitCountFor<CmdFinishFrame>();
 
     // -1 because last one is void as terminating entry
     eastl::sort(eastl::begin(commandArray), eastl::end(commandArray) - 1, [](auto &l, auto &r) {
@@ -839,8 +1067,8 @@ void DeviceContext::clearRenderTargets(ViewportState vp, uint32_t clear_mask, co
 
 void DeviceContext::pushConstRegisterData(uint32_t stage, eastl::span<const ConstRegisterType> data)
 {
-  auto update = device.resources.allocatePushMemory(device.getDXGIAdapter(), device.device.get(),
-    sizeof(ConstRegisterType) * data.size(), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+  auto update = device.resources.allocatePushMemory(device.getDXGIAdapter(), device, sizeof(ConstRegisterType) * data.size(),
+    D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
   if (!update)
   {
     return;
@@ -909,10 +1137,14 @@ void DeviceContext::setUAVBuffer(uint32_t stage, size_t unit, BufferResourceRefe
   immediateModeExecute();
 }
 
-void DeviceContext::setConstBuffer(uint32_t stage, size_t unit, BufferResourceReferenceAndAddressRange buffer)
+void DeviceContext::setConstBuffer(uint32_t stage, size_t unit, const ConstBufferSetupInformationStream &info, const char *name)
 {
-  auto cmd = make_command<CmdSetUniformBuffer>(stage, static_cast<uint32_t>(unit), buffer);
-  commandStream.pushBack(cmd, false /*wake executor*/);
+  auto cmd = make_command<CmdSetUniformBuffer>(stage, static_cast<uint32_t>(unit), info);
+  uint32_t nameLength = 0;
+#if DX12_VALIDATE_STREAM_CB_USAGE_WITHOUT_INITIALIZATION
+  nameLength = strlen(name);
+#endif
+  commandStream.pushBack<CmdSetUniformBuffer, const char>(cmd, name, nameLength);
   immediateModeExecute();
 }
 
@@ -1034,8 +1266,7 @@ void DeviceContext::drawUserData(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t count, u
 {
   auto vertexDataBytes = count * stride;
   // vertex data needs to be dword aligned or some GPUs will render garbage
-  auto vertexData =
-    device.resources.allocatePushMemory(device.getDXGIAdapter(), device.device.get(), vertexDataBytes, sizeof(uint32_t));
+  auto vertexData = device.resources.allocatePushMemory(device.getDXGIAdapter(), device, vertexDataBytes, sizeof(uint32_t));
   if (!vertexData)
   {
     return;
@@ -1061,14 +1292,13 @@ void DeviceContext::drawIndexedUserData(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t c
 {
   auto vertexDataBytes = vertex_count * vertex_stride;
   // vertex data needs to be dword aligned or some GPUs will render garbage
-  auto vertexData =
-    device.resources.allocatePushMemory(device.getDXGIAdapter(), device.device.get(), vertexDataBytes, sizeof(uint32_t));
+  auto vertexData = device.resources.allocatePushMemory(device.getDXGIAdapter(), device, vertexDataBytes, sizeof(uint32_t));
   if (!vertexData)
   {
     return;
   }
   auto indexDataBytes = count * sizeof(uint16_t);
-  auto indexData = device.resources.allocatePushMemory(device.getDXGIAdapter(), device.device.get(), indexDataBytes, sizeof(uint16_t));
+  auto indexData = device.resources.allocatePushMemory(device.getDXGIAdapter(), device, indexDataBytes, sizeof(uint16_t));
   if (!indexData)
   {
     return;
@@ -1115,7 +1345,7 @@ void DeviceContext::copyBuffer(BufferResourceReferenceAndOffset source, BufferRe
   if (needs_two_phase_copy(source, dest, data_size))
   {
     DX12_LOCK_FRONT();
-    auto scratchBuffer = device.resources.getTempScratchBufferSpace(device.getDXGIAdapter(), device.getDevice(), data_size, 1);
+    auto scratchBuffer = device.resources.getTempScratchBufferSpace(device.getDXGIAdapter(), device, data_size, 1);
     auto cmd = make_command<CmdTwoPhaseCopyBuffer>(source, dest.offset, scratchBuffer, data_size);
     commandStream.pushBack(cmd);
     immediateModeExecute();
@@ -1131,6 +1361,11 @@ void DeviceContext::copyBuffer(BufferResourceReferenceAndOffset source, BufferRe
 
 void DeviceContext::updateBuffer(HostDeviceSharedMemoryRegion update, BufferResourceReferenceAndOffset dest)
 {
+  if (!update.buffer || !dest.buffer)
+  {
+    logwarn("DX12: updateBuffer: update.buffer (%p) or dest.buffer (%p) was null, skipping", update.buffer, update.buffer);
+    return;
+  }
   G_ASSERTF(HostDeviceSharedMemoryRegion::Source::TEMPORARY == update.source,
     "DX12: DeviceContext::updateBuffer called with wrong cpu paged gpu memory type %u", static_cast<uint32_t>(update.source));
   // flush writes
@@ -1188,9 +1423,10 @@ void DeviceContext::updateViewports(dag::ConstSpan<ViewportState> viewports)
   immediateModeExecute();
 }
 
-void DeviceContext::clearDepthStencilImage(Image *image, const ImageSubresourceRange &area, const ClearDepthStencilValue &value)
+void DeviceContext::clearDepthStencilImage(Image *image, const ImageSubresourceRange &area, const ClearDepthStencilValue &value,
+  const eastl::optional<D3D12_RECT> &rect)
 {
-  auto cmd = make_command<CmdClearDepthStencilTexture>(image, ImageViewState{}, D3D12_CPU_DESCRIPTOR_HANDLE{}, value);
+  auto cmd = make_command<CmdClearDepthStencilTexture>(image, ImageViewState{}, D3D12_CPU_DESCRIPTOR_HANDLE{}, value, rect);
 
   const auto format = image->getFormat();
   cmd.viewState.setDSV(false);
@@ -1212,15 +1448,20 @@ void DeviceContext::clearDepthStencilImage(Image *image, const ImageSubresourceR
   }
 }
 
-void DeviceContext::clearColorImage(Image *image, const ImageSubresourceRange &area, const ClearColorValue &value)
+void DeviceContext::clearColorImage(Image *image, const ImageSubresourceRange &area, const ClearColorValue &value,
+  const eastl::optional<D3D12_RECT> &rect)
 {
-  auto cmd = make_command<CmdClearColorTexture>(image, ImageViewState{}, D3D12_CPU_DESCRIPTOR_HANDLE{}, value);
+  auto cmd = make_command<CmdClearColorTexture>(image, ImageViewState{}, D3D12_CPU_DESCRIPTOR_HANDLE{}, value, rect);
 
   const auto format = image->getFormat();
   cmd.viewState.setRTV();
   cmd.viewState.setFormat(format);
   cmd.viewState.setMipCount(1);
   cmd.viewState.setArrayCount(1);
+  if (image->getArrayLayers().count() > 1)
+  {
+    cmd.viewState.isArray = 1;
+  }
   DX12_LOCK_FRONT();
 
   for (auto a : area.arrayLayerRange)
@@ -1244,6 +1485,12 @@ void DeviceContext::copyImage(Image *src, Image *dst, const ImageCopy &copy)
   immediateModeExecute();
 }
 
+void DeviceContext::blitImage(Image *src, Image *dst, const ImageBlit &region)
+{
+  DX12_LOCK_FRONT();
+  blitImageInternal(src, dst, region, false);
+}
+
 void DeviceContext::resolveMultiSampleImage(Image *src, Image *dst)
 {
   auto cmd = make_command<CmdResolveMultiSampleImage>(src, dst);
@@ -1259,7 +1506,7 @@ void DeviceContext::flushDraws()
   auto cmd = make_command<CmdFlushWithFence>(front.recordingWorkItemProgress);
   commandStream.pushBack(cmd);
   immediateModeExecute();
-  frontFlush();
+  frontFlush(TidyFrameMode::SyncPoint);
 }
 
 bool DeviceContext::flushDrawWhenNoQueries()
@@ -1274,33 +1521,13 @@ bool DeviceContext::flushDrawWhenNoQueries()
   auto cmd = make_command<CmdFlushWithFence>(front.recordingWorkItemProgress);
   commandStream.pushBack(cmd);
   immediateModeExecute();
-  frontFlush();
+  frontFlush(TidyFrameMode::SyncPoint);
 
   return true;
 }
 
-void DeviceContext::blitImage(Image *src, Image *dst, const ImageBlit &region)
-{
-  DX12_LOCK_FRONT();
-  blitImageInternal(src, dst, region, false);
-}
-
 void DeviceContext::wait()
 {
-  EventPointer event;
-  {
-    DX12_LOCK_FRONT();
-    if (!front.eventsPool.empty())
-    {
-      event = eastl::move(front.eventsPool.back());
-      front.eventsPool.pop_back();
-    }
-  }
-  if (!event)
-  {
-    event.reset(CreateEvent(nullptr, FALSE, FALSE, nullptr));
-  }
-
   uint64_t progressToWaitFor;
   {
     DX12_LOCK_FRONT();
@@ -1309,13 +1536,9 @@ void DeviceContext::wait()
     auto cmd = make_command<CmdFlushWithFence>(front.recordingWorkItemProgress);
     commandStream.pushBack(cmd);
     immediateModeExecute();
-    frontFlush();
+    frontFlush(TidyFrameMode::SyncPoint);
   }
-  wait_for_frame_progress_with_event(device.queues, progressToWaitFor, event.get(), "wait");
-  {
-    DX12_LOCK_FRONT();
-    front.eventsPool.push_back(eastl::move(event));
-  }
+  wait_for_frame_progress_with_event(device.queues, progressToWaitFor, *eventsPool.acquireEvent(), "wait");
 }
 
 void DeviceContext::beginSurvey(int name)
@@ -1342,17 +1565,16 @@ void DeviceContext::endSurvey(int name)
   immediateModeExecute();
 }
 
-void DeviceContext::destroyBuffer(BufferState buffer, const char *name)
+void DeviceContext::destroyBuffer(BufferState buffer)
 {
   if (buffer)
   {
-    bool isStillValidRes = device.checkResourceDeleteState("DeviceContext::destroyBuffer", name);
-
     DX12_LOCK_FRONT();
 #if !DX12_USE_AUTO_PROMOTE_AND_DECAY
     auto cmd = make_command<CmdResetBufferState>(buffer);
 #endif
-    device.resources.freeBufferOnFrameCompletion(eastl::move(buffer), ResourceMemoryHeap::FreeReason::USER_DELETE, isStillValidRes);
+    resetBindlessReferences(buffer);
+    device.resources.freeBufferOnFrameCompletion(eastl::move(buffer), ResourceMemoryHeap::FreeReason::USER_DELETE);
 
 #if !DX12_USE_AUTO_PROMOTE_AND_DECAY
     commandStream.pushBack(cmd);
@@ -1367,8 +1589,8 @@ BufferState DeviceContext::discardBuffer(BufferState to_discared, DeviceMemoryCl
   BufferState result;
   {
     DX12_LOCK_FRONT();
-    result = device.resources.discardBuffer(device.getDXGIAdapter(), device.device.get(), eastl::move(to_discared), memory_class,
-      format, struct_size, raw_view, struct_view, flags, cflags, name, front.frameIndex,
+    result = device.resources.discardBuffer(device.getDXGIAdapter(), device, eastl::move(to_discared), memory_class, format,
+      struct_size, raw_view, struct_view, flags, cflags, name, front.frameIndex,
       device.config.features.test(DeviceFeaturesConfig::DISABLE_BUFFER_SUBALLOCATION), device.shouldNameObjects());
   }
 
@@ -1393,13 +1615,43 @@ void DeviceContext::destroyImage(Image *img)
   device.resources.destroyTextureOnFrameCompletion(img);
 }
 
-void DeviceContext::present(OutputMode mode)
+void DeviceContext::waitForAsyncPresent()
+{
+  if (!isWaitForASyncPresent)
+    return;
+
+  DX12_LOCK_FRONT();
+
+  for (auto finishedFrameId = finishedFrameIndex.load(); finishedFrameId + 1 < front.frameIndex;
+       finishedFrameId = finishedFrameIndex.load())
+  {
+    ::wait(finishedFrameIndex, finishedFrameId);
+  }
+}
+
+void DeviceContext::gpuLatencyWait()
+{
+  if (auto waitForSwapchainCount = front.waitForSwapchainCount.load();
+      back.swapchain.getPresentedFrameCount() >= waitForSwapchainCount)
+  {
+    if (front.waitForSwapchainCount.compare_exchange_strong(waitForSwapchainCount, waitForSwapchainCount + 1))
+    {
+      // block until the swapchain gives its okay for the next frame
+      front.swapchain.waitForFrameStart();
+    }
+  }
+}
+
+void DeviceContext::finishFrame(bool present_on_swapchain)
 {
 #if DX12_RECORD_TIMING_DATA
   auto now = ref_time_ticks();
 #endif
 
   callFrameEndCallbacks();
+
+  // if there was input sampling and the engine missed calling this, made up for it to avoid get out of sync
+  gpuLatencyWait();
 
   DX12_LOCK_FRONT();
 
@@ -1438,14 +1690,11 @@ void DeviceContext::present(OutputMode mode)
 
 #endif
 
-  ResourceMemoryHeap::CompletedFrameRecordingInfo frameCompleteInfo;
-#if _TARGET_PC_WIN && DX12_SUPPORT_RESOURCE_MEMORY_METRICS
-  frameCompleteInfo.adapter = device.getDXGIAdapter();
-#endif
-  frameCompleteInfo.historyIndex = front.recordingLatchedFrame - front.latchedFrameSet;
-  device.resources.completeFrameRecording(frameCompleteInfo);
+  device.resources.completeFrameRecording(device, device.getDXGIAdapter(), device.bindlessManager,
+    eastl::distance(front.latchedFrameSet.begin(), front.recordingLatchedFrame));
 
-  auto cmd = make_command<CmdPresent>(front.recordingWorkItemProgress, lowlatency::get_current_frame(), mode
+  auto cmd = make_command<CmdFinishFrame>(front.recordingWorkItemProgress, lowlatency::get_current_frame(), front.frameIndex,
+    present_on_swapchain
 #if DX12_RECORD_TIMING_DATA
     ,
     &frameTiming, now
@@ -1453,33 +1702,14 @@ void DeviceContext::present(OutputMode mode)
   );
   commandStream.pushBack(cmd);
   immediateModeExecute();
-  frontFlush();
+  frontFlush(TidyFrameMode::FrameCompleted);
   front.frameIndex++;
 
 #if _TARGET_PC_WIN
-  if (hasWorkerThread() && OutputMode::PRESENT == mode)
+  if (DAGOR_UNLIKELY(!isPresentAsync()) && hasWorkerThread() && present_on_swapchain)
   {
     back.swapchain.signalPresentSentToBackend();
   }
-#endif
-
-#if DX12_REPORT_DISCARD_MEMORY_PER_FRAME
-  auto cnt = discardBytes.load();
-  while (!discardBytes.compare_exchange_strong(cnt, 0))
-    ;
-  logdbg("DX12: Discarded %uBytes / %uKiBytes / %uMiBytes", cnt, cnt / 1024, cnt / 1024 / 1024);
-#endif
-
-#if DX12_RECORD_TIMING_DATA
-  now = ref_time_ticks();
-#endif
-  if (OutputMode::PRESENT == mode)
-  {
-    // block until the swapchain gives its okay for the next frame
-    front.swapchain.waitForFrameStart();
-  }
-#if DX12_RECORD_TIMING_DATA
-  frameTiming.frontendWaitForSwapchainDuration = ref_time_ticks() - now;
 #endif
 }
 
@@ -1544,9 +1774,9 @@ void DeviceContext::changeFullscreenExclusiveMode(bool is_exclusive, ComPtr<IDXG
   resizeSwapchain(size);
 }
 
-HRESULT DeviceContext::getSwapchainDesc(DXGI_SWAP_CHAIN_DESC *out_desc) { return back.swapchain.getDesc(out_desc); }
+HRESULT DeviceContext::getSwapchainDesc(DXGI_SWAP_CHAIN_DESC *out_desc) const { return back.swapchain.getDesc(out_desc); }
 
-IDXGIOutput *DeviceContext::getSwapchainOutput() { return back.swapchain.getOutput(); }
+IDXGIOutput *DeviceContext::getSwapchainOutput() const { return back.swapchain.getOutput(); }
 #endif
 
 void DeviceContext::shutdownSwapchain()
@@ -1646,16 +1876,21 @@ void DeviceContext::setFramebuffer(Image **image_list, ImageViewState *view_list
 }
 
 #if D3D_HAS_RAY_TRACING
-void DeviceContext::raytraceBuildBottomAccelerationStructure(RaytraceBottomAccelerationStructure *as,
-  RaytraceGeometryDescription *desc, uint32_t count, RaytraceBuildFlags flags, bool update,
-  BufferResourceReferenceAndAddress scratch_buf)
+void DeviceContext::raytraceBuildBottomAccelerationStructure(uint32_t batch_size, uint32_t batch_index,
+  RaytraceBottomAccelerationStructure *as, const RaytraceGeometryDescription *desc, uint32_t count, RaytraceBuildFlags flags,
+  bool update, BufferResourceReferenceAndAddress scratch_buf, BufferResourceReferenceAndAddress compacted_size)
 {
+  if (isImmediateMode())
+  {
+    batch_size = 1;
+    batch_index = 0;
+  }
 
   DX12_LOCK_FRONT();
   commandStream.pushBack<CmdRaytraceBuildBottomAccelerationStructure, D3D12_RAYTRACING_GEOMETRY_DESC,
-    RaytraceGeometryDescriptionBufferResourceReferenceSet>(make_command<CmdRaytraceBuildBottomAccelerationStructure>(scratch_buf,
-                                                             reinterpret_cast<RaytraceAccelerationStructure *>(as), flags,
-                                                             update), //
+    RaytraceGeometryDescriptionBufferResourceReferenceSet>(
+    make_command<CmdRaytraceBuildBottomAccelerationStructure>(scratch_buf, compacted_size,
+      reinterpret_cast<RaytraceAccelerationStructure *>(as), flags, update, batch_size, batch_index), //
     count,
     [desc](auto index, auto first, auto second) //
     {
@@ -1666,16 +1901,38 @@ void DeviceContext::raytraceBuildBottomAccelerationStructure(RaytraceBottomAccel
   immediateModeExecute();
 }
 
-void DeviceContext::raytraceBuildTopAccelerationStructure(RaytraceTopAccelerationStructure *as, BufferReference index_buffer,
-  uint32_t index_count, RaytraceBuildFlags flags, bool update, BufferResourceReferenceAndAddress scratch_buf)
+void DeviceContext::raytraceBuildTopAccelerationStructure(uint32_t batch_size, uint32_t batch_index,
+  RaytraceTopAccelerationStructure *as, BufferReference instance_buffer, uint32_t instance_count, RaytraceBuildFlags flags,
+  bool update, BufferResourceReferenceAndAddress scratch_buf)
 {
+  if (isImmediateMode())
+  {
+    batch_size = 1;
+    batch_index = 0;
+  }
+
   auto cmd = make_command<CmdRaytraceBuildTopAccelerationStructure>();
   cmd.scratchBuffer = scratch_buf;
   cmd.as = reinterpret_cast<RaytraceAccelerationStructure *>(as);
-  cmd.indexBuffer = index_buffer;
-  cmd.indexCount = index_count;
+  cmd.instanceBuffer = instance_buffer;
+  cmd.instanceCount = instance_count;
   cmd.flags = flags;
   cmd.update = update;
+  cmd.batchSize = batch_size;
+  cmd.batchIndex = batch_index;
+
+  DX12_LOCK_FRONT();
+  commandStream.pushBack(cmd);
+  immediateModeExecute();
+}
+
+void DeviceContext::raytraceCopyAccelerationStructure(RaytraceAccelerationStructure *dst, RaytraceAccelerationStructure *src,
+  bool compact)
+{
+  auto cmd = make_command<CmdRaytraceCopyAccelerationStructure>();
+  cmd.src = src;
+  cmd.dst = dst;
+  cmd.compact = compact;
 
   DX12_LOCK_FRONT();
   commandStream.pushBack(cmd);
@@ -1903,14 +2160,6 @@ void DeviceContext::clearUAVTexture(Image *image, ImageViewState view, const flo
   immediateModeExecute();
 }
 
-void DeviceContext::setGamma(float power)
-{
-  auto cmd = make_command<CmdSetGamma>(power);
-  DX12_LOCK_FRONT();
-  commandStream.pushBack(cmd);
-  immediateModeExecute();
-}
-
 void DeviceContext::setComputeRootConstant(uint32_t offset, uint32_t size)
 {
   auto cmd = make_command<CmdSetComputeRootConstant>(offset, size);
@@ -1954,41 +2203,55 @@ void DeviceContext::preRecovery()
 
   mutex.lock();
   finishInternal();
+  waitForCommandFence();
 
-  // simply set to zero descriptor for now, we don't have a valid one for that
-  back.sharedContextState.onFrameStateInvalidate({0});
-  back.sharedContextState.purgeAllBindings();
-
-  back.sharedContextState.frames.walkAll([=](auto &frame) //
-    { frame.preRecovery(device.queues, device.pipeMan); });
-
-  back.sharedContextState.bindlessSetManager.preRecovery();
-
-  back.sharedContextState.drawIndirectSignatures.reset();
-  back.sharedContextState.drawIndexedIndirectSignatures.reset();
-  back.sharedContextState.dispatchIndirectSignature.Reset();
+  back.sharedContextState.preRecovery(device.queues, device.pipeMan);
   back.constBufferStreamDescriptors.shutdown();
 
   // clear out all vectors
-  for (auto &&frame : front.latchedFrameSet)
-    frame = {};
+  front.latchedFrameSet.fill({});
   front.recordingLatchedFrame = nullptr;
   front.recordingWorkItemProgress = 1;
   front.nextWorkItemProgress = 2;
   front.completedFrameProgress = 0;
-  front.frontendFinishedWorkItem.store(0);
 
   front.swapchain.preRecovery();
   back.swapchain.preRecovery();
 }
 
-void DeviceContext::recover(const eastl::vector<D3D12_CPU_DESCRIPTOR_HANDLE> &unbounded_samplers)
+void DeviceContext::ContextState::preRecovery(DeviceQueueGroup &queue_group, PipelineManager &pipe_man)
+{
+  // simply set to zero descriptor for now, we don't have a valid one for that
+  onFrameStateInvalidate({0});
+  purgeAllBindings();
+
+  frames.walkAll([&queue_group, &pipe_man](auto &frame) //
+    { frame.preRecovery(queue_group, pipe_man); });
+
+  bindlessSetManager.preRecovery();
+
+  drawIndirectSignatures.reset();
+  drawIndexedIndirectSignatures.reset();
+  dispatchIndirectSignature.Reset();
+
+  graphicsCommandListBarrierBatch.purgeAll();
+  uploadBarrierBatch.purgeAll();
+  postUploadBarrierBatch.purgeAll();
+  readbackBarrierBatch.purgeAll();
+
+  initialResourceStateSet = {};
+  resourceStates = {};
+  bufferAccessTracker = {};
+  cmdBuffer = {};
+}
+
+void DeviceContext::recover(const dag::Vector<D3D12_CPU_DESCRIPTOR_HANDLE> &unbounded_samplers)
 {
   back.sharedContextState.frames.walkAll([=](auto &frame) //
     { frame.recover(device.device.get()); });
   back.sharedContextState.bindlessSetManager.init(device.device.get());
 
-  front.recordingLatchedFrame = &front.latchedFrameSet[0];
+  front.recordingLatchedFrame = front.latchedFrameSet.begin();
   back.sharedContextState.bindlessSetManager.recover(device.device.get(), unbounded_samplers);
   back.constBufferStreamDescriptors.init(device.device.get());
 
@@ -1996,7 +2259,7 @@ void DeviceContext::recover(const eastl::vector<D3D12_CPU_DESCRIPTOR_HANDLE> &un
   frameRecodingInfo.historyIndex = 0;
   device.resources.beginFrameRecording(frameRecodingInfo);
 
-  makeReadyForFrame(OutputMode::PRESENT);
+  makeReadyForFrame(front.frameIndex);
 
   mutex.unlock();
 }
@@ -2005,9 +2268,29 @@ void DeviceContext::recover(const eastl::vector<D3D12_CPU_DESCRIPTOR_HANDLE> &un
 void DeviceContext::deleteTexture(BaseTex *tex)
 {
   STORE_RETURN_ADDRESS();
-  device.bindlessManager.onTextureDeletion(*this, tex, device.nullResourceTable);
+  resetBindlessReferences(tex);
   DX12_LOCK_FRONT();
   device.resources.deleteTextureObjectOnFrameCompletion(tex);
+}
+
+void DeviceContext::resetBindlessReferences(BaseTex *tex)
+{
+  device.bindlessManager.resetTextureReferences(*this, tex, device.nullResourceTable);
+}
+
+void DeviceContext::resetBindlessReferences(BufferState &buffer)
+{
+  if (!buffer.srvs)
+    return;
+  device.bindlessManager.resetBufferReferences(*this, buffer.currentSRV(), device.nullResourceTable);
+}
+
+void DeviceContext::updateBindlessReferences(D3D12_CPU_DESCRIPTOR_HANDLE old_descriptor, D3D12_CPU_DESCRIPTOR_HANDLE new_descriptor)
+{
+  // need to take the lock here to keep consistent ordering
+  ScopedCommitLock ctxLock{*this};
+  OSSpinlockScopedLock bindlessStateLock{get_resource_binding_guard()};
+  device.bindlessManager.updateBufferReferencesNoLock(*this, old_descriptor, new_descriptor);
 }
 
 void DeviceContext::freeMemory(HostDeviceSharedMemoryRegion allocation)
@@ -2039,6 +2322,21 @@ void DeviceContext::uploadToImage(Image *target, const BufferImageCopy *regions,
   HostDeviceSharedMemoryRegion memory, DeviceQueueType queue, bool is_discard)
 {
   DX12_LOCK_FRONT();
+  G_ASSERT(target);
+  G_ASSERT(target->getHandle());
+  G_ASSERT(memory.buffer);
+  if (!target || !target->getHandle() || !memory.buffer)
+  {
+    D3D_ERROR("DX12: DeviceContext::uploadToImage: invalid argument (target: %p, target->getHandle(): %p, memory.buffer: %p)", target,
+      target ? target->getHandle() : nullptr, memory.buffer);
+    if (target && !target->getHandle())
+    {
+      target->getDebugName([=](auto &name) {
+        D3D_ERROR("DX12: DeviceContext::uploadToImage: target->getHandle() is nullptr (target: %p, name: %s)", target, name.c_str());
+      });
+    }
+    return;
+  }
   commandStream.pushBack(make_command<CmdUploadTexture>(target, memory, queue, is_discard), regions, region_count);
   immediateModeExecute();
 }
@@ -2082,6 +2380,7 @@ void DeviceContext::beginVisibilityQuery(Query *q)
   DX12_LOCK_FRONT();
   ++front.activeRangedQueries;
   commandStream.pushBack(cmd);
+  suppressImmediateFlush();
   immediateModeExecute();
 }
 
@@ -2091,6 +2390,7 @@ void DeviceContext::endVisibilityQuery(Query *q)
   DX12_LOCK_FRONT();
   --front.activeRangedQueries;
   commandStream.pushBack(cmd);
+  restoreImmediateFlush();
   immediateModeExecute();
 }
 
@@ -2165,40 +2465,17 @@ void DeviceContext::resummarizeHtile(ID3D12Resource *depth)
 // TODO: flushDraws is very similar
 void DeviceContext::waitForProgress(uint64_t progress)
 {
-  bool needsFlush = false;
-  EventPointer event;
   {
     DX12_LOCK_FRONT();
-    needsFlush = progress == front.recordingWorkItemProgress;
-    if (needsFlush && !front.eventsPool.empty())
-    {
-      event = eastl::move(front.eventsPool.back());
-      front.eventsPool.pop_back();
-    }
-  }
-  if (needsFlush)
-  {
-    if (!event)
-    {
-      event.reset(CreateEvent(nullptr, FALSE, FALSE, nullptr));
-    }
-
-    DX12_LOCK_FRONT();
-    // have to check again, it is possible that a different thread did a flush already.
     if (progress == front.recordingWorkItemProgress)
     {
       auto cmd = make_command<CmdFlushWithFence>(front.recordingWorkItemProgress);
       commandStream.pushBack(cmd);
       immediateModeExecute();
-      frontFlush();
+      frontFlush(TidyFrameMode::SyncPoint);
     }
   }
-  wait_for_frame_progress_with_event(device.queues, progress, event.get(), "waitForProgress");
-  if (event)
-  {
-    DX12_LOCK_FRONT();
-    front.eventsPool.push_back(eastl::move(event));
-  }
+  wait_for_frame_progress_with_event(device.queues, progress, *eventsPool.acquireEvent(), "waitForProgress");
 }
 
 #if !_TARGET_XBOXONE
@@ -2226,29 +2503,6 @@ void DeviceContext::registerInputLayout(InputLayoutID ident, const InputLayout &
   immediateModeExecute();
 }
 
-#ifndef _TARGET_XBOX
-static void check_dlss_state(DlssState state, const char *setting_name, int quality)
-{
-  switch (state) // -V785
-  {
-    case DlssState::SUPPORTED:
-      logdbg("DX12: DLSS is supported on this hardware, but it was not enabled. video/%s: %d", setting_name, quality);
-      break;
-    case DlssState::READY: logdbg("DX12: DLSS is supported and is ready to go. video/%s: %d", setting_name, quality); break;
-    case DlssState::NOT_SUPPORTED_INCOMPATIBLE_HARDWARE: logdbg("DX12: DLSS is not supported on this hardware."); break;
-    case DlssState::NOT_SUPPORTED_OUTDATED_VGA_DRIVER:
-      logdbg("DX12: DLSS is not supported on because of outdated VGA drivers.");
-      break;
-    case DlssState::NOT_SUPPORTED_32BIT: logdbg("DX12: DLSS is not supported in 32bit builds."); break;
-    case DlssState::DISABLED: logdbg("DX12 drv: DLSS is disabled for drv3d_DX12 lib."); break;
-    case DlssState::NGX_INIT_ERROR_NO_APP_ID:
-      logdbg("DX12: Couldn't initialize NGX because there is no Nvidia AppID set in game specific settings.blk");
-      break;
-    default: logerr("DX12: Unexpected DLSS state after initialization: %d", int(state)); break;
-  }
-}
-#endif
-
 template <typename T>
 static Extent2D to_extent_2d(T size)
 {
@@ -2260,7 +2514,31 @@ void DeviceContext::initXeSS()
 #if !_TARGET_XBOX
   if (xessWrapper.xessInit(static_cast<void *>(device.device.as<ID3D12Device>())))
   {
-    int xessQuality = dgs_get_settings()->getBlockByNameEx("video")->getInt("xessQuality", -1);
+    const DataBlock &blk_video = *dgs_get_settings()->getBlockByNameEx("video");
+
+    int xessQuality = -1;
+    if (blk_video.getNameId("antialiasing_mode") > -1 && blk_video.getNameId("antialiasing_upscaling") > -1)
+    {
+      if (stricmp(blk_video.getStr("antialiasing_mode", "off"), "xess") == 0)
+      {
+        auto quality = blk_video.getStr("antialiasing_upscaling", "native");
+        if (stricmp(quality, "native") == 0)
+          xessQuality = 5;
+        else if (stricmp(quality, "ultra_quality") == 0)
+          xessQuality = 3;
+        else if (stricmp(quality, "quality") == 0)
+          xessQuality = 2;
+        else if (stricmp(quality, "balanced") == 0)
+          xessQuality = 1;
+        else if (stricmp(quality, "performance") == 0)
+          xessQuality = 0;
+        else if (stricmp(quality, "ultra_performance") == 0)
+          xessQuality = 6;
+      }
+    }
+    else
+      xessQuality = blk_video.getInt("xessQuality", -1);
+
     if (xessQuality >= 0)
     {
       Extent2D targetResolution = stereo_config_callback && stereo_config_callback->desiredStereoRender()
@@ -2291,34 +2569,62 @@ void DeviceContext::initFsr2()
 #endif
 }
 
-void DeviceContext::initNgx(bool stereo_render)
+void DeviceContext::initDLSS()
 {
-#if _TARGET_XBOX
-  G_UNUSED(stereo_render);
-#else
-  int dlssQuality = dgs_get_settings()->getBlockByNameEx("video")->getInt("dlssQuality", -1);
-  if (ngxWrapper.init(static_cast<void *>(device.device.as<ID3D12Device>()), get_log_directory()))
+#if !_TARGET_XBOX
+  if (streamlineAdapter)
   {
-    ngxWrapper.checkDlssSupport();
-    if (dlssQuality >= 0)
-    {
-      Extent2D targetResolution = stereo_config_callback && stereo_config_callback->desiredStereoRender()
-                                    ? to_extent_2d(stereo_config_callback->desiredRendererSize())
-                                    : front.swapchain.getExtent();
-      createDlssFeature(dlssQuality, targetResolution, stereo_render);
-      wait();
-    }
+    auto toExtent2D = [](auto size) { return Extent2D({static_cast<uint32_t>(size.width), static_cast<uint32_t>(size.height)}); };
+    auto targetResolution = stereo_config_callback && stereo_config_callback->desiredStereoRender()
+                              ? toExtent2D(stereo_config_callback->desiredRendererSize())
+                              : getSwapchainExtent();
+    bool wantStereoRender = stereo_config_callback ? stereo_config_callback->desiredStereoRender() : false;
+    createDlssFeature(wantStereoRender, targetResolution.width, targetResolution.height);
+    wait();
   }
-  check_dlss_state(ngxWrapper.getDlssState(), "dlssQuality", dlssQuality);
 #endif
 }
 
-void DeviceContext::shutdownNgx()
+void DeviceContext::shutdownDLSS()
 {
 #if !_TARGET_XBOX
-  ngxWrapper.shutdown(static_cast<void *>(device.device.as<ID3D12Device>()));
+  if (streamlineAdapter)
+  {
+    bool wantStereoRender = stereo_config_callback ? stereo_config_callback->desiredStereoRender() : false;
+    releaseDlssFeature(wantStereoRender);
+    wait();
+  }
 #endif
 }
+
+void DeviceContext::initStreamline([[maybe_unused]] DXGIFactory **factory, [[maybe_unused]] IDXGIAdapter *adapter)
+{
+#if !_TARGET_XBOX
+  D3D12_FEATURE_DATA_VIDEO_EXTENSION_COMMAND_COUNT extensionCommandCount{};
+  ComPtr<ID3D12VideoDevice> videoDevice;
+  bool hasVideoExtensionCommands = SUCCEEDED(device.device.as<ID3D12Device5>()->QueryInterface(COM_ARGS(&videoDevice))) &&
+                                   SUCCEEDED(videoDevice->CheckFeatureSupport(D3D12_FEATURE_VIDEO_EXTENSION_COMMAND_COUNT,
+                                     &extensionCommandCount, sizeof(extensionCommandCount))) &&
+                                   extensionCommandCount.CommandCount > 0;
+
+  StreamlineAdapter::SupportOverrideMap supportOverride;
+  constexpr uint32_t kFeatureDLSS_G = 1000;
+  if (!hasVideoExtensionCommands)
+    supportOverride[kFeatureDLSS_G] = nv::SupportState::NotSupported;
+
+  streamlineAdapter = StreamlineAdapter::create(StreamlineAdapter::RenderAPI::DX12, supportOverride);
+  if (streamlineAdapter)
+  {
+    device.device = streamlineAdapter->hook(device.device.as<ID3D12Device5>());
+    *factory = streamlineAdapter->hook(*factory);
+    streamlineAdapter->setD3DDevice(device.device.as<ID3D12Device5>());
+    streamlineAdapter->setCurrentAdapter(adapter);
+    streamlineAdapter->initializeDlssState();
+  }
+#endif
+}
+
+void DeviceContext::shutdownStreamline() { streamlineAdapter.reset(); }
 
 void DeviceContext::shutdownXess() { xessWrapper.xessShutdown(); }
 
@@ -2329,39 +2635,40 @@ void DeviceContext::shutdownFsr2()
 #endif
 }
 
-void DeviceContext::createDlssFeature(int dlss_quality, Extent2D output_resolution, bool stereo_render)
+void DeviceContext::createDlssFeature(bool stereo_render, int output_width, int output_height)
 {
   DX12_LOCK_FRONT();
-  auto cmd = make_command<CmdCreateDlssFeature>(dlss_quality, output_resolution, stereo_render);
+  auto cmd = make_command<CmdCreateDlssFeature>(stereo_render, output_width, output_height);
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
 
-void DeviceContext::releaseDlssFeature()
+void DeviceContext::releaseDlssFeature(bool stereo_render)
 {
-  auto cmd = make_command<CmdReleaseDlssFeature>();
+  auto cmd = make_command<CmdReleaseDlssFeature>(stereo_render);
   DX12_LOCK_FRONT();
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
 
-void DeviceContext::executeDlss(const DlssParams &dlss_params, int view_index)
+void DeviceContext::executeDlss(const nv::DlssParams<BaseTexture> &dlss_params, int view_index)
 {
-  DlssParamsDx12 dlssParams;
-  dlssParams.inColor = cast_to_texture_base(dlss_params.inColor)->getDeviceImage();
-  dlssParams.inDepth = cast_to_texture_base(dlss_params.inDepth)->getDeviceImage();
-  dlssParams.inMotionVectors = cast_to_texture_base(dlss_params.inMotionVectors)->getDeviceImage();
-  dlssParams.inExposure = dlss_params.inExposure ? cast_to_texture_base(dlss_params.inExposure)->getDeviceImage() : nullptr;
-  dlssParams.inSharpness = dlss_params.inSharpness;
-  dlssParams.inJitterOffsetX = dlss_params.inJitterOffsetX;
-  dlssParams.inJitterOffsetY = dlss_params.inJitterOffsetY;
-  dlssParams.outColor = cast_to_texture_base(dlss_params.outColor)->getDeviceImage();
-  dlssParams.inMVScaleX = dlss_params.inMVScaleX;
-  dlssParams.inMVScaleY = dlss_params.inMVScaleY;
-  dlssParams.inColorDepthOffsetX = dlss_params.inColorDepthOffsetX;
-  dlssParams.inColorDepthOffsetY = dlss_params.inColorDepthOffsetY;
+  nv::DlssParams<Image> dlssParams =
+    nv::convertDlssParams(dlss_params, [](BaseTexture *t) { return t ? cast_to_texture_base(t)->getDeviceImage() : nullptr; });
 
-  auto cmd = make_command<CmdExecuteDlss>(dlssParams, view_index);
+  auto cmd = make_command<CmdExecuteDlss>(dlssParams, view_index, streamlineAdapter->getFrameId());
+
+  DX12_LOCK_FRONT();
+  commandStream.pushBack(cmd);
+  immediateModeExecute();
+}
+
+void DeviceContext::executeDlssG(const nv::DlssGParams<BaseTexture> &dlss_g_params, int view_index)
+{
+  nv::DlssGParams<Image> dlssGParams =
+    nv::convertDlssGParams(dlss_g_params, [](BaseTexture *t) { return t ? cast_to_texture_base(t)->getDeviceImage() : nullptr; });
+
+  auto cmd = make_command<CmdExecuteDlssG>(dlssGParams, view_index);
 
   DX12_LOCK_FRONT();
   commandStream.pushBack(cmd);
@@ -2385,6 +2692,29 @@ void DeviceContext::executeXess(const XessParams &params)
   auto cmd = make_command<CmdExecuteXess>(xessParams);
 
   DX12_LOCK_FRONT();
+  commandStream.pushBack(cmd);
+  immediateModeExecute();
+}
+
+void DeviceContext::executeFSR(amd::FSR *fsr, const amd::FSR::UpscalingArgs &params)
+{
+  auto cast_to_image = [](BaseTexture *src) {
+    if (src)
+      return cast_to_texture_base(src)->getDeviceImage();
+    return (Image *)nullptr;
+  };
+
+  FSRUpscalingArgs args = params;
+  args.colorTexture = cast_to_image(params.colorTexture);
+  args.depthTexture = cast_to_image(params.depthTexture);
+  args.motionVectors = cast_to_image(params.motionVectors);
+  args.exposureTexture = cast_to_image(params.exposureTexture);
+  args.outputTexture = cast_to_image(params.outputTexture);
+  args.reactiveTexture = cast_to_image(params.reactiveTexture);
+  args.transparencyAndCompositionTexture = cast_to_image(params.transparencyAndCompositionTexture);
+
+  DX12_LOCK_FRONT();
+  auto cmd = make_command<CmdDispatchFSR>(fsr, args);
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
@@ -2432,6 +2762,15 @@ void DeviceContext::textureBarrier(Image *tex, SubresourceRange sub_res_range, u
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
+
+#if D3D_HAS_RAY_TRACING
+void DeviceContext::blasBarrier(RaytraceBottomAccelerationStructure *blas, GpuPipeline queue)
+{
+  auto cmd = make_command<CmdAsBarrier>(reinterpret_cast<RaytraceAccelerationStructure *>(blas), queue);
+  commandStream.pushBack(cmd);
+  immediateModeExecute();
+}
+#endif
 
 void DeviceContext::beginCapture(UINT flags, LPCWSTR name)
 {
@@ -2485,33 +2824,30 @@ void DeviceContext::writeDebugMessage(const char *msg, intptr_t msg_length, intp
   immediateModeExecute();
 }
 
-void DeviceContext::bindlessSetResourceDescriptor(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
+void DeviceContext::bindlessSetResourceDescriptorNoLock(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
 {
+  G_ASSERT(descriptor.ptr != 0);
   auto cmd = make_command<CmdBindlessSetResourceDescriptor>(slot, descriptor);
-  DX12_LOCK_FRONT();
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
 
-void DeviceContext::bindlessSetResourceDescriptor(uint32_t slot, Image *texture, ImageViewState view)
+void DeviceContext::bindlessSetResourceDescriptorNoLock(uint32_t slot, Image *texture, ImageViewState view)
 {
-  DX12_LOCK_FRONT();
   auto cmd = make_command<CmdBindlessSetTextureDescriptor>(slot, texture, device.getImageView(texture, view));
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
 
-void DeviceContext::bindlessSetSamplerDescriptor(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
+void DeviceContext::bindlessSetSamplerDescriptorNoLock(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
 {
   auto cmd = make_command<CmdBindlessSetSamplerDescriptor>(slot, descriptor);
-  DX12_LOCK_FRONT();
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
 
-void DeviceContext::bindlessCopyResourceDescriptors(uint32_t src, uint32_t dst, uint32_t count)
+void DeviceContext::bindlessCopyResourceDescriptorsNoLock(uint32_t src, uint32_t dst, uint32_t count)
 {
-  DX12_LOCK_FRONT();
   auto cmd = make_command<CmdBindlessCopyResourceDescriptors>(src, dst, count);
   commandStream.pushBack(cmd);
   immediateModeExecute();
@@ -2593,31 +2929,33 @@ void DeviceContext::addSwapchainView(Image *image, ImageViewInfo info)
 
 void DeviceContext::pushBufferUpdate(BufferResourceReferenceAndOffset buffer, const void *data, uint32_t data_size)
 {
-  auto update = device.resources.allocateUploadRingMemory(device.getDXGIAdapter(), device.device.get(), data_size, 1);
+  if (!buffer.buffer)
+  {
+    logwarn("DX12: pushBufferUpdate: buffer.buffer was null, skipping");
+    return;
+  }
+  DX12_LOCK_FRONT();
+  auto update = device.resources.allocateUploadRingMemory(device.getDXGIAdapter(), device, data_size, 1);
   if (!update)
   {
+    logwarn("DX12: pushBufferUpdate: update was null, skipping");
     return;
   }
   memcpy(update.pointer, data, data_size);
   update.flush();
   auto cmd = make_command<CmdUpdateBuffer>(update, buffer);
-  DX12_LOCK_FRONT();
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
 
 void DeviceContext::updateFenceProgress()
 {
-  for (auto &&frame : front.latchedFrameSet)
+  DX12_LOCK_FRONT();
+  for (auto &frame : front.latchedFrameSet)
   {
-    if (frame.progress > device.queues.checkFrameProgress())
+    if (frame.progress && frame.progress <= device.queues.checkFrameProgress())
     {
-      continue;
-    }
-
-    if (frame.progress)
-    {
-      tidyFrame(frame);
+      tidyFrame(frame, TidyFrameMode::SyncPoint);
     }
   }
 }
@@ -2629,6 +2967,8 @@ void DeviceContext::onSwapchainSwapCompleted()
   commandStream.pushBack(make_command<CmdOnSwapchainSwapCompleted>());
   immediateModeExecute();
 }
+#else
+void DeviceContext::onSwapchainSwapCompleted() {}
 #endif
 
 namespace
@@ -2646,19 +2986,18 @@ void DeviceContext::mapTileToResource(BaseTex *tex, ResourceHeap *heap, const Ti
   if (heap)
   {
     memory = device.resources.getUserHeapMemory(heap);
-    G_ASSERTF(memory, "DX12: getUserHeapMemory for user heap %p returned empty memory range", heap);
-    if (!memory)
-    {
-      return;
-    }
+    G_ASSERTF_RETURN(memory, , "DX12: getUserHeapMemory for user heap %p returned empty memory range for texture %p <%s>", heap, tex,
+      tex->getResName());
   }
 
   DX12_LOCK_FRONT();
+  auto image = tex->getDeviceImage();
+  G_ASSERTF_RETURN(image, , "DX12: mapTileToResource: image is nullptr for texture %p <%s>", tex, tex->getResName());
 #if _TARGET_PC_WIN
-  commandStream.pushBack(make_command<CmdBeginTileMapping>(tex->getDeviceImage(), memory.getHeap(),
-    from_byte_offset_to_page_offset(memory.getOffset()), mapping_count));
+  commandStream.pushBack(
+    make_command<CmdBeginTileMapping>(image, memory.getHeap(), from_byte_offset_to_page_offset(memory.getOffset()), mapping_count));
 #else
-  commandStream.pushBack(make_command<CmdBeginTileMapping>(tex->getDeviceImage(), memory.getAddress(), memory.size(), mapping_count));
+  commandStream.pushBack(make_command<CmdBeginTileMapping>(image, memory.getAddress(), memory.size(), mapping_count));
 #endif
   immediateModeExecute();
 
@@ -2833,8 +3172,23 @@ void DeviceContext::aliasFlush(GpuPipeline gpu_pipeline)
 HostDeviceSharedMemoryRegion DeviceContext::allocatePushMemory(uint32_t size, uint32_t alignment)
 {
   DX12_LOCK_FRONT();
-  return device.resources.allocatePushMemory(device.getDXGIAdapter(), device.device.get(), size, alignment);
+  return device.resources.allocatePushMemory(device.getDXGIAdapter(), device, size, alignment);
 }
+
+
+void DeviceContext::moveBuffer(BufferResourceReferenceAndOffset from, BufferResourceReferenceAndRange to)
+{
+  DX12_LOCK_FRONT();
+  commandStream.pushBack(make_command<CmdMoveBuffer>(from, to));
+  immediateModeExecute();
+}
+
+void DeviceContext::moveTextureNoLock(Image *from, Image *to)
+{
+  commandStream.pushBack(make_command<CmdMoveTexture>(from, to));
+  immediateModeExecute();
+}
+
 
 void DeviceContext::WorkerThread::execute()
 {
@@ -2981,12 +3335,21 @@ void DeviceContext::ExecutionContext::endCmd() { ++cmdIndex; }
 
 FramebufferState &DeviceContext::ExecutionContext::getFramebufferState() { return contextState.graphicsState.framebufferState; }
 
-void DeviceContext::ExecutionContext::setUniformBuffer(uint32_t stage, uint32_t unit, BufferResourceReferenceAndAddressRange buffer)
+void DeviceContext::ExecutionContext::setUniformBuffer(uint32_t stage, uint32_t unit, const ConstBufferSetupInformationStream &info,
+  StringIndexRef::RangeType name)
 {
-  contextState.stageState[stage].setConstBuffer(unit, buffer);
-  if (buffer)
+  G_UNUSED(name);
+  ConstBufferSetupInformation infoSlot;
+  infoSlot.buffer = info.buffer;
+#if DX12_VALIDATE_STREAM_CB_USAGE_WITHOUT_INITIALIZATION
+  infoSlot.isStreamBuffer = info.isStreamBuffer;
+  infoSlot.lastDiscardFrameIdx = info.lastDiscardFrameIdx;
+  infoSlot.name = {name.cbegin(), name.cend()};
+#endif
+  contextState.stageState[stage].setConstBuffer(unit, infoSlot);
+  if (info.buffer.resourceId)
   {
-    contextState.bufferAccessTracker.updateLastFrameAccess(buffer.resourceId);
+    contextState.bufferAccessTracker.updateLastFrameAccess(info.buffer.resourceId);
   }
 }
 
@@ -3161,7 +3524,7 @@ void DeviceContext::ExecutionContext::setWireFrame(bool wf)
 
 bool DeviceContext::ExecutionContext::readyReadBackCommandList()
 {
-  if (!contextState.activeReadBackCommandList)
+  if (!contextState.activeReadBackCommandList && device.isHealthyOrRecovering())
   {
     contextState.activeReadBackCommandList = contextState.getFrameData().readBackCommands.allocateList(device.device.get());
   }
@@ -3175,7 +3538,7 @@ bool DeviceContext::ExecutionContext::readyReadBackCommandList()
 
 bool DeviceContext::ExecutionContext::readyEarlyUploadCommandList()
 {
-  if (!contextState.activeEarlyUploadCommandList)
+  if (!contextState.activeEarlyUploadCommandList && device.isHealthyOrRecovering())
   {
     contextState.activeEarlyUploadCommandList = contextState.getFrameData().earlyUploadCommands.allocateList(device.device.get());
   }
@@ -3189,7 +3552,7 @@ bool DeviceContext::ExecutionContext::readyEarlyUploadCommandList()
 
 bool DeviceContext::ExecutionContext::readyLateUploadCommandList()
 {
-  if (!contextState.activeLateUploadCommandList)
+  if (!contextState.activeLateUploadCommandList && device.isHealthyOrRecovering())
   {
     contextState.activeLateUploadCommandList = contextState.getFrameData().lateUploadCommands.allocateList(device.device.get());
   }
@@ -3224,7 +3587,7 @@ bool DeviceContext::ExecutionContext::checkDrawCallHasOutput(eastl::span<const c
 {
 #if DX12_DROP_NOT_USEFUL_DRAW_CALLS
   auto colorTargets = contextState.graphicsState.framebufferState.framebufferLayout.colorTargetMask;
-  auto hasDepthStencil = contextState.graphicsState.framebufferState.framebufferLayout.depthBitStates.hasDepth != 0;
+  auto hasDepthStencil = 0 != contextState.graphicsState.framebufferState.framebufferLayout.hasDepth;
   auto hasUAVs = contextState.graphicsState.basePipeline->getSignature().hasUAVAccess();
   auto psOutputs = color_channel_mask_to_render_target_mask(contextState.graphicsState.basePipeline->getPSHeader().inOutSemanticMask);
   bool hasAnyOutput = (0 != (colorTargets & psOutputs)) || hasDepthStencil || hasUAVs;
@@ -3240,6 +3603,22 @@ bool DeviceContext::ExecutionContext::checkDrawCallHasOutput(eastl::span<const c
 #endif
 }
 
+void DeviceContext::ExecutionContext::checkCloseCommandListResult(HRESULT result, eastl::string_view debug_name,
+  const CommandListLogger &logger) const
+{
+  G_UNUSED(debug_name);
+  G_UNUSED(logger);
+  DX12_CHECK_RESULT(result);
+#if DAGOR_DBGLEVEL > 0
+  if (FAILED(result))
+  {
+    D3D_ERROR("Command list '%s' close failed", debug_name);
+    self.dumpActiveFrameCommandLog();
+    CommandLogDecoder::dump_commands_to_log(logger.getCommands());
+  }
+#endif
+}
+
 DeviceContext::ExecutionContext::ExecutionContext(DeviceContext &ctx, ContextState &css) :
   ScopedCallStackContext{&DeviceContext::ExecutionContext::on_ext_call_stack_capture, this},
   self{ctx},
@@ -3251,10 +3630,11 @@ void DeviceContext::ExecutionContext::prepareCommandExecution()
 {
   // Every command expects that the current command buffer is ready for recording
   FrameInfo &frame = contextState.getFrameData();
-  if (!contextState.cmdBuffer.isReadyForRecording())
+  // On device error we reset the command buffer and do not want to create it again until the device is not recovered
+  if (!contextState.cmdBuffer.isReadyForRecording() && device.isHealthyOrRecovering())
   {
     auto buffer = frame.genericCommands.allocateList(device.device.get());
-    contextState.cmdBuffer.makeReadyForRecroding(buffer, device.hasDepthBoundsTest(), device.getVariableShadingRateTier());
+    contextState.cmdBuffer.makeReadyForRecording(buffer, device.hasDepthBoundsTest(), device.getVariableShadingRateTier());
 
     contextState.debugBeginCommandBuffer(device, device.device.get(), buffer.get());
 
@@ -3280,15 +3660,19 @@ void DeviceContext::ExecutionContext::writeToDebug(StringIndexRef::RangeType inf
   contextState.resourceStates.marker(info);
 }
 
-int64_t DeviceContext::ExecutionContext::flush(bool present, uint64_t progress, OutputMode mode)
+int64_t DeviceContext::ExecutionContext::flush(uint64_t progress, bool frame_end, bool present_on_swapchain)
 {
+  G_ASSERTF(frame_end || !present_on_swapchain, "Calling ctx.flush for presenting before the frame end is incorrect");
+
+  TIME_PROFILE_DEV(DeviceContext::ExecutionContext::flush);
+
   int64_t swapDur = 0;
   FrameInfo &frame = contextState.getFrameData();
 
   // adds barriers for read back access
   readBackImagePrePhase();
 
-  if (present && OutputMode::PRESENT == mode)
+  if (present_on_swapchain)
   {
     contextState.resourceStates.useTextureAsSwapImageOutput(contextState.graphicsCommandListBarrierBatch,
       contextState.graphicsCommandListSplitBarrierTracker, self.back.swapchain.getColorImage());
@@ -3296,20 +3680,21 @@ int64_t DeviceContext::ExecutionContext::flush(bool present, uint64_t progress, 
 
   // have to reverse the order how stuff is construct the command buffers
   // a command pool can only supply one command buffer at a time and
-  // we don't need to have a extra one if we can avoid it by building stuff in the correct order
-  auto frameCore = contextState.cmdBuffer.releaseBufferForSubmit();
+  // we don't need to have an extra one if we can avoid it by building stuff in the correct order
+  contextState.cmdBuffer.prepareBufferForSubmit();
+  auto frameCore = contextState.cmdBuffer.getHandle();
   if (frameCore)
   {
-    contextState.debugEndCommandBuffer(device, frameCore.get());
+    contextState.debugEndCommandBuffer(device, frameCore);
 
     contextState.resourceStates.implicitUAVFlushAll(device.currentEventPath().data(), device.validatesUserBarriers());
-    // TODO not ideal to wrap it here again
-    GraphicsCommandList<AnyCommandListPtr> reWrappedCore{frameCore};
-    contextState.graphicsCommandListBarrierBatch.execute(reWrappedCore);
 
-    contextState.getFrameData().backendQueryManager.resolve(frameCore.get());
-    DX12_CHECK_RESULT(frameCore->Close());
+    contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
+
+    contextState.getFrameData().backendQueryManager.resolve(frameCore);
+    checkCloseCommandListResult(frameCore->Close(), "graphics", contextState.cmdBuffer.getBufferWrapper());
   }
+  contextState.cmdBuffer.resetBuffer();
 
 
   // TODO with compute queue support, we need to submit preFrameSet.copySyncGeneric to the graphics queue
@@ -3321,10 +3706,10 @@ int64_t DeviceContext::ExecutionContext::flush(bool present, uint64_t progress, 
   bool hasEarlyUpload = static_cast<bool>(contextState.activeEarlyUploadCommandList);
   if (hasEarlyUpload)
   {
-    auto cmdList = contextState.activeEarlyUploadCommandList.release();
-
-    DX12_CHECK_RESULT(cmdList->Close());
-    ID3D12CommandList *submit = cmdList.get();
+    auto cmdList = contextState.activeEarlyUploadCommandList.get();
+    checkCloseCommandListResult(cmdList->Close(), "early upload", contextState.activeEarlyUploadCommandList);
+    contextState.activeEarlyUploadCommandList.reset();
+    ID3D12CommandList *submit = cmdList;
     device.queues[DeviceQueueType::UPLOAD].enqueueCommands(1, &submit);
   }
 
@@ -3336,7 +3721,7 @@ int64_t DeviceContext::ExecutionContext::flush(bool present, uint64_t progress, 
       GraphicsCommandList<AnyCommandListPtr> wrappedCmdList{cmdList};
       contextState.uploadBarrierBatch.execute(wrappedCmdList);
 
-      DX12_CHECK_RESULT(cmdList->Close());
+      checkCloseCommandListResult(cmdList->Close(), "upload barrier batch", wrappedCmdList);
       ID3D12CommandList *submit = cmdList.get();
       device.queues[DeviceQueueType::GRAPHICS].enqueueCommands(1, &submit);
     }
@@ -3348,10 +3733,10 @@ int64_t DeviceContext::ExecutionContext::flush(bool present, uint64_t progress, 
   {
     device.queues.synchronizeUploadWithGraphics();
 
-    auto cmdList = contextState.activeLateUploadCommandList.release();
-
-    DX12_CHECK_RESULT(cmdList->Close());
-    ID3D12CommandList *submit = cmdList.get();
+    auto cmdList = contextState.activeLateUploadCommandList.get();
+    checkCloseCommandListResult(cmdList->Close(), "late upload", contextState.activeLateUploadCommandList);
+    contextState.activeLateUploadCommandList.reset();
+    ID3D12CommandList *submit = cmdList;
     device.queues[DeviceQueueType::UPLOAD].enqueueCommands(1, &submit);
   }
 
@@ -3372,7 +3757,7 @@ int64_t DeviceContext::ExecutionContext::flush(bool present, uint64_t progress, 
         GraphicsCommandList<AnyCommandListPtr> wrappedCmdList{cmdList};
         contextState.postUploadBarrierBatch.execute(wrappedCmdList);
 
-        DX12_CHECK_RESULT(cmdList->Close());
+        checkCloseCommandListResult(cmdList->Close(), "post upload barrier batch", wrappedCmdList);
         // gets submitted together with the frame it self
         submits[submitCount++] = cmdList.get();
       }
@@ -3387,7 +3772,7 @@ int64_t DeviceContext::ExecutionContext::flush(bool present, uint64_t progress, 
   if (frameCore)
   {
     // recorded frame
-    submits[submitCount++] = frameCore.get();
+    submits[submitCount++] = frameCore;
   }
 
   // we have to wait for previous frame to avoid overlapping previous frame read back and current frame graphics
@@ -3399,31 +3784,45 @@ int64_t DeviceContext::ExecutionContext::flush(bool present, uint64_t progress, 
     device.queues[DeviceQueueType::GRAPHICS].enqueueCommands(submitCount, submits);
   }
 
-  if (present)
+  if (frame_end)
   {
     for (FrameEvents *callback : self.back.frameEventCallbacks)
       callback->endFrameEvent();
     self.back.frameEventCallbacks.clear();
 
-    auto now = ref_time_ticks();
-    if (OutputMode::PRESENT == mode)
+    auto startPresent = ref_time_ticks();
+    if (present_on_swapchain)
     {
       self.back.swapchain.present(device);
     }
-    swapDur = ref_time_ticks() - now;
+    swapDur = ref_time_ticks() - startPresent;
     frame.progress = progress;
 
     contextState.debugFramePresent(device);
   }
 
+  if (contextState.readbackBarrierBatch.hasBarriers())
+  {
+    if (auto cmdList = frame.genericCommands.allocateList(device.device.get()))
+    {
+      GraphicsCommandList<AnyCommandListPtr> wrappedCmdList{cmdList};
+      contextState.readbackBarrierBatch.execute(wrappedCmdList);
+
+      checkCloseCommandListResult(cmdList->Close(), "readback barrier batch", wrappedCmdList);
+      ID3D12CommandList *submit = cmdList.get();
+      device.queues[DeviceQueueType::GRAPHICS].enqueueCommands(1, &submit);
+    }
+  }
+
   // handle read backs
   if (contextState.activeReadBackCommandList)
   {
-    auto cmdList = contextState.activeReadBackCommandList.release();
-    DX12_CHECK_RESULT(cmdList->Close());
+    auto cmdList = contextState.activeReadBackCommandList.get();
+    checkCloseCommandListResult(cmdList->Close(), "readback", contextState.activeReadBackCommandList);
+    contextState.activeReadBackCommandList.reset();
 
     device.queues.synchronizeReadBackWithGraphics();
-    ID3D12CommandList *submit = cmdList.get();
+    ID3D12CommandList *submit = cmdList;
     device.queues[DeviceQueueType::READ_BACK].enqueueCommands(1, &submit);
 
     device.queues.updateFrameProgress(progress);
@@ -3433,14 +3832,13 @@ int64_t DeviceContext::ExecutionContext::flush(bool present, uint64_t progress, 
     device.queues.updateFrameProgressOnGraphics(progress);
   }
 
-
   for (os_event_t &event : self.back.frameCompleteEvents)
     device.queues.waitForFrameProgress(progress, event);
   self.back.frameCompleteEvents.clear();
 
   auto &resourceUsageDebugger = static_cast<ResourceUsageHistoryDataSetDebugger &>(self);
   contextState.resourceStates.addTo(resourceUsageDebugger);
-  if (present)
+  if (frame_end)
   {
     resourceUsageDebugger.finishFrame();
   }
@@ -3525,7 +3923,7 @@ void DeviceContext::ExecutionContext::addComputePipeline(ProgramID id, ComputeSh
   eastl::unique_ptr<ComputeShaderModule> sm{csm};
   // module id is the compute program id, no need for extra param
   device.pipeMan.addCompute(device.device.get(), device.pipelineCache, id, eastl::move(*csm),
-    get_recover_behvior_from_cfg(device.config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
+    get_recover_behavior_from_cfg(device.config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
       device.config.features.test(DeviceFeaturesConfig::ASSERT_ON_PIPELINE_COMPILATION_ERROR)),
     device.shouldNameObjects(), preloaded);
 }
@@ -3533,7 +3931,7 @@ void DeviceContext::ExecutionContext::addComputePipeline(ProgramID id, ComputeSh
 void DeviceContext::ExecutionContext::addGraphicsPipeline(GraphicsProgramID program, ShaderID vs, ShaderID ps)
 {
   device.pipeMan.addGraphics(device.device.get(), device.pipelineCache, contextState.framebufferLayouts, program, vs, ps,
-    get_recover_behvior_from_cfg(device.config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
+    get_recover_behavior_from_cfg(device.config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
       device.config.features.test(DeviceFeaturesConfig::ASSERT_ON_PIPELINE_COMPILATION_ERROR)),
     device.shouldNameObjects());
 }
@@ -3565,17 +3963,26 @@ void DeviceContext::ExecutionContext::copyRaytraceShaderGroupHandlesToMemory(Pro
   G_UNUSED(ptr);
   G_ASSERTF(false, "ExecutionContext::copyRaytraceShaderGroupHandlesToMemory called on API without support");
 }
-
-void DeviceContext::ExecutionContext::buildBottomAccelerationStructure(
+void DeviceContext::ExecutionContext::buildBottomAccelerationStructure(uint32_t batch_size, uint32_t batch_index,
   D3D12_RAYTRACING_GEOMETRY_DESC_ListRef::RangeType geometry_descriptions,
   RaytraceGeometryDescriptionBufferResourceReferenceSetListRef::RangeType resource_refs,
-  D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags, bool update, ID3D12Resource *dst, ID3D12Resource *src,
-  BufferResourceReferenceAndAddress scratch)
+  D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags, bool update, RaytraceAccelerationStructure *dst,
+  RaytraceAccelerationStructure *src, BufferResourceReferenceAndAddress scratch_buffer,
+  BufferResourceReferenceAndAddress compacted_size)
 {
+  G_UNUSED(batch_size);
+  G_UNUSED(batch_index);
+
+  static_assert(RT_TRANSFORM_SIZE == sizeof(mat43f));
+
   if (!readyCommandList())
   {
     return;
   }
+
+#if _TARGET_SCARLETT
+  ctxScarlett.buildBottomAccelerationStructure(batch_size, batch_index, geometry_descriptions);
+#endif
 
   for (auto &&ref : resource_refs)
   {
@@ -3598,10 +4005,15 @@ void DeviceContext::ExecutionContext::buildBottomAccelerationStructure(
 
   if (src)
   {
-    contextState.resourceStates.useRTASAsUpdateSource(contextState.graphicsCommandListBarrierBatch, src);
+    contextState.resourceStates.useRTASAsUpdateSource(contextState.graphicsCommandListBarrierBatch, src->asHeapResource);
   }
 
-  contextState.resourceStates.useRTASAsBuildTarget(contextState.graphicsCommandListBarrierBatch, dst);
+  if (compacted_size)
+  {
+    contextState.resourceStates.useBufferAsUAV(contextState.graphicsCommandListBarrierBatch, STAGE_CS, compacted_size);
+  }
+
+  contextState.resourceStates.useRTASAsBuildTarget(contextState.graphicsCommandListBarrierBatch, dst->asHeapResource);
 
   contextState.resourceStates.flushPendingUAVActions(contextState.graphicsCommandListBarrierBatch, device.currentEventPath().data(),
     device.validatesUserBarriers());
@@ -3614,16 +4026,21 @@ void DeviceContext::ExecutionContext::buildBottomAccelerationStructure(
   bottomLevelInputs.Flags = flags;
   if (update)
     bottomLevelInputs.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
-  bottomLevelInputs.NumDescs = geometry_descriptions.size();
-  bottomLevelInputs.pGeometryDescs = geometry_descriptions.data();
+#if _TARGET_SCARLETT
+  if (!ctxScarlett.updateBottomLevelInputs(batch_size, batch_index, bottomLevelInputs))
+#endif
+  {
+    bottomLevelInputs.NumDescs = geometry_descriptions.size();
+    bottomLevelInputs.pGeometryDescs = geometry_descriptions.data();
+  }
 
   D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
   bottomLevelBuildDesc.Inputs = bottomLevelInputs;
-  bottomLevelBuildDesc.ScratchAccelerationStructureData = scratch.gpuPointer;
-  bottomLevelBuildDesc.DestAccelerationStructureData = dst->GetGPUVirtualAddress();
+  bottomLevelBuildDesc.ScratchAccelerationStructureData = scratch_buffer.gpuPointer;
+  bottomLevelBuildDesc.DestAccelerationStructureData = dst->gpuAddress;
   if (src)
   {
-    bottomLevelBuildDesc.SourceAccelerationStructureData = src->GetGPUVirtualAddress();
+    bottomLevelBuildDesc.SourceAccelerationStructureData = src->gpuAddress;
   }
   else if (update)
   {
@@ -3633,22 +4050,38 @@ void DeviceContext::ExecutionContext::buildBottomAccelerationStructure(
   // TODO: not 100% sure if needed or wanted, have to see
   disablePredication();
 
-  contextState.cmdBuffer.buildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
+  int postbuildCount = 0;
+  D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC postBuildInfo;
 
-  // Always flush scratch buffer, probably okay without it, but not correct.
-  contextState.graphicsCommandListBarrierBatch.flushUAV(scratch.buffer);
-  // Ensure writes are completed before we can reference it in TLAS build
-  contextState.graphicsCommandListBarrierBatch.flushUAV(dst);
+  if (flags & D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_COMPACTION)
+  {
+    postBuildInfo.DestBuffer = compacted_size.gpuPointer;
+    postBuildInfo.InfoType = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_COMPACTED_SIZE;
+    postbuildCount = 1;
+  }
+
+#if _TARGET_SCARLETT
+  if (!ctxScarlett.buildBottomRaytracingAccelerationStructure(batch_size, batch_index, bottomLevelBuildDesc, postbuildCount,
+        postBuildInfo, contextState))
+#endif
+    contextState.cmdBuffer.buildRaytracingAccelerationStructure(&bottomLevelBuildDesc, postbuildCount, &postBuildInfo);
 }
 
-void DeviceContext::ExecutionContext::buildTopAccelerationStructure(uint32_t instance_count,
+void DeviceContext::ExecutionContext::buildTopAccelerationStructure(uint32_t batch_size, uint32_t batch_index, uint32_t instance_count,
   BufferResourceReferenceAndAddress instance_buffer, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags, bool update,
-  ID3D12Resource *dst, ID3D12Resource *src, BufferResourceReferenceAndAddress scratch)
+  RaytraceAccelerationStructure *dst, RaytraceAccelerationStructure *src, BufferResourceReferenceAndAddress scratch)
 {
+  G_UNUSED(batch_size);
+  G_UNUSED(batch_index);
+
   if (!readyCommandList())
   {
     return;
   }
+
+#if _TARGET_SCARLETT
+  ctxScarlett.buildTopAccelerationStructure(batch_size, batch_index);
+#endif
 
   contextState.resourceStates.useBufferAsRTASBuildSource(contextState.graphicsCommandListBarrierBatch, instance_buffer);
   contextState.bufferAccessTracker.updateLastFrameAccess(instance_buffer.resourceId);
@@ -3656,13 +4089,15 @@ void DeviceContext::ExecutionContext::buildTopAccelerationStructure(uint32_t ins
 
   if (src)
   {
-    contextState.resourceStates.useRTASAsUpdateSource(contextState.graphicsCommandListBarrierBatch, src);
+    contextState.resourceStates.useRTASAsUpdateSource(contextState.graphicsCommandListBarrierBatch, src->asHeapResource);
   }
 
-  contextState.resourceStates.useRTASAsBuildTarget(contextState.graphicsCommandListBarrierBatch, dst);
+  contextState.resourceStates.useRTASAsBuildTarget(contextState.graphicsCommandListBarrierBatch, dst->asHeapResource);
 
   contextState.resourceStates.flushPendingUAVActions(contextState.graphicsCommandListBarrierBatch, device.currentEventPath().data(),
     device.validatesUserBarriers());
+
+  contextState.resourceActivationTracker.flushAll(contextState.graphicsCommandListBarrierBatch);
 
   contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
 
@@ -3677,26 +4112,54 @@ void DeviceContext::ExecutionContext::buildTopAccelerationStructure(uint32_t ins
 
   D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc = {};
   topLevelBuildDesc.Inputs = topLevelInputs;
-  topLevelBuildDesc.DestAccelerationStructureData = dst->GetGPUVirtualAddress();
+  topLevelBuildDesc.DestAccelerationStructureData = dst->gpuAddress;
   topLevelBuildDesc.ScratchAccelerationStructureData = scratch.gpuPointer;
   if (src)
   {
-    topLevelBuildDesc.SourceAccelerationStructureData = src->GetGPUVirtualAddress();
+    topLevelBuildDesc.SourceAccelerationStructureData = src->gpuAddress;
   }
   else if (update)
   {
-    topLevelBuildDesc.SourceAccelerationStructureData = dst->GetGPUVirtualAddress();
+    topLevelBuildDesc.SourceAccelerationStructureData = dst->gpuAddress;
   }
 
   // TODO: not 100% sure if needed or wanted, have to see
   disablePredication();
 
-  contextState.cmdBuffer.buildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
+#if _TARGET_SCARLETT
+  if (!ctxScarlett.buildTopRaytracingAccelerationStructure(batch_size, batch_index, topLevelBuildDesc, contextState,
+        dst->asHeapResource, scratch.buffer))
+#endif
+  {
+    contextState.cmdBuffer.buildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
 
-  // Always flush scratch buffer, probably okay without it, but not correct.
-  contextState.graphicsCommandListBarrierBatch.flushUAV(scratch.buffer);
-  // Ensure writes are completed before we can use it as AS in shaders
-  contextState.graphicsCommandListBarrierBatch.flushUAV(dst);
+    // Always flush scratch buffer, probably okay without it, but not correct.
+    contextState.graphicsCommandListBarrierBatch.flushUAV(scratch.buffer);
+    // Ensure writes are completed before we can use it as AS in shaders
+    contextState.graphicsCommandListBarrierBatch.flushUAV(dst->asHeapResource);
+  }
+}
+
+void DeviceContext::ExecutionContext::copyRaytracingAccelerationStructure(RaytraceAccelerationStructure *dst,
+  RaytraceAccelerationStructure *src, bool compact)
+{
+  if (!readyCommandList())
+  {
+    return;
+  }
+
+  contextState.resourceStates.useRTASAsUpdateSource(contextState.graphicsCommandListBarrierBatch, src->asHeapResource);
+  contextState.resourceStates.useRTASAsBuildTarget(contextState.graphicsCommandListBarrierBatch, dst->asHeapResource);
+
+  contextState.resourceStates.flushPendingUAVActions(contextState.graphicsCommandListBarrierBatch, device.currentEventPath().data(),
+    device.validatesUserBarriers());
+
+  contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
+
+  contextState.cmdBuffer.copyRaytracingAccelerationStructure(dst->gpuAddress, src->gpuAddress,
+    compact ? D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_COMPACT : D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_CLONE);
+
+  contextState.graphicsCommandListBarrierBatch.flushUAV(dst->asHeapResource);
 }
 
 void DeviceContext::ExecutionContext::traceRays(BufferResourceReferenceAndRange ray_gen_table,
@@ -3756,8 +4219,23 @@ void DeviceContext::ExecutionContext::traceRays(BufferResourceReferenceAndRange 
 }
 #endif
 
-void DeviceContext::ExecutionContext::present(uint64_t progress, Drv3dTimings *timing_data, int64_t kickoff_stamp,
-  uint32_t latency_frame, OutputMode mode)
+void DeviceContext::ExecutionContext::continuePipelineSetCompilation() const
+{
+  // We are using slightly lower value than the target
+  static constexpr uint32_t MAX_FRAME_WITH_COMPILATION_TIME_USEC = 30 * 1000;
+  static constexpr uint64_t MIN_PIPELINES_TO_COMPILE_PER_FRAME = 10;
+  uint64_t called = 0;
+  auto cancellationPredicate = [this, &called]() {
+    if (called++ < MIN_PIPELINES_TO_COMPILE_PER_FRAME)
+      return false;
+    return get_time_usec(self.back.previousPresentEndTicks) >= MAX_FRAME_WITH_COMPILATION_TIME_USEC;
+  };
+  device.pipeMan.continuePipelineSetCompilation(device.getDevice(), device.pipelineCache, contextState.framebufferLayouts,
+    cancellationPredicate);
+}
+
+void DeviceContext::ExecutionContext::finishFrame(uint64_t progress, Drv3dTimings *timing_data, int64_t kickoff_stamp,
+  uint32_t latency_frame, uint32_t front_frame, bool present_on_swapchain)
 {
 #if DX12_RECORD_TIMING_DATA
   auto now = ref_time_ticks();
@@ -3774,7 +4252,7 @@ void DeviceContext::ExecutionContext::present(uint64_t progress, Drv3dTimings *t
 
   {
     SCOPED_LATENCY_MARKER(latency_frame, RENDERSUBMIT_START, RENDERSUBMIT_END);
-    auto swapDur = flush(true, progress, mode);
+    auto swapDur = flush(progress, true, present_on_swapchain);
 #if DX12_RECORD_TIMING_DATA
     timing_data->presentDuration = swapDur;
 #else
@@ -3782,23 +4260,16 @@ void DeviceContext::ExecutionContext::present(uint64_t progress, Drv3dTimings *t
 #endif
   }
 
-  /*  uint32_t deltaAlloc = device->memory.getAllocationCounter() - device->lastAllocationCount;
-    uint32_t deltaFree = device->memory.getFreeCounter() - device->lastFreeCount;
-
-    if ((deltaAlloc + deltaFree) > 10)
-    {
-      device->memory.printStats();
-      logdbg("Allocation count delta: %u", deltaAlloc);
-      logdbg("Free count delta: %u", deltaFree);
-      device->lastAllocationCount += deltaAlloc;
-      device->lastFreeCount += deltaFree;
-    }*/
-
-  self.makeReadyForFrame(mode);
+  self.makeReadyForFrame(front_frame + 1, present_on_swapchain);
 #if DAGOR_DBGLEVEL > 0
   self.initNextFrameLog();
 #endif
   device.pipeMan.evictDecompressionCache();
+  continuePipelineSetCompilation();
+  self.back.previousPresentEndTicks = ref_time_ticks();
+
+  self.finishedFrameIndex.store(front_frame);
+  notify_one(self.finishedFrameIndex);
 }
 
 void DeviceContext::ExecutionContext::dispatch(uint32_t x, uint32_t y, uint32_t z)
@@ -3992,7 +4463,7 @@ void DeviceContext::ExecutionContext::clearBufferUint(BufferResourceReferenceAnd
 }
 
 void DeviceContext::ExecutionContext::clearDepthStencilImage(Image *image, ImageViewState view,
-  D3D12_CPU_DESCRIPTOR_HANDLE view_descriptor, const ClearDepthStencilValue &value)
+  D3D12_CPU_DESCRIPTOR_HANDLE view_descriptor, const ClearDepthStencilValue &value, const eastl::optional<D3D12_RECT> &rect)
 {
   if (!readyCommandList())
   {
@@ -4007,13 +4478,13 @@ void DeviceContext::ExecutionContext::clearDepthStencilImage(Image *image, Image
   contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
 
   contextState.cmdBuffer.clearDepthStencilView(view_descriptor, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, value.depth,
-    value.stencil, 0, nullptr);
+    value.stencil, rect ? 1 : 0, rect ? &(*rect) : nullptr);
 
   dirtyTextureState(image);
 }
 
 void DeviceContext::ExecutionContext::clearColorImage(Image *image, ImageViewState view, D3D12_CPU_DESCRIPTOR_HANDLE view_descriptor,
-  const ClearColorValue &value)
+  const ClearColorValue &value, const eastl::optional<D3D12_RECT> &rect)
 {
   if (!readyCommandList())
   {
@@ -4027,7 +4498,7 @@ void DeviceContext::ExecutionContext::clearColorImage(Image *image, ImageViewSta
 
   contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
 
-  contextState.cmdBuffer.clearRenderTargetView(view_descriptor, value.float32, 0, nullptr);
+  contextState.cmdBuffer.clearRenderTargetView(view_descriptor, value.float32, rect ? 1 : 0, rect ? &(*rect) : nullptr);
 
   dirtyTextureState(image);
 }
@@ -4400,7 +4871,7 @@ void DeviceContext::ExecutionContext::setComputePipeline(ProgramID program)
 
     contextState.cmdBuffer.bindComputePipeline(&newPipeline->getSignature(),
       newPipeline->loadAndGetHandle(device.device.get(), device.pipelineCache,
-        get_recover_behvior_from_cfg(device.config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
+        get_recover_behavior_from_cfg(device.config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
           device.config.features.test(DeviceFeaturesConfig::ASSERT_ON_PIPELINE_COMPILATION_ERROR)),
         device.shouldNameObjects(), device.pipeMan));
   }
@@ -4601,10 +5072,10 @@ void DeviceContext::ExecutionContext::flushGraphicsResourceBindings()
     bindlessCount = contextState.bindlessSetManager.getResourceDescriptorCount();
   }
 
-  bool needsFullFlush = frame.resourceViewHeaps.reserveSpace(devicePtr, totalBRegisterDescriptorCount, totalTRegisterDescriptorCount,
-    totalURegisterDescriptorCount, bindlessCount, bindlessRev);
+  auto reservationResult = frame.resourceViewHeaps.reserveSpace(devicePtr, totalBRegisterDescriptorCount,
+    totalTRegisterDescriptorCount, totalURegisterDescriptorCount, bindlessCount, bindlessRev);
 
-  if (needsFullFlush)
+  if (DescriptorReservationResult::NewHeap == reservationResult)
   {
     vsStageState.onResourceDescriptorHeapChanged();
     psStageState.onResourceDescriptorHeapChanged();
@@ -4633,7 +5104,7 @@ void DeviceContext::ExecutionContext::flushGraphicsResourceBindings()
     contextState.graphicsState.basePipeline->getVertexShaderCombinedTRegisterTypes());
 
   vsStageState.pushUnorderedViews(devicePtr, frame.resourceViewHeaps, device.nullResourceTable, signature.vsCombinedURegisterMask,
-    contextState.graphicsState.basePipeline->getVertexShaderCombinedTRegisterTypes());
+    contextState.graphicsState.basePipeline->getVertexShaderCombinedURegisterTypes());
 
   auto constBufferMode = signature.def.psLayout.usesConstBufferRootDescriptors(signature.def.vsLayout, signature.def.gsLayout,
                            signature.def.hsLayout, signature.def.dsLayout)
@@ -4643,10 +5114,10 @@ void DeviceContext::ExecutionContext::flushGraphicsResourceBindings()
   auto nullConstBufferView = device.getNullConstBufferView();
 
   vsStageState.pushConstantBuffers(devicePtr, frame.resourceViewHeaps, self.back.constBufferStreamDescriptors, nullConstBufferView,
-    signature.vsCombinedBRegisterMask, contextState.cmdBuffer, STAGE_VS, constBufferMode);
+    signature.vsCombinedBRegisterMask, contextState.cmdBuffer, STAGE_VS, constBufferMode, frame.frameIndex);
 
   psStageState.pushConstantBuffers(devicePtr, frame.resourceViewHeaps, self.back.constBufferStreamDescriptors, nullConstBufferView,
-    psHeader.resourceUsageTable.bRegisterUseMask, contextState.cmdBuffer, STAGE_PS, constBufferMode);
+    psHeader.resourceUsageTable.bRegisterUseMask, contextState.cmdBuffer, STAGE_PS, constBufferMode, frame.frameIndex);
 
   for (auto s : {STAGE_VS, STAGE_PS})
   {
@@ -4713,22 +5184,13 @@ void DeviceContext::ExecutionContext::flushGraphicsMeshState()
     {
       auto &staticRenderState = device.pipeMan.getStaticRenderState(contextState.graphicsState.staticRenderStateIdent);
 
-      if (dgs_get_settings()->getBlockByNameEx("dx12")->getBool("validateInGameSpikes", false))
-      {
-        logerr("Pipeline creation during game! Patch for cache will be updated. Share game/cache/dx12_cache.blk file with graphics "
-               "programmers.");
-
+      if (device.pipeMan.hasFeatureSetInCache)
         device.pipeMan.needToUpdateCache = true;
-
-        contextState.graphicsState.pipeline->errorPrintMeshBlkString(*contextState.graphicsState.basePipeline,
-          contextState.graphicsState.statusBits.test(GraphicsState::USE_WIREFRAME), staticRenderState,
-          contextState.graphicsState.framebufferState.framebufferLayout);
-      }
 
       contextState.graphicsState.pipeline->loadMesh(device.device.get(), device.pipeMan, *contextState.graphicsState.basePipeline,
         device.pipelineCache, contextState.graphicsState.statusBits.test(GraphicsState::USE_WIREFRAME), staticRenderState,
         contextState.graphicsState.framebufferState.framebufferLayout,
-        get_recover_behvior_from_cfg(device.config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
+        get_recover_behavior_from_cfg(device.config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
           device.config.features.test(DeviceFeaturesConfig::ASSERT_ON_PIPELINE_COMPILATION_ERROR)),
         device.shouldNameObjects(), device.pipeMan);
     }
@@ -4757,7 +5219,7 @@ void DeviceContext::ExecutionContext::flushGraphicsState(D3D12_PRIMITIVE_TOPOLOG
   // for hull shader it overrides the final topology type
   if (contextState.graphicsState.basePipeline->hasTessellationStage())
   {
-    top = pimitive_type_to_primtive_topology(contextState.graphicsState.basePipeline->getHullInputPrimitiveType(), top);
+    top = primitive_type_to_primtive_topology(contextState.graphicsState.basePipeline->getHullInputPrimitiveType(), top);
   }
 
   auto topType = topology_to_topology_type(top);
@@ -4777,22 +5239,13 @@ void DeviceContext::ExecutionContext::flushGraphicsState(D3D12_PRIMITIVE_TOPOLOG
       auto &inputLayout = device.pipeMan.getInputLayout(internlInputLayout);
       auto &staticRenderState = device.pipeMan.getStaticRenderState(contextState.graphicsState.staticRenderStateIdent);
 
-      if (dgs_get_settings()->getBlockByNameEx("dx12")->getBool("validateInGameSpikes", false))
-      {
-        logerr("Pipeline creation during game! Patch for cache will be updated. Share game/cache/dx12_cache.blk file with graphics "
-               "programmers.");
-
+      if (device.pipeMan.hasFeatureSetInCache)
         device.pipeMan.needToUpdateCache = true;
-
-        contextState.graphicsState.pipeline->errorPrintBlkString(*contextState.graphicsState.basePipeline, inputLayout,
-          contextState.graphicsState.statusBits.test(GraphicsState::USE_WIREFRAME), staticRenderState,
-          contextState.graphicsState.framebufferState.framebufferLayout, topType);
-      }
 
       contextState.graphicsState.pipeline->load(device.device.get(), device.pipeMan, *contextState.graphicsState.basePipeline,
         device.pipelineCache, inputLayout, contextState.graphicsState.statusBits.test(GraphicsState::USE_WIREFRAME), staticRenderState,
         contextState.graphicsState.framebufferState.framebufferLayout, topType,
-        get_recover_behvior_from_cfg(device.config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
+        get_recover_behavior_from_cfg(device.config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
           device.config.features.test(DeviceFeaturesConfig::ASSERT_ON_PIPELINE_COMPILATION_ERROR)),
         device.shouldNameObjects(), device.pipeMan);
     }
@@ -4873,8 +5326,11 @@ void DeviceContext::ExecutionContext::flushVertexBuffers()
     contextState.cmdBuffer.iaSetVertexBuffers(first, count, &views[first]);
   }
 
+  const uint32_t vertexBufferStateBits =
+    (contextState.graphicsState.statusBits.to_uint32() & vertexBufferStateDirtyMask) >> GraphicsState::VERTEX_BUFFER_STATE_0_DIRTY;
+
   // check buffer state and reset status bits
-  for (auto i : LsbVisitor{vertexBufferBits})
+  for (auto i : LsbVisitor{vertexBufferStateBits})
   {
     auto &vertexBuffer = contextState.graphicsState.vertexBuffers[i];
     if (!vertexBuffer.resourceId)
@@ -4991,15 +5447,6 @@ void DeviceContext::ExecutionContext::clearUAVTextureF(Image *image, ImageViewSt
   dirtyTextureState(image);
 }
 
-void DeviceContext::ExecutionContext::setGamma(float power)
-{
-#if DX12_HAS_GAMMA_CONTROL
-  self.back.swapchain.setGamma(power);
-#else
-  G_UNUSED(power);
-#endif
-}
-
 void DeviceContext::ExecutionContext::setComputeRootConstant(uint32_t offset, uint32_t value)
 {
   contextState.cmdBuffer.updateComputeRootConstant(offset, value);
@@ -5063,10 +5510,10 @@ void DeviceContext::ExecutionContext::flushComputeState()
   uint32_t bindlessCount = contextState.bindlessSetManager.getResourceDescriptorCount();
   uint32_t bindlessRev = contextState.bindlessSetManager.getResourceDescriptorRevision();
 
-  bool needsFullFlush = frame.resourceViewHeaps.reserveSpace(device.device.get(), bRegisterCount, tRegisterCount, uRegisterCount,
+  auto reservationResult = frame.resourceViewHeaps.reserveSpace(device.device.get(), bRegisterCount, tRegisterCount, uRegisterCount,
     bindlessCount, bindlessRev);
 
-  if (needsFullFlush)
+  if (DescriptorReservationResult::NewHeap == reservationResult)
   {
     csStageState.onResourceDescriptorHeapChanged();
   }
@@ -5091,7 +5538,8 @@ void DeviceContext::ExecutionContext::flushComputeState()
   auto nullConstBufferView = device.getNullConstBufferView();
 
   csStageState.pushConstantBuffers(device.device.get(), frame.resourceViewHeaps, self.back.constBufferStreamDescriptors,
-    nullConstBufferView, pipelineHeader.resourceUsageTable.bRegisterUseMask, contextState.cmdBuffer, STAGE_CS, constBufferMode);
+    nullConstBufferView, pipelineHeader.resourceUsageTable.bRegisterUseMask, contextState.cmdBuffer, STAGE_CS, constBufferMode,
+    frame.frameIndex);
 
   csStageState.migrateAllSamplers(device.device.get(), frame.samplerHeaps);
 
@@ -5210,14 +5658,14 @@ void DeviceContext::ExecutionContext::bufferReadBack(BufferResourceReferenceAndR
     wchar_t wcbuf[MAX_OBJECT_NAME_LENGTH];
     char cbuf[MAX_OBJECT_NAME_LENGTH];
     UINT cnt = sizeof(wcbuf);
-    logerr("DX12: Read Back Copy out of range (skipping):");
+    D3D_ERROR("DX12: Read Back Copy out of range (skipping):");
     cpu_memory.buffer->GetPrivateData(WKPDID_D3DDebugObjectNameW, &cnt, wcbuf);
     eastl::copy(wcbuf, wcbuf + cnt / sizeof(wchar_t), cbuf);
-    logerr("DX12: Dest '%s' Size %u, copy range %u - %u", cbuf, infoD.Width, dstOffset, dstOffset + buffer.size);
+    D3D_ERROR("DX12: Dest '%s' Size %u, copy range %u - %u", cbuf, infoD.Width, dstOffset, dstOffset + buffer.size);
 
     buffer.buffer->GetPrivateData(WKPDID_D3DDebugObjectNameW, &cnt, wcbuf);
     eastl::copy(wcbuf, wcbuf + cnt / sizeof(wchar_t), cbuf);
-    logerr("DX12: Source '%s' Size %u, copy range %u - %u", cbuf, infoS.Width, srcOffset, srcOffset + buffer.size);
+    D3D_ERROR("DX12: Source '%s' Size %u, copy range %u - %u", cbuf, infoS.Width, srcOffset, srcOffset + buffer.size);
     return;
   }
 #endif
@@ -5255,7 +5703,95 @@ void DeviceContext::ExecutionContext::registerInputLayout(InputLayoutID ident, c
   device.pipeMan.registerInputLayout(ident, layout);
 }
 
-void DeviceContext::ExecutionContext::createDlssFeature(int dlss_quality, Extent2D output_resolution, bool stereo_render)
+void DeviceContext::ExecutionContext::createDlssFeature(bool stereo_render, int output_width, int output_height)
+{
+  G_UNUSED(stereo_render);
+
+  if (!readyCommandList())
+  {
+    return;
+  }
+
+  // note sure if we have to, but better do it and don't worry
+  disablePredication();
+
+  self.streamlineAdapter->createDlssFeature(0, {output_width, output_height}, static_cast<void *>(contextState.cmdBuffer.getHandle()));
+  if (stereo_render)
+    self.streamlineAdapter->createDlssFeature(1, {output_width, output_height},
+      static_cast<void *>(contextState.cmdBuffer.getHandle()));
+
+  if (self.streamlineAdapter->isDlssGSupported() == nv::SupportState::Supported)
+    self.streamlineAdapter->createDlssGFeature(0, static_cast<void *>(contextState.cmdBuffer.getHandle()));
+}
+
+void DeviceContext::ExecutionContext::releaseDlssFeature(bool stereo_render)
+{
+  self.streamlineAdapter->releaseDlssFeature(0);
+  if (stereo_render)
+    self.streamlineAdapter->releaseDlssFeature(1);
+  if (self.streamlineAdapter->isDlssGSupported() == nv::SupportState::Supported)
+    self.streamlineAdapter->releaseDlssGFeature(0);
+}
+
+void DeviceContext::ExecutionContext::prepareExecuteAA(std::initializer_list<Image *> inputs, std::initializer_list<Image *> outputs)
+{
+  // not sure if we have to, but better do it and don't worry
+  disablePredication();
+
+  for (Image *image : inputs)
+  {
+    if (image)
+    {
+      contextState.resourceStates.useTextureAsDLSSInput(contextState.graphicsCommandListBarrierBatch,
+        contextState.graphicsCommandListSplitBarrierTracker, image);
+      dirtyTextureState(image);
+    }
+  }
+
+  for (Image *image : outputs)
+  {
+    if (image)
+    {
+      contextState.resourceStates.useTextureAsDLSSOutput(contextState.graphicsCommandListBarrierBatch,
+        contextState.graphicsCommandListSplitBarrierTracker, image);
+      dirtyTextureState(image);
+    }
+  }
+
+  contextState.resourceStates.flushPendingUAVActions(contextState.graphicsCommandListBarrierBatch, device.currentEventPath().data(),
+    device.validatesUserBarriers());
+
+  contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
+}
+
+void DeviceContext::ExecutionContext::executeDlss(const nv::DlssParams<Image> &dlss_params, int view_index, uint32_t frame_id)
+{
+  if (!readyCommandList())
+  {
+    return;
+  }
+
+  prepareExecuteAA({dlss_params.inColor, dlss_params.inDepth, dlss_params.inMotionVectors, dlss_params.inExposure},
+    {dlss_params.outColor});
+
+  auto getState = [&](Image *i) { return i ? contextState.resourceStates.currentTextureState(i, SubresourceIndex::make(0)) : 0; };
+
+  auto convertedParams =
+    nv::convertDlssParams(dlss_params, [](Image *i) { return i ? static_cast<void *>(i->getHandle()) : nullptr; });
+
+  convertedParams.inColorState = getState(dlss_params.inColor);
+  convertedParams.inDepthState = getState(dlss_params.inDepth);
+  convertedParams.inExposureState = getState(dlss_params.inExposure);
+  convertedParams.inMotionVectorsState = getState(dlss_params.inMotionVectors);
+  convertedParams.outColorState = getState(dlss_params.outColor);
+
+  self.streamlineAdapter->evaluateDlss(frame_id, view_index, convertedParams, contextState.cmdBuffer.getHandle());
+
+  // DLSS alters command list state so we need to reset everything afterwards to keep consistency
+  contextState.cmdBuffer.dirtyAll();
+}
+
+void DeviceContext::ExecutionContext::executeDlssG(const nv::DlssGParams<Image> &dlss_g_params, int view_index)
 {
   if (!readyCommandList())
   {
@@ -5265,53 +5801,23 @@ void DeviceContext::ExecutionContext::createDlssFeature(int dlss_quality, Extent
   // note sure if we have to, but better do it and don't worry
   disablePredication();
 
-  self.ngxWrapper.createOptimalDlssFeature(static_cast<void *>(contextState.cmdBuffer.getHandle()), output_resolution.width,
-    output_resolution.height, dlss_quality, stereo_render);
-}
+  prepareExecuteAA({dlss_g_params.inHUDless, dlss_g_params.inUI, dlss_g_params.inDepth, dlss_g_params.inMotionVectors}, {});
 
-void DeviceContext::ExecutionContext::releaseDlssFeature() { self.ngxWrapper.releaseDlssFeature(); }
+  auto convertedParams =
+    nv::convertDlssGParams(dlss_g_params, [](Image *i) { return i ? static_cast<void *>(i->getHandle()) : nullptr; });
 
-void DeviceContext::ExecutionContext::prepareExecuteAA(Image *inColor, Image *inDepth, Image *inMotionVectors, Image *outColor)
-{
-  // not sure if we have to, but better do it and don't worry
-  disablePredication();
+  auto getState = [&](Image *i) { return i ? contextState.resourceStates.currentTextureState(i, SubresourceIndex::make(0)) : 0; };
 
-  for (Image *image : {inColor, inDepth, inMotionVectors})
-  {
-    contextState.resourceStates.useTextureAsDLSSInput(contextState.graphicsCommandListBarrierBatch,
-      contextState.graphicsCommandListSplitBarrierTracker, image);
-    dirtyTextureState(image);
-  }
+  convertedParams.inHUDlessState = getState(dlss_g_params.inHUDless);
+  convertedParams.inUIState = getState(dlss_g_params.inUI);
+  convertedParams.inDepthState = getState(dlss_g_params.inDepth);
+  convertedParams.inMotionVectorsState = getState(dlss_g_params.inMotionVectors);
 
-  contextState.resourceStates.useTextureAsDLSSOutput(contextState.graphicsCommandListBarrierBatch,
-    contextState.graphicsCommandListSplitBarrierTracker, outColor);
-  dirtyTextureState(outColor);
-
-  contextState.resourceStates.flushPendingUAVActions(contextState.graphicsCommandListBarrierBatch, device.currentEventPath().data(),
-    device.validatesUserBarriers());
-
-  contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
-}
-
-void DeviceContext::ExecutionContext::executeDlss(const DlssParamsDx12 &dlss_params, int view_index)
-{
-  if (!readyCommandList())
-  {
-    return;
-  }
-
-  prepareExecuteAA(dlss_params.inColor, dlss_params.inDepth, dlss_params.inMotionVectors, dlss_params.outColor);
-
-  // DLSS programming guide section 3.4:
-  // "After the evaluate call, DLSS accesses and processes the buffers and may change their state
-  // but always transitions buffers back to these known states".
-  self.ngxWrapper.evaluateDlss(static_cast<void *>(contextState.cmdBuffer.getHandle()), static_cast<const void *>(&dlss_params),
-    view_index);
+  self.streamlineAdapter->evaluateDlssG(view_index, convertedParams, contextState.cmdBuffer.getHandle());
 
   // DLSS alters command list state so we need to reset everything afterwards to keep consistency
   contextState.cmdBuffer.dirtyAll();
 }
-
 
 void DeviceContext::ExecutionContext::executeXess(const XessParamsDx12 &params)
 {
@@ -5320,7 +5826,7 @@ void DeviceContext::ExecutionContext::executeXess(const XessParamsDx12 &params)
     return;
   }
 
-  prepareExecuteAA(params.inColor, params.inDepth, params.inMotionVectors, params.outColor);
+  prepareExecuteAA({params.inColor, params.inDepth, params.inMotionVectors}, {params.outColor});
 
   self.xessWrapper.evaluateXess(static_cast<void *>(contextState.cmdBuffer.getHandle()), static_cast<const void *>(&params));
 
@@ -5334,8 +5840,45 @@ void DeviceContext::ExecutionContext::executeFSR2(const Fsr2ParamsDx12 &params)
     return;
   }
 
-  prepareExecuteAA(params.inColor, params.inDepth, params.inMotionVectors, params.outColor);
+  prepareExecuteAA({params.inColor, params.inDepth, params.inMotionVectors}, {params.outColor});
   self.fsr2Wrapper.evaluateFsr2(static_cast<void *>(contextState.cmdBuffer.getHandle()), static_cast<const void *>(&params));
+  contextState.cmdBuffer.dirtyAll();
+}
+
+void DeviceContext::ExecutionContext::executeFSR(amd::FSR *fsr, const FSRUpscalingArgs &params)
+{
+  if (!readyCommandList())
+  {
+    return;
+  }
+
+  prepareExecuteAA(
+    {
+      params.colorTexture,
+      params.depthTexture,
+      params.motionVectors,
+      params.exposureTexture,
+      params.reactiveTexture,
+      params.transparencyAndCompositionTexture,
+    },
+    {});
+
+  auto cast_to_resource = [](Image *src) {
+    if (src)
+      return src->getHandle();
+    return (ID3D12Resource *)nullptr;
+  };
+
+  amd::FSR::UpscalingPlatformArgs args = params;
+  args.colorTexture = cast_to_resource(params.colorTexture);
+  args.depthTexture = cast_to_resource(params.depthTexture);
+  args.motionVectors = cast_to_resource(params.motionVectors);
+  args.exposureTexture = cast_to_resource(params.exposureTexture);
+  args.outputTexture = cast_to_resource(params.outputTexture);
+  args.reactiveTexture = cast_to_resource(params.reactiveTexture);
+  args.transparencyAndCompositionTexture = cast_to_resource(params.transparencyAndCompositionTexture);
+
+  fsr->doApplyUpscaling(args, contextState.cmdBuffer.getHandle());
   contextState.cmdBuffer.dirtyAll();
 }
 
@@ -5405,14 +5948,14 @@ void DeviceContext::ExecutionContext::hostToDeviceMemoryCopy(BufferResourceRefer
       wchar_t wcbuf[MAX_OBJECT_NAME_LENGTH];
       char cbuf[MAX_OBJECT_NAME_LENGTH];
       UINT cnt = sizeof(wcbuf);
-      logerr("DX12: Upload Copy out of range (skipping):");
+      D3D_ERROR("DX12: Upload Copy out of range (skipping):");
       target.buffer->GetPrivateData(WKPDID_D3DDebugObjectNameW, &cnt, wcbuf);
       eastl::copy(wcbuf, wcbuf + cnt / sizeof(wchar_t), cbuf);
-      logerr("DX12: Dest '%s' Size %u, copy range %u - %u", cbuf, infoD.Width, dstOffset, dstOffset + target.size);
+      D3D_ERROR("DX12: Dest '%s' Size %u, copy range %u - %u", cbuf, infoD.Width, dstOffset, dstOffset + target.size);
 
       source.buffer->GetPrivateData(WKPDID_D3DDebugObjectNameW, &cnt, wcbuf);
       eastl::copy(wcbuf, wcbuf + cnt / sizeof(wchar_t), cbuf);
-      logerr("DX12: Source '%s' Size %u, copy range %u - %u", cbuf, infoS.Width, srcOffset, srcOffset + target.size);
+      D3D_ERROR("DX12: Source '%s' Size %u, copy range %u - %u", cbuf, infoS.Width, srcOffset, srcOffset + target.size);
       return;
     }
 #endif
@@ -5597,7 +6140,7 @@ void DeviceContext::ExecutionContext::bufferBarrier(BufferResourceReference buff
   }
 #endif
 
-  if (RB_NONE != (RB_FLUSH_UAV & barrier))
+  if (RB_NONE != ((RB_FLUSH_UAV | RB_FLUSH_RAYTRACE_ACCELERATION_BUILD_SCRATCH_USE) & barrier))
   {
     if (!buffer.buffer)
     {
@@ -5670,7 +6213,7 @@ void DeviceContext::ExecutionContext::textureBarrier(Image *tex, SubresourceRang
     {
       if (!tex)
       {
-        logerr("DX12: RB_ALIAS_TO_AND_DISCARD used with null resource!");
+        D3D_ERROR("DX12: RB_ALIAS_TO_AND_DISCARD used with null resource!");
         return;
       }
 
@@ -5744,6 +6287,13 @@ void DeviceContext::ExecutionContext::textureBarrier(Image *tex, SubresourceRang
   }
 }
 
+#if D3D_HAS_RAY_TRACING
+void DeviceContext::ExecutionContext::asBarrier(RaytraceAccelerationStructure *as, GpuPipeline)
+{
+  contextState.graphicsCommandListBarrierBatch.flushUAV(as->asHeapResource);
+}
+#endif
+
 #if _TARGET_XBOX
 void DeviceContext::ExecutionContext::enterSuspendState()
 {
@@ -5768,7 +6318,7 @@ void DeviceContext::ExecutionContext::writeDebugMessage(StringIndexRef::RangeTyp
   }
   else
   {
-    logerr(message.data());
+    D3D_ERROR(message.data());
   }
 }
 
@@ -5865,21 +6415,28 @@ void DeviceContext::ExecutionContext::applyPredicationBuffer()
 #if _TARGET_PC_WIN
 void DeviceContext::ExecutionContext::onDeviceError(HRESULT remove_reason)
 {
-#if DAGOR_DBGLEVEL > 0
-  self.dumpCommandLog();
-#endif
+  logdbg("DX12: onDeviceError has been triggered");
   contextState.debugOnDeviceRemoved(device, device.device.get(), remove_reason);
 
   contextState.activeReadBackCommandList.reset();
   contextState.activeEarlyUploadCommandList.reset();
   contextState.activeLateUploadCommandList.reset();
-  contextState.cmdBuffer.releaseBufferForSubmit();
+  contextState.cmdBuffer.prepareBufferForSubmit();
+  contextState.cmdBuffer.resetBuffer();
 
   // increment progress to break up link to previous frames
   ++self.back.frameProgress;
+  logdbg("DX12: onDeviceError finished");
 }
 
 void DeviceContext::ExecutionContext::onSwapchainSwapCompleted() { self.back.swapchain.onFrameBegin(device.device.get()); }
+
+void DeviceContext::ExecutionContext::commandFence(std::atomic_bool &signal)
+{
+  signal.store(true, std::memory_order_relaxed);
+  ::notify_all(signal);
+}
+
 #endif
 
 #if _TARGET_PC_WIN
@@ -5988,6 +6545,80 @@ void DeviceContext::ExecutionContext::twoPhaseCopyBuffer(BufferResourceReference
   dirtyBufferState(source.resourceId);
 }
 
+void DeviceContext::ExecutionContext::moveBuffer(BufferResourceReferenceAndOffset from, BufferResourceReferenceAndRange to)
+{
+  if (!readyCommandList())
+    return;
+
+#if !DX12_USE_AUTO_PROMOTE_AND_DECAY
+  contextState.resourceStates.resetBufferState(contextState.graphicsCommandListBarrierBatch, from.buffer, from.resourceId);
+#endif
+
+  contextState.resourceStates.useBufferAsCopySource(contextState.graphicsCommandListBarrierBatch, from);
+  contextState.resourceStates.useBufferAsCopyDestination(contextState.graphicsCommandListBarrierBatch, to);
+  contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
+
+  // moves are executed on the read back queue for now
+  if (readyReadBackCommandList())
+    contextState.activeReadBackCommandList.copyBufferRegion(to.buffer, to.offset, from.buffer, from.offset, to.size);
+  else
+    contextState.cmdBuffer.copyBuffer(to.buffer, to.offset, from.buffer, from.offset, to.size);
+}
+
+void DeviceContext::ExecutionContext::moveTexture(Image *from, Image *to)
+{
+  if (readyReadBackCommandList())
+  {
+    contextState.resourceStates.useTextureAsCopyDestinationForWholeCopyOnReadbackQueue(contextState.readbackBarrierBatch,
+      contextState.graphicsCommandListSplitBarrierTracker, to);
+    contextState.resourceStates.useTextureAsCopySourceForWholeCopyOnReadbackQueue(contextState.readbackBarrierBatch,
+      contextState.graphicsCommandListSplitBarrierTracker, from);
+
+    // Using multiple copyTextureRegion instead of copyResource is a workaround for an
+    // AMD RX 5700 XT issue, where copyResource for a heavy multidimensional resource may cause device hang.
+#if _TARGET_PC_WIN
+    if (d3d_get_gpu_cfg().primaryVendor == D3D_VENDOR_AMD)
+    {
+      for (const auto subres : from->getSubresourceRange())
+      {
+        D3D12_TEXTURE_COPY_LOCATION copySrc{};
+        copySrc.pResource = from->getHandle();
+        copySrc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        copySrc.SubresourceIndex = subres.index();
+
+        D3D12_TEXTURE_COPY_LOCATION copyDst{};
+        copyDst.pResource = to->getHandle();
+        copyDst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        copyDst.SubresourceIndex = subres.index();
+
+        contextState.activeReadBackCommandList.copyTextureRegion(&copyDst, 0, 0, 0, &copySrc, nullptr);
+      }
+    }
+    else
+#endif
+    {
+      contextState.activeReadBackCommandList.copyResource(to->getHandle(), from->getHandle());
+    }
+  }
+  else if (readyCommandList())
+  {
+    contextState.resourceStates.useTextureAsCopySourceForWholeCopy(contextState.graphicsCommandListBarrierBatch,
+      contextState.graphicsCommandListSplitBarrierTracker, from);
+    contextState.resourceStates.useTextureAsCopyDestinationForWholeCopy(contextState.graphicsCommandListBarrierBatch,
+      contextState.graphicsCommandListSplitBarrierTracker, to);
+
+    contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
+
+    contextState.resourceStates.finishUseTextureAsCopyDestinationForWholeCopy(contextState.graphicsCommandListBarrierBatch,
+      contextState.graphicsCommandListSplitBarrierTracker, to);
+
+    contextState.cmdBuffer.copyResource(to->getHandle(), from->getHandle());
+  }
+
+  dirtyTextureState(to);
+  dirtyTextureState(from);
+}
+
 void DeviceContext::ExecutionContext::transitionBuffer(BufferResourceReference buffer, D3D12_RESOURCE_STATES state)
 {
   if (!readyCommandList())
@@ -6045,8 +6676,8 @@ void DeviceContext::ExecutionContext::resizeImageMipMapTransfer(Image *src, Imag
     if (dstExtent != srcExtent)
     {
       src->getDebugName([src, srcLevel, dst, dstLevel, srcExtent, dstExtent](auto &name) {
-        logerr("DX12: resizeImageMipMapTransfer of <%s> from %p[%u] to %p[%u] mip-map level sizes "
-               "do not match %ux%ux%u vs %ux%ux%u, using min",
+        D3D_ERROR("DX12: resizeImageMipMapTransfer of <%s> from %p[%u] to %p[%u] mip-map level sizes "
+                  "do not match %ux%ux%u vs %ux%ux%u, using min",
           name, src, srcLevel.index(), dst, dstLevel.index(), srcExtent.width, srcExtent.height, srcExtent.depth, dstExtent.width,
           dstExtent.height, dstExtent.depth);
       });
@@ -6149,6 +6780,9 @@ void DeviceContext::ExecutionContext::dispatchMesh(uint32_t x, uint32_t y, uint3
     return;
   }
 
+  G_ASSERTF_RETURN(contextState.graphicsState.basePipeline->isMesh(), ,
+    "DX12: skipped dispatchMesh: graphics pipeline has no mesh shader");
+
   if (checkDrawCallHasOutput("Skipped: dispatchMesh"))
   {
     tranistionPredicationBuffer();
@@ -6170,6 +6804,9 @@ void DeviceContext::ExecutionContext::dispatchMeshIndirect(BufferResourceReferen
   {
     return;
   }
+
+  G_ASSERTF_RETURN(contextState.graphicsState.basePipeline->isMesh(), ,
+    "DX12: skipped dispatchMeshIndirect: graphics pipeline has no mesh shader");
 
   if (checkDrawCallHasOutput("Skipped: dispatchMeshIndirect"))
   {
@@ -6205,39 +6842,73 @@ void DeviceContext::ExecutionContext::dispatchMeshIndirect(BufferResourceReferen
 }
 #endif
 
-void DeviceContext::ExecutionContext::addShaderGroup(uint32_t group, ScriptedShadersBinDumpOwner *dump, ShaderID null_pixel_shader)
+void DeviceContext::ExecutionContext::addShaderGroup(uint32_t group, ScriptedShadersBinDumpOwner *dump, ShaderID null_pixel_shader,
+  StringIndexRef::RangeType name)
 {
   device.pipeMan.addShaderGroup(device.getDevice(), &device.pipelineCache, &contextState.framebufferLayouts, group, dump,
-    null_pixel_shader);
+    null_pixel_shader, {name.data(), name.size()});
 }
 
 void DeviceContext::ExecutionContext::removeShaderGroup(uint32_t group)
 {
   device.pipeMan.removeShaderGroup(
-    group, [this](ProgramID program) { contextState.getFrameData().deletedPrograms.push_back(program); },
+    contextState.framebufferLayouts, group,
+    [this](ProgramID program) { contextState.getFrameData().deletedPrograms.push_back(program); },
     [this](GraphicsProgramID program) { contextState.getFrameData().deletedGraphicPrograms.push_back(program); });
 }
 
 void DeviceContext::ExecutionContext::loadComputeShaderFromDump(ProgramID program)
 {
   device.pipeMan.loadComputeShaderFromDump(device.device.get(), device.pipelineCache, program,
-    get_recover_behvior_from_cfg(device.config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
+    get_recover_behavior_from_cfg(device.config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
       device.config.features.test(DeviceFeaturesConfig::ASSERT_ON_PIPELINE_COMPILATION_ERROR)),
     device.shouldNameObjects(), CSPreloaded::Yes);
 }
 
-void DeviceContext::ExecutionContext::compilePipelineSet(DynamicArray<InputLayoutID> &&input_layouts,
-  DynamicArray<StaticRenderStateID> &&static_render_states, DynamicArray<FramebufferLayout> &&framebuffer_layouts,
+bool DeviceContext::ExecutionContext::should_pipeline_set_compilation_spread_over_frames()
+{
+  return dgs_get_settings()->getBlockByNameEx("dx12")->getBool("spreadCompilationOverFrames", true);
+}
+
+void DeviceContext::ExecutionContext::compilePipelineSet(DynamicArray<InputLayoutIDWithHash> &&input_layouts,
+  DynamicArray<StaticRenderStateIDWithHash> &&static_render_states, DynamicArray<FramebufferLayoutWithHash> &&framebuffer_layouts,
   DynamicArray<GraphicsPipelinePreloadInfo> &&graphics_pipelines, DynamicArray<MeshPipelinePreloadInfo> &&mesh_pipelines,
   DynamicArray<ComputePipelinePreloadInfo> &&compute_pipelines)
 {
-  device.pipeMan.compilePipelineSet(device.getDevice(), device.pipelineCache, contextState.framebufferLayouts,
-    eastl::forward<DynamicArray<InputLayoutID>>(input_layouts),
-    eastl::forward<DynamicArray<StaticRenderStateID>>(static_render_states),
-    eastl::forward<DynamicArray<FramebufferLayout>>(framebuffer_layouts),
+  logdbg("DX12: compilePipelineSet started");
+  device.pipeMan.storePipelineSetForCompilation(eastl::forward<DynamicArray<InputLayoutIDWithHash>>(input_layouts),
+    eastl::forward<DynamicArray<StaticRenderStateIDWithHash>>(static_render_states),
+    eastl::forward<DynamicArray<FramebufferLayoutWithHash>>(framebuffer_layouts),
     eastl::forward<DynamicArray<GraphicsPipelinePreloadInfo>>(graphics_pipelines),
     eastl::forward<DynamicArray<MeshPipelinePreloadInfo>>(mesh_pipelines),
     eastl::forward<DynamicArray<ComputePipelinePreloadInfo>>(compute_pipelines));
+  if (!should_pipeline_set_compilation_spread_over_frames())
+  {
+    device.pipeMan.continuePipelineSetCompilation(device.getDevice(), device.pipelineCache, contextState.framebufferLayouts,
+      []() { return false; });
+  }
+}
+
+void DeviceContext::ExecutionContext::compilePipelineSet(DynamicArray<InputLayoutIDWithHash> &&input_layouts,
+  DynamicArray<StaticRenderStateIDWithHash> &&static_render_states, DynamicArray<FramebufferLayoutWithHash> &&framebuffer_layouts,
+  DynamicArray<cacheBlk::SignatureEntry> &&scripted_shader_dump_signature, DynamicArray<cacheBlk::ComputeClassUse> &&compute_pipelines,
+  DynamicArray<cacheBlk::GraphicsVariantGroup> &&graphics_pipelines,
+  DynamicArray<cacheBlk::GraphicsVariantGroup> &&graphics_with_null_override_pipelines, ShaderID null_pixel_shader)
+{
+  logdbg("DX12: compilePipelineSet2 started");
+  device.pipeMan.storePipelineSetForCompilation2(eastl::forward<DynamicArray<InputLayoutIDWithHash>>(input_layouts),
+    eastl::forward<DynamicArray<StaticRenderStateIDWithHash>>(static_render_states),
+    eastl::forward<DynamicArray<FramebufferLayoutWithHash>>(framebuffer_layouts),
+    eastl::forward<DynamicArray<cacheBlk::SignatureEntry>>(scripted_shader_dump_signature),
+    eastl::forward<DynamicArray<cacheBlk::ComputeClassUse>>(compute_pipelines),
+    eastl::forward<DynamicArray<cacheBlk::GraphicsVariantGroup>>(graphics_pipelines),
+    eastl::forward<DynamicArray<cacheBlk::GraphicsVariantGroup>>(graphics_with_null_override_pipelines), null_pixel_shader,
+    device.shouldNameObjects());
+  if (!should_pipeline_set_compilation_spread_over_frames())
+  {
+    device.pipeMan.continuePipelineSetCompilation(device.getDevice(), device.pipelineCache, contextState.framebufferLayouts,
+      []() { return false; });
+  }
 }
 
 void DeviceContext::ExecutionContext::switchActivePipeline(ActivePipeline pipeline) { contextState.switchActivePipeline(pipeline); }

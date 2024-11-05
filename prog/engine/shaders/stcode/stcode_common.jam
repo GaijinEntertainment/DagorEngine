@@ -1,0 +1,27 @@
+TargetType = dll ;
+
+include $(Root)/prog/_jBuild/defPlatform.jam ;
+
+if $(Platform) in windows xboxOne scarlett ps4 ps5 macOS {
+  PlatformSpec = clang ;
+  CPPopt += -Wno-unused-command-line-argument ;
+} else if $(Platform) in linux {
+  PlatformSpec = gcc ;
+} else {
+  Exit Platform=$(Platform) is not supported yet! ;
+}
+
+BuildDagorEngineIndependentCode = yes ;
+
+include $(Root)/prog/_jBuild/jCommonRules.jam ;
+
+AddIncludes =
+  $(Root)/prog/engine/sharedInclude
+;
+
+Sources += stcode_main.stcode.gen.cpp ;
+
+CPPopt += -Ofast ;
+CPPopt += -D__GENERATED_STCODE_FILE ;
+
+include $(Root)/prog/_jBuild/build.jam ;

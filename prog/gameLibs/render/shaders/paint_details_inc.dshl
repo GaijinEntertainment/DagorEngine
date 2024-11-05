@@ -1,5 +1,11 @@
+macro INIT_PAINT_DETAILS_STATIC()
+  static int use_painting = 1 no_warnings;
+endmacro
+
 macro USE_PAINT_DETAILS()
   hlsl(vs) {
+    #define HAS_PAINT_DETAILS 1
+
     float3 getColorMul(uint hashVal)
     {
       float correction = 4.59479341998814;

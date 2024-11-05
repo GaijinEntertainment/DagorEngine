@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/vector.h>
@@ -28,6 +29,8 @@ public:
     DISCARD_SAME_FRAME,
     // discard where buffer was large enough to at least cover a whole frame
     DISCARD_DIFFERENT_FRAME,
+    // deleted and replaced with a new one, do not report size change
+    MOVED_BY_DRIVER,
   };
 
 protected:
@@ -38,7 +41,7 @@ protected:
   };
   struct PendingForCompletedFrameData : BaseType::PendingForCompletedFrameData
   {
-    eastl::vector<BufferFreeWithReason> deletedBuffers;
+    dag::Vector<BufferFreeWithReason> deletedBuffers;
   };
   struct CompletedFrameExecutionInfo : BaseType::CompletedFrameExecutionInfo
   {
@@ -54,7 +57,7 @@ protected:
     // TODO can be derived from this pointer and properties
     BufferGlobalId resId;
     D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
-    eastl::vector<ValueRange<uint64_t>> freeRanges;
+    dag::Vector<ValueRange<uint64_t>> freeRanges;
 
     bool free(ValueRange<uint64_t> range)
     {
@@ -91,6 +94,34 @@ protected:
       }
       return make_value_range<uint64_t>(s, size);
     }
+
+    void rangeAllocate(ValueRange<uint64_t> range)
+    {
+      auto ref =
+        eastl::find_if(begin(freeRanges), end(freeRanges), [range](auto free_range) { return range.isSubRangeOf(free_range); });
+      G_ASSERT(ref != end(freeRanges));
+      if (ref == end(freeRanges))
+      {
+        return;
+      }
+
+      auto followup = ref->cutOut(range);
+      if (!followup.empty())
+      {
+        if (ref->empty())
+        {
+          *ref = followup;
+        }
+        else
+        {
+          freeRanges.insert(ref + 1, followup);
+        }
+      }
+      else if (ref->empty())
+      {
+        freeRanges.erase(ref);
+      }
+    }
   };
   struct StandbyInfo
   {
@@ -100,10 +131,10 @@ protected:
   };
   struct BufferHeapState
   {
-    eastl::vector<Heap> bufferHeaps;
-    eastl::vector<StandbyInfo> bufferHeapDiscardStandbyList;
+    dag::Vector<Heap> bufferHeaps;
+    dag::Vector<StandbyInfo> bufferHeapDiscardStandbyList;
     // list of buffers can be big, up to 2k, so saving the free slots should be more efficient than searching on each allocate
-    eastl::vector<uint32_t> freeBufferSlots;
+    dag::Vector<uint32_t> freeBufferSlots;
 
     eastl::pair<Heap *, ValueRange<uint64_t>> tryAllocateFromReadyList(ResourceHeapProperties properties, uint64_t size,
       D3D12_RESOURCE_FLAGS flags, uint64_t offset_alignment, bool allow_offset)
@@ -210,25 +241,31 @@ protected:
       return result;
     }
 
-    size_t freeBufferHeap(BufferHeap *manager, uint32_t index, ValueRange<uint64_t> range, const char *name)
+    size_t freeBufferHeap(BufferHeap *manager, uint32_t index, const char *name, bool update_defragmentation_generation)
     {
       auto &heap = bufferHeaps[index];
       auto memoryHeapID = heap.bufferMemory.getHeapID();
-      if (!heap.free(range))
-      {
-        return 0;
-      }
       size_t result = 0 == memoryHeapID.isAlias ? heap.bufferMemory.size() : 0;
       ResourceHeapProperties memoryProperties;
       memoryProperties.raw = memoryHeapID.group;
       manager->recordBufferHeapFreed(result, !memoryProperties.isCPUVisible(), name);
-      heap.reset(manager);
+      heap.reset(manager, update_defragmentation_generation);
       freeBufferSlots.push_back(index);
       return result;
     }
 
-    BufferGlobalId createBufferHeap(BufferHeap *manager, DXGIAdapter *adapter, ID3D12Device *device, uint64_t allocation_size,
-      ResourceHeapProperties properties, D3D12_RESOURCE_FLAGS flags, DeviceMemoryClass memory_class, const char *name)
+    size_t freeBufferHeap(BufferHeap *manager, uint32_t index, ValueRange<uint64_t> range, const char *name)
+    {
+      if (!bufferHeaps[index].free(range))
+      {
+        return 0;
+      }
+      return freeBufferHeap(manager, index, name, false);
+    }
+
+    eastl::pair<BufferGlobalId, HRESULT> createBufferHeap(BufferHeap *manager, DXGIAdapter *adapter, ID3D12Device *device,
+      uint64_t allocation_size, ResourceHeapProperties properties, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initial_state,
+      const char *name, AllocationFlags allocation_flags = {})
     {
       BufferGlobalId result;
       Heap newHeap;
@@ -250,26 +287,26 @@ protected:
       allocInfo.SizeInBytes = desc.Width;
       allocInfo.Alignment = desc.Alignment;
 
-      auto initialState = manager->propertiesToInitialState(D3D12_RESOURCE_DIMENSION_BUFFER, flags, memory_class);
-
-      auto allocation = manager->allocate(adapter, device, properties, allocInfo, {});
+      const auto allocation = manager->allocate(adapter, device, properties, allocInfo, allocation_flags);
+      const ResourceHeapProperties allocatedProperties{allocation.getHeapID().group};
 
       if (!allocation)
       {
-        return result;
+        return {result, E_OUTOFMEMORY};
       }
 
-      auto errorCode = newHeap.create(device, desc, allocation, initialState, properties.isCPUVisible());
+      auto errorCode = newHeap.create(device, desc, allocation, initial_state, allocatedProperties.isCPUVisible());
       if (DX12_CHECK_FAIL(errorCode))
       {
-        manager->free(allocation);
-        return result;
+        manager->free(allocation, allocation_flags.test(AllocationFlag::DEFRAGMENTATION_OPERATION));
+        return {result, errorCode};
       }
 
       newHeap.freeRanges.push_back(make_value_range<uint64_t>(0, allocation_size));
       newHeap.flags = flags;
 
       result = adoptBufferHeap(eastl::move(newHeap));
+      G_ASSERT(result);
 
       char strBuf[64];
       if (!name)
@@ -277,10 +314,10 @@ protected:
         sprintf_s(strBuf, "Buffer#%u", result.index());
         name = strBuf;
       }
-      manager->recordBufferHeapAllocated(allocation_size, !properties.isCPUVisible(), name);
+      manager->recordBufferHeapAllocated(allocation_size, !allocatedProperties.isCPUVisible(), name);
       manager->updateMemoryRangeUse(allocation, result);
 
-      return result;
+      return {result, S_OK};
     }
 
     bool isValidBuffer(const BufferState &buf)
@@ -336,7 +373,9 @@ protected:
       }
     }
   };
-  ContainerMutexWrapper<BufferHeapState, OSSpinlock> bufferHeapState;
+
+  using BufferHeapStateWrapper = ContainerMutexWrapper<BufferHeapState, OSSpinlock>;
+  BufferHeapStateWrapper bufferHeapState;
 
   void notifyBufferMemoryRelease(size_t sz)
   {
@@ -349,6 +388,91 @@ protected:
   {
     auto kbz = tql::sizeInKb(sz);
     tql::on_buf_changed(true, kbz);
+  }
+
+  BufferGlobalId tryCloneBuffer(DXGIAdapter *adapter, ID3D12Device *device, BufferGlobalId buffer_id,
+    BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess, AllocationFlags allocation_flags)
+  {
+    auto &heap = bufferHeapStateAccess->bufferHeaps[buffer_id.index()];
+    auto &memory = heap.bufferMemory;
+    if (heap.flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
+      allocation_flags.set(AllocationFlag::IS_UAV);
+    const auto [resIndex, errorCode] = bufferHeapStateAccess->createBufferHeap(this, adapter, device, memory.size(),
+      getPropertiesFromMemory(memory), heap.flags, D3D12_RESOURCE_STATE_INITIAL_BUFFER_STATE, nullptr, allocation_flags);
+    G_UNUSED(errorCode);
+    return resIndex;
+  }
+
+  // Updates all entries of old_buffer in the standby list to use new_buffer instead.
+  // Returns true if the whole buffer is part of the standby list
+  bool moveStandbyBufferEntries(BufferGlobalId old_buffer, BufferGlobalId new_buffer,
+    BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess)
+  {
+    auto oldBufferIndex = old_buffer.index();
+    auto newBufferIndex = new_buffer.index();
+
+    auto &oldBuffer = bufferHeapStateAccess->bufferHeaps[oldBufferIndex];
+    auto &newBuffer = bufferHeapStateAccess->bufferHeaps[newBufferIndex];
+
+    uint32_t totalSize = 0;
+    for (auto &si : bufferHeapStateAccess->bufferHeapDiscardStandbyList)
+    {
+      if (si.index != oldBufferIndex)
+      {
+        continue;
+      }
+      totalSize += si.range.size();
+      oldBuffer.free(si.range);
+      newBuffer.rangeAllocate(si.range);
+      si.index = newBufferIndex;
+    }
+
+    return totalSize == oldBuffer.bufferMemory.size();
+  }
+
+  // Checks if the buffer is actually needed and if not it will be deleted immediately
+  bool tidyCloneBuffer(BufferGlobalId buffer_id, BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess)
+  {
+    auto &buffer = bufferHeapStateAccess->bufferHeaps[buffer_id.index()];
+    // If either no free ranges are available or more than one indicate that something is used by someone
+    if (buffer.freeRanges.empty() || (buffer.freeRanges.size() > 1))
+    {
+      return false;
+    }
+    // If one range is available then it has to match the buffer size to indicate no one is using this buffer
+    if (buffer.freeRanges.front().size() != buffer.bufferMemory.size())
+    {
+      return false;
+    }
+    bufferHeapStateAccess->freeBufferHeap(this, buffer_id.index(), "move buffer", true);
+    return true;
+  }
+
+  BufferState moveBuffer(const BufferState &current_buffer, BufferGlobalId new_buffer,
+    BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess)
+  {
+    auto &newBuffer = bufferHeapStateAccess->bufferHeaps[new_buffer.index()];
+
+    BufferState newBufferState;
+    newBufferState.buffer = newBuffer.buffer.Get();
+    newBufferState.size = current_buffer.size;
+    newBufferState.discardCount = current_buffer.discardCount;
+    newBufferState.currentDiscardIndex = current_buffer.currentDiscardIndex;
+    newBufferState.fistDiscardFrame = current_buffer.fistDiscardFrame;
+    newBufferState.offset = current_buffer.offset;
+    newBufferState.resourceId = new_buffer;
+#if _TARGET_PC_WIN
+    newBufferState.cpuPointer = newBuffer.getCPUPointer();
+    if (newBufferState.cpuPointer)
+    {
+      newBufferState.cpuPointer += newBufferState.offset;
+    }
+#endif
+    newBufferState.gpuPointer = newBuffer.getGPUPointer() + newBufferState.offset;
+
+    newBuffer.rangeAllocate(newBufferState.usageRange());
+
+    return newBufferState;
   }
 
   void shutdown()
@@ -405,7 +529,8 @@ protected:
       SBCF_BIND_VERTEX | SBCF_BIND_INDEX | SBCF_BIND_CONSTANT | SBCF_BIND_SHADER_RES | SBCF_MISC_DRAWINDIRECT;
     // Either the buffer can not be used as UAV or not as other read only type. Mixing UAV with a read type makes it difficult
     // to avoid state collisions.
-    return (0 == (SBCF_BIND_UNORDERED & cflags)) || (0 == (cflags & any_read_flag_mask));
+    return (0 == ((SBCF_BIND_UNORDERED | SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE) & cflags)) ||
+           (0 == (cflags & any_read_flag_mask));
   }
 
   static bool is_optimized_discard(uint32_t cflags)
@@ -415,105 +540,9 @@ protected:
 
 public:
   // NOTE needs context lock to be held for frame end data structure
-  BufferState discardBuffer(DXGIAdapter *adapter, ID3D12Device *device, BufferState to_discared, DeviceMemoryClass memory_class,
+  BufferState discardBuffer(DXGIAdapter *adapter, Device &device, BufferState to_discared, DeviceMemoryClass memory_class,
     FormatStore format, uint32_t struct_size, bool raw_view, bool struct_view, D3D12_RESOURCE_FLAGS flags, uint32_t cflags,
-    const char *name, uint32_t frame_index, bool disable_sub_alloc, bool name_objects)
-  {
-    // writes to staging only buffers are implemented as discards, saves one buffer copy
-    // but we can't count them as discard traffic, so filter them out
-    const bool isOptimizedDiscard = is_optimized_discard(cflags);
-    BufferState result;
-    auto nextDiscardIndex = to_discared.currentDiscardIndex + 1;
-    if (nextDiscardIndex < to_discared.discardCount)
-    {
-      // move to result for simpler later handling and RVO
-      result = eastl::move(to_discared);
-      // advance discard index
-      result.currentDiscardIndex = nextDiscardIndex;
-
-      if (!isOptimizedDiscard)
-      {
-        recordBufferDiscard(result.size, true);
-      }
-      else
-      {
-        recordDriverBufferDiscard(result.size, true);
-      }
-    }
-    else
-    {
-      auto freeReason = FreeReason::DISCARD_DIFFERENT_FRAME;
-      auto nextDiscardRange = to_discared.discardCount;
-      // still the same frame we started discarding and we are already out of space?
-      if (0 == to_discared.fistDiscardFrame || frame_index == to_discared.fistDiscardFrame)
-      {
-        // double discard space for next run
-        nextDiscardRange *= 2;
-        freeReason = FreeReason::DISCARD_SAME_FRAME;
-      }
-
-      result = allocateBuffer(adapter, device, to_discared.size, struct_size, nextDiscardRange, memory_class, flags, cflags, name,
-        disable_sub_alloc, name_objects);
-      if (result)
-      {
-        result.resourceId.inerhitStatusBits(to_discared.resourceId);
-
-        if (to_discared.srvs)
-        {
-          if (raw_view)
-          {
-            createBufferRawSRV(device, result);
-          }
-          else if (struct_view)
-          {
-            createBufferStructureSRV(device, result, struct_size);
-          }
-          else
-          {
-            createBufferTextureSRV(device, result, format);
-          }
-        }
-        if (to_discared.uavs)
-        {
-          if (raw_view)
-          {
-            createBufferRawUAV(device, result);
-          }
-          else if (struct_view)
-          {
-            createBufferStructureUAV(device, result, struct_size);
-          }
-          else
-          {
-            createBufferTextureUAV(device, result, format);
-          }
-        }
-
-        freeBufferOnFrameCompletion(eastl::move(to_discared), freeReason, true);
-
-        if (!isOptimizedDiscard)
-        {
-          recordBufferDiscard(result.size, false);
-        }
-        else
-        {
-          recordDriverBufferDiscard(result.size, false);
-        }
-      }
-      else
-      {
-        result = eastl::move(to_discared);
-        // only case when create buffer fails if when an error happened and we need to reset
-        // start over on the same buffer to keep everything from crashing
-        result.currentDiscardIndex = 0;
-      }
-    }
-    if (0 == result.fistDiscardFrame)
-    {
-      result.fistDiscardFrame = frame_index;
-    }
-    return result;
-  }
+    const char *name, uint32_t frame_index, bool disable_sub_alloc, bool name_objects);
 
   // find LCM (lowest common multiple)
   static uint32_t findBestAlignmentOf(uint32_t value_a, uint32_t value_b)
@@ -566,204 +595,14 @@ public:
     return result;
   }
 
-  BufferState allocateBuffer(DXGIAdapter *adapter, ID3D12Device *device, uint64_t size, uint32_t structure_size,
+  BufferState allocateBuffer(DXGIAdapter *adapter, Device &device, uint64_t size, uint32_t structure_size, uint32_t discard_count,
+    DeviceMemoryClass memory_class, D3D12_RESOURCE_FLAGS flags, uint32_t cflags, const char *name, bool disable_sub_alloc,
+    bool name_objects);
+
+  BufferState allocateBufferWithoutDefragmentation(DXGIAdapter *adapter, ID3D12Device *device, uint64_t size, uint32_t structure_size,
     uint32_t discard_count, DeviceMemoryClass memory_class, D3D12_RESOURCE_FLAGS flags, uint32_t cflags, const char *name,
-    bool disable_sub_alloc, bool name_objects)
-  {
-    const bool canUseSubAlloc = !disable_sub_alloc && can_use_sub_alloc(cflags);
-
-    auto heapProperties = getProperties(flags, memory_class, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
-
-    Heap *selectedHeap = nullptr;
-    ValueRange<uint64_t> allocationRange;
-    size_t memoryAllocatedSize = 0;
-    G_ASSERTF(discard_count > 0, "discard count has to be at least one");
-    uint64_t payloadSize = size;
-    auto offsetAlignment = calculateOffsetAlignment(cflags, max<uint32_t>(1, structure_size));
-    BufferState result;
-    auto oomCheckOnExit = checkForOOMOnExit([&result]() { return static_cast<bool>(result.buffer); }, "DX12: OOM during %s for <%s>",
-      "allocateBuffer", name);
-    if (canUseSubAlloc)
-    {
-      payloadSize = align_value<uint64_t>(payloadSize, offsetAlignment);
-
-      auto bufferHeapStateAccess = bufferHeapState.access();
-      // First try to allocate from ready list
-      eastl::tie(selectedHeap, allocationRange) =
-        bufferHeapStateAccess->tryAllocateFromReadyList(heapProperties, payloadSize, flags, offsetAlignment, true);
-
-      // Second try to allocate from existing heaps
-      if (!selectedHeap)
-      {
-        eastl::tie(selectedHeap, allocationRange) =
-          bufferHeapStateAccess->trySuballocateFromExistingHeaps(heapProperties, payloadSize, flags, offsetAlignment);
-      }
-
-      // Third create a new heap
-      if (!selectedHeap)
-      {
-        auto resIndex = bufferHeapStateAccess->createBufferHeap(this, adapter, device,
-          align_value<uint64_t>(payloadSize * discard_count, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT), heapProperties, flags,
-          memory_class, nullptr);
-        if (!resIndex)
-        {
-          return result;
-        }
-
-        auto heapIndex = resIndex.index();
-
-        if (heapIndex < bufferHeapStateAccess->bufferHeaps.size())
-        {
-          selectedHeap = &bufferHeapStateAccess->bufferHeaps[heapIndex];
-          memoryAllocatedSize = selectedHeap->bufferMemory.size();
-          allocationRange = make_value_range<uint64_t>(0, payloadSize);
-          if (selectedHeap->freeRanges.front().stop == payloadSize)
-          {
-            selectedHeap->freeRanges.pop_back();
-          }
-          else
-          {
-            selectedHeap->freeRanges.front().start = payloadSize;
-          }
-          if (name_objects)
-          {
-#if DX12_DOES_SET_DEBUG_NAMES
-            wchar_t stringBuf[MAX_OBJECT_NAME_LENGTH];
-            // As buffers can supply multiple engine buffers, it make little sense to name it after
-            // one of them right now we simply name it by the heap index.
-            swprintf_s(stringBuf, L"Buffer#%u", heapIndex);
-            DX12_SET_DEBUG_OBJ_NAME(selectedHeap->buffer, stringBuf);
-#endif
-          }
-        }
-      }
-
-      if (selectedHeap)
-      {
-        result.buffer = selectedHeap->buffer.Get();
-        result.size = payloadSize;
-        // With sub alloc we only allocate one segment at a time, possibly results in better ready
-        // list usage and less buffers needed in total.
-        result.discardCount = 1;
-        result.resourceId = selectedHeap->resId;
-#if _TARGET_PC_WIN
-        result.cpuPointer = selectedHeap->getCPUPointer();
-        if (result.cpuPointer)
-        {
-          result.cpuPointer += allocationRange.front();
-        }
-#endif
-        result.gpuPointer = selectedHeap->getGPUPointer() + allocationRange.front();
-        result.offset = allocationRange.front();
-      }
-    }
-    else
-    {
-      if (discard_count > 1)
-      {
-        payloadSize = align_value<uint64_t>(payloadSize, offsetAlignment);
-#if DX12_REPORT_BUFFER_PADDING
-        auto padd = payloadSize - size;
-        if (padd)
-        {
-          logdbg("DX12: Adding %u bytes of padding because of buffer alignment of %u", padd, offsetAlignment);
-        }
-#endif
-
-        // if we have to pay possibly lots of overhead, try to cram as many discards into it as
-        // possible
-        discard_count = align_value<uint64_t>(payloadSize * discard_count, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT) / payloadSize;
-      }
-      else
-      {
-#if DX12_REPORT_BUFFER_PADDING
-        auto padd = payloadSize - size;
-        if (padd)
-        {
-          logdbg("DX12: Adding %u bytes of padding because min buffer size of %u", padd, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
-        }
-#endif
-      }
-      uint64_t totalSize = payloadSize * discard_count;
-
-      {
-        auto bufferHeapStateAccess = bufferHeapState.access();
-
-        eastl::tie(selectedHeap, allocationRange) =
-          bufferHeapStateAccess->tryAllocateFromReadyList(heapProperties, totalSize, flags, offsetAlignment, false);
-
-        if (!selectedHeap)
-        {
-          auto resIndex = bufferHeapStateAccess->createBufferHeap(this, adapter, device,
-            align_value<uint64_t>(totalSize, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT), heapProperties, flags, memory_class, name);
-          if (!resIndex)
-          {
-            return result;
-          }
-
-          auto heapIndex = resIndex.index();
-
-          if (heapIndex < bufferHeapStateAccess->bufferHeaps.size())
-          {
-            selectedHeap = &bufferHeapStateAccess->bufferHeaps[heapIndex];
-            memoryAllocatedSize = selectedHeap->bufferMemory.size();
-            allocationRange = make_value_range<uint64_t>(0, totalSize);
-            if (selectedHeap->freeRanges.front().stop == totalSize)
-            {
-              selectedHeap->freeRanges.pop_back();
-            }
-            else
-            {
-              selectedHeap->freeRanges.front().start = totalSize;
-            }
-          }
-        }
-
-        if (selectedHeap)
-        {
-          result.buffer = selectedHeap->buffer.Get();
-          result.size = payloadSize;
-          result.discardCount = discard_count;
-          result.resourceId = selectedHeap->resId;
-#if _TARGET_PC_WIN
-          result.cpuPointer = selectedHeap->getCPUPointer();
-          if (result.cpuPointer)
-          {
-            result.cpuPointer += allocationRange.front();
-          }
-#endif
-          result.gpuPointer = selectedHeap->getGPUPointer() + allocationRange.front();
-          result.offset = allocationRange.front();
-        }
-      }
-
-      if (result.buffer && name_objects)
-      {
-#if DX12_DOES_SET_DEBUG_NAMES
-        wchar_t stringBuf[MAX_OBJECT_NAME_LENGTH];
-        DX12_SET_DEBUG_OBJ_NAME(result.buffer, lazyToWchar(name, stringBuf, MAX_OBJECT_NAME_LENGTH));
-#endif
-      }
-    }
-
-    // has to be reported outside of the locked region, otherwise we may deadlock when the manager
-    // decides to shuffle things around
-    if (memoryAllocatedSize > 0)
-    {
-      notifyBufferMemoryAllocate(memoryAllocatedSize, true);
-    }
-
-    return result;
-  }
-
-  void doFreeBufferOnFrameCompletion(BufferState &&buffer, FreeReason free_reason)
-  {
-    BufferFreeWithReason info;
-    info.buffer = eastl::move(buffer);
-    info.freeReason = free_reason;
-    accessRecodingPendingFrameCompletion<PendingForCompletedFrameData>(
-      [&](auto &data) { data.deletedBuffers.push_back(eastl::move(info)); });
-  }
+    bool disable_sub_alloc, bool name_objects, const ResourceHeapProperties &heap_properties, AllocationFlags allocation_flags,
+    HRESULT &error_code);
 
 public:
   void completeFrameExecution(const CompletedFrameExecutionInfo &info, PendingForCompletedFrameData &data)
@@ -793,8 +632,13 @@ public:
         auto &buffer = freeInfo.buffer;
         if (buffer.srvs)
         {
-          info.bindlessManager->unregisterBufferDescriptors({buffer.srvs.get(), buffer.srvs.get() + buffer.discardCount});
-          freeBufferSRVDescriptors({buffer.srvs.get(), buffer.srvs.get() + buffer.discardCount});
+          eastl::span<const D3D12_CPU_DESCRIPTOR_HANDLE> descriptors = {buffer.srvs.get(), buffer.srvs.get() + buffer.discardCount};
+          for (const auto descriptor : descriptors)
+          {
+            G_UNUSED(descriptor);
+            G_ASSERT(!info.bindlessManager->hasBufferViewReference(descriptor));
+          }
+          freeBufferSRVDescriptors(descriptors);
         }
         if (buffer.uavs)
         {
@@ -821,38 +665,44 @@ public:
   template <typename T>
   void visitBuffers(T clb)
   {
-    char resnameBuffer[MAX_OBJECT_NAME_LENGTH];
     auto bufferHeapStateAccess = bufferHeapState.access();
+    clb.beginVisit();
+    clb.beginVisitBuffers();
     for (auto &buf : bufferHeapStateAccess->bufferHeaps)
     {
       if (!buf.buffer)
       {
         continue;
       }
+      auto freeSum =
+        eastl::accumulate(begin(buf.freeRanges), end(buf.freeRanges), 0, [](uint64_t v, const auto &r) { return v + r.size(); });
       bool isDiscardReady =
         end(bufferHeapStateAccess->bufferHeapDiscardStandbyList) !=
         eastl::find_if(begin(bufferHeapStateAccess->bufferHeapDiscardStandbyList),
           end(bufferHeapStateAccess->bufferHeapDiscardStandbyList), [id = buf.resId.index()](auto info) { return info.index == id; });
-
-      clb(get_resource_name(buf.buffer.Get(), resnameBuffer), buf.bufferMemory.size(), buf.bufferMemory.size(), isDiscardReady);
-    }
-  }
-
-  void freeBufferOnFrameCompletion(BufferState &&buffer, FreeReason free_reason, bool is_still_valid)
-  {
-    if (is_still_valid)
-    {
-      doFreeBufferOnFrameCompletion(eastl::move(buffer), free_reason);
-    }
-    else
-    {
-      auto access = bufferHeapState.access();
-      // Have to hold the access until enqueue is done, otherwise we may do it while the buffer table is reset.
-      if (access->isValidBuffer(buffer))
+      clb.visitBuffer(buf.resId.index(), buf.bufferMemory.size(), freeSum, buf.flags, isDiscardReady);
+      for (auto r : buf.freeRanges)
       {
-        doFreeBufferOnFrameCompletion(eastl::move(buffer), free_reason);
+        clb.visitBufferFreeRange(r);
       }
     }
+    clb.endVisitBuffers();
+    clb.beginVisitStandbyRange();
+    for (auto &info : bufferHeapStateAccess->bufferHeapDiscardStandbyList)
+    {
+      clb.visitBufferStandbyRange(info.progress, info.index, info.range);
+    }
+    clb.endVisitStandbyRange();
+    clb.endVisit();
+  }
+
+  void freeBufferOnFrameCompletion(BufferState &&buffer, FreeReason free_reason)
+  {
+    BufferFreeWithReason info;
+    info.buffer = eastl::move(buffer);
+    info.freeReason = free_reason;
+    accessRecodingPendingFrameCompletion<PendingForCompletedFrameData>(
+      [&](auto &data) { data.deletedBuffers.push_back(eastl::move(info)); });
   }
 
   ResourceMemory getResourceMemoryForBuffer(BufferGlobalId index)

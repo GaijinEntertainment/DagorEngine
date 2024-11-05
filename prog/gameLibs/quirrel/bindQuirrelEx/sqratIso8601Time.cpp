@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <sqrat.h>
 #include <sqModules/sqModules.h>
 #include <ctime>

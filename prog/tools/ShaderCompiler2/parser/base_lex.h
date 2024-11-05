@@ -1,5 +1,5 @@
-#ifndef _BASE_LEX_H_
-#define _BASE_LEX_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #include <EASTL/string.h>
 
@@ -68,5 +68,3 @@ public:
   virtual int buffer_size() = 0;
   virtual void clear_buffer() = 0;
 };
-
-#endif // _BASE_LEX_H_

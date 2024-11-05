@@ -1,5 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/aotGamePhys.h>
 #include <gamePhys/common/fixed_dt.h>
+#include <ecs/phys/netPhysResync.h>
 
 struct OrientAnnotation : das::ManagedStructureAnnotation<gamephys::Orient, false>
 {
@@ -100,6 +103,14 @@ struct VolumetricDamageDataAnnotation : das::ManagedStructureAnnotation<gamephys
   }
 };
 
+struct ECSCustomPhysStateSyncerDataAnnotation : das::ManagedStructureAnnotation<ECSCustomPhysStateSyncer, false>
+{
+  ECSCustomPhysStateSyncerDataAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("ECSCustomPhysStateSyncer", ml)
+  {
+    cppName = " ::ECSCustomPhysStateSyncer";
+  }
+};
+
 namespace bind_dascript
 {
 class GamePhysModule final : public das::Module
@@ -120,6 +131,8 @@ public:
     addAnnotation(das::make_smart<CommonPhysPartialStateAnnotation>(lib));
     addAnnotation(das::make_smart<GamePhysMassAnnotation>(lib));
     addAnnotation(das::make_smart<VolumetricDamageDataAnnotation>(lib));
+
+    addAnnotation(das::make_smart<ECSCustomPhysStateSyncerDataAnnotation>(lib));
 
     das::addExtern<DAS_BIND_FUN(gamephys::atmosphere::g)>(*this, lib, "gravity", das::SideEffects::accessExternal,
       "gamephys::atmosphere::g");
@@ -182,15 +195,46 @@ public:
       das::SideEffects::accessExternal,
       "das::das_call_member< float(gamephys::Mass::*)() const, &gamephys::Mass::getFuelMassMax >::invoke");
 
+
+    {
+      using method_init = DAS_CALL_MEMBER(ECSCustomPhysStateSyncer::init);
+      das::addExtern<DAS_CALL_METHOD(method_init)>(*this, lib, "init", das::SideEffects::modifyArgument,
+        DAS_CALL_MEMBER_CPP(ECSCustomPhysStateSyncer::init))
+        ->arg_init(/*resv*/ 1, das::make_smart<das::ExprConstInt>(0));
+
+      using method_registerSyncComponentFloat = das::das_call_member<void (ECSCustomPhysStateSyncer::*)(const char *, float &),
+        &ECSCustomPhysStateSyncer::registerSyncComponent>;
+      das::addExtern<DAS_CALL_METHOD(method_registerSyncComponentFloat)>(*this, lib, "registerSyncComponent",
+        das::SideEffects::modifyArgument,
+        "das::das_call_member< void (ECSCustomPhysStateSyncer::*)(const char*, float&), "
+        "&ECSCustomPhysStateSyncer::registerSyncComponent >::invoke");
+
+      using method_registerSyncComponentInt = das::das_call_member<void (ECSCustomPhysStateSyncer::*)(const char *, int &),
+        &ECSCustomPhysStateSyncer::registerSyncComponent>;
+      das::addExtern<DAS_CALL_METHOD(method_registerSyncComponentInt)>(*this, lib, "registerSyncComponent",
+        das::SideEffects::modifyArgument,
+        "das::das_call_member< void (ECSCustomPhysStateSyncer::*)(const char*, int&), "
+        "&ECSCustomPhysStateSyncer::registerSyncComponent >::invoke");
+
+      using method_registerSyncComponentBool = das::das_call_member<void (ECSCustomPhysStateSyncer::*)(const char *, bool &),
+        &ECSCustomPhysStateSyncer::registerSyncComponent>;
+      das::addExtern<DAS_CALL_METHOD(method_registerSyncComponentBool)>(*this, lib, "registerSyncComponent",
+        das::SideEffects::modifyArgument,
+        "das::das_call_member< void (ECSCustomPhysStateSyncer::*)(const char*, bool&), "
+        "&ECSCustomPhysStateSyncer::registerSyncComponent >::invoke");
+    }
+
     das::addConstant(*this, "MAIN_FUEL_SYSTEM", (int)gamephys::FuelTank::MAIN_SYSTEM);
     das::addConstant(*this, "MAX_FUEL_SYSTEMS", (int)gamephys::FuelTank::MAX_SYSTEMS);
     das::addConstant(*this, "MAX_FUEL_TANKS", (int)gamephys::FuelTank::MAX_TANKS);
     das::addConstant(*this, "PHYSICS_UPDATE_FIXED_DT", (float)gamephys::PHYSICS_UPDATE_FIXED_DT);
+
     verifyAotReady();
   }
   das::ModuleAotType aotRequire(das::TextWriter &tw) const override
   {
     tw << "#include <dasModules/aotGamePhys.h>\n";
+    tw << "#include <ecs/phys/netPhysResync.h>\n";
     return das::ModuleAotType::cpp;
   }
 };

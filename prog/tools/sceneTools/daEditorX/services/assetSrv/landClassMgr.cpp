@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "landClassMgr.h"
 #include "flags.h"
 #include <de3_bitMaskMgr.h>

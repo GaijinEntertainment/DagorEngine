@@ -1,3 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 #include <quirrel/frp/dag_frp.h>
 
 
@@ -10,7 +13,6 @@ class JoystickAxisObservable : public sqfrp::BaseObservable
 {
 public:
   JoystickAxisObservable(GuiScene *gui_scene);
-  virtual ~JoystickAxisObservable() = default;
 
   virtual Sqrat::Object getValueForNotify() const override;
   virtual void fillInfo(Sqrat::Table &t) const override;

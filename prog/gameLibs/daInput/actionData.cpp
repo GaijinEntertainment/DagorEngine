@@ -1,5 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "actionData.h"
-#include <humanInput/dag_hiVrInput.h>
+#include <drv/hid/dag_hiVrInput.h>
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_delayedAction.h>
 #include <util/dag_string.h>
@@ -26,7 +28,11 @@ HumanInput::IGenJoystick *dainput::dev3_gpad = nullptr;
 HumanInput::IGenJoystick *dainput::dev4_joy = nullptr;
 HumanInput::VrInput *dainput::dev5_vr = nullptr;
 
-bool (*dainput::notify_ui_action_triggered_cb)(action_handle_t action, bool action_terminated, int dur_ms) = nullptr;
+int64_t dainput::controlTID = -1;
+bool dainput::is_controled_by_cur_thread() { return dainput::controlTID == get_current_thread_id(); }
+void dainput::set_control_thread_id(int64_t tid) { dainput::controlTID = tid; }
+
+void (*dainput::notify_ui_action_triggered_cb)(action_handle_t action, bool action_terminated, int dur_ms) = nullptr;
 dainput::action_triggered_t dainput::notify_action_triggered_cb = nullptr;
 dainput::action_progress_changed_t dainput::notify_progress_changed_cb = nullptr;
 unsigned dainput::notify_clicks_dev_mask = 0;

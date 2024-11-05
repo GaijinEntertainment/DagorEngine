@@ -1,0 +1,2 @@
+gamePulls += daNetGameLibs_console_commands_DAS_pull_AOT ;
+UseProgLibs += daNetGameLibs/console_commands ;

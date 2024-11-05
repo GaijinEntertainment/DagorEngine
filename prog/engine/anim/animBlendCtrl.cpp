@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <anim/dag_animBlend.h>
 #include <anim/dag_animBlendCtrl.h>
 #include "animFifo.h"
@@ -13,6 +15,8 @@
 #include <math/random/dag_random.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <EASTL/hash_map.h>
+
 using namespace AnimV20;
 
 static bool validate_node_not_used(AnimationGraph &g, IAnimBlendNode *main, IAnimBlendNode *n, int index, IAnimBlendNode *test_n)
@@ -118,7 +122,7 @@ void IrqPos::setupIrqs(Tab<IrqPos> &irqs, AnimData *anim, int t0, int dt, const 
     }
 
     IrqPos &r = irqs.push_back();
-    r.irqId = AnimV20::getIrqId(irqBlk.getStr("name"));
+    r.irqId = AnimV20::addIrqId(irqBlk.getStr("name"));
     r.irqTime = ts;
     // debug("%p.irq[%d]=%d, %d", this, irqs.size()-1, r.irqId, r.irqTime);
   }
@@ -128,7 +132,7 @@ void IrqPos::setupIrqs(Tab<IrqPos> &irqs, AnimData *anim, int t0, int dt, const 
 
 void IrqPos::debug_set_irq_pos(const char *irq_name, float rel_pos, Tab<IrqPos> &irqs, int t0, int dt)
 {
-  const int irqId = AnimV20::getIrqId(irq_name);
+  const int irqId = AnimV20::addIrqId(irq_name);
   auto it = eastl::find_if(irqs.begin(), irqs.end(), [irqId](const IrqPos &irqPos) { return irqPos.irqId == irqId; });
   if (it == irqs.end())
     return;
@@ -241,18 +245,18 @@ void AnimBlendNodeLeaf::buildNamedRanges(const DataBlock *blk)
         namedRanges[rnum].rangeId = id;
 
         r = IPoint2(anim->getLabelTime(lStart, true), anim->getLabelTime(lEnd, true));
-        rpos = cb->getReal("relative_start", 0.0);
+        rpos = cb->getReal("relative_start", 0.0f);
         namedRanges[rnum].range[0] = int(r[1] * rpos + r[0] * (1 - rpos));
-        rpos = cb->getReal("relative_end", 1.0);
+        rpos = cb->getReal("relative_end", 1.0f);
         namedRanges[rnum].range[1] = int(r[1] * rpos + r[0] * (1 - rpos));
-        // debug_ctx ( "%s: (%d,%d) -> (%d,%d)", label_name, r[0], r[1], namedRanges[rnum].range[0], namedRanges[rnum].range[1] );
+        // DEBUG_CTX("%s: (%d,%d) -> (%d,%d)", label_name, r[0], r[1], namedRanges[rnum].range[0], namedRanges[rnum].range[1]);
         rnum++;
       }
     }
   }
 
   qsort(&namedRanges[0], namedRanges.size(), elem_size(namedRanges), _cmp_rangenames);
-  // debug_ctx ( "ranges.count=%d", namedRanges.size());
+  // DEBUG_CTX("ranges.count=%d", namedRanges.size());
 }
 
 
@@ -281,7 +285,7 @@ void AnimBlendNodeContinuousLeaf::buildBlendingList(BlendCtx &bctx, real w)
 
   real p = st.getParam(paramId);
   if (eoaIrq && bctx.lastDt)
-    if (!st.getParamFlags(paramId, IPureAnimStateHolder::PF_Paused) && p > duration - 1.5 / fabs(rate))
+    if (!st.getParamFlags(paramId, IPureAnimStateHolder::PF_Paused) && p > duration - 1.5f / fabs(rate))
     {
 
       bctx.irq(GIRQT_EndOfContinuousAnim, (intptr_t)this, 0, 0);
@@ -308,7 +312,7 @@ void AnimBlendNodeContinuousLeaf::buildBlendingList(BlendCtx &bctx, real w)
   wt[bnlId] += w;
   bctx.cKeyPos[bnlId] = curTime;
 
-  // debug_ctx ( "%p.[%d]=%.5f   p*rate=%.0f  curTime=%7d", this, paramId, st.getParam(paramId), p*rate, curTime );
+  // DEBUG_CTX("%p.[%d]=%.5f   p*rate=%.0f  curTime=%7d", this, paramId, st.getParam(paramId), p*rate, curTime);
 }
 void AnimBlendNodeContinuousLeaf::seek(IPureAnimStateHolder &st, real rel_pos)
 {
@@ -329,7 +333,7 @@ void AnimBlendNodeContinuousLeaf::reset(IPureAnimStateHolder &st)
   if (timeScaleParamId > 0)
   {
     st.setTimeScaleParamId(paramId, timeScaleParamId);
-    st.setParam(timeScaleParamId, 1.0); // timescale defaults to 1.0
+    st.setParam(timeScaleParamId, 1.0f); // timescale defaults to 1.0
   }
   else
     st.setTimeScaleParamId(paramId, 0);
@@ -363,7 +367,7 @@ void AnimBlendNodeContinuousLeaf::setAnim(AnimData *a)
 void AnimBlendNodeContinuousLeaf::setRange(int tStart, int tEnd, real anim_time, float move_dist, const char *name)
 {
   G_UNREFERENCED(name);
-  if (anim_time < 0.0001)
+  if (anim_time < 0.0001f)
     DAG_FATAL("incorrect anim time=%.5f", anim_time);
 
   duration = anim_time;
@@ -384,7 +388,7 @@ void AnimBlendNodeContinuousLeaf::setRange(const char *keyStart, const char *key
 {
   if (!anim)
   {
-    debug_ctx("setRange ( %s, %s, %.3f ) while anim=NULL", keyStart, keyEnd, anim_time);
+    DEBUG_CTX("setRange ( %s, %s, %.3f ) while anim=NULL", keyStart, keyEnd, anim_time);
     return;
   }
   int ts = anim->getLabelTime(keyStart, !isdigit(keyStart[0]));
@@ -400,13 +404,13 @@ void AnimBlendNodeContinuousLeaf::setSyncTime(const char *syncKey)
 {
   if (!anim)
   {
-    debug_ctx("setSyncTime ( %s ) while anim=NULL", syncKey);
+    DEBUG_CTX("setSyncTime ( %s ) while anim=NULL", syncKey);
     return;
   }
   int ts = anim->getLabelTime(syncKey, !isdigit(syncKey[0]));
   if (ts < 0)
     ts = atoi(syncKey) * TIME_TicksPerSec / 30;
-  if (fabs(rate) < 0.00001)
+  if (fabs(rate) < 0.00001f)
     syncTime = 0;
   else
     syncTime = (ts - t0) / rate;
@@ -445,16 +449,16 @@ AnimBlendNodeSingleLeaf::AnimBlendNodeSingleLeaf(AnimationGraph &graph, AnimData
 void AnimBlendNodeSingleLeaf::buildBlendingList(BlendCtx &bctx, real w)
 {
   IPureAnimStateHolder &st = *bctx.st;
-  // debug_ctx ( "%p.time=%.3f duration=%.3f", this, st.getParam(paramId), duration );
+  // DEBUG_CTX("%p.time=%.3f duration=%.3f", this, st.getParam(paramId), duration);
   real p = st.getParam(paramId);
 
-  if (bctx.lastDt && p > duration - 1.5 / fabs(rate))
+  if (bctx.lastDt && p > duration - 1.5f / fabs(rate))
   {
     int resp = GIRQR_NoResponse;
     if (!st.getParamFlags(paramId, IPureAnimStateHolder::PF_Paused))
     {
       st.setParamFlags(paramId, IPureAnimStateHolder::PF_Paused, IPureAnimStateHolder::PF_Paused);
-      st.setParam(paramId, duration - 1.5 / fabs(rate));
+      st.setParam(paramId, duration - 1.5f / fabs(rate));
       bctx.st->getGraph().onSingleAnimFinished(*bctx.st, this);
       resp = bctx.irq(GIRQT_EndOfSingleAnim, (intptr_t)this, 0, 0);
       for (int i = irqs.size() - 1; i >= 0; i--)
@@ -473,7 +477,7 @@ void AnimBlendNodeSingleLeaf::buildBlendingList(BlendCtx &bctx, real w)
       }
       else if (resp == GIRQR_StopSingleAnim)
       {
-        st.setParam(paramId, duration - 1.5 / fabs(rate));
+        st.setParam(paramId, duration - 1.5f / fabs(rate));
         st.setParamFlags(paramId, IPureAnimStateHolder::PF_Paused, IPureAnimStateHolder::PF_Paused);
       }
       else if (resp == GIRQR_ResumeSingleAnim)
@@ -505,10 +509,10 @@ AnimBlendNodeParametricLeaf::AnimBlendNodeParametricLeaf(AnimationGraph &graph, 
 {
   paramId = graph.addParamId(param_name, IPureAnimStateHolder::PT_ScalarParam);
   paramLastId = -1;
-  paramMulK = 1.0;
-  paramAddK = 0.0;
+  paramMulK = 1.0f;
+  paramAddK = 0.0f;
   p0 = 0;
-  dp = 1.0;
+  dp = 1.0f;
   t0 = 0;
   dt = 1;
   updateOnParamChanged = upd_pc;
@@ -538,7 +542,10 @@ void AnimBlendNodeParametricLeaf::reset(IPureAnimStateHolder &st)
   else
     param = clamp(param, 0.0f, 1.0f);
 
-  st.setParamInt(paramLastId, int(t0 + (param)*dt));
+  if (looping)
+    st.setParamInt(paramLastId, int(t0 + (param)*dt));
+  else
+    st.setParamInt(paramLastId, t0);
 }
 
 void AnimBlendNodeParametricLeaf::buildBlendingList(BlendCtx &bctx, real w)
@@ -554,7 +561,6 @@ void AnimBlendNodeParametricLeaf::buildBlendingList(BlendCtx &bctx, real w)
   }
 
   real param = safediv(st.getParam(paramId) * paramMulK + paramAddK - p0, dp);
-  int last_ct = paramLastId < 0 ? -1 : st.getParamInt(paramLastId);
 
   if (looping)
     param -= floorf(param);
@@ -562,23 +568,33 @@ void AnimBlendNodeParametricLeaf::buildBlendingList(BlendCtx &bctx, real w)
   {
     if (param < 0)
       param = 0;
-    else if (param > 1.0)
-      param = 1.0;
+    else if (param > 1.0f)
+      param = 1.0f;
   }
 
-  int curTime = int(t0 + (param)*dt);
-  if (paramLastId >= 0 && curTime != last_ct)
+  const int curTime = int(t0 + (param)*dt);
+
+#if DAGOR_DBGLEVEL > 0
+  if (param > 0.f && param < 1.f && getDebugAnimParam())
+    bctx.irq(getDebugAnimParamIrqId(), (intptr_t)this, curTime - t0, dt);
+#endif
+
+  if (paramLastId >= 0)
   {
-    int ct0 = curTime > last_ct ? last_ct : curTime;
-    int ct1 = curTime > last_ct ? curTime : last_ct;
-    if (last_ct >= 0 && (ct1 - ct0) * 2 <= dt)
-      for (int i = 0; i < irqs.size(); i++)
-      {
-        if (irqs[i].irqTime > ct1)
-          break;
-        else if (ct0 < irqs[i].irqTime && irqs[i].irqTime != last_ct)
-          bctx.irq(irqs[i].irqId, (intptr_t)this, curTime, 0);
-      }
+    const int last_ct = st.getParamInt(paramLastId);
+    if (last_ct >= 0 && last_ct != curTime)
+    {
+      const int ct0 = curTime > last_ct ? last_ct : curTime;
+      const int ct1 = curTime > last_ct ? curTime : last_ct;
+      if ((ct1 - ct0) * 2 < dt) // ignore param rewind
+        for (auto &irq : irqs)
+        {
+          if (irq.irqTime > ct1)
+            break;
+          else if (ct0 < irq.irqTime && irq.irqTime != last_ct)
+            bctx.irq(irq.irqId, (intptr_t)this, curTime, curTime - last_ct);
+        }
+    }
     st.setParamInt(paramLastId, curTime);
   }
   wt[bnlId] += w;
@@ -637,7 +653,7 @@ void AnimBlendNodeParametricLeaf::setRange(const char *keyStart, const char *key
 {
   if (!anim)
   {
-    debug_ctx("setRange ( %s, %s, %.3f, %.3f ) while anim=NULL", keyStart, keyEnd, _p0, _p1);
+    DEBUG_CTX("setRange ( %s, %s, %.3f, %.3f ) while anim=NULL", keyStart, keyEnd, _p0, _p1);
     return;
   }
   int ts = anim->getLabelTime(keyStart, !isdigit(keyStart[0]));
@@ -693,6 +709,18 @@ bool AnimBlendCtrl_1axis::validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode 
       valid = false;
   return valid;
 }
+void AnimBlendCtrl_1axis::collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map)
+{
+  for (int i = 0; i < slice.size(); i++)
+  {
+    IAnimBlendNode *n = slice[i].node;
+    if (node_map.find(n) == node_map.end())
+    {
+      node_map.emplace(n, true);
+      n->collectUsedBlendNodes(g, node_map);
+    }
+  }
+}
 void AnimBlendCtrl_1axis::buildBlendingList(BlendCtx &bctx, real w)
 {
   if (paramId == -1)
@@ -738,12 +766,12 @@ void AnimBlendCtrl_1axis::buildBlendingList(BlendCtx &bctx, real w)
           a1 = 0;
         }
 
-        if (t1 - t0 < 0.00001)
+        if (t1 - t0 < 0.00001f)
           a = 0.5;
         else
           a = a0 + (param - t0) / (t1 - t0) * (a1 - a0);
 
-        if (a < 0.001 || a >= 0.999)
+        if (a < 0.001f || a >= 0.999f)
           continue;
 
         for (j = 0; j < active.size(); j++)
@@ -774,7 +802,7 @@ void AnimBlendCtrl_1axis::addBlendNode(IAnimBlendNode *n, real start, real end)
 // Simplest linear blend node
 //
 AnimBlendCtrl_LinearPoly::AnimBlendCtrl_LinearPoly(AnimationGraph &graph, const char *param_name, const char *ctrl_name) :
-  poly(midmem), morphTime(0), enclosed(false), paramTau(0.0), paramSpeed(0.0)
+  poly(midmem), morphTime(0), enclosed(false), paramTau(0.0f), paramSpeed(0.0f)
 {
   paramId = graph.addParamId(param_name, IPureAnimStateHolder::PT_ScalarParam);
   t0Pid = graph.addParamId(String(128, ":lp_t0_%s", ctrl_name), IPureAnimStateHolder::PT_ScalarParam);
@@ -799,6 +827,18 @@ bool AnimBlendCtrl_LinearPoly::validateNodeNotUsed(AnimationGraph &g, IAnimBlend
       valid = false;
   return valid;
 }
+void AnimBlendCtrl_LinearPoly::collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map)
+{
+  for (int i = 0; i < poly.size(); i++)
+  {
+    IAnimBlendNode *n = poly[i].node;
+    if (node_map.find(n) == node_map.end())
+    {
+      node_map.emplace(n, true);
+      n->collectUsedBlendNodes(g, node_map);
+    }
+  }
+}
 bool AnimBlendCtrl_LinearPoly::isAliasOf(IPureAnimStateHolder & /*st*/, IAnimBlendNode *n)
 {
   if (n == this)
@@ -818,10 +858,10 @@ void AnimBlendCtrl_LinearPoly::resume(IPureAnimStateHolder &st, bool rewind)
   process_nodes_with_bitmap(poly, st, rewindBitmapParamsIds,
     [&st, rewind](IAnimBlendNode *node, bool should_rewind) { node->resume(st, should_rewind && rewind); });
 }
-real AnimBlendCtrl_LinearPoly::getDuration(IPureAnimStateHolder &st) { return poly.size() ? poly[0].node->getDuration(st) : 1.0; }
-void AnimBlendCtrl_LinearPoly::AnimPoint::applyWt(BlendCtx &bctx, real wt)
+real AnimBlendCtrl_LinearPoly::getDuration(IPureAnimStateHolder &st) { return poly.size() ? poly[0].node->getDuration(st) : 1.0f; }
+void AnimBlendCtrl_LinearPoly::AnimPoint::applyWt(BlendCtx &bctx, real wt, real node_w)
 {
-  node->buildBlendingList(bctx, wt);
+  node->buildBlendingList(bctx, wt * node_w);
   bctx.st->setParam(wtPid, wt);
 }
 void AnimBlendCtrl_LinearPoly::buildBlendingList(BlendCtx &bctx, real w)
@@ -856,7 +896,7 @@ void AnimBlendCtrl_LinearPoly::buildBlendingList(BlendCtx &bctx, real w)
     param = curPos;
   }
   int wishPt = 0;
-  real alpha = 0.0;
+  real alpha = 0.0f;
   if (param <= poly[0].p0)
     wishPt = 0;
   if (param >= poly.back().p0)
@@ -878,53 +918,54 @@ void AnimBlendCtrl_LinearPoly::buildBlendingList(BlendCtx &bctx, real w)
     alpha = safediv(param - poly[0].p0, poly[1].p0 - poly[0].p0);
   }
 
-  real appliableWeight = w;
-  const real morphThreshold = 0.001;
+  const real alphaThreshold = 0.0001f; // if alpha is lower assume only one point is active
+  const real morphThreshold = 0.001f;
   if (morphTime > morphThreshold)
   {
-    real residualWt = 0;
-    real maxResWt = 0;
-    int maxWtIdx = -1;
+    const real morphSpeed = 1.0f / morphTime;
+    real totalNewWeight = 0.0f;
+
     for (int i = 0; i < poly.size(); ++i)
     {
-      real resWt = (i != wishPt && i != ceilf(wishPt + alpha)) ? st.getParam(poly[i].wtPid) : 0;
-      residualWt += resWt;
-      if (resWt > maxResWt)
+      real wishWeight = 0.0f;
+      if (i == wishPt)
       {
-        maxResWt = resWt;
-        maxWtIdx = i;
+        if (fabsf(alpha) > alphaThreshold)
+          wishWeight = 1.0f - alpha;
+        else
+          wishWeight = 1.0f;
       }
+      else if (fabsf(alpha) > alphaThreshold && i == int(ceilf(wishPt + alpha)))
+        wishWeight = alpha;
+
+      const real curWeight = st.getParam(poly[i].wtPid);
+      const real newWeight = move_to(curWeight, wishWeight, dt, morphSpeed);
+      totalNewWeight += newWeight;
+      st.setParam(poly[i].wtPid, newWeight);
     }
 
-    real morphSpeed = 1.0 / morphTime;
-    real prevWeight = residualWt;
-    residualWt = max(residualWt - dt * morphSpeed, 0.f);
-    real residualMult = safediv(residualWt, prevWeight);
-    appliableWeight = w - residualWt;
+    // Separate loop because we need totalNewWeight to normalize weights
     for (int i = 0; i < poly.size(); ++i)
-      if (i != wishPt && i != int(ceilf(wishPt + alpha)))
+    {
+      real newWeight = totalNewWeight > 0.0f ? st.getParam(poly[i].wtPid) / totalNewWeight : st.getParam(poly[i].wtPid);
+      if (newWeight > 0.0f)
       {
-        real wt = st.getParam(poly[i].wtPid) * residualMult;
-        st.setParam(poly[i].wtPid, wt);
-        if (wt > 0 && i == maxWtIdx)
-        {
-          poly[i].applyWt(bctx, wt);
-          set_rewind_bit(i, st, rewindBitmapParamsIds);
-        }
+        poly[i].applyWt(bctx, newWeight, w);
+        set_rewind_bit(i, st, rewindBitmapParamsIds);
       }
+    }
+    return;
   }
 
   set_rewind_bit(wishPt, st, rewindBitmapParamsIds);
-  if (fabsf(alpha) > 0.0001)
+  if (fabsf(alpha) > alphaThreshold)
   {
-    real wt0 = appliableWeight * (1 - alpha);
-    real wt1 = appliableWeight * alpha;
-    poly[wishPt].applyWt(bctx, wt0);
-    poly[wishPt + 1].applyWt(bctx, wt1);
+    poly[wishPt].applyWt(bctx, 1.0f - alpha, w);
+    poly[wishPt + 1].applyWt(bctx, alpha, w);
     set_rewind_bit(wishPt + 1, st, rewindBitmapParamsIds);
   }
   else
-    poly[wishPt].applyWt(bctx, appliableWeight);
+    poly[wishPt].applyWt(bctx, 1.0f, w);
 }
 void AnimBlendCtrl_LinearPoly::addBlendNode(IAnimBlendNode *n, real p0, AnimationGraph &graph, const char *ctrl_name,
   const char *param_name)
@@ -1002,6 +1043,19 @@ bool AnimBlendCtrl_RandomSwitcher::validateNodeNotUsed(AnimationGraph &g, IAnimB
   return valid;
 }
 
+void AnimBlendCtrl_RandomSwitcher::collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map)
+{
+  for (int i = 0; i < list.size(); i++)
+  {
+    IAnimBlendNode *n = list[i].node;
+    if (node_map.find(n) == node_map.end())
+    {
+      node_map.emplace(n, true);
+      n->collectUsedBlendNodes(g, node_map);
+    }
+  }
+}
+
 IAnimBlendNode *AnimBlendCtrl_RandomSwitcher::getCurAnim(IPureAnimStateHolder &st)
 {
   int id = st.getParamInt(paramId);
@@ -1033,7 +1087,7 @@ real AnimBlendCtrl_RandomSwitcher::getDuration(IPureAnimStateHolder &st)
   IAnimBlendNode *node = getCurAnim(st);
   if (node)
     return node->getDuration(st);
-  return 1.0;
+  return 1.0f;
 }
 void AnimBlendCtrl_RandomSwitcher::seekToSyncTime(IPureAnimStateHolder &st, real offset)
 {
@@ -1219,6 +1273,18 @@ bool AnimBlendCtrl_Hub::validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *t
       valid = false;
   return valid;
 }
+void AnimBlendCtrl_Hub::collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map)
+{
+  for (int i = 0; i < nodes.size(); i++)
+  {
+    IAnimBlendNode *n = nodes[i];
+    if (node_map.find(n) == node_map.end())
+    {
+      node_map.emplace(n, true);
+      n->collectUsedBlendNodes(g, node_map);
+    }
+  }
+}
 bool AnimBlendCtrl_Hub::isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n)
 {
   if (n == this)
@@ -1300,8 +1366,8 @@ int AnimBlendCtrl_Hub::getNodeIndex(IAnimBlendNode *n)
 AnimBlendCtrl_Blender::AnimBlendCtrl_Blender(AnimationGraph &graph, const char *param_name)
 {
   paramId = graph.addParamId(param_name, IPureAnimStateHolder::PT_TimeParam);
-  duration = 1.0;
-  blendTime = 1.0;
+  duration = 1.0f;
+  blendTime = 1.0f;
 }
 
 void AnimBlendCtrl_Blender::destroy() {}
@@ -1343,6 +1409,18 @@ bool AnimBlendCtrl_Blender::validateNodeNotUsed(AnimationGraph &g, IAnimBlendNod
     if (!validate_node_not_used(g, this, node[i], i, test_n))
       valid = false;
   return valid;
+}
+void AnimBlendCtrl_Blender::collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map)
+{
+  for (int i = 0; i < 2; i++)
+  {
+    IAnimBlendNode *n = node[i];
+    if (node_map.find(n) == node_map.end())
+    {
+      node_map.emplace(n, true);
+      n->collectUsedBlendNodes(g, node_map);
+    }
+  }
 }
 bool AnimBlendCtrl_Blender::isAliasOf(IPureAnimStateHolder & /*st*/, IAnimBlendNode *n)
 {
@@ -1402,7 +1480,7 @@ void AnimBlendCtrl_Blender::setBlendTime(real dur) { blendTime = dur; }
 //
 AnimBlendCtrl_BinaryIndirectSwitch::AnimBlendCtrl_BinaryIndirectSwitch(AnimationGraph &graph, const char *param_name, int mask_and,
   int mask_eq) :
-  maskAnd(mask_and), maskEq(mask_eq)
+  maskAnd(mask_and), maskEq(mask_eq), morphTime{0.f, 0.f}
 {
   paramId = graph.addParamId(param_name, IPureAnimStateHolder::PT_ScalarParamInt);
 }
@@ -1432,6 +1510,18 @@ bool AnimBlendCtrl_BinaryIndirectSwitch::validateNodeNotUsed(AnimationGraph &g, 
   return valid;
 }
 
+void AnimBlendCtrl_BinaryIndirectSwitch::collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map)
+{
+  for (int i = 0; i < 2; i++)
+  {
+    IAnimBlendNode *n = node[i];
+    if (node_map.find(n) == node_map.end())
+    {
+      node_map.emplace(n, true);
+      n->collectUsedBlendNodes(g, node_map);
+    }
+  }
+}
 void AnimBlendCtrl_BinaryIndirectSwitch::setBlendNodes(IAnimBlendNode *n1, real n1_mtime, IAnimBlendNode *n2, real n2_mtime)
 {
   node[0] = n1;
@@ -1522,6 +1612,18 @@ bool AnimBlendCtrl_ParametricSwitcher::validateNodeNotUsed(AnimationGraph &g, IA
       valid = false;
   return valid;
 }
+void AnimBlendCtrl_ParametricSwitcher::collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map)
+{
+  for (int i = 0; i < list.size(); i++)
+  {
+    IAnimBlendNode *n = list[i].node;
+    if (node_map.find(n) == node_map.end())
+    {
+      node_map.emplace(n, true);
+      n->collectUsedBlendNodes(g, node_map);
+    }
+  }
+}
 bool AnimBlendCtrl_ParametricSwitcher::isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n)
 {
   AnimFifo3Queue *fifo = (AnimFifo3Queue *)st.getInlinePtr(fifoParamId);
@@ -1556,4 +1658,12 @@ int AnimBlendCtrl_ParametricSwitcher::getAnimForRange(real range)
       return i;
   }
   return -1;
+}
+
+void AnimBlendCtrl_SetMotionMatchingTag::buildBlendingList(BlendCtx &bctx, real w)
+{
+  if (w < 0.0001f || tagIdx < 0)
+    return;
+  uint32_t *activeNodesMask = static_cast<uint32_t *>(bctx.st->getInlinePtr(tagsMaskParamId));
+  activeNodesMask[tagIdx >> 5] |= 1 << (tagIdx & 31);
 }

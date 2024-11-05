@@ -1,0 +1,4 @@
+if $(Dedicated) != yes {
+  gamePulls += daNetGameLibs_route_prober_DAS_pull_AOT ;
+  UseProgLibs += daNetGameLibs/route_prober ;
+}

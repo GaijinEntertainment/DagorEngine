@@ -3,7 +3,6 @@
 #include <squirrel/sqvm.h>
 
 #define ENABLE_CONTEXT_CHECK 0
-#define ENABLE_FIXED_ALLOC 1
 #define FIXED_ALLOCATORS_COUNT 42
 #define ENABLE_SQ_MEM_STAT (DAGOR_DBGLEVEL > 0)
 #ifndef SQ_VAR_TRACE_ENABLED
@@ -24,11 +23,20 @@
 #endif
 
 typedef struct SQAllocContextT * SQAllocContext;
+#if !ENABLE_FIXED_ALLOC
+#define ENABLE_RE_USE 1
+#else
+#undef ENABLE_RE_USE
+#endif
 
 struct SQAllocContextT
 {
 #if ENABLE_FIXED_ALLOC
   FixedBlockAllocator allocators[FIXED_ALLOCATORS_COUNT];
+#elif ENABLE_RE_USE
+  enum {MAX_BINS = 20, MAX_ALLOCATIONS_PER_BIN = 8};
+  uint32_t allocatedBinsCount[MAX_BINS];
+  void * allocatedBins[MAX_BINS][MAX_ALLOCATIONS_PER_BIN];
 #endif
   HSQUIRRELVM vm;
 };
@@ -85,6 +93,8 @@ void sq_vm_init_alloc_context(SQAllocContext * ctx)
     int initSize = (i >= 8 && i <= 11) ? 512 : 16;
     new (&ctxImpl->allocators[i]) FixedBlockAllocator(i * 8, initSize);
   }
+#elif ENABLE_RE_USE
+  memset(ctxImpl->allocatedBinsCount, 0, sizeof(ctxImpl->allocatedBinsCount));
 #endif
 
   ctxImpl->vm = nullptr;
@@ -113,17 +123,25 @@ void sq_vm_destroy_alloc_context(SQAllocContext * ctx)
 #if ENABLE_FIXED_ALLOC
     for (int i = 0; i < FIXED_ALLOCATORS_COUNT; i++)
       (*ctx)->allocators[i].~FixedBlockAllocator();
+#elif ENABLE_RE_USE
+    for (int i = 0; i < SQAllocContextT::MAX_BINS; i++)
+    {
+      for (int j = 0, e = (*ctx)->allocatedBinsCount[i]; j < e; j++)
+        scriptmem->free((*ctx)->allocatedBins[i][j]);
+      (*ctx)->allocatedBinsCount[i] = 0;
+    }
 #endif
 
     memfree(*ctx, midmem);
     *ctx = nullptr;
   }
 }
-
+enum {ALLOC_ALIGNMENT_SHIFT = 3, ALLOC_ALIGNMENT_MASK = (1<<ALLOC_ALIGNMENT_SHIFT)-1};
 
 void *sq_vm_malloc(SQAllocContext ctx, SQUnsignedInteger size)
 {
-  sqmemtrace::mem_used += (unsigned)size;
+  size = (size + ALLOC_ALIGNMENT_MASK)&~ALLOC_ALIGNMENT_MASK;
+  sqmemtrace::mem_used += size;
 #if ENABLE_SQ_MEM_STAT
   sqmemtrace::mem_used_max = sqmemtrace::mem_used > sqmemtrace::mem_used_max ? sqmemtrace::mem_used : sqmemtrace::mem_used_max;
   ++sqmemtrace::mem_cur_ptrs;
@@ -147,8 +165,16 @@ void *sq_vm_malloc(SQAllocContext ctx, SQUnsignedInteger size)
 
     return n;
   }
+#elif ENABLE_RE_USE
+  if (ctx)
+  {
+    const uint32_t bin = (size>>ALLOC_ALIGNMENT_SHIFT) - 1;
+    if (bin < ctx->MAX_BINS && ctx->allocatedBinsCount[bin])
+    {
+      return ctx->allocatedBins[bin][--ctx->allocatedBinsCount[bin]];
+    }
+  }
 #endif
-
   void * ret = scriptmem->alloc(size);
 #if ENABLE_CONTEXT_CHECK
   alloc_map.insert(std::pair<void *, SQAllocContext>(ret, ctx));
@@ -163,6 +189,10 @@ void *sq_vm_malloc(SQAllocContext ctx, SQUnsignedInteger size)
 
 void *sq_vm_realloc(SQAllocContext ctx, void *p, SQUnsignedInteger oldsize, SQUnsignedInteger size)
 {
+  size = (size + ALLOC_ALIGNMENT_MASK)&~ALLOC_ALIGNMENT_MASK;
+  oldsize = (oldsize + ALLOC_ALIGNMENT_MASK)&~ALLOC_ALIGNMENT_MASK;
+  if (size == oldsize)
+    return p;
   sqmemtrace::mem_used += size - oldsize;
 #if ENABLE_SQ_MEM_STAT
   if (size)
@@ -223,6 +253,22 @@ void *sq_vm_realloc(SQAllocContext ctx, void *p, SQUnsignedInteger oldsize, SQUn
     #endif
     return n;
   }
+#elif ENABLE_RE_USE
+  if (ctx)
+  {
+    const uint32_t binOld = (oldsize>>ALLOC_ALIGNMENT_SHIFT) - 1;
+    const uint32_t binNew = (size>>ALLOC_ALIGNMENT_SHIFT) - 1;
+    if (binNew < ctx->MAX_BINS && ctx->allocatedBinsCount[binNew])
+    {
+      void *ret = ctx->allocatedBins[binNew][--ctx->allocatedBinsCount[binNew]];
+      memcpy(ret, p, min(oldsize, size));
+      if (binOld < ctx->MAX_BINS && ctx->allocatedBinsCount[binOld] < ctx->MAX_ALLOCATIONS_PER_BIN)
+        ctx->allocatedBins[binOld][ctx->allocatedBinsCount[binOld]++] = p;
+      else
+        scriptmem->free(p);
+      return ret;
+    }
+  }
 #endif
 
   void* ret = scriptmem->realloc(p, size);
@@ -240,7 +286,8 @@ void sq_vm_free(SQAllocContext ctx, void *p, SQUnsignedInteger size)
   if (!p)
     return;
 
-  sqmemtrace::mem_used -= (unsigned)size;
+  size = (size + ALLOC_ALIGNMENT_MASK)&~ALLOC_ALIGNMENT_MASK;
+  sqmemtrace::mem_used -= size;
 #if ENABLE_SQ_MEM_STAT
   --sqmemtrace::mem_cur_ptrs;
 #endif
@@ -259,9 +306,19 @@ void sq_vm_free(SQAllocContext ctx, void *p, SQUnsignedInteger size)
 #if ENABLE_FIXED_ALLOC
   if (size <= MAX_FIXED_SIZE && ctx)
   {
-    FixedBlockAllocator * allocators = (FixedBlockAllocator *)ctx;
+    FixedBlockAllocator * allocators =  reinterpret_cast<FixedBlockAllocator *>(ctx);
     allocators[ALLOCATOR_INDEX(size)].freeOneBlock(p);
     return;
+  }
+#elif ENABLE_RE_USE
+  if (ctx && size > ALLOC_ALIGNMENT_MASK)
+  {
+    const uint32_t bin = (size>>ALLOC_ALIGNMENT_SHIFT) - 1;
+    if (bin < ctx->MAX_BINS && ctx->allocatedBinsCount[bin] < ctx->MAX_ALLOCATIONS_PER_BIN)
+    {
+      ctx->allocatedBins[bin][ctx->allocatedBinsCount[bin]++] = p;
+      return;
+    }
   }
 #endif
 

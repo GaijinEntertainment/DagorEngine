@@ -1,6 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef __GAIJIN_DAGORED_DE_PLUGINDATA_H__
-#define __GAIJIN_DAGORED_DE_PLUGINDATA_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 class DagorEdPluginData
 {
@@ -25,5 +24,3 @@ public:
     oldVisible(false), doExport(true), doExportFilter(true), externalExport(false), hotkey(-1), dll(NULL), externalSource(false)
   {}
 };
-
-#endif //__GAIJIN_DAGORED_DE_PLUGINDATA_H__

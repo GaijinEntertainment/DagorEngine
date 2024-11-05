@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <spacePartition/dag_looseGrid.h>
 #include <math/dag_bounds3.h>
 #include <math/dag_adjpow2.h>

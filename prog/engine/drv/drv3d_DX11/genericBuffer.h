@@ -1,6 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/dag_drv3dCmd.h>
 #include <3d/tql.h>
 
 /* This validation is disabled by default because at the end of frame
@@ -35,6 +35,7 @@ public:
     BUFFER_INVALID,
     BUFFER_LOCKED,
     BUFFER_COPIED,
+    UPDATED_BY_COPYTO,
     STAGING_BUFFER_LOCKED,
     STAGING_BUFFER_LOCKED_SHOULD_BE_COPIED
   };

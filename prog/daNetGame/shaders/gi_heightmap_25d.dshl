@@ -1,0 +1,2 @@
+include "shader_global.dshl"
+include "giHelpers/heightmap_25d.dshl"

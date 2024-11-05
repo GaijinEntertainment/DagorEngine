@@ -1,9 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/hdrDecoder.h>
 
 #include <shaders/dag_shaders.h>
 #include <ioSys/dag_dataBlock.h>
 #include <perfMon/dag_statDrv.h>
 #include <render/hdrRender.h>
+#include <drv/3d/dag_renderTarget.h>
 
 #define GLOBAL_VARS_LIST VAR(paper_white_nits)
 
@@ -16,7 +19,7 @@ constexpr int MIN_PAPER_WHITE_NITS = 100;
 constexpr int MAX_PAPER_WHITE_NITS = 1000;
 constexpr int DEF_PAPER_WHITE_NITS = 200;
 
-static bool int10_hdr_buffer() { return d3d::driver_command(DRV3D_COMMAND_INT10_HDR_BUFFER, nullptr, nullptr, nullptr); }
+static bool int10_hdr_buffer() { return d3d::driver_command(Drv3dCommand::INT10_HDR_BUFFER); }
 
 static void update_paper_white_nits(uint32_t value) { ShaderGlobal::set_real(paper_white_nitsVarId, value); }
 

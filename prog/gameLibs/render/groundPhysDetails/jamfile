@@ -1,0 +1,20 @@
+Root    ?= ../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/groundPhysDetails ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/groundPhysDetails.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/render
+  $(Root)/$(Location)
+;
+
+Sources =
+  groundDetailsHandler.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

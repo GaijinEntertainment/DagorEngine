@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "nodes.h"
 
 #include <EditorCore/ec_interface.h>

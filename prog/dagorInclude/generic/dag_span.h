@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -27,7 +26,8 @@ struct is_same<T1, T1>
 
 #ifdef _DEBUG_TAB_
 #include <util/dag_globDef.h>
-inline DAGOR_NOINLINE void span_index_assert(const char *name, int idx, int dcnt, const void *self, const void *dptr, int szt)
+inline DAGOR_NOINLINE void span_index_assert([[maybe_unused]] const char *name, [[maybe_unused]] int idx, [[maybe_unused]] int dcnt,
+  [[maybe_unused]] const void *self, [[maybe_unused]] const void *dptr, [[maybe_unused]] int szt)
 {
   G_ASSERT_FAIL("Index out of bounds: %s[%d] dcnt=%d this=0x%p dptr=0x%p sizeof(T)=%d", name, idx, dcnt, self, dptr, szt);
 }
@@ -138,12 +138,10 @@ public:
   // STL compatibility
   //
 
-  iterator begin() { return dptr; }
-  const_iterator begin() const { return dptr; }
+  iterator begin() const { return dptr; }
   const_iterator cbegin() const { return dptr; }
 
-  iterator end() { return dptr + dcnt; }
-  const_iterator end() const { return dptr + dcnt; }
+  iterator end() const { return dptr + dcnt; }
   const_iterator cend() const { return dptr + dcnt; }
 
   reference front()

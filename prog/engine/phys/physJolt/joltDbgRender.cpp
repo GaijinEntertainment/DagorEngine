@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <phys/dag_physDebug.h>
 #include <phys/dag_joltHelpers.h>
 
@@ -46,7 +48,7 @@ public:
   void DrawLine(JPH::RVec3 inFrom, JPH::RVec3 inTo, JPH::ColorArg inColor) override
   {
     if (forcedBufferedDebugDrawMode)
-      draw_debug_line_buffered(to_point3(inFrom), to_point3(inTo), E3DCOLOR(inColor.r, inColor.g, inColor.b, inColor.a));
+      draw_debug_line_buffered(to_point3(inFrom), to_point3(inTo), E3DCOLOR(inColor.r, inColor.g, inColor.b, inColor.a), 1);
     else
       draw_cached_debug_line(to_point3(inFrom), to_point3(inTo), E3DCOLOR(inColor.r, inColor.g, inColor.b, inColor.a));
   }
@@ -78,9 +80,9 @@ public:
       JPH::Color c2 = b.vert[b.indx[fi + 2]].mColor;
       if (forcedBufferedDebugDrawMode)
       {
-        draw_debug_line_buffered(Point3::xyz(v0), Point3::xyz(v1), E3DCOLOR(c0.r, c0.g, c0.b, c0.a));
-        draw_debug_line_buffered(Point3::xyz(v1), Point3::xyz(v2), E3DCOLOR(c1.r, c1.g, c1.b, c1.a));
-        draw_debug_line_buffered(Point3::xyz(v2), Point3::xyz(v0), E3DCOLOR(c2.r, c2.g, c2.b, c2.a));
+        draw_debug_line_buffered(Point3::xyz(v0), Point3::xyz(v1), E3DCOLOR(c0.r, c0.g, c0.b, c0.a), 1);
+        draw_debug_line_buffered(Point3::xyz(v1), Point3::xyz(v2), E3DCOLOR(c1.r, c1.g, c1.b, c1.a), 1);
+        draw_debug_line_buffered(Point3::xyz(v2), Point3::xyz(v0), E3DCOLOR(c2.r, c2.g, c2.b, c2.a), 1);
       }
       else
       {

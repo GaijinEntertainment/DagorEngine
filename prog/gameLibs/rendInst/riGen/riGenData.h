@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <rendInst/rendInstGen.h>
@@ -9,6 +10,7 @@
 #include <generic/dag_patchTab.h>
 #include <generic/dag_smallTab.h>
 #include <EASTL/bitvector.h>
+#include <EASTL/unique_ptr.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_rwLock.h>
 #include <shaders/dag_rendInstRes.h>
@@ -22,10 +24,12 @@
 #include <math/dag_vecMathCompatibility.h>
 #include <generic/dag_carray.h>
 #include <generic/dag_staticTab.h>
-#include <EASTL/vector_set.h>
+#include <dag/dag_vectorSet.h>
 #include <shaders/dag_linearSbufferAllocator.h>
 #include <memory/dag_linearHeapAllocator.h>
 
+// use additional data as hashVal only when in Tools (De3X, AV2)
+#define RIGEN_PERINST_ADD_DATA_FOR_TOOLS _TARGET_PC_TOOLS_BUILD
 
 #define RI_VERBOSE_OUTPUT (DAGOR_DBGLEVEL > 0)
 
@@ -45,7 +49,8 @@ class AssetData;
 namespace rendinst::render
 {
 class RtPoolData;
-}
+bool renderRIGenGlobalShadowsToTextures(const Point3 &sunDir0, bool force_update, bool use_compression, bool free_temp_resources);
+} // namespace rendinst::render
 struct RenderStateContext;
 
 
@@ -66,14 +71,15 @@ struct RendInstGenData
     int baseOfs;
     int total;
     int avail;
-    void *topPtr;
+    int topOfs;
+    uint8_t *topPtr(uint8_t *base) const { return base + topOfs; }
   };
   struct PregenEntPoolDesc
   {
     PatchablePtr<RenderableInstanceLodsResource> riRes;
     PatchablePtr<const char> riName;
     carray<E3DCOLOR, 2> colPair;
-    uint32_t posInst : 1, paletteRotation : 1, _resv30 : 30;
+    uint32_t posInst : 1, paletteRotation : 1, zeroInstSeeds : 1, _resv29 : 29;
     int32_t paletteRotationCount;
   };
   struct PregenEntCounter
@@ -114,15 +120,12 @@ struct RendInstGenData
     float impulseOnExplosion;
     SimpleString fxTemplate;
     DebrisProps() : delayedPoolIdx(-1), fxType(-1), fxScale(1.f) {} //-V730
+    bool needsUpdate() const { return submersion > 0.f || inclination > 0.f; }
   };
   struct DebrisPool
   {
-    DebrisProps *props;
-    int resIdx;
-    Tab<rendinst::DestroyedRi *> delayedRi;
-
-    void clearDelayedRi() { clear_all_ptr_items(delayedRi); }
-    DebrisPool() : resIdx(-1), props(nullptr) {}
+    const DebrisProps *props = nullptr;
+    int resIdx = -1;
   };
 
   struct DestrProps
@@ -177,12 +180,14 @@ struct RendInstGenData
     float canopyTopPart;
     float canopyWidthPart;
     float canopyOpacity;
+    rendinstdestr::TreeDestr::BranchDestr treeBranchDestr;
   };
 
   struct ElemMask
   {
     uint32_t atest;
     uint32_t cullN;
+    uint32_t plod;
   };
 
   struct RtData
@@ -195,6 +200,7 @@ struct RendInstGenData
     Tab<E3DCOLOR> riColPair;
     eastl::bitvector<> riPosInst;
     eastl::bitvector<> riPaletteRotation;
+    eastl::bitvector<> riZeroInstSeeds;
     Tab<const char *> riResName;
     SmallTab<ElemMask, MidmemAlloc> riResElemMask; // bit-per-elem mask for rendinst::MAX_LOD_COUNT lod of each riRes
     SmallTab<bbox3f, MidmemAlloc> riResBb;
@@ -204,6 +210,7 @@ struct RendInstGenData
     SmallTab<uint8_t, MidmemAlloc> riResHideMask;
     Tab<DebrisProps> riDebrisMap;
     Tab<DebrisPool> riDebris;
+    Tab<eastl::unique_ptr<rendinst::DestroyedRi>> riDebrisDelayedRi; // TODO: remove indirection (put by value)
     Tab<DestrProps> riDestr;
     Tab<rendinst::DestroyedCellData> riDestrCellData;
     Tab<uint16_t> riExtraIdxPair;
@@ -228,11 +235,29 @@ struct RendInstGenData
     float settingsTransparencyDeltaRcp, transparencyDeltaRcp;
     float averageFarPlane;
     float rendinstDistMul, rendinstDistMulFar, rendinstDistMulImpostorTrees, rendinstDistMulFarImpostorTrees,
-      impostorsFarDistAdditionalMul, impostorsDistAdditionalMul;
+      impostorsFarDistAdditionalMul, impostorsDistAdditionalMul, impostorsMinRange;
     Tab<uint16_t> predicateIndices;
     vec4f occlusionBoxHalfSize;
-    bbox3f movedDebrisBbox;
     bbox3f maxCellBbox;
+    enum class GlobalShadowPhase
+    {
+      // Render impostor into small texture
+      LOW_PASS = 0,
+      // Read back low pass texture from gpu, calculate bounding box,
+      // render bounding box part into bigger texture and
+      // compress it (if use_compress=true)
+      HIGH_PASS = 1,
+      // After complete of high pass for all rotation in rotation palette
+      READY = 2,
+    };
+    struct GlobalShadowTask
+    {
+      int batchIndex = 0;
+      GlobalShadowPhase phase = GlobalShadowPhase::LOW_PASS;
+      int poolNo = 0;
+      int rotationId = 0;
+    };
+    dag::VectorSet<GlobalShadowTask> globalShadowTask;
     int nextPoolForShadowImpostors;
     int nextPoolForClipmapShadows;
 
@@ -251,7 +276,7 @@ struct RendInstGenData
     __forceinline float get_last_range(float range) const { return range * rendinstDistMulFar; }
     __forceinline float get_trees_range(float range) const
     {
-      return range * rendinstDistMulImpostorTrees * impostorsDistAdditionalMul;
+      return min(range * rendinstDistMulImpostorTrees * impostorsDistAdditionalMul, impostorsMinRange);
     }
     __forceinline float get_trees_last_range(float range) const
     {
@@ -261,8 +286,25 @@ struct RendInstGenData
       float impostors_far_dist_additional_mul = 1.f);
     inline void setImpostorsDistAddMul(float add_mul) { impostorsDistAdditionalMul = add_mul; }
     inline void setImpostorsFarDistAddMul(float add_mul) { impostorsFarDistAdditionalMul = add_mul; }
+    inline void setImpostorsMinRange(float min_range) { impostorsMinRange = min_range; }
 
-    int renderRendinstGlobalShadowsToTextures(const Point3 &sunDir0, bool force_update, bool use_compression = true);
+    enum class GlobalShadowRet
+    {
+      ERR = 0,
+      WAIT_NEXT_FRAME = 1,
+      DONE = 2,
+    };
+    friend bool rendinst::render::renderRIGenGlobalShadowsToTextures(const Point3 &sunDir0, bool force_update, bool use_compression,
+      bool free_temp_resources);
+
+  private:
+    bool areImpostorsReady(bool force_update);
+    bool haveNextPoolForShadowImpostors();
+    bool shouldRenderGlobalShadows();
+    GlobalShadowRet renderGlobalShadow(GlobalShadowTask &task, const Point3 &sun_dir_0, bool force_update, bool use_compression);
+
+  public:
+    GlobalShadowRet renderRendinstGlobalShadowsToTextures(const Point3 &sun_dir_0, bool force_update, bool use_compression);
     bool renderRendinstClipmapShadowsToTextures(const Point3 &sunDir0, bool for_sli, bool force_update);
 
     void initImpostors();
@@ -276,7 +318,12 @@ struct RendInstGenData
     void addDebris(mat44f &tm, int pool_idx, unsigned frameNo, const Point3 &axis, float accumulatedPower = 0.0f);
     rendinst::DestroyedRi *addExternalDebris(mat44f &tm, int pool_idx);
     void addDebrisForRiExtraRange(const DataBlock &ri_blk, uint32_t res_idx, uint32_t count);
-    void updateDebris(uint32_t curFrame, float dt);
+    void updateDelayedDebrisRi(float dt, bbox3f *movedDebrisBbox);
+    void updateDebris(float dt, bbox3f *movedDebrisBbox)
+    {
+      if (!riDebrisDelayedRi.empty())
+        updateDelayedDebrisRi(dt, movedDebrisBbox);
+    }
 
     int riResFirstLod(int ri_idx) const { return riRes[ri_idx]->getQlMinAllowedLod(); }
     int riResLodCount(int ri_idx) const
@@ -322,19 +369,24 @@ struct RendInstGenData
 #endif
     }
   };
-  struct CellRtData
+
+  struct CellRtDataLoaded // Note: this part of cellRtData could be unloaded in runtime
   {
     struct SubCellSlice
     {
       int ofs, sz;
     };
-    vec4f cellOrigin;
-    SmallTab<EntPool, MidmemAlloc> pools;
     SmallTab<SubCellSlice, MidmemAlloc> scs;
     SmallTab<uint16_t> scsRemap;
     SmallTab<bbox3f, MidmemAlloc> bbox;
+    eastl::unique_ptr<uint8_t[]> sysMemData;
+  };
+
+  struct CellRtData : CellRtDataLoaded
+  {
+    vec4f cellOrigin;
+    SmallTab<EntPool, MidmemAlloc> pools;
     bbox3f pregenRiExtraBbox;
-    uint8_t *sysMemData = nullptr;
     RtData *rtData = nullptr; // parent
     PregenEntRtAdd *pregenAdd = nullptr;
     LinearHeapAllocatorSbuffer::RegionId cellVbId;
@@ -455,8 +507,9 @@ public:
   void initRender(const DataBlock *level_blk = nullptr);
   void applyLodRanges();
 
-  inline float world0x() { return as_point4(&world0Vxz).x; }
-  inline float world0z() { return as_point4(&world0Vxz).y; }
+  float world0x() const { return v_extract_x(world0Vxz); }
+  float world0z() const { return v_extract_y(world0Vxz); }
+  vec4f getWorld0Vxz() const { return world0Vxz; }
 
   CellRtData *generateCell(int x, int y);
   int precomputeCell(CellRtData &crt, int x, int y);
@@ -581,12 +634,39 @@ int getPersistentPackType(RenderableInstanceLodsResource *res, int def);
 uint8_t getResHideMask(const char *res_name, const BBox3 *lbox);
 inline bool isResHidden(uint8_t hide_mask) { return ri_game_render_mode < 0 ? false : (hide_mask >> ri_game_render_mode) & 1; }
 
-inline bool is_pos_rendinst_data_destroyed(const int16_t *data) { return data[3] == 0; }
-inline bool is_tm_rendinst_data_destroyed(const int16_t *data) { return *(const uint64_t *)data == 0; } //-V1032
-inline void destroy_pos_rendinst_data(int16_t *data) { data[3] = 0; }
-inline void destroy_tm_rendinst_data(int16_t *data)
+inline bool is_pos_rendinst_data_destroyed(const int16_t *data) { return interlocked_relaxed_load((const uint16_t &)data[3]) == 0; }
+inline bool is_tm_rendinst_data_destroyed(const int16_t *data)
 {
-  data[0] = data[1] = data[2] = data[4] = data[5] = data[6] = data[8] = data[9] = data[10] = 0;
+  const uint32_t *data32 = (const uint32_t *)data; //-V1032
+  return interlocked_relaxed_load(data32[0]) == 0 && interlocked_relaxed_load(data32[1]) == 0;
+}
+inline void destroy_pos_rendinst_data(int16_t *data, dag::ConstSpan<uint8_t> mrange)
+{
+  G_UNUSED(mrange);
+#ifdef _DEBUG_TAB_
+  G_FAST_ASSERT((uint8_t *)data >= mrange.data() && (uint8_t *)&data[3] < mrange.end());
+#endif
+  interlocked_release_store((uint16_t &)data[3], 0);
+}
+inline void destroy_tm_rendinst_data(int16_t *data, dag::ConstSpan<uint8_t> mrange)
+{
+  G_UNUSED(mrange);
+#ifdef _DEBUG_TAB_
+  G_FAST_ASSERT((uint8_t *)data >= mrange.data() && (uint8_t *)&data[10] < mrange.end());
+#endif
+  uint32_t *data32 = reinterpret_cast<uint32_t *>(data); //-V1032
+  // Begin with storing sentinel value to the data32[1], this value
+  // cant occur naturally, so it will be treated as invalid, if loaded.
+  // Because we start with release-storing this value, reader is guaranteed
+  // to see it, if it reads data after this operation, see acquire_load_tm_data_first_row
+  // NOTE: we cant use 64 bit atomics here, because data is always aligned by 4 bytes, but not by 8
+  interlocked_release_store(data32[1], 0x80008000u);
+  interlocked_relaxed_store(data32[0], 0);
+  for (int i = 4; i < 11; i++)
+    interlocked_relaxed_store((uint16_t &)data[i], 0);
+  // replace sentinel value with zero, release-store instead of relaxed, so reader will be
+  // guaranteed to see other data zeroed too
+  interlocked_release_store(data32[1], 0);
 }
 
 RenderableInstanceLodsResource *get_stub_res();
@@ -624,20 +704,22 @@ inline bool getRIGenCanopyBBox(const RendInstGenData::RendinstProperties &prop, 
   for (int _layer = rendinst::rgPrimaryLayers; _layer < rendinst::rgLayer.size(); _layer++) \
     if (RendInstGenData *VAR = rendinst::rgLayer[_layer])
 
-#define FOR_EACH_RG_LAYER_RENDER(VAR, MASK)                                                              \
-  for (int _layer = 0, rm = rendinst::MASK; rm && _layer < rendinst::rgLayer.size(); _layer++, rm >>= 1) \
-    if (rm & 1)                                                                                          \
-      if (RendInstGenData *VAR = rendinst::rgLayer[_layer])
+#define FOR_EACH_RG_LAYER_RENDER_EX(VAR, MASK, LAYER)                                  \
+  for (int _layer = 0, rm = (MASK); rm && _layer < (LAYER).size(); _layer++, rm >>= 1) \
+    if (rm & 1)                                                                        \
+      if (RendInstGenData *VAR = (LAYER)[_layer])
+
+#define FOR_EACH_RG_LAYER_RENDER(VAR, MASK) FOR_EACH_RG_LAYER_RENDER_EX (VAR, rendinst::MASK, rendinst::rgLayer)
 
 #if RIGEN_PERINST_ADD_DATA_FOR_TOOLS
-#define RIGEN_ADD_STRIDE_PER_INST_B(PER_INST_DWORDS) ((((PER_INST_DWORDS) + 3) & ~3) * 2)
-#define RIGEN_TM_STRIDE_B(PER_INST_DWORDS)           (12 * 2 + RIGEN_ADD_STRIDE_PER_INST_B(PER_INST_DWORDS))
-#define RIGEN_POS_STRIDE_B(PER_INST_DWORDS) \
+#define RIGEN_ADD_STRIDE_PER_INST_B(ZERO_INST_SEEDS, PER_INST_DWORDS) ((ZERO_INST_SEEDS) ? 0 : ((((PER_INST_DWORDS) + 3) & ~3) * 2))
+#define RIGEN_TM_STRIDE_B(ZERO_INST_SEEDS, PER_INST_DWORDS)           (12 * 2 + RIGEN_ADD_STRIDE_PER_INST_B(ZERO_INST_SEEDS, PER_INST_DWORDS))
+#define RIGEN_POS_STRIDE_B(ZERO_INST_SEEDS, PER_INST_DWORDS) \
   (4 * 2) // pos inst don't have per-inst data since https://cvs1.gaijin.lan/#/c/dagor4/+/169657/
 #else
-#define RIGEN_ADD_STRIDE_PER_INST_B(PER_INST_DWORDS) 0
-#define RIGEN_TM_STRIDE_B(PER_INST_DWORDS)           (12 * 2)
-#define RIGEN_POS_STRIDE_B(PER_INST_DWORDS)          (4 * 2)
+#define RIGEN_ADD_STRIDE_PER_INST_B(ZERO_INST_SEEDS, PER_INST_DWORDS) 0
+#define RIGEN_TM_STRIDE_B(ZERO_INST_SEEDS, PER_INST_DWORDS)           (12 * 2)
+#define RIGEN_POS_STRIDE_B(ZERO_INST_SEEDS, PER_INST_DWORDS)          (4 * 2)
 #endif
-#define RIGEN_STRIDE_B(POS_INST, PER_INST_DWORDS) \
-  ((POS_INST) ? RIGEN_POS_STRIDE_B(PER_INST_DWORDS) : RIGEN_TM_STRIDE_B(PER_INST_DWORDS))
+#define RIGEN_STRIDE_B(POS_INST, ZERO_INST_SEEDS, PER_INST_DWORDS) \
+  ((POS_INST) ? RIGEN_POS_STRIDE_B(ZERO_INST_SEEDS, PER_INST_DWORDS) : RIGEN_TM_STRIDE_B(ZERO_INST_SEEDS, PER_INST_DWORDS))

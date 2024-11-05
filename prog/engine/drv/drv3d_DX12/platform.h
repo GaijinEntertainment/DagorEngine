@@ -1,17 +1,31 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <supp/dag_comPtr.h>
 #include <debug/dag_log.h>
+#include <winapi_helpers.h>
+
+#include <EASTL/optional.h>
 
 #include "driver.h"
-#include "winapi_helpers.h"
 
 
 namespace drv3d_dx12
 {
+struct HDRCapabilities
+{
+  float minLuminance;
+  float maxLuminance;
+  float maxFullFrameLuminance;
+};
+
+eastl::optional<HDRCapabilities> get_hdr_caps(const ComPtr<IDXGIOutput> &output);
 bool is_hdr_available(const ComPtr<IDXGIOutput> &output = {});
 bool change_hdr(bool force_enable = false, const ComPtr<IDXGIOutput> &output = {});
-void hdr_changed(bool is_hdr_enabled, float min_lum, float max_lum, float max_fullframe_lum);
+void hdr_changed(const eastl::optional<HDRCapabilities> &caps);
+
+struct SwapchainProperties;
+void set_hdr_config(SwapchainProperties &sci);
 
 #if _TARGET_PC_WIN
 struct Direct3D12Enviroment
@@ -142,5 +156,6 @@ DriverVersion get_driver_version_from_registry(LUID adapter_luid);
 
 D3D12_DRED_ENABLEMENT get_application_DRED_enablement_from_registry();
 
+DXGI_GPU_PREFERENCE get_gpu_preference_from_registry();
 #endif
 } // namespace drv3d_dx12

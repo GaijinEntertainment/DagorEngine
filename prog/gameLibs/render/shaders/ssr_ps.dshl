@@ -1,0 +1,175 @@
+include "ssr_base.dshl"
+
+shader ssr
+{
+  no_ablend;
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  SSR_COMMON(ps)
+  INIT_ZNZFAR()
+  SSR_CALCULATE(ps)
+  POSTFX_VS(0)
+  SSR_DISOCCLUSION(ps)
+
+  hlsl(ps) {
+    float4 ssr_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      half3 normal;
+      half linear_roughness;
+      half smoothness;
+      uint2 pixelPos = uint2(GET_SCREEN_POS(input.pos).xy);
+      unpack_material(pixelPos, normal, linear_roughness, smoothness);
+
+      // Early out
+      float roughnessFade = saturate(linear_roughness * SSRParams.y + 2);
+      BRANCH
+      if (roughnessFade == 0)
+        return 0;
+
+      float rawDepth = texelFetch(src_depth_tex, pixelPos, 0).r;
+
+      BRANCH
+      if (rawDepth <= 0 || rawDepth >= 1)
+        return 0;
+
+      float2 curViewTc = (pixelPos + 0.5)*ssr_target_size.zw;
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+      float3 viewVec = getViewVecOptimized(curViewTc);
+      float3 cameraToPoint = viewVec * w; // fixme:
+      float3 worldPos = world_view_pos.xyz + cameraToPoint.xyz;
+      float3 realWorldPos = ssr_world_view_pos.xyz + cameraToPoint.xyz;
+      float worldDist=length(cameraToPoint.xyz);
+
+      half4 newTarget = 0;
+      float reflectionDistance;
+      #if SSR_TRACEWATER == 1
+        if (underwater_params.w * (realWorldPos.y - water_level) < 0)
+          return 0;
+        newTarget = performSSR(pixelPos, curViewTc, linear_roughness, normal,
+                               w, cameraToPoint, globtm_no_ofs_psf, water_level-realWorldPos.y+worldPos.y, worldPos, reflectionDistance);
+      #else
+        newTarget = performSSR(pixelPos, curViewTc, linear_roughness, normal,
+                               w, cameraToPoint, globtm_no_ofs_psf, 0, worldPos, reflectionDistance);
+      #endif
+
+      float3 prevViewVec = cameraToPoint;
+
+      // temporal reprojection first
+      //check if bbox of weapon
+      #if SSR_MOTIONREPROJ != 1
+        bool isHero = apply_hero_matrix(curViewTc, prevViewVec);
+      #endif
+
+
+      float4 prevClipExactPos = mul(float4(prevViewVec, 1), prev_globtm_no_ofs_psf);
+      float3 prevScreenExact = prevClipExactPos.w > 1e-6 ? prevClipExactPos.xyz/prevClipExactPos.w : float3(2,2,0);
+      float2 oldExactUV = prevScreenExact.xy*float2(0.5,-0.5) + float2(0.5,0.5);
+      float3 oldExactUVZ = float3(oldExactUV, clamp(linearize_z(prevScreenExact.z, prev_zn_zfar.zw), prev_zn_zfar.x, prev_zn_zfar.y));
+      float currentPosToPrevW = oldExactUVZ.z;
+
+      float rayLength = length(cameraToPoint);
+      float4 prevReflClip = mul(float4(prevViewVec*(reflectionDistance + rayLength)/rayLength, 1), prev_globtm_no_ofs_psf);
+      float3 prevReflScreen = prevReflClip.w > 1e-6 ? prevReflClip.xyz/prevReflClip.w : float3(2,2,0);
+      float2 prevUV = prevReflScreen.xy*float2(0.5,-0.5) + float2(0.5,0.5);
+      float3 prevUVZ = float3(prevUV, clamp(linearize_z(prevReflScreen.z, prev_zn_zfar.zw), prev_zn_zfar.x, prev_zn_zfar.y));
+
+      #if SSR_MOTIONREPROJ == 1
+        motion_type surface_motion = tex2Dlod(MOTION_VECTORS_TEXTURE, float4(curViewTc,0,0)).motion_attr;
+        #if MOTION_VECTORS_3D
+          float3 surface_3d_motion = surface_motion;
+        #else
+          float3 surface_3d_motion = float3(surface_motion, oldExactUVZ.z - w);
+        #endif
+        if (!CHECK_VALID_MOTION_VECTOR(surface_motion))
+          surface_3d_motion = oldExactUVZ - float3(curViewTc, w);
+
+        //motion_type reflect_motion = tex2Dlod(MOTION_VECTORS_TEXTURE, float4(cameraHitUVZ.xy,0,0)).motion_attr;
+        //if (CHECK_VALID_MOTION_VECTOR(reflect_motion) && all(abs(cameraHitUVZ.xy*2-1) < 1))
+        //  prevUVZ = cameraHitUVZ + reflect_motion;
+        bool staticPixel = all(abs(curViewTc + surface_3d_motion.xy - oldExactUVZ.xy) < 0.5*ssr_target_size.zw);
+      #else
+        float3 surface_3d_motion = oldExactUVZ - float3(curViewTc, w);
+        bool staticPixel = !isHero;
+        if (isHero)
+          surface_3d_motion.z = 0;
+      #endif
+
+      bool historyWeight = false;
+      half4 prevTarget = 0;
+      {
+        float2 useUV = curViewTc + surface_3d_motion.xy;
+        currentPosToPrevW = w + surface_3d_motion.z;
+        bool validateNormal = false;
+        if (staticPixel && prev_camera_translation > 0.01 && all(abs(prevUVZ.xy*2-1) < 1))
+        {
+          useUV = prevUVZ.xy;
+          validateNormal = true;
+        }
+
+        historyWeight = get_ssr_disocclusion_weight_sample(normal, linear_roughness, useUV, currentPosToPrevW, validateNormal, prevTarget);
+      }
+
+      //rougher surfaces should be more relaxed, to fight noise
+      float weight = historyWeight ? 0.1 - 0.03*linear_roughness : 1;
+
+      half4 result = force_ignore_history == 0 ? lerp(prevTarget, newTarget, weight) : newTarget;
+      return result;
+    }
+  }
+  compile("target_ps", "ssr_ps");
+}
+
+shader ssr_mipchain
+{
+  if (compatibility_mode == compatibility_mode_on) { dont_render; }
+
+  no_ablend;
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  USE_POSTFX_VERTEX_POSITIONS()
+
+  (vs) { ssr_target_size@f4 = ssr_target_size; }
+  (ps) { ssr_target@smp2d = ssr_target; }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 texcoord01     : TEXCOORD0;
+      float4 texcoord23     : TEXCOORD1;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput ssr_mip_vs(uint vertex_id : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertex_id);
+      output.pos = float4(pos, 0, 1);
+      float2 tc = screen_to_texcoords(pos);
+      output.texcoord01 = tc.xyxy + 0.25*float4(-ssr_target_size.z,-ssr_target_size.w, ssr_target_size.z,-ssr_target_size.w);
+      output.texcoord23 = tc.xyxy + 0.25*float4(-ssr_target_size.z, ssr_target_size.w, ssr_target_size.z, ssr_target_size.w);
+
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    float4 ssr_mip_ps(VsOutput input) : SV_Target
+    {
+      half4 lt = tex2Dlod(ssr_target, float4(input.texcoord01.xy, 0,0));
+      half4 rt = tex2Dlod(ssr_target, float4(input.texcoord01.zw, 0,0));
+      half4 lb = tex2Dlod(ssr_target, float4(input.texcoord23.xy, 0,0));
+      half4 rb = tex2Dlod(ssr_target, float4(input.texcoord23.zw, 0,0));
+
+      return (lt+rt+lb+rb)*0.25;
+    }
+  }
+  compile("target_vs", "ssr_mip_vs");
+  compile("target_ps", "ssr_mip_ps");
+}
+

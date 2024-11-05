@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -16,4 +15,8 @@ class FullColorGradingTonemapLUT : public CommonLUT
 {
 public:
   FullColorGradingTonemapLUT(bool need_hdr, int size = 32);
+  bool hasHDR() const { return _hasHDR; }
+
+private:
+  bool _hasHDR;
 };

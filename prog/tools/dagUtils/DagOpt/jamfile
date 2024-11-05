@@ -1,6 +1,5 @@
 Root    ?= ../../../.. ;
 Location = prog/tools/dagUtils/DagOpt ;
-DriverLinkage   = static ;
 ConsoleExe      = yes ;
 
 TargetType  = exe ;

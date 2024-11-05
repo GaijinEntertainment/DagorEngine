@@ -1,0 +1,11 @@
+//fixme : not working
+//incDir:t="./shaders"
+//incDir:t="./screenProbes"
+//incDir:t="./radianceCache"
+//incDir:t="./volumetricGI"
+//incDir:t="./albedoScene"
+//incDir:t="./voxelLitScene"
+//incDir:t="../../../../prog/gameLibs/daSDF/shaders"
+//incDir:t="./skyVisibility"
+//incDir:t="."
+

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <sceneBuilder/nsb_LightmappedScene.h>
 #include <libTools/staticGeom/matFlags.h>
 #include <unwrapMapping/autoUnwrap.h>
@@ -204,7 +206,7 @@ bool StaticSceneBuilder::LightmappedScene::calcLightmapMapping(int lm_size, int 
 
     cur_num = AutoUnwrapMapping::repack_facegroups(lm_scale, &cur_ratio, target_lm_num, pbar, progressCB);
 
-    debug_ctx("x%.6f: %d lightmaps, ratio=%.6f", lm_scale, cur_num, cur_ratio / cur_num);
+    DEBUG_CTX("x%.6f: %d lightmaps, ratio=%.6f", lm_scale, cur_num, cur_ratio / cur_num);
 
     if (cur_num == -1)
     {
@@ -250,7 +252,7 @@ bool StaticSceneBuilder::LightmappedScene::calcLightmapMapping(int lm_size, int 
     lm_scale = (upper_s + lower_s) / 2;
   }
 
-  debug_ctx("x%.6f: %d lightmaps, ratio=%.6f", lm_scale, cur_num, cur_ratio / cur_num);
+  DEBUG_CTX("x%.6f: %d lightmaps, ratio=%.6f", lm_scale, cur_num, cur_ratio / cur_num);
   debug_flush(false);
 
   // receive final mapping for lightmapped objects

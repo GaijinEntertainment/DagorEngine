@@ -1,9 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <assetsGui/av_globalState.h>
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_string.h>
 
 dag::Vector<String> AssetSelectorGlobalState::favorites;
 dag::Vector<String> AssetSelectorGlobalState::recentlyUsed;
+bool AssetSelectorGlobalState::showHierarchyInFavorites = true;
 
 void AssetSelectorGlobalState::load(const DataBlock &block)
 {
@@ -26,6 +29,8 @@ void AssetSelectorGlobalState::load(const DataBlock &block)
       if (recentlyUsedBlock->getParamType(i) == DataBlock::TYPE_STRING &&
           strcmp(recentlyUsedBlock->getParamName(i), "RecentlyUsed") == 0)
         recentlyUsed.emplace_back(String(recentlyUsedBlock->getStr(i)));
+
+  showHierarchyInFavorites = selectorBlock->getBool("ShowHierarchyInFavorites", showHierarchyInFavorites);
 }
 
 void AssetSelectorGlobalState::save(DataBlock &block)
@@ -49,6 +54,8 @@ void AssetSelectorGlobalState::save(DataBlock &block)
   if (recentlyUsedBlock)
     for (const String &name : recentlyUsed)
       recentlyUsedBlock->addStr("RecentlyUsed", name);
+
+  selectorBlock->setBool("ShowHierarchyInFavorites", showHierarchyInFavorites);
 }
 
 void AssetSelectorGlobalState::addFavorite(const String &asset)
@@ -57,11 +64,14 @@ void AssetSelectorGlobalState::addFavorite(const String &asset)
     favorites.push_back(asset);
 }
 
-void AssetSelectorGlobalState::removeFavorite(const String &asset)
+bool AssetSelectorGlobalState::removeFavorite(const String &asset)
 {
   auto it = eastl::find(favorites.begin(), favorites.end(), asset);
-  if (it != favorites.end())
-    favorites.erase(it);
+  if (it == favorites.end())
+    return false;
+
+  favorites.erase(it);
+  return true;
 }
 
 bool AssetSelectorGlobalState::addRecentlyUsed(const char *asset)

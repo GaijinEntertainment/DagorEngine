@@ -26,7 +26,7 @@ local _SrcDirs =
   #src/Bullet3Serialize/Bullet2FileLoader
 ;
 
-if $(Platform) in win32 win64 macosx linux64 android {
+if $(Platform) in windows macOS linux android {
   _SrcDirs +=
     src/Bullet3OpenCL/BroadphaseCollision
     src/Bullet3OpenCL/Initialize
@@ -36,7 +36,7 @@ if $(Platform) in win32 win64 macosx linux64 android {
     src/Bullet3OpenCL/RigidBody
     src/clew
   ;
-  if $(Platform) = macosx { AddLibs = "-framework OpenCL" ; }
+  if $(Platform) = macOS { AddLibs = "-framework OpenCL" ; }
 }
 
 if $(Platform) in xboxOne ps4 { CPPopt += -DUSE_FMA=0 ; }
@@ -49,17 +49,18 @@ AutoscanBuildLists $(_SrcDirs) : *.c : Sources ;
 AddIncludes = $(Root)/$(Location)/src ;
 
 include $(Root)/$(Location)/setup.jam ;
-if $(Platform) in win32 win64 { CPPopt += -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE -D_SCL_SECURE_NO_WARNINGS ; }
-if $(Platform) in win64 xboxOne scarlett { CPPopt += /wd4267 ; }
+if $(Platform) in windows { CPPopt += -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE -D_SCL_SECURE_NO_WARNINGS ; }
+if $(PlatformArch) = x86_64 && $(Platform) in windows xboxOne scarlett { CPPopt += /wd4267 ; }
 if $(Platform) in xboxOne scarlett { CPPopt += -DSetThreadIdealProcessor(X,Y)= ; }
 
 if $(PlatformSpec) in gcc clang { CPPopt += -Wno-unused-parameter -Wno-uninitialized -Wno-macro-redefined ; }
-if $(Platform) = linux64 || $(PlatformSpec) = clang {
-  if $(Platform) in win32 win64 xboxOne scarlett {
-    CPPopt += -fp:fast /clang:-fno-unsafe-math-optimizations ;
+if $(Platform) = linux || $(PlatformSpec) in clang clang64 {
+  if $(Platform) in windows xboxOne scarlett {
+    CPPopt += -fp:fast ;
+    if $(PlatformArch) != arm64 { CPPopt += /clang:-fno-unsafe-math-optimizations /clang:-mno-fma ; }
   } else {
     CPPopt += -ffast-math ;
-    if ! $(Platform) in iOS nswitch { CPPopt += -fno-unsafe-math-optimizations ; }
+    if ! $(Platform) in iOS nswitch android { CPPopt += -fno-unsafe-math-optimizations -mno-fma ; }
   }
 }
 if $(PlatformSpec) in clang {

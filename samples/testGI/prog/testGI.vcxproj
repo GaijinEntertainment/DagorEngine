@@ -13,19 +13,8 @@
   <PropertyGroup />
   <Import Project="$(MSBuildToolsDir)common.targets" />
   <ItemGroup Label="Wildcard">
-    <CppSource Include="test_app.cpp" />
-    <CppSource Include="test_main.cpp" />
-    <bat Include="shaders\compile_shaders.bat" />
-    <bat Include="shaders\compile_shaders_dx11.bat" />
-    <bat Include="shaders\compile_shaders_dx12.bat" />
-    <bat Include="shaders\compile_shaders_metal.bat" />
-    <bat Include="shaders\compile_shaders_spirv.bat" />
-    <bat Include="shaders\compile_shaders_tools.bat" />
-    <bat Include="s.cmd" />
-    <bat Include="shaders\build_all.cmd" />
-    <bat Include="shaders\s.cmd" />
-    <CppHeader Include="entEdit.h" />
-    <CppHeader Include="lruCollision.h" />
-    <CppHeader Include="test_main.h" />
+    <CppSource Include="**\*.cpp" />
+    <CppHeader Include="**\*.h;**\*.inl" />
+    <bat Include="**\*.bat;**\*.cmd" />
   </ItemGroup>
 </Project>

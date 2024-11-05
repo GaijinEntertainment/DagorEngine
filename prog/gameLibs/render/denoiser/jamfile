@@ -1,0 +1,35 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/denoiser ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/denoiser.lib ;
+
+BVHSupport ?= no ;
+
+# The NRD library, we are not using it for production purposes, this should never be committed with "yes".
+NRDLibrarySupport ?= no ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+if $(NRDLibrarySupport) = yes {
+  AddLibs +=
+    $(Root)/prog/gameLibs/render/denoiser/NRI/Lib/NRI.lib
+    $(Root)/prog/gameLibs/render/denoiser/NRD/Lib/NRD.lib
+  ;
+}
+
+# depend on BVHSupport as it is part of BVH stack
+if $(BVHSupport) = yes {
+  Sources = denoiser.cpp ;
+} else {
+  Sources = denoiser_stub.cpp ;
+  Target = $(Target:S=-stub.lib) ;
+}
+
+
+include $(Root)/prog/_jBuild/build.jam ;

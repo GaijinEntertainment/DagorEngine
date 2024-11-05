@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -13,7 +12,7 @@
 #define NDEBUG 1
 #endif
 
-#include <android_native_app_glue.h>
+#include <supp/android/dagor_native_app_glue.h>
 #include <EASTL/array.h>
 
 namespace android

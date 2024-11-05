@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -10,7 +9,6 @@
 
 // forward declarations of external classes
 class RenderScene;
-class Occlusion;
 class VisibilityFinder;
 
 
@@ -37,8 +35,9 @@ public:
   void allocPrepareVisCtx(int render_id);
   void doPrepareVisCtx(const VisibilityFinder &vf, int render_id, unsigned render_flags_mask);
   void setPrepareVisCtxToRender(int render_id);
+  void pushPreparedVisCtx();
+  void popPreparedVisCtx();
   void render(const VisibilityFinder &vf, int render_id, unsigned render_flags_mask);
-  void render(int render_id, unsigned render_flags_mask);
   void renderTrans();
 
   int loadScene(const char *lmdir, unsigned rs_id);
@@ -51,4 +50,5 @@ public:
   bool isSceneRenderable(unsigned rs_id);
 
   dag::Span<RenderScene *> getScenes() { return make_span(rs); }
+  dag::ConstSpan<RenderScene *> getScenes() const { return make_span_const(rs); }
 };

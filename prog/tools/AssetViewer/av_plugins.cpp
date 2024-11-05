@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "av_appwnd.h"
 #include "av_plugin.h"
 #include "av_cm.h"
@@ -64,12 +66,9 @@ void IGenEditorPlugin::drawInfo(IGenViewportWnd *wnd) { get_app().drawAssetInfor
 void IGenEditorPlugin::repaintView() { get_app().repaint(); }
 
 
-void *IGenEditorPlugin::getAdditinalPropWindow() { return get_app().getAdditinalPropWindow(); }
-
-
-PropertyContainerControlBase *IGenEditorPlugin::getPluginPanel()
+PropPanel::ContainerPropertyControl *IGenEditorPlugin::getPluginPanel()
 {
-  PropertyContainerControlBase *mainPanel = get_app().getPropPanel();
+  PropPanel::ContainerPropertyControl *mainPanel = get_app().getPropPanel();
 
   if (!mainPanel || !mainPanel->getById(ID_SPEC_GRP))
     return NULL;
@@ -78,7 +77,7 @@ PropertyContainerControlBase *IGenEditorPlugin::getPluginPanel()
 }
 
 
-PropertyContainerControlBase *IGenEditorPlugin::getPropPanel() { return get_app().getPropPanel(); }
+PropPanel::ContainerPropertyControl *IGenEditorPlugin::getPropPanel() { return get_app().getPropPanel(); }
 
 
 void IGenEditorPlugin::fillPluginPanel() { get_app().fillPropPanel(); }
@@ -87,10 +86,10 @@ void IGenEditorPlugin::fillPluginPanel() { get_app().fillPropPanel(); }
 CoolConsole &IGenEditorPlugin::getMainConsole() { return get_app().getConsole(); }
 
 
-IWndManager &IGenEditorPlugin::getWndManager() { return get_app().getWndManager(); }
+IWndManager &IGenEditorPlugin::getWndManager() { return *get_app().getWndManager(); }
 
 
-void IGenEditorPlugin::onPropPanelClear(PropertyContainerControlBase &propPanel)
+void IGenEditorPlugin::onPropPanelClear(PropPanel::ContainerPropertyControl &propPanel)
 {
   if (spEditor)
     spEditor->destroyPanel();
@@ -100,7 +99,7 @@ void IGenEditorPlugin::onPropPanelClear(PropertyContainerControlBase &propPanel)
 bool IGenEditorPlugin::hasScriptPanel() { return spEditor != NULL; }
 
 
-void IGenEditorPlugin::fillScriptPanel(PropertyContainerControlBase &propPanel)
+void IGenEditorPlugin::fillScriptPanel(PropPanel::ContainerPropertyControl &propPanel)
 {
   if (spEditor)
     spEditor->createPanel(propPanel);

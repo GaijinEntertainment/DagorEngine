@@ -1,6 +1,5 @@
 Root    ?= ../../../.. ;
 Location = prog/tools/dagUtils/DagAttacher ;
-DriverLinkage   = static ;
 ConsoleExe      = yes ;
 
 TargetType  = exe ;

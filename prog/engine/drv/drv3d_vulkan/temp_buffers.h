@@ -1,18 +1,57 @@
-// temp buffers for various frame-once data transfers
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+// temp buffers for various frame-once data transfers
+
+#include <EASTL/vector.h>
+#include <generic/dag_relocatableFixedVector.h>
+#include <osApiWrappers/dag_critSec.h>
+#include <debug/dag_assert.h>
+#include <atomic>
+
 #include "buffer_resource.h"
+#include "buffer_ref.h"
+#include <generic/dag_objectPool.h>
 
 namespace drv3d_vulkan
 {
+
+class TempBufferManager;
+
+class TempBufferHolder
+{
+  BufferRef ref;
+
+#if DAGOR_DBGLEVEL > 0
+  bool writesFlushed = false;
+#endif
+
+public:
+  TempBufferHolder() = delete;
+  TempBufferHolder(const TempBufferHolder &from);
+  TempBufferHolder(uint32_t size, const void *src);
+  TempBufferHolder(uint32_t size);
+  TempBufferHolder(const BufferRef &ext_ref);
+  ~TempBufferHolder();
+
+  void flushWrite()
+  {
+    ref.markNonCoherentRange(0, ref.visibleDataSize, true);
+#if DAGOR_DBGLEVEL > 0
+    writesFlushed = true;
+#endif
+  }
+
+  BufferRef getRef() { return ref; }
+  uint32_t bufOffset() { return ref.bufOffset(0); }
+  void *getPtr() { return ref.ptrOffset(0); }
+};
 
 struct TempBufferInfo
 {
   Buffer *buffer = nullptr;
   VkDeviceSize fill = 0;
 };
-
-class TempBufferHolder;
 
 class TempBufferManager
 {
@@ -23,10 +62,14 @@ class TempBufferManager
   eastl::vector<TempBufferInfo> buffers;
   VkDeviceSize currentAllocSize = 0;
   VkDeviceSize maxAllocSize = 0;
+  VkDeviceSize lastAllocSize = 0;
   uint32_t pow2Alignment = 0;
   uint8_t managerIndex = 0;
 
-  BufferSubAllocation allocate(Device &device, uint32_t unalignedSize);
+  BufferRef allocate(uint32_t unalignedSize);
+
+  WinCritSec poolGuard;
+  ObjectPool<TempBufferHolder> pool;
 
 public:
   TempBufferManager() { buffersInUse = 0; }
@@ -37,16 +80,20 @@ public:
   TempBufferManager &operator=(TempBufferManager &&) = delete;
   void setConfig(VkDeviceSize size, uint32_t alignment, uint8_t index);
 
+  void waitIfExtraAlloc(uint32_t unalignedSize);
+
+  VkDeviceSize getLastAllocSize()
+  {
+    WinAutoLock lock(writeLock);
+    return lastAllocSize;
+  }
+
   template <typename T>
   void onFrameEnd(T clb)
   {
     WinAutoLock lock(writeLock);
 
-    if (maxAllocSize < currentAllocSize)
-      maxAllocSize = currentAllocSize;
-    else if (currentAllocSize < maxAllocSize / 2)
-      maxAllocSize = nextPowerOfTwo(currentAllocSize + 1);
-
+    lastAllocSize = currentAllocSize;
     currentAllocSize = 0;
 
     int pendingBuffers = buffersInUse;
@@ -61,64 +108,38 @@ public:
     buffers.clear();
   }
 
-  enum
-  {
-    TYPE_UNIFORM = 0,
-    TYPE_USER_VERTEX = 1,
-    TYPE_USER_INDEX = 2,
-    TYPE_UPDATE = 3,
-    TYPE_COUNT = 4,
-  };
+  TempBufferHolder *allocatePooled(uint32_t size);
+  TempBufferHolder *allocatePooled(const BufferRef &framemem_ref);
+  void freePooled(TempBufferHolder *temp_buff_holder);
+  void shutdown();
 };
 
-class TempBufferHolder
+class FramememBufferManager
 {
-  BufferSubAllocation subAlloc;
-  TempBufferManager &manager;
+  WinCritSec writeLock;
+  Buffer *buffers[Buffer::pending_discard_frames * (uint32_t)DeviceMemoryClass::COUNT] = {};
+  dag::RelocatableFixedVector<Buffer *, Buffer::pending_discard_frames *(uint32_t)DeviceMemoryClass::COUNT> destroyQue;
 
-#if DAGOR_DBGLEVEL > 0
-  bool writesFlushed = false;
-#endif
+  FramememBufferManager(const FramememBufferManager &);
+  uint32_t frameToRingIdx(uint32_t frame) { return frame % Buffer::pending_discard_frames; }
+  Buffer *&getBuf(DeviceMemoryClass dmc, uint32_t frame)
+  {
+    return buffers[frameToRingIdx(frame) * (uint32_t)DeviceMemoryClass::COUNT + (uint32_t)dmc];
+  }
 
 public:
-  TempBufferHolder() = delete;
-  TempBufferHolder(const TempBufferHolder &from) : manager(from.manager), subAlloc(from.subAlloc) { ++manager.buffersInUse; }
+  FramememBufferManager() {}
+  ~FramememBufferManager() {}
 
-  TempBufferHolder(Device &device, TempBufferManager &_manager, uint32_t size, const void *src) : manager(_manager)
-  {
-    ++manager.buffersInUse;
-    subAlloc = manager.allocate(device, size);
-    memcpy(getPtr(), src, size);
-    flushWrite();
-  }
-
-  TempBufferHolder(Device &device, TempBufferManager &_manager, uint32_t size) : manager(_manager)
-  {
-    ++manager.buffersInUse;
-    subAlloc = manager.allocate(device, size);
-  }
-
-  ~TempBufferHolder()
-  {
-#if DAGOR_DBGLEVEL > 0
-    G_ASSERTF(writesFlushed, "vulkan: temp buffer write was not flushed");
-#endif
-    --manager.buffersInUse;
-  }
-
-  void flushWrite()
-  {
-    subAlloc.buffer->markNonCoherentRangeLoc(subAlloc.offset, subAlloc.size, true);
-#if DAGOR_DBGLEVEL > 0
-    writesFlushed = true;
-#endif
-  }
-
-  const BufferSubAllocation &get() { return subAlloc; }
-
-  uint32_t bufOffset() { return subAlloc.buffer->bufOffsetLoc(subAlloc.offset); }
-
-  void *getPtr() { return subAlloc.buffer->ptrOffsetLoc(subAlloc.offset); }
+  void init();
+  void shutdown();
+  BufferRef acquire(uint32_t size, DeviceMemoryClass mem_class);
+  BufferRef acquire(uint32_t size, uint32_t flags);
+  void getMemUsageInfo(uint32_t &allocated, uint32_t &used_currently);
+  void purge();
+  void onFrameEnd();
+  void swapRefCounters(Buffer *src, Buffer *dst);
+  void release(Buffer *obj);
 };
 
 } // namespace drv3d_vulkan

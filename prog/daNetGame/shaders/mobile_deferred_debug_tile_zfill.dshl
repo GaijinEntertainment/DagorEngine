@@ -1,0 +1,69 @@
+include "shader_global.dshl"
+
+buffer debug_tile_positions;
+float4 debug_tile_size = (0,0,0,0);
+
+shader mobile_deferred_debug_tile_zfill
+{
+  supports global_frame;
+  z_write = true;
+  z_test = true;
+  cull_mode = none;
+
+  (vs) {
+    debug_tile_size@f4 = debug_tile_size;
+    tile_pos@buf = debug_tile_positions hlsl {
+      StructuredBuffer<float4> tile_pos@buf;
+    }
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput main_vs(uint vertexId : SV_VertexID, uint iId : SV_InstanceID)
+    {
+      float4 tile = structuredBufferAt(tile_pos, iId);
+
+      VsOutput output;
+      if (vertexId == 0)
+        output.pos = float4(tile.xy + debug_tile_size.zz, tile.z, 1);
+      else if (vertexId == 1)
+        output.pos = float4(tile.xy + debug_tile_size.xz, tile.z, 1);
+      else if (vertexId == 2)
+        output.pos = float4(tile.xy + debug_tile_size.xy, tile.z, 1);
+      else if (vertexId == 3)
+        output.pos = float4(tile.xy + debug_tile_size.zy, tile.z, 1);
+
+      output.pos *= float4( 2, 2, 1, 1);
+      output.pos += float4(-1,-1, 0, 0);
+      output.pos.y = -output.pos.y;
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    struct PSOut
+    {
+      float4 t0 : SV_Target0;
+      float4 t1 : SV_Target1;
+      float2 t2 : SV_Target2;
+    };
+
+    PSOut main_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      PSOut ret;
+      ret.t0 = float4(1,0,0,0);
+      ret.t1 = float4(0,0,1,0);
+      ret.t2 = float4(0,1,0,0);
+      return ret;
+    }
+  }
+
+  compile("target_vs", "main_vs");
+  compile("target_ps", "main_ps");
+}

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <windows.h>
@@ -58,6 +60,8 @@ const char *WinHwExceptionUtils::getExceptionTypeString(uint32_t code)
     case STATUS_FLOAT_MULTIPLE_TRAPS: return "float trap";
 
     case STATUS_FLOAT_MULTIPLE_FAULTS: return "float faults";
+
+    case STATUS_BREAKPOINT: return "breakpoint";
 
     default: return "*unknown type*";
   }
@@ -125,6 +129,8 @@ void WinHwExceptionUtils::parseExceptionInfo(EXCEPTION_POINTERS *eptr, const cha
   lbw.aprintf("   CS:%8X EIP:%8X  SS:%8X ESP:%8X EBP:%8X\n", ctx.SegCs, ctx.Eip, ctx.SegSs, ctx.Esp, ctx.Ebp);
   lbw.aprintf("  EAX:%8X EBX:%8X ECX:%8X EDX:%8X ESI:%8X EDI:%8X\n", ctx.Eax, ctx.Ebx, ctx.Ecx, ctx.Edx, ctx.Esi, ctx.Edi);
   lbw.aprintf("   DS:%8X  ES:%8X  FS:%8X  GS:%8X   EFLAGS:%08X\n", ctx.SegDs, ctx.SegEs, ctx.SegFs, ctx.SegGs, ctx.EFlags);
+#elif _M_ARM64
+  lbw.aprintf("   PC:%16llX  SP:%16llX\n", ctx.Pc, ctx.Sp);
 #else
   lbw.aprintf("  RIP:%16llX RSP:%16llX RBP:%16llX\n", ctx.Rip, ctx.Rsp, ctx.Rbp);
   lbw.aprintf("  RAX:%16llX RBX:%16llX RCX:%16llX\n  RDX:%16llX RSI:%16llX RDI:%16llX\n  EFLAGS:%08X\n", ctx.Rax, ctx.Rbx, ctx.Rcx,
@@ -141,12 +147,12 @@ void WinHwExceptionUtils::parseExceptionInfo(EXCEPTION_POINTERS *eptr, const cha
 
 #if DAGOR_DBGLEVEL > 0
   // get callstack and dump it to debug
-  void *excStack[32];
+  void *excStack[48];
 
-  ::stackhlp_fill_stack_exact(excStack, 32, &ctx);
+  ::stackhlp_fill_stack_exact(excStack, countof(excStack), &ctx);
 
   static char stack_info[8192] = {0};
-  ::stackhlp_get_call_stack(stack_info, sizeof(stack_info), excStack, 32);
+  ::stackhlp_get_call_stack(stack_info, sizeof(stack_info), excStack, countof(excStack));
   if (NULL != call_stack_ptr)
     *call_stack_ptr = stack_info;
 

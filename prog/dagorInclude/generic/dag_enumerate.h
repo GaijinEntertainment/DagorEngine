@@ -1,15 +1,16 @@
-/*
- * Dagor Engine 4
- * Copyright (C) 2003-2021  Gaijin Entertainment.  All rights reserved
- *
- * (for conditions of distribution and use, see EULA in "prog/eula.txt")
- */
-
-#ifndef _DAGOR_PUBLIC_GENERIC_DAG_ENUMERATE_H_
-#define _DAGOR_PUBLIC_GENERIC_DAG_ENUMERATE_H_
+//
+// Dagor Engine 6.5
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+//
 #pragma once
 
 #include <EASTL/tuple.h>
+
+#ifdef __e2k__
+#define CONSTEXPR // lcc 1.27.14 (e2k arch) cannot return non-literal expression as constexpr
+#else
+#define CONSTEXPR constexpr
+#endif
 
 // simple helper mimicking python's enumerate() function
 // useful for keeping a counter when iterating in a range-based for loop
@@ -23,24 +24,24 @@ constexpr auto enumerate(T &&container, size_t start_index = 0)
 
     struct iterator
     {
-      constexpr iterator operator++()
+      CONSTEXPR iterator operator++()
       {
         ++it;
         ++counter;
         return *this;
       }
 
-      constexpr bool operator!=(iterator other) { return it != other.it; }
+      CONSTEXPR bool operator!=(iterator other) { return it != other.it; }
 
-      constexpr auto operator*() { return eastl::tuple<size_t, decltype(*it)>{counter, *it}; }
+      CONSTEXPR auto operator*() { return eastl::tuple<size_t, decltype(*it)>{counter, *it}; }
 
-      IteratorType it = {};
-      size_t counter = 0;
+      IteratorType it;
+      size_t counter;
     };
 
-    constexpr iterator begin() { return {eastl::begin(container), startIndex}; }
+    CONSTEXPR iterator begin() { return {eastl::begin(container), startIndex}; }
 
-    constexpr iterator end() { return {eastl::end(container)}; }
+    CONSTEXPR iterator end() { return {eastl::end(container)}; }
 
     T container;
     size_t startIndex;
@@ -48,5 +49,4 @@ constexpr auto enumerate(T &&container, size_t start_index = 0)
 
   return EnumerationHelper{eastl::forward<T>(container), start_index};
 }
-
-#endif //_DAGOR_PUBLIC_GENERIC_DAG_ENUMERATE_H_
+#undef CONSTEXPR

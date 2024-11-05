@@ -6,7 +6,7 @@
 //
 struct DispatchDesc
 {
-  uint headOffset;
+  uint headOffsetAndLodOfs; // packed 24b + 8b
   uint startAndCount; // packed 16b + 16b
   uint rndSeedAndCullingId; // packed 8b + 24b
   uint aliveStartAndCount;  // packed 16b + 16b

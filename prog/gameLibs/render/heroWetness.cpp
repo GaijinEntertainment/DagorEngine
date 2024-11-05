@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 /*
 initially, created for make correct wetness for 1 unit (for hero)
 1. unit has bbox, create 'volume' texture
@@ -20,11 +22,15 @@ NOTE: enable only when 1. render hero & hero is ship 2.when we make resolve defe
 #include <math/dag_bounds3.h>
 
 #include <3d/dag_texMgr.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_buffers.h>
 #include <startup/dag_globalSettings.h>
 #include <shaders/dag_shaderBlock.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <EASTL/vector.h>
 
 
@@ -305,7 +311,7 @@ void HeroWetness::calcHeroWetnessVolume(float dt, const TMatrix &hero_tm, const 
   d3d::resource_barrier({heroWetnessTex[heroWetnessRenderIter], RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   // restore states
   d3d::set_render_target(prevRt);
-  heroWetnessTex[curTex]->texfilter(TEXFILTER_SMOOTH);
+  heroWetnessTex[curTex]->texfilter(TEXFILTER_LINEAR);
   ShaderGlobal::set_texture(heroWetnessTexVarId, heroWetnessTexId[heroWetnessRenderIter]);
 }
 

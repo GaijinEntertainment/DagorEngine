@@ -85,13 +85,9 @@ float2 FFX_SSSR_GetMipResolution(float2 screen_dimensions, int mip_level) {
     return screen_dimensions * pow(0.5, mip_level);
 }
 
-bool in_downsampled_close_depth_boundaries(float2 current_mip_position, int current_mip, float2 current_mip_resolution)
+bool is_ray_inside_borders(float3 position)
 {
-    return !((current_mip_position.x < 0) ||
-             (current_mip_position.y < 0) ||
-             (current_mip_position.x >= floor(current_mip_resolution.x)) ||
-             (current_mip_position.y >= floor(current_mip_resolution.y)) ||
-             (current_mip >= downsampled_depth_mip_count));
+    return all(position.xy >= 0) && all(position.xy < 1);
 }
 
 // Requires origin and direction of the ray to be in screen space [0, 1] x [0, 1]
@@ -118,18 +114,19 @@ float3 FFX_SSSR_HierarchicalRaymarch(float3 origin, float3 direction, float2 scr
     float3 position;
     FFX_SSSR_InitialAdvanceRay(origin, direction, inv_direction, current_mip_resolution, current_mip_resolution_inv, floor_offset, uv_offset, position, current_t);
 
+    float surface_z = 1.0;
     uint i = 0;
-    while (i < max_traversal_intersections && current_mip >= most_detailed_mip) {
+    while (i < max_traversal_intersections && current_mip >= most_detailed_mip && is_ray_inside_borders(position)) {
         float2 current_mip_position = current_mip_resolution * position.xy;
+        float2 samplePos = min(current_mip_position, current_mip_resolution - 1.0f);
 
+        surface_z = texelFetch(downsampled_close_depth_tex, samplePos, min(current_mip, downsampled_depth_mip_count - 1)).r;
         #ifdef FFX_SSSR_INVERTED_DEPTH_RANGE
-        float surface_z = 1.0;
-        #else
-        float surface_z = 0.0;
+        if ((current_mip_position.x >= floor(current_mip_resolution.x)) ||
+            (current_mip_position.y >= floor(current_mip_resolution.y)) ||
+            (current_mip >= downsampled_depth_mip_count))
+            surface_z = 1;
         #endif
-
-        if (in_downsampled_close_depth_boundaries(current_mip_position, current_mip, current_mip_resolution))
-            surface_z = texelFetch(downsampled_close_depth_tex, int2(current_mip_position), current_mip).r;
 
         bool skipped_tile = FFX_SSSR_AdvanceRay(origin, direction, inv_direction, current_mip_position, current_mip_resolution_inv, floor_offset, uv_offset, surface_z, position, current_t, current_mip == most_detailed_mip);
         current_mip += skipped_tile ? 1 : -1;
@@ -138,12 +135,13 @@ float3 FFX_SSSR_HierarchicalRaymarch(float3 origin, float3 direction, float2 scr
         ++i;
     }
 
-    float surface_z = 0.0;
-    if (in_downsampled_close_depth_boundaries(screen_size * position.xy, 0, screen_size))
-        surface_z = texelFetch(downsampled_close_depth_tex, int2(screen_size * position.xy), 0).r;
-    valid_hit = (current_mip < most_detailed_mip) && (surface_z > 0);
+    bool isRayInsideBorders = is_ray_inside_borders(position);
+    int2 resTC = clamp(int2(screen_size * position.xy), int2(0,0), screen_size-1);
+    surface_z = texelFetch(downsampled_close_depth_tex, resTC, 0).r;
 
+    valid_hit = isRayInsideBorders && (i < max_traversal_intersections) && (current_mip < most_detailed_mip) && (surface_z > 0);
     position.z = surface_z;
+
     return position;
 }
 

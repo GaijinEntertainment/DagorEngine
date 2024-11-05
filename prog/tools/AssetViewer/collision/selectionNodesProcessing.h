@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "../av_plugin.h"
@@ -27,8 +28,8 @@ public:
   dag::Vector<bool> hiddenNodes;
 
   void init(DagorAsset *asset, CollisionResource *collision_res);
-  void setPropPanel(PropertyContainerControlBase *prop_panel);
-  void fillInfoTree(PropertyContainerControlBase *tree);
+  void setPropPanel(PropPanel::ContainerPropertyControl *prop_panel);
+  void fillInfoTree(PropPanel::ContainerPropertyControl *tree);
   void fillNodeNamesTab(Tab<String> &node_names);
   void fillConvexVhacdNamesBlk(Tab<String> &node_names, dag::Vector<String> &skip_nodes);
   void getSelectedNodes(dag::Vector<String> &selected_nodes);
@@ -52,9 +53,10 @@ public:
   bool findSettingsByName(const String &name, ConvexVhacdSettings &settings);
   void clearRejectedSettings();
   void clearSettings();
+  bool haveUnsavedChanges();
 
 private:
-  PropertyContainerControlBase *panel = nullptr;
+  PropPanel::ContainerPropertyControl *panel = nullptr;
   CollisionResource *collisionRes = nullptr;
   DagorAsset *curAsset = nullptr;
 

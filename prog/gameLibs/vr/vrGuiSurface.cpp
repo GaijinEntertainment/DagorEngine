@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <vr/vrGuiSurface.h>
 
 #include <debug/dag_assert.h>
@@ -5,8 +7,10 @@
 #include <util/dag_string.h>
 #include <ioSys/dag_dataBlock.h>
 #include <shaders/dag_shaders.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <3d/dag_materialData.h>
 #include <startup/dag_globalSettings.h>
 #include <util/dag_globDef.h>

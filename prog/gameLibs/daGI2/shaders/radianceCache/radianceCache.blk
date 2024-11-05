@@ -1,0 +1,6 @@
+file:t = "radiance_cache_mark_screen_probes.dshl"
+file:t = "radiance_cache_trace.dshl"
+file:t = "radiance_cache.dshl"
+file:t = "radiance_cache_filter.dshl"
+file:t = "radiance_cache_debug.dshl"
+file:t = "radiance_cache_irradiance.dshl"

@@ -1,11 +1,9 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <3d/dag_drv3dCmd.h>
 #include <EASTL/span.h>
 #include <EASTL/stack.h>
 #include <EASTL/unique_ptr.h>
@@ -24,12 +22,15 @@
 #include <math/dag_hlsl_floatx.h>
 #include <math/dag_frustum.h>
 #include <generic/dag_carray.h>
+#include <osApiWrappers/dag_cpuJobs.h>
 
+#include <bvh/bvh_connection.h>
 
 class ComputeShaderElement;
 class NodeBasedShader;
 class IPoint2;
 class Occlusion;
+struct BVHConnection;
 
 namespace gpu_objects
 {
@@ -37,6 +38,7 @@ namespace gpu_objects
 void setup_parameter_validation(const DataBlock *validationBlock);
 
 constexpr int MAX_LODS = 4;
+constexpr int MAX_GPU_OBJECTS = 64;
 
 enum class ShadowPass
 {
@@ -89,7 +91,6 @@ private:
   bool readyToCpuAccess() const;
   void updateGrid(const Point3 &origin);
   void updateBuffer();
-  void gatherBuffers();
   void setShaderVarsAndConsts();
   bool dispatchNextCell();
   void makeMatricesOffsetsBuffer();
@@ -99,14 +100,14 @@ private:
 
   void processBboxes(const eastl::span<int32_t> &raw_bboxes);
   void copyMatrices(const eastl::vector<uint32_t> &cells_to_copy, const eastl::vector<uint32_t> &cell_counters, Sbuffer *dst_buffer,
-    Sbuffer *src_buffer, uint32_t max_in_cell, uint32_t dst_offset_bytes);
+    Sbuffer *src_buffer, uint32_t max_in_cell, uint32_t dst_offset_bytes, uint32_t lod);
   eastl::string assetName;
+  uint32_t riPoolId;
   uint32_t riPoolOffset;
   SharedTexHolder mapTexId;
   int numLods;
   eastl::array<float, MAX_LODS> distSqLod;
   eastl::array<eastl::vector<uint32_t>, MAX_LODS> cellIndexesByLods;
-  bool texSizeValidated = false;
 
   eastl::vector<Point4> bomb_holes;
 
@@ -127,9 +128,12 @@ public:
   float getLodRange(int lod) { return sqrt(distSqLod[lod]); }
   int getCellsSizeCount() { return cellsSideCount; }
 
+  uint32_t getRiId() const { return riPoolId; }
+
   void getParameters(PlacingParameters &p) { p = parameters; }
 
   void update(const Point3 &origin);
+  void gatherBuffers();
   void updateVisibilityAndLods(const Frustum &frustum, const Occlusion *occlusion, ShadowPass for_shadow);
   void addMatricesToBuffer(Sbuffer *buffer, uint32_t offset_in_bytes, int lod);
   void onLandGpuInstancing(Sbuffer *indirection_buffer, int offset);
@@ -141,14 +145,14 @@ public:
   {
     updateGrid(Point3(-10000, -10000, -10000));
     counters.assign(counters.size(), 0);
-    texSizeValidated = false;
   }
+  void resetGrid() { recreateGrid(cellTileOrig, cellsSideCount, cellSize); }
+
   void invalidateBBox(const BBox2 &bbox);
   void setParameters(const PlacingParameters &params);
 
   void recreateGrid(int cell_tile, int cells_size_count, float cell_size);
 
-  void validateDisplacedGPUObjs(float displacement_tex_range);
   void validateParams() const;
   bool isRenderedIntoShadows() const { return parameters.renderIntoShadows && layer == rendinst::LayerFlag::Opaque; }
 
@@ -157,6 +161,7 @@ public:
 
 class GpuObjects
 {
+private:
   struct LayerData
   {
     eastl::vector<IPoint2> offsetsAndCounts;
@@ -200,11 +205,27 @@ class GpuObjects
   eastl::unique_ptr<ComputeShaderElement> gpuInstancingGenerateIndirect;
   eastl::unique_ptr<ComputeShaderElement> gpuInstancingRebuildRelems;
 
+  static BVHConnection *bvhConnection;
+
+  struct GatherBuffersJob final : public cpujobs::IJob
+  {
+    GpuObjects *thiz = nullptr;
+    int threadIx = 0;
+    void doJob() override;
+  } gatherBuffersJobs[4];
+
 public:
+  static void setBVHConnection(BVHConnection *bvh_connection) { bvhConnection = bvh_connection; }
+
+  ~GpuObjects();
+
   void invalidate()
   {
     for (ObjectManager &object : objects)
+    {
+      object.resetGrid();
       object.invalidate();
+    }
 
     for (CascadeData &cascade : cascades)
     {
@@ -230,6 +251,15 @@ public:
   void addObject(const char *name, const int id, int cell_tile, int grid_size, float cell_size, float bounding_sphere_radius,
     dag::ConstSpan<float> dist_sq_lod, const PlacingParameters &parameters)
   {
+    if (eastl::find(objectIds.begin(), objectIds.end(), id) != objectIds.end())
+      return;
+
+    if (objects.size() == MAX_GPU_OBJECTS)
+    {
+      logerr("GPUObjects: Trying to add object %s with id %d, but reached maximum number of objects (%d)", name, id, MAX_GPU_OBJECTS);
+      return;
+    }
+
     objects.emplace_back(name, id, cell_tile, grid_size, cell_size, bounding_sphere_radius, dist_sq_lod, parameters);
     objectIds.push_back(id);
     for (CascadeData &cascade : cascades)
@@ -264,7 +294,6 @@ public:
   void clearCascade(int cascade);
   void beforeDraw(rendinst::RenderPass render_pass, int cascade, const Frustum &frustum, const Occlusion *occlusion,
     const char *mission_name, const char *map_name, bool gpu_instancing = false);
-  void validateDisplacedGPUObjs(float displacement_tex_range);
 
   Sbuffer *getBuffer(int cascade, rendinst::LayerFlag layer);
   Sbuffer *getIndirectionBuffer(int cascade);

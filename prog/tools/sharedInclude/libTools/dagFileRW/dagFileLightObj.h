@@ -1,10 +1,8 @@
-
-#ifndef __DAGOR_NODE_LIGHTOBJ_H
-#define __DAGOR_NODE_LIGHTOBJ_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <libTools/dagFileRW/dagFileNode.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 
 
 class LightObject : public Object
@@ -20,5 +18,3 @@ public:
   int classid();
   bool isSubOf(unsigned);
 };
-
-#endif

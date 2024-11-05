@@ -22,7 +22,7 @@
                 },
                 {
                   "Id": "34293333-e5e3-4ba4-afba-647e1da98fab",
-                  "Command": "-o ../../../_output/enlisted/shaders~$(ToolAdditionalName)"
+                  "Command": "-o ../../../_output/enlisted/shaders~$(ToolAdditionalName)" // FIXME_BROKEN_DEP
                 }
               ]
             },
@@ -36,7 +36,7 @@
                 },
                 {
                   "Id": "af17e1c8-0ac8-4573-b145-53275725c4f5",
-                  "Command": "-o ../../../_output/enlisted/shaders~pc11"
+                  "Command": "-o ../../../_output/enlisted/shaders~pc11" // FIXME_BROKEN_DEP
                 }
               ]
             },
@@ -50,7 +50,7 @@
                 },
                 {
                   "Id": "88c83821-2629-4865-bd0f-9b67ca650554",
-                  "Command": "-o ../../../_output/enlisted/shaders~dx12"
+                  "Command": "-o ../../../_output/enlisted/shaders~dx12" // FIXME_BROKEN_DEP
                 }
               ]
             },
@@ -64,7 +64,7 @@
                 },
                 {
                   "Id": "65172991-fd25-41b2-89a1-88f3e0493ef6",
-                  "Command": "-o ../../../_output/enlisted/shaders~spirv"
+                  "Command": "-o ../../../_output/enlisted/shaders~spirv" // FIXME_BROKEN_DEP
                 }
               ]
             },
@@ -78,7 +78,7 @@
                 },
                 {
                   "Id": "17a18566-7b0d-491e-aeea-527cf737d4f0",
-                  "Command": "-o ../../../_output/enlisted/shaders~ps4"
+                  "Command": "-o ../../../_output/enlisted/shaders~ps4" // FIXME_BROKEN_DEP
                 }
               ]
             },
@@ -92,7 +92,7 @@
                 },
                 {
                   "Id": "08265eac-7a93-40a5-95f1-b580f08f984e",
-                  "Command": "-o ../../../_output/enlisted/shaders~ps5"
+                  "Command": "-o ../../../_output/enlisted/shaders~ps5" // FIXME_BROKEN_DEP
                 }
               ]
             }
@@ -113,7 +113,7 @@
                 },
                 {
                   "Id": "b0537c32-357e-425c-8742-186336126fcb",
-                  "Command": "-o ../../../_output/skyquake/shaders~$(ToolAdditionalName)"
+                  "Command": "-o ../../../_output/skyquake/shaders~$(ToolAdditionalName)" // FIXME_BROKEN_DEP
                 }
               ]
             },
@@ -127,7 +127,7 @@
                 },
                 {
                   "Id": "a2efa0bb-0b1c-49ee-837e-b43b25d6be36",
-                  "Command": "-o ..\\..\\..\\_output\\skyquake\\shaders~pc11"
+                  "Command": "-o ..\\..\\..\\_output\\skyquake\\shaders~pc11" // FIXME_BROKEN_DEP
                 }
               ]
             },
@@ -141,7 +141,7 @@
                 },
                 {
                   "Id": "58dcc3be-7466-4a3b-8b90-a1aa8e5d60be",
-                  "Command": "-o ..\\..\\..\\_output\\skyquake\\shaders~pc12"
+                  "Command": "-o ..\\..\\..\\_output\\skyquake\\shaders~pc12" // FIXME_BROKEN_DEP
                 }
               ]
             },
@@ -155,7 +155,7 @@
                 },
                 {
                   "Id": "26308e2f-cade-49e0-adca-a65e0c1f2bb5",
-                  "Command": "-o ..\\..\\..\\_output\\skyquake\\shaders~spirv"
+                  "Command": "-o ..\\..\\..\\_output\\skyquake\\shaders~spirv" // FIXME_BROKEN_DEP
                 }
               ]
             },
@@ -169,7 +169,7 @@
                 },
                 {
                   "Id": "08c0a490-5978-4ab7-81cc-fafda1ee8414",
-                  "Command": "-o ..\\..\\..\\_output\\skyquake\\shaders~ps4"
+                  "Command": "-o ..\\..\\..\\_output\\skyquake\\shaders~ps4" // FIXME_BROKEN_DEP
                 }
               ]
             },
@@ -183,7 +183,7 @@
                 },
                 {
                   "Id": "d06b1639-90e9-403a-aa1b-db86727e5a02",
-                  "Command": "-o ..\\..\\..\\_output\\skyquake\\shaders~ps5"
+                  "Command": "-o ..\\..\\..\\_output\\skyquake\\shaders~ps5" // FIXME_BROKEN_DEP
                 }
               ]
             }

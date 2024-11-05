@@ -3,8 +3,7 @@ include "gbuffer.dshl"
 include "psh_derivate.dshl"
 include "normaldetail.dshl"
 
-texture hmap_ldetail;
-
+texture tex_hmap_low;
 
 int heightmap_scale_offset = 70;
 hlsl(vs) {
@@ -13,7 +12,7 @@ hlsl(vs) {
 }
 
 texture heightmap;
-float4 world_to_hmap_low = (1,1,1,1);
+float4 world_to_hmap_low = (10e+3, 10e+3, 10e+10, 10e+10);
 float4 tex_hmap_inv_sizes = (1/2048,1/2048,0,0);
 float4 heightmap_scale = (20,0,0,0);
 
@@ -21,7 +20,7 @@ shader heightmap
 {
   (vs)
   {
-    hmap_ldetail@smp2d = hmap_ldetail;
+    tex_hmap_low@smp2d = tex_hmap_low;
     globtm@f44 = globtm;
     world_view_pos@f3 = world_view_pos;
     world_to_hmap_low@f4 = world_to_hmap_low;
@@ -55,7 +54,7 @@ shader heightmap
     float getHeight(float2 worldPosXZ)
     {
       float2 tc_low = worldPosXZ*world_to_hmap_low.xy + world_to_hmap_low.zw;
-      float height = tex2Dlod(hmap_ldetail, float4(tc_low,0,0)).r;
+      float height = tex2Dlod(tex_hmap_low, float4(tc_low,0,0)).r;
       float decodedHeight = decode_height(height);
       return decodedHeight;
     }
@@ -149,7 +148,7 @@ shader heightmap
       init_albedo(result, albedo.xyz);
       init_smoothness(result, 0.01);
       init_normal(result, worldNormal);
-      return encode_gbuffer(result, screenpos);
+      return encode_gbuffer(result, input.pointToEye, screenpos);
     }
   }
   compile("target_vs", "test_vs");

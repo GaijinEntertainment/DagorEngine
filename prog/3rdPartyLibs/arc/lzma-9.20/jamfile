@@ -9,6 +9,6 @@ Sources =
   LzmaEnc.c
   LzFind.c
 ;
-Copt = -D_7ZIP_ST -D__B_MINICORE ;
+Copt = -D_7ZIP_ST -D__B_KERNEL_LIB ;
 
 include $(Root)/prog/_jBuild/build.jam ;

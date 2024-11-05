@@ -8,22 +8,42 @@ endmacro
 
 macro USE_REPROJECTED_MOTION_VECTORS(code)
   hlsl(code) {
-    float2 get_reprojected_history_uv(float3 eye_to_point, float4x4 prev_viewproj_tm, out float2 screen_pos)
+    float3 get_reprojected_history_uvz(float4 reprojected_wrld_view_pos, float3 eye_to_point, float4x4 prev_viewproj_tm, out float2 screen_pos)
     {
       float4 reprojectedViewVec = mul(float4(eye_to_point, 0), prev_viewproj_tm);
-      float4 prevClip = reprojected_world_view_pos + reprojectedViewVec;
+      float4 prevClip = reprojected_wrld_view_pos + reprojectedViewVec;
       screen_pos = prevClip.w > 0 ? prevClip.xy * rcp(prevClip.w) : float2(2, 2);
-      return float2(screen_pos.xy * float2(0.5, -0.5) + float2(0.5, 0.5));
+      return float3(screen_pos.xy * float2(0.5, -0.5) + float2(0.5, 0.5), prevClip.w);
     }
-    float2 get_reprojected_history_uv(float3 eye_to_point, float4x4 prev_viewproj_tm)
+    float3 get_reprojected_history_uvz(float3 eye_to_point, float4x4 prev_viewproj_tm, out float2 screen_pos)
+    {
+      return get_reprojected_history_uvz(reprojected_world_view_pos, eye_to_point, prev_viewproj_tm, screen_pos);
+    }
+    float3 get_reprojected_history_uvz(float3 eye_to_point, float4x4 prev_viewproj_tm)
     {
       float2 screenPosDummy;
-      return get_reprojected_history_uv(eye_to_point, prev_viewproj_tm, screenPosDummy);
+      return get_reprojected_history_uvz(eye_to_point, prev_viewproj_tm, screenPosDummy);
     }
-    float2 get_reprojected_motion_vector(float2 screen_uv, float3 eye_to_point, float4x4 prev_viewproj_tm)
+    float3 get_reprojected_motion_vector(float3 screen_uvz, float3 eye_to_point, float4x4 prev_viewproj_tm)
     {
-      float2 historyUv = get_reprojected_history_uv(eye_to_point, prev_viewproj_tm);
-      return historyUv - screen_uv;
+      float3 historyUvZ = get_reprojected_history_uvz(eye_to_point, prev_viewproj_tm);
+      return historyUvZ - screen_uvz;
+    }
+    float3 get_reprojected_history_uvz1(float3 eye_to_point, float4x4 prev_viewproj_tm, out float2 screen_pos)
+    {
+      float4 prevClip = mul(float4(eye_to_point, 1), prev_viewproj_tm);
+      screen_pos = prevClip.w > 0 ? prevClip.xy * rcp(prevClip.w) : float2(2, 2);
+      return float3(screen_pos.xy * float2(0.5, -0.5) + float2(0.5, 0.5), prevClip.w);
+    }
+    float3 get_reprojected_history_uvz1(float3 eye_to_point, float4x4 prev_viewproj_tm)
+    {
+      float2 screenPosDummy;
+      return get_reprojected_history_uvz1(eye_to_point, prev_viewproj_tm, screenPosDummy);
+    }
+    float3 get_reprojected_motion_vector1(float3 screen_uvz, float3 eye_to_point, float4x4 prev_viewproj_tm)
+    {
+      float3 historyUvZ = get_reprojected_history_uvz1(eye_to_point, prev_viewproj_tm);
+      return historyUvZ - screen_uvz;
     }
   }
 endmacro

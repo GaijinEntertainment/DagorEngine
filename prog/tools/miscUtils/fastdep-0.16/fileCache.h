@@ -1,5 +1,5 @@
-#ifndef FILECACHE_H_
-#define FILECACHE_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #include <map>
 #include <string>
@@ -71,5 +71,3 @@ private:
   bool DebugMode;
   bool WarnAboutNonExistingSystemHeaders;
 };
-
-#endif

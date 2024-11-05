@@ -1,10 +1,39 @@
-local isComps = @(c) type(c ?? [])=="array"
-local callableTypes = ["function","table","instance"]
+//
+from "debug" import getstackinfos
+import "dagor.math" as dmath
+from "dagor.system" import argv
+//let {log} = require("%sqstd/log.nut")()
+
+let isComps = @(c) type(c ?? [])=="array"
+let callableTypes = ["function","table","instance"]
 function isCallable(v) {
   return callableTypes.indexof(type(v)) != null && (v.getfuncinfos() != null)
 }
 
 let allowedKwargTypes = { table = true, ["class"] = true, instance = true }
+
+let EventEntityCreated =  class{name = "EventEntityCreated"}
+let EventScriptReloaded =  class{name = "EventScriptReloaded"}
+let EventComponentChanged = class{name = "EventComponentChanged"}
+let EventComponentsDisappear = class{name = "EventComponentsDisappear"}
+let EventComponentsAppear = class{name = "EventComponentsAppear"}
+let EventEntityDestroyed = class{name="EventEntityDestroyed"}
+let EventEntityRecreated = class{name="EventEntityRecreated"}
+
+function register_sq_event(name, _eventType=null){
+  assert(type(name)=="string")
+}
+class SqEventTypeVal {
+  _get = function(_val) {
+    return null
+  }
+}
+class SqEventType {
+  _get = function(val) {
+    if (val == "data")
+      return SqEventTypeVal()
+  }
+}
 
 function kwarg(func){
   assert(isCallable(func), "kwarg can be applied only to functions as first arguments")
@@ -46,63 +75,170 @@ function kwarg(func){
         return func.acall(posarguments)
       }
 }
-
-return {
-  set_callback_timer = @(func, time, repeat=false) assert(type(func) =="function" && type(time) == "float" && type(repeat) == "boolean")
-  set_callback_timer_rt = @(_cb, _time, _bool) null
-  clear_callback_timer = @(func) assert(type(func) == "function")
-  clear_timer = @(obj) assert("eid" in obj && "id" in obj)
-  set_timer = kwarg(function(_eid, id, _interval, _repeat=false) {
-    assert(type(id) == "string")
-  })
-
-  INVALID_ENTITY_ID = 0
-  COMP_FLAG_REPLICATED="COMP_FLAG_REPLICATED"
-  COMP_FLAG_CHANGE_EVENT="COMP_FLAG_CHANGE_EVENT"
-  EVCAST_UNICAST = "EVCAST_UNICAST"
-  EVCAST_BROADCAST = "EVCAST_BROADCAST"
-
-  TYPE_OBJECT = "TYPE_OBJECT"
-  TYPE_ARRAY =  "TYPE_ARRAY"
-  TYPE_SHARED_OBJECT = "TYPE_SHARED_OBJECT"
-  TYPE_SHARED_ARRAY =  "TYPE_SHARED_ARRAY"
-  TYPE_EID =  "TYPE_EID"
-  TYPE_TAG = "TYPE_TAG"
-  TYPE_INT64 = "TYPE_INT64"
-  TYPE_UINT64 = "TYPE_UINT64"
-  TYPE_COLOR =  "TYPE_COLOR"
-  TYPE_FLOAT =  "TYPE_FLOAT"
-  TYPE_INT =  "TYPE_INT"
-  TYPE_BOOL =  "TYPE_BOOL"
-  TYPE_STRING =  "TYPE_STRING"
-  TYPE_POINT2 =  "TYPE_POINT2"
-  TYPE_IPOINT2 =  "TYPE_IPOINT2"
-  TYPE_IPOINT3 = "TYPE_IPOINT3"
-  TYPE_POINT3 =  "TYPE_POINT3"
-  TYPE_POINT4 =  "TYPE_POINT4"
-  TYPE_DPOINT3 = "TYPE_DPOINT3"
-  TYPE_MATRIX =  "TYPE_MATRIX"
-  TYPE_INT_LIST = "TYPE_INT_LIST"
-  TYPE_UINT16_LIST = "TYPE_UINT16_LIST"
-  TYPE_STRING_LIST = "TYPE_STRING_LIST"
-  TYPE_EID_LIST = "TYPE_EID_LIST"
-  TYPE_FLOAT_LIST = "TYPE_FLOAT_LIST"
-  TYPE_POINT2_LIST = "TYPE_POINT2_LIST"
-  TYPE_POINT3_LIST = "TYPE_POINT3_LIST"
-  TYPE_POINT4_LIST = "TYPE_POINT4_LIST"
-  TYPE_IPOINT2_LIST = "TYPE_IPOINT2_LIST"
-  TYPE_IPOINT3_LIST = "TYPE_IPOINT3_LIST"
-  TYPE_BOOL_LIST = "TYPE_BOOL_LIST"
-  TYPE_TMATRIX_LIST = "TYPE_TMATRIX_LIST"
-  TYPE_COLOR_LIST = "TYPE_COLOR_LIST"
-  TYPE_INT64_LIST = "TYPE_INT64_LIST"
+let ecsTypes = {
+  TYPE_OBJECT = {
+    name = "TYPE_OBJECT"
+    ctor = function() {
+      return {
+        getAll = @() {}
+        _newslot = @(key, val) this[key]<-val
+    //    _get = @(key) this?[key]
+    //    _set = @(key, val) this[key] <- val
+      }
+    }
+  }
+  TYPE_ARRAY =  class {
+    name = "TYPE_ARRAY"
+    getAll = @() []
+    ctor = @(val=null) val ?? []
+    append = @(...) []
+    extend = @(...) []
+  }
+  TYPE_SHARED_OBJECT = class {
+    name = "TYPE_SHARED_OBJECT"
+    getAll = @() {}
+    ctor = @(val=null) val ?? {}
+  }
+  TYPE_SHARED_ARRAY =  class {
+    name = "TYPE_SHARED_ARRAY"
+    getAll = @()  []
+    ctor = @(val=null) val ?? []
+  }
+  TYPE_EID =  class {
+    name = "TYPE_EID"
+    ctor = @(val = 0) val
+  }
+  TYPE_TAG = class {
+    name = "TYPE_TAG"
+    ctor = @(val = "TAG") val
+  }
+  TYPE_INT64 = class {
+    name = "TYPE_INT64"
+    ctor = @(val = 0) val
+  }
+  TYPE_UINT64 = class {
+    name = "TYPE_UINT64"
+    ctor = @(val = 0) val
+  }
+  TYPE_COLOR =  class {
+    name = "TYPE_COLOR"
+    ctor = @(val = null) val ?? dmath.E3DCOLOR()
+  }
+  TYPE_FLOAT =  class {
+    name = "TYPE_FLOAT"
+    ctor = @(val = 0.0) val
+  }
+  TYPE_INT =  class {
+    name = "TYPE_INT"
+    ctor = @(val = 0) val
+  }
+  TYPE_BOOL = class {
+    name = "TYPE_BOOL"
+    ctor = @(val = false) val
+  }
+  TYPE_STRING =  class {
+    name = "TYPE_STRING"
+    ctor = @(val = "") val ?? ""
+  }
+  TYPE_POINT2 =  class {
+    name = "TYPE_POINT2"
+    ctor = @(val = null) val ?? dmath.Point2()
+  }
+  TYPE_IPOINT2 =  class {
+    name = "TYPE_IPOINT2"
+    ctor = @(val = null) val ?? dmath.IPoint2()
+  }
+  TYPE_IPOINT3 = class {
+    name = "TYPE_IPOINT3"
+    ctor = @(val = null) val ?? dmath.IPoint3()
+  }
+  TYPE_IPOINT4 = class {
+    name = "TYPE_IPOINT4"
+    ctor = @(val = null) val ?? dmath.IPoint4()
+  }
+  TYPE_POINT3 =  class {
+    name = "TYPE_POINT3"
+    ctor = @(val = null) val ?? dmath.Point3()
+  }
+  TYPE_POINT4 =  class {
+    name = "TYPE_POINT4"
+    ctor = @(val = null) val ?? dmath.Point4()
+  }
+  TYPE_DPOINT3 = class {
+    name = "TYPE_DPOINT3"
+    ctor = @(val = null) val ?? dmath.DPoint3()
+  }
+  TYPE_MATRIX =  class {
+    name = "TYPE_MATRIX"
+    ctor = @(val = null) val ?? dmath.TMatrix()
+  }
+  TYPE_INT_LIST = class {
+    name = "TYPE_INT_LIST"
+    getAll = @()  []
+  }
+  TYPE_UINT16_LIST = class {
+    name = "TYPE_UINT16_LIST"
+    getAll = @()  []
+  }
+  TYPE_STRING_LIST = class {
+    name = "TYPE_STRING_LIST"
+    getAll = @()  []
+  }
+  TYPE_EID_LIST = class {
+    name = "TYPE_EID_LIST"
+    getAll = @()  []
+  }
+  TYPE_FLOAT_LIST = class {
+    name = "TYPE_FLOAT_LIST"
+    getAll = @()  []
+  }
+  TYPE_POINT2_LIST = class {
+    name = "TYPE_POINT2_LIST"
+    getAll = @()  []
+  }
+  TYPE_POINT3_LIST = class {
+    name = "TYPE_POINT3_LIST"
+    getAll = @()  []
+  }
+  TYPE_POINT4_LIST = class {
+    name = "TYPE_POINT4_LIST"
+    getAll = @()  []
+  }
+  TYPE_IPOINT2_LIST = class {
+    name = "TYPE_IPOINT2_LIST"
+    getAll = @()  []
+  }
+  TYPE_IPOINT3_LIST = class {
+    name = "TYPE_IPOINT3_LIST"
+    getAll = @()  []
+  }
+  TYPE_IPOINT4_LIST = class {
+    name = "TYPE_IPOINT4_LIST"
+    getAll = @()  []
+  }
+  TYPE_BOOL_LIST = class {
+    name = "TYPE_BOOL_LIST"
+    getAll = @()  []
+  }
+  TYPE_TMATRIX_LIST = class {
+    name = "TYPE_TMATRIX_LIST"
+    getAll = @()  []
+  }
+  TYPE_COLOR_LIST = class {
+    name = "TYPE_COLOR_LIST"
+    getAll = @()  []
+  }
+  TYPE_INT64_LIST = class {
+    name = "TYPE_INT64_LIST"
+    getAll = @()  []
+  }
   CompArray = class {
     name = "CompArray"
     getAll = @() []
   }
   CompObject = class {
     name = "CompObject"
-    getAll = @() []
+    getAll = @() {}
   }
   CompEidList = class {
     name = "CompEidList"
@@ -116,48 +252,109 @@ return {
     name = "CompTMatrixList"
     getAll = @() []
   }
+}
+
+let UNUSED = @(...) null
+
+return ecsTypes.__merge({
+  EventEntityCreated
+  EventScriptReloaded
+  EventComponentChanged
+  EventComponentsDisappear
+  EventComponentsAppear
+  EventEntityDestroyed
+  EventEntityRecreated
+  set_callback_timer = @(func, time, repeat=false) assert(type(func) =="function" && type(time) == "float" && type(repeat) == "bool", @() $"incorrect set_call_back_timer, repeat={type(repeat)}, func={type(func)}, time={type(time)}")
+  set_callback_timer_rt = @(_cb, _time, _bool) null
+  clear_callback_timer = @(func) assert(type(func) == "function")
+  clear_timer = @(obj) assert("eid" in obj && "id" in obj)
+  set_timer = kwarg(function(eid, id, interval, repeat=false) {
+    UNUSED(interval, eid, repeat)
+    assert(type(id) == "string", @() $"id should be string, get {type(id)}")
+  })
+
+  INVALID_ENTITY_ID = 0
+  COMP_FLAG_REPLICATED="COMP_FLAG_REPLICATED"
+  COMP_FLAG_CHANGE_EVENT="COMP_FLAG_CHANGE_EVENT"
+  EVCAST_UNICAST = "EVCAST_UNICAST"
+  EVCAST_BROADCAST = "EVCAST_BROADCAST"
   get_component_name_by_idx = @(_idx) null
   calc_hash = @(str) assert(type(str)=="string")
   calc_hash_int = @(str) assert(type(str)=="string")
-  SqQuery = class{
+  SqQuery = class {
+    name = null
+    components = null
     constructor(name, components, ...){
+      this.name = name
+      this.components = components
       assert(type(name)=="string", "sqQuery name of incorrect type, should be string")
-      assert(type(components)=="table", "components of incorrect type")
+      assert(type(components)=="table", @() $"query '{name}' components of incorrect type")
       assert([components?.rw,components?.no,components?.rq].reduce(@(a,b) a && isComps(b), isComps(components?.ro)))
-      assert(vargv.len()<2, "query can be created with optional filterstring or without anything")
+      assert(vargv.len()<2, $"query '{name}' can be created with optional filterstring or without anything")
       if (vargv.len()==1) {
-        assert(["string"].indexof(type(vargv[0]))!=null, "squery ctor can have optional filter string")
+        assert(["string"].indexof(type(vargv[0]))!=null, $"squery '{name}' ctor can have optional filter string")
       }
     }
-    function perform(...){
-      assert(vargv.len() > 0 && vargv.len() <= 3, "incorrect number of arguments. Perform should have 1 - 3 args")
-      assert(["integer","function"].indexof(type(vargv[0]))!=null, "first argument of perform should be int or callback")
+    perform = function(...){
+      assert(vargv.len() > 0 && vargv.len() <= 3, $"query '{this.name}' number of arguments. Perform should have 1 - 3 args")
+      assert(["integer","function"].indexof(type(vargv[0]))!=null, @() $"query '{this.name}' first argument of perform should be int or callback")
       local isSingleEid = type(vargv[0]) == "integer"
-      assert(!isSingleEid || vargv.len() > 1, "too few arguments for perform with eid, callback should be second argument")
+      assert(!isSingleEid || vargv.len() > 1, $"query '{this.name}' too few arguments for perform with eid, callback should be second argument")
       local callbackArg = isSingleEid ? vargv[1] : vargv[0]
-      assert(type(callbackArg) == "function", "perform should be called with callback as first argument or after eid")
+      assert(type(callbackArg) == "function", $"query '{this.name}' perform should be called with callback as first argument or after eid")
       local filterstringArg = isSingleEid ? vargv?[2] : vargv?[1]
       if (filterstringArg != null)
-        assert(type(filterstringArg) == "string", "perform last optional argument (filterstring) should be string")
+        assert(type(filterstringArg) == "string", $"query '{this.name}' perform last optional argument (filterstring) should be string")
+    }
+    _call = function(...){
+      assert(vargv.len() > 0 && vargv.len() <= 3, $"query '{this.name}' incorrect number of arguments. Perform should have 1 - 3 args")
+      assert(["integer","function"].indexof(type(vargv[1]))!=null, @() $"query '{this.name}' first argument of perform should be int or callback")
+      local isSingleEid = type(vargv[1]) == "integer"
+      assert(!isSingleEid || vargv.len() > 2, $"query '{this.name}' too few arguments for perform with eid, callback should be second argument")
+      local callbackArg = isSingleEid ? vargv[2] : vargv[1]
+      assert(type(callbackArg) == "function", $"query '{this.name}' perform should be called with callback as first argument or after eid")
+      local filterstringArg = isSingleEid ? vargv?[3] : vargv?[2]
+      if (filterstringArg != null)
+        assert(type(filterstringArg) == "string", $"query '{this.name}' perform last optional argument (filterstring) should be string")
     }
   }
-  EventEntityCreated =  class{name = "EventEntityCreated"}
-  EventScriptReloaded =  class{name = "EventScriptReloaded"}
-  EventComponentChanged = class{name = "EventComponentChanged"}
-  EventComponentsDisappear = class{name = "EventComponentsDisappear"}
-  EventComponentsAppear = class{name = "EventComponentsAppear"}
-  EventEntityDestroyed = class{name="EventEntityDestroyed"}
-  EventEntityRecreated = class{name="EventEntityRecreated"}
-  register_entity_system = function(name,events,comps,params={}){
-    assert(type(name)=="string")
-    assert(type(comps)=="table")
-    assert(type(events)=="table")
-    assert(type(params)=="table")
+  register_entity_system = function(name,events,comps,params=null){
+    assert(type(name)=="string", "type(name)=='string'")
+    assert(type(comps)=="table", "type(comps)=='table'")
+    assert(type(events)=="table","type(events)=='table'")
+    assert(type(params)=="table", "type(params)=='table'")
+    if (!argv.contains("-check_es"))
+      return
+    let components = {}
+    foreach (comps_rwtype, cmps in comps){
+      if (comps_rwtype=="comps_rq") {
+        foreach (cmp in cmps)
+          components[cmp] <- cmp
+      }
+      else {
+        foreach (cmp in cmps) {
+          let [ncname, compTyp, def=null] = cmp
+          let compTypName = compTyp?.name
+          if (compTypName == null)
+            continue
+          let comp_typ = ecsTypes.findvalue(@(v) v.name==compTypName)
+          if (comp_typ==null)
+            continue
+          components[ncname] <- "getAll" in comp_typ ? comp_typ() : (def!=null ? comp_typ.ctor(def) : comp_typ.ctor())
+        }
+      }
+    }
+    //log(components)
+    foreach (evnts, func in events) {
+      let evs = type(evnts)=="array" ? evnts : [evnts]
+      //log(func.getfuncinfos())
+      foreach (event in evs) {
+        func(type(event)=="string" ? SqEventType() : event(), 0, components)
+      }
+    }
   }
   EntityId = @(eidAsInt) eidAsInt //should be ecs.EID_TYPE
-  register_sq_event = function(name, _eventType=null){
-    assert(type(name)=="string")
-  }
+  register_sq_event
   clear_vm_entity_systems = @() null
   start_es_loading = @() null
   end_es_loading = @() null
@@ -172,8 +369,17 @@ return {
   get_comp_flags = @(_eid, _compName) []
   get_comp_type = @(_eid, _compName) this.TYPE_STRING
   update_component = @(_eid, _compName) null
+  SQEvent = class {
+    name = null
+    data = null
+    constructor(eventRegisteredName, payload=null){
+      this.name = eventRegisteredName
+      this.data = payload
+    }
+  }
   g_entity_mgr = {
     getEntityTemplateName = @(_eid) null
+    getEntityFutureTemplateName = @(_eid) null
     performQuery = function(comps, handler){
       assert(type(handler)=="function")
       assert(type(comps)=="table")
@@ -186,5 +392,10 @@ return {
     getTemplateDB = @() {getTemplateByName = @(name) assert(type(name)=="string")}
     broadcastEvent = @(_event) null
     createEntity = @(_tpl, _comps, _onCreate = @(_eid) null) null
+    createEntitySync = @(_tpl, _comps) null
+    reCreateEntityFrom = @(_eid, _tpl, _comps, _onCreate = null) null
+    doesEntityExist = @(_eid) false
+    destroyEntity = @(_eid) false
+    sendEvent = @(_eid, _event) null
   }
-}
+})

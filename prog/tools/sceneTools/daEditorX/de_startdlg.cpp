@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "de_startdlg.h"
 #include "de_screenshotMetaInfoLoader.h"
 
@@ -13,6 +15,7 @@
 
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
+#include <propPanel/control/container.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 
 #include <debug/dag_debug.h>
@@ -41,14 +44,10 @@ static int sortPlugins(const PluginPtr *a, const PluginPtr *b)
 
 
 //==============================================================================
-StartupDlg::StartupDlg(void *phandle, const char *caption, DeWorkspace &wsp, const char *wsp_blk, const char *select_wsp) :
+StartupDlg::StartupDlg(const char *caption, DeWorkspace &wsp, const char *wsp_blk, const char *select_wsp) :
 
-  EditorStartDialog(phandle, caption, wsp, wsp_blk, select_wsp), exporters(tmpmem), mPanel(NULL), mSelected(-1)
+  EditorStartDialog(caption, wsp, wsp_blk, select_wsp), exporters(tmpmem), mPanel(NULL), mSelected(-1)
 {
-  this->resizeWindow(hdpi::_pxScaled(550), hdpi::_pxScaled(500));
-  this->center();
-  this->setDragAcceptFiles();
-
   mPanel = getPanel();
   G_ASSERT(mPanel && "StartupDlg::StartupDlg: NO PANEL FOUND");
 
@@ -97,7 +96,7 @@ void StartupDlg::onChangeWorkspace(const char *name)
   int recentCnt = (recent.size() > VISIBLE_RECENT_COUNT) ? VISIBLE_RECENT_COUNT : recent.size();
 
   int selIdx = mPanel->getInt(ID_GROUP);
-  if (selIdx == RADIO_SELECT_NONE)
+  if (selIdx == PropPanel::RADIO_SELECT_NONE)
     selIdx = 2;
   else
     selIdx -= ID_CREATE_NEW;
@@ -108,7 +107,7 @@ void StartupDlg::onChangeWorkspace(const char *name)
   if (mSelected != -1)
     return;
 
-  PropertyContainerControlBase *_group = mPanel->getById(ID_GROUP)->getContainer();
+  PropPanel::ContainerPropertyControl *_group = mPanel->getById(ID_GROUP)->getContainer();
   G_ASSERT(_group && "StartupDlg::onChangeWorkspace: NO RADIO GROUP FOUND");
 
   _group->clear();
@@ -127,7 +126,7 @@ void StartupDlg::onChangeWorkspace(const char *name)
 
 //==============================================================================
 
-void StartupDlg::onCustomFillPanel(PropPanel2 &panel)
+void StartupDlg::onCustomFillPanel(PropPanel::ContainerPropertyControl &panel)
 {
   EditorStartDialog::onCustomFillPanel(panel);
 
@@ -136,7 +135,7 @@ void StartupDlg::onCustomFillPanel(PropPanel2 &panel)
 
 
 //==============================================================================
-bool StartupDlg::onCustomSettings(PropPanel2 &panel)
+bool StartupDlg::onCustomSettings(PropPanel::ContainerPropertyControl &panel)
 {
   EditorStartDialog::onCustomSettings(panel);
 
@@ -157,7 +156,7 @@ bool StartupDlg::onCustomSettings(PropPanel2 &panel)
 
 
 //==============================================================================
-void StartupDlg::fillExportPluginsGrp(PropPanel2 &panel)
+void StartupDlg::fillExportPluginsGrp(PropPanel::ContainerPropertyControl &panel)
 {
   exporters.clear();
 
@@ -175,7 +174,7 @@ void StartupDlg::fillExportPluginsGrp(PropPanel2 &panel)
   if (!exporters.size())
     return;
 
-  PropertyContainerControlBase *maxGrp = panel.createGroup(PID_EXPORT_PLUGINS_GRP, "Default export");
+  PropPanel::ContainerPropertyControl *maxGrp = panel.createGroup(PID_EXPORT_PLUGINS_GRP, "Default export");
   G_ASSERT(maxGrp);
 
   DeWorkspace &deWsp = (DeWorkspace &)wsp;
@@ -208,10 +207,10 @@ int StartupDlg::getSelected() const { return mSelected; }
 
 //==============================================================================
 
-void StartupDlg::onDoubleClick(int pcb_id, PropPanel2 *panel)
+void StartupDlg::onDoubleClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
-  if (mPanel->getInt(ID_GROUP) != RADIO_SELECT_NONE)
-    click(DIALOG_ID_OK);
+  if (mPanel->getInt(ID_GROUP) != PropPanel::RADIO_SELECT_NONE)
+    clickDialogButton(PropPanel::DIALOG_ID_OK);
 }
 
 
@@ -248,7 +247,7 @@ bool StartupDlg::onDropFiles(const dag::Vector<String> &files)
     return true;
   }
 
-  click(DIALOG_ID_OK);
+  clickDialogButton(PropPanel::DIALOG_ID_OK);
 
   return true;
 }

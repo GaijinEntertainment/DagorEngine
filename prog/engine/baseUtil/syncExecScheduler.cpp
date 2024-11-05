@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <generic/dag_execScheduler.h>
 #include <osApiWrappers/dag_miscApi.h>
 

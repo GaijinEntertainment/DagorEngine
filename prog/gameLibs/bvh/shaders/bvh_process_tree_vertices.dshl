@@ -1,0 +1,155 @@
+include "shader_global.dshl"
+include "pivot_painter.dshl"
+include "rt/bvh_process_tree_vertices_inc.dshl"
+
+int bvh_process_target_offset;
+int bvh_process_tree_vertices_start;
+int bvh_process_tree_vertices_stride;
+int bvh_process_tree_vertices_count;
+int bvh_process_tree_vertices_processed_stride;
+int bvh_process_tree_vertices_position_offset;
+int bvh_process_tree_vertices_normal_offset;
+int bvh_process_tree_vertices_color_offset;
+int bvh_process_tree_vertices_texcoord_offset;
+int bvh_process_tree_vertices_texcoord_size;
+int bvh_process_tree_vertices_indirect_texcoord_offset;
+int bvh_process_tree_vertices_is_pivoted;
+int bvh_process_tree_vertices_is_pos_inst;
+
+float bvh_process_tree_vertices_tree_wind_branch_amp = 0.5;
+float bvh_process_tree_vertices_tree_wind_detail_amp = 0.5;
+float bvh_process_tree_vertices_tree_wind_speed = 0.1;
+float bvh_process_tree_vertices_tree_wind_time = 0;
+
+float4 bvh_process_tree_vertices_wind_channel_strength = (1, 1, 0, 1);
+float4 bvh_process_tree_vertices_tree_wind_blend_params1 = (1, 0, 0, 0);
+
+float4x4 bvh_process_tree_vertices_wtm;
+float4x4 bvh_process_tree_vertices_itm;
+
+int bvh_process_tree_vertices_per_inst_offset;
+
+texture perlin_noise3d;
+
+interval bvh_process_tree_vertices_texcoord_size: four < 8, eight;
+interval bvh_process_tree_vertices_is_pivoted : no < 1, yes;
+interval bvh_process_tree_vertices_is_pos_inst : no < 1, yes;
+
+shader bvh_process_tree_vertices
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+  ENABLE_ASSERT(cs)
+
+  dynamic texture pp_position;
+  dynamic texture pp_direction;
+
+  dynamic float wind_noise_speed_base = 0.1;
+  dynamic float wind_noise_speed_level_mul = 1.666;
+
+  dynamic float wind_angle_rot_base = 5;
+  dynamic float wind_angle_rot_level_mul = 5;
+  dynamic float4 wind_per_level_angle_rot_max = (60, 60, 60, 60);
+
+  dynamic float wind_parent_contrib = 0.25;
+
+  dynamic float wind_motion_damp_base = 3;
+  dynamic float wind_motion_damp_level_mul = 0.8;
+
+  (cs) {
+    target_offset@u1 = bvh_process_target_offset;
+    start_vertex@i1 = bvh_process_tree_vertices_start;
+    vertex_stride@i1 = bvh_process_tree_vertices_stride;
+    vertex_count@i1 = bvh_process_tree_vertices_count;
+    processed_vertex_stride@i1 = bvh_process_tree_vertices_processed_stride;
+    position_offset@i1 = bvh_process_tree_vertices_position_offset;
+    color_offset@i1 = bvh_process_tree_vertices_color_offset;
+    normal_offset@i1 = bvh_process_tree_vertices_normal_offset;
+    texcoord_offset@i1 = bvh_process_tree_vertices_texcoord_offset;
+    texcoord_size@i1 = bvh_process_tree_vertices_texcoord_size;
+    indirect_texcoord_offset@i1 = bvh_process_tree_vertices_indirect_texcoord_offset;
+    wtm@f44 = bvh_process_tree_vertices_wtm;
+    itm@f44 = bvh_process_tree_vertices_itm;
+    perInstanceRenderDataOffset@i1 = bvh_process_tree_vertices_per_inst_offset;
+    tree_wind_blend_params1@f4 = bvh_process_tree_vertices_tree_wind_blend_params1;
+    tree_wind_params@f4 = (bvh_process_tree_vertices_tree_wind_time, bvh_process_tree_vertices_tree_wind_branch_amp, bvh_process_tree_vertices_tree_wind_detail_amp, bvh_process_tree_vertices_tree_wind_speed);
+
+    wind_channel_strength@f3 = bvh_process_tree_vertices_wind_channel_strength;
+
+    perlin_noise3d@smp3d = perlin_noise3d;
+
+    pp_pos_tex@smp2d = pp_position;
+    pp_dir_tex@smp2d = pp_direction;
+  }
+
+  hlsl(cs) {
+    float4 sample_pp_pos_tex(float2 tc) { return tex2Dlod(pp_pos_tex, float4(tc, 0, 0)); }
+    float4 sample_pp_dir_tex(float2 tc) { return tex2Dlod(pp_dir_tex, float4(tc, 0, 0)); }
+  }
+
+  // Game specific
+  BVH_TREE_ANIMATION()
+
+  hlsl(cs) {
+    #pragma wave32
+
+    ByteAddressBuffer source : register(t6);
+    RWByteAddressBuffer output : register(u0);
+
+    [numthreads( 32, 1, 1 )]
+    void bvh_process_tree_vertices(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint vertexId = dtId.x;
+      if (vertexId >= vertex_count)
+        return;
+
+      int vertexStart = (start_vertex + vertexId) * vertex_stride;
+
+      const uint4 INPUT_ENCODING_OFFSET = uint4(16, 8, 0, 24);
+
+      float3 inputPos         = asfloat(source.Load3(vertexStart + position_offset));
+      uint   packedNormal     = source.Load(vertexStart + normal_offset);
+      float3 inputNormal      = float4((packedNormal >> INPUT_ENCODING_OFFSET) & 255).xyz / 255;
+      float3 worldNormal      = normalize(mul(inputNormal, (float3x3)wtm));
+      uint   packedColor      = source.Load(vertexStart + color_offset);
+      float4 inputColor       = float4((packedColor >> INPUT_ENCODING_OFFSET) & 255) / 255;
+      float2 indirectTexcoord = asfloat(source.Load2(vertexStart + indirect_texcoord_offset));
+
+      float4 worldPos4;
+
+      // Game specific
+      bvh_tree_animation(indirectTexcoord,
+                         inputColor,
+                         wtm,
+                         inputPos,
+                         tree_wind_params,
+                         perInstanceRenderDataOffset,
+                         worldPos4,
+                         worldNormal);
+
+      float3 animatedLocalPos = mul(worldPos4, itm).xyz;
+
+      output.Store3(target_offset + vertexId * processed_vertex_stride, asuint(animatedLocalPos));
+
+      uint offset = 12;
+
+      ##if bvh_process_tree_vertices_texcoord_size == four
+        output.Store(target_offset + vertexId * processed_vertex_stride + offset, source.Load(vertexStart + texcoord_offset));
+        offset += 4;
+      ##elif bvh_process_tree_vertices_texcoord_size == eight
+        output.Store2(target_offset + vertexId * processed_vertex_stride + offset, source.Load2(vertexStart + texcoord_offset));
+        offset += 8;
+      ##endif
+
+      float3 animatedLocalNormal  = normalize(mul(worldNormal, (float3x3)itm));
+      uint3  animatedLocalNormalI = uint3((animatedLocalNormal * 0.5 + 0.5) * 255) << INPUT_ENCODING_OFFSET.xyz;
+      uint   animatedLocalNormalP = animatedLocalNormalI.x | animatedLocalNormalI.y | animatedLocalNormalI.z | (packedNormal << 24);
+      output.Store(target_offset + vertexId * processed_vertex_stride + offset, animatedLocalNormalP);
+      offset += 4;
+    }
+  }
+
+  compile("target_cs", "bvh_process_tree_vertices");
+}

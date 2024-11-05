@@ -1,10 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EditorCore/captureCursor.h>
 
 #include <windows.h>
 #include <osApiWrappers/dag_progGlobals.h>
 #include <debug/dag_debug.h>
 #include <startup/dag_inpDevClsDrv.h>
-#include <humanInput/dag_hiPointing.h>
+#include <drv/hid/dag_hiPointing.h>
 
 #include <EditorCore/ec_rect.h>
 

@@ -2,11 +2,11 @@ Root    ?= ../../.. ;
 Location = prog/engine/videoEncoder ;
 
 TargetType  = lib ;
-Target      = gameLibs/videoEncoder.lib ;
+Target      = engine/videoEncoder.lib ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
 Sources =
   videoEncoder.cpp
 ;
@@ -17,7 +17,7 @@ Sources =
 ;
 }
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
     AddLibs +=
       mfplat.lib
       mfuuid.lib

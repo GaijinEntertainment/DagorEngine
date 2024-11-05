@@ -18,6 +18,8 @@ float4 static_shadow_cascade_1_scale_ofs_z_tor = (0, 0, 0, 0);
 
 float4 global_static_shadow_fxaa_dir;
 
+float debug_disable_static_pcf_center_sample = 0;
+
 macro INIT_STATIC_SHADOW_BASE_ONE_CASCADE_STCODE(code)
   if (hardware.fsh_5_0)
   {
@@ -36,6 +38,7 @@ macro INIT_STATIC_SHADOW_BASE_ONE_CASCADE_STCODE(code)
     static_shadow_matrix_3_0@f4 = static_shadow_matrix_3_0;
     static_shadow_cascade_0_tor@f2 = (static_shadow_cascade_0_scale_ofs_z_tor.z,static_shadow_cascade_0_scale_ofs_z_tor.w,0,0);
     static_cascade_start@f1 = static_cascade_start;
+    debug_disable_static_pcf_center_sample@f1 = debug_disable_static_pcf_center_sample;
   }
 endmacro
 

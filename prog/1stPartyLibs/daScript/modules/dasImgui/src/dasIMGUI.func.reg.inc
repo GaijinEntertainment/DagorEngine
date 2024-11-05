@@ -1,4 +1,4 @@
-// this file is generated via daScript automatic C++ binder
+// this file is generated via Daslang automatic C++ binder
 // all user modifications will be lost after this file is re-generated
 
 initFunctions_1();
@@ -28,3 +28,6 @@ initFunctions_24();
 initFunctions_25();
 initFunctions_26();
 initFunctions_27();
+initFunctions_28();
+initFunctions_29();
+initFunctions_30();

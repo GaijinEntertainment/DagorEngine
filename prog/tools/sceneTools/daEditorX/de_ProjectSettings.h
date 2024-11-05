@@ -1,8 +1,7 @@
-#ifndef __GAIJIN_DE_PROJECT_SETTINGS_DLG__
-#define __GAIJIN_DE_PROJECT_SETTINGS_DLG__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <propPanel2/comWnd/dialog_window.h>
+#include <propPanel/commonWindow/dialogWindow.h>
 
 #include <generic/dag_tab.h>
 #include <math/dag_math3d.h>
@@ -23,18 +22,18 @@ class PsCollisionTab;
 //==============================================================================
 // ProjectSettingsDlg
 //==============================================================================
-class ProjectSettingsDlg : public CDialogWindow
+class ProjectSettingsDlg : public PropPanel::DialogWindow
 {
 public:
   ProjectSettingsDlg(void *phandle, bool &use_dir_light);
 
 private:
   virtual bool onOk();
-  virtual void onChange(int pcb_id, PropPanel2 *panel);
-  virtual long onChanging(int pcb_id, PropPanel2 *panel);
-  virtual void onClick(int pcb_id, PropPanel2 *panel);
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  virtual long onChanging(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
 
-  PropertyContainerControlBase *mTabPage;
+  PropPanel::ContainerPropertyControl *mTabPage;
 
   PsExternalTab *externalTab;
   PsLightTab *lightTab;
@@ -49,15 +48,15 @@ private:
 class PsExternalTab
 {
 public:
-  PsExternalTab(PropertyContainerControlBase *tab_page);
+  PsExternalTab(PropPanel::ContainerPropertyControl *tab_page);
   virtual ~PsExternalTab();
 
-  int handleEvent(int pcb_id, PropPanel2 *panel);
+  int handleEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel);
   bool onOkPressed();
   void fixPath(int pcb_id);
 
 private:
-  PropertyContainerControlBase *mTabPage;
+  PropPanel::ContainerPropertyControl *mTabPage;
   Tab<String> oldVals;
   bool nowEdit;
 };
@@ -81,7 +80,7 @@ enum
 class PsLightTab
 {
 public:
-  PsLightTab(PropertyContainerControlBase *tab_page, bool &use_dir_light);
+  PsLightTab(PropPanel::ContainerPropertyControl *tab_page, bool &use_dir_light);
   virtual ~PsLightTab();
 
   inline E3DCOLOR getAmbientColor() const { return ambient; }
@@ -92,12 +91,12 @@ public:
 
   Point2 getLightDirection() const;
 
-  int handleEvent(int pcb_id, PropPanel2 *panel);
+  int handleEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel);
   bool onOkPressed();
   void onApply();
 
 private:
-  PropertyContainerControlBase *mTabPage;
+  PropPanel::ContainerPropertyControl *mTabPage;
   E3DCOLOR ambient;
   E3DCOLOR direct;
   bool &useDirLight;
@@ -113,7 +112,7 @@ private:
 class MiscTab
 {
 public:
-  MiscTab(PropertyContainerControlBase *tab_page);
+  MiscTab(PropPanel::ContainerPropertyControl *tab_page);
   bool onOkPressed();
 
 private:
@@ -140,7 +139,7 @@ private:
     BUMP_RADIO_OFF_ID,
   };
 
-  PropertyContainerControlBase *mTabPage;
+  PropPanel::ContainerPropertyControl *mTabPage;
 };
 
 
@@ -155,12 +154,12 @@ enum
 class PsCollisionTab
 {
 public:
-  PsCollisionTab(PropertyContainerControlBase *tab_page);
+  PsCollisionTab(PropPanel::ContainerPropertyControl *tab_page);
 
   bool onOkPressed();
 
 private:
-  PropertyContainerControlBase *mTabPage;
+  PropPanel::ContainerPropertyControl *mTabPage;
   Tab<String> mColNames;
 };
 
@@ -174,6 +173,3 @@ enum
   DIALOG_TAB_MISC,
   DIALOG_TAB_COLLISION
 };
-
-
-#endif //__GAIJIN_DE_PROJECT_SETTINGS__

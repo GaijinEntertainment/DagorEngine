@@ -284,8 +284,7 @@ public:
         if (GetVM() != so.GetVM())
             return false;
 
-        SQInteger res = 0;
-        return sq_direct_cmp(vm, &obj, &so.obj, &res) && (res==0);
+        return sq_direct_is_equal(vm, &obj, &so.obj);
     }
 
 private:
@@ -398,7 +397,5 @@ template<>
 struct Var<const Function&> : Var<Function> {Var(HSQUIRRELVM vm, SQInteger idx) : Var<Function>(vm, idx) {}};
 
 }
-
-DAG_DECLARE_RELOCATABLE(Sqrat::Function);
 
 #endif

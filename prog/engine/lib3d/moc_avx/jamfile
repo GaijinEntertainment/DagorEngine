@@ -12,11 +12,10 @@ Sources =
   MaskedOcclusionCulling_avx.cpp
 ;
 
-CPPopt = -D__B_CORE ;
-
-if $(Platform) in win64 linux64
-{
+if $(Platform)-$(PlatformArch) in windows-x86_64 linux-x86_64 && $(PlatformSpec) in clang gcc {
   CPPopt += -mavx2 -mfma ;
+} else if $(Platform) = windows { # msvc
+  CPPopt += /arch:AVX2 ;
 }
 
 if $(ForceLinkDebugLines) = yes && $(Config) in rel irel {

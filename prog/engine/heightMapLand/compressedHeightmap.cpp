@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <heightMapLand/dag_compressedHeightmap.h>
 #include <ioSys/dag_memIo.h>
 #include <ioSys/dag_zstdIo.h>
@@ -10,6 +12,7 @@
 #include <math/dag_bits.h>
 #include <memory.h>
 #include <string.h>
+#include <supp/dag_alloca.h>
 
 constexpr uint8_t max_block_shift = 5; // if more than we would need to load two cache line for one cell
 size_t CompressedHeightmap::calc_data_size_needed(uint32_t w, uint32_t h, uint8_t &block_shift, uint32_t hrb_subsz)

@@ -1,6 +1,5 @@
 Root    ?= ../../../.. ;
 Location = prog/tools/dagUtils/DagMatRemap ;
-DriverLinkage   = static ;
 ConsoleExe      = yes ;
 
 TargetType  = exe ;

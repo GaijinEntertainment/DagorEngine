@@ -23,7 +23,9 @@ Sources =
   texMgrSymFactory.cpp
   texMgrStubFactory.cpp
   textureFormat.cpp
+  convertPixelFormat.cpp
   regTexCreateRaw.cpp
+  regTexCreateTiff.cpp
   drv3dReset.cpp
   setGamma.cpp
   debug3dBuffered.cpp
@@ -32,9 +34,8 @@ Sources =
   debug3dTex.cpp
   texPackMgr2.cpp
   createTex.cpp
-  assertTexSize.cpp
   picMgr.cpp
-  splash.cpp
+  splashScreen.cpp
   applyTmd.cpp
   texIdHolder.cpp
   bufIdHolder.cpp
@@ -48,21 +49,23 @@ Sources =
   texStreamingContext.cpp
 ;
 
-CPPopt = -D__B_CORE ;
-
 if $(Platform) in iOS android nswitch
 {
   Sources += MaskedOcclusionCulling_neon.cpp ;
 }
 
-if $(Platform) in win32 win64 linux64 ps4 xboxOne
+if $(Platform) in windows linux ps4 xboxOne
 {
-  Sources += MaskedOcclusionCulling_sse.cpp ;
+  if $(PlatformArch) in x86 x86_64 e2k {
+    Sources += MaskedOcclusionCulling_sse.cpp ;
+  } else if $(PlatformArch) in arm64 {
+    Sources += MaskedOcclusionCulling_neon.cpp ;
+  }
 }
 
-if $(Platform) in macosx
+if $(Platform) in macOS
 {
-  if $(MacOSXArch) != arm64 {
+  if $(PlatformArch) in x86 x86_64 {
     Sources += MaskedOcclusionCulling_sse.cpp ;
   } else {
     Sources += MaskedOcclusionCulling_neon.cpp ;
@@ -70,7 +73,6 @@ if $(Platform) in macosx
 }
 
 AddIncludes =
-  $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/3rdPartyLibs/binPack2D/include
   $(Root)/prog/engine/drv/drv3d_commonCode
@@ -79,10 +81,10 @@ AddIncludes =
 UseProgLibs =
   3rdPartyLibs/eastl
 ;
-if $(Platform) in win32 win64 { UseProgLibs += 3rdPartyLibs/convert/detex ; }
+if $(Platform) in windows { UseProgLibs += 3rdPartyLibs/convert/detex ; }
 if $(Config) in dev dbg { UseProgLibs += engine/consoleProc ; }
 
-if $(Platform) in win64 linux64 && $(SSEVersion) != 2 && $(SSEVersion) != 3)
+if $(Platform)-$(PlatformArch) in windows-x86_64 linux-x86_64 && $(SSEVersion) != 2 && $(SSEVersion) != 3)
 {
 UseProgLibs +=
   engine/lib3d/moc_avx
@@ -99,12 +101,6 @@ UseProgLibs +=
 if $(ForceLinkDebugLines) = yes && $(Config) in rel irel {
   CPPopt += -DFORCE_LINK_DEBUG_LINES ;
   Target = $(Target:S=~dbgln.lib) ;
-}
-
-RequireDriverResetReport ?= no ;
-if $(RequireDriverResetReport) = yes {
-  CPPopt += -DREQUIRE_DRIVER_RESET_REPORT ;
-  Target = $(Target:S=~rr.lib) ;
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

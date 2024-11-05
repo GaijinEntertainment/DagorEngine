@@ -1,0 +1,41 @@
+include "dynamic_opaque_inc.dshl"
+include "gbuffer.dshl"
+include "normaldetail.dshl"
+include "emissive.dshl"
+
+shader dynamic_emissive
+{
+  ENABLE_ASSERT(ps)
+  SUPPORT_MULTIDRAW(false)
+  DYNAMIC_BLOCK()
+  EMISSIVE_INIT_WITH_DYNAMIC_PARAMS()
+  NO_DEFORM_HMAP()
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    hlsl {
+      #define MOTION_VECTORS_ENABLED
+    }
+  }
+
+  DYNAMIC_SIMPLE_VS_NOATEST()
+
+//---------------------------------------------------
+// PS stuff.
+//---------------------------------------------------
+
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    compile("ps_null", "null_ps");
+  }
+  else
+  {
+    hlsl(ps) {
+      #define IS_DYNAMIC 1
+    }
+    EMISSIVE_PS()
+  }
+}

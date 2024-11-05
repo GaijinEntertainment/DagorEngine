@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_imageFunctions.h>
 #include <math.h>
 #include <supp/dag_prefetch.h>
@@ -664,7 +666,6 @@ void downsample2x_simdu(unsigned char *destData, const unsigned char *srcData, i
 void convert_to_linear_simda(const float *__restrict data, unsigned char *__restrict dest, int num_pixels, float invgamma)
 {
   const float *enddata = data + num_pixels * 4;
-  unsigned char *tmpDest = dest;
   vec4f m = v_splats(255.0f);
   vec4f p = v_make_vec4f(invgamma, invgamma, invgamma, 1);
   vec4f half = v_splats(0.5f);

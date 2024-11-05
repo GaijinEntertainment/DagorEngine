@@ -1,12 +1,12 @@
-ReproducibleExeBuild = yes ;
 Root    ?= ../../../.. ;
 Location = prog/tools/sceneTools/levelCacheUtil ;
+include $(Root)/prog/tools/tools_setup.jam ;
 ConsoleExe = yes ;
 
 TargetType  = exe ;
 Target      = tools/levelCacheUtil.exe ;
 
-OutDir = $(Root)/tools/dagor3_cdk/util ;
+include $(Root)/prog/tools/tools_setup_outdir_util.jam ;
 
 AddIncludes =
   $(Root)/prog/tools/sharedInclude

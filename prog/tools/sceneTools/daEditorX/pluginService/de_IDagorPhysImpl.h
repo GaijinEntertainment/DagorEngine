@@ -1,7 +1,5 @@
-#ifndef __GAIJIN_DAGORED_DE_DAGOR_PHYS_IMPL__
-#define __GAIJIN_DAGORED_DE_DAGOR_PHYS_IMPL__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <oldEditor/pluginService/de_IDagorPhys.h>
 
@@ -26,6 +24,3 @@ public:
 
   virtual BBox3 getBoundingBox() const;
 };
-
-
-#endif //__GAIJIN_DAGORED_DE_DAGOR_PHYS_IMPL__

@@ -1,0 +1,92 @@
+include "sky_shader_global.dshl"
+include "gpu_occlusion.dshl"
+
+include "volfog_common.dshl"
+
+
+
+texture volfog_occlusion_rw;
+texture volfog_occlusion_shadow_rw;
+
+
+shader froxel_fog_occlusion_cs
+{
+  // we increase +-1 froxel to prevent filtering/blending with jittered occluded
+  local float4 froxel_offset = (-0.5*inv_volfog_froxel_volume_res.x, -0.5*inv_volfog_froxel_volume_res.y, 0.5*inv_volfog_froxel_volume_res.x, 0.5*inv_volfog_froxel_volume_res.y);
+  (cs)
+  {
+    occlusion_resolution@f3 = (volfog_froxel_volume_res);
+    bbox_offset@f4 = (froxel_offset.x, froxel_offset.y, froxel_offset.z + inv_volfog_froxel_volume_res.x, froxel_offset.w + inv_volfog_froxel_volume_res.y);
+    volume_z_offset@f1 = (inv_volfog_froxel_volume_res.z,0,0,0); // adds one slice, so reprojection work better
+    inv_occlusion_resolution@f2 = (inv_volfog_froxel_volume_res.x, inv_volfog_froxel_volume_res.y, 0, 0);
+
+    volfog_occlusion_rw@uav = volfog_occlusion_rw hlsl {
+      RWTexture2D<float> volfog_occlusion_rw@uav;
+    }
+  }
+
+  if (volfog_occlusion_shadow_rw != NULL)
+  {
+    (cs)
+    {
+      volfog_occlusion_shadow_rw@uav = volfog_occlusion_shadow_rw hlsl {
+        RWTexture2D<float> volfog_occlusion_shadow_rw@uav;
+      }
+    }
+  }
+
+  INIT_ZNZFAR_STAGE(cs)
+  BASE_GPU_OCCLUSION(cs)
+  VOLUME_DEPTH_CONVERSION(cs)
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    float checkVolFogBox(float2 coord)
+    {
+      float closestRawDepth = check_box_occl_visible_tc_base(saturate(coord.xyxy*inv_occlusion_resolution.xyxy + bbox_offset));
+      return linearize_z(closestRawDepth, zn_zfar.zw);
+    }
+
+##if volfog_occlusion_shadow_rw != NULL
+    groupshared uint cached_occlusion_slice_id[RESULT_WARP_SIZE][RESULT_WARP_SIZE];
+##endif
+
+    [numthreads( RESULT_WARP_SIZE, RESULT_WARP_SIZE, 1)]
+    void occlusion_cs( uint2 dtId : SV_DispatchThreadID, uint3 tid : SV_GroupThreadID )
+    {
+      static const float MIN_DIST = 4.0; // first few meters are too close, we'd better always shade them even if occluded
+      float volumePosZ = depth_to_volume_pos(max(MIN_DIST, checkVolFogBox(float2(dtId)))) + volume_z_offset;
+      uint sliceId = ceil(volumePosZ * occlusion_resolution.z);
+      texture2DAt(volfog_occlusion_rw, dtId) = (sliceId + 0.5) / 255.f;
+
+##if volfog_occlusion_shadow_rw != NULL
+      cached_occlusion_slice_id[tid.y][tid.x] = sliceId;
+      GroupMemoryBarrierWithGroupSync();
+
+      if (all(tid % 2 == 0))
+      {
+        sliceId = max4(sliceId,
+          cached_occlusion_slice_id[tid.y + 0][tid.x + 1],
+          cached_occlusion_slice_id[tid.y + 1][tid.x + 0],
+          cached_occlusion_slice_id[tid.y + 1][tid.x + 1]);
+        cached_occlusion_slice_id[tid.y][tid.x] = sliceId;
+      }
+      GroupMemoryBarrierWithGroupSync();
+
+      if (all(tid % 4 == 0))
+      {
+        sliceId = max4(sliceId,
+          cached_occlusion_slice_id[tid.y + 0][tid.x + 2],
+          cached_occlusion_slice_id[tid.y + 2][tid.x + 0],
+          cached_occlusion_slice_id[tid.y + 2][tid.x + 2]);
+
+        // must be consistent with the CPU side of things
+        uint2 shadowDtId = dtId / 4;
+        uint shadowSliceId = sliceId / 2;
+        texture2DAt(volfog_occlusion_shadow_rw, shadowDtId) = (shadowSliceId + 0.5) / 255.f;
+      }
+##endif
+    }
+  }
+  compile("target_cs", "occlusion_cs");
+}
+

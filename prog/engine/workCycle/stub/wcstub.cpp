@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "workCyclePriv.h"
 
 namespace workcycle_internal

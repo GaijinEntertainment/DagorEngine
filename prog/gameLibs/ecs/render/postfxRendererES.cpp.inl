@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ecs/render/postfx_renderer.h>
 #include <daECS/core/componentTypes.h>
 

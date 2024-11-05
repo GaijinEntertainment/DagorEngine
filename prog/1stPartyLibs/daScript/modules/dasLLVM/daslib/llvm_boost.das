@@ -9,12 +9,31 @@ require llvm public
 require daslib/safe_addr
 require daslib/defer
 require strings
+require ast_boost
+
+def LLVMBuildSRemInt32 ( builder:LLVMOpaqueBuilder?; lhs, rhs:LLVMOpaqueValue?; name:string )
+    // convert lhs % rhs to lhs - int(double(lhs)/double(rhs))*rhs
+    let l = LLVMBuildSIToFP(builder, lhs, LLVMDoubleType(), "")
+    let r = LLVMBuildSIToFP(builder, rhs, LLVMDoubleType(), "")
+    let d = LLVMBuildFDiv(builder, l, r, "")
+    let i = LLVMBuildFPToSI(builder, d, LLVMInt32Type(), "")
+    let m = LLVMBuildMul(builder, i, rhs, "")
+    return LLVMBuildSub(builder, lhs, m, name)
+
+
+def LLVMBuildURemUInt32 ( builder:LLVMOpaqueBuilder?; lhs, rhs:LLVMOpaqueValue?; name:string )
+    // convert lhs % rhs to lhs - uint(double(lhs)/double(rhs))*rhs
+    let l = LLVMBuildUIToFP(builder, lhs, LLVMDoubleType(), "")
+    let r = LLVMBuildUIToFP(builder, rhs, LLVMDoubleType(), "")
+    let d = LLVMBuildFDiv(builder, l, r, "")
+    let i = LLVMBuildFPToUI(builder, d, LLVMInt32Type(), "")
+    let m = LLVMBuildMul(builder, i, rhs, "")
+    return LLVMBuildSub(builder, lhs, m, name)
 
 def LLVMIsVector3 ( typ:LLVMOpaqueType? ) : bool
     return (LLVMGetTypeKind(typ)==LLVMTypeKind LLVMVectorTypeKind) && (LLVMGetVectorSize(typ)==3u)
 
-def LLVMBuildLoadVector3 ( builder:LLVMOpaqueBuilder?; ptr:LLVMOpaqueValue?; name:string )
-    var typ = LLVMGetElementType(LLVMTypeOf(ptr))
+def LLVMBuildLoadVector3 ( builder:LLVMOpaqueBuilder?; var typ: LLVMOpaqueType?; ptr:LLVMOpaqueValue?; name:string )
     verify(LLVMGetVectorSize(typ)==3u)
     let elemT = LLVMGetElementType(typ)
     var ld = LLVMBuildLoad2(builder, LLVMVectorType(elemT, 4u), ptr, name)
@@ -27,11 +46,6 @@ def LLVMBuildLoadVector3 ( builder:LLVMOpaqueBuilder?; ptr:LLVMOpaqueValue?; nam
     xyz = LLVMBuildInsertElement(builder, xyz, y, LLVMConstInt(LLVMInt32Type(),1ul,0), "")
     xyz = LLVMBuildInsertElement(builder, xyz, z, LLVMConstInt(LLVMInt32Type(),2ul,0), "")
     return xyz
-
-def LLVMBuildLoadAligned ( builder:LLVMOpaqueBuilder?; ptr:LLVMOpaqueValue?; alignment:uint; name:string )
-    let ld = LLVMBuildLoad(builder, ptr, name)
-    LLVMSetAlignment(ld, alignment)
-    return ld
 
 def LLVMBuildLoad2Aligned ( builder:LLVMOpaqueBuilder?; typ:LLVMOpaqueType?; ptr:LLVMOpaqueValue?; alignment:uint; name:string )
     let ld = LLVMBuildLoad2(builder, typ, ptr, name)
@@ -101,12 +115,6 @@ def LLVMAddIncoming(phi:LLVMOpaqueValue?; var phi_vals:array<LLVMOpaqueValue?>; 
     assert(length(phi_vals) == length(phi_blocks), "LLVMAddIncoming: phi_vals and phi_blocks must have the same length")
     LLVMAddIncoming(phi, unsafe(addr(phi_vals[0])), unsafe(addr(phi_blocks[0])), uint(length(phi_vals)))
 
-def LLVMBuildGEP ( builder:LLVMOpaqueBuilder?; ptr:LLVMOpaqueValue?; var index:LLVMOpaqueValue?; name:string; inbounds:bool=true )
-    var gep = LLVMBuildGEP(builder, ptr, unsafe(addr(index)), 1u, name)
-    if inbounds
-        LLVMSetIsInBounds(gep, 1)
-    return gep
-
 def LLVMBuildGEP2 ( builder:LLVMOpaqueBuilder?; ty:LLVMOpaqueType?; ptr:LLVMOpaqueValue?; var index:LLVMOpaqueValue?; name:string; inbounds:bool=true )
     var gep = LLVMBuildGEP2(builder, ty, ptr, unsafe(addr(index)), 1u, name)
     if inbounds
@@ -152,6 +160,18 @@ def LLVMFunctionType ( var ret_type:LLVMTypeRef; var param_types:array<LLVMTypeR
 
 def LLVMFunctionType ( var ret_type:LLVMTypeRef; isVariadic:bool = false )
     return LLVMFunctionType( ret_type, null, 0u, isVariadic ? 1 : 0)
+
+var interop_fn_type : LLVMTypeRef
+
+def LLVMInteropFunctionType
+    if interop_fn_type == null
+        interop_fn_type = LLVMFunctionType(LLVMFloat4Type(),
+            [[LLVMTypeRef
+                LLVMPointerType(LLVMVoidType(),0u);
+                LLVMPointerType(LLVMVoidType(),0u);
+                LLVMPointerType(LLVMFloat4Type(),0u)
+            ]])
+    return interop_fn_type
 
 def LLVMVerifyModule(mod:LLVMOpaqueModule?; action:LLVMVerifierFailureAction; fail:bool=true)
     var error : string
@@ -223,15 +243,18 @@ def LLVMBuildFloat4_xyzw ( builder:LLVMOpaqueBuilder?; x,y,z,w:LLVMOpaqueValue?;
 def LLVMBuildCall ( builder:LLVMOpaqueBuilder?; func:LLVMOpaqueValue?; var args:LLVMOpaqueValue? []; name:string )
     return LLVMBuildCall( builder, func, unsafe(addr(args[0])), uint(length(args)), name)
 
-def LLVMBuildCall ( builder:LLVMOpaqueBuilder?; func:LLVMOpaqueValue?; name:string )
-    return LLVMBuildCall( builder, func, null, 0u, name)
+def LLVMBuildCall2 ( builder:LLVMOpaqueBuilder?; typ : LLVMOpaqueType?; func:LLVMOpaqueValue?; var args:LLVMOpaqueValue? []; name:string )
+    return LLVMBuildCall2( builder, typ, func, unsafe(addr(args[0])), uint(length(args)), name)
 
-def LLVMBuildCall ( builder:LLVMOpaqueBuilder?; func:LLVMOpaqueValue?; var args:array<LLVMOpaqueValue?>; name:string )
+def LLVMBuildCall2 ( builder:LLVMOpaqueBuilder?; typ : LLVMOpaqueType?; func:LLVMOpaqueValue?; name:string )
+    return LLVMBuildCall2( builder, typ, func, null, 0u, name)
+
+def LLVMBuildCall2 ( builder:LLVMOpaqueBuilder?; typ : LLVMOpaqueType?; func:LLVMOpaqueValue?; var args:array<LLVMOpaqueValue?>; name:string )
     let nparams = length(args)
     if nparams != 0
-        return LLVMBuildCall( builder, func, unsafe(addr(args[0])), uint(nparams), name)
+        return LLVMBuildCall2( builder, typ, func, unsafe(addr(args[0])), uint(nparams), name)
     else
-        return LLVMBuildCall( builder, func, null, 0u, name)
+        return LLVMBuildCall2( builder, typ, func, null, 0u, name)
 
 def LLVMLookupIntrinsicID ( name:string )
     return LLVMLookupIntrinsicID(name,uint64(length(name)))

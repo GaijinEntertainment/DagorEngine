@@ -1,9 +1,14 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/debugGbuffer.h>
 #include <render/debugMesh.h>
 #include <render/deferredRT.h>
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_DynamicShaderHelper.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
 
 using OptionsMap = eastl::array<eastl::string_view, (size_t)DebugGbufferMode::Count>;
 const OptionsMap gbuffer_debug_options = {
@@ -162,6 +167,8 @@ void debug_render_gbuffer(const PostFxRenderer &debugRenderer, Texture *depth, i
 
 void debug_render_gbuffer_with_vectors(const DynamicShaderHelper &debugVecShader, Texture *depth, int mode)
 {
+  if (!debugVecShader.shader)
+    return;
   if (mode == USE_DEBUG_GBUFFER_MODE)
     mode = (int)show_gbuffer_with_vectors;
 
@@ -171,6 +178,7 @@ void debug_render_gbuffer_with_vectors(const DynamicShaderHelper &debugVecShader
     ShaderGlobal::set_real(vec_countVarId, float(debug_vectors_count));
     static int vec_scaleVarId = get_shader_variable_id("gbuffer_debug_vec_scale");
     ShaderGlobal::set_real(vec_scaleVarId, debug_vectors_scale);
+    ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
 
     DebugGbufferRenderScope scope(depth);
     debugVecShader.shader->setStates();

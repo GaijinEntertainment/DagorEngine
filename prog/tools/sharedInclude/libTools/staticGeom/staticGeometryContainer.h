@@ -1,8 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef _GAIJIN_DAGORED_STATICGEOM_H
-#define _GAIJIN_DAGORED_STATICGEOM_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <generic/dag_tab.h>
 #include <generic/dag_ptrTab.h>
@@ -107,6 +104,3 @@ protected:
 
   void getBlkScript(const char *script, String &blk_script, String &non_blk_script);
 };
-
-
-#endif

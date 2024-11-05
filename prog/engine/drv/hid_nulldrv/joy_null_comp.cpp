@@ -1,5 +1,7 @@
-#include <humanInput/dag_hiGlobals.h>
-#include <humanInput/dag_hiComposite.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiComposite.h>
 
 HumanInput::CompositeJoystickClassDriver *global_cls_composite_drv_joy = NULL;
 

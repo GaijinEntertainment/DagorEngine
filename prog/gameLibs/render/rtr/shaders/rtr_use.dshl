@@ -1,0 +1,92 @@
+int rtr_bindless_slot = -1;
+int rtr_output_type = 0;
+int rtr_res_mul = 1;
+int4 rtr_resolutionI = (1,1,1,1);
+
+macro CHECKING_RTR(stage)
+  if (use_hw_raytracing)
+  {
+    (stage) {
+      rtr_bindless_slot@i1 = rtr_bindless_slot;
+    }
+
+    hlsl (stage) {
+      bool isRTREnabled()
+      {
+        return rtr_bindless_slot >= 0;
+      }
+    }
+  }
+  else
+  {
+    hlsl (stage) {
+      bool isRTREnabled()
+      {
+        return false;
+      }
+    }
+  }
+endmacro
+
+macro USING_RTR(stage)
+  CHECKING_RTR(stage)
+
+  if (use_hw_raytracing)
+  {
+    (stage) {
+      rtr_output_type@i1 = rtr_output_type;
+      inv_output_resolution_rt@f2 = (1.0 / (rtr_resolutionI.x * rtr_res_mul), 1.0 / (rtr_resolutionI.y * rtr_res_mul));
+      resolutionI_rt@i2 = rtr_resolutionI.xy;
+    }
+
+    hlsl (stage) {
+      #include <Include/NRDEncoding.hlsli>
+      #include <Include/NRD.hlsli>
+
+      #define HAS_RTR 1
+
+      #define RTR_REBLUR 0
+      #define RTR_RELAX  1
+
+      #include <rt_texture_outputs.inc.hlsli>
+
+      float3 getRTR(uint2 tci)
+      {
+        float2 uv = (tci.xy + 0.5) * inv_output_resolution_rt;
+        float2 texelPos = frac(uv * resolutionI_rt);
+        uint2 crd = uint2(uv * resolutionI_rt);
+
+        float3 tl, tr, bl, br;
+        BRANCH
+        if (rtr_output_type == RTR_REBLUR)
+        {
+          tl = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(rt_texture_outputs[rtr_bindless_slot][crd]).rgb;
+          tr = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(rt_texture_outputs[rtr_bindless_slot][crd + uint2(1, 0)]).rgb;
+          bl = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(rt_texture_outputs[rtr_bindless_slot][crd + uint2(0, 1)]).rgb;
+          br = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(rt_texture_outputs[rtr_bindless_slot][crd + uint2(1, 1)]).rgb;
+        }
+        else
+        {
+          tl = RELAX_BackEnd_UnpackRadiance(rt_texture_outputs[rtr_bindless_slot][crd]).rgb;
+          tr = RELAX_BackEnd_UnpackRadiance(rt_texture_outputs[rtr_bindless_slot][crd + uint2(1, 0)]).rgb;
+          bl = RELAX_BackEnd_UnpackRadiance(rt_texture_outputs[rtr_bindless_slot][crd + uint2(0, 1)]).rgb;
+          br = RELAX_BackEnd_UnpackRadiance(rt_texture_outputs[rtr_bindless_slot][crd + uint2(1, 1)]).rgb;
+        }
+
+        float3 top = lerp(tl, tr, texelPos.x);
+        float3 bottom = lerp(bl, br, texelPos.x);
+
+        return lerp(top, bottom, texelPos.y);
+      }
+    }
+  }
+  else
+  {
+    hlsl (stage) {
+      float3 getRTR(uint2 tci)
+      {
+        return 0;
+      }
+    }
+  }
+endmacro

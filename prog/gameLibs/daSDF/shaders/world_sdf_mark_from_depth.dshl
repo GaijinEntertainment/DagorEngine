@@ -1,0 +1,420 @@
+include "shader_global.dshl"
+include "frustum.dshl"
+include "globtm.dshl"
+include "world_sdf_update_common.dshl"
+include "project_is_dynamic_point.dshl"//should at least declare texture gbuf_depth;
+include "world_sdf_typed_load.dshl"
+include "gpu_occlusion.dshl"
+include "dagi_windows.dshl"
+
+define_macro_if_not_defined PROJECT_DO_NOT_UPDATE_FROM_POINT(code)
+  hlsl(code) {
+    uint get_project_update_from_point(float3 worldPos, float linearDepth, float2 tc, uint2 cooord) {return 3;}
+  }
+endmacro
+
+int world_sdf_update_buffer_size = 8192;//for dx11
+int world_sdf_dispatch_size = 8192;
+int world_sdf_update_current_frame;
+int world_sdf_update_from_gbuf_max_cascade; //todo: use me
+float4x4 globtm_inv;
+
+shader world_sdf_from_gbuf_cs
+{
+  INIT_ZNZFAR_STAGE(cs)
+  READ_WORLD_SDF_MATH(cs)
+  SKIP_RAY_WINDOWS(cs)
+
+  ENABLE_ASSERT(cs)
+  if (world_sdf_support_uav_load == off)
+  {
+    (cs) { world_sdf_clipmap@smp3d = world_sdf_clipmap;}
+  }
+  (cs) {
+    globtm_inv@f44 = globtm_inv;
+    current_frame_no@i1 = world_sdf_update_current_frame;
+    world_sdf_update_buffer_size@i1 = world_sdf_update_buffer_size;
+    depth_gbuf@tex2d = depth_gbuf;
+  }
+  WSDF_COORD_UPDATE(cs)
+  PROJECT_DO_NOT_UPDATE_FROM_POINT(cs)
+
+  hlsl(cs) {
+    #if !TYPED_UAV_LOAD
+    RWByteAddressBuffer dispatchIndirectBuffer : register( u0 );
+    #else
+    RWTexture3D<unorm float> world_sdf_clipmap: register( u0 );
+    #endif
+    #include <pcg_hash.hlsl>
+    void updateCascadeSDF(uint random, uint cascade, float3 worldPos, uint2 inGroupId)
+    {
+      float voxelSize = world_sdf_voxel_size(cascade);
+      int3 worldCoordI = int3(floor(worldPos.xzy/voxelSize));
+      int3 sign = (int3(random, (random>>1), (random>>2))&2) - 1;
+
+      int3 worldCoordBase = worldCoordI + sign*int3(inGroupId.y&3, (inGroupId.y>>2)&3, (inGroupId.y>>4)&3);
+      int3 ltC = world_sdf_get_lt_coord(cascade);
+      //if we went outside cascade, try opposite sign
+      worldCoordBase = (uint3(worldCoordBase - ltC) >= world_sdf_get_res()) ? worldCoordI - sign*int3(inGroupId.y&3, (inGroupId.y>>2)&3, (inGroupId.y>>4)&3) : worldCoordBase;
+
+      //we verify if it is still inside cascade
+      if (any(uint3(worldCoordBase - ltC) >= world_sdf_get_res()))
+        return;
+      uint3 targetCoord = target_coord_from_world_sdf(worldCoordBase);
+      #if !TYPED_UAV_LOAD
+      if (cascade >= 8 || targetCoord.z >= (1<<9) || targetCoord.x >= (1<<10) || targetCoord.y >= (1<<10))
+        return;
+      #endif
+      float currentDistance = length(worldPos - voxelSize*(worldCoordBase.xzy+0.5));
+      float maxEncodedDistance = MAX_WORLD_SDF_VOXELS_BAND*voxelSize;
+      float currentEncodedDistance = saturate(currentDistance/maxEncodedDistance*0.5 + 0.5);
+      if (currentEncodedDistance == 1)
+        return;
+      uint3 readCoord = targetCoord + get_world_sdf_coord_cascade_offset(cascade);
+      float storedDistance = texture3DAt(world_sdf_clipmap, readCoord).x;
+      if (currentEncodedDistance > storedDistance)//nothing interested can be done
+        return;
+      #if !TYPED_UAV_LOAD
+      //todo: process 4 near voxels (say, horizontal). our distance can not be == 0(negative), so super simple
+      uint encodedCoord = (cascade<<29) | (targetCoord.x) | (targetCoord.y<<10) | (targetCoord.z<<20);
+      uint at;
+      dispatchIndirectBuffer.InterlockedAdd(0, 2u, at);
+      if (at*4 + 3*4 < uint(world_sdf_update_buffer_size))
+        storeBuffer2(dispatchIndirectBuffer, at, uint2(encodedCoord, currentEncodedDistance*255));
+      #else
+      //todo: process several voxels AROUND as well, using some random. I would say using SIMD we can process 8-16 + some random
+      //world_sdf_clipmap[readCoord] = 0;
+
+      texture3DAt(world_sdf_clipmap, readCoord) = currentEncodedDistance;
+      if (targetCoord.z == 0 || targetCoord.z == world_sdf_res.y-1)
+      {
+        //update toroidal slice for bilinear filtering
+        texture3DAt(world_sdf_clipmap, uint3(readCoord.xy, int(get_world_sdf_coord_cascade_offset(cascade).z) + int(targetCoord.z == 0 ? world_sdf_res.y : -1))) = currentEncodedDistance;
+      }
+      #endif
+    }
+
+    [numthreads(1, 64, 1)]
+    void mark_voxels_cs( uint dtId : SV_DispatchThreadID, uint2 inGroupId: SV_GroupThreadID )
+    {
+      uint2 random = pcg2d(uint2(dtId, current_frame_no));
+
+      uint2 dim;
+      depth_gbuf.GetDimensions(dim.x, dim.y);
+      uint2 tcI = uint2(random.x%dim.x, (random.x/dim.x)%dim.y);
+      float rawDepth = texture2DAt(depth_gbuf, tcI).x; // this is same for all vertical group
+      if (rawDepth<=0)
+        return;
+      float2 tc = (tcI+0.5)/dim;
+      float3 ndcCoord = float3(tc.xy*float2(2, -2) - float2(1, -1), rawDepth);
+      float4 worldpos_prj = mul(float4(ndcCoord,1), globtm_inv);
+      float3 worldPos = worldpos_prj.xyz / worldpos_prj.w;
+      if (inWindow(worldPos))
+        return;
+      float linearDepth = linearize_z(rawDepth, zn_zfar.zw);
+      if (get_project_update_from_point(worldPos, linearDepth, tc, tcI) != POINT_OPAQUE)
+        return;
+
+      uint minCascade = world_sdf_find_clip(worldPos, -1);
+      uint numCascades = world_sdf_num_cascades();
+      if (minCascade >= numCascades)
+        return;
+      uint cascade = minCascade;
+      float randVal = (random.y&0xFFFF)/65536.0;
+      float chance = 0.125;
+      // chance is not that big, as higher cascades are not really visible (we use best possible cascade)
+      if (randVal < chance)
+      {
+        cascade = min(floor(lerp((float)minCascade, (float)numCascades, pow2(randVal/chance))+0.5), numCascades-1);
+      }
+      updateCascadeSDF(random.y>>16, cascade, worldPos, inGroupId);
+    }
+  }
+  compile("cs_5_0", "mark_voxels_cs");
+}
+
+shader world_sdf_from_gbuf_remove_cs
+{
+  INIT_ZNZFAR_STAGE(cs)
+  READ_WORLD_SDF_MATH(cs)
+
+  ENABLE_ASSERT(cs)
+  if (world_sdf_support_uav_load == off)
+  {
+    dont_render;
+  }
+  (cs) {
+    globtm_inv@f44 = globtm_inv;
+    current_frame_no@i1 = world_sdf_update_current_frame;
+    world_sdf_update_buffer_size@i1 = world_sdf_update_buffer_size;
+  }
+
+  WSDF_COORD_UPDATE(cs)
+  PROJECT_DO_NOT_UPDATE_FROM_POINT(cs)
+
+  INIT_AND_USE_GLOBTM(cs)
+  INIT_AND_USE_FRUSTUM_CHECK_BASE(cs)
+  (cs) {
+    downsampled_close_depth_tex@smp2d = downsampled_close_depth_tex;
+    world_view_pos@f3 = world_view_pos;
+    downsampled_depth_mip_count@f1 = (downsampled_depth_mip_count);
+  }
+  hlsl(cs) {
+    #ifndef optional_hyperbolize_downsampled_depth
+      #define optional_hyperbolize_downsampled_depth(a, znzfar) (a)
+    #endif
+    #define OCCLUSION_RECT_SZ 4
+    #define hzb_tex downsampled_close_depth_tex
+    #define hzb_tex_samplerstate downsampled_close_depth_tex_samplerstate
+    #define OCCLUSION_SAMPLE_DEPTH(location, level) hzb_tex.SampleLevel(hzb_tex_samplerstate, location, level).x
+    #define OCCLUSION_SAMPLE_RECT(fun) \
+    {\
+      float2 wd = (sbox.zw-sbox.xy)*1./3.;\
+      UNROLL for ( uint i = 0; i < 4; i++ ) \
+      { \
+        float4 rawDepth4;\
+        rawDepth4.x = optional_hyperbolize_downsampled_depth(OCCLUSION_SAMPLE_DEPTH(float2(i, 0) * wd + sbox.xy, level), zn_zfar);\
+        rawDepth4.y = optional_hyperbolize_downsampled_depth(OCCLUSION_SAMPLE_DEPTH(float2(i, 1) * wd + sbox.xy, level), zn_zfar);\
+        rawDepth4.z = optional_hyperbolize_downsampled_depth(OCCLUSION_SAMPLE_DEPTH(float2(i, 2) * wd + sbox.xy, level), zn_zfar);\
+        rawDepth4.w = optional_hyperbolize_downsampled_depth(OCCLUSION_SAMPLE_DEPTH(float2(i, 3) * wd + sbox.xy, level), zn_zfar);\
+        rawDepth = fun( rawDepth, rawDepth4 );\
+      }\
+    }
+
+    float check_box_close_depth_tc_base(float4 sbox, uint2 dim)
+    {
+      float4 sbox_vp = sbox*dim.xyxy;
+
+      float2 sboxSize = ( sbox_vp.zw - sbox_vp.xy );
+      #if OCCLUSION_RECT_SZ == 4
+        sboxSize *= 0.5;// 0.5 for 4x4
+      #endif
+      float level = ceil( log2( max(1, max( sboxSize.x, sboxSize.y )) ) );
+
+      {
+        float  level_lower = max(level - 1, 0);
+        float4 lower_sbox_vp = sbox_vp*exp2(-level_lower);
+        float2 dims = ceil(lower_sbox_vp.zw) - floor(lower_sbox_vp.xy);
+        // Use the lower level if we only touch <= 2 texels in both dimensions
+        if (dims.x <= OCCLUSION_RECT_SZ && dims.y <= OCCLUSION_RECT_SZ)
+          level = level_lower;
+      }
+
+      sbox = clamp(sbox, 0.5/dim.xyxy, 1-0.5/dim.xyxy);//so we won't sample outside even without clamp addressing
+
+      //minTc = (floor(sbox_vp.xy/exp2(level))+0.5)/(dim/exp2(level));
+
+      const float MAX_LOD = downsampled_depth_mip_count;
+
+      if (level >= MAX_LOD)//we don't have all mips, and we are too close anyway
+        return 1;
+      //float screenRadius = max(saturate(maxTc.x) - minTc.x, saturate(maxTc.y) - minTc.y);
+      //float lod = ceil(max(0, 6 + log2(screenRadius)));
+      //mipIdim = rcp(floor(dim)/exp2(level));
+      float4 rawDepth = 0;
+      OCCLUSION_SAMPLE_RECT(max);
+      return max(max(rawDepth.x, rawDepth.y), max(rawDepth.z, rawDepth.w));
+    }
+  }
+
+  hlsl(cs) {
+    RWTexture3D<unorm float> world_sdf_clipmap: register( u0 );
+    #include <pcg_hash.hlsl>
+
+    bool get_screen_min_max(float3 minb, float3 maxb, out float4 sbox, out float maxScreenW)
+    {
+      //todo: we can speed it up
+      float4 screenPos[8];
+      #define CALC_CORNER(i) screenPos[i] = mul(float4(float3((i&1) ? maxb.x : minb.x, (i&2) ? maxb.y : minb.y, (i&4) ? maxb.z : minb.z), 1), globtm)
+      CALC_CORNER(0);
+      CALC_CORNER(1);
+      CALC_CORNER(2);
+      CALC_CORNER(3);
+      CALC_CORNER(4);
+      CALC_CORNER(5);
+      CALC_CORNER(6);
+      CALC_CORNER(7);
+      #define fun(i) screenPos[i].w
+      #define find_min_max(minF) minF(minF(minF(fun(0), fun(1)), minF(fun(2), fun(3))), minF(minF(fun(4), fun(5)), minF(fun(6), fun(7))))
+
+      maxScreenW = find_min_max(max);
+      float minScreenW = find_min_max(min);
+      if (minScreenW<0.1)
+        return false;
+
+      #undef fun
+      #define fun(i) screenPos[i].xyz/screenPos[i].w
+
+      float3 minScreen = find_min_max(min), maxScreen = find_min_max(max);
+      float4 minMaxTc = float4(minScreen.xy, maxScreen.xy)*float4(0.5,-0.5, 0.5, -0.5) + 0.5;
+
+      if (min(minMaxTc.x, minMaxTc.w) < 0 || max(minMaxTc.z, minMaxTc.y) > 1)
+        return false;
+
+      sbox = saturate(minMaxTc.xwzy);
+      return true;
+    }
+
+    [numthreads(64, 1, 1)]
+    void world_sdf_from_gbuf_remove_cs( uint dtId : SV_DispatchThreadID )
+    {
+      uint2 random = pcg2d(uint2(dtId, current_frame_no));
+
+      uint2 dim;
+      hzb_tex.GetDimensions(dim.x, dim.y);
+      uint2 tcI = uint2(random.x%dim.x, (random.x/dim.x)%dim.y);
+      float rawDepth = texture2DAt(hzb_tex, tcI).x;
+
+      float2 tc = (tcI+0.5)/dim;
+      float3 ndcCoord = float3(tc.xy*float2(2, -2) - float2(1, -1), rawDepth);
+      float4 worldpos_prj = mul(float4(ndcCoord,1), globtm_inv);
+      float3 worldPos = worldpos_prj.xyz / worldpos_prj.w;
+
+      float3 view = worldPos-world_view_pos;
+      worldPos = world_view_pos + normalize(view)*min(length(view), 128)*((0.5+(random.y>>16))/65536.);
+
+      for (uint cascade = world_sdf_find_clip(worldPos, 0); cascade < world_sdf_num_cascades(); ++cascade)
+      {
+        float voxelSize = world_sdf_voxel_size(cascade);
+        float3 b0 = sample_world_sdf_lt(cascade).xyz+voxelSize*0.5, b1 = sample_world_sdf_lt(cascade).xyz + voxelSize*float3(world_sdf_res.xyx-0.5);
+        if (any(worldPos < b0 || worldPos > b1))
+          continue;
+        int3 worldCoordI = int3(floor(worldPos.xzy/voxelSize));
+
+
+        uint3 targetCoord = target_coord_from_world_sdf(worldCoordI);
+        uint3 readCoord = targetCoord + get_world_sdf_coord_cascade_offset(cascade);
+        float sdfEncoded = texture3DAt(world_sdf_clipmap, readCoord);
+        if (sdfEncoded == 1)
+          continue;
+        float maxEncodedDistance = MAX_WORLD_SDF_VOXELS_BAND*voxelSize;
+        float sdfDecoded = abs((sdfEncoded*2-1)*maxEncodedDistance);
+
+        float3 voxelCenter = (worldCoordI.xzy+0.5)*voxelSize;
+
+        float voxelBandExtent = max(sdfDecoded*sqrt(3), voxelSize);
+        if (testBoxExtentIntersects(voxelCenter, voxelBandExtent))
+          continue;
+
+        float4 sbox; float maxScreenW;
+        if (!get_screen_min_max(voxelCenter - voxelBandExtent, voxelCenter + voxelBandExtent, sbox, maxScreenW))
+          continue;
+        float linearCloseDepth = linearize_z(check_box_close_depth_tc_base(sbox, dim), zn_zfar.zw);
+        if (linearCloseDepth < maxScreenW)
+          continue;
+        float encodedDistance = (linearCloseDepth - maxScreenW)/maxEncodedDistance*0.5+0.5;
+        if (encodedDistance < sdfEncoded)
+          continue;
+
+        texture3DAt(world_sdf_clipmap, readCoord) = encodedDistance;
+        if (targetCoord.z == 0 || targetCoord.z == world_sdf_res.y-1)
+        {
+          //update toroidal slice for bilinear filtering
+          texture3DAt(world_sdf_clipmap, uint3(readCoord.xy, int(get_world_sdf_coord_cascade_offset(cascade).z) + int(targetCoord.z == 0 ? world_sdf_res.y : -1))) = encodedDistance;
+        }
+      }
+    }
+
+  }
+  compile("cs_5_0", "world_sdf_from_gbuf_remove_cs");
+}
+
+//for dx11
+/*
+buffer world_sdf_marked_pixels;
+shader world_sdf_process_marked_gbuf
+{
+  //todo: we can feed that to chanined compute shader in order to blend into current voxels with some weight
+
+  INIT_ZNZFAR_STAGE(cs)
+  READ_WORLD_SDF_MATH(cs)
+
+  ENABLE_ASSERT(cs)
+  //USE_AND_INIT_VIEW_VEC_CS()
+  (cs) {
+    globtm_inv@f44 = globtm_inv;
+    ssgi_current_frame@f1 = (world_sdf_update_current_frame*world_sdf_update_buffer_dispatch,0,0,0);
+    world_sdf_update_buffer_size@i1 = world_sdf_update_buffer_size;
+    world_sdf_marked_pixels@buf = world_sdf_marked_pixels@buf hlsl {ByteAddressBuffer world_sdf_marked_pixels@buf;}
+  }
+  WSDF_COORD_UPDATE(cs)
+
+  hlsl(cs) {
+    #include <noise/uint_noise1D.hlsl>
+    world_sdf_clipmap@smp3d = world_sdf_clipmap;
+    ByteAddressBuffer dispatchIndirectBuffer : register( u0 );
+
+    float randPos(float3 p)
+    {
+      return frac(sin(dot(p.xyz, float3(1, -2.7813, 3.01))*12.9898) * 43758.5453);
+    }
+    float rand(float p)
+    {
+      return frac(sin(p*12.9898) * 43758.5453);
+    }
+    bool isInsideBbox(float3 pos, float3 bmin, float3 bmax)
+    {
+      return all(pos < bmax) && all(pos > bmin);
+    }
+
+    [numthreads(64, 1, 1)]
+    void mark_voxels_cs( uint dtId : SV_DispatchThreadID )
+    {
+      uint2 dim;
+      depth_gbuf.GetDimensions(dim.x, dim.y);
+      uint random = uint_noise1D(dtId + ssgi_current_frame.x, 0);
+      //random = wang_hash(dtId.x+ssgi_current_frame*113);
+      //uint random2 = wang_hash(random);
+      uint2 tcI = uint2(random%dim.x, (random/dim.x)%dim.y);
+      //float2 tc = float2((random&8191)/8192., ((random>>14)&8191)/8192.);
+      //float rawDepth = tex2Dlod(depth_gbuf, float4(tc,0,0)).x;
+      float rawDepth = depth_gbuf[tcI].x;
+      if (rawDepth<=0)
+        return;
+      float2 tc = (tcI+0.5)/dim;
+      float3 ndcCoord = float3(tc.xy*float2(2, -2) - float2(1, -1), rawDepth);
+      float4 worldpos_prj = mul(float4(ndcCoord,1), globtm_inv);
+      float3 worldPos = worldpos_prj.xyz / worldpos_prj.w;
+      //todo: check is_dynamic!
+      //if (has_physobj_in_cascade &&
+      //    isInsideBbox(worldPos, ssgi_restricted_update_bbox_min, ssgi_restricted_update_bbox_max))
+      //  return;
+
+      uint minCascade = world_sdf_find_clip(worldPos);
+      uint numCascades = world_sdf_num_cascades();
+      if (minCascade >= numCascades)
+        return;
+      uint cascade = minCascade;
+      float rndPos = randPos(worldPos)+sin(ssgi_current_frame.x*0.1317);
+      float randVal = rand(rndPos);
+      //float chance = pow2(1./(maxCascades-cascade+1));
+      float chance = 0.25;
+      if (randVal < chance)
+        cascade = min(floor(lerp((float)minCascade, (float)numCascades, pow16(randVal/chance))+0.5), numCascades-1);
+
+      float voxelSize = world_sdf_voxel_size(cascade);
+      float3 worldCoordF = worldPos.xzy/voxelSize;
+      float3 worldCoordBase = floor(worldCoordF);
+      uint3 targetCoord = target_coord_from_world(worldCoordBase);
+      //z 512 maximum, x,y = 1024; up to 8 mips
+      if (cascade >= 8 || targetCoord.z >= (1<<9) || targetCoord.x >= (1<<10) || targetCoord.y >= (1<<10))
+        return;
+
+      float currentDistance = length(worldPos - (worldCoordBase.xzy+0.5));
+      float maxEncodedDistance = MAX_WORLD_SDF_VOXELS_BAND*voxelSize;
+      float currentEncodedDistance = saturate(currentDistance/maxEncodedDistance*0.5 + 0.5);
+      float storedDistance = world_sdf_clipmap[targetCoord + int3(0,0,world_sdf_res.z*cascade)].x;
+      if (currentEncodedDistance > storedDistance)//nothing interested can be done
+        return;
+      //todo: process 4 near voxels (say, horizontal). our distance can not be == 0(negative), so super simple
+      uint encodedDistance = currentEncodedDistance*255;
+      uint encodedCoord = (cascade<<29) | (targetCoord.x) | (targetCoord.y<<10) | (targetCoord.z<<20);
+      uint at;
+      dispatchIndirectBuffer.InterlockedAdd(0, 2u, at);
+      if (at*4 + 3*4 < world_sdf_update_buffer_size)
+        storeBuffer2(dispatchIndirectBuffer, at, uint2(encodedCoord, encodedDistance));
+    }
+  }
+  compile("cs_5_0", "mark_voxels_cs");
+}
+*/

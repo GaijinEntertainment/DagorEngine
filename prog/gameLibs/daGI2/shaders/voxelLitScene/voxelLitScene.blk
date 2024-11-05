@@ -1,0 +1,3 @@
+file:t = "dagi_lit_scene_voxels_debug.dshl"
+file:t = "dagi_lit_scene_voxels_update.dshl"
+file:t = "dagi_lit_scene_mark_from_gbuf.dshl"

@@ -1,0 +1,187 @@
+include "shader_global.dshl"
+
+texture source_tex0;
+texture source_tex1;
+texture source_tex2;
+
+float4 texel_size = (0,0,0,0); // xy-half of UV (V swap in shader), zw-texel size
+
+int rendinst_padding = 0;
+interval rendinst_padding : padding_off < 1, padding_on;
+
+int rendinst_max_translucancy = 0;
+interval rendinst_max_translucancy : max_translucancy_off < 1, max_translucancy_on;
+
+int rendinst_impostor_tex_index = -1;
+interval rendinst_impostor_tex_index : is_tex2d < 0, is_tex3d;
+
+shader generate_imp_mipmaps
+{
+  supports global_frame;
+
+  cull_mode  = none;
+
+  (vs) { texel_size@f4 = texel_size; }
+
+  if (rendinst_impostor_tex_index == is_tex2d)
+  {
+    (ps)
+    {
+      source_tex0@smp2d = source_tex0;
+      source_tex1@smp2d = source_tex1;
+      source_tex2@smp2d = source_tex2;
+    }
+  }
+  else
+  {
+    (ps)
+    {
+      source_tex0@smpArray = source_tex0;
+      source_tex1@smpArray = source_tex1;
+      source_tex2@smpArray = source_tex2;
+    }
+  }
+
+  (ps)
+  {
+    texel_size@f4 = texel_size;
+    tex_index@f1 = (rendinst_impostor_tex_index);
+  }
+
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord  : TEXCOORD0;
+    };
+  }
+  hlsl(vs) {
+    VsOutput main_vs_generate_mipmaps(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4(pos, 0, 1);
+      output.texcoord = screen_to_texcoords(pos)*texel_size.xy;
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+
+##if rendinst_impostor_tex_index == is_tex2d
+    #define sample_tex(a,b) tex2Dlod( a, float4( b.xy, 0, 0 ) )
+##else
+    #define sample_tex(a,b) tex3Dlod( a, float4( b.xy, tex_index, 0 ) )
+##endif
+
+    half4 pick_max_translucency( float2 tc )
+    {
+##if rendinst_max_translucancy == max_translucancy_off
+      return sample_tex(source_tex1, tc);
+##else
+      half4 bufs[4];
+
+      UNROLL
+      for ( int y = 0 ; y < 2 ; ++y )
+      {
+        UNROLL
+        for ( int x = 0 ; x < 2 ; ++x )
+        {
+          float2 ofs = float2( tc.x + x * texel_size.z, tc.y + y * texel_size.w );
+          bufs[y*2+x] = sample_tex( source_tex1, ofs );
+        }
+      }
+
+      half4 res;
+      res.xyz = bufs[0].xyz;
+      res.w = max( max( max( bufs[0].w, bufs[1].w ), bufs[2].w ), bufs[3].w );
+
+      return res;
+##endif
+    }
+
+##if rendinst_padding == padding_off
+
+    void main_ps_generate_mipmaps(VsOutput input,
+      out float4 res0 : SV_Target0, out float4 res1 : SV_Target1, out float4 res2 : SV_Target2 )
+    {
+      res0 = sample_tex(source_tex0, input.texcoord);
+      res1 = sample_tex(source_tex1, input.texcoord);
+      res2 = sample_tex(source_tex2, input.texcoord);
+    }
+
+##else
+
+    half ps_add_tap(float2 uv, half du, half dv, inout half4 res0)
+    {
+      uv.xy += float2(du, dv)*texel_size.zw;
+      
+      half4 t0 = sample_tex(source_tex0, uv);
+      half weight = t0.a > 0.1f ? 1.f : 0.f;
+      res0.xyz += weight*t0.xyz;
+
+      return weight;
+    }
+
+    void main_ps_generate_mipmaps(VsOutput input,
+      out float4 res0 : SV_Target0, out float4 res1 : SV_Target1, out float4 res2 : SV_Target2 )
+    {
+      float2 uv;
+      uv.xy = input.texcoord;
+
+      half4 t0 = sample_tex(source_tex0, uv);
+
+      if (t0.a > 0.f)
+      {
+        res0 = t0;
+        res1 = sample_tex(source_tex1, uv);
+        res2 = sample_tex(source_tex2, uv);
+      }
+      else
+      {
+        res0 = float4(0,0,0,0);
+        res1 = float4(0,0,0,1);
+        res2 = float4(0,1,0,0);
+
+        half4 weights;
+       
+        weights.x = ps_add_tap(uv, -1,  0, res0);
+        weights.y = ps_add_tap(uv,  0, -1, res0);
+        weights.z = ps_add_tap(uv,  0, +1, res0);
+        weights.w = ps_add_tap(uv, +1,  0, res0);
+
+        half sum_weight = dot(weights, half4(1,1,1,1));
+
+        if (sum_weight > 0.f)
+        {
+          half k = 1.f/sum_weight;
+          res0 *= k;
+
+          float2 uvs = uv;
+          uvs.x = uv.x - texel_size.z;
+          res1 = weights.x > 0.f ? sample_tex(source_tex1, uvs) : res1;
+          res2 = weights.x > 0.f ? sample_tex(source_tex2, uvs) : res2;
+
+          uvs.x = uv.x + texel_size.z;
+          res1 = weights.w > 0.f ? sample_tex(source_tex1, uvs) : res1;
+          res2 = weights.w > 0.f ? sample_tex(source_tex2, uvs) : res2;
+
+          uvs.x = uv.x;
+          uvs.y = uv.y - texel_size.w;
+          res1 = weights.y > 0.f ? sample_tex(source_tex1, uvs) : res1;
+          res2 = weights.y > 0.f ? sample_tex(source_tex2, uvs) : res2;
+
+          uvs.y = uv.y + texel_size.w;
+          res1 = weights.z > 0.f ? sample_tex(source_tex1, uvs) : res1;
+          res2 = weights.z > 0.f ? sample_tex(source_tex2, uvs) : res2;
+        }
+      }
+    }
+##endif
+  }
+
+  compile("target_vs", "main_vs_generate_mipmaps");
+  compile("target_ps", "main_ps_generate_mipmaps");
+}

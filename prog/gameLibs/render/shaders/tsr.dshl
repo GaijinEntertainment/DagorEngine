@@ -1,0 +1,471 @@
+
+hlsl{
+  #include <tsr_inc.hlsli>
+}
+
+include "shader_global.dshl"
+include "viewVecVS.dshl"
+include "gbuffer.dshl"
+include "reprojected_motion_vectors.dshl"
+include "taa_inc.dshl"
+include "hero_matrix_inc.dshl"
+
+include "tsr.inc.dshl"
+include "tsr_game.dshl"
+
+shader tsr_cs
+{
+  hlsl(cs)
+  {
+    #define DEBUG_SHOW_OUT_OF_BOUNDS 0
+  }
+
+  VIEW_VEC_OPTIMIZED(cs)
+  INIT_ZNZFAR_STAGE(cs)
+
+  INIT_READ_DEPTH_GBUFFER_BASE(cs)
+  USE_READ_DEPTH_GBUFFER_BASE(cs)
+
+  INIT_REPROJECTED_MOTION_VECTORS(cs)
+  USE_REPROJECTED_MOTION_VECTORS(cs)
+
+  INIT_READ_MOTION_BUFFER_BASE(cs)
+  USE_READ_MOTION_BUFFER_BASE(cs)
+
+  INIT_HERO_MATRIX(cs)
+  USE_HERO_MATRIX(cs)
+
+  (cs)
+  {
+    inputColorTex@smp2d = tsr_input_color;
+
+    historyColorTex@smp2d = tsr_history_color;
+    historyConfidenceTex@smp2d = tsr_history_confidence;
+    reactiveMask@smp2d = tsr_reactive_mask;
+    jitterOffset@f2 = (tsr_jitter_offset.x, tsr_jitter_offset.y, 0, 0);
+    outputResolution@f4 = (tsr_output_resolution.x, tsr_output_resolution.y, 1/tsr_output_resolution.x, 1/tsr_output_resolution.y);
+
+    uv_transform@f4 = tsr_uv_transform;
+
+    prevViewProjTm@f44 = {prevViewProjTm0, prevViewProjTm1, prevViewProjTm2, prevViewProjTm3};
+    shouldRestart@f1 = tsr_should_restart;
+    debugUpdateOverride@f1 = tsr_debug_update_override;
+    inputFilterSigmaInv@f1 = 1.0/tsr_input_sampling_sigma;
+    sharpening@f1 = tsr_sharpening;
+    resamplingLossSigmaInv@f1 = 1.0/tsr_resampling_loss_sigma;
+    depthOverhangSigmaInv@f1 = 1.0/tsr_depth_overhang_sigma;
+    processLoss@f1 = tsr_process_loss;
+    aabbScaleBase@f1 = tsr_scale_base;
+    aabbScaleMotionSteepness@f1 = tsr_scale_motion_steepness;
+    aabbScaleMotionMax@f1 = tsr_scale_motion_max;
+
+    processLossDynamic@f1 = tsr_process_loss_dynamic;
+    aabbScaleBaseDynamic@f1 = tsr_scale_base_dynamic;
+    aabbScaleMotionSteepnessDynamic@f1 = tsr_scale_motion_steepness_dynamic;
+    aabbScaleMotionMaxDynamic@f1 = tsr_scale_motion_max_dynamic;
+
+    inputResolution@f4 = (tsr_input_resolution.x, tsr_input_resolution.y, 1/tsr_input_resolution.x, 1/tsr_input_resolution.y);
+    upsamplingRatio@f2 = (tsr_output_resolution.x/tsr_input_resolution.x, tsr_output_resolution.y/tsr_input_resolution.y, 0, 0);
+    upsamplingRatioInv@f2 = (tsr_input_resolution.x/tsr_output_resolution.x, tsr_input_resolution.y/tsr_output_resolution.y, 0, 0);
+  }
+
+  TSR_GAME(cs)
+
+  hlsl(cs)
+  {
+    #include <pixelPacking/yCoCgSpace.hlsl>
+    #include <tex2d_bicubic.hlsl>
+
+    static const float EPS = 1e-9;
+
+    static const int2 reconstructionTexelOffsetsInt[] =
+    {
+      int2( 0,  0),
+      int2(-1,  0),
+      int2( 0, -1),
+      int2( 1,  0),
+      int2( 0,  1),
+      int2(-1, -1),
+      int2( 1, -1),
+      int2(-1,  1),
+      int2( 1,  1)
+    };
+
+    #ifndef DEBUG_SHOW_OUT_OF_BOUNDS
+    #define DEBUG_SHOW_OUT_OF_BOUNDS 0
+    #endif
+
+    float gaussianKernel(float2 delta, float2 inv_sigma)
+    {
+      float2 exponentTerm = delta * inv_sigma;
+      return exp(-0.5 * dot(exponentTerm, exponentTerm));
+    }
+
+
+    float3 tonemap(float3 color) { return color * rcp(abs(color.x) + 1); }
+    float4 tonemap(float4 color) { return float4(tonemap(color.rgb), color.a); }
+
+    float3 tonemap_inv(float3 color) { return color * rcp(max(EPS, 1 - abs(color.x))); }
+    float4 tonemap_inv(float4 color) { return float4(tonemap_inv(color.rgb), color.a); }
+
+    #define BORDERED_RESULT_WARP_SIZE (TSR_CS_WORKGROUP_SIZE+2)
+
+    groupshared float3 tonemappedInputColorCache[BORDERED_RESULT_WARP_SIZE*BORDERED_RESULT_WARP_SIZE];
+
+    #define get_flat_bordered_index(pos) ((pos).y*BORDERED_RESULT_WARP_SIZE+(pos).x)
+
+    static const int reconstructionTexelFlatOffsets[] =
+    {
+      get_flat_bordered_index(reconstructionTexelOffsetsInt[0]),
+      get_flat_bordered_index(reconstructionTexelOffsetsInt[1]),
+      get_flat_bordered_index(reconstructionTexelOffsetsInt[2]),
+      get_flat_bordered_index(reconstructionTexelOffsetsInt[3]),
+      get_flat_bordered_index(reconstructionTexelOffsetsInt[4]),
+      get_flat_bordered_index(reconstructionTexelOffsetsInt[5]),
+      get_flat_bordered_index(reconstructionTexelOffsetsInt[6]),
+      get_flat_bordered_index(reconstructionTexelOffsetsInt[7]),
+      get_flat_bordered_index(reconstructionTexelOffsetsInt[8]),
+    };
+
+    struct CacheParams
+    {
+      float2 prefetchScreenTc;
+      bool prefetchIsValid;
+      uint prefetchIndexBase;
+      int flatCacheIndexOffset;
+      float gaussKernel[9];
+    };
+
+    CacheParams calcCacheParams(uint2 thread_id, float2 global_offset, float2 input_texel_coord)
+    {
+      CacheParams cacheParams = (CacheParams)0;
+
+      // with high upsampling not all of these are actually valid, but calculating the correct last valid thread (or tc) is slower
+      cacheParams.prefetchIsValid = all(thread_id < (TSR_CS_WORKGROUP_SIZE/2+1));
+
+      int2 borderedThreadId = (int2)(input_texel_coord - global_offset);
+  #if DEBUG_SHOW_OUT_OF_BOUNDS
+      if (any(borderedThreadId < 1 || borderedThreadId >= (BORDERED_RESULT_WARP_SIZE - 1)))
+        borderedThreadId = BORDERED_RESULT_WARP_SIZE; // just out of bounds, great for testing if index is valid
+  #endif
+      cacheParams.flatCacheIndexOffset = get_flat_bordered_index(borderedThreadId);
+
+      FLATTEN if (cacheParams.prefetchIsValid)
+      {
+        uint2 offset = thread_id * 2;
+        cacheParams.prefetchIndexBase = get_flat_bordered_index(offset);
+        cacheParams.prefetchScreenTc = (global_offset + (float2)offset + 0.5)*inputResolution.zw;
+      }
+      else
+      {
+        // for cache coherence
+        cacheParams.prefetchScreenTc = (global_offset + (float2)0 + 0.5)*inputResolution.zw;
+      }
+      return cacheParams;
+    }
+
+    void prefetchCacheColor(inout CacheParams cache_params, float2 input_texel_coord, float2 sigma_inv)
+    {
+      // no branch for texture fetch as it makes it actually slower
+      float4 colorR = inputColorTex.GatherRed(inputColorTex_samplerstate, cache_params.prefetchScreenTc);
+      float4 colorG = inputColorTex.GatherGreen(inputColorTex_samplerstate, cache_params.prefetchScreenTc);
+      float4 colorB = inputColorTex.GatherBlue(inputColorTex_samplerstate, cache_params.prefetchScreenTc);
+
+      float4 Y, Co, Cg;
+      PackToYCoCg(colorR, colorG, colorB, Y, Co, Cg);
+
+      float2 texelCoordDiffMul = (frac(input_texel_coord) - 0.5) * upsamplingRatio;
+
+      // heavy ALU calc while waiting for texture fetches to hide the latency
+      UNROLL for(uint i = 0; i < 9; i++)
+      {
+        float2 deltaOnDisplay = (-(float2)reconstructionTexelOffsetsInt[i]) * upsamplingRatio + texelCoordDiffMul;
+        cache_params.gaussKernel[i] = gaussianKernel(deltaOnDisplay, sigma_inv);
+      }
+
+      BRANCH if (cache_params.prefetchIsValid)
+      {
+        uint4 prefetchIndex4 = cache_params.prefetchIndexBase + uint4(
+          get_flat_bordered_index(uint2(0, 1)),
+          get_flat_bordered_index(uint2(1, 1)),
+          get_flat_bordered_index(uint2(1, 0)),
+          get_flat_bordered_index(uint2(0, 0))
+        );
+        tonemappedInputColorCache[prefetchIndex4.x] = tonemap(float3(Y.x, Co.x, Cg.x));
+        tonemappedInputColorCache[prefetchIndex4.y] = tonemap(float3(Y.y, Co.y, Cg.y));
+        tonemappedInputColorCache[prefetchIndex4.z] = tonemap(float3(Y.z, Co.z, Cg.z));
+        tonemappedInputColorCache[prefetchIndex4.w] = tonemap(float3(Y.w, Co.w, Cg.w));
+      }
+    }
+
+    float3 reconstructInput(in const CacheParams cache_params, out float confidence, out float3 mean, out float3 variance)
+    {
+      float sumWeights = EPS;
+      float3 result = 0;
+      float3 firstMoment = 0;
+      float3 secondMoment = 0;
+
+      UNROLL
+      for(uint i = 0; i < 9; i++)
+      {
+        float weight = cache_params.gaussKernel[i];
+        float3 color = tonemappedInputColorCache[cache_params.flatCacheIndexOffset + reconstructionTexelFlatOffsets[i]];
+
+        sumWeights += weight;
+        result += weight * color;
+        firstMoment += color;
+        secondMoment +=  color * color;
+      }
+
+      confidence = 1 - rcp(sumWeights + 1);
+      firstMoment /= 9;
+      mean = firstMoment;
+      variance = max(EPS, secondMoment / 9 - firstMoment * firstMoment);
+
+      return result / sumWeights;
+    }
+
+    struct DepthStatistics
+    {
+      float depth;
+      float closestDepth;
+      float farthestDepth;
+      float2 closestUv;
+    };
+
+    DepthStatistics getDepthStatistics(float2 texelCoord)
+    {
+      DepthStatistics result;
+
+      result.farthestDepth = 1;
+      result.closestDepth = 0;
+
+      float2 texelCenterTc = (floor(texelCoord) + 0.5) * inputResolution.zw;
+      result.closestUv = texelCenterTc;
+
+      UNROLL
+      for(uint i = 0; i < 9; i++)
+      {
+        float2 tapUV = ((float2)reconstructionTexelOffsetsInt[i]) * inputResolution.zw + texelCenterTc;
+        float currentDepth = readGbufferDepth(tapUV);
+
+        if (i == 0)
+          result.depth = currentDepth;
+
+        FLATTEN
+        if (currentDepth > result.closestDepth)
+        {
+          result.closestDepth = currentDepth;
+          result.closestUv = tapUV;
+        }
+
+        result.farthestDepth = min(currentDepth, result.farthestDepth);
+      }
+
+      return result;
+    }
+
+    // calculates the loss term of the current sample being some subpixel distance away from the pixel's mid point
+    // which will cause a loss of confidence
+    float calculateResamplingLoss(float2 uv)
+    {
+      return gaussianKernel(frac(uv * outputResolution.xy) - 0.5, resamplingLossSigmaInv);
+    }
+
+    void decodeConfidenceAndDynamicFlag(float confidenceAndDynamic, out float confidence, out bool is_dynamic)
+    {
+      is_dynamic = confidenceAndDynamic > 0.5;
+      confidence = (confidenceAndDynamic - is_dynamic * 0.5) * 2.0;
+    }
+
+    float4 reconstructHistory(float2 history_tc, out float confidence, out bool is_dynamic)
+    {
+    ##if tsr_history_reconstruction == bicubic
+      BicubicSharpenWeights weights;
+      compute_bicubic_sharpen_weights(history_tc, outputResolution.xy, outputResolution.zw, sharpening, weights);
+
+      float4 result = weights.w0 * tex2Dlod(historyColorTex, float4(weights.uv0, 0, 0));
+      result += weights.w1 * tex2Dlod(historyColorTex, float4(weights.uv1, 0, 0));
+      result += weights.w2 * tex2Dlod(historyColorTex, float4(weights.uv2, 0, 0));
+      result += weights.w3 * tex2Dlod(historyColorTex, float4(weights.uv3, 0, 0));
+      result += weights.w4 * tex2Dlod(historyColorTex, float4(weights.uv4, 0, 0));
+      result /= weights.weightsSum;
+    ##else
+      float4 result = tex2Dlod(historyColorTex, float4(history_tc, 0, 0));
+    ##endif
+
+      float confidenceAndDynamic = max(EPS, tex2Dlod(historyConfidenceTex, float4(history_tc, 0, 0)).x);
+      decodeConfidenceAndDynamicFlag(confidenceAndDynamic, confidence, is_dynamic);
+
+      // the quality of the sample used should result in a loss of confidence
+      confidence *= calculateResamplingLoss(history_tc);
+
+      // even if there is no movement (resampling is perfect) there has to be some loss
+      confidence *= is_dynamic ? processLossDynamic : processLoss;
+
+      return tonemap(PackToYCoCgAlpha(result));
+    }
+
+    // calculates rejection based on min/max values with having an exponential decay above the min/max threshold
+    float calculateDepthVarianceRejection(float expected_depth, float min_depth, float max_depth)
+    {
+      float overhang = max3(0, expected_depth - max_depth, min_depth - expected_depth);
+      return gaussianKernel(overhang, depthOverhangSigmaInv);
+    }
+
+    float calculateStaticDynamicMismatchRejection(bool current_is_dynamic, bool history_is_dynamic)
+    {
+      return !(current_is_dynamic ^ history_is_dynamic);
+    }
+
+    float3 clipHistory(float3 history, float3 current, float3 mean, float3 variance, float motionVectorLength, uint is_dynamic, float reactive)
+    {
+      float scaleBase = is_dynamic ? aabbScaleBaseDynamic : aabbScaleBase;
+      float scaleMotionSteepness = is_dynamic ? aabbScaleMotionSteepnessDynamic : aabbScaleMotionSteepness;
+      float scaleMotionMax = is_dynamic ? aabbScaleMotionMaxDynamic : aabbScaleMotionMax;
+      float scale = scaleBase * (1 + rcp(motionVectorLength * scaleMotionSteepness + scaleMotionMax) * (1 - reactive));
+      float3 boxExtents = sqrt(variance) * scale;
+
+      float3 rayDir = current - history;
+      float3 rayOrg = history - mean;
+
+      float clipLength = 1.0;
+
+      if (dot(rayDir, rayDir) > 1e-12)
+      {
+        // Intersection using slabs
+        float3 rcpDir = rcp(rayDir);
+        float3 tNeg = ( boxExtents - rayOrg) * rcpDir;
+        float3 tPos = (-boxExtents - rayOrg) * rcpDir;
+        clipLength = saturate(max(max(min(tNeg.x, tPos.x), min(tNeg.y, tPos.y)), min(tNeg.z, tPos.z)));
+      }
+
+      return lerp(history, current, clipLength);
+    }
+
+    struct TemporalSuperResolutionOutput
+    {
+      float4 color: SV_Target0;
+      float  confidence: SV_Target1;
+    ##if tsr_debug == on
+      float3 debug: SV_Target2;
+    ##endif
+    };
+
+    bool is_valid(float4 x) { return isfinite(dot(x, 1)); }
+    bool is_valid(float3 x) { return isfinite(dot(x, 1)); }
+    bool is_valid(float2 x) { return isfinite(dot(x, 1)); }
+    bool is_valid(float x) { return isfinite(x); }
+
+    float encodeConfidenceAndDynamicFlag(float confidence, uint is_dynamic)
+    {
+      return (confidence + is_dynamic) * 0.5;
+    }
+
+    // we have lower confidence for reactive areas remaining the same in the next frame
+    float adjustConfidenceForNextFrame(float confidence, float reactive)
+    {
+      const float minRejection = 1;
+      const float maxRejection = 0.5;
+      return confidence * lerp(minRejection, maxRejection, reactive * reactive);
+    }
+
+    TemporalSuperResolutionOutput calcResult(float4 input_color_depth, float input_confidence, float4 history_color_depth, float history_confidence, float rejection, bool is_dynamic, float reactive)
+    {
+      // the update function is s_next = (s_prev * w_prev + s_cur * w_cur) / (w_prev + w_cur)
+      // and the weight update is w_next = w_prev + w_cur
+      // using c = w/(w+1) to map the [0;inf] range of accumulated weights to [0;1]
+      // after solving the above update equation for c it becomes the code below
+      // this is the theoretical optimal accumulation of a stationary scene
+
+      float c1 = input_confidence * (history_confidence - 1);
+      float c2 = history_confidence * (input_confidence - 1);
+      float c3 = history_confidence * input_confidence - 1;
+
+      TemporalSuperResolutionOutput result;
+      result.color = max(
+        0.0,
+        UnpackFromYCoCgAlpha(tonemap_inv(lerp(history_color_depth, input_color_depth, (c1 / (c1 + c2)) * debugUpdateOverride)))
+      );
+      result.confidence = encodeConfidenceAndDynamicFlag(adjustConfidenceForNextFrame((c1 + c2) / c3, reactive), is_dynamic);
+    ##if tsr_debug == on
+      result.debug = rejection;
+    ##endif
+
+      bool isValid = is_valid(result.color + result.confidence); // the sum is valid <=> both are valid
+      result.confidence = isValid ? result.confidence : 0;
+      result.color = isValid ? result.color : 0;
+      return result;
+    }
+
+    void validateHistory(float2 historyUV, inout float4 history_color_depth, inout float history_confidence, inout float rejection)
+    {
+      FLATTEN
+      if (any(!is_valid(historyUV) || historyUV >= 1.0 || historyUV <= 0.0) || shouldRestart > 0)
+      {
+        history_color_depth = 0;
+        history_confidence = EPS;
+        rejection = 0;
+      }
+    }
+
+    RWTexture2D<float4> outColor : register(u7);
+    RWTexture2D<float> outConfidence : register(u6);
+##if tsr_debug == on
+    RWTexture2D<float3> outDebug : register(u5);
+##endif
+
+    [numthreads( TSR_CS_WORKGROUP_SIZE, TSR_CS_WORKGROUP_SIZE, 1)]
+    void tsr_cs(uint2 dtId : SV_DispatchThreadID, uint2 tid : SV_GroupThreadID, uint2 gId : SV_GroupID, uint flatTid : SV_GroupIndex)
+    {
+      float2 screenTc = (dtId+0.5)*outputResolution.zw;
+      float2 jitteredInputTexelCoord = screenTc * inputResolution.xy + jitterOffset;
+
+      float2 globalOffset = floor(((float2)gId * TSR_CS_WORKGROUP_SIZE + 0.5) * upsamplingRatioInv + jitterOffset - 1); // top-left bordered corner: tid==0 case -1
+      CacheParams cacheParams = calcCacheParams(tid, globalOffset, jitteredInputTexelCoord);
+
+      DepthStatistics depthStats = getDepthStatistics(jitteredInputTexelCoord);
+
+      bool currentIsDynamic;
+      float3 motionVector = fetchMotionVector(depthStats.closestDepth, depthStats.closestUv, currentIsDynamic);
+      float2 historyUV = screenTc + motionVector.xy;
+
+      ##if tsr_reactive_mask != NULL
+        float reactive = tex2Dlod(reactiveMask, float4(jitteredInputTexelCoord * inputResolution.zw, 0, 0)).x;
+      ##else
+        float reactive = 0;
+      ##endif
+
+      float historyConfidence;
+      bool historyIsDynamic;
+      float4 historyColorDepth = reconstructHistory(historyUV, historyConfidence, historyIsDynamic);
+
+      float rejection = calculateDepthVarianceRejection(historyColorDepth.a - motionVector.z, depthStats.farthestDepth, depthStats.closestDepth);
+      rejection *= calculateStaticDynamicMismatchRejection(currentIsDynamic, historyIsDynamic);
+      historyConfidence *= rejection;
+
+      validateHistory(historyUV, historyColorDepth, historyConfidence, rejection);
+
+      prefetchCacheColor(cacheParams, jitteredInputTexelCoord, inputFilterSigmaInv);
+      GroupMemoryBarrierWithGroupSync();
+      if (any(dtId >= uint2(outputResolution.xy)))
+        return;
+
+      float inputConfidence;
+      float3 inputMean;
+      float3 inputVariance;
+      float3 inputColor = reconstructInput(cacheParams, inputConfidence, inputMean, inputVariance);
+
+      historyColorDepth.rgb = clipHistory(historyColorDepth.rgb, inputColor, inputMean, inputVariance, length(motionVector.xy), currentIsDynamic, reactive);
+
+      TemporalSuperResolutionOutput result = calcResult(float4(inputColor, depthStats.closestDepth), inputConfidence, historyColorDepth, historyConfidence, rejection, currentIsDynamic, reactive);
+      outColor[dtId] = result.color;
+      outConfidence[dtId] = result.confidence;
+    ##if tsr_debug == on
+      outDebug[dtId] = rejection;
+    ##endif
+    }
+  }
+
+  compile("target_cs", "tsr_cs");
+}

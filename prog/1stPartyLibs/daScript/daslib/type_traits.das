@@ -7,6 +7,7 @@ options strict_smart_pointers
 module type_traits shared private
 
 require daslib/ast_boost
+require daslib/macro_boost
 
 [typeinfo_macro(name="fields_count")]
 class TypeInfoGetFieldsNum : AstTypeInfoMacro
@@ -46,3 +47,23 @@ class TypeInfoHasProperty : AstTypeInfoMacro
             return <- new [[ExprConstBool() at=expr.at, value=res]]
         errors := "type is missing or not inferred"
         return <- [[ExpressionPtr]]
+
+[call_macro(name="is_subclass_of")]
+class IsSubclassOf : AstCallMacro
+    //! Converts to 'true' if the first type is a subclass of the second type.
+    def override visit ( prog:ProgramPtr; mod:Module?; var call:smart_ptr<ExprCallMacro> ) : ExpressionPtr
+        macro_verify(call.arguments |> length==2,prog,call.at,"expecting is_subclass_of(classptr,typeexpr)")
+        assume classType = call.arguments[0]._type
+        if !(classType.isStructure && classType.structType.flags.isClass)
+            macro_error(prog,call.at,"expecting is_subclass_of(class,...)")
+            return <- [[ExpressionPtr]]
+        assume typeExpr = call.arguments[1]._type
+        if !(typeExpr.isStructure && typeExpr.structType.flags.isClass)
+            macro_error(prog,call.at,"expecting is_subclass_of(...,type<class_typeexpr>)")
+            return <- [[ExpressionPtr]]
+        var cptr = classType.structType
+        while cptr != null
+            if cptr == typeExpr.structType
+                return <- quote(true)
+            cptr = cptr.parent
+        return <- quote(false)

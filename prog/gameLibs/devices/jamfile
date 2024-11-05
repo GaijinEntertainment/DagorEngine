@@ -15,7 +15,7 @@ Sources =
   dataExport.cpp
 ;
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   Sources +=
     jetSeat.cpp
     trackIR.cpp

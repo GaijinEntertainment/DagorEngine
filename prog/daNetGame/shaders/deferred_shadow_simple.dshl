@@ -1,0 +1,263 @@
+include "deferred_shadow_common.dshl"
+include "use_gi.dshl"
+include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
+
+int depth_bounds_support = 0;
+interval depth_bounds_support: no<1, yes;
+
+int allow_satellite_rendering;
+interval allow_satellite_rendering: no<1, yes;
+float satellite_rendering_shadow_multiplier = 1;
+
+shader deferred_simple, satellite_render_resolve
+{
+  if (allow_satellite_rendering == no && shader == satellite_render_resolve)
+  {
+    dont_render;
+  }
+
+  if (shader == satellite_render_resolve)
+  {
+    (ps) {
+      satellite_rendering_shadow_multiplier@f1 = satellite_rendering_shadow_multiplier;
+    }
+  }
+
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+  supports global_frame;
+  supports global_const_block;
+  hlsl {
+    #define SPECULAR_DISABLED 1 // fixme; should we use specular anyway?
+    //#define BRDF_DIFFUSE DIFFUSE_LAMBERT
+  }
+  ENABLE_ASSERT(ps)
+  COMMON_RESOLVE_SIMPLE(ps)
+  USE_DECODE_DEPTH()
+  USE_AND_INIT_VIEW_VEC_VS()
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+  INIT_READ_GBUFFER()
+  USE_READ_GBUFFER()
+
+  cull_mode  = none;
+  z_write = false;
+  z_test = false;
+
+  //fixme: in case of (depth_bounds_support == no_bounds)
+  //z_test = false should be true ONLY for cascade other than [0, something]
+
+
+  SQ_INIT_CLOUDS_SHADOW(ps)
+  SQ_CLOUDS_SHADOW(ps)
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord     : TEXCOORD0;
+      #if NO_OBLIQUE_TRANSFORMATIONS
+      float3 viewVect     : TEXCOORD1;
+      #endif
+    };
+  }
+
+  INIT_STATIC_SHADOW()
+  USE_STATIC_SHADOW()
+
+  // FOM shadows are managed by framegraph now, but this shader is used for rendering envi probes in beforeRender.
+  // We can't request these textures here until we move it to FG node, but I'm also not sure if it worth to use
+  // fom shadows here. This envi cube is rendered only once while shadows from effects look like dynamic.
+  // INIT_FOM_SHADOWS(ps)
+  // USE_FOM_SHADOWS(ps)
+  hlsl (ps)
+  {
+    half getFOMShadow(float3 worldPos) { return 1.0h; }
+  }
+
+  if (shader == satellite_render_resolve)
+  {
+    FULL_TONEMAP_LUT_APPLY(ps)
+  }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  USE_AND_INIT_INV_GLOBTM_PS()
+
+  INIT_BLURRED_DEPTH_ABOVE(ps)
+  USE_BLURRED_DEPTH_ABOVE(ps)
+  if (gi_quality != off)
+  {
+    if (gi_quality == only_ao)
+    {
+      DAGI_SKY_VIS_SAMPLE(ps)
+    } else
+    {
+      hlsl {
+        #define DAGI_IRRADIANCE_GRID_TYPE DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE
+      }
+      DAGI_IRRADIANCE_GRID_SAMPLE(ps)
+      DAGI_RAD_GRID_SAMPLE(ps)
+    }
+  }
+
+
+  hlsl(vs) {
+
+    VsOutput deferred_simple_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = get_fullscreen_inpos(vertexId);
+      output.pos = float4(pos.xy, 1, 1);
+      output.texcoord = screen_to_texcoords(pos);
+      #if NO_OBLIQUE_TRANSFORMATIONS
+      output.viewVect = get_view_vec_by_vertex_id(vertexId);
+      #endif
+
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    float getWorldBlurredAO(float3 worldPos)
+    {
+      float vignetteEffect;
+      float depthHt = getWorldBlurredDepth(worldPos, vignetteEffect);
+      const float height_bias = 0.05;
+      const float height_scale = 0.5f;
+      float occlusion = rcp((max(0.01, (depthHt - height_bias - worldPos.y)*(height_scale)+1)));
+      float ao = saturate(occlusion)*0.85 + 0.15;
+      return lerp(ao, 1, vignetteEffect);
+    }
+
+    float4 deferred_simple_ps(VsOutput input) : SV_Target0
+    {
+      float rawDepth = readGbufferDepth(input.texcoord.xy);
+      #if NO_OBLIQUE_TRANSFORMATIONS
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+      if (w>=zn_zfar.y)
+        return 0;
+      float3 pointToEye = -input.viewVect * w;
+      float4 worldPos = float4(world_view_pos - pointToEye, 1);
+      #else
+      if (rawDepth<=0)
+        return 0;
+      float4 farpos = float4(input.texcoord.xy * 2 - 1, rawDepth, 1.);
+      farpos.y = -farpos.y;
+      float4 worldpos_prj = mul(farpos, globtm_inv);
+      float4 worldPos = worldpos_prj / worldpos_prj.w;
+      float3 pointToEye = world_view_pos.xyz - worldPos.xyz;
+      ##if shader == satellite_render_resolve
+        pointToEye.xz = float2(0,0);
+      ##endif
+      #endif
+
+      float distSq = dot(pointToEye,pointToEye);
+      float invRsqrt = rsqrt(distSq);
+      float3 view  = pointToEye*invRsqrt;
+      float dist = rcp(invRsqrt);
+
+      ProcessedGbuffer gbuffer = readProcessedGbuffer(input.texcoord);
+      gbuffer.diffuseColor = lerp(gbuffer.diffuseColor, gbuffer.specularColor, gbuffer.metalness);//fixme: basically, use raw albedo, and save couple instructions!
+
+      float geometryFactor = 1;
+      float3 enviLightingNormal = gbuffer.normal;
+
+      float NdotV = dot(gbuffer.normal, view);
+      float NoV = abs( NdotV ) + 1e-5;
+      float ggx_alpha = gbuffer.ggx_alpha;
+
+      half enviAO = gbuffer.ao;//we still modulate by albedo color, so we don't need micro AO
+      half3 specularColor = 0;
+      //SUN
+      float3 lightDir = -from_sun_direction.xyz;
+      half3 lightColor = sun_color_0;
+
+      float NoL = dot(gbuffer.normal, lightDir);
+      half3 result = 0;
+      bool subSurface = isSubSurfaceShader(gbuffer.material) && isSubSurfaceProfileValid(gbuffer.sss_profile);
+
+      half vsmShadow = 1;
+      half otherShadow = clouds_shadow(worldPos.xyz);
+      //half trees_shadow = min(cloudShadow, vsmShadow);
+      half csmShadow = min(gbuffer.shadow, getStaticShadow(worldPos.xyz).x*getFOMShadow(worldPos.xyz));
+      half shadow = min(csmShadow, otherShadow);
+      half SSSshadow = shadow;
+
+      ##if shader == satellite_render_resolve
+      shadow *= satellite_rendering_shadow_multiplier;
+      ##endif
+
+      //SUN
+      BRANCH
+      if (NoL>0 && shadow>0)
+      {
+        result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, gbuffer.extracted_albedo_ao, lightDir, view, gbuffer.normal)*shadow*lightColor;
+      }
+
+      //SUN-
+      float3 enviDiffuseLightingNormal = enviLightingNormal;//avoid using view dependent
+      half3 enviLight = GetSkySHDiffuse(enviDiffuseLightingNormal);
+      #if MAX_LIGHT_PROBES_COUNT > 0
+      half4 localLightProbes = getLocalLightProbesDiffuse(worldPos.xyz, enviDiffuseLightingNormal.xyz);
+      enviLight = lerp(localLightProbes.rgb, enviLight, localLightProbes.w);
+      #endif
+      half3 enviLightUnoccluded = enviLight;
+      half3 backLight = GetSkySHDiffuse(-gbuffer.normal);
+
+      ##if shader != satellite_render_resolve
+        enviLight *= getWorldBlurredAO(worldPos.xyz);
+        bool hasAmbient = false;
+        ##if (gi_quality != off)
+          ##if (gi_quality == only_ao)
+            float4 sh1 = dagi_get_sky_visibility_sh1(world_view_pos.xyz, worldPos.xyz, view, dist, gbuffer.normal, 0);
+            if (all(sh1 != 1))
+            {
+              enviLight = GetSHFunctionValueSimple(enviDiffuseLightingNormal, enviSPH0*sh1.wyzx, enviSPH1*sh1.wyzx, enviSPH2*sh1.wyzx);
+              backLight = GetSHFunctionValueSimple(-enviDiffuseLightingNormal, enviSPH0*sh1.wyzx, enviSPH1*sh1.wyzx, enviSPH2*sh1.wyzx);
+            }
+          ##else
+            hasAmbient = dagi_irrad_grid_diffuse_biased_both_dir(worldPos.xyz, enviDiffuseLightingNormal, view, dist, gbuffer.normal, enviLight, backLight);
+          ##endif
+          /*
+          half3 giAmbient = enviLight;
+          half giAmount = get_ambient3d(worldPos.xyz, enviDiffuseLightingNormal, enviLightUnoccluded, giAmbient);
+          half giLuma = luminance(giAmbient), enviLuma = luminance(enviLight);//todo: enviLuma can be calculated once!
+          giAmbient *= max(0.02*enviLuma*rcp(max(giLuma,0.001)), 1);//not less than 50 times darker
+          enviLight = lerp(enviLight, giAmbient, giAmount);
+          */
+          enviLight *= skylight_gi_weight_atten;
+          backLight *= skylight_gi_weight_atten;
+        ##endif
+      ##endif
+
+      half3 environmentAmbientUnoccludedLighting = enviLight*gbuffer.diffuseColor;
+      half3 environmentAmbientLighting = (enviAO * geometryFactor)*environmentAmbientUnoccludedLighting;
+
+      BRANCH
+      if (subSurface)//fixme: use that only for foliage?
+      {
+        result += (gbuffer.ao * foliageSSS(NoL, view, lightDir) * SSSshadow) * lightColor * gbuffer.translucencyColor;
+        environmentAmbientLighting += enviAO*backLight*gbuffer.translucencyColor;
+      }
+      half3 reflection = environmentAmbientLighting;//*enviAO - tri-ace formula
+      result += reflection;
+      result += gbuffer.emissionColor;
+
+      //envi-
+      ##if shader != satellite_render_resolve
+        apply_bruneton_fog(-view, dist, result.rgb);
+      ##endif
+      //result.rgb = apply_fog(result.rgb, pointToEye);
+      result.rgb = pack_hdr(result.rgb).rgb;
+      ##if shader == satellite_render_resolve
+      result.rgb = performLUTTonemap(result.rgb);
+      ##endif
+      return float4(result,1);
+    }
+  }
+
+  compile("target_vs", "deferred_simple_vs");
+  compile("target_ps", "deferred_simple_ps");
+}

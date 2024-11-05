@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_flash_blind_pull daNetGameLibs_flash_blind_DAS_pull_AOT ;
+  UseProgLibs += daNetGameLibs/flash_blind ;
+}

@@ -1,0 +1,61 @@
+include "shader_global.dshl"
+
+texture flash_blind_source_tex;
+texture flash_blind_prev_tex;
+
+float flash_blind_intensity = 1.0;
+float flash_blind_decay_factor = 0.2;
+float4 flash_blind_decay_color = float4(0.9, 0.95, 1, 1);
+float flash_blind_desaturation_scale = 0.5;
+
+float flash_blind_delta_time = 0.0;
+
+shader flash_blind, flash_blind_capture
+{
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+  blend_src = 1;
+  blend_dst = 0;
+
+  POSTFX_VS_TEXCOORD(0, uv)
+
+  (ps) {
+    flash_blind_source_tex@smp2d = flash_blind_source_tex;
+    flash_blind_prev_tex@smp2d = flash_blind_prev_tex;
+    flash_blind_params@f4 = (flash_blind_intensity
+                           , flash_blind_decay_factor
+                           , flash_blind_desaturation_scale
+                           , flash_blind_delta_time)
+    flash_blind_decay_color@f4 = flash_blind_decay_color;
+  }
+  hlsl(ps) {
+    #define flash_blind_intensity flash_blind_params.x
+    #define flash_blind_decay_factor flash_blind_params.y
+    #define flash_blind_desaturation_scale flash_blind_params.z
+    #define flash_blind_delta_time flash_blind_params.w
+  }
+
+  hlsl(ps) {
+    half4 grayscale(half4 color)
+    {
+      half gray = dot(color.rgb, half3(0.3, 0.59, 0.11));
+      return half4(gray, gray, gray, color.a);
+    }
+    float4 flash_blind_ps(VsOutput input) : SV_Target
+    {
+      half4 output = half4(0, 0, 0, 0);
+      ##if shader == flash_blind_capture
+        half4 source_color = tex2D(flash_blind_source_tex, input.uv);
+        source_color = lerp(source_color, grayscale(source_color), flash_blind_desaturation_scale);
+        output += source_color*flash_blind_intensity;
+      ##else
+        half4 prev_color = tex2D(flash_blind_prev_tex, input.uv);
+        half4 decay = pow(flash_blind_decay_factor*flash_blind_decay_color, flash_blind_delta_time);
+        output += prev_color*decay;
+      ##endif
+      return output;
+    }
+  }
+  compile("target_ps", "flash_blind_ps");
+}

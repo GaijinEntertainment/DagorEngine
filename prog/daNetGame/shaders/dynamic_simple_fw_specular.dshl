@@ -1,0 +1,49 @@
+include "dynamic_opaque_inc.dshl"
+include "gbuffer.dshl"
+include "normaldetail.dshl"
+include "simple_inc.dshl"
+
+shader dynamic_simple_fw_specular
+{
+  ENABLE_ASSERT(ps)
+  DYNAMIC_BLOCK()
+  if (in_editor_assume == no) { NO_DYNSTCODE() }
+
+  texture tex = material.texture.diffuse;
+  texture normal = material.texture[2];
+
+  USING_ATEST_HALF()
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+  SETUP_CHARACTER_MICRODETAIL()
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    hlsl {
+      #define MOTION_VECTORS_ENABLED
+    }
+  }
+
+  DYNAMIC_SIMPLE_VS_ATEST_USE()
+
+//---------------------------------------------------
+// PS stuff.
+//---------------------------------------------------
+
+  static float specular_multiplier;
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    (ps) { specular_multiplier@f1 = (specular_multiplier); }
+
+    hlsl {
+      #define USE_SPECULAR_IN_ALPHA 1
+      #define IS_DYNAMIC 1
+    }
+
+    USE_SIMPLE_PS(true)
+  }
+  else
+    SPECIAL_RENDER_NOALPHATEST()
+}

@@ -1,10 +1,8 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef _GAIJIN_DRV_HID_JOYSTICK_JOY_FF_EFFECTS_H
-#define _GAIJIN_DRV_HID_JOYSTICK_JOY_FF_EFFECTS_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <humanInput/dag_hiJoyFF.h>
-#include <humanInput/dag_hiDeclDInput.h>
+#include <drv/hid/dag_hiJoyFF.h>
+#include <drv/hid/dag_hiDeclDInput.h>
 #include <util/dag_string.h>
 #include <generic/dag_tab.h>
 #include "joy_device.h"
@@ -210,5 +208,3 @@ public:
   virtual void setEndForce(float p);
 };
 } // namespace HumanInput
-
-#endif

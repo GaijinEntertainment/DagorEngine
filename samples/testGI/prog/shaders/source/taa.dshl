@@ -85,8 +85,6 @@ shader taa
   USE_READ_DEPTH_GBUFFER()
 
   hlsl(ps) {
-    StructuredBuffer<float> Exposure : register(t7);
-
     #define TAA_VARIANCE_CLIPPING 1
     #define TAA_DISTANCE_FOR_VARIANCE_CLIPPING 8
     //#define TAA_SAMPLER_OBJECT_MOTION some_sampler
@@ -132,7 +130,7 @@ shader taa
       params.renderResolutionInverse = screen_size.zw;
       params.upsamplingRatio = upsampling_ratio;
       params.jitterOffset = jitter_offset;
-      params.exposure = Exposure[0];
+      params.exposure = 1.0;
 
       TAA(history.a, history.xyz, sceneTex, sceneTex_samplerstate, depth_gbuf_read, depth_gbuf_read_samplerstate,
           historyTex, historyTex_samplerstate, params);

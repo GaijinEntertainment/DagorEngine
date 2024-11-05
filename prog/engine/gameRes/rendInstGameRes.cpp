@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <shaders/dag_rendInstRes.h>
 #include <shaders/dag_shaderResUnitedData.h>
 #include <gameRes/dag_gameResSystem.h>
@@ -7,9 +9,9 @@
 #include <EASTL/vector.h>
 #include <generic/dag_initOnDemand.h>
 #include <3d/fileTexFactory.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_texMgrTags.h>
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <util/dag_delayedAction.h>
 #include <debug/dag_log.h>
 #include <gameRes/dag_dumpResRefCountImpl.h>
@@ -17,12 +19,10 @@
 #include <util/dag_console.h>
 #include <perfMon/dag_perfTimer.h>
 
-ShaderResUnitedVdata<RenderableInstanceLodsResource> unitedvdata::riUnitedVdata("RIReloadVdata");
+ShaderResUnitedVdata<RenderableInstanceLodsResource> unitedvdata::riUnitedVdata;
+static constexpr unsigned VDATA_MT_RENDINST = 2;
 
 using unitedvdata::riUnitedVdata;
-
-extern template MulticastEvent<void(const RenderableInstanceLodsResource *)>
-  ShaderResUnitedVdata<RenderableInstanceLodsResource>::on_mesh_relems_updated;
 
 class RendInstGameResFactory : public GameResourceFactory
 {
@@ -231,8 +231,12 @@ struct MeshStreamingStat
 static MeshStreamingStat mss;
 #endif
 
+static ShaderMatVdata::ModelLoadStats last_reported_mls;
+static int64_t last_reported_mls_reft = 0;
+
 static void batch_reload_res(void *)
 {
+  TIME_PROFILE(batch_reload_res_ri);
 #if DAGOR_DBGLEVEL > 0 && !defined(__SANITIZE_THREAD__)
   int64_t reft = profile_ref_ticks();
 #endif
@@ -246,6 +250,30 @@ static void batch_reload_res(void *)
   for (RenderableInstanceLodsResource *res : pendingReloadResListCopy)
     riUnitedVdata.reloadRes(res);
 
+  const auto &mt_stats = ShaderMatVdata::get_model_load_stats(VDATA_MT_RENDINST);
+  if (interlocked_acquire_load(mt_stats.reloadDataCount) == last_reported_mls.reloadDataCount)
+    last_reported_mls_reft = profile_ref_ticks();
+  else if (profile_time_usec(last_reported_mls_reft) > 2 * 1000000)
+  {
+    ShaderMatVdata::ModelLoadStats diff_mls;
+#define COPY_STAT(X)                               \
+  {                                                \
+    auto x = interlocked_acquire_load(mt_stats.X); \
+    diff_mls.X = x - last_reported_mls.X;          \
+    last_reported_mls.X = x;                       \
+  }
+    COPY_STAT(reloadTimeMsec);
+    COPY_STAT(reloadDataSizeKb);
+    COPY_STAT(reloadDataCount);
+#undef COPY_STAT
+    String status_str;
+    riUnitedVdata.buildStatusStr(status_str, false);
+    debug("unitedVdata<%s>: reloaded %u models (%uK for %u msec) during last %u msec [total reloaded %uK of %u models]\n\n%s\n",
+      RenderableInstanceLodsResource::getStaticClassName(), diff_mls.reloadDataCount, diff_mls.reloadDataSizeKb,
+      diff_mls.reloadTimeMsec, profile_time_usec(last_reported_mls_reft) / 1000, last_reported_mls.reloadDataSizeKb,
+      last_reported_mls.reloadDataCount, status_str);
+    last_reported_mls_reft = profile_ref_ticks();
+  }
 #if DAGOR_DBGLEVEL > 0 && !defined(__SANITIZE_THREAD__)
   if (dagor_frame_no() > mss.end_frame_no + 16 || mss.end_frame_no > mss.start_frame_no + 600)
     mss.reset();
@@ -313,7 +341,7 @@ static void reset_rendinst_buffers(bool full_reset)
 REGISTER_D3D_AFTER_RESET_FUNC(reset_rendinst_buffers);
 
 using namespace console;
-static bool resolve_res_name(String &nm, RenderableInstanceLodsResource *r)
+static bool resolve_res_name(String &nm, const RenderableInstanceLodsResource *r)
 {
   if (!rendinst_factory.get())
     return false;
@@ -406,3 +434,5 @@ void register_rndgrass_gameres_factory()
   rndgrass_factory.demandInit();
   ::add_factory(rndgrass_factory);
 }
+
+bool resolve_game_resource_name(String &name, const RenderableInstanceLodsResource *r) { return resolve_res_name(name, r); }

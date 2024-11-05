@@ -1,0 +1,21 @@
+float vignette_strength  = 0.0;
+
+macro INIT_VIGNETTE()
+  (ps)
+  {
+    vignette_strength@f1 = (vignette_strength);
+  }
+endmacro
+
+macro USE_VIGNETTE()
+  hlsl (ps)
+  {
+     float3 apply_vignette(float3 color, float2 tc)
+      {
+        float2 screenPos = abs(tc * 2.0 - 1.0);
+        float vignette = saturate((dot(screenPos, screenPos)) + (vignette_strength - 1));
+        color = lerp(color, 0, vignette * vignette);
+        return color;
+      }
+  }
+endmacro

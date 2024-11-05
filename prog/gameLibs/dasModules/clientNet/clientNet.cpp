@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/aotClientNet.h>
 #include <daScript/daScript.h>
 #include <daECS/net/dasEvents.h>

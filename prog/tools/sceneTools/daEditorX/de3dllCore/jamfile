@@ -12,12 +12,15 @@ AddIncludes =
 
 Sources =
   initGlobals.cpp
+  d3dReset.cpp
 ;
 
 UseProgLibs =
   engine/memory/rtlOverride
-  tools/libTools/dllPluginCore
+  engine/math
+  engine/drv/drv3d_use_d3di
   tools/libTools/util
+  tools/libTools/objectEditor
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

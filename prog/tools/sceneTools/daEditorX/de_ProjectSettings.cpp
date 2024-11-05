@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "de_ProjectSettings.h"
 #include "de_appwnd.h"
 #include "de_plugindata.h"
@@ -31,15 +33,15 @@
 //==============================================================================
 
 ProjectSettingsDlg::ProjectSettingsDlg(void *phandle, bool &use_dir_light) :
-  CDialogWindow(phandle, hdpi::_pxScaled(500), hdpi::_pxScaled(750), "Project settings")
+  DialogWindow(phandle, hdpi::_pxScaled(500), hdpi::_pxScaled(750), "Project settings")
 {
-  PropertyContainerControlBase *_panel = getPanel();
+  PropPanel::ContainerPropertyControl *_panel = getPanel();
   G_ASSERT(_panel && "No panel in CamerasConfigDlg");
 
-  PropertyContainerControlBase *_tpanel = _panel->createTabPanel(DIALOG_TAB_PANEL, "");
+  PropPanel::ContainerPropertyControl *_tpanel = _panel->createTabPanel(DIALOG_TAB_PANEL, "");
   mTabPage = _tpanel;
 
-  PropertyContainerControlBase *_tpage = _tpanel->createTabPage(DIALOG_TAB_LIGHTING, "Lighting");
+  PropPanel::ContainerPropertyControl *_tpage = _tpanel->createTabPage(DIALOG_TAB_LIGHTING, "Lighting");
   lightTab = new PsLightTab(_tpage, use_dir_light);
 
   _tpage = _tpanel->createTabPage(DIALOG_TAB_COLLISION, "Collision");
@@ -74,7 +76,7 @@ bool ProjectSettingsDlg::onOk()
 
 //==============================================================================
 
-long ProjectSettingsDlg::onChanging(int pcb_id, PropPanel2 *panel)
+long ProjectSettingsDlg::onChanging(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   if (externalTab)
     externalTab->fixPath(pcb_id);
@@ -83,7 +85,7 @@ long ProjectSettingsDlg::onChanging(int pcb_id, PropPanel2 *panel)
 }
 
 
-void ProjectSettingsDlg::onChange(int pcb_id, PropPanel2 *panel)
+void ProjectSettingsDlg::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   if (lightTab->handleEvent(pcb_id, panel))
     return;
@@ -93,7 +95,7 @@ void ProjectSettingsDlg::onChange(int pcb_id, PropPanel2 *panel)
 }
 
 
-void ProjectSettingsDlg::onClick(int pcb_id, PropPanel2 *panel)
+void ProjectSettingsDlg::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   if (lightTab)
     lightTab->onApply();
@@ -104,7 +106,7 @@ void ProjectSettingsDlg::onClick(int pcb_id, PropPanel2 *panel)
 // PsExternalTab
 //==============================================================================
 
-PsExternalTab::PsExternalTab(PropertyContainerControlBase *tab_page) : mTabPage(tab_page), oldVals(tmpmem), nowEdit(false)
+PsExternalTab::PsExternalTab(PropPanel::ContainerPropertyControl *tab_page) : mTabPage(tab_page), oldVals(tmpmem), nowEdit(false)
 {
   IDagorEd2Engine *app = IDagorEd2Engine::get();
   Tab<String> filter(tmpmem);
@@ -230,7 +232,7 @@ void PsExternalTab::fixPath(int pcb_id)
 }
 
 
-int PsExternalTab::handleEvent(int pcb_id, PropPanel2 *panel)
+int PsExternalTab::handleEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   IDagorEd2Engine *app = IDagorEd2Engine::get();
   G_ASSERT(app && "PsExternalTab::handleEvent: app is NULL!!!");
@@ -287,11 +289,11 @@ int PsExternalTab::handleEvent(int pcb_id, PropPanel2 *panel)
 // PsLightTab
 //==============================================================================
 
-PsLightTab::PsLightTab(PropertyContainerControlBase *tab_page, bool &use_dir_light) // :
+PsLightTab::PsLightTab(PropPanel::ContainerPropertyControl *tab_page, bool &use_dir_light) // :
   :
   useDirLight(use_dir_light), mTabPage(tab_page)
 {
-  PropertyContainerControlBase *useGr = tab_page->createRadioGroup(USE_RADIO_GROUP, "Light source:");
+  PropPanel::ContainerPropertyControl *useGr = tab_page->createRadioGroup(USE_RADIO_GROUP, "Light source:");
 
   useGr->createRadio(USE_DIR_RADIO_BUTTON, "Use direct light");
   useGr->createRadio(USE_LIGHT_RADIO_BUTTON, "Use light from \"Light\" plugin");
@@ -428,7 +430,7 @@ void PsLightTab::onApply()
 
 
 //==============================================================================
-int PsLightTab::handleEvent(int pcb_id, PropPanel2 *panel)
+int PsLightTab::handleEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   switch (pcb_id)
   {
@@ -447,25 +449,25 @@ int PsLightTab::handleEvent(int pcb_id, PropPanel2 *panel)
 // MiscTab
 //==============================================================================
 
-MiscTab::MiscTab(PropertyContainerControlBase *tab_page) : mTabPage(tab_page)
+MiscTab::MiscTab(PropPanel::ContainerPropertyControl *tab_page) : mTabPage(tab_page)
 {
-  PropertyContainerControlBase *texQualityGr = tab_page->createRadioGroup(TEXQUALITY_RADIO_GRP_ID, "Textures quality:");
+  PropPanel::ContainerPropertyControl *texQualityGr = tab_page->createRadioGroup(TEXQUALITY_RADIO_GRP_ID, "Textures quality:");
   texQualityGr->createRadio(TEXQUALITY_RADIO_H_ID, "High");
   texQualityGr->createRadio(TEXQUALITY_RADIO_M_ID, "Medium");
   texQualityGr->createRadio(TEXQUALITY_RADIO_L_ID, "Low");
   texQualityGr->createRadio(TEXQUALITY_RADIO_UL_ID, "Ultra low");
 
-  PropertyContainerControlBase *lightmapQualityGr = tab_page->createRadioGroup(LT_RADIO_GRP_ID, "Lightmap quality:", false);
+  PropPanel::ContainerPropertyControl *lightmapQualityGr = tab_page->createRadioGroup(LT_RADIO_GRP_ID, "Lightmap quality:", false);
   lightmapQualityGr->createRadio(LT_RADIO_H_ID, "High");
   lightmapQualityGr->createRadio(LT_RADIO_M_ID, "Medium");
   lightmapQualityGr->createRadio(LT_RADIO_L_ID, "Low");
   lightmapQualityGr->createRadio(LT_RADIO_UL_ID, "Ultra low");
 
-  PropertyContainerControlBase *waterQualityGr = tab_page->createRadioGroup(WATER_RADIO_GRP_ID, "Water quality:");
+  PropPanel::ContainerPropertyControl *waterQualityGr = tab_page->createRadioGroup(WATER_RADIO_GRP_ID, "Water quality:");
   waterQualityGr->createRadio(WATER_RADIO_H_ID, "High");
   waterQualityGr->createRadio(WATER_RADIO_M_ID, "Medium");
 
-  PropertyContainerControlBase *staticBumpGr = tab_page->createRadioGroup(BUMP_RADIO_GRP_ID, "Static bump:", false);
+  PropPanel::ContainerPropertyControl *staticBumpGr = tab_page->createRadioGroup(BUMP_RADIO_GRP_ID, "Static bump:", false);
   staticBumpGr->createRadio(BUMP_RADIO_ON_ID, "On");
   staticBumpGr->createRadio(BUMP_RADIO_OFF_ID, "Off");
 
@@ -513,7 +515,7 @@ bool MiscTab::onOkPressed()
 // PsCollisionTab
 //==============================================================================
 
-PsCollisionTab::PsCollisionTab(PropertyContainerControlBase *tab_page) : mTabPage(tab_page), mColNames(midmem)
+PsCollisionTab::PsCollisionTab(PropPanel::ContainerPropertyControl *tab_page) : mTabPage(tab_page), mColNames(midmem)
 {
   tab_page->createStatic(0, "Custom colliders  ");
   const int colCnt = ::get_custom_colliders_count();

@@ -5,7 +5,7 @@
 // TODO: until node basd shaders have precompile support
 float3 get_base_ambient_color()
 {
-  return float3(enviSPH0.y + enviSPH0.w, enviSPH1.y + enviSPH1.w, enviSPH2.y + enviSPH2.w) * eclipse_params.y;
+  return float3(enviSPH0.y + enviSPH0.w, enviSPH1.y + enviSPH1.w, enviSPH2.y + enviSPH2.w) * skylight_params.y;
 }
 
 float3 calcViewVec(float2 screen_tc)

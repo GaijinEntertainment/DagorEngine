@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_waterSrv.h>
 #include <de3_interface.h>
 #include "../../de_appwnd.h"
@@ -12,8 +14,11 @@
 #include <shaders/dag_shaderBlock.h>
 #include <sepGui/wndGlobal.h>
 #include <oldEditor/de_util.h>
-#include <dllPluginCore/core.h>
-#include <3d/dag_drv3d.h>
+#include <EditorCore/ec_IEditorCore.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
 #include <de3_hmapStorage.h>
 
 #include <fftWater/fftWater.h>
@@ -27,6 +32,8 @@
 #include <ioSys/dag_zstdIo.h>
 #include <ioSys/dag_oodleIo.h>
 #include <ioSys/dag_btagCompr.h>
+
+using editorcore_extapi::dagGeom;
 
 static int water_refraction_texVarId = -1, prev_frame_texVarId = -1;
 const int heightmap_w = 2048, shore_w = 1024;
@@ -138,7 +145,10 @@ public:
     ShaderGlobal::set_texture(water_refraction_texVarId, prev);
     TMatrix4 globtm;
     d3d::getglobtm(globtm);
-    fft_water::render(water, ::grs_cur_view.pos, distTex.getTexId(), globtm);
+    Driver3dPerspective persp;
+    if (!d3d::getpersp(persp))
+      persp.wk = persp.hk = 1;
+    fft_water::render(water, ::grs_cur_view.pos, distTex.getTexId(), globtm, persp);
   }
   virtual void set_level(float level)
   {
@@ -238,9 +248,8 @@ public:
     BBox3 levelBox =
       BBox3(origin - Point3(heightmap_size, 3000, heightmap_size), origin + Point3(heightmap_size, 3000, heightmap_size));
 
-    Point2 geomOfs((HALF_TEXEL_OFSF)*levelBox.width().x / heightmap_w, (HALF_TEXEL_OFSF)*levelBox.width().z / heightmap_w);
-    TMatrix4 viewMatrix = ::matrix_look_at_lh(Point3(levelBox.center().x + geomOfs.x, MAX_HEIGHT, levelBox.center().z + geomOfs.y),
-      Point3(levelBox.center().x + geomOfs.x, 0.f, levelBox.center().z + geomOfs.y), Point3(0.f, 0.f, 1.f));
+    TMatrix4 viewMatrix = ::matrix_look_at_lh(Point3(levelBox.center().x, MAX_HEIGHT, levelBox.center().z),
+      Point3(levelBox.center().x, 0.f, levelBox.center().z), Point3(0.f, 0.f, 1.f));
 
 
     TMatrix4 projectionMatrix = matrix_ortho_lh(levelBox.width().x, -levelBox.width().z, 0, MAX_HEIGHT - MIN_HEIGHT);
@@ -386,9 +395,19 @@ public:
     waterHeightmap->heightOffset = minHeight;
     waterHeightmap->heightScale = range;
 
+    if (!pages.size())
+    {
+      DAGORED2->getConsole().addMessage(ILogWriter::WARNING, "skip creating empty waterHeightmap: pages.size()=%d", pages.size());
+      return;
+    }
     int pagesX = min(max(1, (int)pages.size()), MAX_PAGES_TEX_WIDTH / PAGE_SIZE_PADDED);
     int texWidth = pagesX * PAGE_SIZE_PADDED;
-    int pagesY = (pages.size() + pagesX - 1) / pagesX;
+    int pagesY = max<int>((pages.size() + pagesX - 1) / pagesX, 1);
+    if (!pagesX || !pagesY)
+    {
+      DAGORED2->getConsole().addMessage(ILogWriter::WARNING, "skip creating null-sized waterHeightmap: %dx%d", pagesX, pagesY);
+      return;
+    }
     waterHeightmap->pagesX = pagesX;
     waterHeightmap->pagesY = pagesY;
     waterHeightmap->scale = scale;

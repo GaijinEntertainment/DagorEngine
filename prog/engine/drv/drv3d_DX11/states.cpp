@@ -1,6 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EASTL/vector_map.h>
 #include <generic/dag_tab.h>
-#include <3d/dag_drv3dCmd.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>
 #include <debug/dag_debug.h>
@@ -9,7 +10,9 @@
 #include <util/dag_string.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <util/dag_generationReferencedData.h>
+#include <convertHelper.h>
 
+#include "sampler.h"
 #include "driver.h"
 #if HAS_NVAPI
 #include <nvapi.h>
@@ -23,6 +26,14 @@ using namespace drv3d_dx11;
 static RenderState &g_frameState = g_render_state; // ok for strict aliasing?
 // #define g_frameState g_render_state
 #include "frameStateTM.inc.cpp"
+#include <drv/3d/dag_sampler.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_bindless.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_variableRateShading.h>
 // #undef g_frameState
 
 
@@ -67,7 +78,7 @@ KeyMapWideHashed<COMProxyPtr<ID3D11RasterizerState>, RasterizerState::Key, 32> r
 static int rasterizer_state_cacheCount = 0;
 KeyMap<COMProxyPtr<ID3D11DepthStencilState>, DepthStencilState::Key, 16> depth_stencil_state_cache; // currently we have ~10 depth
                                                                                                     // sencil states. Keep it linear.
-KeyMapWideHashed<COMProxyPtr<ID3D11SamplerState>, SamplerState::Key, 128> texture_fetch_state_cache;
+KeyMapWideHashed<COMProxyPtr<ID3D11SamplerState>, SamplerKey, 128> texture_fetch_state_cache;
 void get_states_mem_used(String &str)
 {
   str.printf(128, "blend_state_cache.size() =%d\n", blend_state_cache.size());
@@ -114,6 +125,8 @@ void resolve_msaa_and_gen_mips(BaseTex *tex)
   tex->dirtyRt = 0;
 }
 
+static BOOL toBOOL(bool b) { return b ? TRUE : FALSE; }
+
 static DriverRenderState create_default_rstate()
 {
   DriverRenderState state;
@@ -150,7 +163,7 @@ void flush_states(RenderState &rs)
 #if DAGOR_DBGLEVEL > 0
     if (currentState->sourceShaderRenderState.forcedSampleCount > 0 && rs.nextRtState.isDepthUsed())
     {
-      logerr("Forced sample count is used when depth RT is set! FSC will be disabled");
+      D3D_ERROR("Forced sample count is used when depth RT is set! FSC will be disabled");
       shaders::RenderState fixedState = currentState->sourceShaderRenderState;
       fixedState.forcedSampleCount = 0;
       s = render_states.get(render_states.emplaceOne(shader_render_state_to_driver_render_state(fixedState)))->rasterState;
@@ -485,11 +498,11 @@ ID3D11SamplerState *TextureFetchState::Samplers::getStateObject(const BaseTex *b
   if (basetex == NULL)
     return NULL;
 
-  SamplerState::Key key = SamplerState::makeKey(basetex);
+  SamplerKey key{basetex};
   return getStateObject(key);
 }
 
-ID3D11SamplerState *TextureFetchState::Samplers::getStateObject(const SamplerState::Key &key)
+ID3D11SamplerState *TextureFetchState::Samplers::getStateObject(const SamplerKey &key)
 {
   uint8_t anisotropyLevel =
     override_max_anisotropy_level > 0 ? min(override_max_anisotropy_level, uint8_t(key.anisotropyLevel)) : key.anisotropyLevel;
@@ -521,25 +534,25 @@ ID3D11SamplerState *TextureFetchState::Samplers::getStateObject(const SamplerSta
     // TEXMIPMAP_DEFAULT
     D3D11_FILTER_MIN_MAG_MIP_LINEAR,                  // TEXFILTER_DEFAULT
     D3D11_FILTER_MIN_MAG_POINT_MIP_LINEAR,            // TEXFILTER_POINT
-    D3D11_FILTER_MIN_MAG_MIP_LINEAR,                  // TEXFILTER_SMOOTH
+    D3D11_FILTER_MIN_MAG_MIP_LINEAR,                  // TEXFILTER_LINEAR
     D3D11_FILTER_ANISOTROPIC,                         // TEXFILTER_BEST
     D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, // TEXFILTER_COMPARE
                                                       // TEXMIPMAP_NONE
     D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT,            // TEXFILTER_DEFAULT
     D3D11_FILTER_MIN_MAG_MIP_POINT,                   // TEXFILTER_POINT
-    D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT,            // TEXFILTER_SMOOTH
+    D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT,            // TEXFILTER_LINEAR
     D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT,            // TEXFILTER_BEST
     D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, // TEXFILTER_COMPARE
                                                       // TEXMIPMAP_POINT
     D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT,            // TEXFILTER_DEFAULT
     D3D11_FILTER_MIN_MAG_MIP_POINT,                   // TEXFILTER_POINT
-    D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT,            // TEXFILTER_SMOOTH
+    D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT,            // TEXFILTER_LINEAR
     D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT,            // TEXFILTER_BEST
     D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, // TEXFILTER_COMPARE
                                                       // TEXMIPMAP_LINEAR
     D3D11_FILTER_MIN_MAG_MIP_LINEAR,                  // TEXFILTER_DEFAULT
     D3D11_FILTER_MIN_MAG_POINT_MIP_LINEAR,            // TEXFILTER_POINT
-    D3D11_FILTER_MIN_MAG_MIP_LINEAR,                  // TEXFILTER_SMOOTH
+    D3D11_FILTER_MIN_MAG_MIP_LINEAR,                  // TEXFILTER_LINEAR
     D3D11_FILTER_ANISOTROPIC,                         // TEXFILTER_BEST
     D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR,       // TEXFILTER_COMPARE
   };
@@ -584,6 +597,10 @@ bool TextureFetchState::Samplers::flush(unsigned shader_stage, bool force, ID3D1
   unsigned i = 0, bit = 1;
   G_STATIC_ASSERT(sizeof(modifiedMask) == sizeof(bit));
   bool btWasModified = false;
+
+  // Necessary for access to g_sampler_keys; lock once.
+  SamplerKeysAutoLock lock;
+
   for (SamplerState &ss : resources)
   {
     BaseTex *bt = (BaseTex *)ss.texture;
@@ -614,23 +631,25 @@ bool TextureFetchState::Samplers::flush(unsigned shader_stage, bool force, ID3D1
         ss.viewObject = NULL;
       }
 
-      if (!ss.buffer && (bt || ss.sampler) && (ss.samplerSource != SamplerState::SamplerSource::None))
+      if (!ss.buffer && (bt || ss.samplerHandle != d3d::INVALID_SAMPLER_HANDLE) &&
+          (ss.samplerSource != SamplerState::SamplerSource::None))
       {
         if (ss.samplerSource == SamplerState::SamplerSource::Texture)
         {
           G_ASSERTF(bt, "bt (texture object) must be valid here!");
           if (bt)
           {
-            ss.latestSamplerKey = SamplerState::makeKey(bt);
+            ss.latestSamplerKey = SamplerKey{bt};
             ss.samplerSource = SamplerState::SamplerSource::Latest;
           }
         }
         else if (ss.samplerSource == SamplerState::SamplerSource::Sampler)
         {
-          G_ASSERTF(ss.sampler, "ss.sampler (sampler object) must be valid here!");
-          if (ss.sampler)
+          G_ASSERTF(ss.samplerHandle != d3d::INVALID_SAMPLER_HANDLE, "ss.sampler (sampler object) must be valid here!");
+          if (DAGOR_LIKELY(ss.samplerHandle != d3d::INVALID_SAMPLER_HANDLE))
           {
-            ss.latestSamplerKey = ss.sampler->getSamplerKey();
+            // See `SamplerKeysAutoLock lock;` above.
+            ss.latestSamplerKey = g_sampler_keys[uint64_t(ss.samplerHandle) - 1];
             ss.samplerSource = SamplerState::SamplerSource::Latest;
           }
         }
@@ -772,20 +791,15 @@ void TextureFetchState::flush(bool force, uint32_t hdg_bits)
 template <typename obj_type>
 void cs_state_flush_helper(int mask, int size, obj_type *src[], obj_type *dst[], int &first, int &count)
 {
+  memcpy(dst, src, size * sizeof(src[0]));
   first = size;
   int last = 0;
-
-  for (int i = 0; i < size; ++i)
+  uint32_t maskSized = mask & ((1 << size) - 1);
+  if (maskSized)
   {
-    if (mask & (1 << i))
-    {
-      first = min<int>(first, i);
-      last = i;
-    }
-
-    dst[i] = src[i];
+    first = __bsf_unsafe(maskSized);
+    last = __bsr_unsafe(maskSized);
   }
-
   count = last - first + 1;
   G_ASSERT(count > 0);
 }
@@ -928,8 +942,6 @@ bool d3d::set_depth_bounds(float zmin, float zmax)
   return true;
 }
 
-bool d3d::supports_depth_bounds() { return get_driver_desc().caps.hasDepthBoundsTest; }
-
 bool d3d::setstencil(uint32_t ref)
 {
   CHECK_THREAD;
@@ -1032,7 +1044,7 @@ void drv3d_dx11::recreate_render_states()
   OSSpinlockScopedLock lock(render_states_mutex);
   for (int renderStateNo = 0; renderStateNo < render_states.totalSize(); renderStateNo++)
   {
-    shaders::DriverRenderStateId renderStateRef = render_states.createReferenceFromIdx(renderStateNo);
+    shaders::DriverRenderStateId renderStateRef = render_states.getRefByIdx(renderStateNo);
     if (renderStateRef)
     {
       DriverRenderState *renderState = render_states.get(renderStateRef);
@@ -1086,7 +1098,7 @@ static void check_content_loaded(BaseTexture *tex)
 #if DAGOR_DBGLEVEL > 0
     DAG_FATAL("ddsxTex <%s> allocated, but contents was not loaded before usage in d3d::settex()", bt->getResName());
 #else
-    logerr("ddsxTex <%s> allocated, but contents was not loaded before usage in d3d::settex()", bt->getResName());
+    D3D_ERROR("ddsxTex <%s> allocated, but contents was not loaded before usage in d3d::settex()", bt->getResName());
 #endif
   }
 }
@@ -1098,14 +1110,14 @@ bool d3d::set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex, bool u
 {
   if (shader_stage >= STAGE_MAX)
   {
-    logerr("invalid shader stage number %d", shader_stage);
+    D3D_ERROR("invalid shader stage number %d", shader_stage);
     return false;
   }
   check_content_loaded(tex);
 
   if (slot >= g_device_desc.maxsimtex || slot >= MAX_RESOURCES)
   {
-    logerr("invalid PS sampler number %d", slot);
+    D3D_ERROR("invalid PS sampler number %d", slot);
     return false;
   }
 
@@ -1138,18 +1150,16 @@ bool d3d::set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex, bool u
 
 void d3d::set_sampler(unsigned shader_stage, unsigned slot, d3d::SamplerHandle sampler)
 {
-  auto *samplerObject = reinterpret_cast<SamplerStateObject *>(sampler);
-
   ResAutoLock resLock;
   TextureFetchState::Samplers &resources = g_render_state.texFetchState.resources[shader_stage];
   resources.resources.resize(max(resources.resources.size(), slot + 1));
-  resources.modifiedMask |= resources.resources[slot].setSampler(samplerObject) ? (1 << slot) : 0;
+  resources.modifiedMask |= resources.resources[slot].setSampler(sampler) ? (1 << slot) : 0;
 
   if (shader_stage == STAGE_CS && d3d::get_driver_desc().caps.hasAsyncCompute)
   {
     TextureFetchState::Samplers &resources = g_render_state.texFetchState.resources[STAGE_CS_ASYNC_STATE];
     resources.resources.resize(max(resources.resources.size(), slot + 1));
-    resources.modifiedMask |= resources.resources[slot].setSampler(samplerObject) ? (1 << slot) : 0;
+    resources.modifiedMask |= resources.resources[slot].setSampler(sampler) ? (1 << slot) : 0;
   }
 
   g_render_state.modified = true;
@@ -1157,6 +1167,12 @@ void d3d::set_sampler(unsigned shader_stage, unsigned slot, d3d::SamplerHandle s
 
 
 uint32_t d3d::register_bindless_sampler(BaseTexture *)
+{
+  G_ASSERTF(false, "d3d::register_bindless_sampler called on API without support");
+  return 0;
+}
+
+uint32_t d3d::register_bindless_sampler(SamplerHandle)
 {
   G_ASSERTF(false, "d3d::register_bindless_sampler called on API without support");
   return 0;
@@ -1202,7 +1218,7 @@ bool d3d::clear_rwtexi(BaseTexture *tex, const unsigned val[4], uint32_t face, u
 
 #if DAGOR_DBGLEVEL > 0
   if (!(base->cflg & TEXCF_UNORDERED))
-    logerr("can't clear_rwtex with non UAV texture (use TEXCF_UNORDERED) <%s>", base->getResName());
+    D3D_ERROR("can't clear_rwtex with non UAV texture (use TEXCF_UNORDERED) <%s>", base->getResName());
 #endif
   ID3D11UnorderedAccessView *uav = base->getUaView(face, mip_level, false);
   ContextAutoLock contextLock;
@@ -1221,7 +1237,7 @@ bool d3d::clear_rwtexf(BaseTexture *tex, const float val[4], uint32_t face, uint
     return false;
 #if DAGOR_DBGLEVEL > 0
   if (!(base->cflg & TEXCF_UNORDERED))
-    logerr("can't clear_rwtex with non UAV texture (use TEXCF_UNORDERED) <%s>", base->getResName());
+    D3D_ERROR("can't clear_rwtex with non UAV texture (use TEXCF_UNORDERED) <%s>", base->getResName());
 #endif
   ID3D11UnorderedAccessView *uav = base->getUaView(face, mip_level, false);
   ContextAutoLock lock;
@@ -1264,17 +1280,42 @@ bool d3d::clear_rwbuff(Sbuffer *buffer, const float val[4])
   return true;
 }
 
+bool d3d::clear_rt(const RenderTarget &rt, const ResourceClearValue &clear_val)
+{
+  if (!rt.tex)
+    return false;
+
+  BaseTex *base = (BaseTex *)rt.tex;
+  ID3D11View *view = base->getRtView(rt.layer, rt.mip_level, 1, g_render_state.srgb_bb_write);
+  if (is_depth_format_flg(base->cflg))
+  {
+    ContextAutoLock contextLock;
+    dx_context->ClearDepthStencilView((ID3D11DepthStencilView *)view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, clear_val.asDepth,
+      clear_val.asStencil);
+  }
+  else
+  {
+    float cv[4];
+    resource_clear_value_to_float4(base->cflg, clear_val, cv);
+    ContextAutoLock contextLock;
+    dx_context->ClearRenderTargetView((ID3D11RenderTargetView *)view, clear_val.asFloat);
+  }
+
+  return true;
+}
+
 bool d3d::set_rwtex(unsigned shader_stage, unsigned slot, BaseTexture *tex, uint32_t face, uint32_t mip_level, bool as_uint)
 {
   if (featureLevelsSupported < D3D_FEATURE_LEVEL_11_1 && shader_stage > STAGE_PS)
   {
-    logerr("invalid stage %d", shader_stage);
+    D3D_ERROR("invalid stage %d", shader_stage);
     return false;
   }
   if (shader_stage == STAGE_VS)
     shader_stage = STAGE_PS;
 
   BaseTex *base = 0;
+  ID3D11UnorderedAccessView *uav = nullptr;
   if (tex)
   {
     base = (BaseTex *)tex;
@@ -1282,17 +1323,19 @@ bool d3d::set_rwtex(unsigned shader_stage, unsigned slot, BaseTexture *tex, uint
       remove_texture_from_samplers(tex);
     uint32_t cflg = base->cflg;
     if (!(base->cflg & TEXCF_UNORDERED))
-      logerr("can't setrwtex with non UAV texture (use TEXCF_UNORDERED) <%s>", base->getResName());
+      D3D_ERROR("can't setrwtex with non UAV texture (use TEXCF_UNORDERED) <%s>", base->getResName());
     if (base->needs_clear)
       base->clear();
+    uav = base->getUaView(face, mip_level, as_uint);
+    remove_view_from_uav_ignore_slot(shader_stage, slot, uav);
   }
 
   if (slot >= MAX_UAV)
   {
-    logerr("invalid UAV slot: %d", slot);
+    D3D_ERROR("invalid UAV slot: %d", slot);
     return false;
   }
-  g_render_state.texFetchState.setUav(shader_stage, slot, base ? base->getUaView(face, mip_level, as_uint) : NULL);
+  g_render_state.texFetchState.setUav(shader_stage, slot, uav);
   g_render_state.modified = true;
   return true;
 }

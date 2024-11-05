@@ -1,0 +1,12 @@
+effect_area_base{
+  _group{
+    effect_area__frequency:r=0.9
+    effect_area__pauseChance:r=0.1
+    effect_area__pauseLengthMax:r=1
+    effect_area__effectName:t="effect_name"
+    effect_area__isPaused:b=no
+    _track:b=yes
+  }
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  _use:t="replicating"
+}

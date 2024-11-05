@@ -31,7 +31,7 @@ let textAreaFrameState_default = {
   pos  = [100, 100]
 }
 
-let state = persist("state", @() Watched(null))
+let state = mkWatched(persist,"state")
 
 function textAreaContainer() {
   let w = state.value ?? textAreaFrameState_default

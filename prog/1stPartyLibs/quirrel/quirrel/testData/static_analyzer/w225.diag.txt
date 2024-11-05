@@ -1,8 +1,8 @@
 WARNING: w225 (all-paths-return-value) Not all control paths return a value.
-testData/static_analyzer/w225.nut:3:4
+testData/static_analyzer/w225.nut:3:0
 
-let function x(y) { //-declared-never-used
-    ^
+function x(y) { //-declared-never-used
+^
   if (y == 1)
 
 

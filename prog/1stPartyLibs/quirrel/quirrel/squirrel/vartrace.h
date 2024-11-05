@@ -84,7 +84,7 @@ private:
 #define VT_PUSHBACK(val, vm) { VarTrace tmp; varTrace.push_back(tmp); VT_TRACE(varTrace.size() - 1, val, vm); }
 #define VT_POPBACK() varTrace.pop_back()
 #define VT_REMOVE(x) varTrace.remove(x)
-#define VT_CLONE_TO(to) to->varTrace.copy(varTrace)
+#define VT_CLONE_FROM_TO(from, to) to->varTrace.copy(from->varTrace)
 #define VT_COPY_SINGLE(from, to) to->varTrace = from->varTrace
 
 
@@ -111,7 +111,7 @@ typedef sqvector<VarTrace> SQVarTraceVec;
 #define VT_PUSHBACK(val, vm)
 #define VT_POPBACK()
 #define VT_REMOVE(x)
-#define VT_CLONE_TO(to)
+#define VT_CLONE_FROM_TO(from, to)
 #define VT_COPY_SINGLE(from, to)
 
 #endif

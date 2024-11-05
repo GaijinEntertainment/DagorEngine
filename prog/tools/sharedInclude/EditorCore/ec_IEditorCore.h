@@ -1,7 +1,5 @@
-#ifndef __GAIJIN_IEDITOR_CORE__
-#define __GAIJIN_IEDITOR_CORE__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <EditorCore/ec_interface.h>
 
@@ -139,6 +137,7 @@ public:
     int segs = 24) const = 0;
   virtual void renderXZCircle(const Point3 &center, real radius, E3DCOLOR col, int segs = 24) const = 0;
   virtual void renderCapsuleW(const Capsule &cap, E3DCOLOR c) const = 0;
+  virtual void renderCylinder(const TMatrix &tm, float rad, float height, E3DCOLOR c) const = 0;
 
   virtual DebugPrimitivesVbuffer *newDebugPrimitivesVbuffer(const char *name, IMemAlloc *alloc = NULL) const = 0;
   virtual void deleteDebugPrimitivesVbuffer(DebugPrimitivesVbuffer *&vbuf) const = 0;
@@ -208,6 +207,8 @@ public:
   virtual void renderTextFmt(real x, real y, E3DCOLOR color, const char *format, const DagorSafeArg *arg, int anum) const = 0;
   virtual BBox2 getTextBBox(const char *str, int len = -1) const = 0;
   virtual int setTextFont(int font_id, int font_kern = 0) const = 0;
+  virtual void getFontAscentAndDescent(int &ascent, int &descent) const = 0;
+  virtual void drawSolidRectangle(real left, real top, real right, real bottom, E3DCOLOR color) const;
 
 #define DSA_OVERLOADS_PARAM_DECL real x, real y, E3DCOLOR color,
 #define DSA_OVERLOADS_PARAM_PASS x, y, color,
@@ -525,5 +526,12 @@ public:
   static IEditorCore &make_instance();
 };
 
-
-#endif //__GAIJIN_IEDITOR_CORE__
+namespace editorcore_extapi
+{
+extern IDagorRender *dagRender;
+extern IDagorGeom *dagGeom;
+extern IDagorConsole *dagConsole;
+extern IDagorTools *dagTools;
+extern IDagorScene *dagScene;
+String make_full_start_path(const char *rel_path);
+}; // namespace editorcore_extapi

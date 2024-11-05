@@ -1,4 +1,6 @@
-#include "device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include "spirv_extractor.h"
 
 using namespace drv3d_vulkan;
 
@@ -131,6 +133,9 @@ eastl::optional<ShaderModuleHeader> spirv_extractor::getHeader(VkShaderStageFlag
   if (selected)
   {
     auto &hdr = *reinterpret_cast<const spirv::ShaderHeader *>(chunk_data.data() + selected->offset);
+    if (hdr.verMagic != spirv::HEADER_MAGIC_VER)
+      DAG_FATAL("vulkan: expected shader header ver %08lX got %08lX, check shader dump integrity!", spirv::HEADER_MAGIC_VER,
+        hdr.verMagic);
     return ShaderModuleHeader{hdr, selected->hash, stage};
   }
   return {};

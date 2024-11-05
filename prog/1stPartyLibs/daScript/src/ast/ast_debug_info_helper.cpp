@@ -154,6 +154,9 @@ namespace das {
         for ( uint32_t i=0, is=sti->count; i!=is; ++i ) {
             auto & var = st.fields[i];
             VarInfo * vi = makeVariableDebugInfo(st, var);
+            if (var.privateField) {
+                vi->flags |= TypeInfo::flag_private;
+            }
             sti->fields[i] = vi;
         }
         sti->firstGcField = sti->count;
@@ -256,6 +259,8 @@ namespace das {
             info->flags |= TypeInfo::flag_stringHeapGC;
         if ( type->firstType ) {
             info->firstType = makeTypeInfo(nullptr, type->firstType);
+        } else if ( type->baseType==Type::tStructure && type->structType->parent!=nullptr ) {
+            info->firstType = makeTypeInfo(nullptr, make_smart<TypeDecl>(type->structType->parent));
         } else {
             info->firstType = nullptr;
         }

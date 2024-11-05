@@ -7,7 +7,7 @@
 Project source code is available at https://github.com/GaijinEntertainment/quirrel
 
 Copyright (c) 2003-2016 Alberto Demichelis
-Copyright (c) 2016-2022 Gaijin Entertainment
+Copyright (c) 2016-2024 Gaijin Games KFT
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/aotSoundHash.h>
 
 #define SND_BIND_FUN_EX(FUN, NAME, SIDE_EFFECTS) \

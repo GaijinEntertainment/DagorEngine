@@ -13,11 +13,11 @@ namespace das {
     void builtin_error ( char * text, Context * context, LineInfoArg * at );
     vec4f builtin_sprint ( Context & context, SimNode_CallBase * call, vec4f * args );
     vec4f builtin_json_sprint ( Context & context, SimNode_CallBase * call, vec4f * args );
-    char * builtin_print_data ( void * data, const TypeInfo * typeInfo, Bitfield flags, Context * context );
-    char * builtin_print_data_v ( float4 data, const TypeInfo * typeInfo, Bitfield flags, Context * context );
-    char * builtin_debug_type ( const TypeInfo * typeInfo, Context * context );
-    char * builtin_debug_line ( const LineInfo & at, bool fully, Context * context );
-    char * builtin_get_typeinfo_mangled_name ( const TypeInfo * typeInfo, Context * context );
+    char * builtin_print_data ( void * data, const TypeInfo * typeInfo, Bitfield flags, Context * context, LineInfoArg * at );
+    char * builtin_print_data_v ( float4 data, const TypeInfo * typeInfo, Bitfield flags, Context * context, LineInfoArg * at );
+    char * builtin_debug_type ( const TypeInfo * typeInfo, Context * context, LineInfoArg * at );
+    char * builtin_debug_line ( const LineInfo & at, bool fully, Context * context, LineInfoArg * lineInfo );
+    char * builtin_get_typeinfo_mangled_name ( const TypeInfo * typeInfo, Context * context, LineInfoArg * at );
     const FuncInfo * builtin_get_function_info_by_mnh ( Context & context, Func fun );
     Func builtin_SimFunction_by_MNH ( Context & context, uint64_t MNH );
     vec4f builtin_breakpoint ( Context & context, SimNode_CallBase * call, vec4f * );
@@ -26,13 +26,15 @@ namespace das {
     int builtin_table_size ( const Table & arr );
     int builtin_table_capacity ( const Table & arr );
     void builtin_table_clear ( Table & arr, Context * context, LineInfoArg * at );
-    vec4f _builtin_hash ( Context & context, SimNode_CallBase * call, vec4f * args );
     void heap_stats ( Context & context, uint64_t * bytes );
+    urange64 heap_allocation_stats ( Context * context );
+    uint64_t heap_allocation_count ( Context * context );
+    urange64 string_heap_allocation_stats ( Context * context );
+    uint64_t string_heap_allocation_count ( Context * context );
     uint64_t heap_bytes_allocated ( Context * context );
     int32_t heap_depth ( Context * context );
     uint64_t string_heap_bytes_allocated ( Context * context );
     int32_t string_heap_depth ( Context * context );
-    void string_heap_collect ( bool validate, Context * context, LineInfoArg * info );
     void string_heap_report ( Context * context, LineInfoArg * info );
     bool is_intern_strings ( Context * context );
     void heap_collect ( bool stringHeap, bool validate, Context * context, LineInfoArg * info );
@@ -73,17 +75,17 @@ namespace das {
     void builtin_iterator_delete ( const Sequence & it, Context * context );
     __forceinline bool builtin_iterator_empty ( const Sequence & seq ) { return seq.iter==nullptr; }
 
-    void builtin_make_good_array_iterator ( Sequence & result, const Array & arr, int stride, Context * context );
-    void builtin_make_fixed_array_iterator ( Sequence & result, void * data, int size, int stride, Context * context );
-    void builtin_make_range_iterator ( Sequence & result, range rng, Context * context );
-    void builtin_make_lambda_iterator ( Sequence & result, const Lambda lambda, int stride, Context * context );
-    void builtin_make_nil_iterator ( Sequence & result, Context * context );
+    void builtin_make_good_array_iterator ( Sequence & result, const Array & arr, int stride, Context * context, LineInfoArg * at );
+    void builtin_make_fixed_array_iterator ( Sequence & result, void * data, int size, int stride, Context * context, LineInfoArg * at );
+    void builtin_make_range_iterator ( Sequence & result, range rng, Context * context, LineInfoArg * at );
+    void builtin_make_lambda_iterator ( Sequence & result, const Lambda lambda, int stride, Context * context, LineInfoArg * at );
+    void builtin_make_nil_iterator ( Sequence & result, Context * context, LineInfoArg * at );
     vec4f builtin_make_enum_iterator ( Context & context, SimNode_CallBase * call, vec4f * );
-    void builtin_make_string_iterator ( Sequence & result, char * str, Context * context );
+    void builtin_make_string_iterator ( Sequence & result, char * str, Context * context, LineInfoArg * at );
 
     void resetProfiler( Context * context );
     void dumpProfileInfo( Context * context );
-    char * collectProfileInfo( Context * context );
+    char * collectProfileInfo( Context * context, LineInfoArg * at );
 
     template <typename TT>
     __forceinline void builtin_sort ( TT * data, int32_t length ) {
@@ -165,4 +167,18 @@ namespace das {
     LineInfo rtti_get_line_info ( int depth, Context * context, LineInfoArg * at );
 
     void builtin_main_loop ( const TBlock<bool> & block, Context * context, LineInfoArg * at );
+
+    vec4f _builtin_hash ( Context & context, SimNode_CallBase * call, vec4f * args );
+    inline uint64_t _builtin_hash_int8 ( int8_t value ) { return hash_uint32(uint32_t(value)); }
+    inline uint64_t _builtin_hash_uint8 ( uint8_t value ) { return hash_uint32(uint32_t(value)); }
+    inline uint64_t _builtin_hash_int16 ( int16_t value ) { return hash_uint32(uint32_t(value)); }
+    inline uint64_t _builtin_hash_uint16 ( uint16_t value ) { return hash_uint32(uint32_t(value)); }
+    inline uint64_t _builtin_hash_int32 ( int32_t value ) { return hash_uint32(value); }
+    inline uint64_t _builtin_hash_uint32 ( uint32_t value ) { return hash_uint32(value); }
+    inline uint64_t _builtin_hash_int64 ( int64_t value ) { return hash_uint64(value); }
+    inline uint64_t _builtin_hash_uint64 ( uint64_t value ) { return hash_uint64(value); }
+    inline uint64_t _builtin_hash_ptr ( void * value ) { return hash_uint64(uint64_t(value)); }
+    inline uint64_t _builtin_hash_float ( float value ) { return hash_uint32(*((uint32_t *)&value)); }
+    inline uint64_t _builtin_hash_double ( double value ) { return hash_uint64(*((uint64_t *)&value)); }
+    inline uint64_t _builtin_hash_das_string ( const string & str ) { return hash_blockz64((uint8_t *)str.c_str()); }
 }

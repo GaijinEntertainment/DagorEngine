@@ -1,0 +1,83 @@
+texture teared_wounds_decal;
+texture wounds_decal_array;
+texture burned_cloth;
+texture burned_flesh;
+float4 high_intensity_blood = (0.04, 0.001, 0, 0.5);
+float4 low_intensity_blood = (0.0, 0.00, 0, 0.3);
+float4 wet_blood_color = (0.157, 0.012, 0.000, 1);
+float4 dry_blood_color = (0.086, 0.024, 0.020, 1);
+float blood_wound_high_wetness_thickness = 0.75;
+float blood_wound_opaque_thickness = 0.8;
+float blood_wound_max_thickness = 0.93;
+float blood_wound_drying_time = 1.0 / 120.0;
+float bloody_time = 0.25;
+float blood_tex_discard_threshold = 0.85;
+float sample_tex_inside_of = 0.9;
+float blood_brightness = 2.0;
+int debug_torn_wounds = 0;
+interval debug_torn_wounds: off<1, on;
+
+int blood_wound_high_quality = 0;
+interval blood_wound_high_quality : no<1, yes;
+
+macro INIT_BURNED_DIFFUSE_FUNCTION()
+  (ps) {
+    burned_cloth@tex2d = burned_cloth;
+    burned_flesh@tex2d = burned_flesh;
+  }
+endmacro
+
+macro INIT_PROJECTIVE_WOUNDS()
+(ps) {
+  teared_wounds_decal@tex2d = teared_wounds_decal;
+  wounds_decal_array@texArray = wounds_decal_array;
+  time_wetness_bloody_time@f2 = (time_phase(0,0), bloody_time, 0,0);
+  blood_tex_discard_threshold@f1 = blood_tex_discard_threshold;
+  sample_tex_inside_of@f1 = sample_tex_inside_of;
+  blood_brightness@f1 = blood_brightness;
+}
+if (blood_wound_high_quality == no) {
+  (ps) {
+    high_intensity_blood@f4 = high_intensity_blood;
+    low_intensity_blood@f4 = low_intensity_blood;
+  }
+} else {
+  (ps) {
+    wet_blood_color@f3 = wet_blood_color;
+    dry_blood_color@f3 = dry_blood_color;
+    blood_wound_high_wetness_thickness@f1 = blood_wound_high_wetness_thickness;
+    blood_wound_opaque_thickness@f1 = blood_wound_opaque_thickness;
+    blood_wound_max_thickness@f1 = blood_wound_max_thickness;
+    blood_wound_max_thickness_minus_opaque_thickness@f1 = (blood_wound_max_thickness - blood_wound_opaque_thickness);
+    blood_wound_drying_time@f1 = blood_wound_drying_time;
+  }
+}
+endmacro
+
+macro INIT_BURNED_DIFFUSE_FUNCTION_BLOCK()
+if (compatibility_mode != compatibility_mode_on && mobile_render == off)
+{
+  INIT_BURNED_DIFFUSE_FUNCTION()
+}
+endmacro
+
+macro INIT_PROJECTIVE_WOUNDS_BLOCK()
+if (compatibility_mode != compatibility_mode_on && mobile_render == off)
+{
+  INIT_PROJECTIVE_WOUNDS()
+}
+endmacro
+
+macro INIT_BURNED_DIFFUSE_FUNCTION_SHADER()
+if (!(compatibility_mode != compatibility_mode_on && mobile_render == off))
+{
+  INIT_BURNED_DIFFUSE_FUNCTION()
+}
+endmacro
+
+macro INIT_PROJECTIVE_WOUNDS_SHADER()
+if (!(compatibility_mode != compatibility_mode_on && mobile_render == off))
+{
+  INIT_PROJECTIVE_WOUNDS()
+}
+endmacro

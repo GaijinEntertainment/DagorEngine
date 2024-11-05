@@ -1,3 +1,4 @@
+#include <drv/3d/dag_matricesAndPerspective.h>
 bool d3d::setpersp(const Driver3dPerspective &p, TMatrix4 *proj_tm)
 {
   CHECK_MAIN_THREAD();

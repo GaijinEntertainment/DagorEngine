@@ -63,7 +63,7 @@ class ImplementsMacro : AstStructureAnnotation
             return false
         cls.annotations |> erase(iface_index)
         // add {st}::_interface_{Foo} : Foo?
-        var inscope iface_ptr <- qmacro_type(type<$t(StructurePtr(parent))?>)
+        var inscope iface_ptr <- qmacro_type(type<$t(parent)?>)
         st |> add_structure_field ( iface_var_name, clone_type(iface_ptr), [[ExpressionPtr]]);
         // add function {st}::get`{Foo} : Foo?
         var inscope fn_get_i <- qmacro_method(iface_get_name_func,st) <| $ ( var self: $t(st) ) : $t(iface_ptr)

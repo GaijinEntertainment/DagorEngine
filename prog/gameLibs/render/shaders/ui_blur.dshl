@@ -16,6 +16,25 @@ macro COMMON_UI_DOWNSAMPLE()
   z_write=false;
   z_test=false;
 
+  hlsl (ps) {
+    half3 additional_ui_blurred_tonemap(half3 color)
+    {
+      half startAttenuateAt = 0.7;
+      half attenuateAtOne = 0.92;
+      half power = log2(startAttenuateAt - attenuateAtOne + 1) / log2(startAttenuateAt);
+      half offset = attenuateAtOne - 1;
+
+      half lum = luminance(color);
+      half mulRet = 1;
+      FLATTEN
+      if (lum > startAttenuateAt)
+      {
+        mulRet = (pow(lum, power) + offset) * rcp(lum);
+      }
+      return color*mulRet;
+    }
+  }
+
   hlsl {
     struct VsOutput
     {
@@ -31,7 +50,7 @@ macro COMMON_UI_DOWNSAMPLE()
   hlsl(vs) {
     int4 quads[4078]:register(c16);
     #if !SHADER_COMPILER_DXC
-    int4 last:register(c4095);//compiler inability to determ size
+    int4 last : register(c4095);//compiler inability to determ size
     #endif
 
     VsOutput main_vs(uint vertexId : SV_VertexID, uint instance_id : SV_InstanceID)
@@ -67,8 +86,7 @@ shader ui_downsample_4x4
     texSize__bw@f2 = (blur_src_tex_size.x, blur_src_tex_size.y, 0, 0);
   }
   hlsl(ps) {
-    #include "tonemapHelpers/ui_blurred_tonemap.hlsl"
-    float3 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
+    float4 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
     {
       float2 texSize = texSize__bw.xy;
       float2 tc = IN.tc - texSize.xy;
@@ -78,7 +96,7 @@ shader ui_downsample_4x4
       half3 col3 = undo_shader_gamma(tex2D(src_tex, tc.xy+texSize*2).rgb);
       half3 res = (col0+col1+col2+col3)*0.25;
       res = additional_ui_blurred_tonemap(res);
-      return res;
+      return float4(res, 1);
     }
   }
 
@@ -97,8 +115,7 @@ shader ui_downsample_4x4_and_blend
   INIT_SHADER_GAMMA()
   USE_SHADER_GAMMA()
   hlsl(ps) {
-    #include "tonemapHelpers/ui_blurred_tonemap.hlsl"
-    float3 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
+    float4 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
     {
       float2 texSize = texSize__bw.xy;
       half bw = texSize__bw.z;
@@ -125,7 +142,7 @@ shader ui_downsample_4x4_and_blend
       res = lerp(res, luminance(res), bw);
       res = additional_ui_blurred_tonemap(res);
       res = apply_shader_gamma(res);
-      return res;
+      return float4(res, 1);
     }
   }
 

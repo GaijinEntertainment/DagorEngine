@@ -1,0 +1,132 @@
+include "rendinst_simple_inc.dshl"
+include "rendinst_hmap_inc.dshl"
+include "perlin_layered_inc.dshl"
+
+
+shader rendinst_perlin_layered
+{
+  INIT_COMMON_RENDINST_TESSELLATION()
+  COMMON_RENDINST_SIMPLE_INIT()
+  INIT_COMMON_RENDINST_TESSELLATION_CHANNELS()
+
+  INIT_PERLIN_LAYERED()
+  static float zBias = 0.0;
+  static float4 perlin_noise_offset = (0, 0, 0, 0);
+  (vs) { perlin_noise_offs@f4 = perlin_noise_offset; }
+
+  if (rendinst_render_pass == rendinst_render_pass_to_shadow) {
+    (vs) {
+      zBias@f1 = (zBias);
+    }
+  }
+
+  COMMON_RENDINST_INIT_PAINT(pn_triangulation_enabled)
+  COMMON_RENDINST_INIT_HMAP()
+
+  COMMON_RENDINST_VS_IO_DEFINES()
+
+  hlsl {
+    struct VsOutput
+    {
+      COMMON_RENDINST_VS_OUTPUT_MEMBERS
+
+      #if RI_HMAP_BLEND_ON
+        nointerpolation
+        RI_HMAP_BLEND_VS_TYPE riHmapBlend : TEXCOORD7;
+      #endif
+
+      float3 initPos                    : TEXCOORD6;
+    };
+    #define HsInput VsOutput
+  }
+
+  COMMON_RENDINST_VS_INPUT()
+
+  hlsl(vs) {
+    #define VS_SPECIFIC_OUTPUT 1
+
+    #define VS_SPECIFIC_OUTPUT_INIT_FIELDS(output) \
+      output.initPos = float3(0,0,0);
+
+    void vs_specific_output(VsInput input, float3 worldPos, float3 worldLocalPos, inout VsOutput output)
+    {
+      if (get_perlin_noise_offs().w != 0)
+        output.initPos = input.pos + get_perlin_noise_offs().xyz;
+      else
+        output.initPos = worldPos;
+
+      ##if (rendinst_render_pass == rendinst_render_pass_to_shadow)
+        output.pos.z += get_zBias(); // Apply material zbias to fix shadow acne in specific cases.
+      ##endif
+    }
+  }
+
+  COMMON_RENDINST_VS()
+
+  USE_PERLIN_LAYERED(ps)
+  USE_PERLIN_LAYERED(vs) //for tesselation
+
+  COMMON_RENDINST_PS_PREP(false)
+
+  if (!rendinst_render_is_shadow_or_depth)
+  {
+    hlsl(ps) {
+      #define USE_INITIAL_POS
+    }
+
+    PERLIN_LAYERED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), true)
+  }
+
+  if (pn_triangulation_enabled)
+  {
+    hlsl
+    {
+      struct HsControlPoint
+      {
+        HS_CONTROL_POINTS_DECLARATION
+        COMMON_RENDINST_HS_OUTPUT_MEMBERS
+
+        #if RI_HMAP_BLEND_ON
+          nointerpolation RI_HMAP_BLEND_VS_TYPE riHmapBlend : TEXCOORD7;
+        #endif
+
+        float3 initPos : TEXCOORD6;
+      };
+    }
+
+    hlsl(hs)
+    {
+      void proxy_struct_fields(HsInput input, inout HsControlPoint output)
+      {
+        COMMON_RENDINST_TESS_PROXY_FIELD_VALUE
+
+        #if RI_HMAP_BLEND_ON
+          PROXY_FIELD_VALUE(riHmapBlend);
+        #endif
+        PROXY_FIELD_VALUE(initPos);
+      }
+    }
+
+    USE_COMMON_RENDINST_DISPLACEMENT_FOR_TESSELLATION()
+
+    hlsl(ds)
+    {
+      void fields_barycentric_values(const OutputPatch<HsControlPoint, 3> input, inout VsOutput output, float3 uvw)
+      {
+        BARYCENTRIC_COORDS_UNPACK(uvw)
+        COMMON_RENDINST_TESS_FIELD_BARYCENTRIC_VALUE
+
+        #if RI_HMAP_BLEND_ON
+          FIELD_BARYCENTRIC_VALUE(riHmapBlend);
+        #endif
+        FIELD_BARYCENTRIC_VALUE(initPos);
+
+        modify_tessellation_displacement(input, output, uvw);
+      }
+    }
+
+    USE_COMMON_RENDINST_TESSELLATION()
+  }
+
+  COMPILE_RI_VS_TARGET_WITH_TESSELLATION("simple_vs", pn_triangulation_enabled)
+}

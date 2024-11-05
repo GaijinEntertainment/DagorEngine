@@ -1,11 +1,10 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_tex3d.h>
 #include <3d/dag_texMgr.h>
 #include <util/dag_stdint.h>
 #include <EASTL/vector.h>
@@ -25,7 +24,13 @@ public:
     w = currentResolutionWidth;
     h = currentResolutionHeight;
   }
+  void getMaxPossibleResolution(int &w, int &h) const
+  {
+    w = targetResolutionWidth * maxResolutionScale;
+    h = targetResolutionHeight * maxResolutionScale;
+  }
   int getTargetFrameRate() { return targetFrameRate; }
+  void setMinimumMsPerFrame(float ms) { minimumMsPerFrame = ms; }
 
   void debugImguiWindow();
 
@@ -59,8 +64,9 @@ private:
 
   unsigned frameIdx = 0;
 
-  int targetFrameRate;
+  float targetFrameRate;
   float targetMsPerFrame;
+  float minimumMsPerFrame = 0.f;
   float currentGpuMsPerFrame = 0;
   float maxThresholdToChange = 0.95;
   float minThresholdToChange = 0.85;

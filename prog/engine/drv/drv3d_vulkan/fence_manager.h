@@ -1,8 +1,14 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <generic/dag_objectPool.h>
-#include "vulkan_device.h"
+#include <perfMon/dag_cpuFreq.h>
 #include <generic/dag_tab.h>
+#include <osApiWrappers/dag_miscApi.h>
+#include <atomic>
+#include <drv_log_defs.h>
+
+#include "vulkan_device.h"
 
 namespace drv3d_vulkan
 {
@@ -55,7 +61,7 @@ public:
     {
       if (ref_time_delta_to_usec(ref_time_ticks() - waitStart) >= SUBMISSION_TIMEOUT)
       {
-        logerr("vulkan: submission of fence takes too long (above %u seconds) try %u", SUBMISSION_TIMEOUT / 1000000, tryNumber);
+        D3D_ERROR("vulkan: submission of fence takes too long (above %u seconds) try %u", SUBMISSION_TIMEOUT / 1000000, tryNumber);
         waitStart = ref_time_ticks();
         ++tryNumber;
       }
@@ -120,7 +126,7 @@ private:
         // still, use non infinite timeout, as this can be unsafe
         //(blocking core from being used by other threads, sometimes)
 #if DAGOR_DBGLEVEL > 0 && !_TARGET_ANDROID
-        logerr("vulkan: timeout waiting for GPU fence, retrying wait");
+        D3D_ERROR("vulkan: timeout waiting for GPU fence, retrying wait");
 #endif
         waitRet = device.vkWaitForFences(device.get(), 1, ptr(fence), VK_TRUE, GENERAL_GPU_TIMEOUT_NS);
       }
@@ -135,7 +141,7 @@ private:
       if (ignoreDeviceLost && (waitRet == VK_ERROR_DEVICE_LOST || waitRet == VK_ERROR_INITIALIZATION_FAILED))
       {
         if (ignoredDeviceLostCount < 3)
-          logerr("vulkan: GPU device lost detected and ignored (wait with timeout, code: %08lX)", waitRet);
+          D3D_ERROR("vulkan: GPU device lost detected and ignored (wait with timeout, code: %08lX)", waitRet);
         ignoredDeviceLostCount++;
       }
       else
@@ -149,7 +155,7 @@ private:
       if (ignoreDeviceLost && (waitRet == VK_ERROR_DEVICE_LOST || waitRet == VK_ERROR_INITIALIZATION_FAILED))
       {
         if (ignoredDeviceLostCount < 3)
-          logerr("vulkan: GPU device lost detected and ignored (wait without timeout, code: %08lX)", waitRet);
+          D3D_ERROR("vulkan: GPU device lost detected and ignored (wait without timeout, code: %08lX)", waitRet);
         ignoredDeviceLostCount++;
       }
       else

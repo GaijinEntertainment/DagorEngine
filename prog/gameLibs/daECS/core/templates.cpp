@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EASTL/fixed_vector.h>
 #include <debug/dag_debug.h>
 #include <daECS/core/internal/templates.h>

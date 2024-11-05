@@ -1,0 +1,10 @@
+timelapse_screener{
+  _singleton:b=yes
+  timelapse_screener__curTime:r=6.5
+  timelapse_screener__toTime:r=18
+  timelapse_screener__timeStep:r=0.25
+  timelapse_screener__waitTime:r=1
+  timelapse_screener__curWaitTimer:r=0
+  timelapse_screener__sequenceNum:i=0
+  timelapse_screener__deltaPos:p3=0, 0, 0
+}

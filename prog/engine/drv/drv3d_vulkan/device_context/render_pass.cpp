@@ -1,5 +1,9 @@
-#include "device_context.h"
-#include "device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include "execution_context.h"
+#include "backend.h"
+#include "execution_scratch.h"
+#include "execution_sync.h"
 
 using namespace drv3d_vulkan;
 
@@ -18,7 +22,7 @@ void ExecutionContext::syncConstDepthReadWithInternalStore()
   barrier.submit(frameCore);
 }
 
-void ExecutionContext::ensureStateForColorAttachments()
+void ExecutionContext::ensureStateForColorAttachments(VkRect2D area)
 {
   uint8_t usageMask = getFramebufferState().renderPassClass.colorTargetMask;
   for (int i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
@@ -31,14 +35,36 @@ void ExecutionContext::ensureStateForColorAttachments()
     verifyResident(colorAtt.img);
     colorAtt.img->checkDead();
 
-    back.syncTrack.addImageAccess(
-      ExecutionSyncTracker::LogicAddress::forAttachmentWithLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL), colorAtt.img,
-      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-      {colorAtt.view.getMipBase(), colorAtt.view.getMipCount(), colorAtt.view.getArrayBase(), colorAtt.view.getArrayCount()});
+    if ((getFramebufferState().clearMode & (CLEAR_TARGET | CLEAR_DISCARD_TARGET)) &&
+        (colorAtt.img->getMipExtents2D(colorAtt.view.getMipBase()) == area.extent) && area.offset == VkOffset2D{0, 0})
+      Backend::sync.addImageWriteDiscard(LogicAddress::forAttachmentWithLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL), colorAtt.img,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        {colorAtt.view.getMipBase(), colorAtt.view.getMipCount(), colorAtt.view.getArrayBase(), colorAtt.view.getArrayCount()});
+    else
+      Backend::sync.addImageAccess(LogicAddress::forAttachmentWithLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL), colorAtt.img,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        {colorAtt.view.getMipBase(), colorAtt.view.getMipCount(), colorAtt.view.getArrayBase(), colorAtt.view.getArrayCount()});
   }
 }
 
-void ExecutionContext::ensureStateForDepthAttachment()
+void ExecutionContext::ensureStateForNativeRPDepthAttachment()
+{
+  RenderPassResource *rpRes = Backend::State::exec.getRO<StateFieldRenderPassResource, RenderPassResource *, BackGraphicsState>();
+  if (rpRes->hasDepthAtCurrentSubpass())
+  {
+    bool ro = rpRes->isCurrentDepthRO();
+    Image *depthImg = rpRes->getCurrentDepth();
+    Backend::State::exec.getResBinds(STAGE_PS).syncDepthROStateInT(depthImg, 0, 0, ro);
+    Backend::State::exec.getResBinds(STAGE_VS).syncDepthROStateInT(depthImg, 0, 0, ro);
+  }
+  else
+  {
+    Backend::State::exec.getResBinds(STAGE_PS).syncDepthROStateInT(nullptr, 0, 0, false);
+    Backend::State::exec.getResBinds(STAGE_VS).syncDepthROStateInT(nullptr, 0, 0, false);
+  }
+}
+
+void ExecutionContext::ensureStateForDepthAttachment(VkRect2D area)
 {
   FramebufferState &fbs = getFramebufferState();
   bool ro = fbs.renderPassClass.hasRoDepth();
@@ -49,23 +75,29 @@ void ExecutionContext::ensureStateForDepthAttachment()
     verifyResident(dsai.img);
     dsai.img->checkDead();
 
-    G_ASSERTF(fbs.renderPassClass.colorSamples[0] == dsai.img->getSampleCount(),
-      "Renderpass attachments sample count doesn't match target image sample count  (%d vs %d)!", fbs.renderPassClass.colorSamples[0],
+    G_ASSERTF(fbs.renderPassClass.depthSamples == dsai.img->getSampleCount(),
+      "Renderpass attachments sample count doesn't match target image sample count  (%d vs %d)!", fbs.renderPassClass.depthSamples,
       dsai.img->getSampleCount());
 
     ImageViewState ivs = dsai.view;
 
     VkImageLayout dsLayout = ro ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    back.syncTrack.addImageAccess(ExecutionSyncTracker::LogicAddress::forAttachmentWithLayout(dsLayout), dsai.img, dsLayout,
-      {ivs.getMipBase(), ivs.getMipCount(), ivs.getArrayBase(), ivs.getArrayCount()});
 
-    back.executionState.getResBinds(STAGE_PS).syncDepthROStateInT(dsai.img, ivs.getMipBase(), ivs.getArrayBase(), ro);
-    back.executionState.getResBinds(STAGE_VS).syncDepthROStateInT(dsai.img, ivs.getMipBase(), ivs.getArrayBase(), ro);
+    if (!ro && (getFramebufferState().clearMode & (CLEAR_ZBUFFER | CLEAR_DISCARD_ZBUFFER)) &&
+        (dsai.img->getMipExtents2D(ivs.getMipBase()) == area.extent) && area.offset == VkOffset2D{0, 0})
+      Backend::sync.addImageWriteDiscard(LogicAddress::forAttachmentWithLayout(dsLayout), dsai.img, dsLayout,
+        {ivs.getMipBase(), ivs.getMipCount(), ivs.getArrayBase(), ivs.getArrayCount()});
+    else
+      Backend::sync.addImageAccess(LogicAddress::forAttachmentWithLayout(dsLayout), dsai.img, dsLayout,
+        {ivs.getMipBase(), ivs.getMipCount(), ivs.getArrayBase(), ivs.getArrayCount()});
+
+    Backend::State::exec.getResBinds(STAGE_PS).syncDepthROStateInT(dsai.img, ivs.getMipBase(), ivs.getArrayBase(), ro);
+    Backend::State::exec.getResBinds(STAGE_VS).syncDepthROStateInT(dsai.img, ivs.getMipBase(), ivs.getArrayBase(), ro);
   }
   else
   {
-    back.executionState.getResBinds(STAGE_PS).syncDepthROStateInT(nullptr, 0, 0, ro);
-    back.executionState.getResBinds(STAGE_VS).syncDepthROStateInT(nullptr, 0, 0, ro);
+    Backend::State::exec.getResBinds(STAGE_PS).syncDepthROStateInT(nullptr, 0, 0, ro);
+    Backend::State::exec.getResBinds(STAGE_VS).syncDepthROStateInT(nullptr, 0, 0, ro);
   }
 }
 
@@ -81,26 +113,46 @@ void ExecutionContext::beginPassInternal(RenderPassClass *pass_class, VulkanFram
 
   // prepare attachemnts states
   if (passIdent.colorTargetMask)
-    ensureStateForColorAttachments();
+    ensureStateForColorAttachments(area);
 
-  StaticTab<VkClearValue, Driver3dRenderTarget::MAX_SIMRT + 1> clearValues;
-  if (fbs.clearMode & ~CLEAR_DISCARD)
-    clearValues = pass_class->constructClearValueSet(fbs.colorClearValue, fbs.depthStencilClearValue);
+  uint32_t opLoadMask = pass_class->getAttachmentsLoadMask(fbs.clearMode);
 
-  // MSAA split check, on TBDR this results in garbadge on screen
-  if (!pass_class->verifyPass(fbs.clearMode))
+  // MSAA split check, on TBDR this results in garbage on screen.
+  // We treat loading previous contents of any attachment as RP split.
+  if (opLoadMask != 0 && pass_class->getIdentifier().hasMsaaAttachments())
   {
     generateFaultReport();
     DAG_FATAL("vulkan: MSAA pass was wrongly splitted around caller %s", getCurrentCmdCaller());
   }
 
+#if DAGOR_DBGLEVEL > 0 && (_TARGET_PC || _TARGET_ANDROID || _TARGET_C3)
+  // General renderpass split check. We don't want renderpasses to be split (besides special cases) for performance reasons on TBDR.
+  bool allowOpLoad = fbs.clearMode & fbs.CLEAR_LOAD;
+  // If we make depth to be RO, there is no other way than that we want to load it.
+  uint32_t notAllowedLoadBits = ~(passIdent.hasRoDepth() ? Driver3dRenderTarget::DEPTH : 0);
+  if (Globals::cfg.bits.validateRenderPassSplits && (opLoadMask & notAllowedLoadBits) != 0 && !allowOpLoad)
+  {
+    generateFaultReport();
+    DAG_FATAL("vulkan: render pass was wrongly split (load color mask = 0x%X, load depth = %d) around caller %s",
+      opLoadMask & Driver3dRenderTarget::COLOR_MASK, bool(opLoadMask & Driver3dRenderTarget::DEPTH), getCurrentCmdCaller());
+  }
+  // CLEAR_LOAD is supposed to affect only the current pass. So reset it here to not affect the next passes.
+  // Also it has to be reset before using clearMode in the subsequent code.
+  fbs.clearMode &= ~fbs.CLEAR_LOAD;
+#endif
+
+  StaticTab<VkClearValue, Driver3dRenderTarget::MAX_SIMRT + 1> clearValues;
+  if (fbs.clearMode & ~CLEAR_DISCARD)
+    clearValues = pass_class->constructClearValueSet(fbs.colorClearValue, fbs.depthStencilClearValue);
+
   VkRenderPassBeginInfo rpbi = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, nullptr};
 #if VK_KHR_imageless_framebuffer
   VkRenderPassAttachmentBeginInfoKHR rpabi = {VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR, nullptr};
-  if (device.hasImagelessFramebuffer())
+  StaticTab<VkImageView, Driver3dRenderTarget::MAX_SIMRT + 1> attachments;
+  if (Globals::cfg.has.imagelessFramebuffer)
   {
-    auto attachments = passIdent.squash<VkImageView>(array_size(fbs.frameBufferInfo.colorAttachments),
-      fbs.frameBufferInfo.colorAttachments, fbs.frameBufferInfo.depthStencilAttachment,
+    attachments = passIdent.squash<VkImageView>(array_size(fbs.frameBufferInfo.colorAttachments), fbs.frameBufferInfo.colorAttachments,
+      fbs.frameBufferInfo.depthStencilAttachment,
       [](const RenderPassClass::FramebufferDescription::AttachmentInfo &attachment) { return attachment.viewHandle.value; });
     rpabi.attachmentCount = attachments.size();
     rpabi.pAttachments = attachments.data();
@@ -108,6 +160,7 @@ void ExecutionContext::beginPassInternal(RenderPassClass *pass_class, VulkanFram
     chain_structs(rpbi, rpabi);
   }
 #endif
+  Backend::gpuJob.get().execTracker.addMarker(frameCore, &passIdent, sizeof(RenderPassClass::Identifier));
   rpbi.renderPass = pass_class->getPass(vkDev, fbs.clearMode);
   rpbi.framebuffer = fb_handle;
   rpbi.renderArea = area;
@@ -116,10 +169,10 @@ void ExecutionContext::beginPassInternal(RenderPassClass *pass_class, VulkanFram
   VULKAN_LOG_CALL(vkDev.vkCmdBeginRenderPass(frameCore, &rpbi, VK_SUBPASS_CONTENTS_INLINE));
 
   // save resulting state
-  back.executionState.set<StateFieldGraphicsRenderPassArea, VkRect2D, BackGraphicsState>(area);
-  back.executionState.set<StateFieldGraphicsRenderPassClass, RenderPassClass *, BackGraphicsState>(pass_class);
-  back.executionState.set<StateFieldGraphicsFramebuffer, VulkanFramebufferHandle, BackGraphicsState>(fb_handle);
-  back.executionState.set<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>(InPassStateFieldType::NORMAL_PASS);
+  Backend::State::exec.set<StateFieldGraphicsRenderPassArea, VkRect2D, BackGraphicsState>(area);
+  Backend::State::exec.set<StateFieldGraphicsRenderPassClass, RenderPassClass *, BackGraphicsState>(pass_class);
+  Backend::State::exec.set<StateFieldGraphicsFramebuffer, VulkanFramebufferHandle, BackGraphicsState>(fb_handle);
+  Backend::State::exec.set<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>(InPassStateFieldType::NORMAL_PASS);
 
   invalidateActiveGraphicsPipeline();
 }
@@ -127,7 +180,7 @@ void ExecutionContext::beginPassInternal(RenderPassClass *pass_class, VulkanFram
 void ExecutionContext::endPass(const char *why)
 {
   // FIXME: unif_state2: should not be there as get, but should be processed first on apply to exec stage
-  InPassStateFieldType inPassState = back.executionState.get<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>();
+  InPassStateFieldType inPassState = Backend::State::exec.get<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>();
 
   if (inPassState == InPassStateFieldType::NATIVE_PASS)
     DAG_FATAL("vulkan: trying to end native rp via internal break <%s>, caller\n%s", why, getCurrentCmdCaller());
@@ -136,20 +189,20 @@ void ExecutionContext::endPass(const char *why)
   {
     // when no-store exts are unavailable, we should sync const DS read with "fake" write
     // its happens between pass end and external dependency barrier
-    if (back.executionState.getRO<StateFieldGraphicsRenderPassClass, RenderPassClass, BackGraphicsState>()
+    if (Backend::State::exec.getRO<StateFieldGraphicsRenderPassClass, RenderPassClass, BackGraphicsState>()
           .getIdentifier()
           .hasRoDepth() &&
-        !get_device().hasAttachmentNoStoreOp())
+        !Globals::cfg.has.attachmentNoStoreOp)
       syncConstDepthReadWithInternalStore();
     VULKAN_LOG_CALL(vkDev.vkCmdEndRenderPass(frameCore));
-    performSyncAtRenderPassEnd();
+    performSyncToPreviousCommandList();
   }
   else
     G_ASSERTF(false, "vulkan: pass end without active pass");
 
-  back.executionState.set<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>(InPassStateFieldType::NONE);
-  back.executionState.set<StateFieldGraphicsFramebuffer, VulkanFramebufferHandle, BackGraphicsState>(VulkanFramebufferHandle());
-  back.executionState.set<StateFieldGraphicsRenderPassClass, RenderPassClass *, BackGraphicsState>(nullptr);
+  Backend::State::exec.set<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>(InPassStateFieldType::NONE);
+  Backend::State::exec.set<StateFieldGraphicsFramebuffer, VulkanFramebufferHandle, BackGraphicsState>(VulkanFramebufferHandle());
+  Backend::State::exec.set<StateFieldGraphicsRenderPassClass, RenderPassClass *, BackGraphicsState>(nullptr);
 }
 
 // native render pass handlers
@@ -157,14 +210,21 @@ void ExecutionContext::endPass(const char *why)
 void ExecutionContext::nextNativeSubpass()
 {
 #if DAGOR_DBGLEVEL > 0
-  InPassStateFieldType inPassState = back.executionState.get<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>();
+  InPassStateFieldType inPassState = Backend::State::exec.get<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>();
 
   G_ASSERTF(inPassState == InPassStateFieldType::NATIVE_PASS,
     "vulkan: trying to advance native rp subpass while no native RP is active, caller\n%s", getCurrentCmdCaller());
 #endif
 
-  RenderPassResource *rpRes = back.executionState.getRO<StateFieldRenderPassResource, RenderPassResource *, BackGraphicsState>();
+  RenderPassResource *rpRes = Backend::State::exec.getRO<StateFieldRenderPassResource, RenderPassResource *, BackGraphicsState>();
   G_ASSERTF(rpRes, "vulkan: native rp missing when trying to advance subpass, caller\n%s", getCurrentCmdCaller());
+
+  // NOTE: it is really important to do the sync before advancing the
+  // subpass (or ending the render pass), as sync operations
+  // recorded while starting/ending/advancing have to be mixed with
+  // the operations that are performed by the commands inside the
+  // subpass itself.
+  performSyncToPreviousCommandList();
 
   rpRes->nextSubpass(*this);
 }
@@ -172,70 +232,94 @@ void ExecutionContext::nextNativeSubpass()
 void ExecutionContext::beginNativePass()
 {
 #if DAGOR_DBGLEVEL > 0
-  InPassStateFieldType inPassState = back.executionState.get<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>();
+  InPassStateFieldType inPassState = Backend::State::exec.get<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>();
 
   G_ASSERTF(inPassState == InPassStateFieldType::NONE, "vulkan: trying to begin native rp while no native RP is active, caller\n%s",
     getCurrentCmdCaller());
 #endif
 
-  RenderPassResource *rpRes = back.executionState.getRO<StateFieldRenderPassResource, RenderPassResource *, BackGraphicsState>();
+  RenderPassResource *rpRes = Backend::State::exec.getRO<StateFieldRenderPassResource, RenderPassResource *, BackGraphicsState>();
   G_ASSERTF(rpRes, "vulkan: native rp missing when trying to start one, caller\n%s", getCurrentCmdCaller());
 
   rpRes->beginPass(*this);
 
-  back.executionState.set<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>(InPassStateFieldType::NATIVE_PASS);
+  Backend::State::exec.set<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>(InPassStateFieldType::NATIVE_PASS);
 }
 
 void ExecutionContext::endNativePass()
 {
 #if DAGOR_DBGLEVEL > 0
-  InPassStateFieldType inPassState = back.executionState.get<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>();
+  InPassStateFieldType inPassState = Backend::State::exec.get<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>();
 
   G_ASSERTF(inPassState == InPassStateFieldType::NATIVE_PASS,
     "vulkan: trying to end native rp while no native RP is active, caller\n%s", getCurrentCmdCaller());
 #endif
 
-  RenderPassResource *rpRes = back.executionState.getRO<StateFieldRenderPassResource, RenderPassResource *, BackGraphicsState>();
-  G_ASSERTF(rpRes, "vulkan: native rp close missing native rp resource while native rp is active, caller\n%s", getCurrentCmdCaller());
+  RenderPassResource *rpRes = Backend::State::exec.getRO<StateFieldRenderPassResource, RenderPassResource *, BackGraphicsState>();
 
-  rpRes->endPass(*this);
+  performSyncToPreviousCommandList();
+  if (rpRes)
+    rpRes->endPass(*this);
+  else
+  {
+    // frame IS corrupted, game will render garbage or trigger device lost, but we give it one more chance
+    D3D_ERROR("vulkan: native rp close missing native rp resource while native rp is active, caller\n%s", getCurrentCmdCaller());
+    vkDev.vkCmdEndRenderPass(frameCore);
+  }
 
-  performSyncAtRenderPassEnd();
-
-  back.executionState.set<StateFieldRenderPassResource, RenderPassResource *, BackGraphicsState>(nullptr);
-  back.executionState.set<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>(InPassStateFieldType::NONE);
+  Backend::State::exec.set<StateFieldRenderPassResource, RenderPassResource *, BackGraphicsState>(nullptr);
+  Backend::State::exec.set<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>(InPassStateFieldType::NONE);
 }
 
 void ExecutionContext::nativeRenderPassChanged()
 {
+  // try to skip RP if there is no draws
+  uint32_t index = Backend::State::pipe.getRO<StateFieldRenderPassIndex, uint32_t, FrontGraphicsState, FrontRenderPassState>();
+  if (data.nativeRPDrawCounter[index] == 0)
+  {
+    RenderPassResource *fRP =
+      Backend::State::pipe.getRO<StateFieldRenderPassResource, RenderPassResource *, FrontGraphicsState, FrontRenderPassState>();
+    RenderPassResource *bRP = Backend::State::exec.getRO<StateFieldRenderPassResource, RenderPassResource *, BackGraphicsState>();
+    // pass end of skipped pass
+    if (!fRP && !bRP)
+      return;
+    // check that RP is no-op without draws
+    if (fRP && fRP->isNoOpWithoutDraws())
+      return;
+  }
+
   uint32_t nextSubpass =
-    back.pipelineState.getRO<StateFieldRenderPassSubpassIdx, uint32_t, FrontGraphicsState, FrontRenderPassState>();
+    Backend::State::pipe.getRO<StateFieldRenderPassSubpassIdx, uint32_t, FrontGraphicsState, FrontRenderPassState>();
   if (nextSubpass == StateFieldRenderPassSubpassIdx::InvalidSubpass)
     // transit into custom stage to avoid starting FB pass right after native one
     beginCustomStage("endNativeRP");
   else
   {
     ensureActivePass();
-    back.executionState.set<StateFieldGraphicsFlush, uint32_t, BackGraphicsState>(0);
+    Backend::State::exec.set<StateFieldGraphicsFlush, uint32_t, BackGraphicsState>(0);
     applyStateChanges();
   }
   invalidateActiveGraphicsPipeline();
 }
 
-void ExecutionContext::performSyncAtRenderPassEnd()
+void ExecutionContext::performSyncToPreviousCommandList()
 {
-  TIME_PROFILE(vulkan_sync_at_render_pass_end);
-  // apply sync to previous cmd buffer, so barriers are applied before already recorded
-  // rendering operations of closed render pass
-  back.syncTrack.completeNeeded(back.contextState.cmdListsToSubmit.back(), vkDev);
+  // When recording commands of a pass, we need to place barriers before
+  // the current render pass. This is achieved by splitting the command
+  // list and recording the pass commands into a new list, but submitting
+  // barriers to the previous list.
+  Backend::sync.completeNeeded(scratch.cmdListsToSubmit.back(), vkDev);
 }
 
 void ExecutionContext::interruptFrameCoreForRenderPassStart()
 {
+  // if we inside completion delay, no need to interrupt frame core as it is interrupted in advance (by delay!)
+  if (Backend::sync.isCompletionDelayed())
+    return;
   // called from applyStateChanges, so front is processed and back graphics is forced to be applied via setDirty
   // i.e. after cmd buffer switch all state should be reapplied properly
   switchFrameCore();
   // only non re-applied state is one we don't track with tracked state approach
   // invalidate them by hand
-  back.executionState.set<StateFieldGraphicsPipeline, StateFieldGraphicsPipeline::FullInvalidate, BackGraphicsState>({});
+  Backend::State::exec.set<StateFieldGraphicsPipeline, StateFieldGraphicsPipeline::FullInvalidate, BackGraphicsState>({});
 }

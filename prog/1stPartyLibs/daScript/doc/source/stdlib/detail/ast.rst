@@ -94,6 +94,8 @@
 
 .. |typedef-ast-SimulateMacroPtr| replace:: Smart pointer to `SimulateMacro` object.
 
+.. |typedef-ast-TypeMacroPtr| replace:: Smart pointer to `TypeMacro` object.
+
 .. |enumeration-ast-SideEffects| replace:: Enumeration with all possible side effects of expression or function.
 
 .. |enumeration-ast-CaptureMode| replace:: Enumeration with lambda variables capture modes.
@@ -165,6 +167,8 @@
 .. |method-ast-AstReaderMacro.accept| replace:: This callback occurs during the `parse` pass for every character. When the macro is done with the input (i.e. recognizeable input ends) it should return `false`.
     Typically characters are appended to the `expr.sequence` inside the ExprReader.
 
+.. |method-ast-AstReaderMacro.suffix| replace:: This callback occurs during the `parse` pass after the macro is done with the input. It returns text, which is to be parsed again by the parser.
+
 .. |method-ast-AstReaderMacro.visit| replace:: This callback occurs during the `infer` pass for every instance of `ExprReader` for that specific macro. Macro needs to convert `ExprReader` to some meaningful expression.
 
 .. |class-ast-AstCommentReader| replace:: This macro is used to implement custom comment parsing function (such as doxygen-style documentation etc).
@@ -193,7 +197,29 @@
 
 .. |method-ast-AstCommentReader.afterVariant| replace:: This callback occurs during the `parse` after the variant alias declaration.
 
+.. |method-ast-AstCommentReader.beforeVariantEntries| replace:: This callback occurs during the `parse` before the first variant entry is declared.
+
+.. |method-ast-AstCommentReader.afterVariantEntry| replace:: This callback occurs during the `parse` after the variant entry is declared (after the following comment section, should it have one).
+
+.. |method-ast-AstCommentReader.afterVariantEntries| replace:: This callback occurs during the `parse` after the last variant entry is declared.
+
+.. |method-ast-AstCommentReader.beforeBitfield| replace:: This callback occurs during the `parse` before the bitfield declaration.
+
+.. |method-ast-AstCommentReader.beforeBitfieldEntries| replace:: This callback occurs during the `parse` before the first bitfield entry is declared.
+
+.. |method-ast-AstCommentReader.afterBitfieldEntry| replace:: This callback occurs during the `parse` after the bitfield entry is declared (after the following comment section, should it have one).
+
+.. |method-ast-AstCommentReader.afterBitfieldEntries| replace:: This callback occurs during the `parse` after the last bitfield entry is declared.
+
+.. |method-ast-AstCommentReader.afterBitfield| replace:: This callback occurs during the `parse` after the bitfield declaration.
+
 .. |method-ast-AstCommentReader.beforeEnumeration| replace:: This callback occurs during the `parse` before the enumeration declaration.
+
+.. |method-ast-AstCommentReader.beforeEnumerationEntries| replace:: This callback occurs during the `parse` before the first enumeration entry is declared.
+
+.. |method-ast-AstCommentReader.afterEnumerationEntry| replace:: This callback occurs during the `parse` after the enumeration entry is declared (after the following comment section, should it have one).
+
+.. |method-ast-AstCommentReader.afterEnumerationEntries| replace:: This callback occurs during the `parse` after the last enumeration entry is declared.
 
 .. |method-ast-AstCommentReader.afterEnumeration| replace:: This callback occurs during the `parse` after the enumeration declaration.
 
@@ -206,6 +232,16 @@
 .. |method-ast-AstCommentReader.beforeAlias| replace:: This callback occurs during the `parse` pass before the type alias declaration.
 
 .. |method-ast-AstCommentReader.afterAlias| replace:: This callback occurs during the `parse` pass after the type alias declaration.
+
+.. |method-ast-AstCommentReader.beforeTuple| replace:: This callback occurs during the `parse` pass before the tuple declaration.
+
+.. |method-ast-AstCommentReader.beforeTupleEntries| replace:: This callback occurs during the `parse` before the first tuple entry is declared.
+
+.. |method-ast-AstCommentReader.afterTupleEntry| replace:: This callback occurs during the `parse` after the tuple entry is declared (after the following comment section, should it have one).
+
+.. |method-ast-AstCommentReader.afterTupleEntries| replace:: This callback occurs during the `parse` after the last tuple entry is declared.
+
+.. |method-ast-AstCommentReader.afterTuple| replace:: This callback occurs during the `parse` after the tuple declaration.
 
 .. |class-ast-AstForLoopMacro| replace:: This macro is used to implement custom for-loop handlers. It is similar to visitExprFor callback of the AstVisitor.
 
@@ -386,6 +422,8 @@
 
 .. |method-ast-AstVisitor.visitExprNamedCallArgument| replace:: after every argument
 
+.. |method-ast-AstVisitor.canVisitLooksLikeCallArgument| replace:: If true `ExprLooksLikeCall` arguments will be visited
+
 .. |method-ast-AstVisitor.preVisitExprLooksLikeCall| replace:: before `ExprLooksLikeCall`
 
 .. |method-ast-AstVisitor.visitExprLooksLikeCall| replace:: after `ExprLooksLikeCall`
@@ -517,6 +555,10 @@
 .. |method-ast-AstVisitor.canVisitMakeStructBlock| replace:: if true the visitor can visit the block behind `ExprMakeStruct`
 
 .. |method-ast-AstVisitor.preVisitExprMakeStruct| replace:: before `ExprMakeStruct`
+
+.. |method-ast-AstVisitor.preVisitMakeStructureBlock| replace:: before the block behind `ExprMakeStruct`
+
+.. |method-ast-AstVisitor.visitMakeStructureBlock| replace:: after the block behind `ExprMakeStruct`
 
 .. |method-ast-AstVisitor.visitExprMakeStruct| replace:: after `ExprMakeStruct`
 
@@ -934,6 +976,8 @@
 
 .. |function-ast-find_variable| replace:: Finds variable in the `Module`.
 
+.. |function-ast-find_matching_variable| replace:: Finds global or shared variable in the given function, according to visibility and privacy rules.
+
 .. |function-ast-add_structure| replace:: Adds structure to a `Module`. Will return false on duplicates.
 
 .. |function-ast-clone_structure| replace:: Returns clone of the `Structure`.
@@ -1151,6 +1195,8 @@
 .. |structure_annotation-ast-ExprArrayComprehension| replace:: Array comprehension (`[{for x in 0..3; x}]`, `[[for y in range(100); x*2; where x!=13]]` for arrays or generators accordingly).
 
 .. |structure_annotation-ast-TypeInfoMacro| replace:: Compilation time only structure which holds live information about typeinfo expression for the specific macro.
+
+.. |structure_annotation-ast-TypeMacro|  replace:: Compilation time only structure which holds live information about type macro.
 
 .. |structure_annotation-ast-ExprTypeInfo| replace:: typeinfo() expression (`typeinfo(dim a)`, `typeinfo(is_ref_type type<int&>)`)
 
@@ -1389,5 +1435,29 @@
 
 .. |function-ast-get_handled_type_field_type| replace:: Returns type of the field in the ManagedStructure handled type.
 
+.. |function-ast-get_current_search_module| replace:: Returns the module which is currently being searched for the function, given module name. Resolves "", "_", "*", and "__" correctly.
 
+.. |function-ast-get_handled_type_field_type_declaration| replace:: Returns type declaration of the field in the ManagedStructure handled type.
+
+.. |function-ast-get_function_aot_hash| replace:: Returns hash of the function for the AOT matching.
+
+.. |function-ast-can_access_global_variable| replace:: Returns true if global variable is accessible from the specified module.
+
+.. |class-ast-AstTypeMacro| replace:: Macro which is part of the type declaration, for example $type_macro_name<type_macro_type_args...>(type_macro_args).
+
+.. |method-ast-AstTypeMacro.visit| replace:: This callback occurs after the type macro is visited.
+
+.. |function-ast-make_type_macro| replace:: Creates adapter for the 'AstTypeMacro' interface.
+
+.. |function-ast-add_type_macro| replace:: Adds 'AstTypeMacro' to the specific module.
+
+.. |function-ast-add_new_type_macro| replace:: Makes adapter to the 'AstTypeMacro' and adds it to the current module.
+
+.. |function-ast-add_type_function| replace:: Adds type function keyword, i.e allow function call to have several type arguments first via the following syntax some_call<type_args>(regular_args).
+
+.. |function-ast-find_enum_name| replace:: Finds name of the corresponding enumeration value in the specified type.
+
+.. |function-ast-infer_generic_type| replace:: Infers generic type for the specified type and pass type.
+
+.. |function-ast-update_alias_map| replace:: Updates alias map for the specified infer.
 

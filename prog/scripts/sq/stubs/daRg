@@ -1,5 +1,5 @@
-from "frp" import Watched
-let dw = require_optional("dagor.workcyle")
+from "frp" import Watched, register_stub_observable_class
+let dw = require_optional("dagor.workcycle")
 
 //This is list of all darg native functions and consts, to use in mockups
 
@@ -7,7 +7,7 @@ function Color(r,g,b,a=255) {
   return (a.tointeger() << 24) + (r.tointeger() << 16) + (g.tointeger() << 8) + b.tointeger()
 }
 
-let timeoutStub = function(timeout, func){
+let timeoutStub = function(timeout, func, _id=null){
   assert([type(0),type(0.0)].indexof(type(timeout))!=null, "timeout should be number")
   assert(type(func)==type(type), "timer should be function")
   func()
@@ -41,6 +41,8 @@ let ScrollHandler = class {
     this.elem = Element()
   }
 }
+
+register_stub_observable_class(ScrollHandler)
 
 let gui_scene = {
   setShutdownHandler = @(_val) null
@@ -98,6 +100,13 @@ let axis = class{
  value = 4
 }
 
+class EditableText {
+  text = ""
+  constructor(s) {
+    this.text = s
+  }
+}
+
 let darg = {
   resolve_button_id = @(st) assert(type(st)=="string")
   anim_play = @(_trigger) null
@@ -113,7 +122,7 @@ let darg = {
   set_kb_focus = @(_val) null
   capture_kb_focus = @(_val) null
   Fonts = {}
-  move_mouse_cursor = @(_where) null
+  move_mouse_cursor = @(_where, _useTransform = true) null
   calc_comp_size = @(_comp) [0,0]
   calc_str_box = @(_txt, _params = null) [0,0]
   getFontDefHt = function(fontname) { assert(type(fontname)=="string"); return 0; }
@@ -134,6 +143,7 @@ let darg = {
   LottieAnimation = class {
     constructor(_file){}
   }
+  EditableText
   Cursor = function Cursor(val) {return val}
 
   anim_start = @(_anim) null
@@ -159,6 +169,8 @@ let darg = {
     }
   }
   MoveToAreaTarget = class{ function set(_l,_t,_r,_b){}; function clear(){}}
+  get_mouse_cursor_pos = @() { x = 0, y = 0 }
+  resolve_button = @(_st) { devId = -1, btnId = -1 }
 }
 
 
@@ -176,41 +188,6 @@ global enum AnimProp{
   picSaturate
   brightness
 }
-
-global enum Behaviors {
-  Button = "Button"
-  TextArea = "TextArea"
-  TextInput = "TextInput"
-  Slider = "Slider"
-  Pannable = "Pannable"
-  Pannable2touch = "Pannable2touch"
-  SwipeScroll = "SwipeScroll"
-  MoveResize = "MoveResize"
-  ComboPopup = "ComboPopup"
-  SmoothScrollStack = "SmoothScrollStack"
-  Marquee = "Marquee"
-  TrackMouse = "TrackMouse"
-  WheelScroll = "WheelScroll"
-  ScrollEvent = "ScrollEvent"
-  InspectPicker = "InspectPicker"
-  RtPropUpdate = "RtPropUpdate"
-  RecalcHandler = "RecalcHandler"
-  DragAndDrop = "DragAndDrop"
-  FpsBar = "FpsBar"
-  LatencyBar = "LatencyBar"
-  OverlayTransparency = "OverlayTransparency"
-  BoundToArea = "BoundToArea"
-  Movie = "Movie"
-  Parallax = "Parallax"
-  PieMenu = "PieMenu"
-  TransitionSize = "TransitionSize"
-  Browser = "Browser"
-  MoveToArea = "MoveToArea"
-  ProcessPointingInput = "ProcessPointingInput"
-  ElementEditor = "ElementEditor"
-  EatInput = "EatInput"
-}
-
 
 global const ROBJ_IMAGE = "ROBJ_IMAGE"
 global const ROBJ_MOVIE = "ROBJ_MOVIE"
@@ -287,6 +264,9 @@ global const TOVERFLOW_LINE="TOVERFLOW_LINE"
 global const EVENT_BREAK = "EVENT_BREAK"
 global const EVENT_CONTINUE= "EVENT_CONTINUE"
 
+global const GESTURE_DETECTOR_DRAG = "GESTURE_DETECTOR_DRAG"
+global const GESTURE_DETECTOR_PINCH = "GESTURE_DETECTOR_PINCH"
+global const GESTURE_DETECTOR_ROTATE = "GESTURE_DETECTOR_ROTATE"
 
 global const Linear = "Linear"
 

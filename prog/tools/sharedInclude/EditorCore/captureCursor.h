@@ -1,5 +1,4 @@
-#ifndef __CAPTURE_CURSOR_H
-#define __CAPTURE_CURSOR_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 struct EcRect;
@@ -30,5 +29,3 @@ void cursor_wrap(int &p1, int &p2, void *handle = NULL);
 ///  cursor increments and creating objects with sizes greater than window size.
 void area_cursor_wrap(const EcRect &rc, int &p1, int &p2, int &wrapedX, int &wrapedY);
 //@}
-
-#endif

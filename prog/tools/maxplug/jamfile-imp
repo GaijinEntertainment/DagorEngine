@@ -1,7 +1,6 @@
-SSEVersion = 2 ;
-Platform ?= win32 ;
-Exceptions = yes ;
-Rtti = yes ;
+Root     ?= ../../.. ;
+Location  = prog/tools/maxplug ;
+
 #MaxVer ?= Max7 ;
 #MaxVer ?= Max9 ;
 #MaxVer ?= Max2009 ;
@@ -18,84 +17,13 @@ Rtti = yes ;
 #MaxVer ?= Max2021 ;
 #MaxVer ?= Max2022 ;
 #MaxVer ?= Max2023 ;
-MaxVer ?= Max2024 ;
-
-if $(MaxVer) in Max2014 Max2015 Max2016 Max2017 Max2018 Max2019 Max2020 Max2021 Max2022 Max2023 Max2024 { Platform = win64 ; }
-
-Config       ?= rel ;
-
-Root     ?= ../../.. ;
-Location  = prog/tools/maxplug ;
+#MaxVer ?= Max2024 ;
+MaxVer ?= Max2025 ;
 
 TargetType = dll ;
 Target     = $(MaxVer)Plugin/dagor_imp.dlu ;
 
-include $(Root)/prog/_jBuild/defaults.jam ;
-
-if $(MaxVer) in Max7 { _GlobCopt_ForScope = /Zc:forScope- ; }
-_GlobCopt_CRT = /MD ;
-
-if $(Config) = rel {
-  ReproducibleExeBuild = yes ;
-  _GlobCopt_Optimize = /O1 /Os /Oi ;
-}
-
-if $(Platform) = win64 {
-  switch $(MaxVer)
-  {
-    case Max2011 : PlatformSpec = vc9u ;
-    case Max2012 : PlatformSpec = vc9u ;
-    case Max2013 : PlatformSpec = vc10u ;
-    case Max2014 : PlatformSpec = vc10u ;
-    case Max2015 : PlatformSpec = vc11u ;
-    case Max2016 : PlatformSpec = vc11u ;
-    case Max2017 : PlatformSpec = vc14u ;
-    case Max2018 : PlatformSpec = vc14u ;
-    case Max2019 : PlatformSpec = vc14u ;
-    case Max2020 : PlatformSpec = vc15u ;
-    case Max2021 : PlatformSpec = vc15u ;
-    case Max2022 : PlatformSpec = vc15u ;
-    case Max2023 : PlatformSpec = vc16u ;
-    case Max2024 : PlatformSpec = vc16u ;
-    case * : exit $(MaxVer) not supported for $(Platform) ;
-  }
-  OutDir     = $(Root)/tools/dagor3_cdk/plugin3dsMax-x64/$(MaxVer) ;
-  MaxLibDir = $(_DEVTOOL)/$(MaxVer).sdk/x64/lib ;
-  if $(MaxVer) in Max2014 Max2015 Max2016 Max2017 Max2018 Max2019 Max2020 Max2021 Max2022 Max2023 Max2024 { MaxLibDir = $(_DEVTOOL)/$(MaxVer).sdk/lib/x64/Release ; }
-} else {
-  switch $(MaxVer)
-  {
-    case Max7 : PlatformSpec = vc7u ;
-    case Max9 : PlatformSpec = vc8u ;
-    case Max2009 : PlatformSpec = vc8u ;
-    case Max2011 : PlatformSpec = vc9u ;
-    case Max2012 : PlatformSpec = vc9u ;
-    case Max2013 : PlatformSpec = vc10u ;
-    case * : exit $(MaxVer) not supported for $(Platform) ;
-  }
-  OutDir     = $(Root)/tools/dagor3_cdk/plugin3dsMax/$(MaxVer) ;
-  MaxLibDir = $(_DEVTOOL)/$(MaxVer).sdk/lib ;
-}
-
-if ! [ GLOB $(_DEVTOOL)/$(MaxVer).sdk : * ] { exit \"$(_DEVTOOL)/$(MaxVer).sdk\" not found! Install Max SDK and re-run make_devtools.py. $(OutDir)/$(Target:D=) is skipped now... ; }
-
-AddIncludes =
-  $(_DEVTOOL)/$(MaxVer).sdk/include
-;
-
-AddLibs =
-  kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib 
-  ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib comctl32.lib winmm.lib
-  $(MaxLibDir)/maxutil.lib
-  $(MaxLibDir)/core.lib
-  $(MaxLibDir)/bmm.lib
-  $(MaxLibDir)/mesh.lib
-  $(MaxLibDir)/geom.lib
-  $(MaxLibDir)/flt.lib
-  $(MaxLibDir)/MNMath.lib
-  $(MaxLibDir)/maxscrpt.lib
-  msvcrt.lib msvcprt.lib
-;
+include $(Root)/$(Location)/maxPlugin.jam ;
 
 Sources =
   Dllmain_imp.cpp
@@ -110,27 +38,6 @@ Sources =
   Dagor.rc
 ;
 
-LINKopt =
-  /def:$(Root)/$(Location)/Dagor.def
-  -nodefaultlib:LIBCP -nodefaultlib:LIBC
-  -nodefaultlib:LIBCPMT -nodefaultlib:LIBCMT
-;
-
-if $(MaxVer) = Max2009 {
-  CPPopt = /GR /we4706 /we4390 /we4557 /we4546 /we4545 /we4295 /we4310 /we4130 /we4611 /we4213 /we4121 /w34701 /wd4244 /wd4018 ;
-}
-if $(MaxVer) = Max2011 || $(MaxVer) = Max2012 || $(MaxVer) = Max2014 {
-  CPPopt = /GR /we4706 /we4390 /we4557 /we4546 /we4545 /we4295 /we4310 /we4130 /we4611 /we4213 /we4121 /we4715 /w34701 /w34265 /wd4244 /wd4018 /wd4819 ;
-}
-
-CPPopt += -FImax_cpt.h -DDAG_3DSMAX_IMPORTER ;
-
-if $(MaxVer) in Max2013 Max2014 Max2015 Max2016 Max2017 Max2018 Max2019 Max2020 Max2021 Max2022 Max2023 Max2024 {
-  CPPopt +=  /D "_UNICODE" /D "UNICODE" -DNOMINMAX ;
-}
-
-if $(MaxVer) in Max2017 Max2018 Max2019 { WinSdkVer  = win.sdk.81 ; VCUpdateVer = 3 ; }
-if $(MaxVer) in Max2020 Max2021 Max2022 { WinSdkVer  = win.sdk.100 ; VCUpdateVer = 15.9.5 ; }
-if $(MaxVer) in Max2023 Max2024 { WinSdkVer  = win.sdk.100 ; VCUpdateVer = 16.10.3 ; }
+CPPopt += -DDAG_3DSMAX_IMPORTER ;
 
 include $(Root)/prog/_jBuild/build.jam ;

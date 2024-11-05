@@ -1,5 +1,11 @@
 define_macro_if_not_defined GET_ALTERNATE_REFLECTIONS(code)
   hlsl {
-    void get_alternate_reflections(inout half4 newTarget, uint2 pixelPos, float3 cameraToPoint, float3 normal, bool hit, bool hit_not_zfar){}
+    void get_alternate_reflections(inout half4 newTarget, inout float rayHitDist, uint2 pixelPos, float3 rayDir, float3 cameraToPoint, float3 normal, bool hit, bool hit_not_zfar){}
+  }
+endmacro
+
+define_macro_if_not_defined GET_TRANSLUCENT_ALTERNATE_REFLECTIONS(code)
+  hlsl {
+    half4 get_translucent_alternate_reflections(float3 cameraToPoint, float3 rayDir, float dist) {return 0;}
   }
 endmacro

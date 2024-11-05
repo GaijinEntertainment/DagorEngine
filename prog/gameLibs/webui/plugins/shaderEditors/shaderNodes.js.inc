@@ -2340,16 +2340,17 @@ var GE_defaultExternals =
     {type: "float4",  name:"froxel_fog_fading_params"},
     {type: "float", name:"daskies_time"},
 
-    {type: "texture3D", name:"prev_volfog_shadow"},
+    {type: "texture3D_nosampler", name:"prev_volfog_shadow"},
+    {type: "texture2D_nosampler", name:"volfog_shadow_occlusion"},
     {type: "float4", name:"from_sun_direction"},
     {type: "float4", name:"volfog_shadow_res"},
-    {type: "float4", name:"volfog_shadow_prev_frame_tc_offset"},
+    {type: "float", name:"volfog_shadow_accumulation_factor"},
     {type: "float", name:"volfog_prev_range_ratio"},
 
 
     // for distant fog:
     {type: "texture2D", name:"downsampled_far_depth_tex"},
-    {type: "texture2D_nosampler", name:"distant_fog_downsampled_depth_tex"},
+    {type: "texture2D_nosampler", name:"downsampled_checkerboard_depth_tex"},
     {type: "texture2D_nosampler", name:"prev_downsampled_far_depth_tex"},
     {type: "texture2D_nosampler", name:"downsampled_close_depth_tex"},
     {type: "texture2D", name:"prev_distant_fog_raymarch_start_weights"},
@@ -2366,7 +2367,7 @@ var GE_defaultExternals =
     {type: "float4", name:"prev_globtm_psf_2"},
     {type: "float4", name:"prev_globtm_psf_3"},
     {type: "float4", name:"sun_color_0"},
-    {type: "float4", name:"eclipse_params"},
+    {type: "float4", name:"skylight_params"},
     {type: "float4",  name:"zn_zfar"},
     {type: "float4",  name:"enviSPH0"},
     {type: "float4",  name:"enviSPH1"},
@@ -2390,6 +2391,7 @@ var GE_defaultExternals =
     {type: "float4", name:"static_shadow_cascade_0_scale_ofs_z_tor"},
     {type: "float4", name:"static_shadow_cascade_1_scale_ofs_z_tor"},
     {type: "int", name:"distant_fog_use_static_shadows"},
+    {type: "float", name:"debug_disable_static_pcf_center_sample"},
   ];
 
 

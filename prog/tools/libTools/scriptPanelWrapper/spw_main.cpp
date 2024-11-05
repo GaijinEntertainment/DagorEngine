@@ -1,6 +1,6 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/control/container.h>
 
 #include <scriptPanelWrapper/spw_main.h>
 #include <scriptPanelWrapper/spw_param.h>
@@ -24,7 +24,7 @@ enum
 Tab<CSQPanelWrapper::GlobalConst> CSQPanelWrapper::globalConsts(midmem);
 
 
-CSQPanelWrapper::CSQPanelWrapper(PropPanel2 *panel) :
+CSQPanelWrapper::CSQPanelWrapper(PropPanel::ContainerPropertyControl *panel) :
   mPanel(panel), mScriptFilename(""), mDataBlock(NULL), mPanelContainer(NULL), objCB(NULL), mHandler(NULL), mPostEventCounter(0)
 {
   sysVM = createCleanVM();
@@ -75,7 +75,7 @@ void CSQPanelWrapper::init()
     bindquirrel::register_utf8(moduleMgr);
 
     bindquirrel::sqrat_bind_dagor_math(moduleMgr);
-    bindquirrel::bind_dagor_workcycle(moduleMgr, true);
+    bindquirrel::bind_dagor_workcycle(moduleMgr, true, "scriptPanelWrapper");
     bindquirrel::bind_dagor_time(moduleMgr);
     bindquirrel::register_iso8601_time(moduleMgr);
     bindquirrel::register_platform_module(moduleMgr);
@@ -293,7 +293,7 @@ void CSQPanelWrapper::updateDataBlock()
 }
 
 
-void CSQPanelWrapper::onChange(int pcb_id, PropPanel2 *panel)
+void CSQPanelWrapper::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   if (mPanelContainer)
   {
@@ -307,7 +307,7 @@ void CSQPanelWrapper::onChange(int pcb_id, PropPanel2 *panel)
 }
 
 
-long CSQPanelWrapper::onChanging(int pcb_id, PropPanel2 *panel)
+long CSQPanelWrapper::onChanging(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   long result = 0;
   if (mPanelContainer)
@@ -320,7 +320,7 @@ long CSQPanelWrapper::onChanging(int pcb_id, PropPanel2 *panel)
 }
 
 
-void CSQPanelWrapper::onClick(int pcb_id, PropPanel2 *panel)
+void CSQPanelWrapper::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   if (mPanelContainer)
   {
@@ -334,7 +334,7 @@ void CSQPanelWrapper::onClick(int pcb_id, PropPanel2 *panel)
 }
 
 
-void CSQPanelWrapper::onPostEvent(int pcb_id, PropPanel2 *panel)
+void CSQPanelWrapper::onPostEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   setCurrentVM();
   if (pcb_id == START_PID)

@@ -128,3 +128,26 @@ shader debug_ri_shaded
   }
   compile("target_vs", "debug_shaded_vs");
 }
+
+shader debug_ri_clear_depth, debug_ri_clear_depth_color
+{
+  cull_mode = none;
+  z_test = true;
+  z_write = true;
+
+  if (shader == debug_ri_clear_depth)
+  {
+    color_write = false;
+  }
+
+  POSTFX_VS(0)
+
+  hlsl (ps) {
+    float4 debug_ri_clear_ps() : SV_Target
+    {
+      return float4(0, 0, 0, 0);
+    }
+  }
+
+  compile("target_ps", "debug_ri_clear_ps");
+}

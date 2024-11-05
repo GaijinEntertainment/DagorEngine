@@ -1,0 +1,55 @@
+spline_gen_geometry{
+  spline_gen_geometry__lods_name:t=""
+  spline_gen_geometry__lod:i=-1
+  spline_gen_geometry__request_active:b=yes
+  spline_gen_geometry__renderer_active:b=yes
+  spline_gen_geometry__is_rendered:b=yes
+  spline_gen_geometry__radius:p3=0.25, -1, 0 // radius at points 0, stripes - 1, stripes respectively
+  spline_gen_geometry__displacement_strength:r=0.25
+  spline_gen_geometry__tiles_around:i=1
+  spline_gen_geometry__tile_size_meters:r=0.75
+  spline_gen_geometry__obj_size_mul:r=1
+  spline_gen_geometry__meter_between_objs:r=-1
+
+  spline_gen_geometry_renderer{
+    _tags:t="render"
+  }
+
+  "spline_gen_geometry__lods_eid:eid"{}
+  "spline_gen_geometry__points:list<p3>"{}
+}
+
+spline_gen_template{
+  _use:t="replicating"
+  spline_gen_template__template_name:t=""
+  spline_gen_template__slices:i=0
+  spline_gen_template__stripes:i=0
+  spline_gen_template__diffuse_name:t="" //optional
+  spline_gen_template__normal_name:t=""
+  spline_gen_template__asset_name:t=""
+  spline_gen_template__asset_lod:i=0
+}
+
+spline_gen_lods{
+  _use:t="replicating"
+  spline_gen_lods__lods_name:t=""
+
+  "spline_gen_lods__distances:list<r>"{}
+  "spline_gen_lods__template_names:list<t>"{}
+}
+
+spline_gen_repository{
+  _use:t="replicating"
+  _singleton:b=yes
+
+  spline_gen_repository{
+    _tags:t="render"
+  }
+}
+
+spline_gen_test{
+  _use:t="replicating"
+  _use:t="spline_gen_geometry"
+  "splineGenTest:tag"{}
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+}

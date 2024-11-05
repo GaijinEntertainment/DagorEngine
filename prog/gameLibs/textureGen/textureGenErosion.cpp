@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_dataBlock.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
 #include <math/dag_adjpow2.h>
 #include <util/dag_string.h>
 #include <generic/dag_tab.h>
@@ -345,7 +347,6 @@ private:
     Texture *tempOutputTex = d3d::create_tex(NULL, w, h, TEXFMT_R32F | TEXCF_UNORDERED | TEXCF_RTARGET, 1, "temp_out0");
     d3d::stretch_rect(inputs[0].tex, tempOutputTex);
 
-    TextureInput in[1] = {inputs[1]};
     int iterations = (int)(cellSize * cellSize * data.params.getReal("drops_multiplier"));
     set_rnd_seed(630498480);
     eastl::vector<Point2> offsets(cellSize * cellSize);
@@ -369,7 +370,7 @@ private:
       params.setReal("cellOffsetY", offset.y);
 
       erosion_shader->processAll(gen, regs,
-        TextureGenNodeData(cellCount, cellCount, NO_BLENDING, false, params, make_span_const(in, countof(in)), writableOutputs, NULL));
+        TextureGenNodeData(cellCount, cellCount, NO_BLENDING, false, params, inputs, writableOutputs, NULL));
     }
 
     if (outputs[0])
@@ -390,8 +391,8 @@ public:
   virtual int getInputParametersCount() const { return 6; }
   virtual bool isInputParameterOptional(int) const { return true; }
 
-  virtual int getRegCount(TShaderRegType tp) const { return tp == TSHADER_REG_TYPE_INPUT ? 2 : 6; }
-  virtual bool isRegOptional(TShaderRegType tp, int reg) const { return tp == TSHADER_REG_TYPE_INPUT ? reg == 1 : false; }
+  virtual int getRegCount(TShaderRegType tp) const { return tp == TSHADER_REG_TYPE_INPUT ? 4 : 6; }
+  virtual bool isRegOptional(TShaderRegType tp, int reg) const { return tp == TSHADER_REG_TYPE_INPUT ? reg != 0 : false; }
 
   virtual bool process(TextureGenerator &gen, TextureRegManager &regs, const TextureGenNodeData &data, int)
   {

@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_volfog_volumes_pull ;
+  UseProgLibs += daNetGameLibs/volfog_volumes ;
+}

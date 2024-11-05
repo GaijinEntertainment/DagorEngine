@@ -6,10 +6,15 @@ see copyright notice in squirrel.h
 #include "sqtable.h"
 #include "sqfuncproto.h"
 #include "sqclosure.h"
+#include <assert.h>
+
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma intrinsic(_BitScanReverse)
+#endif
 
 #define _FAST_CLONE
 
-
+#define MINPOWER2 1
 
 #define CLASS_TYPE_HASH_INIT    14695981039346656037ul
 #define CLASS_TYPE_HASH_PRIME   1099511628211ul
@@ -58,6 +63,7 @@ void SQTable::Remove(const SQObjectPtr &key)
 
 void SQTable::AllocNodes(SQInteger nSize)
 {
+    assert((nSize & (nSize-1)) == 0); // pow2
     _HashNode *nodes=(_HashNode *)SQ_MALLOC(_alloc_ctx, sizeof(_HashNode)*nSize);
     _numofnodes_minus_one=(uint32_t)(nSize-1);
     _nodes=nodes;
@@ -70,16 +76,26 @@ void SQTable::Rehash(bool force)
 {
     SQInteger oldsize=_numofnodes_minus_one+1;
     //prevent problems with the integer division
-    if(oldsize<4)oldsize=4;
+    if (oldsize < MINPOWER2) oldsize = MINPOWER2;
     _HashNode *nold=_nodes;
     SQInteger nelems=CountUsed();
-    if (nelems >= oldsize-oldsize/4)  /* using more than 3/4? */
+    if (nelems >= oldsize - oldsize/4)  /* using more than 3/4? */
         AllocNodes(oldsize*2);
-    else if (nelems <= oldsize/4 &&  /* less than 1/4? */
+    else if (nelems < oldsize/4 &&  /* less than 1/4? */
         oldsize > MINPOWER2)
         AllocNodes(oldsize/2);
-    else if(force)
-        AllocNodes(oldsize);
+    else if (force)
+    {
+        assert(oldsize > 0);
+#if !defined(_MSC_VER) || defined(__clang__)
+        unsigned log2 = 31 - __builtin_clz((unsigned)oldsize);
+#else
+        unsigned long log2;
+        _BitScanReverse(&log2, oldsize);
+#endif
+        AllocNodes(unsigned(1 << (log2 + 1)));
+        assert(_numofnodes_minus_one + 1 > oldsize);
+    }
     else
         return;
     _usednodes = 0;
@@ -288,6 +304,7 @@ void SQTable::_ClearNodes()
     for (_HashNode *__restrict i = _nodes, *e = i + _numofnodes_minus_one; i <= e; i++) {
       i->key.Null();
       i->val.Null();
+      i->next = NULL;
       VT_CLEAR_SINGLE(i);
     }
 }
@@ -298,10 +315,25 @@ void SQTable::Finalize()
     SetDelegate(NULL);
 }
 
-void SQTable::Clear()
+void SQTable::Clear(SQBool rehash)
 {
     _ClearNodes();
     _usednodes = 0;
     _classTypeId = 0;
-    Rehash(true);
+    if (rehash)
+      Rehash(true);
+    else
+      _firstfree=&_nodes[_numofnodes_minus_one];
+}
+
+bool SQTable::IsBinaryEqual(SQTable *o)
+{
+    if (o->_usednodes != _usednodes || o->_classTypeId != _classTypeId)
+        return false;
+    if (o == this)
+        return true;
+    if (o->_usednodes == 0)
+        return true;
+
+    return memcmp(_nodes, o->_nodes, sizeof(_HashNode) * (_numofnodes_minus_one + 1)) == 0;
 }

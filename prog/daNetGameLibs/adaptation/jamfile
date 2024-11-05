@@ -1,0 +1,28 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = adaptation ;
+Location = prog/daNetGameLibs/$(Module) ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+;
+
+local AllSrcFolder_CPP = ;
+local AllSrcFolder_ES = ;
+local AllSrcFolder_DAS = ;
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_ES += render ;
+
+  if $(Config) in dbg dev {
+    AllSrcFolder_ES += debug ;
+    AddIncludes += $(Root)/prog/3rdPartyLibs/imgui ;
+    UseProgLibs += 3rdPartyLibs/imgui ;
+  }
+}
+
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

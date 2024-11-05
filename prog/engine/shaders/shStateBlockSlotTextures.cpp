@@ -1,5 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "shStateBlock.h"
-#include <3d/dag_drv3d_buffers.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_buffers.h>
+
+using namespace shaders;
 
 struct SBSamplerState
 {
@@ -10,16 +16,23 @@ struct SBSamplerState
   void apply(int tex_level)
   {
     uint32_t from = start;
+
+    const auto setTex = [&](TEXTUREID tid, ShaderStage stage, int slot) {
+      mark_managed_tex_lfu(tid, tex_level);
+      const auto sampler = get_texture_separate_sampler(tid);
+      if (sampler != d3d::INVALID_SAMPLER_HANDLE)
+      {
+        d3d::set_tex(stage, slot, D3dResManagerData::getBaseTex(tid), false);
+        d3d::set_sampler(stage, slot, sampler);
+      }
+      else
+        d3d::set_tex(stage, slot, D3dResManagerData::getBaseTex(tid));
+    };
+
     for (uint32_t i = psBase, e = (uint32_t)psBase + psCount; i < e; ++i, ++from)
-    {
-      mark_managed_tex_lfu(data[from], tex_level);
-      d3d::set_tex(STAGE_PS, i, D3dResManagerData::getBaseTex(data[from]));
-    }
+      setTex(data[from], STAGE_PS, i);
     for (uint32_t i = vsBase, e = (uint32_t)vsBase + vsCount; i < e; ++i, ++from)
-    {
-      mark_managed_tex_lfu(data[from], tex_level);
-      d3d::set_tex(STAGE_VS, i, D3dResManagerData::getBaseTex(data[from]));
-    }
+      setTex(data[from], STAGE_VS, i);
   }
 
   void reqTexLevel(int tex_level)
@@ -35,7 +48,7 @@ struct SBSamplerState
     }
   }
 
-  static uint32_t create(const TEXTUREID *ps, uint8_t ps_base, uint8_t ps_cnt, const TEXTUREID *vs, uint8_t vs_base, uint8_t vs_cnt)
+  static TexStateIdx create(const TEXTUREID *ps, uint8_t ps_base, uint8_t ps_cnt, const TEXTUREID *vs, uint8_t vs_base, uint8_t vs_cnt)
   {
     OSSpinlockScopedLock lock(mutex);
     int id = all.find_if([&](const SBSamplerState &c) {
@@ -47,14 +60,14 @@ struct SBSamplerState
       return false;
     });
     if (id >= 0)
-      return id;
+      return static_cast<TexStateIdx>(id);
 
     uint32_t did = data.append(nullptr, ps_cnt + vs_cnt);
     auto d = &data[did];
     memcpy(d, ps, ps_cnt * sizeof(*ps));
     memcpy(d + ps_cnt, vs, vs_cnt * sizeof(*vs));
 
-    return all.push_back(SBSamplerState{did, ps_cnt, vs_cnt, ps_base, vs_base});
+    return static_cast<TexStateIdx>(all.push_back(SBSamplerState{did, ps_cnt, vs_cnt, ps_base, vs_base}));
   }
   static void clear()
   {
@@ -78,9 +91,9 @@ struct ConstState
   uint32_t constsStart;
   uint8_t constsCount;
 
-  void apply(uint32_t self_idx)
+  void apply(ConstStateIdx self_idx)
   {
-    Sbuffer *constBuf = allConstBuf[self_idx];
+    Sbuffer *constBuf = allConstBuf[eastl::to_underlying(self_idx)];
     if (!constBuf)
       return;
 
@@ -88,7 +101,7 @@ struct ConstState
     d3d::set_const_buffer(STAGE_PS, 1, constBuf);
   }
 
-  static uint32_t create(const Point4 *consts_data, uint8_t consts_count)
+  static ConstStateIdx create(const Point4 *consts_data, uint8_t consts_count)
   {
     OSSpinlockScopedLock lock(mutex);
     int cid = all.find_if([&](const ConstState &c) {
@@ -98,14 +111,14 @@ struct ConstState
       return memcmp(&dataConsts[c.constsStart], consts_data, consts_count * sizeof(*consts_data)) == 0; // -V1014
     });
     if (cid >= 0)
-      return cid;
+      return static_cast<ConstStateIdx>(cid);
 
     uint32_t did = dataConsts.append(consts_data, consts_count);
     uint32_t id = all.push_back(ConstState{did, consts_count});
     uint32_t acid = allConstBuf.push_back(nullptr);
     G_FAST_ASSERT(id == acid);
     G_UNUSED(acid);
-    return id;
+    return static_cast<ConstStateIdx>(id);
   }
   static void clear()
   {
@@ -117,8 +130,9 @@ struct ConstState
     allConstBuf.push_back(nullptr);
   }
 
-  static void prepareConstBuf(int idx)
+  static void prepareConstBuf(ConstStateIdx const_state_idx)
   {
+    const auto idx = eastl::to_underlying(const_state_idx);
     const ConstState &state = all[idx];
     if (!interlocked_acquire_load_ptr(allConstBuf[idx]) && state.constsCount)
     {
@@ -130,7 +144,7 @@ struct ConstState
         return;
       }
       constBuf->updateDataWithLock(0, sizeof(Point4) * state.constsCount, &dataConsts[state.constsStart], VBLOCK_DISCARD);
-      if (EASTL_UNLIKELY(interlocked_compare_exchange_ptr(allConstBuf[idx], constBuf, (Sbuffer *)nullptr) != nullptr))
+      if (DAGOR_UNLIKELY(interlocked_compare_exchange_ptr(allConstBuf[idx], constBuf, (Sbuffer *)nullptr) != nullptr))
         constBuf->destroy(); // unlikely case when other thread created/written buffer for this slot first
     }
   }
@@ -157,10 +171,10 @@ ShaderStateBlock create_slot_textures_state(const TEXTUREID *ps, uint8_t ps_base
   return block;
 }
 
-void apply_slot_textures_state(uint32_t const_state_idx, uint32_t sampler_state_id, int tex_level)
+void apply_slot_textures_state(ConstStateIdx const_state_idx, TexStateIdx sampler_state_id, int tex_level)
 {
-  SBSamplerState::all[sampler_state_id].apply(tex_level);
-  ConstState::all[const_state_idx].apply(const_state_idx);
+  SBSamplerState::all[eastl::to_underlying(sampler_state_id)].apply(tex_level);
+  ConstState::all[eastl::to_underlying(const_state_idx)].apply(const_state_idx);
 }
 
 void clear_slot_textures_states()
@@ -169,9 +183,9 @@ void clear_slot_textures_states()
   ConstState::clear();
 }
 
-void slot_textures_req_tex_level(uint32_t sampler_state_id, int tex_level)
+void slot_textures_req_tex_level(TexStateIdx sampler_state_id, int tex_level)
 {
-  SBSamplerState::all[sampler_state_id].reqTexLevel(tex_level);
+  SBSamplerState::all[eastl::to_underlying(sampler_state_id)].reqTexLevel(tex_level);
 }
 
 void dump_slot_textures_states_stat()

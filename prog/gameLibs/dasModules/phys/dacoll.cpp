@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/aotDacoll.h>
 #include <dasModules/dasDataBlock.h>
 #include <dasModules/dasModulesCommon.h>
@@ -37,8 +39,20 @@ struct ShapeQueryOutputAnnotation : das::ManagedStructureAnnotation<dacoll::Shap
 };
 
 
-struct CollisionContactDataAnnotation : das::ManagedStructureAnnotation<gamephys::CollisionContactData, false>
+struct CollisionContactDataMinAnnotation : das::ManagedStructureAnnotation<gamephys::CollisionContactDataMin, false>
 {
+  CollisionContactDataMinAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("CollisionContactDataMin", ml)
+  {
+    cppName = " ::gamephys::CollisionContactDataMin";
+    addField<DAS_BIND_MANAGED_FIELD(wpos)>("wpos");
+    addField<DAS_BIND_MANAGED_FIELD(matId)>("matId");
+  }
+};
+
+struct CollisionContactDataAnnotation final : das::ManagedStructureAnnotation<gamephys::CollisionContactData, false>
+{
+  das::TypeDeclPtr parentType;
+
   CollisionContactDataAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("CollisionContactData", ml)
   {
     cppName = " ::gamephys::CollisionContactData";
@@ -48,8 +62,16 @@ struct CollisionContactDataAnnotation : das::ManagedStructureAnnotation<gamephys
     addField<DAS_BIND_MANAGED_FIELD(posA)>("posA");
     addField<DAS_BIND_MANAGED_FIELD(posB)>("posB");
     addField<DAS_BIND_MANAGED_FIELD(depth)>("depth");
+    addField<DAS_BIND_MANAGED_FIELD(riPool)>("riPool");
     addField<DAS_BIND_MANAGED_FIELD(matId)>("matId");
+
+    static_assert(eastl::is_base_of_v<gamephys::CollisionContactDataMin, gamephys::CollisionContactData>);
+    parentType = das::makeType<gamephys::CollisionContactDataMin>(ml);
   }
+
+  bool canBePlacedInContainer() const override { return true; }
+
+  bool canBeSubstituted(TypeAnnotation *pass_type) const override { return parentType->annotation == pass_type; }
 };
 
 namespace bind_dascript
@@ -76,6 +98,7 @@ public:
     addAnnotation(das::make_smart<TraceMeshFacesAnnotation>(lib));
     addAnnotation(das::make_smart<CollisionObjectAnnotation>(lib));
     addAnnotation(das::make_smart<ShapeQueryOutputAnnotation>(lib));
+    addAnnotation(das::make_smart<CollisionContactDataMinAnnotation>(lib));
     addAnnotation(das::make_smart<CollisionContactDataAnnotation>(lib));
 
     das::addExtern<DAS_BIND_FUN(dacoll_traceray_normalized)>(*this, lib, "traceray_normalized", das::SideEffects::modifyArgument,
@@ -145,6 +168,8 @@ public:
 
     das::addExtern<DAS_BIND_FUN(dacoll_sphere_cast_with_collision_object_ex)>(*this, lib, "sphere_cast_ex",
       das::SideEffects::modifyArgument, "bind_dascript::dacoll_sphere_cast_with_collision_object_ex");
+    das::addExtern<DAS_BIND_FUN(dacoll_sphere_cast_land)>(*this, lib, "sphere_cast_land", das::SideEffects::modifyArgument,
+      "bind_dascript::dacoll_sphere_cast_land");
     das::addExtern<DAS_BIND_FUN(dacoll_sphere_cast_ex)>(*this, lib, "sphere_cast_ex", das::SideEffects::modifyArgument,
       "bind_dascript::dacoll_sphere_cast_ex");
     das::addExtern<DAS_BIND_FUN(dacoll::trace_sphere_cast_ex)>(*this, lib, "trace_sphere_cast_ex", das::SideEffects::modifyArgument,
@@ -158,6 +183,8 @@ public:
 
     das::addExtern<DAS_BIND_FUN(dacoll_sphere_query_ri)>(*this, lib, "sphere_query_ri", das::SideEffects::modifyArgumentAndExternal,
       "bind_dascript::dacoll_sphere_query_ri");
+    das::addExtern<DAS_BIND_FUN(dacoll_sphere_query_ri_filtered)>(*this, lib, "sphere_query_ri",
+      das::SideEffects::modifyArgumentAndExternal, "bind_dascript::dacoll_sphere_query_ri_filtered");
 
     das::addExtern<DAS_BIND_FUN(dacoll_add_dynamic_collision_from_coll_resource)>(*this, lib,
       "add_dynamic_collision_from_coll_resource", das::SideEffects::modifyArgumentAndExternal,
@@ -209,11 +236,16 @@ public:
       das::SideEffects::modifyArgumentAndExternal, "dacoll::set_collision_object_tm");
     das::addExtern<DAS_BIND_FUN(dacoll::set_vert_capsule_shape_size)>(*this, lib, "dacoll_set_vert_capsule_shape_size",
       das::SideEffects::modifyArgumentAndExternal, "dacoll::set_vert_capsule_shape_size");
+    das::addExtern<DAS_BIND_FUN(dacoll::set_collision_sphere_rad)>(*this, lib, "dacoll_set_collision_sphere_rad",
+      das::SideEffects::modifyArgumentAndExternal, "dacoll::set_collision_sphere_rad");
     das::addExtern<DAS_BIND_FUN(dacoll_draw_collision_object)>(*this, lib, "dacoll_draw_collision_object",
       das::SideEffects::modifyExternal, "bind_dascript::dacoll_draw_collision_object");
 
     das::addExtern<DAS_BIND_FUN(dacoll::enable_disable_ri_instance)>(*this, lib, "enable_disable_ri_instance",
       das::SideEffects::modifyExternal, "dacoll::enable_disable_ri_instance");
+
+    das::addExtern<DAS_BIND_FUN(dacoll::flush_ri_instances)>(*this, lib, "flush_ri_instances", das::SideEffects::modifyExternal,
+      "dacoll::flush_ri_instances");
 
     das::addExtern<DAS_BIND_FUN(bind_dascript::use_box_collision)>(*this, lib, "dacoll_use_box_collision",
       das::SideEffects::modifyExternal, "bind_dascript::use_box_collision");

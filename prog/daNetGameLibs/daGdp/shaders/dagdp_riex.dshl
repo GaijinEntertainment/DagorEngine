@@ -1,0 +1,58 @@
+include "hardware_defines.dshl"
+
+buffer dagdp__counters;
+
+buffer dagdp_riex__draw_args;
+buffer dagdp_riex__patches;
+int dagdp_riex__num_patches;
+
+shader dagdp_riex_patch_counters
+{
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    num_patches@i1 = dagdp_riex__num_patches;
+
+    draw_args@uav = dagdp_riex__draw_args hlsl {
+      RWByteAddressBuffer draw_args@uav;
+    }
+
+    counters@buf = dagdp__counters hlsl {
+      StructuredBuffer<uint> counters@buf;
+    }
+
+    patches@buf = dagdp_riex__patches hlsl {
+      StructuredBuffer<uint4> patches@buf;
+    }
+  }
+
+  hlsl(cs) {
+    #define SIZEOF_UINT 4
+    #define ARGS_BYTE_OFFSET_INDEX_COUNT 0 // See DrawIndexedIndirectArgs.
+    #define ARGS_BYTE_OFFSET_INSTANCE_COUNT SIZEOF_UINT
+
+    [numthreads(64, 1, 1)]
+    void main(uint3 dtid : SV_DispatchThreadID)
+    {
+      if (dtid.x >= num_patches) return;
+      uint4 patch = structuredBufferAt(patches, dtid.x);
+      uint argsByteOffset = patch.x;
+      uint counterIndex = patch.y;
+      uint indexCount = patch.z;
+      uint instanceCount = structuredBufferAt(counters, counterIndex);
+
+      FLATTEN
+      if (instanceCount == 0)
+      {
+        // Workaround for AMD bug.
+        // See https://youtrack.gaijin.team/issue/RE-876/daGDP-incorrect-rendering-on-Xbox-One
+        // See https://forums.xboxlive.com/questions/51821/d3d12-executeindirect-of-a-zero-instance-draw-inde.html
+        indexCount = 0;
+      }
+
+      storeBuffer(draw_args, argsByteOffset + ARGS_BYTE_OFFSET_INDEX_COUNT, indexCount);
+      storeBuffer(draw_args, argsByteOffset + ARGS_BYTE_OFFSET_INSTANCE_COUNT, instanceCount);
+    }
+  }
+  compile("target_cs", "main");
+}

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -227,7 +226,7 @@ inline void eraseCountArray(ecs::Array &a, int s, int count, das::Context *ctx, 
 template <class Array>
 struct DasArrayIterator : das::Iterator
 {
-  DasArrayIterator(Array *ar) : array(ar) {}
+  DasArrayIterator(Array *ar, das::LineInfo *at) : das::Iterator(at), array(ar) {}
   virtual bool first(das::Context &, char *_value) override
   {
     if (!array->size())
@@ -250,7 +249,7 @@ struct DasArrayIterator : das::Iterator
       iterator_type *value = (iterator_type *)_value;
       *value = nullptr;
     }
-    context.heap->free((char *)this, sizeof(DasArrayIterator<Array>));
+    context.freeIterator((char *)this, debugInfo);
   }
   Array *array = nullptr; // can be unioned with end
   typedef decltype(array->begin()) iterator_type;
@@ -258,34 +257,31 @@ struct DasArrayIterator : das::Iterator
 };
 
 template <typename TT>
-das::Sequence das_Array_each_sequence(const TT &vec, das::Context *context)
+das::Sequence das_Array_each_sequence(TT &vec, das::Context *context, das::LineInfoArg *at)
 {
   using Iterator = DasArrayIterator<TT>;
-  char *iter = context->heap->allocate(sizeof(Iterator));
-  context->heap->mark_comment(iter, "Tab<> iterator");
-  new (iter) Iterator((TT *)&vec);
+  char *iter = context->allocateIterator(sizeof(Iterator), "ecs::Array iterator", at);
+  if (!iter)
+    context->throw_out_of_memory(false, sizeof(Iterator), at);
+  new (iter) Iterator(&vec, at);
   return {(Iterator *)iter};
 }
 
-__forceinline das::TSequence<ecs::ChildComponent &> das_Array_each(ecs::Array &vec, das::Context *context)
+__forceinline das::TSequence<ecs::ChildComponent &> das_Array_each(ecs::Array &vec, das::Context *context, das::LineInfoArg *at)
 {
-  return das_Array_each_sequence(vec, context);
+  return das_Array_each_sequence(vec, context, at);
 }
 
-__forceinline das::TSequence<const ecs::ChildComponent &> das_Array_each_const(const ecs::Array &vec, das::Context *context)
+__forceinline das::TSequence<const ecs::ChildComponent &> das_Array_each_const(const ecs::Array &vec, das::Context *context,
+  das::LineInfoArg *at)
 {
-  return das_Array_each_sequence(vec, context);
+  return das_Array_each_sequence(vec, context, at);
 }
 
 template <typename T>
 inline bool emptyList(const T &list)
 {
   return list.empty();
-}
-template <typename T>
-inline int32_t lengthList(const T &list)
-{
-  return (int32_t)list.size();
 }
 template <typename T>
 inline void resizeList(T &list, int size)
@@ -326,13 +322,25 @@ inline void pushList(T &a, typename DasTypeParamAlias<V>::cparam_alias to)
 {
   a.push_back(*(const V *)&to);
 }
+template <typename T, typename V = typename T::value_type>
+inline void pushListAt(T &a, typename DasTypeParamAlias<V>::cparam_alias to, int at)
+{
+  a.insert(a.begin() + at, *(const V *)&to);
+}
 inline void pushStringList(ecs::StringList &a, const char *to) { a.push_back(ecs::string(to ? to : "")); }
+inline void pushStringListAt(ecs::StringList &a, const char *to, int at) { a.insert(a.begin() + at, ecs::string(to ? to : "")); }
 template <typename T, typename V = typename T::value_type>
 inline void emplaceList(T &a, typename DasTypeParamAlias<V>::param_alias to)
 {
-  a.emplace_back(std::move(*(V *)&to));
+  a.emplace_back(eastl::move(*(V *)&to));
+}
+template <typename T, typename V = typename T::value_type>
+inline void emplaceListAt(T &a, typename DasTypeParamAlias<V>::param_alias to, int at)
+{
+  a.emplace(a.begin() + at, eastl::move(*(V *)&to));
 }
 inline void emplaceStringList(ecs::StringList &a, const char *to) { a.emplace_back(ecs::string(to ? to : "")); }
+inline void emplaceStringListAt(ecs::StringList &a, const char *to, int at) { a.emplace(a.begin() + at, ecs::string(to ? to : "")); }
 template <typename T>
 inline const typename T::value_type *dataPtrList(const T &list)
 {

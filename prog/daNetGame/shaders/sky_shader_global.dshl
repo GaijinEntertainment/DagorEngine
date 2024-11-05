@@ -1,0 +1,51 @@
+float4 sun_light_color;//ground
+float cloud_shadow_intensity = 1;
+
+int skies_render_screen_split = 0;
+interval skies_render_screen_split: off < 1, first < 2, second < 3, third;
+assume skies_render_screen_split = off;
+
+int clouds_direct_sequence = 0;
+interval clouds_direct_sequence: auto < 1, first < 2, second < 3, third;
+assume clouds_direct_sequence = auto;
+
+hlsl {
+  //remove scattering closer than 30m
+  #define REDUCE_SCATTERING_ON_CLOSE_DIST 0.03
+  #define NO_SCATTERING_ON_CLOSE_DIST 0.01
+}
+
+include "shader_global.dshl"
+include "use_volfog.dshl"
+include "gbuffer.dshl"
+
+float4 sky_debug_color = (0, 0, 0, 0);
+float4 toon_sky_params = (4, 20, 3, 1);
+float4 real_skies_sun_light_dir;
+
+macro USE_SPECIAL_VISION()
+  (ps) {
+    sky_special_vision@f1 = (special_vision, 0, 0, 0);
+    sky_debug_color@f4 = sky_debug_color;
+  }
+  hlsl(ps)
+  {
+#if DISABLE_SPECIAL_VISION
+    void applySpecialVision(float4 v) {}
+#else
+    #include <hsv_rgb_conversion.hlsl>
+    #define USE_SPECIAL_VISION 1
+    void applySpecialVision(inout float4 result)
+    {
+      float temperature = dot(float3(0.33, 0.33, 0.33), result.rgb) * 10.0f/255.0f;
+      result.rgb = lerp(result.rgb, float3(temperature, 0, 0), sky_special_vision);
+
+      ##if shader == strata_clouds
+        result.rgb = lerp(result.rgb, float3(0, 0, 0), sky_debug_color.a);
+      ##elif shader != applyClouds
+        result.rgb = lerp(result.rgb, sky_debug_color.rgb, sky_debug_color.a);
+      ##endif
+    }
+#endif
+  }
+endmacro

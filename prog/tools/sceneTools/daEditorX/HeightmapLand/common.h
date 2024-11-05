@@ -1,7 +1,5 @@
-#ifndef __SPLINES_COMMON__
-#define __SPLINES_COMMON__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <math/dag_Point2.h>
 #include <math/dag_Point3.h>
@@ -18,5 +16,3 @@ bool make_clockwise_coords(dag::Span<Point2> pts);
 bool make_clockwise_coords(dag::Span<Point3> pts3);
 
 bool lines_inters_ignore_Y(Point3 &pf1, Point3 &pf2, Point3 &ps1, Point3 &ps2);
-
-#endif // __SPLINES_COMMON__

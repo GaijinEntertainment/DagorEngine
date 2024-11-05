@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <shadersBinaryData.h>
 #include <shaders/shUtils.h>
 #include <ioSys/dag_fileIo.h>
@@ -11,6 +13,7 @@
 #include <EASTL/string.h>
 #include <EASTL/vector_set.h>
 #include <EASTL/vector.h>
+#include <generic/dag_span.h>
 
 static void showUsage()
 {
@@ -184,7 +187,15 @@ static void dumpCurrentShaders(bool dump_asm, bool dump_variants, bool dump_stco
   }
 
   if (!dump_stcode)
-    debug("\n******* %d stcode programs", shBinDump().stcode.size());
+  {
+    uint64_t totalBytes = 0;
+    for (int i = 0; i < shBinDump().stcode.size(); i++)
+    {
+      const dag::ConstSpan<int> &prog = shBinDump().stcode[i];
+      totalBytes += data_size(prog);
+    }
+    debug("\n******* %d stcode programs, total mem %lfkb", shBinDump().stcode.size(), (double)totalBytes / 1024.0);
+  }
   else
   {
     eastl::vector<eastl::vector_set<eastl::string>> classesByStcode;
@@ -197,6 +208,9 @@ static void dumpCurrentShaders(bool dump_asm, bool dump_variants, bool dump_stco
 
     for (int i = 0; i < shBinDump().stcode.size(); i++)
     {
+      if (single_shader && classesByStcode[i].find(eastl::string(single_shader)) == classesByStcode[i].end())
+        continue;
+
       debug("\n******* State code shader --s%d--", i);
       if (shBinDump().stcode[i].size())
       {

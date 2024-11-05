@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EditorCore/ec_IEditorCore.h>
@@ -25,6 +26,7 @@ public:
   virtual void renderCircle(const Point3 &center, const Point3 &ax1, const Point3 &ax2, real radius, E3DCOLOR col, int segs) const;
   virtual void renderXZCircle(const Point3 &center, real radius, E3DCOLOR col, int segs) const;
   virtual void renderCapsuleW(const Capsule &cap, E3DCOLOR c) const;
+  virtual void renderCylinder(const TMatrix &tm, float rad, float height, E3DCOLOR c) const override;
 
   virtual DebugPrimitivesVbuffer *newDebugPrimitivesVbuffer(const char *name, IMemAlloc *alloc = NULL) const;
   virtual void deleteDebugPrimitivesVbuffer(DebugPrimitivesVbuffer *&vbuf) const;
@@ -87,6 +89,8 @@ public:
   virtual void renderTextFmt(real x, real y, E3DCOLOR color, const char *format, const DagorSafeArg *arg, int anum) const;
   virtual BBox2 getTextBBox(const char *str, int len = -1) const;
   virtual int setTextFont(int font_id, int font_kern = 0) const;
+  virtual void getFontAscentAndDescent(int &ascent, int &descent) const override;
+  virtual void drawSolidRectangle(real left, real top, real right, real bottom, E3DCOLOR color) const override;
 };
 
 

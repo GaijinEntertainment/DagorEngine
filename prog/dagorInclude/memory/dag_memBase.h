@@ -1,20 +1,11 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <stddef.h>
-
-// pseudo-SAL definitiona for targets that don't support them
-#if defined(_Ret_opt_bytecap_)
-#define SAL_BCOUNT _Ret_bytecap_
-#elif defined(__bcount)
-#define SAL_BCOUNT __bcount
-#else
-#define SAL_BCOUNT(x)
-#endif
+#include <util/dag_preprocessor.h>
 
 #ifdef DAGOR_PREFER_HEAP_ALLOCATION
 #elif defined(__clang__) && defined(__has_feature)
@@ -136,19 +127,18 @@ public:
 };
 
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
-#define DAG_MEMBASE_CONCAT(a, b) a##b
-#define DECLARE_DELETER(alloc)              \
-  struct DAG_MEMBASE_CONCAT(alloc, Deleter) \
-  {                                         \
-    template <typename T>                   \
-    void operator()(T *ptr) const           \
-    {                                       \
-      if (ptr)                              \
-        ptr->~T();                          \
-      alloc##_ptr()->free(ptr);             \
-    }                                       \
+#define DECLARE_DELETER(alloc)      \
+  struct DAG_CONCAT(alloc, Deleter) \
+  {                                 \
+    template <typename T>           \
+    void operator()(T *ptr) const   \
+    {                               \
+      if (ptr)                      \
+        ptr->~T();                  \
+      alloc##_ptr()->free(ptr);     \
+    }                               \
   }
 
 //
@@ -174,7 +164,6 @@ DECL_MEM(defaultmem); //< memory used by default (in operator new)
 
 #undef DECL_MEM
 #undef DECLARE_DELETER
-#undef DAG_MEMBASE_CONCAT
 
 
 /// C-style functions to provide allocation/deallocation
@@ -206,60 +195,72 @@ inline void memdelete_aligned(T *p, IMemAlloc *a)
   a->freeAligned(p);
 }
 
+#if __cplusplus >= 201703L || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703) // C++17
+#define DAG_NOEXCEPT noexcept
+#define DAG_THROW_BAD_ALLOC
+#else
+#define DAG_NOEXCEPT throw()
+#ifdef _MSC_VER
+#define DAG_THROW_BAD_ALLOC
+#else
+#include <new>
+#define DAG_THROW_BAD_ALLOC throw(std::bad_alloc)
+#endif
+#endif
+
+namespace std //-V1061
+{
+enum class align_val_t : size_t;
+struct nothrow_t;
+} // namespace std
+
 /// overloaded operators new/delete
 #if _TARGET_APPLE | _TARGET_PC_LINUX | _TARGET_ANDROID | defined(__clang__)
-#include <new>
 extern "C" KRNLIMP void *memalloc(size_t sz);
 #if defined(__clang__) && ((((__clang_major__ << 8) | __clang_minor__) >= 0x501) && _TARGET_APPLE || \
                             (((__clang_major__ << 8) | __clang_minor__) >= 0x303)) // Apple clang 5.1 based on LLVM clang 3.3
 // from clang 5.1.0 these overrides must be in CPP
 #else
-#if (__cplusplus >= 201703L) // c++17
-__forceinline void *operator new(std::size_t s) noexcept(false) { return memalloc(s); }
-__forceinline void *operator new[](std::size_t s) noexcept(false) { return memalloc(s); }
-__forceinline void operator delete(void *p) noexcept { memfree_anywhere(p); }
-__forceinline void operator delete[](void *p) noexcept { memfree_anywhere(p); }
-__forceinline void operator delete(void *p, size_t) noexcept { memfree_anywhere(p); }
-__forceinline void operator delete[](void *p, size_t) noexcept { memfree_anywhere(p); }
-#else
-__forceinline void *operator new(std::size_t s) throw(std::bad_alloc) { return memalloc(s); }
-__forceinline void *operator new[](std::size_t s) throw(std::bad_alloc) { return memalloc(s); }
-__forceinline void operator delete(void *p) throw() { memfree_anywhere(p); }
-__forceinline void operator delete[](void *p) throw() { memfree_anywhere(p); }
-__forceinline void operator delete(void *p, size_t) throw() { memfree_anywhere(p); }
-__forceinline void operator delete[](void *p, size_t) throw() { memfree_anywhere(p); }
-#endif // c++17
+__forceinline void *operator new(size_t s) DAG_THROW_BAD_ALLOC { return memalloc(s); }
+__forceinline void *operator new(size_t s, const std::nothrow_t &) DAG_NOEXCEPT { return defaultmem->tryAlloc(s); }
+__forceinline void *operator new[](size_t s) DAG_THROW_BAD_ALLOC { return memalloc(s); }
+__forceinline void *operator new[](size_t s, const std::nothrow_t &) DAG_NOEXCEPT { return defaultmem->tryAlloc(s); }
+__forceinline void operator delete(void *p) DAG_NOEXCEPT { memfree_anywhere(p); }
+__forceinline void operator delete[](void *p) DAG_NOEXCEPT { memfree_anywhere(p); }
+__forceinline void operator delete(void *p, size_t) DAG_NOEXCEPT { memfree_anywhere(p); }
+__forceinline void operator delete[](void *p, size_t) DAG_NOEXCEPT { memfree_anywhere(p); }
 #endif
 #else
 __forceinline void *memalloc(size_t sz) { return defaultmem->alloc(sz); }
-__forceinline void *__cdecl operator new(size_t s) { return memalloc(s); }
-SAL_BCOUNT(_Size) __forceinline void *__cdecl operator new[](size_t _Size) { return memalloc(_Size); }
 
-__forceinline void __cdecl operator delete(void *p) { memfree_anywhere(p); }
-__forceinline void __cdecl operator delete[](void *p) { memfree_anywhere(p); }
-
-__forceinline void __cdecl operator delete(void *p, size_t) { memfree_anywhere(p); }
-__forceinline void __cdecl operator delete[](void *p, size_t) { memfree_anywhere(p); }
+__forceinline void *__cdecl operator new(size_t s) DAG_THROW_BAD_ALLOC { return memalloc(s); }
+__forceinline void *__cdecl operator new(size_t s, const std::nothrow_t &) DAG_NOEXCEPT { return defaultmem->tryAlloc(s); }
+__forceinline void *__cdecl operator new[](size_t s) DAG_THROW_BAD_ALLOC { return memalloc(s); }
+__forceinline void *__cdecl operator new[](size_t s, const std::nothrow_t &) DAG_NOEXCEPT { return defaultmem->tryAlloc(s); }
+__forceinline void __cdecl operator delete(void *p) DAG_NOEXCEPT { memfree_anywhere(p); }
+__forceinline void __cdecl operator delete[](void *p) DAG_NOEXCEPT { memfree_anywhere(p); }
+__forceinline void __cdecl operator delete(void *p, size_t) DAG_NOEXCEPT { memfree_anywhere(p); }
+__forceinline void __cdecl operator delete[](void *p, size_t) DAG_NOEXCEPT { memfree_anywhere(p); }
 #endif
 
-#if !defined(__clang__) && (__cplusplus >= 201703 || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703))
-#include <new>
-__forceinline void *__cdecl operator new(std::size_t sz, std::align_val_t al) { return defaultmem->allocAligned(sz, (size_t)al); }
-__forceinline void *__cdecl operator new[](std::size_t sz, std::align_val_t al) { return defaultmem->allocAligned(sz, (size_t)al); }
+#if !defined(__clang__) && (__cplusplus >= 201703 || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703)) && !defined(__SANITIZE_ADDRESS__)
+__forceinline void *__cdecl operator new(size_t sz, std::align_val_t al) { return defaultmem->allocAligned(sz, (size_t)al); }
+__forceinline void *__cdecl operator new[](size_t sz, std::align_val_t al) { return defaultmem->allocAligned(sz, (size_t)al); }
 __forceinline void __cdecl operator delete(void *ptr, std::align_val_t) noexcept { return defaultmem->freeAligned(ptr); }
 __forceinline void __cdecl operator delete[](void *ptr, std::align_val_t) noexcept { return defaultmem->freeAligned(ptr); }
+// TODO: aligned nothrow?
 #endif
 
-__forceinline void *__cdecl operator new(size_t sz, IMemAlloc *a) { return memalloc(sz, a); }
-__forceinline void *__cdecl operator new[](size_t sz, IMemAlloc *a) { return memalloc(sz, a); }
+__forceinline void *__cdecl operator new(size_t sz, IMemAlloc *a) DAG_NOEXCEPT { return memalloc(sz, a); }
+__forceinline void *__cdecl operator new[](size_t sz, IMemAlloc *a) DAG_NOEXCEPT { return memalloc(sz, a); }
 
 /// special inplace new/delete operators (used in dyntab)
 static constexpr int _NEW_INPLACE = 1;
 __forceinline void *__cdecl operator new(size_t /*sz*/, void *ptr, int /*dummy*/) { return (ptr); }
 
 #if DAGOR_DBGLEVEL > 0 || defined(DAGOR_EXCEPTIONS_ENABLED)
-__forceinline void __cdecl operator delete(void *p, IMemAlloc *a) { a->free(p); }
-__forceinline void __cdecl operator delete[](void *p, IMemAlloc *a) { a->free(p); }
+__forceinline void __cdecl operator delete(void *p, IMemAlloc *a) DAG_NOEXCEPT { a->free(p); }
+__forceinline void __cdecl operator delete[](void *p, IMemAlloc *a) DAG_NOEXCEPT { a->free(p); }
 
 // in-place delete is needed only when exception handling is on
 __forceinline void __cdecl operator delete(void * /*d*/, void * /*ptr*/, int /*dummy*/) {}
@@ -268,22 +269,26 @@ __forceinline void __cdecl operator delete(void * /*d*/, void * /*ptr*/, int /*d
 // default C style pool operating
 extern "C" KRNLIMP void *memalloc_default(size_t sz);
 extern "C" KRNLIMP void memfree_default(void *);
+extern "C" KRNLIMP void *memalloc_aligned_default(size_t sz, size_t alignment);
+extern "C" KRNLIMP void memfree_aligned_default(void *);
 extern "C" KRNLIMP void *memrealloc_default(void *, size_t sz);
 extern "C" KRNLIMP void *memcalloc_default(size_t, size_t);
 extern "C" KRNLIMP int memresizeinplace_default(void *, size_t sz);
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>
 
 #else //__cplusplus
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 // default C pool operating
 KRNLIMP void *memalloc_default(size_t sz);
 KRNLIMP void memfree_default(void *);
+KRNLIMP void *memalloc_aligned_default(size_t sz, size_t alignment);
+KRNLIMP void memfree_aligned_default(void *);
 KRNLIMP void *memrealloc_default(void *, size_t sz);
 KRNLIMP void *memcalloc_default(size_t, size_t);
 KRNLIMP int memresizeinplace_default(void *, size_t sz);
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>
 
 #endif //__cplusplus
 

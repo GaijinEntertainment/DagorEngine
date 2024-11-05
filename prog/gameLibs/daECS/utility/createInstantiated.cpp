@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/core/entityId.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/internal/typesAndLimits.h>

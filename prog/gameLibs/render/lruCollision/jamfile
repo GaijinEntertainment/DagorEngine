@@ -14,7 +14,6 @@ AddIncludes =
 
 Sources =
   lruCollision.cpp
-  lruCollisionRendinst.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

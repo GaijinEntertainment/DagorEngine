@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/dagFileRW/dagFileNode.h>
 #include <libTools/dagFileRW/dagFileFormat.h>
 #include <libTools/dagFileRW/sceneImpIface.h>
@@ -265,6 +267,8 @@ int My2LoadCB::load_node_data(char *name, uint16_t id, int cnum, int flg)
     cnode->flags |= NODEFLG_CASTSHADOW;
   if (flg & IMP_NF_RCVSHADOW)
     cnode->flags |= NODEFLG_RCVSHADOW;
+  if (flg & IMP_NF_POINTCLOUD)
+    cnode->flags |= NODEFLG_POINTCLOUD;
   return 1;
 }
 

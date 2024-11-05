@@ -1,0 +1,11 @@
+water_ripples {
+  _tags:t="render"
+  _singleton:b=true
+  "water_ripples:WaterRipples"{}
+  "water_ripples__origin_bbox:BBox3"{}
+  water_ripples__water_level:r=0.0
+}
+
+water_ripple_generator {
+  water_ripple_generator__emitter_history:p4=0,-100000,0,0
+}

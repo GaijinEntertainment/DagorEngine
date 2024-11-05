@@ -1,12 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_basePath.h>
 #include <osApiWrappers/dag_rwLock.h>
 #include <EASTL/hash_map.h>
 #include <EASTL/string.h>
-#if _TARGET_PC_WIN | _TARGET_XBOX
-#include <malloc.h>
-#elif defined(__GNUC__)
-#include <stdlib.h>
-#endif
+#include <supp/dag_alloca.h>
 #include <debug/dag_debug.h>
 
 static eastl::hash_map<eastl::string, eastl::string> named_mounts; // Note: intentionally no ska, since we return pointers to string

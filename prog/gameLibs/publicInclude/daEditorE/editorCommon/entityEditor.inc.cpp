@@ -16,6 +16,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <memory/dag_framemem.h>
 #include <bindQuirrelEx/bindQuirrelEx.h>
+#include <daEditorE/editorCommon/inGameEditor.h>
 #include <util/dag_convar.h>
 #include <ecs/core/utility/ecsRecreate.h>
 #include <rendInst/rendInstCollision.h>
@@ -24,6 +25,7 @@
 #include <debug/dag_debug3d.h>
 #include <gamePhys/collision/collisionLib.h>
 #include <quirrel/sqEventBus/sqEventBus.h>
+#include <json/json.h>
 #include <daEditorE/editorCommon/inGameEditor.h>
 #include <gui/dag_visualLog.h>
 
@@ -31,6 +33,7 @@
 CONSOLE_BOOL_VAL("daEd4", pick_rendinst, false);
 
 #define SELECTED_TEMPLATE "daeditor_selected"
+#define PREVIEW_TEMPLATE  "daeditor_preview_entity"
 
 static void removeSelectedTemplateName(eastl::string &templ_name)
 {
@@ -312,7 +315,11 @@ void EntityObjEditor::selectNewObjEntity(const char *name)
     o->setName(name);
     if (name && *name)
     {
-      const ecs::Template *templ = g_entity_mgr->getTemplateDB().getTemplateByName(name);
+      String previewTemplateName = String(name);
+      if (g_entity_mgr->getTemplateDB().getTemplateByName(PREVIEW_TEMPLATE))
+        previewTemplateName = String(0, "%s+%s", name, PREVIEW_TEMPLATE);
+
+      const ecs::Template *templ = g_entity_mgr->getTemplateDB().getTemplateByName(previewTemplateName);
       if (templ && templ->isSingleton())
       {
         o->resetEid();
@@ -333,7 +340,7 @@ void EntityObjEditor::selectNewObjEntity(const char *name)
         if (o->getEid() != ecs::INVALID_ENTITY_ID)
           g_entity_mgr->destroyEntity(o->getEid());
 
-        EntCreateData cd(name, &tm);
+        EntCreateData cd(previewTemplateName, &tm);
         o->replaceEid(createEntitySample(&cd));
         o->setWtm(tm);
 
@@ -418,8 +425,7 @@ void EntityObjEditor::createObjectBySample(EditableObject *so)
     if (singl || !noEntityObj->hasTransform())
       visuallog::logmsg(String(0, "created %sentity %u (%s)", singl ? "singleton " : "", noEntityObj->getEid(), templName.c_str()));
 
-    if (HSQUIRRELVM vm = sqeventbus::get_vm())
-      sqeventbus::send_event("entity_editor.onEntityNewBySample", Sqrat::Object(noEntityObj->getEid(), vm));
+    sqeventbus::send_event("entity_editor.onEntityNewBySample", Json::Value((ecs::entity_id_t)noEntityObj->getEid()));
   }
   getUndoSystem()->accept("Add Entity");
 }
@@ -453,6 +459,17 @@ bool EntityObjEditor::cancelCreateMode()
   }
 
   return true;
+}
+
+void EntityObjEditor::beforeRender()
+{
+  if (is_editor_in_reload() && !--delay_to_update_eids)
+  {
+    refreshEids();
+    finish_editor_reload();
+    delay_to_update_eids = DELAY_TO_UPDATE_EIDS;
+  }
+  ObjectEditor::beforeRender();
 }
 
 void EntityObjEditor::render(const Frustum &frustum, const Point3 &camera_pos)
@@ -1713,7 +1730,8 @@ void EntityObjEditor::saveDelTemplate(ecs::EntityId eid, const char *templ_name,
 void EntityObjEditor::register_script_class(HSQUIRRELVM vm)
 {
   Sqrat::Class<EntityObjEditor, Sqrat::NoConstructor<EntityObjEditor>> sqEntityObjEditor(vm, "EntityObjEditor");
-  sqEntityObjEditor.Func("selectEntities", &EntityObjEditor::selectEntities)
+  sqEntityObjEditor //
+    .Func("selectEntities", &EntityObjEditor::selectEntities)
     .Func("selectEcsTemplate", &EntityObjEditor::selectNewObjEntity)
     .Func("hasUnsavedChanges", &EntityObjEditor::hasUnsavedChanges)
     .Func("saveObjects", &EntityObjEditor::saveObjects)
@@ -1733,7 +1751,8 @@ void EntityObjEditor::register_script_class(HSQUIRRELVM vm)
     .Func("checkSceneEntities", &EntityObjEditor::checkSceneEntities)
     .Func("reCreateEditorEntity", &EntityObjEditor::reCreateEditorEntity)
     .Func("makeSingletonEntity", &EntityObjEditor::makeSingletonEntity)
-    .Func("selectEntity", &EntityObjEditor::selectEntity);
+    .Func("selectEntity", &EntityObjEditor::selectEntity)
+    /**/;
 }
 
 void entity_obj_editor_for_each_entity(EntityObjEditor &editor, eastl::fixed_function<sizeof(void *), void(EntityObj *)> cb)

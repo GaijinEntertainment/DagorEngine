@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -59,6 +58,8 @@ struct EngineMass
   Point3 propPos;
 };
 
+typedef uint64_t PartsPresenceFlags;
+
 struct Mass
 {
 public:
@@ -102,6 +103,9 @@ public:
   float nitro;    // current afterburner Feed Load
   float maxNitro; // afterburner Feed Capacity
 
+  bool hasFuelDumping;
+  float fuelDumpingRate;
+
   Point3 centerOfGravity;
   Point3 initialCenterOfGravity;
   Point2 centerOfGravityClampY;
@@ -111,8 +115,9 @@ public:
   DPoint3 momentOfInertia;         // current total J
 
   bool advancedMass;
+  Tab<PartMass> advancedMasses;
   bool doesPayloadAffectCOG;
-  Tab<PartMass> masses;
+  Tab<PartMass> dynamicMasses;
 
   struct CollisionNodeMass
   {
@@ -160,9 +165,12 @@ public:
 
   float leakFuel(float amount, int tank_num);
 
+  float dumpFuel(float amount);
+
   bool consumeNitro(float amount);
 
-  void computeMasses(dag::ConstSpan<PartMass> parts, float payload_cog_mult, float payload_im_mult);
+  void computeMasses(dag::ConstSpan<PartMass> parts, float payload_cog_mult, float payload_im_mult,
+    PartsPresenceFlags parts_presence_flags);
 
   // state set
 

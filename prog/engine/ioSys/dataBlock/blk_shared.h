@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <ioSys/dag_dataBlock.h>
@@ -6,7 +7,10 @@
 #include <util/dag_simpleString.h>
 #include <osApiWrappers/dag_atomic.h>
 
+#ifndef DATABLOCK_USES_FIXED_BLOCK_ALLOCATOR
 #define DATABLOCK_USES_FIXED_BLOCK_ALLOCATOR 1
+#endif
+
 static constexpr uint32_t IS_NAMEMAP_ID = 0x80000000;
 static inline bool is_string_id_in_namemap(uint32_t id) { return id & IS_NAMEMAP_ID; };
 static inline uint32_t namemap_id_from_string_id(uint32_t id) { return id & ~IS_NAMEMAP_ID; };

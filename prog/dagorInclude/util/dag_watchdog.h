@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -31,6 +30,7 @@ static constexpr int WATCHDOG_DISABLE = 0;
 struct WatchdogConfig
 {
   bool (*keep_sleeping_cb)();
+  void (*on_freeze_cb)();
   int flags;
   int triggering_threshold_ms;
   int dump_threads_threshold_ms;
@@ -38,7 +38,7 @@ struct WatchdogConfig
   WatchdogConfig() { memset(this, 0, sizeof(*this)); }
 };
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 KRNLIMP void watchdog_init(WatchdogConfig *cfg = NULL);
 KRNLIMP void watchdog_shutdown();
 KRNLIMP void watchdog_kick();
@@ -46,7 +46,7 @@ KRNLIMP intptr_t watchdog_set_option(int option, intptr_t p0 = 0, intptr_t p1 = 
 #if _TARGET_PC_WIN
 KRNLIMP bool is_watchdog_thread(uintptr_t thread_id);
 #endif
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>
 
 class ScopeSetWatchdogCurrentThreadDump
 {

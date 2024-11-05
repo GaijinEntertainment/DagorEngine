@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/ObjCreator3d/objCreator3d.h>
 
 #include <libTools/staticGeom/staticGeometry.h>

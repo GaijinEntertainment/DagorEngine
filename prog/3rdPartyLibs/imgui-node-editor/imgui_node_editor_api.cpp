@@ -1,4 +1,6 @@
 //------------------------------------------------------------------------------
+// VERSION 0.9.1
+//
 // LICENSE
 //   This software is dual-licensed to the public domain and under the following
 //   license: you are granted a perpetual, irrevocable license to copy, modify,
@@ -31,8 +33,7 @@ static int BuildIdList(C& container, I* list, int listSize, F&& accept)
             {
                 list[count] = I(object->ID().AsPointer());
                 ++count;
-                --listSize;
-            }
+                --listSize;}
         }
 
         return count;
@@ -50,12 +51,36 @@ ax::NodeEditor::EditorContext* ax::NodeEditor::CreateEditor(const Config* config
 
 void ax::NodeEditor::DestroyEditor(EditorContext* ctx)
 {
-    if (GetCurrentEditor() == ctx)
-        SetCurrentEditor(nullptr);
+    auto lastContext = GetCurrentEditor();
+
+    // Set context we're about to destroy as current, to give callback valid context
+    if (lastContext != ctx)
+        SetCurrentEditor(ctx);
 
     auto editor = reinterpret_cast<ax::NodeEditor::Detail::EditorContext*>(ctx);
 
     delete editor;
+
+    if (lastContext != ctx)
+        SetCurrentEditor(lastContext);
+}
+
+const ax::NodeEditor::Config& ax::NodeEditor::GetConfig(EditorContext* ctx)
+{
+    if (ctx == nullptr)
+        ctx = GetCurrentEditor();
+
+    if (ctx)
+    {
+        auto editor = reinterpret_cast<ax::NodeEditor::Detail::EditorContext*>(ctx);
+
+        return editor->GetConfig();
+    }
+    else
+    {
+        static Config s_EmptyConfig;
+        return s_EmptyConfig;
+    }
 }
 
 void ax::NodeEditor::SetCurrentEditor(EditorContext* ctx)
@@ -211,10 +236,10 @@ bool ax::NodeEditor::Link(LinkId id, PinId startPinId, PinId endPinId, const ImV
     return s_Editor->DoLink(id, startPinId, endPinId, ImColor(color), thickness);
 }
 
-void ax::NodeEditor::Flow(LinkId linkId)
+void ax::NodeEditor::Flow(LinkId linkId, FlowDirection direction)
 {
     if (auto link = s_Editor->FindLink(linkId))
-        s_Editor->Flow(link);
+        s_Editor->Flow(link, direction);
 }
 
 bool ax::NodeEditor::BeginCreate(const ImVec4& color, float thickness)
@@ -341,11 +366,11 @@ bool ax::NodeEditor::QueryDeletedNode(NodeId* nodeId)
     return context.QueryNode(nodeId);
 }
 
-bool ax::NodeEditor::AcceptDeletedItem()
+bool ax::NodeEditor::AcceptDeletedItem(bool deleteDependencies)
 {
     auto& context = s_Editor->GetItemDeleter();
 
-    return context.AcceptItem();
+    return context.AcceptItem(deleteDependencies);
 }
 
 void ax::NodeEditor::RejectDeletedItem()
@@ -367,6 +392,11 @@ void ax::NodeEditor::SetNodePosition(NodeId nodeId, const ImVec2& position)
     s_Editor->SetNodePosition(nodeId, position);
 }
 
+void ax::NodeEditor::SetGroupSize(NodeId nodeId, const ImVec2& size)
+{
+    s_Editor->SetGroupSize(nodeId, size);
+}
+
 ImVec2 ax::NodeEditor::GetNodePosition(NodeId nodeId)
 {
     return s_Editor->GetNodePosition(nodeId);
@@ -381,6 +411,16 @@ void ax::NodeEditor::CenterNodeOnScreen(NodeId nodeId)
 {
     if (auto node = s_Editor->FindNode(nodeId))
         node->CenterOnScreenInNextFrame();
+}
+
+void ax::NodeEditor::SetNodeZPosition(NodeId nodeId, float z)
+{
+    s_Editor->SetNodeZPosition(nodeId, z);
+}
+
+float ax::NodeEditor::GetNodeZPosition(NodeId nodeId)
+{
+    return s_Editor->GetNodeZPosition(nodeId);
 }
 
 void ax::NodeEditor::RestoreNodeState(NodeId nodeId)
@@ -406,7 +446,7 @@ bool ax::NodeEditor::IsSuspended()
 
 bool ax::NodeEditor::IsActive()
 {
-    return s_Editor->IsActive();
+    return s_Editor->IsFocused();
 }
 
 bool ax::NodeEditor::HasSelectionChanged()
@@ -433,6 +473,22 @@ int ax::NodeEditor::GetSelectedLinks(LinkId* links, int size)
     {
         return object->AsLink() != nullptr;
     });
+}
+
+bool ax::NodeEditor::IsNodeSelected(NodeId nodeId)
+{
+    if (auto node = s_Editor->FindNode(nodeId))
+        return s_Editor->IsSelected(node);
+    else
+        return false;
+}
+
+bool ax::NodeEditor::IsLinkSelected(LinkId linkId)
+{
+    if (auto link = s_Editor->FindLink(linkId))
+        return s_Editor->IsSelected(link);
+    else
+        return false;
 }
 
 void ax::NodeEditor::ClearSelection()
@@ -488,6 +544,26 @@ bool ax::NodeEditor::DeleteLink(LinkId linkId)
         return s_Editor->GetItemDeleter().Add(link);
     else
         return false;
+}
+
+bool ax::NodeEditor::HasAnyLinks(NodeId nodeId)
+{
+    return s_Editor->HasAnyLinks(nodeId);
+}
+
+bool ax::NodeEditor::HasAnyLinks(PinId pinId)
+{
+    return s_Editor->HasAnyLinks(pinId);
+}
+
+int ax::NodeEditor::BreakLinks(NodeId nodeId)
+{
+    return s_Editor->BreakLinks(nodeId);
+}
+
+int ax::NodeEditor::BreakLinks(PinId pinId)
+{
+    return s_Editor->BreakLinks(pinId);
 }
 
 void ax::NodeEditor::NavigateToContent(float duration)
@@ -591,6 +667,21 @@ float ax::NodeEditor::GetCurrentZoom()
     return s_Editor->GetView().InvScale;
 }
 
+ax::NodeEditor::NodeId ax::NodeEditor::GetHoveredNode()
+{
+    return s_Editor->GetHoveredNode();
+}
+
+ax::NodeEditor::PinId ax::NodeEditor::GetHoveredPin()
+{
+    return s_Editor->GetHoveredPin();
+}
+
+ax::NodeEditor::LinkId ax::NodeEditor::GetHoveredLink()
+{
+    return s_Editor->GetHoveredLink();
+}
+
 ax::NodeEditor::NodeId ax::NodeEditor::GetDoubleClickedNode()
 {
     return s_Editor->GetDoubleClickedNode();
@@ -616,6 +707,30 @@ bool ax::NodeEditor::IsBackgroundDoubleClicked()
     return s_Editor->IsBackgroundDoubleClicked();
 }
 
+ImGuiMouseButton ax::NodeEditor::GetBackgroundClickButtonIndex()
+{
+    return s_Editor->GetBackgroundClickButtonIndex();
+}
+
+ImGuiMouseButton ax::NodeEditor::GetBackgroundDoubleClickButtonIndex()
+{
+    return s_Editor->GetBackgroundDoubleClickButtonIndex();
+}
+
+bool ax::NodeEditor::GetLinkPins(LinkId linkId, PinId* startPinId, PinId* endPinId)
+{
+    auto link = s_Editor->FindLink(linkId);
+    if (!link)
+        return false;
+
+    if (startPinId)
+        *startPinId = link->m_StartPin->m_ID;
+    if (endPinId)
+        *endPinId = link->m_EndPin->m_ID;
+
+    return true;
+}
+
 bool ax::NodeEditor::PinHadAnyLinks(PinId pinId)
 {
     return s_Editor->PinHadAnyLinks(pinId);
@@ -634,4 +749,14 @@ ImVec2 ax::NodeEditor::ScreenToCanvas(const ImVec2& pos)
 ImVec2 ax::NodeEditor::CanvasToScreen(const ImVec2& pos)
 {
     return s_Editor->ToScreen(pos);
+}
+
+int ax::NodeEditor::GetNodeCount()
+{
+    return s_Editor->CountLiveNodes();
+}
+
+int ax::NodeEditor::GetOrderedNodeIds(NodeId* nodes, int size)
+{
+    return s_Editor->GetNodeIds(nodes, size);
 }

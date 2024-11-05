@@ -1,8 +1,9 @@
-
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "shader.h"
 #include "vdecl.h"
+#include <drv/3d/dag_renderStates.h>
 
 namespace drv3d_metal
 {

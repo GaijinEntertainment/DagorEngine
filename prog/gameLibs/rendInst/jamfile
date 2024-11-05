@@ -33,6 +33,7 @@ Sources =
   rendInstDesc.cpp
   riGrid.cpp
   riGridDebug.cpp
+  treeDestr.cpp
 
   render/clipmapShadow.cpp
   render/gpuObjects.cpp
@@ -58,26 +59,25 @@ if $(HaveRenderer) = yes {
   Target = $(Target:S=~nrdr.lib) ;
 }
 
-CPPopt = -DUSE_GRID_FOR_RI=true ;
-
-if $(Platform) = linux64 || $(PlatformSpec) = clang {
-  if $(Platform) in win32 win64 xboxOne scarlett {
-    CPPopt += /clang:-fno-reciprocal-math ;
-  } else if $(Platform) = linux64 && $(LinuxArch) = e2k {
-  } else {
-    CPPopt += -fno-reciprocal-math ;
-  }
+# Workaround buggy msvc 32-bit compiler
+if $(PlatformSpec) in vc15 vc16 vc17 && $(PlatformArch) in x86 {
+  opt on riGrid.cpp = /GS- ;
 }
+
+CPPopt = -DUSE_GRID_FOR_RI=true ;
+if $(BuildingTools) = yes { Target = $(Target:S=~t.lib) ; CPPopt += -D_TARGET_PC_TOOLS_BUILD ; }
 
 UseProgLibs =
   gameLibs/render/texcompressors
   gameLibs/render/primitiveObjects
   gameLibs/render/debug3dSolid
+  gameLibs/render/pointLod
   engine/lib3d
   engine/libFx
   engine/consoleProc
   3rdPartyLibs/regExp
   gameLibs/gpuObjects
+  gameLibs/gameMath # for read_interpolate_tab_float_p2() in treeDestr.cpp
 ;
 
 if $(Config) != rel

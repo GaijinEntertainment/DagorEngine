@@ -1,8 +1,14 @@
-// fields that define framebuffer
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-#include <3d/dag_drvDecl.h>
+
+// fields that define framebuffer
+
+#include <drv/3d/dag_decl.h>
+#include <math/dag_e3dColor.h>
+
 #include "util/tracked_state.h"
 #include "driver.h"
+#include "image_view_state.h"
 
 namespace drv3d_vulkan
 {

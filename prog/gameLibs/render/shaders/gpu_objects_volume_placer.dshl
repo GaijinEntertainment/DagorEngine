@@ -27,6 +27,8 @@ float gpu_objects_distance_to_max_rotation;
 float4 gpu_objects_distance_to_scale_pow;
 float gpu_objects_distance_to_rotation_pow;
 int gpu_objects_distance_out_of_range;
+float4 gpu_objects_remove_box_min;
+float4 gpu_objects_remove_box_max;
 
 int gpu_objects_distance_affect_decal = 0;
 interval gpu_objects_distance_affect_decal: no<1, yes;
@@ -62,7 +64,7 @@ hlsl(cs)
     gpuObjectsMatrices[at + 2] = float4(orientation[2], pos.z);
     //TODO gpu_object_placer doesn't yet support randomized color feature of ri_gpu_object
     //Setting the color to white here means that on assets that expect the coloring feature working won't become black
-    gpuObjectsMatrices[at + 3] = float4(asfloat(0xFFFFFFFF), asfloat(gpu_objects_ri_pool_id_offset), 0.0, 0.0);
+    gpuObjectsMatrices[at + 3] = float4(asfloat(gpu_objects_ri_pool_id_offset), 0.0, asfloat(0xFFFFFFFF), 0.0);
   }
 
   void addInstance(float3 pos, float3 direction, float rotate, float scale, int at)
@@ -118,6 +120,21 @@ hlsl(cs)
   float3 get_3d_random_from_placer(uint seed, const float4x4 placer_tm)
   {
     float2 randomxy = get_2d_random_from_placer(seed, placer_tm);
+    float randomz = frac(sin(dot(randomxy, float2(12.9898,78.233))) * 43758.5453);
+    return float3(randomxy, randomz);
+  }
+
+  float2 get_2d_random_uniform_from_placer(uint seed, const float4x4 placer_tm)
+  {
+    seed += uint(frac(placer_tm[3][0]) * 128) + uint(frac(placer_tm[3][2]) * 128 * 128);
+    seed %= 128 * 128;
+    int2 tci = int2(seed % 128, seed / 128);
+    return texelFetch(noise_128_tex_hash, tci, 0).rg;
+  }
+
+  float3 get_3d_random_uniform_from_placer(uint seed, const float4x4 placer_tm)
+  {
+    float2 randomxy = get_2d_random_uniform_from_placer(seed, placer_tm);
     float randomz = frac(sin(dot(randomxy, float2(12.9898,78.233))) * 43758.5453);
     return float3(randomxy, randomz);
   }
@@ -558,7 +575,7 @@ shader gpu_objects_compute_terrain_objects_count_cs
   {
     #include "gpuObjects/gpu_objects_const.hlsli"
 
-    RWBuffer<uint> counter : register(u1);
+    RWByteAddressBuffer counter : register(u1);
 
     [numthreads(DISPATCH_WARP_SIZE, 1, 1)]
     void compute_terrain_objects_count(uint dtId : SV_DispatchThreadID)
@@ -573,7 +590,8 @@ shader gpu_objects_compute_terrain_objects_count_cs
       // but since the readback can cause a few frames delay, this check is not the same as during the gpu object filling
       if (y_min_max[0] <= worldPos.y && y_min_max[1] >= worldPos.y)
       {
-        InterlockedAdd(counter[TERRAIN_OBJECTS_COUNT], 1);
+        uint at;
+        counter.InterlockedAdd(TERRAIN_OBJECTS_COUNT * 4, 1, at);
       }
     }
   }
@@ -606,7 +624,7 @@ shader gpu_objects_on_terrain_geometry_placer_cs
   {
     #include "gpuObjects/gpu_objects_const.hlsli"
 
-    RWBuffer<uint> counter : register(u1);
+    RWByteAddressBuffer counter : register(u1);
 
     [numthreads(DISPATCH_WARP_SIZE, 1, 1)]
     void gather_matrices(uint dtId : SV_DispatchThreadID )
@@ -620,7 +638,7 @@ shader gpu_objects_on_terrain_geometry_placer_cs
       if (y_min_max[0] <= worldPos.y && y_min_max[1] >= worldPos.y)
       {
         uint on_terrain_index;
-        InterlockedAdd(counter[TERRAIN_INDEX], 1, on_terrain_index);
+        counter.InterlockedAdd(TERRAIN_INDEX * 4, 1, on_terrain_index);
         // this guarantees we don't put more objects into the buffer than its reserved area
         // (but we can still fill less than that, so we need to clear the buffer first)
         if (on_terrain_index >= uint(count))
@@ -630,7 +648,7 @@ shader gpu_objects_on_terrain_geometry_placer_cs
         float distance = length(worldPos - placer_tm[3].xyz);
         scale *= lerp(scale_radius.x, scale_radius.y, saturate(distance * scale_radius.z));
 
-        int offset = (int(gpu_objects_buffer_offset) + int(gpu_objects_on_rendinst_geometry_matrices_count) + int(dtId)) * ROWS_IN_MATRIX;
+        int offset = (int(gpu_objects_buffer_offset) + int(gpu_objects_on_rendinst_geometry_matrices_count) + int(on_terrain_index)) * ROWS_IN_MATRIX;
         float3 up = getWorldNormal(worldPos);
         const float EPS = 0.00001;
         uint seed = uint(dtId * (1.0f / (randValues.x + EPS)));
@@ -667,10 +685,56 @@ shader gpu_objects_clear_terrain_objects_cs
         return;
 
       int offset = (int(gpu_objects_buffer_offset) + int(gpu_objects_on_rendinst_geometry_matrices_count) + int(dtId)) * ROWS_IN_MATRIX;
-      addInstance((float3)0, (float3x3)0, 0.0, offset);
+      addInstance((float3)NaN, (float3x3)NaN, NaN, offset);
     }
   }
   compile("cs_5_0", "clear_objects");
+}
+
+shader gpu_objects_remove_objects_cs
+{
+  (cs) {
+    buf_offset@i1 = (gpu_objects_buffer_offset);
+    count@i1 = (gpu_objects_on_terrain_geometry_matrices_count);
+    rendinst_count@i1 = (gpu_objects_on_rendinst_geometry_matrices_count);
+    box_min@f3 = gpu_objects_remove_box_min.xyz;
+    box_max@f3 = gpu_objects_remove_box_max.xyz;
+  }
+  ADD_INSTANCE()
+  hlsl(cs) {
+    #include "gpuObjects/gpu_objects_const.hlsli"
+
+    float3 getPosition(int index)
+    {
+      return float3(
+        gpuObjectsMatrices[index + 0][3],
+        gpuObjectsMatrices[index + 1][3],
+        gpuObjectsMatrices[index + 2][3]
+      );
+    }
+
+    bool testBbox(float3 v, float3 bottomLeft, float3 topRight)
+    {
+      const float EPS = 0.00001;
+      float3 s = clamp(v, bottomLeft, topRight);
+      return all(s-v < EPS);
+    }
+
+    [numthreads(DISPATCH_WARP_SIZE, 1, 1)]
+    void remove_objects(uint thread_id : SV_DispatchThreadID)
+    {
+      if (thread_id >= uint(count+rendinst_count))
+        return;
+
+      const float3 extreme_pos = float3(-666666, -666666, -666666);
+
+      int offset = (buf_offset + thread_id) * ROWS_IN_MATRIX;
+      float3 position = getPosition(offset);
+      if (testBbox(position, box_min, box_max))
+        addInstance(extreme_pos, (float3x3)NaN, NaN, offset);
+    }
+  }
+  compile("cs_5_0", "remove_objects");
 }
 
 shader gpu_objects_on_rendinst_geometry_placer_cs
@@ -701,7 +765,7 @@ shader gpu_objects_on_rendinst_geometry_placer_cs
         return;
       int offset = (buf_offset + thread_id) * ROWS_IN_MATRIX;
 
-      float3 randValues = get_3d_random_from_placer(thread_id, placer_tm);
+      float3 randValues = get_3d_random_uniform_from_placer(thread_id, placer_tm);
 
       uint num_faces = min((uint)max_triangles, loadBuffer(counter, TRIANGLES_COUNT * 4));
       float targetArea = structuredBufferAt(triangles, num_faces - 1).areaDoubled * randValues.z;
@@ -726,7 +790,7 @@ shader gpu_objects_on_rendinst_geometry_placer_cs
       float3 worldPos = (1 - dot(clippedRand, 1)) * v1 + clippedRand.x * v2 + clippedRand.y * v3;
       float3 normal = normalize(cross(v2 - v1, v3 - v1));
       const float EPS = 0.00001;
-      randValues.xy =  get_2d_random_from_placer(thread_id * (1.0f / (randValues.x + EPS)), placer_tm);
+      randValues.xy = get_2d_random_uniform_from_placer(thread_id * (1.0f / (randValues.x + EPS)), placer_tm);
       float scale = lerp(scale_range.x, scale_range.y, randValues.x);
       float distance = length(worldPos - placer_tm[3].xyz);
       scale *= lerp(scale_radius.x, scale_radius.y, saturate(distance * scale_radius.z));

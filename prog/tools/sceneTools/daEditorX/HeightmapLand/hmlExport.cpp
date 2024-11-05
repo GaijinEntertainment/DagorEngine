@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hmlPlugin.h"
 
-#include <dllPluginCore/core.h>
+#include <EditorCore/ec_IEditorCore.h>
 
 #include <osApiWrappers/dag_direct.h>
 #include <ioSys/dag_memIo.h>
@@ -21,6 +23,8 @@
 
 // the 3d/ddsFormat.h included by mokeDDS.h indirectly includes wingdi.h which defines ERROR with a macro
 #undef ERROR
+
+using editorcore_extapi::dagTools;
 
 bool game_res_sys_v2 = false;
 int exportImageAsDds(mkbindump::BinDumpSaveCB &cb, TexPixel32 *image, int size, int format, int mipmap_count, bool gamma1);
@@ -336,6 +340,7 @@ static void expandImageBorder(TexPixel32 *image, int size, int data_size)
 }
 
 
+#if 0
 static void exportColorAndLightMaps(mkbindump::BinDumpSaveCB &cb, MapStorage<E3DCOLOR> &colormap, MapStorage<uint32_t> &lightmap,
   int elem_size, int num_lods, int lightmapScaleFactor, int base_ofs, bool use_normal_map)
 {
@@ -395,7 +400,7 @@ static void exportColorAndLightMaps(mkbindump::BinDumpSaveCB &cb, MapStorage<E3D
       expandImageBorder(&image[0], texSize, texDataSize);
 
       ddstexture::Converter::Format fmt = ddstexture::Converter::fmtDXT1;
-      if (cb.getTarget() == _MAKE4C('iOS'))
+      if (HmapLandPlugin::useASTC(cb.getTarget()))
         fmt = ddstexture::Converter::fmtASTC8;
       colorTexSz = exportImageAsDds(cb, &image[0], texSize, fmt, ddstexture::Converter::AllMipMaps, false);
 
@@ -406,7 +411,7 @@ static void exportColorAndLightMaps(mkbindump::BinDumpSaveCB &cb, MapStorage<E3D
         expandImageBorder(&image[0], texSize * lightmapScaleFactor, texDataSize * lightmapScaleFactor);
 
         ddstexture::Converter::Format fmt = ddstexture::Converter::fmtDXT5;
-        if (cb.getTarget() == _MAKE4C('iOS'))
+        if (HmapLandPlugin::useASTC(cb.getTarget()))
           fmt = ddstexture::Converter::fmtASTC4;
         lightTexSz = exportImageAsDds(cb, &image[0], texSize * lightmapScaleFactor, fmt, ddstexture::Converter::AllMipMaps, true);
       }
@@ -436,6 +441,7 @@ static void exportColorAndLightMaps(mkbindump::BinDumpSaveCB &cb, MapStorage<E3D
 
   con.endProgress();
 }
+#endif
 
 int exportImageAsDds(mkbindump::BinDumpSaveCB &cb, TexPixel32 *image, int size, int format, int mipmap_count, bool gamma1)
 {
@@ -486,7 +492,7 @@ int hmap_export_dds_as_ddsx_raw(mkbindump::BinDumpSaveCB &cb, char *data, int si
 {
   Tab<char> dds_data;
   char buf[1024];
-  if (!create_dds_header(buf, sizeof(buf), w, h, bpp, levels, fmt, cb.getTarget() == _MAKE4C('iOS')))
+  if (!create_dds_header(buf, sizeof(buf), w, h, bpp, levels, fmt, HmapLandPlugin::useASTC(cb.getTarget())))
   {
     CoolConsole &con = DAGORED2->getConsole();
     con.startLog();
@@ -756,7 +762,7 @@ bool aces_export_detail_maps(mkbindump::BinDumpSaveCB &cb, int mapSizeX, int map
         {
           ddstexture::Converter cnv;
           cnv.format = (fmt == TEXFMT_DXT5) ? ddstexture::Converter::fmtDXT5 : ddstexture::Converter::fmtDXT1;
-          if (cb.getTarget() == _MAKE4C('iOS'))
+          if (HmapLandPlugin::useASTC(cb.getTarget()))
             cnv.format = (fmt == TEXFMT_DXT5) ? ddstexture::Converter::fmtASTC4 : ddstexture::Converter::fmtASTC8;
           cnv.mipmapType = ddstexture::Converter::mipmapNone;
           cnv.mipmapCount = 0;

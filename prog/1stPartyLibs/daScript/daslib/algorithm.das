@@ -139,7 +139,7 @@ def lower_bound ( a; f, l : int; val:auto(TT); less : block<(a, b:TT const-&):bo
         return -1
     else
         unsafe
-            return lower_bound(temp_array(a), f, l, value, less)
+            return lower_bound(temp_array(a), f, l, val, less)
 
 [expect_any_array(a)]
 def lower_bound ( a; val:auto(TT); less : block<(a, b:TT const-&):bool> )
@@ -225,3 +225,42 @@ def topological_sort ( nodes : array<auto(Node)> )
                 panic("cyclic dependency detected")
             delete unsorted
         return <- sorted
+
+def intersection ( a,b : table<auto(TT)> ) : table<TT>
+    //! Returns the intersection of two sets
+    var result : table<TT>
+    if length(a) < length(b)
+        for k in keys(a)
+            if b |> key_exists(k)
+                result |> insert(k)
+    else
+        for k in keys(b)
+            if a |> key_exists(k)
+                result |> insert(k)
+    return <- result
+
+def union ( a,b : table<auto(TT)> ) : table<TT>
+    //! Returns the union of two sets
+    var result : table<TT>
+    for k in keys(a)
+        result |> insert(k)
+    for k in keys(b)
+        result |> insert(k)
+    return <- result
+
+def difference ( a,b : table<auto(TT)> ) : table<TT>
+    //! Returns the difference of two sets
+    var result : table<TT>
+    for k in keys(a)
+        if ! b |> key_exists(k)
+            result |> insert(k)
+    return <- result
+
+def identical ( a,b : table<auto(TT)> ) : bool
+    //! Returns true if the two sets are identical
+    if length(a) != length(b)
+        return false
+    for k in keys(a)
+        if ! b |> key_exists(k)
+            return false
+    return true

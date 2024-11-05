@@ -1,22 +1,19 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <daRg/dag_inputIds.h>
 #include <daRg/dag_guiConstants.h>
-#include <generic/dag_tab.h>
 #include <util/dag_string.h>
-#include <humanInput/dag_hiPointingData.h>
+#include <drv/hid/dag_hiPointingData.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_e3dColor.h>
 #include <math/dag_frustum.h>
 #include <EASTL/vector.h>
 #include <EASTL/optional.h>
-#include <3d/dag_resId.h>
-
+#include <drv/3d/dag_texture.h>
 
 typedef struct SQVM *HSQUIRRELVM;
 class SqModules;
@@ -135,6 +132,7 @@ public:
   virtual void buildRender() = 0;
   virtual void buildPanelRender(int panel_idx) = 0;
   virtual void flushRender() = 0;
+  virtual void flushPanelRender() = 0;
   virtual void refreshGuiContextState() = 0;
 
   // returns a combination of BehaviorResult flags
@@ -150,7 +148,7 @@ public:
   // returns a combination of BehaviorResult flags
   virtual int onJoystickBtnEvent(HumanInput::IGenJoystick *joy, InputEvent event, int key_idx, int dev_n,
     const HumanInput::ButtonBits &buttons, int prev_result = 0) = 0;
-
+  // returns a combination of BehaviorResult flags
   virtual int onVrInputEvent(InputEvent event, int hand, int prev_result = 0) = 0;
 
   virtual void setVrStickScroll(int hand, const Point2 &scroll) = 0;
@@ -162,11 +160,14 @@ public:
   virtual void onKeyboardLayoutChanged(const char *layout) = 0;
   virtual void onKeyboardLocksChanged(unsigned locks) = 0;
 
+  virtual Element *traceInputHit(InputDevice device, Point2 pos) = 0;
+
   virtual StringKeys *getStringKeys() const = 0;
 
   virtual bool hasInteractiveElements() = 0;
   virtual bool hasInteractiveElements(int bhv_flags) = 0;
   virtual bool hasActiveCursor() = 0; //< for WT mouse mode management
+  virtual bool getForcedCursorMode(bool &out_value) = 0;
 
   virtual void activateProfiler(bool on) = 0;
   virtual Profiler *getProfiler() = 0;
@@ -181,7 +182,7 @@ public:
   virtual void ignoreDeviceCursorPos(bool on) = 0;
 
   virtual bool haveActiveCursorOnPanels() const = 0;
-  virtual eastl::optional<float> isAnyPanelPointedAtWithHand(int hand) const = 0;
+  virtual bool isAnyPanelPointedAtWithHand(int hand) const = 0;
   virtual bool isAnyPanelTouchedWithHand(int /*hand*/) const { return false; }
   typedef bool (*vr_surface_intersect)(const Point3 &pos, const Point3 &dir, Point2 &point_in_gui, Point3 &hit_pos);
   using EntityTransformResolver = TMatrix (*)(uint32_t, const char *);
@@ -198,8 +199,19 @@ public:
     vr_surface_intersect vrSurfaceIntersector = nullptr;
     EntityTransformResolver entityTmResolver = nullptr;
   };
+
+  virtual void renderPanelTo(int panel_idx, BaseTexture *dst) = 0;
   virtual void updateSpatialElements(const VrSceneData &vr_scene) = 0;
+  virtual void refreshVrCursorProjections() = 0;
   virtual bool hasAnyPanels() = 0;
+
+  // Returns true iff panel was hit.
+  // TODO: it is awkward tha GUI has to know about the game world...
+  virtual bool worldToPanelPixels(int /* panel_idx */, const Point3 & /* world_target_pos */, const Point3 & /* world_cam_pos */,
+    Point2 & /* out_panel_pos */)
+  {
+    return false;
+  }
 };
 
 

@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -14,6 +13,7 @@
 #include <vecmath/dag_vecMathDecl.h>
 #include <math/dag_color.h>
 #include <math/dag_bounds3.h>
+#include <math/integer/dag_IBBox2.h>
 #include <math/integer/dag_IPoint2.h>
 #include <3d/dag_texMgr.h>
 #include <util/dag_simpleString.h>
@@ -24,6 +24,8 @@
 #include <shaders/dag_overrideStateId.h>
 #include <EASTL/vector_map.h>
 #include <EASTL/vector.h>
+#include <drv/3d/dag_decl.h>
+#include <physMap/physMap.h>
 
 enum LandClassData
 {
@@ -65,6 +67,19 @@ public:
   virtual void endRenderCellRegion(int region) = 0;
   virtual const IBBox2 *regions() const = 0;
   virtual int regionsCount() const = 0;
+};
+
+class EmptyRegionCallback : public CellRegionCallback
+{
+public:
+  int count;
+  EmptyRegionCallback() : count(1) {}
+  EmptyRegionCallback(int c) : count(c) {}
+  virtual void startRenderCellRegion(int) {}
+  virtual void endRenderCellRegion(int /*region*/) {}
+  virtual const IBBox2 *regions() const { return NULL; }
+
+  virtual int regionsCount() const { return count; }
 };
 #endif
 
@@ -108,6 +123,7 @@ public:
   friend struct LandMeshCullingState;
 
 public:
+  PhysMap *physMap = nullptr;
   LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<LandClassDetailTextures> land_classes, TEXTUREID vert_tex_id,
     TEXTUREID vert_tex_nm_id, TEXTUREID vert_det_tex_id, TEXTUREID tile_tex, real tile_x, real tile_y);
   ~LandMeshRenderer();
@@ -156,16 +172,18 @@ public:
   static void afterLostDevice();
 #endif
 #if DAGOR_DBGLEVEL > 0
-  static bool check_cull_matrix(const TMatrix &realView, const TMatrix4 &realProj, const TMatrix4 &realGlobtm, const char *marker,
-    const LandMeshCullingData &data, bool do_fatal);
+  static bool check_cull_matrix(const TMatrix &realView, const TMatrix4 &realProj, const Driver3dPerspective &persp,
+    const TMatrix4 &realGlobtm, const char *marker, const LandMeshCullingData &data, bool do_fatal);
 #endif
 
   void renderCulled(LandMeshManager &provider, RenderType rtype, const LandMeshCullingData &culledData, const TMatrix *realView,
-    const TMatrix4 *realProj, const TMatrix4 *realGlobtm, const Point3 &view_pos, bool check_matrices = true,
-    RenderPurpose rpurpose = DEFAULT_RENDERING_PURPOSE);
+    const TMatrix4 *realProj, const Driver3dPerspective *persp, const TMatrix4 *realGlobtm, const Point3 &view_pos,
+    bool check_matrices = true, RenderPurpose rpurpose = DEFAULT_RENDERING_PURPOSE);
   void renderCulled(LandMeshManager &provider, RenderType rtype, const LandMeshCullingData &culledData, const Point3 &view_pos,
     RenderPurpose rpurpose = DEFAULT_RENDERING_PURPOSE);
 
+  void render(mat44f_cref globtm, const Frustum &frustum, LandMeshManager &provider, RenderType rtype, const Point3 &view_pos,
+    RenderPurpose rpurpose = DEFAULT_RENDERING_PURPOSE);
   void render(LandMeshManager &provider, RenderType rtype, const Point3 &view_pos, RenderPurpose rpurpose = DEFAULT_RENDERING_PURPOSE);
 
   bool renderDecals(LandMeshManager &provider, RenderType rtype, const TMatrix4 &globtm, bool compatibility_mode);
@@ -186,9 +204,9 @@ public:
 protected:
   __forceinline ShaderMesh *prepareGeomCellsLM(LandMeshManager &provider, int cellNo, int lodNo);
   __forceinline ShaderMesh *prepareGeomCellsCM(LandMeshManager &provider, int cellNo, bool **isBig);
-  void renderGeomCellsLM(LandMeshManager &provider, uint16_t *cell_no, int cells_count, int lodNo, RenderType rtype,
+  void renderGeomCellsLM(LandMeshManager &provider, dag::ConstSpan<uint16_t> cells, int lodNo, RenderType rtype,
     uint8_t use_exclusion);
-  void renderGeomCellsCM(LandMeshManager &provider, uint16_t *cell_no, int cells_count, RenderType rtype, bool skip_not_big);
+  void renderGeomCellsCM(LandMeshManager &provider, dag::ConstSpan<uint16_t> cells, RenderType rtype, bool skip_not_big);
 
   void renderLandclasses(CellState &curState, bool useFilter = false, LandClassType lcFilter = LC_SIMPLE);
   struct MirroredCellState;

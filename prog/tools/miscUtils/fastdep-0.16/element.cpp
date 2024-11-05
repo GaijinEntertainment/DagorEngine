@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "element.h"
 #include "fileCache.h"
 #include "fileStructure.h"

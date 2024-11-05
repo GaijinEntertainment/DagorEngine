@@ -1,0 +1,5 @@
+local R = prog/daNetGameLibs/static_flares ;
+Sources +=
+  $(R)/dasModules/staticFlares.cpp
+  $(R)/_aot/stub_flares.cpp
+;

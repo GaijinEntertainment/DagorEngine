@@ -1,16 +1,27 @@
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#if _TARGET_PC_WIN
+#define INITGUID
+#include <windows.h>
+#include <winternl.h>
+#include <cfgmgr32.h>
+#include <Ntddvdeo.h>
+#include <d3dkmthk.h>
+#include <devpkey.h>
+#include <dxgi.h>
+#include <dxgi1_4.h>
+#include <d3d11.h>
+#endif
+
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_commands.h>
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <startup/dag_globalSettings.h>
 #include <util/dag_string.h>
 #include <generic/dag_carray.h>
-#if _TARGET_PC_WIN
-#include <windows.h>
-#include <dxgi.h>
-#include <dxgi1_4.h>
-#include <d3d11.h>
-#endif
+#include <EASTL/string_view.h>
 #include <stdio.h>
 #include "gpuVendor.h"
 
@@ -51,6 +62,98 @@ static int cached_feature_level_supported = 0;
 
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "version.lib")
+#pragma comment(lib, "Cfgmgr32.lib")
+
+/**
+ * @brief Iterates through all adapters from system, and if then current adapter's LUID matches to luid paramter then returns with this
+ * adapters driver version and date.
+ * @param luid Locally unique identifier of the requested adapter.
+ * @param drv_ver Output parameter of found adapter's driver version.
+ * @param drv_date Output parameter of found adapter's driver date.
+ */
+static bool get_driver_info_from_luid(const LUID &luid, uint32_t drv_ver[4], DagorDateTime &drv_date)
+{
+  const LPGUID guid = (LPGUID)&GUID_DISPLAY_DEVICE_ARRIVAL;
+  const ULONG flag = CM_GET_DEVICE_INTERFACE_LIST_PRESENT;
+
+  CONFIGRET cr;
+  ULONG length = 0;
+  if ((cr = CM_Get_Device_Interface_List_SizeW(&length, guid, nullptr, flag)) != CR_SUCCESS)
+    return false;
+
+  dag::Vector<wchar_t> deviceInterfaceBuffer(length);
+  if ((cr = CM_Get_Device_Interface_ListW(guid, nullptr, deviceInterfaceBuffer.data(), length, flag)) != CR_SUCCESS)
+    return false;
+
+  for (auto it = deviceInterfaceBuffer.cbegin(); it != deviceInterfaceBuffer.cend();)
+  {
+    eastl::wstring_view deviceInterface{it};
+    it = deviceInterface.end() + 1;
+    if (deviceInterface.empty())
+      continue;
+
+    D3DKMT_OPENADAPTERFROMDEVICENAME adapter{};
+    adapter.pDeviceName = deviceInterface.data();
+
+    if (auto d3dResult = D3DKMTOpenAdapterFromDeviceName(&adapter); NT_SUCCESS(d3dResult))
+    {
+      D3DKMT_CLOSEADAPTER closeAdapter{adapter.hAdapter};
+      D3DKMTCloseAdapter(&closeAdapter);
+    }
+
+    if (adapter.AdapterLuid.HighPart != luid.HighPart || adapter.AdapterLuid.LowPart != luid.LowPart)
+      continue;
+
+    DEVPROPTYPE devicePropertyType{};
+    ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
+    wchar_t deviceInstanceId[MAX_DEVICE_ID_LEN] = {};
+
+    if ((cr = CM_Get_Device_Interface_PropertyW(deviceInterface.data(), &DEVPKEY_Device_InstanceId, &devicePropertyType,
+           (PBYTE)deviceInstanceId, &deviceInstanceIdLength, flag)) != CR_SUCCESS)
+      return false;
+
+    DEVINST deviceInstanceHandle{};
+    if ((cr = CM_Locate_DevNodeW(&deviceInstanceHandle, deviceInstanceId, CM_LOCATE_DEVNODE_NORMAL)) != CR_SUCCESS)
+      return false;
+
+    dag::Vector<wchar_t> deviceIdBuffer(64);
+    auto getProperty = [&](const DEVPROPKEY *property_key) {
+      ULONG bufferSize = deviceIdBuffer.size();
+      CONFIGRET ret = CM_Get_DevNode_PropertyW(deviceInstanceHandle, property_key, &devicePropertyType, (PBYTE)deviceIdBuffer.data(),
+        &bufferSize, flag);
+      if (ret != CR_BUFFER_SMALL)
+        return ret;
+      deviceIdBuffer.resize(bufferSize);
+      return CM_Get_DevNode_PropertyW(deviceInstanceHandle, property_key, &devicePropertyType, (PBYTE)deviceIdBuffer.data(),
+        &bufferSize, flag);
+    };
+
+    if ((cr = getProperty(&DEVPKEY_Device_DriverVersion)) != CR_SUCCESS)
+      return false;
+
+    swscanf(deviceIdBuffer.data(), L"%d %*c %d %*c %d %*c %d", &drv_ver[0], &drv_ver[1], &drv_ver[2], &drv_ver[3]);
+
+    if ((cr = getProperty(&DEVPKEY_Device_DriverDate)) != CR_SUCCESS)
+      return false;
+
+    FILETIME driverDate{};
+    memcpy(&driverDate, deviceIdBuffer.data(), sizeof(driverDate));
+
+    SYSTEMTIME systime;
+    FileTimeToSystemTime(&driverDate, &systime);
+    drv_date.year = systime.wYear;
+    drv_date.month = systime.wMonth;
+    drv_date.day = systime.wDay;
+    drv_date.hour = systime.wHour;
+    drv_date.minute = systime.wMinute;
+    drv_date.second = systime.wSecond;
+    drv_date.microsecond = systime.wMilliseconds * 1000;
+
+    return true;
+  }
+
+  return false;
+}
 
 static bool get_driver_info_from_dll(const char *dllName, uint32_t drv_ver[4], DagorDateTime &drv_date)
 {
@@ -101,8 +204,8 @@ static bool get_driver_info_from_dll(const char *dllName, uint32_t drv_ver[4], D
         }
         CloseHandle(dllFileHandle);
       }
-      FreeLibrary(driverModuleHandle);
     }
+    FreeLibrary(driverModuleHandle);
   }
 
   return (drv_ver[0] != 0 && drv_date.year != 0);
@@ -190,6 +293,7 @@ static int get_active_gpu_vendor_pc(String &out_active_gpu_description, uint32_t
         D3D11_SDK_VERSION, &device, (D3D_FEATURE_LEVEL *)&feature_level_supported, &context);
       if (SUCCEEDED(hr))
       {
+        LUID luid{};
         IDXGIDevice *pDXGIDevice = NULL;
         device->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice);
         IDXGIAdapter *adapter;
@@ -209,6 +313,7 @@ static int get_active_gpu_vendor_pc(String &out_active_gpu_description, uint32_t
             vendor = d3d_get_vendor(adapterDesc.VendorId, deviceName);
             sharedMemoryMb = adapterDesc.SharedSystemMemory >> 20;
             device_id = adapterDesc.DeviceId;
+            luid = adapterDesc.AdapterLuid;
 
             IDXGIAdapter3 *adapter3 = nullptr;
             if (SUCCEEDED(adapter->QueryInterface(&adapter3)))
@@ -264,8 +369,11 @@ static int get_active_gpu_vendor_pc(String &out_active_gpu_description, uint32_t
           }
         }
 
-        get_driver_info_from_dlls(vendor_dll_names[vendor], drv_ver, drv_date); // Do it while the device is created and the dlls are
-                                                                                // loaded.
+        if (!get_driver_info_from_luid(luid, drv_ver, drv_date))
+        {
+          // Do it while the device is created and the dlls are loaded.
+          get_driver_info_from_dlls(vendor_dll_names[vendor], drv_ver, drv_date);
+        }
 
         context->Release();
         device->Release();
@@ -363,7 +471,7 @@ static int guess_gpu_vendor(String *out_gpu_desc, uint32_t *out_drv_ver, DagorDa
       uint32_t *drvVer = NULL;
       const uint32_t unknownDrvVer[4] = {0, 0, 0, 0};
       const char *ctxInfo = NULL;
-      cached_gpu_vendor = d3d::driver_command(DRV3D_COMMAND_GET_VENDOR, &devName, &drvVer, &ctxInfo);
+      cached_gpu_vendor = d3d::driver_command(Drv3dCommand::GET_VENDOR, &devName, &drvVer, &ctxInfo);
       SNPRINTF(cached_gpu_desc, sizeof(cached_gpu_desc), "%s [%s]", devName ? devName : "Unknown", ctxInfo ? ctxInfo : "None");
       memcpy(cached_gpu_drv_ver, drvVer ? drvVer : unknownDrvVer, sizeof(cached_gpu_drv_ver));
     }
@@ -442,7 +550,7 @@ static bool get_dedicated_gpu_memory_total_kb_driver(unsigned &out_dedicated, un
   if (!d3d::is_inited())
     return false;
 
-  return d3d::driver_command(DRV3D_COMMAND_GET_VIDEO_MEMORY_BUDGET, (void *)&out_dedicated, (void *)&out_dedicated_free, nullptr);
+  return d3d::driver_command(Drv3dCommand::GET_VIDEO_MEMORY_BUDGET, (void *)&out_dedicated, (void *)&out_dedicated_free);
 }
 
 #if _TARGET_PC_WIN | _TARGET_PC_LINUX
@@ -659,13 +767,12 @@ int d3d::get_gpu_temperature()
 #if HAS_NVAPI
   if (get_nv_physical_gpu())
   {
-    d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, NULL, NULL, NULL);
-
     NV_GPU_THERMAL_SETTINGS thermalSettings = {0};
-    thermalSettings.version = NV_GPU_THERMAL_SETTINGS_VER;
-    NvAPI_Status status = NvAPI_GPU_GetThermalSettings(get_nv_physical_gpu(), NVAPI_THERMAL_TARGET_ALL, &thermalSettings);
-
-    d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL);
+    const NvAPI_Status status = [&] {
+      d3d::GpuAutoLock gpuLock;
+      thermalSettings.version = NV_GPU_THERMAL_SETTINGS_VER;
+      return NvAPI_GPU_GetThermalSettings(get_nv_physical_gpu(), NVAPI_THERMAL_TARGET_ALL, &thermalSettings);
+    }();
 
     if (status == NVAPI_OK)
     {

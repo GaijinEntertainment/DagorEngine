@@ -1,8 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <EASTL/unique_ptr.h>
 #include <math/dag_Point2.h>
 #include <math/dag_Point3.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_texMgr.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <heightmap/heightmapRenderer.h>
@@ -55,11 +57,12 @@ public:
 #endif
 
   WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, const fft_water::SimulationParams &simulation, int quality,
-    int geom_quality, bool ssr_renderer, bool one_to_four_cascades, int num_cascades, float cascade_window_length,
+    int geom_quality, bool depth_renderer, bool ssr_renderer, bool one_to_four_cascades, int num_cascades, float cascade_window_length,
     float cascade_facet_size, const fft_water::WaterHeightmap *water_heightmap);
   ~WaterNVRender();
 
   void reset();
+  uint32_t getFormatForFoam();
   void initFoam();
   void closeFoam();
   void enableTurbulenceFoam(bool value) { turbulenceFoamEnabled = value && renderQuality >= fft_water::RENDER_GOOD; }
@@ -80,7 +83,8 @@ public:
   void prepareRefraction(Texture *scene_target_tex);
 
   void render(const Point3 &origin, TEXTUREID distanceTex, int geom_lod_quality, int survey_id, const Frustum &frustum,
-    IWaterDecalsRenderHelper *decals_renderer = NULL, fft_water::RenderMode render_mode = fft_water::RenderMode::WATER_SHADER);
+    const Driver3dPerspective &persp, IWaterDecalsRenderHelper *decals_renderer = NULL,
+    fft_water::RenderMode render_mode = fft_water::RenderMode::WATER_SHADER);
 
   void performGPUFFT();
   void closeGPU();
@@ -95,6 +99,7 @@ public:
   int getGeomQuality() const { return geomQuality; }
   bool getOneToFourCascades() const { return oneToFourCascades; }
   int getFFTResolutionBits() const { return fft[0].getParams().fft_resolution_bits; }
+  bool isDepthRendererEnabled() const { return depthRendererEnabled; }
   bool isSSRRendererEnabled() const { return ssrRendererEnabled; }
   void setRenderQuad(const BBox2 &b);
   void setWakeHtTex(TEXTUREID wake_ht_tex);
@@ -125,9 +130,6 @@ public:
     gridOffset = cameraPatchOffset;
   }
 
-  const Point2 &getShoreWavesDist() const { return shoreWavesDist; }
-  void setShoreWavesDist(const Point2 &value);
-
   float getShoreWaveThreshold() const { return shoreWaveThreshold; }
   void setShoreWaveThreshold(float value);
 
@@ -149,6 +151,7 @@ protected:
 
   bool autoVsamplersAdjust;
   bool turbulenceFoamEnabled;
+  bool depthRendererEnabled;
   bool ssrRendererEnabled;
   int renderQuality, geomQuality;
   int vertexDisplaceSamplers;
@@ -159,7 +162,7 @@ protected:
   int waterHeightmapPatchesGridRes = 0;
   int waterHeightmapPatchesCount = 0;
   int waterHeightmapPatchesGridScale = 1;
-  int waterHeightmapTessFactor = 3;
+  int waterHeightmapTessFactor = 3; // water_tess_factor of water heightmap shaders in common_assumes.blk
   eastl::vector<Point4> waterHeightmapPatchPositions;
   bool waterHeightmapUseTessellation = false;
   LodGridVertexData waterHeightmapVdata;

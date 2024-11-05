@@ -16,6 +16,12 @@
     return dot(axisDistances, axisDistances);
   }
 
+  float sqDistanceBoxBoxScaled(float3 centerA, float3 extentA, float3 centerB, float3 extentB, float3 axisScale)
+  {
+    float3 axisDistances = max(abs(centerB - centerA) - (extentA + extentB), 0)*axisScale;
+    return dot(axisDistances, axisDistances);
+  }
+
   float pointTriangleDistanceSq(float3 p, float3 A, float3 B, float3 C)
   {
     float3 BA = B - A; float3 PA = p - A;
@@ -48,6 +54,79 @@
     //return distance_sq(p, Q); // Point P is directly above/below the triangle
     return abs(dot(N, PA)*dot(N,PB)/dot(N, N));
   }
+
+  struct TrianglePlanes
+  {
+    float3 A,B,C, BA, CB, AC, edgePlane1, edgePlane2, edgePlane3, N;
+    float triPlane, twiceArea;
+    float invLenSqBA, invLenSqAC, invLenSqCB;
+  };
+  TrianglePlanes get_triangle_planes(float3 A, float3 B, float3 C)
+  {
+    TrianglePlanes r;
+    r.A = A;
+    r.B = B;
+    r.C = C;
+    r.BA = (B - A);
+    r.CB = (C - B);
+    r.AC = (A - C);
+    r.N = cross(r.BA, r.AC);
+    r.edgePlane1 = cross(r.BA, r.N);
+    r.edgePlane2 = cross(r.CB, r.N);
+    r.edgePlane3 = cross(r.AC, r.N);
+    r.twiceArea = length(r.N);
+    r.N /= r.twiceArea;
+    r.triPlane = dot(r.N, r.A);
+    r.invLenSqBA = rcp(length_sq(r.BA));
+    r.invLenSqAC = rcp(length_sq(r.AC));
+    r.invLenSqCB = rcp(length_sq(r.CB));
+    return r;
+  }
+  float pointTriangleSignedDistancePlanes(float3 p, TrianglePlanes tri)
+  {
+    float3 PA = p - tri.A;
+    float3 PB = p - tri.B;
+    float3 PC = p - tri.C;
+
+    FLATTEN
+    if (dot(tri.edgePlane1, PA) < 0 ||
+        dot(tri.edgePlane2, PB) < 0 ||
+        dot(tri.edgePlane3, PC) < 0)
+      return sqrt(min3(
+          length_sq(tri.BA*saturate(dot(tri.BA, PA)*tri.invLenSqBA) - PA),
+          length_sq(tri.CB*saturate(dot(tri.CB, PB)*tri.invLenSqCB) - PB),
+          length_sq(tri.AC*saturate(dot(tri.AC, PC)*tri.invLenSqAC) - PC)));
+    //float3 Q = p - dot(PA, N) * N/dot(N, N);
+    //return distance_sq(p, Q); // Point P is directly above/below the triangle
+    float distSq = abs(dot(tri.N, PA)*dot(tri.N,PB));
+    float dist = sqrt(distSq);
+    return dot(tri.N, p) < tri.triPlane ? -dist : dist;
+  }
+
+  float pointTriangleSignedDistance(float3 p, float3 A, float3 B, float3 C)
+  {
+    float3 BA = B - A; float3 PA = p - A;
+    float3 CB = C - B; float3 PB = p - B;
+    float3 AC = A - C; float3 PC = p - C;
+
+    float3 N = cross( BA, AC );
+    FLATTEN
+    if (dot(cross(BA, N), PA) < 0 ||
+        dot(cross(CB, N), PB) < 0 ||
+        dot(cross(AC, N), PC) < 0)
+    {
+      return sqrt(min3(
+          length_sq(BA*saturate(dot(BA, PA)/length_sq(BA)) - PA),
+          length_sq(CB*saturate(dot(CB, PB)/length_sq(CB)) - PB),
+          length_sq(AC*saturate(dot(AC, PC)/length_sq(AC)) - PC)));
+    }
+    //float3 Q = p - dot(PA, N) * N/dot(N, N);
+    //return distance_sq(p, Q); // Point P is directly above/below the triangle
+    float distSq = abs(dot(N, PA)*dot(N,PB)/dot(N, N));
+    float dist = sqrt(distSq);
+    return dot(N, p) < dot(N, A) ? -dist : dist;
+  }
+
 
   float3 closestPointOnTriangle(float3 p, float3 A, float3 B, float3 C)
   {

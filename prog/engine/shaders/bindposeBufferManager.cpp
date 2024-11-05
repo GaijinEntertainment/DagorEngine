@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <shaders/dag_bindposeBufferManager.h>
 #include <vecmath/dag_vecMath.h>
 

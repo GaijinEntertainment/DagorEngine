@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+  <Type Name="D3D12_RESOURCE_BARRIER">
+    <DisplayString Condition="Type == D3D12_RESOURCE_BARRIER_TYPE_TRANSITION">Transition -> {Transition.pResource}</DisplayString>
+    <DisplayString Condition="Type == D3D12_RESOURCE_BARRIER_TYPE_ALIASING">Aliasing -> {Aliasing.pResourceBefore}</DisplayString>
+    <DisplayString Condition="Type == D3D12_RESOURCE_BARRIER_TYPE_UAV">UAV -> {UAV.pResource}</DisplayString>
+
+    <Expand>
+      <Item Name="Flags">Flags</Item>
+      <Item Name="Transition" Condition="Type == D3D12_RESOURCE_BARRIER_TYPE_TRANSITION">Transition,view(Simple)</Item>
+      <Item Name="Aliasing" Condition="Type == D3D12_RESOURCE_BARRIER_TYPE_ALIASING">Aliasing,view(Simple)</Item>
+      <Item Name="UAV" Condition="Type == D3D12_RESOURCE_BARRIER_TYPE_UAV">UAV,view(Simple)</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="D3D12_RESOURCE_TRANSITION_BARRIER" IncludeView="Simple">
+    <DisplayString>{this->StateBefore,X} -> {this->StateAfter,X}</DisplayString>
+
+    <Expand HideRawView="false">
+      <Item Name="pResource">pResource</Item>
+      <Item Name="Subresource">Subresource</Item>
+      <Item Name="StateBefore">(resource_state_visualizer)StateBefore,X</Item>
+      <Item Name="StateAfter" >(resource_state_visualizer)StateAfter,X</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="drv3d_dx12::BarrierBatcher">
+    <AlternativeType Name="drv3d_dx12::ResourceStateSetBase&lt;*,*&gt;" />
+    <AlternativeType Name="drv3d_dx12::SplitTransitionTracker" />
+
+    <DisplayString>{dataSet}</DisplayString>
+    <Expand HideRawView="false">
+      <ExpandedItem>dataSet</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <Type Name="drv3d_dx12::InititalResourceStateSet">
+    <DisplayString>{dataSet.dataSet}</DisplayString>
+    <Expand HideRawView="true">
+      <ExpandedItem>dataSet.dataSet</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <Type Name="drv3d_dx12::Image">
+    <DisplayString>{debugName.container} {extent}</DisplayString>
+    <Expand HideRawView="false">
+      <Item Name="image">image</Item>
+      <Item Name="memory">memory</Item>
+      <Item Name="extent">extent</Item>
+      <Item Name="recentView">recentView</Item>
+      <Item Name="oldViews">oldViews</Item>
+      <Item Name="esramResource" Optional="true">esramResource</Item>
+      <Item Name="debugName">debugName</Item>
+      <Item Name="msaaLevel">msaaLevel</Item>
+      <Item Name="imageType">imageType</Item>
+      <Item Name="layerCount">layerCount</Item>
+      <Item Name="mipLevels">mipLevels</Item>
+      <Item Name="format">format</Item>
+
+      <Item Name="globalSubResBase" Condition="globalSubResBase.value == globalSubResBase.invalid_id">globalSubResBase</Item>
+      <Synthetic Name="[State]" Condition="globalSubResBase.value != globalSubResBase.invalid_id">
+        <DisplayString>{drv3d_dx12::api_state.device.context.back.sharedContextState.resourceStates.textureStates.dataSet.mBeginAndAllocator.mFirst[globalSubResBase.value &amp; globalSubResBase.index_mask]}</DisplayString>
+        <Expand>
+          <Item Name="globalSubResBase">globalSubResBase</Item>
+        </Expand>
+      </Synthetic>
+
+      <Item Name="textureAccessComputer" Optional="true">textureAccessComputer</Item>
+      <Item Name="textureLayout" Optional="true">textureLayout</Item>
+      <Item Name="lastFrameAccess">lastFrameAccess</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="drv3d_dx12::ImageViewState">
+    <DisplayString>{wrapper.value,Xb}</DisplayString>
+    <Expand HideRawView="true">
+      <Item Name="value">wrapper.value,X</Item>
+      <Item Name="sampleStencil">(bool)((wrapper.value >> SAMPLE_STENCIL_SHIFT) &amp; 1)</Item>
+      <Item Name="type">(drv3d_dx12::ImageViewState::Type)((wrapper.value >> TYPE_SHIFT) &amp; ((1ull &lt;&lt; TYPE_BITS) - 1))</Item>
+      <Item Name="isCubemap">(bool)((wrapper.value >> IS_CUBEMAP_SHIFT) &amp; 1)</Item>
+      <Item Name="isArray">(bool)((wrapper.value >> IS_ARRAY_SHIFT) &amp; 1)</Item>
+      <Item Name="format">(uint8_t)((wrapper.value >> FORMAT_SHIFT) &amp; ((1ull &lt;&lt; FORMAT_BITS) - 1)),nvo</Item>
+      <Item Name="mipmapOffset">(int)((wrapper.value >> MIPMAP_OFFSET_SHIFT) &amp; ((1ull &lt;&lt; MIPMAP_OFFSET_BITS) - 1))</Item>
+      <Item Name="mipmapRange">(int)((wrapper.value >> MIPMAP_RANGE_SHIFT) &amp; ((1ull &lt;&lt; MIPMAP_RANGE_BITS) - 1))</Item>
+      <Item Name="arrayOffset">(int)((wrapper.value >> ARRAY_OFFSET_SHIFT) &amp; ((1ull &lt;&lt; ARRAY_OFFSET_BITS) - 1))</Item>
+      <Item Name="arrayRange">(int)((wrapper.value >> ARRAY_RANGE_SHIFT) &amp; ((1ull &lt;&lt; ARRAY_RANGE_BITS) - 1))</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="drv3d_dx12::FormatStore">
+    <DisplayString>{wrapper.value,nvoXb}</DisplayString>
+    <Expand HideRawView="true">
+      <Item Name="value">wrapper.value,nvoX</Item>
+      <Item Name="isSrgb">(bool)((wrapper.value >> BITS) &amp; 1)</Item>
+      <Item Name="linearFormat">(int)((wrapper.value >> 0) &amp; ((1 &lt;&lt; BITS) - 1)) &lt;&lt; CREATE_FLAGS_FORMAT_SHIFT,X</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="drv3d_dx12::SamplerState">
+    <DisplayString>{wrapper.value,Xb}</DisplayString>
+    <Expand HideRawView="true">
+      <Item Name="value">wrapper.value,X</Item>
+      <Item Name="mipMapMode">(uint8_t)((wrapper.value >> MIP_SHIFT) &amp; ((1ull &lt;&lt; MIP_BITS) - 1)),nvo</Item>
+      <Item Name="filterMode">(uint8_t)((wrapper.value >> FILTER_SHIFT) &amp; ((1ull &lt;&lt; FILTER_BITS) - 1)),nvo</Item>
+      <Item Name="borderColorMode">(uint8_t)((wrapper.value >> BORDER_SHIFT) &amp; ((1ull &lt;&lt; BORDER_BITS) - 1)),nvo</Item>
+      <Item Name="anisotropicValue">(uint8_t)((wrapper.value >> ANISO_SHIFT) &amp; ((1ull &lt;&lt; ANISO_BITS) - 1)),nvo</Item>
+      <Item Name="coordModes">(uint8_t)((wrapper.value >> COORD_SHIFT) &amp; ((1ull &lt;&lt; COORD_BITS) - 1)),nvo</Item>
+      <Item Name="biasBits">(uint)((wrapper.value >> BIAS_OFFSET) &amp; ((1ull &lt;&lt; BIAS_BITS) - 1)),b</Item>
+      <Item Name="isCompare">(bool)((wrapper.value >> IS_COMPARE_SHIFT) &amp; 1)</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="drv3d_dx12::ResourceStateBaseBitsProvider&lt;*,*&gt;">
+    <Intrinsic Name="_value" Expression="value &amp; StateMask" />
+
+    <DisplayString Condition="((_value() - 1) &amp; value)">{_value(),X}</DisplayString>
+    <DisplayString Condition="!((_value() - 1) &amp; value)">{(D3D12_RESOURCE_STATES)_value()}</DisplayString>
+    <Expand HideRawView="true">
+      <ExpandedItem>&amp;value,X</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <Type Name="drv3d_dx12::TextureResourceState">
+    <Intrinsic Name="_value" Expression="value &amp; StateMask" />
+
+    <DisplayString>{(resource_state_visualizer)_value(),X}</DisplayString>
+    <Expand HideRawView="true">
+      <ExpandedItem>&amp;value,X</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <Type Name="drv3d_dx12::ExtendedImageGlobalSubresouceId">
+    <Intrinsic Name="_valid" Expression="invalid_id != value" />
+    <DisplayString Condition="_valid()">{value &amp; index_mask}</DisplayString>
+    <DisplayString Condition="!_valid()">invalid</DisplayString>
+    <Expand HideRawView="true">
+      <Item Name="value">value,X</Item>
+      <Item Name="isStatic" Condition="_valid()">0 != (value &amp; static_texture_bit)</Item>
+      <Item Name="reportTransition" Condition="_valid()">0 != (value &amp; report_transitions_bit)</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="drv3d_dx12::TaggedIndexType&lt;*,*&gt;">
+    <AlternativeType Name="drv3d_dx12::ImageGlobalSubresouceId" />
+    <AlternativeType Name="drv3d_dx12::TaggedCountType&lt;*&gt;" />
+    <DisplayString>{value}</DisplayString>
+    <Expand HideRawView="true">
+      <ExpandedItem>&amp;value</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <Type Name="drv3d_dx12::TaggedIndexType&lt;unsigned char,*&gt;">
+    <AlternativeType Name="drv3d_dx12::TaggedCountType&lt;drv3d_dx12::TaggedIndexType&lt;unsigned char,*&gt;&gt;" />
+    <DisplayString>{value,nvo}</DisplayString>
+    <Expand HideRawView="true">
+      <ExpandedItem>&amp;value</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <Type Name="drv3d_dx12::ResourceUsageManagerWithHistory">
+    <Expand HideRawView="true">
+      <Item Name="incomingUAVResources">incomingUAVResources</Item>
+      <Item Name="outgoingUAVResources">outgoingUAVResources</Item>
+      <Item Name="userUavResources">userUavResources</Item>
+      <Item Name="userSkippedUavSync">userSkippedUavSync</Item>
+      <Item Name="textureStates">textureStates</Item>
+      <Item Name="bufferStates">bufferStates</Item>
+      <Item Name="reportDecay" Optional="true">reportDecay</Item>
+      <Item Name="scratchBuffer">scratchBuffer</Item>
+      <Item Name="scratchBufferState">scratchBufferState</Item>
+      <Item Name="historicalData">historicalData</Item>
+      <Item Name="recordData">recordData</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="drv3d_dx11::BaseTex" ExcludeView="nonrecursive">
+    <DisplayString Condition="type == RES3D_TEX">{{{statName,sb}, ({width}x{height})}}</DisplayString>
+    <DisplayString Condition="type != RES3D_TEX">{{{statName,sb}}}</DisplayString>
+    <StringView>statName</StringView>
+    <Expand HideRawView="true">
+      <ExpandedItem>this,view(nonrecursive)</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <Type Name="drv3d_dx12::BaseTex" ExcludeView="nonrecursive">
+    <DisplayString Condition="resType == RES3D_TEX">{{{statName,sb}, ({width}x{height})}}</DisplayString>
+    <DisplayString Condition="resType != RES3D_TEX">{{{statName,sb}}}</DisplayString>
+    <StringView>statName</StringView>
+    <Expand HideRawView="true">
+      <ExpandedItem>this,view(nonrecursive)</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <Type Name="drv3d_ps::BaseTex" ExcludeView="nonrecursive">
+    <DisplayString>{{{statName}}}</DisplayString>
+    <StringView>statName</StringView>
+    <Expand HideRawView="true">
+      <ExpandedItem>this,view(nonrecursive)</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <Type Name="drv3d_dx11::BaseTex" ExcludeView="nonrecursive" IncludeView="simple">
+    <AlternativeType Name="drv3d_dx12::BaseTex" />
+    <AlternativeType Name="drv3d_ps::BaseTex" />
+    <DisplayString>{*this,view(nonrecursive)}</DisplayString>
+    <Expand HideRawView="true">
+      <ExpandedItem>this,view(nonrecursive)</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <Type Name="GenericSbufferImplementation&lt;drv3d_dx12::PlatformBufferInterfaceConfig&gt;" ExcludeView="nonrecursive" IncludeView="simple">
+    <DisplayString>{*this,view(nonrecursive)}</DisplayString>
+    <Expand HideRawView="true">
+      <ExpandedItem>this,view(nonrecursive)</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <Type Name="resptr_detail::ManagedRes&lt;*&gt;">
+    <AlternativeType Name="resptr_detail::SharedRes&lt;*&gt;" />
+    <SmartPointer Usage="Minimal">mResource,na</SmartPointer>
+    <DisplayString Condition="mResource == nullptr">empty</DisplayString>
+    <DisplayString Condition="mResource != nullptr">{mResource->statName}</DisplayString>
+
+    <Expand>
+      <Item Name="[Texture]">*mResource,view(simple)</Item>
+      <Item Name="[ResID]">mResId.handle</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="resptr_detail::ManagedRes&lt;ManagedRes&lt;Sbuffer&gt;&gt;">
+    <SmartPointer Usage="Minimal">mResource,na</SmartPointer>
+    <DisplayString Condition="mResource == nullptr">empty</DisplayString>
+    <DisplayString Condition="mResource != nullptr">{mResource->statName}</DisplayString>
+
+    <Expand>
+      <Item Name="[Buffer]">*mResource,view(simple)</Item>
+      <Item Name="[ResID]">mResId.handle</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="resptr_detail::UniqueRes&lt;*,*&gt;">
+    <SmartPointer Usage="Minimal">mResource,na</SmartPointer>
+    <DisplayString Condition="mResource == nullptr">empty</DisplayString>
+    <DisplayString Condition="mResource != nullptr">{mResource->statName}</DisplayString>
+
+    <Expand>
+      <Item Name="[Texture]">*mResource,view(simple)</Item>
+      <Item Name="[ResID]">mResId.handle</Item>
+      <Item Name="[Aliases]" Condition="mAliases.mpBegin">mAliases</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="resptr_detail::UniqueRes&lt;resptr_detail::ManagedRes&lt;Sbuffer&gt;,*&gt;">
+    <SmartPointer Usage="Minimal">mResource,na</SmartPointer>
+    <DisplayString Condition="mResource == nullptr">empty</DisplayString>
+    <DisplayString Condition="mResource != nullptr">{mResource->statName}</DisplayString>
+    <Expand>
+      <Item Name="[Buffer]">*mResource,view(simple)</Item>
+      <Item Name="[ResID]">mResId.handle</Item>
+    </Expand>
+  </Type>
+
+</AutoVisualizer>

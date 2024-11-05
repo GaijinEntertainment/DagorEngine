@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <image/dag_tga.h>
 #include <image/dag_texPixel.h>
 #include <osApiWrappers/dag_files.h>
@@ -103,13 +105,13 @@ int save_tga32(const char *fn, TexPixel32 *ptr, int wd, int ht, int stride, unsi
 {
   if (!ptr)
   {
-    debug_ctx("save_tga32, ptr=NULL");
+    DEBUG_CTX("save_tga32, ptr=NULL");
     return 0;
   }
   file_ptr_t h = df_open(fn, DF_WRITE | DF_CREATE);
   if (!h)
   {
-    debug_ctx("save_tga32, cannot open file '%s'", fn);
+    DEBUG_CTX("save_tga32, cannot open file '%s'", fn);
     return 0;
   }
   df_write(h, "\0\0\2\0\0\0\0\0\0\0\0\0", 12);

@@ -2,8 +2,7 @@ include "hardware_defines.dshl"
 include "cloudsDensity.dshl"
 include "base_distance_to_clouds.dshl"
 include "writeToTex.dshl"
-float skies_planet_radius = 6360;
-float4 world_view_pos;
+include "sky_shader_global.dshl"
 
 macro TRACE_CLOUDS(stage)
   //RAY_INTERSECT_TWO()
@@ -16,6 +15,11 @@ macro TRACE_CLOUDS(stage)
     clouds_origin_offset@f3 = (clouds_origin_offset.x, 0, clouds_origin_offset.y, 0);
   }
   hlsl(stage) {
+
+#if !defined(TRACE_CLOUDS_MAX_STEPS)
+# define TRACE_CLOUDS_MAX_STEPS 128
+#endif
+
     #include <distance_to_clouds.hlsl>
     float2 trace_ray(float3 origin, float3 dir, float dist, float threshold, float step_size)
     {
@@ -23,7 +27,7 @@ macro TRACE_CLOUDS(stage)
       float Rh = origin.y*0.001+skies_planet_radius;
       base_distance_to_clouds(-dir.y, dist0, dist1, Rh, Rh*Rh); dist0*=1000;dist1*=1000;
       if (dist0 > dist || dist1<0 || dist1<dist0)
-        return float2(-1,0);
+        return float2(-1,1);
       dist = min(dist, dist1);
       origin += dist0*dir; dist -= dist0;
       dist = max(dist, 1e-6);
@@ -34,7 +38,7 @@ macro TRACE_CLOUDS(stage)
       float transmittance = 1;
       origin += clouds_origin_offset + get_clouds_hole_pos_vec();
       LOOP
-      for (uint i = 0; i < e; ++i, t += step_size)
+      for (uint i = 0; i < min(TRACE_CLOUDS_MAX_STEPS, e); ++i, t += step_size)    // Metal compiler is sensitive to how the loop constraint is defined and whether it is defined at all.
       {
         float heightFraction;
         float3 sample_pos = origin + t*dir;
@@ -61,6 +65,7 @@ shader trace_clouds_cs
   TRACE_CLOUDS(cs)
   (cs) { trace_rays_count@f1 = (trace_rays_count); }
   hlsl(cs) {
+    #pragma wave32
     float4 rays[32*2]:register(c8);
     RWStructuredBuffer<uint> output : register(u0);
     [numthreads(32, 1, 1)]
@@ -68,7 +73,7 @@ shader trace_clouds_cs
       if (dtid >= uint(trace_rays_count))
         return;
       float4 pos_threshold = rays[dtid*2], dir_dist = rays[dtid*2+1];
-      float step_size = max(32.0, dir_dist.w/128);
+      float step_size = max(32.0, dir_dist.w / TRACE_CLOUDS_MAX_STEPS);
       float2 result = trace_ray(pos_threshold.xyz, dir_dist.xyz, dir_dist.w, pos_threshold.w, step_size);
       output[dtid] = (result.x < 0 ? 65535 : clamp(uint(result.x/dir_dist.w*65534+.499f), 0, 65534)) | (clamp(uint(result.y*65535+0.499f), 0, 65535) << 16);
     }
@@ -93,7 +98,7 @@ shader trace_clouds_ps
       if (dtid >= uint(trace_rays_count))
         return 0;
       float4 pos_threshold = rays[dtid*2], dir_dist = rays[dtid*2+1];
-      float step_size = max(32.0, dir_dist.w/128);
+      float step_size = max(32.0, dir_dist.w / TRACE_CLOUDS_MAX_STEPS);
       float2 result = trace_ray(pos_threshold.xyz, dir_dist.xyz, dir_dist.w, pos_threshold.w, step_size);
       return float2(result.x < 0 ? -1 : result.x / dir_dist.w, saturate(result.y));
     }

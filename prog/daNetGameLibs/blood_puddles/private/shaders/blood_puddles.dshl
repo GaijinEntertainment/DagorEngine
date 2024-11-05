@@ -1,0 +1,585 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "projectiveDecals/projective_decals_common.dshl"
+include "fake_static_shadow.dshl"
+
+interval special_vision : special_vision_off<1, thermal_vision;
+
+texture perlin_noise3d;
+float blood_puddle_depth = 0.03;
+float blood_puddle_reflectance = 0.3;
+float blood_puddle_smoothness = 1.0;
+float blood_puddle_smoothness_edge = 0.9;
+float4 blood_puddle_high_intensity_color = (0.157, 0.012, 0.000, 1.000);
+float4 blood_puddle_low_intensity_color = (0.086, 0.024, 0.020, 0.960);
+float4 blood_decals_atlas_size = (1, 1, 0, 0);
+float blood_puddle_start_size = 0.2;
+texture blood_puddle_tex;
+texture blood_puddle_flowmap_tex;
+buffer blood_puddles_buf;
+buffer blood_decal_params;
+buffer blood_puddle_matrices;
+
+texture blood_acc_buf0;
+texture blood_acc_normal;
+
+int blood_puddles_has_separate_flowmap = 0;
+interval blood_puddles_has_separate_flowmap: no <1, yes;
+
+macro BLOOD_PUDDLES_VS()
+  hlsl{
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      nointerpolation float4 normal_fadetime : NORMAL;
+      float4 vecToEdge_starttime : TEXCOORD0;
+      nointerpolation float4 patchCenter__inv_size : TEXCOORD1;
+      nointerpolation float4 tang_shrink : TEXCOORD2;
+      nointerpolation uint3 decal_type__frame__rndIndex : TEXCOORD3;
+      nointerpolation float strength : TEXCOORD4;
+    };
+  }
+
+  (vs) {
+    globtm@f44 = globtm;
+    current_time__depth@f2 = (time_phase(0, 0), blood_puddle_depth, 0, 0);
+    puddles_data@buf = blood_puddles_buf hlsl {
+      #include <blood_puddles/public/shaders/blood_puddles.hlsli>
+      StructuredBuffer<PuddleInfo> puddles_data@buf;
+    };
+  }
+
+  PROJECTIVE_DECALS_MATRICES(blood_puddle_matrices, BLOOD_PUDDLES_MAX_MATRICES_COUNT, vs)
+  POJECTIVE_DECALS_VS_COMMON()
+
+  hlsl(vs) {
+    float3 extract_normal(uint2 params)
+    {
+      return float3(f16tof32(params.x >> 16), f16tof32(params.x), f16tof32(params.y >> 16));
+    }
+
+    float extract_fadetime(uint value)
+    {
+      return (value & ((1U<<16)-1)) * FADE_TIME_TICK;
+    }
+
+    VsOutput blood_puddles_vs(uint vertex_id : SV_VertexID, uint puddle_id : SV_InstanceID)
+    {
+      float currentTime = current_time__depth.x;
+
+      float3 puddlePos = puddles_data[puddle_id].pos.xyz;
+      float3 normal = extract_normal(puddles_data[puddle_id].normal_fadetime);
+      float fadeTime = extract_fadetime(puddles_data[puddle_id].normal_fadetime.y);
+      uint frameNo = (puddles_data[puddle_id].matrix_frame_incident_type & 0xFFFF) >> (BITS_FOR_TYPE + BITS_FOR_INCIDENT_ANGLE);
+      uint type = puddles_data[puddle_id].matrix_frame_incident_type & ((1U << BITS_FOR_TYPE) - 1);
+      float incidentAngleRatio = (float)(((puddles_data[puddle_id].matrix_frame_incident_type >> BITS_FOR_TYPE) & ((1U << BITS_FOR_INCIDENT_ANGLE) - 1)) + 1) / (1U << BITS_FOR_INCIDENT_ANGLE);
+      float rotate = f16tof32(puddles_data[puddle_id].rotate_size >> 16);
+      float size = f16tof32(puddles_data[puddle_id].rotate_size) * 0.5;
+      float linearTime = currentTime - f16tof32(puddles_data[puddle_id].starttime__strength >> 8);
+      float3 top = abs(normal.y) > 0.1 ? float3(sin(rotate), 0, cos(rotate)) : float3(0, cos(rotate), sin(rotate));
+      float3 right = normalize(cross(normal, top));
+      float strength = float(puddles_data[puddle_id].starttime__strength & 0xFF) / 255.0;
+
+      uint matrixId = (puddles_data[puddle_id].matrix_frame_incident_type >> 16) & MATRIX_MASK;
+      bool noDrying = (puddles_data[puddle_id].matrix_frame_incident_type & (1u << NO_DRYING_SHIFT)) != 0;
+      bool isLandscape = (puddles_data[puddle_id].matrix_frame_incident_type & (1u << LANDSCAPE_SHIFT)) != 0;
+      VsOutput output;
+
+      float width = isLandscape ? current_time__depth.y + 0.1 : current_time__depth.y;
+      ProjectiveDecalData decal;
+      decal.pos_size = float4(puddlePos, size);
+      decal.normal_width = float4(normal, width);
+      decal.tang_bias = float4(right, 0.8);
+      decal.matrixId = matrixId;
+      float3 worldRight, worldNormal, worldPos, worldDecalPos;
+      calc_world_values(decal, vertex_id, incidentAngleRatio, //input
+                        worldRight, worldNormal, worldPos, worldDecalPos); //output
+
+      output.tang_shrink.xyz = worldRight;
+      output.tang_shrink.w = 1.0 / incidentAngleRatio;
+      output.pos = mulPointTm(worldPos, globtm);
+      output.normal_fadetime.xyz = worldNormal;
+      output.normal_fadetime.w = fadeTime > 1e-5 ? 1 - saturate((currentTime - fadeTime) / SECONDS_TO_FADE) : 1;
+      output.vecToEdge_starttime.xyz = worldPos - worldDecalPos.xyz;
+      output.vecToEdge_starttime.w = noDrying ? -linearTime : linearTime;
+      output.patchCenter__inv_size.xyz = worldDecalPos;
+      output.patchCenter__inv_size.w = 1.0 / size;
+      output.decal_type__frame__rndIndex = uint3(type, frameNo, (puddle_id % 4) + 2);
+      output.strength = strength;
+      return output;
+    }
+  }
+endmacro
+
+macro INIT_PER_GROUP_PARAMS(code)
+  (code) {
+    decal_per_group_params@cbuf = blood_decal_params hlsl {
+      struct DecalGroup
+      {
+        #define BLOOD_DECAL_GROUP_DECL(name, _blk_name, id) static const uint name = id;
+        #include <blood_puddles/public/shaders/decal_group_enum_decl.hlsli>
+        #undef BLOOD_DECAL_GROUP_DECL
+      };
+
+      #include "per_group_params.hlsli"
+
+      cbuffer decal_per_group_params@cbuf
+      {
+        PerGroupParams perGroupParams[DecalGroup::BLOOD_DECAL_GROUPS_COUNT];
+      }
+    };
+  }
+endmacro
+
+macro BLOOD_PUDDLES_COMMON_PS()
+  POJECTIVE_DECALS_PS_COMMON()
+
+  (ps) {
+    atlas_size@f2 = (blood_decals_atlas_size);
+    blood_puddle_high_intensity_color@f4 = (blood_puddle_high_intensity_color);
+    blood_puddle_low_intensity_color@f4 = (blood_puddle_low_intensity_color);
+    blood_puddle_start_size@f1 = (blood_puddle_start_size);
+    perlin_noise3d@smp3d = perlin_noise3d;
+    blood_puddle_tex@smp2d = blood_puddle_tex;
+  }
+
+  if (blood_puddles_has_separate_flowmap == yes) {
+    (ps) {
+      blood_puddle_flowmap_tex@smp2d = blood_puddle_flowmap_tex;
+    }
+  }
+
+  hlsl(ps){
+    #include <psh_tangent.hlsl>
+    #include <normaldetail.hlsl>
+
+    float easeFunc(float x, int y)
+    {
+      return (1 - pow(1.0 - x, y));
+    }
+
+    float4 get_blood_params(float2 decal_tc)
+    {
+      float4 bloodParams;
+      ##if blood_puddles_has_separate_flowmap == no
+        //atlas: [flowmap, Nx, intensity, Ny]
+        bloodParams = tex2D(blood_puddle_tex, decal_tc.xy);
+      ##else
+        //atlas: [Nx, intensity, Ny]
+        float flow = tex2D(blood_puddle_flowmap_tex, decal_tc.xy).r;
+        float3 atlas = tex2D(blood_puddle_tex, decal_tc.xy).rgb;
+        bloodParams = float4(flow, atlas.xyz);
+      ##endif
+      return bloodParams;
+    }
+
+    float get_flowmap_cutting_offset()
+    {
+      return 0.05;
+    }
+
+    void unpack_blood(VsOutput input, float4 screen,
+      out float3 normal, out float drying_time, out float intensity, out float alpha,
+      out float flow_value, out float edge_closeness, out uint decal_type)
+    {
+      uint2 atlasSize = atlas_size;
+
+      uint decalType = input.decal_type__frame__rndIndex.x;
+      uint frameNo = input.decal_type__frame__rndIndex.y;
+      uint rndIndex = input.decal_type__frame__rndIndex.z;
+      float3 worldNormal = normalize(input.normal_fadetime.xyz);
+      float3 flow = normalize(normal * float3(1, 0.01, 1));
+      float3 vecToEdge = normalize(input.vecToEdge_starttime.xyz);
+      float linearTime = input.vecToEdge_starttime.w;
+      float sizeTime = easeFunc(saturate(abs(linearTime) * perGroupParams[decalType].invLifetime + blood_puddle_start_size), rndIndex);
+      float strength = input.strength;
+      bool mirror = frameNo & 1;
+      frameNo >>= 1;
+
+      const float3 eyeToPoint = get_decal_eye_to_point(screen);
+      const float3 pointToEye = -eyeToPoint;
+      const float3 worldPos = world_view_pos + eyeToPoint;
+      float3 decalTC = get_decal_tex_coord_from_world_pos(worldPos, input.patchCenter__inv_size.xyz, worldNormal, input.tang_shrink.xyz);
+
+      decalTC.x *= input.tang_shrink.w;
+      decalTC *= input.patchCenter__inv_size.w;
+      decalTC.xy += normalize(decalTC.xy)*abs(decalTC.z);
+      decalTC.xy = 0.5f*(decalTC.xy + 1.0f);
+      decalTC.xy = saturate(decalTC.xy);
+      if (mirror)
+        decalTC.x = 1 - decalTC.x;
+
+      float2 frameSize = 1.0 / atlas_size;
+      decalTC.xy *= frameSize;
+
+      uint atlas_y = uint(frameNo / atlasSize.x);
+      decalTC.xy += float2(frameNo - atlas_y*atlasSize.x, atlas_y) * frameSize;
+
+      float4 bloodParams = get_blood_params(decalTC.xy);
+      float maxStrengthFlowInfluence = 0.6;
+      flow_value = saturate(bloodParams.r + (strength - 1)*maxStrengthFlowInfluence);
+      float timeThreshold = (1 - sizeTime);
+
+      float cuttingOffset = get_flowmap_cutting_offset();
+      if (timeThreshold >= flow_value - cuttingOffset)
+        discard;
+      float zeroStrengthAlpha = 0.6; // looks too transparent below this
+      alpha = input.normal_fadetime.w * lerp(1, zeroStrengthAlpha, pow2(1-strength));
+      clip_alpha(alpha);
+
+      half3 normalMap = unpack_ag_normal(bloodParams);
+      normal = perturb_normal_precise(normalMap, worldNormal, pointToEye, decalTC.xy);
+
+      intensity = bloodParams.b;
+      drying_time = saturate((max(linearTime, 0.0) + perGroupParams[decalType].dryingDelay) * perGroupParams[decalType].invDryingTime);
+
+      float edgeWidthScale = float(perGroupParams[input.decal_type__frame__rndIndex.x].bloodNormalDominanceTerm_edgeWidthScale >> 8)/255.0;
+      float edgeClosenessScale = lerp(16.0, 1.0, edgeWidthScale);
+      edge_closeness = 1.0 - saturate((flow_value - timeThreshold - cuttingOffset) * edgeClosenessScale);
+
+      decal_type = decalType;
+    }
+ }
+endmacro
+
+shader blood_puddles_accumulation
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;//currently not support
+  }
+  supports global_frame;
+  z_write = false;
+  USE_ATEST_1()
+
+  blend_src[0] = 1; blend_dst[0] = 1;
+  blend_op[0] = min;
+
+  color_write = rg;
+  color_write[0] = rgba;
+
+  BLOOD_PUDDLES_VS()
+
+  USE_GBUFFER_PACK_UNPACK(ps)
+  INIT_PER_GROUP_PARAMS(ps)
+  BLOOD_PUDDLES_COMMON_PS()
+  ENABLE_ASSERT(ps)
+
+  hlsl(ps) {
+
+    struct BloodAccumOutput
+    {
+      float4 intensity_edgeCloseness_decalType_invAlpha : SV_Target0;
+      float2 normal : SV_Target1;
+    };
+
+    BloodAccumOutput blood_acc_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      float4 screen = GET_SCREEN_POS(input.pos);
+
+      float3 normal;
+      float intensity, edgeCloseness, alpha, stub;
+      uint decalType;
+      unpack_blood(input, screen, normal, stub, intensity, alpha, stub, edgeCloseness, decalType);
+
+      float packedDecalType = ((float)decalType+0.1)/255.0f;
+
+      BloodAccumOutput o;
+      o.intensity_edgeCloseness_decalType_invAlpha = float4(intensity, edgeCloseness, packedDecalType, 1.0-alpha);
+      o.normal = pack_normal_so(normal);
+
+      return o;
+    }
+  }
+  compile("target_vs", "blood_puddles_vs");
+  compile("target_ps", "blood_acc_ps");
+}
+
+shader blood_puddles_resolve
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;//currently not support
+  }
+  supports global_frame;
+  USE_ATEST_1()
+
+  blend_src = sa; blend_dst = isa;
+  blend_asrc = 0; blend_adst = 1;
+  blend_src[0] = sa; blend_dst[0] = sc;
+  blend_asrc[0] = 0; blend_adst[0] = 1;
+  color_write = rgb;
+
+  z_write=false;
+  z_test=false;
+  cull_mode=none;
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput blood_puddles_resolve_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 inpos = getPostfxVertexPositionById(vertexId);
+
+      output.pos = float4(inpos,0,1);
+      return output;
+    }
+  }
+
+  WRITE_GBUFFER()
+  ENABLE_ASSERT(ps)
+  INIT_PER_GROUP_PARAMS(ps)
+  INIT_VIEW_VEC_STAGE(ps)
+
+  (ps) {
+    blood_acc_buf0@smp2d = blood_acc_buf0;
+    blood_acc_normal@smp2d = blood_acc_normal;
+
+    blood_puddle_high_intensity_color@f4 = (blood_puddle_high_intensity_color);
+    blood_puddle_low_intensity_color@f4 = (blood_puddle_low_intensity_color);
+    blood_puddle_reflectance@f1 = (blood_puddle_reflectance);
+    blood_puddle_smoothness@f1 = (blood_puddle_smoothness);
+    blood_puddle_smoothness_edge@f1 = (blood_puddle_smoothness_edge)
+  }
+
+
+  hlsl(ps) {
+    GBUFFER_OUTPUT blood_puddles_resolve_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      float4 accBuf0 = texelFetch(blood_acc_buf0, input.pos.xy, 0);
+      float invAlpha = accBuf0.a;
+      if (invAlpha == 1.0)
+        discard;
+
+      float alpha = 1.0 - invAlpha;
+
+      float edgeCloseness = accBuf0.g;
+      uint decalType = uint(accBuf0.b * 255.0);
+
+      float intensity = accBuf0.r;
+      float thickness = 1.0 - intensity;
+
+      thickness = clamp(thickness - edgeCloseness, 0.0, 0.93);
+
+      float2 packedNormal = texelFetch(blood_acc_normal, input.pos.xy, 0).rg;
+      float3 normal = unpack_normal_so(packedNormal);
+
+      float invEdgeCloseness = 1.0 - edgeCloseness;
+      float3 vecToEdge = (ddx(invEdgeCloseness) * (view_vecLT + view_vecLB) + ddy(invEdgeCloseness) * (view_vecLT + view_vecRT)).xyz;
+      if (fwidth(invEdgeCloseness) > 0.5 / 255)
+        normal = lerp(normal, vecToEdge, saturate(edgeCloseness));
+
+      float3 diffuse = lerp(blood_puddle_low_intensity_color.xyz,
+                            blood_puddle_high_intensity_color.xyz,
+                            intensity);
+      diffuse = lerp(1.0.xxx, diffuse, alpha);
+
+      float smoothness = lerp(blood_puddle_smoothness, blood_puddle_smoothness_edge, edgeCloseness);
+
+      float alpha3 = pow3(alpha);
+      float srcMulDstDominance = lerp(1.0, 0.96, alpha3);
+      float srcDominance = (1.0/srcMulDstDominance - 1.0);
+
+      UnpackedGbuffer output;
+      init_gbuffer(output);
+      init_albedo(output,  diffuse * srcMulDstDominance);
+      init_ao(output, srcDominance);
+      init_reflectance(output, blood_puddle_reflectance);
+      init_metalness(output, 0.0);
+      init_smoothness(output, smoothness);
+      init_normal(output, normal);
+      ##if special_vision == thermal_vision
+        init_material(output, SHADING_SELFILLUM);
+        init_emission(output, MAX_EMISSION);
+        init_emission_color(output, half4(255, 255, 255, 255.0f));
+        output.smoothness = 0;
+      ##endif
+
+      float bloodNormalDominanceTerm = float(perGroupParams[decalType].bloodNormalDominanceTerm_edgeWidthScale & 0xFF)/255.0;
+      float bloodNormalBlend = max(edgeCloseness, bloodNormalDominanceTerm);
+
+      GBUFFER_OUTPUT gbuf = encode_gbuffer(output, 0, GET_SCREEN_POS(input.pos));
+      gbuf.normal_material.w = bloodNormalBlend * alpha3;
+      gbuf.smoothness_reflectance_metallTranslucency_shadow.w = 0.9 * alpha3;
+      return gbuf;
+    }
+  }
+
+  compile("target_vs", "blood_puddles_resolve_vs");
+  compile("target_ps", "blood_puddles_resolve_ps");
+}
+
+shader blood_puddles
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;//currently not support
+  }
+  supports global_frame;
+  z_write = false;
+  USE_ATEST_1()
+
+  blend_src = sa; blend_dst = isa;
+  blend_asrc = 0; blend_adst = 1;
+  blend_src[0] = sa; blend_dst[0] = sc;
+  blend_asrc[0] = 0; blend_adst[0] = 1;
+  color_write = rgb;
+
+  BLOOD_PUDDLES_VS()
+
+  REDUCE_GBUFFER_MRT_MOBILE()
+  WRITE_GBUFFER()
+  INIT_PER_GROUP_PARAMS(ps)
+  BLOOD_PUDDLES_COMMON_PS()
+  ENABLE_ASSERT(ps)
+
+  hlsl(ps) {
+
+    GBUFFER_OUTPUT blood_puddles_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      float4 screen = GET_SCREEN_POS(input.pos);
+    ##if mobile_render == deferred
+      clip_by_static_opaque_mask(screen.xy);
+    ##endif
+
+      float3 normal;
+      float dryingTime, intensity, alpha, flowValue, edgeCloseness;
+      int stub;
+      unpack_blood(input, screen, normal, dryingTime, intensity, alpha, flowValue, edgeCloseness, stub);
+
+      float3 vecToEdge = (ddx(flowValue) * (view_vecLT + view_vecLB) + ddy(flowValue) * (view_vecLT + view_vecRT)).xyz;
+      if (fwidth(flowValue) > 0.5 / 255)
+        normal = lerp(normal, (normal + normalize(vecToEdge)) * 0.5, edgeCloseness);
+
+      float thicknessDrying = max(0.5, 1.0 - dryingTime);
+      float thickness = min(1.0 - intensity - edgeCloseness, 0.93) * thicknessDrying;
+
+      float3 bloodColor = lerp(blood_puddle_high_intensity_color.xyz, blood_puddle_low_intensity_color.xyz, dryingTime);
+      float3 opacityColor = lerp(bloodColor.rrr, 1.0.xxx, edgeCloseness);
+
+      float3 diffuse = lerp(bloodColor, opacityColor, edgeCloseness * dryingTime)
+                     * (1.0-thickness);
+      diffuse = lerp(1.0.xxx, diffuse, alpha);
+
+      float smoothness = lerp(1.0, 0.9, edgeCloseness);
+      float reflectance = lerp(0.19, 0.35, edgeCloseness);
+
+      float alpha3 = pow3(alpha);
+      float srcMulDstDominance = lerp(1.0, 0.96, alpha3);
+      float srcDominance = (1.0/srcMulDstDominance - 1.0);
+
+      UnpackedGbuffer output;
+      init_gbuffer(output);
+      init_albedo(output,  diffuse * srcMulDstDominance);
+      init_ao(output, srcDominance);
+      init_reflectance(output, reflectance);
+      init_metalness(output, 0.0);
+      init_smoothness(output, smoothness);
+      init_normal(output, normal);
+      ##if special_vision == thermal_vision
+        init_material(output, SHADING_SELFILLUM);
+        init_emission(output, MAX_EMISSION);
+        init_emission_color(output, half4(255, 255, 255, 255.0f));
+        output.smoothness = 0;
+      ##endif
+
+      float bloodNormalDominanceTerm = float(perGroupParams[input.decal_type__frame__rndIndex.x].bloodNormalDominanceTerm_edgeWidthScale & 0xFF)/255.0;
+      float bloodNormalBlend = max(edgeCloseness, bloodNormalDominanceTerm);
+
+      GBUFFER_OUTPUT gbuf = encode_gbuffer(output, 0, GET_SCREEN_POS(input.pos));//should be PointToEye
+      gbuf.normal_material.w = bloodNormalBlend * alpha3;
+      gbuf.smoothness_reflectance_metallTranslucency_shadow.w = lerp(0.9, 0.3, dryingTime) * alpha3;
+      return gbuf;
+    }
+  }
+  compile("target_vs", "blood_puddles_vs");
+  compile("target_ps", "blood_puddles_ps");
+}
+
+shader blood_puddles_debug
+{
+  supports global_frame;
+  z_write = false;
+
+  USE_ATEST_1()
+
+  BLOOD_PUDDLES_VS()
+  INIT_PER_GROUP_PARAMS(ps)
+  BLOOD_PUDDLES_COMMON_PS()
+  ENABLE_ASSERT(ps)
+
+  hlsl(ps) {
+
+    float4 blood_puddles_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      float4 screen = GET_SCREEN_POS(input.pos);
+
+      float3 stub3;
+      float stub, edgeCloseness;
+      unpack_blood(input, screen, stub3, stub, stub, stub, stub, edgeCloseness, stub);
+
+      return float4(edgeCloseness.xxx, 1);
+    }
+  }
+
+  compile("target_vs", "blood_puddles_vs");
+  compile("target_ps", "blood_puddles_ps");
+}
+
+shader blood_puddles_resolve_debug
+{
+  supports global_frame;
+  z_write = false;
+  z_test=false;
+  cull_mode=none;
+
+  ENABLE_ASSERT(ps)
+  USE_POSTFX_VERTEX_POSITIONS()
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput blood_puddles_resolve_dbg_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 inpos = getPostfxVertexPositionById(vertexId);
+
+      output.pos = float4(inpos,0,1);
+      return output;
+    }
+  }
+
+  (ps) {
+    blood_acc_buf0@smp2d = blood_acc_buf0;
+  }
+
+  hlsl(ps) {
+    float4 blood_puddles_resolve_dbg_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      float4 screen = GET_SCREEN_POS(input.pos);
+      float2 buf = texelFetch(blood_acc_buf0, input.pos.xy, 0).rg;
+
+      float intensity = buf.r;
+      if (intensity == 1.0)
+        discard;
+
+      float edgeCloseness = buf.g;
+
+      return float4(edgeCloseness.xxx, 1);
+    }
+  }
+
+  compile("target_vs", "blood_puddles_resolve_dbg_vs");
+  compile("target_ps", "blood_puddles_resolve_dbg_ps");
+}

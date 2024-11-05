@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <signal.h>
 #include <regex>
 #include <string>
@@ -30,7 +32,11 @@
 #include <libTools/util/setupTexStreaming.h>
 #include <assets/assetPlugin.h>
 
+#if _TARGET_PC_WIN
 #include <startup/dag_winMain.inc.cpp>
+#else
+#include <startup/dag_mainCon.inc.cpp>
+#endif
 
 #include "../impostorUtil/impostorGenerator.h"
 #include "engine.h"
@@ -61,6 +67,8 @@ void custom_get_land_min_max(BBox2, float &out_min, float &out_max)
   out_max = 8192;
 }
 } // namespace rendinst::gen
+
+class ITextureNameResolver *get_global_tex_name_resolver() { return nullptr; }
 
 void DagorWinMainInit(int, bool)
 {
@@ -99,15 +107,22 @@ static bool assertion_handler(bool verify, const char *file, int line, const cha
   const DagorSafeArg *arg, int anum)
 {
   if (!engine)
-    return false;
+    return true;
+
+  char fmtBuf[1024];
+  DagorSafeArg::print_fmt(fmtBuf, sizeof(fmtBuf), fmt, arg, anum);
+
   char buf[1024];
   int w = snprintf(buf, sizeof(buf), "%s failed in %s:%d,%s() :\n\"%s\"%s%s\n", verify ? "verify" : "assert", file, line, func, cond,
-    fmt ? "\n\n" : "", fmt ? fmt : "");
+    fmtBuf[0] ? "\n\n" : "", fmtBuf[0] ? fmtBuf : "");
   if ((unsigned)w >= sizeof(buf))
     memcpy(buf + sizeof(buf) - 4, "...", 4);
   const char *string = &buf[0];
   engine->getConsoleLogWriter()->addMessage(ILogWriter::ERROR, string);
-  return false;
+  logmessage(LOGLEVEL_FATAL, "FATAL ERROR:\n%s", string);
+  debug_flush(true);
+  _exit(13);
+  return true;
 }
 
 int DagorWinMain(int nCmdShow, bool /*debugmode*/)
@@ -135,9 +150,8 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   char stamp_buf[256];
   debug(dagor_get_build_stamp_str(stamp_buf, sizeof(stamp_buf), "\n"));
 
-  dd_add_base_path(df_get_real_folder_name("./"));
   if (!::symhlp_load("daKernel" DAGOR_DLL))
-    debug_ctx("can't load sym for: %s", "daKernel" DAGOR_DLL);
+    DEBUG_CTX("can't load sym for: %s", "daKernel" DAGOR_DLL);
 
   String path_to_blk;
   DataBlock appblk;
@@ -154,8 +168,10 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 
   engine.demandInit();
 
-  char fpath_buf[512];
-  const char *app_dir = ::_fullpath(fpath_buf, path_to_blk.c_str(), 512);
+  char app_dir[512];
+  dd_get_fname_location(app_dir, path_to_blk.c_str());
+  if (!app_dir[0])
+    strcpy(app_dir, "./");
 
   DataBlock *global_settings_blk = const_cast<DataBlock *>(::dgs_get_settings());
 
@@ -177,6 +193,8 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   global_settings_blk->removeBlock("texStreaming");
   global_settings_blk->addNewBlock(&texStreamingBlk, "texStreaming")->setInt("forceGpuMemMB", 1);
   init_managed_textures_streaming_support(-1);
+  if (int resv_tid_count = appblk.getInt("texMgrReserveTIDcount", 128 << 10))
+    enable_res_mgr_mt(true, resv_tid_count);
 
   ::dagor_init_video("DagorWClass", nCmdShow, NULL, "Loading...");
   dagor_install_dev_fatal_handler(NULL);
@@ -192,7 +210,40 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 
   ShaderGlobal::enableAutoBlockChange(true);
   ShaderGlobal::set_int(get_shader_variable_id("in_editor", true), 0);
+
+  DataBlock impostorShaderVarsBlk;
+  const DataBlock *impostorBlock = blk.getBlockByName("impostor");
+  String folder;
+  if (impostorBlock)
+  {
+    G_ASSERTF(impostorBlock->paramExists("data_folder"), "Add data_folder:t to the assets/impostor block in application.blk");
+    folder = String(0, "%s/%s/", app_dir, impostorBlock->getStr("data_folder"));
+  }
+  else
+  {
+    G_ASSERTF(blk.paramExists("impostor_data_folder"), "Add the assets/impostor block to application.blk");
+    folder = String(0, "%s/%s/", app_dir, blk.getStr("impostor_data_folder"));
+  }
+  simplify_fname(folder);
+  String impostorShaderVarsFile = String(0, "%simpostor_shader_vars.blk", folder.c_str());
+  debug("impostorShaderVarsFile: looking for a file at <%s>", impostorShaderVarsFile);
+  if (::dd_file_exists(impostorShaderVarsFile.c_str()))
+  {
+    debug("impostorShaderVarsFile: was found");
+    impostorShaderVarsBlk.load(impostorShaderVarsFile.c_str());
+  }
+  else
+  {
+    debug("impostorShaderVarsFile: was not found");
+  }
+
   ShaderGlobal::set_vars_from_blk(*::dgs_get_settings()->getBlockByNameEx("shaderVar"), true);
+  if (impostorShaderVarsBlk != nullptr)
+  {
+    const DataBlock *shaderBlock = impostorShaderVarsBlk.getBlockByName("shaderVar");
+    G_ASSERTF(shaderBlock != nullptr, "Add shaderVar{} block to the impostor_shader_vars.blk");
+    ShaderGlobal::set_vars_from_blk(*shaderBlock, true);
+  }
 
   startup_game(RESTART_ALL);
 
@@ -216,6 +267,8 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   }
 
   G_ASSERT(DAEDITOR3.initAssetBase(app_dir));
+  if (get_max_managed_texture_id())
+    debug("tex/res registered with AssetBase:   %d", get_max_managed_texture_id().index());
 
   rendinst::configurateRIGen(*appblk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getBlockByNameEx("config"));
   rendinst::initRIGen(true, 80, 8000.0f);
@@ -238,3 +291,8 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   cpujobs::term(true);
   return ret;
 }
+
+#if !_TARGET_PC_WIN
+void DagorWinMainInit(bool /*debugmode*/) { DagorWinMainInit(0, false); }
+int DagorWinMain(bool /*debugmode*/) { return DagorWinMain(0, false); }
+#endif

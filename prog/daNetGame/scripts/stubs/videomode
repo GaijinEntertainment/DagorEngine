@@ -1,0 +1,30 @@
+return {
+  apply_video_settings = @(...) null
+  get_video_modes = @(...) {current = "auto", list = ["auto"]} // actually, it's get_resolutions (and it gets overridden)
+  get_available_monitors = @(...) {current = "auto", list = ["auto"]}
+  get_monitor_info = @(...) 0
+  get_dlss_state = @() 0
+  get_xess_state = @() 0
+  get_fsr_supported = @() 0
+  get_low_latency_modes = @() 0
+  get_performance_display_mode_support = @(...) false
+  get_current_window_resolution = @(...) false
+  is_dlss_quality_available_at_resolution = @(...) false
+  is_xess_quality_available_at_resolution = @(...) false
+  is_inline_rt_supported = @() false
+  is_gui_driver_select_enabled = @() false
+  is_dx12 = @() false
+  is_vulkan = @() false
+  is_hdr_available = @(...) false
+  is_hdr_enabled = @() false
+  get_dlssg_support_state = @() false
+  change_paper_white_nits = @(...) null
+  change_gamma = @(...) null
+  is_vrr_supported = @() false
+  is_upsampling = @() false
+  get_default_static_resolution_scale = @() 100.0
+  is_rendinst_tessellation_supported = @() false
+  is_only_low_gi_supported = @() false
+  set_dlssg_suppressed = @(...) false
+  is_hfr_supported = @() false
+}

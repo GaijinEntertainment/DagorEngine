@@ -1,6 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "selectionNodesProcessing.h"
+
+namespace PropPanel
+{
+class ITreeControlEventHandler;
+}
 
 class NodesProcessing
 {
@@ -16,8 +22,8 @@ public:
   bool editMode = false;
   int selectedPanelGroup;
 
-  void init(DagorAsset *curAsset, CollisionResource *collision_res);
-  void setPropPanel(PropertyContainerControlBase *prop_panel);
+  void init(DagorAsset *curAsset, CollisionResource *collision_res, PropPanel::ITreeControlEventHandler *event_handler);
+  void setPropPanel(PropPanel::ContainerPropertyControl *prop_panel);
   void renderNodes(int selected_node_id, bool draw_solid);
   void onClick(int pcb_id);
   void onChange(int pcb_id);
@@ -27,13 +33,15 @@ public:
   void fillCollisionInfoPanel();
   void fillEditNodeInfoPanel();
   void setPanelAfterReject();
+  bool canChangeAsset();
 
   static void delete_flags_prefix(String &node_name);
 
 private:
-  PropertyContainerControlBase *panel = nullptr;
+  PropPanel::ContainerPropertyControl *panel = nullptr;
   CollisionResource *collisionRes = nullptr;
   DagorAsset *curAsset = nullptr;
+  PropPanel::ITreeControlEventHandler *treeEventHandler = nullptr;
 
   void calcCollisionsAfterReject();
   void switchPropPanel(int pcb_id);

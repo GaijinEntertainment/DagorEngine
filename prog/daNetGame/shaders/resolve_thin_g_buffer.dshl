@@ -1,0 +1,362 @@
+include "sky_shader_global.dshl"
+include "pbr.dshl"
+include "gbuffer.dshl"
+include "monteCarlo.dshl"
+include "roughToMip.dshl"
+include "normaldetail.dshl"
+include "viewVecVS.dshl"
+include "invGlobTm.dshl"
+include "static_shadow.dshl"
+include "contact_shadows.dshl"
+include "csm.dshl"
+include "ssao_use.dshl"
+include "clusteredViewLights.dshl"
+include "depth_above.dshl"
+include "sq_clouds_shadow.dshl"
+
+float csm_distance = 1000;
+int thin_gbuf_resolve = 0;
+interval thin_gbuf_resolve: no_depth_bounds<1, shadows_no_scattering<2, all_shadows_scattering<3, static_shadows_no_scattering<4, static_shadows_scattering;
+int compatibility_fake_spot_lights = 0;
+interval compatibility_fake_spot_lights: no<1, yes;
+float darkest_wsao_influence = 0.01;
+
+macro COMMON_RESOLVE()
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  BRUNETON_FOG()
+  INIT_ZNZFAR()
+  USE_DECODE_DEPTH()
+  USE_AND_INIT_VIEW_VEC_VS()
+endmacro
+
+macro INIT_LOAD_THIN_GBUFFER()
+  ENABLE_ASSERT(ps)
+  INIT_LOAD_DEPTH_GBUFFER()
+  USE_LOAD_DEPTH_GBUFFER()
+  (ps) {
+    sunLight_gbuf@smp2d = albedo_gbuf;
+    ambientLight_gbuf@smp2d = normal_gbuf;//as per MRT_SHADERVAR_NAMES
+  }
+
+  hlsl(ps) {
+
+    struct ThinGbuffer
+    {
+      float3 sunLight;
+      float3 ambientLight;
+    };
+
+    ThinGbuffer loadGbuffer(int2 tc)
+    {
+      ThinGbuffer gbuf;
+      gbuf.sunLight     = texelFetch(sunLight_gbuf, tc, 0).rgb;
+      gbuf.ambientLight = texelFetch(ambientLight_gbuf, tc, 0).rgb;
+
+
+      return gbuf;
+    }
+  }
+endmacro
+
+shader thin_g_resolve, deferred_shadow_bare_minimum
+{
+  if (shader == thin_g_resolve && (compatibility_mode == compatibility_mode_off))
+  {
+    dont_render;
+  }
+  if (shader == deferred_shadow_bare_minimum)
+  {
+    assume compatibility_fake_spot_lights = no;
+    assume gi_quality = only_ao;
+    assume thin_gbuf_resolve = no_depth_bounds;
+    assume use_contact_shadows = no_shadows;
+    if (compatibility_mode == compatibility_mode_on)
+    {
+      dont_render;
+    }
+  }
+  hlsl(ps) {
+    #define FASTEST_STATIC_SHADOW_PCF 1
+  }
+  supports global_frame;
+  z_write = false;
+  z_test = false;
+  color_write = rgb;
+
+  COMMON_RESOLVE()//should be BEFORE READ_GBUFFER!
+  if (shader == thin_g_resolve)
+  {
+    INIT_LOAD_THIN_GBUFFER()
+    INIT_AND_USE_PHOTOMETRY_TEXTURES(ps)
+    INIT_SPOT_LIGHTS_CB(ps)
+  }
+  else if (shader == deferred_shadow_bare_minimum)
+  {
+    PACK_UNPACK_GBUFFER_BASE(ps)
+    WRITE_GBUFFER_THIN()
+    INIT_LOAD_DEPTH_GBUFFER()
+    USE_LOAD_DEPTH_GBUFFER()
+    INIT_LOAD_GBUFFER()
+    USE_LOAD_GBUFFER()
+    if (dynamic_lights_count != lights_off)
+    {
+      hlsl(ps)
+      {
+        #define OMNI_SHADOWS 0
+        #define SPOT_SHADOWS 0
+      }
+      INIT_AND_USE_CLUSTERED_VIEW_LIGHTS(ps)
+    }
+    (ps) {
+      gbuffer_sun_light_dir@f4 = (from_sun_direction.x, from_sun_direction.y, from_sun_direction.z, const_frame_exposure);
+      gbuffer_sun_light_col@f4 = (sun_color_0.r, sun_color_0.g, sun_color_0.b, skylight_params.w);
+      gbuffer_enviSPH0 @f4 = (enviSPH0*skylight_params.y);
+      gbuffer_enviSPH1 @f4 = (enviSPH1*skylight_params.y);
+      gbuffer_enviSPH2 @f4 = (enviSPH2*skylight_params.y);
+      gbuffer_envi_probe_specular@smpCube = envi_probe_specular;
+    }
+  }
+  INIT_STATIC_SHADOW()
+  INIT_CSM_SHADOW(ps)
+
+  SQ_INIT_CLOUDS_SHADOW(ps)
+  SQ_CLOUDS_SHADOW(ps)
+
+  USE_CSM_SHADOW_DEF_NUM()
+  INIT_UPSCALE_SAMPLING()
+  USE_UPSCALE_SAMPLING()
+  USING_SSAO()
+
+  hlsl(ps) {
+    #define STATIC_SHADOW_REFERENCE_FXAA_IMPL 0
+  }
+
+  USE_STATIC_SHADOW()
+
+  cull_mode = none;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord     : TEXCOORD0;
+      float3 viewVect     : TEXCOORD1;
+    };
+  }
+
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  (vs) { screen_size@f2 = (1./screen_pos_to_texcoord.x, 1./screen_pos_to_texcoord.y,0,0); }
+
+  hlsl(vs) {
+    VsOutput thin_g_resolve_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 inpos = get_fullscreen_inpos(vertexId);
+      output.pos = float4(inpos.xy, 1, 1);
+      output.texcoord.xy = screen_to_texcoords(inpos);
+      output.viewVect = get_view_vec_by_vertex_id(vertexId);
+
+      return output;
+    }
+  }
+
+  (ps) {
+    screen_size@f4 = (1. / screen_pos_to_texcoord.x, 1. / screen_pos_to_texcoord.y, screen_pos_to_texcoord.x, screen_pos_to_texcoord.y);
+    csm_distance@f1 = (csm_distance, 0, 0, 0);
+    darkest_wsao_influence@f1 = darkest_wsao_influence;
+  }
+
+  USE_VOLFOG_DITHERING_NOISE(ps)
+  CUSTOM_FOG(ps)
+  INIT_BLURRED_DEPTH_ABOVE(ps)
+  USE_BLURRED_DEPTH_ABOVE(ps)
+
+  hlsl(ps) {
+    float getWorldBlurredAO(float3 worldPos)
+    {
+      float vignetteEffect;
+      float depthHt = getWorldBlurredDepth(worldPos, vignetteEffect);
+      const float height_bias = 0.0;
+      const float height_scale = 0.75f;
+      float occlusion = rcp((max(0.01, (depthHt - worldPos.y)*height_scale + (1 - height_bias*height_scale))));
+      float ao = saturate(occlusion)*0.9 + 0.1;
+      return lerp(ao, 1, vignetteEffect);
+    }
+    ##if compatibility_fake_spot_lights == yes
+      #define FAKE_SPOT_LIGHTS 1
+    ##endif
+
+    #define NO_TAA 1
+    ##if thin_gbuf_resolve == no_depth_bounds
+      #define NO_DEPTH_BOUNDS 1
+    ##endif
+    ##if thin_gbuf_resolve != shadows_no_scattering && thin_gbuf_resolve != static_shadows_no_scattering
+      #define HAS_SCATTERING 1
+    ##endif
+    ##if shadow_cascade_depth_tex != NULL
+      ##if thin_gbuf_resolve == no_depth_bounds || thin_gbuf_resolve == shadows_no_scattering || thin_gbuf_resolve == all_shadows_scattering
+        #define HAS_CSM_SHADOWS 1
+      ##endif
+    ##endif
+
+    half3 applyScattering(half3 result, float2 screenpos, float2 tc, float3 view, float dist, float w)
+    {
+      #if NO_TAA
+      float2 scatterTc = tc.xy;
+      #else
+      float2 scatterTc = get_volfog_dithered_screen_tc(screenpos.xy, tc);
+      #endif
+
+      half3 fog_mul, fog_add;
+      get_volfog_with_scattering(tc.xy, scatterTc, view, dist, w, fog_mul, fog_add);
+      //apply exposure for additive part, otherwise it will lit up image
+      result = mad(result, fog_mul, fog_add * get_exposure_mul());
+
+      return result;
+    }
+
+  #if FAKE_SPOT_LIGHTS
+    half applySpotLight(int spot_index, float total, float4 worldPos)
+    {
+      RenderSpotLight sl = spot_lights_cb[spot_index];
+      float4 lightPosRadius = sl.lightPosRadius;
+      float4 lightColor = sl.lightColorAngleScale;
+      float4 lightDirection = sl.lightDirectionAngleOffset;
+      float2 texId_scale = sl.texId_scale_shadow_contactshadow.xy;
+
+      half3 distanceVec = worldPos.xyz - lightPosRadius.xyz;
+      half distance = length(distanceVec);
+      distanceVec /= distance;
+      half ret = 0.0f;
+
+      if (sl.lightPosRadius.w > distance)
+      {
+        if (distance == 0.0f)
+          ret = 1.0f;
+        else
+          ret = dot(distanceVec, lightDirection.xyz);
+      }
+
+      ret *= length(lightColor.xyz) * (1.0f - (distance / sl.lightPosRadius.w));
+
+      FLATTEN
+      if (total > ret)
+      {
+        // max(total, ret) is returned and at this point ret can only decrease
+        // in case of ret = 0, applyPhotometryIntensity can early exit
+        ret = 0;
+      }
+      ret = applyPhotometryIntensity(distanceVec, lightDirection.xyz, texId_scale.x,
+                                          texId_scale.y, ret);
+
+      return max(total, ret);
+    }
+
+    half applySpotLights(float total, float attenuation, float4 worldPos)
+    {
+      for (int i = 0; i<spot_lights_count.x; ++i)
+        total = applySpotLight(i, total, worldPos);
+      return total/attenuation;
+    }
+  #endif
+
+    half calcShadow(float w, float4 worldPos, float3 pointToEye)
+    {
+      #if FAKE_SPOT_LIGHTS
+      half shadow = 1.0f;
+      #else
+      half shadow = getStaticShadow(worldPos.xyz);
+      #endif
+
+      shadow *= clouds_shadow(worldPos.xyz);
+
+      #if HAS_CSM_SHADOWS
+        BRANCH
+        #if NO_DEPTH_BOUNDS
+        if ( w < csm_distance && shadow > 0.01)
+        #else
+        if ( shadow > 0.01)
+        #endif
+        {
+          half csmShadow = get_csm_shadow(pointToEye).x;
+          shadow = shadow*csmShadow.x;
+        }
+      #endif
+
+      return shadow;
+    }
+
+    float3 thin_g_resolve_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+
+      float rawDepth = loadGbufferDepth(screenpos.xy);
+      #if NO_DEPTH_BOUNDS
+        BRANCH
+        if (rawDepth == 0)
+          return 0;
+      #endif
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+
+      float3 viewVect = input.viewVect;
+      float3 pointToEye = -viewVect * w;
+      float3 pointToEyeOfs = pointToEye;
+      float4 worldPos = float4(world_view_pos.xyz - pointToEyeOfs, 1);
+
+      float distSq = dot(pointToEye,pointToEye);
+      float invRsqrt = rsqrt(distSq);
+      float3 view  = pointToEye*invRsqrt;
+      float dist = rcp(invRsqrt);
+      ##if shader == thin_g_resolve
+          ThinGbuffer gbuf = loadGbuffer(screenpos.xy);
+      ##elif shader == deferred_shadow_bare_minimum
+        ProcessedGbuffer gbuffer = loadProcessedGbuffer(screenpos.xy);
+        GBUFFER_OUTPUT gbuf = encode_processed_gbuffer_exposure(
+            gbuffer, pointToEye, get_exposure_mul(),
+            gbuffer_sun_light_dir.xyz, gbuffer_sun_light_col.rgb,
+            gbuffer_enviSPH0, gbuffer_enviSPH1, gbuffer_enviSPH2, gbuffer_sun_light_col.w);
+      ##endif
+
+
+      float shadow = calcShadow(w, worldPos, pointToEye);
+
+      ##if shader == thin_g_resolve
+        SSAO_TYPE ssao = getSSAO(w, screenpos.xy);
+      ##elif shader == deferred_shadow_bare_minimum
+        //Intentionally ignore `upscale_sampling_tex` assume inside `getSSAO` since I don`t want
+        //to remove this assume from common_assumes.blk.
+        SSAO_TYPE ssao = getSSAOSimple(w, screenpos.xy);
+      ##endif
+      //ssao.x *= getWorldBlurredAO(worldPos.xyz) * lerp(0.1, 1, pow(ssao.WSAO_ATTR, 0.6));
+      //ssao.x *= getWorldBlurredAO(worldPos.xyz) * lerp(0.04, 1, ssao.WSAO_ATTR);
+      ssao.x *= lerp(darkest_wsao_influence, 1, ssao.WSAO_ATTR);
+      shadow *= ssao.CONTACT_SHADOWS_ATTR;
+
+      half3 result = gbuf.sunLight.xyz * shadow + gbuf.ambientLight.xyz * ssao.x;
+
+      ##if shader == deferred_shadow_bare_minimum && dynamic_lights_count != lights_off
+        float NdotV = dot(gbuffer.normal, view);
+        float NoV = abs(NdotV) + 1e-5;
+        half3 specularColor = gbuffer.specularColor * gbuffer.extracted_albedo_ao;
+        half3 dynamicLight = get_dynamic_lighting(gbuffer, worldPos.xyz, -viewVect, w,
+            screenpos.xy, NoV, specularColor, input.texcoord.xy, gbuffer.ao);
+        result += dynamicLight * get_exposure_mul();
+      ##endif
+
+      #if HAS_SCATTERING
+      result = applyScattering(result, screenpos.xy, input.texcoord.xy, view, dist, w);
+      #endif
+
+      #if FAKE_SPOT_LIGHTS
+      result *= applySpotLights(4.0f, 32.0f, worldPos);
+      #endif
+
+      return result;
+    }
+  }
+
+  compile("target_vs", "thin_g_resolve_vs");
+  compile("target_ps", "thin_g_resolve_ps");
+}

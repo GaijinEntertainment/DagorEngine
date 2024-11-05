@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "assetBuildCache.h"
 #include <assets/assetHlp.h>
 #include <assets/daBuildInterface.h>
@@ -8,6 +10,7 @@
 #include "av_appwnd.h"
 #include <EditorCore/ec_workspace.h>
 #include <debug/dag_debug.h>
+#include <perfMon/dag_statDrv.h>
 
 static IDaBuildInterface *dabuild = NULL;
 static DagorAssetMgr *assetMgr = NULL;
@@ -65,11 +68,7 @@ int bind_dabuild_cache_with_mgr(DagorAssetMgr &mgr, DataBlock &appblk, const cha
   if (texconvcache::init(mgr, appblk, startDir, false, true))
   {
     get_app().getConsole().addMessage(ILogWriter::NOTE, "texture conversion cache inited");
-#if _TARGET_64BIT
-    int pc = ddsx::load_plugins(String(260, "%s/../bin64/plugins/ddsx", startDir.str()));
-#else
-    int pc = ddsx::load_plugins(String(260, "%s/../bin/plugins/ddsx", startDir.str()));
-#endif
+    int pc = ddsx::load_plugins(String(260, "%s/plugins/ddsx", startDir.str()));
     debug("loaded %d DDSx export plugin(s)", pc);
   }
   if (assetMgr)
@@ -124,11 +123,15 @@ static void getPackForFolder(FastNameMap &packs, dag::ConstSpan<int> folders_idx
 }
 
 const char *get_asset_pack_name(DagorAsset *asset) { return dabuild ? dabuild->getPackName(asset) : NULL; }
+String get_asset_pkg_name(DagorAsset *asset) { return dabuild ? dabuild->getPkgName(asset) : String(); }
 
 bool check_assets_base_up_to_date(dag::ConstSpan<const char *> packs, bool tex, bool res)
 {
+  TIME_PROFILE(check_assets_base_up_to_date);
   if (!dabuild)
     return false;
+
+  int64_t startTime = profile_ref_ticks();
 
   ILogWriter *log = &::get_app().getConsole();
 
@@ -169,7 +172,7 @@ bool check_assets_base_up_to_date(dag::ConstSpan<const char *> packs, bool tex, 
 
   dabuild->setupReports(NULL, NULL);
 
-  log->addMessage(ILogWriter::NOTE, "checking assets up-to-date...complete");
+  log->addMessage(ILogWriter::NOTE, "checking assets up-to-date...complete in %.2fs", ((float)profile_time_usec(startTime)) / 1e6f);
 
   EDITORCORE->updateViewports();
   EDITORCORE->invalidateViewportCache();
@@ -194,6 +197,8 @@ void rebuild_assets_in_folders(dag::ConstSpan<unsigned> tc, dag::ConstSpan<int> 
 
   ILogWriter *log = &::get_app().getConsole();
 
+  ::get_app().getConsole().showConsole();
+
   dabuild->setupReports(log, &::get_app().getConsole());
 
   FastNameMap _packs;
@@ -201,9 +206,7 @@ void rebuild_assets_in_folders(dag::ConstSpan<unsigned> tc, dag::ConstSpan<int> 
   Tab<const char *> packs;
   tab_from_namemap(packs, _packs);
 
-  if (!dabuild->exportPacks(tc, packs))
-    ::get_app().getConsole().showConsole();
-  else
+  if (dabuild->exportPacks(tc, packs))
     ::get_app().getConsole().hideConsole();
 
   dabuild->setupReports(NULL, NULL);
@@ -217,6 +220,8 @@ void rebuild_assets_in_root(dag::ConstSpan<unsigned> tc, bool build_tex, bool bu
     return;
 
   ILogWriter *log = &::get_app().getConsole();
+
+  ::get_app().getConsole().showConsole();
 
   dabuild->setupReports(log, &::get_app().getConsole());
 
@@ -239,8 +244,6 @@ void rebuild_assets_in_root(dag::ConstSpan<unsigned> tc, bool build_tex, bool bu
   tab_from_namemap(packs, _packs);
 
   if (!dabuild->exportPacks(tc, packs))
-    ::get_app().getConsole().showConsole();
-  else
     ::get_app().getConsole().hideConsole();
 
   dabuild->setupReports(NULL, NULL);
@@ -296,6 +299,8 @@ void build_assets(dag::ConstSpan<unsigned> tc, dag::ConstSpan<DagorAsset *> asse
 
   ILogWriter *log = &::get_app().getConsole();
 
+  ::get_app().getConsole().showConsole();
+
   dabuild->setupReports(log, &::get_app().getConsole());
 
   for (int i = 0; i < cnt; i++)
@@ -304,9 +309,7 @@ void build_assets(dag::ConstSpan<unsigned> tc, dag::ConstSpan<DagorAsset *> asse
     packs[i] = buffer[i];
   }
 
-  if (!dabuild->exportPacks(tc, packs))
-    ::get_app().getConsole().showConsole();
-  else
+  if (dabuild->exportPacks(tc, packs))
     ::get_app().getConsole().hideConsole();
 
   dabuild->setupReports(NULL, NULL);

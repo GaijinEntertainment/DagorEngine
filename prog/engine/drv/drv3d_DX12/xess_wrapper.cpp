@@ -1,9 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "xess_wrapper.h"
 #include "device.h"
 
 #include <osApiWrappers/dag_dynLib.h>
+#include <osApiWrappers/dag_direct.h>
 
 #include <xess_sdk/inc/xess/xess_d3d12.h>
+#include <xess_sdk/inc/xess/xess_debug.h>
 
 #include <type_traits>
 
@@ -37,8 +41,9 @@ namespace drv3d_dx12
 
 static xess_quality_settings_t toXeSSQuality(int quality)
 {
-  static constexpr xess_quality_settings_t xessQualities[] = {
-    XESS_QUALITY_SETTING_PERFORMANCE, XESS_QUALITY_SETTING_BALANCED, XESS_QUALITY_SETTING_QUALITY, XESS_QUALITY_SETTING_ULTRA_QUALITY};
+  static constexpr xess_quality_settings_t xessQualities[] = {XESS_QUALITY_SETTING_PERFORMANCE, XESS_QUALITY_SETTING_BALANCED,
+    XESS_QUALITY_SETTING_QUALITY, XESS_QUALITY_SETTING_ULTRA_QUALITY, XESS_QUALITY_SETTING_ULTRA_QUALITY_PLUS, XESS_QUALITY_SETTING_AA,
+    XESS_QUALITY_SETTING_ULTRA_PERFORMANCE};
 
   G_ASSERT(quality < eastl::extent<decltype(xessQualities)>::value);
   return xessQualities[quality];
@@ -71,6 +76,7 @@ public:
     LOAD_FUNC(xessDestroyContext);     //-V516
     LOAD_FUNC(xessD3D12Execute);       //-V516
     LOAD_FUNC(xessSetVelocityScale);   //-V516
+    LOAD_FUNC(xessStartDump);          //-V516
 #undef LOAD_FUNC
 
     return true;
@@ -159,7 +165,7 @@ public:
     xess_result_t result = evaluateXess(context, params);
     if (result != xess_result_t::XESS_RESULT_SUCCESS)
     {
-      logerr("DX12: XeSS: Failed to evaluate XeSS: %s", get_xess_result_as_string(result));
+      D3D_ERROR("DX12: XeSS: Failed to evaluate XeSS: %s", get_xess_result_as_string(result));
       return false;
     }
 
@@ -183,6 +189,21 @@ public:
     xess_result_t result = xessGetInputResolution(m_xessContext, &targetResolution, toXeSSQuality(xess_quality), &inputResolution);
 
     return result == XESS_RESULT_SUCCESS && inputResolution.x > 0 && inputResolution.y > 0;
+  }
+
+  void startDump(const char *path, int numberOfFrames)
+  {
+    if (dd_mkpath(path))
+    {
+      xess_dump_parameters_t dumpParameters = {};
+      dumpParameters.path = path;
+      dumpParameters.frame_count = numberOfFrames;
+      xess_result_t result = xessStartDump(m_xessContext, &dumpParameters);
+      if (result != XESS_RESULT_SUCCESS)
+      {
+        D3D_ERROR("DX12: Failed to create XeSS dump: %s", get_xess_result_as_string(result));
+      }
+    }
   }
 
 private:
@@ -216,11 +237,21 @@ private:
   decltype(::xessDestroyContext) *xessDestroyContext;
   decltype(::xessD3D12Execute) *xessD3D12Execute;
   decltype(::xessSetVelocityScale) *xessSetVelocityScale;
+  decltype(::xessStartDump) *xessStartDump;
 };
 
 } // namespace drv3d_dx12
 
-XessWrapper::XessWrapper() : pImpl(new XessWrapperImpl) {}
+#if DAGOR_DBGLEVEL > 0
+XessWrapper *debugActiveWrapper = nullptr;
+#endif
+
+XessWrapper::XessWrapper() : pImpl(new XessWrapperImpl)
+{
+#if DAGOR_DBGLEVEL > 0
+  debugActiveWrapper = this;
+#endif
+}
 
 XessWrapper::~XessWrapper() = default;
 
@@ -245,3 +276,28 @@ bool XessWrapper::isXessQualityAvailableAtResolution(uint32_t target_width, uint
 XessState XessWrapper::getXessState() const { return pImpl->getXessState(); }
 
 void XessWrapper::getXeSSRenderResolution(int &w, int &h) const { pImpl->getXeSSRenderResolution(w, h); }
+
+void XessWrapper::startDump(const char *path, int numberOfFrames) { pImpl->startDump(path, numberOfFrames); }
+
+#if DAGOR_DBGLEVEL > 0
+
+#include <gui/dag_imgui.h>
+#include <imgui/imgui.h>
+
+static void xess_debug_imgui()
+{
+  static char dumpPath[DAGOR_MAX_PATH] = "xessDump";
+  ImGui::InputText("Dump path", dumpPath, IM_ARRAYSIZE(dumpPath));
+
+  static int framesToDump = 1;
+  ImGui::SliderInt("Number of frames to dump", &framesToDump, 1, 10);
+
+  if (ImGui::Button("Start") && debugActiveWrapper)
+  {
+    debugActiveWrapper->startDump(dumpPath, framesToDump);
+  }
+}
+
+REGISTER_IMGUI_WINDOW("Render", "XeSS debug", xess_debug_imgui);
+
+#endif

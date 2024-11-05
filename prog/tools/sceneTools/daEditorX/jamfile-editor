@@ -1,16 +1,15 @@
 Root    ?= ../../../.. ;
 Location = prog/tools/sceneTools/daEditorX ;
-DriverLinkage = dynamic ;
+KernelLinkage ?= dynamic ;
+BuildingTools = yes ;
 include $(Root)/prog/tools/tools_setup.jam ;
-Platform ?= win64 ;
 
 UseD3DMulti = yes ;
 UseD3DMultiList = DX9 DX11 stub ;
 
 TargetType  = exe ;
 Target = tools/sceneTools/daEditorX/daEditor3x.exe ;
-OutDir      = $(Root)/tools/dagor3_cdk/bin ;
-if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+include $(Root)/prog/tools/tools_setup_outdir_bin.jam ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
@@ -82,7 +81,7 @@ UseProgLibs =
 
   engine/streaming
 
-  tools/libTools/propPanel2
+  tools/libTools/propPanel
   tools/libTools/sepGui
 
   tools/libTools/util
@@ -92,6 +91,7 @@ UseProgLibs =
   tools/libTools/EditorCore
   tools/libTools/EditorCore/IEditorCore
   tools/libTools/ObjCreator3D
+  tools/libTools/grsCurView
 
   engine/phys/physCommon
   engine/phys/physBullet
@@ -152,6 +152,7 @@ UseProgLibs =
   tools/sceneTools/daEditorX/services/cableSrv
   tools/sceneTools/daEditorX/services/splineGenSrv
   tools/sceneTools/daEditorX/services/ecsMgr
+  tools/sceneTools/daEditorX/services/visibilityFinderSrv
   tools/sceneTools/daEditorX/services/webui
   tools/sceneTools/daEditorX/services/wind
 
@@ -178,9 +179,34 @@ UseProgLibs =
   gameLibs/textureUtil
 
   gameLibs/imguiInput
+  gameLibs/physMap
 ;
 
 ImportProgLibs = tools/libTools/daKernel ;
+
+if $(KernelLinkage) != dynamic {
+  local memory_lib = memory ;
+  if $(PlatformSpec) = clang && $(Sanitize) = address { memory_lib = memory/rtlStdMemory ; }
+
+  UseProgLibs =
+    engine/osApiWrappers
+    engine/kernel
+    engine/$(memory_lib)
+    engine/ioSys
+    engine/baseUtil
+    $(UseProgLibs)
+    tools/libTools/objectEditor
+    tools/libTools/util
+
+    tools/sceneTools/daEditorX/HeightmapLand
+    tools/sceneTools/daEditorX/IvyGen
+    tools/sceneTools/daEditorX/Occluders
+    tools/sceneTools/daEditorX/StaticGeom
+    tools/sceneTools/daEditorX/csg
+  ;
+  ImportProgLibs = ;
+  opt on dagored_main.cpp = -I $(Root)/prog/tools/libTools/daKernel ;
+}
 
 
 AddLibs +=

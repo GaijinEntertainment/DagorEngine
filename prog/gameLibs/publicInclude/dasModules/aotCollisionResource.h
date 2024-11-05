@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -26,6 +25,7 @@ typedef Tab<int> CollisionTriIndices;
 typedef Tab<Point3> CollisionTriVertices;
 
 DAS_BIND_VECTOR(CollResIntersectionsType, CollResIntersectionsType, IntersectedNode, " ::CollResIntersectionsType");
+DAS_BIND_VECTOR(CollResHitNodesType, CollResHitNodesType, int, " ::CollResHitNodesType");
 
 namespace bind_dascript
 {
@@ -70,6 +70,13 @@ inline bool collres_traceCapsule_out_intersections(const CollisionResource &coll
   const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir, float start_t, float radius, IntersectedNode &inode)
 {
   return collres.traceCapsule(reinterpret_cast<const TMatrix &>(instance_tm), geom_node_tree, from, dir, start_t, radius, inode);
+}
+
+inline bool collres_capsuleHit_out_intersections(const CollisionResource &collres, const das::float3x4 &instance_tm,
+  const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir, float start_t, float radius,
+  CollResHitNodesType &nodes_hit)
+{
+  return collres.capsuleHit(reinterpret_cast<const TMatrix &>(instance_tm), geom_node_tree, from, dir, start_t, radius, nodes_hit);
 }
 
 inline bool collres_traceray_out_mat(const CollisionResource &collres, const das::float3x4 &tm, const Point3 &tracePos,

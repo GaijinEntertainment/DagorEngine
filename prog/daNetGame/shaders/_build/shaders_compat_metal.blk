@@ -1,0 +1,10 @@
+include "shaders_metal.blk"
+
+"@override:outDumpName":t="../../game/compiledShaders/compatPC/gameMTL"
+
+"@override:Compile" {
+  "@override:fsh":t="5.0"
+  "@override:assume_vars" {
+    include compatibility_pc_assumes.blk
+  }
+}

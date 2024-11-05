@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "shStateBlk.h"
 
 ska::flat_hash_set<ScriptedShaderMaterial *> shaders_internal::shader_mats;

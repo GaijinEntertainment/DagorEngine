@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -76,6 +75,12 @@ struct NavParams
   float jump_weight = 40.0f;
 };
 
+struct PolyState
+{
+  unsigned short flags;
+  unsigned char areaAndType;
+};
+
 enum FindPathResult : unsigned
 {
   FPR_FAILED = 0,
@@ -96,6 +101,7 @@ enum PolyArea : unsigned
   POLYAREA_GROUND = 1,
   POLYAREA_OBSTACLE = 2,
   POLYAREA_BRIDGE = 3,
+  POLYAREA_BLOCKED = 4,
   POLYAREA_JUMP = 5
   // NB: please do not change/add new fields inside this enum, add game specific enum inside das and use it instead
 };
@@ -105,7 +111,8 @@ enum PolyFlag : unsigned
   POLYFLAG_GROUND = 0x01,
   POLYFLAG_OBSTACLE = 0x02,
   POLYFLAG_LADDER = 0x04,
-  POLYFLAG_JUMP = 0x08
+  POLYFLAG_JUMP = 0x08,
+  POLYFLAG_BLOCKED = 0x10
   // NB: please do not change/add new fields inside this enum, add game specific enum inside das and use it instead
 };
 
@@ -127,21 +134,24 @@ void initWeights(const DataBlock *navQueryFilterWeightsBlk);
 bool isLoaded();
 FindPathResult findPath(Tab<Point3> &path, FindRequest &req, float step_size, float slop, const CustomNav *custom_nav);
 FindPathResult findPath(const Point3 &start_pos, const Point3 &end_pos, Tab<Point3> &path, float dist_to_path = 10.f,
-  float step_size = 10.f, float slop = 2.5f, const CustomNav *custom_nav = nullptr, const dag::Vector<Point2> &areasCost = {});
+  float step_size = 10.f, float slop = 2.5f, const CustomNav *custom_nav = nullptr, const dag::Vector<Point2> &areasCost = {},
+  int incl_flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER, int excl_flags = POLYFLAG_BLOCKED);
 FindPathResult findPath(const Point3 &start_pos, const Point3 &end_pos, Tab<Point3> &path, const Point3 &extents,
-  float step_size = 10.f, float slop = 2.5f, const CustomNav *custom_nav = nullptr);
+  float step_size = 10.f, float slop = 2.5f, const CustomNav *custom_nav = nullptr,
+  int incl_flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER, int excl_flags = POLYFLAG_BLOCKED);
 // Checks if path exists without optimizations.
 bool check_path(FindRequest &req, float horz_threshold = -1.f, float max_vert_dist = 10.f);
 bool check_path(const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents, float horz_threshold = -1.f,
-  float max_vert_dist = 10.f, const CustomNav *custom_nav = nullptr, int flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER);
+  float max_vert_dist = 10.f, const CustomNav *custom_nav = nullptr, int incl_flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER,
+  int excl_flags = POLYFLAG_BLOCKED);
 bool check_path(dtNavMeshQuery *nav_query, FindRequest &req, const NavParams &nav_params, float horz_threshold = -1.f,
   float max_vert_dist = 10.f, const CustomNav *custom_nav = nullptr);
 bool check_path(dtNavMeshQuery *nav_query, const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents,
   const NavParams &nav_params, float horz_threshold = -1.f, float max_vert_dist = 10.f, const CustomNav *custom_nav = nullptr,
-  int flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER);
+  int incl_flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER, int excl_flags = POLYFLAG_BLOCKED);
 float calc_approx_path_length(FindRequest &req, float horz_threshold, float max_vert_dist);
 float calc_approx_path_length(const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents, float horz_threshold = -1.f,
-  float max_vert_dist = 10.f, int flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER);
+  float max_vert_dist = 10.f, int incl_flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER, int excl_flags = POLYFLAG_BLOCKED);
 float calc_approx_path_length(dtNavMeshQuery *nav_query, FindRequest &req, const NavParams &nav_params, float horz_threshold,
   float max_vert_dist);
 
@@ -172,7 +182,7 @@ bool find_random_point_inside_circle(const Point3 &start_pos, float radius, floa
 
 bool is_on_same_polygon(const Point3 &p1, const Point3 &p2, const CustomNav *custom_nav = nullptr);
 
-void renderDebug(const Frustum *p_frustum = NULL, int nav_mesh_idx = NM_MAIN);
+void renderDebug(const Frustum *p_frustum = NULL, int nav_mesh_idx = NM_MAIN, bool flag_coloring = false);
 void setPathForDebug(dag::ConstSpan<Point3> path);
 // api for dtPathCorridor, so we'll not need to cast and search for navmesh in client code.
 struct CorridorInput
@@ -244,16 +254,20 @@ bool is_loaded_ex(int nav_mesh_idx);
 FindPathResult find_path_ex(int nav_mesh_idx, Tab<Point3> &path, FindRequest &req, float step_size, float slop,
   const CustomNav *custom_nav);
 FindPathResult find_path_ex(int nav_mesh_idx, const Point3 &start_pos, const Point3 &end_pos, Tab<Point3> &path, float dist_to_path,
-  float step_size, float slop, const CustomNav *custom_nav);
+  float step_size, float slop, const CustomNav *custom_nav, int incl_flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER,
+  int excl_flags = 0);
 FindPathResult find_path_ex(int nav_mesh_idx, const Point3 &start_pos, const Point3 &end_pos, Tab<Point3> &path, const Point3 &extents,
-  float step_size, float slop, const CustomNav *custom_nav);
+  float step_size, float slop, const CustomNav *custom_nav, int incl_flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER,
+  int excl_flags = 0);
 // Checks if path exists without optimizations.
 bool check_path_ex(int nav_mesh_idx, FindRequest &req, float horz_threshold = -1.f, float max_vert_dist = 10.f);
 bool check_path_ex(int nav_mesh_idx, const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents,
   float horz_threshold = -1.f, float max_vert_dist = 10.f, const CustomNav *custom_nav = nullptr,
-  int flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER);
+  int incl_flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER, int excl_flags = POLYFLAG_BLOCKED);
 bool get_triangle_by_pos_ex(int nav_mesh_idx, const Point3 &pos, NavMeshTriangle &result, float horz_dist, int incl_flags,
   int excl_flags, const CustomNav * = nullptr, float max_vert_dist = FLT_MAX);
+bool set_poly_flags_ex(int nav_mesh_idx, dtPolyRef ref, unsigned short flags);
+bool get_poly_flags_ex(int nav_mesh_idx, dtPolyRef ref, unsigned short &result_flags);
 
 const char *get_nav_mesh_kind(int nav_mesh_idx);
 dtNavMesh *get_nav_mesh_ptr(int nav_mesh_idx);
@@ -263,6 +277,8 @@ void tilecache_restart();
 void tilecache_start(tile_check_cb_t tile_check_cb = nullptr, const char *obstacle_settings_path = nullptr);
 void tilecache_start_add_ri(tile_check_cb_t tile_check_cb, rendinst::riex_handle_t riex_handle);
 void tilecache_start_ladders(const scene::TiledScene *ladders);
+bool tilecache_is_blocking(rendinst::riex_handle_t riex_handle);
+bool tilecache_is_working();
 bool tilecache_is_loaded();
 bool tilecache_is_inside(const BBox3 &box);
 void tilecache_sync();
@@ -274,11 +290,13 @@ void tilecache_disable_dynamic_ladder_links();
 bool tilecache_is_dynamic_ladder_links_enabled();
 
 obstacle_handle_t tilecache_obstacle_add(const TMatrix &tm, const BBox3 &oobb, const Point2 &padding = ZERO<Point2>(),
-  bool skip_rebuild = false, bool sync = false);
-obstacle_handle_t tilecache_obstacle_add(const Point3 &c, const Point3 &ext, float angY, bool skip_rebuild = false, bool sync = false);
+  bool block = false, bool skip_rebuild = false, bool sync = false);
+obstacle_handle_t tilecache_obstacle_add(const Point3 &c, const Point3 &ext, float angY, bool block = false, bool skip_rebuild = false,
+  bool sync = false);
 
 void rebuildNavMesh_init();
 void rebuildNavMesh_setup(const char *name, float value);
+void rebuildNavMesh_setup(const char *name, const Point2 &value);
 void rebuildNavMesh_addBBox(const BBox3 &);
 bool rebuildNavMesh_update(bool interactive);
 int rebuildNavMesh_getProgress();
@@ -296,7 +314,7 @@ const Tab<uint32_t> &get_removed_rebuild_tile_cache_tiles();
 void clear_removed_rebuild_tile_cache_tiles();
 
 void tilecache_obstacle_move(obstacle_handle_t obstacle_handle, const TMatrix &tm, const BBox3 &oobb,
-  const Point2 &padding = ZERO<Point2>(), bool sync = false);
+  const Point2 &padding = ZERO<Point2>(), bool block = false, bool sync = false);
 bool tilecache_obstacle_remove(obstacle_handle_t obstacle_handle, bool sync = false);
 
 void tilecache_ri_walk_obstacles(ri_obstacle_cb_t ri_obstacle_cb);
@@ -308,4 +326,26 @@ bool tilecache_ri_obstacle_add(rendinst::riex_handle_t ri_handle, const BBox3 &o
 bool tilecache_ri_obstacle_remove(rendinst::riex_handle_t ri_handle, bool sync = false);
 void mark_polygons_lower(float, unsigned char);
 void mark_polygons_upper(float, unsigned char);
+
+inline uint8_t default_area_cb(uint8_t was_area, uint16_t /*flags*/) { return was_area; };
+
+void change_navpolys_flags_in_poly(int nav_mesh_idx, const Point2 *points, int points_count, unsigned short set_flags,
+  unsigned short reset_flags, unsigned short incl_flags, unsigned short excl_flags, int ignore_area = -1,
+  float max_length_to_check_only_center = FLT_MAX,
+  eastl::fixed_function<sizeof(void *) * 4, uint8_t(uint8_t, uint16_t)> area_cb = default_area_cb);
+void change_navpolys_flags_in_box(int nav_mesh_idx, const BBox2 &area, unsigned short set_flags, unsigned short reset_flags,
+  unsigned short incl_flags, unsigned short excl_flags, int ignore_area = -1, bool check_only_centers = true,
+  eastl::fixed_function<sizeof(void *) * 4, uint8_t(uint8_t, uint16_t)> area_cb = default_area_cb);
+void change_navpolys_flags_all(int nav_mesh_idx, unsigned short set_flags, unsigned short reset_flags, unsigned short incl_flags,
+  unsigned short excl_flags, int ignore_area = -1);
+
+bool find_nearest_ladder(const Point3 &pos, float radius, Point3 &out_pos, Point3 &out_forw, Point3 &out_along);
+
+int get_poly_count();
+bool store_mesh_state(Tab<PolyState> *buffer = nullptr);
+bool restore_mesh_state(const Tab<PolyState> *buffer = nullptr);
+bool is_stored_state_valid(const Tab<PolyState> *buffer = nullptr);
+Tab<PolyState> &get_internal_stored_state_buffer();
+bool update_walkability(const Tab<TMatrix> &walkableAreas, const Tab<TMatrix> &unwalkableAreas);
+
 }; // namespace pathfinder

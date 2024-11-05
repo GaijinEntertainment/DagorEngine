@@ -1,0 +1,51 @@
+let DataBlock = require_optional("DataBlock") ?? @() {formatAsString = @() this}
+let defSettings = DataBlock()
+let {dgs_get_settings = @() defSettings } = require_optional("dagor.system")
+
+function get_setting_by_blk_path(path) {
+  assert(type(path)=="string")
+  let settings = dgs_get_settings()
+  local res = settings
+  foreach (p in path.split("/")) {
+    if (p not in res) {
+      return null
+    }
+    res = res?[p]
+  }
+  return res
+}
+
+function makeBlkValWithTable(val){
+  if (type(val) != "table")
+    return val
+  let res = DataBlock()
+  foreach (k, v in val)
+    res[k] <- makeBlkValWithTable(v)
+  return res
+}
+
+function set_setting_by_blk_path(path, val) {
+  assert(type(path)=="string", @() $"{path}={val}")
+  assert(val!=null, @() $"{path}={val}")
+  let settings = dgs_get_settings()
+  local res = settings
+  let pathsplitted = path.split("/")
+  let pathLeaf = pathsplitted.len()>1 ? pathsplitted[pathsplitted.len()-1] : pathsplitted[0]
+  let pathTree = pathsplitted.len()>1 ? pathsplitted.slice(0, pathsplitted.len()-1) : []
+  foreach (p in pathTree) {
+    if (p not in settings)
+      res[p] <- DataBlock()
+    res = res[p]
+  }
+  res[pathLeaf] <- makeBlkValWithTable(val)
+}
+
+return {
+  save_settings = @() null
+  save_changed_settings = @(_settings) null
+  get_setting_by_blk_path
+  set_setting_by_blk_path
+  set_setting_by_blk_path_and_save = set_setting_by_blk_path
+  remove_setting_by_blk_path = function(path) {assert(type(path)=="string")}
+  commit_settings_changes = @() null
+}

@@ -1,3 +1,6 @@
+if (type(0) != "")
+  return
+
  
 //expect:w277
  

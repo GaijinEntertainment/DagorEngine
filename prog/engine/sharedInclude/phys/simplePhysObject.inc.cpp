@@ -1,6 +1,7 @@
 #include <phys/dag_simplePhysObject.h>
 #include <phys/dag_physSysInst.h>
 #include <phys/dag_physics.h>
+#include <shaders/dag_dynSceneRes.h>
 #include <scene/dag_physMat.h>
 #include <math/dag_geomTree.h>
 #include <generic/dag_tabUtils.h>

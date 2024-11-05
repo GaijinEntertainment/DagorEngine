@@ -1,15 +1,18 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#define IMGUI_DEFINE_MATH_OPERATORS
 
 #include "ec_cachedRender.h"
 #include "ec_stat3d.h"
-#include "ec_ViewportWindowStatSettingsDialog.h"
+#include "ec_ViewportAxis.h"
 
 #include <windows.h>
 #include <windowsx.h>
-#include <shellapi.h>
 
 #include <EditorCore/ec_ViewportWindow.h>
+#include <EditorCore/ec_ViewportWindowStatSettingsDialog.h>
 #include <EditorCore/ec_camera_dlg.h>
+#include <EditorCore/ec_imguiInitialization.h>
 #include <EditorCore/ec_interface_ex.h>
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_gridobject.h>
@@ -21,9 +24,14 @@
 #include <libTools/renderViewports/renderViewport.h>
 
 #include <3d/dag_render.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_lock.h>
+#include <perfMon/dag_statDrv.h>
 #include <render/dag_cur_view.h>
-#include <3d/dag_drv3d_pc.h>
+#include <drv/3d/dag_platform_pc.h>
+#include <drv/3d/dag_texture.h>
 
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <generic/dag_initOnDemand.h>
@@ -32,11 +40,19 @@
 #include <ioSys/dag_dataBlock.h>
 #include <debug/dag_debug.h>
 #include <gui/dag_baseCursor.h>
+#include <math/dag_easingFunctions.h>
 #include <scene/dag_visibility.h>
 
-#include <propPanel2/comWnd/dialog_window.h>
+#include <propPanel/commonWindow/dialogWindow.h>
+#include <propPanel/control/container.h>
+#include <propPanel/control/menu.h>
+#include <propPanel/focusHelper.h>
+#include <sepGui/wndPublic.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <winGuiWrapper/wgw_input.h>
+
+#include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 
 using hdpi::_pxActual;
 using hdpi::_pxScaled;
@@ -71,10 +87,188 @@ static bool pointInMenuArea(ViewportWindow *vpw, int x, int y)
   return x >= 0 && y >= 0 && x < hdpi::_px(w) && y <= hdpi::_px(h);
 }
 
+static TMatrix createViewMatrix(const Point3 &forward, const Point3 &up)
+{
+  const Point3 right = normalize(up % forward);
+
+  TMatrix tm = TMatrix::IDENT;
+  tm.m[0][0] = right.x;
+  tm.m[1][0] = right.y;
+  tm.m[2][0] = right.z;
+
+  tm.m[0][1] = up.x;
+  tm.m[1][1] = up.y;
+  tm.m[2][1] = up.z;
+
+  tm.m[0][2] = forward.x;
+  tm.m[1][2] = forward.y;
+  tm.m[2][2] = forward.z;
+  return tm;
+}
+
+static bool add_viewport_canvas_item(ImGuiID id, ImTextureID texture_id, const ImVec2 &image_size, float item_spacing, bool vr_mode)
+{
+  ImGuiWindow *window = ImGui::GetCurrentWindow();
+  if (window->SkipItems)
+    return false;
+
+  const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + image_size);
+  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(item_spacing, item_spacing));
+  ImGui::ItemSize(bb);
+  ImGui::PopStyleVar();
+  if (!ImGui::ItemAdd(bb, id))
+    return false;
+
+  bool held = false;
+  ImGui::ButtonBehavior(bb, id, nullptr, &held,
+    ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight | ImGuiButtonFlags_MouseButtonMiddle);
+
+  if (!vr_mode)
+    window->DrawList->AddImage(texture_id, bb.Min, bb.Max);
+
+  return held;
+}
+
+static TEcWParam get_mouse_buttons_for_window_messages()
+{
+  int wparam = 0;
+  if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+    wparam |= MK_LBUTTON;
+  if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
+    wparam |= MK_RBUTTON;
+  if (ImGui::IsMouseDown(ImGuiMouseButton_Middle))
+    wparam |= MK_MBUTTON;
+  return (TEcWParam)wparam;
+}
+
+static int map_imgui_key_to_virtual_key(ImGuiKey key)
+{
+  switch (key)
+  {
+    case ImGuiKey_Tab: return VK_TAB;
+    case ImGuiKey_LeftArrow: return VK_LEFT;
+    case ImGuiKey_RightArrow: return VK_RIGHT;
+    case ImGuiKey_UpArrow: return VK_UP;
+    case ImGuiKey_DownArrow: return VK_DOWN;
+    case ImGuiKey_PageUp: return VK_PRIOR;
+    case ImGuiKey_PageDown: return VK_NEXT;
+    case ImGuiKey_Home: return VK_HOME;
+    case ImGuiKey_End: return VK_END;
+    case ImGuiKey_Insert: return VK_INSERT;
+    case ImGuiKey_Delete: return VK_DELETE;
+    case ImGuiKey_Backspace: return VK_BACK;
+    case ImGuiKey_Space: return VK_SPACE;
+    case ImGuiKey_Enter: return VK_RETURN;
+    case ImGuiKey_Escape: return VK_ESCAPE;
+    case ImGuiKey_Apostrophe: return VK_OEM_7;
+    case ImGuiKey_Comma: return VK_OEM_COMMA;
+    case ImGuiKey_Minus: return VK_OEM_MINUS;
+    case ImGuiKey_Period: return VK_OEM_PERIOD;
+    case ImGuiKey_Slash: return VK_OEM_2;
+    case ImGuiKey_Semicolon: return VK_OEM_1;
+    case ImGuiKey_Equal: return VK_OEM_PLUS;
+    case ImGuiKey_LeftBracket: return VK_OEM_4;
+    case ImGuiKey_Backslash: return VK_OEM_5;
+    case ImGuiKey_RightBracket: return VK_OEM_6;
+    case ImGuiKey_GraveAccent: return VK_OEM_3;
+    case ImGuiKey_CapsLock: return VK_CAPITAL;
+    case ImGuiKey_ScrollLock: return VK_SCROLL;
+    case ImGuiKey_NumLock: return VK_NUMLOCK;
+    case ImGuiKey_PrintScreen: return VK_SNAPSHOT;
+    case ImGuiKey_Pause: return VK_PAUSE;
+    case ImGuiKey_Keypad0: return VK_NUMPAD0;
+    case ImGuiKey_Keypad1: return VK_NUMPAD1;
+    case ImGuiKey_Keypad2: return VK_NUMPAD2;
+    case ImGuiKey_Keypad3: return VK_NUMPAD3;
+    case ImGuiKey_Keypad4: return VK_NUMPAD4;
+    case ImGuiKey_Keypad5: return VK_NUMPAD5;
+    case ImGuiKey_Keypad6: return VK_NUMPAD6;
+    case ImGuiKey_Keypad7: return VK_NUMPAD7;
+    case ImGuiKey_Keypad8: return VK_NUMPAD8;
+    case ImGuiKey_Keypad9: return VK_NUMPAD9;
+    case ImGuiKey_KeypadDecimal: return VK_DECIMAL;
+    case ImGuiKey_KeypadDivide: return VK_DIVIDE;
+    case ImGuiKey_KeypadMultiply: return VK_MULTIPLY;
+    case ImGuiKey_KeypadSubtract: return VK_SUBTRACT;
+    case ImGuiKey_KeypadAdd: return VK_ADD;
+    case ImGuiKey_LeftShift: return VK_LSHIFT;
+    case ImGuiKey_LeftCtrl: return VK_LCONTROL;
+    case ImGuiKey_LeftAlt: return VK_LMENU;
+    case ImGuiKey_LeftSuper: return VK_LWIN;
+    case ImGuiKey_RightShift: return VK_RSHIFT;
+    case ImGuiKey_RightCtrl: return VK_RCONTROL;
+    case ImGuiKey_RightAlt: return VK_RMENU;
+    case ImGuiKey_RightSuper: return VK_RWIN;
+    case ImGuiKey_Menu: return VK_APPS;
+    case ImGuiKey_0: return '0';
+    case ImGuiKey_1: return '1';
+    case ImGuiKey_2: return '2';
+    case ImGuiKey_3: return '3';
+    case ImGuiKey_4: return '4';
+    case ImGuiKey_5: return '5';
+    case ImGuiKey_6: return '6';
+    case ImGuiKey_7: return '7';
+    case ImGuiKey_8: return '8';
+    case ImGuiKey_9: return '9';
+    case ImGuiKey_A: return 'A';
+    case ImGuiKey_B: return 'B';
+    case ImGuiKey_C: return 'C';
+    case ImGuiKey_D: return 'D';
+    case ImGuiKey_E: return 'E';
+    case ImGuiKey_F: return 'F';
+    case ImGuiKey_G: return 'G';
+    case ImGuiKey_H: return 'H';
+    case ImGuiKey_I: return 'I';
+    case ImGuiKey_J: return 'J';
+    case ImGuiKey_K: return 'K';
+    case ImGuiKey_L: return 'L';
+    case ImGuiKey_M: return 'M';
+    case ImGuiKey_N: return 'N';
+    case ImGuiKey_O: return 'O';
+    case ImGuiKey_P: return 'P';
+    case ImGuiKey_Q: return 'Q';
+    case ImGuiKey_R: return 'R';
+    case ImGuiKey_S: return 'S';
+    case ImGuiKey_T: return 'T';
+    case ImGuiKey_U: return 'U';
+    case ImGuiKey_V: return 'V';
+    case ImGuiKey_W: return 'W';
+    case ImGuiKey_X: return 'X';
+    case ImGuiKey_Y: return 'Y';
+    case ImGuiKey_Z: return 'Z';
+    case ImGuiKey_F1: return VK_F1;
+    case ImGuiKey_F2: return VK_F2;
+    case ImGuiKey_F3: return VK_F3;
+    case ImGuiKey_F4: return VK_F4;
+    case ImGuiKey_F5: return VK_F5;
+    case ImGuiKey_F6: return VK_F6;
+    case ImGuiKey_F7: return VK_F7;
+    case ImGuiKey_F8: return VK_F8;
+    case ImGuiKey_F9: return VK_F9;
+    case ImGuiKey_F10: return VK_F10;
+    case ImGuiKey_F11: return VK_F11;
+    case ImGuiKey_F12: return VK_F12;
+    case ImGuiKey_F13: return VK_F13;
+    case ImGuiKey_F14: return VK_F14;
+    case ImGuiKey_F15: return VK_F15;
+    case ImGuiKey_F16: return VK_F16;
+    case ImGuiKey_F17: return VK_F17;
+    case ImGuiKey_F18: return VK_F18;
+    case ImGuiKey_F19: return VK_F19;
+    case ImGuiKey_F20: return VK_F20;
+    case ImGuiKey_F21: return VK_F21;
+    case ImGuiKey_F22: return VK_F22;
+    case ImGuiKey_F23: return VK_F23;
+    case ImGuiKey_F24: return VK_F24;
+    case ImGuiKey_AppBack: return VK_BROWSER_BACK;
+    case ImGuiKey_AppForward: return VK_BROWSER_FORWARD;
+    default: return -1;
+  }
+}
 
 Tab<ViewportParams> ViewportWindow::viewportsParams(midmem);
 
-class ViewportWindow::ViewportClippingDlg : public CDialogWindow
+class ViewportWindow::ViewportClippingDlg : public PropPanel::DialogWindow
 {
 public:
   ViewportClippingDlg(float z_near, float z_far);
@@ -92,9 +286,9 @@ private:
 
 
 ViewportWindow::ViewportClippingDlg::ViewportClippingDlg(float z_near, float z_far) :
-  CDialogWindow(0, _pxScaled(240), _pxScaled(135), "Viewport clipping")
+  DialogWindow(0, _pxScaled(240), _pxScaled(135), "Viewport clipping")
 {
-  PropertyContainerControlBase *_panel = getPanel();
+  PropPanel::ContainerPropertyControl *_panel = getPanel();
   G_ASSERT(_panel && "No panel in ViewportWindow::ViewportClippingDlg");
 
   _panel->createEditFloat(Z_NEAR_ID, "Near z-plane:", z_near, 3);
@@ -104,7 +298,7 @@ ViewportWindow::ViewportClippingDlg::ViewportClippingDlg(float z_near, float z_f
 
 real ViewportWindow::ViewportClippingDlg::get_z_near()
 {
-  PropertyContainerControlBase *_panel = getPanel();
+  PropPanel::ContainerPropertyControl *_panel = getPanel();
   G_ASSERT(_panel && "No panel in ViewportWindow::ViewportClippingDlg");
 
   return _panel->getFloat(Z_NEAR_ID);
@@ -112,7 +306,7 @@ real ViewportWindow::ViewportClippingDlg::get_z_near()
 
 real ViewportWindow::ViewportClippingDlg::get_z_far()
 {
-  PropertyContainerControlBase *_panel = getPanel();
+  PropPanel::ContainerPropertyControl *_panel = getPanel();
   G_ASSERT(_panel && "No panel in ViewportWindow::ViewportClippingDlg");
 
   return _panel->getFloat(Z_FAR_ID);
@@ -138,9 +332,10 @@ enum
 
 
 unsigned ViewportWindow::restoreFlags = 0;
+GridEditDialog *ViewportWindow::gridSettingsDialog = nullptr;
 
 
-ViewportWindow::ViewportWindow(TEcHandle parent, int left, int top, int w, int h) : EcWindow(parent, left, top, w, h)
+ViewportWindow::ViewportWindow(TEcHandle parent, int left, int top, int w, int h)
 {
   showStats = false;
   calcStat3d = true;
@@ -163,7 +358,7 @@ ViewportWindow::ViewportWindow(TEcHandle parent, int left, int top, int w, int h
   memset(&rectSelect, 0, sizeof(rectSelect));
   updatePluginCamera = false;
   customCameras = NULL;
-  popupMenu = NULL;
+  popupMenu = nullptr;
   hidePopupMenu = false;
   mIsCursorVisible = true;
   showCameraStats = true;
@@ -174,6 +369,14 @@ ViewportWindow::ViewportWindow(TEcHandle parent, int left, int top, int w, int h
   showCameraTurboSpeed = false;
   statSettingsDialog = nullptr;
   wireframeOverlay = false;
+  showViewportAxis = true;
+  highlightedViewportAxisId = ViewportAxisId::None;
+  mouseDownOnViewportAxis = ViewportAxisId::None;
+
+  memset(keysDown, 0, sizeof(keysDown));
+
+  G_STATIC_ASSERT(mouseButtonDownArraySize == ImGuiMouseButton_COUNT);
+  memset(mouseButtonDown, 0, sizeof(mouseButtonDown));
 
   viewport = new (midmem) RenderViewport;
   viewport->setPerspHFov(1.3, 0.01, 1000.0);
@@ -187,7 +390,12 @@ ViewportWindow::ViewportWindow(TEcHandle parent, int left, int top, int w, int h
 
 ViewportWindow::~ViewportWindow()
 {
+  PropPanel::remove_delayed_callback(*this);
+  clear_all_ptr_items(delayedMouseEvents);
+
+  del_it(popupMenu);
   del_it(statSettingsDialog);
+  del_it(gridSettingsDialog);
   if (ec_cached_viewports)
     ec_cached_viewports->removeViewport(vpId);
   del_it(viewport);
@@ -195,10 +403,9 @@ ViewportWindow::~ViewportWindow()
 }
 
 
-void ViewportWindow::init(IMenu *menu, IGenEventHandler *eh)
+void ViewportWindow::init(IGenEventHandler *eh)
 {
   setEventHandler(eh);
-  popupMenu = menu;
   OnChangePosition();
 }
 
@@ -213,7 +420,7 @@ void ViewportWindow::getMenuAreaSize(hdpi::Px &w, hdpi::Px &h)
 }
 
 
-void ViewportWindow::fillPopupMenu(IMenu &menu)
+void ViewportWindow::fillPopupMenu(PropPanel::IMenu &menu)
 {
   menu.clearMenu(ROOT_MENU_ITEM);
   menu.setEventHandler(this);
@@ -238,7 +445,7 @@ void ViewportWindow::fillPopupMenu(IMenu &menu)
   // if (currentProjection != 0xFFFFFFFF)
   //   menu.checkItem(currentProjection, true, false);
 
-  menu.addSeparator(ROOT_MENU_ITEM, 0);
+  menu.addSeparator(ROOT_MENU_ITEM);
   menu.addItem(ROOT_MENU_ITEM, CM_VIEW_WIREFRAME, "Wireframe, Edged faces\tF3");
   menu.setCheckById(CM_VIEW_WIREFRAME, viewport && (viewport->wireframe || wireframeOverlay));
 
@@ -251,11 +458,22 @@ void ViewportWindow::fillPopupMenu(IMenu &menu)
     menu.setCheckById(CM_VIEW_GRID_SHOW, EDITORCORE->getGrid().isVisible(vpId));
   }
 
-  menu.addSeparator(ROOT_MENU_ITEM, 0);
-  menu.addItem(ROOT_MENU_ITEM, CM_VIEW_SHOW_STATS, "Show stats");
-  menu.setCheckById(CM_VIEW_SHOW_STATS, showStats);
-  menu.addItem(ROOT_MENU_ITEM, CM_VIEW_STAT3D_OPAQUE, "Opaque stats");
-  menu.setCheckById(CM_VIEW_STAT3D_OPAQUE, opaqueStat3d);
+  menu.addItem(ROOT_MENU_ITEM, CM_VIEW_VIEWPORT_AXIS, "Viewport rotation gizmo");
+  menu.setCheckById(CM_VIEW_VIEWPORT_AXIS, showViewportAxis);
+
+  menu.addSeparator(ROOT_MENU_ITEM);
+
+  {
+    menu.addSubMenu(ROOT_MENU_ITEM, CM_GROUP_STATS, "Stats");
+
+    menu.addItem(CM_GROUP_STATS, CM_VIEW_SHOW_STATS, "Show stats");
+    menu.setCheckById(CM_VIEW_SHOW_STATS, showStats);
+
+    menu.addItem(CM_GROUP_STATS, CM_OPTIONS_STAT_DISPLAY_SETTINGS, "Stats settings...");
+
+    menu.addItem(CM_GROUP_STATS, CM_VIEW_STAT3D_OPAQUE, "Opaque stats");
+    menu.setCheckById(CM_VIEW_STAT3D_OPAQUE, opaqueStat3d);
+  }
 
   if (viewport)
   {
@@ -299,14 +517,14 @@ void ViewportWindow::fillPopupMenu(IMenu &menu)
     {
       String saveStr(128, "Save active %s view", (char *)projectionName);
       String restoreStr(128, "Restore active %s view", (char *)projectionName);
-      menu.addSeparator(ROOT_MENU_ITEM, 0);
+      menu.addSeparator(ROOT_MENU_ITEM);
 
       menu.addItem(ROOT_MENU_ITEM, CM_SAVE_ACTIVE_VIEW, saveStr.str());
       menu.addItem(ROOT_MENU_ITEM, CM_RESTORE_ACTIVE_VIEW, restoreStr.str());
       menu.setEnabledById(CM_RESTORE_ACTIVE_VIEW, restoreFlags & (1 << vpId));
     }
 
-    menu.addSeparator(ROOT_MENU_ITEM, 0);
+    menu.addSeparator(ROOT_MENU_ITEM);
 
     menu.addSubMenu(ROOT_MENU_ITEM, CM_GROUP_CLIPPING, "Viewport clipping");
     menu.addItem(CM_GROUP_CLIPPING, CM_SET_VIEWPORT_CLIPPING, "Set");
@@ -335,7 +553,7 @@ void ViewportWindow::processCameraEvents(CCameraElem *camera_elem, unsigned msg,
         processMouseMoveInfluence(deltaX, deltaY, msg, p1, p2, (int)(uintptr_t)w_param);
         camera_elem->handleMouseMove(-deltaX, -deltaY);
         int p11 = p1, p22 = p2;
-        ::cursor_wrap(p11, p22, (void *)getHandle());
+        ::cursor_wrap(p11, p22, getMainHwnd());
         prevMousePositionX = p11;
         prevMousePositionY = p22;
         updatePluginCamera = true;
@@ -389,10 +607,6 @@ void ViewportWindow::processHotKeys(unsigned key_code)
       if (shiftPressed)
         onMenuItemClick(CM_VIEW_RIGHT);
       break;
-
-    case 'G': onMenuItemClick(CM_VIEW_GRID_SHOW); break;
-
-    case VK_F3: onMenuItemClick(CM_VIEW_WIREFRAME); break;
   }
 }
 
@@ -405,28 +619,14 @@ int ViewportWindow::windowProc(TEcHandle h_wnd, unsigned msg, TEcWParam w_param,
 
   switch (msg)
   {
-    case WM_KILLFOCUS:
-      if (!mIsCursorVisible)
+    case WM_MOUSEMOVE:
+      input.mouseX = GET_X_LPARAM(l_param);
+      input.mouseY = GET_Y_LPARAM(l_param);
+
+      if (mouseDownOnViewportAxis == ViewportAxisId::RotatorCircle && canInteractWithViewportAxis())
       {
-        ShowCursor(true);
-        mIsCursorVisible = true;
-      }
-      prevMousePositionX = prevMousePositionY = INT32_MIN;
-      break;
-    case WM_SETFOCUS:
-      switch (CCameraElem::getCamera())
-      {
-        case CCameraElem::FREE_CAMERA:
-        case CCameraElem::FPS_CAMERA:
-        case CCameraElem::TPS_CAMERA:
-        case CCameraElem::CAR_CAMERA:
-          capture_cursor((void *)getHandle());
-          if (mIsCursorVisible)
-          {
-            ShowCursor(false);
-            mIsCursorVisible = false;
-          }
-          break;
+        processViewportAxisCameraRotation(l_param);
+        return 0;
       }
       break;
 
@@ -441,16 +641,33 @@ int ViewportWindow::windowProc(TEcHandle h_wnd, unsigned msg, TEcWParam w_param,
         curEH->handleKeyRelease(this, (int)(uintptr_t)w_param, _modif);
       break;
 
+    case WM_LBUTTONUP:
+      mouseButtonDown[ImGuiMouseButton_Left] = false;
+      input.lmbPressed = false;
+
+      if (mouseDownOnViewportAxis != ViewportAxisId::None)
+      {
+        handleViewportAxisMouseLButtonUp();
+        return 0;
+      }
+      break;
+
     case WM_RBUTTONUP:
       // call popup menu
+      mouseButtonDown[ImGuiMouseButton_Right] = false;
+      input.rmbPressed = false;
+
       if (CCameraElem::getCamera() == CCameraElem::MAX_CAMERA)
       {
         int x = GET_X_LPARAM(l_param);
         int y = GET_Y_LPARAM(l_param);
 
         bool in_menu_area = pointInMenuArea(this, x, y);
-        if (popupMenu && in_menu_area)
+        if (in_menu_area && !popupMenu)
+        {
+          popupMenu = PropPanel::create_context_menu();
           fillPopupMenu(*popupMenu);
+        }
 
         // if (!hidePopupMenu || in_menu_area)
         if (in_menu_area)
@@ -458,54 +675,25 @@ int ViewportWindow::windowProc(TEcHandle h_wnd, unsigned msg, TEcWParam w_param,
       }
       break;
 
+    case WM_MBUTTONUP: mouseButtonDown[ImGuiMouseButton_Middle] = false; break;
+
     case WM_LBUTTONDOWN:
-    case WM_RBUTTONDOWN:
-    case WM_MBUTTONDOWN: this->activate(); break;
+      mouseButtonDown[ImGuiMouseButton_Left] = true;
+      input.lmbPressed = true;
 
-    case WM_PAINT: handleWindowPaint(); break;
-
-    case WM_ERASEBKGND:
-      if (dagor_get_current_game_scene())
-        return 1;
-      break;
-
-    case WM_CAPTURECHANGED:
-      /*
-      POINT pt;
-      GetCursorPos(&pt);
-      if (wingw::is_key_pressed(wingw::V_LBUTTON))
-        SendMessage((HWND) h_wnd, WM_LBUTTONUP, 0, MAKELPARAM(pt.x, pt.y));
-      if (wingw::is_key_pressed(wingw::V_RBUTTON))
-        SendMessage((HWND) h_wnd, WM_RBUTTONUP, 0, MAKELPARAM(pt.x, pt.y));
-      */
-      break;
-
-    case WM_DROPFILES:
-    {
-      HDROP hdrop = (HDROP)w_param;
-      const int fileCount = DragQueryFileA(hdrop, -1, nullptr, 0);
-      if (fileCount > 0)
+      if (highlightedViewportAxisId != ViewportAxisId::None && canInteractWithViewportAxis())
       {
-        dag::Vector<String> files;
-        files.set_capacity(fileCount);
-
-        for (int i = 0; i < fileCount; ++i)
-        {
-          const int lengthWithoutNullTerminator = DragQueryFileA(hdrop, 0, nullptr, 0);
-          if (lengthWithoutNullTerminator > 0)
-          {
-            String path;
-            path.resize(lengthWithoutNullTerminator + 1);
-            if (DragQueryFileA(hdrop, 0, path.begin(), lengthWithoutNullTerminator + 1))
-              files.emplace_back(path);
-          }
-        }
-
-        if (onDropFiles(files))
-          return 0;
+        handleViewportAxisMouseLButtonDown();
+        return 0;
       }
-    }
-    break;
+      break;
+
+    case WM_RBUTTONDOWN:
+      mouseButtonDown[ImGuiMouseButton_Right] = true;
+      input.rmbPressed = true;
+      break;
+
+    case WM_MBUTTONDOWN: mouseButtonDown[ImGuiMouseButton_Middle] = true; break;
   }
 
   // pass messages to cameras
@@ -576,10 +764,24 @@ int ViewportWindow::windowProc(TEcHandle h_wnd, unsigned msg, TEcWParam w_param,
           hidePopupMenu = curEH->handleMouseRBPress(this, pt.x, pt.y, true, (int)(uintptr_t)w_param, _modif);
         }
         break;
+
       case WM_LBUTTONUP:
+      {
         releaseMouse();
-        curEH->handleMouseLBRelease(this, pt.x, pt.y, true, (int)(uintptr_t)w_param, _modif);
-        break;
+
+        // Some edit functions show a modal dialog in response to the mouse button release (for example the object
+        // cloning with the move gizmo), so to simplify the edit functions we always send this event delayed.
+        DelayedMouseEvent *delayedMouseEvent = new DelayedMouseEvent();
+        delayedMouseEvent->x = pt.x;
+        delayedMouseEvent->y = pt.y;
+        delayedMouseEvent->inside = true;
+        delayedMouseEvent->buttons = (int)(uintptr_t)w_param;
+        delayedMouseEvent->modifierKeys = _modif;
+        delayedMouseEvents.push_back(delayedMouseEvent);
+        PropPanel::request_delayed_callback(*this, delayedMouseEvent);
+      }
+      break;
+
       case WM_RBUTTONUP:
         releaseMouse();
         curEH->handleMouseRBRelease(this, pt.x, pt.y, true, (int)(uintptr_t)w_param, _modif);
@@ -598,7 +800,7 @@ int ViewportWindow::windowProc(TEcHandle h_wnd, unsigned msg, TEcWParam w_param,
       rectSelect.active = false;
   }
 
-  return EcWindow::windowProc(h_wnd, msg, w_param, l_param);
+  return 0;
 }
 
 
@@ -686,10 +888,15 @@ int ViewportWindow::onMenuItemClick(unsigned id)
       redrawClientRect();
       return 0;
 
+    case CM_VIEW_VIEWPORT_AXIS:
+      showViewportAxis = !showViewportAxis;
+      redrawClientRect();
+      return 0;
+
     case CM_SET_VIEWPORT_CLIPPING:
     {
       ViewportClippingDlg dialog(projectionNearPlane, projectionFarPlane);
-      if (dialog.showDialog() != DIALOG_ID_OK)
+      if (dialog.showDialog() != PropPanel::DIALOG_ID_OK)
         return 0;
 
       projectionNearPlane = dialog.get_z_near();
@@ -706,23 +913,22 @@ int ViewportWindow::onMenuItemClick(unsigned id)
       redrawClientRect();
       return 0;
 
-    case CM_OPTIONS_GRID:
-    {
-      GridEditDialog dlg(0, EDITORCORE->getGrid(), "Viewport grid settings", vpId);
-      dlg.showDialog();
-    }
-      return 0;
+    case CM_OPTIONS_GRID: showGridSettingsDialog(); return 0;
 
     case CM_VIEW_GRID_SHOW:
     {
       bool is_visible = EDITORCORE->getGrid().isVisible(vpId);
       EDITORCORE->getGrid().setVisible(!is_visible, vpId);
+      if (gridSettingsDialog)
+        gridSettingsDialog->onGridVisibilityChanged(vpId);
     }
       return 0;
 
     case CM_VIEW_SHOW_STATS: showStats = !showStats; return 0;
 
     case CM_VIEW_STAT3D_OPAQUE: opaqueStat3d = !opaqueStat3d; return 0;
+
+    case CM_OPTIONS_STAT_DISPLAY_SETTINGS: showStatSettingsDialog(); return 0;
 
     case CM_SAVE_ACTIVE_VIEW:
     {
@@ -827,7 +1033,7 @@ int ViewportWindow::handleCommand(int p1, int p2, int p3)
             carCameraElem->handleKeyPress(VK_SPACE);
           }
 
-          capture_cursor((void *)getHandle());
+          capture_cursor(getMainHwnd());
           if (mIsCursorVisible)
           {
             ShowCursor(false);
@@ -855,11 +1061,20 @@ int ViewportWindow::handleCommand(int p1, int p2, int p3)
   return 0;
 }
 
+void ViewportWindow::registerViewportAccelerators(IWndManager &wnd_manager)
+{
+  wnd_manager.addViewportAccelerator(CM_VIEW_GRID_SHOW, 'G');
+  wnd_manager.addViewportAccelerator(CM_VIEW_WIREFRAME, wingw::V_F3);
+}
+
+bool ViewportWindow::handleViewportAcceleratorCommand(unsigned id) { return onMenuItemClick(id) == 0; }
 
 void ViewportWindow::OnChangePosition()
 {
   EcRect clientRect;
   getClientRect(clientRect);
+  if (clientRect.width() <= 0 || clientRect.height() <= 0)
+    return;
 
   if (orthogonalProjection)
   {
@@ -910,11 +1125,50 @@ void ViewportWindow::getZnearZfar(real &zn, real &zf) const
 void ViewportWindow::OnDestroy() { ec_cached_viewports->disableViewport(vpId); }
 
 
+int ViewportWindow::getW() const { return viewportTextureSize.x; }
+
+
+int ViewportWindow::getH() const { return viewportTextureSize.y; }
+
+
+void ViewportWindow::getClientRect(EcRect &clientRect) const
+{
+  clientRect.l = 0;
+  clientRect.t = 0;
+  clientRect.r = viewportTextureSize.x;
+  clientRect.b = viewportTextureSize.y;
+}
+
+
+void ViewportWindow::captureMouse() { SetCapture((HWND)getMainHwnd()); }
+
+
+void ViewportWindow::releaseMouse() { ReleaseCapture(); }
+
+
 void ViewportWindow::activate()
 {
-  EcWindow::activate(true);
+  if (active)
+    return;
+
+  // Instantly mark as active (focused) and request focus from ImGui (it will be fulfilled in the next frame). Marking
+  // it instantly is needed because at some places after calling activate() isActive() is used instantly.
+  active = true;
+  PropPanel::focus_helper.requestFocus(this);
+
+  // Unfortunately PropPanel::focus_helper only applies the focus in the next frame. That is a problem because for
+  // example when opening a dialog from the toolbar the viewport must be already the top level window before the dialog
+  // opens to ensure that ImGui returns the focus back to the viewport after closing the dialog. So this immediate
+  // bringing to the top is needed for activate() uses like in ObjectEditor::onClick().
+  ImGuiWindow *window = ImGui::GetCurrentContext() ? ImGui::FindWindowByName("Viewport") : nullptr;
+  if (window)
+    ImGui::FocusWindow(window);
+
   OnChangeState();
 }
+
+
+bool ViewportWindow::isActive() { return active; }
 
 
 void ViewportWindow::OnChangeState()
@@ -923,6 +1177,10 @@ void ViewportWindow::OnChangeState()
   {
     CCameraElem::setViewportWindow(this);
   }
+
+  // Invalidate the previous mouse position so when switching to another application, moving the mouse, and then
+  // switching back does not cause a camera jump in fly mode.
+  prevMousePositionX = prevMousePositionY = INT32_MIN;
 }
 
 
@@ -955,7 +1213,7 @@ int ViewportWindow::processCameraControl(TEcHandle h_wnd, unsigned msg, TEcWPara
       updatePluginCamera = true;
       break;
 
-    case WM_MBUTTONDOWN: capture_cursor((void *)getHandle()); break;
+    case WM_MBUTTONDOWN: capture_cursor(getMainHwnd()); break;
 
     case WM_MBUTTONUP: release_cursor(); break;
 
@@ -1028,13 +1286,28 @@ int ViewportWindow::processCameraControl(TEcHandle h_wnd, unsigned msg, TEcWPara
               maxCameraElem->strife(deltaX, deltaY, false, false);
             }
             else
+            {
+              TMatrix camera = inverse(viewport->getViewMatrix());
+              Point3 pos = camera.getcol(3);
+              pos.y = 0;
+
+              real sx = sqrtf(getLinearSizeSq(pos, 1, 0));
+              real sy = sqrtf(getLinearSizeSq(pos, 1, 1));
+
+              deltaX /= ::dagor_game_act_time;
+              deltaY /= ::dagor_game_act_time;
+
+              deltaX /= sx;
+              deltaY /= sy;
+
               maxCameraElem->strife(deltaX, deltaY, true, true);
+            }
           }
         }
 
         updatePluginCamera = true;
         int p11 = p1, p22 = p2;
-        ::cursor_wrap(p11, p22, (void *)getHandle());
+        ::cursor_wrap(p11, p22, getMainHwnd());
         p1 = p11;
         p2 = p22;
       }
@@ -1114,19 +1387,7 @@ void ViewportWindow::setProjection(bool orthogonal, real fov, real near_plane, r
 
 void ViewportWindow::setCameraDirection(const Point3 &forward, const Point3 &up)
 {
-  Point3 right = normalize(up % forward);
-  TMatrix viewMatrix;
-  viewMatrix.m[0][0] = right.x;
-  viewMatrix.m[1][0] = right.y;
-  viewMatrix.m[2][0] = right.z;
-
-  viewMatrix.m[0][1] = up.x;
-  viewMatrix.m[1][1] = up.y;
-  viewMatrix.m[2][1] = up.z;
-
-  viewMatrix.m[0][2] = forward.x;
-  viewMatrix.m[1][2] = forward.y;
-  viewMatrix.m[2][2] = forward.z;
+  TMatrix viewMatrix = createViewMatrix(forward, up);
   viewMatrix.setcol(3, viewport->getViewMatrix().getcol(3));
   viewport->setViewMatrix(viewMatrix);
 
@@ -1264,8 +1525,36 @@ void ViewportWindow::setFov(real fov)
 real ViewportWindow::getFov() { return projectionFov; }
 
 
-void ViewportWindow::act()
+void ViewportWindow::act(real dt)
 {
+  resizeViewportTexture();
+
+  if (cameraTransitioning)
+  {
+    // Only continue the transition if the camera has not changed (for example by the user rotating the camera).
+    if (viewport->getViewMatrix() == cameraTransitionLastViewMatrix)
+    {
+      const float transitionDurationInSec = 0.5f;
+
+      cameraTransitionElapsedTime += dt;
+      float transition = cameraTransitionElapsedTime / transitionDurationInSec;
+      if (transition >= 1.0f)
+      {
+        transition = 1.0f;
+        cameraTransitioning = false;
+      }
+
+      const Quat quat = qinterp(cameraTransitionStartQuaternion, cameraTransitionEndQuaternion, inOutQuad(transition));
+      cameraTransitionLastViewMatrix = makeTM(quat);
+      cameraTransitionLastViewMatrix.setcol(3, viewport->getViewMatrix().getcol(3));
+      viewport->setViewMatrix(cameraTransitionLastViewMatrix);
+    }
+    else
+    {
+      cameraTransitioning = false;
+    }
+  }
+
   if (customCameras)
   {
     TMatrix cameraMatrix;
@@ -1511,10 +1800,24 @@ bool ViewportWindow::worldToClient(const Point3 &world, Point2 &screen, real *sc
 }
 
 
-void ViewportWindow::clientToScreen(int &x, int &y) { EcWindow::translateToScreen(x, y); }
+void ViewportWindow::clientToScreen(int &x, int &y)
+{
+  POINT point = {x, y};
+  ClientToScreen((HWND)getMainHwnd(), &point);
+
+  x = point.x;
+  y = point.y;
+}
 
 
-void ViewportWindow::screenToClient(int &x, int &y) { EcWindow::translateToClient(x, y); }
+void ViewportWindow::screenToClient(int &x, int &y)
+{
+  POINT point = {x, y};
+  ScreenToClient((HWND)getMainHwnd(), &point);
+
+  x = point.x;
+  y = point.y;
+}
 
 
 void ViewportWindow::redrawClientRect()
@@ -1554,7 +1857,7 @@ void ViewportWindow::OnCameraChanged()
 }
 
 
-void ViewportWindow::drawText(hdpi::Px x, hdpi::Px y, const String &text)
+void ViewportWindow::drawText(int x, int y, const String &text)
 {
   using hdpi::_px;
   using hdpi::_pxS;
@@ -1563,19 +1866,26 @@ void ViewportWindow::drawText(hdpi::Px x, hdpi::Px y, const String &text)
   {
     StdGuiRender::set_color(COLOR_BLACK);
     BBox2 box = StdGuiRender::get_str_bbox(text.c_str(), text.size());
-    StdGuiRender::render_box(_px(x) + box[0].x, _px(y) + box[0].y - _pxS(2), _px(x) + box[1].x, _px(y) + box[1].y + _pxS(4));
+    StdGuiRender::render_box(x + box[0].x, y + box[0].y - _pxS(2), x + box[1].x, y + box[1].y + _pxS(4));
   }
   else
   {
     StdGuiRender::set_color(COLOR_BLACK);
-    StdGuiRender::draw_strf_to(_px(x) + 1, _px(y), text.c_str());
-    StdGuiRender::draw_strf_to(_px(x) - 1, _px(y), text.c_str());
-    StdGuiRender::draw_strf_to(_px(x), _px(y) + 1, text.c_str());
-    StdGuiRender::draw_strf_to(_px(x), _px(y) - 1, text.c_str());
+    StdGuiRender::draw_strf_to(x + 1, y, text.c_str());
+    StdGuiRender::draw_strf_to(x - 1, y, text.c_str());
+    StdGuiRender::draw_strf_to(x, y + 1, text.c_str());
+    StdGuiRender::draw_strf_to(x, y - 1, text.c_str());
   }
 
   StdGuiRender::set_color(COLOR_WHITE);
-  StdGuiRender::draw_strf_to(_px(x), _px(y), text.c_str());
+  StdGuiRender::draw_strf_to(x, y, text.c_str());
+}
+
+
+void ViewportWindow::drawText(hdpi::Px x, hdpi::Px y, const String &text)
+{
+  using hdpi::_px;
+  drawText(_px(x), _px(y), text);
 }
 
 
@@ -1607,6 +1917,8 @@ void ViewportWindow::paintRect()
 
 void ViewportWindow::paint(int w, int h)
 {
+  TIME_D3D_PROFILE(ViewportWindow_paint);
+
   using hdpi::_px;
 
   StdGuiRender::reset_per_frame_dynamic_buffer_pos();
@@ -1660,6 +1972,20 @@ void ViewportWindow::paint(int w, int h)
     dc.rectangle(cameraFrameRect.l + 1, cameraFrameRect.t + 1, cameraFrameRect.r - 1, cameraFrameRect.b - 1);
   }
   */
+
+  if (showViewportAxis)
+  {
+    IPoint2 viewportSize;
+    getViewportSize(viewportSize.x, viewportSize.y);
+
+    const bool rotating = mouseDownOnViewportAxis == ViewportAxisId::RotatorCircle;
+    const bool allowHighlight = !rotating && canInteractWithViewportAxis();
+    const IPoint2 mousePos(input.mouseX, input.mouseY);
+    ViewportAxis viewportAxis(viewport->getViewMatrix(), viewportSize);
+    highlightedViewportAxisId = viewportAxis.draw(allowHighlight ? &mousePos : nullptr, rotating);
+  }
+  else
+    highlightedViewportAxisId = ViewportAxisId::None;
 
   if (rectSelect.active)
     paintSelectionRect();
@@ -1729,27 +2055,6 @@ void ViewportWindow::paint(int w, int h)
   }
 
   StdGuiRender::end_render();
-}
-
-
-void ViewportWindow::handleWindowPaint()
-{
-  HWND hwnd = (HWND)getHandle();
-
-  PAINTSTRUCT ps;
-  BeginPaint(hwnd, &ps);
-  EndPaint(hwnd, &ps);
-  if (!d3d::is_inited() || ec_cached_viewports->getCurRenderVp() != -1)
-    return;
-
-  ec_cached_viewports->invalidateViewportCache(vpId);
-  d3d::set_render_target();
-  G_VERIFY(ec_cached_viewports->startRender(vpId));
-  render_viewport_frame(this);
-  ec_cached_viewports->endRender();
-  d3d::pcwin32::set_present_wnd(hwnd);
-  d3d::update_screen();
-  d3d::pcwin32::set_present_wnd(NULL);
 }
 
 
@@ -1856,6 +2161,7 @@ void ViewportWindow::load(const DataBlock &blk)
   viewTm.setcol(3, blk.getPoint3("viewMatrix3", viewTm.getcol(3)));
   viewport->setViewMatrix(viewTm);
   viewport->wireframe = blk.getBool("wireframe", viewport->wireframe);
+  showViewportAxis = blk.getBool("viewportAxis", showViewportAxis);
 
   ::grs_cur_view.tm = viewTm;
   ::grs_cur_view.itm = inverse(::grs_cur_view.tm);
@@ -1891,6 +2197,7 @@ void ViewportWindow::save(DataBlock &blk) const
   blk.setPoint3("viewMatrix2", viewport->getViewMatrix().getcol(2));
   blk.setPoint3("viewMatrix3", viewport->getViewMatrix().getcol(3));
   blk.setBool("wireframe", viewport->wireframe);
+  blk.setBool("viewportAxis", showViewportAxis);
 
   blk.setBool("show_stats", showStats);
   blk.setBool("stat3d", calcStat3d);
@@ -1917,11 +2224,7 @@ void ViewportWindow::getViewportSize(int &x, int &y)
 
 
 //===============================================================================
-void ViewportWindow::onWmEmbeddedResize(int width, int height)
-{
-  EcWindow::resizeWindow(width, height);
-  OnChangePosition();
-}
+void ViewportWindow::onWmEmbeddedResize(int width, int height) { OnChangePosition(); }
 
 
 //===============================================================================
@@ -1945,6 +2248,8 @@ void ViewportWindow::zoomAndCenter(BBox3 &box)
 
   int w, h;
   getViewportSize(w, h);
+  if (w <= 0 || h <= 0)
+    return;
 
   TMatrix tm;
   getCameraTransform(tm);
@@ -2041,9 +2346,6 @@ void ViewportWindow::zoomAndCenter(BBox3 &box)
 }
 
 
-void ViewportWindow::setDragAcceptFiles(bool accept) { DragAcceptFiles((HWND)getHandle(), accept); }
-
-
 bool ViewportWindow::onDropFiles(const dag::Vector<String> &files) { return false; }
 
 
@@ -2051,11 +2353,8 @@ void ViewportWindow::showStatSettingsDialog()
 {
   if (!statSettingsDialog)
   {
-    statSettingsDialog = new ViewportWindowStatSettingsDialog(*this, _pxScaled(300), _pxScaled(450));
-
-    PropertyContainerControlBase *tab_panel = statSettingsDialog->createTabPanel();
-    G_ASSERT(tab_panel);
-    fillStatSettingsDialog(*tab_panel);
+    statSettingsDialog = new ViewportWindowStatSettingsDialog(*this, &showStats, _pxScaled(300), _pxScaled(480));
+    fillStatSettingsDialog(*statSettingsDialog);
   }
 
   if (statSettingsDialog->isVisible())
@@ -2065,46 +2364,348 @@ void ViewportWindow::showStatSettingsDialog()
 }
 
 
-void ViewportWindow::fillStatSettingsDialog(PropertyContainerControlBase &tab_panel)
+void ViewportWindow::showGridSettingsDialog()
 {
-  PropertyContainerControlBase *mainTabPage = tab_panel.createTabPage(CM_STATS_SETTINGS_MAIN_PAGE, "Main");
-  mainTabPage->createCheckBox(CM_STATS_SETTINGS_MAIN_SHOW_STAT3D_STATS, "Show stat 3d stats", calcStat3d);
-  mainTabPage->createCheckBox(CM_STATS_SETTINGS_MAIN_SHOW_CAMERA_STATS, "Show camera stats", showCameraStats);
+  if (!gridSettingsDialog)
+    gridSettingsDialog = new GridEditDialog(nullptr, EDITORCORE->getGrid(), "Viewport grid settings");
 
-  fillStat3dStatSettings(tab_panel);
+  gridSettingsDialog->showGridEditDialog(vpId);
+}
 
-  PropertyContainerControlBase *tabPage = tab_panel.createTabPage(CM_STATS_SETTINGS_CAMERA_PAGE, "Camera");
-  tabPage->createCheckBox(CM_STATS_SETTINGS_CAMERA_POS, "camera pos", showCameraPos);
-  tabPage->createCheckBox(CM_STATS_SETTINGS_CAMERA_DIST, "camera dist", showCameraDist);
-  tabPage->createCheckBox(CM_STATS_SETTINGS_CAMERA_FOV, "camera FOV", showCameraFov);
-  tabPage->createCheckBox(CM_STATS_SETTINGS_CAMERA_SPEED, "camera speed", showCameraSpeed);
-  tabPage->createCheckBox(CM_STATS_SETTINGS_CAMERA_TURBO_SPEED, "camera turbo speed", showCameraTurboSpeed);
+void ViewportWindow::fillStatSettingsDialog(ViewportWindowStatSettingsDialog &dialog)
+{
+  fillStat3dStatSettings(dialog);
+
+  PropPanel::TLeafHandle cameraGroup = dialog.addGroup(CM_STATS_SETTINGS_CAMERA_GROUP, "Camera", showCameraStats);
+  dialog.addOption(cameraGroup, CM_STATS_SETTINGS_CAMERA_POS, "camera pos", showCameraPos);
+  dialog.addOption(cameraGroup, CM_STATS_SETTINGS_CAMERA_DIST, "camera dist", showCameraDist);
+  dialog.addOption(cameraGroup, CM_STATS_SETTINGS_CAMERA_FOV, "camera FOV", showCameraFov);
+  dialog.addOption(cameraGroup, CM_STATS_SETTINGS_CAMERA_SPEED, "camera speed", showCameraSpeed);
+  dialog.addOption(cameraGroup, CM_STATS_SETTINGS_CAMERA_TURBO_SPEED, "camera turbo speed", showCameraTurboSpeed);
 }
 
 
-void ViewportWindow::handleStatSettingsDialogChange(int pcb_id)
+void ViewportWindow::handleStatSettingsDialogChange(int pcb_id, bool value)
 {
-  if (pcb_id == CM_STATS_SETTINGS_MAIN_SHOW_STAT3D_STATS)
-    calcStat3d = !calcStat3d;
-  else if (pcb_id == CM_STATS_SETTINGS_MAIN_SHOW_CAMERA_STATS)
-    showCameraStats = !showCameraStats;
+  if (pcb_id == CM_STATS_SETTINGS_STAT3D_GROUP)
+    calcStat3d = value;
+  else if (pcb_id == CM_STATS_SETTINGS_CAMERA_GROUP)
+    showCameraStats = value;
   else if (pcb_id == CM_STATS_SETTINGS_CAMERA_POS)
-    showCameraPos = !showCameraPos;
+    showCameraPos = value;
   else if (pcb_id == CM_STATS_SETTINGS_CAMERA_DIST)
-    showCameraDist = !showCameraDist;
+    showCameraDist = value;
   else if (pcb_id == CM_STATS_SETTINGS_CAMERA_FOV)
-    showCameraFov = !showCameraFov;
+    showCameraFov = value;
   else if (pcb_id == CM_STATS_SETTINGS_CAMERA_SPEED)
-    showCameraSpeed = !showCameraSpeed;
+    showCameraSpeed = value;
   else if (pcb_id == CM_STATS_SETTINGS_CAMERA_TURBO_SPEED)
-    showCameraTurboSpeed = !showCameraTurboSpeed;
+    showCameraTurboSpeed = value;
   else
-    handleStat3dStatSettingsDialogChange(pcb_id);
+    handleStat3dStatSettingsDialogChange(pcb_id, value);
+}
+
+bool ViewportWindow::canInteractWithViewportAxis()
+{
+  return isActive() && !rectSelect.active && !isMoveRotateAllowed && CCameraElem::getCamera() == CCameraElem::MAX_CAMERA;
+}
+
+void ViewportWindow::handleViewportAxisMouseLButtonDown()
+{
+  G_ASSERT(highlightedViewportAxisId != ViewportAxisId::None);
+
+  mouseDownOnViewportAxis = highlightedViewportAxisId;
+  captureMouse();
+
+  if (mouseDownOnViewportAxis == ViewportAxisId::RotatorCircle)
+  {
+    POINT pos = {restoreCursorAtX, restoreCursorAtY};
+    GetCursorPos(&pos);
+    restoreCursorAtX = pos.x;
+    restoreCursorAtY = pos.y;
+
+    if (mIsCursorVisible)
+    {
+      ShowCursor(false);
+      mIsCursorVisible = false;
+    }
+  }
+}
+
+void ViewportWindow::handleViewportAxisMouseLButtonUp()
+{
+  G_ASSERT(mouseDownOnViewportAxis != ViewportAxisId::None);
+
+  if (mouseDownOnViewportAxis == ViewportAxisId::RotatorCircle)
+  {
+    if (!mIsCursorVisible)
+    {
+      ShowCursor(true);
+      mIsCursorVisible = true;
+    }
+
+    SetCursorPos(restoreCursorAtX, restoreCursorAtY);
+  }
+  else if (highlightedViewportAxisId == mouseDownOnViewportAxis && canInteractWithViewportAxis())
+  {
+    switch (highlightedViewportAxisId) //-V719 (The switch statement does not cover all values of the enum.)
+    {
+      case ViewportAxisId::X: setViewportAxisTransitionEndDirection(Point3(-1.0f, 0.0f, 0.0f), Point3(0.0f, 1.0f, 0.0f)); break;
+      case ViewportAxisId::Y: setViewportAxisTransitionEndDirection(Point3(0.0f, -1.0f, 0.0f), Point3(0.0f, 0.0f, 1.0f)); break;
+      case ViewportAxisId::Z: setViewportAxisTransitionEndDirection(Point3(0.0f, 0.0f, -1.0f), Point3(0.0f, 1.0f, 0.0f)); break;
+      case ViewportAxisId::NegativeX: setViewportAxisTransitionEndDirection(Point3(1.0f, 0.0f, 0.0f), Point3(0.0f, 1.0f, 0.0f)); break;
+      case ViewportAxisId::NegativeY: setViewportAxisTransitionEndDirection(Point3(0.0f, 1.0f, 0.0f), Point3(0.0f, 0.0f, -1.f)); break;
+      case ViewportAxisId::NegativeZ: setViewportAxisTransitionEndDirection(Point3(0.0f, 0.0f, 1.0f), Point3(0.0f, 1.0f, 0.0f)); break;
+    }
+  }
+
+  releaseMouse();
+  mouseDownOnViewportAxis = ViewportAxisId::None;
+}
+
+void ViewportWindow::processViewportAxisCameraRotation(TEcLParam l_param)
+{
+  const int mouseX = GET_X_LPARAM(l_param);
+  const int mouseY = GET_Y_LPARAM(l_param);
+  const float speedUp = 2.0f; // Compared to the Alt + Middle mouse button rotation.
+
+  real deltaX, deltaY;
+  processMouseMoveInfluence(deltaX, deltaY, WM_MOUSEMOVE, mouseX, mouseY, 0);
+  deltaX *= ::dagor_game_act_time * speedUp;
+  deltaY *= ::dagor_game_act_time * speedUp;
+
+  G_ASSERT(maxCameraElem);
+  maxCameraElem->rotate(-deltaX, -deltaY, true, true);
+
+  if (orthogonalProjection && currentProjection != CM_VIEW_CUSTOM_CAMERA)
+  {
+    currentProjection = CM_VIEW_CUSTOM_CAMERA;
+    setCameraViewText();
+  }
+
+  updatePluginCamera = true;
+
+  int wrappedMouseX = mouseX;
+  int wrappedMouseY = mouseY;
+  ::cursor_wrap(wrappedMouseX, wrappedMouseY, getMainHwnd());
+  prevMousePositionX = wrappedMouseX;
+  prevMousePositionY = wrappedMouseY;
+}
+
+void ViewportWindow::setViewportAxisTransitionEndDirection(const Point3 &forward, const Point3 &up)
+{
+  cameraTransitionLastViewMatrix = viewport->getViewMatrix();
+  cameraTransitionStartQuaternion = Quat(cameraTransitionLastViewMatrix);
+  cameraTransitionEndQuaternion = Quat(createViewMatrix(forward, up));
+  cameraTransitionElapsedTime = 0.0f;
+  cameraTransitioning = true;
+
+  currentProjection = CM_VIEW_CUSTOM_CAMERA;
+  setCameraViewText();
+  redrawClientRect();
 }
 
 TMatrix ViewportWindow::getViewTm() const { return viewport->getViewMatrix(); }
 
 TMatrix4 ViewportWindow::getProjTm() const { return viewport->getProjectionMatrix(); }
+
+void *ViewportWindow::getMainHwnd() { return EDITORCORE->getWndManager()->getMainWindow(); }
+
+void ViewportWindow::resizeViewportTexture()
+{
+  // Do not do anything till the first request.
+  if (requestedViewportTextureSize.x <= 0 || requestedViewportTextureSize.y <= 0)
+    return;
+
+  // Ensure a minimum resolution of 16x16 to avoid texture creation asserts (for example in ScreenSpaceReflections's
+  // constructor.)
+  requestedViewportTextureSize.x = max(16, requestedViewportTextureSize.x);
+  requestedViewportTextureSize.y = max(16, requestedViewportTextureSize.y);
+
+  if (viewportTextureSize == requestedViewportTextureSize)
+    return;
+
+  viewportTextureSize = requestedViewportTextureSize;
+
+  String name;
+  name.printf(32, "viewport_window_%d_rt", vpId);
+
+  viewportTexture.close();
+  viewportTexture.set(d3d::create_tex(nullptr, viewportTextureSize.x, viewportTextureSize.y, TEXCF_RTARGET | TEXFMT_DEFAULT, 1, name),
+    name);
+  viewportTexture.getTex2D()->texaddr(TEXADDR_CLAMP);
+
+  OnChangePosition();
+}
+
+bool ViewportWindow::isViewportTextureReady() const { return viewportTexture.getTex() != nullptr; }
+
+void ViewportWindow::copyTextureToViewportTexture(BaseTexture &source_texture, int source_width, int source_height)
+{
+  Texture *dstTexture = viewportTexture.getTex2D();
+  G_ASSERT(dstTexture);
+  G_ASSERT(viewportTextureSize.x == source_width);
+  G_ASSERT(viewportTextureSize.y == source_height);
+
+  RectInt rect;
+  rect.left = 0;
+  rect.top = 0;
+  rect.right = source_width;
+  rect.bottom = source_height;
+  d3d::stretch_rect(&source_texture, dstTexture, &rect, &rect);
+}
+
+void ViewportWindow::onImguiDelayedCallback(void *user_data)
+{
+  DelayedMouseEvent *event = static_cast<DelayedMouseEvent *>(user_data);
+
+  if (curEH)
+    curEH->handleMouseLBRelease(this, event->x, event->y, event->inside, event->buttons, event->modifierKeys);
+
+  auto it = eastl::find(delayedMouseEvents.begin(), delayedMouseEvents.end(), event);
+  G_ASSERT(it == delayedMouseEvents.begin());
+  delayedMouseEvents.erase(it);
+
+  delete event;
+}
+
+void ViewportWindow::updateImgui(const Point2 &size, float item_spacing, bool vr_mode)
+{
+  ImGui::PushID(this);
+
+  const ImVec2 imguiViewportSize = size;
+  requestedViewportTextureSize = IPoint2(floorf(imguiViewportSize.x), floorf(imguiViewportSize.y));
+
+  const TEXTUREID viewportTextureId = viewportTexture.getId();
+  if (viewportTextureSize.x > 0 && viewportTextureSize.y > 0 && viewportTextureId != BAD_TEXTUREID)
+  {
+    PropPanel::focus_helper.setFocusToNextImGuiControlIfRequested(this);
+
+    ImGuiWindow *currentWindow = ImGui::GetCurrentWindow();
+    const ImGuiID canvasId = currentWindow->GetID("canvas");
+    const ImVec2 mousePosInCanvas = ImGui::GetMousePos() - ImGui::GetCursorScreenPos();
+    const bool itemMouseButtonHeld = add_viewport_canvas_item(canvasId, (ImTextureID)((unsigned)viewportTextureId),
+      ImVec2(viewportTextureSize.x, viewportTextureSize.y), item_spacing, vr_mode);
+    const bool itemHovered = ImGui::IsItemHovered();
+    const bool wasActive = active;
+    const POINT pt = {(int)mousePosInCanvas.x, (int)mousePosInCanvas.y};
+
+    // Auto focus the viewport if the cursor is hovered over it and the focus is not in an input text.
+    bool autoFocused = false;
+    bool itemFocused = ImGui::IsItemFocused();
+    if (!itemFocused && itemHovered && !ImGui::IsAnyItemActive() && !ImGui::GetIO().WantTextInput)
+    {
+      itemFocused = true;
+      autoFocused = true;
+      ImGui::SetFocusID(canvasId, currentWindow);
+      ImGui::FocusWindow(currentWindow);
+    }
+
+    if (active != itemFocused)
+    {
+      // Not using activate() here because that could override the just opening dialog's requested initial focus by
+      // using focus_helper.requestFocus().
+      active = itemFocused;
+      OnChangeState();
+    }
+
+    if (!wasActive && active && !autoFocused && itemHovered &&
+        ImGui::IsMouseClicked(ImGuiMouseButton_Left, ImGuiInputFlags_None, canvasId))
+    {
+      // Swallow the first left mouse button click if the viewport was manually focused. So the first click just
+      // focuses the viewport. The main reason this was added to prevent selection loss in the viewport when going
+      // back to it from a property panel.
+    }
+    else if (active)
+    {
+      // Prevent the hidden mouse from interacting with other controls while in fly mode.
+      const bool flyModeActive = isFlyMode();
+      if (flyModeActive)
+        ImGui::SetActiveID(canvasId, currentWindow);
+
+      if (itemHovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+        windowProc(nullptr, WM_LBUTTONDBLCLK, get_mouse_buttons_for_window_messages(), (TEcLParam)POINTTOPOINTS(pt));
+      else if (itemHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        windowProc(nullptr, WM_LBUTTONDOWN, get_mouse_buttons_for_window_messages(), (TEcLParam)POINTTOPOINTS(pt));
+      else if (itemHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+        windowProc(nullptr, WM_RBUTTONDOWN, get_mouse_buttons_for_window_messages(), (TEcLParam)POINTTOPOINTS(pt));
+      else if (itemHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Middle))
+        windowProc(nullptr, WM_MBUTTONDOWN, get_mouse_buttons_for_window_messages(), (TEcLParam)POINTTOPOINTS(pt));
+      else if (mouseButtonDown[ImGuiMouseButton_Left] && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        windowProc(nullptr, WM_LBUTTONUP, get_mouse_buttons_for_window_messages(), (TEcLParam)POINTTOPOINTS(pt));
+      else if (mouseButtonDown[ImGuiMouseButton_Right] && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+        windowProc(nullptr, WM_RBUTTONUP, get_mouse_buttons_for_window_messages(), (TEcLParam)POINTTOPOINTS(pt));
+      else if (mouseButtonDown[ImGuiMouseButton_Middle] && ImGui::IsMouseReleased(ImGuiMouseButton_Middle))
+        windowProc(nullptr, WM_MBUTTONUP, get_mouse_buttons_for_window_messages(), (TEcLParam)POINTTOPOINTS(pt));
+      else if (itemHovered && ImGui::GetIO().MouseWheel != 0.0f)
+      {
+        const short delta = (short)(ImGui::GetIO().MouseWheel * WHEEL_DELTA);
+        const TEcWParam wparam = (TEcWParam)MAKELPARAM(get_mouse_buttons_for_window_messages(), delta);
+        windowProc(nullptr, WM_MOUSEWHEEL, wparam, (TEcLParam)POINTTOPOINTS(pt));
+      }
+      // In fly mode mouse capture is used so we have to ignore boundaries to make mouse cursor wrapping work. (We could
+      // also check GetCapture instead.)
+      else if ((itemHovered || itemMouseButtonHeld || flyModeActive) && (pt.x != lastMousePosition.x || pt.y != lastMousePosition.y))
+      {
+        lastMousePosition = IPoint2(pt.x, pt.y);
+        windowProc(nullptr, WM_MOUSEMOVE, get_mouse_buttons_for_window_messages(), (TEcLParam)POINTTOPOINTS(pt));
+      }
+
+      // TODO: ImGui porting: !!! Ensure that processed accelerator keys do not reach here. !!!
+      // Rethink keyboard input handling. Look into ImGui's shortcut API: https://github.com/ocornut/imgui/issues/456.
+      // Using viewport accelerators and removing these WM_KEYDOWN/WM_KEYUP messages is likely a good solution.
+      G_STATIC_ASSERT(keysDownArraySize == ImGuiKey_KeysData_SIZE);
+      ImGuiIO &imguiIo = ImGui::GetIO();
+      for (int i = 0; i < ImGuiKey_KeysData_SIZE; ++i)
+      {
+        const bool down = imguiIo.KeysData[i].Down;
+        if (down)
+        {
+          const int virtualKey = map_imgui_key_to_virtual_key((ImGuiKey)(i + ImGuiKey_KeysData_OFFSET));
+          if (virtualKey >= 0)
+          {
+            windowProc(nullptr, WM_KEYDOWN, (TEcWParam)virtualKey, 0);
+            keysDown[i] = down;
+          }
+        }
+        else if (keysDown[i])
+        {
+          const int virtualKey = map_imgui_key_to_virtual_key((ImGuiKey)(i + ImGuiKey_KeysData_OFFSET));
+          G_ASSERT(virtualKey >= 0);
+          windowProc(nullptr, WM_KEYUP, (TEcWParam)virtualKey, 0);
+          keysDown[i] = down;
+        }
+      }
+    }
+    else if (itemHovered)
+    {
+      // Allow wheel events (like zooming) when the viewport is just hovered, not focused.
+      if (ImGui::GetIO().MouseWheel != 0.0f)
+      {
+        const short delta = (short)(ImGui::GetIO().MouseWheel * WHEEL_DELTA);
+        const TEcWParam wparam = (TEcWParam)MAKELPARAM(get_mouse_buttons_for_window_messages(), delta);
+        windowProc(nullptr, WM_MOUSEWHEEL, wparam, (TEcLParam)POINTTOPOINTS(pt));
+      }
+      else if (pt.x != lastMousePosition.x || pt.y != lastMousePosition.y)
+      {
+        lastMousePosition = IPoint2(pt.x, pt.y);
+        windowProc(nullptr, WM_MOUSEMOVE, get_mouse_buttons_for_window_messages(), (TEcLParam)POINTTOPOINTS(pt));
+      }
+
+      if (ImGui::IsAnyItemActive() && ImGui::GetIO().WantTextInput)
+        ImGui::SetMouseCursor(EDITOR_CORE_CURSOR_ADDITIONAL_CLICK);
+    }
+  }
+
+  if (popupMenu)
+  {
+    const bool open = PropPanel::render_context_menu(*popupMenu);
+    if (!open)
+      del_it(popupMenu);
+  }
+
+  ImGui::PopID();
+}
 
 void save_camera_objects(DataBlock &blk)
 {

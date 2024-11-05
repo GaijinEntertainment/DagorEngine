@@ -1,0 +1,180 @@
+include "grass_generate_inc.dshl"
+include "toroidal_grass.dshl"
+include "heightmap_ofs.dshl"
+include "frustum.dshl"
+
+float grassify_vcol_discard_threshold = 0.6;
+float grassify_vcol_discard_move_weight = 2.0;
+
+float4 world_to_grass_slice;
+texture grass_mask_islands_tex;
+texture grass_color_islands_tex;
+
+int grassify = 0;
+interval grassify : grassify_off < 1, grassify_on;
+
+macro RI_GRASSIFY()
+  hlsl(vs) {
+    #ifdef PROCESS_OUTPUT
+      #undef PROCESS_OUTPUT
+      #undef INSTANCE_ID_DIVISOR
+    #endif
+    // Remove rotation component from transfom matrix.
+    #define PROCESS_OUTPUT(POS, WORLD_POS)  \
+      POS = mulPointTm(localPos * float3(length(worldLocalX), length(worldLocalY), length(worldLocalZ)) + worldLocalPos + camera_base_offset, globtm );
+
+    #define INSTANCE_ID_DIVISOR 3
+  }
+endmacro
+
+macro COMPILE_GRASSIFY_PS()
+  INIT_HEIGHTMAP_OFS(ps)
+  USE_GRASS_TC(ps)
+  INIT_GRASS_GENERATE(ps)
+  USE_GRASS_GENERATE(ps)
+  USE_GRASS_PUSH_INSTANCE(ps)
+  INIT_AND_USE_FRUSTUM_CHECK_BASE(ps)
+
+  z_write = false;
+  z_test = false;
+  color_write = 0;
+  cull_mode = cw;
+
+  (ps){
+    grass_mask_islands_size@f2 = get_dimensions(grass_mask_islands_tex, 0);
+    grass_mask_islands_tex@smp2d = grass_mask_islands_tex;
+    grass_color_islands_tex@smp2d = grass_color_islands_tex;
+    grass_color_tex@smp2d = grass_color_tex;
+    water_level_displacement@f4 = (water_level, 0, hmap_displacement_up-hmap_displacement_down, hmap_displacement_down);
+    world_to_grass_slice@f4 = world_to_grass_slice;
+    grassify_vcol_discard_threshold@f1 = grassify_vcol_discard_threshold;
+    grassify_vcol_discard_move_weight@f1 = grassify_vcol_discard_move_weight;
+  }
+
+  hlsl(ps) {
+    #define ht_displacement (water_level_displacement.zw)
+
+    void grassify_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+#ifdef USE_VCOL_GRASSIFY_DISCARD
+      if (input.grassifyDiscardWeight > grassify_vcol_discard_threshold)
+        discard;
+#endif
+
+      float3 worldPos = getWorldPos(input);
+      float2 spoffedWorldPosXZ = input.tcWorldPos.xz;
+
+      {
+        const float avg_ht = grass_average_ht__ht_extent__avg_hor__hor_extent.x;//0.5 * max_grass_height
+        const float ht_ext = grass_average_ht__ht_extent__avg_hor__hor_extent.y; //0.5 * max_grass_height
+        const float avg_hor = grass_average_ht__ht_extent__avg_hor__hor_extent.z; //grass_grid_params.z*0.5
+        const float hor_ext = grass_average_ht__ht_extent__avg_hor__hor_extent.w;//grass_grid_params.z*0.5 + max_grass_size*0.5
+        if (!testBoxExtentB(float3(worldPos.xz+avg_hor.xx, worldPos.y+avg_ht).xzy,
+                            float2(hor_ext, ht_ext).xyx))
+          discard;
+      }
+
+      float3 worldCameraPos = worldPos-world_view_pos;
+      float lod_dist_scale = calcLodDistScale(length(worldCameraPos));
+      if(lod_dist_scale <= 0)
+        discard;
+
+      float4 random4_high = tex2Dlod(noise_64_tex, float4(spoffedWorldPosXZ*0.17+float2(1.011, 1.031), 0,0));//both faster and more predictable than arithmetical
+      float2 posOfs = random4_high.xy - 0.5; // position in grid
+
+      {
+        // This could be replaced with localX localZ vectors
+        float3 xVector = cross(float3(0.0, 0.0, 1.0), input.normal);
+        // Fix rare case when normal is equal to (0,0,1)
+        xVector = dot(xVector, xVector) < 1E-4 ?  float3(1.0, 0.0, 0.0) : normalize(xVector);
+
+        float3 zVector = normalize(cross(input.normal, xVector));
+        worldPos += xVector * posOfs.x * grass_grid_params.z;
+        worldPos += zVector * posOfs.y * grass_grid_params.z;
+      }
+
+#ifdef USE_VCOL_GRASSIFY_DISCARD
+      BRANCH
+      if (input.grassifyDiscardWeight > 0) // move grass from the edges (or marked vertices)
+      {
+        // TODO: use gradient of vcol weight instead (need vertex neighbors for that, or baking the direction)
+        float3 toCenter = worldPos - input.objectCenterPos;
+        float3 xVector = cross(toCenter, input.normal);
+        xVector = dot(xVector, xVector) < 1E-4 ?  float3(1.0, 0.0, 0.0) : xVector;
+        float3 zVector = normalize(cross(xVector, input.normal));
+        float offsetDist = grass_grid_params.z * input.grassifyDiscardWeight * grassify_vcol_discard_move_weight;
+        worldPos += zVector * offsetDist;
+      }
+#endif
+
+      float2 grass_mask_tc = spoffedWorldPosXZ.xy * world_to_grass_slice.xy + world_to_grass_slice.zw;
+
+      #define GRASS_MASK_COMPRESSED 1
+
+      float2 bilW = frac(grass_mask_tc * grass_mask_islands_size - 0.5f);
+      float4 red = grass_mask_islands_tex.GatherRed(grass_mask_tex_samplerstate, grass_mask_tc);
+      float2 redX = bilW.y>0.5 ? red.xy : red.wz;
+      float redChannel = bilW.x>0.5 ? redX.x : redX.y;
+      uint grassChannel = redChannel*255;
+
+      float maskScale;
+      float displacementScale;
+      float decals_grass_mask;
+      unpackGrassMaskParams(
+          sampleGrassMaskParams(grass_mask_islands_tex, grass_mask_tc),
+          maskScale, displacementScale, decals_grass_mask);
+
+      if (max(maskScale, decals_grass_mask) <= 0.01)//early exit for empty mask
+        discard;
+
+      float4 grassColor = tex2Dlod(grass_color_islands_tex, float4(grass_mask_tc,0,0));
+      if (grassColor.a>=(GRASS_MAX_CHANNELS-0.5)/255.)//early exit for 'removal' decal channel
+        discard;
+      //if (maskTex.a>=0.1 && grass_decal_id>=GRASS_MAX_CHANNELS)//early exit for empty decal
+      //  return;
+
+      float4 random4_low = tex2Dlod(noise_64_tex, float4(spoffedWorldPosXZ*0.0171, 0,0));//both faster and more predictable than arithmetical
+      float decalsGrassChannel = grassColor.a;
+      float grassChannelRand = random4_low.z;
+      float grassTypeRand = random4_high.x;
+      uint grassType = getGrassType(decalsGrassChannel, grassChannel, grassTypeRand, grassChannelRand, decals_grass_mask, maskScale);
+      if (grassType>=GRASS_MAX_TYPES)
+        discard;
+
+      bool is_horizontal, underwater;
+      float2 height_horSize;float probability;
+      float grass_size_rnd = (dot(random4_low.zw, random4_low.zw));
+      get_grass_sizes_density(grassType, maskScale, grass_size_rnd, height_horSize, probability, is_horizontal, underwater);
+
+      height_horSize.xy*= pow(abs(grass_types_cb.grass_type_params[grassType].size_lod_mul), grass_gen_lod_index);
+
+      #define HEIGHT_THRESHOLD 0.05
+      if (min(min(height_horSize.x, height_horSize.y) - HEIGHT_THRESHOLD, probability-grassTypeRand) < 0)
+        discard;
+
+      if (!testSphereB(worldPos+float3(0,height_horSize.x*0.5,0), 0.5*length(height_horSize)))
+        discard;
+
+      uint grassVariation = (uint)floor(random4_high.w*255+0.5f);
+
+      GrassInstanceUncompressed inst;
+      inst.position.xyz = float3(saturate(worldPos.xz*world_to_grass_position.x + world_to_grass_position.zw), worldPos.y).xzy;
+      inst.random = random4_low.y;
+      inst.height = height_horSize.x;//fixme: get height from type and position
+      inst.size = height_horSize.y;
+      inst.landColor = sqrt(grassColor.rgb);//use gamma 2
+      inst.grassType = grassType;
+      inst.grassVariation = grassVariation;
+      inst.landNormal = input.normal;
+      inst.lodNo = grass_gen_lod_index;
+      inst.vAngle = getVAngle(grassType, random4_high.w);
+      inst.rotation = getGrassRotation(is_horizontal, worldCameraPos.xz, random4_high.z);
+      inst.opacity = 0.5+pow2(1-lod_dist_scale)*0.5;
+      inst.worldYOrientation = false;
+
+      pushGrassInstance(inst);
+    }
+  }
+
+  compile("target_ps", "grassify_ps");
+endmacro

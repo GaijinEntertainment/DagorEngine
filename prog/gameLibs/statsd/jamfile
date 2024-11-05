@@ -13,4 +13,8 @@ Sources =
   log.cpp
 ;
 
+UseProgLibs +=
+  gameLibs/asyncResolveAddr
+;
+
 include $(Root)/prog/_jBuild/build.jam ;

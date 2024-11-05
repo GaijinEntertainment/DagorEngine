@@ -1,9 +1,18 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <phys/dag_physDecl.h>
 #include <phys/dag_physics.h>
 
 #include <gamePhys/phys/rendinstPhys.h>
 
 #include <gamePhys/collision/collisionLib.h>
+
+
+static rendinst::RiPhysSettings riPhysSettings;
+
+rendinst::RiPhysSettings &rendinst::get_mutable_ri_phys_settings() { return riPhysSettings; }
+const rendinst::RiPhysSettings &rendinst::get_ri_phys_settings() { return riPhysSettings; }
+
 
 RendInstPhys::RendInstPhys() :
   originalTm(TMatrix::IDENT),

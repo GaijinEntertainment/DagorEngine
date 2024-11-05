@@ -1,11 +1,10 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 //! if installed, is called on each successful file open operation
 //! (can be used to bind fname and file_handle to resolve filename in other callbacks)
@@ -42,4 +41,4 @@ extern KRNLIMP void (*dag_on_zlib_error_cb)(const char *fname, int error);
 //! when installed should show system message box on android and ios and quit app after
 extern KRNLIMP void (*dag_on_assets_fatal_cb)(const char *asset_name);
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

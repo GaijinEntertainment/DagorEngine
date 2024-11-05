@@ -1,5 +1,4 @@
-#ifndef __GAIJIN_DYNAMIC_LIGHTING_PLUGIN__
-#define __GAIJIN_DYNAMIC_LIGHTING_PLUGIN__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <oldEditor/de_interface.h>
@@ -12,12 +11,17 @@
 #include <libTools/staticGeom/geomObject.h>
 #include <coolConsole/iConsoleCmd.h>
 
+namespace PropPanel
+{
+class PanelWindowPropertyControl;
+struct ColorCorrectionInfo;
+} // namespace PropPanel
+
 class CapsuleCreator;
 class EnvironmentPlugin;
 class ISceneLightService;
 class ISkiesService;
 class IWindService;
-struct ColorCorrectionInfo;
 
 struct EnvironmentAces
 {
@@ -60,7 +64,7 @@ class EnvironmentPlugin : public IGenEditorPlugin,
                           public IRenderOnCubeTex,
                           public IPluginAutoSave,
                           public IConsoleCmd,
-                          public ControlEventHandler,
+                          public PropPanel::ControlEventHandler,
                           public IWndManagerWindowHandler
 {
 public:
@@ -104,6 +108,7 @@ public:
   virtual void beforeRenderObjects(IGenViewportWnd *vp);
   virtual void renderObjects() {}
   virtual void renderTransObjects();
+  virtual void updateImgui() override;
   void renderObjectsToViewport(IGenViewportWnd *vp);
 
   virtual void *queryInterfacePtr(unsigned huid);
@@ -126,22 +131,22 @@ public:
   virtual void handleViewportPaint(IGenViewportWnd *wnd);
   virtual void handleViewChange(IGenViewportWnd *wnd) {}
 
-  bool buildLmEnviScene(ILogWriter &rep, PropPanel2 *panel, unsigned target);
+  bool buildLmEnviScene(ILogWriter &rep, PropPanel::ContainerPropertyControl *panel, unsigned target);
 
   virtual bool onPluginMenuClick(unsigned id);
-  virtual void onClick(int pcb_id, PropPanel2 *panel);
-  virtual void onChange(int pcb_id, PropPanel2 *panel);
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
 
   // IWndManagerWindowHandler
-  virtual IWndEmbeddedWindow *onWmCreateWindow(void *handle, int type);
-  virtual bool onWmDestroyWindow(void *handle);
+  virtual void *onWmCreateWindow(int type) override;
+  virtual bool onWmDestroyWindow(void *window) override;
 
   // IBinaryDataBuilder implemenatation
-  virtual bool validateBuild(int target, ILogWriter &rep, PropPanel2 *params);
+  virtual bool validateBuild(int target, ILogWriter &rep, PropPanel::ContainerPropertyControl *params);
   virtual bool addUsedTextures(ITextureNumerator &tn);
-  virtual bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel2 *pp);
+  virtual bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *pp);
   virtual bool useExportParameters() const { return false; }
-  virtual void fillExportPanel(PropPanel2 &params);
+  virtual void fillExportPanel(PropPanel::ContainerPropertyControl &params);
   virtual bool checkMetrics(const DataBlock &metrics_blk);
 
   // IRenderingService interface
@@ -198,7 +203,7 @@ private:
   } envParams;
 
   int toolBarId;
-  CPanelWindow *propPanel;
+  PropPanel::PanelWindowPropertyControl *propPanel;
   PostfxPanel *postfxPanel;
   ShaderGlobVarsPanel *shgvPanel;
 
@@ -210,7 +215,6 @@ private:
   bool previewZNearZFar;
 
   String lastImportedEnvi;
-  TEXTUREID cursorTexId;
   Tab<EnviType> lastTypeList;
   int skyScaleVarId;
   int skyWorldXVarId;
@@ -262,7 +266,7 @@ private:
   real sunAzimuth;
 
   Texture *colorTex;
-  ColorCorrectionInfo *ccInfo;
+  PropPanel::ColorCorrectionInfo *ccInfo;
 
   void importEnvi();
   void resetEnvi();
@@ -273,7 +277,7 @@ private:
 
   void setFogDefaults();
 
-  void recreatePanel(CPanelWindow *panel, int wtype_id);
+  void recreatePanel(PropPanel::PanelWindowPropertyControl *panel, int wtype_id);
   void recreatePostfxPanel();
   void recreateShGVPanel();
   void hdrViewSettings();
@@ -291,6 +295,6 @@ private:
   void prepareColorTex(unsigned char r_channel[256], unsigned char g_channel[256], unsigned char b_channel[256]);
   void renderColorTex();
   void updateSunSkyEnvi();
-};
 
-#endif //__GAIJIN_DYNAMIC_LIGHTING_PLUGIN__
+  bool onPluginMenuClickInternal(unsigned id, PropPanel::ContainerPropertyControl *panel);
+};

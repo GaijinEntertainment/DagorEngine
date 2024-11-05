@@ -1,6 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef __SHADERSAVE_H
-#define __SHADERSAVE_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #include "varMap.h"
 #include <generic/dag_tab.h>
@@ -96,5 +95,3 @@ public:
   SerializableTab(SerializableTab &&other) = default;
   SerializableTab &operator=(SerializableTab &&other) = default;
 };
-
-#endif //__SHADERSAVE_H

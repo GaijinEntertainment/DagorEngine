@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_mathAng.h>
 #include <math/dag_TMatrix.h>
 #include <vecmath/dag_vecMath.h>
@@ -376,4 +378,16 @@ Point2 basis_aware_dir_to_angles(const Point3 &dir, const Point3 &up, const Poin
   Point3 root2dxdz = cross(fwd, dxdz);
   float sign = dot(up, root2dxdz) > .0 ? 1.0 : -1.0;
   return Point2(atan2(root2dxdz.length() * sign, dot(dxdz, fwd)), asin(dy));
+}
+
+Point2 basis_aware_clamp_angles_by_dir(const Point2 &angles, const Point4 max_angles, const Point3 &dir, const Point3 &up,
+  const Point3 &fwd)
+{
+  float maxAngleX = min(DegToRad(abs(max_angles.x)), HALFPI);
+  float minAngleX = min(DegToRad(abs(max_angles.y)), HALFPI);
+  float maxAngleY = min(DegToRad(abs(max_angles.z)), HALFPI);
+  float minAngleY = min(DegToRad(abs(max_angles.w)), HALFPI);
+  Point2 dirAngles = basis_aware_dir_to_angles(dir, up, fwd);
+  return Point2(clamp_s_ang(angles.x, dirAngles.x - minAngleX, dirAngles.x + maxAngleX),
+    clamp_s_ang(angles.y, dirAngles.y - minAngleY, dirAngles.y + maxAngleY));
 }

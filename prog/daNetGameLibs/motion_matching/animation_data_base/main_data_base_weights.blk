@@ -1,0 +1,103 @@
+nodes_name{
+  // node:t="Bip01 L Hand"
+  // node:t="Bip01 R Hand"
+  node:t="Bip01 L Foot"
+  node:t="Bip01 R Foot"
+  node:t="Bip01 Pelvis"
+}
+
+prediction_times{
+  time:r=0.33
+  time:r=0.66
+  time:r=0.99
+}
+
+default{
+  animationBlendTime:r=0.2
+  linearVelocityViscosity:r=0.07
+  angularVelocityViscosity:r=0.1
+  metricaToleranceMin:r=0.3
+  metricaToleranceMax:r=5.0
+  metricaToleranceDecayTime:r=0.7
+
+  // node{
+  //   position_weight:r=0.368
+  //   velocity_weight:r=0.221
+  // }
+
+  // node{
+  //   position_weight:r=0.368
+  //   velocity_weight:r=0.221
+  // }
+
+  node{
+    position_weight:r=0.75
+    velocity_weight:r=1
+  }
+
+  node{
+    position_weight:r=0.75
+    velocity_weight:r=1
+  }
+
+  node{
+    position_weight:r=0.01
+    velocity_weight:r=1
+  }
+
+  point{
+    position_weight:r=1
+    direction_weight:r=1.5
+  }
+
+  point{
+    position_weight:r=1
+    direction_weight:r=1.5
+  }
+
+  point{
+    position_weight:r=1
+    direction_weight:r=1.5
+  }
+}
+
+/*swim{
+  animationBlendTime:r=0.45
+  linearVelocityViscosity:r=0.1
+  angularVelocityViscosity:r=0.1
+
+  node{
+    position_weight:r=1.559
+    velocity_weight:r=1.065
+  }
+
+  node{
+    position_weight:r=1.559
+    velocity_weight:r=0.941
+  }
+
+  node{
+    position_weight:r=1.559
+    velocity_weight:r=0.91
+  }
+
+  node{
+    position_weight:r=1.497
+    velocity_weight:r=0.941
+  }
+
+  point{
+    position_weight:r=7.948
+    direction_weight:r=7.639
+  }
+
+  point{
+    position_weight:r=7.145
+    direction_weight:r=6.94
+  }
+
+  point{
+    position_weight:r=6.219
+    direction_weight:r=6.885
+  }
+}*/

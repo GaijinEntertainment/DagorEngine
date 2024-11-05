@@ -1,9 +1,6 @@
 Root    ?= ../../.. ;
 Location = prog/tools/dargbox ;
 
-if $(OS) = NT { Platform ?= win64 ; }
-include $(Root)/prog/_jBuild/defPlatform.jam ; # $(Platform) is defined after this line
-
 #Config = rel ;
 include $(Root)/prog/tools/tools_setup.jam ;
 UseQuirrel = sq3r ;
@@ -14,10 +11,7 @@ Config ?= dev ;
 TargetType  = exe ;
 
 Target      = tools/dargbox ;
-
-switch $(Platform) {
-  case win64 :   Target      = tools/dargbox-64 ;
-}
+if $(Platform)-$(PlatformArch) = windows-x86_64 { Target = $(Target)-64 ; }
 
 if $(Config) = rel { # this is only needed to build with warnings-as-errors
   ForceLogs = yes ;
@@ -25,11 +19,11 @@ if $(Config) = rel { # this is only needed to build with warnings-as-errors
 
 
 OutDir = $(Root)/tools/dargbox ;
-if $(Platform) in android iOS { OutDir = $(OutDir)/$(Platform) ; }
+if $(Platform) in android iOS { OutDir = $(OutDir)/$(LegacyPlatformSuffix) ; }
 
-if ( $(Platform) in win32 win64 linux64 ) { UseD3DMulti ?= yes ; }
+if $(Platform) in windows linux { UseD3DMulti ?= yes ; }
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   VRDeviceSupport ?= yes ;
 }
 
@@ -61,7 +55,7 @@ Sources =
   gamelib/input.cpp
 ;
 
-if $(Platform) = macosx {
+if $(Platform) = macOS {
   Sources +=
     gamelib/soundMac.mm
   ;
@@ -94,6 +88,9 @@ UseProgLibs =
   gameLibs/vr
   gameLibs/webui
   gameLibs/daRg
+  gameLibs/dasModules/render
+  gameLibs/dasModules/shaders
+  gameLibs/dasModules/stdGui
   gameLibs/folders
   gameLibs/visualConsole
   gameLibs/render
@@ -106,9 +103,11 @@ UseProgLibs =
   gameLibs/quirrel/sqDebugger
   gameLibs/quirrel/nestdb
   gameLibs/quirrel/udp
+  gameLibs/quirrel/sqDataCache
   engine/perfMon
   engine/consoleProc
   tools/libTools/util
+  tools/libTools/grsCurView
 
   3rdPartyLibs/image/libpng-1.4.22
   3rdPartyLibs/image/jpeg-6b
@@ -119,7 +118,7 @@ UseProgLibs =
   1stPartyLibs/daScript
 ;
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   UseProgLibs +=
     engine/drv/hid_mouse
     engine/drv/hid_keyboard
@@ -128,7 +127,7 @@ if $(Platform) in win32 win64 {
     engine/drv/hid_gamepad_xinput
   ;
 }
-else if $(Platform) = linux64 {
+else if $(Platform) = linux {
   UseProgLibs +=
     engine/drv/hid_mouse
     engine/drv/hid_keyboard
@@ -157,15 +156,13 @@ else if $(Platform) = android {
   BundleName = dargbox ;
 
   BundleCopy +=
-    $(Root)/tools/dargbox/darg.and.vromfs.bin    assets/darg.and.vromfs.bin
+    $(Root)/tools/dargbox/dargbox.vromfs.bin    assets/dargbox.vromfs.bin
     $(Root)/tools/dargbox/android.vromfs.bin     assets/android.vromfs.bin
     $(Root)/tools/dargbox/shaders/gameSpirV.ps50.shdump.bin assets/shaders/gameSpirV.ps50.shdump.bin
 
     platform/android.bundle/src/$(JavaActivitySrcName).java      src/com/gaijinent/$(BundleName)/$(JavaActivitySrcName).java
     platform/android.bundle/src/DagorCommonActivity.java      src/com/gaijinent/common/DagorCommonActivity.java
     platform/android.bundle/src/DagorBaseActivity.java      src/com/gaijinent/common/DagorBaseActivity.java
-
-    @$(Root)/prog/engine/drv/hid_android/NvSoftInput.java     src/com/nvidia/Helpers/NvSoftInput.java
   ;
 
   if $(Config) != rel {
@@ -185,8 +182,8 @@ else if $(Platform) = android {
     }
     for l in $(vulkan_libs) {
       BundleCopy +=
-        @$(_DEVTOOL)/android-ndk-$(AndroidNdkVer)/sources/third_party/vulkan/src/build-android/jniLibs/$(AndroidArch)/$(l)
-          libs/$(AndroidArch)/$(l)
+        @$(_DEVTOOL)/android-ndk-$(AndroidNdkVer)/sources/third_party/vulkan/src/build-android/jniLibs/$(PlatformArch)/$(l)
+          libs/$(PlatformArch)/$(l)
       ;
     }
   }
@@ -208,7 +205,7 @@ else if $(Platform) = iOS {
 
   BundleCopy = ;
 }
-else if $(Platform) = macosx {
+else if $(Platform) = macOS {
   OutDir = $(Root)/tools/dargbox/dargbox.app/Contents/MacOS ;
 
   Sources +=
@@ -237,7 +234,7 @@ else if $(Platform) = macosx {
   BundleName = dargbox ;
 
   BundlePlist =
-    @$(Root)/prog/_jBuild/macosx/generic.info.plist ../Info.plist ;
+    @$(Root)/prog/_jBuild/macOS/generic.info.plist ../Info.plist ;
   BundleCopy =
     #platform/macosx.bundle/warThunder.icns ../Resources/warThunder.icns
   ;
@@ -300,17 +297,17 @@ if ! $(Platform) in android nswitch {
   }
 }
 
-if $(Platform) = win32 { UseMemoryDebugLevel = dbg ; }
+if $(Platform)-$(PlatformArch) = windows-x86 { UseMemoryDebugLevel = dbg ; }
 
 
 if $(VRDeviceSupport) = yes {
   BundleCopy +=
-    @$(OpenXrSdkPath)/$(Platform)/bin/openxr_loader.dll openxr_loader.dll
-    @$(OpenXrSdkPath)/$(Platform)/bin/openxr_loader.pdb openxr_loader.pdb
+    @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/openxr_loader.dll openxr_loader.dll
+    @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/openxr_loader.pdb openxr_loader.pdb
   ;
 }
 if [ GLOB $(Root)/prog/gameLibs/quirrel/matchingModule : jamfile ] {
-  UseProgLibs += gameLibs/matchingClient gameLibs/quirrel/matchingModule 1stPartyLibs/matching gameLibs/quirrel/sqext ;
+  UseProgLibs += gameLibs/matchingClient gameLibs/quirrel/matchingModule 1stPartyLibs/matching ;
   CPPopt += -DHAS_MATCHING_MODULE ;
 }
 

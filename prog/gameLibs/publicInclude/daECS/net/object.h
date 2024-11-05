@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -10,6 +9,7 @@
 #include <EASTL/vector_set.h>
 #include <EASTL/vector_map.h>
 #include <EASTL/fixed_vector.h>
+#include <dag/dag_vector.h>
 #include <memory/dag_framemem.h>
 #include <daECS/core/entityId.h>
 #include <daECS/core/entityComponent.h>
@@ -33,7 +33,9 @@ void clear_cached_replicated_components();
 struct ObjectReplica;
 class Connection;
 
-typedef eastl::vector_map<ecs::component_index_t, compver_t> CompVersMap;
+typedef eastl::vector_map<ecs::component_index_t, compver_t, eastl::less<ecs::component_index_t>, EASTLAllocatorType,
+  dag::Vector<eastl::pair<ecs::component_index_t, compver_t>>>
+  CompVersMap;
 struct CompRevision
 {
   ecs::component_index_t compIdx;

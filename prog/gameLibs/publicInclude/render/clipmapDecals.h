@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -18,9 +17,12 @@
 #include <3d/dag_resPtr.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <EASTL/string.h>
+#include <shaders/dag_overrideStateId.h>
 
 struct Frustum;
 class DataBlock;
+
+typedef float (*HeightFunction)(Point2);
 
 class ClipmapDecals
 {
@@ -42,7 +44,6 @@ protected:
     Point2 localY;
     Point2 pos;
     Point4 tc;
-    float lifetime = -1;
   };
 
   struct ClipmapDecalSubType
@@ -122,6 +123,8 @@ private:
 
   bool inited = false;
 
+  bool needDrawDebug = false;
+
   enum
   {
     RENDER_TO_CLIPMAP = 0,
@@ -140,6 +143,14 @@ private:
 public:
   ClipmapDecals();
   ~ClipmapDecals();
+
+#if DAGOR_DBGLEVEL > 0
+  void drawDebug(HeightFunction height_map_cb);
+#endif
+
+  void setNeedDrawDebug(bool need_draw_debug) { needDrawDebug = need_draw_debug; }
+  bool getNeedDrawDebug() { return needDrawDebug; }
+
   // init system. load settings from blk-file
   void init(bool stub_render_mode, const char *shader_name);
 
@@ -216,4 +227,9 @@ void clear_updated_regions();
 
 void set_delayed_regions_params(bool use_delayed_regions, int max_count, float size_factor);
 void set_camera_position(Point3 pos);
+
+#if DAGOR_DBGLEVEL > 0
+void draw_debug(HeightFunction height_map_cb);
+#endif
+
 } // namespace clipmap_decals_mgr

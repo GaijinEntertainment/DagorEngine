@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>__PLUGIN_TITLE__ (Quirrel Debugger)</title>
-<link href="http://quirrel.io/doc/_static/nut.ico" rel="icon" type="image/x-icon" />
+<link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAAAAAABMLAAATCwAAEAAAAAAAAAAAAAAAWJbKAD6S2gCx1PMAEzlgACRMdQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZmZmZmZmZmZmZmZmZmZmZmZmYAAAZmZmZmYCIhEGZmZmZgIiIQZmZmZmAiIjBmZmZmAiIiMQZmZmYCIiIxBmZmZgIiIiEGZmZgRERERVBmZmBEVVVVUGZmZgRFVVUGZmZmBERFVQZmZmZgAEAAZmZmZmZmBmZmZmZmZmZmZmZmb//3IA//9QAPg/bwDwH2kA8B9lAPAfAADgD0Nf4A9TU+APRVPAB1xlwAdVU+APOwDgDwAA8B8AAP7/AAD//wAA" />
 </head>
 <body style="background:#fff; font-family:Consolas; font-size:small;">
 <div style="height:100%;">
@@ -12,7 +12,7 @@
 <button type="button" onclick="onRun()">Run (F8)</button>
 <button type="button" onclick="onPause()">Pause</button>
 <button type="button" onclick="onStepOver()">Step Over (F10)</button>
-<button type="button" onclick="onStepInto()">Step Into (F11)</button>
+<button type="button" onclick="onStepInto()">Step Into (F9/F11)</button>
 <button type="button" onclick="onStepOut()">Step Out</button>
 <button type="button" onclick="onClearBreakpoints()">Clear BP</button>
 <button type="button" onclick="onClearCoverage()">Clear Coverage</button>
@@ -707,7 +707,14 @@ var SourceFile = function ()
 
       var m = parseInt(counts[ptr++]);
       for (var c = 0; c < m && i < this.lineCount; c++, i++)
-        lineStatesHtml += "<div id='st" + (i+1) + "' style='color:#bbb'>--</div>";
+        lineStatesHtml += "<div id='st" + (i+1) + "' style='color:#bbb'>&nbsp;&nbsp;</div>";
+
+      if (ptr >= counts.length)
+        break;
+
+      var m = parseInt(counts[ptr++]);
+      for (var c = 0; c < m && i < this.lineCount; c++, i++)
+        lineStatesHtml += "<div id='st" + (i+1) + "' style='color:#aaa'>&gt;&gt;</div>";
 
       if (ptr >= counts.length)
         break;
@@ -718,7 +725,7 @@ var SourceFile = function ()
     }
 
     for (; i < this.lineCount; i++)
-      lineStatesHtml += "<div id='st" + (i+1) + "' style='color:#bbb; white-space:pre'>- </div>";
+      lineStatesHtml += "<div id='st" + (i+1) + "' style='color:#bbb; white-space:pre'>? </div>";
 
     document.getElementById("line_states").innerHTML = lineStatesHtml;
   }
@@ -1077,7 +1084,7 @@ window.addEventListener("keydown", function(event)
     onStepOver();
   }
 
-  if (event.keyCode === 122) // F11
+  if (event.keyCode === 122 || event.keyCode === 120) // F11, F9
   {
     event.preventDefault();
     onStepInto();

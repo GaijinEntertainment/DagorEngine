@@ -1,14 +1,13 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <ioSys/dag_baseIo.h>
 #include <dag/dag_vector.h>
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 /// @addtogroup utility_classes
 /// @{
@@ -26,6 +25,8 @@ class DynamicMemGeneralSaveCB : public IBaseSave
 {
 public:
   KRNLIMP DynamicMemGeneralSaveCB(IMemAlloc *_allocator, size_t sz = 0, size_t quant = 64 << 10);
+  DynamicMemGeneralSaveCB(DynamicMemGeneralSaveCB &&) = default;
+  DynamicMemGeneralSaveCB &operator=(DynamicMemGeneralSaveCB &&) = default;
   KRNLIMP virtual ~DynamicMemGeneralSaveCB(void);
 
   KRNLIMP void write(const void *ptr, int size);
@@ -80,6 +81,10 @@ class MemGeneralLoadCB : public IBaseLoad
 public:
   /// Allocates buffer and copies data to it.
   KRNLIMP MemGeneralLoadCB(const void *ptr, int sz);
+  MemGeneralLoadCB(const MemGeneralLoadCB &) = default;
+  MemGeneralLoadCB(MemGeneralLoadCB &&) = default;
+  MemGeneralLoadCB &operator=(const MemGeneralLoadCB &) = default;
+  MemGeneralLoadCB &operator=(MemGeneralLoadCB &&) = default;
   KRNLIMP virtual ~MemGeneralLoadCB(void);
 
   KRNLIMP void read(void *ptr, int size);
@@ -124,6 +129,10 @@ public:
     dataptr = (const unsigned char *)ptr;
     datasize = sz;
   }
+  InPlaceMemLoadCB(const InPlaceMemLoadCB &) = default;
+  InPlaceMemLoadCB(InPlaceMemLoadCB &&) = default;
+  InPlaceMemLoadCB &operator=(const InPlaceMemLoadCB &) = default;
+  InPlaceMemLoadCB &operator=(InPlaceMemLoadCB &&) = default;
   ~InPlaceMemLoadCB() { dataptr = NULL; }
 
   const void *readAny(int sz)
@@ -159,4 +168,4 @@ struct IStreamDecompress
 
 /// @}
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

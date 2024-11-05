@@ -1,4 +1,4 @@
-#include "device.h"
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #if D3D_HAS_RAY_TRACING && 0 // VK_NV_ray_tracing
 #include "nv/pipeline.cpp"

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "assetStatsFiller.h"
 #include "../assetStats.h"
 #include <de3_composit.h>

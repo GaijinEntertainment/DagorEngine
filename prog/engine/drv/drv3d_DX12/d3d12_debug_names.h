@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/algorithm.h>
@@ -21,7 +22,7 @@ inline wchar_t *lazyToWchar(const char *str, wchar_t *buf, size_t max_len)
 
 // NOTE: This is intended for debug only, this is possibly slow, so use with care!
 template <size_t N>
-inline char *get_resource_name(ID3D12Resource *res, char (&cbuf)[N])
+inline char *get_resource_name(ID3D12Object *res, char (&cbuf)[N])
 {
 #if !_TARGET_XBOXONE
   wchar_t wcbuf[N];

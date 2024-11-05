@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #define LEGACY_VERSION                 42
 #define CURRENT_VERSION                43
 #define ZSTD_DEFAULT_COMPRESSION_LEVEL 9

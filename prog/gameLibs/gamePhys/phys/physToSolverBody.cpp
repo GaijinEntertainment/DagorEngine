@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gamePhys/phys/physToSolverBody.h>
 #include <generic/dag_span.h>
 #include <gamePhys/common/loc.h>

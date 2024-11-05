@@ -1,4 +1,4 @@
-pushd ..
-@start sphinx-autobuild --port 8080  -b html -d _docs/build/doctrees _docs/source _docs/build/html
-@start python _docs/watch.py
-popd
+rem pushd ..
+rem @start python _docs/watch.py
+rem popd
+@start sphinx-autobuild --port 8080  --watch source -b html -d build/doctrees . build/html

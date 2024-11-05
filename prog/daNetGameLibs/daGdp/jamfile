@@ -1,0 +1,46 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = daGdp ;
+Location = prog/daNetGameLibs/$(Module) ;
+StrictCompile = yes ;
+
+AddIncludes =
+  $(Root)/prog/daNetGameLibs
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/rendInst
+  $(Root)/prog/daNetGame
+  $(Root)/prog/engine
+  $(Root)/prog/engine/sharedInclude
+;
+
+UseProgLibs =
+  gameLibs/render/daBfg
+  gameLibs/rendInst
+;
+
+local AllSrcFolder_ES = ;
+local AllSrcFolder_CPP = ;
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_CPP +=
+    render
+    render/objects
+    render/placers
+  ;
+
+  AllSrcFolder_ES =
+    render
+    render/objects
+    render/placers
+  ;
+
+  if $(Config) in dbg dev {
+    AddIncludes += $(Root)/prog/3rdPartyLibs/imgui ;
+    UseProgLibs += 3rdPartyLibs/imgui ;
+    AllSrcFolder_ES += debug debug/placers ;
+  }
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

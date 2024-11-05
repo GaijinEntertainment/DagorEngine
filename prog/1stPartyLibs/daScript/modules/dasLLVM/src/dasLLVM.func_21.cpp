@@ -12,66 +12,86 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_21() {
-// from D:\Work\libclang\include\llvm-c/Core.h:2388:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMGetInitializer >(*this,lib,"LLVMGetInitializer",SideEffects::worstDefault,"LLVMGetInitializer")
-		->args({"GlobalVar"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2389:6
-	addExtern< void (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMSetInitializer >(*this,lib,"LLVMSetInitializer",SideEffects::worstDefault,"LLVMSetInitializer")
-		->args({"GlobalVar","ConstantVal"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2390:10
-	addExtern< int (*)(LLVMOpaqueValue *) , LLVMIsThreadLocal >(*this,lib,"LLVMIsThreadLocal",SideEffects::worstDefault,"LLVMIsThreadLocal")
-		->args({"GlobalVar"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2391:6
-	addExtern< void (*)(LLVMOpaqueValue *,int) , LLVMSetThreadLocal >(*this,lib,"LLVMSetThreadLocal",SideEffects::worstDefault,"LLVMSetThreadLocal")
-		->args({"GlobalVar","IsThreadLocal"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2392:10
-	addExtern< int (*)(LLVMOpaqueValue *) , LLVMIsGlobalConstant >(*this,lib,"LLVMIsGlobalConstant",SideEffects::worstDefault,"LLVMIsGlobalConstant")
-		->args({"GlobalVar"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2393:6
-	addExtern< void (*)(LLVMOpaqueValue *,int) , LLVMSetGlobalConstant >(*this,lib,"LLVMSetGlobalConstant",SideEffects::worstDefault,"LLVMSetGlobalConstant")
-		->args({"GlobalVar","IsConstant"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2394:21
-	addExtern< LLVMThreadLocalMode (*)(LLVMOpaqueValue *) , LLVMGetThreadLocalMode >(*this,lib,"LLVMGetThreadLocalMode",SideEffects::worstDefault,"LLVMGetThreadLocalMode")
-		->args({"GlobalVar"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2395:6
-	addExtern< void (*)(LLVMOpaqueValue *,LLVMThreadLocalMode) , LLVMSetThreadLocalMode >(*this,lib,"LLVMSetThreadLocalMode",SideEffects::worstDefault,"LLVMSetThreadLocalMode")
-		->args({"GlobalVar","Mode"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2396:10
-	addExtern< int (*)(LLVMOpaqueValue *) , LLVMIsExternallyInitialized >(*this,lib,"LLVMIsExternallyInitialized",SideEffects::worstDefault,"LLVMIsExternallyInitialized")
-		->args({"GlobalVar"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2397:6
-	addExtern< void (*)(LLVMOpaqueValue *,int) , LLVMSetExternallyInitialized >(*this,lib,"LLVMSetExternallyInitialized",SideEffects::worstDefault,"LLVMSetExternallyInitialized")
-		->args({"GlobalVar","IsExtInit"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2414:18
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *,LLVMOpaqueType *,LLVMOpaqueValue *,const char *) , LLVMAddAlias >(*this,lib,"LLVMAddAlias",SideEffects::worstDefault,"LLVMAddAlias")
-		->args({"M","Ty","Aliasee","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2423:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *,LLVMOpaqueType *,unsigned int,LLVMOpaqueValue *,const char *) , LLVMAddAlias2 >(*this,lib,"LLVMAddAlias2",SideEffects::worstDefault,"LLVMAddAlias2")
-		->args({"M","ValueTy","AddrSpace","Aliasee","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2434:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *,const char *,size_t) , LLVMGetNamedGlobalAlias >(*this,lib,"LLVMGetNamedGlobalAlias",SideEffects::worstDefault,"LLVMGetNamedGlobalAlias")
-		->args({"M","Name","NameLen"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2442:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *) , LLVMGetFirstGlobalAlias >(*this,lib,"LLVMGetFirstGlobalAlias",SideEffects::worstDefault,"LLVMGetFirstGlobalAlias")
-		->args({"M"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2449:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *) , LLVMGetLastGlobalAlias >(*this,lib,"LLVMGetLastGlobalAlias",SideEffects::worstDefault,"LLVMGetLastGlobalAlias")
-		->args({"M"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2457:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMGetNextGlobalAlias >(*this,lib,"LLVMGetNextGlobalAlias",SideEffects::worstDefault,"LLVMGetNextGlobalAlias")
-		->args({"GA"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2465:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMGetPreviousGlobalAlias >(*this,lib,"LLVMGetPreviousGlobalAlias",SideEffects::worstDefault,"LLVMGetPreviousGlobalAlias")
-		->args({"GA"});
+// from D:\Work\libclang\include\llvm-c/Core.h:2399:6
+	makeExtern< void (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMSetInitializer , SimNode_ExtFuncCall >(lib,"LLVMSetInitializer","LLVMSetInitializer")
+		->args({"GlobalVar","ConstantVal"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2400:10
+	makeExtern< int (*)(LLVMOpaqueValue *) , LLVMIsThreadLocal , SimNode_ExtFuncCall >(lib,"LLVMIsThreadLocal","LLVMIsThreadLocal")
+		->args({"GlobalVar"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2401:6
+	makeExtern< void (*)(LLVMOpaqueValue *,int) , LLVMSetThreadLocal , SimNode_ExtFuncCall >(lib,"LLVMSetThreadLocal","LLVMSetThreadLocal")
+		->args({"GlobalVar","IsThreadLocal"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2402:10
+	makeExtern< int (*)(LLVMOpaqueValue *) , LLVMIsGlobalConstant , SimNode_ExtFuncCall >(lib,"LLVMIsGlobalConstant","LLVMIsGlobalConstant")
+		->args({"GlobalVar"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2403:6
+	makeExtern< void (*)(LLVMOpaqueValue *,int) , LLVMSetGlobalConstant , SimNode_ExtFuncCall >(lib,"LLVMSetGlobalConstant","LLVMSetGlobalConstant")
+		->args({"GlobalVar","IsConstant"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2404:21
+	makeExtern< LLVMThreadLocalMode (*)(LLVMOpaqueValue *) , LLVMGetThreadLocalMode , SimNode_ExtFuncCall >(lib,"LLVMGetThreadLocalMode","LLVMGetThreadLocalMode")
+		->args({"GlobalVar"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2405:6
+	makeExtern< void (*)(LLVMOpaqueValue *,LLVMThreadLocalMode) , LLVMSetThreadLocalMode , SimNode_ExtFuncCall >(lib,"LLVMSetThreadLocalMode","LLVMSetThreadLocalMode")
+		->args({"GlobalVar","Mode"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2406:10
+	makeExtern< int (*)(LLVMOpaqueValue *) , LLVMIsExternallyInitialized , SimNode_ExtFuncCall >(lib,"LLVMIsExternallyInitialized","LLVMIsExternallyInitialized")
+		->args({"GlobalVar"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2407:6
+	makeExtern< void (*)(LLVMOpaqueValue *,int) , LLVMSetExternallyInitialized , SimNode_ExtFuncCall >(lib,"LLVMSetExternallyInitialized","LLVMSetExternallyInitialized")
+		->args({"GlobalVar","IsExtInit"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2428:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *,LLVMOpaqueType *,unsigned int,LLVMOpaqueValue *,const char *) , LLVMAddAlias2 , SimNode_ExtFuncCall >(lib,"LLVMAddAlias2","LLVMAddAlias2")
+		->args({"M","ValueTy","AddrSpace","Aliasee","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2439:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *,const char *,size_t) , LLVMGetNamedGlobalAlias , SimNode_ExtFuncCall >(lib,"LLVMGetNamedGlobalAlias","LLVMGetNamedGlobalAlias")
+		->args({"M","Name","NameLen"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2447:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *) , LLVMGetFirstGlobalAlias , SimNode_ExtFuncCall >(lib,"LLVMGetFirstGlobalAlias","LLVMGetFirstGlobalAlias")
+		->args({"M"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2454:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *) , LLVMGetLastGlobalAlias , SimNode_ExtFuncCall >(lib,"LLVMGetLastGlobalAlias","LLVMGetLastGlobalAlias")
+		->args({"M"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2462:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMGetNextGlobalAlias , SimNode_ExtFuncCall >(lib,"LLVMGetNextGlobalAlias","LLVMGetNextGlobalAlias")
+		->args({"GA"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Core.h:2470:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMAliasGetAliasee >(*this,lib,"LLVMAliasGetAliasee",SideEffects::worstDefault,"LLVMAliasGetAliasee")
-		->args({"Alias"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2475:6
-	addExtern< void (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMAliasSetAliasee >(*this,lib,"LLVMAliasSetAliasee",SideEffects::worstDefault,"LLVMAliasSetAliasee")
-		->args({"Alias","Aliasee"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2497:6
-	addExtern< void (*)(LLVMOpaqueValue *) , LLVMDeleteFunction >(*this,lib,"LLVMDeleteFunction",SideEffects::worstDefault,"LLVMDeleteFunction")
-		->args({"Fn"});
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMGetPreviousGlobalAlias , SimNode_ExtFuncCall >(lib,"LLVMGetPreviousGlobalAlias","LLVMGetPreviousGlobalAlias")
+		->args({"GA"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2475:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMAliasGetAliasee , SimNode_ExtFuncCall >(lib,"LLVMAliasGetAliasee","LLVMAliasGetAliasee")
+		->args({"Alias"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2480:6
+	makeExtern< void (*)(LLVMOpaqueValue *,LLVMOpaqueValue *) , LLVMAliasSetAliasee , SimNode_ExtFuncCall >(lib,"LLVMAliasSetAliasee","LLVMAliasSetAliasee")
+		->args({"Alias","Aliasee"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2502:6
+	makeExtern< void (*)(LLVMOpaqueValue *) , LLVMDeleteFunction , SimNode_ExtFuncCall >(lib,"LLVMDeleteFunction","LLVMDeleteFunction")
+		->args({"Fn"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2509:10
+	makeExtern< int (*)(LLVMOpaqueValue *) , LLVMHasPersonalityFn , SimNode_ExtFuncCall >(lib,"LLVMHasPersonalityFn","LLVMHasPersonalityFn")
+		->args({"Fn"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2516:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMGetPersonalityFn , SimNode_ExtFuncCall >(lib,"LLVMGetPersonalityFn","LLVMGetPersonalityFn")
+		->args({"Fn"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

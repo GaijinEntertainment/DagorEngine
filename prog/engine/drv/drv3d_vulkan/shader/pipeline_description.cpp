@@ -1,12 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <smolv.h>
-#include "device.h"
 
 #include <generic/dag_sort.h>
 #include <EASTL/optional.h>
 #include "pipeline_description.h"
 
 using namespace drv3d_vulkan;
-using namespace spv;
 
 static int attrib_sorter(const VertexAttributeDesc *l, const VertexAttributeDesc *r) { return (int)l->location - (int)r->location; }
 

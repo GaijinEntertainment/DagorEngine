@@ -1,7 +1,12 @@
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dReset.h>
-#include <3d/dag_tex3d.h>
-#include <3d/dag_drv3dCmd.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_resetDevice.h>
+#include <drv/3d/dag_tex3d.h>
 #include <render/dxtcompress.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <math/dag_mathUtils.h>
@@ -108,12 +113,11 @@ void PartialDxtRender(Texture *rt, Texture *rtn, int linesPerPart, int picWidth,
 #define EXTERNAL_END_RENDER   ((void)0)
 
 #define INTERNAL_START_RENDER                                                                                         \
-  d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, NULL, NULL, NULL);                                             \
+  d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);                                                               \
   if (update_game_screen && is_main_thread() && get_time_usec_qpc(last_draw_time) > 30000 && !d3d::device_lost(NULL)) \
   {                                                                                                                   \
     d3d::setwire(0);                                                                                                  \
     d3d::set_render_target();                                                                                         \
-    d3d::set_backbuf_depth();                                                                                         \
     dagor_work_cycle_flush_pending_frame();                                                                           \
     dagor_draw_scene_and_gui(true, true);                                                                             \
     d3d::update_screen();                                                                                             \
@@ -124,10 +128,10 @@ void PartialDxtRender(Texture *rt, Texture *rtn, int linesPerPart, int picWidth,
   d3d::get_render_target(prevRt);                                                                                     \
   d3d::set_render_target()
 
-#define INTERNAL_END_RENDER                                               \
-  d3d::set_render_target(prevRt);                                         \
-  d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL); \
-  if (is_main_thread())                                                   \
+#define INTERNAL_END_RENDER                             \
+  d3d::set_render_target(prevRt);                       \
+  d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP); \
+  if (is_main_thread())                                 \
   watchdog_kick()
 
   Driver3dRenderTarget prevRt;
@@ -137,7 +141,7 @@ void PartialDxtRender(Texture *rt, Texture *rtn, int linesPerPart, int picWidth,
   EXTERNAL_START_RENDER;
   for (uint32_t y = 0; y < picHeight; y += linesPerPart)
   {
-    d3d::driver_command(DRV3D_COMMAND_D3D_FLUSH, NULL, NULL, NULL);
+    d3d::driver_command(Drv3dCommand::D3D_FLUSH);
     uint32_t slice = y / linesPerPart;
     bool is_pc = false;
 #if _TARGET_PC
@@ -217,7 +221,7 @@ void PartialDxtRender(Texture *rt, Texture *rtn, int linesPerPart, int picWidth,
         EXTERNAL_START_RENDER;
       }
 
-      d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, NULL, NULL, NULL);
+      d3d::GpuAutoLock gpuLock;
       d3d::get_render_target(prevRt);
 
       d3d::set_render_target(localRt1, 0);
@@ -226,7 +230,6 @@ void PartialDxtRender(Texture *rt, Texture *rtn, int linesPerPart, int picWidth,
       renderFunc(y, linesPerPart, picHeight, user_data, view_pos);
 
       d3d::set_render_target(prevRt);
-      d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL);
     }
 
     {

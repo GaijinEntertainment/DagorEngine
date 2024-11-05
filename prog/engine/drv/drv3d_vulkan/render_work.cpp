@@ -1,6 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "render_work.h"
-#include "device_context.h"
-#include "device.h"
+#include "execution_context.h"
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <EASTL/sort.h>
 #include <gui/dag_visualLog.h>
@@ -8,33 +9,67 @@
 #include <osApiWrappers/dag_stackHlp.h>
 #include <perfMon/dag_statDrv.h>
 #include "util/backtrace.h"
+#include "memory_heap_resource.h"
+#include "backend.h"
+#include "execution_pod_state.h"
+#include "execution_scratch.h"
+#include "pipeline_cache.h"
+#include "execution_timings.h"
+#if _TARGET_ANDROID
+#include <unistd.h>
+#endif
+#include "stacked_profile_events.h"
+#include "execution_sync.h"
+#include "bindless.h"
+#include "vk_to_string.h"
 
 using namespace drv3d_vulkan;
 
-namespace
-{
-
 #define VULKAN_CONTEXT_COMMAND_IMPLEMENTATION 1
-#define VULKAN_BEGIN_CONTEXT_COMMAND(Name)                  \
-  void execute(const Cmd##Name &cmd, ExecutionContext &ctx) \
-  {                                                         \
-    TIME_PROFILE(vulkan_cmd##Name);                         \
-    G_UNUSED(cmd);                                          \
+
+// only for dev builds with profiler
+#if DA_PROFILER_ENABLED && DAGOR_DBGLEVEL > 0
+
+#define VULKAN_BEGIN_CONTEXT_COMMAND(Name)                                                                              \
+  inline void Cmd##Name ::execute(ExecutionContext &ctx) const                                                          \
+  {                                                                                                                     \
+    G_UNUSED(ctx);                                                                                                      \
+    static ::da_profiler::desc_id_t cmdMarker = add_description(nullptr, 0, ::da_profiler::Normal, "vulkan_cmd" #Name); \
+    Backend::profilerStack.pushChained(cmdMarker);
+
+#else
+
+#define VULKAN_BEGIN_CONTEXT_COMMAND(Name)                     \
+  inline void Cmd##Name ::execute(ExecutionContext &ctx) const \
+  {                                                            \
     G_UNUSED(ctx);
+
+#endif
+
+#define VULKAN_BEGIN_CONTEXT_COMMAND_TRANSIT(Name)             \
+  inline void Cmd##Name ::execute(ExecutionContext &ctx) const \
+  {                                                            \
+    G_UNUSED(ctx);
+
+#define VULKAN_BEGIN_CONTEXT_COMMAND_NO_PROFILE(Name)          \
+  inline void Cmd##Name ::execute(ExecutionContext &ctx) const \
+  {                                                            \
+    G_UNUSED(ctx);
+
 #define VULKAN_END_CONTEXT_COMMAND }
-// make an alias so we do not need to write cmd.
-#define VULKAN_CONTEXT_COMMAND_PARAM(type, name) \
-  auto &name = cmd.name;                         \
-  G_UNUSED(name);
-#define VULKAN_CONTEXT_COMMAND_PARAM_ARRAY(type, name, size) \
-  auto &name = cmd.name;                                     \
-  G_UNUSED(name);
+#define VULKAN_CONTEXT_COMMAND_PARAM(type, name)
+#define VULKAN_CONTEXT_COMMAND_PARAM_ARRAY(type, name, size)
 #include "device_context_cmd.inc"
 #undef VULKAN_BEGIN_CONTEXT_COMMAND
+#undef VULKAN_BEGIN_CONTEXT_COMMAND_TRANSIT
+#undef VULKAN_BEGIN_CONTEXT_COMMAND_NO_PROFILE
 #undef VULKAN_END_CONTEXT_COMMAND
 #undef VULKAN_CONTEXT_COMMAND_PARAM
 #undef VULKAN_CONTEXT_COMMAND_PARAM_ARRAY
 #undef VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
+
+namespace
+{
 
 struct CmdDumpContext
 {
@@ -48,6 +83,22 @@ struct CmdDumpContext
 #include "device_context/command_debug_print.inc.cpp"
 
 #define VULKAN_BEGIN_CONTEXT_COMMAND(Name)                                                                            \
+  void dumpCommand(const Cmd##Name &cmd, FaultReportDump &dump, const RenderWork &ctx, FaultReportDump::RefId cmdRid) \
+  {                                                                                                                   \
+    G_UNUSED(ctx);                                                                                                    \
+    G_UNUSED(dump);                                                                                                   \
+    G_UNUSED(cmd);                                                                                                    \
+    G_UNUSED(cmdRid);
+
+#define VULKAN_BEGIN_CONTEXT_COMMAND_TRANSIT(Name)                                                                    \
+  void dumpCommand(const Cmd##Name &cmd, FaultReportDump &dump, const RenderWork &ctx, FaultReportDump::RefId cmdRid) \
+  {                                                                                                                   \
+    G_UNUSED(ctx);                                                                                                    \
+    G_UNUSED(dump);                                                                                                   \
+    G_UNUSED(cmd);                                                                                                    \
+    G_UNUSED(cmdRid);
+
+#define VULKAN_BEGIN_CONTEXT_COMMAND_NO_PROFILE(Name)                                                                 \
   void dumpCommand(const Cmd##Name &cmd, FaultReportDump &dump, const RenderWork &ctx, FaultReportDump::RefId cmdRid) \
   {                                                                                                                   \
     G_UNUSED(ctx);                                                                                                    \
@@ -74,13 +125,14 @@ struct CmdDumpContext
 #include "device_context_cmd.inc"
 
 #undef VULKAN_BEGIN_CONTEXT_COMMAND
+#undef VULKAN_BEGIN_CONTEXT_COMMAND_TRANSIT
+#undef VULKAN_BEGIN_CONTEXT_COMMAND_NO_PROFILE
 #undef VULKAN_END_CONTEXT_COMMAND
 #undef VULKAN_CONTEXT_COMMAND_PARAM
 #undef VULKAN_CONTEXT_COMMAND_PARAM_ARRAY
 
 } // namespace
 
-bool RenderWork::recordCommandCallers = false;
 bool RenderWork::cleanUpMemoryEveryWorkItem = false;
 
 void RenderWork::dumpData(FaultReportDump &dump) const
@@ -187,12 +239,42 @@ void RenderWork::dumpData(FaultReportDump &dump) const
     }
   }
 
-  for (auto iter = imagesToFillEmptySubresources.begin(); iter != imagesToFillEmptySubresources.end(); ++iter)
+  for (const CmdClearColorTexture &i : unorderedImageColorClears)
   {
-    FaultReportDump::RefId rid = dump.addTagged(FaultReportDump::GlobalTag::TAG_CMD_DATA, (uint64_t)iter,
-      String(64, " image empty subres fill 0x" PTR_LIKE_HEX_FMT, *iter));
-    dump.addRef(rid, FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)*iter);
+    FaultReportDump::RefId rid = dump.addTagged(FaultReportDump::GlobalTag::TAG_CMD_DATA, (uint64_t)&i,
+      String(64, "unordered color clear 0x" PTR_LIKE_HEX_FMT " [%u-%u][%u-%u]", i.image, i.area.baseMipLevel,
+        i.area.baseMipLevel + i.area.levelCount, i.area.baseArrayLayer, i.area.baseArrayLayer + i.area.layerCount));
+    dump.addRef(rid, FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)i.image);
     dump.addRef(rid, FaultReportDump::GlobalTag::TAG_WORK_ITEM, id);
+  }
+
+  for (const CmdClearDepthStencilTexture &i : unorderedImageDepthStencilClears)
+  {
+    FaultReportDump::RefId rid = dump.addTagged(FaultReportDump::GlobalTag::TAG_CMD_DATA, (uint64_t)&i,
+      String(64, "unordered depth clear 0x" PTR_LIKE_HEX_FMT " [%u-%u][%u-%u]", i.image, i.area.baseMipLevel,
+        i.area.baseMipLevel + i.area.levelCount, i.area.baseArrayLayer, i.area.baseArrayLayer + i.area.layerCount));
+    dump.addRef(rid, FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)i.image);
+    dump.addRef(rid, FaultReportDump::GlobalTag::TAG_WORK_ITEM, id);
+  }
+
+  for (const CmdCopyImage &i : unorderedImageCopies)
+  {
+    auto at = imageCopyInfos.begin() + i.regionIndex;
+    auto copyEnd = at + i.regionCount;
+    for (; at != copyEnd; ++at)
+    {
+      FaultReportDump::RefId rid = dump.addTagged(FaultReportDump::GlobalTag::TAG_CMD_DATA, (uint64_t)&at,
+        String(64,
+          "unordered image copy 0x" PTR_LIKE_HEX_FMT "[m%u l%u-%u o%u-%u-%u] -> 0x" PTR_LIKE_HEX_FMT
+          "[m%u l%u-%u o%u-%u-%u] %u mips, extend [%u-%u-%u]",
+          i.src, i.srcMip, at->srcSubresource.baseArrayLayer, at->srcSubresource.baseArrayLayer + at->srcSubresource.layerCount,
+          at->srcOffset.x, at->srcOffset.y, at->srcOffset.z, i.dst, i.dstMip, at->dstSubresource.baseArrayLayer,
+          at->dstSubresource.baseArrayLayer + at->dstSubresource.layerCount, at->dstOffset.x, at->dstOffset.y, at->dstOffset.z,
+          i.mipCount, at->extent.width, at->extent.height, at->extent.depth));
+      dump.addRef(rid, FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)i.dst);
+      dump.addRef(rid, FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)i.src);
+      dump.addRef(rid, FaultReportDump::GlobalTag::TAG_WORK_ITEM, id);
+    }
   }
 
   cleanups.dumpData(dump);
@@ -226,13 +308,15 @@ void RenderWork::cleanup()
   unorderedImageCopies.clear();
   unorderedImageColorClears.clear();
   unorderedImageDepthStencilClears.clear();
-  imagesToFillEmptySubresources.clear();
   bindlessTexUpdates.clear();
+  bindlessBufUpdates.clear();
   bindlessSamplerUpdates.clear();
+  nativeRPDrawCounter.clear();
 #if D3D_HAS_RAY_TRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
   raytraceBuildRangeInfoKHRStore.clear();
   raytraceGeometryKHRStore.clear();
   raytraceBLASBufferRefsStore.clear();
+  raytraceStructureBuildStore.clear();
 #endif
   shaderModuleUses.clear();
   commandStream.clear();
@@ -244,12 +328,19 @@ void RenderWork::cleanup()
 
 void RenderWork::processCommands(ExecutionContext &ctx)
 {
+  {
+    using namespace da_profiler;
+    static desc_id_t frameCoreMarker = add_description(nullptr, 0, Normal, "vulkan_frameCore");
+    Backend::profilerStack.push(frameCoreMarker);
+  }
   commandStream.visitAll([&ctx](auto &&value) //
     {
       ctx.beginCmd(&value);
-      execute(value, ctx);
+      value.execute(ctx);
       ctx.endCmd();
     });
+  // avoid breaking profiler if we lost frame end somehow
+  Backend::profilerStack.finish();
 }
 
 void RenderWork::process()
@@ -260,7 +351,7 @@ void RenderWork::process()
   executionContext.cleanupMemory();
   executionContext.prepareFrameCore();
   processCommands(executionContext);
-  cleanups.backendAfterReplayCleanup(get_device().getContext().getBackend());
+  cleanups.backendAfterReplayCleanup();
 }
 
 void RenderWork::shutdown() { cleanup(); }
@@ -270,7 +361,7 @@ void RenderWork::dumpCommands(FaultReportDump &dump)
 #if DAGOR_DBGLEVEL > 0
   uint32_t idx = 0;
 
-  if (recordCommandCallers)
+  if (Globals::cfg.bits.recordCommandCaller)
   {
     commandStream.visitAll([&](auto &&) {
       uint64_t callerHash = commandCallers[idx++];
@@ -295,7 +386,7 @@ void RenderWork::dumpCommands(FaultReportDump &dump)
     dumpCommand(value, dump, *this, rid);
 
 #if DAGOR_DBGLEVEL > 0
-    if (recordCommandCallers)
+    if (Globals::cfg.bits.recordCommandCaller)
       dump.addRef(rid, FaultReportDump::GlobalTag::TAG_CALLER_HASH, commandCallers[idx++]);
 #endif
   });
@@ -350,7 +441,7 @@ void BufferCopyInfo::optimizeBufferCopies(eastl::vector<BufferCopyInfo> &info, e
     auto &l = info[i - 1];
     auto &r = info[i];
 
-    if (l.src != l.dst)
+    if (l.src != r.src)
       continue;
     if (l.dst != r.dst)
       continue;

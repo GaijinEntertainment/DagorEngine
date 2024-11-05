@@ -5,6 +5,7 @@ include "esm_shadows_inc.dshl"
 
 shader esm_depth
 {
+  ENABLE_ASSERT(ps)
   cull_mode = none;
   hlsl {
     struct VsOutput

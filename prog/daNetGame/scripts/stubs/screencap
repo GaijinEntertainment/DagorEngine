@@ -1,0 +1,5 @@
+return {
+  take_screenshot = @() null
+  take_screenshot_nogui = @() null
+  take_screenshot_name = @(name) assert(type(name)!="string")
+}

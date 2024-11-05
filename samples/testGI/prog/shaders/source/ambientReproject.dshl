@@ -1,0 +1,161 @@
+include "sky_shader_global.dshl"
+include "pbr.dshl"
+include "gbuffer.dshl"
+include "monteCarlo.dshl"
+include "roughToMip.dshl"
+//include "skyLight.dshl"
+include "ssao_use.dshl"
+include "tile_lighting.dshl"
+include "punctualLights.dshl"
+include "normaldetail.dshl"
+include "viewVecVS.dshl"
+include "invGlobTm.dshl"
+include "clouds_vars.dshl"
+include "sq_clouds_shadow.dshl"
+include "static_shadow.dshl"
+
+texture prev_ambient;
+texture prev_screen_specular;
+texture new_ambient;
+texture new_screen_specular;
+float4x4 ambient_reproject;
+texture prev_downsampled_far_depth_tex;
+texture prev_gbuffer_depth;
+texture prev_ambient_age;
+
+shader ambient_reproject
+{
+  no_ablend;
+
+  cull_mode  = none;
+
+  z_test = false;
+  z_write = false;
+
+  channel float2 pos = pos;
+  (vs) {
+    screen_size@f4 = (1./screen_pos_to_texcoord.x, 1./screen_pos_to_texcoord.y,0,0);
+    world_view_pos@f3 = world_view_pos;
+  }
+  INIT_PRE_EXPOSURE(ps)
+  USE_PRE_EXPOSURE(ps)
+  USE_POSTFX_VERTEX_POSITIONS()
+  USE_AND_INIT_VIEW_VEC_VS()
+  INIT_ZNZFAR()
+  USE_DECODE_DEPTH()
+  INIT_LOAD_DEPTH_GBUFFER()
+  USE_LOAD_DEPTH_GBUFFER()
+  INIT_PREV_PRE_EXPOSURE(ps)
+  USE_PREV_PRE_EXPOSURE(ps)
+  (ps) {
+    prev_ambient@tex2d = prev_ambient;
+    prev_screen_specular@tex2d = prev_screen_specular;
+    prev_ambient_age@smp2d = prev_ambient_age;
+    new_ambient@tex2d = new_ambient;
+    new_screen_specular@tex2d = new_screen_specular;
+    ambient_reproject@f44 = ambient_reproject;
+    prev_gbuffer_depth@smp2d = prev_gbuffer_depth;
+    depth_gbuf_dim@f2 = get_dimensions(depth_gbuf, 0);
+    prev_gbuffer_depth_dim@f2 = get_dimensions(prev_gbuffer_depth, 0);
+  }
+
+  (ps) {
+    world_view_pos@f3 = world_view_pos;
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 viewVect : TEXCOORD0;
+      float2 texcoord : TEXCOORD1;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput shadows_to_target_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4( pos.xy, 1, 1 );
+      output.texcoord = screen_to_texcoords(pos);
+      output.viewVect = get_view_vec_by_vertex_id(vertexId);
+
+      return output;
+    }
+  }
+
+
+  hlsl(ps){
+    struct Output
+    {
+      half3 ambient  : SV_Target0;
+      half3 specular : SV_Target1;
+      half age: SV_Target2;
+    };
+    Output shadows_to_target_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      Output output;
+      uint2 screenpos = GET_SCREEN_POS(input.pos).xy;
+      float rawDepth = loadGbufferDepth(screenpos);
+      float4 historyClip = mul(float4(input.texcoord*float2(2,-2) + float2(-1,1), rawDepth, 1), ambient_reproject);
+      historyClip.xyz = historyClip.w > 1e-4 ? historyClip.xyz / historyClip.w : float3(2,2,2);
+
+      half3 ambient = pre_exposure_decode(texelFetch(new_ambient, screenpos, 0).xyz);
+      half3 specular = pre_exposure_decode(texelFetch(new_screen_specular, screenpos, 0).xyz);
+      half newAge = 0;
+      if (all(abs(historyClip.xy) < 1) && 0)
+      {
+        float2 historyUV = historyClip.xy*float2(0.5, -0.5) + 0.5;
+        float w = linearize_z(rawDepth, zn_zfar.zw);
+        historyClip.w = linearize_z(historyClip.z, zn_zfar.zw);//fixme
+        float4 prevRawZ = prev_gbuffer_depth.GatherRed(prev_gbuffer_depth_samplerstate, historyUV.xy).wzxy;
+        float4 prevLinearDepth = linearize_z4(prevRawZ, zn_zfar.zw);//fixme : prev
+        float2 historyCoord = historyUV*prev_gbuffer_depth_dim - 0.5;
+        float2 historyFrac = frac(historyCoord);
+        //float4 bilW = float4(float2((1-historyFrac.x), historyFrac.x)*(1-historyFrac.y), float2((1-historyFrac.x), historyFrac.x)*historyFrac.y);
+        float4 bilW = float4(1-historyFrac, historyFrac);
+        bilW = bilW.xzxz*bilW.yyww;
+
+        float4 weights = bilW*(abs(historyClip.w - prevLinearDepth) < 0.05*historyClip.w);
+        //float history_linear_depth = linearize_z(tex2Dlod(prev_gbuffer_depth, float4(historyUV.xy, 0, 0)).r, zn_zfar.zw);//fixme : prev
+        //if (abs(historyClip.w - history_linear_depth) < 0.1*max(historyClip.w, history_linear_depth))
+        uint2 hc = historyCoord;
+        bool2 isInside = hc + 1 < prev_gbuffer_depth_dim;
+        weights = select(bool4(true, isInside.x, isInside.y, isInside.x&&isInside.y), weights, float4(0,0,0,0));
+        //isInside = hc < prev_gbuffer_depth_dim;
+        //weights = isInside.x && isInside.y ? weights : 0;
+        float totalW = dot(weights,1);
+        if (totalW > 1e-6)
+        {
+          weights /= totalW;
+          uint2 hc11 = min(hc+uint2(1,1), prev_gbuffer_depth_dim.xy-1);
+          half3 prevAmbient00 = prev_ambient[hc+uint2(0,0)].xyz,
+                prevAmbient10 = prev_ambient[uint2(hc11.x, hc.y)].xyz,
+                prevAmbient01 = prev_ambient[uint2(hc.x, hc11.y)].xyz,
+                prevAmbient11 = prev_ambient[hc11].xyz;
+          half3 prevAmbient = prev_pre_exposure_decode(prevAmbient00*weights.x + prevAmbient10*weights.y + prevAmbient01*weights.z + prevAmbient11*weights.w);
+          half3 prevSpecular00 = prev_screen_specular[hc+uint2(0,0)].xyz,
+                prevSpecular10 = prev_screen_specular[uint2(hc11.x, hc.y)].xyz,
+                prevSpecular01 = prev_screen_specular[uint2(hc.x, hc11.y)].xyz,
+                prevSpecular11 = prev_screen_specular[hc11].xyz;
+          half3 prevSpecular = prev_pre_exposure_decode(prevSpecular00*weights.x + prevSpecular10*weights.y + prevSpecular01*weights.z + prevSpecular11*weights.w);
+
+          float oldAge = dot(prev_ambient_age.GatherRed(prev_ambient_age_samplerstate, historyUV.xy).wzxy, weights);
+          float newAgeF = (oldAge*255 + 1);
+          float historyW = max(0.05, 1./(newAgeF + 1));
+          ambient = lerp(prevAmbient, ambient, historyW);
+          specular = lerp(prevSpecular, specular, historyW);
+          newAge = newAgeF/255. + 0.5/255;
+        }
+      }
+      output.ambient = pre_exposure_encode(ambient);
+      output.specular = pre_exposure_encode(specular);
+      output.age = newAge;
+      return output;
+    }
+  }
+
+  compile("target_vs", "shadows_to_target_vs");
+  compile("target_ps", "shadows_to_target_ps");
+}

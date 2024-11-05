@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -21,6 +20,7 @@ TODO: do this properly
 
 #include <math/dag_hlsl_floatx.h>
 #include <render/beamTracers.hlsli>
+#include <render/tacLaserSettings.h>
 
 struct Frustum;
 class ComputeShaderElement;
@@ -45,6 +45,7 @@ public:
     const Color4 &head_color, float time_to_live, float fade_dist, float begin_fade_time, float end_fade_time, float scroll_speed,
     bool is_ray);
   int updateTracerPos(unsigned id, const Point3 &pos, const Point3 &start_pos); // we guide tracer, until it is off
+  void updateTacLaserRenderSettings(const TacLaserRenderSettings &s) { tacLaserRenderSettings = s; };
   void leaveTracer(unsigned id);  // we don't auto destroy tracers, which are referenced by someone
   void removeTracer(unsigned id); // set tracer's ttl to 0 and leave it, so it'll be removed next frame
   void init(const DataBlock &settings) { initGPU(settings); }
@@ -54,6 +55,7 @@ protected:
   void initGPU(const DataBlock &settings);
   void closeGPU();
   void initFillIndirectBuffer();
+  TacLaserRenderSettings tacLaserRenderSettings;
   Tab<BeamTracerCreateCommand> createCommands;
   Tab<BeamTracerUpdateCommand> updateCommands;
   void updateAlive();

@@ -1,0 +1,53 @@
+include shader_compiler_config.blk
+
+outDumpName:t="../../game/compiledShaders/gameMTL"
+
+shader_root_dir:t="."
+
+packBin:b=yes
+
+include common_inc_dirs.blk
+source
+{
+  file:t = "../../gameLibs/fftWater/shaders/fft_cs.dshl"
+  file:t = "../resolve_thin_g_buffer.dshl"
+  file:t = "../renderFullTonemapLUT.dshl"
+  file:t = "../renderGradedColorLUT.dshl"
+
+  include "../../../gameLibs/daGI2/shaders/shadersList.blk"
+  include "../../../gameLibs/daSDF/shaders/daSDFList.blk"
+  include shadersList.blk
+}
+
+common_valid_variants
+{
+  include variants.blk
+  invalid {hasTexture:i=4;}
+}
+
+common_assume_vars {}
+
+Compile
+{
+  fsh:t = 5.0
+  group_size_in_kb:i=1019
+  assume_vars {
+    include common_assumes.blk
+    supports_sh_6_1:i = 0
+    static_shadows_custom_fxaa:i=0
+    grass_use_quads:i=0
+    object_tess_factor:r=0 // Not supported
+    hmap_tess_factor:r=0
+    water_tess_factor:i=0
+
+    // @TODO: replace w/ dagi_sp_has_exposure_assume=dagi_sp_calc_exposure=0 once high quality gi is banned on old devices
+    dagi_sp_has_exposure_assume:i=1
+  }
+  dict_size_in_kb:i=4096
+}
+
+explicit_var_ref
+{
+  include common_var_ref.blk
+  include game_var_ref.blk
+}

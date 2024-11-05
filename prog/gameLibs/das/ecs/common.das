@@ -90,7 +90,7 @@ def push_to_initializer(var init : ComponentsInitializer; name : string; b : blo
 def split_template(name : string) : array<string>
   return <- split(name, "+")
 
-def reduce(obj : Object |#; var res : auto(T); cb : block<(res : T; elem : ChildComponent) : T>) : T
+def reduce(obj : Object | #; var res : auto(T); cb : block<(res : T; elem : ChildComponent) : T>) : T
   for it in obj
     res = invoke(cb, res, it.value)
   return res

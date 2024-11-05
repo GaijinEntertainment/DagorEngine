@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/net/dasEvents.h>
 #include <quirrel/sqModules/sqModules.h>
 #include <memory/dag_framemem.h>
@@ -63,8 +65,10 @@ void net::register_dasevents(SqModules *module_mgr)
   Sqrat::Object *existingModule = module_mgr->findNativeModule("dasevents");
   auto tbl = existingModule ? Sqrat::Table(*existingModule) : Sqrat::Table(module_mgr->getVM());
 
-  tbl.SquirrelFunc("sendNetEvent", sq_send_net_event, -3, ".ixa|o")
-    .SquirrelFunc("broadcastNetEvent", sq_broadcast_net_event, -2, ".xa|o");
+  tbl //
+    .SquirrelFunc("sendNetEvent", sq_send_net_event, -3, ".ixa|o")
+    .SquirrelFunc("broadcastNetEvent", sq_broadcast_net_event, -2, ".xa|o")
+    /**/;
 
   if (!existingModule)
     module_mgr->addNativeModule("dasevents", tbl);

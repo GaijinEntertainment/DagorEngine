@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "de_appwnd.h"
 #include "de_batch.h"
 #include <de3_lightService.h>
@@ -38,12 +40,13 @@
 #include <perfMon/dag_visClipMesh.h>
 #include <obsolete/dag_cfg.h>
 
-#include <3d/dag_drv3dReset.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <3d/dag_texPackMgr2.h>
 #include <libTools/util/strUtil.h>
 #include <render/dynmodelRenderer.h>
 
 #include <scene/dag_visibility.h>
+#include <gui/dag_imgui.h>
 
 static struct DagorEdReset3DCallback : public IDrv3DResetCB
 {
@@ -129,12 +132,60 @@ void load_exp_shaders_for_target(unsigned tc)
     DAG_FATAL("failed to load shaders: %s", fn);
 }
 
+void init3d_early()
+{
+  dgs_all_shader_vars_optionals = true;
+  EDITORCORE->getWndManager()->init3d(de3_drv_name, nullptr);
+
+  ::startup_shaders(String(260, "%s/../commonData/guiShaders", sgg::get_exe_path_full()));
+  ::startup_game(RESTART_ALL);
+  ShaderGlobal::enableAutoBlockChange(true);
+
+  DataBlock fontsBlk;
+  fontsBlk.addBlock("fontbins")->addStr("name", String(260, "%s/../commonData/default", sgg::get_exe_path_full()));
+  if (auto *b = fontsBlk.addBlock("dynamicGen"))
+  {
+    b->setInt("texCount", 2);
+    b->setInt("texSz", 256);
+    b->setStr("prefix", String(260, "%s/../commonData", sgg::get_exe_path_full()));
+  }
+  StdGuiRender::init_dynamic_buffers(32 << 10, 8 << 10);
+  StdGuiRender::init_fonts(fontsBlk);
+  StdGuiRender::init_render();
+  StdGuiRender::set_def_font_ht(0, hdpi::_pxS(StdGuiRender::get_initial_font_ht(0)));
+
+  ::register_common_tool_tex_factories();
+  ::register_png_tex_load_factory();
+  ::register_avif_tex_load_factory();
+
+  ::set_3d_device_reset_callback(&drv_3d_reset_cb);
+}
+
+namespace tools3d
+{
+extern void destroy();
+}
 void init3d()
 {
   const char *appdir = DAGORED2->getWorkspace().getAppDir();
   DataBlock appblk(DAGORED2->getWorkspace().getAppPath());
   String sh_file;
+  if (appblk.getStr("shaders", NULL))
+    sh_file.printf(260, "%s/%s", appdir, appblk.getStr("shaders", NULL));
+  else
+    sh_file.printf(260, "%s/../commonData/compiledShaders/classic/tools", sgg::get_exe_path_full());
 
+  // shutdown imGui, render, shaders, d3d before reiniting
+  imgui_shutdown();
+  StdGuiRender::close_fonts();
+  StdGuiRender::close_render();
+  enable_res_mgr_mt(false, 0);
+  ::startup_shaders(sh_file); // set new name before restarting
+  shutdown_game(RESTART_VIDEODRV | RESTART_VIDEO);
+  tools3d::destroy();
+
+  // reinit 3d with actual shaders and texStreaming/texMgr setup for a project
+  dgs_all_shader_vars_optionals = false;
   const DataBlock &blk_game = *appblk.getBlockByNameEx("game");
   for (int i = 0; i < blk_game.blockCount(); i++)
     if (strcmp(blk_game.getBlock(i)->getBlockName(), "vromfs") == 0)
@@ -170,11 +221,6 @@ void init3d()
   }
   const_cast<DataBlock *>(dgs_get_game_params())->setBool("rendinstExtraAutoSubst", false);
   const_cast<DataBlock *>(dgs_get_game_params())->setInt("rendinstExtraMaxCnt", 0);
-
-  if (appblk.getStr("shaders", NULL))
-    sh_file.printf(260, "%s/%s", appdir, appblk.getStr("shaders", NULL));
-  else
-    sh_file.printf(260, "%s/../commonData/compiledShaders/classic/tools", sgg::get_exe_path_full());
 
   const char *ver_suffix = "ps50.shdump.bin";
   String full_sh_file;
@@ -219,11 +265,7 @@ void init3d()
   }
 
   ::shaders_register_console(true);
-  ::register_common_tool_tex_factories();
-  ::register_png_tex_load_factory();
-  ::register_avif_tex_load_factory();
 
-  ::startup_shaders(sh_file);
   ::startup_game(RESTART_ALL);
   ShaderGlobal::enableAutoBlockChange(true);
 
@@ -260,15 +302,6 @@ void init3d()
 
   startup_game(RESTART_ALL);
 
-  {
-    DataBlock gameParamsBlk;
-
-    // visibility finder
-    G_ASSERT(!visibility_finder);
-    visibility_finder = new VisibilityFinder;
-  }
-
-  ::set_3d_device_reset_callback(&drv_3d_reset_cb);
   load_exp_shaders_for_target(_MAKE4C('PC'));
 
   CfgReader cfr;
@@ -302,6 +335,12 @@ extern void init_csg_mgr_service();
 extern void init_spline_gen_mgr_service();
 extern void init_ecs_mgr_service(const DataBlock &app_blk, const char *app_dir);
 extern void init_webui_service();
+
+extern void init_plugin_heightmapland();
+extern void init_plugin_csg();
+extern void init_plugin_ivygen();
+extern void init_plugin_occluders();
+extern void init_plugin_staticgeom();
 
 void dagored_init_all_plugins(const DataBlock &app_blk)
 {
@@ -342,4 +381,11 @@ void dagored_init_all_plugins(const DataBlock &app_blk)
   ::init_plugin_scn_export();
   ::init_plugin_ssview();
   ::init_plugin_bin_scn_view();
+#if _TARGET_STATIC_LIB
+  ::init_plugin_heightmapland();
+  ::init_plugin_csg();
+  ::init_plugin_ivygen();
+  ::init_plugin_occluders();
+  ::init_plugin_staticgeom();
+#endif
 }

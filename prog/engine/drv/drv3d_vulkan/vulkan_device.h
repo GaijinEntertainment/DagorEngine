@@ -1,11 +1,17 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <generic/dag_carray.h>
 #include <generic/dag_tab.h>
+#include <generic/dag_staticTab.h>
 #include <EASTL/bitset.h>
+#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
+#include <drv_log_defs.h>
+
 #include "driver.h"
 #include "vulkan_instance.h"
 #include "vulkan_loader.h"
+#include "vk_entry_points.h"
 
 // No need to have raytracing extension if we can not use it.
 #if !D3D_HAS_RAY_TRACING
@@ -436,6 +442,39 @@ VULKAN_END_EXTENSION_FUCTION_PACK(MultiviewKHR);
 VULKAN_DECLARE_EXTENSION(MultiviewKHR, KHR_MULTIVIEW);
 #endif
 
+#if VK_EXT_memory_priority
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_END_EXTENSION_FUCTION_PACK(MemoryPriorityEXT);
+VULKAN_DECLARE_EXTENSION(MemoryPriorityEXT, EXT_MEMORY_PRIORITY);
+#endif
+
+#if VK_EXT_pageable_device_local_memory
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkSetDeviceMemoryPriorityEXT)
+
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkSetDeviceMemoryPriorityEXT)
+VULKAN_END_EXTENSION_FUCTION_PACK(PageableDeviceLocalMemoryEXT);
+VULKAN_DECLARE_EXTENSION(PageableDeviceLocalMemoryEXT, EXT_PAGEABLE_DEVICE_LOCAL_MEMORY);
+#endif
+
+#if VK_EXT_pipeline_creation_cache_control
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_END_EXTENSION_FUCTION_PACK(PipelineCreationCacheControlEXT);
+VULKAN_DECLARE_EXTENSION(PipelineCreationCacheControlEXT, EXT_PIPELINE_CREATION_CACHE_CONTROL);
+#endif
+
+#if VK_KHR_sampler_mirror_clamp_to_edge
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_END_EXTENSION_FUCTION_PACK(SamplerMirrorClampToEdgeKHR);
+VULKAN_DECLARE_EXTENSION(SamplerMirrorClampToEdgeKHR, KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE);
+#endif
+
+#if VK_KHR_16bit_storage
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_END_EXTENSION_FUCTION_PACK(SixteenBitStorageKHR);
+VULKAN_DECLARE_EXTENSION(SixteenBitStorageKHR, KHR_16BIT_STORAGE);
+#endif
+
 template <typename... Extensions>
 class VulkanDeviceCore : public Extensions...
 {
@@ -490,7 +529,7 @@ private:
 
         if (!function)
         {
-          logerr("vulkan: ext %s advertised as supported, but proc %s was not loaded", extension_name<T>(), f_name);
+          D3D_ERROR("vulkan: ext %s advertised as supported, but proc %s was not loaded", extension_name<T>(), f_name);
           loaded = false;
         }
       });
@@ -532,13 +571,18 @@ public:
   {
     instance = vk_instance;
 
-    if (VULKAN_CHECK_FAIL(vk_instance->vkCreateDevice(pd, &dci, nullptr, ptr(device))))
+    VkResult rc = vk_instance->vkCreateDevice(pd, &dci, nullptr, ptr(device));
+    if (VULKAN_CHECK_FAIL(rc))
+    {
+      logwarn("vulkan: device create failed with error %08lX:%s", rc, vulkan_error_string(rc));
       return false;
+    }
 
 #define VK_DEFINE_ENTRY_POINT(name)                                                                                                \
   *reinterpret_cast<PFN_vkVoidFunction *>(&name) = VULKAN_LOG_CALL_R(vk_instance->getLoader().vkGetDeviceProcAddr(device, #name)); \
   if (!name)                                                                                                                       \
   {                                                                                                                                \
+    logwarn("vulkan: no device entrypoint for %s", #name);                                                                         \
     shutdown();                                                                                                                    \
     return false;                                                                                                                  \
   }
@@ -585,166 +629,193 @@ template <typename... Extensions>
 const char *VulkanDeviceCore<Extensions...>::ExtensionNames[VulkanDeviceCore<Extensions...>::ExtensionCount] = //
   {extension_name<Extensions>()...};
 
-typedef VulkanDeviceCore<SwapchainKHR
+class VulkanDevice : public VulkanDeviceCore<SwapchainKHR
 // no need for device display for now, only works on linux and only for fullscreen, but fullscreen
 // works without it
 #if 0
     , DisplaySwapchainKHR
 #endif
 #if VK_EXT_debug_marker
-  ,
-  DebugMarkerEXT
+                       ,
+                       DebugMarkerEXT
 #endif
 #if VK_AMD_negative_viewport_height
-  ,
-  NegativeViewportHeightAMD
+                       ,
+                       NegativeViewportHeightAMD
 #endif
 #if VK_KHR_maintenance1
-  ,
-  Maintenance1KHR
+                       ,
+                       Maintenance1KHR
 #endif
 #if VK_KHR_maintenance2
-  ,
-  Maintenance2KHR
+                       ,
+                       Maintenance2KHR
 #endif
 #if VK_KHR_get_memory_requirements2
-  ,
-  GetMemoryRequirements2KHR
+                       ,
+                       GetMemoryRequirements2KHR
 #endif
 #if VK_KHR_dedicated_allocation
-  ,
-  DedicatedAllocationKHR
+                       ,
+                       DedicatedAllocationKHR
 #endif
 #if VK_KHR_descriptor_update_template
-  ,
-  DescriptorUpdateTemplateKHR
+                       ,
+                       DescriptorUpdateTemplateKHR
 #endif
 #if VK_KHR_image_format_list
-  ,
-  ImageFormatListKHR
+                       ,
+                       ImageFormatListKHR
 #endif
 #if VK_KHR_ray_tracing_pipeline
-  ,
-  RaytracingPipelineKHR
+                       ,
+                       RaytracingPipelineKHR
 #endif
 #if VK_KHR_ray_query
-  ,
-  RayQueryKHR
+                       ,
+                       RayQueryKHR
 #endif
 #if VK_KHR_acceleration_structure
-  ,
-  AccelerationStructureKHR
+                       ,
+                       AccelerationStructureKHR
 #endif
 #if VK_EXT_descriptor_indexing
-  ,
-  DescriptorIndexingEXT
+                       ,
+                       DescriptorIndexingEXT
 #endif
 #if VK_KHR_maintenance3
-  ,
-  Maintenance3KHR
+                       ,
+                       Maintenance3KHR
 #endif
 #if VK_KHR_buffer_device_address
-  ,
-  BufferDeviceAddressKHR
+                       ,
+                       BufferDeviceAddressKHR
 #endif
 #if VK_KHR_deferred_host_operations
-  ,
-  DeferredHostOperationsKHR
+                       ,
+                       DeferredHostOperationsKHR
 #endif
 #if VK_KHR_shader_float_controls
-  ,
-  ShaderFloatControlsKHR
+                       ,
+                       ShaderFloatControlsKHR
 #endif
 #if VK_KHR_shader_float16_int8
-  ,
-  ShaderFloat16Int8KHR
+                       ,
+                       ShaderFloat16Int8KHR
 #endif
 #if VK_KHR_spirv_1_4
-  ,
-  SPIRV_1_4_KHR
+                       ,
+                       SPIRV_1_4_KHR
 #endif
 #if VK_KHR_device_group_creation
-  ,
-  DeviceGroupCreationKHR
+                       ,
+                       DeviceGroupCreationKHR
 #endif
 #if VK_KHR_device_group
-  ,
-  DeviceGroupKHR
+                       ,
+                       DeviceGroupKHR
 #endif
 #if VK_EXT_conditional_rendering
-  ,
-  ConditionalRenderingEXT
+                       ,
+                       ConditionalRenderingEXT
 #endif
 #if VK_NV_device_diagnostic_checkpoints
-  ,
-  DiagnosticCheckpointsNV
+                       ,
+                       DiagnosticCheckpointsNV
 #endif
 #if VK_AMD_buffer_marker
-  ,
-  BufferMarkerAMD
+                       ,
+                       BufferMarkerAMD
 #endif
 #if VK_KHR_imageless_framebuffer
-  ,
-  ImagelessFramebufferKHR
+                       ,
+                       ImagelessFramebufferKHR
 #endif
 #if VK_KHR_shader_draw_parameters
-  ,
-  ShaderDrawParametersKHR
+                       ,
+                       ShaderDrawParametersKHR
 #endif
 #if VK_EXT_conservative_rasterization
-  ,
-  ConservativeRasterizationEXT
+                       ,
+                       ConservativeRasterizationEXT
 #endif
 #if VK_EXT_memory_budget
-  ,
-  MemoryBudgetEXT
+                       ,
+                       MemoryBudgetEXT
 #endif
 #if VK_EXT_device_memory_report
-  ,
-  DeviceMemoryReportEXT
+                       ,
+                       DeviceMemoryReportEXT
 #endif
 #if VK_EXT_pipeline_creation_feedback
-  ,
-  PipelineCreationFeedbackReportEXT
+                       ,
+                       PipelineCreationFeedbackReportEXT
 #endif
 #if VK_EXT_calibrated_timestamps
-  ,
-  CalibratedTimestampsEXT
+                       ,
+                       CalibratedTimestampsEXT
 #endif
 #if VK_KHR_driver_properties
-  ,
-  DriverPropertiesKHR
+                       ,
+                       DriverPropertiesKHR
 #endif
 #if VK_EXT_load_store_op_none
-  ,
-  LoadStoreOpNoneEXT
+                       ,
+                       LoadStoreOpNoneEXT
 #endif
 #if VK_QCOM_render_pass_store_ops
-  ,
-  RenderPassStoreOpsQCOM
+                       ,
+                       RenderPassStoreOpsQCOM
 #endif
 #if _TARGET_ANDROID && VK_GOOGLE_display_timing
-  ,
-  GoogleDisplayTime
+                       ,
+                       GoogleDisplayTime
 #endif
 #if VK_EXT_device_fault
-  ,
-  DeviceFaultEXT
+                       ,
+                       DeviceFaultEXT
 #endif
 #if VK_KHR_depth_stencil_resolve
-  ,
-  DepthStencilResolveKHR
+                       ,
+                       DepthStencilResolveKHR
 #endif
 #if VK_KHR_create_renderpass2
-  ,
-  CreateRenderPass2KHR
+                       ,
+                       CreateRenderPass2KHR
 #endif
 #if VK_KHR_multiview
-  ,
-  MultiviewKHR
+                       ,
+                       MultiviewKHR
 #endif
-  >
-  VulkanDevice;
+#if VK_EXT_pageable_device_local_memory
+                       ,
+                       PageableDeviceLocalMemoryEXT
+#endif
+#if VK_EXT_memory_priority
+                       ,
+                       MemoryPriorityEXT
+#endif
+#if VK_EXT_pipeline_creation_cache_control
+                       ,
+                       PipelineCreationCacheControlEXT
+#endif
+#if VK_KHR_sampler_mirror_clamp_to_edge
+                       ,
+                       SamplerMirrorClampToEdgeKHR
+#endif
+#if VK_KHR_16bit_storage
+                       ,
+                       SixteenBitStorageKHR
+#endif
+                       >
+{
+public:
+  VulkanDevice(const VulkanDevice &) = delete;
+  VulkanDevice &operator=(const VulkanDevice &) = delete;
+
+  VulkanDevice() = default;
+  ~VulkanDevice() {}
+};
 
 // checks if all required extensions are in the given list and returns true if they are all
 // included.
@@ -752,7 +823,6 @@ bool has_all_required_extension(dag::ConstSpan<const char *> ext_list);
 // removes mutual exclusive extensions from the list and returns the new list length
 int remove_mutual_exclusive_extensions(dag::Span<const char *> ext_list);
 bool device_has_all_required_extensions(VulkanDevice &device, void (*clb)(const char *name));
-StaticTab<const char *, VulkanDevice::ExtensionCount> get_enabled_device_extensions(const DataBlock *list);
 uint32_t fill_device_extension_list(Tab<const char *> &result, const StaticTab<const char *, VulkanDevice::ExtensionCount> &white_list,
   const eastl::vector<VkExtensionProperties> &device_extensions);
 

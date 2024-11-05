@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ecs/scripts/netsqevent.h>
 #include <sqModules/sqModules.h>
 #include <daECS/net/schemelessEventSerialize.h>
@@ -184,9 +186,11 @@ void register_net_sqevent(SqModules *module_mgr)
 {
   Sqrat::Table exports(module_mgr->getVM());
   ///@module ecs.netevent
-  exports.SquirrelFunc("server_send_net_sqevent", server_send_net_sqevent_sq, -3, ".ixa|o")
+  exports //
+    .SquirrelFunc("server_send_net_sqevent", server_send_net_sqevent_sq, -3, ".ixa|o")
     .SquirrelFunc("server_broadcast_net_sqevent", server_broadcast_net_sqevent_sq, -2, ".xa|o")
     .SquirrelFunc("client_request_unicast_net_sqevent", client_request_unicast_net_sqevent_sq, -3, ".ix|o")
-    .SquirrelFunc("client_request_broadcast_net_sqevent", client_request_broadcast_net_sqevent_sq, -2, ".x|o");
+    .SquirrelFunc("client_request_broadcast_net_sqevent", client_request_broadcast_net_sqevent_sq, -2, ".x|o")
+    /**/;
   module_mgr->addNativeModule("ecs.netevent", exports);
 }

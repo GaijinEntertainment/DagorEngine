@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_fileIo.h>
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_simpleString.h>
@@ -231,7 +233,7 @@ static bool write_dag_nodes(FullFileSaveCB &dag, DagData::Node &node, DataBlock 
     dag.beginTaggedBlock(DAG_NODE_CHILDREN);
     for (int i = 0; i < node.children.size(); ++i)
     {
-      debug_ctx("write children dag node");
+      DEBUG_CTX("write children dag node");
       write_dag_nodes(dag, node.children[i], convData);
     }
     dag.endBlock();
@@ -255,7 +257,7 @@ static bool write_dag(const char *dest, DagData &data, DataBlock *convData)
   dag.writeIntP<2>(data.texlist.size());
   for (int i = 0; i < data.texlist.size(); ++i)
   {
-    debug_ctx("write texture");
+    DEBUG_CTX("write texture");
 
     SimpleString textpath(data.texlist[i]);
 
@@ -271,7 +273,7 @@ static bool write_dag(const char *dest, DagData &data, DataBlock *convData)
 
   for (int i = 0; i < data.matlist.size(); ++i)
   {
-    debug_ctx("write material");
+    DEBUG_CTX("write material");
     dag.beginTaggedBlock(DAG_MATER);
     unsigned char len = data.matlist[i].name.length();
     dag.writeIntP<1>(len);
@@ -298,7 +300,7 @@ static bool write_dag(const char *dest, DagData &data, DataBlock *convData)
 
   for (int i = 0; i < data.nodes.size(); ++i)
   {
-    debug_ctx("write dag node");
+    DEBUG_CTX("write dag node");
     write_dag_nodes(dag, data.nodes[i], convData);
   }
 

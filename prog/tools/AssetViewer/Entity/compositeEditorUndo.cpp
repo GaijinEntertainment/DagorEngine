@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "compositeEditorUndo.h"
 #include "../av_appwnd.h"
 #include <ioSys/dag_memIo.h>

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <webui/websocket/webSocketStream.h>
 
 namespace websocket

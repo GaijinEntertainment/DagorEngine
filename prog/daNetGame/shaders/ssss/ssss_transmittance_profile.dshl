@@ -1,0 +1,66 @@
+// Heavily relying on Separable Subsurface Scattering by Jorge Jimenez:
+// http://www.iryoku.com/separable-sss/
+// https://github.com/iryoku/separable-sss
+
+// With additional Multi-Sampled Transmittance technique from "Next-Generation Character Rendering"
+//   - Slides: http://www.iryoku.com/stare-into-the-future
+//   - Talk: https://www.gdcvault.com/play/1018270/Next-Generation-Character
+
+/**
+ * Copyright (C) 2012 Jorge Jimenez (jorge@iryoku.com)
+ * Copyright (C) 2012 Diego Gutierrez (diegog@unizar.es)
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *    1. Redistributions of source code must retain the above copyright notice,
+ *       this list of conditions and the following disclaimer.
+ *
+ *    2. Redistributions in binary form must reproduce the following disclaimer
+ *       in the documentation and/or other materials provided with the
+ *       distribution:
+ *
+ *       "Uses Separable SSS. Copyright (C) 2012 by Jorge Jimenez and Diego
+ *        Gutierrez."
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS
+ * IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL COPYRIGHT HOLDERS OR CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ * The views and conclusions contained in the software and documentation are
+ * those of the authors and should not be interpreted as representing official
+ * policies, either expressed or implied, of the copyright holders.
+ */
+
+include "ssss/ssss_common.dshl"
+
+macro USE_SSSS_TRANSMITTANCE_PROFILE(stage)
+  hlsl(stage)
+  {
+    float3 ssss_get_profiled_transmittance(float3 world_normal, float3 point_to_light, float transmittance_factor)
+    {
+        // Because 'transmittance_factor' is exp(dd), and exp(a/b) == pow(exp(a), 1/b)
+        float3 profile = float3(0.233, 0.455, 0.649) * pow(transmittance_factor, 1.0 / 0.0064) +
+                         float3(0.1,   0.336, 0.344) * pow(transmittance_factor, 1.0 / 0.0484) +
+                         float3(0.118, 0.198, 0.0)   * pow(transmittance_factor, 1.0 / 0.187)  +
+                         float3(0.113, 0.007, 0.007) * pow(transmittance_factor, 1.0 / 0.567)  +
+                         float3(0.358, 0.004, 0.0)   * pow(transmittance_factor, 1.0 / 1.99)   +
+                         float3(0.078, 0.0,   0.0)   * pow(transmittance_factor, 1.0 / 7.41);
+
+        /**
+        * Using the profile, we finally approximate the transmitted lighting from
+        * the back of the object:
+        */
+        return profile * saturate(0.3 + dot(point_to_light, -world_normal));
+    }
+  }
+endmacro

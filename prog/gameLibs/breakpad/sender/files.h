@@ -1,12 +1,4 @@
-/*
- * Dagor Engine 3 - Game Libraries
- * Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
- *
- * (for conditions of use see prog/license.txt)
- */
-
-#ifndef DAGOR_GAMELIBS_BREAKPAD_SENDER_FILES_H_
-#define DAGOR_GAMELIBS_BREAKPAD_SENDER_FILES_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <string>
@@ -36,5 +28,3 @@ void postprocess(Configuration &cfg, const std::string &guid);
 
 } // namespace files
 } // namespace breakpad
-
-#endif // DAGOR_GAMELIBS_BREAKPAD_SENDER_FILES_H_

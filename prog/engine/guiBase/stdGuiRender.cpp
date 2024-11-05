@@ -1,11 +1,16 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <supp/_platform.h>
 #include <gui/dag_stdGuiRender.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderMesh.h>
 #include <3d/dag_materialData.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3d_platform.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_platform.h>
 #include <generic/dag_staticTab.h>
 #include "guiRenderCache.h"
 #include "font.h"
@@ -29,12 +34,7 @@
 #include <EASTL/utility.h>
 #include <math/dag_polyUtils.h>
 #include <memory/dag_framemem.h>
-
-#if _TARGET_PC_WIN
-#include <malloc.h>
-#elif defined(__GNUC__)
-#include <stdlib.h>
-#endif
+#include <supp/dag_alloca.h>
 
 #define CVT_TO_UTF16_ON_STACK(tmpU16, s, len)                       \
   if (len < 0)                                                      \
@@ -47,7 +47,7 @@
   }                                                                 \
   if (len > 8000)                                                   \
   {                                                                 \
-    logerr_ctx("len=%d str=%.512s...", len, s);                     \
+    LOGERR_CTX("len=%d str=%.512s...", len, s);                     \
     len = 8000;                                                     \
   }                                                                 \
   wchar_t *tmpU16 = (wchar_t *)alloca((len + 1) * sizeof(wchar_t)); \
@@ -177,7 +177,7 @@ void acquire() { font_critsec.lock(); }
 void release() { font_critsec.unlock(); }
 
 // init fonts - get font cfg section & codepage filename (some as T_init())
-void init_fonts(DataBlock &blk)
+void init_fonts(const DataBlock &blk)
 {
   debug("init fonts");
 
@@ -277,10 +277,29 @@ void init_fonts(DataBlock &blk)
   debug("init fonts OK");
 }
 
+void init_dynamics_fonts(int atlas_count, int atlas_size, const char *path_prefix)
+{
+  ScopedAcquire fontGuard;
+  DagorFontBinDump::initDynFonts(atlas_count, atlas_size, path_prefix);
+}
+
+void load_dynamic_font(const DataBlock &font_description, int screen_height)
+{
+  ScopedAcquire fontGuard;
+
+  int fontCount = rfont.size();
+  DagorFontBinDump::loadDynFonts(rfont, font_description, screen_height);
+
+  for (int i = fontCount; i < rfont.size(); i++)
+    if (font_names.addStrId(rfont[i].name, i) != i)
+      logerr("duplicate font name \"%s\": id=%d and id=%d(used)", rfont[i].name, i, font_names.getStrId(rfont[i].name));
+}
+
 // close fonts
 void close_fonts()
 {
   ScopedAcquire l;
+  dyn_font_atlas_reset_generation++;
   for (DagorFontBinDump &f : rfont)
     f.clear();
   clear_and_shrink(rfont);
@@ -289,6 +308,7 @@ void close_fonts()
   DagorFontBinDump::termInscriptions();
 }
 
+// this call should be protected by ScopedAcquire
 static inline void update_dyn_fonts()
 {
   int64_t reft = profile_ref_ticks();
@@ -341,6 +361,7 @@ void after_device_reset()
 {
   if (device_reset_filter && !device_reset_filter())
     return;
+  ScopedAcquire fontGuard;
 
   debug("resetting font cache");
   dyn_font_atlas_reset_generation++;
@@ -364,7 +385,10 @@ void update_internals_per_act()
 {
   update_internals_per_act_is_used = true;
   if (DagorFontBinDump::reqCharGenChanged)
+  {
+    ScopedAcquire fontGuard;
     update_dyn_fonts();
+  }
 }
 
 static float dynfont_compute_str_width_u_cached(const StdGuiFontContext &fctx, const wchar_t *str, int len, BBox2 &out_bb)
@@ -689,6 +713,10 @@ void LayerParams::reset()
   fontTexId = BAD_TEXTUREID;
   alphaBlend = NO_BLEND;
   maskTexId = BAD_TEXTUREID;
+  texSampler = d3d::INVALID_SAMPLER_HANDLE;
+  tex2Sampler = d3d::INVALID_SAMPLER_HANDLE;
+  fontTexSampler = d3d::INVALID_SAMPLER_HANDLE;
+  maskTexSampler = d3d::INVALID_SAMPLER_HANDLE;
   maskTransform0 = Point3(1, 0, 0);
   maskTransform1 = Point3(0, 1, 0);
 
@@ -703,7 +731,7 @@ bool LayerParams::cmpEq(const LayerParams &other) const
 {
   if (fontFx != other.fontFx)
     return false;
-  if (maskTexId != other.maskTexId ||
+  if ((maskTexId != other.maskTexId || maskTexSampler != other.maskTexSampler) ||
       (maskTexId != BAD_TEXTUREID && (maskTransform0 != other.maskTransform0 || maskTransform1 != other.maskTransform1)))
     return false;
 
@@ -713,9 +741,10 @@ bool LayerParams::cmpEq(const LayerParams &other) const
   if (!fontFx)
   {
     return (texId == other.texId && texId2 == other.texId2) && (fontTexId == other.fontTexId) && (alphaBlend == other.alphaBlend) &&
+           (texSampler == other.texSampler) && (tex2Sampler == other.tex2Sampler) && (fontTexSampler == other.fontTexSampler) &&
            (texInLinear == other.texInLinear);
   }
-  return fontTexId == other.fontTexId && memcmp(&ff, &other.ff, sizeof(ff)) == 0;
+  return fontTexId == other.fontTexId && fontTexSampler == other.fontTexSampler && memcmp(&ff, &other.ff, sizeof(ff)) == 0;
 }
 
 #if LOG_CACHE
@@ -734,8 +763,10 @@ void FontFxAttr::dump() const
 void FontFxAttr::reset()
 {
   fontTex = BAD_TEXTUREID;
+  fontTexSampler = d3d::INVALID_SAMPLER_HANDLE;
 
   tex2 = BAD_TEXTUREID;
+  tex2Sampler = d3d::INVALID_SAMPLER_HANDLE;
   tex2su_x32 = 32;
   tex2sv_x32 = 32;
   tex2bv_ofs = 0;
@@ -783,30 +814,21 @@ void GuiShader::close()
   element = NULL;
   material = NULL;
 }
+static ShaderVariableInfo maskMatrixLine0VarId("mask_matrix_line_0", true), maskMatrixLine1VarId("mask_matrix_line_1", true),
+  viewportRectId("viewportRect"), textureVarId("tex"), textureSamplerVarId("tex_samplerstate"), textureSdrVarId("texSdr", true),
+  textureSdrSamplerVarId("texSdr_samplerstate", true), alphaVarId("transparent"), enableTextureId("hasTexture"),
+  linearSourceVarId("linearSource", true),
 
-static int maskTexVarId = -1;
-static int maskMatrixLine0VarId = -1;
-static int maskMatrixLine1VarId = -1;
-static int viewportRectId = -1;
-static int textureVarId = -1;
-static int alphaVarId = -1;
-static int enableTextureId = -1;
-static int linearSourceVarId = -1;
-static int fontFxTypeId = -1;
-static int fontFxOfsId = -1;
-static int fontFxColId = -1;
-static int fontFxScaleId = -1;
-static int fontTex2Id = -1;
-static int fontTex2ofsId = -1;
-static int fontTex2rotCCSmSId = -1;
-static int useColorMatrixId = -1;
-static int colorMatrix0VarId = -1;
-static int colorMatrix1VarId = -1;
-static int colorMatrix2VarId = -1;
-static int colorMatrix3VarId = -1;
-static int guiTextDepthVarId = -1;
-static int writeToZVarId = -1;
-static int testDepthVarId = -1;
+  fontFxTypeId("fontFxType"), fontFxOfsId("fontFxOfs"), fontFxColId("fontFxColor"), fontFxScaleId("fontFxScale"),
+
+  fontTex2Id("fontTex2"), fontTex2SamplerId("fontTex2_samplerstate"), fontTex2ofsId("fontTex2ofs"),
+  fontTex2rotCCSmSId("fontTex2rotCCSmS"),
+
+  useColorMatrixId("useColorMatrix", true), colorMatrix0VarId("colorMatrix0", true), colorMatrix1VarId("colorMatrix1", true),
+  colorMatrix2VarId("colorMatrix2", true), colorMatrix3VarId("colorMatrix3", true);
+
+static ShaderVariableInfo guiTextDepthVarId("gui_text_depth", true), writeToZVarId("gui_write_to_z", true),
+  testDepthVarId("gui_test_depth", true), maskTexVarId("mask_tex", true), maskTexSamplerVarId("mask_tex_samplerstate", true);
 static int gui_user_const_ps_no = -1;
 static int gui_user_const_vs_no = -1;
 
@@ -824,7 +846,7 @@ void StdGuiShader::ExtStateLocal::setFontTex2Ofs(GuiVertexTransform &xform, floa
   G_STATIC_ASSERT(sizeof(*this) <= sizeof(ExtState));
 
   fontTex2rotCCSmS = Color4(1, 1, 0, 0);
-  if (fontTex2rotCCSmSId >= 0)
+  if (bool(fontTex2rotCCSmSId)) // -V1051
   {
     fontTex2ofs = Color4(su, sv, -xform.transformComponent(x0, y0, 0), -xform.transformComponent(x0, y0, 1));
   }
@@ -834,30 +856,6 @@ void StdGuiShader::ExtStateLocal::setFontTex2Ofs(GuiVertexTransform &xform, floa
 
 void StdGuiShader::link()
 {
-  maskTexVarId = ::get_shader_variable_id("mask_tex", true);
-  maskMatrixLine0VarId = ::get_shader_variable_id("mask_matrix_line_0", true);
-  maskMatrixLine1VarId = ::get_shader_variable_id("mask_matrix_line_1", true);
-  viewportRectId = VariableMap::getVariableId("viewportRect");
-  textureVarId = VariableMap::getVariableId("tex");
-  alphaVarId = VariableMap::getVariableId("transparent");
-  enableTextureId = VariableMap::getVariableId("hasTexture");
-  linearSourceVarId = VariableMap::getVariableId("linearSource");
-
-  fontFxTypeId = VariableMap::getVariableId("fontFxType");
-  fontFxOfsId = VariableMap::getVariableId("fontFxOfs");
-  fontFxColId = VariableMap::getVariableId("fontFxColor");
-  fontFxScaleId = VariableMap::getVariableId("fontFxScale");
-
-  fontTex2Id = VariableMap::getVariableId("fontTex2");
-  fontTex2ofsId = VariableMap::getVariableId("fontTex2ofs");
-  fontTex2rotCCSmSId = VariableMap::getVariableId("fontTex2rotCCSmS");
-
-  useColorMatrixId = VariableMap::getVariableId("useColorMatrix");
-  colorMatrix0VarId = VariableMap::getVariableId("colorMatrix0");
-  colorMatrix1VarId = VariableMap::getVariableId("colorMatrix1");
-  colorMatrix2VarId = VariableMap::getVariableId("colorMatrix2");
-  colorMatrix3VarId = VariableMap::getVariableId("colorMatrix3");
-
   int gui_user_const_ps_noVarId = get_shader_variable_id("gui_user_const_ps_no", true);
   if (VariableMap::isGlobVariablePresent(gui_user_const_ps_noVarId))
     gui_user_const_ps_no = ShaderGlobal::get_int_fast(gui_user_const_ps_noVarId);
@@ -869,28 +867,24 @@ void StdGuiShader::link()
     gui_user_const_vs_no = ShaderGlobal::get_int_fast(gui_user_const_vs_noVarId);
   else
     gui_user_const_vs_no = -1;
-  guiTextDepthVarId = get_shader_variable_id("gui_text_depth", true);
-  writeToZVarId = get_shader_variable_id("gui_write_to_z", true);
-  testDepthVarId = get_shader_variable_id("gui_test_depth", true);
 }
 void StdGuiShader::cleanup()
 {
   if (!material)
     return;
-  material->set_texture_param(textureVarId, BAD_TEXTUREID);
-  material->set_texture_param(maskTexVarId, BAD_TEXTUREID);
-  material->set_texture_param(fontTex2Id, BAD_TEXTUREID);
+  ShaderGlobal::set_texture(textureVarId, BAD_TEXTUREID);
+  ShaderGlobal::set_sampler(textureSamplerVarId, d3d::INVALID_SAMPLER_HANDLE);
+  ShaderGlobal::set_texture(textureSdrVarId, BAD_TEXTUREID);
+  ShaderGlobal::set_sampler(textureSdrSamplerVarId, d3d::INVALID_SAMPLER_HANDLE);
+  ShaderGlobal::set_texture(fontTex2Id, BAD_TEXTUREID);
+  ShaderGlobal::set_sampler(fontTex2SamplerId, d3d::INVALID_SAMPLER_HANDLE);
 }
 
 void StdGuiShader::setStates(const float viewport[4], const GuiState &guiState, const ExtState *extState, bool viewport_changed,
-  bool /*guistate_changed*/, bool /*extstate_changed*/, ShaderMaterial *mat, ShaderElement *elem, int targetW, int targetH)
+  bool /*guistate_changed*/, bool /*extstate_changed*/, int targetW, int targetH)
 {
-  if (mat == NULL)
-    mat = material;
-  if (elem == NULL)
-    elem = element;
-
-  G_ASSERT(mat && elem);
+  TIME_PROFILE_UNIQUE_DEV;
+  G_ASSERT(element);
 
   const FontFxAttr &fontAttr = guiState.fontAttr;
   const LayerParams &params = guiState.params;
@@ -901,22 +895,22 @@ void StdGuiShader::setStates(const float viewport[4], const GuiState &guiState, 
     G_UNUSED(targetW);
     G_UNUSED(targetH);
     // switched off because of tactical map clipping
-    /*mat->set_color4_param(viewportRectId,
+    /*ShaderGlobal::set_color4(viewportRectId,
            Color4( 2.0/targetW/GUI_POS_SCALE,
                   (-2.0*1.0f)/targetH/GUI_POS_SCALE,
                   -1.0, 1.0f));*/
     int w = viewport[2];
     int h = viewport[3];
-    mat->set_color4_param(viewportRectId,
+    ShaderGlobal::set_color4(viewportRectId,
       Color4(w > 0. ? 2.0 / w / GUI_POS_SCALE : 0, h > 0. ? -(1.0f * 2.0) / h / GUI_POS_SCALE : 0,
         w > 0. ? -2.0 * viewport[0] / w - 1.0 : 0, h > 0. ? 1.0f * (2.0 * viewport[1] / h + 1.0) : 0));
   }
 
-  if (fontAttr.tex2 != BAD_TEXTUREID)
+  if (fontAttr.getTex2() != BAD_TEXTUREID)
   {
-    if (fontTex2rotCCSmSId >= 0)
-      mat->set_color4_param(fontTex2rotCCSmSId, est.fontTex2rotCCSmS);
-    mat->set_color4_param(fontTex2ofsId, est.fontTex2ofs);
+    if (bool(fontTex2rotCCSmSId))
+      ShaderGlobal::set_color4(fontTex2rotCCSmSId, est.fontTex2rotCCSmS);
+    ShaderGlobal::set_color4(fontTex2ofsId, est.fontTex2ofs);
   }
 
   // if (extstate_changed)
@@ -926,57 +920,67 @@ void StdGuiShader::setStates(const float viewport[4], const GuiState &guiState, 
   if (gui_user_const_vs_no >= 0)
     d3d::set_vs_const(gui_user_const_vs_no, &est.user[0].r, sizeof(est.user) / sizeof(Color4));
 
-  mat->set_texture_param(fontTex2Id, fontAttr.tex2);
+  ShaderGlobal::set_texture(fontTex2Id, fontAttr.getTex2());
+  ShaderGlobal::set_sampler(fontTex2SamplerId, fontAttr.getTex2Sampler());
 
-  mat->set_int_param(alphaVarId, (int)params.alphaBlend);
+  ShaderGlobal::set_int(alphaVarId, (int)params.alphaBlend);
 
   if (params.fontFx)
   {
-    TextureInfo ti;
-    if (Texture *tex = (Texture *)acquire_managed_tex(params.fontTexId))
+    if (lastFontFxTexture != params.getFontTexId() || !lastFontFxTW)
     {
-      tex->getinfo(ti);
-      release_managed_tex(params.fontTexId);
+      TextureInfo ti;
+      if (Texture *tex = (Texture *)acquire_managed_tex(params.getFontTexId()))
+      {
+        tex->getinfo(ti);
+        release_managed_tex(lastFontFxTexture = params.getFontTexId());
+      }
+      lastFontFxTW = ti.w;
+      lastFontFxTH = ti.h;
     }
 #if LOG_DRAWS
     guiState.params.dump();
     guiState.fontAttr.dump();
 #endif
-    mat->set_int_param(fontFxTypeId, params.ff.type);
-    mat->set_real_param(fontFxScaleId, params.ff.factor_x32 / 32.0);
-    mat->set_color4_param(fontFxColId, color4(params.ff.col));
-    mat->set_color4_param(fontFxOfsId, Color4(params.ff.ofsX, params.ff.ofsY, 1.0 / ti.w, 1.0 / ti.h));
+    ShaderGlobal::set_int(fontFxTypeId, params.ff.type);
+    ShaderGlobal::set_real(fontFxScaleId, params.ff.factor_x32 / 32.0);
+    ShaderGlobal::set_color4(fontFxColId, color4(params.ff.col));
+    ShaderGlobal::set_color4(fontFxOfsId, Color4(params.ff.ofsX, params.ff.ofsY, 1.0 / lastFontFxTW, 1.0 / lastFontFxTH));
   }
   else
-    mat->set_int_param(fontFxTypeId, FFT_NONE);
+    ShaderGlobal::set_int(fontFxTypeId, FFT_NONE);
 
-  if (params.fontTexId != BAD_TEXTUREID)
+  if (params.getFontTexId() != BAD_TEXTUREID)
   {
-    mat->set_int_param(enableTextureId, 2);
-    mat->set_texture_param(textureVarId, params.fontTexId);
-    mat->set_int_param(linearSourceVarId, (int)params.texInLinear);
+    ShaderGlobal::set_int(enableTextureId, 2);
+    ShaderGlobal::set_texture(textureVarId, params.getFontTexId());
+    ShaderGlobal::set_sampler(textureSamplerVarId, params.getFontTexSampler());
+    ShaderGlobal::set_int(linearSourceVarId, (int)params.texInLinear);
   }
-  else if (params.texId != BAD_TEXTUREID)
+  else if (params.getTexId() != BAD_TEXTUREID)
   {
-    mat->set_int_param(enableTextureId, 1);
-    mat->set_texture_param(textureVarId, params.texId);
-    mat->set_int_param(linearSourceVarId, (int)params.texInLinear);
+    ShaderGlobal::set_int(enableTextureId, params.getTexId2() == BAD_TEXTUREID ? 1 : 4); // 4 - two textures
+    ShaderGlobal::set_texture(textureVarId, params.getTexId());
+    ShaderGlobal::set_sampler(textureSamplerVarId, params.getTexSampler());
+    ShaderGlobal::set_texture(textureSdrVarId, params.getTexId2());
+    ShaderGlobal::set_sampler(textureSdrSamplerVarId, params.getTex2Sampler());
+    ShaderGlobal::set_int(linearSourceVarId, (int)params.texInLinear);
   }
   else
   {
-    mat->set_int_param(enableTextureId, 0);
-    mat->set_int_param(linearSourceVarId, 0);
+    ShaderGlobal::set_int(enableTextureId, 0);
+    ShaderGlobal::set_int(linearSourceVarId, 0);
   }
 
   if (params.colorM1)
-    mat->set_int_param(useColorMatrixId, 0);
+    ShaderGlobal::set_int(useColorMatrixId, 0);
   else
   {
-    mat->set_int_param(useColorMatrixId, 1);
-    mat->set_color4_param(colorMatrix0VarId, Color4(&params.colorM[0]));
-    mat->set_color4_param(colorMatrix1VarId, Color4(&params.colorM[4]));
-    mat->set_color4_param(colorMatrix2VarId, Color4(&params.colorM[8]));
-    mat->set_color4_param(colorMatrix3VarId, Color4(&params.colorM[12]));
+    ShaderGlobal::set_int(useColorMatrixId, 1);
+    ShaderGlobal::set_color4(colorMatrix0VarId, Color4(&params.colorM[0]));
+    ShaderGlobal::set_color4(colorMatrix1VarId, Color4(&params.colorM[4]));
+    ShaderGlobal::set_color4(colorMatrix2VarId, Color4(&params.colorM[8]));
+    ShaderGlobal::set_color4(colorMatrix3VarId, Color4(&params.colorM[12]));
   }
 
   ShaderGlobal::set_color4(guiTextDepthVarId, 1.0f, 1.0f, 0.0f, 0.0f);
@@ -985,16 +989,18 @@ void StdGuiShader::setStates(const float viewport[4], const GuiState &guiState, 
 
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_OBJECT, false);
 
-  if (maskTexVarId >= 0)
+  if (bool(maskTexVarId))
   {
-    ShaderGlobal::set_texture(maskTexVarId, params.maskTexId);
-    if (params.maskTexId != BAD_TEXTUREID)
+    ShaderGlobal::set_texture(maskTexVarId, params.getMaskTexId());
+    ShaderGlobal::set_sampler(maskTexSamplerVarId, params.getMaskTexSampler());
+    if (params.getMaskTexId() != BAD_TEXTUREID)
     {
       ShaderGlobal::set_color4(maskMatrixLine0VarId, P3D(params.maskTransform0), 0);
       ShaderGlobal::set_color4(maskMatrixLine1VarId, P3D(params.maskTransform1), 0);
     }
   }
-  elem->setStates(0, true);
+  TIME_PROFILE_UNIQUE_EVENT_DEV("GuiSetStates");
+  element->setStates(0, true);
 }
 
 void init_dynamic_buffers(int quad_num, int extra_indices)
@@ -1179,14 +1185,14 @@ void GuiContext::setRenderCallback(RenderCallBack cb, uintptr_t data)
   renderer->callbackData = data;
 }
 
-void GuiContext::execCommand(int command, const Point2 &pos, const Point2 &size)
+void GuiContext::execCommand(int command, Point2 pos, Point2 size)
 {
   flushData();
   renderer->execCommand(command, pos, size);
   flushData();
 }
 
-void GuiContext::execCommand(int command, const Point2 &pos, const Point2 &size, RenderCallBack cb, uintptr_t data)
+void GuiContext::execCommand(int command, Point2 pos, Point2 size, RenderCallBack cb, uintptr_t data)
 {
   flushData();
   renderer->execCommand(command, pos, size, cb, data);
@@ -1199,7 +1205,7 @@ void GuiContext::execCommand(int command)
   execCommand(command, zero, zero);
 }
 
-uintptr_t GuiContext::execCommandImmediate(int command, const Point2 &pos, const Point2 &size)
+uintptr_t GuiContext::execCommandImmediate(int command, Point2 pos, Point2 size)
 {
   return renderer->execCommandImmediate(command, pos, size);
 }
@@ -1276,6 +1282,7 @@ void *GuiContext::qCacheAlloc(int num)
 // flush, qcache, layers, and update states
 void GuiContext::qCacheFlush(bool force)
 {
+  TIME_PROFILE_UNIQUE_DEV;
   if (!currentViewPort.isZero() && qCacheUsed > 0)
   {
     // delayed sorted draw
@@ -1319,11 +1326,11 @@ void GuiContext::applyViewport(GuiViewPort &vp)
 {
   if (vp.isNull)
   {
-    preTranformViewport.setempty();
+    preTransformViewport.setempty();
     return;
   }
 
-  // debug_ctx("%p.applyViewport(%.0f,%.0f, %.0fx%.0f)", this, vp.leftTop.x, vp.leftTop.y, vp.getWidth(), vp.getHeight());
+  // DEBUG_CTX("%p.applyViewport(%.0f,%.0f, %.0fx%.0f)", this, vp.leftTop.x, vp.leftTop.y, vp.getWidth(), vp.getHeight());
 
   flushData();
 
@@ -1623,7 +1630,7 @@ void GuiContext::start_render()
 // render and restore parameters. call it after all GUI rendering
 void GuiContext::end_render()
 {
-  /// debug_ctx("end_render");
+  /// DEBUG_CTX("end_render");
 
   G_ASSERT(currentChunk != -1);
 
@@ -1646,7 +1653,7 @@ void GuiContext::start_raw_layer()
 void GuiContext::end_raw_layer() { drawRawLayer = false; }
 
 // get current logical resolution
-const Point2 &GuiContext::screen_size()
+Point2 GuiContext::screen_size()
 {
   G_ASSERT(isInRender);
   return screenSize;
@@ -1675,13 +1682,13 @@ real GuiContext::real_screen_height()
 }
 
 // return logical screen-to-real scale coefficient
-const Point2 &GuiContext::logic2real()
+Point2 GuiContext::logic2real()
 {
   G_ASSERT(isInRender);
   return screenScale;
 }
 // return real-to-logical screen scale coefficient
-const Point2 &GuiContext::real2logic()
+Point2 GuiContext::real2logic()
 {
   G_ASSERT(isInRender);
   return screenScaleRcp;
@@ -1689,8 +1696,8 @@ const Point2 &GuiContext::real2logic()
 
 void GuiContext::setZMode(bool write_to_z, int test_depth)
 {
-  G_ASSERTF(writeToZVarId >= 0, "%s 'gui_write_to_z' shader variable should exist", __FUNCTION__);
-  G_ASSERTF(testDepthVarId >= 0, "%s 'gui_test_depth' shader variable should exist", __FUNCTION__);
+  G_ASSERTF(bool(writeToZVarId), "%s 'gui_write_to_z' shader variable should exist", __FUNCTION__);
+  G_ASSERTF(bool(testDepthVarId), "%s 'gui_test_depth' shader variable should exist", __FUNCTION__);
 
   uint8_t write_z = write_to_z ? 1 : 0;
   if (guiState.fontAttr.writeToZ != write_z || guiState.fontAttr.testDepth != test_depth)
@@ -1713,13 +1720,14 @@ void GuiContext::set_alpha_blend(BlendMode blend_mode)
 }
 
 // set current color
-void GuiContext::set_color(const E3DCOLOR &color)
+void GuiContext::set_color(E3DCOLOR color)
 {
   currentColor = color;
   GuiContext::set_ablend(currentColor.a != 255 || currentTextureAlpha);
 }
 
-void GuiContext::set_textures(TEXTUREID tex_id, TEXTUREID tex_id2, bool font_l8, bool tex_in_linear)
+void GuiContext::set_textures(TEXTUREID tex_id, d3d::SamplerHandle smp_id, TEXTUREID tex_id2, d3d::SamplerHandle smp_id2, bool font_l8,
+  bool tex_in_linear)
 {
   if (recCb)
     return recCb->setTex(tex_id);
@@ -1728,11 +1736,11 @@ void GuiContext::set_textures(TEXTUREID tex_id, TEXTUREID tex_id2, bool font_l8,
   bool update = false;
   if (font_l8)
   {
-    if (tex_id != guiState.params.fontTexId)
+    if (tex_id != guiState.params.getFontTexId())
     {
       currentTextureAlpha = true;
-      guiState.params.fontTexId = tex_id;
-      guiState.params.texId2 = tex_id2;
+      guiState.params.setFontTexId(tex_id, smp_id);
+      guiState.params.setTexId2(tex_id2, smp_id2);
       guiState.params.alphaBlend = PREMULTIPLIED;
       guiState.params.texInLinear = tex_in_linear;
       update = true;
@@ -1740,11 +1748,11 @@ void GuiContext::set_textures(TEXTUREID tex_id, TEXTUREID tex_id2, bool font_l8,
   }
   else
   {
-    if (tex_id != guiState.params.texId || tex_id2 != guiState.params.texId2)
+    if (tex_id != guiState.params.getTexId() || tex_id2 != guiState.params.getTexId2())
     {
       currentTextureAlpha = true;
-      guiState.params.texId = tex_id;
-      guiState.params.texId2 = tex_id2;
+      guiState.params.setTexId(tex_id, smp_id);
+      guiState.params.setTexId2(tex_id2, smp_id2);
       guiState.params.alphaBlend = PREMULTIPLIED;
       guiState.params.texInLinear = tex_in_linear;
       update = true;
@@ -1764,17 +1772,18 @@ void GuiContext::set_textures(TEXTUREID tex_id, TEXTUREID tex_id2, bool font_l8,
 
   if (font_l8)
   {
-    if (guiState.params.texId != BAD_TEXTUREID)
+    if (guiState.params.getTexId() != BAD_TEXTUREID)
     {
-      guiState.params.texId = guiState.params.texId2 = BAD_TEXTUREID;
+      guiState.params.setTexId(BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE);
+      guiState.params.setTexId2(BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE);
       update = true;
     }
   }
   else
   {
-    if (guiState.params.fontTexId != BAD_TEXTUREID)
+    if (guiState.params.getFontTexId() != BAD_TEXTUREID)
     {
-      guiState.params.fontTexId = BAD_TEXTUREID;
+      guiState.params.setFontTexId(BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE);
       update = true;
     }
   }
@@ -1782,14 +1791,14 @@ void GuiContext::set_textures(TEXTUREID tex_id, TEXTUREID tex_id2, bool font_l8,
   rollState |= update ? ROLL_GUI_STATE : 0;
 }
 
-void GuiContext::set_mask_texture(TEXTUREID tex_id, const Point3 &transform0, const Point3 &transform1)
+void GuiContext::set_mask_texture(TEXTUREID tex_id, d3d::SamplerHandle smp_id, Point3 transform0, Point3 transform1)
 {
-  if (tex_id != guiState.params.maskTexId || transform0 != guiState.params.maskTransform0 ||
-      transform1 != guiState.params.maskTransform1)
+  if (tex_id != guiState.params.getMaskTexId() || transform0 != guiState.params.maskTransform0 ||
+      transform1 != guiState.params.maskTransform1 || smp_id != guiState.params.getMaskTexSampler())
   {
     guiState.params.maskTransform0 = transform0;
     guiState.params.maskTransform1 = transform1;
-    guiState.params.maskTexId = tex_id;
+    guiState.params.setMaskTexId(tex_id, smp_id);
     rollState |= ROLL_GUI_STATE;
   }
 }
@@ -1880,7 +1889,7 @@ void GuiContext::draw_prims(int d3d_prim, int num_prims, const void *verts, cons
   };
 }
 
-bool GuiContext::vpBoxIsVisible(const Point2 &p0, const Point2 &p1, const Point2 &p2, const Point2 &p3) const
+bool GuiContext::vpBoxIsVisible(Point2 p0, Point2 p1, Point2 p2, Point2 p3) const
 {
   return vpBoxIsVisible(min4(p0.x, p1.x, p2.x, p3.x), min4(p0.y, p1.y, p2.y, p3.y), max4(p0.x, p1.x, p2.x, p3.x),
     max4(p0.y, p1.y, p2.y, p3.y));
@@ -1897,8 +1906,7 @@ inline void assign_color(GuiVertex v[4], E3DCOLOR color, uint32_t curMask)
 }
 
 // draw two poligons, using current color & texture (if present)
-void GuiContext::render_quad(const Point2 &p0, const Point2 &p3, const Point2 &p2, const Point2 &p1, const Point2 &tc0,
-  const Point2 &tc3, const Point2 &tc2, const Point2 &tc1)
+void GuiContext::render_quad(Point2 p0, Point2 p3, Point2 p2, Point2 p1, Point2 tc0, Point2 tc3, Point2 tc2, Point2 tc1)
 {
   if (!vpBoxIsVisible(p0, p3, p2, p1))
     return;
@@ -1925,8 +1933,8 @@ void GuiContext::render_quad(const Point2 &p0, const Point2 &p3, const Point2 &p
 }
 
 // draw two poligons, using colors & texture (if present)
-void GuiContext::render_quad_color(const Point2 &p0, const Point2 &p3, const Point2 &p2, const Point2 &p1, const Point2 &tc0,
-  const Point2 &tc3, const Point2 &tc2, const Point2 &tc1, E3DCOLOR c0, E3DCOLOR c3, E3DCOLOR c2, E3DCOLOR c1)
+void GuiContext::render_quad_color(Point2 p0, Point2 p3, Point2 p2, Point2 p1, Point2 tc0, Point2 tc3, Point2 tc2, Point2 tc1,
+  E3DCOLOR c0, E3DCOLOR c3, E3DCOLOR c2, E3DCOLOR c1)
 {
   if (!vpBoxIsVisible(p0, p3, p2, p1))
     return;
@@ -1953,8 +1961,7 @@ void GuiContext::render_quad_color(const Point2 &p0, const Point2 &p3, const Poi
 #undef MAKEDATA
 }
 
-void GuiContext::render_quad_t(const Point2 &p0, const Point2 &p3, const Point2 &p2, const Point2 &p1, const Point2 &tc_lt,
-  const Point2 &tc_rb)
+void GuiContext::render_quad_t(Point2 p0, Point2 p3, Point2 p2, Point2 p1, Point2 tc_lt, Point2 tc_rb)
 {
   if (!vpBoxIsVisible(p0, p3, p2, p1))
     return;
@@ -2001,7 +2008,7 @@ void GuiContext::render_box(real left, real top, real right, real bottom)
   if (!vpBoxIsVisible(left, top, right, bottom))
     return;
 
-  set_texture(BAD_TEXTUREID);
+  reset_textures();
   GuiVertex *v = qCacheAllocT<GuiVertex>(1);
   assign_color(v, currentColor, curQuadMask);
 
@@ -2016,11 +2023,10 @@ void GuiContext::render_box(real left, real top, real right, real bottom)
 }
 
 // draw rectangle box, using current color & texture (if present)
-void GuiContext::render_rect(real left, real top, real right, real bottom, const Point2 &left_top_tc, const Point2 &dx_tc,
-  const Point2 &dy_tc)
+void GuiContext::render_rect(real left, real top, real right, real bottom, Point2 left_top_tc, Point2 dx_tc, Point2 dy_tc)
 {
   // if no texture, draw only color box & exit
-  if (guiState.params.texId == BAD_TEXTUREID)
+  if (guiState.params.getTexId() == BAD_TEXTUREID)
   {
     render_box(left, top, right, bottom);
     return;
@@ -2053,10 +2059,10 @@ void GuiContext::render_rect(real left, real top, real right, real bottom, const
 }
 
 // draw rectangle box, using current color & texture (if present)
-void GuiContext::render_rect_t(real left, real top, real right, real bottom, const Point2 &left_top_tc, const Point2 &right_bottom_tc)
+void GuiContext::render_rect_t(real left, real top, real right, real bottom, Point2 left_top_tc, Point2 right_bottom_tc)
 {
   // if no texture, draw only color box & exit
-  if (guiState.params.texId == BAD_TEXTUREID)
+  if (guiState.params.getTexId() == BAD_TEXTUREID)
   {
     render_box(left, top, right, bottom);
     return;
@@ -2128,7 +2134,7 @@ void GuiContext::setViewTm(const float m[2][3])
   extState().resetRotation();
 }
 
-void GuiContext::setViewTm(const Point2 &ax, const Point2 &ay, const Point2 &o, bool add)
+void GuiContext::setViewTm(Point2 ax, Point2 ay, Point2 o, bool add)
 {
   if (add)
     vertexTransform.addViewTm(ax, ay, o);
@@ -2154,32 +2160,31 @@ void GuiContext::calcPreTransformViewport(Point2 lt, Point2 rb)
   float k = GUI_POS_SCALE;
   lt *= k;
   rb *= k;
-  preTranformViewport.setempty();
-  preTranformViewport +=
+  preTransformViewport.setempty();
+  preTransformViewport +=
     Point2(vertexTransformInverse.transformComponent(lt.x, lt.y, 0), vertexTransformInverse.transformComponent(lt.x, lt.y, 1));
-  preTranformViewport +=
+  preTransformViewport +=
     Point2(vertexTransformInverse.transformComponent(lt.x, rb.y, 0), vertexTransformInverse.transformComponent(lt.x, rb.y, 1));
-  preTranformViewport +=
+  preTransformViewport +=
     Point2(vertexTransformInverse.transformComponent(rb.x, lt.y, 0), vertexTransformInverse.transformComponent(rb.x, lt.y, 1));
-  preTranformViewport +=
+  preTransformViewport +=
     Point2(vertexTransformInverse.transformComponent(rb.x, rb.y, 0), vertexTransformInverse.transformComponent(rb.x, rb.y, 1));
 }
 
 void GuiContext::calcPreTransformViewport()
 {
   if (currentViewPort.isNull)
-    preTranformViewport.setempty();
+    preTransformViewport.setempty();
   else
     calcPreTransformViewport(currentViewPort.leftTop, currentViewPort.rightBottom);
 }
 
 
-void GuiContext::render_rounded_box(const Point2 &lt, const Point2 &rb, E3DCOLOR col, E3DCOLOR border, const Point4 &rounding,
-  float thickness)
+void GuiContext::render_rounded_box(Point2 lt, Point2 rb, E3DCOLOR col, E3DCOLOR border, Point4 rounding, float thickness)
 {
   if (!vpBoxIsVisible(lt, rb))
     return;
-  set_texture(BAD_TEXTUREID);
+  reset_textures();
   const uint32_t aaMask =
     get_alpha_blend() == NO_BLEND ? 0 : (get_alpha_blend() == NONPREMULTIPLIED ? dag_imgui_drawlist::DAG_IM_COL32_A_MASK : 0xFFFFFFFF);
   if ((border.u || aaMask == 0) && thickness > 0.f) // completely invisible border
@@ -2194,13 +2199,13 @@ void GuiContext::render_rounded_box(const Point2 &lt, const Point2 &rb, E3DCOLOR
 }
 
 
-void GuiContext::render_rounded_frame(const Point2 &lt, const Point2 &rb, E3DCOLOR col, const Point4 &rounding, float thickness)
+void GuiContext::render_rounded_frame(Point2 lt, Point2 rb, E3DCOLOR col, Point4 rounding, float thickness)
 {
   if (thickness <= 0.f)
     return;
   if (!vpBoxIsVisible(lt, rb))
     return;
-  set_texture(BAD_TEXTUREID);
+  reset_textures();
   const uint32_t aaMask =
     get_alpha_blend() == NO_BLEND ? 0 : (get_alpha_blend() == NONPREMULTIPLIED ? dag_imgui_drawlist::DAG_IM_COL32_A_MASK : 0xFFFFFFFF);
   if ((col.u || aaMask == 0)) // completely invisible border
@@ -2211,28 +2216,26 @@ void GuiContext::render_rounded_frame(const Point2 &lt, const Point2 &rb, E3DCOL
 }
 
 
-void GuiContext::render_rounded_image(const Point2 &lt, const Point2 &rb, const Point2 &tc_lefttop, const Point2 &tc_rightbottom,
-  E3DCOLOR col, const Point4 &rounding)
+void GuiContext::render_rounded_image(Point2 lt, Point2 rb, Point2 tc_lefttop, Point2 tc_rightbottom, E3DCOLOR col, Point4 rounding)
 {
   if (!vpBoxIsVisible(lt, rb))
     return;
   const uint32_t aaMask =
     get_alpha_blend() == NO_BLEND ? 0 : (get_alpha_blend() == NONPREMULTIPLIED ? dag_imgui_drawlist::DAG_IM_COL32_A_MASK : 0xFFFFFFFF);
-  imDrawList.AddImageRounded(guiState.params.texId, lt, rb, tc_lefttop, tc_rightbottom, col, rounding, aaMask); // actually texId
-                                                                                                                // doesn't matter here
-                                                                                                                // anyway
+  // actually texId doesn't matter here anyway
+  imDrawList.AddImageRounded(guiState.params.getTexId(), lt, rb, tc_lefttop, tc_rightbottom, col, rounding, aaMask);
   render_imgui_list();
 }
 
-void GuiContext::render_rounded_image(const Point2 &lt, const Point2 &rb, const Point2 &tc_lefttop, const Point2 &dx_tc,
-  const Point2 &dy_tc, E3DCOLOR col, const Point4 &rounding)
+void GuiContext::render_rounded_image(Point2 lt, Point2 rb, Point2 tc_lefttop, Point2 dx_tc, Point2 dy_tc, E3DCOLOR col,
+  Point4 rounding)
 {
   if (!vpBoxIsVisible(lt, rb))
     return;
   const uint32_t aaMask =
     get_alpha_blend() == NO_BLEND ? 0 : (get_alpha_blend() == NONPREMULTIPLIED ? dag_imgui_drawlist::DAG_IM_COL32_A_MASK : 0xFFFFFFFF);
-  imDrawList.AddImageRounded(guiState.params.texId, lt, rb, tc_lefttop, dx_tc, dy_tc, col, rounding, aaMask); // actually texId doesn't
-                                                                                                              // matter here anyway
+  // actually texId doesn't matter here anyway
+  imDrawList.AddImageRounded(guiState.params.getTexId(), lt, rb, tc_lefttop, dx_tc, dy_tc, col, rounding, aaMask);
   render_imgui_list();
 }
 
@@ -2258,7 +2261,7 @@ void GuiContext::draw_line(real left, real top, real right, real bottom, real th
     return;
   }
 
-  set_texture(BAD_TEXTUREID);
+  reset_textures();
 
   Point2 ofs = Point2(-(bottom - top), right - left);
   ofs.normalize();
@@ -2269,8 +2272,7 @@ void GuiContext::draw_line(real left, real top, real right, real bottom, real th
 }
 
 // draw rectangle with frame, using optimization tricks
-void GuiContext::solid_frame(real left, real top, real right, real bottom, real thickness, const E3DCOLOR &background,
-  const E3DCOLOR &frame)
+void GuiContext::solid_frame(real left, real top, real right, real bottom, real thickness, E3DCOLOR background, E3DCOLOR frame)
 {
   if (left + thickness < right - thickness)
   {
@@ -2305,7 +2307,7 @@ StaticTab<Point2, MAX_CACHED_ENDING_SINCOS> cachedEndingSinCos;
 
 void GuiContext::render_line_ending_aa(E3DCOLOR color, const Point2 pos, const Point2 fwd, const Point2 left, float radius)
 {
-  set_texture(BAD_TEXTUREID);
+  reset_textures();
 
   if (radius < THIN_LINE_THRESHOLD)
   {
@@ -2394,7 +2396,7 @@ void GuiContext::render_line_aa(const Point2 *points, int points_count, bool is_
     return;
   }
 
-  set_texture(BAD_TEXTUREID);
+  reset_textures();
 
   float halfW = max((line_width - 1) * 0.5f, 0.f);
   Point2 from;
@@ -2532,7 +2534,7 @@ void GuiContext::render_poly(dag::ConstSpan<Point2> points, E3DCOLOR fill_color)
   if (indices.size() <= 2)
     return;
 
-  set_texture(BAD_TEXTUREID);
+  reset_textures();
 
   int vertices = indices.size();
   int faces = vertices / 3;
@@ -2557,8 +2559,7 @@ void GuiContext::render_poly(dag::ConstSpan<Point2> points, E3DCOLOR fill_color)
 }
 
 
-void GuiContext::render_inverse_poly(dag::ConstSpan<Point2> points_ccw, E3DCOLOR fill_color, const Point2 &left_top,
-  const Point2 &right_bottom)
+void GuiContext::render_inverse_poly(dag::ConstSpan<Point2> points_ccw, E3DCOLOR fill_color, Point2 left_top, Point2 right_bottom)
 {
   int count = points_ccw.size();
   if (!fill_color || count < 3)
@@ -2569,7 +2570,7 @@ void GuiContext::render_inverse_poly(dag::ConstSpan<Point2> points_ccw, E3DCOLOR
   for (int i = 0; i < count; i++)
     bbox += points_ccw[i];
 
-  set_texture(BAD_TEXTUREID);
+  reset_textures();
 
   if (!vpBoxIsVisible(bbox[0] - Point2(1, 1), bbox[1] + Point2(1, 1)))
   {
@@ -2789,7 +2790,7 @@ void GuiContext::render_ellipse_aa(Point2 pos, Point2 radius, float line_width, 
     }
   }
 
-  set_texture(BAD_TEXTUREID);
+  reset_textures();
 
   if (color == fill_color && color == mid_color)
   {
@@ -2927,7 +2928,7 @@ void GuiContext::render_sector_aa(Point2 pos, Point2 radius, Point2 angles, floa
   float angle = angles.x;
   //        sincos(i * 2 * PI / count, sc.x, sc.y);
 
-  set_texture(BAD_TEXTUREID);
+  reset_textures();
 
   if (color == fill_color && color == mid_color)
   {
@@ -3027,7 +3028,7 @@ void GuiContext::render_rectangle_aa(Point2 lt, Point2 rb, float line_width, E3D
   if (!color && !fill_color && !mid_color)
     return;
 
-  set_texture(BAD_TEXTUREID);
+  reset_textures();
 
   if (line_width < 1.f)
     line_width = 1.f;
@@ -3346,10 +3347,10 @@ void GuiContext::set_picquad_color_matrix_sepia(float factor)
 //* text stuff
 //************************************************************************
 // set curent text out position
-void GuiContext::goto_xy(const Point2 &pos) { currentPos = pos; }
+void GuiContext::goto_xy(Point2 pos) { currentPos = pos; }
 
 // get curent text out position
-const Point2 &GuiContext::get_text_pos() { return currentPos; }
+Point2 GuiContext::get_text_pos() { return currentPos; }
 
 // set font spacing
 void GuiContext::set_spacing(int spacing) { curRenderFont.spacing = spacing; }
@@ -3383,7 +3384,7 @@ void GuiContext::set_draw_str_attr(FontFxType type, int ofs_x, int ofs_y, E3DCOL
   LayerParams::FontFx &fx = guiState.params.ff;
   if (type != fx.type || ofs_x != fx.ofsX || ofs_y != fx.ofsY || col != fx.col || factor_x32 != fx.factor_x32)
   {
-    guiState.fontAttr.fontTex = BAD_TEXTUREID;
+    guiState.fontAttr.setFontTex(BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE);
 
     fx.type = type;
     fx.ofsX = ofs_x;
@@ -3395,15 +3396,15 @@ void GuiContext::set_draw_str_attr(FontFxType type, int ofs_x, int ofs_y, E3DCOL
   }
 }
 
-void GuiContext::set_draw_str_texture(TEXTUREID tex_id, int su_x32, int sv_x32, int bv_ofs)
+void GuiContext::set_draw_str_texture(TEXTUREID tex_id, d3d::SamplerHandle smp_id, int su_x32, int sv_x32, int bv_ofs)
 {
   auto &fontAttr = guiState.fontAttr;
-  if (tex_id != fontAttr.tex2 || bv_ofs != fontAttr.tex2bv_ofs || su_x32 != fontAttr.tex2su_x32 || sv_x32 != fontAttr.tex2sv_x32)
+  if (tex_id != fontAttr.getTex2() || bv_ofs != fontAttr.tex2bv_ofs || su_x32 != fontAttr.tex2su_x32 || sv_x32 != fontAttr.tex2sv_x32)
   {
-    if (tex_id != fontAttr.tex2 || tex_id != BAD_TEXTUREID)
+    if (tex_id != fontAttr.getTex2() || tex_id != BAD_TEXTUREID)
       flushData();
 
-    fontAttr.tex2 = tex_id;
+    fontAttr.setTex2(tex_id, smp_id);
     fontAttr.tex2bv_ofs = bv_ofs;
     fontAttr.tex2su_x32 = su_x32;
     fontAttr.tex2sv_x32 = sv_x32;
@@ -3429,7 +3430,7 @@ void GuiContext::set_draw_str_texture(TEXTUREID tex_id, int su_x32, int sv_x32, 
 void GuiContext::start_font_str(float s)
 {
   auto &fontAttr = guiState.fontAttr;
-  if (fontAttr.tex2 != BAD_TEXTUREID)
+  if (fontAttr.getTex2() != BAD_TEXTUREID)
   {
     flushData();
 
@@ -3463,11 +3464,11 @@ void GuiContext::set_user_state(int state, const float *v, int cnt)
   rollState |= ROLL_EXT_STATE;
 }
 
-static void update_font_fx_tex(GuiContext &ctx, TEXTUREID font_tex_id)
+static void update_font_fx_tex(GuiContext &ctx, TEXTUREID font_tex_id, d3d::SamplerHandle font_smp_id)
 {
-  if (!ctx.getRenderCallback() && ctx.guiState.params.ff.type != FFT_NONE && ctx.guiState.fontAttr.fontTex != font_tex_id)
+  if (!ctx.getRenderCallback() && ctx.guiState.params.ff.type != FFT_NONE && ctx.guiState.fontAttr.getFontTex() != font_tex_id)
   {
-    ctx.guiState.fontAttr.fontTex = font_tex_id;
+    ctx.guiState.fontAttr.setFontTex(font_tex_id, font_smp_id);
     ctx.setRollState(GuiContext::ROLL_GUI_STATE);
   }
 }
@@ -3486,10 +3487,11 @@ static inline void update_font_halftexel(GuiContext &ctx, TEXTUREID tex_id)
   ctx.isCurrentFontTexturePow2 = is_pow2(tinfo.w) && is_pow2(tinfo.h);
 }
 
-static inline void enqueue_glyph(GuiContext &ctx, TEXTUREID tex_id, TEXTUREID tex_id2, bool halftexel_expansion, float g_u0,
-  float g_v0, float g_u1, float g_v1, int rbgw, int rbgh, Point2 lt, Point2 rb)
+static inline void enqueue_glyph(GuiContext &ctx, TEXTUREID tex_id, d3d::SamplerHandle smp_id, TEXTUREID tex_id2,
+  d3d::SamplerHandle smp_id2, bool halftexel_expansion, float g_u0, float g_v0, float g_u1, float g_v1, int rbgw, int rbgh, Point2 lt,
+  Point2 rb)
 {
-  ctx.set_textures(tex_id, tex_id2, true);
+  ctx.set_textures(tex_id, smp_id, tex_id2, smp_id2, true);
 
   if (halftexel_expansion)
   {
@@ -3532,10 +3534,11 @@ static inline void enqueue_glyph(GuiContext &ctx, TEXTUREID tex_id, TEXTUREID te
   }
   // renderQuad.render(use_buffer);
 }
-static inline void enqueue_glyph(GuiContext &ctx, TEXTUREID tex_id, bool halftexel_expansion, float g_u0, float g_v0, float g_u1,
-  float g_v1, int rbgw, int rbgh, const Point2 &lt, const Point2 &rb)
+static inline void enqueue_glyph(GuiContext &ctx, TEXTUREID tex_id, d3d::SamplerHandle smp_id, bool halftexel_expansion, float g_u0,
+  float g_v0, float g_u1, float g_v1, int rbgw, int rbgh, Point2 lt, Point2 rb)
 {
-  return enqueue_glyph(ctx, tex_id, BAD_TEXTUREID, halftexel_expansion, g_u0, g_v0, g_u1, g_v1, rbgw, rbgh, lt, rb);
+  return enqueue_glyph(ctx, tex_id, smp_id, BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, halftexel_expansion, g_u0, g_v0, g_u1, g_v1,
+    rbgw, rbgh, lt, rb);
 }
 
 // render single character using current font with scale
@@ -3578,9 +3581,11 @@ static void draw_char_internal(GuiContext &ctx, const DagorFontBinDump::GlyphDat
   if ((!ctx.getRenderCallback() || ctx.getRenderCallback()->checkVis) && !ctx.vpBoxIsVisible(lt, rb))
     return;
 
-  update_font_fx_tex(ctx, fontTexId);
+  d3d::SamplerHandle fontSmpId = d3d::request_sampler({});
+
+  update_font_fx_tex(ctx, fontTexId, fontSmpId);
   G_ASSERT(curRenderFont.font->isClassicFontTex());
-  enqueue_glyph(ctx, fontTexId, halftexelExpansion, g.u0, g.v0, g.u1, g.v1, g.x1 - g.x0, g.y1 - g.y0, lt, rb);
+  enqueue_glyph(ctx, fontTexId, fontSmpId, halftexelExpansion, g.u0, g.v0, g.u1, g.v1, g.x1 - g.x0, g.y1 - g.y0, lt, rb);
 }
 
 static void draw_char_internal_hb(GuiContext &ctx, const hb_glyph_position_t &glyph_pos, hb_codepoint_t cp, real scale, float uv_scale,
@@ -3592,6 +3597,7 @@ static void draw_char_internal_hb(GuiContext &ctx, const hb_glyph_position_t &gl
   if (gp && gp->texIdx < DagorFontBinDump::dynFontTex.size())
   {
     TEXTUREID fontTexId = DagorFontBinDump::dynFontTex[gp->texIdx].texId;
+    d3d::SamplerHandle fontSmpId = d3d::request_sampler({});
 
     if (ctx.prevTextTextureId != fontTexId)
       update_font_halftexel(ctx, fontTexId);
@@ -3608,8 +3614,9 @@ static void draw_char_internal_hb(GuiContext &ctx, const hb_glyph_position_t &gl
     if ((!ctx.getRenderCallback() || ctx.getRenderCallback()->checkVis) && !ctx.vpBoxIsVisible(lt, rb))
       goto ret;
 
-    update_font_fx_tex(ctx, fontTexId);
-    enqueue_glyph(ctx, fontTexId, true, gp->u0 * uv_scale, gp->v0 * uv_scale, gp->u1 * uv_scale, gp->v1 * uv_scale, gw, gh, lt, rb);
+    update_font_fx_tex(ctx, fontTexId, fontSmpId);
+    enqueue_glyph(ctx, fontTexId, fontSmpId, true, gp->u0 * uv_scale, gp->v0 * uv_scale, gp->u1 * uv_scale, gp->v1 * uv_scale, gw, gh,
+      lt, rb);
   }
   else if (!gp || gp->texIdx == gp->TEXIDX_NOTPLACED)
   {
@@ -3761,11 +3768,11 @@ void GuiContext::render_str_buf(dag::ConstSpan<GuiVertex> buf_qv, dag::ConstSpan
   }
   else
   {
-    if (preTranformViewport.isempty())
+    if (preTransformViewport.isempty())
       return;
     // use pre-transform viewport (shifted back to compensate currentPos)
-    view_bb[0].set_xy((preTranformViewport[0] - currentPos) * GUI_POS_SCALE);
-    view_bb[1].set_xy((preTranformViewport[1] - currentPos) * GUI_POS_SCALE);
+    view_bb[0].set_xy((preTransformViewport[0] - currentPos) * GUI_POS_SCALE);
+    view_bb[1].set_xy((preTransformViewport[1] - currentPos) * GUI_POS_SCALE);
   }
 
   const GuiVertex *cur_qv = buf_qv.data();
@@ -3775,8 +3782,9 @@ void GuiContext::render_str_buf(dag::ConstSpan<GuiVertex> buf_qv, dag::ConstSpan
     if (!full_qnum)
       continue;
     TEXTUREID font_tid = D3DRESID::fromIndex(tq[0]);
-    update_font_fx_tex(*this, font_tid);
-    set_textures(font_tid, BAD_TEXTUREID, true);
+    update_font_fx_tex(*this, font_tid, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
+    // TODO: Use actual sampler IDs
+    set_textures(font_tid, d3d::INVALID_SAMPLER_HANDLE, BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, true);
     while (full_qnum > 0)
     {
       int qnum = full_qnum < qCacheCapacity() ? full_qnum : qCacheCapacity(), qunused = 0;
@@ -3898,7 +3906,7 @@ static void render_inscription_u(int fontId, const DagorFontBinDump::Inscription
   {
     ownChunk = true;
     ctxBlur.currentChunk = ctxBlur.beginChunk();
-    ctxBlur.set_texture(DagorFontBinDump::inscr_atlas.tex.getId());
+    ctxBlur.set_texture(DagorFontBinDump::inscr_atlas.tex.first.getId(), DagorFontBinDump::inscr_atlas.tex.second);
   }
 
   if (!rfont[fontId].rasterize_str_u(*g, str, len, scale))
@@ -3909,8 +3917,9 @@ static void render_inscription_u(int fontId, const DagorFontBinDump::Inscription
     int m = DagorFontBinDump::inscr_atlas.getMarginLtOfs();
     float mdu = DagorFontBinDump::inscr_atlas.getMarginDu();
     float mdv = DagorFontBinDump::inscr_atlas.getMarginDv();
-    enqueue_glyph(ctxBlur, DagorFontBinDump::inscr_atlas.tex.getId(), false, g->u0 - mdu, g->v0 - mdv, g->u1 + mdu, g->v1 + mdv,
-      g->w + 2 * m, g->h + 2 * m, Point2(g->x0 - m, g->y0 - m) / 4, Point2(g->x0 + g->w + m, g->y0 + g->h + m) / 4);
+    enqueue_glyph(ctxBlur, DagorFontBinDump::inscr_atlas.tex.first.getId(), DagorFontBinDump::inscr_atlas.tex.second, false,
+      g->u0 - mdu, g->v0 - mdv, g->u1 + mdu, g->v1 + mdv, g->w + 2 * m, g->h + 2 * m, Point2(g->x0 - m, g->y0 - m) / 4,
+      Point2(g->x0 + g->w + m, g->y0 + g->h + m) / 4);
   }
 
   if (ownChunk)
@@ -3998,8 +4007,9 @@ void GuiContext::draw_inscription_scaled(real scale, const char *str, int len)
     if (vpBoxIsVisible(lt, rb))
     {
       G_ASSERT(curRenderFont.font->isClassicFontTex());
-      enqueue_glyph(*this, DagorFontBinDump::inscr_atlas.tex.getId(), DagorFontBinDump::inscr_atlas.texBlurred.getId(), false, g->u0,
-        g->v0, g->u1, g->v1, g->w, g->h, lt, rb);
+      enqueue_glyph(*this, DagorFontBinDump::inscr_atlas.tex.first.getId(), DagorFontBinDump::inscr_atlas.tex.second,
+        DagorFontBinDump::inscr_atlas.texBlurred.getId(), DagorFontBinDump::inscr_atlas.texBlurredSampler, false, g->u0, g->v0, g->u1,
+        g->v1, g->w, g->h, lt, rb);
     }
     currentPos.x += g->dx * scale;
     str += sublen;
@@ -4061,9 +4071,10 @@ void GuiContext::draw_inscription(uint32_t inscr_handle, float scale)
     Point2 rb(lt.x + width * scale, lt.y + height * scale);
 
     G_ASSERT(curRenderFont.font->isClassicFontTex());
-    enqueue_glyph(*this, DagorFontBinDump::inscr_atlas.tex.getId(), DagorFontBinDump::inscr_atlas.texBlurred.getId(), false, g->u0,
-      g->v0, g->u1 + expand_pix * DagorFontBinDump::inscr_atlas.getInvW(),
-      g->v1 + expand_pix * DagorFontBinDump::inscr_atlas.getInvH(), width, height, lt, rb);
+    enqueue_glyph(*this, DagorFontBinDump::inscr_atlas.tex.first.getId(), DagorFontBinDump::inscr_atlas.tex.second,
+      DagorFontBinDump::inscr_atlas.texBlurred.getId(), DagorFontBinDump::inscr_atlas.texBlurredSampler, false, g->u0, g->v0,
+      g->u1 + expand_pix * DagorFontBinDump::inscr_atlas.getInvW(), g->v1 + expand_pix * DagorFontBinDump::inscr_atlas.getInvH(),
+      width, height, lt, rb);
     currentPos.x += g->dx * scale;
   }
 }
@@ -4153,13 +4164,16 @@ void set_user_state(int state, const float *v, int cnt) // currently no more tha
 {
   stdgui_context.set_user_state(state, v, cnt);
 }
-void set_color(const E3DCOLOR &color) { stdgui_context.set_color(color); }
+void set_color(E3DCOLOR color) { stdgui_context.set_color(color); }
 BlendMode get_alpha_blend() { return stdgui_context.get_alpha_blend(); }
 void set_alpha_blend(BlendMode blend_mode) { stdgui_context.set_alpha_blend(blend_mode); }
-void set_textures(const TEXTUREID tex, const TEXTUREID tex2) { stdgui_context.set_textures(tex, tex2); }
-void set_mask_texture(TEXTUREID tex_id, const Point3 &transform0, const Point3 &transform1)
+void set_textures(const TEXTUREID tex, d3d::SamplerHandle smp_id, const TEXTUREID tex2, d3d::SamplerHandle smp_id2)
 {
-  stdgui_context.set_mask_texture(tex_id, transform0, transform1);
+  stdgui_context.set_textures(tex, smp_id, tex2, smp_id2);
+}
+void set_mask_texture(TEXTUREID tex_id, d3d::SamplerHandle smp_id, Point3 transform0, Point3 transform1)
+{
+  stdgui_context.set_mask_texture(tex_id, smp_id, transform0, transform1);
 }
 void set_viewport(const GuiViewPort &rt) { stdgui_context.set_viewport(rt); }
 void apply_viewport(GuiViewPort &rt) { stdgui_context.applyViewport(rt); }
@@ -4184,7 +4198,7 @@ bool is_render_started() { return stdgui_context.isRenderStarted(); }
   }*/
 
 // get virtual screen size (first fullscreen, then VR 2d background)
-const Point2 &screen_size() { return g_screen_size; }
+Point2 screen_size() { return g_screen_size; }
 real screen_width() { return g_screen_size.x; }
 real screen_height() { return g_screen_size.y; }
 // some tools attempts to read screen size at startup without start_render()
@@ -4199,8 +4213,8 @@ real real_screen_height()
   return g_screen_size.y;
 }
 
-const Point2 &logic2real() { return stdgui_context.logic2real(); }
-const Point2 &real2logic() { return stdgui_context.real2logic(); }
+Point2 logic2real() { return stdgui_context.logic2real(); }
+Point2 real2logic() { return stdgui_context.real2logic(); }
 void start_raw_layer() { stdgui_context.start_raw_layer(); }
 void end_raw_layer() { stdgui_context.end_raw_layer(); }
 
@@ -4210,18 +4224,16 @@ void draw_faces(GuiVertex *verts, int num_verts, const IndexType *indices, int n
   stdgui_context.draw_faces(verts, num_verts, indices, num_faces);
 }
 void flush_data() { stdgui_context.flushData(); }
-void render_quad(const Point2 &p0, const Point2 &p1, const Point2 &p2, const Point2 &p3, const Point2 &tc0, const Point2 &tc1,
-  const Point2 &tc2, const Point2 &tc3)
+void render_quad(Point2 p0, Point2 p1, Point2 p2, Point2 p3, Point2 tc0, Point2 tc1, Point2 tc2, Point2 tc3)
 {
   stdgui_context.render_quad(p0, p1, p2, p3, tc0, tc1, tc2, tc3);
 }
-void render_quad_color(const Point2 &p0, const Point2 &p3, const Point2 &p2, const Point2 &p1, const Point2 &tc0, const Point2 &tc3,
-  const Point2 &tc2, const Point2 &tc1, E3DCOLOR c0, E3DCOLOR c3, E3DCOLOR c2, E3DCOLOR c1)
+void render_quad_color(Point2 p0, Point2 p3, Point2 p2, Point2 p1, Point2 tc0, Point2 tc3, Point2 tc2, Point2 tc1, E3DCOLOR c0,
+  E3DCOLOR c3, E3DCOLOR c2, E3DCOLOR c1)
 {
   stdgui_context.render_quad_color(p0, p3, p2, p1, tc0, tc3, tc2, tc1, c0, c3, c2, c1);
 }
-void render_quad_t(const Point2 &p0, const Point2 &p1, const Point2 &p2, const Point2 &p3, const Point2 &tc_lefttop,
-  const Point2 &tc_rightbottom)
+void render_quad_t(Point2 p0, Point2 p1, Point2 p2, Point2 p3, Point2 tc_lefttop, Point2 tc_rightbottom)
 {
   stdgui_context.render_quad_t(p0, p1, p2, p3, tc_lefttop, tc_rightbottom);
 }
@@ -4233,36 +4245,34 @@ void render_frame(real left, real top, real right, real bottom, real thickness)
 
 void render_box(real left, real top, real right, real bottom) { stdgui_context.render_box(left, top, right, bottom); }
 
-void solid_frame(real left, real top, real right, real bottom, real thickness, const E3DCOLOR &background, const E3DCOLOR &frame)
+void solid_frame(real left, real top, real right, real bottom, real thickness, E3DCOLOR background, E3DCOLOR frame)
 {
   stdgui_context.solid_frame(left, top, right, bottom, thickness, background, frame);
 }
 
-void render_rect(real left, real top, real right, real bottom, const Point2 &left_top_tc, const Point2 &dx_tc, const Point2 &dy_tc)
+void render_rect(real left, real top, real right, real bottom, Point2 left_top_tc, Point2 dx_tc, Point2 dy_tc)
 {
   stdgui_context.render_rect(left, top, right, bottom, left_top_tc, dx_tc, dy_tc);
 }
 
-void render_rect_t(real left, real top, real right, real bottom, const Point2 &left_top_tc, const Point2 &right_bottom_tc)
+void render_rect_t(real left, real top, real right, real bottom, Point2 left_top_tc, Point2 right_bottom_tc)
 {
   stdgui_context.render_rect_t(left, top, right, bottom, left_top_tc, right_bottom_tc);
 }
-void render_rounded_box(const Point2 &lt, const Point2 &rb, E3DCOLOR col, E3DCOLOR border, const Point4 &rounding, float thickness)
+void render_rounded_box(Point2 lt, Point2 rb, E3DCOLOR col, E3DCOLOR border, Point4 rounding, float thickness)
 {
   stdgui_context.render_rounded_box(lt, rb, col, border, rounding, thickness);
 }
-void render_rounded_frame(const Point2 &lt, const Point2 &rb, E3DCOLOR col, const Point4 &rounding, float thickness)
+void render_rounded_frame(Point2 lt, Point2 rb, E3DCOLOR col, Point4 rounding, float thickness)
 {
   stdgui_context.render_rounded_frame(lt, rb, col, rounding, thickness);
 }
-void render_rounded_image(const Point2 &lt, const Point2 &rb, const Point2 &tc_lefttop, const Point2 &tc_rightbottom, E3DCOLOR col,
-  const Point4 &rounding)
+void render_rounded_image(Point2 lt, Point2 rb, Point2 tc_lefttop, Point2 tc_rightbottom, E3DCOLOR col, Point4 rounding)
 {
   stdgui_context.render_rounded_image(lt, rb, tc_lefttop, tc_rightbottom, col, rounding);
 }
 
-void render_rounded_image(const Point2 &lt, const Point2 &rb, const Point2 &tc_lefttop, const Point2 &dx_tc, const Point2 &dy_tc,
-  E3DCOLOR col, const Point4 &rounding)
+void render_rounded_image(Point2 lt, Point2 rb, Point2 tc_lefttop, Point2 dx_tc, Point2 dy_tc, E3DCOLOR col, Point4 rounding)
 {
   stdgui_context.render_rounded_image(lt, rb, tc_lefttop, dx_tc, dy_tc, col, rounding);
 }
@@ -4272,9 +4282,9 @@ void draw_line(real left, real top, real right, real bottom, real thickness)
   stdgui_context.draw_line(left, top, right, bottom, thickness);
 }
 
-void goto_xy(const Point2 &pos) { stdgui_context.goto_xy(pos); }
+void goto_xy(Point2 pos) { stdgui_context.goto_xy(pos); }
 
-const Point2 &get_text_pos() { return stdgui_context.get_text_pos(); }
+Point2 get_text_pos() { return stdgui_context.get_text_pos(); }
 
 void set_spacing(int spacing) { stdgui_context.set_spacing(spacing); }
 void set_mono_width(int mw) { stdgui_context.set_mono_width(mw); }
@@ -4337,9 +4347,9 @@ void set_draw_str_attr(FontFxType t, int ofs_x, int ofs_y, E3DCOLOR col, int fac
 {
   stdgui_context.set_draw_str_attr(t, ofs_x, ofs_y, col, factor_x32);
 }
-void set_draw_str_texture(TEXTUREID tex_id, int su_x32, int sv_x32, int bv_ofs)
+void set_draw_str_texture(TEXTUREID tex_id, d3d::SamplerHandle smp_id, int su_x32, int sv_x32, int bv_ofs)
 {
-  stdgui_context.set_draw_str_texture(tex_id, su_x32, sv_x32, bv_ofs);
+  stdgui_context.set_draw_str_texture(tex_id, smp_id, su_x32, sv_x32, bv_ofs);
 }
 void draw_char_u(wchar_t ch) { stdgui_context.draw_char_u(ch); }
 void draw_str_scaled(real scale, const char *str, int len) { stdgui_context.draw_str_scaled(scale, str, len); }
@@ -4368,17 +4378,18 @@ void draw_inscription_v(float scale, const char *fmt, const DagorSafeArg *arg, i
   stdgui_context.draw_inscription_v(scale, fmt, arg, anum);
 }
 void draw_timestr(unsigned int ms) { stdgui_context.draw_timestr(ms); }
-void set_textures(TEXTUREID tex_id, TEXTUREID tex_id2, bool font_l8) { stdgui_context.set_textures(tex_id, tex_id2, font_l8); }
+void set_textures(TEXTUREID tex_id, TEXTUREID tex_id2, bool font_l8)
+{
+  // TODO: Use actual sampler IDs
+  stdgui_context.set_textures(tex_id, d3d::INVALID_SAMPLER_HANDLE, tex_id2, d3d::INVALID_SAMPLER_HANDLE, font_l8);
+}
 }; // namespace StdGuiRender
 
 //***********************************************************************
 
 void GuiVertex::resetViewTm() { StdGuiRender::stdgui_context.resetViewTm(); }
 void GuiVertex::setViewTm(const float m[2][3]) { StdGuiRender::stdgui_context.setViewTm(m); }
-void GuiVertex::setViewTm(const Point2 &ax, const Point2 &ay, const Point2 &o, bool add)
-{
-  StdGuiRender::stdgui_context.setViewTm(ax, ay, o, add);
-}
+void GuiVertex::setViewTm(Point2 ax, Point2 ay, Point2 o, bool add) { StdGuiRender::stdgui_context.setViewTm(ax, ay, o, add); }
 
 void GuiVertex::setRotViewTm(float x0, float y0, float rot_ang_rad, float skew_ang_rad, bool add)
 {
@@ -4403,7 +4414,7 @@ void GuiViewPort::dump(const char *msg) const
 }
 
 // check visiblility for points (viewport left-top must be <= right-bottom)
-bool GuiViewPort::isVisible(const Point2 &p0, const Point2 &p1, const Point2 &p2, const Point2 &p3) const
+bool GuiViewPort::isVisible(Point2 p0, Point2 p1, Point2 p2, Point2 p3) const
 {
   return isVisible(min4(p0.x, p1.x, p2.x, p3.x), min4(p0.y, p1.y, p2.y, p3.y), max4(p0.x, p1.x, p2.x, p3.x),
     max4(p0.y, p1.y, p2.y, p3.y));
@@ -4451,7 +4462,7 @@ void GuiVertexTransform::resetViewTm()
   // expect fontTex2rotCCSmS.set(1, 1, 0, 0);
 }
 
-void GuiVertexTransform::setViewTm(const Point2 &ax, const Point2 &ay, const Point2 &o)
+void GuiVertexTransform::setViewTm(Point2 ax, Point2 ay, Point2 o)
 {
   vtm[0][0] = ax.x * GUI_POS_SCALE;
   vtm[0][1] = ay.x * GUI_POS_SCALE;
@@ -4467,10 +4478,7 @@ void GuiVertexTransform::setViewTm(const float m[2][3])
   // expect fontTex2rotCCSmS.set(1, 1, 0, 0);
 }
 
-void GuiVertexTransform::addViewTm(const Point2 &ax, const Point2 &ay, const Point2 &o)
-{
-  mul3_inplace(vtm, ax.x, ay.x, o.x, ax.y, ay.y, o.y);
-}
+void GuiVertexTransform::addViewTm(Point2 ax, Point2 ay, Point2 o) { mul3_inplace(vtm, ax.x, ay.x, o.x, ax.y, ay.y, o.y); }
 
 void GuiVertexTransform::setRotViewTm(Color4 &fontTex2rotCCSmS, float x0, float y0, float rot_ang_rad, float skew_ang_rad, bool add)
 {

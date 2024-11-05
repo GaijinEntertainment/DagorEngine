@@ -125,7 +125,7 @@ is_intersecting returns bool
 +--------+--------------------------------------------------------+
 
 
-returns true if inputs intersect
+A.LO<=B.HI && A.HI>=B.LO
 
 .. _function-_at_math_boost_c__c_is_intersecting_CS_ls_math_boost_c__c_AABB_gr__CS_ls_math_boost_c__c_AABB_gr_:
 
@@ -142,7 +142,7 @@ is_intersecting returns bool
 +--------+--------------------------------------------------------+
 
 
-returns true if inputs intersect
+A.LO<=B.HI && A.HI>=B.LO
 
 .. _function-_at_math_boost_c__c_is_intersecting_CS_ls_math_boost_c__c_Ray_gr__CS_ls_math_boost_c__c_AABB_gr__Cf_Cf:
 
@@ -163,7 +163,7 @@ is_intersecting returns bool
 +--------+--------------------------------------------------------+
 
 
-returns true if inputs intersect
+A.LO<=B.HI && A.HI>=B.LO
 
 ++++++++
 Matrices

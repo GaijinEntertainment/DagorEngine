@@ -1,0 +1,64 @@
+include "giHelpers/trees_above_common_base.dshl"
+include "project_light_point.dshl"
+
+macro PROJECT_GI_MEDIA(code)
+  hlsl(code) {
+    float4 dagi_get_project_media(float3 worldPos, float voxelSize)//incoming light scattering + density
+    {
+      //fixme: add volfog
+      return 0;
+    }
+  }
+endmacro
+
+float foliage_initial_density_mul = 0.2;
+
+macro PROJECT_GI_INITIAL_MEDIA(code)
+  USE_TREES_ABOVE_BASE(code)
+  SUN_SKY_LIGHT_POINT_TRACE_HIT(code)
+  DAGI_USE_SKY_SPH(code)
+  PROJECT_GI_MEDIA(code)
+  (code) {
+    foliage_initial_density_mul@f1 = foliage_initial_density_mul;
+  }
+  hlsl(code) {
+    float4 dagi_get_project_initial_media(float3 worldPos, float voxelSize)//scattering + transmittance
+    {
+      float4 media = dagi_get_project_media(worldPos, voxelSize);
+      float worldPosYMax, worldPosYMin;
+      half3 albedo_color;
+      float3 worldNormal, downWorldNormal;
+      if (!get_trees_above_color_height(worldPos.xz, worldNormal, downWorldNormal, worldPosYMax, worldPosYMin, albedo_color, false))
+        return media;
+      //return albedo_color.g != 0 ? 10 : 0;
+      if (worldPos.y > worldPosYMax || worldPos.y < worldPosYMin)
+        return media;
+      float center = 0.5*(worldPosYMax + worldPosYMin), extent = worldPosYMax - center;
+      //float transmittance = saturate(abs(worldPos.y-center)/extent*10 - 9);//last 10% is smooth transparent
+      //transmittance = lerp(transmittance, 1, saturate(min(worldPos.y-worldPosYMin, worldPosYMax-worldPos.y)/voxelSize-1));
+      //transmittance = saturate(transmittance*foliage_transmittance.x + foliage_transmittance.y);
+      float density = saturate(10 - abs(worldPos.y-center)/extent*10);//last 10% is smooth transparent
+      density = lerp(density, 0, saturate(min(worldPos.y-worldPosYMin, worldPosYMax-worldPos.y)/voxelSize-1))*foliage_initial_density_mul;
+      //float transmittance = saturate(worldPos.y-worldPosMax);
+      //float transmittance = saturate((worldPosMax-worldPos.y)/depth);
+      if (density < 1e-8)
+        return media;
+      worldNormal = normalize(lerp(downWorldNormal, worldNormal, (worldPos.y-worldPosYMin)/(worldPosYMax-worldPosYMin)));
+      float mediaDensity = density;
+      //float3 worldNormal = float3(0,1,0); // fixme
+      float3 shadowWorldPos = worldPos + (worldNormal.y < 0 ? -worldNormal:worldNormal)*voxelSize;
+      #if DAGI_LIGHT_TRANSLUCENT_SCENE
+      half averageTranslucency = 0.5;//fixme: we can actually render it to
+      half3 translucencyColor = averageTranslucency*albedo_color.xyz;
+      #ifdef DAGI_LIGHT_TRANSLUCENT_SCENE_FOLIAGE_TINT
+        translucencyColor *= DAGI_LIGHT_TRANSLUCENT_SCENE_FOLIAGE_TINT;
+      #endif
+      float3 ambient = getSkyVisSPH1(worldNormal)*0.5, backAmbient = getSkyVisSPH1(-worldNormal)*0.5;
+      half3 litColor = get_sun_sky_lit_color_both(worldPos, shadowWorldPos, worldNormal, albedo_color.xyz, translucencyColor, ambient, backAmbient, 0, 1);
+      #else
+      half3 litColor = get_sun_sky_lit_color(worldPos, shadowWorldPos, worldNormal, albedo_color.xyz, 0, 1);
+      #endif
+      return media + float4(litColor.xyz*mediaDensity, mediaDensity);
+    }
+  }
+endmacro

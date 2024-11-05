@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <rendInst/rendInstExtraAccess.h>
 #include <ecs/core/entityManager.h>
 #include <ecs/rendInst/riExtra.h>

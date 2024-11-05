@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <debug/dag_log.h>
@@ -6,6 +7,9 @@
 #include "driver.h"
 #include "extents.h"
 
+#if _TARGET_XBOX
+#include "command_list_xbox.h"
+#endif
 
 namespace drv3d_dx12
 {
@@ -20,10 +24,10 @@ namespace drv3d_dx12
     return hadError;                    \
   }
 #define DX12_UPDATE_VALIATION_STATE(result) hadError = (result)
-#define DX12_ON_VALIDATION_ERROR(...)                           \
-  {                                                             \
-    logerr("DX12: " DX12_VALIDATAION_CONTEXT ": " __VA_ARGS__); \
-    DX12_UPDATE_VALIATION_STATE(true);                          \
+#define DX12_ON_VALIDATION_ERROR(...)                              \
+  {                                                                \
+    D3D_ERROR("DX12: " DX12_VALIDATAION_CONTEXT ": " __VA_ARGS__); \
+    DX12_UPDATE_VALIATION_STATE(true);                             \
   }
 #define DX12_VALIDATE_CONDITION(cond, ...) \
   if (!(cond))                             \
@@ -304,10 +308,10 @@ struct BasicGraphicsCommandListBarrierValidationPolicy
     ComputeCommandListBarrierValidationPolicy::VALID_BUFFER_WRITE_STATE_MASK | D3D12_RESOURCE_STATE_STREAM_OUT;
 
   static constexpr D3D12_RESOURCE_STATES VALID_TEXTURE_READ_STATE_MASK =
-    ComputeCommandListBarrierValidationPolicy::VALID_TEXTURE_READ_STATE_MASK | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-  static constexpr D3D12_RESOURCE_STATES VALID_TEXTURE_WRITE_STATE_MASK =
-    ComputeCommandListBarrierValidationPolicy::VALID_TEXTURE_WRITE_STATE_MASK | D3D12_RESOURCE_STATE_RESOLVE_DEST |
+    ComputeCommandListBarrierValidationPolicy::VALID_TEXTURE_READ_STATE_MASK | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
     D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
+  static constexpr D3D12_RESOURCE_STATES VALID_TEXTURE_WRITE_STATE_MASK =
+    ComputeCommandListBarrierValidationPolicy::VALID_TEXTURE_WRITE_STATE_MASK | D3D12_RESOURCE_STATE_RESOLVE_DEST;
 
   static constexpr D3D12_RESOURCE_STATES VALID_UAV_STATE_MASK = ComputeCommandListBarrierValidationPolicy::VALID_UAV_STATE_MASK;
   static constexpr D3D12_RESOURCE_STATES VALID_RTV_STATE_MASK =
@@ -353,13 +357,665 @@ struct ExtendedGraphicsCommandListBarrierValidationPolicy
 
 #undef DX12_VALIDATAION_CONTEXT
 
+enum class DX12_COMMAND_LOG_ITEM_TYPE : uint32_t
+{
+#define DX12_HARDWARE_COMMAND(TYPE, COMMAND_NAME, ...) TYPE,
+#include "command_list_cmd.inc.h"
+#undef DX12_HARDWARE_COMMAND
+};
+
+template <class T>
+struct IsSpan : eastl::false_type
+{};
+
+template <class T>
+struct IsSpan<eastl::span<T>> : eastl::true_type
+{
+  using ElementType = T;
+};
+
+template <DX12_COMMAND_LOG_ITEM_TYPE command_type, class... ARGS>
+uint32_t full_log_item_size(ARGS... args);
+
+template <DX12_COMMAND_LOG_ITEM_TYPE command_type, class... ARGS>
+class CommandLogItem
+{
+public:
+  CommandLogItem(ARGS... args) : args{args...} {}
+
+  eastl::string toString() const
+  {
+    return eastl::apply([](ARGS... args) { return make_command_string({to_string(args)...}); }, args);
+  }
+
+  constexpr static uint32_t static_command_size() { return (static_argument_size<ARGS>() + ... + sizeof(DX12_COMMAND_LOG_ITEM_TYPE)); }
+
+  uint32_t command_size() const
+  {
+    return eastl::apply([](ARGS... args) { return full_log_item_size<command_type>(args...); }, args);
+  }
+
+private:
+  template <class ARG_TYPE>
+  constexpr static uint32_t static_argument_size()
+  {
+    return IsSpan<ARG_TYPE>::value ? 0 : sizeof(ARG_TYPE);
+  }
+
+  static eastl::string make_command_string(std::initializer_list<eastl::string_view> args)
+  {
+    eastl::string result{to_string(command_type)};
+    result += "(";
+    for (auto it = args.begin(); it != args.end(); it++)
+    {
+      if (it != args.begin())
+        result += ", ";
+      result.append(it->data(), it->size());
+    }
+    result += ")";
+    return result;
+  }
+
+  template <class T>
+  static eastl::string to_string(T arg)
+  {
+    return eastl::to_string(arg);
+  }
+
+  template <class T>
+  static eastl::string to_string(const eastl::optional<T> &optional_arg)
+  {
+    if (!optional_arg)
+      return "nullptr";
+    return to_string(*optional_arg);
+  }
+
+  template <class T>
+  static eastl::string to_string(const eastl::span<T> &args)
+  {
+    eastl::string result{"{"};
+    for (auto it = args.cbegin(); it != args.cend(); ++it)
+    {
+      if (it != args.cbegin())
+        result += ", ";
+      result += to_string(*it);
+    }
+    result += "}";
+    return result;
+  }
+
+  static eastl::string to_string(const eastl::string &arg) { return arg; }
+
+  static eastl::string to_string(D3D12_CPU_DESCRIPTOR_HANDLE arg)
+  {
+    eastl::string result;
+    result.sprintf("0x%x", arg.ptr);
+    return result;
+  }
+
+  static eastl::string to_string(D3D12_GPU_DESCRIPTOR_HANDLE arg)
+  {
+    eastl::string result;
+    result.sprintf("0x%x", arg.ptr);
+    return result;
+  }
+
+  static eastl::string to_string(const void *arg)
+  {
+    eastl::string result;
+    result.sprintf("0x%p", arg);
+    return result;
+  }
+
+  static const char *to_string(DX12_COMMAND_LOG_ITEM_TYPE cmd_type)
+  {
+    switch (cmd_type)
+    {
+#define DX12_HARDWARE_COMMAND(TYPE, COMMAND_NAME, ...) \
+  case DX12_COMMAND_LOG_ITEM_TYPE::TYPE:               \
+    return COMMAND_NAME;
+#include "command_list_cmd.inc.h"
+#undef DX12_HARDWARE_COMMAND
+      default: D3D_ERROR("Unknown command type %d", (int)cmd_type); return "Unknown";
+    }
+  }
+
+  static eastl::string to_string(ID3D12Resource *arg) { return to_string(static_cast<const void *>(arg)); }
+  static eastl::string to_string(ID3D12RootSignature *arg) { return to_string(static_cast<const void *>(arg)); }
+  static eastl::string to_string(ID3D12PipelineState *arg) { return to_string(static_cast<const void *>(arg)); }
+  static eastl::string to_string(ID3D12CommandSignature *arg) { return to_string(static_cast<const void *>(arg)); }
+  static eastl::string to_string(ID3D12QueryHeap *arg) { return to_string(static_cast<const void *>(arg)); }
+  static eastl::string to_string(ID3D12DescriptorHeap *arg) { return to_string(static_cast<const void *>(arg)); }
+#if D3D_HAS_RAY_TRACING
+  static eastl::string to_string(ID3D12StateObject *arg) { return to_string(static_cast<const void *>(arg)); }
+#endif
+
+  static eastl::string to_string(const D3D12_SUBRESOURCE_FOOTPRINT &footprint)
+  {
+    eastl::string result;
+    result.sprintf("{%u, %u, %u, %u, %u}", footprint.Format, footprint.Width, footprint.Height, footprint.Depth, footprint.RowPitch);
+    return result;
+  }
+
+  static eastl::string to_string(const D3D12_PLACED_SUBRESOURCE_FOOTPRINT &footprint)
+  {
+    eastl::string result;
+    result.sprintf("{0x%" PRIX64, footprint.Offset);
+    result.append(to_string(footprint.Footprint));
+    result.append("}");
+    return result;
+  }
+
+  static eastl::string to_string(const D3D12_TEXTURE_COPY_LOCATION &location)
+  {
+    eastl::string result;
+    result.sprintf("{0x%p, %u, ", location.pResource, location.Type);
+    if (location.Type == D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT)
+      result.append(to_string(location.PlacedFootprint));
+    else
+      result.append_sprintf("%u", location.SubresourceIndex);
+    result.append("}");
+    return result;
+  }
+
+  static eastl::string to_string(const D3D12_BOX &box)
+  {
+    eastl::string result;
+    result.sprintf("{%u, %u, %u, %u, %u, %u}", box.left, box.top, box.front, box.right, box.bottom, box.back);
+    return result;
+  }
+
+  static eastl::string to_string(const D3D12_INDEX_BUFFER_VIEW &index_buffer_view)
+  {
+    eastl::string result;
+    result.sprintf("{0x%" PRIX64 ", %u, %u}", index_buffer_view.BufferLocation, index_buffer_view.SizeInBytes,
+      index_buffer_view.Format);
+    return result;
+  }
+
+  static eastl::string to_string(const D3D12_GPU_VIRTUAL_ADDRESS_RANGE &gpu_virtual_address_range)
+  {
+    eastl::string result;
+    result.sprintf("{0x%" PRIX64 ", %u}", gpu_virtual_address_range.StartAddress, gpu_virtual_address_range.SizeInBytes);
+    return result;
+  }
+
+  static eastl::string to_string(const D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE &gpu_virtual_address_range_and_stride)
+  {
+    eastl::string result;
+    result.sprintf("{0x%" PRIX64 ", %u, %u}", gpu_virtual_address_range_and_stride.StartAddress,
+      gpu_virtual_address_range_and_stride.SizeInBytes, gpu_virtual_address_range_and_stride.StrideInBytes);
+    return result;
+  }
+
+#if D3D_HAS_RAY_TRACING
+  static eastl::string to_string(const D3D12_DISPATCH_RAYS_DESC &dispatch_rays_desc)
+  {
+    eastl::string result;
+    result.sprintf("{");
+    result.append_sprintf("%s, ", to_string(dispatch_rays_desc.RayGenerationShaderRecord).c_str());
+    result.append_sprintf("%s, ", to_string(dispatch_rays_desc.MissShaderTable).c_str());
+    result.append_sprintf("%s, ", to_string(dispatch_rays_desc.HitGroupTable).c_str());
+    result.append_sprintf("%s, ", to_string(dispatch_rays_desc.CallableShaderTable).c_str());
+    result.append_sprintf("{%u, %u, %u}", dispatch_rays_desc.Width, dispatch_rays_desc.Height, dispatch_rays_desc.Depth);
+    return result;
+  }
+
+  static eastl::string to_string(const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS &inputs)
+  {
+    eastl::string result;
+    result.sprintf("{");
+    result.append_sprintf("%s, ", to_string(inputs.Type).c_str());
+    result.append_sprintf("%s, ", to_string(inputs.Flags).c_str());
+    result.append_sprintf("%s, ", to_string(inputs.NumDescs).c_str());
+    result.append_sprintf("%s, ", to_string(inputs.DescsLayout).c_str());
+    result.append("{...}}"); /// TODO
+    return result;
+  }
+
+  static eastl::string to_string(const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC &desc)
+  {
+    eastl::string result;
+    result.sprintf("{");
+    result.append_sprintf("%s, ", to_string(desc.DestAccelerationStructureData).c_str());
+    result.append_sprintf("%s, ", to_string(desc.Inputs).c_str());
+    result.append_sprintf("%s, ", to_string(desc.SourceAccelerationStructureData).c_str());
+    result.append_sprintf("%s", to_string(desc.ScratchAccelerationStructureData).c_str());
+    result.sprintf("}");
+    return result;
+  }
+#endif
+
+  static eastl::string to_string(const D3D12_DISCARD_REGION &discard_region)
+  {
+    eastl::string result;
+    result.sprintf("{%u, {...}, %u, %u}", discard_region.NumRects /*, discard_region.pRects*/, discard_region.FirstSubresource,
+      discard_region.NumSubresources); /// TODO
+    return result;
+  }
+
+  eastl::tuple<ARGS...> args;
+};
+
+template <DX12_COMMAND_LOG_ITEM_TYPE command_type, class... ARGS>
+inline uint32_t full_log_item_size(ARGS... args)
+{
+  constexpr uint32_t staticCommandSize = CommandLogItem<command_type, ARGS...>::static_command_size();
+  auto getDynamicArgSize = [](auto arg) {
+    if constexpr (IsSpan<decltype(arg)>::value)
+      return arg.size_bytes() + sizeof(uint32_t);
+    else
+      return 0;
+  };
+  const uint32_t dynamicCommandSize = (getDynamicArgSize(args) + ... + 0);
+  return staticCommandSize + dynamicCommandSize;
+}
+
+using AnyCommandItemType = eastl::variant<eastl::monostate
+#define DX12_HARDWARE_COMMAND(TYPE, COMMAND_NAME, ...) , CommandLogItem<DX12_COMMAND_LOG_ITEM_TYPE::TYPE, __VA_ARGS__>
+#include "command_list_cmd.inc.h"
+#undef DX12_HARDWARE_COMMAND
+  >;
+
+class CommandLogDecoder
+{
+public:
+  static void dump_commands_to_log(eastl::optional<eastl::span<const unsigned char>> commands_logs)
+  {
+    if (!commands_logs)
+    {
+      logdbg("Commands log is disabled");
+      return;
+    }
+
+    logdbg("Hardware command list log begin");
+    uint32_t offset = 0;
+    while (offset < commands_logs->size())
+    {
+      auto cmdVariant = decode_command(commands_logs->data() + offset);
+      logdbg("%s", eastl::visit(CommandToStringVisitor{}, cmdVariant));
+      offset += eastl::visit(CommandToSizeVisitor{}, cmdVariant);
+    }
+    logdbg("Hardware command list log end");
+  }
+
+private:
+  struct CommandToStringVisitor
+  {
+    template <class COMMAND>
+    eastl::string operator()(const COMMAND &cmd) const
+    {
+      return cmd.toString();
+    }
+    eastl::string operator()(const eastl::monostate &) const { return "Unknown command"; }
+  };
+
+  struct CommandToSizeVisitor
+  {
+    template <class COMMAND>
+    uint32_t operator()(const COMMAND &cmd) const
+    {
+      return cmd.command_size();
+    }
+    uint32_t operator()(const eastl::monostate &) const { return sizeof(DX12_COMMAND_LOG_ITEM_TYPE); }
+  };
+
+  template <class ARG_TYPE>
+  static ARG_TYPE decode_argument(const unsigned char *&args)
+  {
+    if constexpr (IsSpan<ARG_TYPE>::value)
+    {
+      const uint32_t size = *reinterpret_cast<const uint32_t *>(args);
+      args += sizeof(uint32_t);
+      const auto begin = reinterpret_cast<const typename IsSpan<ARG_TYPE>::ElementType *>(args);
+      args += size * sizeof(typename IsSpan<ARG_TYPE>::ElementType);
+      return {begin, size};
+    }
+    else
+    {
+      const auto result = *reinterpret_cast<const ARG_TYPE *>(args);
+      args += sizeof(ARG_TYPE);
+      return result;
+    }
+  }
+
+  template <DX12_COMMAND_LOG_ITEM_TYPE command_type, class... ARG_TYPE>
+  static AnyCommandItemType decode_command(const unsigned char *args)
+  {
+    return CommandLogItem<command_type, ARG_TYPE...>(decode_argument<ARG_TYPE>(args)...);
+  }
+
+  static AnyCommandItemType decode_command(const unsigned char *ptr)
+  {
+    const DX12_COMMAND_LOG_ITEM_TYPE cmdType = *reinterpret_cast<const DX12_COMMAND_LOG_ITEM_TYPE *>(ptr);
+    const auto args = ptr + sizeof(DX12_COMMAND_LOG_ITEM_TYPE);
+    switch (cmdType)
+    {
+#define DX12_HARDWARE_COMMAND(TYPE, COMMAND_NAME, ...) \
+  case DX12_COMMAND_LOG_ITEM_TYPE::TYPE:               \
+    return decode_command<DX12_COMMAND_LOG_ITEM_TYPE::TYPE, __VA_ARGS__>(args);
+#include "command_list_cmd.inc.h"
+#undef DX12_HARDWARE_COMMAND
+      default:
+        D3D_ERROR("Unknown command type %d", static_cast<eastl::underlying_type_t<DX12_COMMAND_LOG_ITEM_TYPE>>(cmdType));
+        return eastl::monostate{};
+    }
+  }
+};
+
+class CommandLogEnabledStorage
+{
+public:
+  eastl::optional<eastl::span<const unsigned char>> getCommands() const
+  {
+    return eastl::span{commandsLogs.begin(), commandsLogs.end()};
+  }
+
+protected:
+  template <DX12_COMMAND_LOG_ITEM_TYPE command_type, class... ARG_TYPE>
+  auto logCommand(ARG_TYPE... args)
+    -> decltype(AnyCommandItemType{eastl::declval<CommandLogItem<command_type, ARG_TYPE...>>()}, void())
+  {
+    const uint32_t commandSize = full_log_item_size<command_type>(args...);
+    uint32_t offset = commandsLogs.size();
+    commandsLogs.resize(offset + commandSize);
+    writeToByteStream(command_type, offset);
+    (writeToByteStream(args, offset), ...);
+  }
+
+  void reset() { commandsLogs.clear(); }
+
+private:
+  template <class ARG_TYPE>
+  void writeToByteStream(eastl::span<ARG_TYPE> args, uint32_t &offset)
+  {
+    writeToByteStream((uint32_t)args.size(), offset);
+    for (const auto &arg : args)
+      writeToByteStream(arg, offset);
+  }
+
+  template <class ARG_TYPE>
+  void writeToByteStream(ARG_TYPE arg, uint32_t &offset)
+  {
+    constexpr uint32_t size = sizeof(ARG_TYPE);
+    memcpy(&commandsLogs[offset], &arg, size);
+    offset += size;
+  }
+
+  dag::Vector<unsigned char> commandsLogs;
+};
+
+class CommandLogDisabledStorage
+{
+public:
+  eastl::optional<eastl::span<const unsigned char>> getCommands() const { return {}; }
+
+protected:
+  template <DX12_COMMAND_LOG_ITEM_TYPE command_type, class... ARG_TYPE>
+  void logCommand(ARG_TYPE...)
+  {}
+  void reset() {}
+};
+
+using CommandLogStorage = eastl::type_select_t<DX12_ENABLE_COMMAND_LIST_LOGGER, CommandLogEnabledStorage, CommandLogDisabledStorage>;
+
+class CommandListLogger : public CommandLogStorage
+{
+public:
+  void copyTextureRegion(const D3D12_TEXTURE_COPY_LOCATION *dst, UINT x, UINT y, UINT z, const D3D12_TEXTURE_COPY_LOCATION *src,
+    const D3D12_BOX *src_box)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::COPY_TEXTURE_REGION>(*dst, x, y, z, *src,
+      src_box ? eastl::optional{*src_box} : eastl::nullopt);
+  }
+
+  void copyBufferRegion(ID3D12Resource *dst, UINT64 dst_offset, ID3D12Resource *src, UINT64 src_offset, UINT64 num_bytes)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::COPY_BUFFER_REGION>(dst, dst_offset, src, src_offset, num_bytes);
+  }
+
+  void resourceBarrier(UINT num_barriers, const D3D12_RESOURCE_BARRIER * /*barriers*/)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::RESOURCE_BARRIER>(num_barriers /*, barriers*/);
+  }
+
+  void copyResource(ID3D12Resource *dst, ID3D12Resource *src) { logCommand<DX12_COMMAND_LOG_ITEM_TYPE::COPY_RESOURCE>(dst, src); }
+
+  void endQuery(ID3D12QueryHeap *query_heap, D3D12_QUERY_TYPE type, UINT index)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::END_QUERY>(query_heap, type, index);
+  }
+
+  void resolveQueryData(ID3D12QueryHeap *query_heap, D3D12_QUERY_TYPE type, UINT start_index, UINT num_queries,
+    ID3D12Resource *destination_buffer, UINT64 aligned_destination_buffer_offset)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::RESOLVE_QUERY_DATA>(query_heap, type, start_index, num_queries, destination_buffer,
+      aligned_destination_buffer_offset);
+  }
+
+  void setDescriptorHeaps(UINT num_descriptor_heaps, ID3D12DescriptorHeap *const *descriptor_heaps)
+  {
+    auto heaps = eastl::span(descriptor_heaps, num_descriptor_heaps);
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::SET_DESCRIPTOR_HEAPS>(num_descriptor_heaps, heaps);
+  }
+
+  void clearUnorderedAccessViewFloat(D3D12_GPU_DESCRIPTOR_HANDLE view_GPU_handle_in_current_heap,
+    D3D12_CPU_DESCRIPTOR_HANDLE view_CPU_handle, ID3D12Resource *resource, const FLOAT /*values*/[4], UINT num_rects,
+    const D3D12_RECT * /*rects*/)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::CLEAR_UNORDERED_ACCESS_VIEW_FLOAT>(view_GPU_handle_in_current_heap, view_CPU_handle,
+      resource,
+      /*values, */ num_rects /*, rects*/);
+  }
+
+  void clearUnorderedAccessViewUint(D3D12_GPU_DESCRIPTOR_HANDLE view_gpu_handle_in_current_heap,
+    D3D12_CPU_DESCRIPTOR_HANDLE view_CPU_handle, ID3D12Resource *resource, const UINT /*values*/[4], UINT num_rects,
+    const D3D12_RECT * /*rects*/)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::CLEAR_UNORDERED_ACCESS_VIEW_UINT>(view_gpu_handle_in_current_heap, view_CPU_handle,
+      resource /*, values*/, num_rects /*, rects*/);
+  }
+
+  void setComputeRootSignature(ID3D12RootSignature *root_signature)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::SET_COMPUTE_ROOT_SIGNATURE>(root_signature);
+  }
+
+  void setPipelineState(ID3D12PipelineState *pipeline_state)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::SET_PIPELINE_STATE>(pipeline_state);
+  }
+
+  void dispatch(UINT thread_group_count_x, UINT thread_group_count_y, UINT thread_group_count_z)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::DISPATCH>(thread_group_count_x, thread_group_count_y, thread_group_count_z);
+  }
+
+  void executeIndirect(ID3D12CommandSignature *command_signature, UINT max_command_count, ID3D12Resource *argument_buffer,
+    UINT64 argument_buffer_offset, ID3D12Resource *count_buffer, UINT64 count_buffer_offset)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::EXECUTE_INDIRECT>(command_signature, max_command_count, argument_buffer,
+      argument_buffer_offset, count_buffer, count_buffer_offset);
+  }
+
+  void setComputeRootConstantBufferView(UINT root_parameter_index, D3D12_GPU_VIRTUAL_ADDRESS buffer_location)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::SET_COMPUTE_ROOT_CONSTANT_BUFFER_VIEW>(root_parameter_index, buffer_location);
+  }
+
+  void setComputeRootDescriptorTable(UINT root_parameter_index, D3D12_GPU_DESCRIPTOR_HANDLE base_descriptor)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::SET_COMPUTE_ROOT_DESCRIPTOR_TABLE>(root_parameter_index, base_descriptor);
+  }
+
+  void setComputeRoot32BitConstants(UINT root_parameter_index, UINT num_32bit_values_to_set, const void *src_data,
+    UINT dest_offset_in_32bit_values)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::SET_COMPUTE_ROOT_32BIT_CONSTANTS>(root_parameter_index, num_32bit_values_to_set, src_data,
+      dest_offset_in_32bit_values); // exact values don't matter
+  }
+
+
+  void discardResource(ID3D12Resource *resource, const D3D12_DISCARD_REGION *region)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::DISCARD_RESOURCE>(resource, region ? eastl::optional{*region} : eastl::nullopt);
+  }
+
+  void setPredication(ID3D12Resource *buffer, UINT64 aligned_buffer_offset, D3D12_PREDICATION_OP operation)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::SET_PREDICATION>(buffer, aligned_buffer_offset, operation);
+  }
+
+
+  void clearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE render_target_view, const FLOAT /*color_rgba*/[4], UINT num_rects,
+    const D3D12_RECT * /*rects*/)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::CLEAR_RENDER_TARGET_VIEW>(render_target_view, /*color_rgba, */ num_rects /*, rects*/);
+  }
+
+  void resolveSubresource(ID3D12Resource *dst_resource, UINT dst_subresource, ID3D12Resource *src_resource, UINT src_subresource,
+    DXGI_FORMAT format)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::RESOLVE_SUBRESOURCE>(dst_resource, dst_subresource, src_resource, src_subresource, format);
+  }
+
+  void clearDepthStencilView(D3D12_CPU_DESCRIPTOR_HANDLE depth_stencil_view, D3D12_CLEAR_FLAGS clear_flags, FLOAT depth, UINT8 stencil,
+    UINT num_rects, const D3D12_RECT * /*rects*/)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::CLEAR_DEPTH_STENCIL_VIEW>(depth_stencil_view, clear_flags, depth, stencil,
+      num_rects /*, rects*/);
+  }
+
+  void beginQuery(ID3D12QueryHeap *query_heap, D3D12_QUERY_TYPE type, UINT index)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::BEGIN_QUERY>(query_heap, type, index);
+  }
+
+  void writeBufferImmediate(UINT count, const D3D12_WRITEBUFFERIMMEDIATE_PARAMETER * /*params*/,
+    const D3D12_WRITEBUFFERIMMEDIATE_MODE * /*modes*/)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::WRITE_BUFFER_IMMEDIATE>(count /*, params, modes*/);
+  }
+
+  void omSetRenderTargets(UINT num_render_target_descriptors, const D3D12_CPU_DESCRIPTOR_HANDLE * /*render_target_descriptors*/,
+    BOOL rts_single_handle_to_descriptor_range, const D3D12_CPU_DESCRIPTOR_HANDLE * /*depth_stencil_descriptor*/)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::OM_SET_RENDER_TARGETS>(num_render_target_descriptors /*, render_target_descriptors*/,
+      rts_single_handle_to_descriptor_range /*, depth_stencil_descriptor*/);
+  }
+
+  void setGraphicsRootSignature(ID3D12RootSignature *root_signature)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::SET_GRAPHICS_ROOT_SIGNATURE>(root_signature);
+  }
+  void iaSetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY primitive_topology)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::IA_SET_PRIMITIVE_TOPOLOGY>(primitive_topology);
+  }
+  void omSetDepthBounds(FLOAT min_value, FLOAT max_value)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::OM_SET_DEPTH_BOUNDS>(min_value, max_value);
+  }
+  void omSetBlendFactor(const FLOAT /*blend_factor*/[4])
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::OM_SET_BLEND_FACTOR>(/*, blend_factor*/);
+  }
+  void rsSetScissorRects(UINT num_rects, const D3D12_RECT * /*rects*/)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::RS_SET_SCISSOR_RECTS>(num_rects /*, rects*/);
+  }
+  void rsSetViewports(UINT num_viewports, const D3D12_VIEWPORT * /*viewports*/)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::RS_SET_VIEWPORTS>(num_viewports /*, viewports*/);
+  }
+  void omSetStencilRef(UINT stencil_ref) { logCommand<DX12_COMMAND_LOG_ITEM_TYPE::OM_SET_STENCIL_REF>(stencil_ref); }
+  void drawInstanced(UINT vertex_count_per_instance, UINT instance_count, UINT start_vertex_location, UINT start_instance_location)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::DRAW_INSTANCED>(vertex_count_per_instance, instance_count, start_vertex_location,
+      start_instance_location);
+  }
+  void drawIndexedInstanced(UINT index_count_per_instance, UINT instance_count, UINT start_index_location, INT base_vertex_location,
+    UINT start_instance_location)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::DRAW_INDEXED_INSTANCED>(index_count_per_instance, instance_count, start_index_location,
+      base_vertex_location, start_instance_location);
+  }
+  void setGraphicsRoot32BitConstants(UINT root_parameter_index, UINT num_32bit_values_to_set, const void *src_data,
+    UINT dest_offset_in_32bit_values)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::SET_GRAPHICS_ROOT_32BIT_CONSTANTS>(root_parameter_index, num_32bit_values_to_set, src_data,
+      dest_offset_in_32bit_values); // exact values don't matter
+  }
+  void setGraphicsRootDescriptorTable(UINT root_parameter_index, D3D12_GPU_DESCRIPTOR_HANDLE base_descriptor)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::SET_GRAPHICS_ROOT_DESCRIPTOR_TABLE>(root_parameter_index, base_descriptor);
+  }
+
+  void setGraphicsRootConstantBufferView(UINT root_parameter_index, D3D12_GPU_VIRTUAL_ADDRESS buffer_location)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::SET_GRAPHICS_ROOT_CONSTANT_BUFFER_VIEW>(root_parameter_index, buffer_location);
+  }
+
+  void iaSetVertexBuffers(UINT start_slot, UINT num_views, const D3D12_VERTEX_BUFFER_VIEW * /*views*/)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::IA_SET_VERTEX_BUFFERS>(start_slot, num_views /*, views*/);
+  }
+
+  void iaSetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW *view)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::IA_SET_INDEX_BUFFER>(view ? eastl::optional{*view} : eastl::nullopt);
+  }
+
+#if !_TARGET_XBOXONE
+  void rsSetShadingRate(D3D12_SHADING_RATE base_shading_rate, const D3D12_SHADING_RATE_COMBINER * /*combiners*/)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::RS_SET_SHADING_RATE>(base_shading_rate /*, combiners*/);
+  }
+  void rsSetShadingRateImage(ID3D12Resource *shading_rate_image)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::RS_SET_SHADING_RATE_IMAGE>(shading_rate_image);
+  }
+
+  void dispatchMesh(UINT thread_group_count_x, UINT thread_group_count_y, UINT thread_group_count_z)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::DISPATCH_MESH>(thread_group_count_x, thread_group_count_y, thread_group_count_z);
+  }
+#endif
+
+#if D3D_HAS_RAY_TRACING
+  void buildRaytracingAccelerationStructure(const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC *dst,
+    UINT num_postbuild_info_descs, const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC * /*postbuild_info_descs*/)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::BUILD_RAYTRACING_ACCELERATION_STRUCTURE>(*dst,
+      num_postbuild_info_descs /*, postbuild_info_descs*/);
+  }
+
+#if _TARGET_XBOX
+  COMMAND_LIST_LOGGERS_XBOX()
+#endif
+
+  void copyRaytracingAccelerationStructure(D3D12_GPU_VIRTUAL_ADDRESS dst, D3D12_GPU_VIRTUAL_ADDRESS src,
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE mode)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::COPY_RAYTRACING_ACCELERATION_STRUCTURE>(dst, src, mode);
+  }
+
+  void setPipelineState1(ID3D12StateObject *state_object)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::SET_PIPELINE_STATE1>(state_object);
+  }
+
+  void dispatchRays(const D3D12_DISPATCH_RAYS_DESC *desc) { logCommand<DX12_COMMAND_LOG_ITEM_TYPE::DISPATCH_RAYS>(*desc); }
+#endif
+};
+
 // Command list type has to be a template, as those types may be different for different use cases.
 // Graphics and compute list types are layered on top of this list type and use different
 // underlying command list types.
 // T has to expose a VersionedPtr<Is...> or VersionedComPtr<Is...> for which Is... is a list of
 // any of the ID3D12GraphicsCommandList versions.
 template <typename T> //
-class CopyCommandListImplementation
+class CopyCommandListImplementation : public CommandListLogger
 {
 protected:
   T list;
@@ -388,11 +1044,19 @@ public:
   T release()
   {
     T value = list;
-    list.reset();
+    reset();
     return value;
   }
-  void reset() { list.reset(); }
-  void reset(T value) { list = value; }
+  void reset()
+  {
+    CommandListLogger::reset();
+    list.reset();
+  }
+  void reset(T value)
+  {
+    CommandListLogger::reset();
+    list = value;
+  }
   explicit operator bool() const { return static_cast<bool>(list); }
 
   template <typename T>
@@ -406,23 +1070,39 @@ public:
     const D3D12_BOX *src_box)
   {
     list->CopyTextureRegion(dst, x, y, z, src, src_box);
+    CommandListLogger::copyTextureRegion(dst, x, y, z, src, src_box);
   }
 
   void copyBufferRegion(ID3D12Resource *dst, UINT64 dst_offset, ID3D12Resource *src, UINT64 src_offset, UINT64 num_bytes)
   {
     list->CopyBufferRegion(dst, dst_offset, src, src_offset, num_bytes);
+    CommandListLogger::copyBufferRegion(dst, dst_offset, src, src_offset, num_bytes);
   }
 
-  void resourceBarrier(UINT num_barriers, const D3D12_RESOURCE_BARRIER *barriers) { list->ResourceBarrier(num_barriers, barriers); }
+  void resourceBarrier(UINT num_barriers, const D3D12_RESOURCE_BARRIER *barriers)
+  {
+    list->ResourceBarrier(num_barriers, barriers);
+    CommandListLogger::resourceBarrier(num_barriers, barriers);
+  }
 
-  void copyResource(ID3D12Resource *dst, ID3D12Resource *src) { list->CopyResource(dst, src); }
+  void copyResource(ID3D12Resource *dst, ID3D12Resource *src)
+  {
+    list->CopyResource(dst, src);
+    CommandListLogger::copyResource(dst, src);
+  }
 
-  void endQuery(ID3D12QueryHeap *query_heap, D3D12_QUERY_TYPE type, UINT index) { list->EndQuery(query_heap, type, index); }
+  void endQuery(ID3D12QueryHeap *query_heap, D3D12_QUERY_TYPE type, UINT index)
+  {
+    list->EndQuery(query_heap, type, index);
+    CommandListLogger::endQuery(query_heap, type, index);
+  }
 
   void resolveQueryData(ID3D12QueryHeap *query_heap, D3D12_QUERY_TYPE type, UINT start_index, UINT num_queries,
     ID3D12Resource *destination_buffer, UINT64 aligned_destination_buffer_offset)
   {
     list->ResolveQueryData(query_heap, type, start_index, num_queries, destination_buffer, aligned_destination_buffer_offset);
+    CommandListLogger::resolveQueryData(query_heap, type, start_index, num_queries, destination_buffer,
+      aligned_destination_buffer_offset);
   }
 };
 
@@ -1107,11 +1787,13 @@ public:
   void resourceBarrier(UINT num_barriers, const D3D12_RESOURCE_BARRIER *barriers)
   {
     this->list->ResourceBarrier(num_barriers, barriers);
+    CommandListLogger::resourceBarrier(num_barriers, barriers);
   }
 
   void setDescriptorHeaps(UINT num_descriptor_heaps, ID3D12DescriptorHeap *const *descriptor_heaps)
   {
     this->list->SetDescriptorHeaps(num_descriptor_heaps, descriptor_heaps);
+    CommandListLogger::setDescriptorHeaps(num_descriptor_heaps, descriptor_heaps);
   }
 
   void clearUnorderedAccessViewFloat(D3D12_GPU_DESCRIPTOR_HANDLE view_GPU_handle_in_current_heap,
@@ -1119,6 +1801,8 @@ public:
     const D3D12_RECT *rects)
   {
     this->list->ClearUnorderedAccessViewFloat(view_GPU_handle_in_current_heap, view_CPU_handle, resource, values, num_rects, rects);
+    CommandListLogger::clearUnorderedAccessViewFloat(view_GPU_handle_in_current_heap, view_CPU_handle, resource, values, num_rects,
+      rects);
   }
 
   void clearUnorderedAccessViewUint(D3D12_GPU_DESCRIPTOR_HANDLE view_GPU_handle_in_current_heap,
@@ -1126,15 +1810,26 @@ public:
     const D3D12_RECT *rects)
   {
     this->list->ClearUnorderedAccessViewUint(view_GPU_handle_in_current_heap, view_CPU_handle, resource, values, num_rects, rects);
+    CommandListLogger::clearUnorderedAccessViewUint(view_GPU_handle_in_current_heap, view_CPU_handle, resource, values, num_rects,
+      rects);
   }
 
-  void setComputeRootSignature(ID3D12RootSignature *root_signature) { this->list->SetComputeRootSignature(root_signature); }
+  void setComputeRootSignature(ID3D12RootSignature *root_signature)
+  {
+    this->list->SetComputeRootSignature(root_signature);
+    CommandListLogger::setComputeRootSignature(root_signature);
+  }
 
-  void setPipelineState(ID3D12PipelineState *pipeline_state) { this->list->SetPipelineState(pipeline_state); }
+  void setPipelineState(ID3D12PipelineState *pipeline_state)
+  {
+    this->list->SetPipelineState(pipeline_state);
+    CommandListLogger::setPipelineState(pipeline_state);
+  }
 
   void dispatch(UINT thread_group_count_x, UINT thread_group_count_y, UINT thread_group_count_z)
   {
     this->list->Dispatch(thread_group_count_x, thread_group_count_y, thread_group_count_z);
+    CommandListLogger::dispatch(thread_group_count_x, thread_group_count_y, thread_group_count_z);
   }
 
   void executeIndirect(ID3D12CommandSignature *command_signature, UINT max_command_count, ID3D12Resource *argument_buffer,
@@ -1142,35 +1837,52 @@ public:
   {
     this->list->ExecuteIndirect(command_signature, max_command_count, argument_buffer, argument_buffer_offset, count_buffer,
       count_buffer_offset);
+    CommandListLogger::executeIndirect(command_signature, max_command_count, argument_buffer, argument_buffer_offset, count_buffer,
+      count_buffer_offset);
   }
 
   void setComputeRootConstantBufferView(UINT root_parameter_index, D3D12_GPU_VIRTUAL_ADDRESS buffer_location)
   {
     this->list->SetComputeRootConstantBufferView(root_parameter_index, buffer_location);
+    CommandListLogger::setComputeRootConstantBufferView(root_parameter_index, buffer_location);
   }
 
   void setComputeRootDescriptorTable(UINT root_parameter_index, D3D12_GPU_DESCRIPTOR_HANDLE base_descriptor)
   {
     this->list->SetComputeRootDescriptorTable(root_parameter_index, base_descriptor);
+    CommandListLogger::setComputeRootDescriptorTable(root_parameter_index, base_descriptor);
   }
 
   void setComputeRoot32BitConstants(UINT root_parameter_index, UINT num_32bit_values_to_set, const void *src_data,
     UINT dest_offset_in_32bit_values)
   {
     this->list->SetComputeRoot32BitConstants(root_parameter_index, num_32bit_values_to_set, src_data, dest_offset_in_32bit_values);
+    CommandListLogger::setComputeRoot32BitConstants(root_parameter_index, num_32bit_values_to_set, src_data,
+      dest_offset_in_32bit_values);
   }
 
-  void endQuery(ID3D12QueryHeap *query_heap, D3D12_QUERY_TYPE type, UINT index) { this->list->EndQuery(query_heap, type, index); }
+  void endQuery(ID3D12QueryHeap *query_heap, D3D12_QUERY_TYPE type, UINT index)
+  {
+    this->list->EndQuery(query_heap, type, index);
+    CommandListLogger::endQuery(query_heap, type, index);
+  }
 
   void resolveQueryData(ID3D12QueryHeap *query_heap, D3D12_QUERY_TYPE type, UINT start_index, UINT num_queries,
     ID3D12Resource *destination_buffer, UINT64 aligned_destination_buffer_offset)
   {
     this->list->ResolveQueryData(query_heap, type, start_index, num_queries, destination_buffer, aligned_destination_buffer_offset);
+    CommandListLogger::resolveQueryData(query_heap, type, start_index, num_queries, destination_buffer,
+      aligned_destination_buffer_offset);
   }
-  void discardResource(ID3D12Resource *resource, const D3D12_DISCARD_REGION *region) { this->list->DiscardResource(resource, region); }
+  void discardResource(ID3D12Resource *resource, const D3D12_DISCARD_REGION *region)
+  {
+    this->list->DiscardResource(resource, region);
+    CommandListLogger::discardResource(resource, region);
+  }
   void setPredication(ID3D12Resource *buffer, UINT64 aligned_buffer_offset, D3D12_PREDICATION_OP operation)
   {
     this->list->SetPredication(buffer, aligned_buffer_offset, operation);
+    CommandListLogger::setPredication(buffer, aligned_buffer_offset, operation);
   }
 };
 
@@ -1528,14 +2240,31 @@ public:
   {
     this->list.template as<ID3D12GraphicsCommandList4>()->BuildRaytracingAccelerationStructure(dst, num_postbuild_info_descs,
       postbuild_info_descs);
+    CommandListLogger::buildRaytracingAccelerationStructure(dst, num_postbuild_info_descs, postbuild_info_descs);
+  }
+
+#if _TARGET_XBOX
+  RAYTRACE_COMMAND_LIST_IMPL_XBOX()
+#endif
+
+  void copyRaytracingAccelerationStructure(D3D12_GPU_VIRTUAL_ADDRESS dst, D3D12_GPU_VIRTUAL_ADDRESS src,
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE mode)
+  {
+    this->list.template as<ID3D12GraphicsCommandList4>()->CopyRaytracingAccelerationStructure(dst, src, mode);
+    CommandListLogger::copyRaytracingAccelerationStructure(dst, src, mode);
   }
 
   void setPipelineState1(ID3D12StateObject *state_object)
   {
     this->list.template as<ID3D12GraphicsCommandList4>()->SetPipelineState1(state_object);
+    CommandListLogger::setPipelineState1(state_object);
   }
 
-  void dispatchRays(const D3D12_DISPATCH_RAYS_DESC *desc) { this->list.template as<ID3D12GraphicsCommandList4>()->DispatchRays(desc); }
+  void dispatchRays(const D3D12_DISPATCH_RAYS_DESC *desc)
+  {
+    this->list.template as<ID3D12GraphicsCommandList4>()->DispatchRays(desc);
+    CommandListLogger::dispatchRays(desc);
+  }
 };
 
 template <typename T>
@@ -1626,6 +2355,24 @@ public:
     BaseType::buildRaytracingAccelerationStructure(dst, num_postbuild_info_descs, postbuild_info_descs);
   }
 
+#if _TARGET_XBOX
+#define DX12_VALIDATAION_CONTEXT "buildRaytracing*"
+  RAYTRACE_COMMAND_LIST_VALIDATORS_XBOX()
+#undef DX12_VALIDATAION_CONTEXT
+#endif
+
+  void copyRaytracingAccelerationStructure(D3D12_GPU_VIRTUAL_ADDRESS dst, D3D12_GPU_VIRTUAL_ADDRESS src,
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE mode)
+  {
+#define DX12_VALIDATAION_CONTEXT "buildRaytracingAccelerationStructure"
+    DX12_BEGIN_VALIATION();
+    DX12_VALIDATE_CONDITION(dst, "dst can not be null");
+    DX12_VALIDATE_CONDITION(src, "src can not be null");
+    DX12_FINALIZE_VALIDATAION();
+#undef DX12_VALIDATAION_CONTEXT
+    BaseType::copyRaytracingAccelerationStructure(dst, src, mode);
+  }
+
   // It validates the following properties of the inputs:
   // - If state_object not null
   void setPipelineState1(ID3D12StateObject *state_object)
@@ -1674,27 +2421,27 @@ public:
         D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
       DX12_VALIDATE_CONDITION(4096 >= desc->MissShaderTable.SizeInBytes,
         "desc.MissShaderTable.SizeInBytes (%u) has to be less or equal to 4096", desc->MissShaderTable.SizeInBytes);
-      DX12_VALIDATE_CONDITION(0 == (desc->MissShaderTable.StrideInBytes % D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT),
-        "desc.MissShaderTable.StrideInBytes (%u) has to be aligned to %u", desc->MissShaderTable.StartAddress,
-        D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
+      DX12_VALIDATE_CONDITION(0 == (desc->MissShaderTable.StrideInBytes % D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT),
+        "desc.MissShaderTable.StrideInBytes (%u) has to be aligned to %u", desc->MissShaderTable.StrideInBytes,
+        D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
 
       DX12_VALIDATE_CONDITION(0 == (desc->HitGroupTable.StartAddress % D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT),
         "desc.HitGroupTable.StartAddress (%u) has to be aligned to %u", desc->HitGroupTable.StartAddress,
         D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
       DX12_VALIDATE_CONDITION(4096 >= desc->HitGroupTable.SizeInBytes,
         "desc.HitGroupTable.SizeInBytes (%u) has to be less or equal to 4096", desc->HitGroupTable.SizeInBytes);
-      DX12_VALIDATE_CONDITION(0 == (desc->HitGroupTable.StrideInBytes % D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT),
-        "desc.HitGroupTable.StrideInBytes (%u) has to be aligned to %u", desc->HitGroupTable.StartAddress,
-        D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
+      DX12_VALIDATE_CONDITION(0 == (desc->HitGroupTable.StrideInBytes % D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT),
+        "desc.HitGroupTable.StrideInBytes (%u) has to be aligned to %u", desc->HitGroupTable.StrideInBytes,
+        D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
 
       DX12_VALIDATE_CONDITION(0 == (desc->CallableShaderTable.StartAddress % D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT),
         "desc.CallableShaderTable.StartAddress (%u) has to be aligned to %u", desc->CallableShaderTable.StartAddress,
         D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
       DX12_VALIDATE_CONDITION(4096 >= desc->CallableShaderTable.SizeInBytes,
         "desc.CallableShaderTable.SizeInBytes (%u) has to be less or equal to 4096", desc->CallableShaderTable.SizeInBytes);
-      DX12_VALIDATE_CONDITION(0 == (desc->CallableShaderTable.StrideInBytes % D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT),
-        "desc.CallableShaderTable.StrideInBytes (%u) has to be aligned to %u", desc->CallableShaderTable.StartAddress,
-        D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
+      DX12_VALIDATE_CONDITION(0 == (desc->CallableShaderTable.StrideInBytes % D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT),
+        "desc.CallableShaderTable.StrideInBytes (%u) has to be aligned to %u", desc->CallableShaderTable.StrideInBytes,
+        D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
 
       DX12_VALIDATE_CONDITION(desc->Width * uint64_t(desc->Height) * desc->Depth < (uint64_t(1) << 30),
         "desc.Width * desc.Height * desc.Depth exceeds 2^30 limit");
@@ -1734,40 +2481,55 @@ public:
   void resourceBarrier(UINT num_barriers, const D3D12_RESOURCE_BARRIER *barriers)
   {
     this->list->ResourceBarrier(num_barriers, barriers);
+    CommandListLogger::resourceBarrier(num_barriers, barriers);
   }
 
   void clearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE render_target_view, const FLOAT color_rgba[4], UINT num_rects,
     const D3D12_RECT *rects)
   {
     this->list->ClearRenderTargetView(render_target_view, color_rgba, num_rects, rects);
+    CommandListLogger::clearRenderTargetView(render_target_view, color_rgba, num_rects, rects);
   }
 
   void resolveSubresource(ID3D12Resource *dst_resource, UINT dst_subresource, ID3D12Resource *src_resource, UINT src_subresource,
     DXGI_FORMAT format)
   {
     this->list->ResolveSubresource(dst_resource, dst_subresource, src_resource, src_subresource, format);
+    CommandListLogger::resolveSubresource(dst_resource, dst_subresource, src_resource, src_subresource, format);
   }
 
   void clearDepthStencilView(D3D12_CPU_DESCRIPTOR_HANDLE depth_stencil_view, D3D12_CLEAR_FLAGS clear_flags, FLOAT depth, UINT8 stencil,
     UINT num_rects, const D3D12_RECT *rects)
   {
     this->list->ClearDepthStencilView(depth_stencil_view, clear_flags, depth, stencil, num_rects, rects);
+    CommandListLogger::clearDepthStencilView(depth_stencil_view, clear_flags, depth, stencil, num_rects, rects);
   }
 
-  void beginQuery(ID3D12QueryHeap *query_heap, D3D12_QUERY_TYPE type, UINT index) { this->list->BeginQuery(query_heap, type, index); }
+  void beginQuery(ID3D12QueryHeap *query_heap, D3D12_QUERY_TYPE type, UINT index)
+  {
+    this->list->BeginQuery(query_heap, type, index);
+    CommandListLogger::beginQuery(query_heap, type, index);
+  }
 
-  void endQuery(ID3D12QueryHeap *query_heap, D3D12_QUERY_TYPE type, UINT index) { this->list->EndQuery(query_heap, type, index); }
+  void endQuery(ID3D12QueryHeap *query_heap, D3D12_QUERY_TYPE type, UINT index)
+  {
+    this->list->EndQuery(query_heap, type, index);
+    CommandListLogger::endQuery(query_heap, type, index);
+  }
 
   void resolveQueryData(ID3D12QueryHeap *query_heap, D3D12_QUERY_TYPE type, UINT start_index, UINT num_queries,
     ID3D12Resource *destination_buffer, UINT64 aligned_destination_buffer_offset)
   {
     this->list->ResolveQueryData(query_heap, type, start_index, num_queries, destination_buffer, aligned_destination_buffer_offset);
+    CommandListLogger::resolveQueryData(query_heap, type, start_index, num_queries, destination_buffer,
+      aligned_destination_buffer_offset);
   }
 
   void writeBufferImmediate(UINT count, const D3D12_WRITEBUFFERIMMEDIATE_PARAMETER *params,
     const D3D12_WRITEBUFFERIMMEDIATE_MODE *modes)
   {
     this->list->WriteBufferImmediate(count, params, modes);
+    CommandListLogger::writeBufferImmediate(count, params, modes);
   }
 
   void omSetRenderTargets(UINT num_render_target_descriptors, const D3D12_CPU_DESCRIPTOR_HANDLE *render_target_descriptors,
@@ -1775,47 +2537,93 @@ public:
   {
     this->list->OMSetRenderTargets(num_render_target_descriptors, render_target_descriptors, rts_single_handle_to_descriptor_range,
       depth_stencil_descriptor);
+    CommandListLogger::omSetRenderTargets(num_render_target_descriptors, render_target_descriptors,
+      rts_single_handle_to_descriptor_range, depth_stencil_descriptor);
   }
 
-  void setGraphicsRootSignature(ID3D12RootSignature *root_signature) { this->list->SetGraphicsRootSignature(root_signature); }
-  void iaSetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY primitive_topology) { this->list->IASetPrimitiveTopology(primitive_topology); }
-  void omSetDepthBounds(FLOAT min_value, FLOAT max_value) { this->list->OMSetDepthBounds(min_value, max_value); }
-  void omSetBlendFactor(const FLOAT blend_factor[4]) { this->list->OMSetBlendFactor(blend_factor); }
-  void rsSetScissorRects(UINT num_rects, const D3D12_RECT *rects) { this->list->RSSetScissorRects(num_rects, rects); }
-  void rsSetViewports(UINT num_viewports, const D3D12_VIEWPORT *viewports) { this->list->RSSetViewports(num_viewports, viewports); }
-  void omSetStencilRef(UINT stencil_ref) { this->list->OMSetStencilRef(stencil_ref); }
+  void setGraphicsRootSignature(ID3D12RootSignature *root_signature)
+  {
+    this->list->SetGraphicsRootSignature(root_signature);
+    CommandListLogger::setGraphicsRootSignature(root_signature);
+  }
+  void iaSetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY primitive_topology)
+  {
+    this->list->IASetPrimitiveTopology(primitive_topology);
+    CommandListLogger::iaSetPrimitiveTopology(primitive_topology);
+  }
+  void omSetDepthBounds(FLOAT min_value, FLOAT max_value)
+  {
+    this->list->OMSetDepthBounds(min_value, max_value);
+    CommandListLogger::omSetDepthBounds(min_value, max_value);
+  }
+  void omSetBlendFactor(const FLOAT blend_factor[4])
+  {
+    this->list->OMSetBlendFactor(blend_factor);
+    CommandListLogger::omSetBlendFactor(blend_factor);
+  }
+  void rsSetScissorRects(UINT num_rects, const D3D12_RECT *rects)
+  {
+    this->list->RSSetScissorRects(num_rects, rects);
+    CommandListLogger::rsSetScissorRects(num_rects, rects);
+  }
+  void rsSetViewports(UINT num_viewports, const D3D12_VIEWPORT *viewports)
+  {
+    this->list->RSSetViewports(num_viewports, viewports);
+    CommandListLogger::rsSetViewports(num_viewports, viewports);
+  }
+  void omSetStencilRef(UINT stencil_ref)
+  {
+    this->list->OMSetStencilRef(stencil_ref);
+    CommandListLogger::omSetStencilRef(stencil_ref);
+  }
   void drawInstanced(UINT vertex_count_per_instance, UINT instance_count, UINT start_vertex_location, UINT start_instance_location)
   {
     this->list->DrawInstanced(vertex_count_per_instance, instance_count, start_vertex_location, start_instance_location);
+    CommandListLogger::drawInstanced(vertex_count_per_instance, instance_count, start_vertex_location, start_instance_location);
   }
   void drawIndexedInstanced(UINT index_count_per_instance, UINT instance_count, UINT start_index_location, INT base_vertex_location,
     UINT start_instance_location)
   {
     this->list->DrawIndexedInstanced(index_count_per_instance, instance_count, start_index_location, base_vertex_location,
       start_instance_location);
+    CommandListLogger::drawIndexedInstanced(index_count_per_instance, instance_count, start_index_location, base_vertex_location,
+      start_instance_location);
   }
   void setGraphicsRoot32BitConstants(UINT root_parameter_index, UINT num_32bit_values_to_set, const void *src_data,
     UINT dest_offset_in_32bit_values)
   {
     this->list->SetGraphicsRoot32BitConstants(root_parameter_index, num_32bit_values_to_set, src_data, dest_offset_in_32bit_values);
+    CommandListLogger::setGraphicsRoot32BitConstants(root_parameter_index, num_32bit_values_to_set, src_data,
+      dest_offset_in_32bit_values);
   }
   void setGraphicsRootDescriptorTable(UINT root_parameter_index, D3D12_GPU_DESCRIPTOR_HANDLE base_descriptor)
   {
     this->list->SetGraphicsRootDescriptorTable(root_parameter_index, base_descriptor);
+    CommandListLogger::setGraphicsRootDescriptorTable(root_parameter_index, base_descriptor);
   }
 
   void setGraphicsRootConstantBufferView(UINT root_parameter_index, D3D12_GPU_VIRTUAL_ADDRESS buffer_location)
   {
     this->list->SetGraphicsRootConstantBufferView(root_parameter_index, buffer_location);
+    CommandListLogger::setGraphicsRootConstantBufferView(root_parameter_index, buffer_location);
   }
 
   void iaSetVertexBuffers(UINT start_slot, UINT num_views, const D3D12_VERTEX_BUFFER_VIEW *views)
   {
     this->list->IASetVertexBuffers(start_slot, num_views, views);
+    CommandListLogger::iaSetVertexBuffers(start_slot, num_views, views);
   }
 
-  void iaSetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW *view) { this->list->IASetIndexBuffer(view); }
-  void discardResource(ID3D12Resource *resource, const D3D12_DISCARD_REGION *region) { this->list->DiscardResource(resource, region); }
+  void iaSetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW *view)
+  {
+    this->list->IASetIndexBuffer(view);
+    CommandListLogger::iaSetIndexBuffer(view);
+  }
+  void discardResource(ID3D12Resource *resource, const D3D12_DISCARD_REGION *region)
+  {
+    this->list->DiscardResource(resource, region);
+    CommandListLogger::discardResource(resource, region);
+  }
 };
 
 template <typename T>
@@ -1876,6 +2684,7 @@ public:
     DX12_FINALIZE_VALIDATAION();
 #undef DX12_VALIDATAION_CONTEXT
     this->list->ResolveSubresource(dst_resource, dst_subresource, src_resource, src_subresource, format);
+    CommandListLogger::resolveSubresource(dst_resource, dst_subresource, src_resource, src_subresource, format);
   }
 
   // It validates the following properties of the inputs:
@@ -2050,7 +2859,7 @@ public:
     else
     {
       // not a validation error when we were not able to retrieve the device from a command list
-      logerr("DX12: ID3D12GraphicsCommandList::GetDevice returned null as a device");
+      D3D_ERROR("DX12: ID3D12GraphicsCommandList::GetDevice returned null as a device");
     }
     DX12_FINALIZE_VALIDATAION();
 #undef DX12_VALIDATAION_CONTEXT
@@ -2215,21 +3024,25 @@ public:
   void resourceBarrier(UINT num_barriers, const D3D12_RESOURCE_BARRIER *barriers)
   {
     this->list->ResourceBarrier(num_barriers, barriers);
+    CommandListLogger::resourceBarrier(num_barriers, barriers);
   }
 
   void rsSetShadingRate(D3D12_SHADING_RATE base_shading_rate, const D3D12_SHADING_RATE_COMBINER *combiners)
   {
     this->list.template as<ID3D12GraphicsCommandList5>()->RSSetShadingRate(base_shading_rate, combiners);
+    CommandListLogger::rsSetShadingRate(base_shading_rate, combiners);
   }
   void rsSetShadingRateImage(ID3D12Resource *shading_rate_image)
   {
     this->list.template as<ID3D12GraphicsCommandList5>()->RSSetShadingRateImage(shading_rate_image);
+    CommandListLogger::rsSetShadingRateImage(shading_rate_image);
   }
 
   void dispatchMesh(UINT thread_group_count_x, UINT thread_group_count_y, UINT thread_group_count_z)
   {
     this->list.template as<ID3D12GraphicsCommandList6>()->DispatchMesh(thread_group_count_x, thread_group_count_y,
       thread_group_count_z);
+    CommandListLogger::dispatchMesh(thread_group_count_x, thread_group_count_y, thread_group_count_z);
   }
 };
 
@@ -2304,7 +3117,7 @@ public:
     else
     {
       // not a validation error when we were not able to retrieve the device from a command list
-      logerr("DX12: ID3D12GraphicsCommandList::GetDevice returned null as a device");
+      D3D_ERROR("DX12: ID3D12GraphicsCommandList::GetDevice returned null as a device");
     }
     DX12_FINALIZE_VALIDATAION();
 #undef DX12_VALIDATAION_CONTEXT
@@ -2336,7 +3149,7 @@ public:
     else
     {
       // not a validation error when we were not able to retrieve the device from a command list
-      logerr("DX12: ID3D12GraphicsCommandList::GetDevice returned null as a device");
+      D3D_ERROR("DX12: ID3D12GraphicsCommandList::GetDevice returned null as a device");
     }
 
     if (shading_rate_image)
@@ -2378,7 +3191,7 @@ public:
     else
     {
       // not a validation error when we were not able to retrieve the device from a command list
-      logerr("DX12: ID3D12GraphicsCommandList::GetDevice returned null as a device");
+      D3D_ERROR("DX12: ID3D12GraphicsCommandList::GetDevice returned null as a device");
     }
 
     DX12_VALIDATE_CONDITION(thread_group_count_x < 0xFFFF, "Thread group count of %u for x is too large, has to be smaller than 64k",

@@ -37,6 +37,7 @@ Sources =
 AddIncludes =
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/3rdPartyLibs/arc/zlib-$(UseZlibVer)
+  $(Root)/prog/3rdPartyLibs/arc/zstd-$(ZstdVer)
   $(Root)/prog/3rdPartyLibs/arc/brotli/include
 ;
 
@@ -44,7 +45,7 @@ UseProgLibs =
   engine/ioSys/dataBlock
   3rdPartyLibs/hash
   3rdPartyLibs/arc/zlib-$(UseZlibVer)
-  3rdPartyLibs/arc/zstd-1.4.5
+  3rdPartyLibs/arc/zstd-$(ZstdVer)
   3rdPartyLibs/arc/lzma-9.20
   3rdPartyLibs/arc/brotli
   3rdPartyLibs/eastl
@@ -53,12 +54,14 @@ UseProgLibs =
 local oodle_ver = ;
 if $(ProjectAllowsOodle) = yes && ! [ GLOB $(_DEVTOOL) : oodle.* ] { Echo OODLE is missing, ignored ; ProjectAllowsOodle = no ; }
 if $(ProjectAllowsOodle) = yes {
-  if $(DriverLinkage) != dynamic {
+  if $(KernelLinkage) != dynamic {
     oodle_ver = 2 9 2 ;
-    if $(Platform) in linux64 { oodle_ver = 2 7 6 ; }
+    if $(Platform) in linux { oodle_ver = 2 7 6 ; }
   } else {
-    if ! $(Platform) in win32 win64 macosx linux64  { Exit DriverLinkage\=$(DriverLinkage) not compatible with Platform\=$(Platform) ; }
-    oodle_ver = 2 7 6 ;
+    if ! $(Platform) in windows macOS linux  { Exit KernelLinkage\=$(KernelLinkage) not compatible with Platform\=$(Platform) ; }
+    oodle_ver = 2 7 6 ; # using older SDK to prevent changing packed contents of earlier built tex/res
+    # for macOS we have universal (x86_64+arm64) binary only for 2.9.2, for windows-arm64 we have static libs only for 2.9.12
+    if $(Platform) = macOS || $(Platform)-$(PlatformArch) = windows-arm64 { oodle_ver = 2 9 2 ; }
   }
 }
 if $(ProjectAllowsOodle) = yes && $(oodle_ver) {
@@ -73,16 +76,20 @@ if $(ProjectAllowsOodle) = yes && $(oodle_ver) {
   ;
 
   switch $(Platform) {
-    case win32 : AddLibs += $(oodle_dir)/static_lib/oo2core_win32.lib ;
-    case win64 : AddLibs += $(oodle_dir)/static_lib/oo2core_win64.lib ;
-    case macosx : AddLibs += $(oodle_dir)/lib/liboo2coremac64.a ;
-    case linux64 : AddLibs += $(oodle_dir)/lib/liboo2corelinux64.a ;
+    case windows :
+      switch $(PlatformArch) {
+        case x86 :    AddLibs += $(oodle_dir)/static_lib/oo2core_win32.lib ;
+        case x86_64 : AddLibs += $(oodle_dir)/static_lib/oo2core_win64.lib ;
+        case arm64 :  AddLibs += $(oodle_dir)/static_lib/oo2core_winuwparm64.lib ;
+      }
+    case macOS : AddLibs += $(oodle_dir)/lib/liboo2coremac64.a ;
+    case linux : AddLibs += $(oodle_dir)/lib/liboo2corelinux64.a ;
     case xboxOne : AddLibs += $(oodle_dir)/static_lib/oo2core_xboxonegdk.lib ;
     case scarlett : AddLibs += $(oodle_dir)/static_lib/oo2core_xboxseriesx.lib ;
     case ps4 : AddLibs += $(oodle_dir)/lib/liboo2coreps4.a ;
     case ps5 : AddLibs += $(oodle_dir)/lib/liboo2coreps5.a ;
     case nswitch : AddLibs += $(oodle_dir)/lib/liboo2corelinuxarm64.a ;
-    case android : AddLibs += $(oodle_dir)/lib/android/$(AndroidArch)/liboo2coreandroid.a ;
+    case android : AddLibs += $(oodle_dir)/lib/android/$(PlatformArch)/liboo2coreandroid.a ;
     case iOS : AddLibs += $(oodle_dir)/lib/ios/liboo2coreios.a ;
   }
   oodle_ver = ;
@@ -92,7 +99,7 @@ if $(ProjectAllowsOodle) = yes && $(oodle_ver) {
   ;
 }
 
-CPPopt = -D__B_MINICORE ;
+CPPopt = -D__B_KERNEL_LIB ;
 switch $(UseZlibVer)
 {
   case ng :    CPPopt += -DUSE_ZLIB_VER=0xFF0000 ;

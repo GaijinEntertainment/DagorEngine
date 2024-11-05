@@ -1,21 +1,21 @@
 {
   local z = 0
-  let $ch0 = FUNCTION fff(this, a, b) {
+  let $ch0 = FUNCTION fff(a, b) {
     let c = CLASS {
       "x" <- 10
-      "zed" <- FUNCTION zed(this) {
+      "zed" <- FUNCTION zed() {
         RETURN 10 + this.x
       }
     }
     RETURN c().zed()
   }
-  let $ch1 = FUNCTION (manyFuncs.nut:12)(this) {
+  let $ch1 = FUNCTION (manyFuncs.nut:12)() {
     RETURN 10
   }
-  let $ch2 = FUNCTION @ (this, r) {
+  let $ch2 = FUNCTION @ (r) {
     RETURN r * 2
   }
-  let foo = FUNCTION foo(this, x, y) {
+  let foo = FUNCTION foo(x, y) {
     let ar = [$ch0, $ch1, $ch2]
     ar[0](3, 4)
   }

@@ -1,5 +1,5 @@
-#ifndef SEQUENCE_H_
-#define SEQUENCE_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #include "element.h"
 
@@ -25,5 +25,3 @@ public:
 private:
   std::vector<Element *> Seq;
 };
-
-#endif

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <rendInst/rendInstGen.h>
 #include <rendInst/rendInstGenRender.h>
 #include "riGen/landClassData.h"
@@ -15,9 +17,10 @@
 #include <ioSys/dag_zstdIo.h>
 #include <ioSys/dag_btagCompr.h>
 #include <gameRes/dag_dumpResRefCountImpl.h>
+#include <supp/dag_alloca.h>
 
 
-#define LOGLEVEL_DEBUG _MAKE4C('RGEN')
+#define debug(...) logmessage(_MAKE4C('RGEN'), __VA_ARGS__)
 
 static inline IGenLoad &ptr_to_ref(IGenLoad *crd) { return *crd; }
 

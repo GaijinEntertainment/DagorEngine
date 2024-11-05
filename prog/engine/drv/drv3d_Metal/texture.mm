@@ -1,12 +1,18 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_TMatrix.h>
 #include "render.h"
+#include "drv_log_defs.h"
 
 #include <vecmath/dag_vecMath_common.h>
 #include "textureloader.h"
 
-#include <3d/dag_drv3d.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_tex3d.h>
 #include <AvailabilityMacros.h>
+
+#include <drv/3d/dag_info.h>
 
 #include <osApiWrappers/dag_miscApi.h>
 #include "pools.h"
@@ -33,6 +39,7 @@ namespace drv3d_metal
 
   MTLSamplerDescriptor* Texture::samplerDescriptor = NULL;
   Tab<Texture::SamplerState> Texture::states;
+  std::mutex Texture::samplerStatesMutex;
 
   MTLPixelFormat Texture::format2Metal(uint32_t fmt)
   {
@@ -82,19 +89,36 @@ namespace drv3d_metal
           return MTLPixelFormatInvalid;
         }
 
-      //case TEXFMT_V16U16:     return MTLPixelFormatBC1_RGBA;
       case TEXFMT_L16:      return MTLPixelFormatR16Unorm;
       case TEXFMT_A8:       return MTLPixelFormatA8Unorm;
       case TEXFMT_L8:       return MTLPixelFormatR8Unorm;
-#if _TARGET_PC_MACOSX
-      case TEXFMT_A1R5G5B5:  return MTLPixelFormatBGRA8Unorm;
-      case TEXFMT_A4R4G4B4:     return MTLPixelFormatBGRA8Unorm;
-      case TEXFMT_R5G6B5:     return MTLPixelFormatBGRA8Unorm;
-#else
-      case TEXFMT_A1R5G5B5:  return MTLPixelFormatBGR5A1Unorm;
-      case TEXFMT_A4R4G4B4:     return MTLPixelFormatABGR4Unorm;
-      case TEXFMT_R5G6B5:     return MTLPixelFormatB5G6R5Unorm;
-#endif
+      case TEXFMT_A1R5G5B5:
+        if (@available(iOS 15, macOS 11.0, *))
+        {
+          return MTLPixelFormatBGR5A1Unorm;
+        }
+        else
+        {
+          return MTLPixelFormatBGRA8Unorm;
+        }
+      case TEXFMT_A4R4G4B4:
+        if (@available(iOS 15, macOS 11.0, *))
+        {
+          return MTLPixelFormatABGR4Unorm;
+        }
+        else
+        {
+          return MTLPixelFormatBGRA8Unorm;
+        }
+      case TEXFMT_R5G6B5:
+        if (@available(iOS 15, macOS 11.0, *))
+        {
+          return MTLPixelFormatB5G6R5Unorm;
+        }
+        else
+        {
+          return MTLPixelFormatBGRA8Unorm;
+        }
       case TEXFMT_A8L8:       return MTLPixelFormatRG8Unorm;
       case TEXFMT_A16B16G16R16S:  return MTLPixelFormatRGBA16Snorm;
       case TEXFMT_A16B16G16R16UI: return MTLPixelFormatRGBA16Uint;
@@ -103,20 +127,13 @@ namespace drv3d_metal
       case TEXFMT_R32UI:      return MTLPixelFormatR32Uint;
       case TEXFMT_R32SI:      return MTLPixelFormatR32Sint;
       case TEXFMT_R8UI:       return MTLPixelFormatR8Uint;
+      case TEXFMT_R16UI:      return MTLPixelFormatR16Uint;
       case TEXFMT_R11G11B10F:   return MTLPixelFormatRG11B10Float;
       case TEXFMT_R9G9B9E5:   return MTLPixelFormatRGB9E5Float;
       case TEXFMT_R8G8:       return MTLPixelFormatRG8Unorm;
       case TEXFMT_R8G8S:      return MTLPixelFormatRG8Snorm;
       case TEXFMT_DEPTH24:    return MTLPixelFormatDepth32Float_Stencil8;// MTLPixelFormatDepth24Unorm_Stencil8;
-      case TEXFMT_DEPTH16:
-        if (@available(iOS 13, macOS 10.12, *))
-        {
-          return MTLPixelFormatDepth16Unorm;
-        }
-        else
-        {
-          return MTLPixelFormatDepth32Float;
-        }
+      case TEXFMT_DEPTH16: return MTLPixelFormatDepth16Unorm;
       case TEXFMT_DEPTH32:    return MTLPixelFormatDepth32Float;
       case TEXFMT_DEPTH32_S8:   return MTLPixelFormatDepth32Float_Stencil8;
     }
@@ -124,6 +141,27 @@ namespace drv3d_metal
     DAG_FATAL("format2Metal unimplemented for format %i", fmt);
 
     return MTLPixelFormatInvalid;
+  }
+
+  static bool canAliasToUint(uint32_t fmt)
+  {
+    switch (fmt)
+    {
+      case TEXFMT_A8R8G8B8:
+      case TEXFMT_A2R10G10B10:
+      case TEXFMT_A2B10G10R10:
+      case TEXFMT_G16R16:
+      case TEXFMT_G16R16F:
+      case TEXFMT_R32F:
+      case TEXFMT_R8G8B8A8:
+      case TEXFMT_R32UI:
+      case TEXFMT_R32SI:
+      case TEXFMT_R11G11B10F:
+      case TEXFMT_R9G9B9E5:
+      case TEXFMT_DEPTH32:
+        return true;
+    }
+    return false;
   }
 
   MTLPixelFormat Texture::format2MetalsRGB(uint32_t fmt)
@@ -135,15 +173,14 @@ namespace drv3d_metal
       case TEXFMT_DXT3:      return MTLPixelFormatBC2_RGBA_sRGB;
       case TEXFMT_DXT5:      return MTLPixelFormatBC3_RGBA_sRGB;
       case TEXFMT_BC7:       return MTLPixelFormatBC7_RGBAUnorm_sRGB;
-      case TEXFMT_A8R8G8B8:  return MTLPixelFormatBGRA8Unorm_sRGB;
-      case TEXFMT_A4R4G4B4:  return MTLPixelFormatBGRA8Unorm_sRGB;
 #else
       case TEXFMT_ASTC4:     return MTLPixelFormatASTC_4x4_sRGB;
       case TEXFMT_ASTC8:     return MTLPixelFormatASTC_8x8_sRGB;
       case TEXFMT_ASTC12:    return MTLPixelFormatASTC_12x12_sRGB;
-      case TEXFMT_A8R8G8B8:  return MTLPixelFormatBGRA8Unorm_sRGB;
-      case TEXFMT_A4R4G4B4:  return MTLPixelFormatABGR4Unorm;
 #endif
+      case TEXFMT_A8R8G8B8:  return MTLPixelFormatBGRA8Unorm_sRGB;
+      case TEXFMT_R8G8B8A8:  return MTLPixelFormatRGBA8Unorm_sRGB;
+
       case TEXFMT_ETC2_RGBA:
         if (@available(iOS 13, macOS 11.0, *))
         {
@@ -245,12 +282,26 @@ namespace drv3d_metal
       case TEXFMT_A8L8:
       case TEXFMT_R16F:
       case TEXFMT_L16:
+      case TEXFMT_R16UI:
       {
+        block_size = 2;
+        break;
+      }
+      case TEXFMT_A1R5G5B5:
+      case TEXFMT_A4R4G4B4:
+      case TEXFMT_R5G6B5:
+      {
+        if (@available(iOS 15, macOS 11.0, *))
+        {
           block_size = 2;
-          break;
+        }
+        else
+        {
+          block_size = 4;
+        }
+        break;
       }
       case TEXFMT_A8R8G8B8:
-      case TEXFMT_A4R4G4B4:
       case TEXFMT_R8G8B8A8:
       case TEXFMT_A2R10G10B10:
       case TEXFMT_A2B10G10R10:
@@ -262,8 +313,8 @@ namespace drv3d_metal
       case TEXFMT_R11G11B10F:
       case TEXFMT_R9G9B9E5:
       {
-          block_size = 4;
-          break;
+        block_size = 4;
+        break;
       }
       case TEXFMT_A16B16G16R16:
       case TEXFMT_A16B16G16R16F:
@@ -272,21 +323,21 @@ namespace drv3d_metal
       case TEXFMT_R32G32UI:
       case TEXFMT_G32R32F:
       {
-          block_size = 8;
-          break;
+        block_size = 8;
+        break;
       }
       case TEXFMT_A32B32G32R32F:
       case TEXFMT_A32B32G32R32UI:
       {
-          block_size = 16;
-          break;
+        block_size = 16;
+        break;
       }
       case TEXFMT_DXT1:
       case TEXFMT_ATI1N:
       {
-          is_copmressed = true;
-          block_size = 8;
-          break;
+        is_copmressed = true;
+        block_size = 8;
+        break;
       }
       case TEXFMT_DXT3:
       case TEXFMT_DXT5:
@@ -295,14 +346,14 @@ namespace drv3d_metal
       case TEXFMT_ETC2_RGBA:
       case TEXFMT_ETC2_RG:
       {
-          is_copmressed = true;
-          block_size = 16;
-          break;
+        is_copmressed = true;
+        block_size = 16;
+        break;
       }
       case TEXFMT_A8:
       case TEXFMT_L8:
       {
-          break;
+        break;
       }
       case TEXFMT_R8UI:
       {
@@ -311,17 +362,17 @@ namespace drv3d_metal
       }
       case TEXFMT_DEPTH16:
       {
-          block_size = 2;
-          break;
+        block_size = 2;
+        break;
       }
       case TEXFMT_DEPTH24:
       case TEXFMT_DEPTH32:
       {
-          block_size = 4;
-          break;
+        block_size = 4;
+        break;
       }
       default:
-          DAG_FATAL("getStride unimplemented for format %i", fmt);
+        DAG_FATAL("getStride unimplemented for format %i", fmt);
     }
 
     if (!is_copmressed)
@@ -403,18 +454,21 @@ namespace drv3d_metal
     if (base->use_upload_buffer && !(base->cflg & TEXCF_READABLE))
       pTexDesc.storageMode = MTLStorageModePrivate;
 
-#if _TARGET_IOS || _TARGET_TVOS
-    if (base->memoryless)
-    {
-      pTexDesc.storageMode = MTLStorageModeMemoryless;
-      pTexDesc.resourceOptions = MTLResourceStorageModeMemoryless;
-    }
-    else
-      pTexDesc.usage |= MTLTextureUsageShaderRead;
-#endif
+    pTexDesc.usage |= MTLTextureUsageShaderRead;
 
-    if (base->metal_format == MTLPixelFormatDepth32Float_Stencil8 || base->metal_format != base->metal_rt_format)
+    bool as_uint = (base->cflg & TEXCF_UNORDERED) && canAliasToUint(base->base_format & TEXFMT_MASK);
+    bool no_srgb = (base->cflg & TEXCF_UNORDERED) && (base->cflg & TEXCF_SRGBREAD) && format2Metal(base->base_format) != base->metal_format;
+    if (base->metal_format == MTLPixelFormatDepth32Float_Stencil8 || base->metal_format != base->metal_rt_format || as_uint || no_srgb)
       pTexDesc.usage |= MTLTextureUsagePixelFormatView;
+
+    if (base->memoryless)
+      pTexDesc.sampleCount = 1; // base->samples;
+    else
+    {
+      pTexDesc.sampleCount = base->samples;
+      if (base->samples > 1)
+        base->metal_type = MTLTextureType2DMultisample;
+    }
 
     pTexDesc.mipmapLevelCount = base->mipLevels;
     pTexDesc.textureType = base->metal_type;
@@ -426,13 +480,13 @@ namespace drv3d_metal
     }
     else
     {
+      G_ASSERT(base->type == RES3D_VOLTEX || base->depth == 1);
       pTexDesc.depth = base->depth;
     }
 
-    pTexDesc.sampleCount = base->samples;
-
     texture = [render.device newTextureWithDescriptor : pTexDesc];
-    setTexName(texture, base->getResName());
+    if (texture == nil)
+      DAG_FATAL("Failed to allocate texture %s", base->getResName());
 
     int slises = 1;
     if (base->type == RES3D_ARRTEX || base->type == RES3D_VOLTEX)
@@ -444,23 +498,36 @@ namespace drv3d_metal
 
     if (base->metal_format != base->metal_rt_format)
     {
+      G_ASSERT(base->memoryless == false);
       rt_texture = [texture newTextureViewWithPixelFormat : base->metal_rt_format];
-
-      setTexName(rt_texture, base->getResName());
     }
     else
     {
-      rt_texture = texture;
+      if (base->memoryless)
+      {
+        pTexDesc.textureType = base->samples > 1 ? MTLTextureType2DMultisample : MTLTextureType2D;
+        if (@available(iOS 15, macos 11, *))
+        {
+          pTexDesc.storageMode = MTLStorageModeMemoryless;
+          pTexDesc.resourceOptions = MTLResourceStorageModeMemoryless;
+        }
+        pTexDesc.sampleCount = base->samples; // base->samples;
+
+        rt_texture = [render.device newTextureWithDescriptor : pTexDesc];
+        if (rt_texture == nil)
+          DAG_FATAL("Failed to allocate memoryless texture %s", base->getResName());
+      }
+      else
+        rt_texture = texture;
     }
 
-    if (base->cflg & TEXCF_SRGBREAD)
-    {
+    if (no_srgb)
       texture_no_srgb = [texture newTextureViewWithPixelFormat : format2Metal(base->base_format)];
-
-      setTexName(texture_no_srgb, base->getResName());
-    }
     else
       texture_no_srgb = [texture retain];
+
+    if (as_uint)
+      texture_as_uint = [texture newTextureViewWithPixelFormat : MTLPixelFormatR32Uint];
 
     sub_texture = texture;
     sub_texture_no_srgb = texture_no_srgb;
@@ -489,6 +556,8 @@ namespace drv3d_metal
 
     sub_mip_textures.push_back(sub_mip);
 
+    applyName();
+
     add_texture_to_list(this);
   }
 
@@ -497,6 +566,7 @@ namespace drv3d_metal
     texture = tex;
     rt_texture = tex;
     sub_texture = texture;
+    sub_texture_no_srgb = texture;
 
     if (name)
       setTexName(texture, name);
@@ -517,6 +587,10 @@ namespace drv3d_metal
 
       if (texture)
         [texture release];
+      if (stencil_read_texture)
+        [stencil_read_texture release];
+      if (texture_as_uint)
+        [texture_as_uint release];
       if (texture_no_srgb)
         [texture_no_srgb release];
     }
@@ -524,6 +598,12 @@ namespace drv3d_metal
     {
       if (rt_texture != texture)
         render.queueTextureForDeletion(rt_texture);
+      if (texture_as_uint)
+        render.queueTextureForDeletion(texture_as_uint);
+      if (stencil_read_texture)
+        render.queueTextureForDeletion(stencil_read_texture);
+      if (texture_no_srgb)
+        render.queueTextureForDeletion(texture_no_srgb);
       for (size_t i = 1; i < sub_mip_textures.size(); i++)
       {
         id<MTLTexture>& tex = sub_mip_textures[i].tex;
@@ -546,6 +626,26 @@ namespace drv3d_metal
     delete this;
   }
 
+  void Texture::ApiTexture::applyName()
+  {
+    if (base == nullptr)
+      return;
+
+    G_ASSERT(texture);
+    setTexName(texture, base->getResName());
+
+    if (rt_texture != texture)
+      setTexName(rt_texture, base->getResName());
+    if (texture_as_uint)
+      setTexName(texture_as_uint, base->getResName());
+    if (stencil_read_texture)
+      setTexName(stencil_read_texture, base->getResName());
+    if (texture_no_srgb != texture)
+      setTexName(texture_no_srgb, base->getResName());
+    for (size_t i = 1; i < sub_mip_textures.size(); i++)
+      setTexName(sub_mip_textures[i].tex, base->getResName());
+  }
+
   Texture::Texture(int w, int h, int l, int d, int tp, int flg, int fmt, const char* name, bool is_memoryless, bool alloc)
     : memoryless(is_memoryless)
   {
@@ -561,7 +661,7 @@ namespace drv3d_metal
       case TEXFMT_ATI2N:
       case TEXFMT_BC6H:
       case TEXFMT_BC7:
-            logerr("unsupported texture format %d is used for texture %s", fmt, getResName());
+            D3D_ERROR("unsupported texture format %d is used for texture %s", fmt, getResName());
             fmt = TEXFMT_ASTC4;
             break;
     }
@@ -570,14 +670,17 @@ namespace drv3d_metal
     cflg = flg;
     type = tp;
 
+    G_ASSERTF(w > 0 && h > 0, "Weird texture %s dimensions %ix%i", getResName(), w, h);
     width = w;
     height = h;
 
-    if (fmt & TEXCF_SAMPLECOUNT_MASK)
+    if (cflg & TEXCF_SAMPLECOUNT_MASK)
     {
       memoryless = true;
-      samples = get_sample_count(fmt);
+      samples = get_sample_count(cflg);
     }
+    if (cflg & TEXCF_TRANSIENT)
+      memoryless = true;
 
     if (l < 1)
     {
@@ -598,6 +701,8 @@ namespace drv3d_metal
     start_level = 0;
 
     cflg = flg | (fmt & TEXFMT_MASK);
+    if (cflg & (TEXCF_RTARGET|TEXCF_UNORDERED))
+      cflg &= ~TEXCF_READABLE;
 
     if (depth == 0)
     {
@@ -626,7 +731,7 @@ namespace drv3d_metal
 
     lockFlags = 0;
 
-    metal_type = samples == 1 ? MTLTextureType2D : MTLTextureType2DMultisample;
+    metal_type = MTLTextureType2D;
 
     if (type == RES3D_CUBETEX)
     {
@@ -658,7 +763,8 @@ namespace drv3d_metal
 
     if (base_format == TEXFMT_DXT1 || base_format == TEXFMT_DXT3 || base_format == TEXFMT_DXT5 ||
       base_format == TEXFMT_ATI1N || base_format == TEXFMT_ATI2N ||
-      base_format == TEXFMT_BC6H || base_format == TEXFMT_BC7)
+      base_format == TEXFMT_BC6H || base_format == TEXFMT_BC7 ||
+      base_format == TEXFMT_ETC2_RGBA || base_format == TEXFMT_ETC2_RG)
     {
       use_dxt = 1;
     }
@@ -668,8 +774,10 @@ namespace drv3d_metal
     else
       use_upload_buffer = true;
 
-#if !(_TARGET_IOS || _TARGET_TVOS)
-    memoryless = false;
+#if _TARGET_PC_MACOSX
+    // no memoryless on mac cause we haven't implemented imageblocks yet
+    //if (!render.device.hasUnifiedMemory || render.device.lowPower)
+      memoryless = false;
 #endif
 
     waiting2delete = false;
@@ -744,9 +852,6 @@ namespace drv3d_metal
     {
       RCAutoLock texLock;
 
-      if (lockFlags & TEXLOCK_BUSY_WAITING_IN_QUEUE)
-        return;
-
       releaseTex(true);
       apiTex = getStubTex()->apiTex;
     }
@@ -764,6 +869,7 @@ namespace drv3d_metal
       del_d3dres(clonedTex);
     return clonedTex;
   }
+
   void Texture::replaceTexResObject(BaseTexture *&other_tex)
   {
     // swap important fields of TQL, can't delay this
@@ -773,43 +879,24 @@ namespace drv3d_metal
     G_ASSERT_RETURN(other, );
 
     G_ASSERT(lockFlags == 0 && other->lockFlags == 0);
-    lockFlags = other->lockFlags = TEXLOCK_BUSY_WAITING_IN_QUEUE;
 
-    render.swapTextures(this, other_tex);
-    other_tex = nullptr;
-  }
-  void Texture::replaceTexResObjectImpl(BaseTexture *&other_tex)
-  {
-    {
-    RCAutoLock texLock;
-    Texture* other = getbasetex(other_tex);
-    G_ASSERT_RETURN(other, );
-
-    // swap texture objects
     std::swap(apiTex, other->apiTex);
     std::swap(width, other->width);
     std::swap(height, other->height);
     std::swap(mipLevels, other->mipLevels);
     std::swap(depth, other->depth);
-    std::swap(minMipLevel, other->minMipLevel);
-    std::swap(maxMipLevel, other->maxMipLevel);
     if (apiTex && !tql::isTexStub(apiTex->base))
+    {
       apiTex->base = this;
+      apiTex->applyName();
+    }
     if (other->apiTex && !tql::isTexStub(other->apiTex->base))
+    {
       other->apiTex->base = other;
-
-    G_ASSERT(lockFlags == TEXLOCK_BUSY_WAITING_IN_QUEUE && other->lockFlags == TEXLOCK_BUSY_WAITING_IN_QUEUE);
-    lockFlags = other->lockFlags = 0;
+      other->apiTex->applyName();
     }
     del_d3dres(other_tex);
-  }
-  void Texture::waitSwapTexDone() const
-  {
-    if (is_main_thread())
-      render.flush(false, false);
-    else
-      for (unsigned fe = dagor_frame_no()+120; (lockFlags & TEXLOCK_BUSY_WAITING_IN_QUEUE) && dagor_frame_no() < fe; )
-        sleep_msec(1);
+    other_tex = nullptr;
   }
 
   int Texture::getWidth()
@@ -824,7 +911,6 @@ namespace drv3d_metal
 
   int Texture::getinfo(TextureInfo &ti, int level) const
   {
-    ensureSwapTexDone();
     if (level >= mipLevels)
       level = mipLevels - 1;
 
@@ -850,42 +936,57 @@ namespace drv3d_metal
     return mipLevels;
   }
 
-  int Texture::texaddr(int addrmode)
+  int Texture::texaddrImpl(int addrmode)
   {
-    return render.setTextureAddr(this, addrmode, addrmode, addrmode);
+    texaddruImpl(addrmode);
+    texaddrvImpl(addrmode);
+    texaddrwImpl(addrmode);
+    return 1;
   }
 
-  int Texture::texaddru(int addrmode)
+  int Texture::texaddruImpl(int addrmode)
   {
-    return render.setTextureAddr(this, addrmode, -1, -1);
+    if (addrmode && sampler_state.addrU != addrmode)
+      sampler_state.addrU = addrmode, sampler_dirty = true;
+    return 1;
   };
 
-  int Texture::texaddrv(int addrmode)
+  int Texture::texaddrvImpl(int addrmode)
   {
-    return render.setTextureAddr(this, -1, addrmode, -1);
+    if (addrmode && sampler_state.addrV != addrmode)
+      sampler_state.addrV = addrmode, sampler_dirty = true;
+    return 1;
   }
 
-  int Texture::texaddrw(int addrmode)
+  int Texture::texaddrwImpl(int addrmode)
   {
-    return render.setTextureAddr(this, -1, -1, addrmode);
+    if (addrmode && sampler_state.addrW != addrmode)
+      sampler_state.addrW = addrmode, sampler_dirty = true;
+    return 1;
   }
 
-  int Texture::texbordercolor(E3DCOLOR color)
+  int Texture::texbordercolorImpl(E3DCOLOR color)
   {
-    return render.setTextureBorder(this, color);
+    sampler_dirty |= color != sampler_state.border_color;
+    sampler_state.border_color = color;
+    return 1;
   }
 
-  int Texture::texfilter(int filtermode)
+  int Texture::texfilterImpl(int filtermode)
   {
-    return render.setTextureFilter(this, filtermode);
+    if (filtermode >= 0 && filtermode != sampler_state.texFilter)
+      sampler_state.texFilter = filtermode, sampler_dirty = true;
+    return 1;
   }
 
-  int Texture::texmipmap(int mipmapmode)
+  int Texture::texmipmapImpl(int mipmapmode)
   {
-    return render.setTextureMipmapFilter(this, mipmapmode);
+    if (mipmapmode >= 0 && mipmapmode != sampler_state.mipmap)
+      sampler_state.mipmap = mipmapmode, sampler_dirty = true;
+    return 1;
   }
 
-  int Texture::texlod(float mipmaplod)
+  int Texture::texlodImpl(float mipmaplod)
   {
     //sampler_state.lod = mipmaplod;
     //sampler_dirty = true;
@@ -895,47 +996,30 @@ namespace drv3d_metal
   int Texture::texmiplevel(int set_minlevel, int set_maxlevel)
   {
     set_minlevel = (set_minlevel >= 0) ? set_minlevel : 0;
-    set_maxlevel = (set_maxlevel >= 0) ? set_maxlevel : mipLevels - 1;
-    render.setTextureMipLevel(this, set_minlevel, set_maxlevel + 1);
+    set_maxlevel = (set_maxlevel >= 0) ? set_maxlevel + 1 : mipLevels;
+
+    G_ASSERT(apiTex);
+    G_ASSERT(isStub() || apiTex->base == this);
+    if (!isStub())
+    {
+      G_ASSERT(mipLevels >= 1);
+      set_minlevel = min(set_minlevel, (int)mipLevels-1);
+      set_maxlevel = min(set_maxlevel, (int)mipLevels);
+      apiTex->sub_texture = apiTex->allocateOrCreateSubmip(set_minlevel, set_maxlevel, false);
+    }
     return 1;
   }
 
-  int Texture::setAnisotropy(int level)
+  int Texture::setAnisotropyImpl(int level)
   {
 #if _TARGET_IOS
     level = mipLevels > 1 ? level : 1;
 #endif
-    return render.setTextureAnisotropy(this, clamp(level, 1, 16));
-  }
+    level = clamp(level, 1, 16);
 
-  void Texture::doSetAddressing(int u, int v, int w)
-  {
-    if (u > 0 && sampler_state.addrU != u)
-      sampler_state.addrU = u, sampler_dirty = true;
-    if (v > 0 && sampler_state.addrV != v)
-      sampler_state.addrV = v, sampler_dirty = true;
-    if (w > 0 && sampler_state.addrW != w)
-      sampler_state.addrW = w, sampler_dirty = true;
-  }
-
-  void Texture::doSetBorder(E3DCOLOR color)
-  {
-    sampler_dirty |= color != sampler_state.border_color;
-    sampler_state.border_color = color;
-  }
-
-  void Texture::doSetFilter(int filter, int mipfilter)
-  {
-    if (filter >= 0 && filter != sampler_state.texFilter)
-      sampler_state.texFilter = filter, sampler_dirty = true;
-    if (filter >= 0 && mipfilter != sampler_state.mipmap)
-      sampler_state.mipmap = mipfilter, sampler_dirty = true;
-  }
-
-  void Texture::doSetAnisotropy(int level)
-  {
     sampler_dirty |= level != sampler_state.anisotropy;
     sampler_state.anisotropy = level;
+    return 1;
   }
 
   id<MTLTexture> Texture::ApiTexture::allocateOrCreateSubmip(int set_minlevel, int set_maxlevel, bool is_uav)
@@ -989,118 +1073,114 @@ namespace drv3d_metal
     return sub_mip.tex;
   }
 
-  void Texture::setMiplevelImpl(int set_minlevel, int set_maxlevel)
-  {
-    G_ASSERT(apiTex);
-    G_ASSERT(isStub() || apiTex->base == this);
-    if (!isStub())
-    {
-      G_ASSERT(mipLevels >= 1);
-      set_minlevel = min(set_minlevel, (int)mipLevels-1);
-      set_maxlevel = min(set_maxlevel, (int)mipLevels);
-      apiTex->sub_texture = apiTex->allocateOrCreateSubmip(set_minlevel, set_maxlevel, false);
-    }
-  }
-
   void Texture::applySampler(id<MTLSamplerState>& out_smp)
   {
     if (sampler_dirty)
     {
-      sampler = NULL;
-
-      for (int i = 0; i < states.size(); i++)
-      {
-        if (states[i] == sampler_state)
-        {
-          sampler = states[i].sampler;
-          break;
-        }
-      }
-
-      if (!sampler)
-      {
-        if (!samplerDescriptor)
-        {
-          samplerDescriptor = [[MTLSamplerDescriptor alloc] init];
-        }
-
-        samplerDescriptor.sAddressMode = getAddressMode(sampler_state.addrU);
-        samplerDescriptor.tAddressMode = getAddressMode(sampler_state.addrV);
-        samplerDescriptor.rAddressMode = getAddressMode(sampler_state.addrW);
-
-        if (sampler_state.texFilter == TEXFILTER_POINT)
-        {
-          samplerDescriptor.minFilter = MTLSamplerMinMagFilterNearest;
-          samplerDescriptor.magFilter = MTLSamplerMinMagFilterNearest;
-        }
-        else
-        {
-          samplerDescriptor.minFilter = MTLSamplerMinMagFilterLinear;
-          samplerDescriptor.magFilter = MTLSamplerMinMagFilterLinear;
-        }
-
-        if (sampler_state.mipmap == TEXFILTER_POINT)
-        {
-          samplerDescriptor.mipFilter = MTLSamplerMipFilterNearest;
-        }
-        else
-        {
-          samplerDescriptor.mipFilter = MTLSamplerMipFilterLinear;
-        }
-
-        samplerDescriptor.lodMinClamp = 0;
-        samplerDescriptor.lodMaxClamp = sampler_state.max_level;
-
-        samplerDescriptor.maxAnisotropy = sampler_state.anisotropy;
-
-  #if !_TARGET_IOS
-        if (sampler_state.border_color.r > 0 ||
-            sampler_state.border_color.g > 0 ||
-            sampler_state.border_color.b > 0)
-        {
-          samplerDescriptor.borderColor = MTLSamplerBorderColorOpaqueWhite;
-        }
-        else
-        {
-          samplerDescriptor.borderColor = MTLSamplerBorderColorTransparentBlack;
-        }
-  #endif
-
-        if (render.caps.samplerHaveCmprFun)
-        {
-          samplerDescriptor.compareFunction = MTLCompareFunctionLessEqual;
-        }
-
-        sampler = [render.device newSamplerStateWithDescriptor : samplerDescriptor];
-
-        sampler_state.sampler = sampler;
-
-        append_items(states, 1, &sampler_state);
-      }
-
+      getSampler(sampler_state);
+      sampler = sampler_state.sampler;
       sampler_dirty = false;
     }
     out_smp = sampler;
   }
 
-  void Texture::apply(id<MTLTexture>& out_tex, bool is_read_stencil, int mip_level, bool is_uav)
+  void Texture::getSampler(SamplerState &sampler_state)
+  {
+      sampler_state.sampler = NULL;
+
+      std::unique_lock lock(samplerStatesMutex);
+
+      for (int i = 0; i < states.size(); i++)
+      {
+        if (states[i] == sampler_state)
+        {
+          sampler_state.sampler = states[i].sampler;
+          return;
+        }
+      }
+
+      if (!samplerDescriptor)
+      {
+        samplerDescriptor = [[MTLSamplerDescriptor alloc] init];
+      }
+
+      samplerDescriptor.sAddressMode = getAddressMode(sampler_state.addrU);
+      samplerDescriptor.tAddressMode = getAddressMode(sampler_state.addrV);
+      samplerDescriptor.rAddressMode = getAddressMode(sampler_state.addrW);
+
+      if (sampler_state.texFilter == TEXFILTER_POINT)
+      {
+        samplerDescriptor.minFilter = MTLSamplerMinMagFilterNearest;
+        samplerDescriptor.magFilter = MTLSamplerMinMagFilterNearest;
+      }
+      else
+      {
+        samplerDescriptor.minFilter = MTLSamplerMinMagFilterLinear;
+        samplerDescriptor.magFilter = MTLSamplerMinMagFilterLinear;
+      }
+
+      if (sampler_state.mipmap == TEXFILTER_POINT)
+      {
+        samplerDescriptor.mipFilter = MTLSamplerMipFilterNearest;
+      }
+      else
+      {
+        samplerDescriptor.mipFilter = MTLSamplerMipFilterLinear;
+      }
+
+      samplerDescriptor.lodMinClamp = 0;
+      samplerDescriptor.lodMaxClamp = sampler_state.max_level;
+
+      samplerDescriptor.maxAnisotropy = min(16, sampler_state.anisotropy);
+
+#if !_TARGET_IOS
+      if (sampler_state.border_color.r > 0 ||
+          sampler_state.border_color.g > 0 ||
+          sampler_state.border_color.b > 0)
+      {
+        samplerDescriptor.borderColor = MTLSamplerBorderColorOpaqueWhite;
+      }
+      else
+      {
+        samplerDescriptor.borderColor = sampler_state.border_color.a > 0 ? MTLSamplerBorderColorOpaqueBlack : MTLSamplerBorderColorTransparentBlack;
+      }
+#endif
+
+      if (render.caps.samplerHaveCmprFun)
+      {
+        samplerDescriptor.compareFunction = MTLCompareFunctionLessEqual;
+      }
+      samplerDescriptor.supportArgumentBuffers = d3d::get_driver_desc().caps.hasBindless;
+
+      sampler_state.sampler = [render.device newSamplerStateWithDescriptor : samplerDescriptor];
+      append_items(states, 1, &sampler_state);
+  }
+
+  void Texture::apply(id<MTLTexture>& out_tex, bool is_read_stencil, int mip_level, bool is_uav, bool as_uint)
   {
     G_ASSERT(apiTex);
     G_ASSERT(isStub() || apiTex->base == this || apiTex->base == nullptr);
-    auto tex = is_read_stencil && apiTex->stencil_read_texture ? apiTex->stencil_read_texture : (is_uav ? apiTex->sub_texture_no_srgb : apiTex->sub_texture);
+    if (as_uint)
+    {
+      G_ASSERT(apiTex->texture_as_uint);
+      out_tex = apiTex->texture_as_uint;
+    }
+    else if (is_read_stencil && apiTex->stencil_read_texture)
+      out_tex = apiTex->stencil_read_texture;
+    else
+      out_tex = is_uav ? apiTex->sub_texture_no_srgb : apiTex->sub_texture;
     if (mip_level)
     {
+      G_ASSERT(!as_uint);
       G_ASSERT(!(is_read_stencil && apiTex->stencil_read_texture));
-      tex = apiTex->allocateOrCreateSubmip(mip_level, mip_level+1, is_uav);
+      out_tex = apiTex->allocateOrCreateSubmip(mip_level, mip_level+1, is_uav);
     }
-
-    out_tex = tex;
   }
 
   int Texture::lockimg(void **data, int &row_pitch, int level, unsigned flags)
   {
     int slice_pitch = 0;
-    void* d = lock(row_pitch, slice_pitch, level, 0, flags, !data);
+    void* d = lock(row_pitch, slice_pitch, level, 0, flags, data == nullptr);
 
     if (data)
     {
@@ -1187,20 +1267,19 @@ namespace drv3d_metal
   void Texture::setMinMipLevel(int min_mip_level)
   {
     if (!isStub())
-      setMiplevelImpl(min_mip_level, mipLevels);
+      texmiplevel(min_mip_level, mipLevels);
   }
 
   void* Texture::lock(int &row_pitch, int &slice_pitch, int level, int face, unsigned flags, bool readback)
   {
-    ensureSwapTexDone();
-    G_ASSERT(!(lockFlags & TEXLOCK_BUSY_WAITING_IN_QUEUE));
-
     if (level >= mipLevels)
     {
       level = mipLevels - 1;
     }
 
     lockFlags = flags;
+    if (readback)
+      lockFlags |= TEX_COPIED;
 
     getStride(base_format, width, height, level, row_pitch, slice_pitch);
 
@@ -1215,7 +1294,7 @@ namespace drv3d_metal
       }
     }
 
-    bool force_readback = last_render_frame == render.frame;
+    bool force_readback = last_readback_submit == ~0ull;
     if (!sys_image)
     {
       sys_images.push_back(SysImage());
@@ -1234,10 +1313,9 @@ namespace drv3d_metal
       {
         @autoreleasepool
         {
-          sys_image->buffer = [render.device newBufferWithLength : slice_pitch * d options : MTLResourceStorageModeShared];
-#if DAGOR_DBGLEVEL > 0
-          sys_image->buffer.label = [NSString stringWithFormat:@"upload for %s %llu", getResName(), render.frame];
-#endif
+          String name;
+          name.printf(0, "upload for %s %llu", getResName(), render.frame);
+          sys_image->buffer = render.createBuffer(slice_pitch * d, MTLResourceStorageModeShared, name);
           sys_image->image = (char*)sys_image->buffer.contents;
         }
       }
@@ -1258,7 +1336,6 @@ namespace drv3d_metal
     {
       G_ASSERT(!(lockFlags & TEXLOCK_UPDATEFROMSYSTEX) && !(lockFlags & TEXLOCK_SYSTEXLOCK)
                && !(lockFlags & TEXLOCK_DONOTUPDATEON9EXBYDEFAULT));
-      render.aquareOwnerShip();
       if (readback || force_readback)
       {
         int mins = use_dxt ? 4 : 1;
@@ -1267,18 +1344,27 @@ namespace drv3d_metal
         int d = max(depth >> sys_image->lock_level, 1);
 
         G_ASSERT(apiTex);
+        G_ASSERT(sys_image->buffer);
+        render.acquireOwnerShip();
         render.readbackTexture(apiTex->texture, sys_image->lock_level, sys_image->lock_face, w, h, d,
           sys_image->buffer, 0, sys_image->widBytes, sys_image->nBytes);
-        sys_image->frame = render.frame;
+        last_readback_submit = render.submits_scheduled;
+        render.releaseOwnerShip();
       }
-      if (!readback && (render.frame - sys_image->frame < Render::MAX_FRAMES_TO_RENDER))
+      if (!readback && (render.submits_completed < last_readback_submit))
       {
+#if DAGOR_DBGLEVEL > 0
+        if (render.report_stalls)
+          D3D_ERROR("[METAL_TEXTURE] flushing to readback texture %s, frame %llu (%llu)", getResName(), render.frame, render.submits_completed);
+#endif
+        TIME_PROFILE(textureReadbackFlush);
         @autoreleasepool
         {
+          render.acquireOwnerShip();
           render.flush(true);
+          render.releaseOwnerShip();
         }
       }
-      render.releaseOwnerShip();
     }
 
     return sys_image->image;
@@ -1286,9 +1372,6 @@ namespace drv3d_metal
 
   void Texture::unlock()
   {
-    ensureSwapTexDone();
-    G_ASSERT(!(lockFlags & TEXLOCK_BUSY_WAITING_IN_QUEUE));
-
     if (lockFlags == 0)
     {
       return;
@@ -1365,6 +1448,8 @@ namespace drv3d_metal
           free(sys_image.image);
         sys_image.image = nullptr;
       }
+      else if (!(lockFlags & TEX_COPIED))
+        last_readback_submit = ~0ull;
     }
 
     if (!(lockFlags & TEXLOCK_READ))
@@ -1377,7 +1462,9 @@ namespace drv3d_metal
 
   int Texture::update(BaseTexture* src)
   {
+    render.acquireOwnerShip();
     render.copyTex((Texture*)src, this);
+    render.releaseOwnerShip();
     return 1;
   }
 
@@ -1385,8 +1472,6 @@ namespace drv3d_metal
                           int src_subres_idx, int src_x, int src_y, int src_z, int src_w, int src_h, int src_d,
                           int dest_subres_idx, int dest_x, int dest_y, int dest_z)
   {
-    ensureSwapTexDone();
-    static_cast<Texture*>(src)->ensureSwapTexDone();
     G_ASSERT(!isStub());
 
     if (!validate_update_sub_region_params(src, src_subres_idx, src_x, src_y, src_z, src_w, src_h, src_d,
@@ -1512,6 +1597,7 @@ static const char* format2String(uint32_t fmt)
       case TEXFMT_A16B16G16R16UI: return "A16B16G16R16UI";
       case TEXFMT_A32B32G32R32UI: return "A32B32G32R32UI";
       case TEXFMT_R8G8B8A8:     return "R8G8B8A8";
+      case TEXFMT_R16UI:      return "R16UI";
       case TEXFMT_R32UI:      return "R32UI";
       case TEXFMT_R32SI:      return "R32SI";
       case TEXFMT_R11G11B10F:   return "R11G11B10F";
@@ -1617,8 +1703,8 @@ void d3d::get_texture_statistics(uint32_t *num_textures, uint64_t *total_mem, St
             tex->width,
             tex->height,
             tex->mipLevels,
-            tex->anisotropyLevel,
-            tex_filter_string(tex->texFilter), tex_mipfilter_string(tex->mipFilter),
+            tex->sampler_state.anisotropy,
+            tex_filter_string(tex->sampler_state.texFilter), tex_mipfilter_string(tex->sampler_state.mipmap),
             format2String(tex->base_format),
             tex->getResName());
       }
@@ -1639,8 +1725,8 @@ void d3d::get_texture_statistics(uint32_t *num_textures, uint64_t *total_mem, St
             tex->height,
             tex->depth,
             tex->mipLevels,
-            tex->anisotropyLevel,
-            tex_filter_string(tex->texFilter), tex_mipfilter_string(tex->mipFilter),
+            tex->sampler_state.anisotropy,
+            tex_filter_string(tex->sampler_state.texFilter), tex_mipfilter_string(tex->sampler_state.mipmap),
             format2String(tex->base_format),
             tex->getResName());
       }

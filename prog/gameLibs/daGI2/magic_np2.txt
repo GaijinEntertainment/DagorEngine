@@ -1,0 +1,28 @@
+instead of super fast:
+    uint3 wrapped_coord_from_abs_coord(int3 abs_coord)
+    {
+      return uint3(clipmap_sizei_np2.zzw + abs_coord)%uint3(clipmap_sizei_np2.xxy);
+    }
+where clipmap_sizei_np2.zw == clipmap_sizei_np2.xy*N (some big N, we use N = (1<<30)/clipmap_sizei_np2.xy)
+we can do:
+    uint3 wrapped_coord_from_abs_coord(int3 abs_coord)
+    {
+      return uint3((abs_coord < 0 ? clipmap_sizei_np2.zzw : 0) + abs_coord)%uint3(clipmap_sizei_np2.xxy);
+    }
+
+with clipmap_sizei_np2.zzw = brute-force found value, using this code:
+
+uint32_t find_ofs(int div)
+{
+  for (uint32_t j = 0; j < div; ++j)
+    if ((div - 1%div)%div == (uint32_t(-1)%uint32_t(div)+j)%uint32_t(div))
+    {
+      return j;
+    }
+  return 0;
+}
+
+this code is as slower as just one cmp + one cmove. but will work on twice bigger range (both positive and negative)!
+
+The only reason why I am not using it now, is because current code will work on range till 33mln meters (or 33000 km) with 0.0625m voxel size.
+Doubling this range is noble but unlikely to happen.

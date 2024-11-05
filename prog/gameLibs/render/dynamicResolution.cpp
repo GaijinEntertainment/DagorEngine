@@ -1,5 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/dynamicResolution.h>
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_commands.h>
 
 #include <debug/dag_assert.h>
 #include <debug/dag_debug.h>
@@ -7,6 +9,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
 #include <workCycle/dag_workCyclePerf.h>
+#include <3d/dag_lowLatency.h>
 
 #include <gui/dag_imgui.h>
 #include <imgui/implot.h>
@@ -31,7 +34,7 @@ DynamicResolution::DynamicResolution(int target_width, int target_height)
 
   timestamps.resize(MIN_TIMESTAMPGET_DELAY);
   uint64_t gpuFreq;
-  G_VERIFY(d3d::driver_command(D3V3D_COMMAND_TIMESTAMPFREQ, &gpuFreq, 0, 0));
+  G_VERIFY(d3d::driver_command(Drv3dCommand::TIMESTAMPFREQ, &gpuFreq));
   gpuMsPerTick = 1000.0 / gpuFreq;
 
 #if DYNRES_DEBUG
@@ -43,18 +46,33 @@ DynamicResolution::~DynamicResolution()
 {
   for (TimestampQueries &ts : timestamps)
   {
-    d3d::driver_command(DRV3D_COMMAND_RELEASE_QUERY, &ts.beginQuery, 0, 0);
-    d3d::driver_command(DRV3D_COMMAND_RELEASE_QUERY, &ts.endQuery, 0, 0);
+    d3d::driver_command(Drv3dCommand::RELEASE_QUERY, &ts.beginQuery);
+    d3d::driver_command(Drv3dCommand::RELEASE_QUERY, &ts.endQuery);
   }
 #if DYNRES_DEBUG
   dynamic_resolution_instance = nullptr;
 #endif
 }
 
+static float limitByVSync(float targetFrameRate)
+{
+  double vsyncFrameRate;
+  if (d3d::driver_command(Drv3dCommand::GET_VSYNC_REFRESH_RATE, &vsyncFrameRate))
+  {
+    targetFrameRate = min(float(vsyncFrameRate), targetFrameRate);
+  }
+  return targetFrameRate;
+}
+
 void DynamicResolution::applySettings()
 {
-  const DataBlock &settingsBlk = *dgs_get_settings()->getBlockByNameEx("video")->getBlockByNameEx("dynamicResolution");
+  const DataBlock &videoBlk = *dgs_get_settings()->getBlockByNameEx("video");
+  const DataBlock &settingsBlk = *videoBlk.getBlockByNameEx("dynamicResolution");
   targetFrameRate = settingsBlk.getInt("targetFPS", 60);
+
+  if (videoBlk.getBool("vsync", false) && lowlatency::get_from_blk() == lowlatency::LATENCY_MODE_OFF)
+    targetFrameRate = limitByVSync(targetFrameRate);
+
   if (targetFrameRate <= 0)
   {
     logerr("Invalid target frame rate for Dynamic Resolution: %d", targetFrameRate);
@@ -62,8 +80,10 @@ void DynamicResolution::applySettings()
     return;
   }
   targetMsPerFrame = 1000.0 / targetFrameRate;
-  resolutionScaleStep = settingsBlk.getReal("resolutionScaleStep", 0.05);
+  // This curve allows for more granular change at higher framerate, while adapts at a similar speed at low fps.
+  resolutionScaleStep = 0.01f * clamp<float>(round(200.0f / targetFrameRate), 1, 5);
   minResolutionScale = settingsBlk.getReal("minResolutionScale", 0.5);
+  resolutionScale = clamp(resolutionScale, minResolutionScale, maxResolutionScale);
   maxThresholdToChange = settingsBlk.getReal("thresholdToDecreaseResolution", 0.95);
   minThresholdToChange = settingsBlk.getReal("thresholdToIncreaseResolution", 0.85);
   considerCPUbottleneck = settingsBlk.getBool("considerCPUbottleneck", false);
@@ -88,9 +108,9 @@ void DynamicResolution::beginFrame()
   if (frameIdx >= timestamps.size())
   {
     uint64_t beginTick = 0, endTick = 0;
-    if (d3d::driver_command(D3V3D_COMMAND_TIMESTAMPGET, timestamps[curIdx].endQuery, &endTick, 0))
+    if (d3d::driver_command(Drv3dCommand::TIMESTAMPGET, timestamps[curIdx].endQuery, &endTick))
     {
-      G_VERIFY(d3d::driver_command(D3V3D_COMMAND_TIMESTAMPGET, timestamps[curIdx].beginQuery, &beginTick, 0));
+      G_VERIFY(d3d::driver_command(Drv3dCommand::TIMESTAMPGET, timestamps[curIdx].beginQuery, &beginTick));
       float timeMs = double(endTick - beginTick) * gpuMsPerTick;
       currentGpuMsPerFrame = timeMs;
       adjustResolution();
@@ -109,26 +129,27 @@ void DynamicResolution::beginFrame()
       frameIdx = timestamps.size() + curIdx;
     }
   }
-  d3d::driver_command(D3V3D_COMMAND_TIMESTAMPISSUE, &timestamps[curIdx].beginQuery, 0, 0);
+  d3d::driver_command(Drv3dCommand::TIMESTAMPISSUE, &timestamps[curIdx].beginQuery);
 }
 
 void DynamicResolution::endFrame()
 {
   G_ASSERT_RETURN(gpuFrameState == GPU_FRAME_STARTED, );
   gpuFrameState = GPU_FRAME_FINISHED;
-  d3d::driver_command(D3V3D_COMMAND_TIMESTAMPISSUE, &timestamps[frameIdx % timestamps.size()].endQuery, 0, 0);
+  d3d::driver_command(Drv3dCommand::TIMESTAMPISSUE, &timestamps[frameIdx % timestamps.size()].endQuery);
   frameIdx++;
 }
 
 
 void DynamicResolution::calculateAllowableTimeRange(float &lower_bound, float &upper_bound)
 {
-  upper_bound = targetMsPerFrame * maxThresholdToChange;
-  lower_bound = targetMsPerFrame * minThresholdToChange;
-  if (considerCPUbottleneck && currentCpuMsPerFrame > targetMsPerFrame)
+  float adjustedTargetMsPerFrame = max(minimumMsPerFrame, targetMsPerFrame);
+  upper_bound = adjustedTargetMsPerFrame * maxThresholdToChange;
+  lower_bound = adjustedTargetMsPerFrame * minThresholdToChange;
+  if (considerCPUbottleneck && currentCpuMsPerFrame > adjustedTargetMsPerFrame)
   {
     float maxDeviation = (upper_bound - lower_bound) * 0.5;
-    float lerpK = min((currentCpuMsPerFrame - targetMsPerFrame) / targetMsPerFrame * 10.0f, 1.0f);
+    float lerpK = min((currentCpuMsPerFrame - adjustedTargetMsPerFrame) / adjustedTargetMsPerFrame * 10.0f, 1.0f);
     upper_bound = lerp(upper_bound, currentCpuMsPerFrame + maxDeviation, lerpK);
     lower_bound = lerp(lower_bound, currentCpuMsPerFrame - maxDeviation, lerpK);
   }
@@ -209,7 +230,7 @@ void DynamicResolution::debugImguiWindow()
   if (considerCPUbottleneck)
     cpuFrameTime.AddPoint(t, currentCpuMsPerFrame);
 
-  ImGui::SliderFloat("Resolution Scale", &resolutionScale, 0.5, 1, "%.2f");
+  ImGui::SliderFloat("Resolution Scale", &resolutionScale, minResolutionScale, maxResolutionScale, "%.2f");
   ImGui::LabelText("Resolution", "%dx%d", currentResolutionWidth, currentResolutionHeight);
   const char *dynResModes[] = {"Auto", "Cyclic", "Manually"};
   static int currentMode = 0;
@@ -238,7 +259,7 @@ void DynamicResolution::debugImguiWindow()
   if (fpsMode < 3)
     targetFrameRate = atoi(fpsModes[fpsMode]);
   else if (fpsMode == 3)
-    ImGui::SliderInt("FPS", &targetFrameRate, 15, 360);
+    ImGui::SliderFloat("FPS", &targetFrameRate, 15, 360);
   targetMsPerFrame = 1000.0 / targetFrameRate;
 
   if (ImGui::Checkbox("consider CPU bottleneck", &considerCPUbottleneck) && considerCPUbottleneck)
@@ -254,14 +275,16 @@ void DynamicResolution::debugImguiWindow()
   thresholdsX[2] = t - history - 0.1;
   thresholdsY[2] = thresholdsY[3];
   ImGui::SliderFloat("History", &history, 1, 30, "%.1f s");
-  ImPlot::SetNextPlotLimitsX(t - history, t, ImGuiCond_Always);
+  ImPlot::SetNextAxisLimits(ImAxis_X1, t - history, t, ImGuiCond_Always);
   float maxY = max(targetMsPerFrame * 1.33f, *eastl::max_element(gpuFrameTime.yData.begin(), gpuFrameTime.yData.end()));
-  ImPlot::SetNextPlotLimitsY(0, maxY, ImGuiCond_Always);
-  if (ImPlot::BeginPlot("##GPU frame time", nullptr, "frame time (ms)", ImVec2(0, 0), 0, ImPlotAxisFlags_NoTickLabels, 0))
+  ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, maxY, ImGuiCond_Always);
+  if (ImPlot::BeginPlot("##GPU frame time", nullptr, "frame time (ms)", ImVec2(-1, -1), 0, ImPlotAxisFlags_NoTickLabels, 0))
   {
     if (considerCPUbottleneck)
-      ImPlot::PlotLine("CPU time", &cpuFrameTime.xData[0], &cpuFrameTime.yData[0], cpuFrameTime.xData.size(), cpuFrameTime.offset);
-    ImPlot::PlotLine("GPU time", &gpuFrameTime.xData[0], &gpuFrameTime.yData[0], gpuFrameTime.xData.size(), gpuFrameTime.offset);
+      ImPlot::PlotLine("CPU time", &cpuFrameTime.xData[0], &cpuFrameTime.yData[0], cpuFrameTime.xData.size(), ImPlotLineFlags_None,
+        cpuFrameTime.offset);
+    ImPlot::PlotLine("GPU time", &gpuFrameTime.xData[0], &gpuFrameTime.yData[0], gpuFrameTime.xData.size(), ImPlotLineFlags_None,
+      gpuFrameTime.offset);
     ImPlot::PlotLine("thresholds", thresholdsX, thresholdsY, 4);
     ImPlot::EndPlot();
   }

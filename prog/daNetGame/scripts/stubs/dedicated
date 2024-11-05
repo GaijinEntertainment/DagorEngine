@@ -1,0 +1,21 @@
+let {get_arg_value_by_name} = require("dagor.system")
+if (get_arg_value_by_name("client"))
+  return null
+return {
+  get_matching_mode_info = @() {
+    mode_info = {
+      gameName = ""
+      serverGame = ""
+      scene = ""
+      appId = 0
+      anticheat = false
+      imports = []
+    }
+    roomName = ""
+    gameName = ""
+    scene = ""
+    groupSize = 2
+    extraParams = {}
+    teamsSlots = [2, 2]
+  }
+}

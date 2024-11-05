@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "dagorConsoleProcessor.h"
 #include <dasModules/dasSystem.h>
 

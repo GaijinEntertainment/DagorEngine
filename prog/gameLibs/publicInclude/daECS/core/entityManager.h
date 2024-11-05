@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -14,6 +13,8 @@
 #include <EASTL/deque.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/vector_map.h>
+#include <dag/dag_vectorSet.h>
+#include <dag/dag_vectorMap.h>
 #include <generic/dag_span.h>
 #include <generic/dag_smallTab.h>
 #include <generic/dag_initOnDemand.h>
@@ -323,6 +324,9 @@ public:
   uint32_t getMaxWorkerId() const; // this is inclusive! i.e. it can return setMaxUpdateJobs()/MAX_POSSIBLE_WORKERS_COUNT + 1!
   void setQueryUpdateQuant(const char *es, uint16_t min_quant);
 
+  // this function to be explicitly called only when new systems or tags appeared/disappeared
+  void resetEsOrder();
+
   EntityManager();
   EntityManager(const EntityManager &from);
   ~EntityManager();
@@ -371,6 +375,35 @@ public:
   EventsDB &getEventsDbMutable() { return eventDb; }
   const EventsDB &getEventsDb() const { return eventDb; }
   void enableES(const char *es_name, bool on);
+
+  // track ecs components access - only for development mode
+  enum class TrackComponentOp : uint8_t
+  {
+    READ,
+    WRITE
+  };
+  void startTrackComponent(component_t comp);
+  void stopTrackComponentsAndDump();
+
+  enum class TrackAccessStack
+  {
+    No,
+    Yes
+  };
+  void trackComponent(const BaseQueryDesc &desc, const char *details, TrackAccessStack need_stack = TrackAccessStack::No,
+    EntityId eid = ecs::INVALID_ENTITY_ID) const;
+
+  void trackComponent(component_t comp, TrackComponentOp op, const char *details, TrackAccessStack need_stack = TrackAccessStack::No,
+    EntityId eid = ecs::INVALID_ENTITY_ID) const;
+
+  void trackComponentIndex(component_index_t cidx, TrackComponentOp op, const char *details,
+    TrackAccessStack need_stack = TrackAccessStack::No, EntityId eid = INVALID_ENTITY_ID) const;
+
+  void setUserData(void *user_data) { userData = user_data; }
+  void *getUserData() const { return userData; }
+
+  int64_t getOwnerThreadId() const { return ownerThreadId; }
+  void setOwnerThreadId(int64_t value) { ownerThreadId = value; }
 
 protected:
 #include "internal/entityManagerProtected.h"

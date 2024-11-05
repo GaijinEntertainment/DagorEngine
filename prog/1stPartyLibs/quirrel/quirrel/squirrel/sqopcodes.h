@@ -39,7 +39,6 @@ enum AppendArrayType {
 
 #define SQ_OPCODES_LIST \
     SQ_OPCODE(_OP_DATA_NOP) \
-    SQ_OPCODE(_OP_LINE) \
     SQ_OPCODE(_OP_LOAD) \
     SQ_OPCODE(_OP_LOADINT) \
     SQ_OPCODE(_OP_LOADFLOAT) \
@@ -51,14 +50,18 @@ enum AppendArrayType {
     SQ_OPCODE(_OP_GETK) \
     SQ_OPCODE(_OP_MOVE) \
     SQ_OPCODE(_OP_NEWSLOT) \
+    SQ_OPCODE(_OP_NEWSLOTK) \
     SQ_OPCODE(_OP_DELETE) \
     SQ_OPCODE(_OP_SET) \
+    SQ_OPCODE(_OP_SETK)\
+    SQ_OPCODE(_OP_SETI)\
     SQ_OPCODE(_OP_GET) \
     SQ_OPCODE(_OP_SET_LITERAL) \
     SQ_OPCODE(_OP_GET_LITERAL) \
     SQ_OPCODE(_OP_EQ) \
     SQ_OPCODE(_OP_NE) \
     SQ_OPCODE(_OP_ADD) \
+    SQ_OPCODE(_OP_ADDI) \
     SQ_OPCODE(_OP_SUB) \
     SQ_OPCODE(_OP_MUL) \
     SQ_OPCODE(_OP_DIV) \
@@ -71,12 +74,16 @@ enum AppendArrayType {
     SQ_OPCODE(_OP_DMOVE) \
     SQ_OPCODE(_OP_JMP) \
     SQ_OPCODE(_OP_JCMP) \
+    SQ_OPCODE(_OP_JCMPI) \
+    SQ_OPCODE(_OP_JCMPF) \
+    SQ_OPCODE(_OP_JCMPK) \
     SQ_OPCODE(_OP_JZ) \
     SQ_OPCODE(_OP_SETOUTER) \
     SQ_OPCODE(_OP_GETOUTER) \
     SQ_OPCODE(_OP_NEWOBJ) \
     SQ_OPCODE(_OP_APPENDARRAY) \
     SQ_OPCODE(_OP_COMPARITH) \
+    SQ_OPCODE(_OP_COMPARITH_K) \
     SQ_OPCODE(_OP_INC) \
     SQ_OPCODE(_OP_INCL) \
     SQ_OPCODE(_OP_PINC) \
@@ -92,8 +99,9 @@ enum AppendArrayType {
     SQ_OPCODE(_OP_CLOSURE) \
     SQ_OPCODE(_OP_YIELD) \
     SQ_OPCODE(_OP_RESUME) \
-    SQ_OPCODE(_OP_FOREACH) \
+    SQ_OPCODE(_OP_PREFOREACH) \
     SQ_OPCODE(_OP_POSTFOREACH) \
+    SQ_OPCODE(_OP_FOREACH) \
     SQ_OPCODE(_OP_CLONE) \
     SQ_OPCODE(_OP_TYPEOF) \
     SQ_OPCODE(_OP_PUSHTRAP) \
@@ -129,12 +137,23 @@ struct SQInstruction
         _arg2 = (unsigned char)a2;_arg3 = (unsigned char)a3;
     }
 
+    SQInstruction(SQOpcode _op,SQInteger a0,float a1=0,SQInteger a2=0,SQInteger a3=0)
+    {   op = (unsigned char)_op;
+        _arg0 = (unsigned char)a0;_farg1 = a1;
+        _arg2 = (unsigned char)a2;_arg3 = (unsigned char)a3;
+    }
 
-    SQInt32 _arg1;
+    union {
+        SQInt32 _arg1;
+        float _farg1;
+    };
     unsigned char op;
     unsigned char _arg0;
     unsigned char _arg2;
     unsigned char _arg3;
+    int _sarg0() const {return (signed char)_arg0;}
+    int _sarg2() const {return (signed char)_arg2;}
+    int _sarg3() const {return (signed char)_arg3;}
 };
 
 #include "squtils.h"
@@ -145,6 +164,6 @@ typedef sqvector<SQInstruction> SQInstructionVec;
 #define OP_GET_FLAG_ALLOW_DEF_DELEGATE  0x01
 #define OP_GET_FLAG_NO_ERROR            0x02
 #define OP_GET_FLAG_KEEP_VAL            0x04 //< only used with OP_GET_FLAG_NO_ERROR
-#define OP_GET_FLAG_BUILTIN_ONLY        0x08
+#define OP_GET_FLAG_TYPE_METHODS_ONLY   0x08
 
 #endif // _SQOPCODES_H_

@@ -1,0 +1,9 @@
+heat_haze_renderer {
+  _singleton:b=true
+  _tags:t="render"
+  "heat_haze__manager:HeatHazeManager"{}
+  "heat_haze__render_clear_node:dabfg::NodeHandle"{}
+  "heat_haze__render_particles_node:dabfg::NodeHandle"{}
+  "heat_haze__apply_node:dabfg::NodeHandle"{}
+  heat_haze__lod:i=-1
+}

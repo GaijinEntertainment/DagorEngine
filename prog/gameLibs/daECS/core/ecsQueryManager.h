@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include "ecsQueryInternal.h"
 #include <daECS/core/entityManager.h>
 
@@ -68,22 +70,22 @@ __forceinline bool EntityManager::updatePersistentQuery(archetype_t last_arch_co
 __forceinline bool EntityManager::doesQueryIdApplyToArch(QueryId queryId, archetype_t archetype)
 {
   DAECS_EXT_ASSERT(isQueryValid(queryId) && queriesReferences[queryId.index()]);
-  auto &archDesc = archetypeQueries[queryId.index()];
-  if (!archDesc.archSubQueriesCount)
+  auto &__restrict archDesc = archetypeQueries[queryId.index()];
+  const auto lastArch = archDesc.lastArch;
+  if (DAGOR_LIKELY(archetype > lastArch))
     return false;
-  if (archetype == archDesc.firstArch) // 18 % of all queries!
-    return true;
-  const uint32_t archSubQueryId = uint32_t(archetype) - uint32_t(archDesc.firstArch);
-  if (archSubQueryId >= archDesc.archSubQueriesCount)
-    return false;
-  if (archDesc.isInplaceQueries())
+  const uint32_t cnt = archDesc.getQueriesCount();
+  const int firstArch = archDesc.firstArch;
+  int archSubQueryId = int(archetype) - firstArch;
+  if (DAGOR_UNLIKELY(archSubQueryId > 0 && int(lastArch) + 1 != cnt + firstArch))
   {
-    // linear search inside inplace queries. that is likely be to quiet often case, and this data is already inside cache line
-    auto e(archDesc.queriesInplace() + archDesc.getQueriesCount());
-    return eastl::find(archDesc.queriesInplace() + 1, e, archetype) != e; // first one is already compared, as it is firstArch
+    if (DAGOR_LIKELY(archDesc.isInplaceQueries(cnt)))
+      // linear search inside inplace queries. that is likely be to quiet often case, and this data is already inside cache line
+      archSubQueryId = eastl::find(archDesc.queriesInplace(), archDesc.queriesInplace() + cnt, archetype) - archDesc.queriesInplace();
+    else
+      archSubQueryId = eastl::binary_search_i(archDesc.queries, archDesc.queries + cnt, archetype) - archDesc.queries;
   }
-
-  return archSubQueriesContainer[archetypeEidQueries[queryId.index()].archSubQueriesAt + archSubQueryId] != INVALID_ARCHETYPE;
+  return uint32_t(archSubQueryId) < cnt;
 }
 
 __forceinline void EntityManager::notifyESEventHandlers(EntityId eid, archetype_t archetype, ArchEsList list)

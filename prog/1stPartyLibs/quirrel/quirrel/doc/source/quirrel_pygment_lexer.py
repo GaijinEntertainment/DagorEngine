@@ -84,7 +84,7 @@ class QuirrelLexer(RegexLexer):
 
             (r'(foreach|for|in|while|do|break|return|continue|switch|case|default|if|else|'
              r'throw|try|catch|yield|this|of|static|'
-             r'import|extends|base)\b', Keyword, 'slashstartsregex'),
+             r'import|base)\b', Keyword, 'slashstartsregex'),
             (r'(local|let|const|function|class)\b', Keyword.Declaration, 'slashstartsregex'),
 
 #            (r'(static)\b', Keyword.Reserved),

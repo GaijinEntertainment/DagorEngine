@@ -1,3 +1,6 @@
+if (__name__ == "__analysis__")
+  return
+
 const B = true
 local x = 1
 local y = 1

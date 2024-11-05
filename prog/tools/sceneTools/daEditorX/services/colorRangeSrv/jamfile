@@ -1,6 +1,6 @@
 Root    ?= ../../../../../.. ;
 Location = prog/tools/sceneTools/daEditorX/services/colorRangeSrv ;
-DriverLinkage ?= dynamic ;
+KernelLinkage ?= dynamic ;
 
 TargetType  = lib ;
 Target      = tools/sceneTools/daEditorX/services/colorRangeSrv.lib ;

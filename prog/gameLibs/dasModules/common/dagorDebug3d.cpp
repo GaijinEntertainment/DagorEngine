@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/dasModulesCommon.h>
 #include <dasModules/aotDagorDebug3d.h>
 
@@ -55,7 +57,6 @@ public:
     ADD_EXTERN(end_draw_cached_debug_lines);
     ADD_EXTERN(end_draw_cached_debug_lines_ex);
 
-    ADD_EXTERN(draw_cached_debug_cylinder);
     ADD_EXTERN(draw_cached_debug_cone);
 
     das::addExtern<DAS_BIND_FUN(::set_cached_debug_lines_wtm)>(*this, lib, "set_cached_debug_lines_wtm",
@@ -64,6 +65,13 @@ public:
       das::SideEffects::modifyExternal, "::draw_cached_debug_line");
     das::addExtern<void (*)(const Point3 *, int, E3DCOLOR), &::draw_cached_debug_line>(*this, lib, "draw_cached_debug_line",
       das::SideEffects::modifyExternal, "::draw_cached_debug_line");
+
+    das::addExtern<void (*)(const TMatrix &, float, float, E3DCOLOR), &::draw_cached_debug_cylinder>(*this, lib,
+      "draw_cached_debug_cylinder", das::SideEffects::modifyExternal, "::draw_cached_debug_cylinder");
+    das::addExtern<void (*)(const TMatrix &, Point3 &, Point3 &, float, E3DCOLOR), &::draw_cached_debug_cylinder>(*this, lib,
+      "draw_cached_debug_cylinder", das::SideEffects::modifyExternal, "::draw_cached_debug_cylinder");
+    das::addExtern<void (*)(Point3 &, Point3 &, float, E3DCOLOR), &::draw_cached_debug_cylinder_w>(*this, lib,
+      "draw_cached_debug_cylinder_w", das::SideEffects::modifyExternal, "::draw_cached_debug_cylinder_w");
 
     das::addExtern<void (*)(const BBox3 &, E3DCOLOR), draw_cached_debug_box>(*this, lib, "draw_cached_debug_box",
       das::SideEffects::modifyExternal, "::draw_cached_debug_box");

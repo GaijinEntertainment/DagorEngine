@@ -1,7 +1,6 @@
 //
 // DaEditorX
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -15,12 +14,16 @@
 
 
 // forward declarations for external classes
+
+namespace PropPanel
+{
+class ContainerPropertyControl;
+}
+
 class IGenLoad;
 class Point3;
 class BBox3;
 class FastRtDump;
-
-typedef class PropertyContainerControlBase PropPanel2;
 
 struct TpsPhysmatInfo;
 struct Capsule;
@@ -82,13 +85,13 @@ dag::ConstSpan<IDagorEdCustomCollider *> get_current_colliders(unsigned &filter_
 // collider_pid -- first collider checkbox's PID
 // you have to reserve some number of PIDs to hold all colliders PIDs
 // shadow means custom shadows instead of custom colliders
-bool fill_custom_colliders_list(PropPanel2 &panel, const char *grp_caption, int grp_pid, int collider_pid, bool shadow,
-  bool open_grp = false);
+bool fill_custom_colliders_list(PropPanel::ContainerPropertyControl &panel, const char *grp_caption, int grp_pid, int collider_pid,
+  bool shadow, bool open_grp = false);
 // check collider checkbox on Property Panel and enable/disable collider
 // collider_pid -- first collider checkbox's PID
 // shadow means custom shadows instead of custom colliders
 // return true if collider state changed
-bool on_pp_collider_check(int pid, const PropPanel2 &panel, int collider_pid, bool shadow);
+bool on_pp_collider_check(int pid, const PropPanel::ContainerPropertyControl &panel, int collider_pid, bool shadow);
 
 
 // dagor phys engine clipping

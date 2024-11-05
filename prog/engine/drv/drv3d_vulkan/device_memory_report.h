@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include "driver.h"
 #include "physical_device_set.h"
 #include <EASTL/hash_map.h>

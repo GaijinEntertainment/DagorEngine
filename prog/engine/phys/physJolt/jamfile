@@ -3,14 +3,14 @@ Location = prog/engine/phys/physJolt ;
 
 TargetType  = lib ;
 Target      = engine/phys/physJolt.lib ;
-if $(OS) = NT { Platform ?= win64 ; }
+PlatformArch_windows ?= x86_64 ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 AddIncludes =
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/3rdPartyLibs/phys/joltPhysics
-  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude # FIXME_BROKEN_DEP
 ;
 
 
@@ -26,19 +26,20 @@ Sources =
 UseProgLibs =
   engine/phys/physCommon
   3rdPartyLibs/phys/joltPhysics
-  gameLibs/render/dynmodelRenderer
+  gameLibs/render/dynmodelRenderer # FIXME_BROKEN_DEP
   engine/heightMapLand
 ;
 
-CPPopt = -D__B_CORE -DUSE_JOLT_PHYSICS ;
+CPPopt = -DUSE_JOLT_PHYSICS ;
 
-if $(Platform) = linux64 || $(PlatformSpec) = clang {
-  if $(Platform) in win32 win64 xboxOne scarlett {
-    CPPopt += -fp:fast /clang:-fno-unsafe-math-optimizations ;
+if $(Platform) = linux || $(PlatformSpec) = clang {
+  if $(Platform) in windows xboxOne scarlett {
+    CPPopt += -fp:fast ;
+    if $(PlatformArch) != arm64 { CPPopt += /clang:-fno-unsafe-math-optimizations ; }
   } else {
     CPPopt += -fno-unsafe-math-optimizations ;
   }
-}
+} else if $(SSEVersion) = 0 { CPPopt += /arch:SSE2 ; } # msvc windows-x86 implied
 
 include $(Root)/prog/3rdPartyLibs/phys/joltPhysics/setup.jam ;
 include $(Root)/prog/_jBuild/build.jam ;

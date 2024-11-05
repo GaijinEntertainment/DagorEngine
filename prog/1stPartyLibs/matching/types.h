@@ -1,5 +1,5 @@
-#ifndef GAIJIN_MATCHING_TYPES_H
-#define GAIJIN_MATCHING_TYPES_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #include <stdint.h>
 
@@ -21,5 +21,3 @@ namespace matching
   const SquadId   INVALID_SQUAD_ID  = 0;
   const GroupId   INVALID_GROUP_ID  = 0;
 }
-
-#endif

@@ -1,8 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/util/de_TextureName.h>
 #include <osApiWrappers/dag_direct.h>
 #include <libTools/dtx/dtxHeader.h>
 #include <debug/dag_debug.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_tex3d.h>
 #include <libTools/util/iLogWriter.h>
 
 static ILogWriter *log_writer = NULL;

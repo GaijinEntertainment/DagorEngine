@@ -1,0 +1,100 @@
+include "static_shadow.dshl"
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "postfx_inc.dshl"
+include "viewVecVS.dshl"
+include "globtm.dshl"
+include "gbuffer.dshl"
+include "giHelpers/common_collision_render.dshl"
+
+int rasterize_collision_type;
+interval rasterize_collision_type : debug<1, gbuf<2, depth;
+
+shader render_lru_collision
+{
+  ENABLE_ASSERT(ps)
+//  supports none;
+  supports global_frame;
+  //cull_mode = none;
+  if (rasterize_collision_type == gbuf)
+  {
+    WRITE_GBUFFER()
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      centroid VS_OUT_POSITION(pos)
+      float3 pointToEye    : TEXCOORD0;
+      nointerpolation float3 diffuseColor         : TEXCOORD2;
+    };
+  }
+  (vs) {debug_world_view_pos@f3=world_view_pos;}
+  hlsl(ps) {
+    ##if rasterize_collision_type == debug
+    float3 gi_collision_ps(VsOutput ps_input INPUT_VFACE):SV_Target
+    {
+      VsOutput input = ps_input;
+      half3 worldNormal = normalize(cross(ddy(input.pointToEye), ddx(input.pointToEye)));
+      worldNormal.xyz = MUL_VFACE(worldNormal.xyz);
+      float fresnel = saturate(1 - abs(dot(worldNormal, normalize(input.pointToEye).xyz)));
+      fresnel = saturate(lerp(0.04, 0.5, pow4(fresnel)));
+      return saturate(dot(worldNormal, normalize(float3(1,1,1))*0.5)) + fresnel;
+    }
+    ##elif rasterize_collision_type == gbuf
+    GBUFFER_OUTPUT gi_collision_ps(VsOutput ps_input INPUT_VFACE)
+    {
+      VsOutput input = ps_input;
+      half3 worldNormal = normalize(cross(ddx(input.pointToEye), ddy(input.pointToEye)));
+      worldNormal.xyz = MUL_VFACE(worldNormal.xyz);
+      UnpackedGbuffer result;
+      init_gbuffer(result);
+      init_ao(result, 1);
+      init_albedo(result, 0.5);
+      init_smoothness(result, 0.01);
+      init_normal(result, worldNormal);
+
+      return encode_gbuffer(result, input.pointToEye, GET_SCREEN_POS(input.pos));
+    }
+    ##endif
+  }
+
+  COMMON_COLLISION_RENDER()
+
+  hlsl(vs) {
+    VsOutput gi_collision_vs(VsInput input, uint id : SV_InstanceID)
+    {
+      VsOutput output;
+      float3 diffuseColor = 0.06;
+
+      float3 localPos = input.pos;
+      uint inst = id;
+      #if USE_MULTI_DRAW
+        inst = input.id;
+      #endif
+      uint baseInst = get_immediate_dword_0();
+      uint finalInstId = baseInst + inst;
+      uint matrixOffset = finalInstId;
+      matrixOffset *= 3;
+      float3 worldLocalX = float3(structuredBufferAt(matrices, matrixOffset).x, structuredBufferAt(matrices, matrixOffset + 1).x, structuredBufferAt(matrices, matrixOffset + 2).x);
+      float3 worldLocalY = float3(structuredBufferAt(matrices, matrixOffset).y, structuredBufferAt(matrices, matrixOffset + 1).y, structuredBufferAt(matrices, matrixOffset + 2).y);
+      float3 worldLocalZ = float3(structuredBufferAt(matrices, matrixOffset).z, structuredBufferAt(matrices, matrixOffset + 1).z, structuredBufferAt(matrices, matrixOffset + 2).z);
+      float3 worldLocalPos = float3(structuredBufferAt(matrices, matrixOffset).w, structuredBufferAt(matrices, matrixOffset + 1).w, structuredBufferAt(matrices, matrixOffset + 2).w);
+      float3 worldPos = localPos.x * worldLocalX + localPos.y * worldLocalY + localPos.z * worldLocalZ + worldLocalPos;
+      output.pos = mul(float4(worldPos, 1), globtm);
+      output.pointToEye = debug_world_view_pos - worldPos;
+      output.diffuseColor = diffuseColor.rgb;
+
+      return output;
+    }
+  }
+
+  if (rasterize_collision_type == depth)
+  {
+    compile("ps_null", "null_ps");
+  } else
+  {
+    compile("target_ps", "gi_collision_ps");
+  }
+  compile("target_vs", "gi_collision_vs");
+}

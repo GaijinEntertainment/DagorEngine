@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -110,13 +109,9 @@ public:
 
   unsigned totalSize() const { return genList.size(); }
   unsigned freeIndicesSize() const { return freeIndices.size(); }
-  ReferenceType createReferenceFromIdx(unsigned idx)
-  {
-    return aliveList.test(idx, false) ? ReferenceType::make(idx, genList[idx]) : ReferenceType();
-  }
   ReferenceType getRefByIdx(uint32_t idx) const
   {
-    return aliveList.test(idx, false) ? ReferenceType::make(idx, genList[idx]) : ReferenceType::INVALID;
+    return aliveList.test(idx, false) ? ReferenceType::make(idx, genList[idx]) : ReferenceType();
   }
   const DataType *cgetByIdx(unsigned idx) const { return aliveList.test(idx, false) ? dataList + idx : nullptr; }
   const DataType *getByIdx(unsigned idx) const { return cgetByIdx(idx); }

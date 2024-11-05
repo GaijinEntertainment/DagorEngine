@@ -1,4 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/shaderResBuilder/shaderMeshData.h>
 #include <libTools/util/makeBindump.h>
 #include <shaders/dag_shaders.h>
@@ -21,6 +22,8 @@
 
 #define MAX_VERTEX_16 65536
 #define MAX_INDEX_16  0x7FFFFFFF
+
+static constexpr int SCALE_DISCARD_THRESHOLD = 2000;
 
 static __forceinline uint8_t real_to_uchar(real a)
 {
@@ -78,6 +81,9 @@ bool can_combine_elems(const ShaderMeshData::RElem &left, const ShaderMeshData::
 
 static void addVertices2(Mesh &m, int sf, int numf, const ShaderChannelId *vDescSrc, int channels_count, ShaderMeshData::RElem &re,
   IColorConvert &color_convert, bool allow_32_bit, int node_id);
+static void addPointCloudVertices(Mesh &m, const ShaderChannelId *vDescSrc, int channels_count, ShaderMeshData::RElem &re,
+  IColorConvert &converter, int node_id, bool allow_32_bit, int point_count, int point_offset);
+
 static float calculateTextureScale(Mesh &m, int starf, int numf, const ShaderChannelId *vDescSrc, int channels_count);
 
 /*********************************
@@ -108,10 +114,10 @@ GlobalVertexDataSrc::GlobalVertexDataSrc(const CompiledShaderChannelId *ch, int 
     stride += shader_channel_type_size(vDesc[i].t);
   }
 
-  //  mt_debug("GlobalVertexDataSrc: n=%d (count=%d) stride=%d", vDesc.size(), count, stride);
+  //  debug("GlobalVertexDataSrc: n=%d (count=%d) stride=%d", vDesc.size(), count, stride);
   //  for (int k = 0; k < vDesc.size(); k++)
   //  {
-  //    mt_debug("%d: t=%X (%s) vbu=%d (%s) vbui=%d", k,
+  //    debug("%d: t=%X (%s) vbu=%d (%s) vbui=%d", k,
   //      ch[k].t, ShUtils::channel_type_name(ch[k].t),
   //      ch[k].vbu, ShUtils::channel_usage_name(ch[k].vbu),
   //      ch[k].vbui);
@@ -360,19 +366,7 @@ bool ShaderMeshData::build(class Mesh &m, ShaderMaterial **mats, int nummats, IC
 
   Tab<GlobalVertexDataSrc *> vDataRef(tmpmem);
   int atest_varId = VariableMap::getVariableId("atest", true);
-  for (int i = 0; i < face.size();)
-  {
-    int mi = face[i].mat;
-    int nf;
-    for (nf = i + 1; nf < face.size(); ++nf)
-    {
-      if (face[nf].mat != mi)
-        break;
-
-      if (!allow_32_bit && 3 * (nf - i + 1) >= MAX_VERTEX_16)
-        break;
-    }
-    ShaderMaterial *sm = mats && nummats ? mats[mi] : 0;
+  const auto addRElem = [&](ShaderMaterial *sm) -> ShaderMeshData::RElem * {
     if (sm)
     {
       ccb.chan.clear();
@@ -387,9 +381,6 @@ bool ShaderMeshData::build(class Mesh &m, ShaderMaterial **mats, int nummats, IC
 
         RElem *re = addElem(stage_idx);
         re->flags = stage_idx | (re->flags & ~SC_STAGE_IDX_MASK);
-
-        int numf = nf - i;
-
         // add new vgroup & global buffer
         int vgrpId = append_items(vDataRef, 1);
         vDataRef[vgrpId] = new (tmpmem) GlobalVertexDataSrc(ccb.chanComp.data(), ccb.chanComp.size());
@@ -401,11 +392,53 @@ bool ShaderMeshData::build(class Mesh &m, ShaderMaterial **mats, int nummats, IC
         re->vertexData->partCount++;
 
         re->mat = sm;
-        addVertices2(m, i, numf, ccb.chan.data(), ccb.chan.size(), *re, color_convert, allow_32_bit, node_id);
-        re->textureScale = calculateTextureScale(m, i, numf, ccb.chan.data(), ccb.chan.size());
+        return re;
       }
     }
+    return nullptr;
+  };
+  for (int i = 0; i < face.size();)
+  {
+    int mi = face[i].mat;
+    int nf;
+    for (nf = i + 1; nf < face.size(); ++nf)
+    {
+      if (face[nf].mat != mi)
+        break;
+
+      if (!allow_32_bit && 3 * (nf - i + 1) >= MAX_VERTEX_16)
+        break;
+    }
+    ShaderMaterial *sm = mats && nummats ? mats[mi] : 0;
+    RElem *re = addRElem(sm);
+    if (re)
+    {
+      int numf = nf - i;
+      addVertices2(m, i, numf, ccb.chan.data(), ccb.chan.size(), *re, color_convert, allow_32_bit, node_id);
+      re->textureScale = calculateTextureScale(m, i, numf, ccb.chan.data(), ccb.chan.size());
+    }
     i = nf;
+  }
+  if (face.empty() && mats && nummats)
+  {
+    ShaderMaterial *sm = mats[0];
+    if (sm && strstr(sm->getShaderClassName(), "plod"))
+    {
+      uint32_t pointCount = m.getVert().size();
+      const uint32_t pointsPerElem = allow_32_bit ? MAX_VERTEX_32 / 4 : MAX_VERTEX_16 / 4; // 4 unique indices per quad
+      for (uint32_t pointStart = 0; pointStart < pointCount; pointStart += pointsPerElem)
+      {
+        RElem *re = addRElem(sm);
+        if (re)
+        {
+          const auto count = eastl::min(pointsPerElem, pointCount - pointStart);
+          addPointCloudVertices(m, ccb.chan.data(), ccb.chan.size(), *re, color_convert, node_id, allow_32_bit, pointStart, count);
+          re->textureScale = 1.0f;
+          re->optDone = 1;
+          re->vertexData->allowVertexMerge = false;
+        }
+      }
+    }
   }
   return true;
 }
@@ -672,17 +705,130 @@ struct Vdata16Hasher
   size_t operator()(const Vdata16 &a) { return (a.v[0] * FNV1Params<64>::prime) ^ a.v[1]; }
 };
 
+struct ChannelVertices
+{
+  eastl::vector<uint8_t> encodedData; // encoded data - encodedData.size()/encodedSize == number of unique different vertices
+  unsigned vertexOffset = 0;          // offset in vertex
+  unsigned encodedSize = 0;           // size of a channel
+  uint32_t uniqueVertsCount() const { return uint32_t(encodedData.size() / encodedSize); }
+};
+
+static void process_channel_data(Mesh &m, ShaderMeshData::RElem &re, const ShaderChannelId *desc, int channel, int node_id,
+  int sc_type, int &count, int &type, const uint8_t *&vert_data, size_t &vert_stride, const uint8_t *&face_data, size_t &face_stride,
+  int &node_id_use, bool &color_convert, bool need_face = true)
+{
+  switch (desc[channel].u)
+  {
+    case SCUSAGE_POS:
+      if (desc[channel].ui != 0)
+        DAG_FATAL("%s: chan[%d]: unknown pos channel %d", re.mat->getShaderClassName(), channel, desc[channel].ui);
+      count = m.getVert().size();
+      type = MeshData::CHT_FLOAT3;
+      vert_data = (const uint8_t *)m.getVert().data();
+      vert_stride = elem_size(m.getVert());
+      if (need_face)
+      {
+        face_data = m.getFaceCount() ? (const uint8_t *)&m.getFace()[0].v[0] : nullptr;
+        face_stride = elem_size(m.getFace());
+      }
+      break;
+    case SCUSAGE_NORM:
+      node_id_use = (sc_type == SCTYPE_SHORT4 || sc_type == SCTYPE_SHORT4N || sc_type == SCTYPE_USHORT4N)
+                      ? (node_id % 32768)
+                      : ((sc_type == SCTYPE_E3DCOLOR || sc_type == SCTYPE_UBYTE4)
+                            ? (node_id % 256)
+                            : (sc_type == SCTYPE_HALF4 ? float_to_half(node_id & 2048) : -1));
+      count = m.getVertNorm().size();
+      type = MeshData::CHT_FLOAT3;
+      vert_data = (const uint8_t *)m.getVertNorm().data();
+      vert_stride = elem_size(m.getVertNorm());
+      if (need_face)
+      {
+        if (!m.getNormFace().size())
+          DAG_FATAL("%s: no normals in mesh", re.mat->getShaderClassName());
+        face_data = m.getNormFace().size() ? (const uint8_t *)&m.getNormFace()[0][0] : nullptr;
+        face_stride = elem_size(m.getNormFace());
+      }
+      break;
+    case SCUSAGE_VCOL:
+      if (desc[channel].ui != 0)
+        DAG_FATAL("%s: chan[%d]: unknown vcol channel %d", re.mat->getShaderClassName(), channel, desc[channel].ui);
+      count = m.getCVert().size();
+      type = MeshData::CHT_FLOAT4;
+      color_convert = true;
+      vert_data = (const uint8_t *)m.getCVert().data();
+      vert_stride = elem_size(m.getCVert());
+      if (need_face)
+      {
+        face_data = m.getCFace().size() ? (const uint8_t *)m.getCFace().data() : nullptr;
+        face_stride = elem_size(m.getCFace());
+      }
+      break;
+    case SCUSAGE_TC:
+      if (desc[channel].ui < 0 || desc[channel].ui >= NUMMESHTCH)
+        DAG_FATAL("%s: chan[%d]: unknown tc channel %d", re.mat->getShaderClassName(), channel, desc[channel].ui);
+      count = m.getTVert(desc[channel].ui).size();
+      type = MeshData::CHT_FLOAT2;
+      vert_data = (const uint8_t *)m.getTVert(desc[channel].ui).data();
+      vert_stride = elem_size(m.getTVert(desc[channel].ui));
+      if (need_face)
+      {
+        face_data = m.getTFace(desc[channel].ui).size() ? (const uint8_t *)m.getTFace(desc[channel].ui).data() : nullptr;
+        face_stride = elem_size(m.getTFace(desc[channel].ui));
+      }
+      break;
+    default:
+      DAG_FATAL("%s: unknown chan[%d] #%d (vbu=%d vbui=%d t=0x%x), check mesh vertices & vcolor", //
+        re.mat->getShaderClassName(), channel, desc[channel].u, desc[channel].vbu, desc[channel].vbui, desc[channel].t);
+  }
+}
+
+static float encode_vertex(const uint8_t *from, uint8_t to[16], int vert_type, int type, int mod, int node_id_use, bool color_convert,
+  IColorConvert &converter, const Color4 &encode_ofs, const Color4 &encode_mul)
+{
+  const float *vertFloat = (const float *)from;
+  Color4 val = {0, 0, 0, 1};
+  switch (vert_type)
+  {
+    case MeshData::CHT_FLOAT4: val[3] = vertFloat[3]; // intentional fallthrough
+    case MeshData::CHT_FLOAT3: val[2] = vertFloat[2]; // intentional fallthrough
+    case MeshData::CHT_FLOAT2: val[1] = vertFloat[1]; // intentional fallthrough
+    case MeshData::CHT_FLOAT1:
+      val[0] = vertFloat[0]; // intentional fallthrough
+      break;
+    case MeshData::CHT_E3DCOLOR:
+    {
+      const E3DCOLOR &p = *(E3DCOLOR *)from;
+      val[0] = p.r / 255.0f;
+      val[1] = p.g / 255.0f;
+      val[2] = p.b / 255.0f;
+      val[3] = p.a / 255.0f;
+    }
+    break;
+    default: G_ASSERT(0);
+  }
+  if (color_convert)
+    val = converter.convert(val);
+  return convert_vertex(to, val, mod, type, encode_mul, encode_ofs, node_id_use);
+}
+
+static void check_clamp_errors(float clamp_errors, const ShaderChannelId &desc, ShaderMeshData::RElem &re, int mod)
+{
+  if (clamp_errors)
+  {
+    chan_cvt_err += clamp_errors;
+    if (desc.u == SCUSAGE_POS)
+      pos_chan_cvt_err += clamp_errors;
+    logmessage(desc.u == SCUSAGE_POS ? LOGLEVEL_ERR : LOGLEVEL_WARN,
+      "shader <%s> channel type %s (usage %s[%d] pack=%d) has %d errors in packing", re.mat->getShaderClassName(), type_name(desc.t),
+      usage_name(desc.u), desc.ui, mod, clamp_errors);
+  }
+}
+
 // add vertices from mesh
 static void addVertices2(Mesh &m, int sf, int numf, const ShaderChannelId *vDescSrc, int channels_count, ShaderMeshData::RElem &re,
   IColorConvert &color_convert, bool allow_32_bit, int node_id)
 {
-  struct ChannelVertices
-  {
-    eastl::vector<uint8_t> encodedData; // encoded data - encodedData.size()/encodedSize == number of unique different vertices
-    unsigned vertexOffset = 0;          // offset in vertex
-    unsigned encodedSize = 0;           // size of a channel
-    uint32_t uniqueVertsCount() const { return uint32_t(encodedData.size() / encodedSize); }
-  };
   eastl::vector<int> remapVerts; // remapped verts[3]
   eastl::vector<ChannelVertices> channels;
   channels.resize(channels_count);
@@ -720,58 +866,8 @@ static void addVertices2(Mesh &m, int sf, int numf, const ShaderChannelId *vDesc
       faceStride = elem_size(m.getExtra(eci).fc);
     }
     else
-      switch (vDescSrc[c].u)
-      {
-        case SCUSAGE_POS:
-          if (vDescSrc[c].ui != 0)
-            DAG_FATAL("%s: chan[%d]: unknown pos channel %d", re.mat->getShaderClassName(), c, vDescSrc[c].ui);
-          vertCount = m.getVert().size();
-          vertType = MeshData::CHT_FLOAT3;
-          vertices = (const uint8_t *)m.getVert().data();
-          vertStride = elem_size(m.getVert());
-          indices = (const uint8_t *)&m.getFace()[0].v[0];
-          faceStride = elem_size(m.getFace());
-          break;
-        case SCUSAGE_NORM:
-          node_idUse =
-            (type == SCTYPE_SHORT4 || type == SCTYPE_SHORT4N || type == SCTYPE_USHORT4N)
-              ? (node_id % 32768)
-              : ((type == SCTYPE_E3DCOLOR || type == SCTYPE_UBYTE4) ? (node_id % 256)
-                                                                    : (type == SCTYPE_HALF4 ? float_to_half(node_id & 2048) : -1));
-          vertCount = m.getVertNorm().size();
-          vertType = MeshData::CHT_FLOAT3;
-          vertices = (const uint8_t *)m.getVertNorm().data();
-          vertStride = elem_size(m.getVertNorm());
-          if (!m.getNormFace().size())
-            DAG_FATAL("%s: no normals in mesh", re.mat->getShaderClassName());
-          indices = (const uint8_t *)&m.getNormFace()[0][0];
-          faceStride = elem_size(m.getNormFace());
-          break;
-        case SCUSAGE_VCOL:
-          if (vDescSrc[c].ui != 0)
-            DAG_FATAL("%s: chan[%d]: unknown vcol channel %d", re.mat->getShaderClassName(), c, vDescSrc[c].ui);
-          vertCount = m.getCVert().size();
-          vertType = MeshData::CHT_FLOAT4;
-          colorConvert = true;
-          vertices = (const uint8_t *)m.getCVert().data();
-          vertStride = elem_size(m.getCVert());
-          indices = m.getCFace().size() ? (const uint8_t *)m.getCFace().data() : nullptr;
-          faceStride = elem_size(m.getCFace());
-          break;
-        case SCUSAGE_TC:
-          if (vDescSrc[c].ui < 0 || vDescSrc[c].ui >= NUMMESHTCH)
-            DAG_FATAL("%s: chan[%d]: unknown tc channel %d", re.mat->getShaderClassName(), c, vDescSrc[c].ui);
-          vertCount = m.getTVert(vDescSrc[c].ui).size();
-          vertType = MeshData::CHT_FLOAT2;
-          vertices = (const uint8_t *)m.getTVert(vDescSrc[c].ui).data();
-          vertStride = elem_size(m.getTVert(vDescSrc[c].ui));
-          indices = m.getTFace(vDescSrc[c].ui).size() ? (const uint8_t *)m.getTFace(vDescSrc[c].ui).data() : nullptr;
-          faceStride = elem_size(m.getTFace(vDescSrc[c].ui));
-          break;
-        default:
-          DAG_FATAL("%s: unknown chan[%d] #%d (vbu=%d vbui=%d t=0x%x), check mesh vertices & vcolor", //
-            re.mat->getShaderClassName(), c, vDescSrc[c].u, vDescSrc[c].vbu, vDescSrc[c].vbui, vDescSrc[c].t);
-      }
+      process_channel_data(m, re, vDescSrc, c, node_id, type, vertCount, vertType, vertices, vertStride, indices, faceStride,
+        node_idUse, colorConvert);
     Color4 encodeOfs(0, 0, 0, 0), encodeMul(1, 1, 1, 1);
     if (vDescSrc[c].mod == CMOD_BOUNDING_PACK)
     {
@@ -819,31 +915,9 @@ static void addVertices2(Mesh &m, int sf, int numf, const ShaderChannelId *vDesc
       if (encodedDataIndex < 0)
       {
         const uint8_t *cVert = vertices + vertStride * orginalVertIndex; //-V769
-        const float *vertFloat = (const float *)cVert;
-        Color4 val = {0, 0, 0, 1};
-        switch (vertType)
-        {
-          case MeshData::CHT_FLOAT4: val[3] = vertFloat[3]; // intentional fallthrough
-          case MeshData::CHT_FLOAT3: val[2] = vertFloat[2]; // intentional fallthrough
-          case MeshData::CHT_FLOAT2: val[1] = vertFloat[1]; // intentional fallthrough
-          case MeshData::CHT_FLOAT1:
-            val[0] = vertFloat[0]; // intentional fallthrough
-            break;
-          case MeshData::CHT_E3DCOLOR:
-          {
-            const E3DCOLOR &p = *(E3DCOLOR *)cVert;
-            val[0] = p.r / 255.0f;
-            val[1] = p.g / 255.0f;
-            val[2] = p.b / 255.0f;
-            val[3] = p.a / 255.0f;
-          }
-          break;
-          default: G_ASSERT(0);
-        }
-        if (colorConvert)
-          val = color_convert.convert(val);
         alignas(16) uint8_t vertexData[16];
-        clampErrors += convert_vertex(vertexData, val, mod, type, encodeMul, encodeOfs, node_idUse);
+        clampErrors +=
+          encode_vertex(cVert, vertexData, vertType, type, mod, node_idUse, colorConvert, color_convert, encodeOfs, encodeMul);
         if (type == SCTYPE_FLOAT1 || type == SCTYPE_FLOAT2 || type == SCTYPE_FLOAT3 || type == SCTYPE_FLOAT4)
         {
           // intentionally empty
@@ -895,16 +969,7 @@ static void addVertices2(Mesh &m, int sf, int numf, const ShaderChannelId *vDesc
       }
       *channelPtr = encodedDataIndex;
     }
-    if (clampErrors)
-    {
-      chan_cvt_err += clampErrors;
-      if (vDescSrc[c].u == SCUSAGE_POS)
-        pos_chan_cvt_err += clampErrors;
-      logmessage(vDescSrc[c].u == SCUSAGE_POS ? LOGLEVEL_ERR : LOGLEVEL_WARN,
-        "shader <%s> channel type %s (usage %s[%d] pack=%d encodeMul=%@ encodeOfs=%@) has %d errors in packing",
-        re.mat->getShaderClassName(), type_name(vDescSrc[c].t), usage_name(vDescSrc[c].u), vDescSrc[c].ui, mod, encodeMul, encodeOfs,
-        clampErrors);
-    }
+    check_clamp_errors(clampErrors, vDescSrc[c], re, mod);
   }
   // debug("step1 %dus", get_time_usec(reft));reft = ref_time_ticks();
 
@@ -1003,6 +1068,97 @@ static void addVertices2(Mesh &m, int sf, int numf, const ShaderChannelId *vDesc
   // debug("step4 %dus", get_time_usec(reft));reft = ref_time_ticks();
 }
 
+static void addPointCloudVertices(Mesh &m, const ShaderChannelId *vDescSrc, int channels_count, ShaderMeshData::RElem &re,
+  IColorConvert &converter, int node_id, bool allow_32_bit, int point_offset, int point_count)
+{
+  eastl::vector<ChannelVertices> channels;
+  channels.resize(channels_count);
+  unsigned vertexSize = 0;
+  for (int c = 0; c < channels_count; ++c)
+  {
+    const uint32_t type = vDescSrc[c].t, mod = vDescSrc[c].mod;
+    int node_idUse = -1;
+    int vertCount = 0;
+    const uint8_t *vertices = nullptr;
+    const uint8_t *faces = nullptr;
+    size_t vertStride = 0;
+    size_t faceStride = 0;
+    int vertType = MeshData::CHT_UNKNOWN;
+    bool isColorConvert = false;
+    process_channel_data(m, re, vDescSrc, c, node_id, type, vertCount, vertType, vertices, vertStride, faces, faceStride, node_idUse,
+      isColorConvert, false);
+    if (vDescSrc[c].u == SCUSAGE_TC)
+      vertType = MeshData::CHT_E3DCOLOR;
+
+    ChannelVertices &cv = channels[c];
+    if (!channel_size(vDescSrc[c].t, cv.encodedSize))
+      DAG_FATAL("unknown shader channel type #%d (u=%d vbu=%d vbui=%d)", vDescSrc[c].t, vDescSrc[c].u, vDescSrc[c].vbu,
+        vDescSrc[c].vbui);
+    cv.encodedData.reserve(vertCount * cv.encodedSize);
+    cv.vertexOffset = vertexSize;
+    vertexSize += cv.encodedSize;
+    int clampErrors = 0;
+    G_ASSERT(vertices);
+    G_ASSERT(point_offset + point_count <= vertCount);
+    for (int i = 0; i < point_count; ++i)
+    {
+      const uint8_t *cVert = vertices + vertStride * (i + point_offset); //-V769
+      alignas(16) uint8_t vertexData[16];
+      Color4 encodeOfs{0, 0, 0, 0};
+      Color4 encodeMul{1, 1, 1, 1};
+      clampErrors +=
+        encode_vertex(cVert, vertexData, vertType, type, mod, node_idUse, isColorConvert, converter, encodeOfs, encodeMul);
+      cv.encodedData.insert(cv.encodedData.end(), vertexData, vertexData + cv.encodedSize);
+    }
+    check_clamp_errors(clampErrors, vDescSrc[c], re, mod);
+  }
+  G_ASSERT(vertexSize == re.vertexData->stride);
+
+  Tab<uint32_t> indices(tmpmem);
+  indices.reserve(point_count * 6);
+  for (uint32_t i = 0, j = 0; i < point_count; i++, j += 4)
+  {
+    indices.push_back(j);     //  i      j+1 -- j+3
+    indices.push_back(j + 1); //  .  ->   |  \   |
+    indices.push_back(j + 2); //          j  -- j+2
+    indices.push_back(j + 2);
+    indices.push_back(j + 1);
+    indices.push_back(j + 3);
+  }
+
+  GlobalVertexDataSrc &vertexData = *re.vertexData;
+  re.sv = vertexData.numv;
+  re.numv = point_count;
+  re.numf = point_count * 2; // one quad is a two triangle faces
+  vertexData.numf += re.numf;
+  vertexData.numv += re.numv;
+
+  const auto append_indices = [&](auto &iData) {
+    re.si = append_items(iData, re.numf * 3);
+    auto *iBuf = &iData[re.si];
+    for (int vi = 0, ve = re.numf * 3; vi < ve; vi++, ++iBuf)
+      *iBuf = re.sv + indices[vi];
+  };
+  if (re.numv / 4 <= MAX_VERTEX_16) // one quad contains 4 unique indices
+    append_indices(vertexData.iData);
+  else
+  {
+    G_ASSERT(allow_32_bit);
+    vertexData.convertToIData32();
+    append_indices(vertexData.iData32);
+  }
+
+  int ofs = append_items(vertexData.vData, re.numv * vertexData.stride);
+  uint8_t *dest = &vertexData.vData[ofs];
+  for (int channelNo = 0; channelNo < channels.size(); ++channelNo)
+  {
+    const auto &cv = channels[channelNo];
+    const uint32_t channelStride = cv.encodedSize;
+    uint8_t *channelDest = dest + cv.vertexOffset;
+    for (int i = 0; i < point_count; ++i, channelDest += re.vertexData->stride)
+      memcpy(channelDest, cv.encodedData.begin() + cv.encodedSize * i, channelStride);
+  }
+}
 
 static float calculateTextureScale(Mesh &m, int startf, int numf, const ShaderChannelId *vDescSrc, int channels_count)
 {
@@ -1065,8 +1221,18 @@ static float calculateTextureScale(Mesh &m, int startf, int numf, const ShaderCh
           continue;
         Point2 ts = tc[tc_channel][tsi];
         Point2 te = tc[tc_channel][tei];
-        float scale = (ts - te).length() / (vs - ve).length();
-        if (scale != 0.0 && !check_nan(scale))
+
+        float vertexDelta = (vs - ve).length();
+        if (vertexDelta < FLT_EPSILON)
+          continue;
+
+        float texDelta = (ts - te).length();
+        float scale = texDelta / vertexDelta;
+
+        // SCALE_DISCARD_THRESHOLD is an arbitrary number (2000 seems to be a sweet spot)
+        // to check for outliers that shoot the avg waaaay up
+        // (Most valid scales are below 1000)
+        if (scale != 0.0 && !check_nan(scale) && scale < SCALE_DISCARD_THRESHOLD)
           scales.push_back(scale);
       }
     }
@@ -1413,100 +1579,140 @@ void create_vertex_color_data(Mesh &m, int usage, int usage_index)
 
 void add_per_vertex_domain_uv(Mesh &m, int usage, int usage_index)
 {
+  static constexpr float DOMINANT_DATA_UV_TRANSFORM_BOUND = 16.0f; // must be the same in shader and cpp code
+  static constexpr float VERTEX_POS_DIFF_TOLERANCE_SQ = 1e-20f;
+
   if (!m.tface[0].size())
     return;
   if (m.face.size() != m.tface[0].size())
     return;
-  int chId = m.add_extra_channel(Mesh::CHT_FLOAT2, usage, usage_index);
+
+  int chId = m.add_extra_channel(Mesh::CHT_FLOAT4, usage, usage_index);
   if (chId < 0)
     return;
+
+  const int vertCount = m.face.size() * 3;
+
   Mesh::ExtraChannel &vcolChan = m.extra[chId];
-  vcolChan.resize_verts(m.face.size() * 3);
+  vcolChan.resize_verts(vertCount);
   vcolChan.fc.resize(m.face.size());
 
   dag::Span<TFace> vcolface = make_span(vcolChan.fc);
-  Point2 *vcolvert = (Point2 *)vcolChan.vt.data();
+  Point4 *vcolvert = (Point4 *)vcolChan.vt.data();
 
-  Tab<Point3> uniqueVertexPositions;
-  uniqueVertexPositions.reserve(vcolChan.vt.size());
-  Tab<Point2> domainUV;
-  domainUV.reserve(vcolChan.vt.size());
-  Tab<Tab<Point2>> domainUVs;
-  Tab<int> uvIds;
-  uvIds.reserve(vcolChan.vt.size());
+  struct DomVertex
+  {
+    Point3 vertex;
+    Point2 uv;
+  };
 
-  ska::flat_hash_map<int, ska::flat_hash_map<int, eastl::pair<int, int>>> processed;
+  Tab<DomVertex> domVertices;
 
+  auto get_unique_vertex_id = [&domVertices](const Point3 &vertex) -> int {
+    int uniqueVertId = 0;
+    for (; uniqueVertId < domVertices.size(); ++uniqueVertId)
+      if ((vertex - domVertices[uniqueVertId].vertex).lengthSq() < VERTEX_POS_DIFF_TOLERANCE_SQ)
+        break;
+    return uniqueVertId;
+  };
+
+  Tab<int> uniqueVertexIndices;
+  uniqueVertexIndices.resize(vertCount);
   for (int faceId = 0; faceId < m.face.size(); ++faceId)
   {
     const Face face = m.face[faceId];
     const TFace tface = m.tface[0][faceId];
     for (int inFaceVertId = 0; inFaceVertId < 3; ++inFaceVertId)
     {
-      vcolface[faceId].t[inFaceVertId] = 3 * faceId + inFaceVertId;
-      const bool alreadyProcessed =
-        processed.count(face.v[inFaceVertId]) && processed[face.v[inFaceVertId]].count(tface.t[inFaceVertId]);
-
+      int flatIndex = 3 * faceId + inFaceVertId;
       Point3 vertex = m.vert[face.v[inFaceVertId]];
       Point2 uv = m.tvert[0][tface.t[inFaceVertId]];
-      int uniqueVertId = 0;
-      if (alreadyProcessed)
-        uniqueVertId = processed[face.v[inFaceVertId]][tface.t[inFaceVertId]].first;
-      else
-        for (; uniqueVertId < uniqueVertexPositions.size(); ++uniqueVertId)
-          if ((vertex - uniqueVertexPositions[uniqueVertId]).lengthSq() < 1e-20f)
-            break;
-      if (uniqueVertId == uniqueVertexPositions.size())
+      int uniqueVertId = get_unique_vertex_id(vertex);
+      if (uniqueVertId == domVertices.size())
       {
-        uniqueVertexPositions.push_back(vertex);
-        domainUV.push_back(uv);
-        domainUVs.resize(uniqueVertId + 1);
+        DomVertex domVertex;
+        domVertex.vertex = vertex;
+        domVertex.uv = uv;
+        domVertices.push_back(domVertex);
       }
-      else if (domainUV[uniqueVertId].x > uv.x || (domainUV[uniqueVertId].x == uv.x && domainUV[uniqueVertId].y > uv.y))
-        domainUV[uniqueVertId] = uv;
-      uvIds.push_back(uniqueVertId);
-
-      int uniqueUvIdx = 0;
-      if (alreadyProcessed)
-        uniqueUvIdx = processed[face.v[inFaceVertId]][tface.t[inFaceVertId]].second;
-      else
-        for (; uniqueUvIdx < domainUVs[uniqueVertId].size(); ++uniqueUvIdx)
-          if ((uv - domainUVs[uniqueVertId][uniqueUvIdx]).lengthSq() < 1e-20f)
-            break;
-      if (uniqueUvIdx == domainUVs[uniqueVertId].size())
-        domainUVs[uniqueVertId].push_back(uv);
-
-      if (!alreadyProcessed)
-        processed[face.v[inFaceVertId]][tface.t[inFaceVertId]] = eastl::make_pair(uniqueVertId, uniqueUvIdx);
+      uniqueVertexIndices[flatIndex] = uniqueVertId;
     }
   }
+
+  auto normalizeUvData = [](float v) -> float {
+    if (v < -DOMINANT_DATA_UV_TRANSFORM_BOUND || v > DOMINANT_DATA_UV_TRANSFORM_BOUND)
+    {
+      LOGERR_ONCE("Loss of data for dominant uv! %f is out of safety bounds.", v);
+    }
+    return (v + DOMINANT_DATA_UV_TRANSFORM_BOUND) / (2 * DOMINANT_DATA_UV_TRANSFORM_BOUND);
+  };
+
+  auto packUvPair = [&normalizeUvData](float v0, float v1) -> float {
+    v0 = normalizeUvData(v0);
+    v1 = normalizeUvData(v1);
+    uint32_t data0 = (uint32_t)clamp((int)(v0 * 0xFFFF), 0, 0xFFFF);
+    uint32_t data1 = (uint32_t)clamp((int)(v1 * 0xFFFF), 0, 0xFFFF);
+    return bitwise_cast<float>(data0 | (data1 << 16));
+  };
+
+  struct DomEdge
+  {
+    int uniqueIndex0;
+    Point2 uv0;
+    Point2 uv1;
+  };
+
+  auto makeEdgeKey = [](int vertexId0, int vertexId1) -> uint64_t {
+    return ((uint64_t)min(vertexId0, vertexId1) << 32) | (uint64_t)max(vertexId0, vertexId1);
+  };
+
+  ska::flat_hash_map<uint64_t, DomEdge> domEdgeMap;
+
   for (int faceId = 0; faceId < m.face.size(); ++faceId)
   {
-    for (int inFaceVertId = 0, vertId = 3 * faceId; inFaceVertId < 3; ++vertId, ++inFaceVertId)
-      vcolvert[vertId] = Point2(fabs(domainUV[uvIds[vertId]].x) + 1e-10f, fabs(domainUV[uvIds[vertId]].y) + 1e-10f);
+    const Face face = m.face[faceId];
+    const TFace tface = m.tface[0][faceId];
 
-    Tab<int> pointsOnEdge;
-    pointsOnEdge.reserve(3);
     for (int inFaceVertId = 0; inFaceVertId < 3; ++inFaceVertId)
-      if (domainUVs[uvIds[3 * faceId + inFaceVertId]].size() > 1)
-        pointsOnEdge.push_back(inFaceVertId);
-    if (pointsOnEdge.size() == 1)
-      vcolvert[3 * faceId + pointsOnEdge[0]].y *= -1;
-    else if (pointsOnEdge.size() == 2)
     {
-      if (pointsOnEdge[0] == 0)
+      int flatIndex = 3 * faceId + inFaceVertId;
+
+      int i0 = (inFaceVertId + 1) % 3;
+      int i1 = (inFaceVertId + 2) % 3;
+
+      Point3 vertex0 = m.vert[face.v[i0]];
+      Point3 vertex1 = m.vert[face.v[i1]];
+      Point2 uv0 = m.tvert[0][tface.t[i0]];
+      Point2 uv1 = m.tvert[0][tface.t[i1]];
+
+      int uniqueIndex0 = uniqueVertexIndices[3 * faceId + i0];
+      int uniqueIndex1 = uniqueVertexIndices[3 * faceId + i1];
+
+      uint64_t edgeId = makeEdgeKey(uniqueIndex0, uniqueIndex1);
+
+      DomEdge domEdge;
+      auto edgeIt = domEdgeMap.find(edgeId);
+      if (edgeIt != domEdgeMap.end())
       {
-        if (pointsOnEdge[1] == 1)
-          vcolvert[3 * faceId].x *= -1;
-        else
-          vcolvert[3 * faceId + 2].x *= -1;
+        domEdge = edgeIt->second;
       }
       else
-        vcolvert[3 * faceId + 1].x *= -1;
+      {
+        domEdge.uniqueIndex0 = uniqueIndex0;
+        domEdge.uv0 = uv0;
+        domEdge.uv1 = uv1;
+        domEdgeMap[edgeId] = domEdge;
+      }
+
+      Point2 domVertexUv = domVertices[uniqueVertexIndices[flatIndex]].uv;
+      Point4 domEdgeUv = domEdge.uniqueIndex0 == uniqueIndex0 ? Point4(domEdge.uv0.x, domEdge.uv0.y, domEdge.uv1.x, domEdge.uv1.y)
+                                                              : Point4(domEdge.uv1.x, domEdge.uv1.y, domEdge.uv0.x, domEdge.uv0.y);
+
+      vcolface[faceId].t[inFaceVertId] = flatIndex;
+      vcolvert[flatIndex] = Point4(packUvPair(domEdgeUv.x, domVertexUv.x), packUvPair(domEdgeUv.y, domVertexUv.y),
+        packUvPair(domEdgeUv.z, 0), packUvPair(domEdgeUv.w, 0));
     }
-    else if (pointsOnEdge.size() == 3)
-      for (int inFaceVertId = 0; inFaceVertId < 3; ++inFaceVertId)
-        vcolvert[3 * faceId + inFaceVertId].x *= -1;
   }
+
   m.optimize_extra(chId, 0);
 }

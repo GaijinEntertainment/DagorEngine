@@ -1,5 +1,8 @@
-// fields that related to execution state in general
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+// fields that related to execution state in general
+
 #include "util/tracked_state.h"
 #include "driver.h"
 

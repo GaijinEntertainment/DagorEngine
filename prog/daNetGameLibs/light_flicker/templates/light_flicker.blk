@@ -1,0 +1,112 @@
+light_flicker_sound{
+  _group{
+    _tags:t="sound"
+    light_flicker_sound__enabled:b=no
+    light_flicker_sound__inited:b=no
+  }
+}
+
+light_flicker{
+  light_flicker__name:t="undefined"
+
+  _group{
+    _replicate:b=yes
+    light_flicker__attack_time:p2 = 0.01, 0.4 // required time for transition from "off" to "on" position
+    light_flicker__release_time:p2 = 0.01, 0.1 // required time for transition from "on" to "off" position
+    light_flicker__on_brightness:p2 = 0.7, 1.0 // during of position "on". It's multiplyed by light__brightness
+    light_flicker__off_brightness:p2 = 0.0, 0.3 // during of position "off". It's multiplyed by light__brightness
+    light_flicker__on_time:p2 = 0.2, 3.0 // duration of position "on"
+    light_flicker__off_time:p2 = 0.1, 0.2 // duration of position "off"
+    light_flicker__noise_brightness_on:p2=0.7,1.0 // it's multiplyer for low/high noise amplitude when light "on"
+    light_flicker__noise_brightness_off:p2=0.7,1.0 // it's multiplyer for low/high noise amplitude when light "off"
+    light_flicker__noise_time:r=10.0 // frequency of noise per sec
+    light_flicker__time:r=0.0
+    light_flicker__seed:i=0
+    light_flicker__brightness:r=0.0
+    light_flicker__nightly:b=no
+  }
+
+  _group{
+    _tags:t="render"
+
+    light_flicker__state:i=0
+    "light_flicker__lightEids:list<eid>"{}
+  }
+
+  _tracked:t="light_flicker__state"
+}
+
+light_flicker_sparks_vfx{
+  _tags:t="render"
+
+  light_flicker__sparksEffectTemplate:t="envir_sparks_burst_tiny_smoke_lamp_effect"
+  light_flicker__sparksEffectSpawnChance:r=0.3
+}
+
+
+light_flicker_with_sparks{
+  _use:t="light_flicker"
+  _use:t="light_flicker_sound"
+  _use:t="light_flicker_sparks_vfx"
+}
+
+light_flicker_with_sparks_nightly{
+  _use:t="light_flicker_with_sparks"
+  light_flicker__nightly:b=yes
+}
+
+light_flicker_updater_sound{
+  _use:t="sound_control"
+  _group{
+    _tags:t="sound"
+    sound_control__allowSound:b=no
+  }
+  _group{
+    _tags:t="sound"
+    "light_flicker_updater_sound__event:SoundEvent"{}
+    light_flicker_updater_sound__path:t="env_effects/lamp_hum"
+    light_flicker_updater_sound__onPath:t="env_effects/lamp_on"
+    light_flicker_updater_sound__offPath:t="env_effects/lamp_off"
+  }
+}
+
+light_check_visibility{
+  light__visible:b=no
+}
+
+light_flicker_updater
+{
+  _use:t="light_flicker_updater_sound"
+  _use:t="light_check_visibility"
+  _tracked:t="light_flicker_updater__template"
+  _use:t="replicating"
+  light_flicker_updater__template:t= ""
+  "light_flicker_updater__parentEid:eid"{}
+  light_flicker_updater__color_full_brightness:p4=1,1,1,1
+  "light:tag"{}
+}
+
+light_flicker_updater_light
+{
+  _use:t="light_flicker_updater"
+  light__force_max_light_radius:b=true
+}
+
+light_flicker_updater_mesh
+{
+  _use:t="light_flicker_updater"
+
+  _use:t="animchar"
+  animchar__res:t=""
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+
+  _use:t="dynmat_params_base"
+  "dynamic_material_channels_arr:array" {
+    _tags:t="render"
+    "dynamic_material_channel:object" { // parameters_channel = 0
+      dynamic_material_type:t="emissive"
+      dynmat_param__emissive_color:p4=1,1,1,10
+      dynmat_param__emission_albedo_mult:r=0.1
+    }
+  }
+}

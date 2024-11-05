@@ -1,1 +1,1 @@
-..\..\..\..\tools\dagor3_cdk\util64\ddsxCvt.exe %1 %2 %3 %4 %5 %6 %7 %8
+..\..\..\..\tools\dagor_cdk\windows-x86_64\ddsxCvt.exe %1 %2 %3 %4 %5 %6 %7 %8

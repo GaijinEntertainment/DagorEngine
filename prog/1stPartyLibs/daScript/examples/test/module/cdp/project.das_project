@@ -18,7 +18,7 @@ def module_default(req,from:string) : module_info
         return [[auto mod_name, req + ".das", ""]]
     else
         if mod_name == "profile"
-            return [[auto mod_name, DAS_PAK_ROOT + "/profile.das", ""]]
+            return [[auto mod_name, DAS_PAK_ROOT + "profile.das", ""]]
         pop(fr)
         for se in rs
             push(fr,se)

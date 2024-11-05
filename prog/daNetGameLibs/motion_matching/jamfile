@@ -1,0 +1,42 @@
+ModuleDependsOnVars = HaveEditor PhysName ;
+
+
+Root    ?= ../../.. ;
+Module = motion_matching ;
+Location = prog/daNetGameLibs/$(Module) ;
+local DasModule = daNetGameLibs_motion_matching_DAS_pull_AOT ;
+
+AddIncludes =
+  $(Root)/$(Location)
+  $(Root)/prog/daNetGameLibs
+  $(Root)/prog/daNetGame
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+local AllSrcFolder_ES = ;
+local AllSrcFolder_CPP = ;
+local AllSrcFolder_DAS = ;
+
+AllSrcFolder_ES +=
+  es
+;
+AllSrcFolder_CPP +=
+  animation
+  dasModules
+;
+
+AllSrcFolder_DAS +=
+  es
+;
+if $(Config) != rel {
+  AllSrcFolder_DAS +=
+    debug_es
+  ;
+}
+if $(HaveEditor) = yes && $(Config) != rel {
+  AllSrcFolder_DAS +=
+    debug_ui
+  ;
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

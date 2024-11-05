@@ -1,8 +1,19 @@
-// fields that define resource bindings
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+// fields that define resource bindings
+
+#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
+
 #include "util/tracked_state.h"
 #include "driver.h"
-#include "buffer_resource.h"
+#include "sampler_resource.h"
+#include "image_view_state.h"
+#include "buffer_ref.h"
+#include "util/tracked_state.h"
+
+class BaseTexture;
+class Sbuffer;
 
 namespace drv3d_vulkan
 {
@@ -10,8 +21,17 @@ namespace drv3d_vulkan
 struct BufferRef;
 struct BaseTex;
 class SBuffer;
+class Image;
+class Buffer;
 #if D3D_HAS_RAY_TRACING
 class RaytraceAccelerationStructure;
+#endif
+
+// MSVC decides that zero-init ctors in union is non-trivial, making itself unhappy about any ctors
+// but code is initializing relevant union fields, so just silence this warning up
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4582)
 #endif
 
 struct TRegister
@@ -39,9 +59,6 @@ struct TRegister
   };
 
   uint8_t type : 2;
-  // keep it out of img struct to be more compact
-  uint8_t isSwapchainColor : 1;
-  uint8_t isSwapchainDepth : 1;
 
   void clear() { type = TYPE_NULL; }
 
@@ -51,20 +68,13 @@ struct TRegister
   TRegister(RaytraceAccelerationStructure *in_as);
 #endif
 
-// MSVC decides that zero-init ctors in union is non-trivial, making itself unhappy about any ctors
-// but code is initializing relevant union fields, so just silence this warning up
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4582)
-#endif
-
-  TRegister() : isSwapchainColor(0), isSwapchainDepth(0), type(TYPE_NULL){};
+  TRegister() : type(TYPE_NULL){};
+};
 
 #ifdef _MSC_VER
 // C4582 off
 #pragma warning(pop)
 #endif
-};
 
 inline bool operator!=(const TRegister &l, const TRegister &r)
 {
@@ -73,9 +83,7 @@ inline bool operator!=(const TRegister &l, const TRegister &r)
 
   switch (l.type)
   {
-    case TRegister::TYPE_IMG:
-      return (l.img.ptr != r.img.ptr) || (l.img.view != r.img.view) || (l.isSwapchainColor != r.isSwapchainColor) ||
-             (l.isSwapchainDepth != r.isSwapchainDepth);
+    case TRegister::TYPE_IMG: return (l.img.ptr != r.img.ptr) || (l.img.view != r.img.view);
     case TRegister::TYPE_BUF: return (l.buf != r.buf);
 #if D3D_HAS_RAY_TRACING
     case TRegister::TYPE_AS: return (l.rtas != r.rtas);
@@ -106,6 +114,13 @@ inline bool operator!=(const URegister &l, const URegister &r)
   return (l.image != r.image) || (l.imageView != r.imageView) || (l.buffer != r.buffer);
 }
 
+// MSVC decides that zero-init ctors in union is non-trivial, making itself unhappy about any ctors
+// but code is initializing relevant union fields, so just silence this warning up
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4582)
+#endif
+
 struct SRegister
 {
   union
@@ -122,20 +137,15 @@ struct SRegister
   };
   uint8_t type : 2;
 
-// MSVC decides that zero-init ctors in union is non-trivial, making itself unhappy about any ctors
-// but code is initializing relevant union fields, so just silence this warning up
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4582)
-#endif
   SRegister() : type(TYPE_NULL) {}
   SRegister(const SamplerResource *val) : type(TYPE_RES) { resPtr = val; }
   SRegister(SamplerState val) : type(TYPE_STATE) { state = val; }
+};
+
 #ifdef _MSC_VER
 // C4582 off
 #pragma warning(pop)
 #endif
-};
 
 inline bool operator!=(const SRegister &l, const SRegister &r)
 {
@@ -198,21 +208,47 @@ struct StateFieldSRegisterSet : TrackedStateFieldArray<StateFieldSRegister, spir
 
 class ImmediateConstBuffer
 {
-  static constexpr int ring_size = FRAME_FRAME_BACKLOG_LENGTH;
+  static constexpr int ring_size = GPU_TIMELINE_HISTORY_SIZE;
   static constexpr int initial_blocks = 16384;
   static constexpr int element_size = MAX_IMMEDIATE_CONST_WORDS * sizeof(uint32_t);
 
   Buffer *ring[ring_size] = {};
   uint32_t ringIdx = 0;
   uint32_t offset = 0;
-  uint32_t blockSize = 0;
+  uint32_t alignedElementSize = 0;
 
   void flushWrites();
 
 public:
   BufferRef push(const uint32_t *data);
   void onFlush();
-  void shutdown(ExecutionContext &ctx);
+  void init();
+  void shutdown();
+};
+
+struct ImmediateConstBuffers
+{
+  ImmediateConstBuffer arr[STAGE_MAX_EXT];
+
+  ImmediateConstBuffer &operator[](size_t idx) { return arr[idx]; }
+
+  void shutdown()
+  {
+    for (ImmediateConstBuffer &i : arr)
+      i.shutdown();
+  }
+
+  void flush()
+  {
+    for (ImmediateConstBuffer &icb : arr)
+      icb.onFlush();
+  }
+
+  void init()
+  {
+    for (ImmediateConstBuffer &icb : arr)
+      icb.init();
+  }
 };
 
 // use fast no diff path for now

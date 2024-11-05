@@ -1,9 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "textureUtil/textureUtil.h"
 
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3d_multi.h>
-#include <3d/dag_drv3dCmd.h>
-#include <3d/dag_drvDecl.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_commands.h>
 #include <3d/dag_textureIDHolder.h>
 #include <perfMon/dag_statDrv.h>
 #include <math/integer/dag_IPoint4.h>
@@ -119,48 +121,3 @@ TexPtr texture_util::stitch_textures_horizontal(dag::ConstSpan<TEXTUREID> source
     release_managed_tex(source_texture_ids[j]);
   return combinedTex;
 }
-
-namespace texture_util
-{
-
-static eastl::weak_ptr<ShaderHelper> shaderHelper;
-eastl::shared_ptr<ShaderHelper> get_shader_helper()
-{
-  if (shaderHelper.expired())
-  {
-    eastl::shared_ptr<ShaderHelper> new_helper = eastl::make_shared<ShaderHelper>();
-    shaderHelper = new_helper;
-    return new_helper;
-  }
-  else
-    return shaderHelper.lock();
-}
-
-#define CLEAR_TYPE_VOLTEX_IMPL(type, shader_name)                             \
-  void ShaderHelper::clear_##type##_voltex_via_cs(VolTexture *texture)        \
-  {                                                                           \
-    if (!texture)                                                             \
-      return;                                                                 \
-    if (!shader_name)                                                         \
-      shader_name.reset(new_compute_shader(#shader_name));                    \
-                                                                              \
-    G_ASSERT(!!shader_name);                                                  \
-    {                                                                         \
-      d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, 0, 0, 0);          \
-      TIME_D3D_PROFILE(shader_name);                                          \
-      TextureInfo ti;                                                         \
-      texture->getinfo(ti);                                                   \
-      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 7, VALUE, 0, 0), texture); \
-      shader_name->dispatch((ti.w + 3) / 4, (ti.h + 3) / 4, (ti.d + 3) / 4);  \
-      d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, 0, 0, 0);          \
-    }                                                                         \
-  }
-
-CLEAR_TYPE_VOLTEX_IMPL(float, clear_float_volmap_cs);
-CLEAR_TYPE_VOLTEX_IMPL(float3, clear_float3_volmap_cs);
-CLEAR_TYPE_VOLTEX_IMPL(float4, clear_float4_volmap_cs);
-CLEAR_TYPE_VOLTEX_IMPL(uint, clear_uint_volmap_cs);
-CLEAR_TYPE_VOLTEX_IMPL(uint2, clear_uint2_volmap_cs);
-CLEAR_TYPE_VOLTEX_IMPL(uint3, clear_uint3_volmap_cs);
-CLEAR_TYPE_VOLTEX_IMPL(uint4, clear_uint4_volmap_cs);
-} // namespace texture_util

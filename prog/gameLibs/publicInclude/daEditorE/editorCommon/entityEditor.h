@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -46,6 +45,7 @@ public:
   virtual void setEditMode(int cm);
   virtual void createObjectBySample(EditableObject *sample);
   virtual bool cancelCreateMode();
+  virtual void beforeRender();
   virtual void render(const Frustum &, const Point3 &);
 
   virtual bool pickObjects(int x, int y, Tab<EditableObject *> &objs);
@@ -130,6 +130,8 @@ private:
   void unmapEidFromEditableObject(EntityObj *obj);
 
 private:
+  static constexpr int DELAY_TO_UPDATE_EIDS = 60;
+  int delay_to_update_eids = DELAY_TO_UPDATE_EIDS;
   bool sceneInit = false;
   SimpleString sceneFilePath;
   SaveOrderRules saveOrderRules;

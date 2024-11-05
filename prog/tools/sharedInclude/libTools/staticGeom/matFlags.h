@@ -1,8 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef _GAIJIN_TOOLS_MATFLAGS_H
-#define _GAIJIN_TOOLS_MATFLAGS_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 namespace MatFlags
 {
@@ -51,6 +48,3 @@ enum
   FLG_DO_NOT_MIX_LODS = 1 << 9,            /// do not mix LODs, switch thay simultaniously
 };
 };
-
-
-#endif

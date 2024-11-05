@@ -1,6 +1,11 @@
+//
+// Dagor Engine 6.5 - Game Libraries
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+//
 #pragma once
 
 #include <render/resourceSlot/detail/registerAccess.h>
+#include <render/resourceSlot/detail/ids.h>
 
 namespace resource_slot
 {
@@ -19,14 +24,10 @@ struct Create
    *   that MUST be created in current node and WILL be saved into slot
    *   for using after the node
    */
-  Create(const char *slot_name, const char *resource_name) : slotName(slot_name), resourceName(resource_name) {}
+  Create(const char *slot_name, const char *resource_name);
 
-private:
-  const char *slotName;
-  const char *resourceName;
-
-  friend NodeHandleWithSlotsAccess resource_slot::detail::register_access(dabfg::NameSpace, const char *, const char *,
-    resource_slot::detail::ActionList &&, resource_slot::detail::AccessCallback &&);
+  ::resource_slot::detail::SlotId slot;
+  ::resource_slot::detail::ResourceId resource;
 };
 
 /** Update request
@@ -45,17 +46,11 @@ struct Update
    * \param update_priority priority of update, nodes with HIGHER
    *   priority will be scheduled AFTER nodes with LOWER priority
    */
-  Update(const char *slot_name, const char *resource_name, int update_priority) :
-    slotName(slot_name), resourceName(resource_name), priority(update_priority)
-  {}
+  Update(const char *slot_name, const char *resource_name, int update_priority);
 
-private:
-  const char *slotName;
-  const char *resourceName;
+  ::resource_slot::detail::SlotId slot;
+  ::resource_slot::detail::ResourceId resource;
   int priority;
-
-  friend NodeHandleWithSlotsAccess resource_slot::detail::register_access(dabfg::NameSpace, const char *, const char *,
-    resource_slot::detail::ActionList &&, resource_slot::detail::AccessCallback &&);
 };
 
 /** Read request
@@ -72,15 +67,11 @@ struct Read
    *   will be scheduled BEFORE current node.
    *   By default Read will be scheduled after all Update of this slot.
    */
-  Read(const char *slot_name, int read_priority = DEFAULT_READ_PRIORITY) : slotName(slot_name), priority(read_priority) {}
+  Read(const char *slot_name, int read_priority = DEFAULT_READ_PRIORITY);
 
-private:
-  const char *slotName;
+  ::resource_slot::detail::SlotId slot;
   int priority;
   static constexpr int DEFAULT_READ_PRIORITY = INT_MAX;
-
-  friend NodeHandleWithSlotsAccess resource_slot::detail::register_access(dabfg::NameSpace, const char *, const char *,
-    resource_slot::detail::ActionList &&, resource_slot::detail::AccessCallback &&);
 };
 
 } // namespace resource_slot

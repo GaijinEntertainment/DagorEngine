@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <windows.h>
 
 // Since the AVX API is not declared in the Windows 7 SDK headers and

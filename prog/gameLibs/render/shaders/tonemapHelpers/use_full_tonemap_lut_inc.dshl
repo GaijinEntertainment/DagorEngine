@@ -16,7 +16,7 @@ macro USE_FULL_TONEMAP_LUT(code)
       float3 LUTlookUp = lut_linear_to_log( linearColor + lut_linear_to_log( 0 ) );
       float LUTSize = 32;//can be parametrized
       float3 uvw = LUTlookUp * ((LUTSize - 1) / LUTSize) + (0.5f / LUTSize);
-      half3 outDeviceColor = h3tex3D(full_tonemap_lut, uvw).rgb;
+      half3 outDeviceColor = (half3)tex3Dlod(full_tonemap_lut, float4(uvw, 0)).rgb;
       return outDeviceColor;
     }
     half3 performLUTColorGrade(float3 linearColor)
@@ -24,7 +24,7 @@ macro USE_FULL_TONEMAP_LUT(code)
       float3 LUTlookUp = lut_linear_to_log( linearColor + lut_linear_to_log( 0 ) );
       float LUTSize = 33;//can be parametrized
       float3 uvw = LUTlookUp * ((LUTSize - 1) / LUTSize) + (0.5f / LUTSize);
-      half3 outDeviceColor = half3(graded_color_lut.Sample(full_tonemap_lut_samplerstate, uvw).rgb);
+      half3 outDeviceColor = half3(graded_color_lut.SampleLevel(full_tonemap_lut_samplerstate, uvw, 0).rgb);
       return outDeviceColor;
     }
   }

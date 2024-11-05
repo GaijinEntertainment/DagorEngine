@@ -302,10 +302,10 @@ namespace das {
         das_hash_map<void *,uint64_t> bigStuffId;
         das_hash_map<void *,LineInfo *> bigStuffAt;
         das_hash_map<void *,const char *> bigStuffComment;
-        __forceinline void mark_location ( void * ptr, LineInfo * at ) { bigStuffAt[ptr] = at; }
+        __forceinline void mark_location ( void * ptr, const LineInfo * at ) { bigStuffAt[ptr] = at; }
         __forceinline void mark_comment ( void * ptr, const char * what ) { bigStuffComment[ptr] = what; }
 #else
-        __forceinline void mark_location ( void *, LineInfo * ) {}
+        __forceinline void mark_location ( void *, const LineInfo * ) {}
         __forceinline void mark_comment ( void *, const char * ) {}
 #endif
     };

@@ -1,0 +1,17 @@
+Root    ?= ../../../.. ;
+
+Location            = prog/gameLibs/contentUpdater/binarycache ;
+TargetType          = lib ;
+Target              = gameLibs/contentUpdater/binarycache.lib ;
+StrictCompile       ?= yes ;
+UseQuirrel         = sq3r ;
+
+Sources =
+  binaryCache.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

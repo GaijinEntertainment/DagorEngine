@@ -1,22 +1,23 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <UnitTest++/UnitTestPP.h>
 #include <daNet/bitStream.h>
 #include <util/dag_string.h>
 #include <util/dag_simpleString.h>
+#include <util/dag_preprocessor.h>
 #include <EASTL/string.h>
 #include <generic/dag_tab.h>
 #include <EASTL/vector.h>
 
-#define MCAT(a, b) a##b
-
-#define DECL_BITSTREAM_COMPRESSED_TEST(name, num, sz) \
-  TEST(MCAT(CheckBitStreamWriteCompressed, name))     \
-  {                                                   \
-    danet::BitStream bs;                              \
-    uint32_t a = num, b = 0;                          \
-    bs.WriteCompressed(a);                            \
-    CHECK(bs.GetNumberOfBytesUsed() == sz);           \
-    CHECK(bs.ReadCompressed(b));                      \
-    CHECK_EQUAL(a, b);                                \
+#define DECL_BITSTREAM_COMPRESSED_TEST(name, num, sz)   \
+  TEST(DAG_CONCAT(CheckBitStreamWriteCompressed, name)) \
+  {                                                     \
+    danet::BitStream bs;                                \
+    uint32_t a = num, b = 0;                            \
+    bs.WriteCompressed(a);                              \
+    CHECK(bs.GetNumberOfBytesUsed() == sz);             \
+    CHECK(bs.ReadCompressed(b));                        \
+    CHECK_EQUAL(a, b);                                  \
   }
 
 DECL_BITSTREAM_COMPRESSED_TEST(7Bit, (1 << 7) - 1, 1)

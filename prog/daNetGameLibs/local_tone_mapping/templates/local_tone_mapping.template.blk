@@ -1,0 +1,52 @@
+local_tone_mapping {
+  _tags:t="render"
+  _singleton:b=yes
+
+  "local_tone_mapping__downsample_nodes:dag::Vector<dabfg::NodeHandle>"{}
+  "local_tone_mapping__upsample_nodes:dag::Vector<dabfg::NodeHandle>"{}
+  "local_tone_mapping__filter_node:dabfg::NodeHandle"{}
+  "local_tone_mapping__samplers_node:dabfg::NodeHandle"{}
+  "local_tone_mapping_downsample:ComputeShader"{}
+  local_tone_mapping_downsample_name:t="local_tone_mapping_downsample"
+  "local_tone_mapping_upsample:ComputeShader"{}
+  local_tone_mapping_upsample_name:t="local_tone_mapping_upsample"
+  "local_tone_mapping_filter:PostFxRenderer"{}
+  local_tone_mapping_filter_name:t="local_tone_mapping_filter"
+
+  local_tone_mapping__downsample_nodes_cnt:i=0
+  local_tone_mapping__upsample_nodes_cnt:i=0
+  local_tone_mapping__display_mip:i=4
+  local_tone_mapping__mips_cnt:i=15
+
+  _group{
+    _track:b=yes
+    local_tone_mapping__shadows_multiplier:r=1.5
+    local_tone_mapping__highlights_multiplier:r=2
+    local_tone_mapping__sigma:r=0.177
+    local_tone_mapping__middle_luminance:r=0.1
+    local_tone_mapping__boost_local_contrast:b=false
+    local_tone_mapping__hq_enabled:b=false
+    local_tone_mapping__hq_display_mip:i=0
+    local_tone_mapping__hq_mips_cnt:i=3
+    local_tone_mapping__hq_final_tex_scale:r=0.5
+    local_tone_mapping__hq_sigma:r=0.177
+    local_tone_mapping__hq_shadows_multiplier:r=1.5
+    local_tone_mapping__hq_highlights_multiplier:r=2
+    local_tone_mapping__lq_display_mip:i=4
+    local_tone_mapping__lq_mips_cnt:i=15
+    local_tone_mapping__lq_final_tex_scale:r=0.25
+    local_tone_mapping__lq_sigma:r=1
+    local_tone_mapping__lq_shadows_multiplier:r=1.5
+    local_tone_mapping__lq_highlights_multiplier:r=2
+  }
+}
+
+local_tone_mapping_setting{
+  _singleton:b=yes
+  _use:t="replicating"
+
+  local_tone_mapping_setting__hq_shadows_multiplier:r=1.5
+  local_tone_mapping_setting__hq_highlights_multiplier:r=2
+  local_tone_mapping_setting__lq_shadows_multiplier:r=1.5
+  local_tone_mapping_setting__lq_highlights_multiplier:r=2
+}

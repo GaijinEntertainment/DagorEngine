@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gui/dag_visConsole.h>
 
-#include <humanInput/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiKeybIds.h>
 #include <osApiWrappers/dag_unicode.h>
 #include <osApiWrappers/dag_clipboard.h>
 #include <gui/dag_stdGuiRender.h>
@@ -9,7 +11,7 @@
 #include <utf8/utf8.h>
 
 #include <startup/dag_inpDevClsDrv.h>
-#include <humanInput/dag_hiKeyboard.h>
+#include <drv/hid/dag_hiKeyboard.h>
 
 namespace console
 {
@@ -96,6 +98,7 @@ static int get_next_pos(const String &text, int pos, bool is_increment, bool is_
 
 
 DefaultDagorVisualConsoleDriver::DefaultDagorVisualConsoleDriver() :
+  handleInputButton(HumanInput::DKEY_GRAVE),
   isVisible(false),
   screenLines(20),
   bufferLines(10000),
@@ -126,7 +129,10 @@ void DefaultDagorVisualConsoleDriver::printHelp()
        "PgUp/PgDown - scroll\n"
        "Ctrl + PgUp/PgDown - fast scroll\n"
        "Alt + PgUp/PgDown - change console size\n"
-       "Shift + PgUp/PgDown - scroll tips\n",
+       "Shift + PgUp/PgDown - scroll tips\n"
+       "Ctrl + F - pin last command\n"
+       "Ctrl + <number> - execute pinned command\n"
+       "Ctrl + Shift + <number> - unpin command\n",
     CONSOLE_TRACE);
 }
 
@@ -151,7 +157,7 @@ bool DefaultDagorVisualConsoleDriver::processKey(int btn_id, int wchar, bool han
 
   bool modifierPressed = controlPressed || shiftPressed || altPressed;
 
-  if (handle_tilde && btn_id == HumanInput::DKEY_GRAVE && !modifierPressed)
+  if (handle_tilde && btn_id == handleInputButton && !modifierPressed)
   {
     if (console::is_visible())
       console::hide();
@@ -180,10 +186,48 @@ bool DefaultDagorVisualConsoleDriver::processKey(int btn_id, int wchar, bool han
     }
   };
 
+  G_STATIC_ASSERT(HumanInput::DKEY_0 - HumanInput::DKEY_1 == 9);
+  const bool isNumberPressed = btn_id >= HumanInput::DKEY_1 && btn_id <= HumanInput::DKEY_0;
+  const unsigned pressedNumber = isNumberPressed ? (btn_id == HumanInput::DKEY_0 ? 0 : btn_id - HumanInput::DKEY_1 + 1) : 0;
+
   if (btn_id == HumanInput::DKEY_V && controlPressed)
   {
     if (paste_from_clipboard(editText, editPos))
       onCommandModified();
+  }
+  if (btn_id == HumanInput::DKEY_F && controlPressed)
+  {
+    // Pin command
+    const char *cmd = top_history_command();
+    if (cmd && *cmd)
+    {
+      console::add_pinned_command(cmd);
+      console::print("Command pinned: %s", cmd);
+    }
+    else
+      console::print("No command in history to pin");
+  }
+  if (isNumberPressed && controlPressed && shiftPressed)
+  {
+    // Unpin command
+    const auto &pinnedCommands = console::get_pinned_command_list();
+    if (pressedNumber < pinnedCommands.size() && !pinnedCommands[pressedNumber].empty())
+      console::remove_pinned_command(pinnedCommands[pressedNumber]);
+    else
+      console::print("There is no pinned command with id: %d", pressedNumber);
+  }
+  if (isNumberPressed && controlPressed && !shiftPressed)
+  {
+    // Run pinned command
+    const auto &pinnedCommands = console::get_pinned_command_list();
+    if (pressedNumber < pinnedCommands.size() && !pinnedCommands[pressedNumber].empty())
+    {
+      console::print("Executing pinned command: %s", pinnedCommands[pressedNumber]);
+      console::add_history_command(pinnedCommands[pressedNumber]);
+      console::command(pinnedCommands[pressedNumber]);
+    }
+    else
+      console::print("There is no pinned command with id: %d", pressedNumber);
   }
   else if (btn_id == HumanInput::DKEY_C && controlPressed)
   {
@@ -603,7 +647,7 @@ void DefaultDagorVisualConsoleDriver::render()
 
   const GuiViewPort &vp = StdGuiRender::get_viewport();
 
-  StdGuiRender::set_texture(BAD_TEXTUREID);
+  StdGuiRender::reset_textures();
   StdGuiRender::set_color(0, 32, 64, 128);
   StdGuiRender::render_rect(0, 0, vp.rightBottom.x, screenLines * lineHeight);
 

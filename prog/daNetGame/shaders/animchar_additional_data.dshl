@@ -1,0 +1,69 @@
+
+
+macro GET_OFFSET_COUNT_ADDITIONAL_DATA(code, addition_data_type_id)
+hlsl(code)
+{
+  #define concatenate_func_variant(func_index) get_offset_count_additional_data_impl ## func_index
+
+  uint2 concatenate_func_variant(addition_data_type_id) ()
+  {
+    float4 offset8 = 0, count8;
+    get_per_instance_data(count8, 1);
+    if (any(asuint(count8) != 0))
+      get_per_instance_data(offset8, 2);
+
+    float offset2F = offset8[addition_data_type_id / 2];
+    float count2F = count8[addition_data_type_id / 2];
+    uint2 offsetCountPair = (asuint(float2(offset2F, count2F)) >> (16 * (addition_data_type_id % 2))) & 0xFFFF;
+
+    const int additionalDataStartOffset = 3;
+    offsetCountPair.x += additionalDataStartOffset;
+    return offsetCountPair;
+  }
+
+  #undef concatenate_func_variant
+}
+endmacro
+
+macro USE_ANIMCHAR_ADDITIONAL_DATA(code)
+  GET_OFFSET_COUNT_ADDITIONAL_DATA(code, 0)
+  GET_OFFSET_COUNT_ADDITIONAL_DATA(code, 1)
+  GET_OFFSET_COUNT_ADDITIONAL_DATA(code, 2)
+  GET_OFFSET_COUNT_ADDITIONAL_DATA(code, 3)
+  GET_OFFSET_COUNT_ADDITIONAL_DATA(code, 4)
+  GET_OFFSET_COUNT_ADDITIONAL_DATA(code, 5)
+  GET_OFFSET_COUNT_ADDITIONAL_DATA(code, 6)
+  GET_OFFSET_COUNT_ADDITIONAL_DATA(code, 7)
+  hlsl(code)
+  {
+    #define get_offset_count_additional_data(addition_data_type_id) get_offset_count_additional_data_impl ## addition_data_type_id ()
+
+    float4 get_additional_data_unsafe(uint global_offset)
+    {
+      float4 data;
+      get_per_instance_data(data, global_offset);
+      return data;
+    }
+    float4 get_additional_data_unsafe(uint2 offset_count, uint index)
+    {
+      return get_additional_data_unsafe(offset_count.x + index);
+    }
+
+    float4 get_additional_data(uint2 offset_count, uint index)
+    {
+      if (index < offset_count.y)
+        return get_additional_data_unsafe(offset_count, index);
+      else
+      {
+        ##assert(false, "Attempting to access additional data at index %d, but the index is out of bounds. The additional data size is %d.", index, offset_count.y);
+        return NaN; //if we try to read garbage data it is better return nans
+      }
+    }
+  }
+endmacro
+
+macro USE_ANIMCHAR_ADDITIONAL_DATA_VS_ONCE()
+  BEGIN_ONCE(use_animchar_additional_data_vs)
+  USE_ANIMCHAR_ADDITIONAL_DATA(vs)
+  END_ONCE()
+endmacro

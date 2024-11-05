@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_fileIoErr.h>
 
 void (*dag_on_file_open)(const char *fname, void *file_handle, int flags) = NULL;

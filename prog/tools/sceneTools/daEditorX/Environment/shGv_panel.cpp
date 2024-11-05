@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "shGV_panel.h"
 
 #include <oldEditor/de_interface.h>
@@ -7,13 +9,13 @@
 
 #include <osApiWrappers/dag_direct.h>
 
-#include <propPanel2/comWnd/panel_window.h>
-#include <propPanel2/c_indirect.h>
+#include <propPanel/control/panelWindow.h>
+#include <propPanel/c_indirect.h>
 
 
 EnvironmentPlugin::ShaderGlobVarsPanel::ShaderGlobVarsPanel(EnvironmentPlugin &plug, void *hwnd) : plugin(plug)
 {
-  propPanel = DAGORED2->createPropPanel(this, hwnd);
+  propPanel = DAGORED2->createPropPanel(this, "Shader Global Vars");
   scheme = propPanel->createSceme();
 
   pluginShgvBlk = plugin.isAcesPlugin ? &plugin.currentEnvironmentAces.shaderVarsBlk : &plugin.shgvBlk;
@@ -65,7 +67,7 @@ void EnvironmentPlugin::ShaderGlobVarsPanel::fillPanel()
 }
 
 
-void EnvironmentPlugin::ShaderGlobVarsPanel::onChange(int pcb_id, PropPanel2 *panel)
+void EnvironmentPlugin::ShaderGlobVarsPanel::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   DataBlock gameBlk;
   gameBlk.setFrom(pluginShgvBlk);

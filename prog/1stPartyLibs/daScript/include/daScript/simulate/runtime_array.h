@@ -68,7 +68,7 @@ namespace das
     };
 
     struct GoodArrayIterator : Iterator {
-        GoodArrayIterator ( Array * arr, uint32_t st ) : array(arr), stride(st) {}
+        GoodArrayIterator ( Array * arr, uint32_t st, LineInfo * at ) : Iterator(at), array(arr), stride(st) {}
         virtual bool first ( Context & context, char * value ) override;
         virtual bool next  ( Context & context, char * value ) override;
         virtual void close ( Context & context, char * value ) override;
@@ -88,7 +88,7 @@ namespace das
     };
 
     struct FixedArrayIterator : Iterator {
-        FixedArrayIterator ( char * d, uint32_t sz, uint32_t st ) : data(d), size(sz), stride(st) {}
+        FixedArrayIterator ( char * d, uint32_t sz, uint32_t st, LineInfo * at ) : Iterator(at), data(d), size(sz), stride(st) {}
         virtual bool first ( Context & context, char * value ) override;
         virtual bool next  ( Context & context, char * value ) override;
         virtual void close ( Context & context, char * value ) override;

@@ -1,4 +1,24 @@
 sphinx==5.3.0
-myst_parser==0.18.1
+
+# Sphinx dependencies that are important
+
+myst-parser==1.0.0
+linkify-it-py==2.0.3
+docutils==0.19
+sphinx-copybutton==0.5.2
+sphinx-design==0.6.0
+sphinx-hoverxref==1.4.0
+sphinx-markdown-tables==0.0.17
+sphinx-version-warning==1.1.2
+
+# Documentation theme
+
+sphinx-rtd-theme==2.0.0
+sphinx-basic-ng==1.0.0b2
+
+# Extension to rst and Sphinx to be able to read and render Doxygen xml output
+
 breathe==4.35.0
-sphinx_rtd_theme==1.1.1
+
+
+

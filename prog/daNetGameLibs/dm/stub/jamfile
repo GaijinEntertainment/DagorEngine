@@ -1,0 +1,17 @@
+Root    ?= ../../../.. ;
+Location = prog/daNetGameLibs ;
+
+TargetType  = lib ;
+Target = daNetGameLibs-dm-stub ;
+
+include $(Root)/prog/daNetGame/setup.jam ; # Note - $(Platform) is not defined before this line unless passed in command line
+
+AddIncludes += $(Root)/prog/daNetGameLibs ;
+
+Sources = dm/stub/dm_dng_stub.cpp ;
+if [ GLOB $(Root)/prog/gameLibs/damageModel : * ] {
+  Sources += dm/stub/dm_stub.cpp ;
+  opt on dm/stub/dm_stub.cpp = -I$(Root)/prog/gameLibs/damageModel ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

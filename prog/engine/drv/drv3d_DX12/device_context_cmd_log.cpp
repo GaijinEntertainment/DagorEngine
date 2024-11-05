@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #if DAGOR_DBGLEVEL > 0
 #include "device.h"
 
@@ -59,20 +61,9 @@ void append_arg(String &target, Query *const &arg, const char *) { target.aprint
 void append_arg(String &target, Image *const &arg, const char *)
 {
   if (arg)
-  {
-    if (get_device().isImageAlive(arg))
-    {
-      arg->getDebugName([&target](auto &name) { target += name; });
-    }
-    else
-    {
-      target.aprintf(32, "deleted image at 0x%p", arg);
-    }
-  }
+    target.aprintf(32, "image at 0x%p", arg);
   else
-  {
     target += "nullptr";
-  }
 }
 
 void append_arg(String &target, BufferResourceReferenceAndRange const &arg, const char *)
@@ -300,9 +291,8 @@ void append_arg(String &target, ResourceClearValue const &arg, const char *)
 
 void append_arg(String &target, ClearColorValue const &arg, const char *)
 {
-  target.aprintf(128, "ClearColorValue{ float32[%.4f, %.4f, %.4f, %.4f], int32[%d, %d, %d, %d], uint32[%u, %u, %u, %u]}",
-    arg.float32[0], arg.float32[1], arg.float32[2], arg.float32[3], arg.int32[0], arg.int32[1], arg.int32[2], arg.int32[3],
-    arg.uint32[0], arg.uint32[1], arg.uint32[2], arg.uint32[3]);
+  target.aprintf(128, "ClearColorValue{ float32[%.4f, %.4f, %.4f, %.4f]", arg.float32[0], arg.float32[1], arg.float32[2],
+    arg.float32[3]);
 }
 
 void append_arg(String &target, ClearDepthStencilValue const &arg, const char *)
@@ -356,16 +346,6 @@ void append_arg(String &target, InternalInputLayoutID const &arg, const char *)
 void append_arg(String &target, MipMapIndex const &arg, const char *) { target.aprintf(32, "MipMapIndex{ %d }", arg.index()); }
 
 void append_arg(String &target, ArrayLayerIndex const &arg, const char *) { target.aprintf(32, "ArrayLayerIndex{ %d }", arg.index()); }
-
-void append_arg(String &target, OutputMode const &arg, const char *)
-{
-  switch (arg)
-  {
-    APPEND_ENUM_AS_STRING(target, OutputMode, PRESENT)
-    APPEND_ENUM_AS_STRING(target, OutputMode, MINIMIZED)
-    APPEND_ENUM_DEFAULT(target, "INVALID")
-  }
-}
 
 void append_arg(String &target, Drv3dTimings *const &arg, const char *)
 {
@@ -617,7 +597,7 @@ void append_arg(String &target, T const &, const char *type)
   return result;                                 \
   }
 
-#include "device_context_cmd.h"
+#include "device_context_cmd.inc.h"
 
 #undef DX12_BEGIN_CONTEXT_COMMAND
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
@@ -644,16 +624,22 @@ void DeviceContext::initNextFrameLog()
 
 void DeviceContext::dumpCommandLog()
 {
-  String buffer;
   for (int32_t i = 0; i < NumFrameCommandLogs; i++)
   {
     FrameCommandLog &frameCmdLog = frameLogs[(activeLogId + i + 1) % NumFrameCommandLogs];
-
-    logdbg("Frame %d log begin", frameCmdLog.frameId);
-    logdbg("--------------------");
-    frameCmdLog.log.visitAll([&buffer, this](const auto &value) { logdbg(cmdToStr(buffer, back.sharedContextState, value)); });
-    logdbg("Frame %d log end", frameCmdLog.frameId);
+    dumpFrameCommandLog(frameCmdLog);
   }
+}
+
+void DeviceContext::dumpActiveFrameCommandLog() { dumpFrameCommandLog(frameLogs[activeLogId % NumFrameCommandLogs]); }
+
+void DeviceContext::dumpFrameCommandLog(FrameCommandLog &frame_log)
+{
+  String buffer;
+  logdbg("Frame %d log begin", frame_log.frameId);
+  logdbg("--------------------");
+  frame_log.log.visitAll([&buffer, this](const auto &value) { logdbg(cmdToStr(buffer, back.sharedContextState, value)); });
+  logdbg("Frame %d log end", frame_log.frameId);
 }
 
 }

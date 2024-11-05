@@ -1,11 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daRg/dag_element.h>
 #include <daRg/dag_properties.h>
 #include <daRg/dag_stringKeys.h>
 #include <daRg/dag_scriptHandlers.h>
 
-#include <humanInput/dag_hiPointing.h>
-#include <humanInput/dag_hiGlobals.h>
-#include <humanInput/dag_hiKeyboard.h>
+#include <drv/hid/dag_hiPointing.h>
+#include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiKeyboard.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <perfMon/dag_statDrv.h>
 
@@ -44,11 +46,10 @@ static bool is_same_tbl_component(const Element *elem, const Component &new_comp
 
 static void enable_kb_ime(bool on)
 {
-  auto enableIme = [on]() {
+  run_action_on_main_thread([on]() {
     if (auto kbd = global_cls_drv_kbd ? global_cls_drv_kbd->getDevice(0) : nullptr)
       kbd->enableIme(on);
-  };
-  run_action_on_main_thread(enableIme);
+  });
 }
 
 ElementTree::ElementTree(GuiScene *gui_scene, Panel *panel_) : guiScene(gui_scene), panel(panel_)
@@ -353,9 +354,13 @@ Element *ElementTree::rebuild(HSQUIRRELVM vm, Element *existing, const Component
 
   StringKeys *csk = guiScene->getStringKeys();
 
+  const int inputBehaviorFlags = Behavior::F_HANDLE_JOYSTICK | Behavior::F_HANDLE_KEYBOARD | Behavior::F_HANDLE_MOUSE |
+                                 Behavior::F_HANDLE_TOUCH | Behavior::F_CAN_HANDLE_CLICKS | Behavior::F_FOCUS_ON_CLICK;
+
   bool wasHidden = existing && existing->isHidden();
   bool hadTransitions = existing && !existing->transitions.empty();
   bool hadBehaviors = existing && !existing->behaviors.empty();
+  bool hadInputBehaviors = existing && existing->hasBehaviors(inputBehaviorFlags);
   bool wasXmbNode = existing && existing->xmb;
   auto prevZOrder = existing ? existing->zOrder : Element::undefined_z_order;
 
@@ -477,6 +482,9 @@ Element *ElementTree::rebuild(HSQUIRRELVM vm, Element *existing, const Component
   }
   if (wasXmbNode != isXmbNode)
     out_flags |= RESULT_NEED_XMB_REBUILD;
+
+  if (elem->hasBehaviors(inputBehaviorFlags) != hadInputBehaviors)
+    out_flags |= RESULT_INVALIDATE_INPUT_STACK;
 
   elem->delayedCallElemStateHandler(); // force state synchronization
   if (existing && elem->watch.size() && call_depth > 0)
@@ -721,7 +729,7 @@ void ElementTree::updateAnimations(float dt, bool *finished_any)
   TIME_PROFILE(etree_updateAnimations);
 
   int64_t dt_usec = int64_t(dt * 1000000);
-  // debug_ctx("Updating %d animated elems", animated.size());
+  // DEBUG_CTX("Updating %d animated elems", animated.size());
   if (finished_any)
     *finished_any = false;
   for (Element *elem : animated)

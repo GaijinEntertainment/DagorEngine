@@ -1,0 +1,651 @@
+include "shader_global.dshl"
+include "psh_tangent.dshl"
+include "normaldetail.dshl"
+include "gbuffer.dshl"
+include "land_micro_detail.dshl"
+include "static_shadow.dshl"
+
+macro SET_WORLD_VIEW_POS()
+  (vs) { world_view_pos@f3 = world_view_pos; }
+  (ps) { world_view_pos@f3 = world_view_pos; }
+endmacro
+
+macro LAYERED_PS()
+    (ps) {
+      basetex@static      = basetex;
+      tile1diffuse@static = tile1diffuse;
+      tile2diffuse@static = tile2diffuse;
+      basenormal@static   = basenormal;
+      tile1normal@static  = tile1normal;
+      tile2normal@static  = tile2normal;
+    }
+    USE_PIXEL_TANGENT_SPACE()
+    USE_NORMAL_DETAIL()
+
+    INIT_STATIC_SHADOW_PS()
+    WRITE_GBUFFER()
+
+    hlsl(ps) {
+      #ifndef SAMPLE_TEX
+        #define SAMPLE_TEX(tex, tc) tex2DBindless(tex, tc)
+      #endif
+      half overlay_single(half base, half blend)
+      {
+        return (base < 0.5 ? (2.0 * base * blend) : (1.0 - 2.0 * (1.0 - base) * (1.0 - blend)));
+      }
+      half3 overlay_srgb(half3 base, half3 blend)//base is in srgb space
+      {
+        //(base < 0.5 ? (2.0 * base * blend) : (1.0 - 2.0 * (1.0 - base) * (1.0 - blend)));//overlay
+        return
+          lerp(
+            (2.0 * base.rgb * blend.rgb),
+            (1.0 + (2*base.rgb - half3(2,2,2)) * (half3(1,1,1) - blend.rgb)), 
+             step(half3(0.5,0.5,0.5), base));
+      }
+
+      //base is in linear space. we preserve midpoint at 0.5 srgb, bit other than that, works in gamma space.
+      // It is mathematically correct in dark area (<0.5), but not in bright area
+      half3 overlay_srgb_midpoint_linear(half3 base, half3 blend)
+      {
+        //(base < 0.5 ? (2.0 * base * blend) : (1.0 - 2.0 * (1.0 - base) * (1.0 - blend)));//overlay
+        return
+          lerp(
+            (4.59479341998814 * base.rgb * blend.rgb),//2^2.2
+            (1.0 + (1.278180101932895*base.rgb - half3(1.278180101932895,1.278180101932895,1.278180101932895)) * (half3(1,1,1) - blend.rgb)), //1/(1-0.5^2.2)
+             step(half3(0.217637640824031, 0.217637640824031, 0.217637640824031), base));//0.5^2.2
+      }
+
+      half3 overlay_linear_gamma2(half3 base, half3 blend)//base is in linear space, assume gamma is 2
+      {
+        half3 result = overlay_srgb(sqrt(base), sqrt(blend));
+        return result*result;
+      }
+      half3 overlay_linear_gamma22(half3 base, half3 blend)//base is in linear space, assume gamma is 2.2
+      {
+        half3 result = overlay_srgb(pow(base, 1/2.2), pow(blend, 1/2.2));
+        return pow(result,2.2);
+      }
+      GBUFFER_OUTPUT layered_ps(VsOutput input)
+      {
+        UnpackedGbuffer gbuffer;
+        init_gbuffer(gbuffer);
+        half4 baseColor = SAMPLE_TEX(get_basetex(), input.baseTC.xy);
+        half4 detailColor1 = SAMPLE_TEX(get_tile1diffuse(), input.detailTC12.xy);
+        half4 detailColor2 = SAMPLE_TEX(get_tile2diffuse(), input.detailTC12.zw);
+
+        /*
+        half2 weights = half2(baseColor.a, 1-baseColor.a);
+        half2 initialHeight = half2(detailColor1.a,detailColor2.a);
+        half2 height12 = initialHeight*weights+weights*0.00001;
+        half invHeightsSum;
+        invHeightsSum = rcp(dot(height12, 1));
+        height12 *= invHeightsSum;
+        height12 = pow(height12, 4);
+        invHeightsSum = rcp(dot(height12, 1));
+        weights = height12*invHeightsSum;
+        half weight1 = weights.x;
+        /*/
+        half weight = baseColor.a;
+        half invHeightsSum = rcp(lerp(detailColor1.a, detailColor2.a, weight) + 0.00001);
+        half weight2 = (detailColor2.a + 0.00001)*weight*invHeightsSum;
+
+        //make it more contrast!
+        ##if compatibility_mode == compatibility_mode_off
+        half weight2_pow2 = weight2*weight2;
+        weight2 = saturate( (-2.666666666666667*weight2_pow2 + (4*weight2 - 0.333333333333333))*weight2 );
+        ##endif
+        //weight2 < 0.5 ? 2 * pow(weight2) : 1 - 2*pow(1-weight2, 2)
+        //*/
+        half4 detailColor = lerp(detailColor1, detailColor2, weight2);
+        //half3 diffuseColor = overlay_linear_gamma22(baseColor, detailColor);
+        //half3 diffuseColor = overlay_srgb_midpoint_linear(baseColor, detailColor);
+        half3 diffuseColor = baseColor.rgb * detailColor.rgb * 4.59479341998814;
+
+        //read normal maps
+        half4 baseNormalMap = SAMPLE_TEX(get_basenormal(), input.baseTC.xy);
+        half4 detailNormal1 = SAMPLE_TEX(get_tile1normal(), input.detailTC12.xy);
+        half4 detailNormal2 = SAMPLE_TEX(get_tile2normal(), input.detailTC12.zw);
+
+        half3 worldNormal = blend_normals_worldspace(
+          unpack_ag_normal(baseNormalMap), unpack_ag_normal(detailNormal1), unpack_ag_normal(detailNormal2), weight2, 
+          normalize(input.normal), input.pointToEye,  input.baseTC, input.detailTC12);
+
+        half smoothness = lerp(detailNormal1.r, detailNormal2.r, weight2);
+        half metalness = lerp(detailNormal1.b, detailNormal2.b, weight2);
+
+        init_albedo(gbuffer, diffuseColor.rgb);
+        init_smoothness(gbuffer, smoothness);
+        init_metalness(gbuffer, metalness);
+        init_normal(gbuffer, worldNormal);
+        init_ao(gbuffer, 1);
+        #ifdef PLOD_PS_GEN
+          PLOD_PS_GEN(input, pack_gbuffer(gbuffer), baseNormalMap)
+        #endif
+        return encode_gbuffer(gbuffer, input.pointToEye, GET_SCREEN_POS(input.pos));
+      }
+    }
+endmacro
+
+
+shader layered_static
+{
+  supports global_frame;
+  texture basetex = material.texture[0];
+  texture basenormal = material.texture[2];
+  texture tile1diffuse = material.texture[3];
+  texture tile1normal = material.texture[4];
+  texture tile2diffuse = material.texture[5];
+  texture tile2normal  = material.texture[6];
+
+  channel float3 pos=pos;
+  channel color8 norm=norm unsigned_pack;
+  channel short2 tc[0]=tc[0] mul_4k;
+  channel short2 tc[1]=tc[1] mul_4k;
+  channel short2 tc[2]=tc[2] mul_4k;
+
+
+  static float detail1_tile_u = 1;
+  static float detail1_tile_v = 1;
+  static float detail2_tile_u = 1;
+  static float detail2_tile_v = 1;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+
+      float2 baseTC              : TEXCOORD0;
+      float4 detailTC12          : TEXCOORD1;
+      float3 normal              : TEXCOORD2;
+      float3 pointToEye          : TEXCOORD3;
+    };
+  }
+
+  LAYERED_PS()
+
+  compile("target_ps", "layered_ps");
+
+
+  (vs) {
+    globtm@f44 = globtm;
+    detailTile@f4 = (detail1_tile_u, detail1_tile_v, detail2_tile_u, detail2_tile_v);
+  }
+
+  if (in_editor == yes)
+  {
+    (vs) {
+      world_local_x@f3 = world_local_x;
+      world_local_y@f3 = world_local_y;
+      world_local_z@f3 = world_local_z;
+      world_local_pos@f3 = world_local_pos;
+    }
+  }
+
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float4 pos: POSITION;// W defaults to 1.
+      float3 packedNormal           : NORMAL;
+      int2 baseTC                 : TEXCOORD0;
+      int2 detailTC1              : TEXCOORD1;
+      int2 detailTC2              : TEXCOORD2;
+    };
+
+    VsOutput layered_vs(VsInput input)
+    {
+      VsOutput output;
+
+##if in_editor == yes
+      float3 worldPos = float3(input.pos.x * world_local_x + input.pos.y * world_local_y + input.pos.z * world_local_z + world_local_pos);
+      float3 normal = input.packedNormal * 2. - 1.;
+      float3 worldNormal = normalize(normal.x * world_local_x + normal.y * world_local_y + normal.z * world_local_z);
+##else
+      float3 worldPos = input.pos.xyz;
+      float3 worldNormal = input.packedNormal * 2. - 1.;
+##endif
+
+      output.pos = mul(input.pos, globtm);
+
+      output.baseTC.xy = input.baseTC * (1. / 4096.0);
+      output.detailTC12 = float4(input.detailTC1, input.detailTC2)  * get_detailTile() * (1. / 4096.0);
+
+      output.pointToEye = world_view_pos - worldPos;
+      output.normal = worldNormal;
+
+      return output;
+    }
+  }
+
+  compile("target_vs", "layered_vs");
+}
+
+
+shader simple_aces, simple_vertical
+{
+  supports global_frame;
+
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+
+  USING_ATEST_HALF()
+
+  //blend_src = one; blend_dst = zero;
+  //blend_asrc = one; blend_adst = one;   // For water reflection.
+
+  texture tex = material.texture.diffuse;
+  texture normal = material.texture[2];
+  texture reflectance = material.texture[3];
+
+  static float detail_tile_u = 31.1;
+  static float detail_tile_v = 31.1;
+  INIT_LAND_MICRODETAILS_PS()
+  USE_LAND_MICRODETAILS_PS()
+
+  INIT_STATIC_SHADOW_PS()
+  WRITE_GBUFFER()
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 diffuseTexcoord              : TEXCOORD0;
+      float3 pointToEye                   : TEXCOORD1;
+      float3 normal                       : TEXCOORD2;
+    };
+  }
+
+  (ps) {
+    detail_scale@f3 = (detail_tile_u,detail_tile_v,0,0);
+    diffuse_tex@static = tex;
+    normal_tex@static = normal;
+  }
+  if (reflectance != NULL)
+  {
+    (ps) {reflectance_tex@static = reflectance; }
+  }
+  USE_PIXEL_TANGENT_SPACE()
+  USE_INTERPOLATED_MICRODETAIL_ID()
+
+  //fsh_const[3] = (atest / 255.0, 0, 0, 0);
+
+  hlsl(ps) {
+    GBUFFER_OUTPUT main_ps_simple_aces(VsOutput input INPUT_VFACE)
+    {
+      half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord);
+##if (atest == atestOn)
+      clip_alpha(diffuseColor.a);
+##endif
+
+      UnpackedGbuffer gbuffer;
+      init_gbuffer(gbuffer);
+      half smoothness;
+      half3 worldNormal = normalize(BGR_SWIZZLE(input.normal));
+      //##if shader == simple_vertical//todo: make vertical texture
+        //applyVerticalTexture(worldNormal, worldNormal, diffuseColor, world_view_pos-input.pointToEye, true);
+      //##endif
+      ##if normal != NULL
+        half3 point2EyeNrm = normalize(input.pointToEye);
+        half2 packedNormalMap = tex2DBindless(get_normal_tex(), input.diffuseTexcoord).rg;
+        half3 normalTS = restore_normal(packedNormalMap);
+
+        ##if reflectance != NULL
+        half4 reflectance_ao_detailNo_smoothness = tex2DBindless(get_reflectance_tex(), input.diffuseTexcoord);
+        ##else
+        half4 reflectance_ao_detailNo_smoothness = half4(0.5,1, 0, 0);
+        ##endif
+        DetailDesc desc = makeDetailDesc(reflectance_ao_detailNo_smoothness.z);
+
+
+        half2 microNormalTS;
+        apply_microdetails_tc(input.diffuseTexcoord.xy*get_detail_scale().xy, desc, microNormalTS, diffuseColor.rgb, reflectance_ao_detailNo_smoothness.x, reflectance_ao_detailNo_smoothness.w);
+        normalTS = RNM_ndetail_normalized(normalTS, restore_normal(microNormalTS).xyz);
+        worldNormal = perturb_normal( normalTS, worldNormal, input.pointToEye, input.diffuseTexcoord );
+      ##else
+        half4 reflectance_ao_detailNo_smoothness = half4(0.5, 1, 0, 0);
+      ##endif
+      worldNormal = MUL_VFACE(worldNormal);
+
+      init_albedo(gbuffer, diffuseColor.rgb);
+      init_ao(gbuffer, reflectance_ao_detailNo_smoothness.y);
+      init_smoothness(gbuffer, reflectance_ao_detailNo_smoothness.w);
+      init_reflectance(gbuffer, reflectance_ao_detailNo_smoothness.x);
+      init_normal(gbuffer, worldNormal);
+      init_ao(gbuffer, 1);
+
+      return encode_gbuffer(gbuffer, input.pointToEye, GET_SCREEN_POS(input.pos));
+    }
+  }
+  compile("target_ps", "main_ps_simple_aces");
+
+
+  channel float3 pos=pos;
+  channel color8 norm=norm unsigned_pack;
+  channel float2 tc[0]=tc[0]; 
+
+
+  (vs) { globtm@f44 = globtm; }
+
+  if (in_editor == yes)
+  {
+    (vs) {
+      world_local_x@f3 = world_local_x;
+      world_local_y@f3 = world_local_y;
+      world_local_z@f3 = world_local_z;
+      world_local_pos@f3 = world_local_pos;
+    }
+  }
+
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float4 pos: POSITION;  // W defaults to 1.
+      float3 packedNormal             : NORMAL;
+      float2 diffuseTexcoord          : TEXCOORD0;
+    };
+
+    VsOutput main_vs_all_simples_aces(VsInput input)
+    {
+      VsOutput output;
+
+##if in_editor == yes
+      float3 worldPos = float3(input.pos.x * world_local_x + input.pos.y * world_local_y + input.pos.z * world_local_z + world_local_pos);
+##else
+      float3 worldPos = input.pos.xyz;
+##endif
+
+##if in_editor == yes
+      float3 normal = input.packedNormal * 2. - 1.;
+      float3 worldNormal = normalize(normal.x * world_local_x + normal.y * world_local_y + normal.z * world_local_z);
+##else
+      float3 worldNormal = input.packedNormal * 2. - 1.;
+##endif
+
+      output.pos = mul(input.pos, globtm);
+
+      output.diffuseTexcoord.xy = input.diffuseTexcoord;
+      output.pointToEye = world_view_pos - worldPos;
+      output.normal = worldNormal;
+
+      return output;
+    }
+  }
+
+  compile("target_vs", "main_vs_all_simples_aces");
+}
+
+shader prefab_simple
+{
+  supports global_frame;
+
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+
+  USING_ATEST_HALF()
+
+  //blend_src = one; blend_dst = zero;
+  //blend_asrc = one; blend_adst = one;   // For water reflection.
+
+  texture tex = material.texture.diffuse;
+  texture normal = material.texture[2];
+  //texture reflectance = material.texture[3]; }
+
+  INIT_STATIC_SHADOW_PS()
+  WRITE_GBUFFER()
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 diffuseTexcoord              : TEXCOORD0;
+      float3 pointToEye                   : TEXCOORD1;
+      float3 normal                       : TEXCOORD2;
+    };
+  }
+
+  (ps) {
+    diffuse_tex@static = tex;
+    normal_tex@static = normal;
+  }
+  USE_PIXEL_TANGENT_SPACE()
+
+  //fsh_const[3] = (atest / 255.0, 0, 0, 0);
+
+  hlsl(ps) {
+    GBUFFER_OUTPUT main_ps_simple_aces(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
+    {
+      half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord);
+##if (atest == atestOn)
+      clip_alpha(diffuseColor.a);
+##endif
+
+      UnpackedGbuffer gbuffer;
+      init_gbuffer(gbuffer);
+      half4 packedNormalMap = tex2DBindless(get_normal_tex(), input.diffuseTexcoord.xy);
+      half smoothness = packedNormalMap.r;
+      half metalness = packedNormalMap.b;
+      half3 normalMap = unpack_ag_normal(packedNormalMap);
+      half3 vertexNormal = normalize(input.normal);
+      half3 worldNormal = perturb_normal_precise(normalMap, vertexNormal, input.pointToEye.xyz, input.diffuseTexcoord.xy );
+      worldNormal = MUL_VFACE(worldNormal);
+
+      init_albedo(gbuffer, diffuseColor.rgb);
+      init_smoothness(gbuffer, smoothness);//
+      init_normal(gbuffer, worldNormal);
+      init_metalness(gbuffer, metalness);
+      return encode_gbuffer(gbuffer, input.pointToEye, GET_SCREEN_POS(input.pos));
+    }
+  }
+  compile("target_ps", "main_ps_simple_aces");
+
+
+  channel float3 pos=pos;
+  channel color8 norm=norm unsigned_pack;
+  channel float2 tc[0]=tc[0]; 
+
+
+  (vs) { globtm@f44 = globtm; }
+
+  if (in_editor == yes)
+  {
+    (vs) {
+      world_local_x@f3 = world_local_x;
+      world_local_y@f3 = world_local_y;
+      world_local_z@f3 = world_local_z;
+      world_local_pos@f3 = world_local_pos;
+    }
+  }
+
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float4 pos: POSITION;  // W defaults to 1.
+      float3 packedNormal             : NORMAL;
+      float2 diffuseTexcoord          : TEXCOORD0;
+    };
+
+    VsOutput main_vs_all_simples_aces(VsInput input)
+    {
+      VsOutput output;
+
+##if in_editor == yes
+      float3 worldPos = float3(input.pos.x * world_local_x + input.pos.y * world_local_y + input.pos.z * world_local_z + world_local_pos);
+##else
+      float3 worldPos = input.pos.xyz;
+##endif
+
+##if in_editor == yes
+      float3 normal = input.packedNormal * 2. - 1.;
+      float3 worldNormal = normalize(normal.x * world_local_x + normal.y * world_local_y + normal.z * world_local_z);
+##else
+      float3 worldNormal = input.packedNormal * 2. - 1.;
+##endif
+
+      output.pos = mul(input.pos, globtm);
+
+      output.diffuseTexcoord.xy = input.diffuseTexcoord;
+      output.pointToEye = world_view_pos - worldPos;
+      output.normal = worldNormal;
+
+      return output;
+    }
+  }
+
+  compile("target_vs", "main_vs_all_simples_aces");
+}
+
+shader ablend
+{
+  supports global_frame;
+  render_trans;
+
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+
+  USING_ATEST_HALF()
+
+  //blend_src = one; blend_dst = zero;
+  blend_asrc = one; blend_adst = isa;
+
+  texture tex = material.texture.diffuse;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 diffuseTexcoord              : TEXCOORD0;
+      float3 pointToEye                   : TEXCOORD1;
+      float3 normal                       : TEXCOORD2;
+    };
+  }
+
+  (ps) { diffuse_tex@static = tex; }
+
+  //fsh_const[3] = (atest / 255.0, 0, 0, 0);
+
+  hlsl(ps) {
+    float4 main_ps_simple_aces(VsOutput input INPUT_VFACE):SV_Target0
+    {
+      half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord);
+##if (atest == atestOn)
+      clip_alpha(diffuseColor.a);
+##endif
+      return diffuseColor;
+    }
+  }
+  compile("target_ps", "main_ps_simple_aces");
+
+
+  channel float3 pos=pos;
+  channel color8 norm=norm unsigned_pack;
+  channel float2 tc[0]=tc[0]; 
+
+
+  (vs) { globtm@f44 = globtm; }
+
+  if (in_editor == yes)
+  {
+    (vs) {
+      world_local_x@f3 = world_local_x;
+      world_local_y@f3 = world_local_y;
+      world_local_z@f3 = world_local_z;
+      world_local_pos@f3 = world_local_pos;
+    }
+  }
+
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float4 pos: POSITION;  // W defaults to 1.
+      float3 packedNormal             : NORMAL;
+      float2 diffuseTexcoord          : TEXCOORD0;
+    };
+
+    VsOutput main_vs_all_simples_aces(VsInput input)
+    {
+      VsOutput output;
+
+##if in_editor == yes
+      float3 worldPos = float3(input.pos.x * world_local_x + input.pos.y * world_local_y + input.pos.z * world_local_z + world_local_pos);
+##else
+      float3 worldPos = input.pos.xyz;
+##endif
+
+##if in_editor == yes
+      float3 normal = input.packedNormal * 2. - 1.;
+      float3 worldNormal = normalize(normal.x * world_local_x + normal.y * world_local_y + normal.z * world_local_z);
+##else
+      float3 worldNormal = input.packedNormal * 2. - 1.;
+##endif
+
+      output.pos = mul(input.pos, globtm);
+
+      output.diffuseTexcoord.xy = input.diffuseTexcoord;
+      output.pointToEye = world_view_pos - worldPos;
+      output.normal = worldNormal;
+
+      return output;
+    }
+  }
+
+  compile("target_vs", "main_vs_all_simples_aces");
+}
+
+shader gi_black
+{
+
+  cull_mode = none;
+  SET_WORLD_VIEW_POS()
+
+  compile("ps_null", "main_ps_simple_aces");
+
+
+  channel float3 pos=pos;
+
+  (vs) { globtm@f44 = globtm; }
+
+  if (in_editor == yes)
+  {
+    (vs) {
+      world_local_x@f3 = world_local_x;
+      world_local_y@f3 = world_local_y;
+      world_local_z@f3 = world_local_z;
+      world_local_pos@f3 = world_local_pos;
+    }
+  }
+
+
+  hlsl(vs) {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+    };
+
+    struct VsInput
+    {
+      float4 pos: POSITION;  // W defaults to 1.
+    };
+
+    VsOutput main_vs_all_simples_aces(VsInput input)
+    {
+      VsOutput output;
+
+      output.pos = mul(input.pos, globtm);
+      if ( abs(globtm[3][3] - 1)>0.00001 )//only allow ortho matrix (should be actually only shadows..)
+        output.pos = 2;
+
+      return output;
+    }
+  }
+
+  compile("target_vs", "main_vs_all_simples_aces");
+}

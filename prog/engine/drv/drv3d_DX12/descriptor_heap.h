@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <supp/dag_comPtr.h>
@@ -78,7 +79,7 @@ class DescriptorHeap
     }
   };
 
-  eastl::vector<SubHeap> heaps;
+  dag::Vector<SubHeap> heaps;
   typename Policy::HeapData data;
 
 public:
@@ -263,7 +264,7 @@ struct BasicFreeListHeap
 
   struct SubHeapData
   {
-    eastl::vector<ValueRange<uint32_t>> freeSlots;
+    dag::Vector<ValueRange<uint32_t>> freeSlots;
     uint32_t totalSlots;
     uint32_t allocate()
     {
@@ -392,6 +393,7 @@ public:
   {
     device->CopyDescriptorsSimple(1, getCpuAddress(dst_offset), desc, type);
   }
+  uint32_t getDescriptorSize() const { return entrySize; }
 };
 
 // For small tables we can use an array in place.
@@ -489,7 +491,14 @@ struct DescriptorHeapRange
   }
 };
 
-#define DX12_USE_SIMPLER_GPU_DESCRIPTOR_HEAPS 1
+enum class DescriptorReservationResult
+{
+  CurrentHeap,
+  NewHeap,
+};
+
+#define DX12_USE_SIMPLER_GPU_DESCRIPTOR_HEAPS       0
+#define DX12_USE_SIMPLE_SEARCH_GPU_DESCRIPTOR_HEAPS 1
 #if DX12_USE_SIMPLER_GPU_DESCRIPTOR_HEAPS
 class ShaderResourceViewDescriptorHeapManager
 {
@@ -537,9 +546,10 @@ class ShaderResourceViewDescriptorHeapManager
       return DescriptorHeapIndex::make(index);
     }
 
+    /// returns true when enough space is available
     bool reserveSpace(uint32_t size) const { return (SRV_HEAP_SIZE - allocationCount) >= size; }
   };
-  eastl::vector<Heap> heaps;
+  dag::Vector<Heap> heaps;
   uint32_t activeHeapIndex = 0;
   uint32_t entrySize = 0;
   uint32_t bindlessIndex = 0;
@@ -574,6 +584,7 @@ public:
 
   void clearScratchSegments()
   {
+    activeHeapIndex = 0;
     bindlessRev = 0;
     bindlessIndex = 0;
 
@@ -582,6 +593,8 @@ public:
       heap.clear();
     }
   }
+
+  void onFlush() {}
 
   ID3D12DescriptorHeap *getActiveHandle() { return heaps[activeHeapIndex].getHandle(); }
 
@@ -647,17 +660,260 @@ public:
     return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].append(device, descriptors, count), activeHeapIndex);
   }
 
-  bool reserveSpace(ID3D12Device *device, uint32_t b_register_count, uint32_t t_register_count, uint32_t u_register_count,
-    uint32_t bindless_count, uint32_t bindless_rev)
+  DescriptorReservationResult reserveSpace(ID3D12Device *device, uint32_t b_register_count, uint32_t t_register_count,
+    uint32_t u_register_count, uint32_t bindless_count, uint32_t bindless_rev)
   {
     auto totalCount = b_register_count + t_register_count + u_register_count + ((bindless_rev > bindlessRev) ? bindless_count : 0u);
     if (heaps[activeHeapIndex].reserveSpace(totalCount))
     {
-      return true;
+      return DescriptorReservationResult::CurrentHeap;
     }
 
     nextHeap(device);
-    return false;
+    return DescriptorReservationResult::NewHeap;
+  }
+};
+#elif DX12_USE_SIMPLE_SEARCH_GPU_DESCRIPTOR_HEAPS
+class ShaderResourceViewDescriptorHeapManager
+{
+  // This heap provides 2 segments, bindless segment and scratch segment.
+  // The bindless segment starts from 0 and grows downwards towards SRV_HEAP_SIZE.
+  // The scratch segment starts from SRV_HEAP_SIZE and grows upwards towards 0.
+  struct Heap : public ManagedDescriptorHeapBase, public ManagedDescriptorHeapAllocationTableStore<SRV_HEAP_SIZE, false>
+  {
+    Heap() = delete;
+    ~Heap() = default;
+
+    Heap(const Heap &) = delete;
+    Heap &operator=(const Heap &) = delete;
+
+    Heap(Heap &&) = default;
+    Heap &operator=(Heap &&) = default;
+
+    Heap(ID3D12Device *device, uint32_t entry_size) :
+      ManagedDescriptorHeapBase{device, entry_size, SRV_HEAP_SIZE, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV}
+    {}
+
+    ValueRange<uint32_t> bindlessAndSRVSegmentSpace{0, SRV_HEAP_SIZE};
+    // bindless can rewrite descriptors at any time, so we need to somehow know on which revision we are
+    // if they don't match we have to rewrite the bindless segment with the current revision
+    uint32_t bindlessRevision = 0;
+    // on flushes mid frame we have to ignore previously used descriptors as some may be dead after a flush
+    // and cause reads from dead objects.
+    uint32_t scratchSearchEnd = SRV_HEAP_SIZE;
+
+    void pushScratchSearch() { scratchSearchEnd = bindlessAndSRVSegmentSpace.back(); }
+
+    void clearScratchSegments()
+    {
+      bindlessAndSRVSegmentSpace.reset(bindlessAndSRVSegmentSpace.front(), SRV_HEAP_SIZE);
+      scratchSearchEnd = SRV_HEAP_SIZE;
+    }
+
+    DescriptorHeapIndex findInScratchSegment(const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count) const
+    {
+      auto from = getCpuDescriptorTable() + bindlessAndSRVSegmentSpace.back();
+      auto to = getCpuDescriptorTable() + scratchSearchEnd;
+      // simple search, looks like fast enough for now, if we run into issues we could switch to something like two-way search with a
+      // good worst case timing
+      auto at = eastl::search(from, to, descriptors, descriptors + count);
+      return DescriptorHeapIndex::make(at != to, at - getCpuDescriptorTable());
+    }
+
+    DescriptorHeapIndex findInScratchSegment(D3D12_CPU_DESCRIPTOR_HANDLE descriptor) const
+    {
+      auto from = getCpuDescriptorTable() + bindlessAndSRVSegmentSpace.back();
+      auto to = getCpuDescriptorTable() + scratchSearchEnd;
+      auto at = eastl::find(from, to, descriptor);
+      return DescriptorHeapIndex::make(at != to, at - getCpuDescriptorTable());
+    }
+
+    /// appends an array of descriptor to the scratch segment
+    DescriptorHeapIndex appendToScratchSegment(ID3D12Device *device, const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count)
+    {
+      bindlessAndSRVSegmentSpace.pop_back(count);
+      auto index = bindlessAndSRVSegmentSpace.back();
+      eastl::copy(descriptors, descriptors + count, getCpuDescriptorTable() + index);
+      auto dstStart = getCpuAddress(index);
+      device->CopyDescriptors(1, &dstStart, &count, count, descriptors, nullptr, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+      return DescriptorHeapIndex::make(index);
+    }
+
+    /// appends a single descriptor to a scratch segment
+    DescriptorHeapIndex appendToScratchSegment(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
+    {
+      bindlessAndSRVSegmentSpace.pop_back(1);
+      auto index = bindlessAndSRVSegmentSpace.back();
+      getCpuDescriptorTable()[index] = descriptor;
+      device->CopyDescriptorsSimple(1, getCpuAddress(index), descriptor, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+      return DescriptorHeapIndex::make(index);
+    }
+
+    /// appends a set of descriptors, starting with descriptors until descriptors + (descriptorSize * count)
+    DescriptorHeapIndex appendToScratchSegment(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE descriptors, uint32_t count)
+    {
+      bindlessAndSRVSegmentSpace.pop_back(count);
+      auto index = bindlessAndSRVSegmentSpace.back();
+      eastl::generate_n(getCpuDescriptorTable() + index, count,
+        [descriptor = descriptors, descriptorSize = getDescriptorSize()]() mutable {
+          auto value = descriptor;
+          // no += overload...
+          descriptor = descriptor + descriptorSize;
+          return value;
+        });
+      device->CopyDescriptorsSimple(count, getCpuAddress(index), descriptors, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+      return DescriptorHeapIndex::make(index);
+    }
+
+    void updateBindlessSegmentSizeFromOtherHeap(Heap &other)
+    {
+      bindlessAndSRVSegmentSpace.reset(other.bindlessAndSRVSegmentSpace.front(), SRV_HEAP_SIZE);
+    }
+
+    bool hasSpace(uint32_t b_register_count, uint32_t t_register_count, uint32_t u_register_count, uint32_t bindless_count,
+      uint32_t bindless_rev) const
+    {
+      uint32_t totalSize = b_register_count + t_register_count + u_register_count;
+      if (bindless_rev > bindlessRevision)
+      {
+        if (bindless_count > bindlessAndSRVSegmentSpace.front())
+        {
+          totalSize += bindless_count - bindlessAndSRVSegmentSpace.front();
+        }
+      }
+      return totalSize <= bindlessAndSRVSegmentSpace.size();
+    }
+
+    void updateBindlessSegment(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE base_ptr, uint32_t size, uint32_t rev)
+    {
+      if (bindlessRevision >= rev)
+      {
+        return;
+      }
+
+      if (size > bindlessAndSRVSegmentSpace.front())
+      {
+        bindlessAndSRVSegmentSpace.pop_front(size - bindlessAndSRVSegmentSpace.front());
+      }
+      device->CopyDescriptorsSimple(size, getCpuAddress(0), base_ptr, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+      bindlessRevision = rev;
+    }
+  };
+  dag::Vector<Heap> heaps;
+  uint32_t activeHeapIndex = 0;
+  uint32_t entrySize = 0;
+
+  void nextHeap(ID3D12Device *device)
+  {
+    ++activeHeapIndex;
+    if (activeHeapIndex >= heaps.size())
+    {
+      heaps.emplace_back(device, entrySize);
+    }
+  }
+
+public:
+  ShaderResourceViewDescriptorHeapManager() = default;
+  ~ShaderResourceViewDescriptorHeapManager() = default;
+
+  ShaderResourceViewDescriptorHeapManager(const ShaderResourceViewDescriptorHeapManager &) = delete;
+  ShaderResourceViewDescriptorHeapManager &operator=(const ShaderResourceViewDescriptorHeapManager &) = delete;
+
+  ShaderResourceViewDescriptorHeapManager(ShaderResourceViewDescriptorHeapManager &&) = default;
+  ShaderResourceViewDescriptorHeapManager &operator=(ShaderResourceViewDescriptorHeapManager &&) = default;
+
+  ShaderResourceViewDescriptorHeapManager(ID3D12Device *device, uint32_t entry_size) : entrySize{entry_size}
+  {
+    // create initial heap so we never have zero
+    heaps.emplace_back(device, entry_size);
+  }
+
+  void clearScratchSegments()
+  {
+    activeHeapIndex = 0;
+    for (auto &heap : heaps)
+    {
+      heap.clearScratchSegments();
+    }
+  }
+
+  void onFlush() { heaps[activeHeapIndex].pushScratchSearch(); }
+
+  ID3D12DescriptorHeap *getActiveHandle() { return heaps[activeHeapIndex].getHandle(); }
+
+  D3D12_GPU_DESCRIPTOR_HANDLE getBindlessGpuAddress() const { return heaps[activeHeapIndex].getGpuAddress(0); }
+
+  D3D12_GPU_DESCRIPTOR_HANDLE getGpuAddress(DescriptorHeapIndex index) const
+  {
+    G_ASSERT(static_cast<bool>(index));
+    return heaps[index.subHeapIndex].getGpuAddress(index.descriptorIndex);
+  }
+
+  D3D12_GPU_DESCRIPTOR_HANDLE getGpuAddress(DescriptorHeapRange range) const { return getGpuAddress(range.base); }
+
+  DescriptorHeapIndex findInUAVScratchSegment(const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count) const
+  {
+    return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].findInScratchSegment(descriptors, count), activeHeapIndex);
+  }
+
+  DescriptorHeapIndex findInUAVScratchSegment(D3D12_CPU_DESCRIPTOR_HANDLE descriptor) const
+  {
+    return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].findInScratchSegment(descriptor), activeHeapIndex);
+  }
+
+  DescriptorHeapIndex appendToUAVScratchSegment(ID3D12Device *device, const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count)
+  {
+    return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].appendToScratchSegment(device, descriptors, count), activeHeapIndex);
+  }
+
+  DescriptorHeapIndex appendToUAVScratchSegment(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
+  {
+    return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].appendToScratchSegment(device, descriptor), activeHeapIndex);
+  }
+
+  bool highSRVScratchSegmentUsage() const { return true; }
+
+  DescriptorHeapIndex findInSRVScratchSegment(const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count) const
+  {
+    return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].findInScratchSegment(descriptors, count), activeHeapIndex);
+  }
+
+  DescriptorHeapIndex findInSRVScratchSegment(D3D12_CPU_DESCRIPTOR_HANDLE descriptor) const
+  {
+    return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].findInScratchSegment(descriptor), activeHeapIndex);
+  }
+
+  DescriptorHeapIndex appendToSRVScratchSegment(ID3D12Device *device, const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count)
+  {
+    return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].appendToScratchSegment(device, descriptors, count), activeHeapIndex);
+  }
+
+  DescriptorHeapIndex appendToSRVScratchSegment(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
+  {
+    return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].appendToScratchSegment(device, descriptor), activeHeapIndex);
+  }
+
+  void updateBindlessSegment(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE base_ptr, uint32_t size, uint32_t rev)
+  {
+    heaps[activeHeapIndex].updateBindlessSegment(device, base_ptr, size, rev);
+  }
+
+  DescriptorHeapIndex appendToConstScratchSegment(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE descriptors, uint32_t count)
+  {
+    return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].appendToScratchSegment(device, descriptors, count), activeHeapIndex);
+  }
+
+  DescriptorReservationResult reserveSpace(ID3D12Device *device, uint32_t b_register_count, uint32_t t_register_count,
+    uint32_t u_register_count, uint32_t bindless_count, uint32_t bindless_rev)
+  {
+    auto &heap = heaps[activeHeapIndex];
+    if (heap.hasSpace(b_register_count, t_register_count, u_register_count, bindless_count, bindless_rev))
+    {
+      return DescriptorReservationResult::CurrentHeap;
+    }
+
+    nextHeap(device);
+    return DescriptorReservationResult::NewHeap;
   }
 };
 #else
@@ -706,7 +962,7 @@ class ShaderResourceViewDescriptorHeapManager
 
     DescriptorHeapIndex findInSRVScratchSegment(const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count) const
     {
-      auto from = getCpuDescriptorTable() + bindlessAndSRVSegmentSpace.back() + 1;
+      auto from = getCpuDescriptorTable() + bindlessAndSRVSegmentSpace.back();
       auto to = getCpuDescriptorTable() + srv_begin_uav_end_index;
       auto at = eastl::search(from, to, descriptors, descriptors + count);
       return DescriptorHeapIndex::make(at != to, at - getCpuDescriptorTable());
@@ -714,7 +970,7 @@ class ShaderResourceViewDescriptorHeapManager
 
     DescriptorHeapIndex findInSRVScratchSegment(D3D12_CPU_DESCRIPTOR_HANDLE descriptor) const
     {
-      auto from = getCpuDescriptorTable() + bindlessAndSRVSegmentSpace.back() + 1;
+      auto from = getCpuDescriptorTable() + bindlessAndSRVSegmentSpace.back();
       auto to = getCpuDescriptorTable() + srv_begin_uav_end_index;
       auto at = eastl::find(from, to, descriptor);
       return DescriptorHeapIndex::make(at != to, at - getCpuDescriptorTable());
@@ -723,7 +979,7 @@ class ShaderResourceViewDescriptorHeapManager
     DescriptorHeapIndex appendToSRVScratchSegment(ID3D12Device *device, const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count)
     {
       bindlessAndSRVSegmentSpace.pop_back(count);
-      auto index = bindlessAndSRVSegmentSpace.back() + 1;
+      auto index = bindlessAndSRVSegmentSpace.back();
       eastl::copy(descriptors, descriptors + count, getCpuDescriptorTable() + index);
       auto dstStart = getCpuAddress(index);
       device->CopyDescriptors(1, &dstStart, &count, count, descriptors, nullptr, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -733,7 +989,7 @@ class ShaderResourceViewDescriptorHeapManager
     DescriptorHeapIndex appendToSRVScratchSegment(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
     {
       bindlessAndSRVSegmentSpace.pop_back(1);
-      auto index = bindlessAndSRVSegmentSpace.back() + 1;
+      auto index = bindlessAndSRVSegmentSpace.back();
       getCpuDescriptorTable()[index] = descriptor;
       device->CopyDescriptorsSimple(1, getCpuAddress(index), descriptor, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
       return DescriptorHeapIndex::make(index);
@@ -743,7 +999,7 @@ class ShaderResourceViewDescriptorHeapManager
 
     DescriptorHeapIndex findInUAVScratchSegment(const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count) const
     {
-      auto from = getCpuDescriptorTable() + uavAndConstSegmentSpace.back() + 1;
+      auto from = getCpuDescriptorTable() + uavAndConstSegmentSpace.back();
       auto to = getCpuDescriptorTable() + SRV_HEAP_SIZE;
       auto at = eastl::search(from, to, descriptors, descriptors + count);
       return DescriptorHeapIndex::make(at != to, at - getCpuDescriptorTable());
@@ -751,7 +1007,7 @@ class ShaderResourceViewDescriptorHeapManager
 
     DescriptorHeapIndex findInUAVScratchSegment(D3D12_CPU_DESCRIPTOR_HANDLE descriptor) const
     {
-      auto from = getCpuDescriptorTable() + uavAndConstSegmentSpace.back() + 1;
+      auto from = getCpuDescriptorTable() + uavAndConstSegmentSpace.back();
       auto to = getCpuDescriptorTable() + SRV_HEAP_SIZE;
       auto at = eastl::find(from, to, descriptor);
       return DescriptorHeapIndex::make(at != to, at - getCpuDescriptorTable());
@@ -760,7 +1016,7 @@ class ShaderResourceViewDescriptorHeapManager
     DescriptorHeapIndex appendToUAVScratchSegment(ID3D12Device *device, const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count)
     {
       uavAndConstSegmentSpace.pop_back(count);
-      auto index = uavAndConstSegmentSpace.back() + 1;
+      auto index = uavAndConstSegmentSpace.back();
       eastl::copy(descriptors, descriptors + count, getCpuDescriptorTable() + index);
       auto dstStart = getCpuAddress(index);
       device->CopyDescriptors(1, &dstStart, &count, count, descriptors, nullptr, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -770,7 +1026,7 @@ class ShaderResourceViewDescriptorHeapManager
     DescriptorHeapIndex appendToUAVScratchSegment(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
     {
       uavAndConstSegmentSpace.pop_back(1);
-      auto index = uavAndConstSegmentSpace.back() + 1;
+      auto index = uavAndConstSegmentSpace.back();
       getCpuDescriptorTable()[index] = descriptor;
       device->CopyDescriptorsSimple(1, getCpuAddress(index), descriptor, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
       return DescriptorHeapIndex::make(index);
@@ -826,7 +1082,7 @@ class ShaderResourceViewDescriptorHeapManager
       return DescriptorHeapIndex::make(index);
     }
   };
-  eastl::vector<Heap> heaps;
+  dag::Vector<Heap> heaps;
   uint32_t activeHeapIndex = 0;
   uint32_t entrySize = 0;
 
@@ -857,11 +1113,16 @@ public:
 
   void clearScratchSegments()
   {
+    activeHeapIndex = 0;
     for (auto &heap : heaps)
     {
       heap.clearScratchSegments();
     }
   }
+
+  // NYI, is more complex than others and currently we don't use it
+  // TODO implement this, currently on a hurry and this has to be pushed back
+  void onFlush();
 
   ID3D12DescriptorHeap *getActiveHandle() { return heaps[activeHeapIndex].getHandle(); }
 
@@ -933,18 +1194,18 @@ public:
       activeHeapIndex);
   }
 
-  bool reserveSpace(ID3D12Device *device, uint32_t b_register_count, uint32_t t_register_count, uint32_t u_register_count,
-    uint32_t bindless_count, uint32_t bindless_rev)
+  DescriptorReservationResult reserveSpace(ID3D12Device *device, uint32_t b_register_count, uint32_t t_register_count,
+    uint32_t u_register_count, uint32_t bindless_count, uint32_t bindless_rev)
   {
     auto &heap = heaps[activeHeapIndex];
     if (heap.reserveConstBufferViewSpace(b_register_count) && heap.reserveShaderResrouceViewSpace(t_register_count) &&
         heap.reserveUnorderedAccessViewSpace(u_register_count) && heap.reserveBindlessSpace(bindless_count, bindless_rev))
     {
-      return true;
+      return DescriptorReservationResult::CurrentHeap;
     }
 
     nextHeap(device);
-    return false;
+    return DescriptorReservationResult::NewHeap;
   }
 };
 #endif
@@ -979,7 +1240,7 @@ class SamplerDescriptorHeapManager
 
     DescriptorHeapIndex findInScratchSegment(const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count) const
     {
-      auto from = cpuDescriptorTable + freeSection.back() + 1;
+      auto from = cpuDescriptorTable + freeSection.back();
       auto to = cpuDescriptorTable + SAMPLER_HEAP_SIZE;
       auto at = eastl::search(from, to, descriptors, descriptors + count);
       return DescriptorHeapIndex::make(at != to, at - cpuDescriptorTable);
@@ -988,7 +1249,7 @@ class SamplerDescriptorHeapManager
     DescriptorHeapIndex appendToScratchSegment(ID3D12Device *device, const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count)
     {
       freeSection.pop_back(count);
-      auto loc = freeSection.back() + 1;
+      auto loc = freeSection.back();
 
       eastl::copy(descriptors, descriptors + count, cpuDescriptorTable + loc);
       auto dstStart = getCpuAddress(loc);
@@ -1025,7 +1286,7 @@ class SamplerDescriptorHeapManager
       bindlessSamplersCommitted = size;
     }
   };
-  eastl::vector<Heap> heaps;
+  dag::Vector<Heap> heaps;
   uint32_t activeHeapIndex = 0;
   uint32_t entrySize = 0;
 

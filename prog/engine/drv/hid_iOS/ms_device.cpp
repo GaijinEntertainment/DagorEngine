@@ -1,4 +1,6 @@
-#include <humanInput/dag_hiGlobals.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/hid/dag_hiGlobals.h>
 #include "ms_device.h"
 #include <generic/dag_tab.h>
 #include <debug/dag_fatal.h>

@@ -8,6 +8,7 @@ include "gbuffer.dshl"
 include "get_additional_ao.dshl"
 include "get_additional_shadows.dshl"
 include "ssao_reprojection.dshl"
+include "halfres_close_depth_with_normals.dshl"
 
 int ssao_quality = 1;
 interval ssao_quality:depth_only<1, ssao_normals<3, bnao;
@@ -24,7 +25,6 @@ float   ssao_blur_depth_near = 0.05;                      // depth threshold up-
 float   ssao_blur_depth_far = 0.002;                     // depth threshold at z-far: percentage of zfar!
 float4 ssao_frame_no = (0,0,0,0);
 texture ssao_prev_tex;
-texture prev_downsampled_far_depth_tex;
 
 //bnao
 float sampleRadius = 0.075;
@@ -33,8 +33,6 @@ float4 globtm_no_ofs_psf_1;
 float4 globtm_no_ofs_psf_2;
 float4 globtm_no_ofs_psf_3;
 texture random_pattern_tex;
-texture downsampled_normals;
-texture downsampled_checkerboard_depth_tex;
 
 hlsl(ps) {
   #define OUTPUT_CONE 0
@@ -71,7 +69,7 @@ float SSAO_effect = 0.95;
 float SSAOZ = 2.0;
 float SSAOW = 2.0;
 float SSAOOFS = -0.075;
-
+float contact_shadow_min_len = 0.25;
 define_macro_if_not_defined APPLY_ADDITIONAL_AO(code)
   hlsl(code) {
     float getAdditionalAmbientOcclusion(float ssao, float3 worldPos, float3 worldNormal, float2 screenTc){return ssao;}
@@ -81,11 +79,11 @@ endmacro
 macro SS_BENT_CONES()
   (ps) {
     sampleRadius__invMaxDistance@f2 = (sampleRadius, 1.0 / (2.0*sampleRadius), 0, 0);
-    downsampled_normals@smp2d = downsampled_normals;
     random_pattern_tex@smp2d = random_pattern_tex;
     bent_cones_frame_no@f2 = ssao_frame_no;
     SSAO_params@f4 = (SSAO_effect, SSAOOFS, SSAOZ, SSAOW);//???
   }
+  INIT_HALF_RES_CLOSE_DEPTH_NORMALS(ps)
 
   //crytek
   hlsl(ps) {
@@ -157,35 +155,35 @@ macro SS_BENT_CONES()
       for(int i=0; i<2; i++)
       {
         vIrrSample = mirror(arrKernel[i*4+0], rotSample) * vSampleScale;
-        arrSceneDepth2[0].x = linearize_z(tex2Dlod( downsampled_far_depth_tex, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
+        arrSceneDepth2[0].x = linearize_z(tex2Dlod( half_res_close_depth, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
         if (bHQ)
         {
           vIrrSample.xyz *= fHQScale;
-          arrSceneDepth2[1].x = linearize_z(tex2Dlod( downsampled_far_depth_tex, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
+          arrSceneDepth2[1].x = linearize_z(tex2Dlod( half_res_close_depth, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
         }
 
         vIrrSample = mirror(arrKernel[i*4+1], rotSample) * vSampleScale;
-        arrSceneDepth2[0].y = linearize_z(tex2Dlod( downsampled_far_depth_tex, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
+        arrSceneDepth2[0].y = linearize_z(tex2Dlod( half_res_close_depth, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
         if (bHQ)
         {
           vIrrSample.xyz *= fHQScale;
-          arrSceneDepth2[1].y = linearize_z(tex2Dlod( downsampled_far_depth_tex, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
+          arrSceneDepth2[1].y = linearize_z(tex2Dlod( half_res_close_depth, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
         }
 
         vIrrSample = mirror(arrKernel[i*4+2], rotSample) * vSampleScale;
-        arrSceneDepth2[0].z = linearize_z(tex2Dlod( downsampled_far_depth_tex, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
+        arrSceneDepth2[0].z = linearize_z(tex2Dlod( half_res_close_depth, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
         if (bHQ)
         {
           vIrrSample.xyz *= fHQScale;
-          arrSceneDepth2[1].z = linearize_z(tex2Dlod( downsampled_far_depth_tex, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
+          arrSceneDepth2[1].z = linearize_z(tex2Dlod( half_res_close_depth, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
         }
 
         vIrrSample = mirror(arrKernel[i*4+3], rotSample) * vSampleScale;
-        arrSceneDepth2[0].w = linearize_z(tex2Dlod( downsampled_far_depth_tex, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
+        arrSceneDepth2[0].w = linearize_z(tex2Dlod( half_res_close_depth, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
         if (bHQ)
         {
           vIrrSample.xyz *= fHQScale;
-          arrSceneDepth2[1].w = linearize_z(tex2Dlod( downsampled_far_depth_tex, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
+          arrSceneDepth2[1].w = linearize_z(tex2Dlod( half_res_close_depth, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
         }
 
         float fDefVal = 0.7f;
@@ -239,8 +237,8 @@ macro SS_BENT_CONES()
       // here we get a world space position
       // we found the background...
       //float4 wsReferenceSamplePosition = texture(positionTexture, tsSamplePosition);
-      float wsReferenceRawDepth = tex2Dlod(half_res_depth_tex, float4(tsSamplePosition,0,lod)).x;
-      //float wsReferenceRawDepth = tex2Dlod(half_res_depth_tex, float4(sampleScreen,0,lod)).x;
+      float wsReferenceRawDepth = tex2Dlod(half_res_close_depth, float4(tsSamplePosition,0,lod)).x;
+      //float wsReferenceRawDepth = tex2Dlod(half_res_close_depth, float4(sampleScreen,0,lod)).x;
       float wsReferenceSampleW  = linearize_z(wsReferenceRawDepth, zn_zfar.zw);
       //float3 wsReferenceSamplePosition = world_view_pos + viewVect*wsReferenceSampleW;
       // transform to camera space
@@ -382,9 +380,9 @@ macro INIT_AWESOME_SSAO_PARAMS()
     ssao_pixel_size@f2 = ( 1./(lowres_rt_params.x), 1./(lowres_rt_params.y), 0.0, 0.0 );
     ssao_radius@f4 = ( lowres_rt_params.x/ssao_radius_factor, 1.0/ssao_radius_factor, lowres_rt_params.x/(lowres_rt_params.y*ssao_radius_factor), lowres_rt_params.y/lowres_rt_params.x );
     ssao_ambient_inv_cutoff@f1 = (1.0 / ssao_ambient_cutoff, 0, 0, 0);
-    downsampled_normals@smp2d = downsampled_normals;
     g_scale@f1 = (g_scale,0,0,0);
   }
+  INIT_HALF_RES_CLOSE_DEPTH_NORMALS(ps)
 endmacro
 
 macro INIT_ALCHEMY_AO()
@@ -784,18 +782,17 @@ shader ssao
     lowres_rt_params@f4 = lowres_rt_params;
     viewProjectionMatrixNoOfs@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
     ssao_frame_no@f4 = ssao_frame_no;
-    downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
-    half_res_depth_tex@smp2d = downsampled_checkerboard_depth_tex;
     screen_pos_to_texcoord@f2 = screen_pos_to_texcoord;
     from_sun_direction@f3 = from_sun_direction;
     shadow_params@f3 = (0, shadow_frame, contact_shadow_len, 0);
-    depth_gbuf@smp2d = depth_gbuf;
+    contact_shadow_min_len@f1 = (contact_shadow_min_len);
   }
   INIT_ZNZFAR()
+  INIT_HALF_RES_CLOSE_DEPTH(ps)
   hlsl(ps) {
     float RetrieveDepth ( float2 tc, float lod )
     {
-      return linearize_z(tex2Dlod(downsampled_far_depth_tex, float4(tc,0,lod)).x, zn_zfar.zw);
+      return linearize_z(tex2Dlod(half_res_close_depth, float4(tc,0,lod)).x, zn_zfar.zw);
     }
   }
 
@@ -869,7 +866,7 @@ shader ssao
     {
       float4 scrpos = GET_SCREEN_POS(IN.pos);
       float2 screenTC = IN.tc.xy;
-      float rawDepth = tex2Dlod(downsampled_far_depth_tex, float4(screenTC,0,0)).x;
+      float rawDepth = tex2Dlod(half_res_close_depth, float4(screenTC,0,0)).x;
       float depth1 = linearize_z(rawDepth, zn_zfar.zw);
       BRANCH
       if (depth1 >= zn_zfar.y*0.99)
@@ -881,7 +878,7 @@ shader ssao
       float3 cameraToPoint = IN.viewVect * depth1;
       SSAO_TYPE ssao = (SSAO_TYPE)1;
       ##if (ssao_quality != depth_only)
-        float3 wsNormal = tex2Dlod(downsampled_normals, float4(screenTC,0,0)).xyz*2-1;
+        float3 wsNormal = normalize(tex2Dlod(half_res_close_depth_normals, float4(screenTC,0,0)).xyz*2-1);
         #if BENT_CONES_ON
         calcBentNormals(screenTC, int2(screenTC*lowres_rt_params.xy), cameraToPoint, wsNormal, depth1, viewProjectionMatrixNoOfs, ssao);
         #elif CRYTEK_ON
@@ -916,9 +913,8 @@ shader ssao
           float sunNdotL = 0.25;
           float3 wsNormal = 0;
         ##endif
-        ssao.y = contactShadowRayCast(downsampled_far_depth_tex, downsampled_far_depth_tex_samplerstate, cameraToPoint - normalize(viewVect)*(w*offset+0.005), -from_sun_direction, w*contact_shadow_len, 20, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, float2(100, 99));
+        ssao.y = contactShadowRayCast(half_res_close_depth, half_res_close_depth_samplerstate, cameraToPoint - normalize(viewVect)*(w*offset+0.005), -from_sun_direction, max(w*contact_shadow_len, min(w, contact_shadow_min_len)), 20, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, float2(100, 99));
         ssao.x *= lerp(ssao.y*0.2+0.8, 1, saturate(sunNdotL*2));//assume that sky is brighter towards the sun
-        //ssao.y = contactShadowRayCast(depth_gbuf, depth_gbuf_samplerstate, cameraToPoint-normalize(viewVect)*(w*0.0001+0.005), -from_sun_direction, w*contact_shadow_len, 20, dither-0.5, projectionMatrix, float3(screenTC.xy, rawDepth), w, viewProjectionMatrix, hitUV, float2(100, 99));
         ssao.y = getAdditionalShadow(ssao.y, cameraToPoint, wsNormal);
       }
       #endif
@@ -945,8 +941,8 @@ shader ssao_blur
     depth_rescale@f4 = (1 / zn_zfar.y, -10 / zn_zfar.y, zn_zfar.x, zn_zfar.y);
     ssao_blur_depth_cutoff@f2 = (ssao_blur_depth_near, ssao_blur_depth_far*zn_zfar.y, 0, 0);
     ssao_blur_weights_1234@f4 = ssao_blur_weights;
-    half_res_depth_tex@smp2d = downsampled_checkerboard_depth_tex;
   }
+  INIT_HALF_RES_CLOSE_DEPTH(ps)
 
   dynamic float4 texelOffset;
   dynamic int ssaoBlurVertical;// 0 - horizontal, 1- vertical
@@ -995,8 +991,8 @@ shader ssao_blur
 
   INIT_ZNZFAR()
   hlsl(ps) {
-    #define RetrieveDepth(tc) linearize_z(tex2Dlod(half_res_depth_tex, float4(tc,0,0)).x, zn_zfar.zw)
-    #define RetrieveDepthOffset(tc, ofs) linearize_z(tex2Dlod(half_res_depth_tex, float4(tc+ofs,0,0)).x, zn_zfar.zw)
+    #define RetrieveDepth(tc) linearize_z(tex2Dlod(half_res_close_depth, float4(tc,0,0)).x, zn_zfar.zw)
+    #define RetrieveDepthOffset(tc, ofs) linearize_z(tex2Dlod(half_res_close_depth, float4(tc+ofs,0,0)).x, zn_zfar.zw)
     #define RetrieveSSAO(tc) (tex2Dlod(srcTex, float4(tc,0,0)). SSAO_ATTRS)
     #define RetrieveSSAOOffset(tc, ofs) (tex2Dlod(srcTex, float4(tc+ofs,0,0)). SSAO_ATTRS)
     SSAO_TYPE DepthBlurGaussian(float2 texcoord)

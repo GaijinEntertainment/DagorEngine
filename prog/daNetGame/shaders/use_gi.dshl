@@ -1,0 +1,156 @@
+include "dagi_quality.dshl"
+
+include "dagi_irrad_grid_sample.dshl"
+include "dagi_sky_vis_common.dshl"
+include "dagi_rad_grid_common.dshl"
+include "volumetric_gi_common.dshl"
+
+//for glass, transparent, etc. screen probes probably are not there
+macro INIT_IN_FRUSTUM_GI_DIFFUSE(code)
+  DAGI_IRRADIANCE_GRID_SAMPLE_INIT(code)
+endmacro
+
+macro USE_IN_FRUSTUM_GI_DIFFUSE(code)
+  hlsl(code) {
+    /* //we can add use_gi == only_ao interval, this would explode shaders, but make shasders a bit faster. Comment this line.
+    ##if use_gi == only_ao
+      #define DAGI_IRRADIANCE_GRID_TYPE DAGI_IRRADIANCE_GRID_TYPE_SKYVIS
+    ##else
+      #define DAGI_IRRADIANCE_GRID_TYPE DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE
+    ##endif
+    //*/
+  }
+  DAGI_IRRADIANCE_GRID_SAMPLE_USE(code)
+  hlsl(code) {
+    bool get_directional_ambient(inout float3 ambient, float3 worldViewPos, float2 screenUV, float linearDepth, float3 worldPos, float3 diffuseDir, float3 toCameraDir, float toCameraDist, float3 filteringNormal, float noise = 0)
+    {
+      return dagi_irrad_grid_diffuse_biased_smooth(worldViewPos, worldPos, diffuseDir, toCameraDir, toCameraDist, filteringNormal, noise, ambient);
+    }
+    bool get_undirectional_ambient(inout float3 ambient, float3 worldViewPos, float2 screenUV, float linearDepth, float3 worldPos, float3 toCameraDir, float toCameraDist, float3 filteringNormal, float noise = 0)
+    {
+      return dagi_irrad_grid_diffuse_undirectional_biased_smooth(worldViewPos, worldPos, toCameraDir, toCameraDist, filteringNormal, noise, ambient);
+    }
+  }
+endmacro
+
+macro INIT_IN_FRUSTUM_GI(code)
+  INIT_IN_FRUSTUM_GI_DIFFUSE(code)
+  DAGI_RAD_GRID_SAMPLE_INIT_CONSTS(code)
+endmacro
+
+macro USE_IN_FRUSTUM_GI(code)
+  USE_IN_FRUSTUM_GI_DIFFUSE(code)
+  DAGI_RAD_GRID_SRV(code)//unfortunately if we put it into init there would be not enough samplers in scope_lens, which doesn't even use GI
+  DAGI_RAD_GRID_SAMPLE_USE(code)
+  hlsl(code) {
+    bool get_directional_radiance(inout float3 radiance, float3 worldViewPos, float2 screenUV, float linearDepth, float3 worldPos, float3 radianceDir, float3 toCameraDir, float toCameraDist, float3 filteringNormal, float noise = 0)
+    {
+      #if DAGI_IRRADIANCE_GRID_TYPE == DAGI_IRRADIANCE_GRID_TYPE_SKYVIS
+      return false;
+      #endif
+      //fixme:we need best trilinear cascade, and then smooth lerping!
+      uint radGridCascade = dagi_rad_grid_get_best_enclosing_clip_border(worldPos, 0, 1);
+      if (radGridCascade >= DAGI_MAX_RAD_GRID_CLIPS)
+        return false;
+      float probeSize = dagi_rad_grid_probe_size(radGridCascade);
+      float ofs = 0.5*probeSize;
+      float vOfs = min(toCameraDist, ofs);
+      //total offset, not more than 1 probe, and we found within 1.0
+      float3 filtWorldPos = worldPos.xyz + ofs*filteringNormal + toCameraDir*vOfs;//fixme:
+      radiance = dagi_trilinear_sample_radiance_grid_cascade_unsafe(radGridCascade, radianceDir, filtWorldPos);
+      return true;
+    }
+    bool get_directional_irradiance_radiance(inout float3 ambient, inout float3 radiance, float3 worldViewPos, float2 screenUV, float linearDepth, float3 worldPos, float3 diffuseDir, float3 radianceDir, float3 toCameraDir, float toCameraDist, float3 filteringNormal, float noise = 0)
+    {
+      /*if (dagi_irrad_grid_atlas_decode.w)
+      {
+        uint cascade; float3 coordF; float vignette;
+        if (!dagi_irrad_grid_diffuse_biased_smooth_cascade(worldViewPos, worldPos, toCameraDir, maxCameraDist, bias_normal, dither, cascade, coordF, vignette))
+          return false;
+        half3 nextCascadeAmbient = ambient, nextCascadeRadiance = radiance;
+
+        ambient = dagi_irrad_grid_diffuse_undirectional_cascade_unsafe(cascade, coordF);
+        radiance = dagi_trilinear_sample_radiance_grid_cascade_unsafe(cascade, radianceDir, filtWorldPos);
+
+        coordF *= 0.5;
+        float3 nextLt = dagi_irrad_grid_abs_coord_lt(min(cascade + 1u, uint(dagi_irrad_grid_get_clip_count() - 1)));
+        BRANCH
+        if (all(coordF - nextLt.xyz >= 0 && coordF - nextLt.xyz < dagi_irrad_grid_get_clip_size().xxy) && vignette > 0)
+          nextCascadeAmbient = dagi_irrad_grid_diffuse_undirectional_cascade_unsafe(cascade+1, coordF);
+        ambient = lerp(ambient, nextCascadeAmbient, vignette);
+        return true;
+
+      } else*/
+      {
+        get_directional_ambient(ambient, worldViewPos, screenUV, linearDepth, worldPos, diffuseDir, toCameraDir, toCameraDist, filteringNormal, noise);
+        #if DAGI_IRRADIANCE_GRID_TYPE != DAGI_IRRADIANCE_GRID_TYPE_SKYVIS
+        return get_directional_radiance(radiance, worldViewPos, screenUV, linearDepth, worldPos, radianceDir, toCameraDir, toCameraDist, filteringNormal, noise);
+        #else
+        return false;
+        #endif
+      }
+    }
+  }
+endmacro
+
+macro INIT_VOLUMETRIC_GI(code)
+  if (gi_quality == only_ao)
+  {
+    DAGI_SKY_VIS_SAMPLE_INIT(code)
+    INIT_SKY_DIFFUSE_BASE(code)
+  } else
+  {
+    GI_VOLUMETRIC_IRRADIANCE_INIT(code)
+  }
+endmacro
+
+macro INIT_VOLUMETRIC_GI_AND_SKYVIS(code)
+  //we can save one sampler, as SkyVis and volumetrics do not co-exist. So, replacing one sky sample with volumetric sampler + some define can reduce sampler by one
+  DAGI_SKY_VIS_SAMPLE_INIT(code)
+  INIT_SKY_DIFFUSE_BASE(code)
+  GI_VOLUMETRIC_IRRADIANCE_INIT(code)
+endmacro
+
+macro USE_VOLUMETRIC_GI(code)
+  if (gi_quality == only_ao)
+  {
+    DAGI_SKY_VIS_SAMPLE_USE(code)
+    hlsl(code) {
+      #include <sh3_function.hlsl>
+      half3 get_directional_volumetric_ambient(float3 worldViewPos, float2 screenUV, float linearDepth, float3 worldPos, half3 diffuseDir, float3 toCameraDir, float toCameraDist)
+      {
+        float4 sh1 = dagi_get_sky_visibility_smooth_sh1(worldViewPos, worldPos, toCameraDir, toCameraDist, 0, 0);
+        return GetSHFunctionValueSimple(diffuseDir, enviSPH0*sh1.wyzx, enviSPH1*sh1.wyzx, enviSPH2*sh1.wyzx);
+      }
+      half3 get_undirectional_volumetric_ambient(float3 worldViewPos, float2 screenUV, float linearDepth, float3 worldPos, float3 toCameraDir, float toCameraDist)
+      {
+        float4 sh1 = dagi_get_sky_visibility_smooth_sh1(worldViewPos, worldPos, toCameraDir, toCameraDist, 0, 0);
+        return max(0, half3(enviSPH0.w, enviSPH1.w, enviSPH2.w)*half(sh1.x));
+      }
+      half3 get_phased_volumetric_ambient(float3 worldViewPos, float2 screenUV, float linearDepth, float3 worldPos, half3 diffuseDir, half frontAmount, float3 toCameraDir, float toCameraDist)
+      {
+        float4 sh1 = dagi_get_sky_visibility_smooth_sh1(worldViewPos, worldPos, toCameraDir, toCameraDist, 0, 0);
+        float4 sph0 = enviSPH0*sh1.wyzx, sph1 = enviSPH1*sh1.wyzx, sph2 = enviSPH2*sh1.wyzx;
+        return lerp(GetSHFunctionValueSimple(-diffuseDir, sph0, sph1, sph2), GetSHFunctionValueSimple(diffuseDir, sph0, sph1, sph2), frontAmount);
+      }
+    }
+  } else
+  {
+    GI_VOLUMETRIC_IRRADIANCE_USE(code)
+    hlsl(code) {
+      half3 get_directional_volumetric_ambient(float3 worldViewPos, float2 screenUV, float linearDepth, float3 worldPos, half3 diffuseDir, float3 toCameraDir, float toCameraDist)
+      {
+        return volumetric_gi_calc_diffuse_uvw(screenUV, linearDepth, diffuseDir);
+      }
+      half3 get_undirectional_volumetric_ambient(float3 worldViewPos, float2 screenUV, float linearDepth, float3 worldPos, float3 toCameraDir, float toCameraDist)
+      {
+        return volumetric_gi_calc_diffuse_uvw_undirectional(screenUV, linearDepth);
+      }
+      half3 get_phased_volumetric_ambient(float3 worldViewPos, float2 screenUV, float linearDepth, float3 worldPos, half3 diffuseDir, half frontAmount, float3 toCameraDir, float toCameraDist)
+      {
+        SH1 sh1 = get_volumetric_gi_get_irradiance_uvw(float3(screenUV, volumetric_gi_get_tcz(linearDepth)));
+        return lerp(sh1_premul_exp1_irradiance(sh1, -diffuseDir), sh1_premul_exp1_irradiance(sh1, diffuseDir), frontAmount);
+      }
+    }
+  }
+endmacro

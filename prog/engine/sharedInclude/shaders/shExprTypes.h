@@ -1,9 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 /************************************************************************
   expression types
 ************************************************************************/
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef __SHEXPRTYPES_H
-#define __SHEXPRTYPES_H
 
 namespace shexpr
 {
@@ -64,6 +64,3 @@ enum ColorChannel
   CC_A = 3,
 };
 } // namespace shexpr
-
-
-#endif //__SHEXPRTYPES_H

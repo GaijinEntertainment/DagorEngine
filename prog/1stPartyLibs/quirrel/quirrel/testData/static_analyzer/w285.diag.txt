@@ -1,5 +1,5 @@
 WARNING: w285 (expr-cannot-be-null) The expression to the left of the 'null coalescing' cannot be null.
-testData/static_analyzer/w285.nut:6:5
+testData/static_analyzer/w285.nut:9:5
 
 local uu = ::sys.gh("fff") ?? ""
 if ((uu ?? "") != "")
@@ -8,14 +8,14 @@ if ((uu ?? "") != "")
 
 
 WARNING: w285 (expr-cannot-be-null) The expression to the left of the 'null coalescing' cannot be null.
-testData/static_analyzer/w285.nut:10:42
+testData/static_analyzer/w285.nut:13:42
 
 local regions = ::unlock?.meta.regions ?? [::unlock?.meta.region] ?? []
                                           ^----------------------
 
 
 WARNING: w285 (expr-cannot-be-null) The expression to the left of the 'null coalescing' cannot be null.
-testData/static_analyzer/w285.nut:13:9
+testData/static_analyzer/w285.nut:16:9
 
 local regions2 = ::x ? [] : {}
 let _g = regions2 ?? 123
@@ -23,19 +23,10 @@ let _g = regions2 ?? 123
 
 
 WARNING: w285 (expr-cannot-be-null) The expression to the left of the 'equal check' cannot be null.
-testData/static_analyzer/w285.nut:17:9
+testData/static_analyzer/w285.nut:20:9
 
 local regions3 = ::x ? 2 : 4
 let _h = regions3 != null
          ^-------
 
 
-
-AN ERROR HAS OCCURRED [the index 'sys' does not exist]
-
-CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w285.nut line [5]
-
-LOCALS
-[vargv] ARRAY=[]
-[this] TABLE={}

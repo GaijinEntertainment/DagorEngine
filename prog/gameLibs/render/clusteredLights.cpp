@@ -1,5 +1,11 @@
-#include <3d/dag_drv3d.h>
-#include <3d/dag_tex3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_tex3d.h>
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_shaders.h>
 #include <util/dag_stlqsort.h>
@@ -18,6 +24,7 @@
 #include <render/depthUtil.h>
 #include <3d/dag_lockSbuffer.h>
 #include <EASTL/numeric_limits.h>
+#include <ioSys/dag_dataBlock.h>
 
 static constexpr int CLUSTERS_PER_GRID = CLUSTERS_W * CLUSTERS_H * (CLUSTERS_D + 1); // one more slice so we can sample zero for it,
                                                                                      // instead of branch in shader
@@ -37,6 +44,18 @@ static int shadowAtlasTexelVarId = -1;
 static int shadowDistScaleVarId = -1, shadowDistBiasVarId = -1;
 static int shadowZBiasVarId = -1, shadowSlopeZBiasVarId = -1;
 
+static int spot_lights_flagsVarId = -1, omni_lights_flagsVarId = -1;
+
+#define GLOBAL_VARS_OPT_LIST        \
+  VAR(oof_clear_grid_size)          \
+  VAR(out_of_frustum_grid_cull_box) \
+  VAR(out_of_frustum_omni_box)      \
+  VAR(out_of_frustum_spot_box)
+
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
+GLOBAL_VARS_OPT_LIST
+#undef VAR
+
 bool equalWithEps(const Point4 &a, const Point4 &b, float eps)
 {
   const Point4 diff = abs(a - b);
@@ -51,7 +70,7 @@ bool isInvaliatingShadowsNeeded(const OmniLight &oldLight, const OmniLight &newL
 bool isInvaliatingShadowsNeeded(const SpotLight &oldLight, const SpotLight &newLight)
 {
   return !equalWithEps(oldLight.pos_radius, newLight.pos_radius, eastl::numeric_limits<float>::epsilon()) ||
-         !equalWithEps(oldLight.dir_angle, newLight.dir_angle, eastl::numeric_limits<float>::epsilon());
+         !equalWithEps(oldLight.dir_tanHalfAngle, newLight.dir_tanHalfAngle, eastl::numeric_limits<float>::epsilon());
 }
 
 void ClusteredLights::validateDensity(uint32_t words)
@@ -61,7 +80,7 @@ void ClusteredLights::validateDensity(uint32_t words)
   allocatedWords = words;
   for (int i = 0; i < lightsFullGridCB.size(); ++i)
   {
-    String name(128, "lights_full_grid_%d", i);
+    String name(128, "lights_full_grid_%d%s", i, nameSuffix.c_str());
     lightsFullGridCB[i].close();
     lightsFullGridCB[i] = dag::create_sbuffer(sizeof(uint32_t), CLUSTERS_PER_GRID * allocatedWords,
       SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0, name);
@@ -86,15 +105,40 @@ void ClusteredLights::initClustered(int initial_light_density)
   shadowDistBiasVarId = get_shader_variable_id("shadowDistBias");
   shadowZBiasVarId = get_shader_variable_id("shadowZBias");
   shadowSlopeZBiasVarId = get_shader_variable_id("shadowSlopeZBias");
+  spot_lights_flagsVarId = get_shader_variable_id("spot_lights_flags", true);
+  omni_lights_flagsVarId = get_shader_variable_id("omni_lights_flags", true);
 
   // TODO: maybe use texture with R8 format instead of custom byte packing
-  int spotMaskSizeInBytes = (MAX_SPOT_LIGHTS + 3) / 4;
-  int omniMaskSizeInBytes = (MAX_OMNI_LIGHTS + 3) / 4;
-  visibleSpotLightsMasksSB = dag::buffers::create_one_frame_sr_structured(sizeof(uint), spotMaskSizeInBytes, "spot_lights_flags");
-  visibleOmniLightsMasksSB = dag::buffers::create_one_frame_sr_structured(sizeof(uint), omniMaskSizeInBytes, "omni_lights_flags");
+  if (VariableMap::isVariablePresent(VariableMap::getVariableId("spot_lights_flags")))
+  {
+    int spotMaskSizeInBytes = (MAX_SPOT_LIGHTS + 3) / 4;
+    visibleSpotLightsMasksSB =
+      dag::buffers::create_one_frame_sr_structured(sizeof(uint), spotMaskSizeInBytes, getResName("spot_lights_flags"));
+    ShaderGlobal::set_buffer(spot_lights_flagsVarId, visibleSpotLightsMasksSB);
+  }
+
+  if (VariableMap::isVariablePresent(VariableMap::getVariableId("omni_lights_flags")))
+  {
+    int omniMaskSizeInBytes = (MAX_OMNI_LIGHTS + 3) / 4;
+    visibleOmniLightsMasksSB =
+      dag::buffers::create_one_frame_sr_structured(sizeof(uint), omniMaskSizeInBytes, getResName("omni_lights_flags"));
+    ShaderGlobal::set_buffer(omni_lights_flagsVarId, visibleOmniLightsMasksSB);
+  }
 }
 
-ClusteredLights::ClusteredLights() { mem_set_0(currentIndicesSize); }
+ClusteredLights::ClusteredLights(const char *name_suffix) : nameSuffix(name_suffix)
+{
+  spotOOFBox[0] = omniOOFBox[0] = Point4(0, 0, 0, 0);
+  spotOOFBox[1] = omniOOFBox[1] = Point4(OOF_GRID_W * 2, OOF_GRID_VERT * 2, OOF_GRID_W * 2, 0);
+  mem_set_0(currentIndicesSize);
+  if (VariableMap::isVariablePresent(get_shader_variable_id("oof_lights_full_grid", true)))
+  {
+#define CS(a) a.reset(new_compute_shader(#a))
+    CS(cull_out_of_frustum_lights_cs);
+    CS(clear_out_of_frustum_grid_cs);
+#undef CS
+  }
+}
 
 ClusteredLights::~ClusteredLights() { close(); }
 
@@ -159,7 +203,28 @@ void ClusteredLights::renderOtherLights() // render regular deferred way (curren
   resetBuffers();
 }
 
-void ClusteredLights::cullOutOfFrustumLights(mat44f_cref globtm, SpotLightsManager::mask_type_t spot_light_mask,
+void ClusteredLights::setEmptyOutOfFrustumLights()
+{
+  G_ASSERT(lightsInitialized);
+  static Point4 c[2] = {Point4(0, 0, 0, 0), Point4(2 * OOF_GRID_W, 2 * OOF_GRID_VERT, 2 * OOF_GRID_W, 0)};
+  ShaderGlobal::set_color4_array(out_of_frustum_omni_boxVarId, c, 2);
+  ShaderGlobal::set_color4_array(out_of_frustum_spot_boxVarId, c, 2);
+  outOfFrustumVisibleSpotLightsCB.reallocate(0, MAX_SPOT_LIGHTS, getResName("out_of_frustum_spot_lights"));
+  outOfFrustumOmniLightsCB.reallocate(0, MAX_OMNI_LIGHTS, getResName("out_of_frustum_omni_lights"));
+
+  // FIXME: (workaround) buffer is persistent as it referenced by volume lights when data is not updated in clustered lights
+  outOfFrustumCommonLightsShadowsCB.reallocate(1, 1 + MAX_SPOT_LIGHTS * 4 + MAX_OMNI_LIGHTS,
+    getResName("out_of_frustum_common_lights_shadow_data"), true /*persistent*/);
+
+  outOfFrustumVisibleSpotLightsCB.update(nullptr, 0);
+  outOfFrustumOmniLightsCB.update(nullptr, 0);
+  outOfFrustumCommonLightsShadowsCB.update(nullptr, 0);
+  ShaderGlobal::set_buffer(omni_lightsVarId, outOfFrustumOmniLightsCB.getId());
+  ShaderGlobal::set_buffer(spot_lightsVarId, outOfFrustumVisibleSpotLightsCB.getId());
+  ShaderGlobal::set_buffer(common_lights_shadowsVarId, outOfFrustumCommonLightsShadowsCB.getId());
+}
+
+bool ClusteredLights::cullOutOfFrustumLights(mat44f_cref globtm, SpotLightsManager::mask_type_t spot_light_mask,
   OmniLightsManager::mask_type_t omni_light_mask)
 {
   G_ASSERT(lightsInitialized);
@@ -179,25 +244,34 @@ void ClusteredLights::cullOutOfFrustumLights(mat44f_cref globtm, SpotLightsManag
     dynamicSpotLightsShadows, spot_light_mask);
   G_ASSERT(visibleFarSpotLightsId.size() == 0);
   cVisibleSpotLightsId.resize(min<int>(cVisibleSpotLightsId.size(), MAX_SPOT_LIGHTS));
+  DA_PROFILE_TAG(outOfFrustumLights, "spots %d omnis %d", (int)cVisibleOmniLightsId.size(), (int)cVisibleSpotLightsId.size());
+
+  const uint32_t spotWords = (cVisibleSpotLightsId.size() + 31) / 32, omniWords = (cVisibleOmniLightsId.size() + 31) / 32;
 
 
+  // FIXME: (workaround) buffer is persistent as it referenced by volume lights when data is not updated in clustered lights
   outOfFrustumCommonLightsShadowsCB.reallocate(1 + cVisibleSpotLightsId.size() * 4 + cVisibleOmniLightsId.size(),
-    1 + MAX_SPOT_LIGHTS * 4 + MAX_OMNI_LIGHTS, "out_of_frustum_common_lights_shadow_data");
+    1 + MAX_SPOT_LIGHTS * 4 + MAX_OMNI_LIGHTS, getResName("out_of_frustum_common_lights_shadow_data"), true /*persistent*/);
 
   StaticTab<Point4, 1 + MAX_SPOT_LIGHTS * 4 + MAX_OMNI_LIGHTS> commonShadowData;
   commonShadowData.resize(1 + cVisibleSpotLightsId.size() * 4 + cVisibleOmniLightsId.size());
   commonShadowData[0] = Point4(cVisibleSpotLightsId.size(), cVisibleOmniLightsId.size(), 4 * cVisibleSpotLightsId.size(), 0);
 
-  outOfFrustumVisibleSpotLightsCB.reallocate(cVisibleSpotLightsId.size(), MAX_SPOT_LIGHTS, "out_of_frustum_spot_lights");
+  outOfFrustumVisibleSpotLightsCB.reallocate(cVisibleSpotLightsId.size(), MAX_SPOT_LIGHTS, getResName("out_of_frustum_spot_lights"));
   int baseIndex = 1;
+  bbox3f spotBox;
+  v_bbox3_init_empty(spotBox);
   if (cVisibleSpotLightsId.size())
   {
     Tab<RenderSpotLight> outRenderSpotLights(framemem_ptr());
     outRenderSpotLights.resize(cVisibleSpotLightsId.size());
-    for (int i = 0; i < cVisibleSpotLightsId.size(); ++i)
+    for (int i = 0, ie = cVisibleSpotLightsId.size(); i < ie; ++i)
+    {
+      v_bbox3_add_box(spotBox, spotLights.getBoundingBox(cVisibleSpotLightsId[i]));
       outRenderSpotLights[i] = spotLights.getRenderLight(cVisibleSpotLightsId[i]);
+    }
     outOfFrustumVisibleSpotLightsCB.update(outRenderSpotLights.data(), data_size(outRenderSpotLights));
-    for (int i = 0; i < cVisibleSpotLightsId.size(); ++i)
+    for (int i = 0, ie = cVisibleSpotLightsId.size(); i < ie; ++i)
     {
       uint16_t shadowId = dynamicSpotLightsShadows[cVisibleSpotLightsId[i]];
       if (shadowId != INVALID_VOLUME)
@@ -211,15 +285,21 @@ void ClusteredLights::cullOutOfFrustumLights(mat44f_cref globtm, SpotLightsManag
     outOfFrustumVisibleSpotLightsCB.update(nullptr, 0);
   }
 
-  outOfFrustumOmniLightsCB.reallocate(cVisibleOmniLightsId.size(), MAX_OMNI_LIGHTS, "out_of_frustum_omni_lights");
+  outOfFrustumOmniLightsCB.reallocate(cVisibleOmniLightsId.size(), MAX_OMNI_LIGHTS, getResName("out_of_frustum_omni_lights"));
   baseIndex += cVisibleSpotLightsId.size() * 4;
+  bbox3f omniBox;
+  v_bbox3_init_empty(omniBox);
   if (cVisibleOmniLightsId.size())
   {
     Tab<OmniLightsManager::RawLight> outRenderOmniLights(framemem_ptr());
     outRenderOmniLights.resize(cVisibleOmniLightsId.size());
-    for (int i = 0; i < cVisibleOmniLightsId.size(); ++i)
+    for (int i = 0, ie = cVisibleOmniLightsId.size(); i < ie; ++i)
     {
-      outRenderOmniLights[i] = omniLights.getLight(cVisibleOmniLightsId[i]);
+      auto &l = omniLights.getLight(cVisibleOmniLightsId[i]);
+      vec3f posAndRad = v_ld(&l.pos_radius.x);
+      v_bbox3_add_pt(omniBox, v_add(posAndRad, v_splat_w(posAndRad)));
+      v_bbox3_add_pt(omniBox, v_sub(posAndRad, v_splat_w(posAndRad)));
+      outRenderOmniLights[i] = l;
       uint16_t shadowId = dynamicOmniLightsShadows[cVisibleOmniLightsId[i]];
       if (shadowId != INVALID_VOLUME)
         commonShadowData[baseIndex + i] = lightShadows->getOctahedralVolumeTexData(shadowId);
@@ -233,7 +313,8 @@ void ClusteredLights::cullOutOfFrustumLights(mat44f_cref globtm, SpotLightsManag
     outOfFrustumOmniLightsCB.update(nullptr, 0);
   }
 
-  if (!cVisibleSpotLightsId.empty() || !cVisibleOmniLightsId.empty())
+  const bool hasLights = !cVisibleSpotLightsId.empty() || !cVisibleOmniLightsId.empty();
+  if (hasLights)
   {
     outOfFrustumCommonLightsShadowsCB.update(commonShadowData.data(), data_size(commonShadowData));
   }
@@ -241,6 +322,74 @@ void ClusteredLights::cullOutOfFrustumLights(mat44f_cref globtm, SpotLightsManag
   {
     outOfFrustumCommonLightsShadowsCB.update(nullptr, 0);
   }
+  // todo: right now grid is of fixed size & fixed dimensions.
+  // while there is may be some sense in make grid of fixed or at least capped size (to prevent reallocation)
+  // but fixed dimensions doesn't make much sense! if we working with toroidal update, typical dimensions would be thin or narrow
+  // so we'd better increase detalization over other dimensions
+  // in order to do that:
+  //  * calc bounding box from frustum (or directly pass box, not globtm)
+  //  * intersect spot/omni boxes with this bounding box
+  //  * calculate optimum dimensions (like ceil(box.width()/average light bounding radius)
+  //  * clamp volume/adjust dimensions
+  //  * pass dimensions to shader (rn it is hardcoded)
+  const uint32_t omniGridOffset = 0, spotGridOffset = omniWords * OOF_GRID_SIZE;
+  if (!cVisibleOmniLightsId.empty())
+  {
+    vec4f bmin = v_div(v_make_vec4f(OOF_GRID_W, OOF_GRID_VERT, OOF_GRID_W, 1), v_bbox3_size(omniBox));
+    v_stu(&omniOOFBox[0].x, bmin);
+    v_stu(&omniOOFBox[1].x, v_perm_xyzd(v_neg(v_mul(bmin, omniBox.bmin)), v_cast_vec4f(v_splatsi(omniGridOffset))));
+  }
+  else
+  {
+    omniOOFBox[0] = Point4(0, 0, 0, 0);
+    omniOOFBox[1] = Point4(OOF_GRID_W * 2, OOF_GRID_VERT * 2, OOF_GRID_W * 2, 0);
+  }
+
+  if (!cVisibleSpotLightsId.empty())
+  {
+    vec4f bmin = v_div(v_make_vec4f(OOF_GRID_W, OOF_GRID_VERT, OOF_GRID_W, 1), v_bbox3_size(spotBox));
+    v_stu(&spotOOFBox[0].x, bmin);
+    v_stu(&spotOOFBox[1].x, v_perm_xyzd(v_neg(v_mul(bmin, spotBox.bmin)), v_cast_vec4f(v_splatsi(spotGridOffset))));
+  }
+  else
+  {
+    spotOOFBox[0] = Point4(0, 0, 0, 0);
+    spotOOFBox[1] = Point4(OOF_GRID_W * 2, OOF_GRID_VERT * 2, OOF_GRID_W * 2, 0);
+  }
+  if (hasLights && cull_out_of_frustum_lights_cs && clear_out_of_frustum_grid_cs)
+  {
+    TIME_D3D_PROFILE(oof_clustering_lights);
+    setOutOfFrustumLightsToShader();
+
+    const uint32_t words = spotWords + omniWords;
+    const uint32_t sz4 = (words * OOF_GRID_SIZE + 3) & ~3;
+    if (!outOfFrustumLightsFullGridCB || outOfFrustumLightsFullGridCB.getBuf()->ressize() < sz4)
+    {
+      outOfFrustumLightsFullGridCB.close();
+      outOfFrustumLightsFullGridCB =
+        dag::create_sbuffer(sizeof(uint32_t), sz4, SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW, 0, "oof_lights_full_grid");
+    }
+    ShaderGlobal::set_int(oof_clear_grid_sizeVarId, sz4 / 4);
+    d3d::set_rwbuffer(STAGE_CS, 0, outOfFrustumLightsFullGridCB.getBuf());
+    clear_out_of_frustum_grid_cs->dispatchThreads(sz4, 1, 1);
+    d3d::resource_barrier({outOfFrustumLightsFullGridCB.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
+    const uint32_t totalLights = cVisibleOmniLightsId.size() + cVisibleSpotLightsId.size();
+    {
+      vec4f halfOmniCellSz = v_div(v_bbox3_size(omniBox), v_make_vec4f(2 * OOF_GRID_W, 2 * OOF_GRID_VERT, 2 * OOF_GRID_W, 1));
+      halfOmniCellSz = v_perm_xyzd(halfOmniCellSz, v_cast_vec4f(v_splatsi(omniGridOffset)));
+      vec4f halfSpotCellSz = v_div(v_bbox3_size(spotBox), v_make_vec4f(2 * OOF_GRID_W, 2 * OOF_GRID_VERT, 2 * OOF_GRID_W, 1));
+      halfSpotCellSz = v_perm_xyzd(halfSpotCellSz, v_cast_vec4f(v_splatsi(spotGridOffset)));
+      vec4f cullBox[4] = {v_add(omniBox.bmin, halfOmniCellSz), halfOmniCellSz, v_add(spotBox.bmin, halfSpotCellSz), halfSpotCellSz};
+      Point4 cb[4];
+      memcpy(cb, cullBox, sizeof(cullBox));
+      ShaderGlobal::set_color4_array(out_of_frustum_grid_cull_boxVarId, cb, 4);
+      cull_out_of_frustum_lights_cs->dispatchThreads(OOF_GRID_W, OOF_GRID_W, OOF_GRID_VERT * totalLights);
+    }
+    d3d::resource_barrier({outOfFrustumLightsFullGridCB.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
+    d3d::set_rwbuffer(STAGE_CS, 0, nullptr);
+  }
+
+  return hasLights;
 }
 
 void ClusteredLights::cullFrustumLights(vec4f cur_view_pos, mat44f_cref globtm, mat44f_cref view, mat44f_cref proj, float znear,
@@ -272,8 +421,14 @@ void ClusteredLights::cullFrustumLights(vec4f cur_view_pos, mat44f_cref globtm, 
     auto oldFarSize = visibleFarOmniLightsId.size();
     auto excessSize = visibleOmniLightsId.size() - MAX_OMNI_LIGHTS;
     append_items(visibleFarOmniLightsId, excessSize, visibleOmniLightsId.begin() + MAX_OMNI_LIGHTS);
-    logwarn("too many omni lights %d, moved %d to Far buffer (before %d, after %d)", visibleOmniLightsId.size(), excessSize,
-      oldFarSize, visibleFarOmniLightsId.size());
+    static bool logwarnOnce;
+    if (!logwarnOnce)
+    {
+      logwarn("too many omni lights %d, moved %d to Far buffer (before %d, after %d) at %f, %f, %f", visibleOmniLightsId.size(),
+        excessSize, oldFarSize, visibleFarOmniLightsId.size(), v_extract_x(cur_view_pos), v_extract_y(cur_view_pos),
+        v_extract_z(cur_view_pos));
+      logwarnOnce = true;
+    }
     G_UNUSED(oldFarSize);
   }
   visibleOmniLightsId.resize(min(int(visibleOmniLightsId.size()), int(MAX_OMNI_LIGHTS)));
@@ -298,8 +453,14 @@ void ClusteredLights::cullFrustumLights(vec4f cur_view_pos, mat44f_cref globtm, 
     auto oldFarSize = visibleFarSpotLightsId.size();
     auto excessSize = visibleSpotLightsId.size() - MAX_SPOT_LIGHTS;
     append_items(visibleFarSpotLightsId, excessSize, visibleSpotLightsId.begin() + MAX_SPOT_LIGHTS);
-    logwarn("too many spot lights %d, moved %d to Far buffer (before %d, after %d)", visibleSpotLightsId.size(), excessSize,
-      oldFarSize, visibleFarSpotLightsId.size());
+    static bool logwarnOnce;
+    if (!logwarnOnce)
+    {
+      logwarn("too many spotlights %d, moved %d to Far buffer (before %d, after %d) at %f, %f, %f", visibleSpotLightsId.size(),
+        excessSize, oldFarSize, visibleFarSpotLightsId.size(), v_extract_x(cur_view_pos), v_extract_y(cur_view_pos),
+        v_extract_z(cur_view_pos));
+      logwarnOnce = true;
+    }
     G_UNUSED(oldFarSize);
   }
   visibleSpotLightsId.resize(min<int>(visibleSpotLightsId.size(), MAX_SPOT_LIGHTS));
@@ -410,32 +571,40 @@ void ClusteredLights::fillBuffers()
   gridFrameHasLights = (clustersOmniGrid.size() || clustersSpotGrid.size()) ? HAS_CLUSTERED_LIGHTS : NO_CLUSTERED_LIGHTS;
 
   G_ASSERT(elem_size(renderOmniLights) % sizeof(vec4f) == 0);
-  visibleOmniLightsCB.reallocate(renderOmniLights.size(), MAX_OMNI_LIGHTS, "omni_lights");
+  // FIXME: (workaround) buffer is persistent as it referenced by volume lights when data is not updated in clustered lights
+  visibleOmniLightsCB.reallocate(renderOmniLights.size(), MAX_OMNI_LIGHTS, getResName("omni_lights"), true /* persistent */);
   visibleOmniLightsCB.update(renderOmniLights.data(), data_size(renderOmniLights));
   ShaderGlobal::set_buffer(omni_lightsVarId, visibleOmniLightsCB.getId());
-  if (renderOmniLights.size()) // todo: only update if something changed (which won't happen very often)
+  const SpotLightsManager::mask_type_t stubMask[1] = {0};
+  if (visibleOmniLightsMasksSB) // todo: only update if something changed (which won't happen very often)
   {
     G_ASSERT(visibleOmniLightsMasks.size() <= MAX_OMNI_LIGHTS);
-    visibleOmniLightsMasksSB.getBuf()->updateDataWithLock(0, data_size(visibleOmniLightsMasks), visibleOmniLightsMasks.data(),
-      VBLOCK_DISCARD);
+    dag::Span<const SpotLightsManager::mask_type_t> masks =
+      renderOmniLights.size() ? make_span_const(visibleOmniLightsMasks) : make_span_const(stubMask);
+    // bound & used framemem buffer must be updated every frame
+    visibleOmniLightsMasksSB.getBuf()->updateDataWithLock(0, data_size(masks), masks.data(), VBLOCK_DISCARD);
+    ShaderGlobal::set_buffer(omni_lights_flagsVarId, visibleOmniLightsMasksSB);
   }
   if (gridFrameHasLights == HAS_CLUSTERED_LIGHTS)
     fillClusteredCB(clustersOmniGrid.data(), omniWords, clustersSpotGrid.data(), spotWords);
 
-  visibleSpotLightsCB.reallocate(renderSpotLights.size(), MAX_SPOT_LIGHTS, "spot_lights");
+  visibleSpotLightsCB.reallocate(renderSpotLights.size(), MAX_SPOT_LIGHTS, getResName("spot_lights"));
   visibleSpotLightsCB.update(renderSpotLights.data(), data_size(renderSpotLights));
   ShaderGlobal::set_buffer(spot_lightsVarId, visibleSpotLightsCB.getId());
-  if (renderSpotLights.size()) // todo: only update if something changed (which won't happen very often)
+  if (visibleSpotLightsMasksSB) // todo: only update if something changed (which won't happen very often)
   {
     // do that only when needed
     G_ASSERT(visibleSpotLightsMasks.size() <= MAX_SPOT_LIGHTS);
-    visibleSpotLightsMasksSB.getBuf()->updateDataWithLock(0, data_size(visibleSpotLightsMasks), visibleSpotLightsMasks.data(),
-      VBLOCK_DISCARD);
+    dag::Span<const SpotLightsManager::mask_type_t> masks =
+      renderSpotLights.size() ? make_span_const(visibleSpotLightsMasks) : make_span_const(stubMask);
+    // bound & used framemem buffer must be updated every frame
+    visibleSpotLightsMasksSB.getBuf()->updateDataWithLock(0, data_size(masks), masks.data(), VBLOCK_DISCARD);
+    ShaderGlobal::set_buffer(spot_lights_flagsVarId, visibleSpotLightsMasksSB);
   }
   // todo: only update if something changed (which won't happen very often)
-  visibleFarSpotLightsCB.reallocate(renderFarSpotLights.size(), MAX_VISIBLE_FAR_LIGHTS, "far_spot_lights");
+  visibleFarSpotLightsCB.reallocate(renderFarSpotLights.size(), MAX_VISIBLE_FAR_LIGHTS, getResName("far_spot_lights"));
   visibleFarSpotLightsCB.update(renderFarSpotLights.data(), data_size(renderFarSpotLights));
-  visibleFarOmniLightsCB.reallocate(renderFarOmniLights.size(), MAX_VISIBLE_FAR_LIGHTS, "far_omni_lights");
+  visibleFarOmniLightsCB.reallocate(renderFarOmniLights.size(), MAX_VISIBLE_FAR_LIGHTS, getResName("far_omni_lights"));
   visibleFarOmniLightsCB.update(renderFarOmniLights.data(), data_size(renderFarOmniLights));
 
   if (tiledLights)
@@ -475,7 +644,8 @@ void ClusteredLights::clusteredCullLights(mat44f_cref view, mat44f_cref proj, fl
   {
     TIME_PROFILE(cullSpots)
     clusteredSpotLights = clusters.cullSpots((const vec4f *)spot_lights.data(), elem_size(spot_lights) / sizeof(vec4f),
-      (const vec4f *)&spot_lights[0].dir_angle, elem_size(spot_lights) / sizeof(vec4f), *tempSpotItemsPtr, spot_mask, spot_words);
+      (const vec4f *)&spot_lights[0].dir_tanHalfAngle, elem_size(spot_lights) / sizeof(vec4f), *tempSpotItemsPtr, spot_mask,
+      spot_words);
   }
   has_spot_lights = clusteredSpotLights != 0;
   has_omni_lights = clusteredOmniLights != 0;
@@ -511,22 +681,36 @@ void ClusteredLights::changeResolution(uint32_t width, uint32_t height)
     tiledLights->changeResolution(width, height);
 }
 
+void ClusteredLights::changeShadowResolutionByQuality(uint32_t shadow_quality, bool dynamic_shadow_32bit)
+{
+  shadow_quality = min(shadow_quality, MAX_SHADOWS_QUALITY);
+  // using shadow_quality / 2, so that medium and high will have the same values (2/2 = 3/2 integer wise)
+  int shift_val = shadow_quality / 2;
+  lightShadows->changeResolution(1024 * shadow_quality, 256 << shift_val, 64 << shift_val, 64 << shift_val, dynamic_shadow_32bit);
+}
+
+void ClusteredLights::resetShadows()
+{
+  dynamicLightsShadowsVolumeSet.reset();
+  closeOmniShadows();
+  closeSpotShadows();
+  lightShadows.reset();
+}
+
 void ClusteredLights::changeShadowResolution(uint32_t shadow_quality, bool dynamic_shadow_32bit)
 {
   if (!lightShadows && shadow_quality > 0)
   {
     dstReadbackLights.reset();
     lightShadows.reset();
-    lightShadows = eastl::make_unique<ShadowSystem>();
+    lightShadows = eastl::make_unique<ShadowSystem>(nameSuffix.c_str());
     lightShadows->setOverrideState(depthBiasOverrideState);
-    dstReadbackLights = eastl::make_unique<DistanceReadbackLights>(lightShadows.get(), &spotLights);
+    dstReadbackLights = eastl::make_unique<DistanceReadbackLights>(lightShadows.get(), &spotLights, nameSuffix.c_str());
   }
 
   if (lightShadows)
   {
-    shadow_quality = min(shadow_quality, MAX_SHADOWS_QUALITY);
-    lightShadows->changeResolution(512 << shadow_quality, 128 << shadow_quality, 16 << shadow_quality, 16 << shadow_quality,
-      dynamic_shadow_32bit);
+    changeShadowResolutionByQuality(shadow_quality, dynamic_shadow_32bit);
     invalidateAllShadows();
   }
 }
@@ -539,17 +723,16 @@ void ClusteredLights::toggleTiledLights(bool use_tiled)
     tiledLights = eastl::make_unique<TiledLights>(maxClusteredDist);
 }
 
-void ClusteredLights::init(int frame_initial_lights_count, uint32_t shadow_quality, bool use_tiled_lights)
+void ClusteredLights::init(int frame_initial_lights_count, uint32_t shadow_quality, bool use_tiled_lights, const char *name_suffix)
 {
+  nameSuffix = name_suffix;
   lightsInitialized = true;
   if (shadow_quality)
   {
-    lightShadows = eastl::make_unique<ShadowSystem>();
+    lightShadows = eastl::make_unique<ShadowSystem>(name_suffix);
     lightShadows->setOverrideState(depthBiasOverrideState);
-    shadow_quality = min(shadow_quality, MAX_SHADOWS_QUALITY);
-    lightShadows->changeResolution(512 << shadow_quality, 128 << shadow_quality, 16 << shadow_quality, 16 << shadow_quality, false);
+    changeShadowResolutionByQuality(shadow_quality, false);
   }
-  setShadowBias(-0.00006f, -0.1f, 0.001f, 0.005f);
   initClustered(frame_initial_lights_count);
   initConeSphere();
   initSpot();
@@ -557,13 +740,13 @@ void ClusteredLights::init(int frame_initial_lights_count, uint32_t shadow_quali
   initDebugOmni();
   initDebugSpot();
 
-  visibleOmniLightsCB.reallocate(0, MAX_OMNI_LIGHTS, "omni_lights");
+  visibleOmniLightsCB.reallocate(0, MAX_OMNI_LIGHTS, getResName("omni_lights"), true /* persistent */);
   visibleOmniLightsCB.update(nullptr, 0);
-  visibleSpotLightsCB.reallocate(0, MAX_SPOT_LIGHTS, "spot_lights");
+  visibleSpotLightsCB.reallocate(0, MAX_SPOT_LIGHTS, getResName("spot_lights"), true /* persistent */);
   visibleSpotLightsCB.update(nullptr, 0);
 
   if (lightShadows)
-    dstReadbackLights = eastl::make_unique<DistanceReadbackLights>(lightShadows.get(), &spotLights);
+    dstReadbackLights = eastl::make_unique<DistanceReadbackLights>(lightShadows.get(), &spotLights, nameSuffix.c_str());
 
   lights_full_gridVarId = ::get_shader_variable_id("lights_full_grid", true);
   omni_lightsVarId = ::get_shader_variable_id("omni_lights", false);
@@ -631,10 +814,10 @@ void ClusteredLights::initConeSphere()
   static constexpr uint32_t SLICES = 5;
   calc_sphere_vertex_face_count(SLICES, SLICES, false, v_count, f_count);
   coneSphereVb.close();
-  coneSphereVb = dag::create_vb((v_count + 5) * sizeof(Point3), 0, "coneSphereVb");
+  coneSphereVb = dag::create_vb((v_count + 5) * sizeof(Point3), 0, getResName("coneSphereVb"));
   d3d_err((bool)coneSphereVb);
   coneSphereIb.close();
-  coneSphereIb = dag::create_ib((f_count + 6) * 6, 0, "coneSphereIb");
+  coneSphereIb = dag::create_ib((f_count + 6) * 6, 0, getResName("coneSphereIb"));
   d3d_err((bool)coneSphereIb);
 
   LockedBuffer<uint16_t> indicesLocked = lock_sbuffer<uint16_t>(coneSphereIb.getBuf(), 0, 0, VBLOCK_WRITEONLY);
@@ -946,10 +1129,17 @@ uint32_t ClusteredLights::addSpotLight(const SpotLight &light, SpotLightsManager
 bool ClusteredLights::addShadowToLight(uint32_t id, bool only_static_casters, bool hint_dynamic, uint16_t quality, uint8_t priority,
   uint8_t max_size_srl, DynamicShadowRenderGPUObjects render_gpu_objects)
 {
+  DecodedLightId typeId = decode_light_id(id);
+  switch (typeId.type)
+  {
+    case LightType::Invalid: return false;
+    case LightType::Spot: spotLights.setLightShadows(typeId.id, true); break;
+    default: break;
+  }
+
   if (!lightShadows)
     return false;
 
-  DecodedLightId typeId = decode_light_id(id);
   switch (typeId.type)
   {
     case LightType::Spot:
@@ -1001,11 +1191,15 @@ bool ClusteredLights::getShadowProperties(uint32_t id, bool &only_static_casters
 
 void ClusteredLights::removeShadow(uint32_t id)
 {
-  if (!lightShadows)
-    return;
-
   DecodedLightId typeId = decode_light_id(id);
-  if (typeId.type == LightType::Invalid)
+  switch (typeId.type)
+  {
+    case LightType::Invalid: return;
+    case LightType::Spot: spotLights.setLightShadows(typeId.id, false); break;
+    default: break;
+  }
+
+  if (!lightShadows)
     return;
 
   uint16_t &lightShadow = typeId.type == LightType::Spot ? dynamicSpotLightsShadows[typeId.id] : dynamicOmniLightsShadows[typeId.id];
@@ -1029,9 +1223,16 @@ void ClusteredLights::invalidateStaticObjects(bbox3f_cref box)
     lightShadows->invalidateStaticObjects(box);
 }
 
-void ClusteredLights::prepareShadows(const Point3 &viewPos, mat44f_cref globtm, float hk, dag::ConstSpan<bbox3f> dynamicBoxes,
-  eastl::fixed_function<sizeof(void *) * 2, StaticRenderCallback> render_static,
-  eastl::fixed_function<sizeof(void *) * 2, DynamicRenderCallback> render_dynamic)
+dynamic_shadow_render::QualityParams ClusteredLights::getQualityParams() const
+{
+  dynamic_shadow_render::QualityParams result;
+  result.maxShadowsToUpdateOnFrame = maxShadowsToUpdateOnFrame;
+  result.maxShadowDist = maxShadowDist;
+  return result;
+}
+
+void ClusteredLights::framePrepareShadows(dynamic_shadow_render::VolumesVector &volumesToRender, const Point3 &viewPos,
+  mat44f_cref globtm, float hk, dag::ConstSpan<bbox3f> dynamicBoxes, dynamic_shadow_render::FrameUpdates *frameUpdates)
 {
   if ((visibleSpotLightsId.empty() && visibleOmniLightsId.empty()) || !lightShadows)
     return;
@@ -1077,12 +1278,37 @@ void ClusteredLights::prepareShadows(const Point3 &viewPos, mat44f_cref globtm, 
 
   lightShadows->setDynamicObjectsContent(dynamicBoxes.data(), dynamicBoxes.size()); // dynamic content within those boxes
 
-  lightShadows->endPrepareShadows(maxShadowsToUpdateOnFrame, 0.25, viewPos, hk, globtm);
-  if (lightShadows->getShadowVolumesToRender().size())
+  float maxAreaToUpdate = max((float)maxShadowsToUpdateOnFrame / DEFAULT_MAX_SHADOWS_TO_UPDATE_PER_FRAME, 1.0f) * 0.25f;
+  lightShadows->endPrepareShadows(volumesToRender, maxShadowsToUpdateOnFrame, maxAreaToUpdate, viewPos, hk, globtm);
+
+  if (frameUpdates)
+  {
+    for (int i = volumesToRender.size() - 1; i >= 0; --i)
+    {
+      const int id = volumesToRender[i];
+      const auto renderFlags = lightShadows->getVolumeRenderFlags(id);
+
+      if (renderFlags & ShadowSystem::RENDER_STATIC)
+      {
+        // Note: indexing must match frameRenderShadows!
+        dynamic_shadow_render::FrameUpdate &result = frameUpdates->emplace_back();
+        lightShadows->getVolumeUpdateData(id, result);
+      }
+    }
+  }
+}
+
+void ClusteredLights::frameRenderShadows(const dag::ConstSpan<uint16_t> &volumesToRender,
+  eastl::fixed_function<sizeof(void *) * 2, StaticRenderCallback> renderStatic,
+  eastl::fixed_function<sizeof(void *) * 2, DynamicRenderCallback> renderDynamic)
+{
+  if ((visibleSpotLightsId.empty() && visibleOmniLightsId.empty()) || !lightShadows)
+    return;
+  if (!volumesToRender.empty())
   {
     // debug("render %d / %d", lightShadows->getShadowVolumesToRender().size(), visibleSpotLightsId.size());
-    dag::ConstSpan<uint16_t> volumesToRender = lightShadows->getShadowVolumesToRender();
-    lightShadows->startRenderVolumes();
+    lightShadows->startRenderVolumes(volumesToRender);
+    int staticUpdateIndex = 0;
     bool staticOverrideState = false;
     shaders::OverrideStateId originalState = shaders::overrides::get_current();
     for (int i = volumesToRender.size() - 1; i >= 0; --i)
@@ -1101,6 +1327,7 @@ void ClusteredLights::prepareShadows(const Point3 &viewPos, mat44f_cref globtm, 
           shaders::overrides::set(depthBiasOverrideId);
           staticOverrideState = true;
         }
+
         for (uint32_t viewId = 0; viewId < numViews; ++viewId)
         {
           lightShadows->startRenderVolumeView(id, viewId, viewItm, view, renderFlags, ShadowSystem::RENDER_STATIC);
@@ -1119,9 +1346,11 @@ void ClusteredLights::prepareShadows(const Point3 &viewPos, mat44f_cref globtm, 
           lightShadows->getShadowProperties(id, only_static_casters, hint_dynamic, quality, priority, shadow_size_srl,
             render_gpu_objects);
 
-          render_static(globTm, viewItmS, render_gpu_objects);
+          // Note: indexing must match frameUpdateShadows!
+          renderStatic(globTm, viewItmS, staticUpdateIndex, viewId, render_gpu_objects);
           lightShadows->endRenderVolumeView(id, viewId);
         }
+        ++staticUpdateIndex;
         lightShadows->endRenderStatic(id);
       }
       if (renderFlags & ShadowSystem::RENDER_DYNAMIC)
@@ -1140,10 +1369,10 @@ void ClusteredLights::prepareShadows(const Point3 &viewPos, mat44f_cref globtm, 
           d3d::settm(TM_VIEW, view);
           d3d::settm(TM_PROJ, proj);
 
-          render_dynamic(viewItmS, view, proj);
-          shaders::overrides::reset();
+          renderDynamic(viewItmS, view, proj);
           lightShadows->endRenderVolumeView(id, viewId);
         }
+        shaders::overrides::reset();
       }
       lightShadows->endRenderVolume(id);
       shaders::overrides::reset();
@@ -1156,7 +1385,7 @@ void ClusteredLights::prepareShadows(const Point3 &viewPos, mat44f_cref globtm, 
   updateShadowBuffers();
 
   shaders::overrides::set(depthBiasOverrideId);
-  dstReadbackLights->update(render_static);
+  dstReadbackLights->update(renderStatic);
   shaders::overrides::reset();
 }
 
@@ -1196,8 +1425,9 @@ void ClusteredLights::updateShadowBuffers()
 
   if (numSpotShadows > 0 || numOmniShadows > 0)
   {
+    // FIXME: (workaround) buffer is persistent as it referenced by volume lights when data is not updated in clustered lights
     commonLightShadowsBufferCB.reallocate(1 + visibleSpotLightsId.size() * 4 + numOmniShadows,
-      1 + MAX_SPOT_LIGHTS * 4 + MAX_SPOT_LIGHTS, "common_lights_shadows");
+      1 + MAX_SPOT_LIGHTS * 4 + MAX_SPOT_LIGHTS, getResName("common_lights_shadows"), true /* persistent */);
     ShaderGlobal::set_buffer(common_lights_shadowsVarId, commonLightShadowsBufferCB.getId());
 
     commonLightShadowsBufferCB.update(commonLightShadowData.data(), data_size(commonLightShadowData));
@@ -1254,7 +1484,7 @@ void ClusteredLights::setSpotLightShadowVolume(int spot_light_id)
   bbox3f box;
   v_bbox3_init_empty(box);
   float2 lightZnZfar = get_light_shadow_zn_zf(l.pos_radius.w);
-  lightShadows->setShadowVolume(shadowId, viewITM, lightZnZfar.x, lightZnZfar.y, 1. / l.dir_angle.w, box);
+  lightShadows->setShadowVolume(shadowId, viewITM, lightZnZfar.x, lightZnZfar.y, 1. / l.dir_tanHalfAngle.w, box);
   dynamicLightsShadowsVolumeSet.set(shadowId);
 }
 
@@ -1276,6 +1506,8 @@ void ClusteredLights::setOmniLightShadowVolume(int omni_light_id)
 void ClusteredLights::setOutOfFrustumLightsToShader()
 {
   G_ASSERT(lightsInitialized);
+  ShaderGlobal::set_color4_array(out_of_frustum_omni_boxVarId, omniOOFBox, 2);
+  ShaderGlobal::set_color4_array(out_of_frustum_spot_boxVarId, spotOOFBox, 2);
   ShaderGlobal::set_buffer(omni_lightsVarId, outOfFrustumOmniLightsCB.getId());
   ShaderGlobal::set_buffer(spot_lightsVarId, outOfFrustumVisibleSpotLightsCB.getId());
   ShaderGlobal::set_buffer(common_lights_shadowsVarId, outOfFrustumCommonLightsShadowsCB.getId());
@@ -1284,6 +1516,8 @@ void ClusteredLights::setOutOfFrustumLightsToShader()
 void ClusteredLights::setInsideOfFrustumLightsToShader()
 {
   G_ASSERT(lightsInitialized);
+  if (!buffersFilled)
+    return;
   ShaderGlobal::set_buffer(omni_lightsVarId, visibleOmniLightsCB.getId());
   ShaderGlobal::set_buffer(spot_lightsVarId, visibleSpotLightsCB.getId());
   ShaderGlobal::set_buffer(common_lights_shadowsVarId, commonLightShadowsBufferCB.getId());
@@ -1345,11 +1579,12 @@ void ClusteredLights::drawDebugClusters(int slice)
 }
 
 
-bool ClusteredLights::reallocate_common(UniqueBuf &buf, uint16_t &size, int target_size, const char *stat_name)
+bool ClusteredLights::reallocate_common(UniqueBuf &buf, uint16_t &size, int target_size, const char *stat_name, bool persistent)
 {
   if (size >= target_size)
     return true;
-  BufPtr cb2 = dag::buffers::create_one_frame_cb(target_size, stat_name);
+  BufPtr cb2 = persistent ? dag::buffers::create_persistent_cb(target_size, stat_name)
+                          : dag::buffers::create_one_frame_cb(target_size, stat_name);
   if (!cb2)
   {
     logerr("can't re-create buffer <%s> for size %d from %d", stat_name, target_size, size);
@@ -1370,6 +1605,9 @@ bool ClusteredLights::updateConsts(Sbuffer *buf, void *data, int data_size, int 
   if (elems_count >= 0)
   {
     destData[0] = elems_count;
+    destData[1] = (elems_count + 31) / 32;
+    destData[2] = elems_count ? elems_count - 1 : 0;
+    destData[3] = 0;
     destData += 4;
   }
   if (data_size)

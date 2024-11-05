@@ -1,12 +1,12 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <generic/dag_tab.h>
 #include <math/dag_e3dColor.h>
+#include <math/dag_Point2.h>
 #include <util/dag_globDef.h>
 #include <util/dag_simplePBlock.h>
 #include <util/dag_simpleString.h>
@@ -40,6 +40,9 @@ struct MaterialData
   float damage_k;          //< defines damage applied to other phobjects
   float deformableWidth;
   float resistanceK;
+  bool completelyTransparent;
+  bool lightTransparent;
+  float noTransparentThickness; //< max distance traced inside material to count it transparent
 
   bool fly_through_clip;
   real stick_k;  /// Probability stick in other object
@@ -60,8 +63,11 @@ struct MaterialData
   float directocclusion;
   float reverbocclusion;
   SimpleString soundMaterial;
+
   bool isSolid;
   int tankTracksTexId;
+  Point2 heightmapDeformation;
+  float trailDetailStrength;
 
   inline MaterialData() { physBodyMaterial = 0; } //-V730
 };

@@ -30,6 +30,7 @@ if $(UseSystemOpenSSL) != yes {
 }
 
 # warning 6386| Buffer overrun: accessing 'argument 1', the writable size is '64' bytes, but '746' bytes might be written:
-if $(Platform) in win32 win64 && $(PlatformSpec) != clang { Copt += /wd6386 ; }
+if $(Platform) in windows && $(PlatformSpec) != clang { Copt += /wd6386 ; }
+if $(PlatformArch) = e2k { CPPopt += -Wno-reduced-alignment ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -1,13 +1,15 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x400
 #endif
 #include "include_dinput.h"
 #include "joy_classdrv.h"
 #include "joy_device.h"
-#include <humanInput/dag_hiDInput.h>
-#include <humanInput/dag_hiGlobals.h>
-#include <humanInput/dag_hiJoyFF.h>
-#include <humanInput/dag_hiXInputMappings.h>
+#include <drv/hid/dag_hiDInput.h>
+#include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiJoyFF.h>
+#include <drv/hid/dag_hiXInputMappings.h>
 #include <generic/dag_sort.h>
 #include <osApiWrappers/dag_stackHlp.h>
 #include <osApiWrappers/dag_progGlobals.h>
@@ -53,8 +55,7 @@ void Di8JoystickClassDriver::checkDeviceList()
   last_t0 = get_time_msec();
   if (FAILED(hr))
   {
-    debug_ctx_("EnumDevices = %X ", hr);
-    HumanInput::printHResult(hr);
+    HumanInput::printHResult(__FILE__, __LINE__, "EnumDevices", hr);
     return;
   }
 
@@ -132,8 +133,7 @@ bool Di8JoystickClassDriver::tryRefreshDeviceList()
   exclude_xinput_dev = remap_360 = false;
   if (FAILED(hr))
   {
-    debug_ctx_("EnumDevices = %X ", hr);
-    HumanInput::printHResult(hr);
+    HumanInput::printHResult(__FILE__, __LINE__, "EnumDevices", hr);
     return false;
   }
   if (stg_joy.sortDevices)
@@ -210,24 +210,21 @@ static BOOL CALLBACK enumJoysticksCallback(const DIDEVICEINSTANCE *pdidInstance,
   hr = dinput8->CreateDevice(pdidInstance->guidInstance, &lpJoystick, NULL);
   if (FAILED(hr))
   {
-    debug_ctx_("CreateDevice = %X ", hr);
-    HumanInput::printHResult(hr);
+    HumanInput::printHResult(__FILE__, __LINE__, "CreateDevice", hr);
     return DIENUM_CONTINUE;
   }
 
   hr = lpJoystick->SetDataFormat(&c_dfDIJoystick2);
   if (FAILED(hr))
   {
-    debug_ctx_("SetDataFormat = %X ", hr);
-    HumanInput::printHResult(hr);
+    HumanInput::printHResult(__FILE__, __LINE__, "SetDataFormat", hr);
     return DIENUM_CONTINUE;
   }
 
   hr = lpJoystick->SetCooperativeLevel((HWND)win32_get_main_wnd(), DISCL_FOREGROUND | DISCL_EXCLUSIVE);
   if (FAILED(hr))
   {
-    debug_ctx_("SetCooperativeLevel = %X ", hr);
-    HumanInput::printHResult(hr);
+    HumanInput::printHResult(__FILE__, __LINE__, "SetCooperativeLevel", hr);
     return DIENUM_CONTINUE;
   }
 
@@ -238,8 +235,7 @@ static BOOL CALLBACK enumJoysticksCallback(const DIDEVICEINSTANCE *pdidInstance,
   hr = lpJoystick->GetCapabilities(&joyCaps);
   if (FAILED(hr))
   {
-    debug_ctx_("GetCapabilities = %X ", hr);
-    HumanInput::printHResult(hr);
+    HumanInput::printHResult(__FILE__, __LINE__, "GetCapabilities", hr);
     return DIENUM_CONTINUE;
   }
 
@@ -258,8 +254,7 @@ static BOOL CALLBACK enumJoysticksCallback(const DIDEVICEINSTANCE *pdidInstance,
   hr = lpJoystick->EnumObjects(remap_360 ? enumObjSetLim : enumObjectsCallback, joyDev, DIDFT_ALL);
   if (FAILED(hr))
   {
-    debug_ctx_("EnumObjects = %X ", hr);
-    HumanInput::printHResult(hr);
+    HumanInput::printHResult(__FILE__, __LINE__, "EnumObjects", hr);
 
     delete joyDev;
     return DIENUM_CONTINUE;
@@ -269,8 +264,7 @@ static BOOL CALLBACK enumJoysticksCallback(const DIDEVICEINSTANCE *pdidInstance,
   hr = lpJoystick->EnumEffects(enumEffectsCallback, joyDev, DIEFT_ALL);
   if (FAILED(hr))
   {
-    debug_ctx_("EnumEffects = %X ", hr);
-    HumanInput::printHResult(hr);
+    HumanInput::printHResult(__FILE__, __LINE__, "EnumEffects", hr);
     // ignore error - it's not fatal to have no effects at all
   }
 #endif
@@ -302,7 +296,7 @@ static BOOL CALLBACK enumObjectsCallback(const DIDEVICEOBJECTINSTANCE *pdidoi, V
       else
       {
         joy.addAxis(JOY_SLIDER0, 0, pdidoi->tszName);
-        debug_ctx("incorrect slider offset: %d != %d,%d", pdidoi->dwOfs, DIJOFS_SLIDER(0), DIJOFS_SLIDER(1));
+        DEBUG_CTX("incorrect slider offset: %d != %d,%d", pdidoi->dwOfs, DIJOFS_SLIDER(0), DIJOFS_SLIDER(1));
       }
     }
     else if (pdidoi->guidType == GUID_XAxis)
@@ -341,7 +335,7 @@ static BOOL CALLBACK enumObjectsCallback(const DIDEVICEOBJECTINSTANCE *pdidoi, V
         joy.addAxis(JOY_SLIDER1, DIJOFS_SLIDER(1), pdidoi->tszName);
       else
       {
-        debug_ctx("unknown axis: type=%p:%p:%p:%p <%s>", ((unsigned *)&pdidoi->guidType)[0], ((unsigned *)&pdidoi->guidType)[1],
+        DEBUG_CTX("unknown axis: type=%p:%p:%p:%p <%s>", ((unsigned *)&pdidoi->guidType)[0], ((unsigned *)&pdidoi->guidType)[1],
           ((unsigned *)&pdidoi->guidType)[2], ((unsigned *)&pdidoi->guidType)[3], pdidoi->tszName);
         return DIENUM_CONTINUE;
       }
@@ -359,8 +353,7 @@ static BOOL CALLBACK enumObjectsCallback(const DIDEVICEOBJECTINSTANCE *pdidoi, V
     HRESULT hr = joy.getDev()->SetProperty(DIPROP_RANGE, &diprg.diph);
     if (FAILED(hr))
     {
-      debug_ctx_("SetProperty = %X ", hr);
-      HumanInput::printHResult(hr);
+      HumanInput::printHResult(__FILE__, __LINE__, "SetProperty", hr);
       return DIENUM_STOP;
     }
   }
@@ -379,8 +372,8 @@ static BOOL CALLBACK enumObjectsCallback(const DIDEVICEOBJECTINSTANCE *pdidoi, V
     debug(" * UNKNOWN %s usagePage %04X usage %04X", pdidoi->tszName, pdidoi->wUsagePage, pdidoi->wUsage);
   }
   // else
-  //   debug_ctx ( "unknown obj: %ph <%s> guid=%p:%p:%p:%p dwFlags=%ph", pdidoi->dwType, pdidoi->tszName, pdidoi->guidType,
-  //   pdidoi->dwFlags );
+  //   DEBUG_CTX("unknown obj: %ph <%s> guid=%p:%p:%p:%p dwFlags=%ph",
+  //     pdidoi->dwType, pdidoi->tszName, pdidoi->guidType, pdidoi->dwFlags);
 
   return DIENUM_CONTINUE;
 }
@@ -402,8 +395,7 @@ static BOOL CALLBACK enumObjSetLim(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *p
     HRESULT hr = joy.getDev()->SetProperty(DIPROP_RANGE, &diprg.diph);
     if (FAILED(hr))
     {
-      debug_ctx_("SetProperty = %X ", hr);
-      HumanInput::printHResult(hr);
+      HumanInput::printHResult(__FILE__, __LINE__, "SetProperty", hr);
       return DIENUM_STOP;
     }
   }

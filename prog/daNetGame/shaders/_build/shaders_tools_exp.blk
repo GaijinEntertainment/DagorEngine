@@ -1,0 +1,33 @@
+include shaders_tools11.blk
+
+"@override:outDumpName":t="../../tools/common/compiledShaders/tools.exp"
+outMiniDumpName:t="../../tools/common/compiledShaders/tools.exp"
+
+"@delete:source" {}
+source
+{
+  includePath:t="../../../prog/daNetGame/shaders"
+
+  file:t = "../rendinst_layered.dshl"
+  file:t = "../rendinst_simple.dshl"
+  file:t = "../rendinst_uv_debug.dshl"
+  file:t = "../rendinst_simple_painted.dshl"
+  file:t = "../rendinst_perlin_layered.dshl"
+  file:t = "../rendinst_vcolor_layered.dshl"
+  file:t = "../rendinst_cliff.dshl"
+  file:t = "../rendinst_decal.dshl"
+
+  file:t = "../rendinst_vegetation.dshl"
+  file:t = "../rendinst_tree_perlin_layered.dshl"
+  file:t = "../rendinst_impostor.dshl"
+  file:t = "../dynamic_simple.dshl"
+  file:t = "../dynamic_transparent.dshl"
+  file:t = "../dynamic_simple_painted.dshl"
+  file:t = "../dynamic_alpha_blend.dshl"
+  file:t = "../dynamic_masked_chrome.dshl"
+  file:t = "../heightmap.dshl"
+  file:t = "../rendinst_clipmap.dshl"
+  file:t = "../heightmap_patches.dshl"
+}
+
+"@delete:explicit_var_ref" {}

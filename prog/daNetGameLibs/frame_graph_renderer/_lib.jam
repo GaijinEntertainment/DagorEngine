@@ -1,0 +1,5 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_frame_graph_renderer_pull daNetGameLibs_frame_graph_renderer_DAS_pull_AOT ;
+}
+AddIncludes +=  $(Root)/prog/gameLibs/render/daBfg ;
+UseProgLibs += daNetGameLibs/frame_graph_renderer ;

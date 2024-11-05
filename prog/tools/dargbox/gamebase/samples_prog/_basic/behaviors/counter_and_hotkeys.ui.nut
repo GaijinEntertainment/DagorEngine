@@ -17,7 +17,7 @@ from "%darg/ui_imports.nut" import *
 */
 let cursors = require("samples_prog/_cursors.nut")
 
-let observable_counter = persist("counter", @() Watched(0)) //or model
+let observable_counter = mkWatched(persist, "counter", 0) //or model
 let counter_doubled = Computed(@() observable_counter.value*2)
 
 

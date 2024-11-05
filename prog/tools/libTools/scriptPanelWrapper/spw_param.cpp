@@ -1,8 +1,8 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <ioSys/dag_dataBlock.h>
 #include <sqplus.h>
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/control/container.h>
 
 #include <scriptPanelWrapper/spw_main.h>
 #include <scriptPanelWrapper/spw_param.h>
@@ -54,7 +54,7 @@ public:
   void setToScript(SquirrelObject &param) { param.SetValue("value", mValue); }
 
 
-  virtual void onChange(int pid, PropPanel2 &panel)
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     if (pid == mPid)
     {
@@ -138,7 +138,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel2 &panel)
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     if (pid == mPid)
     {
@@ -226,7 +226,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel2 &panel)
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     if (pid == mPid)
     {
@@ -299,7 +299,7 @@ public:
   void setToScript(SquirrelObject &param) { param.SetValue("value", mValue); }
 
 
-  virtual void onChange(int pid, PropPanel2 &panel)
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     if (pid == mPid)
     {
@@ -394,7 +394,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel2 &panel)
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     if (pid == mPid)
     {
@@ -521,7 +521,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel2 &panel)
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     if (pid == mPid)
     {
@@ -612,7 +612,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel2 &panel)
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     if (pid == mPid)
     {
@@ -705,7 +705,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel2 &panel)
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     if (pid == mPid)
     {
@@ -798,7 +798,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel2 &panel)
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     if (pid == mPid)
     {
@@ -894,7 +894,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel2 &panel)
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     if (pid == mPid)
     {
@@ -1000,7 +1000,7 @@ public:
       }
   }
 
-  virtual void onChange(int pid, PropPanel2 &panel)
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     if (pid == mPid)
     {
@@ -1047,7 +1047,7 @@ public:
       return;
     mPanel->createFileEditBox(mPid, mCaption, mValue);
     mPanel->setStrings(mPid, mFilter);
-    mPanel->setInt(mPid, FS_DIALOG_OPEN_FILE);
+    mPanel->setInt(mPid, PropPanel::FS_DIALOG_OPEN_FILE);
     mPanel->setUserData(mPid, mBaseFolder.str());
   }
 
@@ -1093,7 +1093,7 @@ public:
     if (!mPanel)
       return;
     mPanel->createFileEditBox(mPid, mCaption, mValue);
-    mPanel->setInt(mPid, FS_DIALOG_DIRECTORY);
+    mPanel->setInt(mPid, PropPanel::FS_DIALOG_DIRECTORY);
     mPanel->setUserData(mPid, mBaseFolder.str());
   }
 
@@ -1192,7 +1192,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel2 &panel)
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     if (pid == mPid)
     {
@@ -1253,7 +1253,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel2 &panel)
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     if (pid == mPid)
     {
@@ -1349,7 +1349,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel2 &panel)
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     if (pid == mPid && mCB)
     {
@@ -1380,7 +1380,7 @@ public:
     return false;
   }
 
-  virtual void onClick(int pid, PropPanel2 &panel) {}
+  virtual void onClick(int pid, PropPanel::ContainerPropertyControl &panel) {}
 
   virtual void load(const DataBlock &blk)
   {
@@ -1437,12 +1437,12 @@ public:
     if (!mPanel)
       return;
     mPanel->createFileEditBox(mPid, mCaption, mValue);
-    mPanel->setInt(mPid, FS_DIALOG_NONE);
+    mPanel->setInt(mPid, PropPanel::FS_DIALOG_NONE);
   }
 
-  virtual void onChange(int pid, PropPanel2 &panel) { SPText::onChange(pid, panel); }
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel) { SPText::onChange(pid, panel); }
 
-  virtual void onClick(int pid, PropPanel2 &panel)
+  virtual void onClick(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     if (pid == mPid && mCB)
     {
@@ -1468,8 +1468,8 @@ public:
   SPGradient(ScriptPanelContainer *parent, const char *name, const char *caption) :
     ScriptPanelParam(parent, name, caption), mValue(midmem), mMin(2), mMax(100)
   {
-    mValue.push_back(GradientKey(0, E3DCOLOR(0, 0, 0, 255)));
-    mValue.push_back(GradientKey(1, E3DCOLOR(255, 255, 255, 255)));
+    mValue.push_back(PropPanel::GradientKey(0, E3DCOLOR(0, 0, 0, 255)));
+    mValue.push_back(PropPanel::GradientKey(1, E3DCOLOR(255, 255, 255, 255)));
   }
 
 
@@ -1483,7 +1483,7 @@ public:
   }
 
 
-  void getGradientFromSQ(PGradient value, SquirrelObject &param, const char param_name[])
+  void getGradientFromSQ(PropPanel::PGradient value, SquirrelObject &param, const char param_name[])
   {
     clear_and_shrink(*value);
     SquirrelObject val = param.GetValue(param_name);
@@ -1501,7 +1501,7 @@ public:
           if (!col.IsNull() && col.GetType() == OT_ARRAY && col.Len() == 4)
             color = E3DCOLOR(col.GetInt(SQInteger(0)), col.GetInt(1), col.GetInt(2), col.GetInt(3));
 
-          value->push_back(GradientKey(x, color));
+          value->push_back(PropPanel::GradientKey(x, color));
         }
 
       val.EndIteration();
@@ -1526,7 +1526,7 @@ public:
 
     if (param.Exists("value"))
     {
-      Gradient value(tmpmem);
+      PropPanel::Gradient value(tmpmem);
       getGradientFromSQ(&value, param, "value");
 
       bool need_update = false;
@@ -1581,7 +1581,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel2 &panel)
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     if (pid == mPid)
     {
@@ -1627,7 +1627,7 @@ public:
           const DataBlock *val_blk = grad_blk->getBlock(i);
           if (val_blk->getBlockNameId() != val_name_id)
             continue;
-          mValue.push_back(GradientKey(val_blk->getReal("x", 0), val_blk->getE3dcolor("color", 0)));
+          mValue.push_back(PropPanel::GradientKey(val_blk->getReal("x", 0), val_blk->getE3dcolor("color", 0)));
         }
       }
 
@@ -1638,7 +1638,7 @@ public:
   }
 
 private:
-  Gradient mValue;
+  PropPanel::Gradient mValue;
   int mMin, mMax;
 };
 
@@ -1651,8 +1651,8 @@ public:
   SPTextGradient(ScriptPanelContainer *parent, const char *name, const char *caption) :
     ScriptPanelParam(parent, name, caption), mValue(midmem), mMin(2), mMax(100), mCB(NULL), objType(""), objFilter(""), isTarget(false)
   {
-    mValue.push_back(TextGradientKey(0, "start"));
-    mValue.push_back(TextGradientKey(1, "finish"));
+    mValue.push_back(PropPanel::TextGradientKey(0, "start"));
+    mValue.push_back(PropPanel::TextGradientKey(1, "finish"));
   }
 
 
@@ -1666,7 +1666,7 @@ public:
   }
 
 
-  void getGradientFromSQ(TextGradient &value, SquirrelObject &param, const char param_name[])
+  void getGradientFromSQ(PropPanel::TextGradient &value, SquirrelObject &param, const char param_name[])
   {
     clear_and_shrink(value);
     SquirrelObject val = param.GetValue(param_name);
@@ -1678,7 +1678,7 @@ public:
         {
           float x = (gr_point.Exists("x")) ? gr_point.GetFloat("x") : -1;
           SimpleString text(gr_point.Exists("text") ? gr_point.GetString("text") : "");
-          value.push_back(TextGradientKey(x, text.str()));
+          value.push_back(PropPanel::TextGradientKey(x, text.str()));
         }
       val.EndIteration();
     }
@@ -1702,7 +1702,7 @@ public:
 
     if (param.Exists("value"))
     {
-      TextGradient value(tmpmem);
+      PropPanel::TextGradient value(tmpmem);
       getGradientFromSQ(value, param, "value");
 
       bool need_update = false;
@@ -1768,7 +1768,7 @@ public:
     }
   }
 
-  long onChanging(int pid, PropPanel2 &panel)
+  long onChanging(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     if (isTarget)
     {
@@ -1786,7 +1786,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel2 &panel)
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     if (pid == mPid)
     {
@@ -1834,7 +1834,7 @@ public:
           const DataBlock *val_blk = grad_blk->getBlock(i);
           if (val_blk->getBlockNameId() != val_name_id)
             continue;
-          mValue.push_back(TextGradientKey(val_blk->getReal("x", 0), val_blk->getStr("text", "")));
+          mValue.push_back(PropPanel::TextGradientKey(val_blk->getReal("x", 0), val_blk->getStr("text", "")));
         }
       }
 
@@ -1875,7 +1875,7 @@ public:
   void setCB(IScriptPanelTargetCB *cb) { mCB = cb; }
 
 private:
-  TextGradient mValue;
+  PropPanel::TextGradient mValue;
   int mMin, mMax;
   IScriptPanelTargetCB *mCB;
   SimpleString objType, objFilter;
@@ -1908,9 +1908,9 @@ public:
     if (!mPanel)
       return;
     mPanel->createCurveEdit(mPid, mCaption, mHeight);
-    mPanel->setMinMaxStep(mPid, mMin, mMax, CURVE_MIN_MAX_POINTS);
-    mPanel->setMinMaxStep(mPid, mPoint0.x, mPoint1.x, CURVE_MIN_MAX_X);
-    mPanel->setMinMaxStep(mPid, mPoint0.y, mPoint1.y, CURVE_MIN_MAX_Y);
+    mPanel->setMinMaxStep(mPid, mMin, mMax, PropPanel::CURVE_MIN_MAX_POINTS);
+    mPanel->setMinMaxStep(mPid, mPoint0.x, mPoint1.x, PropPanel::CURVE_MIN_MAX_X);
+    mPanel->setMinMaxStep(mPid, mPoint0.y, mPoint1.y, PropPanel::CURVE_MIN_MAX_Y);
     mPanel->setControlPoints(mPid, mValue);
   }
 
@@ -1937,7 +1937,7 @@ public:
       mHeight = hdpi::_pxScaled(param.GetInt("height"));
       if (mPanel)
       {
-        PropertyControlBase *ctrl = mPanel->getById(mPid);
+        PropPanel::PropertyControlBase *ctrl = mPanel->getById(mPid);
         if (ctrl)
           ctrl->setHeight(mHeight);
       }
@@ -1950,7 +1950,7 @@ public:
       mMin = (min < 0) ? 0 : min;
       mMax = (max >= mMin) ? max : mMin;
       if (mPanel)
-        mPanel->setMinMaxStep(mPid, mMin, mMax, CURVE_MIN_MAX_POINTS);
+        mPanel->setMinMaxStep(mPid, mMin, mMax, PropPanel::CURVE_MIN_MAX_POINTS);
     }
 
     if (param.Exists("mark") && mPanel)
@@ -1961,8 +1961,8 @@ public:
     {
       mPoint0 = Point2(options.GetFloat(SQInteger(0)), options.GetFloat(1));
       mPoint1 = Point2(options.GetFloat(2), options.GetFloat(3));
-      mPanel->setMinMaxStep(mPid, mPoint0.x, mPoint1.x, CURVE_MIN_MAX_X);
-      mPanel->setMinMaxStep(mPid, mPoint0.y, mPoint1.y, CURVE_MIN_MAX_Y);
+      mPanel->setMinMaxStep(mPid, mPoint0.x, mPoint1.x, PropPanel::CURVE_MIN_MAX_X);
+      mPanel->setMinMaxStep(mPid, mPoint0.y, mPoint1.y, PropPanel::CURVE_MIN_MAX_Y);
     }
 
     if (param.Exists("value"))
@@ -2016,7 +2016,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel2 &panel)
+  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     if (pid == mPid)
     {
@@ -2090,7 +2090,8 @@ public:
 
   void createControl()
   {
-    PropPanel2 *grp = (!mPanel) ? NULL : ((isExt) ? mPanel->createExtGroup(mPid, mCaption) : mPanel->createGroup(mPid, mCaption));
+    PropPanel::ContainerPropertyControl *grp =
+      (!mPanel) ? NULL : ((isExt) ? mPanel->createExtGroup(mPid, mCaption) : mPanel->createGroup(mPid, mCaption));
     if (!mControls.IsNull())
       ScriptPanelContainer::fillParams(grp, mPanelWrapper->getFreePid(), mControls);
     if (isRenameble)
@@ -2129,7 +2130,7 @@ public:
       mPanel->setBool(mPid, is_minim);
   }
 
-  void onChange(int pid, PropPanel2 &panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
   {
     IScriptPanelTargetCB *cb = mPanelWrapper->getObjectCB();
     if (isRenameble && pid == namePid && cb)
@@ -2161,7 +2162,7 @@ public:
 
   void createControl()
   {
-    PropPanel2 *grp = (!mPanel) ? NULL : mPanel->createGroupBox(mPid, mCaption);
+    PropPanel::ContainerPropertyControl *grp = (!mPanel) ? NULL : mPanel->createGroupBox(mPid, mCaption);
     if (!mControls.IsNull())
       ScriptPanelContainer::fillParams(grp, mPanelWrapper->getFreePid(), mControls);
   }
@@ -2185,7 +2186,7 @@ public:
 
   virtual void createControl()
   {
-    PropPanel2 *grp = !mPanel ? NULL : mPanel->createGroup(mPid, mCaption);
+    PropPanel::ContainerPropertyControl *grp = !mPanel ? NULL : mPanel->createGroup(mPid, mCaption);
     if (!controls.IsNull())
       ScriptPanelContainer::fillParams(grp, mPanelWrapper->getFreePid(), controls);
     if (grp)
@@ -2222,7 +2223,7 @@ private:
 //=============================================================================
 
 
-void ScriptPanelContainer::scriptControlFactory(PropPanel2 *panel, int &pid, SquirrelObject param)
+void ScriptPanelContainer::scriptControlFactory(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject param)
 {
   ScriptPanelParam *panel_param = NULL;
 

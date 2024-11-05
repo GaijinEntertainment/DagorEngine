@@ -1,4 +1,8 @@
 macro SETUP_SSR(code)
+  hlsl(code){
+    // prevframe reproj
+    #define REPROJECT_TO_PREV_SCREEN 1
+  }
 endmacro
 
 texture prev_frame_tex;
@@ -18,13 +22,15 @@ float4 prev_globtm_no_ofs_psf_1;
 float4 prev_globtm_no_ofs_psf_2;
 float4 prev_globtm_no_ofs_psf_3;
 
-texture downsampled_close_depth_tex;
 int downsampled_depth_mip_count;
 float4 lowres_rt_params = (1280, 720, 0, 0);
 
 macro SSR_CALCULATE(code)
-  hlsl(code) {
+  INIT_PREV_PRE_EXPOSURE(code)
+  USE_PREV_PRE_EXPOSURE(code)
+  hlsl(code){
     #define linearSmoothnessToLinearRoughness(_param) (1.0f - _param)
+    #define PREV_FRAME_UNPACK(x) prev_pre_exposure_decode(x)
     #include "ssr_common.hlsl"
   }
 endmacro

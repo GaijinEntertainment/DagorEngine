@@ -1,0 +1,7 @@
+local R = prog/daNetGameLibs/motion_matching ;
+Sources +=
+  $(R)/dasModules/motion_matching.cpp
+;
+UseProgLibs +=
+  daNetGameLibs/motion_matching
+;

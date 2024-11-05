@@ -1,11 +1,18 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
 #include "pipeline_barrier.h"
-#include "device.h"
+
+#include <perfMon/dag_statDrv.h>
+
+#include "buffer_resource.h"
+#include "image_resource.h"
+#include "vk_to_string.h"
 
 using namespace drv3d_vulkan;
 
 PipelineBarrier::BarrierCache BuiltinPipelineBarrierCache::data[BUILTIN_ELEMENTS] = {};
+
+bool PipelineBarrier::dbgUseSplitSubmits = false;
 
 namespace
 {
@@ -41,6 +48,10 @@ PipelineBarrier::~PipelineBarrier()
 #endif
 }
 
+void PipelineBarrier::addStagesSrc(VkPipelineStageFlags stages) { pipeStages.src |= stages; }
+
+void PipelineBarrier::addStagesDst(VkPipelineStageFlags stages) { pipeStages.dst |= stages; }
+
 void PipelineBarrier::addStages(VkPipelineStageFlags src_stages, VkPipelineStageFlags dst_stages)
 {
   pipeStages.src |= src_stages;
@@ -57,8 +68,22 @@ void PipelineBarrier::addMemory(AccessFlags mask)
   newBarrier.dstAccessMask = mask.dst;
 }
 
-void PipelineBarrier::addBuffer(AccessFlags mask, VulkanBufferHandle buf, VkDeviceSize offset, VkDeviceSize size)
+void PipelineBarrier::addBuffer(AccessFlags mask, VulkanBufferHandle buf, VkDeviceSize offset, VkDeviceSize size, bool merge_by_object)
 {
+  if (merge_by_object && barriersCount.buffer)
+  {
+    VkBufferMemoryBarrier &i = cache.buffer[barriersCount.buffer - 1];
+    if (i.buffer == buf)
+    {
+      i.dstAccessMask |= mask.dst;
+      i.srcAccessMask |= mask.src;
+      i.size = max(i.offset + i.size, offset + size);
+      i.offset = min(i.offset, offset);
+      i.size -= i.offset;
+      return;
+    }
+  }
+
   VkBufferMemoryBarrier &newBarrier = nextCacheElement(cache.buffer, barriersCount.buffer,
     {VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, nullptr, 0, 0, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED});
 
@@ -87,7 +112,7 @@ void PipelineBarrier::addImage(AccessFlags mask, VulkanImageHandle img, VkImageL
 
 void PipelineBarrier::addBuffer(AccessFlags mask, const Buffer *buf, VkDeviceSize offset, VkDeviceSize size)
 {
-  addBuffer(mask, buf->getHandle(), offset, size);
+  addBuffer(mask, buf->getHandle(), offset, size, false);
 }
 
 void PipelineBarrier::modifyBufferTemplate(AccessFlags mask) { barrierTemplate.buffer.mask = mask; }
@@ -96,10 +121,16 @@ void PipelineBarrier::modifyBufferTemplate(const Buffer *buf) { barrierTemplate.
 
 void PipelineBarrier::modifyBufferTemplate(VulkanBufferHandle buf) { barrierTemplate.buffer.handle = buf; }
 
-void PipelineBarrier::addBufferByTemplate(VkDeviceSize offset, VkDeviceSize size, VkAccessFlags srcAccessMask)
+void PipelineBarrier::addBufferByTemplate(VkDeviceSize offset, VkDeviceSize size)
 {
   BufferTemplate &tpl = barrierTemplate.buffer;
-  addBuffer({srcAccessMask, tpl.mask.dst}, tpl.handle, offset, size);
+  addBuffer(tpl.mask, tpl.handle, offset, size, false);
+}
+
+void PipelineBarrier::addBufferByTemplateMerged(VkDeviceSize offset, VkDeviceSize size)
+{
+  BufferTemplate &tpl = barrierTemplate.buffer;
+  addBuffer(tpl.mask, tpl.handle, offset, size, true);
 }
 
 void PipelineBarrier::modifyImageTemplate(AccessFlags mask)
@@ -154,6 +185,8 @@ void PipelineBarrier::reset()
 
 bool PipelineBarrier::empty() { return !(barriersCount.mem || barriersCount.buffer || barriersCount.image); }
 
+VkPipelineStageFlags PipelineBarrier::getStagesSrc() { return pipeStages.src; }
+
 void PipelineBarrier::revertImageBarriers(AccessFlags mask, VkImageLayout shared_old_layout)
 {
   pipeStages.src = 0;
@@ -168,13 +201,43 @@ void PipelineBarrier::revertImageBarriers(AccessFlags mask, VkImageLayout shared
   }
 }
 
+void PipelineBarrier::submitSplitted(VulkanCommandBufferHandle cmd_buffer)
+{
+  if (barriersCount.mem)
+  {
+    TIME_PROFILE(vulkan_barrier_s_mem);
+    device.vkCmdPipelineBarrier(cmd_buffer, pipeStages.src, pipeStages.dst, dependencyFlags, barriersCount.mem, safe_at(cache.mem, 0),
+      0, nullptr, 0, nullptr);
+  }
+
+  if (barriersCount.buffer)
+  {
+    TIME_PROFILE(vulkan_barrier_s_buf);
+    for (int i = 0; i < barriersCount.buffer; ++i)
+      device.vkCmdPipelineBarrier(cmd_buffer, pipeStages.src, pipeStages.dst, dependencyFlags, 0, nullptr, 1, safe_at(cache.buffer, i),
+        0, nullptr);
+  }
+
+  if (barriersCount.image)
+  {
+    TIME_PROFILE(vulkan_barrier_s_img);
+    for (int i = 0; i < barriersCount.image; ++i)
+      device.vkCmdPipelineBarrier(cmd_buffer, pipeStages.src, pipeStages.dst, dependencyFlags, 0, nullptr, 0, nullptr, 1,
+        safe_at(cache.image, i));
+  }
+}
+
 void PipelineBarrier::submit(VulkanCommandBufferHandle cmd_buffer, bool keep_cache)
 {
-  G_ASSERT(pipeStages.src);
+  // don't check src, src none barrier is ok
   G_ASSERT(pipeStages.dst);
 
+#if DAGOR_DBGLEVEL > 0
+  if (dbgUseSplitSubmits)
+    submitSplitted(cmd_buffer);
+  else
+#endif
   {
-    TIME_PROFILE(vulkan_barrier);
     device.vkCmdPipelineBarrier(cmd_buffer, pipeStages.src, pipeStages.dst, dependencyFlags, barriersCount.mem, safe_at(cache.mem, 0),
       barriersCount.buffer, safe_at(cache.buffer, 0), barriersCount.image, safe_at(cache.image, 0));
   }
@@ -214,6 +277,18 @@ void PipelineBarrier::dbgPrint()
   }
 }
 
+void PipelineBarrier::addImageByTemplateWithSrcAccess(VkAccessFlags mask)
+{
+  ImageTemplate &tpl = barrierTemplate.image;
+  addImageByTemplate({mask, tpl.mask.dst});
+}
+
+void PipelineBarrier::addImageByTemplateWithDstAccess(VkAccessFlags mask)
+{
+  ImageTemplate &tpl = barrierTemplate.image;
+  addImageByTemplate({tpl.mask.src, mask});
+}
+
 void PipelineBarrier::addImageByTemplate(AccessFlags mask)
 {
   ImageTemplate &tpl = barrierTemplate.image;
@@ -221,8 +296,9 @@ void PipelineBarrier::addImageByTemplate(AccessFlags mask)
     {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, nullptr, 0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_UNDEFINED,
       VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED});
 
-  newBarrier.srcAccessMask = mask.src != VK_ACCESS_NONE ? mask.src : tpl.mask.src;
-  newBarrier.dstAccessMask = mask.dst != VK_ACCESS_NONE ? mask.dst : tpl.mask.dst;
+
+  newBarrier.srcAccessMask = mask.src;
+  newBarrier.dstAccessMask = mask.dst;
   newBarrier.oldLayout = tpl.oldLayout;
   newBarrier.newLayout = tpl.newLayout;
   newBarrier.image = tpl.handle;

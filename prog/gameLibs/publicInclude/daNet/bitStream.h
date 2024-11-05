@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -143,6 +142,8 @@ public:
     if (dataOwner)
       memfree(GetData(), allocator);
   }
+
+  void Clear() { *this = BitStream(allocator); }
 
   //
   // RakNet compatible interface
@@ -573,10 +574,13 @@ public:
     if (!bitsAllocated || bitsAllocated < newBitsAllocated)
     {
       G_ASSERT(!bitsAllocated || dataOwner);
-      size_t newBytesAllocated;
-      data = (uint8_t *)allocator->realloc(GetData(),
-        max(bitsAllocated ? (bitsAllocated >> 3) * 2u : 16u, bits2bytes(newBitsAllocated)), &newBytesAllocated);
-      memset(data + (bitsAllocated >> 3), 0, newBytesAllocated - (bitsAllocated >> 3));
+      size_t newBytesAllocated = max(bitsAllocated ? (bitsAllocated >> 3) * 2u : 16u, bits2bytes(newBitsAllocated));
+      if (!data)
+        data = (uint8_t *)allocator->alloc(newBytesAllocated, &newBytesAllocated);
+      else
+        data = (uint8_t *)allocator->realloc(data, newBytesAllocated, &newBytesAllocated);
+      if (size_t tailBytes = newBytesAllocated - (bitsAllocated >> 3))
+        memset(data + (bitsAllocated >> 3), 0, tailBytes);
       dataOwner = 1;
       bitsAllocated = (uint32_t)bytes2bits(newBytesAllocated);
     }

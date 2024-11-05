@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -63,6 +62,7 @@ VECTORCALL inline bool get_lines_intersection(Point2 st1, Point2 en1, Point2 st2
 VECTORCALL bool get_lines_intersection(Point2 start1, Point2 end1, Point2 start2, Point2 end2, Point2 *out_intersection);
 VECTORCALL bool is_lines_intersect(Point2 p11, Point2 p12, Point2 p21, Point2 p22);
 VECTORCALL real distance_point_to_line_segment(Point2 pt, Point2 p1, Point2 p2);
+VECTORCALL real distance_point_to_line_segment_square(Point2 pt, Point2 p1, Point2 p2);
 
 
 // NOTE: Line is specified as point and direction vector.

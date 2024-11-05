@@ -1,0 +1,7 @@
+puddles_manager{
+  _use:t="replicating"
+  _singleton:b=yes
+  _tags:t="render"
+  puddles__bare_minimum_dist:r=50
+  "puddles__manager:PuddlesManager"{}
+}

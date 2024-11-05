@@ -1,0 +1,172 @@
+include "shader_global.dshl"
+
+texture final_target_frame;
+float4 fxaa_params_simple = (0.75, 0.166, 0.0833, 0);    // fxaaQualitySubpix, fxaaQualityEdgeThreshold, fxaaQualityEdgeThresholdMin
+float4 fxaa_tc_scale_offset = float4(1.0, 1.0, 0.0, 0.0);
+
+int fxaa_quality_lev = 12;
+interval fxaa_quality_lev : fxaa_quality_none<1, fxaa_quality_low < 10, fxaa_quality_default<29, fxaa_quality_high;
+
+
+float4 fxaa_resolution;
+
+shader fxaa
+{
+  //supports global_frame;
+  cull_mode  = none;
+  z_test=false;
+  z_write = false;
+  (vs) { fxaa_tc_scale_offset@f4 = fxaa_tc_scale_offset; }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+
+  local float4 resolution = (fxaa_resolution.x, fxaa_resolution.y, 1.0/fxaa_resolution.x, 1.0/fxaa_resolution.y);
+
+  (ps) {
+    tex@smp2d = final_target_frame;
+    resolution@f4 = (resolution);
+    fxaa_params@f4 = fxaa_params_simple;
+    //source_depth_tex@smp2d = source_depth_tex;
+  }
+
+  if (fxaa_quality_lev == fxaa_quality_low || fxaa_quality_lev == fxaa_quality_none)
+  {
+    (vs) { resolution@f4 = (resolution); }
+    hlsl {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+        float4 texcoord : TEXCOORD0;
+      };
+    }
+
+    hlsl(vs) {
+      VsOutput antialiasing_vs(uint vertex_id : SV_VertexID)
+      {
+        VsOutput output;
+  /*--------------------------------------------------------------------------*/
+      #define FXAA_SUBPIX_SHIFT 0//(1.0/4.0)
+  /*--------------------------------------------------------------------------*/
+        float2 pos = getPostfxVertexPositionById(vertex_id);
+        output.pos = float4(pos.x, pos.y, 1, 1);
+        output.texcoord.xy = screen_to_texcoords(pos);
+        output.texcoord.xy = output.texcoord.xy * fxaa_tc_scale_offset.xy + fxaa_tc_scale_offset.zw;
+        output.texcoord.zw = output.texcoord.xy - (resolution.zw * (0.5 + FXAA_SUBPIX_SHIFT));
+        return output;
+      }
+    }
+
+    hlsl(ps) {
+      #define int2 half2
+      #define FxaaInt2 half2
+      #define Fxaahalf2 half2
+      #define FxaaSat(a) saturate((a))
+      #define FxaaTex sampler2D
+      #define FxaaTexLod0(t, p) ((half4)tex2Dlod(t, float4(p, 0.0, 0.0)))
+      #define FxaaTexOff(t, p, o, r) ((half4)tex2Dlod(t, float4(p + (o * r), 0, 0)))
+      #define LUMA_CHANNEL y
+
+      float4 antialiasing_ps(VsOutput IN): SV_Target
+      {
+        float4 posPos = IN.texcoord;
+        ##if (fxaa_quality_lev == fxaa_quality_none)
+          return tex2Dlod(tex, float4(posPos.xy,0,0));
+        ##endif
+
+        //return 0;
+    /*--------------------------------------------------------------------------*/
+        #define FXAA_REDUCE_MIN   (1.0/128.0)
+        #define FXAA_REDUCE_MUL   (1.0/8.0)
+        #define FXAA_SPAN_MAX     8.0
+    /*--------------------------------------------------------------------------*/
+        half4 rgbNW = FxaaTexLod0(tex, posPos.zw);
+        half4 rgbNE = FxaaTexOff(tex, posPos.zw, FxaaInt2(1,0), resolution.zw);
+        half4 rgbSW = FxaaTexOff(tex, posPos.zw, FxaaInt2(0,1), resolution.zw);
+        half4 rgbSE = FxaaTexOff(tex, posPos.zw, FxaaInt2(1,1), resolution.zw);
+        half4 rgbM  = FxaaTexLod0(tex, posPos.xy);
+    /*--------------------------------------------------------------------------*/
+        half lumaNW = rgbNW.LUMA_CHANNEL;
+        half lumaNE = rgbNE.LUMA_CHANNEL;
+        half lumaSW = rgbSW.LUMA_CHANNEL;
+        half lumaSE = rgbSE.LUMA_CHANNEL;
+        half lumaM  = rgbM.LUMA_CHANNEL;
+    /*--------------------------------------------------------------------------*/
+        half lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
+        half lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
+    /*--------------------------------------------------------------------------*/
+        float2 dir; 
+        dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
+        dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));
+    /*--------------------------------------------------------------------------*/
+        half dirReduce = max(
+            (lumaNW + lumaNE + lumaSW + lumaSE) * (0.25 * FXAA_REDUCE_MUL),
+            FXAA_REDUCE_MIN);
+        half rcpDirMin = 1.0/(min(abs(dir.x), abs(dir.y)) + dirReduce);
+        dir = min(Fxaahalf2( FXAA_SPAN_MAX,  FXAA_SPAN_MAX), 
+              max(Fxaahalf2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX), 
+              dir * rcpDirMin)) * (half2)resolution.zw;
+    /*--------------------------------------------------------------------------*/
+        half4 rgbA = (1.0/2.0) * (
+            FxaaTexLod0(tex, posPos.xy + dir * (1.0/3.0 - 0.5)) +
+            FxaaTexLod0(tex, posPos.xy + dir * (2.0/3.0 - 0.5)));
+        half4 rgbB = rgbA * (1.0/2.0) + (1.0/4.0) * (
+            FxaaTexLod0(tex, posPos.xy + dir * (0.0/3.0 - 0.5)) +
+            FxaaTexLod0(tex, posPos.xy + dir * (3.0/3.0 - 0.5)));
+
+        half lumaB = rgbB.LUMA_CHANNEL;
+
+        if ((lumaB < lumaMin) || (lumaB > lumaMax)) 
+          return rgbA;
+        return rgbB;
+      }
+    }
+  } else {
+    hlsl {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+        float2 texcoord : TEXCOORD0;
+      };
+    }
+
+    hlsl(vs) {
+      VsOutput antialiasing_vs(uint vertex_id : SV_VertexID)
+      {
+        VsOutput output;
+        float2 pos = getPostfxVertexPositionById(vertex_id);
+        output.pos = float4(pos.x, pos.y, 1, 1);
+        output.texcoord.xy = screen_to_texcoords(pos);
+        output.texcoord.xy = output.texcoord.xy * fxaa_tc_scale_offset.xy + fxaa_tc_scale_offset.zw;
+        return output;
+      }
+    }
+
+
+    hlsl(ps) {
+      #define FXAA_PC 1
+      //#define FXAA_HLSL_3 1
+      #define FXAA_HLSL_5 1
+      ##if fxaa_quality_lev == fxaa_quality_high
+      #define FXAA_QUALITY__PRESET 29
+      ##else
+      #define FXAA_QUALITY__PRESET 12
+      ##endif
+      #define FXAA_GREEN_AS_LUMA 1
+
+      #include "./fxaa3_11.hlsl"
+      float4 antialiasing_ps(VsOutput input) : SV_Target
+      {
+        FxaaTex inputTex;
+        inputTex.smpl = tex_samplerstate;
+        inputTex.tex = tex;
+        //float3 fxaa_params = float4(0.75, 0.166, 0.0833);
+        return FxaaPixelShader(input.texcoord.xy, 0, inputTex, inputTex, inputTex, resolution.zw, 0, 0, 0, fxaa_params.x, fxaa_params.y, fxaa_params.z, 0, 0, 0, 0);
+      }
+
+
+    }
+  }
+
+  compile("target_ps", "antialiasing_ps");
+  compile("target_vs", "antialiasing_vs");
+}

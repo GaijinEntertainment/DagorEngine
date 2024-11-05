@@ -1,0 +1,78 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/bvh ;
+
+TargetType  = lib ;
+Target      = gameLibs/bvh.lib ;
+
+BVHSupport ?= no ;
+
+BVHTerrain ?= yes ;
+BVHRi ?= yes ;
+BVHRandomGrass ?= yes ;
+BVHGpuObjects ?= yes ;
+BVHDynRend ?= yes ;
+BVHFx ?= yes ;
+BVHCables ?= yes ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+if $(BVHSupport) = yes {
+  Sources = bvh.cpp bvh_context.cpp bvh_debug.cpp bvh_processors.cpp ;
+
+  if $(BVHTerrain) = yes {
+    Sources += bvh_terrain.cpp ;
+  } else {
+    Sources += stub/bvh_stub_terrain.cpp ;
+  }
+
+  if $(BVHRi) = yes {
+    Sources += bvh_ri.cpp bvh_ri_gen.cpp bvh_ri_ex.cpp ;
+  } else {
+    Sources += stub/bvh_stub_ri.cpp ;
+  }
+
+  if $(BVHDynRend) = yes {
+    Sources += bvh_dyn.cpp ;
+  } else {
+    Sources += stub/bvh_stub_dyn.cpp ;
+  }
+
+  if $(BVHGpuObjects) = yes {
+    Sources += bvh_gobj.cpp ;
+  } else {
+    Sources += stub/bvh_stub_gobj.cpp ;
+  }
+
+  if $(BVHRandomGrass) = yes {
+    Sources += bvh_grass.cpp ;
+  } else {
+    Sources += stub/bvh_stub_grass.cpp ;
+  }
+
+  if $(BVHCables) = yes {
+    Sources += bvh_cables.cpp ;
+  } else {
+    Sources += stub/bvh_stub_cables.cpp ;
+  }
+
+  if $(BVHFx) = yes {
+    Sources += bvh_fx.cpp ;
+  } else {
+    Sources += stub/bvh_stub_fx.cpp ;
+  }
+} else {
+  Sources =
+    stub/bvh_stub.cpp
+    stub/bvh_stub_processors.cpp
+  ;
+  Target = $(Target:S=-stub.lib) ;
+}
+
+if $(PlatformSpec) = vc17 { CPPopt += /wd4582 /wd5031 ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

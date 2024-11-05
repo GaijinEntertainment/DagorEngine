@@ -1,9 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "convexHullComputerProcessing.h"
 #include "propPanelPids.h"
 #include "collisionUtils.h"
 #include <debug/dag_debug3d.h>
 
-void ConvexHullComputerProcessing::init(CollisionResource *collision_res, PropertyContainerControlBase *prop_panel)
+void ConvexHullComputerProcessing::init(CollisionResource *collision_res, PropPanel::ContainerPropertyControl *prop_panel)
 {
   collisionRes = collision_res;
   panel = prop_panel;
@@ -76,7 +78,7 @@ void ConvexHullComputerProcessing::renderComputedConvex(bool is_faded)
 
 void ConvexHullComputerProcessing::fillConvexComputerPanel()
 {
-  PropertyContainerControlBase &convexComputerGroup = *panel->createGroup(PID_CONVEX_COMPUTER_GROUP, "convex computer options");
+  PropPanel::ContainerPropertyControl &convexComputerGroup = *panel->createGroup(PID_CONVEX_COMPUTER_GROUP, "convex computer options");
   convexComputerGroup.createCheckBox(PID_SHOW_CONVEX_COMPUTER, "Show computed convex", showConvexComputed);
   convexComputerGroup.createTrackFloat(PID_CONVEX_COMPUTER_SHRINK, "Shrink", 0.f, 0.f, 10.f, 0.01f);
   convexComputerGroup.createSeparator();

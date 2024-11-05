@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "shaders/sh_vars.h"
 #include <shaders/dag_shaders.h>
 

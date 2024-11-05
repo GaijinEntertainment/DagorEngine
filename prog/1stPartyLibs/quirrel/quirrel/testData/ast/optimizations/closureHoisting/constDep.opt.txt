@@ -1,8 +1,8 @@
 {
-  let foo = FUNCTION foo(this) {
+  let foo = FUNCTION foo() {
     x = "asdf"
     println(x)
-    let bar = FUNCTION bar(this) {
+    let bar = FUNCTION bar() {
       let a = x
     }
     bar()

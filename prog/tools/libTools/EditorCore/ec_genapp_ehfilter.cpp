@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EditorCore/ec_genapp_ehfilter.h>
 #include <EditorCore/ec_cm.h>
 #include <EditorCore/ec_ViewportWindow.h>

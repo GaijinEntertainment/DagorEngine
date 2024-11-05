@@ -1,9 +1,9 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <humanInput/dag_hiKeyboard.h>
-#include <humanInput/dag_hiGlobals.h>
-#include <humanInput/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiKeyboard.h>
+#include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiKeybIds.h>
 #include <android/keycodes.h>
 #include <osApiWrappers/dag_wndProcComponent.h>
 #include <osApiWrappers/dag_wndProcCompMsg.h>
@@ -282,7 +282,7 @@ public:
       AKEYCODE_BUTTON_R2,     // AKEYCODE_BUTTON_R2
       AKEYCODE_BUTTON_THUMBL, // AKEYCODE_BUTTON_THUMBL
       AKEYCODE_BUTTON_THUMBR, // AKEYCODE_BUTTON_THUMBR
-      DKEY_RETURN,            // AKEYCODE_BUTTON_START
+      AKEYCODE_BUTTON_START,  // AKEYCODE_BUTTON_START
       AKEYCODE_BUTTON_SELECT, // AKEYCODE_BUTTON_SELECT
       AKEYCODE_BUTTON_MODE,   // AKEYCODE_BUTTON_MODE
       DKEY_ESCAPE,            // AKEYCODE_ESCAPE

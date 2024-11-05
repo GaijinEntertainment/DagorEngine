@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_math3d.h>
 #include <math/random/dag_random.h>
 #include <math/dag_color.h>
@@ -12,8 +14,9 @@
 #include <staticVisSphere.h>
 #include <math/dag_noise.h>
 #include <3d/dag_texMgr.h>
-#include <3d/dag_tex3d.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
 #include "randvec.h"
 #include <gameRes/dag_gameResources.h>
@@ -127,6 +130,8 @@ public:
     fxScale = 1;
     par.seed = grnd();
   }
+  FlowPs2Effect(FlowPs2Effect &&) = default;
+  FlowPs2Effect(const FlowPs2Effect &) = default; // should be used with caution only in clone()
 
 
   ~FlowPs2Effect()
@@ -183,7 +188,7 @@ public:
     BaseTexture *t = acquire_managed_tex((TEXTUREID)(uintptr_t)par.texture);
     if (t)
     {
-      t->texfilter(TEXFILTER_SMOOTH);
+      t->texfilter(TEXFILTER_LINEAR);
       release_managed_tex((TEXTUREID)(uintptr_t)par.texture);
     }
 
@@ -192,7 +197,7 @@ public:
       t = acquire_managed_tex((TEXTUREID)(uintptr_t)par.normal);
       if (t)
       {
-        t->texfilter(TEXFILTER_SMOOTH);
+        t->texfilter(TEXFILTER_LINEAR);
         release_managed_tex((TEXTUREID)(uintptr_t)par.normal);
       }
     }

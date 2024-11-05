@@ -57,7 +57,7 @@ class ContextStateAgent : DapiDebugAgent
                             tinfo = invoke(fnTypeInfo)
                     var arr : array<uint8>
                     unsafe(_builtin_make_temp_array(arr, unsafe(addr(c.data[0])), arch.size ))
-                    cv.values = sprint_data(unsafe(addr(arr)), tinfo, print_flags humanReadable)
+                    cv.values = sprint_data(unsafe(addr(arr)), tinfo, print_flags singleLine)
                 arq.components |> push(cv)
             report_to_debugger(ctx, "DECS archetype", "{arq.hash}", arq)
             delete arq

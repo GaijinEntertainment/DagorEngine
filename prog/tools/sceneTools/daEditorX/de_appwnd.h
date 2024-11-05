@@ -1,12 +1,12 @@
-#ifndef __GAIJIN_DAGORED_DE_APPWND_H__
-#define __GAIJIN_DAGORED_DE_APPWND_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <oldEditor/de_interface.h>
 #include <oldEditor/de_common_interface.h>
 
 #include <sepGui/wndPublic.h>
-#include <propPanel2/c_control_event_handler.h>
+#include <propPanel/c_control_event_handler.h>
+#include <propPanel/messageQueue.h>
 
 #include <libTools/util/filePathname.h>
 
@@ -31,6 +31,7 @@
 
 class AboutDlg;
 class IWaterService;
+class StartupDlg;
 
 enum
 {
@@ -108,8 +109,10 @@ private:
 class DagorEdAppWindow : public GenericEditorAppWindow,
                          public IDagorEd2Engine,
                          public IConsoleCmd,
-                         public ControlEventHandler,
-                         public IWndManagerWindowHandler
+                         public PropPanel::ControlEventHandler,
+                         public IWndManagerWindowHandler,
+                         public PropPanel::IDelayedCallbackHandler,
+                         public IMainWindowImguiRenderingService
 {
   friend class DagorEdAppEventHandler;
 
@@ -191,10 +194,10 @@ public:
   virtual bool isCustomShadowEnabled(const IDagorEdCustomCollider *collider) const;
   virtual int getCustomCollidersCount() const;
   virtual IDagorEdCustomCollider *getCustomCollider(int idx) const;
-  virtual bool fillCustomCollidersList(PropPanel2 &panel, const char *grp_caption, int grp_pid, int collider_pid, bool shadow,
-    bool open_grp) const;
+  virtual bool fillCustomCollidersList(PropPanel::ContainerPropertyControl &panel, const char *grp_caption, int grp_pid,
+    int collider_pid, bool shadow, bool open_grp) const;
 
-  virtual bool onPPColliderCheck(int pid, const PropPanel2 &panel, int collider_pid, bool shadow) const;
+  virtual bool onPPColliderCheck(int pid, const PropPanel::ContainerPropertyControl &panel, int collider_pid, bool shadow) const;
 
   virtual bool getUseOnlyVisibleColliders() const;
   virtual void setUseOnlyVisibleColliders(bool use);
@@ -216,6 +219,7 @@ public:
   virtual bool shadowRayHitTest(const Point3 &src, const Point3 &dir, real dist);
   virtual int getNextUniqueId();
   virtual bool spawnEvent(unsigned event_huid, void *user_data);
+  virtual unsigned getLeftDockNodeId() const override { return leftDockNodeId; }
   // ==========================================================================
 
 
@@ -231,23 +235,21 @@ public:
 
   virtual IWndManager *getWndManager() const;
 
-  virtual PropertyContainerControlBase *getCustomPanel(int id) const;
-
-  virtual void *addToolbar(hdpi::Px height);
-  virtual CToolWindow *createToolbar(ControlEventHandler *eh, void *hwnd);
+  virtual PropPanel::ContainerPropertyControl *getCustomPanel(int id) const;
 
   virtual void addPropPanel(int type, hdpi::Px width);
   virtual void removePropPanel(void *hwnd);
   virtual void managePropPanels();
   virtual void skipManagePropPanels(bool skip);
-  virtual CPanelWindow *createPropPanel(ControlEventHandler *eh, void *hwnd);
+  virtual PropPanel::PanelWindowPropertyControl *createPropPanel(PropPanel::ControlEventHandler *eh, const char *caption) override;
+  virtual PropPanel::IMenu *getMainMenu() override;
 
   void *addRawPropPanel(hdpi::Px width);
 
-  virtual void deleteCustomPanel(PropPanel2 *panel);
+  virtual void deleteCustomPanel(PropPanel::ContainerPropertyControl *panel);
 
-  virtual CDialogWindow *createDialog(hdpi::Px w, hdpi::Px h, const char *caption);
-  virtual void deleteDialog(CDialogWindow *dlg);
+  virtual PropPanel::DialogWindow *createDialog(hdpi::Px w, hdpi::Px h, const char *title) override;
+  virtual void deleteDialog(PropPanel::DialogWindow *dlg) override;
 
   // viewport methods
   virtual int getViewportCount();
@@ -333,6 +335,7 @@ public:
   DeWorkspace *getWorkspace() { return wsp; }
 
   void onBeforeReset3dDevice();
+  bool onDropFiles(const dag::Vector<String> &files);
 
   bool forceSaveProject();
   bool reloadProject();
@@ -342,9 +345,11 @@ public:
   virtual const char *onConsoleCommandHelp(const char *cmd);
 
   // IWndManagerWindowHandler
-  virtual IWndEmbeddedWindow *onWmCreateWindow(void *handle, int type);
-  virtual bool onWmDestroyWindow(void *handle);
+  virtual void *onWmCreateWindow(int type) override;
+  virtual bool onWmDestroyWindow(void *window) override;
 
+  virtual void setShowMessageAt(int x, int y, const SimpleString &msg);
+  virtual void showMessageAt();
   using GenericEditorAppWindow::renderInTex;
 
 protected:
@@ -381,14 +386,14 @@ protected:
   virtual void getDocTitleText(String &text);
   virtual bool canCloseScene(const char *title);
 
-  virtual void fillMenu(IMenu *menu);
-  virtual void updateMenu(IMenu *menu);
+  virtual void fillMenu(PropPanel::IMenu *menu) override;
+  virtual void updateMenu(PropPanel::IMenu *menu) override;
 
   virtual int onMenuItemClick(unsigned id);
 
   // ControlEventHandler
-  virtual void onClick(int pcb_id, PropPanel2 *panel);
-  virtual void onChange(int pcb_id, PropPanel2 *panel);
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
 
   void prepareLocalLevelBlk(const char *filename, String &localSetPath, DataBlock &localBlk);
   void autoSaveProject(const char *filename);
@@ -405,7 +410,7 @@ protected:
   void sortPlugins();
   void switchToPlugin(int plgId);
 
-  void initPlugins();
+  void initPlugins(const DataBlock &global_settings);
   void fillPluginTabs();
   void switchPluginTab(bool next = true);
 
@@ -449,6 +454,16 @@ private:
   // if true, GeomObject uses direct light, otherwise GeomObject uses SH3Light
   bool useDirectLight;
 
+  void renderUIViewports();
+  void renderUI();
+
+  // IMainWindowImguiRenderingService
+  virtual void beforeUpdateImgui() override;
+  virtual void updateImgui() override;
+
+  // PropPanel::IDelayedCallbackHandler
+  virtual void onImguiDelayedCallback(void *user_data) override;
+
   void showStats();
 
   void registerConsoleCommands();
@@ -485,8 +500,8 @@ private:
 
   static bool gracefulFatalExit(const char *msg, const char *call_stack, const char *file, int line);
 
-  CToolWindow *mToolPanel, *mTabWindow, *mPlugTools;
-  PropertyContainerControlBase *mTabPanel;
+  PropPanel::ContainerPropertyControl *mToolPanel, *mTabWindow, *mPlugTools;
+  PropPanel::ContainerPropertyControl *mTabPanel;
 
   bool mNeedSuppress;
   int mMsgBoxResult;
@@ -497,9 +512,16 @@ private:
   IWaterService *waterService;
   bool noWaterService;
 
+  StartupDlg *startupDlgShown = nullptr;
   DataBlock screenshotMetaInfoToApply;
+
+  int msgX, msgY;
+  SimpleString messageAt;
+
+  Point2 viewportSplitRatio = Point2(0.5f, 0.5f);
+  bool dockPositionsInitialized = false;
+  bool imguiDebugWindowsVisible = false;
+  unsigned leftDockNodeId = 0; // ImGuiID
 };
 
 void send_event_error(const char *s, const char *callstack);
-
-#endif

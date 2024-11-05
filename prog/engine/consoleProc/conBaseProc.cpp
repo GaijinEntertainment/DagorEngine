@@ -1,4 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_console.h>
 #include <util/dag_convar.h>
 #include <util/dag_string.h>
@@ -219,6 +220,10 @@ public:
     }
     CONSOLE_CHECK_NAME("app", "divzero", 1, 1) { debug("%f", 1.0f / test_zero); }
     CONSOLE_CHECK_NAME("app", "crash", 1, 1) { *(volatile int *)0 = 0; }
+#if _TARGET_PC_WIN
+    CONSOLE_CHECK_NAME("app", "corruptstack", 1, 1) { memset((char *)_AddressOfReturnAddress() - 0x148, 0xEE, 0x200); }
+    CONSOLE_CHECK_NAME("app", "corruptstack2", 1, 1) { *(uintptr_t *)_AddressOfReturnAddress() = 0xAABBCCDD; }
+#endif
     CONSOLE_CHECK_NAME("app", "fatal", 1, 1) { DAG_FATAL("manual fatal"); }
     CONSOLE_CHECK_NAME("app", "threadcrash", 1, 1)
     {

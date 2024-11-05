@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "blk_shared.h"
 #include <ioSys/dag_genIo.h>
 #include <util/le2be.h>

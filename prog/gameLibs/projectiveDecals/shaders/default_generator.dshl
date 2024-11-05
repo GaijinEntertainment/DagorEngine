@@ -1,0 +1,269 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "frustum.dshl"
+include "projectiveDecals/projective_decals_common.dshl"
+include "static_shadow.dshl"
+
+buffer spray_decal_matrices;
+
+shader projective_decal_decals_generator
+{
+  hlsl(cs) {
+    uint4 decalsToUpdateCount:register(c0);
+    ProjectiveToUpdate decalsToUpdate[MAX_DECALS_TO_UPDATE] : register(c1);
+    RWStructuredBuffer<ProjectiveDecalInstance> decals : register(u0);
+##if !hardware.metal
+    #if !SHADER_COMPILER_DXC
+    float4 last:register(c61);//compiler inability to determ size of arrays workaround
+    #endif
+##endif
+
+    [numthreads( MAX_DECALS_TO_UPDATE, 1, 1 )]
+    void main(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint id = dtId.x;
+      if (id >= decalsToUpdateCount.x)
+        return;
+      uint destId = decalsToUpdate[id].decal_id;
+      uint flags = decalsToUpdate[id].tid_mid_flags & 0xffff;
+      if (flags & UPDATE_ALL)
+      {
+        decals[destId].pos_size = decalsToUpdate[id].pos_size;
+        uint2 normal_du = encode_normal_up(decalsToUpdate[id].normal, decalsToUpdate[id].up);
+        uint tex_id__matrix_id = decalsToUpdate[id].tid_mid_flags & 0xffff0000;
+        decals[destId].normal_du_id_matrixId = uint2(normal_du.x, normal_du.y | tex_id__matrix_id);
+        decals[destId].params = encode_float4(decalsToUpdate[id].params);
+      }
+      else
+      {
+        float4 old_params = decode_float4(decals[destId].params);
+        if (flags & UPDATE_PARAM_Z)
+          old_params.z = decalsToUpdate[id].params.z;
+        decals[destId].params = encode_float4(old_params);
+      }
+    }
+  }
+  compile("target_cs", "main");
+}
+
+shader projective_decal_create_indirect
+{
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    RWByteAddressBuffer count : register(u2);
+
+    [numthreads( 1, 1, 1 )]
+    void main()
+    {
+      storeBuffer(count, 1 * 4, 0);
+    }
+  }
+  compile("target_cs", "main");
+}
+
+shader projective_decal_cull
+{
+  INIT_AND_USE_FRUSTUM_CHECK_CS()
+  PROJECTIVE_DECALS_MATRICES(spray_decal_matrices, SPRAY_DECALS_MAX_MATRICES_COUNT, cs)
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    uint4 numDecals:register(c10);
+    RWStructuredBuffer<ProjectiveDecalInstance> original : register( u0 );
+    RWStructuredBuffer<ProjectiveDecalInstance> target : register( u1 );
+    RWByteAddressBuffer count : register(u2);
+
+    [numthreads( DECALS_MAX_CULL_X, 1, 1 )]
+    void main(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint id = dtId.x;
+      if (id >= numDecals.x)
+        return;
+
+      ProjectiveDecalInstance pdi = structuredBufferAt(original, clamp(id, 0, numDecals.x-1));
+      if (pdi.pos_size.w == 0)
+        return;
+
+      uint matrixId = (pdi.normal_du_id_matrixId.y>>(16+7))&511;
+
+      float3 wtm_x = float3(1,0,0);
+      float3 wtm_y = float3(0,1,0);
+      float3 wtm_z = float3(0,0,1);
+      float3 wtm_pos = float3(0,0,0);
+
+      BRANCH
+      if (matrixId > 0)
+      {
+        int useMatrixId = matrixId * 3 - 3;
+
+        wtm_x = matrices[useMatrixId+0].xyz;
+        wtm_y = matrices[useMatrixId+1].xyz;
+        wtm_z = matrices[useMatrixId+2].xyz;
+        wtm_pos = float3(matrices[useMatrixId+0].w, matrices[useMatrixId+1].w, matrices[useMatrixId+2].w);
+      }
+
+      float3 pos  = pdi.pos_size.x * wtm_x + pdi.pos_size.y * wtm_y + pdi.pos_size.z * wtm_z + wtm_pos;
+
+      if (!testSphereB(pos, 2*abs(pdi.pos_size.w)))
+        return;
+
+      uint at;
+      count.InterlockedAdd(1 * 4, 1u, at);
+      structuredBufferAt(target, at) = pdi;
+    }
+  }
+  compile("target_cs", "main");
+}
+
+texture spray_diff_tex;
+
+shader projective_decal_decals
+{
+  supports global_frame;
+  z_write = false;
+  z_test = true;
+  cull_mode=ccw;
+
+  USE_ATEST_1()
+  blend_src = sa; blend_dst = isa;
+  blend_asrc = 0; blend_adst = 1;
+  if (compatibility_mode == compatibility_mode_off)
+  {
+    static int projective_decal_writemask = 1287;//7|((1|4)<<8) - basecolor, smoothness, metalness
+    color_write = static projective_decal_writemask;
+  }
+  else
+  {
+    static int projective_decal_writemask = 119;//RT0 rgb | RT1 rgb
+    color_write = static projective_decal_writemask;
+
+    if (mobile_render != off)
+    {
+      INIT_STATIC_SHADOW_PS()
+    }
+  }
+
+  hlsl {
+    #define BLEND_GBUFFER 1
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      nointerpolation float4 normal : NORMAL;
+      nointerpolation float3 metalness_smoothness_albedoFactor : TEXCOORD0;
+      nointerpolation float4 patchCenter__inv_size : TEXCOORD1;
+      nointerpolation float4 tang_id : TEXCOORD2;
+    };
+  }
+
+
+  PROJECTIVE_DECALS_MATRICES(spray_decal_matrices, SPRAY_DECALS_MAX_MATRICES_COUNT, vs)
+  POJECTIVE_DECALS_VS_COMMON()
+
+  (vs) {
+    globtm@f44 = globtm;
+    decals@buf = decal_buffer hlsl {
+      #include "projectiveDecals/projective_decals.hlsli"
+      StructuredBuffer<ProjectiveDecalInstance> decals@buf;
+    }
+  }
+
+  hlsl(vs) {
+    #include "projectiveDecals/projective_decals_const.hlsli"
+
+    VsOutput projective_decals_vs(uint decalId : SV_InstanceID, uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float3 decalPos = decals[decalId].pos_size.xyz;
+      float decalSize = decals[decalId].pos_size.w;
+      uint2 normal_du_id_matrixId = decals[decalId].normal_du_id_matrixId;
+      float width = 0.3;
+      float4 params = decode_float4(decals[decalId].params);
+      float3 normal, du;
+      decode_normal_up(normal_du_id_matrixId, normal, du);
+      uint id = (normal_du_id_matrixId.y>>16)&127, matrixId = (normal_du_id_matrixId.y>>(16+7))&511;
+      ProjectiveDecalData decal;
+      decal.pos_size = float4(decalPos, decalSize);
+      decal.normal_width = float4(normal, width);
+      decal.tang_bias = float4(du, 0.2);
+      decal.matrixId = matrixId;
+
+      float3 worldDu, worldNormal, worldPos, worldDecalPos;
+      calc_world_values(decal, vertexId, 1.0, //input
+                        worldDu, worldNormal, worldPos, worldDecalPos); //output
+
+      output.tang_id = float4(worldDu, id);
+      output.normal.xyz = worldNormal;
+      output.pos = mulPointTm(worldPos, globtm);
+      output.normal.w = width;
+      output.metalness_smoothness_albedoFactor = params.yxz;
+      output.patchCenter__inv_size.xyz = worldDecalPos;
+      output.patchCenter__inv_size.w = 1.0 / decalSize;
+      return output;
+    }
+  }
+
+  REDUCE_GBUFFER_MRT_MOBILE()
+  WRITE_GBUFFER()
+  POJECTIVE_DECALS_PS_COMMON()
+  ENABLE_ASSERT(ps)
+
+  (ps) {
+    spray_diff_tex@smpArray = spray_diff_tex;
+  }
+
+  hlsl(ps) {
+
+    GBUFFER_OUTPUT projective_decals_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      float4 screen = GET_SCREEN_POS(input.pos);
+    ##if mobile_render == deferred
+      clip_by_static_opaque_mask(screen.xy);
+    ##endif
+
+      float3 worldPos = get_decal_world_pos(GET_SCREEN_POS(input.pos));
+      float3 sceneNormal = normalize(cross(ddx(worldPos), ddy(worldPos)));
+      BRANCH
+      if (
+        dot(sceneNormal, input.normal.xyz) < 0.1 ||
+        abs(dot(input.normal.xyz, worldPos - input.patchCenter__inv_size.xyz)) > input.normal.w*0.5)
+          discard;
+
+      float3 decalTC = get_decal_tex_coord(screen, input.patchCenter__inv_size.xyz, input.normal.xyz, input.tang_id.xyz);
+      decalTC *= input.patchCenter__inv_size.w;
+      decalTC.xy += normalize(decalTC.xy)*abs(decalTC.z);
+      decalTC.xy = 0.5f*(decalTC.xy + 1.0f);
+      decalTC.xy = saturate(decalTC.xy);
+
+      half4 diffuseTex = tex3D(spray_diff_tex, float3(decalTC.xy, input.tang_id.w));
+      half diffuseAlpha = diffuseTex.a;
+      half alpha = diffuseAlpha;
+      clip_alpha(alpha);
+
+      float smoothness = input.metalness_smoothness_albedoFactor.y;
+      float metalness = input.metalness_smoothness_albedoFactor.x;
+      float albedoFactor = input.metalness_smoothness_albedoFactor.z;
+      UnpackedGbuffer result;
+      init_gbuffer(result);
+      init_albedo(result, diffuseTex.rgb * albedoFactor);
+      init_smoothness(result, smoothness * albedoFactor);
+      init_metalness(result, metalness * albedoFactor);
+
+
+      float3 pointToEye = world_view_pos-worldPos;
+##if compatibility_mode == compatibility_mode_off
+      init_normal(result, 0);
+      GBUFFER_OUTPUT ret = encode_gbuffer_alpha(result, alpha, pointToEye, GET_SCREEN_POS(input.pos));
+
+      float smoothness_power = lerp(0.5, 1, metalness);
+      float finalAlpha = smoothness_power*alpha;
+      ret.smoothness_reflectance_metallTranslucency_shadow.w = finalAlpha;
+##else
+      init_normal(result, input.normal.xyz);
+      GBUFFER_OUTPUT ret = encode_gbuffer_alpha(result, alpha, pointToEye, GET_SCREEN_POS(input.pos));
+##endif
+      return ret;
+    }
+  }
+
+  compile("target_vs", "projective_decals_vs");
+  compile("target_ps", "projective_decals_ps");
+}

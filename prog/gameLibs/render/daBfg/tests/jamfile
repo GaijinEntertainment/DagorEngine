@@ -1,7 +1,7 @@
 Root    ?= ../../../../.. ;
 StrictCompile = yes ;
 ConsoleExe = yes ;
-PlatformSpec_win64 = clang ;
+PlatformSpec_windows_x86_64 = clang ;
 CheckedContainers ?= yes ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
@@ -9,10 +9,10 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 Location = prog/gameLibs/render/daBfg/tests ;
 
 TargetType  = exe ;
-OutDir      = $(Root)/$(Location)/bin/$(Platform) ;
+OutDir      = $(Root)/$(Location)/bin/$(LegacyPlatformSuffix) ;
 Target      = testFrameGraph ;
 
-if $(PlatformSpec) in clang clang64
+if $(PlatformSpec) = clang
 {
   # These warnings are enabled by default on some systems and are
   # caught by BS but not while developing. Manually enabling them saves
@@ -52,7 +52,7 @@ Sources =
 ;
 
 AllSrcFolder_CPP =
-  ../resourceScheduling/packers/
+  ../backend/resourceScheduling/packers/
 ;
 
 AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp       : Sources ;

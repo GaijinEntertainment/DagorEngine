@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_logSys.h>
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <sqModules/sqModules.h>
@@ -23,11 +25,10 @@ struct InterceptorRec
   }
   bool isFreeSlot() const { return cb.GetVM() == nullptr; }
 
-  bool isFuncEqual(Sqrat::Function &func)
+  bool isFuncEqual(const Sqrat::Function &func)
   {
-    SQInteger cmpRes;
     HSQOBJECT a = cb.GetFunc(), b = func.GetFunc();
-    return sq_direct_cmp(func.GetVM(), &a, &b, &cmpRes) && cmpRes == 0;
+    return sq_direct_is_equal(func.GetVM(), &a, &b);
   }
 };
 static Tab<InterceptorRec> interceptors;
@@ -66,7 +67,7 @@ static int on_debug_log(int lev_tag, const char *fmt, const void *arg, int anum,
   return 1;
 }
 
-static void register_callback(Sqrat::Array tags, Sqrat::Function func, bool is_mon)
+static void register_callback(Sqrat::Array tags, const Sqrat::Function &func, bool is_mon)
 {
   int freeIdx = -1;
   for (auto &r : interceptors)
@@ -90,11 +91,11 @@ static void register_callback(Sqrat::Array tags, Sqrat::Function func, bool is_m
     r.tags[i] = tags.GetValue<const char *>(i);
 }
 
-static void register_callback_int_sq(Sqrat::Array tags, Sqrat::Function func) { register_callback(tags, func, false); }
+static void register_callback_int_sq(Sqrat::Array tags, const Sqrat::Function &func) { register_callback(tags, func, false); }
 
-static void register_callback_mon_sq(Sqrat::Array tags, Sqrat::Function func) { register_callback(tags, func, true); }
+static void register_callback_mon_sq(Sqrat::Array tags, const Sqrat::Function &func) { register_callback(tags, func, true); }
 
-static void unregister_callback_sq(Sqrat::Function func)
+static void unregister_callback_sq(const Sqrat::Function &func)
 {
   for (auto &intr : interceptors)
     if (intr.isFuncEqual(func))
@@ -123,7 +124,8 @@ void logerr_interceptor_bind_api(Sqrat::Table &nsTbl)
     // unregister_logerr_interceptor(callback)
     .Func("unregister_logerr_interceptor", unregister_callback_sq)
     // clear_logerr_interceptors()
-    .SquirrelFunc("clear_logerr_interceptors", unregister_all_callback_sq, 1, ".");
+    .SquirrelFunc("clear_logerr_interceptors", unregister_all_callback_sq, 1, ".")
+    /**/;
 }
 
 } // namespace bindquirrel

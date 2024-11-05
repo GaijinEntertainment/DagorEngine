@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -9,8 +8,9 @@
 #include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/bitvector.h>
-#include <EASTL/fixed_vector.h>
-#include <EASTL/vector_map.h>
+#include <dag/dag_vectorSet.h>
+#include <dag/dag_vectorMap.h>
+#include <generic/dag_relocatableFixedVector.h>
 #include "internal/archetypes.h"
 #include "component.h"
 
@@ -21,10 +21,7 @@ class ComponentsMap;
 
 // typedef eastl::hash_map<eastl::string, ChildComponent, EcsHasher,
 //                         eastl::equal_to<eastl::string>, EASTLAllocatorType, /*bCacheHashCode*/true> BaseComponentsMap;
-// typedef eastl::vector_map<ecs::component_t, ChildComponent> BaseComponentsMap;
-typedef eastl::vector_map<component_t, ChildComponent, eastl::less<component_t>, EASTLAllocatorType,
-  dag::Vector<eastl::pair<component_t, ChildComponent>, EASTLAllocatorType>>
-  BaseComponentsMap;
+typedef dag::VectorMap<component_t, ChildComponent> BaseComponentsMap;
 
 // it is still extremely slow on (de)allocation. We'd better try some other container (Object from ecs20, for example)
 class ComponentsMap : protected BaseComponentsMap
@@ -81,7 +78,7 @@ struct InitializerNode
   component_index_t cIndex; // initialized once during validation
 };
 
-typedef eastl::fixed_vector<InitializerNode, 8, true> BaseComponentsInitializer;
+typedef dag::RelocatableFixedVector<InitializerNode, 8> BaseComponentsInitializer;
 
 class ComponentsInitializer : protected BaseComponentsInitializer
 {
@@ -146,7 +143,7 @@ template <class ComponentType>
 __forceinline bool ComponentsInitializer::insert(const component_t name, const FastGetInfo &lt, ComponentType &&val,
   const char *nameStr)
 {
-  if (EASTL_UNLIKELY(!lt.isValid()))
+  if (DAGOR_UNLIKELY(!lt.isValid()))
     return false;
   G_UNUSED(nameStr);
   base_type::emplace_back(InitializerNode{ChildComponent(eastl::forward<ComponentType>(val)), name, lt.getCidx()});
@@ -169,3 +166,4 @@ __forceinline ComponentsInitializer::ComponentsInitializer(ComponentsMap &&map)
   }
 };
 }; // namespace ecs
+DAG_DECLARE_RELOCATABLE(ecs::InitializerNode);

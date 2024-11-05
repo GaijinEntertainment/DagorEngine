@@ -1,0 +1,929 @@
+include "sky_shader_global.dshl"
+include "frustum.dshl"
+include "normaldetail.dshl"
+include "wetness_inc.dshl"
+include "clouds_shadow.dshl"
+include "waveWorks.dshl"
+include "viewVecVS.dshl"
+
+hlsl {
+  #define WATER_GEOMORPHING NO_GEOMORPHLODS
+  #define KEEP_WATER_ABOVE_SHORELINE 0
+}
+
+texture wfx_normals;
+texture wfx_hmap;
+
+int wfx_effects_tex_enabled = 1;
+interval wfx_effects_tex_enabled : no < 1, yes;
+
+float tess_distance = 1;
+float water_tess_factor = 0;
+interval water_tess_factor : water_tess_factor_off < 2, water_tess_factor_on;
+float4 water_lods_region;
+float water_heightmap_patches_size = 512;
+float4 lowres_rt_params = (1280, 720, 0, 0);
+
+int water_quality = 0;
+hlsl {
+  #define water_quality_low 0
+  #define water_quality_medium 1
+  #define water_quality_high 2
+}
+
+int water_rain_ripples_enabled = 0;
+buffer water_positions;
+
+int downsampled_depth_mip_count;
+macro INIT_SAMPLE_DEPTH_TEX()
+  (ps) {
+    downsampled_far_depth_tex@tex = downsampled_far_depth_tex hlsl { Texture2D<float>downsampled_far_depth_tex@tex; }
+    downsampled_close_depth_tex@tex = downsampled_close_depth_tex hlsl { Texture2D<float>downsampled_close_depth_tex@tex; }
+    downsampled_depth_mip_count@f1 = (downsampled_depth_mip_count);
+    lowres_rt_params@f2 = (lowres_rt_params.x, lowres_rt_params.y, 0, 0); //Far and Close depth are the same size
+  }
+endmacro
+
+macro USE_SAMPLE_DEPTH_TEX()
+  ENABLE_ASSERT(ps)
+  hlsl(ps) {
+    float sample_far_depth_tex( float2 tc, int level)
+    {
+      int2 level_size = int2(lowres_rt_params.xy) >> level;
+      int2 itc = clamp(int2(tc * level_size), 0, level_size - 1);
+      return texelFetch(downsampled_far_depth_tex, itc, level).r;
+    }
+    float sample_close_depth_tex( float2 tc, int level)
+    {
+      int2 level_size = int2(lowres_rt_params.xy) >> level;
+      int2 itc = clamp(int2(tc * level_size), 0, level_size - 1);
+      return texelFetch(downsampled_close_depth_tex, itc, level).r;
+    }
+  }
+endmacro
+
+macro INIT_SAMPLE_WFX_NORMALS(sampler_name)
+  if (shader == water_ssr_nv2)
+  {
+    (ps) { wfx_normals@tex2d = wfx_normals; }
+    hlsl (ps) { #define wfx_normals_samplerstate sampler_name }
+  } else
+  {
+    (ps) { wfx_normals@smp2d = wfx_normals; }
+  }
+endmacro
+
+macro USE_SAMPLE_WFX_NORMALS()
+  hlsl(ps) {
+    float3 sample_wfx_normals_tex(float2 tc)
+    {
+      return restore_normal(tex2Dlod(wfx_normals, float4(tc, 0, 0)).rg).xzy;
+    }
+  }
+endmacro
+
+macro INIT_SAMPLE_WFX_HMAP()
+  (vs) { wfx_hmap@smp2d = wfx_hmap; }
+endmacro
+
+macro USE_SAMPLE_WFX_HMAP()
+  hlsl(vs) {
+    float sample_wfx_hmap_tex(float2 tc)
+    {
+      return tex2Dlod(wfx_hmap, float4(tc, 0, 0)).r;
+    }
+  }
+endmacro
+
+float scatter_disappear_factor = 1; //we would better use it for water_vs blend out as well
+
+texture water_refraction_tex;
+
+float4 water_effects_proj_tm_line_0 = (1, 0, 0, 0);
+float4 water_effects_proj_tm_line_1 = (0, 1, 0, 0);
+float4 water_effects_proj_tm_line_2 = (0, 0, 1, 0);
+float4 water_effects_proj_tm_line_3 = (0, 0, 0, 1);
+
+texture projected_on_water_effects_tex;
+
+macro INIT_WATER_PROJECTED_EFFECTS(stage)
+  (stage) { water_effects_proj_tm@f44 = { water_effects_proj_tm_line_0, water_effects_proj_tm_line_1, water_effects_proj_tm_line_2, water_effects_proj_tm_line_3 }; }
+endmacro
+
+macro USE_WATER_PROJECTED_EFFECTS(stage)
+  hlsl(stage) {
+    float3 normalize_wfx_tc(float4 tc)
+    {
+      float2 wtc = tc.xy / tc.w * float2(0.5, HALF_RT_TC_YSCALE);
+      wtc = tc.z > 0 && tc.z < tc.w ? wtc + 0.5 : float2(-1, -1);
+      return float3(wtc, wtc.x < 0 || wtc.y < 0 || wtc.x > 1 || wtc.y > 1 ? 0 : 1);
+    }
+  }
+endmacro
+
+macro GET_WATER_COLOR()
+hlsl(ps) {
+  #define INV_MIN_IOR 50
+}
+hlsl(ps) {
+  #include "pbr/BRDF.hlsl"
+}
+endmacro
+
+float fake_distortion_period = 6;
+
+block(frame) water3d_block
+{
+  supports global_const_block;
+  (vs) {
+    water_level@f1 = water_level;
+    world_view_pos@f3 = world_view_pos;
+    globtm@f44 = globtm;
+  }
+  (ps) {
+    water_level@f1 = water_level;
+    world_view_pos@f3 = world_view_pos;
+  }
+
+  INIT_CLOUDS_SHADOW(to_sun_direction.y)
+  INIT_ZNZFAR()
+
+  (ps) {
+    water_refraction_tex@tex = water_refraction_tex hlsl{ Texture2D<float3>water_refraction_tex@tex; };
+  }
+  (vs) {
+    water_heightmap_min_max@f4 = water_heightmap_min_max;
+  }
+  INIT_WATER_GRADIENTS(ps)
+}
+
+texture clouds_panorama_mip;
+texture water_reflection_tex;
+texture water_reflection_strenght_tex;
+float4 water_reflection_size = (1,1,1,1);
+float water_depth_above = 0;
+texture water_flowmap_tex;
+texture water_flowmap_tex_add_0;
+texture water_flowmap_tex_add_1a;
+texture water_flowmap_tex_add_1b;
+texture water_flowmap_tex_blur_1a;
+texture water_flowmap_tex_blur_1b;
+float4 world_to_flowmap = (1/32,1/32,0.5,0.5);
+float4 world_to_flowmap_add_0 = (1,1,0,0);
+float4 world_to_flowmap_add_1a = (1,1,1,1);
+float4 world_to_flowmap_add_1b = (0,0,0,0);
+float water_wind_strength = 0.2;
+float water_flowmap_range_0 = 100;
+float water_flowmap_range_1 = 100;
+float water_flowmap_fading = 3;
+float4 water_flowmap_strength = (1,5,0.5,0); // speed, foam, curvature, mask
+float4 water_flowmap_strength_add = (0.5,1,1,0.3); // min distance,max distance,speed,foam
+float4 water_flowmap_foam = (5,10,0.5,0.1); // power, scale, threshold, reflectivity
+float4 water_flowmap_foam_color = (1,1,1,1);
+float water_flowmap_foam_tiling = 1;
+float water_flowmap_foam_displacement = 0.1;
+float water_flowmap_foam_reflectivity_min = 0;
+float water_flowmap_debug = 0;
+float water_flowmap_multiplier = 1;
+float water_flowmap_blend = 0;
+int water_flowmap_cascades = 0;
+
+macro WATER_3D_COMMON_VS()
+  if (water_ripples_normal == NULL && wfx_effects_tex_enabled == yes)
+  {
+    dont_render;
+  }
+
+  supports water3d_block;
+
+  DECL_POSTFX_TC_VS_RT()
+  GET_WATER_COLOR()
+  INIT_WORLD_HEIGHTMAP_VS()
+  USE_HEIGHTMAP_COMMON_VS()
+  HEIGHTMAP_DECODE_EDGE_TESSELATION()
+
+  INIT_WATER_WORLD_POS()
+  GET_WATER_WORLD_POS()
+  USE_WATER_DISPLACEMENT(vs, 1)
+
+  INIT_WATER_PROJECTED_EFFECTS(vs)
+  USE_WATER_PROJECTED_EFFECTS(vs)
+  INIT_WATER_PROJECTED_EFFECTS(ps)
+  USE_WATER_PROJECTED_EFFECTS(ps)
+  VIEW_VEC_SCREENPOS(ps)
+
+  if (water_tess_factor == water_tess_factor_on && wfx_effects_tex_enabled == yes)
+  {
+    INIT_SAMPLE_WFX_HMAP()
+    USE_SAMPLE_WFX_HMAP()
+  }
+
+  USE_WATER_RIPPLES_DISPL(vs)
+
+  hlsl {
+    // WaveWorks related structs
+    struct PS_INPUT
+    {
+      float3 pos_world_undisplaced: TEXCOORD0;
+
+      ##if water_flowmap_tex != NULL && mobile_render == off
+        float2 worldPosXZ_a: TEXCOORD1;
+        float2 worldPosXZ_b: TEXCOORD2;
+      ##endif
+      ##if water_flowmap_tex != NULL && colorPass
+        float3 water_flowmap_sample : TEXCOORD3;
+      ##endif
+
+      ##if water_heightmap_pages != NULL
+        float3 tangent            : TEXCOORD4;
+        float3 bitangent          : TEXCOORD5;
+      ##endif
+      VS_OUT_POSITION(pos_clip)
+    };
+
+    struct VS_OUTPUT_FOR_TESSELATION
+    {
+      float4 worldPos_distFade : TEXCOORD0;
+    };
+  }
+endmacro
+
+macro WATER_3D_COMMON_PS()
+  USE_SCREENPOS_TO_TC()
+  USE_SCREENPOS_TO_LOWRES_TC()
+  USE_WATER_RIPPLES()
+  USE_WATER_GRADIENTS(ps, 1)
+  USE_NORMAL_DETAIL()
+  (ps) {
+    scatter_disappear_factor_water_depth_above_current_time_inv_flowmap_fading@f4 = (scatter_disappear_factor, water_depth_above, time_phase(0, 0), 1 / water_flowmap_fading);
+  }
+
+  hlsl(ps) {
+    #define scatter_disappear_factor (scatter_disappear_factor_water_depth_above_current_time_inv_flowmap_fading.x)
+    #define water_depth_above (scatter_disappear_factor_water_depth_above_current_time_inv_flowmap_fading.y)
+    #define current_time (scatter_disappear_factor_water_depth_above_current_time_inv_flowmap_fading.z)
+    #define inv_water_flowmap_fading (scatter_disappear_factor_water_depth_above_current_time_inv_flowmap_fading.w)
+
+    // WaveWorks related textures & constants
+    // WaveWorks related functions
+
+    struct GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES
+    {
+      float3 normal;
+      float3 eye_dir;
+      float foam_surface_folding;
+      float foam_turbulent_energy;
+      float foam_wave_hats;
+    };
+
+    struct CascadesTex
+    {
+      ##if water_flowmap_tex == NULL || mobile_render != off
+        float4 nvsf_tex_coord_cascade01;
+        float4 nvsf_tex_coord_cascade23;
+        float4 nvsf_tex_coord_cascade45;
+      ##else
+        float4 nvsf_tex_coord_cascade01_a;
+        float4 nvsf_tex_coord_cascade23_a;
+        float4 nvsf_tex_coord_cascade45_a;
+        float4 nvsf_tex_coord_cascade01_b;
+        float4 nvsf_tex_coord_cascade23_b;
+        float4 nvsf_tex_coord_cascade45_b;
+      ##endif
+    };
+
+    GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES GFSDK_WaveWorks_GetSurfaceAttributes(PS_INPUT In, CascadesTex csc, float4 nvsf_blend_factor_cascade0123,
+                                                                           float4 nvsf_blend_factor_cascade4567, float3 pointToEye)
+    {
+      float fadeNormal = 1;
+      ##if water_flowmap_tex == NULL || mobile_render != off
+        float nvsf_foam_turbulent_energy, nvsf_foam_surface_folding, nvsf_foam_wave_hats;
+        float3 nvsf_normal;
+
+        get_gradients(csc.nvsf_tex_coord_cascade01, csc.nvsf_tex_coord_cascade23, csc.nvsf_tex_coord_cascade45, nvsf_blend_factor_cascade0123,
+          nvsf_blend_factor_cascade4567, fadeNormal, nvsf_foam_turbulent_energy, nvsf_foam_surface_folding, nvsf_normal, nvsf_foam_wave_hats);
+      ##else
+        float nvsf_foam_turbulent_energy_a, nvsf_foam_surface_folding_a, nvsf_foam_wave_hats_a;
+        float3 nvsf_normal_a;
+        float nvsf_foam_turbulent_energy_b, nvsf_foam_surface_folding_b, nvsf_foam_wave_hats_b;
+        float3 nvsf_normal_b;
+
+        get_gradients(csc.nvsf_tex_coord_cascade01_a, csc.nvsf_tex_coord_cascade23_a, csc.nvsf_tex_coord_cascade45_a, nvsf_blend_factor_cascade0123,
+          nvsf_blend_factor_cascade4567, fadeNormal, nvsf_foam_turbulent_energy_a, nvsf_foam_surface_folding_a, nvsf_normal_a, nvsf_foam_wave_hats_a);
+        get_gradients(csc.nvsf_tex_coord_cascade01_b, csc.nvsf_tex_coord_cascade23_b, csc.nvsf_tex_coord_cascade45_b, nvsf_blend_factor_cascade0123,
+          nvsf_blend_factor_cascade4567, fadeNormal, nvsf_foam_turbulent_energy_b, nvsf_foam_surface_folding_b, nvsf_normal_b, nvsf_foam_wave_hats_b);
+
+        float flowmapTime = current_time * inv_water_flowmap_fading;
+        float crossFade = abs(frac(flowmapTime) * 2 - 1);
+        crossFade = smoothstep(0, 1, crossFade);
+        float nvsf_foam_turbulent_energy = lerp(nvsf_foam_turbulent_energy_a, nvsf_foam_turbulent_energy_b, crossFade);
+        float nvsf_foam_surface_folding = lerp(nvsf_foam_surface_folding_a, nvsf_foam_surface_folding_b, crossFade);
+        float nvsf_foam_wave_hats = lerp(nvsf_foam_wave_hats_a, nvsf_foam_wave_hats_b, crossFade);
+        float3 nvsf_normal = lerp(nvsf_normal_a, nvsf_normal_b, crossFade);
+        nvsf_normal = normalize(nvsf_normal);
+      ##endif
+
+      GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES Output;
+      Output.normal = nvsf_normal;
+      Output.eye_dir = pointToEye.xzy;
+      Output.foam_surface_folding = nvsf_foam_surface_folding;
+      Output.foam_turbulent_energy = log(1.0 + nvsf_foam_turbulent_energy);
+      Output.foam_wave_hats = nvsf_foam_wave_hats;
+      return Output;
+    }
+  }
+endmacro
+
+macro WATER_3D_COMMON()
+  WATER_3D_COMMON_VS()
+  WATER_3D_COMMON_PS()
+endmacro
+
+macro WATER_3D_HEIGHTMAP_RENDER()
+  (vs) {
+    water_positions@buf = water_positions hlsl {
+      StructuredBuffer<float4> water_positions@buf;
+    }
+    max_wave_height@f1 = (max_wave_height);
+    water_heightmap_patches_size__water_tess_factor@f2 = (water_heightmap_patches_size, water_tess_factor, 0, 0);
+    water_lods_region@f4 = water_lods_region;
+    water_patches_to_world@f4 = (-world_to_water_heightmap.x / world_to_water_heightmap.z, -world_to_water_heightmap.y / world_to_water_heightmap.w,
+                      1.0 / (world_to_water_heightmap.z * water_heightmap_patches_size), 1.0 / (world_to_water_heightmap.w * water_heightmap_patches_size));
+  }
+  hlsl
+  {
+    #define water_heightmap_patches_size water_heightmap_patches_size__water_tess_factor.x
+    #define water_tess_factor water_heightmap_patches_size__water_tess_factor.y
+  }
+
+  if (water_tess_factor == water_tess_factor_off)
+  {
+    dont_render;
+  }
+  hlsl {
+    struct VS_OUTPUT_TESSELATION_HEIGHTMAP
+    {
+      float4 worldPosXZ_heightMinMax : TEXCOORD0;
+    };
+  }
+
+  hlsl(vs) {
+    VS_OUTPUT_TESSELATION_HEIGHTMAP water_nv_vs_heightmap(INPUT_VERTEXID_POSXZ USE_INSTANCE_ID)
+    {
+      VS_OUTPUT_TESSELATION_HEIGHTMAP Output;
+      float2 offset[4] = { float2(0, 0), float2(0, 1), float2(1, 1), float2(1, 0) };
+      float4 patchData = water_positions[vertexId / 4];
+      float2 pos = patchData.xy + offset[vertexId & 3];
+      pos = pos * water_patches_to_world.zw + water_patches_to_world.xy;
+      Output.worldPosXZ_heightMinMax = float4(pos.xy, patchData.zw);
+      return Output;
+    }
+  }
+
+  INIT_AND_USE_FRUSTUM_CHECK_BASE(vs)
+  hlsl(hs) {
+    struct TesselatorInput
+    {
+      float edges[ 4 ] : SV_TessFactor;
+      float inside[ 2 ] : SV_InsideTessFactor;
+    };
+
+    TesselatorInput HullShaderPatchConstant(OutputPatch<VS_OUTPUT_TESSELATION_HEIGHTMAP, 4> inputPatch)
+    {
+      TesselatorInput output = (TesselatorInput)0;
+
+      float3 minPoint = float3(0.0, inputPatch[0].worldPosXZ_heightMinMax.z, 0.0);
+      float3 maxPoint = float3(0.0, inputPatch[0].worldPosXZ_heightMinMax.w, 0.0);
+      minPoint.xz = min( min(inputPatch[0].worldPosXZ_heightMinMax.xy, inputPatch[1].worldPosXZ_heightMinMax.xy),
+                             min(inputPatch[2].worldPosXZ_heightMinMax.xy, inputPatch[3].worldPosXZ_heightMinMax.xy));
+      maxPoint.xz = max( max(inputPatch[0].worldPosXZ_heightMinMax.xy, inputPatch[1].worldPosXZ_heightMinMax.xy),
+                             max(inputPatch[2].worldPosXZ_heightMinMax.xy, inputPatch[3].worldPosXZ_heightMinMax.xy));
+      float tessFactor = testBoxB(minPoint, maxPoint) ? water_tess_factor : 0;
+      if (all(maxPoint.xz <= water_lods_region.zw) && all(minPoint.xz >= water_lods_region.xy))
+        tessFactor = 0;
+
+      output.edges[ 0 ] = tessFactor;
+      output.edges[ 1 ] = tessFactor;
+      output.edges[ 2 ] = tessFactor;
+      output.edges[ 3 ] = tessFactor;
+
+      output.inside[ 0 ] = tessFactor;
+      output.inside[ 1 ] = tessFactor;
+      return output;
+    }
+
+    [domain("quad")]
+    [outputtopology("triangle_ccw")]
+    [outputcontrolpoints(4)]
+    [partitioning("integer")]
+    [patchconstantfunc("HullShaderPatchConstant")]
+    VS_OUTPUT_TESSELATION_HEIGHTMAP WaterHullShader(InputPatch<VS_OUTPUT_TESSELATION_HEIGHTMAP, 4> inputPatch, uint tid : SV_OutputControlPointID)
+    {
+      return inputPatch[ tid ];
+    }
+  }
+
+  hlsl(ds) {
+    struct TesselatorInput
+    {
+      float edges [ 4 ] : SV_TessFactor;
+      float inside[ 2 ] : SV_InsideTessFactor;
+    };
+
+    float2 Bilerp(float2 v0, float2 v1, float2 v2, float2 v3, float2 i)
+    {
+      float2 bottom = lerp(v0, v3, i.x);
+      float2 top    = lerp(v1, v2, i.x);
+      float2 result = lerp(bottom, top, i.y);
+      return result;
+    }
+
+    [domain("quad")]
+    PS_INPUT WaterDomainShader(TesselatorInput tessInput, OutputPatch<VS_OUTPUT_TESSELATION_HEIGHTMAP, 4> input, float2 coords : SV_DomainLocation)
+    {
+      float4 worldPos_distFade = float4(0.0, water_level_max_wave_height.x, 0.0, 1.0);
+      worldPos_distFade.xz = Bilerp(input[ 0 ].worldPosXZ_heightMinMax.xy,
+                                    input[ 1 ].worldPosXZ_heightMinMax.xy,
+                                    input[ 2 ].worldPosXZ_heightMinMax.xy,
+                                    input[ 3 ].worldPosXZ_heightMinMax.xy, coords);
+      get_water_height(worldPos_distFade.xz, worldPos_distFade.y);
+      return calc_ps_input_from_world_position(worldPos_distFade.xyz, worldPos_distFade.w, true);
+    }
+  }
+
+  compile("target_vs_for_tess", "water_nv_vs_heightmap");
+  compile("hs_5_0", "WaterHullShader");
+  compile("ds_5_0", "WaterDomainShader");
+  compile("target_ps", "water_nv_ps");
+endmacro
+
+macro WATER_3D_DEFERRED_COMMON_VS()
+  (vs) {
+    water_flowmap_tex@smp2d = water_flowmap_tex;
+    water_flowmap_tex_add_0@smp2d = water_flowmap_tex_add_0;
+    water_flowmap_tex_blur_1a@tex = water_flowmap_tex_blur_1a hlsl{ Texture2D<float4>water_flowmap_tex_blur_1a@tex; };
+    water_flowmap_tex_blur_1b@tex = water_flowmap_tex_blur_1b hlsl{ Texture2D<float4>water_flowmap_tex_blur_1b@tex; };
+    world_to_flowmap@f4 = world_to_flowmap;
+    world_to_flowmap_add_0@f4 = world_to_flowmap_add_0;
+    world_to_flowmap_add_1a@f4 = world_to_flowmap_add_1a;
+    world_to_flowmap_add_1b@f4 = world_to_flowmap_add_1b;
+    cascadesTexelScale_current_time_water_wind_strength@f3 = (cascadesTexelScale0123.x, time_phase(0, 0), water_wind_strength, 0);
+    water_flowmap_fading_inv_fading@f2 = (water_flowmap_fading, 1 / water_flowmap_fading, 0, 0);
+    water_flowmap_strength@f4 = (water_flowmap_strength);
+    water_flowmap_strength_add_0@f4 = (-1/((water_flowmap_strength_add.y-water_flowmap_strength_add.x)*water_flowmap_range_0),
+      water_flowmap_strength_add.y/(water_flowmap_strength_add.y-water_flowmap_strength_add.x), water_flowmap_strength_add.z, water_flowmap_strength_add.w);
+    water_flowmap_strength_add_1@f4 = (-1/((water_flowmap_strength_add.y-water_flowmap_strength_add.x)*water_flowmap_range_1),
+      water_flowmap_strength_add.y/(water_flowmap_strength_add.y-water_flowmap_strength_add.x), water_flowmap_strength_add.z, water_flowmap_strength_add.w);
+    water_flowmap_foam_displacement@f1 = (water_flowmap_foam_displacement);
+    water_flowmap_multiplier@f1 = (water_flowmap_multiplier);
+    water_flowmap_blend@f1 = (water_flowmap_blend);
+    water_flowmap_cascades@i1 = (water_flowmap_cascades);
+  }
+
+  hlsl(vs) {
+    #define cascadesTexelScale (cascadesTexelScale_current_time_water_wind_strength.x)
+    #define current_time (cascadesTexelScale_current_time_water_wind_strength.y)
+    #define water_wind_strength (cascadesTexelScale_current_time_water_wind_strength.z)
+    #define water_flowmap_fading (water_flowmap_fading_inv_fading.x)
+    #define inv_water_flowmap_fading (water_flowmap_fading_inv_fading.y)
+    #define water_flowmap_tex_blur_1a_samplerstate water_flowmap_tex_add_0_samplerstate
+    #define water_flowmap_tex_blur_1b_samplerstate water_flowmap_tex_add_0_samplerstate
+
+    static const float TANGENT_DISTANCE = 1.0;
+
+    PS_INPUT calc_ps_input_from_world_position(float3 worldPos, float distFade, bool useWaterHeightmap)
+    {
+      float3 eyeVec                = world_view_pos.xyz - worldPos.xyz;
+      float  worldPosDistance      = length(eyeVec);
+      float3 pos_world_undisplaced = worldPos.xzy;
+
+      PS_INPUT Output;
+
+      ##if water_flowmap_tex == NULL
+        float3 displacement;
+        float4 nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23, nvsf_tex_coord_cascade45;
+
+        WaveWorks_GetDisplacedVertex(worldPos.xzy, worldPosDistance, float4(1, 1, 1, 1), float4(1, 1, 1, 1),
+          displacement, nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23, nvsf_tex_coord_cascade45);
+      ##else
+        float2 windVec = wind_dir_speed.xy * cascadesTexelScale * (water_wind_strength + 0.5);
+
+        float3 flowmapBias = float3(0.5, 0.5, 0);
+        float3 flowmapSample = flowmapBias;
+        ##if water_flowmap_tex != NULL
+          float2 flowmapUV = worldPos.xz * world_to_flowmap.xy + world_to_flowmap.zw;
+          if (all(flowmapUV >= 0) && all(flowmapUV <= 1))
+          {
+            float3 flowmapSample1 = tex2Dlod(water_flowmap_tex, float4(flowmapUV, 0, 0)).xyz - flowmapBias;
+            float2 flowmapUV2 = flowmapUV + flowmapSample1.xy * world_to_flowmap.xy;
+            float3 flowmapSample2 = tex2Dlod(water_flowmap_tex, float4(flowmapUV2, 0, 0)).xyz - flowmapBias;
+            float flowmapFoam = abs(dot(float2(flowmapSample1.x, flowmapSample1.y), float2(flowmapSample2.y, -flowmapSample2.x)));
+            flowmapFoam = saturate(pow(flowmapFoam, water_flowmap_strength.z) * water_flowmap_strength.y);
+            flowmapSample += flowmapSample1 * water_flowmap_strength.x;
+            flowmapSample.z += flowmapFoam;
+          }
+          float2 flowmapUVAdd0 = worldPos.xz * world_to_flowmap_add_0.xy + world_to_flowmap_add_0.zw;
+          if (all(flowmapUVAdd0 >= 0) && all(flowmapUVAdd0 <= 1))
+          {
+            float flowmapStrengthAdd0 = saturate(worldPosDistance * water_flowmap_strength_add_0.x + water_flowmap_strength_add_0.y) * water_flowmap_strength_add_0.z;
+            float3 flowmapSampleAdd0 = tex2Dlod(water_flowmap_tex_add_0, float4(flowmapUVAdd0, 0, 0)).xyz;
+            flowmapSample += flowmapSampleAdd0 * flowmapStrengthAdd0;
+          }
+          BRANCH
+          if (water_flowmap_cascades >= 2)
+          {
+            float4 flowmapUVAdd1 = worldPos.xzxz * world_to_flowmap_add_1a + world_to_flowmap_add_1b;
+            if (all(flowmapUVAdd1 >= 0) && all(flowmapUVAdd1 <= 1))
+            {
+              float flowmapStrengthAdd1 = saturate(worldPosDistance * water_flowmap_strength_add_1.x + water_flowmap_strength_add_1.y) * water_flowmap_strength_add_1.z;
+              float flowmapSampleAdd1a = tex2Dlod(water_flowmap_tex_blur_1a, float4(flowmapUVAdd1.xy, 0, 0)).x;
+              float flowmapSampleAdd1b = tex2Dlod(water_flowmap_tex_blur_1b, float4(flowmapUVAdd1.zw, 0, 0)).x;
+              float flowmapSampleAdd1 = lerp(flowmapSampleAdd1a, flowmapSampleAdd1b, water_flowmap_blend);
+              flowmapSample.z += flowmapSampleAdd1 * flowmapStrengthAdd1;
+            }
+          }
+          ##if colorPass
+            Output.water_flowmap_sample = flowmapSample;
+          ##endif
+        ##endif
+
+        float2 flowmapVec = (flowmapSample.xy - flowmapBias.xy - windVec) * water_flowmap_fading;
+        float flowmapTime = current_time * inv_water_flowmap_fading;
+        float2 flowmapVec_a = flowmapVec * frac(flowmapTime + 0.0);
+        float2 flowmapVec_b = flowmapVec * frac(flowmapTime + 0.5);
+
+        float3 worldPos_a = worldPos;
+        float3 worldPos_b = worldPos;
+
+        worldPos_a.xz += flowmapVec_a * water_flowmap_multiplier;
+        worldPos_b.xz += flowmapVec_b * water_flowmap_multiplier;
+
+        float3 displacement_a;
+        float4 nvsf_tex_coord_cascade01_a, nvsf_tex_coord_cascade23_a, nvsf_tex_coord_cascade45_a;
+        float3 displacement_b;
+        float4 nvsf_tex_coord_cascade01_b, nvsf_tex_coord_cascade23_b, nvsf_tex_coord_cascade45_b;
+
+        WaveWorks_GetDisplacedVertex(worldPos_a.xzy, worldPosDistance, float4(1, 1, 1, 1), float4(1, 1, 1, 1),
+          displacement_a, nvsf_tex_coord_cascade01_a, nvsf_tex_coord_cascade23_a, nvsf_tex_coord_cascade45_a);
+        WaveWorks_GetDisplacedVertex(worldPos_b.xzy, worldPosDistance, float4(1, 1, 1, 1), float4(1, 1, 1, 1),
+          displacement_b, nvsf_tex_coord_cascade01_b, nvsf_tex_coord_cascade23_b, nvsf_tex_coord_cascade45_b);
+
+        float crossFade = abs(frac(flowmapTime) * 2 - 1);
+        crossFade = smoothstep(0, 1, crossFade);
+        float3 displacement = lerp(displacement_a, displacement_b, crossFade);
+        displacement.z += flowmapSample.z * water_flowmap_foam_displacement;
+      ##endif
+
+      ##if water_tess_factor == water_tess_factor_on && wfx_effects_tex_enabled == yes
+        float4 water_projection_pos = mul(float4(pos_world_undisplaced.xzy, 1), water_effects_proj_tm);
+        float2 wfxTc = normalize_wfx_tc(water_projection_pos).xy;
+        displacement.z += sample_wfx_hmap_tex(wfxTc);
+        displacement.z += get_water_ripples_displace(worldPos);
+      ##endif
+
+      Output.pos_world_undisplaced  = pos_world_undisplaced;
+
+      ##if water_flowmap_tex != NULL
+        Output.worldPosXZ_a = worldPos_a.xz;
+        Output.worldPosXZ_b = worldPos_b.xz;
+      ##endif
+
+      ShoreData shoreData;
+      getShoreAttributes(worldPos.xyz, shoreData);
+
+      float3 final_offset = (shoreData.shoreWavesDisplacement + displacement*shoreData.oceanWavesMultiplier) * distFade;
+      float3 pos_world = Output.pos_world_undisplaced + final_offset;
+
+      Output.pos_clip = mul(float4(pos_world.xzy,1), globtm);
+      float2 half_clip_pos = Output.pos_clip.xy * float2(0.5, -0.5);
+
+      ##if water_heightmap_pages != NULL
+        float3 center = worldPos;
+        float3 tangent = center + float3(TANGENT_DISTANCE, 0, 0);
+        float3 bitangent = center + float3(0, 0, TANGENT_DISTANCE);
+        if (useWaterHeightmap)
+        {
+          get_water_height(center.xz, center.y);
+          get_water_height(tangent.xz, tangent.y);
+          get_water_height(bitangent.xz, bitangent.y);
+        }
+        Output.tangent = normalize(tangent - center);
+        Output.bitangent = normalize(bitangent - center);
+      ##endif
+
+      return Output;
+    }
+
+    ##if water_tess_factor == water_tess_factor_on
+      VS_OUTPUT_FOR_TESSELATION water_nv_vs(INPUT_VERTEXID_POSXZ USE_INSTANCE_ID)
+      {
+        DECODE_VERTEXID_POSXZ
+
+        VS_OUTPUT_FOR_TESSELATION Output;
+        bool useHeightmap;
+        Output.worldPos_distFade.xyz = float3(getWorldPosXZ(posXZ, Output.worldPos_distFade.w, useHeightmap USED_INSTANCE_ID), water_level).xzy;
+         // worldPos_distFade.w is +/- (distFade + 1), where sign encodes whether to sample water heightmap or not
+        Output.worldPos_distFade.w = (Output.worldPos_distFade.w + 1) * (useHeightmap ? 1 : -1);
+        if (useHeightmap)
+          get_water_height(Output.worldPos_distFade.xz, Output.worldPos_distFade.y);
+        return Output;
+      }
+    ##else
+      PS_INPUT water_nv_vs(INPUT_VERTEXID_POSXZ USE_INSTANCE_ID)
+      {
+        DECODE_VERTEXID_POSXZ
+        float distFade;
+        bool useHeightmap;
+        float3 worldPos = float3(getWorldPosXZ(posXZ, distFade, useHeightmap USED_INSTANCE_ID), water_level).xzy;
+        if (useHeightmap)
+          get_water_height(worldPos.xz, worldPos.y);
+        return calc_ps_input_from_world_position(worldPos, distFade, useHeightmap);
+      }
+    ##endif
+  }
+endmacro
+
+macro WATER_3D_DEFERRED_COMMON_PS()
+  (ps) {
+    inv_zfar@f1 = (1.0 / zn_zfar.y, 0, 0, 0);
+    water_heightmap_min_max@f4 = water_heightmap_min_max;
+    water_reflection_tex@smp2d = water_reflection_tex;
+    water_reflection_strenght_tex@tex2d = water_reflection_strenght_tex;
+    water_rain_ripples_enabled_special_vision@i2 = (water_rain_ripples_enabled, special_vision);
+  }
+  hlsl(ps) {
+    #define water_reflection_strenght_tex_samplerstate water_reflection_tex_samplerstate
+    #define water_rain_ripples_enabled water_rain_ripples_enabled_special_vision.x
+    #define special_vision water_rain_ripples_enabled_special_vision.y
+  }
+  if (wfx_effects_tex_enabled == yes)
+  {
+    INIT_SAMPLE_WFX_NORMALS(material_gbuf_read_samplerstate)
+    USE_SAMPLE_WFX_NORMALS()
+  }
+  USE_CUBE_RAIN_DROPLETS(1)
+
+  hlsl(ps) {
+    float3 get_water_normal(PS_INPUT In, ShoreData shoreData, float3 worldPos, float3 worldNormal,
+                            float2 wfxTc, float4 nvsf_blendfactors0123, float4 nvsf_blendfactors4567)
+    {
+      float3 wfx_normal_offset = 0;
+      ##if water_ripples_normal != NULL
+        wfx_normal_offset += get_water_ripples_normal(worldPos);
+      ##endif
+      ##if wfx_effects_tex_enabled == yes
+        wfx_normal_offset += sample_wfx_normals_tex(wfxTc);
+      ##endif
+      ##if compatibility_mode == compatibility_mode_off
+        BRANCH
+        if (water_rain_ripples_enabled && check_rain_ripples_condition())
+        {
+          float4 ripplesTc;
+          float3 ripplesTcDx, ripplesTcDy;
+          float3 waterNormal = float3(0, 1, 0);
+          get_rain_ripples_tc(worldPos * 0.5, waterNormal, 1, ripplesTc, ripplesTcDx, ripplesTcDy);
+          float3 ripplesNorm;
+          get_rain_ripples(ripplesTc, worldPos, waterNormal, 1.0, rain_ripple_params.x,
+            ripplesNorm, ripplesTcDx, ripplesTcDy);
+          wfx_normal_offset += ripplesNorm * float3(1, 0, 1);
+          ##if (water_ripples_normal == NULL) && (wfx_effects_tex_enabled == no)
+            wfx_normal_offset = normalize(wfx_normal_offset);
+            worldNormal = RNM_ndetail(worldNormal.xzy, wfx_normal_offset.xzy).xzy;
+          ##endif
+        }
+      ##endif
+      ##if (water_ripples_normal != NULL) || (wfx_effects_tex_enabled == yes)
+        wfx_normal_offset = normalize(wfx_normal_offset);
+        worldNormal = RNM_ndetail(worldNormal.xzy, wfx_normal_offset.xzy).xzy;
+      ##endif
+      worldNormal = normalize(float3(
+        worldNormal.xz*shoreData.gerstner_normal.y +
+        shoreData.gerstner_normal.xz*worldNormal.y,
+        shoreData.gerstner_normal.y*worldNormal.y).xzy);
+      return worldNormal;
+    }
+  }
+  FOG_PS_STCODE()
+endmacro
+
+macro WATER_3D_DEFERRED_COMMON()
+  WATER_3D_DEFERRED_COMMON_VS()
+  WATER_3D_DEFERRED_COMMON_PS()
+endmacro
+
+macro WATER_3D_DEFERRED_SHADERS_COMMON()
+  if (water_tess_factor == water_tess_factor_on) {
+    (vs) {
+      water_tess_factor__max_wave_height__tess_distance__water_quality@f4 = (water_tess_factor, max_wave_height, tess_distance, water_quality);
+    }
+
+    hlsl {
+      #define water_tess_factor (water_tess_factor__max_wave_height__tess_distance__water_quality.x)
+      #define max_wave_height   (water_tess_factor__max_wave_height__tess_distance__water_quality.y)
+      #define tess_distance     (water_tess_factor__max_wave_height__tess_distance__water_quality.z)
+      #define water_quality     (water_tess_factor__max_wave_height__tess_distance__water_quality.w)
+    }
+
+    INIT_AND_USE_FRUSTUM_CHECK_BASE(vs)
+
+    hlsl(hs) {
+      struct TesselatorInput
+      {
+        float edges [ 4 ] : SV_TessFactor;
+        float inside[ 2 ] : SV_InsideTessFactor;
+      };
+
+      TesselatorInput HullShaderPatchConstant(OutputPatch<VS_OUTPUT_FOR_TESSELATION, 4> inputPatch)
+      {
+        TesselatorInput output = (TesselatorInput)0;
+
+        float3 positions[4] =
+        {
+          inputPatch[0].worldPos_distFade.xyz,
+          inputPatch[3].worldPos_distFade.xyz,
+          inputPatch[2].worldPos_distFade.xyz,
+          inputPatch[1].worldPos_distFade.xyz,
+        };
+
+        bool useHeightmap = inputPatch[0].worldPos_distFade.w > 0;
+        [branch]
+        if (!useHeightmap)
+        {
+          float4 heightsTc01 = float4(calcTcLow(positions[0].xz), calcTcLow(positions[1].xz));
+          float4 heightsTc23 = float4(calcTcLow(positions[2].xz), calcTcLow(positions[3].xz));
+          bool heightsValid = all(heightsTc01 >= 0.0) && all(heightsTc01 <= 1.0) && all(heightsTc23 >= 0.0) && all(heightsTc23 <= 1.0);
+          float4 heights = float4(
+            getHeight(positions[0].xz),
+            getHeight(positions[1].xz),
+            getHeight(positions[2].xz),
+            getHeight(positions[3].xz) );
+          const float max_water_level_bias = 0.25;
+
+          [branch]
+          if (heightsValid && all(heights > (water_level_max_wave_height.x + water_level_max_wave_height.y + max_water_level_bias)))
+            return output;
+        }
+
+        float4 dists = float4(
+          length( (positions[3] + positions[0]) * 0.5 - world_view_pos ),
+          length( (positions[0] + positions[1]) * 0.5 - world_view_pos ),
+          length( (positions[1] + positions[2]) * 0.5 - world_view_pos ),
+          length( (positions[2] + positions[3]) * 0.5 - world_view_pos ) );
+
+        const float4 one4 = float4(1, 1, 1, 1);
+        dists = saturate(dists / tess_distance);
+        float4 t;
+        if (water_quality == water_quality_high)
+          t = pow(one4 - dists, 3.1);
+        else
+          t = pow4(one4 - dists);
+        float4 distFade = (t * max(0, water_tess_factor - 6)) + 1;
+
+        float3 boxHeightExpand = float3(0, 1, 0);
+        float3 minPoint   = min(min(positions[0], positions[1]), min(positions[2], positions[3])) ;
+        float3 maxPoint   = max(max(positions[0], positions[1]), max(positions[2], positions[3])) + boxHeightExpand;
+        float  tessFactor = testBoxB(minPoint, maxPoint) ? water_tess_factor : 0;
+
+        float4 minTessFactor = min(tessFactor.xxxx, distFade);
+
+        output.edges[ 0 ] = minTessFactor.x;
+        output.edges[ 1 ] = minTessFactor.y;
+        output.edges[ 2 ] = minTessFactor.z;
+        output.edges[ 3 ] = minTessFactor.w;
+
+        output.inside[ 0 ] = min4(output.edges[ 0 ], output.edges[ 1 ], output.edges[ 2 ], output.edges[ 3 ]);
+        output.inside[ 1 ] = output.inside[ 0 ];
+
+        return output;
+      }
+
+      [domain("quad")]
+      [outputtopology("triangle_ccw")]
+      [outputcontrolpoints(4)]
+      [partitioning("integer")]
+      [patchconstantfunc("HullShaderPatchConstant")]
+      VS_OUTPUT_FOR_TESSELATION WaterHullShader(InputPatch<VS_OUTPUT_FOR_TESSELATION, 4> inputPatch, uint tid : SV_OutputControlPointID)
+      {
+        return inputPatch[ tid ];
+      }
+    }
+
+    hlsl(ds) {
+      struct TesselatorInput
+      {
+        float edges [ 4 ] : SV_TessFactor;
+        float inside[ 2 ] : SV_InsideTessFactor;
+      };
+
+      float4 Bilerp(float4 v0, float4 v1, float4 v2, float4 v3, float2 i)
+      {
+        float4 bottom = lerp(v0, v3, i.x);
+        float4 top    = lerp(v1, v2, i.x);
+        float4 result = lerp(bottom, top, i.y);
+        return result;
+      }
+
+      [domain("quad")]
+      PS_INPUT WaterDomainShader(TesselatorInput tessInput, OutputPatch<VS_OUTPUT_FOR_TESSELATION, 4> input, float2 coords : SV_DomainLocation)
+      {
+        bool useHeightmap = input[0].worldPos_distFade.w > 0;
+        // useHeightmap is computed per-instance, so check only one value. Bilerp between positive and negative distFade values also should never happen for same reason
+        float4 worldPos_distFade = Bilerp(input[ 0 ].worldPos_distFade,
+                                          input[ 1 ].worldPos_distFade,
+                                          input[ 2 ].worldPos_distFade,
+                                          input[ 3 ].worldPos_distFade, coords);
+
+        return calc_ps_input_from_world_position(worldPos_distFade.xyz, abs(worldPos_distFade.w) - 1, useHeightmap);
+      }
+    }
+    compile("hs_5_0", "WaterHullShader");
+    compile("ds_5_0", "WaterDomainShader");
+  }
+
+  if (water_tess_factor == water_tess_factor_on)
+  {
+    compile("target_vs_for_tess", "water_nv_vs");
+  }
+  else
+  {
+    compile("target_vs", "water_nv_vs");
+  }
+  compile("target_ps", "water_nv_ps");
+endmacro
+
+// Arbitrary parameters, but they look good enough.
+float water_distant_plane_radius = 75000;
+float water_distant_planet_radius_mul = 0.4;
+
+macro USE_WATER_DISTANT_COMMON()
+  cull_mode = none;
+  USE_AND_INIT_VIEW_VEC(vs)
+  //Only want to overwrite sky, so we are writing lowest possible positive depth
+  POSTFX_VS_TEXCOORD_VIEWVEC(1.18e-38, texcoord, view_vec)
+  (ps)
+  {
+    water_distant_sphere_radius@f1 = (water_distant_planet_radius_mul * 1000 * skies_planet_radius, 0, 0, 0) ;
+    water_distant_plane_radius@f1 = water_distant_plane_radius;
+    water_distant_plane_radius_sq@f1 = (water_distant_plane_radius * water_distant_plane_radius, 0, 0, 0);
+  }
+  hlsl(ps)
+  {
+    float raycast_on_plane(float3 ray_start, float3 ray_dir, float3 point_on_plane, float3 plane_normal)
+    {
+      float divisor = dot(ray_dir, plane_normal);
+      if (divisor >= 0)
+        return -1;
+      return dot(point_on_plane - ray_start, plane_normal) / divisor;
+    }
+    float raycast_outside_sphere(float3 ray_start, float3 ray_dir, float3 sphere_center, float sphere_radius)
+    {
+      float3 dir = ray_dir;
+      float3 o = ray_start - sphere_center;
+      float r = sphere_radius;
+
+      float a = dot(dir, dir);
+      float b = 2 * dot(dir, o);
+      float c = dot(o, o) - r * r;
+
+      float disc = b * b - 4 * a * c;
+
+      if (disc < 0)
+        return -1;
+
+      float sdisc = sqrt(disc);
+      return (-b - sdisc) / (2 * a);
+    }
+    float ray_water_intersection(float3 dir, out float3 worldPos, out float3 waterNormal)
+    {
+      waterNormal = float3(0,1,0);
+      float w = raycast_on_plane(world_view_pos, dir, float3(0,water_level,0), waterNormal);
+      if (w < 0)
+        return -1;
+      worldPos = world_view_pos + w * dir;
+      float2 pointToEyeXZ = world_view_pos.xz - worldPos.xz;
+      float distanceFromEyeXZSq = dot(pointToEyeXZ, pointToEyeXZ);
+      if (distanceFromEyeXZSq < water_distant_plane_radius_sq)
+        return w;
+
+      float3 sphere_center = float3(world_view_pos.x, water_level, world_view_pos.z);
+      sphere_center += normalize(float3(dir.x, 0, dir.z)) * water_distant_plane_radius;
+      sphere_center.y -= water_distant_sphere_radius;
+      w = raycast_outside_sphere(world_view_pos, dir, sphere_center, water_distant_sphere_radius);
+      if (w < 0)
+        return -1;
+
+      worldPos = world_view_pos + w * dir;
+      waterNormal = normalize(worldPos - sphere_center);
+      return w;
+    }
+    PS_INPUT get_spoofed_ps_input(VsOutput input, out float3 waterNormal)
+    {
+      float3 worldPos;
+      float w = ray_water_intersection(input.view_vec, worldPos, waterNormal); // Intenionally not normalized
+      PS_INPUT In;
+      In.pos_clip = float4(input.pos.xy, 0, w);
+      In.pos_world_undisplaced = worldPos.xzy;
+      return In;
+    }
+  }
+endmacro

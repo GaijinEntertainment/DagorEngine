@@ -1,0 +1,6 @@
+blood_puddles__debugger {
+  _singleton:b=true
+  _tags:t="render,dev"
+
+  "blood_puddle_dbg__render_node:dabfg::NodeHandle"{}
+}

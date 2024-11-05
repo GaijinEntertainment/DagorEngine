@@ -3,10 +3,15 @@ include "sky_shader_global.dshl"
 include "viewVecVS.dshl"
 include "gbuffer.dshl"
 
+define_macro_if_not_defined INIT_WORLD_VIEW_POS_AND_GLOBTM()
+  INIT_HDR(ps)
+  USE_HDR(ps)
+endmacro
 
 shader point_lights, spot_lights
 {
   //supports global_frame;
+  INIT_WORLD_VIEW_POS_AND_GLOBTM()
   INIT_AND_USE_PHOTOMETRY_TEXTURES(ps)
   INIT_AND_USE_PHOTOMETRY_TEXTURES(vs)
   DEFERRED_LIGHTS_COMMON_SHADER()
@@ -40,7 +45,7 @@ shader point_lights, spot_lights
         if (deferred_omni_light(input, screenpos, tc, view, dist, w, result))
         {
           result *= get_fog_loss(view, dist);
-          return result;
+          return pack_hdr(result);
         } else
           return 0;
       }
@@ -63,7 +68,7 @@ shader point_lights, spot_lights
         if (deferred_spot_light(input, screenpos, tc, view, dist, w, result))
         {
           result *= get_fog_loss(view, dist);
-          return result;
+          return pack_hdr(result);
         } else
           return 0;
       }

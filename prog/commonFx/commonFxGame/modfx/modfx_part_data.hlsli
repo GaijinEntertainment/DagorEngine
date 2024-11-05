@@ -69,7 +69,11 @@ void modfx_load_ren_data(BufferData_cref buf, uint ofs, uint decls, DAFX_OREF(Mo
     o.pos = dafx_load_3f(buf, ofs);
 
   if (MODFX_RDECL_POS_OFFSET_ENABLED(decls))
+  {
     o.pos_offset = dafx_load_3f(buf, ofs);
+    // This "useless" operation fixes problems on Nvidia 10 series due to broken codegen.
+    o.pos_offset *= 1.0000001;
+  }
 
   if (MODFX_RDECL_RADIUS_ENABLED(decls))
     o.radius = dafx_load_1f(buf, ofs);

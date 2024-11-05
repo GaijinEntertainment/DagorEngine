@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/aotAnimatedPhys.h>
 
 struct AnimatedPhysAnnotation : das::ManagedStructureAnnotation<AnimatedPhys, false>

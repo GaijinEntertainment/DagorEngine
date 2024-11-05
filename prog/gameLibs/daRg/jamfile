@@ -18,6 +18,7 @@ AddIncludes =
   $(Root)/prog/1stPartyLibs/quirrel
   $(Root)/prog/1stPartyLibs/daScript/include
   $(Root)/prog/gameLibs/daRg
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
 ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
@@ -39,6 +40,7 @@ UseProgLibs +=
   gameLibs/quirrel/frp
   gameLibs/frameTimeMetrics
   gameLibs/forceFeedback
+  gameLibs/gesture
 
   engine/videoPlayer
 

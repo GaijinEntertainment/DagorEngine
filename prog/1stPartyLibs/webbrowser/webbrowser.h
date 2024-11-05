@@ -1,8 +1,4 @@
-//
-// Dagor Engine 6.5 - Web Browser Library
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
-//
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <stdint.h>

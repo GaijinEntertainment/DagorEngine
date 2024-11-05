@@ -1,0 +1,64 @@
+include "screenspace_probes_common.dshl"
+include "dagi_irrad_grid_sample.dshl"
+
+macro DAGI_SKY_VIS_THROUGH(code)//at trace hit when calculating sky vis probes
+  (code) {
+    sky_vis_sph012_monochrome@f4 = (enviSPH0*0.299 + enviSPH1*0.587 + enviSPH2*0.114);
+  }
+  hlsl(code) {
+    float project_calc_sky_visibility_point_lit(float3 worldPos, float3 worldNormal, float3 ambient, float average_albedo = 0.2)
+    {
+      return luminance(dagi_get_sun_color(worldPos, worldNormal, 0.01) + ambient) * average_albedo;
+    }
+    float project_get_sky_visibility_mapped(float monochrome_radiance, float3 rayDir)
+    {
+      half sky = dot(half4(sky_vis_sph012_monochrome), half4(rayDir, 1.h));//~same as luminance(GetSkySHDiffuseSimple(rayDir));
+      return saturate(monochrome_radiance/max(sky, 0.01h));
+    }
+  }
+endmacro
+
+macro GI_DYNLIGHTS_MIN_PROCESSED_GBUFFER(code)
+   hlsl(code) {
+     #ifndef PACK_UNPACK_GBUFFER_DEFINED
+     struct ProcessedGbuffer
+     {
+      half3 albedo, diffuseColor, normal;
+      half linearRoughness, ao;
+     };
+     #endif
+   }
+endmacro
+
+macro DAGI_USE_SKY_SPH(code)//at trace hit when calculating sky vis probes
+  (code) {
+    da_sky_vis_enviSPH0 @f4 = enviSPH0;
+    da_sky_vis_enviSPH1 @f4 = enviSPH1;
+    da_sky_vis_enviSPH2 @f4 = enviSPH2;
+  }
+  hlsl(code) {
+    #include <sh3_function.hlsl>
+    float3 getSkyVisSPH1(float3 worldNormal)
+    {
+      return GetSHFunctionValueSimple(worldNormal, da_sky_vis_enviSPH0, da_sky_vis_enviSPH1, da_sky_vis_enviSPH2);
+    }
+  }
+endmacro
+
+macro DAGI_GET_COMMON_VOXELIZATION_AMBIENT(code)//at trace hit when calculating probes (currently also used for initial voxelization. However, direct lights are different for that)
+  //todo: add screenprobes irradiance
+  DAGI_IRRADIANCE_GRID_SAMPLE(code)
+  hlsl(code) {
+    float3 dagi_get_common_offscreen_ambient(float3 ambientWorldPos, float3 worldNormal, float3 def_ambient = 0)
+    {
+      //todo: add screenprobes irradiance
+      dagi_irrad_grid_diffuse(ambientWorldPos, worldNormal, def_ambient);
+      return def_ambient;
+    }
+    bool dagi_get_common_offscreen_ambient_both(float3 ambientWorldPos, float3 worldNormal, inout float3 ambient, inout float3 back_ambient)
+    {
+      //todo: add screenprobes irradiance
+      return dagi_irrad_grid_diffuse_both_dir(ambientWorldPos, worldNormal, ambient, back_ambient);
+    }
+  }
+endmacro

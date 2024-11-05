@@ -1,0 +1,296 @@
+include "psh_derivate.dshl"
+include "psh_tangent.dshl"
+include "rendinst_opaque_inc.dshl"
+include "rendinst_stub.dshl"
+include "normaldetail.dshl"
+include "emissive.dshl"
+include "glass.dshl"
+include "indoor_light_probes.dshl"
+include "rendinst_voxelize_albedo_inc.dshl"
+float liana_growth_time = 20;
+
+shader rendinst_liana
+{
+  assume instancing_type = tm_vb;
+  if (rendinst_render_pass == rendinst_render_pass_voxelize_albedo) { dont_render; }
+  if (rendinst_render_pass == rendinst_render_pass_grassify) { dont_render; }
+  if (rendinst_render_pass == rendinst_render_pass_to_heightmap) { dont_render; }
+  if (rendinst_render_pass == rendinst_render_pass_impostor_color  ||  rendinst_render_pass == rendinst_render_pass_impostor_shadow)
+  {
+    dont_render;
+  }
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+  cull_mode = none;
+  //no_dynstcode;
+  render_stage atest;
+
+  texture tex = material.texture.diffuse;
+
+  texture normal = material.texture[2];
+
+  static int atest = 0;
+  interval atest: atestOff < 1, atestOn;
+  static float parallax_str = 0;
+  interval parallax_str: parallax_off < 0.0001, parallax_on;
+  static float thickness = 0.3;
+  static float4 start_color = (0.5, 0.1, 0.1, 0);
+  static float4 end_color = (0.6, 0.5, 0.5, 0);
+
+  SETUP_CHARACTER_MICRODETAIL()
+
+  hlsl {
+    ##if ((atest==atestOn) || rendinst_render_pass == rendinst_render_pass_normal)
+      #define HLSL_FULL_VS_OUTPUT 1
+    ##endif
+  }
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+  channel float2 tc[0] = tc[0];
+  channel color8 vcol[0] = extra[53];
+  ENABLE_MULTI_DRAW(rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
+  RENDINST_BLOCK()
+  RENDINST_INSTANCING()
+  if (rendinst_render_pass == rendinst_render_pass_normal)
+  {
+    USE_MICRODETAIL_BASED_WETNESS()
+  }
+  //shader == rendinst_simple_colored is switched off to skip setting rendinst_colors for all shaders
+  hlsl (ps){
+    #if HLSL_FULL_VS_OUTPUT
+      #undef VS_OUT_POSITION
+      #define VS_OUT_POSITION(name)  linear noperspective centroid float4 name:SV_POSITION;
+    #endif
+  }
+  hlsl {
+    struct VsOutput
+    {
+      PRECISE VS_OUT_POSITION(pos)
+
+      #if HLSL_FULL_VS_OUTPUT
+        float2 diffuseTexcoord        : TEXCOORD0;
+        float3 normal                 : TEXCOORD1;
+        centroid float4 pointToEye    : TEXCOORD2;
+        float3 color                 :  TEXCOORD4;
+      #else
+        ##if (rendinst_render_pass == rendinst_render_pass_depth)
+          float4 normal                 : TEXCOORD1;
+          //float3 pointToEye             : TEXCOORD2;
+        ##endif
+      #endif
+      float phaseOfGrowth          : TEXCOORD3;
+      VSOUT_DRAW_ID
+    };
+  }
+
+
+  (vs) {
+    dyn_time@f1 = time_phase(0,0);
+    liana_thickness@f1 = thickness;
+    liana_growth_time@f1 = liana_growth_time;
+    start_color@f3 = start_color;
+    end_color@f3 = end_color;
+  }
+  hlsl(vs) {
+    #include <smootherstep.hlsl>
+
+    INSTANCING_BUFFERS
+
+    struct VsInput
+    {
+      float3 pos                  : POSITION;
+      float3 normal               : NORMAL;
+      float2 diffuseTexcoord      : TEXCOORD0;
+      float4 vertexColor          : COLOR0;
+    };
+
+    VsOutput simple_vs(VsInput input  HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+      #endif
+
+      float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+
+      float normalized_time = 1;// = big_phase < 0.5 ? saturate(big_phase*8-phaseOfGrowthSource) : 0;
+
+      float3 localPos = input.pos;
+      VB_PERFORM_INSTANCING
+
+      //float phaseOfGrowthSource = 0;
+      ##if in_editor_assume != yes
+      {
+        uint hashVal2 = 0;
+        uint3 inst_offset2 = inst_offset;
+        HW_INSTANCE_OFFSET(inst_offset2);
+        BRANCH if (inst_offset2.y > 3)
+          hashVal2 = asuint((per_instance_data[instance_id*inst_offset2.y+inst_offset2.x+3]).x);
+        //float4 tm_line_0 = per_instance_data[instance_id*inst_offset2.y+inst_offset2.x+0];\
+        //float4 tm_line_1 = per_instance_data[instance_id*inst_offset2.y+inst_offset2.x+1];\
+        //float4 tm_line_2 = per_instance_data[instance_id*inst_offset2.y+inst_offset2.x+2];\
+        //float3 worldLocalPos = float3(tm_line_0.w, tm_line_1.w, tm_line_2.w)*cell_bbox_xyz_size+cell_bbox_xyz_min;
+        //float3 distToSource = worldLocalPos-source_of_growth.xyz;
+        //float big_phase = frac(dyn_time/source_of_growth.w);
+        //float phaseOfGrowthSource = saturate(dot(distToSource,distToSource)*pow2(1./30));
+        if (hashVal2 == 0)
+        {
+          output = (VsOutput)0;
+          output.pos = NaN;
+          return output;
+        }
+        normalized_time = saturate((dyn_time-asfloat(hashVal2))/liana_growth_time);
+
+        //phaseOfGrowthSource = phaseOfGrowthSource/(phaseOfGrowthSource+1);
+        //phaseOfGrowthSource = phaseOfGrowthSource;//pow(phaseOfGrowthSource,16);
+        //phaseOfGrowthSource = 0.01*length(distToSource);//10/(length(distToSource)+1);
+      }
+      normalized_time = smootherstep3(normalized_time);
+      ##endif
+      //normalized_time = phaseOfGrowthSource;
+
+      float degammedVcolor = (input.vertexColor.r == 0 ? 0 : pow(input.vertexColor.r, 1/2.2));
+      float2 lianaLength = float2(degammedVcolor, normalized_time);
+        float phaseOfGrowth = 4*(lianaLength.x-(1-lianaLength.y));
+        float thickness = get_liana_thickness();
+        float normalizedThickness = lianaLength.x*(pow(lianaLength.y, 0.25)*saturate(phaseOfGrowth));//(1+0.1*lianaLength.y);
+        float3 hash = floor(input.pos-localNormal*thickness + 0.5);
+        float3 phaseOfMovement = frac(sin(hash*111)*43.18127);
+        input.pos += localNormal*(-thickness + 1.5*thickness*normalizedThickness);
+        float3 speedOfMovement = 3*(float3(11, 11.3, 11.7)*(phaseOfMovement*0.5+0.5) * (frac(phaseOfMovement*43.1717)>0.5 ? -1:1));
+        float3 amplitudeMovement = 0.1*float3(1,2,1);
+        input.pos += saturate(phaseOfGrowth*4)*saturate(1-phaseOfGrowth*2)*float3(amplitudeMovement*sin(lianaLength.y*speedOfMovement + phaseOfMovement*2*PI));
+        //input.pos += -localNormal*thickness;
+      #if HLSL_FULL_VS_OUTPUT
+        input.diffuseTexcoord.y += pow(lianaLength.y, 0.5);
+        output.color = 2*lerp(get_end_color(), get_start_color(), saturate(0.25*phaseOfGrowth));
+      #endif
+        //input.pos -= localNormal*0.3*saturate(1-degammedVcolor);
+        //input.pos += 0.05*localNormal*pow2(saturate((normalized_time+0.01-(1-degammedVcolor))));
+        //input.pos -= localNormal*0.1*saturate(degammedVcolor*degammedVcolor - normalized_time);
+        //input.pos -= localNormal*0.1*saturate(degammedVcolor*degammedVcolor - normalized_time);
+
+      float opacity = 1;
+
+      float3 pointToEye = world_view_pos-worldPos;
+      output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+      #if HLSL_FULL_VS_OUTPUT
+        output.diffuseTexcoord.xy = input.diffuseTexcoord;
+        output.normal.xyz = worldNormal;
+        output.pointToEye.xyz = pointToEye;
+##if (rendinst_render_pass != rendinst_render_pass_to_shadow)
+        output.pointToEye.w = worldPos.y - worldLocalPos.y;
+##endif
+      #else
+##if (rendinst_render_pass != rendinst_render_pass_to_shadow)
+        output.normal.w = worldPos.y - worldLocalPos.y;
+##endif
+      #endif
+      output.phaseOfGrowth = phaseOfGrowth;
+      return output;
+    }
+  }
+
+  if ((rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth))
+  {
+    hlsl(ps) {
+      void simple_ps(VsOutput input INPUT_VFACE)//, out float depth : SV_DepthLessEqual)
+      {
+        clip(input.phaseOfGrowth);
+      }
+    }
+  } else
+  {
+    USE_PIXEL_TANGENT_SPACE()
+    WRITE_GBUFFER()
+    (ps) {
+      diffuse_tex@static = tex;
+      normal_tex@static = normal;
+    }
+
+    USE_CHARACTER_MICRODETAIL()
+
+    hlsl(ps) {
+
+      #define parallax_tex_sampler(tex, tc) tex2DBindless(tex, tc.xy)
+      #define PARALLAX_TEX get_diffuse_tex()
+      #define PARALLAX_ATTR a
+      #include "./parallax.hlsl"
+      GBUFFER_OUTPUT simple_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)//, out float depth : SV_DepthLessEqual)
+      {
+        #if SET_UP_MULTIDRAW
+          SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+        #endif
+
+        UnpackedGbuffer gbuffer;
+        init_gbuffer(gbuffer);
+        input.normal.xyz = MUL_VFACE(input.normal.xyz);
+        clip(input.phaseOfGrowth);
+        //float pixelShaderClipVal = 0.5+4*(lianaLength.x - (1-lianaLength.y));
+        //clip(1+pixelShaderClipVal);
+        //clip(input.lianaLength.x - (1-input.lianaLength.y));
+        float2 texCoord = input.diffuseTexcoord.xy;
+        ##if (parallax_str == parallax_on)
+          #define HAS_PARALLAX 1
+        ##endif
+
+        #if HAS_PARALLAX
+          half3x3 tangent = cotangent_frame( normalize(input.normal.xyz), input.pointToEye.xyz, input.diffuseTexcoord.xy );
+          float3 viewDir;
+          viewDir.x = dot(input.pointToEye.xyz, tangent[0]);
+          viewDir.y = dot(input.pointToEye.xyz, tangent[1]);
+          viewDir.z = dot(input.pointToEye.xyz, tangent[2]);
+          viewDir = normalize(viewDir);
+          texCoord = get_parallax(viewDir.xy, float4(input.diffuseTexcoord.xy, 0, 0), 0.05);
+          //texCoord = input.diffuseTexcoord;
+        #endif
+
+        float3 worldPos = world_view_pos-input.pointToEye.xyz;
+        half4 diffuseColor = tex2DBindless(get_diffuse_tex(), texCoord);
+        diffuseColor.rgb*=input.color;
+
+        ##if atest != atestOff
+        clip (diffuseColor.a-0.5);
+        ##endif
+        half4 packedNormalMap = tex2DBindless(get_normal_tex(), texCoord);
+
+        half smoothness = packedNormalMap.r;//there is nothing good here!
+        //smoothness = get_specular_intensity_from_color( diffuseColor.rgb );//fixme: remove!
+        half3 normalMap = unpack_ag_normal(packedNormalMap);
+        half metalness = packedNormalMap.b;
+
+        half reflectance = 0.5;
+        half ao = 1;
+        BRANCH
+        if (character_micro_detail_layer>=0)
+        {
+          apply_character_micro_detail(sample_character_micro_detail(input.diffuseTexcoord.xy*get_character_micro_detail_scale().xy, character_micro_detail_layer),
+                                 diffuseColor.rgb, normalMap, reflectance, smoothness);
+        }
+        half3 worldNormal = perturb_normal_precise( normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.diffuseTexcoord.xy );
+        ##if (rendinst_render_pass == rendinst_render_pass_normal)
+          apply_wetness_by_microdetail(character_micro_detail_layer, worldPos, diffuseColor.rgb, worldNormal, reflectance, smoothness, ao);
+        ##endif
+
+        init_metalness(gbuffer, metalness);
+        init_ao(gbuffer, ao);
+        init_material(gbuffer, SHADING_NORMAL);
+
+        init_smoothness(gbuffer, smoothness);
+        init_reflectance(gbuffer, reflectance);
+        init_normal(gbuffer, worldNormal);
+        init_albedo(gbuffer, diffuseColor.rgb);
+        //init_albedo(gbuffer, input.vertexColor.rgb);
+        return encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
+      }
+    }
+  }
+  compile("target_ps", "simple_ps");
+  compile("target_vs", "simple_vs");
+}
+

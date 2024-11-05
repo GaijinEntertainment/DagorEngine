@@ -1,0 +1,941 @@
+# !!!WARNING!!!! PLATFORM IS NOT DEFINED HERE !!!WARNING!!!
+# do not use Platform variable until defPlatform is included
+
+Root    ?= ../.. ;
+Location = prog/daNetGame ;
+
+TargetType  = lib ;
+TargetCodeName = daNetGame.framework ; # code name is used to form TmpDir (base folder inside _Output/)
+if $(Dedicated) = yes { Target = daNetGame-server ; } else { Target = daNetGame-client ; }
+
+include $(Root)/$(Location)/setup.jam ; # Note - $(Platform) is not defined before this line unless passed in command line
+
+if $(Config) in dbg dev {
+  UsePCH ?= yes ;
+}
+if $(UsePCH) = yes {
+  PrecompiledName = precompile ;
+  CPPopt += -FI$(PrecompiledName).h ;
+}
+
+SetupOutputDir ;
+
+local AllSrcFolder_CPP =
+  main
+  main/dasModulesList
+  net
+  game
+  phys
+  dasModules
+;
+
+local AllSrcFolder_ES =
+  main
+  game
+  net
+  phys
+;
+
+local AllSrcFolder_DAS =
+  scripts/das/daslib
+  scripts/das/debug
+;
+if $(HaveRenderer) = yes && $(Config) != rel {
+  AllSrcFolder_DAS +=
+    scripts/das/imgui
+  ;
+  AllSrcFolder_CPP += ui/imgui ;
+}
+else {
+  AllSrcFolder_CPP += ui/imgui/stub ;
+}
+if $(Platform) in windows linux macOS && $(Config) != rel {
+  AllSrcFolder_CPP += dasModules/websocket ;
+}
+
+
+Sources =
+;
+
+SourceES =
+;
+
+DasModulesFolder = dasModules ;
+DasModuleFiles =
+  dgNet
+  dagorDebug3dSolid
+;
+
+for s in $(DasModuleFiles) { StringifySourceFile $(DasModulesFolder)/$(s).das : $(DasModulesFolder)/$(s).das.inl : $(DasModulesFolder)/$(s).cpp ; }
+
+DasRenderModulesFolder = render/dasModules ;
+DasRenderModuleFiles =
+  daSkies
+  fx
+;
+
+for s in $(DasRenderModuleFiles) { StringifySourceFile $(DasRenderModulesFolder)/$(s).das : $(DasRenderModulesFolder)/$(s).das.inl : $(DasRenderModulesFolder)/$(s).cpp ; }
+
+if $(Platform) in windows linux macOS && $(Config) != rel {
+  DasDebugModuleFiles =
+    websocket/webSocket
+  ;
+  for s in $(DasDebugModuleFiles) { StringifySourceFile $(DasModulesFolder)/$(s).das : $(DasModulesFolder)/$(s).das.inl : $(DasModulesFolder)/$(s).cpp ; }
+}
+
+if $(Dedicated) = yes {
+  Sources +=
+    input/stub/inputstub.cpp
+    camera/stub/camstub.cpp
+  ;
+
+  AllSrcFolder_CPP +=
+    net/dedicated
+    main/dedicated
+    main/dedicated/dasModules
+  ;
+
+  AllSrcFolder_ES +=
+    main/dedicated
+    net/dedicated
+  ;
+
+  HaveOverlayUI = no ;
+} else {
+  AllSrcFolder_CPP +=
+    net/dedicated/stub
+    camera
+    input
+    input/humanInput
+    input/dasModules
+  ;
+  AllSrcFolder_ES +=
+    camera
+    input
+    input/humanInput
+  ;
+
+  AllSrcFolder_CPP +=
+    main/client
+    main/client/dasModules
+  ;
+}
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_ES +=
+    render/fx
+    render/animchar
+    render/weather
+    render/world
+    render/grass
+    render
+    ui
+    ui/hud
+    ui/bhv
+  ;
+  AllSrcFolder_CPP +=
+    render/dasModules
+    render/world
+    render/world/frameGraphNodes
+    render/world/frameGraphNodesMobile
+    render/weather
+    render
+    ui
+    ui/hud
+    ui/bhv
+    ui/robj
+  ;
+} else {
+  Sources +=
+    render/stub/rendererStub.cpp
+    render/stub/screencapStub.cpp
+    render/stub/billboardStub.cpp
+    render/stub/wind.cpp
+    render/stub/cinematicModeStub.cpp
+    ui/stub/uiStub.cpp
+  ;
+}
+
+if $(HaveFx) = yes {
+  AllSrcFolder_CPP +=
+    render/fx
+  ;
+} else {
+  Sources +=
+    render/stub/fxStub.cpp
+  ;
+}
+
+if $(HaveEditor) = yes {
+  Sources +=
+    editor/embeddedEditor.cpp
+    editor/de4entityEditor.cpp
+    editor/de4entityObj.cpp
+    editor/editorDasModules.cpp
+  ;
+  AllSrcFolder_ES +=
+    editor
+  ;
+} else {
+  Sources += editor/embeddedEditorStub.cpp ;
+}
+
+if $(Platform) in windows && $(HaveRenderer) = yes && $(ExportOptimus) = yes {
+  Sources += render/opt/optimus.cpp ;
+}
+
+if $(HaveRenderer) = yes && ( $(Platform)-$(PlatformArch) = windows-x86_64 ||  $(Platform) in linux scarlett ) {
+  BVHSupport = yes ;
+  BVHRi = yes ;
+  BVHRandomGrass = no ;
+  BVHGpuObjects = no ;
+  BVHDynRend = no ;
+}
+
+UseProgLibs =
+  engine/osApiWrappers
+  engine/kernel
+  engine/ioSys
+  engine/startup
+  engine/baseUtil
+  engine/coreUtil
+  engine/math
+  engine/lib3d
+  engine/image
+  engine/shaders
+  engine/streaming
+  engine/workCycle
+  engine/guiBase
+  engine/scene
+  engine/phys/physCommon
+  engine/sceneRay
+  engine/animChar
+  engine/anim
+  engine/phys/fastPhys
+
+  engine/gameRes
+  engine/perfMon
+  engine/profilerTracker
+
+  gameLibs/daProfilerPlugins
+  gameLibs/digitalSignature
+  gameLibs/decalMatrices
+  gameLibs/quirrel/sqDebugger
+  gameLibs/quirrel/clientLog
+  gameLibs/quirrel/sqJwt
+  gameLibs/quirrel/yupfile_parse
+  gameLibs/yup_parse
+  gameLibs/fftWater
+  gameLibs/heightmap
+  gameLibs/daNet
+  gameLibs/daPhys
+  gameLibs/physMap
+  gameLibs/gamePhys/collision/collision-common
+  gameLibs/gamePhys/collision/customRendinstTrace
+  gameLibs/gamePhys/collision/rendinst
+  gameLibs/gamePhys/props
+  gameLibs/gamePhys/phys
+  gameLibs/gamePhys/common
+
+  gameLibs/gameMath
+  gameLibs/grid
+  gameLibs/lagCatcher
+  gameLibs/landMesh
+  gameLibs/rendInst
+  gameLibs/crypto
+  gameLibs/memoryProfiler
+  gameLibs/camera
+  gameLibs/camTrack
+  gameLibs/folders
+  gameLibs/webvromfs
+  gameLibs/levelSplines
+  gameLibs/dataBlockUtils
+  gameLibs/dataBlockUtils/blk2sqrat
+  gameLibs/jsonUtils
+  gameLibs/video360
+  gameLibs/streaming
+  gameLibs/types
+  gameLibs/smokeOccluder
+  gameLibs/hudprim
+
+  engine/consoleProc
+  engine/imgui
+
+  gameLibs/daGame
+  gameLibs/daGame/timers
+  gameLibs/quirrel/bindQuirrelEx
+  gameLibs/quirrel/sqModules
+  gameLibs/quirrel/sqCrossCall
+  gameLibs/quirrel/quirrel_json
+  gameLibs/quirrel/sqConsole
+  gameLibs/quirrel/http
+  gameLibs/quirrel/sqDacoll
+  gameLibs/quirrel/sqStatsd
+  gameLibs/quirrel/base64
+  gameLibs/quirrel/sqDataCache
+  gameLibs/quirrel/nestdb
+  gameLibs/quirrel/sqSysInfo
+
+  gameLibs/ecs/scripts/das
+  gameLibs/ecs/scripts/dasSq
+  gameLibs/dasModules/common
+  gameLibs/dasModules/quirrel
+  gameLibs/dasModules/phys
+  gameLibs/dasModules/generic
+  gameLibs/dasModules/ECSGlobalTags
+  gameLibs/dasModules/currentCircuit
+  gameLibs/dasModules/gameMath
+  gameLibs/dasModules/rendInst
+  gameLibs/dasModules/daInput
+  gameLibs/dasModules/actions
+  gameLibs/dasModules/daProfiler
+  gameLibs/dasModules/forceFeedback
+  gameLibs/dasModules/net
+  gameLibs/dasModules/statsd
+  gameLibs/dasModules/gpuReadbackQuery
+  gameLibs/dasModules/landMesh
+  gameLibs/dasModules/systemInfo
+
+  gameLibs/das/ecs
+  gameLibs/das/math
+
+  gameLibs/propsRegistry
+
+  gameLibs/daECS/core
+  gameLibs/daECS/net
+  gameLibs/daECS/net/timesync
+  gameLibs/daECS/net/replay
+  gameLibs/daECS/scene
+  gameLibs/daECS/utility
+  gameLibs/ecs/phys
+  gameLibs/ecs/anim
+  gameLibs/ecs/gameres
+  gameLibs/ecs/scripts/sq
+  gameLibs/ecs/game/generic
+  gameLibs/ecs/game/zones
+  gameLibs/ecs/game/actions
+  gameLibs/ecs/rendInst
+  gameLibs/ecs/debug
+  gameLibs/ecs/os
+  gameLibs/ecs/deferToAct
+  gameLibs/daECS/net/dasevents
+  gameLibs/userSystemInfo
+  gameLibs/statsd
+  3rdPartyLibs/libb64
+
+  gameLibs/ioEventsPoll
+  gameLibs/eventLog
+
+  gameLibs/publicConfigs
+  gameLibs/syncVroms
+  gameLibs/contentUpdater/binarycache
+  gameLibs/contentUpdater/utils
+
+  1stPartyLibs/sysinfo
+
+  gameLibs/ecs/console
+
+  1stPartyLibs/rapidJsonUtils
+  1stPartyLibs/daScriptModules/rapidjson
+  gameLibs/render/denoiser
+  gameLibs/bvh
+  gameLibs/render/rtsm
+  gameLibs/render/rtr
+  gameLibs/render/objectMotionBlur
+;
+
+if $(Sanitize) && $(Sanitize) != disabled {
+  MemLib ?= memory ;
+  UseMemoryDebugLevel ?= off ;
+} else if $(Platform) in windows xboxOne scarlett {
+  if $(Config) != rel && $(Platform) in windows {
+    MemLib ?= memory ;
+    if $(MemLib) = memory { UseMemoryDebugLevel ?= dbg ; }
+  } else if $(PlatformArch) != x86 {
+    MemLib ?= memory/rtlStdMemory ;
+  }
+} else if $(Platform) in ps4 ps5 {
+  MemLib ?= memory/mimallocMem ;
+} else if $(Platform) = linux && $(Dedicated) = yes { # linux dev is for production
+  MemLib ?= memory ;
+  UseMemoryDebugLevel ?= off ;
+}
+if $(MemLib) { UseProgLibs += engine/$(MemLib) ; } else { UseProgLibs += engine/memory ; }
+if ( $(MemLib) && $(MemLib) in memory memory/rtlStdMemory ) && ( ! $(UseMemoryDebugLevel) in off def ) {
+  Sources += main/opt/memleakDetector.cpp ;
+} else {
+  Sources += main/opt/memleakDetectorStub.cpp ;
+}
+
+if $(Platform) in windows linux {
+  UseProgLibs +=
+    gameLibs/webui/websocket
+  ;
+} else {
+  UseProgLibs +=
+    gameLibs/webui/websocket/stub
+  ;
+}
+if $(Platform) in windows linux macOS && $(Config) != rel {
+  UseProgLibs += 3rdPartyLibs/mongoose ;
+}
+
+if $(HaveWebui) = yes {
+  Sources += main/webui/webui.cpp ;
+
+  UseProgLibs +=
+    gameLibs/webui
+    gameLibs/webui/plugins/ecsviewer
+    gameLibs/webui/plugins/editorCurves
+    gameLibs/webui/plugins/colorpicker
+    gameLibs/webui/plugins/webView
+    gameLibs/webui/plugins/rendinstColors
+  ;
+
+  if $(HaveRenderer) = yes && $(Platform) in windows {
+    UseProgLibs += gameLibs/webui/plugins/shaderEditors ;
+  } else {
+    UseProgLibs += gameLibs/webui/plugins/shaderEditors/stub ;
+  }
+} else {
+  Sources += main/webui/stub.cpp ;
+  UseProgLibs +=
+    gameLibs/webui/stub
+    gameLibs/webui/plugins/shaderEditors/stub
+  ;
+}
+
+if $(HaveFx) = yes {
+  UseProgLibs +=
+    engine/libFx
+    gameLibs/daFx
+  ;
+}
+
+if $(HaveEditor) = yes {
+  UseProgLibs +=
+    gameLibs/daEditorE
+    gameLibs/dasModules/daEditor
+  ;
+}
+
+if $(HaveEmbeddedBrowser) = yes {
+  Sources += main/browser/webBrowser.cpp ;
+
+  UseProgLibs +=
+    gameLibs/daRg/browser
+    gameLibs/webBrowserHelper
+    gameLibs/quirrel/sqWebBrowser
+    ;
+} else {
+  Sources += main/browser/webBrowserStub.cpp ;
+
+  UseProgLibs +=
+    gameLibs/daRg/browser/stub
+    gameLibs/quirrel/sqWebBrowser/stub
+    ;
+}
+
+if $(HaveRenderer) = yes {
+  UseProgLibs +=
+    3rdPartyLibs/image/avif
+    3rdPartyLibs/image/jpeg-6b
+    3rdPartyLibs/image/libpng-1.4.22
+    3rdPartyLibs/image/psdRead
+    3rdPartyLibs/image/tinyexr-1.0.8
+    engine/screenShotSystem
+    engine/aviWriter
+    engine/videoPlayer
+    engine/videoEncoder
+    gameLibs/profileEventsGUI
+    gameLibs/render
+    gameLibs/render/tracer
+    gameLibs/render/cables
+    gameLibs/render/genericLUT
+    gameLibs/render/rainX7
+    gameLibs/render/hdrRender
+    gameLibs/render/heatHaze
+    gameLibs/render/lruCollision
+    gameLibs/render/wind
+    gameLibs/render/waterRipples
+    gameLibs/render/wakePs
+    gameLibs/render/treesAbove
+    gameLibs/render/foam
+    gameLibs/render/texDebug
+    gameLibs/daGI
+    gameLibs/daGI2
+    gameLibs/latencyFlash
+    gameLibs/ecs/render
+    gameLibs/ecs/render/weather_effects
+    gameLibs/ecs/camera
+    gameLibs/rendInst/riFx
+    gameLibs/projectiveDecals
+    gameLibs/billboardDecals
+    gameLibs/render/dof
+    gameLibs/daSkies2
+    gameLibs/render/volumetricLights
+    gameLibs/render/nodeBasedShader
+    gameLibs/nodeBasedShaderManager
+    gameLibs/fpsProfiler
+    gameLibs/render/upscale
+    gameLibs/textureUtil
+    gameLibs/render/daBfg
+    gameLibs/das/daBfg
+    gameLibs/render/resourceSlot
+    gameLibs/render/shaderCacheWarmup
+
+    gameLibs/dasModules/shaders
+    gameLibs/dasModules/render
+    gameLibs/dasModules/stdGui
+    gameLibs/dasModules/camera
+    gameLibs/dasModules/projectiveDecals
+
+    gameLibs/render/deviceResetTelemetry
+    gameLibs/render/psoCacheLoader
+  ;
+} else {
+  UseProgLibs +=
+    gameLibs/gamePhys/phys/destrRenderStub
+    gameLibs/render/cables/stub
+    gameLibs/rendInst/riFx/stub
+    gameLibs/render/hdrRender/stub
+    gameLibs/render/volumetricLights/stub
+    gameLibs/render/nodeBasedShader/stub
+  ;
+}
+
+DABFG_ENABLE_DAS_INTEGRATION = yes ;
+DABFG_ENABLE_DAECS_INTEGRATION = yes ;
+
+if $(HaveRenderer) = yes && $(Config) != rel {
+  UseProgLibs +=
+    1stPartyLibs/daScript/modules/dasImgui
+    gameLibs/imguiInput
+    gameLibs/dasModules/imgui
+    gameLibs/consoleWindow
+  ;
+} else {
+  UseProgLibs +=
+    gameLibs/imguiInput/stub
+    gameLibs/consoleWindow/consoleWindowStub
+  ;
+}
+
+UseProgLibs += engine/imgui/util
+               1stPartyLibs/daScript/modules/dasQuirrel
+               gameLibs/vr
+;
+
+if $(UseSystemOpenSSL) = yes {
+  AddLibs += -lssl -lcrypto ; # this option implicitly assumes Linux right now
+} else {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/openssl-$(OpenSSLVer)/include ;
+  UseProgLibs += 3rdPartyLibs/openssl-$(OpenSSLVer) ;
+}
+
+AddIncludes +=
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/engine
+;
+
+if $(IsHeadless) = yes {
+  UseProgLibs +=
+    engine/drv/hid_nulldrv
+  ;
+  if $(Platform) in linux {
+    UseProgLibs +=
+      engine/osApiWrappers/messageBox/stub
+      engine/workCycle/stub
+    ;
+  }
+} else {
+  UseProgLibs +=
+    engine/osApiWrappers/messageBox
+  ;
+}
+
+if $(Dedicated) = yes {
+  UseProgLibs +=
+    gameLibs/quirrel/frp
+    gameLibs/forceFeedback/stub
+    gameLibs/consoleKeyBindings/consoleKeyBindingsStub
+  ;
+  if $(UseD3DMulti) = yes { UseProgLibs += engine/drv/drv3d_pc_multi ; } else { UseProgLibs += engine/drv/drv3d_stub ; }
+} else
+{
+  UseProgLibs +=
+    commonFx/commonFxGame
+    gameLibs/daRg
+    gameLibs/daInput
+    gameLibs/ecs/input
+    gameLibs/dasModules/clientNet
+    gameLibs/forceFeedback
+  ;
+
+  if $(HaveConsole) = yes {
+    UseProgLibs += gameLibs/visualConsole ;
+  } else {
+    UseProgLibs += gameLibs/visualConsole/visconstub ;
+  }
+
+  if $(HaveConsole) = yes && $(Config) != rel && $(Platform) in windows linux {
+    UseProgLibs += gameLibs/consoleKeyBindings ;
+  } else {
+    UseProgLibs += gameLibs/consoleKeyBindings/consoleKeyBindingsStub ;
+  }
+
+  if $(Platform) in windows {
+    if $(UseD3DMulti) != yes { UseProgLibs += engine/drv/drv3d_DX11 ; }
+    else { UseProgLibs += engine/drv/drv3d_pc_multi ; }
+
+    AddLibs +=
+      Ws2_32.lib
+      shlwapi.lib
+    ;
+  } else if $(Platform) = ps4 {
+    UseProgLibs += engine/drv/drv3d_ps4 ;
+  } else  if $(Platform) = ps5 {
+    UseProgLibs += engine/drv/drv3d_ps5 ;
+  } else if $(Platform) in xboxOne scarlett {
+    UseProgLibs += engine/drv/drv3d_DX12 ;
+  } else if $(Platform) = linux && $(Dedicated) = no {
+    UseProgLibs += engine/drv/drv3d_pc_multi ;
+  } else if $(Platform) = macOS {
+    UseProgLibs += engine/drv/drv3d_pc_multi ;
+    Sources += main/apple_main.mm ;
+  } else if $(Platform) in iOS tvOS {
+    UseProgLibs += engine/drv/drv3d_Metal ;
+    Sources += main/apple_main.mm ;
+
+    if $(Platform) = iOS {
+      UseProgLibs +=
+        gameLibs/quirrel/ios/facebook
+        gameLibs/ios/account
+        gameLibs/quirrel/ios/account
+        gameLibs/ios/billing
+        gameLibs/quirrel/ios/billing
+        gameLibs/ios/platform
+        gameLibs/quirrel/ios/platform
+        gameLibs/ios/webview
+        gameLibs/quirrel/ios/webview
+        gameLibs/ios/localnotifications
+        gameLibs/quirrel/ios/localnotifications
+        gameLibs/ios/ads
+        gameLibs/quirrel/ios/ads
+        gameLibs/quirrel/appsFlyer
+        gameLibs/quirrel/clevertap
+      ;
+
+      if $(UseFacebook) = yes {
+        UseProgLibs += gameLibs/ios/facebook ;
+      } else {
+        UseProgLibs += gameLibs/ios/facebook/stub ;
+      }
+
+      Sources +=
+        platform/ios/scripts_binding.cpp
+      ;
+
+      if $(UseCleverTap) = yes { UseProgLibs += gameLibs/clevertap ; }
+      else { UseProgLibs += gameLibs/clevertap/stub ; }
+
+      if $(IOSUseCrashlytics) = yes { UseProgLibs += gameLibs/crashlytics ; }
+      else { UseProgLibs += gameLibs/crashlytics/stub ; }
+
+      if $(UseAppsFlyer) = yes { UseProgLibs += gameLibs/appsFlyer ;
+      } else { UseProgLibs += gameLibs/appsFlyer/stub ; }
+
+      if $(UseFirebase) = yes {
+        UseProgLibs += gameLibs/ios/firebase ;
+      }
+    }
+  } else if $(Platform) = android {
+    UseProgLibs +=
+      engine/drv/drv3d_vulkan
+      engine/drv/hid_android
+      engine/drv/hid_nulldrv
+      gameLibs/android/ads
+      gameLibs/android/billing
+      gameLibs/android/platform
+      gameLibs/android/account
+      gameLibs/android/webview
+      gameLibs/android/pushnotifications
+      gameLibs/android/localnotifications
+      gameLibs/quirrel/android/ads
+      gameLibs/quirrel/android/platform
+      gameLibs/quirrel/android/billing
+      gameLibs/quirrel/android/account
+      gameLibs/quirrel/android/localnotifications
+      gameLibs/quirrel/appsFlyer
+      gameLibs/quirrel/clevertap
+      gameLibs/quirrel/android/webview
+    ;
+
+
+    if $(UseAppsFlyer) = yes { UseProgLibs += gameLibs/appsFlyer ; }
+    else { UseProgLibs += gameLibs/appsFlyer/stub ; }
+
+    if $(UseCleverTap) = yes { UseProgLibs += gameLibs/clevertap ; }
+    else { UseProgLibs += gameLibs/clevertap/stub ; }
+
+    if $(AndroidUploadCrashlyticsSymbols) = yes { UseProgLibs += gameLibs/crashlytics ; }
+    else { UseProgLibs += gameLibs/crashlytics/stub ; }
+
+    AddIncludes += $(Root)/prog/daNetGame/platform/android ;
+
+    Sources +=
+      platform/android/scripts_binding.cpp
+      platform/android/graphics_preset.cpp
+    ;
+
+  } else if $(Platform) = nswitch {
+    Sources +=
+      platform/nswitch/nxapp_utility.cpp
+      platform/nswitch/scripts_binding.cpp
+    ;
+
+    # nintendo support remote cpu profiler, need to link specify library that use it
+    UseNxProfiler ?= no ;
+
+    AddIncludes +=
+      $(Root)/prog/3rdPartyLibs/math
+    ;
+
+    UseProgLibs +=
+      3rdPartyLibs/posix
+      engine/drv/drv3d_vulkan
+      gameLibs/quirrel/nswitch
+      gameLibs/nswitch/kit
+      gameLibs/nswitch/account
+      gameLibs/nswitch/mounts
+      gameLibs/nswitch/tempdata
+      gameLibs/nswitch/dyingMessage
+      gameLibs/nswitch/events
+      gameLibs/nswitch/dlc
+      gameLibs/nswitch/network
+      gameLibs/nswitch/profileImage
+      gameLibs/nswitch/restrictions
+      gameLibs/nswitch/shadercache
+      gameLibs/nswitch/profileImage
+      gameLibs/nswitch/eshop
+
+      gameLibs/nswitch/journalizedMount
+      gameLibs/nswitch/eshop
+      gameLibs/nswitch/profiler
+      gameLibs/nswitch/assets
+      gameLibs/nswitch/filecache
+    ;
+
+    AddLibs +=
+      $(_OASIS_LIBS_DIR)/libnn_init_memory.a  # need for malloc
+      $(_OASIS_LIBS_DIR)/libnn_gfx.a          # need for vulkan/gl
+    ;
+  }
+  else {
+    Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
+  }
+
+  if $(Platform) in ps4 ps5 {
+    UseProgLibs +=
+      daNetGame/platform/sony
+      gameLibs/quirrel/sony
+    ;
+  }
+
+  if $(UseGDK) != no {
+    UseProgLibs +=
+      daNetGame/platform/xbox
+      gameLibs/quirrel/xbox
+      gameLibs/xbox
+    ;
+  }
+
+  # link gamepad/joystick/mouse/kb drivers
+  if $(IsHeadless) != yes {
+    if $(Platform) in windows macOS linux {
+      UseProgLibs += engine/drv/hid_keyboard ;
+    }
+
+    if $(Platform) in xboxOne scarlett {
+      if $(Config) = dev {
+        UseProgLibs += engine/drv/hid_keyboard ;
+      }
+    }
+
+    if $(Platform) in windows macOS linux {
+      UseProgLibs += engine/drv/hid_mouse ;
+    }
+
+    if $(Platform) in windows {
+      UseProgLibs +=
+        engine/drv/hid_joystick
+        engine/drv/hid_gamepad_xinput
+        engine/drv/hid_dinput
+      ;
+    } else if $(Platform) = macOS {
+      UseProgLibs += engine/drv/hid_joystick_osx ;
+    } else if $(Platform) = linux {
+      UseProgLibs += engine/drv/hid_joystick_linux ;
+    } else if $(Platform) in ps4 ps5 {
+      UseProgLibs += engine/drv/hid_sony ;
+    } else if $(Platform) in xboxOne scarlett {
+      UseProgLibs += engine/drv/hid_gamepad_xinput ;
+    } else if $(Platform) = iOS {
+      UseProgLibs += engine/drv/hid_iOS ;
+    } else if $(Platform) = android {
+      UseProgLibs += engine/drv/hid_android ;
+    } else if $(Platform) = nswitch {
+      UseProgLibs += engine/drv/hid_nswitch ;
+    }
+
+    if ! $(Platform) in windows macOS linux {
+      UseProgLibs += engine/drv/hid_nulldrv ;
+    }
+  }
+}
+
+if $(Platform) in xboxOne scarlett {
+
+  XboxCopyMedia = no ;
+
+  AddLibs +=
+    acphal.lib
+    mmdevapi.lib
+    xaudio2.lib
+  ;
+}
+
+if $(Platform) = ps4 {
+  UseProgLibs +=
+    gameLibs/sony
+  ;
+}
+
+HaveOverlayUI ?= yes ;
+
+if $(HaveSound) = yes {
+  UseProgLibs +=
+    gameLibs/soundSystem
+    gameLibs/soundSystem/quirrel
+    gameLibs/ecs/sound
+    gameLibs/daRg/soundSystem
+    gameLibs/dasModules/sound
+  ;
+
+  AllSrcFolder_CPP +=
+    sound
+    sound/common
+    sound/server
+    dasModules/sound
+  ;
+  AllSrcFolder_ES +=
+    sound
+    sound/common
+    sound/server
+    dasModules/sound
+  ;
+
+  if $(FmodStudio) = src {
+    UseProgLibs += $(FmodUseProgLib) ;
+  } else if $(FmodStudio) {
+    AddLibs += $(FmodStaticLibs) ;
+  }
+} else
+{
+  UseProgLibs +=
+    gameLibs/soundSystem/stub
+    gameLibs/soundSystem/quirrel/stub
+    gameLibs/ecs/sound/stub
+  ;
+
+  AllSrcFolder_CPP +=
+    sound/stub
+  ;
+}
+
+if $(HaveSoundNet) = yes {
+  UseProgLibs +=
+    gameLibs/dasModules/sound/common
+  ;
+  AllSrcFolder_CPP +=
+    sound_net
+    sound/common
+    sound/server
+    dasModules/sound/common
+    dasModules/sound_net
+  ;
+  AllSrcFolder_ES +=
+    sound_net
+    sound/common
+    sound/server
+    dasModules/sound/common
+  ;
+} else
+{
+  AllSrcFolder_CPP +=
+    sound_net/stub
+  ;
+}
+
+if $(EnableBreakpad) = yes {
+  UseProgLibs += gameLibs/breakpad/binder ;
+  if $(EnableBreakpadSubmission) = yes {
+    UseProgArtifacts += gameLibs/breakpad/sender ;
+  }
+} else if $(EnableCrashpad) = yes {
+  UseProgLibs += gameLibs/breakpad/crashpad ;
+} else {
+  UseProgLibs += gameLibs/breakpad/stub ;
+}
+
+if $(HaveOverlayUI) = yes {
+
+  UseProgLibs +=
+    gameLibs/quirrel/sqEventBus
+  ;
+
+  if $(Platform) in windows {
+    AddLibs +=
+      Iphlpapi.lib
+    ;
+  }
+} else {
+  Sources += ui/stub/overlayUiStub.cpp ;
+}
+
+AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp       : Sources : main/(main|version)\\.cpp ; # exclude main/main.cpp and version.cpp
+if $(DAS_AOT_COMPILER) { AutoscanBuildLists $(AllSrcFolder_DAS) : *.das : Sources ; }
+
+AutoscanBuildLists $(AllSrcFolder_ES)  : *ES.cpp.inl : SourceES ;
+for s in $(SourceES) { GenESSourceFile $(s) ; }
+
+# build _es_pull jamvar/cpp
+$(Target)_es_pull = daECS/core/componentType.h framework_es_pulls ;
+for s in $(SourceES) {
+  local pullvar = [ MATCH "(.+)ES.cpp.inl$" : $(s:D=) ] ;
+  $(Target)_es_pull += $(pullvar) ;
+}
+
+$(Target)_es_pull_action = make_es_pull_cpp ;
+
+Sources += $(Target)_es_pull.jamvar ;
+SourceES = ;
+
+if $(NeedDasAotCompile) != yes || $(Dedicated) = yes {
+  stub_client_das_aot_pull = size_t daNetGame_client_DAS_pull_AOT \= 0 \; ;
+  Sources += stub_client_das_aot_pull.jamvar ;
+}
+if $(NeedDasAotCompile) != yes || $(Dedicated) != yes  {
+  stub_server_das_aot_pull = size_t daNetGame_server_DAS_pull_AOT \= 0 \; ;
+  Sources += stub_server_das_aot_pull.jamvar ;
+}
+
+if $(NeedDasAotCompile) = yes { AOT_setup = bool NEED_DAS_AOT_COMPILE\=true\; ; } else { AOT_setup = bool NEED_DAS_AOT_COMPILE\=false\; ; }
+Sources += AOT_setup.jamvar ;
+
+UseSyncDebugLib = no ;
+NOCARE $(Root)/$(Location)/gaijin.jam ;
+include $(Root)/$(Location)/gaijin.jam ;
+if $(UseSyncDebugLib) = no { CPPopt += -DDISABLE_SYNC_DEBUG ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

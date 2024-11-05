@@ -67,7 +67,7 @@ namespace das {
         void parallel_for ( JobStatus & status, int from, int to, const JobChunk & chunk, JobCategory category, JobPriority priority, int chunk_count = -1, int step = 1 );
         void parallel_for ( int from, int to, const JobChunk & chunk, JobCategory category, JobPriority priority, int chunk_count = -1, int step = 1 );
         void parallel_for_with_consume (int from, int to, const JobChunk & chunk, const JobChunk & consume, JobCategory category, JobPriority priority, int chunk_count = -1, int step = 1);
-        static int get_num_threads() { return max(1,static_cast<int>(thread::hardware_concurrency())); }
+        static int get_num_threads();
         void EvalOnMainThread(Job && expr);
         void EvalMainThreadJobs();
         void wait();

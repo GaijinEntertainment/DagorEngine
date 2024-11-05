@@ -19,5 +19,5 @@
 
 #define CLIPMAP_HIST_TOTAL_ELEMENTS (TILE_WIDTH * TILE_WIDTH * TEX_MIPS * MAX_VTEX_CNT)
 
-#define CLIPMAP_INVALID_FEEDBACK_CLEAR 0x00000000 // invalid data, with dummy ri_index==0 value (it can never occur in real feedback, only from clearing)
+#define CLIPMAP_INVALID_FEEDBACK_CLEAR 0x00000000 // invalid data, with dummy ri_offset==0 value (it can never occur in real feedback, only from clearing)
 

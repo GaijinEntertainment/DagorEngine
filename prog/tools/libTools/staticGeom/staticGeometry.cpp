@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/staticGeom/staticGeometry.h>
 #include <libTools/staticGeom/matFlags.h>
 #include <libTools/util/meshUtil.h>

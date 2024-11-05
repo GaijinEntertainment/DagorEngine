@@ -1,0 +1,35 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = screen_frost ;
+Location = prog/daNetGameLibs/$(Module) ;
+local DasModule = daNetGameLibs_screen_frost_DAS_pull_AOT ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/render/daBfg
+  $(Root)/prog/daNetGame
+  $(Root)/prog/1stPartyLibs/daScript/include
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+  $(Root)/prog/1stPartyLibs/rapidJsonUtils/include
+;
+local AllSrcFolder_CPP = ;
+local AllSrcFolder_ES = ;
+local AllSrcFolder_DAS = ;
+if $(HaveRenderer) = yes {
+  AllSrcFolder_CPP +=
+    dasModules
+    render
+  ;
+
+  AllSrcFolder_ES +=
+    render
+  ;
+
+  AllSrcFolder_DAS +=
+    render
+  ;
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

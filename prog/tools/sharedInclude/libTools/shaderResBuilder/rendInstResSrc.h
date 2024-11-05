@@ -1,6 +1,4 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef _GAIJIN_DAGOR_RENDINSTRESSRC_H
-#define _GAIJIN_DAGOR_RENDINSTRESSRC_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <libTools/shaderResBuilder/shaderMeshData.h>
@@ -95,7 +93,7 @@ public:
 
   void addNode(Lod &, Node *, Node *key_node, LodsEqualMaterialGather &mat_gather, StaticSceneRayTracer *ao_tracer);
 
-  bool addLod(const char *filename, real range, LodsEqualMaterialGather &mat_gather, Tab<AScene *> &scene_list,
+  bool addLod(int lod_index, const char *filename, real range, LodsEqualMaterialGather &mat_gather, Tab<AScene *> &scene_list,
     const DataBlock &material_overrides, const char *add_mat_script = nullptr);
 
   bool build(const DataBlock &blk);
@@ -140,5 +138,3 @@ private:
 
   void splitRealTwoSided(Mesh &m, Bitarray &is_material_real_two_sided_array);
 };
-
-#endif

@@ -1,0 +1,5 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_water_effects_pull ;
+  AddIncludes +=  $(Root)/prog/gameLibs/render/daBfg ;
+  UseProgLibs += daNetGameLibs/water_effects ;
+}

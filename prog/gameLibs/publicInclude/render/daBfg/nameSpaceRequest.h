@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -37,6 +36,9 @@ class NameSpaceRequest
   template <RRP policy>
   using VirtualTextureRequest = VirtualResourceRequest<BaseTexture, policy>;
 
+  template <RRP policy>
+  using VirtualBufferRequest = VirtualResourceRequest<Sbuffer, policy>;
+
   template <class T, RRP policy>
   using VirtualBlobRequest = VirtualResourceRequest<T, policy>;
 
@@ -51,17 +53,19 @@ public:
   NameSpaceRequest operator/(const char *child_name) const;
 
   /**
-   * \brief Get a request object for the resolution of a particular type
+   * \brief Get a request object for the 2D resolution of a particular type
    * inside of this namespace, which can then be used to create textures
    * or be resolved into an actual number at execution time.
    * The resulting resolution will be the product of what was set with
    * NameSpace::setResolution with the \p multiplier.
    *
+   * \tparam D Dimensionality of the resolution.
    * \param type_name Auto resolution type name.
    * \param multiplier A multiplier for the resolution type.
    * \return AutoResolutionRequest Object representing the auto resolution type.
    */
-  AutoResolutionRequest getResolution(const char *type_name, float multiplier = 1.f) const;
+  template <int D>
+  AutoResolutionRequest<D> getResolution(const char *type_name, float multiplier = 1.f) const;
 
   /** \name Resource requesting methods
    * Every one of these returns a request object that must be used to specify

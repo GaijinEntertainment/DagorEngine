@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <sqCrossCall/sqCrossCall.h>
 #include <debug/dag_assert.h>
 #include <util/dag_string.h>
@@ -11,6 +13,24 @@ static bool repush(HSQUIRRELVM vm_from, SQInteger idx, HSQUIRRELVM vm_to, int de
   //   sq_push(vm_to, idx);
   //   return true;
   // }
+
+  if (!sq_canaccessfromthisthread(vm_from))
+  {
+    if (err_msg)
+      err_msg->printf(0, "Can't access source VM from this thread");
+    else
+      G_ASSERTF(0, "Can't access source VM from this thread");
+    return false;
+  }
+
+  if (!sq_canaccessfromthisthread(vm_to))
+  {
+    if (err_msg)
+      err_msg->printf(0, "Can't access destination VM from this thread");
+    else
+      G_ASSERTF(0, "Can't access destination VM from this thread");
+    return false;
+  }
 
   SQInteger prevTopFrom = sq_gettop(vm_from), prevTopTo = sq_gettop(vm_to);
   (void)prevTopFrom;

@@ -1,0 +1,58 @@
+include "shader_global.dshl"
+include "psh_tangent.dshl"
+include "normaldetail.dshl"
+include "gbuffer.dshl"
+
+shader debug_solid
+{
+
+  cull_mode = none;
+  blend_src = sa; blend_dst = isa;
+  z_write = false;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 worldPos                   : TEXCOORD2;
+    };
+  }
+
+  hlsl(ps) {
+    float4 main_ps_simple_aces(VsOutput input INPUT_VFACE):SV_Target
+    {
+      half3 worldNormal = normalize(cross(ddy(input.worldPos), ddx(input.worldPos)));
+      float3 pointToEye = input.worldPos - world_view_pos;
+      worldNormal.xyz = MUL_VFACE(worldNormal.xyz);
+      float fresnel = saturate(1 - abs(dot(worldNormal, normalize(pointToEye).xyz)));
+      fresnel = saturate(lerp(1, 0.5, pow4(fresnel)));
+      return float4(fresnel, fresnel, fresnel, 0.5);
+    }
+  }
+  compile("target_ps", "main_ps_simple_aces");
+
+
+  (vs) { globtm@f44 = globtm; }
+  (ps) {world_view_pos@f3=world_view_pos;}
+
+  hlsl(vs) {
+    float4 boxes[256*2] : register (c8);
+    float4 boxes_last_reg : register(c520);
+    // 520 = 256*2 + 8, ensure that dsc sees the vs const range correctly
+
+    VsOutput main_vs_all_simples_aces(uint iId : SV_InstanceID, uint vertId : SV_VertexID)
+    {
+      float3 center = boxes[iId*2].xyz, ext = boxes[iId*2+1].xyz*0.5;
+      float3 cornerPos = float3(vertId&1 ? 1 : 0, vertId&2 ? 1 : 0, vertId&4 ? 1 : 0);//generate
+      float3 worldPos = center + (cornerPos*2-float3(1,1,1))*ext;
+      VsOutput output;
+      output.pos = mul(float4(worldPos, 1), globtm);
+
+      output.worldPos = worldPos.xyz;
+
+      return output;
+    }
+  }
+
+  compile("target_vs", "main_vs_all_simples_aces");
+}

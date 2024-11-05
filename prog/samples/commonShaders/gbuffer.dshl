@@ -237,19 +237,35 @@ if (compatibility_mode == compatibility_mode_off)
     {
       return write_gbuffer(pack_gbuffer(gbuffer));
     }
-    #define encode_gbuffer(a,b) encode_gbuffer_raw(a)
+    #define encode_gbuffer(a,b,c) encode_gbuffer_raw(a)
   }
 }
 
 endmacro
 
 
-macro INIT_READ_GBUFFER_BASE(code)
+macro INIT_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
+  (code) { material_gbuf_read@smp2d = material_gbuf; }
+endmacro
+
+macro INIT_READ_GBUFFER_MATERIAL_DYNAMIC()
+  INIT_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(ps)
+endmacro
+
+macro INIT_READ_GBUFFER_SIMPLE_BASE(code)
   (code) {
     normal_gbuf_read@smp2d = normal_gbuf;
     albedo_gbuf_read@smp2d = albedo_gbuf;
-    material_gbuf_read@smp2d = material_gbuf;
   }
+endmacro
+
+macro INIT_READ_GBUFFER_SIMPLE()
+  INIT_READ_GBUFFER_SIMPLE_BASE(ps)
+endmacro
+
+macro INIT_READ_GBUFFER_BASE(code)
+  INIT_READ_GBUFFER_SIMPLE_BASE(code)
+  INIT_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
 endmacro
 
 macro INIT_READ_GBUFFER()
@@ -357,7 +373,7 @@ macro INIT_LOAD_GBUFFER()
   INIT_LOAD_GBUFFER_BASE(ps)
 endmacro
 
-macro USE_LOAD_GBUFFER_BASE(code)
+macro USE_LOAD_GBUFFER_BASE(code, bvh)
   PACK_UNPACK_GBUFFER_BASE(code)
   hlsl(code){
     PackedGbuffer loadPackedGbuffer(int2 tc)
@@ -367,6 +383,19 @@ macro USE_LOAD_GBUFFER_BASE(code)
       gbuf.normal_smoothness_material = texelFetch(normal_gbuf_load, tc, 0);
       gbuf.metallTranslucency_shadow_dynamic = texelFetch(material_gbuf_load, tc, 0).xyz;
       return gbuf;
+    }
+    void loadPackedGbufferNormal(uint2 coord, out float3 normal)
+    {
+      PackedGbuffer gbuf;
+      gbuf.normal_smoothness_material = texelFetch(normal_gbuf_load, coord, 0);
+      half smoothness;
+      unpackGbufferNormalSmoothness(gbuf, normal, smoothness);
+    }
+    void loadPackedGbufferNormalSmoothness(uint2 coord, out float3 normal, out half smoothness)
+    {
+      PackedGbuffer gbuf;
+      gbuf.normal_smoothness_material = texelFetch(normal_gbuf_load, coord, 0);
+      unpackGbufferNormalSmoothness(gbuf, normal, smoothness);
     }
     ProcessedGbuffer loadProcessedGbuffer(int2 tc)
     {
@@ -398,11 +427,11 @@ macro USE_READ_MOTION_BUFFER_BASE(code)
       float2 m = tex2Dlod(motion_gbuf_read, float4(uv,0,0)).rg;
       return isinf(m.x) ? 0 : 1;
     }
-    float2 readMotionBuffer(float2 tc)
+    float3 readMotionBuffer(float2 tc)
     {
-      return tex2Dlod(motion_gbuf_read, float4(tc,0,0)).xy;
+      return tex2Dlod(motion_gbuf_read, float4(tc,0,0)).xyz;
     }
-    float2 readMotionBuffer(float t, float c)
+    float3 readMotionBuffer(float t, float c)
     {
       return readMotionBuffer(float2(t, c));
     }
@@ -412,3 +441,21 @@ endmacro
 macro USE_READ_MOTION_BUFFER()
   USE_READ_MOTION_BUFFER_BASE(ps)
 endmacro
+
+macro INIT_LOAD_MOTION_BUFFER_BASE(code)
+  (code) {motion_gbuf_load@tex2d = motion_gbuf;}
+endmacro
+
+macro USE_LOAD_MOTION_BUFFER_BASE(code)
+  hlsl(code) {
+    uint loadDynamic(uint2 scr)
+    {
+      return !isinf(texelFetch(motion_gbuf_load, scr, 0).x);
+    }
+    float3 loadMotionBuffer(uint2 scr)
+    {
+      return texelFetch(motion_gbuf_load, scr, 0).xyz;
+    }
+  }
+endmacro
+

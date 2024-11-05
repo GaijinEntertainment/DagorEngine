@@ -1,0 +1,28 @@
+
+macro INIT_MASKED_MICRODETAIL()
+  texture microDetailMask = material.texture[6];
+endmacro
+
+macro USE_MASKED_MICRODETAIL()
+  (ps){ microDetailMask@static = microDetailMask; }
+
+  hlsl(ps)
+  {
+    void apply_masked_micro_detail(float2 diffuseTexcoord, inout float3 normalMap, inout float reflectance, inout float smoothness, inout float3 diffuseColor)
+    {
+    ##if microDetailMask != NULL
+      half microDetailLayer = tex2DBindless(get_microDetailMask(), diffuseTexcoord).x;
+      half4 microDetail = get_character_micro_detail(diffuseTexcoord*get_character_micro_detail_scale().xy, microDetailLayer);
+      apply_character_micro_detail(microDetail,
+                                  diffuseColor.rgb, normalMap, reflectance, smoothness);
+    ##else
+      BRANCH
+      if (character_micro_detail_layer >= 0)
+      {
+        apply_character_micro_detail(sample_character_micro_detail(diffuseTexcoord*get_character_micro_detail_scale().xy, character_micro_detail_layer),
+                                      diffuseColor.rgb, normalMap, reflectance, smoothness);
+      }
+    ##endif
+    }
+  }
+endmacro

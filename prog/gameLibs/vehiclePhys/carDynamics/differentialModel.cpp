@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <vehiclePhys/carDynamics/differentialModel.h>
 #include <vehiclePhys/carDynamics/wheelModel.h>
 #include <vehiclePhys/carDynamics/carModel.h>
@@ -350,7 +352,7 @@ void CarDifferential::calc1DiffForces(float dt, float torqueIn, float inertiaIn)
     accASymmetric = accIn - accOut[0];
   }
 
-  // debug_ctx("acc = %f +/- %f", accIn, accASymmetric);
+  // DEBUG_CTX("acc = %f +/- %f", accIn, accASymmetric);
 }
 
 void CarDifferential::integrate(float dt) { rotV = (wheel[0]->rotationV + wheel[1]->rotationV) / 2; }

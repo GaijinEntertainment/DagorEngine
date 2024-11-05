@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <rendInst/rendInstExtraAccess.h>
 
 #include "riGen/riGenData.h"
@@ -58,16 +60,26 @@ const mat43f &rendinst::getRIGenExtra43(riex_handle_t id)
 {
   uint32_t res_idx = handle_to_ri_type(id);
   uint32_t idx = handle_to_ri_inst(id);
-  G_ASSERT(res_idx < riExtra.size());
-  RiExtraPool &pool = riExtra[res_idx];
-  if (idx >= pool.riTm.size())
+  if (res_idx < riExtra.size())
   {
-    logerr("%s idx out of range: idx=%d, count=%d (res_idx=%d)", __FUNCTION__, idx, pool.riTm.size(), res_idx);
-    static mat43f m43;
-    m43.row0 = m43.row1 = m43.row2 = v_zero();
-    return m43;
+    RiExtraPool &pool = riExtra[res_idx];
+    if (idx < pool.riTm.size())
+      return pool.riTm[idx];
+    else
+      logerr("%s idx out of range: idx=%d, count=%d (res_idx=%d)", __FUNCTION__, idx, pool.riTm.size(), res_idx);
   }
-  return pool.riTm[idx];
+  else
+    logerr("%s res_idx out of range: idx=%d, count=%d (res_idx=%d)", __FUNCTION__, idx, riExtra.size(), res_idx);
+
+  static mat43f m43;
+  m43.row0 = m43.row1 = m43.row2 = v_zero();
+  return m43;
+}
+
+const mat43f &rendinst::getRIGenExtra43(riex_handle_t id, uint32_t &seed)
+{
+  seed = get_riextra_instance_seed(id);
+  return getRIGenExtra43(id);
 }
 
 namespace rendinst
@@ -246,7 +258,7 @@ void rendinst::setRiGenExtraHp(riex_handle_t id, float hp)
 
 const char *rendinst::getRIGenExtraName(uint32_t res_idx) { return riExtraMap.getName(res_idx); }
 
-int rendinst::getRIGenExtraPreferrableLod(uint32_t res_idx, float squared_distance)
+int rendinst::getRIGenExtraPreferrableLod(uint32_t res_idx, float squared_distance, bool &over_max_lod, int &last_lod_arg)
 {
   if (res_idx >= rendinst::riExtra.size())
     return -1;
@@ -255,8 +267,17 @@ int rendinst::getRIGenExtraPreferrableLod(uint32_t res_idx, float squared_distan
   int lod = find_lod<rendinst::RiExtraPool::MAX_LODS>(riPool.distSqLOD, squared_distance);
   const int llm = riPool.lodLimits >> ((rendinst::ri_game_render_mode + 1) * 8);
   const int min_lod = llm & 0xF, max_lod = (llm >> 4) & 0xF;
+  over_max_lod = riPool.distSqLOD[max_lod] <= squared_distance;
+  last_lod_arg = max_lod;
   lod = clamp(lod, min_lod, max_lod);
   return lod;
+}
+
+int rendinst::getRIGenExtraPreferrableLod(uint32_t res_idx, float squared_distance)
+{
+  bool over_max_lod;
+  int max_lod;
+  return getRIGenExtraPreferrableLod(res_idx, squared_distance, over_max_lod, max_lod);
 }
 
 bool rendinst::isRIExtraGenPosInst(uint32_t res_idx)
@@ -283,7 +304,7 @@ bbox3f rendinst::riex_get_lbb(int res_idx)
   return riExtra[res_idx].lbb;
 }
 
-float rendinst::ries_get_bsph_rad(int res_idx)
+float rendinst::riex_get_bsph_rad(int res_idx)
 {
   if (res_idx >= riExtra.size())
     return 0.f;

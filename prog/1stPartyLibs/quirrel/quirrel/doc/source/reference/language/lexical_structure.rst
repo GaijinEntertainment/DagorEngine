@@ -32,7 +32,7 @@ The following words are reserved and cannot be used as identifiers:
 +------------+------------+-----------+------------+------------+-------------+
 | continue   | const      | default   | delete     | else       | enum        |
 +------------+------------+-----------+------------+------------+-------------+
-| extends    | for        | foreach   | function   | if         | in          |
+| for        | foreach    | function  | if         | in         |             |
 +------------+------------+-----------+------------+------------+-------------+
 | local      | null       | resume    | return     | switch     | this        |
 +------------+------------+-----------+------------+------------+-------------+

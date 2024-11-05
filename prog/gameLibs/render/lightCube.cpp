@@ -1,4 +1,7 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_resPtr.h>
 #include <math/dag_TMatrix4.h>
 #include <shaders/dag_shaders.h>
@@ -7,6 +10,7 @@
 #include <render/sphHarmCalc.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <render/lightCube.h>
+#include <drv/3d/dag_rwResource.h>
 
 namespace light_probe
 {
@@ -65,6 +69,11 @@ public:
     PostFxRenderer &shader)
   {
     d3d::set_render_target();
+    // Workaround for RW texture stuck in u slot, conflicting with RT on DX11.
+    for (int i = 0; i < 8; i++)
+      d3d::set_rwtex(STAGE_PS, i, nullptr, 0, 0);
+    ShaderElement::invalidate_cached_state_block();
+
     bool integrate_one_face = false;
 
 #if _TARGET_IOS || _TARGET_TVOS || _TARGET_ANDROID
@@ -94,6 +103,7 @@ public:
         if (cubTex == tex.getCubeTex())
           cubTex->texmiplevel(0, 0);
         d3d::settex(7, cubTex);
+        d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
         shader.render();
         for (int i = 0; i < (integrate_one_face ? 1 : 6); ++i)
           d3d::set_render_target(i, nullptr, 0);

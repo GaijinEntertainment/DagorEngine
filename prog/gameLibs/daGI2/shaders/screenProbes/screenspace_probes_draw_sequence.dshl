@@ -1,0 +1,67 @@
+include "shader_global.dshl"
+
+int4 gbuffer_view_size = (1, 1, 0, 0);
+int screenspace_probes_draw_sequence_count;
+
+shader screenspace_probes_draw_sequence
+{
+  supports global_frame;
+  supports none;
+  cull_mode=none;
+  z_test=false;
+  z_write=false;
+
+  (vs) {
+    screenspace_probes_draw_sequence_count@i1 = screenspace_probes_draw_sequence_count;
+    gbuffer_view_size@i2 = gbuffer_view_size;
+  }
+  //SCREENSPACE_PROBES_ADAPTIVE_POSITIONS(vs)
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      ##if hardware.vulkan
+        #if SHADER_COMPILER_DXC
+          [[vk::builtin("PointSize")]] float point_size : PSIZE;
+        #else
+          float point_size : PSIZE;
+        #endif
+      ##elif hardware.metal
+        #if SHADER_COMPILER_DXC
+          [[vk::builtin("PointSize")]] float point_size : PSIZE;
+        #else
+          [[vk::builtin("PointSize")]] float point_size;
+        #endif
+      ##endif
+    };
+  }
+
+  hlsl(vs) {
+
+    #include "screen_update_tiled.hlsl"
+
+    VsOutput test_vs(uint vertId : SV_VertexID)
+    {
+      VsOutput output;
+      uint index = vertId, numSamples = screenspace_probes_draw_sequence_count, frame = 0;
+      uint2 random = pcg2d(uint2(index, numSamples));
+      float2 h = pseudo_random_screen_coord(index, numSamples, gbuffer_view_size, random.x)/float2(gbuffer_view_size.xy);
+      output.pos.xy = h*2 - 1;
+      output.pos.zw = float2(0.5, 1);
+      ##if hardware.vulkan || hardware.metal
+      output.point_size = 1;
+      ##endif
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    half3 test_ps():SV_Target0
+    {
+      return float3(1,0,0);
+    }
+  }
+  compile("target_vs", "test_vs");
+  compile("target_ps", "test_ps");
+}
+

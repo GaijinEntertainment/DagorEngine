@@ -24,12 +24,12 @@ macro GAUSSIAN_MIP_CORE(code)
 
     float4 gauss_mip(float2 texcoord00)
     {
-      float4 finalColor=0;
-      float weight=0;
+      float4 finalColor = 0;
+      float finalWeight = 0;
 
       float2 tcOffset = OFFSET_SCALE * mip_target_size.zw;
 
-      #define GET(a, b, w) finalColor += w * tex2Dlod(prev_mip_tex, float4(texcoord00 + float2(a, b) * tcOffset.xy, 0, 0)); weight += w;
+      #define GET(a, b, c) finalColor += tex2Dlod(prev_mip_tex, float4(texcoord00 + float2(a, b) * tcOffset.xy, 0, 0)) * c; finalWeight += c;
 
       // center
       GET(0, 0, CENTER_WEIGHT)
@@ -46,7 +46,40 @@ macro GAUSSIAN_MIP_CORE(code)
       GET(-1, 1, CORNER_WEIGHT)
       GET(-1, -1, CORNER_WEIGHT)
 
-      return finalColor/weight;
+      return finalColor / finalWeight;
+    }
+
+    float4 gauss_mip_alpha(float2 texcoord00)
+    {
+      float4 finalColor = 0;
+      float finalWeight = 0;
+
+      float2 tcOffset = OFFSET_SCALE * mip_target_size.zw;
+
+      #define GET(a, b, c)\
+      {\
+        float4 color = tex2Dlod(prev_mip_tex, float4(texcoord00 + float2(a, b) * tcOffset.xy, 0, 0));\
+        float weight = color.w * c;\
+        finalColor += color * weight;\
+        finalWeight += weight;\
+      }
+
+      // center
+      GET(0, 0, CENTER_WEIGHT)
+
+      // side
+      GET(1, 0, SIDE_WEIGHT)
+      GET(-1, 0, SIDE_WEIGHT)
+      GET(0, 1, SIDE_WEIGHT)
+      GET(0, -1, SIDE_WEIGHT)
+
+      // corner
+      GET(1, 1, CORNER_WEIGHT)
+      GET(1, -1, CORNER_WEIGHT)
+      GET(-1, 1, CORNER_WEIGHT)
+      GET(-1, -1, CORNER_WEIGHT)
+
+      return finalColor / max(finalWeight, 0.001);
     }
   }
 endmacro
@@ -74,6 +107,32 @@ shader gaussian_mipchain
   compile("target_ps", "gauss_mip_ps");
 }
 
+shader gaussian_mipchain_alpha
+{
+  no_ablend;
+  supports none;
+  supports global_frame;
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  POSTFX_VS_TEXCOORD(0, texcoord00)
+  GAUSSIAN_MIP_CORE(ps)
+
+  hlsl(ps)
+  {
+    float4 gauss_mip_ps(VsOutput input) : SV_Target
+    {
+      return gauss_mip_alpha(input.texcoord00.xy);
+    }
+  }
+  compile("target_ps", "gauss_mip_ps");
+}
+
+int gaussian_mipchain_srgb = 0;
+interval gaussian_mipchain_srgb: no < 1, yes;
+
 shader gaussian_mipchain_cs
 {
   GAUSSIAN_MIP_CORE(cs)
@@ -84,10 +143,41 @@ shader gaussian_mipchain_cs
 
   hlsl(cs)
   {
+    #include <pixelPacking/ColorSpaceUtility.hlsl>
+
     [numthreads( 8, 8, 1 )]
     void gauss_mip_cs(uint3 DTid : SV_DispatchThreadID)
     {
-      mip_target[DTid.xy] = gauss_mip(mip_target_size.zw * (DTid.xy + 0.5));
+      ##if gaussian_mipchain_srgb == yes
+        mip_target[DTid.xy] = ApplySRGBCurve(gauss_mip(mip_target_size.zw * (DTid.xy + 0.5)));
+      ##else
+        mip_target[DTid.xy] = gauss_mip(mip_target_size.zw * (DTid.xy + 0.5));
+      ##endif
+    }
+  }
+  compile("target_cs", "gauss_mip_cs");
+}
+
+shader gaussian_mipchain_alpha_cs
+{
+  GAUSSIAN_MIP_CORE(cs)
+
+  hlsl(cs) {
+    RWTexture2D<float4> mip_target : register(u0);
+  }
+
+  hlsl(cs)
+  {
+    #include <pixelPacking/ColorSpaceUtility.hlsl>
+
+    [numthreads( 8, 8, 1 )]
+    void gauss_mip_cs(uint3 DTid : SV_DispatchThreadID)
+    {
+      ##if gaussian_mipchain_srgb == yes
+        mip_target[DTid.xy] = ApplySRGBCurve(gauss_mip_alpha(mip_target_size.zw * (DTid.xy + 0.5)));
+      ##else
+        mip_target[DTid.xy] = gauss_mip_alpha(mip_target_size.zw * (DTid.xy + 0.5));
+      ##endif
     }
   }
   compile("target_cs", "gauss_mip_cs");
@@ -175,10 +265,7 @@ shader bloom_filter_mipchain
       float3 bloomColor = 0.5 * blockCC + 0.125 * (blockTL + blockTR + blockBR + blockBL);
       ##if mip_blur_filter_nan_validation == yes
         if (any(isnan(bloomColor)))
-        {
-          ##assert(0, "got NaN in prev_frame_tex at (%f, %f)", tc.x, tc.y);
           bloomColor = 0;
-        }
       ##endif
       return half4(bloomColor, 1);
     }

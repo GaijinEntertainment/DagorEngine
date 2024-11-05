@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "engine.h"
 
 #include <gameRes/dag_gameResSystem.h>
@@ -13,7 +15,7 @@
 #include <de3_dxpFactory.h>
 #include <libTools/dtx/ddsxPlugin.h>
 #include <rendInst/rendInstGen.h>
-#include <sepGui/wndGlobal.h>
+#include <libTools/util/fileUtils.h>
 
 #include <libTools/shaderResBuilder/shaderMeshData.h>
 
@@ -89,6 +91,9 @@ void DaEditor3Engine::conRemarkV(const char *fmt, const DagorSafeArg *arg, int a
 
 bool DaEditor3Engine::initAssetBase(const char *app_dir)
 {
+  char start_dir[260] = "";
+  dag_get_appmodule_dir(start_dir, sizeof(start_dir));
+
   String fname(260, "%sapplication.blk", app_dir);
   DataBlock appblk;
 
@@ -171,20 +176,16 @@ bool DaEditor3Engine::initAssetBase(const char *app_dir)
   {
     if (!minimizeDabuildUsage)
     {
-      G_ASSERT(dabuildcache::init(sgg::get_exe_path_full(), &console));
+      G_ASSERT(dabuildcache::init(start_dir, &console));
       G_ASSERT(dabuildcache::bind_with_mgr(assetMgr, appblk, app_dir) >= 0);
     }
-    if (texconvcache::init(assetMgr, appblk, sgg::get_exe_path_full(), false, true))
+    if (texconvcache::init(assetMgr, appblk, start_dir, false, true))
     {
       addMessage(ILogWriter::NOTE, "texture conversion cache inited");
-#if _TARGET_64BIT
-      int pc = ddsx::load_plugins(String(260, "%s/../bin64/plugins/ddsx", sgg::get_exe_path_full()));
-#else
-      int pc = ddsx::load_plugins(String(260, "%s/../bin/plugins/ddsx", sgg::get_exe_path_full()));
-#endif
+      int pc = ddsx::load_plugins(String(260, "%s/plugins/ddsx", start_dir));
       debug("loaded %d DDSx export plugin(s)", pc);
     }
-    if (assetrefs::load_plugins(assetMgr, appblk, sgg::get_exe_path_full(), !minimizeDabuildUsage))
+    if (assetrefs::load_plugins(assetMgr, appblk, start_dir, !minimizeDabuildUsage))
       addMessage(ILogWriter::NOTE, "asset refs plugins inited");
   }
   if (bool zstd = appblk.getBlockByNameEx("projectDefaults")->getBool("preferZSTD", false))

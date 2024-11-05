@@ -1,11 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/primitiveObjects.h>
 #include <math/dag_Point4.h>
 #include <generic/dag_smallTab.h>
 #include <generic/dag_carray.h>
 #include <shaders/dag_shaders.h>
 #include <3d/dag_materialData.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driver.h>
 
 
 #define MAX_SPHERE_SLICES 64

@@ -1,16 +1,23 @@
 include "ssao_inc.dshl"
 include "wsao.dshl"
+include "halfres_close_depth_with_normals.dshl"
 
-int use_contact_shadows = 0;
+int ssao_use_wsao = 0 always_referenced;
+interval ssao_use_wsao : no < 1, yes;
+int use_contact_shadows = 0 always_referenced;
 interval use_contact_shadows: no_shadows < 1, use_shadows;
 
-bool ssao_wsao = gi_quality == only_ao;
+bool ssao_wsao = ssao_use_wsao == yes;
 bool ssao_contact_shadows = use_contact_shadows != no_shadows;
 
 hlsl {
   #define SSAO_ATTRS xyz
   #define WSAO_ATTR y
   #define CONTACT_SHADOWS_ATTR z
+  #define SSAO_HAS_GREEN 1
+  ##if !(ssao_contact_shadows && !ssao_wsao)
+  #define SSAO_HAS_BLUE 1
+  ##endif
 }
 
 macro USE_PACK_SSAO_BASE(code)
@@ -26,7 +33,8 @@ macro USE_PACK_SSAO_BASE(code)
       return ssao;
     }
   }
-  if (gi_quality == only_ao) {
+  if (ssao_wsao) {
+    if (gi_quality > only_ao) {dont_render;}
     WSAO_BASE(code)
   }
 endmacro
@@ -38,27 +46,28 @@ endmacro
 macro USE_SSAO_SIMPLE_BASE_WITH_SMP(code, _samplerstate)
   USE_SCREENPOS_TO_LOWRES_TC_BASE(code)
   hlsl(code) {
-    SSAO_TYPE getSSAOSimple(float2 screenpos)
+    SSAO_TYPE getSSAOSimple(float linear_depth, float2 screenpos)
     {
       SSAO_TYPE ao = 1;
       float2 ssaotc = screen_pos_to_lowres_tc(screenpos);
       float4 ssao = ssao_tex.SampleLevel(_samplerstate, ssaotc, 0);
       ao.x = ssao.x;
       ##if ssao_wsao
-      ao.WSAO_ATTR = ssao.WSAO_ATTR;
+      ao.WSAO_ATTR = ssao.y;
       ao.WSAO_ATTR *= ao.WSAO_ATTR;
+      ##else
+      ssao.z = ssao.y;
       ##endif
       ##if ssao_contact_shadows
-      ao.CONTACT_SHADOWS_ATTR = ssao.CONTACT_SHADOWS_ATTR;
+      ao.CONTACT_SHADOWS_ATTR = ssao.z;
       ##endif
       return ao;
     }
   }
 endmacro
 
-macro USE_SSAO_UPSCALE_BASE_WITH_SMP(code, _samplerstate)
+macro USE_SSAO_BILATERAL_BASE_WITH_SMP(code, _samplerstate)
   USE_SCREENPOS_TO_LOWRES_TC_BASE(code)
-  USE_UPSCALE_SAMPLING_BASE(code)
   hlsl(code) {
     ##if ssao_contact_shadows && ssao_wsao
       #define GATHER_WSAO GatherGreen
@@ -67,10 +76,66 @@ macro USE_SSAO_UPSCALE_BASE_WITH_SMP(code, _samplerstate)
       #define GATHER_WSAO GatherGreen
       #define GATHER_SHADOW GatherGreen
     ##endif
-    SSAO_TYPE getSSAOUpscale(float2 screenpos)
+    SSAO_TYPE getSSAOBilateral(float linear_depth, float2 screenpos)
     {
       float2 ssaotc = screen_pos_to_lowres_tc(screenpos);
-      float4 weights = SampleUpscaleWeight(screenpos);
+      float4 depths = half_res_close_depth.GatherRed(half_res_close_depth_samplerstate, ssaotc).wzxy;
+      float4 weights = abs(linearize_z4(depths)-linear_depth) < linear_depth*0.05;
+      if (all(weights))
+      {
+        SSAO_TYPE ao = 1;
+        float4 ssao = ssao_tex.SampleLevel(_samplerstate, ssaotc, 0);
+        ao.x = ssao.x;
+        ##if ssao_wsao
+        ao.WSAO_ATTR = ssao.y;
+        ao.WSAO_ATTR *= ao.WSAO_ATTR;
+        ##else
+        ssao.z = ssao.y;
+        ##endif
+        ##if ssao_contact_shadows
+        ao.CONTACT_SHADOWS_ATTR = ssao.z;
+        ##endif
+        return ao;
+      }
+      weights = select(weights, float4(1,1,1,1), exp2(-30*abs(linearize_z4(depths)-linear_depth)/linear_depth) + 1e-6);
+
+      float2 historyCrdf = historyUV*half_res_close_depth_target_size.xy - 0.5;
+      float4 bil = float4(frac(historyCrdf), 1-frac(historyCrdf));
+      weights *= float4(bil.zx*bil.w, bil.zx*bil.y) + 1e-4;
+      weights /= dot(weights, 1);
+
+      float4 ssaoValue = ssao_tex.GatherRed(half_res_close_depth_samplerstate, ssaotc).wzxy;
+      SSAO_TYPE ao = 1;
+      ao.x = dot(ssaoValue, weights);
+      ##if ssao_wsao
+      float4 wsaoValue = ssao_tex.GATHER_WSAO(half_res_close_depth_samplerstate, ssaotc).wzxy;
+      ao.WSAO_ATTR = dot(wsaoValue, weights);
+      ao.WSAO_ATTR *= ao.WSAO_ATTR;
+      ##endif
+      ##if ssao_contact_shadows
+      float4 contactShadowValue = ssao_tex.GATHER_SHADOW(half_res_close_depth_samplerstate, ssaotc).wzxy;
+      ao.CONTACT_SHADOWS_ATTR = dot(contactShadowValue, weights);
+      ##endif
+      return ao;
+    }
+    #undef GATHER_WSAO
+    #undef GATHER_SHADOW
+  }
+endmacro
+
+macro USE_SSAO_UPSCALE_BASE_WITH_SMP(code, _samplerstate)
+  USE_SCREENPOS_TO_LOWRES_TC_BASE(code)
+  hlsl(code) {
+    ##if ssao_contact_shadows && ssao_wsao
+      #define GATHER_WSAO GatherGreen
+      #define GATHER_SHADOW GatherBlue
+    ##else
+      #define GATHER_WSAO GatherGreen
+      #define GATHER_SHADOW GatherGreen
+    ##endif
+    SSAO_TYPE getSSAOUpscaleWeighted(float4 weights, float2 screenpos)
+    {
+      float2 ssaotc = screen_pos_to_lowres_tc(screenpos);
       float4 ssaoValue = ssao_tex.GatherRed(_samplerstate, ssaotc);
       SSAO_TYPE ao = 1;
       ao.x = dot(ssaoValue, weights);
@@ -85,6 +150,10 @@ macro USE_SSAO_UPSCALE_BASE_WITH_SMP(code, _samplerstate)
       ##endif
       return ao;
     }
+    SSAO_TYPE getSSAOUpscale(float linear_depth, float2 screenpos)
+    {
+      return getSSAOUpscaleWeighted(sampleCloseUpscaleWeight(screenpos), screenpos);
+    }
     #undef GATHER_WSAO
     #undef GATHER_SHADOW
   }
@@ -96,12 +165,18 @@ macro USE_SSAO_BASE_WITH_SMP(code, _samplerstate)
   if (upscale_sampling_tex != NULL)
   {
     USE_SSAO_UPSCALE_BASE_WITH_SMP(code, _samplerstate)
+  } else
+  {
+    //INIT_HALF_RES_CLOSE_DEPTH(code)
+    //(code) {half_res_close_depth_target_size@f2 = get_dimensions(downsampled_close_depth_tex);
+    //USE_SSAO_BILATERAL_BASE_WITH_SMP(code, _samplerstate)
   }
   hlsl(code) {
     ##if upscale_sampling_tex != NULL
       #define getSSAO getSSAOUpscale
     ##else
-      #define getSSAO(screenpos) getSSAOSimple(screenpos)
+      #define getSSAO(ld, screenpos) getSSAOSimple(ld, screenpos)
+      //#define getSSAO(ld, screenpos) getSSAOBilateral(ld, screenpos)
     ##endif
   }
 endmacro
@@ -120,7 +195,7 @@ macro USING_SSAO_BASE(code)
     USE_SSAO_BASE(code)
   } else {
     hlsl(code) {
-      #define getSSAO(screenpos) SSAO_TYPE(1, 1, 1)
+      #define getSSAO(w, screenpos) SSAO_TYPE(1, 1, 1)
     }
   }
 endmacro
@@ -132,11 +207,13 @@ endmacro
 macro USING_SSAO_BASE_COMPATIBILITY(code, _samplerstate)
   if (ssao_tex != NULL) {
     // INIT_SSAO_BASE without sampler2d
-    INIT_UPSCALE_SAMPLING_BASE(code)
     USE_SSAO_BASE_WITH_SMP(code, _samplerstate)
+    hlsl(code) {
+      #define getSSAO(ld, screenpos) getSSAOSimple(ld, screenpos)
+    }
   } else {
     hlsl(code) {
-      #define getSSAO(screenpos) SSAO_TYPE(1, 1, 1)
+      #define getSSAO(ld, screenpos) SSAO_TYPE(1, 1, 1)
     }
   }
 endmacro

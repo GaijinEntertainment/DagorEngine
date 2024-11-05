@@ -1,0 +1,105 @@
+include "psh_tangent.dshl"
+include "rendinst_opaque_inc.dshl"
+include "distortion.dshl"
+
+shader rendinst_distortion
+{
+  render_stage distortion;
+
+  assume instancing_type = tm_vb;
+  if (rendinst_render_pass != rendinst_render_pass_normal)
+  {
+    dont_render;
+  }
+
+  channel float3 pos   = pos;
+  channel color8 norm  = norm unsigned_pack;
+  channel float2 tc[0] = tc[0];
+
+  static int enable_vcolor = 0;
+  interval enable_vcolor: no<1, yes;
+
+  if (enable_vcolor == yes)
+  {
+    channel color8 vcol[0] = vcol;
+    hlsl{
+      #define NEED_VCOL_MASK 1
+      #define COLOR_NEEDED 1
+    }
+  }
+
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+
+  z_write    = true;
+  blend_src  = one;
+  blend_dst  = one;
+  blend_asrc = one;
+  blend_adst = one;
+
+  ENABLE_MULTI_DRAW(false)
+  RENDINST_BLOCK()
+  RENDINST_INSTANCING()
+
+  hlsl
+  {
+    struct VsOutput
+    {
+      PRECISE VS_OUT_POSITION(pos)
+      float3 normal     : TEXCOORD1;
+      float2 texcoord   : TEXCOORD2;
+      float3 pointToEye : TEXCOORD3;
+      ##if enable_vcolor == yes
+        float3 colorMul : TEXCOORD4;
+      ##endif
+      VSOUT_DRAW_ID
+    };
+  }
+
+  hlsl(vs)
+  {
+    INSTANCING_BUFFERS
+
+    struct VsInput
+    {
+      float3 pos      : POSITION;
+      float3 normal   : NORMAL;
+      float2 texcoord : TEXCOORD0;
+      ##if enable_vcolor == yes
+        float3 vcolMask : COLOR0;
+      ##endif
+    };
+
+    VsOutput distortion_vs(VsInput input  HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+      #endif
+
+      float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+      float3 localPos    = input.pos;
+
+      VB_PERFORM_INSTANCING
+
+      output.pos        = mulPointTm(worldPos + camera_base_offset, globtm);
+      output.texcoord   = input.texcoord;
+      output.normal     = worldNormal;
+      output.pointToEye = world_view_pos - worldPos;
+
+      ##if enable_vcolor == yes
+        output.colorMul = input.vcolMask;
+      ##endif
+
+      return output;
+    }
+  }
+
+  compile("target_vs", "distortion_vs");
+
+  DISTORTION_PS()
+}

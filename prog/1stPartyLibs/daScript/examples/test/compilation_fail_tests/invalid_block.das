@@ -10,7 +10,7 @@ def test:bool
     if true
         var a:int
         var b:float
-        take_any({ a++; })
+        take_any(${ a++; })
         while true
             take_any() <|
                 break               // 30801, captured block can't break outside the block
@@ -18,9 +18,9 @@ def test:bool
             take_any() <|
                 while true
                     break           // this one ok
-        take_int({ a++; })          // 30304: no matching function (take_int block<void>)
-        take_int({ return a++; })   // this is ok
-        take_int({ b++; })          // 30304: no matching function ( block<float> )
+        take_int(${ a++; })          // 30304: no matching function (take_int block<void>)
+        take_int(${ return a++; })   // this is ok
+        take_int(${ b++; })          // 30304: no matching function ( block<float> )
     take_any() <| $ : void          // 32102: not expecting return value
         return 13
     take_any() <| $ : int           // 32101: expecting return value

@@ -332,6 +332,9 @@ class SoaTemplateStructMacro : AstStructureAnnotation
     // push
     var inscope push_op <- make_named_call(st, stype, "push", "push", /*isConst*/true, checkSizes)
     compiling_module() |> add_generic(push_op)
+    // push (it, pos)
+    var inscope push_op2 <- make_named_call2_int(st, stype, "push", "push", /*isConst*/true, checkSizes)
+    compiling_module() |> add_generic(push_op2)
     // push_clone
     // TODO: add this function if need it
     // var push_clone_op <- make_named_call(st, stype, "push_clone", "push_clone", true)
@@ -345,6 +348,9 @@ class SoaTemplateStructMacro : AstStructureAnnotation
     // emplace
     var inscope emplace_op <- make_named_call(st, stype, "emplace", "emplace", /*isConst*/false, checkSizes)
     compiling_module() |> add_function(emplace_op)
+    // emplace (it, pos)
+    var inscope emplace_op2 <- make_named_call2_int(st, stype, "emplace", "emplace", /*isConst*/false, checkSizes)
+    compiling_module() |> add_function(emplace_op2)
     // clear
     var inscope clear_op <- make_clear(st, stype, checkSizes)
     compiling_module() |> add_function(clear_op)
@@ -508,6 +514,12 @@ class SoaTemplateStructMacro : AstStructureAnnotation
   def make_named_call(st, stype : StructurePtr; fnName, callName : string; isConst : bool; check_sizes : bool) : FunctionPtr
     var inscope argT <- new [[TypeDecl() baseType=Type tStructure, at=st.at, structType=get_ptr(st), flags= isConst ? TypeDeclFlags constant : bitfield(0)]]
     var inscope args <- [{ MakeFuncArg[] [[MakeFuncArg argT <- argT, argField=true]] }]
+    return <- make_any_named_call(st, stype, args, fnName, callName, check_sizes)
+
+  def make_named_call2_int(st, stype : StructurePtr; fnName, callName : string; isConst : bool; check_sizes : bool) : FunctionPtr
+    var inscope argT <- new [[TypeDecl() baseType=Type tStructure, at=st.at, structType=get_ptr(st), flags= isConst ? TypeDeclFlags constant : bitfield(0)]]
+    var inscope argT2 <- new [[TypeDecl() baseType=Type tInt, at=st.at]]
+    var inscope args <- [{ MakeFuncArg[] [[MakeFuncArg argT <- argT, argField=true]]; [[MakeFuncArg argT <- argT2]] }]
     return <- make_any_named_call(st, stype, args, fnName, callName, check_sizes)
 
 

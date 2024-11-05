@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "process.h"
 #include <assert.h>
 #include <stdlib.h>

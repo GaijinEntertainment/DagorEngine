@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_dynamic_screen_pull ;
+  UseProgLibs += daNetGameLibs/dynamic_screen ;
+}

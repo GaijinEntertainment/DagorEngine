@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_interface.h>
 #include <de3_objEntity.h>
 #include <de3_entityPool.h>
@@ -90,6 +92,10 @@ public:
       volType = VT_SPH;
     else if (strcmp(type, "point") == 0)
       volType = VT_PT;
+    else if (strcmp(type, "capsule") == 0)
+      volType = VT_CAPS;
+    else if (strcmp(type, "cylinder") == 0)
+      volType = VT_CYLI;
     else
       DAEDITOR3.conError("%s: unrecognized volumeType:t=\"%s\"", getObjAssetName(), type);
 
@@ -105,6 +111,19 @@ public:
     bsph = bbox;
     if (volType == VT_SPH)
       bsph.r = hsz, bsph.r2 = hsz * hsz;
+
+    if (volType == VT_CAPS || volType == VT_CYLI)
+    {
+      float width = asset.props.getReal("shapeWidth", 0.5);
+      float height = asset.props.getReal("shapeHeight", 1);
+
+      float half_width = width * 0.5f;
+      float half_height = height * 0.5f;
+
+      bbox[0].set(-half_width, -half_width, -half_height);
+      bbox[1].set(half_width, half_width, half_height);
+    }
+
     const char *ref_dm = asset.props.getStr("ref_dynmodel", NULL);
     if (DagorAsset *a = ref_dm && *ref_dm ? DAEDITOR3.getAssetByName(ref_dm) : NULL)
       visEntity = a ? DAEDITOR3.createEntity(*a, virtual_ent) : NULL;
@@ -145,7 +164,9 @@ public:
   {
     VT_BOX,
     VT_SPH,
-    VT_PT
+    VT_PT,
+    VT_CAPS,
+    VT_CYLI
   };
   int16_t volType;
   bool needsSuperEntRef;
@@ -217,6 +238,45 @@ public:
       draw_cached_debug_line(Point3(bbox[0].x, 0, 0), Point3(bbox[1].x, 0, 0), color);
       draw_cached_debug_line(Point3(0, bbox[0].y, 0), Point3(0, bbox[1].y, 0), color);
       draw_cached_debug_line(Point3(0, 0, bbox[0].z), Point3(0, 0, bbox[1].z), color);
+    }
+    else if (volType == VT_CAPS)
+    {
+      set_cached_debug_lines_wtm(TMatrix::IDENT);
+      Point3 boxSize = bbox.width();
+      float radius = boxSize.x * 0.5f;
+      float height = boxSize.z - 2 * radius;
+      Point3 a(0, 0, height);
+      Point3 b(0, 0, -height);
+
+      real xWidth = length(tm.col[0]);
+      real yWidth = length(tm.col[1]);
+      real actualRadius = min(xWidth, yWidth) * 0.5f;
+
+      Capsule caps = {a, b, actualRadius};
+
+      draw_cached_debug_capsule(caps, color, tm);
+    }
+    else if (volType == VT_CYLI)
+    {
+      set_cached_debug_lines_wtm(TMatrix::IDENT);
+      Point3 boxSize = bbox.width();
+      float half_height = boxSize.z * 0.5f;
+      Point3 a = Point3(0, 0, half_height);
+      Point3 b = Point3(0, 0, -half_height);
+
+      Point3 tm_a = tm * a;
+      Point3 tm_b = tm * b;
+
+      Point3 col_x = tm.col[0];
+      Point3 col_y = tm.col[1];
+      Point3 col_z = tm.col[2];
+
+      boxSize = Point3(length(col_x), length(col_y), length(col_z));
+
+      real width = min(boxSize.x, min(boxSize.y, boxSize.z));
+      real radius = width * 0.5f;
+
+      draw_cached_debug_cylinder_w(tm_a, tm_b, radius, color);
     }
   }
 
@@ -350,7 +410,7 @@ public:
   }
 
   // IBinaryDataBuilder interface
-  virtual bool validateBuild(int target, ILogWriter &log, PropPanel2 *params)
+  virtual bool validateBuild(int target, ILogWriter &log, PropPanel::ContainerPropertyControl *params)
   {
     if (!objPool.calcEntities(IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_EXPORT)))
       log.addMessage(log.WARNING, "No gameObj entities for export");
@@ -359,7 +419,7 @@ public:
 
   virtual bool addUsedTextures(ITextureNumerator &tn) { return true; }
 
-  virtual bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel2 *)
+  virtual bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *)
   {
     dag::Vector<SrcObjsToPlace> objs;
 
@@ -470,7 +530,7 @@ void init_gameobj_mgr_service()
 {
   if (!IDaEditor3Engine::get().checkVersion())
   {
-    debug_ctx("Incorrect version!");
+    DEBUG_CTX("Incorrect version!");
     return;
   }
 

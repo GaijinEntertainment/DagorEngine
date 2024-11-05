@@ -8,7 +8,7 @@ macro FULL_TONEMAP(code)
   WHITE_BALANCE_PARAMS(code)
 
   hlsl(code) {
-    float3 applyTonemap(float3 gradedColor) { return applyLottesCurve(gradedColor); }
+    float3 applyTonemap(float3 gradedColor) { return applyLottesCurveDirect(gradedColor); }
     //sample
     float3 colorGradedTonemap(float3 linearColor, out float3 gradedColor)
     {

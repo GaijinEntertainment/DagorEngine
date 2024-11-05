@@ -1,11 +1,10 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 namespace dagor_random
 {
@@ -139,4 +138,4 @@ __forceinline float gauss_rnd(int n = 0) { return _gauss_rnd(g_rnd_seed, n); }
 
 } // namespace dagor_random
 using namespace dagor_random;
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

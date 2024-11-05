@@ -1,6 +1,7 @@
 // this file is generated via daScript automatic C++ binder
 // all user modifications will be lost after this file is re-generated
 
+IMPLEMENT_EXTERNAL_TYPE_FACTORY(_Lldiv_t,_Lldiv_t);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(LLVMOpaqueMemoryBuffer,LLVMOpaqueMemoryBuffer);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(LLVMOpaqueContext,LLVMOpaqueContext);
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(LLVMOpaqueModule,LLVMOpaqueModule);

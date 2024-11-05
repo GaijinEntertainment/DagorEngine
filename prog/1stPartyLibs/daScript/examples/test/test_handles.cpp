@@ -187,7 +187,7 @@ vec4f new_and_init ( Context & context, SimNode_CallBase * call, vec4f * ) {
         return v_zero();
     }
     auto size = getTypeSize(typeInfo);
-    auto data = context.heap->allocate(size);
+    auto data = context.allocate(size, &call->debugInfo);
     if ( typeInfo->structType && typeInfo->structType->init_mnh ) {
         auto fn = context.fnByMangledName(typeInfo->structType->init_mnh);
         context.callWithCopyOnReturn(fn, nullptr, data, 0);
@@ -421,6 +421,33 @@ struct FancyClassAnnotation : ManagedStructureAnnotation <FancyClass,true,true> 
     virtual bool canBePlacedInContainer() const override { return true; }   // this is here so that we can make array<FancyClass>
 };
 
+void test_abi_lambda_and_function ( Lambda lambda, Func fn, int32_t lambdaSize, Context * context, LineInfoArg * lineinfo ) {
+    das_invoke_function<void>::invoke(context, lineinfo, fn, lambdaSize);
+    das_invoke_lambda<void>::invoke(context, lineinfo, lambda, lambdaSize);
+}
+
+MAKE_TYPE_FACTORY(SceneNodeId,SceneNodeId);
+
+
+struct SceneNodeIdAnnotation final: das::ManagedValueAnnotation <SceneNodeId> {
+    SceneNodeIdAnnotation(ModuleLibrary & mlib) : ManagedValueAnnotation  (mlib,"SceneNodeId","SceneNodeId") {}
+    virtual void walk ( das::DataWalker & walker, void * data ) override {
+        if ( !walker.reading ) {
+            const SceneNodeId * t = (SceneNodeId *) data;
+            uint32_t eidV = t->id;
+            walker.UInt(eidV);
+        }
+    }
+    virtual bool isLocal() const override { return true; }
+    virtual bool hasNonTrivialCtor() const override { return false; }
+    virtual bool canBePlacedInContainer() const override { return true;}
+};
+
+SceneNodeId __create_scene_node() {
+    static uint32_t id = 1;
+    return SceneNodeId{id++};
+}
+
 Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
     ModuleLibrary lib(this);
     lib.addBuiltInModule();
@@ -492,6 +519,8 @@ Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
      */
     addExtern<DAS_BIND_FUN(makeDummy), SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "makeDummy",
         SideEffects::none, "makeDummy");
+    addExtern<DAS_BIND_FUN(makeDummy), SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "makeTempDummy",
+        SideEffects::none, "makeDummy")->setTempResult();
     addExtern<DAS_BIND_FUN(takeDummy)>(*this, lib, "takeDummy",
         SideEffects::none, "takeDummy");
     // register Cpp alignment functions
@@ -538,7 +567,7 @@ Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
         SideEffects::none, "makeSampleS");
     // smart ptr
     addExtern<DAS_BIND_FUN(getTotalTestObjectSmart)>(*this, lib, "getTotalTestObjectSmart",
-        SideEffects::modifyExternal, "getTotalTestObjectSmart");
+        SideEffects::accessExternal, "getTotalTestObjectSmart");
     addExtern<DAS_BIND_FUN(makeTestObjectSmart)>(*this, lib, "makeTestObjectSmart",
         SideEffects::modifyExternal, "makeTestObjectSmart");
     addExtern<DAS_BIND_FUN(countTestObjectSmart)>(*this, lib, "countTestObjectSmart",
@@ -572,6 +601,13 @@ Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
     using method_hitMe = DAS_CALL_MEMBER(TestObjectFoo::hitMe);
     addExtern< DAS_CALL_METHOD(method_hitMe) >(*this, lib, "hit_me", SideEffects::modifyArgument,
        DAS_CALL_MEMBER_CPP(TestObjectFoo::hitMe));
+    // abit
+    addExtern<DAS_BIND_FUN(test_abi_lambda_and_function)>(*this, lib, "test_abi_lambda_and_function",
+        SideEffects::invokeAndAccessExternal, "test_abi_lambda_and_function");
+    // SceneNodeId
+    addAnnotation(make_smart<SceneNodeIdAnnotation>(lib));
+    addExtern<DAS_BIND_FUN(__create_scene_node)>(*this, lib, "__create_scene_node",
+        SideEffects::none, "__create_scene_node");
     // and verify
     verifyAotReady();
 }

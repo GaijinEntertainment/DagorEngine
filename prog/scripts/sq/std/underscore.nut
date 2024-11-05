@@ -322,46 +322,61 @@ function flatten(list, depth = -1, level=0){
 }
 
 
-/*
+/**
  do_in_scope(object, function(on_enter_object_value))
  * like python 'with' statement
 
 examples:
 ```
-let {set_huge_alloc_threshold} = require("dagor.memtrace")
-local class ChangeAllocThres{
-  _prev_limit = null
-  _limit = null
-  constructor(new_limit){
-    this._limit = new_limit
+  let {set_huge_alloc_threshold} = require("dagor.memtrace")
+  class ChangeAllocThres{
+    _prev_limit = null
+    _limit = null
+    constructor(new_limit){
+      this._limit = new_limit
+    }
+    __enter__ = @() this._prev_limit = set_huge_alloc_threshold(this._limit)
+    __exit__ = @(...) set_huge_alloc_threshold(this._prev_limit)
   }
-  __enter__ = @() this._prev_limit = set_huge_alloc_threshold(this._limit)
-  __exit__ = @() set_huge_alloc_threshold(this._prev_limit)
-}
 
-local a = do_in_scope(ChangeAllocThres(8<<10), @(...) array(10000000, {foo=10}))
+  let a = do_in_scope(ChangeAllocThres(8<<10), @(...) array(10000000, {foo=10}))
+
+or
+
+  import "io" as io
+  let do_in_file = function(filePath, flags, action){
+    do_in_scope({
+      __enter__ = @() io.file(filePath, flags)
+      __exit__ = @(file_handle) file_handle.close()
+    }, action)
+  }
+
 ```
 */
 
 function do_in_scope(obj, doFn){
   assert(
-    type(obj)=="instance" &&  "__enter__" in obj && "__exit__" in obj,
+    (type(obj)=="instance" || type(obj)=="table") &&  "__enter__" in obj && "__exit__" in obj,
     "to support 'do_in_scope' object passed as first argument should implement '__enter__' and '__exit__' methods"
   )
   assert(type(doFn) == "function", "function should be passed as second argument")
 
-  let on = obj.__enter__()
-  local err
+  let scope = obj.__enter__()
+  let defErr = {}
+  local err = defErr
   local res
-  try{
-    res = doFn(on)
+  try {
+    res = doFn(scope)
   }
   catch(e){
     println($"Catch error while doing action {e}")
     err = e
   }
-  obj.__exit__()
-  if (err!=null)
+  if (obj.__exit__.getfuncinfos().parameters.len() > 1)
+    obj.__exit__(scope)
+  else
+    obj.__exit__()
+  if (err!=defErr)
     throw(err)
   return res
 }

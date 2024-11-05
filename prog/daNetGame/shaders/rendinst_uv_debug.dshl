@@ -1,0 +1,179 @@
+include "rendinst_opaque_inc.dshl"
+include "rendinst_voxelize_albedo_inc.dshl"
+
+
+shader rendinst_uv_debug
+{
+  ENABLE_ASSERT(ps)
+  assume instancing_type = tm_vb;
+  if (rendinst_render_pass == rendinst_render_pass_impostor_color ||
+      rendinst_render_pass == rendinst_render_pass_impostor_shadow ||
+      rendinst_render_pass == rendinst_render_pass_grassify ||
+      rendinst_render_pass == rendinst_render_pass_to_heightmap)
+  {
+    dont_render;
+  }
+  cull_mode = none;
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+  channel short2 tc[0]=tc[0] mul_4k;
+
+  static int use_randomized_tc = 0;
+  interval use_randomized_tc: no < 1, yes;
+
+  RENDINST_BLOCK()
+  RI_NO_VOXELIZE()
+  RENDINST_INSTANCING()
+  NO_DYNSTCODE()
+
+  if (use_randomized_tc == yes)
+  {
+    INIT_RANDOMIZED_TC(vs)
+  }
+
+  if (rendinst_render_pass == rendinst_render_pass_to_shadow)
+  {
+    hlsl(vs) {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+      };
+      INSTANCING_BUFFERS
+      struct VsInput
+      {
+        float3 pos                  : POSITION;
+      };
+
+      VsOutput simple_vs(VsInput input HW_USE_INSTANCE_ID)
+      {
+        VsOutput output;
+        float3 localNormal = 1;
+        float3 localPos = input.pos;
+        float opacity = 1;
+        VB_PERFORM_INSTANCING
+        output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+        PROCESS_OUTPUT(output.pos, worldPos.xyz);
+        return output;
+      }
+    }
+    compile("target_vs", "simple_vs");
+    compile("ps_null", "rendinst_render_depth_black_ps");
+  }
+  else
+  {
+    if (use_randomized_tc == yes && rendinst_render_pass != rendinst_render_pass_depth)
+    {
+      USE_RANDOMIZED_TC(vs)
+    }
+
+    hlsl {
+      struct VsOutput
+      {
+        PRECISE VS_OUT_POSITION(pos)
+        ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
+          float3 normal         : TEXCOORD0;
+          float2 uv12           : TEXCOORD1;
+          float3 pointToEye     : TEXCOORD2;
+        ##endif
+      };
+    }
+
+    hlsl(vs) {
+      INSTANCING_BUFFERS
+
+      struct VsInput
+      {
+        float3 pos                  : POSITION;
+        ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
+        float3 normal               : NORMAL;
+        int2 uv0                    : TEXCOORD0;
+        ##endif
+      };
+
+      VsOutput simple_vs(VsInput input HW_USE_INSTANCE_ID, uint vertex_id : SV_VERTEXID)
+      {
+        VsOutput output;
+
+        float3 localNormal = 1;
+        ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
+          localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+        ##endif
+        float3 localPos = input.pos;
+        float opacity = 1;
+        VB_PERFORM_INSTANCING
+
+        float3 pointToEye = world_view_pos-worldPos;
+
+        output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+        ##if (rendinst_render_pass != rendinst_render_pass_depth)
+          output.uv12.xy = input.uv0 * (1. / 4096.0);
+          output.pointToEye.xyz = pointToEye;
+          #if RANDOMIZE_TC
+            output.uv12.xy = uv_apply_random(output.uv12.xy, worldLocalPos);
+          #endif
+        ##endif
+
+        ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
+          output.normal.xyz = normalize(worldNormal.xyz);
+        ##endif
+
+        return output;
+      }
+    }
+
+    if (rendinst_render_pass == rendinst_render_pass_depth)
+    {
+      compile("ps_null", "rendinst_render_depth_black_ps");
+    }
+    else
+    {
+      if ((rendinst_render_pass == rendinst_render_pass_normal))
+      {
+        WRITE_GBUFFER()
+      }
+
+      hlsl(ps) {
+        #ifndef SAMPLE_TEX
+          #define SAMPLE_TEX(tex, tc) tex2DBindless(tex, tc)
+        #endif
+
+        GBUFFER_OUTPUT simple_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
+        {
+          #ifndef IS_DYNAMIC
+            #define IS_DYNAMIC 0
+          #endif
+          #ifndef FORCE_AUTO_MOTION_VECTOR
+            #define FORCE_AUTO_MOTION_VECTOR 0
+          #endif
+
+          UnpackedGbuffer gbuffer;
+          init_gbuffer(gbuffer);
+
+          half3 worldNormal = normalize(input.normal.xyz);
+          half3 worldPos = world_view_pos - input.pointToEye.xyz;
+
+          init_normal(gbuffer, worldNormal);
+
+          init_dynamic(gbuffer,IS_DYNAMIC);
+          init_order(gbuffer, GBUFFER_ORDER_DYNAMIC);
+          init_auto_motion_vector(gbuffer, FORCE_AUTO_MOTION_VECTOR);
+          #ifdef MOTION_VECTORS_ENABLED
+            float3 motion = encode_motion_vector(input.out_pos, input.out_pos_prev);
+            init_motion_vector(gbuffer, motion);
+          #endif
+
+          float2 texC = input.uv12.xy;
+          float3 debugColor = float3(texC, 0);
+          debugColor = frac(debugColor);
+
+          init_albedo(gbuffer, debugColor);
+
+          return encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
+        }
+      }
+      compile("target_ps", "simple_ps");
+    }
+    COMPILE_RI_VS_TARGET("simple_vs")
+  }
+}

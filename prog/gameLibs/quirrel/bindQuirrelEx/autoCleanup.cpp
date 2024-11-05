@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <bindQuirrelEx/autoCleanup.h>
 #include <debug/dag_assert.h>
 

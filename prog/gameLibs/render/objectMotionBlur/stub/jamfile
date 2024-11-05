@@ -1,0 +1,18 @@
+Root    ?= ../../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/objectMotionBlur/stub ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/objectMotionBlur/stub.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  objectMotionBlurStub.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

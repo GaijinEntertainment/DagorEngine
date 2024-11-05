@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <shaders/dag_shaders.h>
 #include "global_vars.h"
 namespace dagi

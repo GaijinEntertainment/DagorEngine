@@ -516,6 +516,8 @@
       <word name="fsh_4_0"/>
       <word name="fsh_4_1"/>
       <word name="fsh_5_0"/>
+      <word name="fsh_6_0"/>
+      <word name="fsh_6_6"/>
    </keywords>
 
    <keywords region="dDirective">

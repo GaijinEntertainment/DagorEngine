@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -116,8 +115,12 @@ public:
   }
 
   bool hasGPUFrame() const { return occ->hasGPUFrame(); }
-  void prepareNextFrame(float zn, float zf, TextureIDPair mipped_depth, Texture *depth = 0,
-    StereoIndex stereo_index = StereoIndex::Mono)
+  void prepareNextFrame(float zn, float zf, TextureIDPair mipped_depth, Texture *depth = nullptr)
+  {
+    occ->prepareNextFrame(curViewPos, curView, curProj, curViewProj, zn, zf, mipped_depth, depth);
+  }
+
+  void prepareNextFrame(float zn, float zf, TextureIDPair mipped_depth, Texture *depth, StereoIndex stereo_index)
   {
     occ->prepareNextFrame(curViewPos, curView, curProj, curViewProj, zn, zf, mipped_depth, depth, stereo_index);
   }
@@ -305,11 +308,11 @@ protected:
 
 #undef CAN_DEBUG_OCCLUSION
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 extern KRNLIMP Occlusion *current_occlusion;
 
 void save_occlusion(class IGenSave &cb, const Occlusion &occlusion); // for debug purposes
 bool load_occlusion(class IGenLoad &cb, Occlusion &occlusion);       // for debug purposes
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

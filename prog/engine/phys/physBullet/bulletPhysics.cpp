@@ -1,4 +1,5 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_globDef.h>
 #include <util/dag_threadPool.h>
 #include <generic/dag_tab.h>
@@ -29,6 +30,11 @@
 #include <osApiWrappers/dag_files.h>
 #endif
 
+#if DAGOR_DBGLEVEL > 0
+#include <debug/dag_debug3d.h>
+#include <math/dag_capsule.h>
+#include <memory/dag_framemem.h>
+#endif
 
 #if DAGOR_DBGLEVEL > 0
 static CONSOLE_INT_VAL("phys", max_sub_steps, 3, 0, 10);
@@ -260,6 +266,118 @@ PhysBody::PhysBody(PhysWorld *w, float mass, const PhysCollision *coll, const TM
         world->getScene()->updateSingleAabb(body);
     }
   }
+}
+
+
+#if DAGOR_DBGLEVEL > 0
+template <typename ShapeT, int ShapeE, typename F>
+static void draw_shape_debug_case(const btCollisionShape *shape, F &&f)
+{
+  if (shape->getShapeType() == ShapeE)
+    f(*static_cast<const ShapeT *>(shape));
+}
+
+static void draw_shape_debug(const TMatrix &tm, const btCollisionShape *s, const unsigned color, bool rand_children_colors)
+{
+  draw_shape_debug_case<btBoxShape, BOX_SHAPE_PROXYTYPE>(s, [&](const btBoxShape &shape) {
+    const Point3 halfExtent = to_point3(shape.getHalfExtentsWithMargin());
+    draw_cached_debug_box(BBox3(-halfExtent, halfExtent), color);
+  });
+  draw_shape_debug_case<btSphereShape, SPHERE_SHAPE_PROXYTYPE>(s,
+    [&](const btSphereShape &shape) { draw_cached_debug_sphere(tm.getcol(3), shape.getRadius(), color); });
+  draw_shape_debug_case<btCapsuleShape, CAPSULE_SHAPE_PROXYTYPE>(s, [&](const btCapsuleShape &shape) {
+    Point3 halfHeight = Point3::ZERO;
+    halfHeight[shape.getUpAxis()] = shape.getHalfHeight();
+    draw_cached_debug_capsule(Capsule(-halfHeight, halfHeight, shape.getRadius() + shape.getMargin()), color, tm);
+  });
+  draw_shape_debug_case<btCylinderShape, CYLINDER_SHAPE_PROXYTYPE>(s, [&](const btCylinderShape &shape) {
+    // TODO: this assumes it is vertical
+    draw_cached_debug_cylinder(tm, shape.getRadius(), shape.getImplicitShapeDimensions()[shape.getUpAxis()], color);
+  });
+  draw_shape_debug_case<btBvhTriangleMeshShape, TRIANGLE_MESH_SHAPE_PROXYTYPE>(s, [&](const btBvhTriangleMeshShape &shape) {
+    const auto *meshes = static_cast<const btTriangleIndexVertexArray *>(shape.getMeshInterface());
+
+    for (int meshI = 0; meshI < meshes->getIndexedMeshArray().size(); meshI++)
+    {
+      const auto &mesh = meshes->getIndexedMeshArray()[meshI];
+      if (mesh.m_vertexType != PHY_FLOAT)
+        continue;
+      if (mesh.m_indexType != PHY_INTEGER)
+        continue;
+      const Point3 *vertices = reinterpret_cast<const Point3 *>(mesh.m_vertexBase);
+      const int *indices = reinterpret_cast<const int *>(mesh.m_triangleIndexBase);
+      const Point3 scale = to_point3(shape.getLocalScaling());
+      for (int i = 0; i < mesh.m_numTriangles; i++)
+      {
+        Point3 p[3];
+        p[0] = tm * hadamard_product(scale, vertices[indices[i * 3 + 0]]);
+        p[1] = tm * hadamard_product(scale, vertices[indices[i * 3 + 1]]);
+        p[2] = tm * hadamard_product(scale, vertices[indices[i * 3 + 2]]);
+        draw_cached_debug_line(p[0], p[1], color);
+        draw_cached_debug_line(p[1], p[2], color);
+        draw_cached_debug_line(p[2], p[0], color);
+        draw_cached_debug_solid_triangle(p, (color & 0xffffffu) | 0x66000000u);
+      }
+    }
+  });
+
+  draw_shape_debug_case<btConvexHullShape, CONVEX_HULL_SHAPE_PROXYTYPE>(s, [&](const btConvexHullShape &shape) {
+    btConvexHullComputer hullComp;
+    hullComp.compute((const float *)shape.getUnscaledPoints(), sizeof(btVector3), shape.getNumVertices(), 0.f, 0.f);
+    for (int i = 0; i < hullComp.faces.size(); i++)
+    {
+      const int face = hullComp.faces[i];
+      const btConvexHullComputer::Edge *firstEdge = &hullComp.edges[face];
+      const btConvexHullComputer::Edge *edge = firstEdge;
+
+      int numVertices = 0;
+      Point3 vertices[128];
+      do
+      {
+        vertices[numVertices++] = tm * to_point3(hullComp.vertices[edge->getSourceVertex()]);
+        edge = edge->getNextEdgeOfFace();
+      } while (edge != firstEdge);
+
+      for (int i = 0; i < numVertices; i++)
+      {
+        draw_cached_debug_line(vertices[i], vertices[(i + 1) % numVertices], color);
+        if (i > 0)
+        {
+          Point3 p[3];
+          p[0] = vertices[0];
+          p[1] = vertices[i];
+          p[2] = vertices[(i + 1) % numVertices];
+          draw_cached_debug_solid_triangle(p, (color & 0xffffffu) | 0x66000000u);
+        }
+      }
+    }
+  });
+
+  draw_shape_debug_case<btCompoundShape, COMPOUND_SHAPE_PROXYTYPE>(s, [&](const btCompoundShape &shape) {
+    for (int i = 0; i < shape.getNumChildShapes(); i++)
+    {
+      TMatrix localTm = to_tmatrix(shape.getChildTransform(i));
+      draw_shape_debug(tm * localTm, shape.getChildShape(i),
+        rand_children_colors ? (color & 0xff000000u) | ((color & 0xffffffu) + (i + 1) * 0x7890123u) : color, rand_children_colors);
+    }
+  });
+
+  // STATIC_PLANE_PROXYTYPE
+  // TYPE_HEIGHTFIELD
+  // TYPE_NATIVE_SHAPE
+}
+#endif
+
+void PhysBody::drawDebugCollision(unsigned color, bool rand_children_colors) const
+{
+  G_UNUSED(color);
+  G_UNUSED(rand_children_colors);
+
+#if DAGOR_DBGLEVEL > 0
+  TMatrix tm;
+  getTmInstant(tm);
+  draw_shape_debug(tm, getActor()->getCollisionShape(), color, rand_children_colors);
+#endif
 }
 
 struct UpdateSingleAabbAction final : public AfterPhysUpdateAction
@@ -1248,7 +1366,7 @@ void PhysWorld::addAfterPhysAction(AfterPhysUpdateAction *action)
   OSSpinlockScopedLock lock(delayedActionsMutex);
   // Still use interlocked here since in `exec_or_add_after_phys_action` we reading it without mutex
   int nextCount = interlocked_increment(*(volatile int *)&delayedActions.mCount);
-  if (EASTL_UNLIKELY(nextCount > delayedActions.capacity()))
+  if (DAGOR_UNLIKELY(nextCount > delayedActions.capacity()))
   {
     G_FAST_ASSERT(delayedActions.capacity());
     delayedActions.reserve(delayedActions.capacity() * 2);
@@ -1273,7 +1391,6 @@ void PhysWorld::setInteractionLayers(unsigned int mask1, unsigned int mask2, boo
   G_UNREFERENCED(mask1);
   G_UNREFERENCED(mask2);
   G_UNREFERENCED(make_contacts);
-  //!!!!
   //  simulator->setupContactGroups(mask1, mask2, make_contacts);
 }
 
@@ -1353,9 +1470,9 @@ void PhysWorld::setMaxSubSteps(int mss)
 void PhysWorld::setFixedTimeStep(float fts)
 {
 #if DAGOR_DBGLEVEL > 0
-  fixed_time_step_hz.set((int)floorf(1.f / fts + 0.5f));
+  fixed_time_step_hz.set((int)floorf(1.f / fabsf(fts) + 0.5f));
 #endif
-  fixedTimeStep = fts;
+  fixedTimeStep = fabsf(fts);
 }
 
 const PhysWorld::Material *PhysWorld::getMaterial(int id) const
@@ -1429,6 +1546,22 @@ PhysRagdollBallJoint::PhysRagdollBallJoint(PhysBody *body1, PhysBody *body2, con
   body1->getActor()->setSleepingThresholds(1.6, 2.5);
   body2->getActor()->setSleepingThresholds(1.6, 2.5);
   joint = j;
+}
+
+void PhysRagdollBallJoint::setTargetOrientation(const TMatrix &tm)
+{
+  G_UNUSED(tm);
+  LOGERR_ONCE("PhysRagdollBallJoint::setTargetOrientation not implemented");
+}
+
+void PhysRagdollBallJoint::setTwistSwingMotorSettings(float twistFrequency, float twistDamping, float swingFrequency,
+  float swingDamping)
+{
+  G_UNUSED(twistFrequency);
+  G_UNUSED(twistDamping);
+  G_UNUSED(swingFrequency);
+  G_UNUSED(swingDamping);
+  LOGERR_ONCE("PhysRagdollBallJoint::setTwistSwingMotorSettings not implemented");
 }
 
 int phys_body_get_hmap_step(PhysBody *b)

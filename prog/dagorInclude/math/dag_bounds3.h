@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -52,6 +51,7 @@ public:
   }
   INLINE Point3 center() const { return (lim[0] + lim[1]) * 0.5; }
   INLINE Point3 width() const { return lim[1] - lim[0]; }
+  INLINE float volume() const { return (lim[1].x - lim[0].x) * (lim[1].y - lim[0].y) * (lim[1].z - lim[0].z); }
 
   INLINE const Point3 &operator[](int i) const { return lim[i]; }
   INLINE Point3 &operator[](int i) { return lim[i]; }

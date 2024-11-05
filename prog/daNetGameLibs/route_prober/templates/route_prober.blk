@@ -1,0 +1,28 @@
+route_prober {
+  "routeProber:tag" {}
+
+  evaluation_period_seconds:r=10.
+  next_evaluation:r=0.
+
+  "route_count:u32" { value:i=0; }
+  statistics_reported:b=false
+  "add_rtt:u32" { value:i=0; }
+
+  diff_sum_min:i=0
+  rtt_sum_threshold:i=0
+
+  echo_period_seconds:r=2.
+  next_echo_broadcast:r=0.
+
+  _singleton:b=yes
+}
+
+route_stats {
+  "routeStats:tag" {}
+  "route_id:u32" { value:i=0; }
+  // Difference from the current route is a sum aggregated from multiple measurments over time
+  rtt_diff_sum:i=0 // [-100; 100] == [shouldn't switch; should switch to this route]
+  "echo_history:list<u32>"{} // contains either rtt or timeout, meaning high ping is indistinguishable from ploss
+  last_echoes_mask:i=0 // bit-mask of N last echoes; less significant = less recent
+  "rtt_estimation:u32" { value:i=0; }
+}

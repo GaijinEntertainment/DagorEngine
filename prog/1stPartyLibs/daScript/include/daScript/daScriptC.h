@@ -70,6 +70,7 @@ void das_text_release ( das_text_writer * output );
 void das_text_output ( das_text_writer * output, char * text );
 
 das_module_group * das_modulegroup_make ();
+void das_modulegroup_add_module ( das_module_group* lib, das_module* mod );
 void das_modulegroup_release ( das_module_group * group );
 
 das_file_access * das_fileaccess_make_default (  );

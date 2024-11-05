@@ -3,7 +3,7 @@ BundleTitle ?= $(BundleName) ;
 
 Make_Apple_OutDir ;
 
-if $(tvOSArch) != i386 {
+if $(PlatformArch) != i386 {
   CertName = \"iPhone\ Developer:\ Build\ Server\" ;
 
   SignatureOpt =

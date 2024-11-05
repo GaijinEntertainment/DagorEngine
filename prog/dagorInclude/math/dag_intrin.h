@@ -1,11 +1,10 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#if (defined(_MSC_VER) && !defined(__clang__)) || defined(__BMI__)
+#if (defined(_MSC_VER) && !defined(__clang__) && !defined(_M_ARM64)) || defined(__BMI__)
 #include <immintrin.h>
 #endif
 
@@ -13,8 +12,12 @@ inline unsigned __ctz_unsafe(unsigned long long value)
 {
 #if defined(__clang__) || defined(__GNUC__)
   return __builtin_ctzll(value); // tzcnt or rep bsf or rbit + clz
+#elif defined(_MSC_VER) && defined(_M_ARM64)
+  unsigned long res;
+  _BitScanForward64(&res, value);
+  return res;
 #elif _TARGET_64BIT && defined(_MSC_VER)
-  return _tzcnt_u64(value);               // tzcnt -> rep bsf
+  return _tzcnt_u64(value); // tzcnt -> rep bsf
 #endif
 
   unsigned n = 1; //-V779
@@ -34,8 +37,12 @@ inline unsigned __ctz_unsafe(unsigned int value)
 {
 #if defined(__clang__) || defined(__GNUC__)
   return __builtin_ctz(value); // tzcnt or rep bsf
+#elif defined(_MSC_VER) && defined(_M_ARM64)
+  unsigned long res;
+  _BitScanForward(&res, value);
+  return res;
 #elif defined(_MSC_VER)
-  return _tzcnt_u32(value);               // tzcnt -> rep bsf
+  return _tzcnt_u32(value); // tzcnt -> rep bsf
 #endif
 
   unsigned n = 1; //-V779

@@ -12,66 +12,86 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_25() {
-// from D:\Work\libclang\include\llvm-c/Core.h:3005:6
-	addExtern< void (*)(LLVMOpaqueValue *,LLVMOpaqueBasicBlock **) , LLVMGetBasicBlocks >(*this,lib,"LLVMGetBasicBlocks",SideEffects::worstDefault,"LLVMGetBasicBlocks")
-		->args({"Fn","BasicBlocks"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3015:19
-	addExtern< LLVMOpaqueBasicBlock * (*)(LLVMOpaqueValue *) , LLVMGetFirstBasicBlock >(*this,lib,"LLVMGetFirstBasicBlock",SideEffects::worstDefault,"LLVMGetFirstBasicBlock")
-		->args({"Fn"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3022:19
-	addExtern< LLVMOpaqueBasicBlock * (*)(LLVMOpaqueValue *) , LLVMGetLastBasicBlock >(*this,lib,"LLVMGetLastBasicBlock",SideEffects::worstDefault,"LLVMGetLastBasicBlock")
-		->args({"Fn"});
 // from D:\Work\libclang\include\llvm-c/Core.h:3027:19
-	addExtern< LLVMOpaqueBasicBlock * (*)(LLVMOpaqueBasicBlock *) , LLVMGetNextBasicBlock >(*this,lib,"LLVMGetNextBasicBlock",SideEffects::worstDefault,"LLVMGetNextBasicBlock")
-		->args({"BB"});
+	makeExtern< LLVMOpaqueBasicBlock * (*)(LLVMOpaqueValue *) , LLVMGetLastBasicBlock , SimNode_ExtFuncCall >(lib,"LLVMGetLastBasicBlock","LLVMGetLastBasicBlock")
+		->args({"Fn"})
+		->addToModule(*this, SideEffects::worstDefault);
 // from D:\Work\libclang\include\llvm-c/Core.h:3032:19
-	addExtern< LLVMOpaqueBasicBlock * (*)(LLVMOpaqueBasicBlock *) , LLVMGetPreviousBasicBlock >(*this,lib,"LLVMGetPreviousBasicBlock",SideEffects::worstDefault,"LLVMGetPreviousBasicBlock")
-		->args({"BB"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3040:19
-	addExtern< LLVMOpaqueBasicBlock * (*)(LLVMOpaqueValue *) , LLVMGetEntryBasicBlock >(*this,lib,"LLVMGetEntryBasicBlock",SideEffects::worstDefault,"LLVMGetEntryBasicBlock")
-		->args({"Fn"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3049:6
-	addExtern< void (*)(LLVMOpaqueBuilder *,LLVMOpaqueBasicBlock *) , LLVMInsertExistingBasicBlockAfterInsertBlock >(*this,lib,"LLVMInsertExistingBasicBlockAfterInsertBlock",SideEffects::worstDefault,"LLVMInsertExistingBasicBlockAfterInsertBlock")
-		->args({"Builder","BB"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3057:6
-	addExtern< void (*)(LLVMOpaqueValue *,LLVMOpaqueBasicBlock *) , LLVMAppendExistingBasicBlock >(*this,lib,"LLVMAppendExistingBasicBlock",SideEffects::worstDefault,"LLVMAppendExistingBasicBlock")
-		->args({"Fn","BB"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3065:19
-	addExtern< LLVMOpaqueBasicBlock * (*)(LLVMOpaqueContext *,const char *) , LLVMCreateBasicBlockInContext >(*this,lib,"LLVMCreateBasicBlockInContext",SideEffects::worstDefault,"LLVMCreateBasicBlockInContext")
-		->args({"C","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3073:19
-	addExtern< LLVMOpaqueBasicBlock * (*)(LLVMOpaqueContext *,LLVMOpaqueValue *,const char *) , LLVMAppendBasicBlockInContext >(*this,lib,"LLVMAppendBasicBlockInContext",SideEffects::worstDefault,"LLVMAppendBasicBlockInContext")
-		->args({"C","Fn","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3083:19
-	addExtern< LLVMOpaqueBasicBlock * (*)(LLVMOpaqueValue *,const char *) , LLVMAppendBasicBlock >(*this,lib,"LLVMAppendBasicBlock",SideEffects::worstDefault,"LLVMAppendBasicBlock")
-		->args({"Fn","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3093:19
-	addExtern< LLVMOpaqueBasicBlock * (*)(LLVMOpaqueContext *,LLVMOpaqueBasicBlock *,const char *) , LLVMInsertBasicBlockInContext >(*this,lib,"LLVMInsertBasicBlockInContext",SideEffects::worstDefault,"LLVMInsertBasicBlockInContext")
-		->args({"C","BB","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3102:19
-	addExtern< LLVMOpaqueBasicBlock * (*)(LLVMOpaqueBasicBlock *,const char *) , LLVMInsertBasicBlock >(*this,lib,"LLVMInsertBasicBlock",SideEffects::worstDefault,"LLVMInsertBasicBlock")
-		->args({"InsertBeforeBB","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3113:6
-	addExtern< void (*)(LLVMOpaqueBasicBlock *) , LLVMDeleteBasicBlock >(*this,lib,"LLVMDeleteBasicBlock",SideEffects::worstDefault,"LLVMDeleteBasicBlock")
-		->args({"BB"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3123:6
-	addExtern< void (*)(LLVMOpaqueBasicBlock *) , LLVMRemoveBasicBlockFromParent >(*this,lib,"LLVMRemoveBasicBlockFromParent",SideEffects::worstDefault,"LLVMRemoveBasicBlockFromParent")
-		->args({"BB"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3130:6
-	addExtern< void (*)(LLVMOpaqueBasicBlock *,LLVMOpaqueBasicBlock *) , LLVMMoveBasicBlockBefore >(*this,lib,"LLVMMoveBasicBlockBefore",SideEffects::worstDefault,"LLVMMoveBasicBlockBefore")
-		->args({"BB","MovePos"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3137:6
-	addExtern< void (*)(LLVMOpaqueBasicBlock *,LLVMOpaqueBasicBlock *) , LLVMMoveBasicBlockAfter >(*this,lib,"LLVMMoveBasicBlockAfter",SideEffects::worstDefault,"LLVMMoveBasicBlockAfter")
-		->args({"BB","MovePos"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3145:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBasicBlock *) , LLVMGetFirstInstruction >(*this,lib,"LLVMGetFirstInstruction",SideEffects::worstDefault,"LLVMGetFirstInstruction")
-		->args({"BB"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3152:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBasicBlock *) , LLVMGetLastInstruction >(*this,lib,"LLVMGetLastInstruction",SideEffects::worstDefault,"LLVMGetLastInstruction")
-		->args({"BB"});
-// from D:\Work\libclang\include\llvm-c/Core.h:3178:5
-	addExtern< int (*)(LLVMOpaqueValue *) , LLVMHasMetadata >(*this,lib,"LLVMHasMetadata",SideEffects::worstDefault,"LLVMHasMetadata")
-		->args({"Val"});
+	makeExtern< LLVMOpaqueBasicBlock * (*)(LLVMOpaqueBasicBlock *) , LLVMGetNextBasicBlock , SimNode_ExtFuncCall >(lib,"LLVMGetNextBasicBlock","LLVMGetNextBasicBlock")
+		->args({"BB"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3037:19
+	makeExtern< LLVMOpaqueBasicBlock * (*)(LLVMOpaqueBasicBlock *) , LLVMGetPreviousBasicBlock , SimNode_ExtFuncCall >(lib,"LLVMGetPreviousBasicBlock","LLVMGetPreviousBasicBlock")
+		->args({"BB"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3045:19
+	makeExtern< LLVMOpaqueBasicBlock * (*)(LLVMOpaqueValue *) , LLVMGetEntryBasicBlock , SimNode_ExtFuncCall >(lib,"LLVMGetEntryBasicBlock","LLVMGetEntryBasicBlock")
+		->args({"Fn"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3054:6
+	makeExtern< void (*)(LLVMOpaqueBuilder *,LLVMOpaqueBasicBlock *) , LLVMInsertExistingBasicBlockAfterInsertBlock , SimNode_ExtFuncCall >(lib,"LLVMInsertExistingBasicBlockAfterInsertBlock","LLVMInsertExistingBasicBlockAfterInsertBlock")
+		->args({"Builder","BB"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3062:6
+	makeExtern< void (*)(LLVMOpaqueValue *,LLVMOpaqueBasicBlock *) , LLVMAppendExistingBasicBlock , SimNode_ExtFuncCall >(lib,"LLVMAppendExistingBasicBlock","LLVMAppendExistingBasicBlock")
+		->args({"Fn","BB"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3070:19
+	makeExtern< LLVMOpaqueBasicBlock * (*)(LLVMOpaqueContext *,const char *) , LLVMCreateBasicBlockInContext , SimNode_ExtFuncCall >(lib,"LLVMCreateBasicBlockInContext","LLVMCreateBasicBlockInContext")
+		->args({"C","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3078:19
+	makeExtern< LLVMOpaqueBasicBlock * (*)(LLVMOpaqueContext *,LLVMOpaqueValue *,const char *) , LLVMAppendBasicBlockInContext , SimNode_ExtFuncCall >(lib,"LLVMAppendBasicBlockInContext","LLVMAppendBasicBlockInContext")
+		->args({"C","Fn","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3088:19
+	makeExtern< LLVMOpaqueBasicBlock * (*)(LLVMOpaqueValue *,const char *) , LLVMAppendBasicBlock , SimNode_ExtFuncCall >(lib,"LLVMAppendBasicBlock","LLVMAppendBasicBlock")
+		->args({"Fn","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3098:19
+	makeExtern< LLVMOpaqueBasicBlock * (*)(LLVMOpaqueContext *,LLVMOpaqueBasicBlock *,const char *) , LLVMInsertBasicBlockInContext , SimNode_ExtFuncCall >(lib,"LLVMInsertBasicBlockInContext","LLVMInsertBasicBlockInContext")
+		->args({"C","BB","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3107:19
+	makeExtern< LLVMOpaqueBasicBlock * (*)(LLVMOpaqueBasicBlock *,const char *) , LLVMInsertBasicBlock , SimNode_ExtFuncCall >(lib,"LLVMInsertBasicBlock","LLVMInsertBasicBlock")
+		->args({"InsertBeforeBB","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3118:6
+	makeExtern< void (*)(LLVMOpaqueBasicBlock *) , LLVMDeleteBasicBlock , SimNode_ExtFuncCall >(lib,"LLVMDeleteBasicBlock","LLVMDeleteBasicBlock")
+		->args({"BB"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3128:6
+	makeExtern< void (*)(LLVMOpaqueBasicBlock *) , LLVMRemoveBasicBlockFromParent , SimNode_ExtFuncCall >(lib,"LLVMRemoveBasicBlockFromParent","LLVMRemoveBasicBlockFromParent")
+		->args({"BB"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3135:6
+	makeExtern< void (*)(LLVMOpaqueBasicBlock *,LLVMOpaqueBasicBlock *) , LLVMMoveBasicBlockBefore , SimNode_ExtFuncCall >(lib,"LLVMMoveBasicBlockBefore","LLVMMoveBasicBlockBefore")
+		->args({"BB","MovePos"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3142:6
+	makeExtern< void (*)(LLVMOpaqueBasicBlock *,LLVMOpaqueBasicBlock *) , LLVMMoveBasicBlockAfter , SimNode_ExtFuncCall >(lib,"LLVMMoveBasicBlockAfter","LLVMMoveBasicBlockAfter")
+		->args({"BB","MovePos"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3150:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBasicBlock *) , LLVMGetFirstInstruction , SimNode_ExtFuncCall >(lib,"LLVMGetFirstInstruction","LLVMGetFirstInstruction")
+		->args({"BB"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3157:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueBasicBlock *) , LLVMGetLastInstruction , SimNode_ExtFuncCall >(lib,"LLVMGetLastInstruction","LLVMGetLastInstruction")
+		->args({"BB"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3183:5
+	makeExtern< int (*)(LLVMOpaqueValue *) , LLVMHasMetadata , SimNode_ExtFuncCall >(lib,"LLVMHasMetadata","LLVMHasMetadata")
+		->args({"Val"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3188:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *,unsigned int) , LLVMGetMetadata , SimNode_ExtFuncCall >(lib,"LLVMGetMetadata","LLVMGetMetadata")
+		->args({"Val","KindID"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:3193:6
+	makeExtern< void (*)(LLVMOpaqueValue *,unsigned int,LLVMOpaqueValue *) , LLVMSetMetadata , SimNode_ExtFuncCall >(lib,"LLVMSetMetadata","LLVMSetMetadata")
+		->args({"Val","KindID","Node"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

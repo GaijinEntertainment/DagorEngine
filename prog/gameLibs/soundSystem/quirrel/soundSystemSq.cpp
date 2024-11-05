@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_TMatrix.h>
 #include <soundSystem/quirrel/sqSoundSystem.h>
 #include <quirrel/bindQuirrelEx/autoBind.h>
@@ -165,6 +167,16 @@ void set_var(sndsys::sound_handle_t event_handle, const char *var_name, float va
   sndsys::set_var(sndsys::EventHandle(event_handle), var_name, value);
 }
 
+int get_length(const char *name)
+{
+  int len = 0;
+  sndsys::get_length(name, len);
+  return len;
+}
+
+void set_timeline_pos(sndsys::sound_handle_t event_handle, int position) { sndsys::set_timeline_position(event_handle, position); }
+
+int get_timeline_pos(sndsys::sound_handle_t event_handle) { return sndsys::get_timeline_position(event_handle); }
 
 void start(sndsys::sound_handle_t event_handle) { sndsys::start(sndsys::EventHandle(event_handle)); }
 
@@ -269,7 +281,8 @@ SQ_DEF_AUTO_BINDING_MODULE(bind_sound, "sound") // To consider: split client & s
   soundTbl.SetValue("SOUND_STREAM_PAUSED", (int)sndsys::StreamState::PAUSED);
   soundTbl.SetValue("SOUND_STREAM_PLAYING", (int)sndsys::StreamState::PLAYING);
 
-  soundTbl.Func("sound_debug_trace", debug_trace)
+  soundTbl //
+    .Func("sound_debug_trace", debug_trace)
     .Func("sound_play_one_shot_3d", play_one_shot_3d)
     .Func("sound_play_one_shot", play_one_shot)
     .Func("sound_release_all_instances", release_all_instances)
@@ -279,6 +292,9 @@ SQ_DEF_AUTO_BINDING_MODULE(bind_sound, "sound") // To consider: split client & s
     .Func("sound_release_event", release_event)
     .Func("sound_set_3d_attr", set_3d_attr)
     .Func("sound_set_var", set_var)
+    .Func("sound_get_length", get_length)
+    .Func("sound_set_timeline_pos", set_timeline_pos)
+    .Func("sound_get_timeline_pos", get_timeline_pos)
     .Func("sound_start", start)
     .Func("sound_keyoff", keyoff)
     .Func("sound_abandon", abandon)
@@ -293,7 +309,8 @@ SQ_DEF_AUTO_BINDING_MODULE(bind_sound, "sound") // To consider: split client & s
     .SquirrelFunc("sound_get_output_devices", get_output_devices, 1, ".")
     .SquirrelFunc("sound_get_record_devices", get_record_devices, 1, ".")
     .Func("sound_set_output_device", set_output_device)
-    .Func("sound_set_callbacks", set_callbacks);
+    .Func("sound_set_callbacks", set_callbacks)
+    /**/;
 
   return soundTbl;
 }

@@ -24,7 +24,7 @@ if $(VRDeviceSupport) = yes {
     UseProgLibs += engine/drv/vr_device/emulator/stub ;
   }
 
-  if $(Platform) in win32 win64 android {
+  if $(Platform) in windows android {
     UseProgLibs += engine/drv/vr_device/openXr ;
   } else if $(Platform) = ps5 {
     UseProgLibs += engine/drv/vr_device/psvr2 ;

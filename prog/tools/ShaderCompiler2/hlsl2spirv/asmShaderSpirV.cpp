@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "asmShaderSpirV.h"
 #include "../fast_isalnum.h"
 #include "../debugSpitfile.h"
@@ -226,8 +228,26 @@ CompilerMode detectMode(const char *source, CompilerMode mode)
   return mode;
 }
 
-CompileResult compileShaderSpirV(const char *source, const char *profile, const char *entry, bool need_disasm, bool skipValidation,
-  bool optimize, int max_constants_no, int bones_const_used, const char *shader_name, CompilerMode mode, uint64_t shader_variant_hash)
+bool useBaseVertexPatch(const char *source)
+{
+  PragmaScanner scanner{source};
+  while (auto pragma = scanner())
+  {
+    using namespace std::string_view_literals;
+    auto from = pragma.tokens();
+
+    if (*from == "spir-v"sv)
+    {
+      ++from;
+      if (*from == "no-base-vertex"sv)
+        return false;
+    }
+  }
+  return true;
+}
+
+CompileResult compileShaderSpirV(const char *source, const char *profile, const char *entry, bool need_disasm, bool enable_fp16,
+  bool skipValidation, bool optimize, int max_constants_no, const char *shader_name, CompilerMode mode, uint64_t shader_variant_hash)
 {
   CompileResult result;
 
@@ -265,8 +285,7 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
     result.errors.sprintf("unknown target profile %s", profile);
     return result;
   }
-  bool is_half = dd_stricmp("ps_5_0_half", profile) == 0 || dd_stricmp("vs_5_0_half", profile) == 0;
-  if (is_half && mode != CompilerMode::DXC)
+  if (enable_fp16 && mode != CompilerMode::DXC)
   {
     result.errors.sprintf("Profiles with half specialization are currently suppored only by DXC path.\n"
                           "For switching to DXC please use #pragma spir-v compiler dxc\n");
@@ -424,8 +443,11 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
     string codeCopy(source);
 
     // code preprocess to fix SV_VertexID disparity between DX and vulkan
-    if (!fix_vertex_id_for_DXC(codeCopy, result))
-      return result;
+    if (useBaseVertexPatch(source))
+    {
+      if (!fix_vertex_id_for_DXC(codeCopy, result))
+        return result;
+    }
 
     eastl::vector<eastl::string_view> disabledSpirvOptims = scanDisabledSpirvOptimizations(source);
 
@@ -438,8 +460,13 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
     {
       macros += "#define BINDLESS_TEXTURE_SET_META_ID " + std::to_string(spirv::bindless::TEXTURE_DESCRIPTOR_SET_META_INDEX) + "\n";
       macros += "#define BINDLESS_SAMPLER_SET_META_ID " + std::to_string(spirv::bindless::SAMPLER_DESCRIPTOR_SET_META_INDEX) + "\n";
+      macros += "#define BINDLESS_BUFFER_SET_META_ID " + std::to_string(spirv::bindless::BUFFER_DESCRIPTOR_SET_META_INDEX) + "\n";
     }
-    if (!is_half)
+    if (enable_fp16)
+    {
+      macros += "#define SHADER_COMPILER_FP16_ENABLED 1\n";
+    }
+    else
     {
       // there is a bug(?) in DXC: it can't map half[] -> float[] correctly with disabled 16-bit types flag
       macros += "#define half float\n"
@@ -447,13 +474,13 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
                 "#define half2 float2\n"
                 "#define half3 float3\n"
                 "#define half4 float4\n";
-    };
+    }
     codeCopy = macros + codeCopy;
 
     auto sourceRange = make_span(codeCopy.c_str(), codeCopy.size());
 
     auto flags = enableBindless ? spirv::CompileFlags::ENABLE_BINDLESS_SUPPORT : spirv::CompileFlags::NONE;
-    flags |= is_half ? spirv::CompileFlags::ENABLE_HALFS : spirv::CompileFlags::NONE;
+    flags |= enable_fp16 ? spirv::CompileFlags::ENABLE_HALFS : spirv::CompileFlags::NONE;
 
     auto finalSpirV = spirv::compileHLSL_DXC(sourceRange, entry, profile, flags, disabledSpirvOptims);
     spirv = eastl::move(finalSpirV.byteCode);
@@ -575,8 +602,9 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
       (void *)spirv.data(), (int)data_size(spirv));
   }
 
+  header.verMagic = spirv::HEADER_MAGIC_VER;
   header.maxConstantCount = max_constants_no;
-  header.bonesConstantsUsed = bones_const_used;
+  header.bonesConstantsUsed = -1; // @TODO: remove
 
   smolv::ByteArray smol;
   smolv::Encode(spirv.data(), spirv.size() * sizeof(unsigned int), smol, 0);

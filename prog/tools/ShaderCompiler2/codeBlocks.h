@@ -1,9 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "shsem.h"
 #include <generic/dag_tab.h>
 #include <util/dag_globDef.h>
 #include "nameMap.h"
+#include <dag/dag_vector.h>
+#include <EASTL/string.h>
 
 struct CryptoHash;
 
@@ -55,6 +58,10 @@ public:
       ShaderTerminal::bool_expr *expr = nullptr;
     };
     DeclBool declBool;
+
+    //! has elements if encountered an error while parsing this block (for example, #include couldn't find file).
+    //  This is supposed to trigger errors only when blocks are resolved for a given variant.
+    dag::Vector<eastl::string> errors;
 
     bool isDecl() const { return codeId == -1; }
     bool isDeclBool() const { return codeId == -2; }

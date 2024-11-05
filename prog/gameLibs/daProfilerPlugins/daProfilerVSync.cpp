@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #if _TARGET_PC_WIN
 #include <osApiWrappers/dag_threads.h>
 #include <osApiWrappers/dag_miscApi.h>
@@ -15,7 +17,9 @@ class VsyncPlugin final : public ProfilerPlugin
 {
   struct VBlankThread final : public DaThread
   {
-    VBlankThread(ComPtr<IDXGIOutput> output) : DaThread{"VBlank"}, output{eastl::move(output)} {}
+    VBlankThread(ComPtr<IDXGIOutput> output) :
+      DaThread("VBlank", DEFAULT_STACK_SZ, 0, WORKER_THREADS_AFFINITY_MASK), output{eastl::move(output)}
+    {}
     void execute() override
     {
       DXGI_OUTPUT_DESC desc{};
@@ -39,7 +43,7 @@ class VsyncPlugin final : public ProfilerPlugin
 
       SetThreadPriority(GetCurrentThread(), 15);
 
-      while (!interlocked_relaxed_load(terminating))
+      while (!isThreadTerminating())
       {
         ScopedEvent e{toggle ? aVsyncDesc : bVsyncDesc};
         toggle = !toggle;

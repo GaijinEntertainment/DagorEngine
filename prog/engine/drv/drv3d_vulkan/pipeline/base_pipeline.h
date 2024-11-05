@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <generic/dag_tab.h>
 #include <generic/dag_staticTab.h>
 #include "descriptor_set.h"
@@ -36,6 +38,12 @@ private:
   {
     VulkanDescriptorSetLayoutHandle layoutSet[ShaderConfig::count + spirv::bindless::MAX_SETS];
 
+    for (int i = 0; i < ShaderConfig::bindlessSetCount; ++i)
+    {
+      G_ASSERT(is_null(layoutSet[i]));
+      layoutSet[i] = ShaderConfig::bindlessSetLayouts[i];
+    }
+
     activeRegisters = 0;
     for (size_t i = 0; i < ShaderConfig::count; ++i) // -V1008
       if (headers.list[i])
@@ -53,14 +61,6 @@ private:
         registers.list[i].initEmpty(device);
 
       layoutSet[ShaderConfig::registerIndexes[i] + ShaderConfig::bindlessSetCount] = registers.list[i].getLayout();
-    }
-
-    if (ShaderConfig::bindlessSetCount != 0)
-    {
-      G_ASSERT(is_null(layoutSet[spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX]));
-      layoutSet[spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX] = ShaderConfig::bindlessTextureSetLayout;
-      G_ASSERT(is_null(layoutSet[spirv::bindless::SAMPLER_DESCRIPTOR_SET_ACTUAL_INDEX]));
-      layoutSet[spirv::bindless::SAMPLER_DESCRIPTOR_SET_ACTUAL_INDEX] = ShaderConfig::bindlessSamplerSetLayout;
     }
 
     VkPipelineLayoutCreateInfo plci;
@@ -233,6 +233,9 @@ private:
 #endif
 };
 
+// use module impl method to avoid including too much in header
+void setDebugNameForDescriptorSet(VulkanDescriptorSetHandle ds_handle, const char *name);
+
 template <typename PipelineLayoutType, typename PipelineProgramType, template <typename, typename> class TargetPipelineType>
 class DebugAttachedPipeline : public TargetPipelineType<PipelineLayoutType, PipelineProgramType>
 {
@@ -278,7 +281,20 @@ public:
     return ret;
   }
 
-  dag::Vector<ShaderDebugInfo> dumpShaderInfos() const { return {std::begin(debugInfo.list), std::end(debugInfo.list)}; }
+  String printDebugInfoBuffered(int shader_idx) const
+  {
+    return String(0, "pipe %p, shader %u = %s", this, shader_idx, debugInfo.list[shader_idx].name);
+  }
+
+  void setNameForDescriptorSet(VulkanDescriptorSetHandle ds_handle, int shader_idx)
+  {
+    if (is_null(ds_handle))
+      return;
+
+    setDebugNameForDescriptorSet(ds_handle, printDebugInfoBuffered(shader_idx));
+  }
+
+  dag::Vector<ShaderDebugInfo> dumpShaderInfos() const { return {eastl::begin(debugInfo.list), eastl::end(debugInfo.list)}; }
 
   int64_t dumpCompilationTime() const { return totalCompilationTime; }
   size_t dumpVariantCount() const { return variantCount; }
@@ -289,6 +305,8 @@ protected:
   int64_t totalCompilationTime;
   // Variant count for variated graphics pipelines (1 for compute)
   size_t variantCount;
+#else
+  void setNameForDescriptorSet(VulkanDescriptorSetHandle, int) {}
 #endif
 };
 

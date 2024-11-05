@@ -1,20 +1,25 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <daFx/dafx.h>
 #include <de3_dynRenderService.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
 
 extern void dafx_sparksfx_set_context(dafx::ContextId ctx);
 extern void dafx_modfx_set_context(dafx::ContextId ctx);
 extern void dafx_compound_set_context(dafx::ContextId ctx);
 extern void dafx_modfx_register_cpu_overrides(dafx::ContextId ctx);
 
-inline void set_up_dafx_context(dafx::ContextId &dafx_ctx, dafx::CullingId &dafx_cull)
+inline void set_up_dafx_context(dafx::ContextId &dafx_ctx, dafx::CullingId &dafx_cull, dafx::CullingId &dafx_fom_cull)
 {
   G_ASSERT(!dafx_ctx);
 
   dafx::Config cfg;
   cfg.use_async_thread = false;
   cfg.qualityMask = 1 << 2; // high quality
+  cfg.sim_lods_enabled = true;
+  cfg.gen_sim_lods_for_invisible_instances = true;
 
   dafx_ctx = dafx::create_context(cfg);
   if (dafx_ctx)
@@ -27,6 +32,9 @@ inline void set_up_dafx_context(dafx::ContextId &dafx_ctx, dafx::CullingId &dafx
     descs.push_back(dafx::CullingDesc("underwater", dafx::SortingType::BACK_TO_FRONT));
     descs.push_back(dafx::CullingDesc("distortion", dafx::SortingType::BY_SHADER));
     dafx_cull = dafx::create_culling_state(dafx_ctx, descs);
+    descs.clear();
+    descs.push_back(dafx::CullingDesc("fom", dafx::SortingType::NONE));
+    dafx_fom_cull = dafx::create_culling_state(dafx_ctx, descs);
     dafx_sparksfx_set_context(dafx_ctx);
     dafx_modfx_set_context(dafx_ctx);
     dafx_compound_set_context(dafx_ctx);
@@ -34,8 +42,8 @@ inline void set_up_dafx_context(dafx::ContextId &dafx_ctx, dafx::CullingId &dafx
   }
 }
 
-inline void set_up_dafx_effect(dafx::ContextId dafx_ctx, BaseEffectObject *fx, bool force_recreate, bool enabled = true,
-  const TMatrix *tm = nullptr)
+inline void set_up_dafx_effect(dafx::ContextId dafx_ctx, BaseEffectObject *fx, bool force_recreate, bool enabled, const TMatrix *tm,
+  bool is_emitter_tm)
 {
   if (!fx || !dafx_ctx)
     return;
@@ -48,7 +56,7 @@ inline void set_up_dafx_effect(dafx::ContextId dafx_ctx, BaseEffectObject *fx, b
 
   if (tm)
   {
-    fx->setParam(HUID_TM, const_cast<TMatrix *>(tm));
+    fx->setParam(is_emitter_tm ? HUID_EMITTER_TM : HUID_TM, const_cast<TMatrix *>(tm));
     Point4 p4 = Point4::xyz0(tm->getcol(3));
     fx->setParam(_MAKE4C('PFXP'), &p4);
   }
@@ -63,7 +71,22 @@ inline void set_dafx_wind_params(dafx::ContextId dafx_ctx, Point2 &wind_dir, flo
   dafx::set_global_value(dafx_ctx, "wind_scroll", &wind_scroll, 4);
 }
 
-inline void act_dafx(dafx::ContextId dafx_ctx, dafx::CullingId dafx_cull, dafx::Stats &dafx_stats, float dt, TMatrix4 &prevGlobTm)
+inline void set_dafx_camera_velocity(dafx::ContextId dafx_ctx, Point3 &cam_vel)
+{
+  dafx::set_global_value(dafx_ctx, "camera_velocity", &cam_vel, 12);
+}
+
+inline void act_dafx(dafx::ContextId dafx_ctx, float dt)
+{
+  if (!dafx_ctx)
+    return;
+
+  dafx::set_global_value(dafx_ctx, "dt", &dt, 4);
+  dafx::start_update(dafx_ctx, dt);
+  dafx::finish_update(dafx_ctx);
+}
+
+inline void before_render_dafx(dafx::ContextId dafx_ctx, dafx::CullingId dafx_cull, dafx::Stats &dafx_stats, TMatrix4 &prevGlobTm)
 {
   if (!dafx_ctx)
     return;
@@ -113,7 +136,6 @@ inline void act_dafx(dafx::ContextId dafx_ctx, dafx::CullingId dafx_cull, dafx::
   dafx::set_global_value(dafx_ctx, "target_size", &targetSize, 8);
   dafx::set_global_value(dafx_ctx, "target_size_rcp", &targetSizeRcp, 8);
   dafx::set_global_value(dafx_ctx, "zn_zfar", &znZfar, 16);
-  dafx::set_global_value(dafx_ctx, "dt", &dt, 4);
   dafx::set_global_value(dafx_ctx, "globtm", &globtm, 64);
   dafx::set_global_value(dafx_ctx, "globtm_prev", &prevGlobTm, 64);
   dafx::set_global_value(dafx_ctx, "view_dir_x", &itm.getcol(0), 12);
@@ -149,14 +171,57 @@ inline void act_dafx(dafx::ContextId dafx_ctx, dafx::CullingId dafx_cull, dafx::
     }
   }
 
-  dafx::start_update(dafx_ctx, dt);
-  dafx::finish_update(dafx_ctx);
-  dafx::update_culling_state(dafx_ctx, dafx_cull, Frustum(globtm), Point3::xyz(itm.getcol(3)));
-  dafx::before_render(dafx_ctx);
-
+  act_dafx(dafx_ctx, 0.0f);
   memset(&dafx_stats, 0, sizeof(dafx::Stats));
 
+  dafx::update_culling_state(dafx_ctx, dafx_cull, Frustum(globtm), Point3::xyz(itm.getcol(3)));
+  dafx::before_render(dafx_ctx, {"highres", "lowres", "underwater", "distortion"});
+
   prevGlobTm = globtm;
+}
+
+inline void render_dafx_fom(dafx::ContextId dafx_ctx, dafx::CullingId dafx_fom_cull)
+{
+  TMatrix4 fomGlobtm;
+  d3d::getglobtm(fomGlobtm);
+
+  TMatrix4 fomViewTm;
+  d3d::gettm(TM_VIEW, &fomViewTm);
+
+  TMatrix fomViewItm;
+  fomViewItm = orthonormalized_inverse(tmatrix(fomViewTm));
+
+  Point3 viewPos = Point3::xyz(fomViewItm.getcol(3));
+
+  // Prepare
+  dafx::update_culling_state(dafx_ctx, dafx_fom_cull, Frustum(fomGlobtm), viewPos);
+  dafx::before_render(dafx_ctx, {"fom"});
+
+  // Render
+  TMatrix4 prevGtm;
+  Point3 prevPos;
+  Point3 prevViewDirs[3];
+  dafx::get_global_value(dafx_ctx, "globtm", &prevGtm, 64);
+  dafx::get_global_value(dafx_ctx, "world_view_pos", &prevPos, 12);
+  dafx::get_global_value(dafx_ctx, "view_dir_x", &prevViewDirs[0], 12);
+  dafx::get_global_value(dafx_ctx, "view_dir_y", &prevViewDirs[1], 12);
+  dafx::get_global_value(dafx_ctx, "view_dir_z", &prevViewDirs[2], 12);
+
+  dafx::set_global_value(dafx_ctx, "globtm", &fomGlobtm, 64);
+  dafx::set_global_value(dafx_ctx, "view_dir_x", fomViewItm[0], 12);
+  dafx::set_global_value(dafx_ctx, "view_dir_y", fomViewItm[1], 12);
+  dafx::set_global_value(dafx_ctx, "view_dir_z", fomViewItm[2], 12);
+  dafx::set_global_value(dafx_ctx, "world_view_pos", &viewPos, 12);
+  dafx::flush_global_values(dafx_ctx);
+
+  dafx::render(dafx_ctx, dafx_fom_cull, "fom", 0.f);
+
+  dafx::set_global_value(dafx_ctx, "globtm", &prevGtm, 64);
+  dafx::set_global_value(dafx_ctx, "world_view_pos", &prevPos, 12);
+  dafx::set_global_value(dafx_ctx, "view_dir_x", &prevViewDirs[0], 12);
+  dafx::set_global_value(dafx_ctx, "view_dir_y", &prevViewDirs[1], 12);
+  dafx::set_global_value(dafx_ctx, "view_dir_z", &prevViewDirs[2], 12);
+  dafx::flush_global_values(dafx_ctx);
 }
 
 inline void calc_dafx_stats(dafx::ContextId dafx_ctx, dafx::Stats &dafx_stats)

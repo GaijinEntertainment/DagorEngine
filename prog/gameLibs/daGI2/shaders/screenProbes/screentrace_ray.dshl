@@ -1,0 +1,89 @@
+include "screenspace_probes_reprojection.dshl"
+include "project_prev_frame_sample_radiance.dshl"
+
+float4x4 sp_projtm;
+
+macro SP_SCREEN_RAY_DEPTH_CAST(code)
+  (code)
+  {
+    sp_globtm_from_campos@f44 = sp_globtm_from_campos;
+    downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
+    sp_projtm@f44 = sp_projtm;
+  }
+
+  hlsl(code) {
+    #include <screenspace_ray_cast.hlsl>
+    #define SCREEN_RAY_CAST_SURE_MISS SCREEN_SPACE_RAY_MISS
+    #define SCREEN_RAY_CAST_SURE_HIT SCREEN_SPACE_RAY_HIT
+    #define SCREEN_RAY_CAST_UNCERTAIN_HIT SCREEN_SPACE_RAY_HIT_UNCERTAIN
+    #define SCREEN_RAY_CAST_UNSURE_MISS (SCREEN_RAY_CAST_UNCERTAIN_HIT+1)
+
+    uint screen_ray_trace_hit_pos(float3 camPos, float3 worldDir, float maxTraceDist, float linearDepthW, float depthThresholdScale, float noiseOffset, out float3 hitCamPos, out float hitAt, out float3 hitUVW)
+    {
+      //return SCREEN_RAY_CAST_UNSURE_MISS;
+      float traceDist = min(maxTraceDist, linearDepthW * 0.95);//to prevent going through znear plane
+
+      SSRTRay ray = init_screen_space_ray(
+        camPos, worldDir,
+        traceDist,
+        depthThresholdScale, sp_globtm_from_campos, sp_projtm);
+
+      uint numSteps4 = 4;//total number of steps is 16
+      float startMipLevel = 1.0f;
+      ScreenSpaceRayHit rayHit = cast_screenspace_hzb_ray(
+        downsampled_far_depth_tex, downsampled_far_depth_tex_samplerstate,
+        startMipLevel, startMipLevel + 2.f,
+        ray, numSteps4, -noiseOffset,
+        1);
+      if (rayHit.hitType)
+      {
+        hitUVW = float3(rayHit.hitUVz.xy, linearize_z(rayHit.hitUVz.z, sp_zn_zfar.zw));
+        hitCamPos = hitUVW.z*sp_getViewVecOptimized(saturate(rayHit.hitUVz.xy));
+        hitAt = max(0, dot(hitCamPos - camPos, worldDir));
+        return rayHit.hitType;
+      } else
+      {
+        hitAt = ray.worldDistance;//actually, this is not entirely correct, if ray was clipped.
+        return ray.worldDistance < maxTraceDist ? SCREEN_RAY_CAST_UNSURE_MISS : SCREEN_RAY_CAST_SURE_MISS;
+      }
+    }
+  }
+endmacro
+
+macro SP_SCREEN_RAY_CAST(code)
+  SP_SCREEN_RAY_DEPTH_CAST(code)
+  REPROJECT_SP_WEIGHTS(code)
+  PROJECT_PREV_FRAME_SAMPLE_REPROJECT(code)
+  //SP_REPROJECT_MATH(code)
+  hlsl(code) {
+    #include <interleavedGradientNoise.hlsl>
+
+    //todo:
+    // * sample prev lit surface if present, otherwise sample voxel scene, otherwise use albedo 0.0 or something
+    uint screen_ray_trace(float3 camPos, float3 worldDir, float maxTraceDist, float linearDepthW, float noise, inout float3 lighting, out float hitAt, bool allow_uncertaincy, float threshold = 1)
+    {
+      #if !HAS_PREV_FRAME_RADIANCE
+        hitAt = 0;
+        return SCREEN_RAY_CAST_UNCERTAIN_HIT;
+      #else
+      float3 hitCamPos, hitUVW;
+      uint ret = screen_ray_trace_hit_pos(camPos, worldDir, maxTraceDist, linearDepthW, threshold, noise, hitCamPos, hitAt, hitUVW);
+      if (ret == SCREEN_RAY_CAST_SURE_HIT)
+      {
+        float3 prevNDC = get_screen_probe_campos_history_ndc(hitCamPos);
+        float3 prevUVW = float3(prevNDC.xy*float2(0.5,-0.5) + float2(0.5,0.5), prevNDC.z);
+        if (sp_is_valid_history() && sample_prev_frame_radiance(prevUVW, hitUVW, hitCamPos, allow_uncertaincy, lighting))
+        {
+          return SCREEN_RAY_CAST_SURE_HIT;
+        }
+      } else
+      {
+        if (!allow_uncertaincy)
+          return SCREEN_RAY_CAST_SURE_MISS;
+      }
+      return ret;
+      #endif
+    }
+  }
+endmacro
+

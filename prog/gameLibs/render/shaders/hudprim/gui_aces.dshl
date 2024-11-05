@@ -17,6 +17,7 @@ int night_vision_gui_mode = 0;
 interval night_vision_gui_mode : night_vision_off<1, night_vision_on;
 
 float gui_cockpit_depth = 10;
+float gui_cloud_occlusion_limit = 0.;
 
 shader gui_aces
 {
@@ -83,7 +84,10 @@ shader gui_aces
     INIT_BRUNETON_FOG(ps)
     USE_BRUNETON_FOG()
 
-    (ps) { gui_to_scene_point_to_eye@f4 = gui_to_scene_point_to_eye; }
+    (ps) {
+      gui_to_scene_point_to_eye@f4 = gui_to_scene_point_to_eye;
+      gui_cloud_occlusion_limit@f1 = gui_cloud_occlusion_limit;
+    }
   }
   else if (gui_test_depth != test_depth_off) //render to hud
   {
@@ -218,7 +222,7 @@ shader gui_aces
       result *= input.color;
 
 ##if render_mode == to_scene
-      result.a *= get_cloud_volume_mask(input.screenPosition);
+      result.a *= max(gui_cloud_occlusion_limit, get_cloud_volume_mask(input.screenPosition));
       BRANCH
       if (gui_to_scene_point_to_eye.w > 0.f)
         result.rgb = apply_fog(result.rgb, gui_to_scene_point_to_eye.xyz);

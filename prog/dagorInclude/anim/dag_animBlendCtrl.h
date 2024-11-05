@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -30,6 +29,7 @@ decl_dclassid(0x20000157, AnimBlendCtrl_Blender);
 decl_dclassid(0x20000158, AnimBlendCtrl_BinaryIndirectSwitch);
 decl_dclassid(0x20000159, AnimBlendCtrl_LinearPoly);
 decl_dclassid(0x2000015A, AnimBlendCtrl_ParametricSwitcher);
+decl_dclassid(0x2000015B, AnimBlendCtrl_SetMotionMatchingTag);
 
 
 //
@@ -76,6 +76,7 @@ public:
   virtual void buildBlendingList(BlendCtx &bctx, real w);
   virtual void reset(IPureAnimStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
+  virtual void collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map);
   virtual real getAvgSpeed(IPureAnimStateHolder &st) { return slice.size() ? slice[0].node->getAvgSpeed(st) : 0; }
   virtual int getTimeScaleParamId(IPureAnimStateHolder &st) { return slice.size() ? slice[0].node->getTimeScaleParamId(st) : -1; }
 
@@ -145,6 +146,7 @@ public:
   virtual void buildBlendingList(BlendCtx &bctx, real w);
   virtual void reset(IPureAnimStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
+  virtual void collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map);
   virtual bool isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n);
   virtual real getDuration(IPureAnimStateHolder &st);
 
@@ -206,6 +208,7 @@ public:
   virtual void reset(IPureAnimStateHolder &st);
   virtual void resume(IPureAnimStateHolder &st, bool rewind);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
+  virtual void collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map);
   virtual bool isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n);
   virtual real getAvgSpeed(IPureAnimStateHolder &st)
   {
@@ -251,6 +254,7 @@ public:
   virtual void buildBlendingList(BlendCtx &bctx, real w);
   virtual void reset(IPureAnimStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
+  virtual void collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map);
   virtual bool isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n);
 
   virtual void seekToSyncTime(IPureAnimStateHolder &st, real offset);
@@ -307,6 +311,7 @@ public:
   virtual void buildBlendingList(BlendCtx &bctx, real w);
   virtual void reset(IPureAnimStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
+  virtual void collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map);
   virtual bool isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n);
   virtual real getDuration(IPureAnimStateHolder &st);
   virtual real tell(IPureAnimStateHolder &st);
@@ -355,6 +360,7 @@ public:
   virtual void buildBlendingList(BlendCtx &bctx, real w);
   virtual void reset(IPureAnimStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
+  virtual void collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map);
 
   // creation-time routines
   void setBlendNodes(IAnimBlendNode *n1, real n1_mtime, IAnimBlendNode *n2, real n2_mtime);
@@ -381,7 +387,7 @@ public:
     real p0;
     int wtPid;
 
-    void applyWt(BlendCtx &bctx, real wt);
+    void applyWt(BlendCtx &bctx, real wt, real node_w);
   };
 
 protected:
@@ -403,6 +409,7 @@ public:
   virtual void buildBlendingList(BlendCtx &bctx, real w);
   virtual void reset(IPureAnimStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
+  virtual void collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map);
   virtual bool isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n);
   virtual void pause(IPureAnimStateHolder &st);
   virtual void resume(IPureAnimStateHolder &st, bool rewind);
@@ -423,6 +430,28 @@ public:
 
 protected:
   static int anim_point_p0_cmp(const AnimPoint *p1, const AnimPoint *p2);
+};
+
+//
+// Special controller that activates tags for Motion Matching
+//
+class AnimBlendCtrl_SetMotionMatchingTag : public IAnimBlendNode
+{
+  int tagsMaskParamId = -1;
+  int tagIdx = -1;
+  String tagName;
+
+public:
+  static constexpr int MAX_TAGS_COUNT = 64;
+  virtual void destroy() {}
+  virtual void buildBlendingList(BlendCtx &bctx, real w);
+  virtual void reset(IPureAnimStateHolder & /*st*/) {}
+  const char *class_name() const override { return "AnimBlendCtrl_SetMotionMatchingTag"; }
+  virtual bool isSubOf(DClassID id) { return id == AnimBlendCtrl_SetMotionMatchingTagCID || IAnimBlendNode::isSubOf(id); }
+  static void createNode(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix);
+
+  const char *getTagName() const { return tagName; }
+  void setTagIdx(int idx) { tagIdx = idx; }
 };
 
 

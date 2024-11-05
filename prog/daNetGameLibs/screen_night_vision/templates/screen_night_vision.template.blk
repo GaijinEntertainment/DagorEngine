@@ -1,0 +1,68 @@
+night_vision_preset{
+  "night_vision__isPreset:tag"{}
+  _group{
+    _track:b=yes
+    night_vision__isActive:b=false
+    night_vision__prevIsActive:b=false
+  }
+}
+
+screen_night_vision{
+  _singleton:b=yes
+
+  screen_night_vision__enabled:b=no
+  _tracked:t="screen_night_vision__enabled"
+
+  _group {
+    _tags:t="render"
+    "screenNightVision:resource_slot::NodeHandleWithSlotsAccess"{}
+    "screenNightVisionEffect:tag"{}
+
+    "screen_night_vision__default_preset:object"{
+      // mono=0, binocular=1, connected=2
+      screen_night_vision__mode:i = 2
+
+      screen_night_vision__dark_color:p4 = 0, 0.0, 0.0, 0
+      screen_night_vision__light_color:p4 = 0, 0.9, 0.1, 0
+      screen_night_vision__light_multiplier:r = 1.0
+      screen_night_vision__gamma_correction:r = 1.0
+      screen_night_vision__luminance_rgb_coef:p4 = 0.299, 0.587, 0.114, 0
+      screen_night_vision__fog_color:p4 = 0, 0.2, 0, 0
+      screen_night_vision__fog_clear_distance:r = 20
+      screen_night_vision__fog_opaque_distance:r = 250
+
+      screen_night_vision__left_ocular:p4 = 0.25, 0.5, 0, 0 // 0.0 <= x <= 0.5; 0.0 <= y <= 1.0
+      screen_night_vision__ocular_radius:r = 0.25 // of screen width
+      screen_night_vision__border_color:p4 = 0.0, 0.01, 0.02, 0
+      screen_night_vision__border_blur:r = 0.8
+      screen_night_vision__border_opacity:r = 1.0 // from 0.0 to 1.0
+
+      screen_night_vision__line_opacity:r = 0.03 // from 0.0 to 1.0
+      screen_night_vision__line_height:r = 0.9 // of ocular height
+      screen_night_vision__line_blur:r = 0.9
+
+      screen_night_vision__noise_fps:r = 240.0
+      screen_night_vision__noise_low_strength:r = 0.08
+      screen_night_vision__noise_high_strength:r = 0.8
+      screen_night_vision__noise_threshold:r = 0.0002
+      screen_night_vision__noise_pixelize:r = 2.0;
+    }
+
+    screen_night_vision__fixed_exposure:r = 3.0
+
+    "screen_night_vision__shader:PostFxRenderer"{}
+    screen_night_vision__shader_name:t="screen_night_vision"
+  }
+
+  "shader_vars__vars:object"{}
+  _tracked:t="shader_vars__vars"
+
+  "screen_night_vision__preset_list:object"{
+    "default:object"{}
+    "binocular:object"{
+      screen_night_vision__mode:i = 1
+    }
+  }
+  screen_night_vision__preset:t="default"
+  _tracked:t="screen_night_vision__preset"
+}

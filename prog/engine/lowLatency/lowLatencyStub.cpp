@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <3d/dag_lowLatency.h>
 
 uint32_t lowlatency::start_frame() { return 0; }
@@ -9,6 +11,8 @@ void lowlatency::start_render() {}
 uint32_t lowlatency::get_current_render_frame() { return 0; }
 
 void lowlatency::init() {}
+
+bool lowlatency::is_inited() { return false; }
 
 void lowlatency::close() {}
 

@@ -1,16 +1,15 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_interface.h>
 #include <EASTL/unique_ptr.h>
 #include <dasModules/dasFsFileAccess.h>
 #include <daScript/misc/smart_ptr.h>
+#include <daECS/core/entityManager.h>
 #include <memory/dag_memStat.h>
 #include <ecs/scripts/dasEs.h>
 #include <osApiWrappers/dag_direct.h>
 #include <ioSys/dag_dataBlock.h>
 
-namespace ecs
-{
-extern void reset_es_order();
-};
 namespace bind_dascript
 {
 extern HotReload globally_hot_reload;
@@ -78,10 +77,6 @@ void pull_das()
 #if HAS_PHYS
   NEED_MODULE(PhysDeclModule)
   NEED_MODULE(AnimV20) // animchar
-#endif
-
-#if HAS_DANETGAME_LIBS_MM
-  NEED_MODULE(MotionMatchingModule) // motion matching
 #endif
 
   NEED_MODULE(DaProfilerModule) // daprofiler
@@ -171,7 +166,8 @@ public:
     global_init_das();
     init_das();
     init_das_entry_point();
-    ecs::reset_es_order();
+    if (g_entity_mgr)
+      g_entity_mgr->resetEsOrder();
   }
 
   virtual const char *getServiceName() const override { return serviceName; };

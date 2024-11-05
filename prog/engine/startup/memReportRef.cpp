@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_memReport.h>
 #include <memory/dag_memStat.h>
 #include <3d/tql.h>

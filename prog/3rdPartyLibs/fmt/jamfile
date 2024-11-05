@@ -1,0 +1,26 @@
+Root           ?= ../../.. ;
+Location        = prog/3rdPartyLibs/fmt ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/fmt.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/$(Location)/include
+;
+
+
+Sources =
+  src/dummy.cpp # use dummy here, actual format.cpp is in 1stPartyLibs\daScript\src\misc\format.cpp
+;
+
+if $(Platform) in windows xboxOne scarlett {
+  CPPopt += /EHsc -D_HAS_EXCEPTIONS=1 ;
+} else {
+  CPPopt += -fexceptions ;
+  if $(Platform) in ps4 ps5 { CPPopt += -D_HAS_DEBUG_COMPATIBILITY=1 ; } # for ool ~runtime_error impl
+}
+if $(PlatformSpec) = clang { CPPopt += -Wno-macro-redefined ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

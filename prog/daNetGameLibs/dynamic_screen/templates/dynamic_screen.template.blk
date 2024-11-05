@@ -1,0 +1,8 @@
+dynamic_screen{
+  _group{
+    _tags:t="render"
+    "dynamic_screen__texture:SharedTex"{}
+    dynamic_screen__texture_size:ip2=512,512
+    dynamic_screen__texture_mips:i=1
+  }
+}

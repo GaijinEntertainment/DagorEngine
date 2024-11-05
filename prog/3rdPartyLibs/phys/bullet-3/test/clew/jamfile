@@ -1,5 +1,5 @@
-if $(OS) = NT { Platform ?= win64 ; }
-PlatformSpec_win64 ?= clang ;
+PlatformArch_windows ?= x86_64 ;
+PlatformSpec_windows_x86_64 ?= clang ;
 
 Root    ?= ../../../../../.. ;
 Location = prog/3rdPartyLibs/phys/bullet-3/test/clew ;

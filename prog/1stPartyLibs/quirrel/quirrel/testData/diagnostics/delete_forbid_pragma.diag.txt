@@ -1,7 +1,7 @@
 ERROR: Usage of 'delete' operator if forbidden. Use 'o.rawdelete("key")' instead
-testData/diagnostics/delete_forbid_pragma.nut.txt:22:0
+testData/diagnostics/delete_forbid_pragma.nut.txt:10:0
 
-delete t.d // EXPECTED
+delete t.a // FP 1
 ^-----
 
 

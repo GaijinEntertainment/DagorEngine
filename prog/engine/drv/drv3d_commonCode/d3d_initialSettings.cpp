@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "d3d_initialSettings.h"
 
 #include <startup/dag_globalSettings.h>

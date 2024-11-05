@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "easing.h"
@@ -17,6 +18,7 @@ struct AnimDesc
   AnimProp prop;
   int64_t duration;
   int64_t delay;
+  int64_t loopPause;
 
   Sqrat::Object from, to;
 
@@ -35,6 +37,8 @@ struct AnimDesc
 
   void reset();
   bool load(const Sqrat::Table &desc, const StringKeys *csk);
+
+  int64_t fullDuration() const { return duration + loopPause; }
 
   bool fromElemProp() { return from.IsNull(); }
   bool toElemProp() { return to.IsNull(); }
@@ -65,6 +69,11 @@ protected:
   void playSound(const Sqrat::Object &key);
   void callHandler(const Sqrat::Object &handler, bool allow_start);
   float applyEasing(float k);
+  float effectiveK() const
+  {
+    // loopPause goes after duration
+    return clamp(float(t) / float(desc.duration), 0.0f, 1.0f);
+  }
 
 public:
   AnimDesc desc;

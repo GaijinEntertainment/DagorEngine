@@ -1,0 +1,22 @@
+include "shader_global.dshl"
+include "heightmap_common.dshl"
+include "land_micro_detail.dshl"
+include "vertical.dshl"
+include "clipmap.dshl"
+include "land_block_inc.dshl"
+include "sparkles.dshl"
+
+macro INIT_HMAP_FOR_RI_BLOCK()
+    supports global_const_block;
+    INIT_CLIPMAP_NORMAL()
+    INIT_LAND_MICRODETAILS_PS()
+    INIT_LAND_MICRODETAILS_PARAMS_PS()
+    INIT_SPARKLES()
+    INIT_LAND_SHORE()
+    (ps)
+    {
+      wind_dir_water_level_ocean_density@f4 = (wind_dir_x, wind_dir_y, water_level, -0.5*ocean_density);
+      shore_params1@f4 = (max_wave_height, scroll_time, water_heightmap_min_max.z, water_heightmap_min_max.w);
+      wetness_above_rcp@f1 = (1.0 / wetness_above, 0, 0, 0);
+    }
+endmacro

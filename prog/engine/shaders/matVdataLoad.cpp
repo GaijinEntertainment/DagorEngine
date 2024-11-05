@@ -1,7 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <shaders/dag_shaderMesh.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderMeshTexLoadCtrl.h>
 #include <3d/fileTexFactory.h>
+#include <drv/3d/dag_info.h>
 #include "scriptSMat.h"
 #include <ioSys/dag_zlibIo.h>
 #include <ioSys/dag_lzmaIo.h>
@@ -14,17 +17,16 @@
 #include <osApiWrappers/dag_files.h>
 #include <util/fnameMap.h>
 #include <osApiWrappers/dag_basePath.h>
+#include <perfMon/dag_perfTimer.h>
 // #include <debug/dag_debug.h>
-#if _TARGET_PC_WIN
-#include <malloc.h>
-#elif defined(__GNUC__)
-#include <stdlib.h>
-#endif
+#include <supp/dag_alloca.h>
 
 namespace matvdata
 {
 void (*hook_on_add_vdata)(ShaderMatVdata *vd, int add_vdata_sz) = nullptr;
 }
+
+ShaderMatVdata::ModelLoadStats ShaderMatVdata::modelLoadStats[3];
 
 #define MAX_STACK_SIZE         512
 #define VDATA_RELOAD_SUPPORTED _TARGET_PC_WIN
@@ -209,10 +211,11 @@ void ShaderMatVdata::loadMatVdata(const char *name, IGenLoad &crd, unsigned flag
     if (flags & VDATA_SRC_ONLY)
     {
       matVdataSrcRef.fname = dagor_fname_map_add_fn(crd.getTargetName());
-
-      clear_and_resize(matVdataSrc, compr_data_sz);
-      crd.read(matVdataSrc.data(), data_size(matVdataSrc));
-      mcrd = new (alloca(sizeof(InPlaceMemLoadCB)), _NEW_INPLACE) InPlaceMemLoadCB(matVdataSrc.data(), data_size(matVdataSrc));
+      if (matVdataSrc.resize(compr_data_sz))
+      {
+        crd.read(matVdataSrc.data(), data_size(matVdataSrc));
+        mcrd = new (alloca(sizeof(InPlaceMemLoadCB)), _NEW_INPLACE) InPlaceMemLoadCB(matVdataSrc.data(), data_size(matVdataSrc));
+      }
     }
 
     if (tag == btag_compr::ZSTD)
@@ -263,9 +266,13 @@ void ShaderMatVdata::loadMatVdata(const char *name, IGenLoad &crd, unsigned flag
     {
       if (strcmp(crd.getTargetName(), "(mem)") != 0)
         matVdataSrcRef.fname = dagor_fname_map_add_fn(crd.getTargetName());
-      clear_and_resize(matVdataSrc, matVdataSrcRef.dataSz);
-      crd.read(matVdataSrc.data(), data_size(matVdataSrc));
-      zcrd = new (alloca(sizeof(InPlaceMemLoadCB)), _NEW_INPLACE) InPlaceMemLoadCB(matVdataSrc.data(), data_size(matVdataSrc));
+      if (matVdataSrc.resize(matVdataSrcRef.dataSz))
+      {
+        crd.read(matVdataSrc.data(), data_size(matVdataSrc));
+        zcrd = new (alloca(sizeof(InPlaceMemLoadCB)), _NEW_INPLACE) InPlaceMemLoadCB(matVdataSrc.data(), data_size(matVdataSrc));
+      }
+      else if (matVdataSrcRef.dataSz)
+        crd.seekrel(matVdataSrcRef.dataSz); // Note: `GlobalVertexData::initGvd` read nothing on `VDATA_SRC_ONLY` code path
     }
   }
 
@@ -325,28 +332,31 @@ void ShaderMatVdata::loadMatVdata(const char *name, IGenLoad &crd, unsigned flag
 
 // compute end offset: align on stride boundary and payload size
 static inline int calc_end_ofs(int ofs, int s, int vbsz) { return (ofs + s - 1) / s * s + vbsz; }
+static FullFileLoadCB *reload_files_open(const char *fn, int ofs);
 
 void ShaderMatVdata::unpackBuffersTo(dag::Span<Sbuffer *> buf, int *buf_byte_ofs, dag::Span<int> start_end_stride,
   Tab<uint8_t> &buf_stor)
 {
-  if (!data_size(matVdataSrc) && matVdataSrcRef.fname)
-    reloadVdataSrc();
-  G_ASSERTF_RETURN(data_size(matVdataSrc), , "%p.matVdataSrcRef.fname=%s", this, matVdataSrcRef.fname);
+  int64_t reft = profile_ref_ticks();
+  ModelLoadStats &ml_stats = ShaderMatVdata::modelLoadStats[modelType <= 2 ? modelType : 0];
+
+  FullFileLoadCB *fcrd = nullptr;
+  if (matVdataSrc.empty() && isReloadable())
+    fcrd = reload_files_open(matVdataSrcRef.fname, matVdataSrcRef.fileOfs);
+  G_ASSERTF_RETURN(data_size(matVdataSrc) || fcrd, , "%p.matVdataSrcRef.fname=%s", this, matVdataSrcRef.fname);
   G_ASSERTF(buf_byte_ofs || start_end_stride.size(), "buf.count=%d buf_byte_ofs=%p start_end_stride.count=%d", buf.size(),
     buf_byte_ofs, start_end_stride.size());
   unsigned compr_type = matVdataSrcRef.comprType;
   unsigned pack_tag = matVdataSrcRef.packTag;
 
-  InPlaceMemLoadCB crd(matVdataSrc.data(), data_size(matVdataSrc));
-  IGenLoad *zcrd = &crd;
+  InPlaceMemLoadCB mcrd(matVdataSrc.data(), data_size(matVdataSrc));
+  IGenLoad *zcrd = fcrd ? static_cast<IGenLoad *>(fcrd) : &mcrd;
   if (compr_type == 3)
   {
-    int compr_data_sz = data_size(matVdataSrc);
-
     if (pack_tag == btag_compr::ZSTD)
-      zcrd = new (alloca(sizeof(ZstdLoadCB)), _NEW_INPLACE) ZstdLoadCB(crd, compr_data_sz);
+      zcrd = new (alloca(sizeof(ZstdLoadCB)), _NEW_INPLACE) ZstdLoadCB(*zcrd, matVdataSrcRef.dataSz);
     else if (pack_tag == btag_compr::OODLE)
-      zcrd = new (alloca(sizeof(OodleLoadCB)), _NEW_INPLACE) OodleLoadCB(crd, compr_data_sz - 4, crd.readInt());
+      zcrd = new (alloca(sizeof(OodleLoadCB)), _NEW_INPLACE) OodleLoadCB(*zcrd, matVdataSrcRef.dataSz - 4, zcrd->readInt());
     zcrd->seekrel(matVdataHdrSz);
   }
   else
@@ -377,53 +387,122 @@ void ShaderMatVdata::unpackBuffersTo(dag::Span<Sbuffer *> buf, int *buf_byte_ofs
     }
   }
 
-  if (zcrd != &crd)
+  if (zcrd != fcrd && zcrd != &mcrd)
   {
     zcrd->ceaseReading();
     zcrd->~IGenLoad();
   }
+  if (matVdataSrc.empty() && isReloadable())
+  {
+    interlocked_add(ml_stats.reloadDataSizeKb, matVdataSrcRef.dataSz > (1 << 10) ? (matVdataSrcRef.dataSz >> 10) : 1);
+    interlocked_add(ml_stats.reloadTimeMsec, (profile_time_usec(reft) + 500) / 1000);
+    interlocked_increment(ml_stats.reloadDataCount);
+  }
 }
+
 void ShaderMatVdata::clearVdataSrc()
 {
-  if (matVdataSrcRef.fname)
+  if (isReloadable())
   {
     // debug("%p.clearVdataSrc(%s) sz=%d", this, matVdataSrcRef.fname, data_size(matVdataSrc));
-    clear_and_shrink(matVdataSrc);
+    matVdataSrc.clear();
   }
 }
 
-static thread_local FullFileLoadCB *reloadCrd = nullptr;
-
-void ShaderMatVdata::closeTlsReloadCrd() { del_it(reloadCrd); }
-
-void ShaderMatVdata::reloadVdataSrc()
+struct LRUCachedFilesOpen
 {
-  FullFileLoadCB *crd_ptr = reloadCrd;
-  bool crd_is_ready = crd_ptr && crd_ptr->fileHandle && strcmp(crd_ptr->targetFilename, matVdataSrcRef.fname) == 0;
+  static constexpr int entries_count = 4;
+  typedef uint32_t hash_type_t;
+  typedef uint32_t tick_type_t;
+  struct Entry
+  {
+    FullFileLoadCB *crd;
+    const char *fname; // Points to fnameMap (`dagor_fname_map_add_fn`)
+    tick_type_t hitTick;
+  };
+  Entry entries[entries_count] = {};
+  tick_type_t curTick = 0;
 #if DAGOR_DBGLEVEL > 0
-  debug("%p.reloadVdataSrc(%s, ofs=0x%X, sz=0x%X (%dK), ctype=%d:%d)%s", this, matVdataSrcRef.fname, matVdataSrcRef.fileOfs,
-    matVdataSrcRef.dataSz, matVdataSrcRef.dataSz >> 10, matVdataSrcRef.comprType, matVdataSrcRef.packTag, crd_is_ready ? "" : " *");
+  uint32_t hits = 0, misses = 0;
+  void addHit() { hits++; }
+  void addMiss() { misses++; }
+  void dumpHits()
+  {
+    if (hits + misses)
+      debug("LRUCachedFilesOpen hits %.2f%% (%d/%d)", hits / float(hits + misses) * 100.f, hits, hits + misses);
+  }
+#else
+  void addHit() {}
+  void addMiss() {}
+  void dumpHits() {}
 #endif
 
-  if (!crd_is_ready)
+  FullFileLoadCB *open(const char *fname, int ofs)
   {
-    if (crd_ptr)
-      crd_ptr->open(matVdataSrcRef.fname, DF_READ | DF_IGNORE_MISSING);
+    if (++curTick == 0)
+      resetTick();
+
+    uint32_t bestI = 0;
+    tick_type_t bestTick = ~tick_type_t(0);
+    for (uint32_t i = 0; i < entries_count; ++i)
+    {
+      if (entries[i].fname == fname) // Compare pointers, not content since it assumed to be pointing to one nameMap
+      {
+        entries[i].hitTick = curTick;
+        addHit();
+        entries[i].crd->seekto(ofs);
+        return entries[i].crd;
+      }
+      // To consider: evict least used one (i.e. by number of hits) instead of oldest one
+      if (entries[i].hitTick < bestTick)
+        bestTick = entries[bestI = i].hitTick;
+    }
+
+    addMiss();
+    auto &best = entries[bestI];
+    best.fname = fname;
+    best.hitTick = curTick;
+    FullFileLoadCB *crd;
+    if (best.crd)
+    {
+      (crd = best.crd)->open(fname, DF_READ | DF_IGNORE_MISSING);
+    }
     else
-      reloadCrd = crd_ptr = new FullFileLoadCB(matVdataSrcRef.fname, DF_READ | DF_IGNORE_MISSING);
-    if (!crd_ptr->fileHandle)
+      crd = best.crd = new FullFileLoadCB(fname, DF_READ | DF_IGNORE_MISSING);
+    if (DAGOR_UNLIKELY(!crd->fileHandle))
     {
       dd_dump_base_paths();
-      logerr("cannot restore buffer, file is missing: %s", matVdataSrcRef.fname);
-      return;
+      logerr("cannot restore buffer, file is missing: %s", fname);
+      return nullptr;
     }
+    crd->seekto(ofs);
+    return crd;
   }
-  FullFileLoadCB &crd = *crd_ptr;
+  void destroy()
+  {
+    for (uint32_t i = 0; i < entries_count; ++i)
+    {
+      del_it(entries[i].crd);
+    }
+    memset(entries, 0, sizeof(entries));
+  }
+  DAGOR_NOINLINE void resetTick()
+  {
+    curTick = 1;
+    for (uint32_t i = 0; i < entries_count; ++i)
+      entries[i].hitTick = 0;
+  }
+  ~LRUCachedFilesOpen()
+  {
+    destroy();
+    dumpHits();
+  }
+};
 
-  crd.seekto(matVdataSrcRef.fileOfs);
-  clear_and_resize(matVdataSrc, matVdataSrcRef.dataSz);
-  crd.read(matVdataSrc.data(), matVdataSrcRef.dataSz);
-}
+static thread_local LRUCachedFilesOpen reloadFiles;
+FullFileLoadCB *reload_files_open(const char *fn, int ofs) { return reloadFiles.open(fn, ofs); }
+
+void ShaderMatVdata::closeTlsReloadCrd() {}
 
 void ShaderMatVdata::reloadD3dRes(Sbuffer *)
 {

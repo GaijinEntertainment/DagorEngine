@@ -1,1 +1,2 @@
-Creates `JsonValue` out of value.
+skip functions
+skip void?

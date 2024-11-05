@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_hwExcept.h>
 #include <debug/dag_except.h>
 
@@ -67,13 +69,28 @@ static void __cdecl hard_except_handler_named(EXCEPTION_POINTERS *eptr, char *bu
       MINIDUMP_CALLBACK_INFORMATION mci;
       mci.CallbackRoutine = DagorHwException::minidump_callback;
       mci.CallbackParam = (void *)&param;
+      HANDLE hProcess = ::GetCurrentProcess();
+      DWORD dwProcessId = ::GetCurrentProcessId();
 
-      if (MiniDumpWriteDump(::GetCurrentProcess(), ::GetCurrentProcessId(), hDumpFile, MiniDumpNormal, &minidumpExcInfo, NULL, &mci))
+      bool success = false;
+      __try
       {
-        debug_internal::dbgCrashDumpPath[0] = 0; // no more dumps
+        success = MiniDumpWriteDump(hProcess, dwProcessId, hDumpFile, MiniDumpNormal, &minidumpExcInfo, NULL, &mci);
+      }
+      __except (DagorHwException::write_minidump_fallback(hProcess, dwProcessId, hDumpFile, GetExceptionInformation(), nullptr))
+      {
+        success = true;
+        logerr("Exception in minidump callback was handled");
+      }
+      if (!success || !param.memCallbackCalled)
+      {
+        debug("Minidump with callback write error, use generic minidump (ok=%i, memCallbackCalled=%i)", success,
+          param.memCallbackCalled);
+        DagorHwException::write_minidump_fallback(hProcess, dwProcessId, hDumpFile, eptr, nullptr);
       }
 
       CloseHandle(hDumpFile);
+      debug_internal::dbgCrashDumpPath[0] = 0; // no more dumps
     }
   }
 

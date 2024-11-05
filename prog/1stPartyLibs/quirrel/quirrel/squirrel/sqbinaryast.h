@@ -1,5 +1,4 @@
-#ifndef _SQ_BINARY_AST_H_
-#define _SQ_BINARY_AST_H_ 1
+#pragma once
 
 #include <stdint.h>
 #include <iostream>
@@ -108,7 +107,7 @@ class SQASTReader {
 
   LiteralExpr *readLiteral();
 
-  RootExpr *readRootExpr();
+  RootTableAccessExpr *readRootTableAccessExpr();
   BaseExpr *readBaseExpr();
 
   IncExpr *readIncExpr();
@@ -120,7 +119,7 @@ class SQASTReader {
   CallExpr *readCallExpr();
 
   GetFieldExpr *readGetFieldExpr();
-  GetTableExpr *readGetTableExpr();
+  GetSlotExpr *readGetSlotExpr();
 
   ValueDecl *readValueDecl(bool);
   ConstDecl *readConstDecl();
@@ -165,5 +164,3 @@ public:
 
   RootBlock *readAst(const SQChar *&sourceName);
 };
-
-#endif // _SQ_BINARY_AST_H_

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
 #include <util/dag_simpleString.h>
@@ -443,38 +445,6 @@ int dag_path_compare(const char *path1, const char *path2)
   return 0;
 }
 
-
-bool dag_rmtree(const char *path)
-{
-  if (!path || !*path)
-    return false;
-
-  const char *realPath = ::is_full_path(path) ? path : ::df_get_real_folder_name(path);
-  if (!realPath || !*realPath)
-    return false;
-
-  String mask = ::make_full_path(realPath, "*.*");
-  String pathBuf;
-  alefind_t ff;
-
-  for (bool ok = ::dd_find_first(mask, DA_FILE | DA_SUBDIR, &ff); ok; ok = ::dd_find_next(&ff))
-    if (strcmp(ff.name, ".") && strcmp(ff.name, ".."))
-    {
-      pathBuf = ::make_full_path(realPath, ff.name);
-
-      if (ff.attr & DA_SUBDIR)
-      {
-        if (!::dag_rmtree(pathBuf))
-          break;
-      }
-      else if (!::dd_erase(pathBuf))
-        break;
-    }
-
-  ::dd_find_close(&ff);
-
-  return (bool)::dd_rmdir(realPath);
-}
 
 #if _TARGET_PC
 char *dag_get_appmodule_dir(char *dirbuf, size_t dirbufsz)

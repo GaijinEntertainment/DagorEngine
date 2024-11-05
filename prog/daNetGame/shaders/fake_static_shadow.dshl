@@ -1,0 +1,5 @@
+define_macro_if_not_defined INIT_STATIC_SHADOW_BASE_STCODE(code)
+endmacro
+
+define_macro_if_not_defined USE_STATIC_SHADOW()
+endmacro

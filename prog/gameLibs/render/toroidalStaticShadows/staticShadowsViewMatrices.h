@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>
 inline TMatrix light_dir_ortho_tm(const Point3 &dir) { return tmatrix(matrix_look_at_lh(dir, Point3(0, 0, 0), Point3(0, 1, 0))); }

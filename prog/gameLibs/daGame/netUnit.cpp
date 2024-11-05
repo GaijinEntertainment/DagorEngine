@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daGame/netUnit.h>
 
 static const float resyncVersionDelay = 2.0f;

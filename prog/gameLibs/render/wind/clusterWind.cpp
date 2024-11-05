@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/wind/clusterWind.h>
 
 #include <math/dag_hlsl_floatx.h>
@@ -15,7 +17,6 @@ ClusterWind::ClusterWind(bool need_historical_buffer)
   actualClusterWindsCount = 0;
   isInit = false;
   actualDirectionnalClusterWindCount = 0;
-  dynamicWindMgr.reset(new DynamicWind);
   mem_set_0(directionnalWindId);
   memset(&clusterWinds, 0, sizeof(clusterWinds));
   memset(&directionnalWindId, 0, sizeof(directionnalWindId));
@@ -28,26 +29,17 @@ ClusterWind::~ClusterWind()
   actualClusterWindsCount = 0;
   isInit = false;
   actualDirectionnalClusterWindCount = 0;
-  dynamicWindMgr.reset();
 }
 
-int ClusterWind::addClusterToList(const Point3 &pos, float r, float power, const Point3 &dir, bool directionnal)
+int ClusterWind::addClusterToList(const Point3 &pos, float r, float power)
 {
   if (actualClusterWindsCount == MAX_CLUSTER)
     return -1;
   ClusterDesc sphereToAdd;
   sphereToAdd.sphere = Point4(pos.x, pos.y, pos.z, r);
   sphereToAdd.power = cvt(power, 0.f, 1.0f, 1.0f, MAX_POWER_FOR_BLAST);
-  sphereToAdd.direction = dir;
-  sphereToAdd.directionnalId = directionnal ? 1 : -1;
   sphereToAdd.time = 0.0f;
   sphereToAdd.maxTime = BOMBS_BLAST_ANIMATION_TIME;
-
-  if (directionnal)
-  {
-    directionnalWindId[actualDirectionnalClusterWindCount] = actualClusterWindsCount;
-    actualDirectionnalClusterWindCount++;
-  }
   clusterWinds[actualClusterWindsCount++] = sphereToAdd;
   return actualClusterWindsCount - 1;
 }
@@ -69,7 +61,7 @@ void ClusterWind::recalculateWholeCascade(const Point3 &pos, int cascadeNo)
   {
     ClusterWind::ClusterDesc &cluster = clusterWinds[i];
     Point3 clusterPos = Point3(cluster.sphere.x, cluster.sphere.y, cluster.sphere.z);
-    addClusterToGrid(clusterPos, cluster.sphere.x, cluster.power, cluster.direction, cluster.directionnalId, i);
+    addClusterToGrid(clusterPos, cluster.sphere.x, cluster.power, i);
   }
   clusterWindCascades[cascadeNo].position =
     pos + Point3(clusterWindCascades[cascadeNo].size * 0.5f, 0.0f, clusterWindCascades[cascadeNo].size * 0.5f);
@@ -218,14 +210,14 @@ void ClusterWind::updateAfterPositionChange(ClusterWindCascade::ClusterWindGridU
   }
 }
 
-void ClusterWind::addClusterToGrid(const Point3 &pos, float r, float power, const Point3 &dir, bool directionnal, int clusterId)
+void ClusterWind::addClusterToGrid(const Point3 &pos, float r, float power, int clusterId)
 {
   TIME_PROFILE(addClusterToGrid);
   OSSpinlockScopedLock lock(&clusterToGridSpinLock);
-  int id = clusterId >= 0 ? clusterId : addClusterToList(pos, r, power, dir, directionnal);
+  int id = clusterId >= 0 ? clusterId : addClusterToList(pos, r, power);
   if (id < 0)
     return;
-  int startingCascade = directionnal ? 0 : clusterWindCascades.size() - 1; // no directionnal for externalCascade
+  int startingCascade = clusterWindCascades.size() - 1;
   for (int i = startingCascade; i >= 0; --i)
   {
     if (!clusterWindCascades[i].isClusterOnCascade(pos, r))
@@ -283,8 +275,6 @@ void ClusterWind::updateClusterWinds(float dt)
   bool updateGridsBuffer = false;
   for (int i = 0; i < actualClusterWindsCount; ++i)
   {
-    if (clusterWinds[i].directionnalId >= 0)
-      continue;
     clusterWinds[i].time += dt;
     if (clusterWinds[i].time >= clusterWinds[i].maxTime)
     {
@@ -295,40 +285,11 @@ void ClusterWind::updateClusterWinds(float dt)
     }
   }
 }
-void ClusterWind::loadBendingMultConst(float treeMult, float impostorMult, float grassMult, float treeStaticMult,
-  float impostorStaticMult, float grassStaticMult, float treeAnimationMult, float grassAnimationMult)
+void ClusterWind::loadBendingMultConst(float treeMult, float impostorMult, float grassMult, float treeAnimationMult,
+  float grassAnimationMult)
 {
   if (clusterWindRenderer)
-    clusterWindRenderer->loadBendingMultConst(treeMult, impostorMult, grassMult, treeStaticMult, impostorStaticMult, grassStaticMult,
-      treeAnimationMult, grassAnimationMult);
-}
-
-void ClusterWind::updateDirectionnalWinds(const Point3 &pos, float dt)
-{
-  TIME_PROFILE(updateDirectionnalWinds);
-  // moving wind, remove them from grid firs
-  // then calculate new pos then integrate it in grid again
-
-  for (int i = actualDirectionnalClusterWindCount - 1; i >= 0; --i)
-  {
-    removeClusterFromList(directionnalWindId[i]);
-    for (int cascadeNo = 0; cascadeNo < clusterWindCascades.size(); ++cascadeNo)
-    {
-      clusterWindCascades[cascadeNo].removeClusterFromGrids(directionnalWindId[i]);
-    }
-  }
-
-  dynamicWindMgr->update(pos, dt);
-  actualDirectionnalClusterWindCount = 0;
-
-  // recalculate position on grid
-  for (int i = 0; i < dynamicWindMgr->waves.size(); ++i)
-  {
-    WindWave wave = dynamicWindMgr->waves[i];
-    if (!wave.alive)
-      continue;
-    addClusterToGrid(wave.position, wave.radius, wave.strength, wave.direction, true);
-  }
+    clusterWindRenderer->loadBendingMultConst(treeMult, impostorMult, grassMult, treeAnimationMult, grassAnimationMult);
 }
 
 void ClusterWind::updateRenderer()
@@ -346,17 +307,10 @@ void ClusterWind::flipClusterWindSimArray() { clusterWindRenderer->updateCurrent
 
 ClusterWind::ClusterDesc ClusterWind::getClusterDescAt(int at) { return clusterWinds[at]; }
 
-void ClusterWind::loadDynamicWindDesc(DynamicWind::WindDesc &_desc) { dynamicWindMgr->loadWindDesc(_desc); }
-
 bool ClusterWind::isPriority(const ClusterDesc &value, const ClusterDesc &toCompare, int boxId, int cascadeNo)
 {
   if (value.sphere.w < 0.0)
     return false;
-
-  if (value.directionnalId >= 0 && toCompare.directionnalId < 0)
-    return false;
-  if (value.directionnalId < 0 && toCompare.directionnalId >= 0)
-    return true;
 
   Point3 boxPos = clusterWindCascades[cascadeNo].getBoxPosition(boxId);
 
@@ -366,7 +320,7 @@ bool ClusterWind::isPriority(const ClusterDesc &value, const ClusterDesc &toComp
     (length(Point3(toCompare.sphere.x, toCompare.sphere.y, toCompare.sphere.z) - boxPos) / toCompare.sphere.w) * toCompare.power;
   if (valuePowerFallof > toComparePowerFallof)
     return true;
-  if (value.sphere.w == toCompare.sphere.w && value.time <= toCompare.time && value.directionnalId < 0)
+  if (value.sphere.w == toCompare.sphere.w && value.time <= toCompare.time)
     return true;
   return false;
 }
@@ -446,10 +400,8 @@ static ClusterDescUncompressed uncompress_cluster_desc(ClusterDescGpu clusterDes
   clusterUncompressed.sphere.z =
     unpack_value(((uint)clusterDesc.sphere.y & 0xFFFF0000) >> SHIFT_2_BYTES, BYTE_2, minHalfPrecision, maxHalfPrecision);
   clusterUncompressed.sphere.w = unpack_value((uint)clusterDesc.sphere.y & 0x0000FFFF, BYTE_2, minHalfPrecision, maxHalfPrecision);
-  clusterUncompressed.angle = unpack_value(((uint)clusterDesc.time & 0xFFFF0000) >> SHIFT_2_BYTES, BYTE_2, 0.0, 2.0 * PI);
   clusterUncompressed.time =
-    unpack_value(((uint)clusterDesc.time & 0x0000FF00) >> SHIFT_1_BYTES, BYTE_1, 0.0, 1.0) * BOMBS_BLAST_ANIMATION_TIME;
-  clusterUncompressed.directionnal = unpack_value((uint)clusterDesc.time & 0x000000FF, BYTE_1, -1, 1);
+    unpack_value(((uint)clusterDesc.time & 0xFFFF0000) >> SHIFT_2_BYTES, BYTE_2, 0.0, 1.0) * BOMBS_BLAST_ANIMATION_TIME;
   clusterUncompressed.power = unpack_value((uint)clusterDesc.power & 0x0000FFFF, BYTE_2, 0.0, MAX_POWER_FOR_BLAST);
   return clusterUncompressed;
 }
@@ -463,7 +415,7 @@ float3 ClusterWind::getBlastAtPosForParticle(const float3 &pos)
     float2 cascadePos;
     cascadePos.x = unpack_value(((uint)cascade.pos & 0xFFFF0000) >> SHIFT_2_BYTES, BYTE_2, minHalfPrecision, maxHalfPrecision);
     cascadePos.y = unpack_value((uint)cascade.pos & 0x0000FFFF, BYTE_2, minHalfPrecision, maxHalfPrecision);
-    BBox2 box = BBox2(Point2(cascadePos.x, cascadePos.y), (float)cascade.gridSize);
+    BBox2 box = BBox2(Point2(cascadePos.x - cascade.gridSize * 0.5, cascadePos.y - cascade.gridSize * 0.5), (float)cascade.gridSize);
 
     if (!is_cluster_on_cascade(box, float3(pos.x, pos.z, 1.0f)))
       continue;
@@ -497,13 +449,11 @@ float3 ClusterWind::getBlastAtPosForParticle(const float3 &pos)
       if (!clusterWindRenderer->getClusterDescForCpuSim(clusterIndex, clusterDescGpu))
         continue;
       ClusterDescUncompressed clusterDesc = uncompress_cluster_desc(clusterDescGpu);
-      if (clusterDesc.directionnal >= 0)
-        continue;
 
       float3 relPos = pos - float3(clusterDesc.sphere.x, clusterDesc.sphere.y, clusterDesc.sphere.z);
       float lenSq = lengthSq(relPos);
       float relRad = clusterDesc.time * BOMBS_BLAST_AIR_SPEED;
-      if (lenSq >= sqr(relRad) || relRad > (clusterDesc.sphere.w + DISK_RADIUS))
+      if (lenSq > sqr(relRad) || lenSq < sqr(relRad - DISK_RADIUS))
         continue;
 
       float len = sqrtf(lenSq);
@@ -538,39 +488,16 @@ Point3 ClusterWind::getBlastAtPosForAntenna(const Point3 &pos)
         if (lengthSq(clusterToParticle) > sqr(clusterWinds[clusterId].sphere.w))
           continue;
         float clusterToParticleLength = length(clusterToParticle);
-        float clusterToParticleLengthInv = clusterToParticleLength > FLT_MIN ? 1.f / clusterToParticleLength : 0;
-        if (clusterWinds[clusterId].directionnalId < 0)
+        float toParticleAirSpeedTime = clusterToParticleLength * (1 / BOMBS_BLAST_AIR_SPEED);
+        float blastDuration = clusterWinds[clusterId].time - toParticleAirSpeedTime;
+        if (blastDuration > 0.0 && blastDuration < PARTICLE_BLAST_TIME)
         {
-          float toParticleAirSpeedTime = clusterToParticleLength * (1 / BOMBS_BLAST_AIR_SPEED);
-          float blastDuration = clusterWinds[clusterId].time - toParticleAirSpeedTime;
-          if (blastDuration > 0.0 && blastDuration < PARTICLE_BLAST_TIME)
-          {
-            float powerFallof = (1 - (clusterToParticleLength / clusterWinds[clusterId].sphere.w)) * clusterWinds[clusterId].power;
-            float relativBlastTime = blastDuration / PARTICLE_BLAST_TIME;
-            float power = sin(relativBlastTime * PI);
-            weight += power; //[0,1]
-            power *= powerFallof;
-            result += normalize(clusterToParticle) * power;
-          }
-        }
-        else
-        {
-          float powerFallof = max(
-            (1 - (clusterToParticleLength / clusterWinds[clusterId].sphere.w)) * (clusterWinds[clusterId].power / MAX_POWER_FOR_BLAST),
-            0.f);
-          Point2 p0 =
-            Point2(clusterWinds[clusterId].sphere.x, clusterWinds[clusterId].sphere.z) +
-            Point2(clusterWinds[clusterId].direction.x, clusterWinds[clusterId].direction.z) * clusterWinds[clusterId].sphere.w;
-          Point2 p1 =
-            Point2(clusterWinds[clusterId].sphere.x, clusterWinds[clusterId].sphere.z) -
-            Point2(clusterWinds[clusterId].direction.x, clusterWinds[clusterId].direction.z) * clusterWinds[clusterId].sphere.w;
-          Point2 ldir = p1 - p0;
-          Point2 toProjetcPoint = Point2(pos.x, pos.z) - p0;
-          float projectedLength = dot(toProjetcPoint, ldir) / sqr(clusterWinds[clusterId].sphere.w * 2.0);
-          float power = sin(projectedLength * PI);
+          float powerFallof = (1 - (clusterToParticleLength / clusterWinds[clusterId].sphere.w)) * clusterWinds[clusterId].power;
+          float relativBlastTime = blastDuration / PARTICLE_BLAST_TIME;
+          float power = sin(relativBlastTime * PI);
           weight += power; //[0,1]
           power *= powerFallof;
-          result += -Point3(ldir.x, 0.0f, ldir.y) * clusterToParticleLengthInv * power;
+          result += normalize(clusterToParticle) * power;
         }
       }
       return result / max(weight, 1.0f);
@@ -578,9 +505,3 @@ Point3 ClusterWind::getBlastAtPosForAntenna(const Point3 &pos)
   }
   return result;
 }
-
-Tab<WindSpawner> ClusterWind::getDynamicWindGenerator() { return dynamicWindMgr->spawner; }
-
-void ClusterWind::initDynamicWind(int beaufortScale, const Point3 &direction) { dynamicWindMgr->init(beaufortScale, direction); }
-
-void ClusterWind::enableDynamicWind(bool isEnabled) { dynamicWindMgr->enableDynamicWind(isEnabled); }

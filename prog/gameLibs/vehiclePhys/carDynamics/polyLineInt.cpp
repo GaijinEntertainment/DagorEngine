@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <vehiclePhys/carDynamics/polyLineInt.h>
 #include <ioSys/dag_dataBlock.h>
 #include <generic/dag_span.h>

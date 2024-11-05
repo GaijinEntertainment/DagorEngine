@@ -1,18 +1,19 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <libTools/dagFileRW/dagMatRemapUtil.h>
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
 #include <de3_objEntity.h>
-#include <propPanel2/c_control_event_handler.h>
+#include <propPanel/c_control_event_handler.h>
 #include <assets/asset.h>
 
 
-class ObjectPropertyEditor : public ControlEventHandler
+class ObjectPropertyEditor : public PropPanel::ControlEventHandler
 {
 public:
   void begin(DagorAsset *asset, IObjEntity *asset_entity);
-  void fillPropPanel(int pid, PropertyContainerControlBase &panel);
+  void fillPropPanel(int pid, PropPanel::ContainerPropertyControl &panel);
 
   void onClick();
 

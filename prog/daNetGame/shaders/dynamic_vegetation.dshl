@@ -1,0 +1,231 @@
+include "shader_global.dshl"
+include "dynamic_opaque_inc.dshl"
+include "random_color.dshl"
+include "psh_derivate.dshl"
+include "psh_tangent.dshl"
+include "gbuffer.dshl"
+include "vegetation.dshl"
+include "wind/wind_simulation_inc.dshl"
+include "wind/apply_tree_wind_inc.dshl"
+float tree_wind_branch_amp = 0.5;
+float tree_wind_detail_amp = 0.5;
+float tree_wind_speed = 0.1;
+
+buffer impostor_data_buffer;
+
+shader dynamic_tree_colored
+{
+  ENABLE_ASSERT(ps)
+  DYNAMIC_BLOCK()
+  (ps) {
+    impostor_data_buffer@buf = impostor_data_buffer hlsl {
+      Buffer<float4> impostor_data_buffer@buf;
+    }
+  }
+  texture tex = material.texture.diffuse;
+
+  texture normal = material.texture[2];
+
+  static int num_bones = 0;
+  interval num_bones : no_bones < 1, four_bones;
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+  channel float2 tc[0] = tc[0];
+  channel color8 vcol[0] = extra[53];
+  if (num_bones != no_bones)
+  {
+    channel color8 tc[4] = extra[0];
+    channel color8 tc[5] = extra[1];
+  }
+
+  static int angle_dissolve = 1;
+
+  (ps) {
+    angle_dissolve@f1 = (angle_dissolve);
+  }
+
+  USING_ATEST_HALF_AND(
+    cull_mode = none;
+  )
+
+  if (atest == atestOn)
+  {
+    static float back_view_dep = 1.0;
+    (ps) { back_view_dep@f1 = (back_view_dep);}
+  }
+
+  //---------------------------------------------------
+  // PS stuff.
+  //---------------------------------------------------
+
+  INIT_WEIGHT_FOR_AO()
+
+  if (compatibility_mode == compatibility_mode_on && mobile_render != off && dyn_model_render_pass != render_pass_normal)
+  {
+    INIT_STATIC_SHADOW_PS()
+  }
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    if (num_bones == four_bones)
+    {
+      hlsl {
+        #define HAS_SKINNING 1
+      }
+    }
+    hlsl {
+      #define MOTION_VECTORS_ENABLED
+    }
+  }
+  hlsl{
+
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      ##if dyn_model_render_pass != render_to_depth
+        float4 normal : TEXCOORD0;
+        float4 localPos : TEXCOORD3;
+        nointerpolation uint impostor_data_offset : TEXCOORD6;
+      ##endif
+      float4 pointToEye : TEXCOORD1;
+
+      ##if (atest == atestOn || dyn_model_render_pass != render_to_depth)
+        float3 diffuseTexcoord : TEXCOORD2;
+      ##endif
+
+      #ifdef MOTION_VECTORS_ENABLED
+        float4 out_pos                          : TEXCOORD4;
+        float4 out_pos_prev                     : TEXCOORD5;
+      #endif
+    };
+  }
+
+  INIT_OPTIONAL_SKINNING()
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float3 pos : POSITION;
+      float4 normal : NORMAL;
+##if (atest == atestOn || dyn_model_render_pass != render_to_depth)
+      float2 diffuseTexcoord : TEXCOORD0;
+      float4 vcol : COLOR0;
+##endif
+      INIT_BONES_VSINPUT(TEXCOORD4, TEXCOORD5)
+    };
+   }
+
+  OPTIONAL_SKINNING_SHADER()
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    USE_MOTION_VECTORS()
+    USE_MOTION_VEC_ENCODE(ps)
+  }
+
+  if (dyn_model_render_pass != render_to_depth)
+  {
+    USE_PIXEL_TANGENT_SPACE()
+    WRITE_GBUFFER()
+    USE_WEIGHT_FOR_AO()
+    FILL_CURRENT_GBUFFER(false)
+  }
+  else
+  {
+    (ps) { diffuse_tex@static = tex; }
+  }
+
+  if (atest == atestOn)
+  {
+    (vs) {
+      tree_wind_params@f4 = (time_phase(1000, 0) * 1000, tree_wind_branch_amp, tree_wind_detail_amp, tree_wind_speed);
+    }
+    USE_COMBINED_WIND(vs)
+    DECLARE_APPLY_TREE_WIND()
+    INIT_APPLY_TREE_WIND()
+    USE_APPLY_TREE_WIND()
+  }
+
+  hlsl(vs) {
+
+    VsOutput simple_vs(VsInput input HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+      float3 localNormal = 1;
+##if (atest == atestOn || dyn_model_render_pass != render_to_depth)
+      localNormal = normalize(BGR_SWIZZLE(input.normal.xyz) * 2 - 1);
+##endif
+      float3 localPos = input.pos.xyz;
+      float opacity = 1;
+
+      // Skinning.
+
+      float3 eyeToPoint;
+      float3 worldDu;
+      float3 worldDv;
+      float3 worldNormal;
+
+#if VERTEX_TANGENT
+      float3 localDu = BGR_SWIZZLE(input.packedDu) * 2 - 1;
+      float3 localDv = BGR_SWIZZLE(input.packedDv) * 2 - 1;
+#else
+      float3 localDu = float3(1, 0, 0), localDv = float3(1, 0, 0);
+#endif
+      instance_skinning(
+        input,
+        input.pos,
+        localNormal,
+        localDu,
+        localDv,
+        eyeToPoint,
+        output.pos,
+        worldNormal,
+        worldDu,
+        worldDv);
+
+      float3 worldPos = eyeToPoint+world_view_pos;
+##if (atest == atestOn)
+      float3 windVcol = BGRA_SWIZZLE(input.vcol).xyz * get_wind_channel_strength();
+      worldPos += ApplyTreeWind(windVcol, tree_wind_params, localPos, worldPos, input.pos, worldNormal, 1, 1);
+##endif
+      float movementAmount = 1; // dynamic objects are always dynamic! they move!
+      float3 pointToEye = -eyeToPoint;
+
+      //output.pos = mulPointTm(float4(worldPos.xyz, 1), globtm);
+##if dyn_model_render_pass != render_to_depth
+      output.normal.xyz = normalize(worldNormal.xyz);
+      output.normal.a = input.vcol.a;
+      output.localPos.xyz = localPos;
+      output.localPos.w = movementAmount;
+##endif
+      output.pointToEye = pointToEye.xyzz;
+
+##if (atest == atestOn || dyn_model_render_pass != render_to_depth)
+      output.diffuseTexcoord.xyz = float3(input.diffuseTexcoord, 0);
+      float leaves_fade = dot(worldNormal, normalize(pointToEye));
+      output.pointToEye.w = leaves_fade;
+##endif
+    #ifdef MOTION_VECTORS_ENABLED
+      output.out_pos_prev = get_prevframe_output_pos(input, input.pos);
+      output.out_pos = output.pos;
+    #endif
+      return output;
+    }
+  }
+
+  if (atest == atestOn || dyn_model_render_pass != render_to_depth)
+  {
+    hlsl(ps) {
+      #define IS_DYNAMIC 1
+    }
+
+    VEGETATION_PS(dyn_model_render_pass == render_to_depth, atest == atestOn, false)
+  }
+  else
+  {
+    compile("ps_null", "rendinst_render_depth_black_ps");
+  }
+
+  compile("target_vs", "simple_vs");
+}

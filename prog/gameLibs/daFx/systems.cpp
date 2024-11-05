@@ -1,10 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "systems.h"
 #include "context.h"
 #include "shaders.h"
 
 namespace dafx
 {
-bool register_subsystem(Context &ctx, SystemTemplate &sys, const SystemDesc &desc, const eastl::string &name, int depth)
+bool register_subsystem(Context &ctx, SystemTemplate &sys, const SystemDesc &desc, const eastl::string &name, int depth,
+  SystemId sys_id)
 {
   DBG_OPT("register_subsystem, name:%s ", name);
   G_ASSERT_RETURN(sys.name.empty(), false);
@@ -53,7 +56,11 @@ bool register_subsystem(Context &ctx, SystemTemplate &sys, const SystemDesc &des
   G_ASSERT_RETURN(emLimit < ctx.cfg.emission_limit && emLimit < ctx.cfg.emission_max_limit, false);
 
   sys.depth = depth;
-  sys.refFlags = SYS_VALID | SYS_ENABLED | (isProxyNode ? 0 : SYS_EMITTER_REQ) | (desc.customDepth ? SYS_CUSTOM_DEPTH : 0);
+  sys.refFlags = SYS_VALID | SYS_ENABLED | (isProxyNode ? 0 : SYS_EMITTER_REQ);
+  if (desc.specialFlags & SystemDesc::FLAG_SKIP_SCREEN_PROJ_CULL_DISCARD)
+    sys.refFlags |= SYS_SKIP_SCREEN_PROJ_CULL_DISCARD;
+  if (!(desc.specialFlags & SystemDesc::FLAG_DISABLE_SIM_LODS))
+    sys.refFlags |= SYS_ALLOW_SIMULATION_LODS;
   sys.qualityFlags = desc.qualityFlags;
 
   create_emitter_state(sys.emitterState, desc.emitterData, emLimit, ctx.cfg.emission_factor);
@@ -82,9 +89,16 @@ bool register_subsystem(Context &ctx, SystemTemplate &sys, const SystemDesc &des
   sys.renderTags = 0;
   G_ASSERT(sys.renderShaders.empty());
 
+  sys.gameResId = desc.gameResId;
   sys.resources[STAGE_CS] = desc.texturesCs;
   sys.resources[STAGE_VS] = desc.texturesVs;
   sys.resources[STAGE_PS] = desc.texturesPs;
+
+  G_ASSERT(desc.texturesCs.size() <= desc.maxTextureSlotsAllocated);
+  G_ASSERT(desc.texturesVs.size() <= desc.maxTextureSlotsAllocated);
+  G_ASSERT(desc.texturesPs.size() <= desc.maxTextureSlotsAllocated);
+  int maxTextureSlotsAllocated = interlocked_relaxed_load(ctx.maxTextureSlotsAllocated);
+  interlocked_relaxed_store(ctx.maxTextureSlotsAllocated, max(maxTextureSlotsAllocated, desc.maxTextureSlotsAllocated));
 
   G_ASSERT(sys.subsystems.empty());
 
@@ -212,7 +226,7 @@ bool register_subsystem(Context &ctx, SystemTemplate &sys, const SystemDesc &des
     G_ASSERT_RETURN(tag < ctx.cfg.max_render_tags, false);
     sys.renderTags |= 1 << tag;
 
-    RenderShaderId shaderId = register_render_shader(ctx.shaders, rdesc.shader, name);
+    RenderShaderId shaderId = register_render_shader(ctx.shaders, rdesc.shader, name, ctx.instancingVdecl);
     if (!shaderId)
       return false;
 
@@ -220,7 +234,7 @@ bool register_subsystem(Context &ctx, SystemTemplate &sys, const SystemDesc &des
 
     renderShaders[tag] = shaderId;
   }
-  sys.renderShaders = renderShaders; // shrink to fit
+  sys.renderShaders = eastl::move(renderShaders); // shrink to fit
   sys.renderSortDepth = desc.renderSortDepth;
 
   if (!desc.localValuesDesc.empty())
@@ -230,7 +244,7 @@ bool register_subsystem(Context &ctx, SystemTemplate &sys, const SystemDesc &des
   }
 
   {
-    OSSpinlockScopedLock(ctx.globalData.bindSpinLock);
+    OSSpinlockScopedLock lock{GlobalData::bindSpinLock};
     if (!register_global_value_binds(ctx.binds, name, desc.reqGlobalValues))
       return false;
   }
@@ -240,7 +254,7 @@ bool register_subsystem(Context &ctx, SystemTemplate &sys, const SystemDesc &des
   for (const SystemDesc &subDesc : desc.subsystems)
   {
     SystemTemplate &subSys = sys.subsystems.push_back();
-    if (!register_subsystem(ctx, subSys, subDesc, name, sys.depth + 1))
+    if (!register_subsystem(ctx, subSys, subDesc, name, sys.depth + 1, sys_id))
       return false;
 
     if (subSys.localGpuDataSize > 0)
@@ -287,6 +301,7 @@ SystemId get_system_by_name(ContextId cid, const eastl::string &name)
 SystemId register_system(ContextId cid, const SystemDesc &desc, const eastl::string &name)
 {
   GET_CTX_RET(SystemId());
+  SYS_LOCK_GUARD;
   if (name.empty())
   {
     logerr("dafx: unnamed system");
@@ -300,11 +315,12 @@ SystemId register_system(ContextId cid, const SystemDesc &desc, const eastl::str
     return SystemId();
   }
 
+  G_ASSERT(interlocked_acquire_load(ctx.systemsLockCounter) == 1);
   SystemId rid = ctx.systems.list.emplaceOne();
   SystemTemplate *sys = ctx.systems.list.get(rid);
   G_ASSERT_RETURN(sys, SystemId());
 
-  if (!register_subsystem(ctx, *sys, desc, name, 0))
+  if (!register_subsystem(ctx, *sys, desc, name, 0, rid))
   {
     ctx.systems.list.destroyReference(rid);
     return SystemId();
@@ -346,6 +362,8 @@ void release_subsystem(Context &ctx, SystemTemplate &sys)
 void release_system(ContextId cid, SystemId rid)
 {
   GET_CTX();
+  SYS_LOCK_GUARD;
+  G_ASSERT(interlocked_acquire_load(ctx.systemsLockCounter) == 1);
   SystemTemplate *sys = ctx.systems.list.get(rid);
   G_ASSERT_RETURN(sys, );
 
@@ -362,6 +380,7 @@ void release_system(ContextId cid, SystemId rid)
 bool get_system_name(ContextId cid, SystemId rid, eastl::string &out_name)
 {
   GET_CTX_RET(false);
+  SYS_LOCK_GUARD;
   SystemTemplate *sys = ctx.systems.list.get(rid);
   G_ASSERT_RETURN(sys, false);
 
@@ -373,6 +392,7 @@ bool get_system_name(ContextId cid, SystemId rid, eastl::string &out_name)
 int get_system_value_offset(ContextId cid, SystemId rid, eastl::string &name, int ref_size)
 {
   GET_CTX_RET(-1);
+  SYS_LOCK_GUARD;
   SystemTemplate *sys = ctx.systems.list.get(rid);
   G_ASSERT_RETURN(sys, -1);
 
@@ -389,8 +409,8 @@ bool prefetch_system_textures(SystemTemplate &sys)
   bool fetched = true;
   for (int stage = 0; stage < sys.resources.size(); ++stage)
   {
-    const eastl::vector<D3DRESID> &list = sys.resources[stage];
-    for (D3DRESID tid : list)
+    const eastl::vector<TextureDesc> &list = sys.resources[stage];
+    for (auto [tid, a] : list)
     {
       if (tid != BAD_TEXTUREID)
         fetched &= prefetch_managed_texture(tid);
@@ -406,6 +426,7 @@ bool prefetch_system_textures(SystemTemplate &sys)
 bool prefetch_system_textures(ContextId cid, SystemId sys_id)
 {
   GET_CTX_RET(false);
+  SYS_LOCK_GUARD;
   SystemTemplate *sys = ctx.systems.list.get(sys_id);
   G_ASSERT_RETURN(sys, false);
   return prefetch_system_textures(*sys);

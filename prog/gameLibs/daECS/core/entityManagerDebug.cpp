@@ -1,7 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/core/entityManager.h>
 #include "ecsQueryInternal.h"
-
-#include <daECS/core/internal/trackComponentAccess.h>
 
 #include <osApiWrappers/dag_stackHlp.h>
 #include <startup/dag_globalSettings.h>
@@ -22,7 +22,7 @@ void EntityManager::dumpArchetypes(int max_a)
   {
     uint32_t count, size, ai;
   };
-  eastl::vector<AInfo> archetypesInfo(archetypes.size());
+  dag::Vector<AInfo> archetypesInfo(archetypes.size());
   for (uint32_t i = 0; i < archetypes.size(); ++i)
     archetypesInfo[i] = AInfo{archetypes.getArchetype(i).componentsCnt, archetypes.getArchetype(i).entitySize, i};
   auto dump = [&]() {
@@ -312,32 +312,35 @@ struct TrackAccessRecordRAIILock
 
   TrackAccessRecordRAIILock(std::recursive_mutex &_mtx) : mtx(g_entity_mgr->isConstrainedMTMode() ? &_mtx : nullptr)
   {
-    if (EASTL_UNLIKELY(mtx != nullptr))
+    if (DAGOR_UNLIKELY(mtx != nullptr))
       mtx->lock();
   }
 
   ~TrackAccessRecordRAIILock()
   {
-    if (EASTL_UNLIKELY(mtx != nullptr))
+    if (DAGOR_UNLIKELY(mtx != nullptr))
       mtx->unlock();
   }
 };
 
 struct TrackAccessRecord
 {
-  ecsdebug::TrackOp op = ecsdebug::TRACK_READ;
   eastl::string details;
   Callstack stack;
 
   ecs::template_t templateId = ecs::INVALID_TEMPLATE_INDEX;
+  ecs::EntityManager::TrackComponentOp op = ecs::EntityManager::TrackComponentOp::READ;
 
   bool operator==(const TrackAccessRecord &rhs) const
   {
     return op == rhs.op && templateId == rhs.templateId && details == rhs.details &&
            eastl::equal(stack.begin(), stack.end(), rhs.stack.begin());
   }
-
-  uint32_t getHash() const { return ecs::ecs_hash(details) ^ hash_int(templateId) ^ eastl::hash<Callstack>()(stack); }
+  typedef uint32_t hash_t;
+  hash_t getHash() const
+  {
+    return hash_t(0x80000000) | (ecs::ecs_hash(details) ^ hash_int(templateId) ^ eastl::hash<Callstack>()(stack));
+  }
 };
 
 struct TrackAccessRecordWithDups : TrackAccessRecord
@@ -352,23 +355,24 @@ struct HashedTrackAccessRecord
   uint32_t dupsCount;
 };
 
-using TrackAccessRecordsList = eastl::vector<TrackAccessRecord>;
-using TrackAccessRecordWithDupsList = eastl::vector<TrackAccessRecordWithDups>;
-using HashedTrackAccessRecordList = eastl::vector<HashedTrackAccessRecord>;
-static ska::flat_hash_map<uint32_t, TrackAccessRecord> records_by_hash;
-static eastl::vector_map<ecs::component_t, HashedTrackAccessRecordList> records_by_component;
+using TrackAccessRecordsList = dag::Vector<TrackAccessRecord>;
+using TrackAccessRecordWithDupsList = dag::Vector<TrackAccessRecordWithDups>;
+using HashedTrackAccessRecordList = dag::Vector<HashedTrackAccessRecord>;
+// fixme: should be part of EntityManager
+static HashedKeyMap<TrackAccessRecord::hash_t, TrackAccessRecord> records_by_hash;
+static dag::VectorMap<ecs::component_t, HashedTrackAccessRecordList> records_by_component;
 static std::recursive_mutex track_mutex;
 
-void ecsdebug::start_track_ecs_component(ecs::component_t comp)
+void ecs::EntityManager::startTrackComponent(ecs::component_t comp)
 {
   TrackAccessRecordRAIILock scopeLock(track_mutex);
   records_by_component.insert(comp);
 }
 
-void ecsdebug::track_ecs_component(ecs::component_t comp, ecsdebug::TrackOp op, const char *details, ecs::EntityId eid,
-  bool need_stack)
+void ecs::EntityManager::trackComponent(ecs::component_t comp, TrackComponentOp op, const char *details, TrackAccessStack need_stack,
+  ecs::EntityId eid) const
 {
-  if (EASTL_LIKELY(records_by_component.empty())) // intentionally before lock
+  if (DAGOR_LIKELY(records_by_component.empty())) // intentionally before lock
     return;
   TrackAccessRecordRAIILock scopeLock(track_mutex);
 
@@ -377,7 +381,7 @@ void ecsdebug::track_ecs_component(ecs::component_t comp, ecsdebug::TrackOp op, 
     return;
 
   TrackAccessRecord rec;
-  if (need_stack)
+  if (need_stack == TrackAccessStack::Yes)
     stackhlp_fill_stack(rec.stack.data(), rec.stack.max_size(), 2);
   else
     eastl::fill(rec.stack.begin(), rec.stack.end(), nullptr);
@@ -389,42 +393,43 @@ void ecsdebug::track_ecs_component(ecs::component_t comp, ecsdebug::TrackOp op, 
   if (!curRecords->second.empty())
   {
     HashedTrackAccessRecord &lastHashedRecord = curRecords->second.back();
-    TrackAccessRecord &lastRecord = records_by_hash.find(lastHashedRecord.hash)->second;
-    if (lastRecord == rec)
+    const TrackAccessRecord *lastRecord = records_by_hash.findVal(lastHashedRecord.hash);
+    if (lastRecord && *lastRecord == rec)
     {
       lastHashedRecord.dupsCount++;
       return;
     }
   }
 
-  const uint32_t recordHash = rec.getHash();
-  auto insertRes = records_by_hash.emplace(recordHash, TrackAccessRecord{});
+  auto recordHash = rec.getHash();
+  auto insertRes = records_by_hash.emplace_if_missing(recordHash);
   if (insertRes.second)
-    insertRes.first->second = eastl::move(rec);
+    *insertRes.first = eastl::move(rec);
   else
   {
     // Check collisions
-    G_ASSERT(insertRes.first->second == rec);
+    G_ASSERT(*insertRes.first == rec);
   }
 
   curRecords->second.push_back({recordHash, dagor_frame_no(), 0});
 }
 
-void ecsdebug::track_ecs_component(const ecs::BaseQueryDesc &desc, const char *details, ecs::EntityId eid, bool need_stack)
+void ecs::EntityManager::trackComponent(const ecs::BaseQueryDesc &desc, const char *details, TrackAccessStack need_stack,
+  ecs::EntityId eid) const
 {
   TrackAccessRecordRAIILock scopeLock(track_mutex);
 
-  if (EASTL_LIKELY(records_by_component.empty()))
+  if (DAGOR_LIKELY(records_by_component.empty()))
     return;
 
   for (const ecs::ComponentDesc &c : desc.componentsRO)
-    track_ecs_component(c.name, TRACK_READ, details, eid, need_stack);
+    trackComponent(c.name, TrackComponentOp::READ, details, need_stack, eid);
 
   for (const ecs::ComponentDesc &c : desc.componentsRW)
-    track_ecs_component(c.name, TRACK_WRITE, details, eid, need_stack);
+    trackComponent(c.name, TrackComponentOp::WRITE, details, need_stack, eid);
 }
 
-void ecsdebug::stop_dump_track_ecs_components()
+void ecs::EntityManager::stopTrackComponentsAndDump()
 {
   TrackAccessRecordRAIILock scopeLock(track_mutex);
 
@@ -432,15 +437,15 @@ void ecsdebug::stop_dump_track_ecs_components()
 
   for (const auto &kv : records_by_component)
   {
-    eastl::vector_map<uint32_t, TrackAccessRecordWithDupsList> recordsByFrame;
+    dag::VectorMap<uint32_t, TrackAccessRecordWithDupsList> recordsByFrame;
 
     for (const auto &h : kv.second)
     {
-      auto findRes = records_by_hash.find(h.hash);
-      G_ASSERT_CONTINUE(findRes != records_by_hash.end());
+      auto findRes = records_by_hash.findVal(h.hash);
+      G_ASSERT_CONTINUE(findRes);
 
       TrackAccessRecordWithDups record;
-      static_cast<TrackAccessRecord &>(record) = findRes->second;
+      static_cast<TrackAccessRecord &>(record) = *findRes;
       record.dupsCount = h.dupsCount;
 
       auto res = recordsByFrame.insert(h.frameNo);
@@ -465,7 +470,7 @@ void ecsdebug::stop_dump_track_ecs_components()
       lastPrinted = &curRecords;
       for (const auto &r : curRecords)
       {
-        report.append_sprintf("  [%06d][%s]: %s", frameNo, r.op == TRACK_WRITE ? "W" : "_", r.details.c_str());
+        report.append_sprintf("  [%06d][%s]: %s", frameNo, r.op == TrackComponentOp::WRITE ? "W" : "_", r.details.c_str());
 
         if (r.templateId != ecs::INVALID_TEMPLATE_INDEX)
           report.append_sprintf(" (%s)", g_entity_mgr->getTemplateName(r.templateId));

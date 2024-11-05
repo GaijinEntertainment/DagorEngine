@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hmlPlugin.h"
 #include "hmlEntity.h"
 #include "hmlSplineObject.h"
@@ -11,7 +13,7 @@
 #include <detourNavMeshQuery.h>
 #include <detourTileCache.h>
 #include <detourTileCacheBuilder.h>
-#include <dllPluginCore/core.h>
+#include <EditorCore/ec_IEditorCore.h>
 #include <de3_genObjUtil.h>
 #include <de3_splineClassData.h>
 #include <landMesh/lmeshManager.h>
@@ -41,10 +43,13 @@
 #include <recastTools/recastNavMeshTile.h>
 #include <recastTools/recastObstacleFlags.h>
 #define ZDICT_STATIC_LINKING_ONLY 1
-#include <arc/zstd-1.4.5/zstd.h>
-#include <arc/zstd-1.4.5/dictBuilder/zdict.h>
+#include <zstd.h>
+#include <dictBuilder/zdict.h>
 
 #include <util/dag_lookup.h>
+#include <util/dag_compilerDefs.h>
+
+using editorcore_extapi::dagRender;
 
 static Tab<covers::Cover> coversDebugList;
 static Tab<eastl::pair<Point3, Point3>> edgesDebugList;
@@ -55,6 +60,11 @@ static bool exportedEdgesDebugListDone = false;
 static bool exportedNavMeshLoadDone = false;
 static bool exportedObstaclesLoadDone = false;
 
+#if DAGOR_ADDRESS_SANITIZER
+static IMemAlloc *get_thread_alloc() { return midmem; }
+static void *alloc_for_recast(size_t size, rcAllocHint hint) { return get_thread_alloc()->alloc(size); }
+static void free_for_recast(void *ptr) { get_thread_alloc()->free(ptr); }
+#else
 static Tab<MspaceAlloc *> thread_alloc;
 static int nextThreadId = 0;
 thread_local static int threadId = -1;
@@ -85,6 +95,7 @@ static void free_for_recast(void *ptr)
   int idx = *(int *)(ptr);
   get_thread_alloc(idx)->free(ptr);
 }
+#endif
 
 static void *alloc_for_detour(size_t size, dtAllocHint hint) { return alloc_for_recast(size, RC_ALLOC_PERM); }
 
@@ -94,7 +105,9 @@ static void setupRecastDetourAllocators()
 {
   // pathfinder sets these to framemem allocator, but we'll use recast/detour
   // in a multithreaded manner, thus, we need thread-safe allocators.
+#if !DAGOR_ADDRESS_SANITIZER
   threadId = 0; // Make sure that caller of this function will always use midmem allocator.
+#endif
   rcAllocSetCustom(alloc_for_recast, free_for_recast);
   dtAllocSetCustom(alloc_for_detour, free_for_detour);
 }
@@ -234,7 +247,7 @@ static void init(const DataBlock &blk, int nav_mesh_idx)
   nmParams.agentClimbAfterGluingMeshes = blk.getReal("agentClimbAfterGluingMeshes", 0.1f);
   nmParams.agentRadius = blk.getReal("agentRadius", 2.0f);
   nmParams.edgeMaxLen = blk.getReal("edgeMaxLen", 128.0f);
-  nmParams.edgeMaxError = blk.getReal("edgeMaxError", 2.0f);
+  nmParams.edgeMaxError = blk.getReal("edgeMaxError", 1.5f);
   nmParams.regionMinSize = blk.getReal("regionMinSize", 9.0f);
   nmParams.regionMergeSize = blk.getReal("regionMergeSize", 100.0f);
   nmParams.vertsPerPoly = blk.getInt("vertsPerPoly", 3);
@@ -246,13 +259,22 @@ static void init(const DataBlock &blk, int nav_mesh_idx)
 
   nmParams.jlkCovExtraCells = blk.getInt("jlkExtraCells", 32);
   nmParams.jlkParams.enabled = blk.getBool("jumpLinksEnabled", false);
-  nmParams.jlkParams.jumpHeight = blk.getReal("jumpLinksHeight", 2.0f) * 2.f; // up + down
+  nmParams.jlkParams.typeGen = blk.getInt("jumpLinksTypeGen", recastbuild::JUMPLINKS_TYPEGEN_ORIGINAL);
+  nmParams.jlkParams.jumpoffMinHeight = blk.getReal("jumpLinksJumpoffMinHeight", 1.0f);
+  nmParams.jlkParams.jumpoffMaxHeight = blk.getReal("jumpLinksJumpoffMaxHeight", 4.0f);
+  nmParams.jlkParams.jumpoffMinLinkLength = blk.getReal("jumpLinksJumpoffMinLinkLength", 0.3f);
+  nmParams.jlkParams.edgeMergeAngle = blk.getReal("jumpLinksEdgeMergeAngle", 10.0f);
+  nmParams.jlkParams.edgeMergeDist = blk.getReal("jumpLinksEdgeMergeDist", 0.1f);
+  nmParams.jlkParams.jumpHeight = blk.getReal("jumpLinksHeight", 2.0f); // up + down
+  if (nmParams.jlkParams.typeGen == recastbuild::JUMPLINKS_TYPEGEN_ORIGINAL)
+    nmParams.jlkParams.jumpHeight *= 2.0f;
   const float typoDefJumpLinksLength = blk.getReal("jumpLinksLenght", 2.5f);
   nmParams.jlkParams.jumpLength = blk.getReal("jumpLinksLength", typoDefJumpLinksLength);
   nmParams.jlkParams.width = blk.getReal("jumpLinksWidth", 1.0f);
   nmParams.jlkParams.agentHeight = blk.getReal("jumpLinksAgentHeight", 2.0f);
   nmParams.jlkParams.agentMinSpace = blk.getReal("jumpLinksAgentMinSpace", 1.0f);
   nmParams.jlkParams.deltaHeightThreshold = blk.getReal("jumpLinksDeltaHeightTreshold", 0.5f);
+  nmParams.jlkParams.maxObstructionAngle = DegToRad(blk.getReal("jumpLinksMaxObstructionAngle", 25.0f));
   nmParams.jlkParams.complexJumpTheshold = blk.getReal("complexJumpTheshold", 0.0f);
   nmParams.jlkParams.linkDegAngle = cosf(DegToRad(blk.getReal("jumpLinksMergeAngle", 15.0f)));
   nmParams.jlkParams.linkDegDist = cosf(DegToRad(blk.getReal("jumpLinksMergeDist", 5.0f)));
@@ -664,7 +686,7 @@ static bool load_debug_edges(IGenLoad &crd, Tab<eastl::pair<Point3, Point3>> &de
 
   if (dataSize % pairSize)
   {
-    logerr_ctx("Could not load debug edges: broken data: data size = %d, debug edges size = %d", dataSize, pairSize);
+    LOGERR_CTX("Could not load debug edges: broken data: data size = %d, debug edges size = %d", dataSize, pairSize);
     return false;
   }
   if (!dataSize)
@@ -722,10 +744,12 @@ static void load_pathfinder(const HmapLandPlugin *plugin, int nav_mesh_idx, cons
 
 static bool finalize_navmesh_tile(const NavMeshParams &nav_mesh_params, BuildContext &ctx, const rcConfig &cfg,
   recastnavmesh::OffMeshConnectionsStorage &conn_storage, recastnavmesh::RecastTileContext &tile_ctx, int tx, int ty,
-  Tab<recastnavmesh::BuildTileData> &tile_data)
+  Tab<recastnavmesh::BuildTileData> &tile_data, const BBox3 &box, const Tab<recastbuild::CustomJumpLink> &custom_jumplinks,
+  Tab<recastbuild::JumpLinkObstacle> cross_obstacles, Tab<recastbuild::JumpLinkObstacle> disable_jl_obstacles,
+  bool save_tile_ctx_data = false)
 {
   //
-  // Step 1. Build polygons mesh from contours.
+  //  Step 1. Build polygons mesh from contours.
   //
 
   // Build polygon navmesh from the contours.
@@ -762,10 +786,19 @@ static bool finalize_navmesh_tile(const NavMeshParams &nav_mesh_params, BuildCon
     return false;
   }
 
-  rcFreeCompactHeightfield(tile_ctx.chf);
-  tile_ctx.chf = NULL;
-  rcFreeContourSet(tile_ctx.cset);
-  tile_ctx.cset = NULL;
+  if (!save_tile_ctx_data)
+  {
+    rcFreeCompactHeightfield(tile_ctx.chf);
+    tile_ctx.chf = NULL;
+    rcFreeContourSet(tile_ctx.cset);
+    tile_ctx.cset = NULL;
+  }
+
+  if (nav_mesh_params.jlkParams.enableCustomJumplinks)
+    add_custom_jumplinks(conn_storage, *tile_ctx.dmesh, nav_mesh_params.cellHeight, custom_jumplinks, box);
+  cross_obstacles_with_jumplinks(conn_storage, *tile_ctx.dmesh, box, nav_mesh_params.jlkParams, nav_mesh_params.cellHeight,
+    cross_obstacles);
+  disable_jumplinks_around_obstacle(conn_storage, disable_jl_obstacles);
 
   //
   // (Optional) Step 3. Create Detour data from Recast poly mesh.
@@ -822,15 +855,16 @@ static bool finalize_navmesh_tile(const NavMeshParams &nav_mesh_params, BuildCon
       tile_ctx.clearIntermediate(&tile_data);
       return false;
     }
-    tile_ctx.clearIntermediate(&tile_data);
+    if (!save_tile_ctx_data)
+      tile_ctx.clearIntermediate(&tile_data);
     recastnavmesh::BuildTileData td;
     td.navMeshData = navData;
     td.navMeshDataSz = navDataSize;
     tile_data.push_back(td);
     return true;
   }
-
-  tile_ctx.clearIntermediate(&tile_data);
+  if (!save_tile_ctx_data)
+    tile_ctx.clearIntermediate(&tile_data);
   return true;
 }
 
@@ -879,7 +913,7 @@ static bool prepare_tile_context(const NavMeshParams &nav_mesh_params, BuildCont
   cfg.walkableClimb = (int)ceilf(nav_mesh_params.agentMaxClimb / cfg.ch);
   cfg.walkableRadius = (int)ceilf(nav_mesh_params.agentRadius / cfg.cs);
   cfg.maxEdgeLen = (int)(nav_mesh_params.edgeMaxLen / nav_mesh_params.cellSize);
-  cfg.maxSimplificationError = clamp(nav_mesh_params.edgeMaxError / nav_mesh_params.cellSize, 1.1f, 1.5f);
+  cfg.maxSimplificationError = nav_mesh_params.edgeMaxError;
   cfg.minRegionArea = int(nav_mesh_params.regionMinSize * sqr(safeinv(nav_mesh_params.cellSize)));
   cfg.mergeRegionArea = int(nav_mesh_params.regionMergeSize * sqr(safeinv(nav_mesh_params.cellSize)));
   cfg.maxVertsPerPoly = nav_mesh_params.vertsPerPoly;
@@ -1063,11 +1097,43 @@ static Tab<recastbuild::CustomJumpLink> get_custom_jumplinks_in_box(const BBox3 
   return relevantJumplinks;
 }
 
+static dtNavMesh *generate_jumplinks_navmesh_tile(const NavMeshParams &nav_mesh_params, BuildContext &ctx, const rcConfig &cfg,
+  recastnavmesh::RecastTileContext &tile_ctx)
+{
+  recastnavmesh::OffMeshConnectionsStorage connStorage;
+  BBox3 box;
+  Tab<recastbuild::CustomJumpLink> customJumplinks;
+  Tab<recastbuild::JumpLinkObstacle> crossObstacles;
+  Tab<recastbuild::JumpLinkObstacle> disableJLObstacles;
+  Tab<recastnavmesh::BuildTileData> tileData;
+  if (!finalize_navmesh_tile(nav_mesh_params, ctx, cfg, connStorage, tile_ctx, 0, 0, tileData, box, customJumplinks, crossObstacles,
+        disableJLObstacles, true /*save_tile_ctx_data*/))
+    return nullptr;
+  if (tileData.empty())
+    return nullptr;
+
+  dtNavMesh *navmesh = dtAllocNavMesh();
+  if (!navmesh)
+  {
+    global_build_ctx.log(RC_LOG_ERROR, "Build Jumplinks: Could not create Detour navmesh");
+    return nullptr;
+  }
+
+  bool dtStatus = navmesh->init(tileData[0].navMeshData, tileData[0].navMeshDataSz, DT_TILE_FREE_DATA);
+  if (!dtStatus)
+  {
+    dtFreeNavMesh(navmesh);
+    global_build_ctx.log(RC_LOG_ERROR, "Build Jumplinks: Could not init Detour navmesh");
+    return nullptr;
+  }
+  return navmesh;
+}
+
 static bool rasterize_and_build_navmesh_tile(const NavMeshParams &nav_mesh_params, recastnavmesh::RecastTileContext &tile_ctx,
   dag::ConstSpan<Point3> vertices, dag::ConstSpan<int> indices, dag::ConstSpan<IPoint2> transparent,
   dag::ConstSpan<NavMeshObstacle> obstacles, const ska::flat_hash_map<uint32_t, uint32_t> &obstacle_flags_by_res_name_hash,
   const BBox3 &box, Tab<covers::Cover> &covers, Tab<eastl::pair<Point3, Point3>> &edges_out, int tx, int ty,
-  Tab<recastnavmesh::BuildTileData> &tileData, const HmapLandObjectEditor *objEd, int gw = -1, int gh = -1)
+  Tab<recastnavmesh::BuildTileData> &tileData, const Tab<recastbuild::CustomJumpLink> &customJumplinks, int gw = -1, int gh = -1)
 {
   const bool needCov = covParams.enabled;
   const bool needJlkCov = nav_mesh_params.jlkParams.enabled || needCov;
@@ -1084,6 +1150,8 @@ static bool rasterize_and_build_navmesh_tile(const NavMeshParams &nav_mesh_param
   // Build covers and off mesh connections (jump links) from edges contours.
   //
   recastnavmesh::OffMeshConnectionsStorage connStorage;
+  Tab<recastbuild::JumpLinkObstacle> crossObstacles;
+  Tab<recastbuild::JumpLinkObstacle> disableJLObstacles;
   if (needJlkCov)
   {
     if (!prepare_tile(nav_mesh_params, ctx, cfg, tile_ctx, vertices, indices, noTransparent, box, gw, gh, true, useExtraCells))
@@ -1094,31 +1162,45 @@ static bool rasterize_and_build_navmesh_tile(const NavMeshParams &nav_mesh_param
     recastbuild::build_edges(edges, tile_ctx.cset, tile_ctx.chf, nav_mesh_params.mergeParams, &edges_out);
 
     if (nav_mesh_params.jlkParams.enabled)
-      recastbuild::build_jumplinks_connstorage(connStorage, edges, nav_mesh_params.jlkParams, tile_ctx.chf, tile_ctx.solid);
-
-    if (nav_mesh_params.jlkParams.enableCustomJumplinks)
     {
-      const Tab<recastbuild::CustomJumpLink> customJumplinks = get_custom_jumplinks_in_box(box, objEd);
-      add_custom_jumplinks(connStorage, edges, customJumplinks);
+      dtNavMesh *jlkNavmesh = nullptr;
+      if (nav_mesh_params.jlkParams.typeGen == recastbuild::JUMPLINKS_TYPEGEN_NEW2024)
+      {
+        jlkNavmesh = generate_jumplinks_navmesh_tile(nav_mesh_params, ctx, cfg, tile_ctx);
+      }
+      recastbuild::build_jumplinks_connstorage(connStorage, jlkNavmesh, edges, nav_mesh_params.jlkParams, tile_ctx.chf, tile_ctx.solid,
+        box);
+
+      if (jlkNavmesh)
+      {
+        dtFreeNavMesh(jlkNavmesh);
+        jlkNavmesh = nullptr;
+      }
     }
 
     if (nav_mesh_params.jlkParams.crossObstaclesWithJumplinks && obstacle_flags_by_res_name_hash.size() > 0)
     {
-      Tab<recastbuild::JumpLinkObstacle> crossObstacles;
       for (auto &o : obstacles)
       {
         if (obstacle_flags_by_res_name_hash.find(o.resNameHash) != obstacle_flags_by_res_name_hash.end())
         {
           uint32_t f = obstacle_flags_by_res_name_hash.find(o.resNameHash)->second;
           if (f & ObstacleFlags::CROSS_WITH_JL)
-            crossObstacles.push_back({o.box, o.yAngle});
+          {
+            auto anotherObstacleIsClose = [&](recastbuild::JumpLinkObstacle &obstacle) {
+              return (obstacle.box.center() - o.box.center()).lengthSq() < 0.25;
+            };
+            // Sometimes they overlapp 100%.
+            // This causes two links to be created.
+            // And these links connect to each other instead of the target.
+            if (eastl::find_if(crossObstacles.begin(), crossObstacles.end(), anotherObstacleIsClose) == crossObstacles.end())
+              crossObstacles.push_back({o.box, o.yAngle});
+          }
         }
       }
-      cross_obstacles_with_jumplinks(connStorage, edges, box, nav_mesh_params.jlkParams, crossObstacles);
     }
     if (obstacle_flags_by_res_name_hash.size() > 0)
     {
-      Tab<recastbuild::JumpLinkObstacle> disableJLObstacles;
       for (auto &o : obstacles)
       {
         if (obstacle_flags_by_res_name_hash.find(o.resNameHash) != obstacle_flags_by_res_name_hash.end())
@@ -1128,7 +1210,6 @@ static bool rasterize_and_build_navmesh_tile(const NavMeshParams &nav_mesh_param
             disableJLObstacles.push_back({o.box, o.yAngle});
         }
       }
-      disable_jumplinks_around_obstacle(connStorage, disableJLObstacles);
     }
 
     if (needCov)
@@ -1196,7 +1277,8 @@ static bool rasterize_and_build_navmesh_tile(const NavMeshParams &nav_mesh_param
     tile_ctx.solid = NULL;
   }
 
-  return finalize_navmesh_tile(nav_mesh_params, ctx, cfg, connStorage, tile_ctx, tx, ty, tileData);
+  return finalize_navmesh_tile(nav_mesh_params, ctx, cfg, connStorage, tile_ctx, tx, ty, tileData, box, customJumplinks,
+    crossObstacles, disableJLObstacles);
 }
 
 static WinCritSec buildJobCc;
@@ -1459,7 +1541,7 @@ class BuildTileJob : public cpujobs::IJob
   dag::ConstSpan<NavMeshObstacle> obstacles;
   Tab<recastnavmesh::BuildTileData> tileData;
   const ska::flat_hash_map<uint32_t, uint32_t> obstacleFlags;
-  const HmapLandObjectEditor *objEd;
+  const Tab<recastbuild::CustomJumpLink> &customJumpLinks;
 
 public:
   bool haveProblems = false;
@@ -1472,7 +1554,8 @@ public:
   BuildTileJob(int in_x, int in_y, const BBox3 &box, int in_nav_mesh_idx, dag::ConstSpan<Point3> in_vertices,
     dag::ConstSpan<int> in_indices, dag::ConstSpan<IPoint2> in_transparent, dag::ConstSpan<NavMeshObstacle> in_obstacles,
     const ska::flat_hash_map<uint32_t, uint32_t> &obstacle_flags_by_res_name_hash, Tab<BuildTileJob *> &finished_jobs,
-    Tab<covers::Cover> &in_covers, Tab<eastl::pair<Point3, Point3>> &in_edges_out, const HmapLandObjectEditor *object_editor) :
+    Tab<covers::Cover> &in_covers, Tab<eastl::pair<Point3, Point3>> &in_edges_out,
+    const Tab<recastbuild::CustomJumpLink> &customJumpLinks) :
     x(in_x),
     y(in_y),
     tileBox(box),
@@ -1485,13 +1568,13 @@ public:
     covers(in_covers),
     edges_out(in_edges_out),
     obstacleFlags(obstacle_flags_by_res_name_hash),
-    objEd(object_editor)
+    customJumpLinks(customJumpLinks)
   {}
 
   virtual void doJob()
   {
     haveProblems = !rasterize_and_build_navmesh_tile(nmParams, tileCtx, vertices, indices, transparent, obstacles, obstacleFlags,
-      tileBox, covers, edges_out, x, y, tileData, objEd);
+      tileBox, covers, edges_out, x, y, tileData, customJumpLinks);
     WinAutoLock lock(buildJobCc);
     finishedJobs.push_back(this);
   }
@@ -1535,13 +1618,13 @@ public:
     navQuery = dtAllocNavMeshQuery();
     if (!navQuery)
     {
-      logerr_ctx("Could not create NavMeshQuery");
+      LOGERR_CTX("Could not create NavMeshQuery");
       return;
     }
 
     if (dtStatusFailed(navQuery->init(pathfinder::getNavMeshPtr(), 2048)))
     {
-      logerr_ctx("Could not init Detour navmesh query");
+      LOGERR_CTX("Could not init Detour navmesh query");
       return;
     }
 
@@ -1688,6 +1771,18 @@ static void gather_colliders_meshes(Tab<Point3> &vertices, Tab<int> &indices, Ta
   }
 }
 
+static bool is_tile_in_navmesh_area(const Tab<SplineObject *> &navmesh_areas, const Point2 &tileCenter)
+{
+  for (int i = 0; i < navmesh_areas.size(); i++)
+  {
+    if (navmesh_areas[i]->pointInsidePoly(tileCenter))
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh_idx)
 {
   NavMeshParams &nmParams = navMeshParams[nav_mesh_idx];
@@ -1717,19 +1812,36 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
     water_lev = nmProps.getReal("waterLev", 0);
 
   int nav_area_type = nmProps.getInt("navArea", 0);
-  if (nav_area_type < 0 || nav_area_type > 2)
+  if (nav_area_type < NM_AREATYPE_MAIN || nav_area_type > NM_AREATYPE_POLY)
   {
     DAEDITOR3.conWarning("Incorrect navArea=%d, changing to 1", nav_area_type);
     nmProps.setInt("navArea", nav_area_type = 1);
   }
 
+  Tab<SplineObject *> navmeshPolyAreas;
   BBox2 nav_area;
-  if (nav_area_type == 1 && detDivisor)
+  if (nav_area_type == NM_AREATYPE_DET && detDivisor)
     nav_area = detRect;
-  else if (nav_area_type == 2)
+  else if (nav_area_type == NM_AREATYPE_RECT)
   {
     nav_area[0] = nmProps.getPoint2("rect0", Point2(0, 0));
     nav_area[1] = nmProps.getPoint2("rect1", Point2(1000, 1000));
+  }
+  else if (nav_area_type == NM_AREATYPE_POLY)
+  {
+    for (int i = 0; i < objEd.splinesCount(); i++)
+    {
+      SplineObject *spline = objEd.getSpline(i);
+      if (spline->isPoly() && spline->getProps().navmeshIdx == nav_mesh_idx)
+      {
+        navmeshPolyAreas.push_back(spline);
+        for (int j = 0; j < spline->points.size(); j++)
+        {
+          Point3 p = spline->points[j]->getPos();
+          nav_area += Point2(p.x, p.z);
+        }
+      }
+    }
   }
   else
   {
@@ -2021,6 +2133,10 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
     global_build_ctx.log(RC_LOG_ERROR, "Could not create Detour navmesh");
     return false;
   }
+  Tab<recastbuild::CustomJumpLink> customJumpLinks;
+  if (nmParams.jlkParams.enableCustomJumplinks)
+    customJumpLinks = get_custom_jumplinks_in_box(landBBox, &objEd);
+
   if (nmParams.navMeshType > pathfinder::NMT_SIMPLE)
   {
     // Tiled calculation
@@ -2071,9 +2187,11 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
     if (cores_count)
     {
       threadpool::init(cores_count, get_bigger_pow2(max(th * tw, numSplits)), 128 << 10);
+#if !DAGOR_ADDRESS_SANITIZER
       thread_alloc.resize(cores_count);
       for (int i = 0; i < cores_count; ++i)
         thread_alloc[i] = MspaceAlloc::create(nullptr, 32 << 20, false);
+#endif
     }
     Tab<cpujobs::IJob *> splitJobs(tmpmem);
     for (int i = 0; i < numSplits; ++i)
@@ -2147,7 +2265,7 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
       tcparams.walkableHeight = nmParams.agentHeight;
       tcparams.walkableRadius = nmParams.agentRadius;
       tcparams.walkableClimb = nmParams.agentMaxClimb;
-      tcparams.maxSimplificationError = clamp(nmParams.edgeMaxError / nmParams.cellSize, 1.1f, 1.5f);
+      tcparams.maxSimplificationError = nmParams.edgeMaxError;
       tcparams.maxTiles = tw * th * TILECACHE_AVG_LAYERS_PER_TILE;
       tcparams.maxObstacles = TILECACHE_MAX_OBSTACLES;
 
@@ -2175,20 +2293,23 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
     for (int y = 0; y < th; ++y)
       for (int x = 0; x < tw; ++x)
       {
+        Point2 tileCenter = Point2::xz(landBBox.lim[0]) + Point2((x + 0.5f) * tcs, (y + 0.5f) * tcs);
+        if (nav_area_type == NM_AREATYPE_POLY && !is_tile_in_navmesh_area(navmeshPolyAreas, tileCenter))
+          continue;
         int threadId = y * tw + x;
         BBox3 tileBox = BBox3(landBBox.lim[0] + Point3(x * tcs, 0.f, y * tcs),
           Point3::xVz(landBBox.lim[0] + Point3((x + 1) * tcs, 0.f, (y + 1) * tcs), landBBox.lim[1].y));
         if (!cores_count)
         {
           BuildTileJob job(x, y, tileBox, nav_mesh_idx, vertices, tileIndices[threadId], tileTransparent[threadId],
-            tileObstacles[threadId], *obstacleFlags, finishedJobs, coversLists[0], debugEdgesLists[0], &objEd);
+            tileObstacles[threadId], *obstacleFlags, finishedJobs, coversLists[0], debugEdgesLists[0], customJumpLinks);
           job.doJob();
           haveProblems = job.haveProblems;
           job.releaseJob();
           continue;
         }
         BuildTileJob *job = new BuildTileJob(x, y, tileBox, nav_mesh_idx, vertices, tileIndices[threadId], tileTransparent[threadId],
-          tileObstacles[threadId], *obstacleFlags, finishedJobs, coversLists[threadId], debugEdgesLists[threadId], &objEd);
+          tileObstacles[threadId], *obstacleFlags, finishedJobs, coversLists[threadId], debugEdgesLists[threadId], customJumpLinks);
         tileJobs.push_back(job);
         threadpool::add(job);
       }
@@ -2444,7 +2565,7 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
     Tab<recastnavmesh::BuildTileData> tileData;
     recastnavmesh::RecastTileContext tctx;
     rasterize_and_build_navmesh_tile(nmParams, tctx, vertices, indices, transparent, obstacles, *obstacleFlags, landBBox,
-      coversLists[0], debugEdgesLists[0], 0, 0, tileData, &objEd, gw, gh);
+      coversLists[0], debugEdgesLists[0], 0, 0, tileData, customJumpLinks, gw, gh);
     if (!tileData.empty())
     {
       bool dtStatus = navMesh->init(tileData[0].navMeshData, tileData[0].navMeshDataSz, DT_TILE_FREE_DATA);
@@ -2628,10 +2749,12 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
 
   if (cpujobs::get_core_count() && (nmParams.navMeshType > pathfinder::NMT_SIMPLE))
   {
+#if !DAGOR_ADDRESS_SANITIZER
     for (MspaceAlloc *ta : thread_alloc)
       ta->destroy();
     clear_and_shrink(thread_alloc);
     nextThreadId = 0;
+#endif
     threadpool::shutdown();
   }
 
@@ -2891,6 +3014,7 @@ void HmapLandPlugin::renderNavMeshDebug()
 }
 
 // wrapper for functions used in gameLibs/pathFinder
+#if !_TARGET_STATIC_LIB
 void draw_cached_debug_line(const Point3 &p0, const Point3 &p1, E3DCOLOR c)
 {
   dagRender->addLineToVbuffer(*active_debug_lines_vbuf, p0, p1, c);
@@ -2910,3 +3034,4 @@ void draw_cached_debug_solid_triangle(const Point3 p[3], E3DCOLOR color)
 {
   dagRender->addTriangleToVbuffer(*active_debug_lines_vbuf, p, color);
 }
+#endif

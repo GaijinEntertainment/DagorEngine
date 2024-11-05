@@ -26,7 +26,7 @@
 struct ClusterDescGpu //16 bytes * clusterAmount
 {
   uint2 sphere; // 2byte per axes + r
-  uint time; // 1byte time, 1 byte directionnal, 2byte direction
+  uint time; // 2byte time, 2bytes free
   uint power; //2 bytes power 2byte free
 };
 
@@ -52,8 +52,6 @@ struct ClusterDescUncompressed
   float4 sphere;
   float time;
   float power;
-  int directionnal;
-  float angle; //in radians
 };
 
 // animation function //

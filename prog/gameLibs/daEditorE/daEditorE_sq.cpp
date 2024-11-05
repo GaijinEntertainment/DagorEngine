@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daEditorE/daEditorE.h>
 #include <daEditorE/de_objEditor.h>
 #include <daEditorE/de_interface.h>
@@ -5,7 +7,7 @@
 #include <sqrat.h>
 #include <quirrel/sqModules/sqModules.h>
 #include <quirrel/sqEventBus/sqEventBus.h>
-
+#include <json/json.h>
 
 namespace
 {
@@ -43,7 +45,8 @@ void register_da_editor4_script(SqModules *module_mgr)
     return;
 
   Sqrat::Table daEditor(module_mgr->getVM());
-  daEditor.Func("setEditMode", &set_edit_mode_sq)
+  daEditor //
+    .Func("setEditMode", &set_edit_mode_sq)
     .Func("getEditMode", &get_edit_mode_sq)
     .Func("isFreeCamMode", &is_free_cam_mode_sq)
     .SetValue("DE4_MODE_SELECT", CM_OBJED_MODE_SELECT)
@@ -56,16 +59,14 @@ void register_da_editor4_script(SqModules *module_mgr)
     .SetValue("DE4_CMD_DEL", CM_OBJED_DELETE)
     .Func("setWorkMode", &set_work_mode_sq)
     .Func("getWorkMode", &get_work_mode_sq)
-    .Func("setPointActionPreview", &set_point_action_preview_sq);
+    .Func("setPointActionPreview", &set_point_action_preview_sq)
+    /**/;
   module_mgr->addNativeModule("daEditorEmbedded", daEditor);
 }
 
 
 void ObjectEditor::updateToolbarButtons()
 {
-  if (HSQUIRRELVM vm = sqeventbus::get_vm())
-  {
-    sqeventbus::send_event("daEditorEmbedded.onDeSetWorkMode", Sqrat::Object(workMode.c_str(), vm));
-    sqeventbus::send_event("daEditorEmbedded.onDeSetEditMode", Sqrat::Object(editMode, vm));
-  }
+  sqeventbus::send_event("daEditorEmbedded.onDeSetWorkMode", Json::Value(workMode.c_str()));
+  sqeventbus::send_event("daEditorEmbedded.onDeSetEditMode", Json::Value(editMode));
 }

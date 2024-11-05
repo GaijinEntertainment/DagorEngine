@@ -1,14 +1,13 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include "ssao_base.h"
 #include "ssao_common.h"
 #include <3d/dag_resizableTex.h>
-#include <3d/dag_drv3dConsts.h>
+#include <drv/3d/dag_consts.h>
 #include <EASTL/unique_ptr.h>
 #include <math/dag_Point3.h>
 #include <math/dag_TMatrix4.h>
@@ -61,7 +60,7 @@ private:
 
   struct Afr
   {
-    TMatrix4 prevGlobTm;
+    TMatrix4 prevGlobTm, prevProjTm;
     Point4 prevViewVecLT;
     Point4 prevViewVecRT;
     Point4 prevViewVecLB;

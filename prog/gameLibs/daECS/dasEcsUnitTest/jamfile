@@ -31,12 +31,13 @@ AddIncludes =
 
 if $(NeedDasAotCompile) = yes {
   local host_platform = ;
+  local host_arch = $(PlatformArch) ;
   local jam = $(Root)/$(Location)/aot/jamfile ;
 
-  if $(Platform) in win64 ps4 ps5 xboxOne android nswitch { host_platform = win64 ; }
-  else if $(Platform) in win32 { host_platform = win32 ; }
-  else if $(Platform) in linux64 { host_platform = linux64 ; }
-  else if $(Platform) in macosx iOS tvOS { host_platform = macosx ; }
+  if $(Platform) in ps4 ps5 xboxOne android nswitch || $(Platform)-$(PlatformArch) = windows-x86_64 { host_platform = windows ; host_arch = x86_64 ; }
+  else if $(Platform)-$(PlatformArch) = windows-x86 { host_platform = windows ; }
+  else if $(Platform) in linux { host_platform = linux ; }
+  else if $(Platform) in macOS iOS tvOS { host_platform = macOS ; }
 
   if $(host_platform) {
     BuildJams = $(jam) ;
@@ -46,11 +47,12 @@ if $(NeedDasAotCompile) = yes {
     platform_spec_xx on $(jam:G=JAM) = \  ;
     nopdb on $(jam:G=JAM) = \  ;
     checkonly on $(jam:G=JAM) = \  ;
+    DAS_AOT_COMPILER = $(Root)/tools/util/das_ecs_test-aot-$(host_platform)-$(host_arch) ;
     if $(CheckedContainers) = yes {
       config on $(jam:G=JAM) += -sCheckedContainers=yes ;
-      DAS_AOT_COMPILER = $(Root)/tools/util/das_ecs_test-aot-c-dev ;
+      DAS_AOT_COMPILER = $(DAS_AOT_COMPILER)-c-dev ;
     } else {
-      DAS_AOT_COMPILER = $(Root)/tools/util/das_ecs_test-aot-dev ;
+      DAS_AOT_COMPILER = $(DAS_AOT_COMPILER)-dev ;
     }
     # DAS_AOT_COMPILER_OPT = -- --config aot_config.blk -sConfig $(Config) ;
     if $(OS) = NT { DAS_AOT_COMPILER = $(DAS_AOT_COMPILER).exe ; }
@@ -80,6 +82,8 @@ Sanitize ?= disabled ;
 if $(Sanitize) != disabled { UseProgLibs += engine/memory/rtlStdMemory ; } else { UseProgLibs += engine/memory ; }
 
 if $(Sanitize) = disabled && $(Config) != rel { UseMemoryDebugLevel = dbg ; }
+
+UseGpu = no ;
 
 UseProgLibs +=
   engine/osApiWrappers

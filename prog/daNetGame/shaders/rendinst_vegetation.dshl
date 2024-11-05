@@ -1,0 +1,763 @@
+include "psh_derivate.dshl"
+include "psh_tangent.dshl"
+include "rendinst_opaque_inc.dshl"
+include "rendinst_vegetation_inc.dshl"
+include "rendinst_rotation_palette.dshl"
+include "normaldetail.dshl"
+include "character_micro_detail.dshl"
+include "vegetation.dshl"
+include "pivot_painter.dshl"
+include "wind/wind_simulation_inc.dshl"
+include "wind/apply_tree_wind_inc.dshl"
+include "rendinst_inc.dshl"
+include "taa_inc.dshl"
+include "vertex_density_overlay_inc.dshl"
+include "tree_ellipsoid_normal.dshl"
+
+// trees above only requires albedo and ao for gbuffer
+int gbuffer_for_treesabove = 0;
+interval gbuffer_for_treesabove : off < 1, on;
+
+texture noise_64_tex;
+
+float4 prevViewProjTm0;
+float4 prevViewProjTm1;
+float4 prevViewProjTm2;
+float4 prevViewProjTm3;
+
+float4 prev_world_view_pos;
+
+int has_discard_without_prepass = 0;
+interval has_discard_without_prepass: discardOff <1, discardOn;
+
+int has_motion_vectors = 0;
+interval has_motion_vectors: no < 1, yes;
+
+macro DEFINE_PIVOT_POINT_WIND_SCALE()
+  hlsl(vs) { static const float AnimWindScale = 0.25; }
+endmacro
+
+shader rendinst_tree_colored, rendinst_tree_colored_alpha_split
+{
+  VERTEX_DENSITY_INIT_VS()
+  VERTEX_DENSITY_WRITE()
+
+  USE_TRANSITION_CROSS_DISSOLVE()
+
+  INIT_WEIGHT_FOR_AO()
+
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    hlsl {
+      #define SPECULAR_DISABLED 1
+      #define BRDF_DIFFUSE DIFFUSE_LAMBERT
+      #define USE_SSS_THIN 1
+    }
+  }
+  if (rendinst_render_pass == rendinst_render_pass_grassify) { dont_render;}
+  if (rendinst_render_pass == rendinst_render_pass_to_heightmap) { dont_render;}
+  if (rendinst_render_pass == rendinst_render_pass_voxelize_albedo) { dont_render;}
+  else
+  {
+    USE_COMBINED_WIND(vs)
+  }
+
+  texture tex = material.texture.diffuse;
+  texture normal = material.texture[2];
+
+  static int is_pivoted = 0;
+  interval is_pivoted : no < 1, yes;
+
+  if (is_pivoted == yes)
+  {
+    INIT_PIVOT_PAINTER_PARAMS()
+
+    if (has_motion_vectors == yes && in_editor_assume == no && rendinst_render_pass != rendinst_render_pass_impostor_color &&
+        rendinst_render_pass != rendinst_render_pass_depth && rendinst_render_pass != rendinst_render_pass_to_shadow)
+    {
+      (vs) {
+        prevViewProjTm@f44 = {prevViewProjTm0, prevViewProjTm1, prevViewProjTm2, prevViewProjTm3};
+        prev_world_view_pos@f3 = (prev_world_view_pos);
+      }
+
+      USE_MOTION_VEC_ENCODE(ps)
+      hlsl {
+        #define MOTION_VECTORS_ENABLED
+      }
+    }
+
+    hlsl(ps) {
+      #define IS_DYNAMIC 1
+    }
+  }
+
+  static int atest = 0;
+  interval atest: atestOff < 1, atestOn;
+  if (atest == atestOn)
+  {
+    cull_mode = none;
+  }
+  static float back_view_dep = 1.0;
+  (ps) { back_view_dep@f1 = (back_view_dep);}
+
+  if (shader != rendinst_tree_colored && atest == atestOn)
+  {
+    texture alpha_tex = material.texture[1];
+
+    if (rendinst_render_pass == rendinst_render_pass_impostor_color ||
+        rendinst_render_pass == rendinst_render_pass_to_shadow ||
+        rendinst_render_pass == rendinst_render_pass_depth ||
+        (rendinst_render_pass == rendinst_render_pass_normal && (in_editor_assume == yes || has_discard_without_prepass == discardOn)))
+    {
+      (ps) { alpha_tex@static = alpha_tex; }
+    }
+  }
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+  channel float2 tc[0] = tc[0];
+  if (is_pivoted == yes)
+  {
+    channel float2 tc[1] = tc[1];
+  }
+  channel color8 vcol[0] = extra[53];
+  static int angle_dissolve = 1;
+
+  if (use_cross_dissolve == off)
+  {
+    static int interactions = 0;
+    interval interactions: interactionsOff < 1, interactionsTrees < 2, interactionsBushes;
+    if (interactions == interactionsTrees || interactions == interactionsBushes)
+    {
+      static float interaction_strength = 1.0;
+    }
+  }
+  static int is_colored = 1;
+  interval is_colored : no < 1, yes;
+
+  (ps){
+    angle_dissolve@f1 = (angle_dissolve);
+  }
+
+  if (rendinst_render_pass != rendinst_render_pass_impostor_shadow && rendinst_render_pass != rendinst_render_pass_impostor_color &&
+     (rendinst_render_pass != rendinst_render_pass_depth || instancing_type != tm_vb) && rendinst_render_pass != rendinst_render_pass_to_shadow)
+  {
+    ENABLE_MULTI_DRAW(atest != atestOn && rendinst_render_pass == rendinst_render_pass_depth)
+  }
+  else if (rendinst_render_pass == rendinst_render_pass_depth )
+  {
+    USE_INDIRECT_DRAW() // For PS4/5. Allow daGDP to invoke this shader with indirect draw call
+  }
+
+  RENDINST_BLOCK()
+  RENDINST_INSTANCING()
+  ROTATION_PALETTE_FOR_POS_INST()
+  INIT_TREE_ELLIPSOID_NORMAL_PARAMS()
+  USE_TREE_ELLIPSOID_NORMAL()
+
+  DECLARE_APPLY_TREE_WIND()
+
+  macro DEFAULT_VERTEX_SHADER()
+    if (is_pivoted == yes)
+    {
+      DEFINE_PIVOT_POINT_WIND_SCALE()
+    }
+
+    hlsl {
+
+      struct VsOutput
+      {
+        PRECISE VS_OUT_POSITION(pos)
+        ##if rendinst_render_pass != rendinst_render_pass_depth
+          float4 normal                 : TEXCOORD0;
+          float3 ellipsoidNormal             : TEXCOORD7;
+          #if COLOR_NEEDED
+          nointerpolation float3 colorMul : TEXCOORD3;
+          #endif
+        ##endif
+        float4 pointToEye             : TEXCOORD1;
+        ##if (atest == atestOn || rendinst_render_pass != rendinst_render_pass_depth)
+          //float4 diffuseTexcoord         : TEXCOORD2;
+          ##if rendinst_render_pass == rendinst_render_pass_impostor_color
+            float4 diffuseTexcoord         : TEXCOORD2;
+          ##else
+            float3 diffuseTexcoord         : TEXCOORD2;
+          ##endif
+        ##endif
+        float4 localPos                    : TEXCOORD4;
+        #ifdef MOTION_VECTORS_ENABLED
+          float4 out_pos                   : TEXCOORD5;
+          float4 out_pos_prev              : TEXCOORD6;
+        #endif
+        #if defined(VSOUT_DRAW_ID)
+          VSOUT_DRAW_ID
+        #endif
+      };
+    }
+
+    if (rendinst_render_pass != rendinst_render_pass_voxelize_albedo)
+    {
+      INIT_APPLY_TREE_WIND()
+      USE_APPLY_TREE_WIND()
+    }
+    hlsl(vs) {
+
+      INSTANCING_BUFFERS
+
+      struct VsInput
+      {
+        float3 pos                  : POSITION;
+        ##if (atest == atestOn || rendinst_render_pass != rendinst_render_pass_depth)
+          float3 normal               : NORMAL;
+          float2 diffuseTexcoord      : TEXCOORD0;
+          float4 vcol                 : COLOR0;
+        ##endif
+        ##if (is_pivoted == yes)
+          float2 indirectTexcoord       : TEXCOORD1;
+        ##endif
+      };
+
+      VsOutput simple_vs(VsInput input HW_USE_INSTANCE_ID)
+      {
+        VsOutput output;
+
+        #if SET_UP_MULTIDRAW
+          INIT_MULTIDRAW(output);
+          SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+        #endif
+
+        float3 localNormal = 1;
+        ##if (atest == atestOn || rendinst_render_pass != rendinst_render_pass_depth)
+        localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+        ##endif
+        float3 localPos = input.pos;
+        output.localPos.xyz = localPos;
+        output.localPos.w = 0;
+        float opacity = 1;
+        float movementAmount = 0;
+
+        VB_PERFORM_INSTANCING
+        APPLY_ROTATION_PALETTE
+
+        ##if (is_pivoted == yes)
+          HierarchyData Data = fetchHierarchyData(input.indirectTexcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
+          float3 currWorldPos, prevWorldPos;
+          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale, currWorldPos, prevWorldPos, movementAmount);
+          worldPos = currWorldPos;
+        ##endif
+
+        ##if (atest == atestOn)
+          float distToInstance = length(world_view_pos.xyz - worldLocalPos.xyz);
+          float dissolveVal = 1;
+          float dissolveDist = -0.0001;
+          ##if rendinst_render_pass != rendinst_render_pass_impostor_color
+          float3 windVcol = BGRA_SWIZZLE(input.vcol).xyz * get_wind_channel_strength();
+          worldPos += ApplyTreeWind(windVcol,tree_wind_params, worldLocalPos, worldPos, input.pos, worldNormal,dissolveVal,1);
+          movementAmount = max3(tree_wind_params.z*windVcol.x, tree_wind_params.y*windVcol.z, movementAmount);
+          ##endif
+        ##endif
+        float3 pointToEye = world_view_pos-worldPos;
+
+        APPLY_INTERACTIONS
+
+        output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+        #ifdef MOTION_VECTORS_ENABLED
+          output.out_pos = mulPointTm(currWorldPos + camera_base_offset, globtm);
+          output.out_pos_prev = mulPointTm(prevWorldPos - prev_world_view_pos, prevViewProjTm);
+        #endif
+        ##if rendinst_render_pass != rendinst_render_pass_depth
+          #if COLOR_NEEDED
+            output.colorMul = get_random_color(worldLocalPos).xyz;
+          #endif
+          float3 localEllipsoidNormal = getEllipsoidNormal(localPos, bounding_sphere);
+          output.ellipsoidNormal.xyz = normalize(localEllipsoidNormal.x * worldLocalX + localEllipsoidNormal.y * worldLocalY + localEllipsoidNormal.z * worldLocalZ);
+          output.localPos.w = movementAmount;
+          output.normal = float4(worldNormal.xyz, input.vcol.a);
+        ##endif
+        output.pointToEye = pointToEye.xyzz;
+
+        ##if (atest == atestOn || rendinst_render_pass != rendinst_render_pass_depth)
+          output.diffuseTexcoord.xyz = float3(input.diffuseTexcoord, 0.0001);
+          ##if rendinst_render_pass == rendinst_render_pass_impostor_color
+            output.diffuseTexcoord.zw = output.pos.zw;
+            output.localPos.xyz = localPos;
+            output.localPos.w = 0;
+          ##endif
+          float leaves_fade = dot( worldNormal, normalize( pointToEye ) ) ;
+          output.pointToEye.w = leaves_fade;
+##if atest == atestOn && rendinst_render_pass != rendinst_render_pass_impostor_color
+          float eyeDist = length(pointToEye);
+
+          ##if use_cross_dissolve == on
+            opacity = 1 - get_transition_lod_cross_dissolve_opacity(distToInstance, lods_shift_dist_mul);
+          ##else
+            opacity = saturate(eyeDist * rendinst_opacity.x + rendinst_opacity.y);
+          ##endif
+
+          output.diffuseTexcoord.z = min(-dissolveDist, opacity-0.9999);
+##endif
+        ##endif
+
+        writeVertexDensityPos(output.pos);
+
+        return output;
+      }
+    }
+
+  endmacro
+
+  macro VEGETATION_INTERACTIONS()
+  if (interactions == interactionsTrees || interactions == interactionsBushes)
+  {
+    (vs) { interaction_strength@f1 = (interaction_strength); }
+  }
+
+  if (interactions == interactionsTrees || interactions == interactionsBushes) {
+    hlsl(vs){
+      float4 sdBoxNorm(float3 localPos, float3 boxExt)
+      {
+        float3 dist = abs(localPos) - boxExt;
+        float insideDist = min(max(max(dist.x, dist.y), dist.z), 0);
+        float3 ptOnBox = max(dist, 0);
+        float outsideDist = length(ptOnBox);
+        float signedDist = outsideDist + insideDist;
+        float3 norm;
+        FLATTEN
+        if (signedDist <= 0)
+          norm = (float3(insideDist == dist.x, insideDist == dist.y, insideDist == dist.z));
+        else
+          norm = ptOnBox / (outsideDist + 1e-6);
+        norm = (localPos < 0 ? -norm : norm);
+        return float4(signedDist, norm);
+      }
+
+      void calculate_obstacles_interaction_force(
+        float3 worldPivot, float height, inout float2 affect_direction, inout float affect_force,
+        uint obstIndStart, uint obstIndEnd, uint index)
+      {
+        float inverse_height = 1.0 / height;
+
+        // Getting resultant force from all obstacles
+        for (uint i = obstIndStart; i < obstIndEnd; ++i)
+        {
+          uint index = obstacle_indices[i];
+          float3 center = float3(obstacles.obstacles[index].dir_x.w, obstacles.obstacles[index].dir_y.w, obstacles.obstacles[index].dir_z.w);
+          float3 delta = center - worldPivot;
+
+          float3x3 dir_mat = float3x3(obstacles.obstacles[index].dir_x.xyz,
+                                      obstacles.obstacles[index].dir_y.xyz,
+                                      obstacles.obstacles[index].dir_z.xyz);
+          float3 local_pos = mul(dir_mat, delta);
+          float4 distToBoxNorm = sdBoxNorm(local_pos, 0.5 * (obstacles.obstacles[index].box.xyz + height));
+          if (distToBoxNorm.x < 0)
+          {
+            float radDist = (-distToBoxNorm.x * inverse_height * 2);
+            affect_direction += lerp(-obstacles.obstacles[index].dir_x.xz, delta.xz, length(delta.xz));
+            affect_force += (radDist);
+          }
+        }
+        affect_force *= get_interaction_strength();
+      }
+
+    ##if (is_pivoted == yes)
+      float3 apply_obstacles_joints(float3 worldPivot, float3 worldPos, float3 localPos, float height, HierarchyData input)
+      {
+        if (obstacles.indirection_wd == 0)
+          return float3(0, 0, 0);
+
+        float2 pos = worldPivot.xz - obstacles.indirection_lt;
+        pos.xy /= obstacles.indirection_cell;
+
+        uint2 coord = clamp(uint2(pos.xy), 0U, obstacles.indirection_wd - 1);
+        uint index = coord.x + coord.y * obstacles.indirection_wd;
+
+        float3 totalOfs = 0;
+        uint obstIndCount = obstacle_indices[index];
+        uint obstIndStart = obstIndCount >> OBSTACLE_OFFSET_BIT_SHIFT;
+        uint obstIndEnd = (obstIndCount & ((1U << OBSTACLE_OFFSET_BIT_SHIFT) - 1)) + obstIndStart;
+
+        float2 affect_direction = float2(0,0);
+        float affect_force = 0;
+
+        calculate_obstacles_interaction_force(worldPivot, height, affect_direction, affect_force, obstIndStart, obstIndEnd, index);
+        BRANCH
+        if (affect_force <= 0.0001)
+          return float3(0, 0, 0);
+
+        affect_direction = -normalize(affect_direction);
+
+        float parentAngleAnimation = 0.0;
+        float3 offset = 0.0;
+        float rotationAngleAnimation = 0.0;
+        float4 unusedRotQuat = float4(0, 0, 0, 1);
+        float3 direction = float3(affect_direction.x, 0, affect_direction.y);
+
+        // Iterate starting from trunk at 0
+        for(int idx=0; idx <= input.maxHierarchyLevel; ++idx)
+        {
+          // Because HierarchyData and this loop have reversed ordering, we need reversed index
+          int revIdx = max(input.maxHierarchyLevel - idx, 0);
+
+          float3 branchPivotPos = input.branchPivotPos[revIdx];
+          float3 branchDir = input.branchDirExtent[revIdx].xyz;
+          float branchExtent = input.branchDirExtent[revIdx].w;
+
+          float3 branchTipPos = branchPivotPos + branchDir*branchExtent;
+
+          offset += evaluate_wind_animation(direction, affect_force, idx, branchPivotPos,
+                                            branchDir, branchExtent, worldPos, parentAngleAnimation,
+                                            rotationAngleAnimation, unusedRotQuat);
+
+          parentAngleAnimation += rotationAngleAnimation;
+        }
+
+        return offset;
+      }
+    ##endif
+
+      float3 apply_obstacles(float3 worldPivot, float3 worldPos, float3 localPos, float height)
+      {
+        if (obstacles.indirection_wd == 0)
+          return float3(0, 0, 0);
+        float2 pos = worldPivot.xz - obstacles.indirection_lt;
+        pos.xy /= obstacles.indirection_cell;
+
+        uint2 coord = clamp(uint2(pos.xy), 0U, obstacles.indirection_wd - 1);
+        uint index = coord.x + coord.y * obstacles.indirection_wd;
+
+        float3 totalOfs = 0;
+        uint obstIndCount = obstacle_indices[index];
+        uint obstIndStart = obstIndCount >> OBSTACLE_OFFSET_BIT_SHIFT;
+        uint obstIndEnd = (obstIndCount & ((1U << OBSTACLE_OFFSET_BIT_SHIFT) - 1)) + obstIndStart;
+
+        ##if (interactions == interactionsTrees)
+          float2 affect_direction = float2(0.001, 0);
+          float affect_force = 0;
+          calculate_obstacles_interaction_force(worldPivot, height, affect_direction, affect_force, obstIndStart, obstIndEnd, index);
+          if (affect_force <= 0.0001)
+            return float3(0, 0, 0);
+
+          float curve_k = max(affect_force * 3.14 * .5 * .7 / height, 0.0001);
+          half2 basis_d = -normalize(affect_direction);
+          float x = dot(localPos.xz, basis_d);
+          float y = localPos.y * height;
+          float sinky, cosky;
+          sincos(curve_k * y, sinky, cosky);
+          float dx = (1 - cosky) / curve_k + x * cosky - x;
+          float dy = sinky / curve_k - x * sinky - y;
+          return float3(basis_d.x * dx, dy, basis_d.y * dx);
+        ##elif (interactions == interactionsBushes)
+          float3 result_delta = float3(0, 0, 0);
+          for (uint i = obstIndStart; i < obstIndEnd; ++i)
+          {
+            uint index = obstacle_indices[i];
+            float3 center = float3(obstacles.obstacles[index].dir_x.w, obstacles.obstacles[index].dir_y.w, obstacles.obstacles[index].dir_z.w);
+            float radius_sq = dot(obstacles.obstacles[index].dir_x.xyz, obstacles.obstacles[index].dir_x.xyz) +
+                              dot(obstacles.obstacles[index].dir_z.xyz, obstacles.obstacles[index].dir_z.xyz);
+            float obst_height_sq = dot(obstacles.obstacles[index].dir_y.xyz, obstacles.obstacles[index].dir_y.xyz);
+
+            float3 initial = worldPos + result_delta;
+            float3 delta = initial - center;
+            //below is the same as (delta.y /= (obst_h/radius)) ** 2
+            float delta_sq = dot(delta * float3(1, radius_sq / obst_height_sq, 1), delta);
+            if (delta_sq > radius_sq)
+              continue;
+
+            float obst_height = sqrt(obst_height_sq);
+            float radius = sqrt(radius_sq);
+            float delta_len = sqrt(delta_sq);
+            float init_len = length(initial - worldPivot);
+            float diff = radius - delta_len;
+            delta.y *= obst_height / radius;
+            // the same as (normalize(delta) * radius + center) but quadratically smoothed
+            result_delta = (delta * (1 + diff * diff / (delta_len * radius))) + center;
+            result_delta = normalize(result_delta - worldPivot) * init_len + worldPivot - worldPos;
+          }
+          return get_interaction_strength() * result_delta;
+        ##endif
+      }
+    }
+  }
+  endmacro
+  if (use_cross_dissolve == off && (interactions == interactionsTrees || interactions == interactionsBushes)
+      && rendinst_render_pass != rendinst_render_pass_impostor_color) {
+        if (is_pivoted == yes)
+        {
+          hlsl(vs) {
+            #define APPLY_INTERACTIONS\
+              worldPos += apply_obstacles_joints(worldLocalPos, worldPos, localPos, physBbox.y * length(worldLocalY), Data);
+          }
+        }
+        else
+        {
+          hlsl(vs) {
+            #define APPLY_INTERACTIONS\
+              worldPos += apply_obstacles(worldLocalPos, worldPos, localPos, physBbox.y * length(worldLocalY));
+          }
+        }
+  } else {
+    hlsl(vs) {
+      #define APPLY_INTERACTIONS /*Interactions disabled*/
+    }
+  }
+
+  if (rendinst_render_pass == rendinst_render_pass_impostor_color)
+  {
+    if (is_pivoted == yes)
+    {
+      USE_PIVOT_PAINTER()
+    }
+    DEFAULT_VERTEX_SHADER()
+    PACK_UNPACK_GBUFFER()
+    USE_PIXEL_TANGENT_SPACE()
+    USE_WEIGHT_FOR_AO()
+    FILL_CURRENT_GBUFFER(true)
+    USE_RENDINST_IMPOSTOR_SHADOW()
+    USE_CLIP_DISSOLVE()
+    hlsl(ps) {
+      UnpackedGbuffer get_impostor_gbuffer(VsOutput input, out half alpha, out half coloring)
+      {
+        half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy);
+      ##if shader != rendinst_tree_colored && atest == atestOn
+        diffuseColor.a = tex2DBindless(get_alpha_tex(), input.diffuseTexcoord.xy).x;
+      ##endif
+
+        alpha = diffuseColor.a;
+        BRANCH
+        if (get_angle_dissolve() > 0)
+        {
+          float leaves_fade = saturate(abs(DISSOLVE_ANGLE*input.pointToEye.w));
+          diffuseColor.a *= clip_dissolve_func(float3(input.diffuseTexcoord.xy, leaves_fade));
+        }
+        ##if atest == atestOff
+        alpha = 1;
+        ##endif
+        coloring = 0;
+
+        UnpackedGbuffer gbuffer = get_current_gbuffer(input, diffuseColor.rgb);
+        half shadow = getShadow(input.pointToEye.xyz);
+        init_shadow(gbuffer, shadow);
+
+        ##if atest != atestOff
+          coloring = gbuffer.translucency;
+        ##endif
+
+        return gbuffer;
+      }
+    }
+    RENDER_TO_GBUFFER_IMPOSTOR()
+    compile("target_vs", "simple_vs");
+  } else if (rendinst_render_pass == rendinst_render_pass_impostor_shadow)
+  {
+    hlsl {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+        float4 diffuseTexcoord        : TEXCOORD0;
+      };
+    }
+    hlsl(vs) {
+      INSTANCING_BUFFERS
+      struct VsInput
+      {
+        float3 pos                  : POSITION;
+        float3 normal               : NORMAL;
+        float2 diffuseTexcoord      : TEXCOORD0;
+      };
+
+      VsOutput simple_vs(VsInput input HW_USE_INSTANCE_ID)
+      {
+        VsOutput output;
+        #if SET_UP_MULTIDRAW
+          INIT_MULTIDRAW(output);
+          SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+        #endif
+        //float3 localNormal = input.normal.xyz;
+        float3 localNormal = 1;
+        float3 localPos = input.pos;
+        float opacity = 1;
+        VB_PERFORM_INSTANCING
+        APPLY_ROTATION_PALETTE
+        //float3 worldPos = localPos;
+        worldPos = localPos;
+
+        output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+        output.diffuseTexcoord.xy = input.diffuseTexcoord;
+        output.diffuseTexcoord.z = output.pos.z;
+        output.diffuseTexcoord.w = localPos.y;
+
+        return output;
+      }
+    }
+    RENDER_TO_IMPOSTOR_SHADOW_PS()
+    compile("target_vs", "simple_vs");
+  } else if (rendinst_render_pass == rendinst_render_pass_to_shadow)
+  {
+    NO_DYNSTCODE()
+    if (is_pivoted == yes)
+    {
+      USE_PIVOT_PAINTER()
+      DEFINE_PIVOT_POINT_WIND_SCALE()
+
+      INIT_APPLY_TREE_WIND()
+      USE_APPLY_TREE_WIND()
+    }
+    if (use_cross_dissolve == off)
+    {
+      VEGETATION_INTERACTIONS()
+    }
+
+    hlsl {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+        ##if atest == atestOn
+        float2 diffuseTexcoord        : TEXCOORD0;
+        ##endif
+        #if defined(VSOUT_DRAW_ID)
+        VSOUT_DRAW_ID
+        #endif
+      };
+    }
+    hlsl(vs) {
+      INSTANCING_BUFFERS
+      struct VsInput
+      {
+        float3 pos                  : POSITION;
+        ##if atest == atestOn
+        float2 diffuseTexcoord      : TEXCOORD0;
+        ##endif
+        ##if (is_pivoted == yes)
+          float2 indirectTexcoord   : TEXCOORD1;
+          float4 vcol               : COLOR0;
+        ##endif
+      };
+
+      VsOutput simple_vs(VsInput input HW_USE_INSTANCE_ID)
+      {
+        VsOutput output;
+        #if SET_UP_MULTIDRAW
+          INIT_MULTIDRAW(output);
+          SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+        #endif
+        float3 localNormal = 1;
+        float3 localPos = input.pos;
+        float opacity = 1;
+        VB_PERFORM_INSTANCING
+        APPLY_ROTATION_PALETTE
+
+        ##if (is_pivoted == yes)
+          HierarchyData Data = fetchHierarchyData(input.indirectTexcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
+          float3 unusedPrevPos;
+          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale, worldPos, unusedPrevPos);
+
+          float3 windVcol = BGRA_SWIZZLE(input.vcol).xyz * get_wind_channel_strength();
+          worldPos += ApplyTreeWind(windVcol,tree_wind_params, worldLocalPos, worldPos, input.pos, worldNormal,1,1);
+        ##endif
+
+        output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+        ##if atest == atestOn
+        output.diffuseTexcoord.xy = input.diffuseTexcoord;
+        ##endif
+
+        return output;
+      }
+    }
+    compile("target_vs", "simple_vs");
+
+    if (atest == atestOn)
+    {
+      if (shader == rendinst_tree_colored)
+      {
+        (ps) { diffuse_tex@static = tex; }
+      }
+
+      hlsl(ps) {
+        #define __XBOX_FORCE_PS_ZORDER_LATE_Z 1
+
+        void rendinst_render_to_shadow_ps(VsOutput input)
+        {
+          #if SET_UP_MULTIDRAW
+            SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+          #endif
+          ##if (shader == rendinst_tree_colored)
+            float alpha = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord).a;
+          ##else
+            float alpha = tex2DBindless(get_alpha_tex(), input.diffuseTexcoord).x;
+          ##endif
+          clip(alpha - 0.5);
+        }
+      }
+      compile("target_ps", "rendinst_render_to_shadow_ps");
+    } else
+    {
+      compile("ps_null", "rendinst_render_depth_black_ps");
+    }
+  }
+  else
+  {
+    if (rendinst_render_pass != rendinst_render_pass_depth)
+    {
+      if (is_colored == yes && atest == atestOn)
+      {
+        hlsl {
+          #define  COLOR_NEEDED 1
+        }
+        USE_RANDOM_COLOR()
+      }
+      USE_PIXEL_TANGENT_SPACE()
+      if (mobile_render == deferred || gbuffer_for_treesabove == off)
+      {
+        WRITE_GBUFFER()
+      }
+      else
+      {
+        WRITE_GBUFFER_ALBEDO_AO()
+      }
+      if (is_pivoted == yes)
+      {
+        USE_PIVOT_PAINTER()
+      }
+      if (use_cross_dissolve == off)
+      {
+        VEGETATION_INTERACTIONS()
+      }
+      DEFAULT_VERTEX_SHADER()
+      USE_WEIGHT_FOR_AO()
+      FILL_CURRENT_GBUFFER(false)
+    }
+    else
+    {
+      if (is_pivoted == yes)
+      {
+        USE_PIVOT_PAINTER()
+      }
+      if (use_cross_dissolve == off)
+      {
+        VEGETATION_INTERACTIONS()
+      }
+      DEFAULT_VERTEX_SHADER()
+      NO_DYNSTCODE()
+    }
+
+    if (atest == atestOn || rendinst_render_pass != rendinst_render_pass_depth)
+    {
+      if (rendinst_render_pass == rendinst_render_pass_depth) {
+        (ps) { diffuse_tex@static = tex; }
+      }
+      hlsl(ps) {
+        ##if rendinst_render_pass == rendinst_render_pass_depth
+          #define __XBOX_FORCE_PS_ZORDER_LATE_Z 1
+        ##endif
+      }
+
+      bool alpha_clip_sep = shader != rendinst_tree_colored && atest == atestOn && (rendinst_render_pass == rendinst_render_pass_depth || in_editor_assume == yes || has_discard_without_prepass == discardOn);
+      VEGETATION_PS(rendinst_render_pass == rendinst_render_pass_depth, atest == atestOn, alpha_clip_sep)
+    } else
+    {
+      compile("ps_null", "rendinst_render_depth_black_ps");
+    }
+
+    compile("target_vs", "simple_vs");
+  }
+}

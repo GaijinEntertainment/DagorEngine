@@ -1,0 +1,199 @@
+include "shader_global.dshl"
+
+texture tex_debug_texture;
+texture tex_debug_texture_for_diff;
+buffer tex_debug_readback_buffer;
+float4 tex_debug_readback_uv;
+int tex_debug_mip_level;
+
+int tex_debug_type = 0;
+interval tex_debug_type : twoD < 1, threeD < 2, array < 3, cube < 4, twoDInteger;
+
+int tex_debug_ranges = 0;
+interval tex_debug_ranges : no < 1, yes;
+
+float tex_debug_slice = 0;
+int tex_debug_sliceI = 0;
+
+shader tex_debug
+{
+  (cs) {
+    readback_uv@f2 = tex_debug_readback_uv;
+    readback_buffer@uav = tex_debug_readback_buffer hlsl { RWStructuredBuffer<float4> readback_buffer@uav; };
+    mip_level@i1 = tex_debug_mip_level;
+    slice@f1 = tex_debug_slice;
+    sliceI@i1 = tex_debug_sliceI;
+  }
+
+  if (tex_debug_type == twoD)
+  {
+    (cs) {
+      debugged_texture@tex2d = tex_debug_texture;
+      debugged_texture_for_diff@tex2d = tex_debug_texture_for_diff;
+    }
+  }
+  if (tex_debug_type == twoDInteger)
+  {
+    (cs) {
+      debugged_texture@tex = tex_debug_texture hlsl { Texture2D<uint4> debugged_texture@tex; }
+      debugged_texture_for_diff@tex = tex_debug_texture_for_diff hlsl { Texture2D<uint4> debugged_texture_for_diff@tex; }
+    }
+  }
+  if (tex_debug_type == threeD)
+  {
+    (cs) {
+      debugged_texture@tex3d = tex_debug_texture;
+      debugged_texture_for_diff@tex3d = tex_debug_texture_for_diff;
+    }
+  }
+  if (tex_debug_type == array)
+  {
+    (cs) {
+      debugged_texture@texArray = tex_debug_texture;
+      debugged_texture_for_diff@texArray = tex_debug_texture_for_diff;
+    }
+  }
+  if (tex_debug_type == cube)
+  {
+    (cs) {
+      debugged_texture@texCube = tex_debug_texture;
+      debugged_texture_for_diff@texCube = tex_debug_texture_for_diff;
+    }
+  }
+
+  hlsl(cs) {
+    #define GROUP_SIZE 16
+
+    SamplerState point_sampler : register(s5);
+
+    ##if tex_debug_ranges == yes && tex_debug_type != cube
+      groupshared float2 minValues[GROUP_SIZE * GROUP_SIZE];
+      groupshared float2 maxValues[GROUP_SIZE * GROUP_SIZE];
+
+      float4 load(uint2 tci)
+      {
+        ##if tex_debug_type == twoD || tex_debug_type == twoDInteger
+          return debugged_texture.Load(int3(tci, mip_level));
+        ##elif tex_debug_type == threeD
+          return debugged_texture.Load(int4(tci, sliceI, mip_level));
+        ##elif tex_debug_type == array
+          return debugged_texture.Load(int4(tci, sliceI, mip_level));
+        ##elif tex_debug_type == cube
+          return debugged_texture.Load(int4(tci, sliceI, mip_level));
+        ##endif
+      }
+    ##endif
+
+    [numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
+    void tex_debug(uint2 dtid : SV_DispatchThreadID)
+    {
+      ##if tex_debug_type == twoD
+        float4 texel = debugged_texture.SampleLevel(point_sampler, readback_uv, mip_level);
+        ##if tex_debug_texture_for_diff != NULL
+          texel -= debugged_texture_for_diff.SampleLevel(point_sampler, readback_uv, mip_level);
+        ##endif
+      ##elif tex_debug_type == twoDInteger
+        uint3 dim;
+        debugged_texture.GetDimensions(0, dim.x, dim.y, dim.z);
+        float4 texel = debugged_texture.Load(uint3(readback_uv * dim.xy, mip_level));
+        ##if tex_debug_texture_for_diff != NULL
+          uint3 dimDiff;
+          debugged_texture_for_diff.GetDimensions(0, dimDiff.x, dimDiff.y, dimDiff.z);
+          texel -= debugged_texture_for_diff.Load(uint3(readback_uv * dimDiff.xy, mip_level));
+        ##endif
+      ##elif tex_debug_type == threeD
+        float4 texel = debugged_texture.SampleLevel(point_sampler, float3(readback_uv, slice), mip_level);
+        ##if tex_debug_texture_for_diff != NULL
+          texel -= debugged_texture_for_diff.SampleLevel(point_sampler, float3(readback_uv, slice), mip_level);
+        ##endif
+      ##elif tex_debug_type == array
+        float4 texel = debugged_texture.SampleLevel(point_sampler, float3(readback_uv, slice), mip_level);
+        ##if tex_debug_texture_for_diff != NULL
+          texel -= debugged_texture_for_diff.SampleLevel(point_sampler, float3(readback_uv, slice), mip_level);
+        ##endif
+      ##elif tex_debug_type == cube
+        float3 cuv;
+        readback_uv = readback_uv * 2 - 1;
+        if (slice < 0.5)      cuv = float3(1, -readback_uv.y, -readback_uv.x);
+        else if (slice < 1.5) cuv = float3(-1, -readback_uv.y, readback_uv.x);
+        else if (slice < 2.5) cuv = float3(readback_uv.x, 1, readback_uv.y);
+        else if (slice < 3.5) cuv = float3(readback_uv.x, -1, -readback_uv.y);
+        else if (slice < 4.5) cuv = float3(readback_uv.x, -readback_uv.y, 1);
+        else                  cuv = float3(-readback_uv, -1);
+        float4 texel = debugged_texture.SampleLevel(point_sampler, cuv, mip_level);
+        ##if tex_debug_texture_for_diff != NULL
+          texel -= debugged_texture_for_diff.SampleLevel(point_sampler, cuv, mip_level);
+        ##endif
+      ##endif
+
+      readback_buffer[0] = texel;
+
+      ##if tex_debug_ranges == yes && tex_debug_type != cube
+        uint gix = dtid.y * GROUP_SIZE + dtid.x;
+
+        minValues[gix] = 1000;
+        maxValues[gix] = -1000;
+
+        uint2 texDimensions;
+        uint numLevels;
+        uint numElements;
+        ##if tex_debug_type == twoD || tex_debug_type == twoDInteger
+          debugged_texture.GetDimensions(mip_level, texDimensions.x, texDimensions.y, numLevels);
+        ##elif tex_debug_type == threeD
+          debugged_texture.GetDimensions(mip_level, texDimensions.x, texDimensions.y, numElements, numLevels);
+        ##elif tex_debug_type == array
+          debugged_texture.GetDimensions(mip_level, texDimensions.x, texDimensions.y, numElements, numLevels);
+        ##endif
+
+        uint2 pSize  = (texDimensions + GROUP_SIZE - 1) / GROUP_SIZE;
+        uint2 pStart = dtid * pSize;
+
+        GroupMemoryBarrierWithGroupSync();
+
+        for (uint y = 0; y < pSize.y; ++y)
+        {
+          for (uint x = 0; x < pSize.x; ++x)
+          {
+            uint2 tci = uint2(pStart.x + x, pStart.y + y);
+            if (any(tci >= texDimensions))
+              continue;
+
+            float4 value = load(tci);
+
+            float minV = min(value.x, min(value.y, value.z));
+            float maxV = max(value.x, max(value.y, value.z));
+
+            if (any(minValues[gix].r > minV))
+              minValues[gix].r = minV;
+            if (any(maxValues[gix].r < maxV))
+              maxValues[gix].r = maxV;
+
+            minValues[gix].g = min(minValues[gix].g, value.a);
+            maxValues[gix].g = max(maxValues[gix].g, value.a);
+          }
+        }
+
+        GroupMemoryBarrierWithGroupSync();
+
+        if (all(dtid == 0))
+        {
+          float2 minValue = minValues[0];
+          float2 maxValue = maxValues[0];
+          for (int i = 0; i < GROUP_SIZE * GROUP_SIZE; ++i)
+          {
+            minValue = min(minValue, minValues[i]);
+            maxValue = max(maxValue, maxValues[i]);
+          }
+
+          readback_buffer[1] = minValue.rrrg;
+          readback_buffer[2] = maxValue.rrrg;
+        }
+      ##else
+        readback_buffer[1] = 0;
+        readback_buffer[2] = 1;
+      ##endif
+    }
+  }
+
+  compile("target_cs", "tex_debug");
+}

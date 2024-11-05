@@ -55,7 +55,7 @@ def get_eval_any(econst : ExpressionPtr; var errors : das_string; var any_errors
     if econst.flags.noSideEffects
       var ok = true
       unsafe
-        var res : variant<dummy : float4; id : TT-&-const>
+        var res : variant<dummy : float4; id : TT -& -const>
         res.dummy = eval_single_expression(econst, ok)
         if !ok
           errors := "{errors}\nexpression failed to evaluate {describe(econst)}"

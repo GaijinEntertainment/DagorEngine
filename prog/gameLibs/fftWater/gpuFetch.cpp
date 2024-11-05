@@ -1,6 +1,15 @@
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
-#include <3d/dag_tex3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_query.h>
+#include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_tex3d.h>
 #include <perfMon/dag_statDrv.h>
 #include <math/dag_Point3.h>
 #include <generic/dag_smallTab.h>
@@ -30,7 +39,7 @@ public:
   GpuOnePointQuery() : query(0), resultHeight(-100), gotResults(false), maxHeight(1), rt(NULL) { global_init_queries(); }
   void destroy()
   {
-    d3d::driver_command(DRV3D_COMMAND_RELEASE_QUERY, &query, (void *)false, 0);
+    d3d::driver_command(Drv3dCommand::RELEASE_QUERY, &query);
     query = NULL;
     gotResults = false;
     resultHeight = -100;
@@ -42,7 +51,7 @@ public:
       return true;
     if (gotResults)
       return true;
-    int pixels = d3d::driver_command(DRV3D_COMMAND_GETVISIBILITYCOUNT, query, 0, 0);
+    int pixels = d3d::driver_command(Drv3dCommand::GETVISIBILITYCOUNT, query);
     if (pixels >= 0)
     {
       gotResults = true;
@@ -71,9 +80,9 @@ public:
     int x, y;
     d3d::get_target_size(x, y);
     ShaderGlobal::set_color4(check_water_screenVarId, 1. / x * pixels_to_draw, 1. / y, 0.5f / pixels_to_draw, 0);
-    d3d::driver_command(DRV3D_COMMAND_GETVISIBILITYBEGIN, &query, 0, 0);
+    d3d::driver_command(Drv3dCommand::GETVISIBILITYBEGIN, &query);
     queryPostFx.render();
-    d3d::driver_command(DRV3D_COMMAND_GETVISIBILITYEND, query, 0, 0);
+    d3d::driver_command(Drv3dCommand::GETVISIBILITYEND, query);
     gotResults = false;
     d3d::set_render_target(prevRt);
   }

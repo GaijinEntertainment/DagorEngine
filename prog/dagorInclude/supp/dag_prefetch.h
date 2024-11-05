@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -80,6 +79,9 @@ static __inline__ unsigned long long __rdtsc()
 #define PREFETCH_DATA(ofs, base) ((void)0)
 
 static __inline__ unsigned long long __rdtsc() { return 0; }
+
+#elif _TARGET_SIMD_NEON
+#define PREFETCH_DATA(ofs, base) ((void)0)
 
 #else
 

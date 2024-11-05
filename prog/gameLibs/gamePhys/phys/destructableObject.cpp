@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gamePhys/phys/destructableObject.h>
 #include <gamePhys/phys/destructableRendObject.h>
 #include <EASTL/algorithm.h>
@@ -71,53 +73,73 @@ struct gamephys::DestructableObjectAddImpulse final : public AfterPhysUpdateActi
   // Note: it's okay to use direct ref since it would be pointing to pool's memory (`destructablesListAllocator`)
   DestructableObject &dobj;
   int gen;
-  float speedLimit;
+  float speedLimit, omegaLimit;
   Point3 pos, impulse;
 
-  DestructableObjectAddImpulse(DestructableObject &dobj_, const Point3 &p, const Point3 &i, float sl) :
-    dobj(dobj_), gen(dobj_.gen), pos(p), impulse(i), speedLimit(sl)
+  DestructableObjectAddImpulse(DestructableObject &dobj_, const Point3 &p, const Point3 &i, float sl, float ol) :
+    dobj(dobj_), gen(dobj_.gen), pos(p), impulse(i), speedLimit(sl), omegaLimit(ol)
   {}
 
-  void doAction(PhysWorld &pw, bool) override
+  void doAction(PhysWorld &, bool) override
   {
     if (gen == dobj.gen) // Wasn't destroyed?
-      dobj.doAddImpulse(pw, pos, impulse, speedLimit);
+      dobj.doAddImpulse(pos, impulse, speedLimit, omegaLimit);
   }
 };
 
-void DestructableObject::addImpulse(PhysWorld &pw, const Point3 &pos, const Point3 &impulse, float speedLimit)
+void DestructableObject::addImpulse(PhysWorld &pw, const Point3 &pos, const Point3 &impulse, float speedLimit, float omegaLimit)
 {
-  exec_or_add_after_phys_action<DestructableObjectAddImpulse>(pw, *this, pos, impulse, speedLimit);
+  exec_or_add_after_phys_action<DestructableObjectAddImpulse>(pw, *this, pos, impulse, speedLimit, omegaLimit);
 }
 
-void DestructableObject::doAddImpulse(PhysWorld &pw, const Point3 &pos, const Point3 &impulse, float speedLimit)
+void DestructableObject::doAddImpulse(const Point3 &pos, const Point3 &impulse, float speedLimit, float omegaLimit)
 {
   float impulseLen = length(impulse);
+  const Point3 impulseDir = impulse * safeinv(impulseLen);
+
+  const float minImpulseLen = 15.;
+  if (impulseLen > 0. && impulseLen < minImpulseLen)
+    impulseLen = minImpulseLen;
+
+  const float maxImpulseMul = 15; // we use mass for calculating impulse mul. Because big parts isn't react for min bullets
+  const float maxDirCorrection = 0.8;
+  const float dirCorrectionPerMeter = 0.3; // we change angle for a more beautiful scattering of fragments
+  const float impulseMulPerMeter = 15;     // we use invarian for calculating momentum divergence (more inpulse for close parts to pos)
+  const float maxRadius = 1.5;
+  const float radius = cvt(impulseLen, 0., 300., 0., maxRadius); // For larger impulses, we change the position of applying the impulse
+                                                                 // relative to body
+
   for (int i = 0, n = physObj->getPhysSys()->getBodyCount(); i < n; ++i)
   {
     PhysBody *body = physObj->getPhysSys()->getBody(i);
-    float mass = body->getMass();
+
+    float mass = body->getMass(); // we use mass for calculating umpulse mul
+    float impulseMul = min(mass, maxImpulseMul);
+
     TMatrix bodyTm;
-    body->getTm(bodyTm);
+    body->getTm(bodyTm); // better use center of mass
+
     Point3 dirToBody = bodyTm.getcol(3) - pos;
     float distToBody = length(dirToBody);
-    dirToBody *= safeinv(distToBody);
-    const float impulseMult = 0.1f;
-    body->addImpulse(pos, dirToBody * clamp(safeinv(sqr(distToBody)) * impulseLen * impulseMult, mass * 0.5f, mass * speedLimit));
+
+    float dirCorrection = min(dirCorrectionPerMeter * distToBody, maxDirCorrection);
+    Point3 partImpulseDir = impulseDir + (dirCorrection * (dirToBody * safeinv(distToBody)));
+    float impulseForce = impulseLen * safeinv(impulseMulPerMeter * distToBody) * impulseMul;
+    float relRad = 1.f - cvt(distToBody, radius, maxRadius, 0.1, 0.9);
+
+    Point3 applyImpulsePos = pos + dirToBody * relRad;
+    body->addImpulse(applyImpulsePos, partImpulseDir * impulseForce);
+
+    const Point3 omega = body->getAngularVelocity(); // clamp omega and velocity for parts
+    const float omegaMagnitude = omega.length();
+    if (omegaMagnitude > omegaLimit)
+      body->setAngularVelocity(omega * safediv(omegaLimit, omegaMagnitude));
+
+    const Point3 velocity = body->getVelocity();
+    const float velMagnitude = velocity.length();
+    if (velMagnitude > speedLimit)
+      body->setVelocity(velocity * safediv(speedLimit, velMagnitude));
   }
-  if (impulseLen < 1e-5f)
-    return;
-  PhysRayCast rayCast(pos - normalize(impulse), normalize(impulse), 10.f, &pw);
-  rayCast.setFilterMask(destructables::default_fgroup);
-  rayCast.forceUpdate();
-  if (!rayCast.hasContact())
-    return;
-  PhysBody *body = rayCast.getBody();
-  if (!body)
-    return;
-  float mass = body->getMass();
-  Point3 impulseDir = impulse * safeinv(impulseLen);
-  body->addImpulse(pos, impulseDir * clamp(impulseLen, mass * 4.f, mass * 20.f));
 }
 
 void DestructableObject::keepFloatable(float dt, float at_time)
@@ -239,7 +261,11 @@ destructables::id_t addDestructable(gamephys::DestructableObject **out_destr, Dy
       scaleDt = clamp(sqrtf(distSq / distForScaleDtSq), 1.f, maxScaleDt);
   }
   void *mem = destructablesListAllocator.allocateOneBlock();
-  DestructableObject *obj = new (mem, _NEW_INPLACE) DestructableObject(po_data, scaleDt, tm, phys_world, res_idx, hash_val, blk);
+  DestructableObject *obj = nullptr;
+  {
+    TIME_PROFILE(addDestructable__DestructableObject_ctor);
+    obj = new (mem, _NEW_INPLACE) DestructableObject(po_data, scaleDt, tm, phys_world, res_idx, hash_val, blk);
+  }
   destructablesList.emplace_back(obj);
   if (out_destr)
     *out_destr = obj;
@@ -288,7 +314,12 @@ void update(float dt)
     if (overflowReportTimeout <= 0.0f)
     {
       overflowReportTimeout = 1.0f;
-      logwarn("destructables::update: too many destructable bodies %d, max - %d", numActiveBodies, maxNumberOfDestructableBodies);
+#if DAGOR_DBGLEVEL > 0
+      logerr(
+#else
+      logwarn(
+#endif
+        "destructables::update: too many destructable bodies %d, max - %d", numActiveBodies, maxNumberOfDestructableBodies);
     }
 
     // Cleanup first those bodies that are falling through, then all old ones

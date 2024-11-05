@@ -1,0 +1,37 @@
+vhs_camera_preset{
+  "vhs_camera__isPreset:tag"{}
+  _group{
+    _track:b=yes
+    vhs_camera__isActive:b=true
+    // VHS cameras ought to be lowres
+    vhs_camera__resolutionDownscale:r=0.5
+
+    vhs_camera__saturationMultiplier:r=1.15
+    vhs_camera__noiseIntensity:r=0.06
+
+    // Settings for dynamic range *reduction*
+    vhs_camera__dynamicRangeMin:r=0.0
+    vhs_camera__dynamicRangeMax:r=0.8
+    vhs_camera__dynamicRangeGamma:r=1.27
+
+    vhs_camera__scanlineHeight:r=0.05
+  }
+}
+
+vhs_camera_renderer{
+  _tags:t="render"
+  _singleton:b=yes
+
+  "vhs_camera__activePresets:list<eid>"{}
+
+  "vhs_camera__downscale:ShaderVar"{}
+  "vhs_camera__saturation:ShaderVar"{}
+  "vhs_camera__noise_strength:ShaderVar"{}
+  "vhs_camera__dynamic_range_min:ShaderVar"{}
+  "vhs_camera__dynamic_range_max:ShaderVar"{}
+  "vhs_camera__dynamic_range_gamma:ShaderVar"{}
+  "vhs_camera__scanline_height:ShaderVar"{}
+
+  _tracked:t="vhs_camera__activePresets"
+  "vhsCamera:resource_slot::NodeHandleWithSlotsAccess"{}
+}

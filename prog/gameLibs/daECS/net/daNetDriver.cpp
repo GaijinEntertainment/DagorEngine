@@ -1,5 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/net/connection.h>
 #include <daECS/net/message.h>
+#include <daECS/core/entityManager.h>
 #include <EASTL/unique_ptr.h>
 #include <daNet/daNetPeerInterface.h>
 #include "utils.h"
@@ -95,8 +98,8 @@ class DaNetConnection final : public Connection
 public:
   DaNetPeerInterface *peerIface;
 
-  DaNetConnection(INetDriver *drv, ConnectionId id_, scope_query_cb_t &&scope_query_) :
-    Connection(id_, eastl::move(scope_query_)), peerIface(static_cast<DaNetPeerInterface *>(drv->getControlIface()))
+  DaNetConnection(ecs::EntityManager &mgr, INetDriver *drv, ConnectionId id_, scope_query_cb_t &&scope_query_) :
+    Connection(mgr, id_, eastl::move(scope_query_)), peerIface(static_cast<DaNetPeerInterface *>(drv->getControlIface()))
   {
     G_ASSERT(peerIface);
   }
@@ -108,7 +111,7 @@ public:
     return peerIface->Send(bs, prio, rel, chn, getId(), /*bcast*/ false, dup_delay_ms);
   }
   virtual int getMTU() const override { return peerIface->GetMaximumPacketSize(getId()) - ID_ENTITY_MSG_HEADER_SIZE; }
-  uint32_t getIP() const override { return peerIface->GetPeerSystemAddress(getId()).host; }
+  SystemAddress getIP() const override { return peerIface->GetPeerSystemAddress(getId()); }
   const char *getIPStr() const override { return peerIface->GetPeerSystemAddress(getId()).ToString(/*port*/ false); }
   virtual danet::PeerQoSStat getPeerQoSStat() const override { return peerIface->GetPeerQoSStat(getId()); }
   virtual bool changeSendAddress(const char *new_host) override { return getId() == 0 && peerIface->ChangeHostAddress(new_host); }
@@ -148,7 +151,7 @@ INetDriver *create_net_driver_connect(const char *connecturl, uint16_t protov)
 
 Connection *create_net_connection(INetDriver *drv, ConnectionId id, scope_query_cb_t &&scope_query)
 {
-  return new DaNetConnection(drv, id, eastl::move(scope_query));
+  return new DaNetConnection(*g_entity_mgr, drv, id, eastl::move(scope_query));
 }
 
 }; // namespace net

@@ -1,5 +1,5 @@
-#ifndef INCLUDE_H_
-#define INCLUDE_H_
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
 
 #include "element.h"
 
@@ -24,5 +24,3 @@ private:
   std::string Filename, FromFilename;
   bool System;
 };
-
-#endif

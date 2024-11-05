@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EditorCore/ec_ObjectEditor.h>
 #include <EditorCore/ec_rendEdObject.h>
 #include <EditorCore/ec_cm.h>
@@ -7,7 +9,6 @@
 #include <EditorCore/captureCursor.h>
 #include <EditorCore/ec_rect.h>
 
-#include <propPanel2/comWnd/tool_window.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <winGuiWrapper/wgw_input.h>
 #include <libTools/util/strUtil.h>
@@ -16,7 +17,8 @@
 #include <math/dag_mathAng.h>
 
 #include <debug/dag_debug.h>
-
+#include <de3_interface.h>
+#include <propPanel/control/panelWindow.h>
 
 #define MAX_TRACE_DIST 1000
 
@@ -188,6 +190,26 @@ void ObjectEditor::renderTrans()
 }
 
 
+void ObjectEditor::updateImgui()
+{
+  if (objectPropBar)
+  {
+    PropPanel::PanelWindowPropertyControl *panelWindow = objectPropBar->getPanel();
+
+    bool open = true;
+    DAEDITOR3.imguiBegin(*panelWindow, &open);
+    panelWindow->updateImgui();
+    DAEDITOR3.imguiEnd();
+
+    if (!open && objectPropBar)
+    {
+      showPanel();
+      EDITORCORE->managePropPanels();
+    }
+  }
+}
+
+
 void ObjectEditor::updateSelection()
 {
   selection.clear();
@@ -236,6 +258,9 @@ void ObjectEditor::onObjectGeomChange(RenderableEditableObject *obj)
 }
 
 
+void ObjectEditor::onAddObject(RenderableEditableObject &obj) { obj.onAdd(this); }
+
+
 void ObjectEditor::_addObjects(RenderableEditableObject **obj, int num, bool use_undo)
 {
   if (num <= 0)
@@ -262,7 +287,7 @@ void ObjectEditor::_addObjects(RenderableEditableObject **obj, int num, bool use
       continue;
 
     // G_ASSERT(!o->objEditor);
-    o->onAdd(this);
+    onAddObject(*o);
     o->objEditor = this;
 
     objects.push_back(o);
@@ -286,6 +311,9 @@ void ObjectEditor::_addObjects(RenderableEditableObject **obj, int num, bool use
   IEditorCoreEngine::get()->updateViewports();
   IEditorCoreEngine::get()->invalidateViewportCache();
 }
+
+
+void ObjectEditor::onRemoveObject(RenderableEditableObject &obj) { obj.onRemove(this); }
 
 
 void ObjectEditor::_removeObjects(RenderableEditableObject **obj, int num, bool use_undo)
@@ -322,7 +350,7 @@ void ObjectEditor::_removeObjects(RenderableEditableObject **obj, int num, bool 
     if (o == sample)
       sample = NULL;
 
-    o->onRemove(this);
+    onRemoveObject(*o);
 
     if (undo)
       undo->objects.push_back(o);
@@ -852,7 +880,7 @@ void ObjectEditor::dropObjects()
 }
 
 
-void ObjectEditor::onClick(int pcb_id, PropertyContainerControlBase *panel)
+void ObjectEditor::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   IGenViewportWnd *vp = IEditorCoreEngine::get()->getCurrentViewport();
   if (vp)
@@ -879,7 +907,7 @@ void ObjectEditor::onClick(int pcb_id, PropertyContainerControlBase *panel)
   }
 }
 
-void ObjectEditor::onChange(int pcb_id, PropertyContainerControlBase *panel)
+void ObjectEditor::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   switch (pcb_id)
   {
@@ -913,6 +941,13 @@ void ObjectEditor::onChange(int pcb_id, PropertyContainerControlBase *panel)
 }
 
 
+void ObjectEditor::registerViewportAccelerators(IWndManager &wndManager)
+{
+  wndManager.addViewportAccelerator(CM_OBJED_SELECT_BY_NAME, 'H');
+  wndManager.addViewportAccelerator(CM_OBJED_OBJPROP_PANEL, 'P');
+}
+
+
 void ObjectEditor::handleKeyPress(IGenViewportWnd *wnd, int vk, int modif)
 {
   bool isAlt = wingw::is_key_pressed(wingw::V_ALT);
@@ -927,8 +962,6 @@ void ObjectEditor::handleKeyPress(IGenViewportWnd *wnd, int vk, int modif)
       case 'W': onClick(CM_OBJED_MODE_MOVE, NULL); break;
       case 'E': onClick(CM_OBJED_MODE_ROTATE, NULL); break;
       case 'R': onClick(CM_OBJED_MODE_SCALE, NULL); break;
-      case 'H': onClick(CM_OBJED_SELECT_BY_NAME, NULL); break;
-      case 'P': onClick(CM_OBJED_OBJPROP_PANEL, NULL); break;
       case wingw::V_DELETE: onClick(CM_OBJED_DELETE, NULL); break;
     }
   }
@@ -1175,7 +1208,7 @@ bool ObjectEditor::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool insi
       switch (buttons)
       {
         // rotate
-        case wingw::V_LBUTTON:
+        case wingw::V_LBUTTON: // This is actually MK_LBUTTON.
           rotDy += lastY - y;
 
           if (!canTransformOnCreate && (rotDy > SAFE_TRASHOLD || rotDy < -SAFE_TRASHOLD))
@@ -1194,7 +1227,7 @@ bool ObjectEditor::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool insi
           break;
 
         // scale
-        case wingw::V_LBUTTON | wingw::V_RBUTTON:
+        case wingw::V_LBUTTON | wingw::V_RBUTTON: // This is actually MK_LBUTTON | MK_RBUTTON.
           scaleDy += lastY - y;
 
           if (!canTransformOnCreate && (scaleDy > SAFE_TRASHOLD || scaleDy < -SAFE_TRASHOLD))
@@ -1352,7 +1385,7 @@ void ObjectEditor::renameObject(RenderableEditableObject *obj, const char *new_n
 }
 
 
-void ObjectEditor::addButton(PropertyContainerControlBase *tb, int id, const char *bmp_name, const char *hint, bool check)
+void ObjectEditor::addButton(PropPanel::ContainerPropertyControl *tb, int id, const char *bmp_name, const char *hint, bool check)
 {
   G_ASSERT(tb);
 
@@ -1364,7 +1397,7 @@ void ObjectEditor::addButton(PropertyContainerControlBase *tb, int id, const cha
 
 void ObjectEditor::enableButton(int id, bool state)
 {
-  PropertyContainerControlBase *tb = EDITORCORE->getCustomPanel(toolBarId);
+  PropPanel::ContainerPropertyControl *tb = EDITORCORE->getCustomPanel(toolBarId);
   if (tb)
     tb->setEnabledById(id, state);
 }
@@ -1378,7 +1411,7 @@ void ObjectEditor::setButton(int id, bool state)
     return;
   }
 
-  PropertyContainerControlBase *tb = EDITORCORE->getCustomPanel(toolBarId);
+  PropPanel::ContainerPropertyControl *tb = EDITORCORE->getCustomPanel(toolBarId);
   if (tb)
     tb->setBool(id, state);
 }
@@ -1403,34 +1436,32 @@ ObjectEditorPropPanelBar *ObjectEditor::createEditorPropBar(void *handle)
 }
 
 
-IWndEmbeddedWindow *ObjectEditor::onWmCreateWindow(void *handle, int type)
+void *ObjectEditor::onWmCreateWindow(int type)
 {
   switch (type)
   {
     case PROPBAR_EDITOR_WTYPE:
     {
       if (objectPropBar)
-        return NULL;
+        return nullptr;
 
-      IWndManager *manager = IEditorCoreEngine::get()->getWndManager();
-
-      objectPropBar = createEditorPropBar(handle);
+      objectPropBar = createEditorPropBar(nullptr);
       objectPropBar->fillPanel();
       areObjectPropsValid = true;
 
       setButton(CM_OBJED_OBJPROP_PANEL, true);
-      return objectPropBar->getPanel();
+      return objectPropBar;
     }
     break;
   }
 
-  return NULL;
+  return nullptr;
 }
 
 
-bool ObjectEditor::onWmDestroyWindow(void *handle)
+bool ObjectEditor::onWmDestroyWindow(void *window)
 {
-  if (objectPropBar && objectPropBar->getPanel()->getParentWindowHandle() == handle)
+  if (window == objectPropBar)
   {
     del_it(objectPropBar);
     setButton(CM_OBJED_OBJPROP_PANEL, false);
@@ -1457,7 +1488,7 @@ void ObjectEditor::initUi(int toolbar_id)
   manager->registerWindowHandler(this);
 
   toolBarId = toolbar_id;
-  PropertyContainerControlBase *tb = EDITORCORE->getCustomPanel(toolbar_id);
+  PropPanel::ContainerPropertyControl *tb = EDITORCORE->getCustomPanel(toolbar_id);
   G_ASSERT(tb);
 
   tb->setEventHandler(this);
@@ -1477,11 +1508,11 @@ void ObjectEditor::closeUi()
   G_ASSERT(manager);
 
   if (objectPropBar)
-    EDITORCORE->removePropPanel(objectPropBar->getPanel()->getParentWindowHandle());
+    EDITORCORE->removePropPanel(objectPropBar);
 
   manager->unregisterWindowHandler(this);
 
-  PropertyContainerControlBase *tb = EDITORCORE->getCustomPanel(toolBarId);
+  PropPanel::ContainerPropertyControl *tb = EDITORCORE->getCustomPanel(toolBarId);
   G_ASSERT(tb);
 
   tb->clear();
@@ -1491,9 +1522,9 @@ void ObjectEditor::closeUi()
 }
 
 
-void ObjectEditor::fillToolBar(PropertyContainerControlBase *toolbar)
+void ObjectEditor::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
 {
-  PropertyContainerControlBase *tb = toolbar->createToolbarPanel(0, "");
+  PropPanel::ContainerPropertyControl *tb = toolbar->createToolbarPanel(0, "");
 
   addButton(tb, CM_OBJED_MODE_SELECT, "select", "Select (Q)", true);
 
@@ -1515,8 +1546,8 @@ void ObjectEditor::fillToolBar(PropertyContainerControlBase *toolbar)
 
   setButton(CM_OBJED_OBJPROP_PANEL, (bool)objectPropBar);
 
-  toolbar->createEditBox(CM_OBJED_SELECT_FILTER, "", filterString);
-  toolbar->setBool(CM_OBJED_SELECT_FILTER, filterString.length() > 0);
+  tb->createEditBox(CM_OBJED_SELECT_FILTER, "", filterString);
+  tb->setBool(CM_OBJED_SELECT_FILTER, filterString.length() > 0);
 }
 
 
@@ -1525,7 +1556,7 @@ void ObjectEditor::showPanel()
   if (!objectPropBar)
     EDITORCORE->addPropPanel(PROPBAR_EDITOR_WTYPE, hdpi::_pxScaled(PROPBAR_WIDTH));
   else
-    EDITORCORE->removePropPanel(objectPropBar->getPanel()->getParentWindowHandle());
+    EDITORCORE->removePropPanel(objectPropBar);
 }
 
 
@@ -1541,10 +1572,11 @@ void ObjectEditor::setCreateBySampleMode(RenderableEditableObject *sample_)
   if (sample)
     removeObject(sample, false);
 
+  // This must be before addObject, so sub-classes can check in addObject whether the added object is a sample object.
+  sample = sample_;
+
   if (sample_)
     addObject(sample_, false);
-
-  sample = sample_;
 
   rotDy = 0;
   scaleDy = 0;

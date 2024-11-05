@@ -1,8 +1,7 @@
-#ifndef __GAIJIN_TEXTURECONVERTERDLG_H__
-#define __GAIJIN_TEXTURECONVERTERDLG_H__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <propPanel2/comWnd/dialog_window.h>
+#include <propPanel/commonWindow/dialogWindow.h>
 
 #include <util/dag_string.h>
 #include <libTools/dtx/dtx.h>
@@ -10,14 +9,17 @@
 #include <osApiWrappers/dag_basePath.h>
 #include <osApiWrappers/dag_direct.h>
 
-class PropertyContainerControlBase;
+namespace PropPanel
+{
+class ContainerPropertyControl;
+}
 
 namespace ddstexture
 {
 //==============================================================================
 //  DDS Converter Dialog
 //==============================================================================
-class ConverterDlg : public CDialogWindow
+class ConverterDlg : public PropPanel::DialogWindow
 {
 public:
   ConverterDlg();
@@ -44,8 +46,8 @@ protected:
     ID_BROWSE_SOURCE,
   };
 
-  virtual void onChange(int pcb_id, PropertyContainerControlBase *panel);
-  virtual void onClick(int pcb_id, PropertyContainerControlBase *panel);
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
 
   virtual void findSources();
   virtual void fileSelected();
@@ -58,8 +60,6 @@ protected:
 
   static const char *addressing[], *formats[], *types[], *mipmapTypes[], *mipmapFilters[];
 
-  PropertyContainerControlBase *mPanel;
+  PropPanel::ContainerPropertyControl *mPanel;
 };
 } // namespace ddstexture
-
-#endif // __GAIJIN_TEXTURECONVERTERDLG_H__

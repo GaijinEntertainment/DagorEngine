@@ -1,6 +1,7 @@
 // this file is generated via daScript automatic C++ binder
 // all user modifications will be lost after this file is re-generated
 
+initRecAnnotation(ann__Lldiv_t,lib);
 initRecAnnotation(ann_LLVMOpInfoSymbol1,lib);
 initRecAnnotation(ann_LLVMOpInfo1,lib);
 initRecAnnotation(ann_LLVMMCJITCompilerOptions,lib);

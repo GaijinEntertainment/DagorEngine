@@ -1,12 +1,10 @@
 Root    ?= ../../../../.. ;
 Location = prog/tools/sceneTools/daEditorX/csg ;
-DriverLinkage = dynamic ;
+KernelLinkage ?= dynamic ;
 include $(Root)/prog/tools/tools_setup.jam ;
 
 TargetType  = dll ;
 Target      = tools/sceneTools/daEditorX/csg.dll ;
-OutDir      = $(Root)/tools/dagor3_cdk/bin/plugins/de3x ;
-if $(Platform) = win64 { OutDir = $(Root)/tools/dagor3_cdk/bin64/plugins/de3x ; }
 
 AddIncludes =
   $(Root)/prog/tools/sceneTools/daEditorX/include
@@ -24,18 +22,13 @@ Sources =
 
 
 UseProgLibs =
-  tools/sceneTools/daEditorX/de3dllCore
   tools/libTools/winGuiWrapper
   tools/libTools/staticGeom
 #  engine/sceneRay
   3rdPartyLibs/math/carve
 ;
 
-ImportProgLibs =
-  tools/libTools/daKernel
-;
-
-LINKopt = -def:$(Root)/prog/tools/sceneTools/daEditorX/de3dllCore/de3_plugin.def ;
+include $(Root)/prog/tools/sceneTools/daEditorX/plugin_setup.jam ;
 
 include $(Root)/prog/3rdPartyLibs/math/carve/carve-options.jam ;
 include $(Root)/prog/_jBuild/build.jam ;

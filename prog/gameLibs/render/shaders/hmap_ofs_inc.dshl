@@ -1,0 +1,3 @@
+float4 world_to_hmap_ofs = (1,1,0,0);
+float4 hmap_ofs_tex_size = (1./1024,1,0,0);
+texture hmap_ofs_tex;

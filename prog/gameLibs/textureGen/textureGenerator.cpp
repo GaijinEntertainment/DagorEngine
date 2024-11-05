@@ -1,6 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ioSys/dag_dataBlock.h>
 #include <generic/dag_carray.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_shader.h>
+#include <drv/3d/dag_driver.h>
 #include <util/dag_string.h>
 
 #include <textureGen/textureRegManager.h>
@@ -14,7 +19,7 @@
 #include <EASTL/hash_set.h>
 #include <EASTL/vector.h>
 #include <util/dag_bitArray.h>
-#include <EASTL/set.h>
+#include <EASTL/vector_set.h>
 #include <EASTL/unique_ptr.h>
 
 static TextureGenLogger defaultLogger;
@@ -81,7 +86,7 @@ protected:
   int cNodeSubStep = 0;
   unsigned cNodeStepsCount = 1;
   NodeData cNodeData;
-  const int getNodeCount() const { return nodesExecutionOrder.size(); }
+  int getNodeCount() const { return nodesExecutionOrder.size(); }
   const DataBlock &getNode(int i) const { return *allNodesRemapped.getBlock(nodesExecutionOrder[i]); }
   Tab<int> nodesExecutionOrder;
   DataBlock allNodesRemapped;
@@ -135,7 +140,7 @@ void TextureGenerator::close()
 }
 
 static void dead_code_elimination(Bitarray &nodeUsed, const eastl::hash_set<int> &final,
-  const eastl::vector<eastl::set<int>> &nodesProducingCurrent)
+  const eastl::vector<eastl::vector_set<int>> &nodesProducingCurrent)
 {
   eastl::hash_set<int> nodeWorkingSet = final;
   for (; nodeWorkingSet.size();)
@@ -203,8 +208,8 @@ static void reorder(AppelNode &node)
 
 
 static void gen_appel_node(AppelNode &node, const Bitarray &nodeUsed, const Bitarray &nodeGenerated,
-  const eastl::vector<unsigned> &nodesSize, const eastl::vector<eastl::set<int>> &nodesProducingCurrent,
-  const eastl::vector<eastl::set<int>> &nodesProducedByCurrent)
+  const eastl::vector<unsigned> &nodesSize, const eastl::vector<eastl::vector_set<int>> &nodesProducingCurrent,
+  const eastl::vector<eastl::vector_set<int>> &nodesProducedByCurrent)
 {
   if (!nodeUsed[node.nodeI] || nodeGenerated[node.nodeI])
     return;
@@ -220,9 +225,8 @@ static void gen_appel_node(AppelNode &node, const Bitarray &nodeUsed, const Bita
 #endif
 
   // debug("%d: node Size %d produced = %d", node.nodeI, nodesSize[node.nodeI], nodesProducedByCurrent[node.nodeI].size());
-  // node.hold = max(1U,
-  // 4*nodesProducedByCurrent[node.nodeI].size());//nodesProducedByCurrent[node.nodeI].size();//nodesSize[node.nodeI];
-  node.hold = nodesSize[node.nodeI]; // nodesProducedByCurrent[node.nodeI].size();//nodesSize[node.nodeI];
+  // node.hold = max(1U, 4 * nodesProducedByCurrent[node.nodeI].size());
+  node.hold = nodesSize[node.nodeI];
   for (auto chNode : nodesProducingCurrent[node.nodeI])
   {
     if (!nodeUsed[chNode] || nodeGenerated[chNode])
@@ -251,10 +255,10 @@ static void generate_appel_node(AppelNode &node, Bitarray &nodeGenerated, Tab<in
   nodesExecutionOrder.push_back(node.nodeI);
 }
 
-/*static void simple_instruction_selection(Bitarray &nodeGenerated, Tab<int> &nodesExecutionOrder,
-    const Bitarray &nodeUsed,//alive nodes
-    const eastl::hash_set<int> &finalNodes,
-    const eastl::vector<eastl::set<int>> &nodesProducingCurrent)
+/*
+static void simple_instruction_selection(Bitarray &nodeGenerated, Tab<int> &nodesExecutionOrder,
+  const Bitarray &nodeUsed, // alive nodes
+  const eastl::hash_set<int> &finalNodes, const eastl::vector<eastl::vector_set<int>> &nodesProducingCurrent)
 {
   if (!finalNodes.size())
     return;
@@ -267,7 +271,7 @@ static void generate_appel_node(AppelNode &node, Bitarray &nodeGenerated, Tab<in
   for (auto nodeI : nodeWorkingSet)
     nodeScheduled.set(nodeI, 1);
 
-  for (;nodeWorkingSet.size();)
+  for (; nodeWorkingSet.size();)
   {
     const int workingSetSize = nodeWorkingSet.size(), generated = nodesExecutionOrder.size();
     for (auto nit = nodeWorkingSet.begin(); nit != nodeWorkingSet.end(); ++nit)
@@ -300,12 +304,14 @@ static void generate_appel_node(AppelNode &node, Bitarray &nodeGenerated, Tab<in
     }
     G_ASSERT(workingSetSize != nodeWorkingSet.size() || generated != nodesExecutionOrder.size());
   }
-}*/
+}
+*/
 
 static void instruction_selection_appel(Bitarray &nodeGenerated, Tab<int> &nodesExecutionOrder,
   const Bitarray &nodeUsed, // alive nodes
   const eastl::vector<unsigned> &nodesSize, const eastl::hash_set<int> &finalNodes,
-  const eastl::vector<eastl::set<int>> &nodesProducingCurrent, const eastl::vector<eastl::set<int>> &nodesProducedByCurrent)
+  const eastl::vector<eastl::vector_set<int>> &nodesProducingCurrent,
+  const eastl::vector<eastl::vector_set<int>> &nodesProducedByCurrent)
 {
   AppelNode pseudo_node = {-1, 0};
 
@@ -331,7 +337,7 @@ struct NodePriority
 };
 
 static void node_cse_priority(eastl::vector<NodePriority> &nodePriority, const Bitarray &nodeUsed,
-  const eastl::vector<eastl::set<int>> &nodesProducedByCurrent)
+  const eastl::vector<eastl::vector_set<int>> &nodesProducedByCurrent)
 {
   nodePriority.reserve(nodesProducedByCurrent.size());
 
@@ -346,7 +352,8 @@ static void node_cse_priority(eastl::vector<NodePriority> &nodePriority, const B
 static void instruction_selection_one_cse(Bitarray &nodeGenerated, Tab<int> &nodesExecutionOrder,
   const Bitarray &nodeUsed, // alive nodes
   const eastl::vector<unsigned> &nodesSize, const eastl::hash_set<int> &finalNodes,
-  const eastl::vector<eastl::set<int>> &nodesProducingCurrent, const eastl::vector<eastl::set<int>> &nodesProducedByCurrent)
+  const eastl::vector<eastl::vector_set<int>> &nodesProducingCurrent,
+  const eastl::vector<eastl::vector_set<int>> &nodesProducedByCurrent)
 {
   if (!finalNodes.size())
     return;
@@ -379,18 +386,19 @@ static void instruction_selection_one_cse(Bitarray &nodeGenerated, Tab<int> &nod
 static void instruction_selection(Bitarray &nodeGenerated, Tab<int> &nodesExecutionOrder,
   const Bitarray &nodeUsed, // alive nodes
   const eastl::vector<unsigned> &nodesSize, const eastl::hash_set<int> &finalNodes,
-  const eastl::vector<eastl::set<int>> &nodesProducingCurrent, const eastl::vector<eastl::set<int>> &nodesProducedByCurrent)
+  const eastl::vector<eastl::vector_set<int>> &nodesProducingCurrent,
+  const eastl::vector<eastl::vector_set<int>> &nodesProducedByCurrent)
 {
   if (!finalNodes.size())
     return;
   instruction_selection_one_cse(nodeGenerated, nodesExecutionOrder, nodeUsed, nodesSize, finalNodes, nodesProducingCurrent,
     nodesProducedByCurrent);
   /*
-    return;
-    instruction_selection_appel(nodeGenerated, nodesExecutionOrder, nodeUsed, nodesSize, finalNodes,
-      nodesProducingCurrent, nodesProducedByCurrent);
-    return;
-    simple_instruction_selection(nodeGenerated, nodesExecutionOrder, nodeUsed, finalNodes, nodesProducingCurrent);
+  return;
+  instruction_selection_appel(nodeGenerated, nodesExecutionOrder, nodeUsed, nodesSize, finalNodes, nodesProducingCurrent,
+    nodesProducedByCurrent);
+  return;
+  simple_instruction_selection(nodeGenerated, nodesExecutionOrder, nodeUsed, finalNodes, nodesProducingCurrent);
   */
 }
 //--end of instruction selection
@@ -423,7 +431,7 @@ static void remove_unchanged_nodes(eastl::hash_set<int> &nodes, const Bitarray &
 
 
 static void get_nodes_producing_current(const eastl::vector<eastl::vector<int>> controlNodesRegs[TSHADER_REG_TYPE_CNT],
-  eastl::vector<int> &nodeProducingReg, eastl::vector<eastl::set<int>> &nodesProducingCurrent)
+  eastl::vector<int> &nodeProducingReg, eastl::vector<eastl::vector_set<int>> &nodesProducingCurrent)
 {
   const int nodesCount = controlNodesRegs[TSHADER_REG_TYPE_OUTPUT].size();
 
@@ -456,7 +464,7 @@ static void get_nodes_producing_current(const eastl::vector<eastl::vector<int>> 
 }
 
 static void get_nodes_produced_by_current(const eastl::vector<eastl::vector<int>> controlNodesRegs[TSHADER_REG_TYPE_CNT],
-  eastl::vector<eastl::vector<int>> &nodesUsingReg, eastl::vector<eastl::set<int>> &nodesProducedByCurrent)
+  eastl::vector<eastl::vector<int>> &nodesUsingReg, eastl::vector<eastl::vector_set<int>> &nodesProducedByCurrent)
 {
   const int nodesCount = controlNodesRegs[TSHADER_REG_TYPE_INPUT].size();
   for (int ni = 0; ni < controlNodesRegs[TSHADER_REG_TYPE_INPUT].size(); ++ni)
@@ -576,7 +584,7 @@ static void optimize(const DataBlock &nodes, const eastl::vector<int> &initial_d
 
   {
     eastl::vector<eastl::vector<int>> nodesUsingReg;
-    eastl::vector<eastl::set<int>> nodesProducedByCurrent;
+    eastl::vector<eastl::vector_set<int>> nodesProducedByCurrent;
     get_nodes_produced_by_current(controlNodesRegs, nodesUsingReg, nodesProducedByCurrent);
     // mark nodes as dirty
     for (eastl::vector<int> workingSet = initial_dirty_nodes; workingSet.size();)
@@ -593,7 +601,7 @@ static void optimize(const DataBlock &nodes, const eastl::vector<int> &initial_d
     debug("dirty nodes %d out of %d", dirtyNodes.numberset(), nodesCount);
 
     eastl::vector<int> nodeProducingReg;
-    eastl::vector<eastl::set<int>> nodesProducingCurrent;
+    eastl::vector<eastl::vector_set<int>> nodesProducingCurrent;
     get_nodes_producing_current(controlNodesRegs, nodeProducingReg, nodesProducingCurrent);
 
     if (regs_for_scratch_pad.size() < scratch_pad_size)
@@ -637,11 +645,11 @@ static void optimize(const DataBlock &nodes, const eastl::vector<int> &initial_d
   }
 
   eastl::vector<int> nodeProducingReg;
-  eastl::vector<eastl::set<int>> nodesProducingCurrent;
+  eastl::vector<eastl::vector_set<int>> nodesProducingCurrent;
   get_nodes_producing_current(controlNodesRegs, nodeProducingReg, nodesProducingCurrent);
 
   eastl::vector<eastl::vector<int>> nodesUsingReg;
-  eastl::vector<eastl::set<int>> nodesProducedByCurrent;
+  eastl::vector<eastl::vector_set<int>> nodesProducedByCurrent;
   get_nodes_produced_by_current(controlNodesRegs, nodesUsingReg, nodesProducedByCurrent);
 
   eastl::hash_set<int> finalNodes;
@@ -715,17 +723,19 @@ static void optimize(const DataBlock &nodes, const eastl::vector<int> &initial_d
     nodesSize[ni] = max(uint32_t((memSize + PAGE_SIZE - 1) / PAGE_SIZE), uint32_t(1));
   }
   // prepare scratch pad
-  /*if (regs_for_scratch_pad.size() < scratch_pad_size)
+  /*
+  if (regs_for_scratch_pad.size() < scratch_pad_size)
   {
-    //fixme: scratch pad priority should rely on amount of regs that node produce, or just amount of time needed to generate node
-  itself
-    // this implentation below will oscillate (although still speeds)
+    // fixme: scratch pad priority should rely on amount of regs that node produce, or just amount of time needed to generate node
+    // itself; this implentation below will oscillate (although still speeds)
     eastl::vector<NodePriority> scratchNodePriority;
     node_cse_priority(scratchNodePriority, nodeUsed, nodesProducedByCurrent);
-    Bitarray scratchNodes;scratchNodes.resize(nodesCount);scratchNodes.reset();
-    for (const auto &n:scratchNodePriority)
+    Bitarray scratchNodes;
+    scratchNodes.resize(nodesCount);
+    scratchNodes.reset();
+    for (const auto &n : scratchNodePriority)
       scratchNodes.set(n.ni);
-    eastl::sort(scratchNodePriority.begin(), scratchNodePriority.end(), [](const auto&a, const auto &b){return b.prio<a.prio;});
+    eastl::sort(scratchNodePriority.begin(), scratchNodePriority.end(), [](const auto &a, const auto &b) { return b.prio < a.prio; });
 
     for (const auto &n : scratchNodePriority)
     {
@@ -739,7 +749,8 @@ static void optimize(const DataBlock &nodes, const eastl::vector<int> &initial_d
       if (regs_for_scratch_pad.size() >= scratch_pad_size)
         break;
     }
-  }*/
+  }
+  */
   ///--prepare scratch
 
 
@@ -772,20 +783,21 @@ static void optimize(const DataBlock &nodes, const eastl::vector<int> &initial_d
 
   debug("nodes to generate %d out of %d", nodesExecutionOrder.size(), nodesCount);
 
-  /*Bitarray validateGeneration;
-  validateGeneration.resize(nodesCount); validateGeneration.reset();
+  /*
+  Bitarray validateGeneration;
+  validateGeneration.resize(nodesCount);
+  validateGeneration.reset();
   for (auto nodeI : nodesExecutionOrder)
   {
     for (auto producingNode : nodesProducingCurrent[nodeI])
     {
       G_ASSERTF(validateGeneration[producingNode] || alive_regs.find_as() != alive_regs.end(),
-                "node %d <%s> requires %d <%s> to be generated",
-                nodes.getBlock(nodeI)->getBlockName(), nodeI,
-                nodes.getBlock(producingNode)->getBlockName(), producingNode
-                );
+        "node %d <%s> requires %d <%s> to be generated", nodes.getBlock(nodeI)->getBlockName(), nodeI,
+        nodes.getBlock(producingNode)->getBlockName(), producingNode);
     }
     validateGeneration.set(nodeI, 1);
-  }*/
+  }
+  */
 
   resultNodes = nodes;
 }
@@ -1000,17 +1012,19 @@ void TextureGenerator::startProcessNodes(const DataBlock &in_nodes, TextureRegMa
       regCnt->second++;
   }
 
-  /*DataBlock debugNodes;
+  /*
+  DataBlock debugNodes;
   for (int i = 0; i < getNodeCount(); ++i)
     debugNodes.addNewBlock(&getNode(i));
   debugNodes.saveToTextFile("remappedToGen.blk");
 
-  for (const auto &reg:allProducedRegs)//infinite scratch pad!
+  for (const auto &reg : allProducedRegs) // infinite scratch pad!
   {
     auto regCnt = regUsageCount.find(reg);
     if (regCnt != regUsageCount.end())
       regCnt->second++;
-  }*/
+  }
+  */
 
   for (const auto &fname : finalRegs)
   {
@@ -1099,9 +1113,10 @@ int TextureGenerator::processNodes(unsigned count)
     }
   }
 
-  /*for (int i = cNode; i < allNodes.blockCount() && i<cNode + count; ++i)
+  /*
+  for (int i = cNode; i < allNodes.blockCount() && i < cNode + count; ++i)
   {
-    const DataBlock & node = *allNodes.getBlock(cNode);
+    const DataBlock &node = *allNodes.getBlock(cNode);
     if (!processNode(node, 0, regUsageCount, *regManager))
     {
       cnt = -1;
@@ -1109,7 +1124,8 @@ int TextureGenerator::processNodes(unsigned count)
     }
     cnt++;
     cNode++;
-  }*/
+  }
+  */
 
   regManager->setLogger(oldLogger);
   d3d::set_program(BAD_PROGRAM);
@@ -1330,8 +1346,8 @@ bool TextureGenerator::startNode(NodeData &data, const DataBlock &node, eastl::h
             {
               if (strcmp(fmtStr, PARTICLES) == 0)
               {
-                const int maxCount = data.nodeW * data.nodeH * 2; // should be *4, if ALL particles are rendered four times. We just
-                                                                  // assume it is not happening
+                // should be *4, if ALL particles are rendered four times. We just assume it is not happening
+                const int maxCount = data.nodeW * data.nodeH * 2;
                 treg = reg_manager.createParticlesBuffer(name, node.getInt(String(128, "%s_particles", name), maxCount), useCount);
                 // debug("createParticlesBuffer = %s", name);
               }

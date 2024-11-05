@@ -1,10 +1,23 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "culling.h"
 #include "context.h"
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_query.h>
 #include <util/dag_stlqsort.h>
 #include <math/dag_frustum.h>
 #include <memory/dag_framemem.h>
 #include <generic/dag_smallTab.h>
 #include <scene/dag_occlusion.h>
+#include <util/dag_convar.h>
+
+namespace convar
+{
+CONSOLE_FLOAT_VAL("dafx", screen_area_discard_threshold, 0.f);
+CONSOLE_FLOAT_VAL("dafx", screen_area_discard_threshold_mul, 1.f);
+CONSOLE_BOOL_VAL("dafx", allow_screen_area_discard, true);
+} // namespace convar
 
 namespace dafx
 {
@@ -18,6 +31,7 @@ CullingId create_culling_state(ContextId cid, const eastl::vector<CullingDesc> &
   cull.remapTags.fill(-1);
   cull.vrsRemapTags.fill(-1);
   cull.renderTags.reserve(descs.size());
+  cull.discardThreshold.fill(0);
 
   DBG_OPT("create_culling_state: elems: %d", descs.size());
   for (const CullingDesc &i : descs)
@@ -29,6 +43,7 @@ CullingId create_culling_state(ContextId cid, const eastl::vector<CullingDesc> &
     cull.renderTags.push_back(tag);
     cull.sortings[tag] = i.sortingType;
     cull.shadingRates[tag] = i.vrsRate;
+    cull.discardThreshold[tag] = i.screenAreaDiscardThreshold;
     G_ASSERT(i.vrsRate <= 2); // basic VRS supports only 1xN - 2xN rates
     DBG_OPT("  render_tag: %s, sorting: %d", i.tag, (int)i.sortingType);
   }
@@ -202,6 +217,12 @@ bool prepare_gpu_culling(Context &ctx, bool exec_clear)
   eastl::swap(feedback.frameWorkers, ctx.culling.gpuWorkers); // same as move
   ctx.culling.gpuWorkers.clear();
 
+  // copy flags from this frame to the history
+  InstanceGroups &stream = ctx.instances.groups;
+  feedback.frameFlags.resize(feedback.frameWorkers.size());
+  for (int i = 0, ie = feedback.frameWorkers.size(); i < ie; ++i)
+    feedback.frameFlags[i] = stream.get<INST_FLAGS>(feedback.frameWorkers[i]);
+
   if (feedback.frameWorkers.size() > feedback.allocCount)
   {
     feedback.gpuRes.close();
@@ -310,17 +331,30 @@ void fetch_culling(Context &ctx)
 }
 
 __forceinline bool pull_culling_data(const unsigned char *__restrict data, int cull_id, uint32_t &flags, bbox3f &bbox,
-  uint &active_tris)
+  uint *active_tris, bool overwrite_box)
 {
   vec4f cullingScale = v_make_vec4f(DAFX_CULLING_SCALE, DAFX_CULLING_SCALE, DAFX_CULLING_SCALE, 0);
 
   int32_t *__restrict val = (int32_t *)(data + cull_id * DAFX_CULLING_STRIDE);
-  active_tris = val[3];
-  bbox.bmin = v_cvti_vec4f(v_ldui(val)); // cull data is aligned as uint4, so this is fine
-  bbox.bmax = v_cvti_vec4f(v_ldui(val + 4));
+  if (active_tris)
+    *active_tris = val[3];
 
-  bbox.bmin = v_mul(bbox.bmin, cullingScale);
-  bbox.bmax = v_mul(bbox.bmax, cullingScale);
+  bbox3f nb;
+  nb.bmin = v_cvti_vec4f(v_ldui(val)); // cull data is aligned as uint4, so this is fine
+  nb.bmax = v_cvti_vec4f(v_ldui(val + 4));
+
+  nb.bmin = v_mul(nb.bmin, cullingScale);
+  nb.bmax = v_mul(nb.bmax, cullingScale);
+
+  if (overwrite_box) // normal scenario
+  {
+    bbox = nb;
+  }
+  else // simulation was skipped, so culling data only from emission phase is valid. preserve previous box
+  {
+    if (!v_bbox3_is_empty(nb)) // emission was issued this frame, add it to previous box
+      v_bbox3_add_box(bbox, nb);
+  }
 
   bool r = !v_bbox3_is_empty(bbox);
 
@@ -336,8 +370,6 @@ __forceinline bool pull_culling_data(const unsigned char *__restrict data, int c
 
 void process_cpu_culling(Context &ctx, int start, int count)
 {
-  TIME_D3D_PROFILE(dafx_process_cpu_culling);
-
   G_ASSERT(ctx.culling.cpuWorkers.size() >= start + count);
 
   const uint32_t cpuValidationFlags = SYS_ENABLED | SYS_VALID | SYS_RENDERABLE | SYS_RENDER_REQ | SYS_CPU_RENDER_REQ;
@@ -354,8 +386,11 @@ void process_cpu_culling(Context &ctx, int start, int count)
     G_UNUSED(cpuValidationFlags);
     G_FAST_ASSERT((flags & cpuValidationFlags) == cpuValidationFlags);
 
-    if (pull_culling_data(cpuData, cullId, flags, stream.get<INST_BBOX>(sid), stream.get<INST_RENDERABLE_TRIS>(sid)))
-      flags |= SYS_BBOX_VALID;
+    flags &= ~SYS_BBOX_VALID;
+    flags |= pull_culling_data(cpuData, cullId, flags, stream.get<INST_BBOX>(sid), stream.getOpt<INST_RENDERABLE_TRIS, uint>(sid),
+               !(flags & SYS_SKIP_SIMULATION_ON_THIS_FRAME))
+               ? SYS_BBOX_VALID
+               : 0;
   }
 }
 
@@ -390,12 +425,16 @@ void process_gpu_culling(Context &ctx)
     int sid = feedback.frameWorkers[i];
     int cullId = i;
 
+    const uint32_t historyFlags = feedback.frameFlags[i];
     uint32_t &flags = stream.get<INST_FLAGS>(sid);
     if ((flags & gpuValidationFlags) != gpuValidationFlags)
       continue; // it can be already dead, because we have 1..5 frames lag
 
-    if (pull_culling_data(gpuData, cullId, flags, stream.get<INST_BBOX>(sid), stream.get<INST_RENDERABLE_TRIS>(sid)))
-      flags |= SYS_BBOX_VALID;
+    flags &= ~SYS_BBOX_VALID;
+    flags |= pull_culling_data(gpuData, cullId, flags, stream.get<INST_BBOX>(sid), stream.getOpt<INST_RENDERABLE_TRIS, uint>(sid),
+               !(historyFlags & SYS_SKIP_SIMULATION_ON_THIS_FRAME))
+               ? SYS_BBOX_VALID
+               : 0;
   }
 
   gpuBuf->unlock();
@@ -463,14 +502,10 @@ inline void populate_cull_workers(int sid, CullingState *cull, uint32_t &flags, 
   }
 }
 
-void update_culling_state(ContextId cid, CullingId cull_id, const Frustum &frustum, const Point3 &view_pos,
+void update_culling_state(Context &ctx, CullingState *cull, const Frustum &frustum, const mat44f *glob_tm, const Point3 &view_pos,
   Occlusion *(*occlusion_sync_wait_f)())
 {
   TIME_D3D_PROFILE(dafx_update_culling_state);
-  GET_CTX();
-
-  CullingState *cull = ctx.cullingStates.get(cull_id);
-  G_ASSERT_RETURN(cull && !cull->isProxy, );
 
   for (int i = 0; i < cull->workers.size(); ++i)
     cull->workers[i].clear();
@@ -488,6 +523,24 @@ void update_culling_state(ContextId cid, CullingId cull_id, const Frustum &frust
   bool doTest = !(ctx.debugFlags & DEBUG_DISABLE_CULLING);
   bool useOcclusion = (occlusion_sync_wait_f != nullptr) && doTest && !(ctx.debugFlags & DEBUG_DISABLE_OCCLUSION);
 
+  mat44f globTm;
+  vec4f minW = v_splat_x(v_set_x(1e-7));
+  vec4f maxR = v_splat_x(v_set_x(eastl::numeric_limits<float>::max()));
+  eastl::array<vec4f, Config::max_render_tags> minR;
+  bool allowDiscard = glob_tm && convar::allow_screen_area_discard && ctx.cfg.screen_area_cull_discard;
+  float maxDiscardThreshold = 0;
+  if (allowDiscard)
+  {
+    globTm = *glob_tm;
+    for (int i = 0; i < cull->discardThreshold.size(); ++i)
+    {
+      float v = convar::screen_area_discard_threshold <= 0 ? cull->discardThreshold[i] : convar::screen_area_discard_threshold;
+      v *= convar::screen_area_discard_threshold_mul;
+      maxDiscardThreshold = max(maxDiscardThreshold, v);
+      minR[i] = v_make_vec4f(v, 0, 0, 0);
+    }
+  }
+
   InstanceGroups &stream = ctx.instances.groups;
   for (int sid : ctx.allRenderWorkers)
   {
@@ -499,14 +552,50 @@ void update_culling_state(ContextId cid, CullingId cull_id, const Frustum &frust
     if (stream.get<INST_ACTIVE_STATE>(sid).aliveCount == 0)
       continue;
 
-    const uint32_t &renderTags = stream.get<INST_RENDER_TAGS>(sid);
-    if (!(renderTags & targetRenderTagsMask))
+    const uint32_t renderTags = stream.get<INST_RENDER_TAGS>(sid);
+    const uint32_t activeTags = renderTags & targetRenderTagsMask;
+    if (!activeTags)
       continue;
 
     const bbox3f &box = stream.get<INST_BBOX>(sid);
     bool test = doTest && (flags & SYS_CULL_FETCHED); // we need to show not-culled-yet instances
     if (test && (v_bbox3_is_empty(box) || !frustum.testBoxB(box.bmin, box.bmax)))
       continue;
+
+    if (test && maxDiscardThreshold > 0 && !(flags & SYS_SKIP_SCREEN_PROJ_CULL_DISCARD))
+    {
+      vec4f bmin = v_mat44_mul_vec3p(globTm, box.bmin);
+      vec4f bmax = v_mat44_mul_vec3p(globTm, box.bmax);
+
+      vec4f bminW = v_max(v_splat_w(bmin), minW);
+      vec4f bmaxW = v_max(v_splat_w(bmax), minW);
+
+      bmin = v_div(bmin, bminW);
+      bmax = v_div(bmax, bmaxW);
+
+      vec4f rad = v_hmax3(v_abs(v_sub(bmax, bmin)));
+      vec4f r = maxR;
+      for (int t = __bsf_unsafe(activeTags), te = __bsr_unsafe(activeTags); t <= te; ++t)
+      {
+        uint32_t tag = 1 << t;
+        if (tag & activeTags) // we dont want to include non-active tags, since they minR will be 0
+          r = v_min(r, minR[t]);
+      }
+
+      vec4f vcmp = v_splat_x(v_cmp_gt(rad, r));
+#if _TARGET_SIMD_SSE >= 4
+      if (v_test_all_bits_zeros(vcmp))
+        continue;
+#else
+      // SSE2 is producing false negative results in WT, problem is probably with ether _mm_cmpneq_ps or _mm_movemask_ps
+      // so we fallback to compare results directly
+      const uint32_t nullMask = 0;
+      DECLSPEC_ALIGN(16) Point4 p4;
+      v_st(&p4.x, vcmp);
+      if (memcmp(&p4.x, &nullMask, sizeof(float)) == 0)
+        continue;
+#endif
+    }
 
     visibleWorkers.push_back(sid);
   }
@@ -547,6 +636,23 @@ void update_culling_state(ContextId cid, CullingId cull_id, const Frustum &frust
     sort_culling_states(ctx, *cull, view_pos);
 
   G_UNREFERENCED(validationFlags);
+}
+
+void update_culling_state(ContextId cid, CullingId cull_id, const Frustum &frustum, const mat44f &glob_tm, const Point3 &view_pos,
+  Occlusion *(*occlusion_sync_wait_f)())
+{
+  GET_CTX();
+  CullingState *cull = ctx.cullingStates.get(cull_id);
+  update_culling_state(ctx, cull, frustum, &glob_tm, view_pos, occlusion_sync_wait_f);
+}
+
+
+void update_culling_state(ContextId cid, CullingId cull_id, const Frustum &frustum, const Point3 &view_pos,
+  Occlusion *(*occlusion_sync_wait_f)())
+{
+  GET_CTX();
+  CullingState *cull = ctx.cullingStates.get(cull_id);
+  update_culling_state(ctx, cull, frustum, nullptr, view_pos, occlusion_sync_wait_f);
 }
 
 int fetch_culling_state_visible_count(ContextId cid, CullingId cull_id, const eastl::string &tag_name)

@@ -1,10 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <generic/dag_bitset.h>
 #include <math/dag_lsbVisitor.h>
 #include <supp/dag_comPtr.h>
-#include <dxil/compiled_shader_header.h>
-#include <math/dag_lsbVisitor.h>
+#include <drv/shadersMetaData/dxil/compiled_shader_header.h>
 
 #include "render_state.h"
 #include "device_caps_and_shader_model.h"
@@ -17,28 +17,32 @@ inline const char CACHE_FILE_NAME[] = "cache/dx12.cache";
 
 namespace drv3d_dx12
 {
+// This data structure is used as is for binary storage on disk for caches and its bit pattern is hashed,
+// so its layout has to be tightly packed and avoid padding of members, otherwise initialized bits may
+// yield different results for "equal" instances.
 struct FramebufferLayout
 {
   FormatStore colorFormats[Driver3dRenderTarget::MAX_SIMRT] = {};
   FormatStore depthStencilFormat = {};
   uint8_t colorTargetMask = 0;
   uint16_t colorMsaaLevels = 0;
+  uint8_t hasDepth = 0;
+  uint8_t depthMsaaLevel = 0;
+
   static constexpr int MSAA_LEVEL_BITS_PER_RT = BitsNeeded<(TEXCF_SAMPLECOUNT_MAX >> TEXCF_SAMPLECOUNT_OFFSET)>::VALUE;
   static_assert(sizeof(colorMsaaLevels) * 8 >= MSAA_LEVEL_BITS_PER_RT * Driver3dRenderTarget::MAX_SIMRT);
-  BEGIN_BITFIELD_TYPE(DepthBitStates, uint8_t)
-    ADD_BITFIELD_MEMBER(hasDepth, 0, 1)
-    ADD_BITFIELD_MEMBER(depthMsaaLevel, 1, MSAA_LEVEL_BITS_PER_RT)
-  END_BITFIELD_TYPE()
   static_assert(MSAA_LEVEL_BITS_PER_RT + 1 <= 8);
-  DepthBitStates depthBitStates;
+
+  static constexpr size_t expected_size = sizeof(uint8_t) * Driver3dRenderTarget::MAX_SIMRT + sizeof(uint8_t) + sizeof(uint8_t) +
+                                          sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t);
 
   void clear()
   {
     eastl::fill(eastl::begin(colorFormats), eastl::end(colorFormats), FormatStore{});
     depthStencilFormat = FormatStore{};
     colorTargetMask = 0;
-    depthBitStates.hasDepth = 0;
-    depthBitStates.depthMsaaLevel = 0;
+    hasDepth = 0;
+    depthMsaaLevel = 0;
     colorMsaaLevels = 0;
   }
 
@@ -58,16 +62,16 @@ struct FramebufferLayout
 
   void setDepthStencilAttachment(uint8_t msaa_level, FormatStore format)
   {
-    depthBitStates.hasDepth = 1;
+    hasDepth = 1;
     depthStencilFormat = format;
-    depthBitStates.depthMsaaLevel = msaa_level;
+    depthMsaaLevel = msaa_level;
   }
 
   void clearDepthStencilAttachment()
   {
-    depthBitStates.hasDepth = 0;
+    hasDepth = 0;
     depthStencilFormat = FormatStore(0);
-    depthBitStates.depthMsaaLevel = 0;
+    depthMsaaLevel = 0;
   }
 
   uint8_t getColorMsaaLevel(uint8_t index) const { return (colorMsaaLevels >> (index * MSAA_LEVEL_BITS_PER_RT)) & MSAA_LEVEL_MASK; }
@@ -80,7 +84,7 @@ struct FramebufferLayout
       G_ASSERT(!previous || *previous == getColorMsaaLevel(index));
       previous = getColorMsaaLevel(index);
     }
-    G_ASSERT(!previous || !depthBitStates.hasDepth || *previous == depthBitStates.depthMsaaLevel);
+    G_ASSERT(!previous || !hasDepth || *previous == depthMsaaLevel);
   }
 
   // Calculates the color write mask for all targets, per target channel mask depends on format
@@ -109,13 +113,19 @@ private:
 
 inline bool operator==(const FramebufferLayout &l, const FramebufferLayout &r)
 {
-  return (l.colorTargetMask == r.colorTargetMask) && (l.depthBitStates.hasDepth == r.depthBitStates.hasDepth) &&
-         (l.depthStencilFormat == r.depthStencilFormat) && l.colorMsaaLevels == r.colorMsaaLevels &&
-         l.depthBitStates.depthMsaaLevel == r.depthBitStates.depthMsaaLevel &&
+  static_assert(sizeof(FramebufferLayout) == FramebufferLayout::expected_size);
+  return (l.colorTargetMask == r.colorTargetMask) && (l.hasDepth == r.hasDepth) && (l.depthStencilFormat == r.depthStencilFormat) &&
+         l.colorMsaaLevels == r.colorMsaaLevels && l.depthMsaaLevel == r.depthMsaaLevel &&
          eastl::equal(eastl::begin(l.colorFormats), eastl::end(l.colorFormats), eastl::begin(r.colorFormats));
 }
 
 inline bool operator!=(const FramebufferLayout &l, const FramebufferLayout &r) { return !(l == r); }
+
+struct FramebufferLayoutWithHash
+{
+  FramebufferLayout layout;
+  dxil::HashValue hash;
+};
 
 struct BasePipelineIdentifierHashSet
 {
@@ -341,7 +351,7 @@ struct GraphicsPipelineSignature
   uint32_t vsCombinedSRegisterMask = 0;
   uint32_t allCombinedBindlessMask = 0;
   uint16_t vsCombinedBRegisterMask = 0;
-  uint8_t vsCombinedURegisterMask = 0;
+  uint16_t vsCombinedURegisterMask = 0;
 
   void deriveComboMasks()
   {
@@ -762,7 +772,8 @@ public:
       clb(il);
   }
 
-  void onBindumpLoad(ID3D12Device1 *device, eastl::span<const dxil::HashValue> all_shader_hashes);
+  /// \returns True when the cache matches the hashes, otherwise false and the cache data is reset.
+  bool onBindumpLoad(ID3D12Device1 *device, eastl::span<const dxil::HashValue> all_shader_hashes);
 
 private:
   bool loadFromFile(const SetupParameters &params);
@@ -824,9 +835,9 @@ private:
     BasePipelineIdentifier ident;
     struct VariantCacheEntry : GraphicsPipelineVariantState
     {
-      eastl::vector<uint8_t> blob;
+      dag::Vector<uint8_t> blob;
     };
-    eastl::vector<VariantCacheEntry> variantCache;
+    dag::Vector<VariantCacheEntry> variantCache;
   };
 
   struct GraphicsPipelineVariantName
@@ -893,33 +904,33 @@ private:
 
   struct ComputeBlob : ComputePipelineIdentifier
   {
-    eastl::vector<uint8_t> blob;
+    dag::Vector<uint8_t> blob;
   };
 
   struct ComputeSignatureBlob
   {
     ComputePipelineSignature::Definition def;
-    eastl::vector<uint8_t> blob;
+    dag::Vector<uint8_t> blob;
   };
 
   struct GraphicsSignatureBlob
   {
     GraphicsPipelineSignature::Definition def;
-    eastl::vector<uint8_t> blob;
+    dag::Vector<uint8_t> blob;
   };
 
 #if !_TARGET_SCARLETT
   ComPtr<ID3D12PipelineLibrary1> library;
 #endif
-  eastl::vector<uint8_t> initialPipelineBlob;
-  eastl::vector<GraphicsPipeline> graphicsCache;
-  eastl::vector<ComputeBlob> computeBlobs;
-  eastl::vector<ComputeSignatureBlob> computeSignatures;
-  eastl::vector<GraphicsSignatureBlob> graphicsSignatures;
-  eastl::vector<GraphicsSignatureBlob> graphicsMeshSignatures;
-  eastl::vector<RenderStateSystem::StaticState> staticRenderStates;
-  eastl::vector<InputLayout> inputLayouts;
-  eastl::vector<FramebufferLayout> framebufferLayouts;
+  dag::Vector<uint8_t> initialPipelineBlob;
+  dag::Vector<GraphicsPipeline> graphicsCache;
+  dag::Vector<ComputeBlob> computeBlobs;
+  dag::Vector<ComputeSignatureBlob> computeSignatures;
+  dag::Vector<GraphicsSignatureBlob> graphicsSignatures;
+  dag::Vector<GraphicsSignatureBlob> graphicsMeshSignatures;
+  dag::Vector<RenderStateSystem::StaticState> staticRenderStates;
+  dag::Vector<InputLayout> inputLayouts;
+  dag::Vector<FramebufferLayout> framebufferLayouts;
   uint32_t shaderInDumpCount = 0;
   dxil::HashValue shaderInDumpHash{};
   D3D12_SHADER_CACHE_SUPPORT_FLAGS deviceFeatures = D3D12_SHADER_CACHE_SUPPORT_NONE;

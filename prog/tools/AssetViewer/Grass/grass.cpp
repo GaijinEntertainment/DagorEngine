@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "../av_plugin.h"
 #include <assets/asset.h>
 #include <de3_interface.h>
@@ -6,10 +8,10 @@
 #include <debug/dag_debug.h>
 #include <de3_grassPlanting.h>
 
-#include <propPanel2/c_panel_base.h>
-#include <propPanel2/c_control_event_handler.h>
+#include <propPanel/control/container.h>
+#include <propPanel/c_control_event_handler.h>
 
-class GrassViewPlugin : public IGenEditorPlugin, public ControlEventHandler
+class GrassViewPlugin : public IGenEditorPlugin, public PropPanel::ControlEventHandler
 {
 public:
   GrassViewPlugin() : grass(NULL) { initScriptPanelEditor("grass.scheme.nut", "grass by scheme"); }
@@ -74,7 +76,7 @@ public:
 
   virtual bool supportAssetType(const DagorAsset &asset) const { return strcmp(asset.getTypeStr(), "grass") == 0; }
 
-  virtual void fillPropPanel(PropertyContainerControlBase &panel) {}
+  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel) {}
   virtual void postFillPropPanel() {}
 
 private:

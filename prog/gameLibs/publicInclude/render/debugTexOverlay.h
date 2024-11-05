@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -11,7 +10,7 @@
 #include <math/dag_Point4.h>
 #include <util/dag_string.h>
 #include <shaders/dag_overrideStateId.h>
-#include <3d/dag_resId.h>
+#include <drv/3d/dag_resId.h>
 
 class PostFxRenderer;
 
@@ -41,6 +40,7 @@ private:
   {
   public:
     TextureWrapper();
+    TextureWrapper(TextureWrapper &&) = default;
     ~TextureWrapper();
     void reset();
     String initFromConsoleCmd(const char *argv[], int argc, const Point2 &target_size);
@@ -59,13 +59,16 @@ private:
     void fixAspectRatio(const Point2 &targetSize);
 
     TEXTUREID texId;
+    int varId = -1;
     bool needToReleaseTex = false;
+    bool flipX = false;
+    bool flipY = false;
     int mip = 0;
     int face = 0;
     int numSlices = 0;
     int dataFilter = 0;
-    Point2 offset = Point2(0, 0);
-    Point2 size = Point2(0, 0);
+    Point2 origOffset = {0, 0}, offset = {0, 0}, offsetF = {0, 0};
+    Point2 origSize = {0, 0}, size = {0, 0}, sizeF = {0, 0};
     carray<Point4, 4> swizzling;
     carray<Point2, 4> modifiers;
   };

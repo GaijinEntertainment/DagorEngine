@@ -1,17 +1,21 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <supp/_platform.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <osApiWrappers/dag_lockProfiler.h>
+#include <osApiWrappers/dag_miscApi.h>
 #include <startup/dag_globalSettings.h>
 #include <debug/dag_traceInpDev.h>
 #include <startup/dag_demoMode.h>
 #include <util/dag_loadingProgress.h>
 #include <debug/dag_debug.h>
+#include <debug/dag_logSys.h>
 #if __GNUC__
 #include <pthread.h>
 #endif
 #include <stdio.h>
 #include <string.h>
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 
 bool dgs_execute_quiet = false;
@@ -20,7 +24,11 @@ void (*dgs_pre_shutdown_handler)() = NULL;
 bool (*dgs_fatal_handler)(const char *msg, const char *call_stack, const char *file, int line) = NULL;
 void (*dgs_shutdown)() = NULL;
 void (*dgs_fatal_report)(const char *msg, const char *call_stack) = NULL;
+#if _TARGET_STATIC_LIB
+thread_local int (*dgs_fill_fatal_context)(char *buff, int sz, bool terse) = NULL;
+#else
 int (*dgs_fill_fatal_context)(char *buff, int sz, bool terse) = NULL;
+#endif
 void (*dgs_report_fatal_error)(const char *title, const char *msg, const char *call_stack) = NULL;
 void (*loading_progress_point_cb)() = NULL;
 void (*dgs_on_swap_callback)() = NULL;
@@ -44,7 +52,7 @@ bool dgs_app_active = true;
 unsigned int dgs_last_suspend_at = 0;
 unsigned int dgs_last_resume_at = 0;
 
-#if _TARGET_PC | _TARGET_IOS | _TARGET_TVOS | _TARGET_ANDROID
+#if _TARGET_PC | _TARGET_IOS | _TARGET_TVOS | _TARGET_ANDROID | _TARGET_XBOX
 static bool launchedAsDemo = false;
 static int idleStartT = 0, demoIdleTimeout = 0;
 
@@ -80,6 +88,12 @@ static bool default_assertion_handler(bool verify, const char *file, int line, c
 #if DAGOR_DBGLEVEL < 1
   logmessage_fmt(LOGLEVEL_ERR, buf, arg, anum);
 #else
+  if (is_debugger_present())
+  {
+    logmessage_fmt(LOGLEVEL_ERR, buf, arg, anum);
+    flush_debug_file();
+    return true;
+  }
   _core_fatal_fmt(file, line, buf, arg, anum);
 #endif
   return false;

@@ -34,6 +34,7 @@ Compile
     compatibility_mode:i = 0
     mobile_render:i=0
     use_postfx:i = 1
+    ssr_denoiser_type:i=0
   }
 }
 

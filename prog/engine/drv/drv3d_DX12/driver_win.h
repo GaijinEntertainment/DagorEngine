@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <d3dcommon.h>
@@ -15,6 +16,13 @@ typedef ID3D12Device3 D3DDevice;
 typedef ID3D12GraphicsCommandList2 D3DGraphicsCommandList;
 using D3DCopyCommandList = ID3D12GraphicsCommandList;
 
+#define WIN_FUNC
+#define WIN_MEMBER
+#define XBOX_FUNC   inline constexpr
+#define XBOX_MEMBER inline static constexpr
+
+#define FRAME_PIPELINE_TOKEN uint64_t
+
 // on PC we only lock down the execution mode on release builds
 #define FIXED_EXECUTION_MODE               DAGOR_DBGLEVEL == 0
 #define DX12_ALLOW_SPLIT_BARRIERS          1
@@ -29,8 +37,6 @@ using D3DCopyCommandList = ID3D12GraphicsCommandList;
 #define DX12_RECORD_TIMING_DATA            1
 #define DX12_CAPTURE_AFTER_LONG_FRAMES     (DX12_RECORD_TIMING_DATA && (DAGOR_DBGLEVEL > 0))
 #define DX12_REPORT_PIPELINE_CREATE_TIMING 0
-// TODO no real gamma control on dx12...
-#define DX12_HAS_GAMMA_CONTROL             1
 
 // Possible to run with set to 0, but there is no benefit
 #define DX12_USE_AUTO_PROMOTE_AND_DECAY 1
@@ -39,11 +45,15 @@ using D3DCopyCommandList = ID3D12GraphicsCommandList;
 
 #define DX12_SELECTABLE_CALL_STACK_CAPTURE 1
 
+#define DX12_ENABLE_COMMAND_LIST_LOGGER 0
+
+#define DX12_VALIDATE_STREAM_CB_USAGE_WITHOUT_INITIALIZATION (DAGOR_DBGLEVEL > 0)
+
 #define DX12_VALIDATA_COPY_COMMAND_LIST     1
 #define DX12_VALIDATE_COMPUTE_COMMAND_LIST  1
 #define DX12_VALIDATE_RAYTRACE_COMMAND_LIST 1
 #define DX12_VALIDATE_GRAPHICS_COMMAND_LIST 1
 
-#define DX12_PROCESS_USER_BARRIERS_DEFAULT 0
+#define DX12_PROCESS_USER_BARRIERS_DEFAULT 1
 
 #define DX12_USE_ESRAM 0

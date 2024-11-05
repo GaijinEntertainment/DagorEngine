@@ -1,0 +1,46 @@
+include "shader_global.dshl"
+include "use_volfog.dshl"
+include "fom_shadows.dshl"
+include "static_shadow.dshl"
+include "sq_clouds_shadow.dshl"
+include "use_gi.dshl"
+
+
+
+// TODO: when legacy effects are finally purged, these blocks can likely
+// be simplified by a lot
+
+float effects_znear_offset = 0.0;
+texture effects_depth_tex;
+
+block(scene) dynamic_scene_trans
+{
+  supports global_frame;
+
+  (vs)
+  {
+    globtm@f44 = globtm;    //FIXME: Should be in particle_frame.
+    effects_znear_offset@f1 = (effects_znear_offset);
+  }
+  (ps) { effects_depth_tex@smp2d = effects_depth_tex; }
+
+  INIT_ZNZFAR()
+  INIT_BRUNETON_FOG(vs)
+  FOG_PS_STCODE()
+  INIT_VOLUMETRIC_LIGHT_TRANSPARENT_VS_PS()
+  INIT_STATIC_SHADOW_VS_ONE_CASCADE() // not enough vsmp for both cascades
+  INIT_FOM_SHADOWS(vs)
+  SQ_INIT_CLOUDS_SHADOW(vs)
+  INIT_VOLUMETRIC_GI_AND_SKYVIS(vs)
+}
+
+block(scene) dynamic_scene_trans_fom
+{
+  supports global_frame;
+
+
+  (vs) { globtm@f44 = globtm; }    //FIXME: Should be in particle_frame.
+
+  INIT_SUN_STCODE()
+  INIT_ZNZFAR()
+}

@@ -1,0 +1,73 @@
+include "world_sdf.dshl"
+int4 world_sdf_update_lt_coord;
+int4 world_sdf_update_sz_coord;
+
+int4 world_sdf_raster_lt_coord;
+int4 world_sdf_raster_sz_coord;
+
+float4 world_sdf_cull_update_lt;
+float4 world_sdf_cull_update_rb;
+int world_sdf_update_mip;
+
+macro WSDF_COORD_UPDATE(code)
+  (code) {
+    world_sdf_coord_lt@i4[] = {world_sdf_coord_lt_0, world_sdf_coord_lt_1, world_sdf_coord_lt_2, world_sdf_coord_lt_3, world_sdf_coord_lt_4, world_sdf_coord_lt_5, world_sdf_coord_lt_6, world_sdf_coord_lt_7};
+    world_sdf_update_lt_coord@i3 = world_sdf_update_lt_coord;
+    world_sdf_update_sz_coord@i3 = world_sdf_update_sz_coord;
+    world_sdf_raster_lt_coord@i4 = world_sdf_raster_lt_coord;
+    world_sdf_raster_sz_coord@i4 = world_sdf_raster_sz_coord;
+    world_sdf_update_mip@i1 = world_sdf_update_mip;
+    world_sdf_res_np2@i4 = world_sdf_res_np2;
+  }
+  hlsl(code) {
+    #define sample_world_sdf_coord_lt(clip) _sample_world_sdf_coord_lt(clip, _FILE_, __LINE__)
+    int4 _sample_world_sdf_coord_lt(uint clip, int file, int ln)
+    {
+      // 8 is hardcoded currently. TODO: support array size in preshader for such checks.
+      ##assert(clip < 8, "[%s:%.f] Out of bounds: Buffer 'world_sdf_coord_lt' has size 8, but access to (%.f)", file, ln, clip);
+      return world_sdf_coord_lt[clip];
+    }
+
+    uint3 get_world_sdf_coord_current_cascade_offset()
+    {
+      return get_world_sdf_coord_cascade_offset(world_sdf_update_mip);//todo: replace with const
+    }
+    uint3 target_coord_from_world_sdf(int3 world_coord)
+    {
+      #if WORLD_SDF_ALLOW_NON_POW2
+      return uint3(world_sdf_res_np2.zzw + world_coord)%uint3(world_sdf_res_np2.xxy);
+      #endif
+      return uint3(world_coord)%uint3(world_sdf_res.xxy);
+    }
+    int3 world_sdf_get_lt_coord(uint mip) {return sample_world_sdf_coord_lt(mip).xyz;}
+    int3 world_sdf_coord_from_target_coord(uint mip, uint3 wrapped)
+    {
+      int3 lt = sample_world_sdf_coord_lt(mip).xyz;
+      #if WORLD_SDF_ALLOW_NON_POW2
+      return lt + int3(uint3(int3(wrapped) - lt.xyz + world_sdf_res_np2.zzw)%uint3(world_sdf_res_np2.xxy));
+      #endif
+      return lt + int3(uint3(int3(wrapped) - lt.xyz)%uint3(world_sdf_res.xxy));
+    }
+    float world_sdf_raster_voxel_size() {return asfloat(world_sdf_raster_sz_coord.w);}
+    float world_sdf_raster_inv_voxel_size() {return asfloat(world_sdf_raster_lt_coord.w);}
+    uint3 world_sdf_raster_width() {return uint3(world_sdf_raster_sz_coord.xyz);}
+
+    int3 world_sdf_get_update_lt() {return world_sdf_update_lt_coord.xyz;}
+    uint3 world_sdf_get_update_sz() {return world_sdf_update_sz_coord.xyz;}
+
+    int3 world_sdf_raster_begin() {return world_sdf_raster_lt_coord.xyz;}
+    int3 world_sdf_raster_end() {return world_sdf_raster_lt_coord.xyz + world_sdf_raster_sz_coord.xyz;}
+    uint3 world_sdf_raster_target_coord_from_world(int3 world_coord)
+    {
+      return uint3(world_coord - world_sdf_raster_lt_coord.xyz);
+    }
+    int3 world_sdf_world_coord_from_raster_target_coord(uint3 coord)
+    {
+      return world_sdf_raster_lt_coord.xyz + coord;
+    }
+    uint world_sdf_raster_index(uint3 target_coord)
+    {
+      return (target_coord.x + world_sdf_raster_sz_coord.x*(target_coord.y + world_sdf_raster_sz_coord.y*target_coord.z));
+    }
+  }
+endmacro

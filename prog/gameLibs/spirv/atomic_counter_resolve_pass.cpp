@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "module_nodes.h"
 #include <spirv/module_builder.h>
 
@@ -292,7 +294,7 @@ static void embed_counter_buffer(ModuleBuilder &builder, NodePointer<NodeOpVaria
   }
 }
 
-eastl::vector<NodePointer<NodeOpVariable>> spirv::resolveAtomicBuffers(ModuleBuilder &builder, AtomicResolveMode mode)
+void spirv::resolveAtomicBuffers(ModuleBuilder &builder, AtomicResolveMode mode, ErrorHandler &e_handler)
 {
 
   // phase one, collect all buffers and buffers with counters pairs,
@@ -315,31 +317,6 @@ eastl::vector<NodePointer<NodeOpVariable>> spirv::resolveAtomicBuffers(ModuleBui
       }
     });
 
-  eastl::vector<NodePointer<NodeOpVariable>> buffersWithCounterList;
   if (!buffersToPatch.empty())
-  {
-    buffersWithCounterList.reserve(buffersToPatch.size());
-    if (AtomicResolveMode::SeparateBuffer == mode)
-    {
-      for (auto &&pair : buffersToPatch)
-      {
-        // just need to copy over binding point and put the counter into the counter list
-        auto counterBinding = find_property<PropertyBinding>(pair.counter);
-        auto bufferBinding = find_property<PropertyBinding>(pair.buffer);
-        counterBinding->bindingPoint = bufferBinding->bindingPoint;
-
-        buffersWithCounterList.push_back(pair.counter);
-      }
-    }
-    else if (AtomicResolveMode::Embed == mode)
-    {
-      for (auto &&pair : buffersToPatch)
-      {
-        embed_counter_buffer(builder, pair.buffer, pair.counter);
-        buffersWithCounterList.push_back(pair.buffer);
-      }
-    }
-  }
-
-  return buffersWithCounterList;
+    e_handler.onError("Atomic UAV counter buffers are not supported");
 }

@@ -1,12 +1,17 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "device.h"
 
 #include <supp/dag_cpuControl.h>
 
+#include "frontend_state.h"
+
+#include <3d/dag_resourceDump.h>
 
 using namespace drv3d_dx12;
 using namespace drv3d_dx12::resource_manager;
 
-ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, ID3D12Device *device, const ImageInfo &ii, const char *name)
+ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, Device &device, const ImageInfo &ii, const char *name)
 {
   ImageCreateResult result{};
   auto desc = ii.asDesc();
@@ -14,12 +19,10 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, ID3D1
   result.state = propertiesToInitialState(desc.Dimension, desc.Flags, ii.memoryClass);
 
   HRESULT errorCode = S_OK;
-  auto oomCheckOnExit = checkForOOMOnExit([&errorCode, &result]() { return (!is_oom_error_code(errorCode)) && result.image; },
-    "DX12: OOM during %s for <%s>", "createTexture", name);
 
   if (ii.memoryClass != DeviceMemoryClass::RESERVED_RESOURCE)
   {
-    auto allocInfo = get_resource_allocation_info(device, desc);
+    auto allocInfo = get_resource_allocation_info(device.getDevice(), desc);
     if (!is_valid_allocation_info(allocInfo))
     {
       report_resource_alloc_info_error(desc);
@@ -31,12 +34,26 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, ID3D1
 #if _TARGET_PC_WIN
     // enable fallback to committed resources only on devices with Resource Heap Tier 1
     if (!canMixResources())
-    {
       allocationFlags = AllocationFlag::NEW_HEAPS_ONLY_WITH_BUDGET;
-    }
 #endif
+    if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
+      allocationFlags.set(AllocationFlag::IS_UAV);
+    if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+      allocationFlags.set(AllocationFlag::IS_RTV);
 
-    auto memory = allocate(adapter, device, memoryProperties, allocInfo, allocationFlags);
+    auto oomCheckOnExit = checkForOOMOnExit(
+      adapter, [&errorCode]() { return !is_oom_error_code(errorCode); },
+      OomReportData{"createTexture", name, allocInfo.SizeInBytes, allocationFlags.to_ulong(), memoryProperties.raw});
+
+    auto memory = allocate(adapter, device.getDevice(), memoryProperties, allocInfo, allocationFlags, &errorCode);
+
+    if (!memory)
+    {
+      device.processEmergencyDefragmentation(memoryProperties.raw, true, allocationFlags.test(AllocationFlag::IS_UAV),
+        allocationFlags.test(AllocationFlag::IS_RTV));
+      errorCode = S_OK;
+      memory = allocate(adapter, device.getDevice(), memoryProperties, allocInfo, allocationFlags, &errorCode);
+    }
 
     if (!memory)
     {
@@ -53,7 +70,7 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, ID3D1
       D3D12_HEAP_FLAGS heapFlags = D3D12_HEAP_FLAG_NONE;
 
       errorCode = DX12_CHECK_RESULT_NO_OOM_CHECK(
-        device->CreateCommittedResource(&heapProperties, heapFlags, &desc, result.state, nullptr, COM_ARGS(&texture)));
+        device.getDevice()->CreateCommittedResource(&heapProperties, heapFlags, &desc, result.state, nullptr, COM_ARGS(&texture)));
 
       if (!texture)
       {
@@ -84,15 +101,16 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, ID3D1
       ComPtr<ID3D12Resource> texture;
       errorCode =
 #if _TARGET_XBOX
-        DX12_CHECK_RESULT_NO_OOM_CHECK(xbox_create_placed_resource(device, memory.getAddress(), desc, result.state, nullptr, texture));
-#else
         DX12_CHECK_RESULT_NO_OOM_CHECK(
-          device->CreatePlacedResource(memory.getHeap(), memory.getOffset(), &desc, result.state, nullptr, COM_ARGS(&texture)));
+          xbox_create_placed_resource(device.getDevice(), memory.getAddress(), desc, result.state, nullptr, texture));
+#else
+        DX12_CHECK_RESULT_NO_OOM_CHECK(device.getDevice()->CreatePlacedResource(memory.getHeap(), memory.getOffset(), &desc,
+          result.state, nullptr, COM_ARGS(&texture)));
 #endif
 
       if (!texture)
       {
-        free(memory);
+        free(memory, false);
         return result;
       }
 
@@ -110,8 +128,13 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, ID3D1
   }
   else
   {
+    auto oomCheckOnExit = checkForOOMOnExit(
+      adapter, [&errorCode]() { return !is_oom_error_code(errorCode); }, OomReportData{"createTexture (reserved)", name});
+
+
     ComPtr<ID3D12Resource> texture;
-    errorCode = DX12_CHECK_RESULT_NO_OOM_CHECK(device->CreateReservedResource(&desc, result.state, nullptr, COM_ARGS(&texture)));
+    errorCode =
+      DX12_CHECK_RESULT_NO_OOM_CHECK(device.getDevice()->CreateReservedResource(&desc, result.state, nullptr, COM_ARGS(&texture)));
 
     if (!texture)
     {
@@ -171,8 +194,67 @@ void TextureImageFactory::freeView(const ImageViewInfo &view)
   }
 }
 
-void TextureImageFactory::destroyTextures(eastl::span<Image *> textures)
+Image *TextureImageFactory::tryCloneTexture(DXGIAdapter *adapter, ID3D12Device *device, Image *original,
+  D3D12_RESOURCE_STATES initial_state, AllocationFlags allocation_flags)
 {
+  Image *result = nullptr;
+  auto desc = original->getHandle()->GetDesc();
+  // On xbox GetDesc can return 0 if resource has default alignment. So we should adjust it here.
+  // GDK Documentation says: If Alignment is set to 0, the runtime will use 4MB for MSAA textures and 64KB for everything else.
+  // Despite the fact that here we know alignment here, we use calculate_texture_alignment just in case.
+  desc.Alignment = calculate_texture_alignment(desc.Width, desc.Height, original->getBaseExtent().depth, desc.SampleDesc.Count,
+    desc.Layout, desc.Flags, original->getFormat());
+  auto allocInfo = get_resource_allocation_info(device, desc);
+  if (!is_valid_allocation_info(allocInfo))
+  {
+    report_resource_alloc_info_error(desc);
+    return result;
+  }
+  auto properties = getHeapProperties(original->getMemory().getHeapID());
+  auto memory = allocate(adapter, device, properties, allocInfo, allocation_flags);
+
+  if (!memory)
+  {
+    // alloc failed, allocator will complain about this so no need to repeat it
+    return result;
+  }
+
+  ComPtr<ID3D12Resource> texture;
+#if _TARGET_XBOX
+  DX12_CHECK_RESULT(device->CreatePlacedResourceX(memory.getAddress(), &desc, initial_state, nullptr, COM_ARGS(&texture)));
+#else
+  DX12_CHECK_RESULT(
+    device->CreatePlacedResource(memory.getHeap(), memory.getOffset(), &desc, initial_state, nullptr, COM_ARGS(&texture)));
+#endif
+
+  if (!texture)
+  {
+    free(memory, allocation_flags.test(AllocationFlag::DEFRAGMENTATION_OPERATION));
+    return result;
+  }
+
+  auto subResIdBase = original->hasTrackedState()
+                        ? allocateGlobalResourceIdRange(original->getSubresourcesPerPlane() * original->getPlaneCount())
+                        : ImageGlobalSubresouceId::make_invalid();
+  result = newImageObject(memory, eastl::move(texture), original->getType(), D3D12_TEXTURE_LAYOUT_UNKNOWN, original->getFormat(),
+    original->getBaseExtent(), original->getMipLevelRange(), original->getArrayLayers(), subResIdBase, original->getMsaaLevel());
+
+  original->getDebugName([=](const auto &name) { result->setDebugName(name); });
+
+  updateMemoryRangeUse(memory, result);
+  result->getDebugName([=](const auto &name) {
+    recordTextureAllocated(result->getMipLevelRange(), result->getArrayLayers(), result->getBaseExtent(), result->getMemory().size(),
+      result->getFormat(), name);
+  });
+  result->setGPUChangeable(0 != (desc.Flags & (D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS | D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL |
+                                                D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)));
+
+  return result;
+}
+
+void TextureImageFactory::destroyTextures(eastl::span<Image *> textures, frontend::BindlessManager &bindless_manager)
+{
+  G_UNUSED(bindless_manager);
   for (auto texture : textures)
   {
     if (texture->getGlobalSubResourceIdBase().isValid())
@@ -182,7 +264,7 @@ void TextureImageFactory::destroyTextures(eastl::span<Image *> textures)
     }
     if (texture->isHeapAllocated() && !texture->isAliased())
     {
-      free(texture->getMemory());
+      free(texture->getMemory(), false);
     }
     for (auto &view : texture->getOldViews())
     {
@@ -193,6 +275,7 @@ void TextureImageFactory::destroyTextures(eastl::span<Image *> textures)
       recordTextureFreed(texture->getMipLevelRange(), texture->getArrayLayers(), texture->getBaseExtent(),
         !texture->isAliased() ? texture->getMemory().size() : 0, texture->getFormat(), name);
     });
+    G_ASSERT(!bindless_manager.hasImageReference(texture));
   }
   deleteImageObjects(textures);
 }
@@ -292,7 +375,7 @@ D3D12_RESOURCE_DESC AliasHeapProvider::as_desc(const BufferResourceDescription &
   result.SampleDesc.Quality = 0;
   result.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
   result.Flags = D3D12_RESOURCE_FLAG_NONE;
-  if (SBCF_BIND_UNORDERED & desc.cFlags)
+  if ((SBCF_BIND_UNORDERED | SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE) & desc.cFlags)
   {
     result.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
   }
@@ -363,7 +446,7 @@ uint32_t AliasHeapProvider::adoptMemoryAsAliasHeap(ResourceMemory memory)
   return index;
 }
 
-::ResourceHeap *AliasHeapProvider::newUserHeap(DXGIAdapter *adapter, ID3D12Device *device, ::ResourceHeapGroup *group, size_t size,
+::ResourceHeap *AliasHeapProvider::newUserHeap(DXGIAdapter *adapter, Device &device, ::ResourceHeapGroup *group, size_t size,
   ResourceHeapCreateFlags flags)
 {
   using UserResourceHeapType = ::ResourceHeap;
@@ -380,18 +463,24 @@ uint32_t AliasHeapProvider::adoptMemoryAsAliasHeap(ResourceMemory memory)
   // TODO: alignment has to be a part of the heap as well.
   D3D12_RESOURCE_ALLOCATION_INFO allocInfo{size, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT};
 
-  newPHeap.memory = allocate(adapter, device, properties, allocInfo, allocFlags);
+  newPHeap.memory = allocate(adapter, device.getDevice(), properties, allocInfo, allocFlags);
+  if (!newPHeap.memory)
+  {
+    device.processEmergencyDefragmentation(properties.raw, true, false, false);
+    newPHeap.memory = allocate(adapter, device.getDevice(), properties, allocInfo, allocFlags);
+  }
+  const ResourceHeapProperties allocatedProperties{newPHeap.memory.getHeapID().group};
   if (!newPHeap.memory)
   {
     return nullptr;
   }
 #ifdef _TARGET_XBOX
-  HRESULT hr = device->RegisterPagePoolX(reinterpret_cast<D3D12_GPU_VIRTUAL_ADDRESS>(newPHeap.memory.asPointer()),
-    newPHeap.memory.size() / TEXTURE_TILE_SIZE, &newPHeap.heapRegHandle);
+  HRESULT hr = device.getDevice()->RegisterPagePoolX(reinterpret_cast<D3D12_GPU_VIRTUAL_ADDRESS>(newPHeap.memory.asPointer()),
+    (newPHeap.memory.size() + TEXTURE_TILE_SIZE - 1) / TEXTURE_TILE_SIZE, &newPHeap.heapRegHandle);
   G_UNUSED(hr);
   G_ASSERT(SUCCEEDED(hr));
 #endif
-  recordNewUserResourceHeap(size, !properties.isCPUVisible());
+  recordNewUserResourceHeap(size, !allocatedProperties.isCPUVisible());
   uintptr_t index = 0;
 
   {
@@ -426,13 +515,13 @@ void AliasHeapProvider::freeUserHeap(ID3D12Device *device, ::ResourceHeap *ptr)
   G_ASSERTF(index < aliasHeapsAccess->size(), "DX12: Tried to free non existing resource heap %p", ptr);
   if (index >= aliasHeapsAccess->size())
   {
-    logerr("DX12: Tried to free non existing resource heap %p", ptr);
+    D3D_ERROR("DX12: Tried to free non existing resource heap %p", ptr);
     return;
   }
   auto &heap = (*aliasHeapsAccess)[index];
   if (!heap)
   {
-    logerr("DX12: Tried to free already freed resource heap %p", ptr);
+    D3D_ERROR("DX12: Tried to free already freed resource heap %p", ptr);
     return;
   }
 
@@ -450,7 +539,7 @@ void AliasHeapProvider::freeUserHeap(ID3D12Device *device, ::ResourceHeap *ptr)
 #endif
   G_UNUSED(device);
 
-  free(heap.memory);
+  free(heap.memory, false);
   heap.reset();
 }
 
@@ -478,8 +567,8 @@ ResourceAllocationProperties AliasHeapProvider::getResourceAllocationProperties(
   return props;
 }
 
-ImageCreateResult AliasHeapProvider::placeTextureInHeap(ID3D12Device *device, ::ResourceHeap *heap, const ResourceDescription &desc,
-  size_t offset, const ResourceAllocationProperties &alloc_info, const char *name)
+ImageCreateResult AliasHeapProvider::placeTextureInHeap(DXGIAdapter *adapter, ID3D12Device *device, ::ResourceHeap *heap,
+  const ResourceDescription &desc, size_t offset, const ResourceAllocationProperties &alloc_info, const char *name)
 {
   ImageCreateResult result{};
   auto dxDesc = as_desc(desc);
@@ -513,8 +602,9 @@ ImageCreateResult AliasHeapProvider::placeTextureInHeap(ID3D12Device *device, ::
   auto index = reinterpret_cast<uintptr_t>(heap) - 1;
 
   HRESULT errorCode = S_OK;
-  auto oomCheckOnExit = checkForOOMOnExit([&errorCode, &result]() { return (!is_oom_error_code(errorCode)) && result.image; },
-    "DX12: OOM during %s for <%s>", "placeTextureInHeap", name);
+  auto oomCheckOnExit = checkForOOMOnExit(
+    adapter, [&errorCode]() { return !is_oom_error_code(errorCode); },
+    OomReportData{"placeTextureInHeap", name, alloc_info.sizeInBytes});
 
   auto aliasHeapsAccess = aliasHeaps.access();
   if (index >= aliasHeapsAccess->size())
@@ -729,33 +819,37 @@ void AliasHeapProvider::processAutoFree()
     ResourceHeapProperties properties;
     properties.raw = heap.memory.getHeapID().group;
     recordDeletedUserResouceHeap(heap.memory.size(), !properties.isCPUVisible());
-    free(heap.memory);
+    free(heap.memory, false);
     heap.reset();
   }
 }
 
-BufferState AliasHeapProvider::placeBufferInHeap(ID3D12Device *device, ::ResourceHeap *heap, const ResourceDescription &desc,
-  size_t offset, const ResourceAllocationProperties &alloc_info, const char *name)
+BufferState AliasHeapProvider::placeBufferInHeap(DXGIAdapter *adapter, ID3D12Device *device, ::ResourceHeap *heap,
+  const ResourceDescription &desc, size_t offset, const ResourceAllocationProperties &alloc_info, const char *name)
 {
   BufferState result;
   // heap ptr / index starts with 1, so adjust to start from 0
   auto index = reinterpret_cast<uintptr_t>(heap) - 1;
 
   HRESULT errorCode = S_OK;
-  auto oomCheckOnExit = checkForOOMOnExit([&errorCode, &result]() { return (!is_oom_error_code(errorCode)) && result; },
-    "DX12: OOM during %s for <%s>", "placeBufferInHeap", name);
+  auto oomCheckOnExit = checkForOOMOnExit(
+    adapter, [&errorCode]() { return !is_oom_error_code(errorCode); },
+    OomReportData{"placeBufferInHeap", name, alloc_info.sizeInBytes});
 
   auto aliasHeapsAccess = aliasHeaps.access();
   if (index >= aliasHeapsAccess->size())
   {
+    D3D_ERROR("DX12: placeBufferInHeap failed (heap does not exists)");
     return result;
   }
   auto &heapRef = (*aliasHeapsAccess)[index];
 
   D3D12_RESOURCE_DESC dxDesc = as_desc(desc);
 
-  D3D12_RESOURCE_STATES state = (SBCF_BIND_UNORDERED & desc.asBufferRes.cFlags) ? D3D12_RESOURCE_STATE_UNORDERED_ACCESS
-                                                                                : D3D12_RESOURCE_STATE_INITIAL_BUFFER_STATE;
+  D3D12_RESOURCE_STATES state =
+    ((SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE | SBCF_BIND_UNORDERED) & desc.asBufferRes.cFlags)
+      ? D3D12_RESOURCE_STATE_UNORDERED_ACCESS
+      : D3D12_RESOURCE_STATE_INITIAL_BUFFER_STATE;
 
   BufferHeap::Heap newHeap;
   auto heapProperties = getHeapGroupProperties(alloc_info.heapGroup);
@@ -825,7 +919,8 @@ bool AliasHeapProvider::detachBuffer(const BufferState &buf)
   return false;
 }
 
-ImageCreateResult AliasHeapProvider::aliasTexture(ID3D12Device *device, const ImageInfo &ii, Image *base, const char *name)
+ImageCreateResult AliasHeapProvider::aliasTexture(DXGIAdapter *adapter, ID3D12Device *device, const ImageInfo &ii, Image *base,
+  const char *name)
 {
   ImageCreateResult result{};
   auto desc = ii.asDesc();
@@ -878,8 +973,8 @@ ImageCreateResult AliasHeapProvider::aliasTexture(ID3D12Device *device, const Im
   }
 
   HRESULT errorCode = S_OK;
-  auto oomCheckOnExit = checkForOOMOnExit([&errorCode, &result]() { return (!is_oom_error_code(errorCode)) && result.image; },
-    "DX12: OOM during %s for <%s>", "aliasTexture", name);
+  auto oomCheckOnExit = checkForOOMOnExit(
+    adapter, [&errorCode]() { return !is_oom_error_code(errorCode); }, OomReportData{"aliasTexture", name, allocInfo.SizeInBytes});
   {
     auto aliasHeapsAccess = aliasHeaps.access();
     auto &heap = (*aliasHeapsAccess)[baseHeapID.index];
@@ -1023,8 +1118,6 @@ const char *MetricsProviderBase::event_type_name_table[static_cast<uint32_t>(Met
     "User placed texture",
     "Scratch buffer allocate",
     "Scratch buffer free",
-    "Raytrace scratch buffer allocate",
-    "Raytrace scratch buffer free",
     "Raytrace bottom acceleration structure allocate",
     "Raytrace bottom acceleration structure free",
     "Raytrace top acceleration structure allocate",
@@ -1085,7 +1178,7 @@ struct ScopedTooltip
 // returns true if the contents should be rendered
 bool begin_sub_section(const char *id, const char *caption, int height)
 {
-  if (ImGui::BeginChild(id, ImVec2(0, height), true, ImGuiWindowFlags_MenuBar))
+  if (ImGui::BeginChild(id, ImVec2(0, height), ImGuiChildFlags_Border, ImGuiWindowFlags_MenuBar))
   {
     if (ImGui::BeginMenuBar())
     {
@@ -1103,7 +1196,7 @@ void begin_selectable_row(const char *text)
 {
   ImGui::TableNextRow();
   ImGui::TableNextColumn();
-  ImGui::Selectable(text, false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap);
+  ImGui::Selectable(text, false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap);
 }
 
 void draw_segment(void *base, ValueRange<uint64_t> range, uint64_t max, const char *text)
@@ -1224,7 +1317,7 @@ void begin_event_row(uint64_t frame, uint64_t ident, int time_index, const char 
   ImGui::TextUnformatted(msg);
 }
 
-using PlotGetFunctionType = ImPlotPoint (*)(void *, int);
+using PlotGetFunctionType = ImPlotPoint (*)(int, void *);
 
 template <typename T>
 void plot_shaded(const char *name, PlotGetFunctionType value_get, PlotGetFunctionType base_get, T &data)
@@ -1243,26 +1336,29 @@ struct PlotDataBase : T
 {
   using T::T;
 
-  static ImPlotPoint getAllocated(void *data, int idx) { return reinterpret_cast<PlotDataBase<T> *>(data)->getAllocatedPoint(idx); }
-  static ImPlotPoint getUsed(void *data, int idx) { return reinterpret_cast<PlotDataBase<T> *>(data)->getUsedPoint(idx); }
-  static ImPlotPoint getBase(void *data, int idx)
+  static ImPlotPoint getAllocated(int idx, void *data) { return reinterpret_cast<PlotDataBase<T> *>(data)->getAllocatedPoint(idx); }
+  static ImPlotPoint getUsed(int idx, void *data) { return reinterpret_cast<PlotDataBase<T> *>(data)->getUsedPoint(idx); }
+  static ImPlotPoint getBase(int idx, void *data)
   {
     return {double(reinterpret_cast<PlotDataBase<T> *>(data)->getFrame(idx).frameIndex), double(0)};
   }
 };
 
-template <typename T>
-void draw_ring_buffer_plot(const char *plot_segment_id, const char *plot_segment_label, const char *plot_label, T select_plot_data)
+template <typename T1, typename T2>
+void draw_ring_buffer_plot(const char *plot_segment_id, const char *plot_segment_label, const char *plot_label, T1 create_controls,
+  T2 select_plot_data)
 {
   const int child_height = 17 * ImGui::GetFrameHeightWithSpacing();
   if (begin_sub_section(plot_segment_id, plot_segment_label, child_height))
   {
-    auto data = select_plot_data();
+    create_controls();
 
     if (ImPlot::BeginPlot(plot_label, nullptr, nullptr, ImVec2(-1, 0),
-          ImPlotFlags_NoTitle | ImPlotFlags_NoMousePos | ImPlotFlags_NoLegend, ImPlotAxisFlags_Invert | ImPlotAxisFlags_AutoFit,
+          ImPlotFlags_NoTitle | ImPlotFlags_NoMouseText | ImPlotFlags_NoLegend, ImPlotAxisFlags_Invert | ImPlotAxisFlags_AutoFit,
           ImPlotAxisFlags_LockMin | ImPlotAxisFlags_AutoFit))
     {
+      auto data = select_plot_data();
+
       if (data.hasAnyData())
       {
         {
@@ -1469,7 +1565,7 @@ void DebugViewBase::restoreViewSettings()
   {
     if (strlen(filter) >= getEventObjectNameFilterMaxLength() - 1)
     {
-      logerr("DX12: Restore of dx12/memory/event-object-name-filter with malicious string");
+      D3D_ERROR("DX12: Restore of dx12/memory/event-object-name-filter with malicious string");
     }
     else
     {
@@ -1758,8 +1854,8 @@ bool MetricsVisualizer::drawEvent(const MetricsState::ActionInfo &event, uint64_
     case MetricsState::ActionInfo::Type::FREE_PERSISTENT_BIDIRECTIONAL_MEMORY:
     case MetricsState::ActionInfo::Type::SCRATCH_BUFFER_ALLOCATE:
     case MetricsState::ActionInfo::Type::SCRATCH_BUFFER_FREE:
-    case MetricsState::ActionInfo::Type::RAYTRACE_SCRATCH_BUFFER_ALLOCATE:
-    case MetricsState::ActionInfo::Type::RAYTRACE_SCRATCH_BUFFER_FREE:
+    case MetricsState::ActionInfo::Type::RAYTRACE_ACCEL_STRUCT_HEAP_ALLOCATE:
+    case MetricsState::ActionInfo::Type::RAYTRACE_ACCEL_STRUCT_HEAP_FREE:
     case MetricsState::ActionInfo::Type::RAYTRACE_BOTTOM_STRUCTURE_ALLOCATE:
     case MetricsState::ActionInfo::Type::RAYTRACE_BOTTOM_STRUCTURE_FREE:
     case MetricsState::ActionInfo::Type::RAYTRACE_TOP_STRUCTURE_ALLOCATE:
@@ -1802,15 +1898,15 @@ void MetricsVisualizer::setupPlotY2CountRange(uint64_t max_value, bool has_data)
       yAxisPintStringPointers[i] = yAxisPintStrings[i];
       yAxisPointValues[i] = value;
     }
-    ImPlot::SetNextPlotLimitsY(0, max_value, ImGuiCond_Always, ImPlotYAxis_2);
-    ImPlot::SetNextPlotTicksY(yAxisPointValues, yAxisPointCount, yAxisPintStringPointers, false, ImPlotYAxis_2);
+    ImPlot::SetupAxisLimits(ImAxis_Y2, 0, max_value, ImGuiCond_Always);
+    ImPlot::SetupAxisTicks(ImAxis_Y2, yAxisPointValues, yAxisPointCount, yAxisPintStringPointers, false);
   }
   else
   {
     const char *axisNames[2] = {"", ""};
-    ImPlot::SetNextPlotLimits(0, 1, 0, 1, ImGuiCond_Always);
-    ImPlot::SetNextPlotTicksX(0, 1, 2, axisNames);
-    ImPlot::SetNextPlotTicksY(0, 1, 2, axisNames, false, ImPlotYAxis_2);
+    ImPlot::SetupAxesLimits(0, 1, 0, 1, ImGuiCond_Always);
+    ImPlot::SetupAxisTicks(ImAxis_X1, 0, 1, 2, axisNames);
+    ImPlot::SetupAxisTicks(ImAxis_Y2, 0, 1, 2, axisNames, false);
   }
 }
 
@@ -1836,15 +1932,15 @@ void MetricsVisualizer::setupPlotYMemoryRange(uint64_t max_value, bool has_data)
       yAxisPintStringPointers[i] = yAxisPintStrings[i];
       yAxisPointValues[i] = value;
     }
-    ImPlot::SetNextPlotLimitsY(0, max_value, ImGuiCond_Always);
-    ImPlot::SetNextPlotTicksY(yAxisPointValues, yAxisPointCount, yAxisPintStringPointers);
+    ImPlot::SetupAxisLimits(ImAxis_Y1, 0, max_value, ImGuiCond_Always);
+    ImPlot::SetupAxisTicks(ImAxis_Y1, yAxisPointValues, yAxisPointCount, yAxisPintStringPointers);
   }
   else
   {
     const char *axisNames[2] = {"", ""};
-    ImPlot::SetNextPlotLimits(0, 1, 0, 1, ImGuiCond_Always);
-    ImPlot::SetNextPlotTicksX(0, 1, 2, axisNames);
-    ImPlot::SetNextPlotTicksY(0, 1, 2, axisNames);
+    ImPlot::SetupAxesLimits(0, 1, 0, 1, ImGuiCond_Always);
+    ImPlot::SetupAxisTicks(ImAxis_X1, 0, 1, 2, axisNames);
+    ImPlot::SetupAxisTicks(ImAxis_Y1, 0, 1, 2, axisNames);
   }
 }
 
@@ -1877,7 +1973,7 @@ MetricsVisualizer::PlotData MetricsVisualizer::setupPlotXRange(ConcurrentMetrics
         }
       }
       const auto &first = access->getFrameMetrics(result.getFirstViewIndex());
-      ImPlot::SetNextPlotLimitsX(first.frameIndex, first.frameIndex + display_state.windowSize, ImGuiCond_Always);
+      ImPlot::SetupAxisLimits(ImAxis_X1, first.frameIndex, first.frameIndex + display_state.windowSize, ImGuiCond_Always);
     }
   }
   else
@@ -2216,13 +2312,15 @@ void MetricsVisualizer::drawSystemMemoryUsePlot()
     maxValue = max(maxValue, frame.systemMemoryInUsePeak.CurrentUsage);
 #endif
 
-    auto plotData = setupPlotXRange(metricsAccess, drawGraphViewControls(Graph::SYSTEM), maxValue > 0);
-    setupPlotYMemoryRange(maxValue, plotData.hasAnyData());
+    MetricsVisualizer::GraphDisplayInfo displayInfo = drawGraphViewControls(Graph::SYSTEM);
 
     if (ImPlot::BeginPlot("Memory usage over time##DX12-Memory-Usage-Graph", nullptr, nullptr, ImVec2(-1, 0),
-          ImPlotFlags_NoTitle | ImPlotFlags_NoMousePos | ImPlotFlags_NoLegend, ImPlotAxisFlags_Invert | ImPlotAxisFlags_AutoFit,
+          ImPlotFlags_NoTitle | ImPlotFlags_NoMouseText | ImPlotFlags_NoLegend, ImPlotAxisFlags_Invert | ImPlotAxisFlags_AutoFit,
           ImPlotAxisFlags_LockMin | ImPlotAxisFlags_AutoFit))
     {
+      auto plotData = setupPlotXRange(metricsAccess, displayInfo, maxValue > 0);
+      setupPlotYMemoryRange(maxValue, plotData.hasAnyData());
+
       if (plotData.hasAnyData())
       {
         struct GetProcessMemoryValue
@@ -2340,15 +2438,17 @@ void MetricsVisualizer::drawHeapsPlot()
     maxY2 = max(maxY2, frame.netCountersPeak.cpuMemory.count);
     maxY2 = max(maxY2, frame.netCountersPeak.cpuHeaps.count);
 
-    auto plotData = setupPlotXRange(metricsAccess, drawGraphViewControls(Graph::HEAPS), maxY2 > 0);
-    // heap size will always be the largest
-    setupPlotYMemoryRange(max(frame.netCountersPeak.gpuHeaps.size, frame.netCountersPeak.cpuHeaps.size), plotData.hasAnyData());
-    setupPlotY2CountRange(maxY2, plotData.hasAnyData());
+    MetricsVisualizer::GraphDisplayInfo displayInfo = drawGraphViewControls(Graph::HEAPS);
 
     if (ImPlot::BeginPlot("Usage##DX12-Heap-Graph", nullptr, nullptr, ImVec2(-1, 0),
-          ImPlotFlags_NoTitle | ImPlotFlags_NoMousePos | ImPlotFlags_NoLegend | ImPlotFlags_YAxis2,
+          ImPlotFlags_NoTitle | ImPlotFlags_NoMouseText | ImPlotFlags_NoLegend | ImPlotFlags_YAxis2,
           ImPlotAxisFlags_Invert | ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_LockMin | ImPlotAxisFlags_AutoFit))
     {
+      auto plotData = setupPlotXRange(metricsAccess, displayInfo, maxY2 > 0);
+      // heap size will always be the largest
+      setupPlotYMemoryRange(max(frame.netCountersPeak.gpuHeaps.size, frame.netCountersPeak.cpuHeaps.size), plotData.hasAnyData());
+      setupPlotY2CountRange(maxY2, plotData.hasAnyData());
+
       if (plotData.hasAnyData())
       {
         struct GetGPUHeapSize
@@ -2400,7 +2500,7 @@ void MetricsVisualizer::drawHeapsPlot()
         plot_line("GPU Allocated Size", getPlotPointFrameValue<ImPlotPoint, GetGPUMemoryUsedSize>, plotData);
         plot_line("CPU Allocated Size", getPlotPointFrameValue<ImPlotPoint, GetCPUMemoryUsedSize>, plotData);
 
-        ImPlot::SetPlotYAxis(ImPlotYAxis_2);
+        ImPlot::SetAxis(ImAxis_Y2);
 
         plot_line("GPU Heap Count", getPlotPointFrameValue<ImPlotPoint, GetGPUHeapCount>, plotData);
         plot_line("CPU Heap Count", getPlotPointFrameValue<ImPlotPoint, GetCPUHeapCount>, plotData);
@@ -2687,14 +2787,16 @@ void MetricsVisualizer::drawScratchBufferPlot()
     const auto &frame = metricsAccess->getLastFrameMetrics();
     uint64_t maxY2 = frame.netCountersPeak.scratchBuffer.count;
 
-    auto plotData = setupPlotXRange(metricsAccess, drawGraphViewControls(Graph::SCRATCH_BUFFER), maxY2 > 0);
-    setupPlotYMemoryRange(frame.netCountersPeak.scratchBuffer.size, plotData.hasAnyData());
-    setupPlotY2CountRange(maxY2, plotData.hasAnyData());
+    MetricsVisualizer::GraphDisplayInfo displayInfo = drawGraphViewControls(Graph::SCRATCH_BUFFER);
 
     if (ImPlot::BeginPlot("Usage##DX12-Scratch-Buffer-Plot", nullptr, nullptr, ImVec2(-1, 0),
-          ImPlotFlags_NoTitle | ImPlotFlags_NoMousePos | ImPlotFlags_NoLegend | ImPlotFlags_YAxis2,
+          ImPlotFlags_NoTitle | ImPlotFlags_NoMouseText | ImPlotFlags_NoLegend | ImPlotFlags_YAxis2,
           ImPlotAxisFlags_Invert | ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_LockMin | ImPlotAxisFlags_AutoFit))
     {
+      auto plotData = setupPlotXRange(metricsAccess, displayInfo, maxY2 > 0);
+      setupPlotYMemoryRange(frame.netCountersPeak.scratchBuffer.size, plotData.hasAnyData());
+      setupPlotY2CountRange(maxY2, plotData.hasAnyData());
+
       if (plotData.hasAnyData())
       {
         struct GetBufferSize
@@ -2722,7 +2824,7 @@ void MetricsVisualizer::drawScratchBufferPlot()
         plot_line("Temporary usage", getPlotPointFrameValue<ImPlotPoint, GetTempUse>, plotData);
         plot_line("Persistent usage", getPlotPointFrameValue<ImPlotPoint, GetPersistentUse>, plotData);
 
-        ImPlot::SetPlotYAxis(ImPlotYAxis_2);
+        ImPlot::SetAxis(ImAxis_Y2);
 
         plot_line("User Heap Count", getPlotPointFrameValue<ImPlotPoint, GetBufferCount>, plotData);
 
@@ -2788,15 +2890,17 @@ void MetricsVisualizer::drawTexturePlot()
     // only two things, memory usage and object count
     const auto &frame = metricsAccess->getLastFrameMetrics();
 
-    auto plotData = setupPlotXRange(metricsAccess, drawGraphViewControls(Graph::TEXTURES), frame.netCountersPeak.textures.count);
-    // heap size will always be the largest
-    setupPlotYMemoryRange(frame.netCountersPeak.textures.size, plotData.hasAnyData());
-    setupPlotY2CountRange(frame.netCountersPeak.textures.count, plotData.hasAnyData());
+    MetricsVisualizer::GraphDisplayInfo displayInfo = drawGraphViewControls(Graph::TEXTURES);
 
     if (ImPlot::BeginPlot("Usage##DX12-Texture-Graph", nullptr, nullptr, ImVec2(-1, 0),
-          ImPlotFlags_NoTitle | ImPlotFlags_NoMousePos | ImPlotFlags_NoLegend | ImPlotFlags_YAxis2,
+          ImPlotFlags_NoTitle | ImPlotFlags_NoMouseText | ImPlotFlags_NoLegend | ImPlotFlags_YAxis2,
           ImPlotAxisFlags_Invert | ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_LockMin | ImPlotAxisFlags_AutoFit))
     {
+      auto plotData = setupPlotXRange(metricsAccess, displayInfo, frame.netCountersPeak.textures.count);
+      // heap size will always be the largest
+      setupPlotYMemoryRange(frame.netCountersPeak.textures.size, plotData.hasAnyData());
+      setupPlotY2CountRange(frame.netCountersPeak.textures.count, plotData.hasAnyData());
+
       if (plotData.hasAnyData())
       {
         struct GetSize
@@ -2814,7 +2918,7 @@ void MetricsVisualizer::drawTexturePlot()
 
         plot_line("Size", getPlotPointFrameValue<ImPlotPoint, GetSize>, plotData);
 
-        ImPlot::SetPlotYAxis(ImPlotYAxis_2);
+        ImPlot::SetAxis(ImAxis_Y2);
 
         plot_line("Count", getPlotPointFrameValue<ImPlotPoint, GetCount>, plotData);
 
@@ -2887,17 +2991,19 @@ void MetricsVisualizer::drawBuffersPlot()
     auto metricsAccess = accessMetrics();
     const auto &frame = metricsAccess->getLastFrameMetrics();
     const bool hasData = frame.netCountersPeak.cpuBufferHeaps.size || frame.netCountersPeak.gpuBufferHeaps.size;
-    auto plotData = setupPlotXRange(metricsAccess, drawGraphViewControls(Graph::BUFFERS), hasData);
-
-    setupPlotYMemoryRange(max(frame.netCountersPeak.cpuBufferHeaps.size, frame.netCountersPeak.gpuBufferHeaps.size),
-      plotData.hasAnyData());
-    setupPlotY2CountRange(max(frame.netCountersPeak.cpuBufferHeaps.count, frame.netCountersPeak.gpuBufferHeaps.count),
-      plotData.hasAnyData());
+    MetricsVisualizer::GraphDisplayInfo displayInfo = drawGraphViewControls(Graph::BUFFERS);
 
     if (ImPlot::BeginPlot("Usage##DX12-Buffer-Heap-Usage-Plot", nullptr, nullptr, ImVec2(-1, 0),
-          ImPlotFlags_NoTitle | ImPlotFlags_NoMousePos | ImPlotFlags_NoLegend | ImPlotFlags_YAxis2,
+          ImPlotFlags_NoTitle | ImPlotFlags_NoMouseText | ImPlotFlags_NoLegend | ImPlotFlags_YAxis2,
           ImPlotAxisFlags_Invert | ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_LockMin | ImPlotAxisFlags_AutoFit))
     {
+      auto plotData = setupPlotXRange(metricsAccess, displayInfo, hasData);
+
+      setupPlotYMemoryRange(max(frame.netCountersPeak.cpuBufferHeaps.size, frame.netCountersPeak.gpuBufferHeaps.size),
+        plotData.hasAnyData());
+      setupPlotY2CountRange(max(frame.netCountersPeak.cpuBufferHeaps.count, frame.netCountersPeak.gpuBufferHeaps.count),
+        plotData.hasAnyData());
+
       if (plotData.hasAnyData())
       {
         {
@@ -2908,7 +3014,7 @@ void MetricsVisualizer::drawBuffersPlot()
         plot_line("CPU Memory", getPlotPointFrameValue<ImPlotPoint, GetCPUMemory>, plotData);
         plot_line("GPU Memory", getPlotPointFrameValue<ImPlotPoint, GetGPUMemory>, plotData);
 
-        ImPlot::SetPlotYAxis(ImPlotYAxis_2);
+        ImPlot::SetAxis(ImAxis_Y2);
         plot_line("CPU Buffers", getPlotPointFrameValue<ImPlotPoint, GetCPUBuffer>, plotData);
         plot_line("GPU Buffers", getPlotPointFrameValue<ImPlotPoint, GetGPUBuffer>, plotData);
 
@@ -2994,15 +3100,18 @@ void MetricsVisualizer::drawConstRingMemoryPlot()
   auto metricsAccess = accessMetrics();
   const uint64_t peakValue = metricsAccess->getLastFrameMetrics().netCountersPeak.constRing.size;
 
+  auto createGraphViewControls = [this]() { drawGraphViewControls(Graph::CONST_RING); };
+
   auto selectPlotData = [this, peakValue, &metricsAccess]() //
   {
     PlotDataBase<GetPlotData> result //
-      {setupPlotXRange(metricsAccess, drawGraphViewControls(Graph::CONST_RING), peakValue > 0)};
+      {setupPlotXRange(metricsAccess, getGraphDisplayInfo(Graph::CONST_RING), peakValue > 0)};
     setupPlotYMemoryRange(peakValue, result.hasAnyData());
     return result;
   };
 
-  draw_ring_buffer_plot("DX12-Const-Ring-Usage-Plot-Segment", "Usage", "Usage##DX12-Const-Ring-Usage-Plot", selectPlotData);
+  draw_ring_buffer_plot("DX12-Const-Ring-Usage-Plot-Segment", "Usage", "Usage##DX12-Const-Ring-Usage-Plot", createGraphViewControls,
+    selectPlotData);
 }
 
 void MetricsVisualizer::drawConstRingBasicMetricsTable()
@@ -3042,15 +3151,18 @@ void MetricsVisualizer::drawUploadRingMemoryPlot()
   auto metricsAccess = accessMetrics();
   const uint64_t peakValue = metricsAccess->getLastFrameMetrics().netCountersPeak.uploadRing.size;
 
+  auto createGraphViewControls = [this]() { drawGraphViewControls(Graph::UPLOAD_RING); };
+
   auto selectPlotData = [this, peakValue, &metricsAccess]() //
   {
     PlotDataBase<GetPlotData> result //
-      {setupPlotXRange(metricsAccess, drawGraphViewControls(Graph::UPLOAD_RING), peakValue > 0)};
+      {setupPlotXRange(metricsAccess, getGraphDisplayInfo(Graph::UPLOAD_RING), peakValue > 0)};
     setupPlotYMemoryRange(peakValue, result.hasAnyData());
     return result;
   };
 
-  draw_ring_buffer_plot("DX12-Upload-Ring-Usage-Plot-Segment", "Usage", "Usage##DX12-Upload-Ring-Usage-Plot", selectPlotData);
+  draw_ring_buffer_plot("DX12-Upload-Ring-Usage-Plot-Segment", "Usage", "Usage##DX12-Upload-Ring-Usage-Plot", createGraphViewControls,
+    selectPlotData);
 }
 
 void MetricsVisualizer::drawUploadRingBasicMetricsTable()
@@ -3090,15 +3202,18 @@ void MetricsVisualizer::drawTempuraryUploadMemoryPlot()
   auto metricsAccess = accessMetrics();
   const uint64_t peakValue = metricsAccess->getLastFrameMetrics().netCountersPeak.tempBuffer.size;
 
+  auto createGraphViewControls = [this]() { drawGraphViewControls(Graph::TEMP_MEMORY); };
+
   auto selectPlotData = [this, peakValue, &metricsAccess]() //
   {
     PlotDataBase<GetPlotData> result //
-      {setupPlotXRange(metricsAccess, drawGraphViewControls(Graph::TEMP_MEMORY), peakValue > 0)};
+      {setupPlotXRange(metricsAccess, getGraphDisplayInfo(Graph::TEMP_MEMORY), peakValue > 0)};
     setupPlotYMemoryRange(peakValue, result.hasAnyData());
     return result;
   };
 
-  draw_ring_buffer_plot("DX12-Temp-Buffer-Usage-Plot-Segment", "Usage", "Usage##DX12-Temp-Buffer-Usage-Plot", selectPlotData);
+  draw_ring_buffer_plot("DX12-Temp-Buffer-Usage-Plot-Segment", "Usage", "Usage##DX12-Temp-Buffer-Usage-Plot", createGraphViewControls,
+    selectPlotData);
 }
 
 void MetricsVisualizer::drawTemporaryUploadMemoryBasicMetrics()
@@ -3123,22 +3238,28 @@ void MetricsVisualizer::drawRaytracePlot()
     const auto &frame = metricsAccess->getLastFrameMetrics();
     uint64_t maxY2 = frame.netCountersPeak.raytraceTopStructure.count;
     maxY2 = max(maxY2, frame.netCountersPeak.raytraceBottomStructure.count);
-    maxY2 = max(maxY2, frame.netCountersPeak.raytraceScratchBuffer.count);
-
-    auto plotData = setupPlotXRange(metricsAccess, drawGraphViewControls(Graph::RAYTRACING), maxY2 > 0);
-    uint64_t maxY = frame.netCountersPeak.raytraceTopStructure.size;
-    maxY = max(maxY, frame.netCountersPeak.raytraceBottomStructure.size);
-    maxY = max(maxY, frame.netCountersPeak.raytraceScratchBuffer.size);
-
-    setupPlotYMemoryRange(maxY, plotData.hasAnyData());
-    setupPlotY2CountRange(maxY2, plotData.hasAnyData());
 
     if (ImPlot::BeginPlot("Usage##DX12-raytracing-plot", nullptr, nullptr, ImVec2(-1, 0),
-          ImPlotFlags_NoTitle | ImPlotFlags_NoMousePos | ImPlotFlags_NoLegend | ImPlotFlags_YAxis2,
+          ImPlotFlags_NoTitle | ImPlotFlags_NoMouseText | ImPlotFlags_NoLegend | ImPlotFlags_YAxis2,
           ImPlotAxisFlags_Invert | ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_LockMin | ImPlotAxisFlags_AutoFit))
     {
+      auto plotData = setupPlotXRange(metricsAccess, drawGraphViewControls(Graph::RAYTRACING), maxY2 > 0);
+      uint64_t maxY = frame.netCountersPeak.raytraceTopStructure.size;
+      maxY = max(maxY, frame.netCountersPeak.raytraceBottomStructure.size);
+
+      setupPlotYMemoryRange(maxY, plotData.hasAnyData());
+      setupPlotY2CountRange(maxY2, plotData.hasAnyData());
+
       if (plotData.hasAnyData())
       {
+        struct GetHeapSize
+        {
+          static double get(const PerFrameData &frame) { return double(frame.netCounters.raytraceAccelStructHeap.size); }
+        };
+        struct GetHeapCount
+        {
+          static double get(const PerFrameData &frame) { return double(frame.netCounters.raytraceAccelStructHeap.count); }
+        };
         struct GetTopSize
         {
           static double get(const PerFrameData &frame) { return double(frame.netCounters.raytraceTopStructure.size); }
@@ -3155,35 +3276,29 @@ void MetricsVisualizer::drawRaytracePlot()
         {
           static double get(const PerFrameData &frame) { return double(frame.netCounters.raytraceBottomStructure.count); }
         };
-        struct GetScratchSize
-        {
-          static double get(const PerFrameData &frame) { return double(frame.netCounters.raytraceScratchBuffer.size); }
-        };
-        struct GetScratchCount
-        {
-          static double get(const PerFrameData &frame) { return double(frame.netCounters.raytraceScratchBuffer.count); }
-        };
         {
           ScopedPlotStyleVar shadedAlpha{ImPlotStyleVar_FillAlpha, 0.25f};
+
+          plot_shaded("Acceleration Structure Heap Memory (top + bottom + reserved)", getPlotPointFrameValue<ImPlotPoint, GetHeapSize>,
+            getPlotPointFrameBase<ImPlotPoint>, plotData);
+
           plot_shaded("Top Structure Memory", getPlotPointFrameValue<ImPlotPoint, GetTopSize>, getPlotPointFrameBase<ImPlotPoint>,
             plotData);
 
           plot_shaded("Bottom Structure Memory", getPlotPointFrameValue<ImPlotPoint, GetBottomSize>,
             getPlotPointFrameBase<ImPlotPoint>, plotData);
-
-          plot_shaded("Scratch Memory", getPlotPointFrameValue<ImPlotPoint, GetScratchSize>, getPlotPointFrameBase<ImPlotPoint>,
-            plotData);
         }
 
+        plot_line("Acceleration Structure Heap Memory (top + bottom + reserved)", getPlotPointFrameValue<ImPlotPoint, GetHeapSize>,
+          plotData);
         plot_line("Top Structure Memory", getPlotPointFrameValue<ImPlotPoint, GetTopSize>, plotData);
         plot_line("Bottom Structure Memory", getPlotPointFrameValue<ImPlotPoint, GetBottomSize>, plotData);
-        plot_line("Scratch Memory", getPlotPointFrameValue<ImPlotPoint, GetScratchSize>, plotData);
 
-        ImPlot::SetPlotYAxis(ImPlotYAxis_2);
+        ImPlot::SetAxis(ImAxis_Y2);
 
+        plot_line("Acceleartion Structure Heap Count", getPlotPointFrameValue<ImPlotPoint, GetHeapCount>, plotData);
         plot_line("Top Structure Count", getPlotPointFrameValue<ImPlotPoint, GetTopCount>, plotData);
         plot_line("Bottom Structure Count", getPlotPointFrameValue<ImPlotPoint, GetBottomCount>, plotData);
-        plot_line("Scratch Count", getPlotPointFrameValue<ImPlotPoint, GetScratchCount>, plotData);
 
         // When hovering the plot we show a tooltip with frame index and the sizes of each plot
         if (ImPlot::IsPlotHovered())
@@ -3210,10 +3325,10 @@ void MetricsVisualizer::drawRaytracePlot()
               ImGui::SameLine();
               ImGui::Text("Bottom Structure Memory: %.2f %s", bottomSize.units(), bottomSize.name());
 
-              ByteUnits scratchSize = frame.netCounters.raytraceScratchBuffer.size;
+              ByteUnits heapSize = frame.netCounters.raytraceAccelStructHeap.size;
               ImPlot::ItemIcon(ImPlot::GetColormapColor(2));
               ImGui::SameLine();
-              ImGui::Text("Scratch Memory: %.2f %s", scratchSize.units(), scratchSize.name());
+              ImGui::Text("Accelearation Structure Heap Memory: %.2f %s", heapSize.units(), heapSize.name());
 
               ImPlot::ItemIcon(ImPlot::GetColormapColor(3));
               ImGui::SameLine();
@@ -3225,7 +3340,7 @@ void MetricsVisualizer::drawRaytracePlot()
 
               ImPlot::ItemIcon(ImPlot::GetColormapColor(5));
               ImGui::SameLine();
-              ImGui::Text("Scratch Count: %I64u", frame.netCounters.raytraceScratchBuffer.count);
+              ImGui::Text("Accelearation Structure Heap Count: %I64u", frame.netCounters.raytraceAccelStructHeap.count);
             }
           }
         }
@@ -3233,12 +3348,12 @@ void MetricsVisualizer::drawRaytracePlot()
       else
       {
         // When no data is available just display a empty plot
+        ImPlot::PlotDummy("Acceleration Structure Heap Memory (top + bottom + reserved)");
         ImPlot::PlotDummy("Top Structure Memory");
         ImPlot::PlotDummy("Bottom Structure Memory");
-        ImPlot::PlotDummy("Scratch Memory");
+        ImPlot::PlotDummy("Acceleartion Structure Heap Count");
         ImPlot::PlotDummy("Top Structure Count");
         ImPlot::PlotDummy("Bottom Structure Count");
-        ImPlot::PlotDummy("Scratch Count");
         // Tell the user, there nothing to show in the plot
         ImPlot::PushStyleColor(ImPlotCol_InlayText, ImVec4(.75f, .75f, 0.f, 1.f));
         ImPlot::PlotText("No historical data available", 0.5, 0.5);
@@ -3260,15 +3375,16 @@ void MetricsVisualizer::drawUserHeapsPlot()
     const auto &frame = metricsAccess->getLastFrameMetrics();
     uint64_t maxY2 = frame.netCountersPeak.userResourceHeaps.count;
 
-    auto plotData = setupPlotXRange(metricsAccess, drawGraphViewControls(Graph::USER_HEAPS), maxY2 > 0);
-    // heap size will always be the largest
-    setupPlotYMemoryRange(frame.netCountersPeak.userResourceHeaps.size, plotData.hasAnyData());
-    setupPlotY2CountRange(maxY2, plotData.hasAnyData());
-
     if (ImPlot::BeginPlot("Usage##DX12-User-Heap-Graph", nullptr, nullptr, ImVec2(-1, 0),
-          ImPlotFlags_NoTitle | ImPlotFlags_NoMousePos | ImPlotFlags_NoLegend | ImPlotFlags_YAxis2,
+          ImPlotFlags_NoTitle | ImPlotFlags_NoMouseText | ImPlotFlags_NoLegend | ImPlotFlags_YAxis2,
           ImPlotAxisFlags_Invert | ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_LockMin | ImPlotAxisFlags_AutoFit))
     {
+
+      auto plotData = setupPlotXRange(metricsAccess, drawGraphViewControls(Graph::USER_HEAPS), maxY2 > 0);
+      // heap size will always be the largest
+      setupPlotYMemoryRange(frame.netCountersPeak.userResourceHeaps.size, plotData.hasAnyData());
+      setupPlotY2CountRange(maxY2, plotData.hasAnyData());
+
       if (plotData.hasAnyData())
       {
         struct GetUserHeapSize
@@ -3287,7 +3403,7 @@ void MetricsVisualizer::drawUserHeapsPlot()
 
         plot_line("User Heaps Size", getPlotPointFrameValue<ImPlotPoint, GetUserHeapSize>, plotData);
 
-        ImPlot::SetPlotYAxis(ImPlotYAxis_2);
+        ImPlot::SetAxis(ImAxis_Y2);
 
         plot_line("User Heap Count", getPlotPointFrameValue<ImPlotPoint, GetUserHeapCount>, plotData);
 
@@ -3390,16 +3506,18 @@ void MetricsVisualizer::drawPersistenUploadMemoryPlot()
   auto metricsAccess = accessMetrics();
   const uint64_t peakValue = metricsAccess->getLastFrameMetrics().netCountersPeak.persistentUploadBuffer.size;
 
+  auto createGraphViewControls = [this]() { drawGraphViewControls(Graph::UPLOAD_MEMORY); };
+
   auto selectPlotData = [this, peakValue, &metricsAccess]() //
   {
     PlotDataBase<GetPlotData> result //
-      {setupPlotXRange(metricsAccess, drawGraphViewControls(Graph::UPLOAD_MEMORY), peakValue > 0)};
+      {setupPlotXRange(metricsAccess, getGraphDisplayInfo(Graph::UPLOAD_MEMORY), peakValue > 0)};
     setupPlotYMemoryRange(peakValue, result.hasAnyData());
     return result;
   };
 
   draw_ring_buffer_plot("DX12Persistent-Upload-Memory-Usage-Plot-Segment", "Usage", "Usage##DX12Persistent-Upload-Memory-Usage-Plot",
-    selectPlotData);
+    createGraphViewControls, selectPlotData);
 }
 
 void MetricsVisualizer::drawPersistenReadBackMemoryPlot()
@@ -3427,16 +3545,18 @@ void MetricsVisualizer::drawPersistenReadBackMemoryPlot()
   auto metricsAccess = accessMetrics();
   const uint64_t peakValue = metricsAccess->getLastFrameMetrics().netCountersPeak.persistentReadBackBuffer.size;
 
+  auto createGraphViewControls = [this]() { drawGraphViewControls(Graph::READ_BACK_MEMORY); };
+
   auto selectPlotData = [this, peakValue, &metricsAccess]() //
   {
     PlotDataBase<GetPlotData> result //
-      {setupPlotXRange(metricsAccess, drawGraphViewControls(Graph::READ_BACK_MEMORY), peakValue > 0)};
+      {setupPlotXRange(metricsAccess, getGraphDisplayInfo(Graph::READ_BACK_MEMORY), peakValue > 0)};
     setupPlotYMemoryRange(peakValue, result.hasAnyData());
     return result;
   };
 
   draw_ring_buffer_plot("DX12Persistent-Read-Back-Memory-Usage-Plot-Segment", "Usage",
-    "Usage##DX12Persistent-Read-Back-Memory-Usage-Plot", selectPlotData);
+    "Usage##DX12Persistent-Read-Back-Memory-Usage-Plot", createGraphViewControls, selectPlotData);
 }
 
 void MetricsVisualizer::drawPersistenBidirectioanlMemoryPlot()
@@ -3464,16 +3584,18 @@ void MetricsVisualizer::drawPersistenBidirectioanlMemoryPlot()
   auto metricsAccess = accessMetrics();
   const uint64_t peakValue = metricsAccess->getLastFrameMetrics().netCountersPeak.persistentBidirectionalBuffer.size;
 
+  auto createGraphViewControls = [this]() { drawGraphViewControls(Graph::BIDIRECTIONAL_MEMORY); };
+
   auto selectPlotData = [this, peakValue, &metricsAccess]() //
   {
     PlotDataBase<GetPlotData> result //
-      {setupPlotXRange(metricsAccess, drawGraphViewControls(Graph::BIDIRECTIONAL_MEMORY), peakValue > 0)};
+      {setupPlotXRange(metricsAccess, getGraphDisplayInfo(Graph::BIDIRECTIONAL_MEMORY), peakValue > 0)};
     setupPlotYMemoryRange(peakValue, result.hasAnyData());
     return result;
   };
 
   draw_ring_buffer_plot("DX12Persistent-Bidirectional-Memory-Usage-Plot-Segment", "Usage",
-    "Usage##DX12Persistent-Bidirectional-Memory-Usage-Plot", selectPlotData);
+    "Usage##DX12Persistent-Bidirectional-Memory-Usage-Plot", createGraphViewControls, selectPlotData);
 }
 
 void MetricsVisualizer::drawRaytraceSummaryTable()
@@ -3489,6 +3611,20 @@ void MetricsVisualizer::drawRaytraceSummaryTable()
 
   auto metricsAccess = accessMetrics();
   const auto &frameCounters = metricsAccess->getLastFrameMetrics();
+
+  begin_selectable_row("Acceleration structure heap memory size");
+  ByteUnits heapSize = frameCounters.netCounters.raytraceAccelStructHeap.size;
+  ImGui::TableNextColumn();
+  ImGui::Text("%.2f %s", heapSize.units(), heapSize.name());
+  heapSize = frameCounters.netCountersPeak.raytraceAccelStructHeap.size;
+  ImGui::TableNextColumn();
+  ImGui::Text("%.2f %s", heapSize.units(), heapSize.name());
+
+  begin_selectable_row("Acceleration structure heap count");
+  ImGui::TableNextColumn();
+  ImGui::Text("%I64u", frameCounters.netCounters.raytraceAccelStructHeap.count);
+  ImGui::TableNextColumn();
+  ImGui::Text("%I64u", frameCounters.netCountersPeak.raytraceAccelStructHeap.count);
 
   begin_selectable_row("Top structure memory size");
   ByteUnits topSize = frameCounters.netCounters.raytraceTopStructure.size;
@@ -3517,20 +3653,6 @@ void MetricsVisualizer::drawRaytraceSummaryTable()
   ImGui::Text("%I64u", frameCounters.netCounters.raytraceBottomStructure.count);
   ImGui::TableNextColumn();
   ImGui::Text("%I64u", frameCounters.netCountersPeak.raytraceBottomStructure.count);
-
-  begin_selectable_row("Scratch buffer size");
-  ByteUnits scratchSize = frameCounters.netCounters.raytraceScratchBuffer.size;
-  ImGui::TableNextColumn();
-  ImGui::Text("%.2f %s", scratchSize.units(), scratchSize.name());
-  scratchSize = frameCounters.netCountersPeak.raytraceScratchBuffer.size;
-  ImGui::TableNextColumn();
-  ImGui::Text("%.2f %s", scratchSize.units(), scratchSize.name());
-
-  begin_selectable_row("Scratch buffer count");
-  ImGui::TableNextColumn();
-  ImGui::Text("%I64u", frameCounters.netCounters.raytraceScratchBuffer.count);
-  ImGui::TableNextColumn();
-  ImGui::Text("%I64u", frameCounters.netCountersPeak.raytraceScratchBuffer.count);
 
   ImGui::EndTable();
 #endif
@@ -3908,26 +4030,29 @@ void DebugView::drawRaytraceTopStructureTable()
   {
     make_table_header({"Address start", "Address end", "Size"});
 
-    raytraceAccelerationStructurePool.access()->iterateAllocated([](auto as) //
-      {
-        // currently the only indicator for top or bottom is to see if it has a UAV descriptor or
-        // not if not then its bottom
-        if (0 == as->handle.ptr)
+    {
+      OSSpinlockScopedLock lock{rtasSpinlock};
+      accelStructPool.iterateAllocated([](RaytraceAccelerationStructure *as) //
         {
-          return;
-        }
+          // currently the only indicator for top or bottom is to see if it has a UAV descriptor or
+          // not if not then its bottom
+          if (0 == as->descriptor.ptr)
+          {
+            return;
+          }
 
-        char buf[64];
-        sprintf_s(buf, "%016I64X", as->getGPUPointer());
-        begin_selectable_row(buf);
+          char buf[64];
+          sprintf_s(buf, "%016I64X", as->gpuAddress);
+          begin_selectable_row(buf);
 
-        ImGui::TableNextColumn();
-        ImGui::Text("%016I64X", as->getGPUPointer() + as->size());
+          ImGui::TableNextColumn();
+          ImGui::Text("%016I64X", as->gpuAddress + as->size);
 
-        ByteUnits sz = as->size();
-        ImGui::TableNextColumn();
-        ImGui::Text("%.2f %s", sz.units(), sz.name());
-      });
+          ByteUnits sz = as->size;
+          ImGui::TableNextColumn();
+          ImGui::Text("%.2f %s", sz.units(), sz.name());
+        });
+    }
 
     ImGui::EndTable();
   }
@@ -3948,26 +4073,29 @@ void DebugView::drawRaytraceBottomStructureTable()
   {
     make_table_header({"Address start", "Address end", "Size"});
 
-    raytraceAccelerationStructurePool.access()->iterateAllocated([](auto as) //
-      {
-        // currently the only indicator for top or bottom is to see if it has a UAV descriptor or
-        // not if not then its bottom
-        if (0 != as->handle.ptr)
+    {
+      OSSpinlockScopedLock lock{rtasSpinlock};
+      accelStructPool.iterateAllocated([](RaytraceAccelerationStructure *as) //
         {
-          return;
-        }
+          // currently the only indicator for top or bottom is to see if it has a UAV descriptor or
+          // not if not then its bottom
+          if (0 != as->descriptor.ptr)
+          {
+            return;
+          }
 
-        char buf[64];
-        sprintf_s(buf, "%016I64X", as->getGPUPointer());
-        begin_selectable_row(buf);
+          char buf[64];
+          sprintf_s(buf, "%016I64X", as->gpuAddress);
+          begin_selectable_row(buf);
 
-        ImGui::TableNextColumn();
-        ImGui::Text("%016I64X", as->getGPUPointer() + as->size());
+          ImGui::TableNextColumn();
+          ImGui::Text("%016I64X", as->gpuAddress + as->size);
 
-        ByteUnits sz = as->size();
-        ImGui::TableNextColumn();
-        ImGui::Text("%.2f %s", sz.units(), sz.name());
-      });
+          ByteUnits sz = as->size;
+          ImGui::TableNextColumn();
+          ImGui::Text("%.2f %s", sz.units(), sz.name());
+        });
+    }
 
     ImGui::EndTable();
   }
@@ -4564,7 +4692,7 @@ void DebugView::drawHeapsTable()
       // have to get access to buffer heaps before to heaps as otherwise we have a ordering issue and deadlock.
       auto bufferHeapStateAccess = bufferHeapState.access();
       OSSpinlockScopedLock lock{heapGroupMutex};
-      for (properties.raw = 0; properties.raw < countof(groups); ++properties.raw)
+      for (properties.raw = 0; properties.raw < groups.size(); ++properties.raw)
       {
         auto &group = groups[properties.raw];
         FragmentationCalculatorContext overalFragmentation;
@@ -4642,7 +4770,7 @@ void DebugView::drawHeapsTable()
             open = ImGui::TreeNodeEx(strBuf, ImGuiTreeNodeFlags_SpanFullWidth);
 
             ImGui::TableSetColumnIndex(1);
-            ImGui::Text("%zu", heap->usedRanges.size());
+            ImGui::Text("%u", heap->usedRanges.size());
 
             ImGui::TableSetColumnIndex(4);
             ImGui::Text("%.2f %s", totalAllocated.units(), totalAllocated.name());
@@ -4722,17 +4850,9 @@ void DebugView::drawHeapsTable()
                   {
                     draw_segment(heap->heapPointer(), *segment, heap->totalSize, "Persistent bidirectional buffer");
                   }
-                  else if (eastl::holds_alternative<RaytraceScratchBufferReference>(res))
+                  else if (eastl::holds_alternative<RaytraceAccelerationStructureHeapReference>(res))
                   {
-                    draw_segment(heap->heapPointer(), *segment, heap->totalSize, "Raytracing scratch buffer");
-                  }
-                  else if (eastl::holds_alternative<RaytraceBottomLevelAccelerationStructureRefnerence>(res))
-                  {
-                    draw_segment(heap->heapPointer(), *segment, heap->totalSize, "Raytracing bottom level acceleration structure");
-                  }
-                  else if (eastl::holds_alternative<RaytraceTopLevelAccelerationStructureRefnerence>(res))
-                  {
-                    draw_segment(heap->heapPointer(), *segment, heap->totalSize, "Raytracing top level acceleration structure");
+                    draw_segment(heap->heapPointer(), *segment, heap->totalSize, "Raytracing acceleration structure heap");
                   }
                   else
                   {
@@ -5212,16 +5332,25 @@ const char *filter_type_to_string(D3D12_FILTER_TYPE type)
   }
 }
 
-struct ResourceHeapVisitor
+template <typename T>
+struct ResourceHeapReportVisitor
 {
-  String &str;
-  ByteUnits &totalSize;
-  ByteUnits &freeSize;
-  size_t &totalHeapCount;
+  T &target;
+  size_t totalHeapCount = 0;
+  ByteUnits totalResourceMemorySize;
+  ByteUnits freeResourceMemorySize;
+
+  void beginVisit() { target("~ Resource Heaps ~~~~~~~~~~~~~~~~~~~~"); }
+
+  void endVisit()
+  {
+    target("%u resource heaps, with %6.2f %7s in total and %6.2f %7s free", totalHeapCount, totalResourceMemorySize.units(),
+      totalResourceMemorySize.name(), freeResourceMemorySize.units(), freeResourceMemorySize.name());
+  }
 
   void visitHeapGroup(uint32_t ident, size_t count, bool is_cpu_visible, bool is_cpu_cached, bool is_gpu_executable)
   {
-    str.aprintf(128, "Heap Group %08X (%s, %s%s) with %d heaps\n", ident, is_cpu_visible ? "CPU visible" : "dedicated GPU",
+    target("Heap Group %08X (%s, %s%s) with %d heaps", ident, is_cpu_visible ? "CPU visible" : "dedicated GPU",
       is_cpu_visible ? is_cpu_cached ? "CPU cached, " : "CPU write combine, " : "",
       is_gpu_executable ? "GPU executable" : "Not GPU executable", count);
     totalHeapCount += count;
@@ -5229,256 +5358,1740 @@ struct ResourceHeapVisitor
 
   void visitHeap(ByteUnits total_size, ByteUnits free_size, uint32_t fragmentation_percent)
   {
-    totalSize += total_size;
-    freeSize += free_size;
-    str.aprintf(128, "Size %6.2f %7s Free %6.2f %7s, %3u%% fragmentation\n", total_size.units(), total_size.name(), free_size.units(),
+    totalResourceMemorySize += total_size;
+    freeResourceMemorySize += free_size;
+    target("Heap with %6.2f %7s, %6.2f %7s free, %3u%% fragmentation", total_size.units(), total_size.name(), free_size.units(),
       free_size.name(), fragmentation_percent);
   }
 
-  void visitHeapUsedRange(ValueRange<uint64_t>) {}
+  template <typename T>
+  void visitResourceInHeap(ValueRange<uint64_t> range, const T &)
+  {
+    ByteUnits size = range.size();
+    target("%016llX with %6.2f %7s Generic resource (missing type handler)", range.front(), size.units(), size.name());
+  }
+
+  void visitResourceInHeap(ValueRange<uint64_t> range, eastl::monostate)
+  {
+    // rare case when the memory got allocated but the resource that uses it is currently created and we don't know
+    // anything about it yet.
+    ByteUnits size = range.size();
+    target("%016llX with %6.2f %7s in flight resource creation, no resource info yet", range.front(), size.units(), size.name());
+  }
+
+  void visitResourceInHeap(ValueRange<uint64_t> range, Image *tex)
+  {
+    tex->getDebugName([this, range, tex](const auto &name) {
+      ByteUnits size = range.size();
+      target("%016llX with %6.2f %7s Texture %016p <%s>", range.front(), size.units(), size.name(), tex, name);
+    });
+  }
+
+  void visitResourceInHeap(ValueRange<uint64_t> range, BufferGlobalId buffer)
+  {
+    ByteUnits size = range.size();
+    target("%016llX with %6.2f %7s Buffer #%u", range.front(), size.units(), size.name(), buffer.index());
+  }
+
+  void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::RaytraceAccelerationStructureHeapReference &)
+  {
+    ByteUnits size = range.size();
+    target("%016llX with %6.2f %7s Accel Struct Heap", range.front(), size.units(), size.name());
+  }
+
+  void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::AliasHeapReference &a_heap)
+  {
+    ByteUnits size = range.size();
+    target("%016llX with %6.2f %7s Aliasing Heap #%u", range.front(), size.units(), size.name(), a_heap.index);
+    // TODO drill down user heap?
+  }
+
+  void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::ScratchBufferReference &)
+  {
+    ByteUnits size = range.size();
+    target("%016llX with %6.2f %7s Scratch buffer", range.front(), size.units(), size.name());
+  }
+
+  void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::PushRingBufferReference &)
+  {
+    ByteUnits size = range.size();
+    target("%016llX with %6.2f %7s Push ring", range.front(), size.units(), size.name());
+  }
+
+  void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::UploadRingBufferReference &)
+  {
+    ByteUnits size = range.size();
+    target("%016llX with %6.2f %7s Upload ring", range.front(), size.units(), size.name());
+  }
+
+  void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::TempUploadBufferReference &)
+  {
+    ByteUnits size = range.size();
+    target("%016llX with %6.2f %7s Temp upload ring", range.front(), size.units(), size.name());
+  }
+
+  void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::PersistentUploadBufferReference &)
+  {
+    ByteUnits size = range.size();
+    target("%016llX with %6.2f %7s Persistent upload buffer", range.front(), size.units(), size.name());
+  }
+
+  void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::PersistentReadBackBufferReference &)
+  {
+    ByteUnits size = range.size();
+    target("%016llX with %6.2f %7s Persistent read back buffer", range.front(), size.units(), size.name());
+  }
+
+  void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::PersistentBidirectionalBufferReference &)
+  {
+    ByteUnits size = range.size();
+    target("%016llX with %6.2f %7s Persistent bidirectional buffer", range.front(), size.units(), size.name());
+  }
+
+  void visitHeapUsedRange(ValueRange<uint64_t> range, const ResourceMemoryHeap::AnyResourceReference &res)
+  {
+    eastl::visit([this, range](const auto &e) { visitResourceInHeap(range, e); }, res);
+  }
 
   void visitHeapFreeRange(ValueRange<uint64_t> range)
   {
     ByteUnits sizeBytes{range.size()};
-    str.aprintf(128, "DX12: Free segment at %016llX with %6.2f %7s\n", range.front(), sizeBytes.units(), sizeBytes.name());
+    target("%016llX with %6.2f %7s Free", range.front(), sizeBytes.units(), sizeBytes.name());
   }
 };
-} // namespace
 
-void ResourceMemoryHeap::generateResourceAndMemoryReport(uint32_t *num_textures, uint64_t *total_mem, String *out_text)
+struct ResourceHeapDumpVisitor
 {
-  if (num_textures)
-    *num_textures = 0;
-  if (total_mem)
-    *total_mem = 0;
+  Tab<ResourceDumpInfo> &dumpInfo;
+  eastl::vector_map<Image *, uint64_t> &imgAdressMap;
+  eastl::vector_set<uint32_t> &buffersPresent;
 
-  if (out_text)
+  template <typename T>
+  void visitResourceInHeap(ValueRange<uint64_t>, const T &)
+  {}
+
+  void visitResourceInHeap(ValueRange<uint64_t> range, Image *img) { imgAdressMap.insert(eastl::make_pair(img, range.front())); }
+
+  void visitResourceInHeap(ValueRange<uint64_t>, BufferGlobalId b) { buffersPresent.insert(b.index()); }
+
+  void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::RaytraceAccelerationStructureHeapReference &)
   {
-    out_text->append("\n");
-    out_text->append("~ Resource Heaps ~~~~~~~~~~~~~~~~~~~~\n");
-    ByteUnits totalResourceMemorySize;
-    ByteUnits freeResourceMemorySize;
-    size_t totalHeapCount = 0;
-    visitHeaps(ResourceHeapVisitor{*out_text, totalResourceMemorySize, freeResourceMemorySize, totalHeapCount});
-    out_text->aprintf(128, "%u resource heaps, with %6.2f %7s in total and %6.2f %7s free\n", totalHeapCount,
-      totalResourceMemorySize.units(), totalResourceMemorySize.name(), freeResourceMemorySize.units(), freeResourceMemorySize.name());
+    ByteUnits size = range.size();
+    dumpInfo.emplace_back(resource_dump_types::ResourceType::RtAccel, (int)size.value(), range.front(), true);
+  }
 
-    ByteUnits pushRingSize = getFramePushRingMemorySize();
-    ByteUnits uploadRingSize = getUploadRingMemorySize();
-    ByteUnits tempUploadSize = getTemporaryUploadMemorySize();
-    ByteUnits persistUploadSize = getPersistentUploadMemorySize();
-    ByteUnits persistReadBackSize = getPersistentReadBackMemorySize();
-    ByteUnits persistBidirSize = getPersistentBidirectionalMemorySize();
+  void visitHeapUsedRange(ValueRange<uint64_t> range, const ResourceMemoryHeap::AnyResourceReference &res)
+  {
+    eastl::visit([this, range](const auto &e) { visitResourceInHeap(range, e); }, res);
+  }
 
-    out_text->append("~ Driver internal buffers ~~~~~~~~~~~\n");
-    out_text->aprintf(128, "%6.2f %7s push ring buffers\n", pushRingSize.units(), pushRingSize.name());
-    out_text->aprintf(128, "%6.2f %7s upload ring buffers\n", uploadRingSize.units(), uploadRingSize.name());
-    out_text->aprintf(128, "%6.2f %7s temporary upload buffers\n", tempUploadSize.units(), tempUploadSize.name());
-    out_text->aprintf(128, "%6.2f %7s persistent upload buffers\n", persistUploadSize.units(), persistUploadSize.name());
-    out_text->aprintf(128, "%6.2f %7s persistent read back buffers\n", persistReadBackSize.units(), persistReadBackSize.name());
-    out_text->aprintf(128, "%6.2f %7s persistent bidirectional buffers\n", persistBidirSize.units(), persistBidirSize.name());
-    out_text->append("~ All driver level buffers ~~~~~~~~~~\n");
-    ByteUnits butterTotalExternalSize;
-    ByteUnits bufferTotalInternalSize;
-    size_t bufferCount = 0;
-    size_t discardReadyCount = 0;
-    visitBuffers([out_text, &butterTotalExternalSize, &bufferTotalInternalSize, &bufferCount, &discardReadyCount](const char *name,
-                   ByteUnits internal_size, ByteUnits external_size,
-                   bool is_discard_ready) //
+  void visitHeapFreeRange(ValueRange<uint64_t>) {}
+  void beginVisit() {}
+  void endVisit() {}
+  void visitHeapGroup(uint32_t, size_t, bool, bool, bool) {}
+  void visitHeap(ByteUnits, ByteUnits, uint32_t) {}
+};
+
+template <typename T>
+struct BufferHeapReportVisitor
+{
+  T &target;
+  size_t bufferCount = 0;
+  size_t standbyCount = 0;
+  ByteUnits internalBufferTotalSize;
+  ByteUnits internalBufferFreeSize;
+  ByteUnits standbyTotalSize;
+
+  void beginVisit() {}
+  void endVisit() {}
+
+  void beginVisitBuffers()
+  {
+    target("~ All driver level buffers ~ (ID Order) ~~~~~~~~~");
+    target(" ID,     Total size,      Free size, Has standby regions, Flags");
+  }
+
+  void endVisitBuffers()
+  {
+    target("%u buffers, with %6.2f %7s in total and %6.2f %7s free", bufferCount, internalBufferTotalSize.units(),
+      internalBufferTotalSize.name(), internalBufferFreeSize.units(), internalBufferFreeSize.name());
+  }
+
+  void beginVisitStandbyRange()
+  {
+    target("~ Standby regions of buffers (Random order) ~~~~~~~~~");
+    target(" ID,           Size,           Offset, Progress Counter");
+  }
+
+  void endVisitStandbyRange()
+  {
+    target("%u standby regions, with %6.2f %7s in total", standbyCount, standbyTotalSize.units(), standbyTotalSize.name());
+  }
+
+  void visitBuffer(uint32_t id, ByteUnits size, ByteUnits free_size, D3D12_RESOURCE_FLAGS flags, bool is_on_standby_list)
+  {
+    ++bufferCount;
+    internalBufferTotalSize += size;
+    internalBufferFreeSize += free_size;
+    target("%3u, %6.2f %7s, %6.2f %7s,           %-9s, %08X", id, size.units(), size.name(), free_size.units(), free_size.name(),
+      is_on_standby_list ? "X" : "0", flags);
+  }
+  void visitBufferFreeRange(ValueRange<uint64_t> range) { G_UNUSED(range); }
+  void visitBufferStandbyRange(uint64_t progress, uint32_t id, ValueRange<uint64_t> range)
+  {
+    ++standbyCount;
+    ByteUnits size = range.size();
+    standbyTotalSize += range.size();
+    target("%3u, %6.2f %7s, %016llX, %llu", id, size.units(), size.name(), range.front(), progress);
+  }
+};
+
+template <typename T>
+struct SbufferReportVisitor
+{
+  T &target;
+
+  dag::Vector<const GenericBufferInterface *> buffers;
+
+  void beginVisit(size_t max_size) { buffers.reserve(max_size); }
+
+  void endVisit()
+  {
+    eastl::sort(begin(buffers), end(buffers), [](auto l, auto r) {
+      if (l->ressize() > r->ressize())
       {
-        ++bufferCount;
-        if (is_discard_ready)
-        {
-          ++discardReadyCount;
-        }
-        butterTotalExternalSize += external_size;
-        bufferTotalInternalSize += internal_size;
-        out_text->aprintf(128, "%6.2f %7s - %6.2f %7s %s%s\n", internal_size.units(), internal_size.name(), external_size.units(),
-          external_size.name(), name, is_discard_ready ? " discard ready" : "");
-      });
-    out_text->aprintf(128,
-      "%u buffers of which %u are discard ready list, with %6.2f %7s external size "
-      "and %6.2f %7s internal size\n",
-      bufferCount, discardReadyCount, butterTotalExternalSize.units(), butterTotalExternalSize.name(), bufferTotalInternalSize.units(),
-      bufferTotalInternalSize.name());
-    out_text->append("~ Sbuffer resources ~~~~~~~~~~~~~~~~~\n");
+        return true;
+      }
+      if (l->ressize() < r->ressize())
+      {
+        return false;
+      }
+      return l < r;
+    });
 
+    target("~ Sbuffer resources ~ (Ressize Order) ~~~~~~~~~~~~~~~~");
+    target("     Ressize, Allocated Size, Sys Copy Size, Dynamic, Internal ID,           Offset,  Discards,   Mapped Address, Name");
+    ByteUnits publicSize;
+    ByteUnits bufferTotalSize;
+    ByteUnits bufferSysCopySize;
+
+    for (auto buffer : buffers)
     {
-      ByteUnits bufferTotalSize = 0;
-      ByteUnits bufferSysCopySize = 0;
-      size_t sbufferCount = 0;
-      visitBufferObjects([out_text, &bufferTotalSize, &bufferSysCopySize, &sbufferCount](auto buffer) //
-        {
-          ++sbufferCount;
-          ByteUnits size = buffer->ressize();
-          bufferTotalSize += size;
-          if (buffer->hasSystemCopy())
-          {
-            bufferSysCopySize += size;
-          }
-          out_text->aprintf(128, "%6.2f %7s %s '%s' buffer%s\n", size.units(), size.name(),
-            buffer->getFlags() & SBCF_DYNAMIC ? "dynamic" : "static", buffer->getBufName(),
-            buffer->hasSystemCopy() ? "(has copy)" : "");
-        });
-      out_text->aprintf(256, "%u buffers, with %6.2f %7s buffer memory and %6.2f %7s system memory\n", sbufferCount,
-        bufferTotalSize.units(), bufferTotalSize.name(), bufferSysCopySize.units(), bufferSysCopySize.name());
+      const BufferState &deviceBuffer = buffer->getDeviceBuffer();
+      ByteUnits size = deviceBuffer.totalSize();
+      publicSize += buffer->ressize();
+      bufferTotalSize += size;
+      ByteUnits copySize;
+      if (buffer->hasSystemCopy())
+      {
+        copySize = buffer->ressize();
+        bufferSysCopySize += copySize.value();
+      }
+      target("%12llu, %6.2f %7s, %6.2f %7s,   %s   , #%-10u, %016llX, %4u/%-4u, %016p, %s", buffer->ressize(), size.units(),
+        size.name(), copySize.units(), copySize.name(), buffer->getFlags() & SBCF_DYNAMIC ? "X" : "0", deviceBuffer.resourceId.index(),
+        deviceBuffer.offset, deviceBuffer.currentDiscardIndex, deviceBuffer.discardCount, deviceBuffer.currentCPUPointer(),
+        buffer->getBufName());
     }
 
-    out_text->append("~ All driver level textures ~~~~~~~~~\n");
-    ByteUnits totalImageResourcesSize;
-    size_t imageCount = 0;
-    size_t imageAliases = 0;
-    visitImageObjects([out_text, &totalImageResourcesSize, &imageCount, &imageAliases](auto image) //
+    target("%u buffers, with %6.2f %7s external size, with %6.2f %7s allocated size and %6.2f %7s system memory", buffers.size(),
+      publicSize.units(), publicSize.name(), bufferTotalSize.units(), bufferTotalSize.name(), bufferSysCopySize.units(),
+      bufferSysCopySize.name());
+  }
+
+  void visitBuffer(const GenericBufferInterface *buffer) { buffers.push_back(buffer); }
+};
+
+struct SbufferDumpVisitor
+{
+  Tab<ResourceDumpInfo> &dumpInfo;
+  eastl::vector_set<uint32_t> &buffersPresent;
+  void beginVisit(size_t) {}
+  void endVisit() {}
+  void visitBuffer(const GenericBufferInterface *buffer)
+  {
+    const BufferState &deviceBuffer = buffer->getDeviceBuffer();
+
+    if (buffersPresent.find(deviceBuffer.resourceId.index()) == buffersPresent.end())
+      return;
+
+    dumpInfo.emplace_back(resource_dump_types::ResourceType::Buffer, buffer->getBufName(), buffer->ressize(),
+      buffer->hasSystemCopy() ? buffer->ressize() : -1, buffer->getFlags(), deviceBuffer.currentDiscardIndex,
+      deviceBuffer.discardCount, deviceBuffer.resourceId.index(), deviceBuffer.offset, (uint64_t)deviceBuffer.currentCPUPointer(),
+      (uint64_t)deviceBuffer.currentGPUPointer());
+  }
+};
+
+template <typename T>
+struct ImageReportVisitor
+{
+  T &target;
+  size_t imageCount = 0;
+  size_t imageAliases = 0;
+  ByteUnits totalImageResourcesSize;
+
+  void beginVisit()
+  {
+    target("~ All driver level textures ~ (Address Order) ~~~~~~~~");
+    target("          Size,          Address, Name");
+  }
+
+  void endVisit()
+  {
+
+    target("%u textures, with %6.2f %7s plus %u aliased textures", imageCount, totalImageResourcesSize.units(),
+      totalImageResourcesSize.name(), imageAliases);
+  }
+
+  void visitTexture(Image *image)
+  {
+    if (image->isAliased())
+    {
+      ++imageAliases;
+      image->getDebugName([this, image](auto &name) { target("%14s, %016p, %s", "Aliased", image, name); });
+    }
+    else
+    {
+      ByteUnits size = image->getMemory().size();
+      totalImageResourcesSize += size;
+      image->getDebugName([this, image, size](auto &name) { target("%6.2f %7s, %016p, %s", size.units(), size.name(), image, name); });
+    }
+    ++imageCount;
+  }
+};
+
+const char *skip_chars(const char *text, uint32_t count) { return text + count; }
+
+template <typename T>
+struct BaseTexReportVisitor
+{
+  T &target;
+  uint32_t &tex2DCount;
+  uint32_t &texCubeCount;
+  uint32_t &texVolCount;
+  uint32_t &texArrayCount;
+  uint32_t &aliasedCount;
+  ByteUnits &tex2DSize;
+  ByteUnits &texCubeSize;
+  ByteUnits &texVolSize;
+  ByteUnits &texArraySize;
+  String tmpStor;
+
+  dag::Vector<const BaseTex *> textures;
+
+  void beginVisit()
+  {
+    target("~ Texture resources ~ (Ressize Order) ~~~~~~~~~~~~~~~~");
+    target("     Ressize, Allocated Size, QL,       Type,            Extent, Mip, Aniso, Filter, Mip Filter,                     "
+           "Format,     Image Object, Views,                           Name, TQL info");
+  }
+
+  void endVisit()
+  {
+    eastl::sort(eastl::begin(textures), eastl::end(textures), [](auto &l, auto &r) {
+      if (l->ressize() > r->ressize())
+      {
+        return true;
+      }
+      if (l->ressize() < r->ressize())
+      {
+        return false;
+      }
+
+      auto ln = l->getResName();
+      auto rn = r->getResName();
+      if (ln && rn)
+      {
+        return strcmp(ln, rn) < 0;
+      }
+      if (ln)
+      {
+        return true;
+      }
+      if (rn)
+      {
+        return false;
+      }
+      return l < r;
+    });
+
+    for (auto tex : textures)
+    {
+      auto ql = tql::get_tex_cur_ql(tex->getTID());
+      auto extraInfo = tql::get_tex_info(tex->getTID(), false, tmpStor);
+      auto img = tex->getDeviceImage();
+      bool isAliased = false;
+      size_t viewCount = 0;
+      ByteUnits imageSize;
+      if (img)
+      {
+        isAliased = img->isAliased();
+        viewCount = img->getViewCount();
+        if (!isAliased)
+        {
+          imageSize = img->getMemory().size();
+        }
+      }
+      const char *typeName = "?";
+      switch (tex->resType)
+      {
+        case RES3D_TEX: typeName = "2d"; break;
+        case RES3D_CUBETEX: typeName = "cube"; break;
+        case RES3D_VOLTEX: typeName = "vol"; break;
+        case RES3D_ARRTEX: typeName = "array"; break;
+        case RES3D_CUBEARRTEX: typeName = "cube array"; break;
+      }
+      if (!isAliased)
+      {
+        switch (tex->resType)
+        {
+          case RES3D_TEX:
+            ++tex2DCount;
+            tex2DSize += imageSize.value();
+            break;
+          case RES3D_CUBETEX:
+            ++texCubeCount;
+            texCubeSize += imageSize.value();
+            break;
+          case RES3D_VOLTEX:
+            ++texVolCount;
+            texVolSize += imageSize.value();
+            break;
+          case RES3D_ARRTEX:
+            ++texArrayCount;
+            texArraySize += imageSize.value();
+            break;
+          case RES3D_CUBEARRTEX:
+            // currently counts as array tex
+            ++texArrayCount;
+            texArraySize += imageSize.value();
+            break;
+        }
+      }
+      else
+      {
+        ++aliasedCount;
+      }
+#define ALIASED_SIZE   "%12llu,        Aliased"
+#define NORMAL_SIZE    "%12llu, %6.2f %7s"
+#define TEXTURE_FIRST  ", %2d, %10s"
+#define TEXTURE_SECOND ", %3d, %5d, %6s, %10s, %26s, %016p, %5d, %30s, %s"
+      if (RES3D_TEX == tex->resType || RES3D_CUBETEX == tex->resType)
+      {
+        if (isAliased)
+        {
+          target(ALIASED_SIZE TEXTURE_FIRST ", %8dx%-8d" TEXTURE_SECOND, tex->ressize(), ql, typeName, tex->width, tex->height,
+            tex->level_count(), tex->samplerState.getAniso(), skip_chars(filter_type_to_string(tex->samplerState.getFilter()), 18),
+            skip_chars(filter_type_to_string(tex->samplerState.getMip()), 18), skip_chars(tex->getFormat().getNameString(), 12), img,
+            viewCount, tex->getResName(), extraInfo);
+        }
+        else
+        {
+          target(NORMAL_SIZE TEXTURE_FIRST ", %8dx%-8d" TEXTURE_SECOND, tex->ressize(), imageSize.units(), imageSize.name(), ql,
+            typeName, tex->width, tex->height, tex->level_count(), tex->samplerState.getAniso(),
+            skip_chars(filter_type_to_string(tex->samplerState.getFilter()), 18),
+            skip_chars(filter_type_to_string(tex->samplerState.getMip()), 18), skip_chars(tex->getFormat().getNameString(), 12), img,
+            viewCount, tex->getResName(), extraInfo);
+        }
+      }
+      else // if (RES3D_VOLTEX == tex->resType || RES3D_ARRTEX == tex->resType || RES3D_CUBEARRTEX == tex->resType)
+      {
+        if (isAliased)
+        {
+          target(ALIASED_SIZE TEXTURE_FIRST ", %5dx%-5dx%-5d" TEXTURE_SECOND, tex->ressize(), ql, typeName, tex->width, tex->height,
+            tex->depth, tex->level_count(), tex->samplerState.getAniso(),
+            skip_chars(filter_type_to_string(tex->samplerState.getFilter()), 18),
+            skip_chars(filter_type_to_string(tex->samplerState.getMip()), 18), skip_chars(tex->getFormat().getNameString(), 12), img,
+            viewCount, tex->getResName(), extraInfo);
+        }
+        else
+        {
+          target(NORMAL_SIZE TEXTURE_FIRST ", %5dx%-5dx%-5d" TEXTURE_SECOND, tex->ressize(), imageSize.units(), imageSize.name(), ql,
+            typeName, tex->width, tex->height, tex->depth, tex->level_count(), tex->samplerState.getAniso(),
+            skip_chars(filter_type_to_string(tex->samplerState.getFilter()), 18),
+            skip_chars(filter_type_to_string(tex->samplerState.getMip()), 18), skip_chars(tex->getFormat().getNameString(), 12), img,
+            viewCount, tex->getResName(), extraInfo);
+        }
+      }
+#undef ALIASED_SIZE
+#undef NORMAL_SIZE
+#undef TEXTURE_FIRST
+#undef TEXTURE_SECOND
+    }
+
+    // currently not counting aliasing textures, as they do not directly contribute to memory usage
+    auto totalCount = tex2DCount + texCubeCount + texVolCount + texArrayCount;
+    auto totalMem = tex2DSize + texCubeSize + texVolSize + texArraySize;
+    target("Total: Texture %6.2f %7s over %u textures, 2D %6.2f %7s over %u, Cube %6.2f %7s "
+           "over %u, Vol %6.2f %7s over %u, Array %6.2f %7s over %u, %u aliased textures",
+      totalMem.units(), totalMem.name(), totalCount, tex2DSize.units(), tex2DSize.name(), tex2DCount, texCubeSize.units(),
+      texCubeSize.name(), texCubeCount, texVolSize.units(), texVolSize.name(), texVolCount, texArraySize.units(), texArraySize.name(),
+      texArrayCount, aliasedCount);
+  }
+
+  void visitTexture(const BaseTex *tex) { textures.push_back(tex); }
+};
+
+struct BaseTexDumpVisitor
+{
+  Tab<ResourceDumpInfo> &dumpInfo;
+  eastl::vector_map<Image *, uint64_t> &imgToAddress;
+
+  void beginVisit() {}
+  void endVisit() {}
+  void visitTexture(const BaseTex *tex)
+  {
+    resource_dump_types::TextureTypes type = resource_dump_types::TextureTypes::TEX2D;
+    switch (tex->resType)
+    {
+      case RES3D_TEX: type = resource_dump_types::TextureTypes::TEX2D; break;
+      case RES3D_CUBETEX: type = resource_dump_types::TextureTypes::CUBETEX; break;
+      case RES3D_VOLTEX: type = resource_dump_types::TextureTypes::VOLTEX; break;
+      case RES3D_ARRTEX: type = resource_dump_types::TextureTypes::ARRTEX; break;
+      case RES3D_CUBEARRTEX: type = resource_dump_types::TextureTypes::CUBEARRTEX; break;
+    }
+    uint64_t pos;
+    if (auto it = imgToAddress.find(tex->getDeviceImage()); it != imgToAddress.end())
+      pos = it->second;
+    else
+      return;
+
+    dumpInfo.emplace_back(resource_dump_types::ResourceType::Texture, tex->getResName(), tex->ressize(), type, tex->width, tex->height,
+      (tex->resType == RES3D_VOLTEX || tex->resType == RES3D_CUBEARRTEX) ? tex->depth : -1,
+      (tex->resType == RES3D_TEX || tex->resType == RES3D_VOLTEX) ? -1 : tex->image->getArrayLayerRange().count(), tex->level_count(),
+      tex->getFormat().asTexFlags(), tex->getFormat().isColor(), tex->cflg, pos);
+  }
+};
+
+template <typename T>
+struct AliasingHeapReportVisitor
+{
+  T &target;
+  uint32_t heapCount = 0;
+  uint32_t bufferCount = 0;
+  uint32_t textureCount = 0;
+  ByteUnits totalSize;
+
+  void beginVisit() { target("~ Aliasing / User Resource Heaps ~~~~"); }
+  void endVisit()
+  {
+    target("%u Aliasing / User resource heaps, with %6.2f %7s, with %u texture, %u buffers", heapCount, totalSize.units(),
+      totalSize.name(), textureCount, bufferCount);
+  }
+  void visitAliasingHeap(uint32_t id, const ResourceMemory &memory, const dag::Vector<Image *> &images,
+    const dag::Vector<BufferGlobalId> &buffers, bool driver_managed)
+  {
+    ++heapCount;
+    bufferCount += buffers.size();
+    textureCount += images.size();
+    totalSize += memory.size();
+    ByteUnits size = memory.size();
+    target("Aliasing Heap #%u with %6.2f %7s, %u textures, %u buffers%s", id, size.units(), size.name(), images.size(), buffers.size(),
+      driver_managed ? " driver managed" : "");
+    for (auto image : images)
+    {
+      image->getDebugName([this, image](auto name) { target("Texture %016p <%s>", image, name); });
+    }
+    for (auto buffer : buffers)
+    {
+      target("Buffer #%u", buffer.index());
+    }
+  }
+};
+
+const char *to_string(HostDeviceSharedMemoryRegion::Source src)
+{
+  switch (src)
+  {
+    default: return "<UNKNOWN>";
+    case HostDeviceSharedMemoryRegion::Source::TEMPORARY: return "temporary";
+    case HostDeviceSharedMemoryRegion::Source::PERSISTENT_UPLOAD: return "upload";
+    case HostDeviceSharedMemoryRegion::Source::PERSISTENT_READ_BACK: return "read back";
+    case HostDeviceSharedMemoryRegion::Source::PERSISTENT_BIDIRECTIONAL: return "bidirectional";
+    case HostDeviceSharedMemoryRegion::Source::PUSH_RING: return "push ring";
+  }
+}
+
+template <typename T>
+struct FrameCompletionReportVisitor
+{
+  T &target;
+
+  void beginVisit() { target("~ Pending resource frees ~~~~~~~~~~~~"); }
+  void endVisit() {}
+  void visitFrameCompletionData(uint32_t index, uint32_t total, const ResourceMemoryHeap::PendingForCompletedFrameData &data)
+  {
+    target("~ Data Set %u / %u ~~~~~~~~~~~~~~~~", 1 + index, total);
+    bool wroteAnything = false;
+
+    if (!data.deletedResourceHeaps.empty())
+    {
+      wroteAnything = true;
+      target("User resource heap frees");
+      for (auto heap : data.deletedResourceHeaps)
+      {
+        target("#%llu", reinterpret_cast<uintptr_t>(heap) - 1);
+      }
+    }
+
+    if (!data.uploadBufferRefs.empty())
+    {
+      wroteAnything = true;
+      target("Upload buffer refs");
+      for (auto ref : data.uploadBufferRefs)
+      {
+        target("%016p", ref);
+      }
+      ByteUnits uploadUsage = data.uploadBufferUsage;
+      ByteUnits tempUsage = data.tempUsage;
+      target("Upload usage %6.2f %7s", uploadUsage.units(), uploadUsage.name());
+      target("Temp usage %6.2f %7s", tempUsage.units(), tempUsage.name());
+    }
+
+    if (!data.uploadMemoryFrees.empty())
+    {
+      wroteAnything = true;
+      target("Upload memory frees");
+      for (auto &mem : data.uploadMemoryFrees)
+      {
+        ByteUnits size = mem.range.size();
+        target("%016p, %016llX, %6.2f %7s, %016p, %s", mem.buffer, mem.range.front(), size.units(), size.name(), mem.pointer,
+          to_string(mem.source));
+      }
+    }
+
+    if (!data.readBackFrees.empty())
+    {
+      wroteAnything = true;
+      target("Upload read back frees");
+      for (auto &mem : data.readBackFrees)
+      {
+        ByteUnits size = mem.range.size();
+        target("%016p, %016llX, %6.2f %7s, %016p, %s", mem.buffer, mem.range.front(), size.units(), size.name(), mem.pointer,
+          to_string(mem.source));
+      }
+    }
+
+    if (!data.bidirectionalFrees.empty())
+    {
+      wroteAnything = true;
+      target("Upload bidirectional frees");
+      for (auto &mem : data.bidirectionalFrees)
+      {
+        ByteUnits size = mem.range.size();
+        target("%016p, %016llX, %6.2f %7s, %016p, %s", mem.buffer, mem.range.front(), size.units(), size.name(), mem.pointer,
+          to_string(mem.source));
+      }
+    }
+
+#if D3D_HAS_RAY_TRACING
+    if (!data.deletedBottomAccelerationStructure.empty())
+    {
+      wroteAnything = true;
+      target("Ray trace bottom acceleration structure freed");
+      for (auto as : data.deletedBottomAccelerationStructure)
+      {
+        ByteUnits size = as->size;
+        target("%016p, %6.2f %7s", as->asHeapResource, size.units(), size.name());
+      }
+    }
+
+    if (!data.deletedTopAccelerationStructure.empty())
+    {
+      wroteAnything = true;
+      target("Ray trace top acceleration structure freed");
+      for (auto as : data.deletedTopAccelerationStructure)
+      {
+        ByteUnits size = as->size;
+        target("%016p, %6.2f %7s", as->asHeapResource, size.units(), size.name());
+      }
+    }
+#endif
+
+    if (!data.deletedScratchBuffers.empty())
+    {
+      wroteAnything = true;
+      target("Scratch buffer freed");
+      for (auto &buf : data.deletedScratchBuffers)
+      {
+        ByteUnits size = buf.bufferMemory.size();
+        target("%016p, %6.2f %7s", buf.buffer.Get(), size.units(), size.name());
+      }
+    }
+
+    if (!data.freedTextureObjects.empty())
+    {
+      wroteAnything = true;
+      target("Texture objects freed");
+      for (auto tex : data.freedTextureObjects)
+      {
+        target("%s", tex->getTexName());
+      }
+    }
+
+    if (!data.deletedImages.empty())
+    {
+      wroteAnything = true;
+      target("Pending texture frees");
+      target("          Size,          Address, Name");
+      for (auto image : data.deletedImages)
       {
         if (image->isAliased())
         {
-          ++imageAliases;
-          image->getDebugName([&out_text](auto &name) { out_text->aprintf(128, "%14s '%s'\n", "aliased", name); });
+          image->getDebugName([this, image](auto &name) { target("%14s, %016p, %s", "Aliased", image, name); });
         }
         else
         {
           ByteUnits size = image->getMemory().size();
-          totalImageResourcesSize += size;
           image->getDebugName(
-            [&out_text, size](auto &name) { out_text->aprintf(128, "%6.2f %7s '%s'\n", size.units(), size.name(), name); });
+            [this, image, size](auto &name) { target("%6.2f %7s, %016p, %s", size.units(), size.name(), image, name); });
         }
-        ++imageCount;
-      });
-    out_text->aprintf(128, "%u textures, with %6.2f %7s plus %u aliased textures\n", imageCount, totalImageResourcesSize.units(),
-      totalImageResourcesSize.name(), imageAliases);
-  }
+      }
+    }
 
+    if (!data.deletedBuffers.empty())
+    {
+      wroteAnything = true;
+      target("Pending buffer frees");
+      target(" ID,           Offset,           Size, Free reason");
+      for (auto &buf : data.deletedBuffers)
+      {
+        const char *freeReason = "??";
+        switch (buf.freeReason)
+        {
+          case ResourceMemoryHeap::FreeReason::USER_DELETE: freeReason = "user delete"; break;
+          case ResourceMemoryHeap::FreeReason::DISCARD_SAME_FRAME: freeReason = "discard (same frame)"; break;
+          case ResourceMemoryHeap::FreeReason::DISCARD_DIFFERENT_FRAME: freeReason = "discard (different frame)"; break;
+          case ResourceMemoryHeap::FreeReason::MOVED_BY_DRIVER: freeReason = "driver moved resource"; break;
+        }
+        ByteUnits size = buf.buffer.totalSize();
+        target("%3u, %016llX, %6.2f %7s, %s", buf.buffer.resourceId.index(), buf.buffer.offset, size.units(), size.name(), freeReason);
+      }
+    }
+
+    if (!wroteAnything)
+    {
+      target("Nothing is pending to be freed");
+    }
+  }
+};
+
+struct ResourceHeapWalker
+{
   uint32_t tex2DCount = 0;
   uint32_t texCubeCount = 0;
   uint32_t texVolCount = 0;
   uint32_t texArrayCount = 0;
-
-  ByteUnits tex2DSize = 0;
-  ByteUnits texCubeSize = 0;
-  ByteUnits texVolSize = 0;
-  ByteUnits texArraySize = 0;
-
-  if (out_text)
+  uint32_t aliasedCount = 0;
+  ByteUnits tex2DSize;
+  ByteUnits texCubeSize;
+  ByteUnits texVolSize;
+  ByteUnits texArraySize;
+  template <typename T>
+  void operator()(DXGIAdapter *adapter, ResourceMemoryHeap &heap, T target)
   {
-    out_text->append("~ Texture resources ~~~~~~~~~~~~~~~~~\n");
-  }
-  {
-    String tmpStor;
-    visitTextureObjects([&](auto tex) //
+    target("~ OS reported memory usage ~~~~~~~~~~~");
+#if _TARGET_XBOX
+    G_UNUSED(adapter);
+    size_t gameLimit = 0, gameUsed = 0;
+    xbox_get_memory_status(gameUsed, gameLimit);
+    ByteUnits gameLimitBytes = gameLimit;
+    ByteUnits gameUsedBytes = gameUsed;
+    target("%6.2f %7s (%zu Bytes) of %6.2f %7s (%zu Bytes) used", gameUsedBytes.units(), gameUsedBytes.name(), gameUsed,
+      gameLimitBytes.units(), gameLimitBytes.name(), gameLimit);
+#else
+    if (adapter)
+    {
+      target("Location,                      Type,           Size,      Size In Bytes");
+      const char *locName[] = {"GPU", "System"};
+      DXGI_MEMORY_SEGMENT_GROUP group[] = {DXGI_MEMORY_SEGMENT_GROUP_LOCAL, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL};
+      G_STATIC_ASSERT(countof(locName) == countof(group));
+      for (uint32_t i = 0; i < countof(locName); ++i)
       {
-        if (auto img = tex->getDeviceImage())
-        {
-          ByteUnits imageBytes = img->getMemory().size();
-          if (img->isAliased())
-          {
-            imageBytes = 0;
-          }
-          auto ql = tql::get_tex_cur_ql(tex->getTID());
-          switch (tex->resType)
-          {
-            case RES3D_TEX:
-              ++tex2DCount;
-              tex2DSize += imageBytes.value();
-              if (out_text)
-              {
-                out_text->aprintf(0,
-                  "%6.2f %7s q%d  2d  %4dx%-4d, m%2d, aniso=%-2d filter=%7s mip=%s, %s "
-                  "- '%s'",
-                  imageBytes.units(), imageBytes.name(), ql, tex->width, tex->height, tex->level_count(), tex->samplerState.getAniso(),
-                  filter_type_to_string(tex->samplerState.getFilter()), filter_type_to_string(tex->samplerState.getMip()),
-                  img->getFormat().getNameString(), tex->getResName());
-              }
-              break;
-            case RES3D_CUBETEX:
-              ++texCubeCount;
-              texCubeSize += imageBytes.value();
-              if (out_text)
-              {
-                out_text->aprintf(0, "%6.2f %7s q%d cube %4d, m%2d, %s - '%s'", imageBytes.units(), imageBytes.name(), ql, tex->width,
-                  tex->level_count(), img->getFormat().getNameString(), tex->getResName());
-              }
-              break;
-            case RES3D_VOLTEX:
-              ++texVolCount;
-              texVolSize += imageBytes.value();
-              if (out_text)
-              {
-                out_text->aprintf(0,
-                  "%6.2f %7s q%d  vol %4dx%-4dx%3d, m%2d, aniso=%-2d filter=%7s mip=%s, "
-                  "%s - '%s'",
-                  imageBytes.units(), imageBytes.name(), ql, tex->width, tex->height, tex->depth, tex->level_count(),
-                  tex->samplerState.getAniso(), filter_type_to_string(tex->samplerState.getFilter()),
-                  filter_type_to_string(tex->samplerState.getMip()), img->getFormat().getNameString(), tex->getResName());
-              }
-              break;
-            case RES3D_ARRTEX:
-              ++texArrayCount;
-              texArraySize += imageBytes.value();
-              if (out_text)
-              {
-                out_text->aprintf(0,
-                  "%6.2f %7s q%d  arr %4dx%-4dx%3d, m%2d, aniso=%-2d filter=%7s mip=%s, "
-                  "%s - '%s'",
-                  imageBytes.units(), imageBytes.name(), ql, tex->width, tex->height, tex->depth, tex->level_count(),
-                  tex->samplerState.getAniso(), filter_type_to_string(tex->samplerState.getFilter()),
-                  filter_type_to_string(tex->samplerState.getMip()), img->getFormat().getNameString(), tex->getResName());
-              }
-              break;
-          }
-          if (out_text)
-          {
-            if (img->isAliased())
-            {
-              out_text->append(" is alias");
-            }
-            if (num_textures)
-            {
-              out_text->append("\n");
-            }
-            else
-            {
-              out_text->aprintf(0, " cache=%d%s\n", img->getViewCount(), tql::get_tex_info(tex->getTID(), false, tmpStor));
-            }
-          }
-        }
-      });
+        DXGI_QUERY_VIDEO_MEMORY_INFO info{};
+        adapter->QueryVideoMemoryInfo(0, group[i], &info);
+        ByteUnits budget = info.Budget;
+        ByteUnits currentUsage = info.CurrentUsage;
+        ByteUnits availableForReservation = info.AvailableForReservation;
+        ByteUnits currentReservation = info.CurrentReservation;
+        auto name = locName[i];
+        target("%8s,                    Budget, %6.2f %7s, %12zu Bytes", name, budget.units(), budget.name(), info.Budget);
+        target("%8s,             Current usage, %6.2f %7s, %12zu Bytes", name, currentUsage.units(), currentUsage.name(),
+          info.CurrentUsage);
+        target("%8s, Available for reservation, %6.2f %7s, %12zu Bytes", name, availableForReservation.units(),
+          availableForReservation.name(), info.AvailableForReservation);
+        target("%8s,       Current reservation, %6.2f %7s, %12zu Bytes", name, currentReservation.units(), currentReservation.name(),
+          info.CurrentReservation);
+      }
+    }
+    else
+    {
+      target("Adapter object was null, can not request system memory info");
+    }
+#endif
+
+    heap.visitHeaps(ResourceHeapReportVisitor<T>{target});
+    heap.visitAliasingHeaps(AliasingHeapReportVisitor<T>{target});
+
+    ByteUnits pushRingSize = heap.getFramePushRingMemorySize();
+    ByteUnits uploadRingSize = heap.getUploadRingMemorySize();
+    ByteUnits tempUploadSize = heap.getTemporaryUploadMemorySize();
+    ByteUnits persistUploadSize = heap.getPersistentUploadMemorySize();
+    ByteUnits persistReadBackSize = heap.getPersistentReadBackMemorySize();
+    ByteUnits persistBidirSize = heap.getPersistentBidirectionalMemorySize();
+
+    target("~ Driver internal buffers ~~~~~~~~~~~");
+    target("%6.2f %7s push ring buffers", pushRingSize.units(), pushRingSize.name());
+    target("%6.2f %7s upload ring buffers", uploadRingSize.units(), uploadRingSize.name());
+    target("%6.2f %7s temporary upload buffers", tempUploadSize.units(), tempUploadSize.name());
+    target("%6.2f %7s persistent upload buffers", persistUploadSize.units(), persistUploadSize.name());
+    target("%6.2f %7s persistent read back buffers", persistReadBackSize.units(), persistReadBackSize.name());
+    target("%6.2f %7s persistent bidirectional buffers", persistBidirSize.units(), persistBidirSize.name());
+    ByteUnits totalInternalSize = pushRingSize.value() + uploadRingSize.value() + tempUploadSize.value() + persistUploadSize.value() +
+                                  persistReadBackSize.value() + persistBidirSize.value();
+    target("%6.2f %7s total internal buffer sizes", totalInternalSize.units(), totalInternalSize.name());
+
+    heap.visitBuffers(BufferHeapReportVisitor<T>{target});
+    heap.visitBufferObjectsExplicit(SbufferReportVisitor<T>{target});
+    heap.visitImageObjectsExplicit(ImageReportVisitor<T>{target});
+    heap.visitTextureObjectsExplicit(BaseTexReportVisitor<T>{
+      target, tex2DCount, texCubeCount, texVolCount, texArrayCount, aliasedCount, tex2DSize, texCubeSize, texVolSize, texArraySize});
+    heap.visitFrameCompletionData(FrameCompletionReportVisitor<T>{target});
   }
+};
 
-  auto totalCount = tex2DCount + texCubeCount + texVolCount + texArrayCount;
-  auto totalMem = tex2DSize + texCubeSize + texVolSize + texArraySize;
+struct ToDebugWriter
+{
+  template <typename... Ts>
+  void operator()(Ts &&...ts)
+  {
+    logdbg(eastl::forward<Ts>(ts)...);
+  }
+};
 
-  if (num_textures)
-    *num_textures = totalCount;
-  if (total_mem)
-    *total_mem = totalMem.value();
+struct ToStringWriter
+{
+  String &out;
+  template <typename... Ts>
+  void operator()(Ts &&...ts)
+  {
+    out.aprintf(128, eastl::forward<Ts>(ts)...);
+    out.append("\n");
+  }
+};
 
+struct ToNullWriter
+{
+  template <typename... Ts>
+  void operator()(Ts &&...)
+  {}
+};
+} // namespace
+
+void ResourceMemoryHeap::generateResourceAndMemoryReport(DXGIAdapter *adapter, uint32_t *num_textures, uint64_t *total_mem,
+  String *out_text)
+{
+  ResourceHeapWalker walker;
   if (out_text)
   {
-    out_text->aprintf(256,
-      "Total: Texture %6.2f %7s over %u textures, 2D %6.2f %7s over %u, Cube %6.2f %7s "
-      "over %u, Vol %6.2f %7s over %u, Array %6.2f %7s over %u\n",
-      totalMem.units(), totalMem.name(), totalCount, tex2DSize.units(), tex2DSize.name(), tex2DCount, texCubeSize.units(),
-      texCubeSize.name(), texCubeCount, texVolSize.units(), texVolSize.name(), texVolCount, texArraySize.units(), texArraySize.name(),
-      texArrayCount);
+    walker(adapter, *this, ToStringWriter{*out_text});
+  }
+  else
+  {
+    walker(adapter, *this, ToNullWriter{});
+  }
+  if (num_textures)
+  {
+    *num_textures = walker.tex2DCount + walker.texCubeCount + walker.texVolCount + walker.texArrayCount;
+  }
+  if (total_mem)
+  {
+    *total_mem = (walker.tex2DSize + walker.texCubeSize + walker.texVolSize + walker.texArraySize).value();
   }
 }
+void ResourceMemoryHeap::fillResourceDump(Tab<ResourceDumpInfo> &dump_container)
+{
+  eastl::vector_set<uint32_t> buffersPresent;
+  eastl::vector_map<Image *, uint64_t> imgToAddress;
+  visitHeaps(ResourceHeapDumpVisitor{dump_container, imgToAddress, buffersPresent});
+  visitTextureObjectsExplicit(BaseTexDumpVisitor{dump_container, imgToAddress});
+  visitBufferObjectsExplicit(SbufferDumpVisitor{dump_container, buffersPresent});
+}
 
-void OutOfMemoryRepoter::reportOOMInformation()
+
+void OutOfMemoryRepoter::reportOOMInformation(DXGIAdapter *adapter)
 {
   if (!didReportOOM)
   {
     didReportOOM = true;
-    String texStat;
     // cast assumes that OutOfMemoryRepoter is a base of ResourceMemoryHeap
     G_STATIC_ASSERT((eastl::is_base_of<OutOfMemoryRepoter, ResourceMemoryHeap>::value));
     // can't use static cast as it respects visibility rules
-    ((ResourceMemoryHeap *)this)->generateResourceAndMemoryReport(nullptr, nullptr, &texStat);
     logdbg("GPU MEMORY STATISTICS:\n======================");
-    logdbg(texStat.str());
+    ResourceHeapWalker walker;
+    walker(adapter, *(ResourceMemoryHeap *)this, ToDebugWriter{});
     logdbg("======================\nEND GPU MEMORY STATISTICS");
   }
   else
   {
     logdbg("GPU MEMORY STATISTICS: not reported as this is not the first time.");
   }
+}
+
+bool OutOfMemoryRepoter::checkForOOM(DXGIAdapter *adapter, bool was_okay, const OomReportData &report_data)
+{
+  if (!was_okay)
+  {
+    if (!get_device().isHealthyOrRecovering())
+    {
+      logwarn(
+        "DX12: OOM check has failed, but device is not healthy or recovering. Skipping OOM report, we are going to reset device...");
+      return was_okay;
+    }
+    D3D_ERROR("DX12: OOM report: %s", report_data.toString());
+    reportOOMInformation(adapter);
+    G_ASSERT_FAIL("DX12: OOM during %s (check logs to get more info)", report_data.getMethodName());
+  }
+  return was_okay;
+}
+
+HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter,
+  ID3D12Device *device, frontend::BindlessManager &bindless_manager, HeapID heap_id, BufferGlobalId buffer_id,
+  AllocationFlags allocation_flags, bool is_emergency_defragmentation)
+{
+  ScopedCommitLock ctxLock{ctx};
+  OSSpinlockScopedLock bindlessStateLock{get_resource_binding_guard()};
+  auto bufferHeapStateAccess = bufferHeapState.access();
+  auto &bufferHeaps = bufferHeapStateAccess->bufferHeaps;
+  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Trying to move buffer %u from %u:%u", buffer_id.index(),
+    bufferHeaps[buffer_id.index()].bufferMemory.getHeapID().group, bufferHeaps[buffer_id.index()].bufferMemory.getHeapID().index);
+  if (bufferHeaps[buffer_id.index()].getCPUPointer() != nullptr && !is_emergency_defragmentation)
+  {
+    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move buffer %u, buffer is mapable", buffer_id.index());
+    return ResourceMoveResolution::STAYING;
+  }
+  auto movedBuffer = tryCloneBuffer(adapter, device, buffer_id, bufferHeapStateAccess, allocation_flags);
+  if (!movedBuffer)
+  {
+    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move buffer %u, no space", buffer_id.index());
+    // If we can't clone the buffer, then there is no space
+    return ResourceMoveResolution::NO_SPACE;
+  }
+  if (moveStandbyBufferEntries(buffer_id, movedBuffer, bufferHeapStateAccess))
+  {
+    onMoveStandbyBufferEntriesSuccess(bufferHeaps, bufferHeapStateAccess, buffer_id, movedBuffer, heap_id,
+      is_emergency_defragmentation);
+    return ResourceMoveResolution::MOVED;
+  }
+
+  bool areDeviceObjectsMoved = false;
+  {
+    OSSpinlockUniqueLock lock{bufferPoolGuard, OSSpinlockUniqueLock::TryToLock{}};
+    if (!lock)
+    {
+      // we fail to lock the buffer list we have to revert everything we done so far, otherwise we risk
+      // having dangling stuff
+      moveStandbyBufferEntries(movedBuffer, buffer_id, bufferHeapStateAccess);
+      // fall through to clean up and tell the caller something happened
+      DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: bufferPoolGuard lock failed");
+    }
+    else
+    {
+      findBufferOwnersAndReplaceDeviceObjects(buffer_id, movedBuffer, bindless_manager, ctx, device, bufferHeapStateAccess,
+        is_emergency_defragmentation);
+      areDeviceObjectsMoved = true;
+    }
+  }
+
+  tidyCloneBuffer(buffer_id, bufferHeapStateAccess);
+  // Always tidy up after we are done
+  const bool isBufferDeleted = tidyCloneBuffer(movedBuffer, bufferHeapStateAccess);
+  if (!areDeviceObjectsMoved)
+    return ResourceMoveResolution::STAYING;
+  if (isBufferDeleted)
+  {
+    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Buffer %u deleted", buffer_id.index());
+    return ResourceMoveResolution::DELETED;
+  }
+  return ResourceMoveResolution::MOVING;
+}
+
+void HeapFragmentationManager::onMoveStandbyBufferEntriesSuccess(const dag::Vector<Heap> &buffer_heaps,
+  BufferHeapStateWrapper::AccessToken &buffer_heap_state_access, BufferGlobalId old_buffer, BufferGlobalId moved_buffer,
+  HeapID heap_id, bool is_emergency_defragmentation)
+{
+  auto &oldBuffer = buffer_heaps[old_buffer.index()];
+  auto &newBuffer = buffer_heaps[moved_buffer.index()];
+  G_UNUSED(oldBuffer);
+  G_UNUSED(newBuffer);
+  G_UNUSED(heap_id);
+
+  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Moved standby buffer %u from %u:%u to %u:%u", old_buffer.index(),
+    oldBuffer.bufferMemory.getHeapID().group, oldBuffer.bufferMemory.getHeapID().index, newBuffer.bufferMemory.getHeapID().group,
+    newBuffer.bufferMemory.getHeapID().index, heap_id.group, heap_id.index);
+
+  // If the current buffer was only referenced by the standby list we have to tidy it instead of the moved buffer.
+  tidyCloneBuffer(old_buffer, buffer_heap_state_access);
+}
+
+void HeapFragmentationManager::moveBufferDeviceObject(GenericBufferInterface *buffer_object, BufferGlobalId moved_buffer,
+  frontend::BindlessManager &bindless_manager, DeviceContext &ctx, ID3D12Device *device,
+  BufferHeapStateWrapper::AccessToken &buffer_heap_state_access, bool is_emergency_defragmentation)
+{
+  auto &currentBuffer = buffer_object->getDeviceBuffer();
+
+  auto newBuffer = moveBuffer(currentBuffer, moved_buffer, buffer_heap_state_access);
+
+  // Recreate needed views
+  if (buffer_object->usableAsShaderResource())
+  {
+    G_ASSERT(currentBuffer.srvs);
+    if (buffer_object->usesRawView())
+      this->createBufferRawSRV(device, newBuffer);
+    else if (buffer_object->usesStructuredView())
+      this->createBufferStructureSRV(device, newBuffer, buffer_object->getElementSize());
+    else
+      this->createBufferTextureSRV(device, newBuffer, buffer_object->getTextureViewFormat());
+  }
+  if (buffer_object->usableAsUnorderedResource())
+  {
+    G_ASSERT(currentBuffer.uavs);
+    if (buffer_object->usesRawView())
+      this->createBufferRawUAV(device, newBuffer);
+    else if (buffer_object->usesStructuredView())
+      this->createBufferStructureUAV(device, newBuffer, buffer_object->getElementSize());
+    else
+      this->createBufferTextureUAV(device, newBuffer, buffer_object->getTextureViewFormat());
+  }
+
+  mark_buffer_stages_dirty_no_lock(buffer_object, buffer_object->usableAsVertexBuffer(), buffer_object->usableAsConstantBuffer(),
+    buffer_object->usableAsShaderResource(), buffer_object->usableAsUnorderedResource());
+
+  // Update bindless heap
+  if (newBuffer.srvs)
+    bindless_manager.updateBufferReferencesNoLock(ctx, currentBuffer.currentSRV(), newBuffer.currentSRV());
+
+    // If we ever use bindless UAV then this has to be enabled.
+#if 0
+  if (newBuffer.uavs)
+  {
+    for (uint32_t i = 0; i < newBuffer.discardCount; ++i)
+    {
+      bindless_manager.onBufferMove(ctx, currentBuffer.uavs[i], newBuffer.uavs[i]);
+    }
+  }
+#endif
+
+  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Moved buffer %u to %u (%s)", currentBuffer.resourceId.index(),
+    newBuffer.resourceId.index(), buffer_object->getResName());
+  // copy contents from the old to the new buffer
+  ctx.moveBuffer(currentBuffer, newBuffer);
+
+  this->freeBufferOnFrameCompletion(eastl::move(currentBuffer), FreeReason::MOVED_BY_DRIVER);
+
+  currentBuffer = eastl::move(newBuffer);
+}
+
+void HeapFragmentationManager::findBufferOwnersAndReplaceDeviceObjects(BufferGlobalId old_buffer, BufferGlobalId moved_buffer,
+  frontend::BindlessManager &bindless_manager, DeviceContext &ctx, ID3D12Device *device,
+  BufferHeapStateWrapper::AccessToken &buffer_heap_state_access, bool is_emergency_defragmentation)
+{
+  bool isUsed = false;
+  bufferPool.iterateAllocatedBreakable(
+    [=, &ctx, &bindless_manager, &buffer_heap_state_access, &isUsed](GenericBufferInterface *buffer_object) { //-V657
+      auto &currentBuffer = buffer_object->getDeviceBuffer();
+      if (currentBuffer.resourceId != old_buffer)
+      {
+        // keep going
+        return true;
+      }
+      isUsed = true;
+
+      moveBufferDeviceObject(buffer_object, moved_buffer, bindless_manager, ctx, device, buffer_heap_state_access,
+        is_emergency_defragmentation);
+
+      // keep looking for possible users of this buffer
+      // TODO we can be smart about it and stop if sub alloc is off or unsupported.
+      return true;
+    });
+  if (isUsed)
+    return;
+  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Owner of buffer %u has not been found", old_buffer.index());
+}
+
+HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter,
+  ID3D12Device *device, frontend::BindlessManager &bindless_manager, HeapID heap_id, Image *texture, AllocationFlags allocation_flags,
+  bool is_emergency_defragmentation)
+{
+  // need to take the lock here to keep consistent ordering
+  ScopedCommitLock ctxLock{ctx};
+  OSSpinlockScopedLock resourceBindingLock(get_resource_binding_guard());
+
+  G_UNUSED(heap_id);
+  BaseTex *baseTex = nullptr;
+
+  if (texture->isAliased())
+  {
+    texture->getDebugName([=](const auto &name) {
+      G_UNUSED(name);
+      DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move texture <%s>, texture aliased", name.c_str());
+    });
+    return ResourceMoveResolution::STAYING;
+  }
+
+  {
+    auto texturePoolAccess = texturePool.access();
+
+    texturePoolAccess->iterateAllocatedBreakable([texture, &baseTex](auto *tex) //
+      {
+        if (texture == tex->getDeviceImage())
+        {
+          baseTex = tex;
+          return false;
+        }
+        return true;
+      });
+  }
+  if (!baseTex)
+  {
+    texture->getDebugName([=](const auto &name) {
+      G_UNUSED(name);
+      DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move texture <%s>, no BaseTex found", name.c_str());
+    });
+    return ResourceMoveResolution::STAYING;
+  }
+#if _TARGET_XBOX
+  if (baseTex->cflg & TEXCF_LINEAR_LAYOUT && !is_emergency_defragmentation)
+  {
+    texture->getDebugName([=](const auto &name) {
+      G_UNUSED(name);
+      DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move texture <%s>, texture has linear layout", name.c_str());
+    });
+    return ResourceMoveResolution::STAYING;
+  }
+#endif
+  // 1) For base stub textures (see tql::initTexStubs) we don't have a valid stub index. So we have to look for them in the array
+  //    (or add index?)
+  // 2) TODO: handle stubs correctly before enabling this
+  if (baseTex->isStub() || tql::isTexStub(baseTex))
+  {
+    texture->getDebugName([=](const auto &name) {
+      G_UNUSED(name);
+      DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move texture <%s>, texture is a stub", name.c_str());
+    });
+    return ResourceMoveResolution::STAYING;
+  }
+  if (baseTex->isLocked())
+  {
+    texture->getDebugName([=](const auto &name) {
+      G_UNUSED(name);
+      DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move texture <%s>, texture locked", name.c_str());
+    });
+    return ResourceMoveResolution::STAYING;
+  }
+  static constexpr uint32_t delayFromCreation = 4;
+  if (ctx.getRecordingFenceProgress() - baseTex->getCreationFenceProgress() <= delayFromCreation)
+  {
+    texture->getDebugName([=](const auto &name) {
+      G_UNUSED(name);
+      DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move texture <%s>, texture created few frames ago", name.c_str());
+    });
+    return ResourceMoveResolution::STAYING;
+  }
+  const auto bindlessInfo = bindless_manager.checkTextureImagePairNoLock(baseTex, texture);
+  if (bindlessInfo.mismatchFound || baseTex->memSize == 0)
+  {
+    // If the bindless heap has a entry for baseTex but with a different texture, then baseTex is updated to use
+    // texture but the bindless heap was not updated yet. To avoid problems we back out and try again later.
+    texture->getDebugName([=](const auto &name) {
+      G_UNUSED(name);
+      DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move texture <%s>, texture internals are updating", name.c_str());
+    });
+    return ResourceMoveResolution::STAYING;
+  }
+  texture->getDebugName([=](const auto &name) {
+    G_UNUSED(name);
+    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Trying to move texture <%s>", name.c_str());
+  });
+  const D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COPY_QUEUE_TARGET;
+  auto newTexture = tryCloneTexture(adapter, device, texture, initialState, allocation_flags);
+  if (!newTexture)
+  {
+    texture->getDebugName([=](const auto &name) {
+      G_UNUSED(name);
+      DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move texture <%s>, no space", name.c_str());
+    });
+    // Clone failed, only realistic chance is no space is available
+    return ResourceMoveResolution::NO_SPACE;
+  }
+  ctx.setImageResourceStateNoLock(initialState, newTexture->getGlobalSubresourceIdRange());
+  if (!baseTex->swapTextureNoLock(texture, newTexture))
+  {
+    texture->getDebugName([=](const auto &name) {
+      G_UNUSED(name);
+      DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move texture <%s>, swap failed", name.c_str());
+    });
+    destroyTextureOnFrameCompletion(newTexture);
+    // have to indicate moving as some data structures may have changed
+    return ResourceMoveResolution::MOVING;
+  }
+  if (!tryDestroyTextureOnFrameCompletion(texture))
+  {
+    texture->getDebugName([=](const auto &name) {
+      G_UNUSED(name);
+      DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Texture <%s> queued for deletion", name.c_str());
+      destroyTextureOnFrameCompletion(newTexture);
+    });
+    return ResourceMoveResolution::QUEUED_FOR_DELETION;
+  }
+  if (bindlessInfo.matchCount > 0)
+  {
+    bindless_manager.updateTextureReferencesNoLock(ctx, baseTex, texture, newTexture, bindlessInfo.firstFound, bindlessInfo.matchCount,
+      false);
+  }
+  ctx.moveTextureNoLock(texture, newTexture);
+
+  texture->getDebugName([=](const auto &name) {
+    G_UNUSED(name);
+    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Moving texture <%s>, new location %u (%u:%u)", name.c_str(),
+      newTexture->getMemory().getHeapID().raw, newTexture->getMemory().getHeapID().group, newTexture->getMemory().getHeapID().index);
+  });
+  return ResourceMoveResolution::MOVING;
+}
+
+HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter,
+  ID3D12Device *device, frontend::BindlessManager &bindless_manager, HeapID heap_id, AliasHeapReference ref,
+  AllocationFlags allocation_flags, bool is_emergency_defragmentation)
+{
+  G_UNUSED(ctx);
+  G_UNUSED(adapter);
+  G_UNUSED(device);
+  G_UNUSED(bindless_manager);
+  G_UNUSED(heap_id);
+  G_UNUSED(ref);
+  G_UNUSED(allocation_flags);
+  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Trying to move alias heap (not implemented)");
+  return ResourceMoveResolution::STAYING;
+}
+
+HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter,
+  ID3D12Device *device, frontend::BindlessManager &bindless_manager, HeapID heap_id, ScratchBufferReference ref,
+  AllocationFlags allocation_flags, bool is_emergency_defragmentation)
+{
+  G_UNUSED(ctx);
+  G_UNUSED(bindless_manager);
+  G_UNUSED(heap_id);
+
+  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Trying to move scratch buffer");
+  auto scratchBufferAccess = tempScratchBufferState.access();
+  if (scratchBufferAccess->buffer.buffer.Get() != ref.buffer)
+  {
+    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Failed to move scratch buffer, is not current one");
+    // If we try to move a scratch buffer that is not the current one, then the one we want to move
+    // is probably queued for deletion already
+    return ResourceMoveResolution::QUEUED_FOR_DELETION;
+  }
+  if (tryMoveScratchBuffer(scratchBufferAccess, adapter, device, allocation_flags))
+  {
+    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Moved scratch buffer");
+    return ResourceMoveResolution::MOVING;
+  }
+  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move scratch buffer");
+  // Only way move can fail is if there is no space in non locked free memory
+  return ResourceMoveResolution::NO_SPACE;
+}
+
+HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter,
+  ID3D12Device *device, frontend::BindlessManager &bindless_manager, HeapID heap_id, PushRingBufferReference ref,
+  AllocationFlags allocation_flags, bool is_emergency_defragmentation)
+{
+  G_UNUSED(ctx);
+  G_UNUSED(bindless_manager);
+  G_UNUSED(heap_id);
+
+  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Trying to move push ring buffer");
+  if (onMovePushRingBuffer(adapter, device, ref.buffer, allocation_flags))
+  {
+    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Moved push ring buffer");
+    return ResourceMoveResolution::MOVING;
+  }
+  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move push ring buffer");
+  // Only way it can fail is if we ran out of memory for a replacement segment
+  return ResourceMoveResolution::NO_SPACE;
+}
+
+HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter,
+  ID3D12Device *device, frontend::BindlessManager &bindless_manager, HeapID heap_id, UploadRingBufferReference ref,
+  AllocationFlags allocation_flags, bool is_emergency_defragmentation)
+{
+  G_UNUSED(ctx);
+  G_UNUSED(bindless_manager);
+  G_UNUSED(heap_id);
+
+  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Trying to move upload ring buffer");
+  if (onMoveUploadRingBuffer(adapter, device, ref.buffer, allocation_flags))
+  {
+    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Moved upload ring buffer");
+    return ResourceMoveResolution::MOVING;
+  }
+  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to upload push ring buffer");
+  // Only way it can fail is if we ran out of memory for a replacement segment
+  return ResourceMoveResolution::NO_SPACE;
+}
+
+HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter,
+  ID3D12Device *device, frontend::BindlessManager &bindless_manager, HeapID heap_id, TempUploadBufferReference ref,
+  AllocationFlags allocation_flags, bool is_emergency_defragmentation)
+{
+  G_UNUSED(ctx);
+  G_UNUSED(bindless_manager);
+  G_UNUSED(heap_id);
+
+  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Trying to move temp upload buffer");
+  if (tryMoveTemporaryUploadStandbyBuffer(adapter, device, ref.buffer, allocation_flags))
+  {
+    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Moved temporary upload buffer (was standby)");
+    return ResourceMoveResolution::MOVED;
+  }
+  if (tryMoveTemporaryUploadBuffer(adapter, device, ref.buffer, allocation_flags))
+  {
+    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Moved temporary upload buffer");
+    return ResourceMoveResolution::MOVING;
+  }
+  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to temporary upload buffer");
+  // Only way it can fail is if we ran out of memory for a replacement segment
+  return ResourceMoveResolution::NO_SPACE;
+}
+
+HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter,
+  ID3D12Device *device, frontend::BindlessManager &bindless_manager, HeapID heap_id, PersistentUploadBufferReference ref,
+  AllocationFlags allocation_flags, bool is_emergency_defragmentation)
+{
+  G_UNUSED(ctx);
+  G_UNUSED(adapter);
+  G_UNUSED(device);
+  G_UNUSED(bindless_manager);
+  G_UNUSED(heap_id);
+  G_UNUSED(ref);
+  G_UNUSED(allocation_flags);
+  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Trying to move persistent upload buffer (not implemented)");
+  return ResourceMoveResolution::STAYING;
+}
+
+HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter,
+  ID3D12Device *device, frontend::BindlessManager &bindless_manager, HeapID heap_id, PersistentReadBackBufferReference ref,
+  AllocationFlags allocation_flags, bool is_emergency_defragmentation)
+{
+  G_UNUSED(ctx);
+  G_UNUSED(adapter);
+  G_UNUSED(device);
+  G_UNUSED(bindless_manager);
+  G_UNUSED(heap_id);
+  G_UNUSED(ref);
+  G_UNUSED(allocation_flags);
+  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Trying to move persistent read back buffer (not implemented)");
+  return ResourceMoveResolution::STAYING;
+}
+
+HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter,
+  ID3D12Device *device, frontend::BindlessManager &bindless_manager, HeapID heap_id, PersistentBidirectionalBufferReference ref,
+  AllocationFlags allocation_flags, bool is_emergency_defragmentation)
+{
+  G_UNUSED(ctx);
+  G_UNUSED(adapter);
+  G_UNUSED(device);
+  G_UNUSED(bindless_manager);
+  G_UNUSED(heap_id);
+  G_UNUSED(ref);
+  G_UNUSED(allocation_flags);
+  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Trying to move persistent bidirectional buffer (not implemented)");
+  return ResourceMoveResolution::STAYING;
+}
+
+HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter,
+  ID3D12Device *device, frontend::BindlessManager &bindless_manager, HeapID heap_id, RaytraceAccelerationStructureHeapReference ref,
+  AllocationFlags allocation_flags, bool is_emergency_defragmentation)
+{
+  G_UNUSED(ctx);
+  G_UNUSED(adapter);
+  G_UNUSED(device);
+  G_UNUSED(bindless_manager);
+  G_UNUSED(heap_id);
+  G_UNUSED(ref);
+  G_UNUSED(allocation_flags);
+  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Trying to move raytrace acceleration structure heap (not implemented)");
+  return ResourceMoveResolution::STAYING;
+}
+
+bool HeapFragmentationManager::processGroup(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
+  frontend::BindlessManager &bindless_manager, uint32_t index)
+{
+  auto &state = groupsFragmentationState[index];
+  // Wait until all outstanding moves are complete, otherwise it can be very complex to avoid moving
+  // just moved resources.
+  if (state.activeMoves > 0)
+    return false;
+
+  if (getHeapGroupGeneration(index) == state.skipGeneration)
+    return false;
+
+  // The first strategy is to move all allocated memory / resources of one heap to all others,
+  // to be able to free the heap. This aims to reduce the amount of memory we allocate from
+  // the system. This strategy is not used when we have fixed heaps, as we can not free any
+  // memory with this strategy.
+  //
+  // tryDispenseHeap(...); // we don't use it, because it seems to be ineffective
+
+  // The second strategy looks for the largest free memory region of all the heaps and tries
+  // to enlarges it, and so reducing fragmentation.
+  const bool isDefragmentationInProgress = tryDefragmentHeap(ctx, adapter, device, bindless_manager, index, false);
+  if (isDefragmentationInProgress)
+    return true;
+
+  state.lockedRanges.clear();
+  state.skipGeneration = getHeapGroupGeneration(index);
+  return false;
+}
+
+bool HeapFragmentationManager::tryDefragmentHeap(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
+  frontend::BindlessManager &bindless_manager, uint32_t index, bool is_emergency_defragmentation)
+{
+  auto &group = groups[index];
+  auto &state = groupsFragmentationState[index];
+
+  OSSpinlockScopedLock heapLock{heapGroupMutex};
+
+  setDefragmentationGeneration(index);
+
+  if (group.empty())
+    return false;
+
+  if (getHeapGroupGeneration(index) != state.currentGeneration)
+  {
+    state.lockedRanges.clear();
+    state.currentGeneration = getHeapGroupGeneration(index);
+    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: group: %u, new generation: %u, locked ranges reset", index,
+      state.currentGeneration);
+  }
+
+  lockRangesBeforeDefragmentationStep(index);
+
+  auto [selectedHeap, selectedRange] = find_heap_for_defragmentation(group);
+  if (selectedHeap == group.end())
+  {
+    unlockRangesAfterDefragmentationStep(index);
+    return false;
+  }
+
+  HeapID srcId;
+  srcId.group = index;
+  srcId.index = eastl::distance(begin(group), selectedHeap);
+
+  const bool defragmentationStepResult =
+    processDefragmentationStep(ctx, adapter, device, bindless_manager, srcId, *selectedRange, is_emergency_defragmentation);
+
+  unlockRangesAfterDefragmentationStep(index);
+
+  if (!checkDefragmentationGeneration(srcId.group))
+  {
+    state.lockedRanges.clear();
+    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Continue defragmentation because group has been changed (%u)", srcId.group);
+    return true; // group has been changed -- continue defragmentation
+  }
+
+  if (!defragmentationStepResult && state.lockedRanges.max_size() > state.lockedRanges.size())
+  {
+    state.lockedRanges.push_back({srcId.raw, *selectedRange});
+    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Range locked (heap: %u (%u:%u), 0x%016X - 0x%016X)", srcId.raw, srcId.group,
+      srcId.index, selectedRange->start, selectedRange->stop);
+    return true; // range has been locked -- we can try with another
+  }
+
+  if (!defragmentationStepResult)
+  {
+    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Max ranges count reached (group: %u, ranges count: %u)", index,
+      state.lockedRanges.size());
+    return false;
+  }
+
+  return true;
+}
+
+eastl::pair<HeapFragmentationManager::HeapIterator, HeapFragmentationManager::RangeIterator> HeapFragmentationManager::
+  find_heap_for_defragmentation(dag::Vector<ResourceHeap> &heaps)
+{
+  // Find first heap that has free ranges.
+  auto selectedHeap = eastl::find_if(begin(heaps), end(heaps),
+    [](auto &heap) //
+    { return static_cast<bool>(heap) && !heap.freeRanges.empty(); });
+  if (selectedHeap == end(heaps))
+    return {end(heaps), {}};
+
+  auto getLargestFreeRange = [](ResourceHeap &heap) {
+    auto &ranges = heap.freeRanges;
+    const auto &lockedRange = heap.lockedRange;
+
+    auto selected = eastl::find_if(begin(ranges), end(ranges),
+      [=](const ValueRange<uint64_t> &candidate) { return !candidate.overlaps(lockedRange); });
+    if (selected == end(ranges))
+      return end(ranges);
+
+    for (auto candidate = selected + 1; candidate != end(ranges); ++candidate)
+    {
+      if (candidate->size() <= selected->size())
+        continue;
+      if (candidate->overlaps(lockedRange))
+        continue;
+      selected = candidate;
+    }
+
+    return selected;
+  };
+
+  auto selectedRange = getLargestFreeRange(*selectedHeap);
+  while (selectedRange == end(selectedHeap->freeRanges))
+  {
+    selectedHeap++;
+    if (selectedHeap == end(heaps))
+      return {end(heaps), {}};
+    selectedRange = getLargestFreeRange(*selectedHeap);
+  }
+  bool multipleHeapsWithFreeRange = false;
+  for (auto candidate = selectedHeap + 1; candidate != end(heaps); ++candidate)
+  {
+    if (!*candidate)
+      continue;
+    if (candidate->freeRanges.empty())
+      continue;
+    auto candidateRange = getLargestFreeRange(*candidate);
+    if (candidateRange == end(candidate->freeRanges))
+      continue;
+
+    multipleHeapsWithFreeRange = true;
+
+    if (candidateRange->size() < selectedRange->size())
+      continue;
+    if (candidateRange->size() == selectedRange->size())
+    {
+      // Tiebreaker, select the smaller one so we may be able to completely free everything it
+      // holds and so can free the heap.
+      if (candidate->totalSize > selectedHeap->totalSize)
+        continue;
+    }
+
+    selectedHeap = candidate;
+    selectedRange = candidateRange;
+  }
+
+  if (!multipleHeapsWithFreeRange && (1 == selectedHeap->freeRanges.size()))
+  {
+    // When there is only one heap with free ranges and it has only one range, then there is nothing
+    // to do
+    return {end(heaps), {}};
+  }
+
+  return {selectedHeap, selectedRange};
+}
+
+void HeapFragmentationManager::lockRangesBeforeDefragmentationStep(uint32_t group_index)
+{
+  auto &group = groups[group_index];
+  auto &state = groupsFragmentationState[group_index];
+  for (const auto &lockedRange : state.lockedRanges)
+  {
+    G_ASSERT(HeapID{lockedRange.first}.group == group_index);
+    auto &heap = group[HeapID{lockedRange.first}.index];
+    if (heap.isLocked())
+    {
+      heap.unlock();
+      heap.lockFullRange();
+    }
+    else
+      heap.lock(lockedRange.second);
+  }
+}
+
+void HeapFragmentationManager::unlockRangesAfterDefragmentationStep(uint32_t group_index)
+{
+  auto &group = groups[group_index];
+  for (auto &range : group)
+    range.unlock();
+}
+
+bool HeapFragmentationManager::processDefragmentationStep(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
+  frontend::BindlessManager &bindless_manager, HeapID srcId, ValueRange<uint64_t> selectedRange, bool is_emergency_defragmentation)
+  DAG_TS_REQUIRES(heapGroupMutex)
+{
+  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Selected heap %u (%u:%u) for defragmentation (range: 0x%016X - 0x%016X)",
+    srcId.raw, srcId.group, srcId.index, selectedRange.start, selectedRange.stop);
+
+  auto &selectedHeap = groups[srcId.group][srcId.index];
+  uint32_t successCount = 0;
+
+  if (selectedHeap.isLocked())
+  {
+    selectedHeap.unlock();
+    selectedHeap.lockFullRange();
+  }
+  else
+    selectedHeap.lock(selectedRange);
+
+  auto tryMoveRangeResource = [=, &ctx, &bindless_manager, &successCount](
+                                ResourceHeap::UsedRangeSetType::iterator selectedRes) DAG_TS_REQUIRES(heapGroupMutex) {
+    AllocationFlags allocFlags{AllocationFlag::DISALLOW_LOCKED_RANGES, AllocationFlag::DEFRAGMENTATION_OPERATION,
+      AllocationFlag::EXISTING_HEAPS_ONLY, AllocationFlag::DISABLE_ALTERNATE_HEAPS};
+
+    const auto resource = selectedRes->resource;
+    heapGroupMutex.unlock();
+    const auto moveResult = eastl::visit(
+      [&ctx, this, srcId, adapter, device, &bindless_manager, allocFlags, is_emergency_defragmentation](auto &ref) {
+        return moveResourceAway(ctx, adapter, device, bindless_manager, srcId, ref, allocFlags, is_emergency_defragmentation);
+      },
+      resource);
+    heapGroupMutex.lock();
+    if (moveResult == ResourceMoveResolution::MOVING)
+    {
+      groupsFragmentationState[srcId.group].activeMoves++;
+      accessRecodingPendingFrameCompletion<PendingForCompletedFrameData>([=](auto &data) { ++data.executedMoves[srcId.group]; });
+    }
+
+    if (moveResult != ResourceMoveResolution::NO_SPACE && moveResult != ResourceMoveResolution::STAYING)
+      successCount++;
+    else
+    {
+      DEFRAG_VERBOSE(is_emergency_defragmentation,
+        "DX12: Defragmentation move failed -- heap %u (%u:%u) -- resource cannot be moved (offset: %u, status: %d)", srcId.raw,
+        srcId.group, srcId.index, selectedRange.start, static_cast<eastl::underlying_type_t<ResourceMoveResolution>>(moveResult));
+    }
+  };
+
+  const auto firstSelectedRes = eastl::upper_bound(begin(selectedHeap.usedRanges), end(selectedHeap.usedRanges), selectedRange.start,
+    [](uint64_t start, const HeapResourceInfo &info) { return start < info.range.start; });
+
+  if (firstSelectedRes != end(selectedHeap.usedRanges))
+    tryMoveRangeResource(firstSelectedRes);
+
+  if (successCount == 0 && checkDefragmentationGeneration(srcId.group)) // try another side
+  {
+    const auto reverseSecondSelectedRes = eastl::upper_bound(rbegin(selectedHeap.usedRanges), rend(selectedHeap.usedRanges),
+      selectedRange.start, [](uint64_t start, const HeapResourceInfo &info) { return start > info.range.start; });
+
+    if (reverseSecondSelectedRes != rend(selectedHeap.usedRanges))
+    {
+      const auto secondSelectedRes = reverseSecondSelectedRes.base() - 1;
+      tryMoveRangeResource(secondSelectedRes);
+    }
+  }
+
+  if (successCount == 0)
+    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Defragmentation step failed -- all moves failed");
+  else
+    DEFRAG_VERBOSE(is_emergency_defragmentation,
+      "DX12: Defragmentation step finished for heap %u (%u:%u) -- active moves: %u, total moves: %u", srcId.raw, srcId.group,
+      srcId.index, groupsFragmentationState[srcId.group].activeMoves, successCount);
+
+  return successCount > 0; // -V1020 we will unlock heap after moves processing (completeFrameExecution)
+}
+
+void HeapFragmentationManager::completeFrameRecording(Device &device, DXGIAdapter *adapter,
+  frontend::BindlessManager &bindless_manager, uint32_t history_index)
+{
+  ResourceMemoryHeap::CompletedFrameRecordingInfo frameCompleteInfo;
+#if _TARGET_PC_WIN && DX12_SUPPORT_RESOURCE_MEMORY_METRICS
+  frameCompleteInfo.adapter = adapter;
+#endif
+  frameCompleteInfo.historyIndex = history_index;
+  BaseType::completeFrameRecording(frameCompleteInfo);
+
+  if (!device.isDefragmentationEnabled())
+    return;
+
+  for (auto &group : groups)
+    for (auto &heap : group)
+    {
+      // Other locks will conflict with defragmentation
+      // Here we also check that locked in previous defragmentation steps ranges was unlocked properly
+      G_ASSERT(!heap.isLocked());
+      G_UNUSED(heap);
+    }
+
+  for (uint32_t grp = 0; grp < groups.size(); ++grp)
+  {
+    const uint32_t currentGroup = (groupOffset + grp) % groups.size();
+    const bool isDefragmentationInProgress =
+      processGroup(device.getContext(), adapter, device.getDevice(), bindless_manager, currentGroup);
+    if (isDefragmentationInProgress)
+      break; // Defragmentation is heavy operation. We can process only one group per frame
+  }
+  groupOffset++;
+}
+
+void HeapFragmentationManager::processEmergencyDefragmentationForGroup(Device &device, DXGIAdapter *adapter,
+  frontend::BindlessManager &bindless_manager, uint32_t group_index)
+{
+  logdbg("DX12: Processing emergency defragmentation for heap group: %d", group_index);
+  // during emergency defragmentation we do not use locked ranges from previous steps
+  groupsFragmentationState[group_index].lockedRanges.clear();
+  tryDefragmentHeap(device.getContext(), adapter, device.getDevice(), bindless_manager, group_index, true);
+}
+
+void drv3d_dx12::resource_manager::HeapFragmentationManager::processEmergencyDefragmentation(Device &device, DXGIAdapter *adapter,
+  frontend::BindlessManager &bindless_manager, uint32_t group_index, bool is_alternate_heap_allowed, bool is_uav, bool is_rtv)
+{
+  processEmergencyDefragmentationForGroup(device, adapter, bindless_manager, group_index);
+
+  if (!is_alternate_heap_allowed)
+    return;
+
+  const ResourceHeapProperties properties = {group_index};
+
+  for (ResourceHeapProperties currentProperties = {}; currentProperties.raw < groups.size(); currentProperties.raw++)
+  {
+    if (currentProperties.raw == group_index)
+      continue;
+    G_UNUSED(is_rtv);
+#if _TARGET_XBOX
+    const bool isCompatible = properties.isCompatible(currentProperties, is_uav, is_rtv);
+#else
+    const bool isCompatible = properties.isCompatible(currentProperties, canMixResources(), isUMASystem(), is_uav);
+#endif
+    if (!isCompatible)
+      continue;
+    processEmergencyDefragmentationForGroup(device, adapter, bindless_manager, currentProperties.raw);
+  }
+}
+
+ScratchBuffer ScratchBufferProvider::getTempScratchBufferSpace(DXGIAdapter *adapter, Device &device, size_t size, size_t alignment)
+{
+  auto result = tempScratchBufferState.access()->getSpace(adapter, device.getDevice(), size, alignment, this);
+  if (!result)
+  {
+    device.processEmergencyDefragmentation(getScratchBufferHeapProperties().raw, true, false, false);
+    result = tempScratchBufferState.access()->getSpace(adapter, device.getDevice(), size, alignment, this);
+  }
+  checkForOOM(adapter, static_cast<bool>(result),
+    OomReportData{"getTempScratchBufferSpace", nullptr, size, AllocationFlags{}.to_ulong(), getScratchBufferHeapProperties().raw});
+  if (result)
+  {
+    recordScratchBufferTempUse(size);
+  }
+  return result;
+}
+
+ScratchBuffer ScratchBufferProvider::getPersistentScratchBufferSpace(DXGIAdapter *adapter, Device &device, size_t size,
+  size_t alignment)
+{
+  auto result = tempScratchBufferState.access()->getPersistentSpace(adapter, device.getDevice(), size, alignment, this);
+  if (!result)
+  {
+    device.processEmergencyDefragmentation(getScratchBufferHeapProperties().raw, true, false, false);
+    result = tempScratchBufferState.access()->getPersistentSpace(adapter, device.getDevice(), size, alignment, this);
+  }
+  checkForOOM(adapter, static_cast<bool>(result),
+    OomReportData{
+      "getPersistentScratchBufferSpace", nullptr, size, AllocationFlags{}.to_ulong(), getScratchBufferHeapProperties().raw});
+  if (result)
+  {
+    recordScratchBufferPersistentUse(size);
+  }
+  return result;
 }

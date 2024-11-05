@@ -1,7 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <rendInst/renderPass.h>
 
+#include "render/drawOrder.h"
 #include "riGen/riGenExtra.h"
 
 #include <3d/dag_ringDynBuf.h>
@@ -23,21 +25,25 @@ struct VbExtraCtx
   int lastSwitchFrameNo = 0;
 };
 extern VbExtraCtx vbExtraCtx[rendinst::RIEX_RENDERING_CONTEXTS];
-extern UniqueBufHolder perDrawData;
+extern UniqueBuf riExtraPerDrawData;
 
 extern float riExtraLodDistSqMul;
 extern float riExtraCullDistSqMul;
 extern float additionalRiExtraLodDistMul;
 extern float riExtraLodsShiftDistMul;
+extern float riExtraLodsShiftDistMulForCulling;
 extern float riExtraMulScale;
+extern bool canIncreaseRenderBuffer;
 
 
 struct RenderElem
 {
   ShaderElement *shader;
   short vstride; // can be 8 bit
-  uint8_t vbIdx, drawOrder;
-  int si, numf, baseVertex;
+  uint8_t vbIdx;
+  PackedDrawOrder drawOrder;
+  uint8_t primitive;
+  int si, sv, numv, numf, baseVertex;
 };
 extern dag::Vector<RenderElem> allElems;
 extern dag::Vector<uint32_t> allElemsIndex;
@@ -54,7 +60,7 @@ void allocateRIGenExtra(rendinst::render::VbExtraCtx &vbctx);
 
 extern CallbackToken meshRElemsUpdatedCbToken;
 
-void on_ri_mesh_relems_updated(const RenderableInstanceLodsResource *r);
+void on_ri_mesh_relems_updated(const RenderableInstanceLodsResource *r, bool);
 void on_ri_mesh_relems_updated_pool(uint32_t poolId);
 void updateShaderElems(uint32_t poolI);
 
@@ -67,7 +73,11 @@ void renderRIGenExtra(const RiGenVisibility &v, RenderPass render_pass, Optimize
   uint32_t instance_count_mul, TexStreamingContext texCtx, AtestStage atest_stage = AtestStage::All,
   const RiExtraRenderer *riex_renderer = nullptr);
 
-void renderRIGenExtraSortedTransparentInstanceElems(const RiGenVisibility &v, const TexStreamingContext &texCtx);
+void renderRIGenExtraSortedTransparentInstanceElems(const RiGenVisibility &v, const TexStreamingContext &texCtx,
+  bool draw_partitioned_elems = false);
+
+void write_ri_extra_per_instance_data(vec4f *dest_buffer, const RendinstTiledScene &tiled_scene, scene::pool_index pool_id,
+  scene::node_index ni, mat44f_cref m, bool is_dynamic);
 
 } // namespace rendinst::render
 
@@ -88,4 +98,12 @@ inline int find_lod<4>(const float *__restrict lod_dists, float dist)
   if (dist < lod_dists[1])
     return (dist < lod_dists[0] ? 0 : 1);
   return (dist < lod_dists[2] ? 2 : 3);
+}
+
+__forceinline vec4f make_pos_and_rad(mat44f_cref tm, vec4f center_and_rad)
+{
+  vec4f pos = v_mat44_mul_vec3p(tm, center_and_rad);
+  vec4f maxScale = v_max(v_length3_est(tm.col0), v_max(v_length3_est(tm.col1), v_length3_est(tm.col2)));
+  vec4f bb_ext = v_mul(v_splat_w(center_and_rad), maxScale);
+  return v_perm_xyzd(pos, bb_ext);
 }

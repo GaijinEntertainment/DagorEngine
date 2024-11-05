@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "device.h"
 
 #include <3d/dag_lowLatency.h>
@@ -26,7 +28,7 @@ void frontend::Swapchain::setup(SetupInfo setup)
   }
   auto &extent = setup.colorImage->getBaseExtent();
   swapchainColorTex->setParams(extent.width, extent.height, 1, 1, "swapchain color target");
-  swapchainColorTex->tex.image = setup.colorImage;
+  swapchainColorTex->image = setup.colorImage;
 
 #if _TARGET_XBOX
   if (setup.secondaryColorImage)
@@ -41,20 +43,14 @@ void frontend::Swapchain::setup(SetupInfo setup)
       swapchainSecondaryColorTex->cflg = setup.secondaryColorImage->getFormat().asTexFlags() | TEXCF_RTARGET;
     }
     swapchainSecondaryColorTex->setParams(extent.width, extent.height, 1, 1, "swapchain secondary color target");
-    swapchainSecondaryColorTex->tex.image = setup.secondaryColorImage;
+    swapchainSecondaryColorTex->image = setup.secondaryColorImage;
   }
 #endif
-
-  if (!swapchainDepthStencilTex)
-  {
-    swapchainDepthStencilTex.reset(new BaseTex{RES3D_TEX, TEXFMT_DEPTH24 | TEXCF_RTARGET});
-  }
-  swapchainDepthStencilTex->setParams(extent.width, extent.height, 1, 1, "swapchain depth stencil target");
 
   presentMode = setup.presentMode;
 }
 
-void frontend::Swapchain::waitForFrameStart()
+void frontend::Swapchain::waitForFrameStart() const
 {
 #if _TARGET_PC
   if (waitableObject)
@@ -73,48 +69,14 @@ void frontend::Swapchain::waitForFrameStart()
 #endif
 }
 
-BaseTex *frontend::Swapchain::getDepthStencilTexture(Device &device, Extent2D ext)
+void frontend::Swapchain::prepareForShutdown(Device &) {}
+
+void frontend::Swapchain::shutdown()
 {
-  if (swapchainDepthStencilTex->tex.image)
-  {
-    const auto &depthExt = swapchainDepthStencilTex->tex.image->getBaseExtent();
-    if (depthExt.width >= ext.width && depthExt.height >= ext.height)
-    {
-      return swapchainDepthStencilTex.get();
-    }
-
-    // adjust request to max of any
-    ext.width = max(ext.width, depthExt.width);
-    ext.height = max(ext.height, depthExt.height);
-
-    // enqueue for deletion
-    device.resources.destroyTextureOnFrameCompletion(swapchainDepthStencilTex->tex.image);
-    swapchainDepthStencilTex->tex.image = nullptr;
-  }
-
-  ImageInfo ii;
-  ii.type = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-  ii.usage = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-  ii.size.width = ext.width;
-  ii.size.height = ext.height;
-  ii.size.depth = 1;
-  ii.arrays = ArrayLayerCount::make(1);
-  ii.mips = MipMapCount::make(1);
-  ii.format = getDepthStencilFormat();
-  ii.memoryClass = DeviceMemoryClass::DEVICE_RESIDENT_IMAGE;
-  ii.allocateSubresourceIDs = true;
-  swapchainDepthStencilTex->tex.image = device.createImageNoContextLock(ii, "swapchain depth stencil target");
-  swapchainDepthStencilTex->setParams(ext.width, ext.height, 1, 1, "swapchain depth stencil target");
-  return swapchainDepthStencilTex.get();
-}
-
-void frontend::Swapchain::prepareForShutdown(Device &device)
-{
-  if (swapchainDepthStencilTex && swapchainDepthStencilTex->tex.image)
-  {
-    device.resources.destroyTextureOnFrameCompletion(swapchainDepthStencilTex->tex.image);
-    swapchainDepthStencilTex->tex.image = nullptr;
-  }
+  swapchainColorTex.reset();
+#if _TARGET_XBOX
+  swapchainSecondaryColorTex.reset();
+#endif
 }
 
 // ~~~~~~~~~~~~~~ BACKEND  ~~~~~~~~~~~~~~
@@ -172,12 +134,22 @@ void backend::Swapchain::registerSwapchainView(D3DDevice *device, Image *image, 
   {
     if (!autoGameDvr)
     {
-      if (info.state.isRTV())
+      secondarySwapchainViewSet.push_back(info);
+
+      if (info.state.isSRV())
       {
-        secondarySwapchainViewSet.push_back(info);
-
+        auto desc = info.state.asSRVDesc(D3D12_RESOURCE_DIMENSION_TEXTURE2D, image->isMultisampled());
+        for (auto &buffer : secondaryColorTargets)
+        {
+          auto descriptor = swapchainBufferSRVHeap.allocate(device);
+          device->CreateShaderResourceView(buffer.buffer.Get(), &desc, descriptor);
+          buffer.viewTable.push_back(descriptor);
+          G_ASSERT(buffer.viewTable.size() == secondarySwapchainViewSet.size());
+        }
+      }
+      else if (info.state.isRTV())
+      {
         auto desc = info.state.asRTVDesc(D3D12_RESOURCE_DIMENSION_TEXTURE2D, image->isMultisampled());
-
         for (auto &buffer : secondaryColorTargets)
         {
           auto descriptor = swapchainBufferRTVHeap.allocate(device);
@@ -216,33 +188,38 @@ static bool is_tearing_supported(DXGIFactory *factory)
   return SUCCEEDED(hr) && allowTearing;
 }
 
-bool backend::Swapchain::setup(Device &device, frontend::Swapchain &fe, DXGIFactory *factory, SwapchainInitParameter *queue,
+bool backend::Swapchain::setup(Device &device, frontend::Swapchain &fe, DXGIFactory *factory, ID3D12CommandQueue *queue,
   SwapchainCreateInfo &&sci)
 {
   swapchainBufferSRVHeap.init(device.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
   swapchainBufferRTVHeap.init(device.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
 
+  bool isThereDisplay = [] {
+    DISPLAY_DEVICE dd;
+    dd.cb = sizeof(dd);
+    return EnumDisplayDevices(nullptr, 0, &dd, 0) != FALSE;
+  }();
+
   presentMode = sci.presentMode;
 
   frontend::Swapchain::SetupInfo frontSetupInfo;
-  Extent2D extent;
-  FormatStore colorFormat;
 
   // create with default size (target size)
   ComPtr<IDXGISwapChain1> swapchainLevel1;
   DXGI_SWAP_CHAIN_DESC1 swapchainDesc{};
-  colorFormat = FormatStore::fromCreateFlags(TEXFMT_DEFAULT);
+  FormatStore colorFormat = FormatStore::fromCreateFlags(TEXFMT_DEFAULT);
   swapchainDesc.Format = colorFormat.asLinearDxGiFormat();
   // fastest mode, allows composer to scribble on it to avoid extra copy
   swapchainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
   isTearingSupported = is_tearing_supported(factory);
-  swapchainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT |
+  swapchainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH |
+                        (isThereDisplay ? DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT : 0) |
                         (isTearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0);
   swapchainDesc.SampleDesc.Count = 1;
   swapchainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
   swapchainDesc.BufferCount = FRAME_FRAME_BACKLOG_LENGTH;
-  swapchainDesc.Width = sci.resolutionX;
-  swapchainDesc.Height = sci.resolutionY;
+  swapchainDesc.Width = sci.resolution.width;
+  swapchainDesc.Height = sci.resolution.height;
   DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc = {};
   fullscreenDesc.Windowed = TRUE;
   if (DX12_CHECK_FAIL(factory->CreateSwapChainForHwnd(queue, sci.window, &swapchainDesc, &fullscreenDesc, nullptr, &swapchainLevel1)))
@@ -257,7 +234,10 @@ bool backend::Swapchain::setup(Device &device, frontend::Swapchain &fe, DXGIFact
 
   DX12_DEBUG_RESULT(factory->MakeWindowAssociation(sci.window, DXGI_MWA_NO_ALT_ENTER | DXGI_MWA_NO_PRINT_SCREEN));
 
-  DX12_DEBUG_RESULT(swapchain->SetMaximumFrameLatency(FRAME_LATENCY));
+  if (isThereDisplay)
+  {
+    DX12_DEBUG_RESULT(swapchain->SetMaximumFrameLatency(FRAME_LATENCY));
+  }
 
   // when no output is explicitly set, we grab it from the swapchain
   if (!output)
@@ -285,46 +265,15 @@ bool backend::Swapchain::setup(Device &device, frontend::Swapchain &fe, DXGIFact
     swapchain->GetDesc1(&swapchainDesc);
   }
 
-  bool isHdrAvailable = is_hdr_available(output);
-  if ((sci.enableHdr && isHdrAvailable) || sci.forceHdr)
+  if (isThereDisplay)
   {
-    // The CheckColorSpaceSupport with DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709 will fail if the
-    // backbuffer's format isn't 16 bit.
-    colorFormat = FormatStore::fromDXGIFormat(DXGI_FORMAT_R16G16B16A16_FLOAT);
-    DXGI_SWAP_CHAIN_DESC currentDesc;
-    swapchain->GetDesc(&currentDesc);
-    currentDesc.BufferDesc.Format = colorFormat.asLinearDxGiFormat();
-    swapchain->ResizeBuffers(currentDesc.BufferCount, swapchainDesc.Width, swapchainDesc.Height, currentDesc.BufferDesc.Format,
-      currentDesc.Flags);
-    swapchain->GetDesc1(&swapchainDesc);
-
-    DXGI_COLOR_SPACE_TYPE colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709;
-    UINT colorSpaceSupport = 0;
-    if (DX12_DEBUG_OK(swapchain->CheckColorSpaceSupport(colorSpace, &colorSpaceSupport)) &&
-        ((colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) == DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT))
-    {
-      isHdrEnabled = DX12_DEBUG_OK(swapchain->SetColorSpace1(colorSpace));
-      change_hdr(true, output);
-    }
-    else
-    {
-      logwarn("DX12: 16 bit hdr format isn't supported!");
-      colorFormat = FormatStore::fromCreateFlags(TEXFMT_DEFAULT);
-    }
+    frontSetupInfo.waitableObject.reset(swapchain->GetFrameLatencyWaitableObject());
   }
-  else
-  {
-    change_hdr();
-  }
-  extent.width = swapchainDesc.Width;
-  extent.height = swapchainDesc.Height;
-
-  frontSetupInfo.waitableObject.reset(swapchain->GetFrameLatencyWaitableObject());
 
   // keep track to allow correct device reset behavior
   isInExclusiveFullscreenModeEnabled = isInExclusiveFullscreenMode();
 
-  bufferResize(device, extent, colorFormat);
+  bufferResize(device, sci);
 
   frontSetupInfo.colorImage = colorTarget.get();
   frontSetupInfo.presentMode = sci.presentMode;
@@ -341,8 +290,7 @@ void backend::Swapchain::onFrameBegin(D3DDevice *device)
   updateColorTextureObject(device);
 }
 
-
-void backend::Swapchain::swapchainPresentOnPC()
+void backend::Swapchain::swapchainPresent()
 {
   SCOPED_LATENCY_MARKER(lowlatency::get_current_render_frame(), PRESENT_START, PRESENT_END);
   UINT interval = presentMode == PresentationMode::VSYNCED ? 1 : 0;
@@ -352,7 +300,7 @@ void backend::Swapchain::swapchainPresentOnPC()
   UINT flags = ((presentMode != PresentationMode::VSYNCED) && isTearingSupported && !isInExclusiveFullscreenModeEnabled)
                  ? DXGI_PRESENT_ALLOW_TEARING
                  : 0;
-  swapchain->Present(interval, flags);
+  DX12_CHECK_RESULT(swapchain->Present(interval, flags));
 }
 
 bool backend::Swapchain::swapchainPresentFromMainThread(DeviceContext &ctx)
@@ -363,79 +311,26 @@ bool backend::Swapchain::swapchainPresentFromMainThread(DeviceContext &ctx)
     ::wait(numFramesCompletedByBackend, numPresentSentToBackend - 1);
   };
 
-  swapchainPresentOnPC();
+  swapchainPresent();
   ctx.onSwapchainSwapCompleted();
   numFramesPresentedByFrontend++;
 
   return true;
 }
 
-
 void backend::Swapchain::present(Device &device)
 {
-  if (device.getContext().hasWorkerThread())
+  numFramesCompletedByBackend++;
+  if (DAGOR_LIKELY(device.getContext().isPresentAsync()) || DAGOR_UNLIKELY(!device.getContext().hasWorkerThread()))
   {
-    numFramesCompletedByBackend++;
-    notify_one(numFramesCompletedByBackend);
+    swapchainPresent();
   }
   else
   {
-    swapchainPresentOnPC();
+    notify_one(numFramesCompletedByBackend);
   }
 }
 #endif
-
-
-#if DX12_HAS_GAMMA_CONTROL
-bool backend::Swapchain::setGamma(float power)
-{
-  if (isHdrEnabled) // Not supported, Present fails on Xbox.
-    return false;
-
-#if !_TARGET_XBOX
-  // can not set gamma if not exclusive
-  BOOL fullscreen;
-  // fail is ok here
-  if (DX12_DEBUG_FAIL(swapchain->GetFullscreenState(&fullscreen, nullptr)))
-    return false;
-  if (!fullscreen)
-    return true;
-#endif
-
-  DXGI_GAMMA_CONTROL_CAPABILITIES gcc = {};
-  // fail is ok here
-  if (DX12_DEBUG_FAIL(output->GetGammaControlCapabilities(&gcc)))
-    return false;
-
-  if (gcc.NumGammaControlPoints <= 1)
-  {
-    logdbg("DX12: setGamma: NumGammaControlPoints %u, no effect", gcc.NumGammaControlPoints);
-    return true;
-  }
-
-  if (power <= 0.f)
-    power = 1.f;
-
-  // Must be 0 and 1 on Xbox.
-  gammaRamp.Offset.Red = gammaRamp.Offset.Green = gammaRamp.Offset.Blue = 0.f;
-  gammaRamp.Scale.Red = gammaRamp.Scale.Green = gammaRamp.Scale.Blue = 1.f;
-  eastl::transform(gcc.ControlPointPositions, gcc.ControlPointPositions + gcc.NumGammaControlPoints, gammaRamp.GammaCurve,
-    [p = 1 / power](auto v) //
-    {
-      auto f = powf(v, p);
-      return DXGI_RGB{f, f, f};
-    });
-
-  if (DX12_DEBUG_FAIL(output->SetGammaControl(&gammaRamp)))
-  {
-    return false;
-  }
-
-  gammaRampApplied = true;
-  return true;
-}
-#endif
-
 
 void backend::Swapchain::prepareForShutdown(Device &device)
 {
@@ -505,9 +400,6 @@ void backend::Swapchain::preRecovery()
   if (swapchain)
     swapchain->SetFullscreenState(FALSE, nullptr);
   swapchain.Reset();
-#if DX12_HAS_GAMMA_CONTROL
-  gammaRampApplied = false;
-#endif
   colorTarget->removeAllViews();
   colorTarget->replaceResource(nullptr);
   swapchainBufferSRVHeap.shutdown();
@@ -576,14 +468,33 @@ void backend::Swapchain::updateColorTextureObject(D3DDevice *device)
 
 #if _TARGET_PC_WIN
 
-void backend::Swapchain::bufferResize(Device &device, const Extent2D &extent, FormatStore color_format)
+static bool is_hdr_colorspace_supported(const ComPtr<DXGISwapChain> &swapchain)
+{
+  DXGI_COLOR_SPACE_TYPE colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
+  UINT colorSpaceSupport = 0;
+  return DX12_DEBUG_OK(swapchain->CheckColorSpaceSupport(colorSpace, &colorSpaceSupport)) &&
+         ((colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) == DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT);
+}
+
+void backend::Swapchain::bufferResize(Device &device, const SwapchainProperties &props)
 {
   // have to always resize the buffer, even if size has not changed
   DXGI_SWAP_CHAIN_DESC currentDesc;
   swapchain->GetDesc(&currentDesc);
-  logdbg("DX12: ResizeBuffers(%u, %u, %u, %u, 0x%08X)", currentDesc.BufferCount, extent.width, extent.height,
+  logdbg("DX12: ResizeBuffers(%u, %u, %u, %u, 0x%08X)", currentDesc.BufferCount, props.resolution.width, props.resolution.height,
     static_cast<uint32_t>(currentDesc.BufferDesc.Format), static_cast<uint32_t>(currentDesc.Flags));
-  swapchain->ResizeBuffers(currentDesc.BufferCount, extent.width, extent.height, currentDesc.BufferDesc.Format, currentDesc.Flags);
+
+  bool hasColorSpaceSupport = is_hdr_colorspace_supported(swapchain);
+  bool useHdr = props.enableHdr && is_hdr_available(output) && hasColorSpaceSupport || props.forceHdr;
+  FormatStore colorFormat = FormatStore::fromCreateFlags(useHdr ? TEXFMT_A2R10G10B10 : TEXFMT_DEFAULT);
+
+  swapchain->ResizeBuffers(currentDesc.BufferCount, props.resolution.width, props.resolution.height, colorFormat.asLinearDxGiFormat(),
+    currentDesc.Flags);
+
+  if (hasColorSpaceSupport)
+    swapchain->SetColorSpace1(useHdr ? DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709);
+
+  hdr_changed(useHdr ? get_hdr_caps(output) : eastl::nullopt);
 
   if (isInExclusiveFullscreenMode())
   {
@@ -618,17 +529,17 @@ void backend::Swapchain::bufferResize(Device &device, const Extent2D &extent, Fo
   }
 
   auto idBase = device.getSwapchainColorGlobalId();
-  Extent3D ext{extent.width, extent.height, 1};
+  Extent3D ext{props.resolution.width, props.resolution.height, 1};
   if (!colorTarget)
   {
     colorTarget.reset(new Image({}, ComPtr<ID3D12Resource>{}, D3D12_RESOURCE_DIMENSION_TEXTURE2D, D3D12_TEXTURE_LAYOUT_UNKNOWN,
-      color_format, ext, MipMapCount::make(1), ArrayLayerCount::make(1), idBase, 0));
+      colorFormat, ext, MipMapCount::make(1), ArrayLayerCount::make(1), idBase, 0));
     colorTarget->setGPUChangeable(true);
   }
   else
   {
     colorTarget->updateExtents(ext);
-    colorTarget->updateFormat(color_format);
+    colorTarget->updateFormat(colorFormat);
   }
 
   device.getContext().back.sharedContextState.resourceStates.setTextureState(
@@ -638,7 +549,7 @@ void backend::Swapchain::bufferResize(Device &device, const Extent2D &extent, Fo
 }
 
 
-bool backend::Swapchain::isInExclusiveFullscreenMode()
+bool backend::Swapchain::isInExclusiveFullscreenMode() const
 {
   BOOL isExclusive = TRUE;
   if (swapchain)

@@ -1,7 +1,8 @@
-Platform ?= win64 ;
 Root    ?= ../../../../.. ;
 Location = prog/tools/sceneTools/daEditorX/HeightmapLand ;
-DriverLinkage = dynamic ;
+KernelLinkage ?= dynamic ;
+if $(KernelLinkage) != dynamic { include $(Root)/prog/tools/sceneTools/daEditorX/HeightmapLand/jamfile-aces ; return ; }
+
 include $(Root)/prog/tools/tools_setup.jam ;
 
 TargetType  = util ;

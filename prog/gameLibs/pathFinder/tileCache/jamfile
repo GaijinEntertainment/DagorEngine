@@ -21,6 +21,7 @@ Sources =
 UseProgLibs +=
   3rdPartyLibs/Detour
   3rdPartyLibs/Recast
+  gameLibs/recastTools
 ;
 
 include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ;

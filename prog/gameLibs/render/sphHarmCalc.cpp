@@ -1,6 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/sphHarmCalc.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3d_buffers.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_query.h>
+#include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_buffers.h>
 #include <3d/dag_lockSbuffer.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_Point4.h>
@@ -10,6 +16,7 @@
 #include <vecmath/dag_vecMath.h>
 #include <perfMon/dag_statDrv.h>
 #include <3d/dag_gpuConfig.h>
+#include <util/dag_hash.h>
 
 #include <math/dag_hlsl_floatx.h>
 #include "shaders/spherical_harmonics_consts.hlsli"
@@ -279,7 +286,7 @@ bool SphHarmCalc::gpuFinalReduction(const int values_to_sum, const bool force_re
       {
         getValuesFromGpu(&shouldRetry);
         if (shouldRetry)
-          d3d::driver_command(DRV3D_COMMAND_D3D_FLUSH, nullptr, nullptr, nullptr);
+          d3d::driver_command(Drv3dCommand::D3D_FLUSH);
       }
       return valid;
     }

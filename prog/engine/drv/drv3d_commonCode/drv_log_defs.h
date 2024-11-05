@@ -1,5 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#define LOGLEVEL_DEBUG _MAKE4C('D3DD')
-#define LOGLEVEL_WARN  _MAKE4C('D3DW')
-#define LOGLEVEL_ERR   _MAKE4C('D3DE')
+#define D3D_ERROR(...) logmessage(_MAKE4C('D3DE'), __VA_ARGS__)

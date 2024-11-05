@@ -1,7 +1,12 @@
-// various query pools
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-#include "driver.h"
+
+// various query pools
+
 #include <generic/dag_objectPool.h>
+#include <osApiWrappers/dag_critSec.h>
+
+#include "driver.h"
 
 namespace drv3d_vulkan
 {
@@ -9,7 +14,6 @@ namespace drv3d_vulkan
 class Buffer;
 struct CmdBeginSurvey;
 struct CmdEndSurvey;
-struct CmdInsertTimesampQuery;
 
 struct ConditionalRenderingState;
 
@@ -38,58 +42,6 @@ struct QueryPool
 struct SurveyQueryPool : QueryPool
 {
   Buffer *dataStore = nullptr;
-};
-
-struct TimestampQueryPool : QueryPool
-{
-  std::atomic<uint64_t> values[QueryPool::POOL_SIZE] = {};
-};
-
-struct TimestampQueryRef
-{
-  TimestampQueryPool *pool = nullptr;
-  uint32_t index = 0;
-};
-
-struct TimestampQuery
-{
-  enum class State
-  {
-    ISSUED,
-    FINALIZED,
-  };
-  State state = State::FINALIZED;
-  TimestampQueryRef timestampHandle;
-  uint64_t result = 0;
-};
-
-class TimestampQueryManager
-{
-  eastl::vector<eastl::unique_ptr<TimestampQueryPool>> queryPools;
-  ObjectPool<TimestampQuery> objPool;
-  WinCritSec guard;
-
-public:
-  TimestampQueryManager() = default;
-  TimestampQueryManager(const TimestampQueryManager &) = delete;
-
-  TimestampQuery *allocate();
-  void release(TimestampQuery *query);
-
-  CmdInsertTimesampQuery issue(TimestampQuery *query);
-  bool isReady(TimestampQuery *query);
-
-  void shutdownPools();
-
-  // execution context called methods
-private:
-  // keep reset list in query manager to avoid resets without writes
-  eastl::vector<TimestampQueryRef> resetList;
-
-public:
-  void write(const TimestampQueryRef &ref, VulkanCommandBufferHandle frame_cmds);
-  void writeResetsAndQueueReadbacks(VulkanCommandBufferHandle cmd_b);
-  bool writtenThisFrame() { return resetList.size() > 0; }
 };
 
 class SurveyQueryManager
@@ -122,6 +74,18 @@ public:
   void shutdownPools();
 
   bool anyScopesActive() const { return openSurveyScopeCount > 0; }
+};
+
+class RaytraceBLASCompactionSizeQueryPool
+{
+  VulkanQueryPoolHandle pool;
+
+public:
+  RaytraceBLASCompactionSizeQueryPool() = default;
+  RaytraceBLASCompactionSizeQueryPool(const RaytraceBLASCompactionSizeQueryPool &) = delete;
+
+  VulkanQueryPoolHandle getPool();
+  void shutdownPools();
 };
 
 } // namespace drv3d_vulkan

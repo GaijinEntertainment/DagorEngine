@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -19,6 +18,11 @@ public:
 class BaseParamScript
 {
 public:
+  BaseParamScript() = default;
+  BaseParamScript(const BaseParamScript &) = default;
+  BaseParamScript(BaseParamScript &&) = default;
+  BaseParamScript &operator=(const BaseParamScript &) = default;
+  BaseParamScript &operator=(BaseParamScript &&) = default;
   virtual ~BaseParamScript() {}
 
   virtual BaseParamScript *clone() = 0;

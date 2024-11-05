@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daEditorE/daEditorE.h>
 #include <daEditorE/de_interface.h>
 #include <daEditorE/de_objEditor.h>
@@ -5,10 +7,10 @@
 #include <libTools/util/undo.h>
 #include <libTools/util/iLogWriter.h>
 #include <ecs/input/hidEventRouter.h>
-#include <humanInput/dag_hiKeyboard.h>
-#include <humanInput/dag_hiKeybIds.h>
-#include <humanInput/dag_hiPointing.h>
-#include <humanInput/dag_hiGlobals.h>
+#include <drv/hid/dag_hiKeyboard.h>
+#include <drv/hid/dag_hiKeybIds.h>
+#include <drv/hid/dag_hiPointing.h>
+#include <drv/hid/dag_hiGlobals.h>
 #include <daInput/input_api.h>
 #include <gui/dag_stdGuiRenderEx.h>
 #include <gui/dag_baseCursor.h>
@@ -29,6 +31,9 @@ extern void register_da_editor4_objed_ptr(ObjectEditor **oe_ptr);
 
 namespace
 {
+
+static IGenGuiCursor *gui_cursor = nullptr;
+
 static bool de4_active = false, de4_freecam_active = false;
 dainput::action_set_handle_t de4_cameraActionSet;
 dainput::action_set_handle_t de4_globalsActionSet;
@@ -803,7 +808,7 @@ public:
     const HumanInput::PointingRawState::Mouse &rs = HumanInput::raw_state_pnt.mouse;
     if (!de4_freecam_active && ::gui_cursor && !de4_inp_handler.shouldHideCursor() &&
         global_cls_drv_pnt->getDevice(0)->isPointerOverWindow() && ::gui_cursor->getVisible())
-      ::gui_cursor->render(Point2(rs.x, rs.y), NULL);
+      ::gui_cursor->render(Point2(rs.x, rs.y));
   }
 };
 IDaEditor4Engine *IDaEditor4Engine::__daeditor4_global_instance = NULL;

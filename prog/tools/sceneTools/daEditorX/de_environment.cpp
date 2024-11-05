@@ -1,7 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "de_appwnd.h"
 #include <oldEditor/de_workspace.h>
 
-#include <propPanel2/comWnd/dialog_window.h>
+#include <propPanel/commonWindow/dialogWindow.h>
 
 #include <de3_lightService.h>
 #include <de3_lightProps.h>
@@ -18,7 +20,7 @@
 #include <debug/dag_debug.h>
 
 #include <workCycle/dag_workCycle.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <textureUtil/textureUtil.h>
 #include <assets/asset.h>
 
@@ -125,7 +127,7 @@ static void detectRenderDebug()
   supportRenderDebug = VariableMap::isGlobVariablePresent(rdbgEnabledGvid);
 }
 
-static void applyRenderDebug(bool repaint = true)
+static void applyRenderDebug()
 {
   int en = rdbgType > 0 || !rdbgUseNmap || !rdbgUseDtex || !rdbgUseLt || !rdbgUseChrome;
   ShaderGlobal::set_int_fast(rdbgEnabledGvid, en);
@@ -135,8 +137,6 @@ static void applyRenderDebug(bool repaint = true)
   ShaderGlobal::set_int_fast(rdbgUseLtGvid, rdbgUseLt);
   ShaderGlobal::set_int_fast(rdbgUseChromeGvid, rdbgUseChrome);
   enable_diffuse_mipmaps_debug(rdbgType == -1);
-  if (repaint)
-    EDITORCORE->queryEditorInterface<IDynRenderService>()->renderViewportFrame(NULL);
 }
 
 static void apply_envi_snapshot()
@@ -194,19 +194,19 @@ static void set_paint_detail_texture()
   ShaderGlobal::set_texture(paintDetailsVarId, combinedPaintTexId);
 }
 
-class EnvSetDlg : public CDialogWindow
+class EnvSetDlg : public PropPanel::DialogWindow
 {
 public:
   EnvSetDlg(void *phandle, SunLightProps *sun_props) :
-    CDialogWindow(phandle, hdpi::_pxScaled(400), hdpi::_pxScaled(800), "Environment Settings"), sunProps(sun_props)
+    DialogWindow(phandle, hdpi::_pxScaled(400), hdpi::_pxScaled(800), "Environment Settings"), sunProps(sun_props)
   {
     IDynRenderService *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>();
-    PropertyContainerControlBase *_panel = getPanel();
+    PropPanel::ContainerPropertyControl *_panel = getPanel();
     G_ASSERT(_panel && "No panel in EnvSetDlg");
 
     G_ASSERT(sun_props && "Sun properties is NULL in EnvSetDlg");
 
-    PropertyContainerControlBase *_settings = _panel->createGroup(PID_SUN_GROUP, "Environment settings");
+    PropPanel::ContainerPropertyControl *_settings = _panel->createGroup(PID_SUN_GROUP, "Environment settings");
     {
       _settings->createTrackFloat(PID_SUN_AZIMUT, "sun azimut", RadToDeg(sunProps->azimuth), -180.f, 180.f, 0.1);
       _settings->createTrackFloat(PID_SUN_ZENITH, "sun zenith", RadToDeg(sunProps->zenith), -5.f, 90.f, 0.1);
@@ -222,12 +222,12 @@ public:
 
     addAmbientWindPanel(_panel);
 
-    PropertyContainerControlBase *_dbgShow =
+    PropPanel::ContainerPropertyControl *_dbgShow =
       (drSrv && drSrv->getDebugShowTypeNames().size() > 1) ? _panel->createGroup(PID_DBGSHOW_GRP, "Debug settings") : NULL;
     if (_dbgShow)
     {
       dag::ConstSpan<const char *> modes = drSrv->getDebugShowTypeNames();
-      PropertyContainerControlBase *_dbgShowRG = _dbgShow->createRadioGroup(PID_DBGSHOW_MODE, "Debug show mode");
+      PropPanel::ContainerPropertyControl *_dbgShowRG = _dbgShow->createRadioGroup(PID_DBGSHOW_MODE, "Debug show mode");
       for (int i = 0; i < modes.size(); i++)
         _dbgShowRG->createRadio(i, modes[i]);
       _dbgShow->setInt(PID_DBGSHOW_MODE, drSrv->getDebugShowType());
@@ -235,8 +235,8 @@ public:
 
     if (supportRenderDebug)
     {
-      PropertyContainerControlBase &ltDbgGrp = *_panel->createGroup(PID_SUN_GROUP, "Render debug");
-      PropertyContainerControlBase &ltGrp = *ltDbgGrp.createRadioGroup(PID_LTDBG_GROUP, "Debug mode");
+      PropPanel::ContainerPropertyControl &ltDbgGrp = *_panel->createGroup(PID_SUN_GROUP, "Render debug");
+      PropPanel::ContainerPropertyControl &ltGrp = *ltDbgGrp.createRadioGroup(PID_LTDBG_GROUP, "Debug mode");
       ltGrp.createRadio(0, "Final render (no debug)");
       ltGrp.createRadio(-1, "Debug mipmaps (mips 0..5=RGBCMY)");
       if (VariableMap::isGlobVariablePresent(rdbgTypeGvid))
@@ -258,7 +258,7 @@ public:
       ltDbgGrp.setInt(PID_LTDBG_GROUP, rdbgType);
     }
 
-    PropertyContainerControlBase *_render_grp = _panel->createGroupBox(PID_RENDER_GROUP, "Render");
+    PropPanel::ContainerPropertyControl *_render_grp = _panel->createGroupBox(PID_RENDER_GROUP, "Render");
     {
       static const char *rtypeName[] = {"classic", "dynamic-A", "deferred"};
       dag::ConstSpan<int> rtypes = drSrv->getSupportedRenderTypes();
@@ -295,7 +295,7 @@ public:
     }
   }
 
-  virtual void onClick(int pcb_id, PropertyContainerControlBase *panel)
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
   {
     switch (pcb_id)
     {
@@ -310,7 +310,7 @@ public:
     }
   }
 
-  virtual void onChange(int pcb_id, PropPanel2 *panel)
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
   {
     IDynRenderService *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>();
     switch (pcb_id)
@@ -452,10 +452,9 @@ public:
         }
     }
     DAGORED2->repaint();
-    EDITORCORE->queryEditorInterface<IDynRenderService>()->renderViewportFrame(NULL);
   }
 
-  void setAmbientWindPanel(PropertyContainerControlBase *_panel)
+  void setAmbientWindPanel(PropPanel::ContainerPropertyControl *_panel)
   {
     _panel->setBool(PID_WIND_ENABLED, windPreviewSettings.enabled);
     _panel->setFloat(PID_WIND_DIR, windPreviewSettings.windAzimuth);
@@ -469,9 +468,9 @@ public:
     enableAmbientWindPanel(_panel);
   }
 
-  void addAmbientWindPanel(PropertyContainerControlBase *_panel)
+  void addAmbientWindPanel(PropPanel::ContainerPropertyControl *_panel)
   {
-    PropertyContainerControlBase *_wind = _panel->createGroup(PID_WIND_GROUP, "Ambient wind settings");
+    PropPanel::ContainerPropertyControl *_wind = _panel->createGroup(PID_WIND_GROUP, "Ambient wind settings");
     _wind->createCheckBox(PID_WIND_ENABLED, "Override weather settings (Preview only!)", false);
     _wind->createTrackFloat(PID_WIND_DIR, "Direction", 0, 0, 360, 1);
     _wind->createTrackFloat(PID_WIND_STRENGTH, "Strength (Beaufort)", 0, 0, 12, 0.1);
@@ -484,7 +483,7 @@ public:
     setAmbientWindPanel(_panel);
   }
 
-  void enableAmbientWindPanel(PropertyContainerControlBase *_panel)
+  void enableAmbientWindPanel(PropPanel::ContainerPropertyControl *_panel)
   {
     bool enableOverride = windPreviewSettings.enabled;
     _panel->setEnabledById(PID_WIND_DIR, enableOverride);
@@ -525,11 +524,15 @@ void show_environment_settings(void *phandle)
 
   EnvSetDlg envSetDlg(phandle, defSun);
   envSetDlg.autoSize();
-  if (envSetDlg.showDialog() != DIALOG_ID_OK)
+
+  // ImGui scrolls to the focused item, which in this case is at the bottom and requires scrolloing. Prevent that.
+  envSetDlg.setInitialFocus(PropPanel::DIALOG_ID_NONE);
+
+  if (envSetDlg.showDialog() != PropPanel::DIALOG_ID_OK)
   {
     *defSun = sunProps;
     sky = skyProps;
-    applyRenderDebug(false);
+    applyRenderDebug();
     updateLight();
 
     drSrv->setRenderType(rtype);
@@ -568,7 +571,7 @@ void load_settings(DataBlock &blk)
   const DataBlock &ltData = *appblk.getBlockByNameEx("AssetLight");
 
   detectRenderDebug();
-  applyRenderDebug(false);
+  applyRenderDebug();
   apply_envi_snapshot();
   set_paint_detail_texture();
 
@@ -601,4 +604,15 @@ void save_settings(DataBlock &blk)
   DataBlock &windBlk = *blk.addBlock("ambientWind");
   IWindService::writeSettingsBlk(windBlk, windPreviewSettings);
 }
+
+bool on_asset_changed(const DagorAsset &asset)
+{
+  if (strcmp(asset.getName(), paintDetailsTexAsset) != 0 && strcmp(asset.getName(), "assets_color_global_tex_palette") != 0)
+    return false;
+
+  logdbg("Updating paint details texture asset %s", asset.getName());
+  set_paint_detail_texture();
+  return true;
+}
+
 }; // namespace environment

@@ -125,7 +125,7 @@ namespace bind_dascript
   inline void PushBack(rapidjson::Value &value, T member, rapidjson::Document &doc,
                        das::Context *context, das::LineInfoArg *at)
   {
-    if (EASTL_LIKELY(value.IsArray()))
+    if (DAGOR_LIKELY(value.IsArray()))
       value.PushBack(rapidjson::Value(member, doc.GetAllocator()), doc.GetAllocator());
     else
       context->throw_error_at(at, "Array expected, instead got %d", value.GetType());
@@ -135,7 +135,7 @@ namespace bind_dascript
   inline void PushBack<const char *>(rapidjson::Value &value, const char * member, rapidjson::Document &doc,
                        das::Context *context, das::LineInfoArg *at)
   {
-    if (EASTL_LIKELY(value.IsArray()))
+    if (DAGOR_LIKELY(value.IsArray()))
       value.PushBack(rapidjson::Value(member ? member : "", doc.GetAllocator()), doc.GetAllocator());
     else
       context->throw_error_at(at, "Array expected, instead got %d", value.GetType());
@@ -145,7 +145,7 @@ namespace bind_dascript
   inline void PushBackVal(rapidjson::Value &value, T member, rapidjson::Document &doc,
                             das::Context *context, das::LineInfoArg *at)
   {
-    if (EASTL_LIKELY(value.IsArray()))
+    if (DAGOR_LIKELY(value.IsArray()))
       value.PushBack(rapidjson::Value(member), doc.GetAllocator());
     else
       context->throw_error_at(at, "Array expected, instead got %d", value.GetType());
@@ -155,7 +155,7 @@ namespace bind_dascript
   inline void AddMember(rapidjson::Value &value, const char *key, T member, rapidjson::Document &doc,
                          das::Context *context, das::LineInfoArg *at)
   {
-    if (EASTL_LIKELY(value.IsObject()))
+    if (DAGOR_LIKELY(value.IsObject()))
       value.AddMember({key ? key : "", doc.GetAllocator()}, {member, doc.GetAllocator()}, doc.GetAllocator());
     else
       context->throw_error_at(at, "Object expected, instead got %d", value.GetType());
@@ -165,7 +165,7 @@ namespace bind_dascript
   inline void AddMemberVal(rapidjson::Value &value, const char *key, T member, rapidjson::Document &doc,
                            das::Context *context, das::LineInfoArg *at)
   {
-    if (EASTL_LIKELY(value.IsObject()))
+    if (DAGOR_LIKELY(value.IsObject()))
       value.AddMember({key ? key : "", doc.GetAllocator()}, rapidjson::Value{member}, doc.GetAllocator());
     else
       context->throw_error_at(at, "Can add member '%s' to object only", key);
@@ -175,7 +175,7 @@ namespace bind_dascript
   inline void AddMember<const char *>(rapidjson::Value &value, const char *key, const char *member, rapidjson::Document &doc,
                          das::Context *context, das::LineInfoArg *at)
   {
-    if (EASTL_LIKELY(value.IsObject()))
+    if (DAGOR_LIKELY(value.IsObject()))
       value.AddMember({key ? key : "", doc.GetAllocator()}, {member ? member : "", doc.GetAllocator()}, doc.GetAllocator());
     else
       context->throw_error_at(at, "Object expected, instead got %d", value.GetType());
@@ -239,7 +239,7 @@ namespace bind_dascript
 
   inline void document_Parse(rapidjson::Document &doc, const char* str)
   {
-    doc.Parse(str ? str : "");
+    doc.Parse(str ? str : "", str ? strlen(str) : 0);
   }
 
 }

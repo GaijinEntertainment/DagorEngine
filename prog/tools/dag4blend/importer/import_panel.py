@@ -35,16 +35,35 @@ class DAGOR_PT_Import(Panel):
     def draw(self,context):
         P = bpy.data.scenes[0].dag4blend.importer
         layout = self.layout
-        layout.prop(P, 'with_subfolders')
-        layout.prop(P, 'mopt')
-        layout.prop(P, 'preserve_sg')
-        layout.prop(P, 'replace_existing')
-        layout.prop(P, 'preserve_path')
+        toggles = layout.column(align = True)
+
+        row = toggles.row()
+        row.prop(P, 'with_subfolders', toggle = True,
+            icon = 'CHECKBOX_HLT' if P.with_subfolders else 'CHECKBOX_DEHLT')
+
+        row = toggles.row()
+        row.prop(P, 'mopt', toggle = True,
+            icon = 'CHECKBOX_HLT' if P.mopt else 'CHECKBOX_DEHLT')
+
+        row = toggles.row()
+        row.prop(P, 'preserve_sg', toggle = True,
+            icon = 'CHECKBOX_HLT' if P.preserve_sg else 'CHECKBOX_DEHLT')
+
+        row = toggles.row()
+        row.prop(P, 'replace_existing', toggle = True,
+            icon = 'CHECKBOX_HLT' if P.replace_existing else 'CHECKBOX_DEHLT')
+
+        row = toggles.row()
+        row.prop(P, 'preserve_path', toggle = True,
+            icon = 'CHECKBOX_HLT' if P.preserve_path else 'CHECKBOX_DEHLT')
+
         layout.prop(P, 'masks')
         layout.prop(P, 'excludes')
         layout.prop(P, 'dirpath')
         if os.path.exists(P.dirpath):
-            layout.operator('dt.batch_import', text=('IMPORT'))
+            row = layout.row()
+            row.scale_y = 2
+            row.operator('dt.batch_import', text='IMPORT', icon = 'IMPORT')
             layout.operator('wm.path_open', icon = 'FILE_FOLDER', text='open import folder').filepath = P.dirpath
 
 class DAGOR_OT_BatchImport(Operator):

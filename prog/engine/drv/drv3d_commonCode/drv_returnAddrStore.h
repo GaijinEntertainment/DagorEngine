@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <debug/dag_assert.h>
 #include <EASTL/string.h>
 #if (_TARGET_PC_WIN /*|| _TARGET_XBOX*/) && DAGOR_DBGLEVEL > 0
@@ -12,6 +14,7 @@
 
 #endif
 
+#if LOCKS_STORE_RETURN_ADDRESS || COMMANDS_STORE_RETURN_ADDRESS
 __forceinline const void *get_return_address()
 {
 #if _TARGET_PC_WIN || _TARGET_XBOX
@@ -22,6 +25,7 @@ __forceinline const void *get_return_address()
   return nullptr;
 #endif
 }
+#endif
 
 struct ScopedReturnAddressStore
 {

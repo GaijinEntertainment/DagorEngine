@@ -29,8 +29,8 @@ rule ProcessCompileTarget
   }
   if $(CheckOnly) != yes { _CONFIG_OPT += -g1 -gdwarf-2 ; }
 
-  if ( $(tvOSArch) in arm64 ) && $(Config) = rel { _CONFIG_OPT += -mdynamic-no-pic ; }
-#  if ( $(tvOSArch) in armv7 armv7s ) && $(Config) = rel       { _CONFIG_OPT += -mno-thumb ; }
+  if $(PlatformArch) in arm64 && $(Config) = rel { _CONFIG_OPT += -mdynamic-no-pic ; }
+  #if $(PlatformArch) in armv7 armv7s && $(Config) = rel       { _CONFIG_OPT += -mno-thumb ; }
 
   _CPP_OPT = "-I "$(AddIncludes) $(_CONFIG_OPT) $(_SUPPRESS_OPT) $(CPPopt) $(GlobalCPPopt) ;
 

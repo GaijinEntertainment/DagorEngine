@@ -3,10 +3,10 @@ let input = require("textInput.nut")
 
 let textState = Watched("")
 let textPwdState = Watched("")
-let mailState = persist("mailState", @() Watched(""))
-let numState = persist("numState", @() Watched(""))
-let intState = persist("intState", @() Watched(""))
-let floatState = persist("floatState", @() Watched(""))
+let mailState = mkWatched(persist, "mailState","")
+let numState = mkWatched(persist, "numState", "")
+let intState = mkWatched(persist, "intState", "")
+let floatState = mkWatched(persist, "floatState", "")
 
 return {
   rendObj = ROBJ_SOLID

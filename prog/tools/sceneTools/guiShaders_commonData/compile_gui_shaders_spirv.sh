@@ -1,0 +1,1 @@
+../../../../tools/dagor_cdk/linux-$(uname -m)/dsc2-spirv-dev ./shaders_guiMinimal.blk -out ../../../../tools/dagor_cdk/commonData/guiShadersSpirV -q -shaderOn -nodisassembly -commentPP -codeDumpErr  -o ../../../../_output/shaders/tools-guiShaders~spirv

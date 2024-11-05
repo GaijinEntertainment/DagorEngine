@@ -1,0 +1,3 @@
+UseProgLibs +=
+  daNetGameLibs/frame_graph_renderer
+;

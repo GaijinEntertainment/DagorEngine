@@ -1,21 +1,18 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "global_state.h"
 #include "call_stack.h"
 #include "event_marker_tracker.h"
 
-namespace drv3d_dx12
-{
-namespace debug
-{
-namespace pc
+namespace drv3d_dx12::debug::pc
 {
 class DeviceState : public call_stack::Reporter, protected event_marker::Tracker
 {
   GlobalState *globalState = nullptr;
   DWORD callbackCookie = 0;
   ComPtr<ID3D12InfoQueue> debugQueue;
-  eastl::vector<uint8_t> debugMessageBuffer;
+  dag::Vector<uint8_t> debugMessageBuffer;
 
 public:
   bool setup(GlobalState &global, ID3D12Device *device, const Direct3D12Enviroment &d3d_env);
@@ -48,7 +45,7 @@ public:
   void onDeviceRemoved(D3DDevice *device, HRESULT remove_reason);
   void preRecovery();
   void recover(ID3D12Device *device, const Direct3D12Enviroment &d3d_env);
-  void beginCapture();
+  void beginCapture(const wchar_t *name);
   void endCapture();
   void captureNextFrames(const wchar_t *filename, int count);
   void handlePresentToPresentCapture();
@@ -66,6 +63,4 @@ public:
 private:
   void processDebugLogImpl();
 };
-} // namespace pc
-} // namespace debug
-} // namespace drv3d_dx12
+} // namespace drv3d_dx12::debug::pc

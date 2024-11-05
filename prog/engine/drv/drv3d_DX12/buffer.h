@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <genericSbufferImplementation.h>
@@ -19,6 +20,7 @@ struct BufferInterfaceConfigCommon
 
   constexpr static bool REPORT_ERRORS = true;
   constexpr static bool REPORT_WARNINGS = true;
+  constexpr static bool TRACK_DISCARD_FRAME = DX12_VALIDATE_STREAM_CB_USAGE_WITHOUT_INITIALIZATION;
   // the buffer heap manager reports memory sizes to the manager
   constexpr static bool REPORT_MEMORY_SIZE_TO_MANAGER = false;
   // memory manager will notify the texture manager at the right time for resource shuffle kick off.
@@ -59,7 +61,7 @@ struct BufferInterfaceConfigCommon
   static ViewFormatType viewFormatFromFormatFlags(uint32_t flags) { return FormatStore::fromCreateFlags(flags); }
 
   static bool isValidBuffer(BufferConstReferenceType buffer) { return buffer.buffer != nullptr; }
-  static void deleteBuffer(BufferReferenceType buffer, const char *name);
+  static void deleteBuffer(BufferReferenceType buffer);
   static void addRawResourceView(BufferReferenceType buffer);
   static void addStructuredResourceView(BufferReferenceType buffer, uint32_t struct_size);
   static void addShaderResourceView(BufferReferenceType buffer, FormatStore format);
@@ -126,13 +128,15 @@ struct PlatformBufferInterfaceConfig : BufferInterfaceConfigCommon
   constexpr static bool HAS_STRICT_LOCKING_RULES = true;
   constexpr static bool TRACK_GPU_WRITES = false;
 
-  static bool isMapable(BufferReferenceType buf);
+  static bool isMapable(BufferConstReferenceType buf);
 
-  static D3D12_RESOURCE_FLAGS getResourcFlags(uint32_t flags)
+  static D3D12_RESOURCE_FLAGS getResourceFlags(uint32_t flags)
   {
     D3D12_RESOURCE_FLAGS result = D3D12_RESOURCE_FLAG_NONE;
-    if (flags & SBCF_BIND_UNORDERED)
+    if ((SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE | SBCF_BIND_UNORDERED) & flags)
+    {
       result |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    }
     return result;
   }
   static BufferType createBuffer(uint32_t size, uint32_t structure_size, uint32_t discard_count, MemoryClass memory_class,
@@ -149,17 +153,23 @@ struct PlatformBufferInterfaceConfig : BufferInterfaceConfigCommon
   constexpr static bool HAS_STRICT_LOCKING_RULES = false;
   constexpr static bool TRACK_GPU_WRITES = false;
 
-  static constexpr bool isMapable(BufferReferenceType) { return true; }
+  static constexpr bool isMapable(BufferConstReferenceType) { return true; }
 
-  static D3D12_RESOURCE_FLAGS getResourcFlags(uint32_t flags)
+  static D3D12_RESOURCE_FLAGS getResourceFlags(uint32_t flags)
   {
     D3D12_RESOURCE_FLAGS result = D3D12_RESOURCE_FLAG_NONE;
-    if (flags & SBCF_BIND_UNORDERED)
+    if ((SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE | SBCF_BIND_UNORDERED) & flags)
+    {
       result |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    }
     if (SBCF_MISC_DRAWINDIRECT & flags)
+    {
       result |= RESOURCE_FLAG_ALLOW_INDIRECT_BUFFER;
-    if ((flags & SBCF_BIND_MASK) == SBCF_BIND_INDEX)
+    }
+    if (SBCF_BIND_INDEX == (flags & SBCF_BIND_MASK))
+    {
       result |= RESOURCE_FLAG_PREFER_INDEX_BUFFER;
+    }
     return result;
   }
 

@@ -1,9 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "actionData.h"
-#include <humanInput/dag_hiJoystick.h>
-#include <humanInput/dag_hiKeyboard.h>
-#include <humanInput/dag_hiPointing.h>
-#include <humanInput/dag_hiComposite.h>
-#include <humanInput/dag_hiVrInput.h>
+#include <drv/hid/dag_hiJoystick.h>
+#include <drv/hid/dag_hiKeyboard.h>
+#include <drv/hid/dag_hiPointing.h>
+#include <drv/hid/dag_hiComposite.h>
+#include <drv/hid/dag_hiVrInput.h>
 #include <generic/dag_carray.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <math/dag_mathBase.h>
@@ -108,7 +110,6 @@ static unsigned dev_clicks_count[get_const_log2(dainput::DEV_USED_gamepad) + 1] 
 static unsigned dev_clicks_count_last[get_const_log2(dainput::DEV_USED_gamepad) + 1] = {0};
 
 static BindingsRecorder binding_rec;
-static void process_bindings_recording();
 
 static Tab<dainput::DigitalActionProgress> lastReportedDaProgress;
 static void report_digital_action_progress(dag::Span<dainput::DigitalActionProgress> daProgress, dag::ConstSpan<uint32_t> curEvents);
@@ -330,19 +331,19 @@ static void sendEventTriggered(uint32_t code)
 {
   dainput::action_handle_t a = code & 0xFFFFu;
 
-  G_ASSERTF_RETURN(is_main_thread(), void(), "trying to call the sendEventTriggered for '%s' action not from the main thread",
-    dainput::get_action_name(a));
+  G_ASSERTF_RETURN(dainput::is_controled_by_cur_thread(), void(),
+    "trying to call the sendEventTriggered for '%s' action not from the controlled thread", dainput::get_action_name(a));
 
   bool end = (code & 0x80000000u) != 0;
   int dur_ms = (code >> 16) & 0x7FFFu;
 
-  bool processed = false;
   if (dainput::notify_ui_action_triggered_cb && (dainput::get_action_flags(a) & dainput::ACTIONF_eventToGui))
-    processed = dainput::notify_ui_action_triggered_cb(a, end, dur_ms);
-  else if (dainput::event_logs && dainput::logscreen)
+    dainput::notify_ui_action_triggered_cb(a, end, dur_ms);
+
+  if (dainput::event_logs && dainput::logscreen)
     dainput::logscreen(String(0, "%s%s  [dur=%d]", dainput::get_action_name(a), end ? ":end" : "", dur_ms));
 
-  if (!processed && dainput::notify_action_triggered_cb)
+  if (dainput::notify_action_triggered_cb)
     dainput::notify_action_triggered_cb(a, end, dur_ms);
 }
 
@@ -999,8 +1000,9 @@ static void emergency_events_dispatch()
   int avail = input_queue.getWriteAvailableSize();
   if (avail > 8 && avail < (2 << 10))
   {
-    logwarn("input_queue nearly overflowed, writeAvailableSize=%d, %s flush here", avail, is_main_thread() ? "will" : "CAN'T");
-    if (is_main_thread())
+    logwarn("input_queue nearly overflowed, writeAvailableSize=%d, %s flush here", avail,
+      dainput::is_controled_by_cur_thread() ? "will" : "CAN'T");
+    if (dainput::is_controled_by_cur_thread())
       dainput::process_actions_tick();
   }
 }

@@ -1,0 +1,23 @@
+int brdf_type = 0;
+interval brdf_type : standard < 1, sheen;
+
+macro STANDARD_BRDF_SHADING_BASE(code)
+hlsl(code) {
+  #include "pbr/pbr.hlsl"
+}
+endmacro
+
+macro SHEEN_BRDF_SHADING(code)
+  hlsl(code)
+  {
+    ##if brdf_type == sheen
+      #define SHEEN_SPECULAR 1
+    ##else
+      #define SHEEN_SPECULAR 0
+    ##endif
+  }
+endmacro
+
+macro STANDARD_BRDF_SHADING()
+  STANDARD_BRDF_SHADING_BASE(ps)
+endmacro

@@ -1,0 +1,27 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/texDebug ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/texDebug.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+if $(Config) != rel {
+  Sources =
+    texDebug.cpp
+  ;
+} else {
+  Sources =
+    texDebug_stub.cpp
+  ;
+  Target = $(Target:S=-stub.lib) ;
+}
+
+CPPopt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

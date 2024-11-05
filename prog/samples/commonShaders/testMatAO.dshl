@@ -113,7 +113,7 @@ shader testMaterialAO
       //init_normal(result, normalize(input.norm));
       init_metalness(result, normal_roughness.b);
       init_ao(result, ao);
-      return encode_gbuffer(result, screenpos);
+      return encode_gbuffer(result, input.pointToEye, screenpos);
     }
   }
   compile("target_vs", "test_vs");

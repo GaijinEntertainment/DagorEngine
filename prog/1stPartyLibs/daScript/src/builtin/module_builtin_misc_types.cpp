@@ -39,6 +39,7 @@ namespace das
     template <> struct typeName<EnumStub>    { constexpr static const char * name() { return "enum"; } };
     template <> struct typeName<EnumStub8>   { constexpr static const char * name() { return "enum8"; } };
     template <> struct typeName<EnumStub16>  { constexpr static const char * name() { return "enum16"; } };
+    template <> struct typeName<EnumStub64>  { constexpr static const char * name() { return "enum64"; } };
 
     IMPLEMENT_OP2_EVAL_BOOL_POLICY(Equ,EnumStub);
     IMPLEMENT_OP2_EVAL_BOOL_POLICY(NotEqu,EnumStub);
@@ -48,6 +49,9 @@ namespace das
 
     IMPLEMENT_OP2_EVAL_BOOL_POLICY(Equ,EnumStub16);
     IMPLEMENT_OP2_EVAL_BOOL_POLICY(NotEqu,EnumStub16);
+
+    IMPLEMENT_OP2_EVAL_BOOL_POLICY(Equ,EnumStub64);
+    IMPLEMENT_OP2_EVAL_BOOL_POLICY(NotEqu,EnumStub64);
 
     template <>
     struct SimPolicy<Func> {
@@ -152,6 +156,16 @@ namespace das
         addExtern<DAS_BIND_FUN(enum16_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
         addExtern<DAS_BIND_FUN(enum16_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
         addExtern<DAS_BIND_FUN(enum16_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
+        // enum64
+        addFunctionBasic<EnumStub64>(*this,lib);
+        addExtern<DAS_BIND_FUN(enum64_to_int)>(*this, lib, "int", SideEffects::none, "int32_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum64_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum64_to_int8)>(*this, lib, "int8", SideEffects::none, "int8_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum64_to_uint8)>(*this, lib, "uint8", SideEffects::none, "uint8_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum64_to_int16)>(*this, lib, "int16", SideEffects::none, "int16_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum64_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum64_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum64_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
         // function
         addFunctionBasic<Func>(*this,lib);
         addFunction( make_smart<BuiltInFn<Sim_EqFunPtr, bool,const Func,const void *>>("==",lib,"==",false) );
@@ -163,11 +177,25 @@ namespace das
         addFunctionBasic<char *>(*this,lib);
         addFunctionOrdered<char *>(*this,lib);
         addFunctionConcat<char *>(*this,lib);
-        addFunction ( make_smart<BuiltInFn<SimNode_LexicalCast<int32_t>,   char *,int32_t,Context *>>    ("string",lib,"das_lexical_cast",false) );
-        addFunction ( make_smart<BuiltInFn<SimNode_LexicalCast<uint32_t>,  char *,uint32_t,Context *>>   ("string",lib,"das_lexical_cast",false) );
-        addFunction ( make_smart<BuiltInFn<SimNode_LexicalCast<int64_t>,   char *,int64_t,Context *>>    ("string",lib,"das_lexical_cast",false) );
-        addFunction ( make_smart<BuiltInFn<SimNode_LexicalCast<uint64_t>,  char *,uint64_t,Context *>>   ("string",lib,"das_lexical_cast",false) );
-        addFunction ( make_smart<BuiltInFn<SimNode_LexicalCast<float>,     char *,float,Context *>>      ("string",lib,"das_lexical_cast",false) );
+        addExtern<DAS_BIND_FUN(das_lexical_cast_int_i8)>(*this, lib, "string",
+            SideEffects::none, "das_lexical_cast_int_i8")->args({"value","hex","context","at"})->arg_init(1,make_smart<ExprConstBool>(false));
+        addExtern<DAS_BIND_FUN(das_lexical_cast_int_u8)>(*this, lib, "string",
+            SideEffects::none, "das_lexical_cast_int_u8")->args({"value","hex","context","at"})->arg_init(1,make_smart<ExprConstBool>(false));
+        addExtern<DAS_BIND_FUN(das_lexical_cast_int_i16)>(*this, lib, "string",
+            SideEffects::none, "das_lexical_cast_int_i16")->args({"value","hex","context","at"})->arg_init(1,make_smart<ExprConstBool>(false));
+        addExtern<DAS_BIND_FUN(das_lexical_cast_int_u16)>(*this, lib, "string",
+            SideEffects::none, "das_lexical_cast_int_u16")->args({"value","hex","context","at"})->arg_init(1,make_smart<ExprConstBool>(false));
+        addExtern<DAS_BIND_FUN(das_lexical_cast_int_i32)>(*this, lib, "string",
+            SideEffects::none, "das_lexical_cast_int_i32")->args({"value","hex","context","at"})->arg_init(1,make_smart<ExprConstBool>(false));
+        addExtern<DAS_BIND_FUN(das_lexical_cast_int_u32)>(*this, lib, "string",
+            SideEffects::none, "das_lexical_cast_int_u32")->args({"value","hex","context","at"})->arg_init(1,make_smart<ExprConstBool>(false));
+        addExtern<DAS_BIND_FUN(das_lexical_cast_int_i64)>(*this, lib, "string",
+            SideEffects::none, "das_lexical_cast_int_i64")->args({"value","hex","context","at"})->arg_init(1,make_smart<ExprConstBool>(false));
+        addExtern<DAS_BIND_FUN(das_lexical_cast_int_u64)>(*this, lib, "string",
+            SideEffects::none, "das_lexical_cast_int_u64")->args({"value","hex","context","at"})->arg_init(1,make_smart<ExprConstBool>(false));
+        addExtern<DAS_BIND_FUN(das_lexical_cast_fp_f)>(*this, lib, "string", SideEffects::none,
+            "das_lexical_cast_fp_f")->args({"value","context","at"});
+        addExtern<DAS_BIND_FUN(das_lexical_cast_fp_d)>(*this, lib, "string", SideEffects::none,
+            "das_lexical_cast_fp_d")->args({"value","context","at"});
     }
 }
-

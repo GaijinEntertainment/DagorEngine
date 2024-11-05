@@ -15,36 +15,17 @@ namespace das {
     };
     template <> struct WrapType<Time> { enum { value = false }; typedef time_t type; typedef time_t rettype; };
 
-    template<>
-    struct SimPolicy<Time> {
-        static __forceinline auto to_time ( vec4f a ) {
-            return cast<Time>::to(a).time;
-        }
-        static __forceinline bool Equ     ( vec4f a, vec4f b, Context &, LineInfo * ) {
-            return to_time(a) == to_time(b);
-        }
-        static __forceinline bool NotEqu  ( vec4f a, vec4f b, Context &, LineInfo * ) {
-            return to_time(a) != to_time(b);
-        }
-        static __forceinline bool GtEqu  ( vec4f a, vec4f b, Context &, LineInfo * ) {
-            return to_time(a) >= to_time(b);
-        }
-        static __forceinline bool LessEqu  ( vec4f a, vec4f b, Context &, LineInfo * ) {
-            return to_time(a) <= to_time(b);
-        }
-        static __forceinline bool Gt  ( vec4f a, vec4f b, Context &, LineInfo * ) {
-            return to_time(a) > to_time(b);
-        }
-        static __forceinline bool Less  ( vec4f a, vec4f b, Context &, LineInfo * ) {
-            return to_time(a) < to_time(b);
-        }
-        static __forceinline double Sub  ( vec4f a, vec4f b, Context &, LineInfo * ) {
-            return difftime(to_time(a), to_time(b));
-        }
-    };
+    __forceinline bool time_equal ( Time a, Time b ) { return a.time==b.time; }
+    __forceinline bool time_nequal ( Time a, Time b ) { return a.time!=b.time; }
+    __forceinline bool time_gtequal ( Time a, Time b ) { return a.time>=b.time; }
+    __forceinline bool time_ltequal ( Time a, Time b ) { return a.time<=b.time; }
+    __forceinline bool time_gt ( Time a, Time b ) { return a.time>b.time; }
+    __forceinline bool time_lt ( Time a, Time b ) { return a.time<b.time; }
+    __forceinline double time_sub ( Time a, Time b ) { return difftime(a.time, b.time); }
 
     static inline int64_t cast_int64(Time t) { return int64_t(t.time); }
     Time builtin_clock();
+    Time builtin_mktime(int year, int month, int mday, int hour, int min, int sec);
     void builtin_sleep ( uint32_t msec );
     void builtin_exit ( int32_t ec );
 }

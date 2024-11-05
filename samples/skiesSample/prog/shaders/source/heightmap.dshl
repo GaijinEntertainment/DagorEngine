@@ -145,7 +145,7 @@ shader heightmap
       init_albedo(result, albedo.xyz);
       init_smoothness(result, 0.01);
       init_normal(result, worldNormal);
-      return encode_gbuffer(result, screenpos);
+      return encode_gbuffer(result, input.pointToEye, screenpos);
     }
   }
   compile("target_vs", "test_vs");

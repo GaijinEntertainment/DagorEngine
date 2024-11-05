@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "app.h"
 
 #include <wrapper/cef_helpers.h>

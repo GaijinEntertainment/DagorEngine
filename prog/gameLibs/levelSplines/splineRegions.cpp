@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <levelSplines/splineRegions.h>
 #include <math/dag_polyUtils.h>
 #include <math/dag_math2d.h>

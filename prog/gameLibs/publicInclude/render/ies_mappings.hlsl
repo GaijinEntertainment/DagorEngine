@@ -1,27 +1,27 @@
-float3 inv_octahedral_mapping(float2 tc, float zoom, bool rotate)
+half3 inv_octahedral_mapping(half2 tc, half zoom, bool rotate)
 {
   tc = (tc * 2 - 1)/zoom;
   if (rotate)
-    tc = float2(tc.x - tc.y, tc.x + tc.y) / 2;
-  float3 dir = float3(tc.xy, 1.0 - (abs(tc.x) + abs(tc.y)));
+    tc = half2(tc.x - tc.y, tc.x + tc.y) / 2;
+  half3 dir = half3(tc.xy, 1.0h - (abs(tc.x) + abs(tc.y)));
   if (dir.z < 0)
-    dir.xy = float2(-(abs(dir.y) - 1) * sign(dir.x), -(abs(dir.x) - 1) * sign(dir.y));
+    dir.xy = (1.0h - abs(dir.yx)) * half2(sign(dir.xy));
   return normalize(dir);
 }
 
-half2 octahedral_mapping(half3 co, float zoom, bool rotate)
+half2 octahedral_mapping(half3 co, half zoom, bool rotate)
 {
   co /= dot(half3(1, 1, 1), abs(co));
   co.xy = co.y < 0.0
-    ? (1.0 - abs(co.zx)) * (co.xz < 0 ? float2(-1, -1) : float2(1, 1))
+    ? (1.0h - abs(co.zx)) * select(co.xz < 0, half2(-1, -1), half2(1, 1))
     : co.xz;
   if (rotate)
   {
-    float tempX = co.x;
+    half tempX = co.x;
     co.x = (co.x + co.y);
     co.y = (co.y - tempX);
   }
   co.x *= zoom;
   co.y *= zoom;
-  return co.xy * 0.5 + 0.5;
+  return co.xy * 0.5h + 0.5h;
 }

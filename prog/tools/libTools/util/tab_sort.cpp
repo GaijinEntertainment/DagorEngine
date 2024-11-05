@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <libTools/containers/tab_sort.h>
 
 #include <util/dag_string.h>

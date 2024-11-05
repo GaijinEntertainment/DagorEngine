@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "../av_plugin.h"
 #include "../av_appwnd.h"
 
@@ -16,10 +18,11 @@
 #include <phys/dag_physResource.h>
 #include <gameRes/dag_gameResources.h>
 #include <gameRes/dag_stdGameRes.h>
+#include <shaders/dag_dynSceneRes.h>
 #include <de3_entityFilter.h>
 #include <render/dynmodelRenderer.h>
 
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/control/container.h>
 #include <workCycle/dag_workCycle.h>
 #include <perfMon/dag_cpuFreq.h>
 
@@ -77,7 +80,7 @@ struct PhysSimulationStats
 static inline unsigned getRendSubTypeMask() { return IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER); }
 static inline int testBits(int in, int bits) { return (in & bits) == bits; }
 
-class PhysObjViewPlugin : public IGenEditorPlugin, public ControlEventHandler
+class PhysObjViewPlugin : public IGenEditorPlugin, public PropPanel::ControlEventHandler
 {
 public:
   enum
@@ -272,14 +275,14 @@ public:
 
   virtual bool supportAssetType(const DagorAsset &asset) const { return strcmp(asset.getTypeStr(), "physObj") == 0; }
 
-  virtual void fillPropPanel(PropertyContainerControlBase &panel)
+  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel)
   {
     if (!entity || !dynPhysObjData)
       return;
 
     panel.setEventHandler(this);
 
-    PropertyContainerControlBase &physTypeGrp = *panel.createRadioGroup(PID_PHYSOBJ_PHYS_TYPE_GRP, "Phys Engine:");
+    PropPanel::ContainerPropertyControl &physTypeGrp = *panel.createRadioGroup(PID_PHYSOBJ_PHYS_TYPE_GRP, "Phys Engine:");
     {
       physTypeGrp.createRadio(physsimulator::PHYS_BULLET, "bullet");
       physTypeGrp.createRadio(physsimulator::PHYS_JOLT, "jolt");
@@ -301,7 +304,7 @@ public:
     panel.createCheckBox(PID_PHYSOBJ_DRAW_CONSTR_RS, "draw constraints refSys", drawConstraintRefsys);
 
     panel.createSeparator();
-    PropertyContainerControlBase &sceneTypeGrp = *panel.createRadioGroup(PID_PHYSOBJ_SCENE_TYPE_GRP, "Place physobjs as:");
+    PropPanel::ContainerPropertyControl &sceneTypeGrp = *panel.createRadioGroup(PID_PHYSOBJ_SCENE_TYPE_GRP, "Place physobjs as:");
     {
       sceneTypeGrp.createRadio(physsimulator::SCENE_TYPE_GROUP, "group of objects");
       sceneTypeGrp.createRadio(physsimulator::SCENE_TYPE_STACK, "stack of objects");
@@ -344,9 +347,9 @@ public:
       fillPanel(panel, body, expand, i, sph, box, cap);
     }
 
-    PropertyContainerControlBase &gStatGrp = *panel.createGroup(PID_PHYSOBJ_BODY_GLOBAL_GRP, "Statistic");
+    PropPanel::ContainerPropertyControl &gStatGrp = *panel.createGroup(PID_PHYSOBJ_BODY_GLOBAL_GRP, "Statistic");
 
-    PropertyContainerControlBase &matGrp = *gStatGrp.createGroup(PID_PHYSOBJ_MATERIAL_GRP, "Used materials");
+    PropPanel::ContainerPropertyControl &matGrp = *gStatGrp.createGroup(PID_PHYSOBJ_MATERIAL_GRP, "Used materials");
 
     int matCnt = matNames.nameCount();
     if (matCnt)
@@ -362,7 +365,7 @@ public:
 
     static String buffer;
 
-    PropertyContainerControlBase &colGrp = *gStatGrp.createGroup(PID_PHYSOBJ_BODY_COL_GRP_G, "Collision Statistic");
+    PropPanel::ContainerPropertyControl &colGrp = *gStatGrp.createGroup(PID_PHYSOBJ_BODY_COL_GRP_G, "Collision Statistic");
     {
       bool althoughOne = false;
 
@@ -393,15 +396,15 @@ public:
   }
 
 
-  void fillPanel(PropertyContainerControlBase &panel, const PhysicsResource::Body &body, bool simple, int i, int sph_cnt, int box_cnt,
-    int cap_cnt)
+  void fillPanel(PropPanel::ContainerPropertyControl &panel, const PhysicsResource::Body &body, bool simple, int i, int sph_cnt,
+    int box_cnt, int cap_cnt)
   {
     static String caption, uid;
     caption.printf(256, "Body <%s>", body.name.str());
     uid.printf(64, "PhysObjBodyGrp_%d", i);
 
 
-    PropertyContainerControlBase *grp = panel.createGroup(PID_PHYSOBJ_BODY_GRP + i, caption.str());
+    PropPanel::ContainerPropertyControl *grp = panel.createGroup(PID_PHYSOBJ_BODY_GRP + i, caption.str());
     {
 
       static String buffer;
@@ -417,7 +420,7 @@ public:
         return;
 
       buffer.printf(128, "PhysObjCollisionGrp_%d", i);
-      PropertyContainerControlBase *colGrp = grp->createGroup(PID_PHYSOBJ_BODY_COL_GRP + i, "Collision Statistic");
+      PropPanel::ContainerPropertyControl *colGrp = grp->createGroup(PID_PHYSOBJ_BODY_COL_GRP + i, "Collision Statistic");
       {
         if (cap_cnt)
         {
@@ -444,7 +447,7 @@ public:
   virtual void postFillPropPanel() {}
 
 
-  virtual void onChange(int pcb_id, PropertyContainerControlBase *panel)
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
   {
     if (pcb_id == PID_PHYSOBJ_DRAW_C_MASS)
       drawCmass = panel->getBool(pcb_id);
@@ -457,7 +460,7 @@ public:
     else if (pcb_id == PID_PHYSOBJ_PHYS_TYPE_GRP)
     {
       physType = panel->getInt(pcb_id);
-      if (physType == RADIO_SELECT_NONE)
+      if (physType == PropPanel::RADIO_SELECT_NONE)
         physType = physsimulator::PHYS_DEFAULT;
       restartSimulation(*panel);
     }
@@ -474,7 +477,7 @@ public:
   }
 
 
-  virtual void onClick(int pcb_id, PropertyContainerControlBase *panel)
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
   {
 
     if (pcb_id == PID_PHYSOBJ_SIMULATE)
@@ -517,6 +520,11 @@ public:
     }
   }
 
+  void drawText(IGenViewportWnd *wnd, hdpi::Px x, hdpi::Px y, const String &text)
+  {
+    using hdpi::_px;
+    wnd->drawText(_px(x), _px(y), text);
+  }
 
   void drawText(hdpi::Px x, hdpi::Px y, const char *text, int min_w_pix, E3DCOLOR tc = COLOR_BLACK, E3DCOLOR bc = COLOR_WHITE)
   {
@@ -542,12 +550,12 @@ public:
     StdGuiRender::set_color(COLOR_WHITE);
 
     static const int text_max_w = StdGuiRender::get_str_bbox("peak max XXXXX us").size().x;
-    hdpi::Px left = _pxActual(x - text_max_w), top = _pxScaled(45), ystep = _pxScaled(25);
-    drawText(left, top + ystep * 0, String(0, "mean %d us/act", simulationStat.meanCur), text_max_w);
-    drawText(left, top + ystep * 1, String(0, "active: %.1f s", simulationStat.simDuration), text_max_w);
-    drawText(left, top + ystep * 2, String(0, "peak max %d us", simulationStat.peakMax), text_max_w);
-    drawText(left, top + ystep * 3, String(0, "mean max %d us", simulationStat.meanMax), text_max_w);
-    drawText(left, top + ystep * 4, String(0, "mean min %d us", simulationStat.meanMin), text_max_w);
+    hdpi::Px left = _pxActual(x - text_max_w), bottom = _pxActual(y) - _pxScaled(15), ystep = _pxScaled(20);
+    drawText(wnd, left, bottom - ystep * 4, String(0, "mean %d us/act", simulationStat.meanCur));
+    drawText(wnd, left, bottom - ystep * 3, String(0, "active: %.1f s", simulationStat.simDuration));
+    drawText(wnd, left, bottom - ystep * 2, String(0, "peak max %d us", simulationStat.peakMax));
+    drawText(wnd, left, bottom - ystep * 1, String(0, "mean max %d us", simulationStat.meanMax));
+    drawText(wnd, left, bottom - ystep * 0, String(0, "mean min %d us", simulationStat.meanMin));
   }
 
   virtual void handleViewportPaint(IGenViewportWnd *wnd)
@@ -625,7 +633,7 @@ protected:
   }
 
 
-  void restartSimulation(PropertyContainerControlBase &panel)
+  void restartSimulation(PropPanel::ContainerPropertyControl &panel)
   {
     if (!nowSimulated)
       return;
@@ -803,7 +811,10 @@ public:
 
     switch (stage)
     {
-      case STG_BEFORE_RENDER: carRender->beforeRender(::grs_cur_view.pos); break;
+      case STG_BEFORE_RENDER:
+        carRender->beforeRender(::grs_cur_view.pos,
+          EDITORCORE->queryEditorInterface<IVisibilityFinderProvider>()->getVisibilityFinder());
+        break;
 
       case STG_RENDER_SHADOWS:
       case STG_RENDER_DYNAMIC_OPAQUE:
@@ -836,11 +847,11 @@ public:
 
   virtual bool supportAssetType(const DagorAsset &asset) const { return strcmp(asset.getTypeStr(), "vehicle") == 0; }
 
-  virtual void fillPropPanel(PropertyContainerControlBase &panel)
+  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel)
   {
     panel.setEventHandler(this);
 
-    PropertyContainerControlBase &physTypeGrp = *panel.createRadioGroup(PID_PHYSOBJ_PHYS_TYPE_GRP, "Phys Engine:");
+    PropPanel::ContainerPropertyControl &physTypeGrp = *panel.createRadioGroup(PID_PHYSOBJ_PHYS_TYPE_GRP, "Phys Engine:");
     {
       physTypeGrp.createRadio(physsimulator::PHYS_BULLET, "bullet");
       physTypeGrp.createRadio(physsimulator::PHYS_JOLT, "jolt");
@@ -892,7 +903,7 @@ public:
   }
 
 
-  virtual void onClick(int pcb_id, PropertyContainerControlBase *panel)
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
   {
     if (pcb_id == PID_PHYSOBJ_SIM_TOGGLE_DRIVER)
     {

@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_textMarks.h>
 #include <gui/dag_stdGuiRender.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 #include <math/dag_Point3.h>
 #include <math/dag_TMatrix4.h>
 #include <math/dag_bounds2.h>
@@ -17,20 +19,22 @@ static Tab<TextMarkRec> text_marks(midmem);
 static RegionMemPool *mem = NULL;
 static TMatrix4 view_gtm;
 static int view_l, view_t, view_w, view_h;
-static bool view_inited = false;
+static bool view_inited = false; // set/reset once per frame
 
-bool cvt_debug_text_pos(const TMatrix4 &glob_tm, const Point3 &wp, float &out_cx, float &out_cy)
+void prepare_debug_text_marks(const TMatrix4 &glob_tm, float in_view_w, float in_view_h)
 {
-  if (!view_inited)
-  {
-    view_gtm = glob_tm;
-    float zn, zf;
-    d3d::getview(view_l, view_t, view_w, view_h, zn, zf);
-    view_inited = true;
-  }
+  view_inited = true;
+  view_gtm = glob_tm;
+  view_l = 0.0f;
+  view_t = 0.0f;
+  view_w = in_view_w;
+  view_h = in_view_h;
+}
 
+bool cvt_debug_text_pos(const Point3 &wp, float &out_cx, float &out_cy)
+{
   Point4 sp = Point4::xyz1(wp) * view_gtm;
-  if (sp.w < 1e-6)
+  if (fabs(sp.w) < 1e-6)
     return false;
   sp /= sp.w;
   if (sp.z > 1 || fabs(sp.x) >= 1 || fabs(sp.y) >= 1 || sp.z < 0)
@@ -63,20 +67,29 @@ void add_debug_text_mark(float scr_cx, float scr_cy, const char *str, int length
 
 void add_debug_text_mark(const Point3 &wp, const char *str, int length, float line_ofs, E3DCOLOR frame_color)
 {
-  TMatrix4 globTm;
-  d3d::getglobtm(globTm);
   float cx, cy;
-  if (cvt_debug_text_pos(globTm, wp, cx, cy))
+  if (cvt_debug_text_pos(wp, cx, cy))
     add_debug_text_mark(cx, cy, str, length, line_ofs, frame_color);
+}
+
+static void reset_debug_text_marks()
+{
+  view_inited = false;
+  text_marks.clear();
+  RegionMemPool::clear(mem);
 }
 
 void render_debug_text_marks()
 {
   if (!text_marks.size())
+  {
+    reset_debug_text_marks();
     return;
+  }
+  G_ASSERTF(view_inited, "render_debug_text_marks() is used without first initializing it using prepare_debug_text_marks()");
 
   StdGuiRender::start_render();
-  StdGuiRender::set_texture(BAD_TEXTUREID);
+  StdGuiRender::reset_textures();
   StdGuiRender::set_font(0);
 
   float fh = StdGuiRender::get_font_cell_size().y;
@@ -109,12 +122,7 @@ void render_debug_text_marks()
   }
 
   StdGuiRender::end_render();
-}
-void reset_debug_text_marks()
-{
-  text_marks.clear();
-  RegionMemPool::clear(mem);
-  view_inited = false;
+  reset_debug_text_marks();
 }
 
 void shutdown_debug_text_marks()

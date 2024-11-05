@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <perfMon/dag_cpuFreq.h>
 #include <vecmath/dag_vecMathDecl.h>
 #include <math/random/dag_random.h>
@@ -34,13 +36,6 @@
 extern bool NEED_DAS_AOT_COMPILE;
 
 static constexpr int DEF_RUNS = 100;
-namespace d3d
-{
-int driver_command(int, void *, void *, void *) { return 0; }
-void beginEvent(const char *) {}
-void endEvent() {}
-void *get_device() { return 0; }
-} // namespace d3d
 
 struct SomeComponent
 {
@@ -107,9 +102,9 @@ int myMain2(int startArgC)
 {
   if (df_get_real_name("entities.blk"))
   {
-    ecs::TemplateRefs trefs;
+    ecs::TemplateRefs trefs(*g_entity_mgr);
     SimpleString fname("entities.blk");
-    ecs::load_templates_blk(make_span_const(&fname, 1), trefs);
+    ecs::load_templates_blk(*g_entity_mgr, make_span_const(&fname, 1), trefs);
     g_entity_mgr->addTemplates(trefs);
   }
 
@@ -150,7 +145,7 @@ int myMain2(int startArgC)
   }
 
   if (df_get_real_name("scene.blk"))
-    ecs::create_entities_blk(DataBlock("scene.blk"), NULL);
+    ecs::create_entities_blk(*g_entity_mgr, DataBlock("scene.blk"), NULL);
   printf("scene loaded entities\n");
   for (int i = 0; i < 100; ++i)
     g_entity_mgr->tick();
@@ -204,6 +199,7 @@ int myMain(int startArgC)
   int ret = myMain2(startArgC);
 
   bind_dascript::shutdown_systems();
+  g_entity_mgr.demandDestroy();
   return ret;
 }
 

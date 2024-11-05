@@ -1,12 +1,14 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <util/dag_compilerDefs.h>
-#include <supp/dag_define_COREIMP.h>
+#include <util/dag_preprocessor.h>
+#if DA_PROFILER_ENABLED
+#include <perfMon/dag_perfTimer.h> //for profile_ref_ticks (inlined rdtsc) only
+#endif
 #ifndef DA_API
 #define DA_API_DATA KRNLIMP
 #define DA_API      KRNLIMP DAGOR_NOINLINE
@@ -19,6 +21,7 @@
 #endif
 
 #include <perfMon/dag_daProfilerToken.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 namespace da_profiler
 {
@@ -31,7 +34,9 @@ enum
   SAMPLING = 1 << 4,        // sample main thread
   SAVE_SPIKES = 1 << 5,     // save spikes to ring buffer scratch board. works only for ring buffer profiler (not continuos)
   PLATFORM_EVENTS = 1 << 6, // platform specific events (such as Pix).
-  CONTINUOUS = 1 << 21, // continuous profiling, otherwise ring buffer is used. Spikes would not be saved, during continuos profiling
+  UNIQUE_EVENTS = 1 << 7, // not timelined events. For profiling small functions being called many time, or continuos profiling of one
+                          // function
+  CONTINUOUS = 1 << 21,   // continuous profiling, otherwise ring buffer is used. Spikes would not be saved, during continuos profiling
   // pausing/resuming continuous profiling is semi-possible, as everything besides frame information will be freed
   // so if you stop continuous profiling, request_dump
 };
@@ -99,6 +104,10 @@ typedef void (*ProfilerDumpFunctionPtr)(void *ctx, uintptr_t cNodeId, uintptr_t 
 #define DA_PROFILE_SHUTDOWN()
 #define DA_PROFILE
 #define DA_PROFILE_GPU
+#define DA_PROFILE_UNIQUE
+#define DA_PROFILE_UNIQUE_EVENT(...)
+#define DA_PROFILE_UNIQUE_EVENT_NAMED(Name)
+#define DA_PROFILE_UNIQUE_EVENT_DESC(Desc)
 
 #ifndef DA_STUB // allows to compile stubs
 #define DA_STUB inline
@@ -106,6 +115,7 @@ typedef void (*ProfilerDumpFunctionPtr)(void *ctx, uintptr_t cNodeId, uintptr_t 
 
 namespace da_profiler
 {
+DA_STUB uint64_t get_current_cpu_ticks() { return 0; }
 DA_STUB bool register_plugin(const char *, ProfilerPlugin *) { return false; }
 DA_STUB bool unregister_plugin(const char *) { return true; }
 DA_STUB ProfilerPluginStatus set_plugin_enabled(const char *, bool)
@@ -131,6 +141,7 @@ DA_STUB void sync_stop_sampling() {}
 DA_STUB desc_id_t add_description(const char *, int, uint32_t, const char *, uint32_t = 0u) { return 0; }
 DA_STUB desc_id_t add_copy_description(const char *, int, uint32_t, const char *, uint32_t = 0u) { return 0; }
 DA_STUB desc_id_t get_tls_description(const char *, int, uint32_t, const char *, uint32_t = 0u) { return 0; }
+DA_STUB const char *get_description(desc_id_t, uint32_t &) { return nullptr; }
 
 // if name is null, will use current thread name
 DA_STUB desc_id_t add_thread_description(const char *, int, const char *, uint32_t = 0u) { return 0; }
@@ -157,7 +168,11 @@ DA_STUB EventData *start_event(desc_id_t, ThreadStorage *&) { return nullptr; }
 DA_STUB void end_event(EventData &, ThreadStorage &) {}
 DA_STUB GpuEventData *start_gpu_event(desc_id_t, const char *) { return nullptr; }
 DA_STUB void end_gpu_event(GpuEventData &) {}
-
+struct UniqueEventData
+{};
+DA_STUB void end_unique_event(UniqueEventData &, uint64_t) {}
+DA_STUB void add_unique_event(UniqueEventData &) {}
+DA_STUB const UniqueEventData *get_unique_event(uint32_t, uint32_t &) { return nullptr; }
 inline int get_active_mode() { return 0; }
 inline void create_leaf_event(desc_id_t, uint64_t, uint64_t) {}
 } // namespace da_profiler
@@ -266,6 +281,9 @@ DA_API desc_id_t add_copy_description(const char *file_name, int line, uint32_t 
 // if there is no such description in our calling thread, it will be created. If there is - it will be returned.
 DA_API desc_id_t get_tls_description(const char *file_name, int line, uint32_t flags, const char *name, uint32_t color = 0u);
 
+// iterating over descriptions. null means it is last
+DA_API const char *get_description(desc_id_t, uint32_t &color_and_flags);
+
 // if name is null, will use current thread name
 DA_API desc_id_t add_thread_description(const char *file_name, int line, const char *name, uint32_t color = 0u);
 
@@ -313,6 +331,12 @@ DA_API bool stop_network_dump_server();          // we have only one network cli
 
 DA_API bool start_file_dump_server(const char *path); // profiler dumps will be saved in this path
 DA_API bool stop_file_dump_server(const char *path);  // remove one file server
+DA_API uint64_t get_current_cpu_ticks();
+#if NATIVE_PROFILE_TICKS
+inline uint64_t inline_profiler_ticks() { return profile_ref_ticks(); };
+#else
+inline uint64_t inline_profiler_ticks() { return get_current_cpu_ticks(); };
+#endif
 } // namespace da_profiler
 
 // thread-unsafe calls
@@ -332,6 +356,9 @@ DA_API void tick_frame();
 // scope calls
 namespace da_profiler
 {
+
+struct UniqueEventData;
+
 // scope calls
 extern DA_API_DATA int active_mode;
 inline int get_active_mode() { return interlocked_relaxed_load(active_mode); }
@@ -345,6 +372,10 @@ DA_API EventData *start_event(desc_id_t description, ThreadStorage *&);
 DA_API void end_event(EventData &, ThreadStorage &);
 DA_API GpuEventData *start_gpu_event(desc_id_t description, const char *d3d_event_name);
 DA_API void end_gpu_event(GpuEventData &);
+DA_API void end_unique_event(UniqueEventData &, uint64_t);
+DA_API void add_unique_event(UniqueEventData &);
+DA_API const UniqueEventData *get_unique_event(uint32_t i, uint32_t &frames); // allows iterating over. if returns nullptr - no more
+                                                                              // events
 
 struct ScopedEvent // 16 bytes
 {
@@ -370,6 +401,23 @@ struct ScopedEvent // 16 bytes
       end_event(*e, *s);
   }
 };
+
+
+struct UniqueEventData // can only be used as a static variable!
+{
+  uint64_t minTicks = ~0ULL, maxTicks = 0, totalTicks = 0, totalOccurencies = 0;
+  uint32_t desc = 0;
+  uint32_t startFrame = 0;
+  UniqueEventData(uint32_t d) : desc(d) { add_unique_event(*this); };
+};
+struct ScopedUniqueEvent
+{
+  uint64_t start;
+  UniqueEventData &ued;
+  ScopedUniqueEvent(UniqueEventData &e) : ued(e), start((get_active_mode() & UNIQUE_EVENTS) ? inline_profiler_ticks() : 0ULL) {}
+  ~ScopedUniqueEvent() { start ? end_unique_event(ued, inline_profiler_ticks() - start) : (void)start; }
+};
+
 struct ScopedGPUEvent // 24 byte
 {
   EventData *e;
@@ -434,21 +482,17 @@ struct ScopedThread
 };
 } // namespace da_profiler
 
-#define DA_PROFILE_CONCAT_IMPL(x, y) x##y
-#define DA_PROFILE_CONCAT(x, y)      DA_PROFILE_CONCAT_IMPL(x, y)
-
 #define DA_PROFILE_ADD_LOCAL_DESCRIPTION(...) \
   ::da_profiler::add_copy_description(DA_PROFILE_FILE_NAMES ? __FILE__ : nullptr, __LINE__, ##__VA_ARGS__)
 
 #define DA_PROFILE_ADD_DESCRIPTION(FILE, LINE, ...) ::da_profiler::add_copy_description(FILE, LINE, 0, ##__VA_ARGS__)
 #define DA_PROFILE_ADD_WAIT_DESC(FILE, LINE, ...)   ::da_profiler::add_copy_description(FILE, LINE, ::da_profiler::IsWait, ##__VA_ARGS__)
 
-#define DA_PROFILE_THREAD_INT(NAME)                                                                    \
-  ::da_profiler::desc_id_t DA_PROFILE_CONCAT(autogen_thread_description_, __LINE__) =                  \
-    ::da_profiler::add_thread_description(DA_PROFILE_FILE_NAMES ? __FILE__ : nullptr, __LINE__, NAME); \
-  ::da_profiler::ScopedThread DA_PROFILE_CONCAT(a_profile_thread_, __LINE__)(                          \
-    DA_PROFILE_CONCAT(autogen_thread_description_, __LINE__));                                         \
-  G_UNUSED(DA_PROFILE_CONCAT(a_profile_thread_, __LINE__))
+#define DA_PROFILE_THREAD_INT(NAME)                                                                                       \
+  ::da_profiler::desc_id_t DAG_CONCAT(autogen_thread_description_, __LINE__) =                                            \
+    ::da_profiler::add_thread_description(DA_PROFILE_FILE_NAMES ? __FILE__ : nullptr, __LINE__, NAME);                    \
+  ::da_profiler::ScopedThread DAG_CONCAT(a_profile_thread_, __LINE__)(DAG_CONCAT(autogen_thread_description_, __LINE__)); \
+  G_UNUSED(DAG_CONCAT(a_profile_thread_, __LINE__))
 
 #if DA_PROFILE_THREADS
 #define DA_PROFILE_THREAD(NAME) DA_PROFILE_THREAD_INT(NAME)
@@ -489,59 +533,74 @@ struct ScopedThread
     ::da_profiler::add_short_string_tag_args(descId, TAG_STRING, ##__VA_ARGS__);                                          \
   }
 
-#define DA_PROFILE_WAIT(...)                                                                                      \
-  ::da_profiler::desc_id_t DA_PROFILE_CONCAT(autogen_profile_description_, __LINE__) = 0;                         \
-  {                                                                                                               \
-    static ::da_profiler::desc_id_t description = 0;                                                              \
-    if ((DA_PROFILE_CONCAT(autogen_profile_description_, __LINE__) = interlocked_relaxed_load(description)) == 0) \
-      interlocked_relaxed_store(description,                                                                      \
-        DA_PROFILE_CONCAT(autogen_profile_description_, __LINE__) = ::da_profiler::add_description(               \
-          DA_PROFILE_FILE_NAMES ? __FILE__ : nullptr, __LINE__, ::da_profiler::IsWait, ##__VA_ARGS__));           \
-  }                                                                                                               \
-  ::da_profiler::ScopedEvent DA_PROFILE_CONCAT(autogen_profile_event_, __LINE__)(                                 \
-    (DA_PROFILE_CONCAT(autogen_profile_description_, __LINE__)));
+#define DA_PROFILE_WAIT(...)                                                                               \
+  ::da_profiler::desc_id_t DAG_CONCAT(autogen_profile_description_, __LINE__) = 0;                         \
+  {                                                                                                        \
+    static ::da_profiler::desc_id_t description = 0;                                                       \
+    if ((DAG_CONCAT(autogen_profile_description_, __LINE__) = interlocked_relaxed_load(description)) == 0) \
+      interlocked_relaxed_store(description,                                                               \
+        DAG_CONCAT(autogen_profile_description_, __LINE__) = ::da_profiler::add_description(               \
+          DA_PROFILE_FILE_NAMES ? __FILE__ : nullptr, __LINE__, ::da_profiler::IsWait, ##__VA_ARGS__));    \
+  }                                                                                                        \
+  ::da_profiler::ScopedEvent DAG_CONCAT(autogen_profile_event_, __LINE__)((DAG_CONCAT(autogen_profile_description_, __LINE__)));
 
 #define DA_PROFILE_AUTO_WAIT() DA_PROFILE_WAIT(DA_PROFILE_FUNC)
 
 #define DA_PROFILE_LEAF_EVENT(desc, start, end) ::da_profiler::create_leaf_event(desc, start, end)
 
-#define DA_PROFILE_EVENT(...)                                                                                      \
-  ::da_profiler::desc_id_t DA_PROFILE_CONCAT(autogen_profile_description_, __LINE__) = 0;                          \
-  {                                                                                                                \
-    static ::da_profiler::desc_id_t description = 0;                                                               \
-    if ((DA_PROFILE_CONCAT(autogen_profile_description_, __LINE__) = interlocked_relaxed_load(description)) == 0)  \
-      interlocked_relaxed_store(description,                                                                       \
-        DA_PROFILE_CONCAT(autogen_profile_description_, __LINE__) =                                                \
-          ::da_profiler::add_description(DA_PROFILE_FILE_NAMES ? __FILE__ : nullptr, __LINE__, 0, ##__VA_ARGS__)); \
-  }                                                                                                                \
-  ::da_profiler::ScopedEvent DA_PROFILE_CONCAT(autogen_profile_event_, __LINE__)(                                  \
-    (DA_PROFILE_CONCAT(autogen_profile_description_, __LINE__)));
+#define DA_PROFILE_EVENT(...)                                                                                                     \
+  ::da_profiler::desc_id_t DAG_CONCAT(autogen_profile_description_, __LINE__) = 0;                                                \
+  {                                                                                                                               \
+    static ::da_profiler::desc_id_t description = 0;                                                                              \
+    if ((DAG_CONCAT(autogen_profile_description_, __LINE__) = interlocked_relaxed_load(description)) == 0)                        \
+      interlocked_relaxed_store(description, DAG_CONCAT(autogen_profile_description_, __LINE__) = ::da_profiler::add_description( \
+                                               DA_PROFILE_FILE_NAMES ? __FILE__ : nullptr, __LINE__, 0, ##__VA_ARGS__));          \
+  }                                                                                                                               \
+  ::da_profiler::ScopedEvent DAG_CONCAT(autogen_profile_event_, __LINE__)((DAG_CONCAT(autogen_profile_description_, __LINE__)));
 
-#define DA_PROFILE_EVENT_DESC(desc)     ::da_profiler::ScopedEvent DA_PROFILE_CONCAT(autogen_profile_event_, __LINE__)(desc)
-#define DA_PROFILE_GPU_EVENT_DESC(desc) ::da_profiler::ScopedGPUEvent DA_PROFILE_CONCAT(autogen_profile_event_, __LINE__)(desc)
+#define DA_PROFILE_EVENT_DESC(desc)     ::da_profiler::ScopedEvent DAG_CONCAT(autogen_profile_event_, __LINE__)(desc)
+#define DA_PROFILE_GPU_EVENT_DESC(desc) ::da_profiler::ScopedGPUEvent DAG_CONCAT(autogen_profile_event_, __LINE__)(desc)
 
-#define DA_PROFILE_GPU_EVENT(...)                                                                                  \
-  ::da_profiler::desc_id_t DA_PROFILE_CONCAT(autogen_profile_description_, __LINE__) = 0;                          \
-  {                                                                                                                \
-    static ::da_profiler::desc_id_t description = 0;                                                               \
-    if ((DA_PROFILE_CONCAT(autogen_profile_description_, __LINE__) = interlocked_relaxed_load(description)) == 0)  \
-      interlocked_relaxed_store(description,                                                                       \
-        DA_PROFILE_CONCAT(autogen_profile_description_, __LINE__) =                                                \
-          ::da_profiler::add_description(DA_PROFILE_FILE_NAMES ? __FILE__ : nullptr, __LINE__, 0, ##__VA_ARGS__)); \
-  }                                                                                                                \
-  ::da_profiler::ScopedGPUEvent DA_PROFILE_CONCAT(autogen_profile_event_, __LINE__)(                               \
-    (DA_PROFILE_CONCAT(autogen_profile_description_, __LINE__)), ##__VA_ARGS__);
+#define DA_PROFILE_UNIQUE_EVENT_DESC(desc)                                                         \
+  static ::da_profiler::UniqueEventData DAG_CONCAT(unique_autogen_profile_description_, __LINE__)( \
+    ::da_profiler::add_description(desc));                                                         \
+  ::da_profiler::ScopedUniqueEvent DAG_CONCAT(autogen_profile_unique_event_, __LINE__)(            \
+    DAG_CONCAT(unique_autogen_profile_description_, __LINE__));
 
-#define DA_PROFILE_NAMED_EVENT(...)                                                         \
-  ::da_profiler::ScopedEvent DA_PROFILE_CONCAT(autogen_profile_named_cpu_event_, __LINE__)( \
+#define DA_PROFILE_UNIQUE_EVENT(...)                                                                         \
+  static ::da_profiler::UniqueEventData DAG_CONCAT(unique_autogen_profile_description_, __LINE__)(           \
+    ::da_profiler::add_description(DA_PROFILE_FILE_NAMES ? __FILE__ : nullptr, __LINE__, 0, ##__VA_ARGS__)); \
+  ::da_profiler::ScopedUniqueEvent DAG_CONCAT(autogen_profile_unique_event_, __LINE__)(                      \
+    DAG_CONCAT(unique_autogen_profile_description_, __LINE__));
+
+#define DA_PROFILE_UNIQUE_EVENT_NAMED(...)                                                                       \
+  static ::da_profiler::UniqueEventData DAG_CONCAT(unique_autogen_profile_description_, __LINE__)(               \
+    ::da_profiler::get_tls_description(DA_PROFILE_FILE_NAMES ? __FILE__ : nullptr, __LINE__, 0, ##__VA_ARGS__)); \
+  ::da_profiler::ScopedUniqueEvent DAG_CONCAT(autogen_profile_unique_event_, __LINE__)(                          \
+    DAG_CONCAT(unique_autogen_profile_description_, __LINE__));
+
+#define DA_PROFILE_GPU_EVENT(...)                                                                                                  \
+  ::da_profiler::desc_id_t DAG_CONCAT(autogen_profile_description_, __LINE__) = 0;                                                 \
+  {                                                                                                                                \
+    static ::da_profiler::desc_id_t description = 0;                                                                               \
+    if ((DAG_CONCAT(autogen_profile_description_, __LINE__) = interlocked_relaxed_load(description)) == 0)                         \
+      interlocked_relaxed_store(description, DAG_CONCAT(autogen_profile_description_, __LINE__) = ::da_profiler::add_description(  \
+                                               DA_PROFILE_FILE_NAMES ? __FILE__ : nullptr, __LINE__, 0, ##__VA_ARGS__));           \
+  }                                                                                                                                \
+  ::da_profiler::ScopedGPUEvent DAG_CONCAT(autogen_profile_event_, __LINE__)((DAG_CONCAT(autogen_profile_description_, __LINE__)), \
+    ##__VA_ARGS__);
+
+#define DA_PROFILE_NAMED_EVENT(...)                                                  \
+  ::da_profiler::ScopedEvent DAG_CONCAT(autogen_profile_named_cpu_event_, __LINE__)( \
     ::da_profiler::get_tls_description(DA_PROFILE_FILE_NAMES ? __FILE__ : nullptr, __LINE__, 0, ##__VA_ARGS__));
 
-#define DA_PROFILE_NAMED_GPU_EVENT(NAME, ...)                                                  \
-  ::da_profiler::ScopedGPUEvent DA_PROFILE_CONCAT(autogen_profile_named_gpu_event_, __LINE__)( \
+#define DA_PROFILE_NAMED_GPU_EVENT(NAME, ...)                                           \
+  ::da_profiler::ScopedGPUEvent DAG_CONCAT(autogen_profile_named_gpu_event_, __LINE__)( \
     ::da_profiler::get_tls_description(DA_PROFILE_FILE_NAMES ? __FILE__ : nullptr, __LINE__, 0, NAME, ##__VA_ARGS__), NAME);
 
-#define DA_PROFILE     DA_PROFILE_EVENT(DA_PROFILE_FUNC)
-#define DA_PROFILE_GPU DA_PROFILE_GPU_EVENT(DA_PROFILE_FUNC)
+#define DA_PROFILE        DA_PROFILE_EVENT(DA_PROFILE_FUNC)
+#define DA_PROFILE_GPU    DA_PROFILE_GPU_EVENT(DA_PROFILE_FUNC)
+#define DA_PROFILE_UNIQUE DA_PROFILE_UNIQUE_EVENT(DA_PROFILE_FUNC)
 
 #define DA_PROFILE_TICK()     da_profiler::tick_frame()
 #define DA_PROFILE_SHUTDOWN() da_profiler::shutdown();
@@ -551,4 +610,4 @@ struct ScopedThread
 #undef DA_API
 #undef DA_API_DATA
 #undef DA_PROFILE_THREADS
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

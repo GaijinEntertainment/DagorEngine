@@ -1,0 +1,57 @@
+include "shader_global.dshl"
+
+shader copy_tex
+{
+  no_ablend;
+
+
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord     : TEXCOORD0;
+    };
+  }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  hlsl(vs) {
+    VsOutput copy_vs(uint vertex_id : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertex_id);
+      output.pos = float4(pos.xy, 0, 1);
+      output.texcoord = screen_to_texcoords(pos);
+
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    ##if hardware.dx11 || hardware.ps4 || hardware.ps5 || hardware.vulkan || hardware.metal
+    Texture2D tex:register(t2);
+    SamplerState tex_samplerstate:register(s2);
+    ##else
+    sampler2D tex:register(s2);
+    ##endif
+    struct MRT_OUTPUT
+    {
+      float4 color:SV_Target0;
+    };
+    MRT_OUTPUT copy_ps(VsOutput input)
+    {
+      MRT_OUTPUT result;
+      //float2 pos = input.texcoord*2-1;
+      //float dist = depth<= 0 ? 10000 : w*sqrt((1+dot(pos,pos)));
+      result.color = tex2D( tex, input.texcoord );
+      return result;
+      //return linearize_z(tex2Dlod( depth_gbuf, float4(input.texcoord,0,0) ).x, zn_zfar);
+    }
+  }
+  compile("target_vs", "copy_vs");
+  compile("target_ps", "copy_ps");
+}

@@ -1,6 +1,0 @@
-
-let a = 1, b = 2, s = 3, g = 4
-
-for (a, b, s, g) {
-    println("ERROR loop 1")
-}

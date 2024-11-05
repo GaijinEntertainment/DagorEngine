@@ -1,10 +1,15 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "font.h"
 #include <gui/dag_fonts.h>
 #include <util/dag_string.h>
 #include <ioSys/dag_fileIo.h>
 #include <ioSys/dag_lzmaIo.h>
 #include <ioSys/dag_dataBlock.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_resUpdateBuffer.h>
+#include <drv/3d/dag_info.h>
 #include <shaders/dag_shaderVar.h>
 #include <image/dag_texPixel.h>
 #include <generic/dag_smallTab.h>
@@ -15,11 +20,13 @@
 #include <ioSys/dag_memIo.h>
 #include <ioSys/dag_fileIo.h>
 #include <osApiWrappers/dag_files.h>
+#include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_fileIoErr.h>
 #include <osApiWrappers/dag_vromfs.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <util/dag_oaHashNameMap.h>
 #include <util/dag_fastIntList.h>
+#include <util/dag_baseDef.h>
 #include <perfMon/dag_perfTimer.h>
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_shaderVar.h>
@@ -33,6 +40,9 @@
 #include <EASTL/hash_map.h>
 #include <hb-ft.h>
 
+#if _TARGET_PC_WIN
+#include <windows.h>
+#endif
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -178,7 +188,7 @@ public:
     return face->glyph;
   }
 
-  static inline hb_buffer_t *acquire_hb_buf()
+  static inline hb_buffer_t *acquire_hb_buf() DAG_TS_ACQUIRE_SHARED(DagorFontBinDump::fontRwLock)
   {
     DagorFontBinDump::fontRwLock.lockRead();
     if (is_main_thread())
@@ -189,7 +199,7 @@ public:
     hb_buffer_set_language(buf, DagorFreeTypeFontRec::hb_lang);
     return buf;
   }
-  static inline void release_hb_buf(hb_buffer_t *buf)
+  static inline void release_hb_buf(hb_buffer_t *buf) DAG_TS_RELEASE_SHARED(DagorFontBinDump::fontRwLock)
   {
     if (buf != main_hb_buf)
       hb_buffer_destroy(buf);
@@ -756,7 +766,8 @@ bool DagorFontBinDump::rasterize_str_u(const DagorFontBinDump::InscriptionData &
   gen_sys_tex.clearData(margin_ofs, cr.h, dest, dest_stride, cr.x0 + cr.w - margin_ofs, cr.y0);
 
   sys_tex->unlockimg();
-  inscr_atlas.tex.getTex2D()->updateSubRegion(sys_tex, 0, cr.x0, cr.y0, 0, cr.w, cr.h, 1, 0, g.x0 - margin_ofs, g.y0 - margin_ofs, 0);
+  inscr_atlas.tex.first.getTex2D()->updateSubRegion(sys_tex, 0, cr.x0, cr.y0, 0, cr.w, cr.h, 1, 0, g.x0 - margin_ofs,
+    g.y0 - margin_ofs, 0);
   return true;
 }
 
@@ -790,11 +801,16 @@ DagorFontBinDump *DagorFontBinDump::get_next_segment(const wchar_t *str, int len
   return &add_font[eff_idx & FontData::WCRFI_FONT_MASK];
 }
 
-DagorFontBinDump::ScopeHBuf::ScopeHBuf() : buf(DagorFreeTypeFontRec::acquire_hb_buf()) {}
-DagorFontBinDump::ScopeHBuf::~ScopeHBuf() { DagorFreeTypeFontRec::release_hb_buf(buf); }
+DagorFontBinDump::ScopeHBuf::ScopeHBuf() DAG_TS_ACQUIRE_SHARED(DagorFontBinDump::fontRwLock) :
+  buf(DagorFreeTypeFontRec::acquire_hb_buf())
+{}
+DagorFontBinDump::ScopeHBuf::~ScopeHBuf() DAG_TS_RELEASE_SHARED(DagorFontBinDump::fontRwLock)
+{
+  DagorFreeTypeFontRec::release_hb_buf(buf);
+}
 
-void DagorFontBinDump::dynfont_prepare_str(DagorFontBinDump::ScopeHBuf &buf, int font_ht, const wchar_t *str, int len,
-  int *out_fgidx) // assumed to be called fontRwLock locked for read
+void DagorFontBinDump::dynfont_prepare_str(DagorFontBinDump::ScopeHBuf &buf, int font_ht, const wchar_t *str, int len, int *out_fgidx)
+  DAG_TS_REQUIRES_SHARED(DagorFontBinDump::fontRwLock)
 {
   hb_buffer_set_length(buf, 0);
 #if (WCHAR_MAX + 0) == 0xffff || (WCHAR_MAX + 0) == 0x7fff // sizeof(wchar_t) == 2
@@ -1087,7 +1103,9 @@ bool DagorFontBinDump::setFontHt(int ht)
   lineSpacing = dfont.fontMx[0].lineSpacing;
   return true;
 }
-int DagorFontBinDump::appendFontHt(unsigned ht, DagorFreeTypeFontRec *ttf, bool read_locked)
+
+// NOTE: conditional locking is too complicated for thread safety analysis.
+int DagorFontBinDump::appendFontHt(unsigned ht, DagorFreeTypeFontRec *ttf, bool read_locked) DAG_TS_NO_THREAD_SAFETY_ANALYSIS
 {
   G_ASSERT(isFullyDynamicFont());
   G_ASSERT(dfont.fontHt.size() == dfont.fontGlyphs.size() && dfont.fontHt.size() == dfont.fontMx.size());
@@ -1226,12 +1244,14 @@ void DagorFontBinDump::InscriptionsAtlas::init(const DataBlock &b)
   {
     texBlurred.set(d3d::create_tex(NULL, texSz.x / 4, texSz.y / 4, TEXFMT_L8 | TEXCF_RTARGET, 1, "inscriptionsAtlasBlurred"),
       "$inscriptionsAtlasBlurred");
+    texBlurredSampler = d3d::request_sampler({});
     ctx().createBuffer(0, &blurShader, qpf_max, 0, "inscr.buf.blur");
     ctx().setTarget(texSz.x / 4, texSz.y / 4);
   }
   else
   {
     texBlurred.close(); // or we can use gui_default instead
+    texBlurredSampler = d3d::INVALID_SAMPLER_HANDLE;
     debug("no gui_blur_gui shader");
   }
   debug("gui: inited inscriptions support, cache_tex=%dx%d, reserve=%d, max.quad/frame=%d", texSz.x, texSz.y, itemUu.capacity(),
@@ -1246,6 +1266,7 @@ void DagorFontBinDump::InscriptionsAtlas::term()
     ctx().~GuiContext();
     blurShader.close();
     texBlurred.close();
+    texBlurredSampler = d3d::INVALID_SAMPLER_HANDLE;
   }
   DynamicAtlasTex::term();
 }
@@ -1333,7 +1354,36 @@ bool DagorFontBinDump::tryOpenFontFile(FullFileLoadCB &reader, const char *fname
   }
   return false;
 }
+#if _TARGET_PC_MACOSX
+static const char *sysFolders[] = {"/System/Library/Fonts", "/System/Library/Fonts/Supplemental"};
+#elif _TARGET_PC_LINUX
+static const char *sysFolders[] = {"/usr/share/fonts/truetype", "/usr/share/fonts"};
+#endif
 
+bool is_system_font_exists(const char *name)
+{
+#if _TARGET_PC_WIN
+  String fn(name);
+  char winFolder[MAX_PATH];
+  if (::GetWindowsDirectory(winFolder, sizeof(winFolder)))
+  {
+    String windowsFonts(0, "%s/Fonts", winFolder);
+    fn.replace("<system>", windowsFonts.c_str());
+  }
+  return dd_file_exists(fn.c_str());
+#elif _TARGET_PC_MACOSX | _TARGET_PC_LINUX
+  for (const char *sysFolder : sysFolders)
+  {
+    String fn(name);
+    fn.replace("<system>", sysFolder);
+    if (dd_file_exists(fn.c_str()))
+      return true;
+  }
+#else
+  G_UNREFERENCED(name);
+#endif
+  return false;
+}
 
 void DagorFontBinDump::FontData::loadBaseFontData(const DataBlock &desc)
 {
@@ -1350,6 +1400,26 @@ void DagorFontBinDump::FontData::loadBaseFontData(const DataBlock &desc)
     {
       const DataBlock &b2 = *desc.getBlock(i);
       const char *add_font_name = b2.getStr("addFont");
+      if ((strncmp(add_font_name, "<system>", 8) == 0) && !is_system_font_exists(add_font_name))
+      {
+        bool found = false;
+        for (int j = 0, nid_sysFont = b2.getNameId("sysFont"); j < b2.paramCount(); ++j)
+        {
+          if (b2.getParamType(j) == DataBlock::TYPE_STRING && b2.getParamNameId(j) == nid_sysFont)
+          {
+            const char *sysFontFile = b2.getStr(j);
+            found = is_system_font_exists(sysFontFile);
+            if (found)
+            {
+              add_font_name = sysFontFile;
+              break;
+            }
+          }
+        }
+        if (!found)
+          continue;
+      }
+
       float add_font_ht_scale = b2.getReal("htScale", 1.0f);
       int add_font_idx = -1;
 
@@ -1505,7 +1575,38 @@ void DagorFontBinDump::loadDynFonts(FontArray &fonts, const DataBlock &desc, int
     if (frec.curHt < 0)
     {
       int ttfNid = &frec - ttfRec.data();
-      String fn(0, "%s/%s", ttf_path_prefix, ttfNames.getName(ttfNid));
+      String fn;
+#if _TARGET_PC_WIN
+      const char *fname = ttfNames.getName(ttfNid);
+      if (strncmp(fname, "<system>", 8) == 0)
+      {
+        char winFolder[MAX_PATH];
+        if (::GetWindowsDirectory(winFolder, sizeof(winFolder)))
+        {
+          fn.setStr(fname, strlen(fname));
+          String windowsFonts(0, "%s/Fonts", winFolder);
+          fn.replace("<system>", windowsFonts.c_str());
+        }
+        else
+          continue;
+      }
+      else
+#elif _TARGET_PC_MACOSX | _TARGET_PC_LINUX
+      const char *fname = ttfNames.getName(ttfNid);
+      if (strncmp(fname, "<system>", 8) == 0)
+      {
+        for (const char *sysFolder : sysFolders)
+        {
+          fn.setStr(fname, strlen(fname));
+          fn.replace("<system>", sysFolder);
+          if (dd_file_exists(fn.c_str()))
+            break;
+        }
+      }
+      else
+#endif
+        fn = String(0, "%s/%s", ttf_path_prefix, ttfNames.getName(ttfNid));
+
       debug("load font: %d %s", ttfNid, ttfNames.getName(ttfNid));
       if (!frec.openTTF(fn, true))
       {
@@ -1676,7 +1777,7 @@ void DagorFontBinDump::loadFontsStream(IGenLoad &crd, FontArray &fonts, const ch
       for (int i = first_index; i < fonts.size(); i++)
         fonts[i].discard();
   }
-  DAGOR_CATCH(IGenLoad::LoadException) { DAG_FATAL("Error reading fonts file '%s'", fname_prefix); }
+  DAGOR_CATCH(const IGenLoad::LoadException &) { DAG_FATAL("Error reading fonts file '%s'", fname_prefix); }
 }
 
 

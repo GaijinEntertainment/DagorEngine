@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -10,6 +9,7 @@
 #include <math/dag_Point3.h>
 #include <math/dag_Point2.h>
 #include <3d/dag_textureIDHolder.h>
+#include <3d/dag_eventQueryHolder.h>
 #include <util/dag_stdint.h>
 #include <generic/dag_tab.h>
 #include <shaders/dag_DynamicShaderHelper.h>
@@ -28,11 +28,10 @@
 class ComputeShaderElement;
 class Sbuffer;
 class IEditableVariablesNotifications;
-using GrassPreRenderCallback = dag::FixedMoveOnlyFunction<32, void() const>;
 
 struct IRandomGrassRenderHelper
 {
-  virtual bool beginRender(const Point3 &center_pos, const BBox3 &box, const TMatrix4 &tm) = 0;
+  virtual bool beginRender(const Point3 &center_pos, const BBox3 &box, const TMatrix4 &glob_tm, const TMatrix4 &proj_tm) = 0;
   virtual void endRender() = 0;
   // virtual void renderHeight( float min_height, float max_height ) = 0;
   virtual void renderColor() = 0;
@@ -66,7 +65,7 @@ public:
     dag::FixedMoveOnlyFunction<64, void(const float currentGridSize, const float currentGrassDistance) const>;
 
   void renderGrassLods(RenderGrassLodCallback renderGrassLod) const;
-  void generate(const Point3 &pos, const Point3 &view_dir, const frustum_heights_cb_t &cb, GrassPreRenderCallback pre_render_cb);
+  void generate(const Point3 &pos, const Point3 &view_dir, const frustum_heights_cb_t &cb);
 
   enum RenderType
   {
@@ -87,7 +86,7 @@ public:
   float getGridSizeEffective() const;
   float getDistanceWithBorder() const;
   float alignTo() const;
-  bool isInited() const { return bool(grassGenerator); }
+  bool isInited() const { return isInitialized; }
 
   void invalidate();
 
@@ -95,12 +94,13 @@ protected:
   void loadGrassTypes(const DataBlock &grassSettings, const eastl::hash_map<eastl::string, int> &grassTypesUsed);
   void updateGrassColors();
   void updateGrassTypes();
-  void generateGrass(const Point2 &next_pos, const Point3 &view_dir, float min_ht, float max_ht, const frustum_heights_cb_t &cb,
-    GrassPreRenderCallback pre_render_cb);
+  void generateGrass(const Point2 &next_pos, const Point3 &view_dir, float min_ht, float max_ht, const frustum_heights_cb_t &cb);
 
   eastl::unique_ptr<ComputeShaderElement> createIndirect;
   UniqueBuf grassInstancesIndirect;
   UniqueBufHolder grassInstances;
+  UniqueBufHolder grassInstancesCountRB;
+  EventQueryHolder readbackQuery;
 
   UniqueBufHolder grassRandomTypesCB, grassColorsVSCB;
 
@@ -110,7 +110,10 @@ protected:
 
   float grassGridSize = 1, grassDistance = 1;
   int maxInstanceCount = 0;
-  bool generated = false, initedInstance = false, indirectSrv = true;
+  int allocatedInstances = 0;
+  bool generated = false;
+  bool readbackQueryIssued = false;
+  bool isInitialized = false;
 #if _TARGET_IOS || _TARGET_C3
   static constexpr int MAX_GRASS = 100000;
 #else
@@ -153,6 +156,7 @@ protected:
   };
   eastl::vector<GrassTypeDesc> grassDescriptions;
   SharedTexHolder grassTex, grassNTex, grassAlphaTex;
+  d3d::SamplerInfo grassColorAlphaTexSampler;
 
   Tab<GrassChannel> grassChannels;
   Tab<GrassType> grasses;
@@ -172,17 +176,21 @@ protected:
 
 struct MaskRenderCallback
 {
-  ViewProjMatrixContainer viewproj;
-  GrassPreRenderCallback preRenderCB;
+  ViewProjMatrixContainer originalViewproj;
+  TMatrix viewTm;
 
   float texelSize;
   IRandomGrassRenderHelper &cm;
   Texture *maskTex, *colorTex;
   PostFxRenderer *copy_grass_decals = 0;
-  MaskRenderCallback(float texel, IRandomGrassRenderHelper &cb, Texture *m, Texture *c, PostFxRenderer *cgd,
-    GrassPreRenderCallback pre_render_cb) :
-    texelSize(texel), cm(cb), maskTex(m), colorTex(c), copy_grass_decals(cgd), preRenderCB(eastl::move(pre_render_cb))
-  {}
+  MaskRenderCallback(float texel, IRandomGrassRenderHelper &cb, Texture *m, Texture *c, PostFxRenderer *cgd) :
+    texelSize(texel), cm(cb), maskTex(m), colorTex(c), copy_grass_decals(cgd)
+  {
+    viewTm.setcol(0, 1, 0, 0);
+    viewTm.setcol(1, 0, 0, 1);
+    viewTm.setcol(2, 0, 1, 0);
+    viewTm.setcol(3, 0, 0, 0);
+  }
 
   void start(const IPoint2 &);
   void renderQuad(const IPoint2 &lt, const IPoint2 &wd, const IPoint2 &texelsFrom);
@@ -202,7 +210,7 @@ public:
   void setQuality(GrassQuality quality);
   void applyAnisotropy();
 
-  void generate(const Point3 &pos, const Point3 &view_dir, IRandomGrassRenderHelper &cb, GrassPreRenderCallback pre_render_cb);
+  void generate(const Point3 &pos, const Point3 &view_dir, IRandomGrassRenderHelper &cb);
 
   enum RenderType
   {

@@ -1,3 +1,7 @@
+//
+// Dagor Engine 6.5 - Game Libraries
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+//
 #pragma once
 
 #include <EASTL/string_view.h>
@@ -23,3 +27,5 @@ struct DebugMultiTextOverlay
 
 void draw_debug_multitext_overlay(dag::ConstSpan<Point3> positions, dag::ConstSpan<eastl::string_view> names, HudPrimitives *imm_prim,
   const TMatrix4 &globtm, const DebugMultiTextOverlay &cfg);
+void draw_debug_multitext_overlay(dag::ConstSpan<Point3> positions, dag::ConstSpan<eastl::string_view> names,
+  dag::ConstSpan<int> complexities, HudPrimitives *imm_prim, const TMatrix4 &globtm, const DebugMultiTextOverlay &cfg);

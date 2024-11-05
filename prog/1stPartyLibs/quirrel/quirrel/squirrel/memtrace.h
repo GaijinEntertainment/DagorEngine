@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <sqconfig.h>
 
 #define MEM_TRACE_ENABLED  SQ_VAR_TRACE_ENABLED
 
@@ -13,6 +14,29 @@ namespace sqmemtrace
 
   void set_huge_alloc_hook(HugeAllocHookCB hook, unsigned int size_threshold);
   int set_huge_alloc_threshold(int size_threshold); // return previous value
+
+  // get_quirrel_object_size returns table:
+  // {
+  //   size = <total size in bytes>
+  //   size_histogram = {
+  //     allocated_size = count
+  //     ...
+  //   }
+  //   type_count_histogram = {
+  //     type_name = count
+  //     ...
+  //   }
+  //   type_size_histogram = {
+  //     type_name = total_allocated_size
+  //     ...
+  //   }
+  // }
+  SQInteger get_quirrel_object_size(HSQUIRRELVM vm);
+  SQInteger is_quirrel_object_larger_than(HSQUIRRELVM vm);
+
+
+  // get_quirrel_object_size_as_string() calls get_quirrel_object_size() and converts result table to string
+  SQInteger get_quirrel_object_size_as_string(HSQUIRRELVM vm);
 
 #if MEM_TRACE_ENABLED == 1
 

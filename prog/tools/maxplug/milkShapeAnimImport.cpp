@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <max.h>
 #if defined(MAX_RELEASE_R14) && MAX_RELEASE >= MAX_RELEASE_R14
 #include <maxScript/maxScript.h>

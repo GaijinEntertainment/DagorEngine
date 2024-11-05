@@ -5,15 +5,56 @@ include "wetness_inc.dshl"
 include "puddles_inc.dshl"
 include "toroidal_heightmap.dshl"
 include "water_heightmap.dshl"
+include "flow_map_inc.dshl"
 
 texture perlin_tex;
+texture water_ripples_t2;
+texture water_ripples_t1;
+buffer water_ripples_drops;
+
+int water_ripples_frame_no;
+int water_ripples_flowmap_frame_count = 120;
 
 float4 water_ripples_origin_delta = (0, 0, 0, 0);
-float water_ripples_damping = 0.95;
 int water_ripples_drop_count = 1;
 
 int water_ripples_puddles = 0;
 interval water_ripples_puddles: water_ripples_puddles_off < 1, water_ripples_puddles_on;
+
+int water_ripples_flowmap = 0;
+interval water_ripples_flowmap: off < 1, on;
+
+// physical params for waves
+// x - base
+// y - for big waves
+// z - for deep water
+// w - mul for deepness (limited by 1)
+float4 water_ripples_back_force = (15, 5, -5, 2);
+float4 water_ripples_damping = (1.5, 0, -1.3, 2);
+float4 water_ripples_speed = (4, 4, 4, 2);
+// x - base
+// y - unused
+// z - for deep water
+// w - mul for deepness (limited by 1)
+float4 water_ripples_drop_force = (2, 0, 3, 2);
+
+define_macro_if_not_defined INIT_TRACKDIRT_OFFSET(code)
+endmacro
+
+define_macro_if_not_defined USE_TRACKDIRT_OFFSET(code)
+hlsl(code)
+{
+  #define get_trackdirt_offset(_param) 0.0f
+}
+endmacro
+
+INIT_WATER_FLOWMAP()
+
+hlsl
+{
+  #define DT (1.0f/60.0f)
+  #define DT2 (DT * DT)
+}
 
 shader water_ripples_update
 {
@@ -23,22 +64,34 @@ shader water_ripples_update
 
   (ps) {
     origin_size_psize@f4 = (water_ripples_origin.x, water_ripples_origin.z, water_ripples_size, water_ripples_pixel_size);
-    delta_damp_dcount@f4 = (water_ripples_origin_delta.x, water_ripples_origin_delta.z, water_ripples_damping, water_ripples_drop_count);
-    water_ripples_info_texture@smp2d = water_ripples_info_texture;
+    drop_count@i1 = water_ripples_drop_count;
+    water_ripples_delta@f4 = water_ripples_origin_delta;
+    water_ripples_t2@smp2d = water_ripples_t2;
+    water_ripples_t1@smp2d = water_ripples_t1;
+
+    perlin_tex@smp2d = perlin_tex;
+
+    water_ripples_speed@f4 = water_ripples_speed;
+    water_ripples_back_force@f4 = water_ripples_back_force;
+    water_ripples_damping@f4 = water_ripples_damping;
+    water_ripples_drop_force@f4 = water_ripples_drop_force;
+
+    water_ripples_frame_no@i1 = water_ripples_frame_no;
+    flowmap_step@i1 = water_ripples_flowmap_frame_count;
   }
 
   LAND_MASK_HEIGHT()
-  USE_PUDDLES_WETNESS()
+  USE_WETNESS()
+  USE_PUDDLES_WETNESS(ps)
   hlsl(ps) {
-    #define water_heightmap_pages_samplerstate water_ripples_info_texture_samplerstate
+    #define water_heightmap_pages_samplerstate water_ripples_t1_samplerstate
   }
   INIT_WATER_HEIGHTMAP(ps)
   USE_WATER_HEIGHTMAP(ps)
+  USE_WATER_FLOWMAP_ADD(ps)
 
   if (water_ripples_puddles == water_ripples_puddles_on)
   {
-    (ps) { perlin_tex@smp2d = perlin_tex; }
-
     if (render_with_normalmap == render_displacement)
     {
       INIT_HEIGHTMAP_ZEROLEVEL(ps)
@@ -50,80 +103,131 @@ shader water_ripples_update
 
   POSTFX_VS_TEXCOORD(1, texcoord)
 
+  (ps) {
+    water_ripples_drops@cbuf = water_ripples_drops hlsl {
+      cbuffer water_ripples_drops@cbuf
+      {
+        // x,y - pos or size
+        // z - radius
+        // w - strength
+        float4 water_ripples_drops[64];
+      }
+    }
+  }
+
   hlsl(ps) {
-
-    float4 dropData[53]: register(c21);
-    // x,y - pos or size
-    // z - radius
-    // w - strength
-    float4 dropDataLast: register(c74);
-
-    #undef WETNESS_WATER_BORDER
-    #define WETNESS_WATER_BORDER 0.01
-    #define RIPPLE_WAVE_SPEED 2.0 // where 2.0 is maxium
-    #define RIPPLES_DAMPING_WATER 0.99
-
-    void water_ripples_update_ps(VsOutput input, out float2 info : SV_Target0, out float2 normal : SV_Target1)
+    void water_ripples_update_ps(VsOutput input, out float newU : SV_Target0)
     {
       float wSize = origin_size_psize.z;
       float2 wCenter = origin_size_psize.xy;
       float2 worldPos = wCenter + wSize * (input.texcoord - float2(0.5, 0.5));
 
+      float2 vignette = saturate( abs(input.texcoord*2-1) * 10 - 9 );
+      float vignetteEffect = saturate(dot(vignette, vignette));
+
       float landHeight = get_land_mask_height(float3(worldPos.x, 0.0, worldPos.y)).x;
       float waterHeight = get_wetness_water_level();
       get_water_height(worldPos, waterHeight);
-      float waterBelow = saturate((waterHeight - landHeight) / WETNESS_WATER_BORDER);
+      float waterBelowUnclamped = waterHeight - landHeight;
+      float waterBelow = saturate(waterBelowUnclamped);
 
 ##if water_ripples_puddles == water_ripples_puddles_on
-      float basePerlin;
-      sample_perlin_wetness(float3(worldPos.x, 0.0, worldPos.y), perlin_tex, basePerlin);
+      float puddleProbability = sample_tor_puddle(worldPos.xy);
       float height = 0;
   ##if render_with_normalmap == render_displacement
       height = sample_tor_height(worldPos.xy, heightmap_zerolevel) - heightmap_zerolevel;
-      // normalize values to -0.5, 0.5
       height = (min(height / max(heightmap_zerolevel, 0.00001), 0.0) + max(height / max(1.0 - heightmap_zerolevel, 0.00001), 0)) * 0.5;
-      height = lerp(height, 1.0, waterBelow);
   ##endif
-      float wetness = get_puddles_wetness(float3(worldPos.x, 0, worldPos.y), float3(0, 1, 0), 0.0, basePerlin, 1, 0.0, 0.0, height);
+      float puddleDisplacement = 0;
+      float wetness = get_puddles_wetness(float3(worldPos.x, 0, worldPos.y), float3(0, 1, 0), 0.0, puddleProbability, 0.0, 0.0, height, puddleDisplacement);
 ##else
       float wetness = 0.0;
 ##endif
-      wetness = lerp(wetness, 1.0, waterBelow);
+      wetness = max(wetness, saturate(waterBelow*20));
 
-      info = float2(0, 0);
-      normal = float2(0.5, 0.5);
+      newU = 0;
       float dTop = 0, dLeft = 0, dRight = 0, dBottom = 0;
       float infoAdd = 0.0;
+      float Ucenter1 = 0;
+      float Ucenter2 = 0;
+      float laplacian = 0;
+
       BRANCH
       if (wetness > get_base_wetness_max_level())
       {
         float deltaXY = origin_size_psize.w;
         float2 dx = float2(deltaXY, 0.0);
         float2 dy = float2(0.0, deltaXY);
-        float2 tcOffset = input.texcoord + delta_damp_dcount.xy;
-        info = tex2Dlod(water_ripples_info_texture, float4(tcOffset, 0, 0)).rg;
-        dRight = tex2Dlod(water_ripples_info_texture, float4(tcOffset + dx, 0, 0)).r;
-        dBottom = tex2Dlod(water_ripples_info_texture, float4(tcOffset + dy, 0, 0)).r;
-        dLeft = tex2Dlod(water_ripples_info_texture, float4(tcOffset - dx, 0, 0)).r;
-        dTop = tex2Dlod(water_ripples_info_texture, float4(tcOffset - dy, 0, 0)).r;
-        normal = normalize(float3(-(dRight - dLeft), -(dBottom - dTop), deltaXY * wSize)).xy;
-        normal = normal * 0.5 + 0.5;
 
-        uint dropCount = delta_damp_dcount.w;
+        // water flowmap application
+        // problem is: water flowmap is not constant on area, so we can't just shift solution
+        // also we can't just apply flowmap shift every calculation step, because with linear filtering of solution tex
+        // we will blur it to hell. So we apply shift every 120 steps (2 seconds), two times for N and one time for N-1 step
+        // for proper derivatives. Other 119 steps we apply flowmap shift in resolve pass for normal, which provide
+        // smooth transition. Also we need do move emitters because of this shift.
+        // !!!! that code works properly only for relatively smooth stationary flowmaps, otherwise we'll have jumps !!!!
+        float2 solution_offset = 0; // in texcoords
+        float2 emitter_offset = 0;  // in worldcoords
+        float step1_ofs = 0;
+        float step2_ofs = 0;
+        ##if (in_editor_assume == no && water_flowmap_tex_add_0 != NULL && compatibility_mode == compatibility_mode_off && water_ripples_flowmap == on)
+          BRANCH
+          if (water_ripples_frame_no <= 1 || drop_count > 0)
+          {
+            float3 flow = getWaterFlowmapVec(float3(worldPos.x, 0, worldPos.y)) * DT;
+
+            solution_offset = flow.xz * float(flowmap_step) / wSize;
+            emitter_offset = flow.xz * water_ripples_frame_no;
+
+            step1_ofs = water_ripples_frame_no == 0 ? 1 : 0;
+            step2_ofs = water_ripples_frame_no <= 1 ? 1 : 0;
+          }
+        ##endif
+
+        float2 tcOffset1 = input.texcoord + water_ripples_delta.xy + step1_ofs * solution_offset;
+        float2 tcOffset2 = input.texcoord + water_ripples_delta.zw + step2_ofs * solution_offset;
+        Ucenter1 = tex2Dlod(water_ripples_t1, float4(tcOffset1, 0, 0)).r;
+        Ucenter2 = tex2Dlod(water_ripples_t2, float4(tcOffset2, 0, 0)).r;
+
+        dRight = tex2Dlod(water_ripples_t1, float4(tcOffset1 + dx, 0, 0)).r;
+        dBottom = tex2Dlod(water_ripples_t1, float4(tcOffset1 + dy, 0, 0)).r;
+        dLeft = tex2Dlod(water_ripples_t1, float4(tcOffset1 - dx, 0, 0)).r;
+        dTop = tex2Dlod(water_ripples_t1, float4(tcOffset1 - dy, 0, 0)).r;
+
+        float texelSize = deltaXY * wSize;
+
+        laplacian = (dRight + dLeft + dTop + dBottom - 4.0 * Ucenter1) / (texelSize * texelSize);
+
+        uint dropCount = drop_count;
+
+        // add some noise to drops
+        float noiseData = 1.0f;
+        BRANCH
+        if (dropCount > 0)
+        {
+          float2 noiseTc = 0.0611f*worldPos.xy; // non-periodic
+          // noise used to add distortion to perffect waves (as we have in real life)
+          // after introduction of puddle waves hack (wetness_inc) we use much more variation
+          // on puddles to avoid regular patterns
+          noiseTc *= waterBelow > 0.0f ? 1.0f : 10.0f;
+          float2 noiseAmpl = waterBelow > 0.0f ? float2(3, -0.5) : float2(8, -4);
+          noiseData = noiseAmpl.x*tex2Dlod(perlin_tex, float4(noiseTc, 0, 0)).r + noiseAmpl.y;
+        }
+
         LOOP
         for (uint dropNo = 0; dropNo < dropCount;)
         {
-          bool isSolidBox = dropData[dropNo].z < 0;
-          float2 wPos = dropData[dropNo].xy;
-          float radius = abs(dropData[dropNo]).z;
-          float strength = lerp(0.0, dropData[dropNo].w, saturate((wetness - get_base_wetness_max_level()) / (1.0 - get_base_wetness_max_level())));
+          bool isSolidBox = water_ripples_drops[dropNo].z < 0;
+          float2 wPos = water_ripples_drops[dropNo].xy + emitter_offset;
+          float radius = abs(water_ripples_drops[dropNo]).z;
+          float strength = water_ripples_drops[dropNo].w;
           float2 center = (wPos - wCenter) / wSize + float2(0.5, 0.5);
 
           BRANCH
           if (isSolidBox)
           {
-            float2 localX = dropData[dropNo + 1].xy;
-            float2 localY = dropData[dropNo + 1].zw;
+            float2 localX = water_ripples_drops[dropNo + 1].xy;
+            float2 localY = water_ripples_drops[dropNo + 1].zw;
             float2 hSize = float2(length(localX), length(localY));
             localX /= hSize.x;
             localY /= hSize.y;
@@ -139,17 +243,15 @@ shader water_ripples_update
               d += t.y >= k1.y ? length(t - k1) : 0.0; \
               wave = 1.0 - saturate(abs(d / radius));
             make_smooth_line(p0, p1);
-            infoAdd += wave * strength;
+            infoAdd += wave * strength * 0.5f;
             ##if hardware.vulkan
             // currently needed, either nvidia driver or hlslcc mess the branch up if its flattened
             BRANCH
             ##endif
             if (t.x < (p0.x - radius) && t.x > (-hSize.x + radius) && t.y > (p0.y + radius) && t.y < (p1.y - radius))
             {
-              info = float2(0, 0);
               dTop = 0, dLeft = 0, dRight = 0, dBottom = 0;
               infoAdd = 0.0;
-              normal = float2(0.5, 0.5);
             }
             dropNo += 2;
           }
@@ -157,21 +259,144 @@ shader water_ripples_update
           {
             float wave = saturate(length(center - input.texcoord.xy) / radius);
             wave = cos(wave * PI * 0.5);
-            infoAdd += wave * strength;
+            infoAdd -= wave * strength;
             dropNo += 1;
           }
         }
-      }
 
-      float average = (
-        dLeft +
-        dTop +
-        dRight +
-        dBottom
-      ) * 0.25;
-      info.g += (average - info.r) * RIPPLE_WAVE_SPEED;
-      info.g *= lerp(delta_damp_dcount.z, RIPPLES_DAMPING_WATER, waterBelow);
-      info.r += info.g + infoAdd;
+        infoAdd *= noiseData * 30 * (water_ripples_drop_force.x +
+                                     water_ripples_drop_force.z * saturate(waterBelow * water_ripples_drop_force.w));
+
+        float waveFactor = saturate(10*abs(Ucenter1));
+
+        float waveSpeed = water_ripples_speed.x +
+                          water_ripples_speed.y * waveFactor +
+                          water_ripples_speed.z * saturate(waterBelow * water_ripples_speed.w);
+        float waveDamp = water_ripples_damping.x +
+                         water_ripples_damping.y * waveFactor +
+                         water_ripples_damping.z * saturate(waterBelow * water_ripples_damping.w);
+        float waveBack = water_ripples_back_force.x +
+                         water_ripples_back_force.y * waveFactor +
+                         water_ripples_back_force.z * saturate(waterBelow * water_ripples_back_force.w);
+
+        // on area borders we use more damping to imitate absorbtion on borders (true absorption boundary conditions are too complex)
+        waveDamp += water_ripples_damping.x * vignetteEffect * 2;
+
+        newU = (DT2 / (1.0f + waveDamp * DT)) * ( waveSpeed * laplacian +
+                                                 (2 * Ucenter1 - Ucenter2) / DT2 +
+                                                 waveDamp * Ucenter1 / DT -
+                                                 waveBack * Ucenter1 + infoAdd);
+      }
+    }
+  }
+
+  compile("target_ps", "water_ripples_update_ps");
+}
+
+shader water_ripples_resolve
+{
+  cull_mode = none;
+  z_test = false;
+  z_write = false;
+
+  (ps) {
+    origin_size_psize@f4 = (water_ripples_origin.x, water_ripples_origin.z, water_ripples_size, water_ripples_pixel_size);
+    water_ripples_t1@smp2d = water_ripples_t1;
+    perlin_tex@smp2d = perlin_tex;
+    water_ripples_frame_no@i1 = water_ripples_frame_no;
+  }
+
+
+  POSTFX_VS_TEXCOORD(1, texcoord)
+
+  LAND_MASK_HEIGHT()
+  USE_WETNESS()
+  hlsl(ps) {
+    #define water_heightmap_pages_samplerstate water_ripples_t1_samplerstate
+  }
+  INIT_WATER_HEIGHTMAP(ps)
+  USE_WATER_HEIGHTMAP(ps)
+
+  INIT_TRACKDIRT_OFFSET(ps)
+  USE_TRACKDIRT_OFFSET(ps)
+  USE_WATER_FLOWMAP_ADD(ps)
+
+  if (render_with_normalmap == render_displacement)
+  {
+    INIT_HEIGHTMAP_ZEROLEVEL(ps)
+    USE_HEIGHTMAP_ZEROLEVEL(ps)
+  }
+
+  hlsl(ps) {
+    float4 water_ripples_update_ps(VsOutput input) : SV_Target0
+    {
+      float2 wCenter = origin_size_psize.xy;
+      float wSize = origin_size_psize.z;
+      float2 worldPos = wCenter + wSize * (input.texcoord - float2(0.5, 0.5));
+
+      // water flowmap application
+      // problem is: water flowmap is not constant on area, so we can't just shift solution
+      // also we can't just apply flowmap shift every calculation step, because with linear filtering of solution tex
+      // we will blur it to hell. So we apply shift every 120 steps (2 seconds), two times for N and one time for N-1 step
+      // for proper derivatives. Other 119 steps we apply flowmap shift in resolve pass for normal, which provide
+      // smooth transition. Also we need do move emitters because of this shift.
+      // !!!! that code works properly only for relatively smooth stationary flowmaps, otherwise we'll have jumps !!!!
+      ##if (in_editor_assume == no && water_flowmap_tex_add_0 != NULL && compatibility_mode == compatibility_mode_off && water_ripples_flowmap == on)
+        BRANCH
+        if (water_ripples_frame_no > 0)
+        {
+          float3 ofs = getWaterFlowmapVec(float3(worldPos.x, 0, worldPos.y)) * float (water_ripples_frame_no ) * DT;
+          input.texcoord += ofs.xz / wSize;
+        }
+      ##endif
+
+      float2 noiseTc = 0.0611f*worldPos.xy; // non-periodic
+      float noiseData = 0.1f + 1.9f*tex2Dlod(perlin_tex, float4(noiseTc, 0, 0)).r;
+
+      float deltaXY = origin_size_psize.w * 0.5f;
+      float2 dx = float2(deltaXY, 0.0);
+      float2 dy = float2(0.0, deltaXY);
+
+      float center1 = 0;
+      float4 samples = 0;
+      float2 normal = 0;
+      float2 tcOffset = 0;
+
+      #define SAMPLE_WEIGHT(_ofs, _w) \
+        tcOffset = input.texcoord + _ofs; \
+        center1 += _w * tex2Dlod(water_ripples_t1, float4(tcOffset, 0, 0)).r; \
+        samples.x = tex2Dlod(water_ripples_t1, float4(tcOffset + dx, 0, 0)).r; \
+        samples.y = tex2Dlod(water_ripples_t1, float4(tcOffset + dy, 0, 0)).r; \
+        samples.z = tex2Dlod(water_ripples_t1, float4(tcOffset - dx, 0, 0)).r; \
+        samples.w = tex2Dlod(water_ripples_t1, float4(tcOffset - dy, 0, 0)).r; \
+        \
+        normal += _w * normalize(float3(-(samples.x - samples.z), -(samples.y - samples.w), deltaXY * wSize * noiseData)).xy;
+
+      // use blur for smoother gradients
+
+      SAMPLE_WEIGHT(0, 0.4);
+
+      SAMPLE_WEIGHT(dx, 0.15);
+      SAMPLE_WEIGHT(-dx, 0.15);
+      SAMPLE_WEIGHT(dy, 0.15);
+      SAMPLE_WEIGHT(-dy, 0.15);
+
+      float landHeight = get_land_mask_height(float3(worldPos.x, 0.0, worldPos.y)).x;
+      landHeight += get_trackdirt_offset(float3(worldPos.x, 0.0, worldPos.y));
+      float waterHeight = get_wetness_water_level();
+      get_water_height(worldPos, waterHeight);
+      float waterBelowUnclamped = waterHeight - landHeight;
+
+      // for preventing of waves which can go below the ground
+      ##if render_with_normalmap == render_displacement
+        float waterBelowBorder = hmap_displacement_max;
+      ##else
+        float waterBelowBorder = 0.1f;
+      ##endif
+      center1 = waterBelowUnclamped > waterBelowBorder ? max(center1, -waterBelowUnclamped + waterBelowBorder) : center1;
+
+      normal = normal * 0.5 + 0.5;
+      return float4(normal.xy, 0.5 + center1*0.5, 1);
     }
   }
 

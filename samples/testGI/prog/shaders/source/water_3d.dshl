@@ -29,8 +29,6 @@ macro INIT_HDR_STCODE()
 endmacro
 macro INIT_SUN_STCODE()
 endmacro
-macro USE_HDR()
-endmacro
 macro USE_SUN()
   hlsl(ps) {
     #define sun_color_0 (sun_color_0__shadow_intens.xyz)
@@ -141,7 +139,7 @@ block(frame) water3d_block
   INIT_ENVI_SPECULAR()
   FOG_PS_STCODE()
 
-  INIT_WATER_GRADIENTS()
+  INIT_WATER_GRADIENTS(ps)
 }
 //int water_geo_morphing = 0;
 //interval water_geo_morphing: geo_morphing_off<1, geo_morphing_on;
@@ -179,7 +177,6 @@ shader water_nv2
   INIT_WATER_WORLD_POS()
   GET_WATER_WORLD_POS()
 
-  USE_HDR()
   USE_SUN()
   FOG_PS_NO_STCODE()
   USE_PACKED_Z()
@@ -331,7 +328,7 @@ shader water_nv2
   USE_DERIVATIVE_MAPS()
   INIT_WAKE()
   USE_WAKE()
-  USE_WATER_GRADIENTS(1)
+  USE_WATER_GRADIENTS(ps, 1)
   (ps) { scatter_disappear_factor@f1 = (scatter_disappear_factor); }
   if (compatibility_mode == compatibility_mode_off)
   {

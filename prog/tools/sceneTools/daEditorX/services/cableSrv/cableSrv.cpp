@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_interface.h>
 #include <generic/dag_sort.h>
 #include <EditorCore/ec_interface_ex.h>

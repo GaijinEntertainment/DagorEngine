@@ -1,5 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_globDef.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <3d/ddsxTex.h>
 #include <image/dag_tga.h>
 #include <debug/dag_debug3d.h>
@@ -178,7 +182,6 @@ enum
   D3DFMT_L16 = 81,
 
   D3DFMT_V8U8 = 60,
-  D3DFMT_V16U16 = 64,
 
   D3DFMT_R16F = 111,
   D3DFMT_G16R16F = 112,
@@ -227,10 +230,6 @@ static bool fill_ddsx_hdr(ddsx::Header &hdr, int cflg, int w, int h, int d, int 
     case TEXFMT_G16R16:
       hdr.bitsPerPixel = 32;
       hdr.d3dFormat = D3DFMT_G16R16;
-      break;
-    case TEXFMT_V16U16:
-      hdr.bitsPerPixel = 32;
-      hdr.d3dFormat = D3DFMT_V16U16;
       break;
     case TEXFMT_L16:
       hdr.bitsPerPixel = 16;

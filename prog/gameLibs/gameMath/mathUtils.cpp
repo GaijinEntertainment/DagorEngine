@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gameMath/mathUtils.h>
 
 #include <math/random/dag_random.h>

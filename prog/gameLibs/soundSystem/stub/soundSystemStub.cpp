@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <math/dag_TMatrix.h>
 #include <soundSystem/soundSystem.h>
 #include <soundSystem/fmodApi.h>
@@ -38,7 +40,7 @@ FMOD::Studio::EventDescription *get_description(const char *, const char *) { re
 
 namespace banks
 {
-void init(const DataBlock &) {}
+void init(const DataBlock &, const ProhibitedBankDescs &) {}
 void enable(const char *, bool, const PathTags &) {}
 void enable_starting_with(const char *, bool, const PathTags &) {}
 
@@ -49,15 +51,15 @@ bool is_exist(const char *preset_name) { return false; }
 bool is_preset_has_failed_banks(const char *preset_name) { return false; }
 void get_failed_banks_names(eastl::vector<eastl::string, framemem_allocator> &) {}
 void get_loaded_banks_names(eastl::vector<eastl::string, framemem_allocator> &) {}
-void prohibit_bank_events(const eastl::string &) {}
-bool is_guid_prohibited(const FMODGUID &) { return false; }
-void clear_prohibited_guids() {}
 
 void set_preset_loaded_cb(PresetLoadedCallback) {}
 bool any_banks_pending() { return false; }
 
 void set_err_cb(ErrorCallback cb) {}
 void unload_banks_sample_data(void) {}
+
+bool is_valid_event(const FMODGUID &) { return false; }
+bool is_valid_event(const char *) { return false; }
 } // namespace banks
 
 namespace delayed
@@ -76,9 +78,11 @@ void apply() {}
 // events.cpp
 bool has_event(const char *, const char *) { return false; }
 int get_num_event_instances(const char *, const char *) { return 0; }
+int get_num_event_instances(EventHandle) { return 0; }
 EventHandle init_event(const char *, const char *, ieff_t, const Point3 *) { return {}; }
 EventHandle init_event(const FMODGUID &) { return {}; }
 bool has_event(const FMODGUID &) { return false; }
+bool get_event_id(const char *, const char *, bool, FMODGUID &, bool) { return false; }
 bool play_one_shot(const char *, const char *, const Point3 *, ieff_t, float) { return false; }
 void release_immediate(EventHandle &, bool) {}
 void release_delayed(EventHandle &, float) {}
@@ -113,6 +117,7 @@ void set_pitch(EventHandle, float) {}
 void set_3d_attr(EventHandle, const Point3 &) {}
 void set_3d_attr(EventHandle, const TMatrix4 &, const Point3 &) {}
 void set_3d_attr(EventHandle, const TMatrix &, const Point3 &) {}
+void set_3d_attr(EventHandle, const Point3 &, const Point3 &, const Point3 &, const Point3 &) {}
 bool should_play(const Point3 &, float) { return false; }
 bool get_var_desc(EventHandle, const char *, VarDesc &) { return false; }
 bool get_var_desc(const char *, const char *, VarDesc &) { return false; }
@@ -130,6 +135,17 @@ dag::Index16 get_node_id(EventHandle) { return {}; }
 float get_max_distance(EventHandle) { return -1.f; }
 float get_max_distance(const char *) { return -1.f; }
 bool get_length(const char *, int &) { return false; }
+
+const char *get_sample_loading_state(const char *) { return ""; }
+bool load_sample_data(const char *) { return false; }
+bool unload_sample_data(const char *) { return false; }
+const char *get_sample_loading_state(EventHandle) { return ""; }
+bool load_sample_data(EventHandle) { return false; }
+bool unload_sample_data(EventHandle) { return false; }
+const char *get_sample_loading_state(const FMODGUID &) { return ""; }
+bool load_sample_data(const FMODGUID &) { return false; }
+bool unload_sample_data(const FMODGUID &) { return false; }
+
 float get_audibility(FMOD::Studio::EventInstance *eventInstance) { return 0.f; }
 void block_programmer_sounds(bool) {}
 int get_programmer_sounds_generation() { return 0; }
@@ -171,7 +187,6 @@ Point3 get_3d_listener_pos() { return {}; }
 TMatrix get_3d_listener() { return {}; }
 
 // eventInstanceStealing.cpp
-void EventInstanceStealingGroup::append(EventHandle) {}
-void EventInstanceStealingGroup::update(float, float, float, float, int) {}
-
+int create_event_instance_stealing_group(const char *, int, float) { return -1; }
+void update_event_instance_stealing(EventHandle, int, float) {}
 } // namespace sndsys

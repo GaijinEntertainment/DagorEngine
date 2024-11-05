@@ -1,4 +1,4 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <sepGui/wndEmbeddedWindow.h>
 
@@ -71,7 +71,6 @@ void ClientWindow::notifyWmDestroyWindow()
   {
     mEmbeddedWindow = NULL;
     G_ASSERT(mOwner);
-    mOwner->onWmDestroyWindow(getClientAreaHandle());
   }
 }
 
@@ -101,9 +100,6 @@ void ClientWindow::setType(int type)
     notifyWmDestroyWindow();
 
   mType = type;
-
-  if (isNewType)
-    mEmbeddedWindow = mOwner->onWmCreateWindow(getClientAreaHandle(), type);
 }
 
 

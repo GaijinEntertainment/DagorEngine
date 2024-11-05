@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "animPdlMgr.h"
 #include "animGraphFactory.h"
 #include "animITranslator.h"
@@ -24,7 +26,7 @@ public:
   virtual void enqueueState(AnimBlendCtrl_Fifo3 *ctrl, IPureAnimStateHolder &st, IAnimBlendNode *node, float overlap_time,
     float max_lag)
   {
-    // debug_ctx ( "%.2f: enqueueState ( %p, %p )", get_time_msec()/1000.0, ctrl, node );
+    // DEBUG_CTX("%.2f: enqueueState ( %p, %p )", get_time_msec()/1000.0, ctrl, node);
     ctrl->enqueueState(st, node, overlap_time, max_lag);
   }
   virtual bool checkFifo3(IAnimBlendNode *node)

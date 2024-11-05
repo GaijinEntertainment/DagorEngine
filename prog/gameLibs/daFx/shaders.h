@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include "common.h"
 #include "buffers.h"
 #include <EASTL/sort.h>
@@ -41,7 +43,7 @@ struct Shaders
 };
 
 uint32_t register_render_tag(Shaders &dst, const eastl::string &tag, uint32_t max_tags);
-RenderShaderId register_render_shader(Shaders &dst, const eastl::string &shader_name, const eastl::string &sys_name);
+RenderShaderId register_render_shader(Shaders &dst, const eastl::string &shader_name, const eastl::string &sys_name, VDECL vdecl);
 GpuComputeShaderId register_gpu_compute_shader(Shaders &dst, const eastl::string &shader_name, const eastl::string &sys_name);
 CpuComputeShaderId register_cpu_compute_shader_opt(Shaders &dst, const eastl::string &shader_name);
 

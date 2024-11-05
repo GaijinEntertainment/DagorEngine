@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #ifdef WIN32
 #include <direct.h>
 #include "os.h"

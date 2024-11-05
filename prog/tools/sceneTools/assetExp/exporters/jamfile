@@ -2,7 +2,7 @@ Root    ?= ../../../../.. ;
 Location = prog/tools/sceneTools/assetExp/exporters ;
 if $(DabuildEmbeddedInGame) != yes {
   include $(Root)/prog/tools/tools_setup.jam ;
-  if $(DriverLinkage) = dynamic { exit \"$(Location)\" lib must be built with DriverLinkage\=static ; }
+  if $(KernelLinkage) = dynamic { exit \"$(Location)\" lib must be built with KernelLinkage\=static ; }
 }
 TargetType  = lib ;
 Target = tools/sceneTools/assetExp/exporters.lib ;
@@ -104,7 +104,7 @@ if shipSections in $(DabuildUseOptionalExporters) {
   UseProgLibs += gameLibs/gamePhys/phys/shipSections gameLibs/gamePhys/props ;
 } else { shipSectionsExp = int pull_shipSections=0; ; }
 
-if apex in $(DabuildUseOptionalExporters) {
+if apex in $(DabuildUseOptionalExporters) && $(PlatformArch) = x86_64 {
   Sources += apexDestrExp.cpp ;
 
   local apex_include =
@@ -127,7 +127,7 @@ if apex in $(DabuildUseOptionalExporters) {
   if $(Config) != dbg {
     opt on apexDestrExp.cpp += -DNDEBUG ;
   }
-  if $(Platform) in macosx { opt on apexDestrExp.cpp += -Wno-deprecated-declarations ; }
+  if $(Platform) in macOS { opt on apexDestrExp.cpp += -Wno-deprecated-declarations ; }
 
   UseProgLibs += 3rdPartyLibs/phys/fractureTool ;
 } else { apexExp = int pull_apex \= 0\; ; Sources += apexExp.jamvar ; }
@@ -139,7 +139,7 @@ if $(DabuildEmbeddedInGame) != yes {
   CPPopt += -D_TARGET_EXPORTERS_STATIC ;
 }
 
-if $(Platform) = linux64 && $(LinuxArch) = e2k {
+if $(PlatformArch) = e2k {
   CPPopt += -DTEX_CANNOT_USE_ISPC ;
 } else {
   AddIncludes += $(Root)/prog/3rdPartyLibs/convert/ispc_texcomp ;

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gamePhys/phys/utils.h>
 #include <daNet/bitStream.h>
 #include <math.h>

@@ -1,6 +1,7 @@
 from "daRg" import *
+import "daRg.behaviors" as Behaviors
 from "%sqstd/underscore.nut" import partition, flatten
-
+from "%darg/ui_imports.nut" import logerr, log
 
 /*
 laconic framework
@@ -38,11 +39,12 @@ let Style = class { //to be able distinguish style elements from components
     //I do not know the way to return instance of the same class if it is passed here
     let val = {}
     foreach(v in vargv){
-      if (type(v) == "instance" && "value" in v) { //to create Style from Styles
+      if (v instanceof this.getclass()) { //to create Style from Styles
         val.__update(v.value)
       }
       else {
-        assert(type(v) == "table")
+        if (type(v) != "table")
+          logerr($"incorrect type of style: {type(v)}")
         val.__update(v)
       }
     }
@@ -50,31 +52,22 @@ let Style = class { //to be able distinguish style elements from components
   }
 }
 
-let extendable = ["watch", "behavior"]
+let extendable = {["behavior"]=true}
 let toArray = @(v) type(v) == "array" ? v : [v]
 
 function comp(...) {
   local [styles, children] = partition(flatten(vargv), @(v) v instanceof Style)
   local ret = styles.reduce(function(a,b) {
     foreach (k, v in b.value){
-      local found = false
-      foreach (e in extendable) {
-        if (k != e)
-          continue
-        found = true
-        if (k not in a) {
+      if (k in extendable) {
+        if (k not in a)
           a[k] <- toArray(v)
-          break
-        }
-        else {
+        else
           a[k] = toArray(a[k]).extend(toArray(v))
-          break
-        }
       }
-      if (!found) {
-        assert(k not in a, @() $"property {k} already exist")
-        a[k] <- v
-      }
+      else if (k in a)
+        logerr($"property {k} already exist")
+      a[k] <- v
     }
     a.__update(b.value)
     return a
@@ -92,7 +85,9 @@ function comp(...) {
   }
   if (ret.len()==1 && "children" in ret)
     ret = type(ret.children) != "array" || ret.children.len()==1 ? ret.children?[0] : ret
-  return ("watch" in ret) ? @() ret : ret
+  if ("watch" in ret)
+    logerr("component with 'watch' field should be set as function")
+  return ret
 }
 
 let FlowV = Style({flow = FLOW_VERTICAL})
@@ -110,7 +105,7 @@ let BorderWidth = @(...) Style({borderWidth = vargv})
 let BorderRadius = @(...) Style({borderRadius = vargv})
 let ClipChildren = Style({clipChildren = true})
 let Bhv = @(...) Style({behaviors = flatten(vargv)})
-let Watch = @(...) Style({watch = flatten(vargv)})
+//let Watch = @(...) Style({watch = flatten(vargv)})
 let OnClick = @(func) Style({onClick = func})
 let Button = Style({behavior = Behaviors.Button})
 
@@ -141,10 +136,7 @@ function updateWithStyle(obj, style){
       assert(k not in obj)
     obj.__update(style.value)
   }
-  if ("watch" in obj)
-    return @() obj
-  else
-    return obj
+  return obj
 }
 
 function txt(text, style = null) {
@@ -189,5 +181,7 @@ return {
   VCenter, Top, Bottom, VABottom, VATop, VACenter,
   HCenter, Left, Right, HACenter, HALeft, HARight,
   BorderColr, BorderWidth, BorderRadius, FillColr,
-  Bhv, ClipChildren, Watch, Button, OnClick
+  Bhv, ClipChildren, Button, OnClick,
+  //Watch
+
 }

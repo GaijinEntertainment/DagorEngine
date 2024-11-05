@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "decl.h"
@@ -15,7 +16,7 @@ public:
   virtual ~ObjEd();
 
   // ObjectEditor interface implementation
-  virtual void fillToolBar(PropertyContainerControlBase *toolbar);
+  virtual void fillToolBar(PropPanel::ContainerPropertyControl *toolbar);
   virtual void updateToolbarButtons();
 
   // virtual void handleCommand(int cmd);
@@ -41,7 +42,7 @@ public:
   virtual void getTypeNames(Tab<String> &names);
   virtual void onSelectedNames(const Tab<String> &names);
 
-  virtual void addButton(PropertyContainerControlBase *tb, int id, const char *bmp_name, const char *hint, bool check = false);
+  virtual void addButton(PropPanel::ContainerPropertyControl *tb, int id, const char *bmp_name, const char *hint, bool check = false);
 
   void reset();
   inline bool isCloneMode() { return cloneMode; }
@@ -49,7 +50,7 @@ public:
   void objRender(dag::ConstSpan<TMatrix> ob, dag::ConstSpan<IOccluderGeomProvider::Quad> oq);
   void objRenderTr(dag::ConstSpan<TMatrix> ob, dag::ConstSpan<IOccluderGeomProvider::Quad> oq);
 
-  virtual void onClick(int pcb_id, PropPanel2 *panel);
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
 
 public:
   bool showLocalOccluders, showGlobalOccluders;

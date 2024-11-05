@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/aotDagorDriver3d.h>
 #include <dasModules/dagorTexture3d.h>
 
@@ -227,7 +229,7 @@ void bind_driver_consts(das::Module &module)
   // TextureFilterMode
   BIND_UINT_CONST(TEXFILTER_DEFAULT)
   BIND_UINT_CONST(TEXFILTER_POINT)
-  BIND_UINT_CONST(TEXFILTER_SMOOTH)
+  BIND_UINT_CONST(TEXFILTER_LINEAR)
   BIND_UINT_CONST(TEXFILTER_BEST)
   BIND_UINT_CONST(TEXFILTER_COMPARE)
   BIND_UINT_CONST(TEXFILTER_NONE)
@@ -279,7 +281,6 @@ void bind_driver_consts(das::Module &module)
   BIND_UINT_CONST(TEXFMT_DXT3)
   BIND_UINT_CONST(TEXFMT_DXT5)
   BIND_UINT_CONST(TEXFMT_R32G32UI)
-  BIND_UINT_CONST(TEXFMT_V16U16)
   BIND_UINT_CONST(TEXFMT_L16)
   BIND_UINT_CONST(TEXFMT_A8)
   BIND_UINT_CONST(TEXFMT_R8)

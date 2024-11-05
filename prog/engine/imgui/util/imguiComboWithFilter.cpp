@@ -1,3 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <EASTL/fixed_string.h>
 #include <gui/dag_imguiUtil.h>
 #include <imgui/imgui_internal.h>
 
@@ -27,9 +30,22 @@ static int string_vector_search(const eastl::string &needle, const dag::Vector<e
     occurences.push_back(to_lower_case(haystack).find(needle));
 
   // Then search if 'needle' is in the beginning of the 'haystack':
+  int commonPrefix = -1;
   for (size_t i = 0; i < occurences.size(); i++)
+  {
     if (occurences[i] == 0)
-      return i;
+    {
+      // Exact match is preferred
+      if (needle == data[i])
+        return i;
+      // Else return first string where 'needle' is in the beginning
+      if (commonPrefix == -1)
+        commonPrefix = i;
+    }
+  }
+
+  if (commonPrefix > -1)
+    return commonPrefix;
 
   // And only then search for other occurences.
   // This is done in order to avoid undesirable search results due to one option name being entirely contained
@@ -59,43 +75,77 @@ static float get_field_widget_width(const dag::Vector<eastl::string_view> &data)
 }
 
 
-static size_t get_digits_num(size_t number)
+static float get_extra_width_for_enumeration(size_t itemCount)
 {
-  size_t i = 0;
-  while (number)
+  float maxWidth = 0.f;
+  for (size_t i = 0; i < itemCount; ++i)
   {
-    number /= 10u;
-    i++;
+    const eastl::fixed_string<char, 16> enumerationString(eastl::fixed_string<char, 16>::CtorSprintf{}, "%u.", i + 1);
+    const float width = ImGui::CalcTextSize(enumerationString.c_str()).x;
+    if (maxWidth < width)
+      maxWidth = width;
   }
-  return i;
+  return maxWidth;
 }
 
 
-bool ImGuiDagor::ComboWithFilter(const char *label, const dag::Vector<eastl::string_view> &data, int &current_idx,
-  eastl::string &input, bool enumerate, bool return_on_arrows, const char *hint, ImGuiComboFlags flags)
+static void arrow_scroll(const dag::Vector<eastl::string_view> &data, int &current_idx, eastl::string &input,
+  ImGuiDagor::ComboInfo &info)
 {
-  int items_count = (int)data.size();
-  const float extra_width_for_enumeration =
-    enumerate ? ImGui::CalcTextSize(eastl::string(get_digits_num(items_count) + 2, ' ').c_str()).x : 0.f;
-  const float width = get_field_widget_width(data) + extra_width_for_enumeration;
+  if (ImGui::IsKeyPressed(ImGuiKey_UpArrow))
+  {
+    if (current_idx > 0)
+    {
+      current_idx -= 1;
+      info.arrowScroll = true;
+      ImGui::SetWindowFocus();
+    }
+  }
+  if (ImGui::IsKeyPressed(ImGuiKey_DownArrow))
+  {
+    if (current_idx >= -1 && current_idx + 1 < data.size())
+    {
+      current_idx += 1;
+      info.arrowScroll = true;
+      ImGui::SetWindowFocus();
+    }
+  }
 
-  ImGuiContext &g = *GImGui;
+  // select the first match
+  if (ImGui::IsKeyPressed(ImGuiKey_Enter))
+  {
+    info.arrowScroll = true;
+    current_idx = string_vector_search(input, data);
+    if (current_idx < 0)
+      input.clear();
+    ImGui::CloseCurrentPopup();
+  }
 
+  if (ImGui::IsKeyPressed(ImGuiKey_Backspace))
+  {
+    current_idx = string_vector_search(input, data);
+    info.selectionChanged = true;
+  }
+}
+
+eastl::optional<ImGuiDagor::ComboInfo> ImGuiDagor::BeginComboWithFilter(const char *label, const dag::Vector<eastl::string_view> &data,
+  int &current_idx, eastl::string &input, float width, const char *hint, ImGuiComboFlags flags)
+{
   ImGuiWindow *window = ImGui::GetCurrentWindow();
   if (window->SkipItems)
-    return false;
+    return {};
 
+  ImGuiContext &g = *GImGui;
+  const ImGuiStyle &style = g.Style;
 
   const ImGuiID popupId = window->GetID(label);
   bool popupIsAlreadyOpened = ImGui::IsPopupOpen(popupId, 0);
-  eastl::string sActiveidxValue1 = safe_string_getter(data, current_idx);
-  bool popupNeedsToBeOpened = (input[0] != 0) && (!sActiveidxValue1.empty() && input != sActiveidxValue1);
+  eastl::string sActiveIdxValue = safe_string_getter(data, current_idx);
+  bool popupNeedsToBeOpened = (input[0] != 0) && (!sActiveIdxValue.empty() && input != sActiveIdxValue);
   bool popupJustOpened = false;
 
   IM_ASSERT((flags & (ImGuiComboFlags_NoArrowButton | ImGuiComboFlags_NoPreview)) !=
             (ImGuiComboFlags_NoArrowButton | ImGuiComboFlags_NoPreview)); // Can't use both flags together
-
-  const ImGuiStyle &style = g.Style;
 
   const float arrow_size = (flags & ImGuiComboFlags_NoArrowButton) ? 0.0f : ImGui::GetFrameHeight();
   const ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
@@ -107,7 +157,7 @@ bool ImGuiDagor::ComboWithFilter(const char *label, const dag::Vector<eastl::str
   const float value_x2 = ImMax(frame_bb.Min.x, frame_bb.Max.x - arrow_size);
   ImGui::ItemSize(total_bb, style.FramePadding.y);
   if (!ImGui::ItemAdd(total_bb, popupId, &frame_bb))
-    return false;
+    return {};
 
   bool hovered, held;
   bool pressed = ImGui::ButtonBehavior(frame_bb, popupId, &hovered, &held);
@@ -154,10 +204,10 @@ bool ImGuiDagor::ComboWithFilter(const char *label, const dag::Vector<eastl::str
   }
 
   if (!popupIsAlreadyOpened)
-    return false;
+    return {};
 
   const float totalWMinusArrow = w - arrow_size;
-  const float popupHeight = label_size.y + 2.f * style.WindowPadding.y + (label_size.y + style.ItemInnerSpacing.y) * items_count;
+  const float popupHeight = label_size.y + 2.f * style.WindowPadding.y + (label_size.y + style.ItemInnerSpacing.y) * data.size();
   const float popupSizeData[2] = {totalWMinusArrow, ImMin(500.f, popupHeight)};
 
   struct ImGuiSizeCallbackWrapper
@@ -171,18 +221,18 @@ bool ImGuiDagor::ComboWithFilter(const char *label, const dag::Vector<eastl::str
   ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(totalWMinusArrow, popupHeight), ImGuiSizeCallbackWrapper::sizeCallback,
     (void *)&popupSizeData);
 
-  char name[16];
-  ImFormatString(name, IM_ARRAYSIZE(name), "##Combo_%02d", g.BeginPopupStack.Size); // Recycle windows based on depth
+  eastl::string name = "##Combo_";
+  name += label;
 
   // Peek into expected window size so we can position it
-  if (ImGuiWindow *popup_window = ImGui::FindWindowByName(name))
+  if (ImGuiWindow *popup_window = ImGui::FindWindowByName(name.data()))
   {
     if (popup_window->WasActive)
     {
       ImVec2 size_expected = ImGui::CalcWindowNextAutoFitSize(popup_window);
       if (flags & ImGuiComboFlags_PopupAlignLeft)
         popup_window->AutoPosLastDirection = ImGuiDir_Left;
-      ImRect r_outer = ImGui::GetWindowAllowedExtentRect(popup_window);
+      ImRect r_outer = ImGui::GetPopupAllowedExtentRect(popup_window);
       ImVec2 pos = ImGui::FindBestWindowPosForPopupEx(frame_bb.GetBL(), size_expected, &popup_window->AutoPosLastDirection, r_outer,
         frame_bb, ImGuiPopupPositionPolicy_ComboBox);
 
@@ -195,14 +245,15 @@ bool ImGuiDagor::ComboWithFilter(const char *label, const dag::Vector<eastl::str
   // Horizontally align ourselves with the framed text
   ImGuiWindowFlags window_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_Popup | ImGuiWindowFlags_NoTitleBar |
                                   ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings;
-  bool ret = ImGui::Begin(name, NULL, window_flags);
+  bool ret = ImGui::Begin(name.data(), NULL, window_flags);
 
   ImGui::PushItemWidth(ImGui::GetWindowWidth());
   ImGui::SetCursorPos(ImVec2(0.f, window->DC.CurrLineTextBaseOffset));
   if (popupJustOpened)
     ImGui::SetKeyboardFocusHere(0);
 
-  bool done = ImGuiDagor::InputTextWithHint("##inputText", hint, &input,
+  ComboInfo info{};
+  info.inputTextChanged = ImGuiDagor::InputTextWithHint("##inputText", hint, &input,
     ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue);
   ImGui::PopItemWidth();
 
@@ -212,95 +263,37 @@ bool ImGuiDagor::ComboWithFilter(const char *label, const dag::Vector<eastl::str
     ImGui::PopItemWidth();
     ImGui::EndPopup();
     IM_ASSERT(0); // This should never happen as we tested for IsPopupOpen() above
-    return false;
+    return {};
   }
 
-  ImGuiWindowFlags window_flags2 = ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoNavFocus;
-  ImGui::BeginChild("ChildL", ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y), false, window_flags2);
-
-  bool selectionChanged = false;
   if (!input.empty())
   {
     int new_idx = string_vector_search(input, data);
     int idx = new_idx >= 0 ? new_idx : current_idx;
-    selectionChanged = current_idx != idx;
+    info.selectionChanged = current_idx != idx;
     current_idx = idx;
   }
 
-  bool arrowScroll = false;
+  ImGuiWindowFlags window_flags2 = ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoNavFocus;
+  ImGui::BeginChild("ChildL", ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y), ImGuiChildFlags_None,
+    window_flags2);
 
-  if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_UpArrow)))
-  {
-    if (current_idx > 0)
-    {
-      current_idx -= 1;
-      arrowScroll = true;
-      ImGui::SetWindowFocus();
-    }
-  }
-  if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_DownArrow)))
-  {
-    if (current_idx >= -1 && current_idx < items_count - 1)
-    {
-      current_idx += 1;
-      arrowScroll = true;
-      ImGui::SetWindowFocus();
-    }
-  }
+  arrow_scroll(data, current_idx, input, info);
 
-  // select the first match
-  if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter)))
-  {
-    arrowScroll = true;
-    current_idx = string_vector_search(input, data);
-    if (current_idx < 0)
-      input.clear();
-    ImGui::CloseCurrentPopup();
-  }
+  return info;
+}
 
-  if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Backspace)))
-  {
-    current_idx = string_vector_search(input, data);
-    selectionChanged = true;
-  }
 
-  if (done && !arrowScroll)
-    ImGui::CloseCurrentPopup();
+bool ImGuiDagor::EndComboWithFilter(const char *label, const dag::Vector<eastl::string_view> &data, const int &current_idx,
+  eastl::string &input, const ComboInfo &info, bool selectedByMouse)
+{
+  eastl::string name = "##Combo_";
+  name += label;
 
-  bool done2 = false;
-  float printOffset = ImGui::GetCursorPosX() + extra_width_for_enumeration;
-  for (int n = 0; n < items_count; n++)
-  {
-    bool is_selected = n == current_idx;
-    if (is_selected && (ImGui::IsWindowAppearing() || selectionChanged))
-      ImGui::SetScrollHereY();
-
-    if (is_selected && arrowScroll)
-      ImGui::SetScrollHereY();
-
-    eastl::string select_value = safe_string_getter(data, n);
-    char item_id[128];
-    if (extra_width_for_enumeration)
-    {
-      ImGui::Text("%u.", n + 1);
-      ImGui::SameLine();
-      ImGui::SetCursorPosX(printOffset);
-    }
-    ImFormatString(item_id, sizeof(item_id), "%s##item_%02d", select_value.c_str(), n);
-    if (ImGui::Selectable(item_id, is_selected))
-    {
-      selectionChanged = current_idx != n;
-      current_idx = n;
-      input = select_value;
-      ImGui::CloseCurrentPopup();
-      done2 = true;
-    }
-  }
-
-  if (arrowScroll && current_idx > -1)
+  if (info.arrowScroll && current_idx > -1)
   {
     input = safe_string_getter(data, current_idx);
-    ImGuiWindow *wnd = ImGui::FindWindowByName(name);
+    ImGuiWindow *wnd = ImGui::FindWindowByName(name.data());
     const ImGuiID id = wnd->GetID("##inputText");
     ImGuiInputTextState *state = ImGui::GetInputTextState(id);
 
@@ -313,12 +306,67 @@ bool ImGuiDagor::ComboWithFilter(const char *label, const dag::Vector<eastl::str
   ImGui::EndChild();
   ImGui::EndPopup();
 
-  eastl::string sActiveidxValue3 = safe_string_getter(data, current_idx);
-  bool ret1 = (selectionChanged && (!sActiveidxValue3.empty() && sActiveidxValue3 == input));
+  eastl::string sActiveIdxValue = safe_string_getter(data, current_idx);
+  bool ret1 = (info.selectionChanged && (!sActiveIdxValue.empty() && sActiveIdxValue == input));
 
-  bool widgetRet = done || done2 || ret1;
-  if (return_on_arrows)
-    widgetRet = widgetRet || arrowScroll;
+  return info.inputTextChanged || info.arrowScroll || selectedByMouse || ret1;
+}
 
-  return widgetRet;
+
+bool ImGuiDagor::ComboWithFilter(const char *label, const dag::Vector<eastl::string_view> &data, int &current_idx,
+  eastl::string &input, bool enumerate, bool return_on_arrows, const char *hint, ImGuiComboFlags flags)
+{
+  int items_count = static_cast<int>(data.size());
+  if (items_count == 0)
+    return false;
+
+  const float extra_width_for_enumeration =
+    enumerate ? get_extra_width_for_enumeration(items_count) + GImGui->Style.WindowPadding.x : 0.f;
+  const float width = get_field_widget_width(data) + extra_width_for_enumeration;
+
+  auto res = ImGuiDagor::BeginComboWithFilter(label, data, current_idx, input, width, hint, flags);
+
+  if (res.has_value())
+  {
+    auto info = res.value();
+
+    if (info.inputTextChanged && !info.arrowScroll)
+      ImGui::CloseCurrentPopup();
+
+    float printOffset = ImGui::GetCursorPosX() + extra_width_for_enumeration;
+    bool selectedByMouse = false;
+    for (int n = 0; n < items_count; n++)
+    {
+      bool is_selected = n == current_idx;
+      if (is_selected && (ImGui::IsWindowAppearing() || info.selectionChanged))
+        ImGui::SetScrollHereY();
+
+      if (is_selected && info.arrowScroll)
+        ImGui::SetScrollHereY();
+
+      eastl::string select_value = safe_string_getter(data, n);
+      char item_id[128];
+      if (extra_width_for_enumeration)
+      {
+        ImGui::Text("%u.", n + 1);
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(printOffset);
+      }
+      ImFormatString(item_id, sizeof(item_id), "%s##item_%02d", select_value.c_str(), n);
+      if (ImGui::Selectable(item_id, is_selected))
+      {
+        info.selectionChanged = current_idx != n;
+        current_idx = n;
+        input = select_value;
+        ImGui::CloseCurrentPopup();
+        selectedByMouse = true;
+      }
+    }
+
+    info.arrowScroll = info.arrowScroll && return_on_arrows;
+
+    return ImGuiDagor::EndComboWithFilter(label, data, current_idx, input, info, selectedByMouse);
+  }
+
+  return false;
 }

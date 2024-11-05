@@ -1,6 +1,13 @@
 include "shaders_dx11.blk"
 "@delete-all:packBin":b=false; packBin:b=yes
 
+"@override:source"
+{
+  file:t = "testgi_bvh_debug.dshl"
+  file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_dynrend_indices.dshl"
+  file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_bake_texture_to_vertices.dshl"
+}
+
 "@override:outDumpName":t="../../game/compiledShaders/gameSpirV"
 "@override:Compile" {
   "@override:fsh":t="5.0"
@@ -9,3 +16,6 @@ include "shaders_dx11.blk"
      //gi_voxelize_use_multidraw:i=1
   }
 }
+
+incDir:t="../../../../prog/gameLibs/bvh/shaders"
+incDir:t="../../../../prog/gameLibs/render/shaders/NRD"

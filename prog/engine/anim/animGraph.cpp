@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #undef _DEBUG_TAB_
 #include <anim/dag_animBlend.h>
 #include <anim/dag_animKeyInterp.h>
@@ -8,17 +10,20 @@
 #include <debug/dag_debug.h>
 #include <debug/dag_fatal.h>
 #include <perfMon/dag_perfTimer2.h>
+#include <perfMon/dag_statDrv.h>
 #include <debug/dag_log.h>
 #include <util/dag_string.h>
+#include <util/dag_fastNameMapTS.h>
 #include <supp/dag_prefetch.h>
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_rwSpinLock.h>
 #include <generic/dag_tabUtils.h>
 #include <gameRes/dag_gameResources.h>
 #include "animInternal.h"
 #include <ioSys/dag_dataBlock.h>
 #include <regExp/regExp.h>
-#include <osApiWrappers/dag_critSec.h>
 #include <ctype.h>
+#include <EASTL/hash_map.h>
 #include <memory/dag_framemem.h>
 
 using namespace AnimV20;
@@ -171,7 +176,7 @@ void AnimationGraph::initStates(const DataBlock &stDescBlk)
   int nid_state = stDescBlk.getNameId("state"), sidx = 0;
   int nid_alias = stDescBlk.getNameId("state_alias");
   const char *def_node_name = stDescBlk.getStr("defNodeName", "");
-  float defMorphTime = stDescBlk.getReal("defMorphTime", 0.15);
+  float defMorphTime = stDescBlk.getReal("defMorphTime", 0.15f);
   float defMinTsc = stDescBlk.getReal("minTimeScale", 0.f);
   float defMaxTsc = stDescBlk.getReal("maxTimeScale", FLT_MAX);
 
@@ -240,7 +245,8 @@ void AnimationGraph::initStates(const DataBlock &stDescBlk)
                 !n->isSubOf(AnimBlendNodeStillLeafCID) && !n->isSubOf(AnimBlendNodeParametricLeafCID) &&
                 !n->isSubOf(AnimBlendNodeSingleLeafCID) && !n->isSubOf(AnimBlendNodeNullCID) && !n->isSubOf(AnimBlendCtrl_HubCID) &&
                 !n->isSubOf(AnimBlendCtrl_1axisCID) && !n->isSubOf(AnimBlendCtrl_RandomSwitcherCID) &&
-                !n->isSubOf(AnimBlendCtrl_LinearPolyCID) && !n->isSubOf(AnimBlendCtrl_ParametricSwitcherCID))
+                !n->isSubOf(AnimBlendCtrl_LinearPolyCID) && !n->isSubOf(AnimBlendCtrl_ParametricSwitcherCID) &&
+                !n->isSubOf(AnimBlendCtrl_SetMotionMatchingTagCID))
             {
               G_ASSERTF(0, "type of node=%s  is not supported for animStates", node_nm);
               stRec[sidx + cid].nodeId = StateRec::NODEID_NULL;
@@ -399,7 +405,7 @@ int AnimationGraph::addPbcWtParamId(const char *name)
 int AnimationGraph::addParamId(const char *name, int type)
 {
   int id = paramNames.addNameId(name);
-  // debug_ctx("allocated (id=%d) for \"%s\", type=%d", id, name, type);
+  // DEBUG_CTX("allocated (id=%d) for \"%s\", type=%d", id, name, type);
   if (id == paramTypes.size())
   {
     paramTypes.push_back(type);
@@ -432,7 +438,7 @@ int AnimationGraph::addInlinePtrParamId(const char *name, size_t size_bytes, int
       G_VERIFYF(paramNames.addNameId(String(0, "?%d", pt_base + i)) == pt_base + i,
         "failed to create unique nameId: resv[%d] for param <%s> size_bytes=%d", i, name, size_bytes);
     }
-    // debug_ctx("allocated %d param recs (id=%d) for inline ptr \"%s\", sz=%d, type=%d", num_words, id, name, size_bytes, type);
+    // DEBUG_CTX("allocated %d param recs (id=%d) for inline ptr \"%s\", sz=%d, type=%d", num_words, id, name, size_bytes, type);
     return id;
   }
 
@@ -449,7 +455,7 @@ int AnimationGraph::getParamId(const char *name, int type) const
     return -1;
   if (paramTypes[id] == type)
     return id;
-  debug_ctx("param <%s> of type %d is absent; present with type %d", name, type, paramTypes[id]);
+  DEBUG_CTX("param <%s> of type %d is absent; present with type %d", name, type, paramTypes[id]);
   return -1;
 }
 
@@ -537,6 +543,42 @@ void AnimationGraph::sortPbCtrl(const DataBlock &ord)
 void AnimationGraph::setIgnoredAnimationNodes(const Tab<int> &nodes) { ignoredAnimationNodes = nodes; }
 bool AnimationGraph::isNodeWithIgnoredAnimation(int nodeId) { return tabutils::find(ignoredAnimationNodes, nodeId); }
 
+void AnimationGraph::getUsedBlendNodes(eastl::hash_map<IAnimBlendNode *, bool> &usedNodes)
+{
+  root->collectUsedBlendNodes(*this, usedNodes);
+  usedNodes.emplace(root, true);
+
+  if (stDest.size() > 0)
+    for (int si = 0; si < stRec.size() / stDest.size(); si++)
+    {
+      dag::ConstSpan<AnimationGraph::StateRec> s = getState(si);
+
+      for (int i = 0; i < s.size(); i++)
+        if (s[i].nodeId == AnimationGraph::StateRec::NODEID_NULL || s[i].nodeId == AnimationGraph::StateRec::NODEID_LEAVECUR)
+          continue; // skip
+        else
+        {
+          int mask_ofs = stDest[i].defNodemaskIdx;
+          IAnimBlendNode *n = getBlendNodePtr(s[i].nodeId + mask_ofs);
+          if (n)
+          {
+            usedNodes.emplace(n, true);
+            n->collectUsedBlendNodes(*this, usedNodes);
+          }
+          if (stDest[i].condNodemaskTarget >= 0)
+          {
+            mask_ofs = stDest[i].condNodemaskIdx;
+            n = getBlendNodePtr(s[i].nodeId + mask_ofs);
+            if (n)
+            {
+              usedNodes.emplace(n, true);
+              n->collectUsedBlendNodes(*this, usedNodes);
+            }
+          }
+        }
+    }
+}
+
 static void delete_ctx_recursive(AnimBlender::TlsContext *c)
 {
   if (c->nextCtx)
@@ -604,6 +646,16 @@ AnimBlender::TlsContext *AnimBlender::addNewContext(int64_t tid)
   } while (prevnext != next);
 
   return ctx;
+}
+
+AnimBlender::TlsContext &AnimBlender::selectCtx(intptr_t (*irq)(int, intptr_t, intptr_t, intptr_t, void *), void *irq_arg)
+{
+  TlsContext &tls = getUnpreparedCtx();
+  if (tls.bnlWt.size() != bnl.size() || tls.pbcWt.size() != pbCtrl.size() || tls.readyMark.size() != targetNode.nameCount())
+    tls.rebuildNodeList(bnl.size(), pbCtrl.size(), targetNode.nameCount());
+  tls.irq = irq;
+  tls.irqArg = irq_arg;
+  return tls;
 }
 
 void AnimBlender::buildNodeList()
@@ -806,7 +858,7 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
 
   IAnimBlendNode::BlendCtx bctx(st, tls, true);
   bctx.lastDt = st.getParam(AnimationGraph::PID_GLOBAL_LAST_DT);
-  root->buildBlendingList(bctx, 1.0);
+  root->buildBlendingList(bctx, 1.0f);
 
   // added: check for null animation
   bool haveBnl = false;
@@ -837,11 +889,24 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
   enum
   {
     BMOD_ADDITIVE = 1 << 0,
-    BMOD_CHARDEP = 1 << 1
+    BMOD_CHARDEP = 1 << 1,
+    BMOD_MOTION_MATCHING_POSE = 1 << 2
   };
+
+  if (bctx.irq(GIRQT_GetMotionMatchingPose, (intptr_t)&tls, 0, 0) == GIRQR_MotionMatchingPoseApplied)
+    for (i = 0; i < nodenum; i++)
+    {
+      if (wtPos[i].totalNum)
+        chPos[i].blendMod[0] = BMOD_MOTION_MATCHING_POSE;
+      if (wtRot[i].totalNum)
+        chRot[i].blendMod[0] = BMOD_MOTION_MATCHING_POSE;
+      if (wtScl[i].totalNum)
+        chScl[i].blendMod[0] = BMOD_MOTION_MATCHING_POSE;
+    }
+
   for (i = 0; i < bnlNum; i++)
   {
-    if (fabsf(bnlWt[i]) <= 1e-6 || !bnl[i] || !bnl.data()[i]->anim)
+    if (fabsf(bnlWt[i]) <= 1e-6f || !bnl[i] || !bnl.data()[i]->anim)
       continue;
 
     real wa_w = bnlWt.data()[i], w;
@@ -864,10 +929,13 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
         continue;
       const AnimChanPoint3 &chan = pos.nodeAnim[j];
       w = pos.nodeWt[j] * wa_w;
-      if (fabsf(w) <= 1e-6)
+      NodeWeight &ch_w = wtPos[targetChN];
+      WeightedNode<AnimKeyPoint3> &ch = chPos[targetChN];
+      if (ch_w.totalNum > 0 && ch.blendMod[0] == BMOD_MOTION_MATCHING_POSE && !additive)
+        w *= (1 - ch.blendSrc[0].w);
+      if (fabsf(w) <= 1e-6f)
         continue;
 
-      NodeWeight &ch_w = wtPos[targetChN];
 
       if (ch_w.totalNum >= MAX_ANIMS_IN_NODE)
       {
@@ -878,7 +946,6 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
         continue;
       }
 
-      WeightedNode<AnimKeyPoint3> &ch = chPos[targetChN];
       WeightedNode<AnimKeyPoint3>::BlendSrc &bsrc = ch.blendSrc[ch_w.totalNum];
       ch.blendMod[ch_w.totalNum] = bmod;
       if (charDep && charDepNodeId != targetChN)
@@ -888,7 +955,7 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
       if (!additive)
         ch_w.wTotal += w;
       else if (ch_w.totalNum == 1)
-        ch_w.wTotal = 1.0; //< only additive anims for node, mark wTotal as 'used'
+        ch_w.wTotal = 1.0f; //< only additive anims for node, mark wTotal as 'used'
       bsrc.w = w;
       bsrc.k = chan.findKey(wa_pos, &bsrc.t);
     }
@@ -903,21 +970,23 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
         continue;
       const AnimChanPoint3 &chan = scl.nodeAnim[j];
       w = scl.nodeWt[j] * wa_w;
-      if (fabsf(w) <= 1e-6)
+      NodeWeight &ch_w = wtScl[targetChN];
+      WeightedNode<AnimKeyPoint3> &ch = chScl[targetChN];
+      if (ch_w.totalNum > 0 && ch.blendMod[0] == BMOD_MOTION_MATCHING_POSE && !additive)
+        w *= (1 - ch.blendSrc[0].w);
+      if (fabsf(w) <= 1e-6f)
         continue;
 
-      NodeWeight &ch_w = wtScl[targetChN];
 
       if (ch_w.totalNum >= MAX_ANIMS_IN_NODE)
       {
 #if DAGOR_DBGLEVEL > 0
         LOGERR_ONCE("scl: Need to increase max anims for node %d/%s, j=%d, targetChN=%d: %d\n", i, pos.nodeName[j].get(), j, targetChN,
           ch_w.totalNum);
-        continue;
 #endif
+        continue;
       }
 
-      WeightedNode<AnimKeyPoint3> &ch = chScl[targetChN];
       WeightedNode<AnimKeyPoint3>::BlendSrc &bsrc = ch.blendSrc[ch_w.totalNum];
       ch.blendMod[ch_w.totalNum] = bmod;
       ch.readyFlg = (ch_w.totalNum ? ch.readyFlg : 0) | (additive ? RM_SCL_A : RM_SCL_B);
@@ -925,7 +994,7 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
       if (!additive)
         ch_w.wTotal += w;
       else if (ch_w.totalNum == 1)
-        ch_w.wTotal = 1.0; //< only additive anims for node, mark wTotal as 'used'
+        ch_w.wTotal = 1.0f; //< only additive anims for node, mark wTotal as 'used'
       bsrc.w = w;
       bsrc.k = chan.findKey(wa_pos, &bsrc.t);
     }
@@ -938,10 +1007,12 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
         continue;
       const AnimChanQuat &chan = rot.nodeAnim[j];
       w = rot.nodeWt[j] * wa_w;
-      if (w <= 1e-6)
-        continue;
-
       NodeWeight &ch_w = wtRot[targetChN];
+      WeightedNode<AnimKeyQuat> &ch = chRot[targetChN];
+      if (ch_w.totalNum > 0 && ch.blendMod[0] == BMOD_MOTION_MATCHING_POSE && !additive)
+        w *= (1 - ch.blendSrc[0].w);
+      if (w <= 1e-6f)
+        continue;
 
       if (ch_w.totalNum >= MAX_ANIMS_IN_NODE)
       {
@@ -951,8 +1022,6 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
 #endif
         continue;
       }
-
-      WeightedNode<AnimKeyQuat> &ch = chRot[targetChN];
       WeightedNode<AnimKeyQuat>::BlendSrc &bsrc = ch.blendSrc[ch_w.totalNum];
       ch.blendMod[ch_w.totalNum] = bmod & ~BMOD_CHARDEP;
       ch.readyFlg = (ch_w.totalNum ? ch.readyFlg : 0) | (additive ? RM_ROT_A : RM_ROT_B);
@@ -960,7 +1029,7 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
       if (!additive)
         ch_w.wTotal += w;
       else if (ch_w.totalNum == 1)
-        ch_w.wTotal = 1.0; //< only additive anims for node, mark wTotal as 'used'
+        ch_w.wTotal = 1.0f; //< only additive anims for node, mark wTotal as 'used'
       bsrc.w = w;
       bsrc.k = chan.findKey(wa_pos, &bsrc.t);
     }
@@ -978,7 +1047,7 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
   {
     const NodeWeight &ch_w = wtPos[i];
     int bnum = ch_w.totalNum;
-    if (!bnum)
+    if (!bnum || fabsf(ch_w.wTotal) < 1e-6f)
       continue;
 
     WeightedNode<AnimKeyPoint3> &ch = chPos[i];
@@ -989,8 +1058,8 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
     bnum--;
     readyMark[i] |= ch.readyFlg;
 
-    t4 = v_splat4(&bsrc->t);
-    w4 = v_splat4(&bsrc->w);
+    t4 = v_splats(bsrc->t);
+    w4 = v_splats(bsrc->w);
 
     v = bsrc->interp() ? AnimV20Math::interp_key(*bsrc->k, t4) : bsrc->k->p;
     if (*bmod & BMOD_CHARDEP)
@@ -1000,14 +1069,14 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
       chPrs[i].pos = v;
     else
     {
-      vec4f inv_total = v_rcp(v_splat4(&ch_w.wTotal));
+      vec4f inv_total = v_rcp(v_splats(ch_w.wTotal));
       res = v_mul(v, !(*bmod & BMOD_ADDITIVE) ? v_mul(w4, inv_total) : w4);
       bsrc++;
       bmod++;
       for (; bnum; bsrc++, bmod++, bnum--)
       {
-        t4 = v_splat4(&bsrc->t);
-        w4 = v_splat4(&bsrc->w);
+        t4 = v_splats(bsrc->t);
+        w4 = v_splats(bsrc->w);
         v = bsrc->interp() ? AnimV20Math::interp_key(*bsrc->k, t4) : bsrc->k->p;
         if (*bmod & BMOD_CHARDEP)
           v = v_madd(v, cmm_scl, cmm_ofs);
@@ -1023,7 +1092,7 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
   {
     const NodeWeight &ch_w = wtScl[i];
     int bnum = ch_w.totalNum;
-    if (!bnum)
+    if (!bnum || fabsf(ch_w.wTotal) < 1e-6f)
       continue;
 
     WeightedNode<AnimKeyPoint3> &ch = chScl[i];
@@ -1034,8 +1103,8 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
     bnum--;
     readyMark[i] |= ch.readyFlg;
 
-    t4 = v_splat4(&bsrc->t);
-    w4 = v_splat4(&bsrc->w);
+    t4 = v_splats(bsrc->t);
+    w4 = v_splats(bsrc->w);
 
     v = bsrc->interp() ? AnimV20Math::interp_key(*bsrc->k, t4) : bsrc->k->p;
     if (*bmod & BMOD_CHARDEP)
@@ -1045,7 +1114,7 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
       chPrs[i].scl = v;
     else
     {
-      vec4f inv_total = v_rcp(v_splat4(&ch_w.wTotal));
+      vec4f inv_total = v_rcp(v_splats(ch_w.wTotal));
       if (!(*bmod & BMOD_ADDITIVE))
         res = v_mul(v, v_mul(w4, inv_total));
       else
@@ -1055,8 +1124,8 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
       bmod++;
       for (; bnum; bsrc++, bmod++, bnum--)
       {
-        t4 = v_splat4(&bsrc->t);
-        w4 = v_splat4(&bsrc->w);
+        t4 = v_splats(bsrc->t);
+        w4 = v_splats(bsrc->w);
         v = bsrc->interp() ? AnimV20Math::interp_key(*bsrc->k, t4) : bsrc->k->p;
         if (*bmod & BMOD_CHARDEP)
           v = v_mul(v, cmm_scl);
@@ -1080,7 +1149,7 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
   {
     const NodeWeight &ch_w = wtRot[i];
     int bnum = ch_w.totalNum;
-    if (!bnum)
+    if (!bnum || fabsf(ch_w.wTotal) < 1e-6f)
       continue;
 
     WeightedNode<AnimKeyQuat> &ch = chRot[i];
@@ -1102,7 +1171,7 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
       if (!(*bmod & BMOD_ADDITIVE))
         res = v, wsum = bsrc->w;
       else
-        additive_rot = v_quat_lerp(v_splat4(&bsrc->w), V_C_UNIT_0001, v);
+        additive_rot = v_quat_lerp(v_splats(bsrc->w), V_C_UNIT_0001, v);
       bsrc++;
       bmod++;
       for (; bnum; bsrc++, bmod++, bnum--)
@@ -1114,7 +1183,7 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
           res = (wsum != bsrc->w) ? v_quat_qslerp(safediv(bsrc->w, wsum), res, v) : v;
         }
         else
-          additive_rot = v_quat_mul_quat(additive_rot, v_quat_lerp(v_splat4(&bsrc->w), V_C_UNIT_0001, v));
+          additive_rot = v_quat_mul_quat(additive_rot, v_quat_lerp(v_splats(bsrc->w), V_C_UNIT_0001, v));
       }
       if (!(ch.readyFlg & RM_ROT_A))
         chPrs[i].rot = res;
@@ -1192,7 +1261,7 @@ void AnimBlender::blendOriginVel(TlsContext &tls, IPureAnimStateHolder &st, IAni
     mem_set_0(bnlWt);
     mem_set_0(pbcWt);
     IAnimBlendNode::BlendCtx bctx(st, tls, false);
-    root->buildBlendingList(bctx, 1.0);
+    root->buildBlendingList(bctx, 1.0f);
   }
 
   // construct blending lists
@@ -1201,14 +1270,14 @@ void AnimBlender::blendOriginVel(TlsContext &tls, IPureAnimStateHolder &st, IAni
     if (!*(int *)&bnlWt[i] || !bnl[i] || bnl[i]->dontUseOriginVel || !bnl[i]->anim)
       continue;
 
-    vec3f pts = v_splat4(&bnlWt[i]);
-    vec3f ts = v_splat4(&bnl[i]->timeRatio);
+    vec3f pts = v_splats(bnlWt[i]);
+    vec3f ts = v_splats(bnl[i]->timeRatio);
     int wa_pos = bnlCT[i];
 
     originVelWt = v_add(originVelWt, pts);
 
     if (bnl[i]->timeScaleParamId >= 0)
-      pts = v_mul(pts, v_splat4(st.getParamScalarPtr(bnl[i]->timeScaleParamId)));
+      pts = v_mul(pts, v_splats(*st.getParamScalarPtr(bnl[i]->timeScaleParamId)));
 
     AnimData::Anim &a = bnl[i]->anim->anim;
     AnimKeyPoint3 *klv = NULL, *kav = NULL;
@@ -1225,7 +1294,7 @@ void AnimBlender::blendOriginVel(TlsContext &tls, IPureAnimStateHolder &st, IAni
     if (!klv)
       vel = addVel;
     else if (*(int *)&tlv)
-      vel = v_madd(AnimV20Math::interp_key(*klv, v_splat4(&tlv)), ts, addVel);
+      vel = v_madd(AnimV20Math::interp_key(*klv, v_splats(tlv)), ts, addVel);
     else
       vel = v_madd(klv->p, ts, addVel);
 
@@ -1236,7 +1305,7 @@ void AnimBlender::blendOriginVel(TlsContext &tls, IPureAnimStateHolder &st, IAni
       if (!*(int *)&tav)
         originWVel = v_madd(kav->p, ts_pts, originWVel);
       else
-        originWVel = v_madd(AnimV20Math::interp_key(*kav, v_splat4(&tav)), ts_pts, originWVel);
+        originWVel = v_madd(AnimV20Math::interp_key(*kav, v_splats(tav)), ts_pts, originWVel);
     }
 
     originVel = v_madd(vel, pts, originVel);
@@ -1341,6 +1410,7 @@ void AnimBlender::postBlendInit(IPureAnimStateHolder &st, const GeomNodeTree &tr
 }
 void AnimBlender::postBlendProcess(TlsContext &tls, IPureAnimStateHolder &st, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
+  TIME_PROFILE_DEV(postBlendProcess);
   dag::Span<real> pbcWt = tls.pbcWt;
   for (int i = 0, e = pbCtrl.size(); i < e; i++)
     if (pbCtrl[i])
@@ -1441,11 +1511,14 @@ static void add_bn(AnimationGraph &graph, const DataBlock &blk, const char *nm_s
   else if (dd_stricmp(blk.getBlockName(), "paramSwitchS") == 0)
     AnimBlendCtrl_ParametricSwitcher::createNode(graph, blk, nm_suffix);
 
+  else if (dd_stricmp(blk.getBlockName(), "setMotionMatchingTag") == 0)
+    AnimBlendCtrl_SetMotionMatchingTag::createNode(graph, blk, nm_suffix);
+
   else if (dd_stricmp(blk.getBlockName(), "hub") == 0)
     AnimBlendCtrl_Hub::createNode(graph, blk, nm_suffix);
 
   else if (dd_stricmp(blk.getBlockName(), "planar") == 0)
-    debug_ctx("not implenmented");
+    DEBUG_CTX("not implenmented");
 
   else if (dd_stricmp(blk.getBlockName(), "null") == 0)
     AnimBlendNodeNull::createNode(graph, blk);
@@ -1531,11 +1604,17 @@ static void add_bn(AnimationGraph &graph, const DataBlock &blk, const char *nm_s
   else if (dd_stricmp(blk.getBlockName(), "twistCtrl") == 0)
     AnimPostBlendTwistCtrl::createNode(graph, blk);
 
+  else if (dd_stricmp(blk.getBlockName(), "eyeCtrl") == 0)
+    AnimPostBlendEyeCtrl::createNode(graph, blk);
+
   else if (dd_stricmp(blk.getBlockName(), "effectorFromChildIK") == 0)
     AnimPostBlendNodeEffectorFromChildIK::createNode(graph, blk);
 
   else if (dd_stricmp(blk.getBlockName(), "deltaRotateShiftCalc") == 0)
     DeltaRotateShiftCtrl::createNode(graph, blk);
+
+  else if (dd_stricmp(blk.getBlockName(), "footLockerIK") == 0)
+    FootLockerIKCtrl::createNode(graph, blk);
 
   else if (dd_stricmp(blk.getBlockName(), "alias") == 0)
   {
@@ -1617,7 +1696,7 @@ static bool load_generic_graph(AnimationGraph &graph, const DataBlock &blk, dag:
           int idx = b->getInt("a2d_id", -1);
           if (idx < 0 || idx >= anim_list.size())
           {
-            debug_ctx("incorrect anim index: %d", idx);
+            DEBUG_CTX("incorrect anim index: %d", idx);
             continue;
           }
           ignoredAnimation = tabutils::find(nodesWithIgnoredAnimation, idx);
@@ -1626,10 +1705,10 @@ static bool load_generic_graph(AnimationGraph &graph, const DataBlock &blk, dag:
           if (!anim)
           {
             if (!is_ignoring_unavailable_resources())
-              debug_ctx("invalid anim[%d]", idx);
+              DEBUG_CTX("invalid anim[%d]", idx);
             continue;
           }
-          // debug_ctx("anim[%d]: %p ref=%d", idx, anim.get(), anim->getRefCount());
+          // DEBUG_CTX("anim[%d]: %p ref=%d", idx, anim.get(), anim->getRefCount());
           fatal_context_push(String(256, "a2d id: %d", idx));
         }
 
@@ -1722,7 +1801,7 @@ static bool load_generic_graph(AnimationGraph &graph, const DataBlock &blk, dag:
                 }
               if (!nm)
               {
-                debug_ctx("can't find nodemask: <%s>", applyNodeMask);
+                DEBUG_CTX("can't find nodemask: <%s>", applyNodeMask);
                 continue;
               }
 
@@ -1844,7 +1923,7 @@ AnimationGraph *loadUniqueAnimGraph(const DataBlock &blk, dag::ConstSpan<AnimDat
   }
   if (!load_generic_graph(*graph, blk, anim_list, nodesWithIgnoredAnimation))
   {
-    debug_ctx("can't read anim from stream");
+    DEBUG_CTX("can't read anim from stream");
     return NULL;
   }
 
@@ -1872,7 +1951,7 @@ static void common_leaf_setup(AnimBlendNodeContinuousLeaf *node, const DataBlock
 
   int tStart = blk.getInt("start", -1);
   int tEnd = blk.getInt("end", -1);
-  real time = blk.getReal("time", 1.0);
+  real time = blk.getReal("time", 1.0f);
   real mdist = blk.getReal("moveDist", 0.0f);
   if (tStart >= 0 && tEnd >= 0)
   {
@@ -1924,6 +2003,11 @@ void AnimBlendNodeContinuousLeaf::createNode(AnimationGraph &graph, const DataBl
   bool def_foreign, const char *nm_suffix)
 {
   const char *name = blk.getStr("name", NULL);
+  if (!name)
+  {
+    ANIM_ERR("%s <name> param not found for <%s>", __FUNCTION__, blk.getBlockName());
+    return;
+  }
   bool ownTimer = blk.getBool("own_timer", false);
   bool eoaIrq = blk.getBool("eoa_irq", false);
   const char *timeScaleParam = blk.getStr("timeScaleParam", NULL);
@@ -1956,14 +2040,18 @@ void AnimBlendNodeContinuousLeaf::createNode(AnimationGraph &graph, const DataBl
   node->setTimeScaleParam(timeScaleParam);
   node->setupIrq(blk, nm_suffix);
 
-  if (name)
-    graph.registerBlendNode(node, name, nm_suffix);
+  graph.registerBlendNode(node, name, nm_suffix);
 }
 
 void AnimBlendNodeSingleLeaf::createNode(AnimationGraph &graph, const DataBlock &blk, AnimData *anim, bool ignoredAnimation,
   bool def_foreign, const char *nm_suffix)
 {
   const char *name = blk.getStr("name", NULL);
+  if (!name)
+  {
+    ANIM_ERR("%s <name> param not found for <%s>", __FUNCTION__, blk.getBlockName());
+    return;
+  }
   String timer;
   if (blk.getBool("own_timer", true))
     timer = String(name) + "::timer";
@@ -1984,14 +2072,18 @@ void AnimBlendNodeSingleLeaf::createNode(AnimationGraph &graph, const DataBlock 
   node->setTimeScaleParam(blk.getStr("timeScaleParam", NULL));
   node->setupIrq(blk, nm_suffix);
 
-  if (name)
-    graph.registerBlendNode(node, name, nm_suffix);
+  graph.registerBlendNode(node, name, nm_suffix);
 }
 
 void AnimBlendNodeStillLeaf::createNode(AnimationGraph &graph, const DataBlock &blk, AnimData *anim, bool ignoredAnimation,
   bool def_foreign, const char *nm_suffix)
 {
   const char *name = blk.getStr("name", NULL);
+  if (!name)
+  {
+    ANIM_ERR("%s <name> param not found for <%s>", __FUNCTION__, blk.getBlockName());
+    return;
+  }
   const char *key = blk.getStr("key", name);
 
   int tStart = blk.getInt("start", -1);
@@ -2004,14 +2096,18 @@ void AnimBlendNodeStillLeaf::createNode(AnimationGraph &graph, const DataBlock &
 
   AnimBlendNodeStillLeaf *node = new AnimBlendNodeStillLeaf(graph, anim, tStart);
   common_nontime_leaf_setup(node, blk, ignoredAnimation, def_foreign);
-  if (name)
-    graph.registerBlendNode(node, name, nm_suffix);
+  graph.registerBlendNode(node, name, nm_suffix);
 }
 
 void AnimBlendNodeParametricLeaf::createNode(AnimationGraph &graph, const DataBlock &blk, AnimData *anim, bool ignoredAnimation,
   bool def_foreign, const char *nm_suffix)
 {
   const char *name = blk.getStr("name", NULL);
+  if (!name)
+  {
+    ANIM_ERR("%s <name> param not found for <%s>", __FUNCTION__, blk.getBlockName());
+    return;
+  }
   const char *key = blk.getStr("key", name);
   const char *varname = blk.getStr("varname", NULL);
 
@@ -2032,14 +2128,13 @@ void AnimBlendNodeParametricLeaf::createNode(AnimationGraph &graph, const DataBl
   const char *key_start = blk.getStr("key_start", key_start_def);
   const char *key_end = blk.getStr("key_end", key_end_def);
 
-  node->setRange(key_start, key_end, blk.getReal("p_start", 0.0), blk.getReal("p_end", 1.0), name);
+  node->setRange(key_start, key_end, blk.getReal("p_start", 0.0f), blk.getReal("p_end", 1.0f), name);
   node->setLooping(blk.getBool("looping", false));
   common_nontime_leaf_setup(node, blk, ignoredAnimation, def_foreign);
-  node->setParamKoef(blk.getReal("mulk", 1.0), blk.getReal("addk", 0.0));
+  node->setParamKoef(blk.getReal("mulk", 1.0f), blk.getReal("addk", 0.0f));
   node->setupIrq(blk, nm_suffix);
 
-  if (name)
-    graph.registerBlendNode(node, name, nm_suffix);
+  graph.registerBlendNode(node, name, nm_suffix);
 }
 
 void AnimBlendNodeNull::createNode(AnimationGraph &graph, const DataBlock &blk)
@@ -2067,7 +2162,7 @@ void AnimBlendCtrl_1axis::createNode(AnimationGraph &graph, const DataBlock &blk
 
   if (!name)
   {
-    ANIM_ERR("not found 'name' param");
+    ANIM_ERR("%s <name> param not found for <%s>", __FUNCTION__, blk.getBlockName());
     return;
   }
 
@@ -2087,6 +2182,7 @@ void AnimBlendCtrl_1axis::createNode(AnimationGraph &graph, const DataBlock &blk
         if (!nm)
         {
           ANIM_ERR("<name> is not defined in hub child");
+          delete node;
           return;
         }
 
@@ -2095,9 +2191,10 @@ void AnimBlendCtrl_1axis::createNode(AnimationGraph &graph, const DataBlock &blk
         {
           if (!is_ignoring_unavailable_resources())
             ANIM_ERR("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
+          delete node;
           return;
         }
-        node->addBlendNode(n, cblk->getReal("start", 0), cblk->getReal("end", 1.0));
+        node->addBlendNode(n, cblk->getReal("start", 0), cblk->getReal("end", 1.0f));
       }
   graph.registerBlendNode(node, name, nm_suffix);
 }
@@ -2110,7 +2207,7 @@ void AnimBlendCtrl_LinearPoly::createNode(AnimationGraph &graph, const DataBlock
 
   if (!name)
   {
-    ANIM_ERR("not found 'name' param");
+    ANIM_ERR("%s <name> param not found for <%s>", __FUNCTION__, blk.getBlockName());
     return;
   }
 
@@ -2120,10 +2217,10 @@ void AnimBlendCtrl_LinearPoly::createNode(AnimationGraph &graph, const DataBlock
     var_name = String("var") + name;
 
   AnimBlendCtrl_LinearPoly *node = new AnimBlendCtrl_LinearPoly(graph, var_name, name);
-  node->morphTime = blk.getReal("morphTime", 0.0);
+  node->morphTime = blk.getReal("morphTime", 0.0f);
   node->enclosed = blk.getBool("enclosed", false);
-  node->paramTau = blk.getReal("paramTau", 0.0);
-  node->paramSpeed = blk.getReal("paramSpeed", 0.0);
+  node->paramTau = blk.getReal("paramTau", 0.0f);
+  node->paramSpeed = blk.getReal("paramSpeed", 0.0f);
   int child_nid = blk.getNameId("child"), i;
   if (child_nid != -1)
     for (i = 0; i < blk.blockCount(); i++)
@@ -2173,7 +2270,7 @@ void AnimBlendCtrl_RandomSwitcher::createNode(AnimationGraph &graph, const DataB
 
   if (!name)
   {
-    ANIM_ERR("not found 'name' param");
+    ANIM_ERR("%s <name> param not found for <%s>", __FUNCTION__, blk.getBlockName());
     return;
   }
 
@@ -2201,7 +2298,7 @@ void AnimBlendCtrl_RandomSwitcher::createNode(AnimationGraph &graph, const DataB
       if (!n)
       {
         if (!is_ignoring_unavailable_resources())
-          logerr_ctx("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
+          LOGERR_CTX("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
         continue;
       }
       node->addBlendNode(n, cblk->getReal(i), rblk ? rblk->getInt(nm, 1) : 1);
@@ -2221,7 +2318,7 @@ void AnimBlendCtrl_ParametricSwitcher::createNode(AnimationGraph &graph, const D
 
   if (!name)
   {
-    ANIM_ERR("not found 'name' param");
+    ANIM_ERR("%s <name> param not found for <%s>", __FUNCTION__, blk.getBlockName());
     return;
   }
 
@@ -2233,7 +2330,7 @@ void AnimBlendCtrl_ParametricSwitcher::createNode(AnimationGraph &graph, const D
   AnimBlendCtrl_ParametricSwitcher *node = new AnimBlendCtrl_ParametricSwitcher(graph, var_name, blk.getStr("varname_residual", NULL));
 
   // create anim list
-  node->morphTime = blk.getReal("morphTime", 0.15);
+  node->morphTime = blk.getReal("morphTime", 0.15f);
 
   const DataBlock *cblk = blk.getBlockByName("nodes");
   bool has_single = false;
@@ -2249,7 +2346,7 @@ void AnimBlendCtrl_ParametricSwitcher::createNode(AnimationGraph &graph, const D
       if (!n)
       {
         if (!isOptional && !is_ignoring_unavailable_resources())
-          logerr_ctx("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
+          LOGERR_CTX("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
         continue;
       }
       real r0 = nblk->getReal("rangeFrom", 0);
@@ -2364,7 +2461,7 @@ void AnimBlendCtrl_Hub::createNode(AnimationGraph &graph, const DataBlock &blk, 
   const char *name = blk.getStr("name", NULL);
   if (!name)
   {
-    ANIM_ERR("not found 'name' param");
+    ANIM_ERR("%s <name> param not found for <%s>", __FUNCTION__, blk.getBlockName());
     return;
   }
 
@@ -2405,7 +2502,7 @@ void AnimBlendCtrl_Hub::createNode(AnimationGraph &graph, const DataBlock &blk, 
           else
             continue;
         }
-        node->addBlendNode(n, cblk->getBool("enabled", true), cblk->getReal("weight", 1.0));
+        node->addBlendNode(n, cblk->getBool("enabled", true), cblk->getReal("weight", 1.0f));
       }
   if (!blk.getBool("const", false))
     node->finalizeInit(graph, var_name);
@@ -2439,6 +2536,7 @@ void AnimBlendCtrl_Blender::createNode(AnimationGraph &graph, const DataBlock &b
     if (!n)
     {
       ANIM_ERR("blend node <%s> not found!", anim);
+      delete node;
       return;
     }
     node->setBlendNode(0, n);
@@ -2450,12 +2548,13 @@ void AnimBlendCtrl_Blender::createNode(AnimationGraph &graph, const DataBlock &b
     if (!n)
     {
       ANIM_ERR("blend node <%s> not found!", anim);
+      delete node;
       return;
     }
     node->setBlendNode(1, n);
   }
-  node->setDuration(blk.getReal("duration", 1.0));
-  node->setBlendTime(blk.getReal("morph", 1.0));
+  node->setDuration(blk.getReal("duration", 1.0f));
+  node->setBlendTime(blk.getReal("morph", 1.0f));
 
   graph.registerBlendNode(node, name);
 }
@@ -2534,35 +2633,79 @@ void AnimBlendCtrl_BinaryIndirectSwitch::createNode(AnimationGraph &graph, const
     return;
   }
 
-  node->setBlendNodes(n1, blk.getReal("morph1", 0.0), n2, blk.getReal("morph2", 0.0));
+  node->setBlendNodes(n1, blk.getReal("morph1", 0.0f), n2, blk.getReal("morph2", 0.0f));
   node->setFifoCtrl((AnimBlendCtrl_Fifo3 *)ctrl);
 
   graph.registerBlendNode(node, name);
 }
 
-
-static FastNameMap enumMap;
-static WinCritSec enumMapMutex;
-int AnimV20::getEnumValueByName(const char *name)
+void AnimBlendCtrl_SetMotionMatchingTag::createNode(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix)
 {
-  WinAutoLock lock(enumMapMutex);
-  return enumMap.getNameId(name);
-}
-int AnimV20::addEnumValue(const char *name)
-{
-  WinAutoLock lock(enumMapMutex);
-  return enumMap.addNameId(name);
+  const char *name = blk.getStr("name", NULL);
+  if (!name)
+  {
+    ANIM_ERR("not found 'name' param");
+    return;
+  }
+  const char *tag = blk.getStr("mmTag", NULL);
+  if (!tag)
+  {
+    ANIM_ERR("not found 'mmTag' param");
+    return;
+  }
+  AnimBlendCtrl_SetMotionMatchingTag *node = new AnimBlendCtrl_SetMotionMatchingTag;
+  int tagsMaskSize = (MAX_TAGS_COUNT + 7) / 8; // one bit for each tag
+  node->tagsMaskParamId = graph.addInlinePtrParamId("motion_matching_tags", tagsMaskSize, IPureAnimStateHolder::PT_InlinePtr);
+  node->tagName = tag;
+  graph.registerBlendNode(node, name, nm_suffix);
 }
 
-static FastNameMap irqNames;
-int AnimV20::getIrqId(const char *irq_name) { return irqNames.addNameId(irq_name); }
+
+static FastNameMapTS<false, SpinLockReadWriteLock> enumMap;
+
+int AnimV20::getEnumValueByName(const char *name) { return enumMap.getNameId(name); }
+int AnimV20::addEnumValue(const char *name) { return enumMap.addNameId(name); }
+const char *AnimV20::getEnumName(const int enum_id)
+{
+  if ((unsigned)enum_id < enumMap.nameCountRelaxed())
+  {
+    return enumMap.getName(enum_id);
+  }
+  return NULL;
+}
+
+static FastNameMapTS<false, SpinLockReadWriteLock> irqNames;
+int AnimV20::addIrqId(const char *irq_name) { return irqNames.addNameId(irq_name); }
 const char *AnimV20::getIrqName(int irq_id)
 {
-  if (irq_id >= 0 && irq_id < irqNames.nameCount())
+  if ((unsigned)irq_id < AnimV20::GIRQT_FIRST_SERVICE_IRQ)
+  {
     return irqNames.getName(irq_id);
+  }
   if (irq_id == AnimV20::GIRQT_EndOfSingleAnim)
     return "::eoa.single";
   if (irq_id == AnimV20::GIRQT_EndOfContinuousAnim)
     return "::eoa.continuous";
   return NULL;
 }
+
+#if DAGOR_DBGLEVEL > 0
+static constexpr const char *debugAnimParamIrqName = "debugAnimParam";
+static bool debugAnimParamEnabled = false;
+static int debugAnimParamIrqId = -1;
+
+void AnimV20::setDebugAnimParam(bool enable) { debugAnimParamEnabled = enable; }
+
+bool AnimV20::getDebugAnimParam() { return debugAnimParamEnabled; }
+
+int AnimV20::getDebugAnimParamIrqId()
+{
+  if (debugAnimParamIrqId < 0)
+    debugAnimParamIrqId = addIrqId(debugAnimParamIrqName);
+  return debugAnimParamIrqId;
+}
+#else
+void AnimV20::setDebugAnimParam(bool) {}
+bool AnimV20::getDebugAnimParam() { return false; }
+int AnimV20::getDebugAnimParamIrqId() { return -1; }
+#endif

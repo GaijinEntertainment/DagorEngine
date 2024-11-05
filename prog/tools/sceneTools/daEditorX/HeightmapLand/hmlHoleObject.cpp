@@ -1,12 +1,15 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hmlHoleObject.h"
 #include "hmlCm.h"
 #include "common.h"
 
-#include <dllPluginCore/core.h>
+#include <EditorCore/ec_IEditorCore.h>
 #include <math/dag_math2d.h>
 
 #include <EditorCore/ec_rect.h>
 
+using editorcore_extapi::dagRender;
 
 HmapLandHoleObject::HmapLandHoleObject() : boxSize(1, 1, 1)
 {
@@ -182,7 +185,8 @@ public:
 };
 
 
-void HmapLandHoleObject::fillProps(PropPanel2 &panel, DClassID for_class_id, dag::ConstSpan<RenderableEditableObject *> objects)
+void HmapLandHoleObject::fillProps(PropPanel::ContainerPropertyControl &panel, DClassID for_class_id,
+  dag::ConstSpan<RenderableEditableObject *> objects)
 {
   panel.createEditFloat(PID_BOX_SIZE_X, "Box size X:", boxSize.x);
   panel.createEditFloat(PID_BOX_SIZE_Y, "Box size Y (visual):", boxSize.y);
@@ -204,7 +208,8 @@ void HmapLandHoleObject::fillProps(PropPanel2 &panel, DClassID for_class_id, dag
 }
 
 
-void HmapLandHoleObject::onPPChange(int pid, bool edit_finished, PropPanel2 &panel, dag::ConstSpan<RenderableEditableObject *> objects)
+void HmapLandHoleObject::onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
+  dag::ConstSpan<RenderableEditableObject *> objects)
 {
 #define CHANGE_VAL(type, pname, getfunc)                                     \
   {                                                                          \

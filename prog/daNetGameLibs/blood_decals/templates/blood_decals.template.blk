@@ -1,0 +1,42 @@
+blood_decals_render_manager{
+  _singleton:b=yes
+  _tags:t="render"
+
+
+  "blood_decals_manager:RingBufferDecals"{}
+  blood_decals_init_shader:t= "projective_decal_create_indirect"
+  blood_decals_generator_shader:t= "projective_decal_decals_generator"
+  blood_decals_render_shader:t= "blood_projective_decal_decals"
+  blood_decals_culler_shader:t= "blood_projective_decal_cull"
+
+  "blood_decals_tex:SharedTexHolder"{}
+  blood_decals_tex_res:t= "decal_growth_liquid_projection_splash_tex_n"
+  blood_decals_tex_var:t= "blood_decals_diff_tex"
+
+  "blood_decals_depth_shader:PostFxRenderer"{}
+  blood_decals_depth_shader_name:t="blood_decals_render_depth"
+
+
+  "blood_decals_traces_buf:UniqueBufHolder"{}
+  "blood_decals_traces_result:list<r>"{}
+  "blood_decals_traces_queue:list<ip2>"{}
+
+  "blood_decals_depth_atlas:UniqueTexHolder"{}
+
+  blood_decals_decals_max_count:i=1024
+  blood_decals_decals_count:i=0
+
+  blood_decals_splash_appear_time:r=0.25
+  blood_decals_splash_stay_fresh_time:r=1
+  blood_decals_splash_drying_time:r=40
+}
+
+blood_decal_manager{
+  _tags:t="render"
+  "blood_decal_manager__targets:list<eid>"{}
+  blood_decal_manager__currentIndex:i = 0
+  blood_decal_manager__fromPos:p3 = 0,0,0
+  // customizable:
+  blood_decal_manager__decalPerUpdate:i = 1
+  blood_decal_manager__offset:p3 = 0, 0.5, 0
+}

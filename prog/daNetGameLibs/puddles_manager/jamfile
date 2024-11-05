@@ -1,0 +1,28 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = puddles_manager ;
+Location = prog/daNetGameLibs/$(Module) ;
+local DasModule = daNetGameLibs_puddles_manager_DAS_pull_AOT ;
+
+AddIncludes =
+  $(Root)/prog/daNetGameLibs
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+
+local AllSrcFolder_CPP = ;
+local AllSrcFolder_ES = ;
+local AllSrcFolder_DAS = ;
+
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_CPP += render ;
+  AllSrcFolder_ES += render ;
+  AllSrcFolder_DAS += render ;
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

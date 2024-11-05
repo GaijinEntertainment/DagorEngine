@@ -1,35 +1,49 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_geomTree.h>
 
-VECTORCALL VECMATH_FINLINE vec4f local_solve_2bones_ik(float A, float B, vec3f P, vec3f D)
+VECTORCALL VECMATH_FINLINE vec4f local_solve_2bones_ik(float A, float B, vec3f P, vec3f Z)
 {
-  mat44f Minv;
-  Minv.col0 = v_norm3(P);
-  Minv.col1 = v_norm3(v_sub(D, v_mul(v_dot3(D, Minv.col0), Minv.col0)));
-  Minv.col2 = v_cross3(Minv.col0, Minv.col1);
-  Minv.col3 = v_zero();
+  // Consider two circles:
+  //  - The 1st of radius A in the center of coordinates
+  //  - The 2nd of radius B with the center in coordinates (|P|, 0)
+  //
+  //            x^2 + y^2 = A^2
+  //            (x - |P|)^2 + y^2 = B^2
+  //
+  // This system will have two solutions, guaranteed to be on the vertical line.
+  // Solve it by substituting y^2, get:
+  //
+  //            |P|^2 + A^2 - B^2
+  //        x = -----------------
+  //                  2*|P|
+  //
+  // One solution, in case when |P| = A + B
+  // And no solutions, in case when |P| > A + B
 
-  mat44f Mfwd;
-  v_mat44_orthonormal_inverse43(Mfwd, Minv);
+  auto C = v_extract_x(v_length3_x(P));
+  auto x = (C + (A * A - B * B) / C) * 0.5f;
 
-  vec3f R = v_mat44_mul_vec3p(Mfwd, P);
-  float c = v_extract_x(v_length3_x(R));
-  float d = clamp(A, 0.f, (c + (A * A - B * B) / c) / 2.f);
-  float e = sqrtf(fabsf(A * A - d * d));
+  // Find distance of the intersection from Ox axis
+  auto h = sqrtf(fabsf(A * A - x * x));
 
-  vec4f S = v_make_vec4f(d, e, 0.f, 0.f);
-  return v_mat44_mul_vec3p(Minv, S);
+  // Compute parallel to P part of the joint vector.
+  auto D = v_mul(v_splats(x), v_norm3(P));
+
+  // Use Z of the first node to determine which way the joint
+  // should bend. Then compute orthogonal to P part of the joint vector.
+  auto H = v_mul(v_splats(h), v_norm3(v_cross3(P, Z)));
+
+  return v_add(D, H);
 }
 
 static void solve_2bones_ik(mat44f &n0_wtm, mat44f &n1_wtm, mat44f &n2_wtm, const mat44f &target_tm, float length01, float length12,
-  vec3f flexion_point, float max_reach_scale = 1.0f)
+  float max_reach_scale = 1.0f)
 {
   // Set target tm to hand.
   n2_wtm = target_tm;
@@ -45,7 +59,7 @@ static void solve_2bones_ik(mat44f &n0_wtm, mat44f &n1_wtm, mat44f &n2_wtm, cons
     ikNode2 = v_sub(n2_wtm.col3, n0_wtm.col3);
   }
 
-  vec3f ikNode1 = local_solve_2bones_ik(length01, length12, ikNode2, flexion_point);
+  vec3f ikNode1 = local_solve_2bones_ik(length01, length12, ikNode2, n0_wtm.col2);
 
   // Set forearm matrix.
   mat44f m0, m1;

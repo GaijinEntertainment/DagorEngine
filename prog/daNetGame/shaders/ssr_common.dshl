@@ -1,0 +1,43 @@
+include "taa_inc.dshl"
+include "globtm_no_ofs.dshl"
+
+texture downsampled_motion_vectors_tex;
+texture prev_downsampled_motion_vectors_tex;
+
+texture prev_frame_tex;
+
+float4 ssr_target_size=(1280/2, 720/2,0,0);
+float4 ssr_frameNo = (0,0,0,0);
+float4 ssr_world_view_pos;
+
+float4 SSRParams = (0.91, -2.5, 0,0);
+
+float4 lowres_rt_params = (1280, 720, 0, 0);
+
+macro SETUP_SSR(code)
+  if (downsampled_motion_vectors_tex != NULL)
+  {
+    (code) {
+      downsampled_motion_vectors_tex@smp2d = downsampled_motion_vectors_tex;
+    }
+    hlsl(code) {
+      #define SSR_MOTIONREPROJ 1
+      #define CHECK_VALID_MOTION_VECTOR(a) true
+      #define MOTION_VECTORS_TEXTURE downsampled_motion_vectors_tex
+    }
+  }
+
+  hlsl(code){
+    // prevframe reproj
+    #define REPROJECT_TO_PREV_SCREEN 1
+  }
+endmacro
+
+macro SSR_CALCULATE(code)
+  INIT_HDR(code)
+  USE_HDR(code)
+  hlsl(code){
+    #define PREV_FRAME_UNPACK(x) unpack_hdr(x)
+    #include "ssr_common.hlsl"
+  }
+endmacro

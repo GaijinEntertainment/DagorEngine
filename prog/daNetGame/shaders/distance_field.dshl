@@ -1,0 +1,479 @@
+include "shader_global.dshl"
+include "snoise.dshl"
+include "water_heightmap.dshl"
+int distance_field_texture_size = 1024;
+int height_texture_size = 1024;
+texture heightmap_tex;
+float4 water_heightmap_min_max = (0, 0, 0, 0);
+float4 world_to_heightmap = (1/32,1/32,0.5,0.5);
+float wind_dir_x = 0.6;
+float wind_dir_y = 0.8;
+int sdf_stage = -1;
+interval sdf_stage:initial<0, pingpong;
+
+texture sdf_temp_tex;
+
+shader water_distance_field
+{
+  cull_mode=none;
+  z_test=false;
+  z_write=false;
+
+
+  PS4_DEF_TARGET_FMT_UNORM16_ABGR()
+
+  POSTFX_VS_TEXCOORD(1, tc)
+
+  if (sdf_stage != initial)
+  {
+    (ps) {
+      sdf_temp_tex@smp2d = sdf_temp_tex;
+      inv_tex_size@f1 = (1./distance_field_texture_size,0,0,0);
+      texel_offset@f1 = (sdf_stage/distance_field_texture_size,0,0,0);
+    }
+    hlsl(ps) {
+      float get_sdf(float2 tc, float2 encoded_uv)
+      {
+        float2 uv = encoded_uv*4-2;
+        if (uv.x<-1) return -2;
+        if (uv.x>1) return 2;
+        float dist = length(tc-abs(uv));
+        return (uv.x > 0 ? dist : -dist);
+      }
+      //float get_sdf(float2 tc, float sdf) { return sdf*(255./127.)-(128./127.); }
+      result_float2 distance_field_ps(VsOutput input) : SV_Target0
+      {
+        //float2 sdf_uv = tex2Dlod(sdf_temp_tex, float4(input.tc,0,0)).x*(255./127.)-(128./127.);
+        //return tex2Dlod(sdf_temp_tex, float4(input.tc,0,0));
+        float2 encoded_uv = tex2Dlod(sdf_temp_tex, float4(input.tc,0,0)).xy;
+        float sdf = get_sdf(input.tc, encoded_uv);
+        //return sdf*(127./255.0)+(128.0/255.0);
+        
+        #define MIN_SDF(offset)\
+        {\
+          float2 nofs = (offset)*texel_offset.x;\
+          float2 ntc = input.tc+nofs; \
+          float2 new_encoded_uv = tex2Dlod(sdf_temp_tex, float4(ntc,0,0)).xy;\
+          float nsdf = get_sdf(input.tc, new_encoded_uv); \
+          if (sign(nsdf) != sign(sdf))\
+          {\
+            nsdf = length(nofs);\
+            nsdf = sdf < 0 ? -nsdf : nsdf;\
+            new_encoded_uv = (sdf < 0 ? -0.25:0.25)*ntc + 0.5;\
+          }\
+          encoded_uv = (abs(sdf) > abs(nsdf)) ? new_encoded_uv : encoded_uv; \
+          sdf = (abs(sdf) > abs(nsdf)) ? nsdf : sdf; \
+        }
+        //##if sdf_stage == pingpong0
+        MIN_SDF(float2(-1,-1));
+        MIN_SDF(float2( 0,-1));
+        MIN_SDF(float2(+1,-1));
+        MIN_SDF(float2(-1, 0));
+        MIN_SDF(float2(+1, 0));
+        MIN_SDF(float2(-1,+1));
+        MIN_SDF(float2( 0,+1));
+        MIN_SDF(float2(+1,+1));
+        /*##else
+        UNROLL
+        for (int unroll_y = -2; unroll_y <= 2; ++unroll_y)
+        {
+          UNROLL
+          for (int unroll_x = -2; unroll_x <= 2; ++unroll_x)
+          {
+            if (unroll_x || unroll_y)
+              MIN_SDF(float2(unroll_x,unroll_y));
+          }
+        }
+        ##endif*/
+        return make_result_float2(encoded_uv);
+      }
+    }
+  } else
+  {
+    INIT_WATER_HEIGHTMAP(ps)
+    (ps) {
+      height_texture_size@f4 = (1.0/height_texture_size, height_texture_size, 1./distance_field_texture_size, distance_field_texture_size);
+      heightmap_tex@smp2d = heightmap_tex;
+      waterLevel_radius@f3 = ((water_level)*water_heightmap_min_max.x+water_heightmap_min_max.y, height_texture_size/distance_field_texture_size+2, height_texture_size/distance_field_texture_size,0);
+      heightmap_to_world@f4 = (1/world_to_heightmap.xy, -world_to_heightmap.zw/world_to_heightmap.xy)
+    }
+    hlsl(ps)
+    {
+      #define water_heightmap_pages_samplerstate heightmap_tex_samplerstate
+    }
+    USE_WATER_HEIGHTMAP(ps)
+
+    hlsl(ps) {
+      #define MAX_RADIUS int(waterLevel_radius.y)
+      void test_height(float2 tc, float XX, float YY, bool is_up, float water_height, inout float dist, inout float2 direction)
+      {
+        float2 c_direction = float2(XX, YY);
+        float4 tc4 = float4(tc.xy+c_direction*height_texture_size.xx,0,0);
+        float c_heightmap = tex2Dlod(heightmap_tex, tc4).r;
+        bool c_is_up = c_heightmap>water_height ? 1 : 0;
+        if (c_is_up != is_up)
+        {
+          float c_dist = dot(c_direction, c_direction);
+          if (c_dist<dist)
+          {
+            dist = c_dist;
+            direction = c_direction;
+          }
+        }
+      }
+      
+      /*float SampleBicubicHeightmap( float2 uv )
+      {
+        //--------------------------------------------------------------------------------------
+        // Calculate the center of the texel to avoid any filtering
+
+        float2 textureDimensions    = height_texture_size.x;
+        float2 invTextureDimensions = height_texture_size.y;
+
+        uv *= textureDimensions;
+
+        float2 texelCenter   = floor( uv - 0.5f ) + 0.5f;
+        float2 fracOffset    = uv - texelCenter;
+        float2 fracOffset_x2 = fracOffset * fracOffset;
+        float2 fracOffset_x3 = fracOffset * fracOffset_x2;
+
+        //--------------------------------------------------------------------------------------
+        // Calculate the filter weights (B-Spline Weighting Function)
+
+        float2 weight0 = fracOffset_x2 - 0.5f * ( fracOffset_x3 + fracOffset );
+        float2 weight1 = 1.5f * fracOffset_x3 - 2.5f * fracOffset_x2 + 1.f;
+        float2 weight3 = 0.5f * ( fracOffset_x3 - fracOffset_x2 );
+        float2 weight2 = 1.f - weight0 - weight1 - weight3;
+
+        //--------------------------------------------------------------------------------------
+        // Calculate the texture coordinates
+
+        float2 scalingFactor0 = weight0 + weight1;
+        float2 scalingFactor1 = weight2 + weight3;
+
+        float2 f0 = weight1 / ( weight0 + weight1 );
+        float2 f1 = weight3 / ( weight2 + weight3 );
+
+        float2 texCoord0 = texelCenter - 1.f + f0;
+        float2 texCoord1 = texelCenter + 1.f + f1;
+
+        texCoord0 *= invTextureDimensions;
+        texCoord1 *= invTextureDimensions;
+
+        //--------------------------------------------------------------------------------------
+        // Sample the texture
+
+        return tex2Dlod(heightmap_tex, float4( texCoord0.x, texCoord0.y,0,0 ) ) * scalingFactor0.x * scalingFactor0.y +
+               tex2Dlod(heightmap_tex, float4( texCoord1.x, texCoord0.y,0,0 ) ) * scalingFactor1.x * scalingFactor0.y +
+               tex2Dlod(heightmap_tex, float4( texCoord0.x, texCoord1.y,0,0 ) ) * scalingFactor0.x * scalingFactor1.y +
+               tex2Dlod(heightmap_tex, float4( texCoord1.x, texCoord1.y,0,0 ) ) * scalingFactor1.x * scalingFactor1.y;
+      }*/
+
+      result_float2 distance_field_ps(VsOutput input) : SV_Target0
+      {
+        float2 htc = floor(input.tc*height_texture_size.y)*height_texture_size.x;
+        float waterHeight = waterLevel_radius.x;
+        get_water_height(htc * heightmap_to_world.xy + heightmap_to_world.zw, waterHeight);
+        float min_heightmap = 100;
+        for (int y = 0; y < waterLevel_radius.z; ++y)
+        for (int x = 0; x < waterLevel_radius.z; ++x)
+        {
+          float ht = tex2Dlod(heightmap_tex, float4(htc+float2(x,y)*height_texture_size.x,0,0)).r;
+          min_heightmap = min(min_heightmap, ht);
+        }
+        bool is_up = min_heightmap > waterHeight ? 1 : 0;//step?
+
+        float2 direction = float2(0,0);
+        float dist = 4096*4096;
+        #define TEST_HEIGHTMAP(XX, YY) test_height(input.tc, XX, YY, is_up, waterHeight, dist, direction);
+        for (int radius = 1; radius <= MAX_RADIUS; ++radius)
+        {
+          for (int i = -radius+1; i <= radius-1; ++i)
+          {
+            TEST_HEIGHTMAP(-radius, i)
+            TEST_HEIGHTMAP(+radius, i)
+            TEST_HEIGHTMAP(i, -radius)
+            TEST_HEIGHTMAP(i, +radius)
+          }
+          if (dist < radius)
+            break;
+        }
+
+        bool distValid = dist<4096*4096;
+        if (distValid)
+        {
+          dist = sqrt(dist);
+          float dist2 = max(dist-1, 0);
+          float2 direction2 = normalize(direction)*dist2;
+          #define BIL_STEPS 4
+          for (int i = 0; i < BIL_STEPS; ++i)
+          {
+            float2 c_direction = (direction+direction2)*0.5;
+            float c_heightmap = tex2Dlod(heightmap_tex, float4(input.tc+c_direction*height_texture_size.x,0,0)).r;
+            //float c_heightmap = SampleBicubicHeightmap(input.tc+c_direction*height_texture_size.xx);
+            bool c_is_up = c_heightmap>waterHeight ? 1 : 0;
+            if (c_is_up!=is_up)
+            {
+              direction = c_direction;
+            } else
+              direction2 = c_direction;
+          }
+          direction = (direction+direction2)*0.5;
+          dist = length(direction);
+
+          float2 uv = (input.tc+direction*height_texture_size.x);
+          return make_result_float2((is_up ? 0.25*uv : -0.25*uv) + 0.5);
+        }
+        else
+          return make_result_float2(float2(is_up ? 1 : 0, 0));
+
+        /*if (dist>MAX_RADIUS)
+        {
+          dist = 2;//toobig intentional!
+        } else
+        {
+          //dist *= height_texture_size.z*(127./MAX_RADIUS);
+          //dist *= (height_texture_size.x)*127./MAX_RADIUS;//(height_texture_size.z*height_texture_size.w) == 1
+          dist *= (height_texture_size.x)*63./MAX_RADIUS;//(height_texture_size.z*height_texture_size.w) == 1
+          //dist *= 1./MAX_RADIUS;
+        }
+        float sdf = is_up ? dist : -dist;
+        return saturate(sdf*(127/255.0)+(128.0/255.0));*/
+      }
+    }
+  }
+  compile("target_ps", "distance_field_ps");
+}
+
+float max_wind_area = 1024;
+float sdf_texture_size_meters = 4096;
+
+texture temp_river_mask;
+shader water_gradient_field
+{
+  cull_mode=none;
+  z_test=false;
+  z_write=false;
+
+
+  POSTFX_VS_TEXCOORD(1, tc)
+
+  local float wind_texels = (min(256, max_wind_area*distance_field_texture_size/sdf_texture_size_meters));
+
+  (ps) {
+    sdf_texel@f3 = (1./distance_field_texture_size, distance_field_texture_size/64, distance_field_texture_size, 0);
+    wind_dir@f2 = (wind_dir_x, wind_dir_y,0,0);
+    sdf_temp_tex@smp2d = sdf_temp_tex;
+    heightmap_tex@smp2d = heightmap_tex;
+    temp_river_mask@smp2d = temp_river_mask;
+    wind_radius@f3 = (wind_texels, 1/wind_texels,0.5*wind_texels/distance_field_texture_size,0);
+  }
+
+  hlsl(ps) {
+    float get_sdf(float2 tc, float2 encoded_uv, inout float2 dir)
+    {
+      dir = float2(1,0);
+      float2 uv = encoded_uv*4-2;
+      if (uv.x<-1) return 0;
+      if (uv.x>1) return 1;
+      float2 pt_uv = abs(uv);
+      dir = pt_uv-tc;
+      dir = uv.x > 0 ? -dir : dir;
+      float distUV = length(dir);
+      float sdf = saturate(distUV*sdf_texel.y);
+      sdf = uv.x > 0 ? sdf : -sdf;
+      return sdf*0.5+0.5;
+    }
+    
+    float4 distance_field_ps(VsOutput input) : SV_Target0
+    {
+      float2 dir;
+      float2 encoded_uv = tex2Dlod(sdf_temp_tex, float4(input.tc,0,0)).xy;
+      float center_sdf = get_sdf(input.tc, encoded_uv, dir);
+      ##if temp_river_mask != NULL
+      float riverFactor = tex2Dlod(temp_river_mask, float4(input.tc,0,0)).x;
+      #define MIN_RIVER(ofs) riverFactor = min(riverFactor, tex2Dlod(temp_river_mask, float4(input.tc+ofs,0,1)).x)
+      float halfTexel = sdf_texel.x;
+      MIN_RIVER(float2(-halfTexel,-halfTexel));
+      MIN_RIVER(float2(0,-halfTexel));
+      MIN_RIVER(float2(+halfTexel,-halfTexel));
+      MIN_RIVER(float2(-halfTexel,0));
+      MIN_RIVER(float2(+halfTexel,0));
+      MIN_RIVER(float2(-halfTexel,+halfTexel));
+      MIN_RIVER(float2(0,+halfTexel));
+      MIN_RIVER(float2(+halfTexel,+halfTexel));
+      if (center_sdf>0.5)
+      {
+        float2 uv = encoded_uv*4-2;
+        riverFactor = min(tex2Dlod(temp_river_mask, float4(uv,0,0)).x, riverFactor);
+      }
+      ##else
+      float riverFactor = 1;
+      ##endif
+
+      #define NUM_WIND_DIRECTIONS 8
+      float windLen = wind_radius.x;
+      float2 pt_uv = abs(encoded_uv*4-2);
+      float distToShoreLen = pt_uv.x<1 ? max(1, length(pt_uv-input.tc)*sdf_texel.z) : 1;
+      float oceanStr = 1;
+      BRANCH
+      if (encoded_uv.x < 0.5 && distToShoreLen<windLen)
+      {
+        oceanStr = 0;
+        for (float j = -NUM_WIND_DIRECTIONS; j <= NUM_WIND_DIRECTIONS; j += 1)
+        {
+          float2 dir_texel = wind_dir;          
+          dir_texel += 0.1*j*float2(-dir_texel.y,dir_texel.x);
+          dir_texel = normalize(dir_texel);
+
+          float distToGround = 1;
+          float i = distToShoreLen;
+          dir_texel *= sdf_texel.x;
+          float2 curTc = input.tc + dir_texel*i;
+          LOOP
+          for (; i < wind_radius.x;)
+          {
+            float2 encoded_uv2 = tex2Dlod(sdf_temp_tex, float4(curTc,0,0)).xy;
+            if (encoded_uv2.x >= 0.5)
+            {
+              distToGround = saturate(i*wind_radius.y);
+              break;
+            }
+            float nextClosestDist = 128;
+            float2 pt_uv2 = abs(2-encoded_uv2*4);
+            nextClosestDist = pt_uv2.x < 1 ? clamp(floor(length(pt_uv2-curTc)*sdf_texel.z), 1, 128) : 64;
+            i += nextClosestDist;
+            curTc += dir_texel*nextClosestDist;
+          }
+          oceanStr += pow2(distToGround);
+        }
+        oceanStr *= 1.0/(2*NUM_WIND_DIRECTIONS);
+      }
+      float dirLen = length(dir);
+      dir = normalize(dir);
+      center_sdf = lerp((1-riverFactor*(1./3)), center_sdf, riverFactor);
+
+      ##if temp_river_mask != NULL
+      #undef MIN_RIVER
+      #define MIN_RIVER(ofs) riverFactor = min(riverFactor, tex2Dlod(temp_river_mask, float4(input.tc+ofs,0,2)).x)
+      halfTexel*=2;
+      MIN_RIVER(float2(-halfTexel,-halfTexel));
+      MIN_RIVER(float2(0,-halfTexel));
+      MIN_RIVER(float2(+halfTexel,-halfTexel));
+      MIN_RIVER(float2(-halfTexel,0));
+      MIN_RIVER(float2(+halfTexel,0));
+      MIN_RIVER(float2(-halfTexel,+halfTexel));
+      MIN_RIVER(float2(0,+halfTexel));
+      MIN_RIVER(float2(+halfTexel,+halfTexel));
+      oceanStr *= pow8(pow8(riverFactor));
+      ##endif
+
+      float f = oceanStr*111./127 + 16./127;
+      dir = dir*f;
+
+      float heightmap = tex2Dlod(heightmap_tex, float4(input.tc,0,0)).r;
+      half4 output = half4(heightmap, dir*0.5+0.5, center_sdf);
+      // wind_texels seems good for fading, because it is looking for the shoreline at such a distance
+      float2 border = smoothstep(float2(0.5-wind_radius.z,0.5-wind_radius.z), float2(0.5,0.5), abs(input.tc-0.5));
+      output.yzw = lerp(output.yzw, half3(0.5,0.5,0.0), max(border.x, border.y));
+      return output;
+    }
+  }
+  compile("target_ps", "distance_field_ps");
+}
+
+float max_river_width = 250;
+
+shader build_river
+{
+  cull_mode=none;
+  z_test=false;
+  z_write=false;
+
+
+  POSTFX_VS_TEXCOORD(1, tc)
+
+  local float river_width_texels = (max(1.5, min(100, max_river_width*distance_field_texture_size/sdf_texture_size_meters)));
+  (ps) {
+    sdf_texel@f2 = (1./distance_field_texture_size, distance_field_texture_size, 0, 0);
+    sdf_temp_tex@smp2d = sdf_temp_tex;
+    radius@f2 = (river_width_texels, 1/river_width_texels,0,0);
+  }
+
+  hlsl(ps) {
+    float4 build_river_ps(VsOutput input) : SV_Target0
+    {
+      float2 encoded_uv = tex2Dlod(sdf_temp_tex, float4(input.tc,0,0)).xy;
+      #define NUM_DIRECTIONS 30
+      float2 pt_uv = abs(2-encoded_uv*4);
+      float distLen = pt_uv.x<1 ? max(1, length(pt_uv-input.tc)*sdf_texel.y) : 1;
+      float riverFactor = 1;
+      BRANCH
+      if (encoded_uv.x <= 0.5 && distLen<radius.x)
+      {
+        float grounds_around = 0;
+        for( float j = 0; j < NUM_DIRECTIONS; j+=1)
+        {
+          float2 dir_texel;
+          sincos(j*(2.*PI/NUM_DIRECTIONS), dir_texel.y, dir_texel.x);
+          //fixme: add noise here
+
+          float distToGround = 1;
+          float i = distLen;
+          dir_texel *= sdf_texel.x;
+          float2 curTc = input.tc + dir_texel*i;
+          LOOP
+          for (; i < radius.x;)
+          {
+            float2 encoded_uv2 = tex2Dlod(sdf_temp_tex, float4(curTc,0,0)).xy;
+            if (encoded_uv2.x >= 0.5)
+            {
+              distToGround = saturate(i*radius.y);
+              break;
+            }
+            float nextClosestDist = 128;
+            float2 pt_uv2 = abs(2-encoded_uv2*4);
+            nextClosestDist = pt_uv2.x < 1 ? clamp(floor(length(pt_uv2-curTc)*sdf_texel.y), 1, 128) : 64;
+            i += nextClosestDist;
+            curTc += dir_texel*nextClosestDist;
+          }
+          grounds_around += pow8(saturate(distToGround*3-2));
+        }
+        grounds_around *= (1.0/NUM_DIRECTIONS);
+        riverFactor = saturate(grounds_around*3);
+      }
+      return riverFactor;
+    }
+  }
+  compile("target_ps", "build_river_ps");
+}
+
+int current_mip_size = 512;
+
+shader build_river_mip
+{
+  cull_mode=none;
+  z_test=false;
+  z_write=false;
+
+
+  POSTFX_VS_TEXCOORD(1, tc)
+
+  (ps) {
+    offset@f2 = (0.5/current_mip_size, current_mip_size, 0, 0);
+    temp_river_mask@smp2d = temp_river_mask;
+  }
+
+  hlsl(ps) {
+    float4 build_river_mip_ps(VsOutput input) : SV_Target0
+    {
+      float lt = tex2Dlod(temp_river_mask, float4(input.tc-float2(offset.xx),0,0)).x;
+      float lb = tex2Dlod(temp_river_mask, float4(input.tc-float2( offset.x,-offset.x),0,0)).x;
+      float rt = tex2Dlod(temp_river_mask, float4(input.tc-float2(-offset.x, offset.x),0,0)).x;
+      float rb = tex2Dlod(temp_river_mask, float4(input.tc+float2(offset.xx),0,0)).x;
+      return min(min(lt,lb), min(rt,rb));
+    }
+  }
+
+  compile("target_ps", "build_river_mip_ps");
+}

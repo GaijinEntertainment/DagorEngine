@@ -1,5 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <pathFinder/tileCache.h>
 #include <pathFinder/tileCacheRI.h>
+#include <pathFinder/tileRICommon.h>
 #include <pathFinder/tileCacheUtil.h>
 #include <pathFinder/pathFinder.h>
 #include <detourCommon.h>
@@ -33,6 +36,7 @@ struct PendingAdd
   Point3 c;
   Point3 ext;
   float angY;
+  bool block;
 };
 
 using ObstaclesToAddMap = ska::flat_hash_map<obstacle_handle_t, PendingAdd>;
@@ -41,7 +45,6 @@ dtTileCache *tileCache = nullptr;
 static tile_check_cb_t tileCacheCheckCb = nullptr;
 static eastl::string tileCacheObstacleSettingsPath;
 static ska::flat_hash_set<uint32_t> tileObstacleResNameHashes;
-static obstacle_paddings_t tileCacheObstaclePaddings;
 static obstacle_handle_t nextHandle = 0;
 static float tileCacheUpdateT = 0.0f;
 static int tileCacheUpdateCnt[UPT_COUNT];
@@ -58,6 +61,13 @@ void tilecache_init(dtTileCache *tc, const ska::flat_hash_set<uint32_t> &obstacl
   tileCache = tc;
   tileObstacleResNameHashes = obstacle_res_name_hashes;
 }
+
+bool tilecache_is_working()
+{
+  return (tileCache && !tileCache->isUpToDate()) || !obstaclesToAdd.empty() || !obstaclesToRemove.empty();
+}
+
+bool tilecache_is_blocking(rendinst::riex_handle_t riex_handle) { return tilecache_ri_is_blocking(riex_handle); }
 
 bool tilecache_is_loaded() { return tileCache && nextHandle; }
 
@@ -92,10 +102,11 @@ void tilecache_start(tile_check_cb_t tile_check_cb, const char *obstacle_setting
   for (int i = 0; i < UPT_COUNT; ++i)
     tileCacheUpdateCnt[i] = 0;
 
-  tilecache_ri_init_obstacles(obstacle_settings_path, tileCacheObstaclePaddings);
+  rendinst::obstacle_settings_t obstaclesSettings;
+  rendinst::load_obstacle_settings(obstacle_settings_path, obstaclesSettings);
 
-  tilecache_ri_start(tileObstacleResNameHashes, tileCache->getParams()->cs, tileCache->getParams()->walkableClimb,
-    tileCacheObstaclePaddings, Point2(tileCache->getParams()->walkableRadius, tileCache->getParams()->walkableHeight), tile_check_cb);
+  tilecache_ri_start(tileObstacleResNameHashes, tileCache->getParams()->cs, tileCache->getParams()->walkableClimb, obstaclesSettings,
+    Point2(tileCache->getParams()->walkableRadius, tileCache->getParams()->walkableHeight), tile_check_cb);
 }
 
 void tilecache_start_add_ri(tile_check_cb_t tile_check_cb, rendinst::riex_handle_t riex_handle)
@@ -103,8 +114,7 @@ void tilecache_start_add_ri(tile_check_cb_t tile_check_cb, rendinst::riex_handle
   if (!tileCache || !nextHandle)
     return;
 
-  tilecache_ri_start_add(tileObstacleResNameHashes, tileCache->getParams()->walkableClimb, tileCacheObstaclePaddings, riex_handle,
-    tile_check_cb);
+  tilecache_ri_start_add(tileObstacleResNameHashes, tileCache->getParams()->walkableClimb, riex_handle, tile_check_cb);
 }
 
 void tilecache_stop()
@@ -157,7 +167,7 @@ static bool tilecache_step()
     {
       handle2obstacle[it->first].ref = ref;
       dtTileCacheObstacle *ob = const_cast<dtTileCacheObstacle *>(tileCache->getObstacleByRef(ref));
-      ob->areaId = pathfinder::POLYAREA_OBSTACLE;
+      ob->areaId = it->second.block ? pathfinder::POLYAREA_BLOCKED : pathfinder::POLYAREA_OBSTACLE;
     }
     else if (!dtStatusDetail(status, DT_BUFFER_TOO_SMALL))
     {
@@ -199,8 +209,8 @@ void tilecache_sync()
     logwarn("tilecache_sync took %.3f sec", (float)us / 1000000);
 }
 
-static obstacle_handle_t obstacle_add_impl(obstacle_handle_t handle, const Point3 &c, const Point3 &ext, float angY, bool sync,
-  dtObstacleRef &ref)
+static obstacle_handle_t obstacle_add_impl(obstacle_handle_t handle, const Point3 &c, const Point3 &ext, float angY, bool block,
+  bool sync, dtObstacleRef &ref)
 {
   bool upToDate = false;
   ref = 0;
@@ -231,7 +241,7 @@ static obstacle_handle_t obstacle_add_impl(obstacle_handle_t handle, const Point
         G_ASSERT(handle > 0);
       }
       ref = 0;
-      obstaclesToAdd.insert(ObstaclesToAddMap::value_type(handle, {c, ext, angY}));
+      obstaclesToAdd.insert(ObstaclesToAddMap::value_type(handle, {c, ext, angY, block}));
       break;
     }
     pathfinder::tileCache->update(0.0f, getNavMeshPtr(), &upToDate);
@@ -267,13 +277,13 @@ static bool obstacle_remove_impl(const Obstacle &obstacle, bool sync)
   return res;
 }
 
-obstacle_handle_t tilecache_obstacle_add(const Point3 &c, const Point3 &ext, float angY, bool skip_rebuild, bool sync)
+obstacle_handle_t tilecache_obstacle_add(const Point3 &c, const Point3 &ext, float angY, bool block, bool skip_rebuild, bool sync)
 {
   if (!tileCache || !nextHandle)
     return 0;
 
   dtObstacleRef ref = 0;
-  obstacle_handle_t handle = obstacle_add_impl(0, c, ext, angY, sync, ref);
+  obstacle_handle_t handle = obstacle_add_impl(0, c, ext, angY, sync, block, ref);
   if (handle)
     handle2obstacle[handle].ref = ref;
   if (ref)
@@ -289,16 +299,17 @@ obstacle_handle_t tilecache_obstacle_add(const Point3 &c, const Point3 &ext, flo
       int ntouched = 0;
       tileCache->queryTiles(bmin, bmax, ob->touched, &ntouched, DT_MAX_TOUCHED_TILES);
       if (ntouched == DT_MAX_TOUCHED_TILES)
-        logerr("Maximum number of touched tiles has been reached?");
+        logerr("Maximum number of touched tiles has been reached? pos(%f %f %f) ext(%f %f %f)", c.x, c.y, c.z, ext.x, ext.y, ext.z);
       ob->ntouched = (unsigned char)ntouched;
     }
     else
-      ob->areaId = pathfinder::POLYAREA_OBSTACLE;
+      ob->areaId = block ? pathfinder::POLYAREA_BLOCKED : pathfinder::POLYAREA_OBSTACLE;
   }
   return handle;
 }
 
-obstacle_handle_t tilecache_obstacle_add(const TMatrix &tm, const BBox3 &oobb, const Point2 &padding, bool skip_rebuild, bool sync)
+obstacle_handle_t tilecache_obstacle_add(const TMatrix &tm, const BBox3 &oobb, const Point2 &padding, bool block, bool skip_rebuild,
+  bool sync)
 {
   if (!tileCache || !nextHandle)
     return 0;
@@ -306,10 +317,11 @@ obstacle_handle_t tilecache_obstacle_add(const TMatrix &tm, const BBox3 &oobb, c
   float angY;
   tilecache_calc_obstacle_pos(tm, oobb, tileCache->getParams()->cs, padding, c, ext, angY);
 
-  return tilecache_obstacle_add(c, ext, angY, skip_rebuild, sync);
+  return tilecache_obstacle_add(c, ext, angY, block, skip_rebuild, sync);
 }
 
-void tilecache_obstacle_move(obstacle_handle_t obstacle_handle, const TMatrix &tm, const BBox3 &oobb, const Point2 &padding, bool sync)
+void tilecache_obstacle_move(obstacle_handle_t obstacle_handle, const TMatrix &tm, const BBox3 &oobb, const Point2 &padding,
+  bool block, bool sync)
 {
   if (!tileCache || !nextHandle)
     return;
@@ -327,6 +339,7 @@ void tilecache_obstacle_move(obstacle_handle_t obstacle_handle, const TMatrix &t
       jt->second.c = c;
       jt->second.ext = ext;
       jt->second.angY = angY;
+      jt->second.block = block;
     }
     return;
   }
@@ -351,13 +364,13 @@ void tilecache_obstacle_move(obstacle_handle_t obstacle_handle, const TMatrix &t
   // otherwise we might end up in situation when there's no obstacle at all for some
   // number of frames.
   dtObstacleRef ref = 0;
-  obstacle_add_impl(it->first, c, ext, angY, sync, ref);
+  obstacle_add_impl(it->first, c, ext, angY, block, sync, ref);
   obstacle_remove_impl(it->second, sync);
   it->second.ref = ref;
   if (ref)
   {
     dtTileCacheObstacle *ob = const_cast<dtTileCacheObstacle *>(tileCache->getObstacleByRef(ref));
-    ob->areaId = pathfinder::POLYAREA_OBSTACLE;
+    ob->areaId = block ? pathfinder::POLYAREA_BLOCKED : pathfinder::POLYAREA_OBSTACLE;
   }
 }
 

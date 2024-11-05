@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hmlObjectsEditor.h"
 #include "hmlSplineObject.h"
 #include "hmlSplinePoint.h"
@@ -9,15 +11,17 @@
 #include <libTools/dagFileRW/dagFileShapeObj.h>
 #include <libTools/dagFileRW/dagFileExport.h>
 #include <libTools/dagFileRW/dagExporter.h>
-#include <dllPluginCore/core.h>
+#include <EditorCore/ec_IEditorCore.h>
 #include <ioSys/dag_memIo.h>
 #include <de3_entityFilter.h>
 #include <de3_interface.h>
 #include <coolConsole/coolConsole.h>
 #include <math/dag_bounds3.h>
 
-#include <propPanel2/comWnd/dialog_window.h>
+#include <propPanel/commonWindow/dialogWindow.h>
 #include <winGuiWrapper/wgw_dialogs.h>
+
+using editorcore_extapi::dagGeom;
 
 using hdpi::_pxScaled;
 
@@ -39,7 +43,7 @@ enum
 };
 
 
-class ExportImportDlg : public ControlEventHandler // : public IPropertyPanelDlgClient
+class ExportImportDlg : public PropPanel::ControlEventHandler // : public IPropertyPanelDlgClient
 {
 public:
   ExportImportDlg(Tab<String> &sel_names, bool exp_) : selNames(sel_names), exp(exp_), selOnly(false), plugs(tmpmem)
@@ -60,7 +64,7 @@ public:
     // int ret = dlg->execute();
     // dagGui->deletePropPanelDlg(dlg);
     // return ret == CTL_IDOK;
-    if (mDlg->showDialog() == DIALOG_ID_OK)
+    if (mDlg->showDialog() == PropPanel::DIALOG_ID_OK)
       onOkPressed();
     else
       return false;
@@ -110,7 +114,7 @@ public:
     }
   }
 
-  void onChange(int pcb_id, PropPanel2 *panel)
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
   {
     if (!exp)
       return;
@@ -154,8 +158,8 @@ private:
   bool exp;
   Tab<int> plugs;
 
-  CDialogWindow *mDlg;
-  PropertyContainerControlBase *mPanel;
+  PropPanel::DialogWindow *mDlg;
+  PropPanel::ContainerPropertyControl *mPanel;
 };
 
 
@@ -173,13 +177,64 @@ void HmapLandObjectEditor::exportAsComposit()
   bool centerSetted = false;
   int exportedCnt = 0;
 
-  int cnt = selection.size();
-  for (int i = 0; i < cnt; i++)
+  PtrTab<LandscapeEntityObject> ent_objs;
+  PtrTab<SplineObject> spl_objs;
+  DataBlock splitSplinesBlk;
+  unsigned comp_count = 0;
+  for (int i = 0; i < selection.size(); ++i)
   {
-    LandscapeEntityObject *o = RTTI_cast<LandscapeEntityObject>(selection[i]);
-    if (!o)
-      continue;
+    if (LandscapeEntityObject *o = RTTI_cast<LandscapeEntityObject>(selection[i]))
+    {
+      ent_objs.push_back(o);
+      if (o->getEntity() && o->getEntity()->queryInterface<ICompositObj>())
+        comp_count++;
 
+      TMatrix tm = o->getTm();
+      if (o->getProps().placeType)
+        if (IObjEntity *e = o->getEntity())
+          e->getTm(tm);
+      if (!centerSetted)
+      {
+        center = tm.getcol(3);
+        centerSetted = true;
+      }
+    }
+    else if (SplineObject *s = RTTI_cast<SplineObject>(selection[i]))
+      spl_objs.push_back(s);
+  }
+
+  if (comp_count > 0)
+    if (wingw::message_box(wingw::MBS_QUEST | wingw::MBS_YESNO, "Split to final entities",
+          String(0,
+            "Split %d selected objects (including %d composites) iteratively to final entities (so no composite entities remain) "
+            "before gathering to new composite?",
+            ent_objs.size() + spl_objs.size(), comp_count)) == wingw::MB_ID_YES)
+    {
+      PtrTab<RenderableEditableObject> new_sel, new_objs;
+      PtrTab<LandscapeEntityObject> compObjItermediate, decompObj;
+
+      new_sel.reserve(ent_objs.size());
+      for (auto &o : ent_objs)
+        new_sel.push_back(o);
+      ent_objs.clear();
+      while (HmapLandObjectEditor::splitComposits(new_sel, compObjItermediate, decompObj, splitSplinesBlk, new_objs))
+      {
+        new_sel.clear();
+        new_sel.reserve(decompObj.size());
+        for (auto &o : decompObj)
+          new_sel.push_back(o);
+        decompObj.clear();
+        compObjItermediate.clear();
+      }
+
+      ent_objs.reserve(new_objs.size());
+      for (auto &new_obj : new_objs)
+        if (LandscapeEntityObject *o = RTTI_cast<LandscapeEntityObject>(new_obj))
+          ent_objs.push_back(o);
+    }
+
+  for (LandscapeEntityObject *o : ent_objs)
+  {
     IObjEntity *entity = o->getEntity();
     int etype = entity ? entity->getAssetTypeId() : -1;
 
@@ -193,11 +248,6 @@ void HmapLandObjectEditor::exportAsComposit()
     if (o->getProps().placeType)
       if (IObjEntity *e = o->getEntity())
         e->getTm(tm);
-    if (!centerSetted)
-    {
-      center = tm.getcol(3);
-      centerSetted = true;
-    }
 
     DataBlock &sblk = *blk.addNewBlock("node");
     if (strchr(o->getProps().entityName, ':'))
@@ -214,11 +264,8 @@ void HmapLandObjectEditor::exportAsComposit()
   }
 
   Tab<Point3> orig_pts;
-  for (int i = 0; i < cnt; i++)
+  for (SplineObject *s : spl_objs)
   {
-    SplineObject *s = RTTI_cast<SplineObject>(selection[i]);
-    if (!s)
-      continue;
     if (!centerSetted)
     {
       center = s->points[0]->getPt();
@@ -234,6 +281,13 @@ void HmapLandObjectEditor::exportAsComposit()
     s->save(*blk.addNewBlock("node"));
     for (int j = 0; j < pt_cnt; j++)
       s->points[j]->setPos(orig_pts[j]);
+  }
+  for (int i = 0; i < splitSplinesBlk.blockCount(); i++)
+  {
+    DataBlock &sblk = *splitSplinesBlk.getBlock(i);
+    for (int bi = 0, nid = sblk.getNameId("point"); bi < sblk.blockCount(); bi++)
+      sblk.getBlock(bi)->setPoint3("pt", sblk.getBlock(bi)->getPoint3("pt") - center);
+    blk.addNewBlock("node")->addNewBlock(&sblk, "spline");
   }
 
   if (!centerSetted)
@@ -251,6 +305,8 @@ void HmapLandObjectEditor::exportAsComposit()
 
   if (path.length())
   {
+    if (path.suffix(".composit.blk.composit.blk"))
+      path.chop(i_strlen(".composit.blk"));
     lastAsCompositExportPath = path;
     ::dd_mkpath(path);
 
@@ -573,15 +629,15 @@ void HmapLandObjectEditor::importFromNode(const Node *node, bool &for_all, int &
         // ImportDlg importDlg(this, newName, choosed, for_all);
         // if (!importDlg.execute(DAGORED2->getMainWnd()))
         //   needToImport = false;
-        CDialogWindow *myDlg = DAGORED2->createDialog(_pxScaled(320), _pxScaled(250), "Import objects");
-        PropertyContainerControlBase *myPanel = myDlg->getPanel();
+        PropPanel::DialogWindow *myDlg = DAGORED2->createDialog(_pxScaled(320), _pxScaled(250), "Import objects");
+        PropPanel::ContainerPropertyControl *myPanel = myDlg->getPanel();
 
         // fill panel
         String text(260, "Spline object \"%s\" is already exists.", newName.str());
         myPanel->createIndent();
         myPanel->createStatic(PID_STATIC, text);
 
-        PropertyContainerControlBase *gtRadio = myPanel->createRadioGroup(PID_CHOISE, "What do you want?");
+        PropPanel::ContainerPropertyControl *gtRadio = myPanel->createRadioGroup(PID_CHOISE, "What do you want?");
 
         myPanel->createIndent();
         myPanel->createCheckBox(PID_APPLYFORALL, "Apply for all", false);
@@ -597,7 +653,7 @@ void HmapLandObjectEditor::importFromNode(const Node *node, bool &for_all, int &
         gtRadio->createRadio(PID_CHOISE_3, "Skip");
         gtRadio->setInt(PID_CHOISE, PID_CHOISE_1);
 
-        if (myDlg->showDialog() == DIALOG_ID_OK)
+        if (myDlg->showDialog() == PropPanel::DIALOG_ID_OK)
         {
           for_all = myPanel->getBool(PID_APPLYFORALL);
           choosed = myPanel->getInt(PID_CHOISE) - PID_CHOISE;

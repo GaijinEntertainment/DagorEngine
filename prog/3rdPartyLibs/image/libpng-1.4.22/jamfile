@@ -27,8 +27,8 @@ Sources =
   pngwutil.c
 ;
 
-CPPopt = -D__B_CORE -DPNG_NO_CONSOLE_IO -DPNG_NO_WRITE_FLUSH ;
+CPPopt = -DPNG_NO_CONSOLE_IO -DPNG_NO_WRITE_FLUSH ;
 
-if $(Platform) in win64 xboxOne scarlett { Copt += /wd4267 ; }
+if $(PlatformArch) = x86_64 && $(Platform) in windows xboxOne scarlett { Copt += /wd4267 ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

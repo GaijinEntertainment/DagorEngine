@@ -27,6 +27,8 @@ UseProgLibs +=
   engine/lib3d
   gameLibs/daGI25D
   gameLibs/textureUtil
+  gameLibs/render/voxelizationTarget
+  gameLibs/GIWindows
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

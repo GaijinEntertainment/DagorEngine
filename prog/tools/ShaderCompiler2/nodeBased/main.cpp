@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EASTL/map.h>
 #include <EASTL/vector.h>
 #include <nodeBasedShaderManager/nodeBasedShaderManager.h>
@@ -5,10 +7,9 @@
 #include <osApiWrappers/dag_files.h>
 #include <webui/shaderEditors.h>
 #include <osApiWrappers/dag_localConv.h>
+#include <libTools/util/fileUtils.h>
 
 #include "../DebugLevel.h"
-
-DebugLevel hlslDebugLevel = DebugLevel::NONE;
 
 static void show_header()
 {
@@ -419,6 +420,7 @@ int DagorWinMain(bool debugmode)
 
   processArguments(__argc, __argv);
 
+  NodeBasedShaderManager::initCompilation();
 
   if (!settings.singleInputJson.empty()) // soon there will be only this codepass
   {
@@ -433,19 +435,19 @@ int DagorWinMain(bool debugmode)
 
     String outputJson = settings.singleInputJson + ".compiled.tmp";
 
-    String prefix = get_parent_dir_prefix(String("tools\\dagor3_cdk\\commonData\\graphEditor\\builder\\graphEditor.js"));
+    char exePath[1024];
+    dag_get_appmodule_dir(exePath, sizeof(exePath));
 
     String cmd(0,
-      "call %stools\\dagor3_cdk\\util\\duktape.exe "
-      "%stools\\dagor3_cdk\\commonData\\graphEditor\\builder\\offlineEditorApiStub.js "
-      "%stools\\dagor3_cdk\\commonData\\graphEditor\\builder\\shaderNodes.js "
-      "%stools\\dagor3_cdk\\commonData\\graphEditor\\builder\\nodeUtils.js "
-      "%stools\\dagor3_cdk\\commonData\\graphEditor\\builder\\graphEditor.js "
-      "%stools\\dagor3_cdk\\commonData\\graphEditor\\builder\\rebuildShaderCode.js "
+      "call %s\\duktape.exe "
+      "%s\\..\\commonData\\graphEditor\\builder\\offlineEditorApiStub.js "
+      "%s\\..\\commonData\\graphEditor\\builder\\shaderNodes.js "
+      "%s\\..\\commonData\\graphEditor\\builder\\nodeUtils.js "
+      "%s\\..\\commonData\\graphEditor\\builder\\graphEditor.js "
+      "%s\\..\\commonData\\graphEditor\\builder\\rebuildShaderCode.js "
       "pluginName=%s globalSubgraphsDir=%s rootFileName=%s outputFileName=%s %s",
-      prefix.str(), prefix.str(), prefix.str(), prefix.str(), prefix.str(), prefix.str(), pluginName.str(),
-      settings.subgraphsFolder.str(), settings.singleInputJson.str(), outputJson.str(),
-      (String("includes=") + settings.optionalGraphs).str());
+      exePath, exePath, exePath, exePath, exePath, exePath, pluginName.str(), settings.subgraphsFolder.str(),
+      settings.singleInputJson.str(), outputJson.str(), (String("includes=") + settings.optionalGraphs).str());
 
     if (settings.verbose)
       printf("\nexecuting: %s\n\n", cmd.str());
@@ -560,7 +562,7 @@ void release_managed_res(D3DRESID id) {}
 
 #if !HAS_PS4_PS5_TRANSCODE
 bool compile_compute_shader_ps5(const char *, unsigned, const char *, const char *, Tab<uint32_t> &, String &) { return false; }
-bool compile_compute_shader_pssl(const char *, unsigned, const char *, const char *, Tab<uint32_t> &, String &) { return false; }
+bool compile_compute_shader_ps4(const char *, unsigned, const char *, const char *, Tab<uint32_t> &, String &) { return false; }
 #endif
 #if !HAS_XBOX_TRANSCODE
 bool compile_compute_shader_xboxone(const char *, unsigned, const char *, const char *, Tab<uint32_t> &, String &) { return false; }

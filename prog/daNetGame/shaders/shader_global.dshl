@@ -1,0 +1,689 @@
+include "hardware_defines.dshl"
+include "postfx_inc.dshl"
+include "roughToMip.dshl"
+include "skyLightParams.dshl"
+include "skyLight.dshl"
+include "brunetonSky.dshl"
+include "global_consts.dshl"
+include "globtm.dshl"
+include "exposure_modifier.dshl"
+hlsl {
+  #define INTEL_PRECISE_BUG_WORKAROUND 1
+}
+include "mulPointTm_inc.dshl"
+include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
+include "hmd_device_inc.dshl"
+
+int can_use_halves = 0;
+interval can_use_halves : no < 1, yes;
+
+float water_level;
+// this shader var is set to 0 by default, to not change existing levels
+// physically accurate values for clear water (for 650/550/450nm): (0.35, 0.055, 0.0095, 0)
+float4 underwater_fade = (0,0,0,0);
+float scroll_time = 0;
+int special_vision = 0;
+
+float4 world_view_pos;
+float global_transp_r;
+
+int is_gather4_supported = 0;
+interval is_gather4_supported: unsupported <1, supported;
+
+int render_to_float = 1;
+interval render_to_float: render_to_float_off<1, render_to_float_on;
+
+int in_editor=0;
+interval in_editor : no<1, yes;
+
+int in_editor_assume=0;
+interval in_editor_assume : no<1, yes;
+
+int use_atest=1;
+interval use_atest: no < 1, yes;
+
+int mobile_render = 0;
+interval mobile_render: off < 1, forward < 2, deferred;
+
+int mobile_simplified_materials = 0;
+interval mobile_simplified_materials: no < 1, yes;
+
+int use_extended_global_frame_block = 0;
+interval use_extended_global_frame_block: no < 1, yes;
+
+int has_uav_in_vs_capability = 0;
+interval has_uav_in_vs_capability : no < 1, yes;
+
+float air_fog_density = 0.001;
+
+float4 lowres_tex_size = (0, 0, 0, 0);
+
+macro USE_SUBPASS_LOADS()
+  //match VS & PS compiler modes, so there is no IO layout problems
+  hlsl(vs) {
+    ##if hardware.vulkan
+      #pragma spir-v compiler dxc
+    ##endif
+  }
+  hlsl(ps) {
+    ##if hardware.vulkan
+      #pragma spir-v compiler dxc
+      #if SHADER_COMPILER_DXC
+        #include "subpass_registers.hlsli"
+      #else
+        //if pragma somehow don't have needed effect
+        #error "this shader can't be compiled with HLSLcc"
+      #endif
+    ##else
+    ##endif
+  }
+endmacro
+
+hlsl{
+  ##if mobile_render != off
+    //for packing >1 values in UNORM format
+    #define FORWARD_ADAPTATION_LUMA_SCALE 0.25f
+    #if PBR_FORWARD_SHADING
+      ##if use_postfx == on
+        float GetLuminanceScaled(float3 v) { return 1.0f; }
+      ##else
+        float GetLuminanceScaled(float3 v) {return dot(v, float3(0.212671, 0.715160, 0.072169) * FORWARD_ADAPTATION_LUMA_SCALE);}
+      ##endif
+    #endif
+  ##endif
+}
+
+int use_postfx = 1;
+interval use_postfx : off<1, on;
+
+//90% of mobile GPUs can't work with Buffer<T> consisting of more than 64k elements
+//on vulkan as of year 2020
+int small_sampled_buffers=0 always_referenced;
+interval small_sampled_buffers : no<1, yes;
+
+float fx_sun_backlight = 0.6;
+
+float4 screen_pos_to_texcoord = (0, 0, 0, 0);
+buffer emission_decode_color_map;
+texture downsampled_far_depth_tex;
+texture downsampled_close_depth_tex;
+texture downsampled_normals; // from pixels with downsampled_close_depth_tex
+
+macro USE_SCREENPOS_TO_TC()
+  BEGIN_ONCE(use_screenpos_to_tc)
+    (ps) { screen_pos_to_texcoord@f4 = screen_pos_to_texcoord; }
+    hlsl(ps) {
+      float2 screen_pos_to_tc(float2 screen_pos) {return screen_pos * screen_pos_to_texcoord.xy + screen_pos_to_texcoord.zw; }
+    }
+  END_ONCE()
+endmacro
+
+macro USE_SCREENPOS_TO_LOWRES_TC_BASE(code)
+  BEGIN_ONCE(use_screenpos_to_lowres_tc)
+    (code) { screen_pos_to_lowres_texcoord@f2 = float4(0.5 * lowres_tex_size.z, 0.5 * lowres_tex_size.w, 0., 0.); }
+    hlsl(code) {
+      float2 screen_pos_to_lowres_tc(float2 screen_pos) {return screen_pos * screen_pos_to_lowres_texcoord;}
+    }
+  END_ONCE()
+endmacro
+
+macro USE_SCREENPOS_TO_LOWRES_TC()
+  USE_SCREENPOS_TO_LOWRES_TC_BASE(ps)
+endmacro
+
+macro NO_ATEST()
+  hlsl(ps) {
+    #define atest_value_ref 0
+    #define clip_alpha(a)
+    #define clip_alpha_fast(a)
+  }
+endmacro
+
+macro _INIT_SUN_STCODE()
+  supports global_const_block;
+endmacro
+
+macro USE_SPECULAR_FROM_COLOR()
+
+hlsl(ps) {
+  half get_specular_intensity_from_color(half3 color)
+  {
+    return pow4(color.r);
+  }
+}
+
+endmacro
+
+macro INIT_SUN_STCODE()
+  _INIT_SUN_STCODE()
+endmacro
+
+macro USE_GAMMA_CONVERSION()
+  hlsl(vs) {
+    float3 gamma_to_linear(float3 hdr_color) {return hdr_color;}
+    float3 linear_to_gamma(float3 hdr_color) {return hdr_color;}
+  }
+  hlsl(ps) {
+    half3 linear_to_gamma_safe(half3 hdr_color) { return hdr_color; }
+    half3 gamma_to_linear(half3 hdr_color) {return hdr_color;}
+    half3 linear_to_gamma(half3 hdr_color) {return hdr_color;}
+    half4 linear_to_gamma_rgba(half4 hdr_color) {return hdr_color;}
+    half4 gamma_to_linear_rgba(half4 hdr_color) {return hdr_color;}
+  }
+endmacro
+
+macro USE_ATEST_255()
+  if (in_editor_assume == yes && use_atest == no)
+  {
+    NO_ATEST()
+  }
+  else
+  {
+    hlsl(ps) {
+      #define atest_use 1
+      #define atest_value_ref (1.00000)
+    }
+    hlsl(ps) {
+      #define clip_alpha(a) {if (a < atest_value_ref) discard;}
+      #define clip_alpha_fast(a) {clip(a - atest_value_ref);}//it is not consistent across depth-pass/color-pass. use for shadow
+    }
+  }
+endmacro
+
+macro USE_ATEST_1()
+  if (in_editor_assume == yes && use_atest == no)
+  {
+    NO_ATEST()
+  }
+  else
+  {
+    hlsl(ps) {
+      #define atest_use 1
+      #define atest_value_ref (1.0/255.0)
+    }
+    hlsl(ps) {
+      #define clip_alpha(a) {if (a <= 0) discard;}
+      #define clip_alpha_fast(a) {clip(a);}//it is not consistent across depth-pass/color-pass. use for shadow
+    }
+  }
+endmacro
+
+macro USE_ATEST_VALUE(value)
+  if (in_editor_assume == yes && use_atest == no)
+  {
+    NO_ATEST()
+  }
+  else
+  {
+    hlsl(ps) {
+      #define atest_use 1
+      #define atest_value_ref (value/255.0)
+    }
+    hlsl(ps) {
+      #define clip_alpha(a) {if (a < atest_value_ref) discard;}
+      #define clip_alpha_fast(a){clip(a - atest_value_ref);}//it is not consistent across depth-pass/color-pass. use for shadow
+    }
+  }
+endmacro
+
+macro USE_ATEST_DYNAMIC_VALUE(value)
+  if (in_editor_assume == yes && use_atest == no)
+  {
+    NO_ATEST()
+  }
+  else
+  {
+    (ps) { atest_value_ref@f1 = (value); }
+    hlsl(ps) {
+      #define atest_use 1
+      #define clip_alpha(a) {if (a < get_atest_value_ref()) discard;}
+      #define clip_alpha_fast(a){clip(a - get_atest_value_ref());}//it is not consistent across depth-pass/color-pass. use for shadow
+    }
+  }
+endmacro
+
+macro USE_ATEST_HALF()
+  if (in_editor_assume == yes && use_atest == no)
+  {
+    NO_ATEST()
+  }
+  else
+  {
+    hlsl(ps) {
+      #define atest_use 1
+      #define atest_value_ref 0.5
+    }
+    hlsl(ps) {
+      #define clip_alpha(a) {if (a < atest_value_ref) discard;}
+      #define clip_alpha_fast(a){clip(a - atest_value_ref);}//it is not consistent across depth-pass/color-pass. use for shadow
+    }
+  }
+endmacro
+
+macro USING_ATEST_HALF_AND(code)
+  static int atest = 0;
+  interval atest: atestOff < 1, atestOn;
+  if (atest == atestOn)
+  {
+    USE_ATEST_HALF()
+    code
+  }
+  else
+  {
+    NO_ATEST()
+  }
+endmacro
+
+macro EMPTY_MACRO()
+endmacro
+
+macro USING_ATEST_HALF()
+  USING_ATEST_HALF_AND(
+    EMPTY_MACRO()
+  )
+endmacro
+
+macro USING_ATEST_1_AND(code)
+  static int atest = 0;
+  interval atest: atestOff < 1, atestOn;
+  if (atest == atestOn)
+  {
+    USE_ATEST_1()
+    code
+  }
+  else
+  {
+    NO_ATEST()
+  }
+endmacro
+
+macro SET_ATEST_IS_ON_DEFINE()
+  if (atest == atestOn)
+  {
+    hlsl{
+      #define ATEST_IS_ON 1
+    }
+  }
+endmacro
+
+hlsl {
+
+// warning X3571: pow(f, e) will not work for negative f, use abs(f) or conditionally handle negative values if you expect them
+#pragma warning(disable:3571)
+
+// warning X4000: use of potentially uninitialized variable
+// This warning is thrown if we have functions that can return from multiple paths.
+#pragma warning(disable:4000)
+
+#define PI 3.14159265f
+
+float lengthSq(float2 v) {return dot(v,v);}
+float lengthSq(float3 v) {return dot(v,v);}
+float lengthSq(float4 v) {return dot(v,v);}
+
+float2 pow2(float2 a) {return a*a;}
+float3 pow2(float3 a) {return a*a;}
+float4 pow2(float4 a) {return a*a;}
+float4 pow4(float4 a) {return pow2(a*a);}
+float4 pow8(float4 a) {return pow4(a*a);}
+float4 pow16(float4 a) {return pow8(a*a);}
+
+float clampedPow(float X,float Y) { return pow(max(abs(X),0.000001f),Y); }
+//do not call pow(a, const), since it produce wrong code on OpenGL (NVIDIA at least)  driver. And it is slower (up to 8th power, including)
+float pow2(float a) {return a*a;}
+float pow3(float a) {return a*a*a;}
+float pow4(float a) {return pow2(a*a);}
+float pow5(float a){float a4=a*a; a4*=a4; return a4*a;}
+float pow8(float a) {return pow4(a*a);}
+float pow16(float a){return pow8(a*a);}
+
+//float pow is ONLY scalar, so it is faster up to 64 power
+float2 pow4_vec2(float2 a)
+{
+  a*=a;//2
+  a*=a;//4
+  return a;
+}
+float2 pow2_vec2(float2 a)
+{
+  a*=a;//2
+  return a;
+}
+float3 pow2_vec3(float3 a)
+{
+  a*=a;//2
+  return a;
+}
+float4 pow2_vec4(float4 a)
+{
+  a*=a;//2
+  return a;
+}
+float4 pow4_vec4(float4 a)
+{
+  a*=a;//2
+  a*=a;//4
+  return a;
+}
+float4 pow8_vec4(float4 a)
+{
+  a*=a;//2
+  a*=a;//4
+  a*=a;//8
+  return a;
+}
+float4 pow16_vec4(float4 a)
+{
+  a*=a;//2
+  a*=a;//4
+  a*=a;//8
+  a*=a;//16
+  return a;
+}
+float4 pow32_vec4(float4 a)
+{
+  a*=a;//2
+  a*=a;//4
+  a*=a;//8
+  a*=a;//16
+  a*=a;//32
+  return a;
+}
+
+#if SHADER_COMPILER_FP16_ENABLED
+  half clampedPow(half X, half Y) { return pow(max(abs(X),0.000001h),Y); }
+
+  half pow2(half a){return a*a;}
+  half pow3(half a) {return a*a*a;}
+  half pow4(half a){a*=a; a*=a;return a;}
+  half pow5(half a){half a4=a*a; a4*=a4; return a4*a;}
+  half pow8(half a){a*=a; a*=a; a*=a;return a;}
+  half pow16(half a){a*=a; a*=a; a*=a; a*=a;return a;}
+
+  half2 pow4_vec2(half2 a)
+  {
+    a*=a;//2
+    a*=a;//4
+    return a;
+  }
+  half2 pow2_vec2(half2 a)
+  {
+    a*=a;//2
+    return a;
+  }
+  half3 pow2_vec3(half3 a)
+  {
+    a*=a;//2
+    return a;
+  }
+  half4 pow2_vec4(half4 a)
+  {
+    a*=a;//2
+    return a;
+  }
+  half4 pow4_vec4(half4 a)
+  {
+    a*=a;//2
+    a*=a;//4
+    return a;
+  }
+  half4 pow8_vec4(half4 a)
+  {
+    a*=a;//2
+    a*=a;//4
+    a*=a;//8
+    return a;
+  }
+  half4 pow16_vec4(half4 a)
+  {
+    a*=a;//2
+    a*=a;//4
+    a*=a;//8
+    a*=a;//16
+    return a;
+  }
+  half4 pow32_vec4(half4 a)
+  {
+    a*=a;//2
+    a*=a;//4
+    a*=a;//8
+    a*=a;//16
+    a*=a;//32
+    return a;
+  }
+#endif
+}
+hlsl {
+  half luminance(half3 col)
+  {
+    return dot(col, half3(0.299, 0.587, 0.114));
+  }
+  float linearize_z(float rawDepth, float2 decode_depth)
+  {
+    return rcp(decode_depth.x + decode_depth.y * rawDepth);
+  }
+  float4 linearize_z4(float4 rawDepth, float2 decode_depth)
+  {
+    return rcp(decode_depth.xxxx + decode_depth.y*rawDepth);
+  }
+  float inv_linearizeZ(float d, float4 zn_zfar)
+  {
+    return (zn_zfar.y*rcp(d) - 1) * zn_zfar.x * rcp(zn_zfar.y - zn_zfar.x);
+  }
+  // These are aliasis for the linearize_z and inv_linearizeZ functions
+  float linearize_distance(float rawDistance, float2 decode_depth)
+  {
+    return linearize_z(rawDistance, decode_depth);
+  }
+  float inv_linearize_distance(float d, float4 zn_zfar)
+  {
+    return inv_linearizeZ(d, zn_zfar);
+  }
+}
+
+float4 zn_zfar = (1, 20000, 0, 0);
+float4 rendering_res = (1280, 720, 0,0);
+
+macro INIT_ZNZFAR_STAGE(code)
+  (code) { zn_zfar@f4 = (zn_zfar.x, zn_zfar.y, 1.0 / zn_zfar.y, (zn_zfar.y-zn_zfar.x)/(zn_zfar.x * zn_zfar.y)); }
+endmacro
+
+macro INIT_ZNZFAR()
+  INIT_ZNZFAR_STAGE(ps)
+endmacro
+
+macro INIT_RENDERING_RESOLUTION(code)
+  (code) { rendering_res@f4 = rendering_res; }
+endmacro
+
+macro COMMON_LINEARIZE_SKY_DEPTH()
+  INIT_ZNZFAR()
+endmacro
+macro INIT_LINEARIZE_LOWRES_SKY_DEPTH()
+  hlsl(ps) {
+    float linearizeSkyDepthLow(float rawd){return linearize_z(rawd, zn_zfar.zw);}
+  }
+endmacro
+macro INIT_LINEARIZE_HIRES_SKY_DEPTH()
+  hlsl(ps) {
+    float linearizeSkyDepthHigh(float rawd){return linearize_z(rawd, zn_zfar.zw);}
+  }
+endmacro
+
+int compatibility_mode = 0;
+interval compatibility_mode:compatibility_mode_off<1, compatibility_mode_on;
+hlsl {
+##if compatibility_mode == compatibility_mode_on
+  #define BRDF_SPEC_G  6//SPEC_G_SMITH_CORRELATED_APPROX
+##endif
+}
+
+macro INIT_HDR(code)
+  INIT_EXPOSURE(code)
+endmacro
+
+macro USE_HDR(code)
+  USE_EXPOSURE(code)
+  hlsl(code)
+  {
+   #if !HAS_HDR_DEFINED
+     #define HAS_HDR_DEFINED 1
+
+      half get_exposure_mul() {return getExposureScale();}
+      half get_exposure_inv() {return getInvExposureScale();}
+
+      half3 pack_hdr(half3 a) {return a * get_exposure_mul();}
+      half3 unpack_hdr(half3 a) {return a * get_exposure_inv();}
+    #endif
+  }
+endmacro
+
+macro USE_COMPAT_HDR_WRITE_BASE(code, exposure_name)
+  hlsl(code)
+  {
+    // dirty hack to keep the rest of the code tidy and bugfree
+    #if !HAS_HDR_DEFINED
+      #define HAS_HDR_DEFINED 1
+      half get_exposure_mul() {return exposure_name;}
+    #endif
+  }
+endmacro
+
+macro USE_COMPAT_HDR_WRITE(code)
+  USE_COMPAT_HDR_WRITE_BASE(code, gbuffer_sun_light_dir.w)
+endmacro
+
+
+hlsl(ps) {
+  half3 restore_normal(half2 xy)
+  {
+    half3 normal;
+    normal.xy = xy*2-1;
+    normal.z = sqrt(saturate(1-dot(normal.xy,normal.xy)));
+    return normal;
+  }
+  half3 unpack_ag_normal(half4 normalmap)
+  {
+    return restore_normal(normalmap.ag);
+  }
+  float adjustRoughness ( float inputRoughness, float avgNormalLength )
+  {
+    // Based on The Order : 1886 SIGGRAPH course notes implementation
+    if ( avgNormalLength < 1.0f)
+    {
+      float avgNormLen2 = avgNormalLength * avgNormalLength ;
+      float kappa = (3 * avgNormalLength - avgNormalLength * avgNormLen2 ) / (1 - avgNormLen2 );
+      float variance = 1.0f / (2.0 * kappa);
+      return sqrt ( inputRoughness * inputRoughness + variance );
+    }
+    return inputRoughness;
+  }
+}
+
+macro USE_MSAA()
+  hlsl(ps) {
+    #define NUM_MSAA_SAMPLES 0
+  }
+endmacro
+
+macro USE_DECODE_DEPTH_STAGE(code)
+hlsl(code) {
+  float4 linearize_z4(float4 rawDepth)
+  {
+    return rcp(zn_zfar.zzzz + zn_zfar.w*rawDepth);
+  }
+}
+endmacro
+
+macro USE_DECODE_DEPTH()
+  USE_DECODE_DEPTH_STAGE(ps)
+endmacro
+
+int support_texture_array = 0;//should be assumed
+interval support_texture_array : off<1, on;
+buffer gbuffer_resolve;
+
+macro USE_EMISSION_DECODE_COLOR_MAP(code)
+if (in_editor_assume == no)
+{
+  (code) {
+    emission_decode_color_map@buf = emission_decode_color_map hlsl {
+      StructuredBuffer<float4> emission_decode_color_map@buf;
+    };
+  }
+}
+endmacro
+
+macro GLOBAL_FRAME_CONTENT()
+  USE_EMISSION_DECODE_COLOR_MAP(ps)
+
+  // Camera.
+
+  (vs) { world_view_pos@f3 = world_view_pos; }
+  (ps) { world_view_pos@f3 = world_view_pos; }
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    (ps) {
+      gbuffer_sun_light_dir@f4 = (from_sun_direction.x, from_sun_direction.y, from_sun_direction.z, const_frame_exposure);
+      gbuffer_sun_light_col@f4 = (sun_color_0.r, sun_color_0.g, sun_color_0.b, skylight_params.w);
+      gbuffer_enviSPH0 @f4 = (enviSPH0*skylight_params.y);
+      gbuffer_enviSPH1 @f4 = (enviSPH1*skylight_params.y);
+      gbuffer_enviSPH2 @f4 = (enviSPH2*skylight_params.y);
+      gbuffer_envi_probe_specular@smpCube = envi_probe_specular;
+    }
+    if (mobile_render != off)
+    {
+      (ps) {
+        air_fog_density@f1 = (air_fog_density);
+      }
+    }
+  }
+  if (use_postfx == off)
+  {
+    INIT_FULL_TONEMAP_LUT(ps)
+  }
+endmacro
+
+block(frame) global_frame
+{
+  GLOBAL_FRAME_CONTENT()
+}
+
+macro  NO_COLOR_WRITE_PS()
+  compile("ps_null", "null_ps");
+endmacro
+
+macro SET_TEXSZ_CONST_SCR(stage, ts_name, ts_const)
+  (stage) { ts_name @f4 = ts_const; }
+endmacro
+
+macro SET_TEXSZ_CONST_RT(stage, ts_name, ts_const)
+  SET_TEXSZ_CONST_SCR(stage, ts_name, ts_const)
+endmacro
+
+macro FOG_PS_STCODE()
+INIT_BRUNETON_FOG(ps)
+endmacro
+
+hlsl {
+  //float linearSmoothnessToGGXRoughness(float smoothness) {return max(1e-4, pow2(pow3(1-0.7*smoothness)));}//oldbuggy
+  float linearSmoothnessToLinearRoughness(float smoothness) {return 1-smoothness;}//dice
+  float linearSmoothnessToGGXRoughness(float smoothness) {return max(1e-4, pow2(linearSmoothnessToLinearRoughness(smoothness)));}//remove me!
+  //float linearSmoothnessToGGXRoughness(float smoothness) {return max(1e-4, pow3(1-0.7*smoothness));}//crytek
+}
+
+hlsl {
+  float softwareFilteringRed(float2 tc, float2 dim, Texture2D tex, SamplerState tex_samplerstate)
+  {
+    float2 bilW = frac(tc * dim - 0.5f); 
+    float4 v = tex.GatherRed(tex_samplerstate, tc);//(-,+),(+,+),(+,-),(-,-),
+    return lerp(lerp(v.w, v.z, bilW.x), lerp(v.x, v.y, bilW.x), bilW.y);
+  }
+}
+
+hlsl {
+  #define DISABLE_RAY_LIGHT_INTERSECTION 1
+  #define ALLOW_CLOUD_HOLE 1
+}
+
+bool use_hw_raytracing = (hardware.dx12 && hardware.pc) || (hardware.vulkan && hardware.bindless) || (hardware.metal && hardware.bindless);

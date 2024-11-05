@@ -1,13 +1,13 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <stdarg.h>
 
-#include <supp/dag_define_COREIMP.h>
+#include <osApiWrappers/dag_miscApi.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 //
 // additional routines for async reading of files
@@ -40,9 +40,18 @@ extern "C"
   KRNLIMP bool dfa_read_async(void *handle, int asyncdata_handle, int offset, void *buf, int len);
   // checks for async read completion
   KRNLIMP bool dfa_check_complete(int asyncdata_handle, int *read_len);
+  // wait for request's completion
+#if _TARGET_C1 | _TARGET_C2
+
+#else
+inline void dfa_wait_until_complete(int adh, int *readed_len)
+{
+  spin_wait_no_profile([=] { return !dfa_check_complete(adh, readed_len); });
+}
+#endif
 
 #ifdef __cplusplus
 }
 #endif
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

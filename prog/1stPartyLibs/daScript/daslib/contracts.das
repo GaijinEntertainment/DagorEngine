@@ -49,18 +49,6 @@ class IsAnyArrayMacro : IsAnyType
                         return false
         return true
 
-[contract(name="expect_dim")]
-class IsDimMacro : IsAnyType
-    //! [expect_dim(argname)] contract, which only accepts T[]
-    def override isCompatible ( var func:FunctionPtr; var types:VectorTypeDeclPtr; decl:AnnotationDeclaration; var errors:das_string ) : bool
-        for fna,typ in func.arguments,types // note: N^2
-            for argv in decl.arguments
-                if fna.name==argv.name
-                    if length(typ.dim)==0
-                        errors := "argument {argv.name} is not an [], it is {describe(typ)}"
-                        return false
-        return true
-
 [contract(name="expect_any_enum")]
 class IsAnyEnumMacro : IsAnyType
     //! [expect_any_enum(argname)] contract, which only accepts enumerations
@@ -68,7 +56,7 @@ class IsAnyEnumMacro : IsAnyType
         for fna,typ in func.arguments,types // note: N^2
             for argv in decl.arguments
                 if fna.name==argv.name
-                    if length(typ.dim)!=0 || (typ.baseType!=Type tEnumeration && typ.baseType!=Type tEnumeration8 && typ.baseType!=Type tEnumeration16)
+                    if length(typ.dim)!=0 || (typ.baseType!=Type tEnumeration && typ.baseType!=Type tEnumeration8 && typ.baseType!=Type tEnumeration16 && typ.baseType!=Type tEnumeration64)
                         errors := "argument {argv.name} is not an enumeration"
                         return false
         return true

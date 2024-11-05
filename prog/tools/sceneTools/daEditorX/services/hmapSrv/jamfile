@@ -1,6 +1,6 @@
 Root    ?= ../../../../../.. ;
 Location = prog/tools/sceneTools/daEditorX/services/hmapSrv ;
-DriverLinkage ?= dynamic ;
+KernelLinkage ?= dynamic ;
 
 TargetType  = lib ;
 Target      = tools/sceneTools/daEditorX/services/hmapSrv.lib ;

@@ -1,45 +1,16 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "samplers.h"
 #include "globVarSem.h"
 #include "globVar.h"
 #include "varMap.h"
+#include "shLog.h"
+#include "cppStcode.h"
 #include <shaders/dag_shaderVarType.h>
 #include <EASTL/string.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 
-Tab<Sampler> g_samplers;
-ska::flat_hash_map<eastl::string, int> g_samplers_id;
-
-void Sampler::add(ShaderTerminal::sampler_decl &smp_decl, ShaderTerminal::ShaderSyntaxParser &parser)
-{
-  int sampler_id = g_samplers.size();
-  auto [it, inserted] = g_samplers_id.emplace(smp_decl.name->text, sampler_id);
-  if (!inserted)
-  {
-    eastl::string message(eastl::string::CtorSprintf{}, "Redefinition of sampler variable '%s'", smp_decl.name->text);
-    ShaderParser::error(message.c_str(), smp_decl.name, parser);
-    return;
-  }
-
-  g_samplers.emplace_back(Sampler(smp_decl, parser));
-
-  int id = VarMap::addVarId(smp_decl.name->text);
-  int v = ShaderGlobal::get_var_internal_index(id);
-  if (v >= 0)
-  {
-    eastl::string message(eastl::string::CtorSprintf{}, "Shader variable '%s' already declared in ", smp_decl.name->text);
-    message += parser.get_lex_parser().get_symbol_location(id, SymbolType::GLOBAL_VARIABLE);
-    ShaderParser::error(message.c_str(), smp_decl.name, parser);
-    return;
-  }
-  g_samplers.back().mId = sampler_id;
-  g_samplers.back().mNameId = id;
-  parser.get_lex_parser().register_symbol(id, SymbolType::GLOBAL_VARIABLE, smp_decl.name);
-
-  Tab<ShaderGlobal::Var> &variable_list = ShaderGlobal::getMutableVariableList();
-  v = append_items(variable_list, 1);
-  variable_list[v].type = SHVT_SAMPLER;
-  variable_list[v].nameId = id;
-}
+SamplerTable g_sampler_table{};
 
 Sampler::Sampler(ShaderTerminal::sampler_decl &smp_decl, ShaderTerminal::ShaderSyntaxParser &parser) : mSamplerDecl(&smp_decl)
 {
@@ -139,38 +110,87 @@ Sampler::Sampler(ShaderTerminal::sampler_decl &smp_decl, ShaderTerminal::ShaderS
   }
 }
 
-void Sampler::link(const Tab<Sampler> &samplers, Tab<int> &smp_link_table)
+void SamplerTable::add(ShaderTerminal::sampler_decl &smp_decl, ShaderTerminal::ShaderSyntaxParser &parser)
 {
-  int smp_num = samplers.size();
+  int sampler_id = mSamplers.size();
+  if (mSamplerIds.count(smp_decl.name->text) > 1)
+  {
+    if (mSamplers[mSamplerIds[smp_decl.name->text]].mIsStaticSampler || mSamplers[sampler_id].mIsStaticSampler)
+    {
+      eastl::string message(eastl::string::CtorSprintf{}, "Redefinition of static sampler variable '%s'. It's not supported yet.",
+        smp_decl.name->text);
+      ShaderParser::error(message.c_str(), smp_decl.name, parser);
+    }
+    return;
+  }
+
+  mSamplerIds.emplace(smp_decl.name->text, sampler_id);
+  mSamplers.emplace_back(Sampler(smp_decl, parser));
+
+  int id = VarMap::addVarId(smp_decl.name->text);
+  int v = ShaderGlobal::get_var_internal_index(id);
+  Tab<ShaderGlobal::Var> &variable_list = ShaderGlobal::getMutableVariableList();
+  if (v >= 0)
+  {
+    if (variable_list[v].value.samplerInfo != mSamplers.back().mSamplerInfo)
+    {
+      eastl::string message(eastl::string::CtorSprintf{}, "Shader variable '%s' already declared with different properties in ",
+        smp_decl.name->text);
+      message += parser.get_lex_parser().get_symbol_location(id, SymbolType::GLOBAL_VARIABLE);
+      ShaderParser::error(message.c_str(), smp_decl.name, parser);
+    }
+    return;
+  }
+  mSamplers.back().mId = sampler_id;
+  mSamplers.back().mNameId = id;
+  parser.get_lex_parser().register_symbol(id, SymbolType::GLOBAL_VARIABLE, smp_decl.name);
+
+  v = append_items(variable_list, 1);
+  variable_list[v].type = SHVT_SAMPLER;
+  variable_list[v].nameId = id;
+  variable_list[v].value.samplerInfo = mSamplers.back().mSamplerInfo;
+
+  g_cppstcode.globVars.setVar(SHVT_SAMPLER, smp_decl.name->text);
+}
+
+void SamplerTable::link(const Tab<Sampler> &new_samplers, Tab<int> &smp_link_table)
+{
+  int smp_num = new_samplers.size();
   smp_link_table.resize(smp_num);
   for (unsigned int i = 0; i < smp_num; i++)
   {
-    auto &smp = samplers[i];
+    auto &smp = new_samplers[i];
 
     bool exists = false;
-    for (unsigned int existing_var = 0; existing_var < g_samplers.size(); existing_var++)
+    for (unsigned int existing_var = 0; existing_var < mSamplers.size(); existing_var++)
     {
-      if (smp.mNameId == g_samplers[existing_var].mNameId)
+      if (smp.mNameId == mSamplers[existing_var].mNameId)
       {
-        auto &existing_smp = g_samplers[existing_var];
+        auto &existing_smp = mSamplers[existing_var];
         exists = true;
         smp_link_table[i] = existing_var;
 
         if (memcmp(&smp.mSamplerInfo, &existing_smp.mSamplerInfo, sizeof(d3d::SamplerInfo)) != 0)
-          DAG_FATAL("Different sampler values: '%i'", smp.mNameId);
+          sh_debug(SHLOG_FATAL, "Different sampler values: '%i'", smp.mNameId);
       }
     }
 
     if (!exists)
     {
-      smp_link_table[i] = g_samplers.size();
-      g_samplers.push_back(smp);
+      smp_link_table[i] = mSamplers.size();
+      mSamplers.push_back(smp);
     }
   }
 }
 
-const Sampler *Sampler::get(const char *name)
+Sampler *SamplerTable::get(const char *name)
 {
-  auto found = g_samplers_id.find(name);
-  return found == g_samplers_id.end() ? nullptr : &g_samplers[found->second];
+  auto found = mSamplerIds.find(name);
+  return found == mSamplerIds.end() ? nullptr : &mSamplers[found->second];
+}
+
+Tab<Sampler> SamplerTable::releaseSamplers()
+{
+  auto released = eastl::move(mSamplers);
+  return released;
 }

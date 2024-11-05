@@ -1,11 +1,16 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <ecs/core/entitySystem.h>
 
 extern size_t tool_pull;
 
-#define REG_SYS  \
-  RS(tonemap)    \
-  RS(tonemapUpd) \
-  RS(instantiateDependencies)
+#define REG_SYS               \
+  RS(tonemap)                 \
+  RS(tonemapUpd)              \
+  RS(instantiateDependencies) \
+  RS(animChar)                \
+  RS(frameGraphNode)          \
+  RS(nodeHandleWithSlotsAccess)
 
 #define RS(x) ECS_DECL_PULL_VAR(x);
 REG_SYS

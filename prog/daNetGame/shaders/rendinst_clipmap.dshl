@@ -1,0 +1,629 @@
+
+
+int ri_landclass_changed_indicex_bits = 0;
+
+float4 clipmap_ri_landscape2uv_arr[7]; // MAX_RI_VTEX_CNT
+int4 ri_landclass_closest_indices_arr[2]; // (MAX_RI_VTEX_CNT + 4 - 1) / 4
+
+float4 rendinst_landscape_area_left_top_right_bottom = (-2048, 2048, 2048, -2048);
+
+texture deform_hmap_ri_landclass_arr;
+
+float4 world_to_hmap_tex_ofs_ri_landclass_arr[7] always_referenced; // MAX_RI_VTEX_CNT
+float4 world_to_hmap_ofs_ri_landclass_arr[7] always_referenced; // MAX_RI_VTEX_CNT
+
+
+macro DECLARE_CLIPMAP_INDIRECTION_OFFSET()
+  if (shader == rendinst_landclass)
+  {
+    static int ri_landclass_index = 0;
+  }
+endmacro
+
+macro INIT_CLIPMAP_INDIRECTION_OFFSET(stage)
+  if (shader == rendinst_landclass)
+  {
+    (stage) {
+      ri_landclass_index@i1 = ri_landclass_index;
+
+      ri_landclass_changed_indicex_bits@i1 = ri_landclass_changed_indicex_bits;
+      clipmap_ri_landscape2uv_arr@f4[] = clipmap_ri_landscape2uv_arr;
+      ri_landclass_closest_indices_arr@i4[] = ri_landclass_closest_indices_arr;
+    }
+  }
+endmacro
+
+macro USE_CLIPMAP_INDIRECTION_OFFSET_BASE(stage)
+  hlsl (stage) {
+
+    bool is_clipmap_indirection_invalid(uint offset)
+    {
+##if (shader == rendinst_landclass)
+      return offset != 0 && ((ri_landclass_changed_indicex_bits >> (offset - 1)) & 1);
+##else
+      return false;
+##endif
+    }
+
+    uint get_clipmap_indirection_offset()
+    {
+##if (shader == rendinst_landclass)
+  #if MAX_RI_VTEX_CNT_BITS > 0
+      int ri_index = get_ri_landclass_index();
+
+      // TODO: this could be computed in preshader (if it wouldn't be so dumb)
+      int fallbackLastIndexBit = 1; // so firstbithigh returns 0 if none of them matches
+      int indexBits = fallbackLastIndexBit;
+      UNROLL
+      for (int i = 0; i < (MAX_RI_VTEX_CNT + 4 - 1) / 4; ++i)
+        indexBits |= dot(((int4)ri_index == ri_landclass_closest_indices_arr[i]) << (i*4 + int4(1,2,3,4)), 1);
+      return firstbithigh(indexBits);
+  #else
+      return 0;
+  #endif
+##else
+      return 0;
+##endif
+    }
+  }
+endmacro
+
+macro USE_CLIPMAP_INDIRECTION_OFFSET(stage)
+  USE_CLIPMAP_INDIRECTION_OFFSET_BASE(stage)
+  hlsl (stage) {
+    float4 get_l2uv(uint indirection_offset)
+    {
+##if (shader == rendinst_landclass)
+      if (indirection_offset == 0)
+        return landscape2uv;
+
+      indirection_offset = clamp(indirection_offset-1, 0, MAX_RI_VTEX_CNT - 1);
+      return clipmap_ri_landscape2uv_arr[indirection_offset];
+##else
+      return landscape2uv;
+##endif
+    }
+  }
+endmacro
+
+
+
+include "rendinst_opaque_inc.dshl"
+include "normaldetail.dshl"
+include "psh_derivate.dshl"
+include "rendinst_voxelize_albedo_inc.dshl"
+include "rendinst_grassify_inc.dshl"
+include "land_block_inc.dshl"
+include "sparkles.dshl"
+include "wetness_inc.dshl"
+include "optional_puddle_access.dshl"
+include "toroidal_heightmap.dshl"
+include "heightmap_ofs.dshl"
+include "deform_hmap_common.dshl"
+include "pn_triangulation.dshl"
+include "heightmap_tessellation_inc.dshl"
+include "tessellation_intervals_inc.dshl"
+include "clipmap_common_inc.dshl"
+
+
+shader rendinst_clipmap, rendinst_landclass
+{
+  static int material_pn_triangulation = 1 no_warnings;
+  interval material_pn_triangulation : off < 1, on;
+
+  static int material_grassify = 0 no_warnings;
+  interval material_grassify : off < 1, on;
+
+  static int material_has_edge_vcol_mask = 0 no_warnings;
+  interval material_has_edge_vcol_mask: no < 1, yes;
+
+  if (shader == rendinst_landclass)
+  {
+    static float max_tessellation_factor = 40 no_warnings;
+    static float max_tessellation_quality = 30 no_warnings;
+    static float max_dispacement_distance = 30 no_warnings;
+    static float min_dispacement_distance = 8 no_warnings;
+  }
+  else
+  {
+    assume material_has_edge_vcol_mask = no;
+    static float max_tessellation_factor = 60 no_warnings;
+    static float max_tessellation_quality = 30 no_warnings;
+    static float max_dispacement_distance = 16 no_warnings;
+    static float min_dispacement_distance = 0 no_warnings;
+  }
+
+  bool global_tessellation_enabled = (in_editor_assume == yes && object_tess_factor == object_tess_factor_on) || (in_editor_assume != yes && hmap_object_tess_factor == hmap_object_tess_factor_on);
+  bool pn_triangulation_enabled =
+      (global_tessellation_enabled && material_pn_triangulation != off) &&
+      (rendinst_render_pass == rendinst_render_pass_normal ||
+       rendinst_render_pass == rendinst_render_pass_depth ||
+       rendinst_render_pass == rendinst_render_pass_to_shadow);
+
+  bool grassify_enabled = (grassify == grassify_on && material_grassify == on) &&
+      (shader == rendinst_landclass &&
+      rendinst_render_pass == rendinst_render_pass_grassify);
+
+  bool landclass_displacement_enabled = shader == rendinst_landclass && pn_triangulation_enabled && in_editor_assume == no;
+
+  bool grassify_discard_enabled = grassify_enabled && material_has_edge_vcol_mask == yes; // it needs vertex color for discard weight
+
+  DECLARE_CLIPMAP_INDIRECTION_OFFSET()
+  INIT_CLIPMAP_INDIRECTION_OFFSET(ps)
+
+  if (pn_triangulation_enabled)
+  {
+    if (hardware.metal)
+    {
+      dont_render;
+    }
+    INIT_PN_TRIANGULATION(false)
+  }
+  else if (grassify_enabled)
+  {
+    INIT_PUDDLE(vs)
+    USE_PUDDLE(vs)
+  }
+  else
+  {
+    INIT_PUDDLE(vs)
+    USE_PUDDLE(vs)
+    INIT_DEFORM_HMAP(vs)
+    USE_DEFORM_HMAP(vs)
+    INIT_HEIGHTMAP_OFS(vs)
+    USE_HEIGHTMAP_OFS(vs)
+  }
+
+  assume instancing_type = tm_vb;
+
+  if (rendinst_render_pass == rendinst_render_pass_grassify && !grassify_enabled)
+  {
+    dont_render;
+  }
+  if (rendinst_render_pass == rendinst_render_pass_impostor_color ||
+      rendinst_render_pass == rendinst_render_pass_impostor_shadow)
+  {
+    dont_render;
+  }
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+  hlsl{#define LANDMESH 1}
+
+  if (shader == rendinst_clipmap)
+  {
+    static int is_rendinst_clipmap = 1 no_warnings;
+  }
+
+  if (shader == rendinst_landclass)
+  {
+    static float4 texcoord_scale_offset = (1.0, 1.0, 0.0, 0.0);
+  }
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+  if (shader == rendinst_landclass)
+  {
+    channel float2 tc[0] = tc[0];
+    channel color8 vcol=vcol;
+  }
+
+  (ps) {
+    lightmap_tex@smp2d = lightmap_tex;
+    world_to_lightmap@f4 = world_to_lightmap;
+  }
+
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    INIT_HMAP_FOR_RI_BLOCK()
+  }
+
+  // pn_triangulation changes heights based on material,
+  // so all passes should use use_drawid_vs_only = false to properly propragate material indexes to tesselation
+  // otherwise there is disparity between baked depth/shadow/prepass and main pass depth
+  ENABLE_MULTI_DRAW((rendinst_render_pass == rendinst_render_pass_to_shadow ||
+                    rendinst_render_pass == rendinst_render_pass_depth ||
+                    rendinst_render_pass == rendinst_render_pass_to_heightmap) && !pn_triangulation_enabled)
+
+  if (pn_triangulation_enabled)
+  {
+    hlsl {
+      #if SET_UP_MULTIDRAW && DRAW_ID_USES_INSTANCE_OFFSET_ID
+        #define GET_DRAW_CALL_ID_TRIANGULATION(src) get_material_offset_external_draw_id(src.drawId)
+      #else
+        #define GET_DRAW_CALL_ID_TRIANGULATION(src) GET_MATERIAL_OFFSET
+      #endif
+    }
+  }
+
+  RENDINST_BLOCK()
+  RI_VOXELIZE_ALBEDO()
+  if (grassify_enabled)
+  {
+    RI_GRASSIFY()
+  }
+  RENDINST_INSTANCING()
+  USE_HEIGHTMAP_COMMON_VS()
+
+  hlsl {
+    ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo || rendinst_render_pass == rendinst_render_pass_grassify)
+      #define NEED_TC_WORLDPOS 1
+      #define NEED_POINT_TO_EYE 1
+    ##else
+      ##if landclass_displacement_enabled
+        #define NEED_TC_WORLDPOS 1
+        #define NEED_UP_VEC 1
+      ##else
+        #define NEED_TC_WORLDPOS 0
+      ##endif
+      #define NEED_POINT_TO_EYE 0
+    ##endif
+    ##if (rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth || rendinst_render_pass == rendinst_render_pass_to_heightmap)
+      #define NEED_NORMAL PN_TESSELATION
+    ##else
+      #define NEED_NORMAL 1
+    ##endif
+    ##if landclass_displacement_enabled
+      #define NEED_UP_VEC 1
+    ##endif
+    ##if grassify_discard_enabled
+      #define USE_VCOL_GRASSIFY_DISCARD 1
+    ##endif
+
+    struct VsOutput
+    {
+      PRECISE VS_OUT_POSITION(pos)
+      #if NEED_POINT_TO_EYE
+        VOXEL_CENTROID float3 pointToEye                 : TEXCOORD2;
+      #endif
+      #if NEED_TC_WORLDPOS
+        VOXEL_CENTROID float4 tcWorldPos                 : TEXCOORD1;
+        float heightForPuddle                            : TEXCOORD4;
+      #endif
+      #if NEED_NORMAL
+        float3 normal                     : TEXCOORD3;
+      #endif
+      #if NEED_UP_VEC
+        float3 upVec : TEXCOORD5;
+      #endif
+      #if USE_VCOL_GRASSIFY_DISCARD
+        nointerpolation float3 objectCenterPos : TEXCOORD6;
+        VOXEL_CENTROID float grassifyDiscardWeight : TEXCOORD7;
+      #endif
+      VSOUT_DRAW_ID
+    };
+    struct HsInput
+    {
+      PRECISE VS_OUT_POSITION(pos)
+      float3 normal                 : TEXCOORD0;
+      #if NEED_TC_WORLDPOS
+        VOXEL_CENTROID float4 tcWorldPos                 : TEXCOORD1;
+      #endif
+      #if NEED_UP_VEC
+        float3 upVec : TEXCOORD2;
+      #endif
+      #if USE_VCOL_GRASSIFY_DISCARD
+        nointerpolation float3 objectCenterPos : TEXCOORD6;
+        VOXEL_CENTROID float grassifyDiscardWeight : TEXCOORD7;
+      #endif
+      VSOUT_DRAW_ID
+    };
+  }
+
+  if (shader == rendinst_landclass)
+  {
+    (vs)
+    {
+      texcoord_scale_offset@f4 = (texcoord_scale_offset.x, texcoord_scale_offset.y, texcoord_scale_offset.z, texcoord_scale_offset.w);
+
+      ri_landscape_tc_to_world@f4 = (
+        rendinst_landscape_area_left_top_right_bottom.z - rendinst_landscape_area_left_top_right_bottom.x,
+        rendinst_landscape_area_left_top_right_bottom.w - rendinst_landscape_area_left_top_right_bottom.y,
+        rendinst_landscape_area_left_top_right_bottom.x,
+        rendinst_landscape_area_left_top_right_bottom.y);
+    }
+  }
+
+  if (landclass_displacement_enabled)
+  {
+    INIT_CLIPMAP_INDIRECTION_OFFSET(vs)
+    USE_CLIPMAP_INDIRECTION_OFFSET_BASE(vs)
+    (vs)
+    {
+      deform_hmap_ri_landclass_arr@smpArray = deform_hmap_ri_landclass_arr;
+      world_to_hmap_tex_ofs_ri_landclass_arr@f4[] = world_to_hmap_tex_ofs_ri_landclass_arr;
+      world_to_hmap_ofs_ri_landclass_arr@f4[] = world_to_hmap_ofs_ri_landclass_arr;
+    }
+  }
+
+  hlsl(vs) {
+    #if PN_TESSELATION
+      #define VS_OUTPUT HsInput
+    #else
+      #define VS_OUTPUT VsOutput
+    #endif
+
+    INSTANCING_BUFFERS
+
+    struct VsInput
+    {
+      float3 pos                  : POSITION;
+      #if NEED_NORMAL
+        float3 normal             : NORMAL;
+      #endif
+      #if NEED_TC_WORLDPOS
+        ##if (shader == rendinst_landclass)
+        float2 texcoord           : TEXCOORD0;
+        ##endif
+      #endif
+      #if USE_VCOL_GRASSIFY_DISCARD
+        float4 vcol : COLOR0;
+      #endif
+    };
+  }
+
+  USE_CLIPMAP_VS(VsInput, VS_OUTPUT, shader == rendinst_landclass)
+
+  hlsl(vs) {
+    VS_OUTPUT clipmap_vs(VsInput input HW_USE_INSTANCE_ID)
+    {
+      VS_OUTPUT output;
+
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+      #endif
+
+      #if NEED_NORMAL
+        float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+      #else
+        float3 localNormal = 1;
+      #endif
+      float3 localPos = input.pos;
+      float opacity = 1;
+      VB_PERFORM_INSTANCING
+
+      ClipmapCalcParams params;
+      params.worldPos = worldPos;
+      #if NEED_NORMAL
+        ##if (rendinst_render_pass == rendinst_render_pass_grassify)
+          params.worldNormal = worldLocalY;
+        ##else
+          params.worldNormal = worldNormal;
+        ##endif
+      #endif
+      #if NEED_UP_VEC
+        params.worldLocalY = worldLocalY;
+      #endif
+      #if USE_VCOL_GRASSIFY_DISCARD
+        params.objectCenterPos = worldLocalPos;
+      #endif
+      calc_clipmap_vs(input, output, params);
+
+      PROCESS_OUTPUT(output.pos, worldPos.xyz);
+      return output;
+    }
+  }
+
+  COMPILE_RI_VS_TARGET_WITH_TESSELLATION("clipmap_vs", pn_triangulation_enabled)
+
+  if (rendinst_render_pass == rendinst_render_pass_to_shadow ||
+      rendinst_render_pass == rendinst_render_pass_depth ||
+      rendinst_render_pass == rendinst_render_pass_to_heightmap)
+  {
+    compile("ps_null", "rendinst_render_depth_black_ps");
+  } else if (grassify_enabled)
+  {
+    hlsl(ps)
+    {
+      float3 getWorldPos(VsOutput input)
+      {
+        float3 pointToEye = input.pointToEye;
+        return world_view_pos - pointToEye; //worldPos is spoofed from the texcoord in rendinst_landclass
+      }
+    }
+
+    COMPILE_GRASSIFY_PS()
+  } else
+  {
+    NO_VERTICAL_TEX_USE()
+    USE_DERIVATIVE_MAPS()
+    if (rendinst_render_pass != rendinst_render_pass_voxelize_albedo)
+    {
+      WRITE_GBUFFER()
+    }
+    else
+    {
+      //heightmap functions use UnpackedGbuffer as their interface, so the struct is needed, even if we don't write gbuffer
+      PACK_UNPACK_GBUFFER()
+    }
+    USE_CLIPMAP_NORMAL()
+    USE_LAND_NORMAL()
+    USE_HEIGHTMAP_COMMON_BASE(ps)
+    INIT_UAV_RENDERING_FEEDBACK_RENDINST()
+    USE_UAV_RENDERING_FEEDBACK_RENDINST()
+    USE_NORMAL_DETAIL()
+    USE_LAND_MICRODETAILS_PS()
+    USE_LAND_MICRODETAIL_PARAMS_PS()
+    USE_LAND_SHORE()
+    DETECT_LAND_SELFILLUM()
+    if (rendinst_render_pass != rendinst_render_pass_normal)
+    {
+      INIT_WETNESS()
+    }
+    USE_WETNESS_BASE()
+    HEIGHTMAP_CALCULATIONS()
+    USE_AND_CALCULATE_PUDDLES()
+    USE_SPARKLES()
+
+    USE_CLIPMAP_PS(VsOutput, shader == rendinst_landclass)
+
+    hlsl(ps) {
+      #if VOXELIZE_ALBEDO_PASS
+        void clipmap_ps(VsOutput input HW_USE_SCREEN_POS)
+      #else
+        GBUFFER_OUTPUT clipmap_ps(VsOutput input HW_USE_SCREEN_POS)
+      #endif
+      {
+      #if SET_UP_MULTIDRAW
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+      #endif
+        UnpackedGbuffer result;
+        calc_clipmap_ps(input, result);
+        #if !VOXELIZE_ALBEDO_PASS
+          return encode_gbuffer(result, input.pointToEye, GET_SCREEN_POS(input.pos));
+        #endif
+      }
+    }
+    compile("target_ps", "clipmap_ps")
+  }
+
+  if (pn_triangulation_enabled)
+  {
+    INIT_PUDDLE(vs)
+    USE_PUDDLE(ds)
+    INIT_HEIGHTMAP_OFS(vs)
+    USE_HEIGHTMAP_OFS(ds)
+    INIT_DEFORM_HMAP(vs)
+    USE_DEFORM_HMAP(ds)
+
+    if (in_editor_assume == yes)
+    {
+      INIT_TOROIDAL_HEIGHTMAP(vs)
+      USE_TOROIDAL_HEIGHTMAP_VS()
+    }
+    INIT_HEIGHTMAP_DISPLACEMENT(vs)
+
+    (vs)
+    {
+      max_tessellation_factor@f1 = (max_tessellation_factor);
+      max_tessellation_quality@f1 = (max_tessellation_quality);
+      min_dispacement_distance@f1 = (min_dispacement_distance);
+      displacement_diff_inv@f1 = (1.0 / (max_dispacement_distance - min_dispacement_distance));
+    }
+
+    hlsl
+    {
+      struct HsControlPoint
+      {
+        HS_CONTROL_POINTS_DECLARATION
+        #if NEED_TC_WORLDPOS
+          VOXEL_CENTROID float4 tcWorldPos                 : TEXCOORD1;
+        #endif
+        #if NEED_UP_VEC
+          VOXEL_CENTROID float3 upVec                 : TEXCOORD2;
+        #endif
+        VSOUT_DRAW_ID
+      };
+    }
+    hlsl(hs)
+    {
+      float edgeLod(float3 pos1, float3 pos2)
+      {
+        float len = distance(pos1, pos2);
+        float distanceToCenter = distance(world_view_pos, (pos1 + pos2) * 0.5);
+        distanceToCenter = max(distanceToCenter - get_min_dispacement_distance(), 0.01);
+
+        // adaptive tesselation factor with constant world size edge
+        float tessFactor = (get_max_tessellation_quality() * len) / distanceToCenter;
+
+        // falloff
+        tessFactor = lerp(tessFactor, 1.0, saturate(distanceToCenter * get_displacement_diff_inv()));
+
+        return tessFactor;
+      }
+
+      float calc_tess_factor(inout HsPatchData patch, OutputPatch<HsControlPoint, 3> controlPoints, uint tid)
+      {
+        int next = (1U << tid) & 3; // (tid + 1) % 3
+        next = (1U << next) & 3;
+        return max(1, min(edgeLod(controlPoints[tid].pos1, controlPoints[next].pos1), get_max_tessellation_factor()));
+      }
+
+      void proxy_struct_fields(HsInput input, inout HsControlPoint output)
+      {
+        #if NEED_TC_WORLDPOS
+          PROXY_FIELD_VALUE(tcWorldPos);
+        #endif
+        #if DRAW_ID_USES_INSTANCE_OFFSET_ID
+          output.drawId = input.drawId;
+        #endif
+        #if NEED_UP_VEC
+          PROXY_FIELD_VALUE(upVec);
+        #endif
+      }
+    }
+
+    hlsl(ds)
+    {
+
+##if (landclass_displacement_enabled)
+      float get_hmap_ofs_ri_landclass(int ri_index, float2 worldPosXZ, out float displacementEffect)
+      {
+        float4 world_to_hmap_ofs_ri_landclass = world_to_hmap_ofs_ri_landclass_arr[ri_index];
+        float2 tc = saturate(worldPosXZ*world_to_hmap_ofs_ri_landclass.x + world_to_hmap_ofs_ri_landclass.zw);
+
+        float2 vignette = saturate( abs(tc*2-1) * 10 - 9 );
+        float vignetteEffect = saturate( 1.0 - dot( vignette, vignette ) );
+        float height = 0;
+
+        BRANCH if (vignetteEffect > 0)
+          height = tex3Dlod(deform_hmap_ri_landclass_arr,  float4(tc - world_to_hmap_tex_ofs_ri_landclass_arr[ri_index].xy, ri_index, 0)).x;
+
+        displacementEffect = vignetteEffect;
+        return (height*world_to_hmap_tex_ofs.z + world_to_hmap_tex_ofs.w)*displacementEffect;
+      }
+##endif
+
+      void fields_barycentric_values(const OutputPatch<HsControlPoint, 3> input, inout VsOutput output, float3 uvw)
+      {
+        BARYCENTRIC_COORDS_UNPACK(uvw)
+        #if NEED_TC_WORLDPOS
+          FIELD_BARYCENTRIC_VALUE(tcWorldPos);
+        #endif
+        #if NEED_UP_VEC
+          FIELD_BARYCENTRIC_VALUE(upVec);
+        #endif
+
+        // TODO only works on rendinst_clipmap properly, it should sample displacement and puddle using the spoofed positions
+        // in rendinst_landclass, but displace actual world position with the TM applied to the displacement.
+        float3 worldPos = output.pos.xyz;
+        float3 worldNormal = output.normal.xyz;
+
+##if (landclass_displacement_enabled)
+        uint indirectionOffset = get_clipmap_indirection_offset();
+        if (indirectionOffset > 0 && !is_clipmap_indirection_invalid(indirectionOffset))
+        {
+          int riLandclassIndex = (int)indirectionOffset - 1;
+          float displacementEffectLandclass = 1;
+          float heightOffset = get_hmap_ofs_ri_landclass(riLandclassIndex, output.tcWorldPos.xz, displacementEffectLandclass);
+          worldPos += output.upVec * heightOffset * displacementEffectLandclass;
+        }
+##endif
+
+        float heightForPuddle = worldPos.y;
+        float deformAmount = 0;
+        float puddle, worldPosYPuddleOffset, puddleHeight;
+        getPuddleData(worldPos.y, worldPos, heightForPuddle, puddle, worldPosYPuddleOffset, puddleHeight);
+
+        output.pos.xyz = worldPos;
+
+        #if NEED_POINT_TO_EYE
+          output.pointToEye = world_view_pos - output.pos.xyz;
+        #endif
+
+        #if NEED_TC_WORLDPOS
+          output.tcWorldPos.w = worldPos.y;
+          output.heightForPuddle = heightForPuddle;
+        #endif
+
+        #if DRAW_ID_USES_INSTANCE_OFFSET_ID
+          output.drawId = input[0].drawId;
+        #endif
+      }
+    }
+
+    USE_PN_TRIANGULATION(camera_base_offset)
+  }
+}

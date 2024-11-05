@@ -1,0 +1,2 @@
+gamePulls += framework_package_physobj_pull ;
+UseProgLibs += daNetGameLibs/package_physobj ;

@@ -1,7 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hmlSplineObject.h"
 #include "hmlSplinePoint.h"
-
-#include <dllPluginCore/core.h>
 #include "hmlPlugin.h"
 
 static inline real distance_point_to_line_segment(const Point2 &pt, const Point2 &p1, const Point2 &p2, float &out_t)

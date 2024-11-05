@@ -1,6 +1,6 @@
 #pragma once
 
-#include "daScript/misc/fnv.h"
+#include "daScript/misc/anyhash.h"
 
 namespace das {
 
@@ -170,6 +170,18 @@ namespace das {
         size_t unlocked_size () const {
             DAS_VERIFYF(locked == false, "expected to see an unlocked box");
             return objectsInOrder.size();
+        }
+        bool refresh_key ( uint64_t oldKey, uint64_t newKey ) {
+            DAS_ASSERT(!locked);
+            auto it = objects.find(oldKey);
+            if ( it != objects.end() ) {
+                auto pObj = it->second;
+                objects.erase(it);
+                objects[newKey] = pObj;
+                return true;
+            } else {
+                return false;
+            }
         }
     protected:
         safebox_map<ValueType>           objects;

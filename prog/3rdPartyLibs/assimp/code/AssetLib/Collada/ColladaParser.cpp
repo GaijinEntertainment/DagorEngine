@@ -2068,6 +2068,12 @@ void ColladaParser::ReadSceneNode(XmlNode &node, Node *pNode) {
                 pNode->mChildren.push_back(child);
                 child->mParent = pNode;
             } else {
+
+                if (child->mID.empty()) // DAGOR PATCH - fix memory leak
+                {
+                    delete child;
+                    continue;
+                }
                 // no parent node given, probably called from <library_nodes> element.
                 // create new node in node library
                 mNodeLibrary[child->mID] = child;

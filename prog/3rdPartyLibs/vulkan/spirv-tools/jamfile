@@ -235,14 +235,14 @@ CPPopt =
   -DYYDEBUG=0
 ;
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   CPPopt +=
     /d2Zi+
     -DWIN32
   ;
 }
 
-if $(Platform) in macosx {
+if $(Platform) in macOS {
   CPPopt +=
     -Wno-deprecated-declarations
   ;

@@ -1,0 +1,48 @@
+include "dynamic_trans_inc.dshl"
+include "gbuffer.dshl"
+include "lightning.dshl"
+
+shader dynamic_lightning_bolt
+{
+  ENABLE_ASSERT(ps)
+  DYNAMIC_BLOCK_TRANS()
+  if (dyn_model_render_pass == render_to_depth)
+  {
+    dont_render;
+  }
+
+  blend_src = one;  blend_dst = isa;
+  z_write = false;
+
+  render_trans;
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+  channel float2 tc[0] = tc[0];
+
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+
+  if (num_bones != no_bones)
+  {
+    channel color8 tc[4] = extra[0];
+    channel color8 tc[5] = extra[1];
+  }
+
+  INIT_OPTIONAL_SKINNING()
+  INIT_SKY_DIFFUSE_BASE(vs)
+  USE_SKY_DIFFUSE_BASE(vs)
+
+  INIT_LIGHTNING()
+
+  OPTIONAL_SKINNING_SHADER()
+  LIGHTNING_VS()
+
+  USE_HDR(ps)
+  LIGHTNING_PS()
+}

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "das_ecs.h"
 #include <util/dag_string.h>
 #include <dasModules/dasEvent.h>
@@ -29,7 +31,11 @@
 #include <memory/dag_dbgMem.h>
 #include <memory/dag_memStat.h>
 #include <osApiWrappers/dag_threads.h>
+#include <contentUpdater/version.h>
 #include <util/dag_threadPool.h>
+#include <ioSys/dag_findFiles.h>
+#include <ioSys/dag_dataBlock.h>
+#include <startup/dag_globalSettings.h>
 
 #define ES_TO_QUERY     1
 #define SHARED_COMP_ARG "shared_comp"
@@ -37,11 +43,6 @@
 ECS_REGISTER_EVENT(EventDaScriptReloaded);
 
 extern void require_project_specific_debugger_modules();
-
-namespace ecs
-{
-extern void reset_es_order();
-};
 
 namespace bind_dascript
 {
@@ -51,8 +52,13 @@ extern ecs::event_flags_t get_dasevent_cast_flags(ecs::event_type_t type);
 extern bool enableSerialization;
 extern bool serializationReading;
 extern bool suppressSerialization;
-extern das::AstSerializer initSerializer;
-extern das::AstSerializer initDeserializer;
+extern eastl::string deserializationFileName;
+extern eastl::string serializationFileName;
+extern das::unique_ptr<das::SerializationStorage> initSerializerStorage;
+extern das::unique_ptr<das::SerializationStorage> initDeserializerStorage;
+extern das::unique_ptr<das::AstSerializer> initSerializer;
+extern das::unique_ptr<das::AstSerializer> initDeserializer;
+uint32_t g_serializationVersion = 0; // TODO: extract to settings
 
 struct LoadedScript;
 
@@ -251,7 +257,11 @@ static inline void tags_from_list(const das::AnnotationArgumentList &args, const
 }
 } // namespace bind_dascript
 
-das::Context *get_clone_context(das::Context *ctx, uint32_t category) { return new bind_dascript::EsContext(*ctx, category); }
+das::Context *get_clone_context(das::Context *ctx, uint32_t category) { return new bind_dascript::EsContext(*ctx, category, false); }
+das::Context *get_clone_context(das::Context *ctx, uint32_t category, void *user_data)
+{
+  return new bind_dascript::EsContext(*ctx, category, true, user_data);
+}
 
 das::Context *get_context(int stack_size) { return new bind_dascript::EsContext(stack_size); }
 
@@ -421,7 +431,9 @@ static bool get_default_ecs_value(das::Type type, das::TextWriter &str, vec4f in
     // case tUInt2:      return sizeof(uint2);
     // case tUInt3:      return sizeof(uint3);
     // case tUInt4:      return sizeof(uint4);
-    case das::tFloat: str << "\tfloat __def_comp" << index << " = " << das::cast<float>::to(init) << ";\n"; return true;
+    case das::tFloat:
+      str << "\tfloat __def_comp" << index << " = " << das::to_cpp_float(das::cast<float>::to(init)) << ";\n";
+      return true;
     case das::tFloat2:
       str << "\tauto __def_comp" << index << " = "
           << "das::float2(" << das::cast<das::float2>::to(init) << ");\n";
@@ -434,7 +446,9 @@ static bool get_default_ecs_value(das::Type type, das::TextWriter &str, vec4f in
       str << "\tauto __def_comp" << index << " = "
           << "das::float4(" << das::cast<das::float4>::to(init) << ");\n";
       return true;
-    case das::tDouble: str << "\tdouble __def_comp" << index << " = " << das::cast<double>::to(init) << ";\n"; return true;
+    case das::tDouble:
+      str << "\tdouble __def_comp" << index << " = " << das::to_cpp_double(das::cast<double>::to(init)) << ";\n";
+      return true;
     default: return false;
   }
 }
@@ -766,13 +780,18 @@ uint32_t ESModuleGroupData::es_resolve_function_ptrs(EsContext *ctx, dag::Vector
     systems.insert(es);
     cnt++;
   }
-  debug("daScript: %s resolved in %d ms, %d interpreted es, %d aot es%s", fn, profile_time_usec(load_start_time) / 1000,
-    totalSystems - aotSystems, aotSystems, aot_mode == AotMode::NO_AOT ? " [no_aot]" : "");
+  if (fn)
+    debug("daScript: %s resolved in %d ms, %d interpreted es, %d aot es%s", fn, profile_time_usec(load_start_time) / 1000,
+      totalSystems - aotSystems, aotSystems, aot_mode == AotMode::NO_AOT ? " [no_aot]" : "");
   stats.systemsCount += totalSystems;
   stats.aotSystemsCount += (aot_mode_is_required == AotModeIsRequired::NO) ? totalSystems : aotSystems;
+  if (totalSystems > 0 && aot_mode == AotMode::NO_AOT && aot_mode_is_required == AotModeIsRequired::YES)
+  {
+    logerr("<%s>: has disabled AOT when it should not. Remove `options no_aot` or put ES's into _debug.das/_console.das scripts.", fn);
+  }
   unresolvedEs.clear();
-  if (cnt && !das_is_in_init_phase)
-    ecs::reset_es_order();
+  if (cnt && !das_is_in_init_phase && g_entity_mgr)
+    g_entity_mgr->resetEsOrder();
   return cnt;
 }
 
@@ -809,11 +828,14 @@ struct EsFunctionAnnotation final : das::FunctionAnnotation
   EsFunctionAnnotation() : FunctionAnnotation("es") {}
   ESModuleGroupData *getGroupData(das::ModuleGroup &group) const
   {
+    // skip in completion mode to avoid memory leaks
+    if (das::is_in_completion())
+      return nullptr;
     if (auto data = group.getUserData("es"))
     {
       return (ESModuleGroupData *)data;
     }
-    auto esData = new ESModuleGroupData(*(new DebugArgStrings)); // this can only happen in AOT
+    auto esData = new ESModuleGroupData(*(new DebugArgStrings), g_entity_mgr.get()); // this can only happen in AOT
     group.setUserData(esData);
     return esData;
   }
@@ -848,6 +870,14 @@ struct EsFunctionAnnotation final : das::FunctionAnnotation
   };
   virtual bool apply(das::ExprBlock *block, das::ModuleGroup &, const das::AnnotationArgumentList &args, das::string &err) override
   {
+    for (const das::VariablePtr &arg : block->arguments)
+      if (arg->type->isTag)
+      {
+        // We have unresolved tag argument ($a) here,
+        // so any verification is invalid
+        return true;
+      }
+
     if (!verifyArguments(block->arguments, err))
       return false;
     if (block->arguments.empty() && args.find("REQUIRE", das::Type::tString) == nullptr &&
@@ -893,9 +923,17 @@ struct EsFunctionAnnotation final : das::FunctionAnnotation
   virtual bool apply(const das::FunctionPtr &func, das::ModuleGroup &mg_, const das::AnnotationArgumentList &args,
     das::string &err) override
   {
+    for (const das::VariablePtr &arg : func->arguments)
+      if (arg->type->isTag)
+      {
+        // We have unresolved tag argument ($a) here,
+        // so any verification is invalid
+        return true;
+      }
+
     if (!verifyArguments(func->arguments, err))
       return false;
-    ESModuleGroupData &mg = *getGroupData(mg_);
+    ESModuleGroupData &mg = *getGroupData(mg_); // -V522
     if (func->arguments.empty())
     {
       err = "es function needs arguments";
@@ -1051,7 +1089,7 @@ struct EsFunctionAnnotation final : das::FunctionAnnotation
     if (das::is_in_completion())
       return true;
     das::lock_guard<das::recursive_mutex> guard(bind_dascript::DasScripts<LoadedScript, EsContext>::mutex);
-    ESModuleGroupData &mg = *getGroupData(mg_);
+    ESModuleGroupData &mg = *getGroupData(mg_); // -V522
     EsDescUP esDesc(new (esDescsAllocator.allocateOneBlock(), _NEW_INPLACE) EsDesc());
     esDesc->hashedScriptName = mg.hashedScriptName;
     const das::vector<das::VariablePtr> *arguments_ = &func->arguments;
@@ -1204,9 +1242,9 @@ struct EsFunctionAnnotation final : das::FunctionAnnotation
     if (das::is_in_completion())
       return true;
     das::lock_guard<das::recursive_mutex> guard(bind_dascript::DasScripts<LoadedScript, EsContext>::mutex);
-    ESModuleGroupData &mg = *getGroupData(mg_);
+    ESModuleGroupData &mg = *getGroupData(mg_); // -V522
     das::string blockName;
-    blockName.append_sprintf("query_%s_l%d_c%d", block->at.fileInfo->name.c_str(), block->at.line, block->at.column);
+    blockName.append_sprintf("query_%s_l%d", block->at.fileInfo->name.c_str(), block->at.line);
     EsQueryDescUP desc(new (esQueryDescsAllocator.allocateOneBlock(), _NEW_INPLACE) EsQueryDesc());
     if (!build_es(desc->base, blockName.c_str(), block->arguments, args, 0, err, progArgs.getBoolOption("can_trust_access", true),
           mg.argStrings))
@@ -1242,8 +1280,8 @@ void LoadedScript::unload()
       if (system->getUserData())
         system->freeIfDynamic();
     }
-    if (!das_is_in_init_phase)
-      ecs::reset_es_order();
+    if (!das_is_in_init_phase && g_entity_mgr)
+      g_entity_mgr->resetEsOrder();
   }
   queries.clear();
 
@@ -1284,7 +1322,7 @@ static struct Scripts final : public bind_dascript::DasScripts<LoadedScript, EsC
     if (!argStrings.value)
       argStrings.value = das::make_shared<DebugArgStrings>();
 
-    ESModuleGroupData *mgd = new ESModuleGroupData(*argStrings.value.get());
+    ESModuleGroupData *mgd = new ESModuleGroupData(*argStrings.value.get(), g_entity_mgr.get());
     mgd->hashedScriptName = ECS_HASH_SLOW(fname.c_str()).hash;
     mgd->helper = helper.value.get();
     libGroup.setUserData(mgd);
@@ -1326,7 +1364,7 @@ static struct Scripts final : public bind_dascript::DasScripts<LoadedScript, EsC
     G_ASSERTF_RETURN(mgd, false, "ESModuleGroupData is not found for script = %s", fname.c_str());
     if (mgd->templates.empty())
       return true;
-    ecs::TemplateRefs trefs;
+    ecs::TemplateRefs trefs(*g_entity_mgr);
     trefs.addComponentNames(mgd->trefs);
     for (const CreatingTemplate &templateData : mgd->templates)
     {
@@ -1546,8 +1584,8 @@ static void unload_all_das_es()
     removed = true;
     return true;
   });
-  if (removed)
-    ecs::reset_es_order();
+  if (removed && g_entity_mgr)
+    g_entity_mgr->resetEsOrder();
 }
 
 void shutdown_systems()
@@ -1579,25 +1617,32 @@ void shutdown_systems()
 
 void collect_heap(float mem_scale_threshold, ValidateDasGC validate)
 {
-  G_ASSERT(mem_scale_threshold >= 1.);
+  if (globally_loading_in_queue)
+    return;
+
+  TIME_PROFILE(collect_das_garbage);
+
+  G_ASSERT(mem_scale_threshold > 0.);
+  das::unique_lock<das::recursive_mutex> lock(scripts.mutex, std::defer_lock);
+  if (!lock.try_lock()) // in case of hot-reload
+    return;
   const int now = get_time_msec();
-  for (auto &[path, script] : scripts.scripts)
+  for (auto &[path, data] : scripts.scriptsMemory)
   {
-    if (!(script.ctx && script.ctx->persistent))
+    if (data.nextGcMsec > now)
       continue;
-    auto memIt = scripts.scriptsMemory.find_as(path);
-    if (memIt == scripts.scriptsMemory.end())
+    const auto scriptIt = scripts.scripts.find(path);
+    if (scriptIt == scripts.scripts.end())
     {
-      logerr("das: can't find memory info for '%s' to perform gc", path.c_str());
+      logerr("das: can't find script '%s' to perform gc", path.c_str());
       continue;
     }
-    if (memIt->second.nextGcMsec > now)
-      continue;
+    const LoadedScript &script = scriptIt->second;
     const uint64_t heapSize = script.ctx->heap->bytesAllocated();
     const uint64_t stringsHeapSize = script.ctx->stringHeap->bytesAllocated();
-    const float heapThreshold = (float)memIt->second.heapSize * mem_scale_threshold;
-    const float stringsHeapThreshold = (float)memIt->second.stringHeapSize * mem_scale_threshold;
-    const bool collectHeap = (float)heapSize > heapThreshold;
+    const float heapThreshold = data.heapSizeThreshold;
+    const float stringsHeapThreshold = data.stringHeapSizeThreshold;
+    bool collectHeap = (float)heapSize > heapThreshold;
     const bool collectStrings = (float)stringsHeapSize > stringsHeapThreshold;
     if (collectHeap || collectStrings)
     {
@@ -1605,15 +1650,10 @@ void collect_heap(float mem_scale_threshold, ValidateDasGC validate)
         debug("%s: heap size reached threshold %ld / %ld", path.c_str(), heapSize, heapThreshold);
       if (collectStrings)
         debug("%s: strings heap size reached threshold %ld / %ld", path.c_str(), stringsHeapSize, stringsHeapThreshold);
+      // script.ctx->heap->report();
+      // script.ctx->stringHeap->report();
       const int64_t ref = profile_ref_ticks();
-      if (!collectHeap)
-      {
-        script.ctx->collectStringHeap(nullptr, validate == ValidateDasGC::YES);
-      }
-      else
-      {
-        script.ctx->collectHeap(nullptr, collectStrings, validate == ValidateDasGC::YES);
-      }
+      script.ctx->collectHeap(nullptr, collectStrings, validate == ValidateDasGC::YES);
 
       const uint64_t newHeapSize = script.ctx->heap->bytesAllocated();
       const uint64_t newStringsHeapSize = script.ctx->stringHeap->bytesAllocated();
@@ -1621,11 +1661,13 @@ void collect_heap(float mem_scale_threshold, ValidateDasGC validate)
       debug("%s: gc executed in %d ms, heap size: %d, strings heap: %d", path.c_str(), profile_time_usec(ref) / 1000.f, newHeapSize,
         newStringsHeapSize);
 
-      if (collectHeap)
-        memIt->second.heapSize = eastl::max((uint64_t)script.ctx->heap->getInitialSize(), newHeapSize);
+      // we always collect heap, because we can't collect only strings heap
+      data.heapSizeThreshold =
+        eastl::max(eastl::max((uint64_t)script.ctx->heap->getInitialSize(), newHeapSize), heapSize * mem_scale_threshold);
       if (collectStrings)
-        memIt->second.stringHeapSize = eastl::max((uint64_t)script.ctx->stringHeap->getInitialSize(), newStringsHeapSize);
-      memIt->second.nextGcMsec = now + 5000; // + 5sec
+        data.stringHeapSizeThreshold = eastl::max(eastl::max((uint64_t)script.ctx->stringHeap->getInitialSize(), newStringsHeapSize),
+          stringsHeapSize * mem_scale_threshold);
+      data.nextGcMsec = now + 5000; // + 5sec
     }
   }
 }
@@ -1691,8 +1733,6 @@ bool load_das_script_with_debugcode(const char *fname)
   return ok;
 }
 
-void warn_on_persistent_heap(bool value) { scripts.warnOnPersistentHeap = value; }
-
 struct ScopedMultipleScripts
 {
   ScopedMultipleScripts() { start_multiple_scripts_loading(); }
@@ -1735,22 +1775,26 @@ struct DascriptLoadJob final : public DaThread
   das::daScriptEnvironment *environment = nullptr;
   bool enableStackFill = true;
   int count = 0;
+  bool success = true;
 
   DascriptLoadJob(TInitDas init_, volatile int &cnt, das::vector<das::string> &file_names, bool enable_stack_fill) :
-    DaThread("DasLoadThread", 256 << 10), init(init_), shared_counter(cnt), fileNames(file_names), enableStackFill(enable_stack_fill)
+    DaThread("DasLoadThread", 256 << 10, 0, WORKER_THREADS_AFFINITY_MASK),
+    init(init_),
+    shared_counter(cnt),
+    fileNames(file_names),
+    enableStackFill(enable_stack_fill)
   {}
 
-  bool do_work(Scripts &local_scripts, das::vector<das::string> &file_names)
+  void do_work(Scripts &local_scripts, das::vector<das::string> &file_names)
   {
     const bool wasStackFill = DagDbgMem::enable_stack_fill(enableStackFill);
     das::daScriptEnvironment::bound->g_resolve_annotations = false;
-    bool ok = true;
     if (!globally_thread_init_script.empty())
     {
       auto file_access = das::make_smart<DagFileAccess>(local_scripts.getFileAccess(), globally_hot_reload);
-      ok = local_scripts.loadScript(globally_thread_init_script, file_access, globally_aot_mode, ResolveECS::NO,
-             globally_log_aot_errors) &&
-           ok;
+      success = local_scripts.loadScript(globally_thread_init_script, file_access, globally_aot_mode, ResolveECS::NO,
+                  globally_log_aot_errors) &&
+                success;
     }
     while (true)
     {
@@ -1758,12 +1802,12 @@ struct DascriptLoadJob final : public DaThread
       if (i >= file_names.size())
         break;
       auto file_access = das::make_smart<DagFileAccess>(local_scripts.getFileAccess(), globally_hot_reload);
-      ok = local_scripts.loadScript(file_names[i], file_access, globally_aot_mode, ResolveECS::NO, globally_log_aot_errors) && ok;
+      success =
+        local_scripts.loadScript(file_names[i], file_access, globally_aot_mode, ResolveECS::NO, globally_log_aot_errors) && success;
       count++;
     }
     das::daScriptEnvironment::bound->g_resolve_annotations = true;
     DagDbgMem::enable_stack_fill(wasStackFill);
-    return ok;
   }
 
   void execute() override
@@ -1775,7 +1819,7 @@ struct DascriptLoadJob final : public DaThread
     debug("dascript: queue: job init in %@ ms", profile_time_usec(startTime) / 1000);
 
     Scripts &localScripts = scripts;
-    const bool ok = do_work(localScripts, fileNames);
+    do_work(localScripts, fileNames);
 
     {
       das::lock_guard<das::recursive_mutex> guard(scripts.mutex);
@@ -1788,31 +1832,45 @@ struct DascriptLoadJob final : public DaThread
 
     das::daScriptEnvironment::owned = nullptr;
     das::daScriptEnvironment::bound = nullptr;
-    debug("dascript: queue: job loaded ok? %@ in %@ ms %@ files", ok, profile_time_usec(startTime) / 1000, count);
+    debug("dascript: queue: job loaded ok? %@ in %@ ms %@ files", success, profile_time_usec(startTime) / 1000, count);
   }
 };
 
-static bool fill_stack_while_compile_das() { return !(bool)::dgs_get_argv("das-no-stack-fill", DAGOR_DBGLEVEL > 0 ? "y" : nullptr); }
+bool fill_stack_while_compile_das() { return !(bool)::dgs_get_argv("das-no-stack-fill", DAGOR_DBGLEVEL > 0 ? "y" : nullptr); }
 
 static bool load_scripts_from_serialized_data()
 {
-  bool ok = true;
   uint64_t size = 0;
-  initDeserializer << size;
-  for (size_t i = 0; i < size; i++)
+  das::vector<das::string> filenames;
+  bool ok = initDeserializer->trySerialize([&](das::AstSerializer &ser) {
+    ser << size;
+    for (size_t i = 0; i < size; i++)
+    {
+      das::string name;
+      ser << name;
+      filenames.push_back(name);
+    }
+  });
+  if (!ok)
   {
-    das::string name;
-    initDeserializer << name;
+    logwarn("das: serialize: failed to read serialized data");
+    return false;
+  }
+  for (const auto &name : filenames)
+  {
     auto file_access = das::make_smart<DagFileAccess>(scripts.getFileAccess(), globally_hot_reload);
     ok = scripts.loadScript(name, file_access, globally_aot_mode, ResolveECS::NO, LogAotErrors::YES) && ok;
   }
   // clean up module memory
   for (auto &[name, script] : scripts.scripts)
   {
-    if (!script.program->options.getBoolOption("rtti", false) && !das::is_in_aot())
+    if (enableSerialization && script.program && !script.program->options.getBoolOption("rtti", false) && !das::is_in_aot())
       script.program.reset();
-    script.moduleGroup->reset();
+    if (script.moduleGroup)
+      script.moduleGroup->reset();
   }
+  // collect created file infos that no module owns
+  initDeserializer->collectFileInfo(scripts.orphanFileInfos);
   enableSerialization = false;
   loadingQueue.clear(); // clear the queue
 #if DAGOR_DBGLEVEL > 0
@@ -1826,7 +1884,19 @@ bool stop_loading_queue(TInitDas init)
   globally_loading_in_queue = false;
 
   if (enableSerialization && serializationReading)
-    return load_scripts_from_serialized_data();
+  {
+    const bool loaded = load_scripts_from_serialized_data();
+    if (loaded)
+    {
+      debug("das: serialize: all scripts loaded from serialized data");
+      if (bind_dascript::initSerializer)
+        bind_dascript::initSerializer->failed = true; // disable serialization
+      return loaded;
+    }
+    logwarn("das: serialize: failed to load scripts from serialized data. Fallback to regular loading");
+    bind_dascript::serializationReading = false;
+    bind_dascript::suppressSerialization = true;
+  }
   else if (enableSerialization && !serializationReading)
     suppressSerialization = true; // do not write the data in serveral threads, it's written after compiling everything in execute()
 
@@ -1838,7 +1908,6 @@ bool stop_loading_queue(TInitDas init)
     volatile int cnt = -1;
     char padding[128];
   } shcnt;
-  globally_loading_in_queue = false;
   const bool enableStackFill = fill_stack_while_compile_das();
   const int numJobs = clamp((int)queue.size(), 1, globally_load_threads_num);
   debug("dascript: queue: init %@ jobs", numJobs);
@@ -1849,14 +1918,20 @@ bool stop_loading_queue(TInitDas init)
     DascriptLoadJob &job = jobs.emplace_back(init, shcnt.cnt, queue, enableStackFill);
     debug("dascript: queue: enqueue job %@", i);
     if (i != 0)
+    {
       G_VERIFY(job.start());
+    }
   }
   {
     das::ReuseCacheGuard guard;
     jobs[0].do_work(scripts, queue);
   }
+  ok = jobs[0].success && ok;
   for (int i = 1, n = jobs.size(); i < n; ++i)
+  {
     jobs[i].terminate(/*wait*/ true);
+    ok = jobs[i].success && ok;
+  }
 
   if (enableSerialization && !serializationReading)
   {
@@ -1868,15 +1943,21 @@ bool stop_loading_queue(TInitDas init)
         filesCount += 1;
       }
     }
-    initSerializer << filesCount;
+    *initSerializer << filesCount;
+    debug("das: serialize: Serializing %@ files", filesCount);
+    for (auto &fname : queue)
+    {
+      auto &script = scripts.scripts[fname];
+      if (script.program)
+        *initSerializer << fname;
+    }
     for (auto &fname : queue)
     {
       auto &script = scripts.scripts[fname];
       if (script.program)
       {
-        initSerializer << fname;
-        debug("das: ser: Serializing file %s", fname);
-        script.program->serialize(initSerializer);
+        debug("das: serialize: Serializing file %s", fname);
+        initSerializer->serializeScript(script.program);
       }
     }
   }
@@ -1942,11 +2023,153 @@ bool load_entry_script(const char *entry_point_name, TInitDas init, LoadEntryScr
   return res;
 }
 
+static auto get_serialization_scripts_version() -> das::vector<int64_t>
+{
+  Tab<SimpleString> list;
+
+  bind_dascript::DagFileAccess access{bind_dascript::HotReload::DISABLED};
+  if (const DataBlock *pathsBlk = ::dgs_get_settings()->getBlockByName("game_das_serialization_scan_paths"))
+  {
+    dag::Vector<eastl::string> scanFolders;
+    for (int i = 0, n = pathsBlk->paramCount(); i < n; i++)
+    {
+      const char *path = pathsBlk->getStr(i);
+      const char *dirPath = path;
+      String tmp_dir_path;
+      if (dd_resolve_named_mount(tmp_dir_path, dirPath))
+        dirPath = tmp_dir_path;
+      if (!dirPath || !*dirPath)
+      {
+        logerr(
+          "das: serialize: empty mount point '%s' in 'game_das_serialization_scan_paths'. Please fix it, set correct, not empty path",
+          path);
+        continue;
+      }
+      if (eastl::find(scanFolders.begin(), scanFolders.end(), dirPath) == scanFolders.end())
+        scanFolders.push_back(eastl::string(dirPath));
+    }
+    bool useVromsSrc = false;
+#if DAGOR_DBGLEVEL > 0
+    useVromsSrc = ::dgs_get_settings()->getBlockByNameEx("debug")->getBool("useAddonVromSrc", false);
+#endif
+    size_t prevSize = list.size();
+    for (auto &dirPath : scanFolders)
+    {
+      debug("das: serialize: search das files in '%s' ...", dirPath);
+      uint64_t startTime = profile_ref_ticks();
+      find_files_in_folder(list, dirPath.c_str(), ".das", /*vromfs*/ true, /*realfs*/ useVromsSrc, /*subdirs*/ true);
+      debug("das: serialize: scan complete, found %d files in %@ ms", list.size() - prevSize, profile_time_usec(startTime) / 1000);
+      prevSize = list.size();
+    }
+  }
+  else
+  {
+    logerr(
+      "setting 'game_das_serialization_scan_paths' is not set, please add this block and list all mount points with Daslang files,"
+      " for example\ngame_das_serialization_scan_paths { it:t=\"%danetlibs\"; it:t=\"%scripts\" ... }");
+  }
+
+  das::vector<das::pair<das::string, int64_t>> mts;
+  for (auto &i : list)
+  {
+    das::string s{i.c_str()};
+    mts.emplace_back(s, access.getFileMtime(i.c_str()));
+  }
+
+  das::vector<int64_t> mt;
+  mt.reserve(mts.size());
+
+  eastl::sort(mts.begin(), mts.end());
+
+  // Map into mtime
+  eastl::transform(mts.begin(), mts.end(), eastl::back_inserter(mt), [](const auto &pair) { return pair.second; });
+
+  return mt;
+}
+
+static bool compare_loading_queues()
+{
+  das::vector<das::string> savedQueue;
+  if (!bind_dascript::initDeserializer->trySerialize([&](das::AstSerializer &ser) { ser << savedQueue; }))
+  {
+    logwarn("das: serialize: failed to read serialized data (files)");
+    return false;
+  }
+
+  bool queuesMatch = bind_dascript::loadingQueue == savedQueue;
+
+  if (queuesMatch) // also check mtimes in this case
+  {
+    das::vector<int64_t> savedMtimes;
+    if (!bind_dascript::initDeserializer->trySerialize([&](das::AstSerializer &ser) { ser << savedMtimes; }))
+    {
+      logwarn("das: serialize: failed to read serialized data (mtimes)");
+      return false;
+    }
+    auto loadingMtimes = get_serialization_scripts_version();
+    return savedMtimes == loadingMtimes;
+  }
+
+  return queuesMatch;
+}
+
+static void write_serializer_version()
+{
+  uint32_t ptrsize = sizeof(void *), protocolVersion = bind_dascript::initSerializer->getVersion();
+  debug("das: serialize: Versions differ: init from text files, writeback the result. Game version: %lu, protocol version: %lu, "
+        "ptrsize: %@",
+    g_serializationVersion, protocolVersion, ptrsize);
+  *bind_dascript::initSerializer << g_serializationVersion << protocolVersion << ptrsize;
+  *bind_dascript::initSerializer << bind_dascript::loadingQueue;
+  {
+    auto v = get_serialization_scripts_version();
+    *bind_dascript::initSerializer << v;
+  }
+}
+
+static void set_up_serializer_versions(uint32_t serialized_version)
+{
+  bind_dascript::serializationReading = serialized_version != -1 && g_serializationVersion == serialized_version;
+  if (bind_dascript::serializationReading)
+  {
+    bind_dascript::serializationReading = compare_loading_queues();
+  }
+
+  if (bind_dascript::serializationReading)
+    debug("das: serialize: Versions match: init from binary data");
+  else
+    write_serializer_version();
+}
+
+bool load_entry_script_with_serialization(const char *entry_point_name, TInitDas init, LoadEntryScriptCtx ctx,
+  const uint32_t serialized_version)
+{
+  bool res = false;
+  start_multiple_scripts_loading();
+  begin_loading_queue();
+  if (internal_load_entry_script(entry_point_name))
+  {
+    set_up_serializer_versions(serialized_version);
+    if (serializationReading)
+      initDeserializer->getCompiledModules();
+    else
+      initSerializer->getCompiledModules();
+    enableSerialization = true;
+    res = stop_loading_queue(init);
+    enableSerialization = false;
+  }
+  end_loading_queue(ctx);
+
+  drop_multiple_scripts_loading(); // unset das_is_in_init_phase, es_reset_order calls in the end of function
+  return res;
+}
+
 void end_loading_queue(LoadEntryScriptCtx ctx)
 {
   scripts.done();
   scripts.cleanupMemoryUsage();
-  initDeserializer.moduleLibrary = nullptr; // Memory has already been reset
+  if (initDeserializer)
+    initDeserializer->moduleLibrary = nullptr; // Memory has already been reset
   scripts.statistics.loadTimeMs = profile_time_usec(entryScriptStartTime) / 1000;
   scripts.statistics.memoryUsage =
     int64_t(dagor_memory_stat::get_memory_allocated(true) - entryScriptMemUsed) + ctx.additionalMemoryUsage;
@@ -2036,9 +2259,9 @@ static void es_run(const char *name, const das::Block &block, const das::LineInf
           *((void *__restrict *__restrict)argsPtr) = src;
           if (!(flag & POINTER_DEST))
           {
-            if (EASTL_UNLIKELY(*stridePtr == 1))
+            if (DAGOR_UNLIKELY(*stridePtr == 1))
               *argsPtr = v_cast_vec4f(v_splatsi(*(uint8_t *)src));
-            else if (EASTL_UNLIKELY(*stridePtr == 2))
+            else if (DAGOR_UNLIKELY(*stridePtr == 2))
               *argsPtr = v_cast_vec4f(v_splatsi(*(uint16_t *)src));
             else
               *argsPtr = v_ldu((float *)src);
@@ -2048,7 +2271,7 @@ static void es_run(const char *name, const das::Block &block, const das::LineInf
         // debug("eid %d", v_extract_xi(v_cast_vec4i(args[0])));
         vec4f ret = code->eval(context);
         context.stopFlags = 0;
-        if (EASTL_UNLIKELY(context.getException()))
+        if (DAGOR_UNLIKELY(context.getException()))
         {
           logerr("%s: exception <%s> during es <%s>", line ? line->describe() : "", context.getException(),
             block.info ? block.info->name : name);
@@ -2083,9 +2306,9 @@ static void es_run(const char *name, const das::Block &block, const das::LineInf
               *((void const **)&*argsPtr) = ((ecs::string *)src)->c_str();
             else
             {
-              if (EASTL_UNLIKELY(*stridePtr == 1))
+              if (DAGOR_UNLIKELY(*stridePtr == 1))
                 *argsPtr = v_cast_vec4f(v_splatsi(*(uint8_t *)src));
-              else if (EASTL_UNLIKELY(*stridePtr == 2))
+              else if (DAGOR_UNLIKELY(*stridePtr == 2))
                 *argsPtr = v_cast_vec4f(v_splatsi(*(uint16_t *)src));
               else
                 *argsPtr = v_ldu((float *)src);
@@ -2095,7 +2318,7 @@ static void es_run(const char *name, const das::Block &block, const das::LineInf
         }
         vec4f ret = code->eval(context);
         context.stopFlags = 0;
-        if (EASTL_UNLIKELY(context.getException()))
+        if (DAGOR_UNLIKELY(context.getException()))
         {
           logerr("%s: exception <%s> during es <%s>", line ? line->describe() : "", context.getException(),
             block.info ? block.info->name : name);
@@ -2156,7 +2379,7 @@ static EsContext *get_worker_context(const ecs::QueryView &qv, const EsDesc *esD
     int curFrame = dagor_frame_no();
     if (esData->context->touchedByWkId != tpwid)
     {
-      if (EASTL_UNLIKELY(esData->context->touchedAtFrame == curFrame))
+      if (DAGOR_UNLIKELY(esData->context->touchedAtFrame == curFrame))
       {
         static eastl::vector_set<uint32_t> reported_violation_eses;
         if (reported_violation_eses.insert(str_hash_fnv1(esData->functionPtr->name)).second)
@@ -2205,7 +2428,7 @@ static inline void run_es_query_lambda(const ecs::QueryView &qv, const EsDesc *e
     runLambdaWithCatch();
 #endif
 
-  if (EASTL_UNLIKELY(!result))
+  if (DAGOR_UNLIKELY(!result))
   {
     nestedQuery.restore(context->mgr);
     if (verboseExceptions > 0)
@@ -2725,7 +2948,8 @@ static bool aotEsRunBlock(das::TextWriter &ss, EsQueryDesc *desc, const bind_das
       body << "// " << arg->name;
   }
 
-  ss.writeStr(body.c_str(), body.tellp());
+  auto body_sz = body.tellp();
+  ss.writeStr(body.c_str(), body_sz);
 
   //
   ss << "\n\t\t)";
@@ -2854,7 +3078,7 @@ struct EsRunFunctionAnnotation : das::FunctionAnnotation
     G_ASSERT("Internal error: closure without system annotation");
     return nullptr;
   }
-  virtual void aotPrefix(das::TextWriter &ss, das::ExprCallFunc *call) override //!!!
+  virtual void aotPrefix(das::TextWriter &ss, das::ExprCallFunc *call) override
   {
     const uint32_t blockArgIdx = ArgsOffset + (esType != EsType::ES && esType != EsType::SingleEidQuery ? 0 : 1);
     auto mb = das::static_pointer_cast<das::ExprMakeBlock>(call->arguments[blockArgIdx]);
@@ -3091,6 +3315,29 @@ static void pull()
 
 void bind_dascript::set_das_root(const char *root_path) { das::setDasRoot(root_path); }
 
+void bind_dascript::free_serializer_buffer(bool success)
+{
+  const bool needWriteSerData = success && bind_dascript::initSerializer && !bind_dascript::initSerializer->failed &&
+                                !bind_dascript::serializationFileName.empty();
+
+  bind_dascript::initSerializerStorage.reset();
+  bind_dascript::initDeserializerStorage.reset();
+  bind_dascript::initSerializer.reset();
+  bind_dascript::initDeserializer.reset();
+
+  const auto &newFileName = bind_dascript::serializationFileName;
+  if (needWriteSerData)
+  {
+    const auto &filename = bind_dascript::deserializationFileName;
+    dd_erase(filename.c_str());
+    dd_rename(newFileName.c_str(), filename.c_str());
+  }
+  else
+  {
+    dd_erase(newFileName.c_str());
+  }
+}
+
 void bind_dascript::set_command_line_arguments(int argc, char *argv[]) { das::setCommandLineArguments(argc, argv); }
 
 void bind_dascript::pull_das() { pull(); }
@@ -3166,7 +3413,8 @@ void bind_dascript::end_multiple_scripts_loading()
 {
   G_ASSERT(das_is_in_init_phase);
   das_is_in_init_phase = false;
-  ecs::reset_es_order();
+  if (g_entity_mgr)
+    g_entity_mgr->resetEsOrder();
 }
 
 void bind_dascript::load_event_files(bool do_load) { scripts.loadEvents = do_load; }

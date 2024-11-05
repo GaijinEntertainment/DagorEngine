@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <util/dag_stdint.h>
 #include <generic/dag_span.h>
 #include <EASTL/vector.h>
@@ -52,8 +54,9 @@ struct alignas(16) ArchetypesQuery
   uint32_t getComponentsCount() const { return rwCount + roCount; }
   __forceinline bool hasComponents() const
   {
-    G_STATIC_ASSERT(offsetof(ArchetypesQuery, rwCount) == offsetof(ArchetypesQuery, roCount) + 2);
-    G_STATIC_ASSERT(sizeof(rwCount) == 2 && sizeof(roCount) == 2 && sizeof(roRW) == 4);
+    G_STATIC_ASSERT(offsetof(ArchetypesQuery, rwCount) == offsetof(ArchetypesQuery, roCount) + 1);
+    G_STATIC_ASSERT(sizeof(rwCount) == 1 && sizeof(roCount) == 1 && sizeof(roRW) == 2);
+    G_STATIC_ASSERT(offsetof(ArchetypesQuery, queries) % sizeof(void *) == 0);
     return roRW != 0;
   }
 
@@ -61,23 +64,25 @@ struct alignas(16) ArchetypesQuery
   {
     struct
     {
-      uint16_t roCount, rwCount;
+      uint8_t roCount, rwCount;
     };
-    uint32_t roRW;
+    uint16_t roRW;
   };
   archetype_t queriesCount = 0;
 
-  component_index_t trackedChangesCount = 0;
-  archetype_t archSubQueriesCount = 0;
-
-  archetype_t firstArch = 0, secondArch = 0, thirdArch = 0;
+  archetype_t firstArch = 0, secondArch = 0;
   // this is array of all archetypes that fit into this query
-  // needed for non-eid queries only
+  // todo: for sequential archetypes do not store queries at all.
   union
   {
-    archetype_t *queries = nullptr; // if queriesCount > 7
-    archetype_t arches[4];          // other inplace archetypes, starting from fourth, if queriesCount < 7
+    archetype_t *queries = nullptr; // if queriesCount > max_inline
+    archetype_t arches[4];          // other inplace archetypes, starting from fourth, if queriesCount < max_inline
   };
+  archetype_t lastArches0 = 0, lastArches1 = 0, lastArch = 0; //+3 more archetypes
+
+  uint16_t trackedChangesCount = 0;
+  // all archetypes in [queriesBegin(), queriesEnd()) are sequential from firstArch
+  bool sequential() const { return lastArch + 1 == queriesCount + firstArch; }
 
   typedef uint16_t offset_type_t;
   static constexpr int INVALID_OFFSET = eastl::numeric_limits<offset_type_t>::max();
@@ -101,8 +106,9 @@ struct alignas(16) ArchetypesQuery
   static __forceinline bool isInplaceOffsets(int cnt) { return ((cnt - 1) >> inplace_offsets_count_bits) == 0; }
   __forceinline bool isInplaceOffsets() const { return isInplaceOffsets(getAllComponentsArchOffsetsCount()); }
 
-  static constexpr int inplace_arch_count_bits = 3; // 7 total, so we check 3 bits
-  static __forceinline bool isInplaceQueries(int cnt) { return (cnt >> inplace_arch_count_bits) == 0; }
+  static constexpr int max_inline_archs_count = 9;
+
+  static __forceinline bool isInplaceQueries(int cnt) { return cnt <= max_inline_archs_count; }
 
   __forceinline bool isInplaceQueries() const { return isInplaceQueries(queriesCount); }
   uint32_t getAllComponentsArchOffsetsCount() const { return getQueriesCount() * getComponentsCount(); }
@@ -134,7 +140,7 @@ struct alignas(16) ArchetypesQuery
     roCount = 0, rwCount = 0;
     trackedChangesCount = 0;
     queriesCount = 0;
-    firstArch = archSubQueriesCount = 0;
+    firstArch = lastArch = 0;
     trackedChanges.reset(nullptr);
   }
   ~ArchetypesQuery() { reset(); }
@@ -145,11 +151,12 @@ struct alignas(16) ArchetypesQuery
     roRW(a.roRW),
     trackedChangesCount(a.trackedChangesCount),
     queriesCount(a.queriesCount),
-    archSubQueriesCount(a.archSubQueriesCount),
-    queries(a.queries),
     firstArch(a.firstArch),
     secondArch(a.secondArch),
-    thirdArch(a.thirdArch)
+    lastArch(a.lastArch),
+    queries(a.queries),
+    lastArches0(a.lastArches0),
+    lastArches1(a.lastArches1)
   {
     a.queries = nullptr;
     a.queriesCount = 0;
@@ -161,18 +168,16 @@ inline size_t ArchetypesQuery::memUsage() const
 {
   return (isInplaceQueries() ? 0 : sizeof(archetype_t) * getQueriesCount()) +
          (isInplaceOffsets() ? 0 : sizeof(offset_type_t) * getAllComponentsArchOffsetsCount()) +
-         (sizeof(uint16_t)) * getComponentsCount() + sizeof(ScheduledArchetypeComponentTrack) * trackedChangesCount +
-         sizeof(archetype_t) * archSubQueriesCount;
+         (sizeof(uint16_t)) * getComponentsCount() + sizeof(ScheduledArchetypeComponentTrack) * trackedChangesCount;
 }
 
-struct alignas(16) ArchetypesEidQuery
+struct ArchetypesEidQuery
 {
   // actually, this pointer can be duplicated for some queries. Many
   // queries can have exact same archetypes fitting, so we'd better
   // store just non-owning pointer/offset here
-  uint32_t archSubQueriesAt = ~0u;
   uint32_t componentsSizesAt = ~0u;
-  void reset() { archSubQueriesAt = componentsSizesAt = ~0u; }
+  void reset() { componentsSizesAt = ~0u; }
 };
 
 struct ResolvedQueryDesc // resolved query won't change ever (if it was successfully resolved)

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <streamIO/streamIO.h>
 #include <asyncHTTPClient/asyncHTTPClient.h>
 #include <osApiWrappers/dag_files.h>
@@ -105,9 +107,6 @@ struct HTTPContext : public Context
         httprequests::abort_request(req_id);
     }
     httprequests::poll();
-
-    WinAutoLock lk(streamsCs);
-    streams.erase(req_id);
   }
 
   void removeRequest(httprequests::RequestId req_id)

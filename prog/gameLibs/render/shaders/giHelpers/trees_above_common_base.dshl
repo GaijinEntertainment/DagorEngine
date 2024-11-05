@@ -1,0 +1,53 @@
+texture trees2d;
+texture trees2d_depth;
+texture trees2d_depth_min;
+float4 world_to_trees_tex_mul;
+float4 world_to_trees_tex_ofs;
+hlsl {
+  #define MAX_TREE_ABOVE_THICKNESS 32.
+}
+macro USE_TREES_ABOVE_BASE(code)
+  (code) {
+    trees2d_depth@smp2d = trees2d_depth;
+    trees2d@smp2d = trees2d;
+    world_to_trees_tex_ofs@f4 = world_to_trees_tex_ofs;
+    world_to_trees_tex_mul@f4 = world_to_trees_tex_mul;
+  }
+  hlsl(code) {
+    bool get_trees_above_color_height(float2 worldPosXZ, inout float3 worldNormal, inout float3 downWorldNormal, inout float worldPosMaxY, inout float worldPosMinY, inout half3 color, bool precise_center)
+    {
+      float2 tc = worldPosXZ*world_to_trees_tex_mul.x + world_to_trees_tex_mul.yz;
+      float2 abstc = abs(tc*2-1);
+      if (any(abstc >= 1 - 1./1024))
+        return false;
+      if (precise_center)
+      {
+        tc = (floor(tc*world_to_trees_tex_mul.w)+0.5)/world_to_trees_tex_mul.w;//to get exactly center (not needed in albedo pass)
+        worldPosXZ = (tc-world_to_trees_tex_mul.yz)/world_to_trees_tex_mul.x;
+      }
+      tc -= world_to_trees_tex_ofs.zw;
+
+      float4 albedoThickness = tex2Dlod(trees2d, float4(tc,0,0));
+      if (albedoThickness.a == 0)
+        return false;
+      float depth = tex2Dlod(trees2d_depth, float4(tc,0,0)).x;
+      if (depth == 0)
+        return false;
+      float2 offset = float2(1./world_to_trees_tex_mul.w, 0);
+      half W = tex2Dlod(trees2d_depth, float4(tc.xy - offset.xy,0,0)).x;
+      half E = tex2Dlod(trees2d_depth, float4(tc.xy + offset.xy,0,0)).x;
+      half N = tex2Dlod(trees2d_depth, float4(tc.xy - offset.yx,0,0)).x;
+      half S = tex2Dlod(trees2d_depth, float4(tc.xy + offset.yx,0,0)).x;
+      worldNormal = normalize(half3(W-E, offset.x/(world_to_trees_tex_mul.x*world_to_trees_tex_ofs.x), N-S));
+      W += tex2Dlod(trees2d, float4(tc.xy - offset.xy,0,0)).a*MAX_TREE_ABOVE_THICKNESS;
+      E += tex2Dlod(trees2d, float4(tc.xy + offset.xy,0,0)).a*MAX_TREE_ABOVE_THICKNESS;
+      N += tex2Dlod(trees2d, float4(tc.xy - offset.yx,0,0)).a*MAX_TREE_ABOVE_THICKNESS;
+      S += tex2Dlod(trees2d, float4(tc.xy + offset.yx,0,0)).a*MAX_TREE_ABOVE_THICKNESS;
+      downWorldNormal = normalize(half3(W-E, -offset.x/(world_to_trees_tex_mul.x*world_to_trees_tex_ofs.x), N-S));
+      worldPosMaxY = depth*world_to_trees_tex_ofs.x + world_to_trees_tex_ofs.y;
+      color = albedoThickness.rgb;
+      worldPosMinY = worldPosMaxY - albedoThickness.a*MAX_TREE_ABOVE_THICKNESS;
+      return true;
+    }
+  }
+endmacro

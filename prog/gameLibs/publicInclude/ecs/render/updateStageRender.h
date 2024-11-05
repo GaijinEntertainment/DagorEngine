@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -9,7 +8,7 @@
 #include <daECS/core/event.h>
 #include <math/dag_frustum.h>
 #include <vecmath/dag_vecMath_common.h>
-#include <3d/dag_drvDecl.h>
+#include <drv/3d/dag_decl.h>
 #include "renderPasses.h"
 #include "transformHolder.h"
 #include <3d/dag_texStreamingContext.h>
@@ -20,18 +19,22 @@ class Occlusion;
 struct UpdateStageInfoBeforeRender : public ecs::Event, public TransformHolder
 {
   ECS_INSIDE_EVENT_DECL(UpdateStageInfoBeforeRender, ::ecs::EVCAST_BROADCAST | ::ecs::EVFLG_PROFILE);
-  float dt = 0.f, actDt = 0.f, realDt = 0.f;
   Frustum mainCullingFrustum;
   Frustum froxelFogCullingFrustum; // TODO: maybe separate it
-  Occlusion *mainOcclusion;
+  float dt = 0.f, actDt = 0.f, realDt = 0.f;
   float mainInvHkSq;
+  Point2 mainWkHk;
   Point3 camPos;
   Point3 dirFromSun;
+  TMatrix viewItm;
   // -(roundedCamPos+remainderCamPos) - same as -camPos, but more precise, as calculated in doubles!
   vec4f negRoundedCamPos, negRemainderCamPos;
+  Occlusion *mainOcclusion;
+  Driver3dPerspective persp;
   UpdateStageInfoBeforeRender(float dt_, float act_dt, float real_dt, const Frustum &main_culling, const Frustum &froxel_fog_culling,
-    float main_inv_hk_sq, Occlusion *main_occl, const Point3 &cam_pos, vec4f neg_rounded_cam_pos, vec4f neg_remainder_cam_pos,
-    const Point3 &dir_from_sun, const TMatrix &view_tm, const TMatrix4 &proj_tm) :
+    Point2 main_wk_hk, float main_inv_hk_sq, Occlusion *main_occl, const Point3 &cam_pos, vec4f neg_rounded_cam_pos,
+    vec4f neg_remainder_cam_pos, const Point3 &dir_from_sun, const TMatrix &view_tm, const TMatrix4 &proj_tm, const TMatrix &itm,
+    const Driver3dPerspective &persp_) :
     ECS_EVENT_CONSTRUCTOR(UpdateStageInfoBeforeRender),
     TransformHolder(view_tm, proj_tm),
     dt(dt_),
@@ -40,11 +43,14 @@ struct UpdateStageInfoBeforeRender : public ecs::Event, public TransformHolder
     mainCullingFrustum(main_culling),
     froxelFogCullingFrustum(froxel_fog_culling),
     mainOcclusion(main_occl),
+    mainWkHk(main_wk_hk),
     mainInvHkSq(main_inv_hk_sq),
     camPos(cam_pos),
     dirFromSun(dir_from_sun),
+    viewItm(itm),
     negRoundedCamPos(neg_rounded_cam_pos),
-    negRemainderCamPos(neg_remainder_cam_pos)
+    negRemainderCamPos(neg_remainder_cam_pos),
+    persp(persp_)
   {}
 };
 

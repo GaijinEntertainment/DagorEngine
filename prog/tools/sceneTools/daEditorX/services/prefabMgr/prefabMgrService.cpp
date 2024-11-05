@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_interface.h>
 #include <de3_objEntity.h>
 #include <de3_entityPool.h>
@@ -17,7 +19,8 @@
 #include <oldEditor/de_common_interface.h>
 #include <scene/dag_occlusionMap.h>
 #include <scene/dag_occlusion.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
 #include <ioSys/dag_dataBlock.h>
@@ -29,7 +32,13 @@
 #include <coolConsole/coolConsole.h>
 #include <de3_collisionPreview.h>
 #include <de3_entityCollision.h>
+#include <de3_staticMaterialEditor.h>
 #include <perfMon/dag_statDrv.h>
+#include <obsolete/dag_cfg.h>
+#include <stdio.h>
+#include <EditorCore/ec_interface_ex.h>
+#include <EditorCore/ec_interface.h>
+
 
 static int prefabEntityClassId = -1;
 static int collisionSubtypeMask = -1;
@@ -151,7 +160,7 @@ public:
   {
     BSphere3 bs;
     bs = tm * bsph;
-    if (visibility_finder && !visibility_finder->isScreenRatioVisible(bs.c, bs.r2))
+    if (!EDITORCORE->queryEditorInterface<IVisibilityFinderProvider>()->getVisibilityFinder().isScreenRatioVisible(bs.c, bs.r2))
       return false;
     if (!frustum.testSphereB(bs.c, bs.r))
       return false;
@@ -499,6 +508,8 @@ public:
     return NULL;
   }
 
+  GeomObject *getGeomObject() { return geom; }
+
 protected:
   DagorAssetMgr *aMgr;
   GeomObject *geom;
@@ -687,7 +698,8 @@ class PrefabEntityManagementService : public IEditorService,
                                       public IGatherStaticGeometry,
                                       public IDagorEdCustomCollider,
                                       public IOccluderGeomProvider,
-                                      public IRenderingService
+                                      public IRenderingService,
+                                      public IStaticGeometryMaterialEditor
 {
 public:
   PrefabEntityManagementService()
@@ -750,6 +762,7 @@ public:
     RETURN_INTERFACE(huid, IRenderingService);
     RETURN_INTERFACE(huid, IGatherStaticGeometry);
     RETURN_INTERFACE(huid, IOccluderGeomProvider);
+    RETURN_INTERFACE(huid, IStaticGeometryMaterialEditor);
     return NULL;
   }
 
@@ -949,6 +962,95 @@ public:
   }
   virtual void renderOccluders(const Point3 &camPos, float max_dist) {}
 
+  // IStaticGeometryMaterialEditor
+  void setMaterialColorForEntity(IObjEntity *entity, int node_idx, int material_idx, const E3DCOLOR &color) override
+  {
+    if (!entity || entity->getAssetTypeId() != prefabEntityClassId)
+      return;
+
+    PrefabEntity *ent = reinterpret_cast<PrefabEntity *>(entity);
+    GeomObject *geomObject = ent->pool->getPools()[ent->poolIdx]->getGeomObject();
+    if (!geomObject)
+      return;
+
+    if (node_idx >= geomObject->getGeometryContainer()->getNodes().size())
+      return;
+
+    if (material_idx >= geomObject->getGeometryContainer()->getNodes()[node_idx]->mesh->mats.size())
+      return;
+
+    StaticGeometryMaterial *mat = geomObject->getGeometryContainer()->getNodes()[node_idx]->mesh->mats[material_idx];
+
+    String newMatScript;
+    char colorString[128];
+    sprintf(colorString, "%hhu,%hhu,%hhu,%hhu", color.r, color.g, color.b, color.a);
+
+    CfgReader c;
+    c.getdiv_text(String(128, "[q]\r\n%s\r\n", mat->scriptText), "q");
+
+    bool colorWritten = false;
+    for (int i = 0; i < c.div[c.curdiv].var.size(); i++)
+    {
+      CfgVar &var = c.div[c.curdiv].var[i];
+
+      char *currentVal = var.val;
+      if (strcmp(var.id, "color_mul_add") == 0)
+      {
+        currentVal = colorString;
+        colorWritten = true;
+      }
+      newMatScript += String(128, "%s=%s%s", var.id, currentVal, i == c.div[c.curdiv].var.size() - 1 ? "" : "\r\n");
+    }
+
+    if (!colorWritten)
+    {
+      newMatScript += String(128, "\r\ncolor_mul_add=%s", colorString);
+    }
+    mat->scriptText = newMatScript;
+
+    geomObject->recompile();
+  }
+
+  void getMaterialsForDecalEntity(IObjEntity *entity, Tab<MaterialEntry> &out_materials) override
+  {
+    if (!entity || entity->getAssetTypeId() != prefabEntityClassId)
+      return;
+
+    PrefabEntity *ent = reinterpret_cast<PrefabEntity *>(entity);
+    GeomObject *geomObject = ent->pool->getPools()[ent->poolIdx]->getGeomObject();
+    if (!geomObject)
+      return;
+
+    for (int node_idx = 0; node_idx < geomObject->getGeometryContainer()->getNodes().size(); node_idx++)
+    {
+      StaticGeometryNode *node = geomObject->getGeometryContainer()->getNodes()[node_idx];
+      if (!node->mesh)
+        continue;
+      for (int mat_idx = 0; mat_idx < node->mesh->mats.size(); mat_idx++)
+      {
+        const StaticGeometryMaterial *mat = node->mesh->mats[mat_idx];
+        E3DCOLOR color(255, 255, 255, 0);
+        CfgReader cfgReader;
+        cfgReader.getdiv_text(String(128, "[q]\r\n%s\r\n", mat->scriptText), "q");
+        color = cfgReader.gete3dcolor("color_mul_add", color);
+        out_materials.push_back({mat, node_idx, mat_idx, color.u});
+      }
+    }
+  }
+
+  void saveStaticGeometryAssetByEntity(IObjEntity *entity) override
+  {
+    if (!entity || entity->getAssetTypeId() != prefabEntityClassId)
+      return;
+
+    PrefabEntity *ent = reinterpret_cast<PrefabEntity *>(entity);
+    GeomObject *geomObject = ent->pool->getPools()[ent->poolIdx]->getGeomObject();
+    if (!geomObject)
+      return;
+
+    geomObject->saveToDag(ent->getAsset()->getTargetFilePath());
+  }
+
 protected:
   MultiPrefabEntityPool prefabPool;
   bool visible;
@@ -959,7 +1061,7 @@ void init_prefabmgr_service(const DataBlock &app_blk)
 {
   if (!IDaEditor3Engine::get().checkVersion())
   {
-    debug_ctx("Incorrect version!");
+    DEBUG_CTX("Incorrect version!");
     return;
   }
   if (const char *re_src = app_blk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("prefabMgr")->getStr("clipmapShaderRE", NULL))

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/dasModulesCommon.h>
 #include <EASTL/vector_map.h>
 #include "unitModule.h"

@@ -1,0 +1,36 @@
+include "shader_global.dshl"
+
+float4 pcf_lerp = (0, 0, 0, 0);
+texture shadow_cascade_depth_tex;
+
+shader downsample_shadows_depth_4x
+{
+  supports global_frame;
+  z_func=always;
+  cull_mode=none;
+  no_ablend;
+  color_write=0;
+
+  POSTFX_VS(0.5)
+
+  (ps) {
+    //esm_resolve_dist@f4 = esm_resolve_dist;
+    shadows_resolution@f2 = (4./pcf_lerp.z, 4./pcf_lerp.w, 0, 0);
+    shadow_tex@smp2d = shadow_cascade_depth_tex;
+  }
+  hlsl(ps) {
+    void downsample_ps(VsOutput IN HW_USE_SCREEN_POS, out float depth : SV_Depth)
+    {
+      float4 vpos = GET_SCREEN_POS(IN.pos);
+      float4 accum;
+      float2 tc = (floor(vpos.xy)*shadows_resolution.xy);
+      accum = (shadow_tex.GatherRed(shadow_tex_samplerstate, tc, int2(0, 0)));
+      accum = min(accum, (shadow_tex.GatherRed(shadow_tex_samplerstate, tc, int2(2, 0) )));
+      accum = min(accum, (shadow_tex.GatherRed(shadow_tex_samplerstate, tc, int2(0, 2) )));
+      accum = min(accum, (shadow_tex.GatherRed(shadow_tex_samplerstate, tc, int2(2, 2) )));
+      depth = min(min(accum.x, accum.y), min(accum.z, accum.w));
+    }
+  }
+
+  compile("target_ps", "downsample_ps");
+}

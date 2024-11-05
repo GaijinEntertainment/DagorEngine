@@ -1,0 +1,43 @@
+render_settings {
+  _singleton:b=yes
+  _tags:t="render"
+  _track:b=true
+
+  _use:t="replicating"
+
+  render_settings__inited:b=false
+
+  render_settings__ssssQuality:t="low"
+  render_settings__shadowsQuality:t="medium"
+
+  render_settings__gamma_correction:r=1.0
+  render_settings__is_hdr_enabled:b=false
+
+  render_settings__bare_minimum:b=false
+  render_settings__grassQuality:t="high" // "minimum", "low", "high"
+
+  render_settings__fftWaterQuality:t="high" // low, medium, high, ultra
+  render_settings__waterQuality:t="low" // low, medium, high
+  render_settings__fullDeferred:b=true // render feature
+  render_settings__rain_ripples_enabled:b=true // graphics
+  render_settings__motionBlur:b=false // graphics
+  render_settings__dropletsOnScreen:b=true // graphics
+  render_settings__snowflakesOnScreen:b=false // graphics
+
+  render_settings__forwardRendering:b=true // render feature
+  render_settings__upscaleSamplingTex:b=true // render feature
+  render_settings__combinedShadows:b=true // render feature
+  render_settings__haze:b=true // render feature
+  render_settings__adaptation:b=true // render feature
+  render_settings__gpuResidentAdaptation:b=true // render feature
+
+  render_settings__anisotropy:i=-1 // graphics
+
+  render_settings__effectsShadows:b=false // graphics
+  render_settings__effects__max_active_shadows:i=4
+
+  render_settings__HQVolfog:b=false
+  render_settings__volumeFogQuality:t="close" // "close", "far"
+
+  render_settings__giAlgorithm:t="medium"
+}

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daScript/daScript.h>
 #include <dasModules/aotDagorImgui.h>
 
@@ -27,6 +29,12 @@ public:
       windowReg->unloadContext(ctx);
     });
 
+    das::addExtern<DAS_BIND_FUN(imgui_set_bold_font)>(*this, lib, "imgui_set_bold_font", das::SideEffects::modifyExternal,
+      "::imgui_set_bold_font");
+    das::addExtern<DAS_BIND_FUN(imgui_set_mono_font)>(*this, lib, "imgui_set_mono_font", das::SideEffects::modifyExternal,
+      "::imgui_set_mono_font");
+    das::addExtern<DAS_BIND_FUN(imgui_set_default_font)>(*this, lib, "imgui_set_default_font", das::SideEffects::modifyExternal,
+      "::imgui_set_default_font");
     das::addExtern<DAS_BIND_FUN(imgui_window_set_visible)>(*this, lib, "imgui_window_set_visible", das::SideEffects::modifyExternal,
       "::imgui_window_set_visible");
     das::addExtern<DAS_BIND_FUN(imgui_window_is_visible)>(*this, lib, "imgui_window_is_visible", das::SideEffects::accessExternal,
@@ -35,6 +43,8 @@ public:
       "::imgui_get_state");
     das::addExtern<DAS_BIND_FUN(bind_dascript::imgui_get_blk), das::SimNode_ExtFuncCallRef>(*this, lib, "imgui_get_blk",
       das::SideEffects::accessExternal, "::bind_dascript::imgui_get_blk");
+    das::addExtern<DAS_BIND_FUN(::imgui_apply_style_from_blk)>(*this, lib, "imgui_apply_style_from_blk",
+      das::SideEffects::modifyExternal, "::imgui_apply_style_from_blk");
 
     verifyAotReady();
   }

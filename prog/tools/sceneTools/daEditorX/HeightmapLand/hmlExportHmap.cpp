@@ -1,8 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "hmlPlugin.h"
 
-#include <dllPluginCore/core.h>
-
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_files.h>
 #include <generic/dag_tab.h>
 #include <coolConsole/coolConsole.h>
 #include <de3_bitMaskMgr.h>

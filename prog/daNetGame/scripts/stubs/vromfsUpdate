@@ -1,0 +1,4 @@
+return {
+  check_remote_vromfs_version = @(...) null
+  get_remote_version_async    = @(...) null
+}

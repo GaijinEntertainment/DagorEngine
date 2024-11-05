@@ -6,10 +6,8 @@ include "static_shadow.dshl"
 include "water_heightmap.dshl"
 
 
-texture downsampled_normals;
 float4 caustics_texture_size;
 texture water_heightmap_lowres;
-texture downsampled_close_depth_tex;
 
 macro CAUSTICS_RENDER_CORE(code)
   INIT_ZNZFAR_STAGE(code)

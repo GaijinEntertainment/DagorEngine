@@ -1,0 +1,33 @@
+texture resolved_motion_vectors;
+
+float4x4 tsr_reprojection;
+
+macro TSR_GAME(stage)
+  hlsl (stage) {
+    // the first and second value is in screen space, the third is the raw depth difference (non-linear)
+    float3 fetchMotionVector(float raw_depth, float2 uv, out uint is_dynamic)
+    {
+      is_dynamic = isGbufferDynamic(uv);
+
+      float linearDepth = linearize_z(raw_depth, zn_zfar.zw);
+      float3 viewVec = getViewVecOptimized(uv);
+      float3 cameraToPoint = viewVec * linearDepth;
+
+      ##if motion_gbuf != NULL
+        float3 uvz = readMotionBuffer(uv).xyz;
+        float prevLinearZ = linearDepth + uvz.z;
+        float prevDepth = inv_linearizeZ(prevLinearZ, zn_zfar);
+        return float3(uvz.xy, prevDepth - raw_depth);
+      ##else
+        BRANCH
+        if (is_dynamic)
+          apply_hero_matrix(uv, cameraToPoint);
+
+        float4 reprojectedViewVec = mul(float4(cameraToPoint, 0), prevViewProjTm);
+        float4 prevClip = reprojected_world_view_pos + reprojectedViewVec;
+        float3 prevPos = prevClip.xyz / prevClip.w;
+        return float3(prevPos.xy * float2(0.5, -0.5) + float2(0.5, 0.5), prevPos.z) - float3(uv, raw_depth);
+      ##endif
+    }
+  }
+endmacro

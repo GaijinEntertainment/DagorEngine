@@ -1,0 +1,370 @@
+texture object_sdf_mip_atlas;
+buffer object_sdf_instances;
+int object_sdf_instances_count;
+int object_sdf_instances_data_offset;
+buffer object_sdf_mips;
+buffer object_sdf_mips_indirection_lut;
+float4 sdf_inv_atlas_size_in_blocks;
+float4 sdf_internal_block_size_tc;
+float4 sdf_inv_atlas_size;
+
+macro READ_OBJECT_SDF(code)
+  (code) {
+    object_sdf_mips@buf = object_sdf_mips hlsl {
+      StructuredBuffer<float4> object_sdf_mips@buf;
+    }
+    object_sdf_mips_indirection_lut@buf = object_sdf_mips_indirection_lut hlsl {
+      ByteAddressBuffer object_sdf_mips_indirection_lut@buf;
+    }
+
+    object_sdf_instances@buf = object_sdf_instances hlsl {
+      StructuredBuffer<float4> object_sdf_instances@buf;
+    }
+    object_sdf_instances_count@i2 = (object_sdf_instances_count, object_sdf_instances_data_offset,0,0);
+    object_sdf_mip_atlas@smp3d = object_sdf_mip_atlas;
+    sdf_inv_atlas_size_in_blocks@f3 = sdf_inv_atlas_size_in_blocks;
+    sdf_internal_block_size_tc@f3 = sdf_internal_block_size_tc;//SDF_INTERNAL_BLOCK_SIZE*(sdf_inv_atlas_size_in_blocks/8)
+    sdf_internal_half_texel@f3 = 0.5*sdf_inv_atlas_size;//(sdf_inv_atlas_size_in_blocks/8), as block size is 8
+  }
+  hlsl(code) {
+    #include "objects_sdf.hlsli"
+    struct ObjectSDFMip// in local volume space
+    {
+      uint3 indirectionDim;// whole inidirection table is flatten in indirection table
+
+      // decode 8bit distance to volume space
+      //float2 distanceDecodeMulAdd;
+      float maxEncodedDist;
+      #if SDF_SUPPORT_OBJECT_TRACING
+      float surfaceBias;
+      bool mostlyTwoSided;
+      #endif
+      // offset into indirection LUT for this mip
+      uint indirectionLUTOffset;
+
+      // transforms a volume space position to big virtual indirection space
+      float3 toIndirectionAdd;
+      float3 toIndirectionMul;
+      float3 extent;
+    };
+
+    ObjectSDFMip decode_packed_sdf_mip(float4 extent__maxEncodedDist, float4 decode_mul__indirection, float4 decode_add__offset)
+    {
+      ObjectSDFMip mip;
+      uint indirection_dim = asuint(decode_mul__indirection.w);
+      mip.indirectionDim.x = indirection_dim & SDF_MAX_INDIRECTION_DIM_MASK;
+      mip.indirectionDim.y = (indirection_dim >> SDF_MAX_INDIRECTION_DIM_BITS) & SDF_MAX_INDIRECTION_DIM_MASK;
+      mip.indirectionDim.z = indirection_dim >> (2*SDF_MAX_INDIRECTION_DIM_BITS);
+      mip.indirectionLUTOffset = asuint(decode_add__offset.w);
+      mip.maxEncodedDist = abs(extent__maxEncodedDist.w);
+
+      //mip.distanceDecodeMulAdd = num_mips__indirection_dim__offset__max_dist.zw;
+      //mip.maxEncodedDist = decode_mul.w;
+
+      mip.toIndirectionMul = decode_mul__indirection.xyz;
+      mip.toIndirectionAdd = decode_add__offset.xyz;
+      mip.extent = extent__maxEncodedDist.xyz;
+
+      #if SDF_SUPPORT_OBJECT_TRACING
+      mip.mostlyTwoSided = extent__maxEncodedDist.w < 0;
+      float3 voxelSize = mip.extent / float3(mip.indirectionDim * SDF_INTERNAL_BLOCK_SIZE);
+      float expandSurfaceDistance = 0.5f * length(voxelSize);
+      mip.surfaceBias = mip.mostlyTwoSided ? -4*expandSurfaceDistance : expandSurfaceDistance;
+      #endif
+
+      return mip;
+    }
+
+    #define SDF_GO_TO_COARSER_MIP_TEXEL 4 // I think it should be dependent on SDF_MAX_VOXELS_DIST
+    float4 read_sdf_instance_bounds(uint inst_id)
+    {
+      return structuredBufferAt(object_sdf_instances, inst_id);
+    }
+    ObjectSDFInstance read_packed_sdf_instance(uint inst_id)
+    {
+      uint index = inst_id * SDF_PACKED_INSTANCE_SIZE + object_sdf_instances_count.y;
+      float4 r0 = structuredBufferAt(object_sdf_instances, index), r1 = structuredBufferAt(object_sdf_instances, index+1), r2 = structuredBufferAt(object_sdf_instances, index+2);
+      ObjectSDFInstance inst;
+      inst.worldToLocal = transpose(float4x4(r0, r1, r2, float4(0,0,0,1)));
+      float4 r3 = structuredBufferAt(object_sdf_instances, index+3);
+      inst.extent = r3.xyz;
+      inst.objectId = asuint(r3.w);
+      inst.volumeToWorldScale = structuredBufferAt(object_sdf_instances, index+4);
+#if SDF_SUPPORT_OBJECT_TRACING
+      float4 r5 = structuredBufferAt(object_sdf_instances, index+5), r6 = structuredBufferAt(object_sdf_instances, index+6), r7 = structuredBufferAt(object_sdf_instances, index+7);
+      inst.localToWorld = transpose(float4x4(r5, r6, r7, float4(0,0,0,1)));
+#endif
+      return inst;
+    }
+    #define SDF_PACKED_OBJECT_SIZE SDF_PACKED_MIP_SIZE
+    ObjectSDFMip read_sdf_mip(uint object)
+    {
+      //uint final_index = object * SDF_PACKED_OBJECT_SIZE + inv_mip * SDF_PACKED_MIP_SIZE;
+      uint final_index = object * SDF_PACKED_MIP_SIZE;
+      return decode_packed_sdf_mip(structuredBufferAt(object_sdf_mips, final_index), structuredBufferAt(object_sdf_mips, final_index + 1), structuredBufferAt(object_sdf_mips, final_index + 2));
+    }
+    float sample_sdf_blocks_atlas(float3 atlas_tc)
+    {
+      return tex3Dlod(object_sdf_mip_atlas, float4(atlas_tc, 0)).x;
+    }
+
+
+    bool decodeAtlasCoords(float3 object_tc, ObjectSDFMip object_mip, out float3 atlasTC)
+    {
+      float3 indirectionCoordF = (object_tc * object_mip.toIndirectionMul + object_mip.toIndirectionAdd);
+
+      int3 indirectionCoord = indirectionCoordF;
+      uint indirectionIndex = (indirectionCoord.z * object_mip.indirectionDim.y + indirectionCoord.y) * object_mip.indirectionDim.x + indirectionCoord.x;
+      uint blockIndex = loadBuffer(object_sdf_mips_indirection_lut, object_mip.indirectionLUTOffset + indirectionIndex * 4);
+
+      // If the block was stored
+      if (blockIndex != SDF_INVALID_LUT_INDEX)
+      {
+        float3 blockTC = indirectionCoordF - float3(indirectionCoord);// fraction
+        float3 inBlockOffsetInAtlas = uint3(
+          blockIndex & SDF_INDIRECTION_BLOCK_MASK_XY,
+          (blockIndex >> SDF_INDIRECTION_BLOCK_SHIFT_XY) & SDF_INDIRECTION_BLOCK_MASK_XY,
+          blockIndex >> (SDF_INDIRECTION_BLOCK_SHIFT_XY*2));
+        atlasTC = blockTC.xyz * sdf_internal_block_size_tc + (inBlockOffsetInAtlas * sdf_inv_atlas_size_in_blocks + sdf_internal_half_texel);
+        return true;
+      }
+
+      return false;
+    }
+
+    float sample_object_sdf(float3 object_tc, ObjectSDFMip object_mip)
+    {
+      float3 indirectionCoordF = (object_tc * object_mip.toIndirectionMul + object_mip.toIndirectionAdd);
+
+      int3 indirectionCoord = indirectionCoordF;
+      //if (any(indirectionCoord >= object_mip.indirectionDim))
+      //  return object_mip.maxEncodedDist;
+
+      uint indirectionIndex = (indirectionCoord.z * object_mip.indirectionDim.y + indirectionCoord.y) * object_mip.indirectionDim.x + indirectionCoord.x;
+      //todo: this indirection can be avoided, if we know that there all blocks are going sequentially and there are now holes.
+      //then we can replace this to arithmetics uint at = (object_mip.indirectionLUTOffset + indirectionIndex); x = at%bw_width, y = (at/bw_width)%bw_height, z = at/(bw_width*bw_height)
+      uint blockIndex = loadBuffer(object_sdf_mips_indirection_lut, object_mip.indirectionLUTOffset + indirectionIndex * 4);
+
+      // If the block was stored
+      float encodedDist = 1;
+      if (blockIndex != SDF_INVALID_LUT_INDEX)
+      {
+        float3 blockTC = indirectionCoordF - float3(indirectionCoord);// fraction
+        float3 inBlockOffsetInAtlas = uint3(
+          blockIndex & SDF_INDIRECTION_BLOCK_MASK_XY,
+          (blockIndex >> SDF_INDIRECTION_BLOCK_SHIFT_XY) & SDF_INDIRECTION_BLOCK_MASK_XY,
+          blockIndex >> (SDF_INDIRECTION_BLOCK_SHIFT_XY*2));
+        float3 atlasTC = blockTC.xyz * sdf_internal_block_size_tc + (inBlockOffsetInAtlas * sdf_inv_atlas_size_in_blocks + sdf_internal_half_texel);
+        encodedDist = sample_sdf_blocks_atlas(atlasTC);
+      }
+
+      return (encodedDist*2 - 1) * object_mip.maxEncodedDist;
+    }
+
+    float sample_object_sdf(float3 object_tc, uint object)
+    {
+      return sample_object_sdf(object_tc, read_sdf_mip(object));
+    }
+
+    // gradient in encoded distance
+    float3 sample_object_sdf_gradient(float3 object_tc, ObjectSDFMip object_mip)
+    {
+      #if 0
+      //works only when inblock tc < UNIQUE-0.5
+      float3 atlasTC;
+      if (!decodeAtlasCoords(object_tc, object_mip, atlasTC))
+        return float3(0,0,0);
+      float3 offset = 0.5*sdf_internal_half_texel;
+      float R = sample_sdf_blocks_atlas(float3(atlasTC.x + offset.x, atlasTC.yz));
+      float L = sample_sdf_blocks_atlas(float3(atlasTC.x - offset.x, atlasTC.yz));
+      float F = sample_sdf_blocks_atlas(float3(atlasTC.x, atlasTC.y + offset.y, atlasTC.z));
+      float B = sample_sdf_blocks_atlas(float3(atlasTC.x, atlasTC.y - offset.y, atlasTC.z));
+      float U = sample_sdf_blocks_atlas(float3(atlasTC.xy, atlasTC.z + offset.z));
+      float D = sample_sdf_blocks_atlas(float3(atlasTC.xy, atlasTC.z - offset.z));
+      #else
+      float3 offset = (.5f / SDF_INTERNAL_BLOCK_SIZE) / (object_mip.toIndirectionMul);
+      float R = sample_object_sdf(float3(object_tc.x + offset.x, object_tc.y, object_tc.z), object_mip);
+      float L = sample_object_sdf(float3(object_tc.x - offset.x, object_tc.y, object_tc.z), object_mip);
+      float F = sample_object_sdf(float3(object_tc.x, object_tc.y + offset.y, object_tc.z), object_mip);
+      float B = sample_object_sdf(float3(object_tc.x, object_tc.y - offset.y, object_tc.z), object_mip);
+      float U = sample_object_sdf(float3(object_tc.x, object_tc.y, object_tc.z + offset.z), object_mip);
+      float D = sample_object_sdf(float3(object_tc.x, object_tc.y, object_tc.z - offset.z), object_mip);
+      #endif
+      return float3(R - L, F - B, U - D);
+    }
+
+    #if SDF_SUPPORT_OBJECT_TRACING
+    #include <ray_box_intersect.hlsl>
+
+    bool sdf_trace_object_volume_space(
+      float3 rayStart,// volume space
+      float3 rayDir,// volume space
+      uint object,
+      float3 extent,
+      float maxT,
+      out float t,
+      inout uint steps,
+      out float3 gradient,
+      out float dif)
+    {
+      float2 dd = rayBoxIntersect(extent, rayStart, rayDir);
+
+      if (dd.x >= dd.y || dd.x > maxT || dd.y < 0)
+        return false;
+      uint invMipIndex = 0;
+      ObjectSDFMip objectMip = read_sdf_mip(object);
+
+      #define MAX_OBJECT_SDF_STEPS 64
+      uint stepI = 0;
+      float minStepDistance = max(dd.y - dd.x, objectMip.maxEncodedDist)*(1./(MAX_OBJECT_SDF_STEPS-1));
+      dd.x = max(dd.x, 0); dd.y = min(dd.y, maxT);
+      float atT = dd.x;
+      float minDist = 0;
+
+      LOOP
+      for (; stepI < MAX_OBJECT_SDF_STEPS; stepI++)
+      {
+        float3 rayPos = rayStart + rayDir * atT;
+        float distance = sample_object_sdf(rayPos, objectMip);
+        if (stepI == 0)
+          minDist = distance;
+
+        // cone like tracing
+        float surfaceBias = objectMip.surfaceBias;
+        float expandSurfaceFalloff = 2.0f * surfaceBias;
+        float expandSurfaceAmount = surfaceBias * saturate(atT / expandSurfaceFalloff);
+
+        float maxEncodedDistance = objectMip.maxEncodedDist;
+        if (distance < expandSurfaceAmount)
+        {
+          atT = atT + distance - expandSurfaceAmount;
+          break;
+        }
+
+        atT += max(distance, minStepDistance);
+
+        if (atT > dd.y + expandSurfaceAmount)
+        {
+          steps += stepI + 1u; //missed
+          return false;
+        }
+      }
+      //we out of loop only on cone tracing hit or when we spend too much time in tracing (grazing angle). Assume hit then
+      steps += stepI + 1u;
+      t = clamp(atT, dd.x, dd.y);
+      gradient = sample_object_sdf_gradient(rayStart + rayDir * t, objectMip);
+      return true;
+    }
+    bool sdf_trace_object_volume(
+      float3 worldPos,
+      float3 worldRayDir,
+      float maxT,
+      uint object,
+      float surfaceBias,
+      float4x4 worldToObjectSpace,
+      float4x4 objectToWorldSpace,
+      float3 bmin, float3 bmax,//better be -extent, +extent
+      out float t, inout uint steps,
+      out float3 gradient,out float dif)
+    {
+      float3 rayStart = mul(float4(worldPos, 1.0f), worldToObjectSpace).xyz;
+      float3 rayEnd = mul(float4(worldPos + worldRayDir * maxT, 1.0f), worldToObjectSpace).xyz;
+      float3 rayDir = rayEnd - rayStart;
+      float rayLen = length(rayDir);
+      rayDir /= rayLen;
+      if (!sdf_trace_object_volume_space(rayStart, rayDir, object, bmax, rayLen, t, steps, gradient, dif))
+        return false;
+      // todo: may be we should project instead of length.
+      // t = dot(rayStart + rayDir*t - worldPos, worldRayDir);
+      t = length(mul(float4(rayStart + rayDir*t, 1.0f), objectToWorldSpace).xyz - worldPos);
+      gradient = mul(worldToObjectSpace, float4(gradient, 0.0f)).xyz;
+      return true;
+    }
+
+    bool sdf_trace_object_volume_space2(
+      float3 rayStart,// volume space
+      float3 rayDir,// volume space
+      uint object,
+      float3 extent,
+      float maxT,
+      out float t,
+      inout uint steps,
+      out float3 gradient,
+      out float dif)
+    {
+      float2 dd = rayBoxIntersect(extent, rayStart, rayDir);
+
+      if (dd.x >= dd.y || dd.x > maxT || dd.y < 0)
+        return false;
+      ObjectSDFMip objectMip = read_sdf_mip(object);
+
+      #define MAX_OBJECT_SDF_STEPS 64
+      uint stepI = 0;
+      float minStepDistance = max(dd.y - dd.x, objectMip.maxEncodedDist)*(1./(MAX_OBJECT_SDF_STEPS-1));
+      //to avoid missing trilinear distance error
+      float voxelSize = sqrt(3)*length(extent*rcp(float3((objectMip.indirectionDim*SDF_INTERNAL_BLOCK_SIZE))));
+      dd.x = max(dd.x, 0); dd.y = min(dd.y, maxT);
+      float atT = dd.x;
+      float minDist = 0;
+
+      LOOP
+      for (; stepI < MAX_OBJECT_SDF_STEPS; stepI++)
+      {
+        float3 rayPos = rayStart + rayDir * atT;
+        float distance = sample_object_sdf(rayPos, objectMip);
+        if (stepI == 0)
+          minDist = distance;
+
+        // cone like tracing
+        float surfaceBias = objectMip.surfaceBias;
+        float expandSurfaceFalloff = 2.0f * surfaceBias;
+        float expandSurfaceAmount = surfaceBias * saturate(atT / expandSurfaceFalloff);
+
+        if (distance < expandSurfaceAmount)
+        {
+          atT = atT + distance - expandSurfaceAmount;
+          break;
+        }
+
+        atT += max(distance - voxelSize, minStepDistance);
+
+        if (atT > dd.y + expandSurfaceAmount)
+        {
+          steps += stepI + 1u; //missed
+          return false;
+        }
+      }
+      //we out of loop only on cone tracing hit or when we spend too much time in tracing (grazing angle). Assume hit then
+      steps += stepI + 1u;
+      t = clamp(atT, dd.x, dd.y);
+      gradient = sample_object_sdf_gradient(rayStart + rayDir * t, objectMip);
+      return true;
+    }
+    bool sdf_trace_object_volume2(
+      float3 worldPos,
+      float3 worldRayDir,
+      float maxT,
+      uint object,
+      float surfaceBias,
+      float4x4 worldToObjectSpace,
+      float4x4 objectToWorldSpace,
+      float3 bmin, float3 bmax,//better be -extent, +extent
+      out float t, inout uint steps,
+      out float3 gradient,out float dif)
+    {
+      float3 rayStart = mul(float4(worldPos, 1.0f), worldToObjectSpace).xyz;
+      float3 rayEnd = mul(float4(worldPos + worldRayDir * maxT, 1.0f), worldToObjectSpace).xyz;
+      float3 rayDir = rayEnd - rayStart;
+      float rayLen = length(rayDir);
+      rayDir /= rayLen;
+      if (!sdf_trace_object_volume_space2(rayStart, rayDir, object, bmax, rayLen, t, steps, gradient, dif))
+        return false;
+      // todo: may be we should project instead of length.
+      // t = dot(rayStart + rayDir*t - worldPos, worldRayDir);
+      t = length(mul(float4(rayStart + rayDir*t, 1.0f), objectToWorldSpace).xyz - worldPos);
+      gradient = mul(worldToObjectSpace, float4(gradient, 0.0f)).xyz;
+      return true;
+    }
+    #endif
+  }
+endmacro

@@ -32,7 +32,7 @@ Sources =
   UnitTest++/ThrowingTestReporter.cpp
 ;
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   AddIncludes += $(Root)/prog/3rdPartyLibs/unittest-cpp/UnitTest++/win32 ;
   Sources += UnitTest++/Win32/TimeHelpers.cpp ;
 }

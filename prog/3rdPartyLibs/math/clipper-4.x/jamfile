@@ -10,6 +10,6 @@ Sources =
 
 CPPopt  = -DNEED_LL_ABS ;
 
-if $(Platform) = win64 { CPPopt += /wd4267 ; } # no support for > 4G vertices
+if $(Platform)-$(PlatformArch) = windows-x86_64 { CPPopt += /wd4267 ; } # no support for > 4G vertices
 
 include $(Root)/prog/_jBuild/build.jam ;

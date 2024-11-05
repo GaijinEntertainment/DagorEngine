@@ -6,14 +6,13 @@ Target      = gameLibs/tracking.lib ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
 
   if $(SupportPcKinect) = yes {
     AddIncludes += $(_DEVTOOL)/kinect.sdk/inc ;
-    if $(Platform) = win32 {
-      AddLibs = $(_DEVTOOL)/kinect.sdk/lib/x86/Kinect10.lib ;
-    } else {
-      AddLibs = $(_DEVTOOL)/kinect.sdk/lib/amd64/Kinect10.lib ;
+    switch $(PlatformArch) {
+      case x86 :    AddLibs = $(_DEVTOOL)/kinect.sdk/lib/x86/Kinect10.lib ;
+      case x86_64 : AddLibs = $(_DEVTOOL)/kinect.sdk/lib/amd64/Kinect10.lib ;
     }
   }
 

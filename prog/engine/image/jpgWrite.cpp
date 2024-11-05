@@ -90,7 +90,7 @@ METHODDEF(boolean) empty_output_buffer(j_compress_ptr cinfo)
     // For now if we want to return false, it cause  memory leaks
     // https://youtrack.gaijin.team/issue/38-35383
   }
-  DAGOR_CATCH(IGenSave::SaveException) { ERREXIT(cinfo, JERR_FILE_WRITE); }
+  DAGOR_CATCH(const IGenSave::SaveException &) { ERREXIT(cinfo, JERR_FILE_WRITE); }
 
   dest->pub.next_output_byte = dest->buffer;
   dest->pub.free_in_buffer = OUTPUT_BUF_SIZE;
@@ -117,7 +117,7 @@ METHODDEF(void) term_destination(j_compress_ptr cinfo)
   if (datacount > 0)
   {
     DAGOR_TRY { dest->cwr->write(dest->buffer, datacount); }
-    DAGOR_CATCH(IGenSave::SaveException) { ERREXIT(cinfo, JERR_FILE_WRITE); }
+    DAGOR_CATCH(const IGenSave::SaveException &) { ERREXIT(cinfo, JERR_FILE_WRITE); }
   }
 }
 

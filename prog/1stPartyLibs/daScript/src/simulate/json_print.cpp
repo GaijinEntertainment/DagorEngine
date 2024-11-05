@@ -250,6 +250,9 @@ namespace das {
         virtual void WalkEnumeration16 ( int16_t & value, EnumInfo * info ) override {
             Enum(value,info);
         }
+        virtual void WalkEnumeration64 ( int64_t & value, EnumInfo * info ) override {
+            Enum(value,info);
+        }
     };
 
     string human_readable_json ( const string & str ) {

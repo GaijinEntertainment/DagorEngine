@@ -1,0 +1,26 @@
+buffer per_instance_render_data;
+macro INIT_RIEXTRA_PER_INSTANCE_RENDER_DATA(stage)
+  (stage)
+  {
+    per_instance_render_data@buf = per_instance_render_data hlsl {
+      StructuredBuffer<float4> per_instance_render_data@buf;
+      #define RIEXTRA_PER_INSTANCE_RENDER_DATA_INITED 1
+    }
+  }
+endmacro
+
+macro USE_RIEXTRA_PER_INSTANCE_RENDER_DATA(stage)
+  hlsl(stage)
+  {
+    #if RIEXTRA_PER_INSTANCE_RENDER_DATA_INITED
+      ##if instancing_type == tm_vb
+        #define LOAD_RIEXTRA_PID(idx, def) (perInstanceRenderDataOffset ? structuredBufferAt(per_instance_render_data, perInstanceRenderDataOffset - 1 + idx) : (def))
+        #define RIEXTRA_PER_INSTANCE_RENDER_DATA_ENABLED 1
+      ##endif
+    #endif
+
+    #if !RIEXTRA_PER_INSTANCE_RENDER_DATA_ENABLED
+      #define LOAD_RIEXTRA_PID(idx, def) (def)
+    #endif
+  }
+endmacro

@@ -1,14 +1,12 @@
-#ifndef __GAIJIN_EDITORCORE_EC_RENDERABLE_EDITABLE_OBJECT__
-#define __GAIJIN_EDITORCORE_EC_RENDERABLE_EDITABLE_OBJECT__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include <EditorCore/ec_object.h>
 #include <EditorCore/ec_interface.h>
 
 #include <libTools/util/undo.h>
 
-#include <propPanel2/c_panel_base.h>
+#include <propPanel/control/container.h>
 
 
 class ObjectEditor;
@@ -276,7 +274,7 @@ public:
   /// @param[in] panel - Property Panel
   /// @param[in] for_class_id - class ID of object(s)
   /// @param[in] objects - array of pointers to objects
-  virtual void fillProps(PropertyContainerControlBase &panel, DClassID for_class_id,
+  virtual void fillProps(PropPanel::ContainerPropertyControl &panel, DClassID for_class_id,
     dag::ConstSpan<RenderableEditableObject *> objects);
 
   /// Called when parameter changing on Property Panel is performed.
@@ -284,24 +282,25 @@ public:
   /// @param[in] edit_finished - @b true if edit finished, @b false in other case
   /// @param[in] panel - Property Panel
   /// @param[in] objects - array of pointers to objects
-  virtual void onPPChange(int pid, bool edit_finished, PropertyContainerControlBase &panel,
+  virtual void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
     dag::ConstSpan<RenderableEditableObject *> objects) = 0;
 
   /// Called when button 'Close' on Property Panel is pressed.
   /// @param[in] panel - Property Panel
   /// @param[in] objects - array of pointers to objects
-  virtual void onPPClose(PropertyContainerControlBase &panel, dag::ConstSpan<RenderableEditableObject *> objects) {}
+  virtual void onPPClose(PropPanel::ContainerPropertyControl &panel, dag::ConstSpan<RenderableEditableObject *> objects) {}
 
   /// Called before Property Panel will be cleared.
   /// @param[in] panel - Property Panel
   /// @param[in] objects - array of pointers to objects
-  virtual void onPPClear(PropertyContainerControlBase &panel, dag::ConstSpan<RenderableEditableObject *> objects) {}
+  virtual void onPPClear(PropPanel::ContainerPropertyControl &panel, dag::ConstSpan<RenderableEditableObject *> objects) {}
 
   /// Called when button on Property Panel is pressed.
   /// @param[in] pid - button ID
   /// @param[in] panel - Property Panel
   /// @param[in] objects - array of pointers to objects
-  virtual void onPPBtnPressed(int pid, PropertyContainerControlBase &panel, dag::ConstSpan<RenderableEditableObject *> objects) {}
+  virtual void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel, dag::ConstSpan<RenderableEditableObject *> objects)
+  {}
   //@}
 
   virtual void onRemove(ObjectEditor *objEditor) {}
@@ -399,5 +398,3 @@ protected:
 };
 
 #define EO_IMPLEMENT_RTTI(CID) EO_IMPLEMENT_RTTI_EX(CID, RenderableEditableObject)
-
-#endif //__GAIJIN_EDITORCORE_EC_RENDERABLE_EDITABLE_OBJECT__

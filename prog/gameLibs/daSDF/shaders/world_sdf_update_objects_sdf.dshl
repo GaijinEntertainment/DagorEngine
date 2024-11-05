@@ -1,0 +1,511 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "world_sdf_update_common.dshl"
+include "object_sdf.dshl"
+include "postfx_inc.dshl"
+include "globtm.dshl"
+include "world_sdf_project_common.dshl"
+
+hlsl {
+  #include <point_distance.hlsl>
+  #include <world_sdf.hlsli>
+}
+
+buffer culled_sdf_instances;
+buffer culled_sdf_instances_grid;
+int4 sdf_grid_culled_instances_res;
+int4 sdf_grid_culled_instances_grid_lt;
+
+int world_sdf_use_grid;
+interval world_sdf_use_grid:off<1, on;
+
+shader world_sdf_update_cs
+{
+  (cs) {
+    sdf_grid_culled_instances_res@i3 = sdf_grid_culled_instances_res;
+    sdf_grid_culled_instances_grid_lt@i3 = sdf_grid_culled_instances_grid_lt;
+    culled_sdf_instances_grid@buf = culled_sdf_instances_grid hlsl {
+      ByteAddressBuffer culled_sdf_instances_grid@buf;
+    }
+    culled_sdf_instances@buf = culled_sdf_instances hlsl {
+      ByteAddressBuffer culled_sdf_instances@buf;
+    }
+  }
+  ENABLE_ASSERT(cs)
+  READ_OBJECT_SDF(cs)
+  READ_WORLD_SDF_MATH(cs)
+  WSDF_COORD_UPDATE(cs)
+  PROJECT_WORLD_SDF(cs)
+
+  (cs) {world_view_pos@f3 = world_view_pos;}
+
+  hlsl(cs) {
+    #include <world_sdf_dist.hlsl>
+    RWByteAddressBuffer world_sdf_clipmap_rasterize : register(u2);
+    //RWByteAddressBuffer culled_sdf_instances: register(u1);
+
+    #define WARP_TOTAL_SIZE (SDF_UPDATE_WARP_X*SDF_UPDATE_WARP_Y*SDF_UPDATE_WARP_Z)
+    ##if world_sdf_use_grid == on
+      #define USE_CULLED_INSTANCES_GRID 1
+    ##else
+      #define USE_CULLED_INSTANCES_GRID 0
+    ##endif
+#define TILE_CULLING 1
+#if TILE_CULLING
+    #define MAX_CULLED_TILE_INSTANCES WARP_TOTAL_SIZE // 511 + 1 = 512
+    groupshared uint culledTileInstances[MAX_CULLED_TILE_INSTANCES];
+    groupshared uint numCulledTileInstances;
+    groupshared uint2 culledInstancesCountShared;
+#endif
+
+    void getInstanceMinDistance(uint instanceIndex, float3 worldPos, inout float minDistance, float thresholdSize = 0)
+    {
+      ObjectSDFInstance inst = read_packed_sdf_instance(instanceIndex);
+      float3 localPos = mul(float4(worldPos, 1.0f), inst.worldToLocal).xyz;
+      float3 clampedLocalPos = clamp(localPos, -inst.extent, inst.extent);
+      float distanceToBoxSq = length_sq((localPos - clampedLocalPos) * inst.volumeToWorldScale.xyz);
+      if (distanceToBoxSq < minDistance*minDistance)
+      {
+        float distanceToBox = sqrt(distanceToBoxSq);
+        //minDistance = distanceToBox;
+        //return;
+        ObjectSDFMip objectMip = read_sdf_mip(inst.objectId);
+        float sdf = sample_object_sdf(clampedLocalPos, objectMip);
+
+        float worldLocalDistance = sdf*inst.volumeToWorldScale.w - 0.01 + distanceToBox; // decrease by at least rounding error + interpolation error
+        worldLocalDistance = max(worldLocalDistance, distanceToBox);
+
+        minDistance = min(minDistance, worldLocalDistance);
+      }
+    }
+
+    [numthreads(SDF_UPDATE_WARP_X, SDF_UPDATE_WARP_Y, SDF_UPDATE_WARP_Z)]
+    void world_sdf_update_cs( uint3 gId : SV_GroupID, uint3 dtId : SV_DispatchThreadID, uint threadIndex : SV_GroupIndex)
+    {
+      //float4 ltVoxel = world_sdf_lt[world_sdf_update_mip];
+      //int3 base_lt_world_coord = ltVoxel.xzy/ltVoxel.w;//fixme:it is constant available as constant
+      //float voxelSize = ltVoxel.w;
+      int4 coordVoxel = sample_world_sdf_coord_lt(world_sdf_update_mip);
+      int3 base_lt_world_coord = coordVoxel.xyz;
+      float voxelSize = asfloat(coordVoxel.w);
+      int3 update_lt_world_coord = world_sdf_update_lt_coord;
+      int3 world_coord = update_lt_world_coord + int3(dtId);
+
+      float3 worldPos = (world_coord.xzy + 0.5)*voxelSize;
+
+      //float3 worldPos = (dtId.xzy + 0.5)*ltVoxel.w + ltVoxel.xyz;
+      //float3 worldPos = (coord.xzy + 0.5)*ltVoxel.w + ltVoxel.xyz;
+      //int4 center = world_sdf_center[world_sdf_update_mip];
+      //ltVoxel.w = asfloat(center.w);
+      //worldPos = (dtId.xzy + center.xyz + 0.5)*ltVoxel.w;
+      float maxEncodedDistance = MAX_WORLD_SDF_VOXELS_BAND*voxelSize;
+      float minDistance = get_project_world_sdf(worldPos, maxEncodedDistance);
+      float minDistance2 = minDistance*minDistance;
+#define OBJECTS_SDF 1
+#if OBJECTS_SDF
+      //minDistance = length(worldPos - float3(-500, 4, 600)) - 10;
+#if USE_CULLED_INSTANCES_GRID
+      //as whole group has to use same grid cell, we can use gId/SDF_GRID_CELL_SIZE_IN_TILES, if we update in one box
+      if (threadIndex == 0)
+      {
+        uint3 gridCellSize = SDF_UPDATE_WARP_RES*SDF_GRID_CELL_SIZE_IN_TILES;
+        uint3 gridIndex = uint3(world_coord - sdf_grid_culled_instances_grid_lt) / gridCellSize;
+        //uint3 gridIndex = gId / SDF_GRID_CELL_SIZE_IN_TILES;
+        gridIndex = min(gridIndex, uint3(sdf_grid_culled_instances_res.xyz)-1);
+        uint gridLinearIndex = (gridIndex.z*sdf_grid_culled_instances_res.y + gridIndex.y)*sdf_grid_culled_instances_res.x + gridIndex.x;
+        uint2 ofsCnt = loadBuffer2(culled_sdf_instances_grid, gridLinearIndex*8 + 4);
+        uint culledInstancesCount = ofsCnt.y;
+        bool useCulledInstances = ofsCnt.x + culledInstancesCount*4 <= SDF_CULLED_INSTANCES_GRID_SIZE*4;
+        if (!useCulledInstances)
+        {
+          #if !SDF_INSTANCES_CPU_CULLING
+          culledInstancesCount = min(SDF_MAX_CULLED_INSTANCES, loadBuffer(culled_sdf_instances, 0));
+          #else
+          culledInstancesCount = uint(object_sdf_instances_count.x);
+          #endif
+        }
+        culledInstancesCountShared = uint2(culledInstancesCount, ofsCnt.x);
+      }
+      GroupMemoryBarrierWithGroupSync();
+      uint culledInstancesCount = culledInstancesCountShared.x;
+      uint readAtOfset = culledInstancesCountShared.y;
+      bool useCulledInstances = readAtOfset + culledInstancesCount*4 <= SDF_CULLED_INSTANCES_GRID_SIZE*4;
+#else
+      uint culledInstancesCount = uint(object_sdf_instances_count.x);
+#endif
+#if TILE_CULLING
+      float3 tileBoxMin = ((update_lt_world_coord + int3(gId*SDF_UPDATE_WARP_RES)).xzy + 0.5)*voxelSize;
+      //float3 tileBoxMin = (WARP_RES*(world_coord/WARP_RES).xzy + 0.5)*voxelSize;
+      //float3 tileBoxMin = (world_coord_from_target_coord(world_sdf_update_mip, gId*WARP_RES).xzy + 0.5)*voxelSize;
+      //float3 tileBoxMin = (gId.xzy*WARP_RES + 0.5)*ltVoxel.w + ltVoxel.xyz;
+      float3 tileBoxMax = tileBoxMin + voxelSize*(SDF_UPDATE_WARP_RES.xzy - 1);
+      uint numIterations = (culledInstancesCount + MAX_CULLED_TILE_INSTANCES - 1)/MAX_CULLED_TILE_INSTANCES;
+      float maxInfluenceRadiusSq = maxEncodedDistance*maxEncodedDistance;
+
+      for (uint iter = 0; iter < numIterations; ++iter)
+      {
+        if (threadIndex == 0)
+          numCulledTileInstances = 0;
+
+        GroupMemoryBarrierWithGroupSync();
+
+        uint firstInstance = iter * MAX_CULLED_TILE_INSTANCES, endInstance = min(firstInstance + MAX_CULLED_TILE_INSTANCES, culledInstancesCount);
+        for (uint ind = firstInstance + threadIndex; ind < endInstance; ind += WARP_TOTAL_SIZE)
+        {
+          uint instanceIndex = ind;
+#if USE_CULLED_INSTANCES_GRID
+          //uint instanceIndex = loadBuffer(culled_sdf_instances, ind*4 + 4);
+          if (useCulledInstances)
+            instanceIndex = loadBuffer(culled_sdf_instances_grid, ind*4 + readAtOfset);
+          else
+          {
+            #if !SDF_INSTANCES_CPU_CULLING
+            instanceIndex = loadBuffer(culled_sdf_instances, ind*4 + 4);
+            #endif
+          }
+#endif
+          //ObjectSDFInstance inst = read_packed_sdf_instance(instanceIndex);
+          float4 sphR = read_sdf_instance_bounds(instanceIndex);
+          if (sqDistancePointBox(tileBoxMin, tileBoxMax, sphR.xyz) < pow2(sphR.w+minDistance) )
+          {
+            ObjectSDFInstance inst = read_packed_sdf_instance(instanceIndex);
+            {
+              uint writeTo;
+              InterlockedAdd(numCulledTileInstances, 1U, writeTo);
+              ##assert(writeTo < MAX_CULLED_TILE_INSTANCES, "[%s:%.f] Out of bounds: Buffer 'culledTileInstances' has size %.f, but access to (%.f)", _FILE_, __LINE__, MAX_CULLED_TILE_INSTANCES, writeTo);
+              culledTileInstances[writeTo] = instanceIndex;
+            }
+          }
+        }
+        GroupMemoryBarrierWithGroupSync();
+
+        uint culledCount = numCulledTileInstances;
+        for (uint culledI = 0; culledI < culledCount; ++culledI)
+        {
+          ##assert(culledI < MAX_CULLED_TILE_INSTANCES, "[%s:%.f] Out of bounds: Buffer 'culledTileInstances' has size %.f, but access to (%.f)", _FILE_, __LINE__, MAX_CULLED_TILE_INSTANCES, culledI);
+          getInstanceMinDistance(culledTileInstances[culledI], worldPos, minDistance, voxelSize);
+        }
+      }
+#else
+      for (uint ind = 0; ind < culledInstancesCount; ++ind)
+      {
+        uint instanceIndex = ind;
+#if USE_CULLED_INSTANCES_GRID
+        if (useCulledInstances)
+          instanceIndex = loadBuffer(culled_sdf_instances_grid, ind*4 + readAtOfset);
+        else
+        {
+          #if !SDF_INSTANCES_CPU_CULLING
+          instanceIndex = loadBuffer(culled_sdf_instances, ind*4 + 4);
+          #endif
+        }
+#endif
+        getInstanceMinDistance(instanceIndex, worldPos, minDistance, voxelSize);
+      }
+#endif
+#endif
+      minDistance /= maxEncodedDistance;
+      uint rasterI = world_sdf_raster_index(world_sdf_raster_target_coord_from_world(world_coord));
+      storeBuffer(world_sdf_clipmap_rasterize, 4*rasterI, encode_world_sdf(minDistance));
+    }
+  }
+  compile("cs_5_0", "world_sdf_update_cs");
+}
+
+shader world_sdf_cull_instances_clear_cs
+{
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    //RWTexture3D<float> world_sdf_clipmap: register(u0);
+    RWByteAddressBuffer culled_sdf_instances: register(u1);
+
+    [numthreads(1, 1, 1)]
+    void world_sdf_cull_instances_cs( uint dtId : SV_DispatchThreadID)
+    {
+      storeBuffer(culled_sdf_instances, 0, 0);
+    }
+  }
+  compile("cs_5_0", "world_sdf_cull_instances_cs");
+}
+
+macro INTERSECT_INSTANCE(code)
+  hlsl(code) {
+    void v_bbox3_add_pt(inout float3 mn, inout float3 mx, float3 p) { mn = min(mn, p); mx = max(mx, p);}
+    bool intersectInstance_tm(float4x4 tm, float3 ext, float3 localScale, float3 lt, float3 rb, float maxEncodedDistance)
+    {
+      //return true;
+      float3 boxMulM_0_0 = lt.x * tm[0].xyz;
+      float3 boxMulM_0_1 = rb.x * tm[0].xyz;
+      float3 boxMulM_1_0 = lt.y * tm[1].xyz;
+      float3 boxMulM_1_1 = rb.y * tm[1].xyz;
+      float3 boxMulM_2_0 = lt.z * tm[2].xyz;
+      float3 boxMulM_2_1 = rb.z * tm[2].xyz;
+
+      // Summing y and z
+      float3 boxSum_0_0 = boxMulM_1_0 + boxMulM_2_0;
+      float3 boxSum_0_1 = boxMulM_1_0 + boxMulM_2_1;
+      float3 boxSum_1_0 = boxMulM_1_1 + boxMulM_2_0;
+      float3 boxSum_1_1 = boxMulM_1_1 + boxMulM_2_1;
+      #define COMBINE_BOX(a,b,c) (boxMulM_0_##a + boxSum_##b##_##c)
+      float3 mn, mx;
+      mn = mx = COMBINE_BOX(0,0,0);
+      v_bbox3_add_pt(mn, mx, COMBINE_BOX(0, 0, 1));
+      v_bbox3_add_pt(mn, mx, COMBINE_BOX(0, 1, 0));
+      v_bbox3_add_pt(mn, mx, COMBINE_BOX(0, 1, 1));
+      v_bbox3_add_pt(mn, mx, COMBINE_BOX(1, 0, 0));
+      v_bbox3_add_pt(mn, mx, COMBINE_BOX(1, 0, 1));
+      v_bbox3_add_pt(mn, mx, COMBINE_BOX(1, 1, 0));
+      v_bbox3_add_pt(mn, mx, COMBINE_BOX(1, 1, 1));
+      mn += tm[3].xyz;
+      mx += tm[3].xyz;
+      //return all(mx > -ext && mn < ext);
+      float sqDistBetweenBoxes = sqDistanceBoxBoxScaled(float3(0,0,0), ext, (mn+mx)*0.5, (mx-mn)*0.5, localScale);
+      return sqDistBetweenBoxes < maxEncodedDistance;
+    }
+    bool intersectInstance(uint instance_id, float4 sphR, float3 lt, float3 rb, float maxEncodedDistance)
+    {
+      if (sqDistancePointBox(lt, rb, sphR.xyz) >= pow2(sphR.w+maxEncodedDistance))
+        return false;
+
+      ObjectSDFInstance inst = read_packed_sdf_instance(instance_id);
+      return intersectInstance_tm(inst.worldToLocal, inst.extent, inst.volumeToWorldScale.xyz, lt, rb, maxEncodedDistance);
+    }
+    bool intersectInstance(uint instance_id, float3 lt, float3 rb, float maxEncodedDistance)
+    {
+      return intersectInstance(instance_id, read_sdf_instance_bounds(instance_id), lt, rb, maxEncodedDistance);
+    }
+  }
+endmacro
+
+//at max 6 boxes
+float4 world_sdf_cull_grid_lt_0;
+float4 world_sdf_cull_grid_lt_1;
+float4 world_sdf_cull_grid_lt_2;
+float4 world_sdf_cull_grid_lt_3;
+float4 world_sdf_cull_grid_lt_4;
+float4 world_sdf_cull_grid_lt_5;
+float4 world_sdf_cull_grid_rb_0;
+float4 world_sdf_cull_grid_rb_1;
+float4 world_sdf_cull_grid_rb_2;
+float4 world_sdf_cull_grid_rb_3;
+float4 world_sdf_cull_grid_rb_4;
+float4 world_sdf_cull_grid_rb_5;
+int world_sdf_cull_grid_boxes_count;
+macro WORLD_SDF_UPDATED_BOX(code)
+  (code) {
+    world_sdf_cull_grid_boxes_count@i1 = world_sdf_cull_grid_boxes_count;
+    world_sdf_cull_grid_lt@f4[] = {world_sdf_cull_grid_lt_0, world_sdf_cull_grid_lt_1, world_sdf_cull_grid_lt_2, world_sdf_cull_grid_lt_3, world_sdf_cull_grid_lt_4, world_sdf_cull_grid_lt_5};
+    world_sdf_cull_grid_rb@f4[] = {world_sdf_cull_grid_rb_0, world_sdf_cull_grid_rb_1, world_sdf_cull_grid_rb_2, world_sdf_cull_grid_rb_3, world_sdf_cull_grid_rb_4, world_sdf_cull_grid_rb_5};
+    world_sdf_cull_update_lt@f4 = world_sdf_cull_update_lt;
+    world_sdf_cull_update_rb@f4 = world_sdf_cull_update_rb;
+  }
+  INTERSECT_INSTANCE(code)
+  hlsl(code) {
+    #define sample_world_sdf_cull_grid_lt(clip) _sample_world_sdf_cull_grid_lt(clip, _FILE_, __LINE__)
+    int4 _sample_world_sdf_cull_grid_lt(uint clip, int file, int ln)
+    {
+      // 6 is hardcoded currently. TODO: support array size in preshader for such checks.
+      ##assert(clip < 6, "[%s:%.f] Out of bounds: Buffer 'world_sdf_cull_grid_lt' has size 6, but access to (%.f)", file, ln, clip);
+      return world_sdf_cull_grid_lt[clip];
+    }
+
+    #define sample_world_sdf_cull_grid_rb(clip) _sample_world_sdf_cull_grid_rb(clip, _FILE_, __LINE__)
+    int4 _sample_world_sdf_cull_grid_rb(uint clip, int file, int ln)
+    {
+      // 6 is hardcoded currently. TODO: support array size in preshader for such checks.
+      ##assert(clip < 6, "[%s:%.f] Out of bounds: Buffer 'world_sdf_cull_grid_rb' has size 6, but access to (%.f)", file, ln, clip);
+      return world_sdf_cull_grid_rb[clip];
+    }
+
+    bool boxIntersectsUpdated(float3 lt, float3 rb, uint threadIndex)
+    {
+      #if ALL_INSTANCES_IN_CLIP
+      return true;
+      #endif
+      if (any(max(lt, world_sdf_cull_update_lt.xyz) >= min(world_sdf_cull_update_rb.xyz, rb)))
+        return false;
+      //todo: we can replace loop with threadIndex + groupshared interlockedOr
+      for (uint bi = 0; bi < uint(world_sdf_cull_grid_boxes_count); ++bi)
+      {
+        float3 mn = max(lt, sample_world_sdf_cull_grid_lt(bi).xyz), mx = min(rb, sample_world_sdf_cull_grid_rb(bi).xyz);
+        if (all(mn < mx))
+          return true;
+      }
+      return false;
+    }
+  }
+endmacro
+
+shader world_sdf_cull_instances_cs
+{
+  ENABLE_ASSERT(cs)
+  READ_OBJECT_SDF(cs)
+  WORLD_SDF_UPDATED_BOX(cs)
+  READ_WORLD_SDF_MATH(cs)
+  (cs) {    world_sdf_update_mip@i1 = world_sdf_update_mip;  }
+
+
+  hlsl(cs) {
+    #include <waveUtils.hlsl>
+    //RWTexture3D<float> world_sdf_clipmap: register(u0);
+    RWByteAddressBuffer culled_sdf_instances: register(u1);
+
+    [numthreads(64, 1, 1)]
+    void world_sdf_cull_instances_cs( uint dtId : SV_DispatchThreadID)
+    {
+      float maxEncodedDistance = MAX_WORLD_SDF_VOXELS_BAND*sample_world_sdf_cull_grid_lt(0).w;//fixme: remove this mul
+      //minDistance = length(worldPos - float3(-500, 4, 600)) - 10;
+      uint instanceIndex = dtId;
+      if (instanceIndex >= uint(object_sdf_instances_count.x))
+        return;
+      //simple
+      #if ALL_INSTANCES_IN_CLIP
+      float4 ltVoxel = sample_world_sdf_lt(world_sdf_update_mip);
+      float3 lt = ltVoxel.xyz+0.5, rb = lt + (world_sdf_res.xyx-1)*ltVoxel.w;
+      if (!intersectInstance(instanceIndex, lt, rb, maxEncodedDistance))
+        return;
+      #else
+      float4 sphR = read_sdf_instance_bounds(instanceIndex);
+      sphR.w = pow2(sphR.w+maxEncodedDistance);
+      if (sqDistancePointBox(world_sdf_cull_update_lt.xyz, world_sdf_cull_update_rb.xyz, sphR.xyz) >= sphR.w)
+        return;
+      uint bi = 0;
+      for (; bi < uint(world_sdf_cull_grid_boxes_count); ++bi)
+      {
+        if (sqDistancePointBox(sample_world_sdf_cull_grid_lt(bi).xyz, sample_world_sdf_cull_grid_rb(bi).xyz, sphR.xyz) < sphR.w)
+          break;
+      }
+      if (bi >= uint(world_sdf_cull_grid_boxes_count))
+        return;
+      ObjectSDFInstance inst = read_packed_sdf_instance(instanceIndex);
+      bi = 0;
+      for (; bi < uint(world_sdf_cull_grid_boxes_count); ++bi)
+      {
+        if (intersectInstance_tm(inst.worldToLocal, inst.extent, inst.volumeToWorldScale.xyz, sample_world_sdf_cull_grid_lt(bi).xyz, sample_world_sdf_cull_grid_rb(bi).xyz, maxEncodedDistance))
+          break;
+      }
+      if (bi >= uint(world_sdf_cull_grid_boxes_count))
+        return;
+      #endif
+      uint writeTo;
+      //culled_sdf_instances.InterlockedAdd(0, 1U, writeTo);
+      WaveInterlockedAddRawUintOriginal( culled_sdf_instances, 0, 1u, writeTo);
+      if (writeTo < SDF_MAX_CULLED_INSTANCES)
+        storeBuffer(culled_sdf_instances, writeTo*4 + 4, instanceIndex);
+    }
+  }
+  compile("cs_5_0", "world_sdf_cull_instances_cs");
+}
+
+
+float4 sdf_grid_cell_size;
+shader world_sdf_cull_instances_grid_cs
+{
+  ENABLE_ASSERT(cs)
+  READ_OBJECT_SDF(cs)
+  (cs) {
+    sdf_grid_culled_instances_res@i3 = sdf_grid_culled_instances_res;
+    sdf_grid_cell_size@f4 = sdf_grid_cell_size;
+    sdf_grid_culled_instances_grid_lt@i3 = sdf_grid_culled_instances_grid_lt;
+    culled_sdf_instances@buf = culled_sdf_instances hlsl {
+      ByteAddressBuffer culled_sdf_instances@buf;
+    }
+  }
+  READ_WORLD_SDF(cs)
+  WSDF_COORD_UPDATE(cs)
+  WORLD_SDF_UPDATED_BOX(cs)
+
+  hlsl(cs) {
+    //RWTexture3D<float> world_sdf_clipmap: register(u0);
+    #include <waveUtils.hlsl>
+    RWByteAddressBuffer culled_sdf_instances_grid: register(u1);
+
+    groupshared uint gridCellInstancesCnt;
+    groupshared uint gridCellInstancesCnt2;
+    groupshared uint gridCellInstancesOfs;
+    #define WARP_SIZE 128
+    [numthreads(WARP_SIZE, 1, 1)]
+    void world_sdf_cull_instances_cs(uint3 gtId : SV_GroupThreadID, uint3 gId : SV_GroupID, uint threadIndex : SV_GroupIndex)
+    {
+      if (threadIndex == 0)
+        gridCellInstancesCnt = 0;
+      float3 lt = float3(sdf_grid_culled_instances_grid_lt.xzy)*sdf_grid_cell_size.w + float3(gId.xzy)*sdf_grid_cell_size.xyz;//todo:add half voxel ofs
+      float3 rb = lt + sdf_grid_cell_size.xyz;//todo:subtract half voxel
+
+      //lt.xz = sdf_grid_culled_instances_grid_lt.xz;
+      //rb.xz = lt.xz + sdf_grid_culled_instances_grid_lt.w*sdf_grid_culled_instances_res.xy;
+
+      uint volume = 8*uint(sdf_grid_culled_instances_res.x)*uint(sdf_grid_culled_instances_res.y)*uint(sdf_grid_culled_instances_res.z);
+      uint gridLinearIndex = (gId.z*sdf_grid_culled_instances_res.y + gId.y)*sdf_grid_culled_instances_res.x + gId.x;
+      uint culledInstancesCount = uint(object_sdf_instances_count.x);
+      #if !SDF_INSTANCES_CPU_CULLING
+      culledInstancesCount = min(SDF_MAX_CULLED_INSTANCES, loadBuffer(culled_sdf_instances, 0));
+      #endif
+      //todo: we can check 6 boxes in shared groupmemory in 6 treads and add them there - will be faster
+      if (!boxIntersectsUpdated(lt, rb, threadIndex) || any(gId >= uint3(sdf_grid_culled_instances_res.xyz)))
+        culledInstancesCount = 0;
+
+      GroupMemoryBarrierWithGroupSync();
+
+      lt = max(lt, world_sdf_cull_update_lt.xyz);
+      rb = min(rb, world_sdf_cull_update_rb.xyz);
+      float maxEncodedDistance = MAX_WORLD_SDF_VOXELS_BAND*sample_world_sdf_cull_grid_lt(0).w;//fixme: remove this mul
+
+      if (culledInstancesCount)
+      {
+        for (uint i = threadIndex; i < culledInstancesCount; i += WARP_SIZE)
+        {
+          uint instanceIndex = i;
+          #if !SDF_INSTANCES_CPU_CULLING
+          instanceIndex = loadBuffer(culled_sdf_instances, i*4 + 4);
+          #endif
+          if (intersectInstance(instanceIndex, lt, rb, maxEncodedDistance))
+            InterlockedAdd(gridCellInstancesCnt, 1U);
+        }
+      }
+
+      GroupMemoryBarrierWithGroupSync();
+      if (threadIndex == 0)
+      {
+        uint ofs = 0;
+        if (all(gId < uint3(sdf_grid_culled_instances_res.xyz)))
+        {
+          uint cnt = gridCellInstancesCnt;
+          if (cnt)// saves one store, if it is empty anyway
+            culled_sdf_instances_grid.InterlockedAdd(0, cnt, ofs);
+          storeBuffer2(culled_sdf_instances_grid, gridLinearIndex*8 + 4, uint2(volume + 4 + ofs*4, cnt));
+          if (cnt*4 + ofs > SDF_CULLED_INSTANCES_GRID_SIZE*4)
+            gridCellInstancesCnt = 0;//do not write to memory, as it won't be used anyway
+        }
+        gridCellInstancesOfs = ofs;
+        gridCellInstancesCnt2 = 0;
+      }
+
+      GroupMemoryBarrierWithGroupSync();
+      uint gridCellInstancesOfsLocal = gridCellInstancesOfs;
+      uint gridCellInstancesCountLocal = gridCellInstancesCnt;
+
+      if (gridCellInstancesCountLocal)
+      {
+        uint writeAtOfset = volume + 4 + gridCellInstancesOfsLocal*4;//header + grid + ofs position
+        for (uint i = threadIndex; i < culledInstancesCount; i += WARP_SIZE)
+        {
+          uint instanceIndex = i;
+          #if !SDF_INSTANCES_CPU_CULLING
+          instanceIndex = loadBuffer(culled_sdf_instances, i*4 + 4);
+          #endif
+          if (intersectInstance(instanceIndex, lt, rb, maxEncodedDistance))
+          {
+            uint destIndex = 0;
+            //WaveInterlockedAddUintOriginal(gridCellInstancesCnt2, 1U, destIndex);
+            InterlockedAdd(gridCellInstancesCnt2, 1U, destIndex);//it is faster to perform on shared memory
+            uint storeAt = destIndex*4 + writeAtOfset;
+            if (storeAt < SDF_CULLED_INSTANCES_GRID_SIZE*4)// this should never work, safety in case intersectInstance will work differently
+              storeBuffer(culled_sdf_instances_grid, storeAt, instanceIndex);
+          }
+        }
+      }
+    }
+  }
+  compile("cs_5_0", "world_sdf_cull_instances_cs");
+}

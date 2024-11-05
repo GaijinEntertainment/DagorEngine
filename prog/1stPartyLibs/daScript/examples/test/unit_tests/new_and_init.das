@@ -3,6 +3,7 @@ options always_export_initializer=true
 
 require UnitTest
 
+[safe_when_uninitialized]
 struct Foo
     x:int = 1
     y:int = 2

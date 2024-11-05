@@ -1,17 +1,22 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/fluidDynamics/voxelizeDepthAbove.h>
+#include <math/integer/dag_IPoint2.h>
 #include <math/dag_bounds3.h>
+#include <math/dag_bounds2.h>
 
 namespace cfd
 {
-#define VARS_LIST                \
-  VAR(cfd_voxel_tex_size)        \
-  VAR(cfd_voxel_size)            \
-  VAR(cfd_world_box_min)         \
-  VAR(cfd_world_to_voxel)        \
-  VAR(cfd_world_to_voxel_height) \
-  VAR(cfd_prev_boundaries)       \
-  VAR(cfd_next_boundaries)       \
-  VAR(cfd_next_boundaries_tex_size)
+#define VARS_LIST                   \
+  VAR(cfd_voxel_tex_size)           \
+  VAR(cfd_voxel_size)               \
+  VAR(cfd_world_box_min)            \
+  VAR(cfd_world_to_voxel)           \
+  VAR(cfd_world_to_voxel_height)    \
+  VAR(cfd_prev_boundaries)          \
+  VAR(cfd_next_boundaries)          \
+  VAR(cfd_next_boundaries_tex_size) \
+  VAR(cfd_calc_offset)
 
 #define VAR(a) static int a##VarId = -1;
 VARS_LIST
@@ -49,6 +54,9 @@ Voxelizer::Voxelizer(float world_box_width, float meters_per_voxel_xz, int num_s
   }
 
   ShaderGlobal::set_int4(cfd_voxel_tex_sizeVarId, IPoint4(voxelTexSize.x, voxelTexSize.y, voxelTexSize.z, 0));
+
+  Point4 dummyWorldToVoxel = Point4(1.0f / 1000.f, 1.0f / 1000.f, -100000.f, -100000.f);
+  ShaderGlobal::set_color4(cfd_world_to_voxelVarId, dummyWorldToVoxel);
 }
 
 void Voxelizer::prepareWorldBox(const Point3 &world_pos, const Point2 &world_y_min_max)
@@ -66,13 +74,15 @@ void Voxelizer::prepareWorldBox(const Point3 &world_pos, const Point2 &world_y_m
   worldToVoxelHeight = Point4(1.0f / worldBoxSize.y, world_y_min_max.x, 0, 0);
 
   ShaderGlobal::set_color4(cfd_world_box_minVarId, Point4::xyz0(worldMin));
-  ShaderGlobal::set_color4(cfd_world_to_voxelVarId, worldToVoxel);
-  ShaderGlobal::set_color4(cfd_world_to_voxel_heightVarId, worldToVoxelHeight);
 }
 
-void Voxelizer::voxelizeDepthAbove()
+void Voxelizer::voxelizeDepthAbove(const BBox2 &area)
 {
-  voxelizeCs->dispatchThreads(voxelTexSize.x, voxelTexSize.y, voxelTexSize.z);
+  ShaderGlobal::set_int4(cfd_calc_offsetVarId, IPoint4(area.getMin().x * voxelTexSize.x, area.getMin().y * voxelTexSize.y, 0, 0));
+  Point2 areaSize = area.getMax() - area.getMin();
+  IPoint2 numDispatches = IPoint2(ceil(voxelTexSize.x * areaSize.x), ceil(voxelTexSize.y * areaSize.y));
+
+  voxelizeCs->dispatchThreads(numDispatches.x, numDispatches.y, voxelTexSize.z);
   d3d::resource_barrier({voxelTex.getBaseTex(), RB_STAGE_COMPUTE | RB_RO_SRV, 0, 0});
 
   for (int i = 0; i < numCascades; ++i)
@@ -86,9 +96,18 @@ void Voxelizer::voxelizeDepthAbove()
       ShaderGlobal::set_texture(cfd_prev_boundariesVarId, boundaryCascades[i - 1].getTexId());
     ShaderGlobal::set_texture(cfd_next_boundariesVarId, boundaryCascades[i].getTexId());
 
-    generateBoundariesCs->dispatchThreads(width, height, voxelTexSize.z);
+    ShaderGlobal::set_int4(cfd_calc_offsetVarId, IPoint4(area.getMin().x * width, area.getMin().y * height, 0, 0));
+    numDispatches = IPoint2(ceil(width * areaSize.x), ceil(height * areaSize.y));
+
+    generateBoundariesCs->dispatchThreads(numDispatches.x, numDispatches.y, voxelTexSize.z);
     d3d::resource_barrier({boundaryCascades[i].getBaseTex(), RB_STAGE_COMPUTE | RB_RO_SRV, 0, 0});
   }
+}
+
+void Voxelizer::setTransformVars()
+{
+  ShaderGlobal::set_color4(cfd_world_to_voxelVarId, worldToVoxel);
+  ShaderGlobal::set_color4(cfd_world_to_voxel_heightVarId, worldToVoxelHeight);
 }
 
 TEXTUREID Voxelizer::getVoxelTexId() const { return voxelTex.getTexId(); }

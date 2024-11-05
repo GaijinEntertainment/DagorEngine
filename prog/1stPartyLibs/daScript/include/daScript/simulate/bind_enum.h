@@ -38,10 +38,10 @@
     DAS_BASE_BIND_ENUM_CAST(stripped_enum_name##_DasProxy, #enum_name) \
     DAS_BASE_BIND_ENUM_CAST(enum_name, #enum_name)
 
-#define DAS_BASE_BIND_ENUM_BOTH(helper, enum_name, das_enum_name, ...) \
-class Enumeration##das_enum_name : public das::Enumeration {\
+#define DAS_BASE_BIND_ENUM_BOTH(helper, enum_name, das_enum_name, annotation_name, ...) \
+class annotation_name : public das::Enumeration {\
 public:\
-    Enumeration##das_enum_name() : das::Enumeration(#das_enum_name) {\
+    annotation_name() : das::Enumeration(#das_enum_name) {\
         external = true;\
         cppName = #enum_name; \
         baseType = (das::Type) das::ToBasicType< das::underlying_type< enum_name >::type >::type; \
@@ -60,13 +60,18 @@ public:\
     DAS_BASE_BIND_ENUM_FACTORY(enum_name##_DasProxy, #das_enum_name)
 
 #define DAS_BASE_BIND_ENUM(enum_name, das_enum_name, ...) \
-    DAS_BASE_BIND_ENUM_BOTH(DAS_BIND_ENUM_QUALIFIED_HELPER, enum_name, das_enum_name, __VA_ARGS__)\
+    DAS_BASE_BIND_ENUM_BOTH(DAS_BIND_ENUM_QUALIFIED_HELPER, enum_name, das_enum_name, Enumeration##das_enum_name, __VA_ARGS__)\
     DAS_BASE_BIND_ENUM_FACTORY(enum_name, #das_enum_name)
 
 #define DAS_BASE_BIND_ENUM_98(enum_name, das_enum_name, ...) \
-    DAS_BASE_BIND_ENUM_BOTH(DAS_BIND_ENUM_QUALIFIED_HELPER, enum_name, das_enum_name, __VA_ARGS__)\
+    DAS_BASE_BIND_ENUM_BOTH(DAS_BIND_ENUM_QUALIFIED_HELPER, enum_name, das_enum_name, Enumeration##das_enum_name, __VA_ARGS__)\
     DAS_BASE_BIND_ENUM_FACTORY(enum_name, #das_enum_name)\
     DAS_BASE_BIND_ENUM_FACTORY(das_enum_name##_DasProxy, #das_enum_name)
 
 #define DAS_BASE_BIND_ENUM_IMPL(enum_name, das_enum_name, ...) \
-    DAS_BASE_BIND_ENUM_BOTH(DAS_BIND_ENUM_QUALIFIED_HELPER, enum_name, das_enum_name, __VA_ARGS__)
+    DAS_BASE_BIND_ENUM_BOTH(DAS_BIND_ENUM_QUALIFIED_HELPER, enum_name, das_enum_name, Enumeration##das_enum_name, __VA_ARGS__)
+
+// Use this if `das_enum_name` contains symbols that are not valid in C++ identifiers
+#define DAS_BASE_BIND_ENUM_SAFE(enum_name, das_enum_name, safe_enum_name, ...) \
+    DAS_BASE_BIND_ENUM_BOTH(DAS_BIND_ENUM_QUALIFIED_HELPER, enum_name, das_enum_name, Enumeration##safe_enum_name, __VA_ARGS__)\
+    DAS_BASE_BIND_ENUM_FACTORY(enum_name, #das_enum_name)

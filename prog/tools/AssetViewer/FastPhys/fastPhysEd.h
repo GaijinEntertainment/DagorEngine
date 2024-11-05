@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <anim/dag_animDecl.h>
@@ -56,12 +57,12 @@ public:
   virtual void render();
 
   virtual void selectionChanged();
-  virtual void onClick(int pcb_id, PropPanel2 *panel);
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
 
   void refillPanel();
   void updateToolbarButtons();
-  void fillToolBar(PropPanel2 *toolbar);
-  void addButton(PropPanel2 *toolbar, int id, const char *bmp_name, const char *hint, bool check = false);
+  void fillToolBar(PropPanel::ContainerPropertyControl *toolbar);
+  void addButton(PropPanel::ContainerPropertyControl *toolbar, int id, const char *bmp_name, const char *hint, bool check = false);
 
   void setWind(const Point3 &vel, float power, float turb);
   void getWind(Point3 &vel, float &power, float &turb);

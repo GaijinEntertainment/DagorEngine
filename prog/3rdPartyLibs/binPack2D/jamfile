@@ -17,7 +17,7 @@ UseProgLibs +=
   3rdPartyLibs/eastl
 ;
 
-if $(Platform) = linux64 {
+if $(Platform) = linux {
   CPPopt += -Wno-unused-parameter ;
 }
 

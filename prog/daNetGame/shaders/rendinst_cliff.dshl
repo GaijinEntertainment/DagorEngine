@@ -1,0 +1,116 @@
+include "rendinst_vcolor_inc.dshl"
+include "rendinst_hmap_inc.dshl"
+
+
+shader rendinst_cliff
+{
+  RENDINST_OVERLAY_COLOR_MAP(vs, shader == rendinst_cliff, get_paint_palette_row_index().x)
+  INIT_COMMON_RENDINST_TESSELLATION()
+  COMMON_RENDINST_VCOLOR_INIT(pn_triangulation_enabled)
+  COMMON_RENDINST_INIT_HMAP()
+  INIT_COMMON_RENDINST_TESSELLATION_CHANNELS()
+
+  COMMON_RENDINST_VS_IO_DEFINES()
+
+  hlsl {
+    struct VsOutput
+    {
+      COMMON_RENDINST_VS_OUTPUT_MEMBERS
+
+      #if RI_HMAP_BLEND_ON
+        nointerpolation
+        RI_HMAP_BLEND_VS_TYPE riHmapBlend : TEXCOORD7;
+      #endif
+
+      #if HAS_VERTEX_COLOR_MASK
+        float3 vcolMask                   : TEXCOORD4;
+      #endif
+
+      float gradientFactor              : TEXCOORD6;
+    };
+    #define HsInput VsOutput
+  }
+
+  COMMON_RENDINST_VS_INPUT()
+
+  hlsl(vs) {
+    #define VS_SPECIFIC_OUTPUT 1
+
+    #define VS_SPECIFIC_OUTPUT_INIT_FIELDS(output) \
+      output.gradientFactor = 0;
+
+    void vs_specific_output(VsInput input, float3 worldPos, float3 worldLocalPos, inout VsOutput output)
+    {
+      const float gradient_overlay_offset = get_gradient_overlay_vector().w;
+      float3 gradVector = get_gradient_overlay_vector().xyz;
+      float3 pos = worldPos - worldLocalPos;
+      output.gradientFactor = saturate(dot(pos, gradVector) / dot(gradVector, gradVector) + 0.5 + gradient_overlay_offset);
+    }
+  }
+
+  COMMON_RENDINST_VS()
+
+  COMMON_RENDINST_VCOLOR_PS(true)
+
+  if (pn_triangulation_enabled)
+  {
+    hlsl
+    {
+      struct HsControlPoint
+      {
+        HS_CONTROL_POINTS_DECLARATION
+        COMMON_RENDINST_HS_OUTPUT_MEMBERS
+
+        #if RI_HMAP_BLEND_ON
+          nointerpolation RI_HMAP_BLEND_VS_TYPE riHmapBlend : TEXCOORD7;
+        #endif
+
+        #if HAS_VERTEX_COLOR_MASK
+          float3 vcolMask : TEXCOORD4;
+        #endif
+
+        float gradientFactor : TEXCOORD6;
+      };
+    }
+
+    hlsl(hs)
+    {
+      void proxy_struct_fields(HsInput input, inout HsControlPoint output)
+      {
+        COMMON_RENDINST_TESS_PROXY_FIELD_VALUE
+
+        #if RI_HMAP_BLEND_ON
+          PROXY_FIELD_VALUE(riHmapBlend);
+        #endif
+        #if HAS_VERTEX_COLOR_MASK
+          PROXY_FIELD_VALUE(vcolMask);
+        #endif
+        PROXY_FIELD_VALUE(gradientFactor);
+      }
+    }
+
+    USE_COMMON_RENDINST_DISPLACEMENT_FOR_TESSELLATION()
+
+    hlsl(ds)
+    {
+      void fields_barycentric_values(const OutputPatch<HsControlPoint, 3> input, inout VsOutput output, float3 uvw)
+      {
+        BARYCENTRIC_COORDS_UNPACK(uvw)
+        COMMON_RENDINST_TESS_FIELD_BARYCENTRIC_VALUE
+
+        #if RI_HMAP_BLEND_ON
+          FIELD_BARYCENTRIC_VALUE(riHmapBlend);
+        #endif
+        #if HAS_VERTEX_COLOR_MASK
+          FIELD_BARYCENTRIC_VALUE(vcolMask);
+        #endif
+        FIELD_BARYCENTRIC_VALUE(gradientFactor);
+
+        modify_tessellation_displacement(input, output, uvw);
+      }
+    }
+    USE_COMMON_RENDINST_TESSELLATION()
+  }
+
+  COMPILE_RI_VS_TARGET_WITH_TESSELLATION("simple_vs", pn_triangulation_enabled)
+}

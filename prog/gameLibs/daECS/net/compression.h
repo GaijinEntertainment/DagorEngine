@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <daNet/bitStream.h>
 #include <lz4/lz4.h>
 #include <memory/dag_framemem.h>

@@ -2,15 +2,19 @@ include "shader_global.dshl"
 include "snoise.dshl"
 include "water_heightmap.dshl"
 include "depth_above.dshl"
+include "gaussian_blur.dshl"
 
 texture flowmap_temp_tex;
 int4 flowmap_texture_tile = (0, 0, 0, 0);
 int flowmap_texture_size = 1024;
-float flowmap_texture_size_meters = 200;
 texture flowmap_heightmap_tex;
 int flowmap_heightmap_texture_size = 1024;
 float4 flowmap_heightmap_min_max = (0, 0, 0, 0);
 texture flowmap_floodfill_tex;
+buffer water_flowmap_circular_obstacles;
+buffer water_flowmap_rectangular_obstacles;
+float water_flowmap_obstacles_power = 10;
+float water_flowmap_obstacles_add = 0;
 float wind_dir_x = 0.6;
 float wind_dir_y = 0.8;
 float dir_scale = 0.01;
@@ -18,10 +22,14 @@ float4 world_to_flowmap_prev = (1, 1, 0, 0);
 float4 world_to_flowmap_add = (1, 1, 0, 0);
 float4 world_to_flowmap_heightmap = (1/32, 1/32, 0.5, 0.5);
 float4 water_flowmap_depth = float4(1, 0.1, 0.3, 1);
-int water_flowmap_num_winds = 0;
-buffer water_flowmap_winds;
+float water_flowmap_range = 100;
+float water_flowmap_damping = 0.9;
 float water_flowmap_slope = 1.0;
-float flowmap_damping = 0.5;
+float4 water_flowmap_foam_detail = float4(0.025, 0.01, 10, 10);
+int water_flowmap_cascades = 0;
+texture water_flowmap_tex_add_0;
+float4 world_to_flowmap_add_0 = (1,1,0,0);
+float4 water_flowmap_fluid_params = (5, 10, 0.2, 0.0001); // x: viscosity, y: gravity, z: flow velocity, w: water quantity
 
 int flowmap_height = 0;
 interval flowmap_height : depth_above < 1, heightmap;
@@ -29,6 +37,10 @@ interval flowmap_height : depth_above < 1, heightmap;
 texture shore_distance_field_tex;
 float4 water_heightmap_min_max = (0, 0, 0, 0);
 float4 world_to_heightmap = (1/32, 1/32, 0.5, 0.5);
+
+hlsl {
+  #define USE_WATER_FLOWMAP_NAVIER_STOKES 1
+}
 
 shader copy_flowmap_texture
 {
@@ -96,24 +108,21 @@ shader water_flowmap
 
   (ps) {
     flowmap_temp_tex@smp2d = flowmap_temp_tex;
-    wind_dir_dir_scale_water_flowmap_slope@f4 = (wind_dir_x, wind_dir_y, dir_scale*flowmap_texture_size/flowmap_texture_size_meters, water_flowmap_slope);
-    flowmap_texture_size@f4 = (1.0/flowmap_heightmap_texture_size, flowmap_heightmap_texture_size, 1./flowmap_texture_size, flowmap_texture_size);
+    wind_dir_dir_scale@f3 = (wind_dir_x, wind_dir_y, (dir_scale * flowmap_texture_size) / (2 * water_flowmap_range));
+    flowmap_texture_size@f4 = (1 / flowmap_heightmap_texture_size, flowmap_heightmap_texture_size, 1 / flowmap_texture_size, (1 - water_flowmap_damping) / flowmap_texture_size);
     flowmap_heightmap_tex@smp2d = flowmap_heightmap_tex;
     flowmap_heightmap_min_max@f4 = flowmap_heightmap_min_max;
     flowmap_floodfill_tex@smp2d = flowmap_floodfill_tex;
-    waterLevel_radius_flowmap_damping@f4 = (water_level, flowmap_heightmap_texture_size/flowmap_texture_size+2, flowmap_heightmap_texture_size/flowmap_texture_size, flowmap_damping);
+    waterLevel_radius_flowmap_damping@f4 = (water_level, flowmap_heightmap_texture_size/flowmap_texture_size+2, flowmap_heightmap_texture_size/flowmap_texture_size, water_flowmap_damping);
+    water_flowmap_weight@f4 = (water_flowmap_depth.x / (1 - water_flowmap_damping), water_flowmap_depth.y * (1 - water_flowmap_damping), (1 - water_flowmap_damping), water_flowmap_slope / (1 - water_flowmap_damping));
     world_to_flowmap_prev@f4 = world_to_flowmap_prev;
     world_to_flowmap_heightmap@f4 = world_to_flowmap_heightmap;
     flowmap_add_to_world@f4 = (1.0/world_to_flowmap_add.x, 1.0/world_to_flowmap_add.y, -world_to_flowmap_add.z/world_to_flowmap_add.x, -world_to_flowmap_add.w/world_to_flowmap_add.y);
     water_flowmap_depth@f4 = water_flowmap_depth;
-    water_flowmap_num_winds@i1 = (water_flowmap_num_winds);
-    water_flowmap_winds_buf@cbuf = water_flowmap_winds hlsl {
-      #include <fftWater/flow_map_inc.hlsli>
-      cbuffer water_flowmap_winds_buf@cbuf
-      {
-        FlowmapWind water_flowmap_winds[MAX_FLOWMAP_WINDS];
-      };
-    };
+    water_flowmap_foam_detail@f4 = water_flowmap_foam_detail;
+    water_flowmap_cascades@i1 = (water_flowmap_cascades);
+    water_flowmap_tex_add_0@smp2d = water_flowmap_tex_add_0;
+    world_to_flowmap_add_0@f4 = world_to_flowmap_add_0;
   }
 
   if ((flowmap_height != depth_above) && (shore_distance_field_tex != NULL))
@@ -136,11 +145,10 @@ shader water_flowmap
   USE_WATER_HEIGHTMAP(ps)
 
   hlsl(ps) {
-    #define wind_dir (wind_dir_dir_scale_water_flowmap_slope.xy)
-    #define dir_scale (wind_dir_dir_scale_water_flowmap_slope.z)
-    #define water_flowmap_slope (wind_dir_dir_scale_water_flowmap_slope.w)
+    #define wind_dir (wind_dir_dir_scale.xy)
+    #define dir_scale (wind_dir_dir_scale.z)
     #define waterLevel (waterLevel_radius_flowmap_damping.x)
-    #define flowmap_damping (waterLevel_radius_flowmap_damping.w)
+    #define water_flowmap_damping (waterLevel_radius_flowmap_damping.w)
 
     float4 flowmap_ps(VsOutput input) : SV_Target0
     {
@@ -157,8 +165,8 @@ shader water_flowmap
       float4 u = tex2Dlod(flowmap_temp_tex, float4(ftc.x,ftc.y-flowmap_texture_size.z,0,0));
       float4 d = tex2Dlod(flowmap_temp_tex, float4(ftc.x,ftc.y+flowmap_texture_size.z,0,0));
 
-      f = tex2Dlod(flowmap_temp_tex, float4(ftc-f.xy*flowmap_texture_size.z,0,0));
-      f *= flowmap_damping;
+      f = tex2Dlod(flowmap_temp_tex, float4(ftc-f.xy*flowmap_texture_size.w,0,0));
+      f *= water_flowmap_damping;
 
       f.x += (l.w-r.w)*0.5;
       f.y += (u.w-d.w)*0.5;
@@ -185,22 +193,20 @@ shader water_flowmap
       ##endif
 
       float waterDepth = abs(waterHeight - h);
+      float4 cascadeStrength = float4(1, 1, 1, 1);
 
-      bool isUp = h > waterHeight ? 1 : 0;
+      ##if flowmap_floodfill_tex != NULL
+        float2 floodfillVec = tex2Dlod(flowmap_floodfill_tex, float4(htc,0,0)).rg * 2 - 1;
+        bool isUp = length(floodfillVec) < 0.1;
+      ##else
+        bool isUp = h > waterHeight ? 1 : 0;
+      ##endif
       bool isBorder = any(abs(tc*2-1)>1-flowmap_texture_size.z*2);
 
       if (isUp || isBorder)
         f = 0;
       else
       {
-        f.xy += wind_dir*dir_scale;
-        float4 posNeg = float4(worldPos, -worldPos);
-        for (int i = 0; i < water_flowmap_num_winds; ++i)
-        {
-          if (all(posNeg >= water_flowmap_winds[i].area))
-            f.xy += water_flowmap_winds[i].dir*dir_scale;
-        }
-
         ##if flowmap_height == depth_above
           float4 depthNeighbours = h;
           depthNeighbours.x = getWorldBlurredDepth(float3(worldPos.x - 1, 0, worldPos.y), depthVignette);
@@ -216,45 +222,66 @@ shader water_flowmap
           if (depthNeighbours.w > bridgeHeight)
              depthNeighbours.w = h;
           float2 depthGradient = float2(depthNeighbours.y - depthNeighbours.x, depthNeighbours.w - depthNeighbours.z);
-          f.xy += depthGradient * water_flowmap_depth.x * max(1 - waterDepth * water_flowmap_depth.z, 0);
+          f.xy += depthGradient * water_flowmap_weight.x * max(1 - waterDepth * water_flowmap_depth.z, 0);
         ##endif
 
-        ##if flowmap_floodfill_tex != NULL
-          f.xy = (l.xy + r.xy + u.xy + d.xy) * 0.25;
-          float4 heightNeighbours = h;
-          #ifdef USE_FLOWMAP_SDF
-            if ((stc.x >= 0) && (stc.y >= 0) && (stc.x <= 1) && (stc.y <= 1))
-            {
-              heightNeighbours.x = tex2Dlod(shore_distance_field_tex, float4(stc.x - flowmap_texture_size.x, stc.y, 0, 0)).r * water_heightmap_min_max.z + water_heightmap_min_max.w;
-              heightNeighbours.y = tex2Dlod(shore_distance_field_tex, float4(stc.x + flowmap_texture_size.x, stc.y, 0, 0)).r * water_heightmap_min_max.z + water_heightmap_min_max.w;
-              heightNeighbours.z = tex2Dlod(shore_distance_field_tex, float4(stc.x, stc.y - flowmap_texture_size.x, 0, 0)).r * water_heightmap_min_max.z + water_heightmap_min_max.w;
-              heightNeighbours.w = tex2Dlod(shore_distance_field_tex, float4(stc.x, stc.y + flowmap_texture_size.x, 0, 0)).r * water_heightmap_min_max.z + water_heightmap_min_max.w;
-            }
-            else
-            {
-          #endif
-              heightNeighbours.x = tex2Dlod(flowmap_heightmap_tex, float4(htc.x - flowmap_texture_size.x, htc.y, 0, 0)).r * flowmap_heightmap_min_max.z + flowmap_heightmap_min_max.w;
-              heightNeighbours.y = tex2Dlod(flowmap_heightmap_tex, float4(htc.x + flowmap_texture_size.x, htc.y, 0, 0)).r * flowmap_heightmap_min_max.z + flowmap_heightmap_min_max.w;
-              heightNeighbours.z = tex2Dlod(flowmap_heightmap_tex, float4(htc.x, htc.y - flowmap_texture_size.x, 0, 0)).r * flowmap_heightmap_min_max.z + flowmap_heightmap_min_max.w;
-              heightNeighbours.w = tex2Dlod(flowmap_heightmap_tex, float4(htc.x, htc.y + flowmap_texture_size.x, 0, 0)).r * flowmap_heightmap_min_max.z + flowmap_heightmap_min_max.w;
-          #ifdef USE_FLOWMAP_SDF
-            }
-          #endif
-          if (any(heightNeighbours > waterHeight))
-          {
-            float2 heightGradient = float2(heightNeighbours.w - heightNeighbours.z, heightNeighbours.x - heightNeighbours.y);
-            if (length(heightGradient) > 0.001)
-            {
-              heightGradient = normalize(heightGradient);
-              float2 floodfillVec = tex2Dlod(flowmap_floodfill_tex, float4(htc,0,0)).rg * 2 - 1;
-              floodfillVec *= sign(0.5 - frac(htc.yx * 0.5)); // flipped in the opposite dimension to the heightmap mirroring
-              heightGradient *= heightGradient.x * floodfillVec.x + heightGradient.y * floodfillVec.y;
-              f.xy += heightGradient;
+        BRANCH
+        if (water_flowmap_cascades == 1)
+        {
+          ##if flowmap_floodfill_tex != NULL
+            #if USE_WATER_FLOWMAP_NAVIER_STOKES
+              f.xy += floodfillVec * water_flowmap_weight.z;
               if (length(f.xy) > 1)
                 f.xy = normalize(f.xy);
-            }
-          }
-        ##endif
+            #else
+              f.xy = (l.xy + r.xy + u.xy + d.xy) * 0.25;
+              float4 heightNeighbours = h;
+              #ifdef USE_FLOWMAP_SDF
+                if ((stc.x >= 0) && (stc.y >= 0) && (stc.x <= 1) && (stc.y <= 1))
+                {
+                  heightNeighbours.x = tex2Dlod(shore_distance_field_tex, float4(stc.x - flowmap_texture_size.x, stc.y, 0, 0)).r * water_heightmap_min_max.z + water_heightmap_min_max.w;
+                  heightNeighbours.y = tex2Dlod(shore_distance_field_tex, float4(stc.x + flowmap_texture_size.x, stc.y, 0, 0)).r * water_heightmap_min_max.z + water_heightmap_min_max.w;
+                  heightNeighbours.z = tex2Dlod(shore_distance_field_tex, float4(stc.x, stc.y - flowmap_texture_size.x, 0, 0)).r * water_heightmap_min_max.z + water_heightmap_min_max.w;
+                  heightNeighbours.w = tex2Dlod(shore_distance_field_tex, float4(stc.x, stc.y + flowmap_texture_size.x, 0, 0)).r * water_heightmap_min_max.z + water_heightmap_min_max.w;
+                }
+                else
+                {
+              #endif
+                  heightNeighbours.x = tex2Dlod(flowmap_heightmap_tex, float4(htc.x - flowmap_texture_size.x, htc.y, 0, 0)).r * flowmap_heightmap_min_max.z + flowmap_heightmap_min_max.w;
+                  heightNeighbours.y = tex2Dlod(flowmap_heightmap_tex, float4(htc.x + flowmap_texture_size.x, htc.y, 0, 0)).r * flowmap_heightmap_min_max.z + flowmap_heightmap_min_max.w;
+                  heightNeighbours.z = tex2Dlod(flowmap_heightmap_tex, float4(htc.x, htc.y - flowmap_texture_size.x, 0, 0)).r * flowmap_heightmap_min_max.z + flowmap_heightmap_min_max.w;
+                  heightNeighbours.w = tex2Dlod(flowmap_heightmap_tex, float4(htc.x, htc.y + flowmap_texture_size.x, 0, 0)).r * flowmap_heightmap_min_max.z + flowmap_heightmap_min_max.w;
+              #ifdef USE_FLOWMAP_SDF
+                }
+              #endif
+              if (any(heightNeighbours > waterHeight))
+              {
+                float2 heightGradient = float2(heightNeighbours.w - heightNeighbours.z, heightNeighbours.x - heightNeighbours.y);
+                if (length(heightGradient) > 0.001)
+                {
+                  heightGradient = normalize(heightGradient);
+                  floodfillVec *= sign(0.5 - frac(htc.yx * 0.5)); // flipped in the opposite dimension to the heightmap mirroring
+                  heightGradient *= heightGradient.x * floodfillVec.x + heightGradient.y * floodfillVec.y;
+                  f.xy += heightGradient;
+                  if (length(f.xy) > 1)
+                    f.xy = normalize(f.xy);
+                }
+              }
+            #endif
+          ##endif
+        }
+        else
+        {
+          float2 vtc = worldPos * world_to_flowmap_add_0.xy + world_to_flowmap_add_0.zw;
+          float2 v = tex2Dlod(water_flowmap_tex_add_0, float4(vtc,0,0)).xy;
+          cascadeStrength.x = water_flowmap_foam_detail.x * saturate(1 - length(tc * 2 - 1));
+          cascadeStrength.y = min(max(water_flowmap_foam_detail.y * abs(dot(f.xy, v)), 1), water_flowmap_foam_detail.w);
+          cascadeStrength.z = water_flowmap_foam_detail.z;
+          cascadeStrength.w = 0;
+          f.xy -= v * water_flowmap_foam_detail.z;
+        }
+
+        f.xy += wind_dir * dir_scale * cascadeStrength.w;
 
         float4 waterNeighbours = waterLevel;
         get_water_height(worldPos - float2(1, 0), waterNeighbours.x);
@@ -263,11 +290,11 @@ shader water_flowmap
         get_water_height(worldPos + float2(0, 1), waterNeighbours.w);
         float2 waterGradient = float2(waterNeighbours.y - waterNeighbours.x, waterNeighbours.w - waterNeighbours.z);
         waterGradient = clamp(waterGradient, -1, 1);
-        f.xy += waterGradient * water_flowmap_slope;
+        f.xy += waterGradient * water_flowmap_weight.w * cascadeStrength.w;
       }
 
-      float speedFoam = length(f.xy) * water_flowmap_depth.y;
-      float depthFoam = max(1 - waterDepth * water_flowmap_depth.w, 0);
+      float speedFoam = min(pow(length(f.xy) * water_flowmap_weight.y * cascadeStrength.x, cascadeStrength.y) * cascadeStrength.z, water_flowmap_foam_detail.w);
+      float depthFoam = max(1 - waterDepth * water_flowmap_depth.w, 0) * cascadeStrength.w;
       f.z = speedFoam + depthFoam;
 
       f.w = ((l.x-r.x+u.y-d.y)*0.5+(l.w+r.w+u.w+d.w))*0.25;
@@ -277,4 +304,371 @@ shader water_flowmap
   }
 
   compile("target_ps", "flowmap_ps");
+}
+
+shader water_flowmap_circular_obstacles
+{
+  cull_mode=none;
+  z_test=false;
+  z_write=false;
+
+  blend_src = zero; blend_dst = sc;
+  blend_asrc = one; blend_adst = one;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      noperspective float2 tc : TEXCOORD0;
+    };
+  }
+
+  (vs) {
+    world_to_flowmap_add@f4 = world_to_flowmap_add;
+    water_flowmap_circular_obstacles_buf@cbuf = water_flowmap_circular_obstacles hlsl {
+      #include <fftWater/flow_map_inc.hlsli>
+      cbuffer water_flowmap_circular_obstacles_buf@cbuf
+      {
+        FlowmapCircularObstacle water_flowmap_circular_obstacles[MAX_FLOWMAP_CIRCULAR_OBSTACLES];
+      };
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput obstacle_vs(uint vertexId : SV_VertexID)
+    {
+      int i = vertexId / 6;
+      float2 p = water_flowmap_circular_obstacles[i].position;
+      float r = water_flowmap_circular_obstacles[i].radius;
+
+      float2 tc = float2(vertexId % 2, ((vertexId + 1) / 3) % 2) * 2 - 1;
+      float2 xy = tc * r + p;
+      xy = xy * world_to_flowmap_add.xy + world_to_flowmap_add.zw;
+
+      VsOutput output;
+      output.pos = float4(xy * float2(2, -2) - float2(1, -1), 1, 1);
+      output.tc = tc;
+      return output;
+    }
+  }
+
+  (ps) {
+    water_flowmap_obstacles_power@f1 = water_flowmap_obstacles_power;
+    water_flowmap_obstacles_add@f1 = water_flowmap_obstacles_add;
+  }
+
+  hlsl(ps) {
+    float4 obstacle_ps(VsOutput input) : SV_Target0
+    {
+      float w = length(input.tc);
+      float a = pow(min(w, 1), water_flowmap_obstacles_power);
+      return lerp(float4(a, a, a, 0), float4(1, 1, 1, a), water_flowmap_obstacles_add);
+    }
+  }
+
+  compile("target_vs", "obstacle_vs");
+  compile("target_ps", "obstacle_ps");
+}
+
+shader water_flowmap_rectangular_obstacles
+{
+  cull_mode=none;
+  z_test=false;
+  z_write=false;
+
+  blend_src = zero; blend_dst = sc;
+  blend_asrc = one; blend_adst = one;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      noperspective float2 tc : TEXCOORD0;
+    };
+  }
+
+  (vs) {
+    world_to_flowmap_add@f4 = world_to_flowmap_add;
+    water_flowmap_rectangular_obstacles_buf@cbuf = water_flowmap_rectangular_obstacles hlsl {
+      #include <fftWater/flow_map_inc.hlsli>
+      cbuffer water_flowmap_rectangular_obstacles_buf@cbuf
+      {
+        FlowmapRectangularObstacle water_flowmap_rectangular_obstacles[MAX_FLOWMAP_RECTANGULAR_OBSTACLES];
+      };
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput obstacle_vs(uint vertexId : SV_VertexID)
+    {
+      int i = vertexId / 6;
+      float2 p = water_flowmap_rectangular_obstacles[i].position;
+      float2 r = water_flowmap_rectangular_obstacles[i].rotation;
+      float2 s = water_flowmap_rectangular_obstacles[i].size;
+
+      float2 tc = float2(vertexId % 2, ((vertexId + 1) / 3) % 2) * 2 - 1;
+      float2 v = tc * s / 2;
+      float2 xy = r * v.x + float2(r.y, -r.x) * v.y + p;
+      xy = xy * world_to_flowmap_add.xy + world_to_flowmap_add.zw;
+
+      VsOutput output;
+      output.pos = float4(xy * float2(2, -2) - float2(1, -1), 1, 1);
+      output.tc = tc;
+      return output;
+    }
+  }
+
+  (ps) {
+    water_flowmap_obstacles_power@f1 = water_flowmap_obstacles_power;
+    water_flowmap_obstacles_add@f1 = water_flowmap_obstacles_add;
+  }
+
+  hlsl(ps) {
+    float4 obstacle_ps(VsOutput input) : SV_Target0
+    {
+      float2 w = abs(input.tc);
+      float a = pow(max(w.x, w.y), water_flowmap_obstacles_power);
+      return lerp(float4(a, a, a, 0), float4(1, 1, 1, a), water_flowmap_obstacles_add);
+    }
+  }
+
+  compile("target_vs", "obstacle_vs");
+  compile("target_ps", "obstacle_ps");
+}
+
+texture tex;
+float4 texsz = (0.5, -0.5, 0.5, 0.5);
+
+shader flowmap_blur_x, flowmap_blur_y
+{
+  cull_mode=none;
+  z_test=false;
+  z_write=false;
+  no_ablend;
+
+  (ps) {
+    tex@smp2d = tex;
+    texsz@f4 = texsz;
+  }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 tc : TEXCOORD0;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput blur_vs(uint vertex_id : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertex_id);
+      float2 tc = screen_to_texcoords(pos);
+      output.pos = float4(pos.x, pos.y, 1, 1);
+      output.tc.xy = tc;
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    #define GAUSSIAN_BLUR_STEPS_COUNT 4
+    #define GAUSSIAN_BLUR_COLOR_TYPE float
+
+    void gaussianBlurSampleColor(float2 centre_uv, float2 tex_coord_offset, out GAUSSIAN_BLUR_COLOR_TYPE out_color)
+    {
+      ##if shader == flowmap_blur_x
+        out_color = tex2Dlod(tex, float4(centre_uv + tex_coord_offset, 0, 0)).b +
+                    tex2Dlod(tex, float4(centre_uv - tex_coord_offset, 0, 0)).b;
+      ##else
+        out_color = tex2Dlod(tex, float4(centre_uv + tex_coord_offset, 0, 0)).r +
+                    tex2Dlod(tex, float4(centre_uv - tex_coord_offset, 0, 0)).r;
+      ##endif
+    }
+  }
+
+  USE_GAUSSIAN_BLUR()
+
+  hlsl(ps) {
+    float4 blur_ps(VsOutput input) : SV_Target
+    {
+      ##if shader == flowmap_blur_x
+        return GaussianBlur(input.tc, float2(texsz.z, 0));
+      ##else
+        return GaussianBlur(input.tc, float2(0, texsz.w));
+      ##endif
+    }
+  }
+
+  compile("target_vs", "blur_vs");
+  compile("target_ps", "blur_ps");
+}
+
+shader water_flowmap_fluid
+{
+  cull_mode=none;
+  z_test=false;
+  z_write=false;
+
+  POSTFX_VS_TEXCOORD(1, tc)
+
+  INIT_DEPTH_ABOVE(ps, depth_around)
+  USE_DEPTH_ABOVE(ps, depth_around)
+
+  (ps) {
+    flowmap_temp_tex@smp2d = flowmap_temp_tex;
+    flowmap_texture_size@f4 = (1 / flowmap_heightmap_texture_size, flowmap_heightmap_texture_size, 1 / flowmap_texture_size, -1 / flowmap_texture_size);
+    flowmap_heightmap_tex@smp2d = flowmap_heightmap_tex;
+    flowmap_heightmap_min_max@f4 = flowmap_heightmap_min_max;
+    waterLevel@f1 = water_level;
+    world_to_flowmap_prev@f4 = world_to_flowmap_prev;
+    world_to_flowmap_heightmap@f4 = world_to_flowmap_heightmap;
+    flowmap_add_to_world@f4 = (1 / world_to_flowmap_add.x, 1 / world_to_flowmap_add.y, -world_to_flowmap_add.z / world_to_flowmap_add.x, -world_to_flowmap_add.w / world_to_flowmap_add.y);
+    water_flowmap_tex_add_0@smp2d = water_flowmap_tex_add_0;
+    world_to_flowmap_add_0@f4 = world_to_flowmap_add_0;
+    water_flowmap_fluid_params@f4 = water_flowmap_fluid_params;
+    water_flowmap_fluid_consts@f4 = (0.5 * water_flowmap_fluid_params.x, 1 / water_flowmap_fluid_params.x, 2 * water_flowmap_fluid_params.x / water_flowmap_fluid_params.y, water_flowmap_fluid_params.y / water_flowmap_fluid_params.x);
+  }
+
+  hlsl(ps) {
+
+    #define viscosity water_flowmap_fluid_params.x
+    #define gravity water_flowmap_fluid_params.y
+    #define flow_velocity water_flowmap_fluid_params.z
+    #define water_quantity water_flowmap_fluid_params.w
+
+    #define max_velocity water_flowmap_fluid_consts.x
+    #define inv_viscosity water_flowmap_fluid_consts.y
+    #define max_fluid_depth water_flowmap_fluid_consts.z
+    #define gravity_per_viscosity water_flowmap_fluid_consts.w
+  }
+  if ((flowmap_height != depth_above) && (shore_distance_field_tex != NULL))
+  {
+    (ps) {
+      shore_distance_field_tex@smp2d = shore_distance_field_tex;
+      water_heightmap_min_max@f4 = water_heightmap_min_max;
+      world_to_heightmap@f4 = world_to_heightmap;
+    }
+
+    hlsl(ps) {
+      #define USE_FLOWMAP_SDF
+    }
+  }
+
+  INIT_WATER_HEIGHTMAP(ps)
+  hlsl(ps) {
+    #define water_heightmap_pages_samplerstate flowmap_heightmap_tex_samplerstate
+  }
+  USE_WATER_HEIGHTMAP(ps)
+
+  hlsl(ps) {
+    float4 fluid_ps(VsOutput input) : SV_Target0
+    {
+      float2 tc = input.tc;
+
+      float2 worldPos = tc * flowmap_add_to_world.xy + flowmap_add_to_world.zw;
+      float2 fluidTc = worldPos * world_to_flowmap_prev.xy + world_to_flowmap_prev.zw;
+      float2 heightTc = worldPos * world_to_flowmap_heightmap.xy + world_to_flowmap_heightmap.zw;
+      float4 neighborTc = fluidTc.xyxy + flowmap_texture_size.zzww;
+
+      float4 f = tex2Dlod(flowmap_temp_tex, float4(fluidTc.x,fluidTc.y,0,0)); // fluid
+      float4 l = tex2Dlod(flowmap_temp_tex, float4(neighborTc.z,fluidTc.y,0,0)); // left
+      float4 r = tex2Dlod(flowmap_temp_tex, float4(neighborTc.x,fluidTc.y,0,0)); // right
+      float4 u = tex2Dlod(flowmap_temp_tex, float4(fluidTc.x,neighborTc.w,0,0)); // up
+      float4 d = tex2Dlod(flowmap_temp_tex, float4(fluidTc.x,neighborTc.y,0,0)); // down
+
+      float4 ru = tex2Dlod(flowmap_temp_tex, float4(neighborTc.x,neighborTc.w,0,0)); // right-up
+      float4 rd = tex2Dlod(flowmap_temp_tex, float4(neighborTc.x,neighborTc.y,0,0)); // right-down
+      float4 ld = tex2Dlod(flowmap_temp_tex, float4(neighborTc.z,neighborTc.y,0,0)); // left-down
+
+      float rr = tex2Dlod(flowmap_temp_tex, float4(neighborTc.x+flowmap_texture_size.z,fluidTc.y,0,0)).z; // right-right
+      float dd = tex2Dlod(flowmap_temp_tex, float4(fluidTc.x,neighborTc.y+flowmap_texture_size.z,0,0)).z; // down-down
+
+      // neighbor fluid depth
+      float4 fz = float4(l.z, r.z, u.z, d.z);
+      float4 rz = float4(f.z, rr, ru.z, rd.z);
+      float4 dz = float4(ld.z, rd.z, f.z, dd);
+
+      // neighbor fluid velocity
+      float4 fv = float4(l.x, -f.x, u.y, -f.y);
+      float4 rv = float4(f.x, -r.x, ru.y, -r.y);
+      float4 dv = float4(ld.x, -d.x, f.y, -d.y);
+
+      // wave = average fluid depth - max fluid depth
+      float fw = max(dot(fz, 0.25) - max_fluid_depth, 0);
+      float rw = max(dot(rz, 0.25) - max_fluid_depth, 0);
+      float dw = max(dot(dz, 0.25) - max_fluid_depth, 0);
+
+      // wave stabilization
+      fz = lerp(fz, f.z, step(fv, 0)) - fw;
+      rz = lerp(rz, r.z, step(rv, 0)) - rw;
+      dz = lerp(dz, d.z, step(dv, 0)) - dw;
+
+      // height integration
+      f.z += dot(fz, fv) * inv_viscosity;
+      r.z += dot(rz, rv) * inv_viscosity;
+      d.z += dot(dz, dv) * inv_viscosity;
+
+      float fh = f.z + f.w;
+      float rh = r.z + r.w;
+      float dh = d.z + d.w;
+
+      // velocity integration
+      f.x += (fh - rh) * gravity_per_viscosity;
+      f.y += (fh - dh) * gravity_per_viscosity;
+
+      // flowmap integration
+      float2 flowTc = worldPos * world_to_flowmap_add_0.xy + world_to_flowmap_add_0.zw;
+      float2 flowVec = tex2Dlod(water_flowmap_tex_add_0, float4(flowTc,0,0)).xy;
+      f.xy -= flowVec.xy * flow_velocity;
+
+      // boundary conditions
+      if (((f.z <= 0.0001) && (f.w > rh)) ||
+          ((r.z <= 0.0001) && (r.w > fh)))
+          f.x = 0;
+      if (((f.z <= 0.0001) && (f.w > dh)) ||
+          ((d.z <= 0.0001) && (d.w > fh)))
+          f.y = 0;
+
+      // velocity limitation
+      float velocity = length(f.xy);
+      if (velocity > max_velocity)
+        f.xy *= max_velocity / velocity;
+
+      // water and bridge heights
+      float waterHeight = waterLevel;
+      get_water_height(worldPos, waterHeight);
+      float bridgeHeight = waterHeight + 1;
+
+      // ground height
+      ##if flowmap_height == depth_above
+        float depthVignette = 0;
+        float groundHeight = getWorldBlurredDepth(float3(worldPos.x, 0, worldPos.y), depthVignette);
+        if (groundHeight > bridgeHeight)
+          groundHeight = tex2Dlod(flowmap_heightmap_tex, float4(heightTc,0,0)).r * flowmap_heightmap_min_max.z + flowmap_heightmap_min_max.w;
+      ##else
+        float groundHeight;
+        #ifdef USE_FLOWMAP_SDF
+          float2 sdfTc = worldPos * world_to_heightmap.xy + world_to_heightmap.zw;
+          if ((sdfTc.x >= 0) && (sdfTc.y >= 0) && (sdfTc.x <= 1) && (sdfTc.y <= 1))
+            groundHeight = tex2Dlod(shore_distance_field_tex, float4(sdfTc,0,0)).r * water_heightmap_min_max.z + water_heightmap_min_max.w;
+          else
+        #endif
+            groundHeight = tex2Dlod(flowmap_heightmap_tex, float4(heightTc,0,0)).r * flowmap_heightmap_min_max.z + flowmap_heightmap_min_max.w;
+      ##endif
+
+      // fluid addition
+      if (groundHeight < waterHeight)
+        f.z += water_quantity;
+      f.z = saturate(f.z);
+
+      f.w = 0;
+
+      return f;
+    }
+  }
+
+  compile("target_ps", "fluid_ps");
 }

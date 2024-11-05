@@ -1,7 +1,6 @@
 //
 // DaEditorX
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -12,6 +11,7 @@
 #include <math/dag_Point3.h>
 #include <util/dag_stdint.h>
 #include <libTools/util/makeBindump.h>
+#include <physMap/physMap.h>
 
 class HeightmapLandRenderer;
 class IHeightmapLandProvider;
@@ -91,6 +91,7 @@ public:
   //! LandMesh manager support
   virtual LandMeshManager *createLandMeshManager(IGenLoad &crd) = 0;
   virtual void destroyLandMeshManager(LandMeshManager *&p) const = 0;
+  virtual BBox3 getBBoxWithHMapWBBox(LandMeshManager &p) const = 0;
 
   //! LandMesh renderer support
   virtual LandMeshRenderer *createLandMeshRenderer(LandMeshManager &p) = 0;
@@ -139,7 +140,10 @@ public:
   //==
 
   virtual const char *getLandPhysMatName(int pmatId) = 0;
+  virtual int getPhysMatId(const char *name) = 0;
+  virtual int getBiomeIndices(const Point3 &p) = 0;
   virtual bool getIsSolidByPhysMatName(const char *name) = 0;
+  virtual void getPuddlesParams(float &power_scale, float &seed, float &noise_influence) = 0;
 
   virtual bool exportLoftMasks(const char *fn_mask, const char *fn_id, const char *fn_ht, const char *fn_dir, int tex_sz,
     const Point3 &w0, const Point3 &w1, GeomObject *g) = 0;
@@ -151,6 +155,8 @@ public:
   virtual void restoreRenderingMode(int oldMode) = 0;
   virtual int setLod0SubDiv(int) = 0;
   virtual BBox3 getLMeshBBoxWithHMapWBBox(LandMeshManager &p) const = 0;
+  virtual PhysMap *loadPhysMap(LandMeshManager *landMeshManager, IGenLoad &crd) = 0;
+  virtual void beforeRender() = 0;
 };
 
 struct HmapBitLayerDesc

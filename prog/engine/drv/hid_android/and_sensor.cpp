@@ -1,7 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "and_sensor.h"
 #include "joy_helper_android.h"
 
-#include <humanInput/dag_hiGlobals.h>
+#include <drv/hid/dag_hiGlobals.h>
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <startup/dag_globalSettings.h>
@@ -13,9 +15,12 @@
 #include <android/looper.h>
 #include <android/sensor.h>
 
+#include <mutex>
+
 constexpr int SENSOR_REFRESH_RATE_HZ = 100;
 constexpr int32_t SENSOR_REFRESH_PERIOD_US = int32_t(1000000 / SENSOR_REFRESH_RATE_HZ);
 extern SimpleString dagor_android_self_pkg_name;
+extern ALooper *dagor_command_thread_looper;
 
 
 namespace HumanInput
@@ -24,20 +29,31 @@ namespace
 {
 struct AndroidResources
 {
-  ASensorEventQueue *gyroEventQueue = nullptr;
   ASensorManager *sensorManager = nullptr;
+  ASensorEventQueue *gyroEventQueue = nullptr;
+  ASensorEventQueue *gravityEventQueue = nullptr;
   const ASensor *gyroSensor = nullptr;
+  const ASensor *gravitySensor = nullptr;
   ALooper *looper = nullptr;
 } android_resources;
+
+std::mutex android_resources_mutex;
 } // namespace
 
 void AndroidSensor::cleanupAndroidResources()
 {
+  std::lock_guard<std::mutex> lock(android_resources_mutex);
+
   debug("android:sensors: cleanup of android resources");
   if (android_resources.gyroEventQueue)
   {
     ASensorEventQueue_disableSensor(android_resources.gyroEventQueue, android_resources.gyroSensor);
     ASensorManager_destroyEventQueue(android_resources.sensorManager, android_resources.gyroEventQueue);
+  }
+  if (android_resources.gravityEventQueue)
+  {
+    ASensorEventQueue_disableSensor(android_resources.gravityEventQueue, android_resources.gravitySensor);
+    ASensorManager_destroyEventQueue(android_resources.sensorManager, android_resources.gravityEventQueue);
   }
   android_resources = AndroidResources{};
 }
@@ -65,6 +81,9 @@ const char *AndroidSensor::axisName[AndroidSensor::AXES_NUM] = {
 
 AndroidSensor::AndroidSensor()
 {
+  static_assert(std::atomic<SensorsPollingData::PendingData>::is_always_lock_free,
+    "atomic<SensorsPollingData::PendingData> must be lock-free");
+
   client = NULL;
 
   sensorState = 0;
@@ -105,7 +124,8 @@ AndroidSensor::AndroidSensor()
     axis[i].kAdd = 0.0f;
   }
 
-  sensorsPollingData.gyroValues = gyro;
+  sensorsPollingData.pendingGyro = {ZERO<Point3>(), false};
+  sensorsPollingData.pendingGravity = {ZERO<Point3>(), false};
 }
 
 
@@ -164,6 +184,14 @@ bool AndroidSensor::getDeviceDesc(DataBlock &out_desc) const
 }
 
 
+static inline int remap_gravity(float v)
+{
+  const float accelBaseScale = 0.1f;
+  const int val = int(accelBaseScale * v * JOY_ANDSENSOR_MAX_AXIS_VAL);
+  return eastl::clamp(val, (int)JOY_ANDSENSOR_MIN_AXIS_VAL, (int)JOY_ANDSENSOR_MAX_AXIS_VAL);
+}
+
+
 static inline int remap_gyro(float v)
 {
   const float gyroBaseScale = 0.004f;
@@ -172,34 +200,51 @@ static inline int remap_gyro(float v)
 }
 
 
-static int get_sensor_events(int fd, int events, void *data)
+static int get_gyro_events(int fd, int events, void *data)
 {
-  auto *pollingData = reinterpret_cast<SensorsPollingData *>(data);
-
-  ASensorEvent event;
-  float gyroX = 0.f;
-  float gyroY = 0.f;
-  float gyroZ = 0.f;
-
-  while (ASensorEventQueue_getEvents(android_resources.gyroEventQueue, &event, 1) > 0)
+  SensorsPollingData::PendingData pending;
   {
-    if (event.type == ASENSOR_TYPE_GYROSCOPE)
-    {
-      gyroX += event.gyro.x;
-      gyroY += event.gyro.y;
-      gyroZ += event.gyro.z;
-    };
-  };
+    std::lock_guard<std::mutex> lock(android_resources_mutex);
 
-  if (HumanInput::JoyDeviceHelper::getRotation() == HumanInput::JoyDeviceHelper::ROTATION_90)
-  {
-    gyroX *= -1.0f;
-    gyroY *= -1.0f;
+    ASensorEvent event;
+    if (android_resources.gyroEventQueue)
+      while (ASensorEventQueue_getEvents(android_resources.gyroEventQueue, &event, 1) > 0)
+        if (event.type == ASENSOR_TYPE_GYROSCOPE)
+        {
+          pending.hasEvents = true;
+          pending.values.x += event.gyro.x;
+          pending.values.y += event.gyro.y;
+          pending.values.z += event.gyro.z;
+        }
   }
 
-  pollingData->gyroValues[0] = remap_gyro(gyroX);
-  pollingData->gyroValues[1] = remap_gyro(gyroY);
-  pollingData->gyroValues[2] = remap_gyro(gyroZ);
+  auto *pollingData = reinterpret_cast<SensorsPollingData *>(data);
+  pollingData->pendingGyro.store(pending, std::memory_order_release);
+
+  return 1;
+}
+
+
+static int get_gravity_events(int fd, int events, void *data)
+{
+  SensorsPollingData::PendingData pending;
+  {
+    std::lock_guard<std::mutex> lock(android_resources_mutex);
+
+    ASensorEvent event;
+    if (android_resources.gravityEventQueue)
+      while (ASensorEventQueue_getEvents(android_resources.gravityEventQueue, &event, 1) > 0)
+        if (event.type == ASENSOR_TYPE_GRAVITY)
+        {
+          pending.hasEvents = true;
+          pending.values.x += event.gyro.x;
+          pending.values.y += event.gyro.y;
+          pending.values.z += event.gyro.z;
+        }
+  }
+
+  auto *pollingData = reinterpret_cast<SensorsPollingData *>(data);
+  pollingData->pendingGravity.store(pending, std::memory_order_release);
 
   return 1;
 }
@@ -207,31 +252,48 @@ static int get_sensor_events(int fd, int events, void *data)
 
 void AndroidSensor::registerSensor()
 {
-  sensorsPollingData.gyroValues = gyro;
-
   if (android_resources.looper == NULL)
   {
-    android_resources.looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
+    if (dagor_command_thread_looper)
+    {
+      debug("android:sensors: Attach to command thread looper");
+      android_resources.looper = dagor_command_thread_looper;
+    }
+    else
+    {
+      logerr("android:sensors: Can't attach to command thread looper");
+      failState = true;
+      return;
+    }
   }
 
   android_resources.sensorManager = ASensorManager_getInstanceForPackage(dagor_android_self_pkg_name.c_str());
+
   android_resources.gyroSensor = ASensorManager_getDefaultSensor(android_resources.sensorManager, ASENSOR_TYPE_GYROSCOPE);
+  android_resources.gravitySensor = ASensorManager_getDefaultSensor(android_resources.sensorManager, ASENSOR_TYPE_GRAVITY);
 
   if (android_resources.gyroSensor)
   {
     android_resources.gyroEventQueue = ASensorManager_createEventQueue(android_resources.sensorManager, android_resources.looper,
-      ALOOPER_POLL_CALLBACK, get_sensor_events, &sensorsPollingData);
+      ALOOPER_POLL_CALLBACK, get_gyro_events, &sensorsPollingData);
 
     if (android_resources.gyroEventQueue)
-    {
-      const int res =
-        ASensorEventQueue_registerSensor(android_resources.gyroEventQueue, android_resources.gyroSensor, SENSOR_REFRESH_PERIOD_US, 0);
-    }
+      ASensorEventQueue_registerSensor(android_resources.gyroEventQueue, android_resources.gyroSensor, SENSOR_REFRESH_PERIOD_US, 0);
   }
 
-  if (!android_resources.gyroEventQueue)
+  if (android_resources.gravitySensor)
   {
-    logerr("android:sensors: failed to initialize gyroscope");
+    android_resources.gravityEventQueue = ASensorManager_createEventQueue(android_resources.sensorManager, android_resources.looper,
+      ALOOPER_POLL_CALLBACK, get_gravity_events, &sensorsPollingData);
+
+    if (android_resources.gravityEventQueue)
+      ASensorEventQueue_registerSensor(android_resources.gravityEventQueue, android_resources.gravitySensor, SENSOR_REFRESH_PERIOD_US,
+        0);
+  }
+
+  if (!android_resources.gyroEventQueue || !android_resources.gravityEventQueue)
+  {
+    logerr("android:sensors: failed to initialize gyroscope or gravity sensor");
     failState = true;
   }
   else
@@ -242,13 +304,23 @@ void AndroidSensor::registerSensor()
 void AndroidSensor::disableGyroscope()
 {
   cleanupAndroidResources();
-  sensorsPollingData = SensorsPollingData{};
+
+  sensorsPollingData.pendingGyro.store({ZERO<Point3>(), false}, std::memory_order_release);
+  sensorsPollingData.pendingGravity.store({ZERO<Point3>(), false}, std::memory_order_release);
+
   raw_state_joy.rx = 0;
   raw_state_joy.ry = 0;
   raw_state_joy.rz = 0;
   gyro[0] = 0;
   gyro[1] = 0;
   gyro[2] = 0;
+
+  raw_state_joy.x = 0;
+  raw_state_joy.y = 0;
+  raw_state_joy.z = 0;
+  gravity[0] = 0;
+  gravity[1] = 0;
+  gravity[2] = 0;
 }
 
 
@@ -257,15 +329,31 @@ bool AndroidSensor::pollSensorsData()
   if (!android_resources.gyroEventQueue)
     registerSensor();
 
-  if (android_resources.gyroEventQueue)
+  SensorsPollingData::PendingData pendingGyro = sensorsPollingData.pendingGyro.load(std::memory_order_acquire);
+
+  if (pendingGyro.hasEvents)
   {
-    struct android_poll_source *source;
-    int events;
-    while (ALooper_pollOnce(0, NULL, &events, (void **)&source) >= 0) {}
-    return true;
+    if (HumanInput::JoyDeviceHelper::getRotation() == HumanInput::JoyDeviceHelper::ROTATION_90)
+    {
+      pendingGyro.values.x *= -1.0f;
+      pendingGyro.values.y *= -1.0f;
+    }
+
+    gyro[0] = remap_gyro(pendingGyro.values.x);
+    gyro[1] = remap_gyro(pendingGyro.values.y);
+    gyro[2] = remap_gyro(pendingGyro.values.z);
   }
 
-  return false;
+  SensorsPollingData::PendingData pendingGravity = sensorsPollingData.pendingGravity.load(std::memory_order_acquire);
+
+  if (pendingGravity.hasEvents)
+  {
+    gravity[0] = remap_gravity(pendingGravity.values.x);
+    gravity[1] = remap_gravity(pendingGravity.values.y);
+    gravity[2] = remap_gravity(pendingGravity.values.z);
+  }
+
+  return pendingGyro.hasEvents || pendingGravity.hasEvents;
 }
 
 
@@ -290,11 +378,6 @@ void AndroidSensor::processSensorPendingState()
 
 bool AndroidSensor::updateState()
 {
-  // update state from joystick thread only
-  // because we associate looper with it
-  if (is_main_thread())
-    return false;
-
   processSensorPendingState();
 
   if (!(sensorState & SENSOR_GYRO_ENABLED_FLAG))
@@ -303,12 +386,17 @@ bool AndroidSensor::updateState()
   if (!pollSensorsData())
     return false;
 
-  bool changed = (state.rx != gyro[0] || state.ry != gyro[1] || state.rz != gyro[2]);
+  bool changed = (state.rx != gyro[0] || state.ry != gyro[1] || state.rz != gyro[2]) ||
+                 (state.x != gravity[0] || state.y != gravity[1] || state.z != gravity[2]);
   if (changed)
   {
     raw_state_joy.rx = state.rx = gyro[0];
     raw_state_joy.ry = state.ry = gyro[1];
     raw_state_joy.rz = state.rz = gyro[2];
+
+    raw_state_joy.x = state.x = gravity[0];
+    raw_state_joy.y = state.y = gravity[1];
+    raw_state_joy.z = state.z = gravity[2];
 
     if (client)
       client->stateChanged(this, 0);

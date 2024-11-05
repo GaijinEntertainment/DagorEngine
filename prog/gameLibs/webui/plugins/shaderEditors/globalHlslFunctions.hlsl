@@ -19,8 +19,9 @@
 
 #define tex_hmap_low_samplerstate  land_heightmap_tex_samplerstate
 #define volfog_mask_tex_samplerstate  land_heightmap_tex_samplerstate
+#define prev_volfog_shadow_samplerstate  land_heightmap_tex_samplerstate
 
-#define distant_fog_downsampled_depth_tex_samplerstate  downsampled_far_depth_tex_samplerstate
+#define downsampled_checkerboard_depth_tex_samplerstate  downsampled_far_depth_tex_samplerstate
 #define prev_downsampled_far_depth_tex_samplerstate     downsampled_far_depth_tex_samplerstate
 #define downsampled_close_depth_tex_samplerstate        downsampled_far_depth_tex_samplerstate
 #define distant_heightmap_tex_samplerstate              land_heightmap_tex_samplerstate

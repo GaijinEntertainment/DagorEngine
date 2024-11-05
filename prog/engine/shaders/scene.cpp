@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <shaders/dag_renderScene.h>
 #include <shaders/sh_vars.h>
 #include <shaders/dag_shaderBlock.h>
@@ -25,7 +27,13 @@
 
 #include <debug/dag_debug.h>
 #include <debug/dag_log.h>
+#include <drv/3d/dag_draw.h>
 
+
+namespace var
+{
+static ShaderVariableInfo is_prefab_clipmap("is_prefab_clipmap", true);
+}
 
 #define START_MIXING_LODS_PERCENT 0.18
 // you can increase this number, when change scene (*.scn) format
@@ -118,6 +126,9 @@ void RenderScene::buildOptSceneData()
   Tab<ShaderMesh::RElem *> elems(tmpmem);
   unsigned elemPerStage[SC_STAGE_IDX_MASK + 1];
   unsigned facePerStage[SC_STAGE_IDX_MASK + 1];
+
+  clipmapMinHeight = 100000;
+  clipmapMaxHeight = -100000;
 
   memset(optScn.stageEndMatIdx, 0, sizeof(optScn.stageEndMatIdx));
   memset(elemPerStage, 0, sizeof(elemPerStage));
@@ -229,13 +240,16 @@ void RenderScene::buildOptSceneData()
   elemnum = 0;
   for (int i = 0; i < obj.size(); ++i)
   {
+    auto bbox = obj[i].bbox;
     objs[i].flags = obj[i].flags;
     objs[i].bsph = obj[i].bsph;
-    objs[i].bbox = obj[i].bbox;
+    objs[i].bbox = bbox;
     if (obj[i].maxSubobjRad > 0)
       objs[i].maxSubobjRad = obj[i].maxSubobjRad;
     else
       objs[i].maxSubobjRad = obj[i].bsph.r;
+
+    bool isClipmap = false;
 
     dag::ConstSpan<ShaderMesh::RElem> relems = obj[i].lods[0].mesh->getAllElems();
     objs[i].first = elemnum;
@@ -243,6 +257,10 @@ void RenderScene::buildOptSceneData()
     for (int j = 0; j < relems.size(); j++)
     {
       const ShaderMesh::RElem *e = &relems[j];
+
+      int isElemClipmap;
+      isClipmap |= e->mat->getIntVariable(var::is_prefab_clipmap.get_var_id(), isElemClipmap) && isElemClipmap;
+
       for (int k = 0; k < elems.size(); k++)
         if (elems[k] == e)
         {
@@ -250,6 +268,12 @@ void RenderScene::buildOptSceneData()
           elemnum++;
           break;
         }
+    }
+
+    if (isClipmap)
+    {
+      clipmapMinHeight = min(clipmapMinHeight, bbox.boxMin().y);
+      clipmapMaxHeight = max(clipmapMaxHeight, bbox.boxMax().y);
     }
   }
   G_ASSERT(elemnum == optScn.elemIdxStor.size());
@@ -427,7 +451,68 @@ void RenderScene::render(const VisibilityFinder &vf, int render_id, unsigned ren
 #endif
 }
 
-void RenderScene::render(int render_id, unsigned render_flags_mask) { render(*visibility_finder, render_id, render_flags_mask); }
+void RenderScene::foreachElem(ElemCallback &callback) const
+{
+  int dprim = 0;
+  const int lod = 0;
+
+  for (int i = optScn.getMatStartIdx(ShaderMesh::STG_opaque); i < optScn.getMatEndIdx(ShaderMesh::STG_atest); i++)
+  {
+    ScriptedShaderElement &material = optScn.mats[i].e->native();
+    for (int ei = optScn.mats[i].se; ei < optScn.mats[i].ee; ++ei)
+    {
+      const OptimizedScene::Elem &e = optScn.elems[ei];
+      bool hasIndices = false;
+      if (!e.vd->isRenderable(hasIndices))
+        continue;
+
+      ElemCallback::Data data;
+
+      data.vertices = e.vd->getVB();
+      data.indices = hasIndices ? e.vd->getIB() : nullptr;
+      data.startVertex = e.sv;
+      data.startIndex = e.si;
+      data.vertexCount = e.numv;
+      data.indexCount = e.numf * 3;
+      data.vertexStride = e.vd->getStride();
+      data.positionOffset = 0;
+      data.positionFormat = -1;
+      data.texcoordOffset = 0;
+      data.texcoordFormat = -1;
+      data.normalOffset = 0;
+      data.normalFormat = -1;
+      data.colorOffset = 0;
+      data.colorFormat = -1;
+
+      for (ShaderChannelId channel : material.native().getChannels())
+      {
+#define ATTRIB(name, exp_usage, exp_usage_index)                     \
+  if (data.name##Format == -1)                                       \
+  {                                                                  \
+    if (channel.vbu == exp_usage && channel.vbui == exp_usage_index) \
+      data.name##Format = channel.t;                                 \
+    else                                                             \
+    {                                                                \
+      unsigned channelSize;                                          \
+      channel_size(channel.t, channelSize);                          \
+      data.name##Offset += channelSize;                              \
+    }                                                                \
+  }
+
+        ATTRIB(position, SCUSAGE_POS, 0);
+        ATTRIB(texcoord, SCUSAGE_TC, 0);
+        ATTRIB(color, SCUSAGE_VCOL, 0);
+        ATTRIB(normal, SCUSAGE_NORM, 0);
+#undef ATTRIB
+      }
+
+      if (material.native().getTextureCount())
+        data.albedoTextureId = material.native().getTexture(0);
+
+      callback.on_elem_found(eastl::move(data));
+    }
+  }
+}
 
 void RenderScene::render_trans()
 {

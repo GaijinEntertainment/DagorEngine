@@ -1,0 +1,60 @@
+int lmesh_vs_const__pos_to_world        = 62;
+int lmesh_ps_const__mirror_scale        = 62;
+macro INIT_HARDCODED_WORLD_POS()
+  if (!DEBUG && (mobile_render != off)) {
+    hlsl(ps) {
+      float4 mirror_scale : register(c62);
+    }
+  } else {
+    (ps) {
+      mirror_scale@f4 : register(lmesh_ps_const__mirror_scale);
+    }
+  }
+
+  hlsl(vs) {
+    float4 pos_to_world_scale : register(c62);
+    float4 pos_to_world_ofs : register(c63);
+  }
+  hlsl(vs) {
+    float4 decode_pos_landmesh(int4 inpos)
+    {
+      float2 posXZ = inpos.xz*landCellShortDecodeXZ.xx + landCellShortDecodeXZ.zw;
+
+      //float cellXZ = inpos.w*32767./128;
+      //float cellZ = floor(cellXZ);
+      //float cellX = floor((cellXZ-cellZ)*128. + 0.5);
+      int cellXZ = (inpos.w);
+      int cellZ = cellXZ>>6;
+      int cellX = cellXZ&0x3F;
+
+      return float4(posXZ.x+cellX*landCellShortDecodeXZ.y, inpos.y*landCellShortDecodeY.x+landCellShortDecodeY.y, posXZ.y+cellZ*landCellShortDecodeXZ.y, 1);
+    }
+
+    float4 decode_pos_landmesh_or_combined(int4 inpos)
+    {
+      float2 posXZ = inpos.xz*landCellShortDecodeXZ.xx + landCellShortDecodeXZ.zw;
+      int cellXZ = (inpos.w);
+      int cellZ = (cellXZ>>6)&0x3F;
+      int cellX = cellXZ&0x3F;
+
+      return float4(posXZ.x+cellX*landCellShortDecodeXZ.y, inpos.y*landCellShortDecodeY.x+landCellShortDecodeY.y, posXZ.y+cellZ*landCellShortDecodeXZ.y, 1);
+    }
+    float4 decode_pos_transp_landmesh_combined(int4 inpos)
+    {
+      float2 posXZ = inpos.xz*landCellShortDecodeXZ.xx + landCellShortDecodeXZ.zw;
+
+      int cellXZ = (inpos.w);
+      int cellZ = (cellXZ>>6)&0x3F;
+      int cellX = cellXZ&0x3F;
+      return float4(posXZ.x+cellX*landCellShortDecodeXZ.y, inpos.y*landCellShortDecodeY.x+landCellShortDecodeY.y, posXZ.y+cellZ*landCellShortDecodeXZ.y, (cellXZ>>12)*(1.0/7));
+    }
+    #define INPUT_POSITION(a) int4 a:POSITION
+    ##if shader == land_mesh
+    #define decode_pos_shader(a) decode_pos_landmesh(a)
+    ##else
+    #define decode_pos_shader(a) decode_pos_transp_landmesh_combined(a)
+    ##endif
+    float4 decode_pos(float4 inpos) { return float4(inpos.xyz * pos_to_world_scale.xyz + pos_to_world_ofs.xyz, 1); }
+  }
+endmacro
+

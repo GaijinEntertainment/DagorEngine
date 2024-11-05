@@ -8,6 +8,7 @@ TargetType  = lib ;
 Target      = gameLibs/render/resourceSlot.lib ;
 
 AddIncludes =
+  $(Root)/prog/1stPartyLibs/daScript/include
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/$(Location)
 ;
@@ -19,6 +20,12 @@ Sources =
   registerAccess.cpp
   resolveAccess.cpp
   state.cpp
+  actions.cpp
+  das/resourceSlotCoreModule.cpp
+  das/registerAccess.cpp
+  das/state.cpp
+  das/clearResourceSlot.cpp
+  das/actionList.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

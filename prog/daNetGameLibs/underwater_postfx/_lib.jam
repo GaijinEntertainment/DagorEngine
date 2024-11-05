@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_underwater_postfx_pull ;
+  UseProgLibs += daNetGameLibs/underwater_postfx ;
+}

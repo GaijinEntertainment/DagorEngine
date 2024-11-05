@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -14,11 +13,8 @@
 #include <util/dag_stdint.h>
 #include <util/dag_globDef.h>
 #include <util/dag_safeArg.h>
-#include <stdarg.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
 
-#include <generic/dag_tab.h>
-#include <generic/dag_smallTab.h>
 #include <generic/dag_DObject.h>
 #include <shaders/dag_shaderCommon.h>
 #include <gui/dag_imgui_drawlist.h>
@@ -80,6 +76,16 @@ extern const Point2 AXIS_Y;
 
 struct LayerParams
 {
+private:
+  TEXTUREID texId, texId2;
+  TEXTUREID fontTexId;
+  TEXTUREID maskTexId;
+  d3d::SamplerHandle texSampler;
+  d3d::SamplerHandle tex2Sampler;
+  d3d::SamplerHandle fontTexSampler;
+  d3d::SamplerHandle maskTexSampler;
+
+public:
   struct FontFx
   {
     FontFxType type;
@@ -101,9 +107,34 @@ struct LayerParams
 
   BlendMode alphaBlend;
   bool texInLinear;
-  TEXTUREID texId, texId2;
-  TEXTUREID fontTexId;
-  TEXTUREID maskTexId;
+  TEXTUREID getTexId() const { return texId; }
+  TEXTUREID getTexId2() const { return texId2; }
+  TEXTUREID getFontTexId() const { return fontTexId; }
+  TEXTUREID getMaskTexId() const { return maskTexId; }
+  d3d::SamplerHandle getTexSampler() const { return texSampler; }
+  d3d::SamplerHandle getTex2Sampler() const { return tex2Sampler; }
+  d3d::SamplerHandle getFontTexSampler() const { return fontTexSampler; }
+  d3d::SamplerHandle getMaskTexSampler() const { return maskTexSampler; }
+  void setTexId(TEXTUREID id, d3d::SamplerHandle smp)
+  {
+    texId = id;
+    texSampler = smp;
+  }
+  void setTexId2(TEXTUREID id, d3d::SamplerHandle smp)
+  {
+    texId2 = id;
+    tex2Sampler = smp;
+  }
+  void setFontTexId(TEXTUREID id, d3d::SamplerHandle smp)
+  {
+    fontTexId = id;
+    fontTexSampler = smp;
+  }
+  void setMaskTexId(TEXTUREID id, d3d::SamplerHandle smp)
+  {
+    maskTexId = id;
+    maskTexSampler = smp;
+  }
   Point3 maskTransform0, maskTransform1;
   float colorM[4 * 4];
 
@@ -117,9 +148,28 @@ struct LayerParams
 
 struct FontFxAttr
 {
+private:
   TEXTUREID fontTex;
+  d3d::SamplerHandle fontTexSampler;
 
   TEXTUREID tex2;
+  d3d::SamplerHandle tex2Sampler;
+
+public:
+  TEXTUREID getFontTex() const { return fontTex; }
+  TEXTUREID getTex2() const { return tex2; }
+  d3d::SamplerHandle getFontTexSampler() const { return fontTexSampler; }
+  d3d::SamplerHandle getTex2Sampler() const { return tex2Sampler; }
+  void setFontTex(TEXTUREID id, d3d::SamplerHandle smp)
+  {
+    fontTex = id;
+    fontTexSampler = smp;
+  }
+  void setTex2(TEXTUREID id, d3d::SamplerHandle smp)
+  {
+    tex2 = id;
+    tex2Sampler = smp;
+  }
   int tex2su_x32, tex2sv_x32, tex2bv_ofs;
   float tex2su, tex2sv;
 
@@ -136,8 +186,8 @@ struct GuiVertexTransform
   float vtm[2][3];
 
   void resetViewTm();
-  void setViewTm(const Point2 &ax, const Point2 &ay, const Point2 &o);
-  void addViewTm(const Point2 &ax, const Point2 &ay, const Point2 &o);
+  void setViewTm(Point2 ax, Point2 ay, Point2 o);
+  void addViewTm(Point2 ax, Point2 ay, Point2 o);
   void setRotViewTm(Color4 &fontTex2rotCCSmS, float x0, float y0, float rot_ang_rad, float skew_ang_rad, bool add = false);
   void getViewTm(float dest_vtm[2][3], bool pure_trans = false) const;
   void setViewTm(const float m[2][3]);
@@ -191,9 +241,9 @@ struct GuiVertex
     tc1v = fast_floori(4096 * v + 0.5f);
   }
 
-  void setPos(const GuiVertexTransform &xf, const Point2 &p) { setPos(xf, p.x, p.y); }
-  void setTc0(const Point2 &p) { setTc0(p.x, p.y); }
-  void setTc1(const Point2 &p) { setTc1(p.x, p.y); }
+  void setPos(const GuiVertexTransform &xf, Point2 p) { setPos(xf, p.x, p.y); }
+  void setTc0(Point2 p) { setTc0(p.x, p.y); }
+  void setTc1(Point2 p) { setTc1(p.x, p.y); }
 
   void zeroTc0() { tc0 = 0; }
   void zeroTc1() { tc1 = 0; }
@@ -201,7 +251,7 @@ struct GuiVertex
   // legacy emulation
   static void resetViewTm();
   static void setViewTm(const float m[2][3]);
-  static void setViewTm(const Point2 &ax, const Point2 &ay, const Point2 &o, bool add = false);
+  static void setViewTm(Point2 ax, Point2 ay, Point2 o, bool add = false);
   static void setRotViewTm(float x0, float y0, float rot_ang_rad, float skew_ang_rad, bool add = 0);
   static void getViewTm(float dest_vtm[2][3], bool pure_trans = false);
 };
@@ -257,7 +307,7 @@ public:
   inline bool operator!=(const GuiViewPort &other) const { return !operator==(other); };
 
   // check point visiblility (viewport left-top must be <= right-bottom)
-  inline bool isVisible(const Point2 &p) const { return isVisible(p.x, p.y); };
+  inline bool isVisible(Point2 p) const { return isVisible(p.x, p.y); };
 
   inline bool isVisible(real x, real y) const
   {
@@ -265,7 +315,7 @@ public:
   }
 
   // check rectangle visiblility (all values must be normalized (left <= right, top <= bottom))
-  inline bool isVisible(const Point2 &lt, const Point2 &rb) const
+  inline bool isVisible(Point2 lt, Point2 rb) const
   {
     if (lt.x == rb.x || lt.y == rb.y) // zero area
       return false;
@@ -283,10 +333,10 @@ public:
   }
 
   // check visiblility for points (viewport left-top must be <= right-bottom)
-  bool isVisible(const Point2 &p0, const Point2 &p1, const Point2 &p2, const Point2 &p3) const;
+  bool isVisible(Point2 p0, Point2 p1, Point2 p2, Point2 p3) const;
 
   // return true, if point <= right-bottom
-  inline bool isVisibleRBCheck(const Point2 &p) const { return (p.x < rightBottom.x) && (p.y < rightBottom.y); }
+  inline bool isVisibleRBCheck(Point2 p) const { return (p.x < rightBottom.x) && (p.y < rightBottom.y); }
 
   // clip other viewport by current viewport
   void clipView(GuiViewPort &view_to_clip) const;
@@ -380,8 +430,7 @@ struct GuiShader
   // set all shader specific states (viewport is already set)
   virtual void setStates(const float viewport[4], // LTWH
     const GuiState &guiState,                     // layers, basic tex and font
-    const ExtState *extState, bool viewport_changed, bool guistate_changed, bool extstate_changed, ShaderMaterial *mat,
-    ShaderElement *elem, int targetW, int targetH) = 0;
+    const ExtState *extState, bool viewport_changed, bool guistate_changed, bool extstate_changed, int targetW, int targetH) = 0;
 };
 
 struct StdGuiShader : GuiShader
@@ -413,7 +462,9 @@ struct StdGuiShader : GuiShader
   virtual void cleanup();
 
   virtual void setStates(const float viewport[4], const GuiState &guiState, const ExtState *extState, bool viewport_changed,
-    bool guistate_changed, bool extstate_changed, ShaderMaterial *mat, ShaderElement *elem, int targetW, int targetH) override;
+    bool guistate_changed, bool extstate_changed, int targetW, int targetH) override;
+  TEXTUREID lastFontFxTexture = BAD_TEXTUREID;
+  uint16_t lastFontFxTW = 0, lastFontFxTH = 0;
 };
 
 struct BufferedRenderer;
@@ -495,10 +546,11 @@ private:
 
   GuiVertexTransform vertexTransform;
   GuiVertexTransform vertexTransformInverse;
-  BBox2 preTranformViewport;
+  BBox2 preTransformViewport;
 
 public:
   GuiContext();
+  GuiContext(GuiContext &&) = default;
   ~GuiContext();
 
   void close(); // call if statically allocated
@@ -525,9 +577,9 @@ public:
   // must restore all changed states
   // can't use this gui renderer
   void execCommand(int command);
-  void execCommand(int command, const Point2 &pos, const Point2 &size);
-  void execCommand(int command, const Point2 &pos, const Point2 &size, RenderCallBack cb, uintptr_t data);
-  uintptr_t execCommandImmediate(int command, const Point2 &pos, const Point2 &size);
+  void execCommand(int command, Point2 pos, Point2 size);
+  void execCommand(int command, Point2 pos, Point2 size, RenderCallBack cb, uintptr_t data);
+  uintptr_t execCommandImmediate(int command, Point2 pos, Point2 size);
 
   // reset positions of all buffers
   void resetFrame();
@@ -619,28 +671,32 @@ public:
   // reset to previous viewport (remove it from stack). return false, if no items to remove
   bool restore_viewport();
 
+  // precalculated culling bbox (for tuning)
+  BBox2 getPreTransformViewport() { return preTransformViewport; }
+  void setPreTransformViewport(BBox2 value) { preTransformViewport = value; }
+
   // get current viewport
   const GuiViewPort &get_viewport();
   void applyViewport(GuiViewPort &vp);
 
-  inline bool vpBoxIsVisible(const Point2 &p) const { return preTranformViewport & p; };
+  inline bool vpBoxIsVisible(Point2 p) const { return preTransformViewport & p; };
 
   inline bool vpBoxIsVisible(real x, real y) const { return vpBoxIsVisible(Point2(x, y)); }
 
   // check rectangle visiblility (all values must be normalized (left <= right, top <= bottom))
-  inline bool vpBoxIsVisible(const Point2 &lt, const Point2 &rb) const { return preTranformViewport & BBox2(lt, rb); };
+  inline bool vpBoxIsVisible(Point2 lt, Point2 rb) const { return preTransformViewport & BBox2(lt, rb); };
   inline bool vpBoxIsVisible(real left, real top, real right, real bottom) const
   {
     return vpBoxIsVisible(Point2(left, top), Point2(right, bottom));
   }
 
   // check visiblility for points (viewport left-top must be <= right-bottom)
-  bool vpBoxIsVisible(const Point2 &p0, const Point2 &p1, const Point2 &p2, const Point2 &p3) const;
+  bool vpBoxIsVisible(Point2 p0, Point2 p1, Point2 p2, Point2 p3) const;
 
   // return true, if point <= right-bottom
-  inline bool vpBoxIsVisibleRBCheck(const Point2 &p) const
+  inline bool vpBoxIsVisibleRBCheck(Point2 p) const
   {
-    return !preTranformViewport.isempty() && p.x < preTranformViewport.right() && p.y < preTranformViewport.bottom();
+    return !preTransformViewport.isempty() && p.x < preTransformViewport.right() && p.y < preTransformViewport.bottom();
   }
 
   // ************************************************************************
@@ -656,7 +712,7 @@ public:
   }
 
   // set current color
-  void set_color(const E3DCOLOR &color);
+  void set_color(E3DCOLOR color);
   void set_color(int r, int g, int b, int a = 255) { set_color(E3DCOLOR(r, g, b, a)); }
 
   // set alpha blending
@@ -665,12 +721,17 @@ public:
   BlendMode get_alpha_blend();
 
   // set current texture (if texture changed, flush cached data)
-  void set_textures(TEXTUREID tex_id, TEXTUREID tex_id2, bool font_l8 = false, bool tex_in_linear = false);
-  inline void set_texture(TEXTUREID tex_id, bool font_l8 = false, bool tex_in_linear = false)
+  void set_textures(TEXTUREID tex_id, d3d::SamplerHandle smp_id, TEXTUREID tex_id2, d3d::SamplerHandle smp_id2, bool font_l8 = false,
+    bool tex_in_linear = false);
+  inline void reset_textures()
   {
-    set_textures(tex_id, BAD_TEXTUREID, font_l8, tex_in_linear);
+    set_textures(BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, false, false);
   }
-  void set_mask_texture(TEXTUREID tex_id, const Point3 &transform0, const Point3 &transform1);
+  inline void set_texture(TEXTUREID tex_id, d3d::SamplerHandle smp_id, bool font_l8 = false, bool tex_in_linear = false)
+  {
+    set_textures(tex_id, smp_id, BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, font_l8, tex_in_linear);
+  }
+  void set_mask_texture(TEXTUREID tex_id, d3d::SamplerHandle smp_id, Point3 transform0, Point3 transform1);
   void start_font_str(float s);
 
   // to be called in d3d reset callback after device was reseted
@@ -680,7 +741,7 @@ public:
   // void update_internals_per_act();
 
   // get current logical resolution
-  const Point2 &screen_size();
+  Point2 screen_size();
   real screen_width();
   real screen_height();
 
@@ -689,10 +750,10 @@ public:
   real real_screen_height();
 
   // return logical screen-to-real scale coefficient
-  const Point2 &logic2real();
+  Point2 logic2real();
 
   // return real-to-logical screen scale coefficient
-  const Point2 &real2logic();
+  Point2 real2logic();
 
   inline float hdpx(float pixels)
   {
@@ -718,14 +779,13 @@ public:
 
   // draw two polygons, using current color & texture (if present)
   // function accepts logical screen coordinates only
-  void render_quad(const Point2 &p0, const Point2 &p1, const Point2 &p2, const Point2 &p3, const Point2 &tc0 = P2::ZERO,
-    const Point2 &tc1 = Point2(0, 1), const Point2 &tc2 = P2::ONE, const Point2 &tc3 = Point2(1, 0));
+  void render_quad(Point2 p0, Point2 p1, Point2 p2, Point2 p3, Point2 tc0 = P2::ZERO, Point2 tc1 = Point2(0, 1), Point2 tc2 = P2::ONE,
+    Point2 tc3 = Point2(1, 0));
 
-  void render_quad_color(const Point2 &p0, const Point2 &p3, const Point2 &p2, const Point2 &p1, const Point2 &tc0, const Point2 &tc3,
-    const Point2 &tc2, const Point2 &tc1, E3DCOLOR c0, E3DCOLOR c3, E3DCOLOR c2, E3DCOLOR c1);
+  void render_quad_color(Point2 p0, Point2 p3, Point2 p2, Point2 p1, Point2 tc0, Point2 tc3, Point2 tc2, Point2 tc1, E3DCOLOR c0,
+    E3DCOLOR c3, E3DCOLOR c2, E3DCOLOR c1);
 
-  void render_quad_t(const Point2 &p0, const Point2 &p1, const Point2 &p2, const Point2 &p3, const Point2 &tc_lefttop = P2::ZERO,
-    const Point2 &tc_rightbottom = P2::ONE);
+  void render_quad_t(Point2 p0, Point2 p1, Point2 p2, Point2 p3, Point2 tc_lefttop = P2::ZERO, Point2 tc_rightbottom = P2::ONE);
 
   // ************************************************************************
   // * render primitives
@@ -737,44 +797,37 @@ public:
 
   // draw rectangle, using current color
   void render_box(real left, real top, real right, real bottom);
-  void render_box(const Point2 &left_top, const Point2 &right_bottom)
-  {
-    render_box(left_top.x, left_top.y, right_bottom.x, right_bottom.y);
-  }
+  void render_box(Point2 left_top, Point2 right_bottom) { render_box(left_top.x, left_top.y, right_bottom.x, right_bottom.y); }
 
   // draw rectangle with frame, using optimization tricks
-  void solid_frame(real left, real top, real right, real bottom, real thickness, const E3DCOLOR &background, const E3DCOLOR &frame);
+  void solid_frame(real left, real top, real right, real bottom, real thickness, E3DCOLOR background, E3DCOLOR frame);
 
   // draw rectangle box, using current color & texture (if present)
-  void render_rect(real left, real top, real right, real bottom, const Point2 &left_top_tc = P2::ZERO,
-    const Point2 &dx_tc = P2::AXIS_X, const Point2 &dy_tc = P2::AXIS_Y);
+  void render_rect(real left, real top, real right, real bottom, Point2 left_top_tc = P2::ZERO, Point2 dx_tc = P2::AXIS_X,
+    Point2 dy_tc = P2::AXIS_Y);
 
-  void render_rect(const Point2 &left_top, const Point2 &right_bottom, const Point2 &left_top_tc = P2::ZERO,
-    const Point2 &dx_tc = P2::AXIS_X, const Point2 &dy_tc = P2::AXIS_Y)
+  void render_rect(Point2 left_top, Point2 right_bottom, Point2 left_top_tc = P2::ZERO, Point2 dx_tc = P2::AXIS_X,
+    Point2 dy_tc = P2::AXIS_Y)
   {
     render_rect(left_top.x, left_top.y, right_bottom.x, right_bottom.y, left_top_tc, dx_tc, dy_tc);
   }
 
   // draw rectangle box, using current color & texture (if present)
-  void render_rect_t(real left, real top, real right, real bottom, const Point2 &left_top_tc = P2::ZERO,
-    const Point2 &right_bottom_tc = P2::ONE);
+  void render_rect_t(real left, real top, real right, real bottom, Point2 left_top_tc = P2::ZERO, Point2 right_bottom_tc = P2::ONE);
 
-  void render_rect_t(const Point2 &left_top, const Point2 &right_bottom, const Point2 &left_top_tc = P2::ZERO,
-    const Point2 &right_bottom_tc = P2::ONE)
+  void render_rect_t(Point2 left_top, Point2 right_bottom, Point2 left_top_tc = P2::ZERO, Point2 right_bottom_tc = P2::ONE)
   {
     render_rect_t(left_top.x, left_top.y, right_bottom.x, right_bottom.y, left_top_tc, right_bottom_tc);
   }
-  void render_rounded_box(const Point2 &lt, const Point2 &rb, E3DCOLOR col, E3DCOLOR border, const Point4 &rounding,
+  void render_rounded_box(Point2 lt, Point2 rb, E3DCOLOR col, E3DCOLOR border, Point4 rounding,
     float thickness); // optimized box with thickness
-  void render_rounded_frame(const Point2 &lt, const Point2 &rb, E3DCOLOR col, const Point4 &rounding, float thickness);
-  void render_rounded_image(const Point2 &lt, const Point2 &rb, const Point2 &tc_lefttop, const Point2 &tc_rightbottom, E3DCOLOR col,
-    const Point4 &rounding);
-  void render_rounded_image(const Point2 &lt, const Point2 &rb, const Point2 &tc_lefttop, const Point2 &dx_tc, const Point2 &dy_tc,
-    E3DCOLOR col, const Point4 &rounding);
+  void render_rounded_frame(Point2 lt, Point2 rb, E3DCOLOR col, Point4 rounding, float thickness);
+  void render_rounded_image(Point2 lt, Point2 rb, Point2 tc_lefttop, Point2 tc_rightbottom, E3DCOLOR col, Point4 rounding);
+  void render_rounded_image(Point2 lt, Point2 rb, Point2 tc_lefttop, Point2 dx_tc, Point2 dy_tc, E3DCOLOR col, Point4 rounding);
 
   // draw line
   void draw_line(real left, real top, real right, real bottom, real thickness = 1.0f);
-  void draw_line(const Point2 &left_top, const Point2 &right_bottom, real thickness = 1.0f)
+  void draw_line(Point2 left_top, Point2 right_bottom, real thickness = 1.0f)
   {
     draw_line(left_top.x, left_top.y, right_bottom.x, right_bottom.y, thickness);
   }
@@ -802,7 +855,7 @@ public:
     E3DCOLOR color);
 
   void render_poly(dag::ConstSpan<Point2> points, E3DCOLOR fill_color);
-  void render_inverse_poly(dag::ConstSpan<Point2> points_ccw, E3DCOLOR fill_color, const Point2 &left_top, const Point2 &right_bottom);
+  void render_inverse_poly(dag::ConstSpan<Point2> points_ccw, E3DCOLOR fill_color, Point2 left_top, Point2 right_bottom);
   void render_ellipse_aa(Point2 pos, Point2 radius, float line_width, E3DCOLOR color, E3DCOLOR fill_color);
   void render_ellipse_aa(Point2 pos, Point2 radius, float line_width, E3DCOLOR color, E3DCOLOR mid_color, E3DCOLOR fill_color);
   void render_sector_aa(Point2 pos, Point2 radius, Point2 angles, float line_width, E3DCOLOR color, E3DCOLOR fill_color);
@@ -819,10 +872,10 @@ public:
   // all of these functions accept logical screen coordinates only
   // ************************************************************************
   // set curent text out position
-  void goto_xy(const Point2 &pos);
+  void goto_xy(Point2 pos);
   void goto_xy(real x, real y) { goto_xy(Point2(x, y)); }
   // get curent text out position
-  const Point2 &get_text_pos();
+  Point2 get_text_pos();
 
   // set font spacing
   void set_spacing(int new_spacing);
@@ -850,9 +903,9 @@ public:
   //! su_x32 and sv_x32 specify fixed point scale for u,v (32 mean texel-to-pixel correspondance, >32 =stretch)
   //! su_x32=0 or sv_x32=0 means stretching texture for font height
   //! bv_ofs specify upward offset in pixels from font baseline for v origin
-  void set_draw_str_texture(TEXTUREID tex_id, int su_x32 = 32, int sv_x32 = 32, int bv_ofs = 0);
+  void set_draw_str_texture(TEXTUREID tex_id, d3d::SamplerHandle smp_id, int su_x32 = 32, int sv_x32 = 32, int bv_ofs = 0);
   //! reset text draw second texture to defaults
-  void reset_draw_str_texture() { set_draw_str_texture(BAD_TEXTUREID, 32, 32, 0); }
+  void reset_draw_str_texture() { set_draw_str_texture(BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, 32, 32, 0); }
 
   //! render single character using current font (Unicode16)
   void draw_char_u(wchar_t ch);
@@ -924,7 +977,7 @@ public:
 
   void resetViewTm();
   void setViewTm(const float m[2][3]);
-  void setViewTm(const Point2 &ax, const Point2 &ay, const Point2 &o, bool add = false);
+  void setViewTm(Point2 ax, Point2 ay, Point2 o, bool add = false);
   void setRotViewTm(float x0, float y0, float rot_ang_rad, float skew_ang_rad, bool add = 0);
   void getViewTm(float dest_vtm[2][3], bool pure_trans = false) const;
 
@@ -948,7 +1001,11 @@ GuiContext *get_stdgui_context();
 // ************************************************************************
 
 // init fonts - get font cfg section & codepage filename (same as T_init())
-void init_fonts(DataBlock &blk);
+void init_fonts(const DataBlock &blk);
+
+void init_dynamics_fonts(int atlas_count, int atlas_size, const char *path_prefix);
+
+void load_dynamic_font(const DataBlock &font_description, int screen_height);
 
 // close fonts
 void close_fonts();
@@ -1083,7 +1140,7 @@ inline void set_user_state(int state, const T &v)
 }
 
 // set current color
-void set_color(const E3DCOLOR &color);
+void set_color(E3DCOLOR color);
 inline void set_color(int r, int g, int b, int a = 255) { set_color(E3DCOLOR(r, g, b, a)); }
 
 // set alpha blending
@@ -1092,9 +1149,13 @@ BlendMode get_alpha_blend();
 inline void set_ablend(bool on) { set_alpha_blend(on ? PREMULTIPLIED : NO_BLEND); }
 
 // set current texture (if texture changed, flush cached data)
-void set_textures(const TEXTUREID tex_id, const TEXTUREID tex_id2);
-inline void set_texture(const TEXTUREID tex_id) { set_textures(tex_id, BAD_TEXTUREID); }
-void set_mask_texture(TEXTUREID tex_id, const Point3 &transform0, const Point3 &transform1);
+void set_textures(const TEXTUREID tex_id, d3d::SamplerHandle smp_id, const TEXTUREID tex_id2, d3d::SamplerHandle smp_id2);
+inline void set_texture(const TEXTUREID tex_id, d3d::SamplerHandle smp_id)
+{
+  set_textures(tex_id, smp_id, BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE);
+}
+inline void reset_textures() { set_textures(BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE); }
+void set_mask_texture(TEXTUREID tex_id, d3d::SamplerHandle smp_id, Point3 transform0, Point3 transform1);
 
 inline void start_font_str(float s) { get_stdgui_context()->start_font_str(s); }
 
@@ -1155,7 +1216,7 @@ private:
 };
 
 // get current logical resolution
-const Point2 &screen_size();
+Point2 screen_size();
 real screen_width();
 real screen_height();
 
@@ -1164,10 +1225,10 @@ real real_screen_width();
 real real_screen_height();
 
 // return logical screen-to-real scale coefficient
-const Point2 &logic2real();
+Point2 logic2real();
 
 // return real-to-logical screen scale coefficient
-const Point2 &real2logic();
+Point2 real2logic();
 
 //! begin raw layer (texture must not be changed until call to end_raw_layer())
 void start_raw_layer();
@@ -1185,14 +1246,13 @@ void flush_data();
 
 // draw two poligons, using current color & texture (if present)
 // function accepts logical screen coordinates only
-void render_quad(const Point2 &p0, const Point2 &p1, const Point2 &p2, const Point2 &p3, const Point2 &tc0 = P2::ZERO,
-  const Point2 &tc1 = Point2(0, 1), const Point2 &tc2 = P2::ONE, const Point2 &tc3 = Point2(1, 0));
+void render_quad(Point2 p0, Point2 p1, Point2 p2, Point2 p3, Point2 tc0 = P2::ZERO, Point2 tc1 = Point2(0, 1), Point2 tc2 = P2::ONE,
+  Point2 tc3 = Point2(1, 0));
 
-void render_quad_color(const Point2 &p0, const Point2 &p3, const Point2 &p2, const Point2 &p1, const Point2 &tc0, const Point2 &tc3,
-  const Point2 &tc2, const Point2 &tc1, E3DCOLOR c0, E3DCOLOR c3, E3DCOLOR c2, E3DCOLOR c1);
+void render_quad_color(Point2 p0, Point2 p3, Point2 p2, Point2 p1, Point2 tc0, Point2 tc3, Point2 tc2, Point2 tc1, E3DCOLOR c0,
+  E3DCOLOR c3, E3DCOLOR c2, E3DCOLOR c1);
 
-void render_quad_t(const Point2 &p0, const Point2 &p1, const Point2 &p2, const Point2 &p3, const Point2 &tc_lefttop = P2::ZERO,
-  const Point2 &tc_rightbottom = P2::ONE);
+void render_quad_t(Point2 p0, Point2 p1, Point2 p2, Point2 p3, Point2 tc_lefttop = P2::ZERO, Point2 tc_rightbottom = P2::ONE);
 
 // ************************************************************************
 // * render primitives
@@ -1204,34 +1264,30 @@ void render_frame(real left, real top, real right, real bottom, real thickness);
 
 // draw rectangle, using current color
 void render_box(real left, real top, real right, real bottom);
-inline void render_box(const Point2 &left_top, const Point2 &right_bottom);
+inline void render_box(Point2 left_top, Point2 right_bottom);
 
 // draw rectangle with frame, using optimization tricks
-void solid_frame(real left, real top, real right, real bottom, real thickness, const E3DCOLOR &background, const E3DCOLOR &frame);
+void solid_frame(real left, real top, real right, real bottom, real thickness, E3DCOLOR background, E3DCOLOR frame);
 
 // draw rectangle box, using current color & texture (if present)
-void render_rect(real left, real top, real right, real bottom, const Point2 &left_top_tc = P2::ZERO, const Point2 &dx_tc = P2::AXIS_X,
-  const Point2 &dy_tc = P2::AXIS_Y);
+void render_rect(real left, real top, real right, real bottom, Point2 left_top_tc = P2::ZERO, Point2 dx_tc = P2::AXIS_X,
+  Point2 dy_tc = P2::AXIS_Y);
 
-inline void render_rect(const Point2 &left_top, const Point2 &right_bottom, const Point2 &left_top_tc = P2::ZERO,
-  const Point2 &dx_tc = P2::AXIS_X, const Point2 &dy_tc = P2::AXIS_Y);
+inline void render_rect(Point2 left_top, Point2 right_bottom, Point2 left_top_tc = P2::ZERO, Point2 dx_tc = P2::AXIS_X,
+  Point2 dy_tc = P2::AXIS_Y);
 
 // draw rectangle box, using current color & texture (if present)
-void render_rect_t(real left, real top, real right, real bottom, const Point2 &left_top_tc = P2::ZERO,
-  const Point2 &right_bottom_tc = P2::ONE);
+void render_rect_t(real left, real top, real right, real bottom, Point2 left_top_tc = P2::ZERO, Point2 right_bottom_tc = P2::ONE);
 
-inline void render_rect_t(const Point2 &left_top, const Point2 &right_bottom, const Point2 &left_top_tc = P2::ZERO,
-  const Point2 &right_bottom_tc = P2::ONE);
+inline void render_rect_t(Point2 left_top, Point2 right_bottom, Point2 left_top_tc = P2::ZERO, Point2 right_bottom_tc = P2::ONE);
 
-void render_rounded_box(const Point2 &lt, const Point2 &rb, E3DCOLOR col, E3DCOLOR frame, const Point4 &rounding, float thickness);
-void render_rounded_frame(const Point2 &lt, const Point2 &rb, E3DCOLOR col, const Point4 &rounding, float thickness);
-void render_rounded_image(const Point2 &lt, const Point2 &rb, const Point2 &tc_lefttop, const Point2 &tc_rightbottom, E3DCOLOR col,
-  const Point4 &rounding);
-void render_rounded_image(const Point2 &lt, const Point2 &rb, const Point2 &tc_lefttop, const Point2 &dx_tc, const Point2 &dy_tc,
-  E3DCOLOR col, const Point4 &rounding);
+void render_rounded_box(Point2 lt, Point2 rb, E3DCOLOR col, E3DCOLOR frame, Point4 rounding, float thickness);
+void render_rounded_frame(Point2 lt, Point2 rb, E3DCOLOR col, Point4 rounding, float thickness);
+void render_rounded_image(Point2 lt, Point2 rb, Point2 tc_lefttop, Point2 tc_rightbottom, E3DCOLOR col, Point4 rounding);
+void render_rounded_image(Point2 lt, Point2 rb, Point2 tc_lefttop, Point2 dx_tc, Point2 dy_tc, E3DCOLOR col, Point4 rounding);
 // draw line
 void draw_line(real left, real top, real right, real bottom, real thickness = 1.0f);
-inline void draw_line(const Point2 &left_top, const Point2 &right_bottom, real thickness = 1.0f)
+inline void draw_line(Point2 left_top, Point2 right_bottom, real thickness = 1.0f)
 {
   draw_line(left_top.x, left_top.y, right_bottom.x, right_bottom.y, thickness);
 }
@@ -1263,11 +1319,11 @@ inline void render_line_aa(const Point2 from, const Point2 to, bool /*is_closed*
 // all of these functions accept logical screen coordinates only
 // ************************************************************************
 // set curent text out position
-void goto_xy(const Point2 &pos);
+void goto_xy(Point2 pos);
 inline void goto_xy(real x, real y) { goto_xy(Point2(x, y)); }
 
 // get curent text out position
-const Point2 &get_text_pos();
+Point2 get_text_pos();
 
 // set font spacing
 void set_spacing(int new_spacing);
@@ -1295,9 +1351,9 @@ inline void reset_draw_str_attr() { set_draw_str_attr(FFT_NONE, 0, 0, 0, 0); }
 //! su_x32 and sv_x32 specify fixed point scale for u,v (32 mean texel-to-pixel correspondance, >32 =stretch)
 //! su_x32=0 or sv_x32=0 means stretching texture for font height
 //! bv_ofs specify upward offset in pixels from font baseline for v origin
-void set_draw_str_texture(TEXTUREID tex_id, int su_x32 = 32, int sv_x32 = 32, int bv_ofs = 0);
+void set_draw_str_texture(TEXTUREID tex_id, d3d::SamplerHandle smp_id, int su_x32 = 32, int sv_x32 = 32, int bv_ofs = 0);
 //! reset text draw second texture to defaults
-inline void reset_draw_str_texture() { set_draw_str_texture(BAD_TEXTUREID, 32, 32, 0); }
+inline void reset_draw_str_texture() { set_draw_str_texture(BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, 32, 32, 0); }
 
 //! render single character using current font (Unicode16)
 void draw_char_u(wchar_t ch);
@@ -1369,18 +1425,14 @@ void draw_timestr(unsigned int ms);
 
 inline void set_viewport(real left, real top, real right, real bottom) { set_viewport(GuiViewPort(left, top, right, bottom)); }
 
-inline void render_box(const Point2 &left_top, const Point2 &right_bottom)
-{
-  render_box(left_top.x, left_top.y, right_bottom.x, right_bottom.y);
-}
+inline void render_box(Point2 left_top, Point2 right_bottom) { render_box(left_top.x, left_top.y, right_bottom.x, right_bottom.y); }
 
-inline void render_rect(const Point2 &left_top, const Point2 &right_bottom, const Point2 &left_top_tc, const Point2 &dx_tc,
-  const Point2 &dy_tc)
+inline void render_rect(Point2 left_top, Point2 right_bottom, Point2 left_top_tc, Point2 dx_tc, Point2 dy_tc)
 {
   render_rect(left_top.x, left_top.y, right_bottom.x, right_bottom.y, left_top_tc, dx_tc, dy_tc);
 }
 
-inline void render_rect_t(const Point2 &left_top, const Point2 &right_bottom, const Point2 &left_top_tc, const Point2 &right_bottom_tc)
+inline void render_rect_t(Point2 left_top, Point2 right_bottom, Point2 left_top_tc, Point2 right_bottom_tc)
 {
   render_rect_t(left_top.x, left_top.y, right_bottom.x, right_bottom.y, left_top_tc, right_bottom_tc);
 }

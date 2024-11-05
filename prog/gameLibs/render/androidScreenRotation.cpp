@@ -1,10 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "render/androidScreenRotation.h"
 #include <ioSys/dag_dataBlock.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <startup/dag_globalSettings.h>
-#include <3d/dag_drv3dCmd.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_driver.h>
 #include <perfMon/dag_statDrv.h>
 
 namespace
@@ -46,7 +49,7 @@ void android_screen_rotation::onFrameEnd()
   // bind empty targets, to avoid problems with shadow state
   d3d::set_render_target();
   d3d::set_render_target(0, nullptr, 0);
-  int angle = d3d::driver_command(DRV3D_COMMAND_PRE_ROTATE_PASS, (void *)bbBindingIdx, nullptr, nullptr);
+  int angle = d3d::driver_command(Drv3dCommand::PRE_ROTATE_PASS, (void *)bbBindingIdx);
   ShaderGlobal::set_int(android_screen_rotationVarId, angle);
   // do transform only when needed
   if (angle)

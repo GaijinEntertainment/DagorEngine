@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <util/dag_string.h>
 #include <fx/dag_paramScript.h>
 #include <fx/dag_paramScriptsPool.h>
@@ -34,7 +36,7 @@ bool ParamScriptsPool::registerFactory(ParamScriptFactory *fac)
   const char *className = fac->getClassName();
   if (!className)
   {
-    debug_ctx("no class name for factory %p", fac);
+    DEBUG_CTX("no class name for factory %p", fac);
     return false;
   }
 
@@ -46,7 +48,7 @@ bool ParamScriptsPool::registerFactory(ParamScriptFactory *fac)
 
     if (f == fac)
     {
-      debug_ctx("factory '%s' is already registered", className);
+      DEBUG_CTX("factory '%s' is already registered", className);
       return true;
     }
 
@@ -56,7 +58,7 @@ bool ParamScriptsPool::registerFactory(ParamScriptFactory *fac)
 
     if (dd_stricmp(className, cn) == 0)
     {
-      debug_ctx("duplicate class name '%s' for factories %p and %p", className, fac, f);
+      DEBUG_CTX("duplicate class name '%s' for factories %p and %p", className, fac, f);
       return false;
     }
   }

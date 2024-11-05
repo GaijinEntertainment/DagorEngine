@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "fs_hlp.h"
 
 /* scans an asterisk */

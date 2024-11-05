@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -86,7 +85,6 @@ private:
   template <typename T>
   bool getSoundInternal(const StringKeys *csk, T field_name, Sqrat::string &out_name, Sqrat::Object &out_params, float &out_vol);
 
-  void applyColorOverrides(const StringKeys *csk, E3DCOLOR &color) const;
   void applyTint(const StringKeys *csk, E3DCOLOR &color) const;
 
   static void trace_error(const char *message, const Sqrat::Object &container, const Sqrat::Object &key);

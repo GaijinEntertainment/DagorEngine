@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #if _TARGET_XBOX
@@ -31,8 +32,6 @@ inline constexpr D3D12_RESOURCE_STATES D3D12_RESOURCE_STATE_INITIAL_BUFFER_STATE
 #define DX12_FOLD_BATCHED_SPLIT_BARRIERS                  1
 #define DX12_REUSE_UNORDERD_ACCESS_VIEW_DESCRIPTOR_RANGES 1
 #define DX12_REUSE_SHADER_RESOURCE_VIEW_DESCRIPTOR_RANGES 1
-// spams on ever frame! - set this to 1 to enable
-#define DX12_REPORT_DISCARD_MEMORY_PER_FRAME              0
 #define DX12_VALIDATE_DRAW_CALL_USEFULNESS                0
 #define DX12_DROP_NOT_USEFUL_DRAW_CALLS                   1
 #define DX12_WARN_EMPTY_CLEARS                            1
@@ -64,8 +63,7 @@ inline constexpr D3D12_RESOURCE_STATES D3D12_RESOURCE_STATE_INITIAL_BUFFER_STATE
 #error "DX12 Driver configured to _not_ generate required barriers and to _ignore_ user barriers, this will crash on execution"
 #endif
 
-#define DX12_ENABLE_MT_VALIDATION          DAGOR_DBGLEVEL > 0
-#define DX12_ENABLE_PEDANTIC_MT_VALIDATION DAGOR_DBGLEVEL > 1
+#define DX12_ENABLE_MT_VALIDATION DAGOR_DBGLEVEL > 0
 
 #define DX12_SUPPORT_RESOURCE_MEMORY_METRICS DAGOR_DBGLEVEL > 0
 #define DX12_RESOURCE_USAGE_TRACKER          DAGOR_DBGLEVEL > 0

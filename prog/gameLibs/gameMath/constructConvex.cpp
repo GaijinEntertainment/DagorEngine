@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gameMath/constructConvex.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_mathBase.h>

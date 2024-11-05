@@ -1,0 +1,13 @@
+hlsl {
+  #include "dagdp_common.hlsli"
+}
+
+macro INIT_DAGDP_COMMON()
+  hlsl(cs) {
+    float stableRand(int2 pos, int seed)
+    {
+      uint n = uint_noise2D(asuint(pos.x), asuint(pos.y), asuint(seed)); // Int operations should be hardware-independent, unlike floats.
+      return 2.0 * asfloat((n & 0x7FFFFFu) | 0x3F000000u) - 1.0; // Convert to float in 0-1 range.
+    }
+  }
+endmacro

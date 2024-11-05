@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_interface.h>
 #include <EditorCore/ec_interface_ex.h>
 #include <ecs/input/input.h>
@@ -8,11 +10,14 @@
 #include <windows.h>
 #include <perfMon/dag_statDrv.h>
 #include <ioSys/dag_dataBlock.h>
+#include <sepGui/wndPublic.h>
 
 ECS_BROADCAST_EVENT_TYPE(ImGuiStage);
 ECS_REGISTER_EVENT(ImGuiStage)
 
 
+// TODO: ImGui porting: this was used for the VR view in Asset Viewer. It has been vastly simplied, and the most of it
+// can be removed. It should be renamed at least.
 class ImGuiManager : public IEditorService, public IRenderingService
 {
 public:
@@ -23,18 +28,17 @@ public:
       logerr("Failed to register ImGui Manager service.");
       return;
     }
-    imgui_switch_state(); // from disable to enable
 
     ecs::init_hid_drivers(1);
     ecs::init_input(""); // empty config
-
-    imgui_update(); // invoke init on demand
-    imgui_endframe();
-    imgui_draw_mouse_cursor(false);
-    ImGui::GetIO().MouseDrawCursor = false;
   }
 
-  ~ImGuiManager() { imgui_shutdown(); }
+  ~ImGuiManager()
+  {
+    // Do not show the VR controls window at the next application start.
+    if (imgui_window_is_visible("VR", "VR controls"))
+      imgui_window_set_visible("VR", "VR controls", false);
+  }
 
   virtual const char *getServiceName() const override { return "ImGuiManager"; }
   virtual const char *getServiceFriendlyName() const override { return nullptr; }
@@ -54,30 +58,11 @@ public:
     return nullptr;
   }
   virtual void renderGeometry(Stage stage) {}
+
   virtual void renderUI() override
   {
-    // here we try to manage with not matched vieport space and application space.
-    // convert (0, 0) pixel of viewport to application space, add title bar height and 3 pixel (don't know why exactly 3)
-    int x = 0, y = 0;
-    auto viewPort = IEditorCoreEngine::get()->getCurrentViewport();
-    viewPort->screenToClient(x, y);
-    TITLEBARINFO tbi;
-    GetTitleBarInfo((HWND)viewPort->getEcWindow()->getHandle(), &tbi);
-    int titleBarHeight = ::GetSystemMetrics(SM_CYCAPTION);
-    const int MOUSE_CURSOR_OFFSET = 3;
-    imgui_set_viewport_offset(x + MOUSE_CURSOR_OFFSET, y + titleBarHeight + MOUSE_CURSOR_OFFSET);
-
-    // update imgui and render it
-    imgui_update();
-    {
-      TIME_PROFILE(ImGuiStage)
-      g_entity_mgr->broadcastEventImmediate(ImGuiStage());
-    }
-    imgui_endframe();
-    {
-      TIME_PROFILE(imgui_render)
-      imgui_render();
-    }
+    TIME_PROFILE(ImGuiStage)
+    g_entity_mgr->broadcastEventImmediate(ImGuiStage());
   }
 };
 

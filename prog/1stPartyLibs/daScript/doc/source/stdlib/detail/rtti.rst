@@ -78,6 +78,8 @@
 
 .. |function-rtti-program_for_each_registered_module| replace:: Iterates through all registered modules of the Daslang runtime.
 
+.. |function-rtti-module_for_each_dependency| replace:: Iterates through each dependency of the module.
+
 .. |function-rtti-rtti_builtin_structure_for_each_annotation| replace:: Iterates through each annotation for the `Structure` object.
 
 .. |function-rtti-set_file_source| replace:: Sets source for the specified file in the `FileAccess` object.

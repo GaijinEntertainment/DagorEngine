@@ -1,5 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <api/das/frameGraphModule.h>
 #include <api/das/bindingHelper.h>
+
 
 struct TextureResourceAnnotation final : das::ManagedStructureAnnotation<TextureResourceDescription>
 {
@@ -62,7 +65,6 @@ struct VrsStateRequirementsAnnotation final : das::ManagedStructureAnnotation<da
   {
     addField<DAS_BIND_MANAGED_FIELD(rateX)>("rateX");
     addField<DAS_BIND_MANAGED_FIELD(rateY)>("rateY");
-    addField<DAS_BIND_MANAGED_FIELD(rateTextureResId)>("rateTextureResId");
     addField<DAS_BIND_MANAGED_FIELD(vertexCombiner)>("vertexCombiner");
     addField<DAS_BIND_MANAGED_FIELD(pixelCombiner)>("pixelCombiner");
   }
@@ -142,20 +144,31 @@ struct BindingAnnotation final : das::ManagedStructureAnnotation<dabfg::Binding>
   }
 };
 
+
+static_assert(eastl::is_trivially_copyable_v<dabfg::BlobView>);
+static_assert(eastl::is_trivially_destructible_v<dabfg::BlobView>);
+static_assert(sizeof(dabfg::BlobView) <= sizeof(vec4f));
+
+struct BlobViewAnnotation final : das::ManagedValueAnnotation<dabfg::BlobView>
+{
+  BlobViewAnnotation(das::ModuleLibrary &ml) : ManagedValueAnnotation(ml, "BlobView", "dabfg::BlobView") {}
+  bool hasNonTrivialCtor() const override { return false; }
+};
+
 namespace bind_dascript
 {
 
-void setTextureInfo(dabfg::ResourceData &res, TextureResourceDescription &desc)
+void setResolution(dabfg::ResourceData &res, const dabfg::AutoResolutionData &data) { res.resolution = data; }
+
+void setTextureDescription(dabfg::ResourceData &res, TextureResourceDescription &desc)
 {
   desc.clearValue = make_clear_value(0u, 0u, 0u, 0u);
   res.creationInfo = ResourceDescription{desc};
 }
 
-void setResolution(dabfg::ResourceData &res, const dabfg::AutoResolutionData &data) { res.resolution = data; }
+void setBufferDescription(dabfg::ResourceData &res, const BufferResourceDescription &desc) { res.creationInfo = desc; }
 
-void set_description(dabfg::ResourceData &res, const BufferResourceDescription &desc) { res.creationInfo = desc; }
-
-void DaBfgModule::addStructureAnnotations(das::ModuleLibrary &lib)
+void DaBfgCoreModule::addStructureAnnotations(das::ModuleLibrary &lib)
 {
   addAnnotation(das::make_smart<TextureResourceAnnotation>(lib));
   addAnnotation(das::make_smart<VolTextureResourceAnnotation>(lib));
@@ -171,10 +184,11 @@ void DaBfgModule::addStructureAnnotations(das::ModuleLibrary &lib)
   addAnnotation(das::make_smart<ResourceUsageAnnotation>(lib));
   addAnnotation(das::make_smart<ResourceRequestAnnotation>(lib));
   addAnnotation(das::make_smart<BufferResourceDescriptionAnnotation>(lib));
+  addAnnotation(das::make_smart<BlobViewAnnotation>(lib));
 
-  BIND_FUNCTION(bind_dascript::set_description, "setDescription", das::SideEffects::modifyArgumentAndExternal);
   BIND_FUNCTION(bind_dascript::setResolution, "setResolution", das::SideEffects::modifyArgumentAndExternal);
-  BIND_FUNCTION(bind_dascript::setTextureInfo, "setTextureInfo", das::SideEffects::modifyArgumentAndExternal);
+  BIND_FUNCTION(bind_dascript::setBufferDescription, "setDescription", das::SideEffects::modifyArgumentAndExternal);
+  BIND_FUNCTION(bind_dascript::setTextureDescription, "setDescription", das::SideEffects::modifyArgumentAndExternal);
 }
 
 } // namespace bind_dascript

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <perfMon/dag_cpuFreq.h>
 #include <util/dag_delayedAction.h>
 #include <osApiWrappers/dag_basePath.h>

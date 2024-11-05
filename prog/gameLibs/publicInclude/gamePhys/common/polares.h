@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -63,7 +62,7 @@ float calc_cs(const Polares &polares, float aos);
 
 bool calc_aoa(const Polares &polares, float cy, float &out_aoa);
 
-bool calc_aoa(const Polares &polares, float cy, float ang, float &out_aoa);
+bool calc_aoa(const Polares &polares, float cy, float ang, bool convert_aoa, float &out_aoa);
 
 // props
 

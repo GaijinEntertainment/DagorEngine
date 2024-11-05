@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "globVar.h"
 #include "intervals.h"
 #include "varMap.h"
@@ -108,7 +110,9 @@ bool Var::operator==(const Var &right) const
     case SHVT_COLOR4: return memcmp(&value.c4, &right.value.c4, sizeof(value.c4)) == 0;
     case SHVT_FLOAT4X4: return true;
     case SHVT_BUFFER: return value.bufId == right.value.bufId;
+    case SHVT_TLAS: return value.tlas == right.value.tlas;
     case SHVT_TEXTURE: return value.texId == right.value.texId;
+    case SHVT_SAMPLER: return memcmp(&value.samplerInfo, &right.value.samplerInfo, sizeof(value.samplerInfo)) == 0;
     default: G_ASSERT(0);
   }
   return false;
@@ -140,6 +144,9 @@ void link(const Tab<ShaderGlobal::Var> &variables, const IntervalList &intervals
 
         if (var.isAlwaysReferenced != variable_list[existingVar].isAlwaysReferenced)
           DAG_FATAL("Different variable always_referenced states: '%s'", var.getName());
+
+        if (var.isImplicitlyReferenced && !variable_list[existingVar].isImplicitlyReferenced)
+          variable_list[existingVar].isImplicitlyReferenced = true;
       }
     }
 

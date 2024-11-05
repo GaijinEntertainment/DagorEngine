@@ -117,7 +117,7 @@ namespace das
       auto size = das::getTypeSize(ti);
       StructInfo * si = ti->structType;
       G_ASSERT(si);
-      auto data = context.heap->allocate(size);
+      auto data = context.allocate(size);
       if ( si->init_mnh!=0 )
       {
         if (auto fn = context.fnByMangledName(si->init_mnh))

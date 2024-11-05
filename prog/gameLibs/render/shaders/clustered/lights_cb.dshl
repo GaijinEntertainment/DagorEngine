@@ -16,6 +16,13 @@ float shadowDistScale = 0.0;
 float shadowDistBias = 0.0;
 float shadowZBias = 0.0;
 float shadowSlopeZBias = 0.0;
+float point_lights_ao_effect = 0.99;
+
+float debug_disable_dynamic_pcf_center_sample = 0;
+
+macro INIT_POINT_LIGHTS_AO(code)
+  (code) { point_lights_ao_effect@f2 = (min(point_lights_ao_effect, 1), max(0, 1-point_lights_ao_effect),0,0); }
+endmacro
 
 macro INIT_PHOTOMETRY_TEXTURES(code)
   (code) { photometry_textures_tex@smpArray = photometry_textures_tex; }
@@ -32,7 +39,7 @@ macro USE_PHOTOMETRY_TEXTURES(code)
     #define M_PI (3.14159265358979323846)
     #endif
 
-    half2 getPhotometryTexCoords(half3 lightDir, half3 dir, float zoom, bool rotate) {
+    half2 getPhotometryTexCoords(half3 lightDir, half3 dir, half zoom, bool rotate) {
       half3 side = abs(lightDir.x) < 0.707106781186548 // = cos(M_PI/4)
         ? half3(1, 0, 0)
         : half3(0, 0, 1);
@@ -49,26 +56,26 @@ macro USE_PHOTOMETRY_TEXTURES(code)
       return tc;
     }
 
-    float getPhotometryValue(float3 light_dir, float3 dir, float zoom, bool rotated, float texId)
+    half getPhotometryValue(half3 light_dir, half3 dir, half zoom, bool rotated, half texId)
     {
       half2 tc = getPhotometryTexCoords(light_dir, dir, zoom, rotated);
       BRANCH
-      if (any(tc < 0 || tc > 1))
+      if (any(or(tc < 0, tc > 1)))
         return 0;
-      half4 photometry = tex3Dlod(
+      float4 photometry = tex3Dlod(
         photometry_textures_tex,
         half4(tc, texId, 0));
-      return SRGBToLinear_Fast(photometry.r).r;
+      return half(RemoveSRGBCurve_Fast(photometry.r).r);
     }
 
     // returns ies_intensity * currentAttenuation
     // early exit is used in case currentAttenuation is already 0
-    half applyPhotometryIntensity(float3 lightToWorldDir, float3 lightDir, float texId, float texScale_rotation, float currentAttenuation) {
+    half applyPhotometryIntensity(half3 lightToWorldDir, half3 lightDir, half texId, half texScale_rotation, half currentAttenuation) {
       ##if photometry_textures_tex != NULL
       bool rotated = texScale_rotation < 0;
-      float zoom = abs(texScale_rotation);
+      half zoom = abs(texScale_rotation);
       BRANCH
-      if (texId < 0 || currentAttenuation < 0.0001)
+      if (texId < 0 || currentAttenuation < 0.0001h)
         return currentAttenuation;
       return getPhotometryValue(lightDir, lightToWorldDir, zoom, rotated, texId) * currentAttenuation;
       ##else
@@ -129,36 +136,40 @@ endmacro
 macro USE_OMNI_LIGHTS_CB(code)
   hlsl(code) {
     half getOmniLightFade(RenderOmniLight ol, float3 worldPos) {
-      float3 boxPos = half3(ol.boxR0.w, ol.boxR1.w, ol.boxR2.w);
+      #if NO_OMNI_LIGHT_FADE
+      return 1;
+      #else
+      float3 boxPos = float3(ol.boxR0.w, ol.boxR1.w, ol.boxR2.w);
       float3 boxDiff = worldPos - boxPos;
-      float3 box = 2 * (ol.boxR0.xyz * boxDiff.x + ol.boxR1.xyz * boxDiff.y + ol.boxR2.xyz * boxDiff.z);
+      half3 box = 2 * half3((ol.boxR0.xyz * boxDiff.x + ol.boxR1.xyz * boxDiff.y + ol.boxR2.xyz * boxDiff.z));
       box = saturate(abs(box));
-      const float FADEOUT_DIST = 0.05; // 5% on both sides
+      const half FADEOUT_DIST = 0.05; // 5% on both sides
       box = 1 - box;
-      float fadeout = min3(box.x, box.y, box.z);
-      float fadelimit = FADEOUT_DIST; // linear function
+      half fadeout = min3(box.x, box.y, box.z);
+      half fadelimit = FADEOUT_DIST; // linear function
       return fadeout <= fadelimit ? fadeout / fadelimit : 1;
+      #endif
     }
 
     half getOmniLightIntensity(RenderOmniLight ol, float3 worldPos) {
       ##if photometry_textures_tex != NULL
-      float texScale = ol.direction__tex_scale.w;
+      half texScale = half(ol.direction__tex_scale.w);
       BRANCH
-      if (abs(texScale) < 0.0001)
+      if (abs(texScale) < 0.0001h)
         return 1;
-      float3 dir = normalize(worldPos - ol.posRadius.xyz);
+      half3 dir = normalize(half3(worldPos - ol.posRadius.xyz));
       bool rotated = texScale < 0;
       texScale = abs(texScale);
-      float texId = floor(texScale * (1.0 / TEX_ID_MULTIPLIER));
-      float zoom = texScale - texId * TEX_ID_MULTIPLIER;
-      return getPhotometryValue(ol.direction__tex_scale.xyz, dir, zoom, rotated, texId);
+      half texId = floor(texScale * (1.0h / TEX_ID_MULTIPLIER));
+      half zoom = texScale - texId * TEX_ID_MULTIPLIER;
+      return getPhotometryValue(half3(ol.direction__tex_scale.xyz), dir, zoom, rotated, texId);
       ##else
       return 1;
       ##endif
     }
 
-    float4 getFinalColor(RenderOmniLight ol, float3 worldPos) {
-      return ol.colorFlags * getOmniLightFade(ol, worldPos) * getOmniLightIntensity(ol, worldPos);
+    half4 getFinalColor(RenderOmniLight ol, float3 worldPos) {
+      return half4(abs(ol.colorFlags.rgb), ol.colorFlags.a) * getOmniLightFade(ol, worldPos) * getOmniLightIntensity(ol, worldPos);
     }
   }
 endmacro
@@ -172,29 +183,29 @@ macro INIT_LIGHT_SHADOWS(code)
   (code)
   {
     dynamic_light_shadows@shd = dynamic_light_shadows;
+    debug_disable_dynamic_pcf_center_sample@f1 = debug_disable_dynamic_pcf_center_sample;
   }
 endmacro
 
 macro USE_LIGHT_SHADOWS(code)
   hlsl(code) {
-
     half dynamic_shadow_sample(float2 tc, float z)
     {
-      return dynamic_light_shadows.SampleCmpLevelZero(dynamic_light_shadows_cmpSampler, tc.xy, z);
+      return half(dynamic_light_shadows.SampleCmpLevelZero(dynamic_light_shadows_cmpSampler, tc.xy, z));
     }
 
     half dynamic_shadow_sample_fxaa(float2 pos, float z, float2 texel_size)
     {
       float2 fxaaConsoleRcpFrameOpt = 0.5*texel_size;
       float4 fxaaConsolePosPos = float4(pos - fxaaConsoleRcpFrameOpt, pos + fxaaConsoleRcpFrameOpt);
-      half4 luma = half4(
+      float4 luma = float4(
                dynamic_shadow_sample(fxaaConsolePosPos.xy, z),
                dynamic_shadow_sample(fxaaConsolePosPos.xw, z),
                dynamic_shadow_sample(fxaaConsolePosPos.zy, z),
                dynamic_shadow_sample(fxaaConsolePosPos.zw, z));
-       half4 dir = half4(
-         dot(luma, half4(-1,1,-1,1)),
-         dot(luma, half4(1,1,-1,-1)),
+       float4 dir = float4(
+         dot(luma, float4(-1,1,-1,1)),
+         dot(luma, float4(1,1,-1,-1)),
          0,0
        );
        float2 dir2 = dir.xy * texel_size;
@@ -203,56 +214,56 @@ macro USE_LIGHT_SHADOWS(code)
          dynamic_shadow_sample(pos.xy - dir2, z),
          dynamic_shadow_sample(pos.xy + dir2, z)
        );
-       return saturate(dot(grad, half3(0.2, 0.4, 0.4) ));
+       return saturate(dot(grad, half3(0.2h, 0.4h, 0.4h) ));
     }
     #include <interleavedGradientNoise.hlsl>
-    half dynamic_shadow_sample_8tap(float2 screenpos, float2 pos, float z, float radius, float frame)
+    half dynamic_shadow_sample_8tap(float2 screenpos, float2 pos, float z, half radius, float frame)
     {
       float2 rotation;
       sincos((2*PI)*interleavedGradientNoiseFramed(screenpos, frame), rotation.x, rotation.y);
-      float2x2 rotationMatrix = {rotation.x, rotation.y, -rotation.y, rotation.x};
+      half2x2 rotationMatrix = {rotation.x, rotation.y, -rotation.y, rotation.x};
       const int NUM_SAMPLES = 4;
-      const float2 offsets[32] =//fixme: move to separate const buffer!
+      const half2 offsets[32] =//fixme: move to separate const buffer!
       {
-        float2( 0.337219344255f, 0.57229881707f ),
-        float2( -0.573982177743f, -0.799635574054f ),
-        float2( 0.679255251604f, -0.65997901429f ),
-        float2( -0.892186823575f, 0.404959480819f ),
+        half2( 0.337219344255f, 0.57229881707f ),
+        half2( -0.573982177743f, -0.799635574054f ),
+        half2( 0.679255251604f, -0.65997901429f ),
+        half2( -0.892186823575f, 0.404959480819f ),
 
-        float2( 0.816424053179f, -0.548170142661f ),
-        float2( -0.833925266583f, 0.545581110136f ),
-        float2( -0.525005773899f, -0.805277049262f ),
-        float2( 0.324521580535f, 0.785584251486f ),
+        half2( 0.816424053179f, -0.548170142661f ),
+        half2( -0.833925266583f, 0.545581110136f ),
+        half2( -0.525005773899f, -0.805277049262f ),
+        half2( 0.324521580535f, 0.785584251486f ),
 
-        float2( -0.365103620512f, -0.871708293801f ),
-        float2( 0.30268865232f, 0.924430192218f ),
-        float2( 0.919585398916f, -0.258148956848f ),
-        float2( -0.878812342437f, 0.332246828123f ),
+        half2( -0.365103620512f, -0.871708293801f ),
+        half2( 0.30268865232f, 0.924430192218f ),
+        half2( 0.919585398916f, -0.258148956848f ),
+        half2( -0.878812342437f, 0.332246828123f ),
 
-        float2( -0.679374536212f, -0.663335212756f ),
-        float2( 0.704181074766f, 0.648385817291f ),
-        float2( -0.675304741649f, 0.657206995364f ),
-        float2( 0.730600839551f, -0.615268393278f ),
+        half2( -0.679374536212f, -0.663335212756f ),
+        half2( 0.704181074766f, 0.648385817291f ),
+        half2( -0.675304741649f, 0.657206995364f ),
+        half2( 0.730600839551f, -0.615268393278f ),
 
-        float2( 0.882880032571f, -0.252055365939f ),
-        float2( -0.815902405519f, 0.279264733888f ),
-        float2( -0.209182819347f, -0.808498547699f ),
-        float2( 0.359405243809f, 0.921547588839f ),
+        half2( 0.882880032571f, -0.252055365939f ),
+        half2( -0.815902405519f, 0.279264733888f ),
+        half2( -0.209182819347f, -0.808498547699f ),
+        half2( 0.359405243809f, 0.921547588839f ),
 
-        float2( -0.058305608623f, 0.907915085075f ),
-        float2( -0.156033484238f, -0.977887612536f ),
-        float2( 0.98067075742f, 0.0142957188351f ),
-        float2( -0.982131816966f, 0.05922295699f ),
+        half2( -0.058305608623f, 0.907915085075f ),
+        half2( -0.156033484238f, -0.977887612536f ),
+        half2( 0.98067075742f, 0.0142957188351f ),
+        half2( -0.982131816966f, 0.05922295699f ),
 
-        float2( 0.485243100439f, 0.43545130271f ),
-        float2( -0.77682740988f, -0.587696460901f ),
-        float2( 0.429579595122f, -0.894642710457f ),
-        float2( -0.720340535983f, 0.641385073215f ),
+        half2( 0.485243100439f, 0.43545130271f ),
+        half2( -0.77682740988f, -0.587696460901f ),
+        half2( 0.429579595122f, -0.894642710457f ),
+        half2( -0.720340535983f, 0.641385073215f ),
 
-        float2( 0.574746847182f, -0.673570114093f ),
-        float2( -0.384732521594f, 0.908689777207f ),
-        float2( -0.725552751165f, -0.57621829525f ),
-        float2( 0.831738405676f, 0.549035049699f ),
+        half2( 0.574746847182f, -0.673570114093f ),
+        half2( -0.384732521594f, 0.908689777207f ),
+        half2( -0.725552751165f, -0.57621829525f ),
+        half2( 0.831738405676f, 0.549035049699f ),
       };
       /*const float2 offsets[NUM_SAMPLES] = {
         float2( -0.7071,  0.7071),
@@ -266,37 +277,41 @@ macro USE_LIGHT_SHADOWS(code)
       };*/
       //float radius = texel_size.x;
       half shadow = 0;
-      rotationMatrix *= radius*(interleavedGradientNoiseFramed(screenpos+1.1, frame*1.13)*0.25+0.75);
+      rotationMatrix *= radius*half((interleavedGradientNoiseFramed(screenpos+1.1, frame*1.13))*0.25h+0.75h);
       //uint indexOffset = 0;//uint(interleavedGradientNoiseFramed(screenpos+1.1, frame) * 7.9)*NUM_SAMPLES;
+      // shadow map space offsetted lookups must be clamped by non offsetted lookup to avoid acne
+      half centerShadowSample = dynamic_shadow_sample(pos.xy, z);
+      FLATTEN if (debug_disable_dynamic_pcf_center_sample)
+        centerShadowSample = 1;
       UNROLL
       for (int i = 0; i < NUM_SAMPLES; ++i)
       {
-        float2 sampleOffset = mul(offsets[i], rotationMatrix);
+        half2 sampleOffset = mul(offsets[i], rotationMatrix);
         //sampleOffset = rotationMatrix[0]*((i+frame/8.0+1)/NUM_SAMPLES);
-        shadow += dynamic_shadow_sample(pos.xy+sampleOffset, z);
+        shadow += min(centerShadowSample, dynamic_shadow_sample(pos.xy+sampleOffset, z));
       }
-      return shadow*(1./NUM_SAMPLES);
+      return shadow*(1.h/NUM_SAMPLES);
     }
 
     #include <octahedral.hlsl>
-    half2 getOmniShadowTc(float4 shadowTcToAtlas , float3 lightToPos)
+    half2 getOmniShadowTc(half4 shadowTcToAtlas, half3 lightToPos)
     {
-      float2 octahedralTc = octEncode(lightToPos.xzy)*0.5+0.5;
+      half2 octahedralTc = octEncodeh(lightToPos.xzy)*0.5h+0.5h;
       return shadowTcToAtlas.xy + octahedralTc * shadowTcToAtlas.zw;
     }
 
-    float getOmniShadow(float4 shadowTcToAtlas, float4 posRadius, float3 worldPos, float NoL, float2 screenpos)
+    half getOmniShadow(half4 shadowTcToAtlas, float4 posRadius, float3 worldPos, half NoL, half2 screenpos)
     {
       float3 lightToPos = worldPos - posRadius.xyz;
       #if OMNI_SHADOWS
         BRANCH
-        if (shadowTcToAtlas.z < 0.0001)
-          return 1.0;
-        half2 tc = getOmniShadowTc(shadowTcToAtlas, lightToPos);
+        if (shadowTcToAtlas.z < 0.0001h)
+          return 1.0h;
+        half2 tc = getOmniShadowTc(shadowTcToAtlas, half3(lightToPos));
         float2 zn_zfar = get_light_shadow_zn_zf(posRadius.w);
         float3 absLightToPos = abs(lightToPos);
         float linearZ = max(absLightToPos.x, max(absLightToPos.y, absLightToPos.z));
-        float3 shadowViewDir = sign(lightToPos) * (absLightToPos < float3(linearZ, linearZ, linearZ) ? float3(0, 0, 0) : float3(1, 1, 1));
+        float3 shadowViewDir = sign(lightToPos) * select(absLightToPos < float3(linearZ, linearZ, linearZ), float3(0, 0, 0), float3(1, 1, 1));
 
         float zbias = shadowZBias + shadowSlopeZBias / (abs(NoL)+0.1);
 
@@ -311,9 +326,9 @@ macro USE_LIGHT_SHADOWS(code)
           return 1-dynamic_shadow_sample(tc, biasedRawDistance);
         #else
           #ifndef shadow_frame
-          float shadow_frame = 0;
+          half shadow_frame = 0;
           #endif
-          return 1-dynamic_shadow_sample_8tap(screenpos, tc, biasedRawDistance, 1.5*shadowAtlasTexel.x*(0.75+saturate(0.3*lightToPosDist)), shadow_frame);
+          return 1-dynamic_shadow_sample_8tap(screenpos, tc, biasedRawDistance, 1.5h*shadowAtlasTexel.x*(0.75h+saturate(0.3h*half(lightToPosDist))), shadow_frame);
         #endif
       #else
         return 1;
@@ -351,10 +366,10 @@ macro USE_COMMON_LIGHTS_SHADOWS_CB(code)
         common_light_shadows[index + 3]
       );
     }
-    float4 getOmniLightShadowData(uint index)
+    half4 getOmniLightShadowData(uint index)
     {
       uint baseIndex = spotCnt_omniCnt_firstOmni.z;
-      return common_light_shadows[baseIndex + index];
+      return half4(common_light_shadows[baseIndex + index]);
     }
   }
 endmacro
@@ -397,9 +412,9 @@ macro USE_LIGHTS_CLUSTERED_CB(code)
     {
       return max(0, log2(depth) * sliceScale + sliceBias);
     }
-    uint getClusterIndex(float2 tc, uint sliceId)
+    uint getClusterIndex(half2 tc, uint sliceId)
     {
-      uint2 gridCoord = uint2(tc*float2(CLUSTERS_W, CLUSTERS_H));
+      uint2 gridCoord = uint2(tc*half2(CLUSTERS_W, CLUSTERS_H));
       return gridCoord.x+gridCoord.y*CLUSTERS_W + sliceId*CLUSTERS_W*CLUSTERS_H;
     }
   }

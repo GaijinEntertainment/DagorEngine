@@ -1,5 +1,4 @@
-#ifndef __GAIJIN_CLIPPING_PLUGIN__
-#define __GAIJIN_CLIPPING_PLUGIN__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <oldEditor/iClipping.h>
@@ -20,9 +19,13 @@
 #include <sepGui/wndPublic.h>
 
 
+namespace PropPanel
+{
+class ContainerPropertyControl;
+}
+
 class IClippingDumpBuilder;
 class CollisionPropPanelClient;
-class PropertyContainerControlBase;
 
 
 //==============================================================================
@@ -31,7 +34,7 @@ class ClippingPlugin : public IGenEditorPlugin,
                        public IClipping,
                        public IBinaryDataBuilder,
                        public IDagorEdCustomCollider,
-                       public ControlEventHandler,
+                       public PropPanel::ControlEventHandler,
                        public IWndManagerWindowHandler
 {
 public:
@@ -82,11 +85,12 @@ public:
   virtual void beforeRenderObjects(IGenViewportWnd *vp) {}
   virtual void renderObjects();
   virtual void renderTransObjects() {}
+  virtual void updateImgui() override;
 
   virtual void *queryInterfacePtr(unsigned huid);
 
   // ControlEventHandler
-  virtual void onClick(int pcb_id, PropPanel2 *panel);
+  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
   // command handlers
   // virtual void handleCommand(int cmd);
   // virtual void handleButtonClick(int btn_id, CtlBtnTemplate* btn, bool btn_pressed) { handleCommand(btn_id); }
@@ -112,8 +116,8 @@ public:
 
   // IWndManagerWindowHandler
 
-  virtual IWndEmbeddedWindow *onWmCreateWindow(void *handle, int type);
-  virtual bool onWmDestroyWindow(void *handle);
+  virtual void *onWmCreateWindow(int type) override;
+  virtual bool onWmDestroyWindow(void *window) override;
 
   // IClipping implemenatation
   virtual bool compileClippingWithDialog(bool for_game);
@@ -122,11 +126,11 @@ public:
 
 
   // IBinaryDataBuilder implemenatation
-  virtual bool validateBuild(int target, ILogWriter &rep, PropPanel2 *params);
+  virtual bool validateBuild(int target, ILogWriter &rep, PropPanel::ContainerPropertyControl *params);
   virtual bool addUsedTextures(ITextureNumerator &tn) { return true; }
-  virtual bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel2 *pp);
+  virtual bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *pp);
   virtual bool useExportParameters() const { return true; }
-  virtual void fillExportPanel(PropPanel2 &params);
+  virtual void fillExportPanel(PropPanel::ContainerPropertyControl &params);
   virtual bool checkMetrics(const DataBlock &metrics_blk);
 
   bool recreatePanel();
@@ -173,7 +177,7 @@ private:
   void addClipNode(Node &n, IClippingDumpBuilder *rt);
 
   bool compileEditClip();
-  bool compileGameClip(PropPanel2 *panel, unsigned target_code);
+  bool compileGameClip(PropPanel::ContainerPropertyControl *panel, unsigned target_code);
   void prepareDAGcollision();
 
   bool compileClipping(bool for_game, Tab<int> &plugs, int phys_eng_type, unsigned target_code);
@@ -187,6 +191,8 @@ private:
   void getClippingFiles(Tab<String> &files, unsigned target_code) const;
   void makeDagPreviewCollision(bool force_remake);
   void makeGameFrtPreviewCollision(bool force_remake);
+
+  bool onPluginMenuClickInternal(unsigned id, PropPanel::ContainerPropertyControl *panel);
 };
 
 
@@ -199,5 +205,3 @@ inline void ClippingPlugin::getDAGPath(String &path, const String &dag) { path =
 
 extern bool check_collision_provider(IGenEditorPlugin *p);
 extern int count_collision_provider();
-
-#endif //__GAIJIN_CLIPPING_PLUGIN__

@@ -46,7 +46,7 @@ Sources =
 ;
 
 
-if $(Platform) in win32 win64 {
+if $(Platform) in windows {
   CPPopt =
     /d2Zi+
     -DWIN32
@@ -60,15 +60,15 @@ if $(Platform) in win32 win64 {
 }
 
 if $(PlatformSpec) = clang { CPPopt += -Wno-comment -Wno-deprecated-register ; }
-if $(Platform) = win64 { CPPopt += -wd4267 ; }
+if $(Platform)-$(PlatformArch) = windows-x86_64 { CPPopt += -wd4267 ; }
 
-if $(Platform) in macosx {
+if $(Platform) in macOS {
   CPPopt += -Wno-comment -Wno-switch -Wno-null-conversion -Wno-c++11-narrowing -Wno-deprecated-declarations -Wno-error ;
-} else if $(Platform) in linux64 {
+} else if $(Platform) in linux {
   CPPopt += -Wno-narrowing -Wno-unused-result ;
   if $(PlatformSpec) = clang { CPPopt += -Wno-sometimes-uninitialized -Wno-switch ; }
   opt on src/toGLSLInstruction.cpp = -Wno-conversion-null ;
-} else if $(Platform) in win32 win64 {
+} else if $(Platform) in windows {
   if $(PlatformSpec) != clang { CPPopt += /TP ; }
 }
 

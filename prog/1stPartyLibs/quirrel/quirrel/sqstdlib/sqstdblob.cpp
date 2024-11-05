@@ -4,6 +4,7 @@
 #include <sqstdio.h>
 #include <string.h>
 #include <sqstdblob.h>
+#include <sqstdaux.h>
 #include "sqstdstream.h"
 #include "sqstdblobimpl.h"
 
@@ -26,7 +27,7 @@ static SQInteger _blob_resize(HSQUIRRELVM v)
     SQInteger size;
     sq_getinteger(v,2,&size);
     if(!self->Resize(size))
-        return sq_throwerror(v,_SC("resize failed"));
+        return sqstd_throwerrorf(v,_SC("resize failed, cur size=%d, requested=%d"), int(self->Len()), int(size));
     return 0;
 }
 

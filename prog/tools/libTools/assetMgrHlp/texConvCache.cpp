@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <assets/assetHlp.h>
 #include <assets/assetMgr.h>
 #include <assets/asset.h>
@@ -69,7 +71,7 @@ static void checkIfMsvcrDllExists()
 
 static IDagorAssetExporter *loadSingleExporterPlugin(const DataBlock &appblk, DagorAssetMgr &mgr, const char *fname, int req_type)
 {
-  dllHandle = os_dll_load(fname);
+  dllHandle = os_dll_load_deep_bind(fname);
 
   if (dllHandle)
   {
@@ -197,19 +199,11 @@ bool texconvcache::init(DagorAssetMgr &mgr, const DataBlock &appblk, const char 
 #else
     // no dabuild available, so load tex exporter manually
     alefind_t ff;
-#if _TARGET_PC_LINUX
-    const char *common_dir = "../bin-linux64/plugins/dabuild";
-#elif _TARGET_PC_MACOSX
-    const char *common_dir = "../bin-macosx/plugins/daBuild";
-#elif _TARGET_64BIT
-    const char *common_dir = "../bin64/plugins/daBuild";
-#else
-    const char *common_dir = "../bin/plugins/daBuild";
-#endif
+    const char *common_dir = "plugins/dabuild";
 #if _TARGET_PC_WIN
-    const String mask(260, "%s/%s/tex*" DAGOR_PC_OS_DLL_SUFFIX, startdir, common_dir);
+    const String mask(260, "%s/%s/tex*" DAGOR_OS_DLL_SUFFIX, startdir, common_dir);
 #elif _TARGET_PC
-    const String mask(260, "%s/%s/libtex*" DAGOR_PC_OS_DLL_SUFFIX, startdir, common_dir);
+    const String mask(260, "%s/%s/libtex*" DAGOR_OS_DLL_SUFFIX, startdir, common_dir);
 #endif
     String fname;
 
@@ -315,6 +309,11 @@ static bool checkCacheChanged(AssetExportCache &c4, DagorAsset &a, const DataBlo
 
   Tab<SimpleString> a_files(tmpmem);
   exp->gatherSrcDataFiles(a, a_files);
+  // A lot of assets add the asset itself to the list of src data files.
+  // checkFileChanged is quite slow and we checked this asset already above.
+  // Removing this asset from gather list is faster then calling checkFileChanged one extra time
+  if (a_files.size() > 0 && strcmp(a_files[0].c_str(), a.getTargetFilePath().c_str()) == 0)
+    a_files.erase(a_files.begin());
   int cnt = a_files.size();
   for (int j = 0; j < cnt; j++)
     if (c4.checkFileChanged(a_files[j]))
@@ -474,7 +473,7 @@ static bool get_tex_asset_built_ddsx_internal(DagorAsset &a, ddsx::Buffer &dest,
       crd.read(dest.ptr, dest.len);
       crd.close();
     }
-    DAGOR_CATCH(IGenLoad::LoadException exc)
+    DAGOR_CATCH(const IGenLoad::LoadException &exc)
     {
       logerr("failed to read '%s'", cacheFname);
       debug_flush(false);
@@ -1019,7 +1018,6 @@ bool texconvcache::get_tex_asset_built_raw_dds(DagorAsset &a, IGenSave &cwr, uns
     {32, 0x00000000, 0xff0000, 0xff00, 0xff, D3DFMT_X8B8G8R8, DDPF_RGB},
     {16, 0x00000000, 0x0000ff, 0xff00, 0x00, D3DFMT_V8U8, DDPF_BUMPDUDV},
     {16, 0x0000ff00, 0x0000ff, 0x0000, 0x00, D3DFMT_A8L8, DDPF_LUMINANCE | DDPF_ALPHA},
-    {32, 0x00000000, 0xFFFF, 0xFFFF0000, 0, D3DFMT_V16U16, DDPF_BUMPDUDV},
     {16, 0x00000000, 0xFFFF, 0x00000000, 0, D3DFMT_L16, DDPF_LUMINANCE},
   };
 
@@ -1184,7 +1182,7 @@ bool texconvcache::convert_dds(ddsx::Buffer &b, const char *tex_path, const Dago
         crd.read(b.ptr, b.len);
         crd.close();
       }
-      DAGOR_CATCH(IGenLoad::LoadException exc)
+      DAGOR_CATCH(const IGenLoad::LoadException &exc)
       {
         logerr("failed to read '%s'", cacheFname);
         debug_flush(false);

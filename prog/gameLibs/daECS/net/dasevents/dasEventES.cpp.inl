@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daECS/net/dasEvents.h>
 #include <dasModules/aotEcsEvents.h>
 #include <ecs/core/entityManager.h>
@@ -156,7 +158,7 @@ static bind_dascript::DasEvent *deserialize_das_event(const danet::BitStream &bs
 {
   const int connectionId = (int)msg->connection->getId();
   ecs::event_type_t eventType;
-  if (EASTL_UNLIKELY(!bs.Read(eventType)))
+  if (DAGOR_UNLIKELY(!bs.Read(eventType)))
   {
     logerr("das_net: failed to read event received from connection '%d'", connectionId);
     return nullptr;
@@ -167,7 +169,7 @@ static bind_dascript::DasEvent *deserialize_das_event(const danet::BitStream &bs
     return nullptr; // error was already shown, just ignore this event
 
   const ecs::EventsDB::event_id_t eventId = g_entity_mgr->getEventsDb().findEvent(eventType);
-  if (EASTL_UNLIKELY(eventId == ecs::EventsDB::invalid_event_id))
+  if (DAGOR_UNLIKELY(eventId == ecs::EventsDB::invalid_event_id))
   {
     remoteEventWithError[eventType].set(connectionId);
     logmessage(get_dasevent_error_level(eventType), "das_net: unknown event type <0x%X> received from connection '%d'", eventType,
@@ -176,7 +178,7 @@ static bind_dascript::DasEvent *deserialize_das_event(const danet::BitStream &bs
   }
 
   const ecs::EventsDB::event_scheme_hash_t schemeHash = g_entity_mgr->getEventsDb().getEventSchemeHash(eventId);
-  if (EASTL_UNLIKELY(schemeHash == ecs::EventsDB::invalid_event_scheme_hash))
+  if (DAGOR_UNLIKELY(schemeHash == ecs::EventsDB::invalid_event_scheme_hash))
   {
     remoteEventWithError[eventType].set(connectionId);
     logmessage(get_dasevent_error_level(eventType), "das_net: no scheme to deserialize event '%s' <0x%X>",
@@ -191,7 +193,7 @@ static bind_dascript::DasEvent *deserialize_das_event(const danet::BitStream &bs
   const uint8_t *offsets = scheme.get<uint8_t>();
   const ecs::component_type_t *types = scheme.get<ecs::component_type_t>();
 
-  net::BitstreamDeserializer deserializer(bs);
+  net::BitstreamDeserializer deserializer(*g_entity_mgr, bs);
   for (int i = 0, n = (int)scheme.size(); i < n; ++i)
   {
     if (types[i] == ecs::ComponentTypeInfo<ecs::string>::type)
@@ -204,7 +206,7 @@ static bind_dascript::DasEvent *deserialize_das_event(const danet::BitStream &bs
     else if (types[i] == ecs::ComponentTypeInfo<ecs::Object>::type)
     {
       ecs::Object *obj = new ecs::Object();
-      ecs::deserialize_component_typeless(obj, types[i], deserializer);
+      ecs::deserialize_component_typeless(obj, types[i], deserializer, *g_entity_mgr);
       obj->addMember("fromconnid", connectionId);
       *(ecs::Object **)(data + offsets[i]) = obj;
     }
@@ -215,19 +217,19 @@ static bind_dascript::DasEvent *deserialize_das_event(const danet::BitStream &bs
       *(danet::BitStream **)(data + offsets[i]) = stream;
     }
 
-#define DECL_LIST_TYPE(t, tn)                                         \
-  else if (types[i] == ecs::ComponentTypeInfo<t>::type)               \
-  {                                                                   \
-    t *obj = new t();                                                 \
-    ecs::deserialize_component_typeless(obj, types[i], deserializer); \
-    *(t **)(data + offsets[i]) = obj;                                 \
+#define DECL_LIST_TYPE(t, tn)                                                        \
+  else if (types[i] == ecs::ComponentTypeInfo<t>::type)                              \
+  {                                                                                  \
+    t *obj = new t();                                                                \
+    ecs::deserialize_component_typeless(obj, types[i], deserializer, *g_entity_mgr); \
+    *(t **)(data + offsets[i]) = obj;                                                \
   }
 
     DAS_EVENT_ECS_CONT_LIST_TYPES
 #undef DECL_LIST_TYPE
     else
     {
-      ecs::deserialize_component_typeless(data + offsets[i], types[i], deserializer);
+      ecs::deserialize_component_typeless(data + offsets[i], types[i], deserializer, *g_entity_mgr);
     }
   }
   bind_dascript::DasEvent *res = (bind_dascript::DasEvent *)data;
@@ -240,13 +242,13 @@ static bool serialize_das_event(ecs::Event &evt, danet::BitStream &bs)
 {
   const ecs::event_type_t eventType = evt.getType();
   const auto eventId = g_entity_mgr->getEventsDb().findEvent(eventType);
-  if (EASTL_UNLIKELY(eventId == ecs::EventsDB::invalid_event_id))
+  if (DAGOR_UNLIKELY(eventId == ecs::EventsDB::invalid_event_id))
   {
     logwarn("das_net: unknown event type <0x%X>", eventType);
     return false;
   }
   const ecs::EventsDB::event_scheme_hash_t schemeHash = g_entity_mgr->getEventsDb().getEventSchemeHash(eventId);
-  if (EASTL_UNLIKELY(schemeHash == ecs::EventsDB::invalid_event_scheme_hash))
+  if (DAGOR_UNLIKELY(schemeHash == ecs::EventsDB::invalid_event_scheme_hash))
   {
     logwarn("das_net: no event <0x%X> scheme to serialize event", eventType);
     return false;
@@ -258,7 +260,7 @@ static bool serialize_das_event(ecs::Event &evt, danet::BitStream &bs)
   const uint8_t *offsets = scheme.get<uint8_t>();
   const ecs::component_type_t *types = scheme.get<ecs::component_type_t>();
 
-  net::BitstreamSerializer serializer(bs);
+  net::BitstreamSerializer serializer(*g_entity_mgr, bs);
   char *data = (char *)&evt;
   for (int i = 0, n = (int)scheme.size(); i < n; ++i)
   {
@@ -278,18 +280,18 @@ static bool serialize_das_event(ecs::Event &evt, danet::BitStream &bs)
       continue;
     }
 
-#define DECL_LIST_TYPE(t, tn)                                                \
-  if (types[i] == ecs::ComponentTypeInfo<t>::type)                           \
-  {                                                                          \
-    t *obj = *(t **)(data + offsets[i]);                                     \
-    ecs::serialize_entity_component_ref_typeless(obj, types[i], serializer); \
-    continue;                                                                \
+#define DECL_LIST_TYPE(t, tn)                                                               \
+  if (types[i] == ecs::ComponentTypeInfo<t>::type)                                          \
+  {                                                                                         \
+    t *obj = *(t **)(data + offsets[i]);                                                    \
+    ecs::serialize_entity_component_ref_typeless(obj, types[i], serializer, *g_entity_mgr); \
+    continue;                                                                               \
   }
 
     DAS_EVENT_ECS_CONT_TYPES
 #undef DECL_LIST_TYPE
 
-    ecs::serialize_entity_component_ref_typeless(data + offsets[i], types[i], serializer);
+    ecs::serialize_entity_component_ref_typeless(data + offsets[i], types[i], serializer, *g_entity_mgr);
   }
   return true;
 }
@@ -310,7 +312,7 @@ void send_dasevent(ecs::EntityManager *mgr, bool broadcast, const ecs::EntityId 
   {
     const ecs::event_type_t eventType = evt->getType();
     const ecs::EventsDB::event_id_t eventId = g_entity_mgr->getEventsDb().findEvent(eventType);
-    if (EASTL_UNLIKELY(eventId == ecs::EventsDB::invalid_event_id))
+    if (DAGOR_UNLIKELY(eventId == ecs::EventsDB::invalid_event_id))
     {
       logerr("das_net: unregistered event '%s' <0x%X>", evt->getName(), eventType);
       return;
@@ -427,7 +429,7 @@ static void base_das_event_msg_handler(const EventName *msg, CB send_event)
   {
     TRACE_RX_DAS_EVENT_STAT(evt->getType(), bs);
     send_event((ecs::Event &)*evt);
-    if (EASTL_UNLIKELY(evt->getFlags() & ecs::EVFLG_DESTROY)) // we have to do it, as it can be that there is immediate strategy.
+    if (DAGOR_UNLIKELY(evt->getFlags() & ecs::EVFLG_DESTROY)) // we have to do it, as it can be that there is immediate strategy.
       g_entity_mgr->getEventsDb().destroy(*evt);
     if ((char *)evt != buf)
       framemem_ptr()->free(evt);
@@ -458,7 +460,7 @@ static void base_client_das_event_msg_handler(const EventName *msg, CB send_even
   {
     TRACE_RX_DAS_EVENT_STAT(evt->getType(), bs);
     send_event((ecs::Event &)*evt);
-    if (EASTL_UNLIKELY(evt->getFlags() & ecs::EVFLG_DESTROY)) // we have to do it, as it can be that there is immediate strategy.
+    if (DAGOR_UNLIKELY(evt->getFlags() & ecs::EVFLG_DESTROY)) // we have to do it, as it can be that there is immediate strategy.
       g_entity_mgr->getEventsDb().destroy(*evt);
     if ((char *)evt != buf)
       framemem_ptr()->free(evt);
@@ -488,7 +490,7 @@ static void base_client_controlled_das_event_msg_handler(const EventName *msg, C
   {
     TRACE_RX_DAS_EVENT_STAT(evt->getType(), bs);
     send_event((ecs::Event &)*evt);
-    if (EASTL_UNLIKELY(evt->getFlags() & ecs::EVFLG_DESTROY)) // we have to do it, as it can be that there is immediate strategy.
+    if (DAGOR_UNLIKELY(evt->getFlags() & ecs::EVFLG_DESTROY)) // we have to do it, as it can be that there is immediate strategy.
       g_entity_mgr->getEventsDb().destroy(*evt);
     if ((char *)evt != buf)
       framemem_ptr()->free(evt);

@@ -1,5 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <debug/dag_debug3dStates.h>
-#include <3d/dag_renderStates.h>
+#include <drv/3d/dag_renderStates.h>
 #include <shaders/dag_overrideStates.h>
 
 namespace debug3d

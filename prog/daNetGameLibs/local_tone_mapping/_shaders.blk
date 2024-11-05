@@ -1,0 +1,3 @@
+file:t = "local_tone_mapping/shaders/filter.dshl"
+file:t = "local_tone_mapping/shaders/downsample.dshl"
+file:t = "local_tone_mapping/shaders/upsample.dshl"

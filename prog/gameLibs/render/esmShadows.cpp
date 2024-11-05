@@ -1,8 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/esmShadows.h>
 
 #include <perfMon/dag_statDrv.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_tex3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_tex3d.h>
 #include <shaders/dag_shaders.h>
 
 static int gauss_directionVarId = -1;
@@ -24,6 +27,13 @@ void EsmShadows::init(int w, int h, int slices, float esm_exp)
   gauss_directionVarId = get_shader_variable_id("gauss_direction");
   esm_sliceVarId = get_shader_variable_id("esm_slice");
   esm_blur_srcVarId = get_shader_variable_id("esm_blur_src");
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    d3d::SamplerHandle sampler = d3d::request_sampler(smpInfo);
+    ShaderGlobal::set_sampler(get_shader_variable_id("esm_blur_src_samplerstate"), sampler);
+    ShaderGlobal::set_sampler(get_shader_variable_id("esm_shadows_samplerstate"), sampler);
+  }
   ShaderGlobal::set_color4(get_shader_variable_id("esm_params"), w, h, esm_exp, esmKExp);
 
   initEsmShadowsStateId();

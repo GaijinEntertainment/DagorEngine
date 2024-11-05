@@ -1,0 +1,1 @@
+shader gui_default { dont_render; }

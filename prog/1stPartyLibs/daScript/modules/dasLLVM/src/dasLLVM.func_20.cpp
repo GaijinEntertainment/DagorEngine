@@ -12,66 +12,86 @@
 namespace das {
 #include "dasLLVM.func.aot.decl.inc"
 void Module_dasLLVM::initFunctions_20() {
-// from D:\Work\libclang\include\llvm-c/Core.h:2277:13
-	addExtern< LLVMOpaqueType * (*)(LLVMOpaqueValue *) , LLVMGlobalGetValueType >(*this,lib,"LLVMGlobalGetValueType",SideEffects::worstDefault,"LLVMGlobalGetValueType")
-		->args({"Global"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2280:10
-	addExtern< int (*)(LLVMOpaqueValue *) , LLVMHasUnnamedAddr >(*this,lib,"LLVMHasUnnamedAddr",SideEffects::worstDefault,"LLVMHasUnnamedAddr")
-		->args({"Global"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2282:6
-	addExtern< void (*)(LLVMOpaqueValue *,int) , LLVMSetUnnamedAddr >(*this,lib,"LLVMSetUnnamedAddr",SideEffects::worstDefault,"LLVMSetUnnamedAddr")
-		->args({"Global","HasUnnamedAddr"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2300:10
-	addExtern< unsigned int (*)(LLVMOpaqueValue *) , LLVMGetAlignment >(*this,lib,"LLVMGetAlignment",SideEffects::worstDefault,"LLVMGetAlignment")
-		->args({"V"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2311:6
-	addExtern< void (*)(LLVMOpaqueValue *,unsigned int) , LLVMSetAlignment >(*this,lib,"LLVMSetAlignment",SideEffects::worstDefault,"LLVMSetAlignment")
-		->args({"V","Bytes"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2319:6
-	addExtern< void (*)(LLVMOpaqueValue *,unsigned int,LLVMOpaqueMetadata *) , LLVMGlobalSetMetadata >(*this,lib,"LLVMGlobalSetMetadata",SideEffects::worstDefault,"LLVMGlobalSetMetadata")
-		->args({"Global","Kind","MD"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2327:6
-	addExtern< void (*)(LLVMOpaqueValue *,unsigned int) , LLVMGlobalEraseMetadata >(*this,lib,"LLVMGlobalEraseMetadata",SideEffects::worstDefault,"LLVMGlobalEraseMetadata")
-		->args({"Global","Kind"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2334:6
-	addExtern< void (*)(LLVMOpaqueValue *) , LLVMGlobalClearMetadata >(*this,lib,"LLVMGlobalClearMetadata",SideEffects::worstDefault,"LLVMGlobalClearMetadata")
-		->args({"Global"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2343:25
-	addExtern< LLVMOpaqueValueMetadataEntry * (*)(LLVMOpaqueValue *,size_t *) , LLVMGlobalCopyAllMetadata >(*this,lib,"LLVMGlobalCopyAllMetadata",SideEffects::worstDefault,"LLVMGlobalCopyAllMetadata")
-		->args({"Value","NumEntries"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2349:6
-	addExtern< void (*)(LLVMOpaqueValueMetadataEntry *) , LLVMDisposeValueMetadataEntries >(*this,lib,"LLVMDisposeValueMetadataEntries",SideEffects::worstDefault,"LLVMDisposeValueMetadataEntries")
-		->args({"Entries"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2354:10
-	addExtern< unsigned int (*)(LLVMOpaqueValueMetadataEntry *,unsigned int) , LLVMValueMetadataEntriesGetKind >(*this,lib,"LLVMValueMetadataEntriesGetKind",SideEffects::worstDefault,"LLVMValueMetadataEntriesGetKind")
-		->args({"Entries","Index"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2362:1
-	addExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueValueMetadataEntry *,unsigned int) , LLVMValueMetadataEntriesGetMetadata >(*this,lib,"LLVMValueMetadataEntriesGetMetadata",SideEffects::worstDefault,"LLVMValueMetadataEntriesGetMetadata")
-		->args({"Entries","Index"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2378:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *,LLVMOpaqueType *,const char *) , LLVMAddGlobal >(*this,lib,"LLVMAddGlobal",SideEffects::worstDefault,"LLVMAddGlobal")
-		->args({"M","Ty","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2379:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *,LLVMOpaqueType *,const char *,unsigned int) , LLVMAddGlobalInAddressSpace >(*this,lib,"LLVMAddGlobalInAddressSpace",SideEffects::worstDefault,"LLVMAddGlobalInAddressSpace")
-		->args({"M","Ty","Name","AddressSpace"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2382:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *,const char *) , LLVMGetNamedGlobal >(*this,lib,"LLVMGetNamedGlobal",SideEffects::worstDefault,"LLVMGetNamedGlobal")
-		->args({"M","Name"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2383:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *) , LLVMGetFirstGlobal >(*this,lib,"LLVMGetFirstGlobal",SideEffects::worstDefault,"LLVMGetFirstGlobal")
-		->args({"M"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2384:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *) , LLVMGetLastGlobal >(*this,lib,"LLVMGetLastGlobal",SideEffects::worstDefault,"LLVMGetLastGlobal")
-		->args({"M"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2385:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMGetNextGlobal >(*this,lib,"LLVMGetNextGlobal",SideEffects::worstDefault,"LLVMGetNextGlobal")
-		->args({"GlobalVar"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2386:14
-	addExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMGetPreviousGlobal >(*this,lib,"LLVMGetPreviousGlobal",SideEffects::worstDefault,"LLVMGetPreviousGlobal")
-		->args({"GlobalVar"});
-// from D:\Work\libclang\include\llvm-c/Core.h:2387:6
-	addExtern< void (*)(LLVMOpaqueValue *) , LLVMDeleteGlobal >(*this,lib,"LLVMDeleteGlobal",SideEffects::worstDefault,"LLVMDeleteGlobal")
-		->args({"GlobalVar"});
+// from D:\Work\libclang\include\llvm-c/Core.h:2290:10
+	makeExtern< int (*)(LLVMOpaqueValue *) , LLVMHasUnnamedAddr , SimNode_ExtFuncCall >(lib,"LLVMHasUnnamedAddr","LLVMHasUnnamedAddr")
+		->args({"Global"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2292:6
+	makeExtern< void (*)(LLVMOpaqueValue *,int) , LLVMSetUnnamedAddr , SimNode_ExtFuncCall >(lib,"LLVMSetUnnamedAddr","LLVMSetUnnamedAddr")
+		->args({"Global","HasUnnamedAddr"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2310:10
+	makeExtern< unsigned int (*)(LLVMOpaqueValue *) , LLVMGetAlignment , SimNode_ExtFuncCall >(lib,"LLVMGetAlignment","LLVMGetAlignment")
+		->args({"V"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2321:6
+	makeExtern< void (*)(LLVMOpaqueValue *,unsigned int) , LLVMSetAlignment , SimNode_ExtFuncCall >(lib,"LLVMSetAlignment","LLVMSetAlignment")
+		->args({"V","Bytes"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2329:6
+	makeExtern< void (*)(LLVMOpaqueValue *,unsigned int,LLVMOpaqueMetadata *) , LLVMGlobalSetMetadata , SimNode_ExtFuncCall >(lib,"LLVMGlobalSetMetadata","LLVMGlobalSetMetadata")
+		->args({"Global","Kind","MD"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2337:6
+	makeExtern< void (*)(LLVMOpaqueValue *,unsigned int) , LLVMGlobalEraseMetadata , SimNode_ExtFuncCall >(lib,"LLVMGlobalEraseMetadata","LLVMGlobalEraseMetadata")
+		->args({"Global","Kind"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2344:6
+	makeExtern< void (*)(LLVMOpaqueValue *) , LLVMGlobalClearMetadata , SimNode_ExtFuncCall >(lib,"LLVMGlobalClearMetadata","LLVMGlobalClearMetadata")
+		->args({"Global"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2353:25
+	makeExtern< LLVMOpaqueValueMetadataEntry * (*)(LLVMOpaqueValue *,size_t *) , LLVMGlobalCopyAllMetadata , SimNode_ExtFuncCall >(lib,"LLVMGlobalCopyAllMetadata","LLVMGlobalCopyAllMetadata")
+		->args({"Value","NumEntries"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2359:6
+	makeExtern< void (*)(LLVMOpaqueValueMetadataEntry *) , LLVMDisposeValueMetadataEntries , SimNode_ExtFuncCall >(lib,"LLVMDisposeValueMetadataEntries","LLVMDisposeValueMetadataEntries")
+		->args({"Entries"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2364:10
+	makeExtern< unsigned int (*)(LLVMOpaqueValueMetadataEntry *,unsigned int) , LLVMValueMetadataEntriesGetKind , SimNode_ExtFuncCall >(lib,"LLVMValueMetadataEntriesGetKind","LLVMValueMetadataEntriesGetKind")
+		->args({"Entries","Index"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2372:1
+	makeExtern< LLVMOpaqueMetadata * (*)(LLVMOpaqueValueMetadataEntry *,unsigned int) , LLVMValueMetadataEntriesGetMetadata , SimNode_ExtFuncCall >(lib,"LLVMValueMetadataEntriesGetMetadata","LLVMValueMetadataEntriesGetMetadata")
+		->args({"Entries","Index"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2388:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *,LLVMOpaqueType *,const char *) , LLVMAddGlobal , SimNode_ExtFuncCall >(lib,"LLVMAddGlobal","LLVMAddGlobal")
+		->args({"M","Ty","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2389:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *,LLVMOpaqueType *,const char *,unsigned int) , LLVMAddGlobalInAddressSpace , SimNode_ExtFuncCall >(lib,"LLVMAddGlobalInAddressSpace","LLVMAddGlobalInAddressSpace")
+		->args({"M","Ty","Name","AddressSpace"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2392:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *,const char *) , LLVMGetNamedGlobal , SimNode_ExtFuncCall >(lib,"LLVMGetNamedGlobal","LLVMGetNamedGlobal")
+		->args({"M","Name"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2393:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *) , LLVMGetFirstGlobal , SimNode_ExtFuncCall >(lib,"LLVMGetFirstGlobal","LLVMGetFirstGlobal")
+		->args({"M"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2394:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueModule *) , LLVMGetLastGlobal , SimNode_ExtFuncCall >(lib,"LLVMGetLastGlobal","LLVMGetLastGlobal")
+		->args({"M"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2395:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMGetNextGlobal , SimNode_ExtFuncCall >(lib,"LLVMGetNextGlobal","LLVMGetNextGlobal")
+		->args({"GlobalVar"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2396:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMGetPreviousGlobal , SimNode_ExtFuncCall >(lib,"LLVMGetPreviousGlobal","LLVMGetPreviousGlobal")
+		->args({"GlobalVar"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2397:6
+	makeExtern< void (*)(LLVMOpaqueValue *) , LLVMDeleteGlobal , SimNode_ExtFuncCall >(lib,"LLVMDeleteGlobal","LLVMDeleteGlobal")
+		->args({"GlobalVar"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from D:\Work\libclang\include\llvm-c/Core.h:2398:14
+	makeExtern< LLVMOpaqueValue * (*)(LLVMOpaqueValue *) , LLVMGetInitializer , SimNode_ExtFuncCall >(lib,"LLVMGetInitializer","LLVMGetInitializer")
+		->args({"GlobalVar"})
+		->addToModule(*this, SideEffects::worstDefault);
 }
 }
 

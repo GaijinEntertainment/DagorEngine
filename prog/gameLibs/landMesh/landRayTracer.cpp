@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <landMesh/landRayTracer.h>
 #include <math/dag_rayIntersectBox.h>
 #include <math/dag_mesh.h>
@@ -300,6 +302,7 @@ static inline bool optimize_4cache(unsigned char *verts, int vertSize, int numv,
   return true;
 }
 
+#if _TARGET_PC && _TARGET_SIMD_SSE
 template <class VertIndex, class FaceIndex>
 bool BaseLandRayTracer<VertIndex, FaceIndex>::build(uint32_t cellsX, uint32_t cellsY, float cellSz, const Point3 &ofs,
   const BBox3 &box, dag::ConstSpan<Mesh *> meshes, dag::ConstSpan<Mesh *> combined_meshes, uint32_t min_grid, uint32_t max_grid,
@@ -542,6 +545,7 @@ bool BaseLandRayTracer<VertIndex, FaceIndex>::build(uint32_t cellsX, uint32_t ce
   return true;
 #undef RESIZE_STOR
 }
+#endif
 
 template class BaseLandRayTracer<uint16_t, uint16_t>;
 template class BaseLandRayTracer<uint32_t, uint32_t>;

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "landMesh/biomeQuery.h"
 
 #include <EASTL/unique_ptr.h>
@@ -6,9 +8,10 @@
 #include "math/dag_mathUtils.h"
 #include "math/dag_hlsl_floatx.h"
 #include "math/integer/dag_IPoint4.h"
-#include "3d/dag_drv3d.h"
-#include "3d/dag_drv3dCmd.h"
-#include "3d/dag_drv3dReset.h"
+#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <3d/dag_resPtr.h>
 #include "shaders/dag_shaders.h"
 #include "util/dag_console.h"

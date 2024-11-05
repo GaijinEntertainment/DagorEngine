@@ -16,18 +16,18 @@ macro USE_CONTRAST_ADAPTIVE_SHARPENING(code)
       return half4(color.rgb * rcp(max(1e-5, 1 - abs(color.r))), color.a);
     }
 
-    half4 tex2DCAS(Texture2D tex, SamplerState tex_samplerstate, float2 uv, float2 res, float2 invRes, float sharpening)
+    half4 tex2DCAS(Texture2D tex, float2 uv, float2 res, float2 invRes, float sharpening)
     {
-      float2 pixelCoord = (floor(uv * res) + 0.5) * invRes;
-      half4 a = tonemap(PackToYCoCgAlpha(tex2Dlod(tex, float4(pixelCoord + int2(-1, -1) * invRes, 0, 0))));
-      half4 b = tonemap(PackToYCoCgAlpha(tex2Dlod(tex, float4(pixelCoord + int2(0, -1) * invRes, 0, 0))));
-      half4 c = tonemap(PackToYCoCgAlpha(tex2Dlod(tex, float4(pixelCoord + int2(1, -1) * invRes, 0, 0))));
-      half4 d = tonemap(PackToYCoCgAlpha(tex2Dlod(tex, float4(pixelCoord + int2(-1, 0) * invRes, 0, 0))));
-      half4 e = tonemap(PackToYCoCgAlpha(tex2Dlod(tex, float4(pixelCoord, 0, 0))));
-      half4 f = tonemap(PackToYCoCgAlpha(tex2Dlod(tex, float4(pixelCoord + int2(1, 0) * invRes, 0, 0))));
-      half4 g = tonemap(PackToYCoCgAlpha(tex2Dlod(tex, float4(pixelCoord + int2(-1, 1) * invRes, 0, 0))));
-      half4 h = tonemap(PackToYCoCgAlpha(tex2Dlod(tex, float4(pixelCoord + int2(0, 1) * invRes, 0, 0))));
-      half4 i = tonemap(PackToYCoCgAlpha(tex2Dlod(tex, float4(pixelCoord + int2(1, 1) * invRes, 0, 0))));
+      int2 pixelCoord = int2(floor(uv * res));
+      half4 a = tonemap(PackToYCoCgAlpha(texelFetchOffset(tex, pixelCoord, 0, int2(-1, -1))));
+      half4 b = tonemap(PackToYCoCgAlpha(texelFetchOffset(tex, pixelCoord, 0, int2(0, -1))));
+      half4 c = tonemap(PackToYCoCgAlpha(texelFetchOffset(tex, pixelCoord, 0, int2(1, -1))));
+      half4 d = tonemap(PackToYCoCgAlpha(texelFetchOffset(tex, pixelCoord, 0, int2(-1, 0))));
+      half4 e = tonemap(PackToYCoCgAlpha(texelFetchOffset(tex, pixelCoord, 0, int2(0, 0))));
+      half4 f = tonemap(PackToYCoCgAlpha(texelFetchOffset(tex, pixelCoord, 0, int2(1, 0))));
+      half4 g = tonemap(PackToYCoCgAlpha(texelFetchOffset(tex, pixelCoord, 0, int2(-1, 1))));
+      half4 h = tonemap(PackToYCoCgAlpha(texelFetchOffset(tex, pixelCoord, 0, int2(0, 1))));
+      half4 i = tonemap(PackToYCoCgAlpha(texelFetchOffset(tex, pixelCoord, 0, int2(1, 1))));
 
       // Soft min and max.
       //  a b c             b
@@ -52,7 +52,11 @@ macro USE_CONTRAST_ADAPTIVE_SHARPENING(code)
       //  0 w 0
       half w = amp * sharpening;
 
-      return UnpackFromYCoCgAlpha(tonemap_inv((b*w + d*w + f*w + h*w + e) * rcp(1.0 + 4.0 * w)));
+      half sharpenedY = (b.r*w + d.r*w + f.r*w + h.r*w + e.r) * rcp(1.0 + 4.0 * w);
+      half3 midPointCoCgAlpha = e.gba;
+      half4 linearYCoCgAlpha = tonemap_inv(half4(sharpenedY, midPointCoCgAlpha));
+
+      return UnpackFromYCoCgAlpha(linearYCoCgAlpha);
     }
   }
 endmacro

@@ -1,28 +1,30 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
+#include "dag_frpStateWatcher.h"
 #include <generic/dag_tab.h>
+#include <generic/dag_fixedVectorSet.h>
 #include <EASTL/hash_set.h>
 #include <EASTL/vector.h>
 #include <EASTL/vector_set.h>
 #include <EASTL/string.h>
+#include <EASTL/intrusive_list.h>
 #include <util/dag_string.h>
+#include <util/dag_simpleString.h>
 #include <memory/dag_framemem.h>
 #include <sqrat.h>
 #include <squirrel/vartrace.h>
+#include <memory/dag_fixedBlockAllocator.h>
 
 
 class SqModules;
 
 namespace sqfrp
 {
-
-class IStateWatcher;
-class BaseObservable;
+class ScriptValueObservable;
 
 
 class NotifyQueue
@@ -36,30 +38,10 @@ public:
 };
 
 
-class IStateWatcher
-{
-public:
-  // Sorted from leaves to root to reduce memory copying on insertions
-  typedef eastl::vector<IStateWatcher *, framemem_allocator> DependenciesQueue;
-  virtual int collectDependencies(DependenciesQueue &out_queue, int depth)
-  {
-    if (eastl::find(out_queue.begin(), out_queue.end(), this) == out_queue.end())
-      out_queue.push_back(this);
-    return depth + 1;
-  }
-
-  virtual bool onSourceObservableChanged() = 0;
-  virtual void onObservableRelease(BaseObservable *observable) = 0;
-  virtual bool onTriggerBegin() { return true; }
-  virtual bool onTriggerEnd() { return true; }
-  virtual Sqrat::Object dbgGetWatcherScriptInstance() { return Sqrat::Object(); }
-};
-
-
 struct ScriptSourceInfo
 {
-  eastl::string initFuncName, initSourceFileName;
-  SQInteger initSourceLine = -1;
+  SimpleString initFuncName, initSourceFileName;
+  int initSourceLine = -1;
 
   void init(HSQUIRRELVM vm);
   void fillInfo(Sqrat::Table &) const;
@@ -76,14 +58,25 @@ struct SubscriberCall
 
 class ObservablesGraph
 {
-public:
-  ObservablesGraph(HSQUIRRELVM vm_);
-  ~ObservablesGraph() = default;
-
+  friend class BaseObservable;
   void addObservable(BaseObservable *obs);
   void removeObservable(BaseObservable *obs);
-  void notifyObservablesOnShutdown(bool exiting);
+
+  friend class ComputedValue;
+  template <typename... Args>
+  ComputedValue *allocComputed(Args &&...args);
+
+public:
+  ObservablesGraph(HSQUIRRELVM vm_, int compute_pool_initial_size = 1024);
+  ~ObservablesGraph();
+
+  // Note: wrapper for bin compat across different SQ_VAR_TRACE_ENABLED libs
+  ScriptValueObservable *allocScriptValueObservable();
+
+  bool updateDeferred(String &err_msg);
+  void shutdown(bool exiting);
   void checkLeaks();
+  void recalcAllComputedValues();
   bool callScriptSubscribers(BaseObservable *triggered_node, String &err_msg);
 
   static ObservablesGraph *get_from_vm(HSQUIRRELVM vm);
@@ -91,36 +84,99 @@ public:
   void onEnterTriggerRoot();
   void onExitTriggerRoot();
 
+  void onEnterRecalc();
+  void onExitRecalc();
+  int getRecalcDepth() const { return recalcNestDepth; }
+
+  static SQInteger register_stub_observable_class(HSQUIRRELVM vm);
+  bool isStubObservableInstance(const Sqrat::Object &obj) const;
+
+  void notifyGraphChanged();
+
+  struct Stats
+  {
+    int watchedTotal{0};
+    int watchedUnused{0};
+    int watchedUnsubscribed{0};
+    int computedTotal{0};
+    int computedUnused{0};
+    int computedUnsubscribed{0};
+  };
+
+  Stats gatherGraphStats() const;
+
 private:
   bool checkGcUnreachable();
   void dumpSubscribersQueue(Tab<SubscriberCall> &queue);
 
+  eastl::intrusive_list<ComputedValue> allComputed;
+  FixedBlockAllocator computedPool; // Note: pool all ComputedValue are allocated from
+
+  template <typename F>
+  void forAllComputed(F cb);
+
 public:
   HSQUIRRELVM vm = nullptr;
   eastl::hash_set<BaseObservable *> allObservables;
+
   bool observablesListModified = false; //< to protect against iterator invalidation
 
   NotifyQueue notifyQueueCache;
-  Tab<SubscriberCall> subscriberCallsQueue, curSubscriberCalls;
+  NotifyQueue deferredNotifyCache;
+
+  int usecUsedComputed = 0;
+  int usecUnusedComputed = 0;
+  int usecSubscribers = 0;
+  int usecTrigger = 0;
+  int usecUpdateDeferred = 0;
+  int computedRecalcs = 0;
+
+  void resetPerfTimers()
+  {
+    usecUsedComputed = 0;
+    usecUnusedComputed = 0;
+    usecSubscribers = 0;
+    usecTrigger = 0;
+    usecUpdateDeferred = 0;
+  }
+
+  ComputedValue *inRecalc = nullptr;
 
   int generation = 0;
-  int maxSubscribersQueueLen = 0;
   bool checkNestedObservable = false;
   bool forceImmutable = false;
+  bool defaultDeferred = true;
+  bool doCollectSourcesRecursively = false;
+  bool needRecalc = false;
 
 private:
+  Tab<ComputedValue *> sortedGraph;
+
+  Tab<SubscriberCall> subscriberCallsQueue, curSubscriberCalls;
+  int maxSubscribersQueueLen = 0;
   int curTriggerSubscribersCounter = 0;
   int triggerNestDepth = 0;
+  int recalcNestDepth = 0;
+
+  eastl::vector<Sqrat::Object> stubObservableClases;
 };
 
 
 class BaseObservable
 {
+  friend class ObservablesGraph;
+
 public:
-  BaseObservable(ObservablesGraph *graph);
+  BaseObservable(ObservablesGraph *graph, bool is_computed = false);
+  BaseObservable(BaseObservable &&) = default;
+  BaseObservable(const BaseObservable &) = default;
+  BaseObservable &operator=(BaseObservable &&) = default;
+  BaseObservable &operator=(const BaseObservable &) = default;
   virtual ~BaseObservable();
 
-  bool triggerRoot(String &err_msg);
+  ComputedValue *getComputed() { return isComputed ? (ComputedValue *)this : nullptr; }
+
+  bool triggerRoot(String &err_msg, bool call_subscribers = true);
 
   void subscribeWatcher(IStateWatcher *watcher);
   void unsubscribeWatcher(IStateWatcher *watcher);
@@ -134,38 +190,80 @@ public:
   virtual void onGraphShutdown(bool exiting, Tab<Sqrat::Object> &cleared_storage);
   virtual void fillInfo(Sqrat::Table &) const = 0;
   virtual void fillInfo(String &s) const { clear_and_shrink(s); }
+  virtual const ScriptSourceInfo *getInitInfo() const { return nullptr; }
   virtual Sqrat::Object trace() { return Sqrat::Object(); }
-  virtual HSQOBJECT dbgGetCurrentSqInstance();
+  virtual HSQOBJECT getCurScriptInstance();
 
   void collectScriptSubscribers(Tab<SubscriberCall> &container) const;
 
+protected:
+  // all flags
+  union
+  {
+    struct
+    {
+      // BaseObservable
+      bool isIteratingWatchers : 1;
+      bool isInTrigger : 1;
+      bool willNotify : 1;
+
+      // ScriptValueObservable
+      bool checkNestedObservable : 1;
+
+      // ComputedValue
+      bool isComputed : 1;
+      bool isMarked : 1;
+      bool isCollected : 1;
+      bool wasUpdated : 1;
+      bool isStateValid : 1;
+      bool needRecalc : 1;
+      bool maybeRecalc : 1;
+      bool isUsed : 1;
+      bool isDeferred : 1;
+      bool needImmediate : 1;
+      bool isShuttingDown : 1;
+      bool funcAcceptsCurVal : 1;
+    };
+    uint32_t flags = 0;
+  };
+
 public:
-  Tab<IStateWatcher *> watchers;
   int generation = 0;
 
 protected:
+  dag::Vector<Sqrat::Function> scriptSubscribers;
   ObservablesGraph *graph;
-  Tab<Sqrat::Function> scriptSubscribers;
 
-  // some debug stuff
-  bool isIteratingWatchers = false;
-  bool isInTrigger = false;
+public:
+  dag::Vector<IStateWatcher *> watchers;
 };
 
 
 class ScriptValueObservable : public BaseObservable
 {
-public:
+  friend class ObservablesGraph;
   ScriptValueObservable(ObservablesGraph *graph);
-  ScriptValueObservable(Sqrat::Object val);
-  ~ScriptValueObservable() = default;
+
+public:
+  ScriptValueObservable(ObservablesGraph *graph, Sqrat::Object val, bool is_computed = false);
+  ScriptValueObservable(const ScriptValueObservable &) = delete;
+  ScriptValueObservable &operator=(const ScriptValueObservable &) = delete;
+  ~ScriptValueObservable();
 
   static SQInteger script_ctor(HSQUIRRELVM vm);
 
-  Sqrat::Object getValue() { return value; }
+  Sqrat::Object getValue()
+  {
+    onValueRequested();
+    return value;
+  }
   int getTimeChangeReq() { return timeChangeReq; }
   int getTimeChanged() { return timeChanged; }
-  const Sqrat::Object &getValueRef() const { return value; }
+  const Sqrat::Object &getValueRef()
+  {
+    onValueRequested();
+    return value;
+  }
   virtual Sqrat::Object trace() override;
   bool setValue(const Sqrat::Object &new_val, String &err_msg);
 
@@ -174,7 +272,7 @@ public:
   virtual void onGraphShutdown(bool exiting, Tab<Sqrat::Object> &cleared_storage) override;
   virtual void fillInfo(Sqrat::Table &) const override;
   virtual void fillInfo(String &) const override;
-  virtual HSQOBJECT dbgGetCurrentSqInstance() override;
+  virtual HSQOBJECT getCurScriptInstance() override;
 
   static SQInteger update(HSQUIRRELVM vm, int arg_pos);
   static SQInteger updateViaCallMm(HSQUIRRELVM vm);
@@ -187,7 +285,7 @@ public:
   static SQInteger _delslot(HSQUIRRELVM vm);
   static SQInteger _tostring(HSQUIRRELVM vm);
 
-  const ScriptSourceInfo &getInitInfo() const { return initInfo; }
+  const ScriptSourceInfo *getInitInfo() const override final { return initInfo.get(); }
 
   void whiteListMutatorClosure(Sqrat::Object closure);
 
@@ -195,61 +293,104 @@ public:
   bool checkMutationAllowed(HSQUIRRELVM vm); //< throws script error if mutation is forbidden
 
 
-public:
-  bool checkNestedObservable = true;
-
 protected:
   Sqrat::Object value;
-  ScriptSourceInfo initInfo;
+  eastl::unique_ptr<ScriptSourceInfo> initInfo;
   int timeChangeReq = 0;
   int timeChanged = 0;
 
-  Tab<Sqrat::Object> mutatorClosuresWhiteList;
+  dag::Vector<Sqrat::Object> mutatorClosuresWhiteList;
 
-#if DAGOR_DBGLEVEL > 0 && _TARGET_PC_WIN
+  virtual void onValueRequested() {}
+
+#if SQ_VAR_TRACE_ENABLED // Warn: bin compat change, must be last member of this struct
   VarTrace varTrace;
 #endif
 };
 
-
-class ComputedValue : public ScriptValueObservable, public IStateWatcher
+// Warn: struct layout is not binary compatible across libs that compiled with different SQ_VAR_TRACE_ENABLED
+class ComputedValue final : public ScriptValueObservable, public IStateWatcher, public eastl::intrusive_list_node
 {
-public:
-  ComputedValue(Sqrat::Function func, Sqrat::Object initial_value, bool pass_cur_val_to_cb);
-  virtual ~ComputedValue();
+  struct ComputedSource
+  {
+    eastl::string varName;
+    BaseObservable *observable;
+  };
 
-  virtual int collectDependencies(DependenciesQueue &out_queue, int depth) override;
-  virtual bool onTriggerBegin() override;
-  virtual bool onTriggerEnd() override;
+  // Note: expected to be called only by `ObservablesGraph::allocComputed`
+  ComputedValue(ObservablesGraph *g, Sqrat::Function func, dag::Vector<ComputedSource> &&sources_, Sqrat::Object initial_value,
+    bool pass_cur_val_to_cb);
+
+public:
+  ComputedValue(const ComputedValue &) = delete;
+  ComputedValue &operator=(const ComputedValue &) = delete;
+  virtual ~ComputedValue();
+  void operator delete(void *ptr) noexcept; // Frees from graph's `computedPool`
+
+  virtual ComputedValue *getComputed() override { return this; }
+
+  // Sorted from leaves to root to reduce memory copying on insertions
+  typedef dag::Vector<ComputedValue *, framemem_allocator> DependenciesQueue;
+
+  int collectDependencies(DependenciesQueue &out_queue, int depth);
+  bool onTriggerBegin();
+  bool onTriggerEnd(bool deferred);
   virtual bool onSourceObservableChanged() override;
   virtual void onObservableRelease(BaseObservable *observable) override;
   virtual void onGraphShutdown(bool exiting, Tab<Sqrat::Object> &cleared_storage) override;
-  virtual HSQOBJECT dbgGetCurrentSqInstance() override;
+  virtual HSQOBJECT getCurScriptInstance() override;
   virtual Sqrat::Object dbgGetWatcherScriptInstance() override;
+
+  virtual Sqrat::Object getValueForNotify() const override
+  {
+    G_ASSERT(!needRecalc);
+    G_ASSERT(!maybeRecalc);
+    return value;
+  }
 
   static SQInteger script_ctor(HSQUIRRELVM vm);
 
   static SQInteger get_sources(HSQUIRRELVM vm);
   static SQInteger _tostring(HSQUIRRELVM vm);
 
-private:
-  void collectSourcesFromFreeVars(HSQUIRRELVM vm, HSQOBJECT func_obj);
-  bool recalculate();
-  bool invalidateWatchers();
+  bool dbgTriggerRecalcIfNeeded(String &err_msg);
 
-private:
-  struct ComputedSource
+  inline bool getNeedRecalc() const { return needRecalc; }
+  inline bool getUsed() const { return isUsed; }
+  void updateUsed(bool certainly_used);
+  inline bool getNeedImmediate() const { return needImmediate; }
+  void updateNeedImmediate(bool certainly_immediate);
+
+  inline bool getMarked() const { return isMarked; }
+  inline bool getDeferred() const { return isDeferred; }
+  inline void setDeferred(bool v)
   {
-    String varName;
-    BaseObservable *observable;
-  };
+    isDeferred = v;
+    updateNeedImmediate(!v);
+  }
 
+  ComputedValue *addImplicitSource(ComputedValue *c)
+  {
+    implicitSources.insert(c);
+    return this;
+  }
+  bool isImplicitSource(ComputedValue *c) const { return implicitSources.find(c) != implicitSources.end(); }
+
+private:
+  using VisitedSet = dag::FixedVectorSet<SQRawObjectVal, 4, true, eastl::use_self<SQRawObjectVal>, framemem_allocator>;
+  static bool collect_sources_from_free_vars(ObservablesGraph *graph, HSQUIRRELVM vm, HSQOBJECT func_obj,
+    dag::Vector<ComputedSource> &target, VisitedSet &visited);
+  bool recalculate(bool &ok);
+  bool invalidateWatchers();
+  void removeMaybeRecalc();
+
+  virtual void onValueRequested() override;
+
+protected:
+  friend class ObservablesGraph;
   Sqrat::Function func;
-  Tab<ComputedSource> sources;
-  bool isStateValid = true;
-  bool needRecalc = false;
-  bool isShuttingDown = false;
-  bool funcAcceptsCurVal = false;
+  dag::Vector<ComputedSource> sources;
+  eastl::vector_set<ComputedValue *> implicitSources;
 };
 
 void bind_frp_classes(SqModules *module_mgr);

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <pathFinder/tileCache.h>
 #include <pathFinder/tileCacheUtil.h>
 #include <pathFinder/pathFinder.h>
@@ -8,13 +10,14 @@
 #include <detourNavMeshQuery.h>
 #include <arc/fastlz/fastlz.h>
 #define ZDICT_STATIC_LINKING_ONLY 1
-#include <arc/zstd-1.4.5/zstd.h>
-#include <arc/zstd-1.4.5/dictBuilder/zdict.h>
+#include <zstd.h>
+#include <dictBuilder/zdict.h>
 
 namespace pathfinder
 {
 static bool generateDynamicJumpLinks = true;
 static bool generateDynamicLadderLinks = true;
+static float maxDynamicJumpLinkDist = 2.5f;
 
 void tilecache_disable_dynamic_jump_links() { generateDynamicJumpLinks = false; }
 void tilecache_disable_dynamic_ladder_links() { generateDynamicLadderLinks = false; }
@@ -33,6 +36,9 @@ static const float distToProjJumpLink = 0.25f;
 static const float distToProjLadder1 = 0.25f;
 static const float distToProjLadder2 = 0.30f;
 static const float distToProjLadder3 = 0.35f;
+static const float distToSideProjLadder1 = 0.75f;
+static const float distToSideProjLadder2 = 0.85f;
+static const float distToSideProjLadder3 = 0.95f;
 static const float distToProjLadderMax = distToProjLadder3;
 static const float distDiffYOver1 = 0.4f;
 static const float distDiffYOver2 = 0.6f;
@@ -50,7 +56,7 @@ static const float maxAgentJump = 1.5;
 static const int offmeshLinkSz = 6;
 static int reservedSpace = 32;
 static float connectionRadius = 0.25f;
-static float invStepSize = 4.f;
+static float invStepSize = 2.f;
 
 static Tab<uint32_t> removedNavMeshTiles;
 
@@ -189,12 +195,12 @@ static bool check_in_range_xz(const Point3 &pt1, const Point3 &pt2, float range)
   return dx * dx + dz * dz < sqr(range);
 }
 
-static bool project_to_nearest_navmesh_point(dtNavMeshQuery *nav_query, Point3 &pos, float horz_extents)
+static bool project_to_nearest_navmesh_point(dtNavMeshQuery *nav_query, Point3 &pos, float horz_extents, bool no_obstacles)
 {
   if (!nav_query)
     return false;
   dtQueryFilter filter;
-  filter.setIncludeFlags(pathfinder::POLYFLAG_GROUND); // no obstacles (else use POLYFLAG_WALK)
+  filter.setIncludeFlags(no_obstacles ? POLYFLAG_GROUND : POLYFLAGS_WALK);
   const Point3 extents(horz_extents, FLT_MAX, horz_extents);
   Point3 resPos;
   dtPolyRef nearestPoly;
@@ -213,24 +219,24 @@ static bool project_ladder_point_on_navmesh(dtNavMeshQuery *nav_query, Point3 &o
   out_pt = pt;
   if (top)
     out_pt.y += distDiffYMax;
-  if (!project_to_nearest_navmesh_point(nav_query, out_pt, dist) || !check_in_range_xz(out_pt, pt, dist) ||
+  if (!project_to_nearest_navmesh_point(nav_query, out_pt, dist, false) || !check_in_range_xz(out_pt, pt, dist) ||
       out_pt.y < ladder.hmin - maxdiffYBot || out_pt.y > ladder.hmax + distDiffYMax)
   {
     if (!top)
       return false;
     out_pt = pt;
     out_pt.y += distDiffYOver1 + distDiffYMax;
-    if (!project_to_nearest_navmesh_point(nav_query, out_pt, dist) || !check_in_range_xz(out_pt, pt, dist) ||
+    if (!project_to_nearest_navmesh_point(nav_query, out_pt, dist, false) || !check_in_range_xz(out_pt, pt, dist) ||
         out_pt.y < ladder.hmin - maxdiffYBot || out_pt.y > ladder.hmax + distDiffYOver1 + distDiffYMax)
     {
       out_pt = pt;
       out_pt.y += distDiffYOver2 + distDiffYMax;
-      if (!project_to_nearest_navmesh_point(nav_query, out_pt, dist) || !check_in_range_xz(out_pt, pt, dist) ||
+      if (!project_to_nearest_navmesh_point(nav_query, out_pt, dist, false) || !check_in_range_xz(out_pt, pt, dist) ||
           out_pt.y < ladder.hmin - maxdiffYBot || out_pt.y > ladder.hmax + distDiffYOver2 + distDiffYMax)
       {
         out_pt = pt;
         out_pt.y += distDiffYOver3 + distDiffYMax;
-        if (!project_to_nearest_navmesh_point(nav_query, out_pt, dist) || !check_in_range_xz(out_pt, pt, dist) ||
+        if (!project_to_nearest_navmesh_point(nav_query, out_pt, dist, false) || !check_in_range_xz(out_pt, pt, dist) ||
             out_pt.y < ladder.hmin - maxdiffYBot || out_pt.y > ladder.hmax + distDiffYOver3 + distDiffYMax)
           return false;
       }
@@ -242,18 +248,91 @@ static bool project_ladder_point_on_navmesh(dtNavMeshQuery *nav_query, Point3 &o
   nudgeVec.normalize();
   const Point3 nudgedPt = out_pt + nudgeVec * nudgeDist;
   Point3 nudgedPtProj = nudgedPt;
-  if (project_to_nearest_navmesh_point(nav_query, nudgedPtProj, nudgeDist))
+  if (project_to_nearest_navmesh_point(nav_query, nudgedPtProj, nudgeDist, false))
     if (check_in_range_xz(nudgedPtProj, nudgedPt, 0.001f) && abs(nudgedPtProj.y - nudgedPt.y) < nudgeDist)
       out_pt = nudgedPtProj;
 
-  if (!top && dot(ladder.forw, out_pt - ladder.base) > 0.f)
+  // NOTE: Rotate forward only in one direction, because forw vector will be negated externally to check for another side
+  Point3 forward = ladder.isSideExit ? Point3(-ladder.forw.z, 0.0f, ladder.forw.x) : ladder.forw;
+  if (!top && dot(forward, out_pt - ladder.base) > 0.f)
     return false;
-  if (top && dot(ladder.forw, out_pt - ladder.base) < 0.f)
+  if (top && dot(forward, out_pt - ladder.base) < 0.f)
     return false;
   if (abs(out_pt.y - pt.y) > distDiffYMax && !(top && out_pt.y > pt.y - distDiffYDown) && !(!top && out_pt.y < pt.y + distDiffYUp))
     return false;
 
   return true;
+}
+
+static bool check_side_ladder_point_on_navmesh(dtNavMeshQuery *navQuery, Point3 &out_to, mat44f_cref tm, float coef, float side_coef)
+{
+  LadderInfo ladder;
+  tilecache_calc_ladder_info(ladder, tm, coef * distToProjLadder2, side_coef * distToSideProjLadder1, true);
+  ladder.forw *= side_coef;
+  if (!project_ladder_point_on_navmesh(navQuery, out_to, ladder.to, ladder, distToProjLadder2, true))
+  {
+    tilecache_calc_ladder_info(ladder, tm, coef * distToProjLadder2, side_coef * distToSideProjLadder2, true);
+    ladder.forw *= side_coef;
+    if (!project_ladder_point_on_navmesh(navQuery, out_to, ladder.to, ladder, distToProjLadder2, true))
+    {
+      tilecache_calc_ladder_info(ladder, tm, coef * distToProjLadder2, side_coef * distToSideProjLadder3, true);
+      ladder.forw *= side_coef;
+      if (!project_ladder_point_on_navmesh(navQuery, out_to, ladder.to, ladder, distToProjLadder2, true))
+      {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+static bool calc_side_ladder_points_on_navmesh(dtNavMeshQuery *navQuery, Point3 &out_best_from, Point3 &out_best_to, mat44f_cref tm)
+{
+  bool found = false;
+  float bestDist1 = 0.f;
+  for (int side = 0; side < 2; ++side)
+  {
+    float coef = (side == 0) ? 1.f : -1.f;
+    float dist1 = distToProjLadder1;
+    float dist2 = distToProjLadder1;
+    Point3 out_from(0.f, 0.f, 0.f);
+    Point3 out_to(0.f, 0.f, 0.f);
+
+    if (!check_side_ladder_point_on_navmesh(navQuery, out_to, tm, coef, 1.0f))
+    {
+      if (!check_side_ladder_point_on_navmesh(navQuery, out_to, tm, coef, -1.0f))
+      {
+        continue;
+      }
+    }
+
+    LadderInfo ladder;
+    tilecache_calc_ladder_info(ladder, tm, coef * dist1, coef * dist2);
+    ladder.forw *= coef;
+    if (!project_ladder_point_on_navmesh(navQuery, out_from, ladder.from, ladder, dist1, false))
+    {
+      dist1 = distToProjLadder2;
+      tilecache_calc_ladder_info(ladder, tm, coef * dist1, coef * dist2);
+      ladder.forw *= coef;
+      if (!project_ladder_point_on_navmesh(navQuery, out_from, ladder.from, ladder, dist1, false))
+      {
+        dist1 = distToProjLadder3;
+        tilecache_calc_ladder_info(ladder, tm, coef * dist1, coef * dist2);
+        ladder.forw *= coef;
+        if (!project_ladder_point_on_navmesh(navQuery, out_from, ladder.from, ladder, dist1, false))
+          continue;
+      }
+    }
+
+    if (!found || dist1 < bestDist1)
+    {
+      found = true;
+      bestDist1 = dist1;
+      out_best_from = out_from;
+      out_best_to = out_to;
+    }
+  }
+  return found;
 }
 
 static bool calc_ladder_points_on_navmesh(dtNavMeshQuery *navQuery, Point3 &out_from, Point3 &out_to, mat44f_cref tm)
@@ -263,13 +342,13 @@ static bool calc_ladder_points_on_navmesh(dtNavMeshQuery *navQuery, Point3 &out_
   Point3 bestFrom(0.f, 0.f, 0.f);
   Point3 bestTo(0.f, 0.f, 0.f);
 
+  LadderInfo ladder;
   for (int side = 0; side < 2; ++side)
   {
     float coef = (side == 0) ? 1.f : -1.f;
     float dist1 = distToProjLadder1;
     float dist2 = distToProjLadder1;
 
-    LadderInfo ladder;
     tilecache_calc_ladder_info(ladder, tm, coef * dist1, coef * dist2);
 
     ladder.forw *= coef;
@@ -312,7 +391,7 @@ static bool calc_ladder_points_on_navmesh(dtNavMeshQuery *navQuery, Point3 &out_
     }
   }
 
-  if (found < 0)
+  if (found < 0 && !calc_side_ladder_points_on_navmesh(navQuery, bestFrom, bestTo, tm))
     return false;
 
   out_from = bestFrom;
@@ -382,8 +461,17 @@ void TileCacheMeshProcess::process(struct dtNavMeshCreateParams *params, unsigne
   removedNavMeshTiles.push_back(mesh->decodePolyIdTile(tileRef));
 
   for (int i = 0; i < params->polyCount; ++i)
-    polyFlags[i] =
-      (polyAreas[i] == POLYAREA_OBSTACLE) ? POLYFLAG_OBSTACLE : ((polyAreas[i] == POLYAREA_UNWALKABLE) ? 0 : POLYFLAG_GROUND);
+  {
+    const auto area = polyAreas[i];
+    unsigned short flags = POLYFLAG_GROUND;
+    switch (area)
+    {
+      case POLYAREA_UNWALKABLE: flags = 0; break;
+      case POLYAREA_OBSTACLE: flags |= POLYFLAG_OBSTACLE; break;
+      case POLYAREA_BLOCKED: flags |= POLYFLAG_BLOCKED; break;
+    }
+    polyFlags[i] = flags;
+  }
 
   const dtMeshTile *tile = mesh->getTileAt(params->tileX, params->tileY, params->tileLayer);
   if (!tile)
@@ -522,14 +610,18 @@ void TileCacheMeshProcess::process(struct dtNavMeshCreateParams *params, unsigne
     const float lenX = ob->orientedBox.halfExtents[0] * 2.;
     const float lenZ = ob->orientedBox.halfExtents[2] * 2.;
 
-    const int numLinksX = static_cast<int>(lenX * invStepSize);
-    const int numLinksZ = static_cast<int>(lenZ * invStepSize);
+    const bool tooLongX = lenX > maxDynamicJumpLinkDist;
+    const bool tooLongZ = lenZ > maxDynamicJumpLinkDist;
+    if (tooLongX && tooLongZ)
+      continue;
+
+    const int numLinksX = tooLongZ ? 0 : static_cast<int>(lenX * invStepSize);
+    const int numLinksZ = tooLongX ? 0 : static_cast<int>(lenZ * invStepSize);
 
     const float stepX = numLinksX != 0 ? lenX / numLinksX : 0.;
     const float stepZ = numLinksZ != 0 ? lenZ / numLinksZ : 0.;
 
     const float arrCoeff[] = {2.f, -2.};
-
 
     const float orientedZA = (ob->orientedBox.halfExtents[2] + 0.5) * arrCoeff[0];
     const float orientedZB = (ob->orientedBox.halfExtents[2] + 0.5) * arrCoeff[1];

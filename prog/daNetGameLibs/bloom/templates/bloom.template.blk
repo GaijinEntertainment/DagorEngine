@@ -1,0 +1,22 @@
+bloom_base{
+  _use:t="replicating"
+  _singleton:b=true
+  _group{
+    _track:b=yes
+    _tags:t="render"
+    bloom__threshold:r=5.8
+    bloom__radius:r=1
+    bloom__upSample:r=0.2
+    bloom__mul:r=0.1
+
+    bloom__halation_color:c=255,0,0,0
+    bloom__halation_brightness:r=2
+    bloom__halation_mip_factor:r=2
+    bloom__halation_end_mip:i=1
+  }
+
+  "bloom__downsample_node:resource_slot::NodeHandleWithSlotsAccess"{}
+  "bloom__downsample_chain:dag::Vector<dabfg::NodeHandle>"{}
+  "bloom__upsample_chain:dag::Vector<dabfg::NodeHandle>"{}
+  _tags:t="render"
+}

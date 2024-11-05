@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <generic/dag_tabFwd.h>
+#include <util/dag_string.h>
 
 class DagorAssetMgr;
 class DagorAsset;
@@ -15,6 +17,7 @@ int bind_dabuild_cache_with_mgr(DagorAssetMgr &mgr, DataBlock &appblk, const cha
 void post_base_update_notify_dabuild();
 
 const char *get_asset_pack_name(DagorAsset *asset);
+String get_asset_pkg_name(DagorAsset *asset);
 
 bool check_assets_base_up_to_date(dag::ConstSpan<const char *> packs, bool tex, bool res);
 void rebuild_assets_in_folders_single(unsigned trg_code, dag::ConstSpan<int> folders_idx, bool tex, bool res);

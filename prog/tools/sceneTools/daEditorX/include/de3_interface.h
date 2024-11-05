@@ -1,13 +1,13 @@
 //
 // DaEditorX
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <generic/dag_span.h>
 #include <util/dag_safeArg.h>
 #include <util/dag_stdint.h>
+#include <3d/dag_stereoIndex.h>
 
 class DagorAsset;
 class IAssetBaseViewClient;
@@ -17,6 +17,17 @@ class IObjEntity;
 class IObjEntityMgr;
 class ILogWriter;
 class DataBlock;
+
+namespace Outliner
+{
+class OutlinerWindow;
+}
+
+namespace PropPanel
+{
+class PanelWindowPropertyControl;
+}
+
 namespace ddsx
 {
 struct Buffer;
@@ -59,6 +70,9 @@ public:
 
   virtual DagorAsset *getAssetByName(const char *asset_name, int asset_type = -1) = 0;
   virtual DagorAsset *getAssetByName(const char *asset_name, dag::ConstSpan<int> asset_types) = 0;
+  virtual const DataBlock *getAssetProps(const DagorAsset &asset) = 0;
+  virtual String getAssetTargetFilePath(const DagorAsset &asset) = 0;
+  virtual const char *getAssetParentFolderName(const DagorAsset &asset) = 0;
   virtual const char *resolveTexAsset(const char *tex_asset_name) = 0;
 
   virtual const char *selectAsset(const char *asset, const char *caption, dag::ConstSpan<int> types, const char *filter_str = nullptr,
@@ -86,6 +100,10 @@ public:
   virtual bool getTexAssetBuiltDDSx(const char *a_name, const DataBlock &a_props, ddsx::Buffer &dest, unsigned target,
     const char *profile, ILogWriter *log) = 0;
 
+  virtual void imguiBegin(const char *name, bool *open = nullptr, unsigned window_flags = 0) = 0;
+  virtual void imguiBegin(PropPanel::PanelWindowPropertyControl &panel_window, bool *open = nullptr, unsigned window_flags = 0) = 0;
+  virtual void imguiEnd() = 0;
+
   inline const char *selectAssetX(const char *asset, const char *caption, const char *type, const char *filter_str = nullptr,
     bool open_all_grp = false)
   {
@@ -94,7 +112,12 @@ public:
   }
   inline void hideAssetWindow() { showAssetWindow(false, NULL, NULL, {}); }
 
+  inline void setStereoIndex(StereoIndex index) { stereoIndex = index; }
+  inline StereoIndex getStereoIndex() const { return stereoIndex; }
+
   inline DagorAsset *getGenObjAssetByName(const char *asset_name) { return getAssetByName(asset_name, getGenObjAssetTypes()); }
+
+  virtual Outliner::OutlinerWindow *createOutlinerWindow() = 0;
 
 #define DSA_OVERLOADS_PARAM_DECL
 #define DSA_OVERLOADS_PARAM_PASS
@@ -110,10 +133,12 @@ public:
   static inline void set(IDaEditor3Engine *eng) { __daeditor3_global_instance = eng; }
 
 protected:
-  int daEditor3InterfaceVer;
+  int daEditor3InterfaceVer = -1;
 
 private:
   static IDaEditor3Engine *__daeditor3_global_instance;
+
+  StereoIndex stereoIndex = StereoIndex::Mono;
 };
 
 

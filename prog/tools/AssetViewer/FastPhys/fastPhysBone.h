@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "fastPhysObject.h"
@@ -9,8 +10,8 @@ class FPObjectBone : public IFPObject
 public:
   FPObjectBone(FpdObject *obj, FastPhysEditor &editor);
 
-  virtual void refillPanel(PropPanel2 *panel);
-  virtual void onChange(int pcb_id, PropPanel2 *panel);
+  virtual void refillPanel(PropPanel::ContainerPropertyControl *panel);
+  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
 
   virtual void render();
 

@@ -56,7 +56,7 @@ struct StackAllocator
   RESTRICT_FUN uint8_t *__restrict allignedAllocate(uint32_t size)
   {
     G_FAST_ASSERT((size & ALIGN_TO_MASK) == 0);
-    if (EASTL_UNLIKELY(activeChunk.allocated + size > CHUNK_SIZE))
+    if (DAGOR_UNLIKELY(activeChunk.allocated + size > CHUNK_SIZE))
       pushChunk();
     uint8_t *data = activeChunk.data.get() + activeChunk.allocated;
     activeChunk.allocated += size;
@@ -73,7 +73,7 @@ struct StackAllocator
     G_UNUSED(data);
     G_ASSERT(data >= activeChunk.data.get() && data - activeChunk.data.get() + size == activeChunk.allocated);
     activeChunk.allocated -= size;
-    if (EASTL_UNLIKELY(activeChunk.allocated <= ALIGN_TO_MASK && !chunks.empty()))
+    if (DAGOR_UNLIKELY(activeChunk.allocated <= ALIGN_TO_MASK && !chunks.empty()))
       popChunk();
   }
 

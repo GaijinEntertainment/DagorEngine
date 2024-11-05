@@ -1,14 +1,14 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
-#include <3d/dag_drvDecl.h>
+#include <drv/3d/dag_decl.h>
 #include <3d/dag_resPtr.h>
 #include <3d/dag_texMgr.h>
 #include <shaders/dag_postFxRenderer.h>
+#include <shaders/dag_DynamicShaderHelper.h>
 #include <render/deferredRT.h>
 #include <EASTL/array.h>
 #include <EASTL/fixed_vector.h>
@@ -108,9 +108,11 @@ public:
   const ManagedTex &getRtAll(uint32_t idx) const { return renderTargets.getRtAll(idx); }
   ManagedTexView getRtAllView(uint32_t idx) const { return {getRtAll(idx)}; }
   uint32_t getRtNum() const { return renderTargets.getRtNum(); }
+  void swapDepth(ResizableTex &ndepth) { renderTargets.swapDepth(ndepth); }
 
 protected:
   DeferredRT renderTargets;
   ShadingResolver shadingResolver;
   PostFxRenderer debugRenderer;
+  DynamicShaderHelper debugVecRenderer;
 };

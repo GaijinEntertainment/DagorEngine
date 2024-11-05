@@ -1,4 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <perfMon/dag_graphStat.h>
+
 #include "buffer.h"
+#include "device_context.h"
+#include "global_lock.h"
 
 using namespace drv3d_vulkan;
 
@@ -19,8 +25,8 @@ int GenericBufferInterface::unlock()
       G_ASSERTF(0, "vulkan: incorrect write unlock for buffer %p:%s", this, getResName());
   }
 
-  disposeStagingBuffer();
-  markDataUpdate();
+  if (!bufferLockedForRead())
+    disposeStagingBuffer();
 
   lastLockFlags = 0;
   return 1;
@@ -39,7 +45,7 @@ int GenericBufferInterface::lock(unsigned ofs_bytes, unsigned size_bytes, void *
 
   // save lock data
   lastLockFlags = static_cast<uint16_t>(flags);
-  lockRange.reset(ofs_bytes, size_bytes ? (ofs_bytes + size_bytes) : bufSize);
+  lockRange.reset(ofs_bytes, ofs_bytes + (size_bytes ? size_bytes : bufSize));
 
   // adjust some broken flags
   if (0 == ((VBLOCK_WRITEONLY | VBLOCK_READONLY) & lastLockFlags))
@@ -52,45 +58,50 @@ int GenericBufferInterface::lock(unsigned ofs_bytes, unsigned size_bytes, void *
   // manage discard blocks if needed
   processDiscardFlag();
 
+  G_ASSERTF(
+    lockRange.back() <= ref.buffer->getBlockSize() || ((bufFlags & SBCF_FRAMEMEM) && lockRange.back() <= ref.buffer->getTotalSize()),
+    "locked range (%d) is larger, than actual allocated buffer memory (%d)", lockRange.back(), ref.buffer->getBlockSize());
+
+  G_ASSERTF(!stagingBuffer || (lockRange.back() <= stagingBuffer->getBlockSize()),
+    "locked range (%d) is larger, than actual allocated buffer staging memory (%d)", lockRange.back(),
+    lockRange.back() <= ref.buffer->getBlockSize());
+
   // use one of transfer approaches, depending on lock flags and buffer props
-  if (bufferGpuTimelineUpdate() && updatedInCurrentWorkItem())
+  if (bufferGpuTimelineUpdate())
     lockPush(ptr);
   else if (isDMAPathAvailable())
     lockDMA(ptr);
-  else
+  else if (bufferLockedForRead())
     lockStaging(ptr);
+  else
+    lockPush(ptr);
 
-  if (!asyncCopyInProgress)
+  if (!asyncCopyEvent.isRequested())
     Stat3D::updateLockVIBuf();
 
-  return asyncCopyInProgress ? 0 : 1;
+  return asyncCopyEvent.isRequested() ? 0 : 1;
 }
 
 bool GenericBufferInterface::updateData(uint32_t ofs_bytes, uint32_t size_bytes, const void *__restrict src, uint32_t lockFlags)
 {
   G_ASSERT_RETURN(size_bytes != 0, false);
-  if ((lockFlags & (VBLOCK_DISCARD | VBLOCK_NOOVERWRITE)) || isDMAPathAvailable() || !updatedInCurrentWorkItem())
-  {
-    // in those cases we need to use locking to keep everything consistent
+  // discard can be processed only via lock
+  // nooverwrite tells that caller are sure that there will be no conflicts
+  if (lockFlags & (VBLOCK_DISCARD | VBLOCK_NOOVERWRITE))
     return updateDataWithLock(ofs_bytes, size_bytes, src, lockFlags);
-  }
+
+  auto &ctx = Globals::ctx;
+  // reorder buffer update if we running it from external thread
+  if (Globals::lock.isAcquired())
+    ctx.copyBuffer(ctx.uploadToFrameMem(DeviceMemoryClass::HOST_RESIDENT_HOST_WRITE_ONLY_BUFFER, size_bytes, (void *)src), ref, 0,
+      ofs_bytes, size_bytes);
   else
   {
-    // only usable in case when we want to overwrite portions at a certain point and there are no
-    // local copies
-    markDataUpdate();
-
-    auto &device = get_device();
-    auto &ctx = device.getContext();
-    auto buf = ctx.copyToTempBuffer(TempBufferManager::TYPE_UPDATE, size_bytes, (void *)src);
-    // reorder buffer update if we running it from external thread
-    if (is_global_lock_acquired())
-      ctx.copyBuffer(buf.get().buffer, buffer, buf.get().offset, ofs_bytes, size_bytes);
-    else
-      ctx.uploadBufferOrdered(buf.get().buffer, buffer, buf.get().offset, ofs_bytes, size_bytes);
-
-    return true;
+    auto buf = TempBufferHolder(size_bytes, (void *)src);
+    ctx.uploadBufferOrdered(buf.getRef(), ref, 0, ofs_bytes, size_bytes);
   }
+
+  return true;
 }
 
 // DMA path - for host & device visible buffers
@@ -100,20 +111,20 @@ void GenericBufferInterface::lockDMA(void **ptr)
   // gpu can only change data via unordered access
   if (bufferLockedForGPUReadback())
   {
-    auto &ctx = get_device().getContext();
+    auto &ctx = Globals::ctx;
 
     // even with mapped memory we need to properly flush caches and
     // sync with the host
     lockReadback(
-      ptr, [&]() { ctx.flushBufferToHost(buffer, lockRange); },
-      [&]() { buffer->markNonCoherentRangeLoc(lockRange.front(), lockRange.size(), false); });
+      ptr, [&]() { ctx.flushBufferToHost(ref, lockRange); },
+      [&]() { ref.markNonCoherentRange(lockRange.front(), lockRange.size(), false); });
   }
 
   if (ptr)
-    *ptr = buffer->ptrOffsetLoc(lockRange.front());
+    *ptr = ref.ptrOffset(lockRange.front());
 }
 
-void GenericBufferInterface::unlockWriteDMA() { buffer->markNonCoherentRangeLoc(lockRange.front(), lockRange.size(), true); }
+void GenericBufferInterface::unlockWriteDMA() { ref.markNonCoherentRange(lockRange.front(), lockRange.size(), true); }
 
 // staging path - for device visible buffers
 
@@ -123,10 +134,10 @@ void GenericBufferInterface::lockStaging(void **ptr)
 
   if (bufferLockedForRead())
   {
-    auto &ctx = get_device().getContext();
+    auto &ctx = Globals::ctx;
 
     lockReadback(
-      ptr, [&]() { ctx.downloadBuffer(buffer, stagingBuffer, lockRange.front(), stageOffset, lockRange.size()); },
+      ptr, [&]() { ctx.downloadBuffer(ref, stagingBuffer, lockRange.front(), stageOffset, lockRange.size()); },
       [&]() { stagingBuffer->markNonCoherentRangeLoc(stageOffset, lockRange.size(), false); });
   }
 
@@ -136,44 +147,40 @@ void GenericBufferInterface::lockStaging(void **ptr)
 
 void GenericBufferInterface::unlockWriteStaging()
 {
-  auto &ctx = get_device().getContext();
+  auto &ctx = Globals::ctx;
 
-  uint32_t stageOffset = 0;
-  if (stagingBufferIsPermanent())
-    stageOffset = lockRange.front();
-
-  stagingBuffer->markNonCoherentRangeLoc(stageOffset, lockRange.size(), true);
-  ctx.uploadBuffer(stagingBuffer, buffer, stageOffset, lockRange.front(), lockRange.size());
+  stagingBuffer->markNonCoherentRangeLoc(0, lockRange.size(), true);
+  ctx.uploadBuffer(BufferRef{stagingBuffer}, ref, 0, lockRange.front(), lockRange.size());
 }
 
 // Push path - for ordered update of device visible buffers
 
 void GenericBufferInterface::lockPush(void **ptr)
 {
-  auto &ctx = get_device().getContext();
+  if (Globals::lock.isAcquired())
+    pushAllocation = Frontend::tempBuffers.allocatePooled(
+      Frontend::frameMemBuffers.acquire(lockRange.size(), DeviceMemoryClass::HOST_RESIDENT_HOST_WRITE_ONLY_BUFFER));
+  else
+    pushAllocation = Frontend::tempBuffers.allocatePooled(lockRange.size());
 
-  pushAllocation = ctx.allocTempBuffer(TempBufferManager::TYPE_UPDATE, lockRange.size());
   if (ptr)
     *ptr = pushAllocation->getPtr();
 }
 
 void GenericBufferInterface::unlockWritePush()
 {
-  auto &ctx = get_device().getContext();
+  auto &ctx = Globals::ctx;
 
   pushAllocation->flushWrite();
-  if (is_global_lock_acquired())
-    ctx.copyBuffer(pushAllocation->get().buffer, buffer, pushAllocation->get().offset, lockRange.front(), lockRange.size());
+  if (!bufferGpuTimelineUpdate())
+    ctx.uploadBuffer(pushAllocation->getRef(), ref, 0, lockRange.front(), lockRange.size());
+  else if (Globals::lock.isAcquired())
+    ctx.copyBuffer(pushAllocation->getRef(), ref, 0, lockRange.front(), lockRange.size());
   else
-    ctx.uploadBufferOrdered(pushAllocation->get().buffer, buffer, pushAllocation->get().offset, lockRange.front(), lockRange.size());
-  ctx.freeTempBuffer(pushAllocation);
+    ctx.uploadBufferOrdered(pushAllocation->getRef(), ref, 0, lockRange.front(), lockRange.size());
+  Frontend::tempBuffers.freePooled(pushAllocation);
   pushAllocation = nullptr;
 
-  if (bufFlags & SBCF_CPU_ACCESS_READ)
-  {
-    if (stagingBuffer)
-      ctx.flushBufferToHost(stagingBuffer, lockRange);
-    else if (isDMAPathAvailable())
-      ctx.flushBufferToHost(buffer, lockRange);
-  }
+  if (isDMAPathAvailable() && (bufFlags & SBCF_CPU_ACCESS_READ))
+    ctx.flushBufferToHost(ref, lockRange);
 }

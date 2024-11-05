@@ -1,5 +1,12 @@
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_lock.h>
 #include <3d/dag_render.h>
 #include <3d/dag_texMgrTags.h>
 #include <3d/dag_resPtr.h>
@@ -50,7 +57,8 @@ void render_last_clip_in_box(const BBox3 &land_box_part, const Point2 &half_texe
   renderer.setRenderInBBox(land_box_part);
   // if (::app->renderer->isCompatibilityMode())
   //   renderer.setRenderClipmapWithPosition(true);//since we don't render with depth anyway
-  renderer.render(provider, renderer.RENDER_CLIPMAP, view_pos);
+  TMatrix4_vec4 globTm = TMatrix4_vec4(vtm) * proj;
+  renderer.render(reinterpret_cast<mat44f_cref>(globTm), Frustum{globTm}, provider, renderer.RENDER_CLIPMAP, view_pos);
   // if (::app->renderer->isCompatibilityMode())
   //   renderer.setRenderClipmapWithPosition(false);
   renderer.setRenderInBBox(BBox3());
@@ -156,23 +164,23 @@ static void fixedClipPartialRenderCb(int lineNo, int linesCount, int picHeight, 
   landBox[1].z = (lmeshMgr->getNumCellsY() + lmeshMgr->getCellOrigin().y) * lmeshMgr->getLandCellSize() - lmeshMgr->getGridCellSize();
   BBox3 landBoxPart(Point3(landBox[0].x, landBox[0].y, lerp(landBox[0].z, landBox[1].z, lineNo / float(picHeight))),
     Point3(landBox[1].x, landBox[1].y, lerp(landBox[0].z, landBox[1].z, (lineNo + linesCount) / float(picHeight))));
-  Point2 halfTexel(HALF_TEXEL_OFSF / picHeight, HALF_TEXEL_OFSF / linesCount);
+  Point2 halfTexel(0, 0);
 
   render_last_clip_in_box(landBoxPart, halfTexel, view_pos, data);
 }
 
 #define SAVE_RT 0
 
-void apply_last_clip_anisotropy(const UniqueTexHolder &last_clip)
+void apply_last_clip_anisotropy(d3d::SamplerInfo &last_clip_sampler)
 {
-  if (last_clip)
-    last_clip->setAnisotropy(max(2, ::dgs_tex_anisotropy));
+  last_clip_sampler.anisotropic_max = ::dgs_tex_anisotropy;
+  ShaderGlobal::set_sampler(get_shader_variable_id("last_clip_tex_samplerstate", true), d3d::request_sampler(last_clip_sampler));
 }
 
 void preload_textures_for_last_clip()
 {
   prefetch_managed_textures_by_textag(TEXTAG_LAND);
-  if (EASTL_UNLIKELY(!is_managed_textures_streaming_load_on_demand()))
+  if (DAGOR_UNLIKELY(!is_managed_textures_streaming_load_on_demand()))
   {
     ddsx::tex_pack2_perform_delayed_data_loading();
     return;
@@ -205,7 +213,8 @@ void render_and_compress(const T &render_func, UniqueTexHolder &last_clip, const
   temp.close();
 }
 
-void prepare_fixed_clip(UniqueTexHolder &last_clip, LandMeshData &data, bool update_game_screen, const Point3 &view_pos)
+void prepare_fixed_clip(UniqueTexHolder &last_clip, d3d::SamplerInfo &last_clip_sampler, LandMeshData &data, bool update_game_screen,
+  const Point3 &view_pos)
 {
   last_clip.close();
   if (!data.lmeshMgr || !data.lmeshRenderer)
@@ -274,7 +283,7 @@ void prepare_fixed_clip(UniqueTexHolder &last_clip, LandMeshData &data, bool upd
       d3d::clearview(CLEAR_TARGET, 0x00000000, 1.0f, 0);
       for (int y = 0; y < data.texture_size; y += partHeight)
       {
-        d3d::driver_command(DRV3D_COMMAND_D3D_FLUSH, NULL, NULL, NULL);
+        d3d::driver_command(Drv3dCommand::D3D_FLUSH);
         d3d::setview(0, y, data.texture_size - 1, partHeight, 0, 1);
         fixedClipPartialRenderCb(y, partHeight, data.texture_size, (void *)&data, view_pos);
       }
@@ -282,6 +291,8 @@ void prepare_fixed_clip(UniqueTexHolder &last_clip, LandMeshData &data, bool upd
     d3d::resource_barrier({tex.getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   };
 
+  // debug("total last clip time = %dus",get_time_usec(reft));
+  d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
   switch (compression)
   {
     case LastClipComp::DXT:
@@ -295,21 +306,20 @@ void prepare_fixed_clip(UniqueTexHolder &last_clip, LandMeshData &data, bool upd
       break;
   }
 
-  // debug("total last clip time = %dus",get_time_usec(reft));
-  d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, NULL, NULL, NULL);
   d3d_set_view_proj(viewProj);
   if (::grs_draw_wire)
     d3d::setwire(1);
-  d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL);
+  d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);
   debug("last clip prepared in %dus", get_time_usec(reft));
 #if SAVE_RT
   save_rt_image_as_tga(last_clip, "last_clip.tga");
 #endif
 
-  apply_last_clip_anisotropy(last_clip);
-  last_clip->texmipmap(TEXMIPMAP_LINEAR);
-  last_clip->texfilter(TEXFILTER_BEST);
-  last_clip->texaddr(TEXADDR_MIRROR);
+  last_clip_sampler.mip_map_mode = d3d::MipMapMode::Linear;
+  last_clip_sampler.filter_mode = d3d::FilterMode::Best;
+  last_clip_sampler.address_mode_u = last_clip_sampler.address_mode_v = last_clip_sampler.address_mode_w = d3d::AddressMode::Mirror;
+  apply_last_clip_anisotropy(last_clip_sampler);
+  last_clip->disableSampler();
 
   LandMeshManager *lmeshMgr = data.lmeshMgr;
   BBox3 landBox = lmeshMgr->getBBox();

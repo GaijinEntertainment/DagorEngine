@@ -95,18 +95,18 @@ namespace das {
     }
 
     struct CheckFullyInferred : Visitor {
-        bool fullyInferred = true;
+        TypeDecl * unInferredType = nullptr;
         virtual void preVisit ( TypeDecl * td ) {
-            if ( td->isAutoOrAlias() ) {
-                fullyInferred = false;
+            if ( !unInferredType && td->isAutoOrAlias() ) {
+                unInferredType = td;
             }
         }
     };
 
-    bool isFullyInferredBlock ( ExprBlock * block ) {
+    TypeDecl *isFullyInferredBlock ( ExprBlock * block ) {
         CheckFullyInferred vis;
         block->visit(vis);
-        return vis.fullyInferred;
+        return vis.unInferredType;
     }
 
     // array comprehension
@@ -116,8 +116,8 @@ namespace das {
     //          if where ....
     //              push(temp, subexpr)
     //      return temp
-    ExpressionPtr generateComprehension ( ExprArrayComprehension * expr ) {
-        auto compName = "__acomp_" + to_string(expr->at.line);
+    ExpressionPtr generateComprehension ( ExprArrayComprehension * expr, bool tableSyntax ) {
+        auto compName = "__acomp_" + to_string(expr->at.line) + "_" + to_string(expr->at.column);
         auto pClosure = make_smart<ExprBlock>();
         pClosure->at = expr->subexpr->at;
         pClosure->returnType = make_smart<TypeDecl>(Type::autoinfer);
@@ -190,7 +190,13 @@ namespace das {
         pVal->name = compName;
         auto pRet = make_smart<ExprReturn>();
         pRet->at = expr->at;
-        pRet->subexpr = pVal;
+        if ( tableSyntax ) {
+            auto ttM = make_smart<ExprCall>(expr->at, "to_table_move");
+            ttM->arguments.push_back(pVal);
+            pRet->subexpr = ttM;
+        } else {
+            pRet->subexpr = pVal;
+        }
         pRet->moveSemantics = true;
         pRet->fromComprehension = true;
         pRet->skipLockCheck = true;
@@ -277,9 +283,10 @@ namespace das {
     }
 
     // return [[t()]]
-    FunctionPtr makeConstructor ( Structure * str ) {
+    FunctionPtr makeConstructor ( Structure * str, bool isPrivate ) {
         auto fn = make_smart<Function>();
         fn->generated = true;
+        fn->privateFunction = isPrivate;
         fn->name = str->name;
         fn->at = fn->atDecl = str->at;
         fn->result = make_smart<TypeDecl>(str);
@@ -292,7 +299,9 @@ namespace das {
         auto block = make_smart<ExprBlock>();
         block->at = str->at;
         auto makeT = make_smart<ExprMakeStruct>(str->at);
+        if ( str->isClass ) makeT->alwaysSafe = true;
         makeT->useInitializer = false;
+        makeT->nativeClassInitializer = true;
         for ( auto & f : str->fields ) {
             if ( f.init ) {
                 makeT->useInitializer = true;
@@ -787,12 +796,27 @@ namespace das {
             scopes.pop_back();
             return Visitor::visit(block);
         }
+        virtual void preVisit ( ExprFor * expr ) override {
+            Visitor::preVisit(expr);
+            if ( scopes.size()==0 ) {   // only top level for loop
+                for ( int i=0; i!=expr->iterators.size(); ++i ) {
+                    auto & varName = expr->iterators[i];
+                    auto & var = expr->iteratorVariables[i];
+                    if ( varName[0]!='_' || varName[1]!='_' ) {
+                        string newName = "__" + aotSuffixNameEx(varName,"_Var") + "_rename_at_" + to_string(var->at.line) + "_" + to_string(var->at.column);
+                        rename[var->name] = newName;
+                        var->name = newName;
+                        varName = newName;
+                    }
+                }
+            }
+        }
         virtual void preVisit ( ExprLet * expr ) override {
             Visitor::preVisit(expr);
             if ( scopes.size()==1 ) {   // only top level block
                 for ( auto & var : expr->variables ) {
                     if ( var->name[0]!='_' || var->name[1]!='_' ) {
-                        string newName = "__" + aotSuffixNameEx(var->name,"_Var") + "_rename_at_" + to_string(var->at.line);
+                        string newName = "__" + aotSuffixNameEx(var->name,"_Var") + "_rename_at_" + to_string(var->at.line) + "_" + to_string(var->at.column);
                         rename[var->name] = newName;
                         var->name = newName;
                     }
@@ -1130,11 +1154,14 @@ namespace das {
         auto begin_loop_label = func->totalGenLabel ++;
         auto mid_loop_label = func->totalGenLabel ++;
         auto end_loop_label = func->totalGenLabel ++;
+        smart_ptr<ExprFor> forCopy;
         smart_ptr<ExprBlock> bodyBlock;
         if ( expr->body->rtti_isBlock() ) {
-            bodyBlock = static_pointer_cast<ExprBlock>(expr->body->clone());
-            giveBlockVariablesUniqueNames(bodyBlock);
+            forCopy = static_pointer_cast<ExprFor>(expr->clone());
+            bodyBlock = static_pointer_cast<ExprBlock>(forCopy->body);
+            giveBlockVariablesUniqueNames(forCopy);
             replaceBreakAndContinue(bodyBlock.get(), end_loop_label, mid_loop_label);
+            expr = forCopy.get();
         }
         auto blk = make_smart<ExprBlock>();
         blk->at = expr->at;
@@ -1144,11 +1171,11 @@ namespace das {
         btel->at = expr->at;
         btel->list.push_back(gtel);
         // names
-        string loopVar = "_loop_at_" + to_string(expr->at.line);
+        string loopVar = "_loop_at_" + to_string(expr->at.line) + "_" + to_string(expr->at.column);
         vector<string> srcNames, pVarNames;
         for ( size_t si=0, sis=expr->sources.size(); si!=sis; ++si ) {
-            srcNames.push_back("_source_" + to_string(si) + "_at_" + to_string(expr->at.line));
-            pVarNames.push_back("_pvar_" + to_string(si) + "_at_" + to_string(expr->at.line));
+            srcNames.push_back("_source_" + to_string(si) + "_at_" + to_string(expr->at.line) + "_" + to_string(expr->at.column));
+            pVarNames.push_back("_pvar_" + to_string(si) + "_at_" + to_string(expr->at.line) + "_" + to_string(expr->at.column));
         }
         auto leqt = make_smart<ExprLet>();
         leqt->at = expr->at;
@@ -1624,18 +1651,21 @@ namespace das {
     protected:
         virtual void preVisitExpression ( Expression * expr ) override {
             Visitor::preVisitExpression(expr);
-            if ( first ) {
-                enclosure = expr->at;
-                first = false;
-            } else {
-                minPoint(enclosure.line, enclosure.column, expr->at.line, expr->at.column);
-                maxPoint(enclosure.last_line, enclosure.last_column, expr->at.last_line, expr->at.last_column);
-            }
+            expandEnclosure(expr->at);
             if ( expr->rtti_isCallLikeExpr() ) {
                 auto ellc = static_cast<ExprLooksLikeCall *>(expr);
-                if ( !ellc->atEnclosure.empty() ) {
-                    minPoint(enclosure.line, enclosure.column, ellc->atEnclosure.line, ellc->atEnclosure.column);
-                    maxPoint(enclosure.last_line, enclosure.last_column, ellc->atEnclosure.last_line, ellc->atEnclosure.last_column);
+                expandEnclosure(ellc->atEnclosure);
+            }
+        }
+
+        void expandEnclosure ( const LineInfo & at ) {
+            if ( ! at.empty() ) {
+                if ( first ) {
+                    enclosure = at;
+                    first = false;
+                } else {
+                    minPoint(enclosure.line, enclosure.column, at.line, at.column);
+                    maxPoint(enclosure.last_line, enclosure.last_column, at.last_line, at.last_column);
                 }
             }
         }
@@ -1700,8 +1730,10 @@ namespace das {
         }
         // lef self = [[Foo()]]
         auto makeT = make_smart<ExprMakeStruct>(baseClass->at);
+        makeT->alwaysSafe = true;
         makeT->at = func->at;
         makeT->useInitializer = true;
+        makeT->nativeClassInitializer = true;
         makeT->makeType = make_smart<TypeDecl>(baseClass);
         makeT->structs.push_back(make_smart<MakeStruct>());
         auto letS = make_smart<ExprLet>();

@@ -1,0 +1,132 @@
+
+include "shader_global.dshl"
+include "bvh.dshl"
+
+int bvh_process_target_offset;
+int bvh_process_bake_texture_to_vertices_start;
+int bvh_process_bake_texture_to_vertices_stride;
+int bvh_process_bake_texture_to_vertices_count;
+int bvh_process_bake_texture_to_vertices_processed_stride;
+int bvh_process_bake_texture_to_vertices_position_offset;
+int bvh_process_bake_texture_to_vertices_position_size;
+int bvh_process_bake_texture_to_vertices_normal_offset;
+int bvh_process_bake_texture_to_vertices_color_offset;
+int bvh_process_bake_texture_to_vertices_texcoord_offset;
+int bvh_process_bake_texture_to_vertices_texcoord_format;
+int bvh_process_bake_texture_to_vertices_texcoord_size;
+int bvh_process_bake_texture_to_vertices_texture_lod;
+
+texture bvh_process_bake_texture_to_vertices_texture;
+
+interval bvh_process_bake_texture_to_vertices_normal_offset: no < 1, yes;
+interval bvh_process_bake_texture_to_vertices_color_offset: no < 1, yes;
+interval bvh_process_bake_texture_to_vertices_texcoord_offset: no < 1, yes;
+
+shader bvh_process_bake_texture_to_vertices
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+  (cs) {
+    target_offset@u1 = bvh_process_target_offset;
+    start_vertex@i1 = bvh_process_bake_texture_to_vertices_start;
+    vertex_stride@i1 = bvh_process_bake_texture_to_vertices_stride;
+    vertex_count@i1 = bvh_process_bake_texture_to_vertices_count;
+    processed_vertex_stride@i1 = bvh_process_bake_texture_to_vertices_processed_stride;
+    position_offset@i1 = bvh_process_bake_texture_to_vertices_position_offset;
+    color_offset@i1 = bvh_process_bake_texture_to_vertices_color_offset;
+    normal_offset@i1 = bvh_process_bake_texture_to_vertices_normal_offset;
+    texcoord_offset@i1 = bvh_process_bake_texture_to_vertices_texcoord_offset;
+    texcoord_format@i1 = bvh_process_bake_texture_to_vertices_texcoord_format;
+    texture_lod@i1 = bvh_process_bake_texture_to_vertices_texture_lod;
+    source_texture@smp2d = bvh_process_bake_texture_to_vertices_texture;
+
+    texture_to_vertices_position_size@i1 = bvh_process_bake_texture_to_vertices_position_size;
+    texture_to_vertices_texcoord_size@i1 = bvh_process_bake_texture_to_vertices_texcoord_size;
+  }
+
+  ENABLE_ASSERT(cs)
+
+  USE_BVH_ATTRIBUTE_FUNCTIONS(cs)
+
+  hlsl(cs) {
+    ByteAddressBuffer source : register(t6);
+    RWByteAddressBuffer output : register(u0);
+
+    [numthreads( 64, 1, 1 )]
+    void bvh_process_bake_texture_to_vertices(uint3 dtId : SV_DispatchThreadID)
+    {
+      const uint4 INPUT_ENCODING_OFFSET = uint4(16, 8, 0, 24);
+
+      uint vertexId = dtId.x;
+      if (vertexId >= vertex_count)
+        return;
+
+      int vertexStart = (start_vertex + vertexId) * vertex_stride;
+
+      uint4 position;
+
+      BRANCH
+      if (texture_to_vertices_position_size == 4)
+        position.x = source.Load(vertexStart + position_offset);
+      else if (texture_to_vertices_position_size == 8)
+        position.xy = source.Load2(vertexStart + position_offset);
+      else if (texture_to_vertices_position_size == 12)
+        position.xyz = source.Load3(vertexStart + position_offset);
+      else
+        position = source.Load4(vertexStart + position_offset);
+
+
+      ##if bvh_process_bake_texture_to_vertices_texture == NULL
+        float4 color = 1;
+      ##else
+        float2 texcoord;
+        LoadAttribute(source, vertexStart + texcoord_offset, texcoord_format, texcoord);
+        float4 color = tex2Dlod(source_texture, float4(texcoord, 0, texture_lod));
+      ##endif
+
+      ##if bvh_process_bake_texture_to_vertices_color_offset == yes
+      {
+        uint packedColor = source.Load(vertexStart + color_offset);
+        float4 vertexColor = float4((packedColor >> INPUT_ENCODING_OFFSET) & 255) / 255;
+        color *= vertexColor;
+      }
+      ##endif
+
+      uint4 shiftedColor = uint4(color * 255) << INPUT_ENCODING_OFFSET;
+      uint packedColor = shiftedColor.x | shiftedColor.y | shiftedColor.z | shiftedColor.w;
+
+      uint offset = texture_to_vertices_position_size;
+
+      BRANCH
+      if (texture_to_vertices_position_size == 4)
+        output.Store(target_offset + vertexId * processed_vertex_stride, position.x);
+      else if (texture_to_vertices_position_size == 8)
+        output.Store2(target_offset + vertexId * processed_vertex_stride, position.xy);
+      else if (texture_to_vertices_position_size == 12)
+        output.Store3(target_offset + vertexId * processed_vertex_stride, position.xyz);
+      else
+        output.Store4(target_offset + vertexId * processed_vertex_stride, position);
+
+      output.Store(target_offset + vertexId * processed_vertex_stride + offset, packedColor);
+      offset += 4;
+
+      ##if bvh_process_bake_texture_to_vertices_texcoord_offset == yes
+        BRANCH
+        if (texture_to_vertices_texcoord_size == 4)
+          output.Store(target_offset + vertexId * processed_vertex_stride + offset, source.Load(vertexStart + texcoord_offset));
+        else
+          output.Store2(target_offset + vertexId * processed_vertex_stride + offset, source.Load2(vertexStart + texcoord_offset));
+        offset += texture_to_vertices_texcoord_size;
+      ##endif
+
+      ##if bvh_process_bake_texture_to_vertices_normal_offset == yes
+        output.Store(target_offset + vertexId * processed_vertex_stride + offset, source.Load(vertexStart + normal_offset));
+        offset += 4;
+      ##endif
+    }
+  }
+
+  compile("target_cs", "bvh_process_bake_texture_to_vertices");
+}

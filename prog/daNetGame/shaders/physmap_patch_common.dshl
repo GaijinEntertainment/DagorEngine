@@ -1,0 +1,32 @@
+texture physmap_patch_tex;
+float4 physmap_patch_origin_invscale_size;
+
+macro INIT_AND_USE_PHYSMAP_PATCH(stage)
+  (stage) {
+    physmap_patch_tex@tex = physmap_patch_tex hlsl { Texture2D<uint> physmap_patch_tex@tex; };
+    physmap_patch_origin_invscale_size@f4 = physmap_patch_origin_invscale_size;
+  }
+  hlsl(stage) {
+    #define patch_origin         physmap_patch_origin_invscale_size.xy
+    #define physmap_invscale     physmap_patch_origin_invscale_size.z
+    #define patch_tex_size   int(physmap_patch_origin_invscale_size.w)
+
+    // Modulo operation that quarantees the result to be a positive number:
+    uint2 modulus(int2 dividend, int divisor)
+    {
+      return uint2((dividend % divisor + divisor) % divisor);
+    }
+    uint getPhysMat(float2 worldPosXZ)
+    {
+      ##if physmap_patch_tex != NULL
+        return physmap_patch_tex[modulus(int2(floor((worldPosXZ - patch_origin) * physmap_invscale)), patch_tex_size)];
+      ##else
+        return 0;
+      ##endif
+    }
+  }
+endmacro
+
+macro PHYSMAP_PATCH_ENABLED()
+  physmap_patch_tex != NULL
+endmacro

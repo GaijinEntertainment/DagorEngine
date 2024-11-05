@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <movie/fullScreenMovie.h>
 #include "playerCreators.h"
 #include <videoPlayer/dag_videoPlayer.h>

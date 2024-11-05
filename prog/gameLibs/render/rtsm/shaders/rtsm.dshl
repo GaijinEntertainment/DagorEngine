@@ -1,0 +1,567 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "viewVecVS.dshl"
+include "bvh.dshl"
+
+float4x4 inv_proj_tm;
+
+float4 sun_dir_for_shadows = (0, 1, 0, 0);
+float4 rt_shadow_resolution;
+int4 rt_shadow_resolutionI;
+
+texture combined_shadows;
+texture rtsm_value;
+texture rtsm_translucency;
+texture rtsm_denoised;
+
+texture scrambling_ranking_texture;
+texture sobol_texture;
+
+texture denoiser_view_z;
+
+texture rtsm_dynamic_lights;
+
+float rtsm_sun_angle_multiplier = 0.5;
+
+int rtsm_frame_index;
+
+int rtsm_render_mode;
+interval rtsm_render_mode: hard < 1, denoised < 2, denoised_translucent;
+
+float4 big_light_pos_rad_0;
+float4 big_light_pos_rad_1;
+float4 big_light_color_0;
+float4 big_light_color_1;
+
+define_macro_if_not_defined USE_EMISSION_DECODE_COLOR_MAP(code)
+endmacro
+
+int rtsm_has_nuke = 0;
+float4 nuke_pos_wave;
+
+int rtsm_is_half_precision = 0;
+interval rtsm_is_half_precision : no < 1, yes;
+
+shader rt_shadows
+{
+  if (compatibility_mode == compatibility_mode_on) { dont_render; }
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    inv_proj_tm@f44 = inv_proj_tm;
+    world_view_pos@f3 = world_view_pos;
+    sun_dir_for_shadows@f3 = (sun_dir_for_shadows.x, sun_dir_for_shadows.y, sun_dir_for_shadows.z);
+    resolution@i2 = rt_shadow_resolutionI;
+    inv_resolution@f2 = (1.0 / rt_shadow_resolution.x, 1.0 / rt_shadow_resolution.y);
+    frame_index@i1 = rtsm_frame_index;
+    sun_angle_multiplier@f1 = rtsm_sun_angle_multiplier;
+    scrambling_ranking_texture@tex = scrambling_ranking_texture hlsl { Texture2D< float3 > scrambling_ranking_texture@tex; };
+    sobol_texture@tex = sobol_texture hlsl { Texture2D< float4 > sobol_texture@tex; };
+    viewZTexture@uav = denoiser_view_z hlsl { RWTexture2D<float> viewZTexture@uav; };
+
+    // Nuke
+    has_nuke@i1 = rtsm_has_nuke;
+    nuke_pos_wave@f4 = nuke_pos_wave;
+  }
+
+  if (rtsm_render_mode == hard)
+  {
+    (cs) {
+      combined_shadows@uav = combined_shadows hlsl { RWTexture2D<float4> combined_shadows@uav; };
+    }
+  }
+  else if (rtsm_render_mode == denoised)
+  {
+    (cs) {
+      rtsm_value@uav = rtsm_value hlsl { RWTexture2D<float2> rtsm_value@uav; };
+      rtsm_denoised@uav = rtsm_denoised hlsl { RWTexture2D<float4> rtsm_denoised@uav; };
+    }
+  }
+  else if (rtsm_render_mode == denoised_translucent)
+  {
+    (cs) {
+      rtsm_value@uav = rtsm_value hlsl { RWTexture2D<float2> rtsm_value@uav; };
+      rtsm_translucency@uav = rtsm_translucency hlsl { RWTexture2D<float4> rtsm_translucency@uav; };
+      rtsm_denoised@uav = rtsm_denoised hlsl { RWTexture2D<float4> rtsm_denoised@uav; };
+    }
+  }
+
+  hlsl(cs) {
+    #define DISABLE_TOONSHADING 1
+
+    #include <Include/NRDEncoding.hlsli>
+    #include <Include/NRD.hlsli>
+  }
+
+  USE_EMISSION_DECODE_COLOR_MAP(cs)
+  USE_AND_INIT_VIEW_VEC_CS()
+  INIT_ZNZFAR_STAGE(cs)
+  INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
+  USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+  INIT_LOAD_GBUFFER_BASE(cs)
+  INIT_LOAD_BVH_FLAGS_BASE(cs)
+  USE_LOAD_BVH_FLAGS_BASE(cs)
+  USE_LOAD_GBUFFER_BASE(cs, 1)
+  INIT_BVH(cs, 1, true)
+  USE_BVH_FOR_SHADOW(cs)
+
+  USE_CALC_GEOMETRY_NORMAL(cs)
+
+  INIT_BVH_WATER_FADE(cs)
+  USE_BVH_WATER_FADE(cs)
+
+  hlsl(cs)
+  {
+    static const float solViewRadialAngle    = 0.0093f / 2;
+    static const float solViewTanRadialAngle = tan( solViewRadialAngle );
+
+    // Blue noise from NVDenoiser
+
+    uint ReverseBits4( uint x )
+    {
+      x = ( ( x & 0x5 ) << 1 ) | ( ( x & 0xA ) >> 1 );
+      x = ( ( x & 0x3 ) << 2 ) | ( ( x & 0xC ) >> 2 );
+
+      return x;
+    }
+
+    uint Bayer4x4ui( uint2 samplePos, uint frameIndex, const uint mode = 1 )
+    {
+      uint2 samplePosWrap = samplePos & 3;
+      uint a = 2068378560 * ( 1 - ( samplePosWrap.x >> 1 ) ) + 1500172770 * ( samplePosWrap.x >> 1 );
+      uint b = ( samplePosWrap.y + ( ( samplePosWrap.x & 1 ) << 2 ) ) << 2;
+
+      uint sampleOffset = mode == 1 ? ReverseBits4( frameIndex ) : frameIndex;
+
+      return ( ( a >> b ) + sampleOffset ) & 0xF;
+    }
+
+    float2 GetBlueNoise( uint2 pixelPos, bool isCheckerboard, uint seed, uint sampleIndex, uint sppVirtual = 1, uint spp = 1 )
+    {
+      // Sample index
+      uint frameIndex = isCheckerboard ? ( frame_index >> 1 ) : frame_index;
+      uint virtualSampleIndex = ( frameIndex + seed ) & ( sppVirtual - 1 );
+      sampleIndex &= spp - 1;
+      sampleIndex += virtualSampleIndex * spp;
+
+      // The algorithm
+      uint3 A = scrambling_ranking_texture[ pixelPos & 127 ] * 255;
+      uint rankedSampleIndex = sampleIndex ^ A.z;
+      uint4 B = sobol_texture[ uint2( rankedSampleIndex & 255, 0 ) ] * 255;
+      float4 blue = ( float4( B ^ A.xyxy ) + 0.5 ) * ( 1.0 / 256.0 );
+
+      // Randomize in [ 0; 1 / 256 ] area to get rid of possible banding
+      uint d = Bayer4x4ui( pixelPos, frame_index );
+      float2 dither = ( float2( d & 3, d >> 2 ) + 0.5 ) * ( 1.0 / 4.0 );
+      blue += ( dither.xyxy - 0.5 ) * ( 1.0 / 256.0 );
+
+      return saturate( blue.xy );
+    }
+
+    float3 GetRay( float2 rnd )
+    {
+      float phi = rnd.x * 2 * PI;
+
+      float cosTheta = sqrt( saturate( rnd.y ) );
+      float sinTheta = sqrt( saturate( 1.0 - cosTheta * cosTheta ) );
+
+      float3 ray;
+      ray.x = sinTheta * cos( phi );
+      ray.y = sinTheta * sin( phi );
+      ray.z = cosTheta;
+
+      return ray;
+    }
+
+    float3x3 GetBasis( float3 N )
+    {
+      float sz = sign( N.z );
+      float a  = 1.0 / ( sz + N.z );
+      float ya = N.y * a;
+      float b  = N.x * ya;
+      float c  = N.x * sz;
+
+      float3 T = float3( c * N.x * a - 1.0, sz * b, c );
+      float3 B = float3( b, N.y * ya - sz, N.y );
+
+      return float3x3( T, B, N );
+    }
+
+    void write_no_shadow(uint2 dtid, float4 view_depth, float sol_radial_angle)
+    {
+      ##if rtsm_render_mode == hard
+        texture2DAt(combined_shadows, dtid) = float4(1, 1, 1, 1);
+      ##else
+        ##if rtsm_render_mode == denoised
+          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackShadow(view_depth.z / view_depth.w, NRD_FP16_MAX, sol_radial_angle);
+        ##else
+          float4 shadowTrans;
+          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackShadow(view_depth.z / view_depth.w, NRD_FP16_MAX, sol_radial_angle, 0, shadowTrans);
+          texture2DAt(rtsm_translucency, dtid) = shadowTrans;
+        ##endif
+      ##endif
+    }
+
+    RT_GROUP_SIZE
+    void rt_shadows_cs(uint2 dtid : SV_DispatchThreadID)
+    {
+      if (any(dtid >= resolution))
+        return;
+
+      UnpackedGbuffer gbuffer = unpackGbuffer(loadPackedGbuffer(dtid));
+      float rawDepth = loadGbufferDepth(dtid);
+
+      BRANCH
+      if (rawDepth <= 0)
+      {
+        ##if rtsm_render_mode != hard
+          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackShadow(INF, 0, 0);
+        ##endif
+        return;
+      }
+
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+      float underwaterFade = calc_underwater_fade(w, dtid, inv_resolution, world_view_pos);
+
+      float4 clipDepth = float4(0, 0, rawDepth, 1);
+      float4 viewDepth = mul(inv_proj_tm, clipDepth);
+
+      // This here is to counter the fact that we shoot only one ray per pixel.
+      // The noisy image is not defined enough to have real looking penumbra.
+      // So to counter the lack of rays, we decrease the angle of the sun.
+      float solRadialAngle = solViewTanRadialAngle * sun_angle_multiplier;
+
+      BRANCH
+      if (underwaterFade == 0)
+      {
+        write_no_shadow(dtid, viewDepth, solRadialAngle);
+        ##if rtsm_render_mode != hard && denoiser_view_z != NULL
+          texture2DAt(viewZTexture, dtid) = INF;
+          texture2DAt(rtsm_denoised, dtid) = 1;
+        ##endif
+        return;
+      }
+
+      float3 relPos = calc_camera_relative_pos(dtid, w, inv_resolution);
+
+      half nukeFade = 1;
+      if (has_nuke)
+      {
+        float3 nukeBvhPos = nuke_pos_wave.xyz - bvh_origin;
+        float nukeDistance = length(nukeBvhPos - relPos);
+        float waveDistance = nukeDistance - nuke_pos_wave.w;
+
+        if (waveDistance < 0)
+        {
+          write_no_shadow(dtid, viewDepth, solRadialAngle);
+          return;
+        }
+
+        ##if rtsm_render_mode == denoised_translucent
+          nukeFade = half(saturate(waveDistance / 50));
+        ##endif
+      }
+
+      ##if rtsm_render_mode == hard
+        float3 direction = -sun_dir_for_shadows;
+      ##else
+        float2 rnd = GetBlueNoise( dtid, false, 0, 0 );
+        rnd  = GetRay( rnd ).xy;
+        rnd *= solRadialAngle;
+
+        float3x3 sunBasis = GetBasis( -sun_dir_for_shadows );
+        float3 direction = normalize( sunBasis[ 0 ] * rnd.x + sunBasis[ 1 ] * rnd.y + sunBasis[ 2 ] );
+      ##endif
+
+      bool isImpostor = gbuffer.impostorMask > 0.5;
+      bool isGrass = gbuffer.isGrass;
+      bool isTwoSided = gbuffer.isTwoSided;
+      bool isUnstable = gbuffer.isUnstable;
+
+      #ifdef SHADING_LANDSCAPE
+        bool isTerrain = gbuffer.material == SHADING_LANDSCAPE;
+      #else
+        bool isTerrain = false;
+      #endif
+
+      float3 geometryNormal = calc_geometry_normal(dtid, inv_resolution);
+
+      BRANCH
+      if (!isGrass && !isImpostor && !isTerrain)
+      {
+        if (dot(geometryNormal, direction) <= 0)
+        {
+          ##if rtsm_render_mode == hard
+            texture2DAt(combined_shadows, dtid) = float4(0, 0, 0, 1);
+          ##else
+            ##if rtsm_render_mode == denoised
+              texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackShadow(viewDepth.z / viewDepth.w, 0, solRadialAngle);
+            ##else
+              float4 shadowTrans;
+              texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackShadow(viewDepth.z / viewDepth.w, 0, solRadialAngle, 0, shadowTrans);
+              texture2DAt(rtsm_translucency, dtid) = shadowTrans;
+            ##endif
+          ##endif
+          return;
+        }
+      }
+
+      if (isTwoSided)
+        relPos += geometryNormal * (isUnstable ? 0.2 : 0.001);
+
+      HitInfo hitInfo;
+      half3 rayColor;
+      float translucentT;
+      uint groupMask = bvhGroupSoftShadow;
+      if (isImpostor)
+        groupMask &= ~bvhGroupImpostor;
+      else if (isGrass)
+        groupMask &= ~bvhGroupGrass;
+      uint extraFlags = 0;
+      if (isTwoSided)
+        extraFlags |= RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH;
+      float bias = isTwoSided ? 0.002 : 0.0;
+      bool isHit = trace_ray(bvhMain, relPos.xyz, direction, bias, 100000, w, groupMask, hitInfo, rayColor, translucentT, 1, extraFlags);
+
+      ##if rtsm_render_mode == hard
+        texture2DAt(combined_shadows, dtid) = float4((isHit ? 0 : 1).xxx, 1);
+      ##else
+        ##if rtsm_render_mode == denoised
+          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackShadow(viewDepth.z / viewDepth.w, isHit ? hitInfo.t : NRD_FP16_MAX, solRadialAngle);
+        ##else
+          #if 0 // Particle shadows. Disabled for now in favor of FOM shadows as they are better.
+            if (!isHit)
+            {
+              float shadowAlpha;
+              trace_ray_fx_shadow(relPos, direction, 0, 100000, shadowAlpha, translucentT);
+              shadowColor *= 1 - shadowAlpha;
+            }
+          #endif
+
+          rayColor = lerp(1.h, rayColor, nukeFade);
+
+          float hitT = isHit ? hitInfo.t : any(rayColor < 1.h) ? translucentT : NRD_FP16_MAX;
+          float4 shadowTrans;
+          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackShadow(viewDepth.z / viewDepth.w, hitT, solRadialAngle, rayColor, shadowTrans);
+          shadowTrans.yzw = lerp(1, shadowTrans.yzw, underwaterFade);
+          texture2DAt(rtsm_translucency, dtid) = shadowTrans;
+        ##endif
+      ##endif
+    }
+  }
+
+  if (rtsm_is_half_precision == yes)
+  {
+    compile("cs_6_5_half", "rt_shadows_cs");
+  }
+  else
+  {
+    compile("cs_6_5", "rt_shadows_cs");
+  }
+}
+
+include "use_tiled_lights.dshl"
+include "ssao_use.dshl"
+include "rtao_use.dshl"
+
+float ssao_affect_on_landmesh = 1;
+
+int rstm_direct_light_has_ao = 0;
+
+define_macro_if_not_defined ASSUME_NO_SSSS()
+endmacro
+
+shader rt_direct_lights
+{
+  if (compatibility_mode == compatibility_mode_on) { dont_render; }
+  ENABLE_ASSERT(cs)
+  ASSUME_NO_SSSS()
+
+  (cs) {
+    world_view_pos@f3 = world_view_pos;
+    dynamic_lights@uav = rtsm_dynamic_lights hlsl { RWTexture2D<float3> dynamic_lights@uav; };
+    ao_affect_on_landmesh@f1 = (ssao_affect_on_landmesh, 0, 0, 0);
+    direct_light_has_ao@i1 = rstm_direct_light_has_ao;
+    resolution@i2 = rt_shadow_resolutionI;
+    inv_resolution@f2 = (1.0 / rt_shadow_resolution.x, 1.0 / rt_shadow_resolution.y);
+
+    big_light_pos_rad_0@f4 = big_light_pos_rad_0;
+    big_light_pos_rad_1@f4 = big_light_pos_rad_1;
+    big_light_color_0@f4 = big_light_color_0;
+    big_light_color_1@f4 = big_light_color_1;
+
+    // Nuke
+    has_nuke@i1 = rtsm_has_nuke;
+    nuke_pos_wave@f4 = nuke_pos_wave;
+  }
+
+  hlsl(cs) {
+    #define DISABLE_TOONSHADING 1
+    #define OMNI_CONTACT_SHADOWS 0
+    #define SPOT_MULTIPLIER 1
+    #define SPOT_SHADOWS 0
+
+    #define screen_size resolution
+  }
+
+  USE_EMISSION_DECODE_COLOR_MAP(cs)
+  USE_AND_INIT_VIEW_VEC_CS()
+  INIT_ZNZFAR_STAGE(cs)
+  INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
+  USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+  INIT_LOAD_GBUFFER_BASE(cs)
+  INIT_LOAD_BVH_FLAGS_BASE(cs)
+  USE_LOAD_BVH_FLAGS_BASE(cs)
+  USE_LOAD_GBUFFER_BASE(cs, 1)
+  INIT_BVH(cs, 0, true)
+  USE_BVH_FOR_SHADOW(cs)
+
+  USE_CALC_GEOMETRY_NORMAL(cs)
+
+  INIT_BVH_WATER_FADE(cs)
+  USE_BVH_WATER_FADE(cs)
+
+  INIT_UPSCALE_SAMPLING_BASE(cs)
+  USE_UPSCALE_SAMPLING_BASE(cs)
+
+  USING_SSAO_BASE(cs)
+  USING_RTAO(cs, 1)
+
+  hlsl(cs)
+  {
+    bool is_in_nuke_range(float3 relPos)
+    {
+      if (!has_nuke)
+        return false;
+
+      float3 nukeBvhPos = nuke_pos_wave.xyz - bvh_origin;
+      float nukeDistance = length(nukeBvhPos - relPos);
+      float waveDistance = nukeDistance - nuke_pos_wave.w;
+
+      return waveDistance < 0;
+    }
+
+    struct ShadowContext
+    {
+      float3 relPos;
+      float minT;
+      float w;
+      uint groupMask;
+    };
+
+    void shadow_callback(inout half3 result, float3 light_direction, ShadowContext context)
+    {
+      if (all(result < 0.001))
+        return;
+
+      if (is_in_nuke_range(context.relPos))
+        return;
+
+      bool isObstructed = is_obstructed(bvhMain, context.relPos, normalize(light_direction), context.minT, length(light_direction), context.w, context.groupMask);
+      if (isObstructed)
+        result = 0;
+    }
+
+    #define RT_DYNAMIC_LIGHTS 1
+  }
+
+  INIT_AND_USE_TILED_LIGHTS_WITH_CALLBACK(cs, shadow_callback)
+
+  hlsl(cs)
+  {
+    RT_GROUP_SIZE
+    void rt_direct_lights_cs(uint2 dtid : SV_DispatchThreadID)
+    {
+      if (any(dtid >= resolution))
+        return;
+
+      UnpackedGbuffer gbuffer = unpackGbuffer(loadPackedGbuffer(dtid));
+      ProcessedGbuffer processedGbuffer = processGbuffer(gbuffer);
+      float rawDepth = loadGbufferDepth(dtid);
+
+      BRANCH
+      if (rawDepth <= 0)
+        return;
+
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+      float underwaterFade = calc_underwater_fade(w, dtid, inv_resolution, world_view_pos);
+
+      BRANCH
+      if (underwaterFade == 0)
+        return;
+
+      float bias = gbuffer.isTwoSided ? 0.002 : 0.0;
+      bool isImpostor = gbuffer.impostorMask > 0.5;
+
+      ShadowContext context;
+
+      context.relPos = calc_camera_relative_pos(dtid, w, inv_resolution);
+      context.minT = bias;
+      context.groupMask = bvhGroupHardShadow;
+      context.w = w;
+      if (isImpostor)
+        context.groupMask &= ~bvhGroupImpostor;
+      else if (gbuffer.isGrass)
+        context.groupMask &= ~bvhGroupGrass;
+
+      float2 pixelCenter = float2(dtid) + 0.5;
+      float2 uv = pixelCenter * inv_resolution;
+      float3 viewVect = lerp_view_vec(uv);
+      float3 worldPos = calc_world_pos(dtid, w, inv_resolution, world_view_pos);
+      float NdotV = dot(processedGbuffer.normal, -normalize(context.relPos));
+      float saturated_NdotV = saturate(NdotV);
+      float NoV = abs(NdotV) + 1e-5;
+
+      half ao = 1;
+
+      BRANCH
+      if (direct_light_has_ao > 0)
+      {
+        #if HAS_RTAO
+          BRANCH
+          if (isRTAOEnabled())
+            ao = getRTAO(pixelCenter);
+          else
+        #endif
+            ao = getSSAO(w, pixelCenter).x;
+      }
+      #ifdef SHADING_LANDSCAPE
+        ao = lerp(1, ao, processedGbuffer.material == SHADING_LANDSCAPE ? ao_affect_on_landmesh : 1);
+      #endif
+
+      half enviAO = processedGbuffer.ao * ao;
+      half specularAOcclusion = computeSpecOcclusion(NoV, enviAO, processedGbuffer.ggx_alpha);
+      specularAOcclusion = max(0.5 * enviAO, specularAOcclusion);
+      half3 specularColor = processedGbuffer.specularColor * (specularAOcclusion * processedGbuffer.extracted_albedo_ao);
+
+      float3 result = get_dynamic_lighting(processedGbuffer, worldPos, -viewVect, w, pixelCenter, NoV, specularColor, uv, enviAO, context);
+
+      float specStrength = processedGbuffer.extracted_albedo_ao;
+      if (big_light_pos_rad_0.w > 0)
+      {
+        half3 bigLightResult = perform_point_light(worldPos.xyz, -viewVect, NoV, processedGbuffer, specularColor, specStrength, gbuffer.ao, big_light_pos_rad_0, big_light_color_0, 0, pixelCenter);
+        if (any(bigLightResult > 0.001) && !is_in_nuke_range(context.relPos))
+        {
+          float3 lightDirection = big_light_pos_rad_0.xyz - worldPos.xyz;
+          bigLightResult *= is_obstructed(bvhMain, context.relPos, normalize(lightDirection), context.minT, length(lightDirection), context.w, context.groupMask) ? 0 : 1;
+        }
+        result += bigLightResult;
+      }
+
+      if (big_light_pos_rad_1.w > 0)
+      {
+        half3 bigLightResult = perform_point_light(worldPos.xyz, -viewVect, NoV, processedGbuffer, specularColor, specStrength, gbuffer.ao, big_light_pos_rad_1, big_light_color_1, 0, pixelCenter);
+        if (any(bigLightResult > 0.001) && !is_in_nuke_range(context.relPos))
+        {
+          float3 lightDirection = big_light_pos_rad_1.xyz - worldPos.xyz;
+          bigLightResult *= is_obstructed(bvhMain, context.relPos, normalize(lightDirection), context.minT, length(lightDirection), context.w, context.groupMask) ? 0 : 1;
+        }
+        result += bigLightResult;
+      }
+
+      texture2DAt(dynamic_lights, dtid) = result;
+    }
+  }
+
+  compile("cs_6_5", "rt_direct_lights_cs");
+}

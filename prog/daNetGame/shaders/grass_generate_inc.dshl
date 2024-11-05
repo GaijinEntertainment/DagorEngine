@@ -1,0 +1,293 @@
+int grass_use_quads always_referenced;
+interval grass_use_quads : no < 1, yes;
+int grass_instancing = 0;
+interval grass_instancing:off<1, on;
+float4 grass_gen_lod;
+float grass_gen_lod_index;
+int grass_max_instance_count;
+
+float4 grass_grid_params = (0,0,1,100);
+float4 world_to_grass_position = (1,1,0,0);
+texture noise_64_tex;
+const_buffer grass_rnd_types_buf;
+float4 grass_average_ht__ht_extent__avg_hor__hor_extent;
+
+buffer grass_draw_instances_indirect_buffer;
+buffer grass_draw_instances_buffer;
+
+macro INIT_GRASS_GENERATE_NO_UAV(code)
+  (code) {
+    world_to_grass_position@f4 = world_to_grass_position;
+    grass_grid_params@f4 = grass_grid_params;
+    noise_64_tex@smp2d = noise_64_tex;
+    grass_gen_lod@f4 = grass_gen_lod;
+    grass_gen_lod_index@f1 = grass_gen_lod_index;
+    grass_average_ht__ht_extent__avg_hor__hor_extent@f4 = grass_average_ht__ht_extent__avg_hor__hor_extent;
+    grass_max_instance_count@i1 = grass_max_instance_count;
+
+    GrassTypes@cbuf = grass_rnd_types_buf hlsl {
+      #include <grassInstance.hlsli>
+      cbuffer GrassTypes@cbuf
+      {
+        GrassTypesCB grass_types_cb;
+      };
+    };
+  }
+endmacro
+
+macro INIT_GRASS_GENERATE(code)
+  INIT_GRASS_GENERATE_NO_UAV(code)
+  (code) {
+    grassCount@uav = grass_draw_instances_indirect_buffer hlsl { RWByteAddressBuffer grassCount@uav; }
+    grass@uav = grass_draw_instances_buffer hlsl {
+      #include <grassInstance.hlsli>
+      RWStructuredBuffer<GrassInstance> grass@uav;
+    }
+  }
+endmacro
+
+macro USE_GRASS_GENERATE(code)
+  hlsl(code) {
+    #define GRASS_LOD_ON 1
+
+    #include <grassInstance.hlsli>
+    #ifndef MAX_HEIGHT
+    #define MAX_HEIGHT 2.0f
+    #define MAX_SIZE 2.0f
+    #endif
+    #if UNCOMPRESSED
+      #define compress_instance(from) from
+      #define uncompress_instance(from) from
+    #else
+      uint encode_float2_to_uint(float2 val)
+      {
+        uint2 ival = f32tof16(val);
+        return ival.x|(ival.y<<16);
+      }
+      uint compress_normal_float(float v) {return v*127+127;}
+      float uncompress_normal_float(uint v) {return v/127.0f - 1.f;}
+      GrassInstance compress_instance(GrassInstanceUncompressed from)
+      {
+        GrassInstance to;
+        //to.position_xz = encode_float2_to_uint(from.position.xz);
+        from.position.xz = 65535*from.position.xz;
+        //from.position.xz = clamp((from.position.xz*(65535.0/3.)+65535.0/3.0), 0, 65535);//instead of just 0..1 position we have to encode -1..2, due to toroidal update. Can be fixed
+        to.position_xz = uint(from.position.x)|(uint(from.position.z)<<16);
+        to.vAngle_height = encode_float2_to_uint(float2(from.vAngle, from.height));
+        to.random_size_rotation = f32tof16(from.size);
+        to.random_size_rotation |= uint(from.random*255)<<16;
+        to.random_size_rotation |= uint(from.rotation*(255.0f*0.5) + 0.5*255.0f)<<24;
+        to.landColor_tv = uint(floor(from.landColor.r*255+0.5f)) | (uint(floor(from.landColor.g*255+0.5f))<<8) | (uint(floor(from.landColor.b*255+0.5f))<<16);
+        to.landColor_tv |= (from.grassType<<24)|(from.grassVariation<<29);
+        to.land_normal = encode_float2_to_uint(from.landNormal.xz);//compress_normal_float(from.landNormal.x)|(compress_normal_float(from.landNormal.z)<<8);
+        to.position_y = from.position.y;
+        to.opacity = from.opacity;
+        to.lodNo = (from.lodNo << 2) | (sign(from.landNormal.y) >= 0) << 1 | from.worldYOrientation;
+        return to;
+      }
+      GrassInstanceUncompressed uncompress_instance(GrassInstance from)
+      {
+        GrassInstanceUncompressed to;
+        to.position.x = (from.position_xz&0xFFFF)/65535.0;
+        to.position.z = (from.position_xz>>16)/65535.0;
+        //to.position.x = (from.position_xz&0xFFFF)*3.0/65535.0 - 1;
+        //to.position.z = (from.position_xz>>16)*3.0/65535.0 - 1;
+        to.position.y = from.position_y;
+        to.height = f16tof32(from.vAngle_height>>16);
+        to.size = f16tof32(from.random_size_rotation);
+        to.random = ((from.random_size_rotation>>16)&255)*(1.0f/255.f);
+        to.rotation = ((from.random_size_rotation>>24)*(2.*2.*PI/255.0f) - 2*PI);
+        to.landColor = float3((from.landColor_tv&255), ((from.landColor_tv>>8)&255), ((from.landColor_tv>>16)&255)) *(1.0f/255.0f);
+        to.grassType = (from.landColor_tv>>24)&31;
+        to.grassVariation = (from.landColor_tv>>29);
+        //to.landNormal.x = uncompress_normal_float(from.land_normal&0xff);
+        //to.landNormal.z = uncompress_normal_float((from.land_normal>>8)&0xff);
+        to.landNormal.x = f16tof32(from.land_normal);
+        to.landNormal.z = f16tof32(from.land_normal>>16);
+        to.landNormal.y = sqrt(1-to.landNormal.x*to.landNormal.x - to.landNormal.z*to.landNormal.z);
+        to.vAngle = f16tof32(from.vAngle_height);
+        to.opacity = from.opacity;
+        to.lodNo = from.lodNo >> 2;
+        int landNormalSign = (from.lodNo >> 1) & 1 ? 1 : -1;
+        to.landNormal.y *= landNormalSign;
+        to.worldYOrientation = from.lodNo & 1;
+        return to;
+      }
+    #endif
+
+    float fast_atan2(float y, float x)
+    {
+      float pi = PI;
+      float coeff_1 = pi / 4.0;
+      float coeff_2 = 3.0 * coeff_1;
+      float abs_y = abs(y) + 1e-10;//to fix nan in 0, 0
+      //float abs_y = abs(y);
+      float angle, r;
+      float x_add_abs_y = (x + abs_y);
+      float x_sub_abs_y = (x - abs_y);
+      angle = ( x >= 0.0 ) ?
+              (coeff_1 - coeff_1 * x_sub_abs_y * rcp(x_add_abs_y)) :
+              (coeff_2 + coeff_1 * x_add_abs_y * rcp(x_sub_abs_y));
+      return sign(y) * angle;
+    }
+
+    float calcLodDistScale(float distanceToCamera)
+    {
+      #if GRASS_LOD_ON
+        //int lodNo = grass_grid_params.z>0.25 ? 1 : 0;//fixme:!!!
+
+        //== lod feathers logic
+        /*##if LOD_FEATHERS
+          float angle = fast_atan2(worldCameraPos.x, worldCameraPos.y);
+          //float distScale = pow2(noise_value1D(angle*10+lodNo));
+          float distScale = pow2(sin(angle*10+grass_gen_lod.z));
+          invWorldMaxDistance /= pow2(lerp(0.8, 1, distScale));//lod feathers
+        #endif*/
+
+        //float lod_dist_scale = distanceToCamera*grass_gen_lod.w; //float invWorldMaxDistance = grass_gen_lod.w;
+        //lod_dist_scale = max(10*grass_gen_lod.y*lod_dist_scale + 10*grass_gen_lod.z-9.4, 4*lod_dist_scale-3);
+        float lod_dist_scale = max(distanceToCamera*grass_gen_lod.x + grass_gen_lod.y, distanceToCamera*grass_gen_lod.z + grass_gen_lod.w);
+        //lod_dist_scale = 4*lod_dist_scale-3;
+        //if (grass_gen_lod.z==0)
+        //return;
+        if (lod_dist_scale >= 1)//if (lod_dist_scale > 1 || (lodNo==1 && lod_dist_scale<startLod1))
+          return -1;
+        lod_dist_scale = saturate(1-lod_dist_scale);
+      #else
+        float lod_dist_scale = 1;
+      #endif
+
+      return lod_dist_scale;
+    }
+
+    void get_grass_sizes_density(uint grassType, float maskScale, float grass_size_rnd, out float2 height_horSize, out float probability, out bool is_horizonal, out bool is_underwater)
+    {
+      float4 sizes = grass_types_cb.grass_type_params[grassType].sizes;
+      float4 ht_from_w__density_from_w = grass_types_cb.grass_type_params[grassType].ht_from_w__density_from_w;
+      height_horSize = (sizes.xz + sizes.yw*grass_size_rnd);
+      is_horizonal = ht_from_w__density_from_w.x < 0;//todo: replace with vertical_angle_add comparison
+      is_underwater = grass_types_cb.grass_type_params[grassType].size_lod_mul.x<0;
+      //is_horizonal = grass_types_cb.grass_type_params[grassType].vertical_angle_add >= (PI/2-0.03);//replace with vertical_angle_add comparison
+      height_horSize *= (abs(ht_from_w__density_from_w.x)*maskScale + ht_from_w__density_from_w.y);//remove abs
+      probability = (ht_from_w__density_from_w.z*maskScale + ht_from_w__density_from_w.w);
+    }
+
+    #define sampleGrassMaskParams(tex, tc) tex2Dlod(tex, float4(tc,0,0))
+    // Alternative sampling:
+    // float4 green = grass_mask_tex.GatherGreen(grass_mask_tex_samplerstate, grass_mask_tc);//(-,+),(+,+),(+,-),(-,-),
+    // maskTex.g = lerp(lerp(green.y, green.x, bilW.x), lerp(green.z, green.w, bilW.x), bilW.y);
+    // float maskScale = lerp(lerp(green.w, green.z, bilW.x), lerp(green.x, green.y, bilW.x), bilW.y);
+    // float decals_grass_mask = tex2Dlod(grass_mask_tex, float4(grass_mask_tc,0,0)).a;
+
+    void unpackGrassMaskParams(float4 packedGrassMask, out float maskScale, out float displacementScale, out float decalsGrassMask)
+    {
+      maskScale = packedGrassMask.g;
+      displacementScale = packedGrassMask.b;
+      decalsGrassMask = packedGrassMask.a;
+    }
+
+    uint4 decode_byte4(uint v) {return uint4(v&0xFF, (v>>8)&0xFF, (v>>16)&0xFF, v>>24);}
+    uint getRandomGrassType(uint grassRandomizeType, float grassRandomizeVal)
+    {
+      float4 weights0 = grass_types_cb.grass_channels[grassRandomizeType].random_weights0;
+      float4 weights1 = grass_types_cb.grass_channels[grassRandomizeType].random_weights1;
+      uint4 types0 = decode_byte4(grass_types_cb.grass_channels[grassRandomizeType].random_types.x);
+      uint4 types1 = decode_byte4(grass_types_cb.grass_channels[grassRandomizeType].random_types.y);
+      uint grassType = 255;
+      //should we replace with binary?
+      if (grassRandomizeVal <= weights0.x)
+        grassType = types0.x;
+      else if (grassRandomizeVal <= weights0.y)
+        grassType = types0.y;
+      else if (grassRandomizeVal <= weights0.z)
+        grassType = types0.z;
+      else if (grassRandomizeVal <= weights0.w)
+        grassType = types0.w;
+      else if (grassRandomizeVal <= weights1.x)
+        grassType = types1.x;
+      else if (grassRandomizeVal <= weights1.y)
+        grassType = types1.y;
+      else if (grassRandomizeVal <= weights1.z)
+        grassType = types1.z;
+      else if (grassRandomizeVal <= weights1.w)
+        grassType = types1.w;
+      return grassType;
+    }
+
+    uint getGrassType(float decalsGrassChannel, uint grassChannel, float grassTypeRand, float grassChannelRand, float decals_grass_mask, in out float maskScale)
+    {
+      // decal textures
+      uint decals_grass_channel = floor(decalsGrassChannel*255+0.5);
+      if (decals_grass_mask > 0.1 && decals_grass_channel>0)
+      {
+        float channel_probability = (grass_types_cb.grass_channels[decals_grass_channel].density_from_weight_mul*decals_grass_mask + grass_types_cb.grass_channels[decals_grass_channel].density_from_weight_add);
+        FLATTEN
+        if (channel_probability >= grassTypeRand && decals_grass_mask > 0.1)
+        {
+          grassChannel = decals_grass_channel;
+          maskScale = decals_grass_mask;
+        }
+      }
+
+      uint grassType = 255;
+      BRANCH
+      if (grassChannel < GRASS_MAX_CHANNELS)
+        grassType = getRandomGrassType(grassChannel, grassChannelRand);
+
+      return grassType;
+    }
+
+    half getVAngle(uint grassType, float random_high)
+    {
+      //vAngle = is_horizontal ? PI/2+VERT_ROT_FOR_HORIZONTAL_GRASS*vAngle : (VERT_ROT_FOR_VERTICAL_GRASS*vAngle-VERT_ROT_FOR_VERTICAL_GRASS*PI);
+      return grass_types_cb.grass_type_params[grassType].vertical_angle_mul*random_high + grass_types_cb.grass_type_params[grassType].vertical_angle_add;
+      //vAngle = is_horizontal ? PI/2+VERT_ROT_FOR_HORIZONTAL_GRASS*vAngle : (VERT_ROT_FOR_VERTICAL_GRASS*vAngle-VERT_ROT_FOR_VERTICAL_GRASS*PI);
+    }
+
+    //random (fixme: limit random per type)
+    half getGrassRotation(bool is_horizontal, float2 worldCameraPos, float random_high)
+    {
+      half rotation = is_horizontal ? -random_high : random_high*0.995+0.005;
+
+      #if GRASS_LOD_ON
+      float billboard_rotation = fast_atan2(worldCameraPos.x, worldCameraPos.y);
+      billboard_rotation = (billboard_rotation/(2*PI) + 0.5);
+      if (grass_gen_lod_index > 0 && !is_horizontal)
+      {
+        billboard_rotation = rotation > 0.5 ? (billboard_rotation + 0.5)%1.f : billboard_rotation;
+        rotation = billboard_rotation*0.995+0.005;
+      }
+      #endif
+
+      return rotation;
+    }
+  }
+endmacro
+
+macro USE_GRASS_PUSH_INSTANCE(code)
+  hlsl(code)
+  {
+    #include <waveUtils.hlsl>
+    void pushGrassInstance(GrassInstanceUncompressed inst)
+    {
+      GrassInstance compressedInstance = compress_instance(inst);
+      uint at;
+      ##if grass_instancing == off
+        ##if grass_use_quads == yes
+          WaveInterlockedAddRawUintOriginal(grassCount, 0, 4, at); at/=4;
+        ##else
+          WaveInterlockedAddRawUintOriginal(grassCount, 0, 6, at); at/=6;
+        ##endif
+        //adreno GPUs crashes on indirect draw with (vertexCount == 0) && (instanceCount > 0)
+        ##if hardware.vulkan
+          if (at == 0)
+            grassCount.InterlockedOr(4, 1u);
+        ##endif
+      ##else
+        WaveInterlockedAddRawUintOriginal(grassCount, 1, 1, at);
+      ##endif
+      if (at < grass_max_instance_count)
+        grass[at] = compressedInstance;
+    }
+  }
+endmacro

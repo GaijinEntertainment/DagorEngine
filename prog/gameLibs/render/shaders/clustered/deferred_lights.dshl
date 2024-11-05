@@ -25,6 +25,7 @@ macro DEFERRED_LIGHTS_COMMON_SHADER()
     #define LAMBERT_LIGHT 1
     #define DYNAMIC_LIGHTS_EARLY_EXIT 0
   }
+  INIT_POINT_LIGHTS_AO(ps)
 endmacro
 
 macro DEFERRED_OMNI_LIGHTS_VS_SHADER()
@@ -116,12 +117,11 @@ macro DEFERRED_SPOT_LIGHTS_VS_SHADER()
       ##endif
       float4 pos_and_radius    = sl.lightPosRadius;
       float4 color_and_attenuation = sl.lightColorAngleScale;
-      color_and_attenuation.w = abs(color_and_attenuation.w);
       float4 dir_angle = sl.lightDirectionAngleOffset;
 
       const float lightAngleScale = color_and_attenuation.a;
       const float lightAngleOffset = dir_angle.a;
-      float2 texId_scale = sl.texId_scale.xy;
+      float2 texId_scale = sl.texId_scale_shadow_contactshadow.xy;
 
       float cosOuter = -lightAngleOffset/lightAngleScale;
       float halfTan = sqrt(1/(cosOuter*cosOuter)-1);

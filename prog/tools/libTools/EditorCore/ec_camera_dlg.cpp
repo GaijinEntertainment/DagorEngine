@@ -1,7 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EditorCore/ec_camera_dlg.h>
 
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_mathBase.h>
+#include <propPanel/control/container.h>
 
 void Inertia::load(const DataBlock &blk)
 {
@@ -149,7 +152,7 @@ enum
 //-----------------------------------------------------------------------------
 
 
-FreeCameraTab::FreeCameraTab(PropertyContainerControlBase *tab_page, CameraConfig *config) :
+FreeCameraTab::FreeCameraTab(PropPanel::ContainerPropertyControl *tab_page, CameraConfig *config) :
 
   mTabPage(tab_page), mConfig(config)
 {
@@ -200,7 +203,7 @@ void FreeCameraTab::onOk()
 //-----------------------------------------------------------------------------
 
 
-FPSCameraTab::FPSCameraTab(PropertyContainerControlBase *tab_page, CameraConfig *options) : FreeCameraTab(tab_page, options)
+FPSCameraTab::FPSCameraTab(PropPanel::ContainerPropertyControl *tab_page, CameraConfig *options) : FreeCameraTab(tab_page, options)
 {
   mTabPage->createSeparator(0);
 
@@ -244,7 +247,7 @@ void FPSCameraTab::onOk()
 //-----------------------------------------------------------------------------
 
 
-TPSCameraTab::TPSCameraTab(PropertyContainerControlBase *tab_page, CameraConfig *options) : FPSCameraTab(tab_page, options)
+TPSCameraTab::TPSCameraTab(PropPanel::ContainerPropertyControl *tab_page, CameraConfig *options) : FPSCameraTab(tab_page, options)
 {
   mTabPage->createSeparator(0);
 
@@ -285,14 +288,14 @@ void TPSCameraTab::onOk()
 CamerasConfigDlg::CamerasConfigDlg(void *phandle, CameraConfig *max_cc, CameraConfig *free_cc, CameraConfig *fps_cc,
   CameraConfig *tps_cc) :
 
-  CDialogWindow(phandle, hdpi::_pxScaled(570), hdpi::_pxScaled(440), "Camera settings"),
+  DialogWindow(phandle, hdpi::_pxScaled(570), hdpi::_pxScaled(440), "Camera settings"),
 
   mConfig(max_cc)
 {
-  PropertyContainerControlBase *_panel = getPanel();
+  PropPanel::ContainerPropertyControl *_panel = getPanel();
   G_ASSERT(_panel && "No panel in CamerasConfigDlg");
 
-  PropertyContainerControlBase *_tpanel = _panel->createTabPanel(DIALOG_TAB_PANEL, "");
+  PropPanel::ContainerPropertyControl *_tpanel = _panel->createTabPanel(DIALOG_TAB_PANEL, "");
 
   mTabPage = _tpanel->createTabPage(DIALOG_TAB_MAX, "MAX-like camera");
   {
@@ -307,7 +310,7 @@ CamerasConfigDlg::CamerasConfigDlg(void *phandle, CameraConfig *max_cc, CameraCo
     mTabPage->createStatic(0, "", false);
   }
 
-  PropertyContainerControlBase *_tpage = _tpanel->createTabPage(DIALOG_TAB_FREE, "Free camera");
+  PropPanel::ContainerPropertyControl *_tpage = _tpanel->createTabPage(DIALOG_TAB_FREE, "Free camera");
   mFreeCameraTab = new FreeCameraTab(_tpage, free_cc);
 
   _tpage = _tpanel->createTabPage(DIALOG_TAB_FPS, "FPS camera");

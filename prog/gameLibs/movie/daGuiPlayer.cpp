@@ -1,9 +1,11 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <movie/fullScreenMovie.h>
 #include <videoPlayer/dag_videoPlayer.h>
 #include <debug/dag_debug.h>
 #include <util/dag_localization.h>
-#include <3d/dag_drv3d.h>
-#include <3d/dag_drv3d_platform.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_platform.h>
 #include <3d/dag_picMgr.h>
 #include <stdlib.h>
 #include <workCycle/dag_workCycle.h>
@@ -42,7 +44,7 @@ public:
   virtual IGenVideoPlayer *reopenMem(dag::ConstSpan<char> data)
   {
     (void)data;
-    debug_ctx("not implemented");
+    DEBUG_CTX("not implemented");
     destroy();
     return NULL;
   }
@@ -142,11 +144,11 @@ public:
       fade = 1.0 - float(length - cur) / float(fadeOutTime);
     }
 
-    StdGuiRender::set_texture(BAD_TEXTUREID);
+    StdGuiRender::reset_textures();
     StdGuiRender::set_color(0, 0, 0, (int)(255.f * fade));
     StdGuiRender::render_quad(Point2(0, 0), Point2(0, h), Point2(w, h), Point2(w, 0), Point2(0, 0), Point2(0, 1), Point2(1, 1),
       Point2(1, 0));
-    StdGuiRender::set_texture(BAD_TEXTUREID);
+    StdGuiRender::reset_textures();
 
     StdGuiRender::end_render();
 

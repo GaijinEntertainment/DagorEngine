@@ -1,9 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 /************************************************************************
   equal material gather
 ************************************************************************/
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef __EQMATGATHER_H
-#define __EQMATGATHER_H
 
 #include <3d/dag_materialData.h>
 #include <generic/dag_ptrTab.h>
@@ -110,7 +110,3 @@ public:
   }
 
 }; // class EqualMaterialGather
-//
-
-
-#endif //__EQMATGATHER_H

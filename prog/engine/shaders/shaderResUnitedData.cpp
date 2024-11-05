@@ -1,7 +1,10 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <shaders/dag_shaderResUnitedData.h>
 #include <shaders/dag_rendInstRes.h>
 #include <shaders/dag_dynSceneRes.h>
 #include <perfMon/dag_cpuFreq.h>
+#include <memory/dag_framemem.h>
 #include <util/dag_delayedAction.h>
 #include <osApiWrappers/dag_threads.h>
 #include <osApiWrappers/dag_miscApi.h>
@@ -9,6 +12,15 @@
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
 #include <EASTL/algorithm.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_lock.h>
+#include <gameRes/dag_resourceNameResolve.h>
+
+#if CAM_STUB
+static const TMatrix &get_cam_itm() { return TMatrix::IDENT; }
+#else
+const TMatrix &get_cam_itm();
+#endif
 
 namespace unitedvdata
 {
@@ -59,9 +71,9 @@ unitedvdata::BufConfig::BufConfig(const DataBlock &hints_blk, int maxVbSize) : B
     snprintf(pnm, sizeof(pnm), "VB%d", i);
     int vbVal = hints_blk.getInt(pnm, maxVbSize >> 10);
     vbSz[i] = vbVal << 10;
-    debug("  %s=%dK", pnm, vbVal);
-    if (!vbVal)
+    if (!vbVal) // Term
       break;
+    debug("  %s=%dK", pnm, vbVal);
   }
 
   ibMinAdd = hints_blk.getInt("ibMinAdd", (ALIGN_64K + 1) >> 10) << 10;
@@ -71,9 +83,11 @@ unitedvdata::BufConfig::BufConfig(const DataBlock &hints_blk, int maxVbSize) : B
   vbMinAdd = hints_blk.getInt("vbMinAdd", (ALIGN_1M + 1) >> 10) << 10;
   vbMaxAdd = hints_blk.getInt("vbMaxAdd", 65536) << 10;
   vbAddPromille = hints_blk.getInt("vbAddPromille", 100);
+  exactSize = hints_blk.getBool("exactSize", exactSize);
+  dumpResListOnAddResFail = hints_blk.getBool("dumpResListOnAddResFail", dumpResListOnAddResFail);
 
-  debug("  ibAdd(%%/min/max)=%.1f%% / %dK / %dK, vbAdd(%%/min/max)=%.1f%% / %dK / %dK", ibAddPromille / 10.f, ibMinAdd >> 10,
-    ibMaxAdd >> 10, vbAddPromille / 10.f, vbMinAdd >> 10, vbMaxAdd >> 10);
+  debug("  ibAdd(%%/min/max)=%.1f%% / %dK / %dK, vbAdd(%%/min/max)=%.1f%% / %dK / %dK, exactSize=%d", ibAddPromille / 10.f,
+    ibMinAdd >> 10, ibMaxAdd >> 10, vbAddPromille / 10.f, vbMinAdd >> 10, vbMaxAdd >> 10, exactSize);
 }
 
 template <class RES>
@@ -82,6 +96,10 @@ void ShaderResUnitedVdata<RES>::setHints(const DataBlock &hints_blk)
   BufConfig localHints{hints_blk, buf.maxVbSize};
   std::lock_guard lock{hintsMutex};
   hints = localHints;
+
+  noDiscardFrames = hints_blk.getInt("noDiscardFrames", noDiscardFrames);
+  keepIfNeedLodFrames = hints_blk.getInt("keepIfNeedLodFrames", keepIfNeedLodFrames);
+  requestLodsByDistanceFrames = hints_blk.getInt("requestLodsByDistanceFrames", requestLodsByDistanceFrames);
 }
 
 template <class RES>
@@ -230,10 +248,10 @@ static bool allocBufChunk(BufChunk &out_c, Tab<BufChunk> &free_chunks, int strid
 
 BufChunk unitedvdata::BufPool::allocChunkForStride(int s, int req_avail_sz, const BufConfig &hints)
 {
-  if (EASTL_UNLIKELY(!sbuf[IDX_IB] && pool.empty()))
+  if (DAGOR_UNLIKELY(!sbuf[IDX_IB] && pool.empty()))
   {
     pool.push_back(PoolSize());
-    if (!allocatePool(0, hints.ibSz))
+    if (!allocatePool(IDX_IB, hints.ibSz, hints))
       return BufChunk();
   }
 
@@ -260,9 +278,12 @@ BufChunk unitedvdata::BufPool::allocChunkForStride(int s, int req_avail_sz, cons
   if (!buf_sz)
     return BufChunk();
 
-  sbuf.push_back(nullptr);
-  pool.push_back(PoolSize());
-  if (!allocatePool(idx, buf_sz))
+  { // To avoid colliding with `addRes/updateVdata`
+    std::lock_guard<std::mutex> lock(updateMutex);
+    sbuf.push_back(nullptr);
+    pool.push_back(PoolSize());
+  }
+  if (!allocatePool(idx, buf_sz, hints))
     return BufChunk();
 
   allocBufChunk(c, freeChunks[idx], s, req_avail_sz, 3 * s);
@@ -322,7 +343,8 @@ bool unitedvdata::BufPool::arrangeVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd
   for (int i = 0; i < usedStride.size(); i++)
   {
     BufChunk c = allocChunkForStride(usedStride[i], usedSize[i], hints);
-    if (can_fail && !c.sz)
+    const bool emptyIBAllowed = usedStride[i] == IDX_IB && usedSize[i] == 0;
+    if (can_fail && !c.sz && !emptyIBAllowed)
     {
       if (vbShortage && ibShortage)
       {
@@ -337,8 +359,9 @@ bool unitedvdata::BufPool::arrangeVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd
       out_c.clear(); // report failed allocation
       return true;
     }
-    G_ASSERTF(c.sz, "allocChunkForStride(%d, %d) failed, c={ofs=%d sz=%d vbIdx=%d} top.chunk={ofs=%d sz=%d}\n%s", usedStride[i],
-      usedSize[i], c.ofs, c.sz, c.vbIdx, get_top_chunk_ofs(freeChunks[i]), get_top_chunk_size(freeChunks[i]), getStatStr());
+    G_ASSERTF(c.sz || emptyIBAllowed, "allocChunkForStride(%d, %d) failed, c={ofs=%d sz=%d vbIdx=%d} top.chunk={ofs=%d sz=%d}\n%s",
+      usedStride[i], usedSize[i], c.ofs, c.sz, c.vbIdx, get_top_chunk_ofs(freeChunks[i]), get_top_chunk_size(freeChunks[i]),
+      getStatStr());
     usedSize[i] = c.vbIdx;
     out_c.push_back(c);
   }
@@ -453,7 +476,7 @@ static size_t round_up(size_t x)
 
 } // namespace unitedvdata
 
-bool unitedvdata::BufPool::allocateBuffer(int idx, size_t size, const char *name)
+bool unitedvdata::BufPool::allocateBuffer(int idx, size_t size, const char *name_fmt)
 {
   G_ASSERTF(!sbuf[idx] && (!freeChunks[idx].size() || allowRebuild), "sbuf[%d]=%p freeChunks[%d].count=%d allowRebuild=%d", idx,
     sbuf[idx], idx, freeChunks[idx].size(), allowRebuild);
@@ -461,8 +484,9 @@ bool unitedvdata::BufPool::allocateBuffer(int idx, size_t size, const char *name
   const bool isIb = idx == IDX_IB;
   const int flags = (isIb ? SBCF_BIND_INDEX : SBCF_BIND_VERTEX) | SBCF_BIND_SHADER_RES | get_optional_buffer_flags();
 
-
-  Sbuffer *candidate = d3d::create_sbuffer(4, round_up<4>(size) / 4, flags, 0, name);
+  char bufName[32];
+  snprintf(bufName, sizeof(bufName), name_fmt, nameChar, idx != IDX_IB ? 'v' : 'i', idx);
+  Sbuffer *candidate = d3d::create_sbuffer(4, round_up<4>(size) / 4, flags, 0, bufName);
 
   if (candidate)
   {
@@ -475,7 +499,7 @@ bool unitedvdata::BufPool::allocateBuffer(int idx, size_t size, const char *name
   return candidate != nullptr;
 }
 
-bool unitedvdata::BufPool::allocatePool(int idx, size_t hint_sz)
+bool unitedvdata::BufPool::allocatePool(int idx, size_t hint_sz, const BufConfig &hints)
 {
   G_ASSERT(!sbuf[idx]);
 
@@ -489,11 +513,14 @@ bool unitedvdata::BufPool::allocatePool(int idx, size_t hint_sz)
 
   if (!allowRebuild)
   {
-    // when rebuild is not allowed, we try to pre-allocate more memory for each buffer
-    if (isIb)
-      hint_sz = min(max(hint_sz, hint_sz ? size_t(1 << 20) : size_t(32 << 20)), maxSize);
-    else
-      hint_sz = min(max(hint_sz, idx == IDX_VB_START ? (8 << 20) : (size_t)pool[idx - 1].getSize() * 2), maxSize);
+    if (!hints.exactSize)
+    {
+      // when rebuild is not allowed, we try to pre-allocate more memory for each buffer
+      if (isIb)
+        hint_sz = min(max(hint_sz, hint_sz ? size_t(1 << 20) : size_t(32 << 20)), maxSize);
+      else
+        hint_sz = min(max(hint_sz, idx == IDX_VB_START ? (8 << 20) : (size_t)pool[idx - 1].getSize() * 2), maxSize);
+    }
   }
   else
   {
@@ -502,7 +529,7 @@ bool unitedvdata::BufPool::allocatePool(int idx, size_t hint_sz)
     return true;
   }
 
-  return allocateBuffer(idx, hint_sz, isIb ? "united_ib" : "united_vb");
+  return allocateBuffer(idx, hint_sz);
 }
 
 bool unitedvdata::BufPool::createSbuffers(const BufConfig &hints, bool tight)
@@ -514,12 +541,13 @@ bool unitedvdata::BufPool::createSbuffers(const BufConfig &hints, bool tight)
       G_ASSERTF(top >= 0, "freeChunks[i].size()=%d top=%d", freeChunks[i].size(), top);
       BufChunk &tc = freeChunks[i][top];
       bool allocated = false;
-      if (tight)
-        allocated = allocateBuffer(i, tc.ofs, i == IDX_IB ? "tight_ib" : "tight_vb");
+      if (!tight)
+      {
+        size_t bsz = align_buf_size(allowDelRes ? tc.end() : tc.ofs, i >= IDX_VB_START, i == IDX_IB ? 0 : maxVbSize, hints);
+        allocated = allocateBuffer(i, bsz);
+      }
       else
-        allocated =
-          allocateBuffer(i, align_buf_size(allowDelRes ? tc.end() : tc.ofs, i >= IDX_VB_START, i == IDX_IB ? 0 : maxVbSize, hints),
-            i == IDX_IB ? "united_ib" : "united_vb");
+        allocated = allocateBuffer(i, tc.ofs, "%ctight_%cb#%x");
       tc.sz = pool[i].getSize() - tc.ofs;
       if (!allocated)
         return false;
@@ -572,24 +600,27 @@ String unitedvdata::BufPool::getStatStr() const
   }
   if (allowDelRes)
   {
-    s += " Avail: ";
+    s += "\nAvail: ";
     for (int i = 0; i < pool.size(); i++)
     {
-      int sum = 0;
-      int max_c = 0;
-      for (const BufChunk &c : freeChunks[i])
+      int sum = 0, max_c = 0;
+      for (auto &c : freeChunks[i])
       {
         sum += c.sz;
-        if (max_c < c.sz)
-          max_c = c.sz;
+        max_c = eastl::max(max_c, (int)c.sz);
       }
       if (sum > 0)
-        s.aprintf(0, "%s[%d]=%dK:%d{max=%dK} ", i == IDX_IB ? "ib" : "vb", i, sum >> 10, freeChunks[i].size(), max_c >> 10);
+        s.aprintf(0, "%s[%d]=%dK:%d{max=%dK,ocp=%.1f%%,frag=%.1f%%} ", i == IDX_IB ? "ib" : "vb", i, sum >> 10, freeChunks[i].size(),
+          max_c >> 10, (pool[i].getSize() - sum) / (float)pool[i].getSize() * 100.f, (sum - max_c) / float(sum) * 100.f);
     }
   }
   s.aprintf(0, " (total %dM+%dM=%dM) ", ib_total >> 20, vb_total >> 20, (ib_total + vb_total) >> 20);
   return s;
 }
+
+template <class RES>
+ShaderResUnitedVdata<RES>::ShaderResUnitedVdata() : buf(*RES::getStaticClassName())
+{}
 
 template <class RES>
 void ShaderResUnitedVdata<RES>::prepareVdataBaseOfs(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list, Tab<int> &dviOfs)
@@ -671,7 +702,7 @@ void ShaderResUnitedVdata<RES>::updateVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> 
 template <class RES>
 void ShaderResUnitedVdata<RES>::rebaseElemOfs(const RES *r, dag::ConstSpan<int> dviOfs)
 {
-  Tab<dag::ConstSpan<ShaderMesh::RElem>> relems;
+  Tab<dag::ConstSpan<ShaderMesh::RElem>> relems(framemem_ptr());
   RES::lockClonesList();
   for (const RES *rx = r->getFirstOriginal(); rx; rx = rx->getNextClone())
     // we can utilize rx->getUsedLods() only when all smvd"s return areLodsSplit()=1; otherwise we must use rx->lods
@@ -691,15 +722,23 @@ void ShaderResUnitedVdata<RES>::rebaseElemOfs(const RES *r, dag::ConstSpan<int> 
               if (e.vertexData >= vdata.data() && e.vertexData < vdata.data() + vdata.size())
               {
                 int i = dvi_base + (e.vertexData - vdata.data()) * 2;
-                const_cast<ShaderMesh::RElem &>(e).si += e.vertexData->iOfs - dviOfs[i + 1];
-                const_cast<ShaderMesh::RElem &>(e).baseVertex += e.vertexData->vOfs - dviOfs[i + 0];
+                if (const_cast<ShaderMesh::RElem &>(e).si != RELEM_NO_INDEX_BUFFER)
+                {
+                  const_cast<ShaderMesh::RElem &>(e).baseVertex += e.vertexData->vOfs - dviOfs[i + 0];
+                  const_cast<ShaderMesh::RElem &>(e).si += e.vertexData->iOfs - dviOfs[i + 1];
+                }
+                else
+                {
+                  const_cast<ShaderMesh::RElem &>(e).sv += e.vertexData->vOfs - dviOfs[i + 0];
+                  const_cast<ShaderMesh::RElem &>(e).baseVertex += e.vertexData->vOfs - dviOfs[i + 0];
+                }
               }
               dvi_base += vdata.size() * 2;
             }
         }
     }
   RES::unlockClonesList();
-  on_mesh_relems_updated.fire(r);
+  on_mesh_relems_updated.fire(r, false);
 }
 
 template <class RES>
@@ -803,6 +842,7 @@ inline void ShaderResUnitedVdata<RES>::doUpdateJob(UpdateModelCtx &ctx)
     return;
   }
 
+  ctx.res->incQlReloadCnt();
   for (int i = 0; i < res_smvd.size(); i++)
     ctx.tmp_smvd[i] = ShaderMatVdata::make_tmp_copy(res_smvd[i], ctx.reqLod);
 
@@ -878,7 +918,22 @@ inline void ShaderResUnitedVdata<RES>::releaseUpdateJob(UpdateModelCtx &ctx)
   }
 
   d3d::GpuAutoLock render_lock;
+
+#if _TARGET_C1 || _TARGET_C2
+
+
+
+
+
+
+
+
+
+
+
+#else
   std::lock_guard<std::mutex> scopedLock(appendMutex);
+#endif
   int idx = find_value_idx(resList, ctx.res);
   if (idx < 0)
   {
@@ -919,6 +974,8 @@ bool ShaderResUnitedVdata<RES>::reloadRes(RES *res)
   std::lock_guard<std::mutex> scopedLock(appendMutex);
   if (reloadJobMgrId < 0)
   {
+    char jobMgrName[64];
+    snprintf(jobMgrName, sizeof(jobMgrName), "%sReloadVdata", RES::getStaticClassName());
     reloadJobMgrId = cpujobs::create_virtual_job_manager(256 << 10, WORKER_THREADS_AFFINITY_MASK, jobMgrName);
     register_job_manager_requiring_shaders_bindump(reloadJobMgrId);
   }
@@ -968,10 +1025,18 @@ void ShaderResUnitedVdata<RES>::downgradeRes(RES *res, int upper_lod)
   G_ASSERTF(is_main_thread() || res->getQlReqLFU() + 120 <= dagor_frame_no() || res->getRefCount() <= 2 || get_inst_count(res) == 0,
     "res=%p upper_lod=%d res->getQlBestLod()=%d relLFU=%d rc=%d inst=%d", res, upper_lod, res->getQlBestLod(),
     int(dagor_frame_no() - res->getQlReqLFU()), res->getRefCount(), get_inst_count(res));
-  if (upper_lod < res->getQlReqLodEff())
-    res->updateReqLod(upper_lod);
   BufChunkTab out_c1, out_c2;
   int idx = find_value_idx(resList, res);
+  if (res->getQlBestLod() + 1 == upper_lod)
+  {
+    unsigned ib_sum = 0, vb_sum = 0;
+    for (const BufChunk &c : getBufChunks(idx))
+      (c.vbIdx == BufPool::IDX_IB ? ib_sum : vb_sum) += c.sz;
+    if (ib_sum < (12 << 10) && vb_sum < (64 << 10)) // don't unload single LOD when resource is small anyway
+      return;
+  }
+  if (upper_lod < res->getQlReqLodEff())
+    res->updateReqLod(upper_lod);
   buf.getSeparateChunks(res->getSmvd(), upper_lod, make_span(resUsedChunks[idx]), out_c1, out_c2);
   resUsedChunks[idx] = out_c1;
   if (upper_lod >= res->lods.size())
@@ -987,6 +1052,7 @@ void ShaderResUnitedVdata<RES>::downgradeRes(RES *res, int upper_lod)
   if (!out_c2.size())
     return;
 
+  res->incQlDiscardCnt();
   updateLocalMaximum(dbg_level >= 0);
   buf.releaseBufChunk(out_c2, true);
   for (BufChunk &c0 : out_c2)
@@ -1025,13 +1091,14 @@ void ShaderResUnitedVdata<RES>::discardUnusedResToFreeReqMemNoLock(bool forced)
     bool discard_at_all = res->getRefCount() <= 2 || get_inst_count(res) == 0; // no instances created
     if (!discard_at_all)
     {
-      if (res->getQlReqLFU() + 120 > dagor_frame_no())
+      if (res->getQlReqLFU() + noDiscardFrames > dagor_frame_no())
         continue;
-      if (res->getQlReqLodEff() <= res->getQlBestLod() && res->getQlReqLFU() + 600 > dagor_frame_no())
+      if (res->getQlReqLodEff() <= res->getQlBestLod() && res->getQlReqLFU() + keepIfNeedLodFrames > dagor_frame_no())
         continue;
     }
 
-    downgradeRes(res, (discard_at_all || res->getQlReqLFU() + 600 <= dagor_frame_no()) ? res->lods.size() - 1 : res->getQlReqLodEff());
+    downgradeRes(res,
+      (discard_at_all || res->getQlReqLFU() + keepIfNeedLodFrames <= dagor_frame_no()) ? res->lods.size() - 1 : res->getQlReqLodEff());
     if (vbSizeToFree <= 0 && ibSizeToFree <= 0)
       break;
   }
@@ -1043,9 +1110,11 @@ void ShaderResUnitedVdata<RES>::discardUnusedResToFreeReqMemNoLock(bool forced)
         continue;
       if (res->getQlReqLodEff() <= res->getQlBestLod())
         continue;
+      if (res->getQlReqLFU() + requestLodsByDistanceFrames >= dagor_frame_no())
+        continue;
 
       downgradeRes(res, res->getQlReqLodEff());
-      if (vbSizeToFree <= 0 && ibSizeToFree <= 0)
+      if (vbSizeToFree <= -(128 << 10) && ibSizeToFree <= -(24 << 10))
         break;
     }
 
@@ -1092,7 +1161,7 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
       resUsedChunks.push_back() = c;
   }
 
-  if (resList.size() > prev_res_count)
+  if (int nToLoad = resList.size() - prev_res_count; nToLoad > 0)
   {
     // just append data to shared buffer, required space is available
     dviOfs.reserve(8 * 2);
@@ -1101,11 +1170,20 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
       logerr("unitedVdata<%s>: failed allocate one or more pre-reserved buffers (%d VBs, %s)", RES::getStaticClassName(),
         buf.getVbCount(), buf.getStatStr());
 
-    for (int i = prev_res_count; i < resList.size(); i++)
-      updateVdata(resList[i], buf, dviOfs, buf_stor, getBufChunks(i));
+    for (int i = prev_res_count, n = resList.size(); i < n; i++)
+    {
+      auto r = resList[i];
+      auto chunks = getBufChunks(i);
+      appendMutex.unlock(); // Unlock to avoid stalling main thread (e.g. in `releaseUpdateJob`)
+
+      updateVdata(r, buf, dviOfs, buf_stor, chunks);
+
+      appendMutex.lock(); // Re-lock
+    }
+
     if (dbg_level > 0 || buf.pool.size() > prev_pools)
-      debug("unitedVdata<%s>: added %d res (%d total), %d VBs, %s for %d usec", RES::getStaticClassName(),
-        resList.size() - prev_res_count, resList.size(), buf.getVbCount(), buf.getStatStr(), get_time_usec(reft));
+      debug("unitedVdata<%s>: added %d res (%d total), %d VBs, %s for %d usec", RES::getStaticClassName(), nToLoad,
+        prev_res_count + nToLoad, buf.getVbCount(), buf.getStatStr(), get_time_usec(reft));
   }
 
   if (unarranged_res.size() && buf.allowDelRes) // not enough free mem, discard unused res and retry
@@ -1114,6 +1192,7 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
       RES::getStaticClassName(), res.size(), unarranged_res.size(), ibSizeToFree >> 10, vbSizeToFree >> 10);
     discardUnusedResToFreeReqMemNoLock(true);
     Tab<RES *> res2(eastl::move(unarranged_res));
+    dviOfs.reserve(8 * 2);
     for (RES *r : res2)
     {
       BufChunkTab c;
@@ -1126,9 +1205,15 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
       }
 
       resList.push_back(r);
-      if (buf.allowDelRes)
-        resUsedChunks.push_back() = c;
+      resUsedChunks.push_back() = c;
+      appendMutex.unlock(); // Unlock to avoid stalling main thread (e.g. in `releaseUpdateJob`)
+
+      updateVdata(r, buf, dviOfs, buf_stor, c);
+
+      appendMutex.lock(); // Re-lock
     }
+    debug("unitedVdata<%s>: added %d res (%d total), %s", RES::getStaticClassName(), res2.size() - unarranged_res.size(),
+      resList.size(), buf.getStatStr());
   }
   if (unarranged_res.size() == 0)
   {
@@ -1155,9 +1240,21 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
 
   if (!allowSepTightVdata)
   {
+    eastl::string message;
+    if (!buf.allowRebuild && hints.dumpResListOnAddResFail)
+    {
+      String _1;
+      buildStatusStrNoLock(_1, /*full_res_list*/ true, resolve_game_resource_name);
+      const Point3 &camPos = ::get_cam_itm().getcol(3);
+      message.sprintf("\nusually it means bad lods or too small limits on this location\n"
+                      "camera pos=(%f, %f, %f)\n"
+                      "full registered statistics dumped to debug\n"
+                      "please, send debug log to location artists",
+        camPos.x, camPos.y, camPos.z);
+    }
     // we cannot create res with vdata in separate tight buffers, so just rebuild immediately (if allowed)
-    G_ASSERTF_RETURN(buf.allowRebuild, false, "unitedVdata<%s> OOM, but allowSepTightVdata=%d and allowRebuild=%d, %s",
-      RES::getStaticClassName(), allowSepTightVdata, buf.allowRebuild, buf.getStatStr());
+    G_ASSERTF_RETURN(buf.allowRebuild, false, "unitedVdata<%s> OOM, but allowSepTightVdata=%d and allowRebuild=%d, %s%s",
+      RES::getStaticClassName(), allowSepTightVdata, buf.allowRebuild, buf.getStatStr(), message.c_str());
 
     logwarn("unitedVdata<%s>: starting rebuild (for %d unarranged res), total %d res to gather", RES::getStaticClassName(),
       unarranged_res.size(), resList.size() + unarranged_res.size());
@@ -1182,7 +1279,7 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
         {
           resList.push_back(r);
 
-          BufPool tmp_buf; // we shall not clear this temporary buffer since sbuf[] get owned by res later
+          BufPool tmp_buf(*RES::getStaticClassName()); // we shall not clear this temporary buffer since sbuf[] get owned by res later
           BufConfig tmp_hint;
           BufChunkTab c;
           tmp_buf.allowRebuild = true; //-V1048 // mark as pre-reserve only, without creating Sbuffers in arrangeVdata()
@@ -1215,6 +1312,11 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
   ShaderMatVdata::closeTlsReloadCrd();
   if (!buf.allowRebuild)
   {
+    if (bad_tight_detected && hints.dumpResListOnAddResFail)
+    {
+      String _1;
+      buildStatusStrNoLock(_1, /*full_res_list*/ true, resolve_game_resource_name);
+    }
     logmessage(bad_tight_detected ? LOGLEVEL_ERR : LOGLEVEL_WARN,
       "unitedVdata<%s>: arranged %d res in tight buffers:%s; setup *.gameparams.blk unitedVdata.%s{} ! now %d VBs, %s",
       RES::getStaticClassName(), resList.size() - prev_res_count, tight_stats, RES::getStaticClassName(), buf.getVbCount(),
@@ -1276,7 +1378,7 @@ bool ShaderResUnitedVdata<RES>::delRes(RES *res)
 
   updateLocalMaximum(dbg_level >= 0);
   buf.resetVdataBufPointers(resList[idx]->getSmvd());
-  on_mesh_relems_updated.fire(res);
+  on_mesh_relems_updated.fire(res, true);
   erase_items(resList, idx, 1);
   buf.releaseBufChunk(resUsedChunks[idx], true);
   erase_items(resUsedChunks, idx, 1);
@@ -1370,10 +1472,19 @@ void ShaderResUnitedVdata<RES>::updateLocalMaximum(bool out_peak_to_debug)
         buf.getVbCount(), buf.getStatStr(), maxIbTotalUsed >> 20, maxVbTotalUsed >> 20, (maxIbTotalUsed + maxVbTotalUsed) >> 20);
   }
 }
-template <class RES>
-void ShaderResUnitedVdata<RES>::buildStatusStr(String &out_str, bool full_res_list, bool (*resolve_res_name)(String &nm, RES *r))
+
+static inline int calc_chunks_total_size(dag::ConstSpan<unitedvdata::BufChunk> chunks)
 {
-  std::lock_guard<std::mutex> scopedLock(appendMutex);
+  int res = 0;
+  for (const auto &chunk : chunks)
+    res += chunk.sz;
+  return res;
+}
+
+template <class RES>
+void ShaderResUnitedVdata<RES>::buildStatusStrNoLock(String &out_str, bool full_res_list,
+  bool (*resolve_res_name)(String &nm, const RES *r))
+{
   out_str.printf(0, "registered %d res, %d VBs, %s", resList.size(), buf.getVbCount(), buf.getStatStr());
   if (buf.allowDelRes)
   {
@@ -1389,31 +1500,57 @@ void ShaderResUnitedVdata<RES>::buildStatusStr(String &out_str, bool full_res_li
 
   if (full_res_list)
   {
+    Tab<int> resListSortBySizeIndices;
+    resListSortBySizeIndices.resize(resList.size());
+    for (int i = 0; i < resListSortBySizeIndices.size(); ++i)
+      resListSortBySizeIndices[i] = i;
+    eastl::sort(resListSortBySizeIndices.begin(), resListSortBySizeIndices.end(),
+      [this](int a, int b) { return calc_chunks_total_size(getBufChunks(a)) > calc_chunks_total_size(getBufChunks(b)); });
+
     String tmp_stor;
     String tmp_nm;
     debug("");
     debug("unitedVdata<%s>: registered %d res, frame=%d", RES::getStaticClassName(), resList.size(), dagor_frame_no());
-    for (int i = 0; i < resList.size(); i++)
+    unsigned ib_sum = 0, vb_sum = 0, model_cnt = 0;
+    for (int i : resListSortBySizeIndices)
+    {
       if (resList[i]->getQlReqLFU() && resList[i]->lods.size() > 1)
       {
         bool know_name = resolve_res_name ? resolve_res_name(tmp_nm, resList[i]) : false;
-        debug("%c%cres[%3d]=%p ldLod=%d (%d lods)  qlReqLod=%u  qlReqLFU=%-5u %s LFU.rel=%-4d%c%*s rc=%d inst=%d",
+        debug("%c%cres[%3d]=%p ldLod=%d (%d lods)  qlReqLod=%u  qlReqLFU=%-5u %s LFU.rel=%-4d%c%*s rc=%d inst=%d (rld=%d dgr=%d)",
           resList[i]->getResLoadingFlag() ? '*' : ' ', find_value_idx(failedVdataReloadResList, resList[i]) >= 0 ? '-' : ' ', i,
           resList[i], resList[i]->getQlBestLod(), resList[i]->lods.size(), resList[i]->getQlReqLodEff(), resList[i]->getQlReqLFU(),
           BufPool::calcUsedSizeStr(getBufChunks(i), tmp_stor), dagor_frame_no() - resList[i]->getQlReqLFU(),
-          (dagor_frame_no() > resList[i]->getQlReqLFU() + 600 && resList[i]->getQlBestLod() != resList[i]->lods.size() - 1) ||
-              (dagor_frame_no() > resList[i]->getQlReqLFU() + 120 && resList[i]->getQlBestLod() < resList[i]->getQlReqLodEff())
+          (dagor_frame_no() > resList[i]->getQlReqLFU() + keepIfNeedLodFrames &&
+            resList[i]->getQlBestLod() != resList[i]->lods.size() - 1) ||
+              (dagor_frame_no() > resList[i]->getQlReqLFU() + noDiscardFrames &&
+                resList[i]->getQlBestLod() < resList[i]->getQlReqLodEff())
             ? '*'
             : ' ',
-          know_name ? tmp_nm.length() + 2 : 0, know_name ? tmp_nm.str() : "", resList[i]->getRefCount(), get_inst_count(resList[i]));
+          know_name ? tmp_nm.length() + 2 : 0, know_name ? tmp_nm.str() : "", resList[i]->getRefCount(), get_inst_count(resList[i]),
+          resList[i]->getQlReloadCnt(), resList[i]->getQlDiscardCnt());
+        for (const BufChunk &c : getBufChunks(i))
+          (c.vbIdx == BufPool::IDX_IB ? ib_sum : vb_sum) += c.sz;
+        model_cnt++;
       }
-    for (int i = 0; i < resList.size(); i++)
+    }
+    debug("=== IB=%dK VB=%dK used for %d models", ib_sum >> 10, vb_sum >> 10, model_cnt);
+
+    ib_sum = 0, vb_sum = 0, model_cnt = 0;
+    for (int i : resListSortBySizeIndices)
+    {
       if (!resList[i]->getQlReqLFU() || resList[i]->lods.size() <= 1)
       {
         bool know_name = resolve_res_name ? resolve_res_name(tmp_nm, resList[i]) : false;
-        debug("  res[%3d]=%p ldLod=%d (%d lods) %s%*s", i, resList[i], resList[i]->getQlBestLod(), resList[i]->lods.size(),
-          BufPool::calcUsedSizeStr(getBufChunks(i), tmp_stor), know_name ? tmp_nm.length() + 2 : 0, know_name ? tmp_nm.str() : "");
+        debug("  res[%3d]=%p ldLod=%d (%d lods) %s%*s rc=%d inst=%d", i, resList[i], resList[i]->getQlBestLod(),
+          resList[i]->lods.size(), BufPool::calcUsedSizeStr(getBufChunks(i), tmp_stor), know_name ? tmp_nm.length() + 2 : 0,
+          know_name ? tmp_nm.str() : "", resList[i]->getRefCount(), get_inst_count(resList[i]));
+        for (const BufChunk &c : getBufChunks(i))
+          (c.vbIdx == BufPool::IDX_IB ? ib_sum : vb_sum) += c.sz;
+        model_cnt++;
       }
+    }
+    debug("=== IB=%dK VB=%dK used for %d single-LOD or unused models", ib_sum >> 10, vb_sum >> 10, model_cnt);
   }
 }
 template <class RES>
@@ -1448,6 +1585,13 @@ void ShaderResUnitedVdata<RES>::dumpMemBlocks(String *out_str_summary)
       debug("  --- total free %dK (%d), max_chunk=%dK (%d), total used %dK (%dK)", sum >> 10, sum, max_c >> 10, max_c, used >> 10,
         buf.pool[i].getUsed() >> 10);
   }
+}
+
+template <class RES>
+void ShaderResUnitedVdata<RES>::enumRElems(enumRElemFct enum_cb)
+{
+  for (RES *res : resList)
+    enum_cb(res);
 }
 
 template class ShaderResUnitedVdata<RenderableInstanceLodsResource>;

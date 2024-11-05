@@ -1,7 +1,5 @@
-#ifndef __GAIJIN_HEIGHTMAPLAND_SMOOTH_BRUSH__
-#define __GAIJIN_HEIGHTMAPLAND_SMOOTH_BRUSH__
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
-
 
 #include "hmlBrush.h"
 
@@ -14,15 +12,15 @@ public:
     makeKernel();
   }
 
-  virtual void fillParams(PropPanel2 &panel);
-  virtual void updateToPanel(PropPanel2 &panel);
+  virtual void fillParams(PropPanel::ContainerPropertyControl &panel);
+  virtual void updateToPanel(PropPanel::ContainerPropertyControl &panel);
 
   virtual bool brushPaintApply(int x, int y, float inc, bool rb);
   virtual void brushPaintApplyStart(const IBBox2 &where);
   virtual void saveToBlk(DataBlock &blk) const;
   virtual void loadFromBlk(const DataBlock &blk);
 
-  virtual bool updateFromPanelRef(PropPanel2 &panel, int pid);
+  virtual bool updateFromPanelRef(PropPanel::ContainerPropertyControl &panel, int pid);
 
 protected:
   void makeKernel();
@@ -35,6 +33,3 @@ protected:
   SmallTab<float, MidmemAlloc> gaussKernel;
   SmallTab<float, TmpmemAlloc> preFiltered;
 };
-
-
-#endif //__GAIJIN_HEIGHTMAP_BRUSH__

@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include "drvCommonConsts.h"
@@ -44,6 +45,16 @@ inline constexpr uint32_t MAX_WAIT_OBJECT_TIMEOUT_MS = 500;
 inline constexpr uint32_t MAX_COMPUTE_CONST_REGISTERS = 4096;
 inline constexpr uint32_t MIN_COMPUTE_CONST_REGISTERS = DEF_CS_CONSTS;
 inline constexpr uint32_t VERTEX_SHADER_MAX_REGISTERS = 4096;
-inline constexpr uint32_t VERTEX_SHADER_MIN_REGISTERS = MAX_VS_CONSTS_BONES;
+inline constexpr uint32_t VERTEX_SHADER_MIN_REGISTERS = DEF_VS_CONSTS;
 inline constexpr uint32_t PIXEL_SHADER_REGISTERS = MAX_PS_CONSTS;
 } // namespace drv3d_dx12
+
+namespace gpu
+{
+enum
+{
+  VENDOR_ID_AMD = 0x1002,
+  VENDOR_ID_INTEL = 0x8086,
+  VENDOR_ID_NVIDIA = 0x10DE
+};
+}

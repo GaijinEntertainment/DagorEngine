@@ -1,0 +1,1 @@
+../../../../tools/dagor_cdk/macOS/dsc2-metal-dev ./shaders_guiMinimal.blk -out ../../../../tools/dagor_cdk/commonData/guiShadersMTL -q -shaderOn -nodisassembly -commentPP -codeDumpErr  -o ../../../../_output/shaders/tools-guiShaders~metal

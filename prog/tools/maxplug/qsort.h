@@ -1,6 +1,4 @@
-
-#ifndef __DAGOR_QSORT_H
-#define __DAGOR_QSORT_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 // T is element, C must have static method int compare(const T&,const T&),
@@ -279,6 +277,3 @@ class SimpleDescentCompare
 public:
   static inline int compare(const T &a, const T &b) { return -SimpleAscentCompare<T>::compare(a, b, d); }
 };
-
-
-#endif

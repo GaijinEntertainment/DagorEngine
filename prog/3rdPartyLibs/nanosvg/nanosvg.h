@@ -229,7 +229,6 @@ static int nsvg__isdigit(char c)
 	return c >= '0' && c <= '9';
 }
 
-
 static NSVG_INLINE float nsvg__minf(float a, float b) { return a < b ? a : b; }
 static NSVG_INLINE float nsvg__maxf(float a, float b) { return a > b ? a : b; }
 
@@ -632,7 +631,7 @@ static void nsvg__curveBounds(float* bounds, float* curve)
 	}
 }
 
-static NSVGparser* nsvg__createParser()
+static NSVGparser* nsvg__createParser(void)
 {
 	NSVGparser* p;
 	p = (NSVGparser*)malloc(sizeof(NSVGparser));
@@ -1264,35 +1263,66 @@ static const char* nsvg__getNextPathItem(const char* s, char* it)
 
 static unsigned int nsvg__parseColorHex(const char* str)
 {
-	unsigned int c = 0, r = 0, g = 0, b = 0;
-	int n = 0;
-	str++; // skip #
-	// Calculate number of characters.
-	while(str[n] && !nsvg__isspace(str[n]))
-		n++;
-	if (n == 6) {
-		sscanf(str, "%x", &c);
-	} else if (n == 3) {
-		sscanf(str, "%x", &c);
-		c = (c&0xf) | ((c&0xf0) << 4) | ((c&0xf00) << 8);
-		c |= c<<4;
-	}
-	r = (c >> 16) & 0xff;
-	g = (c >> 8) & 0xff;
-	b = c & 0xff;
-	return NSVG_RGB(r,g,b);
+	unsigned int r=0, g=0, b=0;
+	if (sscanf(str, "#%2x%2x%2x", &r, &g, &b) == 3 )		// 2 digit hex
+		return NSVG_RGB(r, g, b);
+	if (sscanf(str, "#%1x%1x%1x", &r, &g, &b) == 3 )		// 1 digit hex, e.g. #abc -> 0xccbbaa
+		return NSVG_RGB(r*17, g*17, b*17);			// same effect as (r<<4|r), (g<<4|g), ..
+	return NSVG_RGB(128, 128, 128);
 }
+
+// Parse rgb color. The pointer 'str' must point at "rgb(" (4+ characters).
+// This function returns gray (rgb(128, 128, 128) == '#808080') on parse errors
+// for backwards compatibility. Note: other image viewers return black instead.
 
 static unsigned int nsvg__parseColorRGB(const char* str)
 {
-	int r = -1, g = -1, b = -1;
-	char s1[32]="", s2[32]="";
-	sscanf(str + 4, "%d%[%%, \t]%d%[%%, \t]%d", &r, s1, &g, s2, &b);
-	if (strchr(s1, '%')) {
-		return NSVG_RGB((r*255)/100,(g*255)/100,(b*255)/100);
-	} else {
-		return NSVG_RGB(r,g,b);
+	int i;
+	unsigned int rgbi[3];
+	float rgbf[3];
+	// try decimal integers first
+	if (sscanf(str, "rgb(%u, %u, %u)", &rgbi[0], &rgbi[1], &rgbi[2]) != 3) {
+		// integers failed, try percent values (float, locale independent)
+		const char delimiter[3] = {',', ',', ')'};
+		str += 4; // skip "rgb("
+		for (i = 0; i < 3; i++) {
+			while (*str && (nsvg__isspace(*str))) str++; 	// skip leading spaces
+			if (*str == '+') str++;				// skip '+' (don't allow '-')
+			if (!*str) break;
+			rgbf[i] = nsvg__atof(str);
+
+			// Note 1: it would be great if nsvg__atof() returned how many
+			// bytes it consumed but it doesn't. We need to skip the number,
+			// the '%' character, spaces, and the delimiter ',' or ')'.
+
+			// Note 2: The following code does not allow values like "33.%",
+			// i.e. a decimal point w/o fractional part, but this is consistent
+			// with other image viewers, e.g. firefox, chrome, eog, gimp.
+
+			while (*str && nsvg__isdigit(*str)) str++;		// skip integer part
+			if (*str == '.') {
+				str++;
+				if (!nsvg__isdigit(*str)) break;		// error: no digit after '.'
+				while (*str && nsvg__isdigit(*str)) str++;	// skip fractional part
+			}
+			if (*str == '%') str++; else break;
+			while (nsvg__isspace(*str)) str++;
+			if (*str == delimiter[i]) str++;
+			else break;
+		}
+		if (i == 3) {
+			rgbi[0] = roundf(rgbf[0] * 2.55f);
+			rgbi[1] = roundf(rgbf[1] * 2.55f);
+			rgbi[2] = roundf(rgbf[2] * 2.55f);
+		} else {
+			rgbi[0] = rgbi[1] = rgbi[2] = 128;
+		}
 	}
+	// clip values as the CSS spec requires
+	for (i = 0; i < 3; i++) {
+		if (rgbi[i] > 255) rgbi[i] = 255;
+	}
+	return NSVG_RGB(rgbi[0], rgbi[1], rgbi[2]);
 }
 
 typedef struct NSVGNamedColor {
@@ -1522,10 +1552,9 @@ static int nsvg__isCoordinate(const char* s)
 	// optional sign
 	if (*s == '-' || *s == '+')
 		s++;
-  // must have at least one digit, or start by a dot
+	// must have at least one digit, or start by a dot
 	return (nsvg__isdigit(*s) || *s == '.');
 }
-
 
 static NSVGcoordinate nsvg__parseCoordinateRaw(const char* str)
 {
@@ -1701,9 +1730,9 @@ static void nsvg__parseUrl(char* id, const char* str)
 {
 	int i = 0;
 	str += 4; // "url(";
-	if (*str == '#')
+	if (*str && *str == '#')
 		str++;
-	while (i < 63 && *str != ')') {
+	while (i < 63 && *str && *str != ')') {
 		id[i] = *str++;
 		i++;
 	}
@@ -2266,7 +2295,6 @@ static void nsvg__pathArcTo(NSVGparser* p, float* cpx, float* cpy, float* args, 
 	else
 		hda = (1.0f - cosf(hda)) / sinf(hda);
 	kappa = fabsf(4.0f / 3.0f * hda);
-
 	if (da < 0.0f)
 		kappa = -kappa;
 

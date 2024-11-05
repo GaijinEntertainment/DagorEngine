@@ -1,0 +1,20 @@
+include "hardware_defines.dshl"
+shader fsr_upsampling, fsr_sharpening
+{
+  ENABLE_ASSERT(cs)
+  hlsl(cs)
+  {
+    #define WIDTH 64
+    #define HEIGHT 1
+    #define DEPTH 1
+    #define SAMPLE_SLOW_FALLBACK 1
+    #define SAMPLE_BILINEAR 0
+    ##if shader == fsr_upsampling
+      #define SAMPLE_EASU 1
+    ##else
+      #define SAMPLE_RCAS 1
+    ##endif
+    #include "../../3rdPartyLibs/fsr/FSR_Pass.hlsl"
+  }
+  compile("target_cs", "mainCS");
+}

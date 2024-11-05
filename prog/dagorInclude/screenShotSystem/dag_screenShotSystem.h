@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -28,11 +27,20 @@ public:
 
   public:
     ScreenShot();
+    ScreenShot(const ScreenShot &) = delete;
+    ScreenShot &operator=(const ScreenShot &) = delete;
     ~ScreenShot() { clear(); }
     void clear();
+    void reset()
+    {
+      clear();
+      w = h = stride = 0;
+      fastLocked = hasWaterMark = false;
+    }
   };
   static bool makeScreenShot(ScreenShot &info, IHDRDecoder *decoder = nullptr);
   static bool makeTexScreenShot(ScreenShot &info, Texture *tex);
+  static bool makeTriplanarTexScreenShot(ScreenShot &info, Texture *tex_r, Texture *tex_g, Texture *tex_b);
   static bool makeDepthTexScreenShot(ScreenShot &info, Texture *tex);
   static bool makeHugeScreenShot(float fov, float aspect, float znear, float zfar, int quadrants, ScreenShot &info);
   static bool makeHugeScreenShot(const Driver3dPerspective &persp, int multiply, ScreenShot &info);

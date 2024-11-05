@@ -4,7 +4,7 @@ include "shader_global.dshl"
 texture velocity_density_tex;
 texture next_velocity_density_tex;
 
-texture solid_boundaries_tex;
+texture cfd_solid_boundaries_tex;
 
 float simulation_time = 0;
 float simulation_dt = 0;
@@ -61,7 +61,7 @@ shader fill_initial_conditions
     velocity_density@uav = velocity_density_tex hlsl {
       RWTexture3D<float4> velocity_density@uav;
     };
-    solid_boundaries@smp3d = solid_boundaries_tex;
+    solid_boundaries@smp3d = cfd_solid_boundaries_tex;
 
     standard_density@f1 = (standard_density, 0, 0, 0);
     standard_velocity@f2 = (standard_velocity.x, standard_velocity.y, 0, 0);
@@ -93,7 +93,7 @@ shader fill_initial_conditions_from_tex
     velocity_density@uav = velocity_density_tex hlsl {
       RWTexture3D<float4> velocity_density@uav;
     };
-    solid_boundaries@smp3d = solid_boundaries_tex;
+    solid_boundaries@smp3d = cfd_solid_boundaries_tex;
 
     standard_density@f1 = (standard_density, 0, 0, 0);
     initial_velocity_density@smp3d = initial_velocity_density_tex;
@@ -131,7 +131,7 @@ shader euler_simulation_cs
     standard_density@f1 = (standard_density, 0, 0, 0);
     standard_velocity@f2 = (standard_velocity.x, standard_velocity.y, 0, 0);
 
-    solid_boundaries@smp3d = solid_boundaries_tex;
+    solid_boundaries@smp3d = cfd_solid_boundaries_tex;
   }
 
   hlsl(cs) {
@@ -253,7 +253,7 @@ shader euler_simulation_explicit_implicit_cs
       RWTexture2D<float4> next_velocity_density@uav;
     };
 
-    solid_boundaries@smp2d = solid_boundaries_tex;
+    solid_boundaries@smp2d = cfd_solid_boundaries_tex;
   }
 
   hlsl(cs) {
@@ -434,7 +434,7 @@ shader blur_result_cs
 
     standard_density@f1 = (standard_density, 0, 0, 0);
     standard_velocity@f2 = (standard_velocity.x, standard_velocity.y, 0, 0);
-    solid_boundaries@smp3d = solid_boundaries_tex;
+    solid_boundaries@smp3d = cfd_solid_boundaries_tex;
   }
 
   hlsl(cs) {

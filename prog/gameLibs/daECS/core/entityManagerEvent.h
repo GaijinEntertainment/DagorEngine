@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <daECS/core/entityManager.h>
 #include <perfMon/dag_statDrv.h>
 
@@ -7,7 +9,7 @@ namespace ecs
 
 #if TIME_PROFILER_ENABLED && DAGOR_DBGLEVEL > 0
 extern bool events_perf_markers;
-#define PROFILE_ES(es, evt) (EASTL_UNLIKELY(events_perf_markers || evt.getFlags() & EVFLG_PROFILE))
+#define PROFILE_ES(es, evt) (DAGOR_UNLIKELY(events_perf_markers || evt.getFlags() & EVFLG_PROFILE))
 #define TIME_SCOPE_ES(es)        \
   if (events_perf_markers)       \
     es.cacheProfileTokensOnce(); \
@@ -47,7 +49,7 @@ __forceinline void EntityManager::dispatchEventImmediate(EntityId eid, Event &ev
 template <class T, typename ProcessEvent>
 __forceinline uint32_t EntityManager::processEventInternal(T &buffer, ProcessEvent &&process)
 {
-  if (EASTL_LIKELY(!buffer.canRead(sizeof(Event) + sizeof(EntityId)))) // empty
+  if (DAGOR_LIKELY(!buffer.canRead(sizeof(Event) + sizeof(EntityId)))) // empty
     return 0;
 
   const char *__restrict reading = (const char *__restrict)buffer.reading();
@@ -57,7 +59,7 @@ __forceinline uint32_t EntityManager::processEventInternal(T &buffer, ProcessEve
   auto finalizeRead = buffer.justRead(eventSize);
   // we can't use reference to buffer after process
   process(eid, *event);
-  if (EASTL_UNLIKELY(event->getFlags() & EVFLG_DESTROY))
+  if (DAGOR_UNLIKELY(event->getFlags() & EVFLG_DESTROY))
     eventDb.destroy(*event);
 
   T::freeRead(finalizeRead, eventSize);
@@ -88,7 +90,7 @@ inline uint32_t EntityManager::processEventsActive(uint32_t count, T &storage)
 template <class T>
 inline uint32_t EntityManager::processEventsAnyway(uint32_t count, T &storage)
 {
-  if (EASTL_LIKELY(storage.canProcess())) // otherwise too many events scheduled, circular buffer exhausted, we were only writing!
+  if (DAGOR_LIKELY(storage.canProcess())) // otherwise too many events scheduled, circular buffer exhausted, we were only writing!
     return processEventsActive(count, storage);
   return processEventsExhausted(count, storage);
 }

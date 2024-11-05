@@ -5,6 +5,7 @@
   DAFX_INLINE const float2 float_xy( float3_cref a ) { return float2( a.x, a.y ); }
   DAFX_INLINE const float2 float_xy( float4_cref a ) { return float2( a.x, a.y ); }
   DAFX_INLINE const float2 float_xz( float4_cref a ) { return float2( a.x, a.z ); }
+  DAFX_INLINE const float2 float_xz( float3_cref a ) { return float2( a.x, a.z ); }
   DAFX_INLINE const float2 float_yw( float4_cref a ) { return float2( a.y, a.w ); }
 
   DAFX_INLINE const float3 float_xxx( float a ) { return float3( a, a, a ); }
@@ -65,6 +66,39 @@
     return float4(rsqrt_hlsl(a.x),rsqrt_hlsl(a.y),rsqrt_hlsl(a.z),rsqrt_hlsl(a.w));
   }
 
+  DAFX_INLINE
+  float3x3 m33_ident() {
+    return float3x3::IDENT;
+  }
+  DAFX_INLINE
+  float3x3 m33_from(float3_cref m0, float3_cref m1, float3_cref m2)
+  {
+    float p[] = {m0.x, m0.y, m0.z, m1.x, m1.y, m1.z, m2.x, m2.y, m2.z};
+    return float3x3(p);
+  }
+  DAFX_INLINE
+  float3x3 m33_from(float m00, float m01, float m02, float m10, float m11, float m12, float m20, float m21, float m22)
+  {
+    float p[] = {m00, m01, m02, m10, m11, m12, m20, m21, m22};
+    return float3x3(p);
+  }
+  DAFX_INLINE
+  bool lessEq(float3_cref a, float3_cref b) {
+    return (a.x <= b.x) & (a.y <= b.y) & (a.z <= b.z);
+  }
+  DAFX_INLINE
+  float3 f16tof32(uint3_cref inp) {
+    return float3(half_to_float_unsafe(inp.x), half_to_float_unsafe(inp.y), half_to_float_unsafe(inp.z));
+  }
+  DAFX_INLINE
+  uint3 operator>>(uint3_cref inp, uint shift) {
+    return uint3(inp.x >> shift, inp.y >> shift, inp.z >> shift);
+  }
+  DAFX_INLINE float3 mul(float3x3_cref m, float3_cref v) { return m * v; }
+  DAFX_INLINE float3 mul(float3_cref p, float3x3_cref m) {
+    return m.col[0] * p.x + m.col[1] * p.y + m.col[2] * p.z;
+  }
+
   #define float4x4_to_3x3(from, to) {to.setcol(0, float_xyz((from).getcol(0))); to.setcol(1, float_xyz((from).getcol(1))); to.setcol(2, float_xyz((from).getcol(2)));}
   #define countbits __popcount
 #else
@@ -79,6 +113,15 @@
   #define int_xy(a) a.xy
 
   #define float4x4_to_3x3(from, to) from = float3x3((to)[0].xyz, (to)[1].xyz, (to)[2].xyz)
+
+  float3x3 m33_ident() {
+    return float3x3(float3(1, 0, 0), float3(0, 1, 0), float3(0, 0, 1));
+  }
+  #define m33_from float3x3
+  bool lessEq(float3 a, float3 b)
+  {
+    return all(a <= b);
+  }
 #endif
 
 #endif

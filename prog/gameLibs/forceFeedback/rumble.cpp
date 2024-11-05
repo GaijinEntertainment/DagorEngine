@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <osApiWrappers/dag_events.h>
 #include <osApiWrappers/dag_threads.h>
 #include <osApiWrappers/dag_critSec.h>
@@ -9,7 +11,7 @@
 #include <forceFeedback/forceFeedback.h>
 #include <startup/dag_globalSettings.h>
 #include <startup/dag_inpDevClsDrv.h>
-#include <humanInput/dag_hiJoystick.h>
+#include <drv/hid/dag_hiJoystick.h>
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
 #include <generic/dag_tab.h>
@@ -60,13 +62,13 @@ static void set_rumble(float lo_freq, float hi_freq)
 class RumbleThread final : public DaThread, public IWndProcComponent
 {
 public:
-  RumbleThread() : DaThread("RumbleThread") {}
+  RumbleThread() : DaThread("RumbleThread", DEFAULT_STACK_SZ, 0, WORKER_THREADS_AFFINITY_MASK) {}
 
   void execute() override
   {
     bool rumbleIsActive = false;
 
-    while (!interlocked_acquire_load(terminating))
+    while (!isThreadTerminating())
     {
       os_event_wait(&rumble_wakeup_event, rumbleIsActive ? 5 : 1000);
 
@@ -82,7 +84,7 @@ public:
         incoming_events.clear();
       }
 
-      if (interlocked_acquire_load(terminating))
+      if (isThreadTerminating())
         break;
 
       bool clearProcessing = false;
@@ -145,13 +147,13 @@ public:
     if (msg == GPCM_Activate)
     {
       // stop vibration early
-      if (wParam == GPCMP1_Inactivate)
+      if (uint16_t(wParam) == GPCMP1_Inactivate)
         set_rumble(0, 0);
 
       // notify thread
       {
         WinAutoLock cs(rumble_cs);
-        incoming_events.push_back({wParam != GPCMP1_Inactivate ? CMD_APP_ACTIVATE : CMD_APP_DEACTIVATE, {}});
+        incoming_events.push_back({uint16_t(wParam) != GPCMP1_Inactivate ? CMD_APP_ACTIVATE : CMD_APP_DEACTIVATE, {}});
       }
       os_event_set(&rumble_wakeup_event);
     }
@@ -169,7 +171,7 @@ void add_event(const EventParams &evtp)
     incoming_events.push_back({CMD_EVENT, evtp});
   }
 
-  if (EASTL_UNLIKELY(!is_inited)) // init on first usage
+  if (DAGOR_UNLIKELY(!is_inited)) // init on first usage
     init();
 
   os_event_set(&rumble_wakeup_event);
@@ -188,7 +190,6 @@ void init()
   incoming_events.reserve(64);
   processing_events.reserve(64);
   rumble_thread.start();
-  rumble_thread.setAffinity(WORKER_THREADS_AFFINITY_MASK);
   is_inited = true;
 }
 

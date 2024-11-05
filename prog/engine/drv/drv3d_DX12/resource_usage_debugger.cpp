@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "device.h"
 
 using namespace drv3d_dx12;
@@ -14,7 +16,7 @@ namespace
 {
 bool begin_sub_section(const char *id, const char *caption, int height)
 {
-  if (ImGui::BeginChild(id, ImVec2(0, height), true, ImGuiWindowFlags_MenuBar))
+  if (ImGui::BeginChild(id, ImVec2(0, height), ImGuiChildFlags_Border, ImGuiWindowFlags_MenuBar))
   {
     if (ImGui::BeginMenuBar())
     {
@@ -41,7 +43,7 @@ void begin_selectable_row(const char *text)
 {
   ImGui::TableNextRow();
   ImGui::TableNextColumn();
-  ImGui::Selectable(text, false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap);
+  ImGui::Selectable(text, false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap);
 }
 
 // TODO needs refinement

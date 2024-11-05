@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -20,22 +19,6 @@ public:
   //! called just before drawScene()
   virtual void beforeDrawScene(int /*realtime_elapsed_usec*/, float /*gametime_elapsed_sec*/) {}
 
-  //! tells wether the implementation supports async reprojection
-  virtual bool supportsFrameReprojection() { return false; }
-
-  //! called instead of drawScene() (without beforeDrawScene()) in frames, where reprojection is used
-  virtual void reprojectFrame() {}
-
-  //! called before beforeDrawScene() for frames preceeding reprojected frames
-  virtual void prepareFrameReprojection() {}
-
-  //! called after actScene(), it specifies if the current frame can be produced by reprojection
-  virtual bool canPerformReprojection() { return false; }
-
-  //! called before actScene()
-  virtual void setAsyncReprojectionMode(bool /*async_reprojection_enabled*/) {}
-
-
   //! called when scene has been selected as current
   virtual void sceneSelected(DagorGameScene * /*prev_scene*/) {}
   //! called before current scene is replaced by the new one
@@ -44,10 +27,6 @@ public:
   virtual void enableStereo(bool enable) { stereoEnabled = enable; }
 
   virtual bool canPresentAndReset() { return true; }
-
-  virtual void afterPresent() {}
-
-  virtual bool isStillLoading() const { return false; }
 
 protected:
   bool stereoEnabled = false;

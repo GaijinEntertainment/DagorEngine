@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -11,6 +10,7 @@
 #include <render/viewDependentResource.h>
 #include <render/subFrameSample.h>
 #include <generic/dag_carray.h>
+#include <util/dag_bitFlagsMask.h>
 
 #include <EASTL/array.h>
 
@@ -18,11 +18,19 @@ enum class SSRQuality
 {
   Low,
   Medium,
-  High,
   Compute,
-  ComputeHQ
 };
 class ComputeShaderElement;
+
+enum class SSRFlag
+{
+  None = 0,
+  ExternalDenoiser = 1 << 0,
+  CreateTextures = 1 << 1,
+};
+
+using SSRFlags = BitFlagsMask<SSRFlag>;
+BITMASK_DECLARE_FLAGS_OPERATORS(SSRFlag);
 
 class ScreenSpaceReflections
 {
@@ -35,7 +43,7 @@ protected:
   struct Afr
   {
     int frameNo;
-    TMatrix4 prevGlobTm;
+    TMatrix4 prevGlobTm, prevProjTm;
     Point4 prevViewVecLT;
     Point4 prevViewVecRT;
     Point4 prevViewVecLB;
@@ -44,40 +52,29 @@ protected:
   };
 
   ViewDependentResource<Afr, 2, 1> afrs;
-  PostFxRenderer ssrQuad;
-  PostFxRenderer ssrResolve;
-  PostFxRenderer ssrMipChain;
-  PostFxRenderer ssrVTR;
-  PostFxRenderer ssrComposite;
+  PostFxRenderer ssrQuad, ssrMipChain;
   eastl::unique_ptr<ComputeShaderElement> ssrCompute;
   RTargetPool::Ptr ssrVTRRT;
-
-  //
-  eastl::unique_ptr<ComputeShaderElement> ssrClassify, ssrPrepareIndirectArgs, ssrIntersect, ssrReproject, ssrPrefilter, ssrTemporal;
-
-  UniqueBufHolder rayListBuf, tileListBuf, countersBuf;
-  UniqueBuf indirectArgsBuf;
-  UniqueTex varianceTex[2], sampleCountTex[2];
 
   int ssrW, ssrH;
   uint32_t ssrflags;
   int randomizeOverNFrames;
   SSRQuality quality;
   bool ownTextures;
+  bool denoiser;
 
 public:
   ScreenSpaceReflections(int ssr_w, int ssr_h, int num_views = 1, uint32_t fmt = 0, SSRQuality ssr_quality = SSRQuality::Low,
-    bool own_textures = true);
+    SSRFlags flags = SSRFlag::CreateTextures);
   ~ScreenSpaceReflections();
 
   void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 &world_pos, SubFrameSample sub_sample,
-    ManagedTexView ssrTex, ManagedTexView ssrPrevTex, ManagedTexView targetTex, const dag::ConstSpan<ManagedTexView> &tempTextures,
-    int callId);
+    ManagedTexView ssrTex, ManagedTexView ssrPrevTex, ManagedTexView targetTex, int callId);
   void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 &world_pos,
     SubFrameSample sub_sample = SubFrameSample::Single);
   void render(const TMatrix &view_tm, const TMatrix4 &proj_tm)
   {
-    DPoint3 worldPos(0, 0, 0);
+    DPoint3 worldPos = dpoint3(orthonormalized_inverse(view_tm).getcol(3));
     render(view_tm, proj_tm, worldPos, SubFrameSample::Single);
   }
   void setRandomizationFrames(int v) { randomizeOverNFrames = v; }
@@ -86,6 +83,9 @@ public:
   void enablePrevTarget(int num_views);
   void disablePrevTarget();
   void updatePrevTarget();
+
+  SSRQuality getQuality() const { return quality; }
+  void changeDynamicResolution(int new_width, int new_height);
 
   static void getRealQualityAndFmt(uint32_t &fmt, SSRQuality &ssr_quality);
   static int getMipCount(SSRQuality ssr_quality);

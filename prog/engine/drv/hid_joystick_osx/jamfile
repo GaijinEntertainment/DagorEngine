@@ -1,4 +1,4 @@
-Platform ?= macosx ;
+Platform ?= macOS ;
 
 Root    ?= ../../../.. ;
 Location = prog/engine/drv/hid_joystick_osx ;

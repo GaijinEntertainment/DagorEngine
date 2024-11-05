@@ -1,5 +1,5 @@
 // https://github.com/CedricGuillemet/ImGuizmo
-// v 1.83
+// v 1.89 WIP
 //
 // The MIT License(MIT)
 //
@@ -54,6 +54,7 @@ namespace ImSequencer
       virtual int GetItemTypeCount() const { return 0; }
       virtual const char* GetItemTypeName(int /*typeIndex*/) const { return ""; }
       virtual const char* GetItemLabel(int /*index*/) const { return ""; }
+      virtual const char* GetCollapseFmt() const { return "%d Frames / %d entries"; }
 
       virtual void Get(int index, int** start, int** end, int* type, unsigned int* color) = 0;
       virtual void Add(int /*type*/) {}
@@ -67,6 +68,8 @@ namespace ImSequencer
       virtual void DoubleClick(int /*index*/) {}
       virtual void CustomDraw(int /*index*/, ImDrawList* /*draw_list*/, const ImRect& /*rc*/, const ImRect& /*legendRect*/, const ImRect& /*clippingRect*/, const ImRect& /*legendClippingRect*/) {}
       virtual void CustomDrawCompact(int /*index*/, ImDrawList* /*draw_list*/, const ImRect& /*rc*/, const ImRect& /*clippingRect*/) {}
+
+       virtual ~SequenceInterface() = default;
    };
 
 

@@ -1,10 +1,13 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <assets/assetHlp.h>
 #include <assets/asset.h>
 #include <assets/assetMgr.h>
 #include <assets/assetMsgPipe.h>
 #include <image/dag_texPixel.h>
 #include <image/dag_loadImage.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <3d/dag_texMgr.h>
 #include <3d/ddsxTex.h>
 #include <libTools/util/strUtil.h>
@@ -47,6 +50,12 @@ bool reload_changed_texture_asset(const DagorAsset &a)
       release_managed_tex(texAssetId);
     if (bTex)
       release_managed_tex(texId);
+    if (int arrtex_changed = reload_managed_array_textures_for_changed_slice(texName))
+    {
+      a.getMgr().getMsgPipe().onAssetMgrMessage(IDagorAssetMsgPipe::NOTE,
+        String(256, "reloaded %d arrtex due to asset '%s' changed", arrtex_changed, a.getName()), NULL, NULL);
+      return true;
+    }
     return false;
   }
 
@@ -108,14 +117,14 @@ bool reload_changed_texture_asset(const DagorAsset &a)
 
             InPlaceMemLoadCB crd(b.ptr, b.len);
             crd.seekrel(sizeof(ddsx::Header));
-            if (!d3d_load_ddsx_tex_contents(bt, texAssetId, bt_ref.id, bq_hdr, crd, 0, target_lev - bq_lev, 1))
+            if (d3d_load_ddsx_tex_contents(bt, texAssetId, bt_ref.id, bq_hdr, crd, 0, target_lev - bq_lev, 1) != TexLoadRes::OK)
               a.getMgr().getMsgPipe().onAssetMgrMessage(IDagorAssetMsgPipe::ERROR, String(0, "error loading tex %s", a.getName()),
                 NULL, a.getSrcFilePath());
             b.free();
 
             InPlaceMemLoadCB crd_hq(hq_b.ptr, hq_b.len);
             crd_hq.seekrel(sizeof(ddsx::Header));
-            if (!d3d_load_ddsx_tex_contents(bt, texAssetId, bt_ref.id, hq_hdr, crd_hq, 0, 0, bq_lev))
+            if (d3d_load_ddsx_tex_contents(bt, texAssetId, bt_ref.id, hq_hdr, crd_hq, 0, 0, bq_lev) != TexLoadRes::OK)
               a.getMgr().getMsgPipe().onAssetMgrMessage(IDagorAssetMsgPipe::ERROR, String(0, "error loading tex %s", hq_a->getName()),
                 NULL, a.getSrcFilePath());
             hq_b.free();
@@ -131,11 +140,12 @@ bool reload_changed_texture_asset(const DagorAsset &a)
       InPlaceMemLoadCB crd(b.ptr, b.len);
 
       crd.seekto(sizeof(ddsx::Header));
-      bool loadErr = atex && !d3d_load_ddsx_tex_contents(atex, texAssetId, bt_ref.id, bq_hdr, crd, 0, target_lev - bq_lev, 1);
+      bool loadErr =
+        atex && d3d_load_ddsx_tex_contents(atex, texAssetId, bt_ref.id, bq_hdr, crd, 0, target_lev - bq_lev, 1) != TexLoadRes::OK;
       if (loadErr)
         d3dErrTex = d3d::get_last_error();
       crd.seekto(sizeof(ddsx::Header));
-      if (tex && !d3d_load_ddsx_tex_contents(tex, texId, bt_ref.id, bq_hdr, crd, 0, target_lev - bq_lev, 1))
+      if (tex && d3d_load_ddsx_tex_contents(tex, texId, bt_ref.id, bq_hdr, crd, 0, target_lev - bq_lev, 1) != TexLoadRes::OK)
       {
         loadErr = true;
         d3dErrTex = d3d::get_last_error();
@@ -233,6 +243,9 @@ normal_exit:
     release_managed_tex(texId);
 
   a.getMgr().getMsgPipe().onAssetMgrMessage(IDagorAssetMsgPipe::NOTE, String(256, "texture '%s' reloaded", a.getName()), NULL, NULL);
+  if (int arrtex_changed = reload_managed_array_textures_for_changed_slice(texName))
+    a.getMgr().getMsgPipe().onAssetMgrMessage(IDagorAssetMsgPipe::NOTE,
+      String(256, "reloaded %d arrtex due to asset '%s' changed", arrtex_changed, a.getName()), NULL, NULL);
 
   return true;
 }

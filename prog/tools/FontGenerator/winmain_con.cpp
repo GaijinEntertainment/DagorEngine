@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #define __UNLIMITED_BASE_PATH     1
 #define __SUPPRESS_BLK_VALIDATION 1
 #define __DEBUG_FILEPATH          (::dgs_get_argv("dbgfile") ? ::dgs_get_argv("dbgfile") : "debug")

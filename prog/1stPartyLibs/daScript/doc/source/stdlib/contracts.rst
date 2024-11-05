@@ -24,12 +24,6 @@ Function annotations
 
 [expect_any_array(argname)] contract, which only accepts array<T>, T[], or das`vector<T>
 
-.. _handle-contracts-expect_dim:
-
-.. das:attribute:: expect_dim
-
-[expect_dim(argname)] contract, which only accepts T[]
-
 .. _handle-contracts-expect_any_enum:
 
 .. das:attribute:: expect_any_enum
@@ -125,9 +119,9 @@ Workhorse types are: bool,int*,uint*,float*,double,range and urange, range64 and
 Type queries
 ++++++++++++
 
-  *  :ref:`isYetAnotherVectorTemplate (td:smart_ptr\<ast::TypeDecl\> const) : bool <function-_at_contracts_c__c_isYetAnotherVectorTemplate_CY_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr_?M>` 
+  *  :ref:`isYetAnotherVectorTemplate (td:smart_ptr\<ast::TypeDecl\> const) : bool <function-_at_contracts_c__c_isYetAnotherVectorTemplate_CY_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr__qm_M>` 
 
-.. _function-_at_contracts_c__c_isYetAnotherVectorTemplate_CY_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr_?M:
+.. _function-_at_contracts_c__c_isYetAnotherVectorTemplate_CY_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr__qm_M:
 
 .. das:function:: isYetAnotherVectorTemplate(td: TypeDeclPtr)
 

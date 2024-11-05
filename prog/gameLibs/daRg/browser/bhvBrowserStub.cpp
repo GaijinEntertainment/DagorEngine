@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "bhvBrowser.h"
 
 #include <daRg/dag_element.h>

@@ -1,3 +1,4 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/span.h>
@@ -13,10 +14,7 @@ struct Direct3D12Enviroment;
 namespace debug
 {
 union Configuration;
-}
-} // namespace drv3d_dx12
-
-namespace drv3d_dx12::debug::gpu_postmortem::dagor
+namespace gpu_postmortem::dagor
 {
 class Trace
 {
@@ -66,11 +64,11 @@ public:
   Trace &operator=(Trace &&) = delete;
   Trace() = default;
   ~Trace() { logdbg("DX12: Shutting down DAGOR GPU Trace"); }
-  void configure();
+  void configure() {}
   void beginCommandBuffer(ID3D12Device3 *device, ID3D12GraphicsCommandList *);
   void endCommandBuffer(ID3D12GraphicsCommandList *);
-  void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>, eastl::span<const char>);
-  void endEvent(ID3D12GraphicsCommandList *, eastl::span<const char>);
+  void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>, const eastl::string &);
+  void endEvent(ID3D12GraphicsCommandList *, const eastl::string &);
   void marker(ID3D12GraphicsCommandList *, eastl::span<const char>);
   void draw(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &, const PipelineStageStateBase &,
     BasePipeline &, PipelineVariant &, uint32_t, uint32_t, uint32_t, uint32_t, D3D12_PRIMITIVE_TOPOLOGY);
@@ -96,6 +94,8 @@ public:
   void onDeviceShutdown();
   bool onDeviceSetup(ID3D12Device *, const Configuration &, const Direct3D12Enviroment &);
 
+  bool tryCreateDevice(IUnknown *, D3D_FEATURE_LEVEL, void **) { return false; }
+
   template <typename T>
   static bool load(const Configuration &config, const Direct3D12Enviroment &d3d_env, T &target)
   {
@@ -107,4 +107,7 @@ public:
     return true;
   }
 };
-} // namespace drv3d_dx12::debug::gpu_postmortem::dagor
+
+} // namespace gpu_postmortem::dagor
+} // namespace debug
+} // namespace drv3d_dx12

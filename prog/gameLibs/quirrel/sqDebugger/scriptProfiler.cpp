@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <sqDebugger/scriptProfiler.h>
 #include <perfMon/dag_statDrv.h>
 #include <util/dag_hashedKeyMap.h>
@@ -719,13 +721,15 @@ void scriptprofile::register_profiler_module(HSQUIRRELVM vm, SqModules *module_m
   Sqrat::Table exports(vm);
 
   ///@module dagor.profiler
-  exports.Func("dump", dump_profiler)
+  exports //
+    .Func("dump", dump_profiler)
     .Func("reset_values", reset_values)
     .Func("get_total_time", get_total_time)
     .Func("detect_slow_calls", detect_slow_calls)
     .SquirrelFunc("start", start_profiler_sq, 1)
     .SquirrelFunc("stop", stop_profiler_sq, 1)
-    .SquirrelFunc("stop_and_save_to_file", stop_and_save_to_file_sq, 2, ".s");
+    .SquirrelFunc("stop_and_save_to_file", stop_and_save_to_file_sq, 2, ".s")
+    /**/;
 
   module_mgr->addNativeModule("dagor.profiler", exports);
 }

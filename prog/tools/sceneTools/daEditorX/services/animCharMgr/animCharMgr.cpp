@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <de3_interface.h>
 #include <de3_objEntity.h>
 #include <de3_entityPool.h>
@@ -20,7 +22,8 @@
 #include <phys/dag_fastPhys.h>
 #include <shaders/dag_dynSceneRes.h>
 #include <startup/dag_globalSettings.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
 #include <math/dag_geomTree.h>
@@ -996,7 +999,7 @@ public:
   }
 
   // IBinaryDataBuilder interface
-  virtual bool validateBuild(int target, ILogWriter &log, PropPanel2 *params)
+  virtual bool validateBuild(int target, ILogWriter &log, PropPanel::ContainerPropertyControl *params)
   {
     if (objPool.isEmpty())
       log.addMessage(log.WARNING, "No animChar entities for export");
@@ -1025,7 +1028,7 @@ public:
     return true;
   }
 
-  virtual bool buildAndWrite(BinDumpSaveCB &main_cwr, const ITextureNumerator &tn, PropPanel2 *)
+  virtual bool buildAndWrite(BinDumpSaveCB &main_cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *)
   {
     dag::Vector<SrcObjsToPlace> objs;
     dag::ConstSpan<AnimCharEntity *> ent = objPool.getEntities();
@@ -1085,7 +1088,7 @@ void init_animchar_mgr_service(const DataBlock &app_blk)
 {
   if (!IDaEditor3Engine::get().checkVersion())
   {
-    debug_ctx("Incorrect version!");
+    DEBUG_CTX("Incorrect version!");
     return;
   }
 

@@ -1,0 +1,84 @@
+Root           ?= ../../.. ;
+Location        = prog/gameLibs/compressionUtils ;
+BsdiffTarget   ?= none ;
+UseFastcall = no ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+CPPopt += -DDAGOR_MINIMUM_COMPR_UTILS ;
+if $(BsdiffTarget) in bsdiff bsapply {
+
+  ConsoleExe      = yes ;
+  TargetType      = exe ;
+
+  UseProgLibs     +=
+    engine/osApiWrappers
+    engine/kernel
+    engine/memory
+    engine/coreUtil
+    engine/baseUtil
+    engine/ioSys
+    engine/math
+    engine/startup
+    engine/perfMon/daProfilerStub
+    3rdPartyLibs/arc/zlib-$(UseZlibVer)
+    3rdPartyLibs/bsdiff
+  ;
+
+  Sources =
+    bsdiffwrap.cpp
+    bsdiffutils.cpp
+    compression.cpp
+    vromfsCompressionImpl.cpp
+  ;
+
+  echo $(BsdiffTarget) ;
+}
+else
+{
+  exit This jamfile should be used to build binary utils only, use -sBsdiffTarget=bsdiff or -sBsdiffTarget=bsapply ;
+}
+
+if $(BsdiffTarget) = "bsdiff" {
+
+  if $(Platform) in windows {
+    Target          = bsdiffutil.exe ;
+  } else {
+    Target          = bsdiffutil ;
+  }
+
+  CPPopt += -DBSDIFFWRAP_DIFF_EXECUTABLE ;
+
+} else if $(BsdiffTarget) = "bsapply" {
+
+  if $(Platform) in windows {
+    Target          = bsapplyutil.exe ;
+  } else {
+    Target          = bsapplyutil ;
+  }
+
+  CPPopt += -DBSDIFFWRAP_APPLY_EXECUTABLE ;
+
+}
+
+if $(Platform) in windows {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/openssl-$(OpenSSLVer)/include ;
+  UseProgLibs += 3rdPartyLibs/openssl-$(OpenSSLVer) ;
+}
+else {
+  AddLibs +=
+      -lssl
+      -lcrypto
+  ;
+}
+
+AddIncludes +=
+  $(Root)/$(Location)
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/compressionUtils
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/3rdPartyLibs/arc/zlib-$(UseZlibVer)
+  $(Root)/prog/3rdPartyLibs/arc/zstd-$(ZstdVer)
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

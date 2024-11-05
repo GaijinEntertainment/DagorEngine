@@ -1,6 +1,8 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "gamepad_classdrv.h"
 #include "gamepad_device.h"
-#include <humanInput/dag_hiGlobals.h>
+#include <drv/hid/dag_hiGlobals.h>
 #include <supp/_platform.h>
 #if _TARGET_PC_WIN
 #include <xinput.h>
@@ -94,7 +96,7 @@ void HumanInput::Xbox360GamepadClassDriver::refreshDeviceList()
 
   enable(false);
 
-  debug_ctx("Xbox360GamepadClassDriver::refreshDeviceList");
+  DEBUG_CTX("Xbox360GamepadClassDriver::refreshDeviceList");
 
 #if _TARGET_XBOX
   refresh_xbox_gamepads_list();
@@ -122,7 +124,7 @@ void HumanInput::Xbox360GamepadClassDriver::refreshDeviceList()
     for (int s = 0; s < 2; s++)
       virtualDevice->setStickDeadZoneScale(s, stickDeadZoneScale[s]);
   }
-  debug_ctx("deviceNum=%d", deviceNum);
+  DEBUG_CTX("deviceNum=%d", deviceNum);
 
   if (deviceNum > 0)
     setDefaultJoystick(device[0]); // The most recent gamepad is enumerated first. Make it a default one.
@@ -231,7 +233,9 @@ class HumanInput::XInputUpdater : public DaThread
   HumanInput::Xbox360GamepadClassDriver &driver;
 
 public:
-  XInputUpdater(HumanInput::Xbox360GamepadClassDriver &drv) : DaThread("XInputUpdater"), driver(drv) {}
+  XInputUpdater(HumanInput::Xbox360GamepadClassDriver &drv) :
+    DaThread("XInputUpdater", DEFAULT_STACK_SZ, 0, WORKER_THREADS_AFFINITY_MASK), driver(drv)
+  {}
 
   virtual void execute()
   {

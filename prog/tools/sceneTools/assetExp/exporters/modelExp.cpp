@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "modelExp.h"
 #include <assets/assetPlugin.h>
 #include <assets/assetExporter.h>
@@ -118,7 +120,7 @@ String validate_texture_types(const char *_tex_name, const char *class_name, int
 {
   load_shaders_for_target(_MAKE4C('PC'));
 
-  auto *sh_class = shBinDump(false).findShaderClass(class_name);
+  auto *sh_class = shBinDumpEx(false).findShaderClass(class_name);
 
   if (!sh_class || sh_class->staticTextureTypeBySlot.empty())
     return {};

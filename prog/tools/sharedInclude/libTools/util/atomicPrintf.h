@@ -1,7 +1,6 @@
 //
 // Dagor Tech 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -27,6 +26,24 @@
   {                                     \
     AtomicPrintfMutex::inst.lock();     \
     fprintf(FP, __VA_ARGS__);           \
+    AtomicPrintfMutex::inst.unlock(FP); \
+  } while (0)
+
+#define ATOMIC_PRINTF_IMM(...)              \
+  do                                        \
+  {                                         \
+    AtomicPrintfMutex::inst.lock();         \
+    printf(__VA_ARGS__);                    \
+    fflush(stdout);                         \
+    AtomicPrintfMutex::inst.unlock(stdout); \
+  } while (0)
+
+#define ATOMIC_FPRINTF_IMM(FP, ...)     \
+  do                                    \
+  {                                     \
+    AtomicPrintfMutex::inst.lock();     \
+    fprintf(FP, __VA_ARGS__);           \
+    fflush(FP);                         \
     AtomicPrintfMutex::inst.unlock(FP); \
   } while (0)
 

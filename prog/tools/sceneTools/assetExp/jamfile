@@ -1,8 +1,7 @@
-if $(OS) = NT { Platform ?= win64 ; }
-
 Root    ?= ../../../.. ;
 Location = prog/tools/sceneTools/assetExp ;
-DriverLinkage ?= dynamic ;
+KernelLinkage ?= dynamic ;
+BuildingTools  = yes ;
 include $(Root)/prog/tools/tools_setup.jam ;
 
 TargetType  = util ;
@@ -13,7 +12,7 @@ Dependencies =
   $(Root)/$(Location)/jamfile-job
 ;
 
-if $(DriverLinkage) = dynamic {
+if $(KernelLinkage) = dynamic {
 Dependencies +=
   $(Root)/$(Location)/jamfile-dll
   $(Root)/$(Location)/exporters/jamfile-a2d
@@ -38,7 +37,7 @@ if [ GLOB $(Root)/prog/gameLibs/vehiclePhys : * ] {
 if [ GLOB $(Root)/prog/gameLibs/gamePhys/phys/shipSections : * ] {
   Dependencies += $(Root)/prog/gameLibs/gamePhys/phys/shipSections/exporters/jamfile ;
 }
-if [ GLOB $(Root)/prog/3rdPartyLibs/phys/fractureTool : * ] {
+if $(PlatformArch) = x86_64 && [ GLOB $(Root)/prog/3rdPartyLibs/phys/fractureTool : * ] {
   Dependencies += $(Root)/$(Location)/exporters/jamfile-apexDestr ;
 }
 }

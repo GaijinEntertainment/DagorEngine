@@ -1,5 +1,12 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <render/motionBlur.h>
-#include <3d/dag_drv3d.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
 #include <perfMon/dag_statDrv.h>
 #include <debug/dag_debug.h>
@@ -13,7 +20,6 @@
   VAR(alpha_mul_on_apply)     \
   VAR(overscan_texcoord)      \
   VAR(prev_globtm)            \
-  VAR(source_color_tex)       \
   VAR(accumulation_tex)       \
   VAR(blur_depth_tex)         \
   VAR(blur_source_tex)        \

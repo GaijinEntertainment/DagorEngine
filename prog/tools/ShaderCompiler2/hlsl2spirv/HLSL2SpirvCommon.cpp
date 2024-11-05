@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "HLSL2SpirVCommon.h"
 #include "pragmaScanner.h"
 #include <regExp/regExp.h>

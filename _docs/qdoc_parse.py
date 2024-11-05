@@ -345,7 +345,7 @@ def parse(file_path, data, parsed_result = None, print_res=False):
   native_ctors_full_re = re.compile(r'''.*\.SquirrelCtor\(\s*(.*)\s*\,\s*([\-\d]+)\s*\,\s*\"([\w\.\|]+)\"''')
   native_func_re = re.compile(r'''\.(SquirrelFunc|Func|StaticFunc|GlobalFunc|SquirrelCtor|Ctor)\(\"([\w\d\_]+)\"(.*)''')
   simple_func_re = re.compile(r"\.Func\(\"([\w\d\_]+)\"\,\s*([\w\d\_]+)\)")
-  native_func_full_re = re.compile(r'''\.(SquirrelFunc|StaticFunc|GlobalFunc)\(\"([\w\d\_]+)\"\s*\,(.*)\s*\,\s*([\-\d]+)\s*\,\s*\"?([\w\.\|]+)\"?''')
+  native_func_full_re = re.compile(r'''\.(SquirrelFunc|StaticFunc|GlobalFunc)\(\"([\w\d\_]+)\"\s*\,(.*)\s*\,\s*([\-\d]+)\s*\,\s*\"?([\w\.\|\s]+)\"?''')
   cpp_types_parsers = [
     lambda x: "s" if "char" in x else None,
     lambda x: "c" if "Function" in x else None,

@@ -1,0 +1,10 @@
+bvh{
+  _tags:t="render"
+  "bvh__heightProvider:BvhHeightProvider"{}
+  bvh__initialized:b=no
+  "bvh__update_node:dabfg::NodeHandle"{}
+  "denoiser_prepare_node:dabfg::NodeHandle"{}
+  "rtsm_node:dabfg::NodeHandle"{}
+  "rtr_node:dabfg::NodeHandle"{}
+  "bvh__rendinst_visibility:RiGenVisibilityECS"{}
+}

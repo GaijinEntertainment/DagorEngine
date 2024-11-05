@@ -1,0 +1,26 @@
+return {
+  ZonePointers = "ZonePointers"
+  Projection = "Projection"
+  DistToPriority = "DistToPriority"
+  PlaceOnCompassStrip = "PlaceOnCompassStrip"
+  PlaceOnRoundCompassStrip = "PlaceOnRoundCompassStrip"
+  DistToEntity = "DistToEntity"
+  DistToBorder = "DistToBorder"
+  DistToSphere = "DistToSphere"
+  TouchScreenHoverButton = "TouchScreenHoverButton"
+  TouchScreenButton = "TouchScreenButton"
+  ElementEditor = "ElementEditor"
+  TouchScreenStick = "TouchScreenStick"
+  RotateRelativeToDir = "RotateRelativeToDir"
+  RotateByComponent = "RotateByComponent"
+  MenuCameraControl = "MenuCameraControl"
+  ActivateActionSet = "ActivateActionSet"
+  ReplayFreeCameraControl = "ReplayFreeCameraControl"
+  ViewAzimuth = "ViewAzimuth"
+  UiStateControl = "UiStateControl"
+
+  MARKER_SHOW_ONLY_IN_VIEWPORT = 0x01
+  MARKER_SHOW_ONLY_WHEN_CLAMPED = 0x02
+  MARKER_ARROW = 0x04
+  MARKER_KEEP_SCALE = 0x08
+}

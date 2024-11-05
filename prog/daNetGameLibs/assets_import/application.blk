@@ -1,0 +1,163 @@
+//it is minimalistic copy of application.blk for using in-game daBuild.
+
+shaders:t="compiledShaders/game" //TODO: do we need dx12 shaders too?
+
+//partial copy of assets block
+assets {
+  export {
+    cache:t="/../develop/.cache"            //texture cache
+    assetCache:t="/../develop/.asset-local" //model cache
+    useCache2Fast:b=yes
+    types {
+      type:t="tex"
+      type:t="rendInst"
+      type:t="collision"
+      type:t="physObj"
+      type:t="dynModel"
+      type:t="skeleton"
+      type:t="animChar"
+
+      type:t="animTree"
+      type:t="composit"
+      type:t="prefab"
+      type:t="fastphys"
+      type:t="gameObj"
+      type:t="a2d"
+      type:t="land"
+      type:t="tifMask"
+      type:t="spline"
+      type:t="mat"
+      type:t="proxymat"
+      type:t="apexDestr"
+      type:t="fx"
+      type:t="lshader"
+      type:t="impostorData"
+    }
+    plugins {
+      folder:t="*common"
+    }
+
+    folderDefaults {
+      ddsxTexPack:t="*parent"
+      gameResPack:t="*parent"
+    }
+  }
+  build {
+
+    rendInst {
+      //checks:i=2
+      ignoreMappingInPrepareBillboardMesh:b=yes
+      descListOutPath:t="riDesc"
+      separateModelMatToDescBin:b=yes
+
+      forceRiExtra:b=yes
+      impostorParamsOutPath:t="riImpostors"
+
+      remapShaders {
+        glass:t="rendinst_simple_glass"
+        glass_refraction:t="rendinst_refraction"
+        gi_black:t=""
+        simple:t="rendinst_simple"
+        dynamic_simple:t="rendinst_simple"
+        simple:t="rendinst_simple"
+        simple_aces:t="rendinst_simple"
+        dynamic_simple_colored:t="rendinst_simple_colored"
+        dynamic_tree:t="rendinst_tree"
+        dynamic_tree_colored:t="rendinst_tree_colored"
+        dynamic_alpha_blend:t="rendinst_simple"
+        dynamic_facing_leaves:t="rendinst_facing_leaves"
+        dynamic_glass_chrome:t="rendinst_glass_chrome"
+        dynamic_masked_chrome_bump:t="rendinst_simple"
+	      dynamic_perlin_layered:t="rendinst_perlin_layered"
+      }
+    }
+
+    dynModel {
+      descListOutPath:t="dynModelDesc"
+      separateModelMatToDescBin:b=yes
+
+      ignoreMappingInPrepareBillboardMesh:b=yes
+      enableMeshNodeCollapse:b=no
+      maxBonesCount:i=256
+      setBonePerVertex:i=4
+      maxVPRConst:i=1024
+      useDirectBones:b=yes
+
+      remapShaders {
+        denyShaders  { regExp:t="^rendinst_"; } // disable shader names that after subst remain rendinst_
+
+        bat_shader:t="bat_shader"
+        rendinst_simple:t="dynamic_masked_chrome_bump"
+        rendinst_simple_glass:t="dynamic_simple_glass"
+        glass:t="dynamic_simple_glass"
+        glass_refraction:t="dynamic_refraction"
+        simple:t="dynamic_simple"
+        dynamic_null:t="dynamic_null"
+        dynamic_masked_chrome:t="dynamic_masked_chrome"
+        dynamic_illum:t="dynamic_illum"
+        aces_weapon_fire:t="aces_weapon_fire"
+        dynamic_tele:t="scope_lens"
+
+        land_mesh_combined:t="dynamic_land_mesh_combined"
+        land_mesh_combined_2x:t="dynamic_land_mesh_combined_2x"
+        random_grass:t="random_grass"
+        tracer_head:t="tracer_head"
+        gi_black:t=""
+
+        // List of other available shaders.
+        cockpit_shader:t="cockpit_shader"
+        collimator:t="collimator"
+        dynamic_ablend_hair:t="dynamic_ablend_hair"
+        dynamic_aircraft:t="dynamic_aircraft"
+        dynamic_alpha_blend:t="dynamic_alpha_blend"
+        dynamic_bakeanim_emissive_metatex:t="dynamic_bakeanim_emissive_metatex"
+        dynamic_bakeanim_metatex:t="dynamic_bakeanim_metatex"
+        dynamic_bakeanim_refraction_metatex:t="dynamic_bakeanim_refraction_metatex"
+        dynamic_bakeanim_translucent_metatex:t="dynamic_bakeanim_translucent_metatex"
+        dynamic_cloth:t="dynamic_cloth"
+        dynamic_collimator:t="dynamic_collimator"
+        dynamic_crosshair:t="dynamic_crosshair"
+        dynamic_emissive:t="dynamic_emissive"
+        dynamic_emissive_zombie:t="dynamic_emissive_zombie"
+        dynamic_emissive_metatex:t="dynamic_emissive_metatex"
+        dynamic_eye:t="dynamic_eye"
+        dynamic_glass_chrome:t="dynamic_glass_chrome"
+        dynamic_hair:t="dynamic_hair"
+        dynamic_highlighter:t="dynamic_highlighter"
+        dynamic_mask_layered:t="dynamic_mask_layered"
+        dynamic_masked_chrome_bump:t="dynamic_masked_chrome_bump"
+        dynamic_masked_chrome_bump_colored:t="dynamic_masked_chrome_bump_colored"
+        dynamic_masked_glass_chrome:t="dynamic_masked_glass_chrome"
+        dynamic_masked_ship:t="dynamic_masked_ship"
+        dynamic_masked_tank:t="dynamic_masked_tank"
+        dynamic_metatex:t="dynamic_metatex"
+        dynamic_mirror:t="dynamic_mirror"
+        dynamic_painted_by_mask:t="dynamic_painted_by_mask"
+        dynamic_perlin_layered:t="dynamic_perlin_layered"
+        dynamic_refraction:t="dynamic_refraction"
+        dynamic_refraction_metatex:t="dynamic_refraction_metatex"
+        dynamic_semi_trans:t="dynamic_semi_trans"
+        dynamic_simple:t="dynamic_simple"
+        dynamic_simple_glass:t="dynamic_simple_glass"
+        dynamic_simple_painted:t="dynamic_simple_painted"
+        dynamic_simple_transparent:t="dynamic_simple_transparent"
+        dynamic_skin:t="dynamic_skin"
+        dynamic_spline_attachment:t="dynamic_spline_attachment"
+        dynamic_spline_gen:t="dynamic_spline_gen"
+        dynamic_spline_gen_culler:t="dynamic_spline_gen_culler"
+        dynamic_tank_atest:t="dynamic_tank_atest"
+        dynamic_tank_selfillum:t="dynamic_tank_selfillum"
+        dynamic_translucent_metatex:t="dynamic_translucent_metatex"
+        dynamic_transparent_emissive:t="dynamic_transparent_emissive"
+        dynamic_tree_colored:t="dynamic_tree_colored"
+        dynamic_vcolor_layered:t="dynamic_vcolor_layered"
+        glass_crack:t="glass_crack"
+        jellyfish_shader:t="jellyfish_shader"
+        propeller_front:t="propeller_front"
+        propeller_side:t="propeller_side"
+        scope_lens:t="scope_lens"
+        dynamic_chevron:t="dynamic_chevron"
+      }
+    }
+  }
+}

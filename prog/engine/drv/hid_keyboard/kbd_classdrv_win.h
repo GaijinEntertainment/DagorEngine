@@ -1,9 +1,7 @@
-// Copyright 2023 by Gaijin Games KFT, All rights reserved.
-#ifndef _GAIJIN_DRV_HID_KEYBOARD_KBD_CLASSDRV_WIN_H
-#define _GAIJIN_DRV_HID_KEYBOARD_KBD_CLASSDRV_WIN_H
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <humanInput/dag_hiKeyboard.h>
+#include <drv/hid/dag_hiKeyboard.h>
 
 namespace HumanInput
 {
@@ -41,5 +39,3 @@ protected:
   bool enabled;
 };
 } // namespace HumanInput
-
-#endif

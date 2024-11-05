@@ -1,12 +1,12 @@
-// clang-format off
-#include <dxil/compiled_shader_header.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/shadersMetaData/dxil/compiled_shader_header.h>
 #include <dxil/compiler.h>
 #include <supp/dag_comPtr.h>
 
 #include <windows.h>
 #include <unknwn.h>
 #include <dxc/dxcapi.h>
-// clang-format on
 
 using namespace dxil;
 

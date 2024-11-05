@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -193,7 +192,7 @@ extern template class FastStrMapT<char *, 0>;
 typedef FastStrMapT<int, -1> FastStrMap;
 typedef FastStrMapT<char *, 0> FastStrStrMap_;
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 class FastStrStrMap : public FastStrStrMap_
 {
@@ -215,4 +214,4 @@ public:
   KRNLIMP void reset(bool erase_only = true);
 };
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

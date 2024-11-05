@@ -1,0 +1,116 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+
+int4 denoiser_resolution;
+
+texture denoiser_view_z;
+texture denoiser_nr;
+texture denoiser_half_view_z;
+texture denoiser_half_normals;
+texture denoiser_half_nr;
+texture denoiser_spec_history_confidence;
+
+float denoiser_glass_history_confidence_tweak = 0;
+
+define_macro_if_not_defined USE_EMISSION_DECODE_COLOR_MAP(code)
+endmacro
+
+int denoiser_half_res = 0;
+interval denoiser_half_res: no < 1, yes;
+
+int denoiser_spec_confidence_half_res = 0;
+interval denoiser_spec_confidence_half_res: no < 1, yes;
+
+shader denoiser_prepare
+{
+  (cs) {
+    resolution@i2 = denoiser_resolution.xy;
+
+    nrTexture@uav = denoiser_nr hlsl { RWTexture2D<float4> nrTexture@uav; };
+    viewZTexture@uav = denoiser_view_z hlsl { RWTexture2D<float> viewZTexture@uav; };
+
+    halfResDepthTex@tex2d = downsampled_close_depth_tex;
+    halfNormalsTexture@tex2d = denoiser_half_normals;
+    halfNrTexture@uav = denoiser_half_nr hlsl { RWTexture2D<float4> halfNrTexture@uav; };
+    halfZTexture@uav = denoiser_half_view_z hlsl { RWTexture2D<float> halfZTexture@uav; };
+
+    glass_tweak@f1 = denoiser_glass_history_confidence_tweak;
+  }
+
+  if (denoiser_spec_history_confidence != NULL)
+  {
+    (cs) {
+      specHistoryConfidence@uav = denoiser_spec_history_confidence hlsl { RWTexture2D<float> specHistoryConfidence@uav; };
+    }
+  }
+
+
+  hlsl(cs) {
+    #define DISABLE_TOONSHADING 1
+  }
+
+  USE_EMISSION_DECODE_COLOR_MAP(cs)
+  INIT_ZNZFAR_STAGE(cs)
+  INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
+  USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+  INIT_LOAD_GBUFFER_BASE(cs)
+  INIT_LOAD_BVH_FLAGS_BASE(cs)
+  USE_LOAD_BVH_FLAGS_BASE(cs)
+  USE_LOAD_GBUFFER_BASE(cs, 1)
+
+  hlsl(cs) {
+    #define INF 1e6
+
+    #include <Include/NRDEncoding.hlsli>
+    #include <Include/NRD.hlsli>
+
+    [numthreads(8, 8, 1)]
+    void main(uint2 dtid : SV_DispatchThreadID)
+    {
+      if (any(dtid >= resolution))
+        return;
+
+      float  viewZ = INF;
+      float4 normalRoughness = NRD_FrontEnd_PackNormalAndRoughness(0, 0, 0);
+      float  historyConfidence = 1;
+
+      float rawDepth = loadGbufferDepth(dtid);
+
+      float roughness = 1;
+      BRANCH
+      if (rawDepth > 0)
+      {
+        UnpackedGbuffer unpacked_gbuffer = unpackGbuffer(loadPackedGbuffer(dtid));
+        ProcessedGbuffer gbuffer = processGbuffer(unpacked_gbuffer);
+
+        viewZ           = linearize_z(rawDepth, zn_zfar.zw);
+        normalRoughness = NRD_FrontEnd_PackNormalAndRoughness(normalize(gbuffer.normal), gbuffer.linearRoughness, 0);
+        roughness = gbuffer.linearRoughness;
+        if (gbuffer.isGlass)
+          historyConfidence = gbuffer.linearRoughness + glass_tweak;
+      }
+
+      viewZTexture[ dtid.xy ] = viewZ;
+      nrTexture[ dtid.xy ] = normalRoughness;
+      ##if denoiser_half_res == yes
+        if (all(dtid.xy & 1) == 0)
+        {
+          float rawHalfDepth = halfResDepthTex[dtid.xy / 2].r;
+          halfZTexture[ dtid.xy / 2 ] = rawHalfDepth > 0 ? linearize_z(rawHalfDepth, zn_zfar.zw) : INF;
+          halfNrTexture[ dtid.xy / 2 ] = NRD_FrontEnd_PackNormalAndRoughness(normalize(halfNormalsTexture[dtid.xy / 2].xyz * 2 - 1), roughness, 0);
+        }
+      ##endif
+
+      ##if denoiser_spec_history_confidence != NULL
+        ##if denoiser_spec_confidence_half_res == yes
+          if (all(dtid.xy & 1) == 0)
+            specHistoryConfidence[dtid.xy / 2] = historyConfidence;
+        ##else
+          specHistoryConfidence[dtid.xy] = historyConfidence;
+        ##endif
+      ##endif
+    }
+  }
+
+  compile("cs_6_5", "main");
+}

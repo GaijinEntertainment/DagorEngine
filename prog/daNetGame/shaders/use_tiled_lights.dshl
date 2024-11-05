@@ -1,0 +1,370 @@
+include "tile_lighting.dshl"
+include "punctualLights.dshl"
+include "clustered/lights_cb.dshl"
+include "clusteredViewLights.dshl"
+include "ssss/ssss_spotlight.dshl"
+
+buffer lights_list always_referenced;
+buffer z_binning_lookup always_referenced;
+float max_lights_distance = 500;
+
+macro INIT_TILED_LIGHTS(code)
+  INIT_PHOTOMETRY_TEXTURES(code)
+  INIT_CLUSTERED_LIGHTS(code)
+  INIT_OMNI_LIGHTS_CB(code)
+  INIT_SPOT_LIGHTS_CB(code)
+  INIT_LIGHT_SHADOWS(code)
+  INIT_SPOTLIGHTS_SSSS_TRANSMITTANCE_FACTOR(code)
+  INIT_COMMON_LIGHTS_SHADOWS_CB(code)
+  INIT_POINT_LIGHTS_AO(code)
+  (code) {
+    lights_list@buf = lights_list hlsl {
+      StructuredBuffer<uint> lights_list@buf;
+    };
+    z_binning_lookup@buf = z_binning_lookup hlsl {
+      StructuredBuffer<uint> z_binning_lookup@buf;
+    };
+    lights_distance@f2 = (max_lights_distance, 1.0 / max_lights_distance, 0, 0);
+  }
+endmacro
+
+macro USE_TILED_LIGHTS(code, shadow_callback)
+hlsl(code)
+{
+  #define max_lights_distance lights_distance.x
+  #define inv_lights_distance lights_distance.y
+}
+if (dynamic_lights_count != lights_off)
+{
+  hlsl(code) {
+    #ifndef DYNAMIC_LIGHTS_SPECULAR
+      #define DYNAMIC_LIGHTS_SPECULAR 1
+    #endif
+  }
+
+  hlsl(code) {
+    #define LAMBERT_LIGHT 1
+    #define DYNAMIC_LIGHTS_EARLY_EXIT 1
+    #define OMNI_SHADOWS 1
+  }
+  USE_PHOTOMETRY_TEXTURES(code)
+  USE_CLUSTERED_LIGHTS(code)
+  USE_OMNI_LIGHTS_CB(code)
+  USE_LIGHT_SHADOWS(code)
+  USE_COMMON_LIGHTS_SHADOWS_CB(code)
+  USE_SPOTLIGHTS_SSSS_TRANSMITTANCE_FACTOR(code)
+}
+
+  hlsl(code) {
+    #if WAVE_INTRINSICS//reduce divergence, on SM6.0 and consoles
+      #define WAVE_OR(v) WaveReadFirstLane(WaveAllBitOr(v))
+      #define WAVE_MIN(v) WaveReadFirstLane(WaveAllMin_U32(v))
+      #define WAVE_MAX(v) WaveReadFirstLane(WaveAllMax_U32(v))
+
+      // Let each lane in subgroup load it's own data chunk and then broadcast it to others
+      #define USE_SUBGROUP_BROADCAST 0
+
+      // TODO: move this to shader compiler predefines
+      #if (defined(_HARDWARE_XBOX) || defined(_HARDWARE_PS4) || defined(_HARDWARE_PS5)) && !defined(WaveGetLaneCount)
+        uint WaveGetLaneCount() { return 64; }
+      #endif
+
+      #define WAVE_READ_LANE_AT_FLOAT2(vec, index) float2(WaveReadLaneAt(vec.x, index), WaveReadLaneAt(vec.y, index))
+      #define WAVE_READ_LANE_AT_FLOAT4(vec, index) float4(WaveReadLaneAt(vec.x, index), WaveReadLaneAt(vec.y, index), \
+                                                          WaveReadLaneAt(vec.z, index), WaveReadLaneAt(vec.w, index))
+    #else
+      #define WAVE_OR(v) (v)
+      #define WAVE_MIN(v) (v)
+      #define WAVE_MAX(v) (v)
+
+      #define USE_SUBGROUP_BROADCAST 0
+    #endif
+
+    #include <tiled_light_consts.hlsli>
+
+    uint2 screen_uv_to_tile_idx(float2 screenpos)
+    {
+      return uint2(screenpos) / TILE_EDGE;
+    }
+
+##if (dynamic_lights_count != lights_off)
+    uint depth_to_z_bin(float depth)
+    {
+      return clamp(int((depth * inv_lights_distance) * Z_BINS_COUNT), 0, Z_BINS_COUNT - 1);
+    }
+##endif
+
+##if !(hardware.ps4 || hardware.ps5)
+    uint BitFieldMask(uint ones_width, uint offset)
+    {
+      return ((1U << ones_width) - 1) << offset;
+    }
+##endif
+
+    #include "pbr/pbr.hlsl"
+    #include "clustered/punctualLights.hlsl"
+    half3 get_dynamic_lighting(ProcessedGbuffer gbuffer, float3 worldPos, float3 view, float w, float2 screenpos, float NoV, float3 specularColor, float2 tc, half enviAO, ShadowContext shadow_context = (ShadowContext)0)
+    {
+      half3 result = 0;
+##if (dynamic_lights_count != lights_off)
+      half dynamicLightsSpecularStrength = gbuffer.extracted_albedo_ao;
+      #if (OMNI_CONTACT_SHADOWS || SPOT_CONTACT_SHADOWS) && defined(shadow_frame)
+        float3 contactStartCameraToPoint = -w*view;
+        float dither = interleavedGradientNoiseFramed(screenpos, shadow_frame);//if we have temporal aa
+
+        #if OMNI_CONTACT_SHADOWS
+          #define OMNI_CONTACT_SHADOWS_CALC \
+            BRANCH\
+            if (color_and_specular.w > 0 && max(omniLight.r, omniLight.g)>0.01)\
+            {\
+              float2 hitUV;\
+              float contactShadow = contactShadowRayCast(downsampled_far_depth_tex, downsampled_far_depth_tex_samplerstate, contactStartCameraToPoint, normalize(pos_and_radius.xyz-worldPos.xyz),\
+                clamp(w*0.2, 0.1, 0.25), 8, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, float2(3,2));\
+              omniLight *= pow2(contactShadow);\
+            }
+        #else
+          #define OMNI_CONTACT_SHADOWS_CALC
+        #endif
+
+        #if SPOT_CONTACT_SHADOWS
+          #define SPOT_CONTACT_SHADOWS_CALC \
+            BRANCH\
+            if (needsContactShadows)\
+            {\
+              float2 hitUV;\
+              float contactShadow = contactShadowRayCast(downsampled_far_depth_tex, downsampled_far_depth_tex_samplerstate, contactStartCameraToPoint, normalize(lightPosRadius.xyz-worldPos.xyz),\
+                clamp(w*0.2, 0.1, 0.25), 8, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, float2(3,2));\
+              spotShadow *= pow2(contactShadow);\
+            }
+        #endif
+
+      #else
+        #define OMNI_CONTACT_SHADOWS_CALC
+      #endif
+
+      uint2 tiledGridSize = (screen_size.xy + TILE_EDGE - 1) / TILE_EDGE;
+
+      uint2 tileIdx = screen_uv_to_tile_idx(screenpos);
+      uint tileOffset = (tileIdx.x * tiledGridSize.y + tileIdx.y) * DWORDS_PER_TILE;
+
+      half3 dynamicLighting = 0;
+
+##if (dynamic_lights_count != lights_spot_1)
+      uint zbinsOmni = z_binning_lookup[depth_to_z_bin(w)];
+      uint omniBinsBegin = zbinsOmni >> 16;
+      uint omniBinsEnd = zbinsOmni & 0xFFFF;
+      uint mergedOmniBinsBegin = WAVE_MIN(omniBinsBegin);
+      uint mergedOmniBinsEnd = WAVE_MAX(omniBinsEnd);
+      uint omniLightsBegin = mergedOmniBinsBegin >> 5;
+      uint omniLightsEnd = mergedOmniBinsEnd >> 5;
+      uint omniMaskWidth = clamp((int)omniBinsEnd - (int)omniBinsBegin + 1, 0, 32);
+      uint omniWord = 0;
+
+##if (dynamic_lights_count != lights_omni_1 && dynamic_lights_count != lights_omnispot_1)
+      for (omniWord = omniLightsBegin; omniWord <= omniLightsEnd; ++omniWord)
+##else
+      if (omniLightsBegin <= omniLightsEnd)
+##endif
+      {
+        uint mask = lights_list[tileOffset + omniWord];
+        // Mask by ZBin mask
+        uint localMin = clamp((int)omniBinsBegin - (int)(omniWord << 5), 0, 31);
+        // BitFieldMask op needs manual 32 size wrap support
+        uint zbinMask = omniMaskWidth == 32 ? (uint)(0xFFFFFFFF) : BitFieldMask(omniMaskWidth, localMin);
+        mask &= zbinMask;
+        uint mergedMask = WAVE_OR(mask);
+
+#if USE_SUBGROUP_BROADCAST
+        if (WaveGetLaneCount() >= BITS_IN_UINT) // Compile-time branch, subgroup size has to be at least 32
+        {
+          BRANCH
+          if (mergedMask)
+          {
+            RenderOmniLight ol_32;
+            if (WaveGetLaneIndex() < BITS_IN_UINT && (mergedMask & (1U << WaveGetLaneIndex())))
+            {
+              ol_32 = omni_lights_cb[omniWord * BITS_IN_UINT + WaveGetLaneIndex()]; // Load up to 32 lights at once
+            }
+
+            LOOP
+            while (mergedMask)
+            {
+              uint bitIdx = firstbitlow(mergedMask);
+              uint omni_light_index = omniWord * BITS_IN_UINT + bitIdx;
+              mergedMask ^= (1U << bitIdx);
+
+              // Broadcast data to all lanes
+              RenderOmniLight ol;
+              ol.posRadius = WAVE_READ_LANE_AT_FLOAT4(ol_32.posRadius, bitIdx);
+              ol.colorFlags = WAVE_READ_LANE_AT_FLOAT4(ol_32.colorFlags, bitIdx);
+              ol.direction__tex_scale = WAVE_READ_LANE_AT_FLOAT4(ol_32.direction__tex_scale, bitIdx);
+              ol.boxR0 = WAVE_READ_LANE_AT_FLOAT4(ol_32.boxR0, bitIdx);
+              ol.boxR1 = WAVE_READ_LANE_AT_FLOAT4(ol_32.boxR1, bitIdx);
+              ol.boxR2 = WAVE_READ_LANE_AT_FLOAT4(ol_32.boxR2, bitIdx);
+
+              float4 pos_and_radius = ol.posRadius;
+              float4 color_and_specular = getFinalColor(ol, worldPos);
+              bool hasShadow = all(ol.colorFlags.rgb > 0);
+              #if OMNI_SHADOWS
+                float4 shadowTcToAtlas = getOmniLightShadowData(omni_light_index);
+              #else
+                float4 shadowTcToAtlas = float4(0, 0, 0, 0);
+              #endif
+              half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, gbuffer.ao, pos_and_radius, color_and_specular, shadowTcToAtlas, screenpos);//use gbuffer.specularColor for equality with point_lights.dshl
+
+              OMNI_CONTACT_SHADOWS_CALC
+
+              dynamicLighting += omniLight;
+            }
+          }
+        }
+        else
+#endif
+        {
+          LOOP
+          while (mergedMask)
+          {
+            uint bitIdx = firstbitlow(mergedMask);
+            uint omni_light_index = omniWord * BITS_IN_UINT + bitIdx;
+            mergedMask ^= (1U << bitIdx);
+
+            RenderOmniLight ol = omni_lights_cb[omni_light_index];
+            float4 pos_and_radius = ol.posRadius;
+            float4 color_and_specular = getFinalColor(ol, worldPos);
+            bool hasShadow = all(ol.colorFlags.rgb > 0);
+            #if OMNI_SHADOWS
+              float4 shadowTcToAtlas = getOmniLightShadowData(omni_light_index);
+            #else
+              float4 shadowTcToAtlas = float4(0, 0, 0, 0);
+            #endif
+            half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, gbuffer.ao, pos_and_radius, color_and_specular, shadowTcToAtlas, screenpos);//use gbuffer.specularColor for equality with point_lights.dshl
+
+            OMNI_CONTACT_SHADOWS_CALC
+
+            dynamicLighting += omniLight;
+
+          }
+        }
+      }
+##endif
+
+##if (dynamic_lights_count != lights_omni_1)
+      uint zbinsSpot = z_binning_lookup[depth_to_z_bin(w) + Z_BINS_COUNT];
+      uint spotBinsBegin = zbinsSpot >> 16;
+      uint spotBinsEnd = zbinsSpot & 0xFFFF;
+      uint mergedSpotBinsBegin = WAVE_MIN(spotBinsBegin);
+      uint mergedSpotBinsEnd = WAVE_MAX(spotBinsEnd);
+      uint spotLightsBegin = (mergedSpotBinsBegin >> 5) + DWORDS_PER_TILE / 2;
+      uint spotLightsEnd = (mergedSpotBinsEnd >> 5) + DWORDS_PER_TILE / 2;
+      uint spotMaskWidth = clamp((int)spotBinsEnd - (int)spotBinsBegin + 1, 0, 32);
+      uint spotWord = DWORDS_PER_TILE / 2;
+      ##if use_ssss == sun_and_dynamic_lights
+        float3 ssssWorldPos = ssss_calculate_world_pos(worldPos, gbuffer.normal);
+      ##endif
+
+##if (dynamic_lights_count != lights_spot_1 && dynamic_lights_count != lights_omnispot_1)
+      for (spotWord = spotLightsBegin; spotWord <= spotLightsEnd; ++spotWord)
+##else
+      if (spotLightsBegin <= spotLightsEnd)
+##endif
+      {
+        uint mask = lights_list[tileOffset + spotWord];
+        // Mask by ZBin mask
+        uint localMin = clamp((int)spotBinsBegin - (int)((spotWord - DWORDS_PER_TILE / 2) << 5), 0, 31);
+        // BitFieldMask op needs manual 32 size wrap support
+        uint zbinMask = spotMaskWidth == 32 ? (uint)(0xFFFFFFFF) : BitFieldMask(spotMaskWidth, localMin);
+        mask &= zbinMask;
+        uint mergedMask = WAVE_OR(mask);
+
+#if USE_SUBGROUP_BROADCAST
+        if (WaveGetLaneCount() >= BITS_IN_UINT) // Compile-time branch, subgroup size has to be at least 32
+        {
+          BRANCH
+          if (mergedMask)
+          {
+            RenderSpotLight sl_32;
+            if (WaveGetLaneIndex() < BITS_IN_UINT && (mergedMask & (1U << WaveGetLaneIndex())))
+            {
+              sl_32 = spot_lights_cb[(spotWord - DWORDS_PER_TILE / 2) * BITS_IN_UINT + WaveGetLaneIndex()]; // Load up to 32 lights at once
+            }
+
+            LOOP
+            while (mergedMask)
+            {
+              uint bitIdx = firstbitlow(mergedMask);
+              uint spot_light_index = (spotWord - DWORDS_PER_TILE / 2) * BITS_IN_UINT + bitIdx;
+              mergedMask ^= (1U << bitIdx);
+
+              float4 lightPosRadius = WAVE_READ_LANE_AT_FLOAT4(sl_32.lightPosRadius, bitIdx);
+              float4 lightColor = WAVE_READ_LANE_AT_FLOAT4(sl_32.lightColorAngleScale, bitIdx);
+              float4 lightDirection = WAVE_READ_LANE_AT_FLOAT4(sl_32.lightDirectionAngleOffset, bitIdx);
+              float4 texId_scale_shadow_contactshadow = WAVE_READ_LANE_AT_FLOAT4(sl_32.texId_scale_shadow_contactshadow, bitIdx);
+              float2 texId_scale = texId_scale_shadow_contactshadow.xy;
+              bool hasShadow = sl.texId_scale_shadow_contactshadow.z != 0;
+              bool needsContactShadows = texId_scale_shadow_contactshadow.w != 0;
+
+              #define EXIT_STATEMENT continue
+              #define SPOT_SHADOWS 1
+              ##if use_ssss == sun_and_dynamic_lights
+                #define DYNAMIC_LIGHTS_SSS 1
+                #define USE_SSSS 1
+              ##endif
+              #include "clustered/oneSpotLight.hlsl"
+              dynamicLighting += lightBRDF;
+            }
+          }
+        }
+        else
+#endif
+        {
+          LOOP
+          while (mergedMask)
+          {
+            uint bitIdx = firstbitlow(mergedMask);
+            uint spot_light_index = (spotWord - DWORDS_PER_TILE / 2) * BITS_IN_UINT + bitIdx;
+            mergedMask ^= (1U << bitIdx);
+
+            RenderSpotLight sl = spot_lights_cb[spot_light_index];
+            float4 lightPosRadius = sl.lightPosRadius;
+            float4 lightColor = sl.lightColorAngleScale;
+            float4 lightDirection = sl.lightDirectionAngleOffset;
+            float2 texId_scale = sl.texId_scale_shadow_contactshadow.xy;
+            bool hasShadow = sl.texId_scale_shadow_contactshadow.z != 0;
+            bool needsContactShadows = sl.texId_scale_shadow_contactshadow.w != 0;
+
+            #define EXIT_STATEMENT continue
+            #define SPOT_SHADOWS 1
+            ##if use_ssss == sun_and_dynamic_lights
+              #define DYNAMIC_LIGHTS_SSS 1
+              #define USE_SSSS 1
+            ##endif
+            #include "clustered/oneSpotLight.hlsl"
+            dynamicLighting += lightBRDF;
+          }
+        }
+      }
+##endif
+
+      half pointLightsFinalAO = (enviAO*point_lights_ao_effect.x + point_lights_ao_effect.y);//we use ssao, since we use it in point_lights.dshl (works slow, but not much lights are there)
+      result += dynamicLighting * pointLightsFinalAO;
+##endif
+      return result;
+    }
+  }
+endmacro
+
+macro INIT_AND_USE_TILED_LIGHTS_WITH_CALLBACK(code, shadow_callback)
+  INIT_TILED_LIGHTS(code)
+  USE_TILED_LIGHTS(code, shadow_callback)
+endmacro
+
+macro INIT_AND_USE_TILED_LIGHTS(code)
+  hlsl(code)
+  {
+    struct ShadowContext {};
+    void dummy_shadow_callback(inout half3 result, float3 light_direction, ShadowContext context)
+    {
+    }
+  }
+  INIT_AND_USE_TILED_LIGHTS_WITH_CALLBACK(code, dummy_shadow_callback)
+endmacro

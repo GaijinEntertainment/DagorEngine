@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <dasModules/aotSoundEvent.h>
 #include <daScript/ast/ast_policy_types.h>
 #include <daScript/simulate/sim_policy.h>
@@ -52,7 +54,6 @@ struct SoundEventAnnotation final : das::ManagedStructureAnnotation<SoundEvent, 
   SoundEventAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("SoundEvent", ml)
   {
     cppName = " ::SoundEvent";
-    addField<DAS_BIND_MANAGED_FIELD(handle)>("handle");
     addField<DAS_BIND_MANAGED_FIELD(abandonOnReset)>("abandonOnReset");
     addField<DAS_BIND_MANAGED_FIELD(enabled)>("enabled");
   }
@@ -99,6 +100,17 @@ struct VisualLabelAnnotation : das::ManagedStructureAnnotation<sndsys::VisualLab
   bool hasNonTrivialCopy() const override { return false; } // for emplace(push_clone) to the containers in das
   bool canBePlacedInContainer() const override { return true; }
 };
+
+struct SoundEventsPreloadAnnotation final : das::ManagedStructureAnnotation<SoundEventsPreload, false>
+{
+  SoundEventsPreloadAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("SoundEventsPreload", ml)
+  {
+    cppName = " ::SoundEventsPreload";
+  }
+  bool canCopy() const override { return false; }
+  bool canMove() const override { return false; }
+  bool canClone() const override { return false; }
+};
 } // namespace soundevent_bind_dascript
 
 #define SND_BIND_FUN_EX(FUN, NAME, SIDE_EFFECTS) \
@@ -119,6 +131,7 @@ public:
     addAnnotation(das::make_smart<SoundEventAnnotation>(lib));
     addAnnotation(das::make_smart<SoundGroupAnnotation>(lib));
     addAnnotation(das::make_smart<VisualLabelAnnotation>(lib));
+    addAnnotation(das::make_smart<SoundEventsPreloadAnnotation>(lib));
 
     das::addFunctionBasic<sndsys::EventHandle>(*this, lib);
     das::addFunctionBasic<SoundVarId>(*this, lib);
@@ -129,12 +142,16 @@ public:
     das::addCtorAndUsing<sndsys::VisualLabel>(*this, lib, "VisualLabel", "::sndsys::VisualLabel");
     das::addCtorAndUsing<sndsys::VisualLabels>(*this, lib, "VisualLabels", "::sndsys::VisualLabels");
 
-    SND_BIND_FUN(add_sound, das::SideEffects::modifyArgumentAndExternal);
+    SND_BIND_FUN_EX(add_sound, "add_sound", das::SideEffects::modifyArgumentAndExternal);
+    SND_BIND_FUN_EX(__add_sound, "add_sound", das::SideEffects::modifyArgumentAndExternal);
     SND_BIND_FUN_EX(add_sound_with_pos, "add_sound", das::SideEffects::modifyArgumentAndExternal);
-    SND_BIND_FUN(remove_sound, das::SideEffects::modifyArgument);
+    SND_BIND_FUN_EX(__add_sound_with_pos, "add_sound", das::SideEffects::modifyArgumentAndExternal);
+    SND_BIND_FUN_EX(remove_sound, "remove_sound", das::SideEffects::modifyArgument);
+    SND_BIND_FUN_EX(__remove_sound, "remove_sound", das::SideEffects::modifyArgument);
     SND_BIND_FUN(release_all_sounds, das::SideEffects::modifyArgumentAndExternal);
     SND_BIND_FUN(abandon_all_sounds, das::SideEffects::modifyArgumentAndExternal);
     SND_BIND_FUN(reject_sound, das::SideEffects::modifyArgumentAndExternal);
+    SND_BIND_FUN(abandon_sound, das::SideEffects::modifyArgumentAndExternal);
     SND_BIND_FUN_EX(reject_sound_with_stop, "reject_sound", das::SideEffects::modifyArgumentAndExternal);
     SND_BIND_FUN(release_sound, das::SideEffects::modifyArgumentAndExternal);
     SND_BIND_FUN(get_sound, das::SideEffects::none);
@@ -145,7 +162,11 @@ public:
     SND_BIND_FUN(get_max_capacity, das::SideEffects::none);
     SND_BIND_FUN(update_sounds, das::SideEffects::modifyArgumentAndExternal);
 
-    SND_BIND_FUN_EX(is_valid_event_handle, "is_valid", das::SideEffects::none);
+    SND_BIND_FUN_EX(__reset, "reset", das::SideEffects::modifyArgumentAndExternal);
+    SND_BIND_FUN_EX(__move, "move", das::SideEffects::modifyArgumentAndExternal);
+
+    SND_BIND_FUN_EX(is_valid_event_handle_value, "is_valid_handle_value", das::SideEffects::none);
+    SND_BIND_FUN_EX(is_valid_event_value, "is_valid_handle_value", das::SideEffects::none);
     SND_BIND_FUN(invalid_sound_event_handle, das::SideEffects::none);
 
     SND_BIND_FUN_EX(play_with_name, "play", das::SideEffects::modifyExternal);
@@ -159,6 +180,13 @@ public:
     SND_BIND_FUN_EX(play_sound_with_name_pos, "play", das::SideEffects::modifyArgumentAndExternal);
     SND_BIND_FUN_EX(play_sound_with_name_path_pos, "play", das::SideEffects::modifyArgumentAndExternal);
     SND_BIND_FUN_EX(play_sound_with_name_pos_vol, "play", das::SideEffects::modifyArgumentAndExternal);
+    SND_BIND_FUN_EX(play_sound_with_name_pos_delayed, "delayed_play", das::SideEffects::modifyArgumentAndExternal);
+
+    SND_BIND_FUN_EX(play_or_release_sound_with_name_pos, "play_or_release", das::SideEffects::modifyArgumentAndExternal);
+    SND_BIND_FUN_EX(play_or_abandon_sound_with_name_pos, "play_or_abandon", das::SideEffects::modifyArgumentAndExternal);
+
+    SND_BIND_FUN_EX(play_or_release_sound_with_name, "play_or_release", das::SideEffects::modifyArgumentAndExternal);
+    SND_BIND_FUN_EX(play_or_abandon_sound_with_name, "play_or_abandon", das::SideEffects::modifyArgumentAndExternal);
 
     SND_BIND_FUN_EX(oneshot_with_name_pos, "oneshot", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(oneshot_with_name, "oneshot", das::SideEffects::modifyExternal);
@@ -169,41 +197,93 @@ public:
     SND_BIND_FUN(should_play, das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(should_play_ex, "should_play", das::SideEffects::modifyExternal);
 
-    SND_BIND_FUN(is_oneshot, das::SideEffects::accessExternal);
-    SND_BIND_FUN(is_playing, das::SideEffects::accessExternal);
-    SND_BIND_FUN(is_valid_event, das::SideEffects::accessExternal);
-    SND_BIND_FUN(is_valid_event_instance, das::SideEffects::accessExternal);
+    SND_BIND_FUN_EX(is_oneshot, "is_oneshot", das::SideEffects::accessExternal);
+    SND_BIND_FUN_EX(__is_oneshot, "is_oneshot", das::SideEffects::accessExternal);
 
-    SND_BIND_FUN(get_max_distance, das::SideEffects::accessExternal);
-    SND_BIND_FUN_EX(get_max_distance_name, "get_max_distance", das::SideEffects::accessExternal);
+    SND_BIND_FUN_EX(is_playing, "is_playing", das::SideEffects::accessExternal);
+    SND_BIND_FUN_EX(__is_playing, "is_playing", das::SideEffects::accessExternal);
+
+    SND_BIND_FUN_EX(is_valid_event, "is_valid_event", das::SideEffects::accessExternal);
+    SND_BIND_FUN_EX(__is_valid_event, "is_valid_event", das::SideEffects::accessExternal);
+    SND_BIND_FUN_EX(is_valid_event_instance, "is_valid_event_instance", das::SideEffects::accessExternal);
+    SND_BIND_FUN_EX(__is_valid_event_instance, "is_valid_event_instance", das::SideEffects::accessExternal);
 
     SND_BIND_FUN(has, das::SideEffects::modifyExternal);
 
-    SND_BIND_FUN(set_pos, das::SideEffects::modifyExternal);
-    SND_BIND_FUN(set_var, das::SideEffects::modifyExternal);
-    SND_BIND_FUN(set_var_optional, das::SideEffects::modifyExternal);
-    SND_BIND_FUN(set_var_global, das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(set_pos, "set_pos", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(__set_pos, "set_pos", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(__set_pos_and_ori, "set_pos_and_ori", das::SideEffects::modifyExternal);
+
+    SND_BIND_FUN_EX(set_var, "set_var", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(__set_var, "set_var", das::SideEffects::modifyExternal);
+
+    SND_BIND_FUN_EX(set_var_optional, "set_var_optional", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(__set_var_optional, "set_var_optional", das::SideEffects::modifyExternal);
+
+    SND_BIND_FUN_EX(set_var_global, "set_var_global", das::SideEffects::modifyExternal);
+
     SND_BIND_FUN(invalid_sound_var_id, das::SideEffects::none);
     SND_BIND_FUN(get_var_id_global, das::SideEffects::accessExternal);
     SND_BIND_FUN_EX(set_var_global_with_id, "set_var_global", das::SideEffects::modifyExternal);
 
-    SND_BIND_FUN(set_volume, das::SideEffects::modifyExternal);
-    SND_BIND_FUN(set_pitch, das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(set_volume, "set_volume", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(__set_volume, "set_volume", das::SideEffects::modifyExternal);
 
-    SND_BIND_FUN(get_timeline_position, das::SideEffects::accessExternal);
-    SND_BIND_FUN(set_timeline_position, das::SideEffects::modifyExternal);
-    SND_BIND_FUN(get_length, das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(set_pitch, "set_pitch", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(__set_pitch, "set_pitch", das::SideEffects::modifyExternal);
 
-    SND_BIND_FUN(release_immediate, das::SideEffects::modifyArgumentAndExternal);
-    SND_BIND_FUN(release, das::SideEffects::modifyArgumentAndExternal);
+    SND_BIND_FUN_EX(get_timeline_position, "get_timeline_position", das::SideEffects::accessExternal);
+    SND_BIND_FUN_EX(__get_timeline_position, "get_timeline_position", das::SideEffects::accessExternal);
 
-    SND_BIND_FUN(abandon_immediate, das::SideEffects::modifyArgumentAndExternal);
-    SND_BIND_FUN(abandon, das::SideEffects::modifyArgumentAndExternal);
+    SND_BIND_FUN_EX(set_timeline_position, "set_timeline_position", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(__set_timeline_position, "set_timeline_position", das::SideEffects::modifyExternal);
+
+    SND_BIND_FUN_EX(get_length_by_path, "get_length", das::SideEffects::modifyExternal);
+
+    SND_BIND_FUN_EX(get_sample_loading_state_by_path, "get_sample_loading_state", das::SideEffects::accessExternal);
+    SND_BIND_FUN_EX(load_sample_data_by_path, "load_sample_data", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(unload_sample_data_by_path, "unload_sample_data", das::SideEffects::modifyExternal);
+
+    SND_BIND_FUN(get_sample_loading_state, das::SideEffects::accessExternal);
+    SND_BIND_FUN(load_sample_data, das::SideEffects::modifyExternal);
+    SND_BIND_FUN(unload_sample_data, das::SideEffects::modifyExternal);
+
+    SND_BIND_FUN_EX(release_immediate, "release_immediate", das::SideEffects::modifyArgumentAndExternal);
+    SND_BIND_FUN_EX(__release_immediate, "release_immediate", das::SideEffects::modifyArgumentAndExternal);
+
+    SND_BIND_FUN_EX(release, "release", das::SideEffects::modifyArgumentAndExternal);
+    SND_BIND_FUN_EX(__release, "release", das::SideEffects::modifyArgumentAndExternal);
+
+    SND_BIND_FUN_EX(abandon_immediate, "abandon_immediate", das::SideEffects::modifyArgumentAndExternal);
+    SND_BIND_FUN_EX(__abandon_immediate, "abandon_immediate", das::SideEffects::modifyArgumentAndExternal);
+
+    SND_BIND_FUN_EX(abandon, "abandon", das::SideEffects::modifyArgumentAndExternal);
+    SND_BIND_FUN_EX(__abandon, "abandon", das::SideEffects::modifyArgumentAndExternal);
+
     SND_BIND_FUN_EX(abandon_with_delay, "abandon", das::SideEffects::modifyArgumentAndExternal);
-    SND_BIND_FUN(keyoff, das::SideEffects::modifyExternal);
-    SND_BIND_FUN(is_3d, das::SideEffects::accessExternal);
+    SND_BIND_FUN_EX(__abandon_with_delay, "abandon", das::SideEffects::modifyArgumentAndExternal);
+
+    SND_BIND_FUN_EX(keyoff, "keyoff", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(__keyoff, "keyoff", das::SideEffects::modifyExternal);
+
+    SND_BIND_FUN_EX(is_3d, "is_3d", das::SideEffects::accessExternal);
+    SND_BIND_FUN_EX(__is_3d, "is_3d", das::SideEffects::accessExternal);
+
+    SND_BIND_FUN_EX(get_max_distance, "get_max_distance", das::SideEffects::accessExternal);
+    SND_BIND_FUN_EX(__get_max_distance, "get_max_distance", das::SideEffects::accessExternal);
+    SND_BIND_FUN_EX(get_max_distance_by_name, "get_max_distance", das::SideEffects::accessExternal);
 
     SND_BIND_FUN_EX(das_query_visual_labels, "query_visual_labels", das::SideEffects::modifyExternal);
+
+    SND_BIND_FUN(create_event_instance_stealing_group, das::SideEffects::modifyExternal);
+    SND_BIND_FUN(update_event_instance_stealing, das::SideEffects::modifyExternal);
+
+    SND_BIND_FUN(sound_events_load, das::SideEffects::modifyArgumentAndExternal);
+    SND_BIND_FUN(sound_events_unload, das::SideEffects::modifyArgumentAndExternal);
+
+    SND_BIND_FUN(get_num_event_instances, das::SideEffects::accessExternal);
+    SND_BIND_FUN_EX(__get_num_event_instances, "get_num_event_instances", das::SideEffects::accessExternal);
+    SND_BIND_FUN_EX(get_num_event_instances_with_name_path, "get_num_event_instances", das::SideEffects::accessExternal);
 
     verifyAotReady();
   }

@@ -60,12 +60,11 @@ shader debug_lights, debug_spot_lights
         ##endif
         float4 pos_and_radius    = sl.lightPosRadius;
         float4 color_and_attenuation = sl.lightColorAngleScale;
-        color_and_attenuation.w = abs(color_and_attenuation.w);
         float4 dir_angle = sl.lightDirectionAngleOffset;
 
         const float lightAngleScale = color_and_attenuation.a;
         const float lightAngleOffset = dir_angle.a;
-        float2 texId_scale = sl.texId_scale.xy;
+        float2 texId_scale = sl.texId_scale_shadow_contactshadow.xy;
 
         float cosOuter = -lightAngleOffset/lightAngleScale;
         float halfTan = sqrt(1/(cosOuter*cosOuter)-1);

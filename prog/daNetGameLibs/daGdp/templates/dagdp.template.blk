@@ -1,0 +1,116 @@
+dagdp_manager {
+  _singleton:b=true
+  _use:t="replicating"
+  "dagdp__global_manager:dagdp::GlobalManager"{ _tags:t="render" }
+  "dagdp__dyn_shadows_manager:dagdp::DynShadowsManager"{ _tags:t="render" }
+  "dagdp__riex_manager:dagdp::RiexManager"{ _tags:t="render" }
+  "dagdp__heightmap_manager:dagdp::HeightmapManager"{ _tags:t="render" }
+}
+
+dagdp_base {
+  _use:t="replicating"
+  _track:b=yes
+  "dagdp__name:t"{
+    value:t=""
+    _info { desc:t="The name of the daGDP entity (placer or object group)." }
+  }
+}
+
+dagdp_placer {
+  _use:t="dagdp_base"
+  "dagdp_placer:tag"{}
+  _track:b=yes
+  "dagdp__object_groups:list<t>"{
+    _info { desc:t="List of names of object groups which will be used by the rule." }
+  }
+}
+
+dagdp_object_group {
+  _use:t="dagdp_base"
+  "dagdp_object_group:tag"{}
+  _track:b=yes
+  "dagdp__params:object"{
+    _info { desc:t="An object with the following (optional) fields:\n- weight:r=1\n- scale:p2=1,0 // Scale: base value and deviation.\n- rot_y:p2=0,180 // Yaw (first rotation, around object axis Y): base value and deviation. Unit: degrees.\n- rot_x:p2=0,0 // Pitch (second rotation, around object axis X): base value and deviation. Unit: degrees.\n- rot_z:p2=0,0 // Roll (third rotation, around object axis Z): base value and deviation. Unit: degrees.\n- orientation:t='world' // One of: 'world', 'world_xz', 'normal', 'normal_xz'. Selects initial orientation: object axis Y will be either world Y, or surface normal. Object axis X will be either world X, or looking toward the surface downward slope.\n- heightmap_imitators:t='allow' // One of: 'allow' (no restriction), 'require' (placement only on imitator), 'reject' (placement only on the original heightmap).\n- slope_factor:r=0 // Control the strength of slope effect: skip objects for more vertical (or horizontal, when inverted) surfaces.\n- slope_invert:b=no // Invert the slope effect.\n- delete_on_deform:b=yes // Delete the object when ridden over by a vehicle. \n- density_mask_channel:t='red' // If the density mask is set, which channel to use for this object. ('invalid' -> do not use mask, 'red', 'green', 'blue', 'alpha')" }
+  }
+}
+
+dagdp_has_assets {
+  _track:b=yes
+  "dagdp__assets:object"{
+    _info { desc:t="Which assets should the object group use? Keys are asset names; values are objects with same format as dagdp__params." }
+  }
+}
+
+dagdp_has_biomes {
+  _track:b=yes
+  "dagdp__biomes:list<i>"{
+    _info { desc:t="List of biome indices on which objects should be placed." }
+  }
+}
+
+dagdp_density_mask {
+  _singleton:b=true
+  "dagdp_density_mask:tag"{}
+  _track:b=yes
+  "dagdp__density_mask_res:t"{
+    value:t=""
+    _info { desc:t="Name of the texture to be used as a density mask." }
+  }
+}
+
+dagdp_has_density {
+  _track:b=yes
+  "dagdp__density:r"{
+    value:r=1
+    _info { desc:t="Density of placement. Units: number of objects per reference area (which normally is a square meter)." }
+  }
+}
+
+dagdp_has_jitter {
+  _track:b=yes
+  "dagdp__jitter:r"{
+    value:r=1
+    _info { desc:t="How irregular (from 0 to 1) should the placement be? Will randomly offset placed objects inside their designated area, e.g. up to half of grid step in both directions." }
+  }
+}
+
+dagdp_has_seed {
+  _track:b=yes
+  "dagdp__seed:i"{
+    value:i=0
+    _info { desc:t="Seed of pseudo-random generator." }
+  }
+}
+
+dagdp_placer_heightmap {
+  _use:t="dagdp_placer"
+  _use:t="dagdp_has_biomes"
+  _use:t="dagdp_has_density"
+  _use:t="dagdp_has_jitter"
+  _use:t="dagdp_has_seed"
+  "dagdp_placer_heightmap:tag"{}
+  _group {
+    _track:b=yes
+    "dagdp__heightmap_lower_level:b"{
+      value:b=no
+      _info { desc:t="Whether to place objects on the 'lower level', at original heightmap Y. Only relevant when a separate 'upper' level exists because of special RendInsts that imitate the heightmap, like rendinst_clipmap. If disabled, it is assumed that only one level exists." }
+    }
+    "dagdp__heightmap_allow_unoptimal_grids:b"{
+      value:b=no
+      _info { desc:t="Allow potentially less optimal (performance-wise) grids. Please only use if you understand the impact and trade-offs." }
+    }
+    "dagdp__heightmap_cell_size:r"{
+      value:r=1
+      _info { desc:t="Changes the reference area (see dagdp__density) by adjusting the reference cell's side length. World-space units (normally meters). Useful for cases when precise control over the grid is needed. Intended to be used with dagdp__density = 1, but both can also be used simultaneously." }
+    }
+  }
+  _info { desc:t="Will place objects on the heightmap." }
+}
+
+dagdp_object_group_riex {
+  _use:t="dagdp_object_group"
+  _use:t="dagdp_has_assets"
+  "dagdp_object_group_riex:tag"{}
+  "dagdp__riex_preload:dagdp::RiexPreload"{ _tags:t="render" }
+  _info { desc:t="Will render one of the specified RendInst Extra assets, when used in a rule." }
+}

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 // dag.cpp : DLL wrapper of the library for DAG export
 //
 ////////////////////////////////////////////////////////////////////////////////

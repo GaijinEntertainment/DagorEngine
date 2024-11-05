@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <daFx/dafx.h>
 #include <fx/dag_baseFxClasses.h>
 #include <EASTL/unique_ptr.h>
@@ -7,6 +9,11 @@
 #include "dafxSystemDesc.h"
 #include <debug/dag_debug3d.h>
 #include <dafxEmitterDebug.h>
+#include <math/dag_hlsl_floatx.h>
+#include <daFx/dafx_gravity_zone.hlsli>
+
+int dafx_gravity_zone_count = 0;
+GravityZoneDescriptor_buffer dafx_gravity_zone_buffer = nullptr;
 
 enum
 {
@@ -87,10 +94,17 @@ struct DafxModFx : BaseParticleEffect
     if (pdesc && !pdesc->subsystems.empty())
     {
       pdesc->subsystems[0].gameResId = gameResId;
-      for (TEXTUREID t : pdesc->subsystems[0].texturesPs)
-        if (t != BAD_TEXTUREID)
-          textures.push_back(t);
+      for (auto [tid, a] : pdesc->subsystems[0].texturesPs)
+        if (tid != BAD_TEXTUREID)
+          textures.push_back(tid);
     }
+  }
+
+  void setGravityTm(const Matrix3 &tm)
+  {
+    auto it = sinfo.valueOffsets.find(dafx_ex::SystemInfo::VAL_GRAVITY_ZONE_TM);
+    if (it != sinfo.valueOffsets.end())
+      dafx::set_instance_value(g_dafx_ctx, iid, it->second, &tm, sizeof(Matrix3));
   }
 
   void setParam(unsigned id, void *value) override
@@ -166,6 +180,8 @@ struct DafxModFx : BaseParticleEffect
       dafx::warmup_instance(g_dafx_ctx, iid, value ? *(float *)value : 0);
     else if (id == _MAKE4C('PFXI'))
       ((eastl::vector<dafx::InstanceId> *)value)->push_back(iid);
+    else if (id == _MAKE4C('GZTM'))
+      setGravityTm(*(Matrix3 *)value);
   }
 
   void *getParam(unsigned id, void *value) override
@@ -225,6 +241,21 @@ struct DafxModFx : BaseParticleEffect
     {
       if (value)
         ((eastl::vector<dafx::SystemDesc *> *)value)->push_back(pdesc.get());
+      return value;
+    }
+    else if (id == _MAKE4C('FXIC') && value)
+    {
+      *(int *)value = dafx::get_instance_elem_count(g_dafx_ctx, iid);
+      return value;
+    }
+    else if (id == _MAKE4C('FXIX') && value)
+    {
+      *(int *)value = sinfo.transformType;
+      return value;
+    }
+    else if (id == _MAKE4C('FXID') && value)
+    {
+      *(dafx::InstanceId *)value = iid;
       return value;
     }
 

@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <assets/assetExporter.h>
 #include <assets/assetRefs.h>
 #include <assets/asset.h>
@@ -39,7 +41,7 @@ public:
   virtual unsigned __stdcall getGameResClassId() const { return DynModelGameResClassId; }
   virtual unsigned __stdcall getGameResVersion() const
   {
-    const int ord_ver = 0;
+    const int ord_ver = 1;
     const int base_ver = 55 + ord_ver * 10 + (splitMatToDescBin && !shadermeshbuilder_strip_d3dres ? 5 : 0);
     if (ShaderMeshData::preferZstdPacking)
       return base_ver + (shadermeshbuilder_strip_d3dres ? 3 : (ShaderMeshData::allowOodlePacking ? 4 : 2));

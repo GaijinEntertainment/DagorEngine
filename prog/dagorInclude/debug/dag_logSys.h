@@ -1,14 +1,13 @@
 //
 // Dagor Engine 6.5
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
 #include <debug/dag_log.h>
 #include <generic/dag_span.h>
 
-#include <supp/dag_define_COREIMP.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 typedef int (*debug_override_timestamp_cb_t)(char *dest, int dest_sz, int64_t t_msec);
 typedef int (*debug_log_callback_t)(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line);
@@ -31,6 +30,10 @@ KRNLIMP int get_nearest_crypted_len(int maxlen, int lev = LOGLEVEL_DEBUG);
 KRNLIMP void debug_enable_thread_ids(bool en_tid);
 KRNLIMP void debug_set_thread_name(const char *persistent_thread_name_ptr);
 KRNLIMP void debug_override_log_timestamp_format(debug_override_timestamp_cb_t);
+// Returns the previous callback.
+// NOTE: this function provides no sequential consistency in regards to log_callback being
+// accessed and called by other threads. log_callback is accessed in a relaxed fashion when being read,
+// so keep in mind it might still be called "after" you change it.
 KRNLIMP debug_log_callback_t debug_set_log_callback(debug_log_callback_t cb);
 #else
 inline const char *get_log_directory() { return ""; }
@@ -47,4 +50,4 @@ inline void debug_override_log_timestamp_format(debug_override_timestamp_cb_t) {
 inline debug_log_callback_t debug_set_log_callback(debug_log_callback_t) { return NULL; }
 #endif
 
-#include <supp/dag_undef_COREIMP.h>
+#include <supp/dag_undef_KRNLIMP.h>

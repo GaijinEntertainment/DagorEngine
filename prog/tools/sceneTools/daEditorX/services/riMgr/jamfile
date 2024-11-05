@@ -30,7 +30,6 @@ if [ GLOB $(Root)/prog/gameLibs/gamePhys : * ]
     gameLibs/gamePhys/props
     gameLibs/gamePhys/collision/collision-common
     gameLibs/gamePhys/collision/rendinst
-    gameLibs/gamePhys/phys/rendinstDestrRefl/stub
     gameLibs/gamePhys/common
     gameLibs/gamePhys/phys/destrRender
   ;

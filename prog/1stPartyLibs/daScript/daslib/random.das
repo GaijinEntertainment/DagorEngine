@@ -34,7 +34,7 @@ def random_big_int ( var seed:int4& )
     //! random integer 0..32768*32768-1 (LCG_RAND_MAX_BIG)
     seed = int4(214013)*seed+int4(2531011)
     let i12 = (seed.xy>>16) & int2(LCG_RAND_MAX)
-    return i12.x + i12.y*32768
+    return i12.x + (i12.y<<15)
 
 [generic]
 def random_uint ( var seed:int4& )

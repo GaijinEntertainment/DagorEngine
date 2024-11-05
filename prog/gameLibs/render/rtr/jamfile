@@ -1,0 +1,29 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/rtr ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/rtr.lib ;
+
+BVHSupport ?= no ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+if $(BVHSupport) = yes {
+  Sources =
+    rtr.cpp
+  ;
+} else {
+  Sources =
+    rtr_stub.cpp
+  ;
+  Target = $(Target:S=-stub.lib) ;
+}
+
+CPPopt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

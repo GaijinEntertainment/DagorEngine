@@ -1,8 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #import "metalview.h"
 #include "render.h"
 
-#include <3d/dag_drv3dCmd.h>
+#include <drv/3d/dag_commands.h>
 #include <osApiWrappers/setProgGlobals.h>
 #include <osApiWrappers/dag_wndProcCompMsg.h>
 #include <startup/dag_globalSettings.h>
@@ -23,11 +24,7 @@ extern bool get_lowpower_mode();
   BOOL layerSizeDidUpdate;
 
   id <MTLTexture>      backTex;
-  id <MTLTexture>      depthTex;
-  id <MTLTexture>      stencilTex;
-  id <MTLTexture>      msaaTex;
   id <MTLTexture>      SRGBTex;
-  id <MTLTexture>      msaaSRGBTex;
   id <CAMetalDrawable> currentDrawable;
   id <MTLTexture>      savedBackTex;
 
@@ -49,7 +46,7 @@ extern bool get_lowpower_mode();
   self.contentScaleFactor = [UIScreen mainScreen].nativeScale;
   self.layer.contentsScale = retinaScale;
   metalLayer = (CAMetalLayer *)self.layer;
-  metalLayer.maximumDrawableCount = 3; // drv3d_metal::render.MAX_FRAMES_TO_RENDER;
+  metalLayer.maximumDrawableCount = 3; // drv3d_metal::Render::MAX_FRAMES_TO_RENDER;
 #else
   self.wantsLayer = YES;
   self.layer = metalLayer = [CAMetalLayer layer];
@@ -60,15 +57,20 @@ extern bool get_lowpower_mode();
   _device = MTLCreateSystemDefaultDevice();
 #else
   _device = nil;
+  debug("[METAL_INIT] lowpower device is requested %s", get_lowpower_mode() ? "true" : "false");
   if (get_lowpower_mode())
   {
     NSArray<id<MTLDevice>> * devices = MTLCopyAllDevices();
     for (id<MTLDevice> dev in devices)
+    {
+      debug("[METAL_INIT] checking device %s, lowpower is %s", [dev.name UTF8String], dev.lowPower ? "true" : "false");
       if (dev.lowPower == YES)
         _device = [dev retain];
+    }
   }
   if (_device == nil)
     _device = MTLCreateSystemDefaultDevice();
+  debug("[METAL_INIT] selected device %s, lowpower is %s", [_device.name UTF8String], _device.lowPower ? "true" : "false");
 #endif
 
   metalLayer.device      = _device;
@@ -82,20 +84,11 @@ extern bool get_lowpower_mode();
   layer_width = 800;
   layer_height = 600;
 
-  _sampleCount = 1;
-  _depthPixelFormat = MTLPixelFormatDepth32Float;
-  _stencilPixelFormat = MTLPixelFormatInvalid;
-
   layerSizeDidUpdate = false;
 
   [self setVSync:false];
 
   backTex = nil;
-  depthTex = nil;
-  stencilTex = nil;
-  msaaTex = nil;
-  SRGBTex = nil;
-  msaaSRGBTex = nil;
   currentDrawable = nil;
   savedBackTex = nil;
 }
@@ -136,10 +129,7 @@ extern bool get_lowpower_mode();
   debug("setVSync not supported on iOS/tvOS");
 
 #else
-  if (@available(macos 10.13, *))
-  {
-    metalLayer.displaySyncEnabled = enable;
-  }
+  metalLayer.displaySyncEnabled = enable;
 #endif
 }
 
@@ -182,11 +172,7 @@ extern bool get_lowpower_mode();
 
 - (void)releaseTextures
 {
-  depthTex  = nil;
-  stencilTex  = nil;
-  msaaTex   = nil;
   SRGBTex   = nil;
-  msaaSRGBTex = nil;
 }
 
 #if _TARGET_PC_MACOSX
@@ -224,130 +210,34 @@ extern bool get_lowpower_mode();
 }
 #endif
 
-- (id<MTLTexture>)getBackBuffer:(bool)msaa
+- (id<MTLTexture>)getBackBuffer
 {
-  if (msaa)
-  {
-    return msaaTex;
-  }
-
   return backTex;
 }
 
--(id<MTLTexture>)getsRGBBackBuffer : (bool)msaa
+-(id<MTLTexture>)getsRGBBackBuffer
 {
-  if (msaa)
-  {
-    if (!msaaTex)
-    {
-      msaaSRGBTex = [msaaTex newTextureViewWithPixelFormat : MTLPixelFormatBGRA8Unorm_sRGB];
-    }
-
-    return msaaSRGBTex;
-  }
-
-  if (!SRGBTex)
-  {
-    SRGBTex = [backTex newTextureViewWithPixelFormat : MTLPixelFormatBGRA8Unorm_sRGB];
-  }
-
+  G_ASSERT(SRGBTex);
   return SRGBTex;
-}
-
--(id<MTLTexture>)getDepthBuffer
-{
-  return depthTex;
-}
-
--(void)prepareBackBuffer:(id <MTLTexture>)texture
-{
-  SRGBTex = NULL;
-  msaaSRGBTex = NULL;
-
-  if (self.sampleCount > 1)
-  {
-    BOOL doUpdate = (msaaTex.width != texture.width) ||
-                    (msaaTex.height != texture.height) ||
-                    (msaaTex.sampleCount != self.sampleCount);
-
-    if (!msaaTex || (msaaTex && doUpdate))
-    {
-      MTLTextureDescriptor* desc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat : metalLayer.pixelFormat
-                                                                                      width : texture.width
-                                                                                     height : texture.height
-                                                                                  mipmapped : NO];
-      desc.textureType = (self.sampleCount > 1) ? MTLTextureType2DMultisample : MTLTextureType2D;
-      desc.sampleCount = self.sampleCount;
-
-      msaaTex = [self.device newTextureWithDescriptor : desc];
-    }
-  }
-
-  if (self.depthPixelFormat != MTLPixelFormatInvalid)
-  {
-    BOOL doUpdate = (depthTex.width != texture.width) ||
-                    (depthTex.height != texture.height) ||
-                    (depthTex.sampleCount != self.sampleCount);
-
-    if (!depthTex || doUpdate)
-    {
-      MTLTextureDescriptor* desc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat : self.depthPixelFormat
-                                                                                      width : texture.width
-                                                                                     height : texture.height
-                                                                                  mipmapped : NO];
-
-      desc.textureType = (self.sampleCount > 1) ? MTLTextureType2DMultisample : MTLTextureType2D;
-      desc.sampleCount = self.sampleCount;
-      desc.usage = MTLTextureUsageRenderTarget;
-#if _TARGET_IOS || _TARGET_TVOS
-      desc.storageMode = MTLStorageModeMemoryless;
-      desc.resourceOptions = MTLResourceStorageModeMemoryless;
-#else
-      desc.storageMode = MTLStorageModePrivate;
-      desc.resourceOptions = MTLResourceStorageModePrivate;
-#endif
-
-      depthTex = [self.device newTextureWithDescriptor : desc];
-    }
-  }
-
-  if (self.stencilPixelFormat != MTLPixelFormatInvalid)
-  {
-    BOOL doUpdate = (stencilTex.width != texture.width) ||
-                    (stencilTex.height != texture.height) ||
-                    (stencilTex.sampleCount != self.sampleCount);
-
-    if (!stencilTex || doUpdate)
-    {
-      MTLTextureDescriptor* desc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat : self.stencilPixelFormat
-                                                                                      width : texture.width
-                                                                                     height : texture.height
-                                                                                  mipmapped : NO];
-
-      desc.textureType = (self.sampleCount > 1) ? MTLTextureType2DMultisample : MTLTextureType2D;
-      desc.sampleCount = self.sampleCount;
-
-      stencilTex = [self.device newTextureWithDescriptor : desc];
-    }
-  }
 }
 
 -(id<MTLTexture>)getSavedBackBuffer
 {
   {
-    BOOL doUpdate = (savedBackTex.width != depthTex.width) ||
-                    (savedBackTex.height != depthTex.height) ||
-                    (savedBackTex.sampleCount != self.sampleCount);
+    G_ASSERT(backTex != nil);
+    BOOL doUpdate = (savedBackTex.width != backTex.width) ||
+                    (savedBackTex.height != backTex.height);
 
     if (!savedBackTex || doUpdate)
     {
+      if (savedBackTex)
+        drv3d_metal::render.queueTextureForDeletion(savedBackTex);
       MTLTextureDescriptor* desc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat : metalLayer.pixelFormat
-                                                                                      width : depthTex.width
-                                                                                     height : depthTex.height
+                                                                                      width : backTex.width
+                                                                                     height : backTex.height
                                                                                   mipmapped : NO];
 
-      desc.textureType = (self.sampleCount > 1) ? MTLTextureType2DMultisample : MTLTextureType2D;
-      desc.sampleCount = self.sampleCount;
+      desc.textureType = MTLTextureType2D;
 
       savedBackTex = [self.device newTextureWithDescriptor : desc];
     }
@@ -355,7 +245,7 @@ extern bool get_lowpower_mode();
   return savedBackTex;
 }
 
--(void)aquareDrawable
+-(void)acquireDrawable
 {
   if (currentDrawable == nil)
   {
@@ -374,8 +264,8 @@ extern bool get_lowpower_mode();
   @autoreleasepool
   {
     backTex = [currentDrawable.texture retain];
+    SRGBTex = [backTex newTextureViewWithPixelFormat : MTLPixelFormatBGRA8Unorm_sRGB];
   }
-  [self prepareBackBuffer : backTex];
 }
 
 -(void)presentDrawable: (id<MTLCommandBuffer>)commandBuffer
@@ -408,9 +298,9 @@ extern bool get_lowpower_mode();
   currentDrawable = NULL;
 
   drv3d_metal::render.queueTextureForDeletion(backTex);
+  drv3d_metal::render.queueTextureForDeletion(SRGBTex);
   backTex = NULL;
   SRGBTex = NULL;
-  msaaSRGBTex = NULL;
 }
 
 -(MTLPixelFormat) getLayerPixelFormat
@@ -462,5 +352,6 @@ extern bool get_lowpower_mode();
     metalLayer.colorspace = defaultColorSpace;
   }
   _int10HDRBuffer = _hdrEnabled = enable;
+  DEBUG_CTX("macOS: HDR is %s", enable ? "Enabled" : "disabled");
 }
 @end

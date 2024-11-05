@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "resourceUsage.h"
 
 #include <debug/dag_assert.h>
@@ -87,15 +89,6 @@ static constexpr StageMapEntry USAGE_STAGE_TO_BARRIER_DEST_STAGE[]{
   {Stage::RAYTRACE, RB_STAGE_RAYTRACE},
 };
 
-static constexpr StageMapEntry USAGE_STAGE_TO_BARRIER_SOURCE_STAGE[]{
-  {Stage::UNKNOWN, RB_NONE},
-  {Stage::PRE_RASTER, RB_SOURCE_STAGE_VERTEX},
-  {Stage::POST_RASTER, RB_SOURCE_STAGE_PIXEL},
-  {Stage::COMPUTE, RB_SOURCE_STAGE_COMPUTE},
-  {Stage::TRANSFER, RB_NONE},
-  {Stage::RAYTRACE, RB_SOURCE_STAGE_RAYTRACE},
-};
-
 static ResourceBarrier map_stage_flags(eastl::span<StageMapEntry const> map, Stage stage)
 {
   int result = RB_NONE;
@@ -107,19 +100,10 @@ static ResourceBarrier map_stage_flags(eastl::span<StageMapEntry const> map, Sta
   return static_cast<ResourceBarrier>(result);
 }
 
-static ResourceBarrier map_stage_flags_source(Stage stage) { return map_stage_flags(USAGE_STAGE_TO_BARRIER_SOURCE_STAGE, stage); }
-
 static ResourceBarrier map_stage_flags_dest(Stage stage) { return map_stage_flags(USAGE_STAGE_TO_BARRIER_DEST_STAGE, stage); }
-
 
 ResourceBarrier barrier_for_transition(intermediate::ResourceUsage usage_before, intermediate::ResourceUsage usage_after)
 {
-  if (usage_before.type == Usage::SHADER_RESOURCE && usage_before.access == Access::READ_WRITE &&
-      usage_after.type == Usage::SHADER_RESOURCE && usage_after.access == Access::READ_WRITE)
-  {
-    return RB_FLUSH_UAV | map_stage_flags_dest(usage_after.stage) | map_stage_flags_source(usage_before.stage);
-  }
-
   if (usage_before.access == usage_after.access &&
       usage_before.type == usage_after.type
       // NOTE: if we require less stages than previous usage,

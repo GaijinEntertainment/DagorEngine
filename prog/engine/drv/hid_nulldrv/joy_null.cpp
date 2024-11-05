@@ -1,6 +1,8 @@
-#include <humanInput/dag_hiJoystick.h>
-#include <humanInput/dag_hiGlobals.h>
-#include <humanInput/dag_hiCreate.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/hid/dag_hiJoystick.h>
+#include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiCreate.h>
 #include <string.h>
 
 using namespace HumanInput;

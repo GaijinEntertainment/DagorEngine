@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <gameRes/dag_collisionResource.h>
 #include <debug/dag_debug3d.h>
 #include <debug/dag_textMarks.h>

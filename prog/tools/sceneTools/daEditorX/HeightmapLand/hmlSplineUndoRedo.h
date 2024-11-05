@@ -1,4 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
 #include "hmlSplineObject.h"
+
+void on_object_entity_name_changed(RenderableEditableObject &obj);
 
 class UndoRefineSpline : public UndoRedoObject
 {
@@ -394,6 +399,8 @@ public:
         s->points[0]->resetSplineClass();
         s->markAssetChanged(0);
       }
+
+      on_object_entity_name_changed(*s);
     }
     else
     {

@@ -1,13 +1,25 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include <EASTL/vector_map.h>
 #include <generic/dag_tab.h>
-#include <3d/dag_drv3dCmd.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>
 #include <debug/dag_debug.h>
 #include <math/integer/dag_IPoint2.h>
+#include <convertHelper.h>
 
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_vecMathCompatibility.h>
+
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_shader.h>
+#include <drv/3d/dag_texture.h>
 
 #include "driver.h"
 #include "texture.h"
@@ -55,43 +67,6 @@ ID3D11DepthStencilView *getDepthStencilView(const Driver3dRenderTarget &rtState)
     tex->wasUsed = 1;
 #endif
   }
-  else if (rtState.color[0].tex)
-  {
-    BaseTex *colorTex = (BaseTex *)rtState.color[0].tex;
-    int colorTexWidth = colorTex->width >> rtState.color[0].level;
-    int colorTexHeight = colorTex->height >> rtState.color[0].level;
-
-    for (unsigned int depthNo = 0; depthNo < g_driver_state.depthTextures.size(); depthNo++)
-    {
-      BaseTex *depthTex = (BaseTex *)g_driver_state.depthTextures[depthNo];
-      if (depthTex->width == colorTexWidth && depthTex->height == colorTexHeight &&
-          (depthTex->cflg & TEXCF_SAMPLECOUNT_MASK) == (colorTex->cflg & TEXCF_SAMPLECOUNT_MASK) &&
-          ((depthTex->restype() == RES3D_CUBETEX) == (colorTex->restype() == RES3D_CUBETEX) ||
-            featureLevelsSupported > D3D_FEATURE_LEVEL_10_0))
-      {
-        tex = depthTex;
-        break;
-      }
-    }
-
-    if (!tex)
-    {
-      if (colorTex->restype() == RES3D_CUBETEX && featureLevelsSupported <= D3D_FEATURE_LEVEL_10_0)
-      {
-        g_driver_state.depthTextures.push_back(d3d::create_cubetex(colorTexWidth,
-          TEXFMT_DEPTH24 | TEXCF_RTARGET | (colorTex->cflg & TEXCF_SAMPLECOUNT_MASK), 1, "cubedepth"));
-      }
-      else
-      {
-        g_driver_state.depthTextures.push_back(d3d::create_tex(NULL, colorTexWidth, colorTexHeight,
-          TEXFMT_DEPTH24 | TEXCF_RTARGET | (colorTex->cflg & TEXCF_SAMPLECOUNT_MASK), 1, "depth"));
-      }
-
-      tex = (BaseTex *)(g_driver_state.depthTextures.back());
-    }
-  }
-  else
-    tex = (BaseTex *)g_driver_state.backBufferDepthTex;
 
   G_ASSERT(tex != NULL);
   bool depthReadOnly = featureLevelsSupported >= D3D_FEATURE_LEVEL_11_0 && rtState.isDepthReadOnly();
@@ -104,7 +79,7 @@ bool init_rendertargets(RenderState &rs)
 {
   rs.nextRtState.reset();
   rs.nextRtState.setBackbufColor();
-  rs.nextRtState.setBackbufDepth();
+  rs.nextRtState.removeDepth();
   rs.currRtState = rs.nextRtState;
   return true;
 }
@@ -130,7 +105,7 @@ void flush_rendertargets(RenderState &rs)
 
     if ((rt.used & Driver3dRenderTarget::TOTAL_MASK) == 0 && !rs.texFetchState.uavState[STAGE_PS].uavsUsed)
     {
-      logerr("no render target set!");
+      D3D_ERROR("no render target set!");
       // TODO correct error
       return;
     }
@@ -220,7 +195,8 @@ void flush_null_rendertargets(RenderState &rs)
   if ((rs.rtModified || rs.texFetchState.uavState[STAGE_PS].uavModifiedMask) && rs.maxUsedTarget >= -1)
   {
     ID3D11RenderTargetView *color[Driver3dRenderTarget::MAX_SIMRT];
-    memset(color, 0, sizeof(color));
+    for (int i = 0; i <= rs.maxUsedTarget; ++i)
+      color[i] = nullptr;
 
     ContextAutoLock contextLock;
     dx_context->OMSetRenderTargets(rs.maxUsedTarget + 1, color, NULL);
@@ -233,7 +209,8 @@ void flush_null_cs_rendertargets(RenderState &rs)
   if (rs.maxUsedTarget >= -1) // normal rt is up to -1 AND depth. so <-1 means we already had called flush_null_rendertargets
   {
     ID3D11RenderTargetView *color[Driver3dRenderTarget::MAX_SIMRT];
-    memset(color, 0, sizeof(color));
+    for (int i = 0; i <= rs.maxUsedTarget; ++i)
+      color[i] = nullptr;
 
     ContextAutoLock contextLock;
     dx_context->OMSetRenderTargets(rs.maxUsedTarget + 1, color, NULL);
@@ -251,21 +228,12 @@ void resolve_msaa_and_gen_mips(const Driver3dRenderTarget &rtState)
   if (lastFrameDip == g_render_state.currentFrameDip)
     return;
   lastFrameDip = g_render_state.currentFrameDip;
-  if (rtState.isColorUsed())
+
+  for (auto mrtNo : LsbVisitor{rtState.used & Driver3dRenderTarget::COLOR_MASK})
   {
-    for (int mrtNo = 0; mrtNo < Driver3dRenderTarget::MAX_SIMRT; mrtNo++)
+    if (auto tex = (BaseTex *)rtState.color[mrtNo].tex; tex && tex->tex.resolvedTex)
     {
-      if (rtState.isColorUsed(mrtNo))
-      {
-        BaseTexture *btex = rtState.color[mrtNo].tex;
-        if (btex)
-        {
-          BaseTex *tex = (BaseTex *)btex;
-          G_ASSERT(tex);
-          if (tex->tex.resolvedTex)
-            tex->dirtyRt |= (1 << (rtState.color[mrtNo].face));
-        }
-      }
+      tex->dirtyRt |= (1 << (rtState.color[mrtNo].face));
     }
   }
 }
@@ -290,6 +258,21 @@ void remove_view_from_uav(ID3D11UnorderedAccessView *view)
     for (const auto &uaView : uav.uavs)
       if (uaView == view)
         d3d::set_rwtex(&uav - resources.data(), &uaView - uav.uavs.data(), nullptr, 0, 0);
+}
+
+void remove_view_from_uav_ignore_slot(int shader_stage, int ignore_slot, ID3D11UnorderedAccessView *view)
+{
+  if (!view)
+    return;
+  ResAutoLock resLock;
+  const auto &resources = g_render_state.texFetchState.uavState;
+  const auto &uav = resources[shader_stage];
+  for (int slot = 0; slot < uav.uavs.size(); slot++)
+  {
+    const auto &uaView = uav.uavs[slot];
+    if (uaView == view && ignore_slot != slot)
+      d3d::set_rwtex(shader_stage, slot, nullptr, 0, 0);
+  }
 }
 
 void remove_buffer_from_slot(Sbuffer *buf)
@@ -408,7 +391,7 @@ bool d3d::set_depth(BaseTexture *tex, DepthAccess access)
 #if DAGOR_DBGLEVEL > 0
     if (!is_depth_format_flg(((BaseTex *)tex)->cflg))
     {
-      logerr("can't set_depth with non depth texture <%s>", ((BaseTex *)tex)->getResName());
+      D3D_ERROR("can't set_depth with non depth texture <%s>", ((BaseTex *)tex)->getResName());
       return false;
     }
 #endif
@@ -435,7 +418,7 @@ bool d3d::set_depth(BaseTexture *tex, int face, DepthAccess access)
 #if DAGOR_DBGLEVEL > 0
     if (!is_depth_format_flg(bt->cflg))
     {
-      logerr("can't set_depth with non depth texture");
+      D3D_ERROR("can't set_depth with non depth texture");
       return false;
     }
 #endif
@@ -445,15 +428,6 @@ bool d3d::set_depth(BaseTexture *tex, int face, DepthAccess access)
       remove_texture_from_samplers(tex);
     rs.nextRtState.setDepth(tex, face, access == DepthAccess::SampledRO);
   }
-  return true;
-}
-
-bool d3d::set_backbuf_depth()
-{
-  RenderState &rs = g_render_state;
-  rs.modified = rs.rtModified = true;
-  rs.viewModified = VIEWMOD_FULL;
-  rs.nextRtState.setBackbufDepth();
   return true;
 }
 
@@ -482,12 +456,12 @@ bool d3d::set_render_target(int rt_index, BaseTexture *tex, int level)
   uint32_t cflg = bt->cflg;
   if (!(cflg & TEXCF_RTARGET))
   {
-    logerr("can't set_render_target with non rtarget texture %s", tex->getTexName());
+    D3D_ERROR("can't set_render_target with non rtarget texture %s", tex->getTexName());
     return false;
   }
   if (is_depth_format_flg(cflg))
   {
-    logerr("can't set_render_target with depth texture %s, use set_depth instead", tex->getTexName());
+    D3D_ERROR("can't set_render_target with depth texture %s, use set_depth instead", tex->getTexName());
     return false;
   }
 
@@ -495,10 +469,6 @@ bool d3d::set_render_target(int rt_index, BaseTexture *tex, int level)
     remove_texture_from_samplers(tex);
 
   rs.nextRtState.setColor(rt_index, tex, level, 0);
-
-  if (rs.nextRtState.isBackBufferDepth())
-    rs.nextRtState.removeDepth();
-
 
   if (rt_index == 0)
   {
@@ -532,12 +502,12 @@ bool d3d::set_render_target(int rt_index, BaseTexture *tex, int fc, int level)
     bt->clear();
   if (!(cflg & TEXCF_RTARGET))
   {
-    logerr("can't set_render_target with non rtarget texture %s", tex->getTexName());
+    D3D_ERROR("can't set_render_target with non rtarget texture %s", tex->getTexName());
     return false;
   }
   if (is_depth_format_flg(cflg))
   {
-    logerr("can't set_render_target with depth texture %s, use set_depth instead", tex->getTexName());
+    D3D_ERROR("can't set_render_target with depth texture %s, use set_depth instead", tex->getTexName());
     return false;
   }
 
@@ -590,6 +560,54 @@ bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, int lev)
   return true;
 }
 
+static void clear_slow(int write_mask, float (&color_value)[4], float z_value, uint32_t stencil_value)
+{
+  d3d::set_pixel_shader(g_default_clear_ps);
+  d3d::set_vertex_shader(g_default_clear_vs);
+  d3d::setvdecl(g_default_clear_vdecl);
+
+  if (auto ins = clear_view_states.insert(write_mask); ins.second)
+  {
+    shaders::RenderState state;
+    state.independentBlendEnabled = 0;
+    for (auto &blendParam : state.blendParams)
+    {
+      blendParam.ablend = 0;
+      blendParam.sepablend = 0;
+    }
+    state.ztest = static_cast<bool>(write_mask & CLEAR_ZBUFFER);
+    state.zwrite = static_cast<bool>(write_mask & CLEAR_ZBUFFER);
+    state.zFunc = D3D11_COMPARISON_ALWAYS;
+    state.zBias = 0.0f;
+    state.slopeZBias = 0.0f;
+    state.colorWr = (write_mask & CLEAR_TARGET) ? WRITEMASK_ALL : 0;
+    state.cull = CULL_NONE;
+    if (write_mask & CLEAR_STENCIL)
+    {
+      state.stencil.func = CMPF_ALWAYS;
+      state.stencil.readMask = state.stencil.writeMask = 0xFF;
+      state.stencilRef = stencil_value;
+      state.stencil.fail = state.stencil.pass = state.stencil.zFail = STNCLOP_REPLACE;
+    }
+    ins.first->second = d3d::create_render_state(state);
+  }
+  d3d::setstencil(stencil_value);
+  d3d::set_render_state(clear_view_states[write_mask]);
+
+  struct ClearVertex
+  {
+    Point3 pos;
+    Point4 color;
+  } tri[3];
+
+  tri[0].pos = Point3(-1.f, 1.f, z_value);
+  tri[1].pos = Point3(-1.f, -3.f, z_value);
+  tri[2].pos = Point3(3.f, 1.f, z_value);
+  tri[0].color = tri[1].color = tri[2].color = Point4(color_value, Point4::CtorPtrMark{});
+
+  d3d::draw_up(PRIM_TRISTRIP, 1, tri, sizeof(ClearVertex));
+}
+
 bool d3d::clearview(int write_mask, E3DCOLOR c, float z_value, uint32_t stencil_value)
 {
   CHECK_MAIN_THREAD();
@@ -610,17 +628,19 @@ bool d3d::clearview(int write_mask, E3DCOLOR c, float z_value, uint32_t stencil_
 
   if (fastClear)
   {
-    if (rs.currRtState.isColorUsed() && (write_mask & CLEAR_TARGET))
+    if (write_mask & CLEAR_TARGET)
     {
-      for (int i = 0; i < Driver3dRenderTarget::MAX_SIMRT; i++)
+      float color[4] = {
+        normalizeColor(c.r),
+        normalizeColor(c.g),
+        normalizeColor(c.b),
+        normalizeColor(c.a),
+      };
+      for (auto i : LsbVisitor{rs.currRtState.used & Driver3dRenderTarget::COLOR_MASK})
       {
-        if (rs.currRtState.isColorUsed(i))
-        {
-          ID3D11RenderTargetView *rtView = getRenderTargetView(rs.currRtState, i);
-          ContextAutoLock contextLock;
-          float color[4] = {c.r / 255.0, c.g / 255.0, c.b / 255.0, c.a / 255.0};
-          dx_context->ClearRenderTargetView(rtView, color);
-        }
+        ID3D11RenderTargetView *rtView = getRenderTargetView(rs.currRtState, i);
+        ContextAutoLock contextLock;
+        dx_context->ClearRenderTargetView(rtView, color);
       }
     }
 
@@ -635,55 +655,18 @@ bool d3d::clearview(int write_mask, E3DCOLOR c, float z_value, uint32_t stencil_
   }
   else
   {
+    float color[4] = {
+      normalizeColor(c.r),
+      normalizeColor(c.g),
+      normalizeColor(c.b),
+      normalizeColor(c.a),
+    };
+
     ResAutoLock resLock;
     StretchRectMiniRenderStateUnsafe savedRs;
     savedRs.store();
 
-    d3d::set_pixel_shader(g_default_clear_ps);
-    d3d::set_vertex_shader(g_default_clear_vs);
-    d3d::setvdecl(g_default_clear_vdecl);
-
-    if (auto ins = clear_view_states.insert(write_mask); ins.second)
-    {
-      shaders::RenderState state;
-      state.independentBlendEnabled = 0;
-      for (auto &blendParam : state.blendParams)
-      {
-        blendParam.ablend = 0;
-        blendParam.sepablend = 0;
-      }
-      state.ztest = static_cast<bool>(write_mask & CLEAR_ZBUFFER);
-      state.zwrite = static_cast<bool>(write_mask & CLEAR_ZBUFFER);
-      state.zFunc = D3D11_COMPARISON_ALWAYS;
-      state.zBias = 0.0f;
-      state.slopeZBias = 0.0f;
-      state.colorWr = (write_mask & CLEAR_TARGET) ? WRITEMASK_ALL : 0;
-      state.cull = CULL_NONE;
-      if (write_mask & CLEAR_STENCIL)
-      {
-        state.stencil.func = CMPF_ALWAYS;
-        state.stencil.readMask = state.stencil.writeMask = 0xFF;
-        state.stencilRef = stencil_value;
-        state.stencil.fail = state.stencil.pass = state.stencil.zFail = STNCLOP_REPLACE;
-      }
-      ins.first->second = d3d::create_render_state(state);
-    }
-    d3d::setstencil(stencil_value);
-    d3d::set_render_state(clear_view_states[write_mask]);
-
-    struct ClearVertex
-    {
-      Point3 pos;
-      Point4 color;
-    } tri[3];
-
-    tri[0].pos = Point3(-1.f, 1.f, z_value);
-    tri[1].pos = Point3(-1.f, -3.f, z_value);
-    tri[2].pos = Point3(3.f, 1.f, z_value);
-    tri[0].color = tri[1].color = tri[2].color =
-      Point4(normalizeColor(c.r), normalizeColor(c.g), normalizeColor(c.b), normalizeColor(c.a));
-
-    d3d::draw_up(PRIM_TRISTRIP, 1, tri, sizeof(ClearVertex));
+    clear_slow(write_mask, color, z_value, stencil_value);
 
     savedRs.restore();
   }
@@ -691,6 +674,62 @@ bool d3d::clearview(int write_mask, E3DCOLOR c, float z_value, uint32_t stencil_
   return true;
 }
 
+#include <renderPassGeneric.cpp.inl>
+
+void d3d::clear_render_pass(const RenderPassTarget &target, const RenderPassArea &area, const RenderPassBind &bind)
+{
+  TextureInfo info;
+  target.resource.tex->getinfo(info, target.resource.mip_level);
+
+  float colorClearValue[4];
+  if (bind.slot != RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL)
+  {
+    resource_clear_value_to_float4(info.cflg, target.clearValue, colorClearValue);
+  }
+
+  const bool fastClear = area.top == 0 && area.left == 0 && area.height == info.h && area.width == info.w;
+  if (fastClear)
+  {
+    const bool isDepth = bind.slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL;
+    BaseTex *texture = (BaseTex *)target.resource.tex;
+    ID3D11View *view =
+      texture->getRtView(target.resource.layer, target.resource.mip_level, 1, isDepth ? false : g_render_state.srgb_bb_write);
+
+    if (bind.slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL)
+    {
+      ContextAutoLock contextLock;
+      dx_context->ClearDepthStencilView((ID3D11DepthStencilView *)view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
+        target.clearValue.asDepth, target.clearValue.asStencil);
+    }
+    else
+    {
+      ContextAutoLock contextLock;
+      dx_context->ClearRenderTargetView((ID3D11RenderTargetView *)view, colorClearValue);
+    }
+  }
+  else
+  {
+    ResAutoLock resLock;
+    StretchRectMiniRenderStateUnsafe savedRs;
+    savedRs.store();
+
+    int writeMask;
+    if (bind.slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL)
+    {
+      d3d::set_depth(target.resource.tex, DepthAccess::RW);
+      writeMask = CLEAR_STENCIL | CLEAR_ZBUFFER;
+    }
+    else
+    {
+      d3d::set_render_target(target.resource.tex, 0);
+      writeMask = CLEAR_TARGET;
+    }
+    d3d::setview(area.left, area.top, area.width, area.height, area.minZ, area.maxZ);
+    clear_slow(writeMask, colorClearValue, target.clearValue.asDepth, target.clearValue.asStencil);
+
+    savedRs.restore();
+  }
+}
 
 static void stretch_prepare(BaseTexture *from)
 {
@@ -698,7 +737,9 @@ static void stretch_prepare(BaseTexture *from)
   d3d::set_vertex_shader(g_default_copy_vs);
   d3d::setvdecl(g_default_pos_vdecl);
 
-  d3d::set_tex(STAGE_PS, 0, from);
+  d3d::set_tex(STAGE_PS, 0, from, false);
+  G_ASSERT(g_default_clamp_sampler != d3d::INVALID_SAMPLER_HANDLE);
+  d3d::set_sampler(STAGE_PS, 0, g_default_clamp_sampler);
   if (!stretch_prepare_render_state)
   {
     shaders::RenderState state;
@@ -824,7 +865,7 @@ bool d3d::stretch_rect(BaseTexture *from, BaseTexture *to, RectInt *from_rect, R
   {
     if (from->restype() != RES3D_TEX || to->restype() != RES3D_TEX)
     {
-      debug_ctx("wrong tex formats");
+      DEBUG_CTX("wrong tex formats");
       rs.restore();
       return false;
     }
@@ -842,7 +883,7 @@ bool d3d::stretch_rect(BaseTexture *from, BaseTexture *to, RectInt *from_rect, R
 
     if (from->restype() != RES3D_TEX)
     {
-      debug_ctx("n/a");
+      DEBUG_CTX("n/a");
       rs.restore();
       return false;
     }
@@ -856,7 +897,7 @@ bool d3d::stretch_rect(BaseTexture *from, BaseTexture *to, RectInt *from_rect, R
   {
     if (from->restype() != RES3D_TEX)
     {
-      debug_ctx("n/a");
+      DEBUG_CTX("n/a");
       rs.restore();
       return false;
     }
@@ -906,7 +947,7 @@ bool d3d::stretch_rect(BaseTexture *from, BaseTexture *to, RectInt *from_rect, R
     if (try_copy_tex(g_driver_state.backBufferColorTex, to, from_rect, to_rect))
       return true;
     return stretch_rect(g_driver_state.backBufferColorTex, to, from_rect, to_rect);
-    /*logerr("n/a: can not stretch from backbuffer of format %d to texture of format %d",
+    /*D3D_ERROR("n/a: can not stretch from backbuffer of format %d to texture of format %d",
       getbasetex(g_driver_state.backBufferColorTex)->format, getbasetex(to)->format);
     debug_dump_stack("d3d::stretch_rect()");
     return false;*/
@@ -932,9 +973,10 @@ bool d3d::copy_from_current_render_target(BaseTexture *to_tex)
 
 Texture *d3d::get_backbuffer_tex() { return g_driver_state.backBufferColorTex; }
 Texture *d3d::get_secondary_backbuffer_tex() { return nullptr; }
-Texture *d3d::get_backbuffer_tex_depth() { return g_driver_state.backBufferDepthTex; }
 
 /*bool d3d::copy_from_current_render_target(BaseTexture *to_tex)
 {
    return d3d::stretch_rect(nextRtState.color[0].tex, to_tex);
 }*/
+
+#include <legacyCaptureImpl.cpp.inl>

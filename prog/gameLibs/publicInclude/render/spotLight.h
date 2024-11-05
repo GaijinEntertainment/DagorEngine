@@ -1,7 +1,6 @@
 //
 // Dagor Engine 6.5 - Game Libraries
-// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
-// (for conditions of use see prog/license.txt)
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
 
@@ -16,25 +15,30 @@ struct SpotLight
 {
   alignas(16) Point4 pos_radius;
   alignas(16) Color4 color_atten;
-  alignas(16) Point4 dir_angle;
+  alignas(16) Point4 dir_tanHalfAngle; // .xyz: normalized dir, w: tan(angle/2)
   alignas(16) Point4 texId_scale;
   float culling_radius;
+  bool shadows = false;
   bool contactShadows = false;
+  bool requiresCullRadiusOptimization = true;
   SpotLight() : culling_radius(-1.0f), texId_scale(-1, 0, 0, 0) {}
-  SpotLight(const Point3 &p, const Color3 &col, float rad, float att, const Point3 &dir, float angle, bool contact_shadows) :
+  SpotLight(const Point3 &p, const Color3 &col, float rad, float att, const Point3 &dir, float angle, bool contact_shadows,
+    bool shadows) :
     pos_radius(p.x, p.y, p.z, rad),
     color_atten(col.r, col.g, col.b, att),
-    dir_angle(dir.x, dir.y, dir.z, angle),
+    dir_tanHalfAngle(dir.x, dir.y, dir.z, angle),
     texId_scale(-1, 0, 0, 0),
     culling_radius(-1.0f),
+    shadows(shadows),
     contactShadows(contact_shadows)
   {}
-  SpotLight(const Point3 &p, const Color3 &col, float rad, float att, const Point3 &dir, float angle, bool contact_shadows, int tex,
-    float texture_scale, bool tex_rotation) :
+  SpotLight(const Point3 &p, const Color3 &col, float rad, float att, const Point3 &dir, float angle, bool contact_shadows,
+    bool shadows, int tex, float texture_scale, bool tex_rotation) :
     pos_radius(p.x, p.y, p.z, rad),
     color_atten(col.r, col.g, col.b, att),
-    dir_angle(dir.x, dir.y, dir.z, angle),
+    dir_tanHalfAngle(dir.x, dir.y, dir.z, angle),
     culling_radius(-1.0f),
+    shadows(shadows),
     contactShadows(contact_shadows)
   {
     setTexture(tex, texture_scale, tex_rotation);
@@ -58,7 +62,7 @@ struct SpotLight
   {
     pos_radius = Point4(0, 0, 0, 0);
     color_atten = Color4(0, 0, 0, 0);
-    dir_angle = Point4(0, 0, 1, 1);
+    dir_tanHalfAngle = Point4(0, 0, 1, 1);
     texId_scale = Point4(-1, 0, 0, 0);
   }
   static SpotLight create_empty()
@@ -92,15 +96,15 @@ struct SpotLight
     }
     return ret;
   }
-  float getCosHalfAngle() const { return 1. / sqrtf(1 + dir_angle.w * dir_angle.w); }
+  float getCosHalfAngle() const { return 1. / sqrtf(1 + dir_tanHalfAngle.w * dir_tanHalfAngle.w); }
   // cone bounding sphere; cosHalfAngle can be precalculated to speed up this process
   vec4f getBoundingSphere(float cosHalfAngle) const
   {
     // TODO: further vectorize this (incl getCosHalfAngle()/get_bounding_sphere_description())
     float lightRadius = culling_radius < 0 ? pos_radius.w : culling_radius;
-    float sinHalfAngle = dir_angle.w * cosHalfAngle;
+    float sinHalfAngle = dir_tanHalfAngle.w * cosHalfAngle;
     BoundingSphereDescriptor desc = get_bounding_sphere_description(lightRadius, sinHalfAngle, cosHalfAngle);
-    vec4f center = v_madd(v_ld(&dir_angle.x), v_splats(desc.boundingSphereOffset), v_ld(&pos_radius.x));
+    vec4f center = v_madd(v_ld(&dir_tanHalfAngle.x), v_splats(desc.boundingSphereOffset), v_ld(&pos_radius.x));
     return v_perm_xyzd(center, v_rot_1(v_set_x(desc.boundSphereRadius)));
   }
   // cone bounding sphere

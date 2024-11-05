@@ -1,4 +1,6 @@
-#include <3d/dag_drv3d.h>
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <drv/3d/dag_buffers.h>
 #include <3d/dag_texMgr.h>
 
 Sbuffer *acquire_managed_buf(D3DRESID id)

@@ -1,7 +1,9 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
 #include <EASTL/fixed_vector.h>
 #include <EASTL/memory.h>
+#include <EASTL/unique_ptr.h>
 #include <EASTL/algorithm.h>
 #include "vulkan_device.h"
 #include "pipeline/descriptor_table.h"
@@ -37,17 +39,10 @@ private:
         // need to scale by POOL_SIZE
         t.descriptorCount *= POOL_SIZE;
       }
-      uint32_t poolSize = POOL_SIZE;
-      if (!compositionCount)
-      {
-        composition[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        composition[0].descriptorCount = 1;
-        compositionCount = 1;
-        poolSize = 1;
-      }
+      G_ASSERTF(compositionCount, "vulkan: shader without binds trying to create descriptor sets");
       VkDescriptorPoolCreateInfo dpci = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
       dpci.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-      dpci.maxSets = poolSize;
+      dpci.maxSets = POOL_SIZE;
       dpci.poolSizeCount = compositionCount;
       dpci.pPoolSizes = composition;
       VULKAN_EXIT_ON_FAIL(device.vkCreateDescriptorPool(device.get(), &dpci, NULL, ptr(pool)));
@@ -56,10 +51,10 @@ private:
       VulkanDescriptorSetLayoutHandle layoutList[POOL_SIZE];
       for (auto &&l : layoutList)
         l = layout;
-      freeSets.resize(poolSize);
+      freeSets.resize(POOL_SIZE);
       VkDescriptorSetAllocateInfo dsai = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
       dsai.descriptorPool = pool;
-      dsai.descriptorSetCount = poolSize;
+      dsai.descriptorSetCount = POOL_SIZE;
       dsai.pSetLayouts = ary(layoutList);
       VULKAN_EXIT_ON_FAIL(device.vkAllocateDescriptorSets(device.get(), &dsai, ary(freeSets.data())));
     }
@@ -97,13 +92,29 @@ private:
   VulkanDescriptorSetLayoutHandle layout;
   eastl::vector<eastl::unique_ptr<PoolInfo>> pools;
   eastl::vector<SetStorageEntry> sets;
-  eastl::vector<VulkanDescriptorSetHandle> setRings[FRAME_FRAME_BACKLOG_LENGTH];
+  eastl::vector<VulkanDescriptorSetHandle> setRings[GPU_TIMELINE_HISTORY_SIZE];
+#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
+  VulkanDescriptorSetHandle lastUnnamedSet;
+#endif
   uint32_t ringOffset = 0;
   uint32_t ringIndex = 0;
   size_t lastAbsFrameIndex = 0;
 
 public:
+#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
+  VulkanDescriptorSetHandle getSetForNaming()
+  {
+    VulkanDescriptorSetHandle ret = lastUnnamedSet;
+    lastUnnamedSet = VulkanNullHandle();
+    return ret;
+  }
+#else
+  VulkanDescriptorSetHandle getSetForNaming() { return VulkanDescriptorSetHandle(); }
+#endif
+
   inline VulkanDescriptorSetLayoutHandle getLayout() const { return layout; }
+
+  static VulkanDescriptorSetHandle dummyHandle;
 
   void dumpLogGeneralInfo()
   {
@@ -343,6 +354,9 @@ public:
 
     auto set = pool->allocate();
     sets.emplace_back(set, pool);
+#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
+    lastUnnamedSet = set;
+#endif
     return set;
   }
 
@@ -350,11 +364,16 @@ public:
   {
     G_ASSERTF(!is_null(layout), "vulkan: used uninitialized descriptor set");
 
+    // if shader is not using any binds, return dummy set and filter it out later on
+    // we need to return some dummy set for tracking to work properly
+    if (header.descriptorCountsCount == 0)
+      return dummyHandle;
+
     // change ring every new abs frame index to avoid ring growth
     if (lastAbsFrameIndex != abs_frame_index)
     {
       ringOffset = 0;
-      ringIndex = (ringIndex + 1) % FRAME_FRAME_BACKLOG_LENGTH;
+      ringIndex = (ringIndex + 1) % GPU_TIMELINE_HISTORY_SIZE;
       lastAbsFrameIndex = abs_frame_index;
     }
 

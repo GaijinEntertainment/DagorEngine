@@ -253,7 +253,7 @@ shader ssgi_temporal_scene_voxels_create_cs {
     [numthreads( 1, 1, 1 )]
     void main()
     {
-      storeBuffer(dispatchIndirectBuffer, 0 * 4, loadBuffer(dispatchIndirectBuffer, 3 * 4) / MARK_VOXELS_WARP_SIZE); // (numVoxels + MARK_VOXELS_WARP_SIZE-1)/MARK_VOXELS_WARP_SIZE;
+      storeBuffer(dispatchIndirectBuffer, 0 * 4, loadBuffer(dispatchIndirectBuffer, 3 * 4) / MARK_VOXELS_WARP_SIZE);
       storeBuffer(dispatchIndirectBuffer, 1 * 4, 1);
       storeBuffer(dispatchIndirectBuffer, 2 * 4, 1);
       storeBuffer(dispatchIndirectBuffer, 3 * 4, 0);

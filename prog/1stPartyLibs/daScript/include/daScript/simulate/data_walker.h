@@ -13,6 +13,8 @@ namespace das {
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable:4100)    // unreferenced formal parameter
+#elif defined(__EDG__)
+#pragma diag_suppress 826
 #elif defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -25,9 +27,10 @@ namespace das {
     // we doing what?
         class Context * context = nullptr;
         bool reading = false;
-        bool cancel = false;
+        bool _cancel = false;
     // helpers
         void error ( const char * message );
+        virtual bool cancel () { return _cancel; }
     // data structures
         virtual bool canVisitArray ( Array * ar, TypeInfo * ti ) { return true; }
         virtual bool canVisitArrayData ( TypeInfo * ti, uint32_t count ) { return true; }
@@ -109,6 +112,7 @@ namespace das {
         virtual void WalkEnumeration ( int32_t &, EnumInfo * ) {}
         virtual void WalkEnumeration8  ( int8_t &, EnumInfo * ) {}
         virtual void WalkEnumeration16 ( int16_t &, EnumInfo * ) {}
+        virtual void WalkEnumeration64 ( int64_t &, EnumInfo * ) {}
         virtual void FakeContext ( Context * ) {}
         virtual void FakeLineInfo ( LineInfo * ) {}
     // walk
@@ -128,6 +132,8 @@ namespace das {
 
 #if defined(_MSC_VER)
 #pragma warning(pop)
+#elif defined(__EDG__)
+#pragma diag_default 826
 #elif defined(__GNUC__)
 #pragma GCC diagnostic pop
 #elif defined(__clang__)
